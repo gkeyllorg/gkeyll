@@ -6,7 +6,8 @@
 #include <gkyl_gr_minkowski.h>
 #include <gkyl_gr_blackhole.h>
 
-void test_gr_euler_tetrad_basic_minkowski_ho()
+void
+test_gr_euler_tetrad_basic_minkowski_ho()
 {
   double gas_gamma = 5.0 / 3.0;
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
@@ -274,7 +275,8 @@ void test_gr_euler_tetrad_basic_minkowski_ho()
   gkyl_gr_spacetime_release(spacetime);
 }
 
-void test_gr_euler_tetrad_basic_schwarzschild_ho()
+void
+test_gr_euler_tetrad_basic_schwarzschild_ho()
 {
   double gas_gamma = 5.0 / 3.0;
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
@@ -546,7 +548,8 @@ void test_gr_euler_tetrad_basic_schwarzschild_ho()
   gkyl_gr_spacetime_release(spacetime);
 }
 
-void test_gr_euler_tetrad_basic_kerr_ho()
+void
+test_gr_euler_tetrad_basic_kerr_ho()
 {
   double gas_gamma = 5.0 / 3.0;
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, 0.1, 0.9, 0.0, 0.0, 0.0);
@@ -818,7 +821,8 @@ void test_gr_euler_tetrad_basic_kerr_ho()
   gkyl_gr_spacetime_release(spacetime);
 }
 
-void test_gr_euler_tetrad_waves_minkowski_ho()
+void
+test_gr_euler_tetrad_waves_minkowski_ho()
 {
   double gas_gamma = 5.0 / 3.0;
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
@@ -1188,7 +1192,8 @@ void test_gr_euler_tetrad_waves_minkowski_ho()
   gkyl_gr_spacetime_release(spacetime);
 }
 
-void test_gr_euler_tetrad_waves_schwarzschild_ho()
+void
+test_gr_euler_tetrad_waves_schwarzschild_ho()
 {
   double gas_gamma = 5.0 / 3.0;
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
@@ -1563,7 +1568,8 @@ void test_gr_euler_tetrad_waves_schwarzschild_ho()
   gkyl_gr_spacetime_release(spacetime);
 }
 
-void test_gr_euler_tetrad_waves_kerr_ho()
+void
+test_gr_euler_tetrad_waves_kerr_ho()
 {
   double gas_gamma = 5.0 / 3.0;
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, 0.1, 0.9, 0.0, 0.0, 0.0);

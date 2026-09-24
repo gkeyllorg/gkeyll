@@ -409,194 +409,199 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_pressure_kern_list
     {NULL, canonical_pb_vars_pressure_3x3v_tensor_p1, NULL} // 5
 };
 
-GKYL_CU_D static canonical_pb_alpha_surf_t choose_canonical_pb_alpha_surf_kern(
+GKYL_CU_D static canonical_pb_alpha_surf_t
+choose_canonical_pb_alpha_surf_kern(
   enum gkyl_basis_type b_type, int dir, int cv_index, int cdim, int vdim, int poly_order
 )
 {
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    // Verify that the poly-order is 2 for ser case
-    assert(poly_order == 2);
-    if (dir == 0) {
-      return ser_canonical_pb_alpha_surfx_kernels[cv_index].kernels[poly_order];
-    } else if (dir == 1) {
-      return ser_canonical_pb_alpha_surfy_kernels[cv_index].kernels[poly_order];
-    } else if (dir == 2) {
-      return ser_canonical_pb_alpha_surfz_kernels[cv_index].kernels[poly_order];
-    } else {
-      return NULL;
-    }
-    break;
-  case GKYL_BASIS_MODAL_HYBRID:
-    // Verify that the poly-order is 1 for hybrid case
-    assert(poly_order == 1);
-    if (dir == 0) {
-      return ser_canonical_pb_alpha_surfx_kernels[cv_index].kernels[poly_order];
-    } else if (dir == 1) {
-      return ser_canonical_pb_alpha_surfy_kernels[cv_index].kernels[poly_order];
-    } else if (dir == 2) {
-      return ser_canonical_pb_alpha_surfz_kernels[cv_index].kernels[poly_order];
-    } else {
-      return NULL;
-    }
-    break;
-  case GKYL_BASIS_MODAL_TENSOR:
-    if (dir == 0) {
-      return tensor_canonical_pb_alpha_surfx_kernels[cv_index].kernels[poly_order];
-    } else if (dir == 1) {
-      return tensor_canonical_pb_alpha_surfy_kernels[cv_index].kernels[poly_order];
-    } else if (dir == 2) {
-      return tensor_canonical_pb_alpha_surfz_kernels[cv_index].kernels[poly_order];
-    } else {
-      return NULL;
-    }
-    break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      // Verify that the poly-order is 2 for ser case
+      assert(poly_order == 2);
+      if (dir == 0) {
+        return ser_canonical_pb_alpha_surfx_kernels[cv_index].kernels[poly_order];
+      } else if (dir == 1) {
+        return ser_canonical_pb_alpha_surfy_kernels[cv_index].kernels[poly_order];
+      } else if (dir == 2) {
+        return ser_canonical_pb_alpha_surfz_kernels[cv_index].kernels[poly_order];
+      } else {
+        return NULL;
+      }
+      break;
+    case GKYL_BASIS_MODAL_HYBRID:
+      // Verify that the poly-order is 1 for hybrid case
+      assert(poly_order == 1);
+      if (dir == 0) {
+        return ser_canonical_pb_alpha_surfx_kernels[cv_index].kernels[poly_order];
+      } else if (dir == 1) {
+        return ser_canonical_pb_alpha_surfy_kernels[cv_index].kernels[poly_order];
+      } else if (dir == 2) {
+        return ser_canonical_pb_alpha_surfz_kernels[cv_index].kernels[poly_order];
+      } else {
+        return NULL;
+      }
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      if (dir == 0) {
+        return tensor_canonical_pb_alpha_surfx_kernels[cv_index].kernels[poly_order];
+      } else if (dir == 1) {
+        return tensor_canonical_pb_alpha_surfy_kernels[cv_index].kernels[poly_order];
+      } else if (dir == 2) {
+        return tensor_canonical_pb_alpha_surfz_kernels[cv_index].kernels[poly_order];
+      } else {
+        return NULL;
+      }
+      break;
+    default:
+      assert(false);
+      break;
   }
 }
 
-GKYL_CU_D static canonical_pb_alpha_surf_t choose_canonical_pb_alpha_edge_surf_kern(
+GKYL_CU_D static canonical_pb_alpha_surf_t
+choose_canonical_pb_alpha_edge_surf_kern(
   enum gkyl_basis_type b_type, int dir, int cv_index, int cdim, int vdim, int poly_order
 )
 {
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    // Verify that the poly-order is 2 for ser case
-    assert(poly_order == 2);
-    if (dir == 0) {
-      return ser_canonical_pb_alpha_edge_surfx_kernels[cv_index].kernels[poly_order];
-    } else if (dir == 1) {
-      return ser_canonical_pb_alpha_edge_surfy_kernels[cv_index].kernels[poly_order];
-    } else if (dir == 2) {
-      return ser_canonical_pb_alpha_edge_surfz_kernels[cv_index].kernels[poly_order];
-    } else {
-      return NULL;
-    }
-    break;
-  case GKYL_BASIS_MODAL_HYBRID:
-    // Verify that the poly-order is 1 for hybrid case
-    assert(poly_order == 1);
-    if (dir == 0) {
-      return ser_canonical_pb_alpha_edge_surfx_kernels[cv_index].kernels[poly_order];
-    } else if (dir == 1) {
-      return ser_canonical_pb_alpha_edge_surfy_kernels[cv_index].kernels[poly_order];
-    } else if (dir == 2) {
-      return ser_canonical_pb_alpha_edge_surfz_kernels[cv_index].kernels[poly_order];
-    } else {
-      return NULL;
-    }
-    break;
-  case GKYL_BASIS_MODAL_TENSOR:
-    if (dir == 0) {
-      return tensor_canonical_pb_alpha_edge_surfx_kernels[cv_index].kernels[poly_order];
-    } else if (dir == 1) {
-      return tensor_canonical_pb_alpha_edge_surfy_kernels[cv_index].kernels[poly_order];
-    } else if (dir == 2) {
-      return tensor_canonical_pb_alpha_edge_surfz_kernels[cv_index].kernels[poly_order];
-    } else {
-      return NULL;
-    }
-    break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      // Verify that the poly-order is 2 for ser case
+      assert(poly_order == 2);
+      if (dir == 0) {
+        return ser_canonical_pb_alpha_edge_surfx_kernels[cv_index].kernels[poly_order];
+      } else if (dir == 1) {
+        return ser_canonical_pb_alpha_edge_surfy_kernels[cv_index].kernels[poly_order];
+      } else if (dir == 2) {
+        return ser_canonical_pb_alpha_edge_surfz_kernels[cv_index].kernels[poly_order];
+      } else {
+        return NULL;
+      }
+      break;
+    case GKYL_BASIS_MODAL_HYBRID:
+      // Verify that the poly-order is 1 for hybrid case
+      assert(poly_order == 1);
+      if (dir == 0) {
+        return ser_canonical_pb_alpha_edge_surfx_kernels[cv_index].kernels[poly_order];
+      } else if (dir == 1) {
+        return ser_canonical_pb_alpha_edge_surfy_kernels[cv_index].kernels[poly_order];
+      } else if (dir == 2) {
+        return ser_canonical_pb_alpha_edge_surfz_kernels[cv_index].kernels[poly_order];
+      } else {
+        return NULL;
+      }
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      if (dir == 0) {
+        return tensor_canonical_pb_alpha_edge_surfx_kernels[cv_index].kernels[poly_order];
+      } else if (dir == 1) {
+        return tensor_canonical_pb_alpha_edge_surfy_kernels[cv_index].kernels[poly_order];
+      } else if (dir == 2) {
+        return tensor_canonical_pb_alpha_edge_surfz_kernels[cv_index].kernels[poly_order];
+      } else {
+        return NULL;
+      }
+      break;
+    default:
+      assert(false);
+      break;
   }
 }
 
-GKYL_CU_D static canonical_pb_alpha_surf_t choose_canonical_pb_alpha_surf_v_kern(
+GKYL_CU_D static canonical_pb_alpha_surf_t
+choose_canonical_pb_alpha_surf_v_kern(
   enum gkyl_basis_type b_type, int dir, int cv_index, int cdim, int vdim, int poly_order
 )
 {
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    // Verify that the poly-order is 2 for ser case
-    assert(poly_order == 2);
-    if (dir == 0) {
-      return ser_canonical_pb_alpha_surfvx_kernels[cv_index].kernels[poly_order];
-    } else if (dir == 1) {
-      return ser_canonical_pb_alpha_surfvy_kernels[cv_index].kernels[poly_order];
-    } else if (dir == 2) {
-      return ser_canonical_pb_alpha_surfvz_kernels[cv_index].kernels[poly_order];
-    } else {
-      return NULL;
-    }
-    break;
-  case GKYL_BASIS_MODAL_HYBRID:
-    // Verify that the poly-order is 1 for hybrid case
-    assert(poly_order == 1);
-    if (dir == 0) {
-      return ser_canonical_pb_alpha_surfvx_kernels[cv_index].kernels[poly_order];
-    } else if (dir == 1) {
-      return ser_canonical_pb_alpha_surfvy_kernels[cv_index].kernels[poly_order];
-    } else if (dir == 2) {
-      return ser_canonical_pb_alpha_surfvz_kernels[cv_index].kernels[poly_order];
-    } else {
-      return NULL;
-    }
-    break;
-  case GKYL_BASIS_MODAL_TENSOR:
-    if (dir == 0) {
-      return tensor_canonical_pb_alpha_surfvx_kernels[cv_index].kernels[poly_order];
-    } else if (dir == 1) {
-      return tensor_canonical_pb_alpha_surfvy_kernels[cv_index].kernels[poly_order];
-    } else if (dir == 2) {
-      return tensor_canonical_pb_alpha_surfvz_kernels[cv_index].kernels[poly_order];
-    } else {
-      return NULL;
-    }
-    break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      // Verify that the poly-order is 2 for ser case
+      assert(poly_order == 2);
+      if (dir == 0) {
+        return ser_canonical_pb_alpha_surfvx_kernels[cv_index].kernels[poly_order];
+      } else if (dir == 1) {
+        return ser_canonical_pb_alpha_surfvy_kernels[cv_index].kernels[poly_order];
+      } else if (dir == 2) {
+        return ser_canonical_pb_alpha_surfvz_kernels[cv_index].kernels[poly_order];
+      } else {
+        return NULL;
+      }
+      break;
+    case GKYL_BASIS_MODAL_HYBRID:
+      // Verify that the poly-order is 1 for hybrid case
+      assert(poly_order == 1);
+      if (dir == 0) {
+        return ser_canonical_pb_alpha_surfvx_kernels[cv_index].kernels[poly_order];
+      } else if (dir == 1) {
+        return ser_canonical_pb_alpha_surfvy_kernels[cv_index].kernels[poly_order];
+      } else if (dir == 2) {
+        return ser_canonical_pb_alpha_surfvz_kernels[cv_index].kernels[poly_order];
+      } else {
+        return NULL;
+      }
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      if (dir == 0) {
+        return tensor_canonical_pb_alpha_surfvx_kernels[cv_index].kernels[poly_order];
+      } else if (dir == 1) {
+        return tensor_canonical_pb_alpha_surfvy_kernels[cv_index].kernels[poly_order];
+      } else if (dir == 2) {
+        return tensor_canonical_pb_alpha_surfvz_kernels[cv_index].kernels[poly_order];
+      } else {
+        return NULL;
+      }
+      break;
+    default:
+      assert(false);
+      break;
   }
 }
 
-GKYL_CU_D static canonical_pb_m1i_contra_to_cov_t choose_canonical_pb_m1i_contra_to_cov_kern(
+GKYL_CU_D static canonical_pb_m1i_contra_to_cov_t
+choose_canonical_pb_m1i_contra_to_cov_kern(
   enum gkyl_basis_type b_type, int cv_index, int cdim, int poly_order
 )
 {
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    // Verify that the poly-order is 2 for ser case
-    assert(poly_order == 2);
-    return ser_canonical_pb_m1i_contra_to_cov_kernels[cv_index].kernels[poly_order];
-    break;
-  case GKYL_BASIS_MODAL_HYBRID:
-    // Verify that the poly-order is 1 for hybrid case
-    assert(poly_order == 1);
-    return ser_canonical_pb_m1i_contra_to_cov_kernels[cv_index].kernels[poly_order];
-    break;
-  case GKYL_BASIS_MODAL_TENSOR:
-    return tensor_canonical_pb_m1i_contra_to_cov_kernels[cv_index].kernels[poly_order];
-    break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      // Verify that the poly-order is 2 for ser case
+      assert(poly_order == 2);
+      return ser_canonical_pb_m1i_contra_to_cov_kernels[cv_index].kernels[poly_order];
+      break;
+    case GKYL_BASIS_MODAL_HYBRID:
+      // Verify that the poly-order is 1 for hybrid case
+      assert(poly_order == 1);
+      return ser_canonical_pb_m1i_contra_to_cov_kernels[cv_index].kernels[poly_order];
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      return tensor_canonical_pb_m1i_contra_to_cov_kernels[cv_index].kernels[poly_order];
+      break;
+    default:
+      assert(false);
+      break;
   }
 }
 
-GKYL_CU_D static canonical_pb_pressure_t choose_canonical_pb_pressure_kern(
+GKYL_CU_D static canonical_pb_pressure_t
+choose_canonical_pb_pressure_kern(
   enum gkyl_basis_type b_type, int cv_index, int cdim, int poly_order
 )
 {
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    // Verify that the poly-order is 2 for ser case
-    assert(poly_order == 2);
-    return ser_canonical_pb_pressure_kernels[cv_index].kernels[poly_order];
-    break;
-  case GKYL_BASIS_MODAL_HYBRID:
-    // Verify that the poly-order is 1 for hybrid case
-    assert(poly_order == 1);
-    return ser_canonical_pb_pressure_kernels[cv_index].kernels[poly_order];
-    break;
-  case GKYL_BASIS_MODAL_TENSOR:
-    return tensor_canonical_pb_pressure_kernels[cv_index].kernels[poly_order];
-    break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      // Verify that the poly-order is 2 for ser case
+      assert(poly_order == 2);
+      return ser_canonical_pb_pressure_kernels[cv_index].kernels[poly_order];
+      break;
+    case GKYL_BASIS_MODAL_HYBRID:
+      // Verify that the poly-order is 1 for hybrid case
+      assert(poly_order == 1);
+      return ser_canonical_pb_pressure_kernels[cv_index].kernels[poly_order];
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      return tensor_canonical_pb_pressure_kernels[cv_index].kernels[poly_order];
+      break;
+    default:
+      assert(false);
+      break;
   }
 }

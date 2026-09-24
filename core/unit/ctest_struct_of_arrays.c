@@ -21,7 +21,8 @@ struct gkyl_array_bag {
   struct gkyl_array_bag *bag;
 };
 
-void test_array_container_accumulate_ho()
+void
+test_array_container_accumulate_ho()
 {
   // Test an approach to creating an array of arrays using the gkyl_array_container struct.
   int arr_ncomp = 1; // Number of components of each array.
@@ -80,7 +81,8 @@ void test_array_container_accumulate_ho()
   gkyl_free(acs2);
 }
 
-void test_container_pack_accumulate_ho()
+void
+test_container_pack_accumulate_ho()
 {
   // Test an approach to creating an array of array of arrays using the gkyl_container_pack struct.
   int arr_ncomp = 1; // Number of components of each array.
@@ -158,7 +160,8 @@ void test_container_pack_accumulate_ho()
   gkyl_free(cp2);
 }
 
-void test_array_bag_accumulate_ho()
+void
+test_array_bag_accumulate_ho()
 {
   // Test an approach to creating an array of array of arrays using the gkyl_array_bag struct.
   int arr_ncomp = 1; // Number of components of each array.
@@ -269,7 +272,8 @@ int test_array_bag_accumulate_dev_check_cu(
   int arr_ncomp, int arr_size, int num_bags, struct gkyl_array_bag *bag1
 );
 
-void test_array_container_accumulate_dev()
+void
+test_array_container_accumulate_dev()
 {
   // Test an approach to creating an array of arrays using the gkyl_array_container struct.
   int arr_ncomp = 1; // Number of components of each array.
@@ -343,7 +347,8 @@ void test_array_container_accumulate_dev()
   gkyl_free(acs2_ho);
 }
 
-void test_container_pack_accumulate_dev()
+void
+test_container_pack_accumulate_dev()
 {
   // Test an approach to creating an array of array of arrays using the gkyl_container_pack struct.
   // MF 2024/10/21: In this test we assume that the container_pack holds pointers to host
@@ -451,7 +456,8 @@ void test_container_pack_accumulate_dev()
   gkyl_free(cp2_ho);
 }
 
-void test_array_bag_accumulate_dev()
+void
+test_array_bag_accumulate_dev()
 {
   // Test an approach to creating an array of array of arrays using the gkyl_array_bag struct.
   // MF 2024/10/21: In this test we assume that (outer) the array_bag holds pointers to host

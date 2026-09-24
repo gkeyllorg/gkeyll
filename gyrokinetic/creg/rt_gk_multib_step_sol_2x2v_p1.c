@@ -7,31 +7,36 @@
 
 #include <rt_arg_parse.h>
 
-void shaped_pfunc_lower_outer(double s, double *RZ)
+void
+shaped_pfunc_lower_outer(double s, double *RZ)
 {
   RZ[0] = 3.5 + 2.0 * s;
   RZ[1] = -8.29;
 }
 
-void shaped_pfunc_upper_outer(double s, double *RZ)
+void
+shaped_pfunc_upper_outer(double s, double *RZ)
 {
   RZ[0] = 3.5 + 2.0 * s;
   RZ[1] = 8.29;
 }
 
-void shaped_pfunc_upper_inner(double s, double *RZ)
+void
+shaped_pfunc_upper_inner(double s, double *RZ)
 {
   RZ[0] = 1.651 + (1.8 - 1.651) * s;
   RZ[1] = 6.331 + (6.777 - 6.331) * s;
 }
 
-void shaped_pfunc_lower_inner(double s, double *RZ)
+void
+shaped_pfunc_lower_inner(double s, double *RZ)
 {
   RZ[0] = 1.65 + (1.8 - 1.65) * s;
   RZ[1] = -(6.33 + (6.777 - 6.33) * s);
 }
 
-struct gkyl_gk_block_geom *create_gk_block_geom(void)
+struct gkyl_gk_block_geom *
+create_gk_block_geom(void)
 {
   struct gkyl_gk_block_geom *bgeom = gkyl_gk_block_geom_new(2, 3);
 
@@ -54,11 +59,12 @@ struct gkyl_gk_block_geom *create_gk_block_geom(void)
       another edge are a physical boundary.
   */
 
-  struct gkyl_efit_inp efit_inp = {// psiRZ and related inputs
-                                   .filepath = "gyrokinetic/data/eqdsk/step.geqdsk",
-                                   .rz_poly_order = 2,
-                                   .flux_poly_order = 1,
-                                   .reflect = true
+  struct gkyl_efit_inp efit_inp = {
+    // psiRZ and related inputs
+    .filepath = "gyrokinetic/data/eqdsk/step.geqdsk",
+    .rz_poly_order = 2,
+    .flux_poly_order = 1,
+    .reflect = true,
   };
 
   struct gkyl_efit *efit = gkyl_efit_new(&efit_inp);
@@ -84,27 +90,31 @@ struct gkyl_gk_block_geom *create_gk_block_geom(void)
   // block 0. Lower outer SOL.
   gkyl_gk_block_geom_set_block(
     bgeom, 0,
-    &(struct gkyl_gk_block_geom_info
-    ){.lower = {psi_lo_outer_sol, theta_lo},
+    &(struct gkyl_gk_block_geom_info){
+      .lower = {psi_lo_outer_sol, theta_lo},
       .upper = {psisep, theta_up},
       .cells = {npsi_outer_sol, ntheta_lower},
       .cuts = {1, 1},
       .geometry =
-        {.world = {0.0},
-         .geometry_id = GKYL_GEOMETRY_TOKAMAK,
-         //        .geometry_id = GKYL_GEOMETRY_FROMFILE,
-         .efit_info = efit_inp,
-         .tok_grid_info = (struct gkyl_tok_geo_grid_inp
-         ){.ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_LO,
-           .rright = 6.2,
-           .rleft = 1.1,
-           .rmin = 2.1,
-           .rmax = 6.2,
-           .zmin = -8.29,
-           .zmax = 8.29,
-           .plate_spec = false,
-           .plate_func_lower = shaped_pfunc_lower_outer,
-           .plate_func_upper = shaped_pfunc_upper_outer}},
+        {
+          .world = {0.0},
+          .geometry_id = GKYL_GEOMETRY_TOKAMAK,
+          //        .geometry_id = GKYL_GEOMETRY_FROMFILE,
+          .efit_info = efit_inp,
+          .tok_grid_info =
+            (struct gkyl_tok_geo_grid_inp){
+              .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_LO,
+              .rright = 6.2,
+              .rleft = 1.1,
+              .rmin = 2.1,
+              .rmax = 6.2,
+              .zmin = -8.29,
+              .zmax = 8.29,
+              .plate_spec = false,
+              .plate_func_lower = shaped_pfunc_lower_outer,
+              .plate_func_upper = shaped_pfunc_upper_outer,
+            },
+        },
 
       .connections[0] =
         {// x-direction connections
@@ -115,33 +125,38 @@ struct gkyl_gk_block_geom *create_gk_block_geom(void)
         {// z-direction connections
          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}, // physical boundary
          {.bid = 1, .dir = 1, .edge = GKYL_LOWER_POSITIVE}
-        }}
+        },
+    }
   );
 
   // block 1. Middle outer SOL.
   gkyl_gk_block_geom_set_block(
     bgeom, 1,
-    &(struct gkyl_gk_block_geom_info
-    ){.lower = {psi_lo_outer_sol, theta_lo},
+    &(struct gkyl_gk_block_geom_info){
+      .lower = {psi_lo_outer_sol, theta_lo},
       .upper = {psisep, theta_up},
       .cells = {npsi_outer_sol, ntheta_middle},
       .cuts = {1, 1},
       .geometry =
-        {.world = {0.0},
-         .geometry_id = GKYL_GEOMETRY_TOKAMAK,
-         //        .geometry_id = GKYL_GEOMETRY_FROMFILE,
-         .efit_info = efit_inp,
-         .tok_grid_info = (struct gkyl_tok_geo_grid_inp
-         ){.ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_MID,
-           .rright = 6.2,
-           .rleft = 1.1,
-           .rmin = 2.1,
-           .rmax = 6.2,
-           .plate_spec = false,
-           .plate_func_lower = shaped_pfunc_lower_outer,
-           .plate_func_upper = shaped_pfunc_upper_outer,
-           .zmin = -8.29,
-           .zmax = 8.29}},
+        {
+          .world = {0.0},
+          .geometry_id = GKYL_GEOMETRY_TOKAMAK,
+          //        .geometry_id = GKYL_GEOMETRY_FROMFILE,
+          .efit_info = efit_inp,
+          .tok_grid_info =
+            (struct gkyl_tok_geo_grid_inp){
+              .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_MID,
+              .rright = 6.2,
+              .rleft = 1.1,
+              .rmin = 2.1,
+              .rmax = 6.2,
+              .plate_spec = false,
+              .plate_func_lower = shaped_pfunc_lower_outer,
+              .plate_func_upper = shaped_pfunc_upper_outer,
+              .zmin = -8.29,
+              .zmax = 8.29,
+            },
+        },
 
       .connections[0] =
         {// x-direction connections
@@ -152,33 +167,38 @@ struct gkyl_gk_block_geom *create_gk_block_geom(void)
         {// z-direction connections
          {.bid = 0, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
          {.bid = 2, .dir = 1, .edge = GKYL_LOWER_POSITIVE}
-        }}
+        },
+    }
   );
 
   // block 2. Upper outer SOL.
   gkyl_gk_block_geom_set_block(
     bgeom, 2,
-    &(struct gkyl_gk_block_geom_info
-    ){.lower = {psi_lo_outer_sol, theta_lo},
+    &(struct gkyl_gk_block_geom_info){
+      .lower = {psi_lo_outer_sol, theta_lo},
       .upper = {psisep, theta_up},
       .cells = {npsi_outer_sol, ntheta_upper},
       .cuts = {1, 1},
       .geometry =
-        {.world = {0.0},
-         .geometry_id = GKYL_GEOMETRY_TOKAMAK,
-         //        .geometry_id = GKYL_GEOMETRY_FROMFILE,
-         .efit_info = efit_inp,
-         .tok_grid_info = (struct gkyl_tok_geo_grid_inp
-         ){.ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_UP,
-           .rright = 6.2,
-           .rleft = 1.1,
-           .rmin = 2.1,
-           .rmax = 6.2,
-           .plate_spec = false,
-           .plate_func_lower = shaped_pfunc_lower_outer,
-           .plate_func_upper = shaped_pfunc_upper_outer,
-           .zmin = -8.29,
-           .zmax = 8.29}},
+        {
+          .world = {0.0},
+          .geometry_id = GKYL_GEOMETRY_TOKAMAK,
+          //        .geometry_id = GKYL_GEOMETRY_FROMFILE,
+          .efit_info = efit_inp,
+          .tok_grid_info =
+            (struct gkyl_tok_geo_grid_inp){
+              .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_UP,
+              .rright = 6.2,
+              .rleft = 1.1,
+              .rmin = 2.1,
+              .rmax = 6.2,
+              .plate_spec = false,
+              .plate_func_lower = shaped_pfunc_lower_outer,
+              .plate_func_upper = shaped_pfunc_upper_outer,
+              .zmin = -8.29,
+              .zmax = 8.29,
+            },
+        },
 
       .connections[0] =
         {// x-direction connections
@@ -190,7 +210,8 @@ struct gkyl_gk_block_geom *create_gk_block_geom(void)
           // z-direction connections
           {.bid = 1, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
           {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL} // physical boundary
-        }}
+        },
+    }
   );
 
   return bgeom;
@@ -236,7 +257,8 @@ struct gk_step_ctx {
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct gk_step_ctx create_ctx(void)
+struct gk_step_ctx
+create_ctx(void)
 {
   int cdim = 2, vdim = 2; // Dimensionality.
 
@@ -329,12 +351,13 @@ struct gk_step_ctx create_ctx(void)
     .write_phase_freq = write_phase_freq,
     .int_diag_calc_num = int_diag_calc_num,
     .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max
+    .num_failures_max = num_failures_max,
   };
   return ctx;
 }
 
-void initDensity(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+initDensity(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], z = xn[1];
 
@@ -350,7 +373,8 @@ void initDensity(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT
   fout[0] = n;
 }
 
-void sourceDensity(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+sourceDensity(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], z = xn[1];
 
@@ -367,42 +391,46 @@ void sourceDensity(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRI
   fout[0] = n;
 }
 
-void initTempElc(double t, const double *xn, double *restrict fout, void *ctx)
+void
+initTempElc(double t, const double *xn, double *restrict fout, void *ctx)
 {
   struct gk_step_ctx *input = ctx;
   double T = input->Te;
   fout[0] = T;
 }
 
-void initTempIon(double t, const double *xn, double *restrict fout, void *ctx)
+void
+initTempIon(double t, const double *xn, double *restrict fout, void *ctx)
 {
   struct gk_step_ctx *input = ctx;
   double T = input->Ti;
   fout[0] = T;
 }
 
-void initUpar(double t, const double *xn, double *restrict fout, void *ctx)
+void
+initUpar(double t, const double *xn, double *restrict fout, void *ctx)
 {
   fout[0] = 0.0;
 }
 
-void sourceTemp(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+sourceTemp(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_step_ctx *input = ctx;
   double T = input->T_source;
   fout[0] = T;
 }
 
-void diffusion_D_func(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
-)
+void
+diffusion_D_func(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_step_ctx *app = ctx;
 
   fout[0] = 0.03; // Diffusivity [m^2/s].
 }
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
@@ -442,34 +470,40 @@ int main(int argc, char **argv)
     .polarization_density = ctx.n0,
 
     .projection =
-      {.proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
-       .ctx_density = &ctx,
-       .density = initDensity,
-       .ctx_upar = &ctx,
-       .upar = initUpar,
-       .ctx_temp = &ctx,
-       .temp = initTempElc},
+      {
+        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+        .ctx_density = &ctx,
+        .density = initDensity,
+        .ctx_upar = &ctx,
+        .upar = initUpar,
+        .ctx_temp = &ctx,
+        .temp = initTempElc,
+      },
 
     .source =
-      {.source_id = GKYL_PROJ_SOURCE,
-       .num_sources = 1,
-       .projection[0] =
-         {.proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
-          .ctx_density = &ctx,
-          .density = sourceDensity,
-          .ctx_upar = &ctx,
-          .upar = initUpar,
-          .ctx_temp = &ctx,
-          .temp = sourceTemp},
-       .diagnostics =
-         {
-           .num_diag_moments = 4,
-           .diag_moments =
-             {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP},
-           .num_integrated_diag_moments = 1,
-           .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}
-           //        .time_integrated = true,
-         }}
+      {
+        .source_id = GKYL_PROJ_SOURCE,
+        .num_sources = 1,
+        .projection[0] =
+          {
+            .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+            .ctx_density = &ctx,
+            .density = sourceDensity,
+            .ctx_upar = &ctx,
+            .upar = initUpar,
+            .ctx_temp = &ctx,
+            .temp = sourceTemp,
+          },
+        .diagnostics =
+          {
+            .num_diag_moments = 4,
+            .diag_moments =
+              {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP},
+            .num_integrated_diag_moments = 1,
+            .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
+            //        .time_integrated = true,
+          },
+      },
 
   };
 
@@ -499,18 +533,22 @@ int main(int argc, char **argv)
     .collisionless = {.type = GKYL_GK_COLLISIONLESS_ES_NO_BY},
 
     .collisions =
-      {.collision_id = GKYL_LBO_COLLISIONS,
-       .nu_frac = ctx.nuFrac,
-       .den_ref = ctx.n0, // Density used to calculate coulomb logarithm
-       .temp_ref = ctx.Te, // Temperature used to calculate coulomb logarithm
-       .bmag_ref = 2.51,
-       .num_cross_collisions = 1,
-       .collide_with = {"ion"}},
+      {
+        .collision_id = GKYL_LBO_COLLISIONS,
+        .nu_frac = ctx.nuFrac,
+        .den_ref = ctx.n0, // Density used to calculate coulomb logarithm
+        .temp_ref = ctx.Te, // Temperature used to calculate coulomb logarithm
+        .bmag_ref = 2.51,
+        .num_cross_collisions = 1,
+        .collide_with = {"ion"},
+      },
 
     .anomalous_diffusion =
-      {.anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
-       .D_profile = diffusion_D_func,
-       .D_profile_ctx = &ctx},
+      {
+        .anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
+        .D_profile = diffusion_D_func,
+        .D_profile_ctx = &ctx,
+      },
 
     .num_diag_moments = 7,
     .diag_moments =
@@ -524,14 +562,14 @@ int main(int argc, char **argv)
        GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_ABS_INTEGRATED_MOMENTS},
     .boundary_flux_diagnostics =
       {
-        .num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}
+        .num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
         //      .time_integrated = true,
       },
 
     .duplicate_across_blocks = true,
     .blocks = elc_blocks,
     .num_physical_bcs = 8,
-    .bcs = elc_phys_bcs
+    .bcs = elc_phys_bcs,
   };
 
   // Ion Species
@@ -544,34 +582,40 @@ int main(int argc, char **argv)
     .polarization_density = ctx.n0,
 
     .projection =
-      {.proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
-       .ctx_density = &ctx,
-       .density = initDensity,
-       .ctx_upar = &ctx,
-       .upar = initUpar,
-       .ctx_temp = &ctx,
-       .temp = initTempIon},
+      {
+        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+        .ctx_density = &ctx,
+        .density = initDensity,
+        .ctx_upar = &ctx,
+        .upar = initUpar,
+        .ctx_temp = &ctx,
+        .temp = initTempIon,
+      },
 
     .source =
-      {.source_id = GKYL_PROJ_SOURCE,
-       .num_sources = 1,
-       .projection[0] =
-         {.proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
-          .ctx_density = &ctx,
-          .density = sourceDensity,
-          .ctx_upar = &ctx,
-          .upar = initUpar,
-          .ctx_temp = &ctx,
-          .temp = sourceTemp},
-       .diagnostics =
-         {
-           .num_diag_moments = 4,
-           .diag_moments =
-             {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP},
-           .num_integrated_diag_moments = 1,
-           .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}
-           //        .time_integrated = true,
-         }}
+      {
+        .source_id = GKYL_PROJ_SOURCE,
+        .num_sources = 1,
+        .projection[0] =
+          {
+            .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+            .ctx_density = &ctx,
+            .density = sourceDensity,
+            .ctx_upar = &ctx,
+            .upar = initUpar,
+            .ctx_temp = &ctx,
+            .temp = sourceTemp,
+          },
+        .diagnostics =
+          {
+            .num_diag_moments = 4,
+            .diag_moments =
+              {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP},
+            .num_integrated_diag_moments = 1,
+            .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
+            //        .time_integrated = true,
+          },
+      },
 
   };
 
@@ -601,18 +645,22 @@ int main(int argc, char **argv)
     .collisionless = {.type = GKYL_GK_COLLISIONLESS_ES_NO_BY},
 
     .collisions =
-      {.collision_id = GKYL_LBO_COLLISIONS,
-       .nu_frac = ctx.nuFrac,
-       .den_ref = ctx.n0, // Density used to calculate coulomb logarithm
-       .temp_ref = ctx.Ti, // Temperature used to calculate coulomb logarithm
-       .bmag_ref = 2.51,
-       .num_cross_collisions = 1,
-       .collide_with = {"elc"}},
+      {
+        .collision_id = GKYL_LBO_COLLISIONS,
+        .nu_frac = ctx.nuFrac,
+        .den_ref = ctx.n0, // Density used to calculate coulomb logarithm
+        .temp_ref = ctx.Ti, // Temperature used to calculate coulomb logarithm
+        .bmag_ref = 2.51,
+        .num_cross_collisions = 1,
+        .collide_with = {"elc"},
+      },
 
     .anomalous_diffusion =
-      {.anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
-       .D_profile = diffusion_D_func,
-       .D_profile_ctx = &ctx},
+      {
+        .anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
+        .D_profile = diffusion_D_func,
+        .D_profile_ctx = &ctx,
+      },
 
     .num_diag_moments = 7,
     .diag_moments =
@@ -626,44 +674,75 @@ int main(int argc, char **argv)
        GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_ABS_INTEGRATED_MOMENTS},
     .boundary_flux_diagnostics =
       {
-        .num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}
+        .num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
         //      .time_integrated = true,
       },
 
     .duplicate_across_blocks = true,
     .blocks = ion_blocks,
     .num_physical_bcs = 8,
-    .bcs = ion_phys_bcs
+    .bcs = ion_phys_bcs,
   };
 
   // Field object
   struct gkyl_gyrokinetic_multib_field_pb field_blocks[1];
-  field_blocks[0] = (struct gkyl_gyrokinetic_multib_field_pb
-  ){.polarization_bmag = 2.51, .time_rate_diagnostics = true};
+  field_blocks[0] = (struct gkyl_gyrokinetic_multib_field_pb){
+    .polarization_bmag = 2.51,
+    .time_rate_diagnostics = true,
+  };
 
-  struct gkyl_gyrokinetic_bc field_phys_bcs[] = {
-    // block 0 BCs
-    {.bidx = 0, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}
-    },
-    {.bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}
-    },
-    // block 1 BCs
-    {.bidx = 1, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}
-    },
-    {.bidx = 1, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}
-    },
-    // block 2 BCs
-    {.bidx = 2, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}
-    },
-    {.bidx = 2, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}
-    }
+  struct gkyl_gyrokinetic_bc field_phys_bcs[] = {// block 0 BCs
+                                                 {
+                                                   .bidx = 0,
+                                                   .dir = 0,
+                                                   .edge = GKYL_LOWER_EDGE,
+                                                   .type = GKYL_BC_GK_FIELD_DIRICHLET,
+                                                   .value = {0.0},
+                                                 },
+                                                 {
+                                                   .bidx = 0,
+                                                   .dir = 0,
+                                                   .edge = GKYL_UPPER_EDGE,
+                                                   .type = GKYL_BC_GK_FIELD_DIRICHLET,
+                                                   .value = {0.0},
+                                                 },
+                                                 // block 1 BCs
+                                                 {
+                                                   .bidx = 1,
+                                                   .dir = 0,
+                                                   .edge = GKYL_LOWER_EDGE,
+                                                   .type = GKYL_BC_GK_FIELD_DIRICHLET,
+                                                   .value = {0.0},
+                                                 },
+                                                 {
+                                                   .bidx = 1,
+                                                   .dir = 0,
+                                                   .edge = GKYL_UPPER_EDGE,
+                                                   .type = GKYL_BC_GK_FIELD_DIRICHLET,
+                                                   .value = {0.0},
+                                                 },
+                                                 // block 2 BCs
+                                                 {
+                                                   .bidx = 2,
+                                                   .dir = 0,
+                                                   .edge = GKYL_LOWER_EDGE,
+                                                   .type = GKYL_BC_GK_FIELD_DIRICHLET,
+                                                   .value = {0.0},
+                                                 },
+                                                 {
+                                                   .bidx = 2,
+                                                   .dir = 0,
+                                                   .edge = GKYL_UPPER_EDGE,
+                                                   .type = GKYL_BC_GK_FIELD_DIRICHLET,
+                                                   .value = {0.0},
+                                                 }
   };
 
   struct gkyl_gyrokinetic_multib_field field = {
     .duplicate_across_blocks = true,
     .blocks = field_blocks,
     .num_physical_bcs = 6,
-    .bcs = field_phys_bcs
+    .bcs = field_phys_bcs,
   };
 
   struct gkyl_gyrokinetic_multib *app_inp = gkyl_calloc(1, sizeof(struct gkyl_gyrokinetic_multib));
@@ -685,15 +764,17 @@ int main(int argc, char **argv)
     .app_type = GKYL_GK_MULTIB,
     .multib_app_inp = *app_inp,
     .time_stepping =
-      {.t_end = ctx.t_end,
-       .num_frames = ctx.num_frames,
-       .write_phase_freq = ctx.write_phase_freq,
-       .int_diag_calc_num = ctx.int_diag_calc_num,
-       .dt_failure_tol = ctx.dt_failure_tol,
-       .num_failures_max = ctx.num_failures_max,
-       .is_restart = app_args.is_restart,
-       .restart_frame = app_args.restart_frame,
-       .num_steps = app_args.num_steps}
+      {
+        .t_end = ctx.t_end,
+        .num_frames = ctx.num_frames,
+        .write_phase_freq = ctx.write_phase_freq,
+        .int_diag_calc_num = ctx.int_diag_calc_num,
+        .dt_failure_tol = ctx.dt_failure_tol,
+        .num_failures_max = ctx.num_failures_max,
+        .is_restart = app_args.is_restart,
+        .restart_frame = app_args.restart_frame,
+        .num_steps = app_args.num_steps,
+      },
   };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);

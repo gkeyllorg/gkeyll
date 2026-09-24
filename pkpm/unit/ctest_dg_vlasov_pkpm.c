@@ -8,7 +8,8 @@
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 
-static void mk_ranges(
+static void
+mk_ranges(
   int cdim, struct gkyl_range *conf, struct gkyl_range *conf_ext, struct gkyl_range *phase,
   struct gkyl_range *phase_ext
 )
@@ -43,7 +44,8 @@ static void mk_ranges(
   gkyl_create_grid_ranges(&pgrid, pghost, phase_ext, phase);
 }
 
-void test_vlasov_pkpm_1x1v_p1()
+void
+test_vlasov_pkpm_1x1v_p1()
 {
   int poly_order = 1;
   struct gkyl_basis cbasis, pbasis;
@@ -64,7 +66,8 @@ void test_vlasov_pkpm_1x1v_p1()
   gkyl_dg_eqn_release(eqn);
 }
 
-void test_vlasov_pkpm_1x1v_p2()
+void
+test_vlasov_pkpm_1x1v_p2()
 {
   int poly_order = 2;
   struct gkyl_basis cbasis, pbasis;
@@ -85,7 +88,8 @@ void test_vlasov_pkpm_1x1v_p2()
   gkyl_dg_eqn_release(eqn);
 }
 
-void test_vlasov_pkpm_2x1v_p1()
+void
+test_vlasov_pkpm_2x1v_p1()
 {
   int poly_order = 1;
   struct gkyl_basis cbasis, pbasis;

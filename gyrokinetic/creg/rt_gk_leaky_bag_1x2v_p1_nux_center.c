@@ -48,7 +48,8 @@ struct boundary_ctx {
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct boundary_ctx create_ctx(void)
+struct boundary_ctx
+create_ctx(void)
 {
   int cdim = 1, vdim = 2; // Dimensionality.
 
@@ -111,13 +112,14 @@ struct boundary_ctx create_ctx(void)
     .write_phase_freq = write_phase_freq,
     .int_diag_calc_num = int_diag_calc_num,
     .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max
+    .num_failures_max = num_failures_max,
   };
 
   return ctx;
 }
 
-void compareToAnalytics(const struct gkyl_gk *app_inp, void *ctx)
+void
+compareToAnalytics(const struct gkyl_gk *app_inp, void *ctx)
 {
   struct boundary_ctx *app = ctx;
   char filename[256];
@@ -236,26 +238,28 @@ void compareToAnalytics(const struct gkyl_gk *app_inp, void *ctx)
   gkyl_dynvec_release(bflux_moms_upper);
 }
 
-void evalIonDensityInit(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
-)
+void
+evalIonDensityInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct boundary_ctx *app = ctx;
   fout[0] = app->n0;
 }
 
-void evalIonTempInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalIonTempInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct boundary_ctx *app = ctx;
   fout[0] = app->Ti;
 }
 
-void evalIonUparInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalIonUparInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   fout[0] = 0.0;
 }
 
-static inline void nonuniform_position_map_z(
+static inline void
+nonuniform_position_map_z(
   double t, const double *GKYL_RESTRICT zc, double *GKYL_RESTRICT xp, void *ctx
 )
 {
@@ -275,7 +279,8 @@ mapc2p(double t, const double *GKYL_RESTRICT zc, double *GKYL_RESTRICT xp, void 
   xp[2] = zc[2];
 }
 
-void bfield_func(double t, const double *GKYL_RESTRICT zc, double *GKYL_RESTRICT fout, void *ctx)
+void
+bfield_func(double t, const double *GKYL_RESTRICT zc, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct boundary_ctx *app = ctx;
   // zc are computational coords.
@@ -285,7 +290,8 @@ void bfield_func(double t, const double *GKYL_RESTRICT zc, double *GKYL_RESTRICT
   fout[2] = app->B0;
 }
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
@@ -325,13 +331,15 @@ int main(int argc, char **argv)
     .polarization_density = ctx.n0,
 
     .projection =
-      {.proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
-       .density = evalIonDensityInit,
-       .ctx_density = &ctx,
-       .temp = evalIonTempInit,
-       .ctx_temp = &ctx,
-       .upar = evalIonUparInit,
-       .ctx_upar = &ctx},
+      {
+        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+        .density = evalIonDensityInit,
+        .ctx_density = &ctx,
+        .temp = evalIonTempInit,
+        .ctx_temp = &ctx,
+        .upar = evalIonUparInit,
+        .ctx_upar = &ctx,
+      },
 
     .collisionless = {.type = GKYL_GK_COLLISIONLESS_ES},
 
@@ -351,13 +359,13 @@ int main(int argc, char **argv)
        GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_ABS_INTEGRATED_MOMENTS},
 
     .boundary_flux_diagnostics =
-      {.num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}}
+      {.num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}},
   };
 
   // Field.
   struct gkyl_gyrokinetic_field field = {
     .zero_init_field = true, // Don't compute the field at t = 0.
-    .is_static = true // Don't evolve the field in time.
+    .is_static = true, // Don't evolve the field in time.
   };
 
   // Gyrokinetic app.
@@ -373,13 +381,15 @@ int main(int argc, char **argv)
     .cfl_frac = ctx.cfl_frac,
 
     .geometry =
-      {.geometry_id = GKYL_GEOMETRY_MAPC2P,
-       .world = {0.0, 0.0},
-       .mapc2p = mapc2p,
-       .c2p_ctx = &ctx,
-       .bfield_func = bfield_func,
-       .bfield_ctx = &ctx,
-       .position_map_info = {.maps[2] = nonuniform_position_map_z, .ctxs[2] = &ctx}},
+      {
+        .geometry_id = GKYL_GEOMETRY_MAPC2P,
+        .world = {0.0, 0.0},
+        .mapc2p = mapc2p,
+        .c2p_ctx = &ctx,
+        .bfield_func = bfield_func,
+        .bfield_ctx = &ctx,
+        .position_map_info = {.maps[2] = nonuniform_position_map_z, .ctxs[2] = &ctx},
+      },
 
     .num_periodic_dir = 0,
     .periodic_dirs = {},
@@ -389,7 +399,7 @@ int main(int argc, char **argv)
 
     .field = field,
 
-    .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm}
+    .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm},
   };
 
   // Set app output name from the executable name (argv[0]).
@@ -397,15 +407,17 @@ int main(int argc, char **argv)
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_inp = app_inp,
     .time_stepping =
-      {.t_end = ctx.t_end,
-       .num_frames = ctx.num_frames,
-       .write_phase_freq = ctx.write_phase_freq,
-       .int_diag_calc_num = ctx.int_diag_calc_num,
-       .dt_failure_tol = ctx.dt_failure_tol,
-       .num_failures_max = ctx.num_failures_max,
-       .is_restart = app_args.is_restart,
-       .restart_frame = app_args.restart_frame,
-       .num_steps = app_args.num_steps}
+      {
+        .t_end = ctx.t_end,
+        .num_frames = ctx.num_frames,
+        .write_phase_freq = ctx.write_phase_freq,
+        .int_diag_calc_num = ctx.int_diag_calc_num,
+        .dt_failure_tol = ctx.dt_failure_tol,
+        .num_failures_max = ctx.num_failures_max,
+        .is_restart = app_args.is_restart,
+        .restart_frame = app_args.restart_frame,
+        .num_steps = app_args.num_steps,
+      },
   };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);

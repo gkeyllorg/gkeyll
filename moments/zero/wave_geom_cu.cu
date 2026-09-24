@@ -13,7 +13,8 @@ extern "C" {
 #include <cassert>
 
 // CPU interface to create and track a GPU object
-struct gkyl_wave_geom *gkyl_wave_geom_cu_dev_new(
+struct gkyl_wave_geom *
+gkyl_wave_geom_cu_dev_new(
   const struct gkyl_rect_grid *grid, struct gkyl_range *range, evalf_t mapc2p, void *ctx
 )
 {
@@ -32,15 +33,15 @@ struct gkyl_wave_geom *gkyl_wave_geom_cu_dev_new(
     struct gkyl_wave_cell_geom *geo =
       (struct gkyl_wave_cell_geom *)gkyl_array_fetch(geom, gkyl_range_idx(range, iter.idx));
     switch (grid->ndim) {
-    case 1:
-      calc_geom_1d(grid->dx, xc, mapc2p ? mapc2p : nomapc2p, ctx, geo);
-      break;
-    case 2:
-      calc_geom_2d(grid->dx, xc, mapc2p ? mapc2p : nomapc2p, ctx, geo);
-      break;
-    case 3:
-      calc_geom_3d(grid->dx, xc, mapc2p ? mapc2p : nomapc2p, ctx, geo);
-      break;
+      case 1:
+        calc_geom_1d(grid->dx, xc, mapc2p ? mapc2p : nomapc2p, ctx, geo);
+        break;
+      case 2:
+        calc_geom_2d(grid->dx, xc, mapc2p ? mapc2p : nomapc2p, ctx, geo);
+        break;
+      case 3:
+        calc_geom_3d(grid->dx, xc, mapc2p ? mapc2p : nomapc2p, ctx, geo);
+        break;
     };
   }
   // Copy the host-side initialized geometry object to the device

@@ -5,7 +5,8 @@
 #include <gkyl_mom_pkpm.h>
 #include <gkyl_mom_type.h>
 
-void test_mom_pkpm_1x1v_p1()
+void
+test_mom_pkpm_1x1v_p1()
 {
   int poly_order = 1;
   struct gkyl_basis cbasis, pbasis;
@@ -32,7 +33,8 @@ void test_mom_pkpm_1x1v_p1()
   gkyl_mom_type_release(md);
 }
 
-void test_mom_pkpm_1x1v_p2()
+void
+test_mom_pkpm_1x1v_p2()
 {
   int poly_order = 2;
   struct gkyl_basis cbasis, pbasis;
@@ -46,7 +48,8 @@ void test_mom_pkpm_1x1v_p2()
   gkyl_mom_type_release(m);
 }
 
-void test_mom_pkpm_2x1v_p1()
+void
+test_mom_pkpm_2x1v_p1()
 {
   int poly_order = 1;
   struct gkyl_basis cbasis, pbasis;
@@ -63,7 +66,8 @@ void test_mom_pkpm_2x1v_p1()
   gkyl_mom_type_release(md);
 }
 
-void test_mom_pkpm_3x1v_p1()
+void
+test_mom_pkpm_3x1v_p1()
 {
   int poly_order = 1;
   struct gkyl_basis cbasis, pbasis;

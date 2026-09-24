@@ -7,7 +7,8 @@ extern "C" {
 #include <gkyl_util.h>
 }
 
-__global__ void dg_eval_at_coord_choose_ker_cu_ker(
+__global__ void
+dg_eval_at_coord_choose_ker_cu_ker(
   int cdim, int ndim, struct gkyl_basis basis, int num_eval_dirs, dg_evproj_struct_int_t eval_dirs,
   struct dg_ev_proj_kernels *kers
 )
@@ -21,26 +22,27 @@ __global__ void dg_eval_at_coord_choose_ker_cu_ker(
   assert(poly_order >= 1 && poly_order <= 3);
 
   switch (basis.b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    kers->ev_ker = ser_eval_at_coord_list[ndim - 1][dir_mask - 1].kernels[poly_order - 1];
-    kers->basis_ker = ser_basis_tar_list[ndim - 1][dir_mask - 1].kernels[poly_order - 1];
-    break;
-  case GKYL_BASIS_MODAL_TENSOR:
-    kers->ev_ker = ten_eval_at_coord_list[ndim - 1][dir_mask - 1].kernels[poly_order - 1];
-    kers->basis_ker = ten_basis_tar_list[ndim - 1][dir_mask - 1].kernels[poly_order - 1];
-    break;
-  case GKYL_BASIS_MODAL_GKHYBRID:
-    kers->ev_ker = gkhyb_eval_at_coord_list[ndim - 2][dir_mask - 1].kernels[poly_order - 1];
-    kers->basis_ker = gkhyb_basis_tar_list[ndim - 2][dir_mask - 1].kernels[poly_order - 1];
-    break;
-  default:
-    assert(false);
-    break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      kers->ev_ker = ser_eval_at_coord_list[ndim - 1][dir_mask - 1].kernels[poly_order - 1];
+      kers->basis_ker = ser_basis_tar_list[ndim - 1][dir_mask - 1].kernels[poly_order - 1];
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      kers->ev_ker = ten_eval_at_coord_list[ndim - 1][dir_mask - 1].kernels[poly_order - 1];
+      kers->basis_ker = ten_basis_tar_list[ndim - 1][dir_mask - 1].kernels[poly_order - 1];
+      break;
+    case GKYL_BASIS_MODAL_GKHYBRID:
+      kers->ev_ker = gkhyb_eval_at_coord_list[ndim - 2][dir_mask - 1].kernels[poly_order - 1];
+      kers->basis_ker = gkhyb_basis_tar_list[ndim - 2][dir_mask - 1].kernels[poly_order - 1];
+      break;
+    default:
+      assert(false);
+      break;
   }
   assert(kers->ev_ker);
 }
 
-struct dg_ev_proj_kernels *dg_eval_at_coord_choose_ker_cu(
+struct dg_ev_proj_kernels *
+dg_eval_at_coord_choose_ker_cu(
   int cdim, int ndim, const struct gkyl_basis *basis, int num_eval_dirs, const int *eval_dirs
 )
 {
@@ -59,7 +61,8 @@ struct dg_ev_proj_kernels *dg_eval_at_coord_choose_ker_cu(
   return kers;
 }
 
-__global__ void dg_eval_at_coord_proj_range_cu_kernel(
+__global__ void
+dg_eval_at_coord_proj_range_cu_kernel(
   int num_basis_do, int num_basis_tar, int ncomp, dg_evproj_struct_bool_t is_eval,
   dg_evproj_struct_double_t eval_coords_log, dg_evproj_struct_int_t cell_idx,
   struct dg_ev_proj_kernels *kers, struct gkyl_range rng_do, struct gkyl_range rng_tar,
@@ -88,7 +91,8 @@ __global__ void dg_eval_at_coord_proj_range_cu_kernel(
   }
 }
 
-void gkyl_dg_eval_at_coord_proj_advance_cu(
+void
+gkyl_dg_eval_at_coord_proj_advance_cu(
   struct gkyl_dg_eval_at_coord_proj *up, const double *eval_coords,
   const struct gkyl_rect_grid *grid, const bool *pick_lower, const int *known_index,
   const struct gkyl_range *rng_do, const struct gkyl_range *rng_tar, const struct gkyl_array *fdo,

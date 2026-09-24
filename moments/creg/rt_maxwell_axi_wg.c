@@ -8,7 +8,8 @@
 #include <rt_arg_parse.h>
 
 // map (r,theta) -> (x,y)
-void mapc2p(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
+void
+mapc2p(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
 {
   double r = xc[0], th = xc[1], z = xc[2];
   xp[0] = r * cos(th);
@@ -16,7 +17,8 @@ void mapc2p(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
   xp[2] = z;
 }
 
-void evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double r = xn[0], phi = xn[1], z = xn[2];
   int m = 0, n = 1;
@@ -38,7 +40,8 @@ void evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRI
   fout[7] = 0.0;
 }
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
@@ -68,14 +71,16 @@ int main(int argc, char **argv)
     .cfl_frac = 0.9,
 
     .field =
-      {.epsilon0 = 1.0,
-       .mu0 = 1.0,
+      {
+        .epsilon0 = 1.0,
+        .mu0 = 1.0,
 
-       .limiter = GKYL_NO_LIMITER,
-       .init = evalFieldInit,
+        .limiter = GKYL_NO_LIMITER,
+        .init = evalFieldInit,
 
-       .bcx = {GKYL_FIELD_PEC_WALL, GKYL_FIELD_PEC_WALL},
-       .bcy = {GKYL_FIELD_WEDGE, GKYL_FIELD_WEDGE}}
+        .bcx = {GKYL_FIELD_PEC_WALL, GKYL_FIELD_PEC_WALL},
+        .bcy = {GKYL_FIELD_WEDGE, GKYL_FIELD_WEDGE},
+      },
   };
 
   // create app object

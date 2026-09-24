@@ -4,7 +4,8 @@
 #include <gkyl_amr_patch_priv.h>
 #include <gkyl_amr_patch_coupled_priv.h>
 
-void euler_mixture1d_run_single(int argc, char **argv, struct euler_mixture1d_single_init *init)
+void
+euler_mixture1d_run_single(int argc, char **argv, struct euler_mixture1d_single_init *init)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
@@ -71,14 +72,15 @@ void euler_mixture1d_run_single(int argc, char **argv, struct euler_mixture1d_si
   for (int i = 0; i < num_patches; i++) {
     mesh_pdata[i].euler = gkyl_wv_euler_mixture_new(num_species, gas_gamma_s, app_args.use_gpu);
 
-    mesh_pdata[i].slvr[0] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp
-    ){.grid = &mesh_pdata[i].grid,
+    mesh_pdata[i].slvr[0] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp){
+      .grid = &mesh_pdata[i].grid,
       .equation = mesh_pdata[i].euler,
       .limiter = GKYL_MONOTONIZED_CENTERED,
       .num_up_dirs = 1,
       .update_dirs = {0},
       .cfl = cfl_frac,
-      .geom = mesh_pdata[i].geom});
+      .geom = mesh_pdata[i].geom,
+    });
   }
 
   struct gkyl_block_topo *ptopo = create_patch_topo();
@@ -209,7 +211,8 @@ void euler_mixture1d_run_single(int argc, char **argv, struct euler_mixture1d_si
   gkyl_job_pool_release(mesh_job_pool);
 }
 
-void euler_mixture1d_run_double(int argc, char **argv, struct euler_mixture1d_double_init *init)
+void
+euler_mixture1d_run_double(int argc, char **argv, struct euler_mixture1d_double_init *init)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
@@ -290,14 +293,15 @@ void euler_mixture1d_run_double(int argc, char **argv, struct euler_mixture1d_do
   for (int i = 0; i < num_patches; i++) {
     mesh_pdata[i].euler = gkyl_wv_euler_mixture_new(num_species, gas_gamma_s, app_args.use_gpu);
 
-    mesh_pdata[i].slvr[0] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp
-    ){.grid = &mesh_pdata[i].grid,
+    mesh_pdata[i].slvr[0] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp){
+      .grid = &mesh_pdata[i].grid,
       .equation = mesh_pdata[i].euler,
       .limiter = GKYL_MONOTONIZED_CENTERED,
       .num_up_dirs = 1,
       .update_dirs = {0},
       .cfl = cfl_frac,
-      .geom = mesh_pdata[i].geom});
+      .geom = mesh_pdata[i].geom,
+    });
   }
 
   struct gkyl_block_topo *ptopo = create_nested_patch_topo();
@@ -443,7 +447,8 @@ void euler_mixture1d_run_double(int argc, char **argv, struct euler_mixture1d_do
   gkyl_job_pool_release(mesh_job_pool);
 }
 
-void euler_mixture2d_run_single(int argc, char **argv, struct euler_mixture2d_single_init *init)
+void
+euler_mixture2d_run_single(int argc, char **argv, struct euler_mixture2d_single_init *init)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
@@ -556,14 +561,15 @@ void euler_mixture2d_run_single(int argc, char **argv, struct euler_mixture2d_si
     mesh_bdata[i].euler = gkyl_wv_euler_mixture_new(num_species, gas_gamma_s, app_args.use_gpu);
 
     for (int d = 0; d < ndim; d++) {
-      mesh_bdata[i].slvr[d] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp
-      ){.grid = &mesh_bdata[i].grid,
+      mesh_bdata[i].slvr[d] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp){
+        .grid = &mesh_bdata[i].grid,
         .equation = mesh_bdata[i].euler,
         .limiter = GKYL_MONOTONIZED_CENTERED,
         .num_up_dirs = 1,
         .update_dirs = {d},
         .cfl = cfl_frac,
-        .geom = mesh_bdata[i].geom});
+        .geom = mesh_bdata[i].geom,
+      });
     }
   }
 
@@ -701,7 +707,8 @@ void euler_mixture2d_run_single(int argc, char **argv, struct euler_mixture2d_si
   gkyl_job_pool_release(mesh_job_pool);
 }
 
-void euler_mixture2d_run_double(int argc, char **argv, struct euler_mixture2d_double_init *init)
+void
+euler_mixture2d_run_double(int argc, char **argv, struct euler_mixture2d_double_init *init)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
@@ -885,14 +892,15 @@ void euler_mixture2d_run_double(int argc, char **argv, struct euler_mixture2d_do
     mesh_bdata[i].euler = gkyl_wv_euler_mixture_new(num_species, gas_gamma_s, app_args.use_gpu);
 
     for (int d = 0; d < ndim; d++) {
-      mesh_bdata[i].slvr[d] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp
-      ){.grid = &mesh_bdata[i].grid,
+      mesh_bdata[i].slvr[d] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp){
+        .grid = &mesh_bdata[i].grid,
         .equation = mesh_bdata[i].euler,
         .limiter = GKYL_MONOTONIZED_CENTERED,
         .num_up_dirs = 1,
         .update_dirs = {d},
         .cfl = cfl_frac,
-        .geom = mesh_bdata[i].geom});
+        .geom = mesh_bdata[i].geom,
+      });
     }
   }
 

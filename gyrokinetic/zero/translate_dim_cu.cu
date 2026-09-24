@@ -8,7 +8,8 @@ extern "C" {
 }
 
 // CUDA kernel to set device pointers to kernels.
-__global__ static void gkyl_trans_dim_set_cu_ker_ptrs(
+__global__ static void
+gkyl_trans_dim_set_cu_ker_ptrs(
   struct gkyl_translate_dim_kernels *kernels, int cdim_do, struct gkyl_basis basis_do, int cdim_tar,
   struct gkyl_basis basis_tar, int dir, enum gkyl_edge_loc edge
 )
@@ -20,29 +21,30 @@ __global__ static void gkyl_trans_dim_set_cu_ker_ptrs(
   if (cdim_tar < cdim_do) {
     dir_idx = dir;
     switch (edge) {
-    case GKYL_LOWER_EDGE:
-      edge_idx = 0;
-      break;
-    case GKYL_NO_EDGE:
-      edge_idx = 1;
-      break;
-    case GKYL_UPPER_EDGE:
-      edge_idx = 2;
-      break;
+      case GKYL_LOWER_EDGE:
+        edge_idx = 0;
+        break;
+      case GKYL_NO_EDGE:
+        edge_idx = 1;
+        break;
+      case GKYL_UPPER_EDGE:
+        edge_idx = 2;
+        break;
     }
   }
 
   // Choose kernel that translates DG coefficients.
   switch (basis_type) {
-  case GKYL_BASIS_MODAL_GKHYBRID:
-    kernels->translate = trans_dim_kern_list_gkhyb[cdim_tar + cdim_do - 3].kernels[poly_order - 1];
-    break;
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    kernels->translate =
-      trans_dim_kern_list_ser[cdim_do - 1].list[dir_idx * 3 + edge_idx].kernels[poly_order - 1];
-    break;
-  default:
-    assert(false);
+    case GKYL_BASIS_MODAL_GKHYBRID:
+      kernels->translate =
+        trans_dim_kern_list_gkhyb[cdim_tar + cdim_do - 3].kernels[poly_order - 1];
+      break;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      kernels->translate =
+        trans_dim_kern_list_ser[cdim_do - 1].list[dir_idx * 3 + edge_idx].kernels[poly_order - 1];
+      break;
+    default:
+      assert(false);
   }
 
   // Choose the function that populates the donor index.
@@ -58,7 +60,8 @@ __global__ static void gkyl_trans_dim_set_cu_ker_ptrs(
   }
 };
 
-void trans_dim_choose_kernel_cu(
+void
+trans_dim_choose_kernel_cu(
   struct gkyl_translate_dim_kernels *kernels, int cdim_do, struct gkyl_basis basis_do, int cdim_tar,
   struct gkyl_basis basis_tar, int dir, enum gkyl_edge_loc edge
 )
@@ -68,7 +71,8 @@ void trans_dim_choose_kernel_cu(
   );
 }
 
-__global__ static void gkyl_translate_dim_advance_cu_ker(
+__global__ static void
+gkyl_translate_dim_advance_cu_ker(
   int cdim_do, int cdim_tar, int vdim_do, int vdim_tar, int num_basis_do, int num_basis_tar,
   int dir, struct gkyl_translate_dim_kernels *kernels, const struct gkyl_range rng_do,
   const struct gkyl_range rng_tar, const struct gkyl_array *GKYL_RESTRICT fdo, int ncomp,
@@ -97,7 +101,8 @@ __global__ static void gkyl_translate_dim_advance_cu_ker(
   }
 }
 
-void gkyl_translate_dim_advance_cu(
+void
+gkyl_translate_dim_advance_cu(
   gkyl_translate_dim *up, const struct gkyl_range *rng_do, const struct gkyl_range *rng_tar,
   const struct gkyl_array *GKYL_RESTRICT fdo, int ncomp, struct gkyl_array *GKYL_RESTRICT ftar
 )

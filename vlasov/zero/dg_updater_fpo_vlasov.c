@@ -11,7 +11,8 @@
 #include <gkyl_hyper_dg.h>
 #include <gkyl_util.h>
 
-struct gkyl_dg_updater_collisions *gkyl_dg_updater_fpo_vlasov_new(
+struct gkyl_dg_updater_collisions *
+gkyl_dg_updater_fpo_vlasov_new(
   const struct gkyl_rect_grid *grid, const struct gkyl_basis *pbasis,
   const struct gkyl_range *phase_range, bool use_gpu
 )
@@ -48,7 +49,8 @@ struct gkyl_dg_updater_collisions *gkyl_dg_updater_fpo_vlasov_new(
   return up;
 }
 
-void gkyl_dg_updater_fpo_vlasov_advance(
+void
+gkyl_dg_updater_fpo_vlasov_advance(
   struct gkyl_dg_updater_collisions *fpo, const struct gkyl_range *update_rng,
   const struct gkyl_array *h, const struct gkyl_array *g,
   const struct gkyl_array *GKYL_RESTRICT fIn, struct gkyl_array *GKYL_RESTRICT cflrate,
@@ -80,7 +82,8 @@ gkyl_dg_updater_fpo_vlasov_get_tm(const struct gkyl_dg_updater_collisions *coll)
   return (struct gkyl_dg_updater_fpo_vlasov_tm){.diff_tm = coll->diff_tm, .drag_tm = coll->drag_tm};
 }
 
-void gkyl_dg_updater_fpo_vlasov_release(struct gkyl_dg_updater_collisions *coll)
+void
+gkyl_dg_updater_fpo_vlasov_release(struct gkyl_dg_updater_collisions *coll)
 {
   gkyl_dg_eqn_release(coll->coll_diff);
   gkyl_dg_eqn_release(coll->coll_drag);
@@ -91,7 +94,8 @@ void gkyl_dg_updater_fpo_vlasov_release(struct gkyl_dg_updater_collisions *coll)
 
 #ifdef GKYL_HAVE_CUDA
 
-void gkyl_dg_updater_fpo_vlasov_advance_cu(
+void
+gkyl_dg_updater_fpo_vlasov_advance_cu(
   struct gkyl_dg_updater_collisions *fpo, const struct gkyl_range *update_rng,
   const struct gkyl_array *h, const struct gkyl_array *g,
   const struct gkyl_array *GKYL_RESTRICT fIn, struct gkyl_array *GKYL_RESTRICT cflrate,
@@ -121,7 +125,8 @@ void gkyl_dg_updater_fpo_vlasov_advance_cu(
 
 #ifndef GKYL_HAVE_CUDA
 
-void gkyl_dg_updater_fpo_vlasov_advance_cu(
+void
+gkyl_dg_updater_fpo_vlasov_advance_cu(
   struct gkyl_dg_updater_collisions *fpo, const struct gkyl_range *update_rng,
   const struct gkyl_array *h, const struct gkyl_array *g, const struct gkyl_array *fIn,
   struct gkyl_array *cflrate, struct gkyl_array *rhs

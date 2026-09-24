@@ -54,7 +54,8 @@ struct escreen_ctx {
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct escreen_ctx create_ctx(void)
+struct escreen_ctx
+create_ctx(void)
 {
   // Mathematical constants (dimensionless).
   double pi = M_PI;
@@ -89,8 +90,8 @@ struct escreen_ctx create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  return (struct escreen_ctx
-  ){.pi = pi,
+  return (struct escreen_ctx){
+    .pi = pi,
     .epsilon0 = epsilon0,
     .mu0 = mu0,
     .mass_ion = mass_ion,
@@ -113,10 +114,12 @@ struct escreen_ctx create_ctx(void)
     .num_frames = num_frames,
     .int_diag_calc_num = int_diag_calc_num,
     .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max};
+    .num_failures_max = num_failures_max,
+  };
 }
 
-void evalDensityInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalDensityInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct escreen_ctx *app = ctx;
 
@@ -126,7 +129,8 @@ void evalDensityInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_REST
   fout[0] = n;
 }
 
-void evalDensityPerturbInit(
+void
+evalDensityPerturbInit(
   double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
 )
 {
@@ -154,7 +158,8 @@ void evalDensityPerturbInit(
   fout[0] = n;
 }
 
-void evalTempInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalTempInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct escreen_ctx *app = ctx;
 
@@ -164,7 +169,8 @@ void evalTempInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRIC
   fout[0] = T;
 }
 
-void evalVDriftInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalVDriftInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct escreen_ctx *app = ctx;
 
@@ -172,7 +178,8 @@ void evalVDriftInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTR
   fout[0] = 0.0;
 }
 
-void evalFieldFunc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void
+evalFieldFunc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct escreen_ctx *app = ctx;
   double x = xn[0];
@@ -205,14 +212,17 @@ void evalFieldFunc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRI
 
 void
 
-calc_integrated_diagnostics(struct gkyl_tm_trigger* iot, gkyl_vlasov_app* app, double t_curr, bool force_calc)
+calc_integrated_diagnostics(
+  struct gkyl_tm_trigger *iot, gkyl_vlasov_app *app, double t_curr, bool force_calc
+)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_calc) {
     gkyl_vlasov_app_calc_field_energy(app, t_curr);
   }
 }
 
-void write_data(struct gkyl_tm_trigger *iot, gkyl_vlasov_app *app, double t_curr, bool force_write)
+void
+write_data(struct gkyl_tm_trigger *iot, gkyl_vlasov_app *app, double t_curr, bool force_write)
 {
   bool trig_now = gkyl_tm_trigger_check_and_bump(iot, t_curr);
   if (trig_now || force_write) {
@@ -228,7 +238,8 @@ void write_data(struct gkyl_tm_trigger *iot, gkyl_vlasov_app *app, double t_curr
   }
 }
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
@@ -321,33 +332,39 @@ int main(int argc, char **argv)
 
     .num_init = 1,
     .projection[0] =
-      {.proj_id = GKYL_PROJ_VLASOV_LTE,
-       .density = evalDensityPerturbInit,
-       .ctx_density = &ctx,
-       .temp = evalTempInit,
-       .ctx_temp = &ctx,
-       .V_drift = evalVDriftInit,
-       .ctx_V_drift = &ctx,
-       .correct_all_moms = true,
-       .use_last_converged = true},
+      {
+        .proj_id = GKYL_PROJ_VLASOV_LTE,
+        .density = evalDensityPerturbInit,
+        .ctx_density = &ctx,
+        .temp = evalTempInit,
+        .ctx_temp = &ctx,
+        .V_drift = evalVDriftInit,
+        .ctx_V_drift = &ctx,
+        .correct_all_moms = true,
+        .use_last_converged = true,
+      },
 
     // Source is the same as initial condition without perturbation.
     .source =
-      {.source_id = GKYL_PROJ_SOURCE,
-       .num_sources = 1,
-       .projection[0] =
-         {.proj_id = GKYL_PROJ_VLASOV_LTE,
-          .density = evalDensityInit,
-          .ctx_density = &ctx,
-          .temp = evalTempInit,
-          .ctx_temp = &ctx,
-          .V_drift = evalVDriftInit,
-          .ctx_V_drift = &ctx,
-          .correct_all_moms = true,
-          .use_last_converged = true}},
+      {
+        .source_id = GKYL_PROJ_SOURCE,
+        .num_sources = 1,
+        .projection[0] =
+          {
+            .proj_id = GKYL_PROJ_VLASOV_LTE,
+            .density = evalDensityInit,
+            .ctx_density = &ctx,
+            .temp = evalTempInit,
+            .ctx_temp = &ctx,
+            .V_drift = evalVDriftInit,
+            .ctx_V_drift = &ctx,
+            .correct_all_moms = true,
+            .use_last_converged = true,
+          },
+      },
 
     .num_diag_moments = 2,
-    .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1}
+    .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1},
   };
 
   // positrons
@@ -363,30 +380,36 @@ int main(int argc, char **argv)
     .num_init = 1,
     // No perturbation in positron initial conditions.
     .projection[0] =
-      {.proj_id = GKYL_PROJ_VLASOV_LTE,
-       .density = evalDensityInit,
-       .ctx_density = &ctx,
-       .temp = evalTempInit,
-       .ctx_temp = &ctx,
-       .V_drift = evalVDriftInit,
-       .ctx_V_drift = &ctx,
-       .correct_all_moms = true},
+      {
+        .proj_id = GKYL_PROJ_VLASOV_LTE,
+        .density = evalDensityInit,
+        .ctx_density = &ctx,
+        .temp = evalTempInit,
+        .ctx_temp = &ctx,
+        .V_drift = evalVDriftInit,
+        .ctx_V_drift = &ctx,
+        .correct_all_moms = true,
+      },
 
     .source =
-      {.source_id = GKYL_PROJ_SOURCE,
-       .num_sources = 1,
-       .projection[0] =
-         {.proj_id = GKYL_PROJ_VLASOV_LTE,
-          .density = evalDensityInit,
-          .ctx_density = &ctx,
-          .temp = evalTempInit,
-          .ctx_temp = &ctx,
-          .V_drift = evalVDriftInit,
-          .ctx_V_drift = &ctx,
-          .correct_all_moms = true}},
+      {
+        .source_id = GKYL_PROJ_SOURCE,
+        .num_sources = 1,
+        .projection[0] =
+          {
+            .proj_id = GKYL_PROJ_VLASOV_LTE,
+            .density = evalDensityInit,
+            .ctx_density = &ctx,
+            .temp = evalTempInit,
+            .ctx_temp = &ctx,
+            .V_drift = evalVDriftInit,
+            .ctx_V_drift = &ctx,
+            .correct_all_moms = true,
+          },
+      },
 
     .num_diag_moments = 2,
-    .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1}
+    .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1},
   };
 
   // field
@@ -397,7 +420,7 @@ int main(int argc, char **argv)
     .mgnErrorSpeedFactor = 0.0,
 
     .ctx = &ctx,
-    .init = evalFieldFunc
+    .init = evalFieldFunc,
   };
 
   // Vlasov-Maxwell app.
@@ -421,7 +444,7 @@ int main(int argc, char **argv)
 
     .field = field,
 
-    .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm}
+    .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm},
   };
 
   // create app object
@@ -457,10 +480,14 @@ int main(int argc, char **argv)
   // Create triggers for IO.
   int num_frames = ctx.num_frames, num_int_diag_calc = ctx.int_diag_calc_num;
   struct gkyl_tm_trigger trig_write = {
-    .dt = t_end / num_frames, .tcurr = t_curr, .curr = frame_curr
+    .dt = t_end / num_frames,
+    .tcurr = t_curr,
+    .curr = frame_curr,
   };
   struct gkyl_tm_trigger trig_calc_intdiag = {
-    .dt = t_end / GKYL_MAX2(num_frames, num_int_diag_calc), .tcurr = t_curr, .curr = frame_curr
+    .dt = t_end / GKYL_MAX2(num_frames, num_int_diag_calc),
+    .tcurr = t_curr,
+    .curr = frame_curr,
   };
 
   // Write out ICs (if restart, it overwrites the restart frame).

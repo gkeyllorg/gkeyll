@@ -5,7 +5,8 @@
 #include <gkyl_moment_em_coupling_priv.h>
 #include <gkyl_mat.h>
 
-void explicit_nT_source_update_euler(
+void
+explicit_nT_source_update_euler(
   const double mass, const double dt, double *fluid_old, double *fluid_new, const double *nT_sources
 )
 {
@@ -29,7 +30,8 @@ void explicit_nT_source_update_euler(
   fluid_new[4] = (n_new * TT_new) + (0.5 * rho_new * v_sq);
 }
 
-void explicit_nT_source_update(
+void
+explicit_nT_source_update(
   const gkyl_moment_em_coupling *mom_em, const double dt, double *fluid_s[GKYL_MAX_SPECIES],
   const double *nT_sources_s[GKYL_MAX_SPECIES]
 )
@@ -46,7 +48,8 @@ void explicit_nT_source_update(
   }
 }
 
-void explicit_frictional_source_update_euler(
+void
+explicit_frictional_source_update_euler(
   const gkyl_moment_em_coupling *mom_em, const double Z, const double T_elc, const double Lambda_ee,
   double t_curr, const double dt, double *f_elc_old, double *f_ion_old, double *f_elc_new,
   double *f_ion_new
@@ -100,7 +103,8 @@ void explicit_frictional_source_update_euler(
   }
 }
 
-void explicit_frictional_source_update(
+void
+explicit_frictional_source_update(
   const gkyl_moment_em_coupling *mom_em, double t_curr, const double dt,
   double *fluid_s[GKYL_MAX_SPECIES]
 )
@@ -182,7 +186,8 @@ void explicit_frictional_source_update(
   }
 }
 
-void explicit_volume_source_5m_update_euler(
+void
+explicit_volume_source_5m_update_euler(
   const gkyl_moment_em_coupling *mom_em, const double gas_gamma, const double U0, const double R0,
   double t_curr, const double dt, double *fluid_old, double *fluid_new
 )
@@ -210,7 +215,8 @@ void explicit_volume_source_5m_update_euler(
   fluid_new[4] = (p_new / (gas_gamma - 1.0)) + (0.5 * rho * (vx * vx) + (vy * vy) + (vz * vz));
 }
 
-void explicit_volume_source_10m_update_euler(
+void
+explicit_volume_source_10m_update_euler(
   const gkyl_moment_em_coupling *mom_em, const double U0, const double R0, double t_curr,
   const double dt, double *fluid_old, double *fluid_new
 )
@@ -242,7 +248,8 @@ void explicit_volume_source_10m_update_euler(
   fluid_new[9] -= dt * ((((2.0 * U0) / (a * R0)) * Pzz) + (((2.0 * U0) / (a * R0)) * Pzz));
 }
 
-void explicit_volume_source_maxwell_update_euler(
+void
+explicit_volume_source_maxwell_update_euler(
   const gkyl_moment_em_coupling *mom_em, const double U0, const double R0, double t_curr,
   const double dt, double *em_old, double *em_new, const double *ext_em
 )
@@ -270,7 +277,8 @@ void explicit_volume_source_maxwell_update_euler(
   em_new[5] -= dt * (U0 / (a * R0)) * Bz;
 }
 
-void explicit_volume_source_update(
+void
+explicit_volume_source_update(
   const gkyl_moment_em_coupling *mom_em, double t_curr, const double dt,
   double *fluid_s[GKYL_MAX_SPECIES], double *em, const double *ext_em
 )
@@ -361,7 +369,8 @@ void explicit_volume_source_update(
   }
 }
 
-void explicit_reactive_source_update_euler(
+void
+explicit_reactive_source_update_euler(
   const gkyl_moment_em_coupling *mom_em, const double gas_gamma,
   const double specific_heat_capacity, const double energy_of_formation,
   const double ignition_temperature, const double reaction_rate, double t_curr, const double dt,
@@ -388,7 +397,8 @@ void explicit_reactive_source_update_euler(
   }
 }
 
-void explicit_reactive_source_update(
+void
+explicit_reactive_source_update(
   const gkyl_moment_em_coupling *mom_em, double t_curr, const double dt,
   double *fluid_s[GKYL_MAX_SPECIES]
 )
@@ -436,7 +446,8 @@ void explicit_reactive_source_update(
   }
 }
 
-void explicit_medium_source_update_euler(
+void
+explicit_medium_source_update_euler(
   const gkyl_moment_em_coupling *mom_em, const double gas_gamma, const double kappa, double t_curr,
   const double dt, double *fluid_old, double *fluid_new
 )
@@ -504,7 +515,8 @@ void explicit_medium_source_update_euler(
                          (((mom * vel) + p) * (a_dx + (2.0 * b_dx))) + (2.0 * p * b_dx));
 }
 
-void explicit_medium_source_update(
+void
+explicit_medium_source_update(
   const gkyl_moment_em_coupling *mom_em, double t_curr, const double dt,
   double *fluid_s[GKYL_MAX_SPECIES]
 )
@@ -542,7 +554,8 @@ void explicit_medium_source_update(
   }
 }
 
-void explicit_gr_ultra_rel_source_update_euler(
+void
+explicit_gr_ultra_rel_source_update_euler(
   const gkyl_moment_em_coupling *mom_em, const double gas_gamma, double t_curr, const double dt,
   double *fluid_old, double *fluid_new
 )
@@ -837,7 +850,8 @@ void explicit_gr_ultra_rel_source_update_euler(
   }
 }
 
-void explicit_gr_ultra_rel_source_update(
+void
+explicit_gr_ultra_rel_source_update(
   const gkyl_moment_em_coupling *mom_em, double t_curr, const double dt,
   double *fluid_s[GKYL_MAX_SPECIES]
 )
@@ -874,7 +888,8 @@ void explicit_gr_ultra_rel_source_update(
   }
 }
 
-void explicit_gr_euler_source_update_euler(
+void
+explicit_gr_euler_source_update_euler(
   const gkyl_moment_em_coupling *mom_em, const double gas_gamma, double t_curr, const double dt,
   double *fluid_old, double *fluid_new
 )
@@ -1154,7 +1169,8 @@ void explicit_gr_euler_source_update_euler(
   }
 }
 
-void explicit_gr_euler_source_update(
+void
+explicit_gr_euler_source_update(
   const gkyl_moment_em_coupling *mom_em, double t_curr, const double dt,
   double *fluid_s[GKYL_MAX_SPECIES]
 )
@@ -1191,7 +1207,8 @@ void explicit_gr_euler_source_update(
   }
 }
 
-void explicit_gr_twofluid_source_update_elc_euler(
+void
+explicit_gr_twofluid_source_update_elc_euler(
   const gkyl_moment_em_coupling *mom_em, const double gas_gamma_elc, const double mass_elc,
   const double charge_elc, double t_curr, const double dt, double *fluid_old, double *fluid_new
 )
@@ -1345,7 +1362,8 @@ void explicit_gr_twofluid_source_update_elc_euler(
   }
 }
 
-void explicit_gr_twofluid_source_update_ion_euler(
+void
+explicit_gr_twofluid_source_update_ion_euler(
   const gkyl_moment_em_coupling *mom_em, const double gas_gamma_ion, const double mass_ion,
   const double charge_ion, double t_curr, const double dt, double *fluid_old, double *fluid_new
 )
@@ -1499,7 +1517,8 @@ void explicit_gr_twofluid_source_update_ion_euler(
   }
 }
 
-void explicit_gr_twofluid_source_update_em_euler(
+void
+explicit_gr_twofluid_source_update_em_euler(
   const gkyl_moment_em_coupling *mom_em, const double gas_gamma_elc, const double gas_gamma_ion,
   const double mass_elc, const double charge_elc, const double mass_ion, const double charge_ion,
   double e_fact, double t_curr, const double dt, double *fluid_old, double *fluid_new
@@ -1691,7 +1710,8 @@ void explicit_gr_twofluid_source_update_em_euler(
   }
 }
 
-void explicit_gr_twofluid_source_update_elc_spacetime_euler(
+void
+explicit_gr_twofluid_source_update_elc_spacetime_euler(
   const gkyl_moment_em_coupling *mom_em, const double gas_gamma_elc, double t_curr, const double dt,
   double *fluid_old, double *fluid_new
 )
@@ -1982,7 +2002,8 @@ void explicit_gr_twofluid_source_update_elc_spacetime_euler(
   }
 }
 
-void explicit_gr_twofluid_source_update_ion_spacetime_euler(
+void
+explicit_gr_twofluid_source_update_ion_spacetime_euler(
   const gkyl_moment_em_coupling *mom_em, const double gas_gamma_ion, double t_curr, const double dt,
   double *fluid_old, double *fluid_new
 )
@@ -2273,7 +2294,8 @@ void explicit_gr_twofluid_source_update_ion_spacetime_euler(
   }
 }
 
-void explicit_gr_twofluid_source_update(
+void
+explicit_gr_twofluid_source_update(
   const gkyl_moment_em_coupling *mom_em, double t_curr, const double dt,
   double *fluid_s[GKYL_MAX_SPECIES]
 )
@@ -2379,7 +2401,8 @@ void explicit_gr_twofluid_source_update(
   }
 }
 
-void explicit_vacuum_einstein_source_update_euler(
+void
+explicit_vacuum_einstein_source_update_euler(
   const gkyl_moment_em_coupling *mom_em, const double excision_threshold,
   const enum gkyl_spacetime_slicing spacetime_slicing,
   const enum gkyl_spacetime_evolution spacetime_evolution, double t_curr, const double dt,
@@ -2872,7 +2895,8 @@ void explicit_vacuum_einstein_source_update_euler(
   }
 }
 
-void explicit_vacuum_einstein_source_update(
+void
+explicit_vacuum_einstein_source_update(
   const gkyl_moment_em_coupling *mom_em, double t_curr, const double dt,
   double *fluid_s[GKYL_MAX_SPECIES]
 )
@@ -2917,7 +2941,8 @@ void explicit_vacuum_einstein_source_update(
   }
 }
 
-void explicit_vacuum_einstein_conformal_source_update_euler(
+void
+explicit_vacuum_einstein_conformal_source_update_euler(
   const gkyl_moment_em_coupling *mom_em, const double excision_threshold,
   const enum gkyl_spacetime_slicing spacetime_slicing,
   const enum gkyl_spacetime_evolution spacetime_evolution, double t_curr, const double dt,
@@ -3581,7 +3606,8 @@ void explicit_vacuum_einstein_conformal_source_update_euler(
   }
 }
 
-void explicit_vacuum_einstein_conformal_source_update(
+void
+explicit_vacuum_einstein_conformal_source_update(
   const gkyl_moment_em_coupling *mom_em, double t_curr, const double dt,
   double *fluid_s[GKYL_MAX_SPECIES]
 )
@@ -3628,7 +3654,8 @@ void explicit_vacuum_einstein_conformal_source_update(
   }
 }
 
-void explicit_gr_mhd_source_update_euler(
+void
+explicit_gr_mhd_source_update_euler(
   const gkyl_moment_em_coupling *mom_em, const double gas_gamma, double t_curr, const double dt,
   double *fluid_old, double *fluid_new
 )
@@ -3992,7 +4019,8 @@ void explicit_gr_mhd_source_update_euler(
   }
 }
 
-void explicit_gr_mhd_source_update(
+void
+explicit_gr_mhd_source_update(
   const gkyl_moment_em_coupling *mom_em, double t_curr, const double dt,
   double *fluid_s[GKYL_MAX_SPECIES]
 )
@@ -4027,7 +4055,8 @@ void explicit_gr_mhd_source_update(
   }
 }
 
-void explicit_e_field_source_update_euler(
+void
+explicit_e_field_source_update_euler(
   const gkyl_moment_em_coupling *mom_em, double t_curr, double dt, double e_field_old[3],
   double *e_field_new, double *fluid_s[GKYL_MAX_SPECIES], const double *app_current
 )
@@ -4067,7 +4096,8 @@ void explicit_e_field_source_update_euler(
   }
 }
 
-void explicit_e_field_source_update(
+void
+explicit_e_field_source_update(
   const gkyl_moment_em_coupling *mom_em, double t_curr, double dt,
   double *fluid_s[GKYL_MAX_SPECIES], double *em, const double *app_current,
   const double *app_current1, const double *app_current2, const double *ext_em
@@ -4101,7 +4131,8 @@ void explicit_e_field_source_update(
   em[2] = ((1.0 / 3.0) * e_field_old[2]) + ((2.0 / 3.0) * e_field_new[2]);
 }
 
-void explicit_higuera_cary_push(
+void
+explicit_higuera_cary_push(
   double *vel, const double q, const double m, const double dt, const double c,
   const double e_field[3], const double b_field[3]
 )
@@ -4148,7 +4179,8 @@ void explicit_higuera_cary_push(
   vel[2] = vel_z_plus + Ez + ((vel_x_plus * ty) - (vel_y_plus * tx));
 }
 
-void explicit_higuera_cary_update(
+void
+explicit_higuera_cary_update(
   const gkyl_moment_em_coupling *mom_em, double t_curr, double dt,
   double *fluid_s[GKYL_MAX_SPECIES], const double *app_accel_s[GKYL_MAX_SPECIES], double *em,
   const double *ext_em
@@ -4197,7 +4229,8 @@ void explicit_higuera_cary_update(
   }
 }
 
-void explicit_source_coupling_update(
+void
+explicit_source_coupling_update(
   const gkyl_moment_em_coupling *mom_em, double t_curr, double dt,
   double *fluid_s[GKYL_MAX_SPECIES], const double *app_accel_s[GKYL_MAX_SPECIES], double *em,
   const double *app_current, const double *app_current1, const double *app_current2,

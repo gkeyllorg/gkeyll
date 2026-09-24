@@ -15,7 +15,8 @@ extern "C" {
 // CUDA kernel to set pointer to g (second Rosenbluth potential).
 // This is required because eqn object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
-__global__ static void gkyl_fpo_vlasov_drag_set_auxfields_cu_kernel(
+__global__ static void
+gkyl_fpo_vlasov_drag_set_auxfields_cu_kernel(
   const struct gkyl_dg_eqn *eqn, const struct gkyl_array *h
 )
 {
@@ -24,7 +25,8 @@ __global__ static void gkyl_fpo_vlasov_drag_set_auxfields_cu_kernel(
 }
 
 //// Host-side wrapper for device kernels setting g (second Rosenbluth potential).
-void gkyl_fpo_vlasov_drag_set_auxfields_cu(
+void
+gkyl_fpo_vlasov_drag_set_auxfields_cu(
   const struct gkyl_dg_eqn *eqn, struct gkyl_dg_fpo_vlasov_drag_auxfields auxin
 )
 {
@@ -33,7 +35,8 @@ void gkyl_fpo_vlasov_drag_set_auxfields_cu(
 
 // CUDA kernel to set device pointers to range object and vlasov fpo kernel function
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
-__global__ static void dg_fpo_vlasov_drag_set_cu_dev_ptrs(
+__global__ static void
+dg_fpo_vlasov_drag_set_cu_dev_ptrs(
   struct dg_fpo_vlasov_drag *fpo_vlasov_drag, enum gkyl_basis_type b_type, int cdim, int poly_order
 )
 {
@@ -48,20 +51,20 @@ __global__ static void dg_fpo_vlasov_drag_set_cu_dev_ptrs(
     *boundary_surf_vy_kernels, *boundary_surf_vz_kernels;
 
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    vol_kernels = ser_vol_kernels;
-    surf_vx_kernels = ser_surf_vx_kernels;
-    surf_vy_kernels = ser_surf_vy_kernels;
-    surf_vz_kernels = ser_surf_vz_kernels;
-    boundary_surf_vx_kernels = ser_boundary_surf_vx_kernels;
-    boundary_surf_vy_kernels = ser_boundary_surf_vy_kernels;
-    boundary_surf_vz_kernels = ser_boundary_surf_vz_kernels;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      vol_kernels = ser_vol_kernels;
+      surf_vx_kernels = ser_surf_vx_kernels;
+      surf_vy_kernels = ser_surf_vy_kernels;
+      surf_vz_kernels = ser_surf_vz_kernels;
+      boundary_surf_vx_kernels = ser_boundary_surf_vx_kernels;
+      boundary_surf_vy_kernels = ser_boundary_surf_vy_kernels;
+      boundary_surf_vz_kernels = ser_boundary_surf_vz_kernels;
 
-    break;
+      break;
 
-  default:
-    assert(false);
-    break;
+    default:
+      assert(false);
+      break;
   }
 
   fpo_vlasov_drag->eqn.vol_term = CK(vol_kernels, cdim, poly_order);
@@ -75,7 +78,8 @@ __global__ static void dg_fpo_vlasov_drag_set_cu_dev_ptrs(
   fpo_vlasov_drag->boundary_surf[2] = CK(boundary_surf_vz_kernels, cdim, poly_order);
 }
 
-struct gkyl_dg_eqn *gkyl_dg_fpo_vlasov_drag_cu_dev_new(
+struct gkyl_dg_eqn *
+gkyl_dg_fpo_vlasov_drag_cu_dev_new(
   const struct gkyl_basis *pbasis, const struct gkyl_range *phase_range
 )
 {

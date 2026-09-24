@@ -5,7 +5,8 @@
 #include <gkyl_wv_canonical_pb_fluid.h>
 
 // Incompressible Euler: scalar (vorticity) equation, type tag and equation count.
-void test_can_pb_incompress_euler_basic()
+void
+test_can_pb_incompress_euler_basic()
 {
   struct gkyl_wv_eqn *eqn = gkyl_wv_can_pb_incompress_euler_new();
 
@@ -19,7 +20,8 @@ void test_can_pb_incompress_euler_basic()
 }
 
 // Reference-count round-trip: acquire bumps and release returns the same object.
-void test_can_pb_incompress_euler_refcount()
+void
+test_can_pb_incompress_euler_refcount()
 {
   struct gkyl_wv_eqn *eqn = gkyl_wv_can_pb_incompress_euler_new();
 
@@ -34,7 +36,8 @@ void test_can_pb_incompress_euler_refcount()
 }
 
 // Hasegawa-Mima: scalar equation with distinct type tag.
-void test_can_pb_hasegawa_mima_basic()
+void
+test_can_pb_hasegawa_mima_basic()
 {
   struct gkyl_wv_eqn *eqn = gkyl_wv_can_pb_hasegawa_mima_new();
 
@@ -47,7 +50,8 @@ void test_can_pb_hasegawa_mima_basic()
 
 // Hasegawa-Wakatani: two-component system (vorticity + density); alpha and
 // is_modified accessors return exactly what was passed at construction.
-void test_can_pb_hasegawa_wakatani_basic()
+void
+test_can_pb_hasegawa_wakatani_basic()
 {
   double alpha = 2.5;
   struct gkyl_wv_eqn *eqn = gkyl_wv_can_pb_hasegawa_wakatani_new(alpha, false);
@@ -63,7 +67,8 @@ void test_can_pb_hasegawa_wakatani_basic()
 }
 
 // Modified Hasegawa-Wakatani with a different adiabaticity parameter.
-void test_can_pb_hasegawa_wakatani_modified()
+void
+test_can_pb_hasegawa_wakatani_modified()
 {
   double alpha = 0.375;
   struct gkyl_wv_eqn *eqn = gkyl_wv_can_pb_hasegawa_wakatani_new(alpha, true);
@@ -76,7 +81,8 @@ void test_can_pb_hasegawa_wakatani_modified()
 }
 
 // Distinct Hasegawa-Wakatani objects keep independent parameters.
-void test_can_pb_hasegawa_wakatani_independent()
+void
+test_can_pb_hasegawa_wakatani_independent()
 {
   struct gkyl_wv_eqn *e1 = gkyl_wv_can_pb_hasegawa_wakatani_new(1.0, true);
   struct gkyl_wv_eqn *e2 = gkyl_wv_can_pb_hasegawa_wakatani_new(7.0, false);

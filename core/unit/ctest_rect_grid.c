@@ -5,7 +5,8 @@
 #include <gkyl_util.h>
 #include <math.h>
 
-void test_grid_2d_ho()
+void
+test_grid_2d_ho()
 {
   double lower[] = {1.0, 1.0}, upper[] = {2.5, 5.0};
   int cells[] = {20, 20};
@@ -65,7 +66,8 @@ void test_grid_2d_ho()
  * Third test: Point on cell boundary, choose lower cell
  * Fourth test: One known index given (simply tests that it is the correct index)
  */
-void test_find_cell_1d_ho()
+void
+test_find_cell_1d_ho()
 {
   double lower[] = {0.0}, upper[] = {5.0};
   int cells[] = {5};
@@ -111,7 +113,8 @@ void test_find_cell_1d_ho()
  * Third test: Point on cell corner (same location as second), but pick lower index
  * Fourth test: One index is known 
  */
-void test_find_cell_2d_ho()
+void
+test_find_cell_2d_ho()
 {
   double lower[] = {0.0, -10.0}, upper[] = {5.0, 10.0};
   int cells[] = {5, 20};
@@ -161,7 +164,8 @@ void test_find_cell_2d_ho()
  * Third test: Point on just to one side of cell boundary, but pick lower index
  * Fourth test: 2 indecies are known
  */
-void test_find_cell_3d_ho()
+void
+test_find_cell_3d_ho()
 {
   double lower[] = {0.0, -10.0, 1.3}, upper[] = {5.0, 10.0, 2.5};
   int cells[] = {5, 20, 100};
@@ -207,7 +211,8 @@ void test_find_cell_3d_ho()
   }
 }
 
-void test_grid_io_ho()
+void
+test_grid_io_ho()
 {
   double lower[] = {1.0, 1.0}, upper[] = {2.5, 5.0};
   int cells[] = {20, 20};
@@ -230,7 +235,8 @@ void test_grid_io_ho()
   TEST_CHECK(grid.cellVolume == grid2.cellVolume);
 }
 
-void test_grid_init_1d()
+void
+test_grid_init_1d()
 {
   double lower[] = {0.0}, upper[] = {1.0};
   int cells[] = {10};
@@ -245,7 +251,8 @@ void test_grid_init_1d()
   TEST_CHECK(gkyl_compare_double(grid.cellVolume, 0.1, 1e-15));
 }
 
-void test_grid_init_3d()
+void
+test_grid_init_3d()
 {
   double lower[] = {-1.0, 0.0, 2.0}, upper[] = {1.0, 4.0, 6.0};
   int cells[] = {4, 8, 2};
@@ -260,7 +267,8 @@ void test_grid_init_3d()
   TEST_CHECK(gkyl_compare_double(grid.cellVolume, 0.5 * 0.5 * 2.0, 1e-15));
 }
 
-void test_grid_cell_center()
+void
+test_grid_cell_center()
 {
   double lower[] = {0.0, 0.0}, upper[] = {2.0, 2.0};
   int cells[] = {2, 2};
@@ -280,7 +288,8 @@ void test_grid_cell_center()
   TEST_CHECK(gkyl_compare_double(xc[1], 1.5, 1e-15));
 }
 
-void test_grid_ll_node()
+void
+test_grid_ll_node()
 {
   double lower[] = {0.0}, upper[] = {1.0};
   int cells[] = {4};
@@ -303,7 +312,8 @@ void test_grid_ll_node()
   TEST_CHECK(gkyl_compare_double(cc[0], xc[0] + 0.5 * grid.dx[0], 1e-15));
 }
 
-void test_grid_extents()
+void
+test_grid_extents()
 {
   double lower[] = {0.0, 0.0}, upper[] = {1.0, 1.0};
   int cells[] = {5, 7};
@@ -320,7 +330,8 @@ void test_grid_extents()
   TEST_CHECK(ext[1] == 7);
 }
 
-void test_grid_coord_idx()
+void
+test_grid_coord_idx()
 {
   double lower[] = {0.0}, upper[] = {10.0};
   int cells[] = {10};
@@ -344,7 +355,8 @@ void test_grid_coord_idx()
   TEST_CHECK(idx[0] == 10);
 }
 
-void test_grid_cmp()
+void
+test_grid_cmp()
 {
   double lower[] = {0.0, 0.0}, upper[] = {1.0, 1.0};
   int cells[] = {4, 4};
@@ -363,7 +375,8 @@ void test_grid_cmp()
 
 int cu_rect_grid_test(const struct gkyl_rect_grid grid);
 
-void test_grid_2d_dev()
+void
+test_grid_2d_dev()
 {
   double lower[] = {1.0, 1.0}, upper[] = {2.5, 5.0};
   int cells[] = {20, 20};

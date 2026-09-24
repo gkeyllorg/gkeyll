@@ -25,7 +25,8 @@ struct bc_elastic_ctx {
   const struct gkyl_basis *basis; // basis function.
 };
 
-GKYL_CU_D static void reflection(size_t nc, double *out, const double *inp, void *ctx)
+GKYL_CU_D static void
+reflection(size_t nc, double *out, const double *inp, void *ctx)
 {
   struct bc_elastic_ctx *bc_ctx = (struct bc_elastic_ctx *)ctx;
   int dir = bc_ctx->dir, cdim = bc_ctx->cdim;

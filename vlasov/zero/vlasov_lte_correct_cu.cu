@@ -6,7 +6,8 @@ extern "C" {
 #include <gkyl_range.h>
 }
 
-static void gkyl_parallelize_components_kernel_launch_dims(
+static void
+gkyl_parallelize_components_kernel_launch_dims(
   dim3 *dimGrid, dim3 *dimBlock, gkyl_range range, int ncomp
 )
 {
@@ -17,7 +18,8 @@ static void gkyl_parallelize_components_kernel_launch_dims(
   dimGrid->x = gkyl_int_div_up(range.volume, dimBlock->x);
 }
 
-__global__ static void gkyl_vlasov_lte_correct_all_moments_abs_diff_cu_ker(
+__global__ static void
+gkyl_vlasov_lte_correct_all_moments_abs_diff_cu_ker(
   struct gkyl_range conf_range, int num_comp, int nc, const struct gkyl_array *moms_target,
   const struct gkyl_array *moms_iter, struct gkyl_array *abs_diff_moms
 )
@@ -57,7 +59,8 @@ __global__ static void gkyl_vlasov_lte_correct_all_moments_abs_diff_cu_ker(
   }
 }
 
-void gkyl_vlasov_lte_correct_all_moments_abs_diff_cu(
+void
+gkyl_vlasov_lte_correct_all_moments_abs_diff_cu(
   const struct gkyl_range *conf_range, int num_comp, int nc, const struct gkyl_array *moms_target,
   const struct gkyl_array *moms_iter, struct gkyl_array *moms_abs_diff
 )

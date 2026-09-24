@@ -9,7 +9,8 @@
 #include <gkyl_dg_vlasov_sr_priv.h>
 #include <gkyl_util.h>
 
-void gkyl_vlasov_sr_free(const struct gkyl_ref_count *ref)
+void
+gkyl_vlasov_sr_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_dg_eqn *base = container_of(ref, struct gkyl_dg_eqn, ref_count);
 
@@ -23,9 +24,8 @@ void gkyl_vlasov_sr_free(const struct gkyl_ref_count *ref)
   gkyl_free(vlasov_sr);
 }
 
-void gkyl_vlasov_sr_set_auxfields(
-  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_sr_auxfields auxin
-)
+void
+gkyl_vlasov_sr_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_sr_auxfields auxin)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_dg_eqn_is_cu_dev(eqn)) {
@@ -39,7 +39,8 @@ void gkyl_vlasov_sr_set_auxfields(
   vlasov_sr->auxfields.gamma = auxin.gamma;
 }
 
-struct gkyl_dg_eqn *gkyl_dg_vlasov_sr_new(
+struct gkyl_dg_eqn *
+gkyl_dg_vlasov_sr_new(
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
   const struct gkyl_range *conf_range, const struct gkyl_range *vel_range,
   enum gkyl_field_id field_id, bool use_gpu
@@ -72,24 +73,24 @@ struct gkyl_dg_eqn *gkyl_dg_vlasov_sr_new(
     *accel_boundary_surf_vy_kernels, *accel_boundary_surf_vz_kernels;
 
   switch (cbasis->b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    stream_vol_kernels = ser_stream_vol_kernels;
-    vol_kernels = ser_vol_kernels;
-    stream_surf_x_kernels = ser_stream_surf_x_kernels;
-    stream_surf_y_kernels = ser_stream_surf_y_kernels;
-    stream_surf_z_kernels = ser_stream_surf_z_kernels;
-    accel_surf_vx_kernels = ser_accel_surf_vx_kernels;
-    accel_surf_vy_kernels = ser_accel_surf_vy_kernels;
-    accel_surf_vz_kernels = ser_accel_surf_vz_kernels;
-    accel_boundary_surf_vx_kernels = ser_accel_boundary_surf_vx_kernels;
-    accel_boundary_surf_vy_kernels = ser_accel_boundary_surf_vy_kernels;
-    accel_boundary_surf_vz_kernels = ser_accel_boundary_surf_vz_kernels;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      stream_vol_kernels = ser_stream_vol_kernels;
+      vol_kernels = ser_vol_kernels;
+      stream_surf_x_kernels = ser_stream_surf_x_kernels;
+      stream_surf_y_kernels = ser_stream_surf_y_kernels;
+      stream_surf_z_kernels = ser_stream_surf_z_kernels;
+      accel_surf_vx_kernels = ser_accel_surf_vx_kernels;
+      accel_surf_vy_kernels = ser_accel_surf_vy_kernels;
+      accel_surf_vz_kernels = ser_accel_surf_vz_kernels;
+      accel_boundary_surf_vx_kernels = ser_accel_boundary_surf_vx_kernels;
+      accel_boundary_surf_vy_kernels = ser_accel_boundary_surf_vy_kernels;
+      accel_boundary_surf_vz_kernels = ser_accel_boundary_surf_vz_kernels;
 
-    break;
+      break;
 
-  default:
-    assert(false);
-    break;
+    default:
+      assert(false);
+      break;
   }
   if (field_id == GKYL_FIELD_NULL) {
     vlasov_sr->eqn.vol_term = CK(stream_vol_kernels, cdim, vdim, poly_order);
@@ -149,7 +150,8 @@ struct gkyl_dg_eqn *gkyl_dg_vlasov_sr_new(
 
 #ifndef GKYL_HAVE_CUDA
 
-struct gkyl_dg_eqn *gkyl_dg_vlasov_sr_cu_dev_new(
+struct gkyl_dg_eqn *
+gkyl_dg_vlasov_sr_cu_dev_new(
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
   const struct gkyl_range *conf_range, const struct gkyl_range *vel_range,
   enum gkyl_field_id field_id

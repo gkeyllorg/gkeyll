@@ -5,7 +5,8 @@
 #include <gkyl_moment_em_coupling_priv.h>
 #include <gkyl_mat.h>
 
-gkyl_moment_em_coupling *gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp)
+gkyl_moment_em_coupling *
+gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp)
 {
   gkyl_moment_em_coupling *mom_em = gkyl_malloc(sizeof(gkyl_moment_em_coupling));
 
@@ -137,7 +138,8 @@ gkyl_moment_em_coupling *gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupl
   return mom_em;
 }
 
-void gkyl_moment_em_coupling_implicit_advance(
+void
+gkyl_moment_em_coupling_implicit_advance(
   const gkyl_moment_em_coupling *mom_em, double t_curr, double dt,
   const struct gkyl_range *update_range, struct gkyl_array *fluid[GKYL_MAX_SPECIES],
   const struct gkyl_array *app_accel[GKYL_MAX_SPECIES],
@@ -176,7 +178,8 @@ void gkyl_moment_em_coupling_implicit_advance(
   }
 }
 
-void gkyl_moment_em_coupling_explicit_advance(
+void
+gkyl_moment_em_coupling_explicit_advance(
   const gkyl_moment_em_coupling *mom_em, double t_curr, double dt,
   const struct gkyl_range *update_range, struct gkyl_array *fluid[GKYL_MAX_SPECIES],
   const struct gkyl_array *app_accel[GKYL_MAX_SPECIES],
@@ -220,7 +223,8 @@ void gkyl_moment_em_coupling_explicit_advance(
   }
 }
 
-void gkyl_moment_em_coupling_release(gkyl_moment_em_coupling *mom_em)
+void
+gkyl_moment_em_coupling_release(gkyl_moment_em_coupling *mom_em)
 {
   gkyl_free(mom_em);
 }

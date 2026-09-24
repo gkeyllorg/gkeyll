@@ -1,6 +1,16 @@
 # Gkeyll code style (EXPERIMENTAL): the actual Linux kernel .clang-format
 # (as shipped at the root of torvalds/linux), with every place it hard-codes
 # the kernel's 8-character-wide indentation changed to 2 (spaces, not tabs).
+# Other deliberate deviations from the kernel file:
+#   - ColumnLimit 100, AlignAfterOpenBracket BlockIndent, InsertBraces.
+#   - AlwaysBreakAfterReturnType TopLevelDefinitions + a high
+#     PenaltyReturnTypeOnItsOwnLine: every function *definition* has its
+#     return type on its own line (so `grep '^name('` finds it), and no
+#     *declaration* ever does.
+#   - IndentCaseLabels true: `case` is indented one level inside `switch`.
+# Designated-initializer layout (one member per line when the list does not
+# fit on one line) is not expressible here; ci/format.py adds the trailing
+# comma that makes clang-format do it. Always format through ci/format.py.
 # The upstream file's ForEachMacros list is dropped -- it enumerates Linux
 # kernel internal iteration macros (bpf_*, drm_*, hlist_*, etc.) that don't
 # exist in gkeyll, so keeping it would only add clutter with no effect.
@@ -26,7 +36,7 @@ AllowShortFunctionsOnASingleLine: None
 AllowShortIfStatementsOnASingleLine: false
 AllowShortLoopsOnASingleLine: false
 AlwaysBreakAfterDefinitionReturnType: None
-AlwaysBreakAfterReturnType: None
+AlwaysBreakAfterReturnType: TopLevelDefinitions
 AlwaysBreakBeforeMultilineStrings: false
 AlwaysBreakTemplateDeclarations: false
 BinPackArguments: true
@@ -72,7 +82,7 @@ IncludeCategories:
   - Regex: '.*'
     Priority: 1
 IncludeIsMainRegex: '(Test)?$'
-IndentCaseLabels: false
+IndentCaseLabels: true
 IndentGotoLabels: false
 IndentPPDirectives: None
 IndentWidth: 2
@@ -96,7 +106,7 @@ PenaltyBreakComment: 10
 PenaltyBreakFirstLessLess: 0
 PenaltyBreakString: 10
 PenaltyExcessCharacter: 100
-PenaltyReturnTypeOnItsOwnLine: 60
+PenaltyReturnTypeOnItsOwnLine: 1000
 
 PointerAlignment: Right
 ReflowComments: false

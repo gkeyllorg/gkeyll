@@ -7,7 +7,8 @@
 #define GUASS_QUAD_EPS 3.0e-15
 
 // This is based on an implementation in Numerical Recipes in C book
-static void priv_gkyl_gauleg(double x1, double x2, double x[], double w[], int n)
+static void
+priv_gkyl_gauleg(double x1, double x2, double x[], double w[], int n)
 {
   double z1, xm, xl, pp, p3, p2, p1;
   int m = (n + 1) / 2;
@@ -35,12 +36,14 @@ static void priv_gkyl_gauleg(double x1, double x2, double x[], double w[], int n
   }
 }
 
-void gkyl_gauleg(double x1, double x2, double x[], double w[], int n)
+void
+gkyl_gauleg(double x1, double x2, double x[], double w[], int n)
 {
   priv_gkyl_gauleg(x1, x2, x - 1, w - 1, n); // actual routine assumes 1-offset arrays
 }
 
-void gkyl_ndim_ordinates_weights(int ndim, double *x, double *w, int nq)
+void
+gkyl_ndim_ordinates_weights(int ndim, double *x, double *w, int nq)
 {
   double ordinates1[nq], weights1[nq];
 

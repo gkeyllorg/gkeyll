@@ -13,7 +13,8 @@
 // Mirror of kann_verbose in kann.c (set via gkyl_kann_net_set_verbose)
 static int kann_net_verbose = 0;
 
-static void kann_net_free(const struct gkyl_ref_count *ref)
+static void
+kann_net_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_kann_net *net = container_of(ref, struct gkyl_kann_net, ref_count);
 #ifdef GKYL_HAVE_CUDA
@@ -31,7 +32,8 @@ static void kann_net_free(const struct gkyl_ref_count *ref)
 }
 
 // Initialize cached dimensions from the underlying kann_t
-static void kann_net_cache_dims(struct gkyl_kann_net *net)
+static void
+kann_net_cache_dims(struct gkyl_kann_net *net)
 {
   net->n_in = kann_dim_in(net->ann);
   net->n_out = kann_dim_out(net->ann);
@@ -39,7 +41,8 @@ static void kann_net_cache_dims(struct gkyl_kann_net *net)
   net->n_const = kann_size_const(net->ann);
 }
 
-struct gkyl_kann_net *gkyl_kann_net_new(kad_node_t *cost, bool use_gpu)
+struct gkyl_kann_net *
+gkyl_kann_net_new(kad_node_t *cost, bool use_gpu)
 {
   struct gkyl_kann_net *net = gkyl_malloc(sizeof(*net));
 
@@ -66,7 +69,8 @@ struct gkyl_kann_net *gkyl_kann_net_new(kad_node_t *cost, bool use_gpu)
   return net;
 }
 
-struct gkyl_kann_net *gkyl_kann_net_load(const char *filename, bool use_gpu)
+struct gkyl_kann_net *
+gkyl_kann_net_load(const char *filename, bool use_gpu)
 {
   kann_t *ann = kann_load(filename);
   if (!ann) {
@@ -92,7 +96,8 @@ struct gkyl_kann_net *gkyl_kann_net_load(const char *filename, bool use_gpu)
   return net;
 }
 
-void gkyl_kann_net_save(const struct gkyl_kann_net *net, const char *filename)
+void
+gkyl_kann_net_save(const struct gkyl_kann_net *net, const char *filename)
 {
 #ifdef GKYL_HAVE_CUDA
   if (GKYL_IS_CU_ALLOC(net->flags) && net->cg) {
@@ -107,7 +112,8 @@ void gkyl_kann_net_save(const struct gkyl_kann_net *net, const char *filename)
 // All training data lives on device via kn_vec on_dev; mini-batches are
 // assembled on device via gather kernels.
 #ifdef GKYL_HAVE_CUDA
-static int kann_net_train_fnn1_cu(
+static int
+kann_net_train_fnn1_cu(
   struct gkyl_kann_net *net, const struct gkyl_kann_train_params *params,
   const struct gkyl_kn_vec *inp, const struct gkyl_kn_vec *out
 )
@@ -255,7 +261,8 @@ static int kann_net_train_fnn1_cu(
 }
 #endif
 
-int gkyl_kann_net_train_fnn1(
+int
+gkyl_kann_net_train_fnn1(
   struct gkyl_kann_net *net, const struct gkyl_kann_train_params *params,
   const struct gkyl_kn_vec *inp, const struct gkyl_kn_vec *out
 )
@@ -310,7 +317,8 @@ kann_net_apply_cu(struct gkyl_kann_net *net, const struct gkyl_kn_vec *inp, stru
 }
 #endif
 
-void gkyl_kann_net_apply(
+void
+gkyl_kann_net_apply(
   struct gkyl_kann_net *net, const struct gkyl_kn_vec *inp, struct gkyl_kn_vec *out
 )
 {
@@ -334,7 +342,8 @@ void gkyl_kann_net_apply(
 // GPU sequential RNN inference: process one timestep at a time with
 // pre-recurrence between steps.
 #ifdef GKYL_HAVE_CUDA
-static void kann_net_apply_rnn_cu(
+static void
+kann_net_apply_rnn_cu(
   struct gkyl_kann_net *net, const struct gkyl_kn_vec *inp, struct gkyl_kn_vec *out
 )
 {
@@ -382,7 +391,8 @@ static void kann_net_apply_rnn_cu(
 }
 #endif
 
-void gkyl_kann_net_apply_rnn(
+void
+gkyl_kann_net_apply_rnn(
   struct gkyl_kann_net *net, const struct gkyl_kn_vec *inp, struct gkyl_kn_vec *out
 )
 {
@@ -406,34 +416,40 @@ void gkyl_kann_net_apply_rnn(
   kann_rnn_end(net->ann);
 }
 
-int gkyl_kann_net_dim_in(const struct gkyl_kann_net *net)
+int
+gkyl_kann_net_dim_in(const struct gkyl_kann_net *net)
 {
   return net->n_in;
 }
 
-int gkyl_kann_net_dim_out(const struct gkyl_kann_net *net)
+int
+gkyl_kann_net_dim_out(const struct gkyl_kann_net *net)
 {
   return net->n_out;
 }
 
-void gkyl_kann_net_set_verbose(int level)
+void
+gkyl_kann_net_set_verbose(int level)
 {
   kann_net_verbose = level;
   kann_set_verbose_level(level);
 }
 
-bool gkyl_kann_net_is_cu_dev(const struct gkyl_kann_net *net)
+bool
+gkyl_kann_net_is_cu_dev(const struct gkyl_kann_net *net)
 {
   return GKYL_IS_CU_ALLOC(net->flags);
 }
 
-struct gkyl_kann_net *gkyl_kann_net_acquire(const struct gkyl_kann_net *net)
+struct gkyl_kann_net *
+gkyl_kann_net_acquire(const struct gkyl_kann_net *net)
 {
   gkyl_ref_count_inc(&net->ref_count);
   return (struct gkyl_kann_net *)net;
 }
 
-void gkyl_kann_net_release(struct gkyl_kann_net *net)
+void
+gkyl_kann_net_release(struct gkyl_kann_net *net)
 {
   if (net) {
     gkyl_ref_count_dec(&net->ref_count);

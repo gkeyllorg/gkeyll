@@ -5,32 +5,38 @@
 #include <math.h>
 
 // Table on Page 5 of van Engelen paper. See math.c for full reference
-double func_1(double x, void *ctx)
+double
+func_1(double x, void *ctx)
 {
   return x * x * x - 2 * x * x + x;
 }
 
-double func_2(double x, void *ctx)
+double
+func_2(double x, void *ctx)
 {
   return 1 / (1 + x);
 }
 
-double func_12(double x, void *ctx)
+double
+func_12(double x, void *ctx)
 {
   return 1 / sqrt(sin(M_PI * x));
 }
 
-double func_13(double x, void *ctx)
+double
+func_13(double x, void *ctx)
 {
   return pow(sin(M_PI * x), -0.8);
 }
 
-double func_cir(double x, void *ctx)
+double
+func_cir(double x, void *ctx)
 {
   return sqrt(1 + x * x / (1 - x * x));
 }
 
-static void show_qr_res(struct gkyl_qr_res res, const char *msg)
+static void
+show_qr_res(struct gkyl_qr_res res, const char *msg)
 {
   fprintf(stdout, "%s\n", msg);
   fprintf(
@@ -39,7 +45,8 @@ static void show_qr_res(struct gkyl_qr_res res, const char *msg)
   );
 }
 
-void test_math_dbl_exp_ho(void)
+void
+test_math_dbl_exp_ho(void)
 {
   do {
     struct gkyl_qr_res res = gkyl_dbl_exp(func_1, 0, 0.0, 1.0, 10, 1e-11);
@@ -76,23 +83,27 @@ void test_math_dbl_exp_ho(void)
   } while (0);
 }
 
-double rfunc_1(double x, void *ctx)
+double
+rfunc_1(double x, void *ctx)
 {
   return x * x - 1;
 }
 
-double rfunc_2(double x, void *ctx)
+double
+rfunc_2(double x, void *ctx)
 {
   // flat around the root x = 0
   return x * sin(x * x);
 }
 
-double rfunc_3(double x, void *ctx)
+double
+rfunc_3(double x, void *ctx)
 {
   return x * exp(x) - 10;
 }
 
-void test_math_ridders_ho(void)
+void
+test_math_ridders_ho(void)
 {
   do {
     double x1 = 0.5, x2 = 2.0;
@@ -144,7 +155,8 @@ check_in_list(int nvals, const double complex *vals, double complex tocheck, dou
   return (struct idx_status){.idx = nvals, .status = false};
 }
 
-void test_math_poly2_roots_ho(void)
+void
+test_math_poly2_roots_ho(void)
 {
   struct gkyl_lo_poly_roots rts;
 
@@ -178,7 +190,8 @@ void test_math_poly2_roots_ho(void)
   } while (0);
 }
 
-void test_math_poly3_roots_ho(void)
+void
+test_math_poly3_roots_ho(void)
 {
   struct gkyl_lo_poly_roots rts;
 
@@ -209,7 +222,8 @@ void test_math_poly3_roots_ho(void)
   } while (0);
 }
 
-void test_math_poly4_roots_ho(void)
+void
+test_math_poly4_roots_ho(void)
 {
   struct gkyl_lo_poly_roots rts;
 
@@ -238,7 +252,8 @@ void test_math_poly4_roots_ho(void)
   } while (0);
 }
 
-void test_math_polyn_roots_ho(void)
+void
+test_math_polyn_roots_ho(void)
 {
   do {
     struct gkyl_poly_roots *rts = gkyl_poly_roots_new(4);
@@ -271,7 +286,8 @@ void test_math_polyn_roots_ho(void)
   } while (0);
 }
 
-void test_math_sturn_root_intervals_ho(void)
+void
+test_math_sturn_root_intervals_ho(void)
 {
   // Test from wiki example: 2 real, distinct roots
   // https://en.wikipedia.org/wiki/Sturm%27s_theorem

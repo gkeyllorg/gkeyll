@@ -12,38 +12,44 @@
 #include "math.h"
 
 // allocate array (filled with zeros)
-static struct gkyl_array *mkarr(bool use_gpu, long nc, long size)
+static struct gkyl_array *
+mkarr(bool use_gpu, long nc, long size)
 {
   struct gkyl_array *a = use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size) :
                                    gkyl_array_new(GKYL_DOUBLE, nc, size);
   return a;
 }
 
-void eval_m0s_1x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_m0s_1x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double Lx = 2. * M_PI;
   fout[0] = 0.5 * (1. + cos(0.5 * 2. * M_PI * x / Lx));
 }
-void eval_m0r_1x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_m0r_1x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double Lx = 2. * M_PI;
   fout[0] = 0.5 * (1. + cos(0.5 * 2. * M_PI * x / Lx));
 }
-void eval_vtsqs_1x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_vtsqs_1x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double Lx = 2. * M_PI;
   fout[0] = -x * x + 1.5 * pow(M_PI, 2);
 }
-void eval_vtsqr_1x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_vtsqr_1x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double Lx = 2. * M_PI;
   fout[0] = -x * x + 3.5 * pow(M_PI, 2);
 }
-void eval_nu_1x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_nu_1x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double Lx = 2. * M_PI;
@@ -55,7 +61,8 @@ void eval_nu_1x(double t, const double *xn, double *restrict fout, void *ctx)
   fout[0] = norm_nu * m0r[0] / pow(vtsqs[0] + vtsqr[0], 1.5);
 }
 
-void test_1x(int poly_order, bool use_gpu)
+void
+test_1x(int poly_order, bool use_gpu)
 {
   double Lx = 2. * M_PI;
   double lower[] = {-Lx / 2.}, upper[] = {Lx / 2.};
@@ -179,31 +186,36 @@ void test_1x(int poly_order, bool use_gpu)
   gkyl_spitzer_coll_freq_release(spitz_up);
 }
 
-void eval_m0s_2x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_m0s_2x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   double Lx = 2. * M_PI, Ly = 8. * M_PI;
   fout[0] = 0.5 * (1. + cos(0.5 * 2. * M_PI * x / Lx)) * (y + Ly);
 }
-void eval_m0r_2x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_m0r_2x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   double Lx = 2. * M_PI, Ly = 8. * M_PI;
   fout[0] = 0.5 * (1. + cos(0.5 * 2. * M_PI * x / Lx)) * (y + Ly);
 }
-void eval_vtsqs_2x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_vtsqs_2x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   double Lx = 2. * M_PI, Ly = 8. * M_PI;
   fout[0] = (-x * x + 1.5 * pow(M_PI, 2)) * 0.5 * (1. + cos(0.5 * 2. * M_PI * y / Ly));
 }
-void eval_vtsqr_2x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_vtsqr_2x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   double Lx = 2. * M_PI, Ly = 8. * M_PI;
   fout[0] = (-x * x + 3.5 * pow(M_PI, 2)) * 0.5 * (1. + cos(0.5 * 2. * M_PI * y / Ly));
 }
-void eval_nu_2x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_nu_2x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   double Lx = 2. * M_PI, Ly = 8. * M_PI;
@@ -215,7 +227,8 @@ void eval_nu_2x(double t, const double *xn, double *restrict fout, void *ctx)
   fout[0] = norm_nu * m0r[0] / pow(vtsqs[0] + vtsqr[0], 1.5);
 }
 
-void test_2x(int poly_order, bool use_gpu)
+void
+test_2x(int poly_order, bool use_gpu)
 {
   double Lx = 2. * M_PI, Ly = 8. * M_PI;
   double lower[] = {-Lx / 2., -Ly / 2.}, upper[] = {Lx / 2., Ly / 2.};
@@ -341,27 +354,31 @@ void test_2x(int poly_order, bool use_gpu)
   gkyl_spitzer_coll_freq_release(spitz_up);
 }
 
-void eval_m0s_3x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_m0s_3x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
   double Lx = 2. * M_PI, Ly = 8. * M_PI, Lz = 4. * M_PI;
   fout[0] = 0.5 * (1. + cos(0.5 * 2. * M_PI * x / Lx)) * (y + Ly) * (Lz / 2. - 0.5 * fabs(z));
 }
-void eval_m0r_3x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_m0r_3x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
   double Lx = 2. * M_PI, Ly = 8. * M_PI, Lz = 4. * M_PI;
   fout[0] = 0.5 * (1. + cos(0.5 * 2. * M_PI * x / Lx)) * (y + Ly) * (Lz / 2. - 0.5 * fabs(z));
   ;
 }
-void eval_vtsqs_3x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_vtsqs_3x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
   double Lx = 2. * M_PI, Ly = 8. * M_PI, Lz = 4. * M_PI;
   fout[0] =
     (-x * x + 1.5 * pow(M_PI, 2)) * 0.5 * (1. + cos(0.5 * 2. * M_PI * y / Ly)) * (1.5 + tanh(z));
 }
-void eval_vtsqr_3x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_vtsqr_3x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
   double Lx = 2. * M_PI, Ly = 8. * M_PI, Lz = 4. * M_PI;
@@ -369,7 +386,8 @@ void eval_vtsqr_3x(double t, const double *xn, double *restrict fout, void *ctx)
     (-x * x + 3.5 * pow(M_PI, 2)) * 0.5 * (1. + cos(0.5 * 2. * M_PI * y / Ly)) * (1.5 + tanh(z));
   ;
 }
-void eval_nu_3x(double t, const double *xn, double *restrict fout, void *ctx)
+void
+eval_nu_3x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
   double Lx = 2. * M_PI, Ly = 8. * M_PI, Lz = 4. * M_PI;
@@ -381,7 +399,8 @@ void eval_nu_3x(double t, const double *xn, double *restrict fout, void *ctx)
   fout[0] = norm_nu * m0r[0] / pow(vtsqs[0] + vtsqr[0], 1.5);
 }
 
-void test_3x(int poly_order, bool use_gpu)
+void
+test_3x(int poly_order, bool use_gpu)
 {
   double Lx = 2. * M_PI, Ly = 8. * M_PI, Lz = 4. * M_PI;
   double lower[] = {-Lx / 2., -Ly / 2., -Lz / 2.}, upper[] = {Lx / 2., Ly / 2., Lz / 2.};
@@ -509,57 +528,69 @@ void test_3x(int poly_order, bool use_gpu)
   gkyl_spitzer_coll_freq_release(spitz_up);
 }
 
-void test_spitzer_coll_freq_1x_p1_ho()
+void
+test_spitzer_coll_freq_1x_p1_ho()
 {
   test_1x(1, false);
 }
-void test_spitzer_coll_freq_1x_p2_ho()
+void
+test_spitzer_coll_freq_1x_p2_ho()
 {
   test_1x(2, false);
 }
 
-void test_spitzer_coll_freq_2x_p1_ho()
+void
+test_spitzer_coll_freq_2x_p1_ho()
 {
   test_2x(1, false);
 }
-void test_spitzer_coll_freq_2x_p2_ho()
+void
+test_spitzer_coll_freq_2x_p2_ho()
 {
   test_2x(2, false);
 }
 
-void test_spitzer_coll_freq_3x_p1_ho()
+void
+test_spitzer_coll_freq_3x_p1_ho()
 {
   test_3x(1, false);
 }
-void test_spitzer_coll_freq_3x_p2_ho()
+void
+test_spitzer_coll_freq_3x_p2_ho()
 {
   test_3x(2, false);
 }
 
 #ifdef GKYL_HAVE_CUDA
-void test_spitzer_coll_freq_1x_p1_dev()
+void
+test_spitzer_coll_freq_1x_p1_dev()
 {
   test_1x(1, true);
 }
-void test_spitzer_coll_freq_1x_p2_dev()
+void
+test_spitzer_coll_freq_1x_p2_dev()
 {
   test_1x(2, true);
 }
 
-void test_spitzer_coll_freq_2x_p1_dev()
+void
+test_spitzer_coll_freq_2x_p1_dev()
 {
   test_2x(1, true);
 }
-void test_spitzer_coll_freq_2x_p2_dev()
+void
+test_spitzer_coll_freq_2x_p2_dev()
 {
   test_2x(2, true);
 }
 
-void test_spitzer_coll_freq_3x_p1_dev()
+void
+test_spitzer_coll_freq_3x_p1_dev()
 {
   test_3x(1, true);
 }
-void test_spitzer_coll_freq_3x_p2_dev()
+void
+test_spitzer_coll_freq_3x_p2_dev()
 {
   test_3x(2, true);
 }

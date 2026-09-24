@@ -8,7 +8,8 @@
 #include <gkyl_gk_collisionless_passive_flux_priv.h>
 #include <gkyl_util.h>
 
-gkyl_gk_collisionless_passive_flux *gkyl_gk_collisionless_passive_flux_new(
+gkyl_gk_collisionless_passive_flux *
+gkyl_gk_collisionless_passive_flux_new(
   const struct gkyl_rect_grid *phase_grid, const struct gkyl_basis *conf_basis,
   const struct gkyl_basis *phase_basis, const struct gkyl_array *passive_speeds,
   const double charge, const double mass, const struct gk_geometry *gk_geom,
@@ -66,7 +67,8 @@ gkyl_gk_collisionless_passive_flux *gkyl_gk_collisionless_passive_flux_new(
   return up;
 }
 
-void gkyl_gk_collisionless_passive_flux_surf(
+void
+gkyl_gk_collisionless_passive_flux_surf(
   gkyl_gk_collisionless_passive_flux *up, const struct gkyl_range *conf_range,
   const struct gkyl_range *phase_range, const struct gkyl_range *conf_ext_range,
   const struct gkyl_range *phase_ext_range, const struct gkyl_array *fin,
@@ -190,7 +192,8 @@ void gkyl_gk_collisionless_passive_flux_surf(
   }
 }
 
-void gkyl_gk_collisionless_passive_flux_release(gkyl_gk_collisionless_passive_flux *up)
+void
+gkyl_gk_collisionless_passive_flux_release(gkyl_gk_collisionless_passive_flux *up)
 {
   gkyl_gk_geometry_release(up->gk_geom);
   gkyl_dg_geom_release(up->dg_geom);

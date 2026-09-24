@@ -15,44 +15,46 @@
 #include <gkyl_prim_lbo_cross_calc.h>
 #include <gkyl_prim_lbo_type.h>
 
-static inline double maxwellian1D(double n, double vx, double ux, double vth)
+static inline double
+maxwellian1D(double n, double vx, double ux, double vth)
 {
   double v2 = (vx - ux) * (vx - ux);
   return n / sqrt(2 * M_PI * vth * vth) * exp(-v2 / (2 * vth * vth));
 }
 
-static inline double maxwellian2D(double n, double vx, double vy, double ux, double uy, double vth)
+static inline double
+maxwellian2D(double n, double vx, double vy, double ux, double uy, double vth)
 {
   double v2 = (vx - ux) * (vx - ux) + (vy - uy) * (vy - uy);
   return n / (2 * M_PI * vth * vth) * exp(-v2 / (2 * vth * vth));
 }
 
-void evalDistFunc1x1v(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
-)
+void
+evalDistFunc1x1v(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], vx = xn[1];
 
   fout[0] = maxwellian1D(1.0, vx, 0.0, 1.0);
 }
 
-void evalDistFunc1x2v(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
-)
+void
+evalDistFunc1x2v(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], vx = xn[1], vy = xn[2];
 
   fout[0] = maxwellian2D(1.0, vx, vy, 0.0, 0.0, 1.0);
 }
 
-void nu_prof_1x1v(double t, const double *xn, double *restrict fout, void *ctx)
+void
+nu_prof_1x1v(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double vx = xn[1];
   fout[0] = 1.0;
 }
 
-void nu_prof_1x2v(double t, const double *xn, double *restrict fout, void *ctx)
+void
+nu_prof_1x2v(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double vx = xn[1];
@@ -61,13 +63,15 @@ void nu_prof_1x2v(double t, const double *xn, double *restrict fout, void *ctx)
 }
 
 // allocate array (filled with zeros)
-static struct gkyl_array *mkarr(long nc, long size)
+static struct gkyl_array *
+mkarr(long nc, long size)
 {
   struct gkyl_array *a = gkyl_array_new(GKYL_DOUBLE, nc, size);
   return a;
 }
 // allocate cu_dev array
-static struct gkyl_array *mkarr_cu(long nc, long size)
+static struct gkyl_array *
+mkarr_cu(long nc, long size)
 {
   struct gkyl_array *a = gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size);
   return a;
@@ -82,7 +86,8 @@ struct skin_ghost_ranges {
 };
 
 // Create ghost and skin sub-ranges given a parent range
-static void skin_ghost_ranges_init(
+static void
+skin_ghost_ranges_init(
   struct skin_ghost_ranges *sgr, const struct gkyl_range *parent, const int *ghost
 )
 {
@@ -98,7 +103,8 @@ static void skin_ghost_ranges_init(
   }
 }
 
-void test_func(
+void
+test_func(
   int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_check[], double vf_check[],
   double u_check[], double vth_check[], double ucross_check[], double vthcross_check[]
 )
@@ -331,7 +337,8 @@ void test_func(
 }
 
 #ifdef GKYL_HAVE_CUDA
-void test_func_cu(
+void
+test_func_cu(
   int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_check[], double vf_check[],
   double u_check[], double vth_check[], double ucross_check[], double vthcross_check[]
 )
@@ -566,7 +573,8 @@ void test_func_cu(
 }
 #endif
 
-void test_prim_vlasov_1x1v_p2_ho()
+void
+test_prim_vlasov_1x1v_p2_ho()
 {
   int poly_order = 2;
   int vdim = 1, cdim = 1;
@@ -584,7 +592,8 @@ void test_prim_vlasov_1x1v_p2_ho()
   );
 }
 
-void test_prim_vlasov_1x2v_p2_ho()
+void
+test_prim_vlasov_1x2v_p2_ho()
 {
   int poly_order = 2;
   int vdim = 2, cdim = 1;
@@ -603,7 +612,8 @@ void test_prim_vlasov_1x2v_p2_ho()
 }
 
 #ifdef GKYL_HAVE_CUDA
-void test_prim_vlasov_1x1v_p2_dev()
+void
+test_prim_vlasov_1x1v_p2_dev()
 {
   int poly_order = 2;
   int vdim = 1, cdim = 1;
@@ -621,7 +631,8 @@ void test_prim_vlasov_1x1v_p2_dev()
   );
 }
 
-void test_prim_vlasov_1x2v_p2_dev()
+void
+test_prim_vlasov_1x2v_p2_dev()
 {
   int poly_order = 2;
   int vdim = 2, cdim = 1;

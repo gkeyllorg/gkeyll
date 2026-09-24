@@ -13,7 +13,8 @@ extern "C" {
 #include <gkyl_util.h>
 }
 
-__global__ void gkyl_dg_calc_pkpm_dist_vars_mirror_force_cu_kernel(
+__global__ void
+gkyl_dg_calc_pkpm_dist_vars_mirror_force_cu_kernel(
   struct gkyl_dg_calc_pkpm_dist_vars *up, struct gkyl_range conf_range,
   struct gkyl_range phase_range, const struct gkyl_array *pkpm_prim,
   const struct gkyl_array *nu_prim_moms_sum, const struct gkyl_array *div_b,
@@ -54,7 +55,8 @@ __global__ void gkyl_dg_calc_pkpm_dist_vars_mirror_force_cu_kernel(
   }
 }
 // Host-side wrapper for pkpm mirror force source distribution function calculation
-void gkyl_dg_calc_pkpm_dist_vars_mirror_force_cu(
+void
+gkyl_dg_calc_pkpm_dist_vars_mirror_force_cu(
   struct gkyl_dg_calc_pkpm_dist_vars *up, const struct gkyl_range *conf_range,
   const struct gkyl_range *phase_range, const struct gkyl_array *pkpm_prim,
   const struct gkyl_array *nu_prim_moms_sum, const struct gkyl_array *div_b,
@@ -71,7 +73,8 @@ void gkyl_dg_calc_pkpm_dist_vars_mirror_force_cu(
   );
 }
 
-__global__ void gkyl_dg_calc_pkpm_dist_vars_div_ppar_cu_kernel(
+__global__ void
+gkyl_dg_calc_pkpm_dist_vars_div_ppar_cu_kernel(
   struct gkyl_dg_calc_pkpm_dist_vars *up, struct gkyl_range conf_range,
   struct gkyl_range phase_range, const struct gkyl_array *bvar_surf, const struct gkyl_array *bvar,
   const struct gkyl_array *fIn, const struct gkyl_array *max_b, struct gkyl_array *pkpm_div_ppar
@@ -132,7 +135,8 @@ __global__ void gkyl_dg_calc_pkpm_dist_vars_div_ppar_cu_kernel(
   }
 }
 // Host-side wrapper for pkpm div(p_parallel b_hat) calculation
-void gkyl_dg_calc_pkpm_dist_vars_div_ppar_cu(
+void
+gkyl_dg_calc_pkpm_dist_vars_div_ppar_cu(
   struct gkyl_dg_calc_pkpm_dist_vars *up, const struct gkyl_range *conf_range,
   const struct gkyl_range *phase_range, const struct gkyl_array *bvar_surf,
   const struct gkyl_array *bvar, const struct gkyl_array *fIn, const struct gkyl_array *max_b,
@@ -149,7 +153,8 @@ void gkyl_dg_calc_pkpm_dist_vars_div_ppar_cu(
 
 // CUDA kernel to set device pointers to pkpm dist vars kernel functions
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
-__global__ static void dg_calc_pkpm_dist_vars_set_cu_dev_ptrs(
+__global__ static void
+dg_calc_pkpm_dist_vars_set_cu_dev_ptrs(
   struct gkyl_dg_calc_pkpm_dist_vars *up, enum gkyl_basis_type b_type, int cdim, int poly_order
 )
 {
@@ -160,7 +165,8 @@ __global__ static void dg_calc_pkpm_dist_vars_set_cu_dev_ptrs(
   }
 }
 
-gkyl_dg_calc_pkpm_dist_vars *gkyl_dg_calc_pkpm_dist_vars_cu_dev_new(
+gkyl_dg_calc_pkpm_dist_vars *
+gkyl_dg_calc_pkpm_dist_vars_cu_dev_new(
   const struct gkyl_rect_grid *phase_grid, const struct gkyl_basis *cbasis
 )
 {

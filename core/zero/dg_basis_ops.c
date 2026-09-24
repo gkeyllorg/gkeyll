@@ -8,7 +8,8 @@
 #include <gkyl_util.h>
 #include <float.h>
 
-void gkyl_dg_basis_ops_eval_array_at_coord_comp(
+void
+gkyl_dg_basis_ops_eval_array_at_coord_comp(
   const struct gkyl_array *arr, const double *coord, const struct gkyl_basis *basis,
   const struct gkyl_rect_grid *grid, const struct gkyl_range *rng, double *out
 )
@@ -67,7 +68,8 @@ struct dg_basis_ops_evalf_ctx {
   struct gkyl_array *cubic; // cubic DG representation
 };
 
-void gkyl_dg_calc_cubic_1d(const double val[2], const double grad[2], double *coeff)
+void
+gkyl_dg_calc_cubic_1d(const double val[2], const double grad[2], double *coeff)
 {
   coeff[0] = 0.7071067811865475 * val[1] - 0.2357022603955158 * grad[1] +
              0.7071067811865475 * val[0] + 0.2357022603955158 * grad[0];
@@ -78,7 +80,8 @@ void gkyl_dg_calc_cubic_1d(const double val[2], const double grad[2], double *co
              0.05345224838248487 * val[0] + 0.05345224838248487 * grad[0];
 }
 
-void gkyl_dg_calc_cubic_2d(
+void
+gkyl_dg_calc_cubic_2d(
   const double f[4], const double fx[4], const double fy[4], const double fxy[4], double *coeff
 )
 {
@@ -167,12 +170,14 @@ void gkyl_dg_calc_cubic_2d(
     0.002857142857142857 * f[0];
 }
 
-static inline double calc_bilinear_grad_xy(double val[4], double dx[2])
+static inline double
+calc_bilinear_grad_xy(double val[4], double dx[2])
 {
   return ((val[3] - val[2]) / dx[1] - (val[1] - val[0]) / dx[1]) / dx[0];
 }
 
-gkyl_dg_basis_op_mem *gkyl_dg_alloc_cubic_1d(int cells)
+gkyl_dg_basis_op_mem *
+gkyl_dg_alloc_cubic_1d(int cells)
 {
   struct gkyl_dg_basis_op_mem *mem = gkyl_malloc(sizeof(*mem));
   mem->opcode = GKYL_DG_BASIS_OP_CUBIC_1D;
@@ -180,7 +185,8 @@ gkyl_dg_basis_op_mem *gkyl_dg_alloc_cubic_1d(int cells)
   return mem;
 }
 
-gkyl_dg_basis_op_mem *gkyl_dg_alloc_cubic_2d(int cells[2])
+gkyl_dg_basis_op_mem *
+gkyl_dg_alloc_cubic_2d(int cells[2])
 {
   struct gkyl_dg_basis_op_mem *mem = gkyl_malloc(sizeof(*mem));
   mem->opcode = GKYL_DG_BASIS_OP_CUBIC_2D;
@@ -193,7 +199,8 @@ gkyl_dg_basis_op_mem *gkyl_dg_alloc_cubic_2d(int cells[2])
   return mem;
 }
 
-void gkyl_dg_basis_op_mem_release(gkyl_dg_basis_op_mem *mem)
+void
+gkyl_dg_basis_op_mem_release(gkyl_dg_basis_op_mem *mem)
 {
   if (mem->opcode == GKYL_DG_BASIS_OP_CUBIC_1D) {
     gkyl_array_release(mem->grad1dx);
@@ -206,7 +213,8 @@ void gkyl_dg_basis_op_mem_release(gkyl_dg_basis_op_mem *mem)
   gkyl_free(mem);
 }
 
-void gkyl_dg_calc_cubic_1d_from_nodal_vals(
+void
+gkyl_dg_calc_cubic_1d_from_nodal_vals(
   gkyl_dg_basis_op_mem *mem, int cells, double dx, const struct gkyl_array *nodal_vals,
   struct gkyl_array *cubic
 )
@@ -284,7 +292,8 @@ void gkyl_dg_calc_cubic_1d_from_nodal_vals(
   }
 }
 
-void gkyl_dg_calc_cubic_2d_from_nodal_vals(
+void
+gkyl_dg_calc_cubic_2d_from_nodal_vals(
   gkyl_dg_basis_op_mem *mem, int cells[2], double dx[2], const struct gkyl_array *nodal_vals,
   struct gkyl_array *cubic
 )
@@ -623,7 +632,8 @@ void gkyl_dg_calc_cubic_2d_from_nodal_vals(
   }
 }
 
-static double eval_laplacian_expand_2d_tensor_p3(int dir, const double *z, const double *f)
+static double
+eval_laplacian_expand_2d_tensor_p3(int dir, const double *z, const double *f)
 {
   const double z0 = z[0];
   const double z1 = z[1];
@@ -648,7 +658,8 @@ static double eval_laplacian_expand_2d_tensor_p3(int dir, const double *z, const
   return 0.0; // can't happen, suppresses warning
 }
 
-static double eval_mixedpartial_expand_2d_tensor_p3(const double *z, const double *f)
+static double
+eval_mixedpartial_expand_2d_tensor_p3(const double *z, const double *f)
 {
   const double z0 = z[0];
   const double z1 = z[1];
@@ -661,7 +672,8 @@ static double eval_mixedpartial_expand_2d_tensor_p3(const double *z, const doubl
          3.43693177121688 * f[11] + 1.5 * f[3];
 }
 
-static void evalf_free(const struct gkyl_ref_count *rc)
+static void
+evalf_free(const struct gkyl_ref_count *rc)
 {
   struct gkyl_basis_ops_evalf *evf = container_of(rc, struct gkyl_basis_ops_evalf, ref_count);
 
@@ -672,7 +684,8 @@ static void evalf_free(const struct gkyl_ref_count *rc)
 }
 
 // function for computing cubic at a specified coordinate
-static void eval_cubic(double t, const double *xn, double *fout, void *ctx)
+static void
+eval_cubic(double t, const double *xn, double *fout, void *ctx)
 {
   struct dg_basis_ops_evalf_ctx *ectx = ctx;
 
@@ -698,7 +711,8 @@ static void eval_cubic(double t, const double *xn, double *fout, void *ctx)
 }
 
 // function for computing cubic at a specified coordinate
-static void eval_cubic_wgrad(double t, const double *xn, double *fout, void *ctx)
+static void
+eval_cubic_wgrad(double t, const double *xn, double *fout, void *ctx)
 {
   struct dg_basis_ops_evalf_ctx *ectx = ctx;
 
@@ -728,7 +742,8 @@ static void eval_cubic_wgrad(double t, const double *xn, double *fout, void *ctx
 }
 
 // function for computing cubic at a specified coordinate
-static void eval_cubic_wgrad2(double t, const double *xn, double *fout, void *ctx)
+static void
+eval_cubic_wgrad2(double t, const double *xn, double *fout, void *ctx)
 {
   struct dg_basis_ops_evalf_ctx *ectx = ctx;
 
@@ -810,14 +825,17 @@ gkyl_dg_basis_ops_evalf_new(const struct gkyl_rect_grid *grid, const struct gkyl
   return evf;
 }
 
-bool gkyl_dg_basis_ops_evalf_write_cubic(const struct gkyl_basis_ops_evalf *evf, const char *fname)
+bool
+gkyl_dg_basis_ops_evalf_write_cubic(const struct gkyl_basis_ops_evalf *evf, const char *fname)
 {
   struct dg_basis_ops_evalf_ctx *ectx = evf->ctx;
 
   struct gkyl_msgpack_data *mdata = gkyl_msgpack_create(
-    2, (struct gkyl_msgpack_map_elem[]
-       ){{.key = "polyOrder", .elem_type = GKYL_MP_INT, .ival = 3},
-         {.key = "basisType", .elem_type = GKYL_MP_STRING, .cval = ectx->basis.id}}
+    2,
+    (struct gkyl_msgpack_map_elem[]){
+      {.key = "polyOrder", .elem_type = GKYL_MP_INT, .ival = 3},
+      {.key = "basisType", .elem_type = GKYL_MP_STRING, .cval = ectx->basis.id},
+    }
   );
 
   enum gkyl_array_rio_status status =
@@ -827,13 +845,15 @@ bool gkyl_dg_basis_ops_evalf_write_cubic(const struct gkyl_basis_ops_evalf *evf,
   return status == GKYL_ARRAY_RIO_SUCCESS;
 }
 
-struct gkyl_basis_ops_evalf *gkyl_dg_basis_ops_evalf_acquire(const struct gkyl_basis_ops_evalf *evf)
+struct gkyl_basis_ops_evalf *
+gkyl_dg_basis_ops_evalf_acquire(const struct gkyl_basis_ops_evalf *evf)
 {
   gkyl_ref_count_inc(&evf->ref_count);
   return (struct gkyl_basis_ops_evalf *)evf;
 }
 
-void gkyl_dg_basis_ops_evalf_release(struct gkyl_basis_ops_evalf *evf)
+void
+gkyl_dg_basis_ops_evalf_release(struct gkyl_basis_ops_evalf *evf)
 {
   gkyl_ref_count_dec(&evf->ref_count);
 }

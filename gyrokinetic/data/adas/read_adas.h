@@ -34,7 +34,8 @@ array_from_numpy(FILE *fp, long sz, int Zmax, int charge_state, struct gkyl_arra
   }
 }
 
-static inline void minmax_from_numpy(FILE *fp, long sz, double minmax[2])
+static inline void
+minmax_from_numpy(FILE *fp, long sz, double minmax[2])
 {
   double array[sz];
   long res_sz = fread(array, 1, sizeof(double[sz]), fp);

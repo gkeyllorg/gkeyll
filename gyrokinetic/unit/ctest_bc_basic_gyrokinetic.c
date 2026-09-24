@@ -18,7 +18,8 @@
 #include <gkyl_rect_grid.h>
 
 // Build a 1D conf grid + skin/ghost ranges at the given edge.
-static void setup_1x(
+static void
+setup_1x(
   enum gkyl_edge_loc edge, struct gkyl_basis *basis, struct gkyl_range *local,
   struct gkyl_range *local_ext, struct gkyl_range *skin_r, struct gkyl_range *ghost_r
 )
@@ -36,7 +37,8 @@ static void setup_1x(
   gkyl_skin_ghost_ranges(skin_r, ghost_r, 0, edge, local_ext, ghost);
 }
 
-void test_bc_basic_ctor()
+void
+test_bc_basic_ctor()
 {
   struct gkyl_basis basis;
   struct gkyl_range local, local_ext, skin_r, ghost_r;
@@ -62,7 +64,8 @@ void test_bc_basic_ctor()
 
 // Verify that applying a COPY BC fills the ghost cell with an exact copy of
 // the skin cell.
-static void check_copy_advance(enum gkyl_edge_loc edge)
+static void
+check_copy_advance(enum gkyl_edge_loc edge)
 {
   struct gkyl_basis basis;
   struct gkyl_range local, local_ext, skin_r, ghost_r;
@@ -110,16 +113,19 @@ static void check_copy_advance(enum gkyl_edge_loc edge)
   gkyl_array_release(buff);
 }
 
-void test_bc_basic_copy_lower()
+void
+test_bc_basic_copy_lower()
 {
   check_copy_advance(GKYL_LOWER_EDGE);
 }
-void test_bc_basic_copy_upper()
+void
+test_bc_basic_copy_upper()
 {
   check_copy_advance(GKYL_UPPER_EDGE);
 }
 
-void test_bc_basic_ctor_upper_reflect()
+void
+test_bc_basic_ctor_upper_reflect()
 {
   struct gkyl_basis basis;
   struct gkyl_range local, local_ext, skin_r, ghost_r;

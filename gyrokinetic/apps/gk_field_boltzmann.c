@@ -12,7 +12,8 @@
 #include <float.h>
 #include <time.h>
 
-static void gk_field_accumulate_rho_c_boltzmann(
+static void
+gk_field_accumulate_rho_c_boltzmann(
   gkyl_gyrokinetic_app *app, struct gk_field *field, struct gk_species *s, struct gkyl_array **bflux
 )
 {
@@ -38,7 +39,8 @@ static void gk_field_accumulate_rho_c_boltzmann(
   }
 }
 
-static void gk_field_calc_ambi_pot_sheath_vals(gkyl_gyrokinetic_app *app, struct gk_field *field)
+static void
+gk_field_calc_ambi_pot_sheath_vals(gkyl_gyrokinetic_app *app, struct gk_field *field)
 {
   // Note that the M0 moment of boundary fluxes along z should
   // be stored in the ghost cells of m0.marr at this point.
@@ -85,7 +87,8 @@ static void gk_field_calc_ambi_pot_sheath_vals(gkyl_gyrokinetic_app *app, struct
   }
 }
 
-static void gk_field_rhs_boltzmann(struct gkyl_gyrokinetic_app *app, struct gk_field *field)
+static void
+gk_field_rhs_boltzmann(struct gkyl_gyrokinetic_app *app, struct gk_field *field)
 {
   // Compute sheath density n_i,s and potential phi_s = (Te/e)*ln(n_i,s*v_te/(sqrt(2*pi)*Gamma_i)).
   gk_field_calc_ambi_pot_sheath_vals(app, app->field);
@@ -100,7 +103,8 @@ static void gk_field_rhs_boltzmann(struct gkyl_gyrokinetic_app *app, struct gk_f
   gk_field_fem_projection_par(app, field, field->phi_smooth, field->phi_smooth);
 }
 
-static void gk_field_fem_release_boltzmann(const gkyl_gyrokinetic_app *app, struct gk_field *f)
+static void
+gk_field_fem_release_boltzmann(const gkyl_gyrokinetic_app *app, struct gk_field *f)
 {
   gkyl_array_release(f->rho_c);
   gkyl_array_release(f->rho_c_global_dg);
@@ -119,7 +123,8 @@ static void gk_field_fem_release_boltzmann(const gkyl_gyrokinetic_app *app, stru
   gkyl_array_integrate_release(f->calc_em_energy);
 }
 
-void gk_field_fem_new_boltzmann(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
+void
+gk_field_fem_new_boltzmann(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
 {
   // Create global subrange we'll copy the field solver solution from (into local).
   gkyl_sub_range_intersect(&f->global_sub_range, &app->global, &app->local);

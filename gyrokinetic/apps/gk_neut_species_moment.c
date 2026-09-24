@@ -1,7 +1,8 @@
 #include <assert.h>
 #include <gkyl_gyrokinetic_priv.h>
 
-static void gk_neut_species_moment_diag_jacobgeo_div_disabled(
+static void
+gk_neut_species_moment_diag_jacobgeo_div_disabled(
   const struct gkyl_gyrokinetic_app *app, struct gk_species_moment *sm, struct gkyl_array *Jmom_in,
   struct gkyl_array *mom_out
 )
@@ -9,7 +10,8 @@ static void gk_neut_species_moment_diag_jacobgeo_div_disabled(
   // Do nothing.
 }
 
-static void gk_neut_species_moment_diag_jacobgeo_div_enabled_1st_comp(
+static void
+gk_neut_species_moment_diag_jacobgeo_div_enabled_1st_comp(
   const struct gkyl_gyrokinetic_app *app, struct gk_species_moment *sm, struct gkyl_array *Jmom_in,
   struct gkyl_array *mom_out
 )
@@ -20,7 +22,8 @@ static void gk_neut_species_moment_diag_jacobgeo_div_enabled_1st_comp(
   );
 }
 
-static void gk_neut_species_moment_diag_jacobgeo_div_enabled_all_comp(
+static void
+gk_neut_species_moment_diag_jacobgeo_div_enabled_all_comp(
   const struct gkyl_gyrokinetic_app *app, struct gk_species_moment *sm, struct gkyl_array *Jmom_in,
   struct gkyl_array *mom_out
 )
@@ -34,7 +37,8 @@ static void gk_neut_species_moment_diag_jacobgeo_div_enabled_all_comp(
   }
 }
 
-static void gk_neut_species_kinetic_moment_calc(
+static void
+gk_neut_species_kinetic_moment_calc(
   const struct gk_species_moment *sm, const struct gkyl_range phase_rng,
   const struct gkyl_range conf_rng, const struct gkyl_array *fin
 )
@@ -46,7 +50,8 @@ static void gk_neut_species_kinetic_moment_calc(
   }
 }
 
-static void gk_neut_species_kinetic_moment_release(
+static void
+gk_neut_species_kinetic_moment_release(
   const struct gkyl_gyrokinetic_app *app, const struct gk_species_moment *sm
 )
 {
@@ -69,7 +74,8 @@ static void gk_neut_species_kinetic_moment_release(
   }
 }
 
-static void gk_neut_species_kinetic_moment_init(
+static void
+gk_neut_species_kinetic_moment_init(
   struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s, struct gk_species_moment *sm,
   enum gkyl_distribution_moments mom_type, bool is_integrated
 )
@@ -110,7 +116,7 @@ static void gk_neut_species_kinetic_moment_init(
         .det_h = app->gk_geom->geo_int.jacobgeo,
         .hamil = s->hamil,
         .model_id = s->model_id,
-        .use_gpu = app->use_gpu
+        .use_gpu = app->use_gpu,
       };
       sm->vlasov_lte_moms = gkyl_vlasov_lte_moments_inew(&inp_mom);
       sm->num_mom = 5; // (n, ux, uy, uz, T/m).
@@ -145,7 +151,8 @@ static void gk_neut_species_kinetic_moment_init(
   sm->release_func = gk_neut_species_kinetic_moment_release;
 }
 
-static void gk_neut_species_fluid_moment_calc_m0(
+static void
+gk_neut_species_fluid_moment_calc_m0(
   const struct gk_species_moment *sm, const struct gkyl_range phase_rng,
   const struct gkyl_range conf_rng, const struct gkyl_array *fin
 )
@@ -153,7 +160,8 @@ static void gk_neut_species_fluid_moment_calc_m0(
   gkyl_array_set_offset(sm->marr, 1.0 / sm->mass, fin, 0);
 }
 
-static void gk_neut_species_fluid_moment_calc_m1(
+static void
+gk_neut_species_fluid_moment_calc_m1(
   const struct gk_species_moment *sm, const struct gkyl_range phase_rng,
   const struct gkyl_range conf_rng, const struct gkyl_array *fin
 )
@@ -161,7 +169,8 @@ static void gk_neut_species_fluid_moment_calc_m1(
   gkyl_array_set_offset(sm->marr, 1.0 / sm->mass, fin, 1 * sm->num_basis_conf);
 }
 
-static void gk_neut_species_fluid_moment_calc_m2(
+static void
+gk_neut_species_fluid_moment_calc_m2(
   const struct gk_species_moment *sm, const struct gkyl_range phase_rng,
   const struct gkyl_range conf_rng, const struct gkyl_array *fin
 )
@@ -169,7 +178,8 @@ static void gk_neut_species_fluid_moment_calc_m2(
   gkyl_array_set_offset(sm->marr, 2.0 / sm->mass, fin, 4 * sm->num_basis_conf);
 }
 
-static void gk_neut_species_fluid_moment_calc(
+static void
+gk_neut_species_fluid_moment_calc(
   const struct gk_species_moment *sm, const struct gkyl_range phase_rng,
   const struct gkyl_range conf_rng, const struct gkyl_array *fin
 )
@@ -188,7 +198,8 @@ static void gk_neut_species_fluid_moment_calc(
   }
 }
 
-static void gk_neut_species_fluid_moment_release(
+static void
+gk_neut_species_fluid_moment_release(
   const struct gkyl_gyrokinetic_app *app, const struct gk_species_moment *sm
 )
 {
@@ -211,7 +222,8 @@ static void gk_neut_species_fluid_moment_release(
   }
 }
 
-static void gk_neut_species_fluid_moment_init(
+static void
+gk_neut_species_fluid_moment_init(
   struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s, struct gk_species_moment *sm,
   enum gkyl_distribution_moments mom_type, bool is_integrated
 )
@@ -282,7 +294,8 @@ static void gk_neut_species_fluid_moment_init(
   sm->release_func = gk_neut_species_fluid_moment_release;
 }
 
-void gk_neut_species_moment_init(
+void
+gk_neut_species_moment_init(
   struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s, struct gk_species_moment *sm,
   enum gkyl_distribution_moments mom_type, bool is_integrated
 )
@@ -298,7 +311,8 @@ void gk_neut_species_moment_init(
   }
 }
 
-void gk_neut_species_moment_calc(
+void
+gk_neut_species_moment_calc(
   const struct gk_species_moment *sm, const struct gkyl_range phase_rng,
   const struct gkyl_range conf_rng, const struct gkyl_array *fin
 )
@@ -306,7 +320,8 @@ void gk_neut_species_moment_calc(
   sm->calc_func(sm, phase_rng, conf_rng, fin);
 }
 
-void gk_neut_species_moment_diag_jacobgeo_div(
+void
+gk_neut_species_moment_diag_jacobgeo_div(
   const struct gkyl_gyrokinetic_app *app, struct gk_species_moment *sm, struct gkyl_array *Jmom_in,
   struct gkyl_array *mom_out
 )
@@ -314,7 +329,8 @@ void gk_neut_species_moment_diag_jacobgeo_div(
   sm->diag_jacobgeo_div_func(app, sm, Jmom_in, mom_out);
 }
 
-void gk_neut_species_moment_release(
+void
+gk_neut_species_moment_release(
   const struct gkyl_gyrokinetic_app *app, const struct gk_species_moment *sm
 )
 {

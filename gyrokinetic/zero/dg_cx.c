@@ -10,7 +10,8 @@
 #include <gkyl_dg_cx_priv.h>
 #include <gkyl_util.h>
 
-gkyl_dg_cx *gkyl_dg_cx_new(struct gkyl_dg_cx_inp *inp, bool use_gpu)
+gkyl_dg_cx *
+gkyl_dg_cx_new(struct gkyl_dg_cx_inp *inp, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
@@ -37,7 +38,8 @@ gkyl_dg_cx *gkyl_dg_cx_new(struct gkyl_dg_cx_inp *inp, bool use_gpu)
   return up;
 }
 
-void gkyl_dg_cx_coll(
+void
+gkyl_dg_cx_coll(
   const struct gkyl_dg_cx *up, struct gkyl_array *maxwellian_moms_ion,
   struct gkyl_array *maxwellian_moms_neut, struct gkyl_array *upar_b_i, struct gkyl_array *coef_cx,
   struct gkyl_array *cflrate
@@ -69,7 +71,8 @@ void gkyl_dg_cx_coll(
   }
 }
 
-void gkyl_dg_cx_release(gkyl_dg_cx *cx)
+void
+gkyl_dg_cx_release(gkyl_dg_cx *cx)
 {
   free(cx);
 }

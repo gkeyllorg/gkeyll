@@ -35,8 +35,9 @@ struct gkyl_rect_decomp_neigh {
  * @param range Range to decompose
  * @return Decomposition of @a range
  */
-struct gkyl_rect_decomp *
-gkyl_rect_decomp_new_from_cuts(int ndim, const int cuts[], const struct gkyl_range *range);
+struct gkyl_rect_decomp *gkyl_rect_decomp_new_from_cuts(
+  int ndim, const int cuts[], const struct gkyl_range *range
+);
 
 /**
  * Create a new decomposition given @a cuts and cells in each
@@ -48,8 +49,9 @@ gkyl_rect_decomp_new_from_cuts(int ndim, const int cuts[], const struct gkyl_ran
  * @param cells Number of cells in each direction
  * @return Decomposition of range based on cuts
  */
-struct gkyl_rect_decomp *
-gkyl_rect_decomp_new_from_cuts_and_cells(int ndim, const int cuts[], const int cells[]);
+struct gkyl_rect_decomp *gkyl_rect_decomp_new_from_cuts_and_cells(
+  int ndim, const int cuts[], const int cells[]
+);
 
 /**
  * Create a new decomposition from a given decomposition. The new
@@ -91,8 +93,9 @@ bool gkyl_rect_decomp_check_covering(const struct gkyl_rect_decomp *decomp);
  * @param nidx Index of range for which neighbor data is needed
  * @return Neighbor list for range nidx
  */
-struct gkyl_rect_decomp_neigh *
-gkyl_rect_decomp_calc_neigh(const struct gkyl_rect_decomp *decomp, bool inc_corners, int nidx);
+struct gkyl_rect_decomp_neigh *gkyl_rect_decomp_calc_neigh(
+  const struct gkyl_rect_decomp *decomp, bool inc_corners, int nidx
+);
 
 /**
  * Compute the periodic neighbor of range @a nidx in the specified

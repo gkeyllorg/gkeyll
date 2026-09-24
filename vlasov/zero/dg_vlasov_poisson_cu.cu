@@ -12,7 +12,8 @@ extern "C" {
 // CUDA kernel to set pointer to auxiliary fields.
 // This is required because eqn object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
-__global__ static void gkyl_vlasov_poisson_set_auxfields_cu_kernel(
+__global__ static void
+gkyl_vlasov_poisson_set_auxfields_cu_kernel(
   const struct gkyl_dg_eqn *eqn, const struct gkyl_array *pots, const struct gkyl_array *EBext
 )
 {
@@ -22,7 +23,8 @@ __global__ static void gkyl_vlasov_poisson_set_auxfields_cu_kernel(
 }
 
 // Host-side wrapper for set_auxfields_cu_kernel
-void gkyl_vlasov_poisson_set_auxfields_cu(
+void
+gkyl_vlasov_poisson_set_auxfields_cu(
   const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_poisson_auxfields auxin
 )
 {
@@ -33,7 +35,8 @@ void gkyl_vlasov_poisson_set_auxfields_cu(
 
 // CUDA kernel to set device pointers to range object and vlasov kernel function
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
-__global__ static void dg_vlasov_poisson_set_cu_dev_ptrs(
+__global__ static void
+dg_vlasov_poisson_set_cu_dev_ptrs(
   struct dg_vlasov_poisson *vlasov, enum gkyl_basis_type b_type, int cv_index, int cdim, int vdim,
   int poly_order, enum gkyl_model_id model_id, enum gkyl_field_id field_id
 )
@@ -57,45 +60,45 @@ __global__ static void dg_vlasov_poisson_set_cu_dev_ptrs(
     *accel_boundary_surf_vy_kernels, *accel_boundary_surf_vz_kernels;
 
   switch (b_type) {
-  case GKYL_BASIS_MODAL_SERENDIPITY:
-    stream_surf_x_kernels = ser_poisson_stream_surf_x_kernels;
-    stream_surf_y_kernels = ser_poisson_stream_surf_y_kernels;
-    stream_surf_z_kernels = ser_poisson_stream_surf_z_kernels;
-    stream_boundary_surf_x_kernels = ser_poisson_stream_boundary_surf_x_kernels;
-    stream_boundary_surf_y_kernels = ser_poisson_stream_boundary_surf_y_kernels;
-    stream_boundary_surf_z_kernels = ser_poisson_stream_boundary_surf_z_kernels;
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      stream_surf_x_kernels = ser_poisson_stream_surf_x_kernels;
+      stream_surf_y_kernels = ser_poisson_stream_surf_y_kernels;
+      stream_surf_z_kernels = ser_poisson_stream_surf_z_kernels;
+      stream_boundary_surf_x_kernels = ser_poisson_stream_boundary_surf_x_kernels;
+      stream_boundary_surf_y_kernels = ser_poisson_stream_boundary_surf_y_kernels;
+      stream_boundary_surf_z_kernels = ser_poisson_stream_boundary_surf_z_kernels;
 
-    if (field_id == GKYL_FIELD_PHI) {
-      vol_kernels = ser_poisson_vol_kernels;
-      accel_surf_vx_kernels = ser_poisson_accel_surf_vx_kernels;
-      accel_surf_vy_kernels = ser_poisson_accel_surf_vy_kernels;
-      accel_surf_vz_kernels = ser_poisson_accel_surf_vz_kernels;
-      accel_boundary_surf_vx_kernels = ser_poisson_accel_boundary_surf_vx_kernels;
-      accel_boundary_surf_vy_kernels = ser_poisson_accel_boundary_surf_vy_kernels;
-      accel_boundary_surf_vz_kernels = ser_poisson_accel_boundary_surf_vz_kernels;
-    } else if (field_id == GKYL_FIELD_PHI_EXT_POTENTIALS) {
-      vol_kernels = ser_poisson_ext_phiA_vol_kernels;
-      accel_surf_vx_kernels = ser_poisson_ext_phiA_accel_surf_vx_kernels;
-      accel_surf_vy_kernels = ser_poisson_ext_phiA_accel_surf_vy_kernels;
-      accel_surf_vz_kernels = ser_poisson_ext_phiA_accel_surf_vz_kernels;
-      accel_boundary_surf_vx_kernels = ser_poisson_ext_phiA_accel_boundary_surf_vx_kernels;
-      accel_boundary_surf_vy_kernels = ser_poisson_ext_phiA_accel_boundary_surf_vy_kernels;
-      accel_boundary_surf_vz_kernels = ser_poisson_ext_phiA_accel_boundary_surf_vz_kernels;
-    } else if (field_id == GKYL_FIELD_PHI_EXT_FIELDS) {
-      vol_kernels = ser_poisson_ext_EB_vol_kernels;
-      accel_surf_vx_kernels = ser_poisson_ext_EB_accel_surf_vx_kernels;
-      accel_surf_vy_kernels = ser_poisson_ext_EB_accel_surf_vy_kernels;
-      accel_surf_vz_kernels = ser_poisson_ext_EB_accel_surf_vz_kernels;
-      accel_boundary_surf_vx_kernels = ser_poisson_ext_EB_accel_boundary_surf_vx_kernels;
-      accel_boundary_surf_vy_kernels = ser_poisson_ext_EB_accel_boundary_surf_vy_kernels;
-      accel_boundary_surf_vz_kernels = ser_poisson_ext_EB_accel_boundary_surf_vz_kernels;
-    }
+      if (field_id == GKYL_FIELD_PHI) {
+        vol_kernels = ser_poisson_vol_kernels;
+        accel_surf_vx_kernels = ser_poisson_accel_surf_vx_kernels;
+        accel_surf_vy_kernels = ser_poisson_accel_surf_vy_kernels;
+        accel_surf_vz_kernels = ser_poisson_accel_surf_vz_kernels;
+        accel_boundary_surf_vx_kernels = ser_poisson_accel_boundary_surf_vx_kernels;
+        accel_boundary_surf_vy_kernels = ser_poisson_accel_boundary_surf_vy_kernels;
+        accel_boundary_surf_vz_kernels = ser_poisson_accel_boundary_surf_vz_kernels;
+      } else if (field_id == GKYL_FIELD_PHI_EXT_POTENTIALS) {
+        vol_kernels = ser_poisson_ext_phiA_vol_kernels;
+        accel_surf_vx_kernels = ser_poisson_ext_phiA_accel_surf_vx_kernels;
+        accel_surf_vy_kernels = ser_poisson_ext_phiA_accel_surf_vy_kernels;
+        accel_surf_vz_kernels = ser_poisson_ext_phiA_accel_surf_vz_kernels;
+        accel_boundary_surf_vx_kernels = ser_poisson_ext_phiA_accel_boundary_surf_vx_kernels;
+        accel_boundary_surf_vy_kernels = ser_poisson_ext_phiA_accel_boundary_surf_vy_kernels;
+        accel_boundary_surf_vz_kernels = ser_poisson_ext_phiA_accel_boundary_surf_vz_kernels;
+      } else if (field_id == GKYL_FIELD_PHI_EXT_FIELDS) {
+        vol_kernels = ser_poisson_ext_EB_vol_kernels;
+        accel_surf_vx_kernels = ser_poisson_ext_EB_accel_surf_vx_kernels;
+        accel_surf_vy_kernels = ser_poisson_ext_EB_accel_surf_vy_kernels;
+        accel_surf_vz_kernels = ser_poisson_ext_EB_accel_surf_vz_kernels;
+        accel_boundary_surf_vx_kernels = ser_poisson_ext_EB_accel_boundary_surf_vx_kernels;
+        accel_boundary_surf_vy_kernels = ser_poisson_ext_EB_accel_boundary_surf_vy_kernels;
+        accel_boundary_surf_vz_kernels = ser_poisson_ext_EB_accel_boundary_surf_vz_kernels;
+      }
 
-    break;
+      break;
 
-  default:
-    assert(false);
-    break;
+    default:
+      assert(false);
+      break;
   }
 
   vlasov->eqn.vol_term = vol_kernels[cv_index].kernels[poly_order];
@@ -133,7 +136,8 @@ __global__ static void dg_vlasov_poisson_set_cu_dev_ptrs(
   }
 }
 
-struct gkyl_dg_eqn *gkyl_dg_vlasov_poisson_cu_dev_new(
+struct gkyl_dg_eqn *
+gkyl_dg_vlasov_poisson_cu_dev_new(
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
   enum gkyl_model_id model_id, enum gkyl_field_id field_id

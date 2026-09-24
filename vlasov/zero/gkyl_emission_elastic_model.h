@@ -43,7 +43,8 @@ struct gkyl_emission_elastic_constant {
 
 // Free functions
 
-static void gkyl_emission_elastic_furman_pivi_free(const struct gkyl_ref_count *ref)
+static void
+gkyl_emission_elastic_furman_pivi_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_emission_elastic_model *elastic =
     container_of(ref, struct gkyl_emission_elastic_model, ref_count);
@@ -52,7 +53,8 @@ static void gkyl_emission_elastic_furman_pivi_free(const struct gkyl_ref_count *
   gkyl_free(model);
 }
 
-static void gkyl_emission_elastic_cazaux_free(const struct gkyl_ref_count *ref)
+static void
+gkyl_emission_elastic_cazaux_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_emission_elastic_model *elastic =
     container_of(ref, struct gkyl_emission_elastic_model, ref_count);
@@ -61,7 +63,8 @@ static void gkyl_emission_elastic_cazaux_free(const struct gkyl_ref_count *ref)
   gkyl_free(model);
 }
 
-static void gkyl_emission_elastic_constant_free(const struct gkyl_ref_count *ref)
+static void
+gkyl_emission_elastic_constant_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_emission_elastic_model *elastic =
     container_of(ref, struct gkyl_emission_elastic_model, ref_count);
@@ -160,8 +163,9 @@ struct gkyl_emission_elastic_model *gkyl_emission_elastic_furman_pivi_new(
  * @param use_gpu bool to determine if on GPU
  * @return New model
  */
-struct gkyl_emission_elastic_model *
-gkyl_emission_elastic_cazaux_new(double charge, double E_f, double phi, bool use_gpu);
+struct gkyl_emission_elastic_model *gkyl_emission_elastic_cazaux_new(
+  double charge, double E_f, double phi, bool use_gpu
+);
 
 /**
  * Create the elastic emission model using constant yield
@@ -171,8 +175,9 @@ gkyl_emission_elastic_cazaux_new(double charge, double E_f, double phi, bool use
  * @param use_gpu bool to determine if on GPU
  * @return New model
  */
-struct gkyl_emission_elastic_model *
-gkyl_emission_elastic_constant_new(double charge, double delta, bool use_gpu);
+struct gkyl_emission_elastic_model *gkyl_emission_elastic_constant_new(
+  double charge, double delta, bool use_gpu
+);
 
 /**
  * Acquire pointer to model object. Delete using the release()
@@ -181,8 +186,9 @@ gkyl_emission_elastic_constant_new(double charge, double delta, bool use_gpu);
  * @param model Model object.
  * @return Acquired model obj pointer
  */
-struct gkyl_emission_elastic_model *
-gkyl_emission_elastic_model_acquire(const struct gkyl_emission_elastic_model *model);
+struct gkyl_emission_elastic_model *gkyl_emission_elastic_model_acquire(
+  const struct gkyl_emission_elastic_model *model
+);
 
 /**
  * Delete model object

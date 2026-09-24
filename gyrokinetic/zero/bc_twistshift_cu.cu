@@ -18,7 +18,8 @@ extern "C" {
 // start ID for use in various loops
 #define START_ID (threadIdx.x + blockIdx.x * blockDim.x)
 
-__global__ void gkyl_bc_twistshift_set_distf_mats_cu_ker(
+__global__ void
+gkyl_bc_twistshift_set_distf_mats_cu_ker(
   const struct gkyl_array *fdo, const long *num_numcol_fidx_do, struct gkyl_nmat *fmat
 )
 {
@@ -40,7 +41,8 @@ __global__ void gkyl_bc_twistshift_set_distf_mats_cu_ker(
   }
 }
 
-__global__ void gkyl_bc_twistshift_add_contr_cu_ker(
+__global__ void
+gkyl_bc_twistshift_add_contr_cu_ker(
   struct gkyl_array *ftar, long *num_numcol_fidx_tar, int num_cells_skin,
   struct gkyl_nmat *mm_contr, int *num_do_cum, struct gkyl_range permutted_ghost_r,
   struct gkyl_rect_grid grid
@@ -79,7 +81,8 @@ __global__ void gkyl_bc_twistshift_add_contr_cu_ker(
   }
 }
 
-void gkyl_bc_twistshift_advance_cu(
+void
+gkyl_bc_twistshift_advance_cu(
   struct gkyl_bc_twistshift *up, struct gkyl_array *fdo, struct gkyl_array *ftar
 )
 {

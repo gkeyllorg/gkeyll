@@ -3,7 +3,8 @@
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
 
-struct gkyl_dg_interpolate *gkyl_dg_interpolate_new(
+struct gkyl_dg_interpolate *
+gkyl_dg_interpolate_new(
   int cdim, const struct gkyl_basis *basis, const struct gkyl_rect_grid *grid_do,
   const struct gkyl_rect_grid *grid_tar, const struct gkyl_range *range_do,
   const struct gkyl_range *range_tar, const int *nghost, bool use_gpu
@@ -194,7 +195,8 @@ struct gkyl_dg_interpolate *gkyl_dg_interpolate_new(
   return up;
 }
 
-static void dg_interpolate_advance_1x(
+static void
+dg_interpolate_advance_1x(
   gkyl_dg_interpolate *up, const struct gkyl_range *range_do, const struct gkyl_range *range_tar,
   const struct gkyl_array *GKYL_RESTRICT fdo, struct gkyl_array *GKYL_RESTRICT ftar
 )
@@ -250,9 +252,8 @@ static void dg_interpolate_advance_1x(
   }
 }
 
-void gkyl_dg_interpolate_advance(
-  gkyl_dg_interpolate *up, struct gkyl_array *fdo, struct gkyl_array *ftar
-)
+void
+gkyl_dg_interpolate_advance(gkyl_dg_interpolate *up, struct gkyl_array *fdo, struct gkyl_array *ftar)
 {
   up->fields[0] = fdo;
   up->fields[up->num_interp_dirs] = ftar;
@@ -265,7 +266,8 @@ void gkyl_dg_interpolate_advance(
   }
 }
 
-void gkyl_dg_interpolate_release(gkyl_dg_interpolate *up)
+void
+gkyl_dg_interpolate_release(gkyl_dg_interpolate *up)
 {
   // Release memory associated with this updater.
 

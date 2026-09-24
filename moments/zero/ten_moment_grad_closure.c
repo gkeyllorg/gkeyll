@@ -36,7 +36,8 @@ gkyl_ten_moment_grad_closure_new(const struct gkyl_ten_moment_grad_closure_inp *
   return up;
 }
 
-struct gkyl_ten_moment_grad_closure_status gkyl_ten_moment_grad_closure_advance(
+struct gkyl_ten_moment_grad_closure_status
+gkyl_ten_moment_grad_closure_advance(
   const gkyl_ten_moment_grad_closure *gces, const struct gkyl_range *heat_flux_range,
   const struct gkyl_range *update_range, const struct gkyl_array *fluid,
   const struct gkyl_array *em_tot, struct gkyl_array *cflrate, double dt,
@@ -110,12 +111,14 @@ struct gkyl_ten_moment_grad_closure_status gkyl_ten_moment_grad_closure_advance(
   // on success, suggest only bigger time-step; (Only way dt can
   // reduce is if the update fails. If the code comes here the update
   // succeeded and so we should not allow dt to reduce).
-  return (struct gkyl_ten_moment_grad_closure_status
-  ){.success = is_cfl_violated > 0.0 ? 0 : 1, .dt_suggested = dt_suggested > dt ? dt_suggested : dt
+  return (struct gkyl_ten_moment_grad_closure_status){
+    .success = is_cfl_violated > 0.0 ? 0 : 1,
+    .dt_suggested = dt_suggested > dt ? dt_suggested : dt,
   };
 }
 
-void gkyl_ten_moment_grad_closure_release(gkyl_ten_moment_grad_closure *up)
+void
+gkyl_ten_moment_grad_closure_release(gkyl_ten_moment_grad_closure *up)
 {
   gkyl_comm_release(up->comm);
   gkyl_free(up->cfla);

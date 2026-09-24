@@ -2,7 +2,8 @@
 #include <gkyl_mom_canonical_pb.h>
 #include <gkyl_gyrokinetic_priv.h>
 
-static void gk_neut_species_recycle_write_flux_enabled(
+static void
+gk_neut_species_recycle_write_flux_enabled(
   struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s, struct gk_recycle_wall *recyc,
   double tm, int frame
 )
@@ -48,11 +49,11 @@ static void gk_neut_species_recycle_write_flux_enabled(
       gkyl_array_copy(recyc->diag_out_ho, recyc->diag_out);
     }
 
-    struct gkyl_msgpack_map_elem desc0[] = {
-      {.key = "Description",
-       .elem_type = GKYL_MP_STRING,
-       .cval = "Impacting boundary particle flux."}
-    };
+    struct gkyl_msgpack_map_elem desc0[] = {{
+      .key = "Description",
+      .elem_type = GKYL_MP_STRING,
+      .cval = "Impacting boundary particle flux.",
+    }};
     const struct gkyl_msgpack_map_elem *io_meta[] = {
       s->io_meta_conf, app->gk_geom->io_meta_basic, desc0
     };
@@ -122,14 +123,16 @@ static void gk_neut_species_recycle_write_flux_enabled(
   gkyl_msgpack_data_release(mt1);
 }
 
-static void gk_neut_species_recycle_write_flux_disabled(
+static void
+gk_neut_species_recycle_write_flux_disabled(
   struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s, struct gk_recycle_wall *recyc,
   double tm, int frame
 )
 {
 }
 
-void gk_neut_species_recycle_write_flux(
+void
+gk_neut_species_recycle_write_flux(
   struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s, struct gk_recycle_wall *recyc,
   double tm, int frame
 )
@@ -141,14 +144,16 @@ struct gk_neut_recycling_maxwellian_params {
   double temp; // Temperature of the neutral species emitted during recycling.
 };
 
-static void gk_neut_recycling_maxwellian_den(
+static void
+gk_neut_recycling_maxwellian_den(
   double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
 )
 {
   fout[0] = 1.0;
 }
 
-static void gk_neut_recycling_maxwellian_udrift(
+static void
+gk_neut_recycling_maxwellian_udrift(
   double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
 )
 {
@@ -157,7 +162,8 @@ static void gk_neut_recycling_maxwellian_udrift(
   fout[2] = 0.0;
 }
 
-static void gk_neut_recycling_maxwellian_temp(
+static void
+gk_neut_recycling_maxwellian_temp(
   double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
 )
 {
@@ -165,7 +171,8 @@ static void gk_neut_recycling_maxwellian_temp(
   fout[0] = params->temp;
 }
 
-void gk_neut_species_recycle_init(
+void
+gk_neut_species_recycle_init(
   struct gkyl_gyrokinetic_app *app, struct gk_recycle_wall *recyc, int dir, enum gkyl_edge_loc edge,
   struct gkyl_gyrokinetic_emission_inp *params, struct gk_neut_species *s, bool use_gpu
 )
@@ -212,7 +219,7 @@ void gk_neut_species_recycle_init(
   // Project unit Maxwellian.
   struct gk_neut_recycling_maxwellian_params neut_max_pars = {
     .temp = e == 0 ? s->lower_bc[dir].emission.emission_temp :
-                     s->upper_bc[dir].emission.emission_temp
+                     s->upper_bc[dir].emission.emission_temp,
   };
   struct gkyl_gyrokinetic_projection recyc_proj_inp = {
     .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
@@ -221,7 +228,7 @@ void gk_neut_species_recycle_init(
     .ctx_upar = &neut_max_pars,
     .udrift = gk_neut_recycling_maxwellian_udrift,
     .ctx_temp = &neut_max_pars,
-    .temp = gk_neut_recycling_maxwellian_temp
+    .temp = gk_neut_recycling_maxwellian_temp,
   };
   struct gk_proj proj_unit_maxwellian;
   gk_neut_species_projection_init(app, s, recyc_proj_inp, &proj_unit_maxwellian);
@@ -269,7 +276,8 @@ void gk_neut_species_recycle_init(
   gk_neut_species_projection_release(app, &proj_unit_maxwellian);
 }
 
-void gk_neut_species_recycle_cross_init(
+void
+gk_neut_species_recycle_cross_init(
   struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s, struct gk_recycle_wall *recyc
 )
 {
@@ -373,7 +381,8 @@ void gk_neut_species_recycle_cross_init(
   }
 }
 
-void gk_neut_species_recycle_apply_bc(
+void
+gk_neut_species_recycle_apply_bc(
   struct gkyl_gyrokinetic_app *app, const struct gk_recycle_wall *recyc,
   const struct gk_neut_species *s, struct gkyl_array *fout
 )
@@ -413,7 +422,8 @@ void gk_neut_species_recycle_apply_bc(
   gkyl_array_set_range_to_range(fout, 1.0, recyc->f_emit, recyc->emit_ghost_r, &recyc->emit_buff_r);
 }
 
-void gk_neut_species_recycle_release(
+void
+gk_neut_species_recycle_release(
   const struct gkyl_gyrokinetic_app *app, const struct gk_recycle_wall *recyc
 )
 {

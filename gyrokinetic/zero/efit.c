@@ -16,7 +16,8 @@
 #include <assert.h>
 #include <ctype.h>
 
-gkyl_efit *gkyl_efit_new(const struct gkyl_efit_inp *inp)
+gkyl_efit *
+gkyl_efit_new(const struct gkyl_efit_inp *inp)
 {
   gkyl_efit *up = gkyl_calloc(1, sizeof(struct gkyl_efit));
 
@@ -414,7 +415,8 @@ gkyl_efit *gkyl_efit_new(const struct gkyl_efit_inp *inp)
   return up;
 }
 
-void gkyl_efit_release(gkyl_efit *up)
+void
+gkyl_efit_release(gkyl_efit *up)
 {
   gkyl_free(up->Rxpt);
   gkyl_free(up->Zxpt);

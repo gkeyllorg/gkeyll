@@ -9,7 +9,8 @@
 #include <gkyl_dg_calc_canonical_pb_vars_priv.h>
 #include <gkyl_util.h>
 
-gkyl_dg_calc_canonical_pb_vars *gkyl_dg_calc_canonical_pb_vars_new(
+gkyl_dg_calc_canonical_pb_vars *
+gkyl_dg_calc_canonical_pb_vars_new(
   const struct gkyl_rect_grid *phase_grid, const struct gkyl_basis *conf_basis,
   const struct gkyl_basis *phase_basis, bool use_gpu
 )
@@ -56,7 +57,8 @@ gkyl_dg_calc_canonical_pb_vars *gkyl_dg_calc_canonical_pb_vars_new(
   return up;
 }
 
-void gkyl_dg_calc_canonical_pb_vars_alpha_surf(
+void
+gkyl_dg_calc_canonical_pb_vars_alpha_surf(
   struct gkyl_dg_calc_canonical_pb_vars *up, const struct gkyl_range *conf_range,
   const struct gkyl_range *phase_range, const struct gkyl_range *phase_ext_range,
   struct gkyl_array *hamil, struct gkyl_array *alpha_surf, struct gkyl_array *sgn_alpha_surf,
@@ -126,7 +128,8 @@ void gkyl_dg_calc_canonical_pb_vars_alpha_surf(
   }
 }
 
-void gkyl_canonical_pb_contra_to_covariant_m1i(
+void
+gkyl_canonical_pb_contra_to_covariant_m1i(
   struct gkyl_dg_calc_canonical_pb_vars *up, const struct gkyl_range *conf_range,
   const struct gkyl_array *h_ij, const struct gkyl_array *V_drift, const struct gkyl_array *M1i,
   struct gkyl_array *V_drift_cov, struct gkyl_array *M1i_cov
@@ -156,7 +159,8 @@ void gkyl_canonical_pb_contra_to_covariant_m1i(
   }
 }
 
-void gkyl_canonical_pb_pressure(
+void
+gkyl_canonical_pb_pressure(
   struct gkyl_dg_calc_canonical_pb_vars *up, const struct gkyl_range *conf_range,
   const struct gkyl_array *h_ij_inv, const struct gkyl_array *MEnergy,
   const struct gkyl_array *V_drift, const struct gkyl_array *M1i, struct gkyl_array *pressure
@@ -184,7 +188,8 @@ void gkyl_canonical_pb_pressure(
   }
 }
 
-void gkyl_dg_calc_canonical_pb_vars_release(gkyl_dg_calc_canonical_pb_vars *up)
+void
+gkyl_dg_calc_canonical_pb_vars_release(gkyl_dg_calc_canonical_pb_vars *up)
 {
   if (GKYL_IS_CU_ALLOC(up->flags)) {
     gkyl_cu_free(up->on_dev);

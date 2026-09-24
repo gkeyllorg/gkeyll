@@ -51,7 +51,8 @@ struct prim_lbo_type_pkpm {
  */
 void prim_lbo_pkpm_free(const struct gkyl_ref_count *ref);
 
-GKYL_CU_D static void self_prim(
+GKYL_CU_D static void
+self_prim(
   const struct gkyl_prim_lbo_type *prim, struct gkyl_mat *A, struct gkyl_mat *rhs, const int *idx,
   const double *moms, const double *boundary_corrections, const double *nu
 )

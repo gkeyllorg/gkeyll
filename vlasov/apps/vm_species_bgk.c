@@ -1,9 +1,8 @@
 #include <assert.h>
 #include <gkyl_vlasov_priv.h>
 
-void vm_species_bgk_init(
-  struct gkyl_vlasov_app *app, struct vm_species *s, struct vm_bgk_collisions *bgk
-)
+void
+vm_species_bgk_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm_bgk_collisions *bgk)
 {
   int cdim = app->cdim, vdim = app->vdim;
   // allocate nu and initialize it
@@ -52,7 +51,7 @@ void vm_species_bgk_init(
     .correct_all_moms = s->info.collisions.correct_all_moms,
     .max_iter = s->info.collisions.max_iter,
     .iter_eps = s->info.collisions.iter_eps,
-    .use_last_converged = s->info.collisions.use_last_converged
+    .use_last_converged = s->info.collisions.use_last_converged,
   };
   vm_species_lte_init(app, s, &bgk->lte, corr_inp);
 
@@ -68,7 +67,8 @@ void vm_species_bgk_init(
 }
 
 // computes moments
-void vm_species_bgk_moms(
+void
+vm_species_bgk_moms(
   gkyl_vlasov_app *app, const struct vm_species *species, struct vm_bgk_collisions *bgk,
   const struct gkyl_array *fin
 )
@@ -89,7 +89,8 @@ void vm_species_bgk_moms(
 }
 
 // Compute a fixed temperature for BGK relaxation
-void vm_species_bgk_moms_fixed_temp(
+void
+vm_species_bgk_moms_fixed_temp(
   gkyl_vlasov_app *app, const struct vm_species *species, struct vm_bgk_collisions *bgk,
   const struct gkyl_array *fin
 )
@@ -104,7 +105,8 @@ void vm_species_bgk_moms_fixed_temp(
 }
 
 // updates the collision terms in the rhs
-void vm_species_bgk_rhs(
+void
+vm_species_bgk_rhs(
   gkyl_vlasov_app *app, struct vm_species *species, struct vm_bgk_collisions *bgk,
   const struct gkyl_array *fin, struct gkyl_array *rhs
 )
@@ -129,7 +131,8 @@ void vm_species_bgk_rhs(
   app->stat.species_coll_tm += gkyl_time_diff_now_sec(wst);
 }
 
-void vm_species_bgk_release(const struct gkyl_vlasov_app *app, const struct vm_bgk_collisions *bgk)
+void
+vm_species_bgk_release(const struct gkyl_vlasov_app *app, const struct vm_bgk_collisions *bgk)
 {
   gkyl_array_release(bgk->self_nu);
   gkyl_array_release(bgk->nu_sum);

@@ -9,7 +9,8 @@
 #include <gkyl_hyper_dg.h>
 #include <gkyl_util.h>
 
-struct gkyl_dg_updater_collisions *gkyl_dg_updater_lbo_vlasov_new(
+struct gkyl_dg_updater_collisions *
+gkyl_dg_updater_lbo_vlasov_new(
   const struct gkyl_rect_grid *phase_grid, const struct gkyl_basis *conf_basis,
   const struct gkyl_basis *phase_basis, const struct gkyl_range *conf_range,
   struct gkyl_dg_lbo_vlasov_drag_auxfields *drag_inp,
@@ -52,7 +53,8 @@ struct gkyl_dg_updater_collisions *gkyl_dg_updater_lbo_vlasov_new(
   return up;
 }
 
-void gkyl_dg_updater_lbo_vlasov_advance(
+void
+gkyl_dg_updater_lbo_vlasov_advance(
   struct gkyl_dg_updater_collisions *lbo, const struct gkyl_range *update_rng,
   const struct gkyl_array *GKYL_RESTRICT fIn, struct gkyl_array *GKYL_RESTRICT cflrate,
   struct gkyl_array *GKYL_RESTRICT rhs
@@ -73,7 +75,8 @@ gkyl_dg_updater_lbo_vlasov_get_tm(const gkyl_dg_updater_collisions *coll)
   return (struct gkyl_dg_updater_lbo_vlasov_tm){.diff_tm = coll->diff_tm, .drag_tm = coll->drag_tm};
 }
 
-void gkyl_dg_updater_lbo_vlasov_release(gkyl_dg_updater_collisions *coll)
+void
+gkyl_dg_updater_lbo_vlasov_release(gkyl_dg_updater_collisions *coll)
 {
   gkyl_dg_eqn_release(coll->coll_drag);
   gkyl_dg_eqn_release(coll->coll_diff);

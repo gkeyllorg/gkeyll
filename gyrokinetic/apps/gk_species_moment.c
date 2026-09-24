@@ -1,7 +1,8 @@
 #include <assert.h>
 #include <gkyl_gyrokinetic_priv.h>
 
-static void gk_species_moment_diag_jacobgeo_div_disabled(
+static void
+gk_species_moment_diag_jacobgeo_div_disabled(
   const struct gkyl_gyrokinetic_app *app, struct gk_species_moment *sm, struct gkyl_array *Jmom_in,
   struct gkyl_array *mom_out
 )
@@ -9,7 +10,8 @@ static void gk_species_moment_diag_jacobgeo_div_disabled(
   // Do nothing.
 }
 
-static void gk_species_moment_diag_jacobgeo_div_enabled_1st_comp(
+static void
+gk_species_moment_diag_jacobgeo_div_enabled_1st_comp(
   const struct gkyl_gyrokinetic_app *app, struct gk_species_moment *sm, struct gkyl_array *Jmom_in,
   struct gkyl_array *mom_out
 )
@@ -20,7 +22,8 @@ static void gk_species_moment_diag_jacobgeo_div_enabled_1st_comp(
   );
 }
 
-static void gk_species_moment_diag_jacobgeo_div_enabled_all_comp(
+static void
+gk_species_moment_diag_jacobgeo_div_enabled_all_comp(
   const struct gkyl_gyrokinetic_app *app, struct gk_species_moment *sm, struct gkyl_array *Jmom_in,
   struct gkyl_array *mom_out
 )
@@ -34,7 +37,8 @@ static void gk_species_moment_diag_jacobgeo_div_enabled_all_comp(
   }
 }
 
-void gk_species_moment_init(
+void
+gk_species_moment_init(
   struct gkyl_gyrokinetic_app *app, struct gk_species *s, struct gk_species_moment *sm,
   enum gkyl_distribution_moments mom_type, bool is_integrated
 )
@@ -72,7 +76,7 @@ void gk_species_moment_init(
         .vel_map = s->vel_map,
         .divide_jacobgeo = false,
         .mass = s->info.mass,
-        .use_gpu = app->use_gpu
+        .use_gpu = app->use_gpu,
       };
       sm->gyrokinetic_maxwellian_moms = gkyl_gk_maxwellian_moments_inew(&inp_mom);
       if (sm->is_maxwellian_moms) {
@@ -106,7 +110,8 @@ void gk_species_moment_init(
   }
 }
 
-void gk_species_moment_calc(
+void
+gk_species_moment_calc(
   const struct gk_species_moment *sm, const struct gkyl_range phase_rng,
   const struct gkyl_range conf_rng, const struct gkyl_array *fin
 )
@@ -128,7 +133,8 @@ void gk_species_moment_calc(
   }
 }
 
-void gk_species_moment_diag_jacobgeo_div(
+void
+gk_species_moment_diag_jacobgeo_div(
   const struct gkyl_gyrokinetic_app *app, struct gk_species_moment *sm, struct gkyl_array *Jmom_in,
   struct gkyl_array *mom_out
 )
@@ -136,9 +142,8 @@ void gk_species_moment_diag_jacobgeo_div(
   sm->diag_jacobgeo_div_func(app, sm, Jmom_in, mom_out);
 }
 
-void gk_species_moment_release(
-  const struct gkyl_gyrokinetic_app *app, const struct gk_species_moment *sm
-)
+void
+gk_species_moment_release(const struct gkyl_gyrokinetic_app *app, const struct gk_species_moment *sm)
 {
   gkyl_array_release(sm->marr);
   if (app->use_gpu) {

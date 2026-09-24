@@ -40,8 +40,9 @@ void gkyl_rect_grid_init(
  * @param upper Coordinates of upper-right corner of grid
  * @param cells Number of cells in each direction
  */
-struct gkyl_rect_grid *
-gkyl_rect_grid_new(int ndim, const double *lower, const double *upper, const int *cells);
+struct gkyl_rect_grid *gkyl_rect_grid_new(
+  int ndim, const double *lower, const double *upper, const int *cells
+);
 
 /**
  * Find cell indices of point
