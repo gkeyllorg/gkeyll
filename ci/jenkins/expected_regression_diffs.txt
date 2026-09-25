@@ -11,3 +11,9 @@
 #
 # Example:
 # gyrokinetic/rt_gk_ion_sound_1x2v_p1   # updated collision-operator normalization
+gyrokinetic/gyrokinetic/creg/rt_gk_tcv_iwl_adapt_source_3x2v_p1  # resolution increased + TS filter
+gyrokinetic/gyrokinetic/creg/rt_gk_passive_3x2v_p1                # TS filter on by default
+gyrokinetic/gyrokinetic/creg/rt_gk_cbc_passive_3x2v_p1            # TS filter on by default
+gyrokinetic/gyrokinetic/creg/rt_gk_d3d_iwl_3x2v_p1                # TS filter on by default
+gyrokinetic/gyrokinetic/creg/rt_gk_tcv_core_3x2v_p1               # TS filter on by default
+gyrokinetic/gyrokinetic/creg/rt_gk_cbc_3x2v_p1                    # TS filter on by default

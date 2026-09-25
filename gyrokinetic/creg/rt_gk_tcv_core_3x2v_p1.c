@@ -790,8 +790,6 @@ main(int argc, char **argv)
 
   // GK app.
   struct gkyl_gk app_inp = {
-    .name = "rt_gk_tcv_core_3x2v_p1",
-
     .cfl_frac = 1.0,
 
     .cdim = ctx.cdim,
@@ -808,10 +806,13 @@ main(int argc, char **argv)
         .c2p_ctx = &ctx,
         .bfield_func = bfield_func, // Magnetic field.
         .bfield_ctx = &ctx,
-        .parallel_lower_bc_shift_func = bc_shift_func_lo,
-        .parallel_upper_bc_shift_func = bc_shift_func_up,
-        .parallel_lower_bc_shift_ctx = &ctx,
-        .parallel_upper_bc_shift_ctx = &ctx,
+        .closed_flux_bcs =
+          {
+            .parallel_lower_bc_shift_func = bc_shift_func_lo,
+            .parallel_upper_bc_shift_func = bc_shift_func_up,
+            .parallel_lower_bc_shift_ctx = &ctx,
+            .parallel_upper_bc_shift_ctx = &ctx,
+          },
       },
 
     .num_periodic_dir = 1,
@@ -829,6 +830,9 @@ main(int argc, char **argv)
         .use_gpu = app_args.use_gpu,
       },
   };
+
+  // Set app output name from the executable name (argv[0]).
+  snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
 
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_inp = app_inp,

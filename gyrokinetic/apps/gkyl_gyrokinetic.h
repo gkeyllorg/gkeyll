@@ -232,6 +232,23 @@ struct gkyl_gyrokinetic_bc {
   int bidx; // Block index (for multiblock solver).
 };
 
+// Parameters for BCs in closed flux surfaces.
+struct gkyl_gyrokinetic_closed_flux_bcs {
+  void (*parallel_lower_bc_shift_func)(
+    double t, const double *xn, double *fout, void *ctx
+  ); // Lower twist-shift function.
+  void (*parallel_upper_bc_shift_func)(
+    double t, const double *xn, double *fout, void *ctx
+  ); // Upper twist-shift function.
+  void *parallel_lower_bc_shift_ctx; // Context for lower twist-shift function.
+  void *parallel_upper_bc_shift_ctx; // Context for upper twist-shift function.
+  enum gkyl_closed_flux_bc_type type; // BC type.
+  int ts_upsample_factor; // Twist-shift supersampling factor (default 4).
+  int ts_filter_half_width; // Twist-shift filter stencil half-width in cells of the simulation grid (default 1).
+  double
+    ts_filter_cutoff_wavelength; // Twist-shift filter cutoff wavelength (default 2*dx, the coarse mesh Nyquist).
+};
+
 struct gkyl_gyrokinetic_geometry {
   enum gkyl_geometry_id geometry_id;
   char geometry_path[128]; // Path to geometry files
@@ -251,11 +268,7 @@ struct gkyl_gyrokinetic_geometry {
   bool has_LCFS; // Whether the geometry has a last closed flux surface (LCFS).
   double x_LCFS; // x coordinate of the LCFS.
 
-  // Twist-shift functions for the tokamak core.
-  void (*parallel_lower_bc_shift_func)(double t, const double *xn, double *fout, void *ctx);
-  void (*parallel_upper_bc_shift_func)(double t, const double *xn, double *fout, void *ctx);
-  void *parallel_lower_bc_shift_ctx; // Context for parallel_lower_bc_shift_func.
-  void *parallel_upper_bc_shift_ctx; // Context for parallel_upper_bc_shift_func.
+  struct gkyl_gyrokinetic_closed_flux_bcs closed_flux_bcs; // BCs info in closed flux surface region.
 
   struct gkyl_efit_inp efit_info; // Context with RZ data such as efit file for a tokamak or mirror.
   struct gkyl_tok_geo_grid_inp

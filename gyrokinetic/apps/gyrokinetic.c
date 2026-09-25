@@ -201,6 +201,10 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
 
   int cdim = app->cdim = gk->cdim;
   int poly_order = app->poly_order = gk->poly_order;
+
+  // Closed flux surface BCs (filter defaults are set in bc_twistshift).
+  app->closed_flux_bcs = gk->geometry.closed_flux_bcs;
+
   int ns = app->num_species = gk->num_species;
   int neuts = app->num_neut_species = gk->num_neut_species;
 
@@ -370,10 +374,10 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
     .comm = app->comm,
     .has_LCFS = gk->geometry.has_LCFS,
     .x_LCFS = gk->geometry.x_LCFS,
-    .parallel_lower_bc_shift_func = gk->geometry.parallel_lower_bc_shift_func,
-    .parallel_upper_bc_shift_func = gk->geometry.parallel_upper_bc_shift_func,
-    .parallel_lower_bc_shift_ctx = gk->geometry.parallel_lower_bc_shift_ctx,
-    .parallel_upper_bc_shift_ctx = gk->geometry.parallel_upper_bc_shift_ctx,
+    .parallel_lower_bc_shift_func = gk->geometry.closed_flux_bcs.parallel_lower_bc_shift_func,
+    .parallel_upper_bc_shift_func = gk->geometry.closed_flux_bcs.parallel_upper_bc_shift_func,
+    .parallel_lower_bc_shift_ctx = gk->geometry.closed_flux_bcs.parallel_lower_bc_shift_ctx,
+    .parallel_upper_bc_shift_ctx = gk->geometry.closed_flux_bcs.parallel_upper_bc_shift_ctx,
   };
   strcpy(geometry_inp.geometry_path, gk->geometry.geometry_path);
   for (int i = 0; i < 3; i++) {
@@ -1383,7 +1387,7 @@ gyrokinetic_app_write_ts_shift_mapc2p(struct gkyl_gyrokinetic_app *app)
   for (int eI = 0; eI < 2; eI++) {
     int ghost[] = {1, 1, 1};
     // TS BC updater.
-    struct gkyl_bc_twistshift_inp ts_inp = {
+    struct gkyl_twistshift_dg_inp ts_inp = {
       .bc_dir = par_dir,
       .shift_dir = 1, // y shift.
       .shear_dir = 0, // shift varies with x.
@@ -1399,10 +1403,10 @@ gyrokinetic_app_write_ts_shift_mapc2p(struct gkyl_gyrokinetic_app *app)
                                   app->gk_geom->parallel_upper_bc_shift_ctx,
       .use_gpu = app->use_gpu,
     };
-    struct gkyl_bc_twistshift *bc_ts_op = gkyl_bc_twistshift_inew(&ts_inp);
+    struct gkyl_twistshift_dg *bc_ts_op = gkyl_twistshift_dg_inew(&ts_inp);
 
     struct gkyl_array *delta_ts_x = eI == 0 ? app->delta_ts_x_lo : app->delta_ts_x_up;
-    delta_ts_x = gkyl_bc_twistshift_get_shift_objects(
+    delta_ts_x = gkyl_twistshift_dg_get_shift_objects(
       bc_ts_op, &app->delta_ts_x_grid, &app->delta_ts_x_rng, &app->delta_ts_x_basis
     );
 
@@ -1455,7 +1459,7 @@ gyrokinetic_app_write_ts_shift_mapc2p(struct gkyl_gyrokinetic_app *app)
 
     gkyl_array_release(delta_ts_x);
     gkyl_msgpack_data_release(mt_shift);
-    gkyl_bc_twistshift_release(bc_ts_op);
+    gkyl_twistshift_dg_release(bc_ts_op);
   }
 }
 
