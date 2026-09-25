@@ -18,10 +18,9 @@ struct gk_app_ctx {
 
   // Geometry and magnetic field.
   double B_axis;
-  double R_axis;
   double R0;
+  double Rc;
   double Bv0;
-  int n;
 
   // Plasma parameters.
   double me;
@@ -187,9 +186,9 @@ Bphi(const double *xc, void *ctx)
   double x = xc[0];
   struct gk_app_ctx *app = ctx;
   double B_axis = app->B_axis;
-  double R_axis = app->R_axis;
+  double R0 = app->R0;
   double R = Rx(xc, ctx);
-  return B_axis * R_axis / R;
+  return B_axis * R0 / R;
 }
 
 // Vertical magnetic field.
@@ -198,15 +197,12 @@ Bvert(const double *xc, void *ctx)
 {
   struct gk_app_ctx *app = ctx;
   double Bv0 = app->Bv0;
-  int n = app->n;
-  double R0 = app->R0;
-  double R = Rx(xc, ctx);
-  return Bv0 * pow(R / R0, n);
+  return Bv0;
 }
 
 // Magnetic field magnitude.
 double
-Bmag(const double *xc, void *ctx)
+bmag(const double *xc, void *ctx)
 {
   double Bt = Bphi(xc, ctx);
   double Bv = Bvert(xc, ctx);
@@ -217,7 +213,7 @@ Bmag(const double *xc, void *ctx)
 double
 thetax(const double *xc, void *ctx)
 {
-  return asin(Bvert(xc, ctx) / Bmag(xc, ctx));
+  return asin(Bvert(xc, ctx) / bmag(xc, ctx));
 }
 
 // Parallel coordinate mapping.
@@ -233,12 +229,12 @@ phix(const double *xc, void *ctx)
 {
   double x = xc[0], y = xc[1], z = xc[2];
   struct gk_app_ctx *app = ctx;
-  double R_axis = app->R_axis;
+  double Rc = app->Rc;
   double Bt = Bphi(xc, ctx);
   double Bv = Bvert(xc, ctx);
   double theta = thetax(xc, ctx);
 
-  return y / R_axis + (Bt * z * sin(theta)) / (Bv * x);
+  return y / Rc + (Bt * z * sin(theta)) / (Bv * x);
 }
 
 // Interface function calls.
@@ -325,14 +321,12 @@ create_ctx(void)
 
   // Geometry and magnetic field.
   double B_axis = 0.5;
-  double R_axis = 0.85;
+  double R0 = 0.85;
   double a0 = 0.5;
   double Lp = 2.4; // Poloidal length at x0.
   double Lt = 8.0; // Toroidal length at x0.
-  int shear = -2;
-  double R0 = R_axis + a0;
-  double B0 = B_axis * R_axis / R0;
-  int n = shear + 2;
+  double Rc = R0 + a0;
+  double B0 = B_axis * R0 / Rc;
 
   double sintheta = Lp / Lt;
   double Bv0 = B0 * sintheta;
@@ -340,7 +334,7 @@ create_ctx(void)
   // Source parameters.
   double P_SOL = 8.1e5;
   double S0 = 5.7691e23 * 10; // Multiplied by 10 to increase beta
-  double xSource = R0 - 0.05;
+  double xSource = Rc - 0.05;
   double lambdaSource = 0.005;
 
   // Collisions;
@@ -356,8 +350,8 @@ create_ctx(void)
   double Lx = 50 * rho_s;
   double Lz = Lt; // [m]
 
-  double x_min = R0 - Lx / 2;
-  double x_max = R0 + Lx / 2;
+  double x_min = Rc - Lx / 2;
+  double x_max = Rc + Lx / 2;
   double z_min = -Lz / 2;
   double z_max = Lz / 2;
 
@@ -385,10 +379,9 @@ create_ctx(void)
     .cdim = cdim,
     .vdim = vdim,
     .B_axis = B_axis,
-    .R_axis = R_axis,
     .R0 = R0,
+    .Rc = Rc,
     .Bv0 = Bv0,
-    .n = n,
     .Lx = Lx,
     .Lz = Lz,
     .x_min = x_min,
@@ -483,7 +476,7 @@ main(int argc, char **argv)
         .temp = temp_init,
       },
 
-    .collisionless = {.type = GKYL_GK_COLLISIONLESS_EM},
+    .collisionless = {.type = GKYL_GK_COLLISIONLESS_ES},
 
     .anomalous_diffusion =
       {
@@ -570,7 +563,7 @@ main(int argc, char **argv)
         .temp = temp_init,
       },
 
-    .collisionless = {.type = GKYL_GK_COLLISIONLESS_EM},
+    .collisionless = {.type = GKYL_GK_COLLISIONLESS_ES},
 
     .anomalous_diffusion =
       {
@@ -640,12 +633,7 @@ main(int argc, char **argv)
     .poisson_bcs =
       {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}}},
-    .ampere_bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}}},
-    .mu0 = GKYL_MU0,
     .time_rate_diagnostics = true,
-    .remove_em_zonal = false,
   };
 
   // GK app

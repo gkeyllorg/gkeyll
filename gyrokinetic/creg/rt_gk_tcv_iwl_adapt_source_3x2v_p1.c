@@ -348,8 +348,7 @@ bc_shift_func_lo(double t, const double *xc, double *GKYL_RESTRICT fout, void *c
 
   double r = r_x(x, a_mid, x_inner);
 
-  fout[0] = Cy * (alpha(r, z_min, 0.0, ctx) - alpha(r, z_max, 0.0, ctx)) /
-            2; // Half the shift for stability.
+  fout[0] = Cy * (alpha(r, z_min, 0.0, ctx) - alpha(r, z_max, 0.0, ctx));
 }
 
 void
@@ -366,8 +365,7 @@ bc_shift_func_up(double t, const double *xc, double *GKYL_RESTRICT fout, void *c
 
   double r = r_x(x, a_mid, x_inner);
 
-  fout[0] = -Cy * (alpha(r, z_min, 0.0, ctx) - alpha(r, z_max, 0.0, ctx)) /
-            2; // Half the shift for stability.
+  fout[0] = -Cy * (alpha(r, z_min, 0.0, ctx) - alpha(r, z_max, 0.0, ctx));
 }
 
 struct gk_app_ctx
