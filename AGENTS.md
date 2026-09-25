@@ -39,4 +39,3 @@ working directory. Links inside a skill are relative to that skill's directory.
 | Compile libraries, tests, or input files | [Compiling](.agents/skills/compiling/SKILL.md) |
 | Run tests, simulations, or memory checks | [Testing and verification](.agents/skills/testing-and-verification/SKILL.md) |
 | Work on the gyrokinetic solver or its input files | [Gyrokinetic details](.agents/skills/gyrokinetic-details/SKILL.md) |
-
