@@ -327,10 +327,11 @@ fi
 : "${CONF_CUDSS_INC_DIR=$PREFIX/cuDSS/include/}"
 : "${CONF_CUDSS_LIB_DIR=$PREFIX/cuDSS/lib/}"
 
-# SuperLU includes and librararies
+# SuperLU includes and libraries
 : "${SUPERLU_INC_DIR=$PREFIX/superlu/include/}"
-if [ "$OSTYPE" = "linux-gnu"* ]
-then
+
+# Verify the existence of the lib64 directory
+if [ -d "$PREFIX/superlu/lib64" ]; then
     : "${SUPERLU_LIB_DIR=$PREFIX/superlu/lib64/}"
 else
     : "${SUPERLU_LIB_DIR=$PREFIX/superlu/lib/}"
