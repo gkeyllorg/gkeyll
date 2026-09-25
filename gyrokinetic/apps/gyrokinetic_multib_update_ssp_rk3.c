@@ -3,7 +3,8 @@
 static void
 gyrokinetic_multib_forward_euler(
   struct gkyl_gyrokinetic_multib_app *app, double tcurr, double dt, const struct gkyl_array *fin[],
-  struct gkyl_array *fout[], struct gkyl_array **bflux_in[], struct gkyl_array **bflux_out[],
+  struct gkyl_array *fout[], const struct gkyl_array *aparin, struct gkyl_array *aparout,
+  struct gkyl_array **bflux_in[], struct gkyl_array **bflux_out[],
   const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[],
   struct gkyl_array **bflux_in_neut[], struct gkyl_array **bflux_out_neut[],
   struct gkyl_update_status *st
@@ -25,7 +26,7 @@ gyrokinetic_multib_forward_euler(
     int li_neut = b * app->num_neut_species;
     gyrokinetic_rhs(
       app->singleb_apps[b], tcurr, dt, &fin[li_charged], &fout[li_charged], &bflux_out[li_charged],
-      &fin_neut[li_neut], &fout_neut[li_neut], &bflux_out_neut[li_neut], st
+      &fin_neut[li_neut], &fout_neut[li_neut], &bflux_out_neut[li_neut], aparin, aparout, st
     );
     dtmin = fmin(dtmin, st->dt_actual);
   }
@@ -76,6 +77,8 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app *app, doubl
 
   const struct gkyl_array *fin[ns_charged * nblocks_local];
   struct gkyl_array *fout[ns_charged * nblocks_local];
+  const struct gkyl_array *aparin;
+  struct gkyl_array *aparout;
   struct gkyl_array **bflux_in[ns_charged * nblocks_local];
   struct gkyl_array **bflux_out[ns_charged * nblocks_local];
 
@@ -105,6 +108,8 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app *app, doubl
             bflux_in[li_charged + i] = gks->bflux.f;
             bflux_out[li_charged + i] = gks->bflux.f1;
           }
+          aparin = NULL;
+          aparout = NULL;
           for (int i = 0; i < ns_neut; ++i) {
             struct gk_neut_species *gkns = &sbapp->neut_species[i];
             fin_neut[li_neut + i] = gkns->f;
@@ -116,8 +121,8 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app *app, doubl
         }
 
         gyrokinetic_multib_forward_euler(
-          app, tcurr, dt, fin, fout, bflux_in, bflux_out, fin_neut, fout_neut, bflux_in_neut,
-          bflux_out_neut, &st
+          app, tcurr, dt, fin, fout, aparin, aparout, bflux_in, bflux_out, fin_neut, fout_neut,
+          bflux_in_neut, bflux_out_neut, &st
         );
         dt = st.dt_actual;
 
@@ -187,8 +192,8 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app *app, doubl
         }
 
         gyrokinetic_multib_forward_euler(
-          app, tcurr + dt, dt, fin, fout, bflux_in, bflux_out, fin_neut, fout_neut, bflux_in_neut,
-          bflux_out_neut, &st
+          app, tcurr + dt, dt, fin, fout, aparin, aparout, bflux_in, bflux_out, fin_neut, fout_neut,
+          bflux_in_neut, bflux_out_neut, &st
         );
 
         if (st.dt_actual < dt) {
@@ -280,8 +285,8 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app *app, doubl
         }
 
         gyrokinetic_multib_forward_euler(
-          app, tcurr + dt / 2, dt, fin, fout, bflux_in, bflux_out, fin_neut, fout_neut,
-          bflux_in_neut, bflux_out_neut, &st
+          app, tcurr + dt / 2, dt, fin, fout, aparin, aparout, bflux_in, bflux_out, fin_neut,
+          fout_neut, bflux_in_neut, bflux_out_neut, &st
         );
 
         if (st.dt_actual < dt) {
