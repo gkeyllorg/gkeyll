@@ -524,7 +524,7 @@ create_ctx(void)
   double cs_m = sqrt((Te0 + 3.0 * Ti_par_m) / mi);
 
   // Factor multiplying collisionless terms.
-  double alpha_oap = 0.01;
+  double alpha_oap = 0.1;
   double alpha_fdp = 1.0;
   // Duration of each phase.
   double tau_oap = 2400.0e-9;
@@ -779,8 +779,6 @@ run_phase(
   struct gkyl_gyrokinetic_collisionless collisionless_inp = {
     .type = GKYL_GK_COLLISIONLESS_ES,
     .scale_factor = pparams->alpha,
-    // OAP: cap the collisionless CFL frequency at 1/10 of its maximum.
-    // The loss-cone mask below still applies to the total RHS, including collisions.
     .time_rate_multiplier =
       {
         .num_multipliers = pparams->phase == GK_POA_OAP ? 1 : 0,
