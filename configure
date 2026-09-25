@@ -26,6 +26,7 @@ USE_CUDSS=
 USE_LUA=
 USE_MPI=
 USE_NCCL=
+USE_LAPACK_LITE=
 
 CONF_LUA_LIB=luajit-5.1
 
@@ -62,6 +63,7 @@ CUDA_ARCH                  CUDA architecture flag to specify compute capability.
 --use-nccl                 [no] Build NCCL-dependent code
 --use-cudss                [no] Build CUDSS-dependent code
 --use-lua                  [no] Build Lua dependent code
+--use-lapack-lite          [no] Build LAPACK-lite (lower efficiency that OpenBLAS)
 --app                      [all] What app to build? One of
 			   core, moments, vlasov, gyrokinetic, pkpm, all
 
@@ -156,6 +158,10 @@ do
       [ -n "$value" ] || die "Missing value in flag $key."
       APP="$value"
       ;;
+   --use-lapack-lite)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      USE_LAPACK_LITE="$value"
+      ;;       
    --lapack-inc)
       [ -n "$value" ] || die "Missing value in flag $key."
       LAPACK_INC_DIR="$value"
@@ -267,6 +273,13 @@ else
     USE_LUA=
 fi
 
+if [ "$USE_LAPACK_LITE" = "yes" ]
+then
+    USE_LAPACK_LITE=1
+else
+    USE_MPI=
+fi
+
 echo "Building APP " $APP
 
 if [ "$APP" = "core" ]
@@ -314,6 +327,13 @@ fi
 : "${LAPACK_INC_DIR:=$PREFIX/OpenBLAS/include/}"
 : "${LAPACK_LIB_DIR=$PREFIX/OpenBLAS/lib/}"
 : "${LAPACK_LIB_NAME=openblas}"
+
+if [ "$USE_LAPACK_LITE" = 1 ]
+then
+LAPACK_INC_DIR=.
+LAPACK_LIB_DIR=.
+LAPACK_LIB_NAME=m
+fi
 
 # MPI specific paths and flags
 : "${CONF_MPI_INC_DIR=$PREFIX/openmpi/include/}"
@@ -364,6 +384,8 @@ SUPERLU_LIB_NAME=$SUPERLU_LIB_NAME
 USE_MPI=$USE_MPI
 CONF_MPI_INC_DIR=$CONF_MPI_INC_DIR
 CONF_MPI_LIB_DIR=$CONF_MPI_LIB_DIR
+
+USE_LAPACK_LITE=$USE_LAPACK_LITE
 
 USE_NCCL=$USE_NCCL
 CONF_NCCL_INC_DIR=$CONF_NCCL_INC_DIR

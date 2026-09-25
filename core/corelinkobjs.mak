@@ -5,6 +5,6 @@ CORE_INCS = -I../core/$(KERNELS_DIR)/array_average -I../core/$(KERNELS_DIR)/arra
 
 # Core link objects
 
-CORE_LINK_OBJS = ../$(BUILD_DIR)/core/minus/*.o ../$(BUILD_DIR)/core/$(KERNELS_DIR)/*/*.o ../$(BUILD_DIR)/core/zero/*.o ../$(BUILD_DIR)/core/apps/*.o
+CORE_LINK_OBJS = ../$(BUILD_DIR)/core/minus/*.o ../$(BUILD_DIR)/core/minus/lapack_lite/*.o ../$(BUILD_DIR)/core/$(KERNELS_DIR)/*/*.o ../$(BUILD_DIR)/core/zero/*.o ../$(BUILD_DIR)/core/apps/*.o
 # ... with GPUs
 CORE_LINK_CU_OBJS = ../$(BUILD_DIR)/core/unit/*.cu.o

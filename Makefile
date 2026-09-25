@@ -170,6 +170,12 @@ endif
 	CFLAGS += -DGKYL_HAVE_LUA
 endif
 
+USING_LAPACK_LITE = 
+ifeq (${USE_LAPACK_LITE}, 1)
+	USING_LAPACK_LITE = yes
+	CFLAGS += -DGKYL_HAVE_LAPACK_LITE
+endif
+
 # Build directory
 ifdef USING_NVCC
 	BUILD_DIR = cuda-build
