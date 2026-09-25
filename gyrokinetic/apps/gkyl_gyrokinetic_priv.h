@@ -1325,6 +1325,23 @@ struct gk_neut_species {
 };
 
 // Field data.
+struct gk_field;
+
+// Parallel FEM projection (make a DG quantity continuous along z) of one
+// quantity: the routine and the arguments it needs. Storing them together
+// keeps the call sites generic and the routines free of branches; the choice
+// is made at initialization. Unused arguments are left NULL.
+struct gk_field_par_proj {
+  void (*func)(gkyl_gyrokinetic_app *app, struct gk_field *field,
+  struct gkyl_array *arr_dg, struct gkyl_array *arr_fem,
+  struct gkyl_fem_parproj *parproj_core, struct gkyl_fem_parproj *parproj_sol,
+  const struct gkyl_range *ghost_r, const struct gkyl_range *skin_r);
+  struct gkyl_fem_parproj *parproj_core; // Smoother on the whole domain (or the core if IWL).
+  struct gkyl_fem_parproj *parproj_sol; // Smoother on the SOL (IWL only).
+  const struct gkyl_range *ghost_r; // Parallel ghost range filled with the TS BC (3x TS/IWL only).
+  const struct gkyl_range *skin_r; // Parallel skin range the TS BC is applied to (3x TS/IWL only).
+};
+
 struct gk_field {
   struct gkyl_gyrokinetic_field info; // Data for field.
 
@@ -1374,7 +1391,8 @@ struct gk_field {
       struct gkyl_array *dApartdtSlvr_rhs; // Contains sum_s q_s int dv vpar d/dt(F_s)*.
       gkyl_dg_bin_op_mem *div_mem; // Memory for div operation in 1x Ohm's law. 
       struct gkyl_array *lapWeightAmpere; // Factor in front of the laplacian operator (1/mu0 or kperp^2/mu0 for 1D).
-      struct gkyl_fem_parproj *fem_apar_parproj; // FEM smoother for projecting Apar onto continuous FEM basis
+      struct gkyl_fem_parproj *fem_apar_parproj; // FEM smoother for projecting Apar onto continuous FEM basis (core only if IWL).
+      struct gkyl_fem_parproj *fem_apar_parproj_sol; // FEM smoother for Apar in the SOL (IWL only).
       struct gkyl_fem_poisson_perp *fem_apar_solver; // Solver for IC Apar.
       struct gkyl_fem_poisson_perp *fem_apardot_solver; // Solver for d(Apar)/dt.
       struct gkyl_poisson_bc ampere_bcs; // BCs for Apar and d(Apar)/dt.
@@ -1451,13 +1469,8 @@ struct gk_field {
   struct gkyl_bc_basic_gyrokinetic *gfss_bc_op_core_lo; // Fills lower core  z-ghost with skin  boundary value.
   struct gkyl_array *bc_buffer; // Buffer for bc_basic.
   
-  // Pointer to functions that make phi continuous along z.
-  void (*fem_projection_par_rho_func)(gkyl_gyrokinetic_app *app, struct gk_field *field,
-    struct gkyl_array *arr_dg, struct gkyl_array *arr_fem);
-  void (*fem_projection_par_phi_func)(gkyl_gyrokinetic_app *app, struct gk_field *field,
-    struct gkyl_array *arr_dg, struct gkyl_array *arr_fem);
-  void (*fem_projection_par_apar_func)(gkyl_gyrokinetic_app *app, struct gk_field *field,
-    struct gkyl_array *arr_dg, struct gkyl_array *arr_fem);
+  // Parallel FEM projections that make rho, phi and Apar continuous along z.
+  struct gk_field_par_proj par_proj_rho, par_proj_phi, par_proj_apar;
   void (*twistshift_func) (struct gkyl_bc_twistshift *up, struct gkyl_array *fdo, struct gkyl_array *ftar);
 
   // Pointer to function for electromagnetic field solve.

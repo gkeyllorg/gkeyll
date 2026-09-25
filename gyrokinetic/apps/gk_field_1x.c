@@ -16,7 +16,7 @@ static void
 gk_field_rhs_phi_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *field)
 {
   // Solve the Poisson equation in 1x with the parallel FEM projection.
-  gk_field_fem_projection_par(app, field, field->rho_c, field->phi_smooth);
+  gk_field_fem_projection_par(app, field, field->rho_c, field->phi_smooth, field->fem_parproj, NULL, NULL, NULL);
 }
 
 static void 
@@ -46,7 +46,7 @@ gk_field_ampere_solve_1x_enabled(gkyl_gyrokinetic_app *app, struct gk_field *fie
     0, field->lapWeightAmpere, &app->local);
 
   // Smooth Apar after solving Ampere's law.
-  gk_field_fem_projection_par(app, field, out, out);
+  gk_field_fem_projection_par(app, field, out, out, field->fem_parproj, NULL, NULL, NULL);
 
   app->stat.field_apar_solve_tm += gkyl_time_diff_now_sec(wst);
 }
@@ -66,13 +66,6 @@ gk_field_em_rhs_enabled(gkyl_gyrokinetic_app *app, struct gk_field *field, const
 
 static void
 gk_field_em_rhs_none(gkyl_gyrokinetic_app *app, struct gk_field *field, const struct gkyl_array *f_in[],  struct gkyl_array *rhs_in[])
-{
-  // Do nothing.
-}
-
-static void
-gk_field_fem_projection_par_none(gkyl_gyrokinetic_app *app, struct gk_field *field,
-  struct gkyl_array *arr_dg, struct gkyl_array *arr_fem)
 {
   // Do nothing.
 }
@@ -183,7 +176,7 @@ gk_field_fem_new_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
   if (f->is_em) {
     f->em_rhs_func = f->info.is_apar_static ? gk_field_em_rhs_none : gk_field_em_rhs_enabled;
     f->ampere_solve = gk_field_ampere_solve_1x_enabled;
-    f->fem_projection_par_apar_func = gk_field_fem_projection_par_none;
+    f->par_proj_apar = (struct gk_field_par_proj) { .func = gk_field_fem_projection_par_none };
   } else {
     f->em_rhs_func = gk_field_em_rhs_none;
     f->ampere_solve = gk_field_ampere_solve_1x_none;

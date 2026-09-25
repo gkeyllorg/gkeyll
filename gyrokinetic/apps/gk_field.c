@@ -285,7 +285,7 @@ gk_field_step_apar_enabled(gkyl_gyrokinetic_app *app, struct gk_field *field, st
   gkyl_array_accumulate(gkyl_array_scale(out, dt), 1.0, inp);
 
   // Smooth Apar along z.
-  field->fem_projection_par_apar_func(app, field, out, out);
+  gk_field_par_proj_advance(app, field, &field->par_proj_apar, out, out);
 }
 
 static void
@@ -642,21 +642,69 @@ gk_field_accumulate_ohms_kSq(gkyl_gyrokinetic_app *app, struct gk_field *field,
   app->stat.field_apar_rhs_tm += gkyl_time_diff_now_sec(wst);
 }
 
+// Building blocks of the parallel FEM projection (make a DG field continuous
+// along z, or solve a Poisson equation in 1x). The routines below compose
+// them without branching; which one to use is decided at initialization.
+
 void
-gk_field_fem_projection_par(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *arr_dg, struct gkyl_array *arr_fem)
+gk_field_fem_projection_par_gather(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *arr_dg)
 {
-  // Project a DG field onto the parallel FEM basis to make it
-  // continuous along z (or to solve a Poisson equation in 1x).
-
-  // Gather the DG array into a global (in z) array.
+  // Gather the local DG array into the global (in z) array.
   gkyl_comm_array_allgather(app->comm, &app->local, &app->global, arr_dg, field->rho_c_global_dg);
+}
 
-  // Smooth the the DG array.
-  gkyl_fem_parproj_set_rhs(field->fem_parproj, field->rho_c_global_dg, field->rho_c_global_dg);
-  gkyl_fem_parproj_solve(field->fem_parproj, field->phi_fem);
+void
+gk_field_fem_projection_par_solve(struct gk_field *field, struct gkyl_fem_parproj *parproj)
+{
+  // Smooth the global array with the given updater (on the updater's range).
+  gkyl_fem_parproj_set_rhs(parproj, field->rho_c_global_dg, field->rho_c_global_dg);
+  gkyl_fem_parproj_solve(parproj, field->phi_fem);
+}
 
-  // Copy global, continuous FEM array to a local array.
+void
+gk_field_fem_projection_par_scatter(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *arr_fem)
+{
+  // Copy the global, continuous FEM array to a local array.
   gkyl_array_copy_range_to_range(arr_fem, field->phi_fem, &app->local, &field->global_sub_range);
+}
+
+void
+gk_field_fem_projection_par_none(gkyl_gyrokinetic_app *app, struct gk_field *field,
+  struct gkyl_array *arr_dg, struct gkyl_array *arr_fem,
+  struct gkyl_fem_parproj *parproj_core, struct gkyl_fem_parproj *parproj_sol,
+  const struct gkyl_range *ghost_r, const struct gkyl_range *skin_r)
+{
+  // Do nothing.
+}
+
+void
+gk_field_fem_projection_par(gkyl_gyrokinetic_app *app, struct gk_field *field,
+  struct gkyl_array *arr_dg, struct gkyl_array *arr_fem,
+  struct gkyl_fem_parproj *parproj_core, struct gkyl_fem_parproj *parproj_sol,
+  const struct gkyl_range *ghost_r, const struct gkyl_range *skin_r)
+{
+  gk_field_fem_projection_par_gather(app, field, arr_dg);
+  gk_field_fem_projection_par_solve(field, parproj_core);
+  gk_field_fem_projection_par_scatter(app, field, arr_fem);
+}
+
+void
+gk_field_fem_projection_par_core_sol(gkyl_gyrokinetic_app *app, struct gk_field *field,
+  struct gkyl_array *arr_dg, struct gkyl_array *arr_fem,
+  struct gkyl_fem_parproj *parproj_core, struct gkyl_fem_parproj *parproj_sol,
+  const struct gkyl_range *ghost_r, const struct gkyl_range *skin_r)
+{
+  gk_field_fem_projection_par_gather(app, field, arr_dg);
+  gk_field_fem_projection_par_solve(field, parproj_core);
+  gk_field_fem_projection_par_solve(field, parproj_sol);
+  gk_field_fem_projection_par_scatter(app, field, arr_fem);
+}
+
+void
+gk_field_par_proj_advance(gkyl_gyrokinetic_app *app, struct gk_field *field,
+  const struct gk_field_par_proj *pp, struct gkyl_array *arr_dg, struct gkyl_array *arr_fem)
+{
+  pp->func(app, field, arr_dg, arr_fem, pp->parproj_core, pp->parproj_sol, pp->ghost_r, pp->skin_r);
 }
 
 void

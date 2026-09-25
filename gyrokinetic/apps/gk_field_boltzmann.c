@@ -80,7 +80,7 @@ gk_field_rhs_boltzmann(struct gkyl_gyrokinetic_app *app, struct gk_field *field)
     field->rho_c, field->sheath_vals[2*(app->cdim-1)], field->phi_smooth);
 
   // Smooth the potential along z.
-  gk_field_fem_projection_par(app, field, field->phi_smooth, field->phi_smooth);
+  gk_field_fem_projection_par(app, field, field->phi_smooth, field->phi_smooth, field->fem_parproj, NULL, NULL, NULL);
 }
 
 static void

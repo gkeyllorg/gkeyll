@@ -48,18 +48,55 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f);
 /** FEM Projection Functions **/
 
 /**
- * Project a DG field onto the parallel FEM basis to enforce continuity
- * along the parallel (z) direction. This is essential for field solves
- * that require C0 continuity in the parallel direction.
+ * Gather the local DG array into the global (in z) array field->rho_c_global_dg, 
+ * smooth it with a parallel
+ * FEM updater into field->phi_fem, and scatter the result back to a local array.
+ * They are exposed so dimension-specific projections (e.g. with twist-and-shift
+ * BCs) can be composed from them without branching.
+ */
+void gk_field_fem_projection_par_gather(gkyl_gyrokinetic_app *app, struct gk_field *field,
+  struct gkyl_array *arr_dg);
+void gk_field_fem_projection_par_solve(struct gk_field *field, struct gkyl_fem_parproj *parproj);
+void gk_field_fem_projection_par_scatter(gkyl_gyrokinetic_app *app, struct gk_field *field,
+  struct gkyl_array *arr_fem);
+
+/**
+ * Parallel FEM projections with the gk_field_par_proj signature.
+ *   _none: do nothing.
+ *   gk_field_fem_projection_par: smooth with parproj_core (parproj_sol, ghost_r, skin_r unused).
+ *   _core_sol: smooth with parproj_core and parproj_sol on their respective ranges (ghost_r, skin_r unused).
  *
  * @param app Gyrokinetic application object.
  * @param field Field object containing solver state.
  * @param arr_dg Input DG array to be projected.
  * @param arr_fem Output FEM array (projected result with parallel continuity).
+ * @param parproj_core Parallel FEM updater on the whole domain (or the core if IWL).
+ * @param parproj_sol Parallel FEM updater on the SOL (IWL).
+ * @param ghost_r Parallel ghost range filled with the twist-and-shift BC.
+ * @param skin_r Parallel skin range the twist-and-shift BC is applied to.
  */
 void
+gk_field_fem_projection_par_none(gkyl_gyrokinetic_app *app, struct gk_field *field,
+  struct gkyl_array *arr_dg, struct gkyl_array *arr_fem,
+  struct gkyl_fem_parproj *parproj_core, struct gkyl_fem_parproj *parproj_sol,
+  const struct gkyl_range *ghost_r, const struct gkyl_range *skin_r);
+void
 gk_field_fem_projection_par(gkyl_gyrokinetic_app *app, struct gk_field *field,
-  struct gkyl_array *arr_dg, struct gkyl_array *arr_fem);
+  struct gkyl_array *arr_dg, struct gkyl_array *arr_fem,
+  struct gkyl_fem_parproj *parproj_core, struct gkyl_fem_parproj *parproj_sol,
+  const struct gkyl_range *ghost_r, const struct gkyl_range *skin_r);
+void
+gk_field_fem_projection_par_core_sol(gkyl_gyrokinetic_app *app, struct gk_field *field,
+  struct gkyl_array *arr_dg, struct gkyl_array *arr_fem,
+  struct gkyl_fem_parproj *parproj_core, struct gkyl_fem_parproj *parproj_sol,
+  const struct gkyl_range *ghost_r, const struct gkyl_range *skin_r);
+
+/**
+ * Apply the parallel FEM projection described by pp to arr_dg, writing arr_fem.
+ */
+void
+gk_field_par_proj_advance(gkyl_gyrokinetic_app *app, struct gk_field *field,
+  const struct gk_field_par_proj *pp, struct gkyl_array *arr_dg, struct gkyl_array *arr_fem);
 
 /** Charge Density Accumulation Functions **/
 

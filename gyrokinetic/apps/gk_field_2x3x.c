@@ -13,190 +13,44 @@
 #include <float.h>
 #include <time.h>
 
+// Fill the parallel ghost cells ghost_r of the global array with the
+// twist-and-shift of the skin cells skin_r, so that a Dirichlet-ghost parallel
+// smoother enforces the TS BC. Presently ghost_r is the lower parallel ghost and
+// skin_r the upper parallel skin (whole boundary for TS, core part for IWL).
 static void
-gk_field_fem_projection_par_none(gkyl_gyrokinetic_app *app, struct gk_field *field,
-  struct gkyl_array *arr_dg, struct gkyl_array *arr_fem)
+gk_field_2x3x_par_ts_ghosts(struct gk_field *field, const struct gkyl_range *ghost_r, const struct gkyl_range *skin_r)
 {
-  // Do nothing.
-}
-
-// Project a DG charge density onto the parallel FEM basis to make it
-// continuous along z using different BCs in the core and SOL.
-static void
-gk_field_fem_projection_par_rho_ts_2x(gkyl_gyrokinetic_app *app, struct gk_field *field,
-  struct gkyl_array *arr_dg, struct gkyl_array *arr_fem)
-{
-
-  // Gather the DG array into a global (in z) array.
-  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, arr_dg, field->rho_c_global_dg);
-
-  // Smooth the DG array.
-  gkyl_fem_parproj_set_rhs(field->fem_parproj_rho_core, field->rho_c_global_dg, field->rho_c_global_dg);
-  gkyl_fem_parproj_solve(field->fem_parproj_rho_core, field->phi_fem);
-
-  // Copy global, continuous FEM array to a local array.
-  gkyl_array_copy_range_to_range(arr_fem, field->phi_fem, &app->local, &field->global_sub_range);
-}
-
-// Project a DG potential onto the parallel FEM basis to make it
-// continuous along z using different BCs in the core and SOL.
-static void
-gk_field_fem_projection_par_phi_ts_2x(gkyl_gyrokinetic_app *app, struct gk_field *field,
-  struct gkyl_array *arr_dg, struct gkyl_array *arr_fem)
-{
-
-  // Gather the DG array into a global (in z) array.
-  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, arr_dg, field->rho_c_global_dg);
-
-  // Smooth the the DG array.
-  gkyl_fem_parproj_set_rhs(field->fem_parproj_phi_core, field->rho_c_global_dg, field->rho_c_global_dg);
-  gkyl_fem_parproj_solve(field->fem_parproj_phi_core, field->phi_fem);
-
-  // Copy global, continuous FEM array to a local array.
-  gkyl_array_copy_range_to_range(arr_fem, field->phi_fem, &app->local, &field->global_sub_range);
-}
-
-static void
-// Fill the parallel ghost cells with twistshift BC.
-gk_field_2x3x_ts_par_ghosts_ts_3x(gkyl_gyrokinetic_app *app, struct gk_field *field,
-  struct gkyl_array *arr_global)
-{
-  int par_dir = app->cdim-1; // Parallel direction index.
-  gkyl_array_copy_range_to_range(arr_global, arr_global,
-    &app->global_lower_ghost[par_dir], &app->global_upper_skin[par_dir]);
-  gkyl_bc_twistshift_advance(field->bc_ts_lo, arr_global, arr_global);
-  gkyl_bc_basic_gyrokinetic_advance(field->gfss_bc_op_core_up, field->bc_buffer, arr_global);
-}
-
-// Project a DG field onto the parallel FEM basis to make it
-// continuous along z (or to solve a Poisson equation in 1x),
-// using twistshift BCs in the parallel direction.
-static void
-gk_field_fem_projection_par_phi_ts_3x(gkyl_gyrokinetic_app *app, struct gk_field *field,
-  struct gkyl_array *arr_dg, struct gkyl_array *arr_fem)
-{
-
-  // Gather the DG array into a global (in z) array.
-  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, arr_dg, field->rho_c_global_dg);
-
-  // Apply TS BC in the lower parallel ghost, and fill the upper
-  // parallel ghost with the skin boundary value.
-  gk_field_2x3x_ts_par_ghosts_ts_3x(app, field, field->rho_c_global_dg);
-
-  // Smooth the the DG array.
-  gkyl_fem_parproj_set_rhs(field->fem_parproj_phi_core, field->rho_c_global_dg, field->rho_c_global_dg);
-  gkyl_fem_parproj_solve(field->fem_parproj_phi_core, field->phi_fem);
-
-  // Copy global, continuous FEM array to a local array.
-  gkyl_array_copy_range_to_range(arr_fem, field->phi_fem, &app->local, &field->global_sub_range);
-}
-
-// Project the DG Apar onto the parallel FEM basis to make it continuous
-// along z, using the Apar-specific smoother (no phi bias lines).
-static void
-gk_field_fem_projection_par_apar(gkyl_gyrokinetic_app *app, struct gk_field *field,
-  struct gkyl_array *arr_dg, struct gkyl_array *arr_fem)
-{
-
-  // Gather the DG array into a global (in z) array.
-  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, arr_dg, field->rho_c_global_dg);
-
-  // Smooth the the DG array.
-  gkyl_fem_parproj_set_rhs(field->fem_apar_parproj, field->rho_c_global_dg, field->rho_c_global_dg);
-  gkyl_fem_parproj_solve(field->fem_apar_parproj, field->phi_fem);
-
-  // Copy global, continuous FEM array to a local array.
-  gkyl_array_copy_range_to_range(arr_fem, field->phi_fem, &app->local, &field->global_sub_range);
-}
-
-// Project the DG Apar onto the parallel FEM basis to make it continuous
-// along z, using twistshift BCs in the parallel direction (same as phi).
-static void
-gk_field_fem_projection_par_apar_ts_3x(gkyl_gyrokinetic_app *app, struct gk_field *field,
-  struct gkyl_array *arr_dg, struct gkyl_array *arr_fem)
-{
-
-  // Gather the DG array into a global (in z) array.
-  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, arr_dg, field->rho_c_global_dg);
-
-  // Apply TS BC in the lower parallel ghost, and fill the upper
-  // parallel ghost with the skin boundary value.
-  gk_field_2x3x_ts_par_ghosts_ts_3x(app, field, field->rho_c_global_dg);
-
-  // Smooth the the DG array.
-  gkyl_fem_parproj_set_rhs(field->fem_apar_parproj, field->rho_c_global_dg, field->rho_c_global_dg);
-  gkyl_fem_parproj_solve(field->fem_apar_parproj, field->phi_fem);
-
-  // Copy global, continuous FEM array to a local array.
-  gkyl_array_copy_range_to_range(arr_fem, field->phi_fem, &app->local, &field->global_sub_range);
-}
-
-// Project a DG charge density onto the parallel FEM basis to make it
-// continuous along z using different BCs in the core and SOL.
-static void
-gk_field_fem_projection_par_rho_iwl_2x(gkyl_gyrokinetic_app *app, struct gk_field *field,
-  struct gkyl_array *arr_dg, struct gkyl_array *arr_fem)
-{
-
-  // Gather the DG array into a global (in z) array.
-  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, arr_dg, field->rho_c_global_dg);
-
-  // Smooth the DG array.
-  gkyl_fem_parproj_set_rhs(field->fem_parproj_rho_core, field->rho_c_global_dg, field->rho_c_global_dg);
-  gkyl_fem_parproj_solve(field->fem_parproj_rho_core, field->phi_fem);
-  gkyl_fem_parproj_set_rhs(field->fem_parproj_rho_sol, field->rho_c_global_dg, field->rho_c_global_dg);
-  gkyl_fem_parproj_solve(field->fem_parproj_rho_sol, field->phi_fem);
-
-  // Copy global, continuous FEM array to a local array.
-  gkyl_array_copy_range_to_range(arr_fem, field->phi_fem, &app->local, &field->global_sub_range);
-}
-
-// Project a DG potential onto the parallel FEM basis to make it
-// continuous along z using different BCs in the core and SOL.
-static void
-gk_field_fem_projection_par_phi_iwl_2x(gkyl_gyrokinetic_app *app, struct gk_field *field,
-  struct gkyl_array *arr_dg, struct gkyl_array *arr_fem)
-  {
-
-  // Gather the DG array into a global (in z) array.
-  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, arr_dg, field->rho_c_global_dg);
-
-  // Smooth the the DG array.
-  gkyl_fem_parproj_set_rhs(field->fem_parproj_phi_core, field->rho_c_global_dg, field->rho_c_global_dg);
-  gkyl_fem_parproj_solve(field->fem_parproj_phi_core, field->phi_fem);
-  gkyl_fem_parproj_set_rhs(field->fem_parproj_phi_sol, field->rho_c_global_dg, field->rho_c_global_dg);
-  gkyl_fem_parproj_solve(field->fem_parproj_phi_sol, field->phi_fem);
-
-  // Copy global, continuous FEM array to a local array.
-  gkyl_array_copy_range_to_range(arr_fem, field->phi_fem, &app->local, &field->global_sub_range);
-}
-
-// Project a DG field onto the parallel FEM basis to make it
-// continuous along z (or to solve a Poisson equation in 1x),
-// using different BCs in the core and SOL.
-static void
-gk_field_fem_projection_par_phi_iwl_3x(gkyl_gyrokinetic_app *app, struct gk_field *field,
-  struct gkyl_array *arr_dg, struct gkyl_array *arr_fem)
-{
-
-  // Gather the DG array into a global (in z) array.
-  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, arr_dg, field->rho_c_global_dg);
-
-  // Apply TS BC in the core lower parallel boundary, and
-  // fill core upper parallel boundary ghost with skin boundary value.
-  gkyl_array_copy_range_to_range(field->rho_c_global_dg, field->rho_c_global_dg,
-    &app->global_lower_ghost_par_core, &app->global_upper_skin_par_core);
+  gkyl_array_copy_range_to_range(field->rho_c_global_dg, field->rho_c_global_dg, ghost_r, skin_r);
   gkyl_bc_twistshift_advance(field->bc_ts_lo, field->rho_c_global_dg, field->rho_c_global_dg);
   gkyl_bc_basic_gyrokinetic_advance(field->gfss_bc_op_core_up, field->bc_buffer, field->rho_c_global_dg);
+}
 
-  // Smooth the the DG array.
-  gkyl_fem_parproj_set_rhs(field->fem_parproj_phi_core, field->rho_c_global_dg, field->rho_c_global_dg);
-  gkyl_fem_parproj_solve(field->fem_parproj_phi_core, field->phi_fem);
-  gkyl_fem_parproj_set_rhs(field->fem_parproj_phi_sol, field->rho_c_global_dg, field->rho_c_global_dg);
-  gkyl_fem_parproj_solve(field->fem_parproj_phi_sol, field->phi_fem);
+// Parallel FEM projection with twist-and-shift BCs (3x, no LCFS). parproj_sol unused.
+static void
+gk_field_fem_projection_par_ts(gkyl_gyrokinetic_app *app, struct gk_field *field,
+  struct gkyl_array *arr_dg, struct gkyl_array *arr_fem,
+  struct gkyl_fem_parproj *parproj_core, struct gkyl_fem_parproj *parproj_sol,
+  const struct gkyl_range *ghost_r, const struct gkyl_range *skin_r)
+{
+  gk_field_fem_projection_par_gather(app, field, arr_dg);
+  gk_field_2x3x_par_ts_ghosts(field, ghost_r, skin_r);
+  gk_field_fem_projection_par_solve(field, parproj_core);
+  gk_field_fem_projection_par_scatter(app, field, arr_fem);
+}
 
-  // Copy global, continuous FEM array to a local array.
-  gkyl_array_copy_range_to_range(arr_fem, field->phi_fem, &app->local, &field->global_sub_range);
+// Parallel FEM projection with twist-and-shift BCs in the core and a
+// separate smoother in the SOL (3x IWL).
+static void
+gk_field_fem_projection_par_ts_core_sol(gkyl_gyrokinetic_app *app, struct gk_field *field,
+  struct gkyl_array *arr_dg, struct gkyl_array *arr_fem,
+  struct gkyl_fem_parproj *parproj_core, struct gkyl_fem_parproj *parproj_sol,
+  const struct gkyl_range *ghost_r, const struct gkyl_range *skin_r)
+{
+  gk_field_fem_projection_par_gather(app, field, arr_dg);
+  gk_field_2x3x_par_ts_ghosts(field, ghost_r, skin_r);
+  gk_field_fem_projection_par_solve(field, parproj_core);
+  gk_field_fem_projection_par_solve(field, parproj_sol);
+  gk_field_fem_projection_par_scatter(app, field, arr_fem);
 }
 
 // Create a bias line list that includes the perpendicular BCs if
@@ -294,17 +148,11 @@ gk_field_2x3x_add_TS_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field 
   if (app->cdim == 2) {
     fem_parproj_bc_rho_core = GKYL_FEM_PARPROJ_PERIODIC;
     fem_parproj_bc_phi_core = GKYL_FEM_PARPROJ_PERIODIC;
-
-    f->fem_projection_par_rho_func = gk_field_fem_projection_par_rho_ts_2x;
-    f->fem_projection_par_phi_func = gk_field_fem_projection_par_phi_ts_2x;
   }
   else if (app->cdim == 3) {
     // Here fem_parproj_bc_rho is not actually relevant because we don't use f->fem_parproj_rho.
     fem_parproj_bc_rho_core = 0;
     fem_parproj_bc_phi_core = GKYL_FEM_PARPROJ_DIRICHLET_GHOST;
-
-    f->fem_projection_par_rho_func = gk_field_fem_projection_par;
-    f->fem_projection_par_phi_func = gk_field_fem_projection_par_phi_ts_3x;
 
     int par_dir = app->cdim-1; // Parallel direction index.
     int ghost[] = {1, 1, 1};
@@ -373,6 +221,18 @@ gk_field_2x3x_add_TS_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field 
   // Parallel smoother for the potential.
   f->fem_parproj_phi_core = gkyl_fem_parproj_new(&app->global, &app->grid, &app->basis,
     fem_parproj_bc_phi_core, &f->fem_parproj_bias_line_list, 0, 0, app->use_gpu);
+
+  // Parallel projections: 2x is periodic in z, 3x enforces TS through the ghost cells.
+  if (app->cdim == 2) {
+    f->par_proj_rho = (struct gk_field_par_proj) { .func = gk_field_fem_projection_par, .parproj_core = f->fem_parproj_rho_core };
+    f->par_proj_phi = (struct gk_field_par_proj) { .func = gk_field_fem_projection_par, .parproj_core = f->fem_parproj_phi_core };
+  }
+  else {
+    int par_dir = app->cdim-1; // Parallel direction index.
+    f->par_proj_rho = (struct gk_field_par_proj) { .func = gk_field_fem_projection_par, .parproj_core = f->fem_parproj };
+    f->par_proj_phi = (struct gk_field_par_proj) { .func = gk_field_fem_projection_par_ts, .parproj_core = f->fem_parproj_phi_core,
+      .ghost_r = &app->global_lower_ghost[par_dir], .skin_r = &app->global_upper_skin[par_dir] };
+  }
 }
 
 // Allocation ranges and updaters for IWL field solve.
@@ -389,9 +249,6 @@ gk_field_2x3x_add_IWL_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field
     fem_parproj_bc_rho_sol  = GKYL_FEM_PARPROJ_NONE;
     fem_parproj_bc_phi_core = GKYL_FEM_PARPROJ_PERIODIC;
     fem_parproj_bc_phi_sol  = GKYL_FEM_PARPROJ_NONE;
-
-    f->fem_projection_par_rho_func = gk_field_fem_projection_par_rho_iwl_2x;
-    f->fem_projection_par_phi_func = gk_field_fem_projection_par_phi_iwl_2x;
   }
   else if (app->cdim == 3) {
     // Here fem_parproj_bc_rho is not actually relevant because we don't use f->fem_parproj_rho.
@@ -399,9 +256,6 @@ gk_field_2x3x_add_IWL_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field
     fem_parproj_bc_rho_sol  = 0;
     fem_parproj_bc_phi_core = GKYL_FEM_PARPROJ_DIRICHLET_GHOST;
     fem_parproj_bc_phi_sol  = GKYL_FEM_PARPROJ_DIRICHLET_SKIN;
-
-    f->fem_projection_par_rho_func = gk_field_fem_projection_par;
-    f->fem_projection_par_phi_func = gk_field_fem_projection_par_phi_iwl_3x;
 
     int par_dir = app->cdim-1; // Parallel direction index.
     // TS BC updater for up to low TS for the lower edge. This sets ghost_L = T_LU(ghost_L).
@@ -448,6 +302,21 @@ gk_field_2x3x_add_IWL_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field
     fem_parproj_bc_phi_core, &f->fem_parproj_bias_line_list, 0, 0, app->use_gpu);
   f->fem_parproj_phi_sol = gkyl_fem_parproj_new(&app->global_sol, &app->grid, &app->basis,
     fem_parproj_bc_phi_sol, &f->fem_parproj_bias_line_list, 0, 0, app->use_gpu);
+
+  // Parallel projections: core is periodic (2x) or TS through the core ghost
+  // cells (3x), SOL uses a separate smoother.
+  if (app->cdim == 2) {
+    f->par_proj_rho = (struct gk_field_par_proj) { .func = gk_field_fem_projection_par_core_sol,
+      .parproj_core = f->fem_parproj_rho_core, .parproj_sol = f->fem_parproj_rho_sol };
+    f->par_proj_phi = (struct gk_field_par_proj) { .func = gk_field_fem_projection_par_core_sol,
+      .parproj_core = f->fem_parproj_phi_core, .parproj_sol = f->fem_parproj_phi_sol };
+  }
+  else {
+    f->par_proj_rho = (struct gk_field_par_proj) { .func = gk_field_fem_projection_par, .parproj_core = f->fem_parproj };
+    f->par_proj_phi = (struct gk_field_par_proj) { .func = gk_field_fem_projection_par_ts_core_sol,
+      .parproj_core = f->fem_parproj_phi_core, .parproj_sol = f->fem_parproj_phi_sol,
+      .ghost_r = &app->global_lower_ghost_par_core, .skin_r = &app->global_upper_skin_par_core };
+  }
     
 }
 
@@ -455,14 +324,14 @@ static void
 gk_field_rhs_poisson_perp_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *field)
 {
   // Smooth the charge density along z.
-  field->fem_projection_par_rho_func(app, field, field->rho_c, field->rho_c);
+  gk_field_par_proj_advance(app, field, &field->par_proj_rho, field->rho_c, field->rho_c);
 
   // Solve the Poisson equation.
   gkyl_fem_poisson_perp_set_rhs(field->fem_poisson_perp, field->rho_c);
   gkyl_fem_poisson_perp_solve(field->fem_poisson_perp, field->phi_smooth);
 
   // Smooth the potential along z.
-  field->fem_projection_par_phi_func(app, field, field->phi_smooth, field->phi_smooth);
+  gk_field_par_proj_advance(app, field, &field->par_proj_phi, field->phi_smooth, field->phi_smooth);
 
   // Finish the Poisson solve with FLR effects.
   field->invert_flr(app, field, field->phi_smooth);
@@ -493,7 +362,7 @@ gk_field_ampere_solve_enabled(gkyl_gyrokinetic_app *app, struct gk_field *field,
   field->invert_flr(app, field, out);
 
   // Smooth Apar along z with the same parallel BCs used during time stepping.
-  field->fem_projection_par_apar_func(app, field, out, out);
+  gk_field_par_proj_advance(app, field, &field->par_proj_apar, out, out);
 
   app->stat.field_apar_solve_tm += gkyl_time_diff_now_sec(wst);
 }
@@ -555,6 +424,8 @@ gk_field_fem_release_2x3x(const gkyl_gyrokinetic_app *app, struct gk_field *f)
     gkyl_array_release(f->lapWeightAmpere);
     gkyl_array_release(f->dApartdtSlvr_kSq);
     gkyl_fem_parproj_release(f->fem_apar_parproj);
+    if (app->gk_geom->has_LCFS)
+      gkyl_fem_parproj_release(f->fem_apar_parproj_sol);
     gkyl_fem_poisson_perp_release(f->fem_apar_solver);
     gkyl_fem_poisson_perp_release(f->fem_apardot_solver);
     if (app->use_gpu) {
@@ -779,14 +650,14 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
   f->fem_parproj = gkyl_fem_parproj_new(&app->global, &app->grid, &app->basis,
     fem_parproj_bc, 0, 0, 0, app->use_gpu);
 
-  f->fem_projection_par_rho_func = gk_field_fem_projection_par;
-  f->fem_projection_par_phi_func = gk_field_fem_projection_par;
+  f->par_proj_rho = (struct gk_field_par_proj) { .func = gk_field_fem_projection_par, .parproj_core = f->fem_parproj };
+  f->par_proj_phi = (struct gk_field_par_proj) { .func = gk_field_fem_projection_par, .parproj_core = f->fem_parproj };
 
   // Setup EM solvers.
   f->ampere_solve = gk_field_ampere_solve_none;
   f->em_rhs_func = gk_field_em_rhs_none;
   f->remove_em_zonal_func = gk_field_em_zonal_component_none;
-  f->fem_projection_par_apar_func = gk_field_fem_projection_par_none;
+  f->par_proj_apar = (struct gk_field_par_proj) { .func = gk_field_fem_projection_par_none };
   if (f->is_em) {
     // Translate input file BCs into Ampere BCs.
     for (int d=0; d<app->cdim-1; d++) {
@@ -905,22 +776,37 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
   }
 
   if (f->is_em) {
-    // Parallel smoother for Apar reusing phi smoother.
-    f->fem_parproj_ampere_bc = fem_parproj_bc;
-    f->fem_projection_par_apar_func = gk_field_fem_projection_par_apar;
-    if (!app->gk_geom->has_LCFS && f->bc_par_phi == GKYL_BC_GK_FIELD_TWISTSHIFT) {
+    // Parallel smoother for Apar: same parallel BCs as phi in the core
+    // (periodic in 2x, TS through the ghost cells in 3x), none in the SOL.
+    if (app->gk_geom->has_LCFS) {
+      f->fem_parproj_ampere_bc = app->cdim == 2? GKYL_FEM_PARPROJ_PERIODIC : GKYL_FEM_PARPROJ_DIRICHLET_GHOST;
+      f->fem_apar_parproj = gkyl_fem_parproj_new(&app->global_core, &app->grid,
+        &app->basis, f->fem_parproj_ampere_bc, 0, 0, 0, app->use_gpu);
+      f->fem_apar_parproj_sol = gkyl_fem_parproj_new(&app->global_sol, &app->grid,
+        &app->basis, GKYL_FEM_PARPROJ_NONE, 0, 0, 0, app->use_gpu);
       if (app->cdim == 2) {
-        // 2x TS reduces to periodic in z.
-        f->fem_parproj_ampere_bc = GKYL_FEM_PARPROJ_PERIODIC;
+        f->par_proj_apar = (struct gk_field_par_proj) { .func = gk_field_fem_projection_par_core_sol,
+          .parproj_core = f->fem_apar_parproj, .parproj_sol = f->fem_apar_parproj_sol };
       }
-      else if (app->cdim == 3) {
-        // Enforce TS via ghost cells, like phi.
-        f->fem_parproj_ampere_bc = GKYL_FEM_PARPROJ_DIRICHLET_GHOST;
-        f->fem_projection_par_apar_func = gk_field_fem_projection_par_apar_ts_3x;
+      else {
+        f->par_proj_apar = (struct gk_field_par_proj) { .func = gk_field_fem_projection_par_ts_core_sol,
+          .parproj_core = f->fem_apar_parproj, .parproj_sol = f->fem_apar_parproj_sol,
+          .ghost_r = &app->global_lower_ghost_par_core, .skin_r = &app->global_upper_skin_par_core };
       }
     }
-    f->fem_apar_parproj = gkyl_fem_parproj_new(&app->global, &app->grid,
-       &app->basis, f->fem_parproj_ampere_bc, 0, 0, 0, app->use_gpu);
+    else {
+      f->fem_parproj_ampere_bc = fem_parproj_bc;
+      if (f->bc_par_phi == GKYL_BC_GK_FIELD_TWISTSHIFT)
+        f->fem_parproj_ampere_bc = app->cdim == 2? GKYL_FEM_PARPROJ_PERIODIC : GKYL_FEM_PARPROJ_DIRICHLET_GHOST;
+      f->fem_apar_parproj = gkyl_fem_parproj_new(&app->global, &app->grid,
+        &app->basis, f->fem_parproj_ampere_bc, 0, 0, 0, app->use_gpu);
+      f->par_proj_apar = (struct gk_field_par_proj) { .func = gk_field_fem_projection_par, .parproj_core = f->fem_apar_parproj };
+      if (f->bc_par_phi == GKYL_BC_GK_FIELD_TWISTSHIFT && app->cdim == 3) {
+        int par_dir = app->cdim-1; // Parallel direction index.
+        f->par_proj_apar = (struct gk_field_par_proj) { .func = gk_field_fem_projection_par_ts, .parproj_core = f->fem_apar_parproj,
+          .ghost_r = &app->global_lower_ghost[par_dir], .skin_r = &app->global_upper_skin[par_dir] };
+      }
+    }
   }
 
   // Set the pointer to the function that computes phi.
