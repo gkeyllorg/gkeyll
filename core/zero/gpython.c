@@ -216,6 +216,12 @@ gpython_basis_num_basis(const gpython_basis *b)
   return (int)CBAS(b)->num_basis;
 }
 
+int
+gpython_basis_num_quad(const gpython_basis *b)
+{
+  return (int)CBAS(b)->num_quad;
+}
+
 const char *
 gpython_basis_id(const gpython_basis *b)
 {
@@ -238,6 +244,32 @@ void
 gpython_basis_nodal_to_modal(const gpython_basis *b, const double *fnodal, double *fmodal)
 {
   CBAS(b)->nodal_to_modal(fnodal, fmodal);
+}
+
+int
+gpython_basis_modal_to_quad(const gpython_basis *b, const double *fmodal, double *fquad)
+{
+  const struct gkyl_basis *basis = CBAS(b);
+  if (!basis->num_quad || !basis->modal_to_quad_nodal) {
+    return -1;
+  }
+  for (unsigned i = 0; i < basis->num_quad; ++i) {
+    basis->modal_to_quad_nodal(fmodal, fquad, i);
+  }
+  return 0;
+}
+
+int
+gpython_basis_quad_to_modal(const gpython_basis *b, const double *fquad, double *fmodal)
+{
+  const struct gkyl_basis *basis = CBAS(b);
+  if (!basis->num_quad || !basis->quad_nodal_to_modal) {
+    return -1;
+  }
+  for (unsigned i = 0; i < basis->num_basis; ++i) {
+    basis->quad_nodal_to_modal(fquad, fmodal, i);
+  }
+  return 0;
 }
 
 /* ---- weak (DG) algebra --------------------------------------------------

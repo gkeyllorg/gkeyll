@@ -29,8 +29,9 @@ extern "C" {
  *     gpython_eval_at_coord_proj (evaluate at coords + project onto a
  *     lower-dimensional target basis).
  * v7: added gpython_powsqrt (pow(sqrt(.), exponent) via
- *     gkyl_proj_powsqrt_on_basis). */
-#define GPYTHON_API_VERSION 7
+ *     gkyl_proj_powsqrt_on_basis).
+ * v8: basis-owned quadrature counts and modal/quadrature transforms. */
+#define GPYTHON_API_VERSION 8
 int gpython_api_version(void);
 
 /* Enough for GKYL_MAX_DIM; fixed here so callers can size buffers without
@@ -82,6 +83,7 @@ void gpython_basis_release(gpython_basis *b);
 int gpython_basis_ndim(const gpython_basis *b);
 int gpython_basis_poly_order(const gpython_basis *b);
 int gpython_basis_num_basis(const gpython_basis *b);
+int gpython_basis_num_quad(const gpython_basis *b);
 const char *gpython_basis_id(const gpython_basis *b);
 /* Evaluate all num_basis functions at reference point z[ndim].            */
 void gpython_basis_eval(const gpython_basis *b, const double *z, double *bvals);
@@ -89,6 +91,10 @@ void gpython_basis_eval(const gpython_basis *b, const double *z, double *bvals);
 void gpython_basis_node_list(const gpython_basis *b, double *coords);
 /* Exact nodal -> modal change of basis on one cell's num_basis values.     */
 void gpython_basis_nodal_to_modal(const gpython_basis *b, const double *fnodal, double *fmodal);
+/* Basis-owned quadrature transforms. Buffers have num_basis modal entries
+ * and num_quad quadrature entries. Return -1 if kernels are unavailable. */
+int gpython_basis_modal_to_quad(const gpython_basis *b, const double *fmodal, double *fquad);
+int gpython_basis_quad_to_modal(const gpython_basis *b, const double *fquad, double *fmodal);
 
 /* ---- weak (DG) algebra --------------------------------------------------
  * Operands must have ncomp == nfields * num_basis; the per-field loop runs
