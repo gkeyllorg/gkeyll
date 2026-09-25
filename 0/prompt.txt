@@ -1,0 +1,1 @@
+Does this implementation of Jenkins use the --build-adas yes flag? It should. Otherwise, the unit tests won't all pass

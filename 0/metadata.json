@@ -1,0 +1,58 @@
+{
+  "cli_version": "0.11.2",
+  "checkpoint_id": "01M3CTGTGYZEPPCH86RXM71C2S",
+  "session_id": "01a0d9a1-38c9-7b10-9cac-836e03287f87",
+  "strategy": "manual-commit",
+  "created_at": "2026-09-25T17:41:28.615930233Z",
+  "branch": "fix-failing-unit-tests",
+  "checkpoints_count": 1,
+  "save_step_count": 1,
+  "files_touched": [
+    "ci/jenkins/README.personal.md",
+    "ci/jenkins/README.team_workstation.md",
+    "machines/mkdeps.linux.sh",
+    "moments/unit/ctest_wv_vacuum_einstein_conformal.c"
+  ],
+  "agent": "Codex",
+  "model": "gpt-6-astra",
+  "turn_id": "bf34c01d0574",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 34833,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 179840,
+    "output_tokens": 3116,
+    "api_call_count": 7,
+    "subagent_tokens_complete": true
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-09-25T17:41:28.60315926Z",
+    "agent_lines": 8,
+    "agent_removed": 1,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 1,
+    "total_committed": 8,
+    "total_lines_changed": 10,
+    "agent_percentage": 90,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 1,
+      "user_lines_removed": 1,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "moments/unit/ctest_wv_vacuum_einstein_conformal.c": 1
+      },
+      "user_removed_per_file": {
+        "moments/unit/ctest_wv_vacuum_einstein_conformal.c": 1
+      }
+    }
+  ]
+}
