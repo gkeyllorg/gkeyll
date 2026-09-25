@@ -61,7 +61,7 @@ struct gk_app_ctx {
   bool can_max;
   // Krook and buffer parameters.
   double nu_krook;
-  int num_cell_buff;
+  int Nbuff;
   // Grid parameters
   double Lx, Lz;
   double x_min, z_min, x_max, z_max;
@@ -359,7 +359,7 @@ double_buffer_profile(double t, const double *xn, double *fout, void *ctx)
   double Hbuff;
   // See Eq. 49 of V. Grandgirard et al. / Computer Physics Communications 207 (2016) 35–68
   double Bs = 0.015; // Buffer transition width as a fraction of the domain size.
-  double Bl = app->num_cell_buff / (double)nx; // Buffer fraction.
+  double Bl = app->Nbuff / (double)nx; // Buffer fraction.
   Hbuff =
     1 + 0.5 * (tanh((x - x_max + Bl * Lx) / (Bs * Lx)) - tanh((x - x_min - Bl * Lx) / (Bs * Lx)));
   fout[0] = Hbuff * app->nu_krook;
@@ -378,7 +378,7 @@ tanh_profile(double x, double v0, double Lgrad, void *ctx)
 {
   struct gk_app_ctx *app = ctx;
   // Profile use in Gysela (see V. Grandgirard et al. / Computer Physics Communications 207 (2016) 35–68).
-  double buff_frac = (double)app->num_cell_buff / app->Nx;
+  double buff_frac = (double)app->Nbuff / app->Nx;
   double delta = 0.5 * (1 - buff_frac) * app->Lx;
   double arg = x / (app->a_mid * delta);
   double prof_factor = (app->a_mid * delta) / Lgrad;
@@ -636,7 +636,7 @@ create_ctx(void)
 
   // IC, Krook, buffer, and integration lookup tables (LUTs) parameters.
   double nu_krook = 1.0 / 1.0e-7;
-  int num_cell_buff = 2; // Number of cells in the buffer region on each side.
+  int Nbuff = 2; // Number of cells in the buffer region on each side.
   bool can_max = false; // Whether to use the canonical maxwellian formulation for the IC.
   int psi_lut_nfact = 100 * (poly_order + 1); // Resolution factor for the psi lookup table.
 
@@ -684,7 +684,7 @@ create_ctx(void)
     .LTi = LTi,
     .Lx = Lx,
     .Lz = Lz,
-    .num_cell_buff = num_cell_buff,
+    .Nbuff = Nbuff,
     .nu_krook = nu_krook,
     .can_max = can_max,
     .x_min = x_min,

@@ -1263,6 +1263,12 @@ struct gk_species {
 
   struct gkyl_array *gyro_phi; // Gyroaveraged electrostatic potential.
 
+  struct gk_species_moment
+    sheath_moms; // Maxwellian moment array to get temperature and density for sheath BCs.
+  struct gkyl_array *dens_sheath; // Zeroth maxwellian moment, at the sheath used for surrogate BCs.
+  struct gkyl_array
+    *temp_sheath; // Third maxwellian moment times mass, at the sheath used for surrogate BCs.
+
   struct gk_species_moment m0; // Computes charge density.
   struct gk_species_moment integ_moms; // Integrated moments.
   struct gk_species_moment *moms; // Diagnostic moments
@@ -1353,7 +1359,7 @@ struct gk_species {
     gkyl_gyrokinetic_app *app, struct gk_species *species, const struct gkyl_array *fin,
     struct gkyl_array *rhs, struct gkyl_array **bflux_moms, double dt
   );
-  void (*bc_func)(gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gkyl_array *f);
+  void (*bc_func)(gkyl_gyrokinetic_app *app, struct gk_species *species, struct gkyl_array *f);
   void (*release_func)(const gkyl_gyrokinetic_app *app, const struct gk_species *s);
   void (*step_f_func)(struct gkyl_array *out, double dt, const struct gkyl_array *inp);
   void (*combine_func)(
@@ -3714,7 +3720,7 @@ void gk_species_apply_pos_shift(gkyl_gyrokinetic_app *app, struct gk_species *gk
  * @param f Field to apply BCs.
  */
 void gk_species_apply_bc(
-  gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gkyl_array *f
+  gkyl_gyrokinetic_app *app, struct gk_species *species, struct gkyl_array *f
 );
 
 /**

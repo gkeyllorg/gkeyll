@@ -230,6 +230,7 @@ struct gkyl_gyrokinetic_bc {
   struct gkyl_gyrokinetic_emission_inp emission;
   bool write_diagnostics; // Whether to output diagnostics.
   int bidx; // Block index (for multiblock solver).
+  char aux_str[128]; // Auxiliary string (e.g. path to surrogate model for sheath BCs).
 };
 
 struct gkyl_gyrokinetic_geometry {

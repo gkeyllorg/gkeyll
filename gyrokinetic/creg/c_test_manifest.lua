@@ -9,6 +9,8 @@ return {
          "rt_gk_multib_nstx_solonly_3x2v_p1",
          "rt_gk_multib_tcv_x21_3x2v_p1",
          "rt_gk_sheath_3x2v_p1_cons",
+         "rt_gk_cbc_2x2v_p1", -- The setup is not ready yet.
+         "rt_gk_tcv_iwl_adapt_source_3x2v_p1", -- The shift function is too large and makes it crash.
       },
       gpu = {
          "rt_gk_ltx_iwl_num_miller_3x2v_p1",

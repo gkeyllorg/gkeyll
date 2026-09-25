@@ -224,8 +224,8 @@ gyrokineticApp = Gyrokinetic.App.new {
     },
 
     bcs = {
-      { dir = 0, edge = 0, type = G0.GyrokineticBc.speciesSheath },
-      { dir = 0, edge = 1, type = G0.GyrokineticBc.speciesSheath },
+      { dir = 0, edge = 0, type = G0.GyrokineticBc.speciesSheathConducting },
+      { dir = 0, edge = 1, type = G0.GyrokineticBc.speciesSheathConducting },
     },
 
     evolve = true, -- Evolve species?
@@ -314,8 +314,8 @@ gyrokineticApp = Gyrokinetic.App.new {
     },
 
     bcs = {
-      { dir = 0, edge = 0, type = G0.GyrokineticBc.speciesSheath },
-      { dir = 0, edge = 1, type = G0.GyrokineticBc.speciesSheath },
+      { dir = 0, edge = 0, type = G0.GyrokineticBc.speciesSheathConducting },
+      { dir = 0, edge = 1, type = G0.GyrokineticBc.speciesSheathConducting },
     },
 
     evolve = true, -- Evolve species?

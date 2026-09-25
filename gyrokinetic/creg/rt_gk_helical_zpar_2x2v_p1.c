@@ -42,6 +42,7 @@ struct gk_app_ctx {
 
   // Grid parameters.
   double Lx; // Domain size in radial direction.
+  double Ly; // Domain size in binormal direction.
   double Lz; // Domain size along magnetic field.
   double x_min;
   double x_max;
@@ -112,7 +113,7 @@ densityInit(double t, const double *GKYL_RESTRICT xn, void *ctx)
   double x = xn[0], z = xn[1];
   struct gk_app_ctx *app = ctx;
   double Ls = app->Lz / 4;
-  double xSource[2] = {x, 0};
+  double xSource[3] = {x, 0};
   double effectiveSource = sourceDensity(t, xSource, ctx);
   double c_ss = sqrt(5 / 3 * sourceTemperature(t, xSource, ctx) / app->mi);
   double nPeak = 4 * sqrt(5) / 3 / c_ss * Ls * effectiveSource / 2;
@@ -162,14 +163,6 @@ driftSpeed(const double *GKYL_RESTRICT xn, void *ctx)
   } else {
     return (z > 0 ? 1.0 : -1.0) * sqrt(Te / mi);
   }
-}
-
-void
-diffusion_D_func(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
-{
-  struct sheath_ctx *app = ctx;
-
-  fout[0] = 0.5; // Diffusivity [m^2/s].
 }
 
 // Radial coordinate mapping.
@@ -232,8 +225,17 @@ phix(const double *xc, void *ctx)
   double Rc = app->Rc;
   double Bt = Bphi(xc, ctx);
   double Bv = Bvert(xc, ctx);
-  double theta = thetax(xc, ctx);
 
+  // Original Shi mapping. This mapping does not pass the right hand check.
+  // double theta = asin(Lp/Lt);
+  // return (y/sin(theta) + z*cos(theta))/Rc; // O
+
+  // This mapping passes right hand check but does not conserve particle!
+  // double theta = thetax(xc, ctx);
+  // return (y/sin(theta) + z*cos(theta))/x;
+
+  // Helical sheared mapping. Passes right hand check and conserves particle.
+  double theta = thetax(xc, ctx);
   return y / Rc + (Bt * z * sin(theta)) / (Bv * x);
 }
 
@@ -299,6 +301,15 @@ mapc2p(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
   xp[2] = Z;
 }
 
+// Anomalous diffusion coefficient.
+void
+diffusion_D_func(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct sheath_ctx *app = ctx;
+
+  fout[0] = 0.5; // Diffusivity [m^2/s].
+}
+
 struct gk_app_ctx
 create_ctx(void)
 {
@@ -317,7 +328,7 @@ create_ctx(void)
   double mi = mp * AMU; // Deuterium ions.
   double Te0 = 40 * eV;
   double Ti0 = 40 * eV;
-  double n0 = 7e18 * 10; // [1/m^3]
+  double n0 = 7e19; // [1/m^3] (10 times NSTX ref.)
 
   // Geometry and magnetic field.
   double B_axis = 0.5;
@@ -356,10 +367,10 @@ create_ctx(void)
   double z_max = Lz / 2;
 
   // Grid parameters
-  int Nx = 8; // (16)
-  int Nz = 6; // (12)
-  int Nvpar = 5; // (10)
-  int Nmu = 4; // (5)
+  int Nx = 4;
+  int Nz = 4;
+  int Nvpar = 4;
+  int Nmu = 4;
   int poly_order = 1;
 
   double vpar_max_elc = 4. * vte;
@@ -478,14 +489,6 @@ main(int argc, char **argv)
 
     .collisionless = {.type = GKYL_GK_COLLISIONLESS_ES},
 
-    .anomalous_diffusion =
-      {
-        .anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
-        .D_profile = diffusion_D_func,
-        .D_profile_ctx = &ctx,
-        .write_diagnostics = true,
-      },
-
     .collisions =
       {
         .collision_id = GKYL_LBO_COLLISIONS,
@@ -518,8 +521,26 @@ main(int argc, char **argv)
     .bcs =
       {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
-       {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
-       {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}},
+       {
+         .dir = 1,
+         .edge = GKYL_LOWER_EDGE,
+         .type = GKYL_BC_GK_SPECIES_SHEATH_SURROGATE,
+         .aux_str = "gyrokinetic/data/nn_model/nn_model_sheath_bc_conv_MPE.kann",
+       },
+       {
+         .dir = 1,
+         .edge = GKYL_UPPER_EDGE,
+         .type = GKYL_BC_GK_SPECIES_SHEATH_SURROGATE,
+         .aux_str = "gyrokinetic/data/nn_model/nn_model_sheath_bc_conv_MPE.kann",
+       }},
+
+    .anomalous_diffusion =
+      {
+        .anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
+        .D_profile = diffusion_D_func,
+        .D_profile_ctx = &ctx,
+        //      .write_diagnostics = true,
+      },
 
     .num_diag_moments = 9,
     .diag_moments =
@@ -565,14 +586,6 @@ main(int argc, char **argv)
 
     .collisionless = {.type = GKYL_GK_COLLISIONLESS_ES},
 
-    .anomalous_diffusion =
-      {
-        .anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
-        .D_profile = diffusion_D_func,
-        .D_profile_ctx = &ctx,
-        .write_diagnostics = true,
-      },
-
     .collisions =
       {
         .collision_id = GKYL_LBO_COLLISIONS,
@@ -605,8 +618,26 @@ main(int argc, char **argv)
     .bcs =
       {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
-       {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
-       {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}},
+       {
+         .dir = 1,
+         .edge = GKYL_LOWER_EDGE,
+         .type = GKYL_BC_GK_SPECIES_SHEATH_SURROGATE,
+         .aux_str = "gyrokinetic/data/nn_model/nn_model_sheath_bc_conv_MPE.kann",
+       },
+       {
+         .dir = 1,
+         .edge = GKYL_UPPER_EDGE,
+         .type = GKYL_BC_GK_SPECIES_SHEATH_SURROGATE,
+         .aux_str = "gyrokinetic/data/nn_model/nn_model_sheath_bc_conv_MPE.kann",
+       }},
+
+    .anomalous_diffusion =
+      {
+        .anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
+        .D_profile = diffusion_D_func,
+        .D_profile_ctx = &ctx,
+        //      .write_diagnostics = true,
+      },
 
     .num_diag_moments = 9,
     .diag_moments =

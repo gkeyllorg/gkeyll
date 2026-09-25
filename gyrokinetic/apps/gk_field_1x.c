@@ -85,6 +85,7 @@ gk_field_fem_new_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
     polarization_weight += s->info.polarization_density * s->info.mass / pow(polarization_bmag, 2);
   }
   // Need to set weight to kperpsq*polarizationWeight for use in potential smoothing.
+  assert(f->info.kperpSq > 0.0);
   gkyl_array_copy(f->epsilon, app->gk_geom->geo_int.jacobgeo);
   gkyl_array_scale(f->epsilon, polarization_weight);
   gkyl_array_scale(f->epsilon, f->info.kperpSq);

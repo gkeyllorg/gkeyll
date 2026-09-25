@@ -245,6 +245,7 @@ gk_species_source_write_integrated_mom_enabled(gkyl_gyrokinetic_app *app, struct
     }
   }
   gkyl_dynvec_clear(gks->src.integ_diag);
+  app->stat.n_diag_io += 1;
 
   if (gks->src.num_adapt_sources > 0) {
     if (rank == 0) {
@@ -275,6 +276,7 @@ gk_species_source_write_integrated_mom_enabled(gkyl_gyrokinetic_app *app, struct
       }
     }
     gkyl_dynvec_clear(gks->src.part_diag);
+    app->stat.n_diag_io += 1;
 
     if (rank == 0) {
       // Write out temperature diagnostics for adaptive sources.
@@ -302,11 +304,11 @@ gk_species_source_write_integrated_mom_enabled(gkyl_gyrokinetic_app *app, struct
       }
     }
     gkyl_dynvec_clear(gks->src.temp_diag);
+    app->stat.n_diag_io += 1;
     gks->src.is_first_integ_write_call_adapt = false;
   }
 
   app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wst);
-  app->stat.n_diag_io += 1;
 }
 
 void
