@@ -9,10 +9,11 @@ extern "C" {
 }
 
 extern "C" {
-void test_cudss_simple_dev();
-void test_cudss_ops_dev();
-void test_cudss_ops_update_amat_dev();
-void test_cudss_ops_multiple_rhs_dev();
+int test_cudss_simple_dev();
+int test_cudss_ops_dev();
+int test_cudss_ops_update_amat_dev();
+int test_cudss_ops_multiple_rhs_dev();
+int test_cudss_ops_update_amat_multiple_rhs_dev();
 }
 
 #define checkCUDSS(call, status, msg)                                                            \
@@ -27,7 +28,7 @@ void test_cudss_ops_multiple_rhs_dev();
     }                                                                                            \
   } while (0);
 
-void
+int
 test_cudss_simple_dev()
 {
   // This is meant to replicate the "simple" example in the cuDSS folder of the CUDA samples repo:
@@ -193,12 +194,10 @@ test_cudss_simple_dev()
   /* Print the solution and compare against the exact solution */
   checkCuda(cudaMemcpy(x_values_h, x_values_d, nrhs * n * sizeof(double), cudaMemcpyDeviceToHost));
 
-  // int passed = 1;
-  // for (int i = 0; i < n; i++) {
-  //   // printf("x[%d] = %1.4f expected %1.4f\n", i, x_values_h[i], double(i+1));
-  //   if (fabs(x_values_h[i] - (i + 1)) > 2.e-15)
-  //     passed = 0;
-  // }
+  int nfail = 0;
+  for (int i = 0; i < n; i++) {
+    GKYL_CU_CHECK(gkyl_compare_double(x_values_h[i], double(i + 1), 1e-14), &nfail);
+  }
 
   /* Release the data allocated on the user side */
   free(csr_offsets_h);
@@ -211,14 +210,11 @@ test_cudss_simple_dev()
   cudaFree(csr_values_d);
   cudaFree(x_values_d);
   cudaFree(b_values_d);
-
-  // if (status == CUDSS_STATUS_SUCCESS && passed)
-  //   printf("Example PASSED\n");
-  // else
-  //   printf("Example FAILED\n");
+  checkCuda(cudaStreamDestroy(stream));
+  return nfail;
 }
 
-void
+int
 test_cudss_ops_dev()
 {
   int nfail = 0;
@@ -299,9 +295,10 @@ test_cudss_ops_dev()
   );
 
   gkyl_culinsolver_prob_release(prob);
+  return nfail;
 }
 
-void
+int
 test_cudss_ops_update_amat_dev()
 {
   int nfail = 0;
@@ -444,9 +441,10 @@ test_cudss_ops_update_amat_dev()
   gkyl_free(tri_arr);
   gkyl_mat_triples_release(triRHS);
   gkyl_culinsolver_prob_release(prob);
+  return nfail;
 }
 
-void
+int
 test_cudss_ops_multiple_rhs_dev()
 {
   double s, u, p, e, r, l;
@@ -563,9 +561,10 @@ test_cudss_ops_multiple_rhs_dev()
   );
 
   gkyl_culinsolver_prob_release(prob);
+  return nfail;
 }
 
-void
+int
 test_cudss_ops_update_amat_multiple_rhs_dev()
 {
   double s, u, p, e, r, l;
@@ -722,6 +721,7 @@ test_cudss_ops_update_amat_multiple_rhs_dev()
   gkyl_free(tri_arr);
   gkyl_mat_triples_release(triRHS);
   gkyl_culinsolver_prob_release(prob);
+  return nfail;
 }
 
 // End ifdef GKYL_HAVE_CUDSS statement.

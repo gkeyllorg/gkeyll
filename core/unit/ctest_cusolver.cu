@@ -16,14 +16,14 @@ extern "C" {
 }
 
 extern "C" {
-void test_cusolver_qr_dev();
-void test_cusolver_rf_dev();
-void test_cusolver_ops_dev();
-void test_cusolver_ops_multiple_rhs_dev();
-void test_cusolver_ops_multiple_prob_dev();
+int test_cusolver_qr_dev();
+int test_cusolver_rf_dev();
+int test_cusolver_ops_dev();
+int test_cusolver_ops_multiple_rhs_dev();
+int test_cusolver_ops_multiple_prob_dev();
 }
 
-void
+int
 test_cusolver_qr_dev()
 {
   /*  
@@ -134,12 +134,18 @@ test_cusolver_qr_dev()
   gkyl_cu_free(colInd_cu);
   gkyl_cu_free(Aval_cu);
   gkyl_cu_free(csrRowPtr_cu);
+  gkyl_free(x);
+  gkyl_free(csrRowPtr);
 
+  cusolverSpDestroyCsrqrInfo(info);
+  cusparseDestroyMatDescr(A);
+  cusparseDestroy(cusparseH);
   cusolverSpDestroy(cusolverH);
   cudaStreamDestroy(stream);
+  return nfail;
 }
 
-void
+int
 test_cusolver_ops_dev()
 {
   double s, u, p, e, r, l;
@@ -220,9 +226,10 @@ test_cusolver_ops_dev()
   );
 
   gkyl_culinsolver_prob_release(prob);
+  return nfail;
 }
 
-void
+int
 test_cusolver_ops_multiple_rhs_dev()
 {
   double s, u, p, e, r, l;
@@ -338,6 +345,7 @@ test_cusolver_ops_multiple_rhs_dev()
   );
 
   gkyl_culinsolver_prob_release(prob);
+  return nfail;
 }
 
 double
@@ -376,7 +384,7 @@ superlu_test_answer(double s, double u, double p, double e, double r, double l, 
   return sol;
 };
 
-void
+int
 test_cusolver_ops_multiple_prob_dev()
 {
   double s, u, p, e, r, l;
@@ -466,9 +474,10 @@ test_cusolver_ops_multiple_prob_dev()
   }
 
   gkyl_culinsolver_prob_release(prob);
+  return nfail;
 }
 
-void
+int
 test_cusolver_rf_dev()
 {
   /*  
@@ -782,6 +791,7 @@ test_cusolver_rf_dev()
   gkyl_cu_free(d_P);
   gkyl_cu_free(d_Q);
   gkyl_cu_free(d_T);
+  return nfail;
 }
 
 // End ifndef GKYL_HAVE_CUDSS statement.

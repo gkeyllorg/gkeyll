@@ -7,15 +7,81 @@
 
 #include <stdbool.h>
 
-void test_cusolver_qr_dev();
-void test_cusolver_rf_dev();
-void test_cusolver_ops_dev();
-void test_cusolver_ops_multiple_rhs_dev();
-void test_cusolver_ops_multiple_prob_dev();
-void test_cudss_simple_dev();
-void test_cudss_ops_dev();
-void test_cudss_ops_update_amat_dev();
-void test_cudss_ops_multiple_rhs_dev();
+#if defined(GKYL_HAVE_CUDA) && !defined(GKYL_HAVE_CUDSS)
+int test_cusolver_qr_dev();
+int test_cusolver_rf_dev();
+int test_cusolver_ops_dev();
+int test_cusolver_ops_multiple_rhs_dev();
+int test_cusolver_ops_multiple_prob_dev();
+
+static void
+test_cusolver_qr()
+{
+  TEST_CHECK(test_cusolver_qr_dev() == 0);
+}
+
+static void
+test_cusolver_rf()
+{
+  TEST_CHECK(test_cusolver_rf_dev() == 0);
+}
+
+static void
+test_cusolver_ops()
+{
+  TEST_CHECK(test_cusolver_ops_dev() == 0);
+}
+
+static void
+test_cusolver_ops_multiple_rhs()
+{
+  TEST_CHECK(test_cusolver_ops_multiple_rhs_dev() == 0);
+}
+
+static void
+test_cusolver_ops_multiple_prob()
+{
+  TEST_CHECK(test_cusolver_ops_multiple_prob_dev() == 0);
+}
+#endif
+
+#if defined(GKYL_HAVE_CUDA) && defined(GKYL_HAVE_CUDSS)
+int test_cudss_simple_dev();
+int test_cudss_ops_dev();
+int test_cudss_ops_update_amat_dev();
+int test_cudss_ops_multiple_rhs_dev();
+int test_cudss_ops_update_amat_multiple_rhs_dev();
+
+static void
+test_cudss_simple()
+{
+  TEST_CHECK(test_cudss_simple_dev() == 0);
+}
+
+static void
+test_cudss_ops()
+{
+  TEST_CHECK(test_cudss_ops_dev() == 0);
+}
+
+static void
+test_cudss_ops_update_amat()
+{
+  TEST_CHECK(test_cudss_ops_update_amat_dev() == 0);
+}
+
+static void
+test_cudss_ops_multiple_rhs()
+{
+  TEST_CHECK(test_cudss_ops_multiple_rhs_dev() == 0);
+}
+
+static void
+test_cudss_ops_update_amat_multiple_rhs()
+{
+  TEST_CHECK(test_cudss_ops_update_amat_multiple_rhs_dev() == 0);
+}
+#endif
 
 void
 test_slu_example_ho()
@@ -632,16 +698,17 @@ TEST_LIST = {
   {"superlu_ops_multiple_prob_update_amat_ho", test_superlu_ops_multiple_prob_update_amat_ho},
 #ifdef GKYL_HAVE_CUDA
 #ifdef GKYL_HAVE_CUDSS
-  {"cudss_simple_dev", test_cudss_simple_dev},
-  {"cudss_ops_dev", test_cudss_ops_dev},
-  {"cudss_ops_update_amat_dev", test_cudss_ops_update_amat_dev},
-  {"cudss_ops_multiple_rhs_dev", test_cudss_ops_multiple_rhs_dev},
+  {"cudss_simple_dev", test_cudss_simple},
+  {"cudss_ops_dev", test_cudss_ops},
+  {"cudss_ops_update_amat_dev", test_cudss_ops_update_amat},
+  {"cudss_ops_multiple_rhs_dev", test_cudss_ops_multiple_rhs},
+  {"cudss_ops_update_amat_multiple_rhs_dev", test_cudss_ops_update_amat_multiple_rhs},
 #else
-  {"cusolver_qr_dev", test_cusolver_qr_dev},
-  {"cusolver_rf_dev", test_cusolver_rf_dev},
-  {"cusolver_ops_dev", test_cusolver_ops_dev},
-  {"cusolver_ops_multiple_rhs_dev", test_cusolver_ops_multiple_rhs_dev},
-  {"cusolver_ops_multiple_prob_dev", test_cusolver_ops_multiple_prob_dev},
+  {"cusolver_qr_dev", test_cusolver_qr},
+  {"cusolver_rf_dev", test_cusolver_rf},
+  {"cusolver_ops_dev", test_cusolver_ops},
+  {"cusolver_ops_multiple_rhs_dev", test_cusolver_ops_multiple_rhs},
+  {"cusolver_ops_multiple_prob_dev", test_cusolver_ops_multiple_prob},
 #endif
 #endif
   {NULL, NULL}
