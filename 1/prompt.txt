@@ -1,0 +1,5 @@
+Is the current directory structure missing a component? Unit tests are for the /zero layer, but we don't have unit tests for the /app layer. /creg and /luareg are running simulations, but they aren't testing the app layer directly, to my understanding. What name should we call such tests that test the app layer directly in absolute terms, similar to unit tests
+
+---
+
+Is the current directory structure missing a component? Unit tests are for the /zero layer, but we don't have unit tests for the /app layer. /creg and /luareg are running simulations, but they aren't testing the app layer directly, to my understanding. What name should we call such tests that test the app layer directly in absolute terms, similar to unit tests

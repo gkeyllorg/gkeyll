@@ -3,7 +3,7 @@
   "checkpoint_id": "01M3C7KQAYCT2TWYSF5P4PJGVF",
   "strategy": "manual-commit",
   "branch": "fdot-abs-integrated-moms",
-  "checkpoints_count": 1,
+  "checkpoints_count": 3,
   "files_touched": [
     "gyrokinetic/creg/rt_gk_mirror_boltz_elc_1x2v_p1.c"
   ],
@@ -14,13 +14,20 @@
       "compact_transcript": "/0/transcript.jsonl",
       "content_hash": "/0/content_hash.txt",
       "prompt": "/0/prompt.txt"
+    },
+    {
+      "metadata": "/1/metadata.json",
+      "transcript": "/1/full.jsonl",
+      "compact_transcript": "/1/transcript.jsonl",
+      "content_hash": "/1/content_hash.txt",
+      "prompt": "/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 122369,
+    "input_tokens": 142166,
     "cache_creation_tokens": 0,
-    "cache_read_tokens": 1644928,
-    "output_tokens": 19086,
-    "api_call_count": 21
+    "cache_read_tokens": 1700736,
+    "output_tokens": 19880,
+    "api_call_count": 25
   }
 }
