@@ -168,7 +168,7 @@ Create **New Item → Pipeline** named `gkeyll-ci-stellar_cpu`. Configure
 - Repository: `https://github.com/gkeyllorg/gkeyll.git`
 - Credentials: leave empty; the public repository is fetched anonymously
 - Branch specifier: `*/main`
-- Script path: `ci/jenkins/Jenkinsfile.stellar_cpu`
+- Script path: `ci/jenkins/jenkinsfile.stellar_cpu`
 
 The job must load its Pipeline from reviewed `main`, not from a pull request
 being tested.

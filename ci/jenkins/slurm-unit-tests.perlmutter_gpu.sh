@@ -1,5 +1,5 @@
 #!/bin/bash -l
-# Unit-test payload for ci/jenkins/Jenkinsfile.perlmutter_gpu.
+# Unit-test payload for ci/jenkins/jenkinsfile.perlmutter_gpu.
 #
 # This script deliberately has no #SBATCH directives. The trusted Jenkins
 # pipeline owns the resource request, while this script owns only the runtime

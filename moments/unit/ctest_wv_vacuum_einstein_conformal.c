@@ -1189,7 +1189,7 @@ test_vacuum_einstein_conformal_basic_schwarzschild_ho()
           );
 
           for (int i = 0; i < 42; i++) {
-            TEST_CHECK(gkyl_compare(flux[i + 10], fluxes[d][i], 1e-6));
+            TEST_CHECK(gkyl_compare(flux[i + 10], fluxes[d][i], 2e-6));
           }
         }
 

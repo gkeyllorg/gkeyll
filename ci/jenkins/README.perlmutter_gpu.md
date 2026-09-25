@@ -155,7 +155,7 @@ System → Global properties → Environment variables**, set:
 Create **New Item → Pipeline** named `gkeyll-ci-perlmutter_gpu`. Use
 **Pipeline script from SCM** with repository `https://github.com/gkeyllorg/gkeyll.git`,
 no SCM credential, branch `*/main`, and script path
-`ci/jenkins/Jenkinsfile.perlmutter_gpu`. The public repository is fetched
+`ci/jenkins/jenkinsfile.perlmutter_gpu`. The public repository is fetched
 anonymously; use node label `perlmutter_gpu`.
 
 Leave **This project is parameterized** unchecked. Click **Build Now** once to
