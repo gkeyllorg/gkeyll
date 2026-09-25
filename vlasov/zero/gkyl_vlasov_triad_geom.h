@@ -23,7 +23,7 @@ enum gkyl_triad_preset_geom_type {
   GKYL_TRIAD_GR_KERR_SCHILD_R,
   GKYL_TRIAD_GR_KERR_SCHILD_RTHETA,
   GKYL_TRIAD_GR_KERR_SCHILD_3V,
-  GKYL_TRIAD_CART_GR_KERR_SCHILD_3V,
+  GKYL_TRIAD_CART_GR_KERR_SCHILD_3V
 };
 
 // Function transforming a set of cdim computational coordinates to physical
@@ -31,24 +31,28 @@ enum gkyl_triad_preset_geom_type {
 typedef void (*vlasov_triad_geom_c2p_t)(const double *xcomp, double *xphys, void *ctx);
 
 struct gkyl_vlasov_triad_geom_inp {
-  evalf_t eval_cov_tangent_basis; // The covariant tangent basis to be evaluated within each configuration space cell.
+  evalf_t
+    eval_cov_tangent_basis; // The covariant tangent basis to be evaluated within each configuration space cell.
   evalf_t eval_triad_basis; // The triad basis to be evaluated within each configuration space cell.
-  evalf_t eval_triad_basis_gradient; // The triad basis gradient to be evaluated within each configuration space cell.
+  evalf_t
+    eval_triad_basis_gradient; // The triad basis gradient to be evaluated within each configuration space cell.
   void *eval_cov_tangent_basis_ctx; // Context for function evaluation. Can be NULL.
   void *eval_triad_basis_ctx; // Context for function evaluation. Can be NULL.
   void *eval_triad_basis_gradient_ctx; // Context for function evaluation. Can be NULL.
 
   evalf_t eval_vierbein; // The vierbein to be evaluated within each configuration space cell.
-  evalf_t eval_vierbein_gradient; // The vierbein gradient to be evaluated within each configuration space cell.
+  evalf_t
+    eval_vierbein_gradient; // The vierbein gradient to be evaluated within each configuration space cell.
   void *eval_vierbein_ctx; // Context for function evaluation. Can be NULL.
   void *eval_vierbein_gradient_ctx; // Context for function evaluation. Can be NULL.
 
   bool use_preset_geom; // bool for determining if we have specified a preset geometry.
   bool use_vierbein; // bool for determining which geometry convention we are constructing PT from
-  enum gkyl_triad_preset_geom_type triad_preset_geom_type;  // geom type for preset geometries for triads
+  enum gkyl_triad_preset_geom_type
+    triad_preset_geom_type; // geom type for preset geometries for triads
 
   vlasov_triad_geom_c2p_t c2p_func; // comp->phys conf-coordinate map for sampling the
-                                    // geometry on non-uniform meshes. NULL => identity.
+    // geometry on non-uniform meshes. NULL => identity.
   void *c2p_func_ctx; // Context for c2p_func.
 };
 
@@ -64,9 +68,12 @@ struct gkyl_vlasov_triad_geom_inp {
  * @param inp_triad_geom Basis mapping input (function and context) cov_tangent_basis, traid_basis
  * @param conf_poisson_tensor The configuration component of the Poisson tensor
  */
-void gkyl_vlasov_triad_geom_new(const struct gkyl_rect_grid *cgrid, const struct gkyl_range *crange, const struct gkyl_basis cbasis, 
-  const struct gkyl_rect_grid *pgrid, const struct gkyl_range *prange, const struct gkyl_basis pbasis, 
-  struct gkyl_vlasov_triad_geom_inp inp_triad_geom, struct gkyl_array *conf_poisson_tensor);
+void gkyl_vlasov_triad_geom_new(
+  const struct gkyl_rect_grid *cgrid, const struct gkyl_range *crange,
+  const struct gkyl_basis cbasis, const struct gkyl_rect_grid *pgrid,
+  const struct gkyl_range *prange, const struct gkyl_basis pbasis,
+  struct gkyl_vlasov_triad_geom_inp inp_triad_geom, struct gkyl_array *conf_poisson_tensor
+);
 
 /**
  * Construct the configuration-space Poisson tensor directly from nodal samples of
@@ -90,10 +97,13 @@ void gkyl_vlasov_triad_geom_new(const struct gkyl_rect_grid *cgrid, const struct
  *   vdim*vdim*vdim per node (gradient direction slowest)
  * @param conf_poisson_tensor The configuration component of the Poisson tensor (output)
  */
-void gkyl_vlasov_triad_geom_from_nodal(const struct gkyl_rect_grid *cgrid, const struct gkyl_range *crange, const struct gkyl_basis cbasis,
-  const struct gkyl_rect_grid *pgrid, const struct gkyl_range *prange, const struct gkyl_basis pbasis,
+void gkyl_vlasov_triad_geom_from_nodal(
+  const struct gkyl_rect_grid *cgrid, const struct gkyl_range *crange,
+  const struct gkyl_basis cbasis, const struct gkyl_rect_grid *pgrid,
+  const struct gkyl_range *prange, const struct gkyl_basis pbasis,
   const struct gkyl_array *cov_tangent_basis_nodal, const struct gkyl_array *triad_basis_nodal,
-  const struct gkyl_array *triad_basis_gradient_nodal, struct gkyl_array *conf_poisson_tensor);
+  const struct gkyl_array *triad_basis_gradient_nodal, struct gkyl_array *conf_poisson_tensor
+);
 
 /**
  * Same as gkyl_vlasov_triad_geom_from_nodal, but for nodal samples living at the
@@ -115,11 +125,13 @@ void gkyl_vlasov_triad_geom_from_nodal(const struct gkyl_rect_grid *cgrid, const
  * @param triad_basis_gradient_nodal d(triad)/dz^i on nrange, vdim*vdim*vdim per node
  * @param conf_poisson_tensor The configuration component of the Poisson tensor (output)
  */
-void gkyl_vlasov_triad_geom_from_nodal_interior(const struct gkyl_rect_grid *cgrid, const struct gkyl_range *crange, const struct gkyl_basis cbasis,
-  const struct gkyl_rect_grid *pgrid, const struct gkyl_range *prange, const struct gkyl_basis pbasis,
-  const struct gkyl_range *nrange,
+void gkyl_vlasov_triad_geom_from_nodal_interior(
+  const struct gkyl_rect_grid *cgrid, const struct gkyl_range *crange,
+  const struct gkyl_basis cbasis, const struct gkyl_rect_grid *pgrid,
+  const struct gkyl_range *prange, const struct gkyl_basis pbasis, const struct gkyl_range *nrange,
   const struct gkyl_array *cov_tangent_basis_nodal, const struct gkyl_array *triad_basis_nodal,
-  const struct gkyl_array *triad_basis_gradient_nodal, struct gkyl_array *conf_poisson_tensor);
+  const struct gkyl_array *triad_basis_gradient_nodal, struct gkyl_array *conf_poisson_tensor
+);
 
 /**
  * Build the b-aligned orthonormal triad and its gradients from nodal Cartesian
@@ -148,11 +160,13 @@ void gkyl_vlasov_triad_geom_from_nodal_interior(const struct gkyl_rect_grid *cgr
  * @param exit_at_checks Assert when a construction-time check fails
  * @param conf_poisson_tensor The configuration component of the Poisson tensor (output)
  */
-void gkyl_vlasov_triad_geom_from_tangents_interior(const struct gkyl_rect_grid *cgrid, const struct gkyl_range *crange, const struct gkyl_basis cbasis,
-  const struct gkyl_rect_grid *pgrid, const struct gkyl_range *prange, const struct gkyl_basis pbasis,
-  const struct gkyl_range *nrange,
+void gkyl_vlasov_triad_geom_from_tangents_interior(
+  const struct gkyl_rect_grid *cgrid, const struct gkyl_range *crange,
+  const struct gkyl_basis cbasis, const struct gkyl_rect_grid *pgrid,
+  const struct gkyl_range *prange, const struct gkyl_basis pbasis, const struct gkyl_range *nrange,
   const struct gkyl_array *cov_tangent_basis_nodal, const struct gkyl_array *bhat_check_nodal,
-  bool exit_at_checks, struct gkyl_array *conf_poisson_tensor);
+  bool exit_at_checks, struct gkyl_array *conf_poisson_tensor
+);
 
 /**
  * Preset function for the triad hamil
@@ -161,7 +175,9 @@ void gkyl_vlasov_triad_geom_from_tangents_interior(const struct gkyl_rect_grid *
  * @param vdim Number of velocity space dimenions
  * @param preset_geom_type Preset geometry type
  */
-evalf_t gkyl_vlasov_triad_preset_hamil(const int cdim, const int vdim, enum gkyl_triad_preset_geom_type preset_geom_type);
+evalf_t gkyl_vlasov_triad_preset_hamil(
+  const int cdim, const int vdim, enum gkyl_triad_preset_geom_type preset_geom_type
+);
 
 /**
  * Preset function for the covariant vierbein.
@@ -169,7 +185,9 @@ evalf_t gkyl_vlasov_triad_preset_hamil(const int cdim, const int vdim, enum gkyl
  * @param vdim Number of velocity-space dimensions
  * @param preset_geom_type Preset geometry type
  */
-evalf_t gkyl_vlasov_triad_preset_vierbein(const int vdim, enum gkyl_triad_preset_geom_type preset_geom_type);
+evalf_t gkyl_vlasov_triad_preset_vierbein(
+  const int vdim, enum gkyl_triad_preset_geom_type preset_geom_type
+);
 
 /**
  * Preset function for the contravariant vierbein.
@@ -177,4 +195,6 @@ evalf_t gkyl_vlasov_triad_preset_vierbein(const int vdim, enum gkyl_triad_preset
  * @param vdim Number of velocity-space dimensions
  * @param preset_geom_type Preset geometry type
  */
-evalf_t gkyl_vlasov_triad_preset_vierbein_inv(const int vdim, enum gkyl_triad_preset_geom_type preset_geom_type);
+evalf_t gkyl_vlasov_triad_preset_vierbein_inv(
+  const int vdim, enum gkyl_triad_preset_geom_type preset_geom_type
+);

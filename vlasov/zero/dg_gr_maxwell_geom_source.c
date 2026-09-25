@@ -9,7 +9,7 @@
 #include <gkyl_dg_gr_maxwell_surf_and_vol_nodes.h>
 #include <gkyl_util.h>
 
-gkyl_dg_gr_maxwell_geom_source*
+gkyl_dg_gr_maxwell_geom_source *
 gkyl_dg_gr_maxwell_geom_source_inew(const struct gkyl_dg_gr_maxwell_geom_source_inp *inp)
 {
 #ifdef GKYL_HAVE_CUDA
@@ -33,10 +33,10 @@ gkyl_dg_gr_maxwell_geom_source_inew(const struct gkyl_dg_gr_maxwell_geom_source_
 
   switch (inp->conf_basis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      up->geom_source = ser_geom_source_kernels[cdim-1].kernels[poly_order];
+      up->geom_source = ser_geom_source_kernels[cdim - 1].kernels[poly_order];
       break;
     case GKYL_BASIS_MODAL_TENSOR:
-      up->geom_source = ten_geom_source_kernels[cdim-1].kernels[poly_order];
+      up->geom_source = ten_geom_source_kernels[cdim - 1].kernels[poly_order];
       break;
     default:
       assert(false);
@@ -54,15 +54,17 @@ gkyl_dg_gr_maxwell_geom_source_inew(const struct gkyl_dg_gr_maxwell_geom_source_
 }
 
 void
-gkyl_dg_gr_maxwell_geom_source_advance(struct gkyl_dg_gr_maxwell_geom_source *up,
-  const struct gkyl_range *conf_range,
-  const struct gkyl_surf_and_vol_node_arrays *geom_factor_con,
-  const struct gkyl_array *field_con, struct gkyl_array *rhs)
+gkyl_dg_gr_maxwell_geom_source_advance(
+  struct gkyl_dg_gr_maxwell_geom_source *up, const struct gkyl_range *conf_range,
+  const struct gkyl_surf_and_vol_node_arrays *geom_factor_con, const struct gkyl_array *field_con,
+  struct gkyl_array *rhs
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(rhs)) {
-    return gkyl_dg_gr_maxwell_geom_source_advance_cu(up,
-      conf_range, geom_factor_con, field_con, rhs);
+    return gkyl_dg_gr_maxwell_geom_source_advance_cu(
+      up, conf_range, geom_factor_con, field_con, rhs
+    );
   }
 #endif
 
@@ -81,8 +83,9 @@ gkyl_dg_gr_maxwell_geom_source_advance(struct gkyl_dg_gr_maxwell_geom_source *up
     const double *field_con_d = gkyl_array_cfetch(field_con, cidx);
     double *rhs_d = gkyl_array_fetch(rhs, cidx);
 
-    up->geom_source(&up->gr_maxwell_data, xc, up->conf_grid.dx,
-      geom_factor_con_d, field_con_d, rhs_d);
+    up->geom_source(
+      &up->gr_maxwell_data, xc, up->conf_grid.dx, geom_factor_con_d, field_con_d, rhs_d
+    );
   }
 }
 
@@ -91,8 +94,9 @@ gkyl_dg_gr_maxwell_geom_source_release(struct gkyl_dg_gr_maxwell_geom_source *up
 {
   // Release memory associated with this updater.
 #ifdef GKYL_HAVE_CUDA
-  if (up->use_gpu)
+  if (up->use_gpu) {
     gkyl_cu_free(up->on_dev);
+  }
 #endif
   gkyl_free(up);
 }

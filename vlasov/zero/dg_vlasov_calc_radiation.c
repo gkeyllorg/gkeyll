@@ -9,15 +9,18 @@
 #include <gkyl_util.h>
 
 void
-gkyl_dg_vlasov_calc_radiation(const struct gkyl_rect_grid *vel_grid,
-  const struct gkyl_basis *vel_basis, const struct gkyl_range *vel_range,
-  enum gkyl_vlasov_radiation_id radiation_id, const struct gkyl_vlasov_velocity_map *vel_map,
-  double t_cool, double p0, struct gkyl_array *rad, bool use_gpu)
+gkyl_dg_vlasov_calc_radiation(
+  const struct gkyl_rect_grid *vel_grid, const struct gkyl_basis *vel_basis,
+  const struct gkyl_range *vel_range, enum gkyl_vlasov_radiation_id radiation_id,
+  const struct gkyl_vlasov_velocity_map *vel_map, double t_cool, double p0, struct gkyl_array *rad,
+  bool use_gpu
+)
 {
 #ifdef GKYL_HAVE_CUDA
-  if(use_gpu) {
-    gkyl_dg_vlasov_calc_radiation_cu(vel_grid, vel_basis, vel_range,
-      radiation_id, vel_map, t_cool, p0, rad);
+  if (use_gpu) {
+    gkyl_dg_vlasov_calc_radiation_cu(
+      vel_grid, vel_basis, vel_range, radiation_id, vel_map, t_cool, p0, rad
+    );
     return;
   }
 #endif
@@ -40,10 +43,10 @@ gkyl_dg_vlasov_calc_radiation(const struct gkyl_rect_grid *vel_grid,
 
     default:
       assert(false);
-      break;    
+      break;
   }
 
-  double xc[GKYL_MAX_DIM];  
+  double xc[GKYL_MAX_DIM];
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, vel_range);
 
@@ -52,8 +55,6 @@ gkyl_dg_vlasov_calc_radiation(const struct gkyl_rect_grid *vel_grid,
     long vidx = gkyl_range_idx(vel_range, iter.idx);
 
     double *rad_d = gkyl_array_fetch(rad, vidx);
-    calc_radiation(xc, vel_grid->dx, 
-      vmap ? gkyl_array_cfetch(vmap, vidx) : 0,
-      t_cool, p0, rad_d);
-  }  
+    calc_radiation(xc, vel_grid->dx, vmap ? gkyl_array_cfetch(vmap, vidx) : 0, t_cool, p0, rad_d);
+  }
 }

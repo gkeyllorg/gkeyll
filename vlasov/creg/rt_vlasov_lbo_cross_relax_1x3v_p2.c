@@ -27,8 +27,7 @@
 
 #include <rt_arg_parse.h>
 
-struct lbo_cross_relax_ctx
-{
+struct lbo_cross_relax_ctx {
   // Physical constants (using non-normalized physical units).
   double epsilon0; // Permittivity of free space.
   double mass_elc; // Electron mass.
@@ -108,12 +107,16 @@ create_ctx(void)
   double Te = (T_par_elc + (2.0 * T_perp_elc)) / 3.0; // Electron temperature.
   double Ti = (T_par_ion + (2.0 * T_perp_ion)) / 3.0; // Ion temperature.
 
-  double log_lambda_elc = 6.6 - 0.5 * log(n0 / 1.0e20) + 1.5 * log(T_par_elc / charge_ion); // Electron Coulomb logarithm.
-  double log_lambda_ion = 6.6 - 0.5 * log(n0 / 1.0e20) + 1.5 * log(T_par_ion / charge_ion); // Ion Coulomb logarithm.
+  double log_lambda_elc =
+    6.6 - 0.5 * log(n0 / 1.0e20) + 1.5 * log(T_par_elc / charge_ion); // Electron Coulomb logarithm.
+  double log_lambda_ion =
+    6.6 - 0.5 * log(n0 / 1.0e20) + 1.5 * log(T_par_ion / charge_ion); // Ion Coulomb logarithm.
   double nu_elc = log_lambda_elc * pow(charge_ion, 4.0) * n0 /
-    (6.0 * sqrt(2.0) * pow(M_PI, 3.0 / 2.0) * pow(epsilon0, 2.0) * sqrt(mass_elc) * pow(T_par_elc, 3.0 / 2.0)); // Electron collision frequency.
+                  (6.0 * sqrt(2.0) * pow(M_PI, 3.0 / 2.0) * pow(epsilon0, 2.0) * sqrt(mass_elc) *
+                   pow(T_par_elc, 3.0 / 2.0)); // Electron collision frequency.
   double nu_ion = log_lambda_ion * pow(charge_ion, 4.0) * n0 /
-    (12.0 * pow(M_PI, 3.0 / 2.0) * pow(epsilon0, 2.0) * sqrt(mass_ion) * pow(T_par_ion, 3.0 / 2.0)); // Ion collision frequency.
+                  (12.0 * pow(M_PI, 3.0 / 2.0) * pow(epsilon0, 2.0) * sqrt(mass_ion) *
+                   pow(T_par_ion, 3.0 / 2.0)); // Ion collision frequency.
 
   double vte_par = sqrt(T_par_elc / mass_elc); // Parallel electron thermal velocity.
   double vti_par = sqrt(T_par_ion / mass_ion); // Parallel ion thermal velocity.
@@ -129,7 +132,8 @@ create_ctx(void)
   int Nvy = 8; // Cell count (velocity space: vy-direction).
   int Nvz = 8; // Cell count (velocity space: vz-direction).
   double Lz = 4.0; // Domain size (configuration space: z-direction).
-  double vx_max_elc = 5.0 * vte_par; // Electron domain boundary (velocity space: perpendicular vx, vy).
+  double vx_max_elc =
+    5.0 * vte_par; // Electron domain boundary (velocity space: perpendicular vx, vy).
   double vz_max_elc = 5.0 * vte_par; // Electron domain boundary (velocity space: parallel vz).
   double vx_max_ion = 5.0 * vti_par; // Ion domain boundary (velocity space: perpendicular vx, vy).
   double vz_max_ion = 5.0 * vti_par; // Ion domain boundary (velocity space: parallel vz).
@@ -139,7 +143,8 @@ create_ctx(void)
   double t_end = 0.1 / nu_ion; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
-  int integrated_L2_f_calcs = INT_MAX; // Number of times to calculate integrated L2 norm of distribution function.
+  int integrated_L2_f_calcs =
+    INT_MAX; // Number of times to calculate integrated L2 norm of distribution function.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
@@ -191,7 +196,7 @@ create_ctx(void)
 }
 
 void
-evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalElcInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct lbo_cross_relax_ctx *app = ctx;
   double vx = xn[1], vy = xn[2], vz = xn[3];
@@ -205,11 +210,13 @@ evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double norm = n0 / (pow(2.0 * M_PI, 3.0 / 2.0) * vtperp_sq * sqrt(vtpar_sq));
 
   // Set electron distribution function.
-  fout[0] = norm * exp(-(vx * vx + vy * vy) / (2.0 * vtperp_sq) - (vz - upar) * (vz - upar) / (2.0 * vtpar_sq));
+  fout[0] =
+    norm *
+    exp(-(vx * vx + vy * vy) / (2.0 * vtperp_sq) - (vz - upar) * (vz - upar) / (2.0 * vtpar_sq));
 }
 
 void
-evalIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalIonInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct lbo_cross_relax_ctx *app = ctx;
   double vx = xn[1], vy = xn[2], vz = xn[3];
@@ -223,11 +230,13 @@ evalIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double norm = n0 / (pow(2.0 * M_PI, 3.0 / 2.0) * vtperp_sq * sqrt(vtpar_sq));
 
   // Set ion distribution function.
-  fout[0] = norm * exp(-(vx * vx + vy * vy) / (2.0 * vtperp_sq) - (vz - upar) * (vz - upar) / (2.0 * vtpar_sq));
+  fout[0] =
+    norm *
+    exp(-(vx * vx + vy * vy) / (2.0 * vtperp_sq) - (vz - upar) * (vz - upar) / (2.0 * vtpar_sq));
 }
 
 void
-write_data(struct gkyl_tm_trigger* iot, gkyl_vlasov_app* app, double t_curr, bool force_write)
+write_data(struct gkyl_tm_trigger *iot, gkyl_vlasov_app *app, double t_curr, bool force_write)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_write) {
     int frame = iot->curr - 1;
@@ -243,7 +252,9 @@ write_data(struct gkyl_tm_trigger* iot, gkyl_vlasov_app* app, double t_curr, boo
 }
 
 void
-calc_integrated_mom(struct gkyl_tm_trigger* imt, gkyl_vlasov_app* app, double t_curr, bool force_calc)
+calc_integrated_mom(
+  struct gkyl_tm_trigger *imt, gkyl_vlasov_app *app, double t_curr, bool force_calc
+)
 {
   if (gkyl_tm_trigger_check_and_bump(imt, t_curr) || force_calc) {
     gkyl_vlasov_app_calc_integrated_mom(app, t_curr);
@@ -251,7 +262,9 @@ calc_integrated_mom(struct gkyl_tm_trigger* imt, gkyl_vlasov_app* app, double t_
 }
 
 void
-calc_integrated_L2_f(struct gkyl_tm_trigger* l2t, gkyl_vlasov_app* app, double t_curr, bool force_calc)
+calc_integrated_L2_f(
+  struct gkyl_tm_trigger *l2t, gkyl_vlasov_app *app, double t_curr, bool force_calc
+)
 {
   if (gkyl_tm_trigger_check_and_bump(l2t, t_curr) || force_calc) {
     gkyl_vlasov_app_calc_integrated_L2_f(app, t_curr);
@@ -288,7 +301,7 @@ main(int argc, char **argv)
   }
 #endif
 
-  int ccells[] = { NX };
+  int ccells[] = {NX};
   int cdim = sizeof(ccells) / sizeof(ccells[0]);
 
   int cuts[cdim];
@@ -296,8 +309,7 @@ main(int argc, char **argv)
   for (int d = 0; d < cdim; d++) {
     if (app_args.use_mpi) {
       cuts[d] = app_args.cuts[d];
-    }
-    else {
+    } else {
       cuts[d] = 1;
     }
   }
@@ -312,32 +324,18 @@ main(int argc, char **argv)
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_gpu && app_args.use_mpi) {
 #ifdef GKYL_HAVE_NCCL
-    comm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
-        .mpi_comm = MPI_COMM_WORLD,
-      }
-    );
+    comm = gkyl_nccl_comm_new(&(struct gkyl_nccl_comm_inp){.mpi_comm = MPI_COMM_WORLD});
 #else
     printf(" Using -g and -M together requires NCCL.\n");
     assert(0 == 1);
 #endif
-  }
-  else if (app_args.use_mpi) {
-    comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
-        .mpi_comm = MPI_COMM_WORLD,
-      }
-    );
-  }
-  else {
-    comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-        .use_gpu = app_args.use_gpu
-      }
-    );
+  } else if (app_args.use_mpi) {
+    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){.mpi_comm = MPI_COMM_WORLD});
+  } else {
+    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
   }
 #else
-  comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-      .use_gpu = app_args.use_gpu
-    }
-  );
+  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
 #endif
 
   int my_rank;
@@ -359,90 +357,90 @@ main(int argc, char **argv)
 
   // Electrons.
   struct gkyl_vlasov_kinetic_species elc = {
-    .lower = { -ctx.vx_max_elc, -ctx.vx_max_elc, -ctx.vz_max_elc },
-    .upper = { ctx.vx_max_elc, ctx.vx_max_elc, ctx.vz_max_elc },
-    .cells = { NVX, NVY, NVZ },
+    .lower = {-ctx.vx_max_elc, -ctx.vx_max_elc, -ctx.vz_max_elc},
+    .upper = {ctx.vx_max_elc, ctx.vx_max_elc, ctx.vz_max_elc},
+    .cells = {NVX, NVY, NVZ},
 
     // 0D-in-configuration collision relaxation: streaming and velocity-space EM
     // advection are identically zero, so skip the collisionless terms entirely.
     .no_collisionless_terms = true,
 
     .num_init = 1,
-    .projection[0] = {
-      .proj_id = GKYL_PROJ_FUNC,
-      .func = evalElcInit,
-      .ctx_func = &ctx,
-    },
-    .collisions = {
-      .collision_id = GKYL_LBO_COLLISIONS,
-      // No self_nu provided: use the Spitzer (normNu) collisionality computed from the
-      // reference density and temperature, matching the gyrokinetic reference.
-      .den_ref = ctx.n0,
-      .temp_ref = ctx.Te,
-      .num_cross_collisions = 1,
-      .collide_with = { "ion" },
-    },
+    .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalElcInit, .ctx_func = &ctx},
+    .collisions =
+      {
+        .collision_id = GKYL_LBO_COLLISIONS,
+        // No self_nu provided: use the Spitzer (normNu) collisionality computed from the
+        // reference density and temperature, matching the gyrokinetic reference.
+        .den_ref = ctx.n0,
+        .temp_ref = ctx.Te,
+        .num_cross_collisions = 1,
+        .collide_with = {"ion"},
+      },
 
     .num_diag_moments = 4,
-    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2IJ },
+    .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2IJ},
   };
 
   // Ions.
   struct gkyl_vlasov_kinetic_species ion = {
-    .lower = { -ctx.vx_max_ion, -ctx.vx_max_ion, -ctx.vz_max_ion },
-    .upper = { ctx.vx_max_ion, ctx.vx_max_ion, ctx.vz_max_ion },
-    .cells = { NVX, NVY, NVZ },
+    .lower = {-ctx.vx_max_ion, -ctx.vx_max_ion, -ctx.vz_max_ion},
+    .upper = {ctx.vx_max_ion, ctx.vx_max_ion, ctx.vz_max_ion},
+    .cells = {NVX, NVY, NVZ},
 
     .no_collisionless_terms = true,
 
     .num_init = 1,
-    .projection[0] = {
-      .proj_id = GKYL_PROJ_FUNC,
-      .func = evalIonInit,
-      .ctx_func = &ctx,
-    },
-    .collisions = {
-      .collision_id = GKYL_LBO_COLLISIONS,
-      .den_ref = ctx.n0,
-      .temp_ref = ctx.Ti,
-      .num_cross_collisions = 1,
-      .collide_with = { "elc" },
-    },
+    .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalIonInit, .ctx_func = &ctx},
+    .collisions =
+      {
+        .collision_id = GKYL_LBO_COLLISIONS,
+        .den_ref = ctx.n0,
+        .temp_ref = ctx.Ti,
+        .num_cross_collisions = 1,
+        .collide_with = {"elc"},
+      },
 
     .num_diag_moments = 4,
-    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2IJ },
+    .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2IJ},
   };
 
   // Vlasov-Maxwell app.
   struct gkyl_vm app_inp = {
 
-    .cdim = 1, .vdim = 3,
-    .lower = { -0.5 * ctx.Lz },
-    .upper = { 0.5 * ctx.Lz },
-    .cells = { NX },
+    .cdim = 1,
+    .vdim = 3,
+    .lower = {-0.5 * ctx.Lz},
+    .upper = {0.5 * ctx.Lz},
+    .cells = {NX},
 
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
     .cfl_frac = ctx.cfl_frac,
 
     .num_periodic_dir = 1,
-    .periodic_dirs = { 0 },
+    .periodic_dirs = {0},
 
     .num_species = 2,
-    .species = {
-      { .name = "elc", .charge = ctx.charge_elc, .mass = ctx.mass_elc,
-        .type = GKYL_SPECIES_VLASOV, .kinetic = elc },
-      { .name = "ion", .charge = ctx.charge_ion, .mass = ctx.mass_ion,
-        .type = GKYL_SPECIES_VLASOV, .kinetic = ion },
-    },
+    .species =
+      {{
+         .name = "elc",
+         .charge = ctx.charge_elc,
+         .mass = ctx.mass_elc,
+         .type = GKYL_SPECIES_VLASOV,
+         .kinetic = elc,
+       },
+       {
+         .name = "ion",
+         .charge = ctx.charge_ion,
+         .mass = ctx.mass_ion,
+         .type = GKYL_SPECIES_VLASOV,
+         .kinetic = ion,
+       }},
 
     .skip_field = true,
 
-    .parallelism = {
-      .use_gpu = app_args.use_gpu,
-      .cuts = { app_args.cuts[0] },
-      .comm = comm,
-    },
+    .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm},
   };
 
   // Create app object.
@@ -456,10 +454,14 @@ main(int argc, char **argv)
   // Initialize simulation.
   int frame_curr = 0;
   if (app_args.is_restart) {
-    struct gkyl_app_restart_status status = gkyl_vlasov_app_read_from_frame(app, app_args.restart_frame);
+    struct gkyl_app_restart_status status =
+      gkyl_vlasov_app_read_from_frame(app, app_args.restart_frame);
 
     if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
-      gkyl_vlasov_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n", gkyl_array_rio_status_msg(status.io_status));
+      gkyl_vlasov_app_cout(
+        app, stderr, "*** Failed to read restart file! (%s)\n",
+        gkyl_array_rio_status_msg(status.io_status)
+      );
       goto freeresources;
     }
 
@@ -468,26 +470,37 @@ main(int argc, char **argv)
 
     gkyl_vlasov_app_cout(app, stdout, "Restarting from frame %d", frame_curr);
     gkyl_vlasov_app_cout(app, stdout, " at time = %g\n", t_curr);
-  }
-  else {
+  } else {
     gkyl_vlasov_app_apply_ic(app, t_curr);
   }
 
   // Create trigger for integrated moments.
   int integrated_mom_calcs = ctx.integrated_mom_calcs;
-  struct gkyl_tm_trigger im_trig = { .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr };
+  struct gkyl_tm_trigger im_trig = {
+    .dt = t_end / integrated_mom_calcs,
+    .tcurr = t_curr,
+    .curr = frame_curr,
+  };
 
   calc_integrated_mom(&im_trig, app, t_curr, false);
 
   // Create trigger for integrated L2 norm of the distribution function.
   int integrated_L2_f_calcs = ctx.integrated_L2_f_calcs;
-  struct gkyl_tm_trigger l2f_trig = { .dt = t_end / integrated_L2_f_calcs, .tcurr = t_curr, .curr = frame_curr };
+  struct gkyl_tm_trigger l2f_trig = {
+    .dt = t_end / integrated_L2_f_calcs,
+    .tcurr = t_curr,
+    .curr = frame_curr,
+  };
 
   calc_integrated_L2_f(&l2f_trig, app, t_curr, false);
 
   // Create trigger for IO.
   int num_frames = ctx.num_frames;
-  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr };
+  struct gkyl_tm_trigger io_trig = {
+    .dt = t_end / num_frames,
+    .tcurr = frame_curr * (t_end / num_frames),
+    .curr = frame_curr,
+  };
 
   write_data(&io_trig, app, t_curr, false);
 
@@ -518,8 +531,7 @@ main(int argc, char **argv)
 
     if (dt_init < 0.0) {
       dt_init = status.dt_actual;
-    }
-    else if (status.dt_actual < dt_failure_tol * dt_init) {
+    } else if (status.dt_actual < dt_failure_tol * dt_init) {
       num_failures += 1;
 
       gkyl_vlasov_app_cout(app, stdout, "WARNING: Time-step dt = %g", status.dt_actual);
@@ -527,7 +539,9 @@ main(int argc, char **argv)
       gkyl_vlasov_app_cout(app, stdout, " num_failures = %d\n", num_failures);
       if (num_failures >= num_failures_max) {
         gkyl_vlasov_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
-        gkyl_vlasov_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
+        gkyl_vlasov_app_cout(
+          app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max
+        );
 
         calc_integrated_mom(&im_trig, app, t_curr, true);
         calc_integrated_L2_f(&l2f_trig, app, t_curr, true);
@@ -535,8 +549,7 @@ main(int argc, char **argv)
 
         break;
       }
-    }
-    else {
+    } else {
       num_failures = 0;
     }
 
@@ -555,17 +568,26 @@ main(int argc, char **argv)
   gkyl_vlasov_app_cout(app, stdout, "Number of forward-Euler calls %ld\n", stat.nfeuler);
   gkyl_vlasov_app_cout(app, stdout, "Number of RK stage-2 failures %ld\n", stat.nstage_2_fail);
   if (stat.nstage_2_fail > 0) {
-    gkyl_vlasov_app_cout(app, stdout, "  Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]);
-    gkyl_vlasov_app_cout(app, stdout, "  Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
+    gkyl_vlasov_app_cout(
+      app, stdout, "  Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]
+    );
+    gkyl_vlasov_app_cout(
+      app, stdout, "  Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]
+    );
   }
   gkyl_vlasov_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
   gkyl_vlasov_app_cout(app, stdout, "Species RHS calc took %g secs\n", stat.species_rhs_tm);
-  gkyl_vlasov_app_cout(app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm);
-  gkyl_vlasov_app_cout(app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
+  gkyl_vlasov_app_cout(
+    app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm
+  );
+  gkyl_vlasov_app_cout(
+    app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm
+  );
   gkyl_vlasov_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
   gkyl_vlasov_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);
-  double io_tm = stat.field_io_tm + stat.species_io_tm + stat.field_diag_io_tm + stat.species_diag_io_tm;
+  double io_tm =
+    stat.field_io_tm + stat.species_io_tm + stat.field_diag_io_tm + stat.species_diag_io_tm;
   gkyl_vlasov_app_cout(app, stdout, "IO time took %g secs \n", io_tm);
 
 freeresources:

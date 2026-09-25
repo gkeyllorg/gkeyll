@@ -12,7 +12,8 @@
 struct gkyl_comm;
 
 struct gkyl_vlasov_velocity_map_inp {
-  evalf_t eval_vmap; // Velocity mapping in this velocity-space dimension used by dg_basis_ops to construct C^1 mapping. NULL => identity.
+  evalf_t
+    eval_vmap; // Velocity mapping in this velocity-space dimension used by dg_basis_ops to construct C^1 mapping. NULL => identity.
   void *ctx; // Context for function evaluation. Can be NULL.
 };
 
@@ -26,10 +27,7 @@ struct gkyl_vlasov_velocity_map_inp {
 // replicated at every quadrature point, and consumers needing the Jacobian
 // at an interface must take the minimum of the two adjacent cells when
 // estimating maximum frequencies.
-enum gkyl_vlasov_vmap_rep {
-  GKYL_VLASOV_VMAP_C1_CUBIC = 0,
-  GKYL_VLASOV_VMAP_C0_LINEAR,
-};
+enum gkyl_vlasov_vmap_rep { GKYL_VLASOV_VMAP_C1_CUBIC = 0, GKYL_VLASOV_VMAP_C0_LINEAR };
 
 // Velocity-space mapping object for the Vlasov app. Packages the
 // representation (C^1 cubic or C^0 linear, by velocity basis) of the
@@ -52,18 +50,23 @@ struct gkyl_vlasov_velocity_map {
   struct gkyl_rect_grid grid_vel; // Velocity-space grid.
   struct gkyl_range local_vel; // Velocity-space range the arrays are defined on.
   struct gkyl_basis basis_vel; // Velocity-space basis (b_type and poly_order drive kernel dispatch).
-  struct gkyl_basis basis_pgkyl; // Basis of the I/O representation vmap_pgkyl_host (p=3 serendipity); used to build the write metadata.
+  struct gkyl_basis
+    basis_pgkyl; // Basis of the I/O representation vmap_pgkyl_host (p=3 serendipity); used to build the write metadata.
   enum gkyl_vlasov_vmap_rep rep; // Representation of the stored map.
   bool is_identity; // True if no user mapping was given in any direction.
   bool is_mapped; // Always true: the map is always created and consumed.
-                  // Retained for consumers that set use_vmap from it; to be
-                  // removed once those call sites are simplified.
+    // Retained for consumers that set use_vmap from it; to be
+    // removed once those call sites are simplified.
 
   // Solver arrays; device-resident when created with use_gpu=true.
-  struct gkyl_array *vmap; // C^1 cubic representation of mapping in each velocity dimension (vdim*4 components: vx, then vy, then vz).
-  struct gkyl_array *jacob_vel; // Jacobian (derivative of vmap) in each velocity dimension at 1V Gauss-Legendre quadrature points (vdim*(p+1) components, p the velocity basis poly order).
-  struct gkyl_array *jacob_vel_surf; // Jacobian in each velocity dimension at the 1V Gauss-Legendre quadrature points used by surface updates: the count matches the active kernel variant (p+2 nodes, except the tensor p=1 hybrid's low-order variant, which uses p+1 = 3 nodes).
-  struct gkyl_array *jacob_vel_gauss; // Total velocity-space Jacobian at the full Gauss-Legendre quadrature points (tensor(vdim,p).num_basis components).
+  struct gkyl_array *
+    vmap; // C^1 cubic representation of mapping in each velocity dimension (vdim*4 components: vx, then vy, then vz).
+  struct gkyl_array *
+    jacob_vel; // Jacobian (derivative of vmap) in each velocity dimension at 1V Gauss-Legendre quadrature points (vdim*(p+1) components, p the velocity basis poly order).
+  struct gkyl_array *
+    jacob_vel_surf; // Jacobian in each velocity dimension at the 1V Gauss-Legendre quadrature points used by surface updates: the count matches the active kernel variant (p+2 nodes, except the tensor p=1 hybrid's low-order variant, which uses p+1 = 3 nodes).
+  struct gkyl_array *
+    jacob_vel_gauss; // Total velocity-space Jacobian at the full Gauss-Legendre quadrature points (tensor(vdim,p).num_basis components).
 
   // Host mirrors of the solver arrays (acquired aliases when !use_gpu).
   struct gkyl_array *vmap_host;
@@ -72,7 +75,8 @@ struct gkyl_vlasov_velocity_map {
   struct gkyl_array *jacob_vel_gauss_host;
 
   // I/O-only arrays; always host-resident.
-  struct gkyl_array *vmap_pgkyl_host; // C^1 cubic representation of mapping for I/O (defined in the full 1V, 2V, or 3V).
+  struct gkyl_array *
+    vmap_pgkyl_host; // C^1 cubic representation of mapping for I/O (defined in the full 1V, 2V, or 3V).
   struct gkyl_array *vmap_avg_pgkyl_host; // Cell average of the mapping for I/O.
 
   uint32_t flags;
@@ -101,11 +105,11 @@ struct gkyl_vlasov_velocity_map {
  * @param use_gpu Whether to place the solver arrays on device.
  * @return New velocity map object.
  */
-struct gkyl_vlasov_velocity_map* gkyl_vlasov_velocity_map_new(
+struct gkyl_vlasov_velocity_map *gkyl_vlasov_velocity_map_new(
   const struct gkyl_rect_grid *vgrid, const struct gkyl_range *vrange,
-  const struct gkyl_basis *vel_basis,
-  struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM],
-  bool use_lo, bool use_gpu);
+  const struct gkyl_basis *vel_basis, struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM],
+  bool use_lo, bool use_gpu
+);
 
 /**
  * Acquire a pointer to the velocity map object, incrementing its reference
@@ -114,8 +118,9 @@ struct gkyl_vlasov_velocity_map* gkyl_vlasov_velocity_map_new(
  * @param vvm Velocity map object.
  * @return Acquired velocity map object.
  */
-struct gkyl_vlasov_velocity_map* gkyl_vlasov_velocity_map_acquire(
-  const struct gkyl_vlasov_velocity_map *vvm);
+struct gkyl_vlasov_velocity_map *gkyl_vlasov_velocity_map_acquire(
+  const struct gkyl_vlasov_velocity_map *vvm
+);
 
 /**
  * Release the velocity map object, decrementing its reference count and
@@ -145,8 +150,9 @@ bool gkyl_vlasov_velocity_map_is_cu_dev(const struct gkyl_vlasov_velocity_map *v
  * @param vc Computational velocity coordinate (vdim components).
  * @param vp On output, the physical velocity coordinate (vdim components).
  */
-void gkyl_vlasov_velocity_map_eval_c2p(const struct gkyl_vlasov_velocity_map *vvm,
-  const double *vc, double *vp);
+void gkyl_vlasov_velocity_map_eval_c2p(
+  const struct gkyl_vlasov_velocity_map *vvm, const double *vc, double *vp
+);
 
 /**
  * Write the velocity map to %s-%s_vmap.gkyl and its cell average to
@@ -163,8 +169,10 @@ void gkyl_vlasov_velocity_map_eval_c2p(const struct gkyl_vlasov_velocity_map *vv
  * @param app_name Name of the app.
  * @param species_name Name of the species.
  */
-void gkyl_vlasov_velocity_map_write(const struct gkyl_vlasov_velocity_map *vvm,
-  struct gkyl_comm *comm, const char *app_name, const char *species_name);
+void gkyl_vlasov_velocity_map_write(
+  const struct gkyl_vlasov_velocity_map *vvm, struct gkyl_comm *comm, const char *app_name,
+  const char *species_name
+);
 
 /**
  * Divide out the velocity-space Jacobian from Jf to obtain f for use in the
@@ -183,10 +191,11 @@ void gkyl_vlasov_velocity_map_write(const struct gkyl_vlasov_velocity_map *vvm,
  * @param Jf Input array Jf.
  * @param f_no_J Output array f with velocity-space Jacobian divided out.
  */
-void gkyl_vlasov_velocity_map_divide_jacobvel(const struct gkyl_vlasov_velocity_map *vvm,
-  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis,
-  const struct gkyl_range *phase_range,
-  const struct gkyl_array *Jf, struct gkyl_array *f_no_J);
+void gkyl_vlasov_velocity_map_divide_jacobvel(
+  const struct gkyl_vlasov_velocity_map *vvm, const struct gkyl_basis *conf_basis,
+  const struct gkyl_basis *phase_basis, const struct gkyl_range *phase_range,
+  const struct gkyl_array *Jf, struct gkyl_array *f_no_J
+);
 
 /**
  * Multiply f by the velocity-space Jacobian to obtain Jf for use in the DG
@@ -200,7 +209,8 @@ void gkyl_vlasov_velocity_map_divide_jacobvel(const struct gkyl_vlasov_velocity_
  * @param f_no_J Input array f with velocity-space Jacobian divided out.
  * @param Jf Output array Jf.
  */
-void gkyl_vlasov_velocity_map_rescale_jacobvel(const struct gkyl_vlasov_velocity_map *vvm,
-  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis,
-  const struct gkyl_range *phase_range,
-  const struct gkyl_array *f_no_J, struct gkyl_array *Jf);
+void gkyl_vlasov_velocity_map_rescale_jacobvel(
+  const struct gkyl_vlasov_velocity_map *vvm, const struct gkyl_basis *conf_basis,
+  const struct gkyl_basis *phase_basis, const struct gkyl_range *phase_range,
+  const struct gkyl_array *f_no_J, struct gkyl_array *Jf
+);

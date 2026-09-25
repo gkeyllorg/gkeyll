@@ -16,7 +16,7 @@ vm_fluid_em_coupling_supported(const struct vm_fluid_species *f)
 }
 
 // initialize fluid-EM coupling object
-struct vm_fluid_em_coupling*
+struct vm_fluid_em_coupling *
 vm_fluid_em_coupling_new(struct gkyl_vlasov_app *app)
 {
   struct vm_fluid_em_coupling *fl_em = gkyl_malloc(sizeof(struct vm_fluid_em_coupling));
@@ -24,40 +24,42 @@ vm_fluid_em_coupling_new(struct gkyl_vlasov_app *app)
   // Gather the coupled (momentum-carrying) fluid species in declaration order.
   int num_species = app->num_species;
   fl_em->num_fluid = 0;
-  for (int i=0; i<num_species; ++i) {
+  for (int i = 0; i < num_species; ++i) {
     struct vlasov_species *sp = &app->species[i];
     if (sp->fluid && vm_fluid_em_coupling_supported(sp->fluid)) {
       fl_em->species[fl_em->num_fluid] = sp;
-      fl_em->qbym[fl_em->num_fluid] = sp->charge/sp->mass;
+      fl_em->qbym[fl_em->num_fluid] = sp->charge / sp->mass;
       fl_em->num_fluid += 1;
     }
   }
 
   // Initialize solver
-  fl_em->slvr = gkyl_dg_calc_fluid_em_coupling_new(&app->basis, &app->local,
-    fl_em->num_fluid, fl_em->qbym, app->field->info.epsilon0, app->use_gpu);
+  fl_em->slvr = gkyl_dg_calc_fluid_em_coupling_new(
+    &app->basis, &app->local, fl_em->num_fluid, fl_em->qbym, app->field->info.epsilon0, app->use_gpu
+  );
 
   return fl_em;
 }
 
 void
-vm_fluid_em_coupling_update(struct gkyl_vlasov_app *app, struct vm_fluid_em_coupling *fl_em,
-  double tcurr, double dt)
+vm_fluid_em_coupling_update(
+  struct gkyl_vlasov_app *app, struct vm_fluid_em_coupling *fl_em, double tcurr, double dt
+)
 {
   int num_fluid = fl_em->num_fluid;
 
   struct gkyl_array *fluids[GKYL_MAX_SPECIES];
   const struct gkyl_array *app_accels[GKYL_MAX_SPECIES];
 
-  for (int i=0; i<num_fluid; ++i) {
+  for (int i = 0; i < num_fluid; ++i) {
     struct vm_fluid_species *fs = fl_em->species[i]->fluid;
     fluids[i] = fs->fluid;
 
     if (fs->eqn_type == GKYL_EQN_EULER) {
-      gkyl_dg_calc_fluid_vars_advance(fs->calc_fluid_vars,
-        fluids[i], fs->cell_avg_prim, fs->u, fs->u_surf);
-      gkyl_dg_calc_fluid_vars_ke(fs->calc_fluid_vars, &app->local,
-        fluids[i], fs->u, fs->ke_old);
+      gkyl_dg_calc_fluid_vars_advance(
+        fs->calc_fluid_vars, fluids[i], fs->cell_avg_prim, fs->u, fs->u_surf
+      );
+      gkyl_dg_calc_fluid_vars_ke(fs->calc_fluid_vars, &app->local, fluids[i], fs->u, fs->ke_old);
     }
     app_accels[i] = fs->app_accel;
     // Compute applied accelerations if present and time-dependent.
@@ -78,21 +80,20 @@ vm_fluid_em_coupling_update(struct gkyl_vlasov_app *app, struct vm_fluid_em_coup
     vlasov_field_calc_app_current(app, tcurr);
   }
 
-  gkyl_dg_calc_fluid_em_coupling_advance(fl_em->slvr, dt,
-    app_accels, app->field->ext_em, app->field->app_current,
-    fluids, app->field->em);
+  gkyl_dg_calc_fluid_em_coupling_advance(
+    fl_em->slvr, dt, app_accels, app->field->ext_em, app->field->app_current, fluids, app->field->em
+  );
 
-  for (int i=0; i<num_fluid; ++i) {
+  for (int i = 0; i < num_fluid; ++i) {
     struct vm_fluid_species *fs = fl_em->species[i]->fluid;
 
     // Compute the updated energy from the old and new kinetic energies
     if (fs->eqn_type == GKYL_EQN_EULER) {
-      gkyl_dg_calc_fluid_vars_advance(fs->calc_fluid_vars,
-        fluids[i], fs->cell_avg_prim, fs->u, fs->u_surf);
-      gkyl_dg_calc_fluid_vars_ke(fs->calc_fluid_vars, &app->local,
-        fluids[i], fs->u, fs->ke_new);
-      gkyl_dg_calc_fluid_em_coupling_energy(fl_em->slvr,
-        fs->ke_old, fs->ke_new, fluids[i]);
+      gkyl_dg_calc_fluid_vars_advance(
+        fs->calc_fluid_vars, fluids[i], fs->cell_avg_prim, fs->u, fs->u_surf
+      );
+      gkyl_dg_calc_fluid_vars_ke(fs->calc_fluid_vars, &app->local, fluids[i], fs->u, fs->ke_new);
+      gkyl_dg_calc_fluid_em_coupling_energy(fl_em->slvr, fs->ke_old, fs->ke_new, fluids[i]);
     }
     vm_fluid_species_apply_bc(app, fs, fluids[i]);
   }

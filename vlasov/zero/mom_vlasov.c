@@ -27,7 +27,7 @@ gkyl_mom_vlasov_free(const struct gkyl_ref_count *ref)
   gkyl_free(mom_vlasov);
 }
 
-struct gkyl_mom_type*
+struct gkyl_mom_type *
 gkyl_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
 {
   assert(inp->conf_basis->poly_order == inp->phase_basis->poly_order);
@@ -35,10 +35,10 @@ gkyl_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
 #ifdef GKYL_HAVE_CUDA
   if (inp->use_gpu) {
     return gkyl_mom_vlasov_cu_dev_inew(inp);
-  } 
+  }
 #endif
   struct mom_type_vlasov *mom_vlasov = gkyl_malloc(sizeof(*mom_vlasov));
-  int cdim = inp->conf_basis->ndim, pdim = inp->phase_basis->ndim, vdim = pdim-cdim;
+  int cdim = inp->conf_basis->ndim, pdim = inp->phase_basis->ndim, vdim = pdim - cdim;
   int poly_order = inp->conf_basis->poly_order;
 
   mom_vlasov->momt.cdim = cdim;
@@ -48,17 +48,16 @@ gkyl_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
   mom_vlasov->momt.num_phase = inp->phase_basis->num_basis;
 
   // Determine Hamiltonian dimensionality and index offset for indexing Hamiltonian
-  // from an input phase space index. 
+  // from an input phase space index.
   if (inp->hamil_id == GKYL_HAMIL_PHASE) {
     mom_vlasov->hamil_dim = pdim;
     mom_vlasov->hamil_offset = 0;
-  }
-  else {
+  } else {
     mom_vlasov->hamil_dim = vdim;
     mom_vlasov->hamil_offset = cdim;
   }
   mom_vlasov->hamil_range = *inp->hamil_range;
-  mom_vlasov->hamil = gkyl_array_acquire(inp->hamil); 
+  mom_vlasov->hamil = gkyl_array_acquire(inp->hamil);
 
   mom_vlasov->vel_range = *inp->vel_range;
   mom_vlasov->vel_map = 0;
@@ -75,28 +74,32 @@ gkyl_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
     }
   }
 
-  // Threshold velocity for integration of moments over a subset of the domain. 
-  // Also set threshold for whether we accumulate moment over subset of the domain. 
-  mom_vlasov->v_thresh = inp->v_thresh > 0.0 ? inp->v_thresh : 0.0; 
-  mom_vlasov->f_thresh = inp->f_thresh > 0.0 ? inp->f_thresh : 0.0; 
+  // Threshold velocity for integration of moments over a subset of the domain.
+  // Also set threshold for whether we accumulate moment over subset of the domain.
+  mom_vlasov->v_thresh = inp->v_thresh > 0.0 ? inp->v_thresh : 0.0;
+  mom_vlasov->f_thresh = inp->f_thresh > 0.0 ? inp->f_thresh : 0.0;
 
   // Sparse (separable) vs. dense velocity-space Hamiltonian kernel selection.
   bool hamil_sparse = (inp->hamil_id == GKYL_HAMIL_VEL_SPARSE);
 
   // choose kernel tables based on basis-function type
   const gkyl_vlasov_mom_kern_list *m0_kernels, *m1i_hamil_vel_kernels, *m1i_hamil_phase_kernels,
-    *m2_hamil_vel_kernels, *m2_hamil_phase_kernels, *m3i_hamil_vel_kernels,
-    *m2ij_kernels, *m3ijk_kernels, *five_moments_hamil_vel_kernels, *five_moments_hamil_phase_kernels;
+    *m2_hamil_vel_kernels, *m2_hamil_phase_kernels, *m3i_hamil_vel_kernels, *m2ij_kernels,
+    *m3ijk_kernels, *five_moments_hamil_vel_kernels, *five_moments_hamil_phase_kernels;
 
   switch (gkyl_basis_phase_kernel_type(inp->conf_basis, inp->phase_basis)) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       m0_kernels = ser_m0_kernels;
       m2ij_kernels = ser_m2ij_kernels;
       m3ijk_kernels = ser_m3ijk_kernels;
-      m1i_hamil_vel_kernels = hamil_sparse ? ser_hamil_vel_sparse_m1i_kernels : ser_hamil_vel_dense_m1i_kernels;
-      m2_hamil_vel_kernels = hamil_sparse ? ser_hamil_vel_sparse_m2_kernels : ser_hamil_vel_dense_m2_kernels;
-      m3i_hamil_vel_kernels = hamil_sparse ? ser_hamil_vel_sparse_m3i_kernels : ser_hamil_vel_dense_m3i_kernels;
-      five_moments_hamil_vel_kernels = hamil_sparse ? ser_hamil_vel_sparse_five_moments_kernels : ser_hamil_vel_dense_five_moments_kernels;
+      m1i_hamil_vel_kernels = hamil_sparse ? ser_hamil_vel_sparse_m1i_kernels :
+                                             ser_hamil_vel_dense_m1i_kernels;
+      m2_hamil_vel_kernels = hamil_sparse ? ser_hamil_vel_sparse_m2_kernels :
+                                            ser_hamil_vel_dense_m2_kernels;
+      m3i_hamil_vel_kernels = hamil_sparse ? ser_hamil_vel_sparse_m3i_kernels :
+                                             ser_hamil_vel_dense_m3i_kernels;
+      five_moments_hamil_vel_kernels = hamil_sparse ? ser_hamil_vel_sparse_five_moments_kernels :
+                                                      ser_hamil_vel_dense_five_moments_kernels;
       m1i_hamil_phase_kernels = ser_hamil_phase_m1i_kernels;
       m2_hamil_phase_kernels = ser_hamil_phase_m2_kernels;
       five_moments_hamil_phase_kernels = ser_hamil_phase_five_moments_kernels;
@@ -106,10 +109,14 @@ gkyl_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
       m0_kernels = tensor_m0_kernels;
       m2ij_kernels = tensor_m2ij_kernels;
       m3ijk_kernels = tensor_m3ijk_kernels;
-      m1i_hamil_vel_kernels = hamil_sparse ? tensor_hamil_vel_sparse_m1i_kernels : tensor_hamil_vel_dense_m1i_kernels;
-      m2_hamil_vel_kernels = hamil_sparse ? tensor_hamil_vel_sparse_m2_kernels : tensor_hamil_vel_dense_m2_kernels;
-      m3i_hamil_vel_kernels = hamil_sparse ? tensor_hamil_vel_sparse_m3i_kernels : tensor_hamil_vel_dense_m3i_kernels;
-      five_moments_hamil_vel_kernels = hamil_sparse ? tensor_hamil_vel_sparse_five_moments_kernels : tensor_hamil_vel_dense_five_moments_kernels;
+      m1i_hamil_vel_kernels = hamil_sparse ? tensor_hamil_vel_sparse_m1i_kernels :
+                                             tensor_hamil_vel_dense_m1i_kernels;
+      m2_hamil_vel_kernels = hamil_sparse ? tensor_hamil_vel_sparse_m2_kernels :
+                                            tensor_hamil_vel_dense_m2_kernels;
+      m3i_hamil_vel_kernels = hamil_sparse ? tensor_hamil_vel_sparse_m3i_kernels :
+                                             tensor_hamil_vel_dense_m3i_kernels;
+      five_moments_hamil_vel_kernels = hamil_sparse ? tensor_hamil_vel_sparse_five_moments_kernels :
+                                                      tensor_hamil_vel_dense_five_moments_kernels;
       // Phase-space Hamiltonian moments: only the p=1 tensor hybrid has a
       // phase-space Hamiltonian representation.
       m1i_hamil_phase_kernels = tensor_hamil_phase_m1i_kernels;
@@ -119,106 +126,104 @@ gkyl_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
 
     default:
       assert(false);
-      break;    
+      break;
   }
 
   if (inp->mom_type == GKYL_F_MOMENT_M0) { // density
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != m0_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
-    
+
     mom_vlasov->momt.kernel = m0_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     mom_vlasov->momt.num_mom = 1;
-  }
-  else if (inp->mom_type == GKYL_F_MOMENT_M1 || inp->mom_type == GKYL_F_MOMENT_M1_FROM_H) { 
+  } else if (inp->mom_type == GKYL_F_MOMENT_M1 || inp->mom_type == GKYL_F_MOMENT_M1_FROM_H) {
     // As part of Hamiltonian Vlasov refactor, assume user wants dH/dv moment when they
     // request M1 in some form. JJ 07/25/25
-    assert(cv_index[cdim].vdim[vdim] != -1);    
+    assert(cv_index[cdim].vdim[vdim] != -1);
     if (inp->hamil_id != GKYL_HAMIL_PHASE) {
       assert(NULL != m1i_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
-      mom_vlasov->momt.kernel = m1i_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    }
-    else {
+      mom_vlasov->momt.kernel =
+        m1i_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    } else {
       assert(NULL != m1i_hamil_phase_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
-      mom_vlasov->momt.kernel = m1i_hamil_phase_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+      mom_vlasov->momt.kernel =
+        m1i_hamil_phase_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     }
     mom_vlasov->momt.num_mom = vdim;
-  }
-  else if (inp->mom_type == GKYL_F_MOMENT_M2 || inp->mom_type == GKYL_F_MOMENT_ENERGY) { 
+  } else if (inp->mom_type == GKYL_F_MOMENT_M2 || inp->mom_type == GKYL_F_MOMENT_ENERGY) {
     // As part of Hamiltonian Vlasov refactor, assume user wants H moment when they
     // request M2 in some form. JJ 07/25/25
     assert(cv_index[cdim].vdim[vdim] != -1);
     if (inp->hamil_id != GKYL_HAMIL_PHASE) {
       assert(NULL != m2_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
       mom_vlasov->momt.kernel = m2_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    }
-    else {
+    } else {
       assert(NULL != m2_hamil_phase_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
-      mom_vlasov->momt.kernel = m2_hamil_phase_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    } 
+      mom_vlasov->momt.kernel =
+        m2_hamil_phase_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    }
     mom_vlasov->momt.num_mom = 1;
-  }
-  else if (inp->mom_type == GKYL_F_MOMENT_M3 || inp->mom_type == GKYL_F_MOMENT_ENERGY_FLUX) { 
+  } else if (inp->mom_type == GKYL_F_MOMENT_M3 || inp->mom_type == GKYL_F_MOMENT_ENERGY_FLUX) {
     // As part of Hamiltonian Vlasov refactor, assume user wants H*dH/dv moment when they
     // request M3 in some form. JJ 07/25/25
     assert(cv_index[cdim].vdim[vdim] != -1);
     if (inp->hamil_id != GKYL_HAMIL_PHASE && inp->model_id != GKYL_MODEL_TRIAD_GR) {
       assert(NULL != m3i_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
-      mom_vlasov->momt.kernel = m3i_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+      mom_vlasov->momt.kernel =
+        m3i_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    } else {
+      assert(false);
     }
-    else {
-      assert(false); 
-    }    
     mom_vlasov->momt.num_mom = vdim;
-  }
-  else if (inp->mom_type == GKYL_F_MOMENT_M2IJ) { // pressure tensor in lab-frame
+  } else if (inp->mom_type == GKYL_F_MOMENT_M2IJ) { // pressure tensor in lab-frame
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != m2ij_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
-    
+
     mom_vlasov->momt.kernel = m2ij_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    mom_vlasov->momt.num_mom = vdim*(vdim+1)/2;
-  }
-  else if (inp->mom_type == GKYL_F_MOMENT_M3IJK) { // heat-flux tensor in lab-frame
+    mom_vlasov->momt.num_mom = vdim * (vdim + 1) / 2;
+  } else if (inp->mom_type == GKYL_F_MOMENT_M3IJK) { // heat-flux tensor in lab-frame
     assert(cv_index[cdim].vdim[vdim] != -1);
     assert(NULL != m3ijk_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
-    
+
     mom_vlasov->momt.kernel = m3ijk_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
 
-    int m3ijk_count[] = { 1, 4, 10 };
-    mom_vlasov->momt.num_mom = m3ijk_count[vdim-1];
-  }
-  else if (inp->mom_type == GKYL_F_MOMENT_M0M1M2) { // Zeroth, First, and Second moment computed together
+    int m3ijk_count[] = {1, 4, 10};
+    mom_vlasov->momt.num_mom = m3ijk_count[vdim - 1];
+  } else if (inp->mom_type ==
+             GKYL_F_MOMENT_M0M1M2) { // Zeroth, First, and Second moment computed together
     // As part of Hamiltonian Vlasov refactor, assume user wants {1, dH/dv, H} moments when they
     // request five_moments/M0M1M2. JJ 07/25/25
     assert(cv_index[cdim].vdim[vdim] != -1);
     if (inp->hamil_id != GKYL_HAMIL_PHASE) {
       assert(NULL != five_moments_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
-      mom_vlasov->momt.kernel = five_moments_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+      mom_vlasov->momt.kernel =
+        five_moments_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    } else {
+      assert(
+        NULL != five_moments_hamil_phase_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]
+      );
+      mom_vlasov->momt.kernel =
+        five_moments_hamil_phase_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     }
-    else {
-      assert(NULL != five_moments_hamil_phase_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
-      mom_vlasov->momt.kernel = five_moments_hamil_phase_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    } 
-    mom_vlasov->momt.num_mom = 2+vdim;
-  }
-  else if (inp->mom_type == GKYL_F_MOMENT_M0_UPPER) {
+    mom_vlasov->momt.num_mom = 2 + vdim;
+  } else if (inp->mom_type == GKYL_F_MOMENT_M0_UPPER) {
     if (vdim != 1) {
       gkyl_exit("mom_vlasov: M0 upper only defined for vdim = 1!");
     }
-    mom_vlasov->momt.kernel = (gkyl_basis_phase_kernel_type(inp->conf_basis, inp->phase_basis) == GKYL_BASIS_MODAL_TENSOR) ?
-      tensor_m0_upper_kernels[cdim-1].kernels[poly_order] :
-      ser_m0_upper_kernels[cdim-1].kernels[poly_order];
+    mom_vlasov->momt.kernel =
+      (gkyl_basis_phase_kernel_type(inp->conf_basis, inp->phase_basis) == GKYL_BASIS_MODAL_TENSOR) ?
+        tensor_m0_upper_kernels[cdim - 1].kernels[poly_order] :
+        ser_m0_upper_kernels[cdim - 1].kernels[poly_order];
     mom_vlasov->momt.num_mom = 1;
-  }
-  else if (inp->mom_type == GKYL_F_MOMENT_M0_LOWER) {
+  } else if (inp->mom_type == GKYL_F_MOMENT_M0_LOWER) {
     if (vdim != 1) {
       gkyl_exit("mom_vlasov: M0 lower only defined for vdim = 1!");
     }
-    mom_vlasov->momt.kernel = (gkyl_basis_phase_kernel_type(inp->conf_basis, inp->phase_basis) == GKYL_BASIS_MODAL_TENSOR) ?
-      tensor_m0_lower_kernels[cdim-1].kernels[poly_order] :
-      ser_m0_lower_kernels[cdim-1].kernels[poly_order];
+    mom_vlasov->momt.kernel =
+      (gkyl_basis_phase_kernel_type(inp->conf_basis, inp->phase_basis) == GKYL_BASIS_MODAL_TENSOR) ?
+        tensor_m0_lower_kernels[cdim - 1].kernels[poly_order] :
+        ser_m0_lower_kernels[cdim - 1].kernels[poly_order];
     mom_vlasov->momt.num_mom = 1;
-  }
-  else {
+  } else {
     // string not recognized
     gkyl_exit("mom_vlasov: Unrecognized moment requested!");
   }
@@ -226,13 +231,13 @@ gkyl_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
   mom_vlasov->momt.flags = 0;
   GKYL_CLEAR_CU_ALLOC(mom_vlasov->momt.flags);
   mom_vlasov->momt.ref_count = gkyl_ref_count_init(gkyl_mom_vlasov_free);
-  
+
   mom_vlasov->momt.on_dev = &mom_vlasov->momt; // on host, self-reference
-    
+
   return &mom_vlasov->momt;
 }
 
-struct gkyl_mom_type*
+struct gkyl_mom_type *
 gkyl_int_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
 {
   assert(inp->conf_basis->poly_order == inp->phase_basis->poly_order);
@@ -240,10 +245,10 @@ gkyl_int_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
 #ifdef GKYL_HAVE_CUDA
   if (inp->use_gpu) {
     return gkyl_int_mom_vlasov_cu_dev_inew(inp);
-  } 
+  }
 #endif
   struct mom_type_vlasov *mom_vlasov = gkyl_malloc(sizeof(*mom_vlasov));
-  int cdim = inp->conf_basis->ndim, pdim = inp->phase_basis->ndim, vdim = pdim-cdim;
+  int cdim = inp->conf_basis->ndim, pdim = inp->phase_basis->ndim, vdim = pdim - cdim;
   int poly_order = inp->conf_basis->poly_order;
 
   mom_vlasov->momt.cdim = cdim;
@@ -253,17 +258,16 @@ gkyl_int_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
   mom_vlasov->momt.num_phase = inp->phase_basis->num_basis;
 
   // Determine Hamiltonian dimensionality and index offset for indexing Hamiltonian
-  // from an input phase space index. 
+  // from an input phase space index.
   if (inp->hamil_id == GKYL_HAMIL_PHASE) {
     mom_vlasov->hamil_dim = pdim;
     mom_vlasov->hamil_offset = 0;
-  }
-  else {
+  } else {
     mom_vlasov->hamil_dim = vdim;
     mom_vlasov->hamil_offset = cdim;
   }
   mom_vlasov->hamil_range = *inp->hamil_range;
-  mom_vlasov->hamil = gkyl_array_acquire(inp->hamil); 
+  mom_vlasov->hamil = gkyl_array_acquire(inp->hamil);
 
   mom_vlasov->vel_range = *inp->vel_range;
   mom_vlasov->vel_map = 0;
@@ -284,47 +288,56 @@ gkyl_int_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
   bool hamil_sparse = (inp->hamil_id == GKYL_HAMIL_VEL_SPARSE);
 
   // Choose kernel tables based on basis-function type.
-  const gkyl_vlasov_mom_kern_list *int_five_moments_hamil_vel_kernels, *int_five_moments_hamil_phase_kernels;
+  const gkyl_vlasov_mom_kern_list *int_five_moments_hamil_vel_kernels,
+    *int_five_moments_hamil_phase_kernels;
 
   switch (gkyl_basis_phase_kernel_type(inp->conf_basis, inp->phase_basis)) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      int_five_moments_hamil_vel_kernels = hamil_sparse ? ser_hamil_vel_sparse_int_five_moments_kernels : ser_hamil_vel_dense_int_five_moments_kernels;
+      int_five_moments_hamil_vel_kernels = hamil_sparse ?
+                                             ser_hamil_vel_sparse_int_five_moments_kernels :
+                                             ser_hamil_vel_dense_int_five_moments_kernels;
       int_five_moments_hamil_phase_kernels = ser_hamil_phase_int_five_moments_kernels;
       break;
 
     case GKYL_BASIS_MODAL_TENSOR:
-      int_five_moments_hamil_vel_kernels = hamil_sparse ? tensor_hamil_vel_sparse_int_five_moments_kernels : tensor_hamil_vel_dense_int_five_moments_kernels;
+      int_five_moments_hamil_vel_kernels = hamil_sparse ?
+                                             tensor_hamil_vel_sparse_int_five_moments_kernels :
+                                             tensor_hamil_vel_dense_int_five_moments_kernels;
       // Phase-space Hamiltonian integrated moments: p=1 tensor hybrid only.
       int_five_moments_hamil_phase_kernels = tensor_hamil_phase_int_five_moments_kernels;
       break;
 
     default:
       assert(false);
-      break;    
-  }  
+      break;
+  }
 
-  assert(cv_index[cdim].vdim[vdim] != -1);   
+  assert(cv_index[cdim].vdim[vdim] != -1);
 
   if (inp->mom_type == GKYL_F_MOMENT_M0M1M2) { // Zeroth, First, and Second moment computed together
     if (inp->hamil_id != GKYL_HAMIL_PHASE) {
-      assert(NULL != int_five_moments_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
-      mom_vlasov->momt.kernel = int_five_moments_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+      assert(
+        NULL != int_five_moments_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]
+      );
+      mom_vlasov->momt.kernel =
+        int_five_moments_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    } else {
+      assert(
+        NULL != int_five_moments_hamil_phase_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]
+      );
+      mom_vlasov->momt.kernel =
+        int_five_moments_hamil_phase_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     }
-    else {
-      assert(NULL != int_five_moments_hamil_phase_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
-      mom_vlasov->momt.kernel = int_five_moments_hamil_phase_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    } 
-    mom_vlasov->momt.num_mom = 2+vdim;
-  }
-  else {
+    mom_vlasov->momt.num_mom = 2 + vdim;
+  } else {
     gkyl_exit("int_mom_vlasov: Unrecognized moment requested!");
   }
 
   mom_vlasov->momt.flags = 0;
   GKYL_CLEAR_CU_ALLOC(mom_vlasov->momt.flags);
   mom_vlasov->momt.ref_count = gkyl_ref_count_init(gkyl_mom_vlasov_free);
-  
+
   mom_vlasov->momt.on_dev = &mom_vlasov->momt; // on host, self-reference
-    
-  return &mom_vlasov->momt;  
+
+  return &mom_vlasov->momt;
 }

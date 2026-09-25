@@ -48,17 +48,24 @@ struct gkyl_vlasov_position_map_inp {
 // safety) and unpack raw device pointers inside their _cu.cu initialization.
 struct gkyl_vlasov_position_map {
   struct gkyl_rect_grid grid_pos; // Configuration-space grid.
-  struct gkyl_range local_pos; // Interior configuration-space range (I/O sub-range; conf indexing of the local phase range).
-  struct gkyl_range local_ext_pos; // Extended configuration-space range the arrays are actually defined on (includes ghost cells).
+  struct gkyl_range
+    local_pos; // Interior configuration-space range (I/O sub-range; conf indexing of the local phase range).
+  struct gkyl_range
+    local_ext_pos; // Extended configuration-space range the arrays are actually defined on (includes ghost cells).
   struct gkyl_basis basis_pos; // Configuration-space basis (b_type and poly_order drive consumers).
-  struct gkyl_basis basis_pgkyl; // Basis of the I/O representation pmap_pgkyl_host (p=3 serendipity); used to build the write metadata.
+  struct gkyl_basis
+    basis_pgkyl; // Basis of the I/O representation pmap_pgkyl_host (p=3 serendipity); used to build the write metadata.
   bool is_identity; // True if no user mapping was given in any direction.
 
   // Solver arrays; device-resident when created with use_gpu=true.
-  struct gkyl_array *pmap; // Linear map (degenerate-cubic layout) in each config dimension (cdim*4 components: x, then y, then z).
-  struct gkyl_array *jacob_pos; // Jacobian (derivative of pmap) in each config dimension at 1D Gauss-Legendre quadrature points (cdim*(p+1) components).
-  struct gkyl_array *jacob_pos_surf; // Jacobian in each config dimension at the (higher order) 1D Gauss-Legendre quadrature points used by surface updates (cdim*(p+2) components).
-  struct gkyl_array *jacob_pos_gauss; // Total configuration-space Jacobian at the full Gauss-Legendre quadrature points (tensor(cdim,p).num_basis components). Constant per cell.
+  struct gkyl_array *
+    pmap; // Linear map (degenerate-cubic layout) in each config dimension (cdim*4 components: x, then y, then z).
+  struct gkyl_array *
+    jacob_pos; // Jacobian (derivative of pmap) in each config dimension at 1D Gauss-Legendre quadrature points (cdim*(p+1) components).
+  struct gkyl_array *
+    jacob_pos_surf; // Jacobian in each config dimension at the (higher order) 1D Gauss-Legendre quadrature points used by surface updates (cdim*(p+2) components).
+  struct gkyl_array *
+    jacob_pos_gauss; // Total configuration-space Jacobian at the full Gauss-Legendre quadrature points (tensor(cdim,p).num_basis components). Constant per cell.
 
   // Host mirrors of the solver arrays (acquired aliases when !use_gpu).
   struct gkyl_array *pmap_host;
@@ -67,7 +74,8 @@ struct gkyl_vlasov_position_map {
   struct gkyl_array *jacob_pos_gauss_host;
 
   // I/O-only arrays; always host-resident.
-  struct gkyl_array *pmap_pgkyl_host; // Map for I/O (defined in the full 1X, 2X, or 3X p=3 serendipity layout).
+  struct gkyl_array
+    *pmap_pgkyl_host; // Map for I/O (defined in the full 1X, 2X, or 3X p=3 serendipity layout).
   struct gkyl_array *pmap_avg_pgkyl_host; // Cell average of the mapping for I/O.
 
   uint32_t flags;
@@ -90,11 +98,11 @@ struct gkyl_vlasov_position_map {
  * @param use_gpu Whether to place the solver arrays on device.
  * @return New position map object.
  */
-struct gkyl_vlasov_position_map* gkyl_vlasov_position_map_new(
+struct gkyl_vlasov_position_map *gkyl_vlasov_position_map_new(
   const struct gkyl_rect_grid *cgrid, const struct gkyl_range *crange,
   const struct gkyl_range *crange_ext, const struct gkyl_basis *conf_basis,
-  struct gkyl_vlasov_position_map_inp inp_pmap[GKYL_MAX_CDIM],
-  bool use_gpu);
+  struct gkyl_vlasov_position_map_inp inp_pmap[GKYL_MAX_CDIM], bool use_gpu
+);
 
 /**
  * Acquire a pointer to the position map object, incrementing its reference
@@ -103,8 +111,9 @@ struct gkyl_vlasov_position_map* gkyl_vlasov_position_map_new(
  * @param vpm Position map object.
  * @return Acquired position map object.
  */
-struct gkyl_vlasov_position_map* gkyl_vlasov_position_map_acquire(
-  const struct gkyl_vlasov_position_map *vpm);
+struct gkyl_vlasov_position_map *gkyl_vlasov_position_map_acquire(
+  const struct gkyl_vlasov_position_map *vpm
+);
 
 /**
  * Release the position map object, decrementing its reference count and
@@ -133,8 +142,9 @@ bool gkyl_vlasov_position_map_is_cu_dev(const struct gkyl_vlasov_position_map *v
  * @param xc Computational configuration-space coordinate (cdim components).
  * @param xp On output, the physical configuration-space coordinate (cdim components).
  */
-void gkyl_vlasov_position_map_eval_mc2p(const struct gkyl_vlasov_position_map *vpm,
-  const double *xc, double *xp);
+void gkyl_vlasov_position_map_eval_mc2p(
+  const struct gkyl_vlasov_position_map *vpm, const double *xc, double *xp
+);
 
 /**
  * Write the position map to %s-%s_pmap.gkyl and its cell average to
@@ -151,8 +161,10 @@ void gkyl_vlasov_position_map_eval_mc2p(const struct gkyl_vlasov_position_map *v
  * @param app_name Name of the app.
  * @param name Name component used in the file name (e.g. "position-map").
  */
-void gkyl_vlasov_position_map_write(const struct gkyl_vlasov_position_map *vpm,
-  struct gkyl_comm *comm, const char *app_name, const char *name);
+void gkyl_vlasov_position_map_write(
+  const struct gkyl_vlasov_position_map *vpm, struct gkyl_comm *comm, const char *app_name,
+  const char *name
+);
 
 /**
  * Divide out the configuration-space Jacobian from Jf to obtain f. The conf
@@ -167,9 +179,10 @@ void gkyl_vlasov_position_map_write(const struct gkyl_vlasov_position_map *vpm,
  * @param Jf Input array carrying the conf Jacobian weight.
  * @param f_no_J Output array with configuration-space Jacobian divided out.
  */
-void gkyl_vlasov_position_map_divide_jacobpos(const struct gkyl_vlasov_position_map *vpm,
-  const struct gkyl_basis *phase_basis, const struct gkyl_range *phase_range,
-  const struct gkyl_array *Jf, struct gkyl_array *f_no_J);
+void gkyl_vlasov_position_map_divide_jacobpos(
+  const struct gkyl_vlasov_position_map *vpm, const struct gkyl_basis *phase_basis,
+  const struct gkyl_range *phase_range, const struct gkyl_array *Jf, struct gkyl_array *f_no_J
+);
 
 /**
  * Multiply f by the configuration-space Jacobian to obtain Jf; the inverse of
@@ -181,9 +194,10 @@ void gkyl_vlasov_position_map_divide_jacobpos(const struct gkyl_vlasov_position_
  * @param f_no_J Input array with configuration-space Jacobian divided out.
  * @param Jf Output array carrying the conf Jacobian weight.
  */
-void gkyl_vlasov_position_map_rescale_jacobpos(const struct gkyl_vlasov_position_map *vpm,
-  const struct gkyl_basis *phase_basis, const struct gkyl_range *phase_range,
-  const struct gkyl_array *f_no_J, struct gkyl_array *Jf);
+void gkyl_vlasov_position_map_rescale_jacobpos(
+  const struct gkyl_vlasov_position_map *vpm, const struct gkyl_basis *phase_basis,
+  const struct gkyl_range *phase_range, const struct gkyl_array *f_no_J, struct gkyl_array *Jf
+);
 
 /**
  * Divide the leading components of a configuration-space field (e.g. a velocity
@@ -206,9 +220,10 @@ void gkyl_vlasov_position_map_rescale_jacobpos(const struct gkyl_vlasov_position
  * @param Jmom Input configuration-space field carrying the conf Jacobian weight.
  * @param mom_no_J Output configuration-space field with the conf Jacobian divided out.
  */
-void gkyl_vlasov_position_map_divide_jacobpos_conf(const struct gkyl_vlasov_position_map *vpm,
-  const struct gkyl_range *conf_range, int num_coeff_divide,
-  const struct gkyl_array *Jmom, struct gkyl_array *mom_no_J);
+void gkyl_vlasov_position_map_divide_jacobpos_conf(
+  const struct gkyl_vlasov_position_map *vpm, const struct gkyl_range *conf_range,
+  int num_coeff_divide, const struct gkyl_array *Jmom, struct gkyl_array *mom_no_J
+);
 
 /**
  * Multiply every component of a configuration-space field by the per-cell
@@ -221,19 +236,23 @@ void gkyl_vlasov_position_map_divide_jacobpos_conf(const struct gkyl_vlasov_posi
  * @param a_no_J Input physical configuration-space field.
  * @param Ja Output J-weighted configuration-space field.
  */
-void gkyl_vlasov_position_map_rescale_jacobpos_conf(const struct gkyl_vlasov_position_map *vpm,
-  const struct gkyl_range *conf_range, const struct gkyl_array *a_no_J, struct gkyl_array *Ja);
+void gkyl_vlasov_position_map_rescale_jacobpos_conf(
+  const struct gkyl_vlasov_position_map *vpm, const struct gkyl_range *conf_range,
+  const struct gkyl_array *a_no_J, struct gkyl_array *Ja
+);
 
 /**
  * Device versions of the configuration-space divide/rescale by the per-cell
  * position-map Jacobian. jac_range is the range the Jacobian array is indexed
  * with (the map's local_pos); only cells in conf_range are written.
  */
-void gkyl_vlasov_position_map_divide_jacobpos_conf_cu(const struct gkyl_range *jac_range,
-  const struct gkyl_range *conf_range, int num_coeff_divide,
-  const struct gkyl_array *jacob_pos_gauss, const struct gkyl_array *Jmom, struct gkyl_array *mom_no_J);
+void gkyl_vlasov_position_map_divide_jacobpos_conf_cu(
+  const struct gkyl_range *jac_range, const struct gkyl_range *conf_range, int num_coeff_divide,
+  const struct gkyl_array *jacob_pos_gauss, const struct gkyl_array *Jmom,
+  struct gkyl_array *mom_no_J
+);
 
-void gkyl_vlasov_position_map_rescale_jacobpos_conf_cu(const struct gkyl_range *jac_range,
-  const struct gkyl_range *conf_range,
-  const struct gkyl_array *jacob_pos_gauss, const struct gkyl_array *a_no_J, struct gkyl_array *Ja);
-
+void gkyl_vlasov_position_map_rescale_jacobpos_conf_cu(
+  const struct gkyl_range *jac_range, const struct gkyl_range *conf_range,
+  const struct gkyl_array *jacob_pos_gauss, const struct gkyl_array *a_no_J, struct gkyl_array *Ja
+);

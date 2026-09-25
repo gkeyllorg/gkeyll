@@ -9,48 +9,246 @@
 #include <gkyl_basis_gkhyb_1x2v_p1_surfx3_eval_quad.h>
 #include <gkyl_basis_gkhyb_1x2v_p1_upwind_quad_to_modal.h>
 
-void
-test_ser_1d_members(struct gkyl_basis basis1)
+static int
+ipow(int b, int e)
 {
-  TEST_CHECK( basis1.ndim == 1 );
-  TEST_CHECK( basis1.poly_order == 1 );
-  TEST_CHECK( basis1.num_basis == 2 );
-  TEST_CHECK( strcmp(basis1.id, "serendipity") == 0 );
-  TEST_CHECK( basis1.b_type == GKYL_BASIS_MODAL_SERENDIPITY );
+  int r = 1;
+  for (int i = 0; i < e; ++i) {
+    r *= b;
+  }
+  return r;
+}
+
+void
+test_basis_num_basis_serendip()
+{
+  struct gkyl_basis b;
+
+  // 1D serendipity: num_basis = poly_order+1
+  gkyl_cart_modal_serendip(&b, 1, 1);
+  TEST_CHECK(b.num_basis == 2);
+  gkyl_cart_modal_serendip(&b, 1, 2);
+  TEST_CHECK(b.num_basis == 3);
+  gkyl_cart_modal_serendip(&b, 1, 3);
+  TEST_CHECK(b.num_basis == 4);
+
+  // 2D serendipity: p1=4, p2=8, p3=12
+  gkyl_cart_modal_serendip(&b, 2, 1);
+  TEST_CHECK(b.num_basis == 4);
+  gkyl_cart_modal_serendip(&b, 2, 2);
+  TEST_CHECK(b.num_basis == 8);
+  gkyl_cart_modal_serendip(&b, 2, 3);
+  TEST_CHECK(b.num_basis == 12);
+
+  // 3D serendipity: p1=8, p2=20, p3=32
+  gkyl_cart_modal_serendip(&b, 3, 1);
+  TEST_CHECK(b.num_basis == 8);
+  gkyl_cart_modal_serendip(&b, 3, 2);
+  TEST_CHECK(b.num_basis == 20);
+
+  // metadata sanity
+  gkyl_cart_modal_serendip(&b, 2, 2);
+  TEST_CHECK(b.ndim == 2);
+  TEST_CHECK(b.poly_order == 2);
+  TEST_CHECK(b.b_type == GKYL_BASIS_MODAL_SERENDIPITY);
+}
+
+void
+test_basis_num_basis_tensor()
+{
+  struct gkyl_basis b;
+  // tensor basis: num_basis = (poly_order+1)^ndim
+  for (int ndim = 1; ndim <= 3; ++ndim) {
+    for (int p = 1; p <= 2; ++p) {
+      gkyl_cart_modal_tensor(&b, ndim, p);
+      TEST_CHECK(b.num_basis == (unsigned)ipow(p + 1, ndim));
+      TEST_CHECK(b.b_type == GKYL_BASIS_MODAL_TENSOR);
+    }
+  }
+}
+
+void
+test_basis_eval_expand_consistency()
+{
+  // eval_expand(z,f) must equal sum_i f[i]*b_i(z), where b = eval(z).
+  struct gkyl_basis b;
+  gkyl_cart_modal_serendip(&b, 2, 2);
+
+  double z[2] = {0.3, -0.7};
+  double bz[8];
+  b.eval(z, bz);
+
+  double f[8] = {1.0, 2.0, -1.5, 0.5, 3.0, -2.0, 0.25, -0.75};
+  double ev = b.eval_expand(z, f);
+
+  double sum = 0.0;
+  for (int i = 0; i < 8; ++i) {
+    sum += f[i] * bz[i];
+  }
+  TEST_CHECK(gkyl_compare_double(ev, sum, 1e-13));
+}
+
+void
+test_basis_const_mode()
+{
+  // The first (0th) basis function is constant: same value at any z, and >0.
+  struct gkyl_basis b;
+  gkyl_cart_modal_serendip(&b, 1, 2);
+
+  double z1[1] = {-0.9}, z2[1] = {0.4};
+  double b1[3], b2[3];
+  b.eval(z1, b1);
+  b.eval(z2, b2);
+  TEST_CHECK(gkyl_compare_double(b1[0], b2[0], 1e-14));
+  TEST_CHECK(b1[0] > 0.0);
+
+  // Pure constant expansion evaluates to the same value everywhere.
+  double f[3] = {1.0, 0.0, 0.0};
+  TEST_CHECK(gkyl_compare_double(b.eval_expand(z1, f), b.eval_expand(z2, f), 1e-14));
+}
+
+void
+test_basis_flip_odd_involution()
+{
+  // Applying flip_odd_sign twice in the same direction recovers the input.
+  struct gkyl_basis b;
+  gkyl_cart_modal_serendip(&b, 2, 2);
+
+  double f[8] = {1.0, 2.0, -1.5, 0.5, 3.0, -2.0, 0.25, -0.75};
+  double f1[8], f2[8];
+  b.flip_odd_sign(0, f, f1);
+  b.flip_odd_sign(0, f1, f2);
+  for (int i = 0; i < 8; ++i) {
+    TEST_CHECK(gkyl_compare_double(f2[i], f[i], 1e-14));
+  }
+}
+
+void
+test_basis_flip_odd_reflection()
+{
+  // flip_odd_sign(dir) on coefficients corresponds to reflecting z->-z in dir:
+  // expand(flip(f))(z) == expand(f)(z with z[dir] negated).
+  struct gkyl_basis b;
+  gkyl_cart_modal_serendip(&b, 1, 2);
+
+  double f[3] = {1.5, -0.5, 0.8};
+  double ff[3];
+  b.flip_odd_sign(0, f, ff);
+
+  double z[1] = {0.6}, zm[1] = {-0.6};
+  TEST_CHECK(gkyl_compare_double(b.eval_expand(z, ff), b.eval_expand(zm, f), 1e-13));
+}
+
+void
+test_basis_new_release()
+{
+  struct gkyl_basis *b = gkyl_cart_modal_serendip_new(3, 1);
+  TEST_CHECK(b->num_basis == 8);
+  TEST_CHECK(b->ndim == 3);
+  gkyl_cart_modal_basis_release(b);
+
+  struct gkyl_basis *t = gkyl_cart_modal_tensor_new(2, 2);
+  TEST_CHECK(t->num_basis == 9);
+  gkyl_cart_modal_basis_release(t);
+}
+
+void
+test_ser_1d_p0_members(struct gkyl_basis basis1)
+{
+  TEST_CHECK(basis1.ndim == 1);
+  TEST_CHECK(basis1.poly_order == 0);
+  TEST_CHECK(basis1.num_basis == 1);
+  TEST_CHECK(strcmp(basis1.id, "serendipity") == 0);
+  TEST_CHECK(basis1.b_type == GKYL_BASIS_MODAL_SERENDIPITY);
 
   double z[basis1.num_basis], b[basis1.num_basis];
 
   z[0] = 0.0;
   basis1.eval(z, b);
 
-  TEST_CHECK( gkyl_compare(b[0], 1/sqrt(2.0), 1e-15) );
-  TEST_CHECK( b[1] == 0.0 );
-
-  z[0] = 0.5; basis1.eval(z, b);
-  
-  TEST_CHECK( gkyl_compare(b[0], 1/sqrt(2.0), 1e-15) );
-  TEST_CHECK( b[1] == sqrt(3.0/2.0)*0.5 );
-
-  double nodes[basis1.ndim*basis1.num_basis];
-  basis1.node_list(nodes);
-
-  TEST_CHECK( nodes[0] == -1 );
-  TEST_CHECK( nodes[1] == 1 );
-
-  double f[basis1.num_basis];
-  for (int i=0; i<basis1.num_basis; ++i) f[i] = 1.0;
+  TEST_CHECK(gkyl_compare(b[0], 1 / sqrt(2.0), 1e-15));
 
   z[0] = 0.5;
-  TEST_CHECK ( gkyl_compare(1.319479216882342, basis1.eval_expand(z, f), 1e-15) );
-  TEST_CHECK ( gkyl_compare(1.224744871391589, basis1.eval_grad_expand(0, z, f), 1e-15) );  
+  basis1.eval(z, b);
+
+  TEST_CHECK(gkyl_compare(b[0], 1 / sqrt(2.0), 1e-15));
+
+  double nodes[basis1.ndim * basis1.num_basis];
+  basis1.node_list(nodes);
+
+  TEST_CHECK(nodes[0] == 0.0);
+
+  double f[basis1.num_basis];
+  for (int i = 0; i < basis1.num_basis; ++i) {
+    f[i] = 1.0;
+  }
+
+  z[0] = 0.5;
+  TEST_CHECK(gkyl_compare(f[0] / sqrt(2.0), basis1.eval_expand(z, f), 1e-15));
 
   z[0] = 0.25;
-  TEST_CHECK ( gkyl_compare(1.013292999034445, basis1.eval_expand(z, f), 1e-15) );
-  TEST_CHECK ( gkyl_compare(1.224744871391589, basis1.eval_grad_expand(0, z, f), 1e-15) );
+  TEST_CHECK(gkyl_compare(f[0] / sqrt(2.0), basis1.eval_expand(z, f), 1e-15));
+  TEST_CHECK(gkyl_compare(0.0, basis1.eval_grad_expand(0, z, f), 1e-15));
 }
 
 void
-test_ser_1d()
+test_basis_ser_1d_p0_ho()
+{
+  struct gkyl_basis basis1;
+  gkyl_cart_modal_serendip(&basis1, 1, 0);
+  test_ser_1d_p0_members(basis1);
+
+  struct gkyl_basis *basis2 = gkyl_cart_modal_serendip_new(1, 0);
+  TEST_CHECK(basis1.num_basis == gkyl_cart_modal_basis_get_num_basis(basis2));
+  test_ser_1d_p0_members(*basis2);
+  gkyl_cart_modal_basis_release(basis2);
+}
+
+void
+test_ser_1d_members(struct gkyl_basis basis1)
+{
+  TEST_CHECK(basis1.ndim == 1);
+  TEST_CHECK(basis1.poly_order == 1);
+  TEST_CHECK(basis1.num_basis == 2);
+  TEST_CHECK(strcmp(basis1.id, "serendipity") == 0);
+  TEST_CHECK(basis1.b_type == GKYL_BASIS_MODAL_SERENDIPITY);
+
+  double z[basis1.num_basis], b[basis1.num_basis];
+
+  z[0] = 0.0;
+  basis1.eval(z, b);
+
+  TEST_CHECK(gkyl_compare(b[0], 1 / sqrt(2.0), 1e-15));
+  TEST_CHECK(b[1] == 0.0);
+
+  z[0] = 0.5;
+  basis1.eval(z, b);
+
+  TEST_CHECK(gkyl_compare(b[0], 1 / sqrt(2.0), 1e-15));
+  TEST_CHECK(b[1] == sqrt(3.0 / 2.0) * 0.5);
+
+  double nodes[basis1.ndim * basis1.num_basis];
+  basis1.node_list(nodes);
+
+  TEST_CHECK(nodes[0] == -1);
+  TEST_CHECK(nodes[1] == 1);
+
+  double f[basis1.num_basis];
+  for (int i = 0; i < basis1.num_basis; ++i) {
+    f[i] = 1.0;
+  }
+
+  z[0] = 0.5;
+  TEST_CHECK(gkyl_compare(1.319479216882342, basis1.eval_expand(z, f), 1e-15));
+  TEST_CHECK(gkyl_compare(1.224744871391589, basis1.eval_grad_expand(0, z, f), 1e-15));
+
+  z[0] = 0.25;
+  TEST_CHECK(gkyl_compare(1.013292999034445, basis1.eval_expand(z, f), 1e-15));
+  TEST_CHECK(gkyl_compare(1.224744871391589, basis1.eval_grad_expand(0, z, f), 1e-15));
+}
+
+void
+test_basis_ser_1d_ho()
 {
   struct gkyl_basis basis1;
   gkyl_cart_modal_serendip(&basis1, 1, 1);
@@ -65,100 +263,105 @@ test_ser_1d()
 void
 test_ser_2d_members(struct gkyl_basis basis)
 {
-  TEST_CHECK( basis.ndim == 2 );
-  TEST_CHECK( basis.poly_order == 2 );
-  TEST_CHECK( basis.num_basis == 8 );
-  TEST_CHECK( strcmp(basis.id, "serendipity") == 0 );
-  TEST_CHECK( basis.b_type == GKYL_BASIS_MODAL_SERENDIPITY );
+  TEST_CHECK(basis.ndim == 2);
+  TEST_CHECK(basis.poly_order == 2);
+  TEST_CHECK(basis.num_basis == 8);
+  TEST_CHECK(strcmp(basis.id, "serendipity") == 0);
+  TEST_CHECK(basis.b_type == GKYL_BASIS_MODAL_SERENDIPITY);
 
   double z[basis.ndim], b[basis.num_basis];
 
-  z[0] = 0.0; z[1] = 0.0;
+  z[0] = 0.0;
+  z[1] = 0.0;
   basis.eval(z, b);
 
-  TEST_CHECK( gkyl_compare(0.5, b[0], 1e-15) );
-  TEST_CHECK( gkyl_compare(0.0, b[1], 1e-15) );
-  TEST_CHECK( gkyl_compare(0.0, b[2], 1e-15) );
-  TEST_CHECK( gkyl_compare(0.0, b[3], 1e-15) );
-  TEST_CHECK( gkyl_compare(-sqrt(5.0)/4, b[4], 1e-15) );
-  TEST_CHECK( gkyl_compare(-sqrt(5.0)/4, b[5], 1e-15) );
-  TEST_CHECK( gkyl_compare(0.0, b[6], 1e-15) );
-  TEST_CHECK( gkyl_compare(0.0, b[7], 1e-15) );
+  TEST_CHECK(gkyl_compare(0.5, b[0], 1e-15));
+  TEST_CHECK(gkyl_compare(0.0, b[1], 1e-15));
+  TEST_CHECK(gkyl_compare(0.0, b[2], 1e-15));
+  TEST_CHECK(gkyl_compare(0.0, b[3], 1e-15));
+  TEST_CHECK(gkyl_compare(-sqrt(5.0) / 4, b[4], 1e-15));
+  TEST_CHECK(gkyl_compare(-sqrt(5.0) / 4, b[5], 1e-15));
+  TEST_CHECK(gkyl_compare(0.0, b[6], 1e-15));
+  TEST_CHECK(gkyl_compare(0.0, b[7], 1e-15));
 
   double fin[basis.num_basis], fout[basis.num_basis];
-  for (int i=0; i<basis.num_basis; ++i) {
+  for (int i = 0; i < basis.num_basis; ++i) {
     fin[i] = 1.0;
     fout[i] = 0.0;
   }
 
   basis.flip_odd_sign(0, fin, fout);
-  TEST_CHECK( fin[0] == fout[0] );
-  TEST_CHECK( -fin[1] == fout[1] );
-  TEST_CHECK( fin[2] == fout[2] );  
-  TEST_CHECK( -fin[3] == fout[3] );
-  TEST_CHECK( fin[4] == fout[4] );
-  TEST_CHECK( fin[5] == fout[5] );
-  TEST_CHECK( fin[6] == fout[6] );
-  TEST_CHECK( -fin[7] == fout[7] );
+  TEST_CHECK(fin[0] == fout[0]);
+  TEST_CHECK(-fin[1] == fout[1]);
+  TEST_CHECK(fin[2] == fout[2]);
+  TEST_CHECK(-fin[3] == fout[3]);
+  TEST_CHECK(fin[4] == fout[4]);
+  TEST_CHECK(fin[5] == fout[5]);
+  TEST_CHECK(fin[6] == fout[6]);
+  TEST_CHECK(-fin[7] == fout[7]);
 
   basis.flip_odd_sign(1, fin, fout);
-  TEST_CHECK( fin[0] == fout[0] );
-  TEST_CHECK( fin[1] == fout[1] );
-  TEST_CHECK( -fin[2] == fout[2] );  
-  TEST_CHECK( -fin[3] == fout[3] );
-  TEST_CHECK( fin[4] == fout[4] );
-  TEST_CHECK( fin[5] == fout[5] );
-  TEST_CHECK( -fin[6] == fout[6] );
-  TEST_CHECK( fin[7] == fout[7] );
+  TEST_CHECK(fin[0] == fout[0]);
+  TEST_CHECK(fin[1] == fout[1]);
+  TEST_CHECK(-fin[2] == fout[2]);
+  TEST_CHECK(-fin[3] == fout[3]);
+  TEST_CHECK(fin[4] == fout[4]);
+  TEST_CHECK(fin[5] == fout[5]);
+  TEST_CHECK(-fin[6] == fout[6]);
+  TEST_CHECK(fin[7] == fout[7]);
 
   basis.flip_even_sign(0, fin, fout);
-  TEST_CHECK( -fin[0] == fout[0] );
-  TEST_CHECK( fin[1] == fout[1] );
-  TEST_CHECK( -fin[2] == fout[2] );  
-  TEST_CHECK( fin[3] == fout[3] );
-  TEST_CHECK( -fin[4] == fout[4] );
-  TEST_CHECK( -fin[5] == fout[5] );
-  TEST_CHECK( -fin[6] == fout[6] );
-  TEST_CHECK( fin[7] == fout[7] );
+  TEST_CHECK(-fin[0] == fout[0]);
+  TEST_CHECK(fin[1] == fout[1]);
+  TEST_CHECK(-fin[2] == fout[2]);
+  TEST_CHECK(fin[3] == fout[3]);
+  TEST_CHECK(-fin[4] == fout[4]);
+  TEST_CHECK(-fin[5] == fout[5]);
+  TEST_CHECK(-fin[6] == fout[6]);
+  TEST_CHECK(fin[7] == fout[7]);
 
   basis.flip_even_sign(1, fin, fout);
-  TEST_CHECK( -fin[0] == fout[0] );
-  TEST_CHECK( -fin[1] == fout[1] );
-  TEST_CHECK( fin[2] == fout[2] );  
-  TEST_CHECK( fin[3] == fout[3] );
-  TEST_CHECK( -fin[4] == fout[4] );
-  TEST_CHECK( -fin[5] == fout[5] );
-  TEST_CHECK( fin[6] == fout[6] );
-  TEST_CHECK( -fin[7] == fout[7] );  
+  TEST_CHECK(-fin[0] == fout[0]);
+  TEST_CHECK(-fin[1] == fout[1]);
+  TEST_CHECK(fin[2] == fout[2]);
+  TEST_CHECK(fin[3] == fout[3]);
+  TEST_CHECK(-fin[4] == fout[4]);
+  TEST_CHECK(-fin[5] == fout[5]);
+  TEST_CHECK(fin[6] == fout[6]);
+  TEST_CHECK(-fin[7] == fout[7]);
 
-  double nodes[basis.ndim*basis.num_basis];
+  double nodes[basis.ndim * basis.num_basis];
   basis.node_list(nodes);
 
-  TEST_CHECK( nodes[0] == -1 );
-  TEST_CHECK( nodes[1] == -1 );
+  TEST_CHECK(nodes[0] == -1);
+  TEST_CHECK(nodes[1] == -1);
 
-  TEST_CHECK( nodes[2] == 0 );
-  TEST_CHECK( nodes[3] == -1 );
+  TEST_CHECK(nodes[2] == 0);
+  TEST_CHECK(nodes[3] == -1);
 
-  TEST_CHECK( nodes[4] == 1 );
-  TEST_CHECK( nodes[5] == -1 );
+  TEST_CHECK(nodes[4] == 1);
+  TEST_CHECK(nodes[5] == -1);
 
   double f[basis.num_basis];
-  for (int i=0; i<basis.num_basis; ++i) f[i] = 1.0;
+  for (int i = 0; i < basis.num_basis; ++i) {
+    f[i] = 1.0;
+  }
 
-  z[0] = 0.5; z[1] = 0.5;
-  TEST_CHECK ( gkyl_compare(1.219455447459001, basis.eval_expand(z, f), 1e-15) );
-  TEST_CHECK ( gkyl_compare(4.503383682599098, basis.eval_grad_expand(0, z, f), 1e-15) );
-  TEST_CHECK ( gkyl_compare(4.503383682599098, basis.eval_grad_expand(1, z, f), 1e-15) );
+  z[0] = 0.5;
+  z[1] = 0.5;
+  TEST_CHECK(gkyl_compare(1.219455447459001, basis.eval_expand(z, f), 1e-15));
+  TEST_CHECK(gkyl_compare(4.503383682599098, basis.eval_grad_expand(0, z, f), 1e-15));
+  TEST_CHECK(gkyl_compare(4.503383682599098, basis.eval_grad_expand(1, z, f), 1e-15));
 
-  z[0] = 0.25; z[1] = -0.75;
-  TEST_CHECK ( gkyl_compare(0.4723022336170485, basis.eval_expand(z, f), 1e-15) );
-  TEST_CHECK ( gkyl_compare(0.1559433418554234, basis.eval_grad_expand(0, z, f), 1e-15) );
-  TEST_CHECK ( gkyl_compare(-3.150527379222043, basis.eval_grad_expand(1, z, f), 1e-15) );
+  z[0] = 0.25;
+  z[1] = -0.75;
+  TEST_CHECK(gkyl_compare(0.4723022336170485, basis.eval_expand(z, f), 1e-15));
+  TEST_CHECK(gkyl_compare(0.1559433418554234, basis.eval_grad_expand(0, z, f), 1e-15));
+  TEST_CHECK(gkyl_compare(-3.150527379222043, basis.eval_grad_expand(1, z, f), 1e-15));
 }
 
 void
-test_ser_2d()
+test_basis_ser_2d_ho()
 {
   struct gkyl_basis basis1;
   gkyl_cart_modal_serendip(&basis1, 2, 2);
@@ -172,88 +375,98 @@ test_ser_2d()
 void
 test_ten_2d_members(struct gkyl_basis basis)
 {
-  TEST_CHECK( basis.ndim == 2 );
-  TEST_CHECK( basis.poly_order == 2 );
-  TEST_CHECK( basis.num_basis == 9 );
-  TEST_CHECK( strcmp(basis.id, "tensor") == 0 );
-  TEST_CHECK( basis.b_type == GKYL_BASIS_MODAL_TENSOR );
+  TEST_CHECK(basis.ndim == 2);
+  TEST_CHECK(basis.poly_order == 2);
+  TEST_CHECK(basis.num_basis == 9);
+  TEST_CHECK(strcmp(basis.id, "tensor") == 0);
+  TEST_CHECK(basis.b_type == GKYL_BASIS_MODAL_TENSOR);
 
   double z[basis.ndim], b[basis.num_basis];
 
-  z[0] = 0.0; z[1] = 0.0;
+  z[0] = 0.0;
+  z[1] = 0.0;
   basis.eval(z, b);
 
-  TEST_CHECK( gkyl_compare(0.5, b[0], 1e-15) );
-  TEST_CHECK( gkyl_compare(0.0, b[1], 1e-15) );
-  TEST_CHECK( gkyl_compare(0.0, b[2], 1e-15) );
-  TEST_CHECK( gkyl_compare(0.0, b[3], 1e-15) );
-  TEST_CHECK( gkyl_compare(-sqrt(5.0)/4, b[4], 1e-15) );
-  TEST_CHECK( gkyl_compare(-sqrt(5.0)/4, b[5], 1e-15) );
-  TEST_CHECK( gkyl_compare(0.0, b[6], 1e-15) );
-  TEST_CHECK( gkyl_compare(0.0, b[7], 1e-15) );
-  TEST_CHECK( gkyl_compare(5.0/8.0, b[8], 1e-15) );
+  TEST_CHECK(gkyl_compare(0.5, b[0], 1e-15));
+  TEST_CHECK(gkyl_compare(0.0, b[1], 1e-15));
+  TEST_CHECK(gkyl_compare(0.0, b[2], 1e-15));
+  TEST_CHECK(gkyl_compare(0.0, b[3], 1e-15));
+  TEST_CHECK(gkyl_compare(-sqrt(5.0) / 4, b[4], 1e-15));
+  TEST_CHECK(gkyl_compare(-sqrt(5.0) / 4, b[5], 1e-15));
+  TEST_CHECK(gkyl_compare(0.0, b[6], 1e-15));
+  TEST_CHECK(gkyl_compare(0.0, b[7], 1e-15));
+  TEST_CHECK(gkyl_compare(5.0 / 8.0, b[8], 1e-15));
 
   double f[basis.num_basis];
-  for (int i=0; i<basis.num_basis; ++i) f[i] = 1.0;
+  for (int i = 0; i < basis.num_basis; ++i) {
+    f[i] = 1.0;
+  }
 
-  z[0] = 0.5; z[1] = 0.5;
-  TEST_CHECK ( gkyl_compare(1.258517947459001, basis.eval_expand(z, f), 1e-15) );
-  TEST_CHECK ( gkyl_compare(4.034633682599098, basis.eval_grad_expand(0, z, f), 1e-15) );
-  TEST_CHECK ( gkyl_compare(4.034633682599098, basis.eval_grad_expand(1, z, f), 1e-15) );  
+  z[0] = 0.5;
+  z[1] = 0.5;
+  TEST_CHECK(gkyl_compare(1.258517947459001, basis.eval_expand(z, f), 1e-15));
+  TEST_CHECK(gkyl_compare(4.034633682599098, basis.eval_grad_expand(0, z, f), 1e-15));
+  TEST_CHECK(gkyl_compare(4.034633682599098, basis.eval_grad_expand(1, z, f), 1e-15));
 
-  z[0] = 0.25; z[1] = -0.75;
-  TEST_CHECK ( gkyl_compare(0.1231811398670484, basis.eval_expand(z, f), 1e-15) );
-  TEST_CHECK ( gkyl_compare(0.8004745918554234, basis.eval_grad_expand(0, z, f), 1e-15) );
-  TEST_CHECK ( gkyl_compare(-0.8653711292220426, basis.eval_grad_expand(1, z, f), 1e-15) );
+  z[0] = 0.25;
+  z[1] = -0.75;
+  TEST_CHECK(gkyl_compare(0.1231811398670484, basis.eval_expand(z, f), 1e-15));
+  TEST_CHECK(gkyl_compare(0.8004745918554234, basis.eval_grad_expand(0, z, f), 1e-15));
+  TEST_CHECK(gkyl_compare(-0.8653711292220426, basis.eval_grad_expand(1, z, f), 1e-15));
 }
 
 void
 test_ten_2d_members_p3(struct gkyl_basis basis)
 {
-  TEST_CHECK( basis.ndim == 2 );
-  TEST_CHECK( basis.poly_order == 3 );
-  TEST_CHECK( basis.num_basis == 16 );
-  TEST_CHECK( strcmp(basis.id, "tensor") == 0 );
-  TEST_CHECK( basis.b_type == GKYL_BASIS_MODAL_TENSOR );
+  TEST_CHECK(basis.ndim == 2);
+  TEST_CHECK(basis.poly_order == 3);
+  TEST_CHECK(basis.num_basis == 16);
+  TEST_CHECK(strcmp(basis.id, "tensor") == 0);
+  TEST_CHECK(basis.b_type == GKYL_BASIS_MODAL_TENSOR);
 
   double z[basis.ndim], b[basis.num_basis];
 
-  z[0] = 0.0; z[1] = 0.0;
+  z[0] = 0.0;
+  z[1] = 0.0;
   basis.eval(z, b);
 
-  TEST_CHECK( gkyl_compare(0.5, b[0], 1e-15) );
-  TEST_CHECK( gkyl_compare(0.0, b[1], 1e-15) );
-  TEST_CHECK( gkyl_compare(0.0, b[2], 1e-15) );
-  TEST_CHECK( gkyl_compare(0.0, b[3], 1e-15) );
-  TEST_CHECK( gkyl_compare(-sqrt(5.0)/4, b[4], 1e-15) );
-  TEST_CHECK( gkyl_compare(-sqrt(5.0)/4, b[5], 1e-15) );
-  TEST_CHECK( gkyl_compare(0.0, b[6], 1e-15) );
-  TEST_CHECK( gkyl_compare(0.0, b[7], 1e-15) );
-  TEST_CHECK( gkyl_compare(0.0, b[8], 1e-15) );
-  TEST_CHECK( gkyl_compare(0.0, b[9], 1e-15) );
-  TEST_CHECK( gkyl_compare(5.0/8.0, b[10], 1e-15) );
-  TEST_CHECK( gkyl_compare(0.0, b[11], 1e-15) );
-  TEST_CHECK( gkyl_compare(0.0, b[12], 1e-15) );
-  TEST_CHECK( gkyl_compare(0.0, b[13], 1e-15) );
-  TEST_CHECK( gkyl_compare(0.0, b[14], 1e-15) );
-  TEST_CHECK( gkyl_compare(0.0, b[15], 1e-15) );
+  TEST_CHECK(gkyl_compare(0.5, b[0], 1e-15));
+  TEST_CHECK(gkyl_compare(0.0, b[1], 1e-15));
+  TEST_CHECK(gkyl_compare(0.0, b[2], 1e-15));
+  TEST_CHECK(gkyl_compare(0.0, b[3], 1e-15));
+  TEST_CHECK(gkyl_compare(-sqrt(5.0) / 4, b[4], 1e-15));
+  TEST_CHECK(gkyl_compare(-sqrt(5.0) / 4, b[5], 1e-15));
+  TEST_CHECK(gkyl_compare(0.0, b[6], 1e-15));
+  TEST_CHECK(gkyl_compare(0.0, b[7], 1e-15));
+  TEST_CHECK(gkyl_compare(0.0, b[8], 1e-15));
+  TEST_CHECK(gkyl_compare(0.0, b[9], 1e-15));
+  TEST_CHECK(gkyl_compare(5.0 / 8.0, b[10], 1e-15));
+  TEST_CHECK(gkyl_compare(0.0, b[11], 1e-15));
+  TEST_CHECK(gkyl_compare(0.0, b[12], 1e-15));
+  TEST_CHECK(gkyl_compare(0.0, b[13], 1e-15));
+  TEST_CHECK(gkyl_compare(0.0, b[14], 1e-15));
+  TEST_CHECK(gkyl_compare(0.0, b[15], 1e-15));
 
   double f[basis.num_basis];
-  for (int i=0; i<basis.num_basis; ++i) f[i] = 1.0;
+  for (int i = 0; i < basis.num_basis; ++i) {
+    f[i] = 1.0;
+  }
 
-  z[0] = 0.5; z[1] = 0.5;
-  TEST_CHECK ( gkyl_compare(0.09202080373491306, basis.eval_expand(z, f), 1e-14) );
-  TEST_CHECK ( gkyl_compare(1.303799542808271, basis.eval_grad_expand(0, z, f), 1e-14) );
-  TEST_CHECK ( gkyl_compare(1.303799542808271, basis.eval_grad_expand(1, z, f), 1e-14) );
+  z[0] = 0.5;
+  z[1] = 0.5;
+  TEST_CHECK(gkyl_compare(0.09202080373491306, basis.eval_expand(z, f), 1e-14));
+  TEST_CHECK(gkyl_compare(1.303799542808271, basis.eval_grad_expand(0, z, f), 1e-14));
+  TEST_CHECK(gkyl_compare(1.303799542808271, basis.eval_grad_expand(1, z, f), 1e-14));
 
-  z[0] = 0.25; z[1] = -0.75;
-  TEST_CHECK ( gkyl_compare(-0.1193909952935715, basis.eval_expand(z, f), 1e-14) );
-  TEST_CHECK ( gkyl_compare(0.2231373667479314, basis.eval_grad_expand(0, z, f), 1e-14) );
-  TEST_CHECK ( gkyl_compare(-0.7090977834887839, basis.eval_grad_expand(1, z, f), 1e-14) );
+  z[0] = 0.25;
+  z[1] = -0.75;
+  TEST_CHECK(gkyl_compare(-0.1193909952935715, basis.eval_expand(z, f), 1e-14));
+  TEST_CHECK(gkyl_compare(0.2231373667479314, basis.eval_grad_expand(0, z, f), 1e-14));
+  TEST_CHECK(gkyl_compare(-0.7090977834887839, basis.eval_grad_expand(1, z, f), 1e-14));
 }
 
 void
-test_ten_2d()
+test_basis_ten_2d_ho()
 {
   struct gkyl_basis basis1;
   gkyl_cart_modal_tensor(&basis1, 2, 2);
@@ -271,46 +484,46 @@ test_ten_2d()
 void
 test_hyb_members(struct gkyl_basis basis)
 {
-  TEST_CHECK( basis.ndim == 2 );
-  TEST_CHECK( basis.poly_order == 1 );
-  TEST_CHECK( basis.num_basis == 6 );
-  TEST_CHECK( strcmp(basis.id, "hybrid") == 0 );
-  TEST_CHECK( basis.b_type == GKYL_BASIS_MODAL_HYBRID );
+  TEST_CHECK(basis.ndim == 2);
+  TEST_CHECK(basis.poly_order == 1);
+  TEST_CHECK(basis.num_basis == 6);
+  TEST_CHECK(strcmp(basis.id, "hybrid") == 0);
+  TEST_CHECK(basis.b_type == GKYL_BASIS_MODAL_HYBRID);
 
   double z[basis.ndim], b[basis.num_basis];
 
-  z[0] = 0.0; z[1] = 0.0;
+  z[0] = 0.0;
+  z[1] = 0.0;
   basis.eval(z, b);
 
-  TEST_CHECK( gkyl_compare(0.5, b[0], 1e-15) );
-  TEST_CHECK( gkyl_compare(0.0, b[1], 1e-15) );
-  TEST_CHECK( gkyl_compare(0.0, b[2], 1e-15) );
-  TEST_CHECK( gkyl_compare(0.0, b[3], 1e-15) );
-  TEST_CHECK( gkyl_compare(-sqrt(5.0)/4, b[4], 1e-15) );
-  TEST_CHECK( gkyl_compare(0.0, b[5], 1e-15) );
+  TEST_CHECK(gkyl_compare(0.5, b[0], 1e-15));
+  TEST_CHECK(gkyl_compare(0.0, b[1], 1e-15));
+  TEST_CHECK(gkyl_compare(0.0, b[2], 1e-15));
+  TEST_CHECK(gkyl_compare(0.0, b[3], 1e-15));
+  TEST_CHECK(gkyl_compare(-sqrt(5.0) / 4, b[4], 1e-15));
+  TEST_CHECK(gkyl_compare(0.0, b[5], 1e-15));
 
   double fin[basis.num_basis], fout[basis.num_basis];
-  for (int i=0; i<basis.num_basis; ++i) {
+  for (int i = 0; i < basis.num_basis; ++i) {
     fin[i] = 1.0;
     fout[i] = 0.0;
   }
 
   basis.flip_odd_sign(0, fin, fout);
-  TEST_CHECK( fin[0] == fout[0] );
-  TEST_CHECK( -fin[1] == fout[1] );
-  TEST_CHECK( fin[2] == fout[2] );
-  TEST_CHECK( -fin[3] == fout[3] );
-  TEST_CHECK( fin[4] == fout[4] );
-  TEST_CHECK( -fin[5] == fout[5] );
-
+  TEST_CHECK(fin[0] == fout[0]);
+  TEST_CHECK(-fin[1] == fout[1]);
+  TEST_CHECK(fin[2] == fout[2]);
+  TEST_CHECK(-fin[3] == fout[3]);
+  TEST_CHECK(fin[4] == fout[4]);
+  TEST_CHECK(-fin[5] == fout[5]);
 }
 
 // Deterministic pseudo-random number in [-1,1] (LCG).
 static double
 hyb_rand(unsigned *state)
 {
-  *state = *state*1664525u + 1013904223u;
-  return 2.0*((*state>>8)/(double)(1u<<24)) - 1.0;
+  *state = *state * 1664525u + 1013904223u;
+  return 2.0 * ((*state >> 8) / (double)(1u << 24)) - 1.0;
 }
 
 // Exhaustive checks of the tensor hybrid basis (p=1 tensor in configuration
@@ -321,111 +534,151 @@ hyb_rand(unsigned *state)
 static void
 test_hyb_combo(int cdim, int vdim)
 {
-  int ndim = cdim+vdim;
+  int ndim = cdim + vdim;
   struct gkyl_basis basis;
   gkyl_cart_modal_hybrid(&basis, cdim, vdim);
 
   int nb_expect = 1;
-  for (int d=0; d<cdim; ++d) nb_expect *= 2;
-  for (int d=0; d<vdim; ++d) nb_expect *= 3;
+  for (int d = 0; d < cdim; ++d) {
+    nb_expect *= 2;
+  }
+  for (int d = 0; d < vdim; ++d) {
+    nb_expect *= 3;
+  }
 
-  TEST_CHECK( basis.ndim == ndim );
-  TEST_CHECK( basis.poly_order == 1 );
-  TEST_CHECK( basis.num_basis == nb_expect );
-  TEST_CHECK( basis.num_quad == nb_expect );
-  TEST_CHECK( strcmp(basis.id, "hybrid") == 0 );
-  TEST_CHECK( basis.b_type == GKYL_BASIS_MODAL_HYBRID );
+  TEST_CHECK(basis.ndim == ndim);
+  TEST_CHECK(basis.poly_order == 1);
+  TEST_CHECK(basis.num_basis == nb_expect);
+  TEST_CHECK(basis.num_quad == nb_expect);
+  TEST_CHECK(strcmp(basis.id, "hybrid") == 0);
+  TEST_CHECK(basis.b_type == GKYL_BASIS_MODAL_HYBRID);
 
   int nb = basis.num_basis;
 
   // Tensor Gauss-Legendre quadrature with 2 points per configuration
   // direction and 3 per velocity direction: exact for products of two basis
   // functions (degree up to 2 per conf, 4 per velocity direction).
-  double ord1[2][3] = { { -1.0/sqrt(3.0), 1.0/sqrt(3.0), 0.0 },
-                        { -sqrt(3.0/5.0), 0.0, sqrt(3.0/5.0) } };
-  double wgt1[2][3] = { { 1.0, 1.0, 0.0 },
-                        { 5.0/9.0, 8.0/9.0, 5.0/9.0 } };
+  double ord1[2][3] = {
+    {-1.0 / sqrt(3.0), 1.0 / sqrt(3.0), 0.0}, {-sqrt(3.0 / 5.0), 0.0, sqrt(3.0 / 5.0)}
+  };
+  double wgt1[2][3] = {{1.0, 1.0, 0.0}, {5.0 / 9.0, 8.0 / 9.0, 5.0 / 9.0}};
   int nq1[GKYL_MAX_DIM], idx[GKYL_MAX_DIM];
   int nquad = 1;
-  for (int d=0; d<ndim; ++d) { nq1[d] = d<cdim ? 2 : 3; nquad *= nq1[d]; }
+  for (int d = 0; d < ndim; ++d) {
+    nq1[d] = d < cdim ? 2 : 3;
+    nquad *= nq1[d];
+  }
 
   // Orthonormality: int b_i b_j dz = delta_ij.
-  double *gram = gkyl_malloc(sizeof(double[nb*nb]));
-  for (int i=0; i<nb*nb; ++i) gram[i] = 0.0;
+  double *gram = gkyl_malloc(sizeof(double[nb * nb]));
+  for (int i = 0; i < nb * nb; ++i) {
+    gram[i] = 0.0;
+  }
   double b[nb], z[GKYL_MAX_DIM];
-  for (int n=0; n<nquad; ++n) {
+  for (int n = 0; n < nquad; ++n) {
     int rem = n;
     double w = 1.0;
-    for (int d=0; d<ndim; ++d) { idx[d] = rem % nq1[d]; rem /= nq1[d]; }
-    for (int d=0; d<ndim; ++d) {
-      int t = d<cdim ? 0 : 1;
+    for (int d = 0; d < ndim; ++d) {
+      idx[d] = rem % nq1[d];
+      rem /= nq1[d];
+    }
+    for (int d = 0; d < ndim; ++d) {
+      int t = d < cdim ? 0 : 1;
       z[d] = ord1[t][idx[d]];
       w *= wgt1[t][idx[d]];
     }
     basis.eval(z, b);
-    for (int i=0; i<nb; ++i)
-      for (int j=0; j<nb; ++j)
-        gram[i*nb+j] += w*b[i]*b[j];
+    for (int i = 0; i < nb; ++i) {
+      for (int j = 0; j < nb; ++j) {
+        gram[i * nb + j] += w * b[i] * b[j];
+      }
+    }
   }
-  for (int i=0; i<nb; ++i)
-    for (int j=0; j<nb; ++j)
-      TEST_CHECK( gkyl_compare(i==j ? 1.0 : 0.0, gram[i*nb+j], 1e-12) );
+  for (int i = 0; i < nb; ++i) {
+    for (int j = 0; j < nb; ++j) {
+      TEST_CHECK(gkyl_compare(i == j ? 1.0 : 0.0, gram[i * nb + j], 1e-12));
+    }
+  }
   gkyl_free(gram);
 
   // Random modal vector.
   unsigned seed = 12345u;
   double f[nb];
-  for (int i=0; i<nb; ++i) f[i] = hyb_rand(&seed);
+  for (int i = 0; i < nb; ++i) {
+    f[i] = hyb_rand(&seed);
+  }
 
   // eval_expand consistent with eval.
   double zp[GKYL_MAX_DIM];
-  for (int d=0; d<ndim; ++d) zp[d] = 0.9*hyb_rand(&seed);
+  for (int d = 0; d < ndim; ++d) {
+    zp[d] = 0.9 * hyb_rand(&seed);
+  }
   basis.eval(zp, b);
   double fval = 0.0;
-  for (int i=0; i<nb; ++i) fval += f[i]*b[i];
-  TEST_CHECK( gkyl_compare(fval, basis.eval_expand(zp, f), 1e-12) );
+  for (int i = 0; i < nb; ++i) {
+    fval += f[i] * b[i];
+  }
+  TEST_CHECK(gkyl_compare(fval, basis.eval_expand(zp, f), 1e-12));
 
   // eval_grad_expand vs central finite difference of eval_expand.
-  for (int dir=0; dir<ndim; ++dir) {
+  for (int dir = 0; dir < ndim; ++dir) {
     double zh[GKYL_MAX_DIM], zl[GKYL_MAX_DIM], h = 1e-6;
-    for (int d=0; d<ndim; ++d) { zh[d] = zp[d]; zl[d] = zp[d]; }
-    zh[dir] += h; zl[dir] -= h;
-    double fd = (basis.eval_expand(zh, f) - basis.eval_expand(zl, f))/(2.0*h);
-    TEST_CHECK( gkyl_compare(fd, basis.eval_grad_expand(dir, zp, f), 1e-6) );
+    for (int d = 0; d < ndim; ++d) {
+      zh[d] = zp[d];
+      zl[d] = zp[d];
+    }
+    zh[dir] += h;
+    zl[dir] -= h;
+    double fd = (basis.eval_expand(zh, f) - basis.eval_expand(zl, f)) / (2.0 * h);
+    TEST_CHECK(gkyl_compare(fd, basis.eval_grad_expand(dir, zp, f), 1e-6));
   }
 
   // node_list + eval_expand + nodal_to_modal round trip: sampling the
   // expansion at the nodes and transforming back must recover the modal
   // coefficients (one-to-one nodal set: num nodes == num_basis).
-  double *nodes = gkyl_malloc(sizeof(double[nb*ndim]));
+  double *nodes = gkyl_malloc(sizeof(double[nb * ndim]));
   basis.node_list(nodes);
   double fnodal[nb], fmodal[nb];
-  for (int n=0; n<nb; ++n) fnodal[n] = basis.eval_expand(&nodes[n*ndim], f);
+  for (int n = 0; n < nb; ++n) {
+    fnodal[n] = basis.eval_expand(&nodes[n * ndim], f);
+  }
   basis.nodal_to_modal(fnodal, fmodal);
-  for (int i=0; i<nb; ++i) TEST_CHECK( gkyl_compare(f[i], fmodal[i], 1e-11) );
+  for (int i = 0; i < nb; ++i) {
+    TEST_CHECK(gkyl_compare(f[i], fmodal[i], 1e-11));
+  }
   gkyl_free(nodes);
 
   // modal_to_quad_nodal / quad_nodal_to_modal round trip at the
   // Gauss-Legendre quadrature nodal basis.
   double fquad[nb], f2[nb];
-  for (int n=0; n<nb; ++n) basis.modal_to_quad_nodal(f, fquad, n);
-  for (int i=0; i<nb; ++i) basis.quad_nodal_to_modal(fquad, f2, i);
-  for (int i=0; i<nb; ++i) TEST_CHECK( gkyl_compare(f[i], f2[i], 1e-11) );
+  for (int n = 0; n < nb; ++n) {
+    basis.modal_to_quad_nodal(f, fquad, n);
+  }
+  for (int i = 0; i < nb; ++i) {
+    basis.quad_nodal_to_modal(fquad, f2, i);
+  }
+  for (int i = 0; i < nb; ++i) {
+    TEST_CHECK(gkyl_compare(f[i], f2[i], 1e-11));
+  }
 
   // flip_odd/even_sign are involutions in every direction.
   double fo[nb], fo2[nb];
-  for (int dir=0; dir<ndim; ++dir) {
+  for (int dir = 0; dir < ndim; ++dir) {
     basis.flip_odd_sign(dir, f, fo);
     basis.flip_odd_sign(dir, fo, fo2);
-    for (int i=0; i<nb; ++i) TEST_CHECK( f[i] == fo2[i] );
+    for (int i = 0; i < nb; ++i) {
+      TEST_CHECK(f[i] == fo2[i]);
+    }
     basis.flip_even_sign(dir, f, fo);
     basis.flip_even_sign(dir, fo, fo2);
-    for (int i=0; i<nb; ++i) TEST_CHECK( f[i] == fo2[i] );
+    for (int i = 0; i < nb; ++i) {
+      TEST_CHECK(f[i] == fo2[i]);
+    }
   }
 }
 
 void
-test_hyb()
+test_basis_hyb_ho()
 {
   struct gkyl_basis basis1;
   gkyl_cart_modal_hybrid(&basis1, 1, 1);
@@ -435,57 +688,61 @@ test_hyb()
   test_hyb_members(*basis2);
   gkyl_cart_modal_basis_release(basis2);
 
-  for (int cdim=1; cdim<4; ++cdim)
-    for (int vdim=1; vdim<4; ++vdim)
+  for (int cdim = 1; cdim < 4; ++cdim) {
+    for (int vdim = 1; vdim < 4; ++vdim) {
       test_hyb_combo(cdim, vdim);
+    }
+  }
 }
 
 void
 test_gkhyb_members(struct gkyl_basis basis)
 {
-  TEST_CHECK( basis.ndim == 3 );
-  TEST_CHECK( basis.poly_order == 1 );
-  TEST_CHECK( basis.num_basis == 12 );
-  TEST_CHECK( strcmp(basis.id, "gkhybrid") == 0 );
-  TEST_CHECK( basis.b_type == GKYL_BASIS_MODAL_GKHYBRID );
+  TEST_CHECK(basis.ndim == 3);
+  TEST_CHECK(basis.poly_order == 1);
+  TEST_CHECK(basis.num_basis == 12);
+  TEST_CHECK(strcmp(basis.id, "gkhybrid") == 0);
+  TEST_CHECK(basis.b_type == GKYL_BASIS_MODAL_GKHYBRID);
 
   double z[basis.ndim], b[basis.num_basis];
 
-  z[0] = 0.0; z[1] = 0.0; z[2] = 0.0;
+  z[0] = 0.0;
+  z[1] = 0.0;
+  z[2] = 0.0;
   basis.eval(z, b);
 
-  TEST_CHECK( gkyl_compare(1./sqrt(pow(2.,3)), b[0], 1e-15) );
-  TEST_CHECK( gkyl_compare(0.0, b[1], 1e-15) );
-  TEST_CHECK( gkyl_compare(0.0, b[2], 1e-15) );
-  TEST_CHECK( gkyl_compare(0.0, b[3], 1e-15) );
-  TEST_CHECK( gkyl_compare(0.0, b[4], 1e-15) );
-  TEST_CHECK( gkyl_compare(0.0, b[5], 1e-15) );
-  TEST_CHECK( gkyl_compare(0.0, b[6], 1e-15) );
-  TEST_CHECK( gkyl_compare(0.0, b[7], 1e-15) );
-  TEST_CHECK( gkyl_compare(-sqrt(5.0)/sqrt(pow(2.,5)), b[8], 1e-15) );
-  TEST_CHECK( gkyl_compare(0.0, b[9], 1e-15) );
-  TEST_CHECK( gkyl_compare(0.0, b[10], 1e-15) );
-  TEST_CHECK( gkyl_compare(0.0, b[11], 1e-15) );
+  TEST_CHECK(gkyl_compare(1. / sqrt(pow(2., 3)), b[0], 1e-15));
+  TEST_CHECK(gkyl_compare(0.0, b[1], 1e-15));
+  TEST_CHECK(gkyl_compare(0.0, b[2], 1e-15));
+  TEST_CHECK(gkyl_compare(0.0, b[3], 1e-15));
+  TEST_CHECK(gkyl_compare(0.0, b[4], 1e-15));
+  TEST_CHECK(gkyl_compare(0.0, b[5], 1e-15));
+  TEST_CHECK(gkyl_compare(0.0, b[6], 1e-15));
+  TEST_CHECK(gkyl_compare(0.0, b[7], 1e-15));
+  TEST_CHECK(gkyl_compare(-sqrt(5.0) / sqrt(pow(2., 5)), b[8], 1e-15));
+  TEST_CHECK(gkyl_compare(0.0, b[9], 1e-15));
+  TEST_CHECK(gkyl_compare(0.0, b[10], 1e-15));
+  TEST_CHECK(gkyl_compare(0.0, b[11], 1e-15));
 
   double fin[basis.num_basis], fout[basis.num_basis];
-  for (int i=0; i<basis.num_basis; ++i) {
+  for (int i = 0; i < basis.num_basis; ++i) {
     fin[i] = 1.0;
     fout[i] = 0.0;
   }
 
   basis.flip_odd_sign(0, fin, fout);
-  TEST_CHECK( fin[0] == fout[0] );
-  TEST_CHECK( -fin[1] == fout[1] );
-  TEST_CHECK( fin[2] == fout[2] );  
-  TEST_CHECK( fin[3] == fout[3] );  
-  TEST_CHECK( -fin[4] == fout[4] );
-  TEST_CHECK( -fin[5] == fout[5] );
-  TEST_CHECK( fin[6] == fout[6] );
-  TEST_CHECK( -fin[7] == fout[7] );
-  TEST_CHECK( fin[8] == fout[8] );
-  TEST_CHECK( -fin[9] == fout[9] );
-  TEST_CHECK( fin[10] == fout[10] );
-  TEST_CHECK( -fin[11] == fout[11] );
+  TEST_CHECK(fin[0] == fout[0]);
+  TEST_CHECK(-fin[1] == fout[1]);
+  TEST_CHECK(fin[2] == fout[2]);
+  TEST_CHECK(fin[3] == fout[3]);
+  TEST_CHECK(-fin[4] == fout[4]);
+  TEST_CHECK(-fin[5] == fout[5]);
+  TEST_CHECK(fin[6] == fout[6]);
+  TEST_CHECK(-fin[7] == fout[7]);
+  TEST_CHECK(fin[8] == fout[8]);
+  TEST_CHECK(-fin[9] == fout[9]);
+  TEST_CHECK(fin[10] == fout[10]);
+  TEST_CHECK(-fin[11] == fout[11]);
 }
 
 void
@@ -494,10 +751,11 @@ test_gkhyb_1x2v_surf_eval_nod(struct gkyl_basis basis)
   // Accepted results here were generated with
   // ms-basis_surf_quad_upwind_accepted_results.mac
   double fin[basis.num_basis];
-  for (int i=0; i<basis.num_basis; ++i)
-    fin[i] = i+1.0;
+  for (int i = 0; i < basis.num_basis; ++i) {
+    fin[i] = i + 1.0;
+  }
 
-  typedef double (*doubleFunc_t)(const double* GKYL_RESTRICT f);
+  typedef double (*doubleFunc_t)(const double *GKYL_RESTRICT f);
   int numnod;
 
   // Evaluate at left nodes on surf perp to dir 1.
@@ -507,26 +765,35 @@ test_gkhyb_1x2v_surf_eval_nod(struct gkyl_basis basis)
                             gkhyb_1x2v_p1_surfx1_eval_quad_node_3_l,
                             gkhyb_1x2v_p1_surfx1_eval_quad_node_4_l,
                             gkhyb_1x2v_p1_surfx1_eval_quad_node_5_l};
-  numnod = sizeof(funcs1l)/sizeof(doubleFunc_t);
+  numnod = sizeof(funcs1l) / sizeof(doubleFunc_t);
   double fout1l_a[] = {
-    0.5477225575051661*fin[11]-0.3162277660168379*fin[10]-0.5477225575051661*fin[9]+0.3162277660168379*fin[8]-
-    0.8215838362577489*fin[7]+0.4743416490252568*fin[6]+0.6123724356957944*fin[5]+0.8215838362577489*fin[4]-0.3535533905932737*fin[3]-
-    0.4743416490252568*fin[2]-0.6123724356957944*fin[1]+0.3535533905932737*fin[0],-0.6846531968814573*fin[11]+0.3952847075210473*fin[10]+
-    0.6846531968814574*fin[9]-0.3952847075210473*fin[8]+0.6123724356957944*fin[5]-0.3535533905932737*fin[3]-0.6123724356957944*fin[1]+
-    0.3535533905932737*fin[0],0.5477225575051661*fin[11]-0.3162277660168379*fin[10]-0.5477225575051661*fin[9]+0.3162277660168379*fin[8]+
-    0.8215838362577489*fin[7]-0.4743416490252568*fin[6]+0.6123724356957944*fin[5]-0.8215838362577489*fin[4]-0.3535533905932737*fin[3]+
-    0.4743416490252568*fin[2]-0.6123724356957944*fin[1]+0.3535533905932737*fin[0],-0.5477225575051661*fin[11]+0.3162277660168379*fin[10]-
-    0.5477225575051661*fin[9]+0.3162277660168379*fin[8]+0.8215838362577489*fin[7]-0.4743416490252568*fin[6]-0.6123724356957944*fin[5]+
-    0.8215838362577489*fin[4]+0.3535533905932737*fin[3]-0.4743416490252568*fin[2]-0.6123724356957944*fin[1]+0.3535533905932737*fin[0],
-    0.6846531968814573*fin[11]-0.3952847075210473*fin[10]+0.6846531968814574*fin[9]-0.3952847075210473*fin[8]-0.6123724356957944*fin[5]+
-    0.3535533905932737*fin[3]-0.6123724356957944*fin[1]+0.3535533905932737*fin[0],-0.5477225575051661*fin[11]+0.3162277660168379*fin[10]-
-    0.5477225575051661*fin[9]+0.3162277660168379*fin[8]-0.8215838362577489*fin[7]+0.4743416490252568*fin[6]-0.6123724356957944*fin[5]-
-    0.8215838362577489*fin[4]+0.3535533905932737*fin[3]+0.4743416490252568*fin[2]-0.6123724356957944*fin[1]+0.3535533905932737*fin[0]
+    0.5477225575051661 * fin[11] - 0.3162277660168379 * fin[10] - 0.5477225575051661 * fin[9] +
+      0.3162277660168379 * fin[8] - 0.8215838362577489 * fin[7] + 0.4743416490252568 * fin[6] +
+      0.6123724356957944 * fin[5] + 0.8215838362577489 * fin[4] - 0.3535533905932737 * fin[3] -
+      0.4743416490252568 * fin[2] - 0.6123724356957944 * fin[1] + 0.3535533905932737 * fin[0],
+    -0.6846531968814573 * fin[11] + 0.3952847075210473 * fin[10] + 0.6846531968814574 * fin[9] -
+      0.3952847075210473 * fin[8] + 0.6123724356957944 * fin[5] - 0.3535533905932737 * fin[3] -
+      0.6123724356957944 * fin[1] + 0.3535533905932737 * fin[0],
+    0.5477225575051661 * fin[11] - 0.3162277660168379 * fin[10] - 0.5477225575051661 * fin[9] +
+      0.3162277660168379 * fin[8] + 0.8215838362577489 * fin[7] - 0.4743416490252568 * fin[6] +
+      0.6123724356957944 * fin[5] - 0.8215838362577489 * fin[4] - 0.3535533905932737 * fin[3] +
+      0.4743416490252568 * fin[2] - 0.6123724356957944 * fin[1] + 0.3535533905932737 * fin[0],
+    -0.5477225575051661 * fin[11] + 0.3162277660168379 * fin[10] - 0.5477225575051661 * fin[9] +
+      0.3162277660168379 * fin[8] + 0.8215838362577489 * fin[7] - 0.4743416490252568 * fin[6] -
+      0.6123724356957944 * fin[5] + 0.8215838362577489 * fin[4] + 0.3535533905932737 * fin[3] -
+      0.4743416490252568 * fin[2] - 0.6123724356957944 * fin[1] + 0.3535533905932737 * fin[0],
+    0.6846531968814573 * fin[11] - 0.3952847075210473 * fin[10] + 0.6846531968814574 * fin[9] -
+      0.3952847075210473 * fin[8] - 0.6123724356957944 * fin[5] + 0.3535533905932737 * fin[3] -
+      0.6123724356957944 * fin[1] + 0.3535533905932737 * fin[0],
+    -0.5477225575051661 * fin[11] + 0.3162277660168379 * fin[10] - 0.5477225575051661 * fin[9] +
+      0.3162277660168379 * fin[8] - 0.8215838362577489 * fin[7] + 0.4743416490252568 * fin[6] -
+      0.6123724356957944 * fin[5] - 0.8215838362577489 * fin[4] + 0.3535533905932737 * fin[3] +
+      0.4743416490252568 * fin[2] - 0.6123724356957944 * fin[1] + 0.3535533905932737 * fin[0]
   };
-  for (int i=0; i<numnod; i++) {
+  for (int i = 0; i < numnod; i++) {
     doubleFunc_t sfunc = funcs1l[i];
     double fsurf = sfunc(fin);
-    TEST_CHECK( gkyl_compare(fout1l_a[i], fsurf, 1e-12) );
+    TEST_CHECK(gkyl_compare(fout1l_a[i], fsurf, 1e-12));
     TEST_MSG("Expected: %.13e in i=%d", fout1l_a[i], i);
     TEST_MSG("Produced: %.13e", fsurf);
   }
@@ -539,75 +806,96 @@ test_gkhyb_1x2v_surf_eval_nod(struct gkyl_basis basis)
                             gkhyb_1x2v_p1_surfx1_eval_quad_node_4_r,
                             gkhyb_1x2v_p1_surfx1_eval_quad_node_5_r};
   double fout1r_a[] = {
-    -0.5477225575051661*fin[11]-0.3162277660168379*fin[10]+0.5477225575051661*fin[9]+0.3162277660168379*fin[8]+
-    0.8215838362577489*fin[7]+0.4743416490252568*fin[6]-0.6123724356957944*fin[5]-0.8215838362577489*fin[4]-0.3535533905932737*fin[3]-
-    0.4743416490252568*fin[2]+0.6123724356957944*fin[1]+0.3535533905932737*fin[0],0.6846531968814573*fin[11]+0.3952847075210473*fin[10]-
-    0.6846531968814574*fin[9]-0.3952847075210473*fin[8]-0.6123724356957944*fin[5]-0.3535533905932737*fin[3]+0.6123724356957944*fin[1]+
-    0.3535533905932737*fin[0],-0.5477225575051661*fin[11]-0.3162277660168379*fin[10]+0.5477225575051661*fin[9]+0.3162277660168379*fin[8]-
-    0.8215838362577489*fin[7]-0.4743416490252568*fin[6]-0.6123724356957944*fin[5]+0.8215838362577489*fin[4]-0.3535533905932737*fin[3]+
-    0.4743416490252568*fin[2]+0.6123724356957944*fin[1]+0.3535533905932737*fin[0],0.5477225575051661*fin[11]+0.3162277660168379*fin[10]+
-    0.5477225575051661*fin[9]+0.3162277660168379*fin[8]-0.8215838362577489*fin[7]-0.4743416490252568*fin[6]+0.6123724356957944*fin[5]-
-    0.8215838362577489*fin[4]+0.3535533905932737*fin[3]-0.4743416490252568*fin[2]+0.6123724356957944*fin[1]+0.3535533905932737*fin[0],-
-    0.6846531968814573*fin[11]-0.3952847075210473*fin[10]-0.6846531968814574*fin[9]-0.3952847075210473*fin[8]+0.6123724356957944*fin[5]+
-    0.3535533905932737*fin[3]+0.6123724356957944*fin[1]+0.3535533905932737*fin[0],0.5477225575051661*fin[11]+0.3162277660168379*fin[10]+
-    0.5477225575051661*fin[9]+0.3162277660168379*fin[8]+0.8215838362577489*fin[7]+0.4743416490252568*fin[6]+0.6123724356957944*fin[5]+
-    0.8215838362577489*fin[4]+0.3535533905932737*fin[3]+0.4743416490252568*fin[2]+0.6123724356957944*fin[1]+0.3535533905932737*fin[0]
+    -0.5477225575051661 * fin[11] - 0.3162277660168379 * fin[10] + 0.5477225575051661 * fin[9] +
+      0.3162277660168379 * fin[8] + 0.8215838362577489 * fin[7] + 0.4743416490252568 * fin[6] -
+      0.6123724356957944 * fin[5] - 0.8215838362577489 * fin[4] - 0.3535533905932737 * fin[3] -
+      0.4743416490252568 * fin[2] + 0.6123724356957944 * fin[1] + 0.3535533905932737 * fin[0],
+    0.6846531968814573 * fin[11] + 0.3952847075210473 * fin[10] - 0.6846531968814574 * fin[9] -
+      0.3952847075210473 * fin[8] - 0.6123724356957944 * fin[5] - 0.3535533905932737 * fin[3] +
+      0.6123724356957944 * fin[1] + 0.3535533905932737 * fin[0],
+    -0.5477225575051661 * fin[11] - 0.3162277660168379 * fin[10] + 0.5477225575051661 * fin[9] +
+      0.3162277660168379 * fin[8] - 0.8215838362577489 * fin[7] - 0.4743416490252568 * fin[6] -
+      0.6123724356957944 * fin[5] + 0.8215838362577489 * fin[4] - 0.3535533905932737 * fin[3] +
+      0.4743416490252568 * fin[2] + 0.6123724356957944 * fin[1] + 0.3535533905932737 * fin[0],
+    0.5477225575051661 * fin[11] + 0.3162277660168379 * fin[10] + 0.5477225575051661 * fin[9] +
+      0.3162277660168379 * fin[8] - 0.8215838362577489 * fin[7] - 0.4743416490252568 * fin[6] +
+      0.6123724356957944 * fin[5] - 0.8215838362577489 * fin[4] + 0.3535533905932737 * fin[3] -
+      0.4743416490252568 * fin[2] + 0.6123724356957944 * fin[1] + 0.3535533905932737 * fin[0],
+    -0.6846531968814573 * fin[11] - 0.3952847075210473 * fin[10] - 0.6846531968814574 * fin[9] -
+      0.3952847075210473 * fin[8] + 0.6123724356957944 * fin[5] + 0.3535533905932737 * fin[3] +
+      0.6123724356957944 * fin[1] + 0.3535533905932737 * fin[0],
+    0.5477225575051661 * fin[11] + 0.3162277660168379 * fin[10] + 0.5477225575051661 * fin[9] +
+      0.3162277660168379 * fin[8] + 0.8215838362577489 * fin[7] + 0.4743416490252568 * fin[6] +
+      0.6123724356957944 * fin[5] + 0.8215838362577489 * fin[4] + 0.3535533905932737 * fin[3] +
+      0.4743416490252568 * fin[2] + 0.6123724356957944 * fin[1] + 0.3535533905932737 * fin[0]
   };
-  for (int i=0; i<numnod; i++) {
+  for (int i = 0; i < numnod; i++) {
     doubleFunc_t sfunc = funcs1r[i];
     double fsurf = sfunc(fin);
-    TEST_CHECK( gkyl_compare(fout1r_a[i], fsurf, 1e-12) );
+    TEST_CHECK(gkyl_compare(fout1r_a[i], fsurf, 1e-12));
     TEST_MSG("Expected: %.13e in i=%d", fout1r_a[i], i);
     TEST_MSG("Produced: %.13e", fsurf);
   }
 
   // Evaluate at left nodes on surf perp to dir 2.
-  doubleFunc_t funcs2l[] = {gkhyb_1x2v_p1_surfx2_eval_quad_node_0_l,
-                            gkhyb_1x2v_p1_surfx2_eval_quad_node_1_l,
-                            gkhyb_1x2v_p1_surfx2_eval_quad_node_2_l,
-                            gkhyb_1x2v_p1_surfx2_eval_quad_node_3_l};
-  numnod = sizeof(funcs2l)/sizeof(doubleFunc_t);
-  double fout2l_a[] = {
-    0.7905694150420947*fin[11]-0.7905694150420948*(fin[10]+fin[9])+0.7905694150420947*fin[8]-0.6123724356957944*fin[7]+
-    0.6123724356957944*fin[6]+0.3535533905932737*fin[5]+0.6123724356957944*fin[4]-0.3535533905932737*fin[3]-0.6123724356957944*fin[2]-
-    0.3535533905932737*fin[1]+0.3535533905932737*fin[0],-0.7905694150420947*fin[11]+0.7905694150420948*fin[10]-0.7905694150420948*fin[9]+
-    0.7905694150420947*fin[8]+0.6123724356957944*fin[7]-0.6123724356957944*fin[6]-0.3535533905932737*fin[5]+0.6123724356957944*fin[4]+
-    0.3535533905932737*fin[3]-0.6123724356957944*fin[2]-0.3535533905932737*fin[1]+0.3535533905932737*fin[0],-0.7905694150420947*fin[11]-
-    0.7905694150420948*fin[10]+0.7905694150420948*fin[9]+0.7905694150420947*fin[8]+0.6123724356957944*(fin[7]+fin[6])-0.3535533905932737*
-    fin[5]-0.6123724356957944*fin[4]-0.3535533905932737*fin[3]-0.6123724356957944*fin[2]+0.3535533905932737*(fin[1]+fin[0]),
-    0.7905694150420947*fin[11]+0.7905694150420948*(fin[10]+fin[9])+0.7905694150420947*fin[8]-0.6123724356957944*(fin[7]+fin[6])+
-    0.3535533905932737*fin[5]-0.6123724356957944*fin[4]+0.3535533905932737*fin[3]-0.6123724356957944*fin[2]+0.3535533905932737*
-    (fin[1]+fin[0])
+  doubleFunc_t funcs2l[] = {
+    gkhyb_1x2v_p1_surfx2_eval_quad_node_0_l, gkhyb_1x2v_p1_surfx2_eval_quad_node_1_l,
+    gkhyb_1x2v_p1_surfx2_eval_quad_node_2_l, gkhyb_1x2v_p1_surfx2_eval_quad_node_3_l
   };
-  for (int i=0; i<numnod; i++) {
+  numnod = sizeof(funcs2l) / sizeof(doubleFunc_t);
+  double fout2l_a[] = {
+    0.7905694150420947 * fin[11] - 0.7905694150420948 * (fin[10] + fin[9]) +
+      0.7905694150420947 * fin[8] - 0.6123724356957944 * fin[7] + 0.6123724356957944 * fin[6] +
+      0.3535533905932737 * fin[5] + 0.6123724356957944 * fin[4] - 0.3535533905932737 * fin[3] -
+      0.6123724356957944 * fin[2] - 0.3535533905932737 * fin[1] + 0.3535533905932737 * fin[0],
+    -0.7905694150420947 * fin[11] + 0.7905694150420948 * fin[10] - 0.7905694150420948 * fin[9] +
+      0.7905694150420947 * fin[8] + 0.6123724356957944 * fin[7] - 0.6123724356957944 * fin[6] -
+      0.3535533905932737 * fin[5] + 0.6123724356957944 * fin[4] + 0.3535533905932737 * fin[3] -
+      0.6123724356957944 * fin[2] - 0.3535533905932737 * fin[1] + 0.3535533905932737 * fin[0],
+    -0.7905694150420947 * fin[11] - 0.7905694150420948 * fin[10] + 0.7905694150420948 * fin[9] +
+      0.7905694150420947 * fin[8] + 0.6123724356957944 * (fin[7] + fin[6]) -
+      0.3535533905932737 * fin[5] - 0.6123724356957944 * fin[4] - 0.3535533905932737 * fin[3] -
+      0.6123724356957944 * fin[2] + 0.3535533905932737 * (fin[1] + fin[0]),
+    0.7905694150420947 * fin[11] + 0.7905694150420948 * (fin[10] + fin[9]) +
+      0.7905694150420947 * fin[8] - 0.6123724356957944 * (fin[7] + fin[6]) +
+      0.3535533905932737 * fin[5] - 0.6123724356957944 * fin[4] + 0.3535533905932737 * fin[3] -
+      0.6123724356957944 * fin[2] + 0.3535533905932737 * (fin[1] + fin[0])
+  };
+  for (int i = 0; i < numnod; i++) {
     doubleFunc_t sfunc = funcs2l[i];
     double fsurf = sfunc(fin);
-    TEST_CHECK( gkyl_compare(fout2l_a[i], fsurf, 1e-12) );
+    TEST_CHECK(gkyl_compare(fout2l_a[i], fsurf, 1e-12));
     TEST_MSG("Expected: %.13e in i=%d", fout2l_a[i], i);
     TEST_MSG("Produced: %.13e", fsurf);
   }
 
   // Evaluate at right nodes on surf perp to dir 2.
-  doubleFunc_t funcs2r[] = {gkhyb_1x2v_p1_surfx2_eval_quad_node_0_r,
-                            gkhyb_1x2v_p1_surfx2_eval_quad_node_1_r,
-                            gkhyb_1x2v_p1_surfx2_eval_quad_node_2_r,
-                            gkhyb_1x2v_p1_surfx2_eval_quad_node_3_r};
-  double fout2r_a[] = {
-    0.7905694150420947*fin[11]-0.7905694150420948*(fin[10]+fin[9])+0.7905694150420947*fin[8]+0.6123724356957944*fin[7]-
-    0.6123724356957944*fin[6]+0.3535533905932737*fin[5]-0.6123724356957944*fin[4]-0.3535533905932737*fin[3]+0.6123724356957944*fin[2]-
-    0.3535533905932737*fin[1]+0.3535533905932737*fin[0],-0.7905694150420947*fin[11]+0.7905694150420948*fin[10]-0.7905694150420948*fin[9]+
-    0.7905694150420947*fin[8]-0.6123724356957944*fin[7]+0.6123724356957944*fin[6]-0.3535533905932737*fin[5]-0.6123724356957944*fin[4]+
-    0.3535533905932737*fin[3]+0.6123724356957944*fin[2]-0.3535533905932737*fin[1]+0.3535533905932737*fin[0],-0.7905694150420947*fin[11]-
-    0.7905694150420948*fin[10]+0.7905694150420948*fin[9]+0.7905694150420947*fin[8]-0.6123724356957944*(fin[7]+fin[6])-0.3535533905932737*
-    fin[5]+0.6123724356957944*fin[4]-0.3535533905932737*fin[3]+0.6123724356957944*fin[2]+0.3535533905932737*(fin[1]+fin[0]),
-    0.7905694150420947*fin[11]+0.7905694150420948*(fin[10]+fin[9])+0.7905694150420947*fin[8]+0.6123724356957944*(fin[7]+fin[6])+
-    0.3535533905932737*fin[5]+0.6123724356957944*fin[4]+0.3535533905932737*fin[3]+0.6123724356957944*fin[2]+0.3535533905932737*
-    (fin[1]+fin[0])
+  doubleFunc_t funcs2r[] = {
+    gkhyb_1x2v_p1_surfx2_eval_quad_node_0_r, gkhyb_1x2v_p1_surfx2_eval_quad_node_1_r,
+    gkhyb_1x2v_p1_surfx2_eval_quad_node_2_r, gkhyb_1x2v_p1_surfx2_eval_quad_node_3_r
   };
-  for (int i=0; i<numnod; i++) {
+  double fout2r_a[] = {
+    0.7905694150420947 * fin[11] - 0.7905694150420948 * (fin[10] + fin[9]) +
+      0.7905694150420947 * fin[8] + 0.6123724356957944 * fin[7] - 0.6123724356957944 * fin[6] +
+      0.3535533905932737 * fin[5] - 0.6123724356957944 * fin[4] - 0.3535533905932737 * fin[3] +
+      0.6123724356957944 * fin[2] - 0.3535533905932737 * fin[1] + 0.3535533905932737 * fin[0],
+    -0.7905694150420947 * fin[11] + 0.7905694150420948 * fin[10] - 0.7905694150420948 * fin[9] +
+      0.7905694150420947 * fin[8] - 0.6123724356957944 * fin[7] + 0.6123724356957944 * fin[6] -
+      0.3535533905932737 * fin[5] - 0.6123724356957944 * fin[4] + 0.3535533905932737 * fin[3] +
+      0.6123724356957944 * fin[2] - 0.3535533905932737 * fin[1] + 0.3535533905932737 * fin[0],
+    -0.7905694150420947 * fin[11] - 0.7905694150420948 * fin[10] + 0.7905694150420948 * fin[9] +
+      0.7905694150420947 * fin[8] - 0.6123724356957944 * (fin[7] + fin[6]) -
+      0.3535533905932737 * fin[5] + 0.6123724356957944 * fin[4] - 0.3535533905932737 * fin[3] +
+      0.6123724356957944 * fin[2] + 0.3535533905932737 * (fin[1] + fin[0]),
+    0.7905694150420947 * fin[11] + 0.7905694150420948 * (fin[10] + fin[9]) +
+      0.7905694150420947 * fin[8] + 0.6123724356957944 * (fin[7] + fin[6]) +
+      0.3535533905932737 * fin[5] + 0.6123724356957944 * fin[4] + 0.3535533905932737 * fin[3] +
+      0.6123724356957944 * fin[2] + 0.3535533905932737 * (fin[1] + fin[0])
+  };
+  for (int i = 0; i < numnod; i++) {
     doubleFunc_t sfunc = funcs2r[i];
     double fsurf = sfunc(fin);
-    TEST_CHECK( gkyl_compare(fout2r_a[i], fsurf, 1e-12) );
+    TEST_CHECK(gkyl_compare(fout2r_a[i], fsurf, 1e-12));
     TEST_MSG("Expected: %.13e in i=%d", fout2r_a[i], i);
     TEST_MSG("Produced: %.13e", fsurf);
   }
@@ -619,26 +907,35 @@ test_gkhyb_1x2v_surf_eval_nod(struct gkyl_basis basis)
                             gkhyb_1x2v_p1_surfx3_eval_quad_node_3_l,
                             gkhyb_1x2v_p1_surfx3_eval_quad_node_4_l,
                             gkhyb_1x2v_p1_surfx3_eval_quad_node_5_l};
-  numnod = sizeof(funcs3l)/sizeof(doubleFunc_t);
+  numnod = sizeof(funcs3l) / sizeof(doubleFunc_t);
   double fout3l_a[] = {
-    0.5477225575051661*fin[11]-0.5477225575051661*fin[10]-0.3162277660168379*fin[9]+0.3162277660168379*fin[8]-
-    0.8215838362577489*fin[7]+0.8215838362577489*fin[6]+0.6123724356957944*fin[5]+0.4743416490252568*fin[4]-0.6123724356957944*fin[3]-
-    0.4743416490252568*fin[2]-0.3535533905932737*fin[1]+0.3535533905932737*fin[0],-0.6846531968814573*fin[11]+0.6846531968814574*fin[10]+
-    0.3952847075210473*fin[9]-0.3952847075210473*fin[8]+0.6123724356957944*fin[5]-0.6123724356957944*fin[3]-0.3535533905932737*fin[1]+
-    0.3535533905932737*fin[0],0.5477225575051661*fin[11]-0.5477225575051661*fin[10]-0.3162277660168379*fin[9]+0.3162277660168379*fin[8]+
-    0.8215838362577489*fin[7]-0.8215838362577489*fin[6]+0.6123724356957944*fin[5]-0.4743416490252568*fin[4]-0.6123724356957944*fin[3]+
-    0.4743416490252568*fin[2]-0.3535533905932737*fin[1]+0.3535533905932737*fin[0],-0.5477225575051661*(fin[11]+fin[10])+
-    0.3162277660168379*fin[9]+0.3162277660168379*fin[8]+0.8215838362577489*(fin[7]+fin[6])-0.6123724356957944*fin[5]-0.4743416490252568*
-    fin[4]-0.6123724356957944*fin[3]-0.4743416490252568*fin[2]+0.3535533905932737*(fin[1]+fin[0]),0.6846531968814573*fin[11]+
-    0.6846531968814574*fin[10]-0.3952847075210473*fin[9]-0.3952847075210473*fin[8]-0.6123724356957944*(fin[5]+fin[3])+0.3535533905932737*
-    (fin[1]+fin[0]),-0.5477225575051661*(fin[11]+fin[10])+0.3162277660168379*fin[9]+0.3162277660168379*fin[8]-0.8215838362577489*
-    (fin[7]+fin[6])-0.6123724356957944*fin[5]+0.4743416490252568*fin[4]-0.6123724356957944*fin[3]+0.4743416490252568*fin[2]+
-    0.3535533905932737*(fin[1]+fin[0])
+    0.5477225575051661 * fin[11] - 0.5477225575051661 * fin[10] - 0.3162277660168379 * fin[9] +
+      0.3162277660168379 * fin[8] - 0.8215838362577489 * fin[7] + 0.8215838362577489 * fin[6] +
+      0.6123724356957944 * fin[5] + 0.4743416490252568 * fin[4] - 0.6123724356957944 * fin[3] -
+      0.4743416490252568 * fin[2] - 0.3535533905932737 * fin[1] + 0.3535533905932737 * fin[0],
+    -0.6846531968814573 * fin[11] + 0.6846531968814574 * fin[10] + 0.3952847075210473 * fin[9] -
+      0.3952847075210473 * fin[8] + 0.6123724356957944 * fin[5] - 0.6123724356957944 * fin[3] -
+      0.3535533905932737 * fin[1] + 0.3535533905932737 * fin[0],
+    0.5477225575051661 * fin[11] - 0.5477225575051661 * fin[10] - 0.3162277660168379 * fin[9] +
+      0.3162277660168379 * fin[8] + 0.8215838362577489 * fin[7] - 0.8215838362577489 * fin[6] +
+      0.6123724356957944 * fin[5] - 0.4743416490252568 * fin[4] - 0.6123724356957944 * fin[3] +
+      0.4743416490252568 * fin[2] - 0.3535533905932737 * fin[1] + 0.3535533905932737 * fin[0],
+    -0.5477225575051661 * (fin[11] + fin[10]) + 0.3162277660168379 * fin[9] +
+      0.3162277660168379 * fin[8] + 0.8215838362577489 * (fin[7] + fin[6]) -
+      0.6123724356957944 * fin[5] - 0.4743416490252568 * fin[4] - 0.6123724356957944 * fin[3] -
+      0.4743416490252568 * fin[2] + 0.3535533905932737 * (fin[1] + fin[0]),
+    0.6846531968814573 * fin[11] + 0.6846531968814574 * fin[10] - 0.3952847075210473 * fin[9] -
+      0.3952847075210473 * fin[8] - 0.6123724356957944 * (fin[5] + fin[3]) +
+      0.3535533905932737 * (fin[1] + fin[0]),
+    -0.5477225575051661 * (fin[11] + fin[10]) + 0.3162277660168379 * fin[9] +
+      0.3162277660168379 * fin[8] - 0.8215838362577489 * (fin[7] + fin[6]) -
+      0.6123724356957944 * fin[5] + 0.4743416490252568 * fin[4] - 0.6123724356957944 * fin[3] +
+      0.4743416490252568 * fin[2] + 0.3535533905932737 * (fin[1] + fin[0])
   };
-  for (int i=0; i<numnod; i++) {
+  for (int i = 0; i < numnod; i++) {
     doubleFunc_t sfunc = funcs3l[i];
     double fsurf = sfunc(fin);
-    TEST_CHECK( gkyl_compare(fout3l_a[i], fsurf, 1e-12) );
+    TEST_CHECK(gkyl_compare(fout3l_a[i], fsurf, 1e-12));
     TEST_MSG("Expected: %.13e in i=%d", fout3l_a[i], i);
     TEST_MSG("Produced: %.13e", fsurf);
   }
@@ -651,24 +948,33 @@ test_gkhyb_1x2v_surf_eval_nod(struct gkyl_basis basis)
                             gkhyb_1x2v_p1_surfx3_eval_quad_node_4_r,
                             gkhyb_1x2v_p1_surfx3_eval_quad_node_5_r};
   double fout3r_a[] = {
-    -0.5477225575051661*fin[11]+0.5477225575051661*fin[10]-0.3162277660168379*fin[9]+0.3162277660168379*fin[8]+
-    0.8215838362577489*fin[7]-0.8215838362577489*fin[6]-0.6123724356957944*fin[5]+0.4743416490252568*fin[4]+0.6123724356957944*fin[3]-
-    0.4743416490252568*fin[2]-0.3535533905932737*fin[1]+0.3535533905932737*fin[0],0.6846531968814573*fin[11]-0.6846531968814574*fin[10]+
-    0.3952847075210473*fin[9]-0.3952847075210473*fin[8]-0.6123724356957944*fin[5]+0.6123724356957944*fin[3]-0.3535533905932737*fin[1]+
-    0.3535533905932737*fin[0],-0.5477225575051661*fin[11]+0.5477225575051661*fin[10]-0.3162277660168379*fin[9]+0.3162277660168379*fin[8]-
-    0.8215838362577489*fin[7]+0.8215838362577489*fin[6]-0.6123724356957944*fin[5]-0.4743416490252568*fin[4]+0.6123724356957944*fin[3]+
-    0.4743416490252568*fin[2]-0.3535533905932737*fin[1]+0.3535533905932737*fin[0],0.5477225575051661*(fin[11]+fin[10])+0.3162277660168379*
-    fin[9]+0.3162277660168379*fin[8]-0.8215838362577489*(fin[7]+fin[6])+0.6123724356957944*fin[5]-0.4743416490252568*fin[4]+
-    0.6123724356957944*fin[3]-0.4743416490252568*fin[2]+0.3535533905932737*(fin[1]+fin[0]),-0.6846531968814573*fin[11]-0.6846531968814574*
-    fin[10]-0.3952847075210473*fin[9]-0.3952847075210473*fin[8]+0.6123724356957944*(fin[5]+fin[3])+0.3535533905932737*(fin[1]+fin[0]),
-    0.5477225575051661*(fin[11]+fin[10])+0.3162277660168379*fin[9]+0.3162277660168379*fin[8]+0.8215838362577489*(fin[7]+fin[6])+
-    0.6123724356957944*fin[5]+0.4743416490252568*fin[4]+0.6123724356957944*fin[3]+0.4743416490252568*fin[2]+0.3535533905932737*
-    (fin[1]+fin[0])
+    -0.5477225575051661 * fin[11] + 0.5477225575051661 * fin[10] - 0.3162277660168379 * fin[9] +
+      0.3162277660168379 * fin[8] + 0.8215838362577489 * fin[7] - 0.8215838362577489 * fin[6] -
+      0.6123724356957944 * fin[5] + 0.4743416490252568 * fin[4] + 0.6123724356957944 * fin[3] -
+      0.4743416490252568 * fin[2] - 0.3535533905932737 * fin[1] + 0.3535533905932737 * fin[0],
+    0.6846531968814573 * fin[11] - 0.6846531968814574 * fin[10] + 0.3952847075210473 * fin[9] -
+      0.3952847075210473 * fin[8] - 0.6123724356957944 * fin[5] + 0.6123724356957944 * fin[3] -
+      0.3535533905932737 * fin[1] + 0.3535533905932737 * fin[0],
+    -0.5477225575051661 * fin[11] + 0.5477225575051661 * fin[10] - 0.3162277660168379 * fin[9] +
+      0.3162277660168379 * fin[8] - 0.8215838362577489 * fin[7] + 0.8215838362577489 * fin[6] -
+      0.6123724356957944 * fin[5] - 0.4743416490252568 * fin[4] + 0.6123724356957944 * fin[3] +
+      0.4743416490252568 * fin[2] - 0.3535533905932737 * fin[1] + 0.3535533905932737 * fin[0],
+    0.5477225575051661 * (fin[11] + fin[10]) + 0.3162277660168379 * fin[9] +
+      0.3162277660168379 * fin[8] - 0.8215838362577489 * (fin[7] + fin[6]) +
+      0.6123724356957944 * fin[5] - 0.4743416490252568 * fin[4] + 0.6123724356957944 * fin[3] -
+      0.4743416490252568 * fin[2] + 0.3535533905932737 * (fin[1] + fin[0]),
+    -0.6846531968814573 * fin[11] - 0.6846531968814574 * fin[10] - 0.3952847075210473 * fin[9] -
+      0.3952847075210473 * fin[8] + 0.6123724356957944 * (fin[5] + fin[3]) +
+      0.3535533905932737 * (fin[1] + fin[0]),
+    0.5477225575051661 * (fin[11] + fin[10]) + 0.3162277660168379 * fin[9] +
+      0.3162277660168379 * fin[8] + 0.8215838362577489 * (fin[7] + fin[6]) +
+      0.6123724356957944 * fin[5] + 0.4743416490252568 * fin[4] + 0.6123724356957944 * fin[3] +
+      0.4743416490252568 * fin[2] + 0.3535533905932737 * (fin[1] + fin[0])
   };
-  for (int i=0; i<numnod; i++) {
+  for (int i = 0; i < numnod; i++) {
     doubleFunc_t sfunc = funcs3r[i];
     double fsurf = sfunc(fin);
-    TEST_CHECK( gkyl_compare(fout3r_a[i], fsurf, 1e-12) );
+    TEST_CHECK(gkyl_compare(fout3r_a[i], fsurf, 1e-12));
     TEST_MSG("Expected: %.13e in i=%d", fout3r_a[i], i);
     TEST_MSG("Produced: %.13e", fsurf);
   }
@@ -680,16 +986,18 @@ test_gkhyb_1x2v_upwind_quad_to_modal(struct gkyl_basis basis)
   // Accepted results here were generated with
   // ms-basis_surf_quad_upwind_accepted_results.mac
   double fin[basis.num_basis];
-  for (int i=0; i<basis.num_basis; ++i)
-    fin[i] = i+1.0;
+  for (int i = 0; i < basis.num_basis; ++i) {
+    fin[i] = i + 1.0;
+  }
 
-  typedef void (*voidFunc_t)(const double* fUpwindQuad, double* GKYL_RESTRICT fUpwind);
-  voidFunc_t funcs[] = {gkhyb_1x2v_p1_xdir_upwind_quad_to_modal,
-                        gkhyb_1x2v_p1_vpardir_upwind_quad_to_modal,
-                        gkhyb_1x2v_p1_mudir_upwind_quad_to_modal};
-  int numdirs = sizeof(funcs)/sizeof(voidFunc_t);
+  typedef void (*voidFunc_t)(const double *fUpwindQuad, double *GKYL_RESTRICT fUpwind);
+  voidFunc_t funcs[] = {
+    gkhyb_1x2v_p1_xdir_upwind_quad_to_modal, gkhyb_1x2v_p1_vpardir_upwind_quad_to_modal,
+    gkhyb_1x2v_p1_mudir_upwind_quad_to_modal
+  };
+  int numdirs = sizeof(funcs) / sizeof(voidFunc_t);
 
-  typedef double (*doubleFunc_t)(const double* GKYL_RESTRICT f);
+  typedef double (*doubleFunc_t)(const double *GKYL_RESTRICT f);
   int dir, numnod;
 
   // Evaluate at left nodes on surf perp to dir 1.
@@ -700,9 +1008,9 @@ test_gkhyb_1x2v_upwind_quad_to_modal(struct gkyl_basis basis)
                             gkhyb_1x2v_p1_surfx1_eval_quad_node_3_l,
                             gkhyb_1x2v_p1_surfx1_eval_quad_node_4_l,
                             gkhyb_1x2v_p1_surfx1_eval_quad_node_5_l};
-  numnod = sizeof(funcs1l)/sizeof(doubleFunc_t);
+  numnod = sizeof(funcs1l) / sizeof(doubleFunc_t);
   double f1l_n[numnod], f1l_c[numnod];
-  for (int i=0; i<numnod; i++) {
+  for (int i = 0; i < numnod; i++) {
     doubleFunc_t sfunc = funcs1l[i];
     f1l_n[i] = sfunc(fin);
   }
@@ -711,26 +1019,29 @@ test_gkhyb_1x2v_upwind_quad_to_modal(struct gkyl_basis basis)
   n2mfunc1l(f1l_n, f1l_c);
   // Check results.
   double fout1l_a[] = {
-    1.863864650467316e-16*fin[9]+1.643351536295413e-16*fin[8]-1.224744871391586*fin[1]+0.7071067811865468*fin[0],
-    0.7071067811865475*fin[2]-1.224744871391588*fin[4],1.863864650467316e-16*fin[11]-1.224744871391586*fin[5]+0.7071067811865468*fin[3],
-    0.7071067811865475*fin[6]-1.224744871391588*fin[7],0.7071067811865472*fin[8]-1.22474487139159*fin[9],0.7071067811865472*fin[10]-
-    1.22474487139159*fin[11]
+    1.863864650467316e-16 * fin[9] + 1.643351536295413e-16 * fin[8] - 1.224744871391586 * fin[1] +
+      0.7071067811865468 * fin[0],
+    0.7071067811865475 * fin[2] - 1.224744871391588 * fin[4],
+    1.863864650467316e-16 * fin[11] - 1.224744871391586 * fin[5] + 0.7071067811865468 * fin[3],
+    0.7071067811865475 * fin[6] - 1.224744871391588 * fin[7],
+    0.7071067811865472 * fin[8] - 1.22474487139159 * fin[9],
+    0.7071067811865472 * fin[10] - 1.22474487139159 * fin[11]
   };
-  for (int i=0; i<numnod; i++) {
-    TEST_CHECK( gkyl_compare(fout1l_a[i], f1l_c[i], 1e-12) );
+  for (int i = 0; i < numnod; i++) {
+    TEST_CHECK(gkyl_compare(fout1l_a[i], f1l_c[i], 1e-12));
     TEST_MSG("Expected: %.13e in i=%d", fout1l_a[i], i);
     TEST_MSG("Produced: %.13e", f1l_c[i]);
   }
 
   // Evaluate at left nodes on surf perp to dir 2.
   dir = 1;
-  doubleFunc_t funcs2l[] = {gkhyb_1x2v_p1_surfx2_eval_quad_node_0_l,
-                            gkhyb_1x2v_p1_surfx2_eval_quad_node_1_l,
-                            gkhyb_1x2v_p1_surfx2_eval_quad_node_2_l,
-                            gkhyb_1x2v_p1_surfx2_eval_quad_node_3_l};
-  numnod = sizeof(funcs2l)/sizeof(doubleFunc_t);
+  doubleFunc_t funcs2l[] = {
+    gkhyb_1x2v_p1_surfx2_eval_quad_node_0_l, gkhyb_1x2v_p1_surfx2_eval_quad_node_1_l,
+    gkhyb_1x2v_p1_surfx2_eval_quad_node_2_l, gkhyb_1x2v_p1_surfx2_eval_quad_node_3_l
+  };
+  numnod = sizeof(funcs2l) / sizeof(doubleFunc_t);
   double f2l_n[numnod], f2l_c[numnod];
-  for (int i=0; i<numnod; i++) {
+  for (int i = 0; i < numnod; i++) {
     doubleFunc_t sfunc = funcs2l[i];
     f2l_n[i] = sfunc(fin);
   }
@@ -739,12 +1050,13 @@ test_gkhyb_1x2v_upwind_quad_to_modal(struct gkyl_basis basis)
   n2mfunc2l(f2l_n, f2l_c);
   // Check results.
   double fout2l_a[] = {
-    1.581138830084189*fin[8]-1.224744871391586*fin[2]+0.7071067811865468*fin[0],1.581138830084189*fin[9]-1.224744871391586*fin[4]
-    +0.7071067811865468*fin[1],1.581138830084189*fin[10]-1.224744871391586*fin[6]+0.7071067811865468*fin[3],1.581138830084189*fin[11]-
-    1.224744871391586*fin[7]+0.7071067811865468*fin[5]
+    1.581138830084189 * fin[8] - 1.224744871391586 * fin[2] + 0.7071067811865468 * fin[0],
+    1.581138830084189 * fin[9] - 1.224744871391586 * fin[4] + 0.7071067811865468 * fin[1],
+    1.581138830084189 * fin[10] - 1.224744871391586 * fin[6] + 0.7071067811865468 * fin[3],
+    1.581138830084189 * fin[11] - 1.224744871391586 * fin[7] + 0.7071067811865468 * fin[5]
   };
-  for (int i=0; i<numnod; i++) {
-    TEST_CHECK( gkyl_compare(fout2l_a[i], f2l_c[i], 1e-12) );
+  for (int i = 0; i < numnod; i++) {
+    TEST_CHECK(gkyl_compare(fout2l_a[i], f2l_c[i], 1e-12));
     TEST_MSG("Expected: %.13e in i=%d", fout2l_a[i], i);
     TEST_MSG("Produced: %.13e", f2l_c[i]);
   }
@@ -757,9 +1069,9 @@ test_gkhyb_1x2v_upwind_quad_to_modal(struct gkyl_basis basis)
                             gkhyb_1x2v_p1_surfx3_eval_quad_node_3_l,
                             gkhyb_1x2v_p1_surfx3_eval_quad_node_4_l,
                             gkhyb_1x2v_p1_surfx3_eval_quad_node_5_l};
-  numnod = sizeof(funcs3l)/sizeof(doubleFunc_t);
+  numnod = sizeof(funcs3l) / sizeof(doubleFunc_t);
   double f3l_n[numnod], f3l_c[numnod];
-  for (int i=0; i<numnod; i++) {
+  for (int i = 0; i < numnod; i++) {
     doubleFunc_t sfunc = funcs3l[i];
     f3l_n[i] = sfunc(fin);
   }
@@ -768,20 +1080,23 @@ test_gkhyb_1x2v_upwind_quad_to_modal(struct gkyl_basis basis)
   n2mfunc3l(f3l_n, f3l_c);
   // Check results.
   double fout3l_a[] = {
-    1.863864650467316e-16*fin[10]+1.643351536295413e-16*fin[8]-1.224744871391586*fin[3]+0.7071067811865468*fin[0],
-    1.863864650467316e-16*fin[11]-1.224744871391586*fin[5]+0.7071067811865468*fin[1],0.7071067811865475*fin[2]-1.224744871391588*fin[6],
-    0.7071067811865475*fin[4]-1.224744871391588*fin[7],0.7071067811865472*fin[8]-1.22474487139159*fin[10],0.7071067811865472*fin[9]-
-    1.22474487139159*fin[11]
+    1.863864650467316e-16 * fin[10] + 1.643351536295413e-16 * fin[8] - 1.224744871391586 * fin[3] +
+      0.7071067811865468 * fin[0],
+    1.863864650467316e-16 * fin[11] - 1.224744871391586 * fin[5] + 0.7071067811865468 * fin[1],
+    0.7071067811865475 * fin[2] - 1.224744871391588 * fin[6],
+    0.7071067811865475 * fin[4] - 1.224744871391588 * fin[7],
+    0.7071067811865472 * fin[8] - 1.22474487139159 * fin[10],
+    0.7071067811865472 * fin[9] - 1.22474487139159 * fin[11]
   };
-  for (int i=0; i<numnod; i++) {
-    TEST_CHECK( gkyl_compare(fout3l_a[i], f3l_c[i], 1e-12) );
+  for (int i = 0; i < numnod; i++) {
+    TEST_CHECK(gkyl_compare(fout3l_a[i], f3l_c[i], 1e-12));
     TEST_MSG("Expected: %.13e in i=%d", fout3l_a[i], i);
     TEST_MSG("Produced: %.13e", f3l_c[i]);
   }
 }
 
 void
-test_gkhyb()
+test_basis_gkhyb_ho()
 {
   struct gkyl_basis basis1;
   gkyl_cart_modal_gkhybrid(&basis1, 1, 2);
@@ -808,7 +1123,7 @@ test_cu_ser_2d_members(struct gkyl_basis *basis)
 }
 
 void
-test_cu_ser_2d()
+test_basis_ser_2d_dev()
 {
   struct gkyl_basis *basis1 = gkyl_cu_malloc(sizeof(struct gkyl_basis));
   gkyl_cart_modal_serendip_cu_dev(basis1, 2, 2);
@@ -822,13 +1137,21 @@ test_cu_ser_2d()
 #endif
 
 TEST_LIST = {
-  { "ser_1d", test_ser_1d },
-  { "ser_2d", test_ser_2d },
-  { "ten_2d", test_ten_2d },
-  { "hyb", test_hyb },
-  { "gkhyb", test_gkhyb },
+  {"basis_ser_1d_p0_ho", test_basis_ser_1d_p0_ho},
+  {"basis_ser_1d_ho", test_basis_ser_1d_ho},
+  {"basis_ser_2d_ho", test_basis_ser_2d_ho},
+  {"basis_ten_2d_ho", test_basis_ten_2d_ho},
+  {"basis_hyb_ho", test_basis_hyb_ho},
+  {"basis_gkhyb_ho", test_basis_gkhyb_ho},
+  {"num_basis_serendip", test_basis_num_basis_serendip},
+  {"num_basis_tensor", test_basis_num_basis_tensor},
+  {"eval_expand_consistency", test_basis_eval_expand_consistency},
+  {"const_mode", test_basis_const_mode},
+  {"flip_odd_involution", test_basis_flip_odd_involution},
+  {"flip_odd_reflection", test_basis_flip_odd_reflection},
+  {"basis_new_release", test_basis_new_release},
 #ifdef GKYL_HAVE_CUDA
-  { "cu_ser_2d", test_cu_ser_2d },
-#endif    
-  { NULL, NULL },
+  {"basis_ser_2d_dev", test_basis_ser_2d_dev},
+#endif
+  {NULL, NULL}
 };

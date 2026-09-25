@@ -23,7 +23,7 @@ vt = 1.0 -- Thermal velocity.
 nu = 15000.0 -- Collision frequency.
 
 -- Simulation parameters.
-Nr = 16 -- Cell count (configuration space: radial direction).
+Nr = 8 -- Cell count (configuration space: radial direction).
 Ntheta = 4 -- Cell count (configuration space: polar angular direction).
 Nvr = 4 -- Cell count (velocity space: radial direction).
 Nvtheta = 4 -- Cell count (velocity space: polar angular direction).

@@ -25,21 +25,21 @@ mkarr(long nc, long size)
   return a;
 }
 
-void 
+void
 eval_M0(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 1.0;
 }
 
-void 
+void
 eval_M1i_1v_no_drift(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 0.0;
 }
 
-void 
+void
 eval_M2_1v_no_drift(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double T = 1.0;
@@ -47,14 +47,14 @@ eval_M2_1v_no_drift(double t, const double *xn, double *restrict fout, void *ctx
   fout[0] = T;
 }
 
-void 
+void
 eval_M1i_1v(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
-  fout[0] = 0.5; 
+  fout[0] = 0.5;
 }
 
-void 
+void
 eval_M2_1v(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double T = 1.0;
@@ -62,7 +62,7 @@ eval_M2_1v(double t, const double *xn, double *restrict fout, void *ctx)
   fout[0] = T;
 }
 
-void 
+void
 eval_M1i_2v(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
@@ -70,7 +70,7 @@ eval_M1i_2v(double t, const double *xn, double *restrict fout, void *ctx)
   fout[1] = 0.25;
 }
 
-void 
+void
 eval_M2_2v(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double T = 1.0;
@@ -78,7 +78,7 @@ eval_M2_2v(double t, const double *xn, double *restrict fout, void *ctx)
   fout[0] = T;
 }
 
-void 
+void
 eval_M1i_3v(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
@@ -87,7 +87,7 @@ eval_M1i_3v(double t, const double *xn, double *restrict fout, void *ctx)
   fout[2] = -0.5;
 }
 
-void 
+void
 eval_M2_3v(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double T = 1.0;
@@ -95,7 +95,7 @@ eval_M2_3v(double t, const double *xn, double *restrict fout, void *ctx)
   fout[0] = T;
 }
 
-void 
+void
 test_1x1v_no_drift(int poly_order)
 {
   double lower[] = {0.1, -15.0}, upper[] = {1.0, 15.0};
@@ -138,31 +138,32 @@ test_1x1v_no_drift(int poly_order)
   m0 = mkarr(confBasis.num_basis, confLocal_ext.volume);
   m1i = mkarr(vdim * confBasis.num_basis, confLocal_ext.volume);
   m2 = mkarr(confBasis.num_basis, confLocal_ext.volume);
-  moms = mkarr((vdim+2) * confBasis.num_basis, confLocal_ext.volume);
+  moms = mkarr((vdim + 2) * confBasis.num_basis, confLocal_ext.volume);
 
-  gkyl_proj_on_basis *proj_m0 = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-    poly_order + 1, 1, eval_M0, NULL);
-  gkyl_proj_on_basis *proj_m1i = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-    poly_order + 1, vdim, eval_M1i_1v_no_drift, NULL);
-  gkyl_proj_on_basis *proj_m2 = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-    poly_order + 1, 1, eval_M2_1v_no_drift, NULL);
+  gkyl_proj_on_basis *proj_m0 =
+    gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order + 1, 1, eval_M0, NULL);
+  gkyl_proj_on_basis *proj_m1i =
+    gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order + 1, vdim, eval_M1i_1v_no_drift, NULL);
+  gkyl_proj_on_basis *proj_m2 =
+    gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order + 1, 1, eval_M2_1v_no_drift, NULL);
 
   gkyl_proj_on_basis_advance(proj_m0, 0.0, &confLocal, m0);
   gkyl_proj_on_basis_advance(proj_m1i, 0.0, &confLocal, m1i);
   gkyl_proj_on_basis_advance(proj_m2, 0.0, &confLocal, m2);
-  gkyl_array_set_offset_range(moms, 1.0, m0, 0*confBasis.num_basis, &confLocal);
-  gkyl_array_set_offset_range(moms, 1.0, m1i, 1*confBasis.num_basis, &confLocal);
-  gkyl_array_set_offset_range(moms, 1.0, m2, (vdim+1)*confBasis.num_basis, &confLocal);
+  gkyl_array_set_offset_range(moms, 1.0, m0, 0 * confBasis.num_basis, &confLocal);
+  gkyl_array_set_offset_range(moms, 1.0, m1i, 1 * confBasis.num_basis, &confLocal);
+  gkyl_array_set_offset_range(moms, 1.0, m2, (vdim + 1) * confBasis.num_basis, &confLocal);
 
   // build hamil and gamma_inv
   struct gkyl_array *hamil = mkarr(velBasis.num_basis, velLocal.volume);
   struct gkyl_array *gamma_inv = mkarr(velBasis.num_basis, velLocal.volume);
   // Identity velocity map: used to build the Hamiltonian and by the moment/LTE updaters.
-  struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = { 0 };
-  struct gkyl_vlasov_velocity_map *vel_map = gkyl_vlasov_velocity_map_new(&vel_grid,
-    &velLocal, &velBasis, inp_vmap, false, false);
-  gkyl_dg_vlasov_calc_hamil(&vel_grid, &velBasis, &velLocal, 
-    GKYL_MODEL_SR, vel_map, hamil, gamma_inv, false);
+  struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = {0};
+  struct gkyl_vlasov_velocity_map *vel_map =
+    gkyl_vlasov_velocity_map_new(&vel_grid, &velLocal, &velBasis, inp_vmap, false, false);
+  gkyl_dg_vlasov_calc_hamil(
+    &vel_grid, &velBasis, &velLocal, GKYL_MODEL_SR, vel_map, hamil, gamma_inv, false
+  );
 
   // create distribution function array
   struct gkyl_array *distf;
@@ -171,11 +172,11 @@ test_1x1v_no_drift(int poly_order)
   // projection updater to compute LTE distribution
   struct gkyl_vlasov_lte_proj_on_basis_inp inp_lte = {
     .phase_grid = &grid,
-    .vel_grid = &vel_grid, 
+    .vel_grid = &vel_grid,
     .conf_basis = &confBasis,
-    .vel_basis = &velBasis, 
+    .vel_basis = &velBasis,
     .phase_basis = &basis,
-    .conf_range =  &confLocal,
+    .conf_range = &confLocal,
     .conf_range_ext = &confLocal_ext,
     .vel_range = &velLocal,
     .phase_range = &local,
@@ -187,31 +188,36 @@ test_1x1v_no_drift(int poly_order)
     .use_extended_hamil_def = false,
     .use_gpu = false,
     .vel_map = vel_map,
-  };  
+  };
   gkyl_vlasov_lte_proj_on_basis *proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_lte);
   gkyl_vlasov_lte_proj_on_basis_advance(proj_lte, &local, &confLocal, moms, distf);
 
   // values to compare  at index (1, 17) [remember, lower-left index is (1,1)]
-  double p1_vals[] = {5.3918752026566863e-01, -1.0910243387206232e-17, -6.0196985297046972e-02,
-    5.0006050167249552e-18};
+  double p1_vals[] = {
+    5.3918752026566863e-01, -1.0910243387206232e-17, -6.0196985297046972e-02, 5.0006050167249552e-18
+  };
   double p2_vals[] = {5.3922143701031633e-01, -9.6625223288531320e-18, -5.7898881215132203e-02,
-    7.8842251929957589e-18, 1.9166441863144966e-17, -1.0173903909543560e-02,
-    1.7916734900988946e-17, 1.4245174569363429e-18};
+                      7.8842251929957589e-18, 1.9166441863144966e-17,  -1.0173903909543560e-02,
+                      1.7916734900988946e-17, 1.4245174569363429e-18};
 
   const double *fv = gkyl_array_cfetch(distf, gkyl_range_idx(&local_ext, (int[2]){1, 17}));
 
-  if (poly_order == 1)
-    for (int i = 0; i < basis.num_basis; ++i)
+  if (poly_order == 1) {
+    for (int i = 0; i < basis.num_basis; ++i) {
       TEST_CHECK(gkyl_compare_double(p1_vals[i], fv[i], 1e-12));
+    }
+  }
 
-  if (poly_order == 2)
-    for (int i = 0; i < basis.num_basis; ++i)
+  if (poly_order == 2) {
+    for (int i = 0; i < basis.num_basis; ++i) {
       TEST_CHECK(gkyl_compare_double(p2_vals[i], fv[i], 1e-12));
+    }
+  }
 
   // write distribution function to file
   char fname[1024];
   sprintf(fname, "ctest_proj_mj_on_basis_test_1x1v_p%d_no_drift.gkyl", poly_order);
-  gkyl_grid_sub_array_write(&grid, &local, 0, distf, fname);
+  // gkyl_grid_sub_array_write(&grid, &local, 0, distf, fname);
 
   // release memory for moment data object
   gkyl_array_release(m0);
@@ -228,13 +234,17 @@ test_1x1v_no_drift(int poly_order)
   gkyl_array_release(gamma_inv);
 }
 
-void test_1x1v_no_drift_p2() { test_1x1v_no_drift(2); }
+void
+test_proj_mj_on_basis_1x1v_no_drift_p2_ho()
+{
+  test_1x1v_no_drift(2);
+}
 
-void 
+void
 test_1x1v(int poly_order)
 {
   double lower[] = {0.1, -15.0}, upper[] = {1.0, 15.0}; // +/- 15 on velocity
-  int cells[] = {2, 32};                                // default {2, 32}
+  int cells[] = {2, 32}; // default {2, 32}
   int vdim = 1, cdim = 1;
   int ndim = cdim + vdim;
 
@@ -274,31 +284,32 @@ test_1x1v(int poly_order)
   m0 = mkarr(confBasis.num_basis, confLocal_ext.volume);
   m1i = mkarr(vdim * confBasis.num_basis, confLocal_ext.volume);
   m2 = mkarr(confBasis.num_basis, confLocal_ext.volume);
-  moms = mkarr((vdim+2)*confBasis.num_basis, confLocal_ext.volume);
+  moms = mkarr((vdim + 2) * confBasis.num_basis, confLocal_ext.volume);
 
-  gkyl_proj_on_basis *proj_m0 = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-    poly_order + 1, 1, eval_M0, NULL);
-  gkyl_proj_on_basis *proj_m1i = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-    poly_order + 1, vdim, eval_M1i_1v, NULL);
-  gkyl_proj_on_basis *proj_m2 = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-    poly_order + 1, 1, eval_M2_1v, NULL);
+  gkyl_proj_on_basis *proj_m0 =
+    gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order + 1, 1, eval_M0, NULL);
+  gkyl_proj_on_basis *proj_m1i =
+    gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order + 1, vdim, eval_M1i_1v, NULL);
+  gkyl_proj_on_basis *proj_m2 =
+    gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order + 1, 1, eval_M2_1v, NULL);
 
   gkyl_proj_on_basis_advance(proj_m0, 0.0, &confLocal, m0);
   gkyl_proj_on_basis_advance(proj_m1i, 0.0, &confLocal, m1i);
   gkyl_proj_on_basis_advance(proj_m2, 0.0, &confLocal, m2);
-  gkyl_array_set_offset_range(moms, 1.0, m0, 0*confBasis.num_basis, &confLocal);
-  gkyl_array_set_offset_range(moms, 1.0, m1i, 1*confBasis.num_basis, &confLocal);
-  gkyl_array_set_offset_range(moms, 1.0, m2, (vdim+1)*confBasis.num_basis, &confLocal);
+  gkyl_array_set_offset_range(moms, 1.0, m0, 0 * confBasis.num_basis, &confLocal);
+  gkyl_array_set_offset_range(moms, 1.0, m1i, 1 * confBasis.num_basis, &confLocal);
+  gkyl_array_set_offset_range(moms, 1.0, m2, (vdim + 1) * confBasis.num_basis, &confLocal);
 
   // build hamil and gamma_inv
   struct gkyl_array *hamil = mkarr(velBasis.num_basis, velLocal.volume);
   struct gkyl_array *gamma_inv = mkarr(velBasis.num_basis, velLocal.volume);
   // Identity velocity map: used to build the Hamiltonian and by the moment/LTE updaters.
-  struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = { 0 };
-  struct gkyl_vlasov_velocity_map *vel_map = gkyl_vlasov_velocity_map_new(&vel_grid,
-    &velLocal, &velBasis, inp_vmap, false, false);
-  gkyl_dg_vlasov_calc_hamil(&vel_grid, &velBasis, &velLocal, 
-    GKYL_MODEL_SR, vel_map, hamil, gamma_inv, false);
+  struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = {0};
+  struct gkyl_vlasov_velocity_map *vel_map =
+    gkyl_vlasov_velocity_map_new(&vel_grid, &velLocal, &velBasis, inp_vmap, false, false);
+  gkyl_dg_vlasov_calc_hamil(
+    &vel_grid, &velBasis, &velLocal, GKYL_MODEL_SR, vel_map, hamil, gamma_inv, false
+  );
 
   // create distribution function array
   struct gkyl_array *distf;
@@ -307,34 +318,11 @@ test_1x1v(int poly_order)
   // projection updater to compute LTE distribution
   struct gkyl_vlasov_lte_proj_on_basis_inp inp_lte = {
     .phase_grid = &grid,
-    .vel_grid = &vel_grid, 
+    .vel_grid = &vel_grid,
     .conf_basis = &confBasis,
-    .vel_basis = &velBasis, 
+    .vel_basis = &velBasis,
     .phase_basis = &basis,
-    .conf_range =  &confLocal,
-    .conf_range_ext = &confLocal_ext,
-    .vel_range = &velLocal,
-    .phase_range = &local,
-    .hamil = hamil,
-    .hamil_range = &velLocal,
-    .gamma_inv = gamma_inv,
-    .model_id = GKYL_MODEL_SR,
-    .hamil_id = gkyl_hamil_id_from_model_id(GKYL_MODEL_SR),
-    .use_extended_hamil_def = false,
-    .use_gpu = false,
-    .vel_map = vel_map,
-  };  
-  gkyl_vlasov_lte_proj_on_basis *proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_lte);
-  gkyl_vlasov_lte_proj_on_basis_advance(proj_lte, &local, &confLocal, moms, distf);
-
-  // test accuracy of the projection:
-  struct gkyl_vlasov_lte_moments_inp inp_mom = {
-    .phase_grid = &grid,
-    .vel_grid = &vel_grid, 
-    .conf_basis = &confBasis,
-    .vel_basis = &velBasis, 
-    .phase_basis = &basis,
-    .conf_range =  &confLocal,
+    .conf_range = &confLocal,
     .conf_range_ext = &confLocal_ext,
     .vel_range = &velLocal,
     .phase_range = &local,
@@ -347,16 +335,39 @@ test_1x1v(int poly_order)
     .use_gpu = false,
     .vel_map = vel_map,
   };
-  gkyl_vlasov_lte_moments *lte_moms = gkyl_vlasov_lte_moments_inew( &inp_mom );
+  gkyl_vlasov_lte_proj_on_basis *proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_lte);
+  gkyl_vlasov_lte_proj_on_basis_advance(proj_lte, &local, &confLocal, moms, distf);
+
+  // test accuracy of the projection:
+  struct gkyl_vlasov_lte_moments_inp inp_mom = {
+    .phase_grid = &grid,
+    .vel_grid = &vel_grid,
+    .conf_basis = &confBasis,
+    .vel_basis = &velBasis,
+    .phase_basis = &basis,
+    .conf_range = &confLocal,
+    .conf_range_ext = &confLocal_ext,
+    .vel_range = &velLocal,
+    .phase_range = &local,
+    .hamil = hamil,
+    .hamil_range = &velLocal,
+    .gamma_inv = gamma_inv,
+    .model_id = GKYL_MODEL_SR,
+    .hamil_id = gkyl_hamil_id_from_model_id(GKYL_MODEL_SR),
+    .use_extended_hamil_def = false,
+    .use_gpu = false,
+    .vel_map = vel_map,
+  };
+  gkyl_vlasov_lte_moments *lte_moms = gkyl_vlasov_lte_moments_inew(&inp_mom);
   gkyl_vlasov_lte_moments_advance(lte_moms, &local, &confLocal, distf, moms);
-  gkyl_array_set_offset_range(m0, 1.0, moms, 0*confBasis.num_basis, &confLocal);
-  gkyl_array_set_offset_range(m1i, 1.0, moms, 1*confBasis.num_basis, &confLocal);
-  gkyl_array_set_offset_range(m2, 1.0, moms, (vdim+1)*confBasis.num_basis, &confLocal);
+  gkyl_array_set_offset_range(m0, 1.0, moms, 0 * confBasis.num_basis, &confLocal);
+  gkyl_array_set_offset_range(m1i, 1.0, moms, 1 * confBasis.num_basis, &confLocal);
+  gkyl_array_set_offset_range(m2, 1.0, moms, (vdim + 1) * confBasis.num_basis, &confLocal);
 
   // values to compare  at index (1, 17) [remember, lower-left index is (1,1)]
-  double p2_vals[] = {5.9297594654488650e-01, -4.1867292592431142e-18, 7.1286851491369927e-03, 
-    6.9143629007589357e-18, 1.0932899315657513e-17, -1.6063381083048084e-02, 
-    -5.5123762524241300e-18, -3.3195546731973899e-18};
+  double p2_vals[] = {5.9297594654488650e-01,  -4.1867292592431142e-18, 7.1286851491369927e-03,
+                      6.9143629007589357e-18,  1.0932899315657513e-17,  -1.6063381083048084e-02,
+                      -5.5123762524241300e-18, -3.3195546731973899e-18};
 
   const double *fv = gkyl_array_cfetch(distf, gkyl_range_idx(&local_ext, (int[2]){1, 17}));
 
@@ -366,11 +377,11 @@ test_1x1v(int poly_order)
       // printf("p2_vals = %1.16e fv = %1.16e\n", p2_vals[i], fv[i]);
     }
   }
-  
+
   // write distribution function to file
   char fname[1024];
   sprintf(fname, "ctest_proj_mj_on_basis_test_1x1v_p%d.gkyl", poly_order);
-  gkyl_grid_sub_array_write(&grid, &local, 0, distf, fname);
+  // gkyl_grid_sub_array_write(&grid, &local, 0, distf, fname);
 
   // release memory for moment data object
   gkyl_vlasov_lte_moments_release(lte_moms);
@@ -389,9 +400,13 @@ test_1x1v(int poly_order)
 }
 
 // special note, the p1 basis does not function
-void test_1x1v_p2() { test_1x1v(2); }
+void
+test_proj_mj_on_basis_1x1v_p2_ho()
+{
+  test_1x1v(2);
+}
 
-void 
+void
 test_1x2v(int poly_order)
 {
   double lower[] = {0.1, -15.0, -15.0}, upper[] = {1.0, 15.0, 15.0};
@@ -436,31 +451,32 @@ test_1x2v(int poly_order)
   m0 = mkarr(confBasis.num_basis, confLocal_ext.volume);
   m1i = mkarr(vdim * confBasis.num_basis, confLocal_ext.volume);
   m2 = mkarr(confBasis.num_basis, confLocal_ext.volume);
-  moms = mkarr((vdim+2)*confBasis.num_basis, confLocal_ext.volume);
+  moms = mkarr((vdim + 2) * confBasis.num_basis, confLocal_ext.volume);
 
-  gkyl_proj_on_basis *proj_m0 = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-    poly_order + 1, 1, eval_M0, NULL);
-  gkyl_proj_on_basis *proj_m1i = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-    poly_order + 1, vdim, eval_M1i_2v, NULL);
-  gkyl_proj_on_basis *proj_m2 = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-    poly_order + 1, 1, eval_M2_2v, NULL);
+  gkyl_proj_on_basis *proj_m0 =
+    gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order + 1, 1, eval_M0, NULL);
+  gkyl_proj_on_basis *proj_m1i =
+    gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order + 1, vdim, eval_M1i_2v, NULL);
+  gkyl_proj_on_basis *proj_m2 =
+    gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order + 1, 1, eval_M2_2v, NULL);
 
   gkyl_proj_on_basis_advance(proj_m0, 0.0, &confLocal, m0);
   gkyl_proj_on_basis_advance(proj_m1i, 0.0, &confLocal, m1i);
   gkyl_proj_on_basis_advance(proj_m2, 0.0, &confLocal, m2);
-  gkyl_array_set_offset_range(moms, 1.0, m0, 0*confBasis.num_basis, &confLocal);
-  gkyl_array_set_offset_range(moms, 1.0, m1i, 1*confBasis.num_basis, &confLocal);
-  gkyl_array_set_offset_range(moms, 1.0, m2, (vdim+1)*confBasis.num_basis, &confLocal);
+  gkyl_array_set_offset_range(moms, 1.0, m0, 0 * confBasis.num_basis, &confLocal);
+  gkyl_array_set_offset_range(moms, 1.0, m1i, 1 * confBasis.num_basis, &confLocal);
+  gkyl_array_set_offset_range(moms, 1.0, m2, (vdim + 1) * confBasis.num_basis, &confLocal);
 
   // build hamil and gamma_inv
   struct gkyl_array *hamil = mkarr(velBasis.num_basis, velLocal.volume);
   struct gkyl_array *gamma_inv = mkarr(velBasis.num_basis, velLocal.volume);
   // Identity velocity map: used to build the Hamiltonian and by the moment/LTE updaters.
-  struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = { 0 };
-  struct gkyl_vlasov_velocity_map *vel_map = gkyl_vlasov_velocity_map_new(&vel_grid,
-    &velLocal, &velBasis, inp_vmap, false, false);
-  gkyl_dg_vlasov_calc_hamil(&vel_grid, &velBasis, &velLocal, 
-    GKYL_MODEL_SR, vel_map, hamil, gamma_inv, false);
+  struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = {0};
+  struct gkyl_vlasov_velocity_map *vel_map =
+    gkyl_vlasov_velocity_map_new(&vel_grid, &velLocal, &velBasis, inp_vmap, false, false);
+  gkyl_dg_vlasov_calc_hamil(
+    &vel_grid, &velBasis, &velLocal, GKYL_MODEL_SR, vel_map, hamil, gamma_inv, false
+  );
 
   // create distribution function array
   struct gkyl_array *distf;
@@ -469,11 +485,11 @@ test_1x2v(int poly_order)
   // projection updater to compute LTE distribution
   struct gkyl_vlasov_lte_proj_on_basis_inp inp_lte = {
     .phase_grid = &grid,
-    .vel_grid = &vel_grid, 
+    .vel_grid = &vel_grid,
     .conf_basis = &confBasis,
-    .vel_basis = &velBasis, 
+    .vel_basis = &velBasis,
     .phase_basis = &basis,
-    .conf_range =  &confLocal,
+    .conf_range = &confLocal,
     .conf_range_ext = &confLocal_ext,
     .vel_range = &velLocal,
     .phase_range = &local,
@@ -485,18 +501,18 @@ test_1x2v(int poly_order)
     .use_extended_hamil_def = false,
     .use_gpu = false,
     .vel_map = vel_map,
-  };  
+  };
   gkyl_vlasov_lte_proj_on_basis *proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_lte);
   gkyl_vlasov_lte_proj_on_basis_advance(proj_lte, &local, &confLocal, moms, distf);
 
   // values to compare  at index (1, 9, 9) [remember, lower-left index is (1,1,1)]
-  double p2_vals[] = {1.6408879023240103e-01, -1.3576896184824113e-17, -9.8151809581183153e-03, 
-    -2.9682559802577287e-02, 1.2829937358239629e-18, 3.8215290052990313e-19, 
-    8.6596866231148772e-03, -2.9507573862413946e-18, -9.7332674540940786e-03, 
-    -7.2599184095971433e-03, 6.4445077190172000e-19, 1.4972406793044089e-17, 
-    1.6202061433993536e-20, 1.0653781194370923e-17, 1.7475225696783907e-03, 
-    -5.7723245596542925e-19, -4.1851388419497057e-04, -4.9153245858838362e-19, 
-    5.5404332026569672e-19, 5.9845689181369784e-19};
+  double p2_vals[] = {1.6408879023240103e-01,  -1.3576896184824113e-17, -9.8151809581183153e-03,
+                      -2.9682559802577287e-02, 1.2829937358239629e-18,  3.8215290052990313e-19,
+                      8.6596866231148772e-03,  -2.9507573862413946e-18, -9.7332674540940786e-03,
+                      -7.2599184095971433e-03, 6.4445077190172000e-19,  1.4972406793044089e-17,
+                      1.6202061433993536e-20,  1.0653781194370923e-17,  1.7475225696783907e-03,
+                      -5.7723245596542925e-19, -4.1851388419497057e-04, -4.9153245858838362e-19,
+                      5.5404332026569672e-19,  5.9845689181369784e-19};
 
   const double *fv = gkyl_array_cfetch(distf, gkyl_range_idx(&local_ext, (int[3]){1, 9, 9}));
 
@@ -510,7 +526,7 @@ test_1x2v(int poly_order)
   // write distribution function to file
   char fname[1024];
   sprintf(fname, "ctest_proj_mj_on_basis_test_1x2v_p%d.gkyl", poly_order);
-  gkyl_grid_sub_array_write(&grid, &local, 0, distf, fname);
+  // gkyl_grid_sub_array_write(&grid, &local, 0, distf, fname);
 
   // release memory for moment data object
   gkyl_array_release(m0);
@@ -527,9 +543,13 @@ test_1x2v(int poly_order)
   gkyl_array_release(gamma_inv);
 }
 
-void test_1x2v_p2() { test_1x2v(2); }
+void
+test_proj_mj_on_basis_1x2v_p2_ho()
+{
+  test_1x2v(2);
+}
 
-void 
+void
 test_1x3v(int poly_order)
 {
   double lower[] = {0.1, -15.0, -15.0, -15.0}, upper[] = {1.0, 15.0, 15.0, 15.0};
@@ -574,31 +594,32 @@ test_1x3v(int poly_order)
   m0 = mkarr(confBasis.num_basis, confLocal_ext.volume);
   m1i = mkarr(vdim * confBasis.num_basis, confLocal_ext.volume);
   m2 = mkarr(confBasis.num_basis, confLocal_ext.volume);
-  moms = mkarr((vdim+2)*confBasis.num_basis, confLocal_ext.volume);
+  moms = mkarr((vdim + 2) * confBasis.num_basis, confLocal_ext.volume);
 
-  gkyl_proj_on_basis *proj_m0 = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-    poly_order + 1, 1, eval_M0, NULL);
-  gkyl_proj_on_basis *proj_m1i = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-    poly_order + 1, vdim, eval_M1i_3v, NULL);
-  gkyl_proj_on_basis *proj_m2 = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-    poly_order + 1, 1, eval_M2_3v, NULL);
+  gkyl_proj_on_basis *proj_m0 =
+    gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order + 1, 1, eval_M0, NULL);
+  gkyl_proj_on_basis *proj_m1i =
+    gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order + 1, vdim, eval_M1i_3v, NULL);
+  gkyl_proj_on_basis *proj_m2 =
+    gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order + 1, 1, eval_M2_3v, NULL);
 
   gkyl_proj_on_basis_advance(proj_m0, 0.0, &confLocal, m0);
   gkyl_proj_on_basis_advance(proj_m1i, 0.0, &confLocal, m1i);
   gkyl_proj_on_basis_advance(proj_m2, 0.0, &confLocal, m2);
-  gkyl_array_set_offset_range(moms, 1.0, m0, 0*confBasis.num_basis, &confLocal);
-  gkyl_array_set_offset_range(moms, 1.0, m1i, 1*confBasis.num_basis, &confLocal);
-  gkyl_array_set_offset_range(moms, 1.0, m2, (vdim+1)*confBasis.num_basis, &confLocal);
+  gkyl_array_set_offset_range(moms, 1.0, m0, 0 * confBasis.num_basis, &confLocal);
+  gkyl_array_set_offset_range(moms, 1.0, m1i, 1 * confBasis.num_basis, &confLocal);
+  gkyl_array_set_offset_range(moms, 1.0, m2, (vdim + 1) * confBasis.num_basis, &confLocal);
 
   // build hamil and gamma_inv
   struct gkyl_array *hamil = mkarr(velBasis.num_basis, velLocal.volume);
   struct gkyl_array *gamma_inv = mkarr(velBasis.num_basis, velLocal.volume);
   // Identity velocity map: used to build the Hamiltonian and by the moment/LTE updaters.
-  struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = { 0 };
-  struct gkyl_vlasov_velocity_map *vel_map = gkyl_vlasov_velocity_map_new(&vel_grid,
-    &velLocal, &velBasis, inp_vmap, false, false);
-  gkyl_dg_vlasov_calc_hamil(&vel_grid, &velBasis, &velLocal, 
-    GKYL_MODEL_SR, vel_map, hamil, gamma_inv, false);
+  struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = {0};
+  struct gkyl_vlasov_velocity_map *vel_map =
+    gkyl_vlasov_velocity_map_new(&vel_grid, &velLocal, &velBasis, inp_vmap, false, false);
+  gkyl_dg_vlasov_calc_hamil(
+    &vel_grid, &velBasis, &velLocal, GKYL_MODEL_SR, vel_map, hamil, gamma_inv, false
+  );
 
   // create distribution function array
   struct gkyl_array *distf;
@@ -607,11 +628,11 @@ test_1x3v(int poly_order)
   // projection updater to compute LTE distribution
   struct gkyl_vlasov_lte_proj_on_basis_inp inp_lte = {
     .phase_grid = &grid,
-    .vel_grid = &vel_grid, 
+    .vel_grid = &vel_grid,
     .conf_basis = &confBasis,
-    .vel_basis = &velBasis, 
+    .vel_basis = &velBasis,
     .phase_basis = &basis,
-    .conf_range =  &confLocal,
+    .conf_range = &confLocal,
     .conf_range_ext = &confLocal_ext,
     .vel_range = &velLocal,
     .phase_range = &local,
@@ -623,27 +644,27 @@ test_1x3v(int poly_order)
     .use_extended_hamil_def = false,
     .use_gpu = false,
     .vel_map = vel_map,
-  };  
+  };
   gkyl_vlasov_lte_proj_on_basis *proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_lte);
   gkyl_vlasov_lte_proj_on_basis_advance(proj_lte, &local, &confLocal, moms, distf);
 
   // values to compare  at index (1, 9, 9, 9) [remember, lower-left index is (1,1,1,1)]
-  double p2_vals[] = {2.2004825355599965e-02, 7.1324343268494727e-19, -1.2968205139278119e-03, 
-    -3.9683045523914544e-03, -1.1492140196787010e-02, 2.0065506128885464e-19, 
-    2.6863348725598927e-19, 1.0399887120789773e-03, 6.2237804549528725e-19, 
-    1.2878059167286534e-03, 2.6451147610928889e-03, -6.3077058326192259e-18, 
-    -1.3820826308538342e-03, -1.0478012443518811e-03, 1.6782192015094876e-03, 
-    7.3099489316101678e-20, -2.2315380074151361e-19, -1.5210474522584246e-19, 
-    -8.4301245320312257e-04, 2.8388294826914462e-18, -5.5972719240227798e-19, 
-    2.7769888555314303e-18, 2.6587058568191109e-04, -2.6096614467447103e-19, 
-    -2.0844243229831450e-05, 6.3431871295172754e-18, 7.3781907692053105e-04, 
-    4.9347115341968450e-04, 2.2046700923304946e-20, -3.7605267297870676e-04, 
-    -5.6100948433461376e-04, 3.5408403867716293e-20, -3.8294647162266746e-19, 
-    -3.0565669788894797e-20, -2.3269941088952652e-20, -1.0021845103459830e-18, 
-    2.4164727245648497e-19, -1.7030071204748659e-18, -1.4254568013549241e-04, 
-    1.2495807446563311e-19, 3.8839940617297632e-05, -5.3617945589348144e-20, 
-    -4.8911545428669850e-20, 2.5014295050500632e-04, 2.0619708529882749e-19, 
-    -6.1276211233163564e-20, -6.5891739087463357e-20, -1.0199525829477060e-19};
+  double p2_vals[] = {2.2004825355599965e-02,  7.1324343268494727e-19,  -1.2968205139278119e-03,
+                      -3.9683045523914544e-03, -1.1492140196787010e-02, 2.0065506128885464e-19,
+                      2.6863348725598927e-19,  1.0399887120789773e-03,  6.2237804549528725e-19,
+                      1.2878059167286534e-03,  2.6451147610928889e-03,  -6.3077058326192259e-18,
+                      -1.3820826308538342e-03, -1.0478012443518811e-03, 1.6782192015094876e-03,
+                      7.3099489316101678e-20,  -2.2315380074151361e-19, -1.5210474522584246e-19,
+                      -8.4301245320312257e-04, 2.8388294826914462e-18,  -5.5972719240227798e-19,
+                      2.7769888555314303e-18,  2.6587058568191109e-04,  -2.6096614467447103e-19,
+                      -2.0844243229831450e-05, 6.3431871295172754e-18,  7.3781907692053105e-04,
+                      4.9347115341968450e-04,  2.2046700923304946e-20,  -3.7605267297870676e-04,
+                      -5.6100948433461376e-04, 3.5408403867716293e-20,  -3.8294647162266746e-19,
+                      -3.0565669788894797e-20, -2.3269941088952652e-20, -1.0021845103459830e-18,
+                      2.4164727245648497e-19,  -1.7030071204748659e-18, -1.4254568013549241e-04,
+                      1.2495807446563311e-19,  3.8839940617297632e-05,  -5.3617945589348144e-20,
+                      -4.8911545428669850e-20, 2.5014295050500632e-04,  2.0619708529882749e-19,
+                      -6.1276211233163564e-20, -6.5891739087463357e-20, -1.0199525829477060e-19};
 
   const double *fv = gkyl_array_cfetch(distf, gkyl_range_idx(&local_ext, (int[4]){1, 9, 9, 9}));
 
@@ -657,7 +678,7 @@ test_1x3v(int poly_order)
   // write distribution function to file
   char fname[1024];
   sprintf(fname, "ctest_proj_mj_on_basis_test_1x3v_p%d.gkyl", poly_order);
-  gkyl_grid_sub_array_write(&grid, &local, 0, distf, fname);
+  // gkyl_grid_sub_array_write(&grid, &local, 0, distf, fname);
 
   // release memory for moment data object
   gkyl_array_release(m0);
@@ -674,12 +695,16 @@ test_1x3v(int poly_order)
   gkyl_array_release(gamma_inv);
 }
 
-void test_1x3v_p2() { test_1x3v(2); }
+void
+test_proj_mj_on_basis_1x3v_p2_ho()
+{
+  test_1x3v(2);
+}
 
 TEST_LIST = {
-  {"test_1x1v_no_drift_p2", test_1x1v_no_drift_p2},
-  {"test_1x1v_p2", test_1x1v_p2},
-  {"test_1x2v_p2", test_1x2v_p2},
-  {"test_1x3v_p2", test_1x3v_p2},
-  {NULL, NULL},
+  {"test_proj_mj_on_basis_1x1v_no_drift_p2_ho", test_proj_mj_on_basis_1x1v_no_drift_p2_ho},
+  {"test_proj_mj_on_basis_1x1v_p2_ho", test_proj_mj_on_basis_1x1v_p2_ho},
+  {"test_proj_mj_on_basis_1x2v_p2_ho", test_proj_mj_on_basis_1x2v_p2_ho},
+  {"test_proj_mj_on_basis_1x3v_p2_ho", test_proj_mj_on_basis_1x3v_p2_ho},
+  {NULL, NULL}
 };

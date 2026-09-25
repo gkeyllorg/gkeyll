@@ -18,17 +18,17 @@ enum gkyl_distribution_moments {
   GKYL_F_MOMENT_MAXWELLIAN, // M0, drift speed, T/m.
   GKYL_F_MOMENT_BIMAXWELLIAN, // M0, drift speed, Tpar/m, Tperp/m.
   GKYL_F_MOMENT_LTE, // Maxwellian or Maxwell-Juttner moments.
-  GKYL_F_MOMENT_M0M1M2,  // M0, M1, M2.
-  GKYL_F_MOMENT_M0M1M2PARM2PERP,  // M0, M1, M2par, M2perp.
-  GKYL_F_MOMENT_HAMILTONIAN,  // M0, mass*M1, H moments.
+  GKYL_F_MOMENT_M0M1M2, // M0, M1, M2.
+  GKYL_F_MOMENT_M0M1M2PARM2PERP, // M0, M1, M2par, M2perp.
+  GKYL_F_MOMENT_HAMILTONIAN, // M0, mass*M1, H moments.
   GKYL_F_MOMENT_M1_FROM_H, // dH/dv / m moment.
   GKYL_F_MOMENT_ENERGY, // H moment.
   GKYL_F_MOMENT_ENERGY_FLUX, // H*dH/dv /m moment.
   GKYL_F_MOMENT_M0ENERGYM3, // M0, Energy (H) and M3 moments.
   GKYL_F_MOMENT_NI, // M0, M1i for-vector.
   GKYL_F_MOMENT_TIJ, // Stress-energy tensor.
-  GKYL_F_MOMENT_M0_UPPER, // M0 integrated over (part of) the upper half-plane. 
-  GKYL_F_MOMENT_M0_LOWER, // M0 integrated over (part of) the lower half-plane. 
+  GKYL_F_MOMENT_M0_UPPER, // M0 integrated over (part of) the upper half-plane.
+  GKYL_F_MOMENT_M0_LOWER // M0 integrated over (part of) the lower half-plane.
 };
 
 // String names corresponding to the enum options above.
@@ -55,8 +55,8 @@ static const char *gkyl_distribution_moments_strs[] = {
   "M0EnergyM3",
   "Ni",
   "Tij",
-  "M0_upper", 
-  "M0_lower", 
+  "M0_upper",
+  "M0_lower"
 };
 
 // Descriptions for each distribution moment.
@@ -75,13 +75,14 @@ static const char *gkyl_distribution_moments_descriptions[] = {
   "Number density, drift velocity, parallel and perpendicular thermal speed squared.",
   "Number density, drift velocity, and thermal speed squared.",
   "Number density, momentum density divided by mass, and kinetic energy density times 2/mass.",
-  "Number density, momentum density divided by mass, and parallel and perpendicular kinetic energy density times 2/mass.",
+  "Number density, momentum density divided by mass, and parallel and perpendicular kinetic energy "
+  "density times 2/mass.",
   "Number density, momentum density, and Hamiltonian energy density.",
   "Momentum density (divided by mass) from the velocity gradient of the Hamiltonian.",
   "Hamiltonian energy density (for neutrals).",
   "Number density, Hamiltonian energy density, and heat flux density times 2/mass.",
   "4-momentum (M0, M1).",
-  "Stress-energy tensor.",
+  "Stress-energy tensor."
 };
 
 // Forward declare for use in function pointers
@@ -90,9 +91,10 @@ struct gkyl_mom_type;
 /**
  * Function pointer type to compute the needed moment.
  */
-typedef void (*momf_t)(const struct gkyl_mom_type *momt,
-  const double *xc, const double *dx,
-  const int *idx, const double *f, double* out, void *param);
+typedef void (*momf_t)(
+  const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
+  const double *f, double *out, void *param
+);
 
 struct gkyl_mom_type {
   int cdim; // config-space dim
@@ -122,14 +124,14 @@ bool gkyl_mom_type_is_cu_dev(const struct gkyl_mom_type *momt);
  * @param momt Moment object to get pointer from.
  * @return acquired object
  */
-struct gkyl_mom_type* gkyl_mom_type_acquire(const struct gkyl_mom_type* momt);
+struct gkyl_mom_type *gkyl_mom_type_acquire(const struct gkyl_mom_type *momt);
 
 /**
  * Delete moment object
  *
  * @param momt Moment object to delete.
  */
-void gkyl_mom_type_release(const struct gkyl_mom_type* momt);
+void gkyl_mom_type_release(const struct gkyl_mom_type *momt);
 
 /**
  * Calculate moment specified by mom_type object.
@@ -141,9 +143,10 @@ void gkyl_mom_type_release(const struct gkyl_mom_type* momt);
  * @param f Input pointer to distribution function in cell
  * @param out On output, contribution to moment from phase-space cell
  */
-void gkyl_mom_type_calc(const struct gkyl_mom_type* momt,
-  const double *xc, const double *dx, const int *idx,
-  const double *f, double* GKYL_RESTRICT out, void *param);
+void gkyl_mom_type_calc(
+  const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
+  const double *f, double *GKYL_RESTRICT out, void *param
+);
 
 /**
  * Get number of moments specified by mom_type object
@@ -151,4 +154,4 @@ void gkyl_mom_type_calc(const struct gkyl_mom_type* momt,
  * @param momt Moment type object
  * returns int Number of moments
  */
-int gkyl_mom_type_num_mom(const struct gkyl_mom_type* momt);
+int gkyl_mom_type_num_mom(const struct gkyl_mom_type *momt);

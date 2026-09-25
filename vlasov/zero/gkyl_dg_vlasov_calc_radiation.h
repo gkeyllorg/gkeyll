@@ -22,16 +22,19 @@
  * @param rad Output array storing the velocity-space radiation drag force.
  * @param use_gpu bool to determine if on GPU
  */
-void gkyl_dg_vlasov_calc_radiation(const struct gkyl_rect_grid *vel_grid,
-  const struct gkyl_basis *vel_basis, const struct gkyl_range *vel_range,
-  enum gkyl_vlasov_radiation_id radiation_id, const struct gkyl_vlasov_velocity_map *vel_map,
-  double t_cool, double p0, struct gkyl_array *rad, bool use_gpu);
+void gkyl_dg_vlasov_calc_radiation(
+  const struct gkyl_rect_grid *vel_grid, const struct gkyl_basis *vel_basis,
+  const struct gkyl_range *vel_range, enum gkyl_vlasov_radiation_id radiation_id,
+  const struct gkyl_vlasov_velocity_map *vel_map, double t_cool, double p0, struct gkyl_array *rad,
+  bool use_gpu
+);
 
 /**
  * Construct the velocity-space radiation drag force on the velocity-space grid on
  * NV-GPU. See new() method for documentation.
  */
-void gkyl_dg_vlasov_calc_radiation_cu(const struct gkyl_rect_grid *vel_grid,
-  const struct gkyl_basis *vel_basis, const struct gkyl_range *vel_range,
-  enum gkyl_vlasov_radiation_id radiation_id, const struct gkyl_vlasov_velocity_map *vel_map,
-  double t_cool, double p0, struct gkyl_array *rad);
+void gkyl_dg_vlasov_calc_radiation_cu(
+  const struct gkyl_rect_grid *vel_grid, const struct gkyl_basis *vel_basis,
+  const struct gkyl_range *vel_range, enum gkyl_vlasov_radiation_id radiation_id,
+  const struct gkyl_vlasov_velocity_map *vel_map, double t_cool, double p0, struct gkyl_array *rad
+);

@@ -18,21 +18,29 @@ struct gkyl_vlasov_lte_proj_on_basis_inp {
   const struct gkyl_basis *vel_basis; // Velocity-space basis functions
   const struct gkyl_basis *phase_basis; // Phase-space basis functions
   const struct gkyl_range *conf_range; // Configuration-space range
-  const struct gkyl_range *conf_range_ext; // Extended configuration-space range (for internal memory allocations)
+  const struct gkyl_range
+    *conf_range_ext; // Extended configuration-space range (for internal memory allocations)
   const struct gkyl_range *vel_range; // velocity space range
   const struct gkyl_range *phase_range; // phase space range
-  const struct gkyl_vlasov_velocity_map *vel_map; // Velocity-space mapping object. NULL => uniform velocity grid.
-  const struct gkyl_range *hamil_range; // Range for indexing Hamiltonian (either velocity-space range or full phase-space range).
+  const struct gkyl_vlasov_velocity_map
+    *vel_map; // Velocity-space mapping object. NULL => uniform velocity grid.
+  const struct gkyl_range *
+    hamil_range; // Range for indexing Hamiltonian (either velocity-space range or full phase-space range).
   const struct gkyl_array *hamil; // (Can-bp quantity) Hamiltonian
   enum gkyl_model_id model_id; // Enum identifier for model type (e.g., SR, see gkyl_eqn_type.h)
-  enum gkyl_hamil_id hamil_id; // Enum for the Hamiltonian representation (sparse/dense velocity-space or phase-space expansion).
+  enum gkyl_hamil_id
+    hamil_id; // Enum for the Hamiltonian representation (sparse/dense velocity-space or phase-space expansion).
   const struct gkyl_array *gamma_inv; // SR quantitiy: 1/gamma = 1/sqrt(1 + p^2)
   const struct gkyl_array *h_ij; // (Can-bp quantity) metric tensor (covariant components)
-  const struct gkyl_array *h_ij_inv; // (Can-bp quantity) inverse of the metric tensor (contravariant components)
+  const struct gkyl_array
+    *h_ij_inv; // (Can-bp quantity) inverse of the metric tensor (contravariant components)
   const struct gkyl_array *det_h; // (Can-bp quantity) determinant of the metric tensor
-  bool use_extended_hamil_def; // (Can-pb) quantity, bool to determine if we wish to use an extended can-pb Hamil
-  const struct gkyl_array *background_flows; // (Can-bp quantity) background flows from the geometry (i.e. constant rotation)
-  const struct gkyl_array *effective_potential; // (Can-bp quantity) background effective potential from the geometry (i.e. constant rotation effective potential)
+  bool
+    use_extended_hamil_def; // (Can-pb) quantity, bool to determine if we wish to use an extended can-pb Hamil
+  const struct gkyl_array *
+    background_flows; // (Can-bp quantity) background flows from the geometry (i.e. constant rotation)
+  const struct gkyl_array *
+    effective_potential; // (Can-bp quantity) background effective potential from the geometry (i.e. constant rotation effective potential)
   bool is_bimaxwellian; // Are we projecting a bi-Maxwellian?
   bool use_gpu; // bool for gpu useage
 
@@ -49,8 +57,9 @@ struct gkyl_vlasov_lte_proj_on_basis_inp {
  * @param inp Input parameters defined in gkyl_vlasov_lte_proj_on_basis_inp struct.
  * @return New updater pointer.
  */
-struct gkyl_vlasov_lte_proj_on_basis* 
-gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_inp *inp);
+struct gkyl_vlasov_lte_proj_on_basis *gkyl_vlasov_lte_proj_on_basis_inew(
+  const struct gkyl_vlasov_lte_proj_on_basis_inp *inp
+);
 
 /**
  * Compute projection of LTE (local thermodynamic equilibrium) distribution on basis. 
@@ -67,28 +76,31 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
  *                 Note: LTE moments are defined in stationary frame (frame moving at V_drift)
  * @param f_lte Output LTE distribution function
  */
-void gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
-  const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
-  const struct gkyl_array *moms_lte, struct gkyl_array *f_lte);
+void gkyl_vlasov_lte_proj_on_basis_advance(
+  gkyl_vlasov_lte_proj_on_basis *up, const struct gkyl_range *phase_range,
+  const struct gkyl_range *conf_range, const struct gkyl_array *moms_lte, struct gkyl_array *f_lte
+);
 
 /**
  * Host-side wrapper for initial canonical-pb vars
  */
-void gkyl_vlasov_lte_proj_on_basis_geom_quad_vars_cu(gkyl_vlasov_lte_proj_on_basis *up, 
-  const struct gkyl_range *conf_range, const struct gkyl_array *h_ij,
-  const struct gkyl_array *h_ij_inv, const struct gkyl_array *det_h, 
-  const struct gkyl_array *background_flows, const struct gkyl_array *effective_potential);
+void gkyl_vlasov_lte_proj_on_basis_geom_quad_vars_cu(
+  gkyl_vlasov_lte_proj_on_basis *up, const struct gkyl_range *conf_range,
+  const struct gkyl_array *h_ij, const struct gkyl_array *h_ij_inv, const struct gkyl_array *det_h,
+  const struct gkyl_array *background_flows, const struct gkyl_array *effective_potential
+);
 
 /**
  * Host-side wrapper for projection of LTE distribution function on device
  */
-void gkyl_vlasov_lte_proj_on_basis_advance_cu(gkyl_vlasov_lte_proj_on_basis *up,
-  const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
-  const struct gkyl_array *moms_lte, struct gkyl_array *f_lte);
+void gkyl_vlasov_lte_proj_on_basis_advance_cu(
+  gkyl_vlasov_lte_proj_on_basis *up, const struct gkyl_range *phase_range,
+  const struct gkyl_range *conf_range, const struct gkyl_array *moms_lte, struct gkyl_array *f_lte
+);
 
 /**
  * Delete updater.
  *
  * @param up Updater to delete.
  */
-void gkyl_vlasov_lte_proj_on_basis_release(gkyl_vlasov_lte_proj_on_basis* up);
+void gkyl_vlasov_lte_proj_on_basis_release(gkyl_vlasov_lte_proj_on_basis *up);

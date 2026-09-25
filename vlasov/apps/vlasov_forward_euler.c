@@ -9,10 +9,11 @@
 // Species loops run over the overall species count; the RK-state arrays are
 // NULL where a species lacks that aspect.
 void
-vlasov_forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
-  const struct gkyl_array *fin[], const struct gkyl_array *fluidin[], const struct gkyl_array *emin,
-  struct gkyl_array *fout[], struct gkyl_array *fluidout[], struct gkyl_array *emout,
-  struct gkyl_update_status *st)
+vlasov_forward_euler(
+  gkyl_vlasov_app *app, double tcurr, double dt, const struct gkyl_array *fin[],
+  const struct gkyl_array *fluidin[], const struct gkyl_array *emin, struct gkyl_array *fout[],
+  struct gkyl_array *fluidout[], struct gkyl_array *emout, struct gkyl_update_status *st
+)
 {
   app->stat.nfeuler += 1;
 
@@ -32,8 +33,9 @@ vlasov_forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
     vlasov_field_calc_ext_pot(app, tcurr);
   }
   // Compute applied acceleration if present and time-dependent.
-  for (int i=0; i<num_species; ++i)
+  for (int i = 0; i < num_species; ++i) {
     vlasov_species_calc_app_accel(app, &app->species[i], tcurr);
+  }
 
   // Update the field at the start of the step: the Maxwell RHS, or the Poisson
   // solve for the potential at the current time (read by the species RHS below).
@@ -41,33 +43,39 @@ vlasov_forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   dtmin = fmin(dtmin, dt1_field); // null field returns DBL_MAX (no constraint)
 
   // Compute self-collision moments and boundary corrections.
-  for (int i=0; i<num_species; ++i)
+  for (int i = 0; i < num_species; ++i) {
     vlasov_species_calc_self_moms(app, &app->species[i], fin[i]);
+  }
 
   // Compute the coupled variables (LBO cross-collision moments, fluid primitive
   // variables) after all species' self moments, hence a separate loop.
-  for (int i=0; i<num_species; ++i)
+  for (int i = 0; i < num_species; ++i) {
     vlasov_species_calc_coupled_vars(app, &app->species[i], fin[i], fluidin[i]);
+  }
 
   // Compute RHS of the Vlasov/fluid equations.
-  for (int i=0; i<num_species; ++i) {
-    double dt1 = vlasov_species_rhs(app, &app->species[i], fin[i], fluidin[i], emin, fout[i], fluidout[i]);
+  for (int i = 0; i < num_species; ++i) {
+    double dt1 =
+      vlasov_species_rhs(app, &app->species[i], fin[i], fluidin[i], emin, fout[i], fluidout[i]);
     dtmin = fmin(dtmin, dt1);
   }
 
   // Compute source term. Done here as the RHS update for all species should be
   // complete in case we need a bflux calculation for the source species.
-  for (int i=0; i<num_species; ++i)
+  for (int i = 0; i < num_species; ++i) {
     vlasov_species_calc_source_moms(app, &app->species[i], fin[i]);
-  for (int i=0; i<num_species; ++i)
+  }
+  for (int i = 0; i < num_species; ++i) {
     vlasov_species_source_rhs(app, &app->species[i], tcurr, fin, fluidin, fout, fluidout);
+  }
 
   double dt_max_rel_diff = 0.01;
   // check if dtmin is slightly smaller than dt. Use dt if it is
   // (avoids retaking steps if dt changes are very small).
-  double dt_rel_diff = (dt-dtmin)/dt;
-  if (dt_rel_diff > 0 && dt_rel_diff < dt_max_rel_diff)
+  double dt_rel_diff = (dt - dtmin) / dt;
+  if (dt_rel_diff > 0 && dt_rel_diff < dt_max_rel_diff) {
     dtmin = dt;
+  }
 
   // compute minimum time-step across all processors
   double dtmin_local = dtmin, dtmin_global;
@@ -79,8 +87,9 @@ vlasov_forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   st->dt_suggested = dtmin;
 
   // Complete the update of the species (distribution and/or fluid).
-  for (int i=0; i<num_species; ++i)
+  for (int i = 0; i < num_species; ++i) {
     vlasov_species_step_f(&app->species[i], dta, fin[i], fluidin[i], fout[i], fluidout[i]);
+  }
 
   // Complete the field update: for Vlasov-Maxwell, accumulate the species
   // current onto the RHS and finalize emout = emin + dta*RHS.

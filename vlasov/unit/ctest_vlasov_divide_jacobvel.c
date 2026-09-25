@@ -18,14 +18,14 @@
 #include <gkyl_vlasov_velocity_map.h>
 
 // Allocate array (filled with zeros).
-static struct gkyl_array*
+static struct gkyl_array *
 mkarr(bool use_gpu, long nc, long size)
 {
 #ifdef GKYL_HAVE_CUDA
-  struct gkyl_array* a = use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size)
-                                 : gkyl_array_new(GKYL_DOUBLE, nc, size);
+  struct gkyl_array *a = use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size) :
+                                   gkyl_array_new(GKYL_DOUBLE, nc, size);
 #else
-  struct gkyl_array* a = gkyl_array_new(GKYL_DOUBLE, nc, size);
+  struct gkyl_array *a = gkyl_array_new(GKYL_DOUBLE, nc, size);
 #endif
   return a;
 }
@@ -37,7 +37,7 @@ mkarr(bool use_gpu, long nc, long size)
 static void
 eval_quad_vmap(double t, const double *vc, double *vp, void *ctx)
 {
-  vp[0] = vc[0] < 0.0 ? -VMAX*vc[0]*vc[0] : VMAX*vc[0]*vc[0];
+  vp[0] = vc[0] < 0.0 ? -VMAX * vc[0] * vc[0] : VMAX * vc[0] * vc[0];
 }
 
 // Project a Maxwellian with constant (n=1, V_drift=0, T/m=1) on a quadratically
@@ -52,14 +52,14 @@ static void
 test_divide_jacobvel(int vdim, bool use_gpu)
 {
   int poly_order = 2;
-  int cdim = 1, pdim = cdim+vdim;
+  int cdim = 1, pdim = cdim + vdim;
 
-  double lower[GKYL_MAX_DIM] = { 0.0, -1.0, -1.0, -1.0 };
-  double upper[GKYL_MAX_DIM] = { 1.0, 1.0, 1.0, 1.0 };
+  double lower[GKYL_MAX_DIM] = {0.0, -1.0, -1.0, -1.0};
+  double upper[GKYL_MAX_DIM] = {1.0, 1.0, 1.0, 1.0};
   // 32 cells per velocity direction keeps the within-cell dynamic range of the
   // Maxwellian in the outermost mapped cells small (~8.6 per direction), so
   // the nodal checks below can use tight relative tolerances at every node.
-  int cells[GKYL_MAX_DIM] = { 1, 32, 32, 32 };
+  int cells[GKYL_MAX_DIM] = {1, 32, 32, 32};
 
   struct gkyl_rect_grid phase_grid;
   gkyl_rect_grid_init(&phase_grid, pdim, lower, upper, cells);
@@ -74,39 +74,43 @@ test_divide_jacobvel(int vdim, bool use_gpu)
   gkyl_cart_modal_tensor(&cbasis, cdim, poly_order);
   gkyl_cart_modal_tensor(&vbasis, vdim, poly_order);
 
-  int conf_ghost[] = { 1 };
+  int conf_ghost[] = {1};
   struct gkyl_range conf_local, conf_local_ext;
   gkyl_create_grid_ranges(&conf_grid, conf_ghost, &conf_local_ext, &conf_local);
 
-  int vel_ghost[] = { 0, 0, 0 };
+  int vel_ghost[] = {0, 0, 0};
   struct gkyl_range vel_local, vel_local_ext;
   gkyl_create_grid_ranges(&vel_grid, vel_ghost, &vel_local_ext, &vel_local);
 
-  int phase_ghost[GKYL_MAX_DIM] = { 1, 0, 0, 0 };
+  int phase_ghost[GKYL_MAX_DIM] = {1, 0, 0, 0};
   struct gkyl_range phase_local, phase_local_ext;
   gkyl_create_grid_ranges(&phase_grid, phase_ghost, &phase_local_ext, &phase_local);
 
   // Velocity map with the quadratic mapping in every direction.
-  struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = { 0 };
-  for (int d=0; d<vdim; ++d)
+  struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = {0};
+  for (int d = 0; d < vdim; ++d) {
     inp_vmap[d].eval_vmap = eval_quad_vmap;
-  struct gkyl_vlasov_velocity_map *vvm = gkyl_vlasov_velocity_map_new(&vel_grid,
-    &vel_local, &vbasis, inp_vmap, false, use_gpu);
+  }
+  struct gkyl_vlasov_velocity_map *vvm =
+    gkyl_vlasov_velocity_map_new(&vel_grid, &vel_local, &vbasis, inp_vmap, false, use_gpu);
 
   // Velocity-space Hamiltonian (H = v^2/2 on the mapped grid), needed by the
   // moment computation inside the LTE projection's density rescale.
   struct gkyl_array *hamil = mkarr(use_gpu, vbasis.num_basis, vel_local.volume);
   struct gkyl_array *gamma_inv = mkarr(use_gpu, vbasis.num_basis, vel_local.volume);
-  gkyl_dg_vlasov_calc_hamil(&vel_grid, &vbasis, &vel_local,
-    GKYL_MODEL_DEFAULT, vvm, hamil, gamma_inv, use_gpu);
+  gkyl_dg_vlasov_calc_hamil(
+    &vel_grid, &vbasis, &vel_local, GKYL_MODEL_DEFAULT, vvm, hamil, gamma_inv, use_gpu
+  );
 
   // Constant LTE moments (n, V_drift, T/m) = (1, 0, 1).
-  struct gkyl_array *moms_ho = gkyl_array_new(GKYL_DOUBLE, (vdim+2)*cbasis.num_basis, conf_local_ext.volume);
+  struct gkyl_array *moms_ho =
+    gkyl_array_new(GKYL_DOUBLE, (vdim + 2) * cbasis.num_basis, conf_local_ext.volume);
   gkyl_array_clear(moms_ho, 0.0);
-  double *moms_d = gkyl_array_fetch(moms_ho, gkyl_range_idx(&conf_local, (int[]) { 1 }));
+  double *moms_d = gkyl_array_fetch(moms_ho, gkyl_range_idx(&conf_local, (int[]){1}));
   moms_d[0] = sqrt(2.0); // n = 1 (1D p2 cell-constant coefficient normalization).
-  moms_d[(vdim+1)*cbasis.num_basis] = sqrt(2.0); // T/m = 1.
-  struct gkyl_array *moms = use_gpu ? mkarr(use_gpu, moms_ho->ncomp, moms_ho->size) : gkyl_array_acquire(moms_ho);
+  moms_d[(vdim + 1) * cbasis.num_basis] = sqrt(2.0); // T/m = 1.
+  struct gkyl_array *moms = use_gpu ? mkarr(use_gpu, moms_ho->ncomp, moms_ho->size) :
+                                      gkyl_array_acquire(moms_ho);
   gkyl_array_copy(moms, moms_ho);
 
   // Project the LTE (Maxwellian) distribution; output is Jf on the mapped grid.
@@ -139,8 +143,10 @@ test_divide_jacobvel(int vdim, bool use_gpu)
   gkyl_vlasov_velocity_map_rescale_jacobvel(vvm, &cbasis, &pbasis, &phase_local, f_no_J, Jf2);
 
   // Host copies for checking.
-  struct gkyl_array *f_lte_ho = gkyl_array_new(GKYL_DOUBLE, pbasis.num_basis, phase_local_ext.volume);
-  struct gkyl_array *f_no_J_ho = gkyl_array_new(GKYL_DOUBLE, pbasis.num_basis, phase_local_ext.volume);
+  struct gkyl_array *f_lte_ho =
+    gkyl_array_new(GKYL_DOUBLE, pbasis.num_basis, phase_local_ext.volume);
+  struct gkyl_array *f_no_J_ho =
+    gkyl_array_new(GKYL_DOUBLE, pbasis.num_basis, phase_local_ext.volume);
   struct gkyl_array *Jf2_ho = gkyl_array_new(GKYL_DOUBLE, pbasis.num_basis, phase_local_ext.volume);
   gkyl_array_copy(f_lte_ho, f_lte);
   gkyl_array_copy(f_no_J_ho, f_no_J);
@@ -152,14 +158,18 @@ test_divide_jacobvel(int vdim, bool use_gpu)
 
   // Quadrature ranges matching the projection's node ordering.
   int pqshape[GKYL_MAX_DIM], vqshape[GKYL_MAX_DIM];
-  for (int d=0; d<pdim; ++d) pqshape[d] = poly_order+1;
-  for (int d=0; d<vdim; ++d) vqshape[d] = poly_order+1;
+  for (int d = 0; d < pdim; ++d) {
+    pqshape[d] = poly_order + 1;
+  }
+  for (int d = 0; d < vdim; ++d) {
+    vqshape[d] = poly_order + 1;
+  }
   struct gkyl_range phase_qrange, vel_qrange;
   gkyl_range_init_from_shape(&phase_qrange, pdim, pqshape);
   gkyl_range_init_from_shape(&vel_qrange, vdim, vqshape);
-  const double *ord = gkyl_gauss_ordinates[poly_order+1];
+  const double *ord = gkyl_gauss_ordinates[poly_order + 1];
 
-  double maxwell_norm = 1.0/sqrt(pow(2.0*GKYL_PI, vdim));
+  double maxwell_norm = 1.0 / sqrt(pow(2.0 * GKYL_PI, vdim));
 
   // First pass: find the global maximum nodal value of f_no_J and the
   // global ratio r0 = f_no_J/M there (the projection's density-rescale factor).
@@ -176,17 +186,19 @@ test_divide_jacobvel(int vdim, bool use_gpu)
     gkyl_range_iter_init(&qiter, &phase_qrange);
     while (gkyl_range_iter_next(&qiter)) {
       double eta[GKYL_MAX_DIM];
-      for (int d=0; d<pdim; ++d) eta[d] = ord[qiter.idx[d]];
+      for (int d = 0; d < pdim; ++d) {
+        eta[d] = ord[qiter.idx[d]];
+      }
       double fN = pbasis.eval_expand(eta, fnoJ_c);
       if (fN > fN_max) {
         double vsq = 0.0;
-        for (int d=0; d<vdim; ++d) {
-          double zv[] = { eta[cdim+d] };
-          double vp = b1.eval_expand(zv, &vmap_c[4*d]);
-          vsq += vp*vp;
+        for (int d = 0; d < vdim; ++d) {
+          double zv[] = {eta[cdim + d]};
+          double vp = b1.eval_expand(zv, &vmap_c[4 * d]);
+          vsq += vp * vp;
         }
         fN_max = fN;
-        r0 = fN/(maxwell_norm*exp(-0.5*vsq));
+        r0 = fN / (maxwell_norm * exp(-0.5 * vsq));
       }
     }
   }
@@ -196,7 +208,7 @@ test_divide_jacobvel(int vdim, bool use_gpu)
   // truncated beyond +/- 6 vth plus the Gauss-Legendre quadrature error of the
   // density moment on the mapped grid, both per velocity dimension: measured
   // r0-1 = -vdim*1.26e-8 at this resolution.
-  TEST_CHECK( fabs(r0 - 1.0) < 1e-7 );
+  TEST_CHECK(fabs(r0 - 1.0) < 1e-7);
   TEST_MSG("vdim=%d: global ratio r0 = %.15e", vdim, r0);
 
   // Second pass: per-cell nodal checks.
@@ -212,28 +224,33 @@ test_divide_jacobvel(int vdim, bool use_gpu)
 
     // (a) Round trip: rescale(divide(Jf)) reproduces Jf to machine precision.
     double Jf_c_max = 0.0;
-    for (int k=0; k<pbasis.num_basis; ++k)
+    for (int k = 0; k < pbasis.num_basis; ++k) {
       Jf_c_max = fmax(Jf_c_max, fabs(Jf_c[k]));
-    for (int k=0; k<pbasis.num_basis; ++k) {
-      TEST_CHECK( fabs(Jf2_c[k] - Jf_c[k]) < 1e-14*Jf_c_max );
-      TEST_MSG("vdim=%d cell=(%d,%d): round trip coeff %d: %.15e vs %.15e",
-        vdim, iter.idx[0], iter.idx[1], k, Jf2_c[k], Jf_c[k]);
+    }
+    for (int k = 0; k < pbasis.num_basis; ++k) {
+      TEST_CHECK(fabs(Jf2_c[k] - Jf_c[k]) < 1e-14 * Jf_c_max);
+      TEST_MSG(
+        "vdim=%d cell=(%d,%d): round trip coeff %d: %.15e vs %.15e", vdim, iter.idx[0], iter.idx[1],
+        k, Jf2_c[k], Jf_c[k]
+      );
     }
 
     struct gkyl_range_iter qiter;
     gkyl_range_iter_init(&qiter, &phase_qrange);
     while (gkyl_range_iter_next(&qiter)) {
       double eta[GKYL_MAX_DIM];
-      for (int d=0; d<pdim; ++d) eta[d] = ord[qiter.idx[d]];
+      for (int d = 0; d < pdim; ++d) {
+        eta[d] = ord[qiter.idx[d]];
+      }
 
       // Mapped velocity coordinates at this quadrature node.
       double vsq = 0.0;
-      for (int d=0; d<vdim; ++d) {
-        double zv[] = { eta[cdim+d] };
-        double vp = b1.eval_expand(zv, &vmap_c[4*d]);
-        vsq += vp*vp;
+      for (int d = 0; d < vdim; ++d) {
+        double zv[] = {eta[cdim + d]};
+        double vp = b1.eval_expand(zv, &vmap_c[4 * d]);
+        vsq += vp * vp;
       }
-      double M = maxwell_norm*exp(-0.5*vsq);
+      double M = maxwell_norm * exp(-0.5 * vsq);
       double fN = pbasis.eval_expand(eta, fnoJ_c);
       double JfN = pbasis.eval_expand(eta, Jf_c);
 
@@ -245,18 +262,22 @@ test_divide_jacobvel(int vdim, bool use_gpu)
       // mapped corner cells, ~640 at this resolution; measured worst-case
       // deviation 6e-12 in 1x3v), so a strict relative check holds at every
       // node, including the deep tail.
-      TEST_CHECK( gkyl_compare_double(fN/(r0*M), 1.0, 1e-10) );
-      TEST_MSG("vdim=%d cell=(%d,%d) node=(%d): f_no_J %.15e vs r0*M %.15e",
-        vdim, iter.idx[0], iter.idx[1], qiter.idx[0], fN, r0*M);
+      TEST_CHECK(gkyl_compare_double(fN / (r0 * M), 1.0, 1e-10));
+      TEST_MSG(
+        "vdim=%d cell=(%d,%d) node=(%d): f_no_J %.15e vs r0*M %.15e", vdim, iter.idx[0],
+        iter.idx[1], qiter.idx[0], fN, r0 * M
+      );
 
       // (c) Jf and f_no_J at the nodes differ by exactly the total Jacobian at
       // the corresponding velocity quadrature node (ties the projection, the
       // division kernels, and the map to the same node ordering).
       long vqidx = gkyl_range_idx(&vel_qrange, &qiter.idx[cdim]);
       double J = jacob_gauss_c[vqidx];
-      TEST_CHECK( gkyl_compare_double(JfN/(J*fN), 1.0, 1e-10) );
-      TEST_MSG("vdim=%d cell=(%d,%d): Jf %.15e vs J*f %.15e (J=%.15e)",
-        vdim, iter.idx[0], iter.idx[1], JfN, J*fN, J);
+      TEST_CHECK(gkyl_compare_double(JfN / (J * fN), 1.0, 1e-10));
+      TEST_MSG(
+        "vdim=%d cell=(%d,%d): Jf %.15e vs J*f %.15e (J=%.15e)", vdim, iter.idx[0], iter.idx[1],
+        JfN, J * fN, J
+      );
     }
   }
 
@@ -281,34 +302,39 @@ test_divide_jacobvel(int vdim, bool use_gpu)
 // than basis functions, so the projection is not a nodal interpolation and
 // the modal coefficients, not nodal values, are the quantities to compare).
 static void
-quadproj_maxwellian(const struct gkyl_basis *pbasis, const struct gkyl_basis *b1,
-  const struct gkyl_range *phase_qrange, int poly_order, int cdim, int vdim,
-  const double *vmap_c, double maxwell_norm, double *out)
+quadproj_maxwellian(
+  const struct gkyl_basis *pbasis, const struct gkyl_basis *b1,
+  const struct gkyl_range *phase_qrange, int poly_order, int cdim, int vdim, const double *vmap_c,
+  double maxwell_norm, double *out
+)
 {
-  const double *ord = gkyl_gauss_ordinates[poly_order+1];
-  const double *wgt = gkyl_gauss_weights[poly_order+1];
+  const double *ord = gkyl_gauss_ordinates[poly_order + 1];
+  const double *wgt = gkyl_gauss_weights[poly_order + 1];
   double bvals[160];
 
-  for (int k=0; k<pbasis->num_basis; ++k) out[k] = 0.0;
+  for (int k = 0; k < pbasis->num_basis; ++k) {
+    out[k] = 0.0;
+  }
 
   struct gkyl_range_iter qiter;
   gkyl_range_iter_init(&qiter, phase_qrange);
   while (gkyl_range_iter_next(&qiter)) {
     double eta[GKYL_MAX_DIM], wtot = 1.0;
-    for (int d=0; d<cdim+vdim; ++d) {
+    for (int d = 0; d < cdim + vdim; ++d) {
       eta[d] = ord[qiter.idx[d]];
       wtot *= wgt[qiter.idx[d]];
     }
     double vsq = 0.0;
-    for (int d=0; d<vdim; ++d) {
-      double zv[] = { eta[cdim+d] };
-      double vp = b1->eval_expand(zv, &vmap_c[4*d]);
-      vsq += vp*vp;
+    for (int d = 0; d < vdim; ++d) {
+      double zv[] = {eta[cdim + d]};
+      double vp = b1->eval_expand(zv, &vmap_c[4 * d]);
+      vsq += vp * vp;
     }
-    double M = maxwell_norm*exp(-0.5*vsq);
+    double M = maxwell_norm * exp(-0.5 * vsq);
     pbasis->eval(eta, bvals);
-    for (int k=0; k<pbasis->num_basis; ++k)
-      out[k] += wtot*bvals[k]*M;
+    for (int k = 0; k < pbasis->num_basis; ++k) {
+      out[k] += wtot * bvals[k] * M;
+    }
   }
 }
 
@@ -323,11 +349,11 @@ quadproj_maxwellian(const struct gkyl_basis *pbasis, const struct gkyl_basis *b1
 static void
 test_divide_jacobvel_ser(int vdim, int poly_order, bool use_gpu)
 {
-  int cdim = 1, pdim = cdim+vdim;
+  int cdim = 1, pdim = cdim + vdim;
 
-  double lower[GKYL_MAX_DIM] = { 0.0, -1.0, -1.0, -1.0 };
-  double upper[GKYL_MAX_DIM] = { 1.0, 1.0, 1.0, 1.0 };
-  int cells[GKYL_MAX_DIM] = { 1, 32, 32, 32 };
+  double lower[GKYL_MAX_DIM] = {0.0, -1.0, -1.0, -1.0};
+  double upper[GKYL_MAX_DIM] = {1.0, 1.0, 1.0, 1.0};
+  int cells[GKYL_MAX_DIM] = {1, 32, 32, 32};
 
   struct gkyl_rect_grid phase_grid;
   gkyl_rect_grid_init(&phase_grid, pdim, lower, upper, cells);
@@ -341,37 +367,41 @@ test_divide_jacobvel_ser(int vdim, int poly_order, bool use_gpu)
   gkyl_cart_modal_serendip(&cbasis, cdim, poly_order);
   gkyl_cart_modal_serendip(&vbasis, vdim, poly_order);
 
-  int conf_ghost[] = { 1 };
+  int conf_ghost[] = {1};
   struct gkyl_range conf_local, conf_local_ext;
   gkyl_create_grid_ranges(&conf_grid, conf_ghost, &conf_local_ext, &conf_local);
 
-  int vel_ghost[] = { 0, 0, 0 };
+  int vel_ghost[] = {0, 0, 0};
   struct gkyl_range vel_local, vel_local_ext;
   gkyl_create_grid_ranges(&vel_grid, vel_ghost, &vel_local_ext, &vel_local);
 
-  int phase_ghost[GKYL_MAX_DIM] = { 1, 0, 0, 0 };
+  int phase_ghost[GKYL_MAX_DIM] = {1, 0, 0, 0};
   struct gkyl_range phase_local, phase_local_ext;
   gkyl_create_grid_ranges(&phase_grid, phase_ghost, &phase_local_ext, &phase_local);
 
-  struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = { 0 };
-  for (int d=0; d<vdim; ++d)
+  struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = {0};
+  for (int d = 0; d < vdim; ++d) {
     inp_vmap[d].eval_vmap = eval_quad_vmap;
-  struct gkyl_vlasov_velocity_map *vvm = gkyl_vlasov_velocity_map_new(&vel_grid,
-    &vel_local, &vbasis, inp_vmap, false, use_gpu);
+  }
+  struct gkyl_vlasov_velocity_map *vvm =
+    gkyl_vlasov_velocity_map_new(&vel_grid, &vel_local, &vbasis, inp_vmap, false, use_gpu);
 
-  TEST_CHECK( vvm->rep == GKYL_VLASOV_VMAP_C0_LINEAR );
+  TEST_CHECK(vvm->rep == GKYL_VLASOV_VMAP_C0_LINEAR);
 
   struct gkyl_array *hamil = mkarr(use_gpu, vbasis.num_basis, vel_local.volume);
   struct gkyl_array *gamma_inv = mkarr(use_gpu, vbasis.num_basis, vel_local.volume);
-  gkyl_dg_vlasov_calc_hamil(&vel_grid, &vbasis, &vel_local,
-    GKYL_MODEL_DEFAULT, vvm, hamil, gamma_inv, use_gpu);
+  gkyl_dg_vlasov_calc_hamil(
+    &vel_grid, &vbasis, &vel_local, GKYL_MODEL_DEFAULT, vvm, hamil, gamma_inv, use_gpu
+  );
 
-  struct gkyl_array *moms_ho = gkyl_array_new(GKYL_DOUBLE, (vdim+2)*cbasis.num_basis, conf_local_ext.volume);
+  struct gkyl_array *moms_ho =
+    gkyl_array_new(GKYL_DOUBLE, (vdim + 2) * cbasis.num_basis, conf_local_ext.volume);
   gkyl_array_clear(moms_ho, 0.0);
-  double *moms_d = gkyl_array_fetch(moms_ho, gkyl_range_idx(&conf_local, (int[]) { 1 }));
+  double *moms_d = gkyl_array_fetch(moms_ho, gkyl_range_idx(&conf_local, (int[]){1}));
   moms_d[0] = sqrt(2.0); // n = 1.
-  moms_d[(vdim+1)*cbasis.num_basis] = sqrt(2.0); // T/m = 1.
-  struct gkyl_array *moms = use_gpu ? mkarr(use_gpu, moms_ho->ncomp, moms_ho->size) : gkyl_array_acquire(moms_ho);
+  moms_d[(vdim + 1) * cbasis.num_basis] = sqrt(2.0); // T/m = 1.
+  struct gkyl_array *moms = use_gpu ? mkarr(use_gpu, moms_ho->ncomp, moms_ho->size) :
+                                      gkyl_array_acquire(moms_ho);
   gkyl_array_copy(moms, moms_ho);
 
   struct gkyl_vlasov_lte_proj_on_basis_inp inp_proj = {
@@ -400,8 +430,10 @@ test_divide_jacobvel_ser(int vdim, int poly_order, bool use_gpu)
   gkyl_vlasov_velocity_map_divide_jacobvel(vvm, &cbasis, &pbasis, &phase_local, f_lte, f_no_J);
   gkyl_vlasov_velocity_map_rescale_jacobvel(vvm, &cbasis, &pbasis, &phase_local, f_no_J, Jf2);
 
-  struct gkyl_array *f_lte_ho = gkyl_array_new(GKYL_DOUBLE, pbasis.num_basis, phase_local_ext.volume);
-  struct gkyl_array *f_no_J_ho = gkyl_array_new(GKYL_DOUBLE, pbasis.num_basis, phase_local_ext.volume);
+  struct gkyl_array *f_lte_ho =
+    gkyl_array_new(GKYL_DOUBLE, pbasis.num_basis, phase_local_ext.volume);
+  struct gkyl_array *f_no_J_ho =
+    gkyl_array_new(GKYL_DOUBLE, pbasis.num_basis, phase_local_ext.volume);
   struct gkyl_array *Jf2_ho = gkyl_array_new(GKYL_DOUBLE, pbasis.num_basis, phase_local_ext.volume);
   gkyl_array_copy(f_lte_ho, f_lte);
   gkyl_array_copy(f_no_J_ho, f_no_J);
@@ -412,11 +444,13 @@ test_divide_jacobvel_ser(int vdim, int poly_order, bool use_gpu)
   gkyl_cart_modal_tensor(&b1, 1, 3);
 
   int pqshape[GKYL_MAX_DIM];
-  for (int d=0; d<pdim; ++d) pqshape[d] = poly_order+1;
+  for (int d = 0; d < pdim; ++d) {
+    pqshape[d] = poly_order + 1;
+  }
   struct gkyl_range phase_qrange;
   gkyl_range_init_from_shape(&phase_qrange, pdim, pqshape);
 
-  double maxwell_norm = 1.0/sqrt(pow(2.0*GKYL_PI, vdim));
+  double maxwell_norm = 1.0 / sqrt(pow(2.0 * GKYL_PI, vdim));
   double f_expected[160];
 
   // First pass: locate the cell with the largest |c0| of f_no_J and measure
@@ -431,17 +465,18 @@ test_divide_jacobvel_ser(int vdim, int poly_order, bool use_gpu)
     if (fabs(fnoJ_c[0]) > c0_max) {
       long vloc = gkyl_range_idx(&vel_local, &iter.idx[cdim]);
       const double *vmap_c = gkyl_array_cfetch(vvm->vmap_host, vloc);
-      quadproj_maxwellian(&pbasis, &b1, &phase_qrange, poly_order, cdim, vdim,
-        vmap_c, maxwell_norm, f_expected);
+      quadproj_maxwellian(
+        &pbasis, &b1, &phase_qrange, poly_order, cdim, vdim, vmap_c, maxwell_norm, f_expected
+      );
       c0_max = fabs(fnoJ_c[0]);
-      r0 = fnoJ_c[0]/f_expected[0];
+      r0 = fnoJ_c[0] / f_expected[0];
     }
   }
 
   // The density rescale should leave the projection close to the target
   // density; deviations come from the truncated Maxwellian tail and the
   // quadrature error of the density moment on the mapped grid.
-  TEST_CHECK( fabs(r0 - 1.0) < 1e-3 );
+  TEST_CHECK(fabs(r0 - 1.0) < 1e-3);
   TEST_MSG("vdim=%d poly_order=%d: global ratio r0 = %.15e", vdim, poly_order, r0);
 
   // Second pass: per-cell checks.
@@ -457,31 +492,38 @@ test_divide_jacobvel_ser(int vdim, int poly_order, bool use_gpu)
     double jac = jacob_gauss_c[0];
 
     double Jf_c_max = 0.0, fnoJ_c_max = 0.0;
-    for (int k=0; k<pbasis.num_basis; ++k) {
+    for (int k = 0; k < pbasis.num_basis; ++k) {
       Jf_c_max = fmax(Jf_c_max, fabs(Jf_c[k]));
       fnoJ_c_max = fmax(fnoJ_c_max, fabs(fnoJ_c[k]));
     }
 
-    quadproj_maxwellian(&pbasis, &b1, &phase_qrange, poly_order, cdim, vdim,
-      vmap_c, maxwell_norm, f_expected);
+    quadproj_maxwellian(
+      &pbasis, &b1, &phase_qrange, poly_order, cdim, vdim, vmap_c, maxwell_norm, f_expected
+    );
 
-    for (int k=0; k<pbasis.num_basis; ++k) {
+    for (int k = 0; k < pbasis.num_basis; ++k) {
       // (a) Round trip: rescale(divide(Jf)) reproduces Jf to machine precision.
-      TEST_CHECK( fabs(Jf2_c[k] - Jf_c[k]) < 1e-14*Jf_c_max );
-      TEST_MSG("vdim=%d p=%d cell=(%d,%d): round trip coeff %d: %.15e vs %.15e",
-        vdim, poly_order, iter.idx[0], iter.idx[1], k, Jf2_c[k], Jf_c[k]);
+      TEST_CHECK(fabs(Jf2_c[k] - Jf_c[k]) < 1e-14 * Jf_c_max);
+      TEST_MSG(
+        "vdim=%d p=%d cell=(%d,%d): round trip coeff %d: %.15e vs %.15e", vdim, poly_order,
+        iter.idx[0], iter.idx[1], k, Jf2_c[k], Jf_c[k]
+      );
 
       // (b) The division is exactly by the cell's constant Jacobian,
       // coefficient-by-coefficient.
-      TEST_CHECK( fabs(jac*fnoJ_c[k] - Jf_c[k]) < 1e-14*Jf_c_max );
-      TEST_MSG("vdim=%d p=%d cell=(%d,%d): J*f coeff %d: %.15e vs %.15e (J=%.15e)",
-        vdim, poly_order, iter.idx[0], iter.idx[1], k, jac*fnoJ_c[k], Jf_c[k], jac);
+      TEST_CHECK(fabs(jac * fnoJ_c[k] - Jf_c[k]) < 1e-14 * Jf_c_max);
+      TEST_MSG(
+        "vdim=%d p=%d cell=(%d,%d): J*f coeff %d: %.15e vs %.15e (J=%.15e)", vdim, poly_order,
+        iter.idx[0], iter.idx[1], k, jac * fnoJ_c[k], Jf_c[k], jac
+      );
 
       // (c) The divided modal coefficients reproduce the independent
       // quadrature projection of the Maxwellian, up to the global r0.
-      TEST_CHECK( fabs(fnoJ_c[k] - r0*f_expected[k]) < 1e-11*fnoJ_c_max );
-      TEST_MSG("vdim=%d p=%d cell=(%d,%d): modal coeff %d: %.15e vs r0*expected %.15e",
-        vdim, poly_order, iter.idx[0], iter.idx[1], k, fnoJ_c[k], r0*f_expected[k]);
+      TEST_CHECK(fabs(fnoJ_c[k] - r0 * f_expected[k]) < 1e-11 * fnoJ_c_max);
+      TEST_MSG(
+        "vdim=%d p=%d cell=(%d,%d): modal coeff %d: %.15e vs r0*expected %.15e", vdim, poly_order,
+        iter.idx[0], iter.idx[1], k, fnoJ_c[k], r0 * f_expected[k]
+      );
     }
   }
 
@@ -499,45 +541,109 @@ test_divide_jacobvel_ser(int vdim, int poly_order, bool use_gpu)
   gkyl_vlasov_velocity_map_release(vvm);
 }
 
-static void test_divide_jacobvel_1x1v(void) { test_divide_jacobvel(1, false); }
-static void test_divide_jacobvel_1x2v(void) { test_divide_jacobvel(2, false); }
-static void test_divide_jacobvel_1x3v(void) { test_divide_jacobvel(3, false); }
+static void
+test_divide_jacobvel_1x1v(void)
+{
+  test_divide_jacobvel(1, false);
+}
+static void
+test_divide_jacobvel_1x2v(void)
+{
+  test_divide_jacobvel(2, false);
+}
+static void
+test_divide_jacobvel_1x3v(void)
+{
+  test_divide_jacobvel(3, false);
+}
 
-static void test_divide_jacobvel_ser_1x1v_p1(void) { test_divide_jacobvel_ser(1, 1, false); }
-static void test_divide_jacobvel_ser_1x1v_p2(void) { test_divide_jacobvel_ser(1, 2, false); }
-static void test_divide_jacobvel_ser_1x1v_p3(void) { test_divide_jacobvel_ser(1, 3, false); }
-static void test_divide_jacobvel_ser_1x2v_p1(void) { test_divide_jacobvel_ser(2, 1, false); }
-static void test_divide_jacobvel_ser_1x2v_p2(void) { test_divide_jacobvel_ser(2, 2, false); }
-static void test_divide_jacobvel_ser_1x3v_p1(void) { test_divide_jacobvel_ser(3, 1, false); }
-static void test_divide_jacobvel_ser_1x3v_p2(void) { test_divide_jacobvel_ser(3, 2, false); }
+static void
+test_divide_jacobvel_ser_1x1v_p1(void)
+{
+  test_divide_jacobvel_ser(1, 1, false);
+}
+static void
+test_divide_jacobvel_ser_1x1v_p2(void)
+{
+  test_divide_jacobvel_ser(1, 2, false);
+}
+static void
+test_divide_jacobvel_ser_1x1v_p3(void)
+{
+  test_divide_jacobvel_ser(1, 3, false);
+}
+static void
+test_divide_jacobvel_ser_1x2v_p1(void)
+{
+  test_divide_jacobvel_ser(2, 1, false);
+}
+static void
+test_divide_jacobvel_ser_1x2v_p2(void)
+{
+  test_divide_jacobvel_ser(2, 2, false);
+}
+static void
+test_divide_jacobvel_ser_1x3v_p1(void)
+{
+  test_divide_jacobvel_ser(3, 1, false);
+}
+static void
+test_divide_jacobvel_ser_1x3v_p2(void)
+{
+  test_divide_jacobvel_ser(3, 2, false);
+}
 
 #ifdef GKYL_HAVE_CUDA
-static void test_divide_jacobvel_1x1v_gpu(void) { test_divide_jacobvel(1, true); }
-static void test_divide_jacobvel_1x2v_gpu(void) { test_divide_jacobvel(2, true); }
-static void test_divide_jacobvel_1x3v_gpu(void) { test_divide_jacobvel(3, true); }
-static void test_divide_jacobvel_ser_1x1v_p1_gpu(void) { test_divide_jacobvel_ser(1, 1, true); }
-static void test_divide_jacobvel_ser_1x2v_p2_gpu(void) { test_divide_jacobvel_ser(2, 2, true); }
-static void test_divide_jacobvel_ser_1x3v_p1_gpu(void) { test_divide_jacobvel_ser(3, 1, true); }
+static void
+test_divide_jacobvel_1x1v_gpu(void)
+{
+  test_divide_jacobvel(1, true);
+}
+static void
+test_divide_jacobvel_1x2v_gpu(void)
+{
+  test_divide_jacobvel(2, true);
+}
+static void
+test_divide_jacobvel_1x3v_gpu(void)
+{
+  test_divide_jacobvel(3, true);
+}
+static void
+test_divide_jacobvel_ser_1x1v_p1_gpu(void)
+{
+  test_divide_jacobvel_ser(1, 1, true);
+}
+static void
+test_divide_jacobvel_ser_1x2v_p2_gpu(void)
+{
+  test_divide_jacobvel_ser(2, 2, true);
+}
+static void
+test_divide_jacobvel_ser_1x3v_p1_gpu(void)
+{
+  test_divide_jacobvel_ser(3, 1, true);
+}
 #endif
 
 TEST_LIST = {
-  { "divide_jacobvel_1x1v", test_divide_jacobvel_1x1v },
-  { "divide_jacobvel_1x2v", test_divide_jacobvel_1x2v },
-  { "divide_jacobvel_1x3v", test_divide_jacobvel_1x3v },
-  { "divide_jacobvel_ser_1x1v_p1", test_divide_jacobvel_ser_1x1v_p1 },
-  { "divide_jacobvel_ser_1x1v_p2", test_divide_jacobvel_ser_1x1v_p2 },
-  { "divide_jacobvel_ser_1x1v_p3", test_divide_jacobvel_ser_1x1v_p3 },
-  { "divide_jacobvel_ser_1x2v_p1", test_divide_jacobvel_ser_1x2v_p1 },
-  { "divide_jacobvel_ser_1x2v_p2", test_divide_jacobvel_ser_1x2v_p2 },
-  { "divide_jacobvel_ser_1x3v_p1", test_divide_jacobvel_ser_1x3v_p1 },
-  { "divide_jacobvel_ser_1x3v_p2", test_divide_jacobvel_ser_1x3v_p2 },
+  {"divide_jacobvel_1x1v", test_divide_jacobvel_1x1v},
+  {"divide_jacobvel_1x2v", test_divide_jacobvel_1x2v},
+  {"divide_jacobvel_1x3v", test_divide_jacobvel_1x3v},
+  {"divide_jacobvel_ser_1x1v_p1", test_divide_jacobvel_ser_1x1v_p1},
+  {"divide_jacobvel_ser_1x1v_p2", test_divide_jacobvel_ser_1x1v_p2},
+  {"divide_jacobvel_ser_1x1v_p3", test_divide_jacobvel_ser_1x1v_p3},
+  {"divide_jacobvel_ser_1x2v_p1", test_divide_jacobvel_ser_1x2v_p1},
+  {"divide_jacobvel_ser_1x2v_p2", test_divide_jacobvel_ser_1x2v_p2},
+  {"divide_jacobvel_ser_1x3v_p1", test_divide_jacobvel_ser_1x3v_p1},
+  {"divide_jacobvel_ser_1x3v_p2", test_divide_jacobvel_ser_1x3v_p2},
 #ifdef GKYL_HAVE_CUDA
-  { "divide_jacobvel_1x1v_gpu", test_divide_jacobvel_1x1v_gpu },
-  { "divide_jacobvel_1x2v_gpu", test_divide_jacobvel_1x2v_gpu },
-  { "divide_jacobvel_1x3v_gpu", test_divide_jacobvel_1x3v_gpu },
-  { "divide_jacobvel_ser_1x1v_p1_gpu", test_divide_jacobvel_ser_1x1v_p1_gpu },
-  { "divide_jacobvel_ser_1x2v_p2_gpu", test_divide_jacobvel_ser_1x2v_p2_gpu },
-  { "divide_jacobvel_ser_1x3v_p1_gpu", test_divide_jacobvel_ser_1x3v_p1_gpu },
+  {"divide_jacobvel_1x1v_gpu", test_divide_jacobvel_1x1v_gpu},
+  {"divide_jacobvel_1x2v_gpu", test_divide_jacobvel_1x2v_gpu},
+  {"divide_jacobvel_1x3v_gpu", test_divide_jacobvel_1x3v_gpu},
+  {"divide_jacobvel_ser_1x1v_p1_gpu", test_divide_jacobvel_ser_1x1v_p1_gpu},
+  {"divide_jacobvel_ser_1x2v_p2_gpu", test_divide_jacobvel_ser_1x2v_p2_gpu},
+  {"divide_jacobvel_ser_1x3v_p1_gpu", test_divide_jacobvel_ser_1x3v_p1_gpu},
 #endif
-  { NULL, NULL },
+  {NULL, NULL}
 };

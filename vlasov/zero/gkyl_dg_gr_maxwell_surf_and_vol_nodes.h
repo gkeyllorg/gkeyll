@@ -17,20 +17,24 @@ struct gkyl_surf_and_vol_node_arrays {
   struct gkyl_array *nodal_arr_surf_x; // array evaluated at local nodal locations (surf-x)
   struct gkyl_array *nodal_arr_surf_y; // array evaluated at local nodal locations (surf-y)
   struct gkyl_array *nodal_arr_surf_z; // array evaluated at local nodal locations (surf-z)
-  struct gkyl_array *nodal_arr_vol_host; // Host side copy, array evaluated at local nodal locations (vol) 
-  struct gkyl_array *nodal_arr_surf_x_host; // Host side copy, array evaluated at local nodal locations (surf-x)
-  struct gkyl_array *nodal_arr_surf_y_host; // Host side copy, array evaluated at local nodal locations (surf-y)
-  struct gkyl_array *nodal_arr_surf_z_host; // Host side copy, array evaluated at local nodal locations (surf-z)
+  struct gkyl_array
+    *nodal_arr_vol_host; // Host side copy, array evaluated at local nodal locations (vol)
+  struct gkyl_array
+    *nodal_arr_surf_x_host; // Host side copy, array evaluated at local nodal locations (surf-x)
+  struct gkyl_array
+    *nodal_arr_surf_y_host; // Host side copy, array evaluated at local nodal locations (surf-y)
+  struct gkyl_array
+    *nodal_arr_surf_z_host; // Host side copy, array evaluated at local nodal locations (surf-z)
   bool use_gpu; // Boolean for using GPU
   int ndim; // Number of dimensions
 
-  uint32_t flags; 
+  uint32_t flags;
   struct gkyl_ref_count ref_count;
   struct gkyl_surf_and_vol_node_arrays *on_dev; // Device side copy
 };
 
 struct gkyl_dg_gr_maxwell_surf_and_vol_nodes_inp {
-  int polyorder; // Polyorder 
+  int polyorder; // Polyorder
   const struct gkyl_rect_grid *grid; // Grid to project on
   const struct gkyl_basis *basis; // Basis functions
   int num_ret_vals; // Number of values 'eval' sets
@@ -38,7 +42,7 @@ struct gkyl_dg_gr_maxwell_surf_and_vol_nodes_inp {
   void *ctx; // Context for function evaluation. Can be NULL.
 
   dg_gr_maxwell_nodes_c2p_t c2p_func; // Function that transforms a set of ndim
-                                // computational coordinates to physical ones.
+    // computational coordinates to physical ones.
   void *c2p_func_ctx; // Context for c2p_func.
 };
 
@@ -50,7 +54,9 @@ struct gkyl_dg_gr_maxwell_surf_and_vol_nodes_inp {
  * @param inp Input parameters
  * @return New updater pointer.
  */
-gkyl_dg_gr_maxwell_surf_and_vol_nodes* gkyl_dg_gr_maxwell_surf_and_vol_nodes_inew(const struct gkyl_dg_gr_maxwell_surf_and_vol_nodes_inp *inp);
+gkyl_dg_gr_maxwell_surf_and_vol_nodes *gkyl_dg_gr_maxwell_surf_and_vol_nodes_inew(
+  const struct gkyl_dg_gr_maxwell_surf_and_vol_nodes_inp *inp
+);
 
 /**
  * Create new updater to compute function on volume and surface nodes. 
@@ -64,9 +70,10 @@ gkyl_dg_gr_maxwell_surf_and_vol_nodes* gkyl_dg_gr_maxwell_surf_and_vol_nodes_ine
  * @param ctx Context for function evaluation. Can be NULL.
  * @return New updater pointer.
  */
-gkyl_dg_gr_maxwell_surf_and_vol_nodes* gkyl_dg_gr_maxwell_surf_and_vol_nodes_new(
-  const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
-  int num_ret_vals, int polyorder, evalf_t eval, void *ctx);
+gkyl_dg_gr_maxwell_surf_and_vol_nodes *gkyl_dg_gr_maxwell_surf_and_vol_nodes_new(
+  const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis, int num_ret_vals,
+  int polyorder, evalf_t eval, void *ctx
+);
 
 /**
  * Create new stucture for storing all the arrays of values at various nodal and modal points
@@ -77,8 +84,9 @@ gkyl_dg_gr_maxwell_surf_and_vol_nodes* gkyl_dg_gr_maxwell_surf_and_vol_nodes_new
  * @param use_gpu Boolean for using GPU
  * @return New updater pointer.
  */
-gkyl_surf_and_vol_node_arrays* gkyl_surf_and_vol_node_arrays_new(
-  struct gkyl_dg_gr_maxwell_surf_and_vol_nodes *info, long volume, bool use_gpu);
+gkyl_surf_and_vol_node_arrays *gkyl_surf_and_vol_node_arrays_new(
+  struct gkyl_dg_gr_maxwell_surf_and_vol_nodes *info, long volume, bool use_gpu
+);
 
 /**
  * Compute evaluation on nodes and corresponding expansion
@@ -92,8 +100,10 @@ gkyl_surf_and_vol_node_arrays* gkyl_surf_and_vol_node_arrays_new(
  * @param update_rng Range on which to run eval.
  * @param out Output arrays at volume and nodal points
  */
-void gkyl_dg_gr_maxwell_surf_and_vol_nodes_advance(const gkyl_dg_gr_maxwell_surf_and_vol_nodes *up,
-  double tm, const struct gkyl_range *update_rng, struct gkyl_surf_and_vol_node_arrays *out);
+void gkyl_dg_gr_maxwell_surf_and_vol_nodes_advance(
+  const gkyl_dg_gr_maxwell_surf_and_vol_nodes *up, double tm, const struct gkyl_range *update_rng,
+  struct gkyl_surf_and_vol_node_arrays *out
+);
 
 /**
  * Get the coordinates of a given node.
@@ -102,7 +112,9 @@ void gkyl_dg_gr_maxwell_surf_and_vol_nodes_advance(const gkyl_dg_gr_maxwell_surf
  * @param node Index indicate the desired node.
  * @return Node coordinates.
  */
-double* gkyl_dg_gr_maxwell_surf_and_vol_nodes_fetch_node(const gkyl_dg_gr_maxwell_surf_and_vol_nodes *up, long node);
+double *gkyl_dg_gr_maxwell_surf_and_vol_nodes_fetch_node(
+  const gkyl_dg_gr_maxwell_surf_and_vol_nodes *up, long node
+);
 
 /**
  * Delete updater.
@@ -118,7 +130,9 @@ void gkyl_dg_gr_maxwell_surf_and_vol_nodes_release(gkyl_dg_gr_maxwell_surf_and_v
  * @param ndim Number of dimensions.
  * @return New object on device.
  */
-struct gkyl_surf_and_vol_node_arrays* gkyl_surf_and_vol_node_copy_to_device(struct gkyl_surf_and_vol_node_arrays *vol_surf_nodes, int ndim);
+struct gkyl_surf_and_vol_node_arrays *gkyl_surf_and_vol_node_copy_to_device(
+  struct gkyl_surf_and_vol_node_arrays *vol_surf_nodes, int ndim
+);
 
 /**
  * Cehck is strcut is a on cu dev.
@@ -134,7 +148,9 @@ bool gkyl_surf_and_vol_node_arrays_is_cu_dev(const struct gkyl_surf_and_vol_node
  * @param up Object to acquire arrays from.
  * @return Acquired object.
  */
-struct gkyl_surf_and_vol_node_arrays *gkyl_surf_and_vol_node_arrays_acquire(const struct gkyl_surf_and_vol_node_arrays* up);
+struct gkyl_surf_and_vol_node_arrays *gkyl_surf_and_vol_node_arrays_acquire(
+  const struct gkyl_surf_and_vol_node_arrays *up
+);
 
 /**
  * Decrement reference count for array objects.

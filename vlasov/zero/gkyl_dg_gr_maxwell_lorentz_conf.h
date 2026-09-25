@@ -33,15 +33,17 @@ struct gkyl_dg_gr_maxwell_lorentz_conf_inp {
  * @param inp Input parameters defined in gkyl_dg_gr_maxwell_lorentz_conf_inp.
  * @return Pointer to GR-Maxwell Lorentz-force updater.
  */
-struct gkyl_dg_gr_maxwell_lorentz_conf*
-gkyl_dg_gr_maxwell_lorentz_conf_inew(const struct gkyl_dg_gr_maxwell_lorentz_conf_inp *inp);
+struct gkyl_dg_gr_maxwell_lorentz_conf *gkyl_dg_gr_maxwell_lorentz_conf_inew(
+  const struct gkyl_dg_gr_maxwell_lorentz_conf_inp *inp
+);
 
 /**
  * Create a new updater to compute local Lorentz-force fields on NV-GPU. See
  * new() method for documentation.
  */
-struct gkyl_dg_gr_maxwell_lorentz_conf*
-gkyl_dg_gr_maxwell_lorentz_conf_cu_dev_inew(const struct gkyl_dg_gr_maxwell_lorentz_conf_inp *inp);
+struct gkyl_dg_gr_maxwell_lorentz_conf *gkyl_dg_gr_maxwell_lorentz_conf_cu_dev_inew(
+  const struct gkyl_dg_gr_maxwell_lorentz_conf_inp *inp
+);
 
 /**
  * Add q/m times the local Lorentz-force fields to qmem.
@@ -61,22 +63,31 @@ gkyl_dg_gr_maxwell_lorentz_conf_cu_dev_inew(const struct gkyl_dg_gr_maxwell_lore
  * @param field_con Input contravariant (JD,JB) field components.
  * @param qmem Output q/m*(E,B) force memory.
  */
-void
-gkyl_dg_gr_maxwell_lorentz_conf_advance(struct gkyl_dg_gr_maxwell_lorentz_conf *up, const struct gkyl_range *conf_range,
-  const struct gkyl_surf_and_vol_node_arrays *lapse, const struct gkyl_surf_and_vol_node_arrays *shift,
-  const struct gkyl_surf_and_vol_node_arrays *h_ij, const struct gkyl_surf_and_vol_node_arrays *h_ij_inv,
-  const struct gkyl_surf_and_vol_node_arrays *det_h, const struct gkyl_surf_and_vol_node_arrays *vierb_cov, 
-  const struct gkyl_surf_and_vol_node_arrays *vierb_con, const struct gkyl_array *field_con, struct gkyl_array *qmem);
+void gkyl_dg_gr_maxwell_lorentz_conf_advance(
+  struct gkyl_dg_gr_maxwell_lorentz_conf *up, const struct gkyl_range *conf_range,
+  const struct gkyl_surf_and_vol_node_arrays *lapse,
+  const struct gkyl_surf_and_vol_node_arrays *shift,
+  const struct gkyl_surf_and_vol_node_arrays *h_ij,
+  const struct gkyl_surf_and_vol_node_arrays *h_ij_inv,
+  const struct gkyl_surf_and_vol_node_arrays *det_h,
+  const struct gkyl_surf_and_vol_node_arrays *vierb_cov,
+  const struct gkyl_surf_and_vol_node_arrays *vierb_con, const struct gkyl_array *field_con,
+  struct gkyl_array *qmem
+);
 
 /**
  * Host-side wrapper for local GR-Maxwell Lorentz-force fields on device.
  */
-void
-gkyl_dg_gr_maxwell_lorentz_conf_advance_cu(struct gkyl_dg_gr_maxwell_lorentz_conf *up, const struct gkyl_range *conf_range,
-  const struct gkyl_surf_and_vol_node_arrays *lapse, const struct gkyl_surf_and_vol_node_arrays *shift,
-  const struct gkyl_surf_and_vol_node_arrays *h_ij, const struct gkyl_surf_and_vol_node_arrays *h_ij_inv,
-  const struct gkyl_surf_and_vol_node_arrays *det_h, const struct gkyl_surf_and_vol_node_arrays *vierb_cov, 
-  const struct gkyl_surf_and_vol_node_arrays *vierb_con, const struct gkyl_array *field_con, struct gkyl_array *qmem);
+void gkyl_dg_gr_maxwell_lorentz_conf_advance_cu(
+  struct gkyl_dg_gr_maxwell_lorentz_conf *up, const struct gkyl_range *conf_range,
+  const struct gkyl_surf_and_vol_node_arrays *lapse,
+  const struct gkyl_surf_and_vol_node_arrays *shift,
+  const struct gkyl_surf_and_vol_node_arrays *h_ij,
+  const struct gkyl_surf_and_vol_node_arrays *h_ij_inv,
+  const struct gkyl_surf_and_vol_node_arrays *det_h,
+  const struct gkyl_surf_and_vol_node_arrays *vierb_cov,
+  const struct gkyl_surf_and_vol_node_arrays *vierb_con, const struct gkyl_array *field_con,
+  struct gkyl_array *qmem
+);
 
-void
-gkyl_dg_gr_maxwell_lorentz_conf_release(struct gkyl_dg_gr_maxwell_lorentz_conf* up);
+void gkyl_dg_gr_maxwell_lorentz_conf_release(struct gkyl_dg_gr_maxwell_lorentz_conf *up);

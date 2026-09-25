@@ -23,16 +23,17 @@ struct gkyl_dg_gr_maxwell_current_deposition_inp {
  * @param inp Input parameters.
  * @return Pointer to GR-Maxwell current deposition updater.
  */
-struct gkyl_dg_gr_maxwell_current_deposition*
-gkyl_dg_gr_maxwell_current_deposition_inew(const struct gkyl_dg_gr_maxwell_current_deposition_inp *inp);
+struct gkyl_dg_gr_maxwell_current_deposition *gkyl_dg_gr_maxwell_current_deposition_inew(
+  const struct gkyl_dg_gr_maxwell_current_deposition_inp *inp
+);
 
 /**
  * Create a new updater to deposit GR-Maxwell current from triad moments on
  * NV-GPU. See new() method for documentation.
  */
-struct gkyl_dg_gr_maxwell_current_deposition*
-gkyl_dg_gr_maxwell_current_deposition_cu_dev_inew(
-  const struct gkyl_dg_gr_maxwell_current_deposition_inp *inp);
+struct gkyl_dg_gr_maxwell_current_deposition *gkyl_dg_gr_maxwell_current_deposition_cu_dev_inew(
+  const struct gkyl_dg_gr_maxwell_current_deposition_inp *inp
+);
 
 /**
  * Accumulate current contribution into the Maxwell RHS.
@@ -47,21 +48,24 @@ gkyl_dg_gr_maxwell_current_deposition_cu_dev_inew(
  * @param m1i Flat-frame momentum/current moment.
  * @param rhs Output Maxwell RHS; current is accumulated into the first 3 components.
  */
-void
-gkyl_dg_gr_maxwell_current_deposition_advance( struct gkyl_dg_gr_maxwell_current_deposition *up,
-  const struct gkyl_range *conf_range, double q_over_eps0, const struct gkyl_surf_and_vol_node_arrays *lapse,
-  const struct gkyl_surf_and_vol_node_arrays *shift, const struct gkyl_surf_and_vol_node_arrays *vierb_con,
-  const struct gkyl_array *m0, const struct gkyl_array *m1i, struct gkyl_array *rhs);
+void gkyl_dg_gr_maxwell_current_deposition_advance(
+  struct gkyl_dg_gr_maxwell_current_deposition *up, const struct gkyl_range *conf_range,
+  double q_over_eps0, const struct gkyl_surf_and_vol_node_arrays *lapse,
+  const struct gkyl_surf_and_vol_node_arrays *shift,
+  const struct gkyl_surf_and_vol_node_arrays *vierb_con, const struct gkyl_array *m0,
+  const struct gkyl_array *m1i, struct gkyl_array *rhs
+);
 
 /**
  * Host-side wrapper for GR-Maxwell current deposition on device.
  */
-void
-gkyl_dg_gr_maxwell_current_deposition_advance_cu(struct gkyl_dg_gr_maxwell_current_deposition *up,
-  const struct gkyl_range *conf_range, double q_over_eps0, const struct gkyl_surf_and_vol_node_arrays *lapse,
-  const struct gkyl_surf_and_vol_node_arrays *shift, const struct gkyl_surf_and_vol_node_arrays *vierb_con,
-  const struct gkyl_array *m0, const struct gkyl_array *m1i, struct gkyl_array *rhs);
+void gkyl_dg_gr_maxwell_current_deposition_advance_cu(
+  struct gkyl_dg_gr_maxwell_current_deposition *up, const struct gkyl_range *conf_range,
+  double q_over_eps0, const struct gkyl_surf_and_vol_node_arrays *lapse,
+  const struct gkyl_surf_and_vol_node_arrays *shift,
+  const struct gkyl_surf_and_vol_node_arrays *vierb_con, const struct gkyl_array *m0,
+  const struct gkyl_array *m1i, struct gkyl_array *rhs
+);
 
-void
-gkyl_dg_gr_maxwell_current_deposition_release(
-  struct gkyl_dg_gr_maxwell_current_deposition *up);
+void gkyl_dg_gr_maxwell_current_deposition_release(struct gkyl_dg_gr_maxwell_current_deposition *up
+);

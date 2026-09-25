@@ -22,16 +22,20 @@
  * @param hamil_inv Output array storing the inverse velocity-space Hamiltonian (1/gamma for relativity).
  * @param use_gpu bool to determine if on GPU
  */
-void gkyl_dg_vlasov_calc_hamil(const struct gkyl_rect_grid *vel_grid,
-  const struct gkyl_basis *vel_basis, const struct gkyl_range *vel_range,
-  enum gkyl_model_id model_id, const struct gkyl_vlasov_velocity_map *vel_map,
-  struct gkyl_array *hamil, struct gkyl_array *hamil_inv, bool use_gpu);
+void gkyl_dg_vlasov_calc_hamil(
+  const struct gkyl_rect_grid *vel_grid, const struct gkyl_basis *vel_basis,
+  const struct gkyl_range *vel_range, enum gkyl_model_id model_id,
+  const struct gkyl_vlasov_velocity_map *vel_map, struct gkyl_array *hamil,
+  struct gkyl_array *hamil_inv, bool use_gpu
+);
 
 /**
  * Construct the velocity-space Hamiltonian on the velocity-space grid on
  * NV-GPU. See new() method for documentation.
  */
-void gkyl_dg_vlasov_calc_hamil_cu(const struct gkyl_rect_grid *vel_grid,
-  const struct gkyl_basis *vel_basis, const struct gkyl_range *vel_range,
-  enum gkyl_model_id model_id, const struct gkyl_vlasov_velocity_map *vel_map,
-  struct gkyl_array *hamil, struct gkyl_array *hamil_inv);
+void gkyl_dg_vlasov_calc_hamil_cu(
+  const struct gkyl_rect_grid *vel_grid, const struct gkyl_basis *vel_basis,
+  const struct gkyl_range *vel_range, enum gkyl_model_id model_id,
+  const struct gkyl_vlasov_velocity_map *vel_map, struct gkyl_array *hamil,
+  struct gkyl_array *hamil_inv
+);

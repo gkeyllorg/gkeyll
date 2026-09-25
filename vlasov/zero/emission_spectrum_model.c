@@ -3,12 +3,12 @@
 #include <gkyl_alloc_flags_priv.h>
 #include <gkyl_emission_spectrum_model.h>
 
-struct gkyl_emission_spectrum_model*
+struct gkyl_emission_spectrum_model *
 gkyl_emission_spectrum_chung_everhart_new(double charge, double phi, bool use_gpu)
 {
   struct gkyl_emission_spectrum_chung_everhart *model =
     gkyl_malloc(sizeof(struct gkyl_emission_spectrum_chung_everhart));
-  
+
   model->phi = phi;
   model->spectrum.charge = charge;
   model->spectrum.distribution = gkyl_emission_spectrum_chung_everhart_dist;
@@ -19,7 +19,7 @@ gkyl_emission_spectrum_chung_everhart_new(double charge, double phi, bool use_gp
   model->spectrum.ref_count = gkyl_ref_count_init(gkyl_emission_spectrum_chung_everhart_free);
 
 #ifdef GKYL_HAVE_CUDA
-  if(use_gpu) {
+  if (use_gpu) {
     model->spectrum.on_dev = gkyl_emission_spectrum_chung_everhart_cu_dev_new(model, charge, phi);
   }
 #endif
@@ -27,7 +27,7 @@ gkyl_emission_spectrum_chung_everhart_new(double charge, double phi, bool use_gp
   return &model->spectrum;
 }
 
-struct gkyl_emission_spectrum_model*
+struct gkyl_emission_spectrum_model *
 gkyl_emission_spectrum_gaussian_new(double charge, double E_0, double tau, bool use_gpu)
 {
   struct gkyl_emission_spectrum_gaussian *model =
@@ -44,7 +44,7 @@ gkyl_emission_spectrum_gaussian_new(double charge, double E_0, double tau, bool 
   model->spectrum.ref_count = gkyl_ref_count_init(gkyl_emission_spectrum_gaussian_free);
 
 #ifdef GKYL_HAVE_CUDA
-  if(use_gpu) {
+  if (use_gpu) {
     model->spectrum.on_dev = gkyl_emission_spectrum_gaussian_cu_dev_new(model, charge, E_0, tau);
   }
 #endif
@@ -52,7 +52,7 @@ gkyl_emission_spectrum_gaussian_new(double charge, double E_0, double tau, bool 
   return &model->spectrum;
 }
 
-struct gkyl_emission_spectrum_model*
+struct gkyl_emission_spectrum_model *
 gkyl_emission_spectrum_maxwellian_new(double charge, double vt, bool use_gpu)
 {
   struct gkyl_emission_spectrum_maxwellian *model =
@@ -68,7 +68,7 @@ gkyl_emission_spectrum_maxwellian_new(double charge, double vt, bool use_gpu)
   model->spectrum.ref_count = gkyl_ref_count_init(gkyl_emission_spectrum_maxwellian_free);
 
 #ifdef GKYL_HAVE_CUDA
-  if(use_gpu) {
+  if (use_gpu) {
     model->spectrum.on_dev = gkyl_emission_spectrum_maxwellian_cu_dev_new(model, charge, vt);
   }
 #endif
@@ -82,15 +82,15 @@ gkyl_emission_spectrum_model_is_cu_dev(const struct gkyl_emission_spectrum_model
   return GKYL_IS_CU_ALLOC(model->flags);
 }
 
-struct gkyl_emission_spectrum_model*
-gkyl_emission_spectrum_model_acquire(const struct gkyl_emission_spectrum_model* spectrum)
+struct gkyl_emission_spectrum_model *
+gkyl_emission_spectrum_model_acquire(const struct gkyl_emission_spectrum_model *spectrum)
 {
   gkyl_ref_count_inc(&spectrum->ref_count);
-  return (struct gkyl_emission_spectrum_model*) spectrum;
+  return (struct gkyl_emission_spectrum_model *)spectrum;
 }
 
 void
-gkyl_emission_spectrum_model_release(const struct gkyl_emission_spectrum_model* spectrum)
+gkyl_emission_spectrum_model_release(const struct gkyl_emission_spectrum_model *spectrum)
 {
   gkyl_ref_count_dec(&spectrum->ref_count);
 }

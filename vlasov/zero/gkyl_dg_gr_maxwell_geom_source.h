@@ -34,15 +34,17 @@ struct gkyl_dg_gr_maxwell_geom_source_inp {
  * @param inp Input parameters.
  * @return New geometric source updater.
  */
-struct gkyl_dg_gr_maxwell_geom_source*
-gkyl_dg_gr_maxwell_geom_source_inew(const struct gkyl_dg_gr_maxwell_geom_source_inp *inp);
+struct gkyl_dg_gr_maxwell_geom_source *gkyl_dg_gr_maxwell_geom_source_inew(
+  const struct gkyl_dg_gr_maxwell_geom_source_inp *inp
+);
 
 /**
  * Create new updater to compute GR Maxwell geometric source terms on NV-GPU.
  * See new() method for documentation.
  */
-struct gkyl_dg_gr_maxwell_geom_source*
-gkyl_dg_gr_maxwell_geom_source_cu_dev_inew(const struct gkyl_dg_gr_maxwell_geom_source_inp *inp);
+struct gkyl_dg_gr_maxwell_geom_source *gkyl_dg_gr_maxwell_geom_source_cu_dev_inew(
+  const struct gkyl_dg_gr_maxwell_geom_source_inp *inp
+);
 
 /**
  * Compute geometric source contribution to the EM RHS.
@@ -53,25 +55,24 @@ gkyl_dg_gr_maxwell_geom_source_cu_dev_inew(const struct gkyl_dg_gr_maxwell_geom_
  * @param field_con Input conserved fields Jc*(D,B,phi,psi).
  * @param rhs Output RHS increment in conserved field layout.
  */
-void
-gkyl_dg_gr_maxwell_geom_source_advance(struct gkyl_dg_gr_maxwell_geom_source *up,
-  const struct gkyl_range *conf_range,
-  const struct gkyl_surf_and_vol_node_arrays *geom_factor_con,
-  const struct gkyl_array *field_con, struct gkyl_array *rhs);
+void gkyl_dg_gr_maxwell_geom_source_advance(
+  struct gkyl_dg_gr_maxwell_geom_source *up, const struct gkyl_range *conf_range,
+  const struct gkyl_surf_and_vol_node_arrays *geom_factor_con, const struct gkyl_array *field_con,
+  struct gkyl_array *rhs
+);
 
 /**
  * Host-side wrapper for computing GR Maxwell geometric source terms on device.
  */
-void
-gkyl_dg_gr_maxwell_geom_source_advance_cu(struct gkyl_dg_gr_maxwell_geom_source *up,
-  const struct gkyl_range *conf_range,
-  const struct gkyl_surf_and_vol_node_arrays *geom_factor_con,
-  const struct gkyl_array *field_con, struct gkyl_array *rhs);
+void gkyl_dg_gr_maxwell_geom_source_advance_cu(
+  struct gkyl_dg_gr_maxwell_geom_source *up, const struct gkyl_range *conf_range,
+  const struct gkyl_surf_and_vol_node_arrays *geom_factor_con, const struct gkyl_array *field_con,
+  struct gkyl_array *rhs
+);
 
 /**
  * Delete updater.
  *
  * @param up Updater to delete.
  */
-void
-gkyl_dg_gr_maxwell_geom_source_release(struct gkyl_dg_gr_maxwell_geom_source *up);
+void gkyl_dg_gr_maxwell_geom_source_release(struct gkyl_dg_gr_maxwell_geom_source *up);

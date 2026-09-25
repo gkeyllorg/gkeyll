@@ -10,10 +10,11 @@ typedef struct gkyl_dg_gaussian_filter gkyl_dg_gaussian_filter;
 
 // input packaged as a struct
 struct gkyl_dg_gaussian_filter_inp {
-  const struct gkyl_rect_grid *conf_grid; // Configuration-space grid 
+  const struct gkyl_rect_grid *conf_grid; // Configuration-space grid
   const struct gkyl_basis *conf_basis; // Configuration-space basis functions
   const struct gkyl_range *conf_range; // Configuration-space range
-  const struct gkyl_range *conf_range_ext; // Extended configuration-space range (for internal memory allocations)
+  const struct gkyl_range
+    *conf_range_ext; // Extended configuration-space range (for internal memory allocations)
   bool extend_filter; // bool for whether to extend filter to 5-cell filter
   bool use_gpu; // bool for gpu useage
 };
@@ -34,8 +35,9 @@ struct gkyl_dg_gaussian_filter_inp {
  * @param inp Input parameters defined in gkyl_dg_gaussian_filter_inp struct.
  * @return New updater pointer.
  */
-struct gkyl_dg_gaussian_filter* 
-gkyl_dg_gaussian_filter_inew(const struct gkyl_dg_gaussian_filter_inp *inp);
+struct gkyl_dg_gaussian_filter *gkyl_dg_gaussian_filter_inew(
+  const struct gkyl_dg_gaussian_filter_inp *inp
+);
 
 /**
  * Compute the Gaussian filter on input conf_arry array. 
@@ -45,18 +47,20 @@ gkyl_dg_gaussian_filter_inew(const struct gkyl_dg_gaussian_filter_inp *inp);
  * @param conf_arr Input array to compute Gaussian filter of. Result of Gaussian filter
  *                 stored in this array as output. 
  */
-void gkyl_dg_gaussian_filter_advance(gkyl_dg_gaussian_filter *up,
-  const struct gkyl_range *conf_range, struct gkyl_array *conf_arr);
+void gkyl_dg_gaussian_filter_advance(
+  gkyl_dg_gaussian_filter *up, const struct gkyl_range *conf_range, struct gkyl_array *conf_arr
+);
 
 /**
  * Host-side wrapper for computing Gaussian filter on device.
  */
-void gkyl_dg_gaussian_filter_advance_cu(gkyl_dg_gaussian_filter *up,
-  const struct gkyl_range *conf_range, struct gkyl_array *conf_arr);
+void gkyl_dg_gaussian_filter_advance_cu(
+  gkyl_dg_gaussian_filter *up, const struct gkyl_range *conf_range, struct gkyl_array *conf_arr
+);
 
 /**
  * Delete updater.
  *
  * @param up Updater to delete.
  */
-void gkyl_dg_gaussian_filter_release(gkyl_dg_gaussian_filter* up);
+void gkyl_dg_gaussian_filter_release(gkyl_dg_gaussian_filter *up);

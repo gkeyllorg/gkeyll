@@ -15,21 +15,28 @@ struct gkyl_dg_vlasov_vel_flux_surf_inp {
   const struct gkyl_rect_grid *phase_grid; // Phase-space grid.
   const struct gkyl_basis *conf_basis; // Configuration-space basis functions.
   const struct gkyl_basis *phase_basis; // Phase-space basis functions.
-  const struct gkyl_range *hamil_range; // Range for indexing Hamiltonian (either velocity-space range or full phase-space range).
-  const struct gkyl_vlasov_velocity_map *vel_map; // Velocity-space mapping object. Required: provides the
-                                                  // velocity-space Jacobian at surface quadrature points and
-                                                  // the velocity-space range used to index it.
-  const struct gkyl_vlasov_position_map *pos_map; // Configuration-space mapping object. Required: provides the
-                                                  // (per-conf-cell constant) Jacobian for the -grad(phi) force.
-  double skip_cell_thresh; // Phase-space density threshold for skipping cells in the Vlasov equation; by default no cells are skipped.
-  enum gkyl_model_id model_id; // enum to determine what type of Vlasov model (e.g., non-relativistic vs. relativistic). 
-  enum gkyl_hamil_id hamil_id; // enum for the Hamiltonian representation (sparse/dense velocity-space or phase-space expansion).
+  const struct gkyl_range *
+    hamil_range; // Range for indexing Hamiltonian (either velocity-space range or full phase-space range).
+  const struct gkyl_vlasov_velocity_map
+    *vel_map; // Velocity-space mapping object. Required: provides the
+  // velocity-space Jacobian at surface quadrature points and
+  // the velocity-space range used to index it.
+  const struct gkyl_vlasov_position_map
+    *pos_map; // Configuration-space mapping object. Required: provides the
+  // (per-conf-cell constant) Jacobian for the -grad(phi) force.
+  double
+    skip_cell_thresh; // Phase-space density threshold for skipping cells in the Vlasov equation; by default no cells are skipped.
+  enum gkyl_model_id
+    model_id; // enum to determine what type of Vlasov model (e.g., non-relativistic vs. relativistic).
+  enum gkyl_hamil_id
+    hamil_id; // enum for the Hamiltonian representation (sparse/dense velocity-space or phase-space expansion).
   bool has_E; // bool to determine whether we have electric fields (used for external forces too).
-  bool has_phi; // bool to determine whether we have potentials (either electrostatic or gravitational).
+  bool
+    has_phi; // bool to determine whether we have potentials (either electrostatic or gravitational).
   bool has_B; // bool to determine whether we have magnetic fields.
   bool has_rad; // bool to determine whether we have radiation drag forces.
   bool use_lo; // bool to determine if using high-order kernels for non-canonical Hamiltonian models.
-  bool use_gpu; // bool to determine if on GPU. 
+  bool use_gpu; // bool to determine if on GPU.
 };
 
 /**
@@ -46,15 +53,17 @@ struct gkyl_dg_vlasov_vel_flux_surf_inp {
  * @param inp Input parameters defined in gkyl_dg_vlasov_vel_flux_surf_inp struct.
  * @return Pointer to velocity-space surface flux updater. 
  */
-struct gkyl_dg_vlasov_vel_flux_surf* 
-gkyl_dg_vlasov_vel_flux_surf_inew(const struct gkyl_dg_vlasov_vel_flux_surf_inp *inp);
+struct gkyl_dg_vlasov_vel_flux_surf *gkyl_dg_vlasov_vel_flux_surf_inew(
+  const struct gkyl_dg_vlasov_vel_flux_surf_inp *inp
+);
 
 /**
  * Create new updater to compute the velocity-space fluxes in a modal DG scheme on 
  * NV-GPU. See new() method for documentation.
  */
-struct gkyl_dg_vlasov_vel_flux_surf* 
-gkyl_dg_vlasov_vel_flux_surf_cu_dev_inew(const struct gkyl_dg_vlasov_vel_flux_surf_inp *inp);
+struct gkyl_dg_vlasov_vel_flux_surf *gkyl_dg_vlasov_vel_flux_surf_cu_dev_inew(
+  const struct gkyl_dg_vlasov_vel_flux_surf_inp *inp
+);
 
 /**
  * Compute the velocity-space fluxes in a modal DG scheme. The velocity-space
@@ -73,22 +82,23 @@ gkyl_dg_vlasov_vel_flux_surf_cu_dev_inew(const struct gkyl_dg_vlasov_vel_flux_su
  * @param cflrate Input cflrate. Accumulated to from maximum alpha_v at quadrature points.
  * @param vel_flux_surf Output modal velocity-space fluxes.
  */
-void
-gkyl_dg_vlasov_vel_flux_surf_advance(struct gkyl_dg_vlasov_vel_flux_surf *up,
-  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
-  const struct gkyl_array *poisson_tensor_conf, const struct gkyl_array *hamil,
-  const struct gkyl_array *qmem, const struct gkyl_array *pot_tot, const struct gkyl_array *rad,
-  const struct gkyl_array *fin, struct gkyl_array *cflrate, struct gkyl_array *vel_flux_surf);
+void gkyl_dg_vlasov_vel_flux_surf_advance(
+  struct gkyl_dg_vlasov_vel_flux_surf *up, const struct gkyl_range *conf_range,
+  const struct gkyl_range *phase_range, const struct gkyl_array *poisson_tensor_conf,
+  const struct gkyl_array *hamil, const struct gkyl_array *qmem, const struct gkyl_array *pot_tot,
+  const struct gkyl_array *rad, const struct gkyl_array *fin, struct gkyl_array *cflrate,
+  struct gkyl_array *vel_flux_surf
+);
 
- /**
+/**
  * Host-side wrapper for computing velocity-space fluxes on device.
  */
-void
-gkyl_dg_vlasov_vel_flux_surf_advance_cu(struct gkyl_dg_vlasov_vel_flux_surf *up,
-  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
-  const struct gkyl_array *poisson_tensor_conf, const struct gkyl_array *hamil,
-  const struct gkyl_array *qmem, const struct gkyl_array *pot_tot, const struct gkyl_array *rad,
-  const struct gkyl_array *fin, struct gkyl_array *cflrate, struct gkyl_array *vel_flux_surf);
+void gkyl_dg_vlasov_vel_flux_surf_advance_cu(
+  struct gkyl_dg_vlasov_vel_flux_surf *up, const struct gkyl_range *conf_range,
+  const struct gkyl_range *phase_range, const struct gkyl_array *poisson_tensor_conf,
+  const struct gkyl_array *hamil, const struct gkyl_array *qmem, const struct gkyl_array *pot_tot,
+  const struct gkyl_array *rad, const struct gkyl_array *fin, struct gkyl_array *cflrate,
+  struct gkyl_array *vel_flux_surf
+);
 
-void
-gkyl_dg_vlasov_vel_flux_surf_release(struct gkyl_dg_vlasov_vel_flux_surf* up);
+void gkyl_dg_vlasov_vel_flux_surf_release(struct gkyl_dg_vlasov_vel_flux_surf *up);

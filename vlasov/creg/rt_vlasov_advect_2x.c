@@ -11,26 +11,30 @@
 #include <gkyl_wv_advect.h>
 #include <rt_arg_parse.h>
 
-static inline double sq(double x) { return x*x; }
-
-void
-eval_fun(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+static inline double
+sq(double x)
 {
-  double x = xn[0], y = xn[1];
-  double r0 = 0.2;
-  double x0 = 1.0/4.0, y0 = 1.0/2.0;
-  
-  double r = fmin(sqrt(sq(x-x0)+sq(y-y0)),r0)/r0;
-  fout[0] = 0.25*(1+cos(M_PI*r));  
+  return x * x;
 }
 
 void
-eval_advect_vel(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+eval_fun(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
-  fout[0] = -y+0.5;
-  fout[1] = x-0.5;
-  fout[2] = 0.0; 
+  double r0 = 0.2;
+  double x0 = 1.0 / 4.0, y0 = 1.0 / 2.0;
+
+  double r = fmin(sqrt(sq(x - x0) + sq(y - y0)), r0) / r0;
+  fout[0] = 0.25 * (1 + cos(M_PI * r));
+}
+
+void
+eval_advect_vel(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  double x = xn[0], y = xn[1];
+  fout[0] = -y + 0.5;
+  fout[1] = x - 0.5;
+  fout[2] = 0.0;
 }
 
 int
@@ -44,10 +48,10 @@ main(int argc, char **argv)
   }
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 16);
-  int NY = APP_ARGS_CHOOSE(app_args.xcells[0], 16);  
+  int NY = APP_ARGS_CHOOSE(app_args.xcells[0], 16);
 
-  // Equation object for getting equation type, 
-  // advection velocity is set by eval_advect_vel function. 
+  // Equation object for getting equation type,
+  // advection velocity is set by eval_advect_vel function.
   double c = 1.0;
   struct gkyl_wv_eqn *advect = gkyl_wv_advect_new(c, false);
 
@@ -56,10 +60,7 @@ main(int argc, char **argv)
 
     .init = eval_fun,
     .equation = advect,
-    .advection = {
-      .velocity = eval_advect_vel,
-      .velocity_ctx = 0,
-    },
+    .advection = {.velocity = eval_advect_vel, .velocity_ctx = 0},
   };
 
   // VM app
@@ -78,29 +79,23 @@ main(int argc, char **argv)
     .periodic_dirs = {0, 1},
 
     .num_species = 1,
-    .species = {
-      { .name = "f", .charge = 0.0, .mass = 1.0,
-        .type = GKYL_SPECIES_FLUID, .fluid = f },
-    },
-    
+    .species = {{.name = "f", .charge = 0.0, .mass = 1.0, .type = GKYL_SPECIES_FLUID, .fluid = f}},
 
     .skip_field = true,
 
-    .parallelism = {
-      .use_gpu = app_args.use_gpu,
-    },
+    .parallelism = {.use_gpu = app_args.use_gpu},
   };
-  
+
   // create app object
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 2.0*M_PI;
-  double dt = tend-tcurr;
+  double tcurr = 0.0, tend = 2.0 * M_PI;
+  double dt = tend - tcurr;
 
   // initialize simulation
   gkyl_vlasov_app_apply_ic(app, tcurr);
-  
+
   gkyl_vlasov_app_write(app, tcurr, 0);
   gkyl_vlasov_app_write_mom(app, tcurr, 0);
 
@@ -109,7 +104,7 @@ main(int argc, char **argv)
     printf("Taking time-step at t = %g ...", tcurr);
     struct gkyl_update_status status = gkyl_vlasov_update(app, dt);
     printf(" dt = %g\n", status.dt_actual);
-    
+
     if (!status.success) {
       fprintf(stderr, "** Update method failed! Aborting simulation ....\n");
       break;
@@ -143,6 +138,6 @@ main(int argc, char **argv)
   printf("Field RHS calc took %g secs\n", stat.field_rhs_tm);
   printf("Current evaluation and accumulate took %g secs\n", stat.current_tm);
   printf("Updates took %g secs\n", stat.total_tm);
-  
+
   return 0;
 }

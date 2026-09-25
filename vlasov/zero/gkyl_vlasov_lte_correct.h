@@ -18,24 +18,31 @@ struct gkyl_vlasov_lte_correct_inp {
   const struct gkyl_basis *vel_basis; // Velocity-space basis functions
   const struct gkyl_basis *phase_basis; // Phase-space basis functions
   const struct gkyl_range *conf_range; // Configuration-space range
-  const struct gkyl_range *conf_range_ext; // Extended configuration-space range (for internal memory allocations)
+  const struct gkyl_range
+    *conf_range_ext; // Extended configuration-space range (for internal memory allocations)
   const struct gkyl_range *vel_range; // velocity space range
   const struct gkyl_range *phase_range; // phase space range
-  const struct gkyl_vlasov_velocity_map *vel_map; // Velocity-space mapping object. NULL => uniform velocity grid.
-  const struct gkyl_range *hamil_range; // Range for indexing Hamiltonian (either velocity-space range or full phase-space range).
+  const struct gkyl_vlasov_velocity_map
+    *vel_map; // Velocity-space mapping object. NULL => uniform velocity grid.
+  const struct gkyl_range *
+    hamil_range; // Range for indexing Hamiltonian (either velocity-space range or full phase-space range).
   const struct gkyl_array *hamil; // (Can-pb quantitiy) Hamiltonian
   enum gkyl_model_id model_id; // Enum identifier for model type (e.g., SR, see gkyl_eqn_type.h)
-  enum gkyl_hamil_id hamil_id; // Enum for the Hamiltonian representation (sparse/dense velocity-space or phase-space expansion).
+  enum gkyl_hamil_id
+    hamil_id; // Enum for the Hamiltonian representation (sparse/dense velocity-space or phase-space expansion).
   const struct gkyl_array *gamma_inv; // SR quantitiy: 1/gamma = 1/sqrt(1 + p^2)
   const struct gkyl_array *h_ij; // (Can-pb quantitiy) metric tensor (covariant components)
-  const struct gkyl_array *h_ij_inv; // (Can-pb quantitiy) inverse metric tensor (contravariant components) 
-  const struct gkyl_array *det_h; // (Can-pb quantitiy) determinant of the metric tensor 
+  const struct gkyl_array
+    *h_ij_inv; // (Can-pb quantitiy) inverse metric tensor (contravariant components)
+  const struct gkyl_array *det_h; // (Can-pb quantitiy) determinant of the metric tensor
   enum gkyl_quad_type quad_type; // type of quadrature to use: defaults to Gaussian
   bool use_last_converged; // Boolean for if we are using the results of the iterative scheme
-                           // *even if* the scheme fails to converge. 
-  bool use_extended_hamil_def; // bool to determine if we are using the extended canonical-pb hamiltonian
-  const struct gkyl_array *background_flows; // Can-pb quantity: Background flows for extended hamiltonians
-  const struct gkyl_array *effective_potential; // Can-pb quantity: specified effective potential 
+    // *even if* the scheme fails to converge.
+  bool
+    use_extended_hamil_def; // bool to determine if we are using the extended canonical-pb hamiltonian
+  const struct gkyl_array
+    *background_flows; // Can-pb quantity: Background flows for extended hamiltonians
+  const struct gkyl_array *effective_potential; // Can-pb quantity: specified effective potential
   bool use_gpu; // bool for gpu usage
   double eps; // tolerance for the iterator
   int max_iter; // number of total iterations
@@ -46,7 +53,7 @@ struct gkyl_vlasov_lte_correct_status {
   bool iter_converged; // true if iterations converged
   int num_iter; // number of iterations for the correction
   double error[5]; // error in each moment, up to 5 (vdim+2) components
-};  
+};
 
 /**
  * Create new updater to correct the LTE (local thermodynamic equlibrium) distribution 
@@ -56,8 +63,9 @@ struct gkyl_vlasov_lte_correct_status {
  * @param inp Input parameters defined in gkyl_vlasov_lte_correct_inp struct.
  * @return New updater pointer.
  */
-struct gkyl_vlasov_lte_correct* 
-gkyl_vlasov_lte_correct_inew(const struct gkyl_vlasov_lte_correct_inp *inp);
+struct gkyl_vlasov_lte_correct *gkyl_vlasov_lte_correct_inew(
+  const struct gkyl_vlasov_lte_correct_inp *inp
+);
 
 /**
  * Fix the LTE (local thermodynamic equlibrium) distribution function
@@ -73,18 +81,19 @@ gkyl_vlasov_lte_correct_inew(const struct gkyl_vlasov_lte_correct_inp *inp);
  * @param conf_local Local configuration space range
  * @return Status of correction
  */
-struct gkyl_vlasov_lte_correct_status gkyl_vlasov_lte_correct_all_moments(gkyl_vlasov_lte_correct *up,
-  struct gkyl_array *f_lte, const struct gkyl_array *moms_target, 
-  const struct gkyl_range *phase_local, const struct gkyl_range *conf_local);
+struct gkyl_vlasov_lte_correct_status gkyl_vlasov_lte_correct_all_moments(
+  gkyl_vlasov_lte_correct *up, struct gkyl_array *f_lte, const struct gkyl_array *moms_target,
+  const struct gkyl_range *phase_local, const struct gkyl_range *conf_local
+);
 
 /**
  * Host-side wrapper for computing the absolute value of the 
  * difference in cell averages between the target moments and iterative moments.
  */
-void gkyl_vlasov_lte_correct_all_moments_abs_diff_cu(const struct gkyl_range *conf_range, 
-  int num_comp, int nc, 
-  const struct gkyl_array *moms_target, const struct gkyl_array *moms_iter, 
-  struct gkyl_array *moms_abs_diff);
+void gkyl_vlasov_lte_correct_all_moments_abs_diff_cu(
+  const struct gkyl_range *conf_range, int num_comp, int nc, const struct gkyl_array *moms_target,
+  const struct gkyl_array *moms_iter, struct gkyl_array *moms_abs_diff
+);
 
 /**
  * Delete updater.

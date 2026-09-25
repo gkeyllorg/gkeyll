@@ -13,35 +13,45 @@ void
 prim_lbo_vlasov_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_prim_lbo_type *prim_ty = container_of(ref, struct gkyl_prim_lbo_type, ref_count);
-  if (GKYL_IS_CU_ALLOC(prim_ty->flag))
+  if (GKYL_IS_CU_ALLOC(prim_ty->flag)) {
     gkyl_cu_free(prim_ty->on_dev);
+  }
 
   struct prim_lbo_type_vlasov *vlasov = container_of(prim_ty, struct prim_lbo_type_vlasov, prim);
   gkyl_free(vlasov);
 }
 
-struct gkyl_prim_lbo_type*
-gkyl_prim_lbo_vlasov_new(const struct gkyl_basis* cbasis,
-  const struct gkyl_basis* pbasis, bool use_gpu)
+struct gkyl_prim_lbo_type *
+gkyl_prim_lbo_vlasov_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, bool use_gpu
+)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 #ifdef GKYL_HAVE_CUDA
-  if(use_gpu) {
+  if (use_gpu) {
     // Kernel availability is checked on the host so unsupported bases fail
     // with an assert here rather than a NULL device function pointer.
-    int cdim_h = cbasis->ndim, vdim_h = pbasis->ndim-cdim_h, po_h = cbasis->poly_order;
+    int cdim_h = cbasis->ndim, vdim_h = pbasis->ndim - cdim_h, po_h = cbasis->poly_order;
     assert(cv_index[cdim_h].vdim[vdim_h] != -1);
     bool is_ten_h = (gkyl_basis_phase_kernel_type(cbasis, pbasis) == GKYL_BASIS_MODAL_TENSOR);
-    assert(NULL != (is_ten_h ? ten_self_prim_kernels : ser_self_prim_kernels)[cv_index[cdim_h].vdim[vdim_h]].kernels[po_h]);
-    assert(NULL != (is_ten_h ? ten_cross_prim_kernels : ser_cross_prim_kernels)[cv_index[cdim_h].vdim[vdim_h]].kernels[po_h]);
+    assert(
+      NULL !=
+      (is_ten_h ? ten_self_prim_kernels : ser_self_prim_kernels)[cv_index[cdim_h].vdim[vdim_h]]
+        .kernels[po_h]
+    );
+    assert(
+      NULL !=
+      (is_ten_h ? ten_cross_prim_kernels : ser_cross_prim_kernels)[cv_index[cdim_h].vdim[vdim_h]]
+        .kernels[po_h]
+    );
     return gkyl_prim_lbo_vlasov_cu_dev_new(cbasis, pbasis);
-  } 
-#endif  
+  }
+#endif
   struct prim_lbo_type_vlasov *prim_vlasov = gkyl_malloc(sizeof(struct prim_lbo_type_vlasov));
 
   int cdim = prim_vlasov->prim.cdim = cbasis->ndim;
   int pdim = prim_vlasov->prim.pdim = pbasis->ndim;
-  int vdim = pdim-cdim;
+  int vdim = pdim - cdim;
   int poly_order = prim_vlasov->prim.poly_order = cbasis->poly_order;
   prim_vlasov->prim.num_config = cbasis->num_basis;
   prim_vlasov->prim.num_phase = pbasis->num_basis;
@@ -66,12 +76,12 @@ gkyl_prim_lbo_vlasov_new(const struct gkyl_basis* cbasis,
 
     default:
       assert(false);
-      break;    
+      break;
   }
   assert(cv_index[cdim].vdim[vdim] != -1);
   assert(NULL != self_prim_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
   assert(NULL != cross_prim_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
-    
+
   prim_vlasov->self_prim = self_prim_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
   prim_vlasov->cross_prim = cross_prim_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
 
@@ -80,15 +90,14 @@ gkyl_prim_lbo_vlasov_new(const struct gkyl_basis* cbasis,
   prim_vlasov->prim.ref_count = gkyl_ref_count_init(prim_lbo_vlasov_free);
 
   prim_vlasov->prim.on_dev = &prim_vlasov->prim;
-    
+
   return &prim_vlasov->prim;
 }
 
 #ifndef GKYL_HAVE_CUDA
 
-struct gkyl_prim_lbo_type*
-gkyl_prim_lbo_vlasov_cu_dev_new(const struct gkyl_basis* cbasis,
-  const struct gkyl_basis* pbasis)
+struct gkyl_prim_lbo_type *
+gkyl_prim_lbo_vlasov_cu_dev_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis)
 {
   assert(false);
   return 0;

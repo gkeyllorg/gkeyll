@@ -9,33 +9,51 @@
 // uniformly; every method is a no-op.
 
 static double
-null_field_update(gkyl_vlasov_app *app, double tcurr, const struct gkyl_array *fin[],
-  const struct gkyl_array *emin, struct gkyl_array *emout)
+null_field_update(
+  gkyl_vlasov_app *app, double tcurr, const struct gkyl_array *fin[], const struct gkyl_array *emin,
+  struct gkyl_array *emout
+)
 {
   return DBL_MAX; // no field force -> no CFL constraint
 }
 
 static void
-null_field_calc(gkyl_vlasov_app *app, struct vm_field *field, double tm) { }
+null_field_calc(gkyl_vlasov_app *app, struct vm_field *field, double tm)
+{
+}
 
 static void
-null_field_apply_ic(gkyl_vlasov_app *app, struct vm_field *field,
-  const struct gkyl_array *fin[], double t0) { }
+null_field_apply_ic(
+  gkyl_vlasov_app *app, struct vm_field *field, const struct gkyl_array *fin[], double t0
+)
+{
+}
 
 static void
-null_field_calc_energy(gkyl_vlasov_app *app, double tm, struct vm_field *field,
-  const struct gkyl_array *fin[]) { }
+null_field_calc_energy(
+  gkyl_vlasov_app *app, double tm, struct vm_field *field, const struct gkyl_array *fin[]
+)
+{
+}
 
 static void
-null_field_write(gkyl_vlasov_app *app, double tm, int frame, const struct gkyl_array *fin[]) { }
+null_field_write(gkyl_vlasov_app *app, double tm, int frame, const struct gkyl_array *fin[])
+{
+}
 
 static void
-null_field_write_energy(gkyl_vlasov_app *app) { }
+null_field_write_energy(gkyl_vlasov_app *app)
+{
+}
 
 static struct gkyl_app_restart_status
 null_field_from_file(gkyl_vlasov_app *app, struct vm_field *field, const char *fname)
 {
-  return (struct gkyl_app_restart_status) { .io_status = GKYL_ARRAY_RIO_SUCCESS, .frame = 0, .stime = 0.0 };
+  return (struct gkyl_app_restart_status){
+    .io_status = GKYL_ARRAY_RIO_SUCCESS,
+    .frame = 0,
+    .stime = 0.0,
+  };
 }
 
 static void
@@ -48,7 +66,7 @@ null_field_release(const gkyl_vlasov_app *app, struct vm_field *f)
   gkyl_free(f);
 }
 
-static struct vm_field*
+static struct vm_field *
 null_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
 {
   struct vm_field *f = gkyl_malloc(sizeof(struct vm_field));
@@ -56,7 +74,7 @@ null_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   f->field_id = GKYL_FIELD_NULL;
 
   // em1, emnew and em_host alias em; nothing is stepped or written.
-  f->em = mkarr(app->use_gpu, 8*app->basis.num_basis, app->local_ext.volume);
+  f->em = mkarr(app->use_gpu, 8 * app->basis.num_basis, app->local_ext.volume);
   gkyl_array_clear(f->em, 0.0);
   f->em1 = gkyl_array_acquire(f->em);
   f->emnew = gkyl_array_acquire(f->em);
@@ -69,11 +87,11 @@ null_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   f->is_first_energy_write_call = true;
 
   f->update_func = null_field_update;
-  f->combine_func = vp_field_combine;          // no-op (shared with Vlasov-Poisson)
-  f->copy_range_func = vp_field_copy_range;     // no-op
+  f->combine_func = vp_field_combine; // no-op (shared with Vlasov-Poisson)
+  f->copy_range_func = vp_field_copy_range; // no-op
   f->apply_ic_func = null_field_apply_ic;
-  f->apply_bc_func = vp_field_apply_bc;         // no-op
-  f->limiter_func = vp_field_limiter;           // no-op
+  f->apply_bc_func = vp_field_apply_bc; // no-op
+  f->limiter_func = vp_field_limiter; // no-op
   f->complete_update_func = vp_field_complete_update; // no-op
   f->calc_ext_em_func = null_field_calc;
   f->calc_app_current_func = null_field_calc;
@@ -87,25 +105,30 @@ null_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   return f;
 }
 
-struct vm_field*
+struct vm_field *
 vlasov_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
 {
   // A field object is always created: the null field when no field is present.
-  if (vm->skip_field)
+  if (vm->skip_field) {
     return null_field_new(vm, app);
+  }
   return vm->is_electrostatic ? vp_field_new(vm, app) : vm_field_new(vm, app);
 }
 
 double
-vlasov_field_update(gkyl_vlasov_app *app, double tcurr,
-  const struct gkyl_array *fin[], const struct gkyl_array *emin, struct gkyl_array *emout)
+vlasov_field_update(
+  gkyl_vlasov_app *app, double tcurr, const struct gkyl_array *fin[], const struct gkyl_array *emin,
+  struct gkyl_array *emout
+)
 {
   return app->field->update_func(app, tcurr, fin, emin, emout);
 }
 
 void
-vlasov_field_combine(gkyl_vlasov_app *app, struct gkyl_array *out,
-  double c1, const struct gkyl_array *arr1, double c2, const struct gkyl_array *arr2)
+vlasov_field_combine(
+  gkyl_vlasov_app *app, struct gkyl_array *out, double c1, const struct gkyl_array *arr1, double c2,
+  const struct gkyl_array *arr2
+)
 {
   app->field->combine_func(app, app->field, out, c1, arr1, c2, arr2);
 }
@@ -135,8 +158,10 @@ vlasov_field_limiter(gkyl_vlasov_app *app, struct gkyl_array *em)
 }
 
 void
-vlasov_field_complete_update(gkyl_vlasov_app *app, double dt, const struct gkyl_array *fin[],
-  const struct gkyl_array *fluidin[], const struct gkyl_array *emin, struct gkyl_array *emout)
+vlasov_field_complete_update(
+  gkyl_vlasov_app *app, double dt, const struct gkyl_array *fin[],
+  const struct gkyl_array *fluidin[], const struct gkyl_array *emin, struct gkyl_array *emout
+)
 {
   app->field->complete_update_func(app, dt, fin, fluidin, emin, emout);
 }
@@ -197,10 +222,11 @@ vlasov_field_read_from_frame(gkyl_vlasov_app *app, int frame)
   // it has a file of its own (Maxwell, GR Maxwell), so a field-only restart is
   // consistent as well, including a rewind to frame zero. The Poisson and null
   // fields return a placeholder status and leave the clock to the species.
-  bool has_field_file = app->field->field_id == GKYL_FIELD_E_B
-    || app->field->field_id == GKYL_FIELD_GR_D_B;
-  if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS && has_field_file)
+  bool has_field_file = app->field->field_id == GKYL_FIELD_E_B ||
+                        app->field->field_id == GKYL_FIELD_GR_D_B;
+  if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS && has_field_file) {
     app->tcurr = rstat.stime;
+  }
 
   return rstat;
 }

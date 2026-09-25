@@ -1,0 +1,10 @@
+repos:
+  - repo: local
+    hooks:
+      - id: gkeyll-format
+        name: Format C/C++/CUDA (clang-format + trailing-comma rules)
+        entry: python ci/format.py
+        language: python
+        additional_dependencies: ["clang-format==18.1.8"]
+        files: \.(c|h|cpp|hpp|cu|cuh)$
+        exclude: (^|/)ker/|^core/minus/
