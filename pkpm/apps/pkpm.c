@@ -1,3 +1,4 @@
+#include "gkyl_pkpm.h"
 #include <stdarg.h>
 
 #include <gkyl_alloc.h>
@@ -422,6 +423,7 @@ gkyl_pkpm_app_write(gkyl_pkpm_app *app, double tm, int frame)
   for (int i = 0; i < app->num_species; ++i) {
     gkyl_pkpm_app_write_species(app, i, tm, frame);
     gkyl_pkpm_app_write_mom(app, i, tm, frame);
+    gkyl_pkpm_app_write_coll_mom(app, i, tm, frame);
   }
 
   app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
@@ -563,6 +565,38 @@ gkyl_pkpm_app_write_mom(gkyl_pkpm_app *app, int sidx, double tm, int frame)
   pkpm_array_meta_release(mt);
 }
 
+void
+gkyl_pkpm_app_write_coll_mom(gkyl_pkpm_app* app, int sidx, double tm, int frame)
+{
+  struct gkyl_msgpack_data *mt = pkpm_array_meta_new((struct pkpm_output_meta){
+    .frame = frame,
+    .stime = tm,
+    .poly_order = app->poly_order,
+    .basis_type = app->confBasis.id
+    }
+  );
+
+  struct pkpm_species *s = &app->species[sidx];
+  
+  const char *fmt = "%s-%s_coll_moms_%d.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name, s->info.name, frame);
+  char fileNm[sz+1];
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, s->info.name, frame);
+
+
+  pkpm_species_lbo_moms(app, s, &s->lbo, s->f);
+  
+  if (app->use_gpu){
+    gkyl_array_copy(s->lbo.moms.marr_host, s->lbo.moms.marr);
+  }
+
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local,
+    mt, s->lbo.prim_moms, fileNm);
+
+  pkpm_array_meta_release(mt);
+
+}
+  
 void
 gkyl_pkpm_app_write_integrated_mom(gkyl_pkpm_app *app)
 {

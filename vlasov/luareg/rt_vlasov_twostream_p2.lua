@@ -96,6 +96,7 @@ vlasovApp = Vlasov.App.new {
 
         correctAllMoments = true
       },
+      
       {
         projectionID = G0.Projection.LTE,
 

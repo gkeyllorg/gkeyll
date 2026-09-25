@@ -303,6 +303,18 @@ void gkyl_pkpm_app_write_species(gkyl_pkpm_app *app, int sidx, double tm, int fr
  */
 void gkyl_pkpm_app_write_mom(gkyl_pkpm_app *app, int sidx, double tm, int frame);
 
+/** 
+ * Write collison moment data to file.
+ *
+ * @param app App object.
+ * @param sidx Index of fluid species to initialize.
+ * @param tm Time-stamp
+ * @param frame Frame number
+ */
+void gkyl_pkpm_app_write_coll_mom(gkyl_pkpm_app* app, int sidx, double tm, int frame);
+
+
+
 /**
  * Write integrated diagnostic moments for species to file. Integrated
  * moments are appended to the same file.

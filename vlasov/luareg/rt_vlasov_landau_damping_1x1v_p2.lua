@@ -11,6 +11,7 @@ charge_elc = -1.0 -- Electron charge.
 
 vt = 1.0 -- Thermal velocity.
 nu = 0.1 -- Collision frequency.
+Vx_drift = 5.0 -- Drift velocity (x-direction).
 
 alpha = 1.0e-4 -- Applied perturbation amplitude.
 k0 = 0.5 -- Perturbed wave number.
@@ -71,16 +72,33 @@ vlasovApp = Vlasov.App.new {
     numInit = 1,
     projections = {
       {
-        projectionID = G0.Projection.Func,
+        projectionID = G0.Projection.Dist,
+        distID = G0.Dist.LTE
 
-        init = function (t, xn)
-          local x, vx = xn[1], xn[2]
+        momentInit = {
+          {
+          -- 0th moment init (density)
+          momentID = G0.DistMoment.Desnity,
 
-          local n = (1.0 + alpha * math.cos(k0 * x)) *
-            (1.0 / math.sqrt(2.0 * pi * vt * vt)) * (math.exp(-(vx * vx) / (2.0 * vt * vt))) -- Distribution function.
+          init = function(t, xn)
+            local x = xn[1]
+            local n = 0.5 * (1.0 + alpha * math.cos(kx * x)) * n0
+            return n
+          end,
+          },
+          
+          
 
-          return n
-        end
+          
+          {-- 1st moment init (drift velocity)
+          momentID = G0.DistMoment.DriftVelocity,
+          init = function(t,xn)
+            return -Vx_drift
+          end
+        },
+
+          
+        }
       }
     },
 

@@ -3,6 +3,7 @@
 #include <gkyl_app.h>
 #include <gkyl_lw_priv.h>
 #include <gkyl_util.h>
+#include <gkyl_dist_type.h>
 
 // Define options for moments of a distribution function.
 static const struct gkyl_str_int_pair distribution_moms[] = {
@@ -29,6 +30,16 @@ static const struct gkyl_str_int_pair distribution_moms[] = {
   {"Tij", GKYL_F_MOMENT_TIJ}, // Stress-energy tensor.
   {0, 0}
 };
+
+
+// Define distribution functions.
+static const struct gkyl_str_int_pair dist_types[] ={
+  {"LTE", GKYL_DIST_TYPE_LTE}, // local thermodynamic equilibrium
+  {"BiMax", GKYL_DIST_TYPE_BIMAX}, // Bi-Maxwellian
+  {"Kappa", GKYL_DIST_TYPE_KAPPA}, // Kappa 
+};
+
+
 
 // Species boundary conditions -> enum map.
 static const struct gkyl_str_int_pair species_bcs[] = {
@@ -57,6 +68,12 @@ void
 gkyl_register_distribution_moment_types(lua_State *L)
 {
   register_types(L, distribution_moms, "Moment");
+}
+
+void
+gkyl_register_distribution_projection_types(lua_State *L)
+{
+  register_types(L, dist_types, "Dist");
 }
 
 void

@@ -10,9 +10,9 @@ mass_elc = 1.0 -- Electron mass.
 charge_elc = -1.0 -- Electron charge.
 
 vt = 1.0 -- Thermal velocity.
-nu = 1.0e-4 -- Collision frequency.
+nu = 0.1 -- Collision frequency.
 
-alpha = 1.0e-1 -- Applied perturbation amplitude.
+alpha = 1.0e-4 -- Applied perturbation amplitude.
 k0 = 0.5 -- Perturbed wave number.
 
 B0 = 1.0 -- Reference magnetic field strength.
@@ -22,7 +22,7 @@ Nx = 32 -- Cell count (configuration space: x-direction).
 Nvx = 32 -- Cell count (velocity space: vx-direction).
 Lx = 4.0 * pi -- Domain size (configuration space: x-direction).
 vx_max = 6.0 * vt -- Domain boundary (velocity space: vx-direction).
-poly_order = 1 -- Polynomial order.
+poly_order = 2 -- Polynomial order.
 basis_type = "serendipity" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
 cfl_frac = 1.0 -- CFL coefficient.
@@ -110,10 +110,12 @@ pkpmApp = PKPM.App.new {
 
       selfNu = function (t, xn)
         return nu -- Collision frequency.
-      end
+      end,
+      correctAllMoments = true
     },
 
-    evolve = true -- Evolve species?
+    evolve = true, -- Evolve species?
+    diagnostics = { G0.Moment.M0, G0.Moment.M1, G0.Moment.M2 }
   },
 
   -- Field.
