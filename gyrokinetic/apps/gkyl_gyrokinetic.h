@@ -96,17 +96,6 @@ struct gkyl_phase_diagnostics_inp {
   bool time_integrated; // Whether to use time integrated diags.
 };
 
-// Parameters for collisionless terms.
-struct gkyl_gyrokinetic_collisionless {
-  enum gkyl_gk_collisionless_type type; // Type of collisionless terms.
-  bool write_diagnostics; // Whether to output diagnostics.
-  double scale_factor; // Factor multiplying collisionless terms (should be > 0).
-  // Passive advection speeds in x, y, z (for GKYL_GK_COLLISIONLESS_PASSIVE).
-  // Assumes no advection/dependence on vpar/mu. Should return cdim values.
-  evalf_t passive_speeds;
-  void *passive_speeds_ctx; // Context for passive_speeds.
-};
-
 // Parameters for species collisions
 struct gkyl_gyrokinetic_collisions {
   enum gkyl_collision_id collision_id; // type of collisions (see gkyl_eqn_type.h)
@@ -432,6 +421,20 @@ struct gkyl_gyrokinetic_fdot_multiplier_comp {
 struct gkyl_gyrokinetic_fdot_multiplier {
   int num_multipliers;
   struct gkyl_gyrokinetic_fdot_multiplier_comp multiplier[GKYL_MAX_FDOT_MUL];
+};
+
+// Parameters for collisionless terms.
+struct gkyl_gyrokinetic_collisionless {
+  enum gkyl_gk_collisionless_type type; // Type of collisionless terms.
+  bool write_diagnostics; // Whether to output diagnostics.
+  double scale_factor; // Factor multiplying collisionless terms (should be > 0).
+  // Passive advection speeds in x, y, z (for GKYL_GK_COLLISIONLESS_PASSIVE).
+  // Assumes no advection/dependence on vpar/mu. Should return cdim values.
+  evalf_t passive_speeds;
+  void *passive_speeds_ctx; // Context for passive_speeds.
+  // Gyrokinetic species only: multiply the collisionless RHS and CFL rate after scale_factor.
+  // Collisions and sources are unaffected. An empty chain leaves the update unchanged.
+  struct gkyl_gyrokinetic_fdot_multiplier time_rate_multiplier;
 };
 
 // Parameters for gk species.
@@ -1570,7 +1573,8 @@ void gkyl_gyrokinetic_app_reset_species_fdot_multiplier(
 );
 
 /**
- * Reset the collisionless multiplier for a given species.
+ * Reset the collisionless scale_factor and time_rate_multiplier for a given species.
+ * An empty multiplier chain disables collisionless time dilation.
  *
  * @param app App object.
  * @param tm Time-stamp.
