@@ -1,0 +1,39 @@
+{
+  "cli_version": "0.10.6",
+  "checkpoint_id": "01M3DJ0C6XR9ZR9C7VMTDPJW7J",
+  "session_id": "01a0d4a3-381b-7ec0-9bb5-e752be049601",
+  "strategy": "manual-commit",
+  "created_at": "2026-09-26T00:32:00.574963725Z",
+  "branch": "maxs-failing-regtests",
+  "checkpoints_count": 2,
+  "save_step_count": 1,
+  "files_touched": [
+    "gyrokinetic/unit/ctest_gk_time_rate_diagnostics.c"
+  ],
+  "agent": "Codex",
+  "model": "gpt-6-astra",
+  "turn_id": "89a9c15337cb",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 115295,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 3709312,
+    "output_tokens": 17459,
+    "api_call_count": 44
+  },
+  "session_metrics": {
+    "turn_count": 2
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-09-26T00:32:00.505561925Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 1406,
+    "human_modified": 268,
+    "human_removed": 0,
+    "total_committed": 1674,
+    "total_lines_changed": 5226,
+    "agent_percentage": 0,
+    "metric_version": 2
+  }
+}
