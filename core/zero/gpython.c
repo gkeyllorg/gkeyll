@@ -26,6 +26,7 @@
 #include <gkyl_dg_differentiate.h>
 #include <gkyl_dg_eval_at_coord_proj.h>
 #include <gkyl_dynvec.h>
+#include <gkyl_proj_on_basis.h>
 #include <gkyl_proj_powsqrt_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
@@ -87,6 +88,18 @@ double *
 gpython_array_data(gpython_array *a)
 {
   return (double *)ARR(a)->data;
+}
+
+double *
+gpython_array_fetch(gpython_array *a, long loc)
+{
+  return gkyl_array_fetch(ARR(a), loc);
+}
+
+const double *
+gpython_array_cfetch(const gpython_array *a, long loc)
+{
+  return gkyl_array_cfetch(CARR(a), loc);
 }
 
 /* ---- file I/O ----------------------------------------------------------- */
@@ -269,6 +282,37 @@ gpython_basis_quad_to_modal(const gpython_basis *b, const double *fquad, double 
   for (unsigned i = 0; i < basis->num_basis; ++i) {
     basis->quad_nodal_to_modal(fquad, fmodal, i);
   }
+  return 0;
+}
+
+/* ---- initialize a DG field by projection ------------------------------- */
+int
+gpython_proj_on_basis(
+  int ndim, const double *lower, const double *upper, const int *cells, const gpython_basis *b,
+  int num_quad, int nfields, gpython_evalf_t eval, void *ctx, double tm, gpython_array *out
+)
+{
+  if (!b || !out || !eval || ndim < 1 || ndim > GKYL_MAX_DIM || ndim != CBAS(b)->ndim ||
+      num_quad < 0 || nfields < 1 || CARR(out)->ncomp != (size_t)nfields * CBAS(b)->num_basis) {
+    return 1;
+  }
+  for (int d = 0; d < ndim; ++d) {
+    if (cells[d] < 1 || lower[d] >= upper[d]) {
+      return 1;
+    }
+  }
+
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
+  struct gkyl_range range;
+  gkyl_range_init_from_shape1(&range, ndim, cells);
+  if ((size_t)range.volume != CARR(out)->size) {
+    return 1;
+  }
+
+  gkyl_proj_on_basis *up = gkyl_proj_on_basis_new(&grid, CBAS(b), num_quad, nfields, eval, ctx);
+  gkyl_proj_on_basis_advance(up, tm, &range, ARR(out));
+  gkyl_proj_on_basis_release(up);
   return 0;
 }
 
@@ -540,7 +584,34 @@ gpython_eval_at_coord_proj(
 )
 {
   int nf = nfields_of(b, in);
-  if (nf < 0 || num_eval < 1 || num_eval > ndim) {
+  if (nf < 1 || ndim != CBAS(b)->ndim || num_eval < 1 || num_eval > ndim ||
+      ndim_tar != (num_eval == ndim ? 1 : ndim - num_eval)) {
+    return NULL;
+  }
+
+  // Check physical coordinates before find_cell, which leaves its output
+  // undefined for points outside the grid. Directions must be in kernel order.
+  for (int d = 0; d < ndim; ++d) {
+    if (cells[d] < 1 || lower[d] >= upper[d]) {
+      return NULL;
+    }
+  }
+  bool is_eval[GKYL_MAX_DIM] = {false};
+  for (int i = 0; i < num_eval; ++i) {
+    int d = eval_dirs[i];
+    if (d < 0 || d >= ndim || (i > 0 && d <= eval_dirs[i - 1]) || eval_coords[i] < lower[d] ||
+        eval_coords[i] > upper[d]) {
+      return NULL;
+    }
+    is_eval[d] = true;
+  }
+  int kept = 0;
+  for (int d = 0; d < ndim; ++d) {
+    if (!is_eval[d] && cells_tar[kept++] != cells[d]) {
+      return NULL;
+    }
+  }
+  if (num_eval == ndim && cells_tar[0] != 1) {
     return NULL;
   }
 
@@ -576,19 +647,33 @@ gpython_eval_at_coord_proj(
   struct gkyl_array *out =
     gkyl_array_new(GKYL_DOUBLE, (size_t)nf * (size_t)num_basis_tar, (size_t)rng_tar.volume);
 
-  bool pick_lower[GKYL_MAX_DIM];
+  bool pick_lower[GKYL_MAX_DIM] = {false};
   int known_index[GKYL_MAX_DIM];
   for (int d = 0; d < ndim; ++d) {
     known_index[d] = -1;
-  }
-  for (int i = 0; i < num_eval; ++i) {
-    pick_lower[i] = false;
   }
 
   gkyl_dg_eval_at_coord_proj_advance(
     up, eval_coords, &grid, pick_lower, known_index, &rng_do, &rng_tar, CARR(in), out
   );
   gkyl_dg_eval_at_coord_proj_release(up);
+
+  // Full elimination uses the native updater's scalar convention r = F/sqrt(2),
+  // where F is the donor field evaluated at the requested coordinates. The
+  // Maxima generator forms an inner product with the constant basis function
+  // 1/sqrt(2) and no remaining integration variables, giving r = F/sqrt(2).
+  //
+  // This wrapper represents the result as a one-cell 1D p0 modal field. Its
+  // basis is phi0 = 1/sqrt(2), so the stored coefficient must be c0 = sqrt(2)*F
+  // for reconstruction to give c0*phi0 = F. Thus c0 = 2*r; without this
+  // conversion, reconstructing the returned dataset would give F/2.
+  //
+  // Convert representations here while preserving the native scalar convention.
+  // Partial elimination already returns modal coefficients for the surviving
+  // dimensions and requires no rescaling.
+  if (num_eval == ndim) {
+    gkyl_array_scale(out, 2.0);
+  }
 
   *out_btype = (int)btype_tar;
   *out_poly_order = poly_order_tar;

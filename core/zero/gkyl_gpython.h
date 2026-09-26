@@ -30,8 +30,9 @@ extern "C" {
  *     lower-dimensional target basis).
  * v7: added gpython_powsqrt (pow(sqrt(.), exponent) via
  *     gkyl_proj_powsqrt_on_basis).
- * v8: basis-owned quadrature counts and modal/quadrature transforms. */
-#define GPYTHON_API_VERSION 8
+ * v8: basis-owned quadrature counts and modal/quadrature transforms.
+ * v9: added gpython_array_{fetch,cfetch} and gpython_proj_on_basis. */
+#define GPYTHON_API_VERSION 9
 int gpython_api_version(void);
 
 /* Enough for GKYL_MAX_DIM; fixed here so callers can size buffers without
@@ -51,6 +52,11 @@ void gpython_array_release(gpython_array *a);
 size_t gpython_array_ncomp(const gpython_array *a);
 size_t gpython_array_size(const gpython_array *a);
 double *gpython_array_data(gpython_array *a); /* contiguous (size x ncomp) buffer  */
+/* Fetch one cell's ncomp entries at a linear range index, as in
+ * gkyl_array_{fetch,cfetch}. Requires 0 <= loc < size; no bounds check.
+ * The returned pointer is borrowed and remains valid until array release. */
+double *gpython_array_fetch(gpython_array *a, long loc);
+const double *gpython_array_cfetch(const gpython_array *a, long loc);
 
 /* ---- file I/O (gkyl_array_rio) ------------------------------------------
  * Grid out-parameters are caller-allocated buffers of length gpython_MAX_DIM.
@@ -95,6 +101,23 @@ void gpython_basis_nodal_to_modal(const gpython_basis *b, const double *fnodal, 
  * and num_quad quadrature entries. Return -1 if kernels are unavailable. */
 int gpython_basis_modal_to_quad(const gpython_basis *b, const double *fmodal, double *fquad);
 int gpython_basis_quad_to_modal(const gpython_basis *b, const double *fquad, double *fmodal);
+
+/* ---- initialize a DG field by projection -------------------------------
+ * Callback writes nfields values at physical coordinates xn[ndim].
+ * tm and ctx are passed through unchanged; ctx may be NULL. */
+typedef void (*gpython_evalf_t)(double tm, const double *xn, double *out, void *ctx);
+/* Project with gkyl_proj_on_basis over the full grid, without ghost cells.
+ * Uses the same 1-based range (lower=1, upper=cells) as array_integrate and
+ * array_average. out must have size=product(cells) and
+ * ncomp=nfields*num_basis, with each field's modes stored contiguously.
+ * num_quad is the Gauss quadrature count PER direction; 0 uses poly_order+1.
+ * Bounds must be finite. The callback is used only during this call.
+ * Returns 0 on success, nonzero for invalid dimensions, grid bounds/cells,
+ * quadrature count, field count, callback, or output shape. */
+int gpython_proj_on_basis(
+  int ndim, const double *lower, const double *upper, const int *cells, const gpython_basis *b,
+  int num_quad, int nfields, gpython_evalf_t eval, void *ctx, double tm, gpython_array *out
+);
 
 /* ---- weak (DG) algebra --------------------------------------------------
  * Operands must have ncomp == nfields * num_basis; the per-field loop runs
@@ -207,6 +230,11 @@ int gpython_array_average(
  * donor dims' cell counts in donor order, or ndim_tar=1/cells_tar={1} when
  * every donor direction is evaluated away (Gkeyll always keeps at least one
  * target dimension; there is no true 0-dim basis).
+ * Directions must be distinct and increasing, with coordinates in the same
+ * order. Grid bounds and coordinates must be finite (checked by the caller
+ * before entering this fast-math library); coordinates outside the closed
+ * grid bounds return NULL. Internal faces use the higher-coordinate cell.
+ * A full reduction returns normalized 1D p0 coefficients, sqrt(2)*f.
  *
  * The target basis can differ in TYPE from the donor (e.g. eliminating a
  * gkhybrid velocity direction can yield a plain serendipity target), so its

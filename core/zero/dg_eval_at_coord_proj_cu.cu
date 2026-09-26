@@ -102,7 +102,7 @@ gkyl_dg_eval_at_coord_proj_advance_cu(
   // We assume that if fdo has multiple DG fields (vector components), ftar has the
   // same number of vector components.
   int ncomp = fdo->ncomp / up->num_basis_do;
-  int num_basis_tar = fdo->ncomp / ncomp;
+  int num_basis_tar = ftar->ncomp / ncomp;
 
   // Build full ndim_do-dimensional point for gkyl_rect_grid_find_cell.
   double point[GKYL_MAX_DIM];
