@@ -47,7 +47,34 @@ gks_pos_write_diags_enabled(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_positivity *pos, double tm, int frame
 )
 {
-  // Package metadata.
+  // Document the conf-space z-regions the positivity shift was restricted to
+  // (num_regions == 0 means it was applied everywhere).
+  const struct gkyl_positivity_shift_gyrokinetic_regions *shift_regions =
+    &gks->info.positivity.shift_regions;
+  struct gkyl_msgpack_map_elem mpe_pos[1 + 2 * GKYL_MAX_POSITIVITY_SHIFT_REGIONS];
+  char region_keys[2 * GKYL_MAX_POSITIVITY_SHIFT_REGIONS][64];
+  int mpe_pos_len = 0;
+  mpe_pos[mpe_pos_len++] = (struct gkyl_msgpack_map_elem){
+    .key = "positivity_num_shift_regions",
+    .elem_type = GKYL_MP_INT,
+    .ival = shift_regions->num_regions,
+  };
+  for (int r = 0; r < shift_regions->num_regions; ++r) {
+    snprintf(region_keys[2 * r], sizeof(region_keys[0]), "positivity_shift_region_%d_lower", r);
+    snprintf(region_keys[2 * r + 1], sizeof(region_keys[0]), "positivity_shift_region_%d_upper", r);
+    mpe_pos[mpe_pos_len++] = (struct gkyl_msgpack_map_elem){
+      .key = region_keys[2 * r],
+      .elem_type = GKYL_MP_DOUBLE,
+      .dval = shift_regions->lower[r],
+    };
+    mpe_pos[mpe_pos_len++] = (struct gkyl_msgpack_map_elem){
+      .key = region_keys[2 * r + 1],
+      .elem_type = GKYL_MP_DOUBLE,
+      .dval = shift_regions->upper[r],
+    };
+  }
+
+  // Package metadata using the configuration-space basis for these moments.
   gkyl_msgpack_map_elem_set_double(gks->io_meta_conf_len, gks->io_meta_conf, "time", tm);
   gkyl_msgpack_map_elem_set_uint(gks->io_meta_conf_len, gks->io_meta_conf, "frame", frame);
   struct gkyl_msgpack_map_elem desc[] = {{
@@ -55,9 +82,9 @@ gks_pos_write_diags_enabled(
     .elem_type = GKYL_MP_STRING,
     .cval = "M0M1M2PARM2PERP moments of the change in the distribution by the positivity shift.",
   }};
-  int io_meta_len[] = {gks->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1};
+  int io_meta_len[] = {gks->io_meta_conf_len, mpe_pos_len, app->gk_geom->io_meta_basic_len, 1};
   const struct gkyl_msgpack_map_elem *io_meta[] = {
-    gks->io_meta_conf, app->gk_geom->io_meta_basic, desc
+    gks->io_meta_conf, mpe_pos, app->gk_geom->io_meta_basic, desc
   };
   struct gkyl_msgpack_data *mt =
     gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
@@ -218,7 +245,9 @@ gks_pos_apply_enabled(
 )
 {
   struct timespec wtm = gkyl_wall_clock();
-  // Copy f so we can calculate the moments of delta f later.
+  // Build delta f = f_after - f_before in fbuffer_ptr, so the diagnostic moments
+  // reflect only where the shift actually changed f. We store -f_before now and
+  // add f_after below; outside the shift regions f is unchanged and delta f = 0.
   pos->fbuffer_ptr = fbuffer;
   gkyl_array_set(pos->fbuffer_ptr, -1.0, fout);
 
@@ -226,6 +255,11 @@ gks_pos_apply_enabled(
   gkyl_positivity_shift_gyrokinetic_advance(
     pos->shift_op_gk, &app->local, &gks->local, fout, gks->m0.marr, pos->delta_m0
   );
+
+  // Add the shifted f to finish delta f. If quasineutrality rescaling follows,
+  // it updates this buffer (see gyrokinetic_post_positivity_quasineut) so that
+  // delta f also accounts for the rescale.
+  gkyl_array_accumulate(pos->fbuffer_ptr, 1.0, fout);
 
   app->stat.species_pos_shift_tm += gkyl_time_diff_now_sec(wtm);
 }
@@ -250,7 +284,7 @@ gk_species_positivity_init(
     // Positivity shift updater.
     pos->shift_op_gk = gkyl_positivity_shift_gyrokinetic_new(
       app->basis, gks->basis, gks->grid, gks->info.mass, app->gk_geom, gks->vel_map,
-      &app->local_ext, app->use_gpu
+      &app->local_ext, gks->info.positivity.shift_regions, app->use_gpu
     );
 
     // Methods chosen at runtime.

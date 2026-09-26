@@ -11,6 +11,7 @@
 #include <gkyl_gyrokinetic_comms.h>
 #include <gkyl_mom_type.h>
 #include <gkyl_gk_bc_type.h>
+#include <gkyl_positivity_shift_gyrokinetic.h>
 
 #include <stdbool.h>
 
@@ -368,6 +369,11 @@ struct gkyl_gyrokinetic_positivity {
   bool
     quasineutrality_rescale; // Whether to rescale this species to enforce quasineutrality in the simulation.
   bool write_diagnostics; // Whether to output diagnostics.
+  // Conf-space regions (in z-coordinates, along the field line) to restrict the
+  // shift to. If left zeroed, the shift is applied everywhere. For example, set
+  //   .shift_regions = { .num_regions = 2, .lower = {-1.1, 0.9}, .upper = {-0.9, 1.1} }
+  // to only shift f where z is in [-1.1, -0.9] or [0.9, 1.1].
+  struct gkyl_positivity_shift_gyrokinetic_regions shift_regions;
 };
 
 enum gkyl_gyrokinetic_damping_type {

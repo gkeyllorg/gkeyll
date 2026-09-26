@@ -903,6 +903,11 @@ gyrokinetic_post_positivity_quasineut_enabled(gkyl_gyrokinetic_app *app, struct 
     struct gk_species *gks = &app->species[i];
     struct gk_positivity *pos = &gks->positivity;
     if (pos->quasineut_rescale) {
+      // The shift already finished delta f (= f_shifted - f_before) in fbuffer_ptr.
+      // The rescale changes f again, so swap the shifted f out of delta f and the
+      // rescaled f back in, leaving delta f = f_rescaled - f_before.
+      gkyl_array_accumulate(pos->fbuffer_ptr, -1.0, fout[i]);
+
       gkyl_positivity_shift_gyrokinetic_quasineutrality_scale(
         pos->shift_op_gk, &app->local, &gks->local, pos->delta_m0, pos->delta_m0s_tot,
         pos->delta_m0r_tot, gks->m0.marr, fout[i]
