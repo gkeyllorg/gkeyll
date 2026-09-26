@@ -20,6 +20,9 @@ gkyl_array_reduce(double *out, const struct gkyl_array *arr, enum gkyl_array_op 
       case GKYL_SUM:
         gkyl_array_reduce_sum_cu(out, arr);
         break;
+      default:
+        assert(false);
+        break;
     }
     return;
   }
@@ -64,6 +67,9 @@ gkyl_array_reduce(double *out, const struct gkyl_array *arr, enum gkyl_array_op 
         }
       }
       break;
+    default:
+      assert(false);
+      break;
   }
 }
 
@@ -85,6 +91,12 @@ gkyl_array_reduce_range(
         break;
       case GKYL_SUM:
         gkyl_array_reduce_range_sum_cu(res, arr, range);
+        break;
+      case GKYL_SUM_ABS:
+        gkyl_array_reduce_range_sum_abs_cu(res, arr, range);
+        break;
+      default:
+        assert(false);
         break;
     }
     return;
@@ -134,6 +146,22 @@ gkyl_array_reduce_range(
           res[i] += d[i];
         }
       }
+      break;
+    case GKYL_SUM_ABS:
+      for (long i = 0; i < n; ++i) {
+        res[i] = 0;
+      }
+
+      while (gkyl_range_iter_next(&iter)) {
+        long start = gkyl_range_idx(range, iter.idx);
+        const double *d = gkyl_array_cfetch(arr, start);
+        for (long i = 0; i < n; ++i) {
+          res[i] += fabs(d[i]);
+        }
+      }
+      break;
+    default:
+      assert(false);
       break;
   }
 }

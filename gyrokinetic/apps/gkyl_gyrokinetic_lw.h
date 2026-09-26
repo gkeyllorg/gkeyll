@@ -41,6 +41,13 @@ void gkyl_register_gyrokinetic_position_map_types(lua_State *L);
 void gkyl_register_gyrokinetic_field_types(lua_State *L);
 
 /**
+ * Add time-rate diagnostic flags for gyrokinetic species into Lua interpreter.
+ *
+ * @param L Lua state to use.
+ */
+void gkyl_register_gyrokinetic_time_rate_diagnostic_types(lua_State *L);
+
+/**
  * Add radiation type flags for gyrokinetic species initialization into Lua interpreter.
  *
  * @param L Lua state to use.

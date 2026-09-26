@@ -358,3 +358,56 @@ gkyl_array_reduce_range_sum_cu(
   // device synchronize required because out_d may be host pinned memory
   cudaDeviceSynchronize();
 }
+
+template <unsigned int BLOCKSIZE>
+__global__ void
+arraySumAbs_range_blockRedAtomic_cub(
+  const struct gkyl_array *inp, const struct gkyl_range range, double *out
+)
+{
+  unsigned long linc = blockIdx.x * blockDim.x + threadIdx.x;
+
+  typedef cub::BlockReduce<double, BLOCKSIZE> BlockReduceT;
+  __shared__ typename BlockReduceT::TempStorage temp;
+
+  long nCells = range.volume;
+  size_t nComp = inp->ncomp;
+  int idx[GKYL_MAX_DIM];
+
+  for (size_t k = 0; k < nComp; ++k) {
+    double f = 0;
+    if (linc < nCells) {
+      gkyl_sub_range_inv_idx(&range, linc, idx);
+      long start = gkyl_range_idx(&range, idx);
+      const double *fptr = (const double *)gkyl_array_cfetch(inp, start);
+      f = fabs(fptr[k]);
+    }
+    double bResult = BlockReduceT(temp).Reduce(
+      f,
+#if CUDART_VERSION > 12090
+      ::cuda::std::plus()
+#else
+      cub::Sum()
+#endif
+    );
+    if (threadIdx.x == 0) {
+      atomicAdd(&out[k], bResult);
+    }
+    // All threads must finish using temp before the next component reduction.
+    __syncthreads();
+  }
+}
+
+void
+gkyl_array_reduce_range_sum_abs_cu(
+  double *out_d, const struct gkyl_array *inp, const struct gkyl_range *range
+)
+{
+  gkyl_cu_memset(out_d, 0, inp->ncomp * sizeof(double));
+
+  const int nthreads = GKYL_DEFAULT_NUM_THREADS;
+  int nblocks = gkyl_int_div_up(range->volume, nthreads);
+  arraySumAbs_range_blockRedAtomic_cub<nthreads><<<nblocks, nthreads>>>(inp->on_dev, *range, out_d);
+  // Device synchronize required because out_d may be host pinned memory.
+  cudaDeviceSynchronize();
+}
