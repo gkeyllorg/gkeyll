@@ -1,5 +1,6 @@
 #include <gkyl_array.h>
 #include <gkyl_calc_bmag.h>
+#include <float.h>
 
 // Context for numeric root finding B mapping
 struct opt_Theta_ctx {
@@ -288,11 +289,14 @@ find_B_field_extrema(struct gkyl_position_map *gpm)
   int extrema = 1; // Offset by 1 for the first point
   double *theta_extrema = gkyl_malloc(sizeof(double) * (npts + 1));
   double *bmag_extrema = gkyl_malloc(sizeof(double) * (npts + 1));
+  double bmag_min = DBL_MAX, bmag_max = -DBL_MAX;
 
   for (int i = 0; i <= npts; i++) {
     double theta = theta_lo + i * theta_dxi;
     xp[Z_IDX] = theta;
     gkyl_calc_bmag_global(0.0, xp, &bmag_vals[i], bmag_ctx);
+    bmag_min = fmin(bmag_min, bmag_vals[i]);
+    bmag_max = fmax(bmag_max, bmag_vals[i]);
     dbmag_vals[i] = calc_bmag_global_derivative(theta, gpm);
     if (i == 0) {
       continue;
@@ -325,6 +329,19 @@ find_B_field_extrema(struct gkyl_position_map *gpm)
     }
   }
 
+  // A field constant to roundoff has no isolated extrema. Keep only the
+  // domain endpoints with equal B so refinement gives dB_cell = 0 and the
+  // numeric map uses its identity branch. Use the map's relative tolerance.
+  double bscale = fmax(fabs(bmag_min), fabs(bmag_max));
+  if (bmag_max - bmag_min <= 64.0 * DBL_EPSILON * bscale) {
+    constB_ctx->num_extrema = 2;
+    constB_ctx->theta_extrema[0] = theta_lo;
+    constB_ctx->theta_extrema[1] = theta_hi;
+    constB_ctx->bmag_extrema[0] = constB_ctx->bmag_extrema[1] = bmag_vals[0];
+    constB_ctx->min_or_max[0] = constB_ctx->min_or_max[1] = false;
+    goto cleanup;
+  }
+
   // Set final extrema after the loop. MR April 22 2025
   theta_extrema[0] = constB_ctx->theta_min;
   xp[Z_IDX] = constB_ctx->theta_min;
@@ -351,6 +368,7 @@ find_B_field_extrema(struct gkyl_position_map *gpm)
     gpm->constB_ctx->min_or_max[0] = 0;
   } // Minimum
   else {
+    gpm->constB_ctx->min_or_max[0] = false;
     printf("Error: Extrema is not an extrema. Position_map optimization failed\n");
   }
 
@@ -363,6 +381,7 @@ find_B_field_extrema(struct gkyl_position_map *gpm)
       gpm->constB_ctx->min_or_max[i] = 0;
     } // Minimum
     else {
+      gpm->constB_ctx->min_or_max[i] = false;
       printf("Error: Extrema is not an extrema. Position_map optimization failed\n");
     }
   }
@@ -375,10 +394,11 @@ find_B_field_extrema(struct gkyl_position_map *gpm)
     gpm->constB_ctx->min_or_max[extrema - 1] = 0;
   } // Minimum
   else {
+    gpm->constB_ctx->min_or_max[extrema - 1] = false;
     printf("Error: Extrema is not an extrema. Position_map optimization failed\n");
   }
 
-  // Free mallocs
+cleanup:
   gkyl_free(bmag_vals);
   gkyl_free(dbmag_vals);
   gkyl_free(theta_extrema);
@@ -538,6 +558,18 @@ position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ct
     return;
   }
 
+  // A constant field has no preferred redistribution. Also preserve the
+  // identity exactly when the requested mapping strength is zero.
+  double bscale = 0.0;
+  for (int i = 0; i < num_extrema; ++i) {
+    bscale = fmax(bscale, fabs(gpm->constB_ctx->bmag_extrema[i]));
+  }
+  if (gpm->constB_ctx->map_strength == 0.0 ||
+      dB_cell * num_boundaries <= 64.0 * DBL_EPSILON * bscale) {
+    fout[0] = theta;
+    return;
+  }
+
   // Determine which region theta is in
   // Regions start at 0 and count up to num_extrema-1
   // Initial guess is not accurate because the theta_extrema are not Theta_extrema
@@ -556,6 +588,7 @@ position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ct
   struct opt_Theta_ctx ridders_ctx = {.gpm = gpm, .bmag_ctx = gpm->bmag_ctx};
   dB_target = dB_cell * it;
 
+  double Theta;
   bool outside_region = true; // Asuume that we identified the region incorrectly
   while (outside_region) {
     dB_global_lower = 0.0;
@@ -577,15 +610,13 @@ position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ct
     if (interval_lower_eval * interval_upper_eval < 0) {
       // If the interval changes sign, then there is a zero in between. We can find the root and are in the correct region
       outside_region = false;
-    } else if (fabs(interval_lower_eval) < 1e-10 || fabs(interval_upper_eval) < 1e-10) {
+    } else if (fabs(interval_lower_eval) < 16.0 * DBL_EPSILON * bscale ||
+               fabs(interval_upper_eval) < 16.0 * DBL_EPSILON * bscale) {
       // If either evaluation is very close to zero, we're at or very near the solution
       // Just use the corresponding endpoint
-      if (fabs(interval_lower_eval) < fabs(interval_upper_eval)) {
-        fout[0] = interval_lower;
-      } else {
-        fout[0] = interval_upper;
-      }
-      return;
+      Theta = fabs(interval_lower_eval) < fabs(interval_upper_eval) ? interval_lower :
+                                                                      interval_upper;
+      goto map_value;
     } else {
       // It means we are in the wrong region
       if (interval_lower_eval > 0.0 && interval_upper_eval > 0.0) {
@@ -606,12 +637,12 @@ position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ct
         }
       } else if (fabs(interval_lower_eval) < 1e-14) {
         // Lower evaluation is very close to zero
-        fout[0] = interval_lower;
-        return;
+        Theta = interval_lower;
+        goto map_value;
       } else if (fabs(interval_upper_eval) < 1e-14) {
         // Upper evaluation is very close to zero
-        fout[0] = interval_upper;
-        return;
+        Theta = interval_upper;
+        goto map_value;
       } else {
         fprintf(
           stderr,
@@ -626,20 +657,27 @@ position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ct
 
   struct gkyl_qr_res res = gkyl_ridders(
     position_map_numeric_optimization_function, &ridders_ctx, interval_lower, interval_upper,
-    interval_lower_eval, interval_upper_eval, 10, 1e-6
+    interval_lower_eval, interval_upper_eval, 100, 1e-12
   );
-  double Theta = res.res;
+  Theta = res.res;
+map_value:
   fout[0] = Theta * gpm->constB_ctx->map_strength + theta * (1 - gpm->constB_ctx->map_strength);
 
   bool enable_limits_min_B = gpm->constB_ctx->enable_maximum_slope_limits_at_min_B;
   bool enable_limits_max_B = gpm->constB_ctx->enable_maximum_slope_limits_at_max_B;
 
   if (enable_limits_min_B || enable_limits_max_B) {
-    // Set a minimum cell size on the edges
-    // Assume that at inflection points, Theta = theta. This should be true
-    double Theta_left = interval_lower;
-    double Theta_right = interval_upper;
-    double theta_middle = 0.5 * (interval_lower + interval_upper);
+    // An extremum generally moves under the constant-dB map. Anchor the
+    // limiting lines at its computational preimage, not its physical
+    // coordinate, or the map jumps when root finding changes regions.
+    double total_change = dB_cell * num_boundaries;
+    double theta_left = theta_lo + theta_range * dB_global_lower / total_change;
+    double region_change = fabs(gpm->constB_ctx->bmag_extrema[region + 1] - B_lower_region);
+    double theta_right = theta_lo + theta_range * (dB_global_lower + region_change) / total_change;
+    double strength = gpm->constB_ctx->map_strength;
+    double Theta_left = strength * interval_lower + (1.0 - strength) * theta_left;
+    double Theta_right = strength * interval_upper + (1.0 - strength) * theta_right;
+    double theta_middle = 0.5 * (theta_left + theta_right);
 
     bool left_is_maximum = gpm->constB_ctx->min_or_max[region];
     bool right_is_maximum = gpm->constB_ctx->min_or_max[region + 1];
@@ -656,15 +694,15 @@ position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ct
 
     double right_straight_line_value, left_straight_line_value;
     if (left_is_maximum) {
-      left_straight_line_value = max_slope_max_B * theta + (1 - max_slope_max_B) * Theta_left;
+      left_straight_line_value = Theta_left + max_slope_max_B * (theta - theta_left);
     } else {
-      left_straight_line_value = max_slope_min_B * theta + (1 - max_slope_min_B) * Theta_left;
+      left_straight_line_value = Theta_left + max_slope_min_B * (theta - theta_left);
     }
 
     if (right_is_maximum) {
-      right_straight_line_value = max_slope_max_B * theta + (1 - max_slope_max_B) * Theta_right;
+      right_straight_line_value = Theta_right + max_slope_max_B * (theta - theta_right);
     } else {
-      right_straight_line_value = max_slope_min_B * theta + (1 - max_slope_min_B) * Theta_right;
+      right_straight_line_value = Theta_right + max_slope_min_B * (theta - theta_right);
     }
 
     if (fout[0] < right_straight_line_value && ((right_is_maximum && enable_limits_max_B) ||
@@ -781,12 +819,11 @@ position_map_xpt_compression(double t, const double *xn, double *fout, void *ctx
 {
   struct gkyl_position_map_xpt_ctx *app = ctx;
   double uniform_coordinate = xn[0];
-  double F = 1.0 / (1.0 - app->compression_factor);
-  double A = 1.0 / F;
   double zcut = app->zcut;
   double zshift = uniform_coordinate - app->zcenter;
   double nonuniform_coordinate =
-    A * (sin(M_PI * zshift / zcut) * zcut / M_PI + F * zshift) + app->zcenter;
+    zshift + (1.0 - app->compression_factor) * sin(M_PI * zshift / zcut) * zcut / M_PI +
+    app->zcenter;
   fout[0] = nonuniform_coordinate;
 }
 
@@ -804,12 +841,11 @@ position_map_sep_compression(double t, const double *xn, double *fout, void *ctx
 {
   struct gkyl_position_map_xpt_ctx *app = ctx;
   double uniform_coordinate = xn[0];
-  double F = 1.0 / (1.0 - app->compression_factor);
-  double A = 1.0 / F;
   double w = app->w;
   double xshift = uniform_coordinate - app->psisep;
   double nonuniform_coordinate =
-    A * (-sin(M_PI * xshift / w) * w / M_PI + F * xshift) + app->psisep;
+    xshift - (1.0 - app->radial_compression_factor) * sin(M_PI * xshift / w) * w / M_PI +
+    app->psisep;
   fout[0] = nonuniform_coordinate;
 }
 
@@ -827,11 +863,9 @@ position_map_deriv_xpt_compression(double t, const double *xn, double *fout, voi
 {
   struct gkyl_position_map_xpt_ctx *app = ctx;
   double uniform_coordinate = xn[0];
-  double F = 1.0 / (1.0 - app->compression_factor);
-  double A = 1.0 / F;
   double zcut = app->zcut;
   double zshift = uniform_coordinate - app->zcenter;
-  double deriv = A * (cos(M_PI * zshift / zcut) + F);
+  double deriv = 1.0 + (1.0 - app->compression_factor) * cos(M_PI * zshift / zcut);
   fout[0] = deriv;
 }
 
@@ -849,10 +883,8 @@ position_map_deriv_sep_compression(double t, const double *xn, double *fout, voi
 {
   struct gkyl_position_map_xpt_ctx *app = ctx;
   double uniform_coordinate = xn[0];
-  double F = 1.0 / (1.0 - app->compression_factor);
-  double A = 1.0 / F;
   double w = app->w;
   double xshift = uniform_coordinate - app->psisep;
-  double deriv = A * (-cos(M_PI * xshift / w) + F);
+  double deriv = 1.0 - (1.0 - app->radial_compression_factor) * cos(M_PI * xshift / w);
   fout[0] = deriv;
 }

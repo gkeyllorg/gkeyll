@@ -865,6 +865,9 @@ gkyl_gyrokinetic_app_omegaH_init(gkyl_gyrokinetic_app *app)
     }
     app->omegaH_gf *= 1.0 / pow(sqrt(2.0), app->cdim);
 
+    double omegaH_gf_local = app->omegaH_gf;
+    gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &omegaH_gf_local, &app->omegaH_gf);
+
     if (app->use_gpu) {
       gkyl_cu_free(omegaH_gf_red);
     } else {

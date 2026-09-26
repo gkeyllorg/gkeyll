@@ -2320,7 +2320,7 @@ gkyl_calc_metric_advance_bcart(
     }
   }
   gkyl_nodal_ops_n2m(
-    up->n2m, up->cbasis, up->grid, nrange, update_range, 3, bcartFld_nodal, bcartFld, false
+    up->n2m, up->cbasis, up->grid, nrange, update_range, 3, bcartFld_nodal, bcartFld, true
   );
   gkyl_array_release(bcartFld_nodal);
   gkyl_array_release(biFld_nodal);
