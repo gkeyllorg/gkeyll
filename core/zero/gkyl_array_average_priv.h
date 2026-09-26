@@ -37,7 +37,7 @@ GKYL_CU_D static const dim_array_average_kern_list gkyl_array_average_ker_list[]
   {
     // kernel list for 2x integration
     .list =
-      {{gkyl_array_average_2x_ser_p1_avgx, gkyl_array_average_2x_ser_p2_avgy},
+      {{gkyl_array_average_2x_ser_p1_avgx, gkyl_array_average_2x_ser_p2_avgx},
        {gkyl_array_average_2x_ser_p1_avgy, gkyl_array_average_2x_ser_p2_avgy},
        {gkyl_array_average_2x_ser_p1_avgxy, gkyl_array_average_2x_ser_p2_avgxy},
        {NULL, NULL},
