@@ -469,6 +469,7 @@ struct gkyl_gyrokinetic_species {
     integrated_diag_moments[12]; // List of integrated diagnostic moments.
   bool time_rate_diagnostics; // Whether to ouput df/dt diagnostics.
   bool write_omega_cfl; // Whether to ouput dt diagnostic for the CFL constraint.
+  bool omegaH_dt_diagnostic; // Whether to output the omega_H stable time step as a dynvector.
 
   struct gkyl_gyrokinetic_collisionless collisionless; // Collisionless terms.
 

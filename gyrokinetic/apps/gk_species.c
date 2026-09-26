@@ -537,6 +537,15 @@ gk_species_calc_integrated_mom_dynamic(gkyl_gyrokinetic_app *app, struct gk_spec
   }
   gkyl_dynvec_append(gks->integ_diag, tm, avals_global);
 
+  if (gks->info.omegaH_dt_diagnostic) {
+    double omegaH_dt_local = gk_species_omegaH_dt(app, gks, gks->f);
+    double omegaH_dt_global = DBL_MAX;
+    gkyl_comm_allreduce_host(
+      app->comm, GKYL_DOUBLE, GKYL_MIN, 1, &omegaH_dt_local, &omegaH_dt_global
+    );
+    gkyl_dynvec_append(gks->omegaH_dt, tm, &omegaH_dt_global);
+  }
+
   if (gks->info.time_rate_diagnostics) {
     // Reduce (sum) over whole domain, append to diagnostics.
     gkyl_array_accumulate(gks->fdot_mom_new, -1.0, gks->fdot_mom_old);
@@ -598,6 +607,37 @@ gk_species_write_integrated_mom_dynamic(gkyl_gyrokinetic_app *app, struct gk_spe
   }
   gkyl_dynvec_clear(gks->integ_diag);
   app->stat.n_diag_io += 1;
+
+  if (gks->info.omegaH_dt_diagnostic) {
+    if (rank == 0) {
+      const char *fmt = "%s-%s_omegaH_dt.gkyl";
+      int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name);
+      char fileNm[sz + 1];
+      snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name);
+
+      if (gks->is_first_omegaH_dt_write_call) {
+        struct gkyl_msgpack_map_elem io_meta_omegaH_dt[] = {{
+          .key = "Description",
+          .elem_type = GKYL_MP_STRING,
+          .cval = "Stable time step for the omega_H mode for this charged species.",
+        }};
+        int io_meta_len[] = {gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
+        const struct gkyl_msgpack_map_elem *io_meta[] = {
+          gks->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_omegaH_dt
+        };
+        struct gkyl_msgpack_data *mt =
+          gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
+
+        gkyl_dynvec_write_wmeta(gks->omegaH_dt, fileNm, mt);
+        gks->is_first_omegaH_dt_write_call = false;
+        gkyl_msgpack_data_release(mt);
+      } else {
+        gkyl_dynvec_awrite(gks->omegaH_dt, fileNm);
+      }
+    }
+    gkyl_dynvec_clear(gks->omegaH_dt);
+    app->stat.n_diag_io += 1;
+  }
 
   if (gks->info.time_rate_diagnostics) {
     if (rank == 0) {
@@ -771,6 +811,9 @@ gk_species_release_dynamic(const gkyl_gyrokinetic_app *app, const struct gk_spec
 
   // Release integrated diag memory.
   gkyl_dynvec_release(s->integ_diag);
+  if (s->info.omegaH_dt_diagnostic) {
+    gkyl_dynvec_release(s->omegaH_dt);
+  }
   if (app->use_gpu) {
     gkyl_cu_free(s->red_integ_diag);
     gkyl_cu_free(s->red_integ_diag_global);
@@ -854,6 +897,11 @@ gk_species_init_dynamic(
   // Allocate dynamic-vector to store all-reduced integrated moments.
   gks->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, gks->integ_moms.num_mom);
   gks->is_first_integ_write_call = true;
+
+  if (gks->info.omegaH_dt_diagnostic) {
+    gks->omegaH_dt = gkyl_dynvec_new(GKYL_DOUBLE, 1);
+    gks->is_first_omegaH_dt_write_call = true;
+  }
 
   // Allocate dynamic-vector to store Delta f integrated moments.
   if (gks->info.time_rate_diagnostics) {
