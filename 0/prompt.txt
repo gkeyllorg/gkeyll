@@ -1,0 +1,13 @@
+These three regression tests are crashing. Replicate, diagnose, and fix them.   
+
+gyrokinetic/gyrokinetic/creg/rt_gk_lapd_cart_3x2v_p1 [crash]
+  gyrokinetic/gyrokinetic/creg/rt_gk_lapd_cyl_3x2v_p1 [crash]
+  gyrokinetic/gyrokinetic/creg/rt_gk_lapd_cyl_3x2v_p1_nonuniformr [crash]
+
+---
+
+These three regression tests are crashing. Replicate, diagnose, and fix them.   
+
+gyrokinetic/gyrokinetic/creg/rt_gk_lapd_cart_3x2v_p1 [crash]
+  gyrokinetic/gyrokinetic/creg/rt_gk_lapd_cyl_3x2v_p1 [crash]
+  gyrokinetic/gyrokinetic/creg/rt_gk_lapd_cyl_3x2v_p1_nonuniformr [crash]
