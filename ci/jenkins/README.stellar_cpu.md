@@ -121,9 +121,12 @@ uses it only against loopback Jenkins and does not disable CSRF protection.
 
 ### Create the GitHub credential
 
-Create a classic GitHub PAT with only the `repo:status` scope and a short
-expiration. Its owner must have push access to `gkeyllorg/gkeyll`, which GitHub
-requires to publish commit statuses. In Jenkins, add it as a **Username with
+Create a classic GitHub PAT with only the `public_repo` scope and a short
+expiration. That scope covers commit statuses and pull-request or commit
+comments on the public repository; a fine-grained token needs **Commit
+statuses: write**, **Pull requests: write**, and **Contents: write** (commit
+comments) on `gkeyllorg/gkeyll` instead. Its owner must have push access to
+`gkeyllorg/gkeyll`, which GitHub requires to publish commit statuses. In Jenkins, add it as a **Username with
 password** credential, using the owner's GitHub username and the PAT. Give it
 an ID such as `gkeyll-github-stellar-cpu`. Organization membership is not
 required.
@@ -154,6 +157,7 @@ set the following values. Paste an expanded scratch path, not a literal `$USER`.
 | `STELLAR_CPU_REGRESSION_JOBS` | Optional concurrent C test runs; default `4` |
 | `STELLAR_CPU_REGRESSION_TEST_TIMEOUT` | Optional per-test limit in seconds; default `900` |
 | `STELLAR_CPU_NODE_LABEL` | Optional node label; default `stellar_cpu` |
+| `GKEYLL_CI_TRUSTED_REF` | Optional branch or full SHA to fetch `github_report.py` from; default `main`. Set it only while staging a CI change |
 
 Do not set a broad global `PATH` to an interactive shell configuration. The
 Pipeline initializes Stellar modules for each build and Slurm job. Its

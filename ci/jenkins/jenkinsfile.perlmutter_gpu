@@ -196,6 +196,39 @@ def publishGitHubCommitStatus(String statusCredentialsId, String commit, String 
     }
 }
 
+def trustedReportScript() {
+    // The report tool must come from reviewed code, never from the candidate
+    // checkout, because 'publish' runs with the GitHub token bound.
+    // GKEYLL_CI_TRUSTED_REF exists so a reviewed CI branch can be staged
+    // before merge; production controllers leave it unset (main).
+    def ref = validateRefSelector('GKEYLL_CI_TRUSTED_REF', env.GKEYLL_CI_TRUSTED_REF?.trim() ?: 'main')
+    withEnv(["CI_TRUSTED_REPORT_REF=${ref}"]) {
+        sh '''#!/bin/bash -l
+            set -euo pipefail
+            git fetch --quiet --depth 1 https://github.com/gkeyllorg/gkeyll.git "$CI_TRUSTED_REPORT_REF"
+            git show FETCH_HEAD:ci/jenkins/github_report.py > _trusted_github_report.py
+        '''
+    }
+    return '_trusted_github_report.py'
+}
+
+def publishGitHubReport(String statusCredentialsId, String commit, String state, String candidatePr) {
+    // Builds ci-report.md from the workspace summaries and posts it as one
+    // pull-request comment (or commit comment) that later runs update in place.
+    def script = trustedReportScript()
+    withEnv(["CI_REPORT_CONTEXT=continuous-integration/jenkins/perlmutter_gpu", "CI_REPORT_PLATFORM=perlmutter_gpu", "CI_REPORT_RESULT=${state}",
+             "CI_REPORT_PR=${candidatePr ?: ''}", "CI_REPORT_COMMIT=${commit}"]) {
+        sh "python3 ${script} build --platform \"\$CI_REPORT_PLATFORM\" --context \"\$CI_REPORT_CONTEXT\" --result \"\$CI_REPORT_RESULT\" --pr \"\$CI_REPORT_PR\" --output ci-report.md"
+        withCredentials([usernamePassword(
+            credentialsId: statusCredentialsId,
+            usernameVariable: 'GITHUB_USERNAME',
+            passwordVariable: 'GITHUB_TOKEN'
+        )]) {
+            sh "python3 ${script} publish --report ci-report.md --commit \"\$CI_REPORT_COMMIT\" --context \"\$CI_REPORT_CONTEXT\" --pr \"\$CI_REPORT_PR\""
+        }
+    }
+}
+
 def submitSlurmJob(String kind, String payload, String timeLimit, List<String> extraExports = [], String tasks = '1', String cpus = '32', String gpus = '1') {
     def qos = (env.PERLMUTTER_GPU_SLURM_QOS ?: 'shared').trim()
     def account = requireValue('PERLMUTTER_GPU_SLURM_ACCOUNT', env.PERLMUTTER_GPU_SLURM_ACCOUNT)
@@ -747,8 +780,18 @@ node(nodeLabel) {
                 }
                 try {
                     if (terminalStatus != 'success') writeCiFailureSummary(terminalStatus, env.CI_FAILURE_STAGE, failureMessage ?: terminalDescription)
+                    // Best effort: a GitHub outage must not turn a passing build red.
+                    // The commit status below remains the authoritative signal.
+                    if (candidateCommit) {
+                        try {
+                            publishGitHubReport(statusCredentialsId, candidateCommit, terminalStatus, candidatePr ?: '')
+                        } catch (err) {
+                            echo "WARNING: could not publish the GitHub CI report: ${err}"
+                            terminalDescription = "${terminalDescription} (report not posted)".take(140)
+                        }
+                    }
                     archiveArtifacts allowEmptyArchive: true,
-                        artifacts: 'ci-selection.txt,ci-candidate-commit.txt,ci-baseline-commit.txt,*-c-compile-seconds.txt,ci-timing-summary.txt,ci-regression-summary.txt,ci-failure-summary.txt,slurm-*.out,slurm-*-job-id.txt,slurm-*-job-status.txt,build/**/*.log,gkylsoft/gkeyll-results/**/regressiondb,gkylsoft/gkeyll-results/**/_rr_failures.txt,_baseline/gkylsoft/gkeyll-results/**/regressiondb,_baseline/gkylsoft/gkeyll-results/**/_rr_failures.txt'
+                        artifacts: 'ci-selection.txt,ci-candidate-commit.txt,ci-baseline-commit.txt,ci-report.md,*-c-compile-seconds.txt,ci-timing-summary.txt,ci-regression-summary.txt,ci-failure-summary.txt,slurm-*.out,slurm-*-job-id.txt,slurm-*-job-status.txt,build/**/*.log,gkylsoft/gkeyll-results/**/regressiondb,gkylsoft/gkeyll-results/**/_rr_failures.txt,_baseline/gkylsoft/gkeyll-results/**/regressiondb,_baseline/gkylsoft/gkeyll-results/**/_rr_failures.txt'
                 } catch (err) {
                     terminalStatus = 'error'
                     terminalDescription = 'Perlmutter GPU CI artifact archival failed.'

@@ -106,6 +106,14 @@ if summaryFile then
    summary:write(string.format(
       "c_regression_passed=%d\nc_regression_acknowledged=%d\nc_regression_unacknowledged=%d\n",
       npass, #ackedHits, #unacked))
+   -- One line per test so the GitHub report (ci/jenkins/github_report.py)
+   -- can list failures without opening the SQLite database.
+   for _, u in ipairs(unacked) do
+      summary:write(string.format("c_regression_failure=%s:%s\n", u.key, u.status))
+   end
+   for _, key in ipairs(ackedHits) do
+      summary:write(string.format("c_regression_acknowledged_test=%s\n", key))
+   end
    summary:close()
 end
 
