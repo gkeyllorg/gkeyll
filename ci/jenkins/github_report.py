@@ -65,6 +65,16 @@ def short(sha):
     return sha[:7] if re.fullmatch(r"[0-9a-fA-F]{40}", sha or "") else (sha or "?")
 
 
+def describe(selector, commit):
+    """'main @ `abc1234`', or just the short SHA when the selector is a SHA,
+    or 'main (not reached)' when the run ended before that tree was built."""
+    if not commit:
+        return "{} (not reached)".format(selector)
+    if re.fullmatch(r"[0-9a-fA-F]{40}", selector or ""):
+        return code(short(commit))
+    return "{} @ {}".format(selector, code(short(commit)))
+
+
 def code(text):
     return "`" + text.replace("`", "'") + "`"
 
@@ -98,12 +108,28 @@ def regression_section(title, summary_file):
     unacked = first(values, "c_regression_unacknowledged", "0")
     lines = ["**{}:** {} passed, {} acknowledged, {} unacknowledged".format(
         title, passed, acked, unacked)]
+    layers = [entry.split(":") for entry in values.get("c_regression_layer", [])]
+    layers = [row for row in layers if len(row) == 4]
+    if layers:
+        lines += ["", "| Layer | Passed | Acknowledged | Failed |", "| --- | ---: | ---: | ---: |"]
+        for layer, p, a, f in layers:
+            mark = " :x:" if f != "0" else ""
+            lines.append("| {} | {} | {} | {}{} |".format(layer, p, a, f, mark))
     failures = values.get("c_regression_failure", [])
     if failures:
+        details = {}
+        for entry in values.get("c_regression_failure_detail", []):
+            name, _, line = entry.partition("|")
+            details.setdefault(name, []).append(line)
         lines += ["", "| Failing test | Status |", "| --- | --- |"]
         for entry in failures:
             name, _, status = entry.rpartition(":")
             lines.append("| {} | {} |".format(code(name or entry), status or "fail"))
+        for entry in failures:
+            name = entry.rpartition(":")[0] or entry
+            if details.get(name):
+                lines += ["", "<details><summary>{}: files that differ from the baseline</summary>".format(code(name)),
+                          "", fenced("\n".join(details[name])), "", "</details>"]
     acked_tests = values.get("c_regression_acknowledged_test", [])
     if acked_tests:
         lines += ["", "Acknowledged diffs (listed in expected_regression_diffs.txt): "
@@ -111,9 +137,136 @@ def regression_section(title, summary_file):
     return "\n".join(lines)
 
 
+ERROR_LINE = re.compile(
+    r"\[ FAILED \]|\.\.\. failed$|^FAILED:|^Failed tests:|^FAIL |error:|undefined reference"
+    r"|^make(\[\d+\])?: \*\*\*|[Ss]egmentation fault|Abort trap|Bus error|[Tt]imed? ?out")
+
+
+def extract_errors(log_path, max_lines=40, tail_lines=15):
+    """Pull the informative lines out of a build/test log: matches of ERROR_LINE
+    plus the indented lines that follow a 'Failed tests:' summary."""
+    lines = read_text(log_path).splitlines()
+    picked, in_failed_block = [], False
+    for number, line in enumerate(lines, 1):
+        if in_failed_block and line.startswith("  "):
+            picked.append("{}: {}".format(number, line))
+            continue
+        in_failed_block = line.startswith("Failed tests:")
+        if ERROR_LINE.search(line):
+            picked.append("{}: {}".format(number, line))
+        if len(picked) >= max_lines:
+            picked.append("... [more matches omitted]")
+            break
+    out = ["--- error lines ---"] + (picked or ["(no recognised error lines)"])
+    out += ["--- last {} lines ---".format(tail_lines)] + lines[-tail_lines:]
+    return "\n".join(out)
+
+
+LAYER_ORDER = ["core", "moments", "vlasov", "gyrokinetic", "pkpm"]
+
+
+def unit_results(results_file):
+    """Parse 'PASS <layer>: <test>' / 'FAIL <layer>: <test>' lines into
+    {layer: {"passed": n, "failed": [test, ...]}}, or None if absent."""
+    text = read_text(results_file)
+    if not text:
+        return None
+    layers = {}
+    for line in text.splitlines():
+        match = re.match(r"^(PASS|FAIL) (\S+): (\S+)", line)
+        if not match:
+            continue
+        entry = layers.setdefault(match.group(2), {"passed": 0, "failed": []})
+        if match.group(1) == "PASS":
+            entry["passed"] += 1
+        else:
+            entry["failed"].append(match.group(3))
+    return layers
+
+
+def assertion_lines(test, log_file, limit=8):
+    """Lines the unit-test framework printed for a failing test: the
+    '[ FAILED ]' check names and 'file.c:NN: Check ... failed' lines."""
+    picked, want = [], test + ".c:"
+    lines = read_text(log_file).splitlines()
+    for index, line in enumerate(lines):
+        if want in line:
+            if index and "[ FAILED ]" in lines[index - 1] and (not picked or picked[-1] != lines[index - 1].strip()):
+                picked.append(lines[index - 1].strip())
+            picked.append(line.strip())
+        if len(picked) >= limit:
+            picked.append("...")
+            break
+    return picked
+
+
+def unit_section(label, results_file, log_file):
+    layers = unit_results(results_file)
+    if layers is None:
+        return "", 0, []
+    order = LAYER_ORDER + sorted(set(layers) - set(LAYER_ORDER))
+    rows, nfail, failing = [], 0, []
+    for layer in order:
+        if layer not in layers:
+            continue
+        entry = layers[layer]
+        failed = entry["failed"]
+        nfail += len(failed)
+        failing += ["{}: {}".format(layer, t) for t in failed]
+        mark = " :x:" if failed else ""
+        rows.append("| {} | {} | {}{} | {} |".format(
+            layer, entry["passed"], len(failed), mark, ", ".join(code(t) for t in failed)))
+    total = sum(e["passed"] for e in layers.values())
+    head = "**{} unit tests:** {} passed, {} failed".format(label, total, nfail)
+    table = ["| Layer | Passed | Failed | Failing tests |", "| --- | ---: | ---: | --- |"] + rows
+    if nfail:
+        body = [head, ""] + table
+    else:  # all green: keep the per-layer table one click away
+        body = ["<details><summary>{}</summary>".format(head), ""] + table + ["", "</details>"]
+    for layer in order:
+        for test in layers.get(layer, {}).get("failed", []):
+            detail = assertion_lines(test, log_file)
+            if detail:
+                body += ["", "<details><summary>{}: failed checks</summary>".format(code(test)),
+                         "", fenced("\n".join(detail)), "", "</details>"]
+    return "\n".join(body), nfail, failing
+
+
+def status_description(result, stage, unit_fail, unit_failing, regression_files):
+    """One line for the GitHub status: name what failed, or what passed."""
+    if result == "success":
+        return "Passed: unit tests and C regressions."
+    if result == "error":
+        return "Aborted or errored at stage: {}.".format(stage)
+    if unit_fail:
+        by_layer = {}
+        for item in unit_failing:
+            by_layer[item.split(":")[0]] = by_layer.get(item.split(":")[0], 0) + 1
+        return "Failed: unit tests ({}).".format(
+            ", ".join("{} {}".format(l, n) for l, n in by_layer.items()))
+    failing = []
+    for path in regression_files:
+        failing += [e.rpartition(":")[0] for e in read_kv(path).get("c_regression_failure", [])]
+    if failing:
+        by_layer = {}
+        for name in failing:
+            by_layer[name.split("/")[0]] = by_layer.get(name.split("/")[0], 0) + 1
+        return "Failed: C regressions ({}).".format(
+            ", ".join("{} {}".format(l, n) for l, n in by_layer.items()))
+    return "Failed at stage: {}.".format(stage)
+
+
 def failure_detail():
     detail = read_text("ci-failure-detail.txt").strip()
     if detail:
+        # The pipeline records which log the failed command wrote; re-scan it
+        # here so the extraction heuristics live in one testable place.
+        match = re.search(r"^Full log: (\S+)", detail, re.M)
+        command = re.search(r"^Command: (.*)$", detail, re.M)
+        if match and os.path.isfile(match.group(1)):
+            head = ["Command: " + command.group(1)] if command else []
+            head.append("Full log: {} (archived with the build)".format(match.group(1)))
+            return "\n".join(head) + "\n" + extract_errors(match.group(1))
         return detail
     # HPC pipelines: fall back to the most recent Slurm output, if any.
     outs = [p for p in os.listdir(".") if p.startswith("slurm-") and p.endswith(".out")]
@@ -151,8 +304,8 @@ def build_report(args):
 
     candidate_sel = first(selection, "candidate_selector", "PR #{}".format(args.pr) if args.pr else "?")
     baseline_sel = first(selection, "baseline_selector", "?")
-    meta = ["**Candidate:** {} @ {}".format(candidate_sel, code(short(candidate))),
-            "**Baseline:** {} @ {}".format(baseline_sel, code(short(baseline)))]
+    meta = ["**Candidate:** " + describe(candidate_sel, candidate),
+            "**Baseline:** " + describe(baseline_sel, baseline)]
     # No controller URL: every controller is loopback-only, so a link would be
     # dead for everyone but the machine owner. The build number is what that
     # owner needs to fetch artifacts (see the footer).
@@ -161,12 +314,25 @@ def build_report(args):
         code(args.platform), build_number, code(node), finished))
     parts.append("  \n".join(meta))
 
+    stage = first(failure, "stage", "unknown")
     if args.result != "success":
-        stage = first(failure, "stage", "unknown")
-        message = first(failure, "message", "")
+        message = re.sub(r"^(?:[A-Za-z_$][\w$]*\.)+[A-Z]\w*(?:Exception|Error): ", "", first(failure, "message", ""))
         parts.append("**Failed at stage:** {}{}".format(stage, " — " + message if message else ""))
+
+    unit_fail, unit_failing = 0, []
+    for label, results_file, log_file in (("Candidate", "candidate-unit-results.txt", "candidate-unit-test.log"),
+                                          ("Baseline", "baseline-unit-results.txt", "baseline-unit-test.log")):
+        section, nfail, failing = unit_section(label, results_file, log_file)
+        if section:
+            parts.append(section)
+            unit_fail += nfail
+            unit_failing += failing
+
+    if args.result != "success":
         detail = failure_detail()
-        if detail:
+        # With a structured unit-test table above, the raw log excerpt is only
+        # needed when the failure was something else (compile error, crash...).
+        if detail and not unit_fail:
             parts.append("<details><summary>Failure detail</summary>\n\n"
                          + fenced(truncate(detail, DETAIL_LIMIT)) + "\n\n</details>")
 
@@ -188,6 +354,11 @@ def build_report(args):
     with open(args.output, "w", encoding="utf-8") as f:
         f.write(report)
     print("Wrote {} ({} characters)".format(args.output, len(report)))
+    line = status_description(args.result, stage, unit_fail, unit_failing,
+                              ["ci-regression-summary.txt", "ci-parallel-regression-summary.txt"])
+    with open("ci-status-description.txt", "w", encoding="utf-8") as f:
+        f.write(line + "\n")
+    print("Status description: " + line)
 
 
 # ---- publish ---------------------------------------------------------------

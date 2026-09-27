@@ -130,7 +130,12 @@ ci_print_regression_failures() {
         if output="$("$queryrdb" queryrdb --db "$temporary" query --id 1 --fail-only 2>/dev/null)"; then
             while IFS= read -r record; do
                 if [[ "$record" =~ ^[[:space:]]*[0-9]+[[:space:]]*:[[:space:]]+[^[:space:]]+[[:space:]]+(.+)[[:space:]]+(fail|timeout|compile_fail|no_output|crash)[[:space:]] ]]; then
-                    failures+=("$layer/${BASH_REMATCH[1]} [${BASH_REMATCH[2]}]")
+                    # Names are stored layer-qualified already; do not double the prefix.
+                    if [[ "${BASH_REMATCH[1]}" == "$layer/"* ]]; then
+                        failures+=("${BASH_REMATCH[1]} [${BASH_REMATCH[2]}]")
+                    else
+                        failures+=("$layer/${BASH_REMATCH[1]} [${BASH_REMATCH[2]}]")
+                    fi
                 fi
             done <<< "$output"
         else

@@ -791,7 +791,7 @@ node(nodeLabel) {
                         }
                     }
                     archiveArtifacts allowEmptyArchive: true,
-                        artifacts: 'ci-selection.txt,ci-candidate-commit.txt,ci-baseline-commit.txt,ci-report.md,*-c-compile-seconds.txt,ci-timing-summary.txt,ci-regression-summary.txt,ci-failure-summary.txt,slurm-*.out,slurm-*-job-id.txt,slurm-*-job-status.txt,build/**/*.log,gkylsoft/gkeyll-results/**/regressiondb,gkylsoft/gkeyll-results/**/_rr_failures.txt,_baseline/gkylsoft/gkeyll-results/**/regressiondb,_baseline/gkylsoft/gkeyll-results/**/_rr_failures.txt'
+                        artifacts: 'ci-selection.txt,ci-candidate-commit.txt,ci-baseline-commit.txt,ci-report.md,*-unit-results.txt,*-c-compile-seconds.txt,ci-timing-summary.txt,ci-regression-summary.txt,ci-failure-summary.txt,slurm-*.out,slurm-*-job-id.txt,slurm-*-job-status.txt,build/**/*.log,gkylsoft/gkeyll-results/**/regressiondb,gkylsoft/gkeyll-results/**/_rr_failures.txt,_baseline/gkylsoft/gkeyll-results/**/regressiondb,_baseline/gkylsoft/gkeyll-results/**/_rr_failures.txt'
                 } catch (err) {
                     terminalStatus = 'error'
                     terminalDescription = 'Perlmutter GPU CI artifact archival failed.'

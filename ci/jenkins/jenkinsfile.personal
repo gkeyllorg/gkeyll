@@ -131,6 +131,8 @@ def publishReport(String statusCredentialsId, String context, String platform, S
             sh "python3 ${script} publish --report ci-report.md --commit \"\$CI_REPORT_COMMIT\" --context \"\$CI_REPORT_CONTEXT\" --pr \"\$CI_REPORT_PR\""
         }
     }
+    // One line naming the failing layer/tests, for the GitHub status description.
+    return fileExists('ci-status-description.txt') ? readFile('ci-status-description.txt').trim() : ''
 }
 
 def buildTree(String label, String prefix, String mkdeps, String configure, String jobs) {
@@ -143,7 +145,7 @@ def buildTree(String label, String prefix, String mkdeps, String configure, Stri
             ./machines/${configure}
         """
         timeCommand("${metricDirectory}${label}-unit-build-seconds.txt", "make -j${jobs} unit")
-        timeCommand("${metricDirectory}${label}-unit-test-seconds.txt", 'make unit-run')
+        timeCommand("${metricDirectory}${label}-unit-test-seconds.txt", "GKYL_UNIT_RESULTS='${env.WORKSPACE}/${label}-unit-results.txt' make unit-run")
         timeCommand("${metricDirectory}${label}-regression-build-seconds.txt", "make -j${jobs} regression")
         timeCommand("${metricDirectory}${label}-install-seconds.txt", "make -j${jobs} install")
     }
@@ -361,13 +363,14 @@ def runCi = {
             def reportError = ''
             if (commit) {
                 try {
-                    publishReport(statusCredentialsId, statusContext, platform, commit, status, candidatePr ?: '')
+                    def summaryLine = publishReport(statusCredentialsId, statusContext, platform, commit, status, candidatePr ?: '')
+                    if (summaryLine) description = summaryLine.take(140)
                 } catch (err) {
                     reportError = err.toString()
                     echo "WARNING: could not publish the GitHub CI report: ${reportError}"
                 }
             }
-            archiveArtifacts allowEmptyArchive: true, artifacts: 'ci-selection.txt,ci-trusted-ci-commit.txt,ci-candidate-commit.txt,ci-baseline-commit.txt,*-seconds.txt,candidate-*.log,baseline-*.log,ci-failure-detail.txt,ci-report.md,ci-timing-summary.txt,ci-regression-summary.txt,ci-parallel-regression-summary.txt,ci-failure-summary.txt,build/**/*.log,gkylsoft/gkeyll-results/**/regressiondb,gkylsoft/gkeyll-results/**/_rr_failures.txt'
+            archiveArtifacts allowEmptyArchive: true, artifacts: 'ci-selection.txt,ci-trusted-ci-commit.txt,ci-candidate-commit.txt,ci-baseline-commit.txt,*-seconds.txt,*-unit-results.txt,candidate-*.log,baseline-*.log,ci-failure-detail.txt,ci-report.md,ci-timing-summary.txt,ci-regression-summary.txt,ci-parallel-regression-summary.txt,ci-failure-summary.txt,build/**/*.log,gkylsoft/gkeyll-results/**/regressiondb,gkylsoft/gkeyll-results/**/_rr_failures.txt'
             if (reportError) description = "${description} (report not posted)".take(140)
         }
         if (commit) publishStatus(statusCredentialsId, statusContext, commit, status, description)

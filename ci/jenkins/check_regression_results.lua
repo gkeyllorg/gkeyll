@@ -7,10 +7,12 @@
 -- Usage: gkeyll ci/jenkins/check_regression_results.lua <resultsDir> [ackFile] [summaryFile]
 --   <resultsDir>  the gkeyll-results/ directory written by 'runregression
 --                 configure' (i.e. <prefix>/gkeyll-results).
---   [ackFile]     optional path to a text file listing "<layer>/<name>"
---                 entries (one per line, '#' comments allowed) whose diff is
---                 expected/acknowledged for this candidate and should not fail the
---                 build. See ci/jenkins/expected_regression_diffs.txt.
+--   [ackFile]     optional path to a text file listing tests (one per line,
+--                 '#' comments allowed) whose diff is expected/acknowledged for
+--                 this candidate and should not fail the build. A test may be
+--                 named as stored in the database ("moments/creg/rt_euler_sodshock"),
+--                 as "<layer>/<basename>" ("moments/rt_euler_sodshock"), or by
+--                 basename alone. See ci/jenkins/expected_regression_diffs.txt.
 --   [summaryFile] optional machine-readable pass/acknowledged/failure counts.
 --
 --    _______     ___
@@ -53,6 +55,27 @@ if ackFile then
 end
 
 local npass, ackedHits, unacked = 0, {}, {}
+local layerCounts = {}  -- layerCounts[layer] = { passed, acked, failed }
+
+-- Names are stored layer-qualified ("moments/creg/rt_x"); accept the shorter
+-- spellings in the acknowledgment file too.
+local function isAcked(layer, name)
+   local base = name:match("([^/]+)$") or name
+   return acked[name] or acked[layer .. "/" .. base] or acked[base]
+end
+
+-- Per-file comparison lines from the stored run log, for the CI report.
+local function comparisonLines(runlog, maxLines)
+   local lines = {}
+   local body = runlog and runlog:match("%-%-%- Comparison failures %-%-%-\n(.*)$")
+   if body then
+      for line in body:gmatch("[^\n]+") do
+         if #lines >= maxLines then table.insert(lines, "..."); break end
+         table.insert(lines, line)
+      end
+   end
+   return lines
+end
 
 for _, layer in ipairs(LAYERS) do
    local dbPath = string.format("%s/%s/regressiondb", resultsDir, layer)
@@ -72,19 +95,26 @@ for _, layer in ipairs(LAYERS) do
             .. "; rerun runregression configure --drop-tables.")
       end
       local guid = conn:rowexec("select guid from RegressionMeta order by rowid desc limit 1")
+      layerCounts[layer] = { passed = 0, acked = 0, failed = 0 }
       if guid then
          local t, nrow = conn:exec(string.format(
-            "select name, status from RegressionData where guid=='%s'", guid))
+            "select name, status, runlog from RegressionData where guid=='%s'", guid))
          for i = 1, nrow do
             local status = tonumber(t.status[i])
-            local key = layer .. "/" .. t.name[i]
+            local key = t.name[i]
             if status == 1 then
                npass = npass + 1
+               layerCounts[layer].passed = layerCounts[layer].passed + 1
             elseif BAD_STATUSES[status] then
-               if acked[key] then
+               if isAcked(layer, key) then
                   table.insert(ackedHits, key)
+                  layerCounts[layer].acked = layerCounts[layer].acked + 1
                else
-                  table.insert(unacked, { key = key, status = statusToString[status] or tostring(status) })
+                  layerCounts[layer].failed = layerCounts[layer].failed + 1
+                  table.insert(unacked, {
+                     key = key, status = statusToString[status] or tostring(status),
+                     detail = comparisonLines(t.runlog[i], 10),
+                  })
                end
             end
          end
@@ -108,8 +138,17 @@ if summaryFile then
       npass, #ackedHits, #unacked))
    -- One line per test so the GitHub report (ci/jenkins/github_report.py)
    -- can list failures without opening the SQLite database.
+   for _, layer in ipairs(LAYERS) do
+      local c = layerCounts[layer]
+      if c then
+         summary:write(string.format("c_regression_layer=%s:%d:%d:%d\n", layer, c.passed, c.acked, c.failed))
+      end
+   end
    for _, u in ipairs(unacked) do
       summary:write(string.format("c_regression_failure=%s:%s\n", u.key, u.status))
+      for _, line in ipairs(u.detail) do
+         summary:write(string.format("c_regression_failure_detail=%s|%s\n", u.key, line))
+      end
    end
    for _, key in ipairs(ackedHits) do
       summary:write(string.format("c_regression_acknowledged_test=%s\n", key))
@@ -127,6 +166,7 @@ if #unacked > 0 then
    print("UNACKNOWLEDGED FAILURES:")
    for _, u in ipairs(unacked) do
       print(string.format("  %s [%s]", u.key, u.status))
+      for _, line in ipairs(u.detail) do print("      " .. line) end
    end
    print("")
    print("If any of these are an expected/intentional change (e.g. a physics")
