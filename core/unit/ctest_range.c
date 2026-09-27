@@ -11,7 +11,7 @@ void
 test_range_0(struct gkyl_range *range)
 {
   TEST_CHECK(range->ndim == 0);
-  TEST_CHECK(range->volume == 1);
+  TEST_CHECK(range->volume == 2); // CI report demo: deliberate unit-test failure
 
   TEST_CHECK(gkyl_range_is_sub_range(range) == 0);
 }
