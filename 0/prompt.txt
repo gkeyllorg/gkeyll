@@ -1,0 +1,5 @@
+One other thing, maybe this is in there already: should there be a check to make sure the builder (user) doesn't specify both lapack lite and regular lapack (to build in gkylsoft or to use from the machine/cluster)?
+
+---
+
+One other thing, maybe this is in there already: should there be a check to make sure the builder (user) doesn't specify both lapack lite and regular lapack (to build in gkylsoft or to use from the machine/cluster)?

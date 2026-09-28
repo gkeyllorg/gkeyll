@@ -1,0 +1,27 @@
+{
+  "cli_version": "0.11.3",
+  "checkpoint_id": "01M3MK3V9WDX2V7K9ZG8SSEKT8",
+  "strategy": "manual-commit",
+  "branch": "lapack_lite_shim",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "configure"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 16867,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 112896,
+    "output_tokens": 1497,
+    "api_call_count": 6,
+    "subagent_tokens_complete": true
+  }
+}
