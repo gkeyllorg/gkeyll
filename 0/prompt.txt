@@ -1,0 +1,17 @@
+This is a fork of gkylorg/gkeyll. I want you to make a branch with only the changes to the unit and regression tests which makes them valgrind clean and passing. Make a PR into maxs-failing-regtests on gkylorg/gkeyll. Make a branch in this repo with only those changes
+
+---
+
+This is a fork of gkylorg/gkeyll. I want you to make a branch with only the changes to the unit and regression tests which makes them valgrind clean and passing. Make a PR into maxs-failing-regtests on gkylorg/gkeyll. Make a branch in this repo with only those changes
+
+---
+
+<send_user_message_question_reply>
+[{"answer":"Include supporting fixes needed for passing, Valgrind-clean tests","question":"Some existing test fixes require changes in moments/apps and moments/zero. Should the branch include these supporting fixes, or strictly change test files only?","questionItemId":"[\"request_user_input_async\",\"call_piWNYMpLq2R7eWHrYtDhL1rt\",0]"}]
+</send_user_message_question_reply>
+
+---
+
+<send_user_message_question_reply>
+[{"answer":"Include supporting fixes needed for passing, Valgrind-clean tests","question":"Some existing test fixes require changes in moments/apps and moments/zero. Should the branch include these supporting fixes, or strictly change test files only?","questionItemId":"[\"request_user_input_async\",\"call_piWNYMpLq2R7eWHrYtDhL1rt\",0]"}]
+</send_user_message_question_reply>

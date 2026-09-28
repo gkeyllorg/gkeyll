@@ -1,0 +1,69 @@
+{
+  "cli_version": "0.11.3",
+  "checkpoint_id": "01M3MME9XHPQ7QTMFDRJA250BY",
+  "session_id": "01a0e936-dd6c-7ca1-b875-87b1638f052a",
+  "strategy": "manual-commit",
+  "created_at": "2026-09-28T18:29:10.183508673Z",
+  "branch": "valgrind-bug-fixes",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "core/unit/ctest_dg_bin_ops.c",
+    "core/unit/ctest_dg_differentiate.c",
+    "gyrokinetic/creg/rt_gk_lapd_cart_3x2v_p1.c",
+    "gyrokinetic/creg/rt_gk_lapd_cyl_3x2v_p1.c",
+    "gyrokinetic/creg/rt_gk_lapd_cyl_3x2v_p1_nonuniformr.c",
+    "gyrokinetic/unit/ctest_dg_gyrokinetic_kern_tm.c",
+    "gyrokinetic/unit/ctest_ltx_miller.c",
+    "gyrokinetic/unit/mctest_multib_allgather.c",
+    "gyrokinetic/unit/mctest_multib_sync.c",
+    "moments/apps/mom_coupling.c",
+    "moments/apps/mom_field.c",
+    "moments/apps/mom_species.c",
+    "moments/apps/moment_lw.c",
+    "moments/luareg/lua_test_manifest.lua",
+    "moments/unit/ctest_wv_gr_twofluid_tetrad.c",
+    "moments/unit/ctest_wv_vacuum_einstein.c",
+    "moments/unit/ctest_wv_vacuum_einstein_conformal.c",
+    "moments/zero/wv_gr_twofluid_tetrad.c",
+    "moments/zero/wv_vacuum_einstein_conformal.c",
+    "vlasov/luareg/rt_can_pb_distorted_mesh_ic_2x2v_p2.lua"
+  ],
+  "agent": "Codex",
+  "model": "gpt-6-astra",
+  "turn_id": "8ac07ad9bffc",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 65250,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 2140416,
+    "output_tokens": 8603,
+    "api_call_count": 43
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-09-28T18:29:10.159532075Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 0,
+    "total_lines_changed": 0,
+    "agent_percentage": 0,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 1,
+      "user_lines_removed": 1,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".github/workflows/ubuntu-latest.yml": 1
+      },
+      "user_removed_per_file": {
+        ".github/workflows/ubuntu-latest.yml": 1
+      }
+    }
+  ]
+}
