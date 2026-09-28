@@ -1,0 +1,35 @@
+{
+  "cli_version": "0.11.3",
+  "checkpoint_id": "01M3MSJ2PW1SW5NN8WZ6EBTD06",
+  "strategy": "manual-commit",
+  "branch": "metadata-nodal",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "gyrokinetic/apps/gk_neut_species_fluid.c",
+    "gyrokinetic/apps/gk_neut_species_kinetic.c",
+    "gyrokinetic/apps/gk_species.c",
+    "gyrokinetic/apps/gk_species_collisionless.c",
+    "gyrokinetic/apps/gk_species_radiation.c",
+    "gyrokinetic/apps/gyrokinetic.c",
+    "gyrokinetic/zero/gk_geometry.c",
+    "gyrokinetic/zero/gkgeom.c",
+    "vlasov/zero/velocity_map.c"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 69943,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 2022784,
+    "output_tokens": 7603,
+    "api_call_count": 34,
+    "subagent_tokens_complete": true
+  }
+}

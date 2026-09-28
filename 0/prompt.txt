@@ -1,0 +1,21 @@
+This PR added
+
+    {.key = "value_form", .elem_type = GKYL_MP_STRING, .cval = "nodal"},
+To a few arrays that are nodal arrays in gyrokinetics. Please add the associated
+    {.key = "value_form", .elem_type = GKYL_MP_STRING, .cval = "modal"},
+Or 
+    {.key = "value_form", .elem_type = GKYL_MP_STRING, .cval = "quad"},
+to all saved arrays so they contain the relevant metadata.
+One piece of feedback recieved: i think if you are going to add this now, you should add "modal" to all other corresponding files. I think, but i'm not sure, you mainly need to add it to the "io_meta_dg" metadata at the app and species levels.
+
+---
+
+This PR added
+
+    {.key = "value_form", .elem_type = GKYL_MP_STRING, .cval = "nodal"},
+To a few arrays that are nodal arrays in gyrokinetics. Please add the associated
+    {.key = "value_form", .elem_type = GKYL_MP_STRING, .cval = "modal"},
+Or 
+    {.key = "value_form", .elem_type = GKYL_MP_STRING, .cval = "quad"},
+to all saved arrays so they contain the relevant metadata.
+One piece of feedback recieved: i think if you are going to add this now, you should add "modal" to all other corresponding files. I think, but i'm not sure, you mainly need to add it to the "io_meta_dg" metadata at the app and species levels.
