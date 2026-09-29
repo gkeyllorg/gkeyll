@@ -382,6 +382,9 @@ struct gkyl_gyrokinetic_damping {
   // with the function rate(z) being:
   //   - a function given by the user (type = GKYL_GK_DAMPING_USER_INPUT).
   //   Alternativly, a low-pass filter can be applied (type = GKYL_GK_DAMPING_LOW_PASS_FILTER), which projects f to a lower-dimensional function fbar(z) and applies the damping as df/dt = - rate(z) * (f - fbar).
+  // The filtered state evolves as dfbar/dt = rate * (P f - fbar), where P
+  // selects the chosen fbar basis. The time-rate multiplier scales both
+  // derivatives equally, preserving the filter exchange in the shared modes.
   enum gkyl_gyrokinetic_damping_type type;
 
   double rate_const;

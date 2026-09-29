@@ -1061,8 +1061,8 @@ struct gk_damping {
     struct gkyl_array *rhs_fbar
   );
   void (*forward_euler_func)(
-    struct gk_species *gks, const struct gkyl_array *fin, const struct gkyl_array *fbar_in,
-    struct gkyl_array *fbar_out, double dt
+    gkyl_gyrokinetic_app *app, struct gk_species *gks, const struct gkyl_array *fin,
+    const struct gkyl_array *fbar_in, struct gkyl_array *fbar_out, double dt
   );
   void (*combine_func)(
     struct gk_species *gks, struct gkyl_array *fout, double c1, const struct gkyl_array *f1,
@@ -3434,7 +3434,7 @@ enum gkyl_array_rio_status gk_species_damping_read_fbar(
 );
 
 /**
- * Compute filtered distribution RHS for low-pass filter damping:
+ * Compute the unscaled filtered distribution RHS for low-pass filter damping:
  *   d(fbar)/dt = rate * (f - fbar).
  *
  * @param damp Species damping object.
@@ -3448,11 +3448,16 @@ void gk_species_damping_calc_fbar_rhs(
 );
 
 /**
- * Take a forward-Euler substep for the filtered distribution.
+ * Take a forward-Euler substep for the filtered distribution using the same
+ * stage-local fdot multiplier as f (computed by the species RHS beforehand).
+ * With a shared basis, the filter conserves f + fbar; with p0 fbar, only
+ * their cell-average sum is conserved. This does not imply conservation of
+ * physical moments of f alone.
  *
  * This is a runtime-dispatched no-op unless the damping type enables
  * filtered-state evolution (currently low-pass filter).
  *
+ * @param app App object.
  * @param gks Species object.
  * @param fin Current distribution function f.
  * @param fbar_in Current filtered distribution state.
@@ -3460,8 +3465,8 @@ void gk_species_damping_calc_fbar_rhs(
  * @param dt Time-step for substep.
  */
 void gk_species_damping_forward_euler(
-  struct gk_species *gks, const struct gkyl_array *fin, const struct gkyl_array *fbar_in,
-  struct gkyl_array *fbar_out, double dt
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, const struct gkyl_array *fin,
+  const struct gkyl_array *fbar_in, struct gkyl_array *fbar_out, double dt
 );
 
 /**
