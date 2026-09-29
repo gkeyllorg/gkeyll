@@ -1,5 +1,5 @@
 #!/bin/bash -l
-# All-C regression payload for ci/jenkins/Jenkinsfile.perlmutter_gpu.
+# All-C regression payload for ci/jenkins/jenkinsfile.perlmutter_gpu.
 #
 # Jenkins builds, installs, and compiles the candidate and trusted baseline on
 # login node. This payload only executes their precompiled C tests, creates
