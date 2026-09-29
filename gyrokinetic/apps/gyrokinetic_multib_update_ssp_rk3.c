@@ -73,7 +73,7 @@ gyrokinetic_multib_forward_euler(
       struct gk_species *gks = &sbapp->species[i];
       gk_species_step_f(gks, fout[li_charged + i], dta, fin[li_charged + i]);
       gk_species_damping_forward_euler(
-        gks, fin[li_charged + i], fbar_in[li_charged + i], fbar_out[li_charged + i], dta
+        sbapp, gks, fin[li_charged + i], fbar_in[li_charged + i], fbar_out[li_charged + i], dta
       );
       gk_species_bflux_step_f(
         sbapp, &gks->bflux, bflux_out[li_charged + i], 1.0, bflux_in[li_charged + i]
@@ -278,14 +278,21 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app *app, doubl
             struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[b];
             int li_charged = b * ns_charged;
             int li_neut = b * ns_neut;
-            // Compute the fields and apply BCs.
             for (int i = 0; i < ns_charged; ++i) {
               struct gk_species *gks = &sbapp->species[i];
+              fin[li_charged + i] = gks->f;
               fout[li_charged + i] = gks->f1;
+              // Boundary fluxes.
+              bflux_in[li_charged + i] = gks->bflux.f;
               bflux_out[li_charged + i] = gks->bflux.f1;
             }
             for (int i = 0; i < ns_neut; ++i) {
-              fout_neut[li_neut + i] = sbapp->neut_species[i].f1;
+              struct gk_neut_species *gkns = &sbapp->neut_species[i];
+              fin_neut[li_neut + i] = gkns->f;
+              fout_neut[li_neut + i] = gkns->f1;
+              // Boundary fluxes.
+              bflux_in_neut[li_neut + i] = gkns->bflux.f;
+              bflux_out_neut[li_neut + i] = gkns->bflux.f1;
             }
           }
           gyrokinetic_multib_calc_field_and_apply_bc(app, tcurr, fout, bflux_out, fout_neut);
@@ -359,11 +366,11 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app *app, doubl
               );
               gk_species_copy_range(gks, gks->f, gks->f1, &gks->local_ext);
               gk_species_damping_combine(
-                gks, gks->damping.fbar, 1.0 / 3.0, gks->damping.fbar1, 2.0 / 3.0,
+                gks, gks->damping.fbar1, 1.0 / 3.0, gks->damping.fbar, 2.0 / 3.0,
                 gks->damping.fbarnew, &gks->local_ext
               );
               gk_species_damping_copy_range(
-                gks, gks->damping.fbar1, gks->damping.fbar, &gks->local_ext
+                gks, gks->damping.fbar, gks->damping.fbar1, &gks->local_ext
               );
               // Step boundary fluxes.
               gk_species_bflux_set(sbapp, &gks->bflux, gks->bflux.f, 2.0 / 3.0, gks->bflux.fnew);

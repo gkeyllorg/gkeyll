@@ -408,29 +408,34 @@ gk_species_damping_calc_fbar_rhs(
 
 static void
 gk_species_damping_forward_euler_disabled(
-  struct gk_species *gks, const struct gkyl_array *fin, const struct gkyl_array *fbar_in,
-  struct gkyl_array *fbar_out, double dt
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, const struct gkyl_array *fin,
+  const struct gkyl_array *fbar_in, struct gkyl_array *fbar_out, double dt
 )
 {
 }
 
 static void
 gk_species_damping_forward_euler_enabled(
-  struct gk_species *gks, const struct gkyl_array *fin, const struct gkyl_array *fbar_in,
-  struct gkyl_array *fbar_out, double dt
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, const struct gkyl_array *fin,
+  const struct gkyl_array *fbar_in, struct gkyl_array *fbar_out, double dt
 )
 {
   gk_species_damping_calc_fbar_rhs(&gks->damping, fin, fbar_in, fbar_out);
+  // Reuse the multiplier computed for this stage: both sides of the filter
+  // exchange must evolve on the same clock, including cell-dependent dilation.
+  gk_species_fdot_multiplier_advance_times_rate(
+    app, gks, &gks->fdot_mult, app->field->phi_smooth, fin, fbar_out
+  );
   gk_species_step_f(gks, fbar_out, dt, fbar_in);
 }
 
 void
 gk_species_damping_forward_euler(
-  struct gk_species *gks, const struct gkyl_array *fin, const struct gkyl_array *fbar_in,
-  struct gkyl_array *fbar_out, double dt
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, const struct gkyl_array *fin,
+  const struct gkyl_array *fbar_in, struct gkyl_array *fbar_out, double dt
 )
 {
-  gks->damping.forward_euler_func(gks, fin, fbar_in, fbar_out, dt);
+  gks->damping.forward_euler_func(app, gks, fin, fbar_in, fbar_out, dt);
 }
 
 // Low-pass filter RK stage combine/copy helpers.

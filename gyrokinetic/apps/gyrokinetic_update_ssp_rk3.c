@@ -47,7 +47,7 @@ gyrokinetic_forward_euler(
   for (int i = 0; i < app->num_species; ++i) {
     struct gk_species *gks = &app->species[i];
     gk_species_step_f(gks, fout[i], dta, fin[i]);
-    gk_species_damping_forward_euler(gks, fin[i], fbar_in[i], fbar_out[i], dta);
+    gk_species_damping_forward_euler(app, gks, fin[i], fbar_in[i], fbar_out[i], dta);
     gk_species_bflux_accumulate(app, &gks->bflux, bflux_out[i], 1.0, bflux_in[i]);
   }
   for (int i = 0; i < app->num_neut_species; ++i) {
@@ -220,12 +220,18 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app *app, double dt0)
           for (int i = 0; i < app->num_species; ++i) {
             struct gk_species *gks = &app->species[i];
             fout[i] = gks->f1;
+            // Boundary fluxes.
+            bflux_in[i] = gks->bflux.f;
             bflux_out[i] = gks->bflux.f1;
           }
           for (int i = 0; i < app->num_neut_species; ++i) {
-            fout_neut[i] = app->neut_species[i].f1;
+            struct gk_neut_species *gkns = &app->neut_species[i];
+            fin_neut[i] = gkns->f;
+            fout_neut[i] = gkns->f1;
+            // Boundary fluxes.
+            bflux_in_neut[i] = gkns->bflux.f;
+            bflux_out_neut[i] = gkns->bflux.f1;
           }
-          gyrokinetic_calc_field_and_apply_bc(app, tcurr, fout, bflux_out, fout_neut);
 
           state = RK_STAGE_3;
         }
@@ -285,11 +291,11 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app *app, double dt0)
             );
             gk_species_copy_range(gks, gks->f, gks->f1, &gks->local_ext);
             gk_species_damping_combine(
-              gks, gks->damping.fbar, 1.0 / 3.0, gks->damping.fbar1, 2.0 / 3.0,
+              gks, gks->damping.fbar1, 1.0 / 3.0, gks->damping.fbar, 2.0 / 3.0,
               gks->damping.fbarnew, &gks->local_ext
             );
             gk_species_damping_copy_range(
-              gks, gks->damping.fbar1, gks->damping.fbar, &gks->local_ext
+              gks, gks->damping.fbar, gks->damping.fbar1, &gks->local_ext
             );
             // Step boundary fluxes.
             gk_species_bflux_set(app, &gks->bflux, gks->bflux.f, 2.0 / 3.0, gks->bflux.fnew);
