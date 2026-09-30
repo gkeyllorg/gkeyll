@@ -61,6 +61,9 @@ and Python with NumPy. Set these global environment variables:
 | `PERSONAL_MPI_HOME` | Optional MPI installation path for both trees; default is each tree's `gkylsoft/openmpi` |
 | `PERSONAL_MPIEXEC` | Optional launcher override for both trees; default is `bin/mpiexec` under the selected MPI installation |
 
+The selected dependency script must pass `--build-adas=yes` to
+`install-deps/mkdeps.sh` so ADAS data is available before unit tests run.
+
 The workflow sets `MPI_HOME` to `PERSONAL_MPI_HOME` while building each tree.
 If `PERSONAL_MPI_HOME` is unset or blank, it uses that tree's workspace-local
 `gkylsoft/openmpi`. Set `PERSONAL_MPI_HOME` (for example, `/opt/openmpi`) to use

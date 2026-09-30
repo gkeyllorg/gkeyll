@@ -23,8 +23,9 @@ nu = 15000.0 -- Collision frequency.
 -- Simulation parameters.
 Nz1 = 8 -- Cell count (configuration space: radial direction).
 Nz2 = 8 -- Cell count (configuration space: angular direction).
-Nvz1 = 8 -- Cell count (velocity space: radial direction).
-Nvz2 = 8 -- Cell count (velocity space: angular direction).
+-- Resolve the narrow, tilted Maxwellian in canonical momentum coordinates.
+Nvz1 = 16 -- Cell count (velocity space: radial direction).
+Nvz2 = 16 -- Cell count (velocity space: angular direction).
 Lz1 = 2.0 -- Domain size (configuration space: radial direction).
 Lz2 = 2.0 -- Domain size (configuration space: angular direction).
 vr_max = 12.0 * vt -- Domain boundary (velocity space: radial direction).

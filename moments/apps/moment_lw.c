@@ -1315,6 +1315,8 @@ eqn_vacuum_einstein_lw_new(lua_State *L)
   });
   vacuum_einstein_lw->has_nn = false;
   vacuum_einstein_lw->ann = 0;
+  vacuum_einstein_lw->has_spacetime = false;
+  vacuum_einstein_lw->spacetime = 0;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_vacuum_einstein_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw *));
@@ -1363,6 +1365,8 @@ eqn_vacuum_einstein_conformal_lw_new(lua_State *L)
     });
   vacuum_einstein_conformal_lw->has_nn = false;
   vacuum_einstein_conformal_lw->ann = 0;
+  vacuum_einstein_conformal_lw->has_spacetime = false;
+  vacuum_einstein_conformal_lw->spacetime = 0;
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_vacuum_einstein_conformal_lw =
