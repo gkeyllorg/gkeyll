@@ -102,7 +102,7 @@ create_ctx(void)
     nu_frac * log_lambda_ion * pow(charge_ion, 4) * n0 /
     (12.0 * pow(M_PI, 3.0 / 2.0) * pow(epsilon0, 2) * sqrt(mass_ion) * pow(Ti, 3.0 / 2.0));
   double nu_elc_ion = nu_elc * sqrt(2.0);
-  double nu_ion_elc = nu_ion_elc * (mass_elc / mass_ion);
+  double nu_ion_elc = nu_elc_ion * (mass_elc / mass_ion);
 
   double c_s = sqrt(Te / mass_ion); // Sound speed.
   double vte = sqrt(Te / mass_elc); // Electron thermal velocity.
