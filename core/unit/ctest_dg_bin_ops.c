@@ -3277,6 +3277,11 @@ test_subspace_accumulate(int poly_order, bool use_gpu)
   gkyl_array_release(ones_ho);
   gkyl_array_release(h_sol_ho);
   gkyl_array_release(pout_ho);
+  gkyl_array_release(f_sub);
+  gkyl_array_release(g_full);
+  gkyl_array_release(ones_phase);
+  gkyl_array_release(h_expect);
+  gkyl_array_release(pout);
 }
 
 void

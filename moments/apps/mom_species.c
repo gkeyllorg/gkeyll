@@ -410,11 +410,8 @@ moment_species_init(
   }
   sp->bc_buffer = mkarr(false, meqn, buff_sz);
 
-  if (mom_sp->equation->type == GKYL_EQN_EULER) {
-    sp->integ_q = gkyl_dynvec_new(GKYL_DOUBLE, 6); // KE and PE are stored independently
-  } else {
-    sp->integ_q = gkyl_dynvec_new(GKYL_DOUBLE, meqn);
-  }
+  // Diagnostics need not have the same size as the evolved state (e.g. GR equations).
+  sp->integ_q = gkyl_dynvec_new(GKYL_DOUBLE, mom_sp->equation->num_diag);
 
   sp->is_first_q_write_call = true;
 }

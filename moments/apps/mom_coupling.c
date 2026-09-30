@@ -273,6 +273,11 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
       .coll_fac = app->coll_fac == 0 ? 1.0 : app->coll_fac,
     };
     for (int i = 0; i < app->num_species; ++i) {
+      // Six stress components and three heat-flux components at each vertex.
+      // A gradient closure, if present, has already allocated a larger array.
+      if (!(app->species[i].eqn_type == GKYL_EQN_TEN_MOMENT && app->species[i].has_grad_closure)) {
+        src->non_ideal_vars[i] = mkarr(false, 9, src->non_ideal_local_ext.volume);
+      }
       // Braginskii coefficients depend on pressure and coefficient to obtain
       // pressure is different for different equation systems (gasGamma, vt, Tr(P))
       double p_fac = 1.0;

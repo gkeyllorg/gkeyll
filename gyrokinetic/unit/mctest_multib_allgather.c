@@ -1119,6 +1119,7 @@ test_SOL_domain_allgather_dir1_cuts2_par(bool use_gpu)
   gkyl_comm_get_size(comm, &num_ranks);
 
   if (num_ranks != 2) {
+    gkyl_comm_release(comm);
     return;
   }
 
@@ -1390,10 +1391,22 @@ test_SOL_domain_allgather_dir1_cuts2_par(bool use_gpu)
     gkyl_array_release(array_local[bI]);
     gkyl_array_release(array_global_ho[bI]);
     gkyl_array_release(array_global[bI]);
+    gkyl_free(local_ranges[bI]);
+    gkyl_free(local_ranges_ext[bI]);
+    gkyl_free(global_ranges[bI]);
+    gkyl_free(global_ranges_ext[bI]);
   }
   gkyl_free(mbcc_send);
   gkyl_free(mbcc_recv);
   gkyl_free(local_ranges);
+  gkyl_free(local_ranges_ext);
+  gkyl_free(global_ranges);
+  gkyl_free(global_ranges_ext);
+  gkyl_free(array_local_ho);
+  gkyl_free(array_global_ho);
+  gkyl_free(rank_list);
+  gkyl_free(branks);
+  gkyl_rrobin_decomp_release(round_robin_decomp);
   gkyl_free(array_local);
   gkyl_free(array_global);
 
