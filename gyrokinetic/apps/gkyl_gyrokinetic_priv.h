@@ -1271,8 +1271,17 @@ struct gk_species {
   bool is_first_integ_write_call; // Whether dynvec is being written for the first time.
 
   struct gkyl_array *fdot_mom_old, *fdot_mom_new; // Moments of f_old and f_new.
-  gkyl_dynvec fdot_integ_diag; // Integrated moments of Delta f=f_new - f_old..
+  gkyl_dynvec fdot_integ_diag; // Integrated moments of (f_new-f_old)/dt.
+  gkyl_dynvec fdot_abs_integ_diag; // Integrals of absolute moments of (f_new-f_old)/dt.
   bool is_first_fdot_integ_write_call; // Whether dynvec is being written for the first time.
+  bool
+    is_first_fdot_abs_integ_write_call; // Whether absolute fdot dynvec is being written for the first time.
+
+  // Lookup table populated from info.time_rate_diagnostics.
+  bool time_rate_diagnostics[GKYL_GK_TIME_RATE_DIAGNOSTIC_NUM];
+  bool fdot_io_pending; // Whether the next stage-1 RHS should be written.
+  double fdot_io_tm; // Time associated with the pending Fdot frame.
+  int fdot_io_frame; // Frame associated with the pending Fdot write.
 
   struct gkyl_array_integrate *integ_wfsq_op; // Operator to integrate w*f^2.
   double *L2norm_local, *L2norm_global; // L2norm in local MPI process and across the communicator.
@@ -1372,6 +1381,13 @@ struct gk_species {
   void (*write_L2norm_func)(gkyl_gyrokinetic_app *app, struct gk_species *gks);
   void (*calc_int_mom_dt_func)(
     gkyl_gyrokinetic_app *app, struct gk_species *gks, double dt, struct gkyl_array *fdot_int_mom
+  );
+  void (*calc_fdot_mom_func)(gkyl_gyrokinetic_app *app, struct gk_species *gks);
+  void (*write_fdot_mom_func)(
+    gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame
+  );
+  void (*write_fdot_mom_ready_func)(
+    gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame
   );
 
   // Quantities used for FLR model:
@@ -3746,6 +3762,17 @@ void gk_species_n_iter_corr(gkyl_gyrokinetic_app *app, const struct gk_species *
 void gk_species_write(gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame);
 
 /**
+ * Write a queued Fdot diagnostic from an SSP-RK3 stage-1 RHS.
+ *
+ * @param app Gyrokinetic app object.
+ * @param gks Species object.
+ * @param fdot Stage-1 RHS to write.
+ */
+void gk_species_write_fdot(
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, const struct gkyl_array *fdot
+);
+
+/**
  * Species moment write function.
  *
  * @param app gyrokinetic app object.
@@ -3801,6 +3828,13 @@ void gk_species_write_L2norm(gkyl_gyrokinetic_app *app, struct gk_species *gks);
 void gk_species_calc_int_mom_dt(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, double dt, struct gkyl_array *fdot_int_mom
 );
+
+/** Finish computing the finite-difference fdot moments after a time step.
+ *
+ * @param app Gyrokinetic app object.
+ * @param gks Gyrokinetic species object.
+ */
+void gk_species_calc_fdot_mom(gkyl_gyrokinetic_app *app, struct gk_species *gks);
 
 /**
  * Delete resources used in species.

@@ -73,6 +73,16 @@ static const struct gkyl_str_int_pair gk_field_type[] = {
   {0, 0}
 };
 
+// Gyrokinetic distribution-function time-rate diagnostics -> enum map.
+static const struct gkyl_str_int_pair gk_time_rate_diagnostic_type[] = {
+  {"Fdot", GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT},
+  {"FdotIntegratedMoments", GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_INTEGRATED_MOMENTS},
+  {"FdotAbsIntegratedMoments", GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_ABS_INTEGRATED_MOMENTS},
+  {"FdotMoments", GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_MOMENTS},
+  {"FdotAbsMoments", GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_ABS_MOMENTS},
+  {0, 0}
+};
+
 // Gyrokinetic radiation type -> enum map.
 static const struct gkyl_str_int_pair gk_radiation_type[] = {
   {"None", GKYL_NO_RADIATION},
@@ -163,6 +173,12 @@ void
 gkyl_register_gyrokinetic_field_types(lua_State *L)
 {
   register_types(L, gk_field_type, "GKField");
+}
+
+void
+gkyl_register_gyrokinetic_time_rate_diagnostic_types(lua_State *L)
+{
+  register_types(L, gk_time_rate_diagnostic_type, "TimeRateDiagnostic");
 }
 
 void
@@ -398,6 +414,24 @@ gyrokinetic_species_lw_new(lua_State *L)
     }
 
     gk_species.num_diag_moments = num_diag_moments;
+  }
+
+  with_lua_tbl_tbl(L, "timeRateDiagnostics")
+  {
+    int num_time_rate_diagnostics = glua_objlen(L);
+    if (num_time_rate_diagnostics > GKYL_GK_TIME_RATE_DIAGNOSTIC_NUM) {
+      return luaL_error(L, "Too many timeRateDiagnostics entries");
+    }
+
+    for (int i = 0; i < num_time_rate_diagnostics; i++) {
+      int diag = glua_tbl_iget_integer(L, i + 1, -1);
+      if (diag < 0 || diag >= GKYL_GK_TIME_RATE_DIAGNOSTIC_NUM) {
+        return luaL_error(L, "Invalid timeRateDiagnostics entry");
+      }
+      gk_species.time_rate_diagnostics[i] = diag;
+    }
+
+    gk_species.num_time_rate_diagnostics = num_time_rate_diagnostics;
   }
 
   with_lua_tbl_tbl(L, "bcs")
@@ -2792,6 +2826,7 @@ gkyl_gyrokinetic_lw_openlibs(lua_State *L)
   gkyl_register_gyrokinetic_position_map_types(L);
   gkyl_register_gyrokinetic_collisionless_types(L);
   gkyl_register_gyrokinetic_field_types(L);
+  gkyl_register_gyrokinetic_time_rate_diagnostic_types(L);
   gkyl_register_gyrokinetic_radiation_types(L);
   gkyl_register_gyrokinetic_radiation_Te_types(L);
   gkyl_register_gyrokinetic_reaction_types(L);
