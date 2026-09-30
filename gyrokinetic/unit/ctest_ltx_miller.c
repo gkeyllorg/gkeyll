@@ -150,8 +150,6 @@ test_ltx_miller_ho()
 
   end = clock();
   cpu_time_used = ((double)(end - start)) / CLOCKS_PER_SEC;
-
-  gkyl_position_map_release(pmap);
 }
 
 TEST_LIST = {{"test_ltx_miller_ho", test_ltx_miller_ho}, {NULL, NULL}};

@@ -894,6 +894,20 @@ rot_to_local(
   qlocal[65] = (qglobal[65] * norm[0]) + (qglobal[66] * norm[1]) + (qglobal[67] * norm[2]);
   qlocal[66] = (qglobal[65] * tau1[0]) + (qglobal[66] * tau1[1]) + (qglobal[67] * tau1[2]);
   qlocal[67] = (qglobal[65] * tau2[0]) + (qglobal[66] * tau2[1]) + (qglobal[67] * tau2[2]);
+
+  // Rotate both indices of the BSSN conformal factor Hessian.
+  const double *frame[3] = {norm, tau1, tau2};
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      double hessian = 0.0;
+      for (int k = 0; k < 3; k++) {
+        for (int l = 0; l < 3; l++) {
+          hessian += frame[i][k] * qglobal[68 + 3 * k + l] * frame[j][l];
+        }
+      }
+      qlocal[68 + 3 * i + j] = hessian;
+    }
+  }
 }
 
 static inline void
@@ -1165,6 +1179,20 @@ rot_to_global(
   qglobal[65] = (qlocal[65] * norm[0]) + (qlocal[66] * tau1[0]) + (qlocal[67] * tau2[0]);
   qglobal[66] = (qlocal[65] * norm[1]) + (qlocal[66] * tau1[1]) + (qlocal[67] * tau2[1]);
   qglobal[67] = (qlocal[65] * norm[2]) + (qlocal[66] * tau1[2]) + (qlocal[67] * tau2[2]);
+
+  // Rotate both indices of the BSSN conformal factor Hessian.
+  const double *frame[3] = {norm, tau1, tau2};
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      double hessian = 0.0;
+      for (int k = 0; k < 3; k++) {
+        for (int l = 0; l < 3; l++) {
+          hessian += frame[k][i] * qlocal[68 + 3 * k + l] * frame[l][j];
+        }
+      }
+      qglobal[68 + 3 * i + j] = hessian;
+    }
+  }
 }
 
 static double

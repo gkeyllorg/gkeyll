@@ -507,6 +507,14 @@ test_cyclic_domain_sync(bool use_gpu, bool use_mpi, int **cuts, int poly_order)
   gkyl_comm_get_rank(comm, &my_rank);
   gkyl_comm_get_size(comm, &num_ranks);
 
+  // Each block needs one rank per cut in its decomposition.
+  for (int bidx = 0; bidx < 2; bidx++) {
+    if (prod_of_elements_int(2, cuts[bidx]) > num_ranks) {
+      gkyl_comm_release(comm);
+      return;
+    }
+  }
+
   int ndim = 2;
 
   struct gkyl_block_geom *geom = create_cyclic_domain_block_geom(cuts);

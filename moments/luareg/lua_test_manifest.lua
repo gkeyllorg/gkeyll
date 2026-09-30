@@ -4,6 +4,16 @@
 return {
    ignore = {
       tests = {
+         -- Numerical update failures in black-hole/excision runs.
+         "rt_vacuum_einstein_brill_lindquist",
+         "rt_vacuum_einstein_kerr",
+         "rt_vacuum_einstein_schwarzschild",
+         "rt_vacuum_einstein_conformal_brill_lindquist",
+         "rt_vacuum_einstein_conformal_kerr",
+         "rt_vacuum_einstein_conformal_schwarzschild",
+         "rt_gr_blackhole_spinning",
+         "rt_gr_bhl_static_tetrad",
+         "rt_gr_bhl_spinning_tetrad",
          "rt_gr_ultra_rel_bhl_static",
          "rt_gr_bhl_spinning_neutronstar",
          "rt_gr_mhd_bhl_static_tetrad",

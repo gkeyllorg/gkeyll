@@ -108,6 +108,9 @@ toolchain, `cmake`, and Python/NumPy. Set these global environment variables:
 | `TEAM_WORKSTATION_STATUS_CONTEXT` | Optional status context; default team-workstation |
 | `TEAM_WORKSTATION_TRUSTED_CI_REF` | Trusted workflow branch/SHA; production value `main` |
 
+The selected dependency script must pass `--build-adas=yes` to
+`install-deps/mkdeps.sh` so ADAS data is available before unit tests run.
+
 The workflow builds dependencies separately for the candidate and baseline in
 their workspace-local `gkylsoft` directories. Set `WORKSTATION_MPI_HOME` (for
 example, `/opt/openmpi`) to use an existing MPI installation for both builds and
