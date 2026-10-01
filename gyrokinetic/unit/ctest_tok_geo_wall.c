@@ -254,11 +254,14 @@ test_vessel_outline_declaration(void)
 
   struct gkyl_tok_geo_grid_inp silent={0};
   struct gkyl_tok_geo_grid_inp declared={0}; declared.no_vessel_outline=true;
+  struct gkyl_tok_geo_grid_inp disabled={0}; disabled.disable_wall_enforcement=true;
 
   // A usable outline is enforced, declaration or not -- and declaring absence
   // when a wall exists is a contradiction, never a way to switch enforcement off.
   TEST_CHECK(gkyl_tok_wall_policy_for(&silent,&usable)==GKYL_TOK_WALL_ENFORCE);
   TEST_CHECK(gkyl_tok_wall_policy_for(&declared,&usable)==GKYL_TOK_WALL_REJECT_CONTRADICTED);
+  TEST_CHECK(gkyl_tok_wall_policy_for(&disabled,&usable)==GKYL_TOK_WALL_DISABLED_BY_INPUT);
+  TEST_CHECK(gkyl_tok_wall_policy_for(&disabled,&malformed)==GKYL_TOK_WALL_DISABLED_BY_INPUT);
 
   // Silence never disables the constraint.
   TEST_CHECK(gkyl_tok_wall_policy_for(&silent,&absent)==GKYL_TOK_WALL_REJECT_UNDECLARED);
