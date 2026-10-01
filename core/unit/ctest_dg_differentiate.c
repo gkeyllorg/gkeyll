@@ -113,6 +113,8 @@ test_dg_differentiate_1x(int poly_order, bool use_gpu)
   gkyl_proj_on_basis_release(proj_fin);
   gkyl_array_release(fin);
   gkyl_array_release(fin_ho);
+  gkyl_array_release(derf);
+  gkyl_array_release(derf_ho);
 }
 
 void
@@ -280,6 +282,8 @@ test_dg_differentiate_2x(int poly_order, bool use_gpu)
   gkyl_proj_on_basis_release(proj_fin);
   gkyl_array_release(fin);
   gkyl_array_release(fin_ho);
+  gkyl_array_release(derf);
+  gkyl_array_release(derf_ho);
 }
 
 void
@@ -474,6 +478,8 @@ test_dg_differentiate_3x(int poly_order, bool use_gpu)
   gkyl_proj_on_basis_release(proj_fin);
   gkyl_array_release(fin);
   gkyl_array_release(fin_ho);
+  gkyl_array_release(derf);
+  gkyl_array_release(derf_ho);
 }
 
 void

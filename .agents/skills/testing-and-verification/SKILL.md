@@ -1,10 +1,15 @@
 ---
 name: testing-and-verification
-description: How to run Gkeyll unit and regression tests, as well as performing memory checks. Use when testing changes and verifying that changes didn't break the code or change simulation results.
+description: How to run and write Gkeyll unit and regression tests, as well as performing memory checks. Use when testing changes and verifying that changes didn't break the code or change simulation results.
 ---
 
 # Instructions
 
+* Unit tests only test the /zero layer. Regression tests test the /app layer.
+* Unit tests are focused on particular /zero modules and bear the same name as the module they test.
+  For example, `core/unit/ctest_array.c` tests the `core/zero/array.c` module.
+* Unit tests should be modular, test only what is necessary, and be simple.
+* Only test code that you understand completely.
 * For code changes, run relevant unit tests and focused regression tests when
   simulation behavior is affected. Choose tests based on the changed component.
 * Do not run the entire regression suite unless you are asked to; it can take a long time.

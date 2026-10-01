@@ -16,17 +16,38 @@
 #ifdef GKYL_USING_FRAMEWORK_ACCELERATE
 #include <Accelerate/Accelerate.h>
 #else
+
+#ifdef GKYL_HAVE_LAPACK_LITE
+// use the lite library included in Gkeyll
+#include <blas_lite.h>
+#include <dlapack_lite.h>
+
+#else
+
 // On non-Darwin platforms use OpenBLAS
 #include <cblas.h>
 #include <lapacke.h>
+
+#endif
+
 #endif
 
 #include <assert.h>
 #include <string.h>
 
+#ifdef GKYL_HAVE_LAPACK_LITE
+
+/** Map Gkyl flags to CBLAS flags */
+static char *cblas_trans_flags[] =
+  {[GKYL_NO_TRANS] = "N", [GKYL_TRANS] = "T", [GKYL_CONJ_TRANS] = "C"};
+
+#else
+
 /** Map Gkyl flags to CBLAS flags */
 static int cblas_trans_flags[] =
   {[GKYL_NO_TRANS] = CblasNoTrans, [GKYL_TRANS] = CblasTrans, [GKYL_CONJ_TRANS] = CblasConjTrans};
+
+#endif
 
 struct gkyl_nmat_mem {
   bool on_gpu; // flag to indicate if we are on GPU
@@ -151,6 +172,26 @@ ho_mat_mm(
   struct mat_sizes szb = get_mat_sizes(transb, B);
   struct mat_sizes szc = get_mat_sizes(GKYL_NO_TRANS, C);
 
+#ifdef GKYL_HAVE_LAPACK_LITE
+
+  int nr = C->nr;
+  int nc = C->nc;
+
+  // intermediate size
+  int k = sza.nc; // same as szb.nr
+  int lda = transa == GKYL_NO_TRANS ? C->nr : k;
+  int ldb = transb == GKYL_NO_TRANS ? k : C->nc;
+  int ldc = C->nr;
+
+  assert((sza.nr == szc.nr) && (sza.nc == k) && (szb.nr == k) && (szb.nc == szc.nc));
+
+  dgemm_(
+    cblas_trans_flags[transa], cblas_trans_flags[transb], &nr, &nc, &k, &alpha, A->data, &lda,
+    B->data, &ldb, &beta, C->data, &ldc
+  );
+
+#else
+
   // intermediate size
   size_t k = sza.nc; // same as szb.nr
   size_t lda = transa == GKYL_NO_TRANS ? C->nr : k;
@@ -164,6 +205,7 @@ ho_mat_mm(
     CblasColMajor, cblas_trans_flags[transa], cblas_trans_flags[transb], C->nr, C->nc, k, alpha,
     A->data, lda, B->data, ldb, beta, C->data, ldc
   );
+#endif
 }
 
 struct gkyl_mat *
@@ -195,20 +237,40 @@ gkyl_mat_mv(
   struct mat_sizes szx = get_mat_sizes(GKYL_NO_TRANS, x);
   struct mat_sizes szy = get_mat_sizes(GKYL_NO_TRANS, y);
 
-  // intermediate size
-  size_t k = sza.nc; // same as szb.nr
-  size_t lda = transa == GKYL_NO_TRANS ? A->nr : k;
-  size_t ldc = y->nr;
-
   assert((sza.nr == szy.nr) && (sza.nc == szx.nr) && (szx.nr == szy.nr));
 
   // call BLAS routine to perform matrix-matrix multiply
   int incx = 1;
   int incy = 1;
+
+#ifdef GKYL_HAVE_LAPACK_LITE
+
+  // intermediate size
+  int k = sza.nc; // same as szb.nr
+  int lda = transa == GKYL_NO_TRANS ? A->nr : k;
+  int ldc = y->nr;
+
+  int nr = A->nr;
+  int nc = A->nc;
+
+  dgemv_(
+    cblas_trans_flags[transa], &nr, &nc, &alpha, A->data, &lda, x->data, &incx, &beta, y->data,
+    &incy
+  );
+
+#else
+
+  // intermediate size
+  size_t k = sza.nc; // same as szb.nr
+  size_t lda = transa == GKYL_NO_TRANS ? A->nr : k;
+  size_t ldc = y->nr;
+
   cblas_dgemv(
     CblasColMajor, cblas_trans_flags[transa], A->nr, A->nc, alpha, A->data, lda, x->data, incx,
     beta, y->data, incy
   );
+
+#endif
 
   return y;
 }
@@ -228,8 +290,19 @@ gkyl_mat_linsolve_lu(struct gkyl_mat *A, struct gkyl_mat *x, void *ipiv)
   __CLPK_integer ldb = A->nr;
   dgesv_(&n, &nrhs, A->data, &lda, ipiv, x->data, &ldb, &info);
 #else
+
+#ifdef GKYL_HAVE_LAPACK_LITE
+  int info;
+  int n = A->nr;
+  int nrhs = x->nc;
+  int lda = A->nr;
+  int ldb = A->nr;
+  dgesv_(&n, &nrhs, A->data, &lda, ipiv, x->data, &ldb, &info);
+#else
   // on non-Darwin platforms modern LAPACKE interface is available
   int info = LAPACKE_dgesv(LAPACK_COL_MAJOR, A->nr, x->nc, A->data, A->nr, ipiv, x->data, A->nr);
+#endif
+
 #endif
 
   return info == 0 ? true : false;
@@ -695,6 +768,28 @@ ho_mat_mm_array(struct gkyl_mat_mm_array_mem *mem, const struct gkyl_array *B, s
   enum gkyl_mat_trans transb = mem->transb;
 
   struct mat_sizes sza = get_mat_sizes(transa, A);
+
+  // For CPU side calculations
+  // call BLAS routine to perform matrix-matrix multiply
+  // (specifically for CPU, with gkyl_array B/C)
+
+#ifdef GKYL_HAVE_LAPACK_LITE
+  int nr = A->nr;
+  int nc = B->size;
+
+  int k = A->nc;
+  int lda = transa == GKYL_NO_TRANS ? C->ncomp : k;
+  int ldb = transb == GKYL_NO_TRANS ? k : C->size;
+  int ldc = C->ncomp;
+
+  assert((sza.nr == C->ncomp) && (B->ncomp == k) && (B->size == C->size));
+
+  dgemm_(
+    cblas_trans_flags[transa], cblas_trans_flags[transb], &nr, &nc, &k, &alpha, A->data, &lda,
+    B->data, &ldb, &beta, C->data, &ldc
+  );
+
+#else
   size_t k = sza.nc;
   size_t lda = transa == GKYL_NO_TRANS ? C->ncomp : k;
   size_t ldb = transb == GKYL_NO_TRANS ? k : C->size;
@@ -702,13 +797,11 @@ ho_mat_mm_array(struct gkyl_mat_mm_array_mem *mem, const struct gkyl_array *B, s
 
   assert((sza.nr == C->ncomp) && (B->ncomp == k) && (B->size == C->size));
 
-  // For CPU side calculations
-  // call BLAS routine to perform matrix-matrix multiply
-  // (specifically for CPU, with gkyl_array B/C)
   cblas_dgemm(
     CblasColMajor, cblas_trans_flags[transa], cblas_trans_flags[transb], A->nr, B->size, A->nc,
     alpha, A->data, lda, B->data, ldb, beta, C->data, ldc
   );
+#endif
 }
 
 void

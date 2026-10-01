@@ -129,7 +129,7 @@ test_3x2v_p1(bool use_gpu)
     .apardot = apardot,
   };
 
-  const bool is_zero_flux[GKYL_MAX_DIM] = {false};
+  const bool is_zero_flux[2 * GKYL_MAX_DIM] = {false};
 
   // Initialize velocity space mapping.
   struct gkyl_mapc2p_inp c2p_in = {};
