@@ -31,14 +31,18 @@
 #include <math.h>
 #include <stdlib.h>
 
-static struct gkyl_array*
+static struct gkyl_array *
 mkarr(bool use_gpu, long nc, long size)
 {
-  return use_gpu? gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size)
-                : gkyl_array_new(GKYL_DOUBLE, nc, size);
+  return use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size) :
+                   gkyl_array_new(GKYL_DOUBLE, nc, size);
 }
 
-static bool verbose(void) { return getenv("TEST_VERBOSE") != NULL; }
+static bool
+verbose(void)
+{
+  return getenv("TEST_VERBOSE") != NULL;
+}
 
 struct sol_ctx {
   int cdim;
@@ -47,15 +51,23 @@ struct sol_ctx {
   bool damped; // Whether the zonal part is damped (no FSA).
 };
 
-static double zonal_func(double x) { return sin(M_PI*x); }
-static double nonzonal_func(double x) { return sin(2.0*M_PI*x); }
+static double
+zonal_func(double x)
+{
+  return sin(M_PI * x);
+}
+static double
+nonzonal_func(double x)
+{
+  return sin(2.0 * M_PI * x);
+}
 
 static void
 eval_phi(double t, const double *xn, double *fout, void *ctx)
 {
   struct sol_ctx *c = ctx;
   double x = xn[0], s = xn[1];
-  fout[0] = zonal_func(x) + nonzonal_func(x)*cos(c->k*s);
+  fout[0] = zonal_func(x) + nonzonal_func(x) * cos(c->k * s);
 }
 
 static void
@@ -63,27 +75,31 @@ eval_rho(double t, const double *xn, double *fout, void *ctx)
 {
   struct sol_ctx *c = ctx;
   double x = xn[0], s = xn[1];
-  double kperpSq = c->cdim == 3? c->k*c->k : 0.0;
-  fout[0] = M_PI*M_PI*zonal_func(x) + (4.0*M_PI*M_PI + kperpSq + c->K)*nonzonal_func(x)*cos(c->k*s);
+  double kperpSq = c->cdim == 3 ? c->k * c->k : 0.0;
+  fout[0] = M_PI * M_PI * zonal_func(x) +
+            (4.0 * M_PI * M_PI + kperpSq + c->K) * nonzonal_func(x) * cos(c->k * s);
 }
 
 static void
 eval_zonal(double t, const double *xn, double *fout, void *ctx)
 {
   struct sol_ctx *c = ctx;
-  double fac = c->damped? M_PI*M_PI/(M_PI*M_PI + c->K) : 1.0;
-  fout[0] = fac*zonal_func(xn[0]);
+  double fac = c->damped ? M_PI * M_PI / (M_PI * M_PI + c->K) : 1.0;
+  fout[0] = fac * zonal_func(xn[0]);
 }
 
 static double
-error_L2norm(struct gkyl_rect_grid grid, struct gkyl_range range, struct gkyl_basis basis,
-  const struct gkyl_array *field1, const struct gkyl_array *field2)
+error_L2norm(
+  struct gkyl_rect_grid grid, struct gkyl_range range, struct gkyl_basis basis,
+  const struct gkyl_array *field1, const struct gkyl_array *field2
+)
 {
   // L2 norm of the difference between 2 host fields (field2 may be NULL).
   struct gkyl_array *diff = gkyl_array_new(GKYL_DOUBLE, field1->ncomp, field1->size);
   gkyl_array_copy(diff, field1);
-  if (field2)
+  if (field2) {
     gkyl_array_accumulate(diff, -1.0, field2);
+  }
 
   struct gkyl_array *l2_cell = gkyl_array_new(GKYL_DOUBLE, 1, field1->size);
   gkyl_dg_calc_l2_range(&basis, 0, l2_cell, 0, diff, range);
@@ -127,8 +143,7 @@ woodbury_inflate(struct woodbury *w, const struct gkyl_array *psi, struct gkyl_a
 {
   if (w->cdim == 2) {
     gkyl_translate_dim_advance(w->infl_lo, &w->local_x, &w->local, psi, 1, out);
-  }
-  else {
+  } else {
     gkyl_translate_dim_advance(w->infl_lo, &w->local_x, &w->local_xy, psi, 1, w->tmp_xy);
     gkyl_translate_dim_advance(w->infl_up, &w->local_xy, &w->local, w->tmp_xy, 1, out);
   }
@@ -148,9 +163,11 @@ static void
 woodbury_pack(struct woodbury *w, const struct gkyl_array *arr_ho, double *vec)
 {
   int k = 0;
-  for (int i=w->local_x.lower[0]; i<=w->local_x.upper[0]; i++) {
+  for (int i = w->local_x.lower[0]; i <= w->local_x.upper[0]; i++) {
     const double *c = gkyl_array_cfetch(arr_ho, gkyl_range_idx(&w->local_x, &i));
-    for (int b=0; b<w->basis_x.num_basis; b++) vec[k++] = c[b];
+    for (int b = 0; b < w->basis_x.num_basis; b++) {
+      vec[k++] = c[b];
+    }
   }
 }
 
@@ -158,9 +175,11 @@ static void
 woodbury_unpack(struct woodbury *w, const double *vec, struct gkyl_array *arr_ho)
 {
   int k = 0;
-  for (int i=w->local_x.lower[0]; i<=w->local_x.upper[0]; i++) {
+  for (int i = w->local_x.lower[0]; i <= w->local_x.upper[0]; i++) {
     double *c = gkyl_array_fetch(arr_ho, gkyl_range_idx(&w->local_x, &i));
-    for (int b=0; b<w->basis_x.num_basis; b++) c[b] = vec[k++];
+    for (int b = 0; b < w->basis_x.num_basis; b++) {
+      c[b] = vec[k++];
+    }
   }
 }
 
@@ -194,15 +213,16 @@ woodbury_new(struct woodbury *w, int cdim, const int *cells, double K, bool use_
   double dg0norm = pow(sqrt(2.0), cdim);
 
   // Helmholtz solver: eps = identity, kSq = -K, Dirichlet x, periodic y.
-  int epsnum = cdim == 3? 3 : 1;
-  w->eps = mkarr(use_gpu, epsnum*nb, w->local_ext.volume);
-  gkyl_array_shiftc(w->eps, dg0norm, 0*nb);
-  if (cdim == 3)
-    gkyl_array_shiftc(w->eps, dg0norm, 2*nb);
+  int epsnum = cdim == 3 ? 3 : 1;
+  w->eps = mkarr(use_gpu, epsnum * nb, w->local_ext.volume);
+  gkyl_array_shiftc(w->eps, dg0norm, 0 * nb);
+  if (cdim == 3) {
+    gkyl_array_shiftc(w->eps, dg0norm, 2 * nb);
+  }
   w->kSq = mkarr(use_gpu, nb, w->local_ext.volume);
-  gkyl_array_shiftc(w->kSq, -K*dg0norm, 0);
+  gkyl_array_shiftc(w->kSq, -K * dg0norm, 0);
 
-  struct gkyl_poisson_bc bcs = { };
+  struct gkyl_poisson_bc bcs = {};
   bcs.lo_type[0] = GKYL_POISSON_DIRICHLET;
   bcs.up_type[0] = GKYL_POISSON_DIRICHLET;
   bcs.lo_value[0].v[0] = 0.0;
@@ -211,12 +231,15 @@ woodbury_new(struct woodbury *w, int cdim, const int *cells, double K, bool use_
     bcs.lo_type[1] = GKYL_POISSON_PERIODIC;
     bcs.up_type[1] = GKYL_POISSON_PERIODIC;
   }
-  w->solver = gkyl_fem_poisson_perp_new(&w->local, &w->grid, w->basis, &bcs, NULL, w->eps, w->kSq, use_gpu);
+  w->solver =
+    gkyl_fem_poisson_perp_new(&w->local, &w->grid, w->basis, &bcs, NULL, w->eps, w->kSq, use_gpu);
 
   // FSA.
   int avg_dim[3] = {0};
-  for (int d=1; d<cdim; d++) avg_dim[d] = 1;
-  w->avg = gkyl_array_average_inew(&(struct gkyl_array_average_inp) {
+  for (int d = 1; d < cdim; d++) {
+    avg_dim[d] = 1;
+  }
+  w->avg = gkyl_array_average_inew(&(struct gkyl_array_average_inp){
     .grid = &w->grid,
     .basis = w->basis,
     .basis_avg = w->basis_x,
@@ -229,15 +252,14 @@ woodbury_new(struct woodbury *w, int cdim, const int *cells, double K, bool use_
   });
   w->avg_phi = mkarr(use_gpu, nb_x, w->local_x_ext.volume);
   w->psi = mkarr(use_gpu, nb_x, w->local_x_ext.volume);
-  w->psi_ho = use_gpu? mkarr(false, nb_x, w->local_x_ext.volume) : gkyl_array_acquire(w->psi);
+  w->psi_ho = use_gpu ? mkarr(false, nb_x, w->local_x_ext.volume) : gkyl_array_acquire(w->psi);
 
   // 1D -> cdim extension.
   w->tmp_xy = 0;
   w->infl_up = 0;
   if (cdim == 2) {
     w->infl_lo = gkyl_translate_dim_new(1, w->basis_x, 2, w->basis, 0, GKYL_NO_EDGE, use_gpu);
-  }
-  else {
+  } else {
     w->tmp_xy = mkarr(use_gpu, w->basis_xy.num_basis, w->local_xy_ext.volume);
     w->infl_lo = gkyl_translate_dim_new(1, w->basis_x, 2, w->basis_xy, 0, GKYL_NO_EDGE, use_gpu);
     w->infl_up = gkyl_translate_dim_new(2, w->basis_xy, 3, w->basis, 0, GKYL_NO_EDGE, use_gpu);
@@ -247,15 +269,17 @@ woodbury_new(struct woodbury *w, int cdim, const int *cells, double K, bool use_
   w->rhs2 = mkarr(use_gpu, nb, w->local_ext.volume);
 
   // Zonal system A = I - G, one Helmholtz solve per column of G.
-  int m = w->local_x.volume*nb_x;
+  int m = w->local_x.volume * nb_x;
   w->m = m;
   w->A = gkyl_mat_new(m, m, 0.0);
   w->A_lu = gkyl_mat_new(m, m, 0.0);
   w->rhs_m = gkyl_mat_new(m, 1, 0.0);
   w->ipiv = gkyl_mem_buff_new(sizeof(long[m]));
   double *ej = gkyl_malloc(sizeof(double[m]));
-  for (int j=0; j<m; j++) {
-    for (int i=0; i<m; i++) ej[i] = i==j? 1.0 : 0.0;
+  for (int j = 0; j < m; j++) {
+    for (int i = 0; i < m; i++) {
+      ej[i] = i == j ? 1.0 : 0.0;
+    }
     woodbury_unpack(w, ej, w->psi_ho);
     gkyl_array_copy(w->psi, w->psi_ho);
     woodbury_response(w, w->psi, w->phi2);
@@ -263,9 +287,11 @@ woodbury_new(struct woodbury *w, int cdim, const int *cells, double K, bool use_
     woodbury_pack(w, w->psi_ho, gkyl_mat_get_col(w->A, j));
   }
   gkyl_free(ej);
-  for (int i=0; i<m; i++)
-    for (int j=0; j<m; j++)
-      gkyl_mat_set(w->A, i, j, (i==j? 1.0 : 0.0) - gkyl_mat_get(w->A, i, j));
+  for (int i = 0; i < m; i++) {
+    for (int j = 0; j < m; j++) {
+      gkyl_mat_set(w->A, i, j, (i == j ? 1.0 : 0.0) - gkyl_mat_get(w->A, i, j));
+    }
+  }
 }
 
 static void
@@ -304,7 +330,7 @@ woodbury_solve(struct woodbury *w, struct gkyl_array *rho, struct gkyl_array *ph
     woodbury_pack(w, w->psi_ho, gkyl_mat_get_col(w->rhs_m, 0));
     gkyl_mat_copy(w->A_lu, w->A);
     bool status = gkyl_mat_linsolve_lu(w->A_lu, w->rhs_m, gkyl_mem_buff_data(w->ipiv));
-    TEST_CHECK( status );
+    TEST_CHECK(status);
     woodbury_unpack(w, gkyl_mat_get_ccol(w->rhs_m, 0), w->psi_ho);
     gkyl_array_copy(w->psi, w->psi_ho);
     woodbury_response(w, w->psi, w->phi2);
@@ -313,7 +339,10 @@ woodbury_solve(struct woodbury *w, struct gkyl_array *rho, struct gkyl_array *ph
 }
 
 static void
-solve_case(int cdim, const int *cells, bool use_fsa, bool use_gpu, double *err_phi, double *err_zonal, double *norm_zonal)
+solve_case(
+  int cdim, const int *cells, bool use_fsa, bool use_gpu, double *err_phi, double *err_zonal,
+  double *norm_zonal
+)
 {
   int poly_order = 1;
   double K = 20.0;
@@ -321,30 +350,28 @@ solve_case(int cdim, const int *cells, bool use_fsa, bool use_gpu, double *err_p
   woodbury_new(&w, cdim, cells, K, use_gpu);
   int nb = w.basis.num_basis, nb_x = w.basis_x.num_basis;
 
-  struct sol_ctx ctx = {
-    .cdim = cdim,
-    .K = K,
-    .k = cdim == 3? 2.0*M_PI : 1.0,
-    .damped = !use_fsa,
-  };
+  struct sol_ctx ctx = {.cdim = cdim, .K = K, .k = cdim == 3 ? 2.0 * M_PI : 1.0, .damped = !use_fsa};
 
   struct gkyl_array *rho = mkarr(use_gpu, nb, w.local_ext.volume);
   struct gkyl_array *phi = mkarr(use_gpu, nb, w.local_ext.volume);
-  struct gkyl_array *rho_ho = use_gpu? mkarr(false, nb, w.local_ext.volume) : gkyl_array_acquire(rho);
-  struct gkyl_array *phi_ho = use_gpu? mkarr(false, nb, w.local_ext.volume) : gkyl_array_acquire(phi);
+  struct gkyl_array *rho_ho = use_gpu ? mkarr(false, nb, w.local_ext.volume) :
+                                        gkyl_array_acquire(rho);
+  struct gkyl_array *phi_ho = use_gpu ? mkarr(false, nb, w.local_ext.volume) :
+                                        gkyl_array_acquire(phi);
   struct gkyl_array *phi_sol = mkarr(false, nb, w.local_ext.volume);
   struct gkyl_array *psi_sol = mkarr(false, nb_x, w.local_x_ext.volume);
 
-  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&w.grid, &w.basis, poly_order+1, 1, eval_rho, &ctx);
+  gkyl_proj_on_basis *proj =
+    gkyl_proj_on_basis_new(&w.grid, &w.basis, poly_order + 1, 1, eval_rho, &ctx);
   gkyl_proj_on_basis_advance(proj, 0.0, &w.local, rho_ho);
   gkyl_proj_on_basis_release(proj);
   gkyl_array_copy(rho, rho_ho);
 
-  proj = gkyl_proj_on_basis_new(&w.grid, &w.basis, 2*(poly_order+1), 1, eval_phi, &ctx);
+  proj = gkyl_proj_on_basis_new(&w.grid, &w.basis, 2 * (poly_order + 1), 1, eval_phi, &ctx);
   gkyl_proj_on_basis_advance(proj, 0.0, &w.local, phi_sol);
   gkyl_proj_on_basis_release(proj);
 
-  proj = gkyl_proj_on_basis_new(&w.grid_x, &w.basis_x, 2*(poly_order+1), 1, eval_zonal, &ctx);
+  proj = gkyl_proj_on_basis_new(&w.grid_x, &w.basis_x, 2 * (poly_order + 1), 1, eval_zonal, &ctx);
   gkyl_proj_on_basis_advance(proj, 0.0, &w.local_x, psi_sol);
   gkyl_proj_on_basis_release(proj);
 
@@ -376,44 +403,66 @@ test_adiabatic(int cdim, bool use_gpu)
   // With the FSA: phi and its zonal part converge at 2nd order.
   solve_case(cdim, cells, true, use_gpu, &err_phi[0], &err_zonal[0], &norm_zonal[0]);
   solve_case(cdim, cells2, true, use_gpu, &err_phi[1], &err_zonal[1], &norm_zonal[1]);
-  double ratio_phi = err_phi[0]/err_phi[1], ratio_zonal = err_zonal[0]/err_zonal[1];
-  if (verbose())
-    printf("\nFSA: phi err %.4e %.4e (ratio %.3f), zonal err %.4e %.4e (ratio %.3f), zonal norm %.4e\n",
-      err_phi[0], err_phi[1], ratio_phi, err_zonal[0], err_zonal[1], ratio_zonal, norm_zonal[1]);
-  TEST_CHECK( ratio_phi >= 3.5 );
+  double ratio_phi = err_phi[0] / err_phi[1], ratio_zonal = err_zonal[0] / err_zonal[1];
+  if (verbose()) {
+    printf(
+      "\nFSA: phi err %.4e %.4e (ratio %.3f), zonal err %.4e %.4e (ratio %.3f), zonal norm %.4e\n",
+      err_phi[0], err_phi[1], ratio_phi, err_zonal[0], err_zonal[1], ratio_zonal, norm_zonal[1]
+    );
+  }
+  TEST_CHECK(ratio_phi >= 3.5);
   TEST_MSG("phi L2 error ratio (2x refinement) = %.4f", ratio_phi);
-  TEST_CHECK( ratio_zonal >= 3.5 );
+  TEST_CHECK(ratio_zonal >= 3.5);
   TEST_MSG("zonal L2 error ratio (2x refinement) = %.4f", ratio_zonal);
-  TEST_CHECK( err_zonal[1] < 1e-2*norm_zonal[1] );
-  TEST_MSG("zonal relative L2 error = %.4e", err_zonal[1]/norm_zonal[1]);
+  TEST_CHECK(err_zonal[1] < 1e-2 * norm_zonal[1]);
+  TEST_MSG("zonal relative L2 error = %.4e", err_zonal[1] / norm_zonal[1]);
 
   // Without the FSA the zonal part is damped by pi^2/(pi^2+K).
   solve_case(cdim, cells, false, use_gpu, &err_phi[0], &err_zonal[0], &norm_zonal[0]);
   solve_case(cdim, cells2, false, use_gpu, &err_phi[1], &err_zonal[1], &norm_zonal[1]);
-  ratio_zonal = err_zonal[0]/err_zonal[1];
-  if (verbose())
-    printf("no FSA: zonal err %.4e %.4e (ratio %.3f), zonal norm %.4e\n",
-      err_zonal[0], err_zonal[1], ratio_zonal, norm_zonal[1]);
-  TEST_CHECK( ratio_zonal >= 3.5 );
+  ratio_zonal = err_zonal[0] / err_zonal[1];
+  if (verbose()) {
+    printf(
+      "no FSA: zonal err %.4e %.4e (ratio %.3f), zonal norm %.4e\n", err_zonal[0], err_zonal[1],
+      ratio_zonal, norm_zonal[1]
+    );
+  }
+  TEST_CHECK(ratio_zonal >= 3.5);
   TEST_MSG("damped zonal L2 error ratio (2x refinement) = %.4f", ratio_zonal);
-  TEST_CHECK( err_zonal[1] < 1e-2*norm_zonal[1] );
-  TEST_MSG("damped zonal relative L2 error = %.4e", err_zonal[1]/norm_zonal[1]);
+  TEST_CHECK(err_zonal[1] < 1e-2 * norm_zonal[1]);
+  TEST_MSG("damped zonal relative L2 error = %.4e", err_zonal[1] / norm_zonal[1]);
 }
 
-void test_2x_p1() { test_adiabatic(2, false); }
-void test_3x_p1() { test_adiabatic(3, false); }
+void
+test_2x_p1()
+{
+  test_adiabatic(2, false);
+}
+void
+test_3x_p1()
+{
+  test_adiabatic(3, false);
+}
 
 #ifdef GKYL_HAVE_CUDA
-void gpu_test_2x_p1() { test_adiabatic(2, true); }
-void gpu_test_3x_p1() { test_adiabatic(3, true); }
+void
+gpu_test_2x_p1()
+{
+  test_adiabatic(2, true);
+}
+void
+gpu_test_3x_p1()
+{
+  test_adiabatic(3, true);
+}
 #endif
 
 TEST_LIST = {
-  { "test_2x_p1", test_2x_p1 },
-  { "test_3x_p1", test_3x_p1 },
+  {"test_2x_p1", test_2x_p1},
+  {"test_3x_p1", test_3x_p1},
 #ifdef GKYL_HAVE_CUDA
-  { "gpu_test_2x_p1", gpu_test_2x_p1 },
-  { "gpu_test_3x_p1", gpu_test_3x_p1 },
+  {"gpu_test_2x_p1", gpu_test_2x_p1},
+  {"gpu_test_3x_p1", gpu_test_3x_p1},
 #endif
-  { NULL, NULL },
+  {NULL, NULL}
 };
