@@ -30,8 +30,9 @@ int gkyl_header_meta_read_fp(struct gkyl_array_header_info *hdr, FILE *fp);
  * @param hrd Header data.
  * @return Status flag: 0 if write succeeded, 'errno' otherwise
  */
-int gkyl_grid_sub_array_header_write_fp(const struct gkyl_rect_grid *grid,
-  const struct gkyl_array_header_info *hdr, FILE *fp);
+int gkyl_grid_sub_array_header_write_fp(
+  const struct gkyl_rect_grid *grid, const struct gkyl_array_header_info *hdr, FILE *fp
+);
 
 /**
  * Read grid and array data header data from file. Note that only
@@ -47,8 +48,9 @@ int gkyl_grid_sub_array_header_write_fp(const struct gkyl_rect_grid *grid,
  * @param hrd On output, Header data.
  * @return Status flag: 0 if read succeeded, 'errno' otherwise
  */
-int gkyl_grid_sub_array_header_read_fp(struct gkyl_rect_grid *grid,
-  struct gkyl_array_header_info *hdr, FILE *fp);
+int gkyl_grid_sub_array_header_read_fp(
+  struct gkyl_rect_grid *grid, struct gkyl_array_header_info *hdr, FILE *fp
+);
 
 /**
  * Release memory for header.

@@ -12,9 +12,9 @@
 #include <gkyl_util.h>
 
 // "Choose Kernel" based on cdim and polyorder
-#define CK(lst,cdim,poly_order) lst[cdim-1].kernels[poly_order]
+#define CK(lst, cdim, poly_order) lst[cdim - 1].kernels[poly_order]
 
-void 
+void
 gkyl_dg_euler_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_dg_eqn *base = container_of(ref, struct gkyl_dg_eqn, ref_count);
@@ -26,7 +26,7 @@ gkyl_dg_euler_free(const struct gkyl_ref_count *ref)
     // free inner on_dev object
     struct dg_euler *euler_cu = container_of(base->on_dev, struct dg_euler, eqn);
     gkyl_cu_free(euler_cu);
-  }  
+  }
   gkyl_free(euler);
 }
 
@@ -47,14 +47,16 @@ gkyl_euler_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_euler_aux
   euler->auxfields.p_surf = auxin.p_surf;
 }
 
-struct gkyl_dg_eqn*
-gkyl_dg_euler_new(const struct gkyl_basis* cbasis, const struct gkyl_range* conf_range,
-  const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_geom *geom, bool use_gpu)
+struct gkyl_dg_eqn *
+gkyl_dg_euler_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range,
+  const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_geom *geom, bool use_gpu
+)
 {
 #ifdef GKYL_HAVE_CUDA
-  if(use_gpu) {
+  if (use_gpu) {
     return gkyl_dg_euler_cu_dev_new(cbasis, conf_range, wv_eqn, geom);
-  } 
+  }
 #endif
   struct dg_euler *euler = gkyl_malloc(sizeof(struct dg_euler));
 
@@ -81,8 +83,8 @@ gkyl_dg_euler_new(const struct gkyl_basis* cbasis, const struct gkyl_range* conf
 
     default:
       assert(false);
-      break;    
-  }  
+      break;
+  }
 
   euler->eqn_type = wv_eqn->type;
   euler->eqn.num_equations = wv_eqn->num_equations;
@@ -96,33 +98,39 @@ gkyl_dg_euler_new(const struct gkyl_basis* cbasis, const struct gkyl_range* conf
   euler->eqn.vol_term = CK(vol_kernels, cdim, poly_order);
 
   euler->surf[0] = CK(surf_x_kernels, cdim, poly_order);
-  if (cdim>1)
+  if (cdim > 1) {
     euler->surf[1] = CK(surf_y_kernels, cdim, poly_order);
-  if (cdim>2)
+  }
+  if (cdim > 2) {
     euler->surf[2] = CK(surf_z_kernels, cdim, poly_order);
+  }
 
-  // ensure non-NULL pointers 
-  for (int i=0; i<cdim; ++i) assert(euler->surf[i]);
+  // ensure non-NULL pointers
+  for (int i = 0; i < cdim; ++i) {
+    assert(euler->surf[i]);
+  }
 
-  euler->auxfields.u = 0;  
-  euler->auxfields.p = 0;  
-  euler->auxfields.u_surf = 0;  
-  euler->auxfields.p_surf = 0;  
+  euler->auxfields.u = 0;
+  euler->auxfields.p = 0;
+  euler->auxfields.u_surf = 0;
+  euler->auxfields.p_surf = 0;
   euler->conf_range = *conf_range;
-  
+
   euler->eqn.flags = 0;
   GKYL_CLEAR_CU_ALLOC(euler->eqn.flags);
   euler->eqn.ref_count = gkyl_ref_count_init(gkyl_dg_euler_free);
   euler->eqn.on_dev = &euler->eqn; // CPU eqn obj points to itself
-  
+
   return &euler->eqn;
 }
 
 #ifndef GKYL_HAVE_CUDA
 
-struct gkyl_dg_eqn*
-gkyl_dg_euler_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_range* conf_range,
-  const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_geom *geom)
+struct gkyl_dg_eqn *
+gkyl_dg_euler_cu_dev_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range,
+  const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_geom *geom
+)
 {
   assert(false);
   return 0;

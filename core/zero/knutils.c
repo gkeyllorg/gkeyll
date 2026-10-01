@@ -22,7 +22,7 @@ kn_vec_free(const struct gkyl_ref_count *ref)
   gkyl_free(vec);
 }
 
-struct gkyl_kn_vec*
+struct gkyl_kn_vec *
 gkyl_kn_vec_new(int nvec, int N)
 {
   struct gkyl_kn_vec *vec = gkyl_malloc(sizeof(*vec));
@@ -31,12 +31,13 @@ gkyl_kn_vec_new(int nvec, int N)
   vec->flags = 0;
   vec->on_dev = 0;
 
-  vec->vals = gkyl_malloc(nvec * sizeof(float*));
+  vec->vals = gkyl_malloc(nvec * sizeof(float *));
   vec->data = gkyl_calloc(nvec * N, sizeof(float));
 
   vec->vals[0] = &vec->data[0];
-  for (int i = 1; i < nvec; ++i)
-    vec->vals[i] = vec->vals[i-1] + N;
+  for (int i = 1; i < nvec; ++i) {
+    vec->vals[i] = vec->vals[i - 1] + N;
+  }
 
   vec->ref_count = gkyl_ref_count_init(kn_vec_free);
 
@@ -45,7 +46,7 @@ gkyl_kn_vec_new(int nvec, int N)
 
 #ifdef GKYL_HAVE_CUDA
 
-struct gkyl_kn_vec*
+struct gkyl_kn_vec *
 gkyl_kn_vec_cu_dev_new(int nvec, int N)
 {
   struct gkyl_kn_vec *vec = gkyl_malloc(sizeof(*vec));
@@ -61,15 +62,14 @@ gkyl_kn_vec_cu_dev_new(int nvec, int N)
 
   // device-resident struct clone
   vec->on_dev = gkyl_cu_malloc(sizeof(struct gkyl_kn_vec));
-  gkyl_cu_memcpy(vec->on_dev, vec, sizeof(struct gkyl_kn_vec),
-    GKYL_CU_MEMCPY_H2D);
+  gkyl_cu_memcpy(vec->on_dev, vec, sizeof(struct gkyl_kn_vec), GKYL_CU_MEMCPY_H2D);
 
   return vec;
 }
 
 #else
 
-struct gkyl_kn_vec*
+struct gkyl_kn_vec *
 gkyl_kn_vec_cu_dev_new(int nvec, int N)
 {
   assert(false);
@@ -78,7 +78,7 @@ gkyl_kn_vec_cu_dev_new(int nvec, int N)
 
 #endif
 
-struct gkyl_kn_vec*
+struct gkyl_kn_vec *
 gkyl_kn_vec_copy(struct gkyl_kn_vec *dest, const struct gkyl_kn_vec *src)
 {
   assert(dest->nvec == src->nvec);
@@ -89,15 +89,17 @@ gkyl_kn_vec_copy(struct gkyl_kn_vec *dest, const struct gkyl_kn_vec *src)
   bool src_is_cu = GKYL_IS_CU_ALLOC(src->flags);
 
   if (src_is_cu) {
-    if (dest_is_cu)
+    if (dest_is_cu) {
       gkyl_cu_memcpy(dest->data, src->data, nbytes, GKYL_CU_MEMCPY_D2D);
-    else
+    } else {
       gkyl_cu_memcpy(dest->data, src->data, nbytes, GKYL_CU_MEMCPY_D2H);
+    }
   } else {
-    if (dest_is_cu)
+    if (dest_is_cu) {
       gkyl_cu_memcpy(dest->data, src->data, nbytes, GKYL_CU_MEMCPY_H2D);
-    else
+    } else {
       memcpy(dest->data, src->data, nbytes);
+    }
   }
 
   return dest;
@@ -109,11 +111,11 @@ gkyl_kn_vec_is_cu_dev(const struct gkyl_kn_vec *vec)
   return GKYL_IS_CU_ALLOC(vec->flags);
 }
 
-struct gkyl_kn_vec*
+struct gkyl_kn_vec *
 gkyl_kn_vec_acquire(const struct gkyl_kn_vec *vec)
 {
   gkyl_ref_count_inc(&vec->ref_count);
-  return (struct gkyl_kn_vec*) vec;
+  return (struct gkyl_kn_vec *)vec;
 }
 
 void

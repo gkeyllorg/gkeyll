@@ -6,8 +6,7 @@
 
 #include <gkyl_amr_core.h>
 
-struct amr_euler_riem_2d_ctx
-{
+struct amr_euler_riem_2d_ctx {
   // Physical constants (using normalized code units).
   double gas_gamma; // Adiabatic index.
 
@@ -20,7 +19,7 @@ struct amr_euler_riem_2d_ctx
   double u_ur; // Upper right fluid x-velocity.
   double v_ur; // Upper right fluid y-velocity.
   double p_ur; // Upper left fluid pressure.
-  
+
   double rho_ll; // Lower left fluid mass density.
   double u_ll; // Lower left fluid x-velocity.
   double v_ll; // Lower left fluid y-velocity.
@@ -67,7 +66,7 @@ create_ctx(void)
   double u_ur = 0.0; // Upper-right fluid x-velocity.
   double v_ur = 0.0; // Upper-right fluid y-velocity.
   double p_ur = 1.5; // Upper-right fluid pressure.
-  
+
   double rho_ll = 0.138; // Lower-left fluid mass density.
   double u_ll = 1.206; // Lower-left fluid x-velocity.
   double v_ll = 1.206; // Lower-left fluid y-velocity.
@@ -138,7 +137,7 @@ create_ctx(void)
 }
 
 void
-evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalEulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   struct amr_euler_riem_2d_ctx new_ctx = create_ctx(); // Context for initialization functions.
@@ -179,38 +178,38 @@ evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
       u = u_ul; // Fluid x-velocity (upper-left).
       v = v_ul; // Fluid y-velocity (upper-left).
       p = p_ul; // Fluid pressure (upper-left).
-    }
-    else {
+    } else {
       rho = rho_ur; // Fluid mass density (upper-right).
       u = u_ur; // Fluid x-velocity (upper-right).
       v = v_ur; // Fluid y-velocity (upper-right).
       p = p_ur; // Fluid pressure (upper-right).
     }
-  }
-  else {
+  } else {
     if (x < loc) {
       rho = rho_ll; // Fluid mass density (lower-left).
       u = u_ll; // Fluid x-velocity (lower-left).
       v = v_ll; // Fluid y-velocity (lower-left).
       p = p_ll; // Fluid pressure (lower-left).
-    }
-    else {
+    } else {
       rho = rho_lr; // Fluid mass density (lower-right).
       u = u_lr; // Fluid x-velocity (lower-right).
       v = v_lr; // Fluid y-velocity (lower-right).
       p = p_lr; // Fluid pressure (lower-right).
     }
   }
-  
+
   // Set fluid mass density.
   fout[0] = rho;
   // Set fluid momentum density.
-  fout[1] = rho * u; fout[2] = rho * v; fout[3] = 0.0;
+  fout[1] = rho * u;
+  fout[2] = rho * v;
+  fout[3] = 0.0;
   // Set fluid total energy density.
   fout[4] = p / (gas_gamma - 1.0) + 0.5 * rho * (u * u + v * v);
 }
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
   struct amr_euler_riem_2d_ctx ctx = create_ctx(); // Context for initialization functions.
 

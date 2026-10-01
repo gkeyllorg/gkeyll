@@ -22,9 +22,9 @@ typedef struct gkyl_gyrokinetic_pol_density gkyl_gyrokinetic_pol_density;
  * @param use_gpu bool to determine if on GPU.
  * @return New polarization density updater pointer.
  */
-struct gkyl_gyrokinetic_pol_density*
-gkyl_gyrokinetic_pol_density_new(struct gkyl_basis cbasis, struct gkyl_rect_grid cgrid,
-  bool use_gpu);
+struct gkyl_gyrokinetic_pol_density *gkyl_gyrokinetic_pol_density_new(
+  struct gkyl_basis cbasis, struct gkyl_rect_grid cgrid, bool use_gpu
+);
 
 /**
  * Run the polarization density updater in the indicated range.
@@ -35,15 +35,15 @@ gkyl_gyrokinetic_pol_density_new(struct gkyl_basis cbasis, struct gkyl_rect_grid
  * @param phi Electrostatic potential (represented with a p+1 tensor basis).
  * @param npol Polarization density.
  */
-void
-gkyl_gyrokinetic_pol_density_advance(gkyl_gyrokinetic_pol_density* up,
-  const struct gkyl_range *conf_rng, const struct gkyl_array *GKYL_RESTRICT pol_weight,
-  const struct gkyl_array *GKYL_RESTRICT phi, struct gkyl_array *GKYL_RESTRICT npol);
+void gkyl_gyrokinetic_pol_density_advance(
+  gkyl_gyrokinetic_pol_density *up, const struct gkyl_range *conf_rng,
+  const struct gkyl_array *GKYL_RESTRICT pol_weight, const struct gkyl_array *GKYL_RESTRICT phi,
+  struct gkyl_array *GKYL_RESTRICT npol
+);
 
 /**
  * Release the memory associated with this polarization density updater.
  *
  * @param up Positivity shift updater.
  */
-void
-gkyl_gyrokinetic_pol_density_release(gkyl_gyrokinetic_pol_density* up);
+void gkyl_gyrokinetic_pol_density_release(gkyl_gyrokinetic_pol_density *up);

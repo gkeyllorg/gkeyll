@@ -28,8 +28,9 @@ struct gkyl_prim_cross_m0deltas {
  * @param out Output array.
  * @return New updater pointer.
  */
-void gkyl_prim_cross_m0deltas_advance_cu(gkyl_prim_cross_m0deltas *up,
-  double massself, const struct gkyl_array* m0self, const struct gkyl_array* nuself,
-  double massother, const struct gkyl_array* m0other, const struct gkyl_array* nuother,
-  struct gkyl_array* out);
+void gkyl_prim_cross_m0deltas_advance_cu(
+  gkyl_prim_cross_m0deltas *up, double massself, const struct gkyl_array *m0self,
+  const struct gkyl_array *nuself, double massother, const struct gkyl_array *m0other,
+  const struct gkyl_array *nuother, struct gkyl_array *out
+);
 #endif

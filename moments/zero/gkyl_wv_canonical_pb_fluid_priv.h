@@ -34,7 +34,8 @@ void gkyl_wv_can_pb_hasegawa_mima_free(const struct gkyl_ref_count *ref);
 struct wv_can_pb_hasegawa_wakatani {
   struct gkyl_wv_eqn eqn; // base object
   double alpha; // Adiabaticity parameter for adiabatic coupling of vorticity and density.
-  bool is_modified; // is_modified Boolean parameter for if we are doing the modified Hasegawa-Wakatani
+  bool
+    is_modified; // is_modified Boolean parameter for if we are doing the modified Hasegawa-Wakatani
 };
 
 /**

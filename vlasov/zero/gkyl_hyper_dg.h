@@ -22,10 +22,11 @@ typedef struct gkyl_hyper_dg gkyl_hyper_dg;
  * @param update_vol_term Set to 0 to skip volume update
  * @param use_gpu bool to determine if on GPU
  */
-gkyl_hyper_dg* gkyl_hyper_dg_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_basis *basis, const struct gkyl_dg_eqn *equation,
-  int num_up_dirs, int update_dirs[GKYL_MAX_DIM], int zero_flux_flags[2*GKYL_MAX_DIM],
-  int update_vol_term, bool use_gpu);
+gkyl_hyper_dg *gkyl_hyper_dg_new(
+  const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
+  const struct gkyl_dg_eqn *equation, int num_up_dirs, int update_dirs[GKYL_MAX_DIM],
+  int zero_flux_flags[2 * GKYL_MAX_DIM], int update_vol_term, bool use_gpu
+);
 
 /**
  * Compute RHS of DG update. The update_rng MUST be a sub-range of the
@@ -39,8 +40,10 @@ gkyl_hyper_dg* gkyl_hyper_dg_new(const struct gkyl_rect_grid *grid,
  * @param cflrate CFL scalar rate (frequency) array (units of 1/[T])
  * @param rhs RHS output
  */
-void gkyl_hyper_dg_advance(gkyl_hyper_dg *up, const struct gkyl_range *update_rng,
-  const struct gkyl_array *fIn, struct gkyl_array *cflrate, struct gkyl_array *rhs);
+void gkyl_hyper_dg_advance(
+  gkyl_hyper_dg *up, const struct gkyl_range *update_rng, const struct gkyl_array *fIn,
+  struct gkyl_array *cflrate, struct gkyl_array *rhs
+);
 
 /**
  * Compute RHS of DG generic stencil update.
@@ -57,9 +60,10 @@ void gkyl_hyper_dg_advance(gkyl_hyper_dg *up, const struct gkyl_range *update_rn
  * @param cflrate CFL scalar rate (frequency) array (units of 1/[T])
  * @param rhs RHS output
  */
-void gkyl_hyper_dg_gen_stencil_advance(gkyl_hyper_dg* up, const struct gkyl_range *update_rng,
-  const struct gkyl_array *fIn, struct gkyl_array *cflrate, 
-  struct gkyl_array *rhs);
+void gkyl_hyper_dg_gen_stencil_advance(
+  gkyl_hyper_dg *up, const struct gkyl_range *update_rng, const struct gkyl_array *fIn,
+  struct gkyl_array *cflrate, struct gkyl_array *rhs
+);
 
 /**
  * Set if volume term should be computed or not.
@@ -68,10 +72,10 @@ void gkyl_hyper_dg_gen_stencil_advance(gkyl_hyper_dg* up, const struct gkyl_rang
  * @param update_vol_term Set to 1 to update vol term, 0 otherwise
  */
 void gkyl_hyper_dg_set_update_vol(gkyl_hyper_dg *up, int update_vol_term);
-  
+
 /**
  * Delete updater.
  *
  * @param up Updater to delete.
  */
-void gkyl_hyper_dg_release(gkyl_hyper_dg* up);
+void gkyl_hyper_dg_release(gkyl_hyper_dg *up);
