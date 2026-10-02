@@ -1,0 +1,12 @@
+I'm trying to open up my Jenkins CI installation on perlmutter_cpu, following the directions in ci/jenkins/README.perlmutter_gpu. However, when I get to this step
+
+curl --fail --output /dev/null http://127.0.0.1:8084/login
+
+I get
+
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+curl: (7) Failed to connect to 127.0.0.1 port 8084 after 0 ms: Couldn't connect to server
+
+why?
