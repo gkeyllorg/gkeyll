@@ -233,6 +233,8 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app *app, double dt0)
             bflux_out_neut[i] = gkns->bflux.f1;
           }
 
+          gyrokinetic_calc_field_and_apply_bc(app, tcurr, fout, bflux_out, fout_neut);
+
           state = RK_STAGE_3;
         }
         break;

@@ -85,9 +85,11 @@ chmod 600 "$HOME/.config/gkeyll/jenkins/team-workstation.auth"
 
 ### Create the GitHub credential
 
-Create a short-lived GitHub token limited to commit-status access and add it as
-a Jenkins **Username with password** credential. The workflow uses it only to
-read PR metadata and publish status; source discovery and Git checkouts are
+Create a short-lived classic GitHub PAT with only the `public_repo` scope (or a
+fine-grained token with commit-status, pull-request, and contents write access
+to `gkeyllorg/gkeyll`) and add it as a Jenkins **Username with password**
+credential. The workflow uses it only to read PR metadata, publish the commit
+status, and post the CI report comment; source discovery and Git checkouts are
 anonymous. Revoke or replace it when workstation ownership changes.
 
 ### Configure the Jenkins node and global environment
@@ -106,7 +108,7 @@ toolchain, `cmake`, and Python/NumPy. Set these global environment variables:
 | `WORKSTATION_MPI_HOME` | Optional MPI installation path for both trees; default is each tree's `gkylsoft/openmpi` |
 | `TEAM_WORKSTATION_MPIEXEC` | Optional launcher override for both trees; default is `bin/mpiexec` under the selected MPI installation |
 | `TEAM_WORKSTATION_STATUS_CONTEXT` | Optional status context; default team-workstation |
-| `TEAM_WORKSTATION_TRUSTED_CI_REF` | Trusted workflow branch/SHA; production value `main` |
+| `TEAM_WORKSTATION_TRUSTED_CI_REF` | Trusted workflow branch/SHA; production value `main`. The CI report tool is loaded from this same checkout |
 
 The selected dependency script must pass `--build-adas=yes` to
 `install-deps/mkdeps.sh` so ADAS data is available before unit tests run.

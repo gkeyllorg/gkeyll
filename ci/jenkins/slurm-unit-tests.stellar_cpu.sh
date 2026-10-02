@@ -16,7 +16,7 @@ cd "$CI_WORKSPACE"
 . machines/module_load.stellar-intel.sh
 
 started="$(date +%s)"
-make unit-run
+GKYL_UNIT_RESULTS="$PWD/candidate-unit-results.txt" make unit-run
 elapsed="$(( $(date +%s) - started ))"
 printf '%s\n' "$elapsed" > unit-test-seconds.txt
 echo "Unit-test runtime: $elapsed seconds"

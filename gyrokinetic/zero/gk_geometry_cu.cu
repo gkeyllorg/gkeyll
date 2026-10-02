@@ -596,10 +596,10 @@ gkyl_gk_geometry_cu_dev_new(struct gk_geometry *geo_host, struct gkyl_gk_geometr
   }
 
   // Function pointers to twistshift function.
-  up->parallel_lower_bc_shift_func = geometry_inp->parallel_lower_bc_shift_func;
-  up->parallel_upper_bc_shift_func = geometry_inp->parallel_upper_bc_shift_func;
-  up->parallel_lower_bc_shift_ctx = geometry_inp->parallel_lower_bc_shift_ctx;
-  up->parallel_upper_bc_shift_ctx = geometry_inp->parallel_upper_bc_shift_ctx;
+  up->lower_shift_func = geometry_inp->lower_shift_func;
+  up->upper_shift_func = geometry_inp->upper_shift_func;
+  up->lower_shift_ctx = geometry_inp->lower_shift_ctx;
+  up->upper_shift_ctx = geometry_inp->upper_shift_ctx;
 
   struct gk_geom_corn *geo_corn_dev = gk_geometry_corn_cu_dev_alloc(geo_host->geo_corn);
   struct gk_geom_int *geo_int_dev = gk_geometry_int_cu_dev_alloc(geo_host->geo_int);
