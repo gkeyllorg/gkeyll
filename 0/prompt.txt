@@ -1,0 +1,5 @@
+Our machines/ folder has configure and mkdeps scripts for installing Gkeyll on various machines. A couple of them have
+  a separate file, module_load.<machine_name>.sh, which loads the file. Can you replicate this model and ensure that
+  stellar-amd, stellar-intel, della-cpu, della-gpu, perlmutter-cpu, perlmutter-gpu all have and use the module_load
+  file? also change the jobScript files so they load modules by sourcing the module_load file (and if they load
+  anaconda/python, unload it after sourcing module_load files in the jobScript)
