@@ -1,0 +1,21 @@
+Commit 44790bc5b8607de8fc09781d65fdd7a25533ed55 introduced some issues. Even when I don't use the low-pass filter, there are some serious particle conservation issues. Particle conservation is exact in this codebase. Something must have been wrong with these changes. Think carefully and slowly to diagnose the issue
+
+---
+
+<send_user_message_question_reply>
+[{"answer":"My case is on the cluster, but it's a single block RK stepper. Also, the changes are relevant to the branch low-pass-filter","question":"Which input file and run configuration showed the loss (serial or MPI, CPU or GPU)? I’ve found a defect in the single-block RK stepper and can check it against your case.","questionItemId":"[\"request_user_input_async\",\"REDACTED\",0]"}]
+</send_user_message_question_reply>
+
+---
+
+<send_user_message_question_reply>
+[{"answer":"My case is on the cluster, but it's a single block RK stepper. Also, the changes are relevant to the branch low-pass-filter","question":"Which input file and run configuration showed the loss (serial or MPI, CPU or GPU)? I’ve found a defect in the single-block RK stepper and can check it against your case.","questionItemId":"[\"request_user_input_async\",\"REDACTED\",0]"}]
+</send_user_message_question_reply>
+
+---
+
+I git checkout low-pass-filter. Apply the appropriate fix here
+
+---
+
+I git checkout low-pass-filter. Apply the appropriate fix here
