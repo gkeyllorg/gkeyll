@@ -1,0 +1,7 @@
+<environment_context>
+  <cwd>/Users/mfrancis/Documents/gkeyll/code/gkeyll_v1/gkeyll</cwd>
+  <shell>bash</shell>
+  <current_date>2026-09-09</current_date>
+  <timezone>America/Phoenix</timezone>
+  <filesystem><workspace_roots><root>/Users/mfrancis/Documents/gkeyll/code/gkeyll_v1/gkeyll</root></workspace_roots><permission_profile type="managed"><file_system type="restricted"><entry access="read"><special>:root</special></entry><entry access="write"><path>/Users/mfrancis/Documents/gkeyll/code/gkeyll_v1/gkeyll</path></entry><entry access="write"><special>:slash_tmp</special></entry><entry access="write"><special>:tmpdir</special></entry><entry access="read"><path>/Users/mfrancis/Documents/gkeyll/code/gkeyll_v1/gkeyll/.git</path></entry><entry access="read"><path>/Users/mfrancis/Documents/gkeyll/code/gkeyll_v1/gkeyll/.agents</path></entry><entry access="read"><path>/Users/mfrancis/Documents/gkeyll/code/gkeyll_v1/gkeyll/.codex</path></entry></file_system></permission_profile></filesystem>
+</environment_context>
