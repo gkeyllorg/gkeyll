@@ -55,7 +55,7 @@ gkyl_calc_metric_mirror_advance(
 )
 {
   enum { PSI_IDX, AL_IDX, TH_IDX }; // Arrangement of computational coordinates.
-  enum { R_IDX, Z_IDX, PHI_IDX }; // Arrangement of cartesian coordinates.
+  enum { R_IDX, Z_IDX, PHI_IDX }; // Arrangement of cylindrical coordinates.
   int cidx[3];
   for (int ia = gk_geom->nrange_corn.lower[AL_IDX]; ia <= gk_geom->nrange_corn.upper[AL_IDX];
        ++ia) {
@@ -126,7 +126,7 @@ gkyl_calc_metric_mirror_advance_interior(
 )
 {
   enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
-  enum { R_IDX, Z_IDX, PHI_IDX }; // arrangement of cartesian coordinates
+  enum { R_IDX, Z_IDX, PHI_IDX }; // arrangement of cylindrical coordinates
   int cidx[3];
   for (int ia = gk_geom->nrange_int.lower[AL_IDX]; ia <= gk_geom->nrange_int.upper[AL_IDX]; ++ia) {
     for (int ip = gk_geom->nrange_int.lower[PSI_IDX]; ip <= gk_geom->nrange_int.upper[PSI_IDX];
@@ -158,6 +158,8 @@ gkyl_calc_metric_mirror_advance_interior(
         double *bcartFld_n = gkyl_array_fetch(
           gk_geom->geo_int.bcart_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx)
         );
+        double *biFld_n =
+          gkyl_array_fetch(gk_geom->geo_int.b_i_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
         double *tanvecFld_n =
           gkyl_array_fetch(gk_geom->geo_int.dxdz_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
         double *dualFld_n =
@@ -236,14 +238,14 @@ gkyl_calc_metric_mirror_advance_interior(
         double phi = mc2p_n[PHI_IDX];
         double J = jFld_n[0];
 
-        // Calculate cartesian components of bhat
-        double bi[3];
-        bi[0] = gFld_n[2] / sqrt(gFld_n[5]);
-        bi[1] = gFld_n[4] / sqrt(gFld_n[5]);
-        bi[2] = gFld_n[5] / sqrt(gFld_n[5]);
-        bcartFld_n[0] = dualFld_n[0] * bi[0] + dualFld_n[3] * bi[1] + dualFld_n[6] * bi[2];
-        bcartFld_n[1] = dualFld_n[1] * bi[0] + dualFld_n[4] * bi[1] + dualFld_n[7] * bi[2];
-        bcartFld_n[2] = dualFld_n[2] * bi[0] + dualFld_n[5] * bi[1] + dualFld_n[8] * bi[2];
+        // Use the magnetic vector: bhat can oppose the third coordinate tangent.
+        for (int i = 0; i < 3; ++i) {
+          bcartFld_n[i] = B_cart.x[i] / bmag_n[0];
+        }
+        for (int i = 0; i < 3; ++i) {
+          biFld_n[i] = tanvecFld_n[3 * i] * bcartFld_n[0] + tanvecFld_n[3 * i + 1] * bcartFld_n[1] +
+                       tanvecFld_n[3 * i + 2] * bcartFld_n[2];
+        }
 
         double norm1 = sqrt(
           dualFld_n[0] * dualFld_n[0] + dualFld_n[1] * dualFld_n[1] + dualFld_n[2] * dualFld_n[2]
@@ -281,20 +283,21 @@ gkyl_calc_metric_mirror_advance_interior(
                             dualFld_n[8] * curlbhat_n[2];
 
         // Set e^3 \dot B
-        B3_n[0] = bmag_n[0] / sqrt(gFld_n[5]);
+        B3_n[0] =
+          dualFld_n[6] * B_cart.x[0] + dualFld_n[7] * B_cart.x[1] + dualFld_n[8] * B_cart.x[2];
 
-        // set e^3 \dot B /|B|
+        // Set e^m \dot curl(bhat)/|B|.
         dualcurlbhatoverB_n[0] = dualcurlbhat_n[0] / bmag_n[0];
         dualcurlbhatoverB_n[1] = dualcurlbhat_n[1] / bmag_n[0];
         dualcurlbhatoverB_n[2] = dualcurlbhat_n[2] / bmag_n[0];
 
-        // set B^3/B = 1/sqrt(g_33)
-        rtg33inv_n[0] = 1.0 / sqrt(gFld_n[5]);
+        // Signed B^3/|B| controls streaming along the third coordinate.
+        rtg33inv_n[0] = B3_n[0] / bmag_n[0];
 
         // set b_i/JB
-        bioverJB_n[0] = gFld_n[2] / sqrt(gFld_n[5]) / J / bmag_n[0];
-        bioverJB_n[1] = gFld_n[4] / sqrt(gFld_n[5]) / J / bmag_n[0];
-        bioverJB_n[2] = gFld_n[5] / sqrt(gFld_n[5]) / J / bmag_n[0];
+        for (int i = 0; i < 3; ++i) {
+          bioverJB_n[i] = biFld_n[i] / (J * bmag_n[0]);
+        }
       }
     }
   }
@@ -364,7 +367,7 @@ gkyl_calc_metric_mirror_advance_surface(
 )
 {
   enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
-  enum { R_IDX, Z_IDX, PHI_IDX }; // arrangement of cartesian coordinates
+  enum { R_IDX, Z_IDX, PHI_IDX }; // arrangement of cylindrical coordinates
   int cidx[3];
   for (int ia = gk_geom->nrange_surf[dir].lower[AL_IDX];
        ia <= gk_geom->nrange_surf[dir].upper[AL_IDX]; ++ia) {
@@ -484,11 +487,16 @@ gkyl_calc_metric_mirror_advance_surface(
         double J = jFld_n[0];
         double phi = mc2p_n[PHI_IDX];
 
-        // Calculate cmag, bi, and jtot_inv
-        biFld_n[0] = gFld_n[2] / sqrt(gFld_n[5]);
-        biFld_n[1] = gFld_n[4] / sqrt(gFld_n[5]);
-        biFld_n[2] = gFld_n[5] / sqrt(gFld_n[5]);
+        // Calculate bhat and its covariant components from the magnetic vector.
+        for (int i = 0; i < 3; ++i) {
+          bcartFld_n[i] = B_cart.x[i] / bmag_n[0];
+        }
+        for (int i = 0; i < 3; ++i) {
+          biFld_n[i] = tanvecFld_n[3 * i] * bcartFld_n[0] + tanvecFld_n[3 * i + 1] * bcartFld_n[1] +
+                       tanvecFld_n[3 * i + 2] * bcartFld_n[2];
+        }
 
+        // cmag is a magnitude; reversing B leaves it and J|B| unchanged.
         cmagFld_n[0] = jFld_n[0] * bmag_n[0] / sqrt(gFld_n[5]);
         double *jtotinvFld_n = gkyl_array_fetch(
           gk_geom->geo_surf[dir].jacobtot_inv_nodal,
@@ -527,7 +535,8 @@ gkyl_calc_metric_mirror_advance_surface(
         lenr_n[0] = J * dualmagFld_n[dir];
 
         // Set n^3 \dot B
-        B3_n[0] = bmag_n[0] / sqrt(gFld_n[5]) / norm3;
+        B3_n[0] =
+          normFld_n[6] * B_cart.x[0] + normFld_n[7] * B_cart.x[1] + normFld_n[8] * B_cart.x[2];
 
         // Set n^m \dot curl(bhat)
         normcurlbhat_n[0] = normFld_n[3 * dir + 0] * curlbhat_n[0] +

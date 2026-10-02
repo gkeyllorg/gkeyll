@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <unistd.h>
 #include <acutest.h>
 #include <gkyl_array.h>
 #include <gkyl_array_rio.h>
@@ -84,7 +85,7 @@ write_geometry(
 }
 
 void
-test_mirror_load_geometry_ho()
+test_mirror_load_geometry_ho(void)
 {
   struct gkyl_efit_inp inp = {
     // psiRZ and related inputs
@@ -232,7 +233,7 @@ bmag_func(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
 }
 
 void
-test_mirror_3x_p1_straight_cylinder_ho()
+test_mirror_3x_p1_straight_cylinder_ho(void)
 {
   // Very similar to the unit test in ctest_gk_geometry.c
   // The geometry is created to extend from Z = -1 to 1, R = (0.001, 1) in units meters
@@ -1067,7 +1068,7 @@ exact_normals_pmap(double t, const double *xn, double *GKYL_RESTRICT fout, void 
 }
 
 void
-test_mirror_3x_p1_pmap_straight_cylinder_ho()
+test_mirror_3x_p1_pmap_straight_cylinder_ho(void)
 {
   // Same as the above test, but using a quadratic position map
   struct gkyl_basis basis;
@@ -1567,9 +1568,253 @@ test_mirror_3x_p1_pmap_straight_cylinder_ho()
   gkyl_gk_geometry_release(gk_geom);
 }
 
+struct mirror_direction_map {
+  double shift, scale, curvature;
+};
+
+static void
+mirror_direction_map(double t, const double *xn, double *out, void *ctx)
+{
+  const struct mirror_direction_map *map = ctx;
+  out[0] = map->shift + xn[0] * (map->scale + map->curvature * xn[0]);
+}
+
+static void
+mirror_direction_map_deriv(double t, const double *xn, double *out, void *ctx)
+{
+  const struct mirror_direction_map *map = ctx;
+  out[0] = map->scale + 2.0 * map->curvature * xn[0];
+}
+
+// Check the assembled geometry, including the modal fields after the generic
+// derived-geometry updater has run. That updater assumes bhat is along +e_3.
+static void
+check_mirror_field_direction(double curvature)
+{
+  const double strength = 2.7;
+  struct gkyl_rect_grid psi_grid;
+  gkyl_rect_grid_init(&psi_grid, 2, (double[]){0.0, -1.0}, (double[]){1.0, 1.0}, (int[]){9, 17});
+  struct gkyl_range psi_range;
+  gkyl_range_init_from_shape(&psi_range, 2, psi_grid.cells);
+  struct gkyl_array *psi = gkyl_array_new(GKYL_DOUBLE, 1, psi_range.volume);
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &psi_range);
+  while (gkyl_range_iter_next(&iter)) {
+    double radius = iter.idx[0] / 8.0, height = -1.0 + iter.idx[1] / 8.0;
+    double *value = gkyl_array_fetch(psi, gkyl_range_idx(&psi_range, iter.idx));
+    value[0] = 0.5 * strength * radius * radius * (1.0 + curvature * height * height);
+  }
+  char filename[] = "/tmp/ctest_gk_geometry_mirror_XXXXXX";
+  int fd = mkstemp(filename);
+  TEST_ASSERT(fd >= 0);
+  close(fd);
+  TEST_ASSERT(
+    gkyl_grid_sub_array_write(&psi_grid, &psi_range, 0, psi, filename) == GKYL_ARRAY_RIO_SUCCESS
+  );
+  gkyl_array_release(psi);
+
+  for (int sqrt_psi = 0; sqrt_psi < 2; ++sqrt_psi) {
+    for (int mapped = 0; mapped < 2; ++mapped) {
+      struct gkyl_rect_grid grid;
+      gkyl_rect_grid_init(
+        &grid, 3, (double[]){0.04, -0.4, -0.6}, (double[]){0.22, 0.4, 0.6}, (int[]){2, 2, 3}
+      );
+      struct gkyl_range local, ext;
+      gkyl_create_grid_ranges(&grid, (int[]){1, 1, 1}, &ext, &local);
+      struct gkyl_basis basis;
+      gkyl_cart_modal_serendip(&basis, 3, 1);
+      struct mirror_direction_map maps[3] = {
+        {0.01, 0.8, 0.07}, {0.08, 1.1, 0.08}, {-0.03, 0.9, 0.13}
+      };
+      struct gkyl_position_map *pmap = gkyl_position_map_null_new();
+      for (int dim = 0; dim < 3; ++dim) {
+        if (!mapped) {
+          maps[dim] = (struct mirror_direction_map){0.0, 1.0, 0.0};
+        }
+        pmap->maps[dim] = mirror_direction_map;
+        pmap->map_derivs[dim] = mirror_direction_map_deriv;
+        pmap->ctxs[dim] = &maps[dim];
+      }
+      pmap->use_map_derivs = true;
+      struct gkyl_gk_geometry_inp inp = {
+        .geometry_id = GKYL_GEOMETRY_MIRROR,
+        .mirror_grid_info =
+          {
+            .fl_coord = sqrt_psi ? GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z :
+                                   GKYL_GEOMETRY_MIRROR_GRID_GEN_PSI_CART_Z,
+          },
+        .position_map = pmap,
+        .grid = grid,
+        .local = local,
+        .local_ext = ext,
+        .global = local,
+        .global_ext = ext,
+        .basis = basis,
+        .geo_grid = grid,
+        .geo_local = local,
+        .geo_local_ext = ext,
+        .geo_global = local,
+        .geo_global_ext = ext,
+        .geo_basis = basis,
+      };
+      snprintf(
+        inp.mirror_grid_info.filename_psi, sizeof inp.mirror_grid_info.filename_psi, "%s", filename
+      );
+      struct gk_geometry *geom = gkyl_gk_geometry_mirror_new(&inp);
+      TEST_ASSERT(geom != NULL);
+      struct gkyl_nodal_ops *ops = gkyl_nodal_ops_new(&basis, &grid, false);
+
+      for (int kind = -1; kind < 3; ++kind) {
+        bool surface = kind >= 0;
+        struct gk_geom_int *vol = &geom->geo_int;
+        struct gk_geom_surf *face = surface ? &geom->geo_surf[kind] : NULL;
+        const struct gkyl_range *nodes = surface ? &geom->nrange_surf[kind] : &geom->nrange_int;
+        enum { BMAG, BCART, BI, B3, CURL, CURL_PROJ, CURL_OVER_B, BPAR, BI_OVER_JB, CMAG, NFIELDS };
+        struct {
+          const char *name;
+          int ncomp;
+          const struct gkyl_array *nodal, *modal;
+          struct gkyl_array *recovered;
+        } fields[NFIELDS] = {
+          {"bmag", 1, surface ? face->bmag_nodal : vol->bmag_nodal, surface ? face->bmag : vol->bmag
+          },
+          {"bcart", 3, surface ? face->bcart_nodal : vol->bcart_nodal, surface ? NULL : vol->bcart},
+          {"b_i", 3, surface ? face->b_i_nodal : vol->b_i_nodal, surface ? face->b_i : vol->b_i},
+          {"B3", 1, surface ? face->B3_nodal : vol->B3_nodal, surface ? face->B3 : vol->B3},
+          {"curlbhat", 3, surface ? face->curlbhat_nodal : vol->curlbhat_nodal, NULL},
+          {"projected curl", surface ? 1 : 3,
+           surface ? face->normcurlbhat_nodal : vol->dualcurlbhat_nodal,
+           surface ? face->normcurlbhat : vol->dualcurlbhat},
+          {"dualcurlbhatoverB", 3, surface ? NULL : vol->dualcurlbhatoverB_nodal,
+           surface ? NULL : vol->dualcurlbhatoverB},
+          {"rtg33inv", 1, surface ? NULL : vol->rtg33inv_nodal, surface ? NULL : vol->rtg33inv},
+          {"bioverJB", 3, surface ? NULL : vol->bioverJB_nodal, surface ? NULL : vol->bioverJB},
+          {"cmag", 1, surface ? face->cmag_nodal : NULL, surface ? face->cmag : vol->cmag}
+        };
+        struct gkyl_range update = local;
+        if (surface) {
+          int upper[3];
+          gkyl_copy_int_arr(3, local.upper, upper);
+          upper[kind]++;
+          gkyl_sub_range_init(&update, &ext, local.lower, upper);
+        }
+        for (int field = 0; field < NFIELDS; ++field) {
+          if (fields[field].modal) {
+            fields[field].recovered =
+              gkyl_array_new(GKYL_DOUBLE, fields[field].ncomp, nodes->volume);
+            if (surface) {
+              gkyl_nodal_ops_m2n_surface(
+                ops, &geom->surf_basis, &grid, nodes, &update, fields[field].ncomp,
+                fields[field].recovered, fields[field].modal, kind
+              );
+            } else {
+              gkyl_nodal_ops_m2n(
+                ops, &basis, &grid, nodes, &update, fields[field].ncomp, fields[field].recovered,
+                fields[field].modal, true
+              );
+            }
+          }
+        }
+
+        gkyl_range_iter_init(&iter, nodes);
+        while (gkyl_range_iter_next(&iter)) {
+          double mapped_x[3], slope[3];
+          for (int dim = 0; dim < 3; ++dim) {
+            double lower = grid.lower[dim], upper = grid.upper[dim];
+            if (dim == 0 && sqrt_psi) {
+              lower = sqrt(lower);
+              upper = sqrt(upper);
+            }
+            int node = iter.idx[dim] - nodes->lower[dim];
+            double offset =
+              dim == kind ? node : node / 2 + 0.5 * (1.0 + (node % 2 ? 1.0 : -1.0) / sqrt(3.0));
+            double xc = lower + (upper - lower) * offset / grid.cells[dim];
+            mirror_direction_map(0.0, &xc, &mapped_x[dim], &maps[dim]);
+            mirror_direction_map_deriv(0.0, &xc, &slope[dim], &maps[dim]);
+          }
+          double flux = sqrt_psi ? mapped_x[0] * mapped_x[0] : mapped_x[0];
+          double height = mapped_x[2], phi = mapped_x[1];
+          double factor = 1.0 + curvature * height * height;
+          double radius = sqrt(2.0 * flux / (strength * factor));
+          double br = -curvature * radius * height, norm = sqrt(br * br + factor * factor);
+          double radial_scale = slope[0] * (sqrt_psi ? 2.0 * mapped_x[0] : 1.0);
+          double jac = radial_scale * slope[1] * slope[2] / (strength * factor);
+          double curl_phi = -curvature * radius * factor *
+                            (1.0 - 2.0 * curvature * height * height) / (norm * norm * norm);
+          double expected[NFIELDS][3] = {0};
+          expected[BMAG][0] = strength * norm;
+          expected[BCART][0] = br * cos(phi) / norm;
+          expected[BCART][1] = br * sin(phi) / norm;
+          expected[BCART][2] = factor / norm;
+          expected[BI][0] = -radial_scale * curvature * height / (strength * factor * norm);
+          expected[BI][2] = slope[2] * norm / factor;
+          expected[B3][0] = strength * factor / (surface ? 1.0 : slope[2]);
+          expected[CURL][0] = -curl_phi * sin(phi);
+          expected[CURL][1] = curl_phi * cos(phi);
+          if (surface) {
+            expected[CURL_PROJ][0] = kind == 1 ? curl_phi : 0.0;
+          } else {
+            expected[CURL_PROJ][1] = curl_phi / (radius * slope[1]);
+            expected[CURL_OVER_B][1] = expected[CURL_PROJ][1] / expected[BMAG][0];
+            expected[BPAR][0] = factor / (slope[2] * norm);
+            for (int dim = 0; dim < 3; ++dim) {
+              expected[BI_OVER_JB][dim] = expected[BI][dim] / (jac * expected[BMAG][0]);
+            }
+          }
+          expected[CMAG][0] = radial_scale * slope[1];
+          long loc = gkyl_range_idx(nodes, iter.idx);
+          for (int field = 0; field < NFIELDS; ++field) {
+            const struct gkyl_array *representations[] = {
+              fields[field].nodal, fields[field].recovered
+            };
+            for (int rep = 0; rep < 2; ++rep) {
+              if (!representations[rep]) {
+                continue;
+              }
+              const double *actual = gkyl_array_cfetch(representations[rep], loc);
+              for (int component = 0; component < fields[field].ncomp; ++component) {
+                double reference = expected[field][component];
+                TEST_CHECK(fabs(actual[component] - reference) < 2e-9 * (1.0 + fabs(reference)));
+                TEST_MSG(
+                  "%s[%d], kind=%d mapped=%d sqrt_psi=%d rep=%d: %.17g != %.17g",
+                  fields[field].name, component, kind, mapped, sqrt_psi, rep, actual[component],
+                  reference
+                );
+              }
+            }
+          }
+        }
+        for (int field = 0; field < NFIELDS; ++field) {
+          if (fields[field].recovered) {
+            gkyl_array_release(fields[field].recovered);
+          }
+        }
+      }
+      gkyl_nodal_ops_release(ops);
+      gkyl_gk_geometry_release(geom);
+      gkyl_position_map_release(pmap);
+    }
+  }
+  TEST_CHECK(remove(filename) == 0);
+}
+
+static void
+test_mirror_straight_field_direction_ho(void)
+{
+  check_mirror_field_direction(0.0);
+}
+
+static void
+test_mirror_curved_field_direction_ho(void)
+{
+  check_mirror_field_direction(0.7);
+}
+
 TEST_LIST = {
   {"test_mirror_load_geometry_ho", test_mirror_load_geometry_ho},
   {"test_mirror_3x_p1_straight_cylinder_ho", test_mirror_3x_p1_straight_cylinder_ho},
+  {"test_mirror_straight_field_direction_ho", test_mirror_straight_field_direction_ho},
+  {"test_mirror_curved_field_direction_ho", test_mirror_curved_field_direction_ho},
   // { "test_mirror_3x_p1_pmap_straight_cylinder_ho", test_mirror_3x_p1_pmap_straight_cylinder_ho },
   {NULL, NULL}
 };
