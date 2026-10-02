@@ -1,0 +1,18 @@
+The checks on the perlmutter
+
+curl --fail --output /dev/null http://127.0.0.1:8080/login
+  tmux attach -t gkeyll_ci
+
+succeeded, meaning I didn't see anything wrong there. Then I did
+
+ssh -f -N -o ExitOnForwardFailure=yes \
+                 -J mana@perlmutter.nersc.gov \
+             mana@login23.chn.perlmutter.nersc.gov
+
+but
+
+curl --fail --output /dev/null http://127.0.0.1:8084/login
+
+on my laptop still failed.
+
+The jenkins.log is here: ~/Downloads/jenkins.log
