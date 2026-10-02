@@ -943,10 +943,13 @@ main(int argc, char **argv)
     .c2p_ctx = &ctx,
     .bfield_func = bfield_func, // magnetic field magnitude
     .bfield_ctx = &ctx,
-    .parallel_lower_bc_shift_func = bc_shift_func_lo,
-    .parallel_upper_bc_shift_func = bc_shift_func_up,
-    .parallel_lower_bc_shift_ctx = &ctx,
-    .parallel_upper_bc_shift_ctx = &ctx,
+    .core_parallel_bcs =
+      {
+        .lower_shift_func = bc_shift_func_lo,
+        .upper_shift_func = bc_shift_func_up,
+        .lower_shift_ctx = &ctx,
+        .upper_shift_ctx = &ctx,
+      },
   };
 
   // Parallelism

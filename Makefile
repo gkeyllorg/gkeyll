@@ -204,6 +204,7 @@ export USING_MPI MPI_INC_DIR MPI_LIB_DIR MPI_LIBS MPI_RPATH
 export USING_NCCL NCCL_INC_DIR NCCL_LIB_DIR NCCL_LIBS
 export USING_CUDSS CUDSS_INC_DIR CUDSS_LIB_DIR CUDSS_LIBS CUDSS_RPATH
 export USING_LUA LUA_INC_DIR LUA_LIB_DIR LUA_LIBS LUA_RPATH
+export USING_LAPACK_LITE
 export LAPACK_INC_DIR LAPACK_LIB_DIR LAPACK_LIBS LAPACK_LIB_NAME
 export SUPERLU_INC_DIR SUPERLU_LIB_DIR SUPERLU_LIBS SUPERLU_LIB_NAME
 export FIN_APP_LIB_DIR FIN_APP_LIB HAVE_APP_FLAGS
@@ -429,8 +430,11 @@ check: ## Build (if needed) and run all unit tests
 	$(MAKE) unit-run
 
 # Run all unit tests
+# Set GKYL_UNIT_RESULTS=<file> to keep the per-test "PASS <app>: <test>" /
+# "FAIL <app>: <test>" lines (used by CI to report results per layer).
 unit-run: ## Run all unit tests without (re)building them
-	@export GKYL_TEST_LOG=$$(mktemp); : > "$$GKYL_TEST_LOG"; \
+	@if [ -n "$$GKYL_UNIT_RESULTS" ]; then export GKYL_TEST_LOG="$$GKYL_UNIT_RESULTS"; keep=1; \
+	else export GKYL_TEST_LOG=$$(mktemp); keep=0; fi; : > "$$GKYL_TEST_LOG"; \
 	for app in core moments vlasov gyrokinetic pkpm; do \
 	  $(MAKE) -C $$app -f Makefile-$$app unit-run; \
 	done; \
@@ -442,9 +446,9 @@ unit-run: ## Run all unit tests without (re)building them
 	if [ $$nfail -gt 0 ]; then \
 	  echo "Failed tests:"; \
 	  grep '^FAIL ' "$$GKYL_TEST_LOG" | sed 's/^FAIL /  /'; \
-	  rm -f "$$GKYL_TEST_LOG"; \
-	  exit 1; \
-	fi
+	fi; \
+	[ $$keep -eq 1 ] || rm -f "$$GKYL_TEST_LOG"; \
+	[ $$nfail -eq 0 ]
 
 # From: https://www.client9.com/self-documenting-makefiles/
 .PHONY: help
