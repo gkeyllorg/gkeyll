@@ -19,3 +19,5 @@ gyrokinetic/gyrokinetic/creg/rt_gk_cbc_passive_3x2v_p1            # TS filter on
 gyrokinetic/gyrokinetic/creg/rt_gk_d3d_iwl_3x2v_p1                # TS filter on by default
 gyrokinetic/gyrokinetic/creg/rt_gk_tcv_core_3x2v_p1               # TS filter on by default
 gyrokinetic/gyrokinetic/creg/rt_gk_cbc_3x2v_p1                    # TS filter on by default
+
+gyrokinetic/gyrokinetic/creg/rt_gk_sheath_1x2v_p1_source_import   # New regression test
