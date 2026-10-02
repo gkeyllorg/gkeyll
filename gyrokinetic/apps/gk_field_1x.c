@@ -58,6 +58,9 @@ gk_field_ampere_solve_1x_enabled(
     &app->local
   );
 
+  // Smooth Apar after solving Ampere's law.
+  gk_field_fem_projection_par(app, field, out, out);
+
   app->stat.field_apar_solve_tm += gkyl_time_diff_now_sec(wst);
 }
 
