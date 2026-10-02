@@ -1,0 +1,9 @@
+I realize that there is some inconsistency between the low pass filter and the time dilation in the fdot multiplier. Please ensure that these two factors and terms are not leading to a conservation issue because the formulation is unbalanced. I'm worried that time dilation is being applied to the f, but it's not applied to fbar
+
+---
+
+Why did you remove a large chunk of code from the ssp_rk3 updates?
+
+---
+
+Why did you remove a large chunk of code from the ssp_rk3 updates?
