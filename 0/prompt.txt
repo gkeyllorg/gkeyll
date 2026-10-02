@@ -1,0 +1,1 @@
+In CONVERSATION_CONTEXT.md you can find a conversation about an ASDEX simulation I'm trying to do with Gkeyll. From that conversation I interpreted that we need to change
