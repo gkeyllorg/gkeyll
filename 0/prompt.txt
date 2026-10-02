@@ -1,0 +1,1 @@
+Another developer opened PR #1135, which changes the CI files for my personal Jenkins CI setup. Can you check if that's going to break my CI setup or if I'll have to do something to reset it up after that PR gets merged?
