@@ -1374,7 +1374,8 @@ struct gk_field {
       struct gkyl_array *dApartdtSlvr_rhs; // Contains sum_s q_s int dv vpar d/dt(F_s)*.
       gkyl_dg_bin_op_mem *div_mem; // Memory for div operation in 1x Ohm's law. 
       struct gkyl_array *lapWeightAmpere; // Factor in front of the laplacian operator (1/mu0 or kperp^2/mu0 for 1D).
-      struct gkyl_fem_parproj *fem_apar_parproj; // FEM smoother for projecting Apar onto continuous FEM basis
+      struct gkyl_fem_parproj *fem_apar_parproj; // FEM smoother for projecting Apar onto continuous FEM basis.
+      struct gkyl_fem_parproj *fem_apar_parproj_sol; // FEM smoother for Apar in the SOL.
       struct gkyl_fem_poisson_perp *fem_apar_solver; // Solver for IC Apar.
       struct gkyl_fem_poisson_perp *fem_apardot_solver; // Solver for d(Apar)/dt.
       struct gkyl_poisson_bc ampere_bcs; // BCs for Apar and d(Apar)/dt.
