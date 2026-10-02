@@ -1,0 +1,3 @@
+My latest Jenkins CI run on Perlmutter GPU (see ci/jenkins/README.perlmutter_gpu) failed, and the console output is at /Users/mfrancis/Downloads/run_3.txt
+
+Why did it fail?
