@@ -39,42 +39,77 @@ gk_species_gyroaverage_enabled(
   app->stat.species_gyroavg_tm += gkyl_time_diff_now_sec(wst);
 }
 
-// Begin static function definitions.
+// Compute the time step under which the omega_H mode is stable, dt_omegaH =
+// omegaH_CFL/omega_H.
+// Each species computes its own omega_H as:
+//   omega_H = q_e*sqrt(jacobgeo*n_{s0}/m_s) * omegaH_gf
+// where
+//   - n_{s0} is either a reference, average or max density.
+//   - omegaH_gf = (cmag/(jacobgeo*B^_\parallel))*kpar_max /
+//                 min(sqrt(k_x^2*eps_xx+k_x*k_y*eps_xy+k_y^2*eps_yy+)).
+// and k_x,k_y,k_par are wavenumbers in computational space, and eps_ij is
+// the polarization weight in our field equation. With EM fields omega_H is
+// reduced by the inductive term (see gkyl_gyrokinetic_app_omegaH_init).
 static double
 gk_species_omegaH_dt(gkyl_gyrokinetic_app *app, struct gk_species *gks, const struct gkyl_array *fin)
 {
-  // Compute the time step under which the omega_H mode is stable, dt_omegaH =
-  // omegaH_CFL/omega_H.
-  // Each species computes its own omega_H as:
-  //   omega_H = q_e*sqrt(jacobgeo*n_{s0}/m_s) * omegaH_gf
-  // where
-  //   - n_{s0} is either a reference, average or max density.
-  //   - omegaH_gf = (cmag/(jacobgeo*B^_\parallel))*kpar_max /
-  //                 min(sqrt(k_x^2*eps_xx+k_x*k_y*eps_xy+k_y^2*eps_yy+)).
-  // and k_x,k_y,k_par are wavenumbers in computational space, and eps_ij is
-  // the polarization weight in our field equation.
 
   if (!(app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN ||
         app->field->gkfield_id == GKYL_GK_FIELD_ADIABATIC)) {
-    // Obtain the maximum density (using cell centers).
     gk_species_moment_calc(&gks->m0, gks->local, app->local, fin);
-    gkyl_array_reduce_range(gks->m0_max, gks->m0.marr, GKYL_MAX, &app->local);
-
-    double m0_max[1];
-    if (app->use_gpu) {
-      gkyl_cu_memcpy(m0_max, gks->m0_max, sizeof(double), GKYL_CU_MEMCPY_D2H);
-    } else {
-      m0_max[0] = gks->m0_max[0];
-    }
-    m0_max[0] *= 1.0 / pow(sqrt(2.0), app->cdim);
 
     double time_dilation_scale_const =
       gk_fdot_multiplier_get_time_dilation_scale_const(app, &gks->fdot_mult);
 
-    double omegaH = fabs(gks->info.charge) * sqrt(GKYL_MAX2(0.0, m0_max[0]) / gks->info.mass) *
-                    app->omegaH_gf * time_dilation_scale_const;
+    double omegaH;
+    if (app->omegaH_em) {
+      // Finite beta: evaluate, cell by cell,
+      //   omega_H^2 = (q_s^2/m_s)*jacobgeo*n_s * omegaH_gf^2 * A/(A + kSq),
+      // with A = k.w.k (w = jacobgeo*g^ij/mu0) and kSq = sum_s q_s^2*jacobgeo*n_s/m_s
+      // from the latest Ohm's law solve (zero before the first one, which gives
+      // the electrostatic bound).
+      double avg_fac = 1.0 / pow(sqrt(2.0), app->cdim);
+      struct gkyl_array *num = app->omegaH_num, *den = app->omegaH_den;
+      gkyl_array_clear(num, 0.0);
+      gkyl_array_set_offset_range(num, avg_fac, gks->m0.marr, 0, &app->local);
+      gkyl_array_scale_by_cell(num, app->omegaH_GA);
+      // dApartdtSlvr_kSq is stored as -sum_s q_s^2*jacobgeo*n_s/m_s.
+      gkyl_array_set(den, 1.0, app->omegaH_A);
+      gkyl_array_accumulate_offset_range(
+        den, -avg_fac, app->field->dApartdtSlvr_kSq, 0, &app->local
+      );
+      gkyl_array_divide_by_cell(num, den);
+      gkyl_array_reduce_range(app->omegaH_red, num, GKYL_MAX, &app->local);
 
-    return omegaH > 1e-20 ? app->cfl_omegaH / omegaH : DBL_MAX;
+      double omegaH_sq[1];
+      if (app->use_gpu) {
+        gkyl_cu_memcpy(omegaH_sq, app->omegaH_red, sizeof(double), GKYL_CU_MEMCPY_D2H);
+      } else {
+        omegaH_sq[0] = app->omegaH_red[0];
+      }
+      omegaH = fabs(gks->info.charge) * sqrt(GKYL_MAX2(0.0, omegaH_sq[0]) / gks->info.mass) *
+               time_dilation_scale_const;
+    } else {
+      // Obtain the maximum density (using cell centers).
+      gkyl_array_reduce_range(gks->m0_max, gks->m0.marr, GKYL_MAX, &app->local);
+      double m0_max[1];
+      if (app->use_gpu) {
+        gkyl_cu_memcpy(m0_max, gks->m0_max, sizeof(double), GKYL_CU_MEMCPY_D2H);
+      } else {
+        m0_max[0] = gks->m0_max[0];
+      }
+      m0_max[0] *= 1.0 / pow(sqrt(2.0), app->cdim);
+
+      omegaH = fabs(gks->info.charge) * sqrt(GKYL_MAX2(0.0, m0_max[0]) / gks->info.mass) *
+               app->omegaH_gf * time_dilation_scale_const;
+    }
+
+    if (omegaH > 1e-20) {
+      // Record it for the df/dt multiplier (GKYL_GK_FDOT_MULTIPLIER_FIXED_DT_OMEGAH).
+      gks->dt_omegaH = app->cfl_omegaH / omegaH;
+      return gks->dt_omegaH;
+    }
+    return DBL_MAX;
   } else {
     return DBL_MAX;
   }

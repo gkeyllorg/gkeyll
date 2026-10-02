@@ -642,7 +642,8 @@ struct gkyl_gk {
   struct gkyl_gyrokinetic_geometry geometry; // Geometry input struct.
 
   double cfl_frac; // CFL fraction to use (default 1.0).
-  double cfl_frac_omegaH; // CFL fraction used for the omega_H dt (default 1.0).
+  double cfl_frac_omegaH; // CFL fraction used for the omega_H dt (default 1.7).
+  bool omegaH_es_only; // Use the electrostatic omega_H dt bound also when solving EM fields.
 
   int num_periodic_dir; // Number of periodic directions.
   int periodic_dirs[3]; // List of periodic directions.

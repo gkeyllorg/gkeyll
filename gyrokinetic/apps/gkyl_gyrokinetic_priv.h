@@ -1850,6 +1850,12 @@ struct gkyl_gyrokinetic_app {
   struct gkyl_gk_dg_geom *gk_dg_geom;
   struct gkyl_array *jacobtot_inv_weak; // 1/(J.B) computed via weak mul and div.
   double omegaH_gf; // Geometry and field model dependent part of omega_H.
+  bool omegaH_es_only; // Use the electrostatic omega_H bound even with EM fields.
+  bool omegaH_em; // Whether omega_H includes the inductive (finite beta) term.
+  struct gkyl_array *omegaH_GA; // Cell values of omegaH_gf^2 * kperp.w.kperp (0 in ghosts).
+  struct gkyl_array *omegaH_A; // Cell values of kperp.w.kperp, w = J g^ij/mu0 (1 in ghosts).
+  struct gkyl_array *omegaH_num, *omegaH_den; // Buffers for the EM omega_H^2 per cell.
+  double *omegaH_red; // Reduction buffer for the EM omega_H^2.
   // Shift (for TS BC) as a function of x, and objects associated with it.
   struct gkyl_range delta_ts_x_rng;
   struct gkyl_basis delta_ts_x_basis;

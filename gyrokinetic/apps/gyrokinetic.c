@@ -211,6 +211,7 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
   // for fluid dynamics" textbook for a purely oscillatory mode and RK3.
   double cfl_frac_omegaH = fabs(gk->cfl_frac_omegaH) < 1e-16 ? 1.7 : gk->cfl_frac_omegaH;
   app->cfl_omegaH = cfl_frac_omegaH;
+  app->omegaH_es_only = gk->omegaH_es_only;
 
 #ifdef GKYL_HAVE_CUDA
   app->use_gpu = gk->parallelism.use_gpu;
@@ -795,20 +796,27 @@ gyrokinetic_calc_field_disabled(
   // Do nothing.
 }
 
+// Compute the geometric and field-model dependent part of omega_H.
+// Each species computes its own omega_H as:
+//   omega_H = q_e*sqrt(n_{s0}/m_s) * omegaH_gf
+// where
+//   - n_{s0} is either a reference, average or max density.
+//   - omegaH_gf = (cmag/(jacobgeo*B^_\parallel))*kpar_max /
+//                 min(sqrt(k_x^2*eps_xx+k_x*k_y*eps_xy+k_y^2*eps_yy+)).
+// and k_x,k_y,k_par are wavenumbers in computational space, and eps_ij is
+// the polarization weight in our field equation.
+//
+// With EM fields the inductive term in Ohm's law lowers this frequency to
+//   omega_H^2 = omega_H,ES^2 / (1 + kSq/(k_x^2*w_xx+k_x*k_y*w_xy+k_y^2*w_yy)),
+// with kSq = sum_s q_s^2*jacobgeo*n_s/m_s and w_ij = jacobgeo*g^ij/mu0, i.e.
+//   omega_H^2 = k_par^2 v_te^2 / (k_perp^2 rho_s^2 + beta_e m_i/(2 m_e)).
+// kSq evolves in time, so here we store the time-independent cell values and
+// the species evaluate omega_H cell by cell (see gk_species_omegaH_dt).
 static void
 gkyl_gyrokinetic_app_omegaH_init(gkyl_gyrokinetic_app *app)
 {
-  // Compute the geometric and field-model dependent part of omega_H.
-  // Each species computes its own omega_H as:
-  //   omega_H = q_e*sqrt(n_{s0}/m_s) * omegaH_gf
-  // where
-  //   - n_{s0} is either a reference, average or max density.
-  //   - omegaH_gf = (cmag/(jacobgeo*B^_\parallel))*kpar_max /
-  //                 min(sqrt(k_x^2*eps_xx+k_x*k_y*eps_xy+k_y^2*eps_yy+)).
-  // and k_x,k_y,k_par are wavenumbers in computational space, and eps_ij is
-  // the polarization weight in our field equation.
-
   app->omegaH_gf = 1.0 / DBL_MAX;
+  app->omegaH_em = false;
 
   if (!(app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN ||
         app->field->gkfield_id == GKYL_GK_FIELD_ADIABATIC)) {
@@ -822,15 +830,23 @@ gkyl_gyrokinetic_app_omegaH_init(gkyl_gyrokinetic_app *app)
     gkyl_array_scale_range(parfac, kpar_max, &app->local);
 
     // Compute perpfac_inv = 1/sqrt(k_x^2*eps_xx+k_x*k_y*eps_xy+k_y^2*eps_yy+)).
+    app->omegaH_em = app->field->is_em && !app->omegaH_es_only;
     struct gkyl_array *perpfac = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     struct gkyl_array *perpfac_inv =
       mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    struct gkyl_array *ampfac =
+      app->omegaH_em ? mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume) : 0;
     double kx_min = M_PI / (app->grid.upper[0] - app->grid.lower[0]);
     double kx_sq = app->cdim == 1 ? 1.0 :
                                     pow(kx_min, 2); // kperp_sq included in epsilon for cdim=1.
     gkyl_array_accumulate_offset_range(
       perpfac, kx_sq, app->field->epsilon, 0 * app->basis.num_basis, &app->local
     );
+    if (app->omegaH_em) {
+      gkyl_array_accumulate_offset_range(
+        ampfac, kx_sq, app->field->lapWeightAmpere, 0 * app->basis.num_basis, &app->local
+      );
+    }
     if (app->cdim > 2) {
       double ky_min = M_PI / (app->grid.upper[1] - app->grid.lower[1]);
       gkyl_array_accumulate_offset_range(
@@ -839,6 +855,15 @@ gkyl_gyrokinetic_app_omegaH_init(gkyl_gyrokinetic_app *app)
       gkyl_array_accumulate_offset_range(
         perpfac, pow(ky_min, 2), app->field->epsilon, 2 * app->basis.num_basis, &app->local
       );
+      if (app->omegaH_em) {
+        gkyl_array_accumulate_offset_range(
+          ampfac, kx_min * ky_min, app->field->lapWeightAmpere, 1 * app->basis.num_basis,
+          &app->local
+        );
+        gkyl_array_accumulate_offset_range(
+          ampfac, pow(ky_min, 2), app->field->lapWeightAmpere, 2 * app->basis.num_basis, &app->local
+        );
+      }
     }
     gkyl_proj_powsqrt_on_basis *proj_sqrt =
       gkyl_proj_powsqrt_on_basis_new(&app->basis, app->poly_order + 1, app->use_gpu);
@@ -870,6 +895,31 @@ gkyl_gyrokinetic_app_omegaH_init(gkyl_gyrokinetic_app *app)
     } else {
       gkyl_free(omegaH_gf_red);
     }
+
+    if (app->omegaH_em) {
+      double avg_fac = 1.0 / pow(sqrt(2.0), app->cdim); // DG coefficient 0 -> cell average.
+
+      // Cell values of A = ampfac (set to 1 in ghosts so dividing by A+kSq is safe everywhere).
+      app->omegaH_A = mkarr(app->use_gpu, 1, app->local_ext.volume);
+      gkyl_array_clear(app->omegaH_A, 1.0);
+      gkyl_array_set_offset_range(app->omegaH_A, avg_fac, ampfac, 0, &app->local);
+      gkyl_array_release(ampfac);
+
+      // Cell values of omegaH_gf^2 * A (0 in ghosts).
+      app->omegaH_GA = mkarr(app->use_gpu, 1, app->local_ext.volume);
+      gkyl_array_set_offset_range(app->omegaH_GA, avg_fac, omegaH_gf_grid, 0, &app->local);
+      gkyl_array_scale_by_cell(app->omegaH_GA, app->omegaH_GA);
+      gkyl_array_scale_by_cell(app->omegaH_GA, app->omegaH_A);
+
+      app->omegaH_num = mkarr(app->use_gpu, 1, app->local_ext.volume);
+      app->omegaH_den = mkarr(app->use_gpu, 1, app->local_ext.volume);
+      if (app->use_gpu) {
+        app->omegaH_red = gkyl_cu_malloc(sizeof(double));
+      } else {
+        app->omegaH_red = gkyl_malloc(sizeof(double));
+      }
+    }
+
     gkyl_array_release(omegaH_gf_grid);
     gkyl_array_release(perpfac_inv);
     gkyl_array_release(perpfac);
@@ -4710,6 +4760,17 @@ gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app *app)
   gyrokinetic_post_positivity_quasineut_release(app);
 
   gkyl_array_release(app->jacobtot_inv_weak);
+  if (app->omegaH_em) {
+    gkyl_array_release(app->omegaH_A);
+    gkyl_array_release(app->omegaH_GA);
+    gkyl_array_release(app->omegaH_num);
+    gkyl_array_release(app->omegaH_den);
+    if (app->use_gpu) {
+      gkyl_cu_free(app->omegaH_red);
+    } else {
+      gkyl_free(app->omegaH_red);
+    }
+  }
   gkyl_gk_geometry_release(app->gk_geom);
   gkyl_dg_geom_release(app->dg_geom);
   gkyl_gk_dg_geom_release(app->gk_dg_geom);
