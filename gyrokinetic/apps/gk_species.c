@@ -72,7 +72,7 @@ gk_species_omegaH_dt(gkyl_gyrokinetic_app *app, struct gk_species *gks, const st
       gk_fdot_multiplier_get_time_dilation_scale_const(app, &gks->fdot_mult);
 
     double omegaH = fabs(gks->info.charge) * sqrt(GKYL_MAX2(0.0, m0_max[0]) / gks->info.mass) *
-                    app->omegaH_gf * time_dilation_scale_const;
+                    app->omegaH_gf * time_dilation_scale_const * gks->collisionless.scale_fac;
 
     return omegaH > 1e-20 ? app->cfl_omegaH / omegaH : DBL_MAX;
   } else {
