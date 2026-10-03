@@ -376,7 +376,7 @@ main(int argc, char **argv)
         .correct_all_moms = true,
       },
 
-    .collisionless = {.type = GKYL_GK_COLLISIONLESS_ES_NO_BY},
+    .collisionless = {.type = GKYL_GK_COLLISIONLESS_ES, .no_by = true},
 
     .collisions =
       {
@@ -418,7 +418,7 @@ main(int argc, char **argv)
         .correct_all_moms = true,
       },
 
-    .collisionless = {.type = GKYL_GK_COLLISIONLESS_ES_NO_BY},
+    .collisionless = {.type = GKYL_GK_COLLISIONLESS_ES, .no_by = true},
 
     .collisions =
       {

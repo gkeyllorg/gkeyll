@@ -1218,7 +1218,7 @@ main(int argc, char **argv)
 
     .mapc2p = {.mapping = mapc2p_vel_elc, .ctx = &ctx},
 
-    .collisionless = {.type = GKYL_GK_COLLISIONLESS_ES_NO_BY},
+    .collisionless = {.type = GKYL_GK_COLLISIONLESS_ES, .no_by = true},
 
     .collisions =
       {
@@ -1352,7 +1352,7 @@ main(int argc, char **argv)
 
     .mapc2p = {.mapping = mapc2p_vel_ion, .ctx = &ctx},
 
-    .collisionless = {.type = GKYL_GK_COLLISIONLESS_ES_NO_BY},
+    .collisionless = {.type = GKYL_GK_COLLISIONLESS_ES, .no_by = true},
 
     .collisions =
       {

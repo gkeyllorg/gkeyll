@@ -336,7 +336,7 @@ main(int argc, char **argv)
         .temp = eval_temp_elc,
       },
 
-    .collisionless = {.type = GKYL_GK_COLLISIONLESS_ES_NO_BY},
+    .collisionless = {.type = GKYL_GK_COLLISIONLESS_ES, .no_by = true},
 
     .collisions =
       {
@@ -411,7 +411,7 @@ main(int argc, char **argv)
         .temp = eval_temp_ar,
       },
 
-    .collisionless = {.type = GKYL_GK_COLLISIONLESS_ES_NO_BY},
+    .collisionless = {.type = GKYL_GK_COLLISIONLESS_ES, .no_by = true},
 
     .collisions =
       {

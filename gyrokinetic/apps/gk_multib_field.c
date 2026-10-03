@@ -788,7 +788,7 @@ gk_multib_field_new(
   struct gk_multib_field *mbf = gkyl_malloc(sizeof(struct gk_multib_field));
 
   mbf->info = mbinp->field;
-  mbf->gkfield_id = mbf->info.gkfield_id ? mbf->info.gkfield_id : GKYL_GK_FIELD_ES;
+  mbf->gkfield_id = mbf->info.gkfield_id ? mbf->info.gkfield_id : GKYL_GK_FIELD;
   mbf->num_local_blocks = mbapp->num_local_blocks;
   mbf->cdim = mbapp->block_topo->ndim;
   mbf->half_domain = mbf->info.half_domain ? mbf->info.half_domain : false;

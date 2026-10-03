@@ -357,7 +357,7 @@ main(int argc, char **argv)
     .correct =
       {.correct_all_moms = true, .use_last_converged = true, .iter_eps = 1e-12, .max_iter = 10},
 
-    .collisionless = {.type = GKYL_GK_COLLISIONLESS_ES_NO_BY},
+    .collisionless = {.type = GKYL_GK_COLLISIONLESS_ES, .no_by = true},
 
     .collisions =
       {
@@ -402,7 +402,7 @@ main(int argc, char **argv)
     .correct =
       {.correct_all_moms = true, .use_last_converged = true, .iter_eps = 1e-12, .max_iter = 10},
 
-    .collisionless = {.type = GKYL_GK_COLLISIONLESS_ES_NO_BY},
+    .collisionless = {.type = GKYL_GK_COLLISIONLESS_ES, .no_by = true},
 
     .collisions =
       {
