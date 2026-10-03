@@ -22,3 +22,16 @@ bool tok_wall_trial_record_scope(bool fixed_radial_boundary, bool node_outside);
  * inner-wall-limited rather than diverted. No boundary adjustment can change
  * that -- the offending row is a declared join, never a movable edge. */
 bool tok_wall_trial_has_fixed_node_outside(void);
+
+/** Is a disposable wall trial in progress on this thread? */
+bool tok_wall_trial_is_active(void);
+/** Construction failures inside a trial are recorded, not fatal (2026-09-30):
+ * the row rule refused, or the signed-Jacobian guard found a reversal. The
+ * jacobian note returns false when no trial is active, so the caller keeps its
+ * fatal behaviour outside trials. The adjuster reads both after the trial and
+ * PRINTS them; they are not a verdict (2026-10-01): a trial is built plain and
+ * can fail where the production build of the same bounds does not. */
+void tok_wall_trial_note_row_rule_refused(void);
+bool tok_wall_trial_note_jacobian_invalid(void);
+bool tok_wall_trial_row_rule_refused(void);
+bool tok_wall_trial_jacobian_invalid(void);

@@ -586,7 +586,62 @@ find_xpts_cubic(gkyl_efit* up, double *Rxpt, double *Zxpt)
 }
 
 
-void 
+// Every critical point of the flux (grad psi = 0), from the cubic
+// representation, classified by the sign of the Hessian determinant: negative
+// is a saddle (an X point), positive an extremum (an O point).
+//
+// The cubic array is built from the nodal data as supplied and is never
+// reflected (only the quadratic copy is). With reflect the geometry uses the
+// lower half mirrored, so only that half is searched, exactly as
+// find_xpts_cubic does: a critical point in the other half is not in any
+// domain the grid can cover (204554: an extremum near the upper X point
+// refused a shot whose grid never touches that half). The cubic is C1, so a
+// critical point on a cell interface is a genuine zero of the patch on either
+// side and is found from both; duplicates are dropped.
+// Twenty-five Newton seeds per cell rather than one, because an O point and an
+// X point 25-50 mm apart share a 33 mm cell on NSTX-U (204502) and a single
+// seed at the cell centre converges to only one of them.
+//
+// Returns the number found; fills the first nmax.
+int
+gkyl_efit_critical_points(gkyl_efit *up, int nmax, double *Rc, double *Zc,
+  double *psic, int *is_opoint)
+{
+  const double seeds[5] = { -0.8, -0.4, 0.0, 0.4, 0.8 };
+  const double dmin = 1e-6*fmin(up->rzgrid_cubic.dx[0], up->rzgrid_cubic.dx[1]);
+  int n = 0;
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &up->rzlocal_cubic);
+  while (gkyl_range_iter_next(&iter)) {
+    if (up->reflect && iter.idx[1] >= gkyl_range_shape(&up->rzlocal_cubic, 1)/2 + 1) continue;
+    const double *psi = gkyl_array_cfetch(up->psizr_cubic, gkyl_range_idx(&up->rzlocal_cubic, iter.idx));
+    double xc[2];
+    gkyl_rect_grid_cell_center(&up->rzgrid_cubic, iter.idx, xc);
+    for (int a = 0; a < 5; ++a) for (int b = 0; b < 5; ++b) {
+      double xinit[2] = { seeds[a], seeds[b] }, xsol[2];
+      if (!newton_raphson_seed(up, psi, xinit, xsol, true)) continue;
+      if (xsol[0] < -1.0 || xsol[0] > 1.0 || xsol[1] < -1.0 || xsol[1] > 1.0) continue;
+      double R0 = xc[0] + 0.5*up->rzgrid_cubic.dx[0]*xsol[0];
+      double Z0 = xc[1] + 0.5*up->rzgrid_cubic.dx[1]*xsol[1];
+      bool dup = false;
+      for (int k = 0; k < n && k < nmax && !dup; ++k)
+        dup = efit_dist2(R0, Z0, Rc[k], Zc[k]) <= dmin*dmin;
+      if (dup) continue;
+      if (n < nmax) {
+        double hrr = up->evf->eval_cubic_laplacian(0, xsol, psi);
+        double hzz = up->evf->eval_cubic_laplacian(1, xsol, psi);
+        double hrz = up->evf->eval_cubic_mixedpartial(xsol, psi);
+        Rc[n] = R0; Zc[n] = Z0;
+        psic[n] = up->rzbasis_cubic.eval_expand(xsol, psi);
+        is_opoint[n] = hrr*hzz - hrz*hrz > 0.0;
+      }
+      ++n;
+    }
+  }
+  return n;
+}
+
+void
 get_stripped_filename(const char *filepath, char *out_buffer) {
   const char *last_slash = strrchr(filepath, '/');
   const char *filename_start = (last_slash) ? last_slash + 1 : filepath;

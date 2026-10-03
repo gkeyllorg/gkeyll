@@ -24,6 +24,14 @@ static _Thread_local bool wall_trial_fixed_violation;
 // boundary is the separatrix row the block shares with the core. Tracked
 // separately so callers can classify the case instead of reporting a defect.
 static _Thread_local bool wall_trial_fixed_node_outside;
+// A construction failure inside a trial (2026-09-30): the row rule refused a
+// block, or the signed-Jacobian guard found a reversal. Both used to end the
+// process from inside a trial that was going to be discarded anyway. Recorded
+// here instead, so the adjuster can say what it means: a region the wall has
+// shrunk until it cannot be built is out of scope (region_degenerate); the
+// same at the requested bounds is the construction failing, reported cleanly.
+static _Thread_local bool wall_trial_row_rule_refused;
+static _Thread_local bool wall_trial_jacobian_invalid;
 static _Thread_local bool wall_trial_capture;
 static _Thread_local int wall_trial_block;
 static _Thread_local double wall_trial_rho;
@@ -36,7 +44,36 @@ void tok_wall_trial_begin(int movable_radial_edge)
   wall_trial_movable_edge = movable_radial_edge;
   wall_trial_fixed_violation = false;
   wall_trial_fixed_node_outside = false;
+  wall_trial_row_rule_refused = false;
+  wall_trial_jacobian_invalid = false;
   wall_trial_capture = false;
+}
+
+bool tok_wall_trial_is_active(void)
+{
+  return wall_trial_active;
+}
+
+void tok_wall_trial_note_row_rule_refused(void)
+{
+  if (wall_trial_active) wall_trial_row_rule_refused = true;
+}
+
+bool tok_wall_trial_note_jacobian_invalid(void)
+{
+  if (!wall_trial_active) return false;
+  wall_trial_jacobian_invalid = true;
+  return true;
+}
+
+bool tok_wall_trial_row_rule_refused(void)
+{
+  return wall_trial_row_rule_refused;
+}
+
+bool tok_wall_trial_jacobian_invalid(void)
+{
+  return wall_trial_jacobian_invalid;
 }
 
 void tok_wall_trial_capture_requested(int block, double rho)
@@ -338,7 +375,7 @@ tok_trace_sample_report(double psi, double seglen, double away, int branch)
   if (frac <= thresh) return;
   fprintf(stderr, "TOK_TRACE_SAMPLE_TAIL psi=%.17g seglen=%.17g away=%.17g "
     "frac=%.17g branch=%s\n", psi, seglen, away, frac,
-    branch ? "fix_z_solve_r" : "fix_r_solve_z");
+    branch == 2 ? "chord_normal" : branch ? "fix_z_solve_r" : "fix_r_solve_z");
 }
 
 // Switched on only around the end-distance endwalk, so the per-stage dump
@@ -2396,6 +2433,27 @@ tok_divertor_material_cap(const struct gkyl_tok_geo_grid_inp *inp,
   fprintf(stderr,"TOK_GEO_DIVERTOR_CAP trial=%d ftype=%d theta_edge=%d slot=%d psi0=%.17g psi1=%.17g R0=%.17g Z0=%.17g R1=%.17g Z1=%.17g s0=%.17g s1=%.17g straight_chord_outside=1 native_arc=validated\n",
     wall_trial_active,inp->ftype,theta_edge,slot,psi_p,psi_q,p[0],p[1],q[0],q[1],sp,sq);
   return true;
+}
+
+// Does this theta end of the block terminate on a plate the driver declared
+// SEPARATELY from the vessel outline? Structural, from the topology table: the
+// end is a TOK_EXT_PLATE and its plate is not an explicit outline target. Nodes
+// on such a plate sit where the plate function puts them, a fraction of a
+// millimetre either side of the outline chord (ASDEX: 0.07-0.94 mm), so under
+// GKYL_TOK_WALL_STRICT the wall tests that touch them keep the per-edge slack
+// while every other test is judged to roundoff. A plate that IS an outline
+// target (extend_to_limiter with divertor_wall segments, NSTX-U) puts its
+// nodes on the outline to roundoff and needs no slack.
+static bool
+tok_wall_theta_end_on_declared_plate(const struct gkyl_tok_geo_grid_inp *inp,
+  const struct gkyl_tok_geo *geo, int theta_edge)
+{
+  struct tok_ext_topology top;
+  if (!tok_ext_topology_from_ftype(inp->ftype, inp->half_domain, &top)) return false;
+  const struct tok_ext_endpoint *end = theta_edge ? &top.upper : &top.lower;
+  if (end->kind != TOK_EXT_PLATE) return false;
+  int slot = end->plate_slot == TOK_EXT_PLATE_LOWER ? 0 : 1;
+  return !(geo->extend_to_limiter && geo->divertor_wall[slot].num_segments);
 }
 
 // An X-point ray is the shared theta boundary of exactly TWO blocks: every
@@ -4506,6 +4564,307 @@ tok_rlin_ambiguous(double rlin, const double *roots, int nr)
   return second < 2.0*best;
 }
 
+
+// ---------------------------------------------------------------------------
+// X-POINT SADDLE PATCH (prototype, GKYL_TOK_XPT_PATCH=1, default off; 2026-10-01).
+//
+// Measured on NSTX-U 203995 at phase2x (fable-handoff/fig19): within ~5-10 mm
+// of the lower X point psi is flat, so the equilibrium data fix the
+// separatrix's position there only to a few millimetres. The cubic's own
+// contour makes a 3 mm S-bend inside the first theta cell (31 degrees of turn
+// in 25 mm) while the EFIT bicubic's contour runs 5 mm away; both are "on
+// psi_sep". The cell between that bend and the first SOL row, which starts
+// 29 mm down the ray, has a reversed map in the corner next to the X point,
+// and the signed-Jacobian guard's first interior node sits inside it at
+// phase2x (5 mm from the corner) and outside it at phase1 (11 mm): finer
+// theta cells put a quadrature node into a patch of fixed size.
+//
+// Near a saddle psi is its quadratic expansion, psi_x + x^T H x / 2, and the
+// separatrix branches leave the X point as STRAIGHT lines (the asymptotes),
+// the other surfaces as hyperbolae of the same form. Where the quadratic
+// model is indistinguishable from the contour at the grid's own radial
+// resolution -- the model point's psi is within one row step of the
+// requested level -- the model is the better description, because it is
+// smooth by construction. r* is found by marching from the saddle along its
+// four asymptotes until the cubic's psi first leaves the saddle value by more
+// than one row step (tok_xpt_patch_rstar). Inside r*, every sampled node is
+// moved from the contour point toward its projection onto the model level set
+// with weight 1 - d/r*, d its distance to the saddle, and never by more than
+// d (a first version blended by the model point's own psi error and moved
+// nodes 1.3 m away in CORE_R: a far point projected onto the model's far
+// branch can land where the cubic's psi is accidentally close). No constant:
+// H is measured at the saddle with the same step
+// tok_ext_xpoint_well_conditioned uses, the march step is the psi
+// representation's cell size, dpsi_row is the block's radial cell width in
+// psi, and the projection is four Newton steps on the quadratic form (a policy
+// of order one). The row's two endpoints (the X point itself and the ray
+// endpoint, which is a shared boundary) are never moved.
+//
+// Summary line per block and pass: TOK_XPT_PATCH ftype=.. samples_moved=..
+// r_eff_m=.. (largest distance from the saddle at which a node moved) w_max=..
+static _Thread_local double xpt_patch_dpsi = 0.0;
+static _Thread_local long xpt_patch_count = 0;
+static _Thread_local double xpt_patch_rmax = 0.0, xpt_patch_wmax = 0.0, xpt_patch_dmax = 0.0;
+struct tok_xpt_model { bool valid; double R, Z, psi, hrr, hrz, hzz; double rstar, rstar_dpsi; };
+static _Thread_local struct tok_xpt_model xpt_models[2];
+static _Thread_local const struct gkyl_tok_geo *xpt_models_geo = NULL;
+
+static bool
+tok_xpt_patch_enabled(void)
+{
+  static int on = -1;
+  if (on < 0) {
+    const char *e = getenv("GKYL_TOK_XPT_PATCH");
+    on = (e && e[0] != '\0' && e[0] != '0') ? 1 : 0;
+  }
+  return on == 1;
+}
+
+static void
+tok_xpt_models_init(const struct gkyl_tok_geo *geo)
+{
+  if (xpt_models_geo == geo) return;
+  xpt_models_geo = geo;
+  const int nx = geo->use_cubics ? geo->efit->num_xpts_cubic : geo->efit->num_xpts;
+  const double *Rx = geo->use_cubics ? geo->efit->Rxpt_cubic : geo->efit->Rxpt;
+  const double *Zx = geo->use_cubics ? geo->efit->Zxpt_cubic : geo->efit->Zxpt;
+  for (int k=0; k<2; ++k) {
+    xpt_models[k].valid = false; xpt_models[k].rstar = 0.0; xpt_models[k].rstar_dpsi = -1.0;
+    if (k >= nx || !Rx || !Zx) continue;
+    const double rx = Rx[k], zx = Zx[k];
+    const double h = 1.0e-4;   // the step tok_ext_xpoint_well_conditioned uses
+    const double p0 = tok_eval_psi_rz_local(geo, rx, zx);
+    const double prr = (tok_eval_psi_rz_local(geo, rx+h, zx)-2.0*p0+tok_eval_psi_rz_local(geo, rx-h, zx))/(h*h);
+    const double pzz = (tok_eval_psi_rz_local(geo, rx, zx+h)-2.0*p0+tok_eval_psi_rz_local(geo, rx, zx-h))/(h*h);
+    const double prz = (tok_eval_psi_rz_local(geo, rx+h, zx+h)-tok_eval_psi_rz_local(geo, rx+h, zx-h)
+      -tok_eval_psi_rz_local(geo, rx-h, zx+h)+tok_eval_psi_rz_local(geo, rx-h, zx-h))/(4.0*h*h);
+    if (!isfinite(p0) || !isfinite(prr) || !isfinite(pzz) || !isfinite(prz)) continue;
+    if (!(prr*pzz-prz*prz < 0.0)) continue;   // not a saddle
+    xpt_models[k].valid = true; xpt_models[k].R = rx; xpt_models[k].Z = zx; xpt_models[k].psi = p0;
+    xpt_models[k].hrr = prr; xpt_models[k].hrz = prz; xpt_models[k].hzz = pzz;
+    fprintf(stderr, "TOK_XPT_PATCH model xpt=%d R=%.17g Z=%.17g psi=%.17g Hrr=%.6g Hrz=%.6g Hzz=%.6g\n",
+      k, rx, zx, p0, prr, prz, pzz);
+  }
+}
+
+// The patch radius for a saddle at this radial resolution: march outward from
+// the X point along each of its four separatrix asymptotes, in steps of the
+// psi representation's own cell size, until the cubic's psi first leaves the
+// saddle value by more than one row step. The smallest of the four is r*:
+// inside it the straight branch is indistinguishable from the contour at this
+// resolution. Nothing chosen: the asymptotes come from H, the step from the
+// data grid, the tolerance from the grid being built.
+static double
+tok_xpt_patch_rstar(const struct gkyl_tok_geo *geo, struct tok_xpt_model *m, double dpsi)
+{
+  if (m->rstar_dpsi == dpsi) return m->rstar;
+  m->rstar_dpsi = dpsi; m->rstar = 0.0;
+  // directions d = (cos t, sin t) with d^T H d = 0
+  double dirs[4][2]; int nd = 0;
+  const double disc = m->hrz*m->hrz-m->hrr*m->hzz;
+  if (!(disc > 0.0)) return 0.0;
+  for (int sgn=-1; sgn<=1; sgn+=2) {
+    double dr, dz;
+    if (fabs(m->hzz) >= fabs(m->hrr)) { dz = (-m->hrz+sgn*sqrt(disc))/m->hzz; dr = 1.0; }
+    else { dr = (-m->hrz+sgn*sqrt(disc))/m->hrr; dz = 1.0; }
+    const double L = hypot(dr, dz);
+    dirs[nd][0] = dr/L; dirs[nd][1] = dz/L; ++nd;
+    dirs[nd][0] = -dr/L; dirs[nd][1] = -dz/L; ++nd;
+  }
+  // March in steps of the psi representation's cell until the deviation
+  // first exceeds one row step, then bisect that bracket: the deviation grows
+  // like r^3 along an asymptote, so interpolating linearly across a 67 mm
+  // cell overestimates r* when the exit is beyond the first step and
+  // underestimates it by an order of magnitude when the first step already
+  // exceeds dpsi (phase2x). Bisection to machine precision needs no model.
+  const double h = fmin(geo->rzgrid.dx[0], geo->rzgrid.dx[1]);
+  double rmin = DBL_MAX;
+  for (int q=0; q<nd; ++q) {
+    double lo = 0.0, hi = -1.0;
+    for (int k=1; k<4096; ++k) {
+      const double rr = m->R+k*h*dirs[q][0], zz = m->Z+k*h*dirs[q][1];
+      const double pv = tok_eval_psi_rz_local(geo, rr, zz);
+      if (!isfinite(pv)) break;              // left the data: r* is the last inside point
+      if (fabs(pv-m->psi) > dpsi) { hi = k*h; break; }
+      lo = k*h;
+    }
+    double rq = lo;
+    if (hi > lo) {
+      for (int it=0; it<60 && hi-lo > 1e-12*hi; ++it) {
+        const double mid = 0.5*(lo+hi);
+        const double pv = tok_eval_psi_rz_local(geo, m->R+mid*dirs[q][0], m->Z+mid*dirs[q][1]);
+        if (!isfinite(pv) || fabs(pv-m->psi) > dpsi) hi = mid; else lo = mid;
+      }
+      rq = lo;
+    }
+    if (rq < rmin) rmin = rq;
+  }
+  m->rstar = rmin < DBL_MAX ? rmin : 0.0;
+  fprintf(stderr, "TOK_XPT_PATCH rstar xpt=(%.6g,%.6g) dpsi_row=%.6g r_star_m=%.6g step_m=%.6g\n",
+    m->R, m->Z, dpsi, m->rstar, h);
+  return m->rstar;
+}
+
+// Called with the block's radial cell width in psi before a row is sampled;
+// prints the summary of the samples moved since the last separatrix row.
+static void
+tok_xpt_patch_begin(const struct gkyl_tok_geo *geo, int ftype, double psi, double dpsi)
+{
+  if (!tok_xpt_patch_enabled()) return;
+  if (xpt_patch_count > 0 && tok_geo_same_flux(psi, geo->psisep)) {
+    fprintf(stderr, "TOK_XPT_PATCH ftype=%d samples_moved=%ld r_eff_m=%.5g w_max=%.4g move_max_m=%.4g\n",
+      ftype, xpt_patch_count, xpt_patch_rmax, xpt_patch_wmax, xpt_patch_dmax);
+    xpt_patch_count = 0; xpt_patch_rmax = 0.0; xpt_patch_wmax = 0.0; xpt_patch_dmax = 0.0;
+  }
+  xpt_patch_dpsi = fabs(dpsi);
+}
+
+// Inside r* of the nearest saddle, move the sampled node toward its projection
+// onto the saddle model's level set for this psi, with weight 1 - d/r* (1 at
+// the X point, 0 at r*), and never by more than its own distance to the saddle.
+static void
+tok_xpt_patch_apply(const struct gkyl_tok_geo *geo, double psi, double *r, double *z)
+{
+  if (!tok_xpt_patch_enabled() || !(xpt_patch_dpsi > 0.0)) return;
+  tok_xpt_models_init(geo);
+  int best = -1; double dbest = DBL_MAX;
+  for (int k=0; k<2; ++k) {
+    if (!xpt_models[k].valid) continue;
+    const double d = hypot(*r-xpt_models[k].R, *z-xpt_models[k].Z);
+    if (d < dbest) { dbest = d; best = k; }
+  }
+  if (best < 0) return;
+  struct tok_xpt_model *m = &xpt_models[best];
+  const double rstar = tok_xpt_patch_rstar(geo, m, xpt_patch_dpsi);
+  if (!(rstar > 0.0) || !(dbest < rstar) || !(dbest > 0.0)) return;
+  double x = *r-m->R, y = *z-m->Z;
+  const double D = psi-m->psi;
+  for (int it=0; it<4; ++it) {
+    const double q = 0.5*(m->hrr*x*x+2.0*m->hrz*x*y+m->hzz*y*y);
+    const double gx = m->hrr*x+m->hrz*y, gy = m->hrz*x+m->hzz*y;
+    const double g2 = gx*gx+gy*gy;
+    if (!(g2 > 0.0)) return;
+    const double step = (q-D)/g2;
+    x -= step*gx; y -= step*gy;
+  }
+  const double rm = m->R+x, zm = m->Z+y;
+  if (!isfinite(rm) || !isfinite(zm)) return;
+  if (hypot(rm-*r, zm-*z) > dbest) return;   // the model point is not this node's neighbourhood
+  const double w = 1.0-dbest/rstar;
+  const double mr = w*(rm-*r), mz = w*(zm-*z);
+  *r += mr; *z += mz;
+  ++xpt_patch_count;
+  const double mv = hypot(mr, mz);
+  if (dbest > xpt_patch_rmax) xpt_patch_rmax = dbest;
+  if (w > xpt_patch_wmax) xpt_patch_wmax = w;
+  if (mv > xpt_patch_dmax) xpt_patch_dmax = mv;
+}
+
+// A3 (2026-10-02): put a trace sample on the surface at the chord's own arc
+// parameter -- solve along the chord's NORMAL, not along a coordinate axis.
+//
+// A sample is the point at arc fraction w of a bracket of two consecutive,
+// on-surface trace points.  The chord point between them already has the
+// right arc parameter to first order; what remains is to move it onto the
+// surface without sliding along it.  The old rule fixed one coordinate of the
+// chord point and solved the other, which slides the point along any surface
+// that runs parallel to the fixed axis: measured on NSTX-U 203970 and 203834
+// (PF_LO_L separatrix row leaving the X point), the leg runs within 0.02 of
+// horizontal for 14-18 mm, the column solve at the chord point missed it
+// entirely (nearest root 0.71 m away) and the row solve took the root 5-8 mm
+// along it, so the three samples meant for 4.9, 9.8 and 14.8 mm sat at 0.14,
+// 18.2 and 18.5 mm: the misplaced Gauss nodes of the B1 tip cell.
+//
+// Solving along the chord normal is the same idea in the bracket's own frame:
+// the chord is the best available estimate of the surface tangent, so its
+// normal is the well-conditioned direction on every bracket, and a 1-D Newton
+// iteration confined to that line cannot slide.  (A Newton projection along
+// the LOCAL gradient was tried and slid 4.9 mm to the X point on 203970: next
+// to a saddle on a DG cell face the level set is a sliver of two pieces
+// 0.15 mm apart and the gradient between them points along the sliver.)  The
+// displacement is bounded by half the bracket, as the axis solves are; when
+// the line meets no surface within that -- the chord nearly parallel to the
+// normal, an L-shaped bracket -- the axis-aligned rule applies as before.
+// GKYL_TOK_TRACE_SAMPLE_CHORD_NORMAL=0 restores the old rule for A/B.
+static bool
+tok_trace_sample_chord_normal_enabled(void)
+{
+  static int on = -1;
+  if (on < 0) {
+    const char *e = getenv("GKYL_TOK_TRACE_SAMPLE_CHORD_NORMAL");
+    on = (e && e[0] == '0') ? 0 : 1;
+  }
+  return on == 1;
+}
+
+static bool
+tok_chord_normal_solve(const struct gkyl_tok_geo *geo, double psi,
+  double rlin, double zlin, double cdr, double cdz, double max_disp,
+  double *r, double *z)
+{
+  const double clen = hypot(cdr, cdz);
+  if (!(clen > 0.0) || !isfinite(clen) || !(max_disp > 0.0)) return false;
+  const double nr = -cdz/clen, nz = cdr/clen;   // unit normal of the chord
+  const double tol = 1e-9*fmax(1.0, fabs(psi));
+  const double g0 = tok_eval_psi_rz_local(geo, rlin, zlin)-psi;
+  if (!isfinite(g0)) return false;
+  if (fabs(g0) <= tol) { *r = rlin; *z = zlin; return true; }
+  // Bracket the nearest sign change on each side of the chord point, stepping
+  // out geometrically from a thousandth of the bound; the nearer side wins.
+  // (A Newton iteration along the line was tried first and failed on the
+  // sliver next to an X point, where the line's derivative vanishes between
+  // the two pieces and the clamped steps wander.)  Bisection then needs no
+  // derivative at all, so the DG gradient kink at a cell face cannot upset it.
+  double ta = 0.0, tb = 0.0, ga = g0, gb = g0;
+  bool found = false;
+  for (int side=0; side<2; ++side) {
+    const double sgn = side ? -1.0 : 1.0;
+    double tp = 0.0, gp = g0;
+    for (double d = max_disp/1024.0; d <= max_disp; d *= 2.0) {
+      const double t = sgn*d;
+      const double g = tok_eval_psi_rz_local(geo, rlin+t*nr, zlin+t*nz)-psi;
+      if (!isfinite(g)) break;
+      if (fabs(g) <= tol) {   // landed on it
+        if (!found || d < fmax(fabs(ta), fabs(tb))) { ta = tb = t; ga = gb = g; found = true; }
+        break;
+      }
+      if ((g < 0.0) != (gp < 0.0)) {
+        if (!found || d < fmax(fabs(ta), fabs(tb))) { ta = tp; tb = t; ga = gp; gb = g; found = true; }
+        break;
+      }
+      tp = t; gp = g;
+    }
+  }
+  if (!found) return false;
+  double t = ta, g = ga;
+  if (ta != tb) {
+    // Regula falsi with the Illinois modification: superlinear without a
+    // derivative, and the bracket can never be lost.
+    int side = 0;
+    for (int k=0; k<64; ++k) {
+      t = (gb != ga) ? (ta*gb-tb*ga)/(gb-ga) : 0.5*(ta+tb);
+      if (!(t > fmin(ta, tb)) || !(t < fmax(ta, tb))) t = 0.5*(ta+tb);
+      g = tok_eval_psi_rz_local(geo, rlin+t*nr, zlin+t*nz)-psi;
+      if (!isfinite(g)) return false;
+      if (fabs(g) <= tol) break;
+      if ((g < 0.0) == (ga < 0.0)) {
+        ta = t; ga = g;
+        if (side == -1) gb *= 0.5;
+        side = -1;
+      }
+      else {
+        tb = t; gb = g;
+        if (side == 1) ga *= 0.5;
+        side = 1;
+      }
+      if (fabs(tb-ta) <= 4.0*DBL_EPSILON*fmax(1.0, fabs(t))) break;
+    }
+  }
+  if (!(fabs(g) <= tol)) return false;
+  *r = rlin+t*nr; *z = zlin+t*nz;
+  return true;
+}
+
 static bool
 tok_trace_sample(const struct gkyl_tok_geo *geo, double psi,
   const double *tr, const double *tz, const double *ts, int n,
@@ -4582,6 +4941,25 @@ tok_trace_sample(const struct gkyl_tok_geo *geo, double psi,
   double seglen = hypot(tr[hi]-tr[lo], tz[hi]-tz[lo]);
   double max_away = 2.0*seglen;
   bool sampled = false;
+  if (tok_trace_sample_chord_normal_enabled()) {
+    // A3: the chord point moved onto the surface along the chord's normal.
+    // A chord point exactly on a bracket end IS that trace point.
+    if (w <= 0.0) { *r = tr[lo]; *z = tz[lo]; sampled = true; }
+    else if (w >= 1.0) { *r = tr[hi]; *z = tz[hi]; sampled = true; }
+    else {
+      double cr = 0.0, cz = 0.0;
+      if (tok_chord_normal_solve(geo, psi, rlin, zlin, tr[hi]-tr[lo], tz[hi]-tz[lo],
+          0.5*seglen, &cr, &cz)) {
+        *r = cr; *z = cz; sampled = true;
+        tok_trace_sample_report(psi, seglen, hypot(cr-rlin, cz-zlin), 2);
+      }
+      else if (tok_ordered_map_diag_enabled())
+        fprintf(stderr,
+          "TOK_TRACE_SAMPLE_DIAG reason=chord_normal_failed u=%.17g psi=%.17g "
+          "bracket=[%d,%d] brk_lo=(%.17g,%.17g) brk_hi=(%.17g,%.17g) seglen=%.17g\n",
+          u, psi, lo, hi, tr[lo], tz[lo], tr[hi], tz[hi], seglen);
+    }
+  }
   if (tok_chord_stage_dump)
     fprintf(stderr,
       "    TOK_TRACE_SAMPLE u=%.17g target=%.17g total=%.17g lo=%d hi=%d n=%d "
@@ -4589,7 +4967,8 @@ tok_trace_sample(const struct gkyl_tok_geo *geo, double psi,
       "param_is_r=%d local_prefer_r=%d\n",
       u,target,ts[n-1],lo,hi,n,seglen,rlin,zlin,tr[lo],tz[lo],tr[hi],tz[hi],
       (int) param_is_r,(int) local_prefer_r_fixed);
-  if ((param_is_r && !tok_trace_sample_local_axis()) || local_prefer_r_fixed) {
+  if (!sampled &&
+      ((param_is_r && !tok_trace_sample_local_axis()) || local_prefer_r_fixed)) {
     double roots[32] = { 0.0 };
     int nr = tok_geo_Z_psiR(geo, psi, rlin, 16, roots);
     if (nr > 0) {
@@ -4660,6 +5039,7 @@ tok_trace_sample(const struct gkyl_tok_geo *geo, double psi,
       "param_is_r=%d local_prefer_r_fixed=%d\n",
       u, psi, residual, *r, *z, rlin, zlin, lo, hi,
       (int) param_is_r, (int) local_prefer_r_fixed);
+  if (sample_ok) tok_xpt_patch_apply(geo, psi, r, z);
   return sample_ok;
 }
 
@@ -4996,13 +5376,51 @@ tok_ext_theta_ladder_enabled(void)
 // (leg pairs, which share a trace, agree to 2e-15), and dl/dmu = 1/|grad psi|
 // amplifies that ~60x near the X point.  Fixing it means making the two blocks
 // share ONE trace, not changing which of them ladders.
+//
+// A/B HOOK (GKYL_TOK_EXT_LADDER_CORE=1, default off): let the two OPEN core
+// halves ladder like every other open block.  Measured 2026-09-22 on the
+// NSTX-U 450: the folds in CORE_R's separatrix-adjacent cell are the same
+// tangential shear the ladder removes in the SOL blocks (row-1 X-point-ray
+// endpoint at ~sqrt(dpsi) from the X point, spread along the row by uniform
+// arc), and the "varies smoothly with psi" premise above does not hold at the
+// separatrix.  The 2026-08-31 "21 reversals" above was judged by the
+// finite-difference row_cross criterion, which false-positives; this hook lets
+// it be re-judged by CELL_FOLD on written grids.  Experiment only.
+static bool
+tok_ext_ladder_core_hook(void)
+{
+  static int on = -1;
+  if (on < 0) {
+    const char *e = getenv("GKYL_TOK_EXT_LADDER_CORE");
+    on = (e && e[0] != '\0' && e[0] != '0') ? 1 : 0;
+  }
+  return on == 1;
+}
+
+// PROTOTYPE (GKYL_TOK_EXT_ROW_RULE=1, default off): replace the marched ladder
+// by the per-row construction of tok_ext_build_theta_rows below.  It serves
+// every open block, the core halves included -- see that function.
+static bool
+tok_ext_row_rule(void)
+{
+  static int on = -1;
+  if (on < 0) {
+    const char *e = getenv("GKYL_TOK_EXT_ROW_RULE");
+    on = (e && e[0] != '\0' && e[0] != '0') ? 1 : 0;
+  }
+  return on == 1;
+}
+
 static bool
 tok_ext_ladder_applies(enum gkyl_tok_geo_type ftype)
 {
+  if (tok_ext_row_rule())
+    return true;                 // every OPEN block; ext_open excludes closed ones
   switch (ftype) {
-    case GKYL_GEOMETRY_TOKAMAK_CORE:
     case GKYL_GEOMETRY_TOKAMAK_CORE_L:
     case GKYL_GEOMETRY_TOKAMAK_CORE_R:
+      return tok_ext_ladder_core_hook();
+    case GKYL_GEOMETRY_TOKAMAK_CORE:
     case GKYL_GEOMETRY_TOKAMAK_IWL:
       return false;
     default:
@@ -5776,7 +6194,14 @@ tok_ext_build_theta_ladder(const struct gkyl_tok_geo_grid_inp *inp,
       double v = tok_geo_trace_double_env("GKYL_TOK_EXT_LADDER_RUNG_CAP_MULT", 1.0);
       cap_mult = (isfinite(v) && v >= 1.0 && v <= 64.0) ? (int) v : 1;
     }
-    if (m > cap*cap_mult) {
+    // A/B HOOK (GKYL_TOK_EXT_LADDER_CORE=1): never reject the FIRST candidate
+    // (k=1, one rung per row) on the trace-capacity cap.  Measured 2026-09-22
+    // on the NSTX-U 450 at phase1: the 600-row core halves are refused here
+    // (m=600 > cap=513) and silently fall back to the blend, so the hook did
+    // nothing at that rung.  Bounding rungs by the trace capacity is the axis
+    // confusion the comment above already names; exempting only k=1 leaves
+    // every block that fits under the cap on exactly its old refinement path.
+    if (m > cap*cap_mult && !(k == 1 && tok_ext_ladder_core_hook())) {
       if (tok_ordered_map_diag_enabled())
         fprintf(stderr,
           "TOK_EXT_LADDER reason=rungs_over_cap ftype=%d m=%d cap=%d mult=%d rows=%d\n",
@@ -5880,6 +6305,322 @@ tok_ext_build_theta_ladder(const struct gkyl_tok_geo_grid_inp *inp,
       m_done/GKYL_MAX2(1, tok_ext_ladder_rows(inp)), n,
       tok_ext_ladder_min_gap(), refinements, tol,
       tok_ext_ladder_row_rung_offset(inp, arc_ctx));
+  return true;
+}
+
+// ---------------------------------------------------------------------------
+// PROTOTYPE: the per-row correspondence with a fold-derived absorption of the
+// X-point-ray endpoint offset (GKYL_TOK_EXT_ROW_RULE=1).
+//
+// MEASURED 2026-09-22/23 on the NSTX-U 450 and the STEP/ASDEX/TCV theta
+// ladders (fable-handoff/01 §11-§16):
+//   * every row off the separatrix starts on the X-point ray a tangential
+//     distance t0 ~ sqrt(dpsi) from the separatrix row's endpoint, while the
+//     row is only ~dpsi away radially (65x-127x apart on NSTX-U);
+//   * uniform arc spreads that offset over the whole row as a shear that
+//     folds the thin separatrix-adjacent cell where kappa*t*(L-t)/2 > gap;
+//   * the marched ladder projects interior nodes and pins the boundary node,
+//     so the FIRST CELL absorbs t0: no folds, but the psi-shear metric reads
+//     L/(L - t0) and diverges as theta is refined -- the seam divergence of
+//     01 §5 -- and once the offset exceeds a cell a min-gap floor takes over;
+//   * evaluated offline with the exact chord-crossing test, the longest
+//     decay arc that is fold-free is the WHOLE ROW for ~90-100% of blocks on
+//     all four devices, and the resulting shear is near 1 and flat in theta.
+//
+// So: one rung per node row (rungs ARE rows: no refinement loop, no trace-
+// capacity cap), marched from the separatrix outward; each rung projects the
+// previous rung's nodes (t = 0), then absorbs each end's offset delta over a
+// decay arc lambda*total,
+//
+//     w[i] = w_proj[i] + delta0*max(0, 1 - s_i/lambda) + delta1*max(0, 1 - (1-s_i)/lambda)
+//
+// with lambda the LARGEST value in [1/(n-1), 1] for which no cell between the
+// two rungs has crossing corner chords -- the same segment-intersection test
+// grid_gate's CELL_FOLD applies to the written grid.  No constant: the
+// endpoints, the trace, the previous rung and the crossing test are the only
+// inputs.  If even lambda = 1/(n-1) (one-cell absorption, the old ladder's
+// behaviour) crosses, the offset has moved by more than a cell and no
+// absorption is fold-free: that is the jump regime (01 §15, a curled divertor
+// leg) and the block REFUSES, loudly, with the offset in metres.
+//
+// Monotonicity: projection onto a curled trace can reorder nodes (the hop the
+// old comment warns about); a pool-adjacent-violators pass restores order
+// with no constant, and a rung that is still not strictly increasing refuses.
+// No min-gap floor, no identity blend, no relabel: with the separatrix as the
+// seed its row carries the identity (or the |grad psi| map when enabled), so
+// the seam invariant holds by construction.
+//
+// The table lands in the same ext_ladder_* slots the marched ladder fills, so
+// tok_ext_ladder_w and every consumer are untouched; node rows bracket exactly
+// (rungs are rows), only intra-cell quadrature points interpolate.
+static bool
+tok_ext_seg_cross(double ax, double ay, double bx, double by,
+  double cx, double cy, double dx, double dy)
+{
+  double d1x = bx-ax, d1y = by-ay, d2x = dx-cx, d2y = dy-cy;
+  double den = d1x*d2y-d1y*d2x;
+  if (den == 0.0) return false;
+  double sx = cx-ax, sy = cy-ay;
+  double t = (sx*d2y-sy*d2x)/den, u = (sx*d1y-sy*d1x)/den;
+  return t > 0.0 && t < 1.0 && u > 0.0 && u < 1.0;
+}
+
+// Fill w[] for a decay fraction lambda: blend between the PROJECTED positions
+// (zero tangential shift, the ladder's correspondence) and the PREVIOUS rung's
+// normalised positions (uniform arc, which carries the endpoint offset along
+// the whole row) with a weight h that is 1 at both ends and decays to 0 over
+// lambda of the row from each end:
+//
+//     w[i] = w_proj[i] + (w_prev[i] - w_proj[i]) * h(s_i),
+//     h(s) = min(1, max(0, 1 - s/lambda) + max(0, 1 - (1-s)/lambda)).
+//
+// lambda = 1 gives w = w_prev exactly (uniform arc, monotone by construction);
+// lambda = 1/(n-1) leaves every interior node projected, i.e. the whole
+// endpoint offset in the end cells -- the old ladder's behaviour.  Then sample
+// the candidate nodes on the current trace and test every cell against the
+// previous rung.  Returns 0 = clean, 1 = a cell folds, 2 = not strictly
+// increasing / sample failed.
+// The crossing test runs on the CELL CORNERS (ncell+1 per row, ncell = the
+// block's theta cell count), not on the n map-trace nodes: the trace is ~4x
+// denser than the cells and the chord criterion scales with the chord length
+// (measured 2026-09-23: at trace scale no crossing was found and every
+// uniform-arc fold of the written grid survived).  Corner j sits at
+// u = j/ncell, i.e. between trace nodes; its w is interpolated linearly, and
+// the previous rung's corner is read the same way from wprev.
+static int
+tok_ext_row_rule_try(const struct gkyl_tok_geo *geo, double psi,
+  const double *cr, const double *cz, const double *cs, int cn, bool cparam,
+  const double *wproj, const double *wprev, int n, int ncell, double lambda,
+  const double *ppr, const double *ppz, const double *pps, int ppn, bool ppparam, double ppsi,
+  double *w, double *qr, double *qz)
+{
+  for (int i=0; i<n; ++i) {
+    double si = fmin(1.0, fmax(0.0, wprev[i]));
+    double h = fmax(0.0, 1.0-si/lambda)+fmax(0.0, 1.0-(1.0-si)/lambda);
+    h = fmin(1.0, h);
+    w[i] = wproj[i]+(wprev[i]-wproj[i])*h;
+  }
+  w[0] = 0.0; w[n-1] = 1.0;
+  for (int i=1; i<n; ++i)
+    if (!(w[i] > w[i-1])) return 2;
+  // Every map-trace node must land on a DISTINCT point of the trace: two
+  // nodes projected onto one place (a contour that shortens, 204951's plate
+  // strike) sample to the same R,Z and the ordered-map builder aborts on a
+  // zero arc step downstream.  Treated as unsafe here, so the search moves to
+  // a decay fraction that separates them, instead of a floor constant.
+  {
+    double xr_prev = 0.0, xz_prev = 0.0;
+    for (int i=0; i<n; ++i) {
+      double xr = 0.0, xz = 0.0;
+      if (!tok_trace_sample(geo, psi, cr, cz, cs, cn, cparam, w[i], &xr, &xz))
+        return 2;
+      if (i > 0 && !(hypot(xr-xr_prev, xz-xz_prev) > 0.0))
+        return 2;
+      xr_prev = xr; xz_prev = xz;
+    }
+  }
+  // cell corners of this rung (qr,qz) and of the previous rung (pr_c,pz_c),
+  // plus the two Gauss points inside every cell on both rows (2026-09-30).
+  //
+  // Corners alone test the CHORD of each theta edge, and a chord is not the
+  // edge: on the end cells next to the X-point ray the rows bend within one
+  // cell, the corner chords stay apart while the rows themselves cross, and
+  // the library's signed Jacobian at the Gauss nodes then aborts the build
+  // (NSTX-U 203970, 203834, 204056: PF_LO_L, last Gauss row, theta 0). The
+  // rule must judge the edge the geometry will actually carry, so each edge is
+  // the polyline corner -> Gauss -> Gauss -> corner, sampled on the row's own
+  // trace at the theta positions the quadrature will use. Same instrument as
+  // the harness gate since surface nodes are always written; same definition
+  // of a fold: the two theta edges cross, or the two radial edges cross. A
+  // theta edge meeting its own radial edge next to their shared corner (a
+  // cusp: the radial line tangent to the row) is not a fold here either; the
+  // Jacobian guard at the Gauss nodes decides those, as it does for the gate.
+  int nc = ncell > 0 ? ncell : n-1;
+  if (nc+1 > n) nc = n-1;
+  double pr_c[nc+1], pz_c[nc+1];
+  double qg_r[2*nc], qg_z[2*nc], pg_r[2*nc], pg_z[2*nc];
+  const double gauss[2] = { 0.5-0.5/sqrt(3.0), 0.5+0.5/sqrt(3.0) };
+  for (int j=0; j<=nc; ++j) {
+    for (int g=-1; g<2; ++g) {
+      if (g >= 0 && j == nc) break;
+      double x = (j+(g < 0 ? 0.0 : gauss[g]))/nc*(n-1);
+      int i = (int) floor(x); if (i > n-2) i = n-2;
+      double f = x-i;
+      double wc = w[i]+f*(w[i+1]-w[i]);
+      double wp = wprev[i]+f*(wprev[i+1]-wprev[i]);
+      double *xr = g < 0 ? &qr[j] : &qg_r[2*j+g], *xz = g < 0 ? &qz[j] : &qg_z[2*j+g];
+      double *yr = g < 0 ? &pr_c[j] : &pg_r[2*j+g], *yz = g < 0 ? &pz_c[j] : &pg_z[2*j+g];
+      if (!tok_trace_sample(geo, psi, cr, cz, cs, cn, cparam, wc, xr, xz))
+        return 2;
+      if (!tok_trace_sample(geo, ppsi, ppr, ppz, pps, ppn, ppparam, wp, yr, yz))
+        return 2;
+    }
+  }
+  if (tok_ordered_map_diag_enabled()) {
+    static int ndump = 0;
+    if (ndump < 40) {
+      ++ndump;
+      fprintf(stderr, "TOK_EXT_ROW_RULE_DUMP psi=%.17g lambda=%.4g ncell=%d n=%d\n", psi, lambda, nc, n);
+      for (int j=0; j<=nc; ++j)
+        fprintf(stderr, "TOK_EXT_ROW_RULE_DUMP   j=%d prev=(%.6f,%.6f) cur=(%.6f,%.6f)\n", j, pr_c[j], pz_c[j], qr[j], qz[j]);
+    }
+  }
+  for (int j=0; j<nc; ++j) {
+    // the two theta edges of cell j as 3-segment polylines
+    const double cur_r[4] = { qr[j], qg_r[2*j], qg_r[2*j+1], qr[j+1] }, cur_z[4] = { qz[j], qg_z[2*j], qg_z[2*j+1], qz[j+1] };
+    const double prv_r[4] = { pr_c[j], pg_r[2*j], pg_r[2*j+1], pr_c[j+1] }, prv_z[4] = { pz_c[j], pg_z[2*j], pg_z[2*j+1], pz_c[j+1] };
+    for (int a=0; a<3; ++a)
+      for (int b=0; b<3; ++b)
+        if (tok_ext_seg_cross(prv_r[a], prv_z[a], prv_r[a+1], prv_z[a+1], cur_r[b], cur_z[b], cur_r[b+1], cur_z[b+1]))
+          return 1;
+    // the two radial edges: prev j+1 -> cur j+1 against cur j -> prev j
+    if (tok_ext_seg_cross(pr_c[j+1], pz_c[j+1], qr[j+1], qz[j+1], qr[j], qz[j], pr_c[j], pz_c[j]))
+      return 1;
+  }
+  return 0;
+}
+
+static bool
+tok_ext_build_theta_rows(const struct gkyl_tok_geo_grid_inp *inp,
+  struct arc_length_ctx *arc_ctx)
+{
+  const int cap = arc_ctx->sep_trace_capacity;
+  const int n = tok_ext_map_trace_nodes(inp, cap);
+  const int m = tok_ext_ladder_rows(inp);
+  // theta cells: the corners the gate tests.  cgrid is (psi, phi, theta):
+  // cells[0] radial, cells[2] theta (tok_ext_map_trace_nodes sizes the map
+  // trace from cells[2]); cells[1] is the one toroidal cell -- using it made
+  // the corner test see two points and no crossing (2026-09-23).
+  const int ncell = GKYL_MAX2(1, inp->cgrid.cells[2]);
+  const double psisep = arc_ctx->geo->psisep;
+  const double span = arc_ctx->xpt_ray_psi0-psisep;
+  if (n < 3 || m < 1 || !isfinite(span) || span == 0.0)
+    return false;
+  double *rf = gkyl_malloc(sizeof(double[m+1]));
+  if (tok_ext_ladder_rung_fractions(inp, arc_ctx, m, rf, m+1) != m+1) {
+    fprintf(stderr, "TOK_EXT_ROW_RULE REFUSED ftype=%d reason=rung_fractions_unavailable rows=%d\n",
+      inp->ftype, m);
+    tok_wall_trial_note_row_rule_refused();
+    gkyl_free(rf);
+    return false;
+  }
+  double *table = gkyl_malloc(sizeof(double[(size_t) (m+1)*n]));
+  double *scratch = gkyl_malloc(sizeof(double[6*cap]));
+  double *pr = scratch, *pz = scratch+cap, *ps = scratch+2*cap;
+  double *cr = scratch+3*cap, *cz = scratch+4*cap, *cs = scratch+5*cap;
+  double *wprev = gkyl_malloc(sizeof(double[n])), *wproj = gkyl_malloc(sizeof(double[n]));
+  double *wcur = gkyl_malloc(sizeof(double[n])), *wtry = gkyl_malloc(sizeof(double[n]));
+  double *pr_n = gkyl_malloc(sizeof(double[n])), *pz_n = gkyl_malloc(sizeof(double[n]));
+  double *qr = gkyl_malloc(sizeof(double[n])), *qz = gkyl_malloc(sizeof(double[n]));
+  double *bm = gkyl_malloc(sizeof(double[n])); int *bc = gkyl_malloc(sizeof(int[n]));
+
+  // Seed: the separatrix row, identity or the |grad psi| map -- exactly what
+  // the un-laddered path gives that row, so the shared row is unchanged.
+  bool want_sep_map = tok_ext_ladder_gradpsi_theta_enabled(inp) && arc_ctx->sep_trace_initialized;
+  for (int i=0; i<n; ++i) {
+    double u = i/(double) (n-1);
+    wprev[i] = want_sep_map ? tok_ext_gradpsi_map(inp, arc_ctx, u) : u;
+    table[i] = wprev[i];
+  }
+  int pn = arc_ctx->sep_trace_n;
+  bool pparam = arc_ctx->sep_trace_param_is_r;
+  double ppsi = psisep;
+  for (int i=0; i<pn; ++i) { pr[i] = arc_ctx->sep_trace_r[i]; pz[i] = arc_ctx->sep_trace_z[i]; ps[i] = arc_ctx->sep_trace_s[i]; }
+
+  bool ok = true;
+  int n_short = 0; double lam_min = 1.0, off_max = 0.0;
+  const double lam_floor = 1.0/(n-1);
+  for (int k=1; k<=m && ok; ++k) {
+    double psi_k = psisep+span*rf[k];
+    int cn = 0; bool cparam = false, cclosed = false;
+    if (!tok_ext_build_domain_trace(inp, arc_ctx, psi_k, false, cr, cz, cs, &cn, &cparam, &cclosed) || cn < 2) {
+      fprintf(stderr, "TOK_EXT_ROW_RULE REFUSED ftype=%d reason=row_trace_failed row=%d psi=%.17g\n",
+        inp->ftype, k, psi_k);
+      tok_wall_trial_note_row_rule_refused();
+      ok = false; break;
+    }
+    // previous rung's nodes in R,Z, and their projection onto this trace
+    int j_lo = 0;
+    for (int i=0; i<n; ++i) {
+      if (!tok_trace_sample(arc_ctx->geo, ppsi, pr, pz, ps, pn, pparam, wprev[i], &pr_n[i], &pz_n[i])) {
+        fprintf(stderr, "TOK_EXT_ROW_RULE REFUSED ftype=%d reason=prev_sample_failed row=%d i=%d\n", inp->ftype, k, i);
+        tok_wall_trial_note_row_rule_refused();
+        ok = false; break;
+      }
+      wproj[i] = tok_ext_project_onto_trace(cr, cz, cs, cn, pr_n[i], pz_n[i], &j_lo);
+    }
+    if (!ok) break;
+    // pool-adjacent-violators on the interior: restore order without a constant
+    {
+      int nb = 0;
+      for (int i=1; i<n-1; ++i) {
+        bm[nb] = wproj[i]; bc[nb] = 1; ++nb;
+        while (nb > 1 && bm[nb-2] > bm[nb-1]) {
+          int c = bc[nb-2]+bc[nb-1];
+          bm[nb-2] = (bc[nb-2]*bm[nb-2]+bc[nb-1]*bm[nb-1])/c; bc[nb-2] = c; --nb;
+        }
+      }
+      int out = 1;
+      for (int b=0; b<nb; ++b) for (int j=0; j<bc[b]; ++j) wproj[out++] = bm[b];
+    }
+    // The offset this rung must absorb is the difference between uniform arc
+    // and projection next to each end, in metres of this row (reported).
+    double off_m = fmax(fabs(wprev[1]-wproj[1]), fabs(wprev[n-2]-wproj[n-2]))*cs[cn-1];
+    if (off_m > off_max) off_max = off_m;
+    // largest lambda in [lam_floor, 1] that is fold-free and monotone
+    int r1 = tok_ext_row_rule_try(arc_ctx->geo, psi_k, cr, cz, cs, cn, cparam, wproj, wprev, n, ncell, 1.0, pr, pz, ps, pn, pparam, ppsi, wcur, qr, qz);
+    double lam = 1.0;
+    if (r1 != 0) {
+      double lo = -1.0, hi = 1.0;
+      int rf0 = tok_ext_row_rule_try(arc_ctx->geo, psi_k, cr, cz, cs, cn, cparam, wproj, wprev, n, ncell, lam_floor, pr, pz, ps, pn, pparam, ppsi, wcur, qr, qz);
+      if (rf0 == 0) lo = lam_floor;
+      else {
+        // a coarse scan between the floor and 1 catches a safe window neither end has
+        for (int q=1; q<32 && lo < 0.0; ++q) {
+          double lq = lam_floor+(1.0-lam_floor)*q/32.0;
+          if (tok_ext_row_rule_try(arc_ctx->geo, psi_k, cr, cz, cs, cn, cparam, wproj, wprev, n, ncell, lq, pr, pz, ps, pn, pparam, ppsi, wcur, qr, qz) == 0) lo = lq;
+        }
+      }
+      if (lo < 0.0) {
+        fprintf(stderr,
+          "TOK_EXT_ROW_RULE REFUSED ftype=%d reason=%s row=%d psi=%.17g "
+          "endpoint_offset_m=%.6g end_cell_m=%.6g\n",
+          inp->ftype, (r1 == 1 || rf0 == 1) ? "no_fold_free_absorption" : "row_not_monotone",
+          k, psi_k, off_m, cs[cn-1]/(n-1));
+        tok_wall_trial_note_row_rule_refused();
+        ok = false; break;
+      }
+      for (int it=0; it<40 && hi-lo > 1e-6; ++it) {
+        double mid = 0.5*(lo+hi);
+        if (tok_ext_row_rule_try(arc_ctx->geo, psi_k, cr, cz, cs, cn, cparam, wproj, wprev, n, ncell, mid, pr, pz, ps, pn, pparam, ppsi, wtry, qr, qz) == 0) lo = mid;
+        else hi = mid;
+      }
+      lam = lo;
+      tok_ext_row_rule_try(arc_ctx->geo, psi_k, cr, cz, cs, cn, cparam, wproj, wprev, n, ncell, lam, pr, pz, ps, pn, pparam, ppsi, wcur, qr, qz);
+      ++n_short;
+      if (lam < lam_min) lam_min = lam;
+    }
+    for (int i=0; i<n; ++i) table[(size_t) k*n+i] = wcur[i];
+    // this rung becomes the next one's reference
+    for (int i=0; i<cn; ++i) { pr[i] = cr[i]; pz[i] = cz[i]; ps[i] = cs[i]; }
+    pn = cn; pparam = cparam; ppsi = psi_k;
+    for (int i=0; i<n; ++i) wprev[i] = wcur[i];
+  }
+  gkyl_free(scratch); gkyl_free(wprev); gkyl_free(wproj); gkyl_free(wcur); gkyl_free(wtry);
+  gkyl_free(pr_n); gkyl_free(pz_n); gkyl_free(qr); gkyl_free(qz); gkyl_free(bm); gkyl_free(bc);
+  if (!ok) { gkyl_free(table); gkyl_free(rf); return false; }
+  gkyl_free(arc_ctx->ext_ladder_w);
+  gkyl_free(arc_ctx->ext_ladder_rf);
+  arc_ctx->ext_ladder_w = table;
+  arc_ctx->ext_ladder_rf = rf;
+  arc_ctx->ext_ladder_m = m;
+  arc_ctx->ext_ladder_n = n;
+  arc_ctx->ext_ladder_initialized = true;
+  // Always reported: one line per block, so a run can be audited for how much
+  // absorption the rule actually needed.
+  fprintf(stderr,
+    "TOK_EXT_ROW_RULE built ftype=%d rows=%d nodes=%d ncell=%d rows_shortened=%d lambda_min=%.4g max_endpoint_offset_m=%.6g\n",
+    inp->ftype, m, n, ncell, n_short, lam_min, off_max);
   return true;
 }
 
@@ -6103,7 +6844,22 @@ tok_build_trace_correspondence(const struct gkyl_tok_geo_grid_inp *inp,
     // above remains valid, it just cannot resolve an interior discontinuity.
     if (ext_ladder && !arc_ctx->ext_ladder_initialized &&
         !arc_ctx->ext_ladder_failed) {
-      if (!tok_ext_build_theta_ladder(inp, arc_ctx)) {
+      bool built = tok_ext_row_rule()
+        ? tok_ext_build_theta_rows(inp, arc_ctx)
+        : tok_ext_build_theta_ladder(inp, arc_ctx);
+      if (!built) {
+        // A refused row rule used to fall back to the two-point blend and the
+        // case PASSED silently (1-5 refusals per rung on the 450).  User
+        // decision 2026-10-02: a refusal is fatal in a production build, so
+        // the next baseline shows every case the rule cannot handle.  Inside
+        // a wall trial it stays a recorded diagnostic (the trial is built
+        // plain and judged on containment), as before.
+        if (tok_ext_row_rule() && !tok_wall_trial_is_active()) {
+          fprintf(stderr,
+            "TOK_EXT_LADDER reason=row_rule_refused_fatal ftype=%d\n",
+            inp->ftype);
+          return false;
+        }
         arc_ctx->ext_ladder_failed = true;
         fprintf(stderr,
           "TOK_EXT_LADDER reason=build_failed ftype=%d falling back to blend\n",
@@ -7148,6 +7904,19 @@ tok_logical_trace_sample(const struct gkyl_tok_geo *geo, double psi,
   double zlin = tz[i]+w*(tz[i+1]-tz[i]);
   double dr = tr[i+1]-tr[i], dz = tz[i+1]-tz[i];
   const double tol = 1e-9*fmax(1.0, fabs(psi));
+  // A3: the same bracket-frame rule as tok_trace_sample, first.  The map
+  // trace's brackets are a quarter cell long, and on the bracket leaving an
+  // X point the axis-aligned solve below fails and the gradient projection
+  // after it slides toward the saddle (see tok_chord_normal_solve).
+  if (tok_trace_sample_chord_normal_enabled()) {
+    if (w <= 0.0) { *r = tr[i]; *z = tz[i]; return true; }
+    if (w >= 1.0) { *r = tr[i+1]; *z = tz[i+1]; return true; }
+    double cr = 0.0, cz = 0.0;
+    if (tok_chord_normal_solve(geo, psi, rlin, zlin, dr, dz, 0.5*hypot(dr, dz), &cr, &cz)) {
+      *r = cr; *z = cz;
+      return true;
+    }
+  }
   bool axis_ok = true;
   if (fabs(dr) >= fabs(dz)) {
     double roots[32] = { 0.0 };
@@ -7331,10 +8100,79 @@ tok_row_arc_project_psi(const struct gkyl_tok_geo *geo, double psi,
   return true;
 }
 
+// The strike-step rule (user decision 2026-10-02, NSTX-U 204951).  Where a
+// divertor leg grazes the wall, two adjacent rows of a plate-ended block can
+// land far apart: on 204951 the private-flux rows peel off the floor onto the
+// centre column and the strike moves 41 mm between rows 24 and 25, while the
+// rows' theta cells are 17 mm long.  Nodes are spread along each row, so a
+// plate end that moves by more than a cell between neighbouring rows cannot be
+// spanned by the cells between them (fig24: seven cells with crossing radial
+// edges), and the fold is in the equilibrium's geometry, not in any placement
+// rule.  So the rule is the one the cells themselves impose: the plate ends of
+// two adjacent rows must be closer than this row's theta cell is long, both
+// lengths taken from the grid being built, no constant.  Treated like a wall
+// violation: inside a wall trial it is recorded against the movable radial
+// boundary, so the adjuster moves the requested PF (or SOL) bound inward until
+// the step fits -- "the adaptive boundary fix", as the user put it; in a
+// production build the row fails, loudly, like every other refusal.
+// (A first version compared the limiter SEGMENT each strike lies on; it
+// shrank 204046's outboard SOL to the floor over a 2 mm step across the
+// plate's own kink and aborted TCV, whose outline is a fine polyline.)
+static bool
+tok_ext_strike_step_check(const struct gkyl_tok_geo_grid_inp *inp,
+  const struct arc_length_ctx *arc_ctx, const struct tok_ext_topology *top,
+  double psi, bool at_sep, const double *raw_r, const double *raw_z,
+  const double *raw_s, int raw_n)
+{
+  const bool lo_plate = top->lower.kind == TOK_EXT_PLATE;
+  const bool hi_plate = top->upper.kind == TOK_EXT_PLATE;
+  if ((!lo_plate && !hi_plate) || raw_n < 2 || inp->cgrid.cells[0] < 1 ||
+      inp->cgrid.cells[2] < 1)
+    return true;
+  const double L = raw_s[raw_n-1];
+  if (!(L > 0.0) || !isfinite(L))
+    return true;
+  const double h = L/inp->cgrid.cells[2];
+  const double dpsi = (inp->cgrid.upper[0]-inp->cgrid.lower[0])/inp->cgrid.cells[0];
+  const double psisep = arc_ctx->geo->psisep;
+  // The neighbouring row: toward the separatrix for an interior row, into the
+  // block for the separatrix row itself.
+  double psi_nb;
+  if (at_sep)
+    psi_nb = psisep+copysign(dpsi, 0.5*(inp->cgrid.lower[0]+inp->cgrid.upper[0])-psisep);
+  else
+    psi_nb = psi+copysign(dpsi, psisep-psi);
+  for (int e=0; e<2; ++e) {
+    if (!(e == 0 ? lo_plate : hi_plate))
+      continue;
+    const struct tok_ext_endpoint *endpoint = e == 0 ? &top->lower : &top->upper;
+    const double re = e == 0 ? raw_r[0] : raw_r[raw_n-1];
+    const double ze = e == 0 ? raw_z[0] : raw_z[raw_n-1];
+    double rn = 0.0, zn = 0.0;
+    if (!tok_ext_endpoint_point(inp, arc_ctx, endpoint, psi_nb,
+        tok_geo_same_flux(psi_nb, psisep), &rn, &zn, 0))
+      continue;   // the neighbour's own build will judge it
+    const double D = hypot(re-rn, ze-zn);
+    if (!(D > h))
+      continue;
+    const bool trial = tok_wall_trial_record_scope(false, false);
+    fprintf(stderr,
+      "TOK_STRIKE_STEP ftype=%d psi=%.17g strike=(%.17g,%.17g) neighbour_psi=%.17g "
+      "neighbour_strike=(%.17g,%.17g) step_m=%.17g theta_cell_m=%.17g trial=%d\n",
+      inp->ftype, psi, re, ze, psi_nb, rn, zn, D, h, (int) trial);
+    if (!trial)
+      return false;
+  }
+  return true;
+}
+
 static bool
 tok_build_current_ordered_trace(const struct gkyl_tok_geo_grid_inp *inp,
   struct arc_length_ctx *arc_ctx)
 {
+  if (inp->cgrid.cells[0] > 0)
+    tok_xpt_patch_begin(arc_ctx->geo, inp->ftype, arc_ctx->psi,
+      (inp->cgrid.upper[0]-inp->cgrid.lower[0])/inp->cgrid.cells[0]);
   double psi = arc_ctx->psi;
   if (arc_ctx->map_trace_initialized && tok_geo_same_flux(
       psi, arc_ctx->map_trace_psi))
@@ -7372,6 +8210,11 @@ tok_build_current_ordered_trace(const struct gkyl_tok_geo_grid_inp *inp,
         "TOK_ORDERED_MAP_TRACE reason=topology_mismatch ftype=%d psi=%.17g have_topology=%d raw_closed=%d expected_closed=%d\n",
         inp->ftype, psi, (int) have_top, (int) raw_closed,
         have_top ? (int) top.closed : -1);
+      gkyl_free(raw_r); gkyl_free(raw_z); gkyl_free(raw_s);
+      return false;
+    }
+    if (!tok_ext_strike_step_check(inp, arc_ctx, &top, psi, at_sep,
+        raw_r, raw_z, raw_s, raw_n)) {
       gkyl_free(raw_r); gkyl_free(raw_z); gkyl_free(raw_s);
       return false;
     }
@@ -7574,9 +8417,7 @@ tok_build_current_ordered_trace(const struct gkyl_tok_geo_grid_inp *inp,
         +fpol*ds/(rm*grad);
     }
   }
-  if (extended) {
-    gkyl_free(raw_r); gkyl_free(raw_z); gkyl_free(raw_s);
-  }
+  // (raw_r/raw_z/raw_s are freed after the diagnostic dump below.)
   // Resample the row to UNIFORM arclength.
   //
   // Everything downstream resolves the row only as finely as this trace: the
@@ -7653,6 +8494,61 @@ tok_build_current_ordered_trace(const struct gkyl_tok_geo_grid_inp *inp,
         inp->ftype, psi, n, sep_identity_dev, anchor_end, anchor_rho,
         (int) (arc_ctx->ext_ladder_initialized && n == arc_ctx->ext_ladder_n));
     }
+  }
+  // DIAGNOSTIC (2026-10-02, A3): GKYL_TOK_MAP_TRACE_DUMP=<ftype> prints the
+  // map trace of that block's SEPARATRIX row, point by point with its arc
+  // parameter, so the first interval at an X-point tip can be read directly
+  // (the tip-cell family: a Gauss node at 0.5% of the cell instead of 21%).
+  {
+    static int dump_ftype = -2;
+    if (dump_ftype == -2) { const char *e = getenv("GKYL_TOK_MAP_TRACE_DUMP"); dump_ftype = (e && e[0] != '\0') ? atoi(e) : -1; }
+    if (dump_ftype == inp->ftype && at_sep) {
+      fprintf(stderr, "TOK_MAP_TRACE ftype=%d psi=%.17g n=%d raw_n=%d total_s=%.17g\n", inp->ftype, psi, n, raw_n, arc_ctx->map_trace_s[n-1]);
+      for (int i=0; i<n; ++i)
+        fprintf(stderr, "TOK_MAP_TRACE_PT i=%d r=%.17g z=%.17g s=%.17g\n", i, arc_ctx->map_trace_r[i], arc_ctx->map_trace_z[i], arc_ctx->map_trace_s[i]);
+      fprintf(stderr, "TOK_MAP_TRACE_GRID dx=%.17g dz=%.17g zlower=%.17g xpt=(%.17g,%.17g) raw_param_is_r=%d\n",
+        arc_ctx->geo->rzgrid.dx[0], arc_ctx->geo->rzgrid.dx[1], arc_ctx->geo->rzgrid.lower[1],
+        arc_ctx->xpt_ray_r0, arc_ctx->xpt_ray_z0, (int) raw_param_is_r);
+      for (int i=0; i<raw_n && i<12; ++i)
+        fprintf(stderr, "TOK_RAW_TRACE_PT i=%d r=%.17g z=%.17g s=%.17g\n", i, raw_r[i], raw_z[i], raw_s[i]);
+      // GKYL_TOK_MAP_TRACE_DUMP_PSIGRID=<half-width in m>: psi-psisep on a
+      // 161x161 grid centred on the row's first point (the X point).
+      const char *pg = getenv("GKYL_TOK_MAP_TRACE_DUMP_PSIGRID");
+      const double hw = (pg && pg[0] != '\0') ? atof(pg) : 0.0;
+      if (hw > 0.0) {
+        const int ng = 160;
+        const double rc = arc_ctx->map_trace_r[0], zc = arc_ctx->map_trace_z[0];
+        fprintf(stderr, "TOK_PSIGRID centre=(%.17g,%.17g) hw=%.17g n=%d psi=%.17g\n", rc, zc, hw, ng+1, psi);
+        for (int j=0; j<=ng; ++j) {
+          const double zz = zc-hw+2.0*hw*j/ng;
+          fprintf(stderr, "TOK_PSIGRID_ROW j=%d z=%.17g f=", j, zz);
+          for (int i=0; i<=ng; ++i) {
+            const double rr = rc-hw+2.0*hw*i/ng;
+            fprintf(stderr, "%s%.10e", i ? "," : "", tok_eval_psi_rz_local(arc_ctx->geo, rr, zz)-psi);
+          }
+          fprintf(stderr, "\n");
+        }
+        // The same box in the C1 (bicubic) representation, relative to ITS
+        // separatrix value, with its own saddle: does that level set connect?
+        const struct gkyl_efit *ef = arc_ctx->geo->efit;
+        fprintf(stderr, "TOK_PSIGRID_CUBIC psisep_cubic=%.17g xpt_cubic=(%.17g,%.17g)\n",
+          ef->psisep_cubic, ef->Rxpt_cubic ? ef->Rxpt_cubic[0] : 0.0, ef->Zxpt_cubic ? ef->Zxpt_cubic[0] : 0.0);
+        for (int j=0; j<=ng; ++j) {
+          const double zz = zc-hw+2.0*hw*j/ng;
+          fprintf(stderr, "TOK_PSIGRID_CUBIC_ROW j=%d z=%.17g f=", j, zz);
+          for (int i=0; i<=ng; ++i) {
+            const double rr = rc-hw+2.0*hw*i/ng;
+            double xn[2] = { rr, zz }, out[3] = { 0.0 };
+            ef->evf->eval_cubic_wgrad(0.0, xn, out, ef->evf->ctx);
+            fprintf(stderr, "%s%.10e", i ? "," : "", out[0]-ef->psisep_cubic);
+          }
+          fprintf(stderr, "\n");
+        }
+      }
+    }
+  }
+  if (extended) {
+    gkyl_free(raw_r); gkyl_free(raw_z); gkyl_free(raw_s);
   }
   arc_ctx->map_trace_n = n;
   arc_ctx->map_trace_psi = psi;
@@ -7816,6 +8712,10 @@ tok_ordered_map_lookup(const struct gkyl_tok_geo_grid_inp *inp,
         inp->ftype, arc_ctx->psi, u, arc_ctx->map_trace_n);
       return false;
     }
+    if (inp->cgrid.cells[0] > 0)
+      tok_xpt_patch_begin(arc_ctx->geo, inp->ftype, arc_ctx->psi,
+        (inp->cgrid.upper[0]-inp->cgrid.lower[0])/inp->cgrid.cells[0]);
+    tok_xpt_patch_apply(arc_ctx->geo, arc_ctx->psi, &out->r, &out->z);
   }
   else if (!tok_parameterized_xpt_seam_point(effective_inp, arc_ctx,
       arc_ctx->psi, u,
@@ -8901,11 +9801,21 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
         wall_trial_block,it-nrange->lower[TH_IDX],wall_trial_rho,p[0],p[1]);
     }
   }
+  // Under GKYL_TOK_WALL_STRICT, which node rows sit on a separately declared
+  // plate: the block's first or last theta row, when that end is the block's
+  // physical boundary and the topology says it is such a plate.
+  const bool strict_wall = enforce_wall && tok_wall_strict_enabled();
+  const bool plate_row_lo = strict_wall && up->local.lower[TH_IDX]==up->global.lower[TH_IDX] &&
+    tok_wall_theta_end_on_declared_plate(inp,geo,0);
+  const bool plate_row_up = strict_wall && up->local.upper[TH_IDX]==up->global.upper[TH_IDX] &&
+    tok_wall_theta_end_on_declared_plate(inp,geo,1);
   if (enforce_wall)
   for (int ip=nrange->lower[PSI_IDX]; ip<=nrange->upper[PSI_IDX]; ++ip) {
     for (int it=nrange->lower[TH_IDX]; it<=nrange->upper[TH_IDX]; ++it) {
       int idx[3]={ip,nrange->lower[AL_IDX],it};
       const double *p=gkyl_array_cfetch(up->geo_corn.mc2p_nodal,gkyl_range_idx(nrange,idx));
+      const bool on_plate=(plate_row_lo && it==nrange->lower[TH_IDX]) || (plate_row_up && it==nrange->upper[TH_IDX]);
+      tok_wall_declared_plate_scope_set(on_plate);
       bool ok=tok_wall_point_inside(geo->efit,p);
       // Report WHICH test failed. The old message printed only the node, so a
       // segment violation looked like a point violation -- and the node it
@@ -8919,6 +9829,9 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
         if (idx[d]>=nrange->upper[d]) continue;
         idx[d]++;
         const double *q=gkyl_array_cfetch(up->geo_corn.mc2p_nodal,gkyl_range_idx(nrange,idx));
+        // A segment touches the plate when either end is on it: the psi
+        // segment along the plate row, or the theta segment leaving it.
+        tok_wall_declared_plate_scope_set(on_plate || (d==TH_IDX && plate_row_up && idx[TH_IDX]==nrange->upper[TH_IDX]));
         ok=tok_wall_segment_inside(geo->efit,p,q);
         if (!ok) { fail_scope = d==PSI_IDX ? "segment_psi" : "segment_theta";
                    fail_q[0]=q[0]; fail_q[1]=q[1]; }
@@ -8955,6 +9868,7 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
       }
     }
   }
+  tok_wall_declared_plate_scope_set(false);
 
   // The library builds geometry three ways and only one of them ships. The
   // row-arc PROBE measures each row's arc length with the grading switched off
@@ -9174,12 +10088,16 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
         for(int d=0;d<2;++d)
           points[k][d]=inp->cbasis.eval_expand(eta,coeff+d*inp->cbasis.num_basis);
       }
+      // The first and last theta cells end on the plate rows.
+      tok_wall_declared_plate_scope_set((plate_row_lo && idx[TH_IDX]==up->local.lower[TH_IDX]) ||
+        (plate_row_up && idx[TH_IDX]==up->local.upper[TH_IDX]));
       if (!tok_wall_curve_inside(geo->efit,points[0],points[1],points[2])) {
         fprintf(stderr,"TOK_GEO_WALL_DOMAIN_FAILED ftype=%d scope=radial_boundary_curve side=%d theta_cell=%d\n",inp->ftype,side,idx[TH_IDX]);
         if (!tok_wall_trial_record(side!=wall_trial_movable_edge)) abort();
       }
     }
   }
+  tok_wall_declared_plate_scope_set(false);
 
   gkyl_nodal_ops_n2m(n2m, &inp->cbasis, &inp->cgrid, nrange, &up->local, 3, up->geo_corn.mc2nu_pos_nodal, up->geo_corn.mc2nu_pos, false);
   gkyl_nodal_ops_n2m(n2m, &inp->cbasis, &inp->cgrid, nrange, &up->local, 1, up->geo_corn.bmag_nodal, up->geo_corn.bmag, false);
@@ -9912,7 +10830,16 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
             // yields J=0 at check_right_handed.
             if (enforce_wall) {
               double wall_point[2]={r_curr,z_curr};
-              if (!tok_wall_point_inside(geo->efit,wall_point)) {
+              // Theta-face nodes at the block's ends sit on the plate rows;
+              // under GKYL_TOK_WALL_STRICT those on a separately declared
+              // plate keep the per-edge slack (see the corner-node pass).
+              const bool on_plate = dir==2 && tok_wall_strict_enabled() &&
+                ((it==nrange->lower[TH_IDX] && up->local.lower[TH_IDX]==up->global.lower[TH_IDX] && tok_wall_theta_end_on_declared_plate(inp,geo,0)) ||
+                 (it==nrange->upper[TH_IDX] && up->local.upper[TH_IDX]==up->global.upper[TH_IDX] && tok_wall_theta_end_on_declared_plate(inp,geo,1)));
+              tok_wall_declared_plate_scope_set(on_plate);
+              bool inside=tok_wall_point_inside(geo->efit,wall_point);
+              tok_wall_declared_plate_scope_set(false);
+              if (!inside) {
                 fprintf(stderr,"TOK_GEO_WALL_DOMAIN_FAILED ftype=%d scope=face dir=%d rz=(%.17g,%.17g)\n",inp->ftype,dir,r_curr,z_curr);
                 if (!tok_wall_trial_record(false)) abort();
               }

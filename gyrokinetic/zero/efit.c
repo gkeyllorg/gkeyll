@@ -27,6 +27,30 @@ static bool efit_finite(double value)
 }
 
 
+// A/B HOOK (GKYL_EFIT_ACTIVE_HALF=1), 2026-09-29.  With reflect, the reader
+// keeps the LOWER half of the flux array and mirrors it upward, so the grid is
+// always built around the lower X point.  In an upper-biased double null the
+// plasma boundary passes through the UPPER X point and the lower one lies on a
+// second separatrix outside the plasma.  Measured on the NSTX-U 450: 75 of 448
+// shots, by more than 0.2% of the core flux, and every curled-divertor-leg
+// fold or abort is one of them (fable-handoff/11).  With the hook the reader
+// builds both halves and keeps the one whose X-point flux is nearer the flux
+// on the magnetic axis -- the first separatrix met going outward.  There is
+// no threshold: a tie keeps the lower half.  The kept equilibrium is presented
+// mirrored in Z, so everything downstream still finds its X point below.
+// DEFAULT ON since 2026-10-02 (user decision: grid around the active X
+// point).  GKYL_EFIT_ACTIVE_HALF=0 restores the lower-half-always reader for A/B.
+static bool
+efit_active_half_enabled(void)
+{
+  const char *e = getenv("GKYL_EFIT_ACTIVE_HALF");
+  return !(e && e[0] == '0');
+}
+
+// Set while the two candidate halves are being built, so that only the kept
+// one reports itself.
+static int efit_trial_quiet = 0;
+
 static double
 efit_xpt_value(const double *arr, int n, int idx)
 {
@@ -140,7 +164,8 @@ gkyl_efit_limiter_self_intersections(const struct gkyl_efit *e)
   return crossings + overlaps;
 }
 
-gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
+static gkyl_efit*
+efit_new_impl(const struct gkyl_efit_inp *inp, bool flip_z)
 {
   gkyl_efit *up = gkyl_calloc(1, sizeof(struct gkyl_efit));
 
@@ -220,6 +245,9 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
 
   up->psisep = up->sibry;
   up->psisep_cubic = up->sibry;
+  // The file's own mid-height, before reflect overrides it: a mirrored
+  // equilibrium is mirrored about the middle of the file's box.
+  const double zmid_file = up->zmid;
 
   // Set zmid to 0 for double null
   if (up->reflect) {
@@ -374,6 +402,41 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
     }
   }
 
+  if (flip_z) {
+    // Mirror the nodal flux in Z about the middle of the file's box, BEFORE
+    // anything is derived from it, so the DG and cubic representations, the
+    // field and the X-point search all see one consistent equilibrium.
+    for (int iz = 0; iz < up->nz/2; iz++) {
+      for (int ir = 0; ir < up->nr; ir++) {
+        int ia[2] = { ir, iz }, ib[2] = { ir, up->nz-1-iz };
+        double *a = gkyl_array_fetch(psizr_n, gkyl_range_idx(&nrange, ia));
+        double *b = gkyl_array_fetch(psizr_n, gkyl_range_idx(&nrange, ib));
+        double t = a[0]; a[0] = b[0]; b[0] = t;
+      }
+    }
+  }
+  if (up->reflect) {
+    // The reflected (double-null) equilibrium: the LOWER half is the
+    // equilibrium, the upper half is its mirror image.  The quadratic DG
+    // coefficients get that mirroring below (the flip_odd_sign block), but
+    // until 2026-10-02 the cubic interpolator and psizr_cubic were fitted to
+    // this nodal array as read, i.e. to the file's REAL upper half, whose
+    // separatrix is a different flux.  Measured on NSTX-U 204046: on the
+    // cubic psi the inboard upper leg of the separatrix integrated to zero
+    // arc (0.178 m on the lower leg) and the outboard legs differed by 16%,
+    // where the quadratic's are mirror-equal; DN_SOL_IN_LO's theta range
+    // then collapsed to zero.  Mirror the nodal values the same way, so
+    // both representations describe the same equilibrium.
+    for (int iz = 0; iz < up->nz/2; iz++) {
+      for (int ir = 0; ir < up->nr; ir++) {
+        int ia[2] = { ir, iz }, ib[2] = { ir, up->nz-1-iz };
+        const double *a = gkyl_array_cfetch(psizr_n, gkyl_range_idx(&nrange, ia));
+        double *b = gkyl_array_fetch(psizr_n, gkyl_range_idx(&nrange, ib));
+        b[0] = a[0];
+      }
+    }
+  }
+
   // We filled psizr_nodal
   struct gkyl_nodal_ops *n2m_rz = gkyl_nodal_ops_new(&up->rzbasis, &up->rzgrid, false);
   gkyl_nodal_ops_n2m(n2m_rz, &up->rzbasis, &up->rzgrid, &nrange, &up->rzlocal, 1, psizr_n, up->psizr, false);
@@ -439,6 +502,10 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
         for (int i=0; i<nlimiter && valid; ++i)
           valid = fscanf(ptr, "%lf %lf", &wall_R[i], &wall_Z[i]) == 2 &&
             efit_finite(wall_R[i]) && efit_finite(wall_Z[i]);
+        // The wall belongs to the machine, so it is mirrored with the flux.
+        if (valid && flip_z)
+          for (int i=0; i<nlimiter; ++i)
+            wall_Z[i] = 2.0*zmid_file-wall_Z[i];
         if (valid && nlimiter >= 3) {
           up->limiter_n = nlimiter;
           up->limiter_R = wall_R; up->limiter_Z = wall_Z;
@@ -598,9 +665,48 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
     //  printf("Rxpt[%d] = %1.16f, Zxpt[%d] = %1.16f | psisep = %1.16f\n", i, up->Rxpt[i], i, up->Zxpt[i], up->psisep);
   }
 
-  write_xpt_diag_once(up);
+  if (!efit_trial_quiet)
+    write_xpt_diag_once(up);
 
   return up;
+}
+
+gkyl_efit*
+gkyl_efit_new(const struct gkyl_efit_inp *inp)
+{
+  if (!inp->reflect || !efit_active_half_enabled())
+    return efit_new_impl(inp, false);
+
+  efit_trial_quiet = 1;
+  gkyl_efit *lo = efit_new_impl(inp, false);
+  gkyl_efit *hi = efit_new_impl(inp, true);
+  efit_trial_quiet = 0;
+
+  bool lo_ok = lo->num_xpts_cubic > 0 || lo->num_xpts > 0;
+  bool hi_ok = hi->num_xpts_cubic > 0 || hi->num_xpts > 0;
+  double psi_lo = lo->num_xpts_cubic > 0 ? lo->psisep_cubic : lo->psisep;
+  double psi_hi = hi->num_xpts_cubic > 0 ? hi->psisep_cubic : hi->psisep;
+  // Nearer the axis flux = the first separatrix met going outward.  Strictly
+  // nearer: a tie keeps the lower half, which is what the reader always did.
+  bool use_hi = hi_ok && (!lo_ok || fabs(psi_hi-hi->simag) < fabs(psi_lo-lo->simag));
+
+  static char last_filepath[1024] = { 0 };
+  if (strncmp(last_filepath, inp->filepath, sizeof(last_filepath)) != 0) {
+    strncpy(last_filepath, inp->filepath, sizeof(last_filepath)-1);
+    last_filepath[sizeof(last_filepath)-1] = '\0';
+    fprintf(stderr,
+      "EFIT_ACTIVE_HALF name=%s kept=%s mirrored_in_z=%d psi_axis=%.16e "
+      "psi_xpt_lower=%.16e psi_xpt_upper=%.16e psi_boundary_file=%.16e "
+      "xpt_found_lower=%d xpt_found_upper=%d\n",
+      lo->name, use_hi ? "upper" : "lower", use_hi ? 1 : 0, lo->simag,
+      psi_lo, psi_hi, lo->sibry, lo_ok ? 1 : 0, hi_ok ? 1 : 0);
+    fflush(stderr);
+  }
+
+  gkyl_efit *keep = use_hi ? hi : lo;
+  gkyl_efit_release(use_hi ? lo : hi);
+  write_xpt_diag_once(keep);
+  return keep;
 }
 
 void

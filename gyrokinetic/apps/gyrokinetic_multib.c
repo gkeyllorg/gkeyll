@@ -13,6 +13,8 @@
 
 #include <mpack.h>
 #include <errno.h>
+#include <float.h>
+#include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -512,6 +514,97 @@ tok_preflight_map_unresolved(const struct gkyl_gk_block_geom_info *bi)
   const struct gkyl_position_map_inp *pmi = &bi->geometry.position_map_info;
   return pmi->id != GKYL_PMAP_USER_INPUT &&
          pmi->id != GKYL_PMAP_USER_INPUT_W_DERIVATIVE;
+}
+
+// Strict point-in-polygon against the stored vessel outline: no tolerance.
+// tok_wall_point_inside grants each outline edge a slack derived from the
+// neighbouring corners (up to 138 mm on NSTX-U), which is far too loose to say
+// whether a critical point lies in the machine.
+static bool
+gyrokinetic_multib_inside_outline(const struct gkyl_efit *e, double R, double Z)
+{
+  bool inside = false;
+  for (int i = 0, j = e->limiter_n-1; i < e->limiter_n; j = i++) {
+    double Ri = e->limiter_R[i], Zi = e->limiter_Z[i], Rj = e->limiter_R[j], Zj = e->limiter_Z[j];
+    if ((Zi > Z) != (Zj > Z) && R < Ri + (Z-Zi)/(Zj-Zi)*(Rj-Ri))
+      inside = !inside;
+  }
+  return inside;
+}
+
+// The very first gate after the equilibrium and the rho bounds are supplied
+// (user and adviser, 2026-09-30): is there an O point between rho_min and
+// rho_max? A flux map with an extremum, other than the magnetic axis, inside
+// the requested flux range and inside the machine describes a domain the
+// grid cannot represent (204502: an O point 50 mm from the lower X point at
+// rho 1.0006, with a second saddle beside it). Such a shot is refused here,
+// before any block is built, rather than failing later in some block.
+//
+// The search covers the half the grid uses (reflect: the lower half, mirrored),
+// so an extremum in the discarded half does not refuse a shot.
+//
+// "Inside the machine" is the vessel outline when the file has a usable one,
+// otherwise the union of the R-Z boxes the blocks declare. Without the spatial
+// part the test is useless: NSTX-U files carry 4 to 5 extrema of the vacuum
+// field near the poloidal field coils, outside the vessel, and 419 of 450
+// have one in the requested flux range.
+//
+// GKYL_TOK_ALLOW_OPOINT_IN_DOMAIN=1 reports and builds anyway, for A/B.
+static bool
+gyrokinetic_multib_opoint_preflight(const struct gkyl_gyrokinetic_multib *inp)
+{
+  const struct gkyl_gk_block_geom *bg = inp->gk_block_geom;
+  const int n = gkyl_gk_block_geom_num_blocks(bg);
+  const struct gkyl_gk_block_geom_info *first = 0;
+  double psi_lo = DBL_MAX, psi_hi = -DBL_MAX;
+  double box_rlo = DBL_MAX, box_rhi = -DBL_MAX, box_zlo = DBL_MAX, box_zhi = -DBL_MAX;
+  for (int b = 0; b < n; ++b) {
+    const struct gkyl_gk_block_geom_info *bi = gkyl_gk_block_geom_get_block(bg, b);
+    if (bi->geometry.geometry_id != GKYL_GEOMETRY_TOKAMAK) continue;
+    if (!first) first = bi;
+    psi_lo = fmin(psi_lo, fmin(bi->lower[0], bi->upper[0]));
+    psi_hi = fmax(psi_hi, fmax(bi->lower[0], bi->upper[0]));
+    const struct gkyl_tok_geo_grid_inp *ti = &bi->geometry.tok_grid_info;
+    box_rlo = fmin(box_rlo, ti->rmin); box_rhi = fmax(box_rhi, ti->rmax);
+    const double zs[6] = { ti->zmin, ti->zmax, ti->zmin_left, ti->zmin_right, ti->zmax_left, ti->zmax_right };
+    for (int k = 0; k < 6; ++k) { box_zlo = fmin(box_zlo, zs[k]); box_zhi = fmax(box_zhi, zs[k]); }
+  }
+  if (!first) return true;
+  gkyl_efit *e = gkyl_efit_new(&first->geometry.efit_info);
+  const int nmax = 25*(int) e->rzlocal_cubic.volume;
+  double *R = gkyl_malloc(nmax*sizeof(double)), *Z = gkyl_malloc(nmax*sizeof(double)), *psi = gkyl_malloc(nmax*sizeof(double));
+  int *iso = gkyl_malloc(nmax*sizeof(int));
+  int nc = gkyl_efit_critical_points(e, nmax, R, Z, psi, iso);
+  if (nc > nmax) nc = nmax;
+  // The magnetic axis is the O point nearest the axis flux; it is exempt.
+  int axis = -1;
+  for (int k = 0; k < nc; ++k)
+    if (iso[k] && (axis < 0 || fabs(psi[k]-e->simag) < fabs(psi[axis]-e->simag))) axis = k;
+  const bool outline = gkyl_tok_wall_usable(e);
+  const double sep = e->num_xpts_cubic > 0 ? e->psisep_cubic : e->psisep;
+  int nopts = 0, offenders = 0;
+  for (int k = 0; k < nc; ++k) {
+    if (!iso[k] || k == axis) continue;
+    ++nopts;
+    bool in_range = psi[k] >= psi_lo && psi[k] <= psi_hi;
+    bool inside = outline ? gyrokinetic_multib_inside_outline(e, R[k], Z[k])
+      : (R[k] >= box_rlo && R[k] <= box_rhi && Z[k] >= box_zlo && Z[k] <= box_zhi);
+    double psin = (psi[k]-e->simag)/(sep-e->simag);
+    fprintf(stderr, "TOK_GEO_OPOINT name=%s R=%.17g Z=%.17g psi=%.17g rho=%.17g in_requested_range=%d inside_machine=%d spatial_test=%s\n",
+      e->name, R[k], Z[k], psi[k], psin > 0.0 ? sqrt(psin) : -1.0, (int) in_range, (int) inside, outline ? "vessel_outline" : "declared_boxes");
+    if (in_range && inside) ++offenders;
+  }
+  const char *allow = getenv("GKYL_TOK_ALLOW_OPOINT_IN_DOMAIN");
+  const bool refuse = offenders > 0 && !(allow && allow[0] != '\0' && allow[0] != '0');
+  // Its own marker: the harness validator requires every GKYL_GEOMETRY_PREFLIGHT
+  // line to be the declaration record and calls the log malformed otherwise.
+  fprintf(stderr, "GKYL_OPOINT_PREFLIGHT status=%s scope=opoint name=%s critical_points=%d o_points_besides_axis=%d in_range_and_inside=%d psi_lo=%.17g psi_hi=%.17g%s\n",
+    refuse ? "FAIL" : "PASS", e->name, nc, nopts, offenders, psi_lo, psi_hi,
+    refuse ? " reason=o_point_in_requested_range" : (offenders > 0 ? " reason=o_point_in_requested_range allowed=1" : ""));
+  fflush(stderr);
+  gkyl_free(R); gkyl_free(Z); gkyl_free(psi); gkyl_free(iso);
+  gkyl_efit_release(e);
+  return !refuse;
 }
 
 // Cheap material-domain rejection before allocating/writing any block. The
@@ -1326,7 +1419,28 @@ gyrokinetic_multib_adjust_wall(const struct gkyl_gyrokinetic_multib *inp)
       long violations=tok_wall_trial_end();
       bool fixed_violation=tok_wall_trial_has_fixed_violation();
       bool separatrix_outside=tok_wall_trial_has_fixed_node_outside();
+      bool rule_refused=tok_wall_trial_row_rule_refused();
+      bool jac_invalid=tok_wall_trial_jacobian_invalid();
       gkyl_gyrokinetic_app_release_geom(app);
+      // A construction failure inside a trial -- the row rule refused a block
+      // or the signed-Jacobian guard reversed -- is a DIAGNOSTIC, not a
+      // verdict (2026-10-01). A trial is built plain, without the X-point seam
+      // optimizer, and answers one question, containment; its construction can
+      // fail where the production build of the same bounds does not. Measured
+      // on NSTX-U at phase1: 203970's iteration-0 trial of PF_LO_L reverses the
+      // guard at the last row, and the production grid at the same bounds is
+      // sign-definite at every interior Gauss node; 205079's trial 25 of 34
+      // reverses and bound 34 is selected and clean. Before 2026-09-30 such a
+      // trial killed the process (the "Jacobian aborts" of handoff 09); on
+      // 2026-09-30 it was turned into a refusal (region_degenerate at a
+      // stepped bound, construction_failed_at_requested_bounds otherwise), which
+      // refused 203970 and excluded 205079 for geometry neither shot ships.
+      // So the flags are recorded and printed, the wall verdict below stands,
+      // and the production build keeps the fatal guard: a geometry that really
+      // folds still fails, loudly, with the guard's own line.
+      if (rule_refused || jac_invalid)
+        fprintf(stderr,"TOK_RHO_WALL_TRIAL_CONSTRUCTION_NOTE iteration=%d block=%d row_rule_refused=%d jacobian_invalid=%d diagnostic_only=1\n",
+          iteration,b,(int) rule_refused,(int) jac_invalid);
       if (violations) {
         fprintf(stderr,"TOK_RHO_WALL_TRIAL_REJECTED iteration=%d block=%d wall_checks_failed=%ld\n",iteration,b,violations);
         if (separatrix_outside) {
@@ -1399,6 +1513,22 @@ gyrokinetic_multib_adjust_wall(const struct gkyl_gyrokinetic_multib *inp)
         double rho=sqrt((psi-bounds[b].axis)/(bounds[b].sep-bounds[b].axis));
         fprintf(stderr,"TOK_RHO_WALL_BOUND block=%d family=%s edge=%d requested_rho=%.17g effective_rho=%.17g requested_psi=%.17g effective_psi=%.17g steps=%d\n",
           b,bounds[b].family==1 ? "SOL" : "PF",bounds[b].edge,bounds[b].requested,rho,bounds[b].requested_psi,psi,bounds[bounds[b].group].steps);
+        // A region the wall pushed all the way down to the adjuster's own
+        // resolution -- one fine step from the boundary it may not cross -- is
+        // not a region the grid can represent (user decision 2026-09-30):
+        // measured, the rows of such a layer (0.06 mm at the inboard midplane)
+        // cross each other within the node accuracy. The separatrix sits
+        // narrowly inside the wall, which the user put out of scope, so this
+        // refuses with its own reason and the harness records an exclusion.
+        // The floor is the step the search itself takes; no new number.
+        if (bounds[bounds[b].group].steps > 0) {
+          const double stop=bounds[b].family==1 ? fmax(1.0,bounds[b].other) : fmin(1.0,bounds[b].other);
+          if (fabs(rho-stop) <= GKYL_RHO_WALL_STEP*(1.0+1e-9)) {
+            fprintf(stderr,"TOK_RHO_WALL_ADJUST_FAILED reason=region_shrunk_to_adjuster_floor block=%d family=%s effective_rho=%.17g stop_rho=%.17g step_rho=%g\n",
+              b,bounds[b].family==1 ? "SOL" : "PF",rho,stop,GKYL_RHO_WALL_STEP);
+            goto cleanup;
+          }
+        }
       }
       fprintf(stderr,"TOK_RHO_WALL_ADJUST_SELECTED iterations=%d step_rho=%g; rebuilding with hard wall guards\n",iteration,GKYL_RHO_WALL_STEP);
       ok=true;
@@ -1486,6 +1616,7 @@ gyrokinetic_multib_app_wall_wrapper(const struct gkyl_gyrokinetic_multib *inp, b
   if (!adjust_wall && !row_arc)
     return geometry_only ? gyrokinetic_multib_app_new_geom_impl(inp) : gyrokinetic_multib_app_new_impl(inp);
   if (!gkyl_gyrokinetic_multib_app_geometry_preflight(inp)) return 0;
+  if (!gyrokinetic_multib_opoint_preflight(inp)) return 0;
   struct gkyl_gk_block_geom *bg=0;
   if (adjust_wall) bg=gyrokinetic_multib_adjust_wall(inp);
   else {
@@ -1534,6 +1665,8 @@ gyrokinetic_multib_app_new_geom_impl(const struct gkyl_gyrokinetic_multib *mbinp
 {
   // Reject invalid declarations before communicator access or app allocation.
   if (!gkyl_gyrokinetic_multib_app_geometry_preflight(mbinp))
+    return 0;
+  if (!gyrokinetic_multib_opoint_preflight(mbinp))
     return 0;
   if (!gyrokinetic_multib_material_preflight(mbinp))
     return 0;
@@ -1799,6 +1932,8 @@ static gkyl_gyrokinetic_multib_app* gyrokinetic_multib_app_new_impl(const struct
 {
   // Reject invalid declarations before communicator access or app allocation.
   if (!gkyl_gyrokinetic_multib_app_geometry_preflight(mbinp))
+    return 0;
+  if (!gyrokinetic_multib_opoint_preflight(mbinp))
     return 0;
   if (!gyrokinetic_multib_material_preflight(mbinp))
     return 0;

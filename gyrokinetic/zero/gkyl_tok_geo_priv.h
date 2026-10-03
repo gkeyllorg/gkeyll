@@ -412,7 +412,18 @@ calc_RdR_p3(const double *psi, double psi0, double Z, double xc[2], double dx[2]
 
   int sidx = 0;
   for(int i =0; i<3; i++){
-    if(rts.rpart[i] < 1.0 && rts.rpart[i] > -1.0 && fabs(rts.impart[i])<1e-16){
+    // A real root of the per-cell cubic is accepted if its imaginary part is
+    // within the root solver's OWN convergence tolerance (Durand-Kerner in
+    // math.c stops at a mean step below ROOT_EPS = 1e-14, so a real root is
+    // returned with an imaginary part of that order).  The previous test,
+    // |imag| < 1e-16 absolute, was two orders tighter than the solver can
+    // deliver and dropped real roots at random: measured on NSTX-U 204046
+    // (2026-10-02, handoff 16 3d) the upper inboard leg of a mirror-symmetric
+    // equilibrium had NO roots on the cubic psi while its mirror image had
+    // them, so the block's theta extent integrated to zero and every row's
+    // reference trace jumped branches.  The hyperbolic variant below uses 1e-10.
+    if(rts.rpart[i] < 1.0 && rts.rpart[i] > -1.0 &&
+       fabs(rts.impart[i]) <= 1e-14*fmax(1.0, fabs(rts.rpart[i]))){
       sol.nsol += 1;
       sol.R[sidx] = rts.rpart[i]*dx[0]*0.5 + xc[0];
 
@@ -1162,6 +1173,11 @@ int tok_plate_coverage_status(const struct gkyl_tok_geo *geo,
 
 // Hard material-domain guard. On-wall points are accepted to roundoff tolerance.
 bool tok_wall_point_inside(const struct gkyl_efit *efit, const double p[2]);
+// GKYL_TOK_WALL_STRICT=1: every outline edge is judged to roundoff, except in
+// tests the caller marks as touching a plate the driver declared separately
+// from the outline (tok_wall_declared_plate_scope_set(true) around them).
+bool tok_wall_strict_enabled(void);
+void tok_wall_declared_plate_scope_set(bool on);
 // Reporting only; see the definition. Returns metres outside the outline, 0.0
 // if the segment never leaves it. Never used to decide containment.
 double tok_wall_segment_excursion(const struct gkyl_efit *efit,

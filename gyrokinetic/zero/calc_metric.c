@@ -1,3 +1,4 @@
+#include <gkyl_tok_geo_wall_trial_priv.h>
 #include <gkyl_calc_metric.h>
 #include <gkyl_calc_metric_priv.h>
 #include <gkyl_alloc.h>
@@ -141,6 +142,11 @@ signed_jacobian_guard_check(struct signed_jacobian_guard_state *state,
       "GKYL_SIGNED_JACOBIAN_GUARD failure version=1 location=%s dir=%d index=%d,%d,%d J=%.17g reason=%s\n",
       location, dir, cidx[0], cidx[1], cidx[2], J,
       isfinite(J) ? "zero" : "nonfinite");
+    // Inside a disposable wall trial the failure is recorded for the adjuster
+    // to classify (region_degenerate or construction failure); it is fatal
+    // everywhere else, exactly as before.
+    if (tok_wall_trial_note_jacobian_invalid())
+      return;
     abort();
   }
   if (!enforce_sign)
@@ -156,6 +162,8 @@ signed_jacobian_guard_check(struct signed_jacobian_guard_state *state,
       "GKYL_SIGNED_JACOBIAN_GUARD failure version=1 location=%s dir=%d index=%d,%d,%d J=%.17g expected_sign=%d reason=sign_reversal\n",
       location, dir, cidx[0], cidx[1], cidx[2], J,
       state->expected_sign);
+    if (tok_wall_trial_note_jacobian_invalid())
+      return;
     abort();
   }
 }

@@ -145,4 +145,13 @@ int gkyl_efit_limiter_self_intersections(const struct gkyl_efit *e);
  */
 void gkyl_efit_get_psi_bounds(const gkyl_efit *up, double *simag, double *psisep);
 
+/**
+ * Every critical point of the flux from the cubic representation, in the half
+ * the geometry uses (the lower half when reflect is set, else the whole file),
+ * classified: is_opoint[k] is 1 for an extremum and 0 for a saddle. Returns the number found; the arrays receive the first
+ * nmax. The magnetic axis is one of the O points.
+ */
+int gkyl_efit_critical_points(gkyl_efit *up, int nmax, double *R, double *Z,
+  double *psi, int *is_opoint);
+
 void gkyl_efit_release(gkyl_efit* up);

@@ -1535,6 +1535,21 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app, struct gkyl_gk_ge
     // use components 0:3.
     gyrokinetic_app_geometry_write_surf_nodal(app, app->gk_geom->geo_surf[dir].mc2p_nodal_fd, "mc2p_nodal_fd", dir,
       "Cartesian coordinates at surface quadrature nodes and FD-offset nodes (components 0:3 are the base surface position; the rest are FD stencil offsets, not all populated for every geometry type).");
+    // The surface node POSITIONS on their own, next to geo_corn_nodes
+    // (2026-09-30). A cell edge is a curve through its corner and its two
+    // Gauss surface nodes; judged by the corner chord alone, a long thin cell
+    // on a curved row reports a fold it does not have (ASDEX x2: 7 cells whose
+    // chords cross while no edge does and the Jacobian guard is silent). Every
+    // consumer that judges cells therefore needs these nodes, and the 39
+    // component file above is thirteen times larger than they are, so it is
+    // pruned from large suites. This file is small enough to keep always.
+    {
+      struct gkyl_array *pos = mkarr(false, 3, app->gk_geom->geo_surf[dir].mc2p_nodal_fd->size);
+      gkyl_array_set_offset(pos, 1.0, app->gk_geom->geo_surf[dir].mc2p_nodal_fd, 0);
+      gyrokinetic_app_geometry_write_surf_nodal(app, pos, "nodes", dir,
+        "Physical coordinates of the surface quadrature nodes (the two Gauss nodes on every cell edge in this direction).");
+      gkyl_array_release(pos);
+    }
     gyrokinetic_app_geometry_write_surf_nodal(app, app->gk_geom->geo_surf[dir].g_ij_nodal, "g_ij_nodal", dir,
       "Covariant metric tensor at surface quadrature nodes.");
     gyrokinetic_app_geometry_write_surf_nodal(app, app->gk_geom->geo_surf[dir].lenr_nodal, "lenr_nodal", dir,

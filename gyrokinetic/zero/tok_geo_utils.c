@@ -79,11 +79,47 @@ tok_wall_arc_sagitta(double ax, double ay, double bx, double by,
 // where the description is coarse (the ASDEX divertor corner, 65-100 mm), which
 // is exactly where we do not know where the wall is. Supplying a better outline
 // tightens the guard; no code change can.
+//
+// GKYL_TOK_WALL_STRICT=1 (prototype, 2026-09-29, default off).
+//
+// The sagitta reads a CORNER of the outline as curvature of the edges next to
+// it. A long straight wall that ends at a corner therefore gets a large slack:
+// measured on NSTX-U, 92 mm on the centre column (two straight 1050 mm chords),
+// 115 mm on the inner vertical target. There the containment test is off in
+// practice: 91 of 450 shots wrote an inboard SOL block 0.1-10 mm through the
+// wall, the boundary adjustment never moved an inner SOL, and 3
+// inner-wall-limited shots passed with the separatrix outside the vessel.
+//
+// The slack was introduced for ONE case: a node on a plate the driver declared
+// separately from the outline lands a fraction of a millimetre either side of
+// the chord. With the switch on it is granted there and nowhere else; every
+// other point is judged against the outline to roundoff. The caller says when
+// it is testing a point on such a plate (tok_wall_declared_plate_scope_set).
+static _Thread_local bool tok_wall_declared_plate_scope;
+
+bool
+tok_wall_strict_enabled(void)
+{
+  static int cached = -1;
+  if (cached < 0) {
+    const char *s = getenv("GKYL_TOK_WALL_STRICT");
+    cached = s && s[0] != '\0' && s[0] != '0';
+  }
+  return cached != 0;
+}
+
+void
+tok_wall_declared_plate_scope_set(bool on)
+{
+  tok_wall_declared_plate_scope = on;
+}
+
 static double
 tok_wall_edge_tolerance(const struct gkyl_efit *e, int j, int i)
 {
   const int n=e->limiter_n;
   const double tol=tok_wall_tolerance(e);
+  if (tok_wall_strict_enabled() && !tok_wall_declared_plate_scope) return tol;
   if (n<3) return tol;
   const double *R=e->limiter_R, *Z=e->limiter_Z;
   const int jm=(j-1+n)%n, ip=(i+1)%n;
@@ -1522,6 +1558,13 @@ tok_prepare_ordered_map(struct gkyl_tok_geo_grid_inp *inp,
 
 
 // This function will set zmax to be the upper turning point location
+// 2026-10-02 (C1 wiring, handoff 16 gap 9): the four turning-point searches
+// below used to call the QUADRATIC root solver R_psiZ directly, so on a
+// cubic-representation build they bounded the private-flux and core extents
+// with the quadratic psi at the cubic separatrix flux -- a different contour
+// -- and PF_LO_L's theta range came out zero (204046 on r25).  They now go
+// through gkyl_tok_geo_R_psiZ, which dispatches on use_cubics like every
+// other root solve.
 void find_upper_turning_point(struct gkyl_tok_geo *geo, double psi_curr, double zlo, double *zmax, double tolerance)
 {
     double tol = tolerance ? tolerance : 1e-12 ;
@@ -1534,8 +1577,8 @@ void find_upper_turning_point(struct gkyl_tok_geo *geo, double psi_curr, double 
     double Rup[4], dRdZup[4];
     double dRup[4], dZup[4];
     while(true){
-      int nlo = R_psiZ(geo, psi_curr, zlo, 4, R, dRdZ, dR, dZ);
-      int nup = R_psiZ(geo, psi_curr, zup, 4, Rup, dRdZup, dRup, dZup);
+      int nlo = gkyl_tok_geo_R_psiZ(geo, psi_curr, zlo, 4, R, dRdZ, dR, dZ);
+      int nup = gkyl_tok_geo_R_psiZ(geo, psi_curr, zup, 4, Rup, dRdZup, dRup, dZup);
       //printf("nlo, nup = %d %d; zlo, zup = %g %g\n", nlo, nup, zlo, zup);
       if (nup > 0) { // This is for the PF_LO regions. Does not seem to break core_L or core_R
                   // However I need to think thos through more. I think it is ok only when xpt
@@ -1570,8 +1613,8 @@ void find_lower_turning_point(struct gkyl_tok_geo *geo, double psi_curr, double 
     double Rlo[4], dRdZlo[4];
     double dRlo[4], dZlo[4];
     while(true){
-      int nup = R_psiZ(geo, psi_curr, zup, 4, R, dRdZ, dR, dZ);
-      int nlo = R_psiZ(geo, psi_curr, zlo, 4, Rlo, dRdZlo, dRlo, dZlo);
+      int nup = gkyl_tok_geo_R_psiZ(geo, psi_curr, zup, 4, R, dRdZ, dR, dZ);
+      int nlo = gkyl_tok_geo_R_psiZ(geo, psi_curr, zlo, 4, Rlo, dRdZlo, dRlo, dZlo);
       //printf("psi = %g;lo, nup = %d %d; zlo, zup = %g %g\n", psi_curr, nlo, nup, zlo, zup);
       if (nlo > 0) {
         *zmin = zlo;
@@ -1604,8 +1647,8 @@ void find_lower_turning_point_pf_up(struct gkyl_tok_geo *geo, double psi_curr, d
     double Rlo[4], dRdZlo[4];
     double dRlo[4], dZlo[4];
     while(true){
-      int nup = R_psiZ(geo, psi_curr, zup, 4, R, dRdZ, dR, dZ);
-      int nlo = R_psiZ(geo, psi_curr, zlo, 4, Rlo, dRlo, dRlo, dZlo);
+      int nup = gkyl_tok_geo_R_psiZ(geo, psi_curr, zup, 4, R, dRdZ, dR, dZ);
+      int nlo = gkyl_tok_geo_R_psiZ(geo, psi_curr, zlo, 4, Rlo, dRlo, dRlo, dZlo);
       //if(nlo==1){
       //  if (Rlo[0] < geo->rleft)
       //    nlo=0;
@@ -1645,8 +1688,8 @@ void find_upper_turning_point_pf_lo(struct gkyl_tok_geo *geo, double psi_curr, d
     double Rup[4], dRdZup[4];
     double dRup[4], dZup[4];
     while(true){
-      int nlo = R_psiZ(geo, psi_curr, zlo, 4, R, dRdZ, dR, dZ);
-      int nup = R_psiZ(geo, psi_curr, zup, 4, Rup, dRdZup, dRup, dZup);
+      int nlo = gkyl_tok_geo_R_psiZ(geo, psi_curr, zlo, 4, R, dRdZ, dR, dZ);
+      int nup = gkyl_tok_geo_R_psiZ(geo, psi_curr, zup, 4, Rup, dRdZup, dRup, dZup);
       if(nup==1){
         if (Rup[0] < geo->rleft)
           nup=0;
