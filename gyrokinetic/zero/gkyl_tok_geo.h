@@ -154,10 +154,24 @@ struct gkyl_tok_geo {
 
   double (*calc_grad_psi)(const double *psih, const double eta[2], const double dx[2]);
 
-  struct gkyl_tok_geo_stat stat; 
+  struct gkyl_tok_geo_stat stat;
   struct gkyl_array* mc2p_nodal_fd;
   struct gkyl_range* nrange;
   double* dzc;
+
+  // The enclosures above (psi_cell_bounds, psi_block_*) for the cubic
+  // representation psiRZ_cubic on rzgrid_cubic. Built only with use_cubics;
+  // NULL otherwise.
+  struct gkyl_array *psi_cell_bounds_cubic;
+  double *psi_block_bounds_cubic;
+  int psi_block_size_cubic;
+  int psi_num_blocks_cubic;
+  // The cubic tensor basis under exchange of its coordinates:
+  // b_k(x, y) = b_{cubic_transpose[k]}(y, x). Lets the Z-root solve at fixed R
+  // reuse the R-root coefficients. cubic_transpose_ok is false if no such
+  // permutation was found, and the Z solve then keeps its sampling scan.
+  int cubic_transpose[16];
+  bool cubic_transpose_ok;
 };
 
 

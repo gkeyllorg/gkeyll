@@ -2,6 +2,8 @@
 #include <gkyl_dg_basis_ops.h>
 #include <gkyl_efit.h>
 #include <complex.h>
+#include <float.h>
+#include <math.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -218,11 +220,13 @@ get_idx(int dir, double x, const struct gkyl_rect_grid *grid, const struct gkyl_
 }
 
 // struct for solutions to roots
+// Three slots: a cubic (use_cubics) can cross a level three times in one
+// cell; the quadratic representations use at most two.
 struct RdRdZ_sol {
   int nsol;
-  double R[2], dRdZ[2];
-  double dR[2];
-  double dZ[2];
+  double R[3], dRdZ[3];
+  double dR[3];
+  double dZ[3];
 };
 
 // Compute roots R(psi,Z) and dR/dZ(psi,Z) in a p=1 DG cell
@@ -388,54 +392,183 @@ calc_RdR_p2_tensor_with_tolerance(const double *psi, double psi0, double Z, doub
   return sol;
 }
 
-// Compute roots R(psi,Z) and dR/dZ(psi,Z) in a p=2 DG cell with tensor basis if delta2 is negative but very small
+// ---------------------------------------------------------------------------
+// Real roots of the per-cell cubic (use_cubics).
+//
+// Along a row of fixed Z, psi restricted to one cell of the p=3 tensor
+// representation is a cubic in the cell coordinate x in [-1, 1]. Its real
+// roots are found directly: the cubic is split at its critical points (the
+// roots of a quadratic, closed form), so every piece is monotone and holds at
+// most one root, and each piece whose ends differ in sign is solved by
+// Newton's method kept inside that bracket. This replaced Durand-Kerner on
+// the monic cubic (2026-10-03). Dividing by the cubic coefficient, which is
+// small on a smooth psi, sent two roots far outside the cell; the complex
+// iteration then averaged 13 steps and hit its cap of 100 in 2.3% of cells,
+// and a real root was accepted only if its imaginary part fell below a fixed
+// 1e-14. Measured on NSTX-U 204046 and 203532 (358400 cells each) the roots
+// agree with it to 6e-13 m, none is gained or lost, and this is 11x faster
+// per cell.
+
+// p(x) = c[0] + c[1] x + c[2] x^2 + c[3] x^3 by Horner, and its derivative.
+static inline double
+tok_cubic_eval(const double c[4], double x)
+{
+  return ((c[3]*x + c[2])*x + c[1])*x + c[0];
+}
+
+static inline double
+tok_cubic_deriv(const double c[4], double x)
+{
+  return (3.0*c[3]*x + 2.0*c[2])*x + c[1];
+}
+
+// Bound on the rounding error of tok_cubic_eval (Higham 2002, eq. 5.3:
+// gamma_2n times the polynomial with |c_i| at |x|, n = 3), plus cerr, the
+// absolute error the coefficients carry before evaluation.
+static inline double
+tok_cubic_eval_err(const double c[4], double x, double cerr)
+{
+  const double g6 = 6.0*DBL_EPSILON/(1.0 - 6.0*DBL_EPSILON);
+  double ax = fabs(x);
+  return g6*(((fabs(c[3])*ax + fabs(c[2]))*ax + fabs(c[1]))*ax + fabs(c[0])) + cerr;
+}
+
+// The one root of p in (lo, hi), where p is monotone and p(lo) = flo and
+// p(hi) = fhi differ in sign. Newton from the secant point until its step is
+// at the resolution of x in [-1, 1]; a step that would leave the bracket
+// becomes a bisection, so the bracket reaches adjacent doubles within 64
+// halvings at worst and the loop bound never ends it. (Stopping instead when
+// |p| enters its rounding bound stops early: that bound is a guarantee, far
+// wider than the actual noise, and it is for classifying breakpoints.)
+static inline double
+tok_cubic_bracketed_root(const double c[4], double lo, double hi,
+  double flo, double fhi)
+{
+  double x = lo - flo*(hi - lo)/(fhi - flo);
+  if (!(x > lo && x < hi)) x = 0.5*(lo + hi);
+  for (int it=0; it<128; ++it) {
+    double fx = tok_cubic_eval(c, x);
+    if (fx == 0.0)
+      break;
+    if ((fx > 0.0) == (flo > 0.0)) { lo = x; flo = fx; }
+    else hi = x;
+    double xn = x - fx/tok_cubic_deriv(c, x);
+    if (!(xn > lo && xn < hi)) xn = 0.5*(lo + hi);
+    if (fabs(xn - x) <= 2.0*DBL_EPSILON || hi - lo <= 2.0*DBL_EPSILON) { x = xn; break; }
+    x = xn;
+  }
+  return x;
+}
+
+// Real roots of the cubic c on the cell [-1, 1), ascending; returns how many
+// (at most 3). cerr is the absolute error the coefficients carry.
+//
+// Each breakpoint (the cell ends and the critical points inside) is
+// classified by the sign of p there, or as zero when |p| is within its
+// rounding error. Every piece between two signed breakpoints of opposite sign
+// holds one root. A run of zero breakpoints is where the cubic meets the
+// level within rounding: it crosses it (one root, at the run) when the values
+// on either side differ in sign, and only touches it when they agree. A touch
+// is a tangency, where dpsi/dx = 0 and dR/dZ is unbounded; it is reported as
+// no root, as calc_RdR_p2_tensor_nrc does (it requires a strictly positive
+// discriminant) and as the Durand-Kerner version did in effect. The cell is
+// half open like the quadratic ones: a run at the lower end belongs to this
+// cell and one at the upper end to the next, so a root on a shared edge is
+// reported once.
+static inline int
+tok_cubic_cell_roots(const double c[4], double cerr, double x[3])
+{
+  double b[4];
+  int nb = 0;
+  b[nb++] = -1.0;
+  // critical points: roots of 3 c3 x^2 + 2 c2 x + c1, in the stable form
+  double A = 3.0*c[3], B = 2.0*c[2], C = c[1], cr[2];
+  int nc = 0;
+  if (A != 0.0) {
+    double d = B*B - 4.0*A*C;
+    if (d >= 0.0) {
+      double q = -0.5*(B + copysign(sqrt(d), B));
+      if (q != 0.0) { cr[nc++] = q/A; cr[nc++] = C/q; }
+      else cr[nc++] = 0.0;
+    }
+  }
+  else if (B != 0.0)
+    cr[nc++] = -C/B;
+  if (nc == 2 && cr[0] > cr[1]) { double t = cr[0]; cr[0] = cr[1]; cr[1] = t; }
+  for (int i=0; i<nc; ++i)
+    if (cr[i] > b[nb-1] && cr[i] < 1.0) b[nb++] = cr[i];
+  b[nb++] = 1.0;
+
+  double f[4];
+  int s[4];
+  for (int i=0; i<nb; ++i) {
+    f[i] = tok_cubic_eval(c, b[i]);
+    s[i] = fabs(f[i]) <= tok_cubic_eval_err(c, b[i], cerr) ? 0 : (f[i] > 0.0 ? 1 : -1);
+  }
+
+  int n = 0;
+  for (int i=0; i<nb; ) {
+    if (s[i] != 0) {
+      if (i+1 < nb && s[i+1] != 0 && s[i+1] != s[i])
+        x[n++] = tok_cubic_bracketed_root(c, b[i], b[i+1], f[i], f[i+1]);
+      ++i;
+      continue;
+    }
+    int j = i;
+    while (j+1 < nb && s[j+1] == 0) ++j;
+    if (j < nb-1 && (i == 0 || s[i-1] != s[j+1]))
+      x[n++] = 0.5*(b[i] + b[j]);
+    i = j+1;
+  }
+  return n;
+}
+
+// psi(x, y) - psi0 at fixed y as a cubic in x, coefficients [x^0 .. x^3], for
+// the p=3 tensor basis on the reference cell.
+static inline void
+tok_p3_row_coeffs(const double *psi, double psi0, double y, double coeffs[4])
+{
+  coeffs[3] = 0.125*(175.0*psi[15]*CUB(y)+88.74119674649424*psi[13]*SQ(y)+(45.8257569495584*psi[11]-105.0*psi[15])*y+26.45751311064591*psi[8]-29.58039891549808*psi[13]);
+  coeffs[2] = 0.125*(88.74119674649424*psi[14]*CUB(y)+45.0*psi[10]*SQ(y)+(23.2379000772445*psi[6]-53.24471804789655*psi[14])*y+13.41640786499874*psi[4]-15.0*psi[10]);
+  coeffs[1] = 0.125*((45.8257569495584*psi[12]-105.0*psi[15])*CUB(y)+(23.2379000772445*psi[7]-53.24471804789655*psi[13])*SQ(y)+(12.0*psi[3]+63.0*psi[15]-27.49545416973504*psi[12]-27.49545416973504*psi[11])*y-15.87450786638754*psi[8]-7.745966692414834*psi[7]+17.74823934929885*psi[13]+6.928203230275509*psi[1]);
+  coeffs[0] = 0.125*((26.45751311064591*psi[9]-29.58039891549808*psi[14])*CUB(y)+(13.41640786499874*psi[5]-15.0*psi[10])*SQ(y)+(-15.87450786638754*psi[9]-7.745966692414834*psi[6]+6.928203230275509*psi[2]+17.74823934929885*psi[14])*y-4.47213595499958*psi[5]-4.47213595499958*psi[4]+5.0*psi[10]+4.0*psi[0]) - psi0;
+}
+
+// Absolute error the coefficients of tok_p3_row_coeffs carry. Each term
+// psi_k b_k expands into monomials whose coefficients sum in magnitude to at
+// most (4 sqrt(7/2))^2 = 56 -- the orthonormal p=3 Legendre polynomial's, the
+// largest -- and |x|, |y| <= 1; psi0 enters once. The longest path through
+// the formulas above rounds fewer than 16 times; 32 is used.
+static inline double
+tok_p3_coeff_err(const double *psi, double psi0)
+{
+  double s = fabs(psi0);
+  for (int k=0; k<16; ++k)
+    s += 56.0*fabs(psi[k]);
+  return 32.0*DBL_EPSILON/(1.0 - 32.0*DBL_EPSILON)*s;
+}
+
+// Compute roots R(psi,Z) and dR/dZ(psi,Z) in a p=3 DG cell with tensor basis
 static inline struct RdRdZ_sol
 calc_RdR_p3(const double *psi, double psi0, double Z, double xc[2], double dx[2])
 {
   struct RdRdZ_sol sol = { .nsol = 0 };
   double y = (Z-xc[1])/(dx[1]*0.5);
 
-  double coeffs[4];
-  // coeffs = [x^0, x^1, x^2, x^3]
-  coeffs[3] = 0.125*(175.0*psi[15]*CUB(y)+88.74119674649424*psi[13]*SQ(y)+(45.8257569495584*psi[11]-105.0*psi[15])*y+26.45751311064591*psi[8]-29.58039891549808*psi[13]);
-  coeffs[2] = 0.125*(88.74119674649424*psi[14]*CUB(y)+45.0*psi[10]*SQ(y)+(23.2379000772445*psi[6]-53.24471804789655*psi[14])*y+13.41640786499874*psi[4]-15.0*psi[10]);
-  coeffs[1] = 0.125*((45.8257569495584*psi[12]-105.0*psi[15])*CUB(y)+(23.2379000772445*psi[7]-53.24471804789655*psi[13])*SQ(y)+(12.0*psi[3]+63.0*psi[15]-27.49545416973504*psi[12]-27.49545416973504*psi[11])*y-15.87450786638754*psi[8]-7.745966692414834*psi[7]+17.74823934929885*psi[13]+6.928203230275509*psi[1]);
-  coeffs[0] = 0.125*((26.45751311064591*psi[9]-29.58039891549808*psi[14])*CUB(y)+(13.41640786499874*psi[5]-15.0*psi[10])*SQ(y)+(-15.87450786638754*psi[9]-7.745966692414834*psi[6]+6.928203230275509*psi[2]+17.74823934929885*psi[14])*y-4.47213595499958*psi[5]-4.47213595499958*psi[4]+5.0*psi[10]+4.0*psi[0]) - psi0;
+  double coeffs[4], xr[3];
+  tok_p3_row_coeffs(psi, psi0, y, coeffs);
+  sol.nsol = tok_cubic_cell_roots(coeffs, tok_p3_coeff_err(psi, psi0), xr);
 
-  coeffs[0] = coeffs[0]/coeffs[3];
-  coeffs[1] = coeffs[1]/coeffs[3];
-  coeffs[2] = coeffs[2]/coeffs[3];
-  coeffs[3] = coeffs[3]/coeffs[3];
+  for (int sidx=0; sidx<sol.nsol; ++sidx) {
+    double x = xr[sidx];
+    sol.R[sidx] = x*dx[0]*0.5 + xc[0];
 
-  struct gkyl_lo_poly_roots rts;
-  rts = gkyl_calc_lo_poly_roots(GKYL_LO_POLY_3, coeffs);
+    double dpsidx = 6.5625000000000000e+01*(x*x)*(y*y*y)*psi[15]+-9.6824583655185426e-01*psi[7]+-6.6555897559870685e+00*(y*y)*psi[13]+5.7282196186947996e+00*(y*y*y)*psi[12]+2.9047375096555625e+00*psi[7]*(y*y)+3.3277948779935343e+01*(x*x)*(y*y)*psi[13]+5.8094750193111251e+00*psi[6]*x*y+-1.3125000000000000e+01*(y*y*y)*psi[15]+9.9215674164922145e+00*(x*x)*psi[8]+-3.7500000000000000e+00*x*psi[10]+8.6602540378443860e-01*psi[1]+-3.4369317712168801e+00*y*psi[12]+-1.3311179511974137e+01*x*psi[14]*y+-1.9843134832984430e+00*psi[8]+-3.4369317712168801e+00*y*psi[11]+-3.9375000000000000e+01*(x*x)*y*psi[15]+1.7184658856084400e+01*(x*x)*y*psi[11]+2.2185299186623562e+00*psi[13]+2.2185299186623560e+01*x*psi[14]*(y*y*y)+1.5000000000000000e+00*y*psi[3]+-1.1092649593311780e+01*(x*x)*psi[13]+1.1250000000000000e+01*x*(y*y)*psi[10]+7.8750000000000000e+00*y*psi[15]+3.3541019662496847e+00*x*psi[4];
+    double dpsidy = -9.6824583655185426e-01*psi[6]+1.5000000000000000e+00*x*psi[3]+2.2185299186623560e+01*(x*x*x)*y*psi[13]+7.8750000000000000e+00*x*psi[15]+3.3277948779935343e+01*(x*x)*psi[14]*(y*y)+2.2185299186623562e+00*psi[14]+-3.4369317712168801e+00*x*psi[12]+9.9215674164922145e+00*(y*y)*psi[9]+-3.4369317712168801e+00*x*psi[11]+-1.3311179511974137e+01*x*y*psi[13]+-1.1092649593311780e+01*psi[14]*(y*y)+-3.9375000000000000e+01*x*(y*y)*psi[15]+-1.3125000000000000e+01*(x*x*x)*psi[15]+-3.7500000000000000e+00*y*psi[10]+2.9047375096555625e+00*psi[6]*(x*x)+5.8094750193111251e+00*psi[7]*x*y+-6.6555897559870685e+00*(x*x)*psi[14]+5.7282196186947996e+00*(x*x*x)*psi[11]+-1.9843134832984430e+00*psi[9]+6.5625000000000000e+01*(x*x*x)*(y*y)*psi[15]+3.3541019662496847e+00*psi[5]*y+1.1250000000000000e+01*(x*x)*y*psi[10]+1.7184658856084400e+01*x*(y*y)*psi[12]+8.6602540378443860e-01*psi[2];
 
-  int sidx = 0;
-  for(int i =0; i<3; i++){
-    // A real root of the per-cell cubic is accepted if its imaginary part is
-    // within the root solver's OWN convergence tolerance (Durand-Kerner in
-    // math.c stops at a mean step below ROOT_EPS = 1e-14, so a real root is
-    // returned with an imaginary part of that order).  The previous test,
-    // |imag| < 1e-16 absolute, was two orders tighter than the solver can
-    // deliver and dropped real roots at random: measured on NSTX-U 204046
-    // (2026-10-02, handoff 16 3d) the upper inboard leg of a mirror-symmetric
-    // equilibrium had NO roots on the cubic psi while its mirror image had
-    // them, so the block's theta extent integrated to zero and every row's
-    // reference trace jumped branches.  The hyperbolic variant below uses 1e-10.
-    if(rts.rpart[i] < 1.0 && rts.rpart[i] > -1.0 &&
-       fabs(rts.impart[i]) <= 1e-14*fmax(1.0, fabs(rts.rpart[i]))){
-      sol.nsol += 1;
-      sol.R[sidx] = rts.rpart[i]*dx[0]*0.5 + xc[0];
-
-      double x = rts.rpart[i];
-      double dpsidx = 6.5625000000000000e+01*(x*x)*(y*y*y)*psi[15]+-9.6824583655185426e-01*psi[7]+-6.6555897559870685e+00*(y*y)*psi[13]+5.7282196186947996e+00*(y*y*y)*psi[12]+2.9047375096555625e+00*psi[7]*(y*y)+3.3277948779935343e+01*(x*x)*(y*y)*psi[13]+5.8094750193111251e+00*psi[6]*x*y+-1.3125000000000000e+01*(y*y*y)*psi[15]+9.9215674164922145e+00*(x*x)*psi[8]+-3.7500000000000000e+00*x*psi[10]+8.6602540378443860e-01*psi[1]+-3.4369317712168801e+00*y*psi[12]+-1.3311179511974137e+01*x*psi[14]*y+-1.9843134832984430e+00*psi[8]+-3.4369317712168801e+00*y*psi[11]+-3.9375000000000000e+01*(x*x)*y*psi[15]+1.7184658856084400e+01*(x*x)*y*psi[11]+2.2185299186623562e+00*psi[13]+2.2185299186623560e+01*x*psi[14]*(y*y*y)+1.5000000000000000e+00*y*psi[3]+-1.1092649593311780e+01*(x*x)*psi[13]+1.1250000000000000e+01*x*(y*y)*psi[10]+7.8750000000000000e+00*y*psi[15]+3.3541019662496847e+00*x*psi[4];
-      double dpsidy = -9.6824583655185426e-01*psi[6]+1.5000000000000000e+00*x*psi[3]+2.2185299186623560e+01*(x*x*x)*y*psi[13]+7.8750000000000000e+00*x*psi[15]+3.3277948779935343e+01*(x*x)*psi[14]*(y*y)+2.2185299186623562e+00*psi[14]+-3.4369317712168801e+00*x*psi[12]+9.9215674164922145e+00*(y*y)*psi[9]+-3.4369317712168801e+00*x*psi[11]+-1.3311179511974137e+01*x*y*psi[13]+-1.1092649593311780e+01*psi[14]*(y*y)+-3.9375000000000000e+01*x*(y*y)*psi[15]+-1.3125000000000000e+01*(x*x*x)*psi[15]+-3.7500000000000000e+00*y*psi[10]+2.9047375096555625e+00*psi[6]*(x*x)+5.8094750193111251e+00*psi[7]*x*y+-6.6555897559870685e+00*(x*x)*psi[14]+5.7282196186947996e+00*(x*x*x)*psi[11]+-1.9843134832984430e+00*psi[9]+6.5625000000000000e+01*(x*x*x)*(y*y)*psi[15]+3.3541019662496847e+00*psi[5]*y+1.1250000000000000e+01*(x*x)*y*psi[10]+1.7184658856084400e+01*x*(y*y)*psi[12]+8.6602540378443860e-01*psi[2];
-
-      sol.dRdZ[sidx] = -dpsidy/dpsidx*dx[0]/dx[1];
-      sol.dR[sidx] = -dpsidy*dx[0];
-      sol.dZ[sidx] = dpsidx*dx[1];
-      sidx+=1;
-    }
+    sol.dRdZ[sidx] = -dpsidy/dpsidx*dx[0]/dx[1];
+    sol.dR[sidx] = -dpsidy*dx[0];
+    sol.dZ[sidx] = dpsidx*dx[1];
   }
 
   return sol;
@@ -643,33 +776,51 @@ R_psiZ_cubic(const struct gkyl_tok_geo *geo, double psi, double Z, int nmaxroots
   int idx[2] = { 0, zcell };
   double dx[2] = { geo->rzgrid_cubic.dx[0], geo->rzgrid_cubic.dx[1] };
 
-  struct gkyl_range rangeR;
-  gkyl_range_deflate(&rangeR, &geo->rzlocal_cubic, (int[]) { 0, 1 }, (int[]) { 0, zcell });
+  // The two-level enclosure scan of R_psiZ, on the cubic representation's own
+  // enclosures (2026-10-03; before, every cell of the row was solved, and 98%
+  // of them hold no root). Without enclosures it is the plain scan of the
+  // whole row. Cells are visited in ascending R either way.
+  const int rlo = geo->rzlocal_cubic.lower[0], rup = geo->rzlocal_cubic.upper[0];
+  const bool bounded = geo->psi_cell_bounds_cubic && geo->psi_block_bounds_cubic
+    && zcell >= geo->rzlocal_cubic.lower[1] && zcell <= geo->rzlocal_cubic.upper[1];
+  const int bsz = bounded ? geo->psi_block_size_cubic : rup - rlo + 1;
+  const int nblk = bounded ? geo->psi_num_blocks_cubic : 1;
+  const double *blk = bounded ? geo->psi_block_bounds_cubic
+    + 2*(size_t)(zcell - geo->rzlocal_cubic.lower[1])*nblk : 0;
 
-  struct gkyl_range_iter riter;
-  gkyl_range_iter_init(&riter, &rangeR);
+  for (int ib=0; ib<nblk && sidx<nmaxroots; ++ib) {
+    if (blk && (psi < blk[2*ib] || psi > blk[2*ib+1]))
+      continue;
+    int i0 = rlo + ib*bsz, i1 = i0 + bsz - 1;
+    if (i1 > rup) i1 = rup;
 
-  // loop over all R cells to find psi crossing
-  while (gkyl_range_iter_next(&riter) && sidx<nmaxroots) {
-    long loc = gkyl_range_idx(&rangeR, riter.idx);
-    const double *psih = gkyl_array_cfetch(geo->psiRZ_cubic, loc);
+    for (int ir=i0; ir<=i1 && sidx<nmaxroots; ++ir) {
+      idx[0] = ir;
+      long loc = gkyl_range_idx(&geo->rzlocal_cubic, idx);
 
-    double xc[2];
-    idx[0] = riter.idx[0];
-    gkyl_rect_grid_cell_center(&geo->rzgrid_cubic, idx, xc);
-
-    struct RdRdZ_sol sol = geo->calc_roots(psih, psi, Z, xc, dx);
-    
-    if (sol.nsol > 0)
-      for (int s=0; s<sol.nsol && sidx<nmaxroots; ++s) {
-        if( (sol.R[s] > geo->rmin) && (sol.R[s] < geo->rmax) ) {
-          R[sidx] = sol.R[s];
-          dRdZ[sidx] = sol.dRdZ[s];
-          dR[sidx] = sol.dR[s];
-          dZ[sidx] = sol.dZ[s];
-          sidx += 1;
-        }
+      if (bounded) {
+        const double *pbound = gkyl_array_cfetch(geo->psi_cell_bounds_cubic, loc);
+        if (psi < pbound[0] || psi > pbound[1])
+          continue;
       }
+
+      const double *psih = gkyl_array_cfetch(geo->psiRZ_cubic, loc);
+      double xc[2];
+      gkyl_rect_grid_cell_center(&geo->rzgrid_cubic, idx, xc);
+
+      struct RdRdZ_sol sol = geo->calc_roots(psih, psi, Z, xc, dx);
+
+      if (sol.nsol > 0)
+        for (int s=0; s<sol.nsol && sidx<nmaxroots; ++s) {
+          if( (sol.R[s] > geo->rmin) && (sol.R[s] < geo->rmax) ) {
+            R[sidx] = sol.R[s];
+            dRdZ[sidx] = sol.dRdZ[s];
+            dR[sidx] = sol.dR[s];
+            dZ[sidx] = sol.dZ[s];
+            sidx += 1;
+          }
+        }
+    }
   }
 
   return sidx;
