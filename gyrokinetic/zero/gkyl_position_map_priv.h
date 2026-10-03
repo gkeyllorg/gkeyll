@@ -437,7 +437,7 @@ refine_B_field_extrema(struct gkyl_position_map *gpm)
       break;
     }
 
-    // Midpoint rule refinement
+    // Midpoint rule prolongation
     for (int j = 0; j < num_iterations; j++) {
       double dz = (interval_right - interval_left) / num_points_per_level;
 
