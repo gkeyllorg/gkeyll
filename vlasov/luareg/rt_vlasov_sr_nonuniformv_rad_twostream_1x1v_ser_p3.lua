@@ -16,7 +16,7 @@ T = 0.1 -- Temperature (units of mc^2).
 Vx_drift = 0.5 -- Drift velocity (x-direction).
 t_cool = 3000.0 -- Cooling time. 
 
-alpha = 1.0e-6 -- Applied perturbation amplitude.
+alpha = 1.0e-3 -- Applied perturbation amplitude.
 mode_init = -16 -- Initial mode to perturb.
 mode_final = 16 -- Final mode to perturb.
 
@@ -25,18 +25,18 @@ gamma = 1.0 / math.sqrt(1.0 - (Vx_drift * Vx_drift)) -- Gamma factor.
 Vx_drift_SR = gamma * Vx_drift -- Relativistic drift velocity (x-direction).
 
 -- Simulation parameters.
-Nx = 64 -- Cell count (configuration space: x-direction).
+Nx = 32 -- Cell count (configuration space: x-direction).
 Nvx = 64 -- Cell count (velocity space: vx-direction).
-Lx = 10.0 -- Domain size (configuration space: x-direction).
+Lx = 4.0 * pi -- Domain size (configuration space: x-direction); two wavelengths of the fastest growing mode.
 kx = 2.0*pi/Lx -- Smallest wavenumber (largest wavelength) in the domain. 
 vx_max = 32.0 -- Domain boundary (velocity space: vx-direction).
 nonuniform_v_pow = 2.0 -- Quadratic velocity map.
 poly_order = 3 -- Polynomial order.
-basis_type = "tensor" -- Basis function set.
+basis_type = "serendipity" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
 cfl_frac = 0.9 -- CFL coefficient.
 
-t_end = 200.0 -- Final simulation time.
+t_end = 85.0 -- Final simulation time.
 num_frames = 1 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.

@@ -16,7 +16,7 @@ T = 0.1 -- Temperature (units of mc^2).
 Vx_drift = 0.5 -- Drift velocity (x-direction).
 t_cool = 3000.0 -- Cooling time. 
 
-alpha = 1.0e-6 -- Applied perturbation amplitude.
+alpha = 1.0e-3 -- Applied perturbation amplitude.
 mode_init = -16 -- Initial mode to perturb.
 mode_final = 16 -- Final mode to perturb.
 
@@ -26,19 +26,16 @@ Vx_drift_SR = gamma * Vx_drift -- Relativistic drift velocity (x-direction).
 
 -- Simulation parameters.
 Nx = 32 -- Cell count (configuration space: x-direction).
-Ny = 32 -- Cell count (configuration space: y-direction).
 Nvx = 64 -- Cell count (velocity space: vx-direction).
-Lx = 10.0 -- Domain size (configuration space: x-direction).
-Ly = 10.0 -- Domain size (configuration space: y-direction).
-kx = 2.0*pi/Lx -- Smallest wavenumber (largest wavelength) in the x-domain.
-ky = 2.0*pi/Ly -- Smallest wavenumber (largest wavelength) in the y-domain. 
-vx_max = 32.0 -- Domain boundary (velocity space: vx-direction).
+Lx = 4.0 * pi -- Domain size (configuration space: x-direction); two wavelengths of the fastest growing mode.
+kx = 2.0*pi/Lx -- Smallest wavenumber (largest wavelength) in the domain. 
+vx_max = 8.0 -- Domain boundary (velocity space: vx-direction).
 poly_order = 2 -- Polynomial order.
 basis_type = "serendipity" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
 cfl_frac = 1.0 -- CFL coefficient.
 
-t_end = 1.0 -- Final simulation time.
+t_end = 85.0 -- Final simulation time.
 num_frames = 1 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.
@@ -55,9 +52,9 @@ vlasovApp = Vlasov.App.new {
   integratedMomentCalcs = integrated_mom_calcs,
   dtFailureTol = dt_failure_tol,
   numFailuresMax = num_failures_max,
-  lower = { -0.5 * Lx, -0.5 * Ly },
-  upper = { 0.5 * Lx, 0.5 * Ly },
-  cells = { Nx, Ny },
+  lower = { -0.5 * Lx },
+  upper = { 0.5 * Lx },
+  cells = { Nx },
   cflFrac = cfl_frac,
 
   basis = basis_type,
@@ -65,10 +62,10 @@ vlasovApp = Vlasov.App.new {
   timeStepper = time_stepper,
 
   -- Decomposition for configuration space.
-  decompCuts = { 1, 1 }, -- Cuts in each coodinate direction (x-direction only).
+  decompCuts = { 1 }, -- Cuts in each coodinate direction (x-direction only).
 
   -- Boundary conditions for configuration space.
-  periodicDirs = { 1, 2 }, -- Periodic directions (x-direction only).
+  periodicDirs = { 1 }, -- Periodic directions (x-direction only).
 
   -- Electrons.
   elc = Vlasov.Species.new {
@@ -87,14 +84,12 @@ vlasovApp = Vlasov.App.new {
         projectionID = G0.Projection.LTE,
 
         densityInit = function (t, xn)
-          local x, y = xn[1], xn[2]
+          local x = xn[1]
           math.randomseed(0)
           local n = n0
           for i = mode_init, mode_final do 
             if (i ~= 0) then 
-              for j = mode_init, mode_final do 
-                n = n + alpha*math.random()*math.cos(kx*i*x + ky*j*y + 2.0 * pi * math.random())
-              end
+              n = n + alpha*math.random()*math.cos(kx*i*x + 2.0 * pi * math.random())
             end
           end
           return n
@@ -167,24 +162,16 @@ vlasovApp = Vlasov.App.new {
 
     -- Initial conditions function.
     init = function (t, xn)
-      local x, y = xn[1], xn[2]
+      local x = xn[1]
       math.randomseed(0)
       local Ex = 0.0
       -- Total electric field (x-direction). 
       for i = mode_init, mode_final do 
         if (i ~= 0) then 
-          for j = mode_init, mode_final do 
-            Ex = Ex - alpha*gamma*math.random()*math.sin(kx*i*x + ky*j*y + 2.0 * pi * math.random())/(i*kx)
-          end
+          Ex = Ex - alpha*gamma*math.random()*math.sin(kx*i*x + 2.0 * pi * math.random())/(i*kx)
         end
       end
-      local Ey = 0.0
-      -- Total electric field (y-direction). 
-      for i = mode_init, mode_final do 
-        if (i ~= 0) then 
-          Ey = Ey + alpha*math.random()*math.sin(kx*i*x - 2.0 * pi * math.random())
-        end
-      end      
+      local Ey = 0.0 -- Total electric field (y-direction).
       local Ez = 0.0 -- Total electric field (z-direction).
 
       local Bx = 0.0 -- Total magnetic field (x-direction).
@@ -197,12 +184,6 @@ vlasovApp = Vlasov.App.new {
     appliedCurrent = function (t, xn)
       local Jx = 2.0*n0*Vx_drift_SR
       return Jx, 0.0, 0.0
-    end,
-
-    sigma = function (t, xn)
-      local x, y = xn[1], xn[2]
-      -- hyperbolic tanh profile for damping EM waves near y boundaries
-      return -(math.tanh(y-1) - math.tanh(y+1))
     end,
     
     evolve = true, -- Evolve field?
