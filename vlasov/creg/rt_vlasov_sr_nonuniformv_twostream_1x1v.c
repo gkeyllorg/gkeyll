@@ -45,6 +45,8 @@ struct twostream_sr_ctx {
   int Nvx; // Cell count (velocity space: vx-direction).
   double Lx; // Domain size (configuration space: x-direction).
   double vx_max; // Domain boundary (velocity space: vx-direction).
+  double nonuniform_v_pow; // Power of the nonlinear part of the velocity map.
+  double vx_linear_res; // Velocity-space cell size in the linear part of the velocity map.
   int poly_order; // Polynomial order.
   double cfl_frac; // CFL coefficient.
 
@@ -82,9 +84,11 @@ create_ctx(void)
 
   // Simulation parameters.
   int Nx = 64; // Cell count (configuration space: x-direction).
-  int Nvx = 64; // Cell count (velocity space: vx-direction).
+  int Nvx = 256; // Cell count (velocity space: vx-direction).
   double Lx = 2.0 * pi / kx; // Domain size (configuration space: x-direction).
-  double vx_max = 8.0; // Domain boundary (velocity space: vx-direction).
+  double vx_max = 128.0; // Domain boundary (velocity space: vx-direction).
+  double nonuniform_v_pow = 2.0; // Quadratic velocity map.
+  double vx_linear_res = 1.0 / 32.0; // Transition from linear to quadratic velocity map.
   int poly_order = 2; // Polynomial order.
   double cfl_frac = 1.0; // CFL coefficient.
 
@@ -114,6 +118,8 @@ create_ctx(void)
     .Nvx = Nvx,
     .Lx = Lx,
     .vx_max = vx_max,
+    .nonuniform_v_pow = nonuniform_v_pow,
+    .vx_linear_res = vx_linear_res,
     .poly_order = poly_order,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
@@ -173,6 +179,25 @@ evalVDriftRInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT 
 
   // Set right-going relativistic velocity.
   fout[0] = -Vx_drift_SR;
+}
+
+void
+mapc2p_vel(double t, const double *GKYL_RESTRICT vc, double *GKYL_RESTRICT vp, void *ctx)
+{
+  struct twostream_sr_ctx *app = ctx;
+  double vx_c = vc[0];
+
+  double vx_max = app->vx_max;
+  double nonuniform_v_pow = app->nonuniform_v_pow;
+  double vx_linear_res = app->vx_linear_res;
+  double ncells_linear = app->Nvx / 2.0;
+
+  // Linear map near vx = 0 that transitions to a power-law map at large |vx|.
+  if (vx_c < 0.0) {
+    vp[0] = vx_linear_res * ncells_linear * vx_c - vx_max * pow(vx_c, nonuniform_v_pow);
+  } else {
+    vp[0] = vx_linear_res * ncells_linear * vx_c + vx_max * pow(vx_c, nonuniform_v_pow);
+  }
 }
 
 void
@@ -279,6 +304,7 @@ main(int argc, char **argv)
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   int NVX = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvx);
+  ctx.Nvx = NVX; // The velocity map depends on the number of velocity-space cells.
 
   int nrank = 1; // Number of processors in simulation.
 #ifdef GKYL_HAVE_MPI
@@ -344,9 +370,11 @@ main(int argc, char **argv)
   // Electrons.
   struct gkyl_vlasov_kinetic_species elc = {
     .model_id = GKYL_MODEL_SR,
-    .lower = {-ctx.vx_max},
-    .upper = {ctx.vx_max},
+    .lower = {-1.0},
+    .upper = {1.0},
     .cells = {NVX},
+
+    .mapc2p_vel = {{.mapc2p_vel_func = mapc2p_vel, .mapc2p_vel_ctx = &ctx}},
 
     .num_init = 2,
     // Two counter-streaming Maxwellians.

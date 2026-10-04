@@ -10,8 +10,6 @@ return {
          "rt_dg_incompress_euler_double_shear_p2",
          "rt_dg_hasegawa_mima_p2",
          "rt_dg_hasegawa_mima_p1",
-         "rt_vlasov_sr_nonuniformv_twostream_1x1v",
-         "rt_vlasov_sr_nonuniformv_twostream_ser_1x1v",
          "rt_can_pb_bgk_surf_cylindrical_sodshock_im_3x3v_p1",
          "rt_can_pb_ex_bgk_surf_flat_sq_ic",
          "rt_can_pb_bgk_surf_annulus_sodshock_im_2x2v_p2",

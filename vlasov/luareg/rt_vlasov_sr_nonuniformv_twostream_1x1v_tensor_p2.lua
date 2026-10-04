@@ -22,16 +22,18 @@ Vx_drift_SR = gamma * Vx_drift -- Relativistic drift velocity (x-direction).
 
 -- Simulation parameters.
 Nx = 64 -- Cell count (configuration space: x-direction).
-Nvx = 64 -- Cell count (velocity space: vx-direction).
+Nvx = 256 -- Cell count (velocity space: vx-direction).
 Lx = 2.0 * pi / kx -- Domain size (configuration space: x-direction).
-vx_max = 8.0 -- Domain boundary (velocity space: vx-direction).
+vx_max = 128.0 -- Domain boundary (velocity space: vx-direction).
+nonuniform_v_pow = 2.0 -- Quadratic velocity map. 
+vx_linear_res = 1.0/32.0 -- Transition from linear to quadratic velocity map. 
 poly_order = 2 -- Polynomial order.
-basis_type = "serendipity" -- Basis function set.
+basis_type = "tensor" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
 cfl_frac = 1.0 -- CFL coefficient.
 
 t_end = 265.0 -- Final simulation time.
-num_frames = 100 -- Number of output frames.
+num_frames = 1 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.
 integrated_L2_f_calcs = GKYL_MAX_INT -- Number of times to calculate L2 norm of distribution function.
@@ -68,9 +70,27 @@ vlasovApp = Vlasov.App.new {
     charge = charge_elc, mass = mass_elc,
     
     -- Velocity space grid.
-    lower = { -vx_max },
-    upper = { vx_max },
+    lower = { -1.0 },
+    upper = { 1.0 },
     cells = { Nvx },
+
+    mapc2pVel = { 
+      -- vx mapping 
+      { 
+        vmap = function (t, xn)
+          local vc = xn[1]
+          local vp = 0.0
+          local ncells_linear = Nvx/2
+
+          if (vc < 0.0) then 
+            vp = vx_linear_res*ncells_linear*vc - vx_max*vc^nonuniform_v_pow
+          else
+            vp = vx_linear_res*ncells_linear*vc + vx_max*vc^nonuniform_v_pow
+          end
+          return vp
+        end
+      },
+    },
 
     -- Initial conditions.
     numInit = 2,
