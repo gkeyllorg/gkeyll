@@ -73,26 +73,26 @@ create_ctx(void)
 
   double n0 = 1.0; // Reference density.
   double vt = 1.0; // Thermal velocity.
-  double Vx_drift = 5.0; // Drift velocity (x-direction).
+  double Vx_drift = 4.0; // Drift velocity (x-direction).
   double lambda_D = 1.0; // Electron Debye length.
 
-  double alpha = 1.0e-6; // Applied perturbation amplitude.
+  double alpha = 1.0e-5; // Applied perturbation amplitude.
 
   // Derived physical quantities (using normalized code units).
   double T = (vt * vt) * mass_elc; // Temperature.
 
-  double kx = 0.1 * lambda_D; // Perturbed wave number (x-direction).
+  double kx = 0.1 / lambda_D; // Perturbed wave number (x-direction).
   double omega_pe = vt / lambda_D; // Electron plasma frequency.
 
   // Simulation parameters.
   int Nx = 64; // Cell count (configuration space: x-direction).
   int Nvx = 32; // Cell count (velocity space: vx-direction).
-  double Lx = 20.0 * pi * lambda_D; // Domain size (configuration space: x-direction).
-  double vx_max = 24.0 * vt; // Domain boundary (velocity space: vx-direction).
-  int poly_order = 1; // Polynomial order.
+  double Lx = 2.0 * pi / kx; // Domain size (configuration space: x-direction).
+  double vx_max = 16.0 * vt; // Domain boundary (velocity space: vx-direction).
+  int poly_order = 2; // Polynomial order.
   double cfl_frac = 0.6; // CFL coefficient.
 
-  double t_end = 100.0 / omega_pe; // Final simulation time.
+  double t_end = 50.0 / omega_pe; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
@@ -209,6 +209,15 @@ evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fo
   // Set correction potentials.
   fout[6] = 0.0;
   fout[7] = 0.0;
+}
+
+// Snap a trigger whose next time exceeds t_end only by round-off back to t_end.
+static void
+snap_trigger_to_t_end(struct gkyl_tm_trigger *trig, double t_end)
+{
+  if (trig->tcurr > t_end && trig->tcurr <= t_end * (1.0 + 1.0e-10)) {
+    trig->tcurr = t_end;
+  }
 }
 
 void
@@ -489,6 +498,11 @@ main(int argc, char **argv)
   // Compute initial guess of maximum stable time-step.
   double dt = t_end - t_curr;
 
+  // The requested time-step is shortened near the end of the simulation so that
+  // the final step lands exactly on t_end.
+  bool is_dt_clipped = false; // Was the requested dt shortened below the stable dt?
+  bool is_last_step = true; // Does the requested dt reach t_end?
+
   // Initialize small time-step check.
   double dt_init = -1.0, dt_failure_tol = ctx.dt_failure_tol;
   int num_failures = 0, num_failures_max = ctx.num_failures_max;
@@ -504,8 +518,37 @@ main(int argc, char **argv)
       break;
     }
 
-    t_curr += status.dt_actual;
+    // Only a step that took the full requested dt counts as shortened/final.
+    bool took_requested_dt = status.dt_actual == dt;
+    bool was_dt_clipped = is_dt_clipped && took_requested_dt;
+    if (is_last_step && took_requested_dt) {
+      // Avoid round-off leaving t_curr just short of t_end.
+      t_curr = t_end;
+      // Trigger times are accumulated sums and can exceed t_end by round-off.
+      // Snap them so the final frame and diagnostics are still produced.
+      snap_trigger_to_t_end(&fe_trig, t_end);
+      snap_trigger_to_t_end(&im_trig, t_end);
+      snap_trigger_to_t_end(&l2f_trig, t_end);
+      snap_trigger_to_t_end(&io_trig, t_end);
+    } else {
+      t_curr += status.dt_actual;
+    }
+
+    // Request the next time-step. If the remaining time fits in one stable step,
+    // take exactly the remaining time; if it fits in less than two, split it into
+    // two equal steps so the final step is never a sliver of the stable dt.
+    double t_left = t_end - t_curr;
     dt = status.dt_suggested;
+    is_dt_clipped = false;
+    is_last_step = false;
+    if (t_left <= dt) {
+      dt = t_left;
+      is_dt_clipped = true;
+      is_last_step = true;
+    } else if (t_left < 2.0 * dt) {
+      dt = 0.5 * t_left;
+      is_dt_clipped = true;
+    }
 
     calc_field_energy(&fe_trig, app, t_curr, false);
     calc_integrated_mom(&im_trig, app, t_curr, false);
@@ -514,7 +557,7 @@ main(int argc, char **argv)
 
     if (dt_init < 0.0) {
       dt_init = status.dt_actual;
-    } else if (status.dt_actual < dt_failure_tol * dt_init) {
+    } else if (!was_dt_clipped && status.dt_actual < dt_failure_tol * dt_init) {
       num_failures += 1;
 
       gkyl_vlasov_app_cout(app, stdout, "WARNING: Time-step dt = %g", status.dt_actual);

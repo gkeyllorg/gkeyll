@@ -14,7 +14,8 @@ vt = 1.0 -- Thermal velocity.
 Vx_drift = 4.0 -- Drift velocity (x-direction).
 lambda_D = 1.0 -- Electron Debye length.
 
-alpha = 1.0e-6 -- Applied perturbation amplitude.
+alpha = 1.0e-5 -- Applied perturbation amplitude.
+nu = 1.0e-4 -- Collision frequency (units of the plasma frequency).
 
 -- Derived physical quantities (using normalized code units).
 T = (vt * vt) * mass_elc -- Temperature.
@@ -22,20 +23,17 @@ T = (vt * vt) * mass_elc -- Temperature.
 kx = 0.1 / lambda_D -- Perturbed wave number (x-direction).
 omega_pe = vt / lambda_D -- Electron plasma frequency.
 
--- Collision frequency. 
-nu = 1.0e-4*omega_pe
-
 -- Simulation parameters.
 Nx = 64 -- Cell count (configuration space: x-direction).
 Nvx = 32 -- Cell count (velocity space: vx-direction).
 Lx = 2.0 * pi / kx -- Domain size (configuration space: x-direction).
 vx_max = 16.0 * vt -- Domain boundary (velocity space: vx-direction).
-poly_order = 2 -- Polynomial order.
-basis_type = "serendipity" -- Basis function set.
+poly_order = 1 -- Polynomial order.
+basis_type = "tensor" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
 cfl_frac = 0.6 -- CFL coefficient.
 
-t_end = 100.0 / omega_pe -- Final simulation time.
+t_end = 50.0 / omega_pe -- Final simulation time.
 num_frames = 1 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.
@@ -52,8 +50,8 @@ vlasovApp = Vlasov.App.new {
   integratedMomentCalcs = integrated_mom_calcs,
   dtFailureTol = dt_failure_tol,
   numFailuresMax = num_failures_max,
-  lower = { 0.0 },
-  upper = { Lx },
+  lower = { -0.5 * Lx },
+  upper = { 0.5 * Lx },
   cells = { Nx },
   cflFrac = cfl_frac,
 
@@ -118,13 +116,14 @@ vlasovApp = Vlasov.App.new {
         correctAllMoments = true
       }
     },
+
     collisions = {
       collisionID = G0.Collisions.LBO,
-
       selfNu = function (t, xn)
-        return nu -- Collision frequency.
+        return nu * omega_pe -- Collision frequency.
       end,
     },
+
     evolve = true, -- Evolve species?
     diagnostics = { G0.Moment.M0, G0.Moment.M1, G0.Moment.M2  }
   },

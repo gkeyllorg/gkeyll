@@ -33,7 +33,7 @@ return {
       },
    },
    moat = {
-      "rt_vlasov_landau_damping_1x1v_p2", "rt_vlasov_twostream_p2",
+      "rt_vlasov_landau_damping_1x1v_p2", "rt_vlasov_twostream_1x1v_ser_p2",
       "rt_vlasov_es_shock", "rt_vlasov_bgk_relax_1x1v_p2",
    },
    parallel = {},

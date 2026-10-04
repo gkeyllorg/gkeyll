@@ -14,7 +14,7 @@ vt = 1.0 -- Thermal velocity.
 Vx_drift = 4.0 -- Drift velocity (x-direction).
 lambda_D = 1.0 -- Electron Debye length.
 
-alpha = 1.0e-6 -- Applied perturbation amplitude.
+alpha = 1.0e-5 -- Applied perturbation amplitude.
 
 -- Derived physical quantities (using normalized code units).
 T = (vt * vt) * mass_elc -- Temperature.
@@ -27,12 +27,13 @@ Nx = 64 -- Cell count (configuration space: x-direction).
 Nvx = 32 -- Cell count (velocity space: vx-direction).
 Lx = 2.0 * pi / kx -- Domain size (configuration space: x-direction).
 vx_max = 16.0 * vt -- Domain boundary (velocity space: vx-direction).
-poly_order = 3 -- Polynomial order.
-basis_type = "serendipity" -- Basis function set.
+vx_lin = 8.0 * vt -- Slope of the velocity map at vx = 0 (sets the finest velocity-space cells).
+poly_order = 2 -- Polynomial order.
+basis_type = "tensor" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
 cfl_frac = 0.6 -- CFL coefficient.
 
-t_end = 100.0 / omega_pe -- Final simulation time.
+t_end = 50.0 / omega_pe -- Final simulation time.
 num_frames = 1 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.
@@ -49,8 +50,8 @@ vlasovApp = Vlasov.App.new {
   integratedMomentCalcs = integrated_mom_calcs,
   dtFailureTol = dt_failure_tol,
   numFailuresMax = num_failures_max,
-  lower = { 0.0 },
-  upper = { Lx },
+  lower = { -0.5 * Lx },
+  upper = { 0.5 * Lx },
   cells = { Nx },
   cflFrac = cfl_frac,
 
@@ -70,9 +71,19 @@ vlasovApp = Vlasov.App.new {
     charge = charge_elc, mass = mass_elc,
     
     -- Velocity space grid.
-    lower = { -vx_max },
-    upper = { vx_max },
+    lower = { -1.0 },
+    upper = { 1.0 },
     cells = { Nvx },
+
+    mapc2pVel = {
+      -- vx mapping: linear near vx = 0, quadratic towards the velocity-space boundaries.
+      {
+        vmap = function (t, xn)
+          local vc = xn[1]
+          return vx_lin * vc + (vx_max - vx_lin) * vc * math.abs(vc)
+        end
+      },
+    },
 
     -- Initial conditions.
     numInit = 2,
