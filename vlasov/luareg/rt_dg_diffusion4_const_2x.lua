@@ -12,8 +12,8 @@ diffusion_coeff = 1.0 -- Diffusion coefficient.
 diffusion_order = 4 -- Diffusion order.
 
 -- Simulation parameters.
-Nx = 4 -- Cell count (configuration space: x-direction).
-Ny = 4 -- Cell count (configuration space: y-direction).
+Nx = 8 -- Cell count (configuration space: x-direction).
+Ny = 8 -- Cell count (configuration space: y-direction).
 Lx = 2.0 * pi -- Domain size (configuration space: x-direction).
 Ly = 2.0 * pi -- Domain size (configuration space: y-direction).
 poly_order = 2 -- Polynomial order.

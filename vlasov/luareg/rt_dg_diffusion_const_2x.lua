@@ -11,8 +11,8 @@ v_advect = 1.0 -- Advection velocity.
 diffusion_coeff = 10.0 -- Diffusion coefficient.
 
 -- Simulation parameters.
-Nx = 4 -- Cell count (configuration space: x-direction).
-Ny = 4 -- Cell count (configuration space: y-direction).
+Nx = 8 -- Cell count (configuration space: x-direction).
+Ny = 8 -- Cell count (configuration space: y-direction).
 Lx = 2.0 * pi -- Domain size (configuration space: x-direction).
 Ly = 2.0 * pi -- Domain size (configuration space: y-direction).
 poly_order = 2 -- Polynomial order.
@@ -20,7 +20,7 @@ basis_type = "serendipity" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
 cfl_frac = 1.0 -- CFL coefficient.
 
-t_end = 2.0 -- Final simulation time.
+t_end = 0.05 -- Final simulation time.
 num_frames = 1 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.

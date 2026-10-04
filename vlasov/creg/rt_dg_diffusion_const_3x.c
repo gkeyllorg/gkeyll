@@ -60,16 +60,16 @@ create_ctx(void)
   double diffusion_coeff = 10.0; // Diffusion coefficient.
 
   // Simulation parameters.
-  int Nx = 4; // Cell count (configuration space: x-direction).
-  int Ny = 4; // Cell count (configuration space: y-direction).
-  int Nz = 4; // Cell count (configuration space: z-direction).
+  int Nx = 8; // Cell count (configuration space: x-direction).
+  int Ny = 8; // Cell count (configuration space: y-direction).
+  int Nz = 8; // Cell count (configuration space: z-direction).
   double Lx = 2.0 * pi; // Domain size (configuration space: x-direction).
   double Ly = 2.0 * pi; // Domain size (configuration space: y-direction).
   double Lz = 2.0 * pi; // Domain size (configuration space: z-direction).
   int poly_order = 2; // Polynomial order.
   double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 0.2; // Final simulation time.
+  double t_end = 0.1 / 3.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.

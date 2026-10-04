@@ -60,8 +60,8 @@ create_ctx(void)
   int diffusion_order = 4; // Order of diffusion.
 
   // Simulation parameters.
-  int Nx = 4; // Cell count (configuration space: x-direction).
-  int Ny = 4; // Cell count (configuration space: y-direction).
+  int Nx = 8; // Cell count (configuration space: x-direction).
+  int Ny = 8; // Cell count (configuration space: y-direction).
   double Lx = 2.0 * pi; // Domain size (configuration space: x-direction).
   double Ly = 2.0 * pi; // Domain size (configuration space: y-direction).
   int poly_order = 2; // Polynomial order.
