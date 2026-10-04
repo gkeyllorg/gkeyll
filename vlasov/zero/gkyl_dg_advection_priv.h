@@ -112,19 +112,6 @@ kernel_advection_vol_3x_ser_p2(
 }
 
 GKYL_CU_DH static double
-kernel_advection_vol_1x_tensor_p2(
-  const struct gkyl_dg_eqn *eqn, const double *xc, const double *dx, const int *idx,
-  const double *qIn, double *GKYL_RESTRICT qRhsOut
-)
-{
-  struct dg_advection *advection = container_of(eqn, struct dg_advection, eqn);
-  long cidx = gkyl_range_idx(&advection->conf_range, idx);
-  return advection_vol_1x_tensor_p2(
-    xc, dx, (const double *)gkyl_array_cfetch(advection->auxfields.u_i, cidx), qIn, qRhsOut
-  );
-}
-
-GKYL_CU_DH static double
 kernel_advection_vol_2x_tensor_p2(
   const struct gkyl_dg_eqn *eqn, const double *xc, const double *dx, const int *idx,
   const double *qIn, double *GKYL_RESTRICT qRhsOut
@@ -179,18 +166,19 @@ GKYL_CU_D static const gkyl_dg_advection_surf_kern_list ser_surf_z_kernels[] = {
 };
 
 // Tensor kernel lists. The p=1 tensor basis is identical to the p=1 Serendipity
-// basis in configuration space, so p=1 reuses the Serendipity kernels.
+// basis, and in 1x the tensor and Serendipity bases are identical for all p, so
+// those entries reuse the Serendipity kernels.
 
 // Volume kernel list
 GKYL_CU_D static const gkyl_dg_advection_vol_kern_list tensor_vol_kernels[] = {
-  {NULL, kernel_advection_vol_1x_ser_p1, kernel_advection_vol_1x_tensor_p2}, // 0
+  {NULL, kernel_advection_vol_1x_ser_p1, kernel_advection_vol_1x_ser_p2}, // 0
   {NULL, kernel_advection_vol_2x_ser_p1, kernel_advection_vol_2x_tensor_p2}, // 1
   {NULL, kernel_advection_vol_3x_ser_p1, kernel_advection_vol_3x_tensor_p2} // 2
 };
 
 // Surface kernel list: x-direction
 GKYL_CU_D static const gkyl_dg_advection_surf_kern_list tensor_surf_x_kernels[] = {
-  {NULL, advection_surfx_1x_ser_p1, advection_surfx_1x_tensor_p2}, // 0
+  {NULL, advection_surfx_1x_ser_p1, advection_surfx_1x_ser_p2}, // 0
   {NULL, advection_surfx_2x_ser_p1, advection_surfx_2x_tensor_p2}, // 1
   {NULL, advection_surfx_3x_ser_p1, advection_surfx_3x_tensor_p2} // 2
 };
