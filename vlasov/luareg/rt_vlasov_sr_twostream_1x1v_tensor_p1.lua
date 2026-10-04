@@ -13,7 +13,7 @@ n0 = 1.0 -- Reference number density.
 T = 0.04 -- Temperature (units of mc^2).
 Vx_drift = 0.9 -- Drift velocity (x-direction).
 
-alpha = 1.0e-8 -- Applied perturbation amplitude.
+alpha = 1.0e-5 -- Applied perturbation amplitude.
 kx = 0.5 -- Perturbed wave number (x-direction).
 
 -- Derived physical quantities (using normalized code units).
@@ -26,11 +26,11 @@ Nvx = 64 -- Cell count (velocity space: vx-direction).
 Lx = 2.0 * pi / kx -- Domain size (configuration space: x-direction).
 vx_max = 8.0 -- Domain boundary (velocity space: vx-direction).
 poly_order = 1 -- Polynomial order.
-basis_type = "serendipity" -- Basis function set.
+basis_type = "tensor" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
 cfl_frac = 1.0 -- CFL coefficient.
 
-t_end = 500.0 -- Final simulation time.
+t_end = 265.0 -- Final simulation time.
 num_frames = 100 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.

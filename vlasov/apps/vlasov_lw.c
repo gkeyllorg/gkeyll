@@ -2828,6 +2828,15 @@ write_data(struct gkyl_tm_trigger *iot, gkyl_vlasov_app *app, double t_curr, boo
   }
 }
 
+// Snap a trigger whose next time exceeds t_end only by round-off back to t_end.
+static void
+snap_trigger_to_t_end(struct gkyl_tm_trigger *trig, double t_end)
+{
+  if (trig->tcurr > t_end && trig->tcurr <= t_end * (1.0 + 1.0e-10)) {
+    trig->tcurr = t_end;
+  }
+}
+
 // Calculate and append field energy to dynvector.
 static void
 calc_field_energy(struct gkyl_tm_trigger *fet, gkyl_vlasov_app *app, double t_curr, bool force_calc)
@@ -3047,6 +3056,12 @@ vm_app_run(lua_State *L)
     if (is_last_step && took_requested_dt) {
       // Avoid round-off leaving t_curr just short of t_end.
       t_curr = t_end;
+      // Trigger times are accumulated sums and can exceed t_end by round-off.
+      // Snap them so the final frame and diagnostics are still produced.
+      snap_trigger_to_t_end(&fe_trig, t_end);
+      snap_trigger_to_t_end(&im_trig, t_end);
+      snap_trigger_to_t_end(&l2f_trig, t_end);
+      snap_trigger_to_t_end(&io_trig, t_end);
     } else {
       t_curr += status.dt_actual;
     }

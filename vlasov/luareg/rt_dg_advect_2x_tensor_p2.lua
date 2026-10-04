@@ -1,4 +1,4 @@
--- Constant 6th-order diffusion of a 3D sine wave using a p2 DG discretization of the advection-diffusion equation.
+-- Constant advection in 2x using a p2 DG discretization of the advection equation. 
 
 local Vlasov = G0.Vlasov
 local LinearAdvection = G0.Vlasov.Eq.LinearAdvection
@@ -8,22 +8,22 @@ pi = math.pi
 
 -- Physical constants (using normalized code units).
 v_advect = 1.0 -- Advection velocity.
-diffusion_coeff = 1.0 -- Diffusion coefficient.
-diffusion_order = 6 -- Diffusion order.
+
+r0 = 0.2 -- Distribution radius.
+x0 = 1.0 / 4.0 -- Distribution center (x-coordinate).
+y0 = 1.0 / 2.0 -- Distribution center (y-coordinate).
 
 -- Simulation parameters.
-Nx = 6 -- Cell count (configuration space: x-direction).
-Ny = 6 -- Cell count (configuration space: y-direction).
-Nz = 6 -- Cell count (configuration space: z-direction).
-Lx = 2.0 * pi -- Domain size (configuration space: x-direction).
-Ly = 2.0 * pi -- Domain size (configuration space: y-direction).
-Lz = 2.0 * pi -- Domain size (configuration space: z-direction).
+Nx = 16 -- Cell count (configuration space: x-direction).
+Ny = 16 -- Cell count (configuration space: y-direction).
+Lx = 1.0 -- Domain size (configuration space: x-direction).
+Ly = 1.0 -- Domain size (configuration space: y-direction).
 poly_order = 2 -- Polynomial order.
 basis_type = "tensor" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
 cfl_frac = 1.0 -- CFL coefficient.
 
-t_end = 0.1 -- Final simulation time.
+t_end = 2.0 * pi -- Final simulation time.
 num_frames = 1 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.
@@ -40,9 +40,9 @@ vlasovApp = Vlasov.App.new {
   integratedMomentCalcs = integrated_mom_calcs,
   dtFailureTol = dt_failure_tol,
   numFailuresMax = num_failures_max,
-  lower = { 0.0, 0.0, 0.0 },
-  upper = { Lx, Ly, Lz },
-  cells = { Nx, Ny, Nz },
+  lower = { 0.0, 0.0 },
+  upper = { Lx, Ly },
+  cells = { Nx, Ny },
   cflFrac = cfl_frac,
     
   basis = basis_type,
@@ -50,10 +50,10 @@ vlasovApp = Vlasov.App.new {
   timeStepper = time_stepper,
 
   -- Decomposition for configuration space.
-  decompCuts = { 1, 1, 1 }, -- Cuts in each coordinate direction (x-, y- and z-directions only).
+  decompCuts = { 1, 1 }, -- Cuts in each coordinate direction (x- and y-directions only).
 
   -- Boundary conditions for configuration space.
-  periodicDirs = { 1, 2, 3 }, -- Periodic directions (x-, y- and z-directions only).
+  periodicDirs = { 1, 2 }, -- Periodic directions (x- and y-directions only).
   
   -- Fluid.
   fluid = Vlasov.FluidSpecies.new {
@@ -61,27 +61,24 @@ vlasovApp = Vlasov.App.new {
 
     -- Constant advection function.
     appAdvect = function (t, xn)
-      local ux = 0.0 -- Advection velocity (x-direction).
-      local uy = 0.0 -- Advection velocity (y-direction).
-      local uz = 0.0 -- Advection velocity (z-direction).
+      local x, y = xn[1], xn[2]
 
+      local ux = -y + 0.5 -- Advection velocity (x-direction).
+      local uy = x - 0.5 -- Advection velocity (y-direction).
+      local uz = 0.0 -- Advection velocity (z-direction).
+      
       return ux, uy, uz
     end,
     
     -- Initial conditions function.
     init = function (t, xn)
-      local x, y, z = xn[1], xn[2], xn[3]
+      local x, y = xn[1], xn[2]
 
-      local f = math.sin(x) * math.sin(y) * math.sin(z) -- Advected quantity.
-
+      local r = math.min(math.sqrt(((x - x0) * (x - x0)) + ((y - y0) * (y - y0))), r0) / r0
+      local f = 0.25 * (1.0 + math.cos(pi * r)) -- Advected quantity.
+      
       return f
     end,
-
-    -- Diffusion.
-    diffusion = {
-      diffusionCoefficient = diffusion_coeff,
-      diffusionOrder = diffusion_order
-    },
 
     evolve = true -- Evolve species?
   },
