@@ -354,6 +354,25 @@ gkyl_fem_poisson_new(
   return up;
 }
 
+// Subtract the volume average of the first DG field in arr from arr.
+static void
+fem_poisson_subtract_vol_avg(gkyl_fem_poisson *up, struct gkyl_array *arr)
+{
+  gkyl_array_clear(up->rhs_cellavg, 0.0);
+  gkyl_dg_calc_average_range(&up->basis, 0, up->rhs_cellavg, 0, arr, *up->solve_range);
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu) {
+    gkyl_array_reduce_range(up->rhs_avg_cu, up->rhs_cellavg, GKYL_SUM, up->solve_range);
+    gkyl_cu_memcpy(up->rhs_avg, up->rhs_avg_cu, sizeof(double), GKYL_CU_MEMCPY_D2H);
+  } else {
+    gkyl_array_reduce_range(up->rhs_avg, up->rhs_cellavg, GKYL_SUM, up->solve_range);
+  }
+#else
+  gkyl_array_reduce_range(up->rhs_avg, up->rhs_cellavg, GKYL_SUM, up->solve_range);
+#endif
+  gkyl_array_shiftc(arr, up->mavgfac * up->rhs_avg[0], 0);
+}
+
 void
 gkyl_fem_poisson_set_rhs(
   gkyl_fem_poisson *up, struct gkyl_array *rhsin, const struct gkyl_array *phibc
@@ -361,19 +380,7 @@ gkyl_fem_poisson_set_rhs(
 {
   if (up->isdomperiodic && !(up->ishelmholtz)) {
     // Subtract the volume averaged RHS from the RHS.
-    gkyl_array_clear(up->rhs_cellavg, 0.0);
-    gkyl_dg_calc_average_range(&up->basis, 0, up->rhs_cellavg, 0, rhsin, *up->solve_range);
-#ifdef GKYL_HAVE_CUDA
-    if (up->use_gpu) {
-      gkyl_array_reduce_range(up->rhs_avg_cu, up->rhs_cellavg, GKYL_SUM, up->solve_range);
-      gkyl_cu_memcpy(up->rhs_avg, up->rhs_avg_cu, sizeof(double), GKYL_CU_MEMCPY_D2H);
-    } else {
-      gkyl_array_reduce_range(up->rhs_avg, up->rhs_cellavg, GKYL_SUM, up->solve_range);
-    }
-#else
-    gkyl_array_reduce_range(up->rhs_avg, up->rhs_cellavg, GKYL_SUM, up->solve_range);
-#endif
-    gkyl_array_shiftc(rhsin, up->mavgfac * up->rhs_avg[0], 0);
+    fem_poisson_subtract_vol_avg(up, rhsin);
   }
 
 #ifdef GKYL_HAVE_CUDA
@@ -426,6 +433,9 @@ gkyl_fem_poisson_solve(gkyl_fem_poisson *up, struct gkyl_array *phiout)
   if (up->use_gpu) {
     assert(gkyl_array_is_cu_dev(phiout));
     gkyl_fem_poisson_solve_cu(up, phiout);
+    if (up->isdomperiodic && !(up->ishelmholtz)) {
+      fem_poisson_subtract_vol_avg(up, phiout);
+    }
     return;
   }
 #endif
@@ -448,6 +458,13 @@ gkyl_fem_poisson_solve(gkyl_fem_poisson *up, struct gkyl_array *phiout)
     up->kernels->l2g[keri](up->num_cells, idx0, up->globalidx);
 
     up->kernels->solker(gkyl_superlu_get_rhs_ptr(up->prob, 0), up->globalidx, phiout_p);
+  }
+
+  // In a fully periodic (non-Helmholtz) problem the potential is only defined up
+  // to a constant, and the constant returned by the direct solve of the singular
+  // system is arbitrary. Fix the gauge by removing the volume average of phi.
+  if (up->isdomperiodic && !(up->ishelmholtz)) {
+    fem_poisson_subtract_vol_avg(up, phiout);
   }
 }
 
