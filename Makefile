@@ -15,7 +15,7 @@ KERNELS_DIR := ker
 
 ARCH_FLAGS ?= -march=native
 CUDA_ARCH ?= 70
-CFLAGS ?= -O3 -g -ffast-math -fPIC -MMD -MP -DGIT_COMMIT_ID=\"$(GIT_TIP)\" -DGKYL_BUILD_DATE=\"$(BUILD_DATE_STR)\" -DGKYL_GIT_CHANGESET=\"$(GIT_TIP)\"
+CFLAGS ?= -O3 -g $(FP_FLAGS) -fPIC -MMD -MP -DGIT_COMMIT_ID=\"$(GIT_TIP)\" -DGKYL_BUILD_DATE=\"$(BUILD_DATE_STR)\" -DGKYL_GIT_CHANGESET=\"$(GIT_TIP)\"
 LDFLAGS = 
 PREFIX ?= ${HOME}/gkylsoft
 
@@ -26,6 +26,19 @@ HAVE_APP_FLAGS = -DGKYL_HAVE_PKPM -DGKYL_HAVE_GYROKINETIC -DGKYL_HAVE_VLASOV -DG
 
 # Include config.mak and alltargets.mak files (if they exists) to overide defaults above
 -include config.mak
+
+# Floating-point model. The default build allows value-changing optimizations
+# (fast math). A strict build (USE_STRICT_FP=1 in config.mak, set by
+# ./configure --strict-fp=yes) keeps IEEE evaluation order and disables FMA
+# contraction, so that results are reproducible across compilers and between
+# CPU and GPU builds.
+ifeq (${USE_STRICT_FP}, 1)
+	FP_FLAGS = -std=gnu11 -ffp-contract=off
+	NVCC_FP_FLAGS = --fmad=false -ffp-contract=off
+else
+	FP_FLAGS = -ffast-math
+	NVCC_FP_FLAGS = --use_fast_math -ffast-math
+endif
 -include alltargets.mak
 
 # Optional heavy kernel sets (tensor p=1 hybrid basis in 2x3v and 3x3v). Off by
@@ -97,7 +110,7 @@ CUDA_LIBS =
 SQL_CFLAGS ?= -fPIC -Wno-implicit-int-float-conversion
 ifneq (,$(filter $(CC),nvcc nvc))
 	USING_NVCC = yes
-	CFLAGS = -O3 -g --forward-unknown-to-host-compiler --use_fast_math -ffast-math -MMD -MP -fPIC -DGIT_COMMIT_ID=\"$(GIT_TIP)\" -DGKYL_BUILD_DATE=\"$(BUILD_DATE_STR)\" -DGKYL_GIT_CHANGESET=\"$(GIT_TIP)\"
+	CFLAGS = -O3 -g --forward-unknown-to-host-compiler $(NVCC_FP_FLAGS) -MMD -MP -fPIC -DGIT_COMMIT_ID=\"$(GIT_TIP)\" -DGKYL_BUILD_DATE=\"$(BUILD_DATE_STR)\" -DGKYL_GIT_CHANGESET=\"$(GIT_TIP)\"
 	NVCC_FLAGS = -x cu -dc -arch=sm_${CUDA_ARCH} -rdc=true --compiler-options="-fPIC" -Xptxas --disable-optimizer-constants
 	LDFLAGS += -arch=sm_${CUDA_ARCH} -rdc=true
 	ifdef CUDAMATH_LIB_DIR

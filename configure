@@ -27,6 +27,7 @@ USE_LUA=
 USE_MPI=
 USE_NCCL=
 USE_LAPACK_LITE=
+USE_STRICT_FP=
 
 # Optional heavy kernel sets (see --build-vlasov-hyb-* below)
 BUILD_VLASOV_HYB_2X3V=
@@ -71,6 +72,8 @@ CUDA_ARCH                  CUDA architecture flag to specify compute capability.
 --use-lapack-lite          [no] Build LAPACK-lite (lower efficiency that OpenBLAS)
                            Cannot be combined with --lapack-* options or
                            LAPACK_INC_DIR/LAPACK_LIB_DIR/LAPACK_LIB_NAME overrides.
+--strict-fp                [no] Strict floating point: no fast math and no FMA
+                           contraction, for reproducible results (slower).
 --build-vlasov-hyb-2x3v    [no] Build the 2x3v tensor p=1 hybrid Vlasov kernels
                            (all Hamiltonian representations). Adds ~20 MB of
                            kernels, several minutes of nvcc time.
@@ -180,6 +183,10 @@ do
    --use-lapack-lite)
       [ -n "$value" ] || die "Missing value in flag $key."
       USE_LAPACK_LITE="$value"
+      ;;
+   --strict-fp)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      USE_STRICT_FP="$value"
       ;;       
    --lapack-inc)
       [ -n "$value" ] || die "Missing value in flag $key."
@@ -302,6 +309,13 @@ then
     USE_LUA=1
 else
     USE_LUA=
+fi
+
+if [ "$USE_STRICT_FP" = "yes" ] || [ "$USE_STRICT_FP" = "1" ]
+then
+    USE_STRICT_FP=1
+else
+    USE_STRICT_FP=
 fi
 
 if [ "$USE_LAPACK_LITE" = "yes" ] || [ "$USE_LAPACK_LITE" = "1" ]
@@ -436,6 +450,7 @@ CONF_MPI_INC_DIR=$CONF_MPI_INC_DIR
 CONF_MPI_LIB_DIR=$CONF_MPI_LIB_DIR
 
 USE_LAPACK_LITE=$USE_LAPACK_LITE
+USE_STRICT_FP=$USE_STRICT_FP
 
 USE_NCCL=$USE_NCCL
 CONF_NCCL_INC_DIR=$CONF_NCCL_INC_DIR
