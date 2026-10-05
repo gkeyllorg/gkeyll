@@ -1,0 +1,130 @@
+What do you think of this alternative plan:
+1) We create a module dedicated to injecting fluxes to the RHS, named say gk_species_influx.
+2) When an input file specified SHEATH boundary conditions, it initializes gk_species_influx.
+3) gk_species_influx_advance will be called in gk_species_advance, after the gk_species_collisionless_advance, and it will measure the flux of lower energy electrons reaching the boundary, and add, to the RHS, the corresponding flux of electrons into the domain from the boundary.
+?
+
+---
+
+I'd like a module that is not sheath specific, because in the future I plan to give it options for modifying the collisionless flux such that the user can impose a flux from the input file, or such that we can take the flux from one part of the domain and put it back in another (e.g. like excision BCs at the inner radial boundary of an annulus).
+So let's call it gk_species_collisionless_influx, whose purpose is to modify the collisionless flux between gkcls->flux_func(...) and gkyl_dg_updater_gyrokinetic_advance(...) as you recomended.
+
+Please re-draft the plan based on our discussion and changes.
+
+---
+
+Can you alter the plan to specify that I want you to make the gkylcas changes in this clone of gkylcas: /Users/mfrancis/Documents/gkeyll/code/gkeyll_v1/gkylcas/ ?
+
+---
+
+Please write the plan to a file and implement it.
+
+---
+
+Second, you put a loop over the grid in gyrokinetic/apps/gk_species_collisionless_influx.c and create a CUDA equivalent in gyrokinetic/apps/gk_species_collisionless_influx_cu.cu. Objects in gyrokinetic/apps/ should not explicitly loop over grids or have cuda implementations if possible. So create an object in gyrokinetic/zero/, called gk_sheath_conducting_flux, where you place these loops.
+
+Third, I'm generally concerned with is memory footprint ballooning. Specifically here I'm wondering if we can refactor this work so we don't need gkcls->conf_alpha_surf. For example, I'm ok with re-computing the characteristic (alpha) at the boundary alone. So would it be better to refactor the gk_collisionless_flux kernels, splitting them, such that there is one (inline) function for each alpha at each node. Then rather than using a stored alpha_surf, the gk_collisionless_influx would recompute alpha using these new (inline) functions.
+
+---
+
+Does option 2 require a conf_alpha_surf array? I wouldn't think so.
+
+---
+
+I think we should implement option 2, but add it as a separate input file BC option (GKYL_BC_GK_SPECIES_SHEATH_FLUX), so that we can switch between this and the existing GKYL_BC_GK_SPECIES_SHEATH while we validate the new algorithm.
+
+---
+
+There's one more thing I'd like to clarify or explore. In the 1D Cartesian case the existing conducting sheath model essentially reflects electrons if the potential is zero at the boundary (assuming a 0 wall potential), but it instead reflects ions if the potential is negative. I'd like the new algorithm to not explicitly distinguish between ions and electrons, and apply to both, so that in the limit of 1D Cartesian it behaves as just described. But what is the correct approach when we wish to account for drifts in 2D and 3D? Should we just compute v_cut^2 = -(2*q/m)*(phi_sheath - phi_wall) as we do now, and if this is negative then all particles are absorbed, else they may experience some reflection?
+
+---
+
+Ok, please update the plan, ensuring there's no electron/ion branch.
+
+---
+
+Implement the plan.
+
+---
+
+In gyrokinetic/apps/gkyl_gyrokinetic_priv.h, around lines 2208-2220, ensure the comment follows the style of that for other functions, including the specification and descriptio of function arguments.
+
+---
+
+please remove alpha_surf as an argument in gkyl_gk_collisionless_flux_surf if it's not used anywhere
+
+---
+
+The gk_collisionless_flux kernels have alpha_surf as an argument. Why? I would think alpha_surf is not needed outside of the gk_collisionless_flux kernel, and if you look at gk_collisionless_flux.c (and it's GPU counterpart) alpha_surf_local and alpha_surf_ext_local are populated but never used.
+
+---
+
+Ok, implement this design please.
+
+---
+
+I see in gkylcas that you changed
+
+printf(fh, "  double JRatfR[~a] = {0.}; ~%", length(bSurf)),
+writeCExprsNoExpand1(JRatfR, fullratsimp(JfR_c)),
+
+in favor of just 
+
+JRatfR_c : JfR_c,
+
+Why?
+
+---
+
+please rename gkyl_gk_sheath_conducting_flux_new to gkyl_gk_sheath_conducting_flux_inew. Methods to initialize updaters in zero that take all inputs through a single input struct should be named _inew.
+
+---
+
+in gk_species_collisionless_influx_release, shouldn't the gkyl_gk_sheath_conducting_flux_release be inside some kind of if-statement checking whether the lower/upper BC is GKYL_BC_GK_SPECIES_SHEATH_FLUX? so that we can support cases in which only one of lower or upper is GKYL_BC_GK_SPECIES_SHEATH_FLUX.
+
+---
+
+I see now reason for gk_sheath_conducting_flux_advance_cpu. Wouldn't it be better to just put its contents in gk_sheath_conducting_flux_advance?
+
+---
+
+move it
+
+---
+
+Please add comments to gyrokinetic/zero/gkyl_gk_sheath_conducting_flux.h, following the style in other existing headers in gyrokinetic/zero/
+
+---
+
+Why does gkyl_gk_sheath_conducting_flux_advance use both phi_smooth and gyro_phi?
+
+---
+
+I think you should rename phi_sheath to phi in gkyl_gk_sheath_conducting_flux to avoid confusion.
+
+---
+
+How does gk_sheath_conducting_flux handle partial reflection in the cell that holds the cut-off velocity?
+
+---
+
+In gk_sheath_conducting_flux you used
+
+double zero[up->phase_basis->num_basis];
+memset(zero, 0, sizeof(zero));
+
+Why not do
+
+double zero[up->phase_basis->num_basis] = {0.0};
+
+instead?
+
+---
+
+make -j4 install
+
+gives
+
+make: *** No rule to make target `install'.  Stop.
+
+Why?
