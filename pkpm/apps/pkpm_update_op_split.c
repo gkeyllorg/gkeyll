@@ -4,7 +4,7 @@
 // Then, we use the actual timestep taken with the SSP-RK3 method to update
 // fluid-EM coupling implicitly.
 struct gkyl_update_status
-pkpm_update_op_split(gkyl_pkpm_app* app, double dt0)
+pkpm_update_op_split(gkyl_pkpm_app *app, double dt0)
 {
   struct gkyl_update_status st = pkpm_update_explicit_ssp_rk3(app, dt0);
 

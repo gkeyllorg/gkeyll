@@ -6,7 +6,7 @@ enum gkyl_basis_type {
   GKYL_BASIS_MODAL_TENSOR,
   GKYL_BASIS_MODAL_HYBRID,
   GKYL_BASIS_MODAL_GKHYBRID,
-  GKYL_BASIS_MODAL_GKHYBRID_VEL,
+  GKYL_BASIS_MODAL_GKHYBRID_VEL
 };
 
 typedef void (*nodal_to_modal_quad_surf_t)(const double *fnodal, double *fmodal);
@@ -19,8 +19,8 @@ struct gkyl_basis {
   unsigned ndim, poly_order, num_basis, num_quad;
   char id[64]; // "serendipity", "tensor", "hybrid, "gkhybrid", "gkhybrid_vel"
   enum gkyl_basis_type b_type; // identifier for basis function
-    
-/**
+
+  /**
  * Evaluate basis in unit cell (i.e. a hypercube with each side
  * [-1,1])
  *
@@ -29,7 +29,7 @@ struct gkyl_basis {
  */
   void (*eval)(const double *z, double *b);
 
-/**
+  /**
  * Evaluate expansion at point in the logical cell (hypercube)
  *
  * @param z Location to evaluate exansion. z \in [-1,1]^n
@@ -38,7 +38,7 @@ struct gkyl_basis {
  */
   double (*eval_expand)(const double *z, const double *f);
 
-/**
+  /**
  * Evaluate gradient, given expansion at point in the logical cell
  * (hypercube)
  *
@@ -49,7 +49,7 @@ struct gkyl_basis {
  */
   double (*eval_grad_expand)(int dir, const double *z, const double *f);
 
-/**
+  /**
  * Flip-sign function: changes signs of input expansion cofficients by
  * changing sign of odd monomial powers in specified direction. So if
  * dir=0, all odd powers of x appearing in the expansion will have
@@ -72,7 +72,7 @@ struct gkyl_basis {
  */
   void (*flip_even_sign)(int dir, const double *f, double *fout);
 
-/**
+  /**
  * Construct list of nodes corresponding to this basis set. The nodes
  * coordinates are in the unit cell [-1,1]^ndim and stored such that
  * the coodinates of a node are contiguous, starting at index ndim*n,
@@ -81,7 +81,7 @@ struct gkyl_basis {
  */
   void (*node_list)(double *node_coords);
 
-/**
+  /**
  * Given expansion coefficients on nodal basis (nodes specified by the
  * node_list method), compute modal expansion coefficients.
  *
@@ -90,7 +90,7 @@ struct gkyl_basis {
  */
   void (*nodal_to_modal)(const double *fnodal, double *fmodal);
 
-/**
+  /**
  * Given expansion coefficients on nodes at the surface in one direction,
  * and Gauss-Legendre nodes in the other, compute modal expansion coefficients.
  *
@@ -99,7 +99,7 @@ struct gkyl_basis {
  */
   nodal_to_modal_quad_surf_t nodal_to_modal_quad_surf[3];
 
-/**
+  /**
  * Construct list of nodes that are on the surface in one direction
  * and on Gauss-Legendre coordinates in the other. The nodes
  * coordinates are in the unit cell [-1,1]^ndim and stored such that
@@ -109,7 +109,7 @@ struct gkyl_basis {
  */
   node_quad_surf_list_t node_quad_surf_list[3];
 
-/**
+  /**
  * Given expansion coefficients on nodal basis defined by Gauss-Legendre
  * quadrature points, compute modal expansion coefficients.
  *
@@ -117,9 +117,9 @@ struct gkyl_basis {
  * @param fmodal On output, coefficients of modal expansion
  * @param linc2 Modal component being updated (allows for parallelization over basis functions)
  */
-  void (*quad_nodal_to_modal)(const double *fquad, double *fmodal, long linc2);  
+  void (*quad_nodal_to_modal)(const double *fquad, double *fmodal, long linc2);
 
-/**
+  /**
  * Given expansion coefficients of DG modal basis, evaluate basis at Gauss-Legendre
  * quadrature points of order p+1 (the Gauss-Legendre nodal basis).
  * 
@@ -127,8 +127,8 @@ struct gkyl_basis {
  * @param fquad On output, evaluation of modal expansion at Gauss-Legendre quadrature nodal basis
  * @param linc2 Quadrature node being updated (allows for parallelization over quadrature points)
  */
-  void (*modal_to_quad_nodal)(const double *fmodal, double *fquad, long linc2);   
-}; 
+  void (*modal_to_quad_nodal)(const double *fmodal, double *fquad, long linc2);
+};
 
 /**
  * Assign object members in modal serendipity basis object.
@@ -137,11 +137,8 @@ struct gkyl_basis {
  * @param ndim Dimension of reference element.
  * @param poly_order Polynomial order.
  */
-void gkyl_cart_modal_serendip(struct gkyl_basis *basis, int ndim,
-  int poly_order);
-void gkyl_cart_modal_serendip_cu_dev(struct gkyl_basis *basis, int ndim,
-  int poly_order);
-
+void gkyl_cart_modal_serendip(struct gkyl_basis *basis, int ndim, int poly_order);
+void gkyl_cart_modal_serendip_cu_dev(struct gkyl_basis *basis, int ndim, int poly_order);
 
 /**
  * Create new modal serendipity basis function object.
@@ -151,8 +148,8 @@ void gkyl_cart_modal_serendip_cu_dev(struct gkyl_basis *basis, int ndim,
  * @param poly_order Polynomial order.
  * @return new basis struct.
  */
-struct gkyl_basis * gkyl_cart_modal_serendip_new(int ndim, int poly_order);
-struct gkyl_basis * gkyl_cart_modal_serendip_cu_dev_new(int ndim, int poly_order);
+struct gkyl_basis *gkyl_cart_modal_serendip_new(int ndim, int poly_order);
+struct gkyl_basis *gkyl_cart_modal_serendip_cu_dev_new(int ndim, int poly_order);
 
 /**
  * Assign object members in modal tensor-product basis object.
@@ -161,10 +158,8 @@ struct gkyl_basis * gkyl_cart_modal_serendip_cu_dev_new(int ndim, int poly_order
  * @param ndim Dimension of reference element.
  * @param poly_order Polynomial order.
  */
-void gkyl_cart_modal_tensor(struct gkyl_basis *basis, int ndim,
-  int poly_order);
-void gkyl_cart_modal_tensor_cu_dev(struct gkyl_basis *basis, int ndim,
-  int poly_order);
+void gkyl_cart_modal_tensor(struct gkyl_basis *basis, int ndim, int poly_order);
+void gkyl_cart_modal_tensor_cu_dev(struct gkyl_basis *basis, int ndim, int poly_order);
 
 /**
  * Create new modal tensor-product basis function object.
@@ -174,8 +169,8 @@ void gkyl_cart_modal_tensor_cu_dev(struct gkyl_basis *basis, int ndim,
  * @param poly_order Polynomial order.
  * @return new basis struct.
  */
-struct gkyl_basis * gkyl_cart_modal_tensor_new(int ndim, int poly_order);
-struct gkyl_basis * gkyl_cart_modal_tensor_cu_dev_new(int ndim, int poly_order);
+struct gkyl_basis *gkyl_cart_modal_tensor_new(int ndim, int poly_order);
+struct gkyl_basis *gkyl_cart_modal_tensor_cu_dev_new(int ndim, int poly_order);
 
 /**
  * Assign object members in hybrid basis. These are p=1 in configuration space
@@ -197,8 +192,8 @@ void gkyl_cart_modal_hybrid_cu_dev(struct gkyl_basis *basis, int cdim, int vdim)
  * @param vdim dimension of velocity space.
  * @return new basis struct.
  */
-struct gkyl_basis * gkyl_cart_modal_hybrid_new(int cdim, int vdim);
-struct gkyl_basis * gkyl_cart_modal_hybrid_cu_dev_new(int cdim, int vdim);
+struct gkyl_basis *gkyl_cart_modal_hybrid_new(int cdim, int vdim);
+struct gkyl_basis *gkyl_cart_modal_hybrid_cu_dev_new(int cdim, int vdim);
 
 /**
  * Assign object members in hybrid basis for use in gyrokinetics p=1
@@ -222,8 +217,8 @@ void gkyl_cart_modal_gkhybrid_cu_dev(struct gkyl_basis *basis, int cdim, int vdi
  * @param vdim dimension of velocity space.
  * @return new basis struct.
  */
-struct gkyl_basis * gkyl_cart_modal_gkhybrid_new(int cdim, int vdim);
-struct gkyl_basis * gkyl_cart_modal_gkhybrid_cu_dev_new(int cdim, int vdim);
+struct gkyl_basis *gkyl_cart_modal_gkhybrid_new(int cdim, int vdim);
+struct gkyl_basis *gkyl_cart_modal_gkhybrid_cu_dev_new(int cdim, int vdim);
 
 /**
  * Assign object members in hybrid basis for use in gyrokinetics p=1
@@ -247,8 +242,8 @@ void gkyl_cart_modal_gkhybrid_vel_cu_dev(struct gkyl_basis *basis, int vdim);
  * @param vdim dimension of velocity space.
  * @return new basis struct.
  */
-struct gkyl_basis * gkyl_cart_modal_gkhybrid_vel_new(int vdim);
-struct gkyl_basis * gkyl_cart_modal_gkhybrid_vel_cu_dev_new(int vdim);
+struct gkyl_basis *gkyl_cart_modal_gkhybrid_vel_new(int vdim);
+struct gkyl_basis *gkyl_cart_modal_gkhybrid_vel_cu_dev_new(int vdim);
 
 /**
  * Get the dimensionality of a basis (for opaque pointers).

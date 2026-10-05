@@ -33,7 +33,7 @@ struct gkyl_wv_eqn *gkyl_wv_euler_new(double gas_gamma, bool use_gpu);
  * @param inp Input parameters
  * @return Pointer to Euler equation object.
  */
-struct gkyl_wv_eqn* gkyl_wv_euler_inew(const struct gkyl_wv_euler_inp *inp);
+struct gkyl_wv_eqn *gkyl_wv_euler_inew(const struct gkyl_wv_euler_inp *inp);
 
 /**
  * Create a new Euler equation object that lives on NV-GPU.
@@ -41,7 +41,7 @@ struct gkyl_wv_eqn* gkyl_wv_euler_inew(const struct gkyl_wv_euler_inp *inp);
  * @param inp Input parameters
  * @return Pointer to Euler equation object.
  */
-struct gkyl_wv_eqn* gkyl_wv_euler_cu_dev_inew(const struct gkyl_wv_euler_inp *inp);
+struct gkyl_wv_eqn *gkyl_wv_euler_cu_dev_inew(const struct gkyl_wv_euler_inp *inp);
 
 /**
  * Get gas adiabatic constant.
@@ -49,4 +49,4 @@ struct gkyl_wv_eqn* gkyl_wv_euler_cu_dev_inew(const struct gkyl_wv_euler_inp *in
  * @param wv Euler equation object
  * @return Gas adiabatic constant
  */
-double gkyl_wv_euler_gas_gamma(const struct gkyl_wv_eqn* wv);
+double gkyl_wv_euler_gas_gamma(const struct gkyl_wv_eqn *wv);

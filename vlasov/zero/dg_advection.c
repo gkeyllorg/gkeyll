@@ -9,9 +9,9 @@
 #include <gkyl_util.h>
 
 // "Choose Kernel" based on cdim and polyorder
-#define CK(lst,cdim,poly_order) lst[cdim-1].kernels[poly_order]
+#define CK(lst, cdim, poly_order) lst[cdim - 1].kernels[poly_order]
 
-void 
+void
 gkyl_advection_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_dg_eqn *base = container_of(ref, struct gkyl_dg_eqn, ref_count);
@@ -20,8 +20,8 @@ gkyl_advection_free(const struct gkyl_ref_count *ref)
     // free inner on_dev object
     struct dg_advection *advection = container_of(base->on_dev, struct dg_advection, eqn);
     gkyl_cu_free(advection);
-  }  
-  
+  }
+
   struct dg_advection *advection = container_of(base, struct dg_advection, eqn);
   gkyl_free(advection);
 }
@@ -40,13 +40,15 @@ gkyl_advection_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_advec
   advection->auxfields.u_i = auxin.u_i;
 }
 
-struct gkyl_dg_eqn*
-gkyl_dg_advection_new(const struct gkyl_basis* cbasis, const struct gkyl_range* conf_range, bool use_gpu)
+struct gkyl_dg_eqn *
+gkyl_dg_advection_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range, bool use_gpu
+)
 {
 #ifdef GKYL_HAVE_CUDA
-  if(use_gpu) {
+  if (use_gpu) {
     return gkyl_dg_advection_cu_dev_new(cbasis, conf_range);
-  } 
+  }
 #endif
   struct dg_advection *advection = gkyl_malloc(sizeof(struct dg_advection));
 
@@ -66,39 +68,43 @@ gkyl_dg_advection_new(const struct gkyl_basis* cbasis, const struct gkyl_range* 
 
     default:
       assert(false);
-      break;    
-  }  
-    
+      break;
+  }
+
   advection->eqn.num_equations = 1;
   advection->eqn.surf_term = surf;
   advection->eqn.boundary_surf_term = boundary_surf;
 
-  advection->eqn.vol_term =  CK(vol_kernels, cdim, poly_order);
+  advection->eqn.vol_term = CK(vol_kernels, cdim, poly_order);
 
   advection->surf[0] = CK(surf_x_kernels, cdim, poly_order);
-  if (cdim>1)
+  if (cdim > 1) {
     advection->surf[1] = CK(surf_y_kernels, cdim, poly_order);
-  if (cdim>2)
+  }
+  if (cdim > 2) {
     advection->surf[2] = CK(surf_z_kernels, cdim, poly_order);
+  }
 
-  // ensure non-NULL pointers 
-  for (int i=0; i<cdim; ++i) assert(advection->surf[i]);
+  // ensure non-NULL pointers
+  for (int i = 0; i < cdim; ++i) {
+    assert(advection->surf[i]);
+  }
 
-  advection->auxfields.u_i = 0;  
+  advection->auxfields.u_i = 0;
   advection->conf_range = *conf_range;
 
   advection->eqn.flags = 0;
   GKYL_CLEAR_CU_ALLOC(advection->eqn.flags);
   advection->eqn.ref_count = gkyl_ref_count_init(gkyl_advection_free);
   advection->eqn.on_dev = &advection->eqn; // CPU eqn obj points to itself
-  
+
   return &advection->eqn;
 }
 
 #ifndef GKYL_HAVE_CUDA
 
-struct gkyl_dg_eqn*
-gkyl_dg_advection_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_range* conf_range)
+struct gkyl_dg_eqn *
+gkyl_dg_advection_cu_dev_new(const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range)
 {
   assert(false);
   return 0;

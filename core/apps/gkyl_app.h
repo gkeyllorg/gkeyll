@@ -26,7 +26,7 @@ struct gkyl_app_comm_low_inp {
 // BC for blocks
 struct gkyl_block_physical_bcs {
   int bidx; // block index
-  int dir;  // direction in which BC is specified
+  int dir; // direction in which BC is specified
   enum gkyl_edge_loc edge; // which edge this BC is for
   int bc_type; // BC code
 };
@@ -50,7 +50,7 @@ enum gkyl_species_bc_type {
   GKYL_SPECIES_FIXED_FUNC, // Fixed function, time-independent, boundary conditions
   GKYL_SPECIES_EMISSION, // Emission spectrum BCs
   GKYL_SPECIES_ZERO_FLUX, // Zero flux BCs; must be applied on both lower and upper BC
-  GKYL_SPECIES_RECYCLE, // Recycling BCs
+  GKYL_SPECIES_RECYCLE // Recycling BCs
 };
 
 // Boundary conditions on fields
@@ -64,12 +64,12 @@ enum gkyl_field_bc_type {
   GKYL_FIELD_FUNC, // Function boundary conditions
   GKYL_FIELD_DIRICHLET, // Dirichlet boundary conditions
   GKYL_FIELD_NEUMANN, // Nemann boundary conditions
-  GKYL_FIELD_NONE, // Do not apply any boundary conditions
+  GKYL_FIELD_NONE // Do not apply any boundary conditions
 };
 
 // Type of file import for initial conditions
 enum gkyl_ic_import_type {
   GKYL_IC_IMPORT_NONE = 0,
   GKYL_IC_IMPORT_F, // Import f only.
-  GKYL_IC_IMPORT_AF, // Import f and scale by alpha(x).
+  GKYL_IC_IMPORT_AF // Import f and scale by alpha(x).
 };
