@@ -254,6 +254,9 @@ struct gkyl_tok_geo_grid_inp {
   //     an input error to fix, never something to declare away.
   // It grants no permission to leave a wall that does exist.
   bool no_vessel_outline;
+
+  bool disable_wall_enforcement; // =true, skips wall intersection checks (default=false).
+
   plate_func plate_func_lower; // lower plate specification. Gives R,Z in terms of s \in [0,1]
   plate_func plate_func_upper; // upper plate specification. Gives R,Z in terms of s \in [0,1]
                                // In a lower single null "lower" is the outer divertor and
@@ -369,6 +372,7 @@ enum gkyl_tok_wall_policy {
   GKYL_TOK_WALL_REJECT_UNDECLARED,    // no usable outline and no acknowledgement
   GKYL_TOK_WALL_REJECT_CONTRADICTED,  // acknowledged, yet a usable outline exists
   GKYL_TOK_WALL_REJECT_MALFORMED,     // unreadable/non-finite record: never declarable
+  GKYL_TOK_WALL_DISABLED_BY_INPUT,    // explicit input override
 };
 
 // Decide the vessel-outline policy for one block. Pure: the caller reports, with
@@ -377,6 +381,8 @@ enum gkyl_tok_wall_policy {
 static inline enum gkyl_tok_wall_policy
 gkyl_tok_wall_policy_for(const struct gkyl_tok_geo_grid_inp *inp, const struct gkyl_efit *e)
 {
+  if (inp && inp->disable_wall_enforcement)
+    return GKYL_TOK_WALL_DISABLED_BY_INPUT;
   bool usable = gkyl_tok_wall_usable(e);
   if (inp && inp->no_vessel_outline) {
     if (usable) return GKYL_TOK_WALL_REJECT_CONTRADICTED;
@@ -396,6 +402,7 @@ gkyl_tok_wall_policy_reason(enum gkyl_tok_wall_policy p)
     case GKYL_TOK_WALL_REJECT_UNDECLARED: return "outline_unusable_and_undeclared";
     case GKYL_TOK_WALL_REJECT_CONTRADICTED: return "declared_absent_but_outline_usable";
     case GKYL_TOK_WALL_REJECT_MALFORMED: return "outline_malformed_not_declarable";
+    case GKYL_TOK_WALL_DISABLED_BY_INPUT: return "disabled_by_input";
   }
   return "unknown";
 }
