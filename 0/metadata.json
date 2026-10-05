@@ -1,0 +1,79 @@
+{
+  "cli_version": "0.11.3",
+  "checkpoint_id": "01M46HJ514Z9T9MPTJFQDV3K7Q",
+  "session_id": "01a10d12-a42c-74e3-868a-77cffaebb5d2",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-05T17:25:10.336522903Z",
+  "branch": "maxwells-world",
+  "checkpoints_count": 2,
+  "save_step_count": 1,
+  "files_touched": [
+    "gyrokinetic/apps/gk_species.c",
+    "gyrokinetic/apps/gk_species_damping.c",
+    "gyrokinetic/apps/gkyl_gyrokinetic_priv.h",
+    "gyrokinetic/apps/gyrokinetic.c",
+    "gyrokinetic/apps/gyrokinetic_multib_update_ssp_rk3.c",
+    "gyrokinetic/apps/gyrokinetic_update_ssp_rk3.c"
+  ],
+  "agent": "Codex",
+  "model": "gpt-6-astra",
+  "turn_id": "31f8efc3f04e",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 57917,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 1202304,
+    "output_tokens": 7279,
+    "api_call_count": 24,
+    "subagent_tokens_complete": true
+  },
+  "session_metrics": {
+    "turn_count": 2
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-10-05T17:25:10.317370078Z",
+    "agent_lines": 0,
+    "agent_removed": 36,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 10,
+    "total_committed": 0,
+    "total_lines_changed": 46,
+    "agent_percentage": 78.26086956521739,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 626,
+      "user_lines_removed": 12,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".agents/skills/code_style/SKILL.md": 55,
+        ".agents/skills/compiling/SKILL.md": 100,
+        ".agents/skills/directory-structure/SKILL.md": 71,
+        ".agents/skills/gyrokinetic-details/SKILL.md": 36,
+        ".agents/skills/naming-conventions/SKILL.md": 33,
+        ".agents/skills/software-design/SKILL.md": 34,
+        ".agents/skills/testing-and-verification/SKILL.md": 169,
+        "gyrokinetic/apps/gk_species.c": 89,
+        "gyrokinetic/apps/gk_species_damping.c": 8,
+        "gyrokinetic/apps/gkyl_gyrokinetic.h": 5,
+        "gyrokinetic/apps/gkyl_gyrokinetic_multib.h": 5,
+        "gyrokinetic/apps/gkyl_gyrokinetic_priv.h": 10,
+        "gyrokinetic/apps/gyrokinetic.c": 1,
+        "gyrokinetic/apps/gyrokinetic_multib_update_ssp_rk3.c": 5,
+        "gyrokinetic/apps/gyrokinetic_update_ssp_rk3.c": 5
+      },
+      "user_removed_per_file": {
+        ".claude/skills/code_style": 1,
+        ".codex/skills/code_style": 1,
+        "gyrokinetic/apps/gk_species.c": 6,
+        "gyrokinetic/apps/gkyl_gyrokinetic_priv.h": 2,
+        "gyrokinetic/apps/gyrokinetic_multib_update_ssp_rk3.c": 1,
+        "gyrokinetic/apps/gyrokinetic_update_ssp_rk3.c": 1
+      }
+    }
+  ]
+}
