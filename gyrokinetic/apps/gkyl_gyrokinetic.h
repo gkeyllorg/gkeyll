@@ -490,7 +490,8 @@ struct gkyl_gyrokinetic_species {
   int num_integrated_diag_moments; // Number of integrated diagnostic moments.
   enum gkyl_distribution_moments
     integrated_diag_moments[12]; // List of integrated diagnostic moments.
-  bool time_rate_diagnostics; // Whether to ouput df/dt diagnostics.
+  bool
+    time_rate_diagnostics; // Output df/dt and, for low-pass filtering, dfbar/dt integrated diagnostics.
   bool write_omega_cfl; // Whether to ouput dt diagnostic for the CFL constraint.
 
   struct gkyl_gyrokinetic_collisionless collisionless; // Collisionless terms.

@@ -529,6 +529,7 @@ gk_species_damping_init(
   damp->fbar1 = 0;
   damp->fbarnew = 0;
   damp->fbar_host = 0;
+  damp->fbar_mom_buffer = 0;
   damp->fbar_initialized = false;
 
   if (!damp->type) {
@@ -571,6 +572,10 @@ gk_species_damping_init(
     damp->fbar_host = damp->fbar;
     damp->fbar_initialized = true;
     gkyl_array_clear(damp->fbar, 0.0);
+
+    if (gks->info.time_rate_diagnostics && !gks->info.is_static && damp->cellwise_const) {
+      damp->fbar_mom_buffer = mkarr(app->use_gpu, gks->basis.num_basis, gks->local_ext.volume);
+    }
 
     if (damp->write_fbar) {
       damp->read_fbar_func = gk_species_damping_read_fbar_enabled;
@@ -621,6 +626,9 @@ gk_species_damping_release(const struct gkyl_gyrokinetic_app *app, const struct 
     gkyl_array_release(damp->rate_host);
   }
   if (damp->type == GKYL_GK_DAMPING_LOW_PASS_FILTER) {
+    if (damp->fbar_mom_buffer) {
+      gkyl_array_release(damp->fbar_mom_buffer);
+    }
     gkyl_array_release(damp->fbar1);
     gkyl_array_release(damp->fbarnew);
     if (app->use_gpu && damp->write_fbar) {
