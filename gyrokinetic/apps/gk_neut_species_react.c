@@ -361,17 +361,17 @@ gk_neut_species_react_init(
 }
 
 static double
-gk_species_react_get_vt_sq_min(struct gkyl_gyrokinetic_app *app, struct gk_species *s)
+gk_species_react_get_vt_sq_min(struct gkyl_gyrokinetic_app *app, struct gk_species *gks)
 {
   double bmag_mid = app->bmag_ref;
 
-  int vdim = s->info.vdim;
+  int vdim = gks->info.vdim;
   double dv_min[vdim];
-  gkyl_velocity_map_reduce_dv_range(s->vel_map, GKYL_MIN, dv_min, s->vel_map->local_vel);
+  gkyl_velocity_map_reduce_dv_range(gks->vel_map, GKYL_MIN, dv_min, gks->vel_map->local_vel);
 
-  double tpar_min = (s->info.mass / 6.0) * pow(dv_min[0], 2);
+  double tpar_min = (gks->info.mass / 6.0) * pow(dv_min[0], 2);
   double tperp_min = vdim > 1 ? (bmag_mid / 3.0) * dv_min[1] : tpar_min;
-  return (tpar_min + 2.0 * tperp_min) / (3.0 * s->info.mass);
+  return (tpar_min + 2.0 * tperp_min) / (3.0 * gks->info.mass);
 }
 
 static double

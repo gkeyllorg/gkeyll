@@ -902,7 +902,7 @@ gk_species_release_dynamic(const gkyl_gyrokinetic_app *app, const struct gk_spec
 }
 
 static void
-gk_species_release_static(const gkyl_gyrokinetic_app *app, const struct gk_species *s)
+gk_species_release_static(const gkyl_gyrokinetic_app *app, const struct gk_species *gks)
 {
 }
 
@@ -2264,10 +2264,10 @@ gk_species_apply_bc(gkyl_gyrokinetic_app *app, struct gk_species *species, struc
 }
 
 void
-gk_species_n_iter_corr(gkyl_gyrokinetic_app *app, const struct gk_species *s, int sidx)
+gk_species_n_iter_corr(gkyl_gyrokinetic_app *app, const struct gk_species *gks, int sidx)
 {
-  app->stat.num_corr[sidx] = s->lte.num_corr;
-  app->stat.n_iter_corr[sidx] = s->lte.n_iter;
+  app->stat.num_corr[sidx] = gks->lte.num_corr;
+  app->stat.n_iter_corr[sidx] = gks->lte.n_iter;
 }
 
 // write functions
