@@ -1,0 +1,5 @@
+For the low pass filter equation, add an integrated diagnostic for fbardot, similar to how _fdot_ is used for the time_rate_diagnostics
+
+---
+
+For the low pass filter equation, add an integrated diagnostic for fbardot, similar to how _fdot_ is used for the time_rate_diagnostics
