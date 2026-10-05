@@ -7,7 +7,8 @@ static enum gkyl_gk_trapped_passing_orbit_type
 trapped_passing_orbit_from_species_bc(enum gkyl_gyrokinetic_bc_type bc)
 {
   switch (bc) {
-    case GKYL_BC_GK_SPECIES_SHEATH:
+    case GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING:
+    case GKYL_BC_GK_SPECIES_SHEATH_SURROGATE:
       return GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_SHEATH;
     case GKYL_BC_GK_SPECIES_REFLECT:
     case GKYL_BC_GK_SPECIES_ZERO_FLUX:
@@ -161,12 +162,14 @@ gk_species_fdot_multiplier_advance_loss_cone_mult(
 {
   gkyl_comm_array_allgather(app->comm, &app->local, &app->global, phi, fdmul->phi_global);
   int zdim = app->cdim - 1;
-  if (gks->lower_bc[zdim].type == GKYL_BC_GK_SPECIES_SHEATH) {
+  if (gks->lower_bc[zdim].type == GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING ||
+      gks->lower_bc[zdim].type == GKYL_BC_GK_SPECIES_SHEATH_SURROGATE) {
     gkyl_comm_array_allgather(
       app->comm, &app->local, &app->global, gks->phi_wall_lo.phi, fdmul->phi_wall_lo_global
     );
   }
-  if (gks->upper_bc[zdim].type == GKYL_BC_GK_SPECIES_SHEATH) {
+  if (gks->upper_bc[zdim].type == GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING ||
+      gks->upper_bc[zdim].type == GKYL_BC_GK_SPECIES_SHEATH_SURROGATE) {
     gkyl_comm_array_allgather(
       app->comm, &app->local, &app->global, gks->phi_wall_up.phi, fdmul->phi_wall_up_global
     );

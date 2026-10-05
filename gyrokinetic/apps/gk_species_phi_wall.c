@@ -26,7 +26,8 @@ gk_species_phi_wall_init(
 )
 {
   *wall = (struct gk_species_wall_potential){.advance_func = gk_species_phi_wall_advance_disabled};
-  if (bc->type != GKYL_BC_GK_SPECIES_SHEATH) {
+  if (bc->type != GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING &&
+      bc->type != GKYL_BC_GK_SPECIES_SHEATH_SURROGATE) {
     return;
   }
 

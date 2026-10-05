@@ -65,9 +65,17 @@ test_species_wall_profiles(void)
   struct wall_profile_ctx upper_ctx = {.offset = -0.5, .time_slope = -1.0, .space_slope = 0.75};
   struct gk_species species = {
     .lower_bc[0] =
-      {.type = GKYL_BC_GK_SPECIES_SHEATH, .aux_profile = wall_profile, .aux_ctx = &lower_ctx},
+      {
+        .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING,
+        .aux_profile = wall_profile,
+        .aux_ctx = &lower_ctx,
+      },
     .upper_bc[0] =
-      {.type = GKYL_BC_GK_SPECIES_SHEATH, .aux_profile = wall_profile, .aux_ctx = &upper_ctx},
+      {
+        .type = GKYL_BC_GK_SPECIES_SHEATH_SURROGATE,
+        .aux_profile = wall_profile,
+        .aux_ctx = &upper_ctx,
+      },
   };
 
   gk_species_phi_wall_init(&app, &species.lower_bc[0], &species.phi_wall_lo);
@@ -100,7 +108,7 @@ test_grounded_and_non_sheath_walls(void)
   // potential array or projector at all.
   gkyl_gyrokinetic_app app = make_app();
   struct gk_species species = {
-    .lower_bc[0] = {.type = GKYL_BC_GK_SPECIES_SHEATH},
+    .lower_bc[0] = {.type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
     .upper_bc[0] = {.type = GKYL_BC_GK_SPECIES_REFLECT},
   };
 
