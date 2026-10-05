@@ -4342,6 +4342,7 @@ gkyl_gyrokinetic_app_from_frame_species(gkyl_gyrokinetic_app *app, int sidx, int
   }
   if (gk_s->time_rate_diagnostics[GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_INTEGRATED_MOMENTS]) {
     gk_s->is_first_fdot_integ_write_call = false;
+    gk_s->is_first_fbardot_integ_write_call = false;
   }
   if (gk_s->time_rate_diagnostics[GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_ABS_INTEGRATED_MOMENTS]) {
     gk_s->is_first_fdot_abs_integ_write_call = false;

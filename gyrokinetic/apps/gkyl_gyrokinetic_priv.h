@@ -977,6 +977,7 @@ struct gk_damping {
   struct gkyl_array *fbar; // Filtered/averaged distribution function.
   struct gkyl_array *fbar1, *fbarnew; // SSPRK3 stage arrays for filtered distribution.
   struct gkyl_array *fbar_host; // Host copy of fbar for use in IO.
+  struct gkyl_array *fbar_mom_buffer; // Embed p0 fbar in the species basis for moments.
   // Functions chosen at runtime.
   void (*write_func)(gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame);
   void (*write_rate_func)(gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame);
@@ -1345,6 +1346,10 @@ struct gk_species {
   double fdot_io_tm; // Time associated with the pending Fdot frame.
   int fdot_io_frame; // Frame associated with the pending Fdot write.
 
+  struct gkyl_array *fbardot_mom_old, *fbardot_mom_new; // Moments of fbar divided by dt.
+  gkyl_dynvec fbardot_integ_diag; // Integrated moments of the change in fbar divided by dt.
+  bool is_first_fbardot_integ_write_call;
+
   struct gkyl_array_integrate *integ_wfsq_op; // Operator to integrate w*f^2.
   double *L2norm_local, *L2norm_global; // L2norm in local MPI process and across the communicator.
   gkyl_dynvec L2norm; // L2 norm.
@@ -1456,7 +1461,8 @@ struct gk_species {
   void (*calc_L2norm_func)(gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm);
   void (*write_L2norm_func)(gkyl_gyrokinetic_app *app, struct gk_species *gks);
   void (*calc_int_mom_dt_func)(
-    gkyl_gyrokinetic_app *app, struct gk_species *gks, double dt, struct gkyl_array *fdot_int_mom
+    gkyl_gyrokinetic_app *app, struct gk_species *gks, double dt, struct gkyl_array *fdot_int_mom,
+    struct gkyl_array *fbardot_int_mom
   );
   void (*calc_fdot_mom_func)(gkyl_gyrokinetic_app *app, struct gk_species *gks);
   void (*write_fdot_mom_func)(
@@ -4019,9 +4025,11 @@ void gk_species_write_L2norm(gkyl_gyrokinetic_app *app, struct gk_species *gks);
  * @param gks Species object.
  * @param dt Time step.
  * @param fdot_int_mom Integrated moment divided by dt (not yet reduced over comm).
+ * @param fbardot_int_mom Filtered integrated moment divided by dt (not yet reduced over comm).
  */
 void gk_species_calc_int_mom_dt(
-  gkyl_gyrokinetic_app *app, struct gk_species *gks, double dt, struct gkyl_array *fdot_int_mom
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, double dt, struct gkyl_array *fdot_int_mom,
+  struct gkyl_array *fbardot_int_mom
 );
 
 /** Finish computing the finite-difference fdot moments after a time step.
