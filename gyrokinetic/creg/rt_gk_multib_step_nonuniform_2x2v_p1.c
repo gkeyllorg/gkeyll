@@ -105,7 +105,7 @@ create_gk_block_geom(void)
   };
 
   struct gkyl_efit *efit = gkyl_efit_new(&efit_inp);
-  double psisep = efit->psisep;
+  double psisep = efit->psisep_cubic; // the flux of the representation traced on (C1, 2026-10-05)
   gkyl_efit_release(efit);
   // psisep = 1.5093065418975686; //This is the value
   double dsep = 0.000;
@@ -170,6 +170,7 @@ create_gk_block_geom(void)
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_GEOMETRY_TOKAMAK_PF_LO_R,
+          .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
           // step.geqdsk carries a single limiter vertex (limitr=1), which reads as
           // limiter_status=2: a degenerate outline that cannot bound a region. The
           // wall policy rejects an unusable outline that is not acknowledged, so this
@@ -231,7 +232,7 @@ create_gk_block_geom(void)
           .rleft = 0.0,        // closest R to inboard SOL
           .rmin = 0.7,         // smallest R in machine
           .rmax = 6.2,         // largest R in machine
-          .use_cubics = false, // Whether to use cubic representation of psi(R,Z) for field line tracing
+          .use_cubics = true, // Whether to use cubic representation of psi(R,Z) for field line tracing
           .zmin = -zouter,
           .zmax = zouter,
           .plate_spec = true,
@@ -278,7 +279,7 @@ create_gk_block_geom(void)
           .rleft = 0.0,        // closest R to inboard SOL
           .rmin = 0.7,         // smallest R in machine
           .rmax = 6.2,         // largest R in machine
-          .use_cubics = false, // Whether to use cubic representation of psi(R,Z) for field line tracing
+          .use_cubics = true, // Whether to use cubic representation of psi(R,Z) for field line tracing
           .zmin = -zouter,
           .zmax = zouter,
           .plate_spec = true,
@@ -325,7 +326,7 @@ create_gk_block_geom(void)
           .rleft = 0.0,        // closest R to inboard SOL
           .rmin = 0.7,         // smallest R in machine
           .rmax = 6.2,         // largest R in machine
-          .use_cubics = false, // Whether to use cubic representation of psi(R,Z) for field line tracing
+          .use_cubics = true, // Whether to use cubic representation of psi(R,Z) for field line tracing
           .zmin = -zouter,
           .zmax = zouter,
           .plate_spec = true,
@@ -362,6 +363,7 @@ create_gk_block_geom(void)
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_GEOMETRY_TOKAMAK_PF_UP_R,
+          .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
           .no_vessel_outline = true,
           .straight_xpt_ray = true,
           .relaxed_xpt_seam = true,
@@ -407,6 +409,7 @@ create_gk_block_geom(void)
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_GEOMETRY_TOKAMAK_PF_UP_L,
+          .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
           .no_vessel_outline = true,
           .straight_xpt_ray = true,
           .relaxed_xpt_seam = true,
@@ -452,6 +455,7 @@ create_gk_block_geom(void)
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_UP,
+          .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
           .no_vessel_outline = true,
           .straight_xpt_ray = true,
           .relaxed_xpt_seam = true,
@@ -497,6 +501,7 @@ create_gk_block_geom(void)
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_MID,
+          .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
           .no_vessel_outline = true,
           .straight_xpt_ray = true,
           .relaxed_xpt_seam = true,
@@ -542,6 +547,7 @@ create_gk_block_geom(void)
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_LO,
+          .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
           .no_vessel_outline = true,
           .straight_xpt_ray = true,
           .relaxed_xpt_seam = true,
@@ -587,6 +593,7 @@ create_gk_block_geom(void)
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_GEOMETRY_TOKAMAK_PF_LO_L,
+          .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
           .no_vessel_outline = true,
           .straight_xpt_ray = true,
           .relaxed_xpt_seam = true,
@@ -643,7 +650,7 @@ create_gk_block_geom(void)
           .rleft = 2.0,        // closest R to inboard SOL
           .rmin = 1.58,         // smallest R in machine
           .rmax = 6.2,         // largest R in machine
-          .use_cubics = false, // Whether to use cubic representation of psi(R,Z) for field line tracing
+          .use_cubics = true, // Whether to use cubic representation of psi(R,Z) for field line tracing
         },
         .position_map_info = {
           .id = GKYL_PMAP_XPT_COMPRESSION,
@@ -685,7 +692,7 @@ create_gk_block_geom(void)
           .rleft = 2.0,        // closest R to inboard SOL
           .rmin = 1.58,         // smallest R in machine
           .rmax = 6.2,         // largest R in machine
-          .use_cubics = false, // Whether to use cubic representation of psi(R,Z) for field line tracing
+          .use_cubics = true, // Whether to use cubic representation of psi(R,Z) for field line tracing
         },
         .position_map_info = {
           .id = GKYL_PMAP_XPT_COMPRESSION,

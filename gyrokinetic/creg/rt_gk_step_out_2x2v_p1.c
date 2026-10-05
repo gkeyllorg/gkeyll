@@ -521,7 +521,7 @@ main(int argc, char **argv)
     .rmax = 6.2,                  // largest R in machine
     .zmin = -8.3,                 // Z of upper plate
     .zmax = 8.3,                  // Z of lower plate
-    .use_cubics = false,          // Whether to use cubic representation of psi(R,Z) for field line tracing
+    .use_cubics = true,          // Whether to use cubic representation of psi(R,Z) for field line tracing
   };
 
   // GK app
