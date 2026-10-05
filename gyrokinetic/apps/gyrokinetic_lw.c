@@ -122,6 +122,7 @@ static const struct gkyl_str_int_pair gk_bcs[] = { // Particle BCs.
   {"speciesFixedFunc", GKYL_BC_GK_SPECIES_FIXED_FUNC}, // Fixed function, time-independent.
   {"speciesZeroFlux", GKYL_BC_GK_SPECIES_ZERO_FLUX}, // Zero flux.
   {"speciesSheath", GKYL_BC_GK_SPECIES_SHEATH}, // Sheath.
+  {"speciesSheathFlux", GKYL_BC_GK_SPECIES_SHEATH_FLUX}, // Flux-balanced sheath.
   {"speciesRecycle", GKYL_BC_GK_SPECIES_RECYCLE}, // Recycling.
   {"speciesPeriodic", GKYL_BC_GK_SPECIES_PERIODIC}, // Periodic.
   {"speciesTwistshift", GKYL_BC_GK_SPECIES_TWISTSHIFT}, // Twist-shift.

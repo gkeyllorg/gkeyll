@@ -36,6 +36,7 @@
 #include <gkyl_dg_calc_gk_neut_hamil.h>
 #include <gkyl_dg_calc_gk_rad_vars.h>
 #include <gkyl_gk_collisionless_flux.h>
+#include <gkyl_gk_sheath_conducting_flux.h>
 #include <gkyl_gk_collisionless_passive_flux.h>
 #include <gkyl_dg_canonical_pb.h>
 #include <gkyl_dg_cx.h>
@@ -364,6 +365,18 @@ struct gk_collisionless {
   void (*write_diags_func_neut)(
     gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gk_collisionless *gkcls,
     double tm, int frame
+  );
+};
+
+// App-level operations that modify a collisionless surface flux before it is
+// lifted into the DG RHS. The first operation is the sheath return flux; the
+// structure deliberately leaves room for prescribed and transfer operations.
+struct gk_collisionless_influx {
+  struct gkyl_gk_sheath_conducting_flux *lower_sheath_flux;
+  struct gkyl_gk_sheath_conducting_flux *upper_sheath_flux;
+  void (*advance)(
+    gkyl_gyrokinetic_app *app, struct gk_species *species, struct gk_collisionless_influx *influx,
+    const struct gkyl_array *fin, struct gkyl_array *flux_surf
   );
 };
 
@@ -1327,6 +1340,7 @@ struct gk_species {
   struct gk_proj proj_init; // Projector for initial conditions.
 
   struct gk_collisionless collisionless; // Collisionless terms.
+  struct gk_collisionless_influx collisionless_influx; // Collisionless flux modifiers.
 
   struct gk_source src; // Plasma source.
 
@@ -2190,6 +2204,38 @@ void gk_species_lte_release(const struct gkyl_gyrokinetic_app *app, const struct
 void gk_species_collisionless_init(
   struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_collisionless *gkcls
 );
+
+/**
+ * Initialize app-level collisionless surface-flux modifiers.
+ *
+ * @param app Gyrokinetic app object.
+ * @param gks Species object.
+ * @param influx Collisionless surface-flux modifier object.
+ */
+void gk_species_collisionless_influx_init(
+  struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_collisionless_influx *influx
+);
+
+/**
+ * Apply app-level collisionless surface-flux modifiers.
+ *
+ * @param app Gyrokinetic app object.
+ * @param species Species object.
+ * @param influx Collisionless surface-flux modifier object.
+ * @param fin Input distribution function.
+ * @param flux_surf Collisionless phase-space surface flux.
+ */
+void gk_species_collisionless_influx_advance(
+  gkyl_gyrokinetic_app *app, struct gk_species *species, struct gk_collisionless_influx *influx,
+  const struct gkyl_array *fin, struct gkyl_array *flux_surf
+);
+
+/**
+ * Release app-level collisionless surface-flux modifiers.
+ *
+ * @param influx Collisionless surface-flux modifier object.
+ */
+void gk_species_collisionless_influx_release(const struct gk_collisionless_influx *influx);
 
 /**
  * Compute the collisionless phase-space flux.

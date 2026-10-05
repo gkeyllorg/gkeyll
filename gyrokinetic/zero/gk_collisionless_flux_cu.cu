@@ -238,6 +238,10 @@ gk_collisionless_flux_set_cu_dev_ptrs(
       up->flux_surf_edge_up[d] = choose_gk_collisionless_flux_edge_surf_conf_kern(
         d, cdim, vdim, poly_order, bctype_conf[GKYL_MAX_CDIM + d]
       );
+      up->alpha_surf_lo[d] =
+        choose_gk_collisionless_flux_alpha_surf_conf_kern(d, cdim, vdim, false, false);
+      up->alpha_surf_up[d] =
+        choose_gk_collisionless_flux_alpha_surf_conf_kern(d, cdim, vdim, false, true);
     }
     up->flux_surfvpar[0] = choose_gk_collisionless_flux_surf_vpar_kern(cdim, vdim, poly_order);
   } else if (type == GKYL_GK_COLLISIONLESS_ES_NO_BY) {
@@ -252,6 +256,10 @@ gk_collisionless_flux_set_cu_dev_ptrs(
       up->flux_surf_edge_up[d] = choose_gk_collisionless_flux_no_by_edge_surf_conf_kern(
         d, cdim, vdim, poly_order, bctype_conf[GKYL_MAX_CDIM + d]
       );
+      up->alpha_surf_lo[d] =
+        choose_gk_collisionless_flux_alpha_surf_conf_kern(d, cdim, vdim, true, false);
+      up->alpha_surf_up[d] =
+        choose_gk_collisionless_flux_alpha_surf_conf_kern(d, cdim, vdim, true, true);
     }
     up->flux_surfvpar[0] =
       choose_gk_collisionless_flux_no_by_surf_vpar_kern(cdim, vdim, poly_order);

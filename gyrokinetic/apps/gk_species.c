@@ -234,6 +234,7 @@ gk_species_apply_bc_dynamic(
         case GKYL_BC_GK_SPECIES_COPY:
         case GKYL_BC_GK_SPECIES_REFLECT:
         case GKYL_BC_GK_SPECIES_ABSORB:
+        case GKYL_BC_GK_SPECIES_SHEATH_FLUX:
           gkyl_bc_basic_gyrokinetic_advance(species->bc_lo[d], species->bc_buffer, f);
           break;
         case GKYL_BC_GK_SPECIES_FIXED_FUNC:
@@ -257,6 +258,7 @@ gk_species_apply_bc_dynamic(
         case GKYL_BC_GK_SPECIES_COPY:
         case GKYL_BC_GK_SPECIES_REFLECT:
         case GKYL_BC_GK_SPECIES_ABSORB:
+        case GKYL_BC_GK_SPECIES_SHEATH_FLUX:
           gkyl_bc_basic_gyrokinetic_advance(species->bc_up[d], species->bc_buffer, f);
           break;
         case GKYL_BC_GK_SPECIES_FIXED_FUNC:
@@ -737,6 +739,7 @@ gk_species_release_dynamic(const gkyl_gyrokinetic_app *app, const struct gk_spec
       gkyl_bc_twistshift_release(gks->bc_ts_lo);
     } else if ((gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_COPY) ||
                (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_ABSORB) ||
+               (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_SHEATH_FLUX) ||
                (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_REFLECT) ||
                (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_FIXED_FUNC)) {
       gkyl_bc_basic_gyrokinetic_release(gks->bc_lo[d]);
@@ -748,6 +751,7 @@ gk_species_release_dynamic(const gkyl_gyrokinetic_app *app, const struct gk_spec
       gkyl_bc_twistshift_release(gks->bc_ts_up);
     } else if ((gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_COPY) ||
                (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_ABSORB) ||
+               (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_SHEATH_FLUX) ||
                (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_REFLECT) ||
                (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_FIXED_FUNC)) {
       gkyl_bc_basic_gyrokinetic_release(gks->bc_up[d]);
@@ -897,9 +901,11 @@ gk_species_init_dynamic(
       if ((gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_COPY) ||
           (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_REFLECT) ||
           (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_ABSORB) ||
+          (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_SHEATH_FLUX) ||
           (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_COPY) ||
           (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_REFLECT) ||
-          (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_ABSORB)) {
+          (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_ABSORB) ||
+          (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_SHEATH_FLUX)) {
         need_bc_buffer = true;
       }
       if (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_FIXED_FUNC) {
@@ -990,8 +996,11 @@ gk_species_init_dynamic(
       }
 
       gks->bc_lo[d] = gkyl_bc_basic_gyrokinetic_new(
-        d, GKYL_LOWER_EDGE, gks->lower_bc[d].type, gks->basis_on_dev, &gks->local_lower_skin[d],
-        &gks->local_lower_ghost[d], gks->f->ncomp, app->cdim, app->use_gpu
+        d, GKYL_LOWER_EDGE,
+        gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_SHEATH_FLUX ? GKYL_BC_GK_SPECIES_ABSORB :
+                                                                  gks->lower_bc[d].type,
+        gks->basis_on_dev, &gks->local_lower_skin[d], &gks->local_lower_ghost[d], gks->f->ncomp,
+        app->cdim, app->use_gpu
       );
 
       if (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_FIXED_FUNC) {
@@ -1052,6 +1061,7 @@ gk_species_init_dynamic(
       gks->bc_ts_up = gkyl_bc_twistshift_inew(&tsinp);
     } else if ((gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_COPY) ||
                (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_ABSORB) ||
+               (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_SHEATH_FLUX) ||
                (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_REFLECT) ||
                (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_FIXED_FUNC)) {
       if (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_REFLECT) {
@@ -1061,8 +1071,11 @@ gk_species_init_dynamic(
       }
 
       gks->bc_up[d] = gkyl_bc_basic_gyrokinetic_new(
-        d, GKYL_UPPER_EDGE, gks->upper_bc[d].type, gks->basis_on_dev, &gks->local_upper_skin[d],
-        &gks->local_upper_ghost[d], gks->f->ncomp, app->cdim, app->use_gpu
+        d, GKYL_UPPER_EDGE,
+        gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_SHEATH_FLUX ? GKYL_BC_GK_SPECIES_ABSORB :
+                                                                  gks->upper_bc[d].type,
+        gks->basis_on_dev, &gks->local_upper_skin[d], &gks->local_upper_ghost[d], gks->f->ncomp,
+        app->cdim, app->use_gpu
       );
 
       if (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_FIXED_FUNC) {
@@ -1781,6 +1794,9 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   gks->collisionless = (struct gk_collisionless){};
   gk_species_collisionless_init(app, gks, &gks->collisionless);
 
+  gks->collisionless_influx = (struct gk_collisionless_influx){};
+  gk_species_collisionless_influx_init(app, gks, &gks->collisionless_influx);
+
   // Initialize an anomalous diffusion term.
   gks->anom_diff = (struct gk_anomalous_diff){};
   gk_species_anomalous_diff_init(app, gks, &gks->anom_diff);
@@ -2224,6 +2240,8 @@ gk_species_release(const gkyl_gyrokinetic_app *app, const struct gk_species *gks
   }
 
   gkyl_velocity_map_release(gks->vel_map);
+
+  gk_species_collisionless_influx_release(&gks->collisionless_influx);
 
   gk_species_collisionless_release(app, &gks->collisionless);
 

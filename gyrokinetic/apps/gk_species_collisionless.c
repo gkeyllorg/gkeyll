@@ -53,6 +53,10 @@ gk_species_collisionless_rhs_enabled(
 
   gkcls->flux_func(app, species, gkcls, fin);
 
+  gk_species_collisionless_influx_advance(
+    app, species, &species->collisionless_influx, fin, gkcls->flux_surf
+  );
+
   gkyl_dg_updater_gyrokinetic_advance(gkcls->slvr, &species->local, fin, species->cflrate, rhs);
 
   gkcls->fdot_scaling(app, species, gkcls, rhs, species->cflrate, &species->local);
@@ -290,7 +294,6 @@ gk_species_collisionless_init(
       gkcls->flux_surf = mkarr(
         app->use_gpu, cdim * surf_basis.num_basis + surf_vpar_basis.num_basis, gks->local_ext.volume
       );
-
       if (gkcls->collisionless_id == GKYL_GK_COLLISIONLESS_EM_BPERP) {
         // Parallel component of magnetic vector potential.
         gkcls->apar = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);

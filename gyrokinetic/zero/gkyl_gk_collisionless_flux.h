@@ -41,17 +41,17 @@ struct gkyl_gk_collisionless_flux *gkyl_gk_collisionless_flux_new(
 );
 
 /**
- * Compute surface expansion of phase space flux alpha
- * Computes the Poisson bracket of alpha = dz/dt = {z, H}, multiplies it by the upwindinded Jf,
- * and then evaluates the resulting polynomial expansion at a surface and projects the evaluated quantity 
- * onto the surface basis.
+ * Compute the collisionless phase-space surface flux.
+ * Computes the characteristic alpha = dz/dt = {z, H}, uses it to upwind Jf,
+ * and then evaluates the resulting flux at a surface and projects it onto the
+ * surface basis.
  * 
  * Note: Each cell stores the surface expansion on the *lower* edge of the cell
  * @param up Updater for computing gyrokinetic variables.
  * @param conf_range Configuration space range (should only be local range because geometry only defined on local range).
  * @param phase_range Phase space range.
  * @param conf_ext_range Extended configuration space range (so we obtain geo quantities at all the needed surfaces).
- * @param phase_ext_range Extended Phase space range (so we obtain alpha_surf at all the needed surfaces).
+ * @param phase_ext_range Extended phase-space range (so we obtain fluxes at all needed surfaces).
  * @param phi Electrostatic potential.
  * @param fin Distribution function.
  * @param flux_surf Output surface expansion in a cell on the *lower* edge in each direction.
