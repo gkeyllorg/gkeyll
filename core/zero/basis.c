@@ -31,8 +31,8 @@ gkyl_cart_modal_basis_get_num_basis(const struct gkyl_basis *basis)
   return basis->num_basis;
 }
 
-enum
-gkyl_basis_type gkyl_cart_modal_basis_get_type(const struct gkyl_basis *basis)
+enum gkyl_basis_type
+gkyl_cart_modal_basis_get_type(const struct gkyl_basis *basis)
 {
   return basis->b_type;
 }

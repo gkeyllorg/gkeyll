@@ -16,8 +16,9 @@ typedef struct gkyl_proj_on_basis gkyl_fv_proj;
  * @param ctx Context for function evaluation. Can be NULL.
  * @return New updater pointer.
  */
-gkyl_fv_proj* gkyl_fv_proj_new(const struct gkyl_rect_grid *grid,
-  int num_quad, int num_ret_vals, evalf_t eval, void *ctx);
+gkyl_fv_proj *gkyl_fv_proj_new(
+  const struct gkyl_rect_grid *grid, int num_quad, int num_ret_vals, evalf_t eval, void *ctx
+);
 
 /**
  * Compute cell averages. The update_rng MUST be a sub-range of
@@ -30,12 +31,13 @@ gkyl_fv_proj* gkyl_fv_proj_new(const struct gkyl_rect_grid *grid,
  * @param update_rng Range on which to run projection.
  * @param out Output array
  */
-void gkyl_fv_proj_advance(const gkyl_fv_proj *pob,
-  double tm, const struct gkyl_range *update_rng, struct gkyl_array *out);
+void gkyl_fv_proj_advance(
+  const gkyl_fv_proj *pob, double tm, const struct gkyl_range *update_rng, struct gkyl_array *out
+);
 
 /**
  * Delete updater.
  *
  * @param pob Updater to delete.
  */
-void gkyl_fv_proj_release(gkyl_fv_proj* pob);
+void gkyl_fv_proj_release(gkyl_fv_proj *pob);

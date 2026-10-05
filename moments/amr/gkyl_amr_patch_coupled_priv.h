@@ -84,7 +84,9 @@ struct five_moment_update_patch_ctx {
 * @param pdata Patch-structured data for the coupled five-moment equations.
 * @param conn Topology/connectivity data for the patch hierarchy.
 */
-void five_moment_patch_bc_updaters_init(struct five_moment_patch_data* pdata, const struct gkyl_block_connections* conn);
+void five_moment_patch_bc_updaters_init(
+  struct five_moment_patch_data *pdata, const struct gkyl_block_connections *conn
+);
 
 /**
 * Initialize nested patch AMR updaters for both physical (outer-patch) and non-physical (inter-patch) boundary conditions for the coupled five-moment equations.
@@ -92,7 +94,9 @@ void five_moment_patch_bc_updaters_init(struct five_moment_patch_data* pdata, co
 * @param pdata Patch-structured data for the coupled five-moment equations.
 * @param conn Topology/connectivity data for the patch hierarchy.
 */
-void five_moment_nested_patch_bc_updaters_init(struct five_moment_patch_data* pdata, const struct gkyl_block_connections* conn);
+void five_moment_nested_patch_bc_updaters_init(
+  struct five_moment_patch_data *pdata, const struct gkyl_block_connections *conn
+);
 
 /**
 * Initialize patch AMR updaters for both physical (outer-patch) and non-physical (inter-patch) boundary conditions for the coupled ten-moment equations.
@@ -100,7 +104,9 @@ void five_moment_nested_patch_bc_updaters_init(struct five_moment_patch_data* pd
 * @param pdata Patch-structured data for the coupled ten-moment equations.
 * @param conn Topology/connectivity data for the patch hierarchy.
 */
-void ten_moment_patch_bc_updaters_init(struct five_moment_patch_data* pdata, const struct gkyl_block_connections* conn);
+void ten_moment_patch_bc_updaters_init(
+  struct five_moment_patch_data *pdata, const struct gkyl_block_connections *conn
+);
 
 /**
 * Initialize nested patch AMR updaters for both physical (outer-patch) and non-physical (inter-patch) boundary conditions for the coupled ten-moment equations.
@@ -108,14 +114,16 @@ void ten_moment_patch_bc_updaters_init(struct five_moment_patch_data* pdata, con
 * @param pdata Patch-structured data for the coupled ten-moment equations.
 * @param conn Topology/connectivity data for the patch hierarchy.
 */
-void ten_moment_nested_patch_bc_updaters_init(struct five_moment_patch_data* pdata, const struct gkyl_block_connections* conn);
+void ten_moment_nested_patch_bc_updaters_init(
+  struct five_moment_patch_data *pdata, const struct gkyl_block_connections *conn
+);
 
 /**
 * Release patch AMR updaters for both physical (outer-patch) and non-physical (inter-patch) boundary conditions for the coupled five-moment equations.
 *
 * @param pdata Patch-structured data for the coupled five-moment equations.
 */
-void five_moment_patch_bc_updaters_release(struct five_moment_patch_data* pdata);
+void five_moment_patch_bc_updaters_release(struct five_moment_patch_data *pdata);
 
 /**
 * Apply both physical (outer-patch) and non-physical (inter-patch) patch AMR boundary conditions for the coupled five-moment equations.
@@ -126,8 +134,10 @@ void five_moment_patch_bc_updaters_release(struct five_moment_patch_data* pdata)
 * @param fld_ion Output array (ions).
 * @param fld_maxwell Output array (Maxwell field).
 */
-void five_moment_patch_bc_updaters_apply(const struct five_moment_patch_data* pdata, double tm,
-  struct gkyl_array* fld_elc, struct gkyl_array *fld_ion, struct gkyl_array* fld_maxwell);
+void five_moment_patch_bc_updaters_apply(
+  const struct five_moment_patch_data *pdata, double tm, struct gkyl_array *fld_elc,
+  struct gkyl_array *fld_ion, struct gkyl_array *fld_maxwell
+);
 
 /**
 * Coarse-to-fine projection operator for coupled, patch-structured AMR, assuming a lower coarse patch and a lower fine patch.
@@ -144,9 +154,12 @@ void five_moment_patch_bc_updaters_apply(const struct five_moment_patch_data* pd
 * @param fld_ion Output array (ions).
 * @param fld_maxwell Output array (Maxwell field).
 */
-void patch_coupled_ll_projection_op(const int tbid, const int tdir, const int i, const int d, const struct five_moment_patch_data pdata[],
-  const struct gkyl_array* bc_buffer_elc, const struct gkyl_array* bc_buffer_ion, const struct gkyl_array* bc_buffer_maxwell,
-  struct gkyl_array* fld_elc[], struct gkyl_array* fld_ion[], struct gkyl_array* fld_maxwell[]);
+void patch_coupled_ll_projection_op(
+  const int tbid, const int tdir, const int i, const int d,
+  const struct five_moment_patch_data pdata[], const struct gkyl_array *bc_buffer_elc,
+  const struct gkyl_array *bc_buffer_ion, const struct gkyl_array *bc_buffer_maxwell,
+  struct gkyl_array *fld_elc[], struct gkyl_array *fld_ion[], struct gkyl_array *fld_maxwell[]
+);
 
 /**
 * Fine-to-coarse restriction operator for coupled, patch-structured AMR, assuming a lower fine patch and a lower coarse patch.
@@ -163,9 +176,12 @@ void patch_coupled_ll_projection_op(const int tbid, const int tdir, const int i,
 * @param fld_ion Output array (ions).
 * @param fld_maxwell Output array (Maxwell field).
 */
-void patch_coupled_ll_restriction_op(const int tbid, const int tdir, const int i, const int d, const struct five_moment_patch_data pdata[],
-  const struct gkyl_array* bc_buffer_elc, const struct gkyl_array* bc_buffer_ion, const struct gkyl_array* bc_buffer_maxwell,
-  struct gkyl_array* fld_elc[], struct gkyl_array* fld_ion[], struct gkyl_array* fld_maxwell[]);
+void patch_coupled_ll_restriction_op(
+  const int tbid, const int tdir, const int i, const int d,
+  const struct five_moment_patch_data pdata[], const struct gkyl_array *bc_buffer_elc,
+  const struct gkyl_array *bc_buffer_ion, const struct gkyl_array *bc_buffer_maxwell,
+  struct gkyl_array *fld_elc[], struct gkyl_array *fld_ion[], struct gkyl_array *fld_maxwell[]
+);
 
 /**
 * Coarse-to-fine projection operator for coupled, patch-structured AMR, assuming a lower coarse patch and an upper fine patch.
@@ -182,9 +198,12 @@ void patch_coupled_ll_restriction_op(const int tbid, const int tdir, const int i
 * @param fld_ion Output array (ions).
 * @param fld_maxwell Output array (Maxwell field).
 */
-void patch_coupled_lu_projection_op(const int tbid, const int tdir, const int i, const int d, const struct five_moment_patch_data pdata[],
-  const struct gkyl_array* bc_buffer_elc, const struct gkyl_array* bc_buffer_ion, const struct gkyl_array* bc_buffer_maxwell,
-  struct gkyl_array* fld_elc[], struct gkyl_array* fld_ion[], struct gkyl_array* fld_maxwell[]);
+void patch_coupled_lu_projection_op(
+  const int tbid, const int tdir, const int i, const int d,
+  const struct five_moment_patch_data pdata[], const struct gkyl_array *bc_buffer_elc,
+  const struct gkyl_array *bc_buffer_ion, const struct gkyl_array *bc_buffer_maxwell,
+  struct gkyl_array *fld_elc[], struct gkyl_array *fld_ion[], struct gkyl_array *fld_maxwell[]
+);
 
 /**
 * Fine-to-coarse restriction operator for coupled, patch-structured AMR, assuming a lower fine patch and an upper coarse patch.
@@ -201,9 +220,12 @@ void patch_coupled_lu_projection_op(const int tbid, const int tdir, const int i,
 * @param fld_ion Output array (ions).
 * @param fld_maxwell Output array (Maxwell field).
 */
-void patch_coupled_lu_restriction_op(const int tbid, const int tdir, const int i, const int d, const struct five_moment_patch_data pdata[],
- const struct gkyl_array* bc_buffer_elc, const struct gkyl_array* bc_buffer_ion, const struct gkyl_array* bc_buffer_maxwell,
- struct gkyl_array* fld_elc[], struct gkyl_array* fld_ion[], struct gkyl_array* fld_maxwell[]);
+void patch_coupled_lu_restriction_op(
+  const int tbid, const int tdir, const int i, const int d,
+  const struct five_moment_patch_data pdata[], const struct gkyl_array *bc_buffer_elc,
+  const struct gkyl_array *bc_buffer_ion, const struct gkyl_array *bc_buffer_maxwell,
+  struct gkyl_array *fld_elc[], struct gkyl_array *fld_ion[], struct gkyl_array *fld_maxwell[]
+);
 
 /**
 * Coarse-to-fine projection operator for coupled, patch-structured AMR, assuming an upper coarse patch and a lower fine patch.
@@ -220,9 +242,12 @@ void patch_coupled_lu_restriction_op(const int tbid, const int tdir, const int i
 * @param fld_ion Output array (ions).
 * @param fld_maxwell Output array (Maxwell field).
 */
-void patch_coupled_ul_projection_op(const int tbid, const int tdir, const int i, const int d, const struct five_moment_patch_data pdata[],
-  const struct gkyl_array* bc_buffer_elc, const struct gkyl_array* bc_buffer_ion, const struct gkyl_array* bc_buffer_maxwell,
-  struct gkyl_array* fld_elc[], struct gkyl_array* fld_ion[], struct gkyl_array* fld_maxwell[]);
+void patch_coupled_ul_projection_op(
+  const int tbid, const int tdir, const int i, const int d,
+  const struct five_moment_patch_data pdata[], const struct gkyl_array *bc_buffer_elc,
+  const struct gkyl_array *bc_buffer_ion, const struct gkyl_array *bc_buffer_maxwell,
+  struct gkyl_array *fld_elc[], struct gkyl_array *fld_ion[], struct gkyl_array *fld_maxwell[]
+);
 
 /**
 * Fine-to-coarse restriction operator for coupled, patch-structured AMR, assuming an upper fine patch and a lower coarse patch.
@@ -239,9 +264,12 @@ void patch_coupled_ul_projection_op(const int tbid, const int tdir, const int i,
 * @param fld_ion Output array (ions).
 * @param fld_maxwell Output array (Maxwell field).
 */
-void patch_coupled_ul_restriction_op(const int tbid, const int tdir, const int i, const int d, const struct five_moment_patch_data pdata[],
-  const struct gkyl_array* bc_buffer_elc, const struct gkyl_array* bc_buffer_ion, const struct gkyl_array* bc_buffer_maxwell,
-  struct gkyl_array* fld_elc[], struct gkyl_array* fld_ion[], struct gkyl_array* fld_maxwell[]);
+void patch_coupled_ul_restriction_op(
+  const int tbid, const int tdir, const int i, const int d,
+  const struct five_moment_patch_data pdata[], const struct gkyl_array *bc_buffer_elc,
+  const struct gkyl_array *bc_buffer_ion, const struct gkyl_array *bc_buffer_maxwell,
+  struct gkyl_array *fld_elc[], struct gkyl_array *fld_ion[], struct gkyl_array *fld_maxwell[]
+);
 
 /**
 * Coarse-to-fine projection operator for coupled, patch-structured AMR, assuming an upper coarse patch and an upper fine patch.
@@ -258,9 +286,12 @@ void patch_coupled_ul_restriction_op(const int tbid, const int tdir, const int i
 * @param fld_ion Output array (ions).
 * @param fld_maxwell Output array (Maxwell field).
 */
-void patch_coupled_uu_projection_op(const int tbid, const int tdir, const int i, const int d, const struct five_moment_patch_data pdata[],
-  const struct gkyl_array* bc_buffer_elc, const struct gkyl_array* bc_buffer_ion, const struct gkyl_array* bc_buffer_maxwell,
-  struct gkyl_array* fld_elc[], struct gkyl_array* fld_ion[], struct gkyl_array* fld_maxwell[]);
+void patch_coupled_uu_projection_op(
+  const int tbid, const int tdir, const int i, const int d,
+  const struct five_moment_patch_data pdata[], const struct gkyl_array *bc_buffer_elc,
+  const struct gkyl_array *bc_buffer_ion, const struct gkyl_array *bc_buffer_maxwell,
+  struct gkyl_array *fld_elc[], struct gkyl_array *fld_ion[], struct gkyl_array *fld_maxwell[]
+);
 
 /**
 * Fine-to-coarse restriction operator for coupled, patch-structured AMR, assuming an upper fine patch and an upper coarse patch.
@@ -277,9 +308,12 @@ void patch_coupled_uu_projection_op(const int tbid, const int tdir, const int i,
 * @param fld_ion Output array (ions).
 * @param fld_maxwell Output array (Maxwell field).
 */
-void patch_coupled_uu_restriction_op(const int tbid, const int tdir, const int i, const int d, const struct five_moment_patch_data pdata[],
-  const struct gkyl_array* bc_buffer_elc, const struct gkyl_array* bc_buffer_ion, const struct gkyl_array* bc_buffer_maxwell,
-  struct gkyl_array* fld_elc[], struct gkyl_array* fld_ion[], struct gkyl_array* fld_maxwell[]);
+void patch_coupled_uu_restriction_op(
+  const int tbid, const int tdir, const int i, const int d,
+  const struct five_moment_patch_data pdata[], const struct gkyl_array *bc_buffer_elc,
+  const struct gkyl_array *bc_buffer_ion, const struct gkyl_array *bc_buffer_maxwell,
+  struct gkyl_array *fld_elc[], struct gkyl_array *fld_ion[], struct gkyl_array *fld_maxwell[]
+);
 
 /**
 * Synchronize all patches in the patch AMR hierarchy by applying all appropriate physical (outer-patch) and non-physical (inter-patch)
@@ -291,8 +325,10 @@ void patch_coupled_uu_restriction_op(const int tbid, const int tdir, const int i
 * @param fld_ion Output array (ions).
 * @param fld_maxwell Output array (Maxwell field).
 */
-void five_moment_sync_patches(const struct gkyl_block_topo* ptopo, const struct five_moment_patch_data pdata[],
-  struct gkyl_array* fld_elc[], struct gkyl_array* fld_ion[], struct gkyl_array* fld_maxwell[]);
+void five_moment_sync_patches(
+  const struct gkyl_block_topo *ptopo, const struct five_moment_patch_data pdata[],
+  struct gkyl_array *fld_elc[], struct gkyl_array *fld_ion[], struct gkyl_array *fld_maxwell[]
+);
 
 /**
 * Write patch-structured AMR simulation data for the coupled five-moment equations onto disk.
@@ -302,7 +338,10 @@ void five_moment_sync_patches(const struct gkyl_block_topo* ptopo, const struct 
 * @param file_nm_maxwell File name schema to use for the Maxwell field simulation output.
 * @param pdata Patch-structured data for the coupled five-moment equations.
 */
-void five_moment_patch_data_write(const char* file_nm_elc, const char* file_nm_ion, const char* file_nm_maxwell, const struct five_moment_patch_data* pdata);
+void five_moment_patch_data_write(
+  const char *file_nm_elc, const char *file_nm_ion, const char *file_nm_maxwell,
+  const struct five_moment_patch_data *pdata
+);
 
 /**
 * Calculate the maximum stable time-step for the patch-structured, coupled five-moment equations.
@@ -310,21 +349,21 @@ void five_moment_patch_data_write(const char* file_nm_elc, const char* file_nm_i
 * @param pdata Patch-structured data for the coupled five-moment equations.
 * @return Maximum stable time-step.
 */
-double five_moment_patch_data_max_dt(const struct five_moment_patch_data* pdata);
+double five_moment_patch_data_max_dt(const struct five_moment_patch_data *pdata);
 
 /**
 * Update the patch-structured AMR simulation data for the coupled five-moment equations using the thread-based job pool.
 *
 * @param ctx Context to pass to the function.
 */
-void five_moment_update_patch_job_func(void* ctx);
+void five_moment_update_patch_job_func(void *ctx);
 
 /**
 * Update the source terms of the patch-structured AMR simulation data for the coupled five-moment equations using the thread-based job pool.
 *
 * @param ctx Context to pass to the function.
 */
-void five_moment_update_patch_job_func_source(void* ctx);
+void five_moment_update_patch_job_func_source(void *ctx);
 
 /**
 * Update all patches in the patch AMR hierarchy by using the thread-based job pool for the coupled five-moment equations.
@@ -336,8 +375,10 @@ void five_moment_update_patch_job_func_source(void* ctx);
 * @param dt Current stable time-step for the simulation.
 * @return Status of the update (success and suggested time-step).
 */
-struct gkyl_update_status five_moment_update_all_patches(const struct gkyl_job_pool* job_pool, const struct gkyl_block_topo* ptopo,
-  const struct five_moment_patch_data pdata[], double t_curr, double dt);
+struct gkyl_update_status five_moment_update_all_patches(
+  const struct gkyl_job_pool *job_pool, const struct gkyl_block_topo *ptopo,
+  const struct five_moment_patch_data pdata[], double t_curr, double dt
+);
 
 /**
 * Update the source terms for all patches in the patch AMR hierarchy by using the thread-based job pool for the coupled five-moment equations.
@@ -349,15 +390,17 @@ struct gkyl_update_status five_moment_update_all_patches(const struct gkyl_job_p
 * @param dt Current stable time-step for the simulation.
 * @param nstrang Iteration number in the Strang splitting.
 */
-void five_moment_update_all_patches_source(const struct gkyl_job_pool* job_pool, const struct gkyl_block_topo* ptopo,
-  const struct five_moment_patch_data pdata[], double t_curr, double dt, int nstrang);
+void five_moment_update_all_patches_source(
+  const struct gkyl_job_pool *job_pool, const struct gkyl_block_topo *ptopo,
+  const struct five_moment_patch_data pdata[], double t_curr, double dt, int nstrang
+);
 
 /**
 * Initialize a new job in the thread-based job pool for updating the patch-structured AMR simulation data for the coupled five-moment equations.
 *
 * @param ctx Context to pass to the function.
 */
-void five_moment_init_job_func_patch(void* ctx);
+void five_moment_init_job_func_patch(void *ctx);
 
 /**
 * Take a single time-step across the entire patch AMR hierarchy for the coupled five-moment equations.
@@ -370,8 +413,10 @@ void five_moment_init_job_func_patch(void* ctx);
 * @param stats Simulation statistics (allowing for tracking of the number of failed time-steps).
 * @return Status of the update (success, suggested time-step and actual time-step).
 */
-struct gkyl_update_status five_moment_update_patch(const struct gkyl_job_pool* job_pool, const struct gkyl_block_topo* ptopo,
-  const struct five_moment_patch_data pdata[], double t_curr, double dt0, struct sim_stats* stats);
+struct gkyl_update_status five_moment_update_patch(
+  const struct gkyl_job_pool *job_pool, const struct gkyl_block_topo *ptopo,
+  const struct five_moment_patch_data pdata[], double t_curr, double dt0, struct sim_stats *stats
+);
 
 /**
 * Write the complete simulation output for the entire patch AMR hierarchy for the coupled five-moment equations onto disk.
@@ -380,7 +425,9 @@ struct gkyl_update_status five_moment_update_patch(const struct gkyl_job_pool* j
 * @param num_patches Number of patches in the patch hierarchy.
 * @param pdata Array of patch-structured data for the coupled five-moment equations.
 */
-void five_moment_write_sol_patch(const char* fbase, int num_patches, const struct five_moment_patch_data pdata[]);
+void five_moment_write_sol_patch(
+  const char *fbase, int num_patches, const struct five_moment_patch_data pdata[]
+);
 
 /**
 * Calculate the maximum stable time-step across all patches in the patch AMR hierarchy for the coupled five-moment equations.

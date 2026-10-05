@@ -5,21 +5,21 @@
 #include <gkyl_array.h>
 
 // BC types in this updater.
-enum gkyl_bc_basic_type { 
-  GKYL_BC_COPY = 0, 
-  GKYL_BC_ABSORB, 
-  GKYL_BC_REFLECT, 
-  GKYL_BC_DISTF_REFLECT, 
-  GKYL_BC_MAXWELL_PEC, 
-  GKYL_BC_MAXWELL_SYM, 
-  GKYL_BC_MAXWELL_RESERVOIR, 
+enum gkyl_bc_basic_type {
+  GKYL_BC_COPY = 0,
+  GKYL_BC_ABSORB,
+  GKYL_BC_REFLECT,
+  GKYL_BC_DISTF_REFLECT,
+  GKYL_BC_MAXWELL_PEC,
+  GKYL_BC_MAXWELL_SYM,
+  GKYL_BC_MAXWELL_RESERVOIR,
   GKYL_BC_FIXED_FUNC,
   GKYL_BC_PKPM_SPECIES_REFLECT,
-  GKYL_BC_PKPM_MOM_REFLECT, 
+  GKYL_BC_PKPM_MOM_REFLECT,
   GKYL_BC_PKPM_MOM_NO_SLIP,
-  GKYL_BC_EULER_REFLECT, 
+  GKYL_BC_EULER_REFLECT,
   GKYL_BC_EULER_NO_SLIP,
-  GKYL_BC_CONF_BOUNDARY_VALUE, 
+  GKYL_BC_CONF_BOUNDARY_VALUE
 };
 
 // Object type
@@ -42,9 +42,11 @@ typedef struct gkyl_bc_basic gkyl_bc_basic;
  * @param use_gpu Boolean to indicate whether to use the GPU.
  * @return New updater pointer.
  */
-struct gkyl_bc_basic* gkyl_bc_basic_new(int dir, enum gkyl_edge_loc edge, enum gkyl_bc_basic_type bctype,
-  const struct gkyl_basis *basis, const struct gkyl_range *skin_r,
-  const struct gkyl_range *ghost_r, int num_comp, int cdim, bool use_gpu);
+struct gkyl_bc_basic *gkyl_bc_basic_new(
+  int dir, enum gkyl_edge_loc edge, enum gkyl_bc_basic_type bctype, const struct gkyl_basis *basis,
+  const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r, int num_comp, int cdim,
+  bool use_gpu
+);
 
 /**
  * Advance boundary conditions *in special case where buffer is fixed in time*. 
@@ -55,7 +57,9 @@ struct gkyl_bc_basic* gkyl_bc_basic_new(int dir, enum gkyl_edge_loc edge, enum g
  * @param buff_arr Buffer array, big enough for ghost cells at this boundary.
  * @param f_arr Field array to apply BC to.
  */
-void gkyl_bc_basic_buffer_fixed_func(const struct gkyl_bc_basic *up, struct gkyl_array *buff_arr, struct gkyl_array *f_arr);
+void gkyl_bc_basic_buffer_fixed_func(
+  const struct gkyl_bc_basic *up, struct gkyl_array *buff_arr, struct gkyl_array *f_arr
+);
 
 /**
  * Advance boundary conditions. Fill buffer array based on boundary conditions and copy
@@ -65,7 +69,9 @@ void gkyl_bc_basic_buffer_fixed_func(const struct gkyl_bc_basic *up, struct gkyl
  * @param buff_arr Buffer array, big enough for ghost cells at this boundary.
  * @param f_arr Field array to apply BC to.
  */
-void gkyl_bc_basic_advance(const struct gkyl_bc_basic *up, struct gkyl_array *buff_arr, struct gkyl_array *f_arr);
+void gkyl_bc_basic_advance(
+  const struct gkyl_bc_basic *up, struct gkyl_array *buff_arr, struct gkyl_array *f_arr
+);
 
 /**
  * Free memory associated with bc_basic updater.

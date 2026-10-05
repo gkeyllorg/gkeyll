@@ -1,7 +1,10 @@
 #include <gkyl_amr_block_coupled_priv.h>
 
 void
-five_moment_wall_bc(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx)
+five_moment_wall_bc(
+  const struct gkyl_wv_eqn *eqn, double t, int nc, const double *GKYL_RESTRICT skin,
+  double *GKYL_RESTRICT ghost, void *ctx
+)
 {
   for (int i = 0; i < 5; i++) {
     ghost[i] = skin[i];
@@ -11,33 +14,40 @@ five_moment_wall_bc(const struct gkyl_wv_eqn* eqn, double t, int nc, const doubl
 }
 
 void
-ten_moment_wall_bc(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx)
+ten_moment_wall_bc(
+  const struct gkyl_wv_eqn *eqn, double t, int nc, const double *GKYL_RESTRICT skin,
+  double *GKYL_RESTRICT ghost, void *ctx
+)
 {
   for (int i = 0; i < 10; i++) {
     if (i == 1 || i == 5 || i == 6) {
       ghost[i] = -skin[i];
-    }
-    else {
+    } else {
       ghost[i] = skin[i];
     }
   }
 }
 
 void
-maxwell_wall_bc(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx)
+maxwell_wall_bc(
+  const struct gkyl_wv_eqn *eqn, double t, int nc, const double *GKYL_RESTRICT skin,
+  double *GKYL_RESTRICT ghost, void *ctx
+)
 {
   for (int i = 0; i < 8; i++) {
     if (i == 1 || i == 2 || i == 3 || i == 6) {
       ghost[i] = -skin[i];
-    }
-    else {
+    } else {
       ghost[i] = skin[i];
     }
   }
 }
 
 void
-five_moment_copy_bc(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx)
+five_moment_copy_bc(
+  const struct gkyl_wv_eqn *eqn, double t, int nc, const double *GKYL_RESTRICT skin,
+  double *GKYL_RESTRICT ghost, void *ctx
+)
 {
   for (int i = 0; i < 5; i++) {
     ghost[i] = skin[i];
@@ -45,7 +55,10 @@ five_moment_copy_bc(const struct gkyl_wv_eqn* eqn, double t, int nc, const doubl
 }
 
 void
-ten_moment_copy_bc(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx)
+ten_moment_copy_bc(
+  const struct gkyl_wv_eqn *eqn, double t, int nc, const double *GKYL_RESTRICT skin,
+  double *GKYL_RESTRICT ghost, void *ctx
+)
 {
   for (int i = 0; i < 10; i++) {
     ghost[i] = skin[i];
@@ -53,7 +66,10 @@ ten_moment_copy_bc(const struct gkyl_wv_eqn* eqn, double t, int nc, const double
 }
 
 void
-maxwell_copy_bc(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx)
+maxwell_copy_bc(
+  const struct gkyl_wv_eqn *eqn, double t, int nc, const double *GKYL_RESTRICT skin,
+  double *GKYL_RESTRICT ghost, void *ctx
+)
 {
   for (int i = 0; i < 8; i++) {
     ghost[i] = skin[i];
@@ -61,7 +77,9 @@ maxwell_copy_bc(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* G
 }
 
 void
-five_moment_block_bc_updaters_init(struct five_moment_block_data* bdata, const struct gkyl_block_connections* conn)
+five_moment_block_bc_updaters_init(
+  struct five_moment_block_data *bdata, const struct gkyl_block_connections *conn
+)
 {
   int nghost[9];
   for (int i = 0; i < 9; i++) {
@@ -81,40 +99,59 @@ five_moment_block_bc_updaters_init(struct five_moment_block_data* bdata, const s
 
     if ((d == 0 && wall_x) || (d == 1 && wall_y)) {
       if (conn->connections[d][0].edge == GKYL_PHYSICAL) {
-        bdata->lower_bc_elc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler_elc, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
-          five_moment_wall_bc, 0);
-        bdata->lower_bc_ion[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler_ion, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
-          five_moment_wall_bc, 0);
-        bdata->lower_bc_maxwell[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->maxwell, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
-          maxwell_wall_bc, 0);
+        bdata->lower_bc_elc[d] = gkyl_wv_apply_bc_new(
+          &bdata->grid, bdata->euler_elc, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
+          five_moment_wall_bc, 0
+        );
+        bdata->lower_bc_ion[d] = gkyl_wv_apply_bc_new(
+          &bdata->grid, bdata->euler_ion, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
+          five_moment_wall_bc, 0
+        );
+        bdata->lower_bc_maxwell[d] = gkyl_wv_apply_bc_new(
+          &bdata->grid, bdata->maxwell, bdata->geom, d, GKYL_LOWER_EDGE, nghost, maxwell_wall_bc, 0
+        );
       }
 
       if (conn->connections[d][1].edge == GKYL_PHYSICAL) {
-        bdata->upper_bc_elc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler_elc, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
-          five_moment_wall_bc, 0);
-        bdata->upper_bc_ion[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler_ion, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
-          five_moment_wall_bc, 0);
-        bdata->upper_bc_maxwell[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->maxwell, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
-          maxwell_wall_bc, 0);
+        bdata->upper_bc_elc[d] = gkyl_wv_apply_bc_new(
+          &bdata->grid, bdata->euler_elc, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
+          five_moment_wall_bc, 0
+        );
+        bdata->upper_bc_ion[d] = gkyl_wv_apply_bc_new(
+          &bdata->grid, bdata->euler_ion, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
+          five_moment_wall_bc, 0
+        );
+        bdata->upper_bc_maxwell[d] = gkyl_wv_apply_bc_new(
+          &bdata->grid, bdata->maxwell, bdata->geom, d, GKYL_UPPER_EDGE, nghost, maxwell_wall_bc, 0
+        );
       }
-    }
-    else if ((d == 0 && copy_x) || (d == 1 && copy_y)) {
+    } else if ((d == 0 && copy_x) || (d == 1 && copy_y)) {
       if (conn->connections[d][0].edge == GKYL_PHYSICAL) {
-        bdata->lower_bc_elc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler_elc, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
-          five_moment_copy_bc, 0);
-        bdata->lower_bc_ion[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler_ion, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
-          five_moment_copy_bc, 0);
-        bdata->lower_bc_maxwell[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->maxwell, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
-          maxwell_copy_bc, 0);
+        bdata->lower_bc_elc[d] = gkyl_wv_apply_bc_new(
+          &bdata->grid, bdata->euler_elc, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
+          five_moment_copy_bc, 0
+        );
+        bdata->lower_bc_ion[d] = gkyl_wv_apply_bc_new(
+          &bdata->grid, bdata->euler_ion, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
+          five_moment_copy_bc, 0
+        );
+        bdata->lower_bc_maxwell[d] = gkyl_wv_apply_bc_new(
+          &bdata->grid, bdata->maxwell, bdata->geom, d, GKYL_LOWER_EDGE, nghost, maxwell_copy_bc, 0
+        );
       }
 
       if (conn->connections[d][1].edge == GKYL_PHYSICAL) {
-        bdata->upper_bc_elc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler_elc, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
-          five_moment_copy_bc, 0);
-        bdata->upper_bc_ion[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler_ion, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
-          five_moment_copy_bc, 0);
-        bdata->upper_bc_maxwell[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->maxwell, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
-          maxwell_copy_bc, 0);
+        bdata->upper_bc_elc[d] = gkyl_wv_apply_bc_new(
+          &bdata->grid, bdata->euler_elc, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
+          five_moment_copy_bc, 0
+        );
+        bdata->upper_bc_ion[d] = gkyl_wv_apply_bc_new(
+          &bdata->grid, bdata->euler_ion, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
+          five_moment_copy_bc, 0
+        );
+        bdata->upper_bc_maxwell[d] = gkyl_wv_apply_bc_new(
+          &bdata->grid, bdata->maxwell, bdata->geom, d, GKYL_UPPER_EDGE, nghost, maxwell_copy_bc, 0
+        );
       }
     }
   }
@@ -124,7 +161,7 @@ five_moment_block_bc_updaters_init(struct five_moment_block_data* bdata, const s
 
   for (int d = 0; d < 2; d++) {
     long vol = bdata->skin_ghost.lower_skin[d].volume;
-    
+
     if (buff_sz <= vol) {
       buff_sz = vol;
     }
@@ -136,7 +173,9 @@ five_moment_block_bc_updaters_init(struct five_moment_block_data* bdata, const s
 }
 
 void
-five_moment_nested_block_bc_updaters_init(struct five_moment_block_data* bdata, const struct gkyl_block_connections* conn)
+five_moment_nested_block_bc_updaters_init(
+  struct five_moment_block_data *bdata, const struct gkyl_block_connections *conn
+)
 {
   int nghost[25];
   for (int i = 0; i < 25; i++) {
@@ -156,40 +195,59 @@ five_moment_nested_block_bc_updaters_init(struct five_moment_block_data* bdata, 
 
     if ((d == 0 && wall_x) || (d == 1 && wall_y)) {
       if (conn->connections[d][0].edge == GKYL_PHYSICAL) {
-        bdata->lower_bc_elc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler_elc, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
-          five_moment_wall_bc, 0);
-        bdata->lower_bc_ion[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler_ion, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
-          five_moment_wall_bc, 0);
-        bdata->lower_bc_maxwell[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->maxwell, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
-          maxwell_wall_bc, 0);
+        bdata->lower_bc_elc[d] = gkyl_wv_apply_bc_new(
+          &bdata->grid, bdata->euler_elc, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
+          five_moment_wall_bc, 0
+        );
+        bdata->lower_bc_ion[d] = gkyl_wv_apply_bc_new(
+          &bdata->grid, bdata->euler_ion, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
+          five_moment_wall_bc, 0
+        );
+        bdata->lower_bc_maxwell[d] = gkyl_wv_apply_bc_new(
+          &bdata->grid, bdata->maxwell, bdata->geom, d, GKYL_LOWER_EDGE, nghost, maxwell_wall_bc, 0
+        );
       }
 
       if (conn->connections[d][1].edge == GKYL_PHYSICAL) {
-        bdata->upper_bc_elc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler_elc, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
-          five_moment_wall_bc, 0);
-        bdata->upper_bc_ion[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler_ion, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
-          five_moment_wall_bc, 0);
-        bdata->upper_bc_maxwell[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->maxwell, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
-          maxwell_wall_bc, 0);
+        bdata->upper_bc_elc[d] = gkyl_wv_apply_bc_new(
+          &bdata->grid, bdata->euler_elc, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
+          five_moment_wall_bc, 0
+        );
+        bdata->upper_bc_ion[d] = gkyl_wv_apply_bc_new(
+          &bdata->grid, bdata->euler_ion, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
+          five_moment_wall_bc, 0
+        );
+        bdata->upper_bc_maxwell[d] = gkyl_wv_apply_bc_new(
+          &bdata->grid, bdata->maxwell, bdata->geom, d, GKYL_UPPER_EDGE, nghost, maxwell_wall_bc, 0
+        );
       }
-    }
-    else if ((d == 0 && copy_x) || (d == 1 && copy_y)) {
+    } else if ((d == 0 && copy_x) || (d == 1 && copy_y)) {
       if (conn->connections[d][0].edge == GKYL_PHYSICAL) {
-        bdata->lower_bc_elc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler_elc, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
-          five_moment_copy_bc, 0);
-        bdata->lower_bc_ion[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler_ion, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
-          five_moment_copy_bc, 0);
-        bdata->lower_bc_maxwell[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->maxwell, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
-          maxwell_copy_bc, 0);
+        bdata->lower_bc_elc[d] = gkyl_wv_apply_bc_new(
+          &bdata->grid, bdata->euler_elc, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
+          five_moment_copy_bc, 0
+        );
+        bdata->lower_bc_ion[d] = gkyl_wv_apply_bc_new(
+          &bdata->grid, bdata->euler_ion, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
+          five_moment_copy_bc, 0
+        );
+        bdata->lower_bc_maxwell[d] = gkyl_wv_apply_bc_new(
+          &bdata->grid, bdata->maxwell, bdata->geom, d, GKYL_LOWER_EDGE, nghost, maxwell_copy_bc, 0
+        );
       }
 
       if (conn->connections[d][1].edge == GKYL_PHYSICAL) {
-        bdata->upper_bc_elc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler_elc, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
-          five_moment_copy_bc, 0);
-        bdata->upper_bc_ion[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler_ion, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
-          five_moment_copy_bc, 0);
-        bdata->upper_bc_maxwell[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->maxwell, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
-          maxwell_copy_bc, 0);
+        bdata->upper_bc_elc[d] = gkyl_wv_apply_bc_new(
+          &bdata->grid, bdata->euler_elc, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
+          five_moment_copy_bc, 0
+        );
+        bdata->upper_bc_ion[d] = gkyl_wv_apply_bc_new(
+          &bdata->grid, bdata->euler_ion, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
+          five_moment_copy_bc, 0
+        );
+        bdata->upper_bc_maxwell[d] = gkyl_wv_apply_bc_new(
+          &bdata->grid, bdata->maxwell, bdata->geom, d, GKYL_UPPER_EDGE, nghost, maxwell_copy_bc, 0
+        );
       }
     }
   }
@@ -199,7 +257,7 @@ five_moment_nested_block_bc_updaters_init(struct five_moment_block_data* bdata, 
 
   for (int d = 0; d < 2; d++) {
     long vol = bdata->skin_ghost.lower_skin[d].volume;
-    
+
     if (buff_sz <= vol) {
       buff_sz = vol;
     }
@@ -211,7 +269,9 @@ five_moment_nested_block_bc_updaters_init(struct five_moment_block_data* bdata, 
 }
 
 void
-ten_moment_block_bc_updaters_init(struct five_moment_block_data* bdata, const struct gkyl_block_connections* conn)
+ten_moment_block_bc_updaters_init(
+  struct five_moment_block_data *bdata, const struct gkyl_block_connections *conn
+)
 {
   int nghost[9];
   for (int i = 0; i < 9; i++) {
@@ -231,40 +291,59 @@ ten_moment_block_bc_updaters_init(struct five_moment_block_data* bdata, const st
 
     if ((d == 0 && wall_x) || (d == 1 && wall_y)) {
       if (conn->connections[d][0].edge == GKYL_PHYSICAL) {
-        bdata->lower_bc_elc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler_elc, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
-          ten_moment_wall_bc, 0);
-        bdata->lower_bc_ion[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler_ion, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
-          ten_moment_wall_bc, 0);
-        bdata->lower_bc_maxwell[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->maxwell, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
-          maxwell_wall_bc, 0);
+        bdata->lower_bc_elc[d] = gkyl_wv_apply_bc_new(
+          &bdata->grid, bdata->euler_elc, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
+          ten_moment_wall_bc, 0
+        );
+        bdata->lower_bc_ion[d] = gkyl_wv_apply_bc_new(
+          &bdata->grid, bdata->euler_ion, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
+          ten_moment_wall_bc, 0
+        );
+        bdata->lower_bc_maxwell[d] = gkyl_wv_apply_bc_new(
+          &bdata->grid, bdata->maxwell, bdata->geom, d, GKYL_LOWER_EDGE, nghost, maxwell_wall_bc, 0
+        );
       }
 
       if (conn->connections[d][1].edge == GKYL_PHYSICAL) {
-        bdata->upper_bc_elc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler_elc, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
-          ten_moment_wall_bc, 0);
-        bdata->upper_bc_ion[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler_ion, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
-          ten_moment_wall_bc, 0);
-        bdata->upper_bc_maxwell[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->maxwell, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
-          maxwell_wall_bc, 0);
+        bdata->upper_bc_elc[d] = gkyl_wv_apply_bc_new(
+          &bdata->grid, bdata->euler_elc, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
+          ten_moment_wall_bc, 0
+        );
+        bdata->upper_bc_ion[d] = gkyl_wv_apply_bc_new(
+          &bdata->grid, bdata->euler_ion, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
+          ten_moment_wall_bc, 0
+        );
+        bdata->upper_bc_maxwell[d] = gkyl_wv_apply_bc_new(
+          &bdata->grid, bdata->maxwell, bdata->geom, d, GKYL_UPPER_EDGE, nghost, maxwell_wall_bc, 0
+        );
       }
-    }
-    else if ((d == 0 && copy_x) || (d == 1 && copy_y)) {
+    } else if ((d == 0 && copy_x) || (d == 1 && copy_y)) {
       if (conn->connections[d][0].edge == GKYL_PHYSICAL) {
-        bdata->lower_bc_elc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler_elc, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
-          ten_moment_copy_bc, 0);
-        bdata->lower_bc_ion[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler_ion, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
-          ten_moment_copy_bc, 0);
-        bdata->lower_bc_maxwell[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->maxwell, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
-          maxwell_copy_bc, 0);
+        bdata->lower_bc_elc[d] = gkyl_wv_apply_bc_new(
+          &bdata->grid, bdata->euler_elc, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
+          ten_moment_copy_bc, 0
+        );
+        bdata->lower_bc_ion[d] = gkyl_wv_apply_bc_new(
+          &bdata->grid, bdata->euler_ion, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
+          ten_moment_copy_bc, 0
+        );
+        bdata->lower_bc_maxwell[d] = gkyl_wv_apply_bc_new(
+          &bdata->grid, bdata->maxwell, bdata->geom, d, GKYL_LOWER_EDGE, nghost, maxwell_copy_bc, 0
+        );
       }
 
       if (conn->connections[d][1].edge == GKYL_PHYSICAL) {
-        bdata->upper_bc_elc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler_elc, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
-          ten_moment_copy_bc, 0);
-        bdata->upper_bc_ion[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler_ion, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
-          ten_moment_copy_bc, 0);
-        bdata->upper_bc_maxwell[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->maxwell, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
-          maxwell_copy_bc, 0);
+        bdata->upper_bc_elc[d] = gkyl_wv_apply_bc_new(
+          &bdata->grid, bdata->euler_elc, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
+          ten_moment_copy_bc, 0
+        );
+        bdata->upper_bc_ion[d] = gkyl_wv_apply_bc_new(
+          &bdata->grid, bdata->euler_ion, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
+          ten_moment_copy_bc, 0
+        );
+        bdata->upper_bc_maxwell[d] = gkyl_wv_apply_bc_new(
+          &bdata->grid, bdata->maxwell, bdata->geom, d, GKYL_UPPER_EDGE, nghost, maxwell_copy_bc, 0
+        );
       }
     }
   }
@@ -274,7 +353,7 @@ ten_moment_block_bc_updaters_init(struct five_moment_block_data* bdata, const st
 
   for (int d = 0; d < 2; d++) {
     long vol = bdata->skin_ghost.lower_skin[d].volume;
-    
+
     if (buff_sz <= vol) {
       buff_sz = vol;
     }
@@ -286,7 +365,9 @@ ten_moment_block_bc_updaters_init(struct five_moment_block_data* bdata, const st
 }
 
 void
-ten_moment_nested_block_bc_updaters_init(struct five_moment_block_data* bdata, const struct gkyl_block_connections* conn)
+ten_moment_nested_block_bc_updaters_init(
+  struct five_moment_block_data *bdata, const struct gkyl_block_connections *conn
+)
 {
   int nghost[25];
   for (int i = 0; i < 25; i++) {
@@ -306,40 +387,59 @@ ten_moment_nested_block_bc_updaters_init(struct five_moment_block_data* bdata, c
 
     if ((d == 0 && wall_x) || (d == 1 && wall_y)) {
       if (conn->connections[d][0].edge == GKYL_PHYSICAL) {
-        bdata->lower_bc_elc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler_elc, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
-          ten_moment_wall_bc, 0);
-        bdata->lower_bc_ion[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler_ion, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
-          ten_moment_wall_bc, 0);
-        bdata->lower_bc_maxwell[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->maxwell, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
-          maxwell_wall_bc, 0);
+        bdata->lower_bc_elc[d] = gkyl_wv_apply_bc_new(
+          &bdata->grid, bdata->euler_elc, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
+          ten_moment_wall_bc, 0
+        );
+        bdata->lower_bc_ion[d] = gkyl_wv_apply_bc_new(
+          &bdata->grid, bdata->euler_ion, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
+          ten_moment_wall_bc, 0
+        );
+        bdata->lower_bc_maxwell[d] = gkyl_wv_apply_bc_new(
+          &bdata->grid, bdata->maxwell, bdata->geom, d, GKYL_LOWER_EDGE, nghost, maxwell_wall_bc, 0
+        );
       }
 
       if (conn->connections[d][1].edge == GKYL_PHYSICAL) {
-        bdata->upper_bc_elc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler_elc, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
-          ten_moment_wall_bc, 0);
-        bdata->upper_bc_ion[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler_ion, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
-          ten_moment_wall_bc, 0);
-        bdata->upper_bc_maxwell[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->maxwell, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
-          maxwell_wall_bc, 0);
+        bdata->upper_bc_elc[d] = gkyl_wv_apply_bc_new(
+          &bdata->grid, bdata->euler_elc, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
+          ten_moment_wall_bc, 0
+        );
+        bdata->upper_bc_ion[d] = gkyl_wv_apply_bc_new(
+          &bdata->grid, bdata->euler_ion, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
+          ten_moment_wall_bc, 0
+        );
+        bdata->upper_bc_maxwell[d] = gkyl_wv_apply_bc_new(
+          &bdata->grid, bdata->maxwell, bdata->geom, d, GKYL_UPPER_EDGE, nghost, maxwell_wall_bc, 0
+        );
       }
-    }
-    else if ((d == 0 && copy_x) || (d == 1 && copy_y)) {
+    } else if ((d == 0 && copy_x) || (d == 1 && copy_y)) {
       if (conn->connections[d][0].edge == GKYL_PHYSICAL) {
-        bdata->lower_bc_elc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler_elc, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
-          ten_moment_copy_bc, 0);
-        bdata->lower_bc_ion[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler_ion, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
-          ten_moment_copy_bc, 0);
-        bdata->lower_bc_maxwell[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->maxwell, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
-          maxwell_copy_bc, 0);
+        bdata->lower_bc_elc[d] = gkyl_wv_apply_bc_new(
+          &bdata->grid, bdata->euler_elc, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
+          ten_moment_copy_bc, 0
+        );
+        bdata->lower_bc_ion[d] = gkyl_wv_apply_bc_new(
+          &bdata->grid, bdata->euler_ion, bdata->geom, d, GKYL_LOWER_EDGE, nghost,
+          ten_moment_copy_bc, 0
+        );
+        bdata->lower_bc_maxwell[d] = gkyl_wv_apply_bc_new(
+          &bdata->grid, bdata->maxwell, bdata->geom, d, GKYL_LOWER_EDGE, nghost, maxwell_copy_bc, 0
+        );
       }
 
       if (conn->connections[d][1].edge == GKYL_PHYSICAL) {
-        bdata->upper_bc_elc[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler_elc, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
-          ten_moment_copy_bc, 0);
-        bdata->upper_bc_ion[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->euler_ion, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
-          ten_moment_copy_bc, 0);
-        bdata->upper_bc_maxwell[d] = gkyl_wv_apply_bc_new(&bdata->grid, bdata->maxwell, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
-          maxwell_copy_bc, 0);
+        bdata->upper_bc_elc[d] = gkyl_wv_apply_bc_new(
+          &bdata->grid, bdata->euler_elc, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
+          ten_moment_copy_bc, 0
+        );
+        bdata->upper_bc_ion[d] = gkyl_wv_apply_bc_new(
+          &bdata->grid, bdata->euler_ion, bdata->geom, d, GKYL_UPPER_EDGE, nghost,
+          ten_moment_copy_bc, 0
+        );
+        bdata->upper_bc_maxwell[d] = gkyl_wv_apply_bc_new(
+          &bdata->grid, bdata->maxwell, bdata->geom, d, GKYL_UPPER_EDGE, nghost, maxwell_copy_bc, 0
+        );
       }
     }
   }
@@ -349,7 +449,7 @@ ten_moment_nested_block_bc_updaters_init(struct five_moment_block_data* bdata, c
 
   for (int d = 0; d < 2; d++) {
     long vol = bdata->skin_ghost.lower_skin[d].volume;
-    
+
     if (buff_sz <= vol) {
       buff_sz = vol;
     }
@@ -361,7 +461,7 @@ ten_moment_nested_block_bc_updaters_init(struct five_moment_block_data* bdata, c
 }
 
 void
-five_moment_block_bc_updaters_release(struct five_moment_block_data* bdata)
+five_moment_block_bc_updaters_release(struct five_moment_block_data *bdata)
 {
   for (int d = 0; d < 2; d++) {
     if (bdata->lower_bc_elc[d]) {
@@ -391,8 +491,10 @@ five_moment_block_bc_updaters_release(struct five_moment_block_data* bdata)
 }
 
 void
-five_moment_block_bc_updaters_apply(const struct five_moment_block_data* bdata, double tm,
-  struct gkyl_array* fld_elc, struct gkyl_array* fld_ion, struct gkyl_array* fld_maxwell)
+five_moment_block_bc_updaters_apply(
+  const struct five_moment_block_data *bdata, double tm, struct gkyl_array *fld_elc,
+  struct gkyl_array *fld_ion, struct gkyl_array *fld_maxwell
+)
 {
   for (int d = 0; d < 2; d++) {
     if (bdata->lower_bc_elc[d]) {
@@ -418,288 +520,498 @@ five_moment_block_bc_updaters_apply(const struct five_moment_block_data* bdata, 
 }
 
 void
-block_coupled_ll_projection_op(const int tbid, const int tdir, const int i, const int d, const struct five_moment_block_data bdata[],
-  const struct gkyl_array* bc_buffer_elc, const struct gkyl_array* bc_buffer_ion, const struct gkyl_array* bc_buffer_maxwell,
-  struct gkyl_array* fld_elc[], struct gkyl_array* fld_ion[], struct gkyl_array* fld_maxwell[])
+block_coupled_ll_projection_op(
+  const int tbid, const int tdir, const int i, const int d,
+  const struct five_moment_block_data bdata[], const struct gkyl_array *bc_buffer_elc,
+  const struct gkyl_array *bc_buffer_ion, const struct gkyl_array *bc_buffer_maxwell,
+  struct gkyl_array *fld_elc[], struct gkyl_array *fld_ion[], struct gkyl_array *fld_maxwell[]
+)
 {
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &(bdata[tbid].skin_ghost.lower_ghost[tdir]));
 
-  double ref_factor_inv = ((double)bdata[i].skin_ghost.lower_skin[d].volume / (double)bdata[tbid].skin_ghost.lower_ghost[tdir].volume);
+  double ref_factor_inv =
+    ((double)bdata[i].skin_ghost.lower_skin[d].volume /
+     (double)bdata[tbid].skin_ghost.lower_ghost[tdir].volume);
 
   long count = 0;
   while (gkyl_range_iter_next(&iter)) {
     long start = gkyl_range_idx(&(bdata[tbid].skin_ghost.lower_ghost[tdir]), iter.idx);
 
-    if ((bdata[tbid].skin_ghost.lower_ghost[tdir].upper[0] - bdata[tbid].skin_ghost.lower_ghost[tdir].lower[0]) == 1) {
-      memcpy(gkyl_array_fetch(fld_elc[tbid], start),
-        ((char*) bc_buffer_elc->data) + fld_elc[tbid]->esznc * ((int)(ref_factor_inv * count)), fld_elc[tbid]->esznc);
-      memcpy(gkyl_array_fetch(fld_ion[tbid], start),
-        ((char*) bc_buffer_ion->data) + fld_ion[tbid]->esznc * ((int)(ref_factor_inv * count)), fld_ion[tbid]->esznc);
-      memcpy(gkyl_array_fetch(fld_maxwell[tbid], start),
-        ((char*) bc_buffer_maxwell->data) + fld_maxwell[tbid]->esznc * ((int)(ref_factor_inv * count)), fld_maxwell[tbid]->esznc);
+    if ((bdata[tbid].skin_ghost.lower_ghost[tdir].upper[0] -
+         bdata[tbid].skin_ghost.lower_ghost[tdir].lower[0]) == 1) {
+      memcpy(
+        gkyl_array_fetch(fld_elc[tbid], start),
+        ((char *)bc_buffer_elc->data) + fld_elc[tbid]->esznc * ((int)(ref_factor_inv * count)),
+        fld_elc[tbid]->esznc
+      );
+      memcpy(
+        gkyl_array_fetch(fld_ion[tbid], start),
+        ((char *)bc_buffer_ion->data) + fld_ion[tbid]->esznc * ((int)(ref_factor_inv * count)),
+        fld_ion[tbid]->esznc
+      );
+      memcpy(
+        gkyl_array_fetch(fld_maxwell[tbid], start),
+        ((char *)bc_buffer_maxwell->data) +
+          fld_maxwell[tbid]->esznc * ((int)(ref_factor_inv * count)),
+        fld_maxwell[tbid]->esznc
+      );
       count += 1;
-    }
-    else {
-      memcpy(gkyl_array_fetch(fld_elc[tbid], start),
-        ((char*) bc_buffer_elc->data) + fld_elc[tbid]->esznc * (2 * (int)(0.5 * ref_factor_inv * count) + (count % 2)), fld_elc[tbid]->esznc);
-      memcpy(gkyl_array_fetch(fld_ion[tbid], start),
-        ((char*) bc_buffer_ion->data) + fld_ion[tbid]->esznc * (2 * (int)(0.5 * ref_factor_inv * count) + (count % 2)), fld_ion[tbid]->esznc);
-      memcpy(gkyl_array_fetch(fld_maxwell[tbid], start),
-        ((char*) bc_buffer_maxwell->data) + fld_maxwell[tbid]->esznc * (2 * (int)(0.5 * ref_factor_inv * count) + (count % 2)), fld_maxwell[tbid]->esznc);
+    } else {
+      memcpy(
+        gkyl_array_fetch(fld_elc[tbid], start),
+        ((char *)bc_buffer_elc->data) +
+          fld_elc[tbid]->esznc * (2 * (int)(0.5 * ref_factor_inv * count) + (count % 2)),
+        fld_elc[tbid]->esznc
+      );
+      memcpy(
+        gkyl_array_fetch(fld_ion[tbid], start),
+        ((char *)bc_buffer_ion->data) +
+          fld_ion[tbid]->esznc * (2 * (int)(0.5 * ref_factor_inv * count) + (count % 2)),
+        fld_ion[tbid]->esznc
+      );
+      memcpy(
+        gkyl_array_fetch(fld_maxwell[tbid], start),
+        ((char *)bc_buffer_maxwell->data) +
+          fld_maxwell[tbid]->esznc * (2 * (int)(0.5 * ref_factor_inv * count) + (count % 2)),
+        fld_maxwell[tbid]->esznc
+      );
       count += 1;
     }
   }
 }
 
 void
-block_coupled_ll_restriction_op(const int tbid, const int tdir, const int i, const int d, const struct five_moment_block_data bdata[],
-  const struct gkyl_array* bc_buffer_elc, const struct gkyl_array* bc_buffer_ion, const struct gkyl_array* bc_buffer_maxwell,
-  struct gkyl_array* fld_elc[], struct gkyl_array* fld_ion[], struct gkyl_array* fld_maxwell[])
+block_coupled_ll_restriction_op(
+  const int tbid, const int tdir, const int i, const int d,
+  const struct five_moment_block_data bdata[], const struct gkyl_array *bc_buffer_elc,
+  const struct gkyl_array *bc_buffer_ion, const struct gkyl_array *bc_buffer_maxwell,
+  struct gkyl_array *fld_elc[], struct gkyl_array *fld_ion[], struct gkyl_array *fld_maxwell[]
+)
 {
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &(bdata[tbid].skin_ghost.lower_ghost[tdir]));
 
-  int ref_factor = (int)(bdata[i].skin_ghost.lower_skin[d].volume / bdata[tbid].skin_ghost.lower_ghost[tdir].volume);
+  int ref_factor = (int)(bdata[i].skin_ghost.lower_skin[d].volume /
+                         bdata[tbid].skin_ghost.lower_ghost[tdir].volume);
 
   long count = 0;
   while (gkyl_range_iter_next(&iter)) {
     long start = gkyl_range_idx(&(bdata[tbid].skin_ghost.lower_ghost[tdir]), iter.idx);
 
-    if ((bdata[tbid].skin_ghost.lower_ghost[tdir].upper[0] - bdata[tbid].skin_ghost.lower_ghost[tdir].lower[0]) == 1) {
-      memcpy(gkyl_array_fetch(fld_elc[tbid], start),
-        ((char*) bc_buffer_elc->data) + fld_elc[tbid]->esznc * (ref_factor * count), fld_elc[tbid]->esznc);
-      memcpy(gkyl_array_fetch(fld_ion[tbid], start),
-        ((char*) bc_buffer_ion->data) + fld_ion[tbid]->esznc * (ref_factor * count), fld_ion[tbid]->esznc);
-      memcpy(gkyl_array_fetch(fld_maxwell[tbid], start),
-        ((char*) bc_buffer_maxwell->data) + fld_maxwell[tbid]->esznc * (ref_factor * count), fld_maxwell[tbid]->esznc);
+    if ((bdata[tbid].skin_ghost.lower_ghost[tdir].upper[0] -
+         bdata[tbid].skin_ghost.lower_ghost[tdir].lower[0]) == 1) {
+      memcpy(
+        gkyl_array_fetch(fld_elc[tbid], start),
+        ((char *)bc_buffer_elc->data) + fld_elc[tbid]->esznc * (ref_factor * count),
+        fld_elc[tbid]->esznc
+      );
+      memcpy(
+        gkyl_array_fetch(fld_ion[tbid], start),
+        ((char *)bc_buffer_ion->data) + fld_ion[tbid]->esznc * (ref_factor * count),
+        fld_ion[tbid]->esznc
+      );
+      memcpy(
+        gkyl_array_fetch(fld_maxwell[tbid], start),
+        ((char *)bc_buffer_maxwell->data) + fld_maxwell[tbid]->esznc * (ref_factor * count),
+        fld_maxwell[tbid]->esznc
+      );
       count += 1;
-    }
-    else {
-      memcpy(gkyl_array_fetch(fld_elc[tbid], start),
-        ((char*) bc_buffer_elc->data) + fld_elc[tbid]->esznc * ((ref_factor * (count - (count % 2))) + (count % 2)), fld_elc[tbid]->esznc);
-      memcpy(gkyl_array_fetch(fld_ion[tbid], start),
-        ((char*) bc_buffer_ion->data) + fld_ion[tbid]->esznc * ((ref_factor * (count - (count % 2))) + (count % 2)), fld_ion[tbid]->esznc);
-      memcpy(gkyl_array_fetch(fld_maxwell[tbid], start),
-        ((char*) bc_buffer_maxwell->data) + fld_maxwell[tbid]->esznc * ((ref_factor * (count - (count % 2))) + (count % 2)), fld_maxwell[tbid]->esznc);
+    } else {
+      memcpy(
+        gkyl_array_fetch(fld_elc[tbid], start),
+        ((char *)bc_buffer_elc->data) +
+          fld_elc[tbid]->esznc * ((ref_factor * (count - (count % 2))) + (count % 2)),
+        fld_elc[tbid]->esznc
+      );
+      memcpy(
+        gkyl_array_fetch(fld_ion[tbid], start),
+        ((char *)bc_buffer_ion->data) +
+          fld_ion[tbid]->esznc * ((ref_factor * (count - (count % 2))) + (count % 2)),
+        fld_ion[tbid]->esznc
+      );
+      memcpy(
+        gkyl_array_fetch(fld_maxwell[tbid], start),
+        ((char *)bc_buffer_maxwell->data) +
+          fld_maxwell[tbid]->esznc * ((ref_factor * (count - (count % 2))) + (count % 2)),
+        fld_maxwell[tbid]->esznc
+      );
       count += 1;
     }
   }
 }
 
 void
-block_coupled_lu_projection_op(const int tbid, const int tdir, const int i, const int d, const struct five_moment_block_data bdata[],
-  const struct gkyl_array* bc_buffer_elc, const struct gkyl_array* bc_buffer_ion, const struct gkyl_array* bc_buffer_maxwell,
-  struct gkyl_array* fld_elc[], struct gkyl_array* fld_ion[], struct gkyl_array* fld_maxwell[])
+block_coupled_lu_projection_op(
+  const int tbid, const int tdir, const int i, const int d,
+  const struct five_moment_block_data bdata[], const struct gkyl_array *bc_buffer_elc,
+  const struct gkyl_array *bc_buffer_ion, const struct gkyl_array *bc_buffer_maxwell,
+  struct gkyl_array *fld_elc[], struct gkyl_array *fld_ion[], struct gkyl_array *fld_maxwell[]
+)
 {
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &(bdata[tbid].skin_ghost.upper_ghost[tdir]));
 
-  double ref_factor_inv = ((double)bdata[i].skin_ghost.lower_skin[d].volume / (double)bdata[tbid].skin_ghost.upper_ghost[tdir].volume);
+  double ref_factor_inv =
+    ((double)bdata[i].skin_ghost.lower_skin[d].volume /
+     (double)bdata[tbid].skin_ghost.upper_ghost[tdir].volume);
 
   long count = 0;
   while (gkyl_range_iter_next(&iter)) {
     long start = gkyl_range_idx(&(bdata[tbid].skin_ghost.upper_ghost[tdir]), iter.idx);
 
-    if ((bdata[tbid].skin_ghost.upper_ghost[tdir].upper[0] - bdata[tbid].skin_ghost.upper_ghost[tdir].lower[0]) == 1) {
-      memcpy(gkyl_array_fetch(fld_elc[tbid], start),
-        ((char*) bc_buffer_elc->data) + fld_elc[tbid]->esznc * ((int)(ref_factor_inv * count)), fld_elc[tbid]->esznc);
-      memcpy(gkyl_array_fetch(fld_ion[tbid], start),
-        ((char*) bc_buffer_ion->data) + fld_ion[tbid]->esznc * ((int)(ref_factor_inv * count)), fld_ion[tbid]->esznc);
-      memcpy(gkyl_array_fetch(fld_maxwell[tbid], start),
-        ((char*) bc_buffer_maxwell->data) + fld_maxwell[tbid]->esznc * ((int)(ref_factor_inv * count)), fld_maxwell[tbid]->esznc);
+    if ((bdata[tbid].skin_ghost.upper_ghost[tdir].upper[0] -
+         bdata[tbid].skin_ghost.upper_ghost[tdir].lower[0]) == 1) {
+      memcpy(
+        gkyl_array_fetch(fld_elc[tbid], start),
+        ((char *)bc_buffer_elc->data) + fld_elc[tbid]->esznc * ((int)(ref_factor_inv * count)),
+        fld_elc[tbid]->esznc
+      );
+      memcpy(
+        gkyl_array_fetch(fld_ion[tbid], start),
+        ((char *)bc_buffer_ion->data) + fld_ion[tbid]->esznc * ((int)(ref_factor_inv * count)),
+        fld_ion[tbid]->esznc
+      );
+      memcpy(
+        gkyl_array_fetch(fld_maxwell[tbid], start),
+        ((char *)bc_buffer_maxwell->data) +
+          fld_maxwell[tbid]->esznc * ((int)(ref_factor_inv * count)),
+        fld_maxwell[tbid]->esznc
+      );
       count += 1;
-    }
-    else {
-      memcpy(gkyl_array_fetch(fld_elc[tbid], start),
-        ((char*) bc_buffer_elc->data) + fld_elc[tbid]->esznc * (2 * (int)(0.5 * ref_factor_inv * count) + (count % 2)), fld_elc[tbid]->esznc);
-      memcpy(gkyl_array_fetch(fld_ion[tbid], start),
-        ((char*) bc_buffer_ion->data) + fld_ion[tbid]->esznc * (2 * (int)(0.5 * ref_factor_inv * count) + (count % 2)), fld_ion[tbid]->esznc);
-      memcpy(gkyl_array_fetch(fld_maxwell[tbid], start),
-        ((char*) bc_buffer_maxwell->data) + fld_maxwell[tbid]->esznc * (2 * (int)(0.5 * ref_factor_inv * count) + (count % 2)), fld_maxwell[tbid]->esznc);
+    } else {
+      memcpy(
+        gkyl_array_fetch(fld_elc[tbid], start),
+        ((char *)bc_buffer_elc->data) +
+          fld_elc[tbid]->esznc * (2 * (int)(0.5 * ref_factor_inv * count) + (count % 2)),
+        fld_elc[tbid]->esznc
+      );
+      memcpy(
+        gkyl_array_fetch(fld_ion[tbid], start),
+        ((char *)bc_buffer_ion->data) +
+          fld_ion[tbid]->esznc * (2 * (int)(0.5 * ref_factor_inv * count) + (count % 2)),
+        fld_ion[tbid]->esznc
+      );
+      memcpy(
+        gkyl_array_fetch(fld_maxwell[tbid], start),
+        ((char *)bc_buffer_maxwell->data) +
+          fld_maxwell[tbid]->esznc * (2 * (int)(0.5 * ref_factor_inv * count) + (count % 2)),
+        fld_maxwell[tbid]->esznc
+      );
       count += 1;
     }
   }
 }
 
 void
-block_coupled_lu_restriction_op(const int tbid, const int tdir, const int i, const int d, const struct five_moment_block_data bdata[],
-  const struct gkyl_array* bc_buffer_elc, const struct gkyl_array* bc_buffer_ion, const struct gkyl_array* bc_buffer_maxwell,
-  struct gkyl_array* fld_elc[], struct gkyl_array* fld_ion[], struct gkyl_array* fld_maxwell[])
+block_coupled_lu_restriction_op(
+  const int tbid, const int tdir, const int i, const int d,
+  const struct five_moment_block_data bdata[], const struct gkyl_array *bc_buffer_elc,
+  const struct gkyl_array *bc_buffer_ion, const struct gkyl_array *bc_buffer_maxwell,
+  struct gkyl_array *fld_elc[], struct gkyl_array *fld_ion[], struct gkyl_array *fld_maxwell[]
+)
 {
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &(bdata[tbid].skin_ghost.upper_ghost[tdir]));
 
-  int ref_factor = (int)(bdata[i].skin_ghost.lower_skin[d].volume / bdata[tbid].skin_ghost.upper_ghost[tdir].volume);
+  int ref_factor = (int)(bdata[i].skin_ghost.lower_skin[d].volume /
+                         bdata[tbid].skin_ghost.upper_ghost[tdir].volume);
 
   long count = 0;
   while (gkyl_range_iter_next(&iter)) {
     long start = gkyl_range_idx(&(bdata[tbid].skin_ghost.upper_ghost[tdir]), iter.idx);
 
-    if ((bdata[tbid].skin_ghost.upper_ghost[tdir].upper[0] - bdata[tbid].skin_ghost.upper_ghost[tdir].lower[0]) == 1) {
-      memcpy(gkyl_array_fetch(fld_elc[tbid], start),
-        ((char*) bc_buffer_elc->data) + fld_elc[tbid]->esznc * (ref_factor * count), fld_elc[tbid]->esznc);
-      memcpy(gkyl_array_fetch(fld_ion[tbid], start),
-        ((char*) bc_buffer_ion->data) + fld_ion[tbid]->esznc * (ref_factor * count), fld_ion[tbid]->esznc);
-      memcpy(gkyl_array_fetch(fld_maxwell[tbid], start),
-        ((char*) bc_buffer_maxwell->data) + fld_maxwell[tbid]->esznc * (ref_factor * count), fld_maxwell[tbid]->esznc);
+    if ((bdata[tbid].skin_ghost.upper_ghost[tdir].upper[0] -
+         bdata[tbid].skin_ghost.upper_ghost[tdir].lower[0]) == 1) {
+      memcpy(
+        gkyl_array_fetch(fld_elc[tbid], start),
+        ((char *)bc_buffer_elc->data) + fld_elc[tbid]->esznc * (ref_factor * count),
+        fld_elc[tbid]->esznc
+      );
+      memcpy(
+        gkyl_array_fetch(fld_ion[tbid], start),
+        ((char *)bc_buffer_ion->data) + fld_ion[tbid]->esznc * (ref_factor * count),
+        fld_ion[tbid]->esznc
+      );
+      memcpy(
+        gkyl_array_fetch(fld_maxwell[tbid], start),
+        ((char *)bc_buffer_maxwell->data) + fld_maxwell[tbid]->esznc * (ref_factor * count),
+        fld_maxwell[tbid]->esznc
+      );
       count += 1;
-    }
-    else {
-      memcpy(gkyl_array_fetch(fld_elc[tbid], start),
-        ((char*) bc_buffer_elc->data) + fld_elc[tbid]->esznc * ((ref_factor * (count - (count % 2))) + (count % 2)), fld_elc[tbid]->esznc);
-      memcpy(gkyl_array_fetch(fld_ion[tbid], start),
-        ((char*) bc_buffer_ion->data) + fld_ion[tbid]->esznc * ((ref_factor * (count - (count % 2))) + (count % 2)), fld_ion[tbid]->esznc);
-      memcpy(gkyl_array_fetch(fld_maxwell[tbid], start),
-        ((char*) bc_buffer_maxwell->data) + fld_maxwell[tbid]->esznc * ((ref_factor * (count - (count % 2))) + (count % 2)), fld_maxwell[tbid]->esznc);
+    } else {
+      memcpy(
+        gkyl_array_fetch(fld_elc[tbid], start),
+        ((char *)bc_buffer_elc->data) +
+          fld_elc[tbid]->esznc * ((ref_factor * (count - (count % 2))) + (count % 2)),
+        fld_elc[tbid]->esznc
+      );
+      memcpy(
+        gkyl_array_fetch(fld_ion[tbid], start),
+        ((char *)bc_buffer_ion->data) +
+          fld_ion[tbid]->esznc * ((ref_factor * (count - (count % 2))) + (count % 2)),
+        fld_ion[tbid]->esznc
+      );
+      memcpy(
+        gkyl_array_fetch(fld_maxwell[tbid], start),
+        ((char *)bc_buffer_maxwell->data) +
+          fld_maxwell[tbid]->esznc * ((ref_factor * (count - (count % 2))) + (count % 2)),
+        fld_maxwell[tbid]->esznc
+      );
       count += 1;
     }
   }
 }
 
 void
-block_coupled_ul_projection_op(const int tbid, const int tdir, const int i, const int d, const struct five_moment_block_data bdata[],
-  const struct gkyl_array* bc_buffer_elc, const struct gkyl_array* bc_buffer_ion, const struct gkyl_array* bc_buffer_maxwell,
-  struct gkyl_array* fld_elc[], struct gkyl_array* fld_ion[], struct gkyl_array* fld_maxwell[])
+block_coupled_ul_projection_op(
+  const int tbid, const int tdir, const int i, const int d,
+  const struct five_moment_block_data bdata[], const struct gkyl_array *bc_buffer_elc,
+  const struct gkyl_array *bc_buffer_ion, const struct gkyl_array *bc_buffer_maxwell,
+  struct gkyl_array *fld_elc[], struct gkyl_array *fld_ion[], struct gkyl_array *fld_maxwell[]
+)
 {
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &(bdata[tbid].skin_ghost.lower_ghost[tdir]));
 
-  double ref_factor_inv = ((double)bdata[i].skin_ghost.upper_skin[d].volume / (double)bdata[tbid].skin_ghost.lower_ghost[tdir].volume);
+  double ref_factor_inv =
+    ((double)bdata[i].skin_ghost.upper_skin[d].volume /
+     (double)bdata[tbid].skin_ghost.lower_ghost[tdir].volume);
 
   long count = 0;
   while (gkyl_range_iter_next(&iter)) {
     long start = gkyl_range_idx(&(bdata[tbid].skin_ghost.lower_ghost[tdir]), iter.idx);
-    
-    if ((bdata[tbid].skin_ghost.lower_ghost[tdir].upper[0] - bdata[tbid].skin_ghost.lower_ghost[tdir].lower[0]) == 1) {
-      memcpy(gkyl_array_fetch(fld_elc[tbid], start),
-        ((char*) bc_buffer_elc->data) + fld_elc[tbid]->esznc * ((int)(ref_factor_inv * count)), fld_elc[tbid]->esznc);
-      memcpy(gkyl_array_fetch(fld_ion[tbid], start),
-        ((char*) bc_buffer_ion->data) + fld_ion[tbid]->esznc * ((int)(ref_factor_inv * count)), fld_ion[tbid]->esznc);
-      memcpy(gkyl_array_fetch(fld_maxwell[tbid], start),
-        ((char*) bc_buffer_maxwell->data) + fld_maxwell[tbid]->esznc * ((int)(ref_factor_inv * count)), fld_maxwell[tbid]->esznc);
+
+    if ((bdata[tbid].skin_ghost.lower_ghost[tdir].upper[0] -
+         bdata[tbid].skin_ghost.lower_ghost[tdir].lower[0]) == 1) {
+      memcpy(
+        gkyl_array_fetch(fld_elc[tbid], start),
+        ((char *)bc_buffer_elc->data) + fld_elc[tbid]->esznc * ((int)(ref_factor_inv * count)),
+        fld_elc[tbid]->esznc
+      );
+      memcpy(
+        gkyl_array_fetch(fld_ion[tbid], start),
+        ((char *)bc_buffer_ion->data) + fld_ion[tbid]->esznc * ((int)(ref_factor_inv * count)),
+        fld_ion[tbid]->esznc
+      );
+      memcpy(
+        gkyl_array_fetch(fld_maxwell[tbid], start),
+        ((char *)bc_buffer_maxwell->data) +
+          fld_maxwell[tbid]->esznc * ((int)(ref_factor_inv * count)),
+        fld_maxwell[tbid]->esznc
+      );
       count += 1;
-    }
-    else {
-      memcpy(gkyl_array_fetch(fld_elc[tbid], start),
-        ((char*) bc_buffer_elc->data) + fld_elc[tbid]->esznc * (2 * (int)(0.5 * ref_factor_inv * count) + (count % 2)), fld_elc[tbid]->esznc);
-      memcpy(gkyl_array_fetch(fld_ion[tbid], start),
-        ((char*) bc_buffer_ion->data) + fld_ion[tbid]->esznc * (2 * (int)(0.5 * ref_factor_inv * count) + (count % 2)), fld_ion[tbid]->esznc);
-      memcpy(gkyl_array_fetch(fld_maxwell[tbid], start),
-        ((char*) bc_buffer_maxwell->data) + fld_maxwell[tbid]->esznc * (2 * (int)(0.5 * ref_factor_inv * count) + (count % 2)), fld_maxwell[tbid]->esznc);
+    } else {
+      memcpy(
+        gkyl_array_fetch(fld_elc[tbid], start),
+        ((char *)bc_buffer_elc->data) +
+          fld_elc[tbid]->esznc * (2 * (int)(0.5 * ref_factor_inv * count) + (count % 2)),
+        fld_elc[tbid]->esznc
+      );
+      memcpy(
+        gkyl_array_fetch(fld_ion[tbid], start),
+        ((char *)bc_buffer_ion->data) +
+          fld_ion[tbid]->esznc * (2 * (int)(0.5 * ref_factor_inv * count) + (count % 2)),
+        fld_ion[tbid]->esznc
+      );
+      memcpy(
+        gkyl_array_fetch(fld_maxwell[tbid], start),
+        ((char *)bc_buffer_maxwell->data) +
+          fld_maxwell[tbid]->esznc * (2 * (int)(0.5 * ref_factor_inv * count) + (count % 2)),
+        fld_maxwell[tbid]->esznc
+      );
       count += 1;
     }
   }
 }
 
 void
-block_coupled_ul_restriction_op(const int tbid, const int tdir, const int i, const int d, const struct five_moment_block_data bdata[],
-  const struct gkyl_array* bc_buffer_elc, const struct gkyl_array* bc_buffer_ion, const struct gkyl_array* bc_buffer_maxwell,
-  struct gkyl_array* fld_elc[], struct gkyl_array* fld_ion[], struct gkyl_array* fld_maxwell[])
+block_coupled_ul_restriction_op(
+  const int tbid, const int tdir, const int i, const int d,
+  const struct five_moment_block_data bdata[], const struct gkyl_array *bc_buffer_elc,
+  const struct gkyl_array *bc_buffer_ion, const struct gkyl_array *bc_buffer_maxwell,
+  struct gkyl_array *fld_elc[], struct gkyl_array *fld_ion[], struct gkyl_array *fld_maxwell[]
+)
 {
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &(bdata[tbid].skin_ghost.lower_ghost[tdir]));
 
-  int ref_factor = (int)(bdata[i].skin_ghost.upper_skin[d].volume / bdata[tbid].skin_ghost.lower_ghost[tdir].volume);
+  int ref_factor = (int)(bdata[i].skin_ghost.upper_skin[d].volume /
+                         bdata[tbid].skin_ghost.lower_ghost[tdir].volume);
 
   long count = 0;
   while (gkyl_range_iter_next(&iter)) {
     long start = gkyl_range_idx(&(bdata[tbid].skin_ghost.lower_ghost[tdir]), iter.idx);
 
-    if ((bdata[tbid].skin_ghost.lower_ghost[tdir].upper[0] - bdata[tbid].skin_ghost.lower_ghost[tdir].lower[0]) == 1) {
-      memcpy(gkyl_array_fetch(fld_elc[tbid], start),
-        ((char*) bc_buffer_elc->data) + fld_elc[tbid]->esznc * (ref_factor * count), fld_elc[tbid]->esznc);
-      memcpy(gkyl_array_fetch(fld_ion[tbid], start),
-        ((char*) bc_buffer_ion->data) + fld_ion[tbid]->esznc * (ref_factor * count), fld_ion[tbid]->esznc);
-      memcpy(gkyl_array_fetch(fld_maxwell[tbid], start),
-        ((char*) bc_buffer_maxwell->data) + fld_maxwell[tbid]->esznc * (ref_factor * count), fld_maxwell[tbid]->esznc);
+    if ((bdata[tbid].skin_ghost.lower_ghost[tdir].upper[0] -
+         bdata[tbid].skin_ghost.lower_ghost[tdir].lower[0]) == 1) {
+      memcpy(
+        gkyl_array_fetch(fld_elc[tbid], start),
+        ((char *)bc_buffer_elc->data) + fld_elc[tbid]->esznc * (ref_factor * count),
+        fld_elc[tbid]->esznc
+      );
+      memcpy(
+        gkyl_array_fetch(fld_ion[tbid], start),
+        ((char *)bc_buffer_ion->data) + fld_ion[tbid]->esznc * (ref_factor * count),
+        fld_ion[tbid]->esznc
+      );
+      memcpy(
+        gkyl_array_fetch(fld_maxwell[tbid], start),
+        ((char *)bc_buffer_maxwell->data) + fld_maxwell[tbid]->esznc * (ref_factor * count),
+        fld_maxwell[tbid]->esznc
+      );
       count += 1;
-    }
-    else {
-      memcpy(gkyl_array_fetch(fld_elc[tbid], start),
-        ((char*) bc_buffer_elc->data) + fld_elc[tbid]->esznc * ((ref_factor * (count - (count % 2))) + (count % 2)), fld_elc[tbid]->esznc);
-      memcpy(gkyl_array_fetch(fld_ion[tbid], start),
-        ((char*) bc_buffer_ion->data) + fld_ion[tbid]->esznc * ((ref_factor * (count - (count % 2))) + (count % 2)), fld_ion[tbid]->esznc);
-      memcpy(gkyl_array_fetch(fld_maxwell[tbid], start),
-        ((char*) bc_buffer_maxwell->data) + fld_maxwell[tbid]->esznc * ((ref_factor * (count - (count % 2))) + (count % 2)), fld_maxwell[tbid]->esznc);
+    } else {
+      memcpy(
+        gkyl_array_fetch(fld_elc[tbid], start),
+        ((char *)bc_buffer_elc->data) +
+          fld_elc[tbid]->esznc * ((ref_factor * (count - (count % 2))) + (count % 2)),
+        fld_elc[tbid]->esznc
+      );
+      memcpy(
+        gkyl_array_fetch(fld_ion[tbid], start),
+        ((char *)bc_buffer_ion->data) +
+          fld_ion[tbid]->esznc * ((ref_factor * (count - (count % 2))) + (count % 2)),
+        fld_ion[tbid]->esznc
+      );
+      memcpy(
+        gkyl_array_fetch(fld_maxwell[tbid], start),
+        ((char *)bc_buffer_maxwell->data) +
+          fld_maxwell[tbid]->esznc * ((ref_factor * (count - (count % 2))) + (count % 2)),
+        fld_maxwell[tbid]->esznc
+      );
       count += 1;
     }
   }
 }
 
 void
-block_coupled_uu_projection_op(const int tbid, const int tdir, const int i, const int d, const struct five_moment_block_data bdata[],
-  const struct gkyl_array* bc_buffer_elc, const struct gkyl_array* bc_buffer_ion, const struct gkyl_array* bc_buffer_maxwell,
-  struct gkyl_array* fld_elc[], struct gkyl_array* fld_ion[], struct gkyl_array* fld_maxwell[])
+block_coupled_uu_projection_op(
+  const int tbid, const int tdir, const int i, const int d,
+  const struct five_moment_block_data bdata[], const struct gkyl_array *bc_buffer_elc,
+  const struct gkyl_array *bc_buffer_ion, const struct gkyl_array *bc_buffer_maxwell,
+  struct gkyl_array *fld_elc[], struct gkyl_array *fld_ion[], struct gkyl_array *fld_maxwell[]
+)
 {
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &(bdata[tbid].skin_ghost.upper_ghost[tdir]));
 
-  double ref_factor_inv = ((double)bdata[i].skin_ghost.upper_skin[d].volume / (double)bdata[tbid].skin_ghost.upper_ghost[tdir].volume);
+  double ref_factor_inv =
+    ((double)bdata[i].skin_ghost.upper_skin[d].volume /
+     (double)bdata[tbid].skin_ghost.upper_ghost[tdir].volume);
 
   long count = 0;
   while (gkyl_range_iter_next(&iter)) {
     long start = gkyl_range_idx(&(bdata[tbid].skin_ghost.upper_ghost[tdir]), iter.idx);
 
-    if ((bdata[tbid].skin_ghost.upper_ghost[tdir].upper[0] - bdata[tbid].skin_ghost.upper_ghost[tdir].lower[0]) == 1) {
-      memcpy(gkyl_array_fetch(fld_elc[tbid], start),
-        ((char*) bc_buffer_elc->data) + fld_elc[tbid]->esznc * ((int)(ref_factor_inv * count)), fld_elc[tbid]->esznc);
-      memcpy(gkyl_array_fetch(fld_ion[tbid], start),
-        ((char*) bc_buffer_ion->data) + fld_ion[tbid]->esznc * ((int)(ref_factor_inv * count)), fld_ion[tbid]->esznc);
-      memcpy(gkyl_array_fetch(fld_maxwell[tbid], start),
-        ((char*) bc_buffer_maxwell->data) + fld_maxwell[tbid]->esznc * ((int)(ref_factor_inv * count)), fld_maxwell[tbid]->esznc);
+    if ((bdata[tbid].skin_ghost.upper_ghost[tdir].upper[0] -
+         bdata[tbid].skin_ghost.upper_ghost[tdir].lower[0]) == 1) {
+      memcpy(
+        gkyl_array_fetch(fld_elc[tbid], start),
+        ((char *)bc_buffer_elc->data) + fld_elc[tbid]->esznc * ((int)(ref_factor_inv * count)),
+        fld_elc[tbid]->esznc
+      );
+      memcpy(
+        gkyl_array_fetch(fld_ion[tbid], start),
+        ((char *)bc_buffer_ion->data) + fld_ion[tbid]->esznc * ((int)(ref_factor_inv * count)),
+        fld_ion[tbid]->esznc
+      );
+      memcpy(
+        gkyl_array_fetch(fld_maxwell[tbid], start),
+        ((char *)bc_buffer_maxwell->data) +
+          fld_maxwell[tbid]->esznc * ((int)(ref_factor_inv * count)),
+        fld_maxwell[tbid]->esznc
+      );
       count += 1;
-    }
-    else {
-      memcpy(gkyl_array_fetch(fld_elc[tbid], start),
-        ((char*) bc_buffer_elc->data) + fld_elc[tbid]->esznc * (2 * (int)(0.5 * ref_factor_inv * count) + (count % 2)), fld_elc[tbid]->esznc);
-      memcpy(gkyl_array_fetch(fld_ion[tbid], start),
-        ((char*) bc_buffer_ion->data) + fld_ion[tbid]->esznc * (2 * (int)(0.5 * ref_factor_inv * count) + (count % 2)), fld_ion[tbid]->esznc);
-      memcpy(gkyl_array_fetch(fld_maxwell[tbid], start),
-        ((char*) bc_buffer_maxwell->data) + fld_maxwell[tbid]->esznc * (2 * (int)(0.5 * ref_factor_inv * count) + (count % 2)), fld_maxwell[tbid]->esznc);
+    } else {
+      memcpy(
+        gkyl_array_fetch(fld_elc[tbid], start),
+        ((char *)bc_buffer_elc->data) +
+          fld_elc[tbid]->esznc * (2 * (int)(0.5 * ref_factor_inv * count) + (count % 2)),
+        fld_elc[tbid]->esznc
+      );
+      memcpy(
+        gkyl_array_fetch(fld_ion[tbid], start),
+        ((char *)bc_buffer_ion->data) +
+          fld_ion[tbid]->esznc * (2 * (int)(0.5 * ref_factor_inv * count) + (count % 2)),
+        fld_ion[tbid]->esznc
+      );
+      memcpy(
+        gkyl_array_fetch(fld_maxwell[tbid], start),
+        ((char *)bc_buffer_maxwell->data) +
+          fld_maxwell[tbid]->esznc * (2 * (int)(0.5 * ref_factor_inv * count) + (count % 2)),
+        fld_maxwell[tbid]->esznc
+      );
       count += 1;
     }
   }
 }
 
 void
-block_coupled_uu_restriction_op(const int tbid, const int tdir, const int i, const int d, const struct five_moment_block_data bdata[],
-  const struct gkyl_array* bc_buffer_elc, const struct gkyl_array* bc_buffer_ion, const struct gkyl_array* bc_buffer_maxwell,
-  struct gkyl_array* fld_elc[], struct gkyl_array* fld_ion[], struct gkyl_array* fld_maxwell[])
+block_coupled_uu_restriction_op(
+  const int tbid, const int tdir, const int i, const int d,
+  const struct five_moment_block_data bdata[], const struct gkyl_array *bc_buffer_elc,
+  const struct gkyl_array *bc_buffer_ion, const struct gkyl_array *bc_buffer_maxwell,
+  struct gkyl_array *fld_elc[], struct gkyl_array *fld_ion[], struct gkyl_array *fld_maxwell[]
+)
 {
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &(bdata[tbid].skin_ghost.upper_ghost[tdir]));
 
-  int ref_factor = (int)(bdata[i].skin_ghost.upper_skin[d].volume / bdata[tbid].skin_ghost.upper_ghost[tdir].volume);
+  int ref_factor = (int)(bdata[i].skin_ghost.upper_skin[d].volume /
+                         bdata[tbid].skin_ghost.upper_ghost[tdir].volume);
 
   long count = 0;
   while (gkyl_range_iter_next(&iter)) {
     long start = gkyl_range_idx(&(bdata[tbid].skin_ghost.upper_ghost[tdir]), iter.idx);
-    
-    if ((bdata[tbid].skin_ghost.upper_ghost[tdir].upper[0] - bdata[tbid].skin_ghost.upper_ghost[tdir].lower[0]) == 1) {
-      memcpy(gkyl_array_fetch(fld_elc[tbid], start),
-        ((char*) bc_buffer_elc->data) + fld_elc[tbid]->esznc * (ref_factor * count), fld_elc[tbid]->esznc);
-      memcpy(gkyl_array_fetch(fld_ion[tbid], start),
-        ((char*) bc_buffer_ion->data) + fld_ion[tbid]->esznc * (ref_factor * count), fld_ion[tbid]->esznc);
-      memcpy(gkyl_array_fetch(fld_maxwell[tbid], start),
-        ((char*) bc_buffer_maxwell->data) + fld_maxwell[tbid]->esznc * (ref_factor * count), fld_maxwell[tbid]->esznc);
+
+    if ((bdata[tbid].skin_ghost.upper_ghost[tdir].upper[0] -
+         bdata[tbid].skin_ghost.upper_ghost[tdir].lower[0]) == 1) {
+      memcpy(
+        gkyl_array_fetch(fld_elc[tbid], start),
+        ((char *)bc_buffer_elc->data) + fld_elc[tbid]->esznc * (ref_factor * count),
+        fld_elc[tbid]->esznc
+      );
+      memcpy(
+        gkyl_array_fetch(fld_ion[tbid], start),
+        ((char *)bc_buffer_ion->data) + fld_ion[tbid]->esznc * (ref_factor * count),
+        fld_ion[tbid]->esznc
+      );
+      memcpy(
+        gkyl_array_fetch(fld_maxwell[tbid], start),
+        ((char *)bc_buffer_maxwell->data) + fld_maxwell[tbid]->esznc * (ref_factor * count),
+        fld_maxwell[tbid]->esznc
+      );
       count += 1;
-    }
-    else {
-      memcpy(gkyl_array_fetch(fld_elc[tbid], start),
-        ((char*) bc_buffer_elc->data) + fld_elc[tbid]->esznc * ((ref_factor * (count - (count % 2))) + (count % 2)), fld_elc[tbid]->esznc);
-      memcpy(gkyl_array_fetch(fld_ion[tbid], start),
-        ((char*) bc_buffer_ion->data) + fld_ion[tbid]->esznc * ((ref_factor * (count - (count % 2))) + (count % 2)), fld_ion[tbid]->esznc);
-      memcpy(gkyl_array_fetch(fld_maxwell[tbid], start),
-        ((char*) bc_buffer_maxwell->data) + fld_maxwell[tbid]->esznc * ((ref_factor * (count - (count % 2))) + (count % 2)), fld_maxwell[tbid]->esznc);
+    } else {
+      memcpy(
+        gkyl_array_fetch(fld_elc[tbid], start),
+        ((char *)bc_buffer_elc->data) +
+          fld_elc[tbid]->esznc * ((ref_factor * (count - (count % 2))) + (count % 2)),
+        fld_elc[tbid]->esznc
+      );
+      memcpy(
+        gkyl_array_fetch(fld_ion[tbid], start),
+        ((char *)bc_buffer_ion->data) +
+          fld_ion[tbid]->esznc * ((ref_factor * (count - (count % 2))) + (count % 2)),
+        fld_ion[tbid]->esznc
+      );
+      memcpy(
+        gkyl_array_fetch(fld_maxwell[tbid], start),
+        ((char *)bc_buffer_maxwell->data) +
+          fld_maxwell[tbid]->esznc * ((ref_factor * (count - (count % 2))) + (count % 2)),
+        fld_maxwell[tbid]->esznc
+      );
       count += 1;
     }
   }
 }
 
 void
-five_moment_sync_blocks(const struct gkyl_block_topo* btopo, const struct five_moment_block_data bdata[],
-  struct gkyl_array* fld_elc[], struct gkyl_array* fld_ion[], struct gkyl_array* fld_maxwell[])
+five_moment_sync_blocks(
+  const struct gkyl_block_topo *btopo, const struct five_moment_block_data bdata[],
+  struct gkyl_array *fld_elc[], struct gkyl_array *fld_ion[], struct gkyl_array *fld_maxwell[]
+)
 {
   int num_blocks = btopo->num_blocks;
   int ndim = btopo->ndim;
@@ -713,41 +1025,70 @@ five_moment_sync_blocks(const struct gkyl_block_topo* btopo, const struct five_m
         struct gkyl_array *bc_buffer_ion = bdata[i].bc_buffer_ion;
         struct gkyl_array *bc_buffer_maxwell = bdata[i].bc_buffer_maxwell;
 
-        gkyl_array_copy_to_buffer(bc_buffer_elc->data, fld_elc[i], &(bdata[i].skin_ghost.lower_skin[d]));
-        gkyl_array_copy_to_buffer(bc_buffer_ion->data, fld_ion[i], &(bdata[i].skin_ghost.lower_skin[d]));
-        gkyl_array_copy_to_buffer(bc_buffer_maxwell->data, fld_maxwell[i], &(bdata[i].skin_ghost.lower_skin[d]));
+        gkyl_array_copy_to_buffer(
+          bc_buffer_elc->data, fld_elc[i], &(bdata[i].skin_ghost.lower_skin[d])
+        );
+        gkyl_array_copy_to_buffer(
+          bc_buffer_ion->data, fld_ion[i], &(bdata[i].skin_ghost.lower_skin[d])
+        );
+        gkyl_array_copy_to_buffer(
+          bc_buffer_maxwell->data, fld_maxwell[i], &(bdata[i].skin_ghost.lower_skin[d])
+        );
 
         int tbid = te[0].bid;
         int tdir = te[0].dir;
 
         if (te[0].edge == GKYL_LOWER_POSITIVE) {
-          if (bdata[i].skin_ghost.lower_skin[d].volume == bdata[tbid].skin_ghost.lower_ghost[tdir].volume) {
-            gkyl_array_copy_from_buffer(fld_elc[tbid], bc_buffer_elc->data, &(bdata[tbid].skin_ghost.lower_ghost[tdir]));
-            gkyl_array_copy_from_buffer(fld_ion[tbid], bc_buffer_ion->data, &(bdata[tbid].skin_ghost.lower_ghost[tdir]));
-            gkyl_array_copy_from_buffer(fld_maxwell[tbid], bc_buffer_maxwell->data, &(bdata[tbid].skin_ghost.lower_ghost[tdir]));
+          if (bdata[i].skin_ghost.lower_skin[d].volume ==
+              bdata[tbid].skin_ghost.lower_ghost[tdir].volume) {
+            gkyl_array_copy_from_buffer(
+              fld_elc[tbid], bc_buffer_elc->data, &(bdata[tbid].skin_ghost.lower_ghost[tdir])
+            );
+            gkyl_array_copy_from_buffer(
+              fld_ion[tbid], bc_buffer_ion->data, &(bdata[tbid].skin_ghost.lower_ghost[tdir])
+            );
+            gkyl_array_copy_from_buffer(
+              fld_maxwell[tbid], bc_buffer_maxwell->data,
+              &(bdata[tbid].skin_ghost.lower_ghost[tdir])
+            );
+          } else if (bdata[i].skin_ghost.lower_skin[d].volume >
+                     bdata[tbid].skin_ghost.lower_ghost[tdir].volume) {
+            block_coupled_ll_restriction_op(
+              tbid, tdir, i, d, bdata, bc_buffer_elc, bc_buffer_ion, bc_buffer_maxwell, fld_elc,
+              fld_ion, fld_maxwell
+            );
+          } else if (bdata[i].skin_ghost.lower_skin[d].volume <
+                     bdata[tbid].skin_ghost.lower_ghost[tdir].volume) {
+            block_coupled_ll_projection_op(
+              tbid, tdir, i, d, bdata, bc_buffer_elc, bc_buffer_ion, bc_buffer_maxwell, fld_elc,
+              fld_ion, fld_maxwell
+            );
           }
-          else if (bdata[i].skin_ghost.lower_skin[d].volume > bdata[tbid].skin_ghost.lower_ghost[tdir].volume) {
-            block_coupled_ll_restriction_op(tbid, tdir, i, d, bdata, bc_buffer_elc, bc_buffer_ion, bc_buffer_maxwell,
-              fld_elc, fld_ion, fld_maxwell);
-          }
-          else if (bdata[i].skin_ghost.lower_skin[d].volume < bdata[tbid].skin_ghost.lower_ghost[tdir].volume) {
-            block_coupled_ll_projection_op(tbid, tdir, i, d, bdata, bc_buffer_elc, bc_buffer_ion, bc_buffer_maxwell,
-              fld_elc, fld_ion, fld_maxwell);
-          }
-        }
-        else if (te[0].edge == GKYL_UPPER_POSITIVE) {
-          if (bdata[i].skin_ghost.lower_skin[d].volume == bdata[tbid].skin_ghost.upper_ghost[tdir].volume) {
-            gkyl_array_copy_from_buffer(fld_elc[tbid], bc_buffer_elc->data, &(bdata[tbid].skin_ghost.upper_ghost[tdir]));
-            gkyl_array_copy_from_buffer(fld_ion[tbid], bc_buffer_ion->data, &(bdata[tbid].skin_ghost.upper_ghost[tdir]));
-            gkyl_array_copy_from_buffer(fld_maxwell[tbid], bc_buffer_maxwell->data, &(bdata[tbid].skin_ghost.upper_ghost[tdir]));
-          }
-          else if (bdata[i].skin_ghost.lower_skin[d].volume > bdata[tbid].skin_ghost.upper_ghost[tdir].volume) {
-            block_coupled_lu_restriction_op(tbid, tdir, i, d, bdata, bc_buffer_elc, bc_buffer_ion, bc_buffer_maxwell,
-              fld_elc, fld_ion, fld_maxwell);
-          }
-          else if (bdata[i].skin_ghost.lower_skin[d].volume < bdata[tbid].skin_ghost.upper_ghost[tdir].volume) {
-            block_coupled_lu_projection_op(tbid, tdir, i, d, bdata, bc_buffer_elc, bc_buffer_ion, bc_buffer_maxwell,
-              fld_elc, fld_ion, fld_maxwell);
+        } else if (te[0].edge == GKYL_UPPER_POSITIVE) {
+          if (bdata[i].skin_ghost.lower_skin[d].volume ==
+              bdata[tbid].skin_ghost.upper_ghost[tdir].volume) {
+            gkyl_array_copy_from_buffer(
+              fld_elc[tbid], bc_buffer_elc->data, &(bdata[tbid].skin_ghost.upper_ghost[tdir])
+            );
+            gkyl_array_copy_from_buffer(
+              fld_ion[tbid], bc_buffer_ion->data, &(bdata[tbid].skin_ghost.upper_ghost[tdir])
+            );
+            gkyl_array_copy_from_buffer(
+              fld_maxwell[tbid], bc_buffer_maxwell->data,
+              &(bdata[tbid].skin_ghost.upper_ghost[tdir])
+            );
+          } else if (bdata[i].skin_ghost.lower_skin[d].volume >
+                     bdata[tbid].skin_ghost.upper_ghost[tdir].volume) {
+            block_coupled_lu_restriction_op(
+              tbid, tdir, i, d, bdata, bc_buffer_elc, bc_buffer_ion, bc_buffer_maxwell, fld_elc,
+              fld_ion, fld_maxwell
+            );
+          } else if (bdata[i].skin_ghost.lower_skin[d].volume <
+                     bdata[tbid].skin_ghost.upper_ghost[tdir].volume) {
+            block_coupled_lu_projection_op(
+              tbid, tdir, i, d, bdata, bc_buffer_elc, bc_buffer_ion, bc_buffer_maxwell, fld_elc,
+              fld_ion, fld_maxwell
+            );
           }
         }
       }
@@ -757,41 +1098,70 @@ five_moment_sync_blocks(const struct gkyl_block_topo* btopo, const struct five_m
         struct gkyl_array *bc_buffer_ion = bdata[i].bc_buffer_ion;
         struct gkyl_array *bc_buffer_maxwell = bdata[i].bc_buffer_maxwell;
 
-        gkyl_array_copy_to_buffer(bc_buffer_elc->data, fld_elc[i], &(bdata[i].skin_ghost.upper_skin[d]));
-        gkyl_array_copy_to_buffer(bc_buffer_ion->data, fld_ion[i], &(bdata[i].skin_ghost.upper_skin[d]));
-        gkyl_array_copy_to_buffer(bc_buffer_maxwell->data, fld_maxwell[i], &(bdata[i].skin_ghost.upper_skin[d]));
+        gkyl_array_copy_to_buffer(
+          bc_buffer_elc->data, fld_elc[i], &(bdata[i].skin_ghost.upper_skin[d])
+        );
+        gkyl_array_copy_to_buffer(
+          bc_buffer_ion->data, fld_ion[i], &(bdata[i].skin_ghost.upper_skin[d])
+        );
+        gkyl_array_copy_to_buffer(
+          bc_buffer_maxwell->data, fld_maxwell[i], &(bdata[i].skin_ghost.upper_skin[d])
+        );
 
         int tbid = te[1].bid;
         int tdir = te[1].dir;
 
         if (te[1].edge == GKYL_LOWER_POSITIVE) {
-          if (bdata[i].skin_ghost.upper_skin[d].volume == bdata[tbid].skin_ghost.lower_ghost[tdir].volume) {
-            gkyl_array_copy_from_buffer(fld_elc[tbid], bc_buffer_elc->data, &(bdata[tbid].skin_ghost.lower_ghost[tdir]));
-            gkyl_array_copy_from_buffer(fld_ion[tbid], bc_buffer_ion->data, &(bdata[tbid].skin_ghost.lower_ghost[tdir]));
-            gkyl_array_copy_from_buffer(fld_maxwell[tbid], bc_buffer_maxwell->data, &(bdata[tbid].skin_ghost.lower_ghost[tdir]));
+          if (bdata[i].skin_ghost.upper_skin[d].volume ==
+              bdata[tbid].skin_ghost.lower_ghost[tdir].volume) {
+            gkyl_array_copy_from_buffer(
+              fld_elc[tbid], bc_buffer_elc->data, &(bdata[tbid].skin_ghost.lower_ghost[tdir])
+            );
+            gkyl_array_copy_from_buffer(
+              fld_ion[tbid], bc_buffer_ion->data, &(bdata[tbid].skin_ghost.lower_ghost[tdir])
+            );
+            gkyl_array_copy_from_buffer(
+              fld_maxwell[tbid], bc_buffer_maxwell->data,
+              &(bdata[tbid].skin_ghost.lower_ghost[tdir])
+            );
+          } else if (bdata[i].skin_ghost.upper_skin[d].volume >
+                     bdata[tbid].skin_ghost.lower_ghost[tdir].volume) {
+            block_coupled_ul_restriction_op(
+              tbid, tdir, i, d, bdata, bc_buffer_elc, bc_buffer_ion, bc_buffer_maxwell, fld_elc,
+              fld_ion, fld_maxwell
+            );
+          } else if (bdata[i].skin_ghost.upper_skin[d].volume <
+                     bdata[tbid].skin_ghost.lower_ghost[tdir].volume) {
+            block_coupled_ul_projection_op(
+              tbid, tdir, i, d, bdata, bc_buffer_elc, bc_buffer_ion, bc_buffer_maxwell, fld_elc,
+              fld_ion, fld_maxwell
+            );
           }
-          else if (bdata[i].skin_ghost.upper_skin[d].volume > bdata[tbid].skin_ghost.lower_ghost[tdir].volume) {
-            block_coupled_ul_restriction_op(tbid, tdir, i, d, bdata, bc_buffer_elc, bc_buffer_ion, bc_buffer_maxwell,
-              fld_elc, fld_ion, fld_maxwell);
-          }
-          else if (bdata[i].skin_ghost.upper_skin[d].volume < bdata[tbid].skin_ghost.lower_ghost[tdir].volume) {
-            block_coupled_ul_projection_op(tbid, tdir, i, d, bdata, bc_buffer_elc, bc_buffer_ion, bc_buffer_maxwell,
-              fld_elc, fld_ion, fld_maxwell);
-          }
-        }
-        else if (te[1].edge == GKYL_UPPER_POSITIVE) {
-          if (bdata[i].skin_ghost.upper_skin[d].volume == bdata[tbid].skin_ghost.upper_ghost[tdir].volume) {
-            gkyl_array_copy_from_buffer(fld_elc[tbid], bc_buffer_elc->data, &(bdata[tbid].skin_ghost.upper_ghost[tdir]));
-            gkyl_array_copy_from_buffer(fld_ion[tbid], bc_buffer_ion->data, &(bdata[tbid].skin_ghost.upper_ghost[tdir]));
-            gkyl_array_copy_from_buffer(fld_maxwell[tbid], bc_buffer_maxwell->data, &(bdata[tbid].skin_ghost.upper_ghost[tdir]));
-          }
-          else if (bdata[i].skin_ghost.upper_skin[d].volume > bdata[tbid].skin_ghost.upper_ghost[tdir].volume) {
-            block_coupled_uu_restriction_op(tbid, tdir, i, d, bdata, bc_buffer_elc, bc_buffer_ion, bc_buffer_maxwell,
-              fld_elc, fld_ion, fld_maxwell);
-          }
-          else if (bdata[i].skin_ghost.upper_skin[d].volume < bdata[tbid].skin_ghost.upper_ghost[tdir].volume) {
-            block_coupled_uu_projection_op(tbid, tdir, i, d, bdata, bc_buffer_elc, bc_buffer_ion, bc_buffer_maxwell,
-              fld_elc, fld_ion, fld_maxwell);
+        } else if (te[1].edge == GKYL_UPPER_POSITIVE) {
+          if (bdata[i].skin_ghost.upper_skin[d].volume ==
+              bdata[tbid].skin_ghost.upper_ghost[tdir].volume) {
+            gkyl_array_copy_from_buffer(
+              fld_elc[tbid], bc_buffer_elc->data, &(bdata[tbid].skin_ghost.upper_ghost[tdir])
+            );
+            gkyl_array_copy_from_buffer(
+              fld_ion[tbid], bc_buffer_ion->data, &(bdata[tbid].skin_ghost.upper_ghost[tdir])
+            );
+            gkyl_array_copy_from_buffer(
+              fld_maxwell[tbid], bc_buffer_maxwell->data,
+              &(bdata[tbid].skin_ghost.upper_ghost[tdir])
+            );
+          } else if (bdata[i].skin_ghost.upper_skin[d].volume >
+                     bdata[tbid].skin_ghost.upper_ghost[tdir].volume) {
+            block_coupled_uu_restriction_op(
+              tbid, tdir, i, d, bdata, bc_buffer_elc, bc_buffer_ion, bc_buffer_maxwell, fld_elc,
+              fld_ion, fld_maxwell
+            );
+          } else if (bdata[i].skin_ghost.upper_skin[d].volume <
+                     bdata[tbid].skin_ghost.upper_ghost[tdir].volume) {
+            block_coupled_uu_projection_op(
+              tbid, tdir, i, d, bdata, bc_buffer_elc, bc_buffer_ion, bc_buffer_maxwell, fld_elc,
+              fld_ion, fld_maxwell
+            );
           }
         }
       }
@@ -800,7 +1170,10 @@ five_moment_sync_blocks(const struct gkyl_block_topo* btopo, const struct five_m
 }
 
 void
-five_moment_block_data_write(const char* file_nm_elc, const char* file_nm_ion, const char* file_nm_maxwell, const struct five_moment_block_data* bdata)
+five_moment_block_data_write(
+  const char *file_nm_elc, const char *file_nm_ion, const char *file_nm_maxwell,
+  const struct five_moment_block_data *bdata
+)
 {
   gkyl_grid_sub_array_write(&bdata->grid, &bdata->range, 0, bdata->f_elc[0], file_nm_elc);
   gkyl_grid_sub_array_write(&bdata->grid, &bdata->range, 0, bdata->f_ion[0], file_nm_ion);
@@ -808,21 +1181,22 @@ five_moment_block_data_write(const char* file_nm_elc, const char* file_nm_ion, c
 }
 
 double
-five_moment_block_data_max_dt(const struct five_moment_block_data* bdata)
+five_moment_block_data_max_dt(const struct five_moment_block_data *bdata)
 {
   double dt = DBL_MAX;
 
   for (int d = 0; d < 2; d++) {
     dt = fmin(dt, gkyl_wave_prop_max_dt(bdata->slvr_elc[d], &bdata->range, bdata->f_elc[0]));
     dt = fmin(dt, gkyl_wave_prop_max_dt(bdata->slvr_ion[d], &bdata->range, bdata->f_ion[0]));
-    dt = fmin(dt, gkyl_wave_prop_max_dt(bdata->slvr_maxwell[d], &bdata->range, bdata->f_maxwell[0]));
+    dt =
+      fmin(dt, gkyl_wave_prop_max_dt(bdata->slvr_maxwell[d], &bdata->range, bdata->f_maxwell[0]));
   }
 
   return dt;
 }
 
 void
-five_moment_update_block_job_func(void* ctx)
+five_moment_update_block_job_func(void *ctx)
 {
   struct five_moment_update_block_ctx *ub_ctx = ctx;
   const struct five_moment_block_data *bdata = ub_ctx->bdata;
@@ -831,15 +1205,24 @@ five_moment_update_block_job_func(void* ctx)
   double t_curr = ub_ctx->t_curr;
   double dt = ub_ctx->dt;
 
-  ub_ctx->stat_elc = gkyl_wave_prop_advance(bdata->slvr_elc[d], t_curr, dt, &bdata->range, NULL, bdata->f_elc[d], bdata->f_elc[d + 1]);
-  ub_ctx->stat_ion = gkyl_wave_prop_advance(bdata->slvr_ion[d], t_curr, dt, &bdata->range, NULL, bdata->f_ion[d], bdata->f_ion[d + 1]);
-  ub_ctx->stat_maxwell = gkyl_wave_prop_advance(bdata->slvr_maxwell[d], t_curr, dt, &bdata->range, NULL, bdata->f_maxwell[d], bdata->f_maxwell[d + 1]);
+  ub_ctx->stat_elc = gkyl_wave_prop_advance(
+    bdata->slvr_elc[d], t_curr, dt, &bdata->range, NULL, bdata->f_elc[d], bdata->f_elc[d + 1]
+  );
+  ub_ctx->stat_ion = gkyl_wave_prop_advance(
+    bdata->slvr_ion[d], t_curr, dt, &bdata->range, NULL, bdata->f_ion[d], bdata->f_ion[d + 1]
+  );
+  ub_ctx->stat_maxwell = gkyl_wave_prop_advance(
+    bdata->slvr_maxwell[d], t_curr, dt, &bdata->range, NULL, bdata->f_maxwell[d],
+    bdata->f_maxwell[d + 1]
+  );
 
-  five_moment_block_bc_updaters_apply(bdata, t_curr, bdata->f_elc[d + 1], bdata->f_ion[d + 1], bdata->f_maxwell[d + 1]);
+  five_moment_block_bc_updaters_apply(
+    bdata, t_curr, bdata->f_elc[d + 1], bdata->f_ion[d + 1], bdata->f_maxwell[d + 1]
+  );
 }
 
 void
-five_moment_update_block_job_func_source(void* ctx)
+five_moment_update_block_job_func_source(void *ctx)
 {
   struct five_moment_update_block_ctx *ub_ctx = ctx;
   const struct five_moment_block_data *bdata = ub_ctx->bdata;
@@ -865,15 +1248,21 @@ five_moment_update_block_job_func_source(void* ctx)
   nT_source[0] = bdata->nT_source_elc;
   nT_source[1] = bdata->nT_source_ion;
 
-  gkyl_moment_em_coupling_implicit_advance(bdata->src_slvr, t_curr, dt, &bdata->range, fluids, app_accel, rhs_source,
-    bdata->f_maxwell[nstrang], bdata->app_current, bdata->ext_em, nT_source);
+  gkyl_moment_em_coupling_implicit_advance(
+    bdata->src_slvr, t_curr, dt, &bdata->range, fluids, app_accel, rhs_source,
+    bdata->f_maxwell[nstrang], bdata->app_current, bdata->ext_em, nT_source
+  );
 
-  five_moment_block_bc_updaters_apply(bdata, t_curr, bdata->f_elc[nstrang], bdata->f_ion[nstrang], bdata->f_maxwell[nstrang]);
+  five_moment_block_bc_updaters_apply(
+    bdata, t_curr, bdata->f_elc[nstrang], bdata->f_ion[nstrang], bdata->f_maxwell[nstrang]
+  );
 }
 
 struct gkyl_update_status
-five_moment_update_all_blocks(const struct gkyl_job_pool* job_pool, const struct gkyl_block_topo* btopo,
-  const struct five_moment_block_data bdata[], double t_curr, double dt)
+five_moment_update_all_blocks(
+  const struct gkyl_job_pool *job_pool, const struct gkyl_block_topo *btopo,
+  const struct five_moment_block_data bdata[], double t_curr, double dt
+)
 {
   int num_blocks = btopo->num_blocks;
   int ndim = btopo->ndim;
@@ -884,7 +1273,7 @@ five_moment_update_all_blocks(const struct gkyl_job_pool* job_pool, const struct
     struct five_moment_update_block_ctx five_moment_block_ctx[num_blocks];
 
     for (int i = 0; i < num_blocks; i++) {
-      five_moment_block_ctx[i] = (struct five_moment_update_block_ctx) {
+      five_moment_block_ctx[i] = (struct five_moment_update_block_ctx){
         .bdata = &bdata[i],
         .t_curr = t_curr,
         .dir = d,
@@ -910,15 +1299,14 @@ five_moment_update_all_blocks(const struct gkyl_job_pool* job_pool, const struct
     struct gkyl_array *fld_maxwell[num_blocks];
 
     for (int i = 0; i < num_blocks; i++) {
-      if (five_moment_block_ctx[i].stat_elc.success == false || five_moment_block_ctx[i].stat_ion.success == false || five_moment_block_ctx[i].stat_maxwell.success == false) {
+      if (five_moment_block_ctx[i].stat_elc.success == false ||
+          five_moment_block_ctx[i].stat_ion.success == false ||
+          five_moment_block_ctx[i].stat_maxwell.success == false) {
         dt_suggested = fmin(dt_suggested, five_moment_block_ctx[i].stat_elc.dt_suggested);
         dt_suggested = fmin(dt_suggested, five_moment_block_ctx[i].stat_ion.dt_suggested);
         dt_suggested = fmin(dt_suggested, five_moment_block_ctx[i].stat_maxwell.dt_suggested);
 
-        return (struct gkyl_update_status) {
-          .success = false,
-          .dt_suggested = dt_suggested,
-        };
+        return (struct gkyl_update_status){.success = false, .dt_suggested = dt_suggested};
       }
 
       dt_suggested = fmin(dt_suggested, five_moment_block_ctx[i].stat_elc.dt_suggested);
@@ -933,22 +1321,21 @@ five_moment_update_all_blocks(const struct gkyl_job_pool* job_pool, const struct
     five_moment_sync_blocks(btopo, bdata, fld_elc, fld_ion, fld_maxwell);
   }
 
-  return (struct gkyl_update_status) {
-    .success = true,
-    .dt_suggested = dt_suggested,
-  };
+  return (struct gkyl_update_status){.success = true, .dt_suggested = dt_suggested};
 }
 
 void
-five_moment_update_all_blocks_source(const struct gkyl_job_pool* job_pool, const struct gkyl_block_topo* btopo,
-  const struct five_moment_block_data bdata[], double t_curr, double dt, int nstrang)
+five_moment_update_all_blocks_source(
+  const struct gkyl_job_pool *job_pool, const struct gkyl_block_topo *btopo,
+  const struct five_moment_block_data bdata[], double t_curr, double dt, int nstrang
+)
 {
   int num_blocks = btopo->num_blocks;
 
   struct five_moment_update_block_ctx five_moment_block_ctx[num_blocks];
 
   for (int i = 0; i < num_blocks; i++) {
-    five_moment_block_ctx[i] = (struct five_moment_update_block_ctx) {
+    five_moment_block_ctx[i] = (struct five_moment_update_block_ctx){
       .bdata = &bdata[i],
       .t_curr = t_curr,
       .dir = 0,
@@ -960,7 +1347,9 @@ five_moment_update_all_blocks_source(const struct gkyl_job_pool* job_pool, const
 
 #ifdef AMR_USETHREADS
   for (int i = 0; i < num_blocks; i++) {
-    gkyl_job_pool_add_work(job_pool, five_moment_update_block_job_func_source, &five_moment_block_ctx[i]);
+    gkyl_job_pool_add_work(
+      job_pool, five_moment_update_block_job_func_source, &five_moment_block_ctx[i]
+    );
   }
   gkyl_job_pool_wait(job_pool);
 #else
@@ -983,7 +1372,7 @@ five_moment_update_all_blocks_source(const struct gkyl_job_pool* job_pool, const
 }
 
 void
-five_moment_init_job_func_block(void* ctx)
+five_moment_init_job_func_block(void *ctx)
 {
   struct five_moment_block_data *bdata = ctx;
 
@@ -993,7 +1382,7 @@ five_moment_init_job_func_block(void* ctx)
 }
 
 void
-five_moment_copy_job_func(void* ctx)
+five_moment_copy_job_func(void *ctx)
 {
   struct five_moment_copy_job_ctx *j_ctx = ctx;
 
@@ -1003,8 +1392,10 @@ five_moment_copy_job_func(void* ctx)
 }
 
 struct gkyl_update_status
-five_moment_update_block(const struct gkyl_job_pool* job_pool, const struct gkyl_block_topo* btopo,
-  const struct five_moment_block_data bdata[], double t_curr, double dt0, struct sim_stats* stats)
+five_moment_update_block(
+  const struct gkyl_job_pool *job_pool, const struct gkyl_block_topo *btopo,
+  const struct five_moment_block_data bdata[], double t_curr, double dt0, struct sim_stats *stats
+)
 {
   int num_blocks = btopo->num_blocks;
   double dt_suggested = DBL_MAX;
@@ -1016,7 +1407,7 @@ five_moment_update_block(const struct gkyl_job_pool* job_pool, const struct gkyl
     FIRST_COUPLING_UPDATE,
     BLOCK_UPDATE,
     SECOND_COUPLING_UPDATE,
-    UPDATE_REDO,
+    UPDATE_REDO
   } state = PRE_UPDATE;
 
   struct five_moment_copy_job_ctx five_moment_copy_ctx[num_blocks];
@@ -1027,7 +1418,7 @@ five_moment_update_block(const struct gkyl_job_pool* job_pool, const struct gkyl
       state = FIRST_COUPLING_UPDATE;
 
       for (int i = 0; i < num_blocks; i++) {
-        five_moment_copy_ctx[i] = (struct five_moment_copy_job_ctx) {
+        five_moment_copy_ctx[i] = (struct five_moment_copy_job_ctx){
           .bidx = i,
           .inp_elc = bdata[i].f_elc[0],
           .inp_ion = bdata[i].f_ion[0],
@@ -1048,36 +1439,32 @@ five_moment_update_block(const struct gkyl_job_pool* job_pool, const struct gkyl
         five_moment_copy_job_func(&five_moment_copy_ctx[i]);
       }
 #endif
-    }
-    else if (state == FIRST_COUPLING_UPDATE) {
+    } else if (state == FIRST_COUPLING_UPDATE) {
       state = BLOCK_UPDATE;
 
       five_moment_update_all_blocks_source(job_pool, btopo, bdata, t_curr, 0.5 * dt, 0);
-    }
-    else if (state == BLOCK_UPDATE) {
+    } else if (state == BLOCK_UPDATE) {
       state = SECOND_COUPLING_UPDATE;
 
-      struct gkyl_update_status s = five_moment_update_all_blocks(job_pool, btopo, bdata, t_curr, dt);
+      struct gkyl_update_status s =
+        five_moment_update_all_blocks(job_pool, btopo, bdata, t_curr, dt);
 
       if (!s.success) {
         stats->nfail += 1;
         dt = s.dt_suggested;
         state = UPDATE_REDO;
-      }
-      else {
+      } else {
         dt_suggested = fmin(dt_suggested, s.dt_suggested);
       }
-    }
-    else if (state == SECOND_COUPLING_UPDATE) {
+    } else if (state == SECOND_COUPLING_UPDATE) {
       state = POST_UPDATE;
 
       five_moment_update_all_blocks_source(job_pool, btopo, bdata, t_curr, 0.5 * dt, 2);
-    }
-    else if (state == POST_UPDATE) {
+    } else if (state == POST_UPDATE) {
       state = UPDATE_DONE;
 
       for (int i = 0; i < num_blocks; i++) {
-        five_moment_copy_ctx[i] = (struct five_moment_copy_job_ctx) {
+        five_moment_copy_ctx[i] = (struct five_moment_copy_job_ctx){
           .bidx = i,
           .inp_elc = bdata[i].f_elc[2],
           .inp_ion = bdata[i].f_ion[2],
@@ -1098,12 +1485,11 @@ five_moment_update_block(const struct gkyl_job_pool* job_pool, const struct gkyl
         five_moment_copy_job_func(&five_moment_copy_ctx[i]);
       }
 #endif
-    }
-    else if (state == UPDATE_REDO) {
+    } else if (state == UPDATE_REDO) {
       state = PRE_UPDATE;
 
       for (int i = 0; i < num_blocks; i++) {
-        five_moment_copy_ctx[i] = (struct five_moment_copy_job_ctx) {
+        five_moment_copy_ctx[i] = (struct five_moment_copy_job_ctx){
           .bidx = i,
           .inp_elc = bdata[i].fdup_elc,
           .inp_ion = bdata[i].fdup_ion,
@@ -1127,7 +1513,7 @@ five_moment_update_block(const struct gkyl_job_pool* job_pool, const struct gkyl
     }
   }
 
-  return (struct gkyl_update_status) {
+  return (struct gkyl_update_status){
     .success = true,
     .dt_actual = dt,
     .dt_suggested = dt_suggested,
@@ -1135,7 +1521,9 @@ five_moment_update_block(const struct gkyl_job_pool* job_pool, const struct gkyl
 }
 
 void
-five_moment_write_sol_block(const char* fbase, int num_blocks, const struct five_moment_block_data bdata[])
+five_moment_write_sol_block(
+  const char *fbase, int num_blocks, const struct five_moment_block_data bdata[]
+)
 {
   for (int i = 0; i < num_blocks; i++) {
     const char *fmt_elc = "%s_elc_b%d.gkyl";

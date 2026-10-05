@@ -18,7 +18,7 @@ typedef struct gkyl_superlu_prob gkyl_superlu_prob;
  *      dimensions and sparsity pattern) where each problem only has a
  *      right-side vector with a single column.
  */
-struct gkyl_superlu_prob* gkyl_superlu_prob_new(int nprob, int mrow, int ncol, int nrhs);
+struct gkyl_superlu_prob *gkyl_superlu_prob_new(int nprob, int mrow, int ncol, int nrhs);
 
 /**
  * Initialize SuperLU matrix A in Ax=B problem from a list of triples.
@@ -82,7 +82,9 @@ void gkyl_superlu_mat_vec(struct gkyl_superlu_prob *prob, const double *x, doubl
  * @param prob SuperLu struct holding arrays used in problem.
  * @param tri coordinates & values of non-zero entries in A matrix (triplets).
  */
-void gkyl_superlu_amat_update_from_triples(struct gkyl_superlu_prob *prob, struct gkyl_mat_triples **tri);
+void gkyl_superlu_amat_update_from_triples(
+  struct gkyl_superlu_prob *prob, struct gkyl_mat_triples **tri
+);
 
 /**
  * Obtain the RHS ielement-th value of the jprob-th linear problem.
@@ -101,7 +103,7 @@ double gkyl_superlu_get_rhs_ij(struct gkyl_superlu_prob *prob, long ielement, lo
  */
 double gkyl_superlu_get_rhs_lin(struct gkyl_superlu_prob *prob, long loc);
 
-double* gkyl_superlu_get_rhs_ptr(struct gkyl_superlu_prob *prob, long loc);
+double *gkyl_superlu_get_rhs_ptr(struct gkyl_superlu_prob *prob, long loc);
 
 /**
  * Release SuperLU problem

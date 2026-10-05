@@ -8,10 +8,10 @@
 void
 gkyl_cart_modal_hybrid(struct gkyl_basis *basis, int cdim, int vdim)
 {
-  int ndim = cdim+vdim;
-  assert(ndim>1 && ndim<7);
-  assert(cdim<4 && vdim>0 && vdim<4);
-  
+  int ndim = cdim + vdim;
+  assert(ndim > 1 && ndim < 7);
+  assert(cdim < 4 && vdim > 0 && vdim < 4);
+
   basis->ndim = ndim;
   basis->poly_order = 1;
   basis->num_basis = num_basis_list[cdim].count[vdim];

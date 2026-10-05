@@ -52,28 +52,36 @@ create_ctx(double kx_rho)
   double qe = -eV, qi = eV;
 
   double n0 = 1.0e19;
-  double Te0 = 100.0*eV, Ti0 = 100.0*eV;
+  double Te0 = 100.0 * eV, Ti0 = 100.0 * eV;
   double B0 = 1.0;
 
-  double vte = sqrt(Te0/me), vti = sqrt(Ti0/mi);
-  double rho_i = sqrt(Ti0*mi)/(qi*B0);
+  double vte = sqrt(Te0 / me), vti = sqrt(Ti0 / mi);
+  double rho_i = sqrt(Ti0 * mi) / (qi * B0);
 
-  double kx = kx_rho/rho_i;
-  double Lx = M_PI/kx;
+  double kx = kx_rho / rho_i;
+  double Lx = M_PI / kx;
   double Lz = 1.0;
 
   struct flr_ctx ctx = {
-    .cdim = 2, .vdim = 2,
-    .me = me, .qe = qe, .mi = mi, .qi = qi,
-    .n0 = n0, .Te0 = Te0, .Ti0 = Ti0, .B0 = B0,
+    .cdim = 2,
+    .vdim = 2,
+    .me = me,
+    .qe = qe,
+    .mi = mi,
+    .qi = qi,
+    .n0 = n0,
+    .Te0 = Te0,
+    .Ti0 = Ti0,
+    .B0 = B0,
     .rho_i = rho_i,
     .kx = kx,
     .pert_amp = 1.0e-2,
-    .Lx = Lx, .Lz = Lz,
-    .vpar_max_elc = 5.0*vte,
-    .mu_max_elc = me*pow(5.0*vte,2)/(2.0*B0),
-    .vpar_max_ion = 5.0*vti,
-    .mu_max_ion = mi*pow(5.0*vti,2)/(2.0*B0),
+    .Lx = Lx,
+    .Lz = Lz,
+    .vpar_max_elc = 5.0 * vte,
+    .mu_max_elc = me * pow(5.0 * vte, 2) / (2.0 * B0),
+    .vpar_max_ion = 5.0 * vti,
+    .mu_max_ion = mi * pow(5.0 * vti, 2) / (2.0 * B0),
     .cells = {32, 4, 12, 8},
   };
   return ctx;
@@ -91,7 +99,7 @@ density_ion(double t, const double *xn, double *fout, void *ctx)
 {
   struct flr_ctx *app = ctx;
   double x = xn[0];
-  fout[0] = app->n0*(1.0 + app->pert_amp*sin(app->kx*x));
+  fout[0] = app->n0 * (1.0 + app->pert_amp * sin(app->kx * x));
 }
 
 static void
@@ -117,117 +125,121 @@ zero_func(double t, const double *xn, double *fout, void *ctx)
 static void
 mapc2p(double t, const double *xc, double *xp, void *ctx)
 {
-  xp[0] = xc[0]; xp[1] = xc[1]; xp[2] = xc[2];
+  xp[0] = xc[0];
+  xp[1] = xc[1];
+  xp[2] = xc[2];
 }
 
 static void
 bfield_func(double t, const double *xc, double *fout, void *ctx)
 {
   struct flr_ctx *app = ctx;
-  fout[0] = 0.0; fout[1] = 0.0; fout[2] = app->B0;
+  fout[0] = 0.0;
+  fout[1] = 0.0;
+  fout[2] = app->B0;
 }
 
 // Run the initial field solve with the given field FLR options and write
 // frame 0. Only the ions provide a reference gyroradius.
 static void
-run_case(struct flr_ctx *ctx, struct gkyl_comm *comm, bool use_gpu,
-  struct gkyl_gyrokinetic_field_flr flr, const char *name)
+run_case(
+  struct flr_ctx *ctx, struct gkyl_comm *comm, bool use_gpu, struct gkyl_gyrokinetic_field_flr flr,
+  const char *name
+)
 {
   struct gkyl_gyrokinetic_species elc = {
     .name = "elc",
-    .charge = ctx->qe, .mass = ctx->me,
+    .charge = ctx->qe,
+    .mass = ctx->me,
     .vdim = ctx->vdim,
-    .lower = { -ctx->vpar_max_elc, 0.0},
-    .upper = {  ctx->vpar_max_elc, ctx->mu_max_elc},
-    .cells = { ctx->cells[2], ctx->cells[3] },
+    .lower = {-ctx->vpar_max_elc, 0.0},
+    .upper = {ctx->vpar_max_elc, ctx->mu_max_elc},
+    .cells = {ctx->cells[2], ctx->cells[3]},
     .polarization_density = ctx->n0,
 
-    .projection = {
-      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
-      .ctx_density = ctx,
-      .ctx_upar = ctx,
-      .ctx_temp = ctx,
-      .density = density_elc,
-      .upar = zero_func,
-      .temp = temp_elc,
-    },
+    .projection =
+      {
+        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+        .ctx_density = ctx,
+        .ctx_upar = ctx,
+        .ctx_temp = ctx,
+        .density = density_elc,
+        .upar = zero_func,
+        .temp = temp_elc,
+      },
 
-    .bcs = {
-      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB, },
-      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB, },
-    },
+    .bcs =
+      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB}},
     .num_diag_moments = 1,
     .diag_moments = {GKYL_F_MOMENT_M0},
   };
 
   struct gkyl_gyrokinetic_species ion = {
     .name = "ion",
-    .charge = ctx->qi, .mass = ctx->mi,
+    .charge = ctx->qi,
+    .mass = ctx->mi,
     .vdim = ctx->vdim,
-    .lower = { -ctx->vpar_max_ion, 0.0},
-    .upper = {  ctx->vpar_max_ion, ctx->mu_max_ion},
-    .cells = { ctx->cells[2], ctx->cells[3] },
+    .lower = {-ctx->vpar_max_ion, 0.0},
+    .upper = {ctx->vpar_max_ion, ctx->mu_max_ion},
+    .cells = {ctx->cells[2], ctx->cells[3]},
     .polarization_density = ctx->n0,
 
-    .projection = {
-      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
-      .ctx_density = ctx,
-      .ctx_upar = ctx,
-      .ctx_temp = ctx,
-      .density = density_ion,
-      .upar = zero_func,
-      .temp = temp_ion,
-    },
+    .projection =
+      {
+        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+        .ctx_density = ctx,
+        .ctx_upar = ctx,
+        .ctx_temp = ctx,
+        .density = density_ion,
+        .upar = zero_func,
+        .temp = temp_ion,
+      },
 
-    .bcs = {
-      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB, },
-      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB, },
-    },
+    .bcs =
+      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB}},
     .num_diag_moments = 1,
     .diag_moments = {GKYL_F_MOMENT_M0},
 
-    .flr = { .Tperp = ctx->Ti0 },
+    .flr = {.Tperp = ctx->Ti0},
   };
 
   struct gkyl_gyrokinetic_field field = {
     .gkfield_id = GKYL_GK_FIELD_ES,
     .polarization_bmag = ctx->B0,
-    .poisson_bcs = {
-      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
-      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
-    },
+    .poisson_bcs =
+      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
+       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}}},
     .flr = flr,
   };
 
   struct gkyl_gk gk = {
     .cdim = ctx->cdim,
-    .lower = { 0.0, -ctx->Lz/2.0 },
-    .upper = { ctx->Lx, ctx->Lz/2.0 },
-    .cells = { ctx->cells[0], ctx->cells[1] },
+    .lower = {0.0, -ctx->Lz / 2.0},
+    .upper = {ctx->Lx, ctx->Lz / 2.0},
+    .cells = {ctx->cells[0], ctx->cells[1]},
     .poly_order = 1,
     .basis_type = GKYL_BASIS_MODAL_SERENDIPITY,
 
-    .geometry = {
-      .geometry_id = GKYL_GEOMETRY_MAPC2P,
-      .world = {0.0},
-      .mapc2p = mapc2p,
-      .c2p_ctx = ctx,
-      .bfield_func = bfield_func,
-      .bfield_ctx = ctx,
-    },
+    .geometry =
+      {
+        .geometry_id = GKYL_GEOMETRY_MAPC2P,
+        .world = {0.0},
+        .mapc2p = mapc2p,
+        .c2p_ctx = ctx,
+        .bfield_func = bfield_func,
+        .bfield_ctx = ctx,
+      },
 
     .num_periodic_dir = 1,
     .periodic_dirs = {1},
 
     .num_species = 2,
-    .species = { elc, ion },
+    .species = {elc, ion},
     .field = field,
 
-    .parallelism = {
-      .comm = comm,
-      .cuts = {1, 1},
-      .use_gpu = use_gpu,
-    },
+    .parallelism = {.comm = comm, .cuts = {1, 1}, .use_gpu = use_gpu},
   };
   strcpy(gk.name, name);
 
@@ -239,8 +251,10 @@ run_case(struct flr_ctx *ctx, struct gkyl_comm *comm, bool use_gpu,
 
 // L2 norm of a DG field, sqrt(int f^2 dx).
 static double
-calc_l2(struct gkyl_rect_grid grid, struct gkyl_range range, struct gkyl_range range_ext,
-  struct gkyl_basis basis, struct gkyl_array *f)
+calc_l2(
+  struct gkyl_rect_grid grid, struct gkyl_range range, struct gkyl_range range_ext,
+  struct gkyl_basis basis, struct gkyl_array *f
+)
 {
   struct gkyl_array *l2 = gkyl_array_new(GKYL_DOUBLE, 1, range_ext.volume);
   gkyl_dg_calc_l2_range(&basis, 0, l2, 0, f, range);
@@ -267,7 +281,9 @@ remove_outputs(const char *name)
   snprintf(pattern, sizeof(pattern), "%s-*.gkyl", name);
   glob_t g;
   if (glob(pattern, 0, NULL, &g) == 0) {
-    for (size_t i=0; i<g.gl_pathc; i++) remove(g.gl_pathv[i]);
+    for (size_t i = 0; i < g.gl_pathc; i++) {
+      remove(g.gl_pathv[i]);
+    }
   }
   globfree(&g);
 }
@@ -282,18 +298,26 @@ check_case(double kx_rho, bool use_gpu)
   const char *name_on = "ctest_gk_flr_response_flron";
   const char *name_op = "ctest_gk_flr_response_flron_op";
 
-  run_case(&ctx, comm, use_gpu, (struct gkyl_gyrokinetic_field_flr) { .type = GKYL_GK_FLR_NONE }, name_off);
-  run_case(&ctx, comm, use_gpu, (struct gkyl_gyrokinetic_field_flr) { .type = GKYL_GK_FLR_PADE }, name_on);
-  run_case(&ctx, comm, use_gpu, (struct gkyl_gyrokinetic_field_flr) { .type = GKYL_GK_FLR_PADE,
-    .use_fem_operator = true }, name_op);
+  run_case(
+    &ctx, comm, use_gpu, (struct gkyl_gyrokinetic_field_flr){.type = GKYL_GK_FLR_NONE}, name_off
+  );
+  run_case(
+    &ctx, comm, use_gpu, (struct gkyl_gyrokinetic_field_flr){.type = GKYL_GK_FLR_PADE}, name_on
+  );
+  run_case(
+    &ctx, comm, use_gpu,
+    (struct gkyl_gyrokinetic_field_flr){.type = GKYL_GK_FLR_PADE, .use_fem_operator = true}, name_op
+  );
 
   // Read back the potentials.
   struct gkyl_rect_grid grid;
-  gkyl_rect_grid_init(&grid, ctx.cdim, (double[]) { 0.0, -ctx.Lz/2.0 },
-    (double[]) { ctx.Lx, ctx.Lz/2.0 }, (int[]) { ctx.cells[0], ctx.cells[1] });
+  gkyl_rect_grid_init(
+    &grid, ctx.cdim, (double[]){0.0, -ctx.Lz / 2.0}, (double[]){ctx.Lx, ctx.Lz / 2.0},
+    (int[]){ctx.cells[0], ctx.cells[1]}
+  );
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, ctx.cdim, 1);
-  int nghost[GKYL_MAX_CDIM] = { 1, 1 };
+  int nghost[GKYL_MAX_CDIM] = {1, 1};
   struct gkyl_range local, local_ext;
   gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
 
@@ -308,14 +332,14 @@ check_case(double kx_rho, bool use_gpu)
   double l2_off = calc_l2(grid, local, local_ext, basis, phi_off);
   double l2_on = calc_l2(grid, local, local_ext, basis, phi_on);
 
-  double b = pow(ctx.kx*ctx.rho_i, 2.0);
-  double ratio_expected = (1.0 + b)/(1.0 + b/2.0);
-  double ratio = l2_on/l2_off;
+  double b = pow(ctx.kx * ctx.rho_i, 2.0);
+  double ratio_expected = (1.0 + b) / (1.0 + b / 2.0);
+  double ratio = l2_on / l2_off;
 
   // Analytic amplitude of the FLR-off solve: phi = qi*A*n0/(eps*kx^2)*sin(kx*x).
-  double eps_pol = ctx.n0*(ctx.mi + ctx.me)/pow(ctx.B0, 2.0);
-  double phi_amp = ctx.qi*ctx.pert_amp*ctx.n0/(eps_pol*pow(ctx.kx, 2.0));
-  double l2_off_expected = phi_amp*sqrt(ctx.Lx*ctx.Lz/2.0);
+  double eps_pol = ctx.n0 * (ctx.mi + ctx.me) / pow(ctx.B0, 2.0);
+  double phi_amp = ctx.qi * ctx.pert_amp * ctx.n0 / (eps_pol * pow(ctx.kx, 2.0));
+  double l2_off_expected = phi_amp * sqrt(ctx.Lx * ctx.Lz / 2.0);
 
   // Mode shape: phi_on must be the same mode scaled by the expected ratio.
   struct gkyl_array *diff = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
@@ -326,16 +350,20 @@ check_case(double kx_rho, bool use_gpu)
   // The two field-level paths (local term vs FEM operator) must agree.
   gkyl_array_set(diff, 1.0, phi_on);
   gkyl_array_accumulate(diff, -1.0, phi_op);
-  double err_op = calc_l2(grid, local, local_ext, basis, diff)/l2_on;
+  double err_op = calc_l2(grid, local, local_ext, basis, diff) / l2_on;
 
-  double err_ratio = fabs(ratio/ratio_expected - 1.0);
-  double err_abs = fabs(l2_off/l2_off_expected - 1.0);
-  double err_shape = l2_shape/l2_on;
+  double err_ratio = fabs(ratio / ratio_expected - 1.0);
+  double err_abs = fabs(l2_off / l2_off_expected - 1.0);
+  double err_shape = l2_shape / l2_on;
 
   TEST_CHECK(err_abs < 0.05);
-  TEST_MSG("kx*rho_i=%g: |phi| FLR-off measured/expected = %e / %e", kx_rho, l2_off, l2_off_expected);
+  TEST_MSG(
+    "kx*rho_i=%g: |phi| FLR-off measured/expected = %e / %e", kx_rho, l2_off, l2_off_expected
+  );
   TEST_CHECK(err_ratio < 0.02);
-  TEST_MSG("kx*rho_i=%g: amplitude ratio measured/expected = %f / %f", kx_rho, ratio, ratio_expected);
+  TEST_MSG(
+    "kx*rho_i=%g: amplitude ratio measured/expected = %f / %f", kx_rho, ratio, ratio_expected
+  );
   TEST_CHECK(err_shape < 0.02);
   TEST_MSG("kx*rho_i=%g: mode-shape error = %e", kx_rho, err_shape);
   TEST_CHECK(err_op < 0.02);
@@ -353,25 +381,34 @@ check_case(double kx_rho, bool use_gpu)
 
 // Sweep kx*rho_i from the rho_i->0 limit (ratio -> 1) to the large-b Pade
 // saturation (ratio -> 2).
-static const double kx_rho_list[] = { 0.1, 1.0, 4.0 };
+static const double kx_rho_list[] = {0.1, 1.0, 4.0};
 
 static void
 test_flr_response(bool use_gpu)
 {
-  for (int i=0; i<sizeof(kx_rho_list)/sizeof(kx_rho_list[0]); i++)
+  for (int i = 0; i < sizeof(kx_rho_list) / sizeof(kx_rho_list[0]); i++) {
     check_case(kx_rho_list[i], use_gpu);
+  }
 }
 
-void test_flr_response_cpu(void) { test_flr_response(false); }
+void
+test_flr_response_cpu(void)
+{
+  test_flr_response(false);
+}
 
 #ifdef GKYL_HAVE_CUDA
-void test_flr_response_gpu(void) { test_flr_response(true); }
+void
+test_flr_response_gpu(void)
+{
+  test_flr_response(true);
+}
 #endif
 
 TEST_LIST = {
-  { "test_flr_response_cpu", test_flr_response_cpu },
+  {"test_flr_response_cpu", test_flr_response_cpu},
 #ifdef GKYL_HAVE_CUDA
-  { "test_flr_response_gpu", test_flr_response_gpu },
+  {"test_flr_response_gpu", test_flr_response_gpu},
 #endif
-  { NULL, NULL },
+  {NULL, NULL}
 };
