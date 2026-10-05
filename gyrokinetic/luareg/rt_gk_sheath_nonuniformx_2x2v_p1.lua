@@ -137,11 +137,11 @@ gyrokineticApp = Gyrokinetic.App.new {
         function (t, zc)
           local z = zc[1]
 
-          local Z = 0.0
+          local Z = z
           if math.abs(z) < Lz * 0.25 then
-            Z = - ((z - (0.25 * Lz)) * (z - (0.25 * Lz)) / (0.5 * Lz)) + (0.25 * Lz)
-          else
-            Z = z
+            local zn = 4.0*z/Lz
+            local shape = 1.0 - zn*zn
+            Z = Z + (Lz/16.0)*shape*shape*shape
           end
 
           return Z

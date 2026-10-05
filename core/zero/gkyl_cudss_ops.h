@@ -22,7 +22,7 @@ typedef struct gkyl_culinsolver_prob gkyl_culinsolver_prob;
  * This solver assumes that nrhs is the same for all nprob problems,
  * and that the sparsity pattern of all A_i's is the same.
  */
-struct gkyl_culinsolver_prob* gkyl_culinsolver_prob_new(int nprob, int mrow, int ncol, int nrhs);
+struct gkyl_culinsolver_prob *gkyl_culinsolver_prob_new(int nprob, int mrow, int ncol, int nrhs);
 
 /**
  * Initialize cuDSS matrix A in Ax=B problem from a list of triples.
@@ -30,7 +30,9 @@ struct gkyl_culinsolver_prob* gkyl_culinsolver_prob_new(int nprob, int mrow, int
  * @param prob cuDSS struct holding arrays used in problem.
  * @param tri (array of) coordinates & values of non-zero entries in A matrix (triplets).
  */
-void gkyl_culinsolver_amat_from_triples(struct gkyl_culinsolver_prob *prob, struct gkyl_mat_triples **tri);
+void gkyl_culinsolver_amat_from_triples(
+  struct gkyl_culinsolver_prob *prob, struct gkyl_mat_triples **tri
+);
 
 /**
  * Update the cuDSS matrix A in Ax=B problem using an array of values (on the device).
@@ -48,7 +50,9 @@ void gkyl_culinsolver_amat_update(struct gkyl_culinsolver_prob *prob, double *cs
  * @param prob cuDSS struct holding arrays used in problem.
  * @param tri (array of) coordinates & values of non-zero entries in A matrix (triplets).
  */
-void gkyl_culinsolver_amat_update_from_triples(struct gkyl_culinsolver_prob *prob, struct gkyl_mat_triples **tri);
+void gkyl_culinsolver_amat_update_from_triples(
+  struct gkyl_culinsolver_prob *prob, struct gkyl_mat_triples **tri
+);
 
 /**
  * Initialize right-hand-side cuDSS matrix B in Ax=B problem from a list of
@@ -103,7 +107,7 @@ void gkyl_culinsolver_clear_csr_values(struct gkyl_culinsolver_prob *prob, doubl
  * @param loc element we wish to return a pointer to.
  * @return pointer to loc-th element in RHS vector.
  */
-double* gkyl_culinsolver_get_rhs_ptr(struct gkyl_culinsolver_prob *prob, long loc);
+double *gkyl_culinsolver_get_rhs_ptr(struct gkyl_culinsolver_prob *prob, long loc);
 
 /**
  * Get a pointer to the element of the solution vector at a given location.
@@ -114,7 +118,7 @@ double* gkyl_culinsolver_get_rhs_ptr(struct gkyl_culinsolver_prob *prob, long lo
  * @param loc element we wish to return a pointer to.
  * @return pointer to loc-th element in solution vector.
  */
-double* gkyl_culinsolver_get_sol_ptr(struct gkyl_culinsolver_prob *prob, long loc);
+double *gkyl_culinsolver_get_sol_ptr(struct gkyl_culinsolver_prob *prob, long loc);
 
 /**
  * Obtain the RHS value at location loc (a linear index into the RHS matrix).
@@ -133,7 +137,7 @@ double gkyl_culinsolver_get_sol_lin(struct gkyl_culinsolver_prob *prob, long loc
  * @param loc linear index into the csr_val array.
  * @return RHS value.
  */
-double* gkyl_culinsolver_get_csr_values_ptr(struct gkyl_culinsolver_prob *prob, long loc);
+double *gkyl_culinsolver_get_csr_values_ptr(struct gkyl_culinsolver_prob *prob, long loc);
 
 /**
  * Release cuDSS problem

@@ -21,8 +21,8 @@ vt = 1.0 -- Thermal velocity.
 nu = 15000.0 -- Collision frequency.
 
 -- Simulation parameters.
-Ntheta = 32 -- Cell count (configuration space: polar angular direction).
-Nphi = 32 -- Cell count (configuration space: azimuthal angular direction).
+Ntheta = 8 -- Cell count (configuration space: polar angular direction).
+Nphi = 8 -- Cell count (configuration space: azimuthal angular direction).
 Nvtheta = 8 -- Cell count (velocity space: polar angular direction).
 Nvphi = 8 -- Cell count (velocity space: azimuthal angular direction).
 Ltheta = pi / 2.0 -- Domain size (configuration space: polar angular direction).
@@ -34,7 +34,7 @@ basis_type = "serendipity" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
 cfl_frac = 1.0 -- CFL coefficient.
 
-t_end = 0.001 -- Final simulation time.
+t_end = 0.005 -- Final simulation time.
 num_frames = 1 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.

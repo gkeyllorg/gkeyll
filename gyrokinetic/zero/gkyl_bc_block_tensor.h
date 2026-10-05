@@ -3,8 +3,7 @@
 #include <gkyl_range.h>
 #include <gkyl_basis.h>
 
-typedef struct bc_block_tensor  bc_block_tensor;
-
+typedef struct bc_block_tensor bc_block_tensor;
 
 /**
  * Create a new updater to compute the transformation required to pass fluxes from another block with different
@@ -15,10 +14,10 @@ typedef struct bc_block_tensor  bc_block_tensor;
  * @param basis configuration space basis
  * @param use_gpu whether or not to use a gpu
  */
-struct bc_block_tensor*
-gkyl_bc_block_tensor_new(const struct gkyl_rect_grid* grid, const struct gkyl_range *range, const struct gkyl_range* range_ext, 
-  const struct gkyl_basis* basis, bool use_gpu);
-
+struct bc_block_tensor *gkyl_bc_block_tensor_new(
+  const struct gkyl_rect_grid *grid, const struct gkyl_range *range,
+  const struct gkyl_range *range_ext, const struct gkyl_basis *basis, bool use_gpu
+);
 
 /**
  * Take in modal expansions of duals of one block and tangents of the other (cartesian components)
@@ -32,8 +31,10 @@ gkyl_bc_block_tensor_new(const struct gkyl_rect_grid* grid, const struct gkyl_ra
  * @param ej duals of block which fluxes enter
  * @param e_i tangent vectors of block which fluxes leave
  */
-void calc_tensor(struct bc_block_tensor *up, int dir, int edge1, int edge2, const double *ej, const double *e_i, double *tj_i);
-
+void calc_tensor(
+  struct bc_block_tensor *up, int dir, int edge1, int edge2, const double *ej, const double *e_i,
+  double *tj_i
+);
 
 /**
  * Take in modal expansions of duals of one block and tangents of the other (cartesian components)
@@ -44,13 +45,13 @@ void calc_tensor(struct bc_block_tensor *up, int dir, int edge1, int edge2, cons
  * @param ej duals of block which fluxes enter
  * @param e_i tangent vectors of block which fluxes leave
  */
-void gkyl_bc_block_tensor_advance(struct bc_block_tensor* up, int dir, int edge1, int edge2,
-    struct gkyl_array* dxdz1, struct gkyl_array* dzdx2, struct gkyl_range *range1, struct gkyl_range *range2);
-
-
+void gkyl_bc_block_tensor_advance(
+  struct bc_block_tensor *up, int dir, int edge1, int edge2, struct gkyl_array *dxdz1,
+  struct gkyl_array *dzdx2, struct gkyl_range *range1, struct gkyl_range *range2
+);
 
 /**
  * Free the bc_block_tensor updater
  * @param up updater to be freed
  */
-void gkyl_bc_block_tensor_release(struct bc_block_tensor* up);
+void gkyl_bc_block_tensor_release(struct bc_block_tensor *up);

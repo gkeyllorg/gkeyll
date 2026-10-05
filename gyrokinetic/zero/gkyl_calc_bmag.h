@@ -10,17 +10,17 @@
 typedef struct gkyl_calc_bmag gkyl_calc_bmag;
 
 // Context object for computing bmag
-struct gkyl_bmag_ctx{
-   const struct gkyl_rect_grid* grid; // Physical RZ grid
-   const struct gkyl_rect_grid* cgrid; // Computational grid
-   const struct gkyl_range* range; // Physical RZ range
-   const struct gkyl_range* crange; // Computational range
-   const struct gkyl_range* crange_global; // Global computational range
-   const struct gkyl_basis* basis; // Physical RZ basis
-   const struct gkyl_basis* cbasis; // Computational basis 
-   const struct gkyl_array* bmagdg; // DG representation of bmag in physical RZ coordinates
-   const struct gkyl_array* bmag; // DG representation of bmag in computational coordinates
-   const struct gkyl_array* mapc2p; // DG representation of mapc2p
+struct gkyl_bmag_ctx {
+  const struct gkyl_rect_grid *grid; // Physical RZ grid
+  const struct gkyl_rect_grid *cgrid; // Computational grid
+  const struct gkyl_range *range; // Physical RZ range
+  const struct gkyl_range *crange; // Computational range
+  const struct gkyl_range *crange_global; // Global computational range
+  const struct gkyl_basis *basis; // Physical RZ basis
+  const struct gkyl_basis *cbasis; // Computational basis
+  const struct gkyl_array *bmagdg; // DG representation of bmag in physical RZ coordinates
+  const struct gkyl_array *bmag; // DG representation of bmag in computational coordinates
+  const struct gkyl_array *mapc2p; // DG representation of mapc2p
 };
 
 /**
@@ -33,9 +33,10 @@ struct gkyl_bmag_ctx{
  * @param use_gpu boolean indicating whether to use the GPU.
  * @return New updater pointer.
  */
-gkyl_calc_bmag* 
-gkyl_calc_bmag_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
-  const struct gkyl_rect_grid *cgrid, const struct gkyl_rect_grid *pgrid, bool use_gpu);
+gkyl_calc_bmag *gkyl_calc_bmag_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
+  const struct gkyl_rect_grid *cgrid, const struct gkyl_rect_grid *pgrid, bool use_gpu
+);
 
 /**
  * Computes the magnitude of the magnetic field using a global field aligned representation.
@@ -46,7 +47,6 @@ gkyl_calc_bmag_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pba
  * @param ctx Context object. Of type bmag_ctx
 */
 void gkyl_calc_bmag_global(double t, const double *xn, double *fout, void *ctx);
-
 
 /**
  * Advance calc_bmag (Convert B to computational grid from RZ grid)
@@ -61,14 +61,16 @@ void gkyl_calc_bmag_global(double t, const double *xn, double *fout, void *ctx);
 * @param bool use_quad flag to indicate whether to use quadrature points or not
  */
 
-void gkyl_calc_bmag_advance(const gkyl_calc_bmag *up, const struct gkyl_range *crange,
-    const struct gkyl_range *crange_ext,  const struct gkyl_range *crange_global,
-    const struct gkyl_range *prange, const struct gkyl_range *prange_ext, 
-    const struct gkyl_array *bmagrz, struct gkyl_array* bmag_compdg, struct gkyl_array* mapc2p, bool use_quad);
+void gkyl_calc_bmag_advance(
+  const gkyl_calc_bmag *up, const struct gkyl_range *crange, const struct gkyl_range *crange_ext,
+  const struct gkyl_range *crange_global, const struct gkyl_range *prange,
+  const struct gkyl_range *prange_ext, const struct gkyl_array *bmagrz,
+  struct gkyl_array *bmag_compdg, struct gkyl_array *mapc2p, bool use_quad
+);
 
 /**
  * Delete updater.
  *
  * @param up Updater to delete.
  */
-void gkyl_calc_bmag_release(gkyl_calc_bmag* up);
+void gkyl_calc_bmag_release(gkyl_calc_bmag *up);

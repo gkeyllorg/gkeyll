@@ -9,8 +9,8 @@ void
 gkyl_cart_modal_gkhybrid_vel(struct gkyl_basis *basis, int vdim)
 {
   int ndim = vdim;
-  assert(ndim==1 || ndim==2);
-  
+  assert(ndim == 1 || ndim == 2);
+
   basis->ndim = ndim;
   basis->poly_order = 1;
   basis->num_basis = num_basis_list[ndim].count[1];
