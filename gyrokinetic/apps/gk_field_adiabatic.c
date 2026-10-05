@@ -48,7 +48,7 @@ gk_field_adiabatic_zonal_unpack(
   }
 }
 
-// Compute <phi> = int J phi dy dz / int J dy dz into adiab.psi (and psi_ho). This is the R operator.
+// Compute <phi> = int J phi dy dz / int J dy dz into adiab.psi. This is the R operator.
 void
 gk_field_adiabatic_fsa(
   gkyl_gyrokinetic_app *app, const struct gk_field *gkf, const struct gkyl_array *phi
@@ -62,20 +62,14 @@ gk_field_adiabatic_fsa(
   gkyl_array_average_advance(ad->fs_avg, ad->jphi, ad->avg_jphi);
 
   // The average divides by the global (y,z) extent, so the sum over ranks is the global average.
-  if (app->use_gpu) {
-    gkyl_array_copy(ad->avg_jphi_ho, ad->avg_jphi);
-  }
-  gkyl_comm_allreduce_host(
-    app->comm, GKYL_DOUBLE, GKYL_SUM, ad->avg_jphi_ho->ncomp * ad->avg_jphi_ho->size,
-    ad->avg_jphi_ho->data, ad->avg_jphi_red_ho->data
+  gkyl_comm_allreduce(
+    app->comm, GKYL_DOUBLE, GKYL_SUM, ad->avg_jphi->ncomp * ad->avg_jphi->size, ad->avg_jphi->data,
+    ad->avg_jphi_red->data
   );
 
   gkyl_dg_div_op_range(
-    ad->div_mem, &ad->basis_x, 0, ad->psi_ho, 0, ad->avg_jphi_red_ho, 0, ad->avg_j_ho, &ad->local_x
+    ad->div_mem, &ad->basis_x, 0, ad->psi, 0, ad->avg_jphi_red, 0, ad->avg_j, &ad->local_x
   );
-  if (app->use_gpu) {
-    gkyl_array_copy(ad->psi, ad->psi_ho);
-  }
 }
 
 // Extend a 1D function of x to a field constant along the other directions. This is the E operator.
@@ -119,11 +113,14 @@ gk_field_adiabatic_response_solve(
   gkyl_array_accumulate_range(phi, -1.0, ad->phi_lift, &app->local);
 }
 
-// Solve (I - G) psi = <phi1> on the host, with <phi1> in psi_ho on input.
+// Solve (I - G) psi = <phi1> on the host, with <phi1> in psi on input.
 static void
 gk_field_adiabatic_zonal_solve(gkyl_gyrokinetic_app *app, struct gk_field *gkf)
 {
   struct gk_field_adiabatic *ad = &gkf->adiab;
+  if (app->use_gpu) {
+    gkyl_array_copy(ad->psi_ho, ad->psi);
+  }
   gk_field_adiabatic_zonal_pack(ad, ad->psi_ho, gkyl_mat_get_col(ad->rhs_m, 0));
   gkyl_mat_copy(ad->A_lu, ad->A);
   bool status = gkyl_mat_linsolve_lu(ad->A_lu, ad->rhs_m, gkyl_mem_buff_data(ad->ipiv));
@@ -254,12 +251,12 @@ gk_field_adiabatic_new(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
 
   ad->jphi = mkarr(app->use_gpu, nb, app->local_ext.volume);
   ad->avg_jphi = mkarr(app->use_gpu, nb_x, vol_x);
+  ad->avg_jphi_red = mkarr(app->use_gpu, nb_x, vol_x);
+  ad->avg_j = mkarr(app->use_gpu, nb_x, vol_x);
   ad->psi = mkarr(app->use_gpu, nb_x, vol_x);
-  ad->avg_jphi_ho = app->use_gpu ? mkarr(false, nb_x, vol_x) : gkyl_array_acquire(ad->avg_jphi);
   ad->psi_ho = app->use_gpu ? mkarr(false, nb_x, vol_x) : gkyl_array_acquire(ad->psi);
-  ad->avg_jphi_red_ho = mkarr(false, nb_x, vol_x);
-  ad->avg_j_ho = mkarr(false, nb_x, vol_x);
-  ad->div_mem = gkyl_dg_bin_op_mem_new(ad->local_x.volume, nb_x);
+  ad->div_mem = app->use_gpu ? gkyl_dg_bin_op_mem_cu_dev_new(ad->local_x.volume, nb_x) :
+                               gkyl_dg_bin_op_mem_new(ad->local_x.volume, nb_x);
 
   // Flux surface average operator.
   int avg_dim[GKYL_MAX_CDIM] = {0};
@@ -279,13 +276,10 @@ gk_field_adiabatic_new(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
   });
 
   // Global (y,z) average of J (time independent).
-  struct gkyl_array *avg_j = mkarr(app->use_gpu, nb_x, vol_x);
-  gkyl_array_average_advance(ad->fs_avg, app->gk_geom->geo_int.jacobgeo, avg_j);
-  gkyl_array_copy(ad->avg_jphi_red_ho, avg_j);
-  gkyl_comm_allreduce_host(
-    app->comm, GKYL_DOUBLE, GKYL_SUM, nb_x * vol_x, ad->avg_jphi_red_ho->data, ad->avg_j_ho->data
+  gkyl_array_average_advance(ad->fs_avg, app->gk_geom->geo_int.jacobgeo, ad->avg_jphi);
+  gkyl_comm_allreduce(
+    app->comm, GKYL_DOUBLE, GKYL_SUM, nb_x * vol_x, ad->avg_jphi->data, ad->avg_j->data
   );
-  gkyl_array_release(avg_j);
 
   // Updaters extending a 1D function of x to cdim dimensions.
   ad->inflate_up = 0;
@@ -335,6 +329,9 @@ gk_field_adiabatic_new(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
     }
     gk_field_adiabatic_response_solve(app, gkf, ad->psi, ad->phi2);
     gk_field_adiabatic_fsa(app, gkf, ad->phi2);
+    if (app->use_gpu) {
+      gkyl_array_copy(ad->psi_ho, ad->psi);
+    }
     gk_field_adiabatic_zonal_pack(ad, ad->psi_ho, gkyl_mat_get_col(ad->A, j));
   }
   gkyl_free(ej);
@@ -398,9 +395,8 @@ gk_field_adiabatic_release(const struct gkyl_gyrokinetic_app *app, struct gk_fie
   gkyl_array_release(ad->phi_lift);
   gkyl_array_release(ad->jphi);
   gkyl_array_release(ad->avg_jphi);
-  gkyl_array_release(ad->avg_jphi_ho);
-  gkyl_array_release(ad->avg_jphi_red_ho);
-  gkyl_array_release(ad->avg_j_ho);
+  gkyl_array_release(ad->avg_jphi_red);
+  gkyl_array_release(ad->avg_j);
   gkyl_array_release(ad->psi);
   gkyl_array_release(ad->psi_ho);
   gkyl_dg_bin_op_mem_release(ad->div_mem);

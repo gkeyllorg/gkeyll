@@ -1582,9 +1582,8 @@ struct gk_field_adiabatic {
   struct gkyl_range local_x, local_x_ext; // 1D ranges in x.
   struct gkyl_array_average *fs_avg; // Flux-surface average operator.
   struct gkyl_array *jphi; // J*phi.
-  struct gkyl_array *avg_jphi, *avg_jphi_ho,
-    *avg_jphi_red_ho; // (y,z) average of J*phi, host copy, MPI-reduced.
-  struct gkyl_array *avg_j_ho; // Global (y,z) average of J.
+  struct gkyl_array *avg_jphi, *avg_jphi_red; // (y,z) average of J*phi, MPI-reduced.
+  struct gkyl_array *avg_j; // Global (y,z) average of J.
   struct gkyl_array *psi, *psi_ho; // Flux-surface averaged potential (1D in x).
   gkyl_dg_bin_op_mem *div_mem; // Memory for the 1D weak division.
 

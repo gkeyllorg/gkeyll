@@ -137,7 +137,7 @@ void gk_field_adiabatic_new(struct gkyl_gyrokinetic_app *app, struct gk_field *g
 
 /**
  * Compute the flux-surface average <phi> = int J phi dy dz / int J dy dz
- * into f->adiab.psi (1D in x).
+ * into gkf->adiab.psi (1D in x).
  *
  * @param app Gyrokinetic application object.
  * @param gkf Field object.
