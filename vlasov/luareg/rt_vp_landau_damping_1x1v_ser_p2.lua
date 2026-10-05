@@ -5,25 +5,19 @@ pi = math.pi
 
 -- Physical constants (using normalized code units).
 epsilon0 = 1.0 -- Permittivity of free space.
-mu0 = 1.0 -- Permeability of free space.
 mass_elc = 1.0 -- Electron mass.
 charge_elc = -1.0 -- Electron charge.
 
 vt = 1.0 -- Thermal velocity.
-nu = 0.1 -- Collision frequency.
 
 alpha = 1.0e-4 -- Applied perturbation amplitude.
-k0 = 0.3 -- Perturbed wave number.
+k0 = 0.5 -- Perturbed wave number.
 
 -- Simulation parameters.
-Nx = 8 -- Cell count (configuration space: x-direction).
-Nvx = 8 -- Cell count (velocity space: vx-direction).
-Nvy = 8 -- Cell count (velocity space: vy-direction).
-Nvz = 8 -- Cell count (velocity space: vz-direction).
+Nx = 32 -- Cell count (configuration space: x-direction).
+Nvx = 32 -- Cell count (velocity space: vx-direction).
 Lx = 4.0 * pi -- Domain size (configuration space: x-direction).
 vx_max = 6.0 * vt -- Domain boundary (velocity space: vx-direction).
-vy_max = 6.0 * vt -- Domain boundary (velocity space: vy-direction).
-vz_max = 6.0 * vt -- Domain boundary (velocity space: vz-direction).
 poly_order = 2 -- Polynomial order.
 basis_type = "serendipity" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
@@ -67,9 +61,9 @@ vlasovApp = Vlasov.App.new {
     charge = charge_elc, mass = mass_elc,
     
     -- Velocity space grid.
-    lower = { -vx_max, -vy_max, -vz_max },
-    upper = { vx_max, vy_max, vz_max },
-    cells = { Nvx, Nvy, Nvz },
+    lower = { -vx_max },
+    upper = { vx_max },
+    cells = { Nvx },
 
     -- Initial conditions.
     numInit = 1,
@@ -78,53 +72,34 @@ vlasovApp = Vlasov.App.new {
         projectionID = G0.Projection.Func,
 
         init = function (t, xn)
-          local x, vx, vy, vz = xn[1], xn[2], xn[3], xn[4]
+          local x, vx = xn[1], xn[2]
 
-          local v_sq = (vx * vx) + (vy * vy) + (vz * vz)
           local n = (1.0 + alpha * math.cos(k0 * x)) *
-            (1.0 / math.pow(math.sqrt(2.0 * pi * vt * vt), 3.0)) * (math.exp(-v_sq / (2.0 * vt * vt))) -- Distribution function.
+            (1.0 / math.sqrt(2.0 * pi * vt * vt)) * (math.exp(-(vx * vx) / (2.0 * vt * vt))) -- Distribution function.
 
           return n
         end
       }
     },
 
-    collisions = {
-      collisionID = G0.Collisions.LBO,
-
-      selfNu = function (t, xn)
-        return nu -- Collision frequency.
-      end,
-      
-      correctAllMoments = true
-    },
-
     evolve = true, -- Evolve species?
     diagnostics = { G0.Moment.M0, G0.Moment.M1, G0.Moment.M2 }
   },
 
+  isElectrostatic = true,
+
   -- Field.
   field = Vlasov.Field.new {
-    epsilon0 = epsilon0, mu0 = mu0,
+    epsilon0 = epsilon0,
 
-    -- Initial conditions function.
-    init = function (t, xn)
-      local x = xn[1]
-
-      local Ex = -alpha * math.sin(k0 * x) / k0 -- Total electric field (x-direction).
-      local Ey = 0.0 -- Total electric field (y-direction).
-      local Ez = 0.0 -- Total electric field (z-direction).
-
-      local Bx = 0.0 -- Total magnetic field (x-direction).
-      local By = 0.0 -- Total magnetic field (y-direction).
-      local Bz = 0.0 -- Total magnetic field (z-direction).
-
-      return Ex, Ey, Ez, Bx, By, Bz, 0.0, 0.0
-    end,
-
-    evolve = true, -- Evolve field?
-    elcErrorSpeedFactor = 0.0,
-    mgnErrorSpeedFactor = 0.0
+    poissonBcs = {
+      lowerType = {
+        G0.PoissonBc.bcPeriodic
+      },
+      upperType = {
+        G0.PoissonBc.bcPeriodic
+      }
+    }
   }
 }
 

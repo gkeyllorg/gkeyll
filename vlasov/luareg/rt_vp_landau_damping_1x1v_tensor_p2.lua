@@ -8,29 +8,22 @@ epsilon0 = 1.0 -- Permittivity of free space.
 mass_elc = 1.0 -- Electron mass.
 charge_elc = -1.0 -- Electron charge.
 
-n0 = 1.0 -- Reference number density.
-Te = 1.0 -- Electron temperature.
+vt = 1.0 -- Thermal velocity.
 
 alpha = 1.0e-4 -- Applied perturbation amplitude.
-
--- Derived physical quantities (using normalized code units).
-vte = math.sqrt(Te / mass_elc) -- Electron thermal velocity.
-omega_pe = math.sqrt((charge_elc * charge_elc) * n0 / (epsilon0 * mass_elc)) -- Electron plasma frequency.
-lambda_D = vte / omega_pe -- Electron Debye length.
-
-k0 = 0.5 / lambda_D -- Perturbed wave number.
+k0 = 0.5 -- Perturbed wave number.
 
 -- Simulation parameters.
 Nx = 32 -- Cell count (configuration space: x-direction).
 Nvx = 32 -- Cell count (velocity space: vx-direction).
-Lx = 2.0 * pi / k0 -- Domain size (configuration space: x-direction).
-vx_max = 6.0 * vte -- Domain boundary (velocity space: vx-direction).
+Lx = 4.0 * pi -- Domain size (configuration space: x-direction).
+vx_max = 6.0 * vt -- Domain boundary (velocity space: vx-direction).
 poly_order = 2 -- Polynomial order.
-basis_type = "serendipity" -- Basis function set.
+basis_type = "tensor" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
-cfl_frac = 0.9 -- CFL coefficient.
+cfl_frac = 1.0 -- CFL coefficient.
 
-t_end = 100.0 / omega_pe -- Final simulation time.
+t_end = 20.0 -- Final simulation time.
 num_frames = 1 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.
@@ -82,7 +75,7 @@ vlasovApp = Vlasov.App.new {
           local x, vx = xn[1], xn[2]
 
           local n = (1.0 + alpha * math.cos(k0 * x)) *
-            (1.0 / math.sqrt(2.0 * pi * vte * vte)) * (math.exp(-(vx * vx) / (2.0 * vte * vte))) -- Distribution function.
+            (1.0 / math.sqrt(2.0 * pi * vt * vt)) * (math.exp(-(vx * vx) / (2.0 * vt * vt))) -- Distribution function.
 
           return n
         end

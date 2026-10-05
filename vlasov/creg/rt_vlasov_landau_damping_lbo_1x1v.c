@@ -25,19 +25,14 @@ struct landau_damping_ctx {
 
   // Physical constants (using normalized code units).
   double epsilon0; // Permittivity of free space.
+  double mu0; // Permeability of free space.
   double mass_elc; // Electron mass.
   double charge_elc; // Electron charge.
 
-  double n0; // Reference number density.
-  double Te; // Electron temperature.
+  double vt; // Thermal velocity.
+  double nu; // Collision frequency.
 
   double alpha; // Applied perturbation amplitude.
-
-  // Derived physical quantities (using normalized code units).
-  double vte; // Electron thermal velocity.
-  double omega_pe; // Electron plasma frequency.
-  double lambda_D; // Electron Debye length.
-
   double k0; // Perturbed wave number.
 
   // Simulation parameters.
@@ -65,31 +60,25 @@ create_ctx(void)
 
   // Physical constants (using normalized code units).
   double epsilon0 = 1.0; // Permittivity of free space.
+  double mu0 = 1.0; // Permeability of free space.
   double mass_elc = 1.0; // Electron mass.
   double charge_elc = -1.0; // Electron charge.
 
-  double n0 = 1.0; // Reference number density.
-  double Te = 1.0; // Electron temperature.
+  double vt = 1.0; // Thermal velocity.
+  double nu = 0.05; // Collision frequency.
 
   double alpha = 1.0e-4; // Applied perturbation amplitude.
-
-  // Derived physical quantities (using normalized code units).
-  double vte = sqrt(Te / mass_elc); // Electron thermal velocity.
-  double omega_pe =
-    sqrt((charge_elc * charge_elc) * n0 / (epsilon0 * mass_elc)); // Electron plasma frequency.
-  double lambda_D = vte / omega_pe; // Electron Debye length.
-
-  double k0 = 0.5 / lambda_D; // Perturbed wave number.
+  double k0 = 0.5; // Perturbed wave number.
 
   // Simulation parameters.
   int Nx = 32; // Cell count (configuration space: x-direction).
   int Nvx = 32; // Cell count (velocity space: vx-direction).
-  double Lx = 2.0 * pi / k0; // Domain size (configuration space: x-direction).
-  double vx_max = 6.0 * vte; // Domain boundary (velocity space: vx-direction).
+  double Lx = 4.0 * pi; // Domain size (configuration space: x-direction).
+  double vx_max = 6.0 * vt; // Domain boundary (velocity space: vx-direction).
   int poly_order = 2; // Polynomial order.
-  double cfl_frac = 0.9; // CFL coefficient.
+  double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 100.0 / omega_pe; // Final simulation time.
+  double t_end = 20.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
@@ -101,14 +90,12 @@ create_ctx(void)
   struct landau_damping_ctx ctx = {
     .pi = pi,
     .epsilon0 = epsilon0,
+    .mu0 = mu0,
     .mass_elc = mass_elc,
     .charge_elc = charge_elc,
-    .n0 = n0,
-    .Te = Te,
+    .vt = vt,
+    .nu = nu,
     .alpha = alpha,
-    .vte = vte,
-    .omega_pe = omega_pe,
-    .lambda_D = lambda_D,
     .k0 = k0,
     .Nx = Nx,
     .Nvx = Nvx,
@@ -135,16 +122,65 @@ evalElcInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout
   double x = xn[0], vx = xn[1];
 
   double pi = app->pi;
-  double vte = app->vte;
+  double vt = app->vt;
 
   double alpha = app->alpha;
   double k0 = app->k0;
 
-  double n = (1.0 + alpha * cos(k0 * x)) * (1.0 / sqrt(2.0 * pi * vte * vte)) *
-             (exp(-(vx * vx) / (2.0 * vte * vte))); // Electron Distribution function.
+  double n = (1.0 + alpha * cos(k0 * x)) * (1.0 / sqrt(2.0 * pi * vt * vt)) *
+             (exp(-(vx * vx) / (2.0 * vt * vt))); // Distribution function.
 
   // Set distribution function.
   fout[0] = n;
+}
+
+void
+evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct landau_damping_ctx *app = ctx;
+  double x = xn[0];
+
+  double alpha = app->alpha;
+  double k0 = app->k0;
+
+  double Ex = -alpha * sin(k0 * x) / k0; // Total electric field (x-direction).
+  double Ey = 0.0; // Total electric field (y-direction).
+  double Ez = 0.0; // Total electric field (z-direction).
+
+  double Bx = 0.0; // Total magnetic field (x-direction).
+  double By = 0.0; // Total magnetic field (y-direction).
+  double Bz = 0.0; // Total magnetic field (z-direction).
+
+  // Set electric field.
+  fout[0] = Ex;
+  fout[1] = Ey, fout[2] = Ez;
+  // Set magnetic field.
+  fout[3] = Bx;
+  fout[4] = By;
+  fout[5] = Bz;
+  // Set correction potentials.
+  fout[6] = 0.0;
+  fout[7] = 0.0;
+}
+
+void
+evalNu(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct landau_damping_ctx *app = ctx;
+
+  double nu = app->nu;
+
+  // Set collision frequency.
+  fout[0] = nu;
+}
+
+// Snap a trigger whose next time exceeds t_end only by round-off back to t_end.
+static void
+snap_trigger_to_t_end(struct gkyl_tm_trigger *trig, double t_end)
+{
+  if (trig->tcurr > t_end && trig->tcurr <= t_end * (1.0 + 1.0e-10)) {
+    trig->tcurr = t_end;
+  }
 }
 
 void
@@ -282,6 +318,7 @@ main(int argc, char **argv)
 
     .num_init = 1,
     .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalElcInit, .ctx_func = &ctx},
+    .collisions = {.collision_id = GKYL_LBO_COLLISIONS, .self_nu = evalNu, .self_nu_ctx = &ctx},
 
     .num_diag_moments = 3,
     .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2},
@@ -290,11 +327,13 @@ main(int argc, char **argv)
   // Field.
   struct gkyl_vlasov_field field = {
     .epsilon0 = ctx.epsilon0,
+    .mu0 = ctx.mu0,
 
-    .poisson_bcs = {.lo_type = {GKYL_POISSON_PERIODIC}, .up_type = {GKYL_POISSON_PERIODIC}},
+    .init = evalFieldInit,
+    .ctx = &ctx,
   };
 
-  // Vlasov-Poisson app.
+  // Vlasov-Maxwell app.
   struct gkyl_vm app_inp = {
 
     .cdim = 1,
@@ -320,7 +359,6 @@ main(int argc, char **argv)
     }},
 
     .field = field,
-    .is_electrostatic = true,
 
     .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm},
   };
@@ -399,6 +437,11 @@ main(int argc, char **argv)
   // Compute initial guess of maximum stable time-step.
   double dt = t_end - t_curr;
 
+  // The requested time-step is shortened near the end of the simulation so that
+  // the final step lands exactly on t_end.
+  bool is_dt_clipped = false; // Was the requested dt shortened below the stable dt?
+  bool is_last_step = true; // Does the requested dt reach t_end?
+
   // Initialize small time-step check.
   double dt_init = -1.0, dt_failure_tol = ctx.dt_failure_tol;
   int num_failures = 0, num_failures_max = ctx.num_failures_max;
@@ -414,8 +457,37 @@ main(int argc, char **argv)
       break;
     }
 
-    t_curr += status.dt_actual;
+    // Only a step that took the full requested dt counts as shortened/final.
+    bool took_requested_dt = status.dt_actual == dt;
+    bool was_dt_clipped = is_dt_clipped && took_requested_dt;
+    if (is_last_step && took_requested_dt) {
+      // Avoid round-off leaving t_curr just short of t_end.
+      t_curr = t_end;
+      // Trigger times are accumulated sums and can exceed t_end by round-off.
+      // Snap them so the final frame and diagnostics are still produced.
+      snap_trigger_to_t_end(&fe_trig, t_end);
+      snap_trigger_to_t_end(&im_trig, t_end);
+      snap_trigger_to_t_end(&l2f_trig, t_end);
+      snap_trigger_to_t_end(&io_trig, t_end);
+    } else {
+      t_curr += status.dt_actual;
+    }
+
+    // Request the next time-step. If the remaining time fits in one stable step,
+    // take exactly the remaining time; if it fits in less than two, split it into
+    // two equal steps so the final step is never a sliver of the stable dt.
+    double t_left = t_end - t_curr;
     dt = status.dt_suggested;
+    is_dt_clipped = false;
+    is_last_step = false;
+    if (t_left <= dt) {
+      dt = t_left;
+      is_dt_clipped = true;
+      is_last_step = true;
+    } else if (t_left < 2.0 * dt) {
+      dt = 0.5 * t_left;
+      is_dt_clipped = true;
+    }
 
     calc_field_energy(&fe_trig, app, t_curr, false);
     calc_integrated_mom(&im_trig, app, t_curr, false);
@@ -424,7 +496,7 @@ main(int argc, char **argv)
 
     if (dt_init < 0.0) {
       dt_init = status.dt_actual;
-    } else if (status.dt_actual < dt_failure_tol * dt_init) {
+    } else if (!was_dt_clipped && status.dt_actual < dt_failure_tol * dt_init) {
       num_failures += 1;
 
       gkyl_vlasov_app_cout(app, stdout, "WARNING: Time-step dt = %g", status.dt_actual);

@@ -25,7 +25,6 @@ struct landau_damping_ctx {
 
   // Physical constants (using normalized code units).
   double epsilon0; // Permittivity of free space.
-  double mu0; // Permeability of free space.
   double mass_elc; // Electron mass.
   double charge_elc; // Electron charge.
 
@@ -60,12 +59,11 @@ create_ctx(void)
 
   // Physical constants (using normalized code units).
   double epsilon0 = 1.0; // Permittivity of free space.
-  double mu0 = 1.0; // Permeability of free space.
   double mass_elc = 1.0; // Electron mass.
   double charge_elc = -1.0; // Electron charge.
 
   double vt = 1.0; // Thermal velocity.
-  double nu = 0.1; // Collision frequency.
+  double nu = 0.05; // Collision frequency.
 
   double alpha = 1.0e-4; // Applied perturbation amplitude.
   double k0 = 0.5; // Perturbed wave number.
@@ -90,7 +88,6 @@ create_ctx(void)
   struct landau_damping_ctx ctx = {
     .pi = pi,
     .epsilon0 = epsilon0,
-    .mu0 = mu0,
     .mass_elc = mass_elc,
     .charge_elc = charge_elc,
     .vt = vt,
@@ -135,35 +132,6 @@ evalElcInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout
 }
 
 void
-evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
-{
-  struct landau_damping_ctx *app = ctx;
-  double x = xn[0];
-
-  double alpha = app->alpha;
-  double k0 = app->k0;
-
-  double Ex = -alpha * sin(k0 * x) / k0; // Total electric field (x-direction).
-  double Ey = 0.0; // Total electric field (y-direction).
-  double Ez = 0.0; // Total electric field (z-direction).
-
-  double Bx = 0.0; // Total magnetic field (x-direction).
-  double By = 0.0; // Total magnetic field (y-direction).
-  double Bz = 0.0; // Total magnetic field (z-direction).
-
-  // Set electric field.
-  fout[0] = Ex;
-  fout[1] = Ey, fout[2] = Ez;
-  // Set magnetic field.
-  fout[3] = Bx;
-  fout[4] = By;
-  fout[5] = Bz;
-  // Set correction potentials.
-  fout[6] = 0.0;
-  fout[7] = 0.0;
-}
-
-void
 evalNu(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct landau_damping_ctx *app = ctx;
@@ -172,6 +140,15 @@ evalNu(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, voi
 
   // Set collision frequency.
   fout[0] = nu;
+}
+
+// Snap a trigger whose next time exceeds t_end only by round-off back to t_end.
+static void
+snap_trigger_to_t_end(struct gkyl_tm_trigger *trig, double t_end)
+{
+  if (trig->tcurr > t_end && trig->tcurr <= t_end * (1.0 + 1.0e-10)) {
+    trig->tcurr = t_end;
+  }
 }
 
 void
@@ -318,13 +295,11 @@ main(int argc, char **argv)
   // Field.
   struct gkyl_vlasov_field field = {
     .epsilon0 = ctx.epsilon0,
-    .mu0 = ctx.mu0,
 
-    .init = evalFieldInit,
-    .ctx = &ctx,
+    .poisson_bcs = {.lo_type = {GKYL_POISSON_PERIODIC}, .up_type = {GKYL_POISSON_PERIODIC}},
   };
 
-  // Vlasov-Maxwell app.
+  // Vlasov-Poisson app.
   struct gkyl_vm app_inp = {
 
     .cdim = 1,
@@ -350,6 +325,7 @@ main(int argc, char **argv)
     }},
 
     .field = field,
+    .is_electrostatic = true,
 
     .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm},
   };
@@ -428,6 +404,11 @@ main(int argc, char **argv)
   // Compute initial guess of maximum stable time-step.
   double dt = t_end - t_curr;
 
+  // The requested time-step is shortened near the end of the simulation so that
+  // the final step lands exactly on t_end.
+  bool is_dt_clipped = false; // Was the requested dt shortened below the stable dt?
+  bool is_last_step = true; // Does the requested dt reach t_end?
+
   // Initialize small time-step check.
   double dt_init = -1.0, dt_failure_tol = ctx.dt_failure_tol;
   int num_failures = 0, num_failures_max = ctx.num_failures_max;
@@ -443,8 +424,37 @@ main(int argc, char **argv)
       break;
     }
 
-    t_curr += status.dt_actual;
+    // Only a step that took the full requested dt counts as shortened/final.
+    bool took_requested_dt = status.dt_actual == dt;
+    bool was_dt_clipped = is_dt_clipped && took_requested_dt;
+    if (is_last_step && took_requested_dt) {
+      // Avoid round-off leaving t_curr just short of t_end.
+      t_curr = t_end;
+      // Trigger times are accumulated sums and can exceed t_end by round-off.
+      // Snap them so the final frame and diagnostics are still produced.
+      snap_trigger_to_t_end(&fe_trig, t_end);
+      snap_trigger_to_t_end(&im_trig, t_end);
+      snap_trigger_to_t_end(&l2f_trig, t_end);
+      snap_trigger_to_t_end(&io_trig, t_end);
+    } else {
+      t_curr += status.dt_actual;
+    }
+
+    // Request the next time-step. If the remaining time fits in one stable step,
+    // take exactly the remaining time; if it fits in less than two, split it into
+    // two equal steps so the final step is never a sliver of the stable dt.
+    double t_left = t_end - t_curr;
     dt = status.dt_suggested;
+    is_dt_clipped = false;
+    is_last_step = false;
+    if (t_left <= dt) {
+      dt = t_left;
+      is_dt_clipped = true;
+      is_last_step = true;
+    } else if (t_left < 2.0 * dt) {
+      dt = 0.5 * t_left;
+      is_dt_clipped = true;
+    }
 
     calc_field_energy(&fe_trig, app, t_curr, false);
     calc_integrated_mom(&im_trig, app, t_curr, false);
@@ -453,7 +463,7 @@ main(int argc, char **argv)
 
     if (dt_init < 0.0) {
       dt_init = status.dt_actual;
-    } else if (status.dt_actual < dt_failure_tol * dt_init) {
+    } else if (!was_dt_clipped && status.dt_actual < dt_failure_tol * dt_init) {
       num_failures += 1;
 
       gkyl_vlasov_app_cout(app, stdout, "WARNING: Time-step dt = %g", status.dt_actual);

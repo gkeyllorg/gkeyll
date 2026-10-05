@@ -5,32 +5,26 @@ pi = math.pi
 
 -- Physical constants (using normalized code units).
 epsilon0 = 1.0 -- Permittivity of free space.
+mu0 = 1.0 -- Permeability of free space.
 mass_elc = 1.0 -- Electron mass.
 charge_elc = -1.0 -- Electron charge.
 
-n0 = 1.0 -- Reference number density.
-Te = 1.0 -- Electron temperature.
+vt = 1.0 -- Thermal velocity.
 
 alpha = 1.0e-4 -- Applied perturbation amplitude.
-
--- Derived physical quantities (using normalized code units).
-vte = math.sqrt(Te / mass_elc) -- Electron thermal velocity.
-omega_pe = math.sqrt((charge_elc * charge_elc) * n0 / (epsilon0 * mass_elc)) -- Electron plasma frequency.
-lambda_D = vte / omega_pe -- Electron Debye length.
-
-k0 = 0.5 / lambda_D -- Perturbed wave number.
+k0 = 0.5 -- Perturbed wave number.
 
 -- Simulation parameters.
-Nx = 64 -- Cell count (configuration space: x-direction).
-Nvx = 64 -- Cell count (velocity space: vx-direction).
-Lx = 2.0 * pi / k0 -- Domain size (configuration space: x-direction).
-vx_max = 6.0 * vte -- Domain boundary (velocity space: vx-direction).
-poly_order = 1 -- Polynomial order.
-basis_type = "serendipity" -- Basis function set.
+Nx = 32 -- Cell count (configuration space: x-direction).
+Nvx = 32 -- Cell count (velocity space: vx-direction).
+Lx = 4.0 * pi -- Domain size (configuration space: x-direction).
+vx_max = 6.0 * vt -- Domain boundary (velocity space: vx-direction).
+poly_order = 3 -- Polynomial order.
+basis_type = "tensor" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
 cfl_frac = 0.6 -- CFL coefficient.
 
-t_end = 15.0 / omega_pe -- Final simulation time.
+t_end = 20.0 -- Final simulation time.
 num_frames = 1 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.
@@ -82,7 +76,7 @@ vlasovApp = Vlasov.App.new {
           local x, vx = xn[1], xn[2]
 
           local n = (1.0 + alpha * math.cos(k0 * x)) *
-            (1.0 / math.sqrt(2.0 * pi * vte * vte)) * (math.exp(-(vx * vx) / (2.0 * vte * vte))) -- Distribution function.
+            (1.0 / math.sqrt(2.0 * pi * vt * vt)) * (math.exp(-(vx * vx) / (2.0 * vt * vt))) -- Distribution function.
 
           return n
         end
@@ -93,20 +87,28 @@ vlasovApp = Vlasov.App.new {
     diagnostics = { G0.Moment.M0, G0.Moment.M1, G0.Moment.M2 }
   },
 
-  isElectrostatic = true,
-
   -- Field.
   field = Vlasov.Field.new {
-    epsilon0 = epsilon0,
+    epsilon0 = epsilon0, mu0 = mu0,
 
-    poissonBcs = {
-      lowerType = {
-        G0.PoissonBc.bcPeriodic
-      },
-      upperType = {
-        G0.PoissonBc.bcPeriodic
-      }
-    }
+    -- Initial conditions function.
+    init = function (t, xn)
+      local x = xn[1]
+
+      local Ex = -alpha * math.sin(k0 * x) / k0 -- Total electric field (x-direction).
+      local Ey = 0.0 -- Total electric field (y-direction).
+      local Ez = 0.0 -- Total electric field (z-direction).
+
+      local Bx = 0.0 -- Total magnetic field (x-direction).
+      local By = 0.0 -- Total magnetic field (y-direction).
+      local Bz = 0.0 -- Total magnetic field (z-direction).
+
+      return Ex, Ey, Ez, Bx, By, Bz, 0.0, 0.0
+    end,
+
+    evolve = true, -- Evolve field?
+    elcErrorSpeedFactor = 0.0,
+    mgnErrorSpeedFactor = 0.0
   }
 }
 

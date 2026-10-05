@@ -462,9 +462,10 @@ vp_field_calc_energy(
 
   struct timespec wst = gkyl_wall_clock();
 
+  // The integrate updater already accounts for the cell volume, so the factor is 1.
   gkyl_array_integrate_advance(
-    field->calc_es_energy, field->phi, app->grid.cellVolume, field->es_energy_fac, &app->local,
-    &app->local, field->es_energy_red
+    field->calc_es_energy, field->phi, 1.0, field->es_energy_fac, &app->local, &app->local,
+    field->es_energy_red
   );
 
   gkyl_comm_allreduce(

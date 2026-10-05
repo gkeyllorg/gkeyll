@@ -10,16 +10,19 @@ mass_elc = 1.0 -- Electron mass.
 charge_elc = -1.0 -- Electron charge.
 
 vt = 1.0 -- Thermal velocity.
-nu = 0.1 -- Collision frequency.
 
 alpha = 1.0e-4 -- Applied perturbation amplitude.
 k0 = 0.5 -- Perturbed wave number.
 
 -- Simulation parameters.
-Nx = 32 -- Cell count (configuration space: x-direction).
-Nvx = 32 -- Cell count (velocity space: vx-direction).
+Nx = 8 -- Cell count (configuration space: x-direction).
+Nvx = 24 -- Cell count (velocity space: vx-direction).
+Nvy = 4 -- Cell count (velocity space: vy-direction).
+Nvz = 4 -- Cell count (velocity space: vz-direction).
 Lx = 4.0 * pi -- Domain size (configuration space: x-direction).
 vx_max = 6.0 * vt -- Domain boundary (velocity space: vx-direction).
+vy_max = 3.5 * vt -- Domain boundary (velocity space: vy-direction).
+vz_max = 3.5 * vt -- Domain boundary (velocity space: vz-direction).
 poly_order = 2 -- Polynomial order.
 basis_type = "serendipity" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
@@ -63,9 +66,9 @@ vlasovApp = Vlasov.App.new {
     charge = charge_elc, mass = mass_elc,
     
     -- Velocity space grid.
-    lower = { -vx_max },
-    upper = { vx_max },
-    cells = { Nvx },
+    lower = { -vx_max, -vy_max, -vz_max },
+    upper = { vx_max, vy_max, vz_max },
+    cells = { Nvx, Nvy, Nvz },
 
     -- Initial conditions.
     numInit = 1,
@@ -74,22 +77,15 @@ vlasovApp = Vlasov.App.new {
         projectionID = G0.Projection.Func,
 
         init = function (t, xn)
-          local x, vx = xn[1], xn[2]
+          local x, vx, vy, vz = xn[1], xn[2], xn[3], xn[4]
 
+          local v_sq = (vx * vx) + (vy * vy) + (vz * vz)
           local n = (1.0 + alpha * math.cos(k0 * x)) *
-            (1.0 / math.sqrt(2.0 * pi * vt * vt)) * (math.exp(-(vx * vx) / (2.0 * vt * vt))) -- Distribution function.
+            (1.0 / math.pow(math.sqrt(2.0 * pi * vt * vt), 3.0)) * (math.exp(-v_sq / (2.0 * vt * vt))) -- Distribution function.
 
           return n
         end
       }
-    },
-
-    collisions = {
-      collisionID = G0.Collisions.LBO,
-
-      selfNu = function (t, xn)
-        return nu -- Collision frequency.
-      end,
     },
 
     evolve = true, -- Evolve species?

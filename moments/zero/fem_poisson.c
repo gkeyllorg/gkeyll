@@ -50,11 +50,18 @@ fem_poisson_bias_src_enabled(gkyl_fem_poisson *up, struct gkyl_array *rhsin)
 struct gkyl_fem_poisson *
 gkyl_fem_poisson_new(
   const struct gkyl_range *solve_range, const struct gkyl_rect_grid *grid,
-  const struct gkyl_basis basis, struct gkyl_poisson_bc *bcs,
+  const struct gkyl_basis basis_in, struct gkyl_poisson_bc *bcs,
   struct gkyl_poisson_bias_plane_list *bias_planes, struct gkyl_array *epsilon,
   struct gkyl_array *kSq, bool is_epsilon_const, bool use_gpu
 )
 {
+  // In 1x, and at p=1 in any dimension, the tensor and serendipity bases are
+  // identical, so the serendipity kernels are used for a tensor basis there.
+  struct gkyl_basis basis = basis_in;
+  if (basis.b_type == GKYL_BASIS_MODAL_TENSOR && (basis.ndim == 1 || basis.poly_order == 1)) {
+    gkyl_cart_modal_serendip(&basis, basis.ndim, basis.poly_order);
+  }
+
   struct gkyl_fem_poisson *up = gkyl_malloc(sizeof(struct gkyl_fem_poisson));
 
   up->kernels = gkyl_malloc(sizeof(struct gkyl_fem_poisson_kernels));
