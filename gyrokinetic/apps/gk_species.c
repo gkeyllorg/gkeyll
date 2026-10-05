@@ -644,8 +644,14 @@ gk_species_calc_integrated_mom_dynamic(gkyl_gyrokinetic_app *app, struct gk_spec
     struct gkyl_array *mom_old[] = {gks->fdot_mom_old, gks->fbardot_mom_old};
     struct gkyl_array *mom_new[] = {gks->fdot_mom_new, gks->fbardot_mom_new};
     gkyl_dynvec diags[] = {gks->fdot_integ_diag, gks->fbardot_integ_diag};
-    int num_rates = gks->damping.type == GKYL_GK_DAMPING_LOW_PASS_FILTER ? 2 : 1;
-    for (int rate = 0; rate < num_rates; ++rate) {
+    for (int rate = 0; rate < 2; ++rate) {
+      // Keep both time series aligned, including before the filter is enabled.
+      // Ignore stored filter moments when inactive: they may belong to an earlier step.
+      if (rate == 1 && gks->damping.type != GKYL_GK_DAMPING_LOW_PASS_FILTER) {
+        memset(avals_global, 0, sizeof(double[num_mom]));
+        gkyl_dynvec_append(diags[rate], tm, avals_global);
+        continue;
+      }
       // Reduce (sum) over whole domain, append to diagnostics.
       gkyl_array_set(gks->integ_moms.marr, 1.0, mom_new[rate]);
       gkyl_array_accumulate(gks->integ_moms.marr, -1.0, mom_old[rate]);
@@ -720,10 +726,6 @@ gk_species_write_integrated_mom_dynamic(gkyl_gyrokinetic_app *app, struct gk_spe
       "Volume integrated moments of time rate of change of the low-pass-filtered distribution."
     };
     for (int rate = 0; rate < 2; ++rate) {
-      // Preserve buffered filter diagnostics even if damping was disabled between writes.
-      if (rate == 1 && gkyl_dynvec_size(diags[rate]) == 0) {
-        continue;
-      }
       if (rank == 0) {
         // Write integrated diagnostic moments.
         const char *fmt = "%s-%s_%s_integrated_moms.gkyl";
