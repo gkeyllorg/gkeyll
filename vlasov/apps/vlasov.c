@@ -164,9 +164,19 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
     int cuts[3] = {1, 1, 1};
     app->decomp = gkyl_rect_decomp_new_from_cuts(cdim, cuts, &app->global);
 
+    // The general diffusion tensor has cross terms whose stencil reaches corner ghost
+    // cells, so these need to be synced when a fluid species uses one.
+    bool sync_corners = false;
+    for (int i = 0; i < vm->num_species; ++i) {
+      if (vm->species[i].type == GKYL_SPECIES_FLUID && vm->species[i].fluid.diffusion.Dij) {
+        sync_corners = true;
+      }
+    }
+
     app->comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){
       .decomp = app->decomp,
       .use_gpu = app->use_gpu,
+      .sync_corners = sync_corners,
     });
 
     // Global and local ranges are same, and so just copy them.

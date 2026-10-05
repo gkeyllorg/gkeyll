@@ -2460,6 +2460,15 @@ vm_app_new(lua_State *L)
     vm.parallelism.cuts[d] = cuts[d];
   }
 
+  // The general diffusion tensor has cross terms whose stencil reaches corner ghost
+  // cells, so these need to be synced when a fluid species uses one.
+  bool sync_corners = false;
+  for (int s = 0; s < num_fluid_species; ++s) {
+    if (fluid_species[s]->has_diffusion_func) {
+      sync_corners = true;
+    }
+  }
+
   struct gkyl_tool_args *args = gkyl_tool_args_new(L);
   struct script_cli script_cli = vm_parse_script_cli(args);
 
@@ -2485,7 +2494,10 @@ vm_app_new(lua_State *L)
         int nrank = 1; // Number of processors in simulation.
         MPI_Comm_size(mpi_comm, &nrank);
 
-        comm = gkyl_nccl_comm_new(&(struct gkyl_nccl_comm_inp){.mpi_comm = mpi_comm});
+        comm = gkyl_nccl_comm_new(&(struct gkyl_nccl_comm_inp){
+          .mpi_comm = mpi_comm,
+          .sync_corners = sync_corners,
+        });
       }
     }
 #else
@@ -2504,18 +2516,30 @@ vm_app_new(lua_State *L)
         int nrank = 1; // Number of processors in simulation.
         MPI_Comm_size(mpi_comm, &nrank);
 
-        comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){.mpi_comm = mpi_comm});
+        comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){
+          .mpi_comm = mpi_comm,
+          .sync_corners = sync_corners,
+        });
       }
     }
   } else {
-    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = script_cli.use_gpu});
+    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){
+      .use_gpu = script_cli.use_gpu,
+      .sync_corners = sync_corners,
+    });
   }
 #else
-  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = script_cli.use_gpu});
+  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){
+    .use_gpu = script_cli.use_gpu,
+    .sync_corners = sync_corners,
+  });
 #endif
 
   if (comm == 0) {
-    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = script_cli.use_gpu});
+    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){
+      .use_gpu = script_cli.use_gpu,
+      .sync_corners = sync_corners,
+    });
   }
 
   vm.parallelism.comm = comm;

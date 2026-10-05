@@ -15,10 +15,10 @@ typedef double (*advection_surf_t)(
 
 // for use in kernel tables
 typedef struct {
-  vol_termf_t kernels[3];
+  vol_termf_t kernels[4];
 } gkyl_dg_advection_vol_kern_list;
 typedef struct {
-  advection_surf_t kernels[3];
+  advection_surf_t kernels[4];
 } gkyl_dg_advection_surf_kern_list;
 
 struct dg_advection {
@@ -137,32 +137,73 @@ kernel_advection_vol_3x_tensor_p2(
   );
 }
 
+GKYL_CU_DH static double
+kernel_advection_vol_1x_ser_p3(
+  const struct gkyl_dg_eqn *eqn, const double *xc, const double *dx, const int *idx,
+  const double *qIn, double *GKYL_RESTRICT qRhsOut
+)
+{
+  struct dg_advection *advection = container_of(eqn, struct dg_advection, eqn);
+  long cidx = gkyl_range_idx(&advection->conf_range, idx);
+  return advection_vol_1x_ser_p3(
+    xc, dx, (const double *)gkyl_array_cfetch(advection->auxfields.u_i, cidx), qIn, qRhsOut
+  );
+}
+
+GKYL_CU_DH static double
+kernel_advection_vol_2x_ser_p3(
+  const struct gkyl_dg_eqn *eqn, const double *xc, const double *dx, const int *idx,
+  const double *qIn, double *GKYL_RESTRICT qRhsOut
+)
+{
+  struct dg_advection *advection = container_of(eqn, struct dg_advection, eqn);
+  long cidx = gkyl_range_idx(&advection->conf_range, idx);
+  return advection_vol_2x_ser_p3(
+    xc, dx, (const double *)gkyl_array_cfetch(advection->auxfields.u_i, cidx), qIn, qRhsOut
+  );
+}
+
+GKYL_CU_DH static double
+kernel_advection_vol_2x_tensor_p3(
+  const struct gkyl_dg_eqn *eqn, const double *xc, const double *dx, const int *idx,
+  const double *qIn, double *GKYL_RESTRICT qRhsOut
+)
+{
+  struct dg_advection *advection = container_of(eqn, struct dg_advection, eqn);
+  long cidx = gkyl_range_idx(&advection->conf_range, idx);
+  return advection_vol_2x_tensor_p3(
+    xc, dx, (const double *)gkyl_array_cfetch(advection->auxfields.u_i, cidx), qIn, qRhsOut
+  );
+}
+
 // Volume kernel list
 GKYL_CU_D static const gkyl_dg_advection_vol_kern_list ser_vol_kernels[] = {
-  {NULL, kernel_advection_vol_1x_ser_p1, kernel_advection_vol_1x_ser_p2}, // 0
-  {NULL, kernel_advection_vol_2x_ser_p1, kernel_advection_vol_2x_ser_p2}, // 1
-  {NULL, kernel_advection_vol_3x_ser_p1, kernel_advection_vol_3x_ser_p2} // 2
+  {NULL, kernel_advection_vol_1x_ser_p1, kernel_advection_vol_1x_ser_p2,
+   kernel_advection_vol_1x_ser_p3}, // 0
+  {NULL, kernel_advection_vol_2x_ser_p1, kernel_advection_vol_2x_ser_p2,
+   kernel_advection_vol_2x_ser_p3}, // 1
+  {NULL, kernel_advection_vol_3x_ser_p1, kernel_advection_vol_3x_ser_p2, NULL} // 2
 };
 
 // Surface kernel list: x-direction
 GKYL_CU_D static const gkyl_dg_advection_surf_kern_list ser_surf_x_kernels[] = {
-  {NULL, advection_surfx_1x_ser_p1, advection_surfx_1x_ser_p2}, // 0
-  {NULL, advection_surfx_2x_ser_p1, advection_surfx_2x_ser_p2}, // 1
-  {NULL, advection_surfx_3x_ser_p1, advection_surfx_3x_ser_p2} // 2
+  {NULL, advection_surfx_1x_ser_p1, advection_surfx_1x_ser_p2, advection_surfx_1x_ser_p3}, // 0
+  {NULL, advection_surfx_2x_ser_p1, advection_surfx_2x_ser_p2, advection_surfx_2x_ser_p3}, // 1
+  {NULL, advection_surfx_3x_ser_p1, advection_surfx_3x_ser_p2, NULL} // 2
 };
 
 // Surface kernel list: y-direction
 GKYL_CU_D static const gkyl_dg_advection_surf_kern_list ser_surf_y_kernels[] = {
-  {NULL, NULL, NULL}, // 0
-  {NULL, advection_surfy_2x_ser_p1, advection_surfy_2x_ser_p2}, // 1
-  {NULL, advection_surfy_3x_ser_p1, advection_surfy_3x_ser_p2} // 2
+  {NULL, NULL, NULL, NULL}, // 0
+  {NULL, advection_surfy_2x_ser_p1, advection_surfy_2x_ser_p2, advection_surfy_2x_ser_p3}, // 1
+  {NULL, advection_surfy_3x_ser_p1, advection_surfy_3x_ser_p2, NULL} // 2
 };
 
 // Surface kernel list: z-direction
 GKYL_CU_D static const gkyl_dg_advection_surf_kern_list ser_surf_z_kernels[] = {
-  {NULL, NULL, NULL}, // 0
-  {NULL, NULL, NULL}, // 1
-  {NULL, advection_surfz_3x_ser_p1, advection_surfz_3x_ser_p2} // 2
+  {NULL, NULL, NULL, NULL}, // 0
+  {NULL, NULL, NULL, NULL}, // 1
+  {NULL, advection_surfz_3x_ser_p1, advection_surfz_3x_ser_p2, NULL} // 2
 };
 
 // Tensor kernel lists. The p=1 tensor basis is identical to the p=1 Serendipity
@@ -171,30 +212,34 @@ GKYL_CU_D static const gkyl_dg_advection_surf_kern_list ser_surf_z_kernels[] = {
 
 // Volume kernel list
 GKYL_CU_D static const gkyl_dg_advection_vol_kern_list tensor_vol_kernels[] = {
-  {NULL, kernel_advection_vol_1x_ser_p1, kernel_advection_vol_1x_ser_p2}, // 0
-  {NULL, kernel_advection_vol_2x_ser_p1, kernel_advection_vol_2x_tensor_p2}, // 1
-  {NULL, kernel_advection_vol_3x_ser_p1, kernel_advection_vol_3x_tensor_p2} // 2
+  {NULL, kernel_advection_vol_1x_ser_p1, kernel_advection_vol_1x_ser_p2,
+   kernel_advection_vol_1x_ser_p3}, // 0
+  {NULL, kernel_advection_vol_2x_ser_p1, kernel_advection_vol_2x_tensor_p2,
+   kernel_advection_vol_2x_tensor_p3}, // 1
+  {NULL, kernel_advection_vol_3x_ser_p1, kernel_advection_vol_3x_tensor_p2, NULL} // 2
 };
 
 // Surface kernel list: x-direction
 GKYL_CU_D static const gkyl_dg_advection_surf_kern_list tensor_surf_x_kernels[] = {
-  {NULL, advection_surfx_1x_ser_p1, advection_surfx_1x_ser_p2}, // 0
-  {NULL, advection_surfx_2x_ser_p1, advection_surfx_2x_tensor_p2}, // 1
-  {NULL, advection_surfx_3x_ser_p1, advection_surfx_3x_tensor_p2} // 2
+  {NULL, advection_surfx_1x_ser_p1, advection_surfx_1x_ser_p2, advection_surfx_1x_ser_p3}, // 0
+  {NULL, advection_surfx_2x_ser_p1, advection_surfx_2x_tensor_p2, advection_surfx_2x_tensor_p3
+  }, // 1
+  {NULL, advection_surfx_3x_ser_p1, advection_surfx_3x_tensor_p2, NULL} // 2
 };
 
 // Surface kernel list: y-direction
 GKYL_CU_D static const gkyl_dg_advection_surf_kern_list tensor_surf_y_kernels[] = {
-  {NULL, NULL, NULL}, // 0
-  {NULL, advection_surfy_2x_ser_p1, advection_surfy_2x_tensor_p2}, // 1
-  {NULL, advection_surfy_3x_ser_p1, advection_surfy_3x_tensor_p2} // 2
+  {NULL, NULL, NULL, NULL}, // 0
+  {NULL, advection_surfy_2x_ser_p1, advection_surfy_2x_tensor_p2, advection_surfy_2x_tensor_p3
+  }, // 1
+  {NULL, advection_surfy_3x_ser_p1, advection_surfy_3x_tensor_p2, NULL} // 2
 };
 
 // Surface kernel list: z-direction
 GKYL_CU_D static const gkyl_dg_advection_surf_kern_list tensor_surf_z_kernels[] = {
-  {NULL, NULL, NULL}, // 0
-  {NULL, NULL, NULL}, // 1
-  {NULL, advection_surfz_3x_ser_p1, advection_surfz_3x_tensor_p2} // 2
+  {NULL, NULL, NULL, NULL}, // 0
+  {NULL, NULL, NULL, NULL}, // 1
+  {NULL, advection_surfz_3x_ser_p1, advection_surfz_3x_tensor_p2, NULL} // 2
 };
 
 /**

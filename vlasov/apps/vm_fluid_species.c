@@ -825,22 +825,17 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
       diffD_host = mkarr(false, szD * app->basis.num_basis, app->local_ext.volume);
     }
 
-    gkyl_proj_on_basis *diff_proj = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
-      .grid = &app->grid,
-      .basis = &app->basis,
-      .qtype = GKYL_GAUSS_LOBATTO_QUAD,
-      .num_quad = 8,
-      .num_ret_vals = szD,
-      .eval = f->info.diffusion.Dij,
-      .ctx = f->info.diffusion.Dij_ctx,
-    });
-    gkyl_proj_on_basis_advance(diff_proj, 0.0, &app->local_ext, diffD_host);
+    // Evaluate specified diffusion tensor at nodes to insure continuity of the diffusion
+    // coefficient (the diffusion kernels do not recover it across cell interfaces)
+    struct gkyl_eval_on_nodes *diff_proj = gkyl_eval_on_nodes_new(
+      &app->grid, &app->basis, szD, f->info.diffusion.Dij, f->info.diffusion.Dij_ctx
+    );
+    gkyl_eval_on_nodes_advance(diff_proj, 0.0, &app->local_ext, diffD_host);
     if (app->use_gpu) { // note: diffD_host is same as diffD when not on GPUs
       gkyl_array_copy(f->diffD, diffD_host);
       gkyl_array_release(diffD_host);
     }
-    // Free projection object
-    gkyl_proj_on_basis_release(diff_proj);
+    gkyl_eval_on_nodes_release(diff_proj);
 
     f->diff_slvr_gen =
       gkyl_dg_updater_diffusion_gen_new(&app->grid, &app->basis, &app->local, app->use_gpu);
@@ -868,8 +863,8 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     const bool is_zero_flux[GKYL_MAX_CDIM] = {false};
 
     f->diff_slvr = gkyl_dg_updater_diffusion_fluid_new(
-      &app->grid, &app->basis, true, f->num_equations, NULL, f->info.diffusion.order, &app->local,
-      is_zero_flux, app->use_gpu
+      &app->grid, &app->basis, f->num_equations, NULL, f->info.diffusion.order, is_zero_flux,
+      app->use_gpu
     );
   }
 

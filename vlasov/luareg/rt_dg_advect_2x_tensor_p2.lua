@@ -1,4 +1,4 @@
--- Constant advection in 2x using a p2 DG discretization of the advection equation. 
+-- Constant advection in 2x using a tensor p2 DG discretization of the advection equation. 
 
 local Vlasov = G0.Vlasov
 local LinearAdvection = G0.Vlasov.Eq.LinearAdvection

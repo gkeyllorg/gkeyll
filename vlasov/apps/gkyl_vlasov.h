@@ -138,7 +138,9 @@ struct gkyl_vlasov_fluid_diffusion {
   double D; // constant diffusion coefficient
   int order; // integer for order of the diffusion (4 for grad^4, 6 for grad^6, default is grad^2)
   void *Dij_ctx; // context for applied diffusion function if using general diffusion tensor
-  // pointer to applied diffusion function is using general diffusion tensor
+  // pointer to applied diffusion function is using general diffusion tensor. The tensor
+  // is evaluated at nodes (assumed continuous), and its cross terms need corner ghost
+  // cells: a communicator passed to the app must be created with sync_corners = true.
   void (*Dij)(double t, const double *xn, double *Dout, void *ctx);
 };
 

@@ -18,9 +18,8 @@ gkyl_dg_updater_diffusion_fluid_acquire_eqn(const struct gkyl_dg_updater_diffusi
 
 struct gkyl_dg_updater_diffusion_fluid *
 gkyl_dg_updater_diffusion_fluid_new(
-  const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis, bool is_diff_const,
-  int num_equations, const bool *diff_in_dir, int diff_order, const struct gkyl_range *diff_range,
-  const bool *is_zero_flux_dir, bool use_gpu
+  const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis, int num_equations,
+  const bool *diff_in_dir, int diff_order, const bool *is_zero_flux_dir, bool use_gpu
 )
 {
   struct gkyl_dg_updater_diffusion_fluid *up =
@@ -33,9 +32,8 @@ gkyl_dg_updater_diffusion_fluid_new(
     is_dir_diffusive[d] = diff_in_dir == NULL ? true : diff_in_dir[d];
   }
 
-  up->dgeqn = gkyl_dg_diffusion_fluid_new(
-    basis, is_diff_const, num_equations, is_dir_diffusive, diff_order, diff_range, up->use_gpu
-  );
+  up->dgeqn =
+    gkyl_dg_diffusion_fluid_new(basis, num_equations, is_dir_diffusive, diff_order, up->use_gpu);
 
   int num_up_dirs = 0;
   for (int d = 0; d < ndim; d++) {

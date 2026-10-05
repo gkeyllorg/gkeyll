@@ -1,4 +1,5 @@
-// General diffusion (with constant diffusion tensor) of a 2D square wave using a p2 DG discretization of the advection-diffusion equation.
+// General diffusion (with constant, positive-definite diffusion tensor) of a 2D plane wave using a p2 DG discretization of the advection-diffusion equation.
+// The wave decays at the rate kx^2 Dxx + 2 kx ky Dxy + ky^2 Dyy.
 
 #include <math.h>
 #include <stdio.h>
@@ -28,7 +29,12 @@ struct diffusion_ctx {
 
   // Physical constants (using normalized code units).
   double v_advect; // Advection velocity.
-  double diffusion_coeff; // Diffusion coefficient.
+  double diffusion_xx; // Diffusion tensor (xx-component).
+  double diffusion_xy; // Diffusion tensor (xy-component).
+  double diffusion_yy; // Diffusion tensor (yy-component).
+
+  double kx; // Wavenumber (x-direction).
+  double ky; // Wavenumber (y-direction).
 
   // Simulation parameters.
   int Nx; // Cell count (configuration space: x-direction).
@@ -55,17 +61,22 @@ create_ctx(void)
 
   // Physical constants (using normalized code units).
   double v_advect = 1.0; // Advection velocity.
-  double diffusion_coeff = 1.0; // Diffusion coefficient.
+  double diffusion_xx = 1.0; // Diffusion tensor (xx-component).
+  double diffusion_xy = 0.5; // Diffusion tensor (xy-component).
+  double diffusion_yy = 0.7; // Diffusion tensor (yy-component).
+
+  double kx = 1.0; // Wavenumber (x-direction).
+  double ky = 2.0; // Wavenumber (y-direction).
 
   // Simulation parameters.
-  int Nx = 32; // Cell count (configuration space: x-direction).
-  int Ny = 32; // Cell count (configuration space: y-direction).
-  double Lx = 4.0; // Domain size (configuration space: x-direction).
-  double Ly = 4.0; // Domain size (configuration space: y-direction).
+  int Nx = 16; // Cell count (configuration space: x-direction).
+  int Ny = 16; // Cell count (configuration space: y-direction).
+  double Lx = 2.0 * pi; // Domain size (configuration space: x-direction).
+  double Ly = 2.0 * pi; // Domain size (configuration space: y-direction).
   int poly_order = 2; // Polynomial order.
-  double cfl_frac = 0.5; // CFL coefficient.
+  double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 0.01; // Final simulation time.
+  double t_end = 0.1; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
@@ -77,7 +88,11 @@ create_ctx(void)
   struct diffusion_ctx ctx = {
     .pi = pi,
     .v_advect = v_advect,
-    .diffusion_coeff = diffusion_coeff,
+    .diffusion_xx = diffusion_xx,
+    .diffusion_xy = diffusion_xy,
+    .diffusion_yy = diffusion_yy,
+    .kx = kx,
+    .ky = ky,
     .Nx = Nx,
     .Ny = Ny,
     .Lx = Lx,
@@ -99,14 +114,13 @@ create_ctx(void)
 void
 evalAdvectInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
+  struct diffusion_ctx *app = ctx;
   double x = xn[0], y = xn[1];
 
-  double f = 0.0;
-  if (fabs(x) < 1.0 && fabs(y) < 1.0) {
-    f = 1.0; // Advected quantity (interior).
-  } else {
-    f = 0.0; // Advected quantity (exterior).
-  }
+  double kx = app->kx;
+  double ky = app->ky;
+
+  double f = sin(kx * x + ky * y); // Advected quantity.
 
   // Set advected quantity.
   fout[0] = f;
@@ -130,16 +144,23 @@ evalDiffusionInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRIC
 {
   struct diffusion_ctx *app = ctx;
 
-  double diffusion_coeff = app->diffusion_coeff;
-
-  double diffusion_xx = diffusion_coeff; // Diffusion tensor (xx-component).
-  double diffusion_xy = diffusion_coeff; // Diffusion tensor (xy-component).
-  double diffusion_yy = diffusion_coeff; // Diffusion tensor (yy-component).
+  double diffusion_xx = app->diffusion_xx; // Diffusion tensor (xx-component).
+  double diffusion_xy = app->diffusion_xy; // Diffusion tensor (xy-component).
+  double diffusion_yy = app->diffusion_yy; // Diffusion tensor (yy-component).
 
   // Set diffusion tensor.
   fout[0] = diffusion_xx;
   fout[1] = diffusion_xy;
   fout[2] = diffusion_yy;
+}
+
+// Snap a trigger whose next time exceeds t_end only by round-off back to t_end.
+static void
+snap_trigger_to_t_end(struct gkyl_tm_trigger *trig, double t_end)
+{
+  if (trig->tcurr > t_end && trig->tcurr <= t_end * (1.0 + 1.0e-10)) {
+    trig->tcurr = t_end;
+  }
 }
 
 void
@@ -250,18 +271,30 @@ main(int argc, char **argv)
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_gpu && app_args.use_mpi) {
 #ifdef GKYL_HAVE_NCCL
-    comm = gkyl_nccl_comm_new(&(struct gkyl_nccl_comm_inp){.mpi_comm = MPI_COMM_WORLD});
+    comm = gkyl_nccl_comm_new(&(struct gkyl_nccl_comm_inp){
+      .mpi_comm = MPI_COMM_WORLD,
+      .sync_corners = true, // general diffusion needs corner ghost cells
+    });
 #else
     printf(" Using -g and -M together requires NCCL.\n");
     assert(0 == 1);
 #endif
   } else if (app_args.use_mpi) {
-    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){.mpi_comm = MPI_COMM_WORLD});
+    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){
+      .mpi_comm = MPI_COMM_WORLD,
+      .sync_corners = true, // general diffusion needs corner ghost cells
+    });
   } else {
-    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
+    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){
+      .use_gpu = app_args.use_gpu,
+      .sync_corners = true, // general diffusion needs corner ghost cells
+    });
   }
 #else
-  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
+  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){
+    .use_gpu = app_args.use_gpu,
+    .sync_corners = true, // general diffusion needs corner ghost cells
+  });
 #endif
 
   int my_rank;
@@ -380,6 +413,11 @@ main(int argc, char **argv)
   // Compute initial guess of maximum stable time-step.
   double dt = t_end - t_curr;
 
+  // The requested time-step is shortened near the end of the simulation so that
+  // the final step lands exactly on t_end.
+  bool is_dt_clipped = false; // Was the requested dt shortened below the stable dt?
+  bool is_last_step = true; // Does the requested dt reach t_end?
+
   // Initialize small time-step check.
   double dt_init = -1.0, dt_failure_tol = ctx.dt_failure_tol;
   int num_failures = 0, num_failures_max = ctx.num_failures_max;
@@ -395,8 +433,37 @@ main(int argc, char **argv)
       break;
     }
 
-    t_curr += status.dt_actual;
+    // Only a step that took the full requested dt counts as shortened/final.
+    bool took_requested_dt = status.dt_actual == dt;
+    bool was_dt_clipped = is_dt_clipped && took_requested_dt;
+    if (is_last_step && took_requested_dt) {
+      // Avoid round-off leaving t_curr just short of t_end.
+      t_curr = t_end;
+      // Trigger times are accumulated sums and can exceed t_end by round-off.
+      // Snap them so the final frame and diagnostics are still produced.
+      snap_trigger_to_t_end(&fe_trig, t_end);
+      snap_trigger_to_t_end(&im_trig, t_end);
+      snap_trigger_to_t_end(&l2f_trig, t_end);
+      snap_trigger_to_t_end(&io_trig, t_end);
+    } else {
+      t_curr += status.dt_actual;
+    }
+
+    // Request the next time-step. If the remaining time fits in one stable step,
+    // take exactly the remaining time; if it fits in less than two, split it into
+    // two equal steps so the final step is never a sliver of the stable dt.
+    double t_left = t_end - t_curr;
     dt = status.dt_suggested;
+    is_dt_clipped = false;
+    is_last_step = false;
+    if (t_left <= dt) {
+      dt = t_left;
+      is_dt_clipped = true;
+      is_last_step = true;
+    } else if (t_left < 2.0 * dt) {
+      dt = 0.5 * t_left;
+      is_dt_clipped = true;
+    }
 
     calc_field_energy(&fe_trig, app, t_curr, false);
     calc_integrated_mom(&im_trig, app, t_curr, false);
@@ -405,7 +472,7 @@ main(int argc, char **argv)
 
     if (dt_init < 0.0) {
       dt_init = status.dt_actual;
-    } else if (status.dt_actual < dt_failure_tol * dt_init) {
+    } else if (!was_dt_clipped && status.dt_actual < dt_failure_tol * dt_init) {
       num_failures += 1;
 
       gkyl_vlasov_app_cout(app, stdout, "WARNING: Time-step dt = %g", status.dt_actual);
