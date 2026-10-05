@@ -1,0 +1,97 @@
+For the low pass filter equation, add an integrated diagnostic for fbardot, similar to how _fdot_ is used for the time_rate_diagnostics
+
+---
+
+For the low pass filter equation, add an integrated diagnostic for fbardot, similar to how _fdot_ is used for the time_rate_diagnostics
+
+---
+
+Why do these diagnostics have two differrent lengths? Shouldn't they be the same length?
+
+(pgkyl) mhrosen@login33:~/scratch/gkylmax/a-thesis-exploration/1x-beam-higher-alpha-long-cycles-cont> pgkyl zzim-ion_fdot_integrated_moms.gkyl info
+(default#0)
+├─ Number of components: 3
+├─ Number of dimensions: 1
+├─ Grid: (nodal)
+│  └─ Dim 0: Num. cells: 1502; Lower: 0.000000e+00; Upper: 1.000000e-06
+├─ Maximum: 1.199098e+20 at (1,) component 0
+├─ Minimum: -2.396844e+06 at (1186,) component 2
+├─ Created with Gkeyll:
+│  ├─ Changeset: 5ca5b5f29a02
+│  └─ Build Date: 2026-10-05 10:28:59 PDT
+├─ Geometry info:
+│  ├─ Type: 2
+│  ├─ GEQDSK sign convention: 0
+├─ Species properties:
+│  ├─ Mass: 3.368660e-27
+│  ├─ Charge: 1.602176e-19
+│  ├─ Velocity dimensions: 2
+├─ Description: Volume integrated moments of time rate of change.
+└─ File: zzim-ion_fdot_integrated_moms.gkyl
+
+(pgkyl) mhrosen@login33:~/scratch/gkylmax/a-thesis-exploration/1x-beam-higher-alpha-long-cycles-cont> pgkyl zzim-ion_fbardot_integrated_moms.gkyl info
+(default#0)
+├─ Number of components: 3
+├─ Number of dimensions: 1
+├─ Grid: (nodal)
+│  └─ Dim 0: Num. cells: 1501; Lower: 5.278990e-10; Upper: 1.000000e-06
+├─ Maximum: 2.452722e+19 at (1500,) component 0
+├─ Minimum: -2.894432e+06 at (1183,) component 2
+├─ Created with Gkeyll:
+│  ├─ Changeset: 5ca5b5f29a02
+│  └─ Build Date: 2026-10-05 10:28:59 PDT
+├─ Geometry info:
+│  ├─ Type: 2
+│  ├─ GEQDSK sign convention: 0
+├─ Species properties:
+│  ├─ Mass: 3.368660e-27
+│  ├─ Charge: 1.602176e-19
+│  ├─ Velocity dimensions: 2
+├─ Description: Volume integrated moments of time rate of change of the low-pass-filtered distribution.
+└─ File: zzim-ion_fbardot_integrated_moms.gkyl
+
+---
+
+Why do these diagnostics have two differrent lengths? Shouldn't they be the same length?
+
+(pgkyl) mhrosen@login33:~/scratch/gkylmax/a-thesis-exploration/1x-beam-higher-alpha-long-cycles-cont> pgkyl zzim-ion_fdot_integrated_moms.gkyl info
+(default#0)
+├─ Number of components: 3
+├─ Number of dimensions: 1
+├─ Grid: (nodal)
+│  └─ Dim 0: Num. cells: 1502; Lower: 0.000000e+00; Upper: 1.000000e-06
+├─ Maximum: 1.199098e+20 at (1,) component 0
+├─ Minimum: -2.396844e+06 at (1186,) component 2
+├─ Created with Gkeyll:
+│  ├─ Changeset: 5ca5b5f29a02
+│  └─ Build Date: 2026-10-05 10:28:59 PDT
+├─ Geometry info:
+│  ├─ Type: 2
+│  ├─ GEQDSK sign convention: 0
+├─ Species properties:
+│  ├─ Mass: 3.368660e-27
+│  ├─ Charge: 1.602176e-19
+│  ├─ Velocity dimensions: 2
+├─ Description: Volume integrated moments of time rate of change.
+└─ File: zzim-ion_fdot_integrated_moms.gkyl
+
+(pgkyl) mhrosen@login33:~/scratch/gkylmax/a-thesis-exploration/1x-beam-higher-alpha-long-cycles-cont> pgkyl zzim-ion_fbardot_integrated_moms.gkyl info
+(default#0)
+├─ Number of components: 3
+├─ Number of dimensions: 1
+├─ Grid: (nodal)
+│  └─ Dim 0: Num. cells: 1501; Lower: 5.278990e-10; Upper: 1.000000e-06
+├─ Maximum: 2.452722e+19 at (1500,) component 0
+├─ Minimum: -2.894432e+06 at (1183,) component 2
+├─ Created with Gkeyll:
+│  ├─ Changeset: 5ca5b5f29a02
+│  └─ Build Date: 2026-10-05 10:28:59 PDT
+├─ Geometry info:
+│  ├─ Type: 2
+│  ├─ GEQDSK sign convention: 0
+├─ Species properties:
+│  ├─ Mass: 3.368660e-27
+│  ├─ Charge: 1.602176e-19
+│  ├─ Velocity dimensions: 2
+├─ Description: Volume integrated moments of time rate of change of the low-pass-filtered distribution.
+└─ File: zzim-ion_fbardot_integrated_moms.gkyl
