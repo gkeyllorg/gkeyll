@@ -1,5 +1,5 @@
 -- Buneman instability with the Vlasov-Maxwell system of equations. 
--- Input parameters match the initial conditions found in entry JE33 of Ammar's Simulation Journal 
+-- Plasma parameters follow entry JE33 of Ammar's Simulation Journal
 -- (https://ammar-hakim.org/sj/je/je33/je33-buneman.html)
 -- As discussed in JE33, solving for the Buneman instability with the Vlasov-Maxwell system
 -- requires the introduction of "ghost" currents which cancel the net current in the system
@@ -12,6 +12,7 @@ pi = math.pi
 
 -- Physical constants (using normalized code units).
 epsilon0 = 1.0 -- Permittivity of free space.
+mu0 = 1.0 -- Permeability of free space.
 mass_elc = 1.0 -- Electron mass.
 mass_ion = 25.0 -- Ion mass. 
 charge_elc = -1.0 -- Electron charge.
@@ -23,28 +24,25 @@ Vx_drift_ion = 0.0 -- Ion drift velocity
 vte = 0.02 -- Electron thermal velocity.
 vti = 0.001 -- Ion thermal velocity. 
 
-alpha = 1.0e-6 -- Applied perturbation amplitude.
+alpha = 1.0e-5 -- Applied perturbation amplitude.
 
 -- Derived physical quantities (using normalized code units).
-Te = vte^2*mass_elc -- Electron temperature. 
-Ti = vti^2*mass_ion -- Ion temperature. 
-omega_pe = math.sqrt((charge_elc * charge_elc) * n0 / (epsilon0 * mass_elc)) -- Electron plasma frequency.
-lambda_D = vte / omega_pe -- Electron Debye length.
-
-k0 = 1.0 -- Perturbed wave number.
+Te = (vte * vte) * mass_elc -- Electron temperature.
+Ti = (vti * vti) * mass_ion -- Ion temperature.
 
 -- Simulation parameters.
-Nx = 32 -- Cell count (configuration space: x-direction).
-Nvx = 128 -- Cell count (velocity space: vx-direction).
+Nx = 16 -- Cell count (configuration space: x-direction).
+Nvx = 64 -- Cell count (velocity space: vx-direction).
 Lx = 1.0 -- Domain size (configuration space: x-direction).
+kx = 2.0 * pi / Lx -- Perturbed wave number (x-direction); kx * Vx_drift_elc is close to the electron plasma frequency.
 vx_max_elc = 6.0 * Vx_drift_elc -- Domain boundary (velocity space: vx-direction).
 vx_max_ion = 128.0 * vti -- Domain boundary (velocity space: vx-direction).
-poly_order = 2 -- Polynomial order.
+poly_order = 3 -- Polynomial order.
 basis_type = "serendipity" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
-cfl_frac = 0.9 -- CFL coefficient.
+cfl_frac = 0.6 -- CFL coefficient.
 
-t_end = 150.0 -- Final simulation time.
+t_end = 80.0 -- Final simulation time.
 num_frames = 1 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.
@@ -94,7 +92,7 @@ vlasovApp = Vlasov.App.new {
 
         densityInit = function (t, xn)
           local x = xn[1]
-          return n0*(1.0 + alpha * math.cos(2 * pi *k0 * x)) -- Electron total number density.
+          return n0 * (1.0 + alpha * math.cos(kx * x)) -- Electron total number density.
         end,
         temperatureInit = function (t, xn)
           return Te -- Electron isotropic temperature.
@@ -151,7 +149,7 @@ vlasovApp = Vlasov.App.new {
     init = function (t, xn)
       local x = xn[1]
 
-      local Ex = -alpha * math.sin(2 * pi *k0 * x) / k0 -- Total electric field (x-direction).
+      local Ex = -alpha * math.sin(kx * x) / kx -- Total electric field (x-direction).
       local Ey = 0.0 -- Total electric field (y-direction).
       local Ez = 0.0 -- Total electric field (z-direction).
 
