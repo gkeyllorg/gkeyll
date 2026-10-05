@@ -1,0 +1,39 @@
+{
+  "cli_version": "0.11.3",
+  "checkpoint_id": "01M46GF72JGE8KYNDXQ2FE6BE9",
+  "session_id": "01a10cfe-5ac8-7a51-9382-bb4a8929d583",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-05T17:06:06.275700019Z",
+  "branch": "maxwells-world",
+  "checkpoints_count": 2,
+  "save_step_count": 1,
+  "files_touched": [
+    "gyrokinetic/unit/mctest_loss_cone_mask_gyrokinetic.c"
+  ],
+  "agent": "Codex",
+  "model": "gpt-6-astra",
+  "turn_id": "d250d0c97b0b",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 58868,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 905728,
+    "output_tokens": 4486,
+    "api_call_count": 19
+  },
+  "session_metrics": {
+    "turn_count": 2
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-10-05T17:06:06.243912342Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 8033,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 8033,
+    "total_lines_changed": 10134,
+    "agent_percentage": 0,
+    "metric_version": 2
+  }
+}
