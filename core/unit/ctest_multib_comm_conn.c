@@ -95,7 +95,7 @@ create_L_domain(const int *cuts)
 }
 
 static void
-test_0(void)
+test_multib_comm_conn_0_ho(void)
 {
   struct gkyl_comm_conn cclist[] = {{.rank = 1}, {.rank = 2}};
 
@@ -107,7 +107,7 @@ test_0(void)
 }
 
 static void
-test_L_domain_send_c1(void)
+test_multib_comm_conn_L_domain_send_c1_ho(void)
 {
   struct gkyl_block_geom *geom = create_L_domain((int[]){1, 1});
   struct gkyl_block_topo *topo = gkyl_block_geom_topo(geom);
@@ -174,7 +174,7 @@ test_L_domain_send_c1(void)
 }
 
 static void
-test_L_domain_send_c3(void)
+test_multib_comm_conn_L_domain_send_c3_ho(void)
 {
   // THIS IS ONLY A PARTIAL TEST: checks send volume is correct and
   // total sends are correct
@@ -233,7 +233,7 @@ test_L_domain_send_c3(void)
 }
 
 static void
-test_L_domain_recv_c1(void)
+test_multib_comm_conn_L_domain_recv_c1_ho(void)
 {
   struct gkyl_block_geom *geom = create_L_domain((int[]){1, 1});
   struct gkyl_block_topo *topo = gkyl_block_geom_topo(geom);
@@ -300,7 +300,7 @@ test_L_domain_recv_c1(void)
 }
 
 static void
-test_L_domain_recv_c3(void)
+test_multib_comm_conn_L_domain_recv_c3_ho(void)
 {
   // THIS IS ONLY A PARTIAL TEST: checks recv volume is correct and
   // total recvs are correct
@@ -406,10 +406,10 @@ test_L_domain_sync_c3(void)
 }
 
 TEST_LIST = {
-  {"test_0", test_0},
-  {"test_L_domain_send_c1", test_L_domain_send_c1},
-  {"test_L_domain_send_c3", test_L_domain_send_c3},
-  {"test_L_domain_recv_c1", test_L_domain_recv_c1},
-  {"test_L_domain_recv_c3", test_L_domain_recv_c3},
+  {"test_multib_comm_conn_0_ho", test_multib_comm_conn_0_ho},
+  {"test_multib_comm_conn_L_domain_send_c1_ho", test_multib_comm_conn_L_domain_send_c1_ho},
+  {"test_multib_comm_conn_L_domain_send_c3_ho", test_multib_comm_conn_L_domain_send_c3_ho},
+  {"test_multib_comm_conn_L_domain_recv_c1_ho", test_multib_comm_conn_L_domain_recv_c1_ho},
+  {"test_multib_comm_conn_L_domain_recv_c3_ho", test_multib_comm_conn_L_domain_recv_c3_ho},
   {NULL, NULL}
 };

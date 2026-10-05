@@ -5,7 +5,7 @@
 #include <gkyl_wv_iso_euler_mixture_priv.h>
 
 void
-test_iso_euler_mixture_twocomponent_basic()
+test_iso_euler_mixture_twocomponent_basic_ho()
 {
   double vt1 = 1.0;
   double vt2 = 10.0;
@@ -97,7 +97,7 @@ test_iso_euler_mixture_twocomponent_basic()
 }
 
 void
-test_iso_euler_mixture_threecomponent_basic()
+test_iso_euler_mixture_threecomponent_basic_ho()
 {
   double vt1 = 1.0;
   double vt2 = 10.0;
@@ -204,7 +204,7 @@ test_iso_euler_mixture_threecomponent_basic()
 }
 
 void
-test_iso_euler_mixture_twocomponent_waves()
+test_iso_euler_mixture_twocomponent_waves_ho()
 {
   double vt1 = 1.0;
   double vt2 = 10.0;
@@ -301,7 +301,7 @@ test_iso_euler_mixture_twocomponent_waves()
 }
 
 void
-test_iso_euler_mixture_twocomponent_waves_2()
+test_iso_euler_mixture_twocomponent_waves_2_ho()
 {
   double vt1 = 0.5;
   double vt2 = 50.0;
@@ -398,7 +398,7 @@ test_iso_euler_mixture_twocomponent_waves_2()
 }
 
 void
-test_iso_euler_mixture_threecomponent_waves()
+test_iso_euler_mixture_threecomponent_waves_ho()
 {
   double vt1 = 1.0;
   double vt2 = 10.0;
@@ -503,7 +503,7 @@ test_iso_euler_mixture_threecomponent_waves()
 }
 
 void
-test_iso_euler_mixture_threecomponent_waves_2()
+test_iso_euler_mixture_threecomponent_waves_2_ho()
 {
   double vt1 = 0.5;
   double vt2 = 50.0;
@@ -608,11 +608,11 @@ test_iso_euler_mixture_threecomponent_waves_2()
 }
 
 TEST_LIST = {
-  {"iso_euler_mixture_twocomponent_basic", test_iso_euler_mixture_twocomponent_basic},
-  {"iso_euler_mixture_threecomponent_basic", test_iso_euler_mixture_threecomponent_basic},
-  {"iso_euler_mixture_twocomponent_waves", test_iso_euler_mixture_twocomponent_waves},
-  {"iso_euler_mixture_twocomponent_waves_2", test_iso_euler_mixture_twocomponent_waves_2},
-  {"iso_euler_mixture_threecomponent_waves", test_iso_euler_mixture_threecomponent_waves},
-  {"iso_euler_mixture_threecomponent_waves_2", test_iso_euler_mixture_threecomponent_waves_2},
+  {"iso_euler_mixture_twocomponent_basic_ho", test_iso_euler_mixture_twocomponent_basic_ho},
+  {"iso_euler_mixture_threecomponent_basic_ho", test_iso_euler_mixture_threecomponent_basic_ho},
+  {"iso_euler_mixture_twocomponent_waves_ho", test_iso_euler_mixture_twocomponent_waves_ho},
+  {"iso_euler_mixture_twocomponent_waves_2_ho", test_iso_euler_mixture_twocomponent_waves_2_ho},
+  {"iso_euler_mixture_threecomponent_waves_ho", test_iso_euler_mixture_threecomponent_waves_ho},
+  {"iso_euler_mixture_threecomponent_waves_2_ho", test_iso_euler_mixture_threecomponent_waves_2_ho},
   {NULL, NULL}
 };

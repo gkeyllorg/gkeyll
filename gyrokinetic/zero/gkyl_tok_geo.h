@@ -139,8 +139,8 @@ struct gkyl_tok_geo_grid_inp {
   struct gkyl_basis cbasis;
   enum gkyl_tok_geo_type ftype; // type of geometry
   bool half_domain; // For use in double null simulations
-    // If true, will set the domain to be the lower
-    // half of the tokamak (below Z=0)
+  // If true, will set the domain to be the lower
+  // half of the tokamak (below Z=0)
 
   double rclose; // closest R to region of interest to discriminate
   double rleft; // closest R to inboard SOL
@@ -154,8 +154,8 @@ struct gkyl_tok_geo_grid_inp {
   bool plate_spec; // whether a shape function is provided for divertor plates
   plate_func plate_func_lower; // lower plate specification. Gives R,Z in terms of s \in [0,1]
   plate_func plate_func_upper; // upper plate specification. Gives R,Z in terms of s \in [0,1]
-    // In a lower single null "lower" is the outer divertor and
-    // "upper" is the inner divertor
+  // In a lower single null "lower" is the outer divertor and
+  // "upper" is the inner divertor
 
   bool inexact_roots; // If true we will allow approximate roots when no root is found
   bool use_cubics; // If true will use the cubic rep of psi rather than the quadratic representation

@@ -151,7 +151,8 @@ check_parallel(double *v1, double *v2, bool exit_at_check)
   } else {
     fprintf(
       stderr,
-      "calc_metric.c: inconsistent B & mapc2p (hat{b} not parallel to e_3; |b . e_3|=%.6e, |b x e_3|=%.6e).\n",
+      "calc_metric.c: inconsistent B & mapc2p (hat{b} not parallel to e_3; |b . e_3|=%.6e, |b x "
+      "e_3|=%.6e).\n",
       dot, c_mag
     );
     assert(!exit_at_check);
@@ -200,7 +201,8 @@ check_axisymmetric(struct gkyl_array *arr, struct gkyl_range *range, bool exit_a
           } else {
             fprintf(
               stderr,
-              "calc_metric.c: Axisymmetry violated at ip=%d, it=%d, ia=%d. g_ij component %d variation %.6e exceeds tolerance\n",
+              "calc_metric.c: Axisymmetry violated at ip=%d, it=%d, ia=%d. g_ij component %d "
+              "variation %.6e exceeds tolerance\n",
               ip, it, ia, k, reldiff
             );
             assert(!exit_at_check);

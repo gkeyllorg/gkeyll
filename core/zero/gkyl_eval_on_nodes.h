@@ -19,7 +19,7 @@ struct gkyl_eval_on_nodes_inp {
   void *ctx; // Context for function evaluation. Can be NULL.
 
   eval_on_nodes_c2p_t c2p_func; // Function that transforms a set of ndim
-    // computational coordinates to physical ones.
+  // computational coordinates to physical ones.
   void *c2p_func_ctx; // Context for c2p_func.
 };
 

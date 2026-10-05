@@ -113,8 +113,7 @@ static const struct gkyl_str_int_pair gk_react_self_type[] = {
 };
 
 // Species boundary conditions -> enum map.
-static const struct gkyl_str_int_pair gk_bcs[] = {
-  // Particle BCs.
+static const struct gkyl_str_int_pair gk_bcs[] = { // Particle BCs.
   {"speciesSkip", GKYL_BC_GK_SKIP}, // Do not apply any BCs
   {"speciesCopy", GKYL_BC_GK_SPECIES_COPY}, // Copy skin into ghost.
   {"speciesReflect", GKYL_BC_GK_SPECIES_REFLECT}, // Reflect particles.

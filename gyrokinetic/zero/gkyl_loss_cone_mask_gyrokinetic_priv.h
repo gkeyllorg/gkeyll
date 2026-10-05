@@ -56,7 +56,7 @@ struct gkyl_loss_cone_mask_gyrokinetic {
   void *c2p_pos_ctx; // Context for the c2p_pos mapping.
 
   bool cellwise_trap_loss; // Whether a whole cell is trapped/lost, or whether
-    // high-order distinction within a cell is allowed.
+  // high-order distinction within a cell is allowed.
   struct gkyl_range conf_qrange; // Range of Configuration-space ordinates.
   struct gkyl_range phase_qrange; // Range of Phase-space ordinates.
 
@@ -77,12 +77,12 @@ struct gkyl_loss_cone_mask_gyrokinetic {
   int *p2c_qidx; // Mapping between configuration-space and phase-space ordinates.
   struct gkyl_array *mask_out_quad; // Array keeping f_lte at phase-space quadrature nodes.
   struct gkyl_array *qDphiDbmag_quad; // Array keeping q*(phi-phi_m)/(B_max-B)
-    // at configuration-space quadrature nodes.
+  // at configuration-space quadrature nodes.
   struct gkyl_array *Dbmag_quad; // B_max-B at configuration-space quadrature nodes.
 
   struct gkyl_mat_mm_array_mem *phase_nodal_to_modal_mem; // Structure of data which converts
-    // stores the info to convert phase
-    // space nodal to modal gkyl arrays.
+  // stores the info to convert phase
+  // space nodal to modal gkyl arrays.
 };
 
 #ifdef GKYL_HAVE_CUDA

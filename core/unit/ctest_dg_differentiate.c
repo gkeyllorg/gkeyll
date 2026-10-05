@@ -113,6 +113,8 @@ test_dg_differentiate_1x(int poly_order, bool use_gpu)
   gkyl_proj_on_basis_release(proj_fin);
   gkyl_array_release(fin);
   gkyl_array_release(fin_ho);
+  gkyl_array_release(derf);
+  gkyl_array_release(derf_ho);
 }
 
 void
@@ -280,6 +282,8 @@ test_dg_differentiate_2x(int poly_order, bool use_gpu)
   gkyl_proj_on_basis_release(proj_fin);
   gkyl_array_release(fin);
   gkyl_array_release(fin_ho);
+  gkyl_array_release(derf);
+  gkyl_array_release(derf_ho);
 }
 
 void
@@ -474,6 +478,8 @@ test_dg_differentiate_3x(int poly_order, bool use_gpu)
   gkyl_proj_on_basis_release(proj_fin);
   gkyl_array_release(fin);
   gkyl_array_release(fin_ho);
+  gkyl_array_release(derf);
+  gkyl_array_release(derf_ho);
 }
 
 void
@@ -496,19 +502,19 @@ test_dg_differentiate_3x_p1_ho()
 
 #ifdef GKYL_HAVE_CUDA
 void
-test_dg_differentiate_1x_p1_cu()
+test_dg_differentiate_1x_p1_dev()
 {
   test_dg_differentiate_1x(1, true);
 }
 
 void
-test_dg_differentiate_2x_p1_cu()
+test_dg_differentiate_2x_p1_dev()
 {
   test_dg_differentiate_2x(1, true);
 }
 
 void
-test_dg_differentiate_3x_p1_cu()
+test_dg_differentiate_3x_p1_dev()
 {
   test_dg_differentiate_3x(1, true);
 }
@@ -519,9 +525,9 @@ TEST_LIST = {
   {"test_dg_differentiate_2x_p1_ho", test_dg_differentiate_2x_p1_ho},
   {"test_dg_differentiate_3x_p1_ho", test_dg_differentiate_3x_p1_ho},
 #ifdef GKYL_HAVE_CUDA
-  {"test_dg_differentiate_1x_p1_cu", test_dg_differentiate_1x_p1_cu},
-  {"test_dg_differentiate_2x_p1_cu", test_dg_differentiate_2x_p1_cu},
-  {"test_dg_differentiate_3x_p1_cu", test_dg_differentiate_3x_p1_cu},
+  {"test_dg_differentiate_1x_p1_dev", test_dg_differentiate_1x_p1_dev},
+  {"test_dg_differentiate_2x_p1_dev", test_dg_differentiate_2x_p1_dev},
+  {"test_dg_differentiate_3x_p1_dev", test_dg_differentiate_3x_p1_dev},
 #endif
   {NULL, NULL}
 };

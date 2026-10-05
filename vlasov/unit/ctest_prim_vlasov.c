@@ -574,7 +574,7 @@ test_func_cu(
 #endif
 
 void
-test_1x1v_p2()
+test_prim_vlasov_1x1v_p2_ho()
 {
   int poly_order = 2;
   int vdim = 1, cdim = 1;
@@ -593,7 +593,7 @@ test_1x1v_p2()
 }
 
 void
-test_1x2v_p2()
+test_prim_vlasov_1x2v_p2_ho()
 {
   int poly_order = 2;
   int vdim = 2, cdim = 1;
@@ -613,7 +613,7 @@ test_1x2v_p2()
 
 #ifdef GKYL_HAVE_CUDA
 void
-test_1x1v_p2_cu()
+test_prim_vlasov_1x1v_p2_dev()
 {
   int poly_order = 2;
   int vdim = 1, cdim = 1;
@@ -632,7 +632,7 @@ test_1x1v_p2_cu()
 }
 
 void
-test_1x2v_p2_cu()
+test_prim_vlasov_1x2v_p2_dev()
 {
   int poly_order = 2;
   int vdim = 2, cdim = 1;
@@ -652,11 +652,11 @@ test_1x2v_p2_cu()
 #endif
 
 TEST_LIST = {
-  {"test_1x1v_p2", test_1x1v_p2},
-  {"test_1x2v_p2", test_1x2v_p2},
+  {"test_prim_vlasov_1x1v_p2_ho", test_prim_vlasov_1x1v_p2_ho},
+  {"test_prim_vlasov_1x2v_p2_ho", test_prim_vlasov_1x2v_p2_ho},
 #ifdef GKYL_HAVE_CUDA
-  {"test_1x1v_p2_cu", test_1x1v_p2_cu},
-  {"test_1x2v_p2_cu", test_1x2v_p2_cu},
+  {"test_prim_vlasov_1x1v_p2_dev", test_prim_vlasov_1x1v_p2_dev},
+  {"test_prim_vlasov_1x2v_p2_dev", test_prim_vlasov_1x2v_p2_dev},
 #endif
   {NULL, NULL}
 };

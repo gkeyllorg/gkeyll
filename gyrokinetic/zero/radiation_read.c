@@ -137,7 +137,8 @@ gkyl_radiation_read_get_num_densities(
   int index = atomic_z * rad_data.max_atomic_number + charge_state;
   if (rad_data.all_states[index].number_of_densities < num_densities[0]) {
     printf(
-      "\nWarning! More densities selected for element %d, charge state %d than available. Setting to max available.\n",
+      "\nWarning! More densities selected for element %d, charge state %d than available. "
+      "Setting to max available.\n",
       atomic_z + 1, charge_state
     );
   }

@@ -36,9 +36,9 @@ struct gkyl_loss_cone_mask_gyrokinetic_inp {
   enum gkyl_quad_type qtype; // Quadrature rule/nodes.
   int num_quad; // Number of quad points in each direction to use (default: poly_order+1).
   bool cellwise_trap_loss; // =True takes a whole cell to be either trapped or passing,
-    // so not high-order distinction within the cell is made.
+  // so not high-order distinction within the cell is made.
   loss_cone_mask_gyrokinetic_c2p_t c2p_pos_func; // Function that transforms a set of cdim
-    // position-space computational coordinates to physical ones.
+  // position-space computational coordinates to physical ones.
   void *c2p_pos_func_ctx; // Context for c2p_pos_func.
   bool use_gpu; // Whether to run on GPU.
 };

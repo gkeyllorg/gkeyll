@@ -5,7 +5,7 @@
 #include <gkyl_wv_euler_rgfm_priv.h>
 
 void
-test_euler_rgfm_twospecies_basic()
+test_euler_rgfm_twospecies_basic_ho()
 {
   double gas_gamma1 = 1.4;
   double gas_gamma2 = 1.67;
@@ -106,7 +106,7 @@ test_euler_rgfm_twospecies_basic()
 }
 
 void
-test_euler_rgfm_threespecies_basic()
+test_euler_rgfm_threespecies_basic_ho()
 {
   double gas_gamma1 = 1.4;
   double gas_gamma2 = 1.67;
@@ -227,7 +227,7 @@ test_euler_rgfm_threespecies_basic()
 }
 
 void
-test_euler_rgfm_twospecies_waves()
+test_euler_rgfm_twospecies_waves_ho()
 {
   double gas_gamma1 = 1.4;
   double gas_gamma2 = 1.67;
@@ -331,7 +331,7 @@ test_euler_rgfm_twospecies_waves()
 }
 
 void
-test_euler_rgfm_twospecies_waves_2()
+test_euler_rgfm_twospecies_waves_2_ho()
 {
   double gas_gamma1 = 1.2;
   double gas_gamma2 = 1.7;
@@ -435,7 +435,7 @@ test_euler_rgfm_twospecies_waves_2()
 }
 
 void
-test_euler_rgfm_threespecies_waves()
+test_euler_rgfm_threespecies_waves_ho()
 {
   double gas_gamma1 = 1.4;
   double gas_gamma2 = 1.67;
@@ -565,7 +565,7 @@ test_euler_rgfm_threespecies_waves()
 }
 
 void
-test_euler_rgfm_threespecies_waves_2()
+test_euler_rgfm_threespecies_waves_2_ho()
 {
   double gas_gamma1 = 1.1;
   double gas_gamma2 = 1.5;
@@ -695,11 +695,11 @@ test_euler_rgfm_threespecies_waves_2()
 }
 
 TEST_LIST = {
-  {"euler_rgfm_twospecies_basic", test_euler_rgfm_twospecies_basic},
-  {"euler_rgfm_threespecies_basic", test_euler_rgfm_threespecies_basic},
-  {"euler_rgfm_twospecies_waves", test_euler_rgfm_twospecies_waves},
-  {"euler_rgfm_twospecies_waves_2", test_euler_rgfm_twospecies_waves_2},
-  {"euler_rgfm_threespecies_waves", test_euler_rgfm_threespecies_waves},
-  {"euler_rgfm_threespecies_waves_2", test_euler_rgfm_threespecies_waves_2},
+  {"euler_rgfm_twospecies_basic_ho", test_euler_rgfm_twospecies_basic_ho},
+  {"euler_rgfm_threespecies_basic_ho", test_euler_rgfm_threespecies_basic_ho},
+  {"euler_rgfm_twospecies_waves_ho", test_euler_rgfm_twospecies_waves_ho},
+  {"euler_rgfm_twospecies_waves_2_ho", test_euler_rgfm_twospecies_waves_2_ho},
+  {"euler_rgfm_threespecies_waves_ho", test_euler_rgfm_threespecies_waves_ho},
+  {"euler_rgfm_threespecies_waves_2_ho", test_euler_rgfm_threespecies_waves_2_ho},
   {NULL, NULL}
 };

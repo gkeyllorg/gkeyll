@@ -23,7 +23,8 @@ gkyl_deflate_zsurf_new(
   up->num_deflated_basis = deflated_cbasis->num_basis;
   up->cdim = cbasis->ndim;
   up->kernel = deflate_zsurf_choose_kernel(
-    cbasis->b_type, cbasis->ndim, edge, cbasis->poly_order
+    cbasis->b_type, cbasis->ndim, edge,
+    cbasis->poly_order
   ); // edge = 0,1 = lo, up
 
   up->flags = 0;

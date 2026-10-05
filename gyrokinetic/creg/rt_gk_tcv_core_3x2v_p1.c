@@ -492,20 +492,20 @@ create_ctx(void)
   double sigma_srcCORE[3] = {0.03 * Lx, 0.0, Lz / 6}; //  the electron source will be at +Lz/2.
   double floor_srcCORE = 1e-10;
   // Grid parameters
-  int Nx = 8;
-  int Ny = 4;
-  int Nz = 8;
-  int Nvpar = 12;
-  int Nmu = 8;
+  int Nx = 8; // (24)
+  int Ny = 4; // (16)
+  int Nz = 4; // (12)
+  int Nvpar = 4; // (12)
+  int Nmu = 2; // (8)
   int poly_order = 1;
   // Velocity box dimensions
   double vpar_max_elc = 6. * vte;
   double mu_max_elc = 1.5 * me * pow(4 * vte, 2) / (2 * B0);
   double vpar_max_ion = 6. * vti;
   double mu_max_ion = 1.5 * mi * pow(4 * vti, 2) / (2 * B0);
-  double t_end = 25 * 0.00551633e-6;
+  double t_end = 1e-6;
   int num_frames = 1;
-  double write_phase_freq = 0.2;
+  double write_phase_freq = 1.0;
   int int_diag_calc_num = num_frames * 100;
   double dt_failure_tol = 1.0e-3; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
@@ -790,8 +790,6 @@ main(int argc, char **argv)
 
   // GK app.
   struct gkyl_gk app_inp = {
-    .name = "rt_gk_tcv_core_3x2v_p1",
-
     .cfl_frac = 1.0,
 
     .cdim = ctx.cdim,
@@ -808,10 +806,13 @@ main(int argc, char **argv)
         .c2p_ctx = &ctx,
         .bfield_func = bfield_func, // Magnetic field.
         .bfield_ctx = &ctx,
-        .parallel_lower_bc_shift_func = bc_shift_func_lo,
-        .parallel_upper_bc_shift_func = bc_shift_func_up,
-        .parallel_lower_bc_shift_ctx = &ctx,
-        .parallel_upper_bc_shift_ctx = &ctx,
+        .core_parallel_bcs =
+          {
+            .lower_shift_func = bc_shift_func_lo,
+            .upper_shift_func = bc_shift_func_up,
+            .lower_shift_ctx = &ctx,
+            .upper_shift_ctx = &ctx,
+          },
       },
 
     .num_periodic_dir = 1,
@@ -829,6 +830,9 @@ main(int argc, char **argv)
         .use_gpu = app_args.use_gpu,
       },
   };
+
+  // Set app output name from the executable name (argv[0]).
+  snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
 
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_inp = app_inp,

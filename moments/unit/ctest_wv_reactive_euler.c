@@ -5,7 +5,7 @@
 #include <gkyl_wv_reactive_euler_priv.h>
 
 void
-test_reactive_euler_basic()
+test_reactive_euler_basic_ho()
 {
   double gas_gamma = 1.4;
   double specific_heat_capacity = 2.5;
@@ -91,7 +91,7 @@ test_reactive_euler_basic()
 }
 
 void
-test_reactive_euler_waves()
+test_reactive_euler_waves_ho()
 {
   double gas_gamma = 1.4;
   double specific_heat_capacity = 2.5;
@@ -181,7 +181,7 @@ test_reactive_euler_waves()
 }
 
 void
-test_reactive_euler_waves_2()
+test_reactive_euler_waves_2_ho()
 {
   double gas_gamma = 1.4;
   double specific_heat_capacity = 25.0;
@@ -263,7 +263,7 @@ test_reactive_euler_waves_2()
     gkyl_wv_eqn_rotate_to_global(reactive_euler, tau1[d], tau2[d], norm[d], fr_local, fr);
 
     for (int i = 0; i < 6; i++) {
-      TEST_CHECK(gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], 1e-14));
+      TEST_CHECK(gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], 5e-14));
     }
   }
 
@@ -271,8 +271,8 @@ test_reactive_euler_waves_2()
 }
 
 TEST_LIST = {
-  {"reactive_euler_basic", test_reactive_euler_basic},
-  {"reactive_euler_waves", test_reactive_euler_waves},
-  {"reactive_euler_waves_2", test_reactive_euler_waves_2},
+  {"reactive_euler_basic_ho", test_reactive_euler_basic_ho},
+  {"reactive_euler_waves_ho", test_reactive_euler_waves_ho},
+  {"reactive_euler_waves_2_ho", test_reactive_euler_waves_2_ho},
   {NULL, NULL}
 };

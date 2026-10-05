@@ -468,7 +468,7 @@ create_ctx(void)
   double mu_max_elc = 7 * Te0 / B0;
 
   double t_end = 4.0;
-  int num_frames = 40;
+  int num_frames = 1;
   double write_phase_freq = 1.0;
   int int_diag_calc_num = num_frames * 100;
   double dt_failure_tol = 1.0e-3; // Minimum allowable fraction of initial time-step.
@@ -635,10 +635,13 @@ main(int argc, char **argv)
     .c2p_ctx = &ctx,
     .bfield_func = bfield_func, // magnetic field magnitude
     .bfield_ctx = &ctx,
-    .parallel_lower_bc_shift_func = bc_shift_func_lo,
-    .parallel_upper_bc_shift_func = bc_shift_func_up,
-    .parallel_lower_bc_shift_ctx = &ctx,
-    .parallel_upper_bc_shift_ctx = &ctx,
+    .core_parallel_bcs =
+      {
+        .lower_shift_func = bc_shift_func_lo,
+        .upper_shift_func = bc_shift_func_up,
+        .lower_shift_ctx = &ctx,
+        .upper_shift_ctx = &ctx,
+      },
   };
 
   // Parallelism

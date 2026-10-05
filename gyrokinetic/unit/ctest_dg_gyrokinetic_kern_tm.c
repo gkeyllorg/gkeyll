@@ -129,7 +129,7 @@ test_3x2v_p1(bool use_gpu)
     .apardot = apardot,
   };
 
-  const bool is_zero_flux[GKYL_MAX_DIM] = {false};
+  const bool is_zero_flux[2 * GKYL_MAX_DIM] = {false};
 
   // Initialize velocity space mapping.
   struct gkyl_mapc2p_inp c2p_in = {};
@@ -179,21 +179,21 @@ test_3x2v_p1(bool use_gpu)
 }
 
 void
-test_gyrokinetic_3x2v_p1()
+test_gyrokinetic_kern_tm_3x2v_p1_ho()
 {
   test_3x2v_p1(false);
 }
 
 void
-test_gyrokinetic_3x2v_p1_cu()
+test_gyrokinetic_kern_tm_3x2v_p1_dev()
 {
   test_3x2v_p1(true);
 }
 
 TEST_LIST = {
-  {"test_gyrokinetic_3x2v_p1", test_gyrokinetic_3x2v_p1},
+  {"test_gyrokinetic_kern_tm_3x2v_p1_ho", test_gyrokinetic_kern_tm_3x2v_p1_ho},
 #ifdef GKYL_HAVE_CUDA
-  {"test_gyrokinetic_3x2v_p1_cu", test_gyrokinetic_3x2v_p1_cu},
+  {"test_gyrokinetic_kern_tm_3x2v_p1_dev", test_gyrokinetic_kern_tm_3x2v_p1_dev},
 #endif
   {NULL, NULL}
 };

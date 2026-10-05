@@ -5,7 +5,7 @@
 #include <gkyl_wv_gr_medium_priv.h>
 
 void
-test_gr_medium_basic()
+test_gr_medium_basic_ho()
 {
   double gas_gamma = 5.0 / 3.0;
   double kappa = 8.0 * M_PI;
@@ -121,7 +121,7 @@ test_gr_medium_basic()
 }
 
 void
-test_gr_medium_waves()
+test_gr_medium_waves_ho()
 {
   double gas_gamma = 5.0 / 3.0;
   double kappa = 8.0 * M_PI;
@@ -244,7 +244,7 @@ test_gr_medium_waves()
 }
 
 void
-test_gr_medium_waves_2()
+test_gr_medium_waves_2_ho()
 {
   double gas_gamma = 5.0 / 3.0;
   double kappa = 8.0 * M_PI;
@@ -367,8 +367,8 @@ test_gr_medium_waves_2()
 }
 
 TEST_LIST = {
-  {"gr_medium_basic", test_gr_medium_basic},
-  {"gr_medium_waves", test_gr_medium_waves},
-  {"gr_medium_waves_2", test_gr_medium_waves_2},
+  {"gr_medium_basic_ho", test_gr_medium_basic_ho},
+  {"gr_medium_waves_ho", test_gr_medium_waves_ho},
+  {"gr_medium_waves_2_ho", test_gr_medium_waves_2_ho},
   {NULL, NULL}
 };

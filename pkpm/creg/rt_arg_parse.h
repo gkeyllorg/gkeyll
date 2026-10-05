@@ -90,7 +90,8 @@ parse_app_args(int argc, char **argv)
     switch (c) {
       case 'h':
         printf(
-          "Usage: <app_name> -g -m -s nsteps -t nthreads -i inp -b [ms|mt] -x NX -y NY -z NZ -u VX -v VY -w VZ\n"
+          "Usage: <app_name> -g -m -s nsteps -t nthreads -i inp -b [ms|mt] -x NX -y NY -z NZ -u "
+          "VX -v VY -w VZ\n"
         );
         printf(" All flags and parameters are optional.\n");
         printf(" -g     Run on GPUs if GPUs are present and code built for GPUs\n");

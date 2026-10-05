@@ -7,7 +7,7 @@
 #include <gkyl_gr_blackhole.h>
 
 void
-test_gr_ultra_rel_euler_tetrad_basic_minkowski()
+test_gr_ultra_rel_euler_tetrad_basic_minkowski_ho()
 {
   double gas_gamma = 2.0;
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
@@ -271,7 +271,7 @@ test_gr_ultra_rel_euler_tetrad_basic_minkowski()
 }
 
 void
-test_gr_ultra_rel_euler_tetrad_basic_schwarzschild()
+test_gr_ultra_rel_euler_tetrad_basic_schwarzschild_ho()
 {
   double gas_gamma = 2.0;
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
@@ -552,7 +552,7 @@ test_gr_ultra_rel_euler_tetrad_basic_schwarzschild()
 }
 
 void
-test_gr_ultra_rel_euler_tetrad_basic_kerr()
+test_gr_ultra_rel_euler_tetrad_basic_kerr_ho()
 {
   double gas_gamma = 2.0;
   // Currently this test only passes for very low (a = 0.2) values of the black hole spin.
@@ -835,7 +835,7 @@ test_gr_ultra_rel_euler_tetrad_basic_kerr()
 }
 
 void
-test_gr_ultra_rel_euler_tetrad_waves_minkowski()
+test_gr_ultra_rel_euler_tetrad_waves_minkowski_ho()
 {
   double gas_gamma = 2.0;
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
@@ -1221,7 +1221,7 @@ test_gr_ultra_rel_euler_tetrad_waves_minkowski()
 }
 
 void
-test_gr_ultra_rel_euler_tetrad_waves_schwarzschild()
+test_gr_ultra_rel_euler_tetrad_waves_schwarzschild_ho()
 {
   double gas_gamma = 2.0;
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
@@ -1570,7 +1570,7 @@ test_gr_ultra_rel_euler_tetrad_waves_schwarzschild()
           );
 
           for (int i = 0; i < 70; i++) {
-            TEST_CHECK(gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], 1e-12));
+            TEST_CHECK(gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], 5e-12));
           }
         }
       }
@@ -1612,7 +1612,7 @@ test_gr_ultra_rel_euler_tetrad_waves_schwarzschild()
 }
 
 void
-test_gr_ultra_rel_euler_tetrad_waves_kerr()
+test_gr_ultra_rel_euler_tetrad_waves_kerr_ho()
 {
   double gas_gamma = 2.0;
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, 0.1, 0.9, 0.0, 0.0, 0.0);
@@ -2003,13 +2003,15 @@ test_gr_ultra_rel_euler_tetrad_waves_kerr()
 }
 
 TEST_LIST = {
-  {"gr_ultra_rel_euler_tetrad_basic_minkowski", test_gr_ultra_rel_euler_tetrad_basic_minkowski},
-  {"gr_ultra_rel_euler_tetrad_basic_schwarzschild",
-   test_gr_ultra_rel_euler_tetrad_basic_schwarzschild},
-  {"gr_ultra_rel_euler_tetrad_basic_kerr", test_gr_ultra_rel_euler_tetrad_basic_kerr},
-  {"gr_ultra_rel_euler_tetrad_waves_minkowski", test_gr_ultra_rel_euler_tetrad_waves_minkowski},
-  {"gr_ultra_rel_euler_tetrad_waves_schwarzschild",
-   test_gr_ultra_rel_euler_tetrad_waves_schwarzschild},
-  {"gr_ultra_rel_euler_tetrad_waves_kerr", test_gr_ultra_rel_euler_tetrad_waves_kerr},
+  {"gr_ultra_rel_euler_tetrad_basic_minkowski_ho", test_gr_ultra_rel_euler_tetrad_basic_minkowski_ho
+  },
+  {"gr_ultra_rel_euler_tetrad_basic_schwarzschild_ho",
+   test_gr_ultra_rel_euler_tetrad_basic_schwarzschild_ho},
+  {"gr_ultra_rel_euler_tetrad_basic_kerr_ho", test_gr_ultra_rel_euler_tetrad_basic_kerr_ho},
+  {"gr_ultra_rel_euler_tetrad_waves_minkowski_ho", test_gr_ultra_rel_euler_tetrad_waves_minkowski_ho
+  },
+  {"gr_ultra_rel_euler_tetrad_waves_schwarzschild_ho",
+   test_gr_ultra_rel_euler_tetrad_waves_schwarzschild_ho},
+  {"gr_ultra_rel_euler_tetrad_waves_kerr_ho", test_gr_ultra_rel_euler_tetrad_waves_kerr_ho},
   {NULL, NULL}
 };

@@ -27,8 +27,8 @@ struct gkyl_efit {
 
   double psisep; // Separatrix psi for our DG representation
   double psisep_cubic; // Separatrix psi for our cubic DG representation
-    // Can differ from sibry, but we need to keep sibry
-    // because fpol, q, etc. are defined based on it
+  // Can differ from sibry, but we need to keep sibry
+  // because fpol, q, etc. are defined based on it
 
   struct gkyl_basis rzbasis;
   struct gkyl_basis rzbasis_cubic;

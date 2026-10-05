@@ -13,7 +13,7 @@ evalFunc(double t, const double *xn, double *restrict fout, void *ctx)
 }
 
 void
-test_1()
+test_fv_proj_1_ho()
 {
   double lower[] = {-2.0}, upper[] = {4.0};
   int cells[] = {2};
@@ -45,4 +45,4 @@ test_1()
   gkyl_array_release(distf);
 }
 
-TEST_LIST = {{"test_1", test_1}, {NULL, NULL}};
+TEST_LIST = {{"test_fv_proj_1_ho", test_fv_proj_1_ho}, {NULL, NULL}};

@@ -137,7 +137,7 @@ struct gkyl_gyrokinetic_multib_field {
   bool duplicate_across_blocks; // set to true if all blocks are identical
   // field inputs per-block: only one is needed if duplicate_across_blocks = true
   bool half_domain; // For use in double null simulations.
-    // If true core BCs will be set for simulation of lower half of domain (Z < 0)
+  // If true core BCs will be set for simulation of lower half of domain (Z < 0)
   const struct gkyl_gyrokinetic_multib_field_pb *blocks;
 
   // Physical boundary conditions

@@ -289,7 +289,7 @@ cuts_array_release(int num_blocks, int **cuts_arr)
 }
 
 static void
-test_L_domain_send_connections_dir0_cuts1()
+test_L_domain_send_connections_dir0_cuts1_ho()
 {
   int num_blocks = 3; // L-shaped example.
   int ndim = 2;
@@ -373,7 +373,7 @@ test_L_domain_send_connections_dir0_cuts1()
 }
 
 static void
-test_L_domain_recv_connections_dir0_cuts1()
+test_L_domain_recv_connections_dir0_cuts1_ho()
 {
   int num_blocks = 3; // L-shaped example.
   int ndim = 2;
@@ -457,7 +457,7 @@ test_L_domain_recv_connections_dir0_cuts1()
 }
 
 static void
-test_L_domain_send_connections_dir0_cuts2()
+test_L_domain_send_connections_dir0_cuts2_ho()
 {
   int num_blocks = 3; // L-shaped example.
   int ndim = 2;
@@ -574,7 +574,7 @@ test_L_domain_send_connections_dir0_cuts2()
 }
 
 static void
-test_L_domain_send_connections_dir0_cuts2_par()
+test_L_domain_send_connections_dir0_cuts2_par_ho()
 {
   printf("\n");
   // Create world comm.
@@ -726,7 +726,7 @@ test_L_domain_send_connections_dir0_cuts2_par()
 }
 
 static void
-test_L_domain_recv_connections_dir0_cuts2_par()
+test_L_domain_recv_connections_dir0_cuts2_par_ho()
 {
   printf("\n");
   // Create world comm.
@@ -878,7 +878,7 @@ test_L_domain_recv_connections_dir0_cuts2_par()
 }
 
 static void
-test_L_domain_allgather_dir0_cuts2_par()
+test_L_domain_allgather_dir0_cuts2_par_ho()
 {
   printf("\n");
   // Create world comm.
@@ -1078,7 +1078,7 @@ test_L_domain_allgather_dir0_cuts2_par()
     gkyl_rect_grid_init(&grid, 2, gridlo, gridup, cells);
     char str[50];
     sprintf(str, "lb%d_r%d.gkyl", bI, my_rank);
-    gkyl_grid_sub_array_write(&grid, global_ranges[bI], 0, array_global[bI], str);
+    // gkyl_grid_sub_array_write(&grid, global_ranges[bI], 0, array_global[bI], str);
   }
 
   for (int bI = 0; bI < num_local_blocks; ++bI) {
@@ -1119,6 +1119,7 @@ test_SOL_domain_allgather_dir1_cuts2_par(bool use_gpu)
   gkyl_comm_get_size(comm, &num_ranks);
 
   if (num_ranks != 2) {
+    gkyl_comm_release(comm);
     return;
   }
 
@@ -1345,7 +1346,7 @@ test_SOL_domain_allgather_dir1_cuts2_par(bool use_gpu)
     gkyl_rect_grid_init(&grid, 2, gridlo, gridup, cells);
     char str[50];
     sprintf(str, "lb%d_r%d.gkyl", bI, my_rank);
-    gkyl_grid_sub_array_write(&grid, global_ranges[bI], 0, array_global_ho[bI], str);
+    // gkyl_grid_sub_array_write(&grid, global_ranges[bI], 0, array_global_ho[bI], str);
   }
 
   printf("checking\n");
@@ -1390,10 +1391,22 @@ test_SOL_domain_allgather_dir1_cuts2_par(bool use_gpu)
     gkyl_array_release(array_local[bI]);
     gkyl_array_release(array_global_ho[bI]);
     gkyl_array_release(array_global[bI]);
+    gkyl_free(local_ranges[bI]);
+    gkyl_free(local_ranges_ext[bI]);
+    gkyl_free(global_ranges[bI]);
+    gkyl_free(global_ranges_ext[bI]);
   }
   gkyl_free(mbcc_send);
   gkyl_free(mbcc_recv);
   gkyl_free(local_ranges);
+  gkyl_free(local_ranges_ext);
+  gkyl_free(global_ranges);
+  gkyl_free(global_ranges_ext);
+  gkyl_free(array_local_ho);
+  gkyl_free(array_global_ho);
+  gkyl_free(rank_list);
+  gkyl_free(branks);
+  gkyl_rrobin_decomp_release(round_robin_decomp);
   gkyl_free(array_local);
   gkyl_free(array_global);
 
@@ -1426,13 +1439,13 @@ test_SOL_domain_allgather_dir1_cuts2_par_dev(void)
 #endif
 
 TEST_LIST = {
-  //{ "test_L_domain_send_connections_dir0_cuts1", test_L_domain_send_connections_dir0_cuts1},
-  //{ "test_L_domain_recv_connections_dir0_cuts1", test_L_domain_recv_connections_dir0_cuts1},
-  //{ "test_L_domain_send_connections_dir0_cuts2", test_L_domain_send_connections_dir0_cuts2},
+  //{ "test_L_domain_send_connections_dir0_cuts1_ho", test_L_domain_send_connections_dir0_cuts1_ho},
+  //{ "test_L_domain_recv_connections_dir0_cuts1_ho", test_L_domain_recv_connections_dir0_cuts1_ho},
+  //{ "test_L_domain_send_connections_dir0_cuts2_ho", test_L_domain_send_connections_dir0_cuts2_ho},
   //
-  //{ "test_L_domain_send_connections_dir0_cuts2_par", test_L_domain_send_connections_dir0_cuts2_par},
-  //{ "test_L_domain_recv_connections_dir0_cuts2_par", test_L_domain_recv_connections_dir0_cuts2_par},
-  //{ "test_L_domain_allgather_dir0_cuts2_par", test_L_domain_allgather_dir0_cuts2_par},
+  //{ "test_L_domain_send_connections_dir0_cuts2_par_ho", test_L_domain_send_connections_dir0_cuts2_par_ho},
+  //{ "test_L_domain_recv_connections_dir0_cuts2_par_ho", test_L_domain_recv_connections_dir0_cuts2_par_ho},
+  //{ "test_L_domain_allgather_dir0_cuts2_par_ho", test_L_domain_allgather_dir0_cuts2_par_ho},
   {"test_SOL_domain_allgather_dir1_cuts2_par_ho", test_SOL_domain_allgather_dir1_cuts2_par_ho},
 #ifdef GKYL_HAVE_NCCL
   {"test_SOL_domain_allgather_dir1_cuts2_par_dev", test_SOL_domain_allgather_dir1_cuts2_par_dev},

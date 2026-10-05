@@ -51,8 +51,7 @@ struct gkyl_dg_interpolate {
 };
 
 // Serendipity  kernels.
-GKYL_CU_D static const dg_interp_kern_p_list dg_interp_kern_list_ser[] = {
-  // 1x
+GKYL_CU_D static const dg_interp_kern_p_list dg_interp_kern_list_ser[] = { // 1x
   {
     .list =
       {{dg_interpolate_1x_ser_p1_x, NULL, NULL, NULL, NULL, NULL},
@@ -74,8 +73,7 @@ GKYL_CU_D static const dg_interp_kern_p_list dg_interp_kern_list_ser[] = {
   }
 };
 
-GKYL_CU_D static const dg_interp_kern_p_list dg_interp_kern_list_gk_ser[] = {
-  // 1x1v
+GKYL_CU_D static const dg_interp_kern_p_list dg_interp_kern_list_gk_ser[] = { // 1x1v
   {
     .list =
       {{dg_interpolate_gyrokinetic_1x1v_ser_p1_x, dg_interpolate_gyrokinetic_1x1v_ser_p1_vpar, NULL,
@@ -111,8 +109,7 @@ GKYL_CU_D static const dg_interp_kern_p_list dg_interp_kern_list_gk_ser[] = {
   }
 };
 
-GKYL_CU_D static const dg_interp_kern_p_list_vlasov dg_interp_kern_list_vlasov_ser[] = {
-  // 1x
+GKYL_CU_D static const dg_interp_kern_p_list_vlasov dg_interp_kern_list_vlasov_ser[] = { // 1x
   {
     .vdim =
       {{

@@ -156,17 +156,17 @@ test_coll_recomb(bool use_gpu, enum gkyl_ion_type type_ion)
 }
 
 void
-coll_recomb_h()
+coll_recomb_h_ho()
 {
   test_coll_recomb(false, GKYL_ION_H);
 }
 void
-coll_recomb_li()
+coll_recomb_li_ho()
 {
   test_coll_recomb(false, GKYL_ION_LI);
 }
 void
-coll_recomb_ar()
+coll_recomb_ar_ho()
 {
   test_coll_recomb(false, GKYL_ION_AR);
 }
@@ -203,17 +203,17 @@ coll_recomb_o()
 
 #ifdef GKYL_HAVE_CUDA
 void
-coll_recomb_h_gpu()
+coll_recomb_h_dev()
 {
   test_coll_recomb(true, GKYL_ION_H);
 }
 void
-coll_recomb_li_gpu()
+coll_recomb_li_dev()
 {
   test_coll_recomb(true, GKYL_ION_LI);
 }
 void
-coll_recomb_ar_gpu()
+coll_recomb_ar_dev()
 {
   test_coll_recomb(true, GKYL_ION_AR);
 }
@@ -250,13 +250,13 @@ coll_recomb_o_gpu()
 #endif
 
 TEST_LIST = {
-  {"coll_recomb_h", coll_recomb_h},
-  {"coll_recomb_li", coll_recomb_li},
-  {"coll_recomb_ar", coll_recomb_ar},
+  {"coll_recomb_h_ho", coll_recomb_h_ho},
+  {"coll_recomb_li_ho", coll_recomb_li_ho},
+  {"coll_recomb_ar_ho", coll_recomb_ar_ho},
 #ifdef GKYL_HAVE_CUDA
-  {"coll_recomb_h_gpu", coll_recomb_h_gpu},
-  {"coll_recomb_li_gpu", coll_recomb_li_gpu},
-  {"coll_recomb_ar_gpu", coll_recomb_ar_gpu},
+  {"coll_recomb_h_dev", coll_recomb_h_dev},
+  {"coll_recomb_li_dev", coll_recomb_li_dev},
+  {"coll_recomb_ar_dev", coll_recomb_ar_dev},
 #endif
   {NULL, NULL}
 };

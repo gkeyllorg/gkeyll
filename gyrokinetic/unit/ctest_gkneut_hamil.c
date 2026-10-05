@@ -187,23 +187,23 @@ test_hamil(int cdim, bool use_gpu)
 }
 
 void
-test_hamil_3x()
+test_gkneut_hamil_3x_ho()
 {
   test_hamil(3, false);
 }
 
 #ifdef GKYL_HAVE_CUDA
 void
-test_hamil_3x_gpu()
+test_gkneut_hamil_3x_dev()
 {
   test_hamil(3, true);
 }
 #endif
 
 TEST_LIST = {
-  {"test_hamil_3x", test_hamil_3x},
+  {"test_gkneut_hamil_3x_ho", test_gkneut_hamil_3x_ho},
 #ifdef GKYL_HAVE_CUDA
-  {"test_hamil_3x_gpu", test_hamil_3x_gpu},
+  {"test_gkneut_hamil_3x_dev", test_gkneut_hamil_3x_dev},
 #endif
   {NULL, NULL}
 };

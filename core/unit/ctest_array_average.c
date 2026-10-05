@@ -487,7 +487,8 @@ test_2x_avgx_avgy(int poly_order, bool use_gpu)
 
   struct gkyl_array_average *avg_x = gkyl_array_average_inew(&inp_avg_x);
   gkyl_array_average_advance(
-    avg_x, fxy_c, fy_c
+    avg_x, fxy_c,
+    fy_c
   ); // fy_c is DG coeff of int[w(x,y) f(x,y)]dx / int[w(x,y)]dx
 
   gkyl_array_average_release(avg_x);
@@ -513,7 +514,8 @@ test_2x_avgx_avgy(int poly_order, bool use_gpu)
 
   // we now remove manually the denominator
   gkyl_dg_mul_op_range(
-    &basis_y, 0, fy_c, 0, fy_c, 0, wy_c, &local_y
+    &basis_y, 0, fy_c, 0, fy_c, 0, wy_c,
+    &local_y
   ); // fy_c is DG coeff of int[w(x,y) f(x,y)]dx
 
   // average over y now
@@ -533,7 +535,8 @@ test_2x_avgx_avgy(int poly_order, bool use_gpu)
 
   struct gkyl_array *intf_c = mkarr(red_basis.num_basis, red_local.volume, use_gpu);
   gkyl_array_average_advance(
-    int_y, fy_c, intf_c
+    int_y, fy_c,
+    intf_c
   ); // intf_c is DG coeff of int[int[w(x,y) f(x,y)]dx]dy
 
   struct gkyl_array *intw_c = mkarr(red_basis.num_basis, red_local.volume, use_gpu);
@@ -662,7 +665,8 @@ test_2x_avgy_avgx(int poly_order, bool use_gpu)
   struct gkyl_array *fx_c = mkarr(basis_x.num_basis, local_x_ext.volume, use_gpu);
 
   gkyl_array_average_advance(
-    avg_x, fxy_c, fx_c
+    avg_x, fxy_c,
+    fx_c
   ); // fx_c is DG coeff of int[w(x,y) f(x,y)]dx / int[w(x,y)]dx
 
   gkyl_array_average_release(avg_x);
@@ -688,7 +692,8 @@ test_2x_avgy_avgx(int poly_order, bool use_gpu)
 
   // we now remove manually the denominator
   gkyl_dg_mul_op_range(
-    &basis_x, 0, fx_c, 0, fx_c, 0, wx_c, &local_x
+    &basis_x, 0, fx_c, 0, fx_c, 0, wx_c,
+    &local_x
   ); // fx_c is DG coeff of int[w(x,y) f(x,y)]dx
 
   // create and run the array average updater to integrate on y
@@ -708,7 +713,8 @@ test_2x_avgy_avgx(int poly_order, bool use_gpu)
 
   struct gkyl_array *intf_c = mkarr(red_basis.num_basis, red_local.volume, use_gpu);
   gkyl_array_average_advance(
-    int_y, fx_c, intf_c
+    int_y, fx_c,
+    intf_c
   ); // intf_c is DG coeff of int[int[w(x,y) f(x,y)]dx]dy
 
   // obtain full integral of weight too
@@ -889,7 +895,8 @@ test_3x_avgx_avgyz(int poly_order, bool use_gpu)
 
   // we now remove manually the denominator
   gkyl_dg_mul_op_range(
-    &basis_yz, 0, fyz_c, 0, fyz_c, 0, wyz_c, &local_yz
+    &basis_yz, 0, fyz_c, 0, fyz_c, 0, wyz_c,
+    &local_yz
   ); // fy_c is DG coeff of int[w(x,y) f(x,y)]dy
 
   // create and run the array average updater to average on y and z (first second dim)
@@ -909,7 +916,8 @@ test_3x_avgx_avgyz(int poly_order, bool use_gpu)
 
   struct gkyl_array *intf_c = mkarr(red_basis.num_basis, red_local.volume, use_gpu);
   gkyl_array_average_advance(
-    int_yz, fyz_c, intf_c
+    int_yz, fyz_c,
+    intf_c
   ); // intf_c is DG coeff of int[int[w(x,y) f(x,y)]dy]dx
 
   // obtain full integral of weight too
@@ -1063,7 +1071,8 @@ test_3x_avgyz_avgx(int poly_order, bool use_gpu)
 
   // remove manually the denominator
   gkyl_dg_mul_op_range(
-    &basis_x, 0, fx_c, 0, fx_c, 0, wx_c, &local_x
+    &basis_x, 0, fx_c, 0, fx_c, 0, wx_c,
+    &local_x
   ); // fy_c is DG coeff of int[w(x,y) f(x,y)]dy
 
   // create and run the array average updater to average on x
@@ -1083,13 +1092,15 @@ test_3x_avgyz_avgx(int poly_order, bool use_gpu)
 
   struct gkyl_array *intf_c = mkarr(red_basis.num_basis, red_local.volume, use_gpu);
   gkyl_array_average_advance(
-    int_x, fx_c, intf_c
+    int_x, fx_c,
+    intf_c
   ); // intf_c is DG coeff of int[int[int[w(x,y) f(x,y)]dy]dz]dx
 
   // obtain full integral of weight too
   struct gkyl_array *intw_c = mkarr(red_basis.num_basis, red_local.volume, use_gpu);
   gkyl_array_average_advance(
-    int_x, wx_c, intw_c
+    int_x, wx_c,
+    intw_c
   ); // intw_c is DG coeff of int[int[int[w(x,y)]dy]dz]dx
 
   gkyl_array_average_release(int_x);
@@ -1138,7 +1149,7 @@ test_3x_avgyz_avgx(int poly_order, bool use_gpu)
 }
 
 void
-test_1x_cpu()
+test_array_average_1x_ho()
 {
   for (int p = 1; p <= 2; p++) {
     test_1x(p, false);
@@ -1146,7 +1157,7 @@ test_1x_cpu()
 }
 
 void
-test_2x_cpu()
+test_array_average_2x_ho()
 {
   for (int p = 1; p <= 2; p++) {
     test_2x_1step(p, false);
@@ -1157,7 +1168,7 @@ test_2x_cpu()
 }
 
 void
-test_3x_cpu()
+test_array_average_3x_ho()
 {
   for (int p = 1; p <= 2; p++) {
     test_3x_avgx_avgyz(p, false);
@@ -1167,7 +1178,7 @@ test_3x_cpu()
 
 #ifdef GKYL_HAVE_CUDA
 void
-test_1x_gpu()
+test_array_average_1x_dev()
 {
   for (int p = 1; p <= 2; p++) {
     test_1x(p, true);
@@ -1175,7 +1186,7 @@ test_1x_gpu()
 }
 
 void
-test_2x_gpu()
+test_array_average_2x_dev()
 {
   for (int p = 1; p <= 2; p++) {
     test_2x_1step(p, true);
@@ -1186,7 +1197,7 @@ test_2x_gpu()
 }
 
 void
-test_3x_gpu()
+test_array_average_3x_dev()
 {
   for (int p = 1; p <= 2; p++) {
     test_3x_avgx_avgyz(p, true);
@@ -1197,13 +1208,13 @@ test_3x_gpu()
 #endif
 
 TEST_LIST = {
-  {"test_1x_cpu", test_1x_cpu},
-  {"test_2x_cpu", test_2x_cpu},
-  {"test_3x_cpu", test_3x_cpu},
+  {"test_array_average_1x_ho", test_array_average_1x_ho},
+  {"test_array_average_2x_ho", test_array_average_2x_ho},
+  {"test_array_average_3x_ho", test_array_average_3x_ho},
 #ifdef GKYL_HAVE_CUDA
-  {"test_1x_gpu", test_1x_gpu},
-  {"test_2x_gpu", test_2x_gpu},
-  {"test_3x_gpu", test_3x_gpu},
+  {"test_array_average_1x_dev", test_array_average_1x_dev},
+  {"test_array_average_2x_dev", test_array_average_2x_dev},
+  {"test_array_average_3x_dev", test_array_average_3x_dev},
 #endif
   {NULL, NULL}
 };

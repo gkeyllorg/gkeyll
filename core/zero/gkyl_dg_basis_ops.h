@@ -54,13 +54,13 @@ struct gkyl_basis_ops_evalf {
   void *ctx; // function context
   evalf_t eval_cubic; // function pointer to evaluate the cubic
   evalf_t eval_cubic_wgrad; // function pointer to evaluate the cubic & its gradient with signature
-    // void (*evalf_t)(double t, const double *xn, double *fout, void *ctx);
-    // On return, fout[0], fout[1], and fout[2] are the value, gradient in direction 0,
-    // and gradient in direction 1 of the cubic evaluated at grid coordinates xn.
+  // void (*evalf_t)(double t, const double *xn, double *fout, void *ctx);
+  // On return, fout[0], fout[1], and fout[2] are the value, gradient in direction 0,
+  // and gradient in direction 1 of the cubic evaluated at grid coordinates xn.
   evalf_t eval_cubic_wgrad2; // function pointer to evaluate the cubic & its 2nd derivatives
-    // On return, fout[0], fout[1], fout[2], and fout[3] are the value, second derivative
-    // in direction 0, second derivative in direction 1, and mixed partial derivative
-    // of the cubic evaluated at grid coordinates xn.
+  // On return, fout[0], fout[1], fout[2], and fout[3] are the value, second derivative
+  // in direction 0, second derivative in direction 1, and mixed partial derivative
+  // of the cubic evaluated at grid coordinates xn.
   eval_laplacian_expand eval_cubic_laplacian; // function pointer to evaluate the laplacian
   eval_mixedpartial_expand eval_cubic_mixedpartial; // function pointer to evaluate the mixed partial
   struct gkyl_ref_count ref_count;

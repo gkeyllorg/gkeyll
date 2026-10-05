@@ -25,7 +25,7 @@ struct gkyl_gk_maxwellian_correct_inp {
   bool bimaxwellian; // Bool for whether we are projecting a bi-Maxwellian instead of a Maxwellian.
   bool divide_jacobgeo; // Bool for whether to divide out the conf-space Jacobian from density.
   bool use_last_converged; // Boolean for if we are using the results of the iterative scheme
-    // *even if* the scheme fails to converge.
+  // *even if* the scheme fails to converge.
   bool use_gpu; // Bool for gpu useage.
   double eps; // Tolerance for the iterator.
   int max_iter; // Number of total iterations.

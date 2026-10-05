@@ -312,7 +312,7 @@ test_2x_option(bool use_gpu)
 }
 
 void
-test_2x()
+test_integrated_moms_2x_ho()
 {
   test_2x_option(false);
 }
@@ -320,16 +320,16 @@ test_2x()
 #ifdef GKYL_HAVE_CUDA
 
 void
-test_2x_gpu()
+test_integrated_moms_2x_dev()
 {
   test_2x_option(true);
 }
 #endif
 
 TEST_LIST = {
-  {"test_2x", test_2x},
+  {"test_integrated_moms_2x_ho", test_integrated_moms_2x_ho},
 #ifdef GKYL_HAVE_CUDA
-  {"test_2x_gpu", test_2x_gpu},
+  {"test_integrated_moms_2x_dev", test_integrated_moms_2x_dev},
 #endif
   {NULL, NULL}
 };

@@ -603,7 +603,7 @@ create_ctx(void)
   double vpar_max_ion = 4. * vti;
   double mu_max_ion = mi * pow(4 * vti, 2) / (2 * B0);
 
-  double t_end = 1.e-7; // End time, should terminate in 43 steps.
+  double t_end = 1.e-8; // End time, should terminate in 43 steps.
   int num_frames = 1;
   double write_phase_freq =
     0.2; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
@@ -944,10 +944,13 @@ main(int argc, char **argv)
         .bfield_ctx = &ctx,
         .has_LCFS = true,
         .x_LCFS = ctx.x_LCFS, // Location of last closed flux surface.
-        .parallel_lower_bc_shift_func = bc_shift_func_lo,
-        .parallel_upper_bc_shift_func = bc_shift_func_up,
-        .parallel_lower_bc_shift_ctx = &ctx,
-        .parallel_upper_bc_shift_ctx = &ctx,
+        .core_parallel_bcs =
+          {
+            .lower_shift_func = bc_shift_func_lo,
+            .upper_shift_func = bc_shift_func_up,
+            .lower_shift_ctx = &ctx,
+            .upper_shift_ctx = &ctx,
+          },
       },
 
     .num_periodic_dir = 1,

@@ -64,8 +64,7 @@ typedef struct {
 } local2global_kern_list;
 
 // Serendipity local-to-global kernels.
-GKYL_CU_D static const local2global_kern_list ser_loc2glob_list[] = {
-  // 1x
+GKYL_CU_D static const local2global_kern_list ser_loc2glob_list[] = { // 1x
   {
     .list =
       {// periodicx
@@ -147,8 +146,7 @@ typedef struct {
 } lhsstencil_kern_list;
 
 // Serendipity unweighted lhs kernels.
-static const lhsstencil_kern_list ser_lhsstencil_list_noweight[] = {
-  // 1x
+static const lhsstencil_kern_list ser_lhsstencil_list_noweight[] = { // 1x
   {
     .list =
       {// nondirichletx
@@ -226,8 +224,7 @@ static const lhsstencil_kern_list ser_lhsstencil_list_noweight[] = {
 };
 
 // Serendipity weighted lhs kernels.
-static const lhsstencil_kern_list ser_lhsstencil_list_weighted[] = {
-  // 1x
+static const lhsstencil_kern_list ser_lhsstencil_list_weighted[] = { // 1x
   {
     .list =
       {// nondirichletx
@@ -321,8 +318,7 @@ typedef struct {
 } srcstencil_kern_list; // For use in kernel tables.
 
 // Serendipity src kernels.
-GKYL_CU_D static const srcstencil_kern_list ser_srcstencil_list_noweight[] = {
-  // 1x
+GKYL_CU_D static const srcstencil_kern_list ser_srcstencil_list_noweight[] = { // 1x
   {
     .list =
       {// nondirichletx
@@ -429,8 +425,7 @@ GKYL_CU_D static const srcstencil_kern_list ser_srcstencil_list_noweight[] = {
   }
 };
 
-GKYL_CU_D static const srcstencil_kern_list ser_srcstencil_list_weighted[] = {
-  // 1x
+GKYL_CU_D static const srcstencil_kern_list ser_srcstencil_list_weighted[] = { // 1x
   {
     .list =
       {// nondirichletx
@@ -571,8 +566,7 @@ typedef struct {
 } bias_lhs_kern_dim_list;
 
 // Serendipity bias_lhs kernels.
-static const bias_lhs_kern_dim_list ser_bias_lhs_list[] = {
-  // 1x
+static const bias_lhs_kern_dim_list ser_bias_lhs_list[] = { // 1x
   {
     .list =
       {// periodicy
@@ -640,8 +634,7 @@ typedef struct {
 } bias_src_kern_dim_list;
 
 // Serendipity bias_src kernels.
-GKYL_CU_D static const bias_src_kern_dim_list ser_bias_src_list[] = {
-  // 1x
+GKYL_CU_D static const bias_src_kern_dim_list ser_bias_src_list[] = { // 1x
   {
     .list =
       {// periodicy

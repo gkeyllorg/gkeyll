@@ -72,6 +72,7 @@ static struct tool_description tool_list[] = {
   {"multimomlinear", "multimomlinear.lua",
    "Linear dispersion solver for multi-moment, multifluid equations"},
   {"eqdskreader", "eqdskreader.lua", "Read eqdsk file, writing data to files"},
+  {"jeci", "jeci.lua", "Jenkins continuous integration system"},
   {0, 0}
 };
 
@@ -368,6 +369,13 @@ int
 main(int argc, char **argv)
 {
   struct app_args *app_args = parse_app_args(argc, argv);
+
+  // Regression tests launch their own MPI collectives. Initializing MPI in
+  // this parent process causes its OpenMPI/PMIx environment to be inherited
+  // by mpirun, which prevents it from starting a fresh collective.
+  if (app_args->num_opt_args > 0 && strcmp(app_args->opt_args[0], "runregression") == 0) {
+    app_args->use_mpi = false;
+  }
 
 #ifdef GKYL_HAVE_MPI
   if (app_args->use_mpi) {

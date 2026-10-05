@@ -175,23 +175,23 @@ test_coll_cx_d(bool use_gpu)
 }
 
 void
-coll_cx_d()
+coll_cx_d_ho()
 {
   test_coll_cx_d(false);
 }
 
 #ifdef GKYL_HAVE_CUDA
 void
-coll_cx_d_gpu()
+coll_cx_d_dev()
 {
   test_coll_cx_d(true);
 }
 #endif
 
 TEST_LIST = {
-  {"coll_cx_d", coll_cx_d},
+  {"coll_cx_d_ho", coll_cx_d_ho},
 #ifdef GKYL_HAVE_CUDA
-  {"coll_cx_d_gpu", coll_cx_d_gpu},
+  {"coll_cx_d_dev", coll_cx_d_dev},
 #endif
   {NULL, NULL}
 };

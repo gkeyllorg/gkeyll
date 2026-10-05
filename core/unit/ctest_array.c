@@ -22,14 +22,14 @@ set_array_to_zero_ho(struct gkyl_array *arr)
 }
 
 void
-test_array_0()
+test_array_0_ho()
 {
   struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 1, 200);
   gkyl_array_release(arr);
 }
 
 void
-test_array_base()
+test_array_base_ho()
 {
   struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 1, 200);
 
@@ -97,7 +97,7 @@ test_array_base()
 }
 
 void
-test_array_fetch()
+test_array_fetch_ho()
 {
   struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 1, 20);
 
@@ -116,7 +116,7 @@ test_array_fetch()
 }
 
 void
-test_non_numeric()
+test_array_non_numeric_ho()
 {
   struct euler {
     double rho, u, E;
@@ -145,7 +145,7 @@ test_non_numeric()
 }
 
 void
-test_grid_sub_array_read_1()
+test_grid_sub_array_read_1_ho()
 {
   double lower[] = {1.0, 1.0}, upper[] = {2.5, 5.0};
   int cells[] = {20, 60};
@@ -244,7 +244,7 @@ test_grid_sub_array_read_1()
 }
 
 void
-test_grid_sub_array_read_2()
+test_grid_sub_array_read_2_ho()
 {
   double lower[] = {1.0, 1.0}, upper[] = {2.5, 5.0};
   int cells[] = {20, 60};
@@ -310,7 +310,7 @@ test_grid_sub_array_read_2()
 }
 
 void
-test_grid_array_new_from_file_1()
+test_grid_array_new_from_file_1_ho()
 {
   double lower[] = {1.0, 1.0}, upper[] = {2.5, 5.0};
   int cells[] = {20, 60};
@@ -372,7 +372,7 @@ test_grid_array_new_from_file_1()
 }
 
 void
-test_grid_array_read_p1(void)
+test_grid_array_read_p1_ho(void)
 {
   // read just header
   struct gkyl_rect_grid grid;
@@ -514,7 +514,7 @@ test_grid_array_read_p1(void)
 }
 
 static void
-test_array_from_buff(void)
+test_array_from_buff_ho(void)
 {
   double *buff = gkyl_malloc(sizeof(double[400]));
 
@@ -594,7 +594,7 @@ test_array_from_buff(void)
 int cu_array_test_and_flip_sign(struct gkyl_array *arr);
 
 void
-test_cu_array_base()
+test_array_base_dev()
 {
   struct gkyl_array *arr_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, 200);
 
@@ -637,7 +637,7 @@ test_cu_array_base()
 }
 
 void
-test_cu_array_dev_kernel()
+test_array_kernel_dev()
 {
   // create a host array struct containing device data
   struct gkyl_array *arr_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, 20);
@@ -699,18 +699,18 @@ test_cu_array_dev_kernel()
 #endif
 
 TEST_LIST = {
-  {"array_0", test_array_0},
-  {"array_base", test_array_base},
-  {"array_fetch", test_array_fetch},
-  {"non_numeric", test_non_numeric},
-  {"grid_sub_array_read_1", test_grid_sub_array_read_1},
-  {"grid_sub_array_read_2", test_grid_sub_array_read_2},
-  {"grid_array_new_from_file_1", test_grid_array_new_from_file_1},
-  {"grid_array_read_1", test_grid_array_read_p1},
-  {"array_from_buff", test_array_from_buff},
+  {"array_0_ho", test_array_0_ho},
+  {"array_base_ho", test_array_base_ho},
+  {"array_fetch_ho", test_array_fetch_ho},
+  {"array_non_numeric_ho", test_array_non_numeric_ho},
+  {"grid_sub_array_read_1_ho", test_grid_sub_array_read_1_ho},
+  {"grid_sub_array_read_2_ho", test_grid_sub_array_read_2_ho},
+  {"grid_array_new_from_file_1_ho", test_grid_array_new_from_file_1_ho},
+  {"grid_array_read_p1_ho", test_grid_array_read_p1_ho},
+  {"array_from_buff_ho", test_array_from_buff_ho},
 #ifdef GKYL_HAVE_CUDA
-  {"cu_array_base", test_cu_array_base},
-  {"cu_array_dev_kernel", test_cu_array_dev_kernel},
+  {"array_base_dev", test_array_base_dev},
+  {"array_kernel_dev", test_array_kernel_dev},
 #endif
   {NULL, NULL}
 };

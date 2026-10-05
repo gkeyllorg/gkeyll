@@ -117,7 +117,7 @@ GKYL_CU_D static struct {
 // Number of quadrature nodes: num_quad_list[ndim].count[poly_order]
 GKYL_CU_D static struct {
   int count[4];
-} num_quad_list[] = {{0, 0, 0, 0},   {0, 2, 3, 0},  {0, 4, 8, 0}, {0, 8, 27, 0},
+} num_quad_list[] = {{0, 0, 0, 0},   {0, 2, 3, 0},  {0, 4, 9, 0}, {0, 8, 27, 0},
                      {0, 16, 81, 0}, {0, 32, 0, 0}, {0, 64, 0, 0}};
 
 // modal basis -> Gauss-Legendre quadrature nodes nodal basis conversion functions: ev_list[ndim].ev[poly_order]

@@ -234,7 +234,8 @@ gkyl_mirror_grid_gen_inew(const struct gkyl_mirror_grid_gen_inp *inp)
         double rz[2] = {rzp[0], rzp[1]};
 
         double dZ_dz = gkyl_position_map_slope(
-          inp->position_map, 2, rzp[1], dz, iz, &inp->nrange
+          inp->position_map, 2, rzp[1], dz, iz,
+          &inp->nrange
         ); // derivative of the position map in Z direction
 
         struct gkyl_mirror_grid_gen_geom *g = gkyl_array_fetch(geo->nodes_geom, loc);
@@ -496,7 +497,8 @@ gkyl_mirror_grid_gen_int_inew(const struct gkyl_mirror_grid_gen_inp *inp)
         double rz[2] = {rzp[0], rzp[1]};
 
         double dZ_dz = gkyl_position_map_slope(
-          inp->position_map, 2, rzp[1], dz, iz, &inp->nrange
+          inp->position_map, 2, rzp[1], dz, iz,
+          &inp->nrange
         ); // derivative of the position map in Z direction
 
         struct gkyl_mirror_grid_gen_geom *g = gkyl_array_fetch(geo->nodes_geom, loc);
@@ -725,7 +727,8 @@ gkyl_mirror_grid_gen_surf_inew(const struct gkyl_mirror_grid_gen_inp *inp)
         double rz[2] = {rzp[0], rzp[1]};
 
         double dZ_dz = gkyl_position_map_slope(
-          inp->position_map, 2, rzp[1], dz, iz, &inp->nrange
+          inp->position_map, 2, rzp[1], dz, iz,
+          &inp->nrange
         ); // derivative of the position map in Z direction
 
         struct gkyl_mirror_grid_gen_geom *g = gkyl_array_fetch(geo->nodes_geom, loc);

@@ -410,7 +410,7 @@ gk_multib_field_new_perp_solve(
 {
   // Initialize objects needed for the multiblock perpendicular Poisson solve.
   int dir = 0; // Note that for cdim=3 we here assume there are is everywhere a
-    // single block along y.
+  // single block along y.
 
   // Construct the local and global ranges for the perpendicular allgather.
   mbf->multib_perp_ranges = gkyl_malloc(mbf->num_local_blocks * sizeof(struct gkyl_range *));

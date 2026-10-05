@@ -12,7 +12,7 @@
 struct gkyl_gk_maxwellian_correct {
   int num_conf_basis; // Number of configuration-space basis functions
   int num_comp; // Number of components being corrected
-    // 3 for a Maxwellian (n, upar, T/m), 4 for a bi-Maxwellian (n, upar, Tpar/m, Tperp/m)
+  // 3 for a Maxwellian (n, upar, T/m), 4 for a bi-Maxwellian (n, upar, Tpar/m, Tperp/m)
   bool bimaxwellian; // Bool for whether we are correcting a bi-Maxwellian's moments.
 
   struct gkyl_velocity_map *vel_map; // Velocity space mapping object.
@@ -29,7 +29,7 @@ struct gkyl_gk_maxwellian_correct {
   double eps; // tolerance for the iterator
   int max_iter; // number of total iterations
   bool use_last_converged; // Boolean for if we are using the results of the iterative scheme
-    // *even if* the scheme fails to converge.
+  // *even if* the scheme fails to converge.
 
   bool use_gpu; // Boolean if we are performing projection on device.
   double *error_cu; // error on device if using GPUs

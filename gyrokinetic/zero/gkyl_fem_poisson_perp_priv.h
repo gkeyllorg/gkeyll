@@ -35,8 +35,7 @@ typedef struct {
 } local2global_kern_bcx_list_3x;
 
 // Serendipity local-to-global kernels.
-GKYL_CU_D static const local2global_kern_bcx_list_2x ser_loc2glob_list_2x[] = {
-  // periodicx
+GKYL_CU_D static const local2global_kern_bcx_list_2x ser_loc2glob_list_2x[] = { // periodicx
   {
     .list =
       {{NULL, NULL},
@@ -54,8 +53,7 @@ GKYL_CU_D static const local2global_kern_bcx_list_2x ser_loc2glob_list_2x[] = {
   }
 };
 
-GKYL_CU_D static const local2global_kern_bcx_list_3x ser_loc2glob_list_3x[] = {
-  // periodicx
+GKYL_CU_D static const local2global_kern_bcx_list_3x ser_loc2glob_list_3x[] = { // periodicx
   {
     .list =
       {// periodicy
@@ -132,8 +130,7 @@ typedef struct {
 } lhsstencil_kern_bcx_list_3x;
 
 // Serendipity lhs kernels.
-GKYL_CU_D static const lhsstencil_kern_bcx_list_2x ser_lhsstencil_list_2x[] = {
-  // periodicx
+GKYL_CU_D static const lhsstencil_kern_bcx_list_2x ser_lhsstencil_list_2x[] = { // periodicx
   {
     .list =
       {{NULL, NULL, NULL},
@@ -173,8 +170,7 @@ GKYL_CU_D static const lhsstencil_kern_bcx_list_2x ser_lhsstencil_list_2x[] = {
 
 GKYL_CU_D static const lhsstencil_kern_bcx_list_3x
   ser_lhsstencil_list_3x[] =
-    {
-      // periodicx
+    { // periodicx
       {
         .list =
           {// periodicy
@@ -444,8 +440,7 @@ typedef struct {
 } srcstencil_kern_bcx_list_3x;
 
 // Serendipity src kernels.
-GKYL_CU_D static const srcstencil_kern_bcx_list_2x ser_srcstencil_list_2x[] = {
-  // periodicx
+GKYL_CU_D static const srcstencil_kern_bcx_list_2x ser_srcstencil_list_2x[] = { // periodicx
   {
     .list =
       {{NULL, NULL, NULL},
@@ -485,8 +480,7 @@ GKYL_CU_D static const srcstencil_kern_bcx_list_2x ser_srcstencil_list_2x[] = {
 
 GKYL_CU_D static const srcstencil_kern_bcx_list_3x
   ser_srcstencil_list_3x[] =
-    {
-      // periodicx
+    { // periodicx
       {
         .list =
           {// periodicy
@@ -774,8 +768,7 @@ typedef struct {
 } bias_lhs_kern_bcx_list_3x;
 
 // Serendipity bias_lhs kernels.
-static const bias_lhs_kern_bcx_list_2x ser_bias_lhs_list_2x[] = {
-  // periodicx
+static const bias_lhs_kern_bcx_list_2x ser_bias_lhs_list_2x[] = { // periodicx
   {
     .list =
       {{NULL, NULL},
@@ -793,8 +786,7 @@ static const bias_lhs_kern_bcx_list_2x ser_bias_lhs_list_2x[] = {
   }
 };
 
-static const bias_lhs_kern_bcx_list_3x ser_bias_lhs_list_3x[] = {
-  // periodicx
+static const bias_lhs_kern_bcx_list_3x ser_bias_lhs_list_3x[] = { // periodicx
   {
     .list =
       {// periodicy
@@ -871,8 +863,7 @@ typedef struct {
 } bias_src_kern_bcx_list_3x;
 
 // Serendipity bias_src kernels.
-GKYL_CU_D static const bias_src_kern_bcx_list_2x ser_bias_src_list_2x[] = {
-  // periodicx
+GKYL_CU_D static const bias_src_kern_bcx_list_2x ser_bias_src_list_2x[] = { // periodicx
   {
     .list =
       {{NULL, NULL},
@@ -890,8 +881,7 @@ GKYL_CU_D static const bias_src_kern_bcx_list_2x ser_bias_src_list_2x[] = {
   }
 };
 
-GKYL_CU_D static const bias_src_kern_bcx_list_3x ser_bias_src_list_3x[] = {
-  // periodicx
+GKYL_CU_D static const bias_src_kern_bcx_list_3x ser_bias_src_list_3x[] = { // periodicx
   {
     .list =
       {// periodicy

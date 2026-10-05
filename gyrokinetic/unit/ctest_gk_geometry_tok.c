@@ -98,7 +98,7 @@ write_geometry(
 }
 
 void
-test_elliptical()
+test_tok_elliptical_ho()
 {
   clock_t start, end;
   double cpu_time_used;
@@ -237,7 +237,7 @@ bmag_func(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
 }
 
 void
-test_3x_p1_straight_cylinder()
+test_tok_3x_p1_straight_cylinder_ho()
 {
   // Very similar to the unit test in ctest_gk_geometry.c
   // The geometry is created to extend from Z = -1 to 1, R = (0.001, 1) in units meters
@@ -726,7 +726,7 @@ test_3x_p1_straight_cylinder()
 }
 
 void
-test_asdex_qprofile_core()
+test_tok_asdex_qprofile_core_ho()
 {
   double clower[] = {-0.09, -0.01, -M_PI + 1e-14};
   double cupper[] = {0.14975, 0.01, M_PI - 1e-14};
@@ -802,7 +802,7 @@ test_asdex_qprofile_core()
 }
 
 void
-test_asdex_qprofile_sol()
+test_tok_asdex_qprofile_sol_ho()
 {
   double clower[] = {0.16, -0.01, -M_PI + 1e-14};
   double cupper[] = {0.17501, 0.01, M_PI - 1e-14};
@@ -865,9 +865,9 @@ test_asdex_qprofile_sol()
 }
 
 TEST_LIST = {
-  {"test_elliptical", test_elliptical},
-  {"test_3x_p1_straight_cylinder", test_3x_p1_straight_cylinder},
-  {"test_asdex_qprofile_core", test_asdex_qprofile_core},
-  {"test_asdex_qprofile_sol", test_asdex_qprofile_sol},
+  {"test_tok_elliptical_ho", test_tok_elliptical_ho},
+  {"test_tok_3x_p1_straight_cylinder_ho", test_tok_3x_p1_straight_cylinder_ho},
+  {"test_tok_asdex_qprofile_core_ho", test_tok_asdex_qprofile_core_ho},
+  {"test_tok_asdex_qprofile_sol_ho", test_tok_asdex_qprofile_sol_ho},
   {NULL, NULL}
 };

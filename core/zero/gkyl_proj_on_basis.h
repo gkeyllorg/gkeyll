@@ -26,7 +26,7 @@ struct gkyl_proj_on_basis_inp {
   void *ctx; // function context
 
   proj_on_basis_c2p_t c2p_func; // Function that transforms a set of ndim
-    // computational coordinates to physical ones.
+  // computational coordinates to physical ones.
   void *c2p_func_ctx; // Context for c2p_func.
 };
 

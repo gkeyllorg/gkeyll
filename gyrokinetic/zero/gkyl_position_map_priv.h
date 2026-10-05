@@ -437,7 +437,7 @@ refine_B_field_extrema(struct gkyl_position_map *gpm)
       break;
     }
 
-    // Midpoint rule refinement
+    // Midpoint rule prolongation
     for (int j = 0; j < num_iterations; j++) {
       double dz = (interval_right - interval_left) / num_points_per_level;
 
@@ -615,7 +615,8 @@ position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ct
       } else {
         fprintf(
           stderr,
-          "Warning: Unexpected interval evaluation state in position_map_constB_z_numeric. Using theta directly.\n"
+          "Warning: Unexpected interval evaluation state in position_map_constB_z_numeric. Using "
+          "theta directly.\n"
         );
         fout[0] = theta;
         return;

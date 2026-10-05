@@ -511,7 +511,7 @@ struct vm_field {
       struct gkyl_array *phi_host; // host copy for use IO and initialization
 
       struct gkyl_range global_sub_range; // sub range of intersection of global range and local range
-        // for solving subset of Poisson solves with parallelization in z
+      // for solving subset of Poisson solves with parallelization in z
 
       struct gkyl_fem_poisson
         *fem_poisson; // Poisson solver for - nabla . (epsilon * nabla phi) - kSq * phi = rho.
@@ -612,7 +612,7 @@ struct vm_fluid_species {
         kSq; // k^2 factor in Helmholtz equation needed for Hasegawa-Mima where we solve (grad^2 - 1) phi = RHS
 
       struct gkyl_range global_sub_range; // sub range of intersection of global range and local range
-        // for solving Poisson equation on each MPI process in parallel
+      // for solving Poisson equation on each MPI process in parallel
 
       struct gkyl_fem_poisson
         *fem_poisson; // Poisson solver for - nabla . (epsilon * nabla phi) - kSq * phi = rho.

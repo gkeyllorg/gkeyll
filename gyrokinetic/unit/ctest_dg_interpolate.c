@@ -896,6 +896,35 @@ eval_bfield_3x(double t, const double *xn, double *restrict fout, void *ctx)
   fout[2] = B0;
 }
 
+// Scalar magnetic-field magnitude (|B|) evaluators. The eval_bfield_*x functions
+// above return the 3-component field vector expected by the geometry's bfield_func
+// (which takes |B| = sqrt(B.B)). When |B| is needed as a scalar field (e.g. for
+// projection with num_ret_vals=1, or inside the distribution functions), use these
+// wrappers so we don't write past a single-component output buffer.
+void
+eval_bmag_1x(double t, const double *xn, double *restrict fout, void *ctx)
+{
+  double B[3] = {0.0};
+  eval_bfield_1x(t, xn, B, ctx);
+  fout[0] = sqrt(B[0] * B[0] + B[1] * B[1] + B[2] * B[2]);
+}
+
+void
+eval_bmag_2x(double t, const double *xn, double *restrict fout, void *ctx)
+{
+  double B[3] = {0.0};
+  eval_bfield_2x(t, xn, B, ctx);
+  fout[0] = sqrt(B[0] * B[0] + B[1] * B[1] + B[2] * B[2]);
+}
+
+void
+eval_bmag_3x(double t, const double *xn, double *restrict fout, void *ctx)
+{
+  double B[3] = {0.0};
+  eval_bfield_3x(t, xn, B, ctx);
+  fout[0] = sqrt(B[0] * B[0] + B[1] * B[1] + B[2] * B[2]);
+}
+
 void
 eval_distf_1x1v_gk(double t, const double *xn, double *restrict fout, void *ctx)
 {
@@ -1075,6 +1104,15 @@ test_1x1v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
+  // Create bmag arrays.
+  struct gkyl_array *bmag = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
+  struct gkyl_array *bmag_ho = use_gpu ? mkarr(false, bmag->ncomp, bmag->size) :
+                                         gkyl_array_acquire(bmag);
+  gkyl_proj_on_basis *proj_bmag =
+    gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order + 1, 1, eval_bmag_1x, &proj_ctx);
+  gkyl_proj_on_basis_advance(proj_bmag, 0.0, &confLocal, bmag_ho);
+  gkyl_array_copy(bmag, bmag_ho);
+
   // Create distribution function arrays.
   struct gkyl_array *distf = mkarr(use_gpu, basis.num_basis, local_ext.volume);
   struct gkyl_array *distf_ho = use_gpu ? mkarr(false, distf->ncomp, distf->size) :
@@ -1248,8 +1286,11 @@ test_1x1v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   gkyl_array_release(moms);
   gkyl_velocity_map_release(gvm);
   gkyl_gk_geometry_release(gk_geom);
+  gkyl_array_release(bmag);
   gkyl_array_release(distf);
+  gkyl_array_release(bmag_ho);
   gkyl_array_release(distf_ho);
+  gkyl_proj_on_basis_release(proj_bmag);
   gkyl_proj_on_basis_release(proj_distf);
 }
 
@@ -1279,12 +1320,11 @@ eval_distf_1x2v_gk(double t, const double *xn, double *restrict fout, void *ctx)
 
   double vtsq = temp / mass;
 
-  double bfield[3] = {0.0};
-  eval_bfield_1x(t, xn, bfield, ctx);
-  double bmag = sqrt(bfield[0] * bfield[0] + bfield[1] * bfield[1] + bfield[2] * bfield[2]);
+  double bmag[1] = {-1.0};
+  eval_bmag_1x(t, xn, bmag, ctx);
 
   fout[0] = (den / pow(2.0 * M_PI * vtsq, vdim / 2.0)) *
-            exp(-(pow(vpar - upar, 2) + 2.0 * mu * bmag / mass) / (2.0 * vtsq));
+            exp(-(pow(vpar - upar, 2) + 2.0 * mu * bmag[0] / mass) / (2.0 * vtsq));
 }
 
 void
@@ -1362,6 +1402,15 @@ test_1x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   }
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
+
+  // Create bmag arrays.
+  struct gkyl_array *bmag = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
+  struct gkyl_array *bmag_ho = use_gpu ? mkarr(false, bmag->ncomp, bmag->size) :
+                                         gkyl_array_acquire(bmag);
+  gkyl_proj_on_basis *proj_bmag =
+    gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order + 1, 1, eval_bmag_1x, &proj_ctx);
+  gkyl_proj_on_basis_advance(proj_bmag, 0.0, &confLocal, bmag_ho);
+  gkyl_array_copy(bmag, bmag_ho);
 
   // Create distribution function arrays.
   struct gkyl_array *distf = mkarr(use_gpu, basis.num_basis, local_ext.volume);
@@ -1534,8 +1583,11 @@ test_1x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   gkyl_array_release(moms);
   gkyl_velocity_map_release(gvm);
   gkyl_gk_geometry_release(gk_geom);
+  gkyl_array_release(bmag);
   gkyl_array_release(distf);
+  gkyl_array_release(bmag_ho);
   gkyl_array_release(distf_ho);
+  gkyl_proj_on_basis_release(proj_bmag);
   gkyl_proj_on_basis_release(proj_distf);
 }
 
@@ -1565,12 +1617,11 @@ eval_distf_2x2v_gk(double t, const double *xn, double *restrict fout, void *ctx)
 
   double vtsq = temp / mass;
 
-  double bfield[3] = {0.0};
-  eval_bfield_2x(t, xn, bfield, ctx);
-  double bmag = sqrt(bfield[0] * bfield[0] + bfield[1] * bfield[1] + bfield[2] * bfield[2]);
+  double bmag[1] = {-1.0};
+  eval_bmag_2x(t, xn, bmag, ctx);
 
   fout[0] = (den / pow(2.0 * M_PI * vtsq, vdim / 2.0)) *
-            exp(-(pow(vpar - upar, 2) + 2.0 * mu * bmag / mass) / (2.0 * vtsq));
+            exp(-(pow(vpar - upar, 2) + 2.0 * mu * bmag[0] / mass) / (2.0 * vtsq));
 }
 
 void
@@ -1657,6 +1708,15 @@ test_2x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   }
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
+
+  // Create bmag arrays.
+  struct gkyl_array *bmag = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
+  struct gkyl_array *bmag_ho = use_gpu ? mkarr(false, bmag->ncomp, bmag->size) :
+                                         gkyl_array_acquire(bmag);
+  gkyl_proj_on_basis *proj_bmag =
+    gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order + 1, 1, eval_bmag_2x, &proj_ctx);
+  gkyl_proj_on_basis_advance(proj_bmag, 0.0, &confLocal, bmag_ho);
+  gkyl_array_copy(bmag, bmag_ho);
 
   // Create distribution function arrays.
   struct gkyl_array *distf = mkarr(use_gpu, basis.num_basis, local_ext.volume);
@@ -1829,8 +1889,11 @@ test_2x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   gkyl_array_release(moms);
   gkyl_velocity_map_release(gvm);
   gkyl_gk_geometry_release(gk_geom);
+  gkyl_array_release(bmag);
   gkyl_array_release(distf);
+  gkyl_array_release(bmag_ho);
   gkyl_array_release(distf_ho);
+  gkyl_proj_on_basis_release(proj_bmag);
   gkyl_proj_on_basis_release(proj_distf);
 }
 
@@ -1860,12 +1923,11 @@ eval_distf_3x2v_gk(double t, const double *xn, double *restrict fout, void *ctx)
 
   double vtsq = temp / mass;
 
-  double bfield[3] = {0.0};
-  eval_bfield_3x(t, xn, bfield, ctx);
-  double bmag = sqrt(bfield[0] * bfield[0] + bfield[1] * bfield[1] + bfield[2] * bfield[2]);
+  double bmag[1] = {-1.0};
+  eval_bmag_3x(t, xn, bmag, ctx);
 
   fout[0] = (den / pow(2.0 * M_PI * vtsq, vdim / 2.0)) *
-            exp(-(pow(vpar - upar, 2) + 2.0 * mu * bmag / mass) / (2.0 * vtsq));
+            exp(-(pow(vpar - upar, 2) + 2.0 * mu * bmag[0] / mass) / (2.0 * vtsq));
 }
 
 void
@@ -1969,6 +2031,15 @@ test_3x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   }
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
+
+  // Create bmag arrays.
+  struct gkyl_array *bmag = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
+  struct gkyl_array *bmag_ho = use_gpu ? mkarr(false, bmag->ncomp, bmag->size) :
+                                         gkyl_array_acquire(bmag);
+  gkyl_proj_on_basis *proj_bmag =
+    gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order + 1, 1, eval_bmag_3x, &proj_ctx);
+  gkyl_proj_on_basis_advance(proj_bmag, 0.0, &confLocal, bmag_ho);
+  gkyl_array_copy(bmag, bmag_ho);
 
   // Create distribution function arrays.
   struct gkyl_array *distf = mkarr(use_gpu, basis.num_basis, local_ext.volume);
@@ -2141,15 +2212,18 @@ test_3x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   gkyl_array_release(moms);
   gkyl_velocity_map_release(gvm);
   gkyl_gk_geometry_release(gk_geom);
+  gkyl_array_release(bmag);
   gkyl_array_release(distf);
+  gkyl_array_release(bmag_ho);
   gkyl_array_release(distf_ho);
+  gkyl_proj_on_basis_release(proj_bmag);
   gkyl_proj_on_basis_release(proj_distf);
 }
 
 void
 test_1x_hodev(bool use_gpu)
 {
-  // Refine along x.
+  // Prolongate along x.
   int cells_do0[] = {6};
   int cells_tar0[] = {12};
   test_1x(cells_do0, cells_tar0, 1, use_gpu);
@@ -2165,7 +2239,7 @@ test_1x_hodev(bool use_gpu)
 void
 test_2x_hodev(bool use_gpu)
 {
-  // Refine along x.
+  // Prolongate along x.
   //  int cells_do0[] = {6, 8};
   //  int cells_tar0[] = {12, 8};
   //  test_2x(cells_do0, cells_tar0, 1, use_gpu);
@@ -2177,7 +2251,7 @@ test_2x_hodev(bool use_gpu)
   //  test_2x(cells_do1, cells_tar1, 1, use_gpu);
   //  test_2x(cells_do1, cells_tar1, 2, use_gpu);
 
-  // Refine along vpar.
+  // Prolongate along vpar.
   int cells_do2[] = {96, 96};
   int cells_tar2[] = {128, 128};
   test_2x(cells_do2, cells_tar2, 1, use_gpu);
@@ -2189,7 +2263,7 @@ test_2x_hodev(bool use_gpu)
   //  test_2x(cells_do3, cells_tar3, 1, use_gpu);
   //  test_2x(cells_do3, cells_tar3, 2, use_gpu);
   //
-  //  // Refine along x and vpar.
+  //  // Prolongate along x and vpar.
   //  int cells_do4[] = {8, 8};
   //  int cells_tar4[] = {32, 16};
   //  test_2x(cells_do4, cells_tar4, 1, use_gpu);
@@ -2205,7 +2279,7 @@ test_2x_hodev(bool use_gpu)
 void
 test_1x1v_vlasov_hodev(bool use_gpu)
 {
-  // Refine along x.
+  // Prolongate along x.
   int cells_do0[] = {6, 8};
   int cells_tar0[] = {12, 8};
   test_1x1v_vlasov(cells_do0, cells_tar0, 1, use_gpu);
@@ -2217,7 +2291,7 @@ test_1x1v_vlasov_hodev(bool use_gpu)
   test_1x1v_vlasov(cells_do1, cells_tar1, 1, use_gpu);
   test_1x1v_vlasov(cells_do1, cells_tar1, 2, use_gpu);
 
-  // Refine along vx.
+  // Prolongate along vx.
   int cells_do2[] = {8, 8};
   int cells_tar2[] = {8, 16};
   test_1x1v_vlasov(cells_do2, cells_tar2, 1, use_gpu);
@@ -2229,7 +2303,7 @@ test_1x1v_vlasov_hodev(bool use_gpu)
   test_1x1v_vlasov(cells_do3, cells_tar3, 1, use_gpu);
   test_1x1v_vlasov(cells_do3, cells_tar3, 2, use_gpu);
 
-  // Refine along x and vx.
+  // Prolongate along x and vx.
   int cells_do4[] = {8, 8};
   int cells_tar4[] = {32, 16};
   test_1x1v_vlasov(cells_do4, cells_tar4, 1, use_gpu);
@@ -2245,7 +2319,7 @@ test_1x1v_vlasov_hodev(bool use_gpu)
 void
 test_1x2v_vlasov_hodev(bool use_gpu)
 {
-  // Refine along x.
+  // Prolongate along x.
   int cells_do0[] = {6, 8, 4};
   int cells_tar0[] = {12, 8, 4};
   test_1x2v_vlasov(cells_do0, cells_tar0, 1, use_gpu);
@@ -2257,7 +2331,7 @@ test_1x2v_vlasov_hodev(bool use_gpu)
   test_1x2v_vlasov(cells_do1, cells_tar1, 1, use_gpu);
   test_1x2v_vlasov(cells_do1, cells_tar1, 2, use_gpu);
 
-  // Refine along vpar.
+  // Prolongate along vpar.
   int cells_do2[] = {8, 8, 4};
   int cells_tar2[] = {8, 16, 4};
   test_1x2v_vlasov(cells_do2, cells_tar2, 1, use_gpu);
@@ -2269,7 +2343,7 @@ test_1x2v_vlasov_hodev(bool use_gpu)
   test_1x2v_vlasov(cells_do3, cells_tar3, 1, use_gpu);
   test_1x2v_vlasov(cells_do3, cells_tar3, 2, use_gpu);
 
-  // Refine along mu.
+  // Prolongate along mu.
   int cells_do4[] = {8, 6, 4};
   int cells_tar4[] = {8, 6, 8};
   test_1x2v_vlasov(cells_do4, cells_tar4, 1, use_gpu);
@@ -2281,7 +2355,7 @@ test_1x2v_vlasov_hodev(bool use_gpu)
   test_1x2v_vlasov(cells_do5, cells_tar5, 1, use_gpu);
   test_1x2v_vlasov(cells_do5, cells_tar5, 2, use_gpu);
 
-  // Refine along x and vpar.
+  // Prolongate along x and vpar.
   int cells_do6[] = {6, 8, 4};
   int cells_tar6[] = {12, 16, 4};
   test_1x2v_vlasov(cells_do6, cells_tar6, 1, use_gpu);
@@ -2293,7 +2367,7 @@ test_1x2v_vlasov_hodev(bool use_gpu)
   test_1x2v_vlasov(cells_do7, cells_tar7, 1, use_gpu);
   test_1x2v_vlasov(cells_do7, cells_tar7, 2, use_gpu);
 
-  // Refine along x and mu.
+  // Prolongate along x and mu.
   int cells_do8[] = {6, 8, 4};
   int cells_tar8[] = {12, 8, 8};
   test_1x2v_vlasov(cells_do8, cells_tar8, 1, use_gpu);
@@ -2305,7 +2379,7 @@ test_1x2v_vlasov_hodev(bool use_gpu)
   test_1x2v_vlasov(cells_do9, cells_tar9, 1, use_gpu);
   test_1x2v_vlasov(cells_do9, cells_tar9, 2, use_gpu);
 
-  // Refine along vpar and mu.
+  // Prolongate along vpar and mu.
   int cells_do10[] = {8, 6, 4};
   int cells_tar10[] = {8, 12, 8};
   test_1x2v_vlasov(cells_do10, cells_tar10, 1, use_gpu);
@@ -2321,7 +2395,7 @@ test_1x2v_vlasov_hodev(bool use_gpu)
 void
 test_1x1v_gk_hodev(bool use_gpu)
 {
-  // Refine along x.
+  // Prolongate along x.
   int cells_do0[] = {6, 8};
   int cells_tar0[] = {12, 8};
   test_1x1v_gk(cells_do0, cells_tar0, 1, use_gpu);
@@ -2331,7 +2405,7 @@ test_1x1v_gk_hodev(bool use_gpu)
   int cells_tar1[] = {8, 8};
   test_1x1v_gk(cells_do1, cells_tar1, 1, use_gpu);
 
-  // Refine along vpar.
+  // Prolongate along vpar.
   int cells_do2[] = {8, 8};
   int cells_tar2[] = {8, 16};
   test_1x1v_gk(cells_do2, cells_tar2, 1, use_gpu);
@@ -2341,7 +2415,7 @@ test_1x1v_gk_hodev(bool use_gpu)
   int cells_tar3[] = {8, 6};
   test_1x1v_gk(cells_do3, cells_tar3, 1, use_gpu);
 
-  // Refine along x and vpar.
+  // Prolongate along x and vpar.
   int cells_do4[] = {8, 8};
   int cells_tar4[] = {32, 16};
   test_1x1v_gk(cells_do4, cells_tar4, 1, use_gpu);
@@ -2355,7 +2429,7 @@ test_1x1v_gk_hodev(bool use_gpu)
 void
 test_1x2v_gk_hodev(bool use_gpu)
 {
-  // Refine along x.
+  // Prolongate along x.
   int cells_do0[] = {6, 8, 4};
   int cells_tar0[] = {12, 8, 4};
   test_1x2v_gk(cells_do0, cells_tar0, 1, use_gpu);
@@ -2365,7 +2439,7 @@ test_1x2v_gk_hodev(bool use_gpu)
   int cells_tar1[] = {8, 8, 4};
   test_1x2v_gk(cells_do1, cells_tar1, 1, use_gpu);
 
-  // Refine along vpar.
+  // Prolongate along vpar.
   int cells_do2[] = {8, 8, 4};
   int cells_tar2[] = {8, 16, 4};
   test_1x2v_gk(cells_do2, cells_tar2, 1, use_gpu);
@@ -2375,7 +2449,7 @@ test_1x2v_gk_hodev(bool use_gpu)
   int cells_tar3[] = {8, 6, 4};
   test_1x2v_gk(cells_do3, cells_tar3, 1, use_gpu);
 
-  // Refine along mu.
+  // Prolongate along mu.
   int cells_do4[] = {8, 6, 4};
   int cells_tar4[] = {8, 6, 8};
   test_1x2v_gk(cells_do4, cells_tar4, 1, use_gpu);
@@ -2385,7 +2459,7 @@ test_1x2v_gk_hodev(bool use_gpu)
   int cells_tar5[] = {8, 6, 4};
   test_1x2v_gk(cells_do5, cells_tar5, 1, use_gpu);
 
-  // Refine along x and vpar.
+  // Prolongate along x and vpar.
   int cells_do6[] = {6, 8, 4};
   int cells_tar6[] = {12, 16, 4};
   test_1x2v_gk(cells_do6, cells_tar6, 1, use_gpu);
@@ -2395,7 +2469,7 @@ test_1x2v_gk_hodev(bool use_gpu)
   int cells_tar7[] = {8, 4, 4};
   test_1x2v_gk(cells_do7, cells_tar7, 1, use_gpu);
 
-  // Refine along x and mu.
+  // Prolongate along x and mu.
   int cells_do8[] = {6, 8, 4};
   int cells_tar8[] = {12, 8, 8};
   test_1x2v_gk(cells_do8, cells_tar8, 1, use_gpu);
@@ -2405,7 +2479,7 @@ test_1x2v_gk_hodev(bool use_gpu)
   int cells_tar9[] = {8, 4, 4};
   test_1x2v_gk(cells_do9, cells_tar9, 1, use_gpu);
 
-  // Refine along vpar and mu.
+  // Prolongate along vpar and mu.
   int cells_do10[] = {8, 6, 4};
   int cells_tar10[] = {8, 12, 8};
   test_1x2v_gk(cells_do10, cells_tar10, 1, use_gpu);
@@ -2419,7 +2493,7 @@ test_1x2v_gk_hodev(bool use_gpu)
 void
 test_2x2v_gk_hodev(bool use_gpu)
 {
-  // Refine along x.
+  // Prolongate along x.
   int cells_do0[] = {6, 6, 8, 4};
   int cells_tar0[] = {12, 6, 8, 4};
   test_2x2v_gk(cells_do0, cells_tar0, 1, use_gpu);
@@ -2429,7 +2503,7 @@ test_2x2v_gk_hodev(bool use_gpu)
   int cells_tar1[] = {8, 6, 8, 4};
   test_2x2v_gk(cells_do1, cells_tar1, 1, use_gpu);
 
-  // Refine along y.
+  // Prolongate along y.
   int cells_do2[] = {6, 6, 8, 4};
   int cells_tar2[] = {6, 12, 8, 4};
   test_2x2v_gk(cells_do2, cells_tar2, 1, use_gpu);
@@ -2439,7 +2513,7 @@ test_2x2v_gk_hodev(bool use_gpu)
   int cells_tar3[] = {6, 8, 8, 4};
   test_2x2v_gk(cells_do3, cells_tar3, 1, use_gpu);
 
-  // Refine along x and y.
+  // Prolongate along x and y.
   int cells_do4[] = {96, 96, 8, 4};
   int cells_tar4[] = {128, 128, 8, 4};
   test_2x2v_gk(cells_do4, cells_tar4, 1, use_gpu);
@@ -2453,7 +2527,7 @@ test_2x2v_gk_hodev(bool use_gpu)
 void
 test_3x2v_gk_hodev(bool use_gpu)
 {
-  // Refine along x.
+  // Prolongate along x.
   int cells_do0[] = {6, 6, 8, 8, 4};
   int cells_tar0[] = {12, 6, 8, 8, 4};
   test_3x2v_gk(cells_do0, cells_tar0, 1, use_gpu);
@@ -2463,7 +2537,7 @@ test_3x2v_gk_hodev(bool use_gpu)
   int cells_tar1[] = {8, 6, 8, 8, 4};
   test_3x2v_gk(cells_do1, cells_tar1, 1, use_gpu);
 
-  // Refine along y.
+  // Prolongate along y.
   int cells_do2[] = {6, 6, 8, 8, 4};
   int cells_tar2[] = {6, 12, 8, 8, 4};
   test_3x2v_gk(cells_do2, cells_tar2, 1, use_gpu);
@@ -2473,7 +2547,7 @@ test_3x2v_gk_hodev(bool use_gpu)
   int cells_tar3[] = {6, 8, 8, 8, 4};
   test_3x2v_gk(cells_do3, cells_tar3, 1, use_gpu);
 
-  // Refine along x and y.
+  // Prolongate along x and y.
   int cells_do4[] = {96, 96, 8, 8, 4};
   int cells_tar4[] = {128, 128, 8, 8, 4};
   test_3x2v_gk(cells_do4, cells_tar4, 1, use_gpu);
@@ -2485,121 +2559,121 @@ test_3x2v_gk_hodev(bool use_gpu)
 }
 
 void
-test_1x_ho()
+test_dg_interpolate_1x_ho()
 {
   test_1x_hodev(false);
 }
 
 void
-test_2x_ho()
+test_dg_interpolate_2x_ho()
 {
   test_2x_hodev(false);
 }
 
 void
-test_1x1v_vlasov_ho()
+test_dg_interpolate_1x1v_vlasov_ho()
 {
   test_1x1v_vlasov_hodev(false);
 }
 
 void
-test_1x2v_vlasov_ho()
+test_dg_interpolate_1x2v_vlasov_ho()
 {
   test_1x2v_vlasov_hodev(false);
 }
 
 void
-test_1x1v_gk_ho()
+test_dg_interpolate_1x1v_gk_ho()
 {
   test_1x1v_gk_hodev(false);
 }
 
 void
-test_1x2v_gk_ho()
+test_dg_interpolate_1x2v_gk_ho()
 {
   test_1x2v_gk_hodev(false);
 }
 
 void
-test_2x2v_gk_ho()
+test_dg_interpolate_2x2v_gk_ho()
 {
   test_2x2v_gk_hodev(false);
 }
 
 void
-test_3x2v_gk_ho()
+test_dg_interpolate_3x2v_gk_ho()
 {
   test_3x2v_gk_hodev(false);
 }
 
 #ifdef GKYL_HAVE_CUDA
 void
-test_1x_dev()
+test_dg_interpolate_1x_dev()
 {
   test_1x_hodev(true);
 }
 
 void
-test_2x_dev()
+test_dg_interpolate_2x_dev()
 {
   test_2x_hodev(true);
 }
 
 void
-test_1x1v_vlasov_dev()
+test_dg_interpolate_1x1v_vlasov_dev()
 {
   test_1x1v_vlasov_hodev(true);
 }
 
 void
-test_1x2v_vlasov_dev()
+test_dg_interpolate_1x2v_vlasov_dev()
 {
   test_1x2v_vlasov_hodev(true);
 }
 
 void
-test_1x1v_gk_dev()
+test_dg_interpolate_1x1v_gk_dev()
 {
   test_1x1v_gk_hodev(true);
 }
 
 void
-test_1x2v_gk_dev()
+test_dg_interpolate_1x2v_gk_dev()
 {
   test_1x2v_gk_hodev(true);
 }
 
 void
-test_2x2v_gk_dev()
+test_dg_interpolate_2x2v_gk_dev()
 {
   test_2x2v_gk_hodev(true);
 }
 
 void
-test_3x2v_gk_dev()
+test_dg_interpolate_3x2v_gk_dev()
 {
   test_3x2v_gk_hodev(true);
 }
 #endif
 
 TEST_LIST = {
-  {"test_1x_ho", test_1x_ho},
-  {"test_2x_ho", test_2x_ho},
-  {"test_1x1v_vlasov_ho", test_1x1v_vlasov_ho},
-  {"test_1x2v_vlasov_ho", test_1x2v_vlasov_ho},
-  {"test_1x1v_gk_ho", test_1x1v_gk_ho},
-  {"test_1x2v_gk_ho", test_1x2v_gk_ho},
-  {"test_2x2v_gk_ho", test_2x2v_gk_ho},
-  {"test_3x2v_gk_ho", test_3x2v_gk_ho},
+  {"test_dg_interpolate_1x_ho", test_dg_interpolate_1x_ho},
+  {"test_dg_interpolate_2x_ho", test_dg_interpolate_2x_ho},
+  {"test_dg_interpolate_1x1v_vlasov_ho", test_dg_interpolate_1x1v_vlasov_ho},
+  {"test_dg_interpolate_1x2v_vlasov_ho", test_dg_interpolate_1x2v_vlasov_ho},
+  {"test_dg_interpolate_1x1v_gk_ho", test_dg_interpolate_1x1v_gk_ho},
+  {"test_dg_interpolate_1x2v_gk_ho", test_dg_interpolate_1x2v_gk_ho},
+  {"test_dg_interpolate_2x2v_gk_ho", test_dg_interpolate_2x2v_gk_ho},
+  {"test_dg_interpolate_3x2v_gk_ho", test_dg_interpolate_3x2v_gk_ho},
 #ifdef GKYL_HAVE_CUDA
-  {"test_1x_dev", test_1x_dev},
-  {"test_2x_dev", test_2x_dev},
-  {"test_1x1v_vlasov_dev", test_1x1v_vlasov_dev},
-  {"test_1x2v_vlasov_dev", test_1x2v_vlasov_dev},
-  {"test_1x1v_gk_dev", test_1x1v_gk_dev},
-  {"test_1x2v_gk_dev", test_1x2v_gk_dev},
-  {"test_2x2v_gk_dev", test_2x2v_gk_dev},
-  {"test_3x2v_gk_dev", test_3x2v_gk_dev},
+  {"test_dg_interpolate_1x_dev", test_dg_interpolate_1x_dev},
+  {"test_dg_interpolate_2x_dev", test_dg_interpolate_2x_dev},
+  {"test_dg_interpolate_1x1v_vlasov_dev", test_dg_interpolate_1x1v_vlasov_dev},
+  {"test_dg_interpolate_1x2v_vlasov_dev", test_dg_interpolate_1x2v_vlasov_dev},
+  {"test_dg_interpolate_1x1v_gk_dev", test_dg_interpolate_1x1v_gk_dev},
+  {"test_dg_interpolate_1x2v_gk_dev", test_dg_interpolate_1x2v_gk_dev},
+  {"test_dg_interpolate_2x2v_gk_dev", test_dg_interpolate_2x2v_gk_dev},
+  {"test_dg_interpolate_3x2v_gk_dev", test_dg_interpolate_3x2v_gk_dev},
 #endif
   {NULL, NULL}
 };

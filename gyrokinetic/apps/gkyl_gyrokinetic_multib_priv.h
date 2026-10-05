@@ -72,7 +72,7 @@ struct gk_multib_field {
   int num_local_blocks; // total number of blocks on current rank
   int cdim; // number of configuration space dimensions
   bool half_domain; // For use in double null
-    // Whether to set BCs for simulation of lower half (Z<0)
+  // Whether to set BCs for simulation of lower half (Z<0)
 
   int num_blocks_below[GKYL_MAX_BLOCKS];
   int num_blocks_above[GKYL_MAX_BLOCKS];
