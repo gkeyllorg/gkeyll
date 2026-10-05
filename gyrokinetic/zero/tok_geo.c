@@ -24,6 +24,15 @@ static _Thread_local bool wall_trial_fixed_violation;
 // boundary is the separatrix row the block shares with the core. Tracked
 // separately so callers can classify the case instead of reporting a defect.
 static _Thread_local bool wall_trial_fixed_node_outside;
+// Set when a violation lies anywhere but the movable side of the block -- the
+// half of its radial span nearer the edge the trial may move (2026-10-05). A
+// trial whose every violation is on that side failed because the wall cuts the
+// region being shrunk; anything else -- the fixed side, an interior fold, a
+// strike step -- is not something shrinking that edge was ever going to fix.
+// A half span, not a cell count: the wall cuts a fixed physical depth, so a
+// cell layer would decide differently at each resolution (measured, NSTX-U
+// 203532: one cell at coarse, two at phase1).
+static _Thread_local bool wall_trial_outside_movable_side;
 // A construction failure inside a trial (2026-09-30): the row rule refused a
 // block, or the signed-Jacobian guard found a reversal. Both used to end the
 // process from inside a trial that was going to be discarded anyway. Recorded
@@ -44,6 +53,7 @@ void tok_wall_trial_begin(int movable_radial_edge)
   wall_trial_movable_edge = movable_radial_edge;
   wall_trial_fixed_violation = false;
   wall_trial_fixed_node_outside = false;
+  wall_trial_outside_movable_side = false;
   wall_trial_row_rule_refused = false;
   wall_trial_jacobian_invalid = false;
   wall_trial_capture = false;
@@ -98,11 +108,23 @@ bool tok_wall_trial_record(bool fixed_radial_boundary)
 
 bool tok_wall_trial_record_scope(bool fixed_radial_boundary, bool node_outside)
 {
+  return tok_wall_trial_record_where(fixed_radial_boundary, node_outside, false);
+}
+
+bool tok_wall_trial_record_where(bool fixed_radial_boundary, bool node_outside,
+  bool on_movable_side)
+{
   if (!wall_trial_active) return false;
   ++wall_trial_failures;
   wall_trial_fixed_violation |= fixed_radial_boundary;
   wall_trial_fixed_node_outside |= fixed_radial_boundary && node_outside;
+  wall_trial_outside_movable_side |= !on_movable_side;
   return true;
+}
+
+bool tok_wall_trial_only_movable_side(void)
+{
+  return wall_trial_failures > 0 && !wall_trial_outside_movable_side;
 }
 
 bool tok_wall_trial_has_fixed_violation(void)
@@ -128,6 +150,18 @@ tok_geo_same_flux(double psi_a, double psi_b)
 {
   double scale = fmax(1.0, fmax(fabs(psi_a), fabs(psi_b)));
   return fabs(psi_a-psi_b) <= 64.0*DBL_EPSILON*scale;
+}
+
+// Is a point at computational radial coordinate x on the movable side of the
+// block -- no farther from the edge the current wall trial may move than from
+// the fixed edge? lo and hi are the block's global radial bounds.
+static bool
+tok_wall_trial_on_movable_side(double x, double lo, double hi)
+{
+  if (wall_trial_movable_edge < 0) return false;
+  const double mid = 0.5*(lo+hi);
+  return wall_trial_movable_edge ? x >= mid || tok_geo_same_flux(x, mid)
+                                 : x <= mid || tok_geo_same_flux(x, mid);
 }
 
 static bool
@@ -2480,9 +2514,9 @@ tok_divertor_material_cap(const struct gkyl_tok_geo_grid_inp *inp,
 // SEPARATELY from the vessel outline? Structural, from the topology table: the
 // end is a TOK_EXT_PLATE and its plate is not an explicit outline target. Nodes
 // on such a plate sit where the plate function puts them, a fraction of a
-// millimetre either side of the outline chord (ASDEX: 0.07-0.94 mm), so under
-// GKYL_TOK_WALL_STRICT the wall tests that touch them keep the per-edge slack
-// while every other test is judged to roundoff. A plate that IS an outline
+// millimetre either side of the outline chord (ASDEX: 0.07-0.94 mm), so the
+// wall tests that touch them keep the per-edge slack while every other test
+// is judged to roundoff. A plate that IS an outline
 // target (extend_to_limiter with divertor_wall segments, NSTX-U) puts its
 // nodes on the outline to roundoff and needs no slack.
 static bool
@@ -4606,200 +4640,6 @@ tok_rlin_ambiguous(double rlin, const double *roots, int nr)
 }
 
 
-// ---------------------------------------------------------------------------
-// X-POINT SADDLE PATCH (prototype, GKYL_TOK_XPT_PATCH=1, default off; 2026-10-01).
-//
-// Measured on NSTX-U 203995 at phase2x (fable-handoff/fig19): within ~5-10 mm
-// of the lower X point psi is flat, so the equilibrium data fix the
-// separatrix's position there only to a few millimetres. The cubic's own
-// contour makes a 3 mm S-bend inside the first theta cell (31 degrees of turn
-// in 25 mm) while the EFIT bicubic's contour runs 5 mm away; both are "on
-// psi_sep". The cell between that bend and the first SOL row, which starts
-// 29 mm down the ray, has a reversed map in the corner next to the X point,
-// and the signed-Jacobian guard's first interior node sits inside it at
-// phase2x (5 mm from the corner) and outside it at phase1 (11 mm): finer
-// theta cells put a quadrature node into a patch of fixed size.
-//
-// Near a saddle psi is its quadratic expansion, psi_x + x^T H x / 2, and the
-// separatrix branches leave the X point as STRAIGHT lines (the asymptotes),
-// the other surfaces as hyperbolae of the same form. Where the quadratic
-// model is indistinguishable from the contour at the grid's own radial
-// resolution -- the model point's psi is within one row step of the
-// requested level -- the model is the better description, because it is
-// smooth by construction. r* is found by marching from the saddle along its
-// four asymptotes until the cubic's psi first leaves the saddle value by more
-// than one row step (tok_xpt_patch_rstar). Inside r*, every sampled node is
-// moved from the contour point toward its projection onto the model level set
-// with weight 1 - d/r*, d its distance to the saddle, and never by more than
-// d (a first version blended by the model point's own psi error and moved
-// nodes 1.3 m away in CORE_R: a far point projected onto the model's far
-// branch can land where the cubic's psi is accidentally close). No constant:
-// H is measured at the saddle with the same step
-// tok_ext_xpoint_well_conditioned uses, the march step is the psi
-// representation's cell size, dpsi_row is the block's radial cell width in
-// psi, and the projection is four Newton steps on the quadratic form (a policy
-// of order one). The row's two endpoints (the X point itself and the ray
-// endpoint, which is a shared boundary) are never moved.
-//
-// Summary line per block and pass: TOK_XPT_PATCH ftype=.. samples_moved=..
-// r_eff_m=.. (largest distance from the saddle at which a node moved) w_max=..
-static _Thread_local double xpt_patch_dpsi = 0.0;
-static _Thread_local long xpt_patch_count = 0;
-static _Thread_local double xpt_patch_rmax = 0.0, xpt_patch_wmax = 0.0, xpt_patch_dmax = 0.0;
-struct tok_xpt_model { bool valid; double R, Z, psi, hrr, hrz, hzz; double rstar, rstar_dpsi; };
-static _Thread_local struct tok_xpt_model xpt_models[2];
-static _Thread_local const struct gkyl_tok_geo *xpt_models_geo = NULL;
-
-static bool
-tok_xpt_patch_enabled(void)
-{
-  static int on = -1;
-  if (on < 0) {
-    const char *e = getenv("GKYL_TOK_XPT_PATCH");
-    on = (e && e[0] != '\0' && e[0] != '0') ? 1 : 0;
-  }
-  return on == 1;
-}
-
-static void
-tok_xpt_models_init(const struct gkyl_tok_geo *geo)
-{
-  if (xpt_models_geo == geo) return;
-  xpt_models_geo = geo;
-  const int nx = geo->use_cubics ? geo->efit->num_xpts_cubic : geo->efit->num_xpts;
-  const double *Rx = geo->use_cubics ? geo->efit->Rxpt_cubic : geo->efit->Rxpt;
-  const double *Zx = geo->use_cubics ? geo->efit->Zxpt_cubic : geo->efit->Zxpt;
-  for (int k=0; k<2; ++k) {
-    xpt_models[k].valid = false; xpt_models[k].rstar = 0.0; xpt_models[k].rstar_dpsi = -1.0;
-    if (k >= nx || !Rx || !Zx) continue;
-    const double rx = Rx[k], zx = Zx[k];
-    const double h = 1.0e-4;   // the step tok_ext_xpoint_well_conditioned uses
-    const double p0 = tok_eval_psi_rz_local(geo, rx, zx);
-    const double prr = (tok_eval_psi_rz_local(geo, rx+h, zx)-2.0*p0+tok_eval_psi_rz_local(geo, rx-h, zx))/(h*h);
-    const double pzz = (tok_eval_psi_rz_local(geo, rx, zx+h)-2.0*p0+tok_eval_psi_rz_local(geo, rx, zx-h))/(h*h);
-    const double prz = (tok_eval_psi_rz_local(geo, rx+h, zx+h)-tok_eval_psi_rz_local(geo, rx+h, zx-h)
-      -tok_eval_psi_rz_local(geo, rx-h, zx+h)+tok_eval_psi_rz_local(geo, rx-h, zx-h))/(4.0*h*h);
-    if (!isfinite(p0) || !isfinite(prr) || !isfinite(pzz) || !isfinite(prz)) continue;
-    if (!(prr*pzz-prz*prz < 0.0)) continue;   // not a saddle
-    xpt_models[k].valid = true; xpt_models[k].R = rx; xpt_models[k].Z = zx; xpt_models[k].psi = p0;
-    xpt_models[k].hrr = prr; xpt_models[k].hrz = prz; xpt_models[k].hzz = pzz;
-    fprintf(stderr, "TOK_XPT_PATCH model xpt=%d R=%.17g Z=%.17g psi=%.17g Hrr=%.6g Hrz=%.6g Hzz=%.6g\n",
-      k, rx, zx, p0, prr, prz, pzz);
-  }
-}
-
-// The patch radius for a saddle at this radial resolution: march outward from
-// the X point along each of its four separatrix asymptotes, in steps of the
-// psi representation's own cell size, until the cubic's psi first leaves the
-// saddle value by more than one row step. The smallest of the four is r*:
-// inside it the straight branch is indistinguishable from the contour at this
-// resolution. Nothing chosen: the asymptotes come from H, the step from the
-// data grid, the tolerance from the grid being built.
-static double
-tok_xpt_patch_rstar(const struct gkyl_tok_geo *geo, struct tok_xpt_model *m, double dpsi)
-{
-  if (m->rstar_dpsi == dpsi) return m->rstar;
-  m->rstar_dpsi = dpsi; m->rstar = 0.0;
-  // directions d = (cos t, sin t) with d^T H d = 0
-  double dirs[4][2]; int nd = 0;
-  const double disc = m->hrz*m->hrz-m->hrr*m->hzz;
-  if (!(disc > 0.0)) return 0.0;
-  for (int sgn=-1; sgn<=1; sgn+=2) {
-    double dr, dz;
-    if (fabs(m->hzz) >= fabs(m->hrr)) { dz = (-m->hrz+sgn*sqrt(disc))/m->hzz; dr = 1.0; }
-    else { dr = (-m->hrz+sgn*sqrt(disc))/m->hrr; dz = 1.0; }
-    const double L = hypot(dr, dz);
-    dirs[nd][0] = dr/L; dirs[nd][1] = dz/L; ++nd;
-    dirs[nd][0] = -dr/L; dirs[nd][1] = -dz/L; ++nd;
-  }
-  // March in steps of the psi representation's cell until the deviation
-  // first exceeds one row step, then bisect that bracket: the deviation grows
-  // like r^3 along an asymptote, so interpolating linearly across a 67 mm
-  // cell overestimates r* when the exit is beyond the first step and
-  // underestimates it by an order of magnitude when the first step already
-  // exceeds dpsi (phase2x). Bisection to machine precision needs no model.
-  const double h = fmin(geo->rzgrid.dx[0], geo->rzgrid.dx[1]);
-  double rmin = DBL_MAX;
-  for (int q=0; q<nd; ++q) {
-    double lo = 0.0, hi = -1.0;
-    for (int k=1; k<4096; ++k) {
-      const double rr = m->R+k*h*dirs[q][0], zz = m->Z+k*h*dirs[q][1];
-      const double pv = tok_eval_psi_rz_local(geo, rr, zz);
-      if (!isfinite(pv)) break;              // left the data: r* is the last inside point
-      if (fabs(pv-m->psi) > dpsi) { hi = k*h; break; }
-      lo = k*h;
-    }
-    double rq = lo;
-    if (hi > lo) {
-      for (int it=0; it<60 && hi-lo > 1e-12*hi; ++it) {
-        const double mid = 0.5*(lo+hi);
-        const double pv = tok_eval_psi_rz_local(geo, m->R+mid*dirs[q][0], m->Z+mid*dirs[q][1]);
-        if (!isfinite(pv) || fabs(pv-m->psi) > dpsi) hi = mid; else lo = mid;
-      }
-      rq = lo;
-    }
-    if (rq < rmin) rmin = rq;
-  }
-  m->rstar = rmin < DBL_MAX ? rmin : 0.0;
-  fprintf(stderr, "TOK_XPT_PATCH rstar xpt=(%.6g,%.6g) dpsi_row=%.6g r_star_m=%.6g step_m=%.6g\n",
-    m->R, m->Z, dpsi, m->rstar, h);
-  return m->rstar;
-}
-
-// Called with the block's radial cell width in psi before a row is sampled;
-// prints the summary of the samples moved since the last separatrix row.
-static void
-tok_xpt_patch_begin(const struct gkyl_tok_geo *geo, int ftype, double psi, double dpsi)
-{
-  if (!tok_xpt_patch_enabled()) return;
-  if (xpt_patch_count > 0 && tok_geo_same_flux(psi, geo->psisep)) {
-    fprintf(stderr, "TOK_XPT_PATCH ftype=%d samples_moved=%ld r_eff_m=%.5g w_max=%.4g move_max_m=%.4g\n",
-      ftype, xpt_patch_count, xpt_patch_rmax, xpt_patch_wmax, xpt_patch_dmax);
-    xpt_patch_count = 0; xpt_patch_rmax = 0.0; xpt_patch_wmax = 0.0; xpt_patch_dmax = 0.0;
-  }
-  xpt_patch_dpsi = fabs(dpsi);
-}
-
-// Inside r* of the nearest saddle, move the sampled node toward its projection
-// onto the saddle model's level set for this psi, with weight 1 - d/r* (1 at
-// the X point, 0 at r*), and never by more than its own distance to the saddle.
-static void
-tok_xpt_patch_apply(const struct gkyl_tok_geo *geo, double psi, double *r, double *z)
-{
-  if (!tok_xpt_patch_enabled() || !(xpt_patch_dpsi > 0.0)) return;
-  tok_xpt_models_init(geo);
-  int best = -1; double dbest = DBL_MAX;
-  for (int k=0; k<2; ++k) {
-    if (!xpt_models[k].valid) continue;
-    const double d = hypot(*r-xpt_models[k].R, *z-xpt_models[k].Z);
-    if (d < dbest) { dbest = d; best = k; }
-  }
-  if (best < 0) return;
-  struct tok_xpt_model *m = &xpt_models[best];
-  const double rstar = tok_xpt_patch_rstar(geo, m, xpt_patch_dpsi);
-  if (!(rstar > 0.0) || !(dbest < rstar) || !(dbest > 0.0)) return;
-  double x = *r-m->R, y = *z-m->Z;
-  const double D = psi-m->psi;
-  for (int it=0; it<4; ++it) {
-    const double q = 0.5*(m->hrr*x*x+2.0*m->hrz*x*y+m->hzz*y*y);
-    const double gx = m->hrr*x+m->hrz*y, gy = m->hrz*x+m->hzz*y;
-    const double g2 = gx*gx+gy*gy;
-    if (!(g2 > 0.0)) return;
-    const double step = (q-D)/g2;
-    x -= step*gx; y -= step*gy;
-  }
-  const double rm = m->R+x, zm = m->Z+y;
-  if (!isfinite(rm) || !isfinite(zm)) return;
-  if (hypot(rm-*r, zm-*z) > dbest) return;   // the model point is not this node's neighbourhood
-  const double w = 1.0-dbest/rstar;
-  const double mr = w*(rm-*r), mz = w*(zm-*z);
-  *r += mr; *z += mz;
-  ++xpt_patch_count;
-  const double mv = hypot(mr, mz);
-  if (dbest > xpt_patch_rmax) xpt_patch_rmax = dbest;
-  if (w > xpt_patch_wmax) xpt_patch_wmax = w;
-  if (mv > xpt_patch_dmax) xpt_patch_dmax = mv;
-}
 
 // A3 (2026-10-02): put a trace sample on the surface at the chord's own arc
 // parameter -- solve along the chord's NORMAL, not along a coordinate axis.
@@ -5080,7 +4920,6 @@ tok_trace_sample(const struct gkyl_tok_geo *geo, double psi,
       "param_is_r=%d local_prefer_r_fixed=%d\n",
       u, psi, residual, *r, *z, rlin, zlin, lo, hi,
       (int) param_is_r, (int) local_prefer_r_fixed);
-  if (sample_ok) tok_xpt_patch_apply(geo, psi, r, z);
   return sample_ok;
 }
 
@@ -8211,9 +8050,6 @@ static bool
 tok_build_current_ordered_trace(const struct gkyl_tok_geo_grid_inp *inp,
   struct arc_length_ctx *arc_ctx)
 {
-  if (inp->cgrid.cells[0] > 0)
-    tok_xpt_patch_begin(arc_ctx->geo, inp->ftype, arc_ctx->psi,
-      (inp->cgrid.upper[0]-inp->cgrid.lower[0])/inp->cgrid.cells[0]);
   double psi = arc_ctx->psi;
   if (arc_ctx->map_trace_initialized && tok_geo_same_flux(
       psi, arc_ctx->map_trace_psi))
@@ -8753,10 +8589,6 @@ tok_ordered_map_lookup(const struct gkyl_tok_geo_grid_inp *inp,
         inp->ftype, arc_ctx->psi, u, arc_ctx->map_trace_n);
       return false;
     }
-    if (inp->cgrid.cells[0] > 0)
-      tok_xpt_patch_begin(arc_ctx->geo, inp->ftype, arc_ctx->psi,
-        (inp->cgrid.upper[0]-inp->cgrid.lower[0])/inp->cgrid.cells[0]);
-    tok_xpt_patch_apply(arc_ctx->geo, arc_ctx->psi, &out->r, &out->z);
   }
   else if (!tok_parameterized_xpt_seam_point(effective_inp, arc_ctx,
       arc_ctx->psi, u,
@@ -9910,13 +9742,12 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
         wall_trial_block,it-nrange->lower[TH_IDX],wall_trial_rho,p[0],p[1]);
     }
   }
-  // Under GKYL_TOK_WALL_STRICT, which node rows sit on a separately declared
-  // plate: the block's first or last theta row, when that end is the block's
-  // physical boundary and the topology says it is such a plate.
-  const bool strict_wall = enforce_wall && tok_wall_strict_enabled();
-  const bool plate_row_lo = strict_wall && up->local.lower[TH_IDX]==up->global.lower[TH_IDX] &&
+  // Which node rows sit on a separately declared plate: the block's first or
+  // last theta row, when that end is the block's physical boundary and the
+  // topology says it is such a plate.
+  const bool plate_row_lo = enforce_wall && up->local.lower[TH_IDX]==up->global.lower[TH_IDX] &&
     tok_wall_theta_end_on_declared_plate(inp,geo,0);
-  const bool plate_row_up = strict_wall && up->local.upper[TH_IDX]==up->global.upper[TH_IDX] &&
+  const bool plate_row_up = enforce_wall && up->local.upper[TH_IDX]==up->global.upper[TH_IDX] &&
     tok_wall_theta_end_on_declared_plate(inp,geo,1);
   if (enforce_wall)
   for (int ip=nrange->lower[PSI_IDX]; ip<=nrange->upper[PSI_IDX]; ++ip) {
@@ -9972,8 +9803,19 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
         // strcmp, not the boolean above: `fail_scope` is "corner_node" only
         // when the node itself failed tok_wall_point_inside, as opposed to an
         // edge between two inside nodes bulging out.
-        if (!tok_wall_trial_record_scope(fixed_failure,
-              strcmp(fail_scope,"corner_node")==0)) abort();
+        // On the movable side when every node row the failed test involved is
+        // no farther from the movable edge's row than from the fixed one: the
+        // node itself, both ends of a psi segment, or the row of a theta one.
+        bool on_side = false;
+        if (wall_trial_movable_edge >= 0) {
+          const int lo = nrange->lower[PSI_IDX], span = nrange->upper[PSI_IDX]-lo;
+          #define TOK_ROW_ON_MOVABLE_SIDE(r) (wall_trial_movable_edge ? 2*((r)-lo) >= span : 2*((r)-lo) <= span)
+          on_side = TOK_ROW_ON_MOVABLE_SIDE(ip) &&
+            (strcmp(fail_scope,"segment_psi")!=0 || TOK_ROW_ON_MOVABLE_SIDE(ip+1));
+          #undef TOK_ROW_ON_MOVABLE_SIDE
+        }
+        if (!tok_wall_trial_record_where(fixed_failure,
+              strcmp(fail_scope,"corner_node")==0, on_side)) abort();
       }
     }
   }
@@ -10202,7 +10044,8 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
         (plate_row_up && idx[TH_IDX]==up->local.upper[TH_IDX]));
       if (!tok_wall_curve_inside(geo->efit,points[0],points[1],points[2])) {
         fprintf(stderr,"TOK_GEO_WALL_DOMAIN_FAILED ftype=%d scope=radial_boundary_curve side=%d theta_cell=%d\n",inp->ftype,side,idx[TH_IDX]);
-        if (!tok_wall_trial_record(side!=wall_trial_movable_edge)) abort();
+        if (!tok_wall_trial_record_where(side!=wall_trial_movable_edge, false,
+              side==wall_trial_movable_edge)) abort();
       }
     }
   }
@@ -10620,7 +10463,10 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
     const double *p=gkyl_array_cfetch(up->geo_int.mc2p_nodal,gkyl_range_idx(nrange,wall_iter.idx));
     if (!tok_wall_point_inside(geo->efit,p)) {
       fprintf(stderr,"TOK_GEO_WALL_DOMAIN_FAILED ftype=%d scope=interior rz=(%.17g,%.17g)\n",inp->ftype,p[0],p[1]);
-      if (!tok_wall_trial_record(false)) abort();
+      // the node's radial coordinate, as the construction loop placed it
+      double x = calc_running_coord(psi_lo, wall_iter.idx[PSI_IDX]-nrange->lower[PSI_IDX], dpsi);
+      if (!tok_wall_trial_record_where(false, false, tok_wall_trial_on_movable_side(x,
+            up->grid.lower[PSI_IDX], up->grid.upper[PSI_IDX]))) abort();
     }
   }
   gkyl_nodal_ops_n2m(n2m, &inp->cbasis, &inp->cgrid, nrange, &up->local, 3, up->geo_int.mc2p_nodal, up->geo_int.mc2p, true);
@@ -10940,9 +10786,9 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
             if (enforce_wall) {
               double wall_point[2]={r_curr,z_curr};
               // Theta-face nodes at the block's ends sit on the plate rows;
-              // under GKYL_TOK_WALL_STRICT those on a separately declared
-              // plate keep the per-edge slack (see the corner-node pass).
-              const bool on_plate = dir==2 && tok_wall_strict_enabled() &&
+              // those on a separately declared plate keep the per-edge slack
+              // (see the corner-node pass).
+              const bool on_plate = dir==2 &&
                 ((it==nrange->lower[TH_IDX] && up->local.lower[TH_IDX]==up->global.lower[TH_IDX] && tok_wall_theta_end_on_declared_plate(inp,geo,0)) ||
                  (it==nrange->upper[TH_IDX] && up->local.upper[TH_IDX]==up->global.upper[TH_IDX] && tok_wall_theta_end_on_declared_plate(inp,geo,1)));
               tok_wall_declared_plate_scope_set(on_plate);
@@ -10950,7 +10796,10 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
               tok_wall_declared_plate_scope_set(false);
               if (!inside) {
                 fprintf(stderr,"TOK_GEO_WALL_DOMAIN_FAILED ftype=%d scope=face dir=%d rz=(%.17g,%.17g)\n",inp->ftype,dir,r_curr,z_curr);
-                if (!tok_wall_trial_record(false)) abort();
+                // the point's radial coordinate, as this loop placed it
+                double x = dir == 0 ? psi_lo + ip*dpsi : calc_running_coord(psi_lo, ip-nrange->lower[PSI_IDX], dpsi);
+                if (!tok_wall_trial_record_where(false, false, tok_wall_trial_on_movable_side(x,
+                      up->grid.lower[PSI_IDX], up->grid.upper[PSI_IDX]))) abort();
               }
             }
             if (ordered_mapping) {

@@ -16,6 +16,15 @@ bool tok_wall_trial_has_fixed_violation(void);
  * out). Only the first kind, on a non-movable radial boundary, means the
  * plasma boundary leaves the machine. */
 bool tok_wall_trial_record_scope(bool fixed_radial_boundary, bool node_outside);
+/** As tok_wall_trial_record_scope, also saying whether the violation lies on
+ * the movable side of the block: the half of its radial span nearer the edge
+ * the trial may move (2026-10-05). A violation whose location is not known
+ * counts as off that side. */
+bool tok_wall_trial_record_where(bool fixed_radial_boundary, bool node_outside,
+  bool on_movable_side);
+/** True when the trial failed and every violation lay on the movable side:
+ * the wall cuts the region being shrunk, and nothing else is wrong. */
+bool tok_wall_trial_only_movable_side(void);
 
 /** True when a node of the NON-movable radial boundary was itself outside the
  * vessel: the separatrix row leaves the machine, so the configuration is

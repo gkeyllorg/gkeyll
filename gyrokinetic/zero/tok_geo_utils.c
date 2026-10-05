@@ -80,7 +80,8 @@ tok_wall_arc_sagitta(double ax, double ay, double bx, double by,
 // is exactly where we do not know where the wall is. Supplying a better outline
 // tightens the guard; no code change can.
 //
-// GKYL_TOK_WALL_STRICT=1 (prototype, 2026-09-29, default off).
+// Strict containment: the rule since 2026-10-05 (user decision; the
+// GKYL_TOK_WALL_STRICT=1 prototype of 2026-09-29, now unconditional).
 //
 // The sagitta reads a CORNER of the outline as curvature of the edges next to
 // it. A long straight wall that ends at a corner therefore gets a large slack:
@@ -92,21 +93,12 @@ tok_wall_arc_sagitta(double ax, double ay, double bx, double by,
 //
 // The slack was introduced for ONE case: a node on a plate the driver declared
 // separately from the outline lands a fraction of a millimetre either side of
-// the chord. With the switch on it is granted there and nowhere else; every
-// other point is judged against the outline to roundoff. The caller says when
+// the chord. It is granted there and nowhere else; every other point is
+// judged against the outline to roundoff. Measured before making it the rule
+// (2026-10-03): the STEP/ASDEX/TCV x1 cells, C1 on and off, are bit-identical
+// strict and lenient, and the NSTX-U 450 already ran strict. The caller says when
 // it is testing a point on such a plate (tok_wall_declared_plate_scope_set).
 static _Thread_local bool tok_wall_declared_plate_scope;
-
-bool
-tok_wall_strict_enabled(void)
-{
-  static int cached = -1;
-  if (cached < 0) {
-    const char *s = getenv("GKYL_TOK_WALL_STRICT");
-    cached = s && s[0] != '\0' && s[0] != '0';
-  }
-  return cached != 0;
-}
 
 void
 tok_wall_declared_plate_scope_set(bool on)
@@ -119,7 +111,7 @@ tok_wall_edge_tolerance(const struct gkyl_efit *e, int j, int i)
 {
   const int n=e->limiter_n;
   const double tol=tok_wall_tolerance(e);
-  if (tok_wall_strict_enabled() && !tok_wall_declared_plate_scope) return tol;
+  if (!tok_wall_declared_plate_scope) return tol;
   if (n<3) return tol;
   const double *R=e->limiter_R, *Z=e->limiter_Z;
   const int jm=(j-1+n)%n, ip=(i+1)%n;

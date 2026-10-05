@@ -35,8 +35,10 @@ static bool efit_finite(double value)
 // shots, by more than 0.2% of the core flux, and every curled-divertor-leg
 // fold or abort is one of them (fable-handoff/11).  With the hook the reader
 // builds both halves and keeps the one whose X-point flux is nearer the flux
-// on the magnetic axis -- the first separatrix met going outward.  There is
-// no threshold: a tie keeps the lower half.  The kept equilibrium is presented
+// on the magnetic axis -- the first separatrix met going outward.  A tie --
+// a difference within the two representations' own disagreement on the
+// X-point flux (2026-10-05, see gkyl_efit_new) -- keeps the lower half; no
+// threshold is set by hand.  The kept equilibrium is presented
 // mirrored in Z, so everything downstream still finds its X point below.
 // DEFAULT ON since 2026-10-02 (user decision: grid around the active X
 // point).  GKYL_EFIT_ACTIVE_HALF=0 restores the lower-half-always reader for A/B.
@@ -686,9 +688,24 @@ gkyl_efit_new(const struct gkyl_efit_inp *inp)
   bool hi_ok = hi->num_xpts_cubic > 0 || hi->num_xpts > 0;
   double psi_lo = lo->num_xpts_cubic > 0 ? lo->psisep_cubic : lo->psisep;
   double psi_hi = hi->num_xpts_cubic > 0 ? hi->psisep_cubic : hi->psisep;
-  // Nearer the axis flux = the first separatrix met going outward.  Strictly
-  // nearer: a tie keeps the lower half, which is what the reader always did.
-  bool use_hi = hi_ok && (!lo_ok || fabs(psi_hi-hi->simag) < fabs(psi_lo-lo->simag));
+  // Nearer the axis flux = the first separatrix met going outward.  A tie
+  // keeps the lower half, which is what the reader always did.
+  //
+  // What counts as a tie (2026-10-05, user decision): a difference the data do
+  // not resolve.  Each half's X-point flux is known only as well as the two
+  // representations of the same flux agree on it -- |psisep_cubic - psisep|,
+  // quadratic against cubic -- so halves whose fluxes differ by no more than
+  // the larger of those disagreements are a tie.  Before this, "strictly
+  // nearer" let roundoff choose: STEP's reflected double null differs by
+  // 4.9e-6 against a representation disagreement of 1.1e-5, and kept the
+  // upper half; 9 NSTX-U shots are near-balanced double nulls the same way.
+  // No threshold is set by hand; a half missing either X point has no
+  // measured uncertainty and contributes none.
+  double unc_lo = lo->num_xpts_cubic > 0 && lo->num_xpts > 0 ? fabs(lo->psisep_cubic-lo->psisep) : 0.0;
+  double unc_hi = hi->num_xpts_cubic > 0 && hi->num_xpts > 0 ? fabs(hi->psisep_cubic-hi->psisep) : 0.0;
+  bool tie = lo_ok && hi_ok &&
+    fabs(fabs(psi_hi-hi->simag) - fabs(psi_lo-lo->simag)) <= fmax(unc_lo, unc_hi);
+  bool use_hi = hi_ok && !tie && (!lo_ok || fabs(psi_hi-hi->simag) < fabs(psi_lo-lo->simag));
 
   static char last_filepath[1024] = { 0 };
   if (strncmp(last_filepath, inp->filepath, sizeof(last_filepath)) != 0) {
@@ -697,9 +714,9 @@ gkyl_efit_new(const struct gkyl_efit_inp *inp)
     fprintf(stderr,
       "EFIT_ACTIVE_HALF name=%s kept=%s mirrored_in_z=%d psi_axis=%.16e "
       "psi_xpt_lower=%.16e psi_xpt_upper=%.16e psi_boundary_file=%.16e "
-      "xpt_found_lower=%d xpt_found_upper=%d\n",
+      "xpt_found_lower=%d xpt_found_upper=%d unc_lower=%.3e unc_upper=%.3e tie=%d\n",
       lo->name, use_hi ? "upper" : "lower", use_hi ? 1 : 0, lo->simag,
-      psi_lo, psi_hi, lo->sibry, lo_ok ? 1 : 0, hi_ok ? 1 : 0);
+      psi_lo, psi_hi, lo->sibry, lo_ok ? 1 : 0, hi_ok ? 1 : 0, unc_lo, unc_hi, tie ? 1 : 0);
     fflush(stderr);
   }
 

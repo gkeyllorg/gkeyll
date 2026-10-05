@@ -1324,10 +1324,9 @@ int tok_plate_coverage_status(const struct gkyl_tok_geo *geo,
 
 // Hard material-domain guard. On-wall points are accepted to roundoff tolerance.
 bool tok_wall_point_inside(const struct gkyl_efit *efit, const double p[2]);
-// GKYL_TOK_WALL_STRICT=1: every outline edge is judged to roundoff, except in
-// tests the caller marks as touching a plate the driver declared separately
-// from the outline (tok_wall_declared_plate_scope_set(true) around them).
-bool tok_wall_strict_enabled(void);
+// Every outline edge is judged to roundoff, except in tests the caller marks
+// as touching a plate the driver declared separately from the outline
+// (tok_wall_declared_plate_scope_set(true) around them).
 void tok_wall_declared_plate_scope_set(bool on);
 // Reporting only; see the definition. Returns metres outside the outline, 0.0
 // if the segment never leaves it. Never used to decide containment.

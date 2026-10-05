@@ -665,8 +665,21 @@ struct rho_wall_bound {
   // most once per group, so a group cannot oscillate between phases.
   int coarse, fine;
   bool polishing, polished;
+  // Per group, this iteration: every rejected trial failed only on the
+  // movable side of its block (tok_wall_trial_only_movable_side).
+  bool reject_on_movable_side;
   double requested, requested_psi, other, axis, sep;
 };
+
+// Within one fine step of the boundary the region may not cross -- the
+// adjuster's own resolution. The floor of the 2026-09-30 rule; shared by
+// both places that refuse a region for reaching it.
+static bool
+rho_wall_at_floor(const struct rho_wall_bound *bd, double rho)
+{
+  const double stop=bd->family==1 ? fmax(1.0,bd->other) : fmin(1.0,bd->other);
+  return fabs(rho-stop) <= GKYL_RHO_WALL_STEP*(1.0+1e-9);
+}
 
 static bool
 rho_wall_isfinite(double x)
@@ -1377,6 +1390,7 @@ gyrokinetic_multib_adjust_wall(const struct gkyl_gyrokinetic_multib *inp)
         int status=tok_plate_coverage_status(geo,ti,psi);
         if (!status) continue;
         if (status!=1 || !bounds[b].family) { fatal=true;break; }
+        bounds[bounds[b].group].reject_on_movable_side=false;
         failed[bounds[b].group]=true;bad_block[b]=true;any=true;
         fprintf(stderr,"TOK_RHO_WALL_TARGET_RETRY block=%d family=%s psi=%.17g reason=explicit_target_root_unavailable\n",
           b,bounds[b].family==1 ? "SOL" : "PF",psi);
@@ -1463,7 +1477,10 @@ gyrokinetic_multib_adjust_wall(const struct gkyl_gyrokinetic_multib *inp)
           fprintf(stderr,"TOK_RHO_WALL_ADJUST_FAILED reason=unadjustable_wall_violation block=%d\n",b);
           goto cleanup;
         }
-        failed[bounds[b].group]=true;
+        int g=bounds[b].group;
+        bool on_side=tok_wall_trial_only_movable_side();
+        bounds[g].reject_on_movable_side=failed[g] ? bounds[g].reject_on_movable_side && on_side : on_side;
+        failed[g]=true;
         bad_block[b]=true;
         any=true;
       }
@@ -1523,7 +1540,7 @@ gyrokinetic_multib_adjust_wall(const struct gkyl_gyrokinetic_multib *inp)
         // The floor is the step the search itself takes; no new number.
         if (bounds[bounds[b].group].steps > 0) {
           const double stop=bounds[b].family==1 ? fmax(1.0,bounds[b].other) : fmin(1.0,bounds[b].other);
-          if (fabs(rho-stop) <= GKYL_RHO_WALL_STEP*(1.0+1e-9)) {
+          if (rho_wall_at_floor(&bounds[b],rho)) {
             fprintf(stderr,"TOK_RHO_WALL_ADJUST_FAILED reason=region_shrunk_to_adjuster_floor block=%d family=%s effective_rho=%.17g stop_rho=%.17g step_rho=%g\n",
               b,bounds[b].family==1 ? "SOL" : "PF",rho,stop,GKYL_RHO_WALL_STEP);
             goto cleanup;
@@ -1571,6 +1588,22 @@ advance_wall_bounds:
             bounds[g].coarse,bounds[g].fine,&rho,&psi);
         }
         if (!fell_back) {
+          // The lattice ran out after a rejected trial. If that trial sat at the
+          // floor and failed only on the side of the edge being shrunk, the
+          // wall cuts within one adjuster step of the separatrix: the same
+          // out-of-scope case the floor rule refuses, one step worse -- the
+          // floor bound itself does not fit (NSTX-U 203532 under the C1 psi:
+          // 0.89 of a step between separatrix and wall). User decision
+          // 2026-10-03. Any other exhaustion is still a hard failure.
+          const struct gkyl_gk_block_geom_info *cur=gkyl_gk_block_geom_get_block(bg,b);
+          const double tried=bounds[b].edge ? cur->upper[0] : cur->lower[0];
+          const double rho_tried=sqrt((tried-bounds[b].axis)/(bounds[b].sep-bounds[b].axis));
+          if (bounds[g].reject_on_movable_side && rho_wall_at_floor(&bounds[b],rho_tried)) {
+            const double stop=bounds[b].family==1 ? fmax(1.0,bounds[b].other) : fmin(1.0,bounds[b].other);
+            fprintf(stderr,"TOK_RHO_WALL_ADJUST_FAILED reason=region_shrunk_to_adjuster_floor block=%d family=%s effective_rho=%.17g stop_rho=%.17g step_rho=%g floor_trial=rejected_on_movable_side\n",
+              b,bounds[b].family==1 ? "SOL" : "PF",rho_tried,stop,GKYL_RHO_WALL_STEP);
+            goto cleanup;
+          }
           fprintf(stderr,"TOK_RHO_WALL_ADJUST_FAILED reason=no_admissible_increment group=%d requested_rho=%.17g coarse=%d fine=%d\n",
             g,bounds[g].requested,bounds[g].coarse,bounds[g].fine);
           goto cleanup;

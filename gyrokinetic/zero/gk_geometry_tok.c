@@ -747,7 +747,11 @@ gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geometry_inp)
 
     double w = geometry_inp->geo_grid.upper[0] - geometry_inp->geo_grid.lower[0];
     struct gkyl_efit *efit = gkyl_efit_new(&geometry_inp->efit_info);
-    double psisep = efit->psisep;
+    // The map is the identity only at its anchor, so the anchor must be the
+    // separatrix flux of the representation the block is traced on; the
+    // quadratic one moved a cubic block's separatrix row ~8e-6 off the
+    // separatrix and its ordered map failed (STEP nonuniform, 2026-10-05).
+    double psisep = geometry_inp->tok_grid_info.use_cubics ? efit->psisep_cubic : efit->psisep;
     gkyl_efit_release(efit);
     gkyl_position_map_set_compression(geometry_inp->position_map, zcut, zcenter, w, psisep);
   }
