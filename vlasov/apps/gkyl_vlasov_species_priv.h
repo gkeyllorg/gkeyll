@@ -1312,6 +1312,22 @@ void vm_species_moment_release(
 /** vm_species_projection API */
 
 /**
+ * Project a configuration-space function (e.g. a collision frequency) onto the
+ * configuration-space basis, sampling it at physical coordinates so that it is
+ * consistent with initial conditions and sources when a position map is used.
+ *
+ * @param app vlasov app object
+ * @param vms Species object (provides the position map)
+ * @param func Function to project
+ * @param ctx Context for func
+ * @param fout_ho Output (host) array
+ */
+void vm_species_proj_conf_func(
+  struct gkyl_vlasov_app *app, struct vm_species *vms, evalf_t func, void *ctx,
+  struct gkyl_array *fout_ho
+);
+
+/**
  * Initialize species projection object.
  *
  * @param app vlasov app object

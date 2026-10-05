@@ -301,12 +301,9 @@ vm_species_bgk_init(
       bgk->norm_nu_self = false;
 
       struct gkyl_array *self_nu_ho = mkarr(false, app->basis.num_basis, app->local_ext.volume);
-      gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(
-        &app->grid, &app->basis, app->poly_order + 1, 1, vms->info.collisions.self_nu,
-        vms->info.collisions.self_nu_ctx
+      vm_species_proj_conf_func(
+        app, vms, vms->info.collisions.self_nu, vms->info.collisions.self_nu_ctx, self_nu_ho
       );
-      gkyl_proj_on_basis_advance(proj, 0.0, &app->local, self_nu_ho);
-      gkyl_proj_on_basis_release(proj);
       gkyl_array_copy(bgk->self_nu, self_nu_ho);
       gkyl_array_release(self_nu_ho);
 
@@ -468,12 +465,10 @@ vm_species_bgk_cross_init(
 
         struct gkyl_array *cross_nu_ho = mkarr(false, app->basis.num_basis, app->local_ext.volume);
         for (int i = 0; i < bgk->num_cross_collisions; ++i) {
-          gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(
-            &app->grid, &app->basis, app->poly_order + 1, 1, vms->info.collisions.cross_nu[i],
-            vms->info.collisions.cross_nu_ctx[i]
+          vm_species_proj_conf_func(
+            app, vms, vms->info.collisions.cross_nu[i], vms->info.collisions.cross_nu_ctx[i],
+            cross_nu_ho
           );
-          gkyl_proj_on_basis_advance(proj, 0.0, &app->local, cross_nu_ho);
-          gkyl_proj_on_basis_release(proj);
           gkyl_array_copy(bgk->cross_nu[i], cross_nu_ho);
 
           gkyl_array_scale(bgk->cross_nu[i], nu_frac);

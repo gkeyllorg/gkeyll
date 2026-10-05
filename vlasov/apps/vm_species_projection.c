@@ -22,6 +22,34 @@ vm_proj_c2p_phase(const double *xcomp, double *xphys, void *ctx)
 }
 
 void
+vm_species_proj_conf_func(
+  struct gkyl_vlasov_app *app, struct vm_species *vms, evalf_t func, void *ctx,
+  struct gkyl_array *fout_ho
+)
+{
+  // Sample the function at physical coordinates, as the initial conditions and
+  // sources are, so that it means the same thing with and without a position map.
+  struct vm_proj_c2p_ctx c2p_ctx = {
+    .cdim = app->cdim,
+    .pos_map = vms->pos_map,
+    .vel_map = vms->vel_map,
+  };
+  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
+    .grid = &app->grid,
+    .basis = &app->basis,
+    .qtype = GKYL_GAUSS_QUAD,
+    .num_quad = app->poly_order + 1,
+    .num_ret_vals = 1,
+    .eval = func,
+    .ctx = ctx,
+    .c2p_func = vm_proj_c2p_conf,
+    .c2p_func_ctx = &c2p_ctx,
+  });
+  gkyl_proj_on_basis_advance(proj, 0.0, &app->local, fout_ho);
+  gkyl_proj_on_basis_release(proj);
+}
+
+void
 vm_species_projection_init(
   struct gkyl_vlasov_app *app, struct vm_species *vms, struct gkyl_vlasov_projection inp,
   struct vm_proj *proj
