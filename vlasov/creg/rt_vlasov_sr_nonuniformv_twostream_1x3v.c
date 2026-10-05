@@ -49,6 +49,9 @@ struct twostream_sr_ctx {
   double vx_max; // Domain boundary (velocity space: vx-direction).
   double vy_max; // Domain boundary (velocity space: vy-direction).
   double vz_max; // Domain boundary (velocity space: vz-direction).
+  double vx_lin; // Slope of the velocity map at vx = 0 (sets the finest velocity-space cells).
+  double vy_lin; // Slope of the velocity map at vy = 0 (sets the finest velocity-space cells).
+  double vz_lin; // Slope of the velocity map at vz = 0 (sets the finest velocity-space cells).
   int poly_order; // Polynomial order.
   double cfl_frac; // CFL coefficient.
 
@@ -90,9 +93,15 @@ create_ctx(void)
   int Nvy = 4; // Cell count (velocity space: vy-direction).
   int Nvz = 4; // Cell count (velocity space: vz-direction).
   double Lx = 2.0 * pi / kx; // Domain size (configuration space: x-direction).
-  double vx_max = 5.0; // Domain boundary (velocity space: vx-direction).
-  double vy_max = 1.2; // Domain boundary (velocity space: vy-direction).
-  double vz_max = 1.2; // Domain boundary (velocity space: vz-direction).
+  double vx_max = 8.0; // Domain boundary (velocity space: vx-direction).
+  double vy_max = 2.0; // Domain boundary (velocity space: vy-direction).
+  double vz_max = 2.0; // Domain boundary (velocity space: vz-direction).
+  double vx_lin =
+    4.0; // Slope of the velocity map at vx = 0 (sets the finest velocity-space cells).
+  double vy_lin =
+    0.4; // Slope of the velocity map at vy = 0 (sets the finest velocity-space cells).
+  double vz_lin =
+    0.4; // Slope of the velocity map at vz = 0 (sets the finest velocity-space cells).
   int poly_order = 2; // Polynomial order.
   double cfl_frac = 1.0; // CFL coefficient.
 
@@ -126,6 +135,9 @@ create_ctx(void)
     .vx_max = vx_max,
     .vy_max = vy_max,
     .vz_max = vz_max,
+    .vx_lin = vx_lin,
+    .vy_lin = vy_lin,
+    .vz_lin = vz_lin,
     .poly_order = poly_order,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
@@ -189,6 +201,45 @@ evalVDriftRInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT 
   fout[0] = -Vx_drift_SR;
   fout[1] = 0.0;
   fout[2] = 0.0;
+}
+
+void
+mapc2p_vx(double t, const double *GKYL_RESTRICT vc, double *GKYL_RESTRICT vp, void *ctx)
+{
+  struct twostream_sr_ctx *app = ctx;
+  double vx_c = vc[0];
+
+  double vx_max = app->vx_max;
+  double vx_lin = app->vx_lin;
+
+  // Quadratic velocity map: finest cells at the origin, stretching to the domain boundary.
+  vp[0] = vx_lin * vx_c + (vx_max - vx_lin) * vx_c * fabs(vx_c);
+}
+
+void
+mapc2p_vy(double t, const double *GKYL_RESTRICT vc, double *GKYL_RESTRICT vp, void *ctx)
+{
+  struct twostream_sr_ctx *app = ctx;
+  double vy_c = vc[0];
+
+  double vy_max = app->vy_max;
+  double vy_lin = app->vy_lin;
+
+  // Quadratic velocity map: finest cells at the origin, stretching to the domain boundary.
+  vp[0] = vy_lin * vy_c + (vy_max - vy_lin) * vy_c * fabs(vy_c);
+}
+
+void
+mapc2p_vz(double t, const double *GKYL_RESTRICT vc, double *GKYL_RESTRICT vp, void *ctx)
+{
+  struct twostream_sr_ctx *app = ctx;
+  double vz_c = vc[0];
+
+  double vz_max = app->vz_max;
+  double vz_lin = app->vz_lin;
+
+  // Quadratic velocity map: finest cells at the origin, stretching to the domain boundary.
+  vp[0] = vz_lin * vz_c + (vz_max - vz_lin) * vz_c * fabs(vz_c);
 }
 
 void
@@ -362,9 +413,16 @@ main(int argc, char **argv)
   // Electrons.
   struct gkyl_vlasov_kinetic_species elc = {
     .model_id = GKYL_MODEL_SR,
-    .lower = {-ctx.vx_max, -ctx.vy_max, -ctx.vz_max},
-    .upper = {ctx.vx_max, ctx.vy_max, ctx.vz_max},
+    .lower = {-1.0, -1.0, -1.0},
+    .upper = {1.0, 1.0, 1.0},
     .cells = {NVX, NVY, NVZ},
+
+    .mapc2p_vel =
+      {
+        {.mapc2p_vel_func = mapc2p_vx, .mapc2p_vel_ctx = &ctx},
+        {.mapc2p_vel_func = mapc2p_vy, .mapc2p_vel_ctx = &ctx},
+        {.mapc2p_vel_func = mapc2p_vz, .mapc2p_vel_ctx = &ctx},
+      },
 
     .num_init = 2,
     // Two counter-streaming Maxwellians.

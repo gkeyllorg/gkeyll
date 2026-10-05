@@ -13,25 +13,29 @@ n0 = 1.0 -- Reference number density.
 T = 0.04 -- Temperature (units of mc^2).
 Vx_drift = 0.9 -- Drift velocity (x-direction).
 
+alpha = 1.0e-5 -- Applied perturbation amplitude.
+kx = 0.3 -- Perturbed wave number (x-direction); close to the fastest-growing mode.
+
 -- Derived physical quantities (using normalized code units).
 gamma = 1.0 / math.sqrt(1.0 - (Vx_drift * Vx_drift)) -- Gamma factor.
 Vx_drift_SR = gamma * Vx_drift -- Relativistic drift velocity (x-direction).
 
-alpha = 1.0e-8 -- Applied perturbation amplitude.
-kx = 0.5 -- Perturbed wave number (x-direction).
-
 -- Simulation parameters.
-Nx = 64 -- Cell count (configuration space: x-direction).
-Nvx = 64 -- Cell count (velocity space: vx-direction).
+Nx = 8 -- Cell count (configuration space: x-direction).
+Nvx = 16 -- Cell count (velocity space: vx-direction).
+Nvy = 4 -- Cell count (velocity space: vy-direction).
+Nvz = 4 -- Cell count (velocity space: vz-direction).
 Lx = 2.0 * pi / kx -- Domain size (configuration space: x-direction).
-vx_max = 8.0 -- Domain boundary (velocity space: vx-direction).
+vx_max = 5.0 -- Domain boundary (velocity space: vx-direction).
+vy_max = 1.2 -- Domain boundary (velocity space: vy-direction).
+vz_max = 1.2 -- Domain boundary (velocity space: vz-direction).
 poly_order = 2 -- Polynomial order.
 basis_type = "serendipity" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
 cfl_frac = 1.0 -- CFL coefficient.
 
-t_end = 500.0 -- Final simulation time.
-num_frames = 100 -- Number of output frames.
+t_end = 80.0 -- Final simulation time.
+num_frames = 1 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.
 integrated_L2_f_calcs = GKYL_MAX_INT -- Number of times to calculate L2 norm of distribution function.
@@ -39,15 +43,6 @@ dt_failure_tol = 1.0e-4 -- Minimum allowable fraction of initial time-step.
 num_failures_max = 20 -- Maximum allowable number of consecutive small time-steps.
 
 vlasovApp = Vlasov.App.new {
-
-  -- Flat preset geometry makes the GR triad/GR-Maxwell system reduce to the
-  -- standard Cartesian two-stream setup.
-  geom = Vlasov.Geom.new {
-    usePresetGeom = true,
-    triadPresetGeomType = G0.TriadGeom.Flat,
-    massBH = 0.0,
-    spinBH = 0.0,
-  },
 
   tEnd = t_end,
   nFrame = num_frames,
@@ -61,57 +56,44 @@ vlasovApp = Vlasov.App.new {
   cells = { Nx },
   cflFrac = cfl_frac,
 
-  mapc2pPos = {
-    -- x mapping: sinusoidal stretching; Jacobian matches at the two periodic
-    -- endpoints (J = 1 + A at both), so the map is periodicity-consistent.
-    {
-      pmap = function (t, xn)
-        local xc = xn[1]
-        local A = 0.3
-        return xc - (A * Lx / (2.0 * pi)) * math.sin(2.0 * pi * xc / Lx)
-      end
-    },
-  },
-
   basis = basis_type,
   polyOrder = poly_order,
   timeStepper = time_stepper,
 
   -- Decomposition for configuration space.
-  decompCuts = { 1 }, -- Cuts in each coordinate direction (x-direction only).
+  decompCuts = { 1 }, -- Cuts in each coodinate direction (x-direction only).
 
   -- Boundary conditions for configuration space.
-  periodicDirs = { 1 }, -- Periodic direction (x-direction only).
+  periodicDirs = { 1 }, -- Periodic directions (x-direction only).
 
   -- Electrons.
   elc = Vlasov.Species.new {
-    modelID = G0.Model.TriadGR,
+    modelID = G0.Model.SR,
     charge = charge_elc, mass = mass_elc,
-
+    
     -- Velocity space grid.
-    lower = { -vx_max },
-    upper = { vx_max },
-    cells = { Nvx },
+    lower = { -vx_max, -vy_max, -vz_max },
+    upper = { vx_max, vy_max, vz_max },
+    cells = { Nvx, Nvy, Nvz },
 
     -- Initial conditions.
     numInit = 2,
     projections = {
-      -- Two counter-streaming relativistic LTE distributions.
+      -- Two counter-streaming Maxwellians.
       {
         projectionID = G0.Projection.LTE,
 
         densityInit = function (t, xn)
           local x = xn[1]
 
-          local metric_det = 1.0
-          local n = 0.5 * (1.0 + alpha * math.cos(kx * x)) * n0
-          return metric_det * n
+          local n = 0.5 * (1.0 + alpha * math.cos(kx * x)) * n0 -- Total number density.
+          return n
         end,
         temperatureInit = function (t, xn)
           return T -- Isotropic temperature.
         end,
         driftVelocityInit = function (t, xn)
-          return Vx_drift_SR -- Total left-going relativistic drift velocity.
+          return Vx_drift_SR, 0.0, 0.0 -- Total left-going relativistic drift velocity.
         end,
 
         correctAllMoments = true,
@@ -123,15 +105,14 @@ vlasovApp = Vlasov.App.new {
         densityInit = function (t, xn)
           local x = xn[1]
 
-          local metric_det = 1.0
-          local n = 0.5 * (1.0 + alpha * math.cos(kx * x)) * n0
-          return metric_det * n
+          local n = 0.5 * (1.0 + alpha * math.cos(kx * x)) * n0 -- Total number density.
+          return n
         end,
         temperatureInit = function (t, xn)
           return T -- Isotropic temperature.
         end,
         driftVelocityInit = function (t, xn)
-          return -Vx_drift_SR -- Total right-going relativistic drift velocity.
+          return -Vx_drift_SR, 0.0, 0.0 -- Total right-going relativistic drift velocity.
         end,
 
         correctAllMoments = true,
@@ -146,27 +127,21 @@ vlasovApp = Vlasov.App.new {
   field = Vlasov.Field.new {
     epsilon0 = epsilon0, mu0 = mu0,
 
-    -- Use GR-Maxwell field model in the flat limit.
-    fieldID = G0.FieldModel.GR,
-
     -- Initial conditions function.
     init = function (t, xn)
       local x = xn[1]
 
-      local Dx = -alpha * gamma * math.sin(kx * x) / kx -- Electric displacement (x-direction).
-      local Dy = 0.0 -- Electric displacement (y-direction).
-      local Dz = 0.0 -- Electric displacement (z-direction).
+      local Ex = -alpha * gamma * math.sin(kx * x) / kx -- Total electric field (x-direction).
+      local Ey = 0.0 -- Total electric field (y-direction).
+      local Ez = 0.0 -- Total electric field (z-direction).
 
-      local Bx = 0.0 -- Magnetic field (x-direction).
-      local By = 0.0 -- Magnetic field (y-direction).
-      local Bz = 0.0 -- Magnetic field (z-direction).
+      local Bx = 0.0 -- Total magnetic field (x-direction).
+      local By = 0.0 -- Total magnetic field (y-direction).
+      local Bz = 0.0 -- Total magnetic field (z-direction).
 
-      local metric_det = 1.0
-
-      return metric_det * Dx, metric_det * Dy, metric_det * Dz,
-        metric_det * Bx, metric_det * By, metric_det * Bz, 0.0, 0.0
+      return Ex, Ey, Ez, Bx, By, Bz, 0.0, 0.0
     end,
-
+    
     evolve = true, -- Evolve field?
     elcErrorSpeedFactor = 0.0,
     mgnErrorSpeedFactor = 0.0

@@ -642,7 +642,7 @@ GKYL_CU_D static const gkyl_dg_vlasov_B_vol_kern_list ser_Bx_hamil_phase_vol_ker
 // Magnetic field in x-direction Lorentz force volume kernels with general Hamiltonian (Tensor basis).
 GKYL_CU_D static const gkyl_dg_vlasov_B_vol_kern_list tensor_Bx_hamil_phase_vol_kernels[] = {
   // 1x kernels
-  {NULL, NULL, NULL, NULL}, // 0
+  {NULL, no_B_vol, NULL, NULL}, // 0
   {NULL, no_B_vol, NULL, NULL}, // 1
   {NULL, vlasov_Bx_hamil_phase_vol_1x3v_tensor_p1, NULL, NULL}, // 2
   // 2x kernels
@@ -732,7 +732,7 @@ GKYL_CU_D static const gkyl_dg_vlasov_B_vol_kern_list ser_By_hamil_phase_vol_ker
 // Magnetic field in y-direction Lorentz force volume kernels with general Hamiltonian (Tensor basis).
 GKYL_CU_D static const gkyl_dg_vlasov_B_vol_kern_list tensor_By_hamil_phase_vol_kernels[] = {
   // 1x kernels
-  {NULL, NULL, NULL, NULL}, // 0
+  {NULL, no_B_vol, NULL, NULL}, // 0
   {NULL, no_B_vol, NULL, NULL}, // 1
   {NULL, vlasov_By_hamil_phase_vol_1x3v_tensor_p1, NULL, NULL}, // 2
   // 2x kernels
@@ -830,7 +830,7 @@ GKYL_CU_D static const gkyl_dg_vlasov_B_vol_kern_list ser_Bz_hamil_phase_vol_ker
 // Magnetic field in z-direction Lorentz force volume kernels with general Hamiltonian (Tensor basis).
 GKYL_CU_D static const gkyl_dg_vlasov_B_vol_kern_list tensor_Bz_hamil_phase_vol_kernels[] = {
   // 1x kernels
-  {NULL, NULL, NULL, NULL}, // 0
+  {NULL, no_B_vol, NULL, NULL}, // 0
   {NULL, vlasov_Bz_hamil_phase_vol_1x2v_tensor_p1, NULL, NULL}, // 1
   {NULL, vlasov_Bz_hamil_phase_vol_1x3v_tensor_p1, NULL, NULL}, // 2
   // 2x kernels

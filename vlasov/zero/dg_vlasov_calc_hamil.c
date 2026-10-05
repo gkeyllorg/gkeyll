@@ -45,6 +45,8 @@ gkyl_dg_vlasov_calc_hamil(
       assert(false);
       break;
   }
+  // Fail here if there is no kernel for this velocity dimension and polynomial order.
+  assert(calc_hamil);
 
   double xc[GKYL_MAX_DIM];
   struct gkyl_range_iter iter;

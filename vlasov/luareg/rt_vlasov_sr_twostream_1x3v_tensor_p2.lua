@@ -9,46 +9,32 @@ mu0 = 1.0 -- Permeability of free space.
 mass_elc = 1.0 -- Electron mass.
 charge_elc = -1.0 -- Electron charge.
 
-n_elc1 = 0.5 -- First electron number density.
-n_elc2 = 0.5 -- Second electron number density.
-ux_elc1 = 0.9 -- First electron velocity (x-direction).
-ux_elc2 = -0.9 -- Second electron velocity (x-direction).
-uy_elc1 = 0.0 -- First electron velocity (y-direction).
-uy_elc2 = 0.0 -- Second electron velocity (y-direction).
-uz_elc1 = 0.0 -- First electron velocity (z-direction).
-uz_elc2 = 0.0 -- Second electron velocity (z-direction).
-T_elc1 = 0.04 -- First electron temperature (units of mc^2).
-T_elc2 = 0.04 -- Second electron temperature (units of mc^2).
+n0 = 1.0 -- Reference number density.
+T = 0.04 -- Temperature (units of mc^2).
+Vx_drift = 0.9 -- Drift velocity (x-direction).
 
-alpha = 1.0e-3 -- Applied perturbation amplitude.
-kx = 0.5 -- Perturbed wave number (x-direction).
+alpha = 1.0e-5 -- Applied perturbation amplitude.
+kx = 0.3 -- Perturbed wave number (x-direction); close to the fastest-growing mode.
 
 -- Derived physical quantities (using normalized code units).
-gamma_elc1 = 1.0 / math.sqrt(1.0 - (ux_elc1 * ux_elc1) - (uy_elc1 * uy_elc1) - (uz_elc1 * uz_elc1)) -- First electron gamma factor.
-gamma_elc2 = 1.0 / math.sqrt(1.0 - (ux_elc2 * ux_elc2) - (uy_elc2 * uy_elc2) - (uz_elc2 * uz_elc2)) -- Second electron gamma factor.
-
-ux_elc1_sr = gamma_elc1 * ux_elc1 -- First electron relativistic velocity (x-direction).
-ux_elc2_sr = gamma_elc2 * ux_elc2 -- Second electron relativistic velocity (x-direction).
-uy_elc1_sr = gamma_elc1 * uy_elc1 -- First electron relativistic velocity (y-direction).
-uy_elc2_sr = gamma_elc2 * uy_elc2 -- Second electron relativistic velocity (y-direction).
-uz_elc1_sr = gamma_elc1 * uz_elc1 -- First electron relativistic velocity (z-direction).
-uz_elc2_sr = gamma_elc2 * uz_elc2 -- Second electron relativistic velocity (z-direction).
+gamma = 1.0 / math.sqrt(1.0 - (Vx_drift * Vx_drift)) -- Gamma factor.
+Vx_drift_SR = gamma * Vx_drift -- Relativistic drift velocity (x-direction).
 
 -- Simulation parameters.
-Nx = 32 -- Cell count (configuration space: x-direction).
+Nx = 8 -- Cell count (configuration space: x-direction).
 Nvx = 16 -- Cell count (velocity space: vx-direction).
-Nvy = 16 -- Cell count (velocity space: vy-direction).
-Nvz = 16 -- Cell count (velocity space: vz-direction).
+Nvy = 4 -- Cell count (velocity space: vy-direction).
+Nvz = 4 -- Cell count (velocity space: vz-direction).
 Lx = 2.0 * pi / kx -- Domain size (configuration space: x-direction).
-vx_max = 8.0 -- Domain boundary (velocity space: vx-direction).
-vy_max = 8.0 -- Domain boundary (velocity space: vy-direction).
-vz_max = 8.0 -- Domain boundary (velocity space: vz-direction).
+vx_max = 5.0 -- Domain boundary (velocity space: vx-direction).
+vy_max = 1.2 -- Domain boundary (velocity space: vy-direction).
+vz_max = 1.2 -- Domain boundary (velocity space: vz-direction).
 poly_order = 2 -- Polynomial order.
-basis_type = "serendipity" -- Basis function set.
+basis_type = "tensor" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
 cfl_frac = 1.0 -- CFL coefficient.
 
-t_end = 1.0 -- Final simulation time.
+t_end = 80.0 -- Final simulation time.
 num_frames = 1 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.
@@ -100,14 +86,14 @@ vlasovApp = Vlasov.App.new {
         densityInit = function (t, xn)
           local x = xn[1]
 
-          local n = (1.0 + alpha * math.cos(kx * x)) * n_elc1 -- Total left-going number density.
+          local n = 0.5 * (1.0 + alpha * math.cos(kx * x)) * n0 -- Total number density.
           return n
         end,
         temperatureInit = function (t, xn)
-          return T_elc1 -- Total left-going temperature.
+          return T -- Isotropic temperature.
         end,
         driftVelocityInit = function (t, xn)
-          return ux_elc1_sr, uy_elc1_sr, uz_elc1_sr -- Total left-going relativistic drift velocity.
+          return Vx_drift_SR, 0.0, 0.0 -- Total left-going relativistic drift velocity.
         end,
 
         correctAllMoments = true,
@@ -119,14 +105,14 @@ vlasovApp = Vlasov.App.new {
         densityInit = function (t, xn)
           local x = xn[1]
 
-          local n = (1.0 + alpha * math.cos(kx * x)) * n_elc2 -- Total right-going number density.
+          local n = 0.5 * (1.0 + alpha * math.cos(kx * x)) * n0 -- Total number density.
           return n
         end,
         temperatureInit = function (t, xn)
-          return T_elc2 -- Total right-going temperature.
+          return T -- Isotropic temperature.
         end,
         driftVelocityInit = function (t, xn)
-          return ux_elc2_sr, uy_elc2_sr, uz_elc2_sr -- Total right-going relativistic drift velocity.
+          return -Vx_drift_SR, 0.0, 0.0 -- Total right-going relativistic drift velocity.
         end,
 
         correctAllMoments = true,
@@ -145,7 +131,7 @@ vlasovApp = Vlasov.App.new {
     init = function (t, xn)
       local x = xn[1]
 
-      local Ex = -alpha * gamma_elc1 * math.sin(kx * x) / kx -- Total electric field (x-direction).
+      local Ex = -alpha * gamma * math.sin(kx * x) / kx -- Total electric field (x-direction).
       local Ey = 0.0 -- Total electric field (y-direction).
       local Ez = 0.0 -- Total electric field (z-direction).
 
