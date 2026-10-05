@@ -1601,8 +1601,8 @@ gk_species_do_I_recycle_react_scale(struct gkyl_gyrokinetic_app *app, struct gk_
   bool has_sca = false;
   int neuts = app->num_neut_species;
   for (int i = 0; i < neuts; ++i) {
-    struct gk_neut_species *ns = &app->neut_species[i];
-    struct gkyl_gyrokinetic_scaling_inp *sca_inp = &ns->info.scaling;
+    struct gk_neut_species *gkns = &app->neut_species[i];
+    struct gkyl_gyrokinetic_scaling_inp *sca_inp = &gkns->info.scaling;
     if ((sca_inp->num_boundaries > 0) &&
         (0 == strcmp(gks->info.name, sca_inp->impacting_ion_name))) {
       has_sca = true;

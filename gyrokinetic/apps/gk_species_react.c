@@ -506,22 +506,22 @@ gk_species_react_get_vt_sq_min(struct gkyl_gyrokinetic_app *app, struct gk_speci
 }
 
 static double
-gk_neut_species_react_get_vt_sq_min(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s)
+gk_neut_species_react_get_vt_sq_min(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns)
 {
-  if (s->is_fluid) {
+  if (gkns->is_fluid) {
     return 0.0;
   } else {
     double bmag_mid = app->bmag_ref;
 
-    int vdim = s->info.vdim;
+    int vdim = gkns->info.vdim;
     double dv_min[vdim];
-    gkyl_velocity_map_reduce_dv_range(s->vel_map, GKYL_MIN, dv_min, s->vel_map->local_vel);
+    gkyl_velocity_map_reduce_dv_range(gkns->vel_map, GKYL_MIN, dv_min, gkns->vel_map->local_vel);
 
     double t_min = 0.0;
     for (int i = 0; i < vdim; i++) {
-      t_min += (s->info.mass / 6.0) * pow(dv_min[0], 2);
+      t_min += (gkns->info.mass / 6.0) * pow(dv_min[0], 2);
     }
-    return t_min / (3.0 * s->info.mass);
+    return t_min / (3.0 * gkns->info.mass);
   }
 }
 

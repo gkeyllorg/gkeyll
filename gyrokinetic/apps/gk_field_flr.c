@@ -14,9 +14,10 @@ gk_field_flr_new(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
 
   double flr_weight = 0.0;
   for (int i = 0; i < app->num_species; ++i) {
-    struct gk_species *s = &app->species[i];
-    double gyroradius_bmag = s->info.flr.bmag ? s->info.flr.bmag : app->bmag_ref;
-    flr_weight += s->info.flr.Tperp * s->info.mass / (pow(s->info.charge * gyroradius_bmag, 2.0));
+    struct gk_species *gks = &app->species[i];
+    double gyroradius_bmag = gks->info.flr.bmag ? gks->info.flr.bmag : app->bmag_ref;
+    flr_weight +=
+      gks->info.flr.Tperp * gks->info.mass / (pow(gks->info.charge * gyroradius_bmag, 2.0));
   }
   // Initialize the weight in the Laplacian operator.
   gkf->flr_rhoSq_sum =

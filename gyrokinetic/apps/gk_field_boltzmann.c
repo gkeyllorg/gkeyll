@@ -52,22 +52,22 @@ gk_field_calc_ambi_pot_sheath_vals(gkyl_gyrokinetic_app *app, struct gk_field *f
   gkyl_comm_get_size(app->comm, &comm_sz);
 
   for (int i = 0; i < app->num_species; ++i) {
-    struct gk_species *s = &app->species[i];
+    struct gk_species *gks = &app->species[i];
 
-    if (s->info.charge > 0.0) {
+    if (gks->info.charge > 0.0) {
       // Assumes symmetric sheath BCs for now only in 1D
       // NOTE: this relies on the accumulate_rho_c calling gk_species_moment_calc(s->m0)
       // to calculate the particle flux and place it in the ghost cells of s->m0.marr.
       gkyl_ambi_bolt_potential_sheath_calc(
         field->ambi_pot, GKYL_LOWER_EDGE, &app->local_lower_skin[idx_par],
         &app->local_lower_ghost[idx_par], app->gk_geom->geo_int.cmag,
-        app->gk_geom->geo_int.jacobtot_inv, s->m0.marr, field->rho_c, s->m0.marr,
+        app->gk_geom->geo_int.jacobtot_inv, gks->m0.marr, field->rho_c, gks->m0.marr,
         field->sheath_vals[off]
       );
       gkyl_ambi_bolt_potential_sheath_calc(
         field->ambi_pot, GKYL_UPPER_EDGE, &app->local_upper_skin[idx_par],
         &app->local_upper_ghost[idx_par], app->gk_geom->geo_int.cmag,
-        app->gk_geom->geo_int.jacobtot_inv, s->m0.marr, field->rho_c, s->m0.marr,
+        app->gk_geom->geo_int.jacobtot_inv, gks->m0.marr, field->rho_c, gks->m0.marr,
         field->sheath_vals[off + 1]
       );
 
@@ -186,9 +186,9 @@ gk_field_fem_new_boltzmann(struct gkyl_gyrokinetic_app *app, struct gk_field *gk
   gkf->use_flr = false;
   gkf->invert_flr = gk_field_invert_flr_none;
   for (int i = 0; i < app->num_species; ++i) {
-    struct gk_species *s = &app->species[i];
-    if (s->info.flr.type) {
-      gkf->use_flr = gkf->use_flr || s->info.flr.type;
+    struct gk_species *gks = &app->species[i];
+    if (gks->info.flr.type) {
+      gkf->use_flr = gkf->use_flr || gks->info.flr.type;
     }
   }
 

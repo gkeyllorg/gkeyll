@@ -310,48 +310,48 @@ gk_field_energy_release(const struct gkyl_gyrokinetic_app *app, struct gk_field 
 struct gk_field *
 gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
 {
-  struct gk_field *f = gkyl_malloc(sizeof(struct gk_field));
+  struct gk_field *gkf = gkyl_malloc(sizeof(struct gk_field));
 
-  f->info = gk->field;
+  gkf->info = gk->field;
 
-  f->gkfield_id = f->info.gkfield_id ? f->info.gkfield_id : GKYL_GK_FIELD_ES;
+  gkf->gkfield_id = gkf->info.gkfield_id ? gkf->info.gkfield_id : GKYL_GK_FIELD_ES;
 
-  f->calc_init_field = !f->info.zero_init_field;
-  f->update_field = !f->info.is_static;
+  gkf->calc_init_field = !gkf->info.zero_init_field;
+  gkf->update_field = !gkf->info.is_static;
   // The combination update_field=true, calc_init_field=false is not allowed.
-  assert(!(f->update_field && (!f->calc_init_field)));
+  assert(!(gkf->update_field && (!gkf->calc_init_field)));
 
   // Initialize polarization potential if needed.
-  f->init_phi_pol = false;
-  if (f->info.polarization_potential) {
-    gk_field_polarization_potential_new(f, app);
-  } else if (f->info.polarization_potential_import.type != GKYL_IC_IMPORT_NONE) {
-    gk_field_polarization_potential_from_file_new(f, app, f->info.polarization_potential_import);
+  gkf->init_phi_pol = false;
+  if (gkf->info.polarization_potential) {
+    gk_field_polarization_potential_new(gkf, app);
+  } else if (gkf->info.polarization_potential_import.type != GKYL_IC_IMPORT_NONE) {
+    gk_field_polarization_potential_from_file_new(gkf, app, gkf->info.polarization_potential_import);
   }
 
   // Initialize energy diagnostics.
-  gk_field_energy_new(app, f);
+  gk_field_energy_new(app, gkf);
 
-  memset(&f->adiab, 0, sizeof(f->adiab));
-  if (f->gkfield_id == GKYL_GK_FIELD_ADIABATIC) {
-    gk_field_adiabatic_density_new(app, f);
+  memset(&gkf->adiab, 0, sizeof(gkf->adiab));
+  if (gkf->gkfield_id == GKYL_GK_FIELD_ADIABATIC) {
+    gk_field_adiabatic_density_new(app, gkf);
   }
 
   // Initialize the field solver
-  if (f->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) {
-    gk_field_fem_new_boltzmann(app, f);
+  if (gkf->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) {
+    gk_field_fem_new_boltzmann(app, gkf);
   } else {
     if (app->cdim == 1) {
-      gk_field_fem_new_1x(app, f);
+      gk_field_fem_new_1x(app, gkf);
     } else if (app->cdim > 1) {
-      gk_field_fem_new_2x3x(app, f);
+      gk_field_fem_new_2x3x(app, gkf);
     }
   }
 
   // Initialize biased walls.
-  gk_field_biased_wall_new(app, f);
+  gk_field_biased_wall_new(app, gkf);
 
-  return f;
+  return gkf;
 }
 
 // RHS functions for calculations
@@ -414,9 +414,9 @@ gk_field_accumulate_rho_c(
   struct timespec wst = gkyl_wall_clock();
   gkyl_array_clear(field->rho_c, 0.0);
   for (int i = 0; i < app->num_species; ++i) {
-    struct gk_species *s = &app->species[i];
-    gk_species_moment_calc(&s->m0, s->local, app->local, fin[i]);
-    field->accumulate_rhoc_func(app, field, s, bflux[i]);
+    struct gk_species *gks = &app->species[i];
+    gk_species_moment_calc(&gks->m0, gks->local, app->local, fin[i]);
+    field->accumulate_rhoc_func(app, field, gks, bflux[i]);
   }
   app->stat.field_phi_rhs_tm += gkyl_time_diff_now_sec(wst);
 }

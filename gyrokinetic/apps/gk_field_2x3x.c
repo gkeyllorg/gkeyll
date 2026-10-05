@@ -587,8 +587,9 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
                                                            app->bmag_ref;
   // Linearized polarization density
   for (int i = 0; i < app->num_species; ++i) {
-    struct gk_species *s = &app->species[i];
-    polarization_weight += s->info.polarization_density * s->info.mass / pow(polarization_bmag, 2);
+    struct gk_species *gks = &app->species[i];
+    polarization_weight +=
+      gks->info.polarization_density * gks->info.mass / pow(polarization_bmag, 2);
   }
   // Allocate array for the polarization weight times geometric coefficients.
   gkf->epsilon =
@@ -721,9 +722,9 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
   gkf->use_flr = false;
   gkf->invert_flr = gk_field_invert_flr_none;
   for (int i = 0; i < app->num_species; ++i) {
-    struct gk_species *s = &app->species[i];
-    if (s->info.flr.type) {
-      gkf->use_flr = gkf->use_flr || s->info.flr.type;
+    struct gk_species *gks = &app->species[i];
+    if (gks->info.flr.type) {
+      gkf->use_flr = gkf->use_flr || gks->info.flr.type;
     }
   }
   if (gkf->use_flr) {
