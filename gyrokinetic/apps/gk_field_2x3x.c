@@ -544,8 +544,33 @@ gk_field_fem_release_2x3x(const gkyl_gyrokinetic_app *app, struct gk_field *gkf)
     gk_field_flr_release(app, gkf);
   }
 
-  if (gkf->gkfield_id == GKYL_GK_FIELD_ADIABATIC) {
-    gk_field_adiabatic_release(app, gkf);
+  if (gkf->has_adiabatic_species) {
+    if (app->species[gkf->adiab.species_idx].info.charge < 0.0) {
+      gk_field_adiab_elc_release(app, gkf);
+    } else {
+      assert(false); // Not implemented for ions.
+    }
+  }
+}
+
+// Set up the adiabatic response from the t=0 moments of the adiabatic species: the Helmholtz
+// solver, with kSq = -K since the solver subtracts kSq*phi, and the model-specific objects.
+static void
+gk_field_adiabatic_init_2x3x(gkyl_gyrokinetic_app *app, struct gk_field *gkf)
+{
+  gk_field_adiabatic_profiles_calc(app, gkf);
+
+  gkf->adiab.kSq = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  gkyl_array_set(gkf->adiab.kSq, -1.0, gkf->adiab.kJ);
+  gkf->fem_poisson_perp = gkyl_fem_poisson_perp_new(
+    &app->local, &app->grid, app->basis, &gkf->poisson_bcs, gkf->info.bias_line_list, gkf->epsilon,
+    gkf->adiab.kSq, app->use_gpu
+  );
+
+  if (app->species[gkf->adiab.species_idx].info.charge < 0.0) {
+    gk_field_adiab_elc_new(app, gkf);
+  } else {
+    assert(false); // Not implemented for ions.
   }
 }
 
@@ -576,11 +601,7 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
     gkf->phi_host = mkarr(false, app->basis.num_basis, app->local_ext.volume);
   }
 
-  if (gkf->gkfield_id == GKYL_GK_FIELD_ADIABATIC) {
-    gkf->accumulate_rhoc_func = gk_field_accumulate_rho_c_adiabatic;
-  } else {
-    gkf->accumulate_rhoc_func = gk_field_accumulate_rho_c_poisson;
-  }
+  gkf->accumulate_rhoc_func = gk_field_accumulate_rho_c_poisson;
 
   double polarization_weight = 0.0;
   double polarization_bmag = gkf->info.polarization_bmag ? gkf->info.polarization_bmag :
@@ -640,23 +661,15 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
     }
   }
 
-  // Adiabatic electrons add a Helmholtz term with kSq = -(e^2 n0/Te) J.
-  gkf->adiab.kSq = NULL;
-  if (gkf->gkfield_id == GKYL_GK_FIELD_ADIABATIC) {
-    gk_field_adiabatic_coefs_new(app, gkf);
+  // Initialize the Poisson solver. With an adiabatic species it is a Helmholtz solver that
+  // needs K, so it is created by init_adiab_func.
+  gkf->poisson_bcs = poisson_bcs;
+  if (!gkf->has_adiabatic_species) {
+    gkf->fem_poisson_perp = gkyl_fem_poisson_perp_new(
+      &app->local, &app->grid, app->basis, &poisson_bcs, gkf->info.bias_line_list, gkf->epsilon,
+      NULL, app->use_gpu
+    );
   }
-
-  // Adiabatic electrons add a Helmholtz term with kSq = -(e^2 n0/Te) J.
-  gkf->adiab.kSq = NULL;
-  if (gkf->gkfield_id == GKYL_GK_FIELD_ADIABATIC) {
-    gk_field_adiabatic_coefs_new(app, gkf);
-  }
-
-  // Initialize the Poisson solver.
-  gkf->fem_poisson_perp = gkyl_fem_poisson_perp_new(
-    &app->local, &app->grid, app->basis, &poisson_bcs, gkf->info.bias_line_list, gkf->epsilon,
-    gkf->adiab.kSq, app->use_gpu
-  );
 
   gkf->phi_bc = 0;
   gkf->is_dirichletvar = false;
@@ -757,9 +770,18 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
 
   // Set the pointer to the function that computes phi.
   gkf->rhs_phi_func = gk_field_rhs_poisson_perp_2x3x;
-  if (gkf->gkfield_id == GKYL_GK_FIELD_ADIABATIC) {
-    gk_field_adiabatic_new(app, gkf);
-    gkf->rhs_phi_func = gk_field_adiabatic_rhs_phi_2x3x;
+  if (gkf->has_adiabatic_species) {
+    gkf->init_adiab_func = gk_field_adiabatic_init_2x3x;
+    if (app->species[gkf->adiab.species_idx].info.charge < 0.0) {
+      // Adiabatic electrons respond to phi - <phi>, only valid on closed field lines.
+      assert(!app->gk_geom->has_LCFS);
+      assert(!gkf->info.bias_line_list || gkf->info.bias_line_list->num_bias_line == 0);
+      gkf->rhs_phi_func = gk_field_adiab_elc_rhs_phi_2x3x;
+      gkf->energy_adiab_func = gk_field_adiab_elc_energy_accumulate;
+      gkf->adiab.dphi_func = gk_field_adiab_elc_dphi;
+    } else {
+      assert(false); // Not implemented for ions.
+    }
   }
 
   // Set pointer to function that releases memory.

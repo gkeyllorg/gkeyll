@@ -30,6 +30,9 @@ Nmu = 8 -- Cell count (velocity space: magnetic moment direction).
 Lz = 2.0 * pi / kz -- Domain size (configuration space: z-direction).
 vpar_max_ion = 6.0 * vti -- Domain boundary (ion velocity space: parallel velocity direction).
 mu_max_ion = mass_ion * math.pow(5.0 * vti, 2.0) / (2.0 * B0) -- Domain boundary (ion velocity space: magnetic moment direction).
+vte = math.sqrt(Te / mass_elc) -- Electron thermal velocity.
+vpar_max_elc = 6.0 * vte -- Domain boundary (electron velocity space: parallel velocity direction).
+mu_max_elc = mass_elc * math.pow(5.0 * vte, 2.0) / (2.0 * B0) -- Domain boundary (electron velocity space: magnetic moment direction).
 poly_order = 1 -- Polynomial order.
 basis_type = "serendipity" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
@@ -131,15 +134,39 @@ gyrokineticApp = Gyrokinetic.App.new {
     diagnostics = { G0.Moment.M0, G0.Moment.M1, G0.Moment.M2, G0.Moment.M2par, G0.Moment.M2perp }
   },
 
+  -- Adiabatic electrons: not evolved, rescaled to n0*(1 + e*phi/Te) every step.
+  elc = Gyrokinetic.Species.new {
+    charge = charge_elc, mass = mass_elc,
+
+    -- Velocity space grid.
+    lower = { -vpar_max_elc, 0.0 },
+    upper = { vpar_max_elc, mu_max_elc },
+    cells = { Nvpar, Nmu },
+
+    -- Background density and temperature.
+    projection = {
+      projectionID = G0.Projection.MaxwellianPrimitive,
+
+      densityInit = function (t, xn)
+        return n0 -- Electron background number density.
+      end,
+      temperatureInit = function (t, xn)
+        return Te -- Electron isotropic temperature.
+      end,
+      parallelVelocityInit = function (t, xn)
+        return 0.0 -- Electron parallel velocity.
+      end
+    },
+
+    scaling = {
+      type = G0.GKSpeciesScaling.Adiabatic,
+    },
+
+    diagnostics = { G0.Moment.M0 }
+  },
+
   -- Field.
   field = Gyrokinetic.Field.new {
-    fieldID = G0.GKField.Adiabatic,
-
-    electronMass = mass_elc,
-    electronCharge = charge_elc,
-    electronDensity = n0,
-    electronTemperature = Te,
-
     femParBc = G0.ParProjBc.Periodic,
     kPerpSq = k_perp * k_perp
   }

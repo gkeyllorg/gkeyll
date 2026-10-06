@@ -813,8 +813,7 @@ gkyl_gyrokinetic_app_omegaH_init(gkyl_gyrokinetic_app *app)
 
   app->omegaH_gf = 1.0 / DBL_MAX;
 
-  if (!(app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN ||
-        app->field->gkfield_id == GKYL_GK_FIELD_ADIABATIC)) {
+  if (!(app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN || app->field->has_adiabatic_species)) {
     // Compute parfac = (cmag/(jacobgeo*B^_\parallel))*kpar_max.
     struct gkyl_array *parfac = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     gkyl_dg_mul_op_range(
@@ -1178,6 +1177,9 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app *app, double t0)
   for (int i = 0; i < app->num_species; ++i) {
     gkyl_gyrokinetic_app_apply_ic_species(app, i, t0);
   }
+
+  // Set up the response of an adiabatic species from its t=0 moments.
+  app->field->init_adiab_func(app, app->field);
 
   for (int i = 0; i < app->num_neut_species; ++i) {
     gkyl_gyrokinetic_app_apply_ic_neut_species(app, i, t0);
@@ -4390,6 +4392,9 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
       rstat = gkyl_gyrokinetic_app_from_frame_species(app, i, frame);
     }
   }
+
+  // Set up the response of an adiabatic species (static) from its t=0 moments.
+  app->field->init_adiab_func(app, app->field);
 
   // Apply ICs that depend on other species.
   for (int i = 0; i < app->num_neut_species; ++i) {

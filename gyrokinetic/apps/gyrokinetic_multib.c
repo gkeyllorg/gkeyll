@@ -342,10 +342,9 @@ singleb_app_new_solver(
   field_inp.kperpSq = fld->kperpSq;
   field_inp.time_rate_diagnostics = fld->time_rate_diagnostics;
 
-  // Adiabatic electron inputs.
+  // Boltzmann electron inputs.
   field_inp.electron_mass = fld->electron_mass;
   field_inp.electron_charge = fld->electron_charge;
-  field_inp.electron_density = fld->electron_density;
   field_inp.electron_temp = fld->electron_temp;
 
   // BCs.

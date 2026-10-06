@@ -55,8 +55,7 @@ gk_species_omegaH_dt(gkyl_gyrokinetic_app *app, struct gk_species *gks, const st
   // and k_x,k_y,k_par are wavenumbers in computational space, and eps_ij is
   // the polarization weight in our field equation.
 
-  if (!(app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN ||
-        app->field->gkfield_id == GKYL_GK_FIELD_ADIABATIC)) {
+  if (!(app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN || app->field->has_adiabatic_species)) {
     // Obtain the maximum density (using cell centers).
     gk_species_moment_calc(&gks->m0, gks->local, app->local, fin);
     gkyl_array_reduce_range(gks->m0_max, gks->m0.marr, GKYL_MAX, &app->local);
@@ -1299,7 +1298,9 @@ gk_species_init_static(
   gks->copy_func = gk_species_copy_range_static;
   gks->write_func = gk_species_write_static;
   gks->write_cfl_func = gk_species_write_cfl_disabled;
-  gks->write_mom_func = gk_species_write_mom_static;
+  gks->write_mom_func = gks->info.scaling.type == GKYL_GK_SPECIES_SCALING_ADIABATIC ?
+                          gk_species_write_mom_dynamic :
+                          gk_species_write_mom_static;
   gks->calc_integrated_mom_func = gk_species_calc_integrated_mom_static;
   gks->write_integrated_mom_func = gk_species_write_integrated_mom_static;
   gks->calc_L2norm_func = gk_species_calc_L2norm_static;
@@ -1643,6 +1644,10 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
 
   assert(vdim > 0); // Ensure user provided vdim in input file.
   assert(gks->info.charge != 0.0); // Charged GK operators require a nonzero charge.
+
+  if (gks->info.scaling.type == GKYL_GK_SPECIES_SCALING_ADIABATIC) {
+    gks->info.is_static = true;
+  }
 
   for (int d = 0; d < cdim; ++d) {
     cells[d] = gk_app_inp->cells[d];

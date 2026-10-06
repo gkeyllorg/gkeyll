@@ -850,6 +850,10 @@ struct gk_scaling {
       struct gkyl_array *sheath_val; // Value at the sheath entrance, copied to interior cells.
       struct gkyl_array *buffer_conf; // Conf-space buffer array.
     };
+    struct {
+      // Objects for GKYL_GK_SPECIES_SCALING_ADIABATIC.
+      struct gkyl_array *dens_adiab; // Adiabatic density times J (and density ratio).
+    };
   };
 
   // Methods chosen at runtime.
@@ -1568,15 +1572,23 @@ struct gk_neut_species {
 };
 
 // Field data.
-// Adiabatic electron response with flux-surface average (2x/3x).
+struct gk_field;
+
+// Adiabatic species response.
 struct gk_field_adiabatic {
-  double coef; // e^2/Te.
-  struct gkyl_array *ne0_jac; // n0*J, background (electron) density times the Jacobian.
-  struct gkyl_array *kJ; // coef*n0*J.
-  struct gkyl_array *kSq; // -coef*n0*J, Helmholtz coefficient passed to the solver.
-  struct gkyl_array *rho_bg; // q_e n0 J, background charge density.
+  int species_idx; // Index of the adiabatic species.
+  struct gkyl_array *kJ; // K = (q_s^2 n_s0/T_s)*J, from the t=0 moments of the species.
+  struct gkyl_array *kSq; // -K, Helmholtz coefficient passed to the solver (2x/3x).
+  struct gkyl_array *rho_bg; // q_s n_s0 J, background charge density.
+  // Computes out = phi - <phi> (no flux-surface average in 1x).
+  void (*dphi_func)(
+    gkyl_gyrokinetic_app *app, const struct gk_field *gkf, const struct gkyl_array *phi,
+    struct gkyl_array *out
+  );
+
+  // Adiabatic electron objects (2x/3x): flux-surface average and zonal (Woodbury) system.
   struct gkyl_array *phi2, *rhs2; // Scratch fields for the zonal response solve.
-  struct gkyl_array *phi_lift; // Solution with zero rhs (lift of Dirichlet values/bias lines).
+  struct gkyl_array *phi_rhs0; // Solution with rhs = 0.
 
   struct gkyl_basis basis_x; // 1D basis in x.
   struct gkyl_range local_x, local_x_ext; // 1D ranges in x.
@@ -1642,7 +1654,11 @@ struct gk_field {
   bool is_dirichletvar; // Whether user provided spatially varying phi BCs.
   struct gkyl_array *phi_bc; // Spatially varying BC.
   struct gkyl_array *epsilon; // Polarization weight including geometric factors.
-  struct gk_field_adiabatic adiab; // Adiabatic electron response (2x/3x).
+  bool has_adiabatic_species; // Whether a species has an adiabatic response.
+  struct gkyl_poisson_bc poisson_bcs; // Perpendicular Poisson BCs (2x/3x).
+  struct gk_field_adiabatic adiab; // Adiabatic species response.
+  int num_rhoc_species; // Number of species whose charge density enters rho_c.
+  int rhoc_species_idx[GKYL_MAX_SPECIES]; // Indices of the species whose charge enters rho_c.
 
   struct gkyl_poisson_bias_line_list
     fem_parproj_bias_line_list; // Biased lines constraining the solution.
@@ -1727,6 +1743,14 @@ struct gk_field {
   void (*accumulate_rhoc_func)(
     gkyl_gyrokinetic_app *app, struct gk_field *field, struct gk_species *gks,
     struct gkyl_array **bflux
+  );
+  // Pointer to function that sets up the adiabatic response from the t=0 species moments.
+  void (*init_adiab_func)(gkyl_gyrokinetic_app *app, struct gk_field *field);
+  // Pointer to function that adds a background charge density (e.g. of an adiabatic species).
+  void (*accumulate_rhoc_bg_func)(gkyl_gyrokinetic_app *app, struct gk_field *field);
+  // Pointer to function that adds the adiabatic species energy, factor*(1/2) int K (phi-<phi>)^2.
+  void (*energy_adiab_func)(
+    gkyl_gyrokinetic_app *app, const struct gk_field *field, double factor, double *out
   );
   // Pointer to function that frees memory.
   void (*release_func)(const struct gkyl_gyrokinetic_app *app, struct gk_field *field);

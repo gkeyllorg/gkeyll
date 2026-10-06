@@ -129,8 +129,8 @@ struct gkyl_gyrokinetic_multib_field {
   enum gkyl_gkfield_id gkfield_id;
   double kperpSq; // kperp^2 parameter for 1D field equations
 
-  // parameters for adiabatic electrons simulations
-  double electron_mass, electron_charge, electron_density, electron_temp;
+  // Parameters for Boltzmann electron simulations.
+  double electron_mass, electron_charge, electron_temp;
 
   //struct gkyl_poisson_bc poisson_bcs;
 

@@ -62,21 +62,6 @@ void gk_field_fem_projection_par(
 /** Charge Density Accumulation Functions **/
 
 /**
- * Accumulate charge density for an adiabatic species response.
- * Computes the charge density contribution assuming an adiabatic
- * (flux-surface averaged) response for the species.
- *
- * @param app Gyrokinetic application object.
- * @param field Field object for storing charge density.
- * @param gks Species object providing density moments.
- * @param bflux Boundary flux array (for boundary contributions).
- */
-void gk_field_accumulate_rho_c_adiabatic(
-  gkyl_gyrokinetic_app *app, struct gk_field *field, struct gk_species *gks,
-  struct gkyl_array **bflux
-);
-
-/**
  * Accumulate charge density for a full Poisson solve.
  * Computes the charge density from all kinetic species for use
  * in solving the gyrokinetic Poisson equation.
@@ -103,27 +88,30 @@ void gk_field_enforce_parallel_bc_disabled(
   const gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *finout
 );
 
-/** Adiabatic Electron (2x/3x) Functions **/
+/** Adiabatic Species Functions **/
 
 /**
- * Set the background (electron) density times the Jacobian, n0*J, and the
- * background charge density q_e*n0*J, from electron_density or the optional
- * electron_density_profile. Used by all dimensionalities.
+ * Compute the background charge density q_s*n_s0*J and K = (q_s^2 n_s0/T_s)*J of the
+ * adiabatic species from the moments of its distribution function, which must hold the
+ * t=0 initial condition.
  *
  * @param app Gyrokinetic application object.
  * @param gkf Field object.
  */
-void gk_field_adiabatic_density_new(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf);
+void gk_field_adiabatic_profiles_calc(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf);
 
 /**
- * Set the coefficients of the adiabatic electron response, K = (e^2 n0/Te) J
- * and the Helmholtz coefficient kSq = -K. Call before creating the perpendicular
- * Helmholtz solver.
+ * Compute out = phi - <phi>, with <phi> the flux-surface average (2x/3x).
  *
  * @param app Gyrokinetic application object.
  * @param gkf Field object.
+ * @param phi Potential.
+ * @param out Output phi - <phi>.
  */
-void gk_field_adiabatic_coefs_new(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf);
+void gk_field_adiab_elc_dphi(
+  gkyl_gyrokinetic_app *app, const struct gk_field *gkf, const struct gkyl_array *phi,
+  struct gkyl_array *out
+);
 
 /**
  * Initialize the flux-surface average, the 1D->cdim extension and the zonal
@@ -133,7 +121,7 @@ void gk_field_adiabatic_coefs_new(struct gkyl_gyrokinetic_app *app, struct gk_fi
  * @param app Gyrokinetic application object.
  * @param gkf Field object.
  */
-void gk_field_adiabatic_new(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf);
+void gk_field_adiab_elc_new(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf);
 
 /**
  * Compute the flux-surface average <phi> = int J phi dy dz / int J dy dz
@@ -143,7 +131,7 @@ void gk_field_adiabatic_new(struct gkyl_gyrokinetic_app *app, struct gk_field *g
  * @param gkf Field object.
  * @param phi Potential to average.
  */
-void gk_field_adiabatic_fsa(
+void gk_field_adiab_elc_fsa(
   gkyl_gyrokinetic_app *app, const struct gk_field *gkf, const struct gkyl_array *phi
 );
 
@@ -155,7 +143,7 @@ void gk_field_adiabatic_fsa(
  * @param psi 1D field in x.
  * @param out cdim output field.
  */
-void gk_field_adiabatic_inflate(
+void gk_field_adiab_elc_inflate(
   gkyl_gyrokinetic_app *app, const struct gk_field *gkf, const struct gkyl_array *psi,
   struct gkyl_array *out
 );
@@ -167,27 +155,27 @@ void gk_field_adiabatic_inflate(
  * @param app Gyrokinetic application object.
  * @param field Field object.
  */
-void gk_field_adiabatic_rhs_phi_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *field);
+void gk_field_adiab_elc_rhs_phi_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *field);
 
 /**
- * Add factor*(1/2) int K (phi-<phi>)^2 over the local range to out.
+ * Add factor*(1/2) int K (phi-<phi>)^2 over the local range to out (2x/3x).
  *
  * @param app Gyrokinetic application object.
  * @param gkf Field object.
  * @param factor Factor multiplying the integral.
  * @param out Scalar to accumulate into (device memory if use_gpu).
  */
-void gk_field_adiabatic_energy_accumulate(
+void gk_field_adiab_elc_energy_accumulate(
   gkyl_gyrokinetic_app *app, const struct gk_field *gkf, double factor, double *out
 );
 
 /**
- * Release the adiabatic electron response resources.
+ * Release the 2x/3x adiabatic electron resources.
  *
  * @param app Gyrokinetic application object.
  * @param gkf Field object.
  */
-void gk_field_adiabatic_release(const struct gkyl_gyrokinetic_app *app, struct gk_field *gkf);
+void gk_field_adiab_elc_release(const struct gkyl_gyrokinetic_app *app, struct gk_field *gkf);
 
 /** Finite Larmor Radius (FLR) Correction Functions **/
 

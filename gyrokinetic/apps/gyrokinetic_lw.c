@@ -64,11 +64,18 @@ static const struct gkyl_str_int_pair gk_collisionless_type[] = {
   {0, 0}
 };
 
+// Gyrokinetic species scaling type -> enum map.
+static const struct gkyl_str_int_pair gk_species_scaling_type[] = {
+  {"None", GKYL_GK_SPECIES_SCALING_NONE},
+  {"Boltzmann", GKYL_GK_SPECIES_SCALING_BOLTZMANN},
+  {"Adiabatic", GKYL_GK_SPECIES_SCALING_ADIABATIC},
+  {0, 0}
+};
+
 // Gyrokinetic field type -> enum map.
 static const struct gkyl_str_int_pair gk_field_type[] = {
   {"Electrostatic", GKYL_GK_FIELD_ES},
   {"Boltzmann", GKYL_GK_FIELD_BOLTZMANN},
-  {"Adiabatic", GKYL_GK_FIELD_ADIABATIC},
   {"Electromagnetic", GKYL_GK_FIELD_EM},
   {0, 0}
 };
@@ -506,6 +513,11 @@ gyrokinetic_species_lw_new(lua_State *L)
   with_lua_tbl_tbl(L, "collisionless")
   {
     collisionless_type = glua_tbl_get_integer(L, "type", 0);
+  }
+
+  with_lua_tbl_tbl(L, "scaling")
+  {
+    gk_species.scaling.type = glua_tbl_get_integer(L, "type", 0);
   }
 
   enum gkyl_collision_id collision_id = GKYL_NO_COLLISIONS;
@@ -1127,7 +1139,6 @@ gyrokinetic_field_lw_new(lua_State *L)
   gk_field.gkfield_id = glua_tbl_get_integer(L, "fieldID", 0);
   gk_field.electron_mass = glua_tbl_get_number(L, "electronMass", 0.0);
   gk_field.electron_charge = glua_tbl_get_number(L, "electronCharge", 0.0);
-  gk_field.electron_density = glua_tbl_get_number(L, "electronDensity", 0.0);
   gk_field.electron_temp = glua_tbl_get_number(L, "electronTemperature", 0.0);
 
   gk_field.kperpSq = glua_tbl_get_number(L, "kPerpSq", 0.0);
@@ -2792,6 +2803,7 @@ gkyl_gyrokinetic_lw_openlibs(lua_State *L)
   gkyl_register_gyrokinetic_geometry_types(L);
   gkyl_register_gyrokinetic_position_map_types(L);
   gkyl_register_gyrokinetic_collisionless_types(L);
+  register_types(L, gk_species_scaling_type, "GKSpeciesScaling");
   gkyl_register_gyrokinetic_field_types(L);
   gkyl_register_gyrokinetic_radiation_types(L);
   gkyl_register_gyrokinetic_radiation_Te_types(L);

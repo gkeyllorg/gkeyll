@@ -70,6 +70,7 @@ struct gk_app_ctx {
   int Nx, Ny, Nz, Nvpar, Nmu;
   int cells[GKYL_MAX_DIM], poly_order;
   double vpar_max_ion, mu_max_ion;
+  double vpar_max_elc, mu_max_elc;
   // Simulation control parameters
   double t_end, write_phase_freq;
   int num_frames, int_diag_calc_num, num_failures_max;
@@ -473,6 +474,19 @@ eval_temp_ion_ic(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT
   fout[0] = temp_init_ion(xn[0], ctx);
 }
 
+void
+eval_upar_elc_ic(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  fout[0] = 0.0;
+}
+
+void
+eval_temp_elc_ic(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct gk_app_ctx *app = ctx;
+  fout[0] = app->Te0;
+}
+
 // Geometry evaluation functions for the gk app
 void
 mapc2p(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
@@ -622,6 +636,9 @@ create_ctx(void)
   // Velocity box dimensions
   double vpar_max_ion = 4. * vti;
   double mu_max_ion = 7 * Ti0 / B0;
+  // Adiabatic electron velocity box.
+  double vpar_max_elc = 4. * vte;
+  double mu_max_elc = 7 * Te0 / B0;
   double t_end = 0.01 * t_itg;
   int num_frames = 1;
   double write_phase_freq = 1.0;
@@ -688,6 +705,8 @@ create_ctx(void)
     .poly_order = poly_order,
     .vpar_max_ion = vpar_max_ion,
     .mu_max_ion = mu_max_ion,
+    .vpar_max_elc = vpar_max_elc,
+    .mu_max_elc = mu_max_elc,
     .write_phase_freq = write_phase_freq,
     .t_end = t_end,
     .num_frames = num_frames,
@@ -808,15 +827,32 @@ main(int argc, char **argv)
     .time_rate_diagnostics = true,
   };
 
+  // Adiabatic electrons: not evolved, rescaled to n0*(1 + e*(phi-<phi>)/Te0) every step.
+  struct gkyl_gyrokinetic_species elc = {
+    .name = "elc",
+    .charge = ctx.qe,
+    .mass = ctx.me,
+    .vdim = ctx.vdim,
+    .lower = {-ctx.vpar_max_elc, 0.0},
+    .upper = {ctx.vpar_max_elc, ctx.mu_max_elc},
+    .cells = {cells_v[0], cells_v[1]},
+    .projection =
+      {
+        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+        .density = eval_dens_ic, // Match the ion equilibrium density.
+        .ctx_density = &ctx,
+        .upar = eval_upar_elc_ic,
+        .ctx_upar = &ctx,
+        .temp = eval_temp_elc_ic,
+        .ctx_temp = &ctx,
+      },
+    .scaling = {.type = GKYL_GK_SPECIES_SCALING_ADIABATIC},
+    .num_diag_moments = 1,
+    .diag_moments = {GKYL_F_MOMENT_M0},
+  };
+
   // field
   struct gkyl_gyrokinetic_field field = {
-    .gkfield_id = GKYL_GK_FIELD_ADIABATIC,
-    .electron_mass = ctx.me,
-    .electron_charge = ctx.qe,
-    .electron_density = ctx.n0,
-    .electron_density_profile = eval_dens_ic, // Match the ion equilibrium density.
-    .electron_density_profile_ctx = &ctx,
-    .electron_temp = ctx.Te0,
     .poisson_bcs =
       {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}}},
@@ -864,8 +900,8 @@ main(int argc, char **argv)
     .num_periodic_dir = 1,
     .periodic_dirs = {1},
 
-    .num_species = 1,
-    .species = {ion},
+    .num_species = 2,
+    .species = {ion, elc},
 
     .field = field,
 
