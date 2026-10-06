@@ -134,9 +134,7 @@ gk_field_calc_energy_dt_active(
     field->calc_em_energy, field->phi_smooth, 1.0 / dt, field->es_energy_fac, &app->local,
     &app->local, energy_reduced
   );
-  if (field->gkfield_id == GKYL_GK_FIELD_ADIABATIC) {
-    gk_field_adiabatic_energy_accumulate(app, field, 1.0 / dt, energy_reduced);
-  }
+  field->energy_adiab_func(app, field, 1.0 / dt, energy_reduced);
   app->stat.phidot_tm += gkyl_time_diff_now_sec(wst);
 }
 
@@ -156,9 +154,7 @@ gk_field_calc_energy_enabled(
     field->calc_em_energy, field->phi_smooth, 1.0, field->es_energy_fac, &app->local, &app->local,
     field->em_energy_red
   );
-  if (field->gkfield_id == GKYL_GK_FIELD_ADIABATIC) {
-    gk_field_adiabatic_energy_accumulate(app, field, 1.0, field->em_energy_red);
-  }
+  field->energy_adiab_func(app, field, 1.0, field->em_energy_red);
 
   gkyl_comm_allreduce(
     app->comm, GKYL_DOUBLE, GKYL_SUM, 1, field->em_energy_red, field->em_energy_red_global
@@ -306,6 +302,29 @@ gk_field_energy_release(const struct gkyl_gyrokinetic_app *app, struct gk_field 
   gkyl_array_release(gkf->es_energy_fac);
 }
 
+static void
+gk_field_accumulate_rho_c_bg_adiabatic(gkyl_gyrokinetic_app *app, struct gk_field *field)
+{
+  gkyl_array_accumulate_range(field->rho_c, 1.0, field->adiab.rho_bg, &app->local);
+}
+
+static void
+gk_field_accumulate_rho_c_bg_none(gkyl_gyrokinetic_app *app, struct gk_field *field)
+{
+}
+
+static void
+gk_field_adiabatic_energy_none(
+  gkyl_gyrokinetic_app *app, const struct gk_field *field, double factor, double *out
+)
+{
+}
+
+static void
+gk_field_adiabatic_init_none(gkyl_gyrokinetic_app *app, struct gk_field *field)
+{
+}
+
 // Initialize field object.
 struct gk_field *
 gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
@@ -332,9 +351,33 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   // Initialize energy diagnostics.
   gk_field_energy_new(app, gkf);
 
+  // A species with an adiabatic response enters the field equation through its background
+  // density and K = (q_s^2 n_s0/T_s)*J instead of its charge density. Both are set from its
+  // t=0 moments by init_adiab_func once the initial conditions are applied.
   memset(&gkf->adiab, 0, sizeof(gkf->adiab));
-  if (gkf->gkfield_id == GKYL_GK_FIELD_ADIABATIC) {
-    gk_field_adiabatic_density_new(app, gkf);
+  gkf->adiab.species_idx = -1;
+  for (int i = 0; i < app->num_species; ++i) {
+    const struct gkyl_gyrokinetic_species *inp = &app->species[i].info;
+    if (inp->scaling.type == GKYL_GK_SPECIES_SCALING_ADIABATIC) {
+      assert(gkf->adiab.species_idx < 0); // Only one adiabatic species is supported.
+      gkf->adiab.species_idx = i;
+    }
+  }
+  gkf->has_adiabatic_species = gkf->adiab.species_idx >= 0;
+  gkf->init_adiab_func = gk_field_adiabatic_init_none;
+  gkf->accumulate_rhoc_bg_func = gk_field_accumulate_rho_c_bg_none;
+  gkf->energy_adiab_func = gk_field_adiabatic_energy_none;
+  if (gkf->has_adiabatic_species) {
+    assert(gkf->gkfield_id == GKYL_GK_FIELD_ES);
+    gkf->adiab.rho_bg = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    gkf->adiab.kJ = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    gkf->accumulate_rhoc_bg_func = gk_field_accumulate_rho_c_bg_adiabatic;
+  }
+  gkf->num_rhoc_species = 0;
+  for (int i = 0; i < app->num_species; ++i) {
+    if (i != gkf->adiab.species_idx) {
+      gkf->rhoc_species_idx[gkf->num_rhoc_species++] = i;
+    }
   }
 
   // Initialize the field solver
@@ -382,19 +425,6 @@ gk_field_calc_energy_dt(
 }
 
 void
-gk_field_accumulate_rho_c_adiabatic(
-  gkyl_gyrokinetic_app *app, struct gk_field *field, struct gk_species *gks,
-  struct gkyl_array **bflux
-)
-{
-  // Gyroaverage the density if needed.
-  gks->gyroaverage(app, gks, gks->m0.marr, gks->m0_gyroavg);
-  gkyl_array_accumulate_range(field->rho_c, gks->info.charge, gks->m0_gyroavg, &app->local);
-  // Add the background (electron) charge density.
-  gkyl_array_accumulate_range(field->rho_c, 1.0, field->adiab.rho_bg, &app->local);
-}
-
-void
 gk_field_accumulate_rho_c_poisson(
   gkyl_gyrokinetic_app *app, struct gk_field *field, struct gk_species *gks,
   struct gkyl_array **bflux
@@ -413,11 +443,13 @@ gk_field_accumulate_rho_c(
 {
   struct timespec wst = gkyl_wall_clock();
   gkyl_array_clear(field->rho_c, 0.0);
-  for (int i = 0; i < app->num_species; ++i) {
+  for (int k = 0; k < field->num_rhoc_species; ++k) {
+    int i = field->rhoc_species_idx[k];
     struct gk_species *gks = &app->species[i];
     gk_species_moment_calc(&gks->m0, gks->local, app->local, fin[i]);
     field->accumulate_rhoc_func(app, field, gks, bflux[i]);
   }
+  field->accumulate_rhoc_bg_func(app, field);
   app->stat.field_phi_rhs_tm += gkyl_time_diff_now_sec(wst);
 }
 
@@ -482,9 +514,9 @@ gk_field_release(const gkyl_gyrokinetic_app *app, struct gk_field *gkf)
   // Release solver-specific resources.
   gkf->release_func(app, gkf);
 
-  if (gkf->gkfield_id == GKYL_GK_FIELD_ADIABATIC) {
-    gkyl_array_release(gkf->adiab.ne0_jac);
+  if (gkf->has_adiabatic_species) {
     gkyl_array_release(gkf->adiab.rho_bg);
+    gkyl_array_release(gkf->adiab.kJ);
   }
 
   // Release energy diagnostics.

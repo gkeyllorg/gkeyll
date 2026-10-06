@@ -139,6 +139,30 @@ gk_species_scaling_apply_boltzmann(
 }
 
 static void
+gk_species_scaling_apply_adiabatic(
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_scaling *sca, struct gkyl_array *fin,
+  struct gkyl_array **bflux[]
+)
+{
+  const struct gk_field *field = app->field;
+  struct gkyl_array *dens = sca->dens_adiab;
+
+  // n_s*J = n_s0*J*(1 - q_s*(phi-<phi>)/T_s) = (q_s*n_s0*J - K*(phi-<phi>))/q_s, with the
+  // background charge density and K of the field (from the t=0 moments of this species).
+  field->adiab.dphi_func(app, field, field->phi_smooth, dens);
+  gkyl_dg_mul_op_range(&app->basis, 0, dens, 0, field->adiab.kJ, 0, dens, &app->local);
+  gkyl_array_accumulate_range(dens, -1.0, field->adiab.rho_bg, &app->local);
+  gkyl_array_scale_range(dens, -1.0 / gks->info.charge, &app->local);
+
+  // Multiply this species by the ratio of the adiabatic to its current density.
+  gk_species_moment_calc(&gks->m0, gks->local, app->local, fin);
+  gkyl_dg_div_op_range(gks->m0.mem_geo, &app->basis, 0, dens, 0, dens, 0, gks->m0.marr, &app->local);
+  gkyl_dg_mul_conf_phase_op_range(
+    &app->basis, &gks->basis, fin, dens, fin, &app->local, &gks->local
+  );
+}
+
+static void
 gk_species_scaling_apply_disabled(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_scaling *sca, struct gkyl_array *fin,
   struct gkyl_array **bflux[]
@@ -220,6 +244,10 @@ gk_species_scaling_init(
     } else {
       sca->write_func = gk_species_scaling_write_disabled;
     }
+  } else if (sca_inp->type == GKYL_GK_SPECIES_SCALING_ADIABATIC) {
+    sca->type = sca_inp->type;
+    sca->dens_adiab = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    sca->apply_func = gk_species_scaling_apply_adiabatic;
   }
 }
 
@@ -289,5 +317,7 @@ gk_species_scaling_release(const struct gkyl_gyrokinetic_app *app, const struct 
     gkyl_proj_exp_on_basis_release(sca->proj_exp);
     gkyl_array_release(sca->sheath_val);
     gkyl_array_release(sca->buffer_conf);
+  } else if (sca->type == GKYL_GK_SPECIES_SCALING_ADIABATIC) {
+    gkyl_array_release(sca->dens_adiab);
   }
 }

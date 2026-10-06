@@ -7,6 +7,10 @@
 #include <math.h>
 #include <time.h>
 
+// Adiabatic species response in the field equation. Methods valid for any adiabatic species
+// are named gk_field_adiabatic_*, those specific to the adiabatic electron model
+// gk_field_adiab_elc_*.
+//
 // Adiabatic electron response with a flux-surface average (FSA) in 2x/3x:
 //   -div(eps grad_perp phi) + K (phi - <phi>) = rho,  K = (e^2 n0/Te) J,
 // with <phi> = int J phi dy dz / int J dy dz. Writing H = L + K, R for the
@@ -18,7 +22,7 @@
 
 // Copy an array w(x,p) into a contiguous vector v(m) with m=1,...,Nx*num_basis_x.
 static void
-gk_field_adiabatic_zonal_pack(
+gk_field_adiab_elc_zonal_pack(
   const struct gk_field_adiabatic *ad, const struct gkyl_array *arr_ho, double *vec
 )
 {
@@ -34,7 +38,7 @@ gk_field_adiabatic_zonal_pack(
 
 // Copy a v(m) vector into an array w(x,p).
 static void
-gk_field_adiabatic_zonal_unpack(
+gk_field_adiab_elc_zonal_unpack(
   const struct gk_field_adiabatic *ad, const double *vec, struct gkyl_array *arr_ho
 )
 {
@@ -50,7 +54,7 @@ gk_field_adiabatic_zonal_unpack(
 
 // Compute <phi> = int J phi dy dz / int J dy dz into adiab.psi. This is the R operator.
 void
-gk_field_adiabatic_fsa(
+gk_field_adiab_elc_fsa(
   gkyl_gyrokinetic_app *app, const struct gk_field *gkf, const struct gkyl_array *phi
 )
 {
@@ -74,7 +78,7 @@ gk_field_adiabatic_fsa(
 
 // Extend a 1D function of x to a field constant along the other directions. This is the E operator.
 void
-gk_field_adiabatic_inflate(
+gk_field_adiab_elc_inflate(
   gkyl_gyrokinetic_app *app, const struct gk_field *gkf, const struct gkyl_array *psi,
   struct gkyl_array *out
 )
@@ -99,40 +103,40 @@ gk_field_adiabatic_helmholtz_solve(
   gkyl_fem_poisson_perp_solve(gkf->fem_poisson_perp, phi);
 }
 
-// Solve H phi = K E psi with homogeneous BCs (remove the lift of Dirichlet values and bias lines).
+// Solve H phi = K E psi with zero Dirichlet values and subtract the rhs = 0 solution.
 static void
-gk_field_adiabatic_response_solve(
+gk_field_adiab_elc_response_solve(
   gkyl_gyrokinetic_app *app, struct gk_field *gkf, const struct gkyl_array *psi,
   struct gkyl_array *phi
 )
 {
   struct gk_field_adiabatic *ad = &gkf->adiab;
-  gk_field_adiabatic_inflate(app, gkf, psi, phi); // E psi
+  gk_field_adiab_elc_inflate(app, gkf, psi, phi); // E psi
   gkyl_dg_mul_op_range(&app->basis, 0, ad->rhs2, 0, ad->kJ, 0, phi, &app->local); // K E psi
   gk_field_adiabatic_helmholtz_solve(app, gkf, ad->rhs2, phi); // get phi = H^{-1} K E psi
-  gkyl_array_accumulate_range(phi, -1.0, ad->phi_lift, &app->local);
+  gkyl_array_accumulate_range(phi, -1.0, ad->phi_rhs0, &app->local);
 }
 
 // Solve (I - G) psi = <phi1> on the host, with <phi1> in psi on input.
 static void
-gk_field_adiabatic_zonal_solve(gkyl_gyrokinetic_app *app, struct gk_field *gkf)
+gk_field_adiab_elc_zonal_solve(gkyl_gyrokinetic_app *app, struct gk_field *gkf)
 {
   struct gk_field_adiabatic *ad = &gkf->adiab;
   if (app->use_gpu) {
     gkyl_array_copy(ad->psi_ho, ad->psi);
   }
-  gk_field_adiabatic_zonal_pack(ad, ad->psi_ho, gkyl_mat_get_col(ad->rhs_m, 0));
+  gk_field_adiab_elc_zonal_pack(ad, ad->psi_ho, gkyl_mat_get_col(ad->rhs_m, 0));
   gkyl_mat_copy(ad->A_lu, ad->A);
   bool status = gkyl_mat_linsolve_lu(ad->A_lu, ad->rhs_m, gkyl_mem_buff_data(ad->ipiv));
   assert(status);
-  gk_field_adiabatic_zonal_unpack(ad, gkyl_mat_get_ccol(ad->rhs_m, 0), ad->psi_ho);
+  gk_field_adiab_elc_zonal_unpack(ad, gkyl_mat_get_ccol(ad->rhs_m, 0), ad->psi_ho);
   if (app->use_gpu) {
     gkyl_array_copy(ad->psi, ad->psi_ho);
   }
 }
 
 void
-gk_field_adiabatic_rhs_phi_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *field)
+gk_field_adiab_elc_rhs_phi_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *field)
 {
   struct gk_field_adiabatic *ad = &field->adiab;
 
@@ -140,9 +144,9 @@ gk_field_adiabatic_rhs_phi_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_fiel
   gk_field_adiabatic_helmholtz_solve(app, field, field->rho_c, field->phi_smooth);
 
   // Zonal correction: (I - G) psi = <phi1>, phi2 = H^{-1} K E psi.
-  gk_field_adiabatic_fsa(app, field, field->phi_smooth); // Compute <phi1> into ad->psi.
-  gk_field_adiabatic_zonal_solve(app, field); // Solve (I - G) psi = <phi1>.
-  gk_field_adiabatic_response_solve(app, field, ad->psi, ad->phi2); // Solve H phi2 = K E psi.
+  gk_field_adiab_elc_fsa(app, field, field->phi_smooth); // Compute <phi1> into ad->psi.
+  gk_field_adiab_elc_zonal_solve(app, field); // Solve (I - G) psi = <phi1>.
+  gk_field_adiab_elc_response_solve(app, field, ad->psi, ad->phi2); // Solve H phi2 = K E psi.
   gkyl_array_accumulate_range(field->phi_smooth, 1.0, ad->phi2, &app->local); // phi = phi1 + phi2.
 
   // Smooth the potential along z.
@@ -151,18 +155,28 @@ gk_field_adiabatic_rhs_phi_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_fiel
   field->invert_flr(app, field, field->phi_smooth);
 }
 
+// out = phi - <phi>.
+void
+gk_field_adiab_elc_dphi(
+  gkyl_gyrokinetic_app *app, const struct gk_field *gkf, const struct gkyl_array *phi,
+  struct gkyl_array *out
+)
+{
+  gk_field_adiab_elc_fsa(app, gkf, phi);
+  gk_field_adiab_elc_inflate(app, gkf, gkf->adiab.psi, out);
+  gkyl_array_scale_range(out, -1.0, &app->local);
+  gkyl_array_accumulate_range(out, 1.0, phi, &app->local);
+}
+
 // Add factor*(1/2) int K (phi - <phi>)^2 over the local range to out.
 void
-gk_field_adiabatic_energy_accumulate(
+gk_field_adiab_elc_energy_accumulate(
   gkyl_gyrokinetic_app *app, const struct gk_field *gkf, double factor, double *out
 )
 {
   const struct gk_field_adiabatic *ad = &gkf->adiab;
 
-  gkyl_array_copy_range(ad->phi2, gkf->phi_smooth, &app->local);
-  gk_field_adiabatic_fsa(app, gkf, gkf->phi_smooth);
-  gk_field_adiabatic_inflate(app, gkf, ad->psi, ad->rhs2);
-  gkyl_array_accumulate_range(ad->phi2, -1.0, ad->rhs2, &app->local);
+  gk_field_adiab_elc_dphi(app, gkf, gkf->phi_smooth, ad->phi2);
   gkyl_array_integrate_advance(
     ad->calc_energy, ad->phi2, 0.5 * factor, ad->kJ, &app->local, &app->local, ad->energy_red
   );
@@ -178,69 +192,39 @@ gk_field_adiabatic_energy_accumulate(
   }
 }
 
-// Set background electron density times J, and the background charge density (J-weighted like rho_c).
+// Background charge density q_s*n_s0*J and K = (q_s^2 n_s0/T_s)*J from the t=0 moments
+// of the adiabatic species.
 void
-gk_field_adiabatic_density_new(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
+gk_field_adiabatic_profiles_calc(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
 {
   struct gk_field_adiabatic *ad = &gkf->adiab;
-  int nb = app->basis.num_basis;
+  struct gk_species *gks = &app->species[ad->species_idx];
+  double q_s = gks->info.charge;
 
-  ad->ne0_jac = mkarr(app->use_gpu, nb, app->local_ext.volume);
-  if (gkf->info.electron_density_profile) {
-    assert(app->cdim > 1); // The 1x parallel smoother weight uses the scalar density.
-    struct gkyl_array *ne0 = mkarr(app->use_gpu, nb, app->local_ext.volume);
-    struct gkyl_array *ne0_ho = app->use_gpu ? mkarr(false, nb, app->local_ext.volume) :
-                                               gkyl_array_acquire(ne0);
-    struct gkyl_eval_on_nodes *proj = gkyl_eval_on_nodes_new(
-      &app->grid, &app->basis, 1, gkf->info.electron_density_profile,
-      gkf->info.electron_density_profile_ctx
-    );
-    gkyl_eval_on_nodes_advance(proj, 0.0, &app->local, ne0_ho);
-    gkyl_eval_on_nodes_release(proj);
-    gkyl_array_copy(ne0, ne0_ho);
-    gkyl_dg_mul_op_range(
-      &app->basis, 0, ad->ne0_jac, 0, ne0, 0, app->gk_geom->geo_int.jacobgeo, &app->local
-    );
-    gkyl_array_release(ne0);
-    gkyl_array_release(ne0_ho);
-  } else {
-    gkyl_array_set(ad->ne0_jac, gkf->info.electron_density, app->gk_geom->geo_int.jacobgeo);
-  }
+  // Maxwellian moments n_s0*J, upar and T_s/m_s.
+  struct gk_species_moment *moms = &gks->lte.moms;
+  gk_species_moment_calc(moms, gks->local, app->local, gks->f);
 
-  ad->rho_bg = mkarr(app->use_gpu, nb, app->local_ext.volume);
-  gkyl_array_set(ad->rho_bg, gkf->info.electron_charge, ad->ne0_jac);
+  gkyl_array_set_offset(ad->rho_bg, q_s, moms->marr, 0);
+  gkyl_dg_div_op_range(
+    moms->mem_geo, &app->basis, 0, ad->kJ, 0, moms->marr, 2, moms->marr, &app->local
+  );
+  gkyl_array_scale(ad->kJ, q_s * q_s / gks->info.mass);
 }
 
-// Coefficients needed for the adiabatic electron quasi-neutrality solver.
 void
-gk_field_adiabatic_coefs_new(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
+gk_field_adiab_elc_new(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
 {
   struct gk_field_adiabatic *ad = &gkf->adiab;
 
-  assert(app->cdim > 1);
   assert(app->poly_order == 1); // array_average and translate_dim kernels are p=1 only.
-
-  double q_e = gkf->info.electron_charge;
-  ad->coef = q_e * q_e / gkf->info.electron_temp;
-
-  // K = e^2*n0/Te0 * J, and the solver subtracts kSq*phi so kSq = -K.
-  ad->kJ = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-  gkyl_array_set(ad->kJ, ad->coef, ad->ne0_jac);
-  ad->kSq = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-  gkyl_array_set(ad->kSq, -ad->coef, ad->ne0_jac);
-}
-
-void
-gk_field_adiabatic_new(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
-{
-  struct gk_field_adiabatic *ad = &gkf->adiab;
 
   int cdim = app->cdim;
   int nb = app->basis.num_basis;
 
   ad->phi2 = mkarr(app->use_gpu, nb, app->local_ext.volume);
   ad->rhs2 = mkarr(app->use_gpu, nb, app->local_ext.volume);
-  ad->phi_lift = mkarr(app->use_gpu, nb, app->local_ext.volume);
+  ad->phi_rhs0 = mkarr(app->use_gpu, nb, app->local_ext.volume);
 
   // 1D (x) basis and ranges.
   gkyl_cart_modal_serendip(&ad->basis_x, 1, app->poly_order);
@@ -305,9 +289,9 @@ gk_field_adiabatic_new(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
   );
   ad->energy_red = app->use_gpu ? gkyl_cu_malloc(sizeof(double)) : gkyl_malloc(sizeof(double));
 
-  // Lift of the inhomogeneous BCs (solution with zero rhs), removed from the zonal response.
+  // Solution with zero rhs but Dirichlet BCs.
   gkyl_array_clear(ad->rhs2, 0.0);
-  gk_field_adiabatic_helmholtz_solve(app, gkf, ad->rhs2, ad->phi_lift);
+  gk_field_adiabatic_helmholtz_solve(app, gkf, ad->rhs2, ad->phi_rhs0);
 
   // Zonal system A = I - G, G = R H^{-1} K E, it requires Nx*num_basis_x 1D Helmholtz solves.
   int m = ad->local_x.volume * nb_x;
@@ -323,16 +307,16 @@ gk_field_adiabatic_new(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
     for (int i = 0; i < m; i++) {
       ej[i] = i == j ? 1.0 : 0.0;
     }
-    gk_field_adiabatic_zonal_unpack(ad, ej, ad->psi_ho);
+    gk_field_adiab_elc_zonal_unpack(ad, ej, ad->psi_ho);
     if (app->use_gpu) {
       gkyl_array_copy(ad->psi, ad->psi_ho);
     }
-    gk_field_adiabatic_response_solve(app, gkf, ad->psi, ad->phi2);
-    gk_field_adiabatic_fsa(app, gkf, ad->phi2);
+    gk_field_adiab_elc_response_solve(app, gkf, ad->psi, ad->phi2);
+    gk_field_adiab_elc_fsa(app, gkf, ad->phi2);
     if (app->use_gpu) {
       gkyl_array_copy(ad->psi_ho, ad->psi);
     }
-    gk_field_adiabatic_zonal_pack(ad, ad->psi_ho, gkyl_mat_get_col(ad->A, j));
+    gk_field_adiab_elc_zonal_pack(ad, ad->psi_ho, gkyl_mat_get_col(ad->A, j));
   }
   gkyl_free(ej);
 
@@ -377,22 +361,20 @@ gk_field_adiabatic_new(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
   }
 
   gkyl_gyrokinetic_app_cout(
-    app, stdout,
-    "Adiabatic electrons with FSA: e^2/Te = %.6e, m = %d, rho(G) = %.4e, setup %.3e sec.\n",
-    ad->coef, m, grho, gkyl_time_diff_now_sec(wst)
+    app, stdout, "Adiabatic species '%s' with FSA: m = %d, rho(G) = %.4e, setup %.3e sec.\n",
+    app->species[ad->species_idx].info.name, m, grho, gkyl_time_diff_now_sec(wst)
   );
 }
 
 void
-gk_field_adiabatic_release(const struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
+gk_field_adiab_elc_release(const struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
 {
   struct gk_field_adiabatic *ad = &gkf->adiab;
 
   gkyl_array_release(ad->kSq);
-  gkyl_array_release(ad->kJ);
   gkyl_array_release(ad->phi2);
   gkyl_array_release(ad->rhs2);
-  gkyl_array_release(ad->phi_lift);
+  gkyl_array_release(ad->phi_rhs0);
   gkyl_array_release(ad->jphi);
   gkyl_array_release(ad->avg_jphi);
   gkyl_array_release(ad->avg_jphi_red);

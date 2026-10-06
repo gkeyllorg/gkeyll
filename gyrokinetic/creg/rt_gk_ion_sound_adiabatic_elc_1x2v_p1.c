@@ -42,6 +42,8 @@ struct ion_sound_ctx {
   double Lz; // Domain size (configuration space: z-direction).
   double vpar_max_ion; // Domain boundary (ion velocity space: parallel velocity direction).
   double mu_max_ion; // Domain boundary (ion velocity space: magnetic moment direction).
+  double vpar_max_elc; // Domain boundary (electron velocity space: parallel velocity direction).
+  double mu_max_elc; // Domain boundary (electron velocity space: magnetic moment direction).
   int poly_order; // Polynomial order.
   double cfl_frac; // CFL coefficient.
 
@@ -89,6 +91,12 @@ create_ctx(void)
   double mu_max_ion =
     mass_ion * pow(5.0 * vti, 2.0) /
     (2.0 * B0); // Domain boundary (ion velocity space: magnetic moment direction).
+  double vte = sqrt(Te / mass_elc); // Electron thermal velocity.
+  double vpar_max_elc =
+    6.0 * vte; // Domain boundary (electron velocity space: parallel velocity direction).
+  double mu_max_elc =
+    mass_elc * pow(5.0 * vte, 2.0) /
+    (2.0 * B0); // Domain boundary (electron velocity space: magnetic moment direction).
   int poly_order = 1; // Polynomial order.
   double cfl_frac = 1.0; // CFL coefficient.
 
@@ -123,6 +131,8 @@ create_ctx(void)
     .Lz = Lz,
     .vpar_max_ion = vpar_max_ion,
     .mu_max_ion = mu_max_ion,
+    .vpar_max_elc = vpar_max_elc,
+    .mu_max_elc = mu_max_elc,
     .poly_order = poly_order,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
@@ -167,6 +177,31 @@ void
 evalIonUparInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   // Set ion parallel velocity.
+  fout[0] = 0.0;
+}
+
+void
+evalElcDensityInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct ion_sound_ctx *app = ctx;
+
+  // Set electron background number density.
+  fout[0] = app->n0;
+}
+
+void
+evalElcTempInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct ion_sound_ctx *app = ctx;
+
+  // Set electron isotropic temperature.
+  fout[0] = app->Te;
+}
+
+void
+evalElcUparInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  // Set electron parallel velocity.
   fout[0] = 0.0;
 }
 
@@ -265,17 +300,35 @@ main(int argc, char **argv)
        GKYL_F_MOMENT_M2PERP},
   };
 
-  // Field.
-  struct gkyl_gyrokinetic_field field = {
-    .gkfield_id = GKYL_GK_FIELD_ADIABATIC,
+  // Adiabatic electrons: not evolved, rescaled to n0*(1 + e*phi/Te) every step.
+  struct gkyl_gyrokinetic_species elc = {
+    .name = "elc",
+    .charge = ctx.charge_elc,
+    .mass = ctx.mass_elc,
+    .vdim = ctx.vdim,
+    .lower = {-ctx.vpar_max_elc, 0.0},
+    .upper = {ctx.vpar_max_elc, ctx.mu_max_elc},
+    .cells = {cells_v[0], cells_v[1]},
 
-    .electron_mass = ctx.mass_elc,
-    .electron_charge = ctx.charge_elc,
-    .electron_density = ctx.n0,
-    .electron_temp = ctx.Te,
+    .projection =
+      {
+        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+        .density = evalElcDensityInit,
+        .ctx_density = &ctx,
+        .temp = evalElcTempInit,
+        .ctx_temp = &ctx,
+        .upar = evalElcUparInit,
+        .ctx_upar = &ctx,
+      },
 
-    .kperpSq = ctx.k_perp * ctx.k_perp,
+    .scaling = {.type = GKYL_GK_SPECIES_SCALING_ADIABATIC},
+
+    .num_diag_moments = 1,
+    .diag_moments = {GKYL_F_MOMENT_M0},
   };
+
+  // Field.
+  struct gkyl_gyrokinetic_field field = {.kperpSq = ctx.k_perp * ctx.k_perp};
 
   // Gyrokinetic app.
   struct gkyl_gk app_inp = {
@@ -303,8 +356,8 @@ main(int argc, char **argv)
     .num_periodic_dir = 1,
     .periodic_dirs = {0},
 
-    .num_species = 1,
-    .species = {ion},
+    .num_species = 2,
+    .species = {ion, elc},
 
     .field = field,
 
