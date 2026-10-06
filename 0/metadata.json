@@ -1,0 +1,81 @@
+{
+  "cli_version": "0.11.3",
+  "checkpoint_id": "01M49ANCP2Q1R0N2ASY84ND3CF",
+  "session_id": "01a112a3-1f78-7da2-8b08-736e65720c79",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-06T19:22:19.972597797Z",
+  "branch": "low-pass-filter",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "gyrokinetic/apps/gk_species.c"
+  ],
+  "agent": "Codex",
+  "model": "gpt-6-astra",
+  "turn_id": "e46041a0697f",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 91071,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 1186816,
+    "output_tokens": 5514,
+    "api_call_count": 33
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-10-06T19:22:19.945809407Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 46,
+    "total_committed": 0,
+    "total_lines_changed": 46,
+    "agent_percentage": 0,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 1514,
+      "user_lines_removed": 303,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".agents/skills/code_style/SKILL.md": 55,
+        ".agents/skills/compiling/SKILL.md": 100,
+        ".agents/skills/directory-structure/SKILL.md": 71,
+        ".agents/skills/gyrokinetic-details/SKILL.md": 36,
+        ".agents/skills/naming-conventions/SKILL.md": 32,
+        ".agents/skills/software-design/SKILL.md": 34,
+        ".agents/skills/testing-and-verification/SKILL.md": 169,
+        "gyrokinetic/apps/gk_species.c": 96,
+        "gyrokinetic/apps/gk_species_damping.c": 565,
+        "gyrokinetic/apps/gkyl_gyrokinetic.h": 28,
+        "gyrokinetic/apps/gkyl_gyrokinetic_multib.h": 2,
+        "gyrokinetic/apps/gkyl_gyrokinetic_priv.h": 158,
+        "gyrokinetic/apps/gyrokinetic.c": 35,
+        "gyrokinetic/apps/gyrokinetic_multib.c": 11,
+        "gyrokinetic/apps/gyrokinetic_multib_update_ssp_rk3.c": 43,
+        "gyrokinetic/apps/gyrokinetic_update_ssp_rk3.c": 42,
+        "gyrokinetic/creg/rt_gk_mirror_boltz_elc_damped_1x2v_p1.c": 2,
+        "gyrokinetic/creg/rt_gk_mirror_boltz_elc_poa_1x2v_p1.c": 15,
+        "gyrokinetic/creg/rt_gk_wham_1x2v_p1.c": 9,
+        "pr-branches.md": 11
+      },
+      "user_removed_per_file": {
+        ".claude/skills/code_style": 1,
+        ".codex/skills/code_style": 1,
+        "gyrokinetic/apps/gk_species.c": 46,
+        "gyrokinetic/apps/gk_species_damping.c": 198,
+        "gyrokinetic/apps/gkyl_gyrokinetic.h": 5,
+        "gyrokinetic/apps/gkyl_gyrokinetic_multib.h": 1,
+        "gyrokinetic/apps/gkyl_gyrokinetic_priv.h": 14,
+        "gyrokinetic/apps/gyrokinetic.c": 5,
+        "gyrokinetic/apps/gyrokinetic_multib.c": 1,
+        "gyrokinetic/apps/gyrokinetic_multib_update_ssp_rk3.c": 13,
+        "gyrokinetic/apps/gyrokinetic_update_ssp_rk3.c": 11,
+        "gyrokinetic/creg/rt_gk_mirror_boltz_elc_damped_1x2v_p1.c": 4,
+        "gyrokinetic/creg/rt_gk_mirror_boltz_elc_poa_1x2v_p1.c": 3
+      }
+    }
+  ]
+}

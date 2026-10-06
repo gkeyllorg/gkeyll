@@ -1,0 +1,13 @@
+We are on branch main. Your goal is to go through each one of these branches and ensure that they are up-to-date with main. Merge main into these branches and resolve any merge conflicts. Do not fully rebuild gkeyll for each individual branch or run the tests. Merge the branches and be diligent about ensuring there are no errors via static code analysis. One of the biggest changes is that GKYL_BC_GK_SPECIES_SHEATH is now GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING, which is relevant to regression tests and the boundary conditions
+
+---
+
+We are on branch main. Your goal is to go through each one of these branches and ensure that they are up-to-date with main. Merge main into these branches and resolve any merge conflicts. Do not fully rebuild gkeyll for each individual branch or run the tests. Merge the branches and be diligent about ensuring there are no errors via static code analysis. One of the biggest changes is that GKYL_BC_GK_SPECIES_SHEATH is now GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING, which is relevant to regression tests and the boundary conditions
+
+---
+
+Run the ci/format-all.sh script to ensure that each branch is formatted corectly too
+
+---
+
+Run the ci/format-all.sh script to ensure that each branch is formatted corectly too
