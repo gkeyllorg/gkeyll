@@ -8,7 +8,7 @@
 // A triple stores 'val' at (row, col)
 struct gkyl_mtriple {
   size_t row, col;
-  double val;  
+  double val;
 };
 
 /** Triples stores list of (i,j,val) for use in constructing sparse matrices */
@@ -23,7 +23,7 @@ typedef struct gkyl_mat_triples_iter gkyl_mat_triples_iter;
  * @param nc Number of cols
  * @return Pointer to new empty triples object.
  */
-gkyl_mat_triples* gkyl_mat_triples_new(size_t nr, size_t nc);
+gkyl_mat_triples *gkyl_mat_triples_new(size_t nr, size_t nc);
 
 /*
  * Set row-major/col-major ordering for triples.

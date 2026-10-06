@@ -23,22 +23,22 @@ GKYL_CU_DH static void
 ctest_pob_f_1d(double t, const double *xn, double *fout, void *ctx)
 {
   double x = xn[0];
-  fout[0] = x*x;
+  fout[0] = x * x;
 }
 
 GKYL_CU_DH static void
 ctest_pob_f_2d_2c(double t, const double *xn, double *fout, void *ctx)
 {
-  struct ctest_proj_on_basis_2d_ctx *tctx = (struct ctest_proj_on_basis_2d_ctx *) ctx;
+  struct ctest_proj_on_basis_2d_ctx *tctx = (struct ctest_proj_on_basis_2d_ctx *)ctx;
   double x = xn[0], y = xn[1];
-  fout[0] = tctx->c0 + x*y;
-  fout[1] = tctx->c1*x*x + y;
+  fout[0] = tctx->c0 + x * y;
+  fout[1] = tctx->c1 * x * x + y;
 }
 
 GKYL_CU_DH static void
 ctest_pob_c2p_1d(const double *xcomp, double *xphys, void *ctx)
 {
-  xphys[0] = 0.5*xcomp[0] + 0.1;
+  xphys[0] = 0.5 * xcomp[0] + 0.1;
 }
 
 GKYL_DEFINE_CU_DEV_FUNC_GETTER(ctest_pob_f_1d, evalf_t, ctest_pob_f_1d_getter);

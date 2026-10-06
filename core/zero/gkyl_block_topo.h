@@ -11,7 +11,7 @@ enum gkyl_oriented_edge {
   GKYL_LOWER_NEGATIVE,
   GKYL_UPPER_POSITIVE,
   GKYL_UPPER_NEGATIVE,
-  GKYL_PHYSICAL, // edge on physical domain boundary
+  GKYL_PHYSICAL // edge on physical domain boundary
 };
 
 // Connection to a given target edge
@@ -46,7 +46,7 @@ struct gkyl_block_topo {
  * @param nblocks Total number of blocks in topology
  * @return New block topology
  */
-struct gkyl_block_topo* gkyl_block_topo_new(int ndim, int nblocks);
+struct gkyl_block_topo *gkyl_block_topo_new(int ndim, int nblocks);
 
 /**
  * Acquire pointer to block-topology. The pointer must be released
@@ -55,7 +55,7 @@ struct gkyl_block_topo* gkyl_block_topo_new(int ndim, int nblocks);
  * @param btopo Block-topo to which reference is required
  * @return Pointer to acquired block-topo
  */
-struct gkyl_block_topo* gkyl_block_topo_acquire(const struct gkyl_block_topo* btopo);
+struct gkyl_block_topo *gkyl_block_topo_acquire(const struct gkyl_block_topo *btopo);
 
 /**
  * Check consistency of block topology: the topology typically has
@@ -87,11 +87,11 @@ int gkyl_block_topo_write(const struct gkyl_block_topo *btopo, const char *fname
  * @param status On output, status as enum gkyl_array_rio_status
  * @return btopo New block-topology from file
  */
-struct gkyl_block_topo* gkyl_block_topo_read(const char *fname, int *status);
+struct gkyl_block_topo *gkyl_block_topo_read(const char *fname, int *status);
 
 /**
  * Free block topology.
  *
  * @return Block topology to free
  */
-void gkyl_block_topo_release(struct gkyl_block_topo* btopo);
+void gkyl_block_topo_release(struct gkyl_block_topo *btopo);

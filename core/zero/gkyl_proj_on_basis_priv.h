@@ -30,14 +30,16 @@ struct gkyl_proj_on_basis {
   struct gkyl_proj_on_basis *on_dev; // Device clone of this updater (points to itself on CPU).
 };
 
-GKYL_CU_DH
-static inline void
-proj_on_basis_log_to_comp(int ndim, const double *eta,
-  const double * GKYL_RESTRICT dx, const double * GKYL_RESTRICT xc,
-  double* GKYL_RESTRICT xout)
+GKYL_CU_DH static inline void
+proj_on_basis_log_to_comp(
+  int ndim, const double *eta, const double *GKYL_RESTRICT dx, const double *GKYL_RESTRICT xc,
+  double *GKYL_RESTRICT xout
+)
 {
   // Convert logical to computational coordinates.
-  for (int d=0; d<ndim; ++d) xout[d] = 0.5*dx[d]*eta[d]+xc[d];
+  for (int d = 0; d < ndim; ++d) {
+    xout[d] = 0.5 * dx[d] * eta[d] + xc[d];
+  }
 }
 
 #ifdef GKYL_HAVE_CUDA
@@ -52,7 +54,7 @@ proj_on_basis_log_to_comp(int ndim, const double *eta,
  * @param up Host-side updater.
  * @return Pointer to the device clone.
  */
-struct gkyl_proj_on_basis* gkyl_proj_on_basis_cu_dev_new(struct gkyl_proj_on_basis *up);
+struct gkyl_proj_on_basis *gkyl_proj_on_basis_cu_dev_new(struct gkyl_proj_on_basis *up);
 
 /**
  * Run the projection on the GPU.
@@ -62,7 +64,9 @@ struct gkyl_proj_on_basis* gkyl_proj_on_basis_cu_dev_new(struct gkyl_proj_on_bas
  * @param update_range Range on which to run projection.
  * @param arr Output array (must be a device array).
  */
-void gkyl_proj_on_basis_advance_cu(const struct gkyl_proj_on_basis *up,
-  double tm, const struct gkyl_range *update_range, struct gkyl_array *arr);
+void gkyl_proj_on_basis_advance_cu(
+  const struct gkyl_proj_on_basis *up, double tm, const struct gkyl_range *update_range,
+  struct gkyl_array *arr
+);
 
 #endif

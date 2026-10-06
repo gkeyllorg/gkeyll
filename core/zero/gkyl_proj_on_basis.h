@@ -21,22 +21,22 @@ struct gkyl_proj_on_basis_inp {
   const struct gkyl_basis *basis; // basis functions
 
   enum gkyl_quad_type qtype; // quadrature to use
-  
+
   int num_quad; // number of quadrature points
   int num_ret_vals; // number of return values in eval function
   evalf_t eval; // function to project
   void *ctx; // function context
 
   proj_on_basis_c2p_t c2p_func; // Function that transforms a set of ndim
-                                // computational coordinates to physical ones.
+  // computational coordinates to physical ones.
   void *c2p_func_ctx; // Context for c2p_func.
 
   bool use_gpu; // Whether to run the projection on the GPU. If true, 'eval'
-                // (and 'c2p_func', if provided) must be device function
-                // pointers (see GKYL_DEFINE_CU_DEV_FUNC_GETTER in gkyl_util.h)
-                // and 'ctx'/'c2p_func_ctx' must point to GPU-resident memory;
-                // the user must place their context on the GPU themselves as
-                // this updater has no way to perform that copy.
+    // (and 'c2p_func', if provided) must be device function
+    // pointers (see GKYL_DEFINE_CU_DEV_FUNC_GETTER in gkyl_util.h)
+    // and 'ctx'/'c2p_func_ctx' must point to GPU-resident memory;
+    // the user must place their context on the GPU themselves as
+    // this updater has no way to perform that copy.
 };
 
 /**
@@ -46,7 +46,7 @@ struct gkyl_proj_on_basis_inp {
  * @param inp Input parameters
  * @return New updater pointer.
  */
-gkyl_proj_on_basis* gkyl_proj_on_basis_inew(const struct gkyl_proj_on_basis_inp *inp);
+gkyl_proj_on_basis *gkyl_proj_on_basis_inew(const struct gkyl_proj_on_basis_inp *inp);
 
 /**
  * Create new updater to project function on basis functions on a
@@ -60,8 +60,10 @@ gkyl_proj_on_basis* gkyl_proj_on_basis_inew(const struct gkyl_proj_on_basis_inp 
  * @param ctx Context for function evaluation. Can be NULL.
  * @return New updater pointer.
  */
-gkyl_proj_on_basis *gkyl_proj_on_basis_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_basis *basis, int num_quad, int num_ret_vals, evalf_t eval, void *ctx);
+gkyl_proj_on_basis *gkyl_proj_on_basis_new(
+  const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis, int num_quad, int num_ret_vals,
+  evalf_t eval, void *ctx
+);
 
 /**
  * Compute projection on basis. The update_rng MUST be a sub-range of
@@ -74,8 +76,10 @@ gkyl_proj_on_basis *gkyl_proj_on_basis_new(const struct gkyl_rect_grid *grid,
  * @param update_rng Range on which to run projection.
  * @param out Output array (a device array if the updater was created with use_gpu=true).
  */
-void gkyl_proj_on_basis_advance(const gkyl_proj_on_basis *pob,
-  double tm, const struct gkyl_range *update_rng, struct gkyl_array *out);
+void gkyl_proj_on_basis_advance(
+  const gkyl_proj_on_basis *pob, double tm, const struct gkyl_range *update_rng,
+  struct gkyl_array *out
+);
 
 /**
  * Perform the quadrature in the proj_on_basis procedure.
@@ -85,7 +89,9 @@ void gkyl_proj_on_basis_advance(const gkyl_proj_on_basis *pob,
  * @param fun_at_ords Function evaluated at ordinates in one cell.
  * @param f Output projected function in one cell.
  */
-void gkyl_proj_on_basis_quad(const gkyl_proj_on_basis *up, const struct gkyl_array *fun_at_ords, double* f);
+void gkyl_proj_on_basis_quad(
+  const gkyl_proj_on_basis *up, const struct gkyl_array *fun_at_ords, double *f
+);
 
 /**
  * Return the total number of quadrature points/ordinates.
@@ -102,11 +108,11 @@ int gkyl_proj_on_basis_get_tot_quad(const gkyl_proj_on_basis *up);
  * @param node Index indicate the desired node.
  * @return Node coordinates.
  */
-double* gkyl_proj_on_basis_fetch_ordinate(const gkyl_proj_on_basis *up, long node);
+double *gkyl_proj_on_basis_fetch_ordinate(const gkyl_proj_on_basis *up, long node);
 
 /**
  * Delete updater.
  *
  * @param pob Updater to delete.
  */
-void gkyl_proj_on_basis_release(gkyl_proj_on_basis* pob);
+void gkyl_proj_on_basis_release(gkyl_proj_on_basis *pob);

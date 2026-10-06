@@ -4,4 +4,3 @@
 struct gkyl_dg_updater_vlasov_tm {
   double vlasov_tm; // time for vlasov updates
 };
-
