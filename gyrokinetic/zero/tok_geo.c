@@ -4829,6 +4829,146 @@ tok_chord_normal_solve(const struct gkyl_tok_geo *geo, double psi,
   return true;
 }
 
+
+// ---------------------------------------------------------------------------
+// Arc-exact trace sampling (user decision 2026-09-29; built 2026-10-06).
+//
+// A trace is a list of points on one psi contour with their CUMULATIVE CHORD
+// length. Sampling it at a fraction u used to pick the bracket by chord length
+// and the point inside it by chord fraction, then move that point onto the
+// contour along the chord's normal. Neither is the contour's arc: the chord of
+// a bracket is shorter than its arc by ~ (kappa h)^2/24, and a chord fraction
+// projected onto a curve is not the same fraction of its arc. Because the
+// reference trace's brackets do not shrink with theta refinement (257 nodes),
+// the error is ABSOLUTE in physical length -- a fixed (+a, 0, -a) sawtooth of
+// 1-5 um on ordinary rows and 20-75 um beside the X point -- so the relative
+// error of a cell, and the seam grading |G-1| measured on it, GREW with theta
+// refinement on every device (fable-handoff 09 sections 8b, 9c). Refining the
+// trace (GKYL_TOK_REF_TRACE_FOLLOWS_THETA) only moves that floor and costs 4-5x.
+//
+// Here the bracket is chosen by the TRUE cumulative arc of the trace and the
+// point slid along the contour until its true arc from the bracket's start is
+// the target: u is a fraction of the contour's own length, to roundoff. No
+// constant is introduced: the arc of a piece is accepted once halving it
+// changes its length by no more than sqrt(DBL_EPSILON) relatively (Richardson's
+// correction then leaves an O(eps) error), or once the piece is no longer than
+// the precision the contour solve locates points to.
+// GKYL_TOK_TRACE_SAMPLE_ARC_EXACT=0 restores chord-fraction sampling for A/B.
+// ---------------------------------------------------------------------------
+static bool
+tok_trace_sample_arc_exact_enabled(void)
+{
+  static int on = -1;
+  if (on < 0) {
+    const char *e = getenv("GKYL_TOK_TRACE_SAMPLE_ARC_EXACT");
+    on = (e && e[0] == '0') ? 0 : 1;
+  }
+  return on == 1;
+}
+
+// The psi contour between two of its points p0 -> p1 close enough that it is
+// a graph over their chord (one trace bracket or less), as a polyline exact
+// to roundoff: bisected, each midpoint moved onto the contour along the
+// chord's normal, until halving a piece changes its length by no more than
+// sqrt(DBL_EPSILON) relatively (Richardson's correction then leaves an O(eps)
+// error), or the piece is no longer than the contour solve locates points to.
+// Appends each piece's END point and the piece's TRUE arc. False if a midpoint
+// cannot be put on the contour.
+struct tok_leaves { double *r, *z, *arc; int n, cap; };
+
+static bool
+tok_leaves_push(struct tok_leaves *lv, double r, double z, double arc)
+{
+  if (lv->n == lv->cap) {
+    int cap = lv->cap ? 2*lv->cap : 1024;
+    double *nr = gkyl_malloc(cap*sizeof(double)), *nz = gkyl_malloc(cap*sizeof(double)), *na = gkyl_malloc(cap*sizeof(double));
+    if (lv->n) {
+      memcpy(nr, lv->r, lv->n*sizeof(double)); memcpy(nz, lv->z, lv->n*sizeof(double)); memcpy(na, lv->arc, lv->n*sizeof(double));
+      gkyl_free(lv->r); gkyl_free(lv->z); gkyl_free(lv->arc);
+    }
+    lv->r = nr; lv->z = nz; lv->arc = na; lv->cap = cap;
+  }
+  lv->r[lv->n] = r; lv->z[lv->n] = z; lv->arc[lv->n] = arc; ++lv->n;
+  return true;
+}
+
+static bool
+tok_contour_leaves(const struct gkyl_tok_geo *geo, double psi,
+  double r0, double z0, double r1, double z1, int depth, struct tok_leaves *lv)
+{
+  const double l1 = hypot(r1-r0, z1-z0);
+  if (!(l1 > 0.0))
+    return true;
+  double mr = 0.0, mz = 0.0;
+  if (!tok_chord_normal_solve(geo, psi, 0.5*(r0+r1), 0.5*(z0+z1), r1-r0, z1-z0,
+      0.5*l1, &mr, &mz))
+    return false;
+  const double l2 = hypot(mr-r0, mz-z0)+hypot(r1-mr, z1-mz);
+  // The contour solve locates a point to |psi residual|/|grad psi|; a piece no
+  // longer than a few of those cannot be resolved further.
+  double gr = 0.0, gz = 0.0, located = 0.0;
+  if (tok_eval_psi_grad_rz_local(geo, mr, mz, &gr, &gz) && hypot(gr, gz) > 0.0)
+    located = 1e-9*fmax(1.0, fabs(psi))/hypot(gr, gz);
+  // Depth is bounded by halving to the double-precision resolution of l1.
+  if (fabs(l2-l1) <= sqrt(DBL_EPSILON)*l2 || l1 <= 4.0*located || depth >= 52) {
+    const double arc = l2+(l2-l1)/3.0;
+    // split the corrected arc between the halves in proportion to their chords
+    const double a0 = hypot(mr-r0, mz-z0)/l2*arc;
+    tok_leaves_push(lv, mr, mz, a0);
+    tok_leaves_push(lv, r1, z1, arc-a0);
+    return true;
+  }
+  return tok_contour_leaves(geo, psi, r0, z0, mr, mz, depth+1, lv) &&
+    tok_contour_leaves(geo, psi, mr, mz, r1, z1, depth+1, lv);
+}
+
+// A trace refined to its true arc, cached: tok_trace_sample is called many
+// times with the same trace (the row rule alone, thousands per row). A few
+// slots, keyed by the arrays and a signature of their contents, so a buffer
+// refilled for another surface misses. lv.arc holds the CUMULATIVE true arc.
+struct tok_arc_cache_slot {
+  const double *tr, *tz, *ts;
+  int n;
+  double psi, sig[4];
+  bool valid;
+  struct tok_leaves lv;
+  unsigned long used;
+};
+static _Thread_local struct tok_arc_cache_slot tok_arc_cache[4];
+static _Thread_local unsigned long tok_arc_cache_clock;
+
+static const struct tok_leaves *
+tok_trace_true_arc(const struct gkyl_tok_geo *geo, double psi,
+  const double *tr, const double *tz, const double *ts, int n)
+{
+  const double sig[4] = { tr[0], tz[0], tr[n-1], ts[n-1] };
+  struct tok_arc_cache_slot *slot = &tok_arc_cache[0];
+  for (int k=0; k<4; ++k) {
+    struct tok_arc_cache_slot *c = &tok_arc_cache[k];
+    if (c->valid && c->tr == tr && c->tz == tz && c->ts == ts && c->n == n &&
+        c->psi == psi && !memcmp(c->sig, sig, sizeof sig)) {
+      c->used = ++tok_arc_cache_clock;
+      return &c->lv;
+    }
+    if (c->used < slot->used) slot = c;
+  }
+  slot->valid = false;
+  slot->lv.n = 0;
+  tok_leaves_push(&slot->lv, tr[0], tz[0], 0.0);
+  for (int i=1; i<n; ++i)
+    if (!tok_contour_leaves(geo, psi, slot->lv.r[slot->lv.n-1], slot->lv.z[slot->lv.n-1],
+        tr[i], tz[i], 0, &slot->lv)) {
+      slot->used = 0;
+      return 0;
+    }
+  for (int j=1; j<slot->lv.n; ++j)
+    slot->lv.arc[j] += slot->lv.arc[j-1];
+  slot->tr = tr; slot->tz = tz; slot->ts = ts; slot->n = n; slot->psi = psi;
+  memcpy(slot->sig, sig, sizeof sig);
+  slot->valid = true;
+  slot->used = ++tok_arc_cache_clock;
+  return &slot->lv;
+}
 static bool
 tok_trace_sample(const struct gkyl_tok_geo *geo, double psi,
   const double *tr, const double *tz, const double *ts, int n,
@@ -4845,6 +4985,32 @@ tok_trace_sample(const struct gkyl_tok_geo *geo, double psi,
   if (u <= endpoint_tol) { *r = tr[0]; *z = tz[0]; return true; }
   if (u >= 1.0-endpoint_tol) {
     *r = tr[n-1]; *z = tz[n-1]; return true;
+  }
+  // Arc-exact first (see tok_trace_sample_arc_exact_enabled): the trace
+  // refined to the contour's true arc, the point at its true arc fraction.
+  if (tok_trace_sample_arc_exact_enabled()) {
+    const struct tok_leaves *lv = tok_trace_true_arc(geo, psi, tr, tz, ts, n);
+    if (lv && lv->n > 1 && lv->arc[lv->n-1] > 0.0) {
+      const double want = u*lv->arc[lv->n-1];
+      int a = 0, b = lv->n-1;
+      while (b-a > 1) {
+        int mid = (a+b)/2;
+        if (lv->arc[mid] < want) a = mid;
+        else b = mid;
+      }
+      const double whole = lv->arc[b]-lv->arc[a], into = want-lv->arc[a];
+      if (!(into > 0.0)) { *r = lv->r[a]; *z = lv->z[a]; return true; }
+      if (!(into < whole)) { *r = lv->r[b]; *z = lv->z[b]; return true; }
+      // inside a piece the chord and the arc agree to roundoff (see above)
+      const double f = into/whole;
+      const double cdr = lv->r[b]-lv->r[a], cdz = lv->z[b]-lv->z[a];
+      if (tok_chord_normal_solve(geo, psi, lv->r[a]+f*cdr, lv->z[a]+f*cdz, cdr, cdz,
+          0.5*hypot(cdr, cdz), r, z))
+        return true;
+    }
+    if (tok_ordered_map_diag_enabled())
+      fprintf(stderr, "TOK_TRACE_SAMPLE_DIAG reason=arc_exact_failed u=%.17g psi=%.17g n=%d\n",
+        u, psi, n);
   }
   double target = u*ts[n-1];
   int lo = 0, hi = n-1;
