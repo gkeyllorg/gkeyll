@@ -64,6 +64,12 @@
 #define GKYL_MAX_FDOT_MUL 4
 #endif
 
+// Maximum number of configuration-space regions in which the gyrokinetic
+// positivity shift can be restricted to apply.
+#ifndef GKYL_MAX_POSITIVITY_SHIFT_REGIONS
+#define GKYL_MAX_POSITIVITY_SHIFT_REGIONS 4
+#endif
+
 // Maximum number of supported charge states
 #ifndef GKYL_MAX_CHARGE_STATE
 #define GKYL_MAX_CHARGE_STATE 18
