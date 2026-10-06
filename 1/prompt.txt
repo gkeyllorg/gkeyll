@@ -1,0 +1,1 @@
+What is the difference between the personal CI and the workstation CI?

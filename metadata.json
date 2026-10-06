@@ -3,7 +3,7 @@
   "checkpoint_id": "01M49G7NRM6HS4MMD4R1EPAB3Z",
   "strategy": "manual-commit",
   "branch": "jenkins-github-queue-status",
-  "checkpoints_count": 4,
+  "checkpoints_count": 6,
   "files_touched": [
     "ci/jenkins/README.md",
     "ci/jenkins/README.perlmutter_gpu.md",
@@ -22,14 +22,21 @@
       "compact_transcript": "/0/transcript.jsonl",
       "content_hash": "/0/content_hash.txt",
       "prompt": "/0/prompt.txt"
+    },
+    {
+      "metadata": "/1/metadata.json",
+      "transcript": "/1/full.jsonl",
+      "compact_transcript": "/1/transcript.jsonl",
+      "content_hash": "/1/content_hash.txt",
+      "prompt": "/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 135881,
+    "input_tokens": 154580,
     "cache_creation_tokens": 0,
-    "cache_read_tokens": 2955648,
-    "output_tokens": 39794,
-    "api_call_count": 36,
+    "cache_read_tokens": 3019136,
+    "output_tokens": 40403,
+    "api_call_count": 40,
     "subagent_tokens_complete": true
   }
 }
