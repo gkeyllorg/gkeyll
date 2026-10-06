@@ -15,6 +15,7 @@ if (!explicitSelector && env.BRANCH_NAME != 'main' && !env.CHANGE_ID) {
 
 def forwarded = [
     "CI_STATUS_CONTEXT=${env.TEAM_WORKSTATION_STATUS_CONTEXT ?: 'continuous-integration/jenkins/team-workstation'}",
+    'CI_PLATFORM=team',
     'CI_NODE_ALREADY_ALLOCATED=true',
     "PERSONAL_NODE_LABEL=${env.TEAM_WORKSTATION_NODE_LABEL ?: ''}",
     "PERSONAL_MKDEPS_SCRIPT=${env.TEAM_WORKSTATION_MKDEPS_SCRIPT ?: ''}",
