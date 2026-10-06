@@ -21,6 +21,7 @@ gk_species_damping_write_enabled(
   struct gkyl_msgpack_map_elem mpe_drate[] = {
     {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0},
     {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = "serendipity"},
+    {.key = "value_form", .elem_type = GKYL_MP_STRING, .cval = "nodal"},
     {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Rate of the damping term."},
     {.key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = tm},
     {.key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = frame}
