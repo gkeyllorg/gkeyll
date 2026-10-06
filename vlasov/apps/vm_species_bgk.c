@@ -1,6 +1,5 @@
 #include <assert.h>
 #include <gkyl_vlasov_priv.h>
-#include <gkyl_const.h>
 
 static void
 vmbgk_moms_disabled(
@@ -20,7 +19,7 @@ vmbgk_moms_enabled(
   struct timespec wst = gkyl_wall_clock();
 
   // Compute Maxwellian moments (n, u_i, T/m).
-  vm_species_moment_calc(&vms->lte.moms, vms->local, app->local, fin);
+  vm_species_lte_moms(app, vms, &vms->lte, fin);
 
   // Calculate nu_ss.
   bgk->self_nu_func(app, vms, bgk);
@@ -321,10 +320,7 @@ vm_species_bgk_init(
       // Self-collision frequency computed in time.
       bgk->norm_nu_self = true;
 
-      double eps0 = vms->info.collisions.eps0 ? vms->info.collisions.eps0 : GKYL_EPSILON0;
-      double hbar = vms->info.collisions.hbar ? vms->info.collisions.hbar :
-                                                GKYL_PLANCKS_CONSTANT_H / 2 / M_PI;
-      double eV = vms->info.collisions.eV ? vms->info.collisions.eV : GKYL_ELEMENTARY_CHARGE;
+      struct vm_coll_ref_params rp = vm_species_coll_ref_params(&vms->info.collisions);
       // Vlasov does not use reference magnetic field for cyclotron frequency contribution to log(Lambda)
       double bmag_ref = 0.0;
       // vtsq_min and spitzer_calc are set up above (needed for any computed frequency).
@@ -333,10 +329,9 @@ vm_species_bgk_init(
       // beta = 0. This gives a nu_ss that is arguably 2X smaller than it should be, but it's
       // cheaper and yields an electron isotropization rate that agrees better with the FPO's.
       bgk->norm_nu_fac_self = nu_frac * gkyl_calc_Morse_alpha_E_const(
-                                          vms->info.collisions.den_ref,
-                                          vms->info.collisions.den_ref, vms->mass, vms->mass,
-                                          vms->charge, vms->charge, vms->info.collisions.temp_ref,
-                                          vms->info.collisions.temp_ref, bmag_ref, eps0, hbar, eV
+                                          rp.den, rp.den, vms->mass, vms->mass, vms->charge,
+                                          vms->charge, rp.temp, rp.temp, bmag_ref, rp.eps0, rp.hbar,
+                                          rp.eV
                                         );
 
       // Set pointers to functions chosen at runtime.
@@ -434,21 +429,18 @@ vm_species_bgk_cross_init(
       // Compute the time-independent part of alpha_E.
       double alpha_E_norm[GKYL_MAX_SPECIES] = {0.0};
       for (int i = 0; i < bgk->num_cross_collisions; ++i) {
-        double eps0 = vms->info.collisions.eps0 ? vms->info.collisions.eps0 : GKYL_EPSILON0;
-        double hbar = vms->info.collisions.hbar ? vms->info.collisions.hbar :
-                                                  GKYL_PLANCKS_CONSTANT_H / 2 / M_PI;
-        double eV = vms->info.collisions.eV ? vms->info.collisions.eV : GKYL_ELEMENTARY_CHARGE;
+        struct vm_coll_ref_params rp_s = vm_species_coll_ref_params(&vms->info.collisions);
+        struct vm_coll_ref_params rp_r =
+          vm_species_coll_ref_params(&bgk->collide_with[i]->info.collisions);
         // Vlasov does not use reference magnetic field for cyclotron frequency contribution to log(Lambda)
         double bmag_ref = 0.0;
         double mass_self = vms->mass, mass_other = bgk->collide_with[i]->mass;
 
-        alpha_E_norm[i] =
-          nu_frac * gkyl_calc_Morse_alpha_E_const(
-                      vms->info.collisions.den_ref, bgk->collide_with[i]->info.collisions.den_ref,
-                      mass_self, mass_other, vms->charge, bgk->collide_with[i]->charge,
-                      vms->info.collisions.temp_ref, bgk->collide_with[i]->info.collisions.temp_ref,
-                      bmag_ref, eps0, hbar, eV
-                    );
+        alpha_E_norm[i] = nu_frac * gkyl_calc_Morse_alpha_E_const(
+                                      rp_s.den, rp_r.den, mass_self, mass_other, vms->charge,
+                                      bgk->collide_with[i]->charge, rp_s.temp, rp_r.temp, bmag_ref,
+                                      rp_s.eps0, rp_s.hbar, rp_s.eV
+                                    );
       }
 
       if (vms->info.collisions.cross_nu[0]) {
@@ -480,15 +472,12 @@ vm_species_bgk_cross_init(
           gkyl_array_set(bgk->ref_cross_nu[i], 1.0, bgk->cross_nu[i]);
 
           // Compute alpha_E using reference parameters.
-          assert(vms->info.collisions.den_ref);
-          assert(bgk->collide_with[i]->info.collisions.den_ref);
-          assert(vms->info.collisions.temp_ref);
-          assert(bgk->collide_with[i]->info.collisions.temp_ref);
+          struct vm_coll_ref_params rp_s = vm_species_coll_ref_params(&vms->info.collisions);
+          struct vm_coll_ref_params rp_r =
+            vm_species_coll_ref_params(&bgk->collide_with[i]->info.collisions);
           double mass_self = vms->mass, mass_other = bgk->collide_with[i]->mass;
-          double den_s = vms->info.collisions.den_ref;
-          double den_r = bgk->collide_with[i]->info.collisions.den_ref;
-          double vtsq_s = vms->info.collisions.temp_ref / mass_self;
-          double vtsq_r = bgk->collide_with[i]->info.collisions.temp_ref / mass_other;
+          double den_s = rp_s.den, den_r = rp_r.den;
+          double vtsq_s = rp_s.temp / mass_self, vtsq_r = rp_r.temp / mass_other;
 
           bgk->alpha_E_fac[i] =
             (alpha_E_norm[i] * den_s * den_r / pow(sqrt(vtsq_s + vtsq_r), 3.0)) *

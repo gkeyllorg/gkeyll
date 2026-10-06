@@ -1,3 +1,13 @@
+// Sheath formation with the Vlasov-Maxwell system of equations, run to a steady state.
+// Half domain: symmetry boundary at x = 0, absorbing conducting wall at x = Lx. A boundary-flux
+// source replaces the particles lost to the wall. LBO self-collisions act upstream (x < L_nu) and
+// electron-ion collisions use Spitzer frequencies computed from the local moments. Unlike the
+// fixed-temperature BGK version, nothing holds the upstream temperature, so the electrons cool as
+// their tail escapes, equilibrate with the ions and the sheath is weaker. The position map clusters
+// the cells at the wall.
+// Figures of merit at steady state: midplane-to-wall potential drop
+// e*dphi/Te = 0.47, ion wall flux / (n_mid c_s) = 0.35, ion speed at the wall / c_s = 0.87.
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -22,6 +32,7 @@
 struct sheath_ctx {
   // Physical constants (using normalized code units).
   double epsilon0; // Permittivity of free space.
+  double mu0; // Permeability of free space.
   double mass_elc; // Electron mass.
   double charge_elc; // Electron charge.
   double mass_ion; // Ion mass.
@@ -41,11 +52,15 @@ struct sheath_ctx {
   double lambda_D; // Electron Debye length.
   double omega_pe; // Electron plasma frequency.
 
+  double nu_ee; // Electron-electron collision frequency (upstream).
+  double nu_ii; // Ion-ion collision frequency (upstream).
+
   // Simulation parameters.
   int Nx; // Cell count (configuration space: x-direction).
   int Nvx; // Cell count (velocity space: vx-direction).
   double Lx; // Domain size (configuration space: x-direction).
   double Ls; // Domain size (source).
+  double L_nu; // Extent of the collisional region.
   double vx_max_elc; // Domain boundary (electron velocity space: vx-direction).
   double vx_max_ion; // Domain boundary (ion velocity space: vx-direction).
   int poly_order; // Polynomial order.
@@ -65,9 +80,12 @@ create_ctx(void)
 {
   // Physical constants (using normalized code units).
   double epsilon0 = 1.0; // Permittivity of free space.
+  double mu0 =
+    1.0 /
+    25.0; // Permeability of free space (speed of light = 5 vte, the electron velocity-grid edge).
   double mass_elc = 1.0; // Electron mass.
   double charge_elc = -1.0; // Electron charge.
-  double mass_ion = 1836.153; // Ion mass.
+  double mass_ion = 100.0; // Ion mass.
   double charge_ion = 1.0; // Ion charge.
 
   double n0 = 1.0; // Reference number density.
@@ -85,17 +103,21 @@ create_ctx(void)
   double omega_pe =
     sqrt(n0 * charge_ion * charge_ion / (epsilon0 * mass_elc)); // Electron plasma frequency.
 
+  double nu_ee = vte / (5.0 * lambda_D); // Electron-electron collision frequency (upstream).
+  double nu_ii = vti / (5.0 * lambda_D); // Ion-ion collision frequency (upstream).
+
   // Simulation parameters.
-  int Nx = 256; // Cell count (configuration space: x-direction).
-  int Nvx = 64; // Cell count (velocity space: vx-direction).
-  double Lx = 256.0 * lambda_D; // Domain size (configuration space: x-direction).
-  double Ls = 100.0 * lambda_D; // Domain size (source).
-  double vx_max_elc = 6.0 * vte; // Domain boundary (electron velocity space: vx-direction).
-  double vx_max_ion = 6.0 * vti; // Domain boundary (ion velocity space: vx-direction).
+  int Nx = 16; // Cell count (configuration space: x-direction).
+  int Nvx = 24; // Cell count (velocity space: vx-direction).
+  double Lx = 64.0 * lambda_D; // Domain size (configuration space: x-direction).
+  double Ls = 40.0 * lambda_D; // Domain size (source).
+  double L_nu = 32.0 * lambda_D; // Extent of the collisional region.
+  double vx_max_elc = 5.0 * vte; // Domain boundary (electron velocity space: vx-direction).
+  double vx_max_ion = 8.0 * vti; // Domain boundary (ion velocity space: vx-direction).
   int poly_order = 2; // Polynomial order.
   double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 20.0 / omega_pe; // Final simulation time.
+  double t_end = 1200.0 / omega_pe; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
@@ -106,6 +128,7 @@ create_ctx(void)
 
   struct sheath_ctx ctx = {
     .epsilon0 = epsilon0,
+    .mu0 = mu0,
     .mass_elc = mass_elc,
     .charge_elc = charge_elc,
     .mass_ion = mass_ion,
@@ -119,10 +142,13 @@ create_ctx(void)
     .vti = vti,
     .lambda_D = lambda_D,
     .omega_pe = omega_pe,
+    .nu_ee = nu_ee,
+    .nu_ii = nu_ii,
     .Nx = Nx,
     .Nvx = Nvx,
     .Lx = Lx,
     .Ls = Ls,
+    .L_nu = L_nu,
     .vx_max_elc = vx_max_elc,
     .vx_max_ion = vx_max_ion,
     .poly_order = poly_order,
@@ -184,10 +210,10 @@ evalElcSourceDensityInit(
 
   double n = 0.0;
 
-  if (fabs(x) < Ls) {
-    n = (Ls - fabs(x)) / Ls; // Electron source total number density (left).
+  if (x < Ls) {
+    n = 2.0 * (Ls - x) / Ls; // Electron source total number density (inside the source region).
   } else {
-    n = 0.0; // Electron source total number density (right).
+    n = 0.0; // Electron source total number density (outside the source region).
   }
 
   // Set electron source total number density.
@@ -203,7 +229,7 @@ evalElcSourceTempInit(
 
   double Te = app->Te;
 
-  // Set electron source isotropic temperature..
+  // Set electron source isotropic temperature.
   fout[0] = Te;
 }
 
@@ -265,10 +291,10 @@ evalIonSourceDensityInit(
 
   double n = 0.0;
 
-  if (fabs(x) < Ls) {
-    n = (Ls - fabs(x)) / Ls; // Ion source total number density (left).
+  if (x < Ls) {
+    n = 2.0 * (Ls - x) / Ls; // Ion source total number density (inside the source region).
   } else {
-    n = 0.0; // Ion source total number density (right).
+    n = 0.0; // Ion source total number density (outside the source region).
   }
 
   // Set ion source total number density.
@@ -284,7 +310,7 @@ evalIonSourceTempInit(
 
   double Ti = app->Ti;
 
-  // Set ion source isotropic temperature.
+  // Set ion source isotropic temperature..
   fout[0] = Ti;
 }
 
@@ -299,6 +325,86 @@ evalIonSourceVDriftInit(
 
   // Set ion source drift velocity.
   fout[0] = Vx_drift_ion;
+}
+
+// Position map clustering the cells at the wall (x = Lx): the cell size goes from
+// (1 + A) * Lx / Nx at the symmetry boundary to (1 - A) * Lx / Nx at the wall.
+void
+mapc2p_pos(double t, const double *GKYL_RESTRICT xc, double *GKYL_RESTRICT xp, void *ctx)
+{
+  struct sheath_ctx *app = ctx;
+  double x_c = xc[0];
+
+  double Lx = app->Lx;
+  double A = 0.8;
+
+  xp[0] = (1.0 + A) * x_c - A * (x_c * x_c) / Lx;
+}
+
+void
+evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  double Ex = 0.0; // Total electric field (x-direction).
+  double Ey = 0.0; // Total electric field (y-direction).
+  double Ez = 0.0; // Total electric field (z-direction).
+
+  double Bx = 0.0; // Total magnetic field (x-direction).
+  double By = 0.0; // Total magnetic field (y-direction).
+  double Bz = 0.0; // Total magnetic field (z-direction).
+
+  // Set electric field.
+  fout[0] = Ex;
+  fout[1] = Ey, fout[2] = Ez;
+  // Set magnetic field.
+  fout[3] = Bx;
+  fout[4] = By;
+  fout[5] = Bz;
+  // Set correction potentials.
+  fout[6] = 0.0;
+  fout[7] = 0.0;
+}
+
+void
+evalElcNu(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct sheath_ctx *app = ctx;
+
+  double x = xn[0];
+
+  double nu_ee = app->nu_ee;
+  double lambda_D = app->lambda_D;
+  double L_nu = app->L_nu;
+
+  double nu = nu_ee / (1.0 + exp((x - L_nu) / (6.0 * lambda_D))); // Electron collision frequency.
+
+  // Set electron collision frequency.
+  fout[0] = nu;
+}
+
+void
+evalIonNu(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct sheath_ctx *app = ctx;
+
+  double x = xn[0];
+
+  double nu_ii = app->nu_ii;
+  double lambda_D = app->lambda_D;
+  double L_nu = app->L_nu;
+
+  double nu = nu_ii / (1.0 + exp((x - L_nu) / (6.0 * lambda_D))); // Ion collision frequency.
+
+  // Set ion collision frequency.
+  fout[0] = nu;
+}
+
+// Snap a trigger whose next time exceeds t_end only by round-off back to t_end.
+static void
+snap_trigger_to_t_end(struct gkyl_tm_trigger *trig, double t_end)
+{
+  if (trig->tcurr > t_end && trig->tcurr <= t_end * (1.0 + 1.0e-10)) {
+    trig->tcurr = t_end;
+  }
 }
 
 void
@@ -444,6 +550,15 @@ main(int argc, char **argv)
         .ctx_temp = &ctx,
         .V_drift = evalElcVDriftInit,
         .ctx_V_drift = &ctx,
+        .correct_all_moms = true,
+      },
+    .collisions =
+      {
+        .collision_id = GKYL_LBO_COLLISIONS,
+        .self_nu = evalElcNu,
+        .self_nu_ctx = &ctx,
+        .num_cross_collisions = 1,
+        .collide_with = {"ion"},
       },
 
     .source =
@@ -465,10 +580,10 @@ main(int argc, char **argv)
           },
       },
 
-    .bcx = {.lower = {.type = GKYL_SPECIES_ABSORB}, .upper = {.type = GKYL_SPECIES_ABSORB}},
+    .bcx = {.lower = {.type = GKYL_SPECIES_REFLECT}, .upper = {.type = GKYL_SPECIES_ABSORB}},
 
-    .num_diag_moments = 1,
-    .diag_moments = {GKYL_F_MOMENT_LTE},
+    .num_diag_moments = 3,
+    .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2},
   };
 
   // Ions.
@@ -487,6 +602,15 @@ main(int argc, char **argv)
         .ctx_temp = &ctx,
         .V_drift = evalIonVDriftInit,
         .ctx_V_drift = &ctx,
+        .correct_all_moms = true,
+      },
+    .collisions =
+      {
+        .collision_id = GKYL_LBO_COLLISIONS,
+        .self_nu = evalIonNu,
+        .self_nu_ctx = &ctx,
+        .num_cross_collisions = 1,
+        .collide_with = {"elc"},
       },
 
     .source =
@@ -508,34 +632,35 @@ main(int argc, char **argv)
           },
       },
 
-    .bcx = {.lower = {.type = GKYL_SPECIES_ABSORB}, .upper = {.type = GKYL_SPECIES_ABSORB}},
+    .bcx = {.lower = {.type = GKYL_SPECIES_REFLECT}, .upper = {.type = GKYL_SPECIES_ABSORB}},
 
-    .num_diag_moments = 1,
-    .diag_moments = {GKYL_F_MOMENT_LTE},
+    .num_diag_moments = 3,
+    .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2},
   };
 
   // Field.
   struct gkyl_vlasov_field field = {
     .epsilon0 = ctx.epsilon0,
+    .mu0 = ctx.mu0,
 
-    .poisson_bcs =
-      {
-        .lo_type = {GKYL_POISSON_DIRICHLET},
-        .up_type = {GKYL_POISSON_DIRICHLET},
+    .elcErrorSpeedFactor = 0.0,
+    .mgnErrorSpeedFactor = 0.0,
 
-        .lo_value = {0.0},
-        .up_value = {0.0},
-      },
+    .init = evalFieldInit,
+    .ctx = &ctx,
+
+    .bcx = {GKYL_FIELD_SYM_WALL, GKYL_FIELD_PEC_WALL},
   };
 
-  // Vlasov-Poisson app.
+  // Vlasov-Maxwell app.
   struct gkyl_vm app_inp = {
 
     .cdim = 1,
     .vdim = 1,
-    .lower = {-0.5 * ctx.Lx},
-    .upper = {0.5 * ctx.Lx},
+    .lower = {0.0},
+    .upper = {ctx.Lx},
     .cells = {NX},
+    .mapc2p_pos[0] = {.mapc2p_pos_func = mapc2p_pos, .mapc2p_pos_ctx = &ctx},
 
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
@@ -562,7 +687,6 @@ main(int argc, char **argv)
        }},
 
     .field = field,
-    .is_electrostatic = true,
 
     .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm},
   };
@@ -641,6 +765,11 @@ main(int argc, char **argv)
   // Compute initial guess of maximum stable time-step.
   double dt = t_end - t_curr;
 
+  // The requested time-step is shortened near the end of the simulation so that
+  // the final step lands exactly on t_end.
+  bool is_dt_clipped = false; // Was the requested dt shortened below the stable dt?
+  bool is_last_step = true; // Does the requested dt reach t_end?
+
   // Initialize small time-step check.
   double dt_init = -1.0, dt_failure_tol = ctx.dt_failure_tol;
   int num_failures = 0, num_failures_max = ctx.num_failures_max;
@@ -656,8 +785,37 @@ main(int argc, char **argv)
       break;
     }
 
-    t_curr += status.dt_actual;
+    // Only a step that took the full requested dt counts as shortened/final.
+    bool took_requested_dt = status.dt_actual == dt;
+    bool was_dt_clipped = is_dt_clipped && took_requested_dt;
+    if (is_last_step && took_requested_dt) {
+      // Avoid round-off leaving t_curr just short of t_end.
+      t_curr = t_end;
+      // Trigger times are accumulated sums and can exceed t_end by round-off.
+      // Snap them so the final frame and diagnostics are still produced.
+      snap_trigger_to_t_end(&fe_trig, t_end);
+      snap_trigger_to_t_end(&im_trig, t_end);
+      snap_trigger_to_t_end(&l2f_trig, t_end);
+      snap_trigger_to_t_end(&io_trig, t_end);
+    } else {
+      t_curr += status.dt_actual;
+    }
+
+    // Request the next time-step. If the remaining time fits in one stable step,
+    // take exactly the remaining time; if it fits in less than two, split it into
+    // two equal steps so the final step is never a sliver of the stable dt.
+    double t_left = t_end - t_curr;
     dt = status.dt_suggested;
+    is_dt_clipped = false;
+    is_last_step = false;
+    if (t_left <= dt) {
+      dt = t_left;
+      is_dt_clipped = true;
+      is_last_step = true;
+    } else if (t_left < 2.0 * dt) {
+      dt = 0.5 * t_left;
+      is_dt_clipped = true;
+    }
 
     calc_field_energy(&fe_trig, app, t_curr, false);
     calc_integrated_mom(&im_trig, app, t_curr, false);
@@ -666,7 +824,7 @@ main(int argc, char **argv)
 
     if (dt_init < 0.0) {
       dt_init = status.dt_actual;
-    } else if (status.dt_actual < dt_failure_tol * dt_init) {
+    } else if (!was_dt_clipped && status.dt_actual < dt_failure_tol * dt_init) {
       num_failures += 1;
 
       gkyl_vlasov_app_cout(app, stdout, "WARNING: Time-step dt = %g", status.dt_actual);

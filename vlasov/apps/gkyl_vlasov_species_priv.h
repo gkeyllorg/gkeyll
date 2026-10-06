@@ -168,7 +168,9 @@ struct vm_proj {
 struct vm_lte {
   struct gkyl_array *f_lte;
 
-  struct vm_species_moment moms; // moments needed in the equilibrium
+  // LTE moments (n, V_drift, T/m) of the stored J_x J_v f, with the configuration-space
+  // Jacobian divided out of the density (see vm_species_lte_moms), so they are physical.
+  struct vm_species_moment moms;
 
   // LTE distribution function projection object
   // also corrects the density of projected distribution function
@@ -1327,6 +1329,21 @@ void vm_species_proj_conf_func(
   struct gkyl_array *fout_ho
 );
 
+// Reference parameters for Spitzer collision frequencies and Morse's alpha_E.
+struct vm_coll_ref_params {
+  double den, temp; // Reference density and temperature.
+  double hbar, eps0, eV; // Planck's constant/2 pi, vacuum permittivity, elementary charge.
+};
+
+/**
+ * Reference parameters of a collisions input block, with unset (zero) entries
+ * defaulting to 1 (normalized units), matching the Lua interface.
+ *
+ * @param coll Collisions input block
+ * @return Reference parameters
+ */
+struct vm_coll_ref_params vm_species_coll_ref_params(const struct gkyl_vlasov_collisions *coll);
+
 /**
  * Initialize species projection object.
  *
@@ -1375,6 +1392,21 @@ void vm_species_projection_release(const struct gkyl_vlasov_app *app, const stru
 void vm_species_lte_init(
   struct gkyl_vlasov_app *app, struct vm_species *s, struct vm_lte *lte,
   struct correct_all_moms_inp corr_inp
+);
+
+/**
+ * Compute the LTE moments (n, V_drift, T/m) of fin into lte->moms, dividing the
+ * configuration-space Jacobian out of the density in place so the moments are
+ * physical (the stored fin is J_x J_v f).
+ *
+ * @param app Vlasov app object
+ * @param species Pointer to species
+ * @param lte Pointer to lte object
+ * @param fin Input distribution function
+ */
+void vm_species_lte_moms(
+  gkyl_vlasov_app *app, const struct vm_species *vms, struct vm_lte *lte,
+  const struct gkyl_array *fin
 );
 
 /**

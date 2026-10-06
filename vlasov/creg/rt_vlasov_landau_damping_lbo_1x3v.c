@@ -76,7 +76,6 @@ create_ctx(void)
 
   // Simulation parameters.
   int Nx = 8; // Cell count (configuration space: x-direction).
-  // Collisions smooth velocity space, so fewer vx cells are needed than without them.
   int Nvx = 16; // Cell count (velocity space: vx-direction).
   int Nvy = 4; // Cell count (velocity space: vy-direction).
   int Nvz = 4; // Cell count (velocity space: vz-direction).

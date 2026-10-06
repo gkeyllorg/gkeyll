@@ -82,6 +82,25 @@ vm_species_lte_init(
   lte->f_lte = mkarr(app->use_gpu, vms->basis.num_basis, vms->local_ext.volume);
 }
 
+// Compute the LTE moments of fin, with the configuration-space Jacobian divided out of
+// the density so they are physical
+void
+vm_species_lte_moms(
+  gkyl_vlasov_app *app, const struct vm_species *vms, struct vm_lte *lte,
+  const struct gkyl_array *fin
+)
+{
+  vm_species_moment_calc(&lte->moms, vms->local, app->local, fin);
+
+  // Divide the configuration-space Jacobian out of the density (the first
+  // num_basis coefficients); V_drift and T/m are velocity ratios in which J cancels.
+  if (!vms->pos_map->is_identity) {
+    gkyl_vlasov_position_map_divide_jacobpos_conf(
+      vms->pos_map, &app->local, app->basis.num_basis, lte->moms.marr, lte->moms.marr
+    );
+  }
+}
+
 // Compute f_lte from input LTE moments
 void
 vm_species_lte_from_moms(
@@ -119,6 +138,14 @@ vm_species_lte_from_moms(
     lte->n_iter += status_corr.num_iter;
   }
 
+  // The moments are physical, so weight f_lte by the configuration-space
+  // Jacobian to match the stored J_x J_v f.
+  if (!vms->pos_map->is_identity) {
+    gkyl_vlasov_position_map_rescale_jacobpos(
+      vms->pos_map, &vms->basis, &vms->local, lte->f_lte, lte->f_lte
+    );
+  }
+
   app->stat.species_lte_tm += gkyl_time_diff_now_sec(wst);
 }
 
@@ -129,7 +156,7 @@ vm_species_lte(
   const struct gkyl_array *fin
 )
 {
-  vm_species_moment_calc(&lte->moms, vms->local, app->local, fin);
+  vm_species_lte_moms(app, vms, lte, fin);
 
   vm_species_lte_from_moms(app, vms, lte, lte->moms.marr);
 }

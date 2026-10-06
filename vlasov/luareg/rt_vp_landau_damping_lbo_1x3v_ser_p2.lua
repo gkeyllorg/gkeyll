@@ -16,7 +16,7 @@ k0 = 0.5 -- Perturbed wave number.
 
 -- Simulation parameters.
 Nx = 8 -- Cell count (configuration space: x-direction).
-Nvx = 16 -- Cell count (velocity space: vx-direction); collisions smooth velocity space, so fewer cells are needed than without them.
+Nvx = 16 -- Cell count (velocity space: vx-direction).
 Nvy = 4 -- Cell count (velocity space: vy-direction).
 Nvz = 4 -- Cell count (velocity space: vz-direction).
 Lx = 4.0 * pi -- Domain size (configuration space: x-direction).

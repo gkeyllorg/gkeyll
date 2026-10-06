@@ -15,7 +15,7 @@ alpha = 1.0e-4 -- Applied perturbation amplitude.
 k0 = 0.5 -- Perturbed wave number.
 
 -- Simulation parameters.
-Nx = 16 -- Cell count (configuration space: x-direction); twice the p2 tests, as the basis is p1 in x.
+Nx = 16 -- Cell count (configuration space: x-direction).
 Nvx = 24 -- Cell count (velocity space: vx-direction).
 Nvy = 4 -- Cell count (velocity space: vy-direction).
 Nvz = 4 -- Cell count (velocity space: vz-direction).

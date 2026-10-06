@@ -69,9 +69,10 @@ vm_species_bflux_init(
     bflux->integ_moms[2 * i + 1] =
       gkyl_mom_calc_new(&bflux->boundary_grid[2 * i + 1], bflux->mom_type, app->use_gpu);
 
-    bflux->mom_arr[2 * i] = mkarr(app->use_gpu, app->basis.num_basis, bflux->conf_r[2 * i].volume);
-    bflux->mom_arr[2 * i + 1] =
-      mkarr(app->use_gpu, app->basis.num_basis, bflux->conf_r[2 * i + 1].volume);
+    // The integrated moments have vdim + 2 components, not one per basis function.
+    int num_mom = gkyl_mom_type_num_mom(bflux->mom_type);
+    bflux->mom_arr[2 * i] = mkarr(app->use_gpu, num_mom, bflux->conf_r[2 * i].volume);
+    bflux->mom_arr[2 * i + 1] = mkarr(app->use_gpu, num_mom, bflux->conf_r[2 * i + 1].volume);
 
     cells[i] = vms->grid.cells[i]; // reset number of cells in dimension for next loop
   }

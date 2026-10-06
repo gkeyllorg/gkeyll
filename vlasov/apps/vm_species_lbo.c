@@ -1,6 +1,5 @@
 #include <assert.h>
 #include <gkyl_vlasov_priv.h>
-#include <gkyl_const.h>
 
 static void
 vmlbo_moms_disabled(
@@ -23,7 +22,7 @@ vmlbo_moms_enabled(
   // frequency needs them: this species' own self/cross nu, or a partner's
   // computed cross nu, which reads this species' LTE moments (see cross_init).
   if (lbo->needs_lte_moms) {
-    vm_species_moment_calc(&species->lte.moms, species->local, app->local, fin);
+    vm_species_lte_moms(app, species, &species->lte, fin);
   }
 
   // Compute M0, M1i, M2 moments .
@@ -154,8 +153,14 @@ vmlbo_cross_moms_enabled(
     // Compute the cross-species collision frequency.
     lbo->cross_nu_func(app, vms, lbo, i);
 
-    // Compute alpha_E.
+    // Compute alpha_E. It enters the cross primitive-moment solve alongside
+    // moments of the stored J_x J_v f, so weight it by the conf Jacobian.
     lbo->alpha_E_func(app, vms, lbo, i);
+    if (!vms->pos_map->is_identity) {
+      gkyl_vlasov_position_map_rescale_jacobpos_conf(
+        vms->pos_map, &app->local, lbo->alpha_E, lbo->alpha_E
+      );
+    }
 
     // Multiply moments and boundary corrections by cross nu.
     for (int d = 0; d < app->vdim + 2; d++) {
@@ -254,6 +259,18 @@ vmlbo_write_mom_enabled(gkyl_vlasov_app *app, struct vm_species *vms, double tm,
   app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wtm);
 }
 
+struct vm_coll_ref_params
+vm_species_coll_ref_params(const struct gkyl_vlasov_collisions *coll)
+{
+  return (struct vm_coll_ref_params){
+    .den = coll->den_ref ? coll->den_ref : 1.0,
+    .temp = coll->temp_ref ? coll->temp_ref : 1.0,
+    .hbar = coll->hbar ? coll->hbar : 1.0,
+    .eps0 = coll->eps0 ? coll->eps0 : 1.0,
+    .eV = coll->eV ? coll->eV : 1.0,
+  };
+}
+
 void
 vm_species_lbo_init(
   struct gkyl_vlasov_app *app, struct vm_species *vms, struct vm_lbo_collisions *lbo
@@ -321,10 +338,7 @@ vm_species_lbo_init(
       // Self-collision frequency computed in time.
       lbo->norm_nu_self = true;
 
-      double eps0 = vms->info.collisions.eps0 ? vms->info.collisions.eps0 : GKYL_EPSILON0;
-      double hbar = vms->info.collisions.hbar ? vms->info.collisions.hbar :
-                                                GKYL_PLANCKS_CONSTANT_H / 2 / M_PI;
-      double eV = vms->info.collisions.eV ? vms->info.collisions.eV : GKYL_ELEMENTARY_CHARGE;
+      struct vm_coll_ref_params rp = vm_species_coll_ref_params(&vms->info.collisions);
       // Vlasov does not use reference magnetic field for cyclotron frequency contribution to log(Lambda)
       double bmag_ref = 0.0;
       // vtsq_min and spitzer_calc are set up above (needed for any computed frequency).
@@ -333,10 +347,9 @@ vm_species_lbo_init(
       // beta = 0. This gives a nu_ss that is arguably 2X smaller than it should be, but it's
       // cheaper and yields an electron isotropization rate that agrees better with the FPO's.
       lbo->norm_nu_fac_self = nu_frac * gkyl_calc_Morse_alpha_E_const(
-                                          vms->info.collisions.den_ref,
-                                          vms->info.collisions.den_ref, vms->mass, vms->mass,
-                                          vms->charge, vms->charge, vms->info.collisions.temp_ref,
-                                          vms->info.collisions.temp_ref, bmag_ref, eps0, hbar, eV
+                                          rp.den, rp.den, vms->mass, vms->mass, vms->charge,
+                                          vms->charge, rp.temp, rp.temp, bmag_ref, rp.eps0, rp.hbar,
+                                          rp.eV
                                         );
 
       // Set pointers to functions chosen at runtime.
@@ -449,21 +462,18 @@ vm_species_lbo_cross_init(
       // Compute the time-independent part of alpha_E.
       double alpha_E_norm[GKYL_MAX_SPECIES] = {0.0};
       for (int i = 0; i < lbo->num_cross_collisions; ++i) {
-        double eps0 = vms->info.collisions.eps0 ? vms->info.collisions.eps0 : GKYL_EPSILON0;
-        double hbar = vms->info.collisions.hbar ? vms->info.collisions.hbar :
-                                                  GKYL_PLANCKS_CONSTANT_H / 2 / M_PI;
-        double eV = vms->info.collisions.eV ? vms->info.collisions.eV : GKYL_ELEMENTARY_CHARGE;
+        struct vm_coll_ref_params rp_s = vm_species_coll_ref_params(&vms->info.collisions);
+        struct vm_coll_ref_params rp_r =
+          vm_species_coll_ref_params(&lbo->collide_with[i]->info.collisions);
         // Vlasov does not use reference magnetic field for cyclotron frequency contribution to log(Lambda)
         double bmag_ref = 0.0;
         double mass_self = vms->mass, mass_other = lbo->collide_with[i]->mass;
 
-        alpha_E_norm[i] =
-          nu_frac * gkyl_calc_Morse_alpha_E_const(
-                      vms->info.collisions.den_ref, lbo->collide_with[i]->info.collisions.den_ref,
-                      mass_self, mass_other, vms->charge, lbo->collide_with[i]->charge,
-                      vms->info.collisions.temp_ref, lbo->collide_with[i]->info.collisions.temp_ref,
-                      bmag_ref, eps0, hbar, eV
-                    );
+        alpha_E_norm[i] = nu_frac * gkyl_calc_Morse_alpha_E_const(
+                                      rp_s.den, rp_r.den, mass_self, mass_other, vms->charge,
+                                      lbo->collide_with[i]->charge, rp_s.temp, rp_r.temp, bmag_ref,
+                                      rp_s.eps0, rp_s.hbar, rp_s.eV
+                                    );
       }
 
       if (vms->info.collisions.cross_nu[0]) {
@@ -490,15 +500,12 @@ vm_species_lbo_cross_init(
           gkyl_array_accumulate(lbo->nu_sum, 1.0, lbo->cross_nu[i]);
 
           // Compute alpha_E using reference parameters.
-          assert(vms->info.collisions.den_ref);
-          assert(lbo->collide_with[i]->info.collisions.den_ref);
-          assert(vms->info.collisions.temp_ref);
-          assert(lbo->collide_with[i]->info.collisions.temp_ref);
+          struct vm_coll_ref_params rp_s = vm_species_coll_ref_params(&vms->info.collisions);
+          struct vm_coll_ref_params rp_r =
+            vm_species_coll_ref_params(&lbo->collide_with[i]->info.collisions);
           double mass_self = vms->mass, mass_other = lbo->collide_with[i]->mass;
-          double den_s = vms->info.collisions.den_ref;
-          double den_r = lbo->collide_with[i]->info.collisions.den_ref;
-          double vtsq_s = vms->info.collisions.temp_ref / mass_self;
-          double vtsq_r = lbo->collide_with[i]->info.collisions.temp_ref / mass_other;
+          double den_s = rp_s.den, den_r = rp_r.den;
+          double vtsq_s = rp_s.temp / mass_self, vtsq_r = rp_r.temp / mass_other;
 
           lbo->alpha_E_fac[i] =
             (alpha_E_norm[i] * den_s * den_r / pow(sqrt(vtsq_s + vtsq_r), 3.0)) *

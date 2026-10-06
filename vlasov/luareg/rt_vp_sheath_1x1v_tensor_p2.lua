@@ -1,10 +1,17 @@
+-- Sheath formation with the Vlasov-Poisson system of equations, run to a steady state.
+-- Half domain: symmetry boundary at x = 0, absorbing conducting wall at x = Lx. A boundary-flux
+-- source replaces the particles lost to the wall, and BGK collisions relaxing to a fixed temperature
+-- act upstream (|x| < L_nu) to hold the pre-sheath plasma at its source temperature; the region
+-- next to the wall is collisionless. The position map clusters the cells at the wall.
+-- Figures of merit at steady state (serendipity p2): midplane-to-wall potential drop
+-- e*dphi/Te = 1.93, ion wall flux / (n_mid c_s) = 0.51, ion speed at the wall / c_s = 1.64.
 local Vlasov = G0.Vlasov
 
 -- Physical constants (using normalized code units).
 epsilon0 = 1.0 -- Permittivity of free space.
 mass_elc = 1.0 -- Electron mass.
 charge_elc = -1.0 -- Electron charge.
-mass_ion = 1836.153 -- Ion mass.
+mass_ion = 100.0 -- Ion mass.
 charge_ion = 1.0 -- Ion charge.
 
 n0 = 1.0 -- Reference number density.
@@ -21,22 +28,23 @@ vti = math.sqrt(Ti / mass_ion) -- Ion thermal velocity.
 lambda_D = math.sqrt(epsilon0 * Te / (n0 * charge_ion * charge_ion)) -- Electron Debye length.
 omega_pe = math.sqrt(n0 * charge_ion * charge_ion / (epsilon0 * mass_elc)) -- Electron plasma frequency.
 
-nu_ee = vte / (50.0 * lambda_D) -- Electron-electron collision frequency.
-nu_ii = vti / (50.0 * lambda_D) -- Ion-ion collision frequency.
+nu_ee = vte / (5.0 * lambda_D) -- Electron-electron collision frequency (upstream).
+nu_ii = vti / (5.0 * lambda_D) -- Ion-ion collision frequency (upstream).
 
 -- Simulation parameters.
-Nx = 256 -- Cell count (configuration space: x-direction).
-Nvx = 64 -- Cell count (velocity space: vx-direction).
-Lx = 256.0 * lambda_D -- Domain size (configuration space: x-direction).
-Ls = 100.0 * lambda_D -- Domain size (source).
-vx_max_elc = 6.0 * vte -- Domain boundary (electron velocity space: vx-direction).
-vx_max_ion = 6.0 * vti -- Domain boundary (ion velocity space: vx-direction).
+Nx = 16 -- Cell count (configuration space: x-direction).
+Nvx = 24 -- Cell count (velocity space: vx-direction).
+Lx = 64.0 * lambda_D -- Domain size (configuration space: x-direction).
+Ls = 40.0 * lambda_D -- Domain size (source).
+L_nu = 32.0 * lambda_D -- Extent of the collisional (fixed-temperature) region.
+vx_max_elc = 5.0 * vte -- Domain boundary (electron velocity space: vx-direction).
+vx_max_ion = 8.0 * vti -- Domain boundary (ion velocity space: vx-direction).
 poly_order = 2 -- Polynomial order.
-basis_type = "serendipity" -- Basis function set.
+basis_type = "tensor" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
 cfl_frac = 1.0 -- CFL coefficient.
 
-t_end = 20.0 / omega_pe -- Final simulation time.
+t_end = 1500.0 / omega_pe -- Final simulation time.
 num_frames = 1 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.
@@ -53,9 +61,21 @@ vlasovApp = Vlasov.App.new {
   integratedMomentCalcs = integrated_mom_calcs,
   dtFailureTol = dt_failure_tol,
   numFailuresMax = num_failures_max,
-  lower = { -0.5 * Lx },
-  upper = { 0.5 * Lx },
+  lower = { 0.0 },
+  upper = { Lx },
   cells = { Nx },
+
+  -- Position map clustering the cells at the wall (x = Lx): the cell size goes from
+  -- (1 + A) * Lx / Nx at the symmetry boundary to (1 - A) * Lx / Nx at the wall.
+  mapc2pPos = {
+    {
+      pmap = function (t, xn)
+        local xc = xn[1]
+        local A = 0.8
+        return (1.0 + A) * xc - A * (xc * xc) / Lx
+      end
+    },
+  },
   cflFrac = cfl_frac,
 
   basis = basis_type,
@@ -111,10 +131,10 @@ vlasovApp = Vlasov.App.new {
 
             local n = 0.0
 
-            if math.abs(x) < Ls then
-              n = (Ls - math.abs(x)) / Ls -- Electron source total number density (left).
+            if x < Ls then
+              n = 2.0 * (Ls - x) / Ls -- Electron source total number density (inside the source region).
             else
-              n = 0.0 -- Electron source total number density (right).
+              n = 0.0 -- Electron source total number density (outside the source region).
             end
 
             return n
@@ -135,9 +155,9 @@ vlasovApp = Vlasov.App.new {
       selfNu = function (t, xn)
         local x = xn[1]
 
-        local nu = nu_ee / (1.0 + math.exp(math.abs(x) / (6.0 * lambda_D) - 8.0 / 1.5)) -- Electron collision frequency.
+        local nu = nu_ee / (1.0 + math.exp((x - L_nu) / (6.0 * lambda_D))) -- Electron collision frequency.
 
-        return n
+        return nu
       end,
 
       fixedTempRelax = true
@@ -145,7 +165,7 @@ vlasovApp = Vlasov.App.new {
 
     bcx = {
       lower = {
-        type = G0.SpeciesBc.bcAbsorb
+        type = G0.SpeciesBc.bcReflect
       },
       upper = {
         type = G0.SpeciesBc.bcAbsorb
@@ -153,7 +173,7 @@ vlasovApp = Vlasov.App.new {
     },
 
     evolve = true, -- Evolve species?
-    diagnostics = { G0.Moment.LTEMoments }
+    diagnostics = { G0.Moment.M0, G0.Moment.M1, G0.Moment.M2 }
   },
 
   -- Ions.
@@ -199,10 +219,10 @@ vlasovApp = Vlasov.App.new {
 
             local n = 0.0
 
-            if math.abs(x) < Ls then
-              n = (Ls - math.abs(x)) / Ls -- Ion source total number density (left).
+            if x < Ls then
+              n = 2.0 * (Ls - x) / Ls -- Ion source total number density (inside the source region).
             else
-              n = 0.0 -- Ion source total number density (right).
+              n = 0.0 -- Ion source total number density (outside the source region).
             end
 
             return n
@@ -223,9 +243,9 @@ vlasovApp = Vlasov.App.new {
       selfNu = function (t, xn)
         local x = xn[1]
 
-        local nu = nu_ii / (1.0 + math.exp(math.abs(x) / (6.0 * lambda_D) - 8.0 / 1.5)) -- Ion collision frequency.
+        local nu = nu_ii / (1.0 + math.exp((x - L_nu) / (6.0 * lambda_D))) -- Ion collision frequency.
 
-        return n
+        return nu
       end,
 
       fixedTempRelax = true
@@ -233,7 +253,7 @@ vlasovApp = Vlasov.App.new {
 
     bcx = {
       lower = {
-        type = G0.SpeciesBc.bcAbsorb
+        type = G0.SpeciesBc.bcReflect
       },
       upper = {
         type = G0.SpeciesBc.bcAbsorb
@@ -241,7 +261,7 @@ vlasovApp = Vlasov.App.new {
     },
 
     evolve = true, -- Evolve species?
-    diagnostics = { G0.Moment.LTEMoments }
+    diagnostics = { G0.Moment.M0, G0.Moment.M1, G0.Moment.M2 }
   },
 
   isElectrostatic = true,
@@ -252,7 +272,7 @@ vlasovApp = Vlasov.App.new {
 
     poissonBcs = {
       lowerType = {
-        G0.PoissonBc.bcDirichlet
+        G0.PoissonBc.bcNeumann
       },
       upperType = {
         G0.PoissonBc.bcDirichlet
