@@ -1,0 +1,80 @@
+{
+  "cli_version": "0.11.3",
+  "checkpoint_id": "01M49FJSF0V5C3V4PMRJXBM1GJ",
+  "session_id": "01a10d7e-a818-7803-9733-cf2a4110d8e0",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-06T20:48:17.17971696Z",
+  "branch": "jenkins-github-more-reporting",
+  "checkpoints_count": 2,
+  "save_step_count": 1,
+  "files_touched": [
+    "gyrokinetic/creg/rt_gk_mirror_boltz_elc_1x2v_p1.c",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b0-geo_surf0_deltats.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b0-geo_surf1_deltats.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b1-geo_surf0_deltats.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b1-geo_surf1_deltats.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b2-geo_surf0_deltats.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b2-geo_surf1_deltats.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b3-geo_surf0_deltats.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b3-geo_surf1_deltats.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b4-geo_surf0_deltats.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b4-geo_surf1_deltats.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b5-geo_surf0_deltats.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b5-geo_surf1_deltats.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b6-geo_surf0_deltats.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b6-geo_surf1_deltats.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b7-geo_surf0_deltats.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b7-geo_surf1_deltats.gkyl"
+  ],
+  "agent": "Codex",
+  "model": "gpt-6-astra",
+  "turn_id": "2d2775a89d74",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 44088,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 227200,
+    "output_tokens": 2238,
+    "api_call_count": 8,
+    "subagent_tokens_complete": true
+  },
+  "session_metrics": {
+    "turn_count": 2
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-10-06T20:48:17.164774987Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 3,
+    "human_removed": 51,
+    "total_committed": 0,
+    "total_lines_changed": 54,
+    "agent_percentage": 0,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 533,
+      "user_lines_removed": 11,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".agents/skills/code_style/SKILL.md": 55,
+        ".agents/skills/compiling/SKILL.md": 100,
+        ".agents/skills/directory-structure/SKILL.md": 71,
+        ".agents/skills/gyrokinetic-details/SKILL.md": 36,
+        ".agents/skills/naming-conventions/SKILL.md": 33,
+        ".agents/skills/software-design/SKILL.md": 34,
+        ".agents/skills/testing-and-verification/SKILL.md": 169,
+        "gyrokinetic/creg/rt_gk_mirror_boltz_elc_1x2v_p1.c": 35
+      },
+      "user_removed_per_file": {
+        ".claude/skills/code_style": 1,
+        ".codex/skills/code_style": 1,
+        "gyrokinetic/creg/rt_gk_mirror_boltz_elc_1x2v_p1.c": 9
+      }
+    }
+  ]
+}
