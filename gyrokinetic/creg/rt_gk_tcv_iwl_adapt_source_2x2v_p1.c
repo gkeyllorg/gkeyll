@@ -18,7 +18,7 @@ struct gk_app_ctx {
   // Geometry and magnetic field parameters
   double a_shift, Z_axis, R_axis, R0, a_mid, x_inner, r0, B0, kappa, delta, q0, Cy, Bref, x_LCFS;
   // Plasma parameters
-  double me, qe, mi, qi, n0, Te0, Ti0;
+  double me, qe, mi, qi, n0, Te0, Ti0, rho_i;
   // Collision parameters
   double nuFrac, nuElc, nuIon;
   // Source parameters
@@ -386,6 +386,7 @@ create_ctx(void)
   double c_s = sqrt(Te0 / mi);
   double omega_ci = fabs(qi * B0 / mi);
   double rho_s = c_s / omega_ci;
+  double rho_i = vti / omega_ci;
 
   // Configuration domain parameters
   double Lx = Rmid_max - Rmid_min; // Domain size along x.
@@ -487,6 +488,7 @@ create_ctx(void)
     .n0 = n0,
     .Te0 = Te0,
     .Ti0 = Ti0,
+    .rho_i = rho_i,
     .nuFrac = nuFrac,
     .nuElc = nuElc,
     .nuIon = nuIon,
@@ -674,6 +676,8 @@ main(int argc, char **argv)
         .collide_with = {"ion"},
       },
 
+    .flr = {.Tperp = ctx.Te0},
+
     .source =
       {
         .source_id = GKYL_PROJ_SOURCE,
@@ -754,6 +758,8 @@ main(int argc, char **argv)
         .collide_with = {"elc"},
       },
 
+    .flr = {.Tperp = ctx.Ti0},
+
     .source =
       {
         .source_id = GKYL_PROJ_SOURCE,
@@ -822,6 +828,7 @@ main(int argc, char **argv)
        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}}},
     .bias_line_list = &bias_line_list,
     .time_rate_diagnostics = true,
+    .flr = {.type = GKYL_GK_FLR_PADE},
   };
 
   // Geometry

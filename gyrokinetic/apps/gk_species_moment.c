@@ -52,7 +52,7 @@ gk_species_moment_init(
     // Create moment operator.
     sm->mcalc = gkyl_dg_updater_moment_gyrokinetic_new(
       &gks->grid, &app->basis, &gks->basis, &app->local_ext, gks->info.mass, gks->info.charge,
-      gks->vel_map, app->gk_geom, app->field->phi_smooth, mom_type, sm->is_integrated, app->use_gpu
+      gks->vel_map, app->gk_geom, gks->gyro_phi, mom_type, sm->is_integrated, app->use_gpu
     );
 
     sm->num_mom = gkyl_dg_updater_moment_gyrokinetic_num_mom(sm->mcalc);
@@ -88,8 +88,7 @@ gk_species_moment_init(
     } else {
       sm->mcalc = gkyl_dg_updater_moment_gyrokinetic_new(
         &gks->grid, &app->basis, &gks->basis, &app->local_ext, gks->info.mass, gks->info.charge,
-        gks->vel_map, app->gk_geom, app->field->phi_smooth, mom_type, sm->is_integrated,
-        app->use_gpu
+        gks->vel_map, app->gk_geom, gks->gyro_phi, mom_type, sm->is_integrated, app->use_gpu
       );
 
       sm->num_mom = gkyl_dg_updater_moment_gyrokinetic_num_mom(sm->mcalc);

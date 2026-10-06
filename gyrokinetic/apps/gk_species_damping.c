@@ -21,6 +21,7 @@ gk_species_damping_write_enabled(
   struct gkyl_msgpack_map_elem mpe_drate[] = {
     {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0},
     {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = "serendipity"},
+    {.key = "value_form", .elem_type = GKYL_MP_STRING, .cval = "nodal"},
     {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Rate of the damping term."},
     {.key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = tm},
     {.key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = frame}
@@ -212,14 +213,12 @@ gk_species_damping_init(
       // Compute the initial damping rate (assuming phi=0 because phi hasn't been computed).
       // Find the potential at the mirror throat.
       gkyl_dg_basis_ops_eval_array_at_coord_comp(
-        app->field->phi_smooth, damp->bmag_max_coord, app->basis_on_dev, &app->grid, &app->local,
-        damp->phi_m
+        gks->gyro_phi, damp->bmag_max_coord, app->basis_on_dev, &app->grid, &app->local, damp->phi_m
       );
       gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, damp->phi_m, damp->phi_m_global);
       // Project the loss cone mask.
       gkyl_loss_cone_mask_gyrokinetic_advance(
-        damp->lcm_proj_op, &gks->local, &app->local, app->field->phi_smooth, damp->phi_m_global,
-        damp->rate
+        damp->lcm_proj_op, &gks->local, &app->local, gks->gyro_phi, damp->phi_m_global, damp->rate
       );
       // Multiply by the user's scaling profile.
       gkyl_array_scale_by_cell(damp->rate, damp->scale_prof);

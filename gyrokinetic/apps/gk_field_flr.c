@@ -1,5 +1,6 @@
 #include <gkyl_alloc.h>
 #include <gkyl_array_ops.h>
+#include <gkyl_dg_bin_ops.h>
 #include <gkyl_gyrokinetic_priv.h>
 #include <gkyl_gk_field_priv.h>
 
@@ -10,75 +11,110 @@ void
 gk_field_flr_new(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
 {
   assert(app->cdim > 1);
-  gkf->invert_flr = gk_field_invert_flr;
+  gkf->invert_flr = gkf->info.flr.use_fem_operator ? gk_field_invert_flr_op :
+                                                     gk_field_invert_flr_const;
 
-  double flr_weight = 0.0;
-  for (int i = 0; i < app->num_species; ++i) {
-    struct gk_species *gks = &app->species[i];
-    double gyroradius_bmag = gks->info.flr.bmag ? gks->info.flr.bmag : app->bmag_ref;
-    flr_weight +=
-      gks->info.flr.Tperp * gks->info.mass / (pow(gks->info.charge * gyroradius_bmag, 2.0));
-  }
-  // Initialize the weight in the Laplacian operator.
-  gkf->flr_rhoSq_sum =
-    mkarr(app->use_gpu, (2 * (app->cdim - 1) - 1) * app->basis.num_basis, app->local_ext.volume);
-  gkyl_array_set_offset(
-    gkf->flr_rhoSq_sum, flr_weight, app->gk_geom->geo_int.gxxj, 0 * app->basis.num_basis
-  );
-  if (app->cdim > 2) {
-    gkyl_array_set_offset(
-      gkf->flr_rhoSq_sum, flr_weight, app->gk_geom->geo_int.gxyj, 1 * app->basis.num_basis
-    );
-    gkyl_array_set_offset(
-      gkf->flr_rhoSq_sum, flr_weight, app->gk_geom->geo_int.gyyj, 2 * app->basis.num_basis
-    );
-  }
-  // Initialize the factor multiplying the field in the FLR operator.
-  gkf->flr_kSq = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-  gkyl_array_shiftc(gkf->flr_kSq, -pow(sqrt(2.0), app->cdim), 0); // Sets kSq=-1.
-
-  // If domain is not periodic use Dirichlet BCs.
-  struct gkyl_poisson_bc flr_bc = {};
-
-  bool bc_is_np[GKYL_MAX_CDIM]; // Is the BC in this direction non-periodic?
-  for (int d = 0; d < app->cdim; ++d) {
-    bc_is_np[d] = true;
-  }
-  for (int d = 0; d < app->num_periodic_dir; ++d) {
-    bc_is_np[app->periodic_dirs[d]] = false;
-  }
-
-  for (int d = 0; d < app->cdim - 1; d++) {
-    if (bc_is_np[d]) {
-      struct gkyl_gyrokinetic_bc *bc_lo =
-        gk_fetch_bc_with_dir_edge(gkf->info.poisson_bcs, 2 * app->cdim, d, GKYL_LOWER_EDGE);
-      if (bc_lo != 0) {
-        flr_bc.lo_type[d] =
-          gkyl_gyrokinetic_translate_poisson_bc_type(GKYL_BC_GK_FIELD_DIRICHLET_VARYING);
+  // Reference (squared) gyroradius in the operator A = 1 - rho^2*nabla_perp^2
+  // used to retrieve phi from the modified potential Phi_0 (step 4 of the
+  // algorithm in DR #797).
+  double polarization_bmag = gkf->info.polarization_bmag ? gkf->info.polarization_bmag :
+                                                           app->bmag_ref;
+  double rhoSq_ref = 0.0;
+  if (gkf->info.flr.avg_gyroradius) {
+    // Polarization-weighted average of the species gyroradii,
+    //   rho^2 = sum_s eps_s0*rho_s0^2 / sum_s eps_s0,  eps_s0 = n_s0*m_s/B^2,
+    double eps_sum = 0.0;
+    for (int i = 0; i < app->num_species; ++i) {
+      struct gk_species *gks = &app->species[i];
+      double eps_s0 = gks->info.polarization_density * gks->info.mass / pow(polarization_bmag, 2.0);
+      rhoSq_ref += eps_s0 * gks->flr_rhoSq_ref;
+      eps_sum += eps_s0;
+    }
+    assert(eps_sum > 0.0);
+    rhoSq_ref /= eps_sum;
+  } else {
+    // Gyroradius of the gyroaveraged species with the largest polarization
+    // weight (the main ion), so steps 2-5 of DR #797 use the same rho.
+    double eps_max = -1.0;
+    for (int i = 0; i < app->num_species; ++i) {
+      struct gk_species *gks = &app->species[i];
+      if (!gks->use_flr) {
+        continue;
       }
-
-      struct gkyl_gyrokinetic_bc *bc_up =
-        gk_fetch_bc_with_dir_edge(gkf->info.poisson_bcs, 2 * app->cdim, d, GKYL_UPPER_EDGE);
-      if (bc_up != 0) {
-        flr_bc.up_type[d] =
-          gkyl_gyrokinetic_translate_poisson_bc_type(GKYL_BC_GK_FIELD_DIRICHLET_VARYING);
+      double eps_s0 = gks->info.polarization_density * gks->info.mass / pow(polarization_bmag, 2.0);
+      if (eps_s0 > eps_max) {
+        rhoSq_ref = gks->flr_rhoSq_ref;
+        eps_max = eps_s0;
       }
-    } else {
-      flr_bc.lo_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(GKYL_BC_GK_FIELD_PERIODIC);
-      flr_bc.up_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(GKYL_BC_GK_FIELD_PERIODIC);
     }
   }
-  // Deflated Poisson solve is performed on range assuming decomposition is *only* in z.
-  gkf->flr_op = gkyl_deflated_fem_poisson_new(
-    app->grid, app->basis_on_dev, app->basis, app->local, app->local, gkf->flr_rhoSq_sum,
-    gkf->flr_kSq, flr_bc, NULL, app->use_gpu
+  // At least one species must provide a reference gyroradius.
+  assert(rhoSq_ref > 0.0);
+
+  // Modified potential Phi_0 and a buffer, used in the local term and the
+  // field energy diagnostic.
+  gkf->flr_phi0 = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  gkf->flr_buff = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  gkf->flr_energy_red = app->use_gpu ? gkyl_cu_malloc(sizeof(double[1])) :
+                                       gkyl_malloc(sizeof(double[1]));
+
+  if (!gkf->info.flr.use_fem_operator) {
+    // Use the simplification phi = Phi_0 + (rho_i^2/eps_pol)*rho_c/J
+    double polarization_weight = 0.0;
+    for (int i = 0; i < app->num_species; ++i) {
+      struct gk_species *gks = &app->species[i];
+      polarization_weight +=
+        gks->info.polarization_density * gks->info.mass / pow(polarization_bmag, 2);
+    }
+    gkf->flr_local_fac = rhoSq_ref / polarization_weight;
+    return;
+  }
+
+  // Spatially varying Dirichlet BCs are not supported with the FEM operator.
+  for (int d = 0; d < app->cdim - 1; d++) {
+    assert(gkf->poisson_bcs.lo_type[d] != GKYL_POISSON_DIRICHLET_VARYING);
+    assert(gkf->poisson_bcs.up_type[d] != GKYL_POISSON_DIRICHLET_VARYING);
+  }
+
+  // Weight in the perpendicular Laplacian of A = 1 - rho^2*nabla_perp^2.
+  gkf->flr_rhoSq =
+    mkarr(app->use_gpu, (2 * (app->cdim / 3) + 1) * app->basis.num_basis, app->local_ext.volume);
+  struct gkyl_array *Jgij[3] = {
+    app->gk_geom->geo_int.gxxj, app->gk_geom->geo_int.gxyj, app->gk_geom->geo_int.gyyj
+  };
+  for (int i = 0; i < app->cdim - 2 / app->cdim; i++) {
+    gkyl_array_set_offset(gkf->flr_rhoSq, rhoSq_ref, Jgij[i], i * app->basis.num_basis);
+  }
+  // The Laplacian weight carries the Jacobian (J*g^ij), so the identity term
+  // must too: kSq=-J so the operator is J*(1 - rho^2*nabla_perp^2).
+  gkf->flr_kSq = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  gkyl_array_set(gkf->flr_kSq, -1.0, app->gk_geom->geo_int.jacobgeo);
+
+  gkf->flr_op = gkyl_fem_poisson_perp_new(
+    &app->local, &app->grid, app->basis, &gkf->poisson_bcs, gkf->info.bias_line_list,
+    gkf->flr_rhoSq, gkf->flr_kSq, app->use_gpu
   );
 }
 
 void
-gk_field_invert_flr(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *phi)
+gk_field_invert_flr_const(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *phi)
 {
-  gkyl_deflated_fem_poisson_advance(field->flr_op, phi, phi, phi);
+  // phi = Phi_0 + (rho_i^2/eps_pol)*rho_c/J, rho_c the (J-weighted) charge
+  // density used in the Poisson solve.
+  gkyl_array_copy(field->flr_phi0, phi);
+  gkyl_dg_mul_op_range(
+    &app->basis, 0, field->flr_buff, 0, app->gk_geom->geo_int.jacobgeo_inv, 0, field->rho_c,
+    &app->local
+  );
+  gkyl_array_accumulate_range(phi, field->flr_local_fac, field->flr_buff, &app->local);
+}
+
+void
+gk_field_invert_flr_op(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *phi)
+{
+  // phi = (1 - rho^2*nabla_perp^2) Phi_0 with the FEM perpendicular operator.
+  gkyl_array_copy(field->flr_phi0, phi);
+  gkyl_fem_poisson_perp_lhs_apply(field->flr_op, phi, phi);
 }
 
 void
@@ -89,7 +125,16 @@ gk_field_invert_flr_none(gkyl_gyrokinetic_app *app, struct gk_field *field, stru
 void
 gk_field_flr_release(const struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
 {
-  gkyl_array_release(gkf->flr_rhoSq_sum);
-  gkyl_array_release(gkf->flr_kSq);
-  gkyl_deflated_fem_poisson_release(gkf->flr_op);
+  if (gkf->info.flr.use_fem_operator) {
+    gkyl_array_release(gkf->flr_rhoSq);
+    gkyl_array_release(gkf->flr_kSq);
+    gkyl_fem_poisson_perp_release(gkf->flr_op);
+  }
+  gkyl_array_release(gkf->flr_phi0);
+  gkyl_array_release(gkf->flr_buff);
+  if (app->use_gpu) {
+    gkyl_cu_free(gkf->flr_energy_red);
+  } else {
+    gkyl_free(gkf->flr_energy_red);
+  }
 }

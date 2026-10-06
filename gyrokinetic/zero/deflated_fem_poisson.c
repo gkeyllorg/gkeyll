@@ -133,11 +133,7 @@ gkyl_deflated_fem_poisson_new(
     up->d_fem_data[ctr].deflated_phibc =
       up->isdirichletvar ? mkarr(up->use_gpu, defl_num_basis, up->deflated_local_ext.volume) : 0;
     up->d_fem_data[ctr].deflated_kSq =
-      up->ishelmholtz ? mkarr(
-                          up->use_gpu, (2 * up->deflated_grid.ndim - 1) * defl_num_basis,
-                          up->deflated_local_ext.volume
-                        ) :
-                        0;
+      up->ishelmholtz ? mkarr(up->use_gpu, defl_num_basis, up->deflated_local_ext.volume) : 0;
 
     if (zidx == up->local.upper[up->cdim - 1] + 1) {
       gkyl_deflate_zsurf_advance(
@@ -147,7 +143,7 @@ gkyl_deflated_fem_poisson_new(
       if (up->ishelmholtz) {
         gkyl_deflate_zsurf_advance(
           up->deflator_up, zidx - 1, &up->local, &up->deflated_local, kSq,
-          up->d_fem_data[ctr].deflated_kSq, 2 * up->deflated_grid.ndim - 1
+          up->d_fem_data[ctr].deflated_kSq, 1
         );
       }
     } else {
@@ -158,7 +154,7 @@ gkyl_deflated_fem_poisson_new(
       if (up->ishelmholtz) {
         gkyl_deflate_zsurf_advance(
           up->deflator_lo, zidx, &up->local, &up->deflated_local, kSq,
-          up->d_fem_data[ctr].deflated_kSq, 2 * up->deflated_grid.ndim - 1
+          up->d_fem_data[ctr].deflated_kSq, 1
         );
       }
     }

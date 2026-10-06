@@ -541,6 +541,7 @@ gk_species_radiation_init(
 
     // Metadata for radiation app.
     struct gkyl_msgpack_map_elem io_meta_surfvpar[] = {
+      {.key = "value_form", .elem_type = GKYL_MP_STRING, .cval = "modal"},
       {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = surf_vpar_basis.poly_order},
       {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = surf_vpar_basis.id},
       {.key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0},
@@ -550,6 +551,7 @@ gk_species_radiation_init(
     rad->io_meta_surfvpar =
       gkyl_msgpack_map_elem_clone(rad->io_meta_surfvpar_len, io_meta_surfvpar);
     struct gkyl_msgpack_map_elem io_meta_surfmu[] = {
+      {.key = "value_form", .elem_type = GKYL_MP_STRING, .cval = "modal"},
       {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = surf_mu_basis.poly_order},
       {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = surf_mu_basis.id},
       {.key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0},
