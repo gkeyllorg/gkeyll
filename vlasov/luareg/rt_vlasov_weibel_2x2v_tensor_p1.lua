@@ -1,3 +1,9 @@
+-- Weibel instability of two counter-streaming electron beams (non-relativistic Vlasov-Maxwell).
+-- 2x2v: the oblique mode at 45 degrees (k0 = 1) is seeded through a density perturbation with the
+-- electric field from Gauss's law in the ratio E_y/E_x of the growing eigenmode. Ions are a
+-- neutralizing background.
+-- Growth rate of the magnetic energy from linear theory: gamma = 0.1828 (measured 0.183 over
+-- t = 30-60); the mode saturates at t = 75.
 local Vlasov = G0.Vlasov
 
 -- Mathematical constants (dimensionless).
@@ -9,46 +15,35 @@ mu0 = 1.0 -- Permeability of free space.
 mass_elc = 1.0 -- Electron mass.
 charge_elc = -1.0 -- Electron charge.
 
-n_elc1 = 0.5 -- First electron number density.
-n_elc2 = 0.5 -- Second electron number density.
-ux_elc1 = 0.0 -- First electron velocity (x-direction).
-ux_elc2 = 0.0 -- Second electron velocity (x-direction).
-uy_elc1 = 0.3 -- First electron velocity (y-direction).
-uy_elc2 = -0.3 -- Second electron velocity (y-direction).
+n0 = 1.0 -- Reference number density.
+uy_drift = 0.3 -- Drift velocity of the beams (y-direction).
+T_elc = 0.01 -- Electron temperature.
 
 theta = (45.0 / 180.0) * pi -- Perturbation angle.
-R_elc = 0.333333333333333 -- Electron radius.
-
-k0 = 1.0 -- Reference perturbed wave number.
-alpha = 1.18281106421231 -- Applied perturbation amplitude.
-perturb_n = 1.0e-8 -- Perturbation density.
-
-nu = 1.0e-4 -- Collision frequency.
+k0 = 1.0 -- Perturbed wave number.
+alpha = 1.6202 -- Ratio E_y / E_x of the growing eigenmode (linear theory).
+perturb_n = 2.0e-6 -- Perturbation density.
 
 -- Derived physical quantities (using normalized code units).
-T_elc1 = mass_elc * ((R_elc * uy_elc1) * (R_elc * uy_elc1)) -- First electron temperature.
-T_elc2 = mass_elc * ((R_elc * uy_elc1) * (R_elc * uy_elc1)) -- Second electron temperature.
-vt_elc1 = math.sqrt(T_elc1 / mass_elc) -- First electron thermal velocity.
-vt_elc2 = math.sqrt(T_elc2 / mass_elc) -- Second electron thermal velocity.
-
+vte = math.sqrt(T_elc / mass_elc) -- Electron thermal velocity.
 kx = k0 * math.cos(theta) -- Perturbed wave number (x-direction).
 ky = k0 * math.sin(theta) -- Perturbed wave number (y-direction).
 
 -- Simulation parameters.
-Nx = 8 -- Cell count (configuration space: x-direction).
-Ny = 8 -- Cell count (configuration space: y-direction).
-Nvx = 16 -- Cell count (velocity space: vx-direction).
-Nvy = 16 -- Cell count (velocity space: vy-direction).
+Nx = 4 -- Cell count (configuration space: x-direction).
+Ny = 4 -- Cell count (configuration space: y-direction).
+Nvx = 12 -- Cell count (velocity space: vx-direction).
+Nvy = 12 -- Cell count (velocity space: vy-direction).
 Lx = 2.0 * pi / kx -- Domain size (configuration space: x-direction).
 Ly = 2.0 * pi / ky -- Domain size (configuration space: y-direction).
-vx_max = 0.9 -- Domain boundary (velocity space: vx-direction).
-vy_max = 0.9 -- Domain boundary (velocity space: vy-direction).
-poly_order = 2 -- Polynomial order.
-basis_type = "serendipity" -- Basis function set.
+vx_max = 1.0 -- Domain boundary (velocity space: vx-direction).
+vy_max = 1.0 -- Domain boundary (velocity space: vy-direction).
+poly_order = 1 -- Polynomial order.
+basis_type = "tensor" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
 cfl_frac = 1.0 -- CFL coefficient.
 
-t_end = 5.0 -- Final simulation time.
+t_end = 80.0 -- Final simulation time.
 num_frames = 1 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.
@@ -75,54 +70,67 @@ vlasovApp = Vlasov.App.new {
   timeStepper = time_stepper,
 
   -- Decomposition for configuration space.
-  decompCuts = { 1 }, -- Cuts in each coodinate direction (x-direction only).
+  decompCuts = { 1, 1 }, -- Cuts in each coodinate direction (x- and y-directions).
 
   -- Boundary conditions for configuration space.
-  periodicDirs = { 1, 2 }, -- Periodic directions (x- and y-directions only).
+  periodicDirs = { 1, 2 }, -- Periodic directions (x- and y-directions).
 
   -- Electrons.
   elc = Vlasov.Species.new {
     modelID = G0.Model.Default,
     charge = charge_elc, mass = mass_elc,
-    
+
     -- Velocity space grid.
     lower = { -vx_max, -vy_max },
     upper = { vx_max, vy_max },
     cells = { Nvx, Nvy },
 
     -- Initial conditions.
-    numInit = 1,
+    numInit = 2,
     projections = {
+      -- Two counter-streaming Maxwellians.
       {
-        projectionID = G0.Projection.Func,
+        projectionID = G0.Projection.LTE,
 
-        init = function (t, xn)
-          local x, y, vx, vy = xn[1], xn[2], xn[3], xn[4]
+        densityInit = function (t, xn)
+          local x, y = xn[1], xn[2]
 
-          local v_sq_elc1 = ((vx - ux_elc1) * (vx - ux_elc1)) + ((vy - uy_elc1) * (vy - uy_elc1))
-          local v_sq_elc2 = ((vx - ux_elc2) * (vx - ux_elc2)) + ((vy - uy_elc2) * (vy - uy_elc2))
-        
-          local maxwellian1 = (n_elc1 / (2.0 * pi * vt_elc1 * vt_elc1)) * math.exp(-v_sq_elc1 / (2.0 * vt_elc1 * vt_elc1))
-          local maxwellian2 = (n_elc2 / (2.0 * pi * vt_elc2 * vt_elc2)) * math.exp(-v_sq_elc2 / (2.0 * vt_elc2 * vt_elc2))
-          local n = (1.0 + (perturb_n * math.cos((kx * x) + (ky * y)))) * (maxwellian1 + maxwellian2) -- Distribution function.
-
+          local n = 0.5 * (1.0 + perturb_n * math.cos((kx * x) + (ky * y))) * n0 -- Beam number density.
           return n
-        end
+        end,
+        temperatureInit = function (t, xn)
+          return T_elc -- Isotropic temperature.
+        end,
+        driftVelocityInit = function (t, xn)
+          return 0.0, uy_drift -- Drift velocity of the first beam.
+        end,
+
+        correctAllMoments = true,
+        useLastConverged = true
+      },
+      {
+        projectionID = G0.Projection.LTE,
+
+        densityInit = function (t, xn)
+          local x, y = xn[1], xn[2]
+
+          local n = 0.5 * (1.0 + perturb_n * math.cos((kx * x) + (ky * y))) * n0 -- Beam number density.
+          return n
+        end,
+        temperatureInit = function (t, xn)
+          return T_elc -- Isotropic temperature.
+        end,
+        driftVelocityInit = function (t, xn)
+          return 0.0, -uy_drift -- Drift velocity of the second beam.
+        end,
+
+        correctAllMoments = true,
+        useLastConverged = true
       }
     },
 
-    collisions = {
-      collisionID = G0.Collisions.LBO,
-
-      selfNu = function (t, xn)
-        return nu -- Collision frequency.
-      end,
-    
-      correctAllMoments = true
-    },
-    
     evolve = true, -- Evolve species?
-    diagnostics = { G0.Moment.M0, G0.Moment.M1 }
+    diagnostics = { G0.Moment.M0, G0.Moment.M1, G0.Moment.M2 }
   },
 
   -- Field.

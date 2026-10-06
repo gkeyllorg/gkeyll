@@ -28,7 +28,6 @@ return {
          "rt_vlasov_neut_lbo_sodshock_1x3v_p2",
          "rt_can_pb_neut_bgk_sodshock_im_1x2v_p2",
          "rt_can_pb_bgk_surf_annulus_sodshock_im_2x2v_p1",
-         "rt_vlasov_weibel_2x2v_p2",
          "rt_can_pb_bgk_surf_toroidal_sodshock_im_2x3v_p2",
          "rt_dg_euler_kh_2d",
          "rt_can_pb_bgk_surf_annulus_sodshock_im_1x2v_p2",
@@ -57,6 +56,6 @@ return {
    },
    parallel = {
       { name = "rt_vlasov_twostream_1x1v", cuts = { 4 } },
-      { name = "rt_vlasov_weibel_2x2v_p2", cuts = { 2, 2 } },
+      { name = "rt_vlasov_weibel_2x2v", cuts = { 2, 2 } },
    },
 }
