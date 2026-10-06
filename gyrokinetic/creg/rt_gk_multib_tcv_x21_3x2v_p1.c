@@ -195,6 +195,7 @@ create_asdex_lsn_gk_block_geom(void *ctx)
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_GEOMETRY_TOKAMAK_PF_LO_R,
+          .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
           .rmin       = 0.618,
           .rmax       = 1.14,
           .zmin       = -0.75,
@@ -242,6 +243,7 @@ create_asdex_lsn_gk_block_geom(void *ctx)
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_GEOMETRY_TOKAMAK_LSN_SOL_LO,
+          .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
           .rmin   = 0.618,
           .rmax   = 1.14,
           .zmin   = -0.75,
@@ -290,6 +292,7 @@ create_asdex_lsn_gk_block_geom(void *ctx)
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_GEOMETRY_TOKAMAK_LSN_SOL_MID,
+          .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
           .rmin   = 0.618,
           .rmax   = 1.14,
           .zmin   = -0.75,
@@ -338,6 +341,7 @@ create_asdex_lsn_gk_block_geom(void *ctx)
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_GEOMETRY_TOKAMAK_LSN_SOL_UP,
+          .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
           .rmin   = 0.618,
           .rmax   = 1.14,
           .zmin   = -0.75,
@@ -386,6 +390,7 @@ create_asdex_lsn_gk_block_geom(void *ctx)
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_GEOMETRY_TOKAMAK_PF_LO_L,
+          .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
           .rmin       = 0.618,
           .rmax       = 1.14,
           .zmin       = -0.75,
@@ -433,6 +438,7 @@ create_asdex_lsn_gk_block_geom(void *ctx)
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_GEOMETRY_TOKAMAK_CORE,
+          .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
           .rmin   = 0.618,
           .rmax   = 1.14,
           .zmin   = -0.75,
@@ -702,7 +708,7 @@ create_ctx(void)
   // Copy eqdsk file into efit_inp.
   memcpy(efit_inp.filepath, geqdsk_file, sizeof(geqdsk_file));
   struct gkyl_efit *efit = gkyl_efit_new(&efit_inp);
-  double psi_sep = efit->psisep;
+  double psi_sep = efit->psisep_cubic; // the flux of the representation traced on (C1, 2026-10-05)
   double psi_axis = efit->simag;
   double R_axis = efit->rmaxis;
   double Rxpt = efit->Rxpt[0], Zxpt = efit->Zxpt[0];

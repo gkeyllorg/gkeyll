@@ -151,7 +151,7 @@ create_gk_block_geom(struct shot_case shot, int npsi_pf, int ntheta,
   efit_inp.filepath[sizeof(efit_inp.filepath)-1] = '\0';
 
   struct gkyl_efit *efit = gkyl_efit_new(&efit_inp);
-  double psimag = efit->simag, psisep = efit->psisep;
+  double psimag = efit->simag, psisep = efit->psisep_cubic; // the flux of the representation traced on (C1, 2026-10-05)
   printf("Relaxed X-point seam regression: shot=%d ms=%d psisep=%.6g "
     "psimag=%.6g\n", shot.shot, shot.time_ms, psisep, psimag);
   gkyl_efit_release(efit);
@@ -182,6 +182,7 @@ create_gk_block_geom(struct shot_case shot, int npsi_pf, int ntheta,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_GEOMETRY_TOKAMAK_PF_LO_R,
+          .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
           .half_domain = true,
           .straight_xpt_ray = true,
           .relaxed_xpt_seam = true,
@@ -224,6 +225,7 @@ create_gk_block_geom(struct shot_case shot, int npsi_pf, int ntheta,
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_GEOMETRY_TOKAMAK_PF_LO_L,
+          .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
           .half_domain = true,
           .straight_xpt_ray = true,
           .relaxed_xpt_seam = true,

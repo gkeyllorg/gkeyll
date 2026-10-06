@@ -185,7 +185,7 @@ struct gk_app_ctx create_ctx(void)
   struct gkyl_efit *efit = gkyl_efit_new(&efit_inp);
   double R_axis = efit->rmaxis; // R of the magnetic axis.
   double Z_axis = efit->zmaxis; // Z of the magnetic axis.
-  double psi_sep = efit->psisep; // psi at the separatrix.
+  double psi_sep = efit->psisep_cubic; // psi at the separatrix, of the representation traced on (C1, 2026-10-05)
   double psi_axis = efit->simag; // psi at the magnetic axis.
   double Rxpt = efit->Rxpt[0], Zxpt = efit->Zxpt[0];
   gkyl_efit_release(efit);
@@ -642,6 +642,7 @@ main(int argc, char **argv)
 
   struct gkyl_tok_geo_grid_inp grid_inp = {
     .ftype = GKYL_GEOMETRY_TOKAMAK_LSN_SOL, // Type of geometry.
+    .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
     .rclose = 2.5,           // Closest R to region of interest.
     .rright = 2.5,           // Closest R to outboard SOL.
     .rleft = 0.7,            // Closest R to inboard SOL.

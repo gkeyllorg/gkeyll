@@ -62,7 +62,7 @@ main(int argc, char **argv)
 
   /* The inboard SOL psi interval, as declared in the multiblock STEP fixture. */
   struct gkyl_efit *efit = gkyl_efit_new(&efit_inp);
-  double psisep = efit->psisep;
+  double psisep = efit->psisep_cubic; // the flux of the representation traced on (C1, 2026-10-05)
   gkyl_efit_release(efit);
 
   const double win = 0.05;                 /* inner-SOL width  */
@@ -84,6 +84,7 @@ main(int argc, char **argv)
       .efit_info = efit_inp,
       .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
         .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN,
+        .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
         .no_vessel_outline = true,
         .rleft = 2.0,
         .rright = rright_out,

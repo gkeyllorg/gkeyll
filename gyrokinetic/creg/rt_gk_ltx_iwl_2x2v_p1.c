@@ -455,6 +455,7 @@ int main(int argc, char **argv)
 
   struct gkyl_tok_geo_grid_inp grid_inp = {
     .ftype = GKYL_GEOMETRY_TOKAMAK_IWL,
+    .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
     .rclose = 0.7,
     .rleft= 0.1,
     .rright = 0.7,

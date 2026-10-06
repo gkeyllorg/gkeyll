@@ -511,6 +511,7 @@ main(int argc, char **argv)
   
   struct gkyl_tok_geo_grid_inp grid_inp = {
     .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT,    // type of geometry
+    .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
     .rclose = 3.0,               // closest R to region of interest
     .rright = 3.0,               // Closest R to outboard SOL
     .rleft = 0.1,                // closest R to inboard SOL

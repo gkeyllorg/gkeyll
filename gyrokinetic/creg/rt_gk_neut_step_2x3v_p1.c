@@ -413,6 +413,7 @@ main(int argc, char **argv)
 
   struct gkyl_tok_geo_grid_inp grid_inp = {
     .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT, // type of geometry
+    .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
     // step.geqdsk has a single limiter vertex (limitr=1), i.e. limiter_status=2:
     // a degenerate outline that cannot bound a region. The wall policy rejects an
     // unusable outline that is not acknowledged. Checked, not trusted: refused as
