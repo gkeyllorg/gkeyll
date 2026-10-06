@@ -1,9 +1,10 @@
 // Relativistic Weibel instability of two cold counter-streaming electron beams (special-relativistic
-// Vlasov-Maxwell, 1x3v): beams at +-0.9 c along y with the same drift and temperature scale as the
+// Vlasov-Maxwell, 1x2v): beams at +-0.9 c along y with the same drift and temperature scale as the
 // relativistic two-stream tests, filamentation mode k = 0.5 along x seeded by a magnetic field
 // perturbation. Ions are a neutralizing background.
+// Quadratic momentum maps cluster the cells at the origin of momentum space.
 // Growth rate of the magnetic energy from linear theory (lab-frame plasma frequency sqrt(gamma_drift)):
-// gamma = 0.525 (measured 0.53-0.54 over t = 5-15); the mode saturates at t = 27.
+// gamma = 0.525 (measured 0.524-0.527 over t = 5-20); the mode saturates at t = 32.
 
 #include <math.h>
 #include <stdio.h>
@@ -51,11 +52,11 @@ struct weibel_sr_ctx {
   int Nx; // Cell count (configuration space: x-direction).
   int Nvx; // Cell count (velocity space: vx-direction).
   int Nvy; // Cell count (velocity space: vy-direction).
-  int Nvz; // Cell count (velocity space: vz-direction).
   double Lx; // Domain size (configuration space: x-direction).
   double vx_max; // Domain boundary (velocity space: vx-direction).
   double vy_max; // Domain boundary (velocity space: vy-direction).
-  double vz_max; // Domain boundary (velocity space: vz-direction).
+  double vx_lin; // Velocity map: cell size at the origin relative to a uniform grid (vx-direction).
+  double vy_lin; // Velocity map: cell size at the origin relative to a uniform grid (vy-direction).
   int poly_order; // Polynomial order.
   double cfl_frac; // CFL coefficient.
 
@@ -84,7 +85,7 @@ create_ctx(void)
   double uy_drift = 0.9; // Drift velocity of the beams (y-direction, units of c).
   double T_elc = 0.01; // Electron temperature (units of mc^2).
 
-  double alpha = 0.0001; // Applied perturbation amplitude.
+  double alpha = 1e-05; // Applied perturbation amplitude.
   double kx = 0.5; // Perturbed wave number (x-direction).
 
   // Derived physical quantities (using normalized code units).
@@ -93,18 +94,20 @@ create_ctx(void)
     gamma_drift * uy_drift; // Relativistic drift velocity of the beams (y-direction).
 
   // Simulation parameters.
-  int Nx = 8; // Cell count (configuration space: x-direction).
-  int Nvx = 12; // Cell count (velocity space: vx-direction).
-  int Nvy = 12; // Cell count (velocity space: vy-direction).
-  int Nvz = 4; // Cell count (velocity space: vz-direction).
+  int Nx = 24; // Cell count (configuration space: x-direction).
+  int Nvx = 20; // Cell count (velocity space: vx-direction).
+  int Nvy = 20; // Cell count (velocity space: vy-direction).
   double Lx = 2.0 * pi / kx; // Domain size (configuration space: x-direction).
   double vx_max = 6.0; // Domain boundary (velocity space: vx-direction).
   double vy_max = 6.0; // Domain boundary (velocity space: vy-direction).
-  double vz_max = 1.0; // Domain boundary (velocity space: vz-direction).
+  double vx_lin =
+    1.0; // Velocity map: cell size at the origin relative to a uniform grid (vx-direction).
+  double vy_lin =
+    1.0; // Velocity map: cell size at the origin relative to a uniform grid (vy-direction).
   int poly_order = 2; // Polynomial order.
   double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 30.0; // Final simulation time.
+  double t_end = 35.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
@@ -129,11 +132,11 @@ create_ctx(void)
     .Nx = Nx,
     .Nvx = Nvx,
     .Nvy = Nvy,
-    .Nvz = Nvz,
     .Lx = Lx,
     .vx_max = vx_max,
     .vy_max = vy_max,
-    .vz_max = vz_max,
+    .vx_lin = vx_lin,
+    .vy_lin = vy_lin,
     .poly_order = poly_order,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
@@ -180,7 +183,6 @@ evalVDrift1Init(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT 
   // Set relativistic drift velocity of the first beam.
   fout[0] = 0.0;
   fout[1] = uy_drift_sr;
-  fout[2] = 0.0;
 }
 
 void
@@ -193,7 +195,6 @@ evalVDrift2Init(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT 
   // Set relativistic drift velocity of the second beam.
   fout[0] = 0.0;
   fout[1] = -uy_drift_sr;
-  fout[2] = 0.0;
 }
 
 void
@@ -223,6 +224,32 @@ evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fo
   // Set correction potentials.
   fout[6] = 0.0;
   fout[7] = 0.0;
+}
+
+void
+mapc2p_vx(double t, const double *GKYL_RESTRICT vc, double *GKYL_RESTRICT vp, void *ctx)
+{
+  struct weibel_sr_ctx *app = ctx;
+  double vx_c = vc[0];
+
+  double vx_max = app->vx_max;
+  double vx_lin = app->vx_lin;
+
+  // Quadratic velocity map: finest cells at the origin, stretching to the domain boundary.
+  vp[0] = vx_lin * vx_c + (vx_max - vx_lin) * vx_c * fabs(vx_c);
+}
+
+void
+mapc2p_vy(double t, const double *GKYL_RESTRICT vc, double *GKYL_RESTRICT vp, void *ctx)
+{
+  struct weibel_sr_ctx *app = ctx;
+  double vy_c = vc[0];
+
+  double vy_max = app->vy_max;
+  double vy_lin = app->vy_lin;
+
+  // Quadratic velocity map: finest cells at the origin, stretching to the domain boundary.
+  vp[0] = vy_lin * vy_c + (vy_max - vy_lin) * vy_c * fabs(vy_c);
 }
 
 // Snap a trigger whose next time exceeds t_end only by round-off back to t_end.
@@ -300,7 +327,6 @@ main(int argc, char **argv)
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   int NVX = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvx);
   int NVY = APP_ARGS_CHOOSE(app_args.vcells[1], ctx.Nvy);
-  int NVZ = APP_ARGS_CHOOSE(app_args.vcells[2], ctx.Nvz);
 
   int nrank = 1; // Number of processors in simulation.
 #ifdef GKYL_HAVE_MPI
@@ -366,9 +392,15 @@ main(int argc, char **argv)
   // Electrons.
   struct gkyl_vlasov_kinetic_species elc = {
     .model_id = GKYL_MODEL_SR,
-    .lower = {-ctx.vx_max, -ctx.vy_max, -ctx.vz_max},
-    .upper = {ctx.vx_max, ctx.vy_max, ctx.vz_max},
-    .cells = {NVX, NVY, NVZ},
+    .lower = {-1.0, -1.0},
+    .upper = {1.0, 1.0},
+    .cells = {NVX, NVY},
+
+    .mapc2p_vel =
+      {
+        {.mapc2p_vel_func = mapc2p_vx, .mapc2p_vel_ctx = &ctx},
+        {.mapc2p_vel_func = mapc2p_vy, .mapc2p_vel_ctx = &ctx},
+      },
 
     .num_init = 2,
     // Two counter-streaming Maxwell-Juttner distributions.
@@ -416,7 +448,7 @@ main(int argc, char **argv)
   struct gkyl_vm app_inp = {
 
     .cdim = 1,
-    .vdim = 3,
+    .vdim = 2,
     .lower = {0.0},
     .upper = {ctx.Lx},
     .cells = {NX},

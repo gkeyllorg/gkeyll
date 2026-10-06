@@ -1,3 +1,9 @@
+-- Relativistic Weibel instability of two cold counter-streaming electron beams (special-relativistic
+-- Vlasov-Maxwell, 1x3v): beams at +-0.9 c along y with the same drift and temperature scale as the
+-- relativistic two-stream tests, filamentation mode k = 0.5 along x seeded by a magnetic field
+-- perturbation. Ions are a neutralizing background.
+-- Growth rate of the magnetic energy from linear theory (lab-frame plasma frequency sqrt(gamma_drift)):
+-- gamma = 0.525 (measured 0.53-0.54 over t = 5-15); the mode saturates at t = 27.
 local Vlasov = G0.Vlasov
 
 -- Mathematical constants (dimensionless).
@@ -9,40 +15,32 @@ mu0 = 1.0 -- Permeability of free space.
 mass_elc = 1.0 -- Electron mass.
 charge_elc = -1.0 -- Electron charge.
 
-n_elc1 = 0.5 -- First electron number density.
-n_elc2 = 0.5 -- Second electron number density.
-ux_elc1 = 0.0 -- First electron velocity (x-direction).
-ux_elc2 = 0.0 -- Second electron velocity (x-direction).
-uy_elc1 = 0.9 -- First electron velocity (y-direction).
-uy_elc2 = -0.9 -- Second electron velocity (y-direction).
-T_elc1 = 0.01 -- First electron temperature (units of mc^2).
-T_elc2 = 0.01 -- Second electron temperature (units of mc^2).
+n0 = 1.0 -- Reference number density.
+uy_drift = 0.9 -- Drift velocity of the beams (y-direction, units of c).
+T_elc = 0.01 -- Electron temperature (units of mc^2).
 
-alpha = 1.0e-6 -- Applied perturbation amplitude.
+alpha = 0.0001 -- Applied perturbation amplitude.
 kx = 0.5 -- Perturbed wave number (x-direction).
 
 -- Derived physical quantities (using normalized code units).
-gamma_elc1 = 1.0 / math.sqrt(1.0 - (ux_elc1 * ux_elc1) - (uy_elc1 * uy_elc1)) -- First electron gamma factor.
-gamma_elc2 = 1.0 / math.sqrt(1.0 - (ux_elc2 * ux_elc2) - (uy_elc2 * uy_elc2)) -- Second electron gamma factor.
-
-ux_elc1_sr = gamma_elc1 * ux_elc1 -- First electron relativistic velocity (x-direction).
-ux_elc2_sr = gamma_elc2 * ux_elc2 -- Second electron relativistic velocity (x-direction).
-uy_elc1_sr = gamma_elc1 * uy_elc1 -- First electron relativistic velocity (y-direction).
-uy_elc2_sr = gamma_elc2 * uy_elc2 -- Second electron relativistic velocity (y-direction).
+gamma_drift = 1.0 / math.sqrt(1.0 - (uy_drift * uy_drift)) -- Lorentz factor of the beams.
+uy_drift_sr = gamma_drift * uy_drift -- Relativistic drift velocity of the beams (y-direction).
 
 -- Simulation parameters.
-Nx = 64 -- Cell count (configuration space: x-direction).
-Nvx = 32 -- Cell count (velocity space: vx-direction).
-Nvy = 32 -- Cell count (velocity space: vy-direction).
+Nx = 8 -- Cell count (configuration space: x-direction).
+Nvx = 12 -- Cell count (velocity space: vx-direction).
+Nvy = 12 -- Cell count (velocity space: vy-direction).
+Nvz = 4 -- Cell count (velocity space: vz-direction).
 Lx = 2.0 * pi / kx -- Domain size (configuration space: x-direction).
-vx_max = 10.0 -- Domain boundary (velocity space: vx-direction).
-vy_max = 10.0 -- Domain boundary (velocity space: vy-direction).
+vx_max = 6.0 -- Domain boundary (velocity space: vx-direction).
+vy_max = 6.0 -- Domain boundary (velocity space: vy-direction).
+vz_max = 1.0 -- Domain boundary (velocity space: vz-direction).
 poly_order = 2 -- Polynomial order.
 basis_type = "serendipity" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
 cfl_frac = 1.0 -- CFL coefficient.
 
-t_end = 25.0 -- Final simulation time.
+t_end = 30.0 -- Final simulation time.
 num_frames = 1 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.
@@ -59,8 +57,8 @@ vlasovApp = Vlasov.App.new {
   integratedMomentCalcs = integrated_mom_calcs,
   dtFailureTol = dt_failure_tol,
   numFailuresMax = num_failures_max,
-  lower = { -0.5 * Lx },
-  upper = { 0.5 * Lx },
+  lower = { 0.0 },
+  upper = { Lx },
   cells = { Nx },
   cflFrac = cfl_frac,
 
@@ -78,27 +76,27 @@ vlasovApp = Vlasov.App.new {
   elc = Vlasov.Species.new {
     modelID = G0.Model.SR,
     charge = charge_elc, mass = mass_elc,
-    
+
     -- Velocity space grid.
-    lower = { -vx_max, -vy_max },
-    upper = { vx_max, vy_max },
-    cells = { Nvx, Nvy },
+    lower = { -vx_max, -vy_max, -vz_max },
+    upper = { vx_max, vy_max, vz_max },
+    cells = { Nvx, Nvy, Nvz },
 
     -- Initial conditions.
     numInit = 2,
     projections = {
-      -- Two counter-streaming Maxwellians.
+      -- Two counter-streaming Maxwell-Juttner distributions.
       {
         projectionID = G0.Projection.LTE,
 
         densityInit = function (t, xn)
-          return n_elc1 -- Total left-going number density.
+          return 0.5 * n0 -- Beam number density.
         end,
         temperatureInit = function (t, xn)
-          return T_elc1 -- Total left-going temperature.
+          return T_elc -- Isotropic temperature.
         end,
         driftVelocityInit = function (t, xn)
-          return ux_elc1_sr, uy_elc1_sr -- Total left-going relativistic drift velocity.
+          return 0.0, uy_drift_sr, 0.0 -- Relativistic drift velocity of the first beam.
         end,
 
         correctAllMoments = true,
@@ -108,13 +106,13 @@ vlasovApp = Vlasov.App.new {
         projectionID = G0.Projection.LTE,
 
         densityInit = function (t, xn)
-          return n_elc2 -- Total right-going number density.
+          return 0.5 * n0 -- Beam number density.
         end,
         temperatureInit = function (t, xn)
-          return T_elc2 -- Total right-going temperature.
+          return T_elc -- Isotropic temperature.
         end,
         driftVelocityInit = function (t, xn)
-          return ux_elc2_sr, uy_elc2_sr -- Total right-going relativistic drift velocity.
+          return 0.0, -uy_drift_sr, 0.0 -- Relativistic drift velocity of the second beam.
         end,
 
         correctAllMoments = true,
@@ -126,6 +124,7 @@ vlasovApp = Vlasov.App.new {
     diagnostics = { G0.Moment.M0, G0.Moment.M1, G0.Moment.LTEMoments }
   },
 
+  -- Field.
   field = Vlasov.Field.new {
     epsilon0 = epsilon0, mu0 = mu0,
 
@@ -139,16 +138,11 @@ vlasovApp = Vlasov.App.new {
 
       local Bx = 0.0 -- Total magnetic field (x-direction).
       local By = 0.0 -- Total magnetic field (y-direction).
-
-      math.randomseed(0)
-      local Bz = 0.0
-      for i = 1, 16 do 
-        Bz = Bz + alpha*math.random()*math.sin(kx*i*x + 2.0 * pi * math.random())
-      end
+      local Bz = alpha * math.sin(kx * x) -- Total magnetic field (z-direction).
 
       return Ex, Ey, Ez, Bx, By, Bz, 0.0, 0.0
     end,
-    
+
     evolve = true, -- Evolve field?
     elcErrorSpeedFactor = 0.0,
     mgnErrorSpeedFactor = 0.0
