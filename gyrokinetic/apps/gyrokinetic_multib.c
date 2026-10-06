@@ -1433,6 +1433,7 @@ gyrokinetic_multib_adjust_wall(const struct gkyl_gyrokinetic_multib *inp)
       long violations=tok_wall_trial_end();
       bool fixed_violation=tok_wall_trial_has_fixed_violation();
       bool separatrix_outside=tok_wall_trial_has_fixed_node_outside();
+      bool plate_invalid=tok_wall_trial_plate_invalid();
       bool rule_refused=tok_wall_trial_row_rule_refused();
       bool jac_invalid=tok_wall_trial_jacobian_invalid();
       gkyl_gyrokinetic_app_release_geom(app);
@@ -1457,6 +1458,12 @@ gyrokinetic_multib_adjust_wall(const struct gkyl_gyrokinetic_multib *inp)
           iteration,b,(int) rule_refused,(int) jac_invalid);
       if (violations) {
         fprintf(stderr,"TOK_RHO_WALL_TRIAL_REJECTED iteration=%d block=%d wall_checks_failed=%ld\n",iteration,b,violations);
+        if (plate_invalid) {
+          // A plate the driver declared is not finite (TOK_GEO_WALL_PLATE_INVALID).
+          // The declaration is wrong; no boundary the adjuster moves changes it.
+          fprintf(stderr,"TOK_RHO_WALL_ADJUST_FAILED reason=declared_plate_invalid block=%d\n",b);
+          goto cleanup;
+        }
         if (separatrix_outside) {
           // The offending node is on the block's non-movable radial boundary --
           // the separatrix row it shares with the core -- and the node itself

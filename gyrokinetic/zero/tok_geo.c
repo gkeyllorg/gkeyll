@@ -41,6 +41,10 @@ static _Thread_local bool wall_trial_outside_movable_side;
 // same at the requested bounds is the construction failing, reported cleanly.
 static _Thread_local bool wall_trial_row_rule_refused;
 static _Thread_local bool wall_trial_jacobian_invalid;
+// A declared plate that is not finite (tok_wall_block_pockets): a
+// declaration error, not a boundary any adjustment moves, and not the
+// separatrix leaving the machine.
+static _Thread_local bool wall_trial_plate_invalid;
 static _Thread_local bool wall_trial_capture;
 static _Thread_local int wall_trial_block;
 static _Thread_local double wall_trial_rho;
@@ -56,6 +60,7 @@ void tok_wall_trial_begin(int movable_radial_edge)
   wall_trial_outside_movable_side = false;
   wall_trial_row_rule_refused = false;
   wall_trial_jacobian_invalid = false;
+  wall_trial_plate_invalid = false;
   wall_trial_capture = false;
 }
 
@@ -135,6 +140,16 @@ bool tok_wall_trial_has_fixed_violation(void)
 bool tok_wall_trial_has_fixed_node_outside(void)
 {
   return wall_trial_fixed_node_outside;
+}
+
+void tok_wall_trial_note_plate_invalid(void)
+{
+  if (wall_trial_active) wall_trial_plate_invalid = true;
+}
+
+bool tok_wall_trial_plate_invalid(void)
+{
+  return wall_trial_plate_invalid;
 }
 #include <gkyl_dg_bin_ops.h>
 
@@ -1759,7 +1774,7 @@ tok_plate_flux_intersection(const struct gkyl_tok_geo *geo,
   if (!plate)
     return false;
 
-  const int nsamp = 512;
+  const int nsamp = TOK_PLATE_NSAMP;
   double roots_s[16] = { 0.0 }, roots_r[16] = { 0.0 };
   double roots_z[16] = { 0.0 };
   int nroots = 0;
@@ -2230,6 +2245,24 @@ tok_ext_topology_from_ftype(enum gkyl_tok_geo_type ftype, bool half_domain,
   return true;
 }
 
+// The X points of the representation that evaluates psi, chosen by
+// `use_cubics` exactly as geo->psisep is (2026-10-05). The quadratic arrays
+// locate a different saddle -- 0.687 mm away on TCV 65402, 0.129 mm on ASDEX
+// -- so blocks that pinned or snapped to them met their C1 neighbours that far
+// apart at the X point: the radial interfaces SOL_LO|PF_LO_R and
+// SOL_UP|PF_LO_L of every TCV cell of the refinement matrix (mx12) failed
+// node conformality by exactly that distance, at every resolution.
+static int
+tok_geo_xpts(const struct gkyl_tok_geo *geo, const double **r, const double **z)
+{
+  *r = geo->use_cubics ? geo->efit->Rxpt_cubic : geo->efit->Rxpt;
+  *z = geo->use_cubics ? geo->efit->Zxpt_cubic : geo->efit->Zxpt;
+  return geo->use_cubics ? geo->efit->num_xpts_cubic : geo->efit->num_xpts;
+}
+
+static bool tok_ext_xpoint_rz(const struct gkyl_tok_geo *geo,
+  enum tok_ext_xpoint which, double *r, double *z);
+
 // Pin a separatrix node that sits at a block's theta BOUNDARY to the X point
 // that bounds that boundary.
 //
@@ -2272,9 +2305,11 @@ tok_xpt_sep_pin_z(const struct gkyl_tok_geo_grid_inp *inp,
   const struct tok_ext_endpoint *e = at_upper ? &top.upper : &top.lower;
   if (e->kind != TOK_EXT_XPT_RAY)
     return false;
-  *z_pin = (e->xpoint == TOK_EXT_UPPER_XPT && geo->efit->num_xpts > 1)
-    ? geo->efit->Zxpt[1] : geo->efit->Zxpt[0];
-  return true;
+  // The X point of the representation that evaluates psi, as every ray
+  // endpoint takes it (tok_ext_xpoint_rz).
+  double r_pin;
+  return tok_ext_xpoint_rz(geo, e->xpoint == TOK_EXT_UPPER_XPT ?
+    TOK_EXT_UPPER_XPT : TOK_EXT_LOWER_XPT, &r_pin, z_pin);
 }
 
 // The Z coordinate a topology endpoint denotes.
@@ -2529,6 +2564,54 @@ tok_wall_theta_end_on_declared_plate(const struct gkyl_tok_geo_grid_inp *inp,
   if (end->kind != TOK_EXT_PLATE) return false;
   int slot = end->plate_slot == TOK_EXT_PLATE_LOWER ? 0 : 1;
   return !(geo->extend_to_limiter && geo->divertor_wall[slot].num_segments);
+}
+
+// The pockets between this block's declared plates and the outline (see
+// tok_wall_pocket_build), set for the wall tests that follow on this thread.
+// `nodal` (or null) holds node positions over `nrange` whose first/last theta
+// rows were placed ON the plates; they become pocket vertices. A plate that
+// leaves the outline by more than the outline resolves is reported, by the
+// build that ships (not by every wall trial), and used (user decision
+// 2026-10-06). A plate that is not finite is refused: never a movable edge.
+static void
+tok_wall_block_pockets(const struct gkyl_tok_geo_grid_inp *inp,
+  const struct gkyl_tok_geo *geo, const bool on_plate[2],
+  const struct gkyl_array *nodal, const struct gkyl_range *nrange,
+  struct tok_wall_pocket pocket[2])
+{
+  enum { PSI_IDX, AL_IDX, TH_IDX };
+  for (int end=0; end<2; ++end) {
+    pocket[end]=(struct tok_wall_pocket) { 0 };
+    struct tok_ext_topology top;
+    if (!on_plate[end] || !tok_ext_topology_from_ftype(inp->ftype, inp->half_domain, &top))
+      continue;
+    const struct tok_ext_endpoint *ep = end ? &top.upper : &top.lower;
+    plate_func plate = ep->plate_slot == TOK_EXT_PLATE_LOWER ?
+      geo->plate_func_lower : geo->plate_func_upper;
+    int nn=0;
+    double *xy=0;
+    if (nodal) {
+      xy=gkyl_malloc(2*(nrange->upper[PSI_IDX]-nrange->lower[PSI_IDX]+1)*sizeof(double));
+      for (int ip=nrange->lower[PSI_IDX]; ip<=nrange->upper[PSI_IDX]; ++ip) {
+        int idx[3]={ip,nrange->lower[AL_IDX],end ? nrange->upper[TH_IDX] : nrange->lower[TH_IDX]};
+        const double *p=gkyl_array_cfetch(nodal,gkyl_range_idx(nrange,idx));
+        xy[2*nn]=p[0]; xy[2*nn+1]=p[1]; ++nn;
+      }
+    }
+    struct tok_wall_plate_report rep;
+    if (!tok_wall_pocket_build(geo->efit,plate,nn,xy,&pocket[end],&rep)) {
+      fprintf(stderr,"TOK_GEO_WALL_PLATE_INVALID ftype=%d theta_edge=%d rz=(%.17g,%.17g): "
+        "the declared plate is not finite\n",inp->ftype,end,rep.rz[0],rep.rz[1]);
+      tok_wall_trial_note_plate_invalid();
+      if (!tok_wall_trial_record_where(true,false,false)) abort();
+    }
+    else if (rep.beyond_band && !tok_wall_trial_is_active())
+      fprintf(stderr,"TOK_GEO_WALL_PLATE_BEYOND_OUTLINE ftype=%d theta_edge=%d rz=(%.17g,%.17g) "
+        "outside_m=%.6g beyond_band_m=%.6g report_only=1: the declared plate leaves the vessel "
+        "outline by more than the outline resolves there; the legs are judged against the plate\n",
+        inp->ftype,end,rep.rz[0],rep.rz[1],rep.outside_m,rep.beyond_m);
+    if (xy) gkyl_free(xy);
+  }
 }
 
 // An X-point ray is the shared theta boundary of exactly TWO blocks: every
@@ -7980,41 +8063,134 @@ tok_row_arc_project_psi(const struct gkyl_tok_geo *geo, double psi,
   return true;
 }
 
-// The strike-step rule (user decision 2026-10-02, NSTX-U 204951).  Where a
-// divertor leg grazes the wall, two adjacent rows of a plate-ended block can
-// land far apart: on 204951 the private-flux rows peel off the floor onto the
-// centre column and the strike moves 41 mm between rows 24 and 25, while the
-// rows' theta cells are 17 mm long.  Nodes are spread along each row, so a
-// plate end that moves by more than a cell between neighbouring rows cannot be
-// spanned by the cells between them (fig24: seven cells with crossing radial
-// edges), and the fold is in the equilibrium's geometry, not in any placement
-// rule.  So the rule is the one the cells themselves impose: the plate ends of
-// two adjacent rows must be closer than this row's theta cell is long, both
-// lengths taken from the grid being built, no constant.  Treated like a wall
-// violation: inside a wall trial it is recorded against the movable radial
-// boundary, so the adjuster moves the requested PF (or SOL) bound inward until
-// the step fits -- "the adaptive boundary fix", as the user put it; in a
-// production build the row fails, loudly, like every other refusal.
-// (A first version compared the limiter SEGMENT each strike lies on; it
-// shrank 204046's outboard SOL to the floor over a 2 mm step across the
-// plate's own kink and aborted TCV, whose outline is a fine polyline.)
+// The plate a block end lies on, as its root finder resolves it: a declared
+// plate function at the TOK_PLATE_NSAMP+1 points tok_plate_flux_intersection
+// brackets on; an outline target's segments, in list order, at the step
+// tok_divertor_wall_intersection scans them with. Returns the number of
+// points (0 on failure); the caller frees *rz (R,Z pairs).
+static int
+tok_plate_polyline(const struct gkyl_tok_geo *geo, plate_func plate, double **rz)
+{
+  *rz = 0;
+  const int slot = tok_divertor_wall_slot(geo, plate);
+  if (slot < 0) {
+    if (!plate) return 0;
+    double *p = gkyl_malloc(2*(TOK_PLATE_NSAMP+1)*sizeof(double));
+    for (int k=0; k<=TOK_PLATE_NSAMP; ++k)
+      plate(k/(double) TOK_PLATE_NSAMP, p+2*k);
+    *rz = p;
+    return TOK_PLATE_NSAMP+1;
+  }
+  const struct gkyl_tok_geo_wall_target *t = &geo->divertor_wall[slot];
+  const struct gkyl_efit *e = geo->efit;
+  const int n = e->limiter_n, ns = t->num_segments;
+  const struct gkyl_rect_grid *g = geo->use_cubics ? &geo->rzgrid_cubic : &geo->rzgrid;
+  const double step = 0.1*fmin(g->dx[0], g->dx[1]);
+  if (ns < 1 || n < 3 || !(step > 0.0)) return 0;
+  // Segment i joins limiter vertices i and i+1 and the list may run either
+  // way, so the arc starts at the end of segment 0 that segment 1 does not share.
+  int *v = gkyl_malloc((ns+1)*sizeof(int));
+  int a0 = t->segments[0], b0 = (a0+1)%n;
+  if (ns > 1) {
+    const int a1 = t->segments[1], b1 = (a1+1)%n;
+    if (a0 == a1 || a0 == b1) { const int x = a0; a0 = b0; b0 = x; }
+  }
+  v[0] = a0; v[1] = b0;
+  for (int k=1; k<ns; ++k) {
+    const int a = t->segments[k], b = (a+1)%n;
+    v[k+1] = a == v[k] ? b : a;
+  }
+  int total = 1;
+  for (int k=0; k<ns; ++k) {
+    const double c = ceil(hypot(e->limiter_R[v[k+1]]-e->limiter_R[v[k]],
+      e->limiter_Z[v[k+1]]-e->limiter_Z[v[k]])/step);
+    if (!(c <= 100000)) { gkyl_free(v); return 0; }
+    total += GKYL_MAX2((int) c, 32);
+  }
+  double *p = gkyl_malloc(2*total*sizeof(double));
+  int m = 0;
+  p[2*m] = e->limiter_R[v[0]]; p[2*m+1] = e->limiter_Z[v[0]]; ++m;
+  for (int k=0; k<ns; ++k) {
+    const double ra = e->limiter_R[v[k]], za = e->limiter_Z[v[k]];
+    const double rb = e->limiter_R[v[k+1]], zb = e->limiter_Z[v[k+1]];
+    const int c = GKYL_MAX2((int) ceil(hypot(rb-ra, zb-za)/step), 32);
+    for (int j=1; j<=c; ++j) {
+      p[2*m] = ra+(rb-ra)*j/(double) c; p[2*m+1] = za+(zb-za)*j/(double) c; ++m;
+    }
+  }
+  gkyl_free(v);
+  *rz = p;
+  return m;
+}
+
+// Walk the plate polyline from a to b (both on it) and return the largest
+// reversal of psi against the direction psi_a -> psi_b: zero when psi is
+// monotone between the two strikes. `at` receives where the reversal is.
+static double
+tok_plate_flux_reversal(const struct gkyl_tok_geo *geo, const double *rz, int np,
+  const double a[2], double psi_a, const double b[2], double psi_b, double at[2])
+{
+  int kab[2] = { 0, 0 }; double tab[2] = { 0.0, 0.0 };
+  for (int w=0; w<2; ++w) {
+    const double *q = w ? b : a; double best = DBL_MAX;
+    for (int k=0; k+1<np; ++k) {
+      const double dx = rz[2*k+2]-rz[2*k], dy = rz[2*k+3]-rz[2*k+1], l2 = dx*dx+dy*dy;
+      const double t = l2 > 0.0 ? fmax(0.0, fmin(1.0, ((q[0]-rz[2*k])*dx+(q[1]-rz[2*k+1])*dy)/l2)) : 0.0;
+      const double d = hypot(q[0]-rz[2*k]-t*dx, q[1]-rz[2*k+1]-t*dy);
+      if (d < best) { best = d; kab[w] = k; tab[w] = t; }
+    }
+  }
+  const double sgn = psi_b >= psi_a ? 1.0 : -1.0;
+  double run = -DBL_MAX, worst = 0.0;
+  at[0] = a[0]; at[1] = a[1];
+  // a, then the polyline vertices strictly between, then b
+  const bool fwd = kab[0] < kab[1] || (kab[0] == kab[1] && tab[0] <= tab[1]);
+  const int first = fwd ? kab[0]+1 : kab[0], last = fwd ? kab[1] : kab[1]+1;
+  const int nv = fwd ? GKYL_MAX2(last-first+1, 0) : GKYL_MAX2(first-last+1, 0);
+  for (int i=-1; i<=nv; ++i) {
+    double p[2];
+    if (i < 0) { p[0] = a[0]; p[1] = a[1]; }
+    else if (i == nv) { p[0] = b[0]; p[1] = b[1]; }
+    else { const int k = fwd ? first+i : first-i; p[0] = rz[2*k]; p[1] = rz[2*k+1]; }
+    const double q = sgn*(tok_eval_psi_rz_local(geo, p[0], p[1])-psi_a);
+    run = fmax(run, q);
+    if (run-q > worst) { worst = run-q; at[0] = p[0]; at[1] = p[1]; }
+  }
+  return worst;
+}
+
+// The strike rule (user decision 2026-10-06; replaces the 10-02 one-cell rule).
+// Two adjacent rows of a plate-ended block end at two strike points; between
+// them, psi along the plate must be MONOTONE. If it reverses, some flux
+// surface between the two rows meets the plate more than once there -- it is
+// tangent to the plate -- and the strike map folds: the cells between the rows
+// cannot span it (NSTX-U 204951, fig24: the PF rows' strikes round the inner
+// corner; psi along the centre-column wall reverses by 47% of the row spacing
+// 35 mm above the corner). The tangency sits at a fixed flux, so some pair of
+// neighbouring rows straddles it at every resolution, and the verdict does not
+// depend on the cell sizes. The 10-02 rule compared the strike step with a
+// theta cell -- a radial spacing against a poloidal one -- and so refused 7
+// cells of the refinement matrix (mx12) where the strike merely slides along a
+// grazing plate with psi strictly monotone (step halves with psi refinement).
+// The tolerance is the plate root finders' own (1e-10 relative), the precision
+// to which the strike points are known. Treated like a wall violation: inside
+// a wall trial it is recorded, so the adjuster moves the requested PF (or SOL)
+// bound inward until no pair of rows straddles the tangency; in a production
+// build the row fails, loudly.
 static bool
 tok_ext_strike_step_check(const struct gkyl_tok_geo_grid_inp *inp,
   const struct arc_length_ctx *arc_ctx, const struct tok_ext_topology *top,
   double psi, bool at_sep, const double *raw_r, const double *raw_z,
   const double *raw_s, int raw_n)
 {
+  (void) raw_s;
   const bool lo_plate = top->lower.kind == TOK_EXT_PLATE;
   const bool hi_plate = top->upper.kind == TOK_EXT_PLATE;
-  if ((!lo_plate && !hi_plate) || raw_n < 2 || inp->cgrid.cells[0] < 1 ||
-      inp->cgrid.cells[2] < 1)
+  if ((!lo_plate && !hi_plate) || raw_n < 2 || inp->cgrid.cells[0] < 1)
     return true;
-  const double L = raw_s[raw_n-1];
-  if (!(L > 0.0) || !isfinite(L))
-    return true;
-  const double h = L/inp->cgrid.cells[2];
+  const struct gkyl_tok_geo *geo = arc_ctx->geo;
   const double dpsi = (inp->cgrid.upper[0]-inp->cgrid.lower[0])/inp->cgrid.cells[0];
-  const double psisep = arc_ctx->geo->psisep;
+  const double psisep = geo->psisep;
   // The neighbouring row: toward the separatrix for an interior row, into the
   // block for the separatrix row itself.
   double psi_nb;
@@ -8032,14 +8208,22 @@ tok_ext_strike_step_check(const struct gkyl_tok_geo_grid_inp *inp,
     if (!tok_ext_endpoint_point(inp, arc_ctx, endpoint, psi_nb,
         tok_geo_same_flux(psi_nb, psisep), &rn, &zn, 0))
       continue;   // the neighbour's own build will judge it
-    const double D = hypot(re-rn, ze-zn);
-    if (!(D > h))
+    plate_func plate = endpoint->plate_slot == TOK_EXT_PLATE_LOWER ?
+      geo->plate_func_lower : geo->plate_func_upper;
+    double *rz = 0;
+    const int np = tok_plate_polyline(geo, plate, &rz);
+    if (np < 2) { if (rz) gkyl_free(rz); continue; }
+    double at[2];
+    const double rev = tok_plate_flux_reversal(geo, rz, np, (const double[2]) { re, ze }, psi,
+      (const double[2]) { rn, zn }, psi_nb, at);
+    gkyl_free(rz);
+    if (!(rev > 1e-10*fmax(1.0, fmax(fabs(psi), fabs(psi_nb)))))
       continue;
     const bool trial = tok_wall_trial_record_scope(false, false);
     fprintf(stderr,
-      "TOK_STRIKE_STEP ftype=%d psi=%.17g strike=(%.17g,%.17g) neighbour_psi=%.17g "
-      "neighbour_strike=(%.17g,%.17g) step_m=%.17g theta_cell_m=%.17g trial=%d\n",
-      inp->ftype, psi, re, ze, psi_nb, rn, zn, D, h, (int) trial);
+      "TOK_STRIKE_FOLD ftype=%d psi=%.17g strike=(%.17g,%.17g) neighbour_psi=%.17g "
+      "neighbour_strike=(%.17g,%.17g) reversal_psi=%.6g reversal_of_spacing=%.6g at=(%.17g,%.17g) trial=%d\n",
+      inp->ftype, psi, re, ze, psi_nb, rn, zn, rev, rev/fabs(psi_nb-psi), at[0], at[1], (int) trial);
     if (!trial)
       return false;
   }
@@ -9636,14 +9820,11 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
           r_curr = sep_r_curr;
 
         if (tok_geo_same_flux(psi_curr, geo->psisep)) {
-          if (z_curr == geo->efit->Zxpt[0]) {
-            nr = 1;
-            r_curr = geo->efit->Rxpt[0];
-          }
-          if (z_curr == (geo->efit->num_xpts > 1 ? geo->efit->Zxpt[1] : geo->efit->Zxpt[0])) {
-            nr = 1;
-            r_curr = (geo->efit->num_xpts > 1 ? geo->efit->Rxpt[1] : geo->efit->Rxpt[0]);
-          }
+          // Snap to the X point of the representation that evaluates psi.
+          const double *rx, *zx;
+          const int nx = tok_geo_xpts(geo, &rx, &zx);
+          for (int k=0; k<nx && k<2; ++k)
+            if (z_curr == zx[k]) { nr = 1; r_curr = rx[k]; }
         }
 
         if (nr==0) {
@@ -9749,13 +9930,20 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
     tok_wall_theta_end_on_declared_plate(inp,geo,0);
   const bool plate_row_up = enforce_wall && up->local.upper[TH_IDX]==up->global.upper[TH_IDX] &&
     tok_wall_theta_end_on_declared_plate(inp,geo,1);
+  // Every test below, and the boundary-curve pass after it, judges against the
+  // outline together with the pockets between these plates and the outline;
+  // the plate-row nodes are pocket vertices.
+  struct tok_wall_pocket pocket[2]={{0}};
+  if (enforce_wall)
+    tok_wall_block_pockets(inp,geo,(const bool[2]) { plate_row_lo,plate_row_up },
+      up->geo_corn.mc2p_nodal,nrange,pocket);
+  tok_wall_pockets_set(&pocket[0],&pocket[1]);
   if (enforce_wall)
   for (int ip=nrange->lower[PSI_IDX]; ip<=nrange->upper[PSI_IDX]; ++ip) {
     for (int it=nrange->lower[TH_IDX]; it<=nrange->upper[TH_IDX]; ++it) {
       int idx[3]={ip,nrange->lower[AL_IDX],it};
       const double *p=gkyl_array_cfetch(up->geo_corn.mc2p_nodal,gkyl_range_idx(nrange,idx));
       const bool on_plate=(plate_row_lo && it==nrange->lower[TH_IDX]) || (plate_row_up && it==nrange->upper[TH_IDX]);
-      tok_wall_declared_plate_scope_set(on_plate);
       bool ok=tok_wall_point_inside(geo->efit,p);
       // Report WHICH test failed. The old message printed only the node, so a
       // segment violation looked like a point violation -- and the node it
@@ -9767,11 +9955,12 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
       bool fixed_failure=!ok && fixed_row;
       for (int d=0; d<3 && ok; d+=2) {
         if (idx[d]>=nrange->upper[d]) continue;
+        // A psi segment along a plate row joins two nodes the root finder put
+        // ON the plate, and the face it stands for follows the plate between
+        // them; the plate was checked against the outline with its pocket.
+        if (d==PSI_IDX && on_plate) continue;
         idx[d]++;
         const double *q=gkyl_array_cfetch(up->geo_corn.mc2p_nodal,gkyl_range_idx(nrange,idx));
-        // A segment touches the plate when either end is on it: the psi
-        // segment along the plate row, or the theta segment leaving it.
-        tok_wall_declared_plate_scope_set(on_plate || (d==TH_IDX && plate_row_up && idx[TH_IDX]==nrange->upper[TH_IDX]));
         ok=tok_wall_segment_inside(geo->efit,p,q);
         if (!ok) { fail_scope = d==PSI_IDX ? "segment_psi" : "segment_theta";
                    fail_q[0]=q[0]; fail_q[1]=q[1]; }
@@ -9819,7 +10008,7 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
       }
     }
   }
-  tok_wall_declared_plate_scope_set(false);
+  tok_wall_pockets_set(0,0);
 
   // The library builds geometry three ways and only one of them ships. The
   // row-arc PROBE measures each row's arc length with the grading switched off
@@ -10027,6 +10216,7 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
     fprintf(stderr,"TOK_GEO_WALL_DOMAIN_FAILED unsupported boundary order=%d\n",inp->cbasis.poly_order);
     abort();
   }
+  tok_wall_pockets_set(&pocket[0],&pocket[1]);
   if (enforce_wall)
   for (int side=0;side<2;++side) {
     int idx[3]={side ? up->local.upper[PSI_IDX] : up->local.lower[PSI_IDX],
@@ -10039,9 +10229,6 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
         for(int d=0;d<2;++d)
           points[k][d]=inp->cbasis.eval_expand(eta,coeff+d*inp->cbasis.num_basis);
       }
-      // The first and last theta cells end on the plate rows.
-      tok_wall_declared_plate_scope_set((plate_row_lo && idx[TH_IDX]==up->local.lower[TH_IDX]) ||
-        (plate_row_up && idx[TH_IDX]==up->local.upper[TH_IDX]));
       if (!tok_wall_curve_inside(geo->efit,points[0],points[1],points[2])) {
         fprintf(stderr,"TOK_GEO_WALL_DOMAIN_FAILED ftype=%d scope=radial_boundary_curve side=%d theta_cell=%d\n",inp->ftype,side,idx[TH_IDX]);
         if (!tok_wall_trial_record_where(side!=wall_trial_movable_edge, false,
@@ -10049,7 +10236,9 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
       }
     }
   }
-  tok_wall_declared_plate_scope_set(false);
+  tok_wall_pockets_set(0,0);
+  tok_wall_pocket_release(&pocket[0]);
+  tok_wall_pocket_release(&pocket[1]);
 
   gkyl_nodal_ops_n2m(n2m, &inp->cbasis, &inp->cgrid, nrange, &up->local, 3, up->geo_corn.mc2nu_pos_nodal, up->geo_corn.mc2nu_pos, false);
   gkyl_nodal_ops_n2m(n2m, &inp->cbasis, &inp->cgrid, nrange, &up->local, 1, up->geo_corn.bmag_nodal, up->geo_corn.bmag, false);
@@ -10059,10 +10248,13 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
   gkyl_dg_inv_op_range(&inp->cbasis, 0, up->geo_corn.bmag_inv, 0, up->geo_corn.bmag, &up->local);
 
    // Flush the captured separatrix row for this block before its buffers go.
-   if (tok_seam_cap_on && tok_seam_cap_row_n > 1)
+   if (tok_seam_cap_on && tok_seam_cap_row_n > 1) {
+     const double *rx, *zx;
+     tok_geo_xpts(geo, &rx, &zx);
      tok_seam_capture_row(inp->ftype, tok_seam_cap_row_r, tok_seam_cap_row_z,
        tok_seam_cap_row_n, fabs(inp->cgrid.upper[2]-inp->cgrid.lower[2]),
-       geo->efit->Rxpt[0], geo->efit->Zxpt[0]);
+       rx[0], zx[0]);
+   }
    tok_seam_cap_row_n = 0;
   gkyl_free(arc_memo);
   gkyl_free(arc_memo_left);
@@ -10339,14 +10531,11 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
             r_curr = sep_r_curr;
 
           if (tok_geo_same_flux(psi_curr, geo->psisep) && ip_delta==0) {
-            if (z_curr == geo->efit->Zxpt[0]) {
-              nr = 1;
-              r_curr = geo->efit->Rxpt[0];
-            }
-            if (z_curr == (geo->efit->num_xpts > 1 ? geo->efit->Zxpt[1] : geo->efit->Zxpt[0])) {
-              nr = 1;
-              r_curr = (geo->efit->num_xpts > 1 ? geo->efit->Rxpt[1] : geo->efit->Rxpt[0]);
-            }
+            // Snap to the X point of the representation that evaluates psi.
+            const double *rx, *zx;
+            const int nx = tok_geo_xpts(geo, &rx, &zx);
+            for (int k=0; k<nx && k<2; ++k)
+              if (z_curr == zx[k]) { nr = 1; r_curr = rx[k]; }
           }
 
           if (nr==0) {
@@ -10457,6 +10646,15 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
   }
 
   struct gkyl_nodal_ops *n2m =  gkyl_nodal_ops_new(&inp->cbasis, &inp->cgrid, false);
+  // Judged against the outline together with the pockets of the block's
+  // declared plates (see the corner pass); no interior node is on a plate.
+  struct tok_wall_pocket pocket[2]={{0}};
+  if (enforce_wall)
+    tok_wall_block_pockets(inp,geo,(const bool[2]) {
+        up->local.lower[TH_IDX]==up->global.lower[TH_IDX] && tok_wall_theta_end_on_declared_plate(inp,geo,0),
+        up->local.upper[TH_IDX]==up->global.upper[TH_IDX] && tok_wall_theta_end_on_declared_plate(inp,geo,1) },
+      0,nrange,pocket);
+  tok_wall_pockets_set(&pocket[0],&pocket[1]);
   struct gkyl_range_iter wall_iter;
   gkyl_range_iter_init(&wall_iter,nrange);
   while (enforce_wall && gkyl_range_iter_next(&wall_iter)) {
@@ -10469,6 +10667,9 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
             up->grid.lower[PSI_IDX], up->grid.upper[PSI_IDX]))) abort();
     }
   }
+  tok_wall_pockets_set(0,0);
+  tok_wall_pocket_release(&pocket[0]);
+  tok_wall_pocket_release(&pocket[1]);
   gkyl_nodal_ops_n2m(n2m, &inp->cbasis, &inp->cgrid, nrange, &up->local, 3, up->geo_int.mc2p_nodal, up->geo_int.mc2p, true);
   gkyl_nodal_ops_n2m(n2m, &inp->cbasis, &inp->cgrid, nrange, &up->local, 1, up->geo_int.bmag_nodal, up->geo_int.bmag, true);
   gkyl_nodal_ops_n2m(n2m, &inp->cbasis, &inp->cgrid, nrange, &up->local, 1, qprofile_nodal, up->geo_int.qprofile, true);
@@ -10521,6 +10722,14 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
 
   double dels[2] = {1.0/sqrt(3), 1.0-1.0/sqrt(3) };
   theta_lo += dir == 2 ? 0.0 : dels[1]*dtheta/2.0;
+  // The pockets of the block's declared plates (see the corner pass), set only
+  // around this pass's containment test.
+  const bool plate_end[2]={
+    enforce_wall && up->local.lower[TH_IDX]==up->global.lower[TH_IDX] && tok_wall_theta_end_on_declared_plate(inp,geo,0),
+    enforce_wall && up->local.upper[TH_IDX]==up->global.upper[TH_IDX] && tok_wall_theta_end_on_declared_plate(inp,geo,1) };
+  struct tok_wall_pocket pocket[2]={{0}};
+  if (enforce_wall)
+    tok_wall_block_pockets(inp,geo,plate_end,0,nrange,pocket);
   psi_lo += dir == 0 ? 0.0 : dels[1]*dpsi/2.0;
   alpha_lo += dir == 1 ? 0. : dels[1]*dalpha/2.0;
 
@@ -10746,14 +10955,11 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
             r_curr = sep_r_curr;
 
           if (tok_geo_same_flux(psi_curr, geo->psisep) && ip_delta==0) {
-            if (z_curr == geo->efit->Zxpt[0]) {
-              nr = 1;
-              r_curr = geo->efit->Rxpt[0];
-            }
-            if (z_curr == (geo->efit->num_xpts > 1 ? geo->efit->Zxpt[1] : geo->efit->Zxpt[0])) {
-              nr = 1;
-              r_curr = (geo->efit->num_xpts > 1 ? geo->efit->Rxpt[1] : geo->efit->Rxpt[0]);
-            }
+            // Snap to the X point of the representation that evaluates psi.
+            const double *rx, *zx;
+            const int nx = tok_geo_xpts(geo, &rx, &zx);
+            for (int k=0; k<nx && k<2; ++k)
+              if (z_curr == zx[k]) { nr = 1; r_curr = rx[k]; }
           }
 
           if(nr==0){
@@ -10785,15 +10991,16 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
             // yields J=0 at check_right_handed.
             if (enforce_wall) {
               double wall_point[2]={r_curr,z_curr};
-              // Theta-face nodes at the block's ends sit on the plate rows;
-              // those on a separately declared plate keep the per-edge slack
-              // (see the corner-node pass).
+              // Theta-face nodes at the block's ends were put ON the plate by
+              // the root finder; the plate was checked against the outline
+              // with its pocket. Every other face node is judged against the
+              // outline and the pockets.
               const bool on_plate = dir==2 &&
-                ((it==nrange->lower[TH_IDX] && up->local.lower[TH_IDX]==up->global.lower[TH_IDX] && tok_wall_theta_end_on_declared_plate(inp,geo,0)) ||
-                 (it==nrange->upper[TH_IDX] && up->local.upper[TH_IDX]==up->global.upper[TH_IDX] && tok_wall_theta_end_on_declared_plate(inp,geo,1)));
-              tok_wall_declared_plate_scope_set(on_plate);
-              bool inside=tok_wall_point_inside(geo->efit,wall_point);
-              tok_wall_declared_plate_scope_set(false);
+                ((it==nrange->lower[TH_IDX] && plate_end[0] && pocket[0].n) ||
+                 (it==nrange->upper[TH_IDX] && plate_end[1] && pocket[1].n));
+              tok_wall_pockets_set(&pocket[0],&pocket[1]);
+              bool inside=on_plate || tok_wall_point_inside(geo->efit,wall_point);
+              tok_wall_pockets_set(0,0);
               if (!inside) {
                 fprintf(stderr,"TOK_GEO_WALL_DOMAIN_FAILED ftype=%d scope=face dir=%d rz=(%.17g,%.17g)\n",inp->ftype,dir,r_curr,z_curr);
                 // the point's radial coordinate, as this loop placed it
@@ -10901,6 +11108,8 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
   gkyl_free(arc_ctx.ext_ladder_w);
   gkyl_free(arc_ctx.ext_ladder_rf);
   gkyl_free(ordered_trace_storage);
+  tok_wall_pocket_release(&pocket[0]);
+  tok_wall_pocket_release(&pocket[1]);
 }
 
 

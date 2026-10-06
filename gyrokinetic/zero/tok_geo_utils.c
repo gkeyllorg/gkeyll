@@ -93,11 +93,15 @@ tok_wall_arc_sagitta(double ax, double ay, double bx, double by,
 //
 // The slack was introduced for ONE case: a node on a plate the driver declared
 // separately from the outline lands a fraction of a millimetre either side of
-// the chord. It is granted there and nowhere else; every other point is
-// judged against the outline to roundoff. Measured before making it the rule
-// (2026-10-03): the STEP/ASDEX/TCV x1 cells, C1 on and off, are bit-identical
-// strict and lenient, and the NSTX-U 450 already ran strict. The caller says when
-// it is testing a point on such a plate (tok_wall_declared_plate_scope_set).
+// the chord. Since 2026-10-05 it is used for one test only: checking the
+// declared PLATE itself against the outline (tok_wall_pocket_build), which is
+// exactly the question the outline's resolution can answer. Every point of
+// the grid is judged to roundoff, against the outline together with the
+// pockets between the block's plates and the outline (see the pocket block
+// below). Exempting only the plate's own nodes made the verdict depend on
+// theta resolution: ASDEX x1 built, x2 refused 553 points of the cells beside
+// the inner target. The caller says when it is testing the plate
+// (tok_wall_declared_plate_scope_set).
 static _Thread_local bool tok_wall_declared_plate_scope;
 
 void
@@ -120,6 +124,80 @@ tok_wall_edge_tolerance(const struct gkyl_efit *e, int j, int i)
   const double s=fmax(tok_wall_arc_sagitta(R[jm],Z[jm],R[j],Z[j],R[i],Z[i],len),
                       tok_wall_arc_sagitta(R[j],Z[j],R[i],Z[i],R[ip],Z[ip],len));
   return fmax(tol,s);
+}
+
+// ---------------------------------------------------------------------------
+// The pocket between a declared plate and the outline (2026-10-05).
+//
+// A block that ends on a plate the driver declared SEPARATELY from the vessel
+// outline (ASDEX, TCV, STEP) has two descriptions of the same wall at that end:
+// the plate, which the grid is built to, and the outline's chords. They
+// disagree by up to the outline's own resolution (ASDEX inner target: 3.7 mm
+// outside chords of 80-158 mm). Judged against the chords, the cells beside
+// the plate failed once theta was refined (ASDEX x2: 553 points, every one in
+// a leg or private-flux block, none in the main-chamber SOL), and the adjuster
+// cleared them by shrinking the whole SOL, main chamber included, from rho
+// 1.040 to 1.0095. User decision 2026-10-05: legs terminate on their plates by
+// design; the wall test is for where the flux surfaces meet the vessel.
+//
+// So a plate-terminated block is judged against the outline together with
+// the POCKET between the plate and the outline: the plate, sampled as the
+// root finder resolves it, closed back along the outline between the points
+// nearest its two ends. Every point, segment and boundary curve of the block
+// is judged to roundoff against that union: the flux surfaces against the
+// outline away from the plate, the cells beside the plate against the plate.
+// Nothing is exempted by cell layer, so the verdict does not depend on the
+// resolution. The plate itself is compared with the outline at the outline's
+// resolution when its pocket is built, and any excess REPORTED, not refused
+// (user decision 2026-10-06: ASDEX's inner target lies 0.13 mm past the band
+// along 2 mm of its length; refusing it refused every ASDEX input).
+// ---------------------------------------------------------------------------
+static _Thread_local const struct tok_wall_pocket *tok_wall_pockets[2];
+
+void
+tok_wall_pockets_set(const struct tok_wall_pocket *lo, const struct tok_wall_pocket *up)
+{
+  tok_wall_pockets[0] = lo && lo->n>=3 ? lo : 0;
+  tok_wall_pockets[1] = up && up->n>=3 ? up : 0;
+}
+
+static int
+tok_wall_pocket_vertices(void)
+{
+  int n=0;
+  for (int k=0; k<2; ++k) if (tok_wall_pockets[k]) n+=tok_wall_pockets[k]->n;
+  return n;
+}
+
+// Even-odd containment in a closed polygon, with points within `tol` of an
+// edge counted inside: the outline test of tok_wall_point_inside, one
+// tolerance for every edge.
+static bool
+tok_wall_polygon_contains(int n, const double *R, const double *Z,
+  const double p[2], double tol)
+{
+  bool inside=false;
+  for (int i=0,j=n-1; i<n; j=i++) {
+    double ax=R[j],ay=Z[j],bx=R[i],by=Z[i];
+    double dx=bx-ax,dy=by-ay,l2=dx*dx+dy*dy;
+    if (l2>0.0) {
+      double t=fmax(0.0,fmin(1.0,((p[0]-ax)*dx+(p[1]-ay)*dy)/l2));
+      if (hypot(p[0]-ax-t*dx,p[1]-ay-t*dy)<=tol) return true;
+    }
+    if ((ay>p[1])!=(by>p[1]) && p[0]<ax+(p[1]-ay)*dx/(by-ay)) inside=!inside;
+  }
+  return inside;
+}
+
+static bool
+tok_wall_in_pocket(const struct gkyl_efit *e, const double p[2])
+{
+  for (int k=0; k<2; ++k) {
+    const struct tok_wall_pocket *pk=tok_wall_pockets[k];
+    if (pk && tok_wall_polygon_contains(pk->n,pk->R,pk->Z,p,tok_wall_tolerance(e)))
+      return true;
+  }
+  return false;
 }
 
 bool
@@ -148,7 +226,7 @@ tok_wall_point_inside(const struct gkyl_efit *e, const double p[2])
     }
     if ((ay>p[1])!=(by>p[1]) && p[0]<ax+(p[1]-ay)*dx/(by-ay)) inside=!inside;
   }
-  return inside;
+  return inside || tok_wall_in_pocket(e,p);
 }
 
 static int
@@ -158,21 +236,16 @@ tok_wall_compare_double(const void *a, const void *b)
   return (x>y)-(x<y);
 }
 
-bool
-tok_wall_segment_inside(const struct gkyl_efit *e,
-  const double a[2], const double b[2])
+// Parameters t in (0,1) where the segment a + t*(dx,dy) meets an edge of the
+// closed polygon (R,Z,nv), appended to cuts[n..]; at most two per edge.
+static int
+tok_wall_segment_cuts(int nv, const double *R, const double *Z,
+  const double a[2], double dx, double dy, double l2, double tol,
+  double *cuts, int n)
 {
-  if (!tok_wall_point_inside(e,a) || !tok_wall_point_inside(e,b)) return false;
-  double dx=b[0]-a[0],dy=b[1]-a[1],l2=dx*dx+dy*dy;
-  double tol=tok_wall_tolerance(e);
-  if (l2<=tol*tol) return true;
-  // Partition at EVERY intersection (including collinear wall vertices), then
-  // test each open interval. Endpoints alone miss excursions across a concavity.
-  double *cuts=gkyl_malloc((2*e->limiter_n+2)*sizeof(double));
-  int n=0;cuts[n++]=0.0;cuts[n++]=1.0;
-  for (int i=0,j=e->limiter_n-1; i<e->limiter_n; j=i++) {
-    double px=e->limiter_R[j]-a[0],py=e->limiter_Z[j]-a[1];
-    double ex=e->limiter_R[i]-e->limiter_R[j],ey=e->limiter_Z[i]-e->limiter_Z[j];
+  for (int i=0,j=nv-1; i<nv; j=i++) {
+    double px=R[j]-a[0],py=Z[j]-a[1];
+    double ex=R[i]-R[j],ey=Z[i]-Z[j];
     double den=dx*ey-dy*ex;
     double roundoff=64.0*DBL_EPSILON*fmax(DBL_MIN,sqrt(l2)*hypot(ex,ey));
     if (fabs(den)>roundoff) {
@@ -186,6 +259,26 @@ tok_wall_segment_inside(const struct gkyl_efit *e,
       if (t>0.0 && t<1.0) cuts[n++]=t;
     }
   }
+  return n;
+}
+
+bool
+tok_wall_segment_inside(const struct gkyl_efit *e,
+  const double a[2], const double b[2])
+{
+  if (!tok_wall_point_inside(e,a) || !tok_wall_point_inside(e,b)) return false;
+  double dx=b[0]-a[0],dy=b[1]-a[1],l2=dx*dx+dy*dy;
+  double tol=tok_wall_tolerance(e);
+  if (l2<=tol*tol) return true;
+  // Partition at EVERY intersection (including collinear wall vertices), then
+  // test each open interval. Endpoints alone miss excursions across a concavity.
+  // The pockets' edges partition too: the union's boundary is made of both.
+  double *cuts=gkyl_malloc((2*(e->limiter_n+tok_wall_pocket_vertices())+2)*sizeof(double));
+  int n=0;cuts[n++]=0.0;cuts[n++]=1.0;
+  n=tok_wall_segment_cuts(e->limiter_n,e->limiter_R,e->limiter_Z,a,dx,dy,l2,tol,cuts,n);
+  for (int k=0; k<2; ++k) if (tok_wall_pockets[k])
+    n=tok_wall_segment_cuts(tok_wall_pockets[k]->n,tok_wall_pockets[k]->R,
+      tok_wall_pockets[k]->Z,a,dx,dy,l2,tol,cuts,n);
   qsort(cuts,n,sizeof(double),tok_wall_compare_double);
   bool ok=true;
   for (int i=1; i<n && ok; ++i) {
@@ -293,6 +386,44 @@ tok_wall_quadratic_roots(double a, double b, double c, double roots[2])
   return n;
 }
 
+// Parameters t in (0,1) where the curve p0 + t*b + t^2*a meets an edge of the
+// closed polygon (R,Z,nv), appended to cuts[n..]; at most four per edge.
+static int
+tok_wall_curve_cuts(int nv, const double *R, const double *Z,
+  const double p0[2], const double a[2], const double b[2], double tol,
+  double *cuts, int nc)
+{
+  for(int i=0,j=nv-1;i<nv;j=i++) {
+    double ex=R[i]-R[j],ey=Z[i]-Z[j];
+    double l2=ex*ex+ey*ey;
+    if(l2==0.0)continue;
+    double cx=p0[0]-R[j],cy=p0[1]-Z[j];
+    double qa=a[0]*ey-a[1]*ex,qb=b[0]*ey-b[1]*ex,qc=cx*ey-cy*ex;
+    double roots[2];
+    double threshold=64*DBL_EPSILON*sqrt(l2)*fmax(1.0,hypot(a[0],a[1])+hypot(b[0],b[1])+hypot(cx,cy));
+    if(fmax(fabs(qa),fmax(fabs(qb),fabs(qc)))<=threshold) {
+      // Curve lies on this wall line. Its passage past either end of the
+      // finite wall segment still partitions inside from outside intervals.
+      int d=fabs(ex)>=fabs(ey) ? 0 : 1;
+      for(int end=0;end<2;++end) {
+        int vertex=end ? i : j;
+        double value=d==0 ? R[vertex] : Z[vertex];
+        int nr=tok_wall_quadratic_roots(a[d],b[d],p0[d]-value,roots);
+        for(int k=0;k<nr;++k)cuts[nc++]=roots[k];
+      }
+    }
+    else {
+      int nr=tok_wall_quadratic_roots(qa,qb,qc,roots);
+      for(int k=0;k<nr;++k) {
+        double t=roots[k],r=p0[0]+t*(b[0]+t*a[0]),z=p0[1]+t*(b[1]+t*a[1]);
+        double u=((r-R[j])*ex+(z-Z[j])*ey)/l2;
+        if(u>=-tol/sqrt(l2) && u<=1.0+tol/sqrt(l2))cuts[nc++]=t;
+      }
+    }
+  }
+  return nc;
+}
+
 // Exact containment test for the represented p1/p2 boundary curve through
 // t=0,1/2,1. This catches an excursion between all three interpolation nodes.
 bool
@@ -306,37 +437,14 @@ tok_wall_curve_inside(const struct gkyl_efit *e,
     a[d]=2*(p1[d]+p0[d]-2*pm[d]);
     b[d]=4*pm[d]-3*p0[d]-p1[d];
   }
-  double *cuts=gkyl_malloc((4*e->limiter_n+2)*sizeof(double));
+  // The pockets' edges partition too, as in tok_wall_segment_inside.
+  double *cuts=gkyl_malloc((4*(e->limiter_n+tok_wall_pocket_vertices())+2)*sizeof(double));
   int nc=0;cuts[nc++]=0.0;cuts[nc++]=1.0;
   double tol=tok_wall_tolerance(e);
-  for(int i=0,j=e->limiter_n-1;i<e->limiter_n;j=i++) {
-    double ex=e->limiter_R[i]-e->limiter_R[j],ey=e->limiter_Z[i]-e->limiter_Z[j];
-    double l2=ex*ex+ey*ey;
-    if(l2==0.0)continue;
-    double cx=p0[0]-e->limiter_R[j],cy=p0[1]-e->limiter_Z[j];
-    double qa=a[0]*ey-a[1]*ex,qb=b[0]*ey-b[1]*ex,qc=cx*ey-cy*ex;
-    double roots[2];
-    double threshold=64*DBL_EPSILON*sqrt(l2)*fmax(1.0,hypot(a[0],a[1])+hypot(b[0],b[1])+hypot(cx,cy));
-    if(fmax(fabs(qa),fmax(fabs(qb),fabs(qc)))<=threshold) {
-      // Curve lies on this wall line. Its passage past either end of the
-      // finite wall segment still partitions inside from outside intervals.
-      int d=fabs(ex)>=fabs(ey) ? 0 : 1;
-      for(int end=0;end<2;++end) {
-        int vertex=end ? i : j;
-        double value=d==0 ? e->limiter_R[vertex] : e->limiter_Z[vertex];
-        int nr=tok_wall_quadratic_roots(a[d],b[d],p0[d]-value,roots);
-        for(int k=0;k<nr;++k)cuts[nc++]=roots[k];
-      }
-    }
-    else {
-      int nr=tok_wall_quadratic_roots(qa,qb,qc,roots);
-      for(int k=0;k<nr;++k) {
-        double t=roots[k],r=p0[0]+t*(b[0]+t*a[0]),z=p0[1]+t*(b[1]+t*a[1]);
-        double u=((r-e->limiter_R[j])*ex+(z-e->limiter_Z[j])*ey)/l2;
-        if(u>=-tol/sqrt(l2) && u<=1.0+tol/sqrt(l2))cuts[nc++]=t;
-      }
-    }
-  }
+  nc=tok_wall_curve_cuts(e->limiter_n,e->limiter_R,e->limiter_Z,p0,a,b,tol,cuts,nc);
+  for (int k=0; k<2; ++k) if (tok_wall_pockets[k])
+    nc=tok_wall_curve_cuts(tok_wall_pockets[k]->n,tok_wall_pockets[k]->R,
+      tok_wall_pockets[k]->Z,p0,a,b,tol,cuts,nc);
   qsort(cuts,nc,sizeof(double),tok_wall_compare_double);
   bool ok=true;
   for(int i=1;i<nc && ok;++i) {
@@ -345,6 +453,153 @@ tok_wall_curve_inside(const struct gkyl_efit *e,
     ok=tok_wall_point_inside(e,p);
   }
   gkyl_free(cuts);return ok;
+}
+
+struct tok_wall_pocket_pt { double key, r, z; };
+
+static int
+tok_wall_pocket_pt_compare(const void *a, const void *b)
+{
+  double x=((const struct tok_wall_pocket_pt *)a)->key;
+  double y=((const struct tok_wall_pocket_pt *)b)->key;
+  return (x>y)-(x<y);
+}
+
+// The point of the outline nearest p: on edge j -> (j+1)%n at fraction t.
+static void
+tok_wall_outline_nearest(const struct gkyl_efit *e, const double p[2],
+  int *edge, double *frac, double q[2])
+{
+  double best=DBL_MAX;
+  for (int i=0,j=e->limiter_n-1; i<e->limiter_n; j=i++) {
+    double ax=e->limiter_R[j],ay=e->limiter_Z[j];
+    double dx=e->limiter_R[i]-ax,dy=e->limiter_Z[i]-ay,l2=dx*dx+dy*dy;
+    double t=l2>0.0 ? fmax(0.0,fmin(1.0,((p[0]-ax)*dx+(p[1]-ay)*dy)/l2)) : 0.0;
+    double d=hypot(p[0]-ax-t*dx,p[1]-ay-t*dy);
+    if (d<best) { best=d; *edge=j; *frac=t; q[0]=ax+t*dx; q[1]=ay+t*dy; }
+  }
+}
+
+// How far p lies past the outline's band -- the least, over edges, of its
+// distance to the edge less that edge's tolerance (positive: outside every
+// band) -- and its plain distance to the outline. Under the plate scope.
+static double
+tok_wall_band_excess(const struct gkyl_efit *e, const double p[2], double *outside)
+{
+  double best=DBL_MAX, d0=DBL_MAX;
+  for (int i=0,j=e->limiter_n-1; i<e->limiter_n; j=i++) {
+    double ax=e->limiter_R[j],ay=e->limiter_Z[j];
+    double dx=e->limiter_R[i]-ax,dy=e->limiter_Z[i]-ay,l2=dx*dx+dy*dy;
+    if (!(l2>0.0)) continue;
+    double t=fmax(0.0,fmin(1.0,((p[0]-ax)*dx+(p[1]-ay)*dy)/l2));
+    double d=hypot(p[0]-ax-t*dx,p[1]-ay-t*dy);
+    best=fmin(best,d-tok_wall_edge_tolerance(e,j,i)); d0=fmin(d0,d);
+  }
+  *outside=d0;
+  return best;
+}
+
+bool
+tok_wall_pocket_build(const struct gkyl_efit *e, plate_func plate,
+  int nnodes, const double *nodes, struct tok_wall_pocket *pk,
+  struct tok_wall_plate_report *rep)
+{
+  pk->n=0; pk->R=pk->Z=0;
+  *rep=(struct tok_wall_plate_report) { 0 };
+  const int ns=TOK_PLATE_NSAMP, n=e->limiter_n;
+  if (!plate || n<3) return false;
+  const int m=ns+1+nnodes;
+  struct tok_wall_pocket_pt *pt=gkyl_malloc(m*sizeof *pt);
+  for (int k=0; k<=ns; ++k) {
+    double rz[2];
+    plate(k/(double) ns, rz);
+    if (!tok_geo_finite(rz[0]) || !tok_geo_finite(rz[1])) {
+      rep->rz[0]=rz[0]; rep->rz[1]=rz[1]; gkyl_free(pt); return false;
+    }
+    pt[k]=(struct tok_wall_pocket_pt) { .key=k, .r=rz[0], .z=rz[1] };
+  }
+  // The nodes on the plate join the polyline where they project onto it.
+  for (int q=0; q<nnodes; ++q) {
+    const double *x=nodes+2*q;
+    double best=DBL_MAX, key=0.0;
+    for (int k=0; k<ns; ++k) {
+      double ax=pt[k].r,ay=pt[k].z,dx=pt[k+1].r-ax,dy=pt[k+1].z-ay,l2=dx*dx+dy*dy;
+      double t=l2>0.0 ? fmax(0.0,fmin(1.0,((x[0]-ax)*dx+(x[1]-ay)*dy)/l2)) : 0.0;
+      double d=hypot(x[0]-ax-t*dx,x[1]-ay-t*dy);
+      if (d<best) { best=d; key=k+t; }
+    }
+    pt[ns+1+q]=(struct tok_wall_pocket_pt) { .key=key, .r=x[0], .z=x[1] };
+  }
+  qsort(pt,m,sizeof *pt,tok_wall_pocket_pt_compare);
+
+  // The plate against the outline, at the outline's own resolution: within
+  // the per-edge sagitta band, the two describe the same wall. Judged alone,
+  // without any pocket; the worst excess is reported, the pocket built anyway.
+  const struct tok_wall_pocket *saved[2]={tok_wall_pockets[0],tok_wall_pockets[1]};
+  tok_wall_pockets[0]=tok_wall_pockets[1]=0;
+  tok_wall_declared_plate_scope_set(true);
+  rep->beyond_m=-DBL_MAX;
+  for (int k=0; k+1<m; ++k) {
+    double a[2]={pt[k].r,pt[k].z}, b[2]={pt[k+1].r,pt[k+1].z};
+    if (tok_wall_segment_inside(e,a,b)) continue;
+    rep->beyond_band=true;
+    const double mid[2]={0.5*(a[0]+b[0]),0.5*(a[1]+b[1])};
+    const double *cand[3]={a,mid,b};
+    for (int c=0; c<3; ++c) {
+      double out, x=tok_wall_band_excess(e,cand[c],&out);
+      if (x>rep->beyond_m) {
+        rep->beyond_m=x; rep->outside_m=out; rep->rz[0]=cand[c][0]; rep->rz[1]=cand[c][1];
+      }
+    }
+  }
+  if (!rep->beyond_band) rep->beyond_m=0.0;
+  tok_wall_declared_plate_scope_set(false);
+  tok_wall_pockets[0]=saved[0]; tok_wall_pockets[1]=saved[1];
+
+  // Close the plate back along the outline, between the outline points
+  // nearest its two ends. Of the two ways round, the pocket is the smaller;
+  // the other is the vessel with the plate in place of its stretch of the
+  // outline, and its union with the outline is the same region.
+  int ja,jb; double ta,tb,A[2],B[2];
+  tok_wall_outline_nearest(e,(double[2]) { pt[0].r,pt[0].z },&ja,&ta,A);
+  tok_wall_outline_nearest(e,(double[2]) { pt[m-1].r,pt[m-1].z },&jb,&tb,B);
+  const int cap=m+n+2;
+  double *R2[2],*Z2[2],area[2]; int n2[2];
+  for (int way=0; way<2; ++way) {
+    R2[way]=gkyl_malloc(cap*sizeof(double)); Z2[way]=gkyl_malloc(cap*sizeof(double));
+    int c=0;
+    for (int k=0; k<m; ++k) { R2[way][c]=pt[k].r; Z2[way][c++]=pt[k].z; }
+    R2[way][c]=B[0]; Z2[way][c++]=B[1];
+    // From B forward (way 0) or backward (way 1) through the outline's
+    // vertices to A; none when A lies ahead of B on B's own edge that way.
+    bool direct=ja==jb && (way==0 ? ta>=tb : ta<=tb);
+    if (!direct) {
+      int v=way==0 ? (jb+1)%n : jb, stop=way==0 ? ja : (ja+1)%n;
+      for (;;) {
+        R2[way][c]=e->limiter_R[v]; Z2[way][c++]=e->limiter_Z[v];
+        if (v==stop) break;
+        v=way==0 ? (v+1)%n : (v-1+n)%n;
+      }
+    }
+    R2[way][c]=A[0]; Z2[way][c++]=A[1];
+    n2[way]=c;
+    double s=0.0;
+    for (int i=0,j=c-1; i<c; j=i++) s+=R2[way][j]*Z2[way][i]-R2[way][i]*Z2[way][j];
+    area[way]=fabs(0.5*s);
+  }
+  gkyl_free(pt);
+  int pick=area[0]<=area[1] ? 0 : 1;
+  gkyl_free(R2[1-pick]); gkyl_free(Z2[1-pick]);
+  pk->n=n2[pick]; pk->R=R2[pick]; pk->Z=Z2[pick];
+  return true;
+}
+
+void
+tok_wall_pocket_release(struct tok_wall_pocket *pk)
+{
+  if (pk->R) gkyl_free(pk->R);
+  if (pk->Z) gkyl_free(pk->Z);
+  pk->n=0; pk->R=pk->Z=0;
 }
 
 // A join is geometric, not a device-specific distance allowance. Require the

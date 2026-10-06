@@ -1326,7 +1326,9 @@ int tok_plate_coverage_status(const struct gkyl_tok_geo *geo,
 bool tok_wall_point_inside(const struct gkyl_efit *efit, const double p[2]);
 // Every outline edge is judged to roundoff, except in tests the caller marks
 // as touching a plate the driver declared separately from the outline
-// (tok_wall_declared_plate_scope_set(true) around them).
+// (tok_wall_declared_plate_scope_set(true) around them). Since 2026-10-05 the
+// only such test is a declared plate's own check against the outline, in
+// tok_wall_pocket_build; grid points are judged against the pockets instead.
 void tok_wall_declared_plate_scope_set(bool on);
 // Reporting only; see the definition. Returns metres outside the outline, 0.0
 // if the segment never leaves it. Never used to decide containment.
@@ -1348,3 +1350,42 @@ static inline bool tok_geo_finite(double value)
 // Contains the entire represented quadratic (or linear) boundary curve.
 bool tok_wall_curve_inside(const struct gkyl_efit *efit,
   const double p0[2], const double pm[2], const double p1[2]);
+
+// How finely the plate root finder resolves a declared plate: uniform samples
+// in s on [0,1] (tok_plate_flux_intersection). The wall pocket samples the
+// plate the same way, so both see the same plate.
+#define TOK_PLATE_NSAMP 512
+
+// The region between a declared plate and the vessel outline, as a closed
+// polygon (see tok_wall_pocket_build). n==0: none.
+struct tok_wall_pocket {
+  int n;
+  double *R, *Z;
+};
+
+/** What tok_wall_pocket_build found about the plate itself. */
+struct tok_wall_plate_report {
+  bool beyond_band;   // some of the plate lies outside the outline by more
+                      // than the outline resolves there (its sagitta band)
+  double rz[2];       // the worst such point; the non-finite value when the
+                      // plate is not finite
+  double beyond_m;    // how far past the band it lies there
+  double outside_m;   // how far outside the outline it lies there
+};
+
+/** Build the pocket of `plate`. The `nnodes` points of `nodes` (R,Z pairs;
+ * may be null when nnodes is 0) lie on the plate and become vertices of the
+ * pocket, so a segment or curve leaving one starts exactly on its boundary.
+ * Returns false, with pk->n==0, only when the plate is not finite: a
+ * declaration error. A plate that leaves the outline by more than the outline
+ * resolves is REPORTED in `rep` and its pocket built anyway (user decision
+ * 2026-10-06): the driver declared the plate, and the legs end on it. */
+bool tok_wall_pocket_build(const struct gkyl_efit *efit, plate_func plate,
+  int nnodes, const double *nodes, struct tok_wall_pocket *pk,
+  struct tok_wall_plate_report *rep);
+void tok_wall_pocket_release(struct tok_wall_pocket *pk);
+/** The pockets the wall tests on this thread judge against together with
+ * the outline: a point, segment or curve is contained when it lies in the
+ * union. Null for none; the caller clears them after its tests. */
+void tok_wall_pockets_set(const struct tok_wall_pocket *lo,
+  const struct tok_wall_pocket *up);

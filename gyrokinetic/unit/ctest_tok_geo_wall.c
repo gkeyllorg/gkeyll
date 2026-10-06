@@ -284,6 +284,85 @@ test_vessel_outline_declaration(void)
   TEST_CHECK(!gkyl_tok_wall_usable(&two));
 }
 
+// A declared plate and its pocket (2026-10-05). The outline is an octagon
+// inscribed in the unit circle about (2,0); the plate spans its bottom edge
+// and bows below the chord by `plate_bow`, as a real target bows past a coarse
+// outline. The chord's sagitta band is 1-cos(pi/8) = 0.0761.
+static double plate_bow;
+static const double oct_c = 0.92387953251128674; // cos(pi/8)
+
+static void
+bowed_plate(double s, double *RZ)
+{
+  const double a = 2.0-0.38268343236508978, b = 2.0+0.38268343236508978; // 2 -/+ sin(pi/8)
+  RZ[0] = a+s*(b-a);
+  RZ[1] = -oct_c-4.0*s*(1.0-s)*plate_bow;
+}
+
+static void
+test_declared_plate_pocket(void)
+{
+  double R[8], Z[8];
+  for (int k=0; k<8; ++k) {
+    double th = -5.0*M_PI/8.0+k*M_PI/4.0;
+    R[k] = 2.0+cos(th); Z[k] = sin(th);
+  }
+  struct gkyl_efit e = wall(8,R,Z);
+  const double sag = 1.0-oct_c, chord = -oct_c;
+
+  // Inside the band: the pocket builds. A node ON the plate becomes a vertex.
+  plate_bow = 0.5*sag;
+  double node[2]; bowed_plate(0.3,node);
+  struct tok_wall_pocket pk;
+  struct tok_wall_plate_report rep;
+  TEST_CHECK(tok_wall_pocket_build(&e,bowed_plate,1,node,&pk,&rep));
+  TEST_CHECK(pk.n>=3);
+  TEST_CHECK(!rep.beyond_band);
+
+  // Between the chord and the plate: outside the outline, inside the pocket.
+  const double between[2] = { 2.0, chord-0.5*plate_bow };
+  const double beyond[2] = { 2.0, chord-1.5*plate_bow };   // still inside the band
+  const double centre[2] = { 2.0, 0.0 };
+  TEST_CHECK(!tok_wall_point_inside(&e,between));
+  TEST_CHECK(!tok_wall_segment_inside(&e,centre,between));
+  tok_wall_pockets_set(&pk,0);
+  TEST_CHECK(tok_wall_point_inside(&e,between));
+  TEST_CHECK(tok_wall_segment_inside(&e,centre,between));
+  // Past the plate is outside, though the outline's band would have covered it:
+  // grid points are judged to roundoff.
+  TEST_CHECK(!tok_wall_point_inside(&e,beyond));
+  TEST_CHECK(!tok_wall_segment_inside(&e,centre,beyond));
+  // The node on the plate, and segments and curves leaving it inward.
+  TEST_CHECK(tok_wall_point_inside(&e,node));
+  TEST_CHECK(tok_wall_segment_inside(&e,node,centre));
+  const double mid[2] = { 0.5*(node[0]+centre[0])+0.01, 0.5*(node[1]+centre[1]) };
+  TEST_CHECK(tok_wall_curve_inside(&e,node,mid,centre));
+  TEST_CHECK(!tok_wall_segment_inside(&e,node,beyond));
+  // Away from the plate the outline alone decides, to roundoff.
+  const double side[2] = { 2.0+oct_c+1e-4, 0.0 };   // past the right chord, inside its band
+  TEST_CHECK(!tok_wall_point_inside(&e,side));
+  tok_wall_pockets_set(0,0);
+  TEST_CHECK(!tok_wall_point_inside(&e,between));
+  tok_wall_pocket_release(&pk);
+  TEST_CHECK(pk.n==0);
+
+  // A plate past the outline's band is reported, and its pocket still built
+  // (user decision 2026-10-06): the worst point is the plate's apex, half a
+  // sagitta past the band.
+  plate_bow = 1.5*sag;
+  TEST_CHECK(tok_wall_pocket_build(&e,bowed_plate,0,0,&pk,&rep));
+  TEST_CHECK(pk.n>=3);
+  TEST_CHECK(rep.beyond_band);
+  TEST_CHECK(rep.rz[1]<chord-sag);
+  TEST_CHECK(fabs(rep.beyond_m-0.5*sag)<1e-3*sag);
+  TEST_MSG("rz = (%g, %g) beyond %g outside %g", rep.rz[0], rep.rz[1], rep.beyond_m, rep.outside_m);
+  const double past[2] = { 2.0, chord-1.2*sag };   // in the pocket, past the band
+  tok_wall_pockets_set(&pk,0);
+  TEST_CHECK(tok_wall_point_inside(&e,past));
+  tok_wall_pockets_set(0,0);
+  tok_wall_pocket_release(&pk);
+}
+
 TEST_LIST = {
   { "square_points_and_winding", test_square_points_and_winding },
   { "square_segments", test_square_segments },
@@ -294,5 +373,6 @@ TEST_LIST = {
   { "nonfinite_query_points", test_nonfinite_query_points },
   { "quadratic_excursion_between_nodes", test_quadratic_excursion_between_nodes },
   { "vessel_outline_declaration", test_vessel_outline_declaration },
+  { "declared_plate_pocket", test_declared_plate_pocket },
   { NULL, NULL },
 };

@@ -32,6 +32,11 @@ bool tok_wall_trial_only_movable_side(void);
  * that -- the offending row is a declared join, never a movable edge. */
 bool tok_wall_trial_has_fixed_node_outside(void);
 
+/** A declared plate is not finite: noted inside a trial, read by the
+ * adjuster. */
+void tok_wall_trial_note_plate_invalid(void);
+bool tok_wall_trial_plate_invalid(void);
+
 /** Is a disposable wall trial in progress on this thread? */
 bool tok_wall_trial_is_active(void);
 /** Construction failures inside a trial are recorded, not fatal (2026-09-30):
