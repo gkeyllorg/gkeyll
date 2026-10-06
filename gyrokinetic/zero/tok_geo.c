@@ -4969,6 +4969,136 @@ tok_trace_true_arc(const struct gkyl_tok_geo *geo, double psi,
   slot->used = ++tok_arc_cache_clock;
   return &slot->lv;
 }
+
+// ---------------------------------------------------------------------------
+// The field-line angle at the contour's true arc (2026-10-06).
+//
+// Along a row the angle phi gains integral F/(R |grad psi|) ds. The ordered map
+// accumulated it with the midpoint rule at each trace CHORD's midpoint (off the
+// surface by the chord's sagitta), then interpolated it linearly -- once in the
+// uniform-arc resample, once at the node -- and took dphi/dtheta as the
+// bracket's difference quotient. All of that is second order in the trace
+// spacing and largest where the integrand peaks, beside the X point, and each
+// row's trace samples it at its own points, so the error differed row to row:
+// the streaks left in g^12, g^22, g^23 once R and Z were exact. Measured on
+// STEP (psi x8, theta x8): GKYL_TOK_MAP_TRACE_MULT 4 / 8 / 16 left R and Z
+// unchanged to 1e-15 and took the g^12 cells the row test flags from 280 to 46
+// to 0 (g^23: 286 / 142 / 2).
+//
+// Here the integral between two points of the contour is taken on the contour:
+// two-point Gauss-Legendre on a piece, its nodes moved onto the contour along
+// the chord's normal as tok_contour_leaves moves its midpoints, the piece
+// bisected until halving changes the value by no more than sqrt(DBL_EPSILON)
+// relatively, or the piece is no longer than the contour solve locates points
+// to -- tok_contour_leaves' rules, so no constant is introduced. The rule never
+// evaluates a piece's end points, so a piece ending at the X point, where
+// |grad psi| vanishes and the angle diverges, stays finite. A node's angle is
+// its bracket's start plus the integral to the node itself, and dphi/dtheta is
+// F/(R |grad psi|) at the node times the arc rate dR/dtheta and dZ/dtheta use.
+// GKYL_TOK_PHI_EXACT=0 restores the previous angle for A/B.
+// ---------------------------------------------------------------------------
+static bool
+tok_phi_exact_enabled(void)
+{
+  static int on = -1;
+  if (on < 0) {
+    const char *e = getenv("GKYL_TOK_PHI_EXACT");
+    on = (e && e[0] == '0') ? 0 : 1;
+  }
+  return on == 1;
+}
+
+// dphi/ds = F/(R |grad psi|) at a point of the contour; false where the
+// gradient vanishes.
+static bool
+tok_phi_rate(const struct gkyl_tok_geo *geo, double fpol, double r, double z,
+  double *f)
+{
+  double gr = 0.0, gz = 0.0;
+  if (!tok_eval_psi_grad_rz_local(geo, r, z, &gr, &gz))
+    return false;
+  const double g = hypot(gr, gz);
+  if (!(g > 0.0) || !(r > 0.0))
+    return false;
+  *f = fpol/(r*g);
+  return isfinite(*f);
+}
+
+// One piece p0 -> p1 of the contour: its midpoint on the contour, its arc
+// (Richardson, as in tok_contour_leaves), how finely the contour solve locates
+// points there, and the two-point Gauss-Legendre value of the angle.
+struct tok_phi_piece { double mr, mz, arc, located, val; };
+
+static bool
+tok_phi_piece_eval(const struct gkyl_tok_geo *geo, double psi, double fpol,
+  double r0, double z0, double r1, double z1, struct tok_phi_piece *pc)
+{
+  const double cdr = r1-r0, cdz = z1-z0, l1 = hypot(cdr, cdz);
+  *pc = (struct tok_phi_piece) { r0, z0, 0.0, 0.0, 0.0 };
+  if (!(l1 > 0.0))
+    return true;
+  if (!tok_chord_normal_solve(geo, psi, r0+0.5*cdr, z0+0.5*cdz, cdr, cdz,
+      0.5*l1, &pc->mr, &pc->mz))
+    return false;
+  const double l2 = hypot(pc->mr-r0, pc->mz-z0)+hypot(r1-pc->mr, z1-pc->mz);
+  pc->arc = l2+(l2-l1)/3.0;
+  double gr = 0.0, gz = 0.0;
+  if (tok_eval_psi_grad_rz_local(geo, pc->mr, pc->mz, &gr, &gz) && hypot(gr, gz) > 0.0)
+    pc->located = 1e-9*fmax(1.0, fabs(psi))/hypot(gr, gz);
+  const double half = 0.5/sqrt(3.0);
+  double sum = 0.0;
+  for (int k=0; k<2; ++k) {
+    const double t = k ? 0.5+half : 0.5-half;
+    double r = 0.0, z = 0.0, f = 0.0;
+    if (!tok_chord_normal_solve(geo, psi, r0+t*cdr, z0+t*cdz, cdr, cdz, 0.5*l1, &r, &z) ||
+        !tok_phi_rate(geo, fpol, r, z, &f))
+      return false;
+    sum += f;
+  }
+  pc->val = 0.5*pc->arc*sum;
+  return true;
+}
+
+static bool
+tok_phi_integral_rec(const struct gkyl_tok_geo *geo, double psi, double fpol,
+  double r0, double z0, double r1, double z1, const struct tok_phi_piece *whole,
+  int depth, double *out)
+{
+  struct tok_phi_piece a, b;
+  if (!tok_phi_piece_eval(geo, psi, fpol, r0, z0, whole->mr, whole->mz, &a) ||
+      !tok_phi_piece_eval(geo, psi, fpol, whole->mr, whole->mz, r1, z1, &b))
+    return false;
+  const double halves = a.val+b.val;
+  // Halving cuts the two-point rule's error 16-fold; depth is bounded by
+  // halving to the double-precision resolution of the piece.
+  if (fabs(halves-whole->val) <= sqrt(DBL_EPSILON)*fabs(halves) ||
+      hypot(r1-r0, z1-z0) <= 4.0*whole->located || depth >= 52) {
+    *out = halves+(halves-whole->val)/15.0;
+    return true;
+  }
+  double x = 0.0, y = 0.0;
+  if (!tok_phi_integral_rec(geo, psi, fpol, r0, z0, whole->mr, whole->mz, &a, depth+1, &x) ||
+      !tok_phi_integral_rec(geo, psi, fpol, whole->mr, whole->mz, r1, z1, &b, depth+1, &y))
+    return false;
+  *out = x+y;
+  return true;
+}
+
+// The angle gained along the contour from p0 to p1, two of its points close
+// enough that it is a graph over their chord (one trace bracket or less).
+static bool
+tok_phi_integral(const struct gkyl_tok_geo *geo, double psi, double fpol,
+  double r0, double z0, double r1, double z1, double *out)
+{
+  *out = 0.0;
+  if (r0 == r1 && z0 == z1)
+    return true;
+  struct tok_phi_piece whole;
+  if (!tok_phi_piece_eval(geo, psi, fpol, r0, z0, r1, z1, &whole))
+    return false;
+  return tok_phi_integral_rec(geo, psi, fpol, r0, z0, r1, z1, &whole, 0, out);
+}
+
 static bool
 tok_trace_sample(const struct gkyl_tok_geo *geo, double psi,
   const double *tr, const double *tz, const double *ts, int n,
@@ -7922,7 +8052,8 @@ tok_ext_set_phi_reference(const struct gkyl_tok_geo_grid_inp *inp,
   else {
     target_r = tok_nearest_value(target_r, R, nr);
   }
-  double best_d2 = DBL_MAX, best_phi = 0.0, max_step = 0.0;
+  double best_d2 = DBL_MAX, best_phi = 0.0, max_step = 0.0, best_w = 0.0;
+  int best_i = -1;
   for (int i=0; i<arc_ctx->map_trace_n-1; ++i) {
     double r0 = arc_ctx->map_trace_r[i];
     double z0 = arc_ctx->map_trace_z[i];
@@ -7940,6 +8071,7 @@ tok_ext_set_phi_reference(const struct gkyl_tok_geo_grid_inp *inp,
       best_d2 = d2;
       best_phi = arc_ctx->map_trace_phi[i]
         +w*(arc_ctx->map_trace_phi[i+1]-arc_ctx->map_trace_phi[i]);
+      best_i = i; best_w = w;
     }
   }
   if (!isfinite(best_phi) || !isfinite(best_d2) || !(max_step > 0.0) ||
@@ -7967,6 +8099,24 @@ tok_ext_set_phi_reference(const struct gkyl_tok_geo_grid_inp *inp,
     for (int k=0; k<nr && k<16; ++k)
       fprintf(stderr, "TOK_ORDERED_MAP phi_ref_root[%d]=%.7f\n", k, R[k]);
     return false;
+  }
+  // The reference is a root of psi, so take the angle there on the contour
+  // (see tok_phi_exact_enabled) rather than along the bracket's chord.
+  if (tok_phi_exact_enabled() && best_i >= 0) {
+    const double fpol = tok_fpol_at_psi(arc_ctx->geo, arc_ctx->psi);
+    double d = 0.0;
+    if (best_w <= 0.0)
+      best_phi = arc_ctx->map_trace_phi[best_i];
+    else if (best_w >= 1.0)
+      best_phi = arc_ctx->map_trace_phi[best_i+1];
+    else if (tok_phi_integral(arc_ctx->geo, arc_ctx->psi, fpol,
+        arc_ctx->map_trace_r[best_i], arc_ctx->map_trace_z[best_i],
+        target_r, target_z, &d))
+      best_phi = arc_ctx->map_trace_phi[best_i]+d;
+    else
+      fprintf(stderr,
+        "TOK_PHI_EXACT_FALLBACK stage=reference ftype=%d psi=%.17g i=%d\n",
+        inp->ftype, arc_ctx->psi, best_i);
   }
   arc_ctx->map_trace_phi_ref = best_phi;
   return true;
@@ -8865,6 +9015,27 @@ tok_build_current_ordered_trace(const struct gkyl_tok_geo_grid_inp *inp,
                arc_ctx->map_trace_z[i]-arc_ctx->map_trace_z[i-1]);
     gkyl_free(ur); gkyl_free(uz); gkyl_free(up);
   }
+  // The angle on the final trace points, integrated on the contour between
+  // them (see tok_phi_exact_enabled); a bracket that cannot be integrated keeps
+  // its previous increment and is reported.
+  if (tok_phi_exact_enabled()) {
+    double prev = arc_ctx->map_trace_phi[0];
+    arc_ctx->map_trace_phi[0] = 0.0;
+    for (int i=1; i<n; ++i) {
+      const double cur = arc_ctx->map_trace_phi[i];
+      double d = 0.0;
+      if (!tok_phi_integral(arc_ctx->geo, psi, fpol,
+          arc_ctx->map_trace_r[i-1], arc_ctx->map_trace_z[i-1],
+          arc_ctx->map_trace_r[i], arc_ctx->map_trace_z[i], &d)) {
+        fprintf(stderr,
+          "TOK_PHI_EXACT_FALLBACK stage=trace ftype=%d psi=%.17g i=%d n=%d\n",
+          inp->ftype, psi, i, n);
+        d = cur-prev;
+      }
+      arc_ctx->map_trace_phi[i] = arc_ctx->map_trace_phi[i-1]+d;
+      prev = cur;
+    }
+  }
   // The Tier-0 invariant, reported per block on the row where it must hold.
   // dev == 0 means the shared separatrix row is pure arc length, which is the
   // condition for the two blocks meeting there to place identical nodes.
@@ -9199,9 +9370,26 @@ tok_ordered_map_lookup(const struct gkyl_tok_geo_grid_inp *inp,
     ? arc_ctx->map_trace_phi_ref
     : (tok_sep_fixed_edge_is_first(effective_inp->ftype) ? 0.0
       : arc_ctx->map_trace_phi[arc_ctx->map_trace_n-1]);
-  out->phi = alpha+path_phi-ref_phi;
   out->dphi_dtheta = (arc_ctx->map_trace_phi[i+1]
     -arc_ctx->map_trace_phi[i])/du/dtheta*row_arc_chain;
+  if (tok_phi_exact_enabled()) {
+    // The angle at the node itself: its bracket's start plus the contour from
+    // there to the node (see tok_phi_exact_enabled), and its rate at the node.
+    const double fpol = tok_fpol_at_psi(arc_ctx->geo, arc_ctx->psi);
+    double d = 0.0;
+    if (out->r == arc_ctx->map_trace_r[i+1] && out->z == arc_ctx->map_trace_z[i+1])
+      path_phi = arc_ctx->map_trace_phi[i+1];
+    else if (tok_phi_integral(arc_ctx->geo, arc_ctx->psi, fpol,
+        arc_ctx->map_trace_r[i], arc_ctx->map_trace_z[i], out->r, out->z, &d))
+      path_phi = arc_ctx->map_trace_phi[i]+d;
+    else
+      fprintf(stderr,
+        "TOK_PHI_EXACT_FALLBACK stage=node ftype=%d psi=%.17g u=%.17g i=%d\n",
+        inp->ftype, arc_ctx->psi, u, i);
+    if (grad > 1e-14 && out->r > 0.0)
+      out->dphi_dtheta = fpol/(out->r*grad)*speed_u/dtheta;
+  }
+  out->phi = alpha+path_phi-ref_phi;
   return isfinite(out->r) && isfinite(out->z) && isfinite(out->phi) &&
     isfinite(out->dr_dtheta) && isfinite(out->dz_dtheta) &&
     isfinite(out->dphi_dtheta);
