@@ -23,3 +23,4 @@ gyrokinetic/creg/rt_gk_wham_kinetic_poa_1x2v_p1   # All these changed because of
 gyrokinetic/creg/rt_gk_wham_nonuniformx_1x2v_p1   # All these changed because of the modifications to the mirror loss cone in the POA or the modifications to the non-uniform grids
 gyrokinetic/creg/rt_gk_wham_nonuniformx_2x2v_p1   # All these changed because of the modifications to the mirror loss cone in the POA or the modifications to the non-uniform grids
 gyrokinetic/creg/rt_gk_wham_nonuniformx_3x2v_p1   # All these changed because of the modifications to the mirror loss cone in the POA or the modifications to the non-uniform grids
+gyrokinetic/creg/rt_gk_sheath_2x2v_p1 # The print diagnostic has a bug on main that I fixed in this branch
