@@ -2,10 +2,9 @@
 // Half domain: a plasma flowing toward a reflecting wall at x = 0 piles up against its own
 // reflection and launches a shock back upstream. The inflow boundary at x = Lx holds the upstream
 // Maxwellians fixed (reservoir). Ions slower than the shock potential are reflected ahead of it.
-// Weak LBO self-collisions act on both species.
-// Figures of merit at t_end: shock front at x = 58 lambda_D (speed 0.97 c_s),
-// downstream density 2.4 n0, potential jump across the front e*dphi/Te = 1.3-1.4, reflected ions ahead
-// of the front 0.25 n0 at 3.0 c_s.
+// Figures of merit at t_end: shock front at x = 68 lambda_D (speed 1.14 c_s),
+// downstream density 2.2 n0, potential jump across the front e*dphi/Te = 3.2, reflected ions ahead
+// of the front 0.25 n0 at 3.4 c_s.
 
 #include <math.h>
 #include <stdio.h>
@@ -52,9 +51,6 @@ struct es_shock_ctx {
 
   double lambda_D; // Electron Debye length.
   double omega_pe; // Electron plasma frequency.
-
-  double nu_ee; // Electron-electron collision frequency.
-  double nu_ii; // Ion-ion collision frequency.
 
   // Simulation parameters.
   int Nx; // Cell count (configuration space: x-direction).
@@ -103,10 +99,6 @@ create_ctx(void)
   double omega_pe =
     sqrt(n0 * charge_ion * charge_ion / (epsilon0 * mass_elc)); // Electron plasma frequency.
 
-  double nu_ee = 0.002 * omega_pe; // Electron-electron collision frequency.
-  double nu_ii =
-    nu_ee * sqrt(mass_elc / mass_ion) * pow(Ti / Te, 1.5); // Ion-ion collision frequency.
-
   // Simulation parameters.
   int Nx = 96; // Cell count (configuration space: x-direction).
   int Nvx_elc = 16; // Cell count (electron velocity space: vx-direction).
@@ -144,8 +136,6 @@ create_ctx(void)
     .Vx_drift = Vx_drift,
     .lambda_D = lambda_D,
     .omega_pe = omega_pe,
-    .nu_ee = nu_ee,
-    .nu_ii = nu_ii,
     .Nx = Nx,
     .Nvx_elc = Nvx_elc,
     .Nvx_ion = Nvx_ion,
@@ -200,17 +190,6 @@ evalElcVDriftInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRIC
 }
 
 void
-evalElcNu(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
-{
-  struct es_shock_ctx *app = ctx;
-
-  double nu_ee = app->nu_ee;
-
-  // Set electron collision frequency.
-  fout[0] = nu_ee;
-}
-
-void
 evalIonDensityInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct es_shock_ctx *app = ctx;
@@ -241,17 +220,6 @@ evalIonVDriftInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRIC
 
   // Set ion drift velocity.
   fout[0] = Vx_drift;
-}
-
-void
-evalIonNu(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
-{
-  struct es_shock_ctx *app = ctx;
-
-  double nu_ii = app->nu_ii;
-
-  // Set ion collision frequency.
-  fout[0] = nu_ii;
 }
 
 void
@@ -432,12 +400,6 @@ main(int argc, char **argv)
         .ctx_V_drift = &ctx,
         .correct_all_moms = true,
       },
-    .collisions =
-      {
-        .collision_id = GKYL_LBO_COLLISIONS,
-        .self_nu = evalElcNu,
-        .self_nu_ctx = &ctx,
-      },
 
     .bcx = {.lower = {.type = GKYL_SPECIES_REFLECT}, .upper = {.type = GKYL_SPECIES_FIXED_FUNC}},
 
@@ -462,12 +424,6 @@ main(int argc, char **argv)
         .V_drift = evalIonVDriftInit,
         .ctx_V_drift = &ctx,
         .correct_all_moms = true,
-      },
-    .collisions =
-      {
-        .collision_id = GKYL_LBO_COLLISIONS,
-        .self_nu = evalIonNu,
-        .self_nu_ctx = &ctx,
       },
 
     .bcx = {.lower = {.type = GKYL_SPECIES_REFLECT}, .upper = {.type = GKYL_SPECIES_FIXED_FUNC}},

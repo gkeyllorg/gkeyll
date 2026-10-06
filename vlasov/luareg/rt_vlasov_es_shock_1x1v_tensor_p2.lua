@@ -1,40 +1,51 @@
-local Vlasov = G0.Vlasov
+-- Electrostatic shock with the Vlasov-Maxwell system of equations.
+-- Half domain: a plasma flowing toward a reflecting wall at x = 0 piles up against its own
+-- reflection and launches a shock back upstream. The inflow boundary at x = Lx holds the upstream
+-- Maxwellians fixed (reservoir). Ions slower than the shock potential are reflected ahead of it.
+-- Figures of merit at t_end (serendipity p2): shock front at x = 68 lambda_D (speed 1.14 c_s),
+-- downstream density 2.2 n0, potential jump across the front e*dphi/Te = 3.2, reflected ions ahead
+-- of the front 0.25 n0 at 3.4 c_s.
 
--- Mathematical constants (dimensionless).
-pi = math.pi
+local Vlasov = G0.Vlasov
 
 -- Physical constants (using normalized code units).
 epsilon0 = 1.0 -- Permittivity of free space.
-mu0 = 1.0 -- Permeability of free space.
 mass_elc = 1.0 -- Electron mass.
 charge_elc = -1.0 -- Electron charge.
-mass_ion = 1836.153 -- Ion mass.
+mass_ion = 100.0 -- Ion mass.
 charge_ion = 1.0 -- Ion charge.
 
+n0 = 1.0 -- Reference number density.
 Te_over_Ti = 4.0 -- Electron temperature / ion temperature.
+mach_num = 2.0 -- Mach number of the inflow (relative to the ion sound speed).
 
 -- Derived physical quantities (using normalized code units).
-vte = 1.0 -- Electron thermal velocity.
-vti = vte / math.sqrt(Te_over_Ti * mass_ion) -- Ion thermal velocity.
-cs = vte / math.sqrt(mass_ion) -- Sound speed.
+Te = 1.0 * charge_ion -- Electron temperature.
+Ti = Te / Te_over_Ti -- Ion temperature.
 
-Vx_drift = 2.0 * cs -- Drift velocity (x-direction).
+vte = math.sqrt(Te / mass_elc) -- Electron thermal velocity.
+vti = math.sqrt(Ti / mass_ion) -- Ion thermal velocity.
+cs = math.sqrt(Te / mass_ion) -- Ion sound speed.
+Vx_drift = -mach_num * cs -- Drift velocity of the inflow (x-direction).
 
-nu_elc = 1.0e-4 -- Electron collision frequency.
-nu_ion = (nu_elc / math.sqrt(mass_ion)) * (Te_over_Ti * math.sqrt(Te_over_Ti)) -- Ion collision frequency.
+lambda_D = math.sqrt(epsilon0 * Te / (n0 * charge_ion * charge_ion)) -- Electron Debye length.
+omega_pe = math.sqrt(n0 * charge_ion * charge_ion / (epsilon0 * mass_elc)) -- Electron plasma frequency.
+
+mu0 = 1.0 / 25.0 -- Permeability of free space (speed of light = 5 vte).
 
 -- Simulation parameters.
-Nx = 256 -- Cell count (configuration space: x-direction).
-Nvx = 64 -- Cell count (velocity space: vx-direction).
-Lx = 256.0 -- Domain size (configuration space: x-direction).
+Nx = 96 -- Cell count (configuration space: x-direction).
+Nvx_elc = 16 -- Cell count (electron velocity space: vx-direction).
+Nvx_ion = 32 -- Cell count (ion velocity space: vx-direction).
+Lx = 192.0 * lambda_D -- Domain size (configuration space: x-direction).
 vx_max_elc = 6.0 * vte -- Domain boundary (electron velocity space: vx-direction).
-vx_max_ion = 16.0 * vti -- Domain boundary (ion velocity space: vx-direction).
+vx_max_ion = 6.0 * cs -- Domain boundary (ion velocity space: vx-direction).
 poly_order = 2 -- Polynomial order.
-basis_type = "serendipity" -- Basis function set.
+basis_type = "tensor" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
 cfl_frac = 1.0 -- CFL coefficient.
 
-t_end = 20.0 -- Final simulation time.
+t_end = 600.0 / omega_pe -- Final simulation time.
 num_frames = 1 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.
@@ -51,8 +62,8 @@ vlasovApp = Vlasov.App.new {
   integratedMomentCalcs = integrated_mom_calcs,
   dtFailureTol = dt_failure_tol,
   numFailuresMax = num_failures_max,
-  lower = { -0.5 * Lx },
-  upper = { 0.5 * Lx },
+  lower = { 0.0 },
+  upper = { Lx },
   cells = { Nx },
   cflFrac = cfl_frac,
 
@@ -70,45 +81,37 @@ vlasovApp = Vlasov.App.new {
   elc = Vlasov.Species.new {
     modelID = G0.Model.Default,
     charge = charge_elc, mass = mass_elc,
-    
+
     -- Velocity space grid.
     lower = { -vx_max_elc },
     upper = { vx_max_elc },
-    cells = { Nvx },
+    cells = { Nvx_elc },
 
     -- Initial conditions.
     numInit = 1,
     projections = {
       {
-        projectionID = G0.Projection.Func,
+        projectionID = G0.Projection.LTE,
 
-        init = function (t, xn)
-          local x, vx = xn[1], xn[2]
-
-          local v_sq_m = (vx - Vx_drift) * (vx - Vx_drift)
-          local v_sq_p = (vx + Vx_drift) * (vx + Vx_drift)
-
-          local n = 0.0
-          if x < 0.0 then
-            n = (1.0 / math.sqrt(2.0 * pi * vte * vte)) * (math.exp(-v_sq_m / (2.0 * vte * vte))) -- Distribution function (left).
-          else
-            n = (1.0 / math.sqrt(2.0 * pi * vte * vte)) * (math.exp(-v_sq_p / (2.0 * vte * vte))) -- Distribution function (right).
-          end
-
-          return n
+        densityInit = function (t, xn)
+          return n0 -- Electron total number density.
+        end,
+        temperatureInit = function (t, xn)
+          return Te -- Electron isotropic temperature.
+        end,
+        driftVelocityInit = function (t, xn)
+          return Vx_drift -- Electron drift velocity.
         end
-      },
+      }
     },
 
-    collisions = {
-      collisionID = G0.Collisions.LBO,
-
-      selfNu = function (t, xn)
-        return nu_elc -- Collision frequency.
-      end,
-          
-      numCrossCollisions = 1,
-      collideWith = { "ion" }
+    bcx = {
+      lower = {
+        type = G0.SpeciesBc.bcReflect
+      },
+      upper = {
+        type = G0.SpeciesBc.bcFixedFunc
+      }
     },
 
     evolve = true, -- Evolve species?
@@ -123,43 +126,35 @@ vlasovApp = Vlasov.App.new {
     -- Velocity space grid.
     lower = { -vx_max_ion },
     upper = { vx_max_ion },
-    cells = { Nvx },
-  
+    cells = { Nvx_ion },
+
     -- Initial conditions.
     numInit = 1,
     projections = {
       {
-        projectionID = G0.Projection.Func,
-  
-        init = function (t, xn)
-          local x, vx = xn[1], xn[2]
-  
-          local v_sq_m = (vx - Vx_drift) * (vx - Vx_drift)
-          local v_sq_p = (vx + Vx_drift) * (vx + Vx_drift)
-  
-          local n = 0.0
-          if x < 0.0 then
-            n = (1.0 / math.sqrt(2.0 * pi * vti * vti)) * (math.exp(-v_sq_m / (2.0 * vti * vti))) -- Distribution function (left).
-          else
-            n = (1.0 / math.sqrt(2.0 * pi * vti * vti)) * (math.exp(-v_sq_p / (2.0 * vti * vti))) -- Distribution function (right).
-          end
+        projectionID = G0.Projection.LTE,
 
-          return n
+        densityInit = function (t, xn)
+          return n0 -- Ion total number density.
+        end,
+        temperatureInit = function (t, xn)
+          return Ti -- Ion isotropic temperature.
+        end,
+        driftVelocityInit = function (t, xn)
+          return Vx_drift -- Ion drift velocity.
         end
+      }
+    },
+
+    bcx = {
+      lower = {
+        type = G0.SpeciesBc.bcReflect
       },
+      upper = {
+        type = G0.SpeciesBc.bcFixedFunc
+      }
     },
 
-    collisions = {
-      collisionID = G0.Collisions.LBO,
-
-      selfNu = function (t, xn)
-        return nu_ion -- Collision frequency.
-      end,
-    
-      numCrossCollisions = 1,
-      collideWith = { "elc" }
-    },
-  
     evolve = true, -- Evolve species?
     diagnostics = { G0.Moment.M0, G0.Moment.M1, G0.Moment.M2 }
   },
@@ -183,7 +178,16 @@ vlasovApp = Vlasov.App.new {
 
     evolve = true, -- Evolve field?
     elcErrorSpeedFactor = 0.0,
-    mgnErrorSpeedFactor = 0.0
+    mgnErrorSpeedFactor = 0.0,
+
+    bcx = {
+      lower = {
+        type = G0.FieldBc.bcSymWall
+      },
+      upper = {
+        type = G0.FieldBc.bcCopy
+      }
+    }
   }
 }
 
