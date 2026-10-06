@@ -63,7 +63,7 @@ and Python with NumPy. Set these global environment variables:
 | `PERSONAL_REGRESSION_JOBS` | Optional; default `1` |
 | `PERSONAL_MPI_HOME` | Optional MPI installation path for both trees; default is each tree's `gkylsoft/openmpi` |
 | `PERSONAL_MPIEXEC` | Optional launcher override for both trees; default is `bin/mpiexec` under the selected MPI installation |
-| `PERSONAL_STATUS_CONTEXT` | Optional GitHub status context; default `continuous-integration/jenkins/personal-<hostname>` so each computer's status and report stay distinct |
+| `PERSONAL_STATUS_CONTEXT` | Set explicitly for queue reporting, e.g. `continuous-integration/jenkins/personal-<hostname>`; use a distinct context for each computer |
 | `GKEYLL_CI_TRUSTED_REF` | Optional branch or full SHA to fetch `github_report.py` from; default `main`. Set it only while staging a CI change |
 
 The selected dependency script must pass `--build-adas=yes` to
@@ -83,6 +83,11 @@ Create Pipeline `gkeyll-ci-personal` from SCM repository
 Gkeyll is public and the status credential is not a Git checkout credential.
 Do not let a selected PR provide its Pipeline. Run it once without selectors
 to register parameters.
+
+Install the [controller queue listener](README.md#controller-installation) to
+report pending before an executor is available and cancel superseded queued PR
+commits. Set `PERSONAL_STATUS_CONTEXT` globally to the context already used by
+this machine, so queued and final statuses update the same GitHub check.
 
 # Launching CI jobs
 

@@ -24,6 +24,96 @@ branches.
 
 ## Results in GitHub
 
+### Queued builds and superseded PR commits
+
+Install [queue-status.groovy](queue-status.groovy) on **each Jenkins controller**
+to publish a yellow `pending` status as soon as a job is accepted into its
+queue. This covers CLI and browser submissions on personal, Stellar CPU, and
+Perlmutter GPU controllers, plus automatic and manual team-workstation builds.
+The listener runs without a build executor, including when
+`disableConcurrentBuilds()` blocks another run of the same job. It also covers
+Pipelines waiting for their first `node()` allocation.
+
+The listener resolves and records the candidate SHA before releasing the job
+to run. The Pipeline checks out that exact SHA and updates the same status to
+running and then its final result. A queued build therefore cannot silently
+switch to a different commit when a branch moves.
+
+For PR selections, the controller checks for newer head commits after
+submissions and every minute while work is queued. It cancels superseded runs
+before they acquire their first agent, and updates the old commit's status to
+`error` with `Gkeyll CI cancelled while queued; superseded by <commit>.` It does
+not abort work that already acquired an agent, cancel a different PR, or cancel
+a second request for the same commit. Branch/SHA selections remain pinned and
+are not automatically cancelled. Cancellation does not submit a replacement:
+team-workstation discovery supplies new runs; manual platforms need a new
+submission. GitHub commit statuses have no separate `cancelled` state, so
+cancellation clears yellow using `error` and an explanatory description.
+
+Manual queue cancellation and failures before the Pipeline can report also
+close the pending status. Cleanup checks the current GitHub status before
+writing, to preserve a newer run's status and the Pipeline's detailed results.
+GitHub outages are logged and do not prevent builds from starting; notification
+and supersession checks require a working GitHub API and valid credentials.
+
+#### Controller installation
+
+First deploy the updated trusted Jenkinsfiles along with the listener. It uses
+the existing **Credentials** plugin and the platform's existing username/PAT
+credential. Set the credential ID in Jenkins **global environment variables**
+as described in the platform guide; node-only environment variables are not
+available while waiting for an executor. Keep the team GitHub source anonymous:
+this listener owns queue notifications, independently of GitHub Branch Source.
+
+On personal controllers, explicitly set `PERSONAL_STATUS_CONTEXT` to the
+existing context, e.g. `continuous-integration/jenkins/personal-mycomputer`.
+The controller cannot infer the build agent's hostname before allocation.
+
+From a **reviewed, trusted checkout**, as the Jenkins service owner, install:
+
+```sh
+install -d -m 700 "$JENKINS_HOME/init.groovy.d"
+install -m 600 ci/jenkins/queue-status.groovy \
+  "$JENKINS_HOME/init.groovy.d/gkeyll-queue-status.groovy"
+```
+
+`JENKINS_HOME` is the actual controller home, not a workspace: typically
+`/var/lib/jenkins` for the workstation service, or
+`$GKEYLL_CI_ROOT/jenkins_home` for Stellar/Perlmutter. For system services, use
+an administrator to install the file with the Jenkins service user's ownership.
+Restart the controller during an idle maintenance window. Check its log for
+`Gkeyll GitHub queue status listener installed`. Install the hook once; do not
+also execute it in the Script Console. Updating the repository alone does not
+update the installed controller hook. To remove it, delete the installed hook
+and restart; the Pipelines retain their existing running/final reporting.
+
+The default job names come from the platform guides. For renamed or staging
+jobs, override the appropriate global variable with the **full Jenkins job
+name**, including folders:
+
+| Platform | Optional job-name override |
+| --- | --- |
+| Personal | `GKEYLL_CI_QUEUE_PERSONAL_JOB` |
+| Stellar CPU | `GKEYLL_CI_QUEUE_STELLAR_CPU_JOB` |
+| Perlmutter GPU | `GKEYLL_CI_QUEUE_PERLMUTTER_GPU_JOB` |
+| Team workstation | `GKEYLL_CI_QUEUE_TEAM_WORKSTATION_JOB` (multibranch parent) |
+
+The hook only handles these configured jobs (direct children for the team
+multibranch job). `PERSONAL_STATUS_CONTEXT` and
+`TEAM_WORKSTATION_STATUS_CONTEXT` must match the Pipeline configuration.
+Queue metadata is saved under `$JENKINS_HOME/gkeyll-queue-status/` and transferred
+to internal `CI_QUEUE_*` build parameters when the Pipeline starts. This keeps
+the accepted SHA across restarts without disrupting Jenkins' queue deduplication.
+Do not add these internal parameters to the browser's input form.
+
+Validate installation by keeping the selected agent unavailable, submitting a
+PR, and confirming yellow appears before any candidate checkout. Push another
+commit to that PR and confirm the old queue entry disappears within the next
+successful sweep and its GitHub description says it was superseded. Then test
+manual cancellation and a normal running/completed build.
+
+### Completed build reports
+
 Every completed or failed run attempts to post a Markdown report to GitHub.
 PR runs update a pull-request comment; selected branch/commit runs update a
 comment on the candidate commit. Reports include the failed stage and command
@@ -71,6 +161,29 @@ Run offline reporter tests with:
 ```sh
 python3 -m unittest discover -s ci/jenkins -p 'test_*.py'
 ```
+
+The queue listener's integration test runs on a disposable Jenkins controller
+with mocked GitHub responses. It checks all four configurations, supersession
+before Pipeline start and during agent wait, manual cancellation, active-build
+preservation, queue persistence data, and reporting failures. Install Credentials,
+Folders, Pipeline: Job, Pipeline: Groovy, Pipeline: Basic Steps, and Pipeline:
+Nodes and Processes (including dependencies) in that test controller. With a
+Jenkins WAR and those plugin archives available locally:
+
+```sh
+queue_test_home=$(mktemp -d)
+mkdir -p "$queue_test_home/plugins" "$queue_test_home/init.groovy.d"
+cp /path/to/test-plugin-archives/*.jpi "$queue_test_home/plugins/"
+cp ci/jenkins/test_queue_status.groovy "$queue_test_home/init.groovy.d/90-queue-test.groovy"
+JENKINS_HOME="$queue_test_home" java \
+  -Djenkins.install.runSetupWizard=false -Dgkeyll.queue.test=true \
+  -Dgkeyll.queue.source="$PWD/ci/jenkins" \
+  -jar /path/to/jenkins.war --httpListenAddress=127.0.0.1 --httpPort=18089
+cat "$queue_test_home/queue-test-result.txt"
+```
+
+This test requires an empty job directory and shuts down its test JVM on
+completion. Never install `test_queue_status.groovy` on a production controller.
 
 ## Unified local command
 

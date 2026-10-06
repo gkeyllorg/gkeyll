@@ -125,6 +125,13 @@ these per-run dependency builds.
 
 ### Create the one centralized multibranch Pipeline job
 
+Install the [controller queue listener](README.md#controller-installation) to
+report pending for automatic PR discovery and explicit submissions before a
+build agent is available. It also cancels queued runs superseded by a newer PR
+head. The listener uses `TEAM_WORKSTATION_GITHUB_CREDENTIAL_ID` and
+`TEAM_WORKSTATION_STATUS_CONTEXT` from the global environment; source discovery
+and checkout remain anonymous as described below.
+
 Create Multibranch Pipeline `gkeyll-ci-team-workstation` from GitHub source
 `gkeyllorg/gkeyll`. Discover `main` and pull requests, exclude ordinary
 branches that are also PRs, and enable periodic scans. Do not configure GitHub

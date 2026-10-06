@@ -156,6 +156,11 @@ System → Global properties → Environment variables**, set:
 
 ### Create the one parameterized Pipeline job
 
+Install the [controller queue listener](README.md#controller-installation) in
+`$GKEYLL_CI_ROOT/jenkins_home/init.groovy.d/` to report pending while jobs wait
+and cancel superseded queued PR commits. It uses the global
+`PERLMUTTER_GPU_GITHUB_CREDENTIAL_ID` and requires no Slurm allocation.
+
 Create **New Item → Pipeline** named `gkeyll-ci-perlmutter_gpu`. Use
 **Pipeline script from SCM** with repository `https://github.com/gkeyllorg/gkeyll.git`,
 no SCM credential, branch `*/main`, and script path

@@ -302,6 +302,8 @@ def writeCiTimingSummary() {
 
 def candidatePr = params.CANDIDATE_PR?.trim() ?: env.CI_CANDIDATE_PR?.trim()
 def candidateRef = params.CANDIDATE_REF?.trim() ?: env.CI_CANDIDATE_REF?.trim()
+def queuedCommit = params.CI_QUEUE_COMMIT?.trim()
+if (queuedCommit && !isCommitSha(queuedCommit)) error('CI_QUEUE_COMMIT must be a full commit SHA.')
 def requestedBaseline = params.BASELINE_REF?.trim() ?: env.CI_BASELINE_REF?.trim()
 if (!!candidatePr == !!candidateRef) error('Set exactly one of CANDIDATE_PR or CANDIDATE_REF.')
 if (candidatePr && !(candidatePr ==~ /[1-9][0-9]*/)) error("CANDIDATE_PR must be a positive integer, got '${candidatePr}'.")
@@ -328,14 +330,14 @@ def writeCiFailureSummary(String result, String stageName, String message) {
 }
 
 def runCi = {
-    def commit = isCommitSha(candidateRef ?: '') ? candidateRef : ''
+    def commit = queuedCommit ?: (isCommitSha(candidateRef ?: '') ? candidateRef : '')
     def status = 'failure'
     def description = 'Personal CI failed.'
     def failureMessage = ''
     def platform = env.CI_PLATFORM?.trim() ?: 'personal'
     // Every controller needs its own status context, otherwise two machines
     // testing the same commit overwrite each other's status on GitHub.
-    def statusContext = env.CI_STATUS_CONTEXT?.trim() ?: env.PERSONAL_STATUS_CONTEXT?.trim()
+    def statusContext = params.CI_QUEUE_CONTEXT?.trim() ?: env.CI_STATUS_CONTEXT?.trim() ?: env.PERSONAL_STATUS_CONTEXT?.trim()
     if (!statusContext) {
         def host = sh(returnStdout: true, script: 'hostname -s 2>/dev/null || hostname').trim().toLowerCase().replaceAll(/[^a-z0-9._-]/, '-')
         statusContext = "continuous-integration/jenkins/personal-${host ?: 'unknown'}"
@@ -348,7 +350,10 @@ def runCi = {
         }
         ciStage('Checkout candidate') {
             deleteDir()
-            if (candidatePr) checkoutPullRequest(candidatePr); else checkoutRef(candidateRef, 'candidate')
+            // Report and test the exact commit accepted by the controller's queue listener.
+            if (queuedCommit) checkoutRef(queuedCommit, 'candidate')
+            else if (candidatePr) checkoutPullRequest(candidatePr)
+            else checkoutRef(candidateRef, 'candidate')
             commit = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
             writeFile file: 'ci-candidate-commit.txt', text: "${commit}\n"
             // Written after deleteDir() above so it survives into the artifacts and report.

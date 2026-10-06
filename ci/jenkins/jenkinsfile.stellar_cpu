@@ -596,7 +596,9 @@ def workspaceRoot = "${gkeyllCiRoot}/workspaces"
 def statusCredentialsId = requireValue('STELLAR_CPU_GITHUB_CREDENTIAL_ID', env.STELLAR_CPU_GITHUB_CREDENTIAL_ID)
 def candidateSelector = ''
 def baselineSelector = ''
-def candidateCommit = isCommitSha(candidateRef ?: '') ? candidateRef : ''
+def queuedCommit = params.CI_QUEUE_COMMIT?.trim()
+if (queuedCommit && !isCommitSha(queuedCommit)) error('CI_QUEUE_COMMIT must be a full commit SHA.')
+def candidateCommit = queuedCommit ?: (isCommitSha(candidateRef ?: '') ? candidateRef : '')
 def terminalStatus = 'failure'
 def terminalDescription = 'Stellar CPU CPU CI failed.'
 def failureMessage = ''
@@ -631,7 +633,9 @@ node(nodeLabel) {
             }
             ciStage('Checkout candidate') {
                 deleteDir()
-                if (candidatePr) {
+                if (queuedCommit) {
+                    checkoutRef(queuedCommit, 'candidate')
+                } else if (candidatePr) {
                     checkoutPullRequest(candidatePr)
                 } else {
                     checkoutRef(candidateRef, 'candidate')

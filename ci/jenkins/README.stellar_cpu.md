@@ -165,6 +165,11 @@ Pipeline initializes Stellar modules for each build and Slurm job. Its
 
 ### Create the one parameterized Pipeline job
 
+Install the [controller queue listener](README.md#controller-installation) in
+`$GKEYLL_CI_ROOT/jenkins_home/init.groovy.d/` to report pending while jobs wait
+and cancel superseded queued PR commits. It uses the global
+`STELLAR_CPU_GITHUB_CREDENTIAL_ID` and requires no Slurm allocation.
+
 Create **New Item → Pipeline** named `gkeyll-ci-stellar_cpu`. Configure
 **Pipeline script from SCM** with:
 
