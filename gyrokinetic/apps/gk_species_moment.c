@@ -39,7 +39,7 @@ gk_species_moment_diag_jacobgeo_div_enabled_all_comp(
 
 void
 gk_species_moment_init(
-  struct gkyl_gyrokinetic_app *app, struct gk_species *s, struct gk_species_moment *sm,
+  struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_species_moment *sm,
   enum gkyl_distribution_moments mom_type, bool is_integrated
 )
 {
@@ -51,8 +51,8 @@ gk_species_moment_init(
   if (sm->is_integrated) {
     // Create moment operator.
     sm->mcalc = gkyl_dg_updater_moment_gyrokinetic_new(
-      &s->grid, &app->basis, &s->basis, &app->local_ext, s->info.mass, s->info.charge, s->vel_map,
-      app->gk_geom, app->field->phi_smooth, mom_type, sm->is_integrated, app->use_gpu
+      &gks->grid, &app->basis, &gks->basis, &app->local_ext, gks->info.mass, gks->info.charge,
+      gks->vel_map, app->gk_geom, app->field->phi_smooth, mom_type, sm->is_integrated, app->use_gpu
     );
 
     sm->num_mom = gkyl_dg_updater_moment_gyrokinetic_num_mom(sm->mcalc);
@@ -67,15 +67,15 @@ gk_species_moment_init(
     // Create moment operator.
     if (sm->is_maxwellian_moms || sm->is_bimaxwellian_moms) {
       struct gkyl_gk_maxwellian_moments_inp inp_mom = {
-        .phase_grid = &s->grid,
+        .phase_grid = &gks->grid,
         .conf_basis = &app->basis,
-        .phase_basis = &s->basis,
+        .phase_basis = &gks->basis,
         .conf_range = &app->local,
         .conf_range_ext = &app->local_ext,
         .gk_geom = app->gk_geom,
-        .vel_map = s->vel_map,
+        .vel_map = gks->vel_map,
         .divide_jacobgeo = false,
-        .mass = s->info.mass,
+        .mass = gks->info.mass,
         .use_gpu = app->use_gpu,
       };
       sm->gyrokinetic_maxwellian_moms = gkyl_gk_maxwellian_moments_inew(&inp_mom);
@@ -87,8 +87,9 @@ gk_species_moment_init(
       sm->diag_jacobgeo_div_func = gk_species_moment_diag_jacobgeo_div_enabled_1st_comp;
     } else {
       sm->mcalc = gkyl_dg_updater_moment_gyrokinetic_new(
-        &s->grid, &app->basis, &s->basis, &app->local_ext, s->info.mass, s->info.charge, s->vel_map,
-        app->gk_geom, app->field->phi_smooth, mom_type, sm->is_integrated, app->use_gpu
+        &gks->grid, &app->basis, &gks->basis, &app->local_ext, gks->info.mass, gks->info.charge,
+        gks->vel_map, app->gk_geom, app->field->phi_smooth, mom_type, sm->is_integrated,
+        app->use_gpu
       );
 
       sm->num_mom = gkyl_dg_updater_moment_gyrokinetic_num_mom(sm->mcalc);

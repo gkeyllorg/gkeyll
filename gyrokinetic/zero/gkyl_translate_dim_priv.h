@@ -29,12 +29,11 @@ translate_dim_range_check_conf_inflate(
   const struct gkyl_range *rng_tar
 )
 {
-  for (int d = 0; d < cdim_do - 1; d++) {
+  // Donor dimensions map to the first cdim_do target dimensions.
+  for (int d = 0; d < cdim_do; d++) {
     assert(rng_do->lower[d] == rng_tar->lower[d]);
     assert(rng_do->upper[d] == rng_tar->upper[d]);
   }
-  assert(rng_do->lower[cdim_do - 1] == rng_tar->lower[cdim_tar - 1]);
-  assert(rng_do->upper[cdim_do - 1] == rng_tar->upper[cdim_tar - 1]);
 }
 
 static void
@@ -56,7 +55,13 @@ translate_dim_range_check_phase_inflate(
   const struct gkyl_range *rng_tar
 )
 {
-  translate_dim_range_check_conf_inflate(dir, cdim_do, cdim_tar, vdim, rng_do, rng_tar);
+  // Donor conf dimensions map to the first cdim_do-1 and the last target conf dimensions.
+  for (int d = 0; d < cdim_do - 1; d++) {
+    assert(rng_do->lower[d] == rng_tar->lower[d]);
+    assert(rng_do->upper[d] == rng_tar->upper[d]);
+  }
+  assert(rng_do->lower[cdim_do - 1] == rng_tar->lower[cdim_tar - 1]);
+  assert(rng_do->upper[cdim_do - 1] == rng_tar->upper[cdim_tar - 1]);
   for (int d = 0; d < vdim; d++) {
     assert(rng_do->lower[cdim_do + d] == rng_tar->lower[cdim_tar + d]);
     assert(rng_do->upper[cdim_do + d] == rng_tar->upper[cdim_tar + d]);

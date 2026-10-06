@@ -191,7 +191,7 @@ gkns_pos_write_integrated_diags_enabled(
 
 void
 gkns_pos_apply_disabled(
-  gkyl_gyrokinetic_app *app, struct gk_neut_species *species, struct gk_positivity *pos,
+  gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gk_positivity *pos,
   struct gkyl_array *fbuffer, struct gkyl_array *fout
 )
 {

@@ -489,11 +489,11 @@ gks_rad_write_integrated_mom_enabled(gkyl_gyrokinetic_app *app, struct gk_specie
 
 void
 gk_species_radiation_init(
-  struct gkyl_gyrokinetic_app *app, struct gk_species *s, struct gk_rad_drag *rad
+  struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_rad_drag *rad
 )
 {
-  rad->radiation_id = s->info.radiation.radiation_id;
-  rad->write_diagnostics = s->info.radiation.write_diagnostics;
+  rad->radiation_id = gks->info.radiation.radiation_id;
+  rad->write_diagnostics = gks->info.radiation.write_diagnostics;
 
   rad->moms_func = gks_rad_moms_disabled;
   rad->rhs_func = gks_rad_rhs_disabled;
@@ -502,8 +502,8 @@ gk_species_radiation_init(
   rad->calc_integrated_mom_func = gks_rad_calc_integrated_mom_disabled;
   rad->write_integrated_mom_func = gks_rad_write_integrated_mom_disabled;
 
-  if (s->info.radiation.radiation_id == GKYL_GK_RADIATION) {
-    int cdim = app->cdim, vdim = s->info.vdim;
+  if (gks->info.radiation.radiation_id == GKYL_GK_RADIATION) {
+    int cdim = app->cdim, vdim = gks->info.vdim;
     int pdim = cdim + vdim;
 
     // Reduced bases and surface bases for radiation variables.
@@ -560,8 +560,8 @@ gk_species_radiation_init(
 
     // Updater to compute drag coefficients.
     rad->calc_gk_rad_vars = gkyl_dg_calc_gk_rad_vars_new(
-      &s->grid, &app->basis, &s->basis, s->info.charge, s->info.mass, app->gk_geom, s->vel_map,
-      app->use_gpu
+      &gks->grid, &app->basis, &gks->basis, gks->info.charge, gks->info.mass, app->gk_geom,
+      gks->vel_map, app->use_gpu
     );
 
     // Fitting parameters
@@ -570,32 +570,32 @@ gk_species_radiation_init(
       rad_fit_v0[GKYL_MAX_RAD_DENSITIES], rad_fit_ne[GKYL_MAX_RAD_DENSITIES];
     struct all_radiation_states *rad_data = gkyl_radiation_read_rad_fit_params();
 
-    rad->num_cross_collisions = s->info.radiation.num_cross_collisions;
+    rad->num_cross_collisions = gks->info.radiation.num_cross_collisions;
     int num_dens_per_coll[rad->num_cross_collisions];
     for (int i = 0; i < rad->num_cross_collisions; ++i) {
       num_dens_per_coll[i] =
-        s->info.radiation.num_of_densities[i] ? s->info.radiation.num_of_densities[i] : 1;
+        gks->info.radiation.num_of_densities[i] ? gks->info.radiation.num_of_densities[i] : 1;
       int status = gkyl_radiation_read_get_num_densities(
-        *rad_data, s->info.radiation.atomic_Z[i], s->info.radiation.charge_state[i],
-        s->info.radiation.min_ne, s->info.radiation.max_ne, &num_dens_per_coll[i]
+        *rad_data, gks->info.radiation.atomic_Z[i], gks->info.radiation.charge_state[i],
+        gks->info.radiation.min_ne, gks->info.radiation.max_ne, &num_dens_per_coll[i]
       );
     }
 
     // Allocate drag coefificents.
     rad->vnu_surf = gkyl_dg_calc_gk_rad_vars_drag_new(
       rad->num_cross_collisions, num_dens_per_coll, surf_rad_vpar_basis.num_basis,
-      s->local_ext.volume, app->use_gpu
+      gks->local_ext.volume, app->use_gpu
     );
     rad->vnu = gkyl_dg_calc_gk_rad_vars_drag_new(
-      rad->num_cross_collisions, num_dens_per_coll, rad_basis.num_basis, s->local_ext.volume,
+      rad->num_cross_collisions, num_dens_per_coll, rad_basis.num_basis, gks->local_ext.volume,
       app->use_gpu
     );
     rad->vsqnu_surf = gkyl_dg_calc_gk_rad_vars_drag_new(
       rad->num_cross_collisions, num_dens_per_coll, surf_rad_mu_basis.num_basis,
-      s->local_ext.volume, app->use_gpu
+      gks->local_ext.volume, app->use_gpu
     );
     rad->vsqnu = gkyl_dg_calc_gk_rad_vars_drag_new(
-      rad->num_cross_collisions, num_dens_per_coll, rad_basis.num_basis, s->local_ext.volume,
+      rad->num_cross_collisions, num_dens_per_coll, rad_basis.num_basis, gks->local_ext.volume,
       app->use_gpu
     );
 
@@ -613,11 +613,11 @@ gk_species_radiation_init(
     // Initialize drag coefficients.
     for (int i = 0; i < rad->num_cross_collisions; ++i) {
       int num_densities =
-        s->info.radiation.num_of_densities[i] ? s->info.radiation.num_of_densities[i] : 1;
+        gks->info.radiation.num_of_densities[i] ? gks->info.radiation.num_of_densities[i] : 1;
       int status = gkyl_radiation_read_get_fit_params(
-        *rad_data, s->info.radiation.atomic_Z[i], s->info.radiation.charge_state[i], rad_fit_a,
+        *rad_data, gks->info.radiation.atomic_Z[i], gks->info.radiation.charge_state[i], rad_fit_a,
         rad_fit_alpha, rad_fit_beta, rad_fit_gamma, rad_fit_v0, &num_densities, rad_fit_ne,
-        s->info.radiation.reference_ne, s->info.radiation.min_ne, s->info.radiation.max_ne
+        gks->info.radiation.reference_ne, gks->info.radiation.min_ne, gks->info.radiation.max_ne
       );
       assert(num_densities == num_dens_per_coll[i]); // Consistency check.
       rad->vtsq_min_per_species[i] = mkarr(app->use_gpu, 1, num_densities);
@@ -629,16 +629,17 @@ gk_species_radiation_init(
       gkyl_array_release(rad_fit_ne_host);
 
       // Fetch the species we are colliding with and the fitting parameters for that species
-      rad->collide_with_idx[i] = gk_find_species_idx(app, s->info.radiation.collide_with[i]);
+      rad->collide_with_idx[i] = gk_find_species_idx(app, gks->info.radiation.collide_with[i]);
       if (rad->collide_with_idx[i] == -1) {
-        rad->collide_with_idx[i] = gk_find_neut_species_idx(app, s->info.radiation.collide_with[i]);
-        rad->collide_with_neut[i] = gk_find_neut_species(app, s->info.radiation.collide_with[i]);
+        rad->collide_with_idx[i] =
+          gk_find_neut_species_idx(app, gks->info.radiation.collide_with[i]);
+        rad->collide_with_neut[i] = gk_find_neut_species(app, gks->info.radiation.collide_with[i]);
         rad->is_neut_species[i] = true;
         gk_neut_species_moment_init(
           app, rad->collide_with_neut[i], &rad->moms[i], GKYL_F_MOMENT_M0, false
         );
       } else {
-        rad->collide_with[i] = gk_find_species(app, s->info.radiation.collide_with[i]);
+        rad->collide_with[i] = gk_find_species(app, gks->info.radiation.collide_with[i]);
         rad->is_neut_species[i] = false;
         // allocate density calculation needed for radiation update
         gk_species_moment_init(app, rad->collide_with[i], &rad->moms[i], GKYL_F_MOMENT_M0, false);
@@ -647,8 +648,8 @@ gk_species_radiation_init(
       if (status == 1) {
         char msg[100];
         sprintf(
-          msg, "No radiation fits exist for z=%d, charge state=%d\n", s->info.radiation.atomic_Z[i],
-          s->info.radiation.charge_state[i]
+          msg, "No radiation fits exist for z=%d, charge state=%d\n",
+          gks->info.radiation.atomic_Z[i], gks->info.radiation.charge_state[i]
         );
         gkyl_gyrokinetic_app_cout(app, stderr, msg);
         exit(EXIT_FAILURE);
@@ -661,16 +662,16 @@ gk_species_radiation_init(
         // Note that through the spatial variation of B = B(x,z),
         // both these drag coefficients depend on phase space, but a reduced (x,z,vpar,mu) phase space
         gkyl_dg_calc_gk_rad_vars_nu_advance(
-          rad->calc_gk_rad_vars, &app->local, &s->local, rad_fit_a[n], rad_fit_alpha[n],
+          rad->calc_gk_rad_vars, &app->local, &gks->local, rad_fit_a[n], rad_fit_alpha[n],
           rad_fit_beta[n], rad_fit_gamma[n], rad_fit_v0[n], rad->vnu_surf[i].data[n].arr,
           rad->vnu[i].data[n].arr, rad->vsqnu_surf[i].data[n].arr, rad->vsqnu[i].data[n].arr
         );
 
         double Te_min_eV;
-        if (s->info.radiation.te_min_model == GKYL_CONST_TE && s->info.radiation.Te_min) {
+        if (gks->info.radiation.te_min_model == GKYL_CONST_TE && gks->info.radiation.Te_min) {
           // Turn off radiation below a constant temperature
-          Te_min_eV = s->info.radiation.Te_min / GKYL_ELEMENTARY_CHARGE;
-        } else if (s->info.radiation.te_min_model == GKYL_VARY_TE_AGGRESSIVE) {
+          Te_min_eV = gks->info.radiation.Te_min / GKYL_ELEMENTARY_CHARGE;
+        } else if (gks->info.radiation.te_min_model == GKYL_VARY_TE_AGGRESSIVE) {
           // Turn off radiation below 10^-4*max(Lz)
           Te_min_eV = 0.1372 * pow(rad_fit_v0[n], 1.867);
         } else {
@@ -678,7 +679,8 @@ gk_species_radiation_init(
           Te_min_eV = 0.2815 * pow(rad_fit_v0[n], 1.768);
         }
         double *vtsq_min_host_d = (double *)gkyl_array_fetch(vtsq_min_host, n);
-        vtsq_min_host_d[0] = Te_min_eV * fabs(s->info.charge) / s->info.mass * pow(sqrt(2.0), cdim);
+        vtsq_min_host_d[0] =
+          Te_min_eV * fabs(gks->info.charge) / gks->info.mass * pow(sqrt(2.0), cdim);
       }
       gkyl_array_copy(rad->vtsq_min_per_species[i], vtsq_min_host);
       gkyl_array_release(vtsq_min_host);
@@ -692,13 +694,13 @@ gk_species_radiation_init(
     gkyl_radiation_read_release_fit_params(rad_data);
 
     // Total vparallel and mu radiation drag including density scaling
-    rad->nvnu_surf = mkarr(app->use_gpu, surf_vpar_basis.num_basis, s->local_ext.volume);
-    rad->nvnu = mkarr(app->use_gpu, s->basis.num_basis, s->local_ext.volume);
-    rad->nvsqnu_surf = mkarr(app->use_gpu, surf_mu_basis.num_basis, s->local_ext.volume);
-    rad->nvsqnu = mkarr(app->use_gpu, s->basis.num_basis, s->local_ext.volume);
+    rad->nvnu_surf = mkarr(app->use_gpu, surf_vpar_basis.num_basis, gks->local_ext.volume);
+    rad->nvnu = mkarr(app->use_gpu, gks->basis.num_basis, gks->local_ext.volume);
+    rad->nvsqnu_surf = mkarr(app->use_gpu, surf_mu_basis.num_basis, gks->local_ext.volume);
+    rad->nvsqnu = mkarr(app->use_gpu, gks->basis.num_basis, gks->local_ext.volume);
 
     // Allocate moments needed for temperature update.
-    gk_species_moment_init(app, s, &rad->prim_moms, GKYL_F_MOMENT_MAXWELLIAN, false);
+    gk_species_moment_init(app, gks, &rad->prim_moms, GKYL_F_MOMENT_MAXWELLIAN, false);
 
     rad->vtsq = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     rad->m0 = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
@@ -711,7 +713,8 @@ gk_species_radiation_init(
       .nvsqnu = rad->nvsqnu,
     };
     rad->drag_slvr = gkyl_dg_updater_rad_gyrokinetic_new(
-      &s->grid, &app->basis, &s->basis, &s->local, &app->local, s->vel_map, &drag_inp, app->use_gpu
+      &gks->grid, &app->basis, &gks->basis, &gks->local, &app->local, gks->vel_map, &drag_inp,
+      app->use_gpu
     );
 
     if (rad->write_diagnostics) {
@@ -729,11 +732,11 @@ gk_species_radiation_init(
       }
 
       // Emissivity diagnostic.
-      rad->emissivity_rhs = mkarr(app->use_gpu, s->basis.num_basis, s->local_ext.volume);
+      rad->emissivity_rhs = mkarr(app->use_gpu, gks->basis.num_basis, gks->local_ext.volume);
       rad->emissivity_denominator =
         mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
 
-      gk_species_moment_init(app, s, &rad->m2, GKYL_F_MOMENT_M2, false);
+      gk_species_moment_init(app, gks, &rad->m2, GKYL_F_MOMENT_M2, false);
       for (int i = 0; i < rad->num_cross_collisions; ++i) {
         // Allocate emissivity.
         rad->emissivity[i] = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
@@ -743,7 +746,7 @@ gk_species_radiation_init(
       }
 
       // Allocate data and updaters for integrated moments.
-      gk_species_moment_init(app, s, &rad->integ_moms, GKYL_F_MOMENT_M0M1M2PARM2PERP, true);
+      gk_species_moment_init(app, gks, &rad->integ_moms, GKYL_F_MOMENT_M0M1M2PARM2PERP, true);
       int num_mom = rad->integ_moms.num_mom;
       if (app->use_gpu) {
         rad->red_integ_diag = gkyl_cu_malloc(sizeof(double[num_mom]));

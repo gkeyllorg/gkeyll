@@ -3,7 +3,7 @@
 
 static void
 gkns_react_cross_moms_disabled(
-  gkyl_gyrokinetic_app *app, const struct gk_neut_species *species, struct gk_react *react,
+  gkyl_gyrokinetic_app *app, const struct gk_neut_species *gkns, struct gk_react *react,
   const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[]
 )
 {
@@ -12,7 +12,7 @@ gkns_react_cross_moms_disabled(
 
 static void
 gkns_react_cross_moms_enabled(
-  gkyl_gyrokinetic_app *app, const struct gk_neut_species *species, struct gk_react *react,
+  gkyl_gyrokinetic_app *app, const struct gk_neut_species *gkns, struct gk_react *react,
   const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[]
 )
 {
@@ -129,7 +129,7 @@ gkns_react_cross_moms_enabled(
 
 static void
 gkns_react_rhs_disabled(
-  gkyl_gyrokinetic_app *app, struct gk_neut_species *s, struct gk_react *react,
+  gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gk_react *react,
   const struct gkyl_array *fin, struct gkyl_array *rhs
 )
 {
@@ -138,7 +138,7 @@ gkns_react_rhs_disabled(
 
 static void
 gkns_react_rhs_enabled(
-  gkyl_gyrokinetic_app *app, struct gk_neut_species *s, struct gk_react *react,
+  gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gk_react *react,
   const struct gkyl_array *fin, struct gkyl_array *rhs
 )
 {
@@ -156,8 +156,8 @@ gkns_react_rhs_enabled(
 
       // Accumulate -n_elc*(J*f_donor) (*note* Jacobian factor already included in fin)
       gkyl_dg_mul_conf_phase_op_accumulate_range(
-        &app->basis, &s->basis, react->f_react, -1.0, gks_elc->lte.moms.marr, fin, &app->local,
-        &s->local
+        &app->basis, &gkns->basis, react->f_react, -1.0, gks_elc->lte.moms.marr, fin, &app->local,
+        &gkns->local
       );
     } else if (react->react_id[i] == GKYL_REACT_RECOMB) {
       // Copy components of partner ions into reaction moments
@@ -171,12 +171,12 @@ gkns_react_rhs_enabled(
       gkyl_array_set_offset(
         react->react_lte_moms[i], 1.0, react->vt_sq_ion[i], 4 * app->basis.num_basis
       );
-      gk_neut_species_lte_from_moms(app, s, &s->lte, react->react_lte_moms[i]);
+      gk_neut_species_lte_from_moms(app, gkns, &gkns->lte, react->react_lte_moms[i]);
 
       // Accumulate J*n_elc*fmax(n_ion, upar bx, upar by, upar bz, vt_ion^2) onto f_react
       gkyl_dg_mul_conf_phase_op_accumulate_range(
-        &app->basis, &s->basis, react->f_react, 1.0, react->Jm0_elc[i], s->lte.f_lte, &app->local,
-        &s->local
+        &app->basis, &gkns->basis, react->f_react, 1.0, react->Jm0_elc[i], gkns->lte.f_lte,
+        &app->local, &gkns->local
       );
     } else if (react->react_id[i] == GKYL_REACT_CX) {
       // neutral update is coeff_react*(n_partner*fmax(n_ion, upar bx, upar by, upar bz, vt_ion^2) - n_ion*f_partner)
@@ -191,25 +191,25 @@ gkns_react_rhs_enabled(
       gkyl_array_set_offset(
         react->react_lte_moms[i], 1.0, react->vt_sq_ion[i], 4 * app->basis.num_basis
       );
-      gk_neut_species_lte_from_moms(app, s, &s->lte, react->react_lte_moms[i]);
+      gk_neut_species_lte_from_moms(app, gkns, &gkns->lte, react->react_lte_moms[i]);
 
       // Accumulate J*n_partner*fmax(n_ion, upar bx, upar by, upar bz, vt_ion^2) onto f_react
       gkyl_dg_mul_conf_phase_op_accumulate_range(
-        &app->basis, &s->basis, react->f_react, 1.0, react->Jm0_partner[i], s->lte.f_lte,
-        &app->local, &s->local
+        &app->basis, &gkns->basis, react->f_react, 1.0, react->Jm0_partner[i], gkns->lte.f_lte,
+        &app->local, &gkns->local
       );
 
       // Accumulate -n_ion*(J*f_partner) (*note* Jacobian factor already included in fin)
       gkyl_dg_mul_conf_phase_op_accumulate_range(
-        &app->basis, &s->basis, react->f_react, -1.0, gks_ion->lte.moms.marr, fin, &app->local,
-        &s->local
+        &app->basis, &gkns->basis, react->f_react, -1.0, gks_ion->lte.moms.marr, fin, &app->local,
+        &gkns->local
       );
     }
 
     // Accumulate reaction update to rhs
     gkyl_dg_mul_conf_phase_op_accumulate_range(
-      &app->basis, &s->basis, rhs, 1.0, react->coeff_react[i], react->f_react, &app->local,
-      &s->local
+      &app->basis, &gkns->basis, rhs, 1.0, react->coeff_react[i], react->f_react, &app->local,
+      &gkns->local
     );
   }
   app->stat.neut_species_react_tm += gkyl_time_diff_now_sec(wst);
@@ -334,7 +334,7 @@ gkns_react_write_enabled(
 
 void
 gk_neut_species_react_init(
-  struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s, struct gkyl_gyrokinetic_react inp,
+  struct gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gkyl_gyrokinetic_react inp,
   struct gk_react *react
 )
 {
@@ -361,45 +361,45 @@ gk_neut_species_react_init(
 }
 
 static double
-gk_species_react_get_vt_sq_min(struct gkyl_gyrokinetic_app *app, struct gk_species *s)
+gk_species_react_get_vt_sq_min(struct gkyl_gyrokinetic_app *app, struct gk_species *gks)
 {
   double bmag_mid = app->bmag_ref;
 
-  int vdim = s->info.vdim;
+  int vdim = gks->info.vdim;
   double dv_min[vdim];
-  gkyl_velocity_map_reduce_dv_range(s->vel_map, GKYL_MIN, dv_min, s->vel_map->local_vel);
+  gkyl_velocity_map_reduce_dv_range(gks->vel_map, GKYL_MIN, dv_min, gks->vel_map->local_vel);
 
-  double tpar_min = (s->info.mass / 6.0) * pow(dv_min[0], 2);
+  double tpar_min = (gks->info.mass / 6.0) * pow(dv_min[0], 2);
   double tperp_min = vdim > 1 ? (bmag_mid / 3.0) * dv_min[1] : tpar_min;
-  return (tpar_min + 2.0 * tperp_min) / (3.0 * s->info.mass);
+  return (tpar_min + 2.0 * tperp_min) / (3.0 * gks->info.mass);
 }
 
 static double
-gk_neut_species_react_get_vt_sq_min(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s)
+gk_neut_species_react_get_vt_sq_min(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns)
 {
   double bmag_mid = app->bmag_ref;
 
-  int vdim = s->info.vdim;
+  int vdim = gkns->info.vdim;
   double dv_min[vdim];
-  gkyl_velocity_map_reduce_dv_range(s->vel_map, GKYL_MIN, dv_min, s->vel_map->local_vel);
+  gkyl_velocity_map_reduce_dv_range(gkns->vel_map, GKYL_MIN, dv_min, gkns->vel_map->local_vel);
 
   double t_min = 0.0;
   for (int i = 0; i < vdim; i++) {
-    t_min += (s->info.mass / 6.0) * pow(dv_min[0], 2);
+    t_min += (gkns->info.mass / 6.0) * pow(dv_min[0], 2);
   }
-  return t_min / (3.0 * s->info.mass);
+  return t_min / (3.0 * gkns->info.mass);
 }
 
 void
 gk_neut_species_react_cross_init(
-  struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s, struct gk_react *react
+  struct gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gk_react *react
 )
 {
   if (react->num_react) {
     // Distribution function which holds update for each reaction
     // form depend on react->type_self, e.g., for recombination and react->type_self == GKYL_SELF_RECVR
     // react->f_react = n_elc*coeff_react*fmax(n_ion, upar_ion b_i, vt_ion^2)
-    react->f_react = mkarr(app->use_gpu, s->basis.num_basis, s->local_ext.volume);
+    react->f_react = mkarr(app->use_gpu, gkns->basis.num_basis, gkns->local_ext.volume);
 
     for (int i = 0; i < react->num_react; ++i) {
       react->react_id[i] = react->react_type[i].react_id;
@@ -452,13 +452,13 @@ gk_neut_species_react_cross_init(
         react->iz[i] = gkyl_dg_iz_new(&iz_inp, app->use_gpu);
       } else if (react->react_id[i] == GKYL_REACT_RECOMB) {
         struct gkyl_dg_recomb_inp recomb_inp = {
-          .grid = &s->grid,
+          .grid = &gkns->grid,
           .cbasis = &app->basis,
-          .pbasis = &s->basis,
+          .pbasis = &gkns->basis,
           .conf_rng = &app->local,
           .conf_rng_ext = &app->local_ext,
-          .phase_rng = &s->local,
-          .mass_self = s->info.mass,
+          .phase_rng = &gkns->local,
+          .mass_self = gkns->info.mass,
           .type_ion = react->react_type[i].ion_id,
           .charge_state = react->react_type[i].charge_state,
           .type_self = react->type_self[i],
@@ -487,20 +487,20 @@ gk_neut_species_react_cross_init(
 
 void
 gk_neut_species_react_cross_moms(
-  gkyl_gyrokinetic_app *app, const struct gk_neut_species *species, struct gk_react *react,
+  gkyl_gyrokinetic_app *app, const struct gk_neut_species *gkns, struct gk_react *react,
   const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[]
 )
 {
-  react->cross_moms_func_neut(app, species, react, fin, fin_neut);
+  react->cross_moms_func_neut(app, gkns, react, fin, fin_neut);
 }
 
 void
 gk_neut_species_react_rhs(
-  gkyl_gyrokinetic_app *app, struct gk_neut_species *s, struct gk_react *react,
+  gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gk_react *react,
   const struct gkyl_array *fin, struct gkyl_array *rhs
 )
 {
-  react->rhs_func_neut(app, s, react, fin, rhs);
+  react->rhs_func_neut(app, gkns, react, fin, rhs);
 }
 
 void

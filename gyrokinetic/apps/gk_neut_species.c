@@ -2,27 +2,27 @@
 
 void
 gk_neut_species_init(
-  struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_neut_species *ns
+  struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns
 )
 {
-  if (ns->info.cells[0] == 0) {
+  if (gkns->info.cells[0] == 0) {
     // Fluid neutrals.
-    gk_neut_species_fluid_init(gk, app, ns);
+    gk_neut_species_fluid_init(gk, app, gkns);
   } else {
     // Kinetic neutrals.
-    gk_neut_species_kinetic_init(gk, app, ns);
+    gk_neut_species_kinetic_init(gk, app, gkns);
   }
 }
 
 void
-gk_neut_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_neut_species *species, double t0)
+gk_neut_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, double t0)
 {
-  if (species->info.init_from_file.type == 0) {
-    gk_neut_species_projection_calc(app, species, &species->proj_init, species->f, t0);
+  if (gkns->info.init_from_file.type == 0) {
+    gk_neut_species_projection_calc(app, gkns, &gkns->proj_init, gkns->f, t0);
   }
 
   // We are pre-computing source for now as it is time-independent.
-  gk_neut_species_source_calc(app, species, &species->src, species->lte.f_lte, t0);
+  gk_neut_species_source_calc(app, gkns, &gkns->src, gkns->lte.f_lte, t0);
 }
 
 void
@@ -36,59 +36,59 @@ gk_neut_species_apply_ic_cross(
 
 double
 gk_neut_species_rhs(
-  gkyl_gyrokinetic_app *app, struct gk_neut_species *species, const struct gkyl_array *fin,
+  gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, const struct gkyl_array *fin,
   struct gkyl_array *rhs, struct gkyl_array **bflux_moms
 )
 {
   // Compute the RHS for species update, returning maximum stable time-step.
-  return species->rhs_func(app, species, fin, rhs, bflux_moms);
+  return gkns->rhs_func(app, gkns, fin, rhs, bflux_moms);
 }
 
 double
 gk_neut_species_rhs_implicit(
-  gkyl_gyrokinetic_app *app, struct gk_neut_species *species, const struct gkyl_array *fin,
+  gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, const struct gkyl_array *fin,
   struct gkyl_array *rhs, struct gkyl_array **bflux_moms, double dt
 )
 {
   // Compute the implicit RHS for species update, returning maximum stable time-step.
-  return species->rhs_implicit_func(app, species, fin, rhs, bflux_moms, dt);
+  return gkns->rhs_implicit_func(app, gkns, fin, rhs, bflux_moms, dt);
 }
 
 void
 gk_neut_species_step_f(
-  struct gk_neut_species *species, struct gkyl_array *out, double a, const struct gkyl_array *inp
+  struct gk_neut_species *gkns, struct gkyl_array *out, double a, const struct gkyl_array *inp
 )
 {
   // Accummulate function for forward euler method.
-  species->step_f_func(out, a, inp);
+  gkns->step_f_func(out, a, inp);
 }
 
 void
 gk_neut_species_combine(
-  struct gk_neut_species *species, struct gkyl_array *out, double c1, const struct gkyl_array *arr1,
+  struct gk_neut_species *gkns, struct gkyl_array *out, double c1, const struct gkyl_array *arr1,
   double c2, const struct gkyl_array *arr2, const struct gkyl_range *rng
 )
 {
   // Combine function for rk3 updates.
-  species->combine_func(out, c1, arr1, c2, arr2, rng);
+  gkns->combine_func(out, c1, arr1, c2, arr2, rng);
 }
 
 void
 gk_neut_species_copy_range(
-  struct gk_neut_species *species, struct gkyl_array *out, const struct gkyl_array *inp,
+  struct gk_neut_species *gkns, struct gkyl_array *out, const struct gkyl_array *inp,
   const struct gkyl_range *range
 )
 {
   // Copy function for rk3 updates.
-  species->copy_func(out, inp, range);
+  gkns->copy_func(out, inp, range);
 }
 
 void
 gk_neut_species_apply_bc(
-  gkyl_gyrokinetic_app *app, const struct gk_neut_species *species, struct gkyl_array *f
+  gkyl_gyrokinetic_app *app, const struct gk_neut_species *gkns, struct gkyl_array *f
 )
 {
-  species->bc_func(app, species, f);
+  gkns->bc_func(app, gkns, f);
 }
 
 void
@@ -139,7 +139,7 @@ gk_neut_species_release(const gkyl_gyrokinetic_app *app, const struct gk_neut_sp
 
 double
 gk_neut_species_rhs_static(
-  gkyl_gyrokinetic_app *app, struct gk_neut_species *species, const struct gkyl_array *fin,
+  gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, const struct gkyl_array *fin,
   struct gkyl_array *rhs, struct gkyl_array **bflux_moms
 )
 {
@@ -149,7 +149,7 @@ gk_neut_species_rhs_static(
 
 double
 gk_neut_species_rhs_implicit_static(
-  gkyl_gyrokinetic_app *app, struct gk_neut_species *species, const struct gkyl_array *fin,
+  gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, const struct gkyl_array *fin,
   struct gkyl_array *rhs, struct gkyl_array **bflux_moms, double dt
 )
 {
@@ -159,7 +159,7 @@ gk_neut_species_rhs_implicit_static(
 
 void
 gk_neut_species_apply_bc_static(
-  gkyl_gyrokinetic_app *app, const struct gk_neut_species *species, struct gkyl_array *f
+  gkyl_gyrokinetic_app *app, const struct gk_neut_species *gkns, struct gkyl_array *f
 )
 {
   // empty function
@@ -440,7 +440,7 @@ gk_neut_species_n_iter_corr_disabled(
 }
 
 void
-gk_neut_species_release_static(const gkyl_gyrokinetic_app *app, const struct gk_neut_species *s)
+gk_neut_species_release_static(const gkyl_gyrokinetic_app *app, const struct gk_neut_species *gkns)
 {
   // Do nothing.
 }

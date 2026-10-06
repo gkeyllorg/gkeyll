@@ -6,8 +6,8 @@ gk_species_positivity_num_species_in_quasineut(gkyl_gyrokinetic_app *app)
 {
   int num_quasineut_rescale = 0;
   for (int i = 0; i < app->num_species; ++i) {
-    struct gk_species *s = &app->species[i];
-    if (s->info.positivity.type && s->info.positivity.quasineutrality_rescale) {
+    struct gk_species *gks = &app->species[i];
+    if (gks->info.positivity.type && gks->info.positivity.quasineutrality_rescale) {
       num_quasineut_rescale += 1;
     }
   }

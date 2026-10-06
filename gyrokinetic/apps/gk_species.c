@@ -902,7 +902,7 @@ gk_species_release_dynamic(const gkyl_gyrokinetic_app *app, const struct gk_spec
 }
 
 static void
-gk_species_release_static(const gkyl_gyrokinetic_app *app, const struct gk_species *s)
+gk_species_release_static(const gkyl_gyrokinetic_app *app, const struct gk_species *gks)
 {
 }
 
@@ -1601,8 +1601,8 @@ gk_species_do_I_recycle_react_scale(struct gkyl_gyrokinetic_app *app, struct gk_
   bool has_sca = false;
   int neuts = app->num_neut_species;
   for (int i = 0; i < neuts; ++i) {
-    struct gk_neut_species *ns = &app->neut_species[i];
-    struct gkyl_gyrokinetic_scaling_inp *sca_inp = &ns->info.scaling;
+    struct gk_neut_species *gkns = &app->neut_species[i];
+    struct gkyl_gyrokinetic_scaling_inp *sca_inp = &gkns->info.scaling;
     if ((sca_inp->num_boundaries > 0) &&
         (0 == strcmp(gks->info.name, sca_inp->impacting_ion_name))) {
       has_sca = true;
@@ -2264,10 +2264,10 @@ gk_species_apply_bc(gkyl_gyrokinetic_app *app, struct gk_species *species, struc
 }
 
 void
-gk_species_n_iter_corr(gkyl_gyrokinetic_app *app, const struct gk_species *s, int sidx)
+gk_species_n_iter_corr(gkyl_gyrokinetic_app *app, const struct gk_species *gks, int sidx)
 {
-  app->stat.num_corr[sidx] = s->lte.num_corr;
-  app->stat.n_iter_corr[sidx] = s->lte.n_iter;
+  app->stat.num_corr[sidx] = gks->lte.num_corr;
+  app->stat.n_iter_corr[sidx] = gks->lte.n_iter;
 }
 
 // write functions

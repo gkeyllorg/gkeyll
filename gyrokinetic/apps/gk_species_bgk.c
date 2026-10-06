@@ -56,7 +56,8 @@ gkbgk_self_nu_calc_normNu(
 
 static void
 gkbgk_cross_nu_calc_constNu(
-  gkyl_gyrokinetic_app *app, const struct gk_species *s, struct gk_bgk_collisions *bgk, int coll_idx
+  gkyl_gyrokinetic_app *app, const struct gk_species *gks, struct gk_bgk_collisions *bgk,
+  int coll_idx
 )
 {
   // Empty method.
@@ -64,12 +65,13 @@ gkbgk_cross_nu_calc_constNu(
 
 static void
 gkbgk_cross_nu_calc_normNu(
-  gkyl_gyrokinetic_app *app, const struct gk_species *s, struct gk_bgk_collisions *bgk, int coll_idx
+  gkyl_gyrokinetic_app *app, const struct gk_species *gks, struct gk_bgk_collisions *bgk,
+  int coll_idx
 )
 {
   // Calculate nu_sr(x,t).
   gkyl_spitzer_coll_freq_advance_normnu(
-    bgk->spitzer_calc, &app->local, s->lte.moms.marr, bgk->vtsq_min,
+    bgk->spitzer_calc, &app->local, gks->lte.moms.marr, bgk->vtsq_min,
     bgk->collide_with[coll_idx]->lte.moms.marr, bgk->collide_with[coll_idx]->bgk.vtsq_min,
     bgk->norm_nu_fac_cross[coll_idx], bgk->cross_nu[coll_idx]
   );
@@ -79,7 +81,8 @@ gkbgk_cross_nu_calc_normNu(
 
 static void
 gkbgk_alpha_E_constNu(
-  gkyl_gyrokinetic_app *app, const struct gk_species *s, struct gk_bgk_collisions *bgk, int coll_idx
+  gkyl_gyrokinetic_app *app, const struct gk_species *gks, struct gk_bgk_collisions *bgk,
+  int coll_idx
 )
 {
   gkyl_array_clear(bgk->alpha_E, 0.0);
@@ -88,11 +91,12 @@ gkbgk_alpha_E_constNu(
 
 static void
 gkbgk_alpha_E_normNu(
-  gkyl_gyrokinetic_app *app, const struct gk_species *s, struct gk_bgk_collisions *bgk, int coll_idx
+  gkyl_gyrokinetic_app *app, const struct gk_species *gks, struct gk_bgk_collisions *bgk,
+  int coll_idx
 )
 {
   gkyl_dg_mul_op_range(
-    &app->basis, 0, bgk->alpha_E, 0, bgk->cross_nu[coll_idx], 0, s->lte.moms.marr, &app->local
+    &app->basis, 0, bgk->alpha_E, 0, bgk->cross_nu[coll_idx], 0, gks->lte.moms.marr, &app->local
   );
   gkyl_array_scale_range(bgk->alpha_E, bgk->alpha_E_fac[coll_idx], &app->local);
 }
