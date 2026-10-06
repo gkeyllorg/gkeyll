@@ -2695,6 +2695,15 @@ tok_geo_set_extent(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
       false, false, arc_memo_right);
     double arcL_up = integrate_psi_contour_memo(geo, geo->psisep, arc_ctx.zmin_left, zxpt, arc_ctx.rleft,
       false, false, arc_memo_left);
+    // The separatrix's four pieces at exact arc (see tok_lsn_exact_row): the
+    // block boundaries stay fractions of the separatrix's arc, now exact, so
+    // the separatrix cut is exactly the X point.
+    double sep_arcs[4];
+    if (tok_lsn_exact_row(geo, geo->psisep, arc_ctx.zmin_right, arc_ctx.zmax,
+        arc_ctx.zmin_left, arc_ctx.rright, arc_ctx.rleft, 0, 0, sep_arcs)) {
+      arcL_lo = sep_arcs[0]; arcL_mid_r = sep_arcs[1];
+      arcL_mid_l = sep_arcs[2]; arcL_up = sep_arcs[3];
+    }
     double arcL_tot = arcL_lo + arcL_mid_l + arcL_mid_r + arcL_up;
 
     if (by_measure && inp->ftype != GKYL_GEOMETRY_TOKAMAK_LSN_SOL) {
@@ -3253,6 +3262,14 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
     double arcL_l = integrate_psi_contour_memo(geo, psi_curr, arc_ctx->zmin_left, arc_ctx->zmax, arc_ctx->rleft,
       true, true, arc_memo_left);
     arc_ctx->arcL_tot = arcL_l + arc_ctx->arcL_right;
+    // The row at exact arc, replacing the integrated lengths (see
+    // tok_lsn_exact_row); the nodes are then placed on its trace.
+    double exact_right = 0.0, exact_tot = 0.0;
+    if (tok_lsn_exact_row(geo, psi_curr, arc_ctx->zmin_right, arc_ctx->zmax,
+        arc_ctx->zmin_left, arc_ctx->rright, arc_ctx->rleft, &exact_right, &exact_tot, 0)) {
+      arc_ctx->arcL_right = exact_right;
+      arc_ctx->arcL_tot = exact_tot;
+    }
 
     arc_ctx->right = true;
     arc_ctx->phi_right = 0.0;

@@ -1351,6 +1351,16 @@ static inline bool tok_geo_finite(double value)
 bool tok_wall_curve_inside(const struct gkyl_efit *efit,
   const double p0[2], const double pm[2], const double p1[2]);
 
+/** Single-null SOL rows on the legacy construction at exact arc (see
+ * tok_geo.c). Builds this thread's row trace for psi and returns its exact
+ * arcs: *arc_right (strike to the top on the right) and *arc_tot; for the
+ * separatrix also sep_arcs = {strike->X, X->top right, top->X left, X->strike}.
+ * Either output may be null. False when disabled or the trace fails, and the
+ * caller keeps the integrated arcs. */
+bool tok_lsn_exact_row(const struct gkyl_tok_geo *geo, double psi,
+  double zmin_right, double zmax, double zmin_left, double rright, double rleft,
+  double *arc_right, double *arc_tot, double sep_arcs[4]);
+
 // How finely the plate root finder resolves a declared plate: uniform samples
 // in s on [0,1] (tok_plate_flux_intersection). The wall pocket samples the
 // plate the same way, so both see the same plate.

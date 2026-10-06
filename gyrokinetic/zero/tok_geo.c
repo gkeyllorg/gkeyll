@@ -8010,6 +8010,165 @@ tok_psi_normal_project(const struct gkyl_tok_geo *geo, double psi,
   return false;
 }
 
+// ---------------------------------------------------------------------------
+// Single-null SOL rows on the legacy construction, at exact arc (2026-10-06).
+//
+// LSN_SOL_* blocks without straight_xpt_ray place each node by root-solving the
+// Z-integrated arc, integral sqrt(1+(dR/dZ)^2) dZ, and take their theta
+// extents from the separatrix's arc so integrated. That parameterisation is
+// weakest exactly where these blocks meet: the integrand is singular at the
+// row's Z turning point (the top), and the separatrix has a corner at the X
+// point. Measured on ASDEX and TCV: rows uniform to ~1e-6 elsewhere, but the
+// cell at the top off by up to 7e-4, and the separatrix cell beside the X
+// point not converging (4.5e-5 / 1.8e-7 / 2.1e-4 at theta x1 / x2 / x4), so
+// the faces between these blocks did not converge in theta.
+//
+// Here a row is traced over the branches the integral follows -- the outer
+// strike up the right side (the root nearest rright at each grid line in Z),
+// over the top, down the left side (nearest rleft) to the inner strike, the X
+// point itself on the separatrix -- and measured, and sampled, with the
+// arc-exact sampler's refinement (tok_contour_leaves, tok_trace_sample). The
+// cut rule is unchanged: block boundaries remain fractions of the separatrix's
+// arc, now exact, so the separatrix cut is exactly the X point and every other
+// row is cut at the same fraction of its own exact arc -- the legacy cuts.
+// GKYL_TOK_LSN_ARC_EXACT=0 restores the integrated arc for A/B.
+// ---------------------------------------------------------------------------
+static bool
+tok_lsn_arc_exact_enabled(void)
+{
+  static int on = -1;
+  if (on < 0) {
+    const char *e = getenv("GKYL_TOK_LSN_ARC_EXACT");
+    on = (e && e[0] == '0') ? 0 : 1;
+  }
+  return on == 1;
+}
+
+struct tok_lsn_row {
+  double psi;
+  bool valid;
+  int n, cap;
+  double *r, *z, *s;   // the row's trace and its exact cumulative arc
+};
+static _Thread_local struct tok_lsn_row tok_lsn_row_buf;
+
+static void
+tok_lsn_push(struct tok_lsn_row *b, double r, double z)
+{
+  if (b->n == b->cap) {
+    int cap = b->cap ? 2*b->cap : 256;
+    double *nr = gkyl_malloc(cap*sizeof(double)), *nz = gkyl_malloc(cap*sizeof(double)),
+      *ns = gkyl_malloc(cap*sizeof(double));
+    if (b->n) {
+      memcpy(nr, b->r, b->n*sizeof(double)); memcpy(nz, b->z, b->n*sizeof(double));
+      gkyl_free(b->r); gkyl_free(b->z); gkyl_free(b->s);
+    }
+    b->r = nr; b->z = nz; b->s = ns; b->cap = cap;
+  }
+  b->r[b->n] = r; b->z[b->n] = z; ++b->n;
+}
+
+// The root of the psi contour at height z nearest rref, as the legacy
+// integrand takes it. False if the contour does not reach z.
+static bool
+tok_lsn_add(const struct gkyl_tok_geo *geo, double psi, double z, double rref,
+  struct tok_lsn_row *b)
+{
+  double R[8] = { 0.0 }, dRdZ[8] = { 0.0 }, dR[8] = { 0.0 }, dZ[8] = { 0.0 };
+  int nr = gkyl_tok_geo_R_psiZ(geo, psi, z, 8, R, dRdZ, dR, dZ);
+  if (nr <= 0) return false;
+  tok_lsn_push(b, choose_closest(rref, R, R, nr), z);
+  return true;
+}
+
+bool
+tok_lsn_exact_row(const struct gkyl_tok_geo *geo, double psi,
+  double zmin_right, double zmax, double zmin_left, double rright, double rleft,
+  double *arc_right, double *arc_tot, double sep_arcs[4])
+{
+  struct tok_lsn_row *b = &tok_lsn_row_buf;
+  b->valid = false; b->n = 0;
+  if (!tok_lsn_arc_exact_enabled() || !(zmax > zmin_right) || !(zmax > zmin_left))
+    return false;
+  const bool sep = tok_geo_same_flux(psi, geo->psisep);
+  double rx = 0.0, zx = 0.0;
+  if (sep && !tok_ext_xpoint_rz(geo, TOK_EXT_LOWER_XPT, &rx, &zx))
+    return false;
+  const bool xr = sep && zx > zmin_right && zx < zmax;
+  const bool xl = sep && zx > zmin_left && zx < zmax;
+  const struct gkyl_rect_grid *g = geo->use_cubics ? &geo->rzgrid_cubic : &geo->rzgrid;
+  const double z0 = g->lower[1], dz = g->dx[1];
+  const double ztol = 64.0*DBL_EPSILON*fmax(1.0, fabs(zmax));
+  int i_xr = -1, i_top = -1, i_xl = -1;
+  // right side, upward: the outer strike, every grid line in Z, the X point
+  if (!tok_lsn_add(geo, psi, zmin_right, rright, b)) return false;
+  for (int k=(int) floor((zmin_right-z0)/dz)+1; z0+k*dz < zmax; ++k) {
+    const double zk = z0+k*dz;
+    if (xr && i_xr < 0 && zx <= zk) {
+      tok_lsn_push(b, rx, zx); i_xr = b->n-1;
+      if (fabs(zk-zx) <= ztol) continue;
+    }
+    if (zk > zmin_right) tok_lsn_add(geo, psi, zk, rright, b);
+  }
+  if (xr && i_xr < 0) { tok_lsn_push(b, rx, zx); i_xr = b->n-1; }
+  // the top: the two roots at the turning height when it has them; the piece
+  // between the last right point and the first left one is measured exactly
+  // either way
+  tok_lsn_add(geo, psi, zmax, rright, b);
+  i_top = b->n-1;
+  const int n_right = b->n;
+  tok_lsn_add(geo, psi, zmax, rleft, b);
+  // left side, downward
+  for (int k=(int) ceil((zmax-z0)/dz)-1; z0+k*dz > zmin_left; --k) {
+    const double zk = z0+k*dz;
+    if (zk >= zmax) continue;
+    if (xl && i_xl < 0 && zx >= zk) {
+      tok_lsn_push(b, rx, zx); i_xl = b->n-1;
+      if (fabs(zk-zx) <= ztol) continue;
+    }
+    tok_lsn_add(geo, psi, zk, rleft, b);
+  }
+  if (xl && i_xl < 0) { tok_lsn_push(b, rx, zx); i_xl = b->n-1; }
+  if (!tok_lsn_add(geo, psi, zmin_left, rleft, b)) return false;
+  if (b->n < 3 || n_right < 2) return false;
+  // exact cumulative arc at the trace's points
+  struct tok_leaves lv = { 0 };
+  b->s[0] = 0.0;
+  bool ok = true;
+  for (int i=1; i<b->n && ok; ++i) {
+    lv.n = 0;
+    ok = tok_contour_leaves(geo, psi, b->r[i-1], b->z[i-1], b->r[i], b->z[i], 0, &lv);
+    double a = 0.0;
+    for (int j=0; j<lv.n; ++j) a += lv.arc[j];
+    b->s[i] = b->s[i-1]+a;
+  }
+  if (lv.r) { gkyl_free(lv.r); gkyl_free(lv.z); gkyl_free(lv.arc); }
+  if (!ok || !(b->s[b->n-1] > 0.0)) return false;
+  if (arc_right) *arc_right = b->s[i_top];
+  if (arc_tot) *arc_tot = b->s[b->n-1];
+  if (sep_arcs) {
+    if (i_xr < 0 || i_xl < 0) return false;
+    sep_arcs[0] = b->s[i_xr];
+    sep_arcs[1] = b->s[i_top]-b->s[i_xr];
+    sep_arcs[2] = b->s[i_xl]-b->s[i_top];
+    sep_arcs[3] = b->s[b->n-1]-b->s[i_xl];
+  }
+  b->psi = psi; b->valid = true;
+  return true;
+}
+
+// The node at exact arc fraction u of the row tok_lsn_exact_row last traced,
+// if that row is this psi's.
+static bool
+tok_lsn_exact_point(const struct gkyl_tok_geo *geo, double psi, double u,
+  double *r, double *z)
+{
+  const struct tok_lsn_row *b = &tok_lsn_row_buf;
+  if (!b->valid || b->psi != psi || !(u >= 0.0) || !(u <= 1.0))
+    return false;
+  return tok_trace_sample(geo, psi, b->r, b->z, b->s, b->n, false, u, r, z);
+}
+
 // Sample a trace whose array index, rather than physical arc length, is
 // uniform in the logical block coordinate.  Project the local interpolation
 // back to psi=constant using whichever physical coordinate varies most on the
@@ -9930,11 +10089,17 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
 
           tok_set_ridders(inp, &arc_ctx, psi_curr, arcL_curr, &rclose, &ridders_min, &ridders_max);
 
-          struct gkyl_qr_res res = gkyl_ridders(arc_length_func, &arc_ctx,
+          // single-null SOL rows: the node at exact arc (tok_lsn_exact_row)
+          double lsn_r = 0.0, lsn_z = 0.0;
+          const bool lsn_exact = arc_ctx.arcL_tot > 0.0 &&
+            tok_lsn_exact_point(geo, psi_curr, arcL_curr/arc_ctx.arcL_tot, &lsn_r, &lsn_z);
+          struct gkyl_qr_res res = lsn_exact ? (struct gkyl_qr_res) { .res = lsn_z } :
+            gkyl_ridders(arc_length_func, &arc_ctx,
             arc_ctx.zmin, arc_ctx.zmax, ridders_min, ridders_max,
             geo->root_param.max_iter, 1e-10);
-          tok_geo_check_arc_root(inp, psi_curr, theta_curr, arcL_curr,
-            arc_ctx.zmin, arc_ctx.zmax, ridders_min, ridders_max, &res);
+          if (!lsn_exact)
+            tok_geo_check_arc_root(inp, psi_curr, theta_curr, arcL_curr,
+              arc_ctx.zmin, arc_ctx.zmax, ridders_min, ridders_max, &res);
           z_curr = res.res;
           ((struct gkyl_tok_geo *)geo)->stat.nroot_cont_calls += res.nevals;
 
@@ -9984,6 +10149,10 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
           r_curr = arc_ctx.xpt_anchor_r;
         if (at_sep_trace)
           r_curr = sep_r_curr;
+        if (lsn_exact && z_curr == lsn_z && !at_xpt_anchor && !at_sep_trace) {
+          r_curr = lsn_r;   // the exact point's own R, on its branch
+          if (nr <= 0) nr = 1;
+        }
 
         if (tok_geo_same_flux(psi_curr, geo->psisep)) {
           // Snap to the X point of the representation that evaluates psi.
@@ -10651,13 +10820,19 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
               0.0, -1, 0.0);
 
           clock_t trace_t0 = trace_this_block ? clock() : 0;
-          struct gkyl_qr_res res = gkyl_ridders(arc_length_func, &arc_ctx,
+          // single-null SOL rows: the node at exact arc (tok_lsn_exact_row)
+          double lsn_r = 0.0, lsn_z = 0.0;
+          const bool lsn_exact = arc_ctx.arcL_tot > 0.0 &&
+            tok_lsn_exact_point(geo, psi_curr, arcL_curr/arc_ctx.arcL_tot, &lsn_r, &lsn_z);
+          struct gkyl_qr_res res = lsn_exact ? (struct gkyl_qr_res) { .res = lsn_z } :
+            gkyl_ridders(arc_length_func, &arc_ctx,
             arc_ctx.zmin, arc_ctx.zmax, ridders_min, ridders_max,
             geo->root_param.max_iter, 1e-10);
           double trace_elapsed = trace_this_block ?
             ((double) (clock() - trace_t0))/CLOCKS_PER_SEC : 0.0;
-          tok_geo_check_arc_root(inp, psi_curr, theta_curr, arcL_curr,
-            arc_ctx.zmin, arc_ctx.zmax, ridders_min, ridders_max, &res);
+          if (!lsn_exact)
+            tok_geo_check_arc_root(inp, psi_curr, theta_curr, arcL_curr,
+              arc_ctx.zmin, arc_ctx.zmax, ridders_min, ridders_max, &res);
           z_curr = res.res;
           ((struct gkyl_tok_geo *)geo)->stat.nroot_cont_calls += res.nevals;
 
@@ -10695,6 +10870,10 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
             r_curr = arc_ctx.xpt_anchor_r;
           if (at_sep_trace)
             r_curr = sep_r_curr;
+          if (lsn_exact && z_curr == lsn_z && !at_xpt_anchor && !at_sep_trace) {
+            r_curr = lsn_r;   // the exact point's own R, on its branch
+            if (nr <= 0) nr = 1;
+          }
 
           if (tok_geo_same_flux(psi_curr, geo->psisep) && ip_delta==0) {
             // Snap to the X point of the representation that evaluates psi.
@@ -11064,13 +11243,19 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
               0.0, -1, 0.0);
 
           clock_t trace_t0 = trace_this_block ? clock() : 0;
-          struct gkyl_qr_res res = gkyl_ridders(arc_length_func, &arc_ctx,
+          // single-null SOL rows: the node at exact arc (tok_lsn_exact_row)
+          double lsn_r = 0.0, lsn_z = 0.0;
+          const bool lsn_exact = arc_ctx.arcL_tot > 0.0 &&
+            tok_lsn_exact_point(geo, psi_curr, arcL_curr/arc_ctx.arcL_tot, &lsn_r, &lsn_z);
+          struct gkyl_qr_res res = lsn_exact ? (struct gkyl_qr_res) { .res = lsn_z } :
+            gkyl_ridders(arc_length_func, &arc_ctx,
             arc_ctx.zmin, arc_ctx.zmax, ridders_min, ridders_max,
             geo->root_param.max_iter, 1e-10);
           double trace_elapsed = trace_this_block ?
             ((double) (clock() - trace_t0))/CLOCKS_PER_SEC : 0.0;
-          tok_geo_check_arc_root(inp, psi_curr, theta_curr, arcL_curr,
-            arc_ctx.zmin, arc_ctx.zmax, ridders_min, ridders_max, &res);
+          if (!lsn_exact)
+            tok_geo_check_arc_root(inp, psi_curr, theta_curr, arcL_curr,
+              arc_ctx.zmin, arc_ctx.zmax, ridders_min, ridders_max, &res);
           z_curr = res.res;
           ((struct gkyl_tok_geo *)geo)->stat.nroot_cont_calls += res.nevals;
 
@@ -11119,6 +11304,10 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
             r_curr = arc_ctx.xpt_anchor_r;
           if (at_sep_trace)
             r_curr = sep_r_curr;
+          if (lsn_exact && z_curr == lsn_z && !at_xpt_anchor && !at_sep_trace) {
+            r_curr = lsn_r;   // the exact point's own R, on its branch
+            if (nr <= 0) nr = 1;
+          }
 
           if (tok_geo_same_flux(psi_curr, geo->psisep) && ip_delta==0) {
             // Snap to the X point of the representation that evaluates psi.
