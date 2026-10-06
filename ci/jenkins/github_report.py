@@ -140,26 +140,6 @@ ERROR_LINE = re.compile(
     r"|\berror\b(?:\s*#?\d+)?\s*:|\bfatal\b|Traceback \(most recent call last\)|command not found|No such file or directory", re.I)
 
 
-def extract_errors(log_path, max_lines=40, tail_lines=15):
-    """Pull the informative lines out of a build/test log: matches of ERROR_LINE
-    plus the indented lines that follow a 'Failed tests:' summary."""
-    lines = read_text(log_path).splitlines()
-    picked, in_failed_block = [], False
-    for number, line in enumerate(lines, 1):
-        if in_failed_block and line.startswith("  "):
-            picked.append("{}: {}".format(number, line))
-            continue
-        in_failed_block = line.startswith("Failed tests:")
-        if ERROR_LINE.search(line):
-            picked.append("{}: {}".format(number, line))
-        if len(picked) >= max_lines:
-            picked.append("... [more matches omitted]")
-            break
-    out = ["--- error lines ---"] + (picked or ["(no recognised error lines)"])
-    out += ["--- last {} lines ---".format(tail_lines)] + lines[-tail_lines:]
-    return "\n".join(out)
-
-
 # Compiler and runtime diagnostics, including GCC/Clang, NVCC and Intel forms.
 WARNING_LINE = re.compile(r"\bwarning\b(?:\s*#?\d+)?\s*[:\[]|\bWARNING\b", re.I)
 ANSI = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
@@ -217,7 +197,7 @@ def detail_sections(title, text):
 
 
 def diagnostic_sections():
-    warnings, errors, failed_logs = [], [], []
+    warnings, errors = [], []
     candidate, baseline = {}, set()
     comparable = set()
     paths = []
@@ -248,11 +228,8 @@ def diagnostic_sections():
                     baseline.add(key)
                 elif name.startswith('candidate-'):
                     candidate[(name[len('candidate-'):], key)] = entry
-            if ERROR_LINE.search(line):
+            if ERROR_LINE.search(line) and not WARNING_LINE.search(line):
                 errors.append(entry)
-        exit_code = read_text(path + '.exit').strip()
-        if exit_code and exit_code != '0':
-            failed_logs.append('Command log: {} (exit {})\n{}'.format(path, exit_code, '\n'.join(lines[-60:])))
 
     selection = read_kv('ci-selection.txt')
     ref = first(selection, 'baseline_selector', 'main')
@@ -269,8 +246,6 @@ def diagnostic_sections():
                                note + '\n\n' + ('\n\n'.join(new) if new else 'No new warnings in comparable steps.' if comparable else ''))
     sections += detail_sections('All warnings ({})'.format(len(warnings)), '\n\n'.join(warnings) or 'No warnings found in captured logs.')
     sections += detail_sections('All errors ({})'.format(len(errors)), '\n\n'.join(errors) or 'No recognised error lines in captured logs; see failure details for command exits and infrastructure failures.')
-    if failed_logs:
-        sections += detail_sections('Failed command output (last 60 lines per command)', '\n\n'.join(failed_logs))
     sections += detail_sections('Captured logs ({})'.format(len(paths)), '\n'.join(paths) or 'No command logs were produced before this run ended.')
     return sections
 
@@ -380,25 +355,34 @@ def status_description(result, stage, unit_fail, unit_failing, regression_files)
     return "Failed at stage: {}.".format(stage)
 
 
-def failure_detail():
-    detail = read_text("ci-failure-detail.txt").strip()
-    if detail:
-        # The pipeline records which log the failed command wrote; re-scan it
-        # here so the extraction heuristics live in one testable place.
-        match = re.search(r"^Full log: (\S+)", detail, re.M)
-        command = re.search(r"^Command: (.*)$", detail, re.M)
-        if match and os.path.isfile(match.group(1)):
-            head = ["Command: " + command.group(1)] if command else []
-            head.append("Full log: {} (archived with the build)".format(match.group(1)))
-            return "\n".join(head) + "\n" + extract_errors(match.group(1))
-        return detail
-    # HPC pipelines: fall back to the most recent Slurm output, if any.
-    outs = [p for p in os.listdir(".") if p.startswith("slurm-") and p.endswith(".out")]
-    if not outs:
-        return ""
-    newest = max(outs, key=lambda p: os.path.getmtime(p))
-    tail = read_text(newest).splitlines()[-40:]
-    return "{} (last 40 lines)\n{}".format(newest, "\n".join(tail))
+def failure_sections():
+    """Show unfiltered tails first, keeping extracted warnings/errors separate."""
+    detail = read_text('ci-failure-detail.txt').strip()
+    match = re.search(r'^Full log: (.+?)(?: \(archived with the build\))?$', detail, re.M)
+    command = re.search(r'^Command: (.*)$', detail, re.M)
+    logs = {}
+    if match and os.path.isfile(match.group(1)):
+        logs[match.group(1)] = ['Command: ' + command.group(1)] if command else []
+    for path in log_paths():
+        exit_code = read_text(path + '.exit').strip()
+        if exit_code and exit_code != '0':
+            logs.setdefault(path, []).append('Exit code: ' + exit_code)
+    # A Slurm launcher log describes scheduling, while the .out contains the
+    # compiler/test output. Include both when a Slurm command failed.
+    if not logs or any('shared-slurm-' in path for path in logs):
+        outs = glob.glob('slurm-*.out')
+        if outs:
+            logs.setdefault(max(outs, key=os.path.getmtime), [])
+    sections = []
+    for path, metadata in logs.items():
+        tail = '\n'.join(ANSI.sub('', read_text(path)).splitlines()[-100:])
+        heading = metadata + ['Full log: ' + path, '', tail or '(log is empty)']
+        sections += detail_sections('Failed build log — last 100 lines: ' + path,
+                                    '\n'.join(heading))
+    if not sections:
+        sections += detail_sections('Failure details — build log unavailable',
+                                    detail or 'No build log was captured before this failure; see the failed stage above.')
+    return sections
 
 
 def timing_section():
@@ -442,6 +426,7 @@ def build_report(args):
     if args.result != "success":
         message = re.sub(r"^(?:[A-Za-z_$][\w$]*\.)+[A-Z]\w*(?:Exception|Error): ", "", first(failure, "message", ""))
         parts.append("**Failed at stage:** {}{}".format(stage, " — " + message if message else ""))
+        parts.extend(failure_sections())
 
     unit_fail, unit_failing = 0, []
     for label, results_file, log_file in (("Candidate", "candidate-unit-results.txt", "candidate-unit-test.log"),
@@ -451,12 +436,6 @@ def build_report(args):
             parts.append(section)
             unit_fail += nfail
             unit_failing += failing
-
-    if args.result != "success":
-        detail = failure_detail()
-        if detail:
-            parts.append("<details><summary>Failure detail</summary>\n\n"
-                         + fenced(detail) + "\n\n</details>")
 
     for title, path in (("Serial C regressions", "ci-regression-summary.txt"),
                         ("Parallel C regressions", "ci-parallel-regression-summary.txt")):

@@ -32,7 +32,11 @@ output, unit and regression results, timings, and collapsible sections for:
 - **New warnings vs main** (or the explicitly selected baseline).
 - **All warnings** and **all errors**, with source log names, line numbers, and
   nearby diagnostic context.
-- Failed command output and an inventory of captured logs.
+- **Failed build log — last 100 lines**, immediately below the failed stage,
+  in a collapsed dropdown preserving compiler commands, source lines, and carets.
+  This excerpt preserves the original output order (including any warnings);
+  extracted warnings and errors remain in their own separate dropdowns.
+- An inventory of captured logs.
 
 The reporter reads build/configuration logs, Slurm output, and the individual
 compiler/runtime logs stored in regression databases. Warning comparison uses
