@@ -120,9 +120,12 @@ chmod 600 "$GKEYLL_CI_ROOT/jenkins_home/jenkins-cli.auth"
 
 ### Create the GitHub credential
 
-Create a classic GitHub PAT with only the `repo:status` scope and a short
-expiration. Its owner must have push access to `gkeyllorg/gkeyll`, which GitHub
-requires to publish commit statuses. In **Manage Jenkins → Credentials**, add
+Create a classic GitHub PAT with only the `public_repo` scope and a short
+expiration. That scope covers commit statuses and pull-request or commit
+comments on the public repository; a fine-grained token needs **Commit
+statuses: write**, **Pull requests: write**, and **Contents: write** (commit
+comments) on `gkeyllorg/gkeyll` instead. Its owner must have push access to
+`gkeyllorg/gkeyll`, which GitHub requires to publish commit statuses. In **Manage Jenkins → Credentials**, add
 it to this controller as a **Username with password** credential: use the
 owner's GitHub username and the PAT as the password, then record its ID.
 Organization membership is not required.
@@ -149,13 +152,14 @@ System → Global properties → Environment variables**, set:
 | `PERLMUTTER_GPU_REGRESSION_TIME` | Optional; default `04:00:00` |
 | `PERLMUTTER_GPU_REGRESSION_JOBS` | Optional; default `4` |
 | `PERLMUTTER_GPU_REGRESSION_TEST_TIMEOUT` | Optional; default `900` |
+| `GKEYLL_CI_TRUSTED_REF` | Optional branch or full SHA to fetch `github_report.py` from; default `main`. Set it only while staging a CI change |
 
 ### Create the one parameterized Pipeline job
 
 Create **New Item → Pipeline** named `gkeyll-ci-perlmutter_gpu`. Use
 **Pipeline script from SCM** with repository `https://github.com/gkeyllorg/gkeyll.git`,
 no SCM credential, branch `*/main`, and script path
-`ci/jenkins/Jenkinsfile.perlmutter_gpu`. The public repository is fetched
+`ci/jenkins/jenkinsfile.perlmutter_gpu`. The public repository is fetched
 anonymously; use node label `perlmutter_gpu`.
 
 Leave **This project is parameterized** unchecked. Click **Build Now** once to
