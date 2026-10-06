@@ -5,24 +5,8 @@
 #include <gkyl_array.h>
 #include <gkyl_gauss_quad_data.h>
 #include <gkyl_proj_on_basis.h>
+#include <gkyl_proj_on_basis_priv.h>
 #include <gkyl_range.h>
-
-struct gkyl_proj_on_basis {
-  struct gkyl_rect_grid grid;
-  int num_quad; // number of quadrature points to use in each direction
-  int num_ret_vals; // number of values returned by eval function
-  evalf_t eval; // function to project
-  void *ctx; // evaluation context
-
-  int num_basis; // number of basis functions
-  int tot_quad; // total number of quadrature points
-  struct gkyl_array *ordinates; // ordinates for quadrature
-  struct gkyl_array *weights; // weights for quadrature
-  struct gkyl_array *basis_at_ords; // basis functions at ordinates
-
-  proj_on_basis_c2p_t c2p; // Function transformin comp to phys coords.
-  void *c2p_ctx; // Context for the c2p mapping.
-};
 
 // Identity comp to phys coord mapping, for when user doesn't provide a map.
 static inline void
@@ -51,6 +35,7 @@ gkyl_proj_on_basis_new(
     .ctx = ctx,
     .c2p_func = 0,
     .c2p_func_ctx = NULL,
+    .use_gpu = false,
   });
 }
 
@@ -65,8 +50,14 @@ gkyl_proj_on_basis_inew(const struct gkyl_proj_on_basis_inp *inp)
   up->eval = inp->eval;
   up->ctx = inp->ctx;
   up->num_basis = inp->basis->num_basis;
+  up->use_gpu = inp->use_gpu;
 
-  if (inp->c2p_func == 0) {
+  if (up->use_gpu) {
+    // On the GPU eval and c2p_func must be device function pointers; a NULL
+    // c2p_func selects an identity mapping assigned on the device.
+    up->c2p = inp->c2p_func;
+    up->c2p_ctx = inp->c2p_func_ctx;
+  } else if (inp->c2p_func == 0) {
     up->c2p = c2p_identity;
     up->c2p_ctx = &up->grid; // Use grid as the context since all we need is ndim.
   } else {
@@ -136,6 +127,25 @@ gkyl_proj_on_basis_inew(const struct gkyl_proj_on_basis_inp *inp)
     inp->basis->eval(gkyl_array_fetch(up->ordinates, n), gkyl_array_fetch(up->basis_at_ords, n));
   }
 
+  up->ordinates_cu = 0;
+  up->weights_cu = 0;
+  up->basis_at_ords_cu = 0;
+  up->on_dev = up; // On the CPU the updater points to itself.
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu) {
+    // Mirror the quadrature data on the device and create the device clone.
+    up->ordinates_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, inp->grid->ndim, tot_quad);
+    up->weights_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, tot_quad);
+    up->basis_at_ords_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, inp->basis->num_basis, tot_quad);
+    gkyl_array_copy(up->ordinates_cu, up->ordinates);
+    gkyl_array_copy(up->weights_cu, up->weights);
+    gkyl_array_copy(up->basis_at_ords_cu, up->basis_at_ords);
+    up->on_dev = gkyl_proj_on_basis_cu_dev_new(up);
+  }
+#else
+  assert(!up->use_gpu);
+#endif
+
   return up;
 }
 
@@ -149,18 +159,6 @@ double *
 gkyl_proj_on_basis_fetch_ordinate(const struct gkyl_proj_on_basis *up, long node)
 {
   return gkyl_array_fetch(up->ordinates, node);
-}
-
-static inline void
-log_to_comp(
-  int ndim, const double *eta, const double *GKYL_RESTRICT dx, const double *GKYL_RESTRICT xc,
-  double *GKYL_RESTRICT xout
-)
-{
-  // Convert logical to computational coordinates.
-  for (int d = 0; d < ndim; ++d) {
-    xout[d] = 0.5 * dx[d] * eta[d] + xc[d];
-  }
 }
 
 void
@@ -201,6 +199,13 @@ gkyl_proj_on_basis_advance(
   struct gkyl_array *arr
 )
 {
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu) {
+    gkyl_proj_on_basis_advance_cu(up, tm, update_range, arr);
+    return;
+  }
+#endif
+
   double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM];
 
   int num_ret_vals = up->num_ret_vals;
@@ -214,7 +219,9 @@ gkyl_proj_on_basis_advance(
     gkyl_rect_grid_cell_center(&up->grid, iter.idx, xc);
 
     for (int i = 0; i < tot_quad; ++i) {
-      log_to_comp(up->grid.ndim, gkyl_array_cfetch(up->ordinates, i), up->grid.dx, xc, xmu);
+      proj_on_basis_log_to_comp(
+        up->grid.ndim, gkyl_array_cfetch(up->ordinates, i), up->grid.dx, xc, xmu
+      );
       up->c2p(xmu, xmu, up->c2p_ctx);
       up->eval(tm, xmu, gkyl_array_fetch(fun_at_ords, i), up->ctx);
     }
@@ -232,5 +239,13 @@ gkyl_proj_on_basis_release(struct gkyl_proj_on_basis *up)
   gkyl_array_release(up->ordinates);
   gkyl_array_release(up->weights);
   gkyl_array_release(up->basis_at_ords);
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu) {
+    gkyl_array_release(up->ordinates_cu);
+    gkyl_array_release(up->weights_cu);
+    gkyl_array_release(up->basis_at_ords_cu);
+    gkyl_cu_free(up->on_dev);
+  }
+#endif
   gkyl_free(up);
 }
