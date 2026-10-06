@@ -1,0 +1,25 @@
+Right now, in the Jenkins CI on the github checks, it looks like the yellow indicator status only pops up when the job starts running, but maybe there is a queue of 10 CI runs on a machine. I'd like it to show yellow (in queue) when the job enters the queue so we can validate that the job has been picked up
+
+---
+
+All four
+
+---
+
+All four
+
+---
+
+So in the case where a queued CI run sees another commit which superceeds this, say a commit to a PR has been waiting in queue, but then another commit comes along on this PR, it should cancel the job in the queue and report that this job was canceled while in queue without running
+
+---
+
+So in the case where a queued CI run sees another commit which superceeds this, say a commit to a PR has been waiting in queue, but then another commit comes along on this PR, it should cancel the job in the queue and report that this job was canceled while in queue without running
+
+---
+
+In the queue, please add on the github status indicator the position of this job in the queue
+
+---
+
+In the queue, please add on the github status indicator the position of this job in the queue
