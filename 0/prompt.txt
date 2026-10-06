@@ -1,0 +1,76 @@
+In the Jenkins CI, I'd like to enhance the information posted to github. I'd like all the warnings and any errors to get posted in the github log. There should always be a log posted to github, even in the case of failure, with detailed feedback about why the build failed, and any warnings that were posted. It would be helpful to do a diff between the branch being examined and main, so that we can understand if this branch is introducing any warnings. Therefore, some kind of "new warnings" section would be helpful. Putting the errors and warnings in a drop-down bar would make it nice to look at, contained and organized
+
+---
+
+Here's an example for a failure log.
+
+<!-- gkeyll-ci-report context="continuous-integration/jenkins/personal/maxwell-rosen" -->
+
+### Gkeyll CI on `personal`: :x: failed
+
+**Candidate:** `60fb55a`  
+**Baseline:** 84a3ef74f1cde86d9c15fff9ed36f825c4eab9c7 (not reached)  
+**Run:** `personal` build #70 on `personal-maxwell-rosen`, finished 2026-10-06 19:38 UTC
+
+**Failed at stage:** Build candidate — script returned exit code 1
+
+<details><summary>Failure detail</summary>
+
+```text
+Command: make -j8 unit
+Full log: candidate-unit-build.log (archived with the build)
+--- error lines ---
+547: zero/array_ops.c:56:5: error: use of undeclared identifier 'asdfasldkfjasldkfn'
+563: make[1]: *** [Makefile-core:72: ../build/core/zero/array_ops.c.o] Error 1
+564: make[1]: *** Waiting for unfinished jobs....
+566: make: *** [Makefile:276: core] Error 2
+--- last 15 lines ---
+      |       ^~~~~~~~
+/usr/include/math.h:1148:20: note: expanded from macro 'isnan'
+ 1148 | #  define isnan(x) __builtin_isnan (x)
+      |                    ^~~~~~~~~~~~~~~~~~~
+zero/array_ops.c:724:19: warning: use of NaN is undefined behavior due to the currently enabled floating-point options [-Wnan-infinity-disabled]
+  724 |   if (isnan(a) || isnan(b)) {
+      |                   ^~~~~~~~
+/usr/include/math.h:1148:20: note: expanded from macro 'isnan'
+ 1148 | #  define isnan(x) __builtin_isnan (x)
+      |                    ^~~~~~~~~~~~~~~~~~~
+2 warnings and 1 error generated.
+make[1]: *** [Makefile-core:72: ../build/core/zero/array_ops.c.o] Error 1
+make[1]: *** Waiting for unfinished jobs....
+make[1]: Leaving directory '/home/jenkins/agent/workspace/gkeyll-ci-personal/core'
+make: *** [Makefile:276: core] Error 2
+```
+
+</details>
+
+_Logs and regression databases stay on that machine; its owner can fetch them with `./ci/jenkins/gkeyll-ci.sh personal artifact --build 70 --fetch`._
+
+_____________________________
+
+I actually preffer the output from the mac build CI, which has
+
+```
+cc -c -O3 -g -ffast-math -fPIC -MMD -MP -DGIT_COMMIT_ID=\"954173354e7c\" -DGKYL_BUILD_DATE=\""2026-10-06 19:10:19 UTC"\" -DGKYL_GIT_CHANGESET=\"954173354e7c\" -DGKYL_USING_FRAMEWORK_ACCELERATE -DGKYL_HAVE_PKPM -DGKYL_HAVE_GYROKINETIC -DGKYL_HAVE_VLASOV -DGKYL_HAVE_MOMENTS -DGKYL_SHARE_DIR=\""/Users/runner/gkylsoft/gkeyll/share"\" -march=native -Icore  -Izero  -Izero  -Icore  -Icore   -Iminus  -Iminus/STC/include -Izero -Iapps -Iker -Iker/array_average -Iker/dg_differentiate -Iker/bin_op -Iker/dg_interpolate -Iker/dg_eval_at_coord_proj -Iker/basis -Iker/array_integrate -Iker/skin_surf_from_ghost -Ilua/Comm -Ilua/Tool zero/tensor_field_ops.c -o ../build/core/zero/tensor_field_ops.c.o
+zero/array_ops.c:56:5: error: use of undeclared identifier 'asdfasldkfjasldkfn'
+   56 |     asdfasldkfjasldkfn
+      |     ^~~~~~~~~~~~~~~~~~
+1 error generated.
+make[1]: *** [../build/core/zero/array_ops.c.o] Error 1
+make[1]: *** Waiting for unfinished jobs....
+make: *** [core] Error 2
+```
+
+I think this is more clear than the jenkins failure
+
+Can you add a report that logs the last 100 lines of code from the build log so that we clearly see the build log and what the failures are. I want this reporting to be very obvious. 
+
+It also seems like there are warnings in this log, but I want the warnings to be seperate from the errors.
+
+---
+
+The last 100 lines of the failed build log should also be in a drop down menu, compact and readable
+
+---
+
+The last 100 lines of the failed build log should also be in a drop down menu, compact and readable
