@@ -113,22 +113,16 @@ vmlbo_cross_nu_calc_normNu(
   gkyl_array_accumulate(lbo->nu_sum, 1.0, lbo->cross_nu[coll_idx]);
 }
 
+// Morse's alpha_E from the cross-collision frequency and the zeroth moment of the
+// stored distribution: alpha_E = delta_sr (1 + beta) m_s M0_s nu_sr / (m_s + m_r).
+// Under Greene's relation m_s n_s nu_sr = m_r n_r nu_rs this is the same for both
+// partners, so the cross primitive moments conserve momentum and energy, and M0_s
+// carries the same configuration-space Jacobian as the other moments in that solve.
 static void
-vmlbo_alpha_E_constNu(
-  gkyl_vlasov_app *app, const struct vm_species *s, struct vm_lbo_collisions *lbo, int coll_idx
-)
-{
-  gkyl_array_clear(lbo->alpha_E, 0.0);
-  gkyl_array_shiftc(lbo->alpha_E, lbo->alpha_E_fac[coll_idx], 0);
-}
-
-static void
-vmlbo_alpha_E_normNu(
-  gkyl_vlasov_app *app, const struct vm_species *s, struct vm_lbo_collisions *lbo, int coll_idx
-)
+vmlbo_alpha_E_calc(gkyl_vlasov_app *app, struct vm_lbo_collisions *lbo, int coll_idx)
 {
   gkyl_dg_mul_op_range(
-    &app->basis, 0, lbo->alpha_E, 0, lbo->cross_nu[coll_idx], 0, s->lte.moms.marr, &app->local
+    &app->basis, 0, lbo->alpha_E, 0, lbo->cross_nu[coll_idx], 0, lbo->moms.marr, &app->local
   );
   gkyl_array_scale_range(lbo->alpha_E, lbo->alpha_E_fac[coll_idx], &app->local);
 }
@@ -153,14 +147,8 @@ vmlbo_cross_moms_enabled(
     // Compute the cross-species collision frequency.
     lbo->cross_nu_func(app, vms, lbo, i);
 
-    // Compute alpha_E. It enters the cross primitive-moment solve alongside
-    // moments of the stored J_x J_v f, so weight it by the conf Jacobian.
-    lbo->alpha_E_func(app, vms, lbo, i);
-    if (!vms->pos_map->is_identity) {
-      gkyl_vlasov_position_map_rescale_jacobpos_conf(
-        vms->pos_map, &app->local, lbo->alpha_E, lbo->alpha_E
-      );
-    }
+    // Compute alpha_E.
+    vmlbo_alpha_E_calc(app, lbo, i);
 
     // Multiply moments and boundary corrections by cross nu.
     for (int d = 0; d < app->vdim + 2; d++) {
@@ -448,33 +436,20 @@ vm_species_lbo_cross_init(
         assert(my_idx_in_other[i] >= 0);
       }
 
-      // Morse's alpha_E.
+      // Morse's alpha_E (see vmlbo_alpha_E_calc).
       lbo->alpha_E = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
       for (int i = 0; i < lbo->num_cross_collisions; ++i) {
         // Cross-species collision frequency, nu_sr.
         lbo->cross_nu[i] = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
         lbo->other_m[i] = lbo->collide_with[i]->mass;
         lbo->other_prim_moms[i] = lbo->collide_with[i]->lbo.prim_moms;
+
+        double mass_self = vms->mass, mass_other = lbo->collide_with[i]->mass;
+        lbo->alpha_E_fac[i] =
+          (lbo->delta_sr * lbo->betaGreenep1 * mass_self) / (mass_self + mass_other);
       }
 
       double nu_frac = vms->info.collisions.nu_frac ? vms->info.collisions.nu_frac : 1.0;
-
-      // Compute the time-independent part of alpha_E.
-      double alpha_E_norm[GKYL_MAX_SPECIES] = {0.0};
-      for (int i = 0; i < lbo->num_cross_collisions; ++i) {
-        struct vm_coll_ref_params rp_s = vm_species_coll_ref_params(&vms->info.collisions);
-        struct vm_coll_ref_params rp_r =
-          vm_species_coll_ref_params(&lbo->collide_with[i]->info.collisions);
-        // Vlasov does not use reference magnetic field for cyclotron frequency contribution to log(Lambda)
-        double bmag_ref = 0.0;
-        double mass_self = vms->mass, mass_other = lbo->collide_with[i]->mass;
-
-        alpha_E_norm[i] = nu_frac * gkyl_calc_Morse_alpha_E_const(
-                                      rp_s.den, rp_r.den, mass_self, mass_other, vms->charge,
-                                      lbo->collide_with[i]->charge, rp_s.temp, rp_r.temp, bmag_ref,
-                                      rp_s.eps0, rp_s.hbar, rp_s.eV
-                                    );
-      }
 
       if (vms->info.collisions.cross_nu[0]) {
         // Project user's cross-species collision frequency.
@@ -498,24 +473,11 @@ vm_species_lbo_cross_init(
 
           gkyl_array_scale(lbo->cross_nu[i], nu_frac);
           gkyl_array_accumulate(lbo->nu_sum, 1.0, lbo->cross_nu[i]);
-
-          // Compute alpha_E using reference parameters.
-          struct vm_coll_ref_params rp_s = vm_species_coll_ref_params(&vms->info.collisions);
-          struct vm_coll_ref_params rp_r =
-            vm_species_coll_ref_params(&lbo->collide_with[i]->info.collisions);
-          double mass_self = vms->mass, mass_other = lbo->collide_with[i]->mass;
-          double den_s = rp_s.den, den_r = rp_r.den;
-          double vtsq_s = rp_s.temp / mass_self, vtsq_r = rp_r.temp / mass_other;
-
-          lbo->alpha_E_fac[i] =
-            (alpha_E_norm[i] * den_s * den_r / pow(sqrt(vtsq_s + vtsq_r), 3.0)) *
-            pow(sqrt(2.0), app->cdim);
         }
         gkyl_array_release(cross_nu_ho);
 
         // Set pointers to functions chosen at runtime.
         lbo->cross_nu_func = vmlbo_cross_nu_calc_constNu;
-        lbo->alpha_E_func = vmlbo_alpha_E_constNu;
       } else {
         // Cross-collision frequency computed in time.
         lbo->norm_nu_cross = true;
@@ -528,19 +490,26 @@ vm_species_lbo_cross_init(
           assert(!(lbo->collide_with[i]->info.collisions.cross_nu[my_idx_in_other[i]]));
         }
 
+        // Spitzer nu_sr from the time-independent part of Morse's alpha_E:
+        // nu_sr = alpha_E (m_s + m_r) / (delta_sr (1 + beta) m_s n_s).
         for (int i = 0; i < lbo->num_cross_collisions; ++i) {
+          struct vm_coll_ref_params rp_s = vm_species_coll_ref_params(&vms->info.collisions);
+          struct vm_coll_ref_params rp_r =
+            vm_species_coll_ref_params(&lbo->collide_with[i]->info.collisions);
+          // Vlasov does not use reference magnetic field for cyclotron frequency contribution to log(Lambda)
+          double bmag_ref = 0.0;
           double mass_self = vms->mass, mass_other = lbo->collide_with[i]->mass;
 
-          lbo->norm_nu_fac_cross[i] = alpha_E_norm[i] * (mass_self + mass_other) /
-                                      (lbo->delta_sr * lbo->betaGreenep1 * mass_self);
-
-          lbo->alpha_E_fac[i] =
-            (lbo->delta_sr * lbo->betaGreenep1 * mass_self) / (mass_self + mass_other);
+          double alpha_E_norm = nu_frac * gkyl_calc_Morse_alpha_E_const(
+                                            rp_s.den, rp_r.den, mass_self, mass_other, vms->charge,
+                                            lbo->collide_with[i]->charge, rp_s.temp, rp_r.temp,
+                                            bmag_ref, rp_s.eps0, rp_s.hbar, rp_s.eV
+                                          );
+          lbo->norm_nu_fac_cross[i] = alpha_E_norm / lbo->alpha_E_fac[i];
         }
 
         // Set pointers to functions chosen at runtime.
         lbo->cross_nu_func = vmlbo_cross_nu_calc_normNu;
-        lbo->alpha_E_func = vmlbo_alpha_E_normNu;
 
         // The Spitzer cross nu reads both this species' and each partner's LTE
         // moments, so mark both for the per-stage LTE moment calculation in

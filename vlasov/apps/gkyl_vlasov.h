@@ -60,9 +60,9 @@ struct gkyl_vlasov_collisions {
   evalf_t cross_nu[GKYL_MAX_SPECIES];
   void *cross_nu_ctx[GKYL_MAX_SPECIES]; // Context for cross_nu.
 
-  // Reference parameters for the Coulomb logarithm and Morse's alpha_E (computed
-  // collision frequencies and all cross collisions). Unset entries default to 1,
-  // i.e. normalized units, as in the Lua interface.
+  // Reference parameters for the Coulomb logarithm of computed (Spitzer) collision
+  // frequencies. Unset entries default to 1, i.e. normalized units, as in the Lua
+  // interface.
   double den_ref; // Reference density.
   double temp_ref; // Reference temperature.
   double hbar, eps0, eV; // Planck's constant/2 pi, vacuum permittivity, elementary charge.

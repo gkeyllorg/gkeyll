@@ -205,7 +205,7 @@ vmbgk_fixed_temp_enabled(
   const struct gkyl_array *fin
 )
 {
-  vm_species_moment_calc(&vms->lte.moms, vms->local, app->local, fin);
+  vm_species_lte_moms(app, vms, &vms->lte, fin);
 
   // Set the temperature to the fixed value
   gkyl_array_set_offset_range(

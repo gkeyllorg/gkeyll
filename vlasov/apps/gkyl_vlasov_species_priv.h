@@ -285,9 +285,6 @@ struct vm_lbo_collisions {
   void (*cross_nu_func)(
     gkyl_vlasov_app *app, const struct vm_species *vms, struct vm_lbo_collisions *lbo, int coll_idx
   );
-  void (*alpha_E_func)(
-    gkyl_vlasov_app *app, const struct vm_species *vms, struct vm_lbo_collisions *lbo, int coll_idx
-  );
   void (*cross_moms_func)(
     gkyl_vlasov_app *app, const struct vm_species *vms, struct vm_lbo_collisions *lbo
   );
