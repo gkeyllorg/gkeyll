@@ -1,6 +1,8 @@
 # Tests whose C regression output is expected to change in the current
-# PR (e.g. because of an intentional physics/algorithm change), one
-# "<layer>/<test-name>" per line with a short reason. Jenkins compares all
+# PR (e.g. because of an intentional physics/algorithm change), one test per
+# line with a short reason. Name a test as the CI report prints it
+# ("moments/creg/rt_euler_sodshock"), as "<layer>/<test-name>", or by bare
+# test name. Jenkins compares all
 # non-ignored C tests against a baseline built fresh from the PR's target branch,
 # so any test listed here is exempted from failing the build; unlisted
 # failures/diffs still fail it. See ci/jenkins/README.md.

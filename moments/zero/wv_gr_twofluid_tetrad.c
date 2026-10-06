@@ -2567,6 +2567,7 @@ gkyl_wv_gr_twofluid_tetrad_inew(const struct gkyl_wv_gr_twofluid_tetrad_inp *inp
   gr_twofluid_tetrad->eqn.type = GKYL_EQN_GR_TWOFLUID_TETRAD;
   gr_twofluid_tetrad->eqn.num_equations = 84;
   gr_twofluid_tetrad->eqn.num_diag = 5;
+  gr_twofluid_tetrad->eqn.embed_geo = NULL;
 
   gr_twofluid_tetrad->mass_elc = inp->mass_elc;
   gr_twofluid_tetrad->mass_ion = inp->mass_ion;
