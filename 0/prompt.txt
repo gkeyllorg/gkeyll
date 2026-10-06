@@ -1,0 +1,28 @@
+CI failed on this regression test
+
+Parallel C regressions: 7 passed, 0 acknowledged, 1 unacknowledged
+
+Layer	Passed	Acknowledged	Failed
+moments	2	0	0
+vlasov	2	0	0
+gyrokinetic	1	0	1 ❌
+pkpm	2	0	0
+Failing test	Status
+gyrokinetic/creg/rt_gk_sheath_2x2v_p1	fail
+`gyrokinetic/creg/rt_gk_sheath_2x2v_p1`: files that differ from the baseline
+rt_gk_sheath_2x2v_p1-elc_bc_zlower_vcutsq_0.gkyl  [DIFF]  max_abs=0.0512 max_rel=1
+rt_gk_sheath_2x2v_p1-elc_bc_zlower_vcutsq_1.gkyl  [DIFF]  max_abs=3.44e+13 max_rel=0.196
+rt_gk_sheath_2x2v_p1-elc_bc_zupper_vcutsq_0.gkyl  [DIFF]  max_abs=0.23 max_rel=1
+rt_gk_sheath_2x2v_p1-elc_bc_zupper_vcutsq_1.gkyl  [DIFF]  max_abs=5.25e+12 max_rel=0.196
+rt_gk_sheath_2x2v_p1-ion_bc_zlower_vcutsq_0.gkyl  [DIFF]  max_abs=1.5e-05 max_rel=1
+rt_gk_sheath_2x2v_p1-ion_bc_zupper_vcutsq_0.gkyl  [DIFF]  max_abs=1.08e-05 max_rel=1
+
+Since this last commit was a merge with main, which the last commit dealt with the sheath boundary conditions, I'm not surprised by this, because this is a new file to main, but I'm surprised it failed with these differences. Can you explain the differences? Why did CI fail here? Can you reproduce the failure? This is on branch gk-lc-mask-yushmanov. How is this parallel regression test run? How can I run it locally? Are there any changes on this branch which would change this regression test? Is it benign? Is this something we should worry about or just add it to the list of expected diffs? Explain your reasoning. Gkeyll has been built on this branch
+
+---
+
+Fix this bug
+
+---
+
+Fix this bug
