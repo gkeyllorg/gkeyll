@@ -1,4 +1,4 @@
-#include <gkyl_bc_twistshift_gyrokinetic_kernels.h> 
+#include <gkyl_twistshift_dg_gyrokinetic_kernels.h> 
  
 GKYL_CU_DH void twistshift_xlimdg_2x_ser_p1_yshift_p1(double sFac, const double *xLimLo, const double *xLimUp, double yLimLo, double yLimUp, double dyDo, double yOff, const double *ySh, struct gkyl_mat *tsmat) 
 { 

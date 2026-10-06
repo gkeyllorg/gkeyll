@@ -503,7 +503,7 @@ test_fem_helmholtz_perp_2x(
     double err_fine = solve_fem_helmholtz_perp_2x(poly_order, cells2, bcs, use_gpu, NULL);
     double ratio = err_coarse / err_fine;
     TEST_CHECK(ratio >= 3.5);
-    TEST_MSG("L2 error ratio (2x refinement) = %.4f (expected >= 3.5 for 2nd order)", ratio);
+    TEST_MSG("L2 error ratio (2x prolongation) = %.4f (expected >= 3.5 for 2nd order)", ratio);
     if (helmholtz_verbose()) {
       printf("L2 error: coarse = %.6e, fine = %.6e, ratio = %.4f\n", err_coarse, err_fine, ratio);
     }
@@ -706,7 +706,7 @@ test_fem_helmholtz_perp_3x(
     double err_fine = solve_fem_helmholtz_perp_3x(poly_order, cells2, bcs, use_gpu, NULL);
     double ratio = err_coarse / err_fine;
     TEST_CHECK(ratio >= 3.5);
-    TEST_MSG("L2 error ratio (2x refinement) = %.4f (expected >= 3.5 for 2nd order)", ratio);
+    TEST_MSG("L2 error ratio (2x prolongation) = %.4f (expected >= 3.5 for 2nd order)", ratio);
     if (helmholtz_verbose()) {
       printf("L2 error: coarse = %.6e, fine = %.6e, ratio = %.4f\n", err_coarse, err_fine, ratio);
     }
