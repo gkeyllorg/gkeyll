@@ -205,10 +205,10 @@ struct gk_geometry {
   int idx_LCFS_lo; // Index of the cell that abuts the LCFS from below.
 
   // Functions defining the twistshift for parallel BCs.
-  void (*parallel_lower_bc_shift_func)(double t, const double *xn, double *fout, void *ctx);
-  void (*parallel_upper_bc_shift_func)(double t, const double *xn, double *fout, void *ctx);
-  void *parallel_lower_bc_shift_ctx; // Context for parallel_lower_bc_shift_func.
-  void *parallel_upper_bc_shift_ctx; // Context for parallel_upper_bc_shift_func.
+  void (*lower_shift_func)(double t, const double *xn, double *fout, void *ctx);
+  void (*upper_shift_func)(double t, const double *xn, double *fout, void *ctx);
+  void *lower_shift_ctx; // Context for lower_shift_func.
+  void *upper_shift_ctx; // Context for upper_shift_func.
 
   struct gkyl_msgpack_map_elem *io_meta_basic; // Metadata for I/O.
   int io_meta_basic_len; // Number of elements in io_meta_basic.
@@ -245,10 +245,10 @@ struct gkyl_gk_geometry_inp {
   void (*bfield_func)(double t, const double *xc, double *xp, void *ctx);
 
   // Functions defining the twistshift for parallel BCs.
-  void (*parallel_lower_bc_shift_func)(double t, const double *xn, double *fout, void *ctx);
-  void (*parallel_upper_bc_shift_func)(double t, const double *xn, double *fout, void *ctx);
-  void *parallel_lower_bc_shift_ctx; // Context for parallel_lower_bc_shift_func.
-  void *parallel_upper_bc_shift_ctx; // Context for parallel_upper_bc_shift_func.
+  void (*lower_shift_func)(double t, const double *xn, double *fout, void *ctx);
+  void (*upper_shift_func)(double t, const double *xn, double *fout, void *ctx);
+  void *lower_shift_ctx; // Context for lower_shift_func.
+  void *upper_shift_ctx; // Context for upper_shift_func.
 
   struct gkyl_efit_inp efit_info; // Context with RZ data such as efit file for a tokamak or mirror.
   struct gkyl_tok_geo_grid_inp
