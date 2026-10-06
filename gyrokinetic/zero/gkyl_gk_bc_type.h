@@ -14,7 +14,8 @@ enum gkyl_gyrokinetic_bc_type {
   GKYL_BC_GK_SPECIES_FUNC, // Fill ghost cell using a user-function.
   GKYL_BC_GK_SPECIES_FIXED_FUNC, // Fixed function, time-independent.
   GKYL_BC_GK_SPECIES_ZERO_FLUX, // Zero flux.
-  GKYL_BC_GK_SPECIES_SHEATH, // Sheath.
+  GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING, // Conducting sheath model.
+  GKYL_BC_GK_SPECIES_SHEATH_SURROGATE, // Surrogate sheath model.
   GKYL_BC_GK_SPECIES_RECYCLE, // Recycling.
   GKYL_BC_GK_SPECIES_PERIODIC, // Periodic.
   GKYL_BC_GK_SPECIES_TWISTSHIFT, // Twist-shift.

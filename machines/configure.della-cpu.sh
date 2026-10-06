@@ -1,5 +1,4 @@
-module load intel/2021.1.2
-module load openmpi/intel-2021.1/4.1.0 
+. "$(dirname "$0")/module_load.della-cpu.sh"
 
 : "${PREFIX:=$HOME/gkylsoft}"
 
