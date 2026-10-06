@@ -1,3 +1,4 @@
+#include <float.h>
 #include <math.h>
 
 #include <gkyl_alloc.h>
@@ -33,7 +34,10 @@ gkyl_vlasov_lte_correct_inew(const struct gkyl_vlasov_lte_correct_inp *inp)
   long conf_local_ncells = inp->conf_range->volume;
   long conf_local_ext_ncells = inp->conf_range_ext->volume;
 
-  // Individual moment memory: the iteration of the moments, the differences (d) and differences of differences (dd)
+  // Moments of the iterate, the accumulated correction (d) and the mismatch (dd) of the
+  // target with the iterate; a per-cell mask of the cells still being corrected; and the
+  // per-cell errors of the iterate and of the uncorrected projection, which the mask and
+  // the thread-safe reduction of the maximum error act on.
   if (up->use_gpu) {
     up->moms_iter =
       gkyl_array_cu_dev_new(GKYL_DOUBLE, up->num_comp * up->num_conf_basis, conf_local_ext_ncells);
@@ -41,11 +45,11 @@ gkyl_vlasov_lte_correct_inew(const struct gkyl_vlasov_lte_correct_inp *inp)
       gkyl_array_cu_dev_new(GKYL_DOUBLE, up->num_comp * up->num_conf_basis, conf_local_ext_ncells);
     up->dd_moms =
       gkyl_array_cu_dev_new(GKYL_DOUBLE, up->num_comp * up->num_conf_basis, conf_local_ext_ncells);
-    // Two additional GPU-specific allocations for iterating over the grid to find the absolute value of
-    // the difference between the target and iterative moments, and the GPU-side array for performing the
-    // thread-safe reduction to find the maximum error on the grid.
+    up->corr_mask = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, conf_local_ext_ncells);
     up->abs_diff_moms = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->num_comp, conf_local_ext_ncells);
+    up->abs_diff_init = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->num_comp, conf_local_ext_ncells);
     up->error_cu = gkyl_cu_malloc(sizeof(double[up->num_comp]));
+    up->mask_sum_cu = gkyl_cu_malloc(sizeof(double));
   } else {
     up->moms_iter =
       gkyl_array_new(GKYL_DOUBLE, up->num_comp * up->num_conf_basis, conf_local_ext_ncells);
@@ -53,6 +57,9 @@ gkyl_vlasov_lte_correct_inew(const struct gkyl_vlasov_lte_correct_inp *inp)
       gkyl_array_new(GKYL_DOUBLE, up->num_comp * up->num_conf_basis, conf_local_ext_ncells);
     up->dd_moms =
       gkyl_array_new(GKYL_DOUBLE, up->num_comp * up->num_conf_basis, conf_local_ext_ncells);
+    up->corr_mask = gkyl_array_new(GKYL_DOUBLE, 1, conf_local_ext_ncells);
+    up->abs_diff_moms = gkyl_array_new(GKYL_DOUBLE, up->num_comp, conf_local_ext_ncells);
+    up->abs_diff_init = gkyl_array_new(GKYL_DOUBLE, up->num_comp, conf_local_ext_ncells);
   }
   // Allocate host-side error for checking convergence and returning in the status object
   up->error = gkyl_malloc(sizeof(double[up->num_comp]));
@@ -116,6 +123,63 @@ gkyl_vlasov_lte_correct_inew(const struct gkyl_vlasov_lte_correct_inp *inp)
   return up;
 }
 
+// Per-cell errors of the moments in moms_iter against the target, dropping cells according
+// to drop_mode, and the maximum error of each moment over the cells still being corrected.
+static void
+vlasov_lte_correct_errors(
+  gkyl_vlasov_lte_correct *up, const struct gkyl_range *conf_local,
+  const struct gkyl_array *moms_target, enum vlasov_lte_correct_drop_mode drop_mode
+)
+{
+  if (up->use_gpu) {
+    gkyl_vlasov_lte_correct_cell_errors_cu(
+      conf_local, up->num_comp, up->num_conf_basis, up->eps, drop_mode, moms_target, up->moms_iter,
+      up->abs_diff_init, up->corr_mask, up->abs_diff_moms
+    );
+    gkyl_array_reduce_range(up->error_cu, up->abs_diff_moms, GKYL_MAX, conf_local);
+    gkyl_cu_memcpy(up->error, up->error_cu, sizeof(double[up->num_comp]), GKYL_CU_MEMCPY_D2H);
+  } else {
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init(&iter, conf_local);
+    while (gkyl_range_iter_next(&iter)) {
+      long loc = gkyl_range_idx(conf_local, iter.idx);
+      vlasov_lte_correct_cell_errors(
+        up->num_comp, up->num_conf_basis, up->eps, drop_mode, gkyl_array_cfetch(moms_target, loc),
+        gkyl_array_cfetch(up->moms_iter, loc), gkyl_array_cfetch(up->abs_diff_init, loc),
+        gkyl_array_fetch(up->corr_mask, loc), gkyl_array_fetch(up->abs_diff_moms, loc)
+      );
+    }
+    gkyl_array_reduce_range(up->error, up->abs_diff_moms, GKYL_MAX, conf_local);
+  }
+}
+
+// Number of cells dropped from the correction: the cells of the range whose mask is zero.
+static int
+vlasov_lte_correct_num_dropped(gkyl_vlasov_lte_correct *up, const struct gkyl_range *conf_local)
+{
+  double mask_sum = 0.0;
+  if (up->use_gpu) {
+    gkyl_array_reduce_range(up->mask_sum_cu, up->corr_mask, GKYL_SUM, conf_local);
+    gkyl_cu_memcpy(&mask_sum, up->mask_sum_cu, sizeof(double), GKYL_CU_MEMCPY_D2H);
+  } else {
+    gkyl_array_reduce_range(&mask_sum, up->corr_mask, GKYL_SUM, conf_local);
+  }
+  return conf_local->volume - (long)round(mask_sum);
+}
+
+// Project the LTE distribution from the target moments plus the accumulated correction of
+// the cells still being corrected (dropped cells have the correction removed).
+static void
+vlasov_lte_correct_project(
+  gkyl_vlasov_lte_correct *up, struct gkyl_array *f_lte, const struct gkyl_array *moms_target,
+  const struct gkyl_range *phase_local, const struct gkyl_range *conf_local
+)
+{
+  gkyl_array_set(up->moms_iter, 1.0, moms_target);
+  gkyl_array_accumulate(up->moms_iter, 1.0, up->d_moms);
+  gkyl_vlasov_lte_proj_on_basis_advance(up->proj_lte, phase_local, conf_local, up->moms_iter, f_lte);
+}
+
 struct gkyl_vlasov_lte_correct_status
 gkyl_vlasov_lte_correct_all_moments(
   gkyl_vlasov_lte_correct *up, struct gkyl_array *f_lte, const struct gkyl_array *moms_target,
@@ -123,191 +187,71 @@ gkyl_vlasov_lte_correct_all_moments(
 )
 {
   int num_comp = up->num_comp;
-  int nc = up->num_conf_basis;
-  double tol = up->eps; // tolerance of the iterative scheme
+  double tol = up->eps;
   int max_iter = up->max_iter;
 
-  int niter = 0;
-  bool corr_status = true;
-  int ispositive_f_lte = true;
-
-  // Set initial max error to start the iteration.
-  double max_error = 1.0;
-  for (int i = 0; i < num_comp; ++i) {
-    up->error[i] = 1.0;
-  }
-  // Copy the initial max error to GPU so initial error is set correctly (no uninitialized values).
-  if (up->use_gpu) {
-    gkyl_cu_memcpy(up->error_cu, up->error, sizeof(double[num_comp]), GKYL_CU_MEMCPY_H2D);
-  }
-
-  // Clear the differences prior to iteration
+  // Every cell starts in the correction with no accumulated correction.
+  gkyl_array_clear(up->corr_mask, 1.0);
   gkyl_array_clear(up->d_moms, 0.0);
-  gkyl_array_clear(up->dd_moms, 0.0);
 
-  // Iteration loop, max_iter iterations is usually sufficient for machine precision moments
-  while ((ispositive_f_lte) && ((niter < max_iter) && (max_error > tol))) {
-    // 1. Calculate the LTE moments (n, V_drift, T) from the projected LTE distribution
+  // Fixed-point iteration on the moments handed to the projection: each pass adds the
+  // mismatch of the target with the moments of the current iterate. Cells whose iterate
+  // loses positivity are dropped: their correction is frozen and they leave the convergence
+  // test, so one cell cannot hold the rest of the domain in the loop.
+  int niter = 0;
+  double max_error = DBL_MAX;
+  while ((niter < max_iter) && (max_error > tol)) {
     gkyl_vlasov_lte_moments_advance(up->moments_up, phase_local, conf_local, f_lte, up->moms_iter);
-
-    // a. Calculate  ddMi^(k+1) =  Mi_corr - Mi_new
-    // ddn = n_target - n;
-    // Compute out = out + a*inp. Returns out.
     gkyl_array_set(up->dd_moms, -1.0, up->moms_iter);
     gkyl_array_accumulate(up->dd_moms, 1.0, moms_target);
 
-    // b. Calculate  dMi^(k+1) = dn^k + ddMi^(k+1) | where dn^0 = 0
-    // dm_new = dm_old + ddn;
+    vlasov_lte_correct_errors(up, conf_local, moms_target, VLASOV_LTE_CORRECT_DROP_NONPOSITIVE);
+    if (niter == 0) {
+      // Error of the uncorrected projection, the fallback for cells that fail to converge.
+      gkyl_array_copy(up->abs_diff_init, up->abs_diff_moms);
+    }
+    max_error = 0.0;
+    for (int c = 0; c < num_comp; ++c) {
+      max_error = fmax(max_error, up->error[c]);
+    }
+
+    gkyl_array_scale_by_cell(up->dd_moms, up->corr_mask);
     gkyl_array_accumulate(up->d_moms, 1.0, up->dd_moms);
-
-    // End the iteration early if all moments converge
-    if ((niter % 1) == 0) {
-      if (up->use_gpu) {
-        // We insure the reduction to find the maximum error is thread-safe on GPUs
-        // by first calling a specialized kernel for computing the absolute value
-        // of the difference of the cell averages, then calling reduce_range.
-        gkyl_vlasov_lte_correct_all_moments_abs_diff_cu(
-          conf_local, num_comp, nc, moms_target, up->moms_iter, up->abs_diff_moms
-        );
-        gkyl_array_reduce_range(up->error_cu, up->abs_diff_moms, GKYL_MAX, conf_local);
-        gkyl_cu_memcpy(up->error, up->error_cu, sizeof(double[num_comp]), GKYL_CU_MEMCPY_D2H);
-      } else {
-        struct gkyl_range_iter biter;
-
-        // Reset the maximum error
-        for (int i = 0; i < num_comp; ++i) {
-          up->error[i] = 0.0;
-        }
-        // Iterate over the input configuration-space range to find the maximum error
-        gkyl_range_iter_init(&biter, conf_local);
-        while (gkyl_range_iter_next(&biter)) {
-          long midx = gkyl_range_idx(conf_local, biter.idx);
-          const double *moms_local = gkyl_array_cfetch(up->moms_iter, midx);
-          const double *moms_target_local = gkyl_array_cfetch(moms_target, midx);
-          // Check the error in the absolute value of the cell average
-          // Note: for density and temperature, this error is a relative error compared to the target moment value
-          // so that we can converge to the correct target moments in SI units and minimize finite precision issues.
-          up->error[0] = fmax(
-            fabs(moms_local[0 * nc] - moms_target_local[0 * nc]) / moms_target_local[0 * nc],
-            fabs(up->error[0])
-          );
-          int T_idx = num_comp - 1; // T/m is always the last component
-          up->error[T_idx] = fmax(
-            fabs(moms_local[T_idx * nc] - moms_target_local[T_idx * nc]) /
-              moms_target_local[T_idx * nc],
-            fabs(up->error[T_idx])
-          );
-
-          // However, V_drift may be ~ 0 and if it is, we need to use absolute error. We can converge safely using
-          // absolute error if V_drift ~ O(1). Otherwise, we use relative error for V_drift.
-          for (int d = 1; d < num_comp - 1; ++d) {
-            if (fabs(moms_target_local[d * nc]) < 1.0) {
-              up->error[d] =
-                fmax(fabs(moms_local[d * nc] - moms_target_local[d * nc]), fabs(up->error[d]));
-            } else {
-              up->error[d] = fmax(
-                fabs(moms_local[d * nc] - moms_target_local[d * nc]) / moms_target_local[d * nc],
-                fabs(up->error[d])
-              );
-            }
-          }
-          // Check if density and temperature are positive, if they aren't we will break out of the iteration
-          ispositive_f_lte = (moms_local[0 * nc] > 0.0) && ispositive_f_lte;
-          ispositive_f_lte = (moms_local[T_idx * nc] > 0.0) && ispositive_f_lte;
-        }
-      }
-    }
-    // Find the maximum error looping over the error in each component
-    max_error = 0.0; // reset maximum error
-    for (int d = 0; d < num_comp; ++d) {
-      max_error = fmax(max_error, up->error[d]);
-    }
-
-    // c. Calculate  n^(k+1) = M^k + dM^(k+1)
-    // n = n_target + dm_new;
-    gkyl_array_set(up->moms_iter, 1.0, moms_target);
-    gkyl_array_accumulate(up->moms_iter, 1.0, up->d_moms);
-
-    // 2. Update the LTE distribution function using the corrected moments.
-    // Projection routine also corrects the density before the next iteration.
-    gkyl_vlasov_lte_proj_on_basis_advance(
-      up->proj_lte, phase_local, conf_local, up->moms_iter, f_lte
-    );
+    vlasov_lte_correct_project(up, f_lte, moms_target, phase_local, conf_local);
 
     niter += 1;
   }
 
-  if ((niter < max_iter) && (ispositive_f_lte) && (max_error < tol)) {
-    corr_status = 0;
-  } else {
-    corr_status = 1;
-  }
-
-  // If the algorithm fails to converge and we are *not* using the results of the failed convergence,
-  // we project the distribution function with the target moments.
-  // We correct the density and then recompute moments/errors for this new projection.
-  if (corr_status == 1 && !up->use_last_converged) {
-    gkyl_vlasov_lte_proj_on_basis_advance(up->proj_lte, phase_local, conf_local, moms_target, f_lte);
-
+  // Cells that did not converge within max_iter are dropped as well: all of them, or, when the
+  // last iterate is to be kept, only those no closer to the target than the uncorrected
+  // projection. Dropped cells are then reprojected from their target moments alone, which the
+  // projection corrects for density, while the kept cells reproject to the same distribution.
+  bool loop_converged = max_error <= tol;
+  if (!loop_converged) {
     gkyl_vlasov_lte_moments_advance(up->moments_up, phase_local, conf_local, f_lte, up->moms_iter);
+    vlasov_lte_correct_errors(
+      up, conf_local, moms_target,
+      up->use_last_converged ? VLASOV_LTE_CORRECT_DROP_NOT_IMPROVED :
+                               VLASOV_LTE_CORRECT_DROP_ABOVE_TOL
+    );
+  }
+  int num_dropped = vlasov_lte_correct_num_dropped(up, conf_local);
+  if (num_dropped > 0) {
+    gkyl_array_scale_by_cell(up->d_moms, up->corr_mask);
+    vlasov_lte_correct_project(up, f_lte, moms_target, phase_local, conf_local);
 
-    if (up->use_gpu) {
-      // We insure the reduction to find the maximum error is thread-safe on GPUs
-      // by first calling a specialized kernel for computing the absolute value
-      // of the difference of the cell averages, then calling reduce_range.
-      gkyl_vlasov_lte_correct_all_moments_abs_diff_cu(
-        conf_local, num_comp, nc, moms_target, up->moms_iter, up->abs_diff_moms
-      );
-      gkyl_array_reduce_range(up->error_cu, up->abs_diff_moms, GKYL_MAX, conf_local);
-      gkyl_cu_memcpy(up->error, up->error_cu, sizeof(double[num_comp]), GKYL_CU_MEMCPY_D2H);
-    } else {
-      struct gkyl_range_iter biter;
-
-      // Reset the maximum error
-      for (int i = 0; i < num_comp; ++i) {
-        up->error[i] = 0.0;
-      }
-      // Iterate over the input configuration-space range to find the maximum error
-      gkyl_range_iter_init(&biter, conf_local);
-      while (gkyl_range_iter_next(&biter)) {
-        long midx = gkyl_range_idx(conf_local, biter.idx);
-        const double *moms_local = gkyl_array_cfetch(up->moms_iter, midx);
-        const double *moms_target_local = gkyl_array_cfetch(moms_target, midx);
-        // Check the error in the absolute value of the cell average
-        // Note: for density and temperature, this error is a relative error compared to the target moment value.
-        up->error[0] = fmax(
-          fabs(moms_local[0 * nc] - moms_target_local[0 * nc]) / moms_target_local[0 * nc],
-          fabs(up->error[0])
-        );
-        int T_idx = num_comp - 1; // T/m is always the last component
-        up->error[T_idx] = fmax(
-          fabs(moms_local[T_idx * nc] - moms_target_local[T_idx * nc]) /
-            moms_target_local[T_idx * nc],
-          fabs(up->error[T_idx])
-        );
-
-        // However, V_drift may be ~ 0 and if it is, we need to use absolute error.
-        // Otherwise, we use relative error for V_drift.
-        for (int d = 1; d < num_comp - 1; ++d) {
-          if (fabs(moms_target_local[d * nc]) < 1.0) {
-            up->error[d] =
-              fmax(fabs(moms_local[d * nc] - moms_target_local[d * nc]), fabs(up->error[d]));
-          } else {
-            up->error[d] = fmax(
-              fabs(moms_local[d * nc] - moms_target_local[d * nc]) / moms_target_local[d * nc],
-              fabs(up->error[d])
-            );
-          }
-        }
-      }
-    }
+    // Report the error of the returned distribution over every cell.
+    gkyl_vlasov_lte_moments_advance(up->moments_up, phase_local, conf_local, f_lte, up->moms_iter);
+    gkyl_array_clear(up->corr_mask, 1.0);
+    vlasov_lte_correct_errors(up, conf_local, moms_target, VLASOV_LTE_CORRECT_DROP_NONE);
   }
 
   struct gkyl_vlasov_lte_correct_status status;
-  status.iter_converged = corr_status;
+  status.iter_converged = !loop_converged || (num_dropped > 0);
   status.num_iter = niter;
-  for (int i = 0; i < num_comp; ++i) {
-    status.error[i] = up->error[i];
+  status.num_cells_dropped = num_dropped;
+  for (int c = 0; c < num_comp; ++c) {
+    status.error[c] = up->error[c];
   }
   return status;
 }
@@ -318,9 +262,12 @@ gkyl_vlasov_lte_correct_release(gkyl_vlasov_lte_correct *up)
   gkyl_array_release(up->moms_iter);
   gkyl_array_release(up->d_moms);
   gkyl_array_release(up->dd_moms);
+  gkyl_array_release(up->corr_mask);
+  gkyl_array_release(up->abs_diff_moms);
+  gkyl_array_release(up->abs_diff_init);
   if (up->use_gpu) {
-    gkyl_array_release(up->abs_diff_moms);
     gkyl_cu_free(up->error_cu);
+    gkyl_cu_free(up->mask_sum_cu);
   }
   gkyl_free(up->error);
 
@@ -333,9 +280,11 @@ gkyl_vlasov_lte_correct_release(gkyl_vlasov_lte_correct *up)
 #ifndef GKYL_HAVE_CUDA
 
 void
-gkyl_vlasov_lte_correct_all_moments_abs_diff_cu(
-  const struct gkyl_range *conf_range, int num_comp, int nc, const struct gkyl_array *moms_target,
-  const struct gkyl_array *moms_iter, struct gkyl_array *moms_abs_diff
+gkyl_vlasov_lte_correct_cell_errors_cu(
+  const struct gkyl_range *conf_range, int num_comp, int nc, double tol, int drop_mode,
+  const struct gkyl_array *moms_target, const struct gkyl_array *moms_iter,
+  const struct gkyl_array *abs_diff_init, struct gkyl_array *corr_mask,
+  struct gkyl_array *abs_diff_moms
 )
 {
   assert(false);

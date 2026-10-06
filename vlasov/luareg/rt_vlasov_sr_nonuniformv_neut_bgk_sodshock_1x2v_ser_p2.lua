@@ -1,3 +1,12 @@
+-- Sod shock tube for a neutral gas with BGK collisions (special-relativistic Vlasov, 1x2v).
+-- Density 1 and pressure 1 on the left, density 1/8 and pressure 1/10 on the right, at rest. The collision
+-- frequency puts the mean free path at one cell. Temperatures are in units of mc^2, so the gas is
+-- relativistically hot; the reference is the exact Riemann solution of the Maxwell-Juttner gas.
+-- Note: the relativistic BGK target matches the pressure of f, not its energy, so the post-shock
+-- state drifts from the exact one as energy is not conserved (6% over this run).
+-- Quadratic velocity maps cluster the cells at the origin of velocity space.
+-- Exact solution at t = 0.3: shock at x = 0.742, contact at 0.635, post-shock lab-frame density 0.282, velocity 0.449.
+-- The kinetic shock position agrees within 1%; the measured post-shock lab density is 0.38.
 local Vlasov = G0.Vlasov
 
 -- Physical constants (using normalized code units).
@@ -6,26 +15,29 @@ charge_neut = 0.0 -- Neutral charge.
 
 nl = 1.0 -- Left number density.
 Tl = 1.0 -- Left temperature.
-
 nr = 0.125 -- Right number density.
-Tr = math.sqrt(0.1 / 0.125) -- Right temperature.
-
-vt = 1.0 -- Thermal velocity.
+Tr = 0.8 -- Right temperature.
 Vx_drift = 0.0 -- Drift velocity (x-direction).
 nu = 100.0 -- Collision frequency.
 
+-- Derived physical quantities (using normalized code units).
+vt = math.sqrt(Tl / mass_neut) -- Thermal velocity (left).
+
 -- Simulation parameters.
-Nx = 128 -- Cell count (configuration space: x-direction).
-Nvx = 32 -- Cell count (velocity space: vx-direction).
+Nx = 64 -- Cell count (configuration space: x-direction).
+Nvx = 12 -- Cell count (velocity space: vx-direction).
+Nvy = 12 -- Cell count (velocity space: vy-direction).
 Lx = 1.0 -- Domain size (configuration space: x-direction).
 vx_max = 20.0 * vt -- Domain boundary (velocity space: vx-direction).
-nonuniform_v_pow = 2.0 -- Quadratic velocity map. 
+vy_max = 20.0 * vt -- Domain boundary (velocity space: vy-direction).
+vx_lin = 2.0 * vt -- Velocity map: cell size at the origin relative to a uniform grid (vx-direction).
+vy_lin = 2.0 * vt -- Velocity map: cell size at the origin relative to a uniform grid (vy-direction).
 poly_order = 2 -- Polynomial order.
-basis_type = "tensor" -- Basis function set.
+basis_type = "serendipity" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
 cfl_frac = 1.0 -- CFL coefficient.
 
-t_end = 0.1 -- Final simulation time.
+t_end = 0.3 -- Final simulation time.
 num_frames = 1 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.
@@ -57,28 +69,30 @@ vlasovApp = Vlasov.App.new {
   -- Boundary conditions for configuration space.
   periodicDirs = { }, -- Periodic directions (none).
 
-  -- Neutral species.
+  -- Neutrals.
   neut = Vlasov.Species.new {
     modelID = G0.Model.SR,
     charge = charge_neut, mass = mass_neut,
-    
-    -- Velocity space grid.
-    lower = { -1.0 },
-    upper = { 1.0 },
-    cells = { Nvx },
 
-    mapc2pVel = { 
-      -- vx mapping 
-      { 
+    -- Velocity space grid.
+    lower = { -1.0, -1.0 },
+    upper = { 1.0, 1.0 },
+    cells = { Nvx, Nvy },
+
+    -- Quadratic velocity maps: finest cells at the origin, stretching to the domain boundary.
+    mapc2pVel = {
+      -- vx mapping
+      {
         vmap = function (t, xn)
           local vc = xn[1]
-          local vp = 0.0
-          if (vc < 0.0) then
-            vp = -vx_max*vc^nonuniform_v_pow
-          else 
-            vp =  vx_max*vc^nonuniform_v_pow  
-          end
-          return vp
+          return vx_lin * vc + (vx_max - vx_lin) * vc * math.abs(vc)
+        end
+      },
+      -- vy mapping
+      {
+        vmap = function (t, xn)
+          local vc = xn[1]
+          return vy_lin * vc + (vy_max - vy_lin) * vc * math.abs(vc)
         end
       }
     },
@@ -114,10 +128,11 @@ vlasovApp = Vlasov.App.new {
           return T
         end,
         driftVelocityInit = function (t, xn)
-          return Vx_drift -- Total relativistic drift velocity.
+          return Vx_drift, 0.0 -- Total drift velocity.
         end,
 
-        correctAllMoments = true
+        correctAllMoments = true,
+        useLastConverged = true
       }
     },
 
@@ -126,16 +141,14 @@ vlasovApp = Vlasov.App.new {
 
       selfNu = function (t, xn)
         return nu -- Collision frequency.
-      end,
-      
-      useImplicitCollisionScheme = false
+      end
     },
 
     correct = {
       correctAllMoments = true,
-      iterationEpsilon = 1e-12,
+      iterationEpsilon = 1.0e-12,
       maxIterations = 100,
-      useLastConverged = false
+      useLastConverged = true
     },
 
     evolve = true, -- Evolve species?

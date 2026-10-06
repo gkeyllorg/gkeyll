@@ -1402,7 +1402,7 @@ void vm_species_lte_init(
  * @param fin Input distribution function
  */
 void vm_species_lte_moms(
-  gkyl_vlasov_app *app, const struct vm_species *vms, struct vm_lte *lte,
+  gkyl_vlasov_app *app, const struct vm_species *vms, const struct vm_lte *lte,
   const struct gkyl_array *fin
 );
 

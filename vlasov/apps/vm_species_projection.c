@@ -208,13 +208,15 @@ vm_species_projection_calc(
 
     // The function is evaluated at physical velocities, so weight by the
     // velocity-space Jacobian to obtain the J_v*f the DG update evolves (the LTE
-    // projection below produces J_v*f itself). Identity map: multiplies by 1.
-    // The species' I/O scratch array holds the unweighted f (the rescale kernels
-    // do not alias their input and output).
-    gkyl_array_copy(vms->f_no_J, f);
-    gkyl_vlasov_velocity_map_rescale_jacobvel(
-      vms->vel_map, &app->basis, &vms->basis, &vms->local, vms->f_no_J, f
-    );
+    // projection below produces J_v*f itself). The species' I/O scratch array
+    // holds the unweighted f (the rescale kernels do not alias their input and
+    // output).
+    if (!vms->vel_map->is_identity) {
+      gkyl_array_copy(vms->f_no_J, f);
+      gkyl_vlasov_velocity_map_rescale_jacobvel(
+        vms->vel_map, &app->basis, &vms->basis, &vms->local, vms->f_no_J, f
+      );
+    }
   } else if (proj->proj_id == GKYL_PROJ_VLASOV_LTE) {
     int vdim = app->vdim;
     gkyl_proj_on_basis_advance(proj->proj_dens, tm, &app->local_ext, proj->dens);
