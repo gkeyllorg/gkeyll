@@ -246,6 +246,11 @@ gk_species_collisionless_init(
   gkcls->flux_func = gk_species_collisionless_flux_disabled;
   gkcls->rhs_func = gk_species_collisionless_rhs_disabled;
 
+  gk_species_fdot_multiplier_init(
+    app, gks, &gkcls->fdot_mult, &gks->info.collisionless.time_rate_multiplier,
+    "collisionless_fdot_multiplier"
+  );
+
   if (gkcls->collisionless_id) {
     int cdim = app->cdim, vdim = gks->info.vdim;
     int pdim = cdim + vdim;
@@ -353,6 +358,16 @@ gk_species_collisionless_rhs(
 )
 {
   gkcls->rhs_func(app, species, gkcls, fin, rhs);
+
+  // At this point rhs and cflrate contain only collisionless terms, including scale_factor.
+  // Compute the multiplier from this CFL rate and apply the same multiplier to the RHS
+  // before collisions, damping, diffusion, radiation, reactions, or sources are added.
+  gk_species_fdot_multiplier_advance_times_cfl(
+    app, species, &gkcls->fdot_mult, app->field->phi_smooth, fin, species->cflrate
+  );
+  gk_species_fdot_multiplier_advance_times_rate(
+    app, species, &gkcls->fdot_mult, app->field->phi_smooth, fin, rhs
+  );
 }
 
 void
@@ -362,6 +377,7 @@ gk_species_collisionless_write_diags(
 )
 {
   gkcls->write_diags_func(app, gks, gkcls, tm, frame);
+  gk_species_fdot_multiplier_write(app, gks, &gkcls->fdot_mult, tm, frame);
 }
 
 void
@@ -369,6 +385,7 @@ gk_species_collisionless_release(
   const struct gkyl_gyrokinetic_app *app, const struct gk_collisionless *gkcls
 )
 {
+  gk_species_fdot_multiplier_release(app, &gkcls->fdot_mult);
   if (gkcls->collisionless_id) {
     gkyl_array_release(gkcls->flux_surf);
 
@@ -396,6 +413,13 @@ gk_species_collisionless_reset(
   struct gkyl_gyrokinetic_collisionless gkcls_inp
 )
 {
+  gk_species_fdot_multiplier_release(app, &gkcls->fdot_mult);
+  gks->info.collisionless.time_rate_multiplier = gkcls_inp.time_rate_multiplier;
+  gk_species_fdot_multiplier_init(
+    app, gks, &gkcls->fdot_mult, &gks->info.collisionless.time_rate_multiplier,
+    "collisionless_fdot_multiplier"
+  );
+
   gkcls->scale_fac = 1.0;
   gkcls->fdot_scaling = gk_species_collisionless_fdot_scaling_disabled;
   if (1.0e-16 < fabs(gkcls_inp.scale_factor)) {
