@@ -18,11 +18,15 @@ that the token is never bound while candidate code runs.
 """
 
 import argparse
+from contextlib import closing
 import datetime
+import glob
+import html
 import json
 import os
 import re
 import socket
+import sqlite3
 import sys
 import urllib.error
 import urllib.parse
@@ -32,7 +36,6 @@ API = "https://api.github.com"
 DEFAULT_REPO = "gkeyllorg/gkeyll"
 MARKER_FORMAT = '<!-- gkeyll-ci-report context="{}" -->'
 COMMENT_LIMIT = 60000  # GitHub allows 65536 characters; keep headroom.
-DETAIL_LIMIT = 6000
 
 
 # ---- helpers ---------------------------------------------------------------
@@ -77,12 +80,6 @@ def describe(selector, commit):
 
 def code(text):
     return "`" + text.replace("`", "'") + "`"
-
-
-def truncate(text, limit):
-    if len(text) <= limit:
-        return text
-    return text[:limit] + "\n... [truncated {} characters]".format(len(text) - limit)
 
 
 def fenced(text, lang="text"):
@@ -139,7 +136,8 @@ def regression_section(title, summary_file):
 
 ERROR_LINE = re.compile(
     r"\[ FAILED \]|\.\.\. failed$|^FAILED:|^Failed tests:|^FAIL |error:|undefined reference"
-    r"|^make(\[\d+\])?: \*\*\*|[Ss]egmentation fault|Abort trap|Bus error|[Tt]imed? ?out")
+    r"|^make(\[\d+\])?: \*\*\*|[Ss]egmentation fault|Abort trap|Bus error|[Tt]imed? ?out"
+    r"|\berror\b(?:\s*#?\d+)?\s*:|\bfatal\b|Traceback \(most recent call last\)|command not found|No such file or directory", re.I)
 
 
 def extract_errors(log_path, max_lines=40, tail_lines=15):
@@ -160,6 +158,132 @@ def extract_errors(log_path, max_lines=40, tail_lines=15):
     out = ["--- error lines ---"] + (picked or ["(no recognised error lines)"])
     out += ["--- last {} lines ---".format(tail_lines)] + lines[-tail_lines:]
     return "\n".join(out)
+
+
+# Compiler and runtime diagnostics, including GCC/Clang, NVCC and Intel forms.
+WARNING_LINE = re.compile(r"\bwarning\b(?:\s*#?\d+)?\s*[:\[]|\bWARNING\b", re.I)
+ANSI = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
+
+
+def log_paths():
+    patterns = ('candidate-*.log', 'baseline-*.log', 'ci-command-logs/*.log',
+                'slurm-*.out', 'build/**/*.log', 'cuda-build/**/*.log',
+                '_baseline/build/**/*.log', '_baseline/cuda-build/**/*.log')
+    return sorted({p for pattern in patterns for p in glob.glob(pattern, recursive=True)
+                   if os.path.isfile(p) and not os.path.islink(p)})
+
+
+def captured_logs():
+    for path in log_paths():
+        yield path, os.path.basename(path), read_text(path), False
+    # runregression stores individual compiler/runtime output in SQLite rather
+    # than printing it to the command log. Open these artifacts read-only.
+    for root, label in (('gkylsoft', 'candidate'), ('_baseline/gkylsoft', 'baseline')):
+        for path in sorted(glob.glob(root + '/gkeyll-results/**/regressiondb', recursive=True)):
+            try:
+                uri = 'file:' + urllib.parse.quote(os.path.abspath(path)) + '?mode=ro'
+                with closing(sqlite3.connect(uri, uri=True)) as db:
+                    rows = db.execute('SELECT name, runlog, status FROM RegressionData').fetchall()
+                for name, output, status in rows:
+                    step = '-regression/' + os.path.relpath(path, root) + '/' + str(name)
+                    yield path + ':' + str(name), label + step, output or '', status in (-2, 1)
+            except sqlite3.Error as err:
+                yield path, label + '-regression-output', 'ERROR: Could not read regression diagnostics: ' + str(err), False
+
+
+def warning_key(line):
+    """Ignore checkout roots and source line shifts, but retain file and message."""
+    line = ANSI.sub('', line)
+    root = os.environ.get('WORKSPACE', os.getcwd()).rstrip('/')
+    line = line.replace(root + '/_baseline/', '').replace(root + '/', '')
+    line = re.sub(r'(?<!\w)(?:\.\./|\./|_baseline/)+', '', line)
+    line = re.sub(r':\d+(?::\d+)?(?=:)', '', line)
+    line = re.sub(r'\(\d+(?:,\d+)?\)(?=\s*:)', '', line)
+    return line.strip()
+
+
+def detail_sections(title, text):
+    """Split inside the log, keeping every comment's HTML and fences balanced."""
+    chunks = []
+    while text:
+        end = min(len(text), 48000)
+        if end < len(text):
+            end = text.rfind('\n', 0, end) + 1 or end
+        chunks.append(text[:end])
+        text = text[end:]
+    return ['<details><summary>{}{}</summary>\n\n{}\n\n</details>'.format(
+        html.escape(title), ' (part {})'.format(i + 1) if len(chunks) > 1 else '',
+        fenced(chunk)) for i, chunk in enumerate(chunks or ['None.'])]
+
+
+def diagnostic_sections():
+    warnings, errors, failed_logs = [], [], []
+    candidate, baseline = {}, set()
+    comparable = set()
+    paths = []
+    for path, name, output, complete in captured_logs():
+        paths.append(path)
+        is_baseline = name.startswith('baseline-') or path.startswith('_baseline/')
+        # Only compare equivalent completed commands; failed/missing steps are unknown.
+        if name.startswith('baseline-'):
+            complete = complete or (read_text(path + '.exit').strip() == '0' or
+                        (name.endswith('.log') and os.path.isfile(name[:-4] + '-seconds.txt')))
+            if complete:
+                comparable.add(name[len('baseline-'):])
+        lines = ANSI.sub('', output).splitlines()
+        for i, line in enumerate(lines):
+            entry = '{}:{}: {}'.format(path, i + 1, line)
+            # Include source/caret/continuation lines with the diagnostic.
+            context = []
+            for following in lines[i + 1:i + 7]:
+                if not following.strip() or not following[:1].isspace() or WARNING_LINE.search(following) or ERROR_LINE.search(following):
+                    break
+                context.append(following)
+            if context:
+                entry += '\n' + '\n'.join(context)
+            if WARNING_LINE.search(line):
+                warnings.append(entry)
+                key = warning_key(line)
+                if is_baseline:
+                    baseline.add(key)
+                elif name.startswith('candidate-'):
+                    candidate[(name[len('candidate-'):], key)] = entry
+            if ERROR_LINE.search(line):
+                errors.append(entry)
+        exit_code = read_text(path + '.exit').strip()
+        if exit_code and exit_code != '0':
+            failed_logs.append('Command log: {} (exit {})\n{}'.format(path, exit_code, '\n'.join(lines[-60:])))
+
+    selection = read_kv('ci-selection.txt')
+    ref = first(selection, 'baseline_selector', 'main')
+    new = [entry for (step, key), entry in candidate.items() if step in comparable and key not in baseline]
+    unknown = [entry for (step, key), entry in candidate.items() if step not in comparable]
+    note = 'Compared equivalent completed build steps against {}. Source line/column shifts are ignored.'.format(ref)
+    if ref != 'main':
+        note += ' This run selected a baseline other than main.'
+    if not comparable:
+        note = 'Comparison unavailable: no matching completed baseline build logs. Warnings cannot be classified as new.'
+    elif unknown:
+        note += '\n{} distinct candidate warnings could not be compared because their baseline step did not complete.'.format(len(unknown))
+    sections = detail_sections('New warnings vs {} ({})'.format(ref, len(new) if comparable else 'unknown'),
+                               note + '\n\n' + ('\n\n'.join(new) if new else 'No new warnings in comparable steps.' if comparable else ''))
+    sections += detail_sections('All warnings ({})'.format(len(warnings)), '\n\n'.join(warnings) or 'No warnings found in captured logs.')
+    sections += detail_sections('All errors ({})'.format(len(errors)), '\n\n'.join(errors) or 'No recognised error lines in captured logs; see failure details for command exits and infrastructure failures.')
+    if failed_logs:
+        sections += detail_sections('Failed command output (last 60 lines per command)', '\n\n'.join(failed_logs))
+    sections += detail_sections('Captured logs ({})'.format(len(paths)), '\n'.join(paths) or 'No command logs were produced before this run ended.')
+    return sections
+
+
+def report_pages(summary, sections, context):
+    pages, current = [], summary
+    for section in sections:
+        if len(current) + len(section) + 2 > COMMENT_LIMIT:
+            pages.append(current)
+            current = MARKER_FORMAT.format(context + '/part-{}'.format(len(pages) + 1)) + '\n\n### CI diagnostics (continued)'
+        current += '\n\n' + section
+    pages.append(current)
+    return pages
 
 
 LAYER_ORDER = ["core", "moments", "vlasov", "gyrokinetic", "pkpm"]
@@ -330,11 +454,9 @@ def build_report(args):
 
     if args.result != "success":
         detail = failure_detail()
-        # With a structured unit-test table above, the raw log excerpt is only
-        # needed when the failure was something else (compile error, crash...).
-        if detail and not unit_fail:
+        if detail:
             parts.append("<details><summary>Failure detail</summary>\n\n"
-                         + fenced(truncate(detail, DETAIL_LIMIT)) + "\n\n</details>")
+                         + fenced(detail) + "\n\n</details>")
 
     for title, path in (("Serial C regressions", "ci-regression-summary.txt"),
                         ("Parallel C regressions", "ci-parallel-regression-summary.txt")):
@@ -346,11 +468,17 @@ def build_report(args):
     if timings:
         parts.append(timings)
 
-    parts.append("_Logs and regression databases stay on that machine; its owner can fetch them with "
+    parts.append("_Full raw logs and regression databases stay on that machine; its owner can fetch them with "
                  "`./ci/jenkins/gkeyll-ci.sh {} artifact --build {} --fetch`._".format(args.platform, build_number))
 
-    report = "\n\n".join(parts) + "\n"
-    report = truncate(report, COMMENT_LIMIT)
+    summary_sections = []
+    for part in parts[1:]:
+        summary_sections.extend([part] if len(part) <= 48000 else
+                                detail_sections('Extended CI summary (Markdown)', part))
+    pages = report_pages(parts[0], summary_sections + diagnostic_sections(), args.context)
+    with open(args.output + '.json', 'w', encoding='utf-8') as f:
+        json.dump(pages, f)
+    report = '\n\n'.join(pages)
     with open(args.output, "w", encoding="utf-8") as f:
         f.write(report)
     print("Wrote {} ({} characters)".format(args.output, len(report)))
@@ -390,32 +518,21 @@ def next_link(link_header):
     return None
 
 
-def find_existing(url, token, marker):
-    """Return the id of the first comment whose body contains the marker."""
-    url += ("&" if "?" in url else "?") + "per_page=100"
-    for _ in range(20):
-        comments, link = api("GET", url, token)
-        for comment in comments or []:
-            if marker in (comment.get("body") or ""):
-                return comment["id"]
-        url = next_link(link)
-        if not url:
-            break
-    return None
-
-
 def publish_report(args):
     token = os.environ.get("GITHUB_TOKEN")
     if not token:
         sys.exit("GITHUB_TOKEN is not set")
-    if not re.fullmatch(r"[0-9a-fA-F]{40}", args.commit):
+    if not args.pr and not args.commit and args.ref:
+        commit, _ = api('GET', '{}/repos/{}/commits/{}'.format(
+            API, args.repo, urllib.parse.quote(args.ref, safe='')), token)
+        args.commit = commit.get('sha', '')
+    if not args.pr and not re.fullmatch(r"[0-9a-fA-F]{40}", args.commit):
         sys.exit("--commit must be a full 40-character SHA")
     body = read_text(args.report)
     marker = MARKER_FORMAT.format(args.context)
     if marker not in body:
         sys.exit("report {} does not carry the marker for context {}".format(args.report, args.context))
     repo = args.repo
-    payload = {"body": body}
 
     if args.pr:
         list_url = "{}/repos/{}/issues/{}/comments".format(API, repo, args.pr)
@@ -426,14 +543,37 @@ def publish_report(args):
         update_url = "{}/repos/{}/comments/{{}}".format(API, repo)
         target = "commit {}".format(short(args.commit))
 
-    existing = find_existing(list_url, token, marker)
-    if existing:
-        result, _ = api("PATCH", update_url.format(existing), token, payload)
-        action = "Updated"
-    else:
-        result, _ = api("POST", list_url, token, payload)
-        action = "Created"
-    print("{} CI report comment on {}: {}".format(action, target, (result or {}).get("html_url", "")))
+    pages_path = args.report + '.json'
+    pages = json.loads(read_text(pages_path)) if os.path.isfile(pages_path) else [body]
+    if not isinstance(pages, list) or not pages:
+        sys.exit('Report has no pages')
+    markers = [MARKER_FORMAT.format(args.context if i == 0 else args.context + '/part-{}'.format(i + 1))
+               for i in range(len(pages))]
+    for page, page_marker in zip(pages, markers):
+        if not isinstance(page, str) or page_marker not in page or len(page) > COMMENT_LIMIT:
+            sys.exit('Invalid or oversized report page')
+    # List once, including older overflow pages so shorter later runs cannot
+    # leave stale errors and warnings on the PR.
+    comments = []
+    url = list_url + '?per_page=100'
+    while url:
+        batch, link = api('GET', url, token)
+        comments.extend(batch or [])
+        url = next_link(link)
+    for page, page_marker in zip(pages, markers):
+        existing = next((c['id'] for c in comments if page_marker in (c.get('body') or '')), None)
+        result, _ = api('PATCH' if existing else 'POST',
+                        update_url.format(existing) if existing else list_url, token, {'body': page})
+        print('Published CI report on {}: {}'.format(target, (result or {}).get('html_url', '')))
+    prefix = MARKER_FORMAT.format(args.context + '/part-').split('" -->')[0]
+    for comment in comments:
+        old = comment.get('body') or ''
+        if prefix in old and not any(m in old for m in markers):
+            old_marker = re.search(re.escape(prefix) + r'\d+" -->', old)
+            if old_marker:
+                api('PATCH', update_url.format(comment['id']), token,
+                    {'body': old_marker.group() + '\n\nDiagnostics for this part were cleared by the latest CI run; see the main report.'})
+
 
 
 # ---- main ------------------------------------------------------------------
@@ -452,7 +592,8 @@ def main(argv):
 
     publish = sub.add_parser("publish", help="create or update the GitHub comment carrying the report")
     publish.add_argument("--report", default="ci-report.md")
-    publish.add_argument("--commit", required=True, help="candidate commit SHA")
+    publish.add_argument("--commit", default="", help="candidate commit SHA")
+    publish.add_argument("--ref", default="", help="resolve this ref if checkout failed before recording a SHA")
     publish.add_argument("--context", required=True)
     publish.add_argument("--pr", default="", help="pull-request number; omitted for commit comments")
     publish.add_argument("--repo", default=DEFAULT_REPO)

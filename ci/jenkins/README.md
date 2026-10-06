@@ -24,22 +24,49 @@ branches.
 
 ## Results in GitHub
 
-Every Jenkins controller is private, so the commit status alone would only show
-red or green. Each run therefore also posts a Markdown report to GitHub, built
-by `github_report.py` from the summaries the Pipeline archives: candidate and
-baseline commits, the failing stage with the extracted compiler or test error,
-the unacknowledged and acknowledged regression tests, and timings. For a PR
-run the report is a pull-request comment; for a candidate/baseline run it is a
-comment on the candidate commit. The comment carries a hidden marker keyed on
-the machine's status context, so each machine owns one comment per PR and
-later runs update it in place instead of adding new ones.
+Every completed or failed run attempts to post a Markdown report to GitHub.
+PR runs update a pull-request comment; selected branch/commit runs update a
+comment on the candidate commit. Reports include the failed stage and command
+output, unit and regression results, timings, and collapsible sections for:
 
-Publishing is best effort: if GitHub is unreachable the build result is
-unchanged and the status description ends with "(report not posted)". The
-Pipeline runs `github_report.py` only from reviewed code (the trusted
+- **New warnings vs main** (or the explicitly selected baseline).
+- **All warnings** and **all errors**, with source log names, line numbers, and
+  nearby diagnostic context.
+- Failed command output and an inventory of captured logs.
+
+The reporter reads build/configuration logs, Slurm output, and the individual
+compiler/runtime logs stored in regression databases. Warning comparison uses
+matching completed baseline steps from the same run. It ignores checkout paths,
+ANSI colors, and source line/column changes. Missing or failed baseline steps are
+reported as unavailable, never treated as a clean baseline. Warnings from shared
+or unmatched logs remain visible in **All warnings**. A selected baseline other
+than `main` is labeled explicitly. HPC runs also compile baseline unit tests so
+candidate unit-build warnings have a corresponding baseline.
+
+Large diagnostic sections continue in additional comments rather than being
+truncated. Hidden markers keyed on the machine's status context allow later runs
+to update those comments and clear obsolete continuation pages. The archived
+`ci-report.md` contains the entire report; `ci-report.md.json` contains the exact
+comment pages. Raw logs remain available through the artifact command below.
+
+Reporting runs during failure cleanup, including checkout failures when a PR or
+candidate ref is known. Timing-summary errors do not skip publication. Publishing
+retries three times; GitHub/network outages, missing credentials, or an unavailable
+Jenkins agent can still prevent delivery. Publication failure leaves the original
+build result unchanged and adds "(report not posted)" to the status description
+when status publication is possible.
+
+The Pipeline runs `github_report.py` only from reviewed code (the trusted
 team-workstation checkout, otherwise `main`, or `GKEYLL_CI_TRUSTED_REF` when
-staging a CI change), never from the candidate checkout, because the GitHub
-token is bound while it runs.
+staging a CI change), never from the candidate checkout. Diagnostic collection
+runs before binding the GitHub token. Credential-bearing shell steps are not
+captured in published logs.
+
+Run offline reporter tests with:
+
+```sh
+python3 -m unittest discover -s ci/jenkins -p 'test_*.py'
+```
 
 ## Unified local command
 

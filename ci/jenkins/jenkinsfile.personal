@@ -101,6 +101,22 @@ def timeCommand(String metricFile, String command) {
     """
 }
 
+// Capture stdout and stderr without losing the command's exit status. Never
+// use this for credential-bearing commands. Logs live outside the baseline tree.
+def loggedSh(String label, String script) {
+    def quoted = "'" + script.replace("'", "'\"'\"'") + "'"
+    withEnv(["CI_COMMAND_LOG=${env.WORKSPACE}/ci-command-logs/${label}.log"]) {
+        sh """#!/bin/bash
+            set -uo pipefail
+            mkdir -p "\$WORKSPACE/ci-command-logs"
+            bash ${script.startsWith('#!/bin/bash -l') ? '-l' : ''} -e -o pipefail -c ${quoted} 2>&1 | tee "\$CI_COMMAND_LOG"
+            result=\$?
+            printf '%s\\n' "\$result" > "\$CI_COMMAND_LOG.exit"
+            exit "\$result"
+        """
+    }
+}
+
 def trustedReportScript() {
     // The report tool must come from reviewed code, never from the candidate
     // checkout, because 'publish' runs with the GitHub token bound.
@@ -114,21 +130,25 @@ def trustedReportScript() {
         withEnv(["CI_TRUSTED_REPORT_REF=${ref}"]) {
             sh '''#!/bin/bash
                 set -euo pipefail
-                git fetch --quiet --depth 1 https://github.com/gkeyllorg/gkeyll.git "$CI_TRUSTED_REPORT_REF"
-                git show FETCH_HEAD:ci/jenkins/github_report.py > _trusted_github_report.py
+                mkdir -p .ci-report-source
+                git -C .ci-report-source init --quiet
+                git -C .ci-report-source fetch --quiet --depth 1 https://github.com/gkeyllorg/gkeyll.git "$CI_TRUSTED_REPORT_REF"
+                git -C .ci-report-source show FETCH_HEAD:ci/jenkins/github_report.py > _trusted_github_report.py
             '''
         }
     }
     return '_trusted_github_report.py'
 }
 
-def publishReport(String statusCredentialsId, String context, String platform, String commit, String state, String candidatePr) {
+def publishReport(String statusCredentialsId, String context, String platform, String commit, String state, String candidatePr, String candidateRef) {
     def script = trustedReportScript()
     withEnv(["CI_REPORT_CONTEXT=${context}", "CI_REPORT_PLATFORM=${platform}", "CI_REPORT_RESULT=${state}",
-             "CI_REPORT_PR=${candidatePr ?: ''}", "CI_REPORT_COMMIT=${commit}"]) {
+             "CI_REPORT_PR=${candidatePr ?: ''}", "CI_REPORT_COMMIT=${commit}", "CI_REPORT_REF=${candidateRef ?: ''}"]) {
         sh "python3 ${script} build --platform \"\$CI_REPORT_PLATFORM\" --context \"\$CI_REPORT_CONTEXT\" --result \"\$CI_REPORT_RESULT\" --pr \"\$CI_REPORT_PR\" --output ci-report.md"
         withCredentials([usernamePassword(credentialsId: statusCredentialsId, usernameVariable: 'GITHUB_USERNAME', passwordVariable: 'GITHUB_TOKEN')]) {
-            sh "python3 ${script} publish --report ci-report.md --commit \"\$CI_REPORT_COMMIT\" --context \"\$CI_REPORT_CONTEXT\" --pr \"\$CI_REPORT_PR\""
+            retry(3) {
+                sh "python3 ${script} publish --report ci-report.md --commit \"\$CI_REPORT_COMMIT\" --context \"\$CI_REPORT_CONTEXT\" --pr \"\$CI_REPORT_PR\" --ref \"\$CI_REPORT_REF\""
+            }
         }
     }
     // One line naming the failing layer/tests, for the GitHub status description.
@@ -139,11 +159,11 @@ def buildTree(String label, String prefix, String mkdeps, String configure, Stri
     def metricDirectory = label == 'baseline' ? '../' : ''
     def mpiHome = env.PERSONAL_MPI_HOME?.trim() ?: "${prefix}/openmpi"
     withEnv(["PREFIX=${prefix}", "MPI_HOME=${mpiHome}"]) {
-        sh """#!/bin/bash
+        loggedSh("${label}-setup", """#!/bin/bash
             set -euo pipefail
             ./machines/${mkdeps}
             ./machines/${configure}
-        """
+        """)
         timeCommand("${metricDirectory}${label}-unit-build-seconds.txt", "make -j${jobs} unit")
         timeCommand("${metricDirectory}${label}-unit-test-seconds.txt", "GKYL_UNIT_RESULTS='${env.WORKSPACE}/${label}-unit-results.txt' make unit-run")
         timeCommand("${metricDirectory}${label}-regression-build-seconds.txt", "make -j${jobs} regression")
@@ -157,7 +177,7 @@ def createBaseline(String baseline, String mkdeps, String configure, String jobs
         checkoutRef(baseline, 'baseline')
         sh 'git rev-parse HEAD | tee ../ci-baseline-commit.txt'
         buildTree('baseline', "${env.WORKSPACE}/_baseline/gkylsoft", mkdeps, configure, jobs)
-        sh "\"${env.WORKSPACE}/_baseline/gkylsoft/gkeyll/bin/gkeyll\" runregression configure --source-dir \"${env.WORKSPACE}/_baseline\" --prefix \"${env.WORKSPACE}/_baseline/gkylsoft\""
+        loggedSh("baseline-regression-configure", "\"${env.WORKSPACE}/_baseline/gkylsoft/gkeyll/bin/gkeyll\" runregression configure --source-dir \"${env.WORKSPACE}/_baseline\" --prefix \"${env.WORKSPACE}/_baseline/gkylsoft\"")
         timeCommand('../baseline-c-regression-create-seconds.txt', "\"${env.WORKSPACE}/_baseline/gkylsoft/gkeyll/bin/gkeyll\" runregression run --c-only create --timeout 900 --jobs ${regressionJobs}")
     }
 }
@@ -166,8 +186,8 @@ def runCandidateRegressions(String regressionJobs) {
     def gkeyll = "${env.WORKSPACE}/gkylsoft/gkeyll/bin/gkeyll"
     def results = "${env.WORKSPACE}/gkylsoft/gkeyll-results"
     def baseline = "${env.WORKSPACE}/_baseline/gkylsoft/gkeyll-results"
-    sh "\"${gkeyll}\" runregression configure --source-dir \"${env.WORKSPACE}\" --prefix \"${env.WORKSPACE}/gkylsoft\""
-    sh """set -euo pipefail
+    loggedSh("candidate-regression-configure", "\"${gkeyll}\" runregression configure --source-dir \"${env.WORKSPACE}\" --prefix \"${env.WORKSPACE}/gkylsoft\"")
+    loggedSh("candidate-regression-check", """set -euo pipefail
         for layer in moments vlasov gyrokinetic pkpm; do
             if [ -d \"${baseline}/\$layer/creg-accepted\" ]; then
                 rm -rf \"${results}/\$layer/creg-accepted\"
@@ -180,7 +200,7 @@ def runCandidateRegressions(String regressionJobs) {
         printf '%s\\n' "\$elapsed" > candidate-c-regression-check-seconds.txt
         echo "Candidate C-regression check runtime: \$elapsed seconds"
         \"${gkeyll}\" ci/jenkins/check_regression_results.lua \"${results}\" ci/jenkins/expected_regression_diffs.txt ci-regression-summary.txt
-    """
+    """)
 }
 
 def runParallelRegressions(String mpiExec) {
@@ -192,7 +212,7 @@ def runParallelRegressions(String mpiExec) {
     def baselineGkeyll = "${env.WORKSPACE}/_baseline/gkylsoft/gkeyll/bin/gkeyll"
     def results = "${env.WORKSPACE}/gkylsoft/gkeyll-results/parallel-c-4"
     def baselineResults = "${env.WORKSPACE}/_baseline/gkylsoft/gkeyll-results/parallel-c-4"
-    sh """#!/bin/bash
+    loggedSh("shared-parallel-regressions", """#!/bin/bash
         set -euo pipefail
         test -x "${candidateMpiExec}"
         test -x "${baselineMpiExec}"
@@ -225,7 +245,7 @@ def runParallelRegressions(String mpiExec) {
         elapsed=\$(( \$(date +%s) - started ))
         printf '%s\\n' "\$elapsed" > candidate-parallel-c-regression-check-seconds.txt
         "${gkeyll}" ci/jenkins/check_regression_results.lua "${results}" ci/jenkins/expected_regression_diffs.txt ci-parallel-regression-summary.txt
-    """
+    """)
 }
 
 def writeCiTimingSummary() {
@@ -308,7 +328,7 @@ def writeCiFailureSummary(String result, String stageName, String message) {
 }
 
 def runCi = {
-    def commit = ''
+    def commit = isCommitSha(candidateRef ?: '') ? candidateRef : ''
     def status = 'failure'
     def description = 'Personal CI failed.'
     def failureMessage = ''
@@ -353,24 +373,29 @@ def runCi = {
         } catch (err) {
             status = 'error'
             description = 'Personal CI timing summary failed.'
-            failureMessage = err.toString()
-            env.CI_FAILURE_STAGE = 'Write CI timing summary'
-            throw err
+            if (!failureMessage) {
+                failureMessage = err.toString()
+                env.CI_FAILURE_STAGE = 'Write CI timing summary'
+            } else {
+                failureMessage += " | Timing summary also failed: ${err}"
+            }
+            currentBuild.result = 'FAILURE'
+            echo "WARNING: could not write CI timings: ${err}"
         } finally {
             if (status != 'success') writeCiFailureSummary(status, env.CI_FAILURE_STAGE, failureMessage ?: description)
             // Best effort: a GitHub outage must not turn a passing build red.
             // The commit status below remains the authoritative signal.
             def reportError = ''
-            if (commit) {
+            if (commit || candidatePr || candidateRef) {
                 try {
-                    def summaryLine = publishReport(statusCredentialsId, statusContext, platform, commit, status, candidatePr ?: '')
+                    def summaryLine = publishReport(statusCredentialsId, statusContext, platform, commit, status, candidatePr ?: '', candidateRef ?: '')
                     if (summaryLine) description = summaryLine.take(140)
                 } catch (err) {
                     reportError = err.toString()
                     echo "WARNING: could not publish the GitHub CI report: ${reportError}"
                 }
             }
-            archiveArtifacts allowEmptyArchive: true, artifacts: 'ci-selection.txt,ci-trusted-ci-commit.txt,ci-candidate-commit.txt,ci-baseline-commit.txt,*-seconds.txt,*-unit-results.txt,candidate-*.log,baseline-*.log,ci-failure-detail.txt,ci-report.md,ci-timing-summary.txt,ci-regression-summary.txt,ci-parallel-regression-summary.txt,ci-failure-summary.txt,build/**/*.log,gkylsoft/gkeyll-results/**/regressiondb,gkylsoft/gkeyll-results/**/_rr_failures.txt'
+            archiveArtifacts allowEmptyArchive: true, artifacts: 'ci-selection.txt,ci-trusted-ci-commit.txt,ci-candidate-commit.txt,ci-baseline-commit.txt,*-seconds.txt,*-unit-results.txt,candidate-*.log,baseline-*.log,ci-failure-detail.txt,ci-report*.md,ci-report*.md.json,ci-command-logs/**,ci-timing-summary.txt,ci-regression-summary.txt,ci-parallel-regression-summary.txt,ci-failure-summary.txt,build/**/*.log,gkylsoft/gkeyll-results/**/regressiondb,gkylsoft/gkeyll-results/**/_rr_failures.txt'
             if (reportError) description = "${description} (report not posted)".take(140)
         }
         if (commit) publishStatus(statusCredentialsId, statusContext, commit, status, description)
