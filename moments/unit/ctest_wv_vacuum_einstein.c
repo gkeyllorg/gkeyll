@@ -1513,6 +1513,9 @@ test_vacuum_einstein_waves_schwarzschild_ho()
       gkyl_free(spatial_metric_der_r);
     }
   }
+
+  gkyl_wv_eqn_release(vacuum_einstein);
+  gkyl_gr_spacetime_release(spacetime);
 }
 
 void
@@ -1986,6 +1989,9 @@ test_vacuum_einstein_waves_kerr_ho()
       gkyl_free(spatial_metric_der_r);
     }
   }
+
+  gkyl_wv_eqn_release(vacuum_einstein);
+  gkyl_gr_spacetime_release(spacetime);
 }
 
 TEST_LIST = {

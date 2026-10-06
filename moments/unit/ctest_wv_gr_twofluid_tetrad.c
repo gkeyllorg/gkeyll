@@ -28,6 +28,7 @@ test_gr_twofluid_tetrad_basic_minkowski_ho()
 
   TEST_CHECK(gr_twofluid_tetrad->num_equations == 84);
   TEST_CHECK(gr_twofluid_tetrad->num_waves == 6);
+  TEST_CHECK(gr_twofluid_tetrad->embed_geo == NULL);
 
   for (int x_ind = -10; x_ind < 11; x_ind++) {
     for (int y_ind = -10; y_ind < 11; y_ind++) {

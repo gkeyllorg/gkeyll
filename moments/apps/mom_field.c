@@ -358,6 +358,9 @@ moment_field_update(gkyl_moment_app *app, const struct moment_field *fld, double
       // apply BC
       moment_field_apply_bc(app, tcurr, fld, fld->f[d + 1]);
     }
+  } else {
+    // The second source half-step and final copy use f[ndim] even for static fields.
+    gkyl_array_copy(fld->f[ndim], fld->f[0]);
   }
 
   return (struct gkyl_update_status){.success = true, .dt_suggested = stat.dt_suggested};
