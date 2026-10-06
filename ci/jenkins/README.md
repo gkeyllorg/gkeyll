@@ -34,6 +34,14 @@ The listener runs without a build executor, including when
 `disableConcurrentBuilds()` blocks another run of the same job. It also covers
 Pipelines waiting for their first `node()` allocation.
 
+The pending description includes the position, for example
+`Gkeyll CI queued: position 3 of 10 (Jenkins queue #42).` Positions count waiting
+Gkeyll builds for the same platform on that controller in original submission
+order, including the first agent wait, and exclude builds already allocated an
+agent. They refresh after queue changes and every minute; unchanged positions
+are not reposted. This is a submission-order position, not a guaranteed execution
+order: Jenkins can skip blocked jobs or allocate multiple available executors.
+
 The listener resolves and records the candidate SHA before releasing the job
 to run. The Pipeline checks out that exact SHA and updates the same status to
 running and then its final result. A queued build therefore cannot silently

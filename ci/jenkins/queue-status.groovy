@@ -42,6 +42,17 @@ class GkeyllQueueStatus {
     final Map<Long, Map> states = new ConcurrentHashMap<>()
     final File directory = new File(Jenkins.get().rootDir, 'gkeyll-queue-status')
     final AtomicBoolean checking = new AtomicBoolean(false)
+    final AtomicBoolean refreshingPositions = new AtomicBoolean(false)
+    final AtomicBoolean positionRefreshScheduled = new AtomicBoolean(false)
+    final Set<Long> positionWrites = ConcurrentHashMap.newKeySet()
+    final List<Object> statusLocks = (0..<32).collect { new Object() }
+
+    Object statusLock(long id) { statusLocks[(id % statusLocks.size()) as int] }
+
+    boolean updatingPosition(Queue.Item item) {
+        def run = item.task instanceof Job ? null : nodeRun(item)
+        positionWrites.contains(run ? run.queueId : item.id)
+    }
     final def workers = Executors.newFixedThreadPool(4, { Runnable task ->
         def thread = new Thread(task, 'gkeyll-queue-status')
         thread.daemon = true
@@ -54,7 +65,7 @@ class GkeyllQueueStatus {
     } as ThreadFactory)
 
     void start() {
-        timer.scheduleWithFixedDelay({ checkSuperseded() } as Runnable, 60, 60, TimeUnit.SECONDS)
+        timer.scheduleWithFixedDelay({ checkSuperseded(); refreshPositions() } as Runnable, 60, 60, TimeUnit.SECONDS)
     }
 
     Map configuration(Job job) {
@@ -83,7 +94,93 @@ class GkeyllQueueStatus {
         values
     }
 
-    static String queuedDescription(def id) { "Gkeyll CI queued (Jenkins queue #${id})." }
+    static String queuedDescription(def id, int position, int total) {
+        "Gkeyll CI queued: position ${position} of ${total} (Jenkins queue #${id})."
+    }
+
+    static boolean ownsQueuedStatus(Map status, def id) {
+        status?.state == 'pending' && (status.description == "Gkeyll CI queued (Jenkins queue #${id})." ||
+            status.description ==~ /Gkeyll CI queued: position [1-9][0-9]* of [1-9][0-9]* \(Jenkins queue #${id}\)\./)
+    }
+
+    // Rank by original submission ID within each platform. A Pipeline's first
+    // node() wait retains its original rank instead of becoming a new job.
+    Map queuePositions() {
+        def waiting = []
+        Jenkins.get().queue.items.each { item ->
+            if (item instanceof Queue.BuildableItem && item.isPending()) return // Already assigned an executor.
+            def run = item.task instanceof Job ? null : nodeRun(item)
+            def job = run?.parent ?: (item.task instanceof Job ? item.task : null)
+            def config = job ? configuration(job) : null
+            if (!config) return
+            if (run) {
+                def values = parameters(run)
+                if (values.CI_QUEUE_ID != run.queueId.toString() || values.CI_QUEUE_STARTED == 'true') return
+            }
+            waiting << [id: run ? run.queueId : item.id, itemId: item.id, job: job, run: run, config: config]
+        }
+        def positions = [:]
+        waiting.groupBy { it.config.platform }.values().each { entries ->
+            def ordered = entries.unique { it.id }.sort { it.id }
+            ordered.eachWithIndex { entry, index ->
+                positions[entry.id] = entry + [position: index + 1, total: ordered.size()]
+            }
+        }
+        positions
+    }
+
+    void schedulePositions() {
+        if (timer.isShutdown() || !positionRefreshScheduled.compareAndSet(false, true)) return
+        // Coalesce a burst of queue events, and keep HTTP requests off queue callbacks.
+        timer.schedule({
+            positionRefreshScheduled.set(false)
+            refreshPositions()
+        } as Runnable, 1, TimeUnit.SECONDS)
+    }
+
+    void refreshPositions() {
+        if (!refreshingPositions.compareAndSet(false, true)) return
+        try {
+            queuePositions().values().each { entry ->
+                synchronized (statusLock(entry.id)) {
+                    try {
+                        // Preparation publishes first, before releasing the job to Jenkins.
+                        if (!entry.run && !states.get(entry.id)?.ready?.get()) return
+                        def metadata = entry.run ? parameters(entry.run) : queuedParameters(entry.id, entry.job)
+                        if (!(metadata.CI_QUEUE_COMMIT ==~ /[0-9a-f]{40}/)) return
+                        def current = request(entry.job, entry.config, 'GET',
+                            "commits/${metadata.CI_QUEUE_COMMIT}/status?per_page=100")
+                            .statuses.find { it.context == metadata.CI_QUEUE_CONTEXT }
+                        if (!ownsQueuedStatus(current, entry.id)) return
+                        // Recompute after the HTTP call: the build may now be running or cancelled.
+                        String description = null
+                        Queue.withLock({
+                            def live = queuePositions()[entry.id]
+                            if (!live) return
+                            def updated = queuedDescription(entry.id, live.position, live.total)
+                            if (current.description == updated) return
+                            description = updated
+                            positionWrites.add(entry.id)
+                        } as Runnable)
+                        if (description == null) return
+                        try {
+                            request(entry.job, entry.config, 'POST', "statuses/${metadata.CI_QUEUE_COMMIT}",
+                                [state: 'pending', context: metadata.CI_QUEUE_CONTEXT, description: description])
+                        } finally {
+                            positionWrites.remove(entry.id)
+                            Jenkins.get().queue.scheduleMaintenance()
+                        }
+                    } catch (Exception failure) {
+                        LOG.warning("Queue #${entry.id}: position update failed (${failure.class.simpleName}); will retry.")
+                    }
+                }
+            }
+        } catch (Exception failure) {
+            LOG.warning("Cannot refresh queue positions (${failure.class.simpleName}); will retry.")
+        } finally {
+            refreshingPositions.set(false)
+        }
+    }
 
     Map queuedParameters(long id, Job job) {
         def record = states.get(id)
@@ -192,6 +289,7 @@ class GkeyllQueueStatus {
                 }
             }
             checkSuperseded()
+            schedulePositions()
         } as Runnable)
         record
     }
@@ -216,8 +314,14 @@ class GkeyllQueueStatus {
         saveParameters(item.id, item.task, metadata)
         record.metadata = metadata
         if (record.cancelled.get()) return
+        // onEnterWaiting fires before Jenkins publishes its new queue snapshot.
+        // Wait for that short scheduling transaction, without holding the lock for HTTP.
+        def position = null
+        Queue.withLock({ position = queuePositions()[item.id] } as Runnable)
+        if (!position) return
         request(item.task, config, 'POST', "statuses/${selected.sha}",
-            [state: 'pending', context: metadata.CI_QUEUE_CONTEXT, description: queuedDescription(item.id)])
+            [state: 'pending', context: metadata.CI_QUEUE_CONTEXT,
+             description: queuedDescription(item.id, position.position, position.total)])
     }
 
     void left(Queue.LeftItem item) {
@@ -334,6 +438,11 @@ class GkeyllQueueStatus {
     }
 
     void finish(Job job, Map metadata, long id, String state, String description) {
+        // Cancellation must follow an in-flight position POST, never precede it.
+        synchronized (statusLock(id)) { finishStatus(job, metadata, id, state, description) }
+    }
+
+    void finishStatus(Job job, Map metadata, long id, String state, String description) {
         if (metadata.CI_QUEUE_ID != id.toString() || !(metadata.CI_QUEUE_COMMIT ==~ /[0-9a-f]{40}/)) return
         def config = configuration(job)
         if (!config?.credential) return
@@ -341,7 +450,7 @@ class GkeyllQueueStatus {
             def current = request(job, config, 'GET', "commits/${metadata.CI_QUEUE_COMMIT}/status?per_page=100")
                 .statuses.find { it.context == metadata.CI_QUEUE_CONTEXT }
             // Preserve the Pipeline's detailed terminal status and another run's newer status.
-            if (current?.state != 'pending' || current.description != queuedDescription(id)) return
+            if (!ownsQueuedStatus(current, id)) return
             request(job, config, 'POST', "statuses/${metadata.CI_QUEUE_COMMIT}",
                 [state: state, context: metadata.CI_QUEUE_CONTEXT, description: description])
         } catch (Exception failure) {
@@ -353,7 +462,7 @@ class GkeyllQueueStatus {
 class GkeyllQueueListener extends QueueListener {
     final GkeyllQueueStatus service
     GkeyllQueueListener(GkeyllQueueStatus service) { this.service = service }
-    @Override void onEnterWaiting(Queue.WaitingItem item) { service.begin(item) }
+    @Override void onEnterWaiting(Queue.WaitingItem item) { service.begin(item); service.schedulePositions() }
     @Override void onLeft(Queue.LeftItem item) {
         if (item.task instanceof Job) {
             if (service.configuration(item.task)) service.left(item)
@@ -361,6 +470,7 @@ class GkeyllQueueListener extends QueueListener {
             def run = GkeyllQueueStatus.nodeRun(item)
             if (run && service.configuration(run.parent)) service.nodeLeft(item, run)
         }
+        service.schedulePositions()
     }
 }
 
@@ -369,7 +479,7 @@ class GkeyllQueueDispatcher extends QueueTaskDispatcher {
     GkeyllQueueDispatcher(GkeyllQueueStatus service) { this.service = service }
     @Override CauseOfBlockage canRun(Queue.Item item) {
         def record = service.begin(item)
-        record != null && !record.ready.get() ? new CauseOfBlockage() {
+        (record != null && !record.ready.get()) || service.updatingPosition(item) ? new CauseOfBlockage() {
             @Override String getShortDescription() { 'Reporting queued Gkeyll CI to GitHub' }
         } : null
     }
