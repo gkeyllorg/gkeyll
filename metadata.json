@@ -3,7 +3,7 @@
   "checkpoint_id": "01M4BSMH78R4FRN6AHWQY49FWY",
   "strategy": "manual-commit",
   "branch": "jenkins-github-runreg-costs",
-  "checkpoints_count": 8,
+  "checkpoints_count": 10,
   "files_touched": [
     "ci/jenkins/README.md",
     "ci/jenkins/README.personal.md",
@@ -12,6 +12,7 @@
     "ci/jenkins/jenkinsfile.personal",
     "ci/jenkins/jenkinsfile.stellar_cpu",
     "ci/jenkins/jenkinsfile.team_workstation",
+    "core/zero/array_ops.c",
     "gkeyll/lua/Tool/runregression.lua"
   ],
   "sessions": [
@@ -35,14 +36,21 @@
       "compact_transcript": "/2/transcript.jsonl",
       "content_hash": "/2/content_hash.txt",
       "prompt": "/2/prompt.txt"
+    },
+    {
+      "metadata": "/3/metadata.json",
+      "transcript": "/3/full.jsonl",
+      "compact_transcript": "/3/transcript.jsonl",
+      "content_hash": "/3/content_hash.txt",
+      "prompt": "/3/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 101258,
+    "input_tokens": 114880,
     "cache_creation_tokens": 0,
-    "cache_read_tokens": 926336,
-    "output_tokens": 12727,
-    "api_call_count": 28,
+    "cache_read_tokens": 994944,
+    "output_tokens": 13233,
+    "api_call_count": 32,
     "subagent_tokens_complete": true
   }
 }

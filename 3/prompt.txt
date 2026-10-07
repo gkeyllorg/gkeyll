@@ -1,0 +1,5 @@
+Does runregression batch compile? So if I give it 4 workers, it will comile in batches of 4?
+
+---
+
+Does runregression batch compile? So if I give it 4 workers, it will comile in batches of 4?
