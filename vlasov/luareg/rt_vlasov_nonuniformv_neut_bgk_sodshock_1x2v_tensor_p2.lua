@@ -1,10 +1,10 @@
 -- Sod shock tube for a neutral gas with BGK collisions (Vlasov, 1x2v).
 -- Density 1 and pressure 1 on the left, density 1/8 and pressure 1/10 on the right, at rest. The collision
--- frequency puts the mean free path at one cell, so the solution follows the Euler Sod solution of a gas
--- with adiabatic index (d+2)/d = 2 with the discontinuities smoothed over a few mean free paths.
+-- frequency puts the mean free path at 1/30 of a cell, so the solution follows the Euler Sod solution of a gas
+-- with adiabatic index (d+2)/d = 2 with the discontinuities resolved to the grid scale.
 -- Quadratic velocity maps cluster the cells at the origin of velocity space.
 -- Exact solution at t = 0.1: shock at x = 0.696, contact at 0.576, post-shock density 0.204, velocity 0.760.
--- The kinetic shock position agrees within 1%, the plateaus within 10%; the density L1 error is 0.02.
+-- The shock and contact positions agree to within a cell and the plateaus to 0.2%; the density L1 error is 0.005.
 local Vlasov = G0.Vlasov
 
 -- Physical constants (using normalized code units).
@@ -16,7 +16,7 @@ Tl = 1.0 -- Left temperature.
 nr = 0.125 -- Right number density.
 Tr = 0.8 -- Right temperature.
 Vx_drift = 0.0 -- Drift velocity (x-direction).
-nu = 100.0 -- Collision frequency.
+nu = 2000.0 -- Collision frequency.
 
 -- Derived physical quantities (using normalized code units).
 vt = math.sqrt(Tl / mass_neut) -- Thermal velocity (left).

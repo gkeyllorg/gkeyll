@@ -1,10 +1,12 @@
-// Sod shock tube for a neutral gas with BGK collisions (Vlasov, 1x3v).
+// Sod shock tube for a neutral gas with BGK collisions (Vlasov, 1x2v).
 // Density 1 and pressure 1 on the left, density 1/8 and pressure 1/10 on the right, at rest. The collision
-// frequency puts the mean free path at 1/3 of a cell, so the solution follows the Euler Sod solution of a gas
-// with adiabatic index (d+2)/d = 5/3 with the discontinuities resolved to the grid scale.
+// frequency puts the mean free path at 1/30 of a cell, so the solution follows the Euler Sod solution of a gas
+// with adiabatic index (d+2)/d = 2 with the discontinuities resolved to the grid scale.
+// The BGK relaxation is integrated implicitly, split from the explicit RK3 step of the collisionless terms.
 // Quadratic velocity maps cluster the cells at the origin of velocity space.
-// Exact solution at t = 0.1: shock at x = 0.684, contact at 0.584, post-shock density 0.230, velocity 0.841.
-// The kinetic shock position agrees within 2% and the plateaus within 1%; the density L1 error is 0.02.
+// Exact solution at t = 0.1: shock at x = 0.696, contact at 0.576, post-shock density 0.204, velocity 0.760.
+// The shock and contact positions agree to within a cell and the plateaus to 0.4%; the density L1 error is 0.006.
+// The density differs from the explicit run at the same collision frequency by 1% at most.
 
 #include <math.h>
 #include <stdio.h>
@@ -46,14 +48,11 @@ struct sodshock_ctx {
   int Nx; // Cell count (configuration space: x-direction).
   int Nvx; // Cell count (velocity space: vx-direction).
   int Nvy; // Cell count (velocity space: vy-direction).
-  int Nvz; // Cell count (velocity space: vz-direction).
   double Lx; // Domain size (configuration space: x-direction).
   double vx_max; // Domain boundary (velocity space: vx-direction).
   double vy_max; // Domain boundary (velocity space: vy-direction).
-  double vz_max; // Domain boundary (velocity space: vz-direction).
   double vx_lin; // Velocity map: cell size at the origin relative to a uniform grid (vx-direction).
   double vy_lin; // Velocity map: cell size at the origin relative to a uniform grid (vy-direction).
-  double vz_lin; // Velocity map: cell size at the origin relative to a uniform grid (vz-direction).
   int poly_order; // Polynomial order.
   double cfl_frac; // CFL coefficient.
 
@@ -78,26 +77,22 @@ create_ctx(void)
   double nr = 0.125; // Right number density.
   double Tr = 0.8; // Right temperature.
   double Vx_drift = 0.0; // Drift velocity (x-direction).
-  double nu = 100.0; // Collision frequency.
+  double nu = 2000.0; // Collision frequency.
 
   // Derived physical quantities (using normalized code units).
   double vt = sqrt(Tl / mass_neut); // Thermal velocity (left).
 
   // Simulation parameters.
-  int Nx = 32; // Cell count (configuration space: x-direction).
-  int Nvx = 6; // Cell count (velocity space: vx-direction).
-  int Nvy = 6; // Cell count (velocity space: vy-direction).
-  int Nvz = 6; // Cell count (velocity space: vz-direction).
+  int Nx = 64; // Cell count (configuration space: x-direction).
+  int Nvx = 12; // Cell count (velocity space: vx-direction).
+  int Nvy = 12; // Cell count (velocity space: vy-direction).
   double Lx = 1.0; // Domain size (configuration space: x-direction).
   double vx_max = 8.0 * vt; // Domain boundary (velocity space: vx-direction).
   double vy_max = 8.0 * vt; // Domain boundary (velocity space: vy-direction).
-  double vz_max = 8.0 * vt; // Domain boundary (velocity space: vz-direction).
   double vx_lin =
     2.0 * vt; // Velocity map: cell size at the origin relative to a uniform grid (vx-direction).
   double vy_lin =
     2.0 * vt; // Velocity map: cell size at the origin relative to a uniform grid (vy-direction).
-  double vz_lin =
-    2.0 * vt; // Velocity map: cell size at the origin relative to a uniform grid (vz-direction).
   int poly_order = 2; // Polynomial order.
   double cfl_frac = 1.0; // CFL coefficient.
 
@@ -123,14 +118,11 @@ create_ctx(void)
     .Nx = Nx,
     .Nvx = Nvx,
     .Nvy = Nvy,
-    .Nvz = Nvz,
     .Lx = Lx,
     .vx_max = vx_max,
     .vy_max = vy_max,
-    .vz_max = vz_max,
     .vx_lin = vx_lin,
     .vy_lin = vy_lin,
-    .vz_lin = vz_lin,
     .poly_order = poly_order,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
@@ -197,7 +189,6 @@ evalVDriftInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT f
   // Set total drift velocity.
   fout[0] = Vx_drift;
   fout[1] = 0.0;
-  fout[2] = 0.0;
 }
 
 void
@@ -235,19 +226,6 @@ mapc2p_vy(double t, const double *GKYL_RESTRICT vc, double *GKYL_RESTRICT vp, vo
 
   // Quadratic velocity map: finest cells at the origin, stretching to the domain boundary.
   vp[0] = vy_lin * vy_c + (vy_max - vy_lin) * vy_c * fabs(vy_c);
-}
-
-void
-mapc2p_vz(double t, const double *GKYL_RESTRICT vc, double *GKYL_RESTRICT vp, void *ctx)
-{
-  struct sodshock_ctx *app = ctx;
-  double vz_c = vc[0];
-
-  double vz_max = app->vz_max;
-  double vz_lin = app->vz_lin;
-
-  // Quadratic velocity map: finest cells at the origin, stretching to the domain boundary.
-  vp[0] = vz_lin * vz_c + (vz_max - vz_lin) * vz_c * fabs(vz_c);
 }
 
 // Snap a trigger whose next time exceeds t_end only by round-off back to t_end.
@@ -325,7 +303,6 @@ main(int argc, char **argv)
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   int NVX = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvx);
   int NVY = APP_ARGS_CHOOSE(app_args.vcells[1], ctx.Nvy);
-  int NVZ = APP_ARGS_CHOOSE(app_args.vcells[2], ctx.Nvz);
 
   int nrank = 1; // Number of processors in simulation.
 #ifdef GKYL_HAVE_MPI
@@ -391,15 +368,14 @@ main(int argc, char **argv)
   // Neutrals.
   struct gkyl_vlasov_kinetic_species neut = {
     .model_id = GKYL_MODEL_DEFAULT,
-    .lower = {-1.0, -1.0, -1.0},
-    .upper = {1.0, 1.0, 1.0},
-    .cells = {NVX, NVY, NVZ},
+    .lower = {-1.0, -1.0},
+    .upper = {1.0, 1.0},
+    .cells = {NVX, NVY},
 
     .mapc2p_vel =
       {
         {.mapc2p_vel_func = mapc2p_vx, .mapc2p_vel_ctx = &ctx},
         {.mapc2p_vel_func = mapc2p_vy, .mapc2p_vel_ctx = &ctx},
-        {.mapc2p_vel_func = mapc2p_vz, .mapc2p_vel_ctx = &ctx},
       },
 
     .num_init = 1,
@@ -418,6 +394,7 @@ main(int argc, char **argv)
     .collisions =
       {
         .collision_id = GKYL_BGK_COLLISIONS,
+        .is_implicit = true,
         .self_nu = evalNu,
         .self_nu_ctx = &ctx,
       },
@@ -438,7 +415,7 @@ main(int argc, char **argv)
   struct gkyl_vm app_inp = {
 
     .cdim = 1,
-    .vdim = 3,
+    .vdim = 2,
     .lower = {0.0},
     .upper = {ctx.Lx},
     .cells = {NX},

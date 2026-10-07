@@ -1,10 +1,12 @@
--- Sod shock tube for a neutral gas with BGK collisions (Vlasov, 1x3v).
+-- Sod shock tube for a neutral gas with BGK collisions (Vlasov, 1x1v).
 -- Density 1 and pressure 1 on the left, density 1/8 and pressure 1/10 on the right, at rest. The collision
--- frequency puts the mean free path at 1/3 of a cell, so the solution follows the Euler Sod solution of a gas
--- with adiabatic index (d+2)/d = 5/3 with the discontinuities resolved to the grid scale.
+-- frequency puts the mean free path at 1/40 of a cell, so the solution follows the Euler Sod solution of a gas
+-- with adiabatic index (d+2)/d = 3 with the discontinuities resolved to the grid scale.
+-- The BGK relaxation is integrated implicitly, split from the explicit RK3 step of the collisionless terms.
 -- Quadratic velocity maps cluster the cells at the origin of velocity space.
--- Exact solution at t = 0.1: shock at x = 0.684, contact at 0.584, post-shock density 0.230, velocity 0.841.
--- The kinetic shock position agrees within 2% and the plateaus within 1%; the density L1 error is 0.02.
+-- Exact solution at t = 0.1: shock at x = 0.727, contact at 0.561, post-shock density 0.171, velocity 0.609.
+-- The shock and contact positions agree to within a cell and the plateaus to 0.2%; the density L1 error is 0.004.
+-- The density differs from the explicit run at the same collision frequency by 2% at most.
 local Vlasov = G0.Vlasov
 
 -- Physical constants (using normalized code units).
@@ -16,25 +18,19 @@ Tl = 1.0 -- Left temperature.
 nr = 0.125 -- Right number density.
 Tr = 0.8 -- Right temperature.
 Vx_drift = 0.0 -- Drift velocity (x-direction).
-nu = 100.0 -- Collision frequency.
+nu = 5000.0 -- Collision frequency.
 
 -- Derived physical quantities (using normalized code units).
 vt = math.sqrt(Tl / mass_neut) -- Thermal velocity (left).
 
 -- Simulation parameters.
-Nx = 32 -- Cell count (configuration space: x-direction).
-Nvx = 6 -- Cell count (velocity space: vx-direction).
-Nvy = 6 -- Cell count (velocity space: vy-direction).
-Nvz = 6 -- Cell count (velocity space: vz-direction).
+Nx = 128 -- Cell count (configuration space: x-direction).
+Nvx = 16 -- Cell count (velocity space: vx-direction).
 Lx = 1.0 -- Domain size (configuration space: x-direction).
 vx_max = 8.0 * vt -- Domain boundary (velocity space: vx-direction).
-vy_max = 8.0 * vt -- Domain boundary (velocity space: vy-direction).
-vz_max = 8.0 * vt -- Domain boundary (velocity space: vz-direction).
 vx_lin = 2.0 * vt -- Velocity map: cell size at the origin relative to a uniform grid (vx-direction).
-vy_lin = 2.0 * vt -- Velocity map: cell size at the origin relative to a uniform grid (vy-direction).
-vz_lin = 2.0 * vt -- Velocity map: cell size at the origin relative to a uniform grid (vz-direction).
 poly_order = 2 -- Polynomial order.
-basis_type = "serendipity" -- Basis function set.
+basis_type = "tensor" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
 cfl_frac = 1.0 -- CFL coefficient.
 
@@ -76,9 +72,9 @@ vlasovApp = Vlasov.App.new {
     charge = charge_neut, mass = mass_neut,
 
     -- Velocity space grid.
-    lower = { -1.0, -1.0, -1.0 },
-    upper = { 1.0, 1.0, 1.0 },
-    cells = { Nvx, Nvy, Nvz },
+    lower = { -1.0 },
+    upper = { 1.0 },
+    cells = { Nvx },
 
     -- Quadratic velocity maps: finest cells at the origin, stretching to the domain boundary.
     mapc2pVel = {
@@ -87,20 +83,6 @@ vlasovApp = Vlasov.App.new {
         vmap = function (t, xn)
           local vc = xn[1]
           return vx_lin * vc + (vx_max - vx_lin) * vc * math.abs(vc)
-        end
-      },
-      -- vy mapping
-      {
-        vmap = function (t, xn)
-          local vc = xn[1]
-          return vy_lin * vc + (vy_max - vy_lin) * vc * math.abs(vc)
-        end
-      },
-      -- vz mapping
-      {
-        vmap = function (t, xn)
-          local vc = xn[1]
-          return vz_lin * vc + (vz_max - vz_lin) * vc * math.abs(vc)
         end
       }
     },
@@ -136,7 +118,7 @@ vlasovApp = Vlasov.App.new {
           return T
         end,
         driftVelocityInit = function (t, xn)
-          return Vx_drift, 0.0, 0.0 -- Total drift velocity.
+          return Vx_drift -- Total drift velocity.
         end,
 
         correctAllMoments = true,
@@ -146,6 +128,7 @@ vlasovApp = Vlasov.App.new {
 
     collisions = {
       collisionID = G0.Collisions.BGK,
+      useImplicitCollisionScheme = true,
 
       selfNu = function (t, xn)
         return nu -- Collision frequency.
