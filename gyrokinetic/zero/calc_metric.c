@@ -209,9 +209,9 @@ check_orthonormality(const double tan[9], const double dual[9], bool exit_at_che
   // would reject geometry the plan explicitly expects to build; what matters is
   // WHERE the residual is large, not merely that it is non-zero somewhere.
   //
-  // The tolerance is deliberately loose by default and tunable, because the
-  // representative residual has not yet been measured across devices; pick a
-  // threshold from that measurement rather than asserting one up front.
+  // The residual is measured in units of its own roundoff bound (below), so a
+  // singular coordinate is not mistaken for an error; measured 2026-10-07 on
+  // the NSTX-U, STEP, ASDEX and TCV fixtures: at most 0.28 of that bound.
   {
     static double tol = -1.0;
     static int strict = -1;
@@ -219,18 +219,34 @@ check_orthonormality(const double tan[9], const double dual[9], bool exit_at_che
     static double last_reported = 0.0;
     if (tol < 0.0) {
       const char *s = getenv("GKYL_METRIC_ORTHONORMALITY_TOL");
-      tol = (s && s[0]) ? atof(s) : 1.0e-6;
-      if (!(tol > 0.0)) tol = 1.0e-6;
+      tol = (s && s[0]) ? atof(s) : 1.0;
+      if (!(tol > 0.0)) tol = 1.0;
     }
     if (strict < 0) {
       const char *s = getenv("GKYL_METRIC_STRICT_ORTHONORMALITY");
       strict = (s && s[0] && s[0] != '0') ? 1 : 0;
     }
-    double worst = 0.0; int wi = 0, wj = 0;
+    // Judged against the roundoff of the computation itself: e^j = e_a x e_b / J
+    // (a, b cyclic after j), so e_i . e^j - delta_ij carries the rounding of
+    // two three-term sums and a two-term cross product and a division,
+    // |err| <= 9 eps |e_i||e_a||e_b|/|J| (gamma_3 twice, gamma_2, one division).
+    // An absolute tolerance confused that with an error where the coordinates
+    // are singular: at an X point dR/dpsi diverges (|e_1| ~ 6e6 on NSTX-U at
+    // theta x8) and the residual there was 2^-17 of pure roundoff. `worst` is the
+    // residual in units of that bound; `tol` (GKYL_METRIC_ORTHONORMALITY_TOL)
+    // now applies to it, default 1.
+    double worst = 0.0, worst_abs = 0.0; int wi = 0, wj = 0;
+    double nrm[3], cr[3];
+    for (int i = 0; i < 3; i++)
+      nrm[i] = sqrt(tan[3*i]*tan[3*i]+tan[3*i+1]*tan[3*i+1]+tan[3*i+2]*tan[3*i+2]);
+    cross(&tan[3], &tan[6], cr);
+    const double vol = fabs(tan[0]*cr[0]+tan[1]*cr[1]+tan[2]*cr[2]);
     for (int i = 0; i < 3; i++) {
       for (int j = 0; j < 3; j++) {
-        double d = fabs(prod[i][j] - (i == j ? 1.0 : 0.0));
-        if (d > worst) { worst = d; wi = i; wj = j; }
+        const double d = fabs(prod[i][j] - (i == j ? 1.0 : 0.0));
+        const double bound = 9.0*DBL_EPSILON*nrm[i]*nrm[(j+1)%3]*nrm[(j+2)%3]/vol;
+        const double rel = vol > 0.0 ? d/bound : (d > 0.0 ? INFINITY : 0.0);
+        if (rel > worst) { worst = rel; worst_abs = d; wi = i; wj = j; }
       }
     }
     // Track the RUNNING MAXIMUM rather than capping a count of violations.
@@ -251,8 +267,8 @@ check_orthonormality(const double tan[9], const double dual[9], bool exit_at_che
       if (over_tol || worst >= 2.0*last_reported) {
         fprintf(stderr,
           "TOK_METRIC_ORTHONORMALITY_MAX residual=%.9e at e_%d.e^%d tol=%.3e "
-          "status=%s diag=[%.9e,%.9e,%.9e]\n",
-          worst, wi+1, wj+1, tol, over_tol ? "OVER_TOLERANCE" : "within_tolerance",
+          "status=%s abs=%.3e diag=[%.9e,%.9e,%.9e]\n",
+          worst, wi+1, wj+1, tol, over_tol ? "OVER_TOLERANCE" : "within_tolerance", worst_abs,
           prod[0][0], prod[1][1], prod[2][2]);
         last_reported = worst;
       }
