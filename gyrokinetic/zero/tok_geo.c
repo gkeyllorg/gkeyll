@@ -4930,6 +4930,37 @@ tok_contour_leaves(const struct gkyl_tok_geo *geo, double psi,
   const double l1 = hypot(r1-r0, z1-z0);
   if (!(l1 > 0.0))
     return true;
+  // A piece is measured within one cell of the psi representation: where its
+  // chord crosses a cell face (a grid line in R or Z, strictly between its
+  // ends), it is split where the contour itself crosses that face, solved
+  // along the face line so the split point lies on it: psi is one polynomial
+  // within a cell but only C1 across, and a piece straddling a face could pass
+  // both halvings with a curvature jump unseen (ASDEX inner-leg separatrix: one
+  // cell 0.2 nm long at every rung, theta-seam |G-1| flat at 1.2e-9; split,
+  // ~1e-10). The split point must lie within the piece's bounding box, so each
+  // half's box nests in it and the faces strictly inside can only become
+  // fewer: the splitting ends.
+  if (depth < 52) {
+    const struct gkyl_rect_grid *fg = geo->use_cubics ? &geo->rzgrid_cubic : &geo->rzgrid;
+    const double a[2] = { r0, z0 }, b[2] = { r1, z1 };
+    for (int d=0; d<2; ++d) {
+      const double lo = fmin(a[d], b[d]), hi = fmax(a[d], b[d]);
+      const double k = floor((lo-fg->lower[d])/fg->dx[d])+1.0;
+      const double face = fg->lower[d]+k*fg->dx[d];
+      if (!(face > lo && face < hi)) continue;
+      const double t = (face-a[d])/(b[d]-a[d]);
+      double fr = 0.0, fz = 0.0;
+      const bool ok = d == 0
+        ? tok_chord_normal_solve(geo, psi, face, z0+t*(z1-z0), 1.0, 0.0, 0.5*l1, &fr, &fz)
+        : tok_chord_normal_solve(geo, psi, r0+t*(r1-r0), face, 0.0, 1.0, 0.5*l1, &fr, &fz);
+      if (!ok || (d == 0 ? fr != face : fz != face)) continue;
+      if (!(fr >= fmin(r0, r1) && fr <= fmax(r0, r1) && fz >= fmin(z0, z1) && fz <= fmax(z0, z1)))
+        continue;
+      if (!(hypot(fr-r0, fz-z0) > 0.0) || !(hypot(r1-fr, z1-fz) > 0.0)) continue;
+      return tok_contour_leaves(geo, psi, r0, z0, fr, fz, depth+1, lv) &&
+        tok_contour_leaves(geo, psi, fr, fz, r1, z1, depth+1, lv);
+    }
+  }
   double mr = 0.0, mz = 0.0;
   if (!tok_chord_normal_solve(geo, psi, 0.5*(r0+r1), 0.5*(z0+z1), r1-r0, z1-z0,
       0.5*l1, &mr, &mz))
