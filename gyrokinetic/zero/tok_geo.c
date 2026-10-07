@@ -8303,6 +8303,10 @@ struct tok_lsn_row {
   bool valid;
   int n, cap;
   double *r, *z, *s;   // the row's trace and its exact cumulative arc
+  // the field-line angle along the trace (see tok_phi_exact_enabled), from the
+  // outer strike, and its value where the row crosses the outboard midplane
+  double *p, phi_mid;
+  bool phi_valid, have_mid;
 };
 static _Thread_local struct tok_lsn_row tok_lsn_row_buf;
 
@@ -8312,12 +8316,12 @@ tok_lsn_push(struct tok_lsn_row *b, double r, double z)
   if (b->n == b->cap) {
     int cap = b->cap ? 2*b->cap : 256;
     double *nr = gkyl_malloc(cap*sizeof(double)), *nz = gkyl_malloc(cap*sizeof(double)),
-      *ns = gkyl_malloc(cap*sizeof(double));
+      *ns = gkyl_malloc(cap*sizeof(double)), *np = gkyl_malloc(cap*sizeof(double));
     if (b->n) {
       memcpy(nr, b->r, b->n*sizeof(double)); memcpy(nz, b->z, b->n*sizeof(double));
-      gkyl_free(b->r); gkyl_free(b->z); gkyl_free(b->s);
+      gkyl_free(b->r); gkyl_free(b->z); gkyl_free(b->s); gkyl_free(b->p);
     }
-    b->r = nr; b->z = nz; b->s = ns; b->cap = cap;
+    b->r = nr; b->z = nz; b->s = ns; b->p = np; b->cap = cap;
   }
   b->r[b->n] = r; b->z[b->n] = z; ++b->n;
 }
@@ -8341,7 +8345,7 @@ tok_lsn_exact_row(const struct gkyl_tok_geo *geo, double psi,
   double *arc_right, double *arc_tot, double sep_arcs[4])
 {
   struct tok_lsn_row *b = &tok_lsn_row_buf;
-  b->valid = false; b->n = 0;
+  b->valid = false; b->phi_valid = false; b->have_mid = false; b->n = 0;
   if (!tok_lsn_arc_exact_enabled() || !(zmax > zmin_right) || !(zmax > zmin_left))
     return false;
   const bool sep = tok_geo_same_flux(psi, geo->psisep);
@@ -8407,7 +8411,76 @@ tok_lsn_exact_row(const struct gkyl_tok_geo *geo, double psi,
     sep_arcs[2] = b->s[i_xl]-b->s[i_top];
     sep_arcs[3] = b->s[b->n-1]-b->s[i_xl];
   }
+  // The field-line angle along the same trace, integrated on the contour
+  // between its points (tok_phi_integral), and where the row crosses the
+  // outboard midplane -- the legacy reference of LSN_SOL and LSN_SOL_MID. The
+  // legacy angle was a Z integral through the row's turning point, and its
+  // error there (up to 1e-3 rad, measured on ASDEX 33292 LSN_SOL at 32 x 24
+  // cells) offset the whole inboard half of each row by a different amount:
+  // streaks in g^12, g^22, g^23 on the inboard side only.
+  if (tok_phi_exact_enabled()) {
+    const double fpol = tok_fpol_at_psi(geo, psi);
+    bool pok = true;
+    b->p[0] = 0.0;
+    for (int i=1; i<b->n && pok; ++i) {
+      double d = 0.0;
+      pok = tok_phi_integral(geo, psi, fpol, b->r[i-1], b->z[i-1], b->r[i], b->z[i], &d);
+      b->p[i] = b->p[i-1]+d;
+    }
+    for (int i=0; pok && i<i_top; ++i) {
+      if (!(b->z[i] <= geo->zmaxis && geo->zmaxis < b->z[i+1]))
+        continue;
+      double R[8] = { 0.0 }, dRdZ[8] = { 0.0 }, dR[8] = { 0.0 }, dZ[8] = { 0.0 };
+      const int nr = gkyl_tok_geo_R_psiZ(geo, psi, geo->zmaxis, 8, R, dRdZ, dR, dZ);
+      double d = 0.0;
+      if (nr > 0 && tok_phi_into_bracket(geo, psi, fpol, b->r[i], b->z[i],
+          b->r[i+1], b->z[i+1], b->p[i+1]-b->p[i],
+          choose_closest(rright, R, R, nr), geo->zmaxis, &d)) {
+        b->phi_mid = b->p[i]+d; b->have_mid = true;
+      }
+      break;
+    }
+    b->phi_valid = pok;
+    if (!pok)
+      fprintf(stderr, "TOK_PHI_EXACT_FALLBACK stage=lsn_row psi=%.17g n=%d\n", psi, b->n);
+  }
   b->psi = psi; b->valid = true;
+  return true;
+}
+
+// The field-line angle (less alpha) at the node (r, z) at exact arc fraction u
+// of the row tok_lsn_exact_row last traced, measured from the legacy reference
+// of this block: the outboard midplane (LSN_SOL, LSN_SOL_MID), the outer strike
+// (LSN_SOL_LO, increasing towards the X point), the inner strike (LSN_SOL_UP).
+static bool
+tok_lsn_exact_phi(const struct gkyl_tok_geo *geo, enum gkyl_tok_geo_type ftype,
+  double psi, double u, double r, double z, double *phi)
+{
+  const struct tok_lsn_row *b = &tok_lsn_row_buf;
+  if (!b->valid || !b->phi_valid || b->psi != psi || !(u >= 0.0) || !(u <= 1.0))
+    return false;
+  double ref = 0.0;
+  if (ftype == GKYL_GEOMETRY_TOKAMAK_LSN_SOL || ftype == GKYL_GEOMETRY_TOKAMAK_LSN_SOL_MID) {
+    if (!b->have_mid) return false;
+    ref = b->phi_mid;
+  }
+  else if (ftype == GKYL_GEOMETRY_TOKAMAK_LSN_SOL_UP)
+    ref = b->p[b->n-1];
+  else if (ftype != GKYL_GEOMETRY_TOKAMAK_LSN_SOL_LO)
+    return false;
+  const double want = u*b->s[b->n-1];
+  int a = 0, c = b->n-1;
+  while (c-a > 1) {
+    const int mid = (a+c)/2;
+    if (b->s[mid] <= want) a = mid;
+    else c = mid;
+  }
+  double d = 0.0;
+  if (r == b->r[c] && z == b->z[c]) d = b->p[c]-b->p[a];
+  else if (!tok_phi_into_bracket(geo, psi, tok_fpol_at_psi(geo, psi), b->r[a], b->z[a],
+      b->r[c], b->z[c], b->p[c]-b->p[a], r, z, &d))
+    return false;
+  *phi = b->p[a]+d-ref;
   return true;
 }
 
@@ -10463,6 +10536,13 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
         }
 
           phi_curr = phi_func(alpha_curr, z_curr, &arc_ctx);
+          if (lsn_exact && r_curr == lsn_r && z_curr == lsn_z) {
+            // single-null SOL rows: the angle on the exact row (tok_lsn_exact_phi)
+            double lsn_phi = 0.0;
+            if (tok_lsn_exact_phi(geo, inp->ftype, psi_curr, arcL_curr/arc_ctx.arcL_tot,
+                r_curr, z_curr, &lsn_phi))
+              phi_curr = alpha_curr+lsn_phi;
+          }
         }
         if (getenv("GKYL_TOK_MARCH_DIAG"))
           fprintf(stderr,
@@ -11184,6 +11264,13 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
           }
 
             phi_curr = phi_func(alpha_curr, z_curr, &arc_ctx);
+          if (lsn_exact && r_curr == lsn_r && z_curr == lsn_z) {
+            // single-null SOL rows: the angle on the exact row (tok_lsn_exact_phi)
+            double lsn_phi = 0.0;
+            if (tok_lsn_exact_phi(geo, inp->ftype, psi_curr, arcL_curr/arc_ctx.arcL_tot,
+                r_curr, z_curr, &lsn_phi))
+              phi_curr = alpha_curr+lsn_phi;
+          }
           }
           cidx[TH_IDX] = it;
           int lidx = 0;
@@ -11618,6 +11705,13 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
           }
 
             phi_curr = phi_func(alpha_curr, z_curr, &arc_ctx);
+          if (lsn_exact && r_curr == lsn_r && z_curr == lsn_z) {
+            // single-null SOL rows: the angle on the exact row (tok_lsn_exact_phi)
+            double lsn_phi = 0.0;
+            if (tok_lsn_exact_phi(geo, inp->ftype, psi_curr, arcL_curr/arc_ctx.arcL_tot,
+                r_curr, z_curr, &lsn_phi))
+              phi_curr = alpha_curr+lsn_phi;
+          }
           }
           cidx[TH_IDX] = it;
           int lidx = 0;
