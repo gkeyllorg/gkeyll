@@ -1,0 +1,13 @@
+set PERSONAL_REGRESSION_JOBS to default to 1
+
+---
+
+set PERSONAL_REGRESSION_JOBS to default to 1
+
+---
+
+Similarly, set TEAM_WORKSTATION_REGRESSION_JOBS to default to 1
+
+---
+
+Similarly, set TEAM_WORKSTATION_REGRESSION_JOBS to default to 1

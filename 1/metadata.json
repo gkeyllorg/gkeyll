@@ -1,0 +1,89 @@
+{
+  "cli_version": "0.11.3",
+  "checkpoint_id": "01M4BSMH78R4FRN6AHWQY49FWY",
+  "session_id": "01a11748-7181-7b53-a5c5-664a6329b6e8",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-07T18:22:29.537333813Z",
+  "branch": "jenkins-github-runreg-costs",
+  "checkpoints_count": 4,
+  "save_step_count": 2,
+  "files_touched": [
+    "ci/jenkins/README.md",
+    "ci/jenkins/README.personal.md",
+    "ci/jenkins/README.team_workstation.md",
+    "ci/jenkins/jenkinsfile.perlmutter_gpu",
+    "ci/jenkins/jenkinsfile.personal",
+    "ci/jenkins/jenkinsfile.stellar_cpu",
+    "ci/jenkins/jenkinsfile.team_workstation",
+    "gkeyll/lua/Tool/runregression.lua"
+  ],
+  "agent": "Codex",
+  "model": "gpt-6-astra",
+  "turn_id": "06216872e7fc",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 14811,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 112768,
+    "output_tokens": 843,
+    "api_call_count": 7,
+    "subagent_tokens_complete": true
+  },
+  "session_metrics": {
+    "turn_count": 4
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-10-07T18:22:29.526391825Z",
+    "agent_lines": 0,
+    "agent_removed": 19,
+    "human_added": 0,
+    "human_modified": 4,
+    "human_removed": 103,
+    "total_committed": 15,
+    "total_lines_changed": 131,
+    "agent_percentage": 14.50381679389313,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 1391,
+      "user_lines_removed": 108,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "ci/jenkins/README.md": 37,
+        "ci/jenkins/README.personal.md": 1,
+        "ci/jenkins/README.team_workstation.md": 1,
+        "ci/jenkins/github_report.py": 11,
+        "ci/jenkins/jenkinsfile.perlmutter_gpu": 3,
+        "ci/jenkins/jenkinsfile.personal": 4,
+        "ci/jenkins/jenkinsfile.stellar_cpu": 3,
+        "ci/jenkins/jenkinsfile.team_workstation": 1,
+        "ci/jenkins/test_github_report.py": 81,
+        "ci/jenkins/test_queue_status.groovy": 363,
+        "ci/jenkins/test_regression_scheduling.py": 133,
+        "gkeyll/lua/Tool/runregression.lua": 182,
+        "gkeyll/lua/Tool/test_costs.lua": 560,
+        "pr-branches.md": 11
+      },
+      "user_removed_per_file": {
+        "ci/jenkins/README.personal.md": 1,
+        "ci/jenkins/README.team_workstation.md": 1,
+        "ci/jenkins/github_report.py": 1,
+        "ci/jenkins/jenkinsfile.perlmutter_gpu": 2,
+        "ci/jenkins/jenkinsfile.personal": 4,
+        "ci/jenkins/jenkinsfile.stellar_cpu": 2,
+        "ci/jenkins/jenkinsfile.team_workstation": 1,
+        "gkeyll/lua/Tool/runregression.lua": 96
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 1389,
+      "agent_lines_removed": 106
+    }
+  ]
+}
