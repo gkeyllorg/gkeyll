@@ -1,5 +1,8 @@
 # Gkeyll Jenkins CI on a Personal Computer
 
+To reuse an existing installation’s dependency paths and `config.mak`, see
+[Reusing installed dependencies](README.md#reusing-installed-dependencies).
+
 This private CI lets the computer owner explicitly test a Gkeyll PR or
 candidate/baseline comparison. It does not poll GitHub or execute unselected
 contributor code.

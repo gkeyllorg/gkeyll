@@ -1,5 +1,8 @@
 # Gkeyll Jenkins CI on Princeton Stellar CPU
 
+To reuse an existing installation’s dependency paths and `config.mak`, see
+[Reusing installed dependencies](README.md#reusing-installed-dependencies).
+
 This guide sets up Gkeyll's private, CPU-only Jenkins CI on Princeton Stellar.
 After SSH/Duo authentication, a developer manually starts a build for a GitHub
 pull request or an explicit candidate/baseline comparison. Jenkins runs on the

@@ -22,6 +22,69 @@ Gkeyll organization membership. See the platform guide for the
 credential owner. Do not place credentials in the repository or in candidate
 branches.
 
+## Reusing installed dependencies
+
+All four workflows accept the optional Jenkins environment variable
+`GKEYLL_CI_PREBUILT_CONFIG`. Set it in **Manage Jenkins → System → Global
+properties → Environment variables** to the absolute path of an existing
+Gkeyll `config.mak` on the build agent, for example:
+
+```text
+GKEYLL_CI_PREBUILT_CONFIG=/opt/gkylsoft/gkeyll/share/config.mak
+```
+
+You can use either the `config.mak` from a configured source checkout or the
+copy saved by `make install` in `<prefix>/gkeyll/share/config.mak`. Keep the
+config and dependencies outside Jenkins workspaces, which are deleted during
+checkout. The Jenkins agent must be able to read them; on Slurm machines the
+libraries must also be visible at the same paths on compute nodes.
+
+Specify each dependency's include and library paths in this config. A generated
+config already contains these settings; for dependencies installed elsewhere,
+make a dedicated CI copy and edit the appropriate entries:
+
+| Dependency | Path variables in `config.mak` |
+| --- | --- |
+| BLAS/LAPACK | `LAPACK_INC_DIR`, `LAPACK_LIB_DIR` (and `LAPACK_LIB_NAME`) |
+| SuperLU | `SUPERLU_INC_DIR`, `SUPERLU_LIB_DIR` (and `SUPERLU_LIB_NAME`) |
+| MPI | `CONF_MPI_INC_DIR`, `CONF_MPI_LIB_DIR` |
+| LuaJIT | `CONF_LUA_INC_DIR`, `CONF_LUA_LIB_DIR` (and `CONF_LUA_LIB`) |
+| NCCL | `CONF_NCCL_INC_DIR`, `CONF_NCCL_LIB_DIR` |
+| cuDSS | `CONF_CUDSS_INC_DIR`, `CONF_CUDSS_LIB_DIR` |
+| CUDA math libraries | `CUDAMATH_LIB_DIR` |
+
+Use absolute paths for enabled dependencies, or expressions relative to the
+config's original `PREFIX`, such as `$(PREFIX)/superlu/lib`. Supply a complete,
+self-contained generated config with `PREFIX` defined; relative includes and
+paths relative to the original source checkout are not supported. Its compiler,
+architecture, solver and feature settings are reused too. Choose settings
+compatible with the machine's existing CI lanes: Lua and MPI are needed by the
+regression runner, and Perlmutter requires the CUDA/NCCL configuration. Existing
+HPC module-loading steps still run; dependencies must match those modules.
+
+For personal CI also specify `PERSONAL_MPIEXEC=/opt/mpi/bin/mpiexec` or
+`PERSONAL_MPI_HOME=/opt/mpi`, matching the MPI in the config. For team-workstation
+CI use `TEAM_WORKSTATION_MPIEXEC` or `WORKSTATION_MPI_HOME`. HPC workflows retain
+their existing Slurm launchers. `PERSONAL_MKDEPS_SCRIPT` and
+`PERSONAL_CONFIGURE_SCRIPT` (or their `TEAM_WORKSTATION_*` equivalents) are not
+required in prebuilt mode.
+
+With this variable set, candidate and baseline both skip the machine dependency
+and configure scripts. Each gets its own copy of the config with Gkeyll's
+`PREFIX` and `INSTALL_PREFIX` redirected to its workspace `gkylsoft` directory.
+Dependency references to the old prefix are preserved. The supplied config and
+installed dependencies are not modified. Gkeyll itself is still rebuilt and
+all existing test lanes run. An invalid config path fails the build rather than
+silently rebuilding dependencies. Leave the variable unset or empty to retain
+the existing dependency-build behavior. Deploy the updated trusted Jenkinsfiles
+to enable this option; candidate and baseline refs can predate it.
+
+The offline config test uses Groovy 2.4 and GNU Make:
+
+```sh
+java -cp /path/to/groovy-all.jar groovy.ui.GroovyMain ci/jenkins/test_prebuilt_config.groovy
+```
+
 ## Results in GitHub
 
 ### Queued builds and superseded PR commits

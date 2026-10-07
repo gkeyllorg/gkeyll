@@ -158,15 +158,44 @@ def publishReport(String statusCredentialsId, String context, String platform, S
     return fileExists('ci-status-description.txt') ? readFile('ci-status-description.txt').trim() : ''
 }
 
+// The config is supplied by the machine owner, outside disposable workspaces.
+// Keep this helper in the trusted Pipeline so older candidate/baseline refs work.
+def usePrebuiltConfig(String prefix) {
+    def source = env.GKEYLL_CI_PREBUILT_CONFIG?.trim()
+    if (!source) return false
+    if (!source.startsWith('/') || !fileExists(source)) {
+        error('GKEYLL_CI_PREBUILT_CONFIG must name an existing absolute config.mak path on the agent.')
+    }
+    def config = readFile(file: source)
+    if (!(config =~ /(?m)^PREFIX\s*[:?]?=/)) {
+        error('Prebuilt config.mak must define PREFIX and the paths for its dependencies.')
+    }
+    // Preserve dependency expressions relative to the original PREFIX, while
+    // installing and linking Gkeyll itself exclusively inside this build.
+    config = config.replaceAll(/(?m)^PREFIX(?=\s*[:?]?=)/, 'GKEYLL_CI_DEPENDENCY_PREFIX')
+    config = config.replace('$(PREFIX)', '$(GKEYLL_CI_DEPENDENCY_PREFIX)')
+        .replace('${PREFIX}', '${GKEYLL_CI_DEPENDENCY_PREFIX}')
+    config += "\n# Jenkins workspace installation\noverride PREFIX := ${prefix}\noverride INSTALL_PREFIX := ${prefix}\n"
+    writeFile file: 'config.mak', text: config
+    echo "Using prebuilt dependencies from ${source}; installing Gkeyll in ${prefix}"
+    return true
+}
+
 def buildTree(String label, String prefix, String mkdeps, String configure, String jobs) {
+    if (env.GKEYLL_CI_PREBUILT_CONFIG?.trim() &&
+        !env.PERSONAL_MPIEXEC?.trim() && !env.PERSONAL_MPI_HOME?.trim()) {
+        error('Prebuilt dependencies require PERSONAL_MPIEXEC or PERSONAL_MPI_HOME (TEAM_WORKSTATION_MPIEXEC or WORKSTATION_MPI_HOME for team CI).')
+    }
     def metricDirectory = label == 'baseline' ? '../' : ''
     def mpiHome = env.PERSONAL_MPI_HOME?.trim() ?: "${prefix}/openmpi"
     withEnv(["PREFIX=${prefix}", "MPI_HOME=${mpiHome}"]) {
-        loggedSh("${label}-setup", """#!/bin/bash
-            set -euo pipefail
-            ./machines/${mkdeps}
-            ./machines/${configure}
-        """)
+        if (!usePrebuiltConfig(prefix)) {
+            loggedSh("${label}-setup", """#!/bin/bash
+                set -euo pipefail
+                ./machines/${mkdeps}
+                ./machines/${configure}
+            """)
+        }
         timeCommand("${metricDirectory}${label}-unit-build-seconds.txt", "make -j${jobs} unit")
         timeCommand("${metricDirectory}${label}-unit-test-seconds.txt", "GKYL_UNIT_RESULTS='${env.WORKSPACE}/${label}-unit-results.txt' make unit-run")
         timeCommand("${metricDirectory}${label}-regression-build-seconds.txt", "make -j${jobs} regression")
@@ -320,8 +349,8 @@ if (candidatePr && requestedBaseline) error('BASELINE_REF must be empty with CAN
 if (candidateRef) { candidateRef = validateRef('CANDIDATE_REF', candidateRef); requestedBaseline = validateRef('BASELINE_REF', requestedBaseline) }
 
 def label = requireValue('PERSONAL_NODE_LABEL', env.PERSONAL_NODE_LABEL)
-def mkdeps = validateBranchName('PERSONAL_MKDEPS_SCRIPT', requireValue('PERSONAL_MKDEPS_SCRIPT', env.PERSONAL_MKDEPS_SCRIPT))
-def configure = validateBranchName('PERSONAL_CONFIGURE_SCRIPT', requireValue('PERSONAL_CONFIGURE_SCRIPT', env.PERSONAL_CONFIGURE_SCRIPT))
+def mkdeps = env.GKEYLL_CI_PREBUILT_CONFIG?.trim() ? '' : validateBranchName('PERSONAL_MKDEPS_SCRIPT', requireValue('PERSONAL_MKDEPS_SCRIPT', env.PERSONAL_MKDEPS_SCRIPT))
+def configure = env.GKEYLL_CI_PREBUILT_CONFIG?.trim() ? '' : validateBranchName('PERSONAL_CONFIGURE_SCRIPT', requireValue('PERSONAL_CONFIGURE_SCRIPT', env.PERSONAL_CONFIGURE_SCRIPT))
 def statusCredentialsId = requireValue('PERSONAL_GITHUB_CREDENTIAL_ID', env.PERSONAL_GITHUB_CREDENTIAL_ID)
 def jobs = (env.PERSONAL_BUILD_JOBS ?: '3').trim()
 def regressionJobs = (env.PERSONAL_REGRESSION_JOBS ?: env.PERSONAL_BUILD_JOBS ?: '3').trim()

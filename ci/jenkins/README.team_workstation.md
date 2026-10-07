@@ -1,5 +1,8 @@
 # Gkeyll Jenkins CI on a Team Workstation
 
+To reuse an existing installation’s dependency paths and `config.mak`, see
+[Reusing installed dependencies](README.md#reusing-installed-dependencies).
+
 This CI automatically discovers `main` and pull requests targeting `main`.
 Each PR is built in its own multibranch child job, but no PR supplies the
 Pipeline that controls the build: Jenkins runs a small controller-owned

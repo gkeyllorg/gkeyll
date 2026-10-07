@@ -1,5 +1,8 @@
 # Gkeyll Jenkins CI on NERSC Perlmutter GPU
 
+To reuse an existing installation’s dependency paths and `config.mak`, see
+[Reusing installed dependencies](README.md#reusing-installed-dependencies).
+
 This private, manually triggered CUDA CI builds candidate and baseline CUDA/NCCL
 installations on the login node, then submits unit and C-regression work to GPU
 nodes. The trusted Pipeline never comes from the candidate PR. CUDA unit tests

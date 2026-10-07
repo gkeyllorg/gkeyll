@@ -418,6 +418,29 @@ def submitParallelRegressionTests() {
     )
 }
 
+// The config is supplied by the machine owner, outside disposable workspaces.
+// Keep this helper in the trusted Pipeline so older candidate/baseline refs work.
+def usePrebuiltConfig(String prefix) {
+    def source = env.GKEYLL_CI_PREBUILT_CONFIG?.trim()
+    if (!source) return false
+    if (!source.startsWith('/') || !fileExists(source)) {
+        error('GKEYLL_CI_PREBUILT_CONFIG must name an existing absolute config.mak path on the agent.')
+    }
+    def config = readFile(file: source)
+    if (!(config =~ /(?m)^PREFIX\s*[:?]?=/)) {
+        error('Prebuilt config.mak must define PREFIX and the paths for its dependencies.')
+    }
+    // Preserve dependency expressions relative to the original PREFIX, while
+    // installing and linking Gkeyll itself exclusively inside this build.
+    config = config.replaceAll(/(?m)^PREFIX(?=\s*[:?]?=)/, 'GKEYLL_CI_DEPENDENCY_PREFIX')
+    config = config.replace('$(PREFIX)', '$(GKEYLL_CI_DEPENDENCY_PREFIX)')
+        .replace('${PREFIX}', '${GKEYLL_CI_DEPENDENCY_PREFIX}')
+    config += "\n# Jenkins workspace installation\noverride PREFIX := ${prefix}\noverride INSTALL_PREFIX := ${prefix}\n"
+    writeFile file: 'config.mak', text: config
+    echo "Using prebuilt dependencies from ${source}; installing Gkeyll in ${prefix}"
+    return true
+}
+
 def configureAndCompileCRegressions(String label, String driver, String sourceDir, String prefix, String moduleFile, String runOptions = '', String configureOptions = '') {
     withEnv([
         "CI_REGRESSION_LABEL=${label}",
@@ -657,7 +680,7 @@ node(nodeLabel) {
                 )
             }
             ciStage('Build dependencies') {
-                withEnv(["PREFIX=${env.WORKSPACE}/gkylsoft"]) {
+                if (!env.GKEYLL_CI_PREBUILT_CONFIG?.trim()) withEnv(["PREFIX=${env.WORKSPACE}/gkylsoft"]) {
                     loggedSh("candidate-dependencies", '''#!/bin/bash -l
                         set -euo pipefail
                         ./machines/mkdeps.perlmutter.gpu.sh
@@ -665,7 +688,7 @@ node(nodeLabel) {
                 }
             }
             ciStage('Configure') {
-                withEnv(["PREFIX=${env.WORKSPACE}/gkylsoft"]) {
+                if (!usePrebuiltConfig("${env.WORKSPACE}/gkylsoft")) withEnv(["PREFIX=${env.WORKSPACE}/gkylsoft"]) {
                     loggedSh("candidate-configure", '''#!/bin/bash -l
                         set -euo pipefail
                         ./machines/configure.perlmutter.gpu.sh
@@ -721,12 +744,14 @@ node(nodeLabel) {
             ciStage('Build Perlmutter GPU baseline') {
                 withEnv(["PREFIX=${env.WORKSPACE}/_baseline/gkylsoft"]) {
                     dir('_baseline') {
-                        loggedSh("baseline-setup", '''#!/bin/bash -l
-                            set -euo pipefail
-                            . ../machines/module_load.perlmutter-gpu.sh
-                            ./machines/mkdeps.perlmutter.gpu.sh
-                            ./machines/configure.perlmutter.gpu.sh
-                        ''')
+                        if (!usePrebuiltConfig("${env.WORKSPACE}/_baseline/gkylsoft")) {
+                            loggedSh("baseline-setup", '''#!/bin/bash -l
+                                set -euo pipefail
+                                . ../machines/module_load.perlmutter-gpu.sh
+                                ./machines/mkdeps.perlmutter.gpu.sh
+                                ./machines/configure.perlmutter.gpu.sh
+                            ''')
+                        }
                     }
                 }
             }
