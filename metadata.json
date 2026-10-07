@@ -1,0 +1,31 @@
+{
+  "cli_version": "0.11.3",
+  "checkpoint_id": "01M4BGT86NBB17HZN5Z1RZ9D12",
+  "strategy": "manual-commit",
+  "branch": "jenkins-github-queue-status",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "ci/jenkins/README.md",
+    "ci/jenkins/jenkinsfile.perlmutter_gpu",
+    "ci/jenkins/jenkinsfile.personal",
+    "ci/jenkins/jenkinsfile.stellar_cpu",
+    "ci/jenkins/queue-status.groovy"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 69729,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 612992,
+    "output_tokens": 7035,
+    "api_call_count": 16,
+    "subagent_tokens_complete": true
+  }
+}

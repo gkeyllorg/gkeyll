@@ -1,0 +1,5 @@
+In the Jenkins CI, I'd like to see in the github status where each run is. Jenkins has some eta inside it and percentage completion. I see something like, started 29 minutes ago, estimated remaining time: 1 hr 50 m. Please include this in the status indicator, similar to the queue status
+
+---
+
+In the Jenkins CI, I'd like to see in the github status where each run is. Jenkins has some eta inside it and percentage completion. I see something like, started 29 minutes ago, estimated remaining time: 1 hr 50 m. Please include this in the status indicator, similar to the queue status
