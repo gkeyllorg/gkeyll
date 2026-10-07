@@ -5,8 +5,6 @@ return {
    ignore = {
       tests = {
          "rt_can_pb_rot_surf_sphere_coriolis_backgrd_2x2v_p2",
-         "rt_vlasov_bgk_crossBimaxwellian_1x2v_p2",
-         "rt_vlasov_lbo_crossBimaxwellian_1x2v_p2",
          "rt_triad_bgk_spherical_blast_1x3v_p2",
          "rt_can_pb_rot_surf_sphere_eq_flows_1x2v_p2",
          "rt_can_pb_bgk_surf_rot_sphere_equilibrium_im_1x2v_p2",
@@ -42,14 +40,13 @@ return {
          "rt_dg_diffusion_gen_2x",
          "rt_diffusion_1x",
          "rt_can_pb_bgk_surf_cylindrical_sodshock_im_3x3v_p1",
-         "rt_vlasov_sr_bgk_relax_1x1v_p2",
          "rt_vlasov_kerntm",
          "rt_diffusion_2x",
       },
    },
    moat = {
       "rt_vlasov_landau_damping_1x1v", "rt_vlasov_twostream_1x1v",
-      "rt_vlasov_es_shock_1x1v", "rt_vlasov_bgk_relax_1x1v_p2",
+      "rt_vlasov_es_shock_1x1v", "rt_vlasov_bgk_relax_1x1v",
    },
    parallel = {
       { name = "rt_vlasov_twostream_1x1v", cuts = { 4 } },
