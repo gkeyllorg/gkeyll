@@ -42,6 +42,16 @@ agent. They refresh after queue changes and every minute; unchanged positions
 are not reposted. This is a submission-order position, not a guaranteed execution
 order: Jenkins can skip blocked jobs or allocate multiple available executors.
 
+Once an agent is allocated, the same status refreshes every minute with elapsed
+build time, an approximate percentage, and estimated remaining time, for example
+`Gkeyll CI running: started 29 m ago; ~20%; est. remaining 1 hr 50 m (Jenkins queue #42).`
+The estimate comes from Jenkins' historical build duration, not completed test
+counts; elapsed time uses Jenkins' build start time (including the Pipeline's
+initial agent wait). Runs with no estimate show `ETA unavailable`; runs exceeding
+the estimate say so instead of claiming completion. Unchanged descriptions are
+not reposted, and final results replace progress. Install the updated controller
+hook and trusted Jenkinsfiles together to enable progress for all four platforms.
+
 The listener resolves and records the candidate SHA before releasing the job
 to run. The Pipeline checks out that exact SHA and updates the same status to
 running and then its final result. A queued build therefore cannot silently

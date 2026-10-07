@@ -40,6 +40,7 @@ class GkeyllQueueStatus {
         team: ['TEAM_WORKSTATION', 'gkeyll-ci-team-workstation', 'continuous-integration/jenkins/team-workstation']
     ]
     final Map<Long, Map> states = new ConcurrentHashMap<>()
+    final Map<Long, Long> progressBase = new ConcurrentHashMap<>()
     final File directory = new File(Jenkins.get().rootDir, 'gkeyll-queue-status')
     final AtomicBoolean checking = new AtomicBoolean(false)
     final AtomicBoolean refreshingPositions = new AtomicBoolean(false)
@@ -65,7 +66,7 @@ class GkeyllQueueStatus {
     } as ThreadFactory)
 
     void start() {
-        timer.scheduleWithFixedDelay({ checkSuperseded(); refreshPositions() } as Runnable, 60, 60, TimeUnit.SECONDS)
+        timer.scheduleWithFixedDelay({ checkSuperseded(); refreshPositions(); refreshRunning() } as Runnable, 60, 60, TimeUnit.SECONDS)
     }
 
     Map configuration(Job job) {
@@ -101,6 +102,65 @@ class GkeyllQueueStatus {
     static boolean ownsQueuedStatus(Map status, def id) {
         status?.state == 'pending' && (status.description == "Gkeyll CI queued (Jenkins queue #${id})." ||
             status.description ==~ /Gkeyll CI queued: position [1-9][0-9]* of [1-9][0-9]* \(Jenkins queue #${id}\)\./)
+    }
+
+    static boolean ownsRunningStatus(Map status, def id) {
+        status?.state == 'pending' && status.description?.startsWith('Gkeyll CI running: ') &&
+            status.description.endsWith(" (Jenkins queue #${id}).")
+    }
+
+    static String minutes(long milliseconds) {
+        long value = Math.max(0L, milliseconds).intdiv(60000L)
+        value < 60 ? "${value} m" : "${value.intdiv(60)} hr ${value % 60} m"
+    }
+
+    static String runningDescription(long id, long elapsed, long estimated) {
+        elapsed = Math.max(0L, elapsed)
+        String progress = estimated <= 0 ? 'ETA unavailable' :
+            (elapsed >= estimated ? 'exceeded estimate; ETA unavailable' :
+                "~${Math.min(99, (int) (100.0 * elapsed / estimated))}%; est. remaining ${minutes(estimated - elapsed)}")
+        String suffix = " (Jenkins queue #${id})."
+        "Gkeyll CI running: started ${minutes(elapsed)} ago; ${progress}".take(140 - suffix.size()) + suffix
+    }
+
+    void refreshRunning() {
+        try {
+            Jenkins.get().getAllItems(Job).each { job ->
+                if (!configuration(job)) return
+                // Jenkins' in-progress chain avoids loading the full build history.
+                for (def run = job.lastBuild; run != null; run = run.previousBuildInProgress) {
+                    if (run.isBuilding()) refreshRun(run)
+                }
+            }
+        } catch (Exception failure) {
+            LOG.warning("Cannot refresh running CI (${failure.class.simpleName}); will retry.")
+        }
+    }
+
+    void refreshRun(Run run) {
+        synchronized (statusLock(run.queueId)) {
+            try {
+                def metadata = parameters(run)
+                if (!run.isBuilding() || metadata.CI_QUEUE_STARTED != 'true' ||
+                    metadata.CI_QUEUE_ID != run.queueId.toString() ||
+                    !(metadata.CI_QUEUE_COMMIT ==~ /[0-9a-f]{40}/)) return
+                def config = configuration(run.parent)
+                if (!config?.credential) return
+                def current = request(run.parent, config, 'GET',
+                    "commits/${metadata.CI_QUEUE_COMMIT}/status?per_page=100")
+                    .statuses.find { it.context == metadata.CI_QUEUE_CONTEXT }
+                if (!ownsQueuedStatus(current, run.queueId) && !ownsRunningStatus(current, run.queueId)) return
+                def description = runningDescription(run.queueId,
+                    System.currentTimeMillis() - run.startTimeInMillis, run.estimatedDuration)
+                if (!run.isBuilding() || current.description == description) return
+                if (current.id != null) progressBase.putIfAbsent(run.queueId, current.id as long)
+                def body = [state: 'pending', context: metadata.CI_QUEUE_CONTEXT, description: description]
+                if (current.target_url) body.target_url = current.target_url
+                request(run.parent, config, 'POST', "statuses/${metadata.CI_QUEUE_COMMIT}", body)
+            } catch (Exception failure) {
+                LOG.warning("Queue #${run.queueId}: progress update failed (${failure.class.simpleName}); will retry.")
+            }
+        }
     }
 
     // Rank by original submission ID within each platform. A Pipeline's first
@@ -364,7 +424,7 @@ class GkeyllQueueStatus {
         if (!item.cancelled) {
             def update = new ParametersAction([new StringParameterValue('CI_QUEUE_STARTED', 'true')], INTERNAL)
             run.addOrReplaceAction(run.getAction(ParametersAction).merge(update))
-            workers.submit({ run.save() } as Runnable)
+            workers.submit({ run.save(); refreshRun(run) } as Runnable)
         }
         // A cancelled node() completes as ABORTED; completed() closes its status.
     }
@@ -434,6 +494,7 @@ class GkeyllQueueStatus {
                 (run.result == Result.ABORTED && metadata.CI_QUEUE_STARTED != 'true'
                     ? 'Gkeyll CI cancelled while queued.' : "Gkeyll CI finished: ${run.result}.")
             finish(run.parent, metadata, run.queueId, state, description)
+            progressBase.remove(run.queueId)
         } as Runnable)
     }
 
@@ -450,7 +511,22 @@ class GkeyllQueueStatus {
             def current = request(job, config, 'GET', "commits/${metadata.CI_QUEUE_COMMIT}/status?per_page=100")
                 .statuses.find { it.context == metadata.CI_QUEUE_CONTEXT }
             // Preserve the Pipeline's detailed terminal status and another run's newer status.
-            if (!ownsQueuedStatus(current, id)) return
+            if (!ownsQueuedStatus(current, id) && !ownsRunningStatus(current, id)) return
+            // The Pipeline can publish its detailed result while a progress POST
+            // is in flight. Recover that result rather than leaving stale pending
+            // or replacing its diagnostics with our generic completion message.
+            if (ownsRunningStatus(current, id) && progressBase.containsKey(id)) {
+                def history = request(job, config, 'GET', "commits/${metadata.CI_QUEUE_COMMIT}/statuses?per_page=100")
+                def terminal = history.find { it.context == metadata.CI_QUEUE_CONTEXT &&
+                    (it.id as long) > progressBase[id] && it.state in ['success', 'failure', 'error'] }
+                if (terminal) {
+                    def body = [state: terminal.state, context: metadata.CI_QUEUE_CONTEXT,
+                        description: terminal.description]
+                    if (terminal.target_url) body.target_url = terminal.target_url
+                    request(job, config, 'POST', "statuses/${metadata.CI_QUEUE_COMMIT}", body)
+                    return
+                }
+            }
             request(job, config, 'POST', "statuses/${metadata.CI_QUEUE_COMMIT}",
                 [state: state, context: metadata.CI_QUEUE_CONTEXT, description: description])
         } catch (Exception failure) {

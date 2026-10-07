@@ -63,6 +63,9 @@ def pullRequestBase(String statusCredentialsId, String number) {
 }
 
 def publishStatus(String statusCredentialsId, String context, String commit, String state, String description) {
+    if (state == 'pending' && params.CI_QUEUE_ID?.trim()) {
+        description = "Gkeyll CI running: starting (Jenkins queue #${params.CI_QUEUE_ID})."
+    }
     withCredentials([usernamePassword(credentialsId: statusCredentialsId, usernameVariable: 'GITHUB_USERNAME', passwordVariable: 'GITHUB_TOKEN')]) {
         withEnv(["CI_STATUS_CONTEXT=${context}", "CI_STATUS_COMMIT=${commit}", "CI_STATUS_STATE=${state}", "CI_STATUS_DESCRIPTION=${description.take(140)}"]) {
             sh '''#!/bin/bash

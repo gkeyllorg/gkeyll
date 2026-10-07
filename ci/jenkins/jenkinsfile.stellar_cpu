@@ -161,6 +161,9 @@ def publishGitHubCommitStatus(String statusCredentialsId, String commit, String 
     if (!(commit ==~ /[0-9a-f]{40}/)) {
         error("Cannot publish a GitHub status for invalid commit SHA '${commit}'.")
     }
+    if (state == 'pending' && params.CI_QUEUE_ID?.trim()) {
+        description = "Gkeyll CI running: starting (Jenkins queue #${params.CI_QUEUE_ID})."
+    }
     if (!['pending', 'success', 'failure', 'error'].contains(state)) {
         error("Invalid GitHub commit-status state '${state}'.")
     }
