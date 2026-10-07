@@ -23,6 +23,7 @@ gk_species_fdot_multiplier_write_enabled(
   struct gkyl_msgpack_map_elem mpe_mult[] = {
     {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0},
     {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = "serendipity"},
+    {.key = "value_form", .elem_type = GKYL_MP_STRING, .cval = "nodal"},
     {
       .key = "Description",
       .elem_type = GKYL_MP_STRING,

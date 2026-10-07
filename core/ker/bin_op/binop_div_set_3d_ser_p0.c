@@ -10,7 +10,7 @@ GKYL_CU_DH void binop_div_set_3d_ser_p0(struct gkyl_mat *A, struct gkyl_mat *rhs
  
   double lhs[1]; 
   lhs[0] = g[0]; 
-  gkyl_mat_set(rhs,1,0,f[0]); 
+  gkyl_mat_set(rhs,0,0,f[0]); 
  
   // Fill LHS matrix. 
   gkyl_mat_set(A,0,0,0.3535533905932737*lhs[0]); 

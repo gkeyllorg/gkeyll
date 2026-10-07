@@ -54,7 +54,6 @@ gk_species_gyroaverage_enabled(
 static double
 gk_species_omegaH_dt(gkyl_gyrokinetic_app *app, struct gk_species *gks, const struct gkyl_array *fin)
 {
-
   if (!(app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN ||
         app->field->gkfield_id == GKYL_GK_FIELD_ADIABATIC)) {
     gk_species_moment_calc(&gks->m0, gks->local, app->local, fin);
@@ -102,7 +101,7 @@ gk_species_omegaH_dt(gkyl_gyrokinetic_app *app, struct gk_species *gks, const st
       m0_max[0] *= 1.0 / pow(sqrt(2.0), app->cdim);
 
       omegaH = fabs(gks->info.charge) * sqrt(GKYL_MAX2(0.0, m0_max[0]) / gks->info.mass) *
-               app->omegaH_gf * time_dilation_scale_const;
+               app->omegaH_gf * time_dilation_scale_const * gks->collisionless.scale_fac;
     }
 
     if (omegaH > 1e-20) {
@@ -544,7 +543,8 @@ gk_species_write_cfl_enabled(gkyl_gyrokinetic_app *app, struct gk_species *gks, 
   struct gkyl_msgpack_map_elem mpe_cfl[] = {
     {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0},
     {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = "serendipity"},
-    {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = "CFL frequency."}
+    {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = "CFL frequency."},
+    {.key = "value_form", .elem_type = GKYL_MP_STRING, .cval = "nodal"}
   };
   int mpe_cfl_len = sizeof(mpe_cfl) / sizeof(mpe_cfl[0]);
   // Update app basic metada with time/frame.
@@ -1852,6 +1852,7 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
 
   // Metadata for conf-space quantities.
   struct gkyl_msgpack_map_elem io_meta_conf[] = {
+    {.key = "value_form", .elem_type = GKYL_MP_STRING, .cval = "modal"},
     {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = app->basis.poly_order},
     {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = app->basis.id},
     {.key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0},
@@ -1871,6 +1872,7 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
 
   // Metadata for phase-space quantities.
   struct gkyl_msgpack_map_elem io_meta_phase[] = {
+    {.key = "value_form", .elem_type = GKYL_MP_STRING, .cval = "modal"},
     {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = gks->basis.poly_order},
     {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = gks->basis.id},
     {.key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0},
