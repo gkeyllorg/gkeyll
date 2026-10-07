@@ -10296,6 +10296,58 @@ gkyl_tok_geo_R_psiZ(const struct gkyl_tok_geo *geo, double psi, double Z, int nm
     return R_psiZ(geo, psi, Z, nmaxroots, R, dRdZ, dR, dZ);
 }
 
+// DIAGNOSTIC (2026-10-06): GKYL_TOK_THETA_ARC_DIAG=<prefix> writes, for every
+// psi row of this block's corner nodes, the exact contour arc of each theta
+// cell (tok_contour_leaves between consecutive corner nodes, on the row's own
+// psi), to <prefix>-ftype<NN>.txt. The seam test measured a cell by a cubic
+// through four of its points, which cannot follow a row bending on the scale of
+// a cell -- beside the X point -- and re-measuring one grid with finer nested
+// nodes showed that error to dominate what it reported (STEP theta x4: 4.3e-4,
+// then 9.1e-5 and 1.05e-5 with x2 and x4 finer nodes). Off by default; the
+// grid is unchanged either way. A cell whose arc cannot be traced is written
+// with ok=0. The last pass for a block wins, so a reader matches the nodes.
+static void
+tok_theta_arc_diag(const struct gk_geometry *up, const struct gkyl_range *nrange,
+  const struct gkyl_tok_geo *geo, const struct gkyl_tok_geo_grid_inp *inp)
+{
+  enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
+  enum { X_IDX, Y_IDX, Z_IDX }; // arrangement of cartesian coordinates
+  const char *prefix = getenv("GKYL_TOK_THETA_ARC_DIAG");
+  if (!prefix || prefix[0] == '\0')
+    return;
+  char path[1024];
+  snprintf(path, sizeof path, "%s-ftype%02d.txt", prefix, (int) inp->ftype);
+  FILE *fp = fopen(path, "w");
+  if (!fp) {
+    fprintf(stderr, "TOK_THETA_ARC_DIAG cannot_open path=%s\n", path);
+    return;
+  }
+  fprintf(fp, "# ftype=%d rows=%d cells=%d: ip it psi r0 z0 r1 z1 arc ok\n", (int) inp->ftype,
+    nrange->upper[PSI_IDX]-nrange->lower[PSI_IDX]+1, nrange->upper[TH_IDX]-nrange->lower[TH_IDX]);
+  struct tok_leaves lv = { 0 };
+  int cidx[3] = { 0 };
+  cidx[AL_IDX] = nrange->lower[AL_IDX];
+  for (int ip=nrange->lower[PSI_IDX]; ip<=nrange->upper[PSI_IDX]; ++ip) {
+    cidx[PSI_IDX] = ip;
+    for (int it=nrange->lower[TH_IDX]; it<nrange->upper[TH_IDX]; ++it) {
+      cidx[TH_IDX] = it;
+      const double *p0 = gkyl_array_cfetch(up->geo_corn.mc2p_nodal, gkyl_range_idx(nrange, cidx));
+      const double *nu = gkyl_array_cfetch(up->geo_corn.mc2nu_pos_nodal, gkyl_range_idx(nrange, cidx));
+      cidx[TH_IDX] = it+1;
+      const double *p1 = gkyl_array_cfetch(up->geo_corn.mc2p_nodal, gkyl_range_idx(nrange, cidx));
+      const double psi = nu[X_IDX];
+      lv.n = 0;
+      const bool ok = tok_contour_leaves(geo, psi, p0[X_IDX], p0[Y_IDX], p1[X_IDX], p1[Y_IDX], 0, &lv);
+      double arc = 0.0;
+      for (int j=0; j<lv.n; ++j) arc += lv.arc[j];
+      fprintf(fp, "%d %d %.17g %.17g %.17g %.17g %.17g %.17g %d\n", ip-nrange->lower[PSI_IDX],
+        it-nrange->lower[TH_IDX], psi, p0[X_IDX], p0[Y_IDX], p1[X_IDX], p1[Y_IDX], arc, (int) ok);
+    }
+  }
+  if (lv.r) { gkyl_free(lv.r); gkyl_free(lv.z); gkyl_free(lv.arc); }
+  fclose(fp);
+}
+
 void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct gkyl_tok_geo *geo, 
   struct gkyl_tok_geo_grid_inp *inp, struct gkyl_position_map *position_map)
 {
@@ -10582,6 +10634,7 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
       }
     }
   }
+  tok_theta_arc_diag(up, nrange, geo, inp);
 
   // Populate other alpha indices by using axisymmetry
   for (int ia=nrange->lower[AL_IDX]+1; ia<=nrange->upper[AL_IDX]; ++ia){
