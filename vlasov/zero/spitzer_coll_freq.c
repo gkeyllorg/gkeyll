@@ -31,10 +31,10 @@ coulomb_log(
   double wcr = qr * bmag / mr; // Cyclotron frequency for species r
   double inner1 = (wps * wps + wcs * wcs) / (Ts / ms + 3 * Ts / ms) +
                   (wpr * wpr + wcr * wcr) / (Tr / mr + 3 * Ts / ms);
-  double u = 3 * (vts * vts + vtr * vtr); // Relative velocity
+  double usq = 3 * (vts * vts + vtr * vtr); // Relative velocity
   double msr = ms * mr / (ms + mr); // Reduced mass
   double inner2 =
-    fmax(fabs(qs * qr) / (4 * M_PI * eps0 * msr * u * u), hbar / (2 * sqrt(eV) * msr * u));
+    fmax(fabs(qs * qr) / (4 * M_PI * eps0 * msr * usq), hbar / (2 * exp(0.5) * msr * sqrt(usq)));
   double inner = (1 / inner1) * (1 / inner2 / inner2) + 1;
   return 0.5 * log(inner);
 }
@@ -359,7 +359,7 @@ gkyl_spitzer_coll_freq_advance(
 
     double rMin = GKYL_MAX2(
       fabs(qSelf * qOther) * up->r4pieps0_fac / (mReduced * uRelSq),
-      up->hbar_fac / (mReduced * sqrt(uRelSq))
+      up->hbar_fac / (2.0 * exp(0.5) * mReduced * sqrt(uRelSq))
     );
 
     double logLambda =
