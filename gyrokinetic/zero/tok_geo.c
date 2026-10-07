@@ -4769,7 +4769,14 @@ tok_chord_normal_solve(const struct gkyl_tok_geo *geo, double psi,
   const double clen = hypot(cdr, cdz);
   if (!(clen > 0.0) || !isfinite(clen) || !(max_disp > 0.0)) return false;
   const double nr = -cdz/clen, nz = cdr/clen;   // unit normal of the chord
-  const double tol = 1e-9*fmax(1.0, fabs(psi));
+  // Solved to roundoff: |psi - psi_row| down to the double precision of psi,
+  // or the bracket collapsed to roundoff in position. The fixed tolerance this
+  // replaced (1e-9 in psi) left a point off the contour by up to 1e-9/|grad psi|,
+  // which grows without bound beside the X point; arcs measured through such
+  // points there came out ~10 nm long or short, a fixed offset, so the theta-seam
+  // grading mismatch at the X-point faces grew with theta (NSTX-U: 1.0e-6 at
+  // theta x1, 5.4e-6 at x8). Solved to roundoff it is 1e-10 at both.
+  const double tol = DBL_EPSILON*fmax(1.0, fabs(psi));
   const double g0 = tok_eval_psi_rz_local(geo, rlin, zlin)-psi;
   if (!isfinite(g0)) return false;
   if (fabs(g0) <= tol) { *r = rlin; *z = zlin; return true; }
@@ -4781,26 +4788,50 @@ tok_chord_normal_solve(const struct gkyl_tok_geo *geo, double psi,
   // derivative at all, so the DG gradient kink at a cell face cannot upset it.
   double ta = 0.0, tb = 0.0, ga = g0, gb = g0;
   bool found = false;
-  for (int side=0; side<2; ++side) {
-    const double sgn = side ? -1.0 : 1.0;
-    double tp = 0.0, gp = g0;
-    for (double d = max_disp/1024.0; d <= max_disp; d *= 2.0) {
-      const double t = sgn*d;
-      const double g = tok_eval_psi_rz_local(geo, rlin+t*nr, zlin+t*nz)-psi;
-      if (!isfinite(g)) break;
-      if (fabs(g) <= tol) {   // landed on it
-        if (!found || d < fmax(fabs(ta), fabs(tb))) { ta = tb = t; ga = gb = g; found = true; }
-        break;
+  // A piece shorter than the residual at its chord point can be reached by --
+  // psi's own evaluation noise (STEP, psi ~ 1.5: ~4e-15, against a 1e-15 m piece
+  // between a node and a trace point it coincides with) or an end point another
+  // solve placed less precisely -- shows no sign change within max_disp. The
+  // search then goes on to twice the first-order distance to the contour along
+  // the search line, |g0|/|n.grad psi| (on so short a chord its normal can be
+  // far from the gradient: 65 deg at STEP's midplane reference), before giving
+  // up; and a point whose first-order distance is within the roundoff of its
+  // own coordinates is on the contour as far as the arithmetic can tell.
+  double reach = max_disp, dist = DBL_MAX;
+  for (int pass=0; pass<2 && !found; ++pass) {
+    if (pass == 1) {
+      double gr = 0.0, gz = 0.0;
+      if (!tok_eval_psi_grad_rz_local(geo, rlin, zlin, &gr, &gz) || !(fabs(gr*nr+gz*nz) > 0.0)) break;
+      dist = fabs(g0)/fabs(gr*nr+gz*nz);
+      if (!(2.0*dist > max_disp) || !isfinite(dist)) break;
+      reach = 2.0*dist;
+    }
+    for (int side=0; side<2; ++side) {
+      const double sgn = side ? -1.0 : 1.0;
+      double tp = 0.0, gp = g0;
+      for (double d = max_disp/1024.0; ; d = fmin(2.0*d, reach)) {
+        const double t = sgn*d;
+        const double g = tok_eval_psi_rz_local(geo, rlin+t*nr, zlin+t*nz)-psi;
+        if (!isfinite(g)) break;
+        if (fabs(g) <= tol) {   // landed on it
+          if (!found || d < fmax(fabs(ta), fabs(tb))) { ta = tb = t; ga = gb = g; found = true; }
+          break;
+        }
+        if ((g < 0.0) != (gp < 0.0)) {
+          if (!found || d < fmax(fabs(ta), fabs(tb))) { ta = tp; tb = t; ga = gp; gb = g; found = true; }
+          break;
+        }
+        tp = t; gp = g;
+        if (d >= reach) break;
       }
-      if ((g < 0.0) != (gp < 0.0)) {
-        if (!found || d < fmax(fabs(ta), fabs(tb))) { ta = tp; tb = t; ga = gp; gb = g; found = true; }
-        break;
-      }
-      tp = t; gp = g;
     }
   }
-  if (!found) return false;
+  if (!found) {
+    if (dist <= 4.0*DBL_EPSILON*fmax(1.0, fmax(fabs(rlin), fabs(zlin)))) { *r = rlin; *z = zlin; return true; }
+    return false;
+  }
   double t = ta, g = ga;
+  bool collapsed = false;
   if (ta != tb) {
     // Regula falsi with the Illinois modification: superlinear without a
     // derivative, and the bracket can never be lost.
@@ -4821,10 +4852,10 @@ tok_chord_normal_solve(const struct gkyl_tok_geo *geo, double psi,
         if (side == 1) ga *= 0.5;
         side = 1;
       }
-      if (fabs(tb-ta) <= 4.0*DBL_EPSILON*fmax(1.0, fabs(t))) break;
+      if (fabs(tb-ta) <= 4.0*DBL_EPSILON*fmax(1.0, fabs(t))) { collapsed = true; break; }
     }
   }
-  if (!(fabs(g) <= tol)) return false;
+  if (!(fabs(g) <= tol) && !collapsed) return false;
   *r = rlin+t*nr; *z = zlin+t*nz;
   return true;
 }
@@ -4908,7 +4939,10 @@ tok_contour_leaves(const struct gkyl_tok_geo *geo, double psi,
   // longer than a few of those cannot be resolved further.
   double gr = 0.0, gz = 0.0, located = 0.0;
   if (tok_eval_psi_grad_rz_local(geo, mr, mz, &gr, &gz) && hypot(gr, gz) > 0.0)
-    located = 1e-9*fmax(1.0, fabs(psi))/hypot(gr, gz);
+    // no finer than the roundoff of the point's own coordinates: below that a
+    // piece is a point, and halving it only bisects roundoff (STEP: unbounded)
+    located = fmax(DBL_EPSILON*fmax(1.0, fabs(psi))/hypot(gr, gz),
+      DBL_EPSILON*fmax(1.0, fmax(fabs(mr), fabs(mz))));
   // Depth is bounded by halving to the double-precision resolution of l1.
   if (l1 <= 4.0*located || depth >= 52) {
     const double arc = l2+(l2-l1)/3.0;
@@ -5077,7 +5111,8 @@ tok_phi_piece_eval(const struct gkyl_tok_geo *geo, double psi, double fpol,
   pc->arc = l2+(l2-l1)/3.0;
   double gr = 0.0, gz = 0.0;
   if (tok_eval_psi_grad_rz_local(geo, pc->mr, pc->mz, &gr, &gz) && hypot(gr, gz) > 0.0)
-    pc->located = 1e-9*fmax(1.0, fabs(psi))/hypot(gr, gz);
+    pc->located = fmax(DBL_EPSILON*fmax(1.0, fabs(psi))/hypot(gr, gz),
+      DBL_EPSILON*fmax(1.0, fmax(fabs(pc->mr), fabs(pc->mz))));
   const double half = 0.5/sqrt(3.0);
   double sum = 0.0;
   for (int k=0; k<2; ++k) {
