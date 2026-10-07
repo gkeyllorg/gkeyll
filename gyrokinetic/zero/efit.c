@@ -196,16 +196,27 @@ gkyl_efit_new(const struct gkyl_efit_inp *inp)
       fidx[0] = i;
       double *fpolprime_n = gkyl_array_fetch(fpolprimeflux_n, gkyl_range_idx(&flux_nrange, fidx));
       status = fscanf(ptr, "%lf", fpolprime_n);
-      double *fpol_n = gkyl_array_fetch(fpolflux_n, gkyl_range_idx(&flux_nrange, fidx));
-      fpolprime_n[0] = fpolprime_n[0] / fpol_n[0]; // divide out fpol
     }
   } else {
     for (int i = 0; i < up->nr; i++) {
       fidx[0] = i;
       double *fpolprime_n = gkyl_array_fetch(fpolprimeflux_n, gkyl_range_idx(&flux_nrange, fidx));
       status = fscanf(ptr, "%lf", fpolprime_n);
-      double *fpol_n = gkyl_array_fetch(fpolflux_n, gkyl_range_idx(&flux_nrange, fidx));
-      fpolprime_n[0] = fpolprime_n[0] / fpol_n[0]; // divide out fpol
+    }
+  }
+  // FF'/F is undefined where F vanishes (including a purely poloidal
+  // field). There use the derivative of the tabulated F itself.
+  double dpsi_node = (fluxupper[0] - fluxlower[0]) / (up->nr - 1);
+  for (int i = 0; i < up->nr; ++i) {
+    const double *fpol_n = gkyl_array_cfetch(fpolflux_n, i);
+    double *fpolprime_n = gkyl_array_fetch(fpolprimeflux_n, i);
+    if (fpol_n[0] != 0.0) {
+      fpolprime_n[0] /= fpol_n[0];
+    } else {
+      int left = i == 0 ? 0 : i - 1, right = i == up->nr - 1 ? i : i + 1;
+      const double *fleft = gkyl_array_cfetch(fpolflux_n, left);
+      const double *fright = gkyl_array_cfetch(fpolflux_n, right);
+      fpolprime_n[0] = (fright[0] - fleft[0]) / ((right - left) * dpsi_node);
     }
   }
   gkyl_nodal_ops_n2m(

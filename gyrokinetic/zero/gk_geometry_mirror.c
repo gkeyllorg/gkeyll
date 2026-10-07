@@ -9,6 +9,7 @@
 #include <gkyl_mirror_grid_gen.h>
 #include <gkyl_rz_calc_derived_geo.h>
 #include <gkyl_calc_metric_mirror.h>
+#include <gkyl_nodal_ops.h>
 
 struct gk_geometry *
 gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp)
@@ -141,6 +142,14 @@ gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp)
     up->geo_int.gyyj, up->geo_int.gxzj, up->geo_int.eps2
   );
   gkyl_rz_calc_derived_geo_release(jcalculator);
+  // The metric-only derived-geometry kernel assumes bhat is along e_3.
+  // Restore the covariant components computed from the actual mirror field.
+  struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&up->basis, &up->grid, false);
+  gkyl_nodal_ops_n2m(
+    n2m, &up->basis, &up->grid, &up->nrange_int, &up->local, 3, up->geo_int.b_i_nodal,
+    up->geo_int.b_i, true
+  );
+  gkyl_nodal_ops_release(n2m);
   // Calculate metrics/derived geo quantities at surface.
   for (int dir = 0; dir < up->grid.ndim; dir++) {
     gkyl_calc_metric_mirror_advance_surface(mcalc, dir, up, mirror_grid_surf[dir]);
