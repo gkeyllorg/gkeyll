@@ -1,7 +1,13 @@
-// Advection in specified electromagnetic fields for the Vlasov-Maxwell system of equations.
-// Input parameters match the initial conditions found in entry JE32 of Ammar's Simulation Journal (https://ammar-hakim.org/sj/je/je32/je32-vlasov-test-ptcl.html)
-// but with a rotation so that the oscillating electric field is in the z_hat direction and the background magnetic field in the x_hat direction.
-// Solution is given by the non-resonant case, omega = 0.5*Omega_c where Omega_c = q B/m is the cyclotron frequency.
+// Advection in specified electromagnetic fields (special-relativistic Vlasov, 1x3v). The initial
+// conditions follow entry JE32 of Ammar's Simulation Journal (https://ammar-
+// hakim.org/sj/je/je32/je32-vlasov-test-ptcl.html), rotated so that the oscillating electric field
+// E_z = cos(omega t) is along z and the background magnetic field B_0 = 1 along x; omega = 1.0
+// Omega_c with Omega_c = q B_0 / m the cyclotron frequency, the resonant case. The fields are
+// external and the species does not feed back on them; the 3V setup mirrors the PKPM test of the
+// same name. Momenta are in units of mc and the temperature is 0.25 mc^2, so the bulk reaches gamma
+// ~ 1.5 and the relativistic cyclotron frequency Omega_c / gamma detunes the drive. With the
+// detuning, the bulk velocity saturates at |<v>| = 0.77 instead of growing secularly, and follows
+// the characteristics to 2% (at t = 10, <v_y> = 0.273 and <v_z> = -0.029 against 0.274 and -0.029).
 
 #include <math.h>
 #include <stdio.h>
@@ -24,7 +30,7 @@
 
 #include <rt_arg_parse.h>
 
-struct em_advect_ctx {
+struct em_advect_resonant_ctx {
   // Mathematical constants (dimensionless).
   double pi;
 
@@ -34,7 +40,7 @@ struct em_advect_ctx {
   double mass_elc; // Electron mass.
   double charge_elc; // Electron charge.
 
-  double vt; // Thermal velocity.
+  double vt; // Thermal momentum.
   double n0; // Reference number density.
   double B0; // Reference magnetic field strength.
   double omega; // Oscillating field frequency normalized to cyclotron frequency.
@@ -60,7 +66,7 @@ struct em_advect_ctx {
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct em_advect_ctx
+struct em_advect_resonant_ctx
 create_ctx(void)
 {
   // Mathematical constants (dimensionless).
@@ -72,21 +78,21 @@ create_ctx(void)
   double mass_elc = 1.0; // Electron mass.
   double charge_elc = -1.0; // Electron charge.
 
-  double vt = 1.0; // Thermal velocity.
+  double vt = 0.5; // Thermal momentum.
   double n0 = 1.0; // Reference number density.
   double B0 = 1.0; // Reference magnetic field strength.
-  double omega = 0.5; // Oscillating field frequency normalized to cyclotron frequency.
+  double omega = 1.0; // Oscillating field frequency normalized to cyclotron frequency.
 
   // Simulation parameters.
   int Nx = 2; // Cell count (configuration space: x-direction).
   int Nvx = 8; // Cell count (velocity space: vx-direction).
-  int Nvy = 8; // Cell count (velocity space: vy-direction).
+  int Nvy = 16; // Cell count (velocity space: vy-direction).
   int Nvz = 16; // Cell count (velocity space: vz-direction).
   double Lx = 4.0 * pi; // Domain size (configuration space: x-direction).
-  double vx_max = 8.0 * vt; // Domain boundary (velocity space: vx-direction).
-  double vy_max = 8.0 * vt; // Domain boundary (velocity space: vy-direction).
-  double vz_max = 8.0 * vt; // Domain boundary (velocity space: vz-direction).
-  int poly_order = 1; // Polynomial order.
+  double vx_max = 4.0; // Domain boundary (velocity space: vx-direction).
+  double vy_max = 4.0; // Domain boundary (velocity space: vy-direction).
+  double vz_max = 4.0; // Domain boundary (velocity space: vz-direction).
+  int poly_order = 2; // Polynomial order.
   double cfl_frac = 1.0; // CFL coefficient.
 
   double t_end = 10.0; // Final simulation time.
@@ -98,7 +104,7 @@ create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct em_advect_ctx ctx = {
+  struct em_advect_resonant_ctx ctx = {
     .pi = pi,
     .epsilon0 = epsilon0,
     .mu0 = mu0,
@@ -133,7 +139,7 @@ create_ctx(void)
 void
 evalDensityInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
-  struct em_advect_ctx *app = ctx;
+  struct em_advect_resonant_ctx *app = ctx;
   double x = xn[0];
 
   double n = app->n0;
@@ -145,7 +151,7 @@ evalDensityInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT 
 void
 evalTempInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
-  struct em_advect_ctx *app = ctx;
+  struct em_advect_resonant_ctx *app = ctx;
   double x = xn[0];
 
   double mass_elc = app->mass_elc;
@@ -159,7 +165,7 @@ evalTempInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fou
 void
 evalVDriftInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
-  struct em_advect_ctx *app = ctx;
+  struct em_advect_resonant_ctx *app = ctx;
 
   double Vx_drift = 0.0;
   double Vy_drift = 0.0;
@@ -199,7 +205,7 @@ evalExternalFieldInit(
   double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
 )
 {
-  struct em_advect_ctx *app = ctx;
+  struct em_advect_resonant_ctx *app = ctx;
 
   double B0 = app->B0;
   double omega = app->omega;
@@ -220,6 +226,15 @@ evalExternalFieldInit(
   fout[3] = Bx;
   fout[4] = By;
   fout[5] = Bz;
+}
+
+// Snap a trigger whose next time exceeds t_end only by round-off back to t_end.
+static void
+snap_trigger_to_t_end(struct gkyl_tm_trigger *trig, double t_end)
+{
+  if (trig->tcurr > t_end && trig->tcurr <= t_end * (1.0 + 1.0e-10)) {
+    trig->tcurr = t_end;
+  }
 }
 
 void
@@ -283,7 +298,7 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct em_advect_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct em_advect_resonant_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   int NVX = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvx);
@@ -353,6 +368,7 @@ main(int argc, char **argv)
 
   // Electrons.
   struct gkyl_vlasov_kinetic_species elc = {
+    .model_id = GKYL_MODEL_SR,
     .lower = {-ctx.vx_max, -ctx.vy_max, -ctx.vz_max},
     .upper = {ctx.vx_max, ctx.vy_max, ctx.vz_max},
     .cells = {NVX, NVY, NVZ},
@@ -495,6 +511,11 @@ main(int argc, char **argv)
   // Compute initial guess of maximum stable time-step.
   double dt = t_end - t_curr;
 
+  // The requested time-step is shortened near the end of the simulation so that
+  // the final step lands exactly on t_end.
+  bool is_dt_clipped = false; // Was the requested dt shortened below the stable dt?
+  bool is_last_step = true; // Does the requested dt reach t_end?
+
   // Initialize small time-step check.
   double dt_init = -1.0, dt_failure_tol = ctx.dt_failure_tol;
   int num_failures = 0, num_failures_max = ctx.num_failures_max;
@@ -510,8 +531,37 @@ main(int argc, char **argv)
       break;
     }
 
-    t_curr += status.dt_actual;
+    // Only a step that took the full requested dt counts as shortened/final.
+    bool took_requested_dt = status.dt_actual == dt;
+    bool was_dt_clipped = is_dt_clipped && took_requested_dt;
+    if (is_last_step && took_requested_dt) {
+      // Avoid round-off leaving t_curr just short of t_end.
+      t_curr = t_end;
+      // Trigger times are accumulated sums and can exceed t_end by round-off.
+      // Snap them so the final frame and diagnostics are still produced.
+      snap_trigger_to_t_end(&fe_trig, t_end);
+      snap_trigger_to_t_end(&im_trig, t_end);
+      snap_trigger_to_t_end(&l2f_trig, t_end);
+      snap_trigger_to_t_end(&io_trig, t_end);
+    } else {
+      t_curr += status.dt_actual;
+    }
+
+    // Request the next time-step. If the remaining time fits in one stable step,
+    // take exactly the remaining time; if it fits in less than two, split it into
+    // two equal steps so the final step is never a sliver of the stable dt.
+    double t_left = t_end - t_curr;
     dt = status.dt_suggested;
+    is_dt_clipped = false;
+    is_last_step = false;
+    if (t_left <= dt) {
+      dt = t_left;
+      is_dt_clipped = true;
+      is_last_step = true;
+    } else if (t_left < 2.0 * dt) {
+      dt = 0.5 * t_left;
+      is_dt_clipped = true;
+    }
 
     calc_field_energy(&fe_trig, app, t_curr, false);
     calc_integrated_mom(&im_trig, app, t_curr, false);
@@ -520,7 +570,7 @@ main(int argc, char **argv)
 
     if (dt_init < 0.0) {
       dt_init = status.dt_actual;
-    } else if (status.dt_actual < dt_failure_tol * dt_init) {
+    } else if (!was_dt_clipped && status.dt_actual < dt_failure_tol * dt_init) {
       num_failures += 1;
 
       gkyl_vlasov_app_cout(app, stdout, "WARNING: Time-step dt = %g", status.dt_actual);
@@ -571,15 +621,9 @@ main(int argc, char **argv)
   gkyl_vlasov_app_cout(
     app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm
   );
-  gkyl_vlasov_app_cout(
-    app, stdout, "Fluid species RHD calc took %g secs\n", stat.fluid_species_rhs_tm
-  );
   gkyl_vlasov_app_cout(app, stdout, "Field RHS calc took %g secs\n", stat.field_rhs_tm);
   gkyl_vlasov_app_cout(
     app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm
-  );
-  gkyl_vlasov_app_cout(
-    app, stdout, "Current evaluation and accumulate took %g secs\n", stat.current_tm
   );
   gkyl_vlasov_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 

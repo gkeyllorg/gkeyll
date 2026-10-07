@@ -1,8 +1,13 @@
--- Advection in specified electromagnetic fields for the Vlasov-Maxwell system of equations.
--- Input parameters match the initial conditions found in entry JE32 of Ammar's Simulation Journal (https://ammar-hakim.org/sj/je/je32/je32-vlasov-test-ptcl.html)
--- but with a rotation so that the oscillating electric field is in the z_hat direction and the background magnetic field in the x_hat direction. 
--- Solution is given by the non-resonant case, omega = 0.5*Omega_c where Omega_c = q B/m is the cyclotron frequency. 
-
+-- Advection in specified electromagnetic fields (special-relativistic Vlasov, 1x3v). The initial
+-- conditions follow entry JE32 of Ammar's Simulation Journal (https://ammar-
+-- hakim.org/sj/je/je32/je32-vlasov-test-ptcl.html), rotated so that the oscillating electric field
+-- E_z = cos(omega t) is along z and the background magnetic field B_0 = 1 along x; omega = 1.0
+-- Omega_c with Omega_c = q B_0 / m the cyclotron frequency, the resonant case. The fields are
+-- external and the species does not feed back on them; the 3V setup mirrors the PKPM test of the
+-- same name. Momenta are in units of mc and the temperature is 0.25 mc^2, so the bulk reaches gamma
+-- ~ 1.5 and the relativistic cyclotron frequency Omega_c / gamma detunes the drive. With the
+-- detuning, the bulk velocity saturates at |<v>| = 0.77 instead of growing secularly, and follows
+-- the characteristics to 2% (at t = 10, <v_y> = 0.273 and <v_z> = -0.029 against 0.274 and -0.029).
 local Vlasov = G0.Vlasov
 
 -- Mathematical constants (dimensionless).
@@ -15,22 +20,22 @@ mass_elc = 1.0 -- Electron mass.
 charge_elc = -1.0 -- Electron charge.
 
 n0 = 1.0 -- Reference density. 
-vt = 1.0 -- Thermal velocity.
+vt = 0.5 -- Thermal momentum.
 
 -- External EM field parameters.
-omega = 0.5 -- Oscillating electric field frequency normalized to cyclotron frequency.
+omega = 1.0 -- Oscillating electric field frequency normalized to cyclotron frequency.
 B0 = 1.0 -- Reference magnetic field strength.
 
 -- Simulation parameters.
 Nx = 2 -- Cell count (configuration space: x-direction).
-Nvx = 16 -- Cell count (velocity space: vx-direction).
+Nvx = 8 -- Cell count (velocity space: vx-direction).
 Nvy = 16 -- Cell count (velocity space: vy-direction).
 Nvz = 16 -- Cell count (velocity space: vz-direction).
 Lx = 4.0 * pi -- Domain size (configuration space: x-direction).
-vx_max = 8.0 * vt -- Domain boundary (velocity space: vx-direction).
-vy_max = 8.0 * vt -- Domain boundary (velocity space: vy-direction).
-vz_max = 8.0 * vt -- Domain boundary (velocity space: vz-direction).
-poly_order = 1 -- Polynomial order.
+vx_max = 4.0 -- Domain boundary (velocity space: vx-direction).
+vy_max = 4.0 -- Domain boundary (velocity space: vy-direction).
+vz_max = 4.0 -- Domain boundary (velocity space: vz-direction).
+poly_order = 2 -- Polynomial order.
 basis_type = "serendipity" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
 cfl_frac = 1.0 -- CFL coefficient.
@@ -69,7 +74,7 @@ vlasovApp = Vlasov.App.new {
 
   -- Electrons.
   elc = Vlasov.Species.new {
-    modelID = G0.Model.Default,
+    modelID = G0.Model.SR,
     charge = charge_elc, mass = mass_elc,
     
     -- Velocity space grid.

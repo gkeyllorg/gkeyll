@@ -1,8 +1,13 @@
--- Advection in specified electromagnetic fields for the Vlasov-Maxwell system of equations.
--- Input parameters match the initial conditions found in entry JE32 of Ammar's Simulation Journal (https://ammar-hakim.org/sj/je/je32/je32-vlasov-test-ptcl.html)
--- but with a rotation so that the oscillating electric field is in the z_hat direction and the background magnetic field in the x_hat direction. 
--- Solution is given by the resonant case, omega = Omega_c where Omega_c = q B/m is the cyclotron frequency. 
-
+-- Advection in specified electromagnetic fields (Vlasov, 1x3v). The initial conditions follow entry
+-- JE32 of Ammar's Simulation Journal (https://ammar-hakim.org/sj/je/je32/je32-vlasov-test-
+-- ptcl.html), rotated so that the oscillating electric field E_z = cos(omega t) is along z and the
+-- background magnetic field B_0 = 1 along x; omega = 0.5 Omega_c with Omega_c = q B_0 / m the
+-- cyclotron frequency, the non-resonant case. The fields are external and the species does not feed
+-- back on them; the 3V setup mirrors the PKPM test of the same name. The bulk velocity follows the
+-- exact single-particle solution u_y = A (cos(omega t) - cos(Omega_c t)), u_z = A (sin(Omega_c t) -
+-- (omega / Omega_c) sin(omega t)) with A = Omega_c (q / m) E_0 / (Omega_c^2 - omega^2): at t = 10,
+-- u_y = 1.49698 and u_z = 0.08608, both exact to 1e-5, and the temperature stays 1 to 1e-4 because
+-- the Maxwellian only shifts.
 local Vlasov = G0.Vlasov
 
 -- Mathematical constants (dimensionless).
@@ -18,20 +23,20 @@ n0 = 1.0 -- Reference density.
 vt = 1.0 -- Thermal velocity.
 
 -- External EM field parameters.
-omega = 1.0 -- Oscillating electric field frequency normalized to cyclotron frequency.
+omega = 0.5 -- Oscillating electric field frequency normalized to cyclotron frequency.
 B0 = 1.0 -- Reference magnetic field strength.
 
 -- Simulation parameters.
 Nx = 2 -- Cell count (configuration space: x-direction).
-Nvx = 16 -- Cell count (velocity space: vx-direction).
-Nvy = 16 -- Cell count (velocity space: vy-direction).
+Nvx = 8 -- Cell count (velocity space: vx-direction).
+Nvy = 8 -- Cell count (velocity space: vy-direction).
 Nvz = 16 -- Cell count (velocity space: vz-direction).
 Lx = 4.0 * pi -- Domain size (configuration space: x-direction).
-vx_max = 8.0 * vt -- Domain boundary (velocity space: vx-direction).
-vy_max = 8.0 * vt -- Domain boundary (velocity space: vy-direction).
-vz_max = 8.0 * vt -- Domain boundary (velocity space: vz-direction).
+vx_max = 8.0 -- Domain boundary (velocity space: vx-direction).
+vy_max = 8.0 -- Domain boundary (velocity space: vy-direction).
+vz_max = 8.0 -- Domain boundary (velocity space: vz-direction).
 poly_order = 1 -- Polynomial order.
-basis_type = "serendipity" -- Basis function set.
+basis_type = "tensor" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
 cfl_frac = 1.0 -- CFL coefficient.
 

@@ -139,8 +139,6 @@ vlasovApp = Vlasov.App.new {
     evolve = false, -- Evolve field?
     elcErrorSpeedFactor = 0.0,
     mgnErrorSpeedFactor = 0.0,
-
-    isStatic = true
   }
 }
 
