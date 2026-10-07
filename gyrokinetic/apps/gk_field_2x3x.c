@@ -7,6 +7,7 @@
 #include <gkyl_gk_field_priv.h>
 #include <gkyl_array_rio_priv.h>
 #include <gkyl_comm_io.h>
+#include <gkyl_array_average.h>
 #include <gkyl_dg_interpolate.h>
 
 #include <assert.h>
@@ -14,13 +15,36 @@
 #include <time.h>
 
 static void
+gk_field_fem_projection_par_none(
+  gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *arr_dg,
+  struct gkyl_array *arr_fem
+)
+{
+  // Do nothing.
+}
+
+// Fill the lower parallel ghost cells ghost_r with the twist-and-shift of the
+// upper parallel skin cells skin_r, and the upper parallel ghost cells with the
+// upper skin value, so a Dirichlet-ghost parallel smoother enforces TS.
+static void
+gk_field_2x3x_par_ghosts_ts(
+  struct gk_field *field, struct gkyl_array *arr_global, const struct gkyl_range *ghost_r,
+  const struct gkyl_range *skin_r
+)
+{
+  gkyl_array_copy_range_to_range(arr_global, arr_global, ghost_r, skin_r);
+  gkyl_bc_twistshift_advance(field->bc_ts_lo, arr_global, arr_global);
+  gkyl_bc_basic_gyrokinetic_advance(field->gfss_bc_op_core_up, field->bc_buffer, arr_global);
+}
+
+// Project a DG charge density onto the parallel FEM basis to make it
+// continuous along z using different BCs in the core and SOL.
+static void
 gk_field_fem_projection_par_rho_ts_2x(
   gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *arr_dg,
   struct gkyl_array *arr_fem
 )
 {
-  // Project a DG charge density onto the parallel FEM basis to make it
-  // continuous along z using different BCs in the core and SOL.
 
   // Gather the DG array into a global (in z) array.
   gkyl_comm_array_allgather(app->comm, &app->local, &app->global, arr_dg, field->rho_c_global_dg);
@@ -57,24 +81,24 @@ gk_field_fem_projection_par_phi_ts_2x(
   gkyl_array_copy_range_to_range(arr_fem, field->phi_fem, &app->local, &field->global_sub_range);
 }
 
+// Project a DG field onto the parallel FEM basis to make it
+// continuous along z (or to solve a Poisson equation in 1x),
+// using twistshift BCs in the parallel direction.
 static void
 gk_field_fem_projection_par_phi_ts_3x(
   gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *arr_dg,
   struct gkyl_array *arr_fem
 )
 {
-  // Project a DG field onto the parallel FEM basis to make it
-  // continuous along z (or to solve a Poisson equation in 1x),
-  // using twistshift BCs in the parallel direction.
 
   // Gather the DG array into a global (in z) array.
   gkyl_comm_array_allgather(app->comm, &app->local, &app->global, arr_dg, field->rho_c_global_dg);
 
-  // Apply TS BC in the core lower parallel boundary, and
-  // fill core upper parallel boundary ghost with skin boundary value.
+  // Apply TS BC in the lower parallel boundary, and
+  // fill upper parallel boundary ghost with skin boundary value.
   int par_dir = app->cdim - 1; // Parallel direction index.
-  gkyl_array_copy_range_to_range(
-    field->rho_c_global_dg, field->rho_c_global_dg, &app->global_lower_ghost[par_dir],
+  gk_field_2x3x_par_ghosts_ts(
+    field, field->rho_c_global_dg, &app->global_lower_ghost[par_dir],
     &app->global_upper_skin[par_dir]
   );
   gkyl_bc_twistshift_advance(field->bc_ts_lo, field->rho_c_global_dg, field->rho_c_global_dg);
@@ -145,28 +169,23 @@ gk_field_fem_projection_par_phi_iwl_2x(
   gkyl_array_copy_range_to_range(arr_fem, field->phi_fem, &app->local, &field->global_sub_range);
 }
 
+// Project a DG field onto the parallel FEM basis to make it
+// continuous along z (or to solve a Poisson equation in 1x),
+// using different BCs in the core and SOL.
 static void
 gk_field_fem_projection_par_phi_iwl_3x(
   gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *arr_dg,
   struct gkyl_array *arr_fem
 )
 {
-  // Project a DG field onto the parallel FEM basis to make it
-  // continuous along z (or to solve a Poisson equation in 1x),
-  // using different BCs in the core and SOL.
-
   // Gather the DG array into a global (in z) array.
   gkyl_comm_array_allgather(app->comm, &app->local, &app->global, arr_dg, field->rho_c_global_dg);
 
   // Apply TS BC in the core lower parallel boundary, and
   // fill core upper parallel boundary ghost with skin boundary value.
-  gkyl_array_copy_range_to_range(
-    field->rho_c_global_dg, field->rho_c_global_dg, &app->global_lower_ghost_par_core,
+  gk_field_2x3x_par_ghosts_ts(
+    field, field->rho_c_global_dg, &app->global_lower_ghost_par_core,
     &app->global_upper_skin_par_core
-  );
-  gkyl_bc_twistshift_advance(field->bc_ts_lo, field->rho_c_global_dg, field->rho_c_global_dg);
-  gkyl_bc_basic_gyrokinetic_advance(
-    field->gfss_bc_op_core_up, field->bc_buffer, field->rho_c_global_dg
   );
 
   // Smooth the the DG array.
@@ -178,6 +197,105 @@ gk_field_fem_projection_par_phi_iwl_3x(
     field->fem_parproj_phi_sol, field->rho_c_global_dg, field->rho_c_global_dg
   );
   gkyl_fem_parproj_solve(field->fem_parproj_phi_sol, field->phi_fem);
+
+  // Copy global, continuous FEM array to a local array.
+  gkyl_array_copy_range_to_range(arr_fem, field->phi_fem, &app->local, &field->global_sub_range);
+}
+
+// Project the DG Apar onto the parallel FEM basis to make it continuous
+// along z, using the Apar smoother (no phi bias lines).
+static void
+gk_field_fem_projection_par_apar(
+  gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *arr_dg,
+  struct gkyl_array *arr_fem
+)
+{
+  // Gather the DG array into a global (in z) array.
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, arr_dg, field->rho_c_global_dg);
+
+  // Smooth the the DG array.
+  gkyl_fem_parproj_set_rhs(field->fem_apar_parproj, field->rho_c_global_dg, field->rho_c_global_dg);
+  gkyl_fem_parproj_solve(field->fem_apar_parproj, field->phi_fem);
+
+  // Copy global, continuous FEM array to a local array.
+  gkyl_array_copy_range_to_range(arr_fem, field->phi_fem, &app->local, &field->global_sub_range);
+}
+
+// Project the DG Apar onto the parallel FEM basis to make it continuous
+// along z, using twistshift BCs in the parallel direction (same as phi).
+static void
+gk_field_fem_projection_par_apar_ts_3x(
+  gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *arr_dg,
+  struct gkyl_array *arr_fem
+)
+{
+  // Gather the DG array into a global (in z) array.
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, arr_dg, field->rho_c_global_dg);
+
+  // Apply TS BC in the lower parallel boundary, and
+  // fill upper parallel boundary ghost with skin boundary value.
+  int par_dir = app->cdim - 1; // Parallel direction index.
+  gk_field_2x3x_par_ghosts_ts(
+    field, field->rho_c_global_dg, &app->global_lower_ghost[par_dir],
+    &app->global_upper_skin[par_dir]
+  );
+
+  // Smooth the the DG array.
+  gkyl_fem_parproj_set_rhs(field->fem_apar_parproj, field->rho_c_global_dg, field->rho_c_global_dg);
+  gkyl_fem_parproj_solve(field->fem_apar_parproj, field->phi_fem);
+
+  // Copy global, continuous FEM array to a local array.
+  gkyl_array_copy_range_to_range(arr_fem, field->phi_fem, &app->local, &field->global_sub_range);
+}
+
+// Project the DG Apar onto the parallel FEM basis to make it continuous
+// along z with a LCFS: periodic in the core, free ends in the SOL.
+static void
+gk_field_fem_projection_par_apar_iwl_2x(
+  gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *arr_dg,
+  struct gkyl_array *arr_fem
+)
+{
+  // Gather the DG array into a global (in z) array.
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, arr_dg, field->rho_c_global_dg);
+
+  // Smooth the the DG array.
+  gkyl_fem_parproj_set_rhs(field->fem_apar_parproj, field->rho_c_global_dg, field->rho_c_global_dg);
+  gkyl_fem_parproj_solve(field->fem_apar_parproj, field->phi_fem);
+  gkyl_fem_parproj_set_rhs(
+    field->fem_apar_parproj_sol, field->rho_c_global_dg, field->rho_c_global_dg
+  );
+  gkyl_fem_parproj_solve(field->fem_apar_parproj_sol, field->phi_fem);
+
+  // Copy global, continuous FEM array to a local array.
+  gkyl_array_copy_range_to_range(arr_fem, field->phi_fem, &app->local, &field->global_sub_range);
+}
+
+// Project the DG Apar onto the parallel FEM basis to make it continuous
+// along z with a LCFS: twistshift in the core (same as phi), free ends in the SOL.
+static void
+gk_field_fem_projection_par_apar_iwl_3x(
+  gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *arr_dg,
+  struct gkyl_array *arr_fem
+)
+{
+  // Gather the DG array into a global (in z) array.
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, arr_dg, field->rho_c_global_dg);
+
+  // Apply TS BC in the core lower parallel boundary, and
+  // fill core upper parallel boundary ghost with skin boundary value.
+  gk_field_2x3x_par_ghosts_ts(
+    field, field->rho_c_global_dg, &app->global_lower_ghost_par_core,
+    &app->global_upper_skin_par_core
+  );
+
+  // Smooth the the DG array.
+  gkyl_fem_parproj_set_rhs(field->fem_apar_parproj, field->rho_c_global_dg, field->rho_c_global_dg);
+  gkyl_fem_parproj_solve(field->fem_apar_parproj, field->phi_fem);
+  gkyl_fem_parproj_set_rhs(
+    field->fem_apar_parproj_sol, field->rho_c_global_dg, field->rho_c_global_dg
+  );
+  gkyl_fem_parproj_solve(field->fem_apar_parproj_sol, field->phi_fem);
 
   // Copy global, continuous FEM array to a local array.
   gkyl_array_copy_range_to_range(arr_fem, field->phi_fem, &app->local, &field->global_sub_range);
@@ -484,6 +602,89 @@ gk_field_rhs_poisson_perp_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field
 }
 
 static void
+gk_field_ohm_solve(struct gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *out)
+{
+  struct timespec wst = gkyl_wall_clock();
+
+  gkyl_fem_poisson_perp_update_lhs(
+    field->fem_apardot_solver, field->lapWeightAmpere, field->dApartdtSlvr_kSq
+  );
+  gkyl_fem_poisson_perp_set_rhs(field->fem_apardot_solver, field->currentDensdot);
+  gkyl_fem_poisson_perp_solve(field->fem_apardot_solver, out);
+
+  field->invert_flr(app, field, field->apardot);
+
+  field->remove_em_zonal_func(app, field, field->apardot);
+
+  app->stat.field_apar_solve_tm += gkyl_time_diff_now_sec(wst);
+}
+
+static void
+gk_field_ampere_solve_enabled(
+  gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *out
+)
+{
+  struct timespec wst = gkyl_wall_clock();
+
+  gkyl_fem_poisson_perp_set_rhs(field->fem_apar_solver, field->currentDens);
+  gkyl_fem_poisson_perp_solve(field->fem_apar_solver, out);
+
+  field->invert_flr(app, field, out);
+
+  // Smooth Apar along z with the same parallel BCs used during time stepping.
+  field->fem_projection_par_apar_func(app, field, out, out);
+
+  app->stat.field_apar_solve_tm += gkyl_time_diff_now_sec(wst);
+}
+
+static void
+gk_field_ampere_solve_none(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *out)
+{
+  // Do nothing.
+}
+
+static void
+gk_field_em_rhs_enabled(
+  gkyl_gyrokinetic_app *app, struct gk_field *field, const struct gkyl_array *f_in[],
+  struct gkyl_array *rhs_in[]
+)
+{
+  gk_field_accumulate_current_dens_dot(app, field, rhs_in);
+  gk_field_accumulate_ohms_kSq(app, field, f_in);
+  gk_field_ohm_solve(app, field, field->apardot);
+}
+
+static void
+gk_field_em_rhs_none(
+  gkyl_gyrokinetic_app *app, struct gk_field *field, const struct gkyl_array *f_in[],
+  struct gkyl_array *rhs_in[]
+)
+{
+  // Do nothing.
+}
+
+static void
+gk_field_remove_em_zonal_enabled(
+  gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *field_array
+)
+{
+  gkyl_array_average_advance(field->fs_avg_op, field_array, field->fs_avg);
+  // Hack the conf to phase space dg op to do the 1x substraction over the entire conf space.
+  gkyl_dg_mul_conf_phase_op_accumulate_range(
+    &field->fs_avg_basis, &app->basis, field_array, -1.0, field->fs_avg, field->fs_avg_conf_one,
+    &field->fs_avg_range, &app->local
+  );
+}
+
+static void
+gk_field_em_zonal_component_none(
+  gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *field_array
+)
+{
+  // Do nothing.
+}
+
+static void
 gk_field_fem_release_2x3x(const gkyl_gyrokinetic_app *app, struct gk_field *f)
 {
   gkyl_array_release(f->rho_c);
@@ -491,10 +692,40 @@ gk_field_fem_release_2x3x(const gkyl_gyrokinetic_app *app, struct gk_field *f)
   gkyl_array_release(f->rho_c_global_smooth);
   gkyl_array_release(f->phi_fem);
   gkyl_array_release(f->phi_smooth);
+  gkyl_array_release(f->apar);
+  gkyl_array_release(f->apardot);
 
-  if (f->gkfield_id == GKYL_GK_FIELD_EM) {
-    gkyl_array_release(f->apar_fem);
-    gkyl_array_release(f->apardot_fem);
+  if (f->is_em) {
+    gkyl_array_release(f->amperesol);
+    gkyl_array_release(f->apar_curr);
+    gkyl_array_release(f->apar1);
+    gkyl_array_release(f->aparnew);
+    gkyl_array_release(f->apar_smooth_aux);
+    gkyl_array_release(f->currentDens);
+    gkyl_array_release(f->currentDensdot);
+    gkyl_array_release(f->lapWeightAmpere);
+    gkyl_array_release(f->dApartdtSlvr_kSq);
+    gkyl_fem_parproj_release(f->fem_apar_parproj);
+    if (app->gk_geom->has_LCFS) {
+      gkyl_fem_parproj_release(f->fem_apar_parproj_sol);
+    }
+    gkyl_fem_poisson_perp_release(f->fem_apar_solver);
+    gkyl_fem_poisson_perp_release(f->fem_apardot_solver);
+    if (app->use_gpu) {
+      gkyl_array_release(f->apar_host);
+      gkyl_array_release(f->apardot_host);
+      gkyl_array_release(f->amperesol_host);
+    }
+    if (f->info.remove_em_zonal) {
+      gkyl_array_average_release(f->fs_avg_op);
+      gkyl_array_release(f->fs_avg);
+      gkyl_array_release(f->fs_avg_conf_one);
+      if (app->use_gpu) {
+        gkyl_cu_free(f->fs_avg_subdir);
+      } else {
+        gkyl_free(f->fs_avg_subdir);
+      }
+    }
   }
 
   if (app->use_gpu) {
@@ -559,11 +790,31 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
   // Allocate arrays for electrostatic potential.
   f->phi_fem = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
   f->phi_smooth = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  f->apar = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  f->apardot = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
 
-  // Allocate electromagnetic arrays if needed.
-  if (f->gkfield_id == GKYL_GK_FIELD_EM) {
-    f->apar_fem = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    f->apardot_fem = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  // Setup electromagnetic variables if needed.
+  if (f->is_em) {
+    // Arrays for A_parallel RK stages and Ampere's law solution.
+    f->apar_curr = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    f->apar1 = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    f->aparnew = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    f->amperesol = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    f->apar_host = f->apar;
+    f->apardot_host = f->apardot;
+    f->amperesol_host = f->amperesol;
+    if (app->use_gpu) {
+      f->apar_host = mkarr(false, app->basis.num_basis, app->local_ext.volume);
+      f->apardot_host = mkarr(false, app->basis.num_basis, app->local_ext.volume);
+      f->amperesol_host = mkarr(false, app->basis.num_basis, app->local_ext.volume);
+    }
+
+    f->apar_smooth_aux = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    f->currentDens = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    f->currentDensdot = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    f->lapWeightAmpere =
+      mkarr(app->use_gpu, (2 * (app->cdim / 3) + 1) * app->basis.num_basis, app->local_ext.volume);
+    f->dApartdtSlvr_kSq = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   }
 
   // Allocate phi_host for I/O.
@@ -595,6 +846,16 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
   };
   for (int i = 0; i < app->cdim - 2 / app->cdim; i++) {
     gkyl_array_set_offset(f->epsilon, polarization_weight, Jgij[i], i * app->basis.num_basis);
+  }
+
+  if (f->is_em) {
+    // Compute the weights in front of the laplacian operator (metric x 1/mu0)
+    for (int i = 0; i < app->cdim - 2 / app->cdim; i++) {
+      gkyl_array_set_offset(
+        f->lapWeightAmpere, 1.0 / f->info.mu0, Jgij[i], i * app->basis.num_basis
+      );
+    }
+    gkyl_array_set(f->apar_energy_fac, -0.5, f->lapWeightAmpere);
   }
 
   bool bc_is_np[GKYL_MAX_CDIM]; // Is the BC in this direction non-periodic?
@@ -694,6 +955,99 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
   f->fem_projection_par_rho_func = gk_field_fem_projection_par;
   f->fem_projection_par_phi_func = gk_field_fem_projection_par;
 
+  // Setup EM solvers.
+  f->ampere_solve = gk_field_ampere_solve_none;
+  f->em_rhs_func = gk_field_em_rhs_none;
+  f->remove_em_zonal_func = gk_field_em_zonal_component_none;
+  f->fem_projection_par_apar_func = gk_field_fem_projection_par_none;
+  if (f->is_em) {
+    // Translate input file BCs into Ampere BCs.
+    for (int d = 0; d < app->cdim - 1; d++) {
+      if (bc_is_np[d]) {
+        struct gkyl_gyrokinetic_bc *bc_lo =
+          gk_fetch_bc_with_dir_edge(f->info.ampere_bcs, 2 * app->cdim, d, GKYL_LOWER_EDGE);
+        if (bc_lo != 0) {
+          f->ampere_bcs.lo_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(bc_lo->type);
+          for (int i = 0; i < 3; i++) {
+            f->ampere_bcs.lo_value[d].v[i] = bc_lo->value[i];
+          }
+        }
+
+        struct gkyl_gyrokinetic_bc *bc_up =
+          gk_fetch_bc_with_dir_edge(f->info.ampere_bcs, 2 * app->cdim, d, GKYL_UPPER_EDGE);
+        if (bc_up != 0) {
+          f->ampere_bcs.up_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(bc_up->type);
+          for (int i = 0; i < 3; i++) {
+            f->ampere_bcs.up_value[d].v[i] = bc_up->value[i];
+          }
+        }
+      } else {
+        f->ampere_bcs.lo_type[d] =
+          gkyl_gyrokinetic_translate_poisson_bc_type(GKYL_BC_GK_FIELD_PERIODIC);
+        f->ampere_bcs.up_type[d] =
+          gkyl_gyrokinetic_translate_poisson_bc_type(GKYL_BC_GK_FIELD_PERIODIC);
+      }
+    }
+    // FEM solver for Ampere equation (solved at IC only).
+    f->fem_apar_solver = gkyl_fem_poisson_perp_new(
+      &app->local, &app->grid, app->basis, &f->ampere_bcs, 0, f->lapWeightAmpere, NULL, app->use_gpu
+    );
+    // FEM solver for Ohm's law (evolves d(Apart)/dt).
+    f->fem_apardot_solver = gkyl_fem_poisson_perp_new(
+      &app->local, &app->grid, app->basis, &f->ampere_bcs, 0, f->lapWeightAmpere,
+      f->dApartdtSlvr_kSq, app->use_gpu
+    );
+
+    // We have to advance the updater once to be able to update the kSq later.
+    gkyl_fem_poisson_perp_set_rhs(f->fem_apardot_solver, f->currentDensdot);
+    gkyl_fem_poisson_perp_solve(f->fem_apardot_solver, f->apardot);
+
+    f->ampere_solve = gk_field_ampere_solve_enabled;
+    f->em_rhs_func = f->info.is_apar_static ? gk_field_em_rhs_none : gk_field_em_rhs_enabled;
+
+    if (f->info.remove_em_zonal) {
+      f->remove_em_zonal_func = gk_field_remove_em_zonal_enabled;
+      // define the reduced range and basis for averaging along x only
+      struct gkyl_rect_grid grid_x;
+      gkyl_rect_grid_init(&grid_x, 1, &app->grid.lower[0], &app->grid.upper[0], &app->grid.cells[0]);
+      int ghost_x[] = {1};
+      gkyl_create_grid_ranges(&grid_x, ghost_x, &f->fs_avg_range_ext, &f->fs_avg_range);
+      gkyl_cart_modal_serendip(&f->fs_avg_basis, 1, app->basis.poly_order);
+      // create and run the array average updater to average y and z
+      // Not that in 2x, it will only average over z.
+      int avg_dim_yz[] = {0, 1, 1};
+      struct gkyl_array_average_inp inp_avg_xyz_to_x = {
+        .grid = &app->grid,
+        .basis = app->basis,
+        .basis_avg = f->fs_avg_basis,
+        .local = &app->local,
+        .local_avg = &f->fs_avg_range,
+        .local_avg_ext = &f->fs_avg_range_ext,
+        .weight = app->gk_geom->geo_int.jacobgeo,
+        .avg_dim = avg_dim_yz,
+        .use_gpu = app->use_gpu,
+      };
+      int fs_avg_subdir[GKYL_MAX_CDIM];
+      fs_avg_subdir[0] = 0; // Average along x only, so subdir is just 0.
+      if (app->use_gpu) {
+        f->fs_avg_subdir = gkyl_cu_malloc(GKYL_MAX_CDIM * sizeof(int));
+        gkyl_cu_memcpy(
+          f->fs_avg_subdir, fs_avg_subdir, GKYL_MAX_CDIM * sizeof(int), GKYL_CU_MEMCPY_H2D
+        );
+      } else {
+        f->fs_avg_subdir = gkyl_malloc(GKYL_MAX_CDIM * sizeof(int));
+        for (int i = 0; i < GKYL_MAX_CDIM; i++) {
+          f->fs_avg_subdir[i] = fs_avg_subdir[i];
+        }
+      }
+      f->fs_avg_op = gkyl_array_average_inew(&inp_avg_xyz_to_x);
+      f->fs_avg = mkarr(app->use_gpu, f->fs_avg_basis.num_basis, f->fs_avg_range_ext.volume);
+      f->fs_avg_conf_one = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+      double dg_norm = pow(sqrt(2.0), app->basis.ndim);
+      gkyl_array_shiftc_range(f->fs_avg_conf_one, dg_norm, 0, &app->local);
+    }
+  }
+
   // Updater for field energy calculation.
   gkyl_array_set(f->es_energy_fac, 0.5, f->epsilon);
   f->calc_em_energy = gkyl_array_integrate_new(
@@ -735,6 +1089,40 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
   } else if (f->bc_par_phi == GKYL_BC_GK_FIELD_TWISTSHIFT) {
     // Updaters to enforce twist-and-shift BCs.
     gk_field_2x3x_add_TS_updaters(app, f, &poisson_bcs);
+  }
+
+  if (f->is_em) {
+    // FEM smoother for Apar.
+    if (app->gk_geom->has_LCFS) {
+      if (app->cdim == 2) {
+        f->fem_parproj_ampere_bc = GKYL_FEM_PARPROJ_PERIODIC;
+        f->fem_projection_par_apar_func = gk_field_fem_projection_par_apar_iwl_2x;
+      } else {
+        f->fem_parproj_ampere_bc = GKYL_FEM_PARPROJ_DIRICHLET_GHOST;
+        f->fem_projection_par_apar_func = gk_field_fem_projection_par_apar_iwl_3x;
+      }
+      f->fem_apar_parproj = gkyl_fem_parproj_new(
+        &app->global_core, &app->grid, &app->basis, f->fem_parproj_ampere_bc, 0, 0, 0, app->use_gpu
+      );
+      f->fem_apar_parproj_sol = gkyl_fem_parproj_new(
+        &app->global_sol, &app->grid, &app->basis, GKYL_FEM_PARPROJ_NONE, 0, 0, 0, app->use_gpu
+      );
+    } else {
+      f->fem_parproj_ampere_bc = fem_parproj_bc;
+      f->fem_projection_par_apar_func = gk_field_fem_projection_par_apar;
+      if (f->bc_par_phi == GKYL_BC_GK_FIELD_TWISTSHIFT) {
+        if (app->cdim == 2) {
+          // 2x TS reduces to periodic in z.
+          f->fem_parproj_ampere_bc = GKYL_FEM_PARPROJ_PERIODIC;
+        } else {
+          f->fem_parproj_ampere_bc = GKYL_FEM_PARPROJ_DIRICHLET_GHOST;
+          f->fem_projection_par_apar_func = gk_field_fem_projection_par_apar_ts_3x;
+        }
+      }
+      f->fem_apar_parproj = gkyl_fem_parproj_new(
+        &app->global, &app->grid, &app->basis, f->fem_parproj_ampere_bc, 0, 0, 0, app->use_gpu
+      );
+    }
   }
 
   // Set the pointer to the function that computes phi.
