@@ -79,12 +79,11 @@ void gkyl_mom_bcorr_vlasov(const struct gkyl_ref_count *ref);
 GKYL_CU_D static void
 kernel(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_bcorr_lbo_vlasov *mom_bcorr =
     container_of(momt, struct mom_type_bcorr_lbo_vlasov, momt);
-  enum gkyl_vel_edge edge = *(enum gkyl_vel_edge *)param;
 
   return mom_bcorr->kernel(idx, edge, mom_bcorr->vBoundary, dx, f, out);
 }

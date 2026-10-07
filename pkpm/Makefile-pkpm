@@ -89,6 +89,16 @@ ifdef USING_NVCC
 ../$(BUILD_DIR)/pkpm/$(KERNELS_DIR)/pkpm/%.c.o : $(KERNELS_DIR)/pkpm/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
+
+# Moment family (mom_pkpm_*, mom_bcorr_lbo_pkpm_*): register-capped with MOM_MAX_REGS
+# (see the top-level Makefile). Shorter stem than the pkpm/%.c.o rule above.
+../$(BUILD_DIR)/pkpm/$(KERNELS_DIR)/pkpm/mom_%.c.o : $(KERNELS_DIR)/pkpm/mom_%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(NVCC_MOM_FLAGS) $(INCS) -c $< -o $@
+
+../$(BUILD_DIR)/pkpm/zero/mom_pkpm_cu.cu.o ../$(BUILD_DIR)/pkpm/zero/mom_bcorr_lbo_pkpm_cu.cu.o : ../$(BUILD_DIR)/pkpm/zero/%.cu.o : zero/%.cu
+	$(MKDIR_P) $(dir $@)
+	$(CC) -c $(CFLAGS) $(NVCC_FLAGS) $(NVCC_MOM_FLAGS) $(INCS) $< -o $@
 endif
 
 # build lib

@@ -138,9 +138,19 @@ ifdef USING_NVCC
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
+# Moment family: register-capped with MOM_MAX_REGS (see the top-level Makefile). The
+# mom_bcorr_% rule has a shorter stem than the lbo_gyrokinetic/%.c.o rule below.
 ../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/gyrokinetic_mom/%.c.o : $(KERNELS_DIR)/gyrokinetic_mom/%.c
 	$(MKDIR_P) $(dir $@)
-	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(NVCC_MOM_FLAGS) $(INCS) -c $< -o $@
+
+../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/lbo_gyrokinetic/mom_bcorr_%.c.o : $(KERNELS_DIR)/lbo_gyrokinetic/mom_bcorr_%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(NVCC_MOM_FLAGS) $(INCS) -c $< -o $@
+
+../$(BUILD_DIR)/gyrokinetic/zero/mom_gyrokinetic_cu.cu.o ../$(BUILD_DIR)/gyrokinetic/zero/mom_bcorr_lbo_gyrokinetic_cu.cu.o : ../$(BUILD_DIR)/gyrokinetic/zero/%.cu.o : zero/%.cu
+	$(MKDIR_P) $(dir $@)
+	$(CC) -c $(CFLAGS) $(NVCC_FLAGS) $(NVCC_MOM_FLAGS) $(INCS) $< -o $@
 
 ../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/dg_gyrokinetic/%.c.o : $(KERNELS_DIR)/dg_gyrokinetic/%.c
 	$(MKDIR_P) $(dir $@)

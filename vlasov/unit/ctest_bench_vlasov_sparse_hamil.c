@@ -123,11 +123,12 @@ bench_case(
   gkyl_cart_modal_serendip(&velBasis, vdim, poly_order);
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
-  // Nodal surface-expansion sizes, matching vm_species_collisionless.c
-  // (Serendipity, use_lo = false: higher-order nodes except at p=1).
-  int highorder = (poly_order == 1) ? 0 : 1;
-  int num_surf_vel_nodes = (int)pow(poly_order + 1 + highorder, pdim - 1);
-  int num_surf_conf_nodes = (int)pow(poly_order + 1 + highorder, pdim - 1);
+  // Modal surface-expansion sizes (the flux arrays hold the surface modal
+  // basis per direction), matching vm_species_collisionless.c (Serendipity).
+  struct gkyl_basis surfBasis;
+  gkyl_cart_modal_serendip(&surfBasis, pdim - 1, poly_order);
+  int num_surf_vel_basis = surfBasis.num_basis;
+  int num_surf_conf_basis = surfBasis.num_basis;
 
   // Distribution, RHS, CFL, and field arrays with synthetic data.
   struct gkyl_array *fin = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, phaseRange_ext.volume);
@@ -193,9 +194,9 @@ bench_case(
   for (int fl = 0; fl < 2; ++fl) {
     rhs[fl] = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, phaseRange_ext.volume);
     vel_flux_surf[fl] =
-      gkyl_array_new(GKYL_DOUBLE, vdim * num_surf_vel_nodes, phaseRange_ext.volume);
+      gkyl_array_new(GKYL_DOUBLE, vdim * num_surf_vel_basis, phaseRange_ext.volume);
     conf_flux_surf[fl] =
-      is_triad ? gkyl_array_new(GKYL_DOUBLE, cdim * num_surf_conf_nodes, phaseRange_ext.volume) : 0;
+      is_triad ? gkyl_array_new(GKYL_DOUBLE, cdim * num_surf_conf_basis, phaseRange_ext.volume) : 0;
 
     if (is_triad) {
       struct gkyl_dg_vlasov_conf_flux_surf_inp inp_conf_flux = {
@@ -428,9 +429,9 @@ bench_case(
   // reference pass (the CPU timing loop above leaves hyper_dg contributions
   // in cflrate).
   struct gkyl_array *vel_flux_ho =
-    gkyl_array_new(GKYL_DOUBLE, vdim * num_surf_vel_nodes, phaseRange_ext.volume);
+    gkyl_array_new(GKYL_DOUBLE, vdim * num_surf_vel_basis, phaseRange_ext.volume);
   struct gkyl_array *conf_flux_ho =
-    is_triad ? gkyl_array_new(GKYL_DOUBLE, cdim * num_surf_conf_nodes, phaseRange_ext.volume) : 0;
+    is_triad ? gkyl_array_new(GKYL_DOUBLE, cdim * num_surf_conf_basis, phaseRange_ext.volume) : 0;
   struct gkyl_array *cflrate_ho = gkyl_array_new(GKYL_DOUBLE, 1, phaseRange_ext.volume);
   struct gkyl_array *cflrate_ref = gkyl_array_new(GKYL_DOUBLE, 1, phaseRange_ext.volume);
 
@@ -446,10 +447,10 @@ bench_case(
 
   for (int fl = 0; fl < 2; ++fl) {
     vel_flux_surf_cu[fl] =
-      gkyl_array_cu_dev_new(GKYL_DOUBLE, vdim * num_surf_vel_nodes, phaseRange_ext.volume);
+      gkyl_array_cu_dev_new(GKYL_DOUBLE, vdim * num_surf_vel_basis, phaseRange_ext.volume);
     conf_flux_surf_cu[fl] =
       is_triad ?
-        gkyl_array_cu_dev_new(GKYL_DOUBLE, cdim * num_surf_conf_nodes, phaseRange_ext.volume) :
+        gkyl_array_cu_dev_new(GKYL_DOUBLE, cdim * num_surf_conf_basis, phaseRange_ext.volume) :
         0;
 
     if (is_triad) {

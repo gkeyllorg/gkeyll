@@ -47,7 +47,7 @@ typedef struct {
 GKYL_CU_DH static void
 kernel_mom_vlasov_M0_1x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   return mom_vlasov_M0_1x1v_ser_p1(xc, dx, idx, f, out);
@@ -56,7 +56,7 @@ kernel_mom_vlasov_M0_1x1v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M0_1x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   return mom_vlasov_M0_1x1v_ser_p2(xc, dx, idx, f, out);
@@ -65,7 +65,7 @@ kernel_mom_vlasov_M0_1x1v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M0_1x1v_ser_p3(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   return mom_vlasov_M0_1x1v_ser_p3(xc, dx, idx, f, out);
@@ -74,7 +74,7 @@ kernel_mom_vlasov_M0_1x1v_ser_p3(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M0_1x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   return mom_vlasov_M0_1x2v_ser_p1(xc, dx, idx, f, out);
@@ -83,7 +83,7 @@ kernel_mom_vlasov_M0_1x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M0_1x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   return mom_vlasov_M0_1x2v_ser_p2(xc, dx, idx, f, out);
@@ -92,7 +92,7 @@ kernel_mom_vlasov_M0_1x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M0_1x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   return mom_vlasov_M0_1x3v_ser_p1(xc, dx, idx, f, out);
@@ -101,7 +101,7 @@ kernel_mom_vlasov_M0_1x3v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M0_1x3v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   return mom_vlasov_M0_1x3v_ser_p2(xc, dx, idx, f, out);
@@ -110,7 +110,7 @@ kernel_mom_vlasov_M0_1x3v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M0_2x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   return mom_vlasov_M0_2x1v_ser_p1(xc, dx, idx, f, out);
@@ -119,7 +119,7 @@ kernel_mom_vlasov_M0_2x1v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M0_2x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   return mom_vlasov_M0_2x1v_ser_p2(xc, dx, idx, f, out);
@@ -128,7 +128,7 @@ kernel_mom_vlasov_M0_2x1v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M0_2x1v_ser_p3(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   return mom_vlasov_M0_2x1v_ser_p3(xc, dx, idx, f, out);
@@ -137,7 +137,7 @@ kernel_mom_vlasov_M0_2x1v_ser_p3(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M0_2x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   return mom_vlasov_M0_2x2v_ser_p1(xc, dx, idx, f, out);
@@ -146,7 +146,7 @@ kernel_mom_vlasov_M0_2x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M0_2x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   return mom_vlasov_M0_2x2v_ser_p2(xc, dx, idx, f, out);
@@ -155,7 +155,7 @@ kernel_mom_vlasov_M0_2x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M0_2x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   return mom_vlasov_M0_2x3v_ser_p1(xc, dx, idx, f, out);
@@ -164,7 +164,7 @@ kernel_mom_vlasov_M0_2x3v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M0_2x3v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   return mom_vlasov_M0_2x3v_ser_p2(xc, dx, idx, f, out);
@@ -173,7 +173,7 @@ kernel_mom_vlasov_M0_2x3v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M0_3x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   return mom_vlasov_M0_3x3v_ser_p1(xc, dx, idx, f, out);
@@ -198,7 +198,7 @@ GKYL_CU_D static const gkyl_vlasov_mom_kern_list ser_m0_kernels[] = {
 GKYL_CU_DH static void
 kernel_mom_vlasov_M0_1x1v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   return mom_vlasov_M0_1x1v_tensor_p2(xc, dx, idx, f, out);
@@ -207,7 +207,7 @@ kernel_mom_vlasov_M0_1x1v_tensor_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M0_1x1v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   return mom_vlasov_M0_1x1v_tensor_p1(xc, dx, idx, f, out);
@@ -216,7 +216,7 @@ kernel_mom_vlasov_M0_1x1v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M0_1x1v_tensor_p3(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   return mom_vlasov_M0_1x1v_tensor_p3(xc, dx, idx, f, out);
@@ -225,7 +225,7 @@ kernel_mom_vlasov_M0_1x1v_tensor_p3(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M0_1x2v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   return mom_vlasov_M0_1x2v_tensor_p2(xc, dx, idx, f, out);
@@ -234,7 +234,7 @@ kernel_mom_vlasov_M0_1x2v_tensor_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M0_1x2v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   return mom_vlasov_M0_1x2v_tensor_p1(xc, dx, idx, f, out);
@@ -243,7 +243,7 @@ kernel_mom_vlasov_M0_1x2v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M0_1x3v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   return mom_vlasov_M0_1x3v_tensor_p2(xc, dx, idx, f, out);
@@ -252,7 +252,7 @@ kernel_mom_vlasov_M0_1x3v_tensor_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M0_1x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   return mom_vlasov_M0_1x3v_tensor_p1(xc, dx, idx, f, out);
@@ -261,7 +261,7 @@ kernel_mom_vlasov_M0_1x3v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M0_2x1v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   return mom_vlasov_M0_2x1v_tensor_p2(xc, dx, idx, f, out);
@@ -270,7 +270,7 @@ kernel_mom_vlasov_M0_2x1v_tensor_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M0_2x1v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   return mom_vlasov_M0_2x1v_tensor_p1(xc, dx, idx, f, out);
@@ -279,7 +279,7 @@ kernel_mom_vlasov_M0_2x1v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M0_2x1v_tensor_p3(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   return mom_vlasov_M0_2x1v_tensor_p3(xc, dx, idx, f, out);
@@ -288,7 +288,7 @@ kernel_mom_vlasov_M0_2x1v_tensor_p3(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M0_2x2v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   return mom_vlasov_M0_2x2v_tensor_p2(xc, dx, idx, f, out);
@@ -297,7 +297,7 @@ kernel_mom_vlasov_M0_2x2v_tensor_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M0_2x2v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   return mom_vlasov_M0_2x2v_tensor_p1(xc, dx, idx, f, out);
@@ -307,7 +307,7 @@ kernel_mom_vlasov_M0_2x2v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M0_2x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   return mom_vlasov_M0_2x3v_tensor_p1(xc, dx, idx, f, out);
@@ -318,7 +318,7 @@ kernel_mom_vlasov_M0_2x3v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M0_3x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   return mom_vlasov_M0_3x3v_tensor_p1(xc, dx, idx, f, out);
@@ -344,7 +344,7 @@ GKYL_CU_D static const gkyl_vlasov_mom_kern_list tensor_m0_kernels[] = {
 GKYL_CU_DH static void
 kernel_mom_vlasov_M2ij_1x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -366,7 +366,7 @@ kernel_mom_vlasov_M2ij_1x1v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M2ij_1x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -388,7 +388,7 @@ kernel_mom_vlasov_M2ij_1x1v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M2ij_1x1v_ser_p3(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -410,7 +410,7 @@ kernel_mom_vlasov_M2ij_1x1v_ser_p3(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M2ij_1x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -432,7 +432,7 @@ kernel_mom_vlasov_M2ij_1x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M2ij_1x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -454,7 +454,7 @@ kernel_mom_vlasov_M2ij_1x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M2ij_1x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -476,7 +476,7 @@ kernel_mom_vlasov_M2ij_1x3v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M2ij_1x3v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -498,7 +498,7 @@ kernel_mom_vlasov_M2ij_1x3v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M2ij_2x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -520,7 +520,7 @@ kernel_mom_vlasov_M2ij_2x1v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M2ij_2x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -542,7 +542,7 @@ kernel_mom_vlasov_M2ij_2x1v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M2ij_2x1v_ser_p3(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -564,7 +564,7 @@ kernel_mom_vlasov_M2ij_2x1v_ser_p3(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M2ij_2x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -586,7 +586,7 @@ kernel_mom_vlasov_M2ij_2x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M2ij_2x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -608,7 +608,7 @@ kernel_mom_vlasov_M2ij_2x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M2ij_2x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -630,7 +630,7 @@ kernel_mom_vlasov_M2ij_2x3v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M2ij_2x3v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -652,7 +652,7 @@ kernel_mom_vlasov_M2ij_2x3v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M2ij_3x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -690,7 +690,7 @@ GKYL_CU_D static const gkyl_vlasov_mom_kern_list ser_m2ij_kernels[] = {
 GKYL_CU_DH static void
 kernel_mom_vlasov_M2ij_1x1v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -712,7 +712,7 @@ kernel_mom_vlasov_M2ij_1x1v_tensor_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M2ij_1x1v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -734,7 +734,7 @@ kernel_mom_vlasov_M2ij_1x1v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M2ij_1x1v_tensor_p3(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -756,7 +756,7 @@ kernel_mom_vlasov_M2ij_1x1v_tensor_p3(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M2ij_1x2v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -778,7 +778,7 @@ kernel_mom_vlasov_M2ij_1x2v_tensor_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M2ij_1x2v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -800,7 +800,7 @@ kernel_mom_vlasov_M2ij_1x2v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M2ij_1x3v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -822,7 +822,7 @@ kernel_mom_vlasov_M2ij_1x3v_tensor_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M2ij_1x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -844,7 +844,7 @@ kernel_mom_vlasov_M2ij_1x3v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M2ij_2x1v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -866,7 +866,7 @@ kernel_mom_vlasov_M2ij_2x1v_tensor_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M2ij_2x1v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -888,7 +888,7 @@ kernel_mom_vlasov_M2ij_2x1v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M2ij_2x1v_tensor_p3(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -910,7 +910,7 @@ kernel_mom_vlasov_M2ij_2x1v_tensor_p3(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M2ij_2x2v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -932,7 +932,7 @@ kernel_mom_vlasov_M2ij_2x2v_tensor_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M2ij_2x2v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -955,7 +955,7 @@ kernel_mom_vlasov_M2ij_2x2v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M2ij_2x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -979,7 +979,7 @@ kernel_mom_vlasov_M2ij_2x3v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M2ij_3x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -1018,7 +1018,7 @@ GKYL_CU_D static const gkyl_vlasov_mom_kern_list tensor_m2ij_kernels[] = {
 GKYL_CU_DH static void
 kernel_mom_vlasov_M3ijk_1x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -1040,7 +1040,7 @@ kernel_mom_vlasov_M3ijk_1x1v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M3ijk_1x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -1062,7 +1062,7 @@ kernel_mom_vlasov_M3ijk_1x1v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M3ijk_1x1v_ser_p3(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -1084,7 +1084,7 @@ kernel_mom_vlasov_M3ijk_1x1v_ser_p3(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M3ijk_1x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -1106,7 +1106,7 @@ kernel_mom_vlasov_M3ijk_1x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M3ijk_1x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -1128,7 +1128,7 @@ kernel_mom_vlasov_M3ijk_1x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M3ijk_1x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -1150,7 +1150,7 @@ kernel_mom_vlasov_M3ijk_1x3v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M3ijk_1x3v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -1172,7 +1172,7 @@ kernel_mom_vlasov_M3ijk_1x3v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M3ijk_2x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -1194,7 +1194,7 @@ kernel_mom_vlasov_M3ijk_2x1v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M3ijk_2x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -1216,7 +1216,7 @@ kernel_mom_vlasov_M3ijk_2x1v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M3ijk_2x1v_ser_p3(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -1238,7 +1238,7 @@ kernel_mom_vlasov_M3ijk_2x1v_ser_p3(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M3ijk_2x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -1260,7 +1260,7 @@ kernel_mom_vlasov_M3ijk_2x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M3ijk_2x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -1282,7 +1282,7 @@ kernel_mom_vlasov_M3ijk_2x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M3ijk_2x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -1304,7 +1304,7 @@ kernel_mom_vlasov_M3ijk_2x3v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M3ijk_2x3v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -1326,7 +1326,7 @@ kernel_mom_vlasov_M3ijk_2x3v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M3ijk_3x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -1364,7 +1364,7 @@ GKYL_CU_D static const gkyl_vlasov_mom_kern_list ser_m3ijk_kernels[] = {
 GKYL_CU_DH static void
 kernel_mom_vlasov_M3ijk_1x1v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -1386,7 +1386,7 @@ kernel_mom_vlasov_M3ijk_1x1v_tensor_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M3ijk_1x1v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -1408,7 +1408,7 @@ kernel_mom_vlasov_M3ijk_1x1v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M3ijk_1x1v_tensor_p3(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -1430,7 +1430,7 @@ kernel_mom_vlasov_M3ijk_1x1v_tensor_p3(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M3ijk_1x2v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -1452,7 +1452,7 @@ kernel_mom_vlasov_M3ijk_1x2v_tensor_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M3ijk_1x2v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -1474,7 +1474,7 @@ kernel_mom_vlasov_M3ijk_1x2v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M3ijk_1x3v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -1496,7 +1496,7 @@ kernel_mom_vlasov_M3ijk_1x3v_tensor_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M3ijk_1x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -1518,7 +1518,7 @@ kernel_mom_vlasov_M3ijk_1x3v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M3ijk_2x1v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -1540,7 +1540,7 @@ kernel_mom_vlasov_M3ijk_2x1v_tensor_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M3ijk_2x1v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -1562,7 +1562,7 @@ kernel_mom_vlasov_M3ijk_2x1v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M3ijk_2x1v_tensor_p3(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -1584,7 +1584,7 @@ kernel_mom_vlasov_M3ijk_2x1v_tensor_p3(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M3ijk_2x2v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -1606,7 +1606,7 @@ kernel_mom_vlasov_M3ijk_2x2v_tensor_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M3ijk_2x2v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -1629,7 +1629,7 @@ kernel_mom_vlasov_M3ijk_2x2v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M3ijk_2x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -1653,7 +1653,7 @@ kernel_mom_vlasov_M3ijk_2x3v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M3ijk_3x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -1692,7 +1692,7 @@ GKYL_CU_D static const gkyl_vlasov_mom_kern_list tensor_m3ijk_kernels[] = {
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M1i_1x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -1721,7 +1721,7 @@ kernel_mom_vlasov_hamil_vel_dense_M1i_1x1v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M1i_1x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -1750,7 +1750,7 @@ kernel_mom_vlasov_hamil_vel_dense_M1i_1x1v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M1i_1x1v_ser_p3(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -1779,7 +1779,7 @@ kernel_mom_vlasov_hamil_vel_dense_M1i_1x1v_ser_p3(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M1i_1x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -1808,7 +1808,7 @@ kernel_mom_vlasov_hamil_vel_dense_M1i_1x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_M1i_1x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -1837,7 +1837,7 @@ kernel_mom_vlasov_hamil_vel_sparse_M1i_1x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M1i_1x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -1866,7 +1866,7 @@ kernel_mom_vlasov_hamil_vel_dense_M1i_1x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_M1i_1x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -1895,7 +1895,7 @@ kernel_mom_vlasov_hamil_vel_sparse_M1i_1x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M1i_1x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -1924,7 +1924,7 @@ kernel_mom_vlasov_hamil_vel_dense_M1i_1x3v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_M1i_1x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -1953,7 +1953,7 @@ kernel_mom_vlasov_hamil_vel_sparse_M1i_1x3v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M1i_1x3v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -1982,7 +1982,7 @@ kernel_mom_vlasov_hamil_vel_dense_M1i_1x3v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_M1i_1x3v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -2011,7 +2011,7 @@ kernel_mom_vlasov_hamil_vel_sparse_M1i_1x3v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M1i_2x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -2040,7 +2040,7 @@ kernel_mom_vlasov_hamil_vel_dense_M1i_2x1v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M1i_2x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -2069,7 +2069,7 @@ kernel_mom_vlasov_hamil_vel_dense_M1i_2x1v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M1i_2x1v_ser_p3(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -2098,7 +2098,7 @@ kernel_mom_vlasov_hamil_vel_dense_M1i_2x1v_ser_p3(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M1i_2x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -2127,7 +2127,7 @@ kernel_mom_vlasov_hamil_vel_dense_M1i_2x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_M1i_2x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -2156,7 +2156,7 @@ kernel_mom_vlasov_hamil_vel_sparse_M1i_2x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M1i_2x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -2185,7 +2185,7 @@ kernel_mom_vlasov_hamil_vel_dense_M1i_2x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_M1i_2x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -2214,7 +2214,7 @@ kernel_mom_vlasov_hamil_vel_sparse_M1i_2x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M1i_2x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -2243,7 +2243,7 @@ kernel_mom_vlasov_hamil_vel_dense_M1i_2x3v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_M1i_2x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -2272,7 +2272,7 @@ kernel_mom_vlasov_hamil_vel_sparse_M1i_2x3v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M1i_2x3v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -2301,7 +2301,7 @@ kernel_mom_vlasov_hamil_vel_dense_M1i_2x3v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_M1i_2x3v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -2330,7 +2330,7 @@ kernel_mom_vlasov_hamil_vel_sparse_M1i_2x3v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M1i_3x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -2359,7 +2359,7 @@ kernel_mom_vlasov_hamil_vel_dense_M1i_3x3v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_M1i_3x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -2432,7 +2432,7 @@ GKYL_CU_D static const gkyl_vlasov_mom_kern_list ser_hamil_vel_sparse_m1i_kernel
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M1i_1x1v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -2461,7 +2461,7 @@ kernel_mom_vlasov_hamil_vel_dense_M1i_1x1v_tensor_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M1i_1x1v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -2490,7 +2490,7 @@ kernel_mom_vlasov_hamil_vel_dense_M1i_1x1v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M1i_1x1v_tensor_p3(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -2519,7 +2519,7 @@ kernel_mom_vlasov_hamil_vel_dense_M1i_1x1v_tensor_p3(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M1i_1x2v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -2548,7 +2548,7 @@ kernel_mom_vlasov_hamil_vel_dense_M1i_1x2v_tensor_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M1i_1x2v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -2577,7 +2577,7 @@ kernel_mom_vlasov_hamil_vel_dense_M1i_1x2v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_M1i_1x2v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -2606,7 +2606,7 @@ kernel_mom_vlasov_hamil_vel_sparse_M1i_1x2v_tensor_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_M1i_1x2v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -2635,7 +2635,7 @@ kernel_mom_vlasov_hamil_vel_sparse_M1i_1x2v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M1i_1x3v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -2664,7 +2664,7 @@ kernel_mom_vlasov_hamil_vel_dense_M1i_1x3v_tensor_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M1i_1x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -2693,7 +2693,7 @@ kernel_mom_vlasov_hamil_vel_dense_M1i_1x3v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_M1i_1x3v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -2722,7 +2722,7 @@ kernel_mom_vlasov_hamil_vel_sparse_M1i_1x3v_tensor_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_M1i_1x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -2751,7 +2751,7 @@ kernel_mom_vlasov_hamil_vel_sparse_M1i_1x3v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M1i_2x1v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -2780,7 +2780,7 @@ kernel_mom_vlasov_hamil_vel_dense_M1i_2x1v_tensor_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M1i_2x1v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -2809,7 +2809,7 @@ kernel_mom_vlasov_hamil_vel_dense_M1i_2x1v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M1i_2x1v_tensor_p3(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -2838,7 +2838,7 @@ kernel_mom_vlasov_hamil_vel_dense_M1i_2x1v_tensor_p3(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M1i_2x2v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -2867,7 +2867,7 @@ kernel_mom_vlasov_hamil_vel_dense_M1i_2x2v_tensor_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M1i_2x2v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -2897,7 +2897,7 @@ kernel_mom_vlasov_hamil_vel_dense_M1i_2x2v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M1i_2x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -2928,7 +2928,7 @@ kernel_mom_vlasov_hamil_vel_dense_M1i_2x3v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M1i_3x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -2958,7 +2958,7 @@ kernel_mom_vlasov_hamil_vel_dense_M1i_3x3v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_M1i_2x2v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -2987,7 +2987,7 @@ kernel_mom_vlasov_hamil_vel_sparse_M1i_2x2v_tensor_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_M1i_2x2v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -3017,7 +3017,7 @@ kernel_mom_vlasov_hamil_vel_sparse_M1i_2x2v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_M1i_2x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -3048,7 +3048,7 @@ kernel_mom_vlasov_hamil_vel_sparse_M1i_2x3v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_M1i_3x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -3120,7 +3120,7 @@ GKYL_CU_D static const gkyl_vlasov_mom_kern_list tensor_hamil_vel_sparse_m1i_ker
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_M1i_1x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -3149,7 +3149,7 @@ kernel_mom_vlasov_hamil_phase_M1i_1x1v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_M1i_1x1v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -3178,7 +3178,7 @@ kernel_mom_vlasov_hamil_phase_M1i_1x1v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_M1i_1x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -3207,7 +3207,7 @@ kernel_mom_vlasov_hamil_phase_M1i_1x1v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_M1i_1x1v_ser_p3(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -3236,7 +3236,7 @@ kernel_mom_vlasov_hamil_phase_M1i_1x1v_ser_p3(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_M1i_1x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -3265,7 +3265,7 @@ kernel_mom_vlasov_hamil_phase_M1i_1x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_M1i_1x2v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -3294,7 +3294,7 @@ kernel_mom_vlasov_hamil_phase_M1i_1x2v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_M1i_1x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -3323,7 +3323,7 @@ kernel_mom_vlasov_hamil_phase_M1i_1x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_M1i_1x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -3352,7 +3352,7 @@ kernel_mom_vlasov_hamil_phase_M1i_1x3v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_M1i_1x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -3381,7 +3381,7 @@ kernel_mom_vlasov_hamil_phase_M1i_1x3v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_M1i_1x3v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -3410,7 +3410,7 @@ kernel_mom_vlasov_hamil_phase_M1i_1x3v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_M1i_2x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -3439,7 +3439,7 @@ kernel_mom_vlasov_hamil_phase_M1i_2x1v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_M1i_2x1v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -3468,7 +3468,7 @@ kernel_mom_vlasov_hamil_phase_M1i_2x1v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_M1i_2x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -3497,7 +3497,7 @@ kernel_mom_vlasov_hamil_phase_M1i_2x1v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_M1i_2x1v_ser_p3(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -3526,7 +3526,7 @@ kernel_mom_vlasov_hamil_phase_M1i_2x1v_ser_p3(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_M1i_2x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -3555,7 +3555,7 @@ kernel_mom_vlasov_hamil_phase_M1i_2x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_M1i_2x2v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -3584,7 +3584,7 @@ kernel_mom_vlasov_hamil_phase_M1i_2x2v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_M1i_2x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -3613,7 +3613,7 @@ kernel_mom_vlasov_hamil_phase_M1i_2x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_M1i_2x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -3643,7 +3643,7 @@ kernel_mom_vlasov_hamil_phase_M1i_2x3v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_M1i_2x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -3673,7 +3673,7 @@ kernel_mom_vlasov_hamil_phase_M1i_2x3v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_M1i_3x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -3703,7 +3703,7 @@ kernel_mom_vlasov_hamil_phase_M1i_3x3v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_M1i_3x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -3754,7 +3754,7 @@ GKYL_CU_D static const gkyl_vlasov_mom_kern_list ser_hamil_phase_m1i_kernels[] =
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M2_1x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -3773,7 +3773,7 @@ kernel_mom_vlasov_hamil_vel_dense_M2_1x1v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M2_1x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -3792,7 +3792,7 @@ kernel_mom_vlasov_hamil_vel_dense_M2_1x1v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M2_1x1v_ser_p3(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -3811,7 +3811,7 @@ kernel_mom_vlasov_hamil_vel_dense_M2_1x1v_ser_p3(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M2_1x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -3830,7 +3830,7 @@ kernel_mom_vlasov_hamil_vel_dense_M2_1x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_M2_1x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -3849,7 +3849,7 @@ kernel_mom_vlasov_hamil_vel_sparse_M2_1x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M2_1x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -3868,7 +3868,7 @@ kernel_mom_vlasov_hamil_vel_dense_M2_1x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_M2_1x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -3887,7 +3887,7 @@ kernel_mom_vlasov_hamil_vel_sparse_M2_1x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M2_1x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -3906,7 +3906,7 @@ kernel_mom_vlasov_hamil_vel_dense_M2_1x3v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_M2_1x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -3925,7 +3925,7 @@ kernel_mom_vlasov_hamil_vel_sparse_M2_1x3v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M2_1x3v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -3944,7 +3944,7 @@ kernel_mom_vlasov_hamil_vel_dense_M2_1x3v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_M2_1x3v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -3963,7 +3963,7 @@ kernel_mom_vlasov_hamil_vel_sparse_M2_1x3v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M2_2x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -3982,7 +3982,7 @@ kernel_mom_vlasov_hamil_vel_dense_M2_2x1v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M2_2x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -4001,7 +4001,7 @@ kernel_mom_vlasov_hamil_vel_dense_M2_2x1v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M2_2x1v_ser_p3(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -4020,7 +4020,7 @@ kernel_mom_vlasov_hamil_vel_dense_M2_2x1v_ser_p3(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M2_2x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -4039,7 +4039,7 @@ kernel_mom_vlasov_hamil_vel_dense_M2_2x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_M2_2x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -4058,7 +4058,7 @@ kernel_mom_vlasov_hamil_vel_sparse_M2_2x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M2_2x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -4077,7 +4077,7 @@ kernel_mom_vlasov_hamil_vel_dense_M2_2x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_M2_2x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -4096,7 +4096,7 @@ kernel_mom_vlasov_hamil_vel_sparse_M2_2x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M2_2x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -4115,7 +4115,7 @@ kernel_mom_vlasov_hamil_vel_dense_M2_2x3v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_M2_2x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -4134,7 +4134,7 @@ kernel_mom_vlasov_hamil_vel_sparse_M2_2x3v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M2_2x3v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -4153,7 +4153,7 @@ kernel_mom_vlasov_hamil_vel_dense_M2_2x3v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_M2_2x3v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -4172,7 +4172,7 @@ kernel_mom_vlasov_hamil_vel_sparse_M2_2x3v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M2_3x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -4191,7 +4191,7 @@ kernel_mom_vlasov_hamil_vel_dense_M2_3x3v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_M2_3x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -4254,7 +4254,7 @@ GKYL_CU_D static const gkyl_vlasov_mom_kern_list ser_hamil_vel_sparse_m2_kernels
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M2_1x1v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -4273,7 +4273,7 @@ kernel_mom_vlasov_hamil_vel_dense_M2_1x1v_tensor_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M2_1x1v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -4292,7 +4292,7 @@ kernel_mom_vlasov_hamil_vel_dense_M2_1x1v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M2_1x1v_tensor_p3(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -4311,7 +4311,7 @@ kernel_mom_vlasov_hamil_vel_dense_M2_1x1v_tensor_p3(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M2_1x2v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -4330,7 +4330,7 @@ kernel_mom_vlasov_hamil_vel_dense_M2_1x2v_tensor_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M2_1x2v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -4349,7 +4349,7 @@ kernel_mom_vlasov_hamil_vel_dense_M2_1x2v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_M2_1x2v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -4368,7 +4368,7 @@ kernel_mom_vlasov_hamil_vel_sparse_M2_1x2v_tensor_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_M2_1x2v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -4387,7 +4387,7 @@ kernel_mom_vlasov_hamil_vel_sparse_M2_1x2v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M2_1x3v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -4406,7 +4406,7 @@ kernel_mom_vlasov_hamil_vel_dense_M2_1x3v_tensor_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M2_1x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -4425,7 +4425,7 @@ kernel_mom_vlasov_hamil_vel_dense_M2_1x3v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_M2_1x3v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -4444,7 +4444,7 @@ kernel_mom_vlasov_hamil_vel_sparse_M2_1x3v_tensor_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_M2_1x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -4463,7 +4463,7 @@ kernel_mom_vlasov_hamil_vel_sparse_M2_1x3v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M2_2x1v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -4482,7 +4482,7 @@ kernel_mom_vlasov_hamil_vel_dense_M2_2x1v_tensor_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M2_2x1v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -4501,7 +4501,7 @@ kernel_mom_vlasov_hamil_vel_dense_M2_2x1v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M2_2x1v_tensor_p3(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -4520,7 +4520,7 @@ kernel_mom_vlasov_hamil_vel_dense_M2_2x1v_tensor_p3(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M2_2x2v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -4539,7 +4539,7 @@ kernel_mom_vlasov_hamil_vel_dense_M2_2x2v_tensor_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M2_2x2v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -4559,7 +4559,7 @@ kernel_mom_vlasov_hamil_vel_dense_M2_2x2v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M2_2x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -4580,7 +4580,7 @@ kernel_mom_vlasov_hamil_vel_dense_M2_2x3v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M2_3x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -4600,7 +4600,7 @@ kernel_mom_vlasov_hamil_vel_dense_M2_3x3v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_M2_2x2v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -4619,7 +4619,7 @@ kernel_mom_vlasov_hamil_vel_sparse_M2_2x2v_tensor_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_M2_2x2v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -4639,7 +4639,7 @@ kernel_mom_vlasov_hamil_vel_sparse_M2_2x2v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_M2_2x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -4660,7 +4660,7 @@ kernel_mom_vlasov_hamil_vel_sparse_M2_2x3v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_M2_3x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -4722,7 +4722,7 @@ GKYL_CU_D static const gkyl_vlasov_mom_kern_list tensor_hamil_vel_sparse_m2_kern
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_M2_1x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -4741,7 +4741,7 @@ kernel_mom_vlasov_hamil_phase_M2_1x1v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_M2_1x1v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -4760,7 +4760,7 @@ kernel_mom_vlasov_hamil_phase_M2_1x1v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_M2_1x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -4779,7 +4779,7 @@ kernel_mom_vlasov_hamil_phase_M2_1x1v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_M2_1x1v_ser_p3(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -4798,7 +4798,7 @@ kernel_mom_vlasov_hamil_phase_M2_1x1v_ser_p3(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_M2_1x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -4817,7 +4817,7 @@ kernel_mom_vlasov_hamil_phase_M2_1x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_M2_1x2v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -4836,7 +4836,7 @@ kernel_mom_vlasov_hamil_phase_M2_1x2v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_M2_1x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -4855,7 +4855,7 @@ kernel_mom_vlasov_hamil_phase_M2_1x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_M2_1x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -4874,7 +4874,7 @@ kernel_mom_vlasov_hamil_phase_M2_1x3v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_M2_1x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -4893,7 +4893,7 @@ kernel_mom_vlasov_hamil_phase_M2_1x3v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_M2_1x3v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -4912,7 +4912,7 @@ kernel_mom_vlasov_hamil_phase_M2_1x3v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_M2_2x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -4931,7 +4931,7 @@ kernel_mom_vlasov_hamil_phase_M2_2x1v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_M2_2x1v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -4950,7 +4950,7 @@ kernel_mom_vlasov_hamil_phase_M2_2x1v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_M2_2x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -4969,7 +4969,7 @@ kernel_mom_vlasov_hamil_phase_M2_2x1v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_M2_2x1v_ser_p3(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -4988,7 +4988,7 @@ kernel_mom_vlasov_hamil_phase_M2_2x1v_ser_p3(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_M2_2x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -5007,7 +5007,7 @@ kernel_mom_vlasov_hamil_phase_M2_2x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_M2_2x2v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -5026,7 +5026,7 @@ kernel_mom_vlasov_hamil_phase_M2_2x2v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_M2_2x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -5045,7 +5045,7 @@ kernel_mom_vlasov_hamil_phase_M2_2x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_M2_2x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -5065,7 +5065,7 @@ kernel_mom_vlasov_hamil_phase_M2_2x3v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_M2_2x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -5085,7 +5085,7 @@ kernel_mom_vlasov_hamil_phase_M2_2x3v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_M2_3x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -5105,7 +5105,7 @@ kernel_mom_vlasov_hamil_phase_M2_3x3v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_M2_3x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -5144,7 +5144,7 @@ GKYL_CU_D static const gkyl_vlasov_mom_kern_list ser_hamil_phase_m2_kernels[] = 
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M3i_1x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -5173,7 +5173,7 @@ kernel_mom_vlasov_hamil_vel_dense_M3i_1x1v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M3i_1x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -5202,7 +5202,7 @@ kernel_mom_vlasov_hamil_vel_dense_M3i_1x1v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M3i_1x1v_ser_p3(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -5231,7 +5231,7 @@ kernel_mom_vlasov_hamil_vel_dense_M3i_1x1v_ser_p3(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M3i_1x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -5260,7 +5260,7 @@ kernel_mom_vlasov_hamil_vel_dense_M3i_1x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_M3i_1x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -5289,7 +5289,7 @@ kernel_mom_vlasov_hamil_vel_sparse_M3i_1x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M3i_1x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -5318,7 +5318,7 @@ kernel_mom_vlasov_hamil_vel_dense_M3i_1x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_M3i_1x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -5347,7 +5347,7 @@ kernel_mom_vlasov_hamil_vel_sparse_M3i_1x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M3i_1x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -5376,7 +5376,7 @@ kernel_mom_vlasov_hamil_vel_dense_M3i_1x3v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_M3i_1x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -5405,7 +5405,7 @@ kernel_mom_vlasov_hamil_vel_sparse_M3i_1x3v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M3i_1x3v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -5434,7 +5434,7 @@ kernel_mom_vlasov_hamil_vel_dense_M3i_1x3v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_M3i_1x3v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -5463,7 +5463,7 @@ kernel_mom_vlasov_hamil_vel_sparse_M3i_1x3v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M3i_2x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -5492,7 +5492,7 @@ kernel_mom_vlasov_hamil_vel_dense_M3i_2x1v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M3i_2x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -5521,7 +5521,7 @@ kernel_mom_vlasov_hamil_vel_dense_M3i_2x1v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M3i_2x1v_ser_p3(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -5550,7 +5550,7 @@ kernel_mom_vlasov_hamil_vel_dense_M3i_2x1v_ser_p3(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M3i_2x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -5579,7 +5579,7 @@ kernel_mom_vlasov_hamil_vel_dense_M3i_2x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_M3i_2x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -5608,7 +5608,7 @@ kernel_mom_vlasov_hamil_vel_sparse_M3i_2x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M3i_2x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -5637,7 +5637,7 @@ kernel_mom_vlasov_hamil_vel_dense_M3i_2x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_M3i_2x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -5666,7 +5666,7 @@ kernel_mom_vlasov_hamil_vel_sparse_M3i_2x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M3i_2x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -5695,7 +5695,7 @@ kernel_mom_vlasov_hamil_vel_dense_M3i_2x3v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_M3i_2x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -5724,7 +5724,7 @@ kernel_mom_vlasov_hamil_vel_sparse_M3i_2x3v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M3i_2x3v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -5753,7 +5753,7 @@ kernel_mom_vlasov_hamil_vel_dense_M3i_2x3v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_M3i_2x3v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -5782,7 +5782,7 @@ kernel_mom_vlasov_hamil_vel_sparse_M3i_2x3v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_M3i_3x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -5811,7 +5811,7 @@ kernel_mom_vlasov_hamil_vel_dense_M3i_3x3v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_M3i_3x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -5913,7 +5913,7 @@ GKYL_CU_D static const gkyl_vlasov_mom_kern_list tensor_hamil_vel_sparse_m3i_ker
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_five_moments_1x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -5942,7 +5942,7 @@ kernel_mom_vlasov_hamil_vel_dense_five_moments_1x1v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_five_moments_1x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -5971,7 +5971,7 @@ kernel_mom_vlasov_hamil_vel_dense_five_moments_1x1v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_five_moments_1x1v_ser_p3(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -6000,7 +6000,7 @@ kernel_mom_vlasov_hamil_vel_dense_five_moments_1x1v_ser_p3(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_five_moments_1x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -6029,7 +6029,7 @@ kernel_mom_vlasov_hamil_vel_dense_five_moments_1x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_five_moments_1x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -6058,7 +6058,7 @@ kernel_mom_vlasov_hamil_vel_sparse_five_moments_1x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_five_moments_1x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -6087,7 +6087,7 @@ kernel_mom_vlasov_hamil_vel_dense_five_moments_1x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_five_moments_1x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -6116,7 +6116,7 @@ kernel_mom_vlasov_hamil_vel_sparse_five_moments_1x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_five_moments_1x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -6145,7 +6145,7 @@ kernel_mom_vlasov_hamil_vel_dense_five_moments_1x3v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_five_moments_1x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -6174,7 +6174,7 @@ kernel_mom_vlasov_hamil_vel_sparse_five_moments_1x3v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_five_moments_1x3v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -6203,7 +6203,7 @@ kernel_mom_vlasov_hamil_vel_dense_five_moments_1x3v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_five_moments_1x3v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -6232,7 +6232,7 @@ kernel_mom_vlasov_hamil_vel_sparse_five_moments_1x3v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_five_moments_2x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -6261,7 +6261,7 @@ kernel_mom_vlasov_hamil_vel_dense_five_moments_2x1v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_five_moments_2x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -6290,7 +6290,7 @@ kernel_mom_vlasov_hamil_vel_dense_five_moments_2x1v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_five_moments_2x1v_ser_p3(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -6319,7 +6319,7 @@ kernel_mom_vlasov_hamil_vel_dense_five_moments_2x1v_ser_p3(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_five_moments_2x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -6348,7 +6348,7 @@ kernel_mom_vlasov_hamil_vel_dense_five_moments_2x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_five_moments_2x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -6377,7 +6377,7 @@ kernel_mom_vlasov_hamil_vel_sparse_five_moments_2x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_five_moments_2x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -6406,7 +6406,7 @@ kernel_mom_vlasov_hamil_vel_dense_five_moments_2x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_five_moments_2x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -6435,7 +6435,7 @@ kernel_mom_vlasov_hamil_vel_sparse_five_moments_2x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_five_moments_2x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -6464,7 +6464,7 @@ kernel_mom_vlasov_hamil_vel_dense_five_moments_2x3v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_five_moments_2x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -6493,7 +6493,7 @@ kernel_mom_vlasov_hamil_vel_sparse_five_moments_2x3v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_five_moments_2x3v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -6522,7 +6522,7 @@ kernel_mom_vlasov_hamil_vel_dense_five_moments_2x3v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_five_moments_2x3v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -6551,7 +6551,7 @@ kernel_mom_vlasov_hamil_vel_sparse_five_moments_2x3v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_five_moments_3x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -6580,7 +6580,7 @@ kernel_mom_vlasov_hamil_vel_dense_five_moments_3x3v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_five_moments_3x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -6654,7 +6654,7 @@ GKYL_CU_D static const gkyl_vlasov_mom_kern_list ser_hamil_vel_sparse_five_momen
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_five_moments_1x1v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -6683,7 +6683,7 @@ kernel_mom_vlasov_hamil_vel_dense_five_moments_1x1v_tensor_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_five_moments_1x1v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -6712,7 +6712,7 @@ kernel_mom_vlasov_hamil_vel_dense_five_moments_1x1v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_five_moments_1x1v_tensor_p3(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -6741,7 +6741,7 @@ kernel_mom_vlasov_hamil_vel_dense_five_moments_1x1v_tensor_p3(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_five_moments_1x2v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -6770,7 +6770,7 @@ kernel_mom_vlasov_hamil_vel_dense_five_moments_1x2v_tensor_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_five_moments_1x2v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -6799,7 +6799,7 @@ kernel_mom_vlasov_hamil_vel_dense_five_moments_1x2v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_five_moments_1x2v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -6828,7 +6828,7 @@ kernel_mom_vlasov_hamil_vel_sparse_five_moments_1x2v_tensor_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_five_moments_1x2v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -6857,7 +6857,7 @@ kernel_mom_vlasov_hamil_vel_sparse_five_moments_1x2v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_five_moments_1x3v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -6886,7 +6886,7 @@ kernel_mom_vlasov_hamil_vel_dense_five_moments_1x3v_tensor_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_five_moments_1x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -6915,7 +6915,7 @@ kernel_mom_vlasov_hamil_vel_dense_five_moments_1x3v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_five_moments_1x3v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -6944,7 +6944,7 @@ kernel_mom_vlasov_hamil_vel_sparse_five_moments_1x3v_tensor_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_five_moments_1x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -6973,7 +6973,7 @@ kernel_mom_vlasov_hamil_vel_sparse_five_moments_1x3v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_five_moments_2x1v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -7002,7 +7002,7 @@ kernel_mom_vlasov_hamil_vel_dense_five_moments_2x1v_tensor_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_five_moments_2x1v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -7031,7 +7031,7 @@ kernel_mom_vlasov_hamil_vel_dense_five_moments_2x1v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_five_moments_2x1v_tensor_p3(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -7060,7 +7060,7 @@ kernel_mom_vlasov_hamil_vel_dense_five_moments_2x1v_tensor_p3(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_five_moments_2x2v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -7089,7 +7089,7 @@ kernel_mom_vlasov_hamil_vel_dense_five_moments_2x2v_tensor_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_five_moments_2x2v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -7119,7 +7119,7 @@ kernel_mom_vlasov_hamil_vel_dense_five_moments_2x2v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_five_moments_2x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -7150,7 +7150,7 @@ kernel_mom_vlasov_hamil_vel_dense_five_moments_2x3v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_five_moments_3x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -7180,7 +7180,7 @@ kernel_mom_vlasov_hamil_vel_dense_five_moments_3x3v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_five_moments_2x2v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -7209,7 +7209,7 @@ kernel_mom_vlasov_hamil_vel_sparse_five_moments_2x2v_tensor_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_five_moments_2x2v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -7239,7 +7239,7 @@ kernel_mom_vlasov_hamil_vel_sparse_five_moments_2x2v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_five_moments_2x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -7270,7 +7270,7 @@ kernel_mom_vlasov_hamil_vel_sparse_five_moments_2x3v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_five_moments_3x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -7347,7 +7347,7 @@ GKYL_CU_D static const gkyl_vlasov_mom_kern_list tensor_hamil_vel_sparse_five_mo
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_five_moments_1x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -7376,7 +7376,7 @@ kernel_mom_vlasov_hamil_phase_five_moments_1x1v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_five_moments_1x1v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -7405,7 +7405,7 @@ kernel_mom_vlasov_hamil_phase_five_moments_1x1v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_five_moments_1x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -7434,7 +7434,7 @@ kernel_mom_vlasov_hamil_phase_five_moments_1x1v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_five_moments_1x1v_ser_p3(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -7463,7 +7463,7 @@ kernel_mom_vlasov_hamil_phase_five_moments_1x1v_ser_p3(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_five_moments_1x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -7492,7 +7492,7 @@ kernel_mom_vlasov_hamil_phase_five_moments_1x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_five_moments_1x2v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -7521,7 +7521,7 @@ kernel_mom_vlasov_hamil_phase_five_moments_1x2v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_five_moments_1x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -7550,7 +7550,7 @@ kernel_mom_vlasov_hamil_phase_five_moments_1x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_five_moments_1x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -7579,7 +7579,7 @@ kernel_mom_vlasov_hamil_phase_five_moments_1x3v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_five_moments_1x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -7608,7 +7608,7 @@ kernel_mom_vlasov_hamil_phase_five_moments_1x3v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_five_moments_1x3v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -7637,7 +7637,7 @@ kernel_mom_vlasov_hamil_phase_five_moments_1x3v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_five_moments_2x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -7666,7 +7666,7 @@ kernel_mom_vlasov_hamil_phase_five_moments_2x1v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_five_moments_2x1v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -7695,7 +7695,7 @@ kernel_mom_vlasov_hamil_phase_five_moments_2x1v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_five_moments_2x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -7724,7 +7724,7 @@ kernel_mom_vlasov_hamil_phase_five_moments_2x1v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_five_moments_2x1v_ser_p3(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -7753,7 +7753,7 @@ kernel_mom_vlasov_hamil_phase_five_moments_2x1v_ser_p3(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_five_moments_2x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -7782,7 +7782,7 @@ kernel_mom_vlasov_hamil_phase_five_moments_2x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_five_moments_2x2v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -7811,7 +7811,7 @@ kernel_mom_vlasov_hamil_phase_five_moments_2x2v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_five_moments_2x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -7840,7 +7840,7 @@ kernel_mom_vlasov_hamil_phase_five_moments_2x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_five_moments_2x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -7870,7 +7870,7 @@ kernel_mom_vlasov_hamil_phase_five_moments_2x3v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_five_moments_2x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -7900,7 +7900,7 @@ kernel_mom_vlasov_hamil_phase_five_moments_2x3v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_five_moments_3x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -7930,7 +7930,7 @@ kernel_mom_vlasov_hamil_phase_five_moments_3x3v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_five_moments_3x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -7982,7 +7982,7 @@ GKYL_CU_D static const gkyl_vlasov_mom_kern_list ser_hamil_phase_five_moments_ke
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_int_five_moments_1x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -8011,7 +8011,7 @@ kernel_mom_vlasov_hamil_vel_dense_int_five_moments_1x1v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_int_five_moments_1x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -8040,7 +8040,7 @@ kernel_mom_vlasov_hamil_vel_dense_int_five_moments_1x1v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_int_five_moments_1x1v_ser_p3(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -8069,7 +8069,7 @@ kernel_mom_vlasov_hamil_vel_dense_int_five_moments_1x1v_ser_p3(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_int_five_moments_1x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -8098,7 +8098,7 @@ kernel_mom_vlasov_hamil_vel_dense_int_five_moments_1x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_1x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -8127,7 +8127,7 @@ kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_1x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_int_five_moments_1x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -8156,7 +8156,7 @@ kernel_mom_vlasov_hamil_vel_dense_int_five_moments_1x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_1x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -8185,7 +8185,7 @@ kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_1x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_int_five_moments_1x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -8214,7 +8214,7 @@ kernel_mom_vlasov_hamil_vel_dense_int_five_moments_1x3v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_1x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -8243,7 +8243,7 @@ kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_1x3v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_int_five_moments_1x3v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -8272,7 +8272,7 @@ kernel_mom_vlasov_hamil_vel_dense_int_five_moments_1x3v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_1x3v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -8301,7 +8301,7 @@ kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_1x3v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_int_five_moments_2x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -8330,7 +8330,7 @@ kernel_mom_vlasov_hamil_vel_dense_int_five_moments_2x1v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_int_five_moments_2x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -8359,7 +8359,7 @@ kernel_mom_vlasov_hamil_vel_dense_int_five_moments_2x1v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_int_five_moments_2x1v_ser_p3(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -8388,7 +8388,7 @@ kernel_mom_vlasov_hamil_vel_dense_int_five_moments_2x1v_ser_p3(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_int_five_moments_2x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -8417,7 +8417,7 @@ kernel_mom_vlasov_hamil_vel_dense_int_five_moments_2x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_2x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -8446,7 +8446,7 @@ kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_2x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_int_five_moments_2x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -8475,7 +8475,7 @@ kernel_mom_vlasov_hamil_vel_dense_int_five_moments_2x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_2x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -8504,7 +8504,7 @@ kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_2x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_int_five_moments_2x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -8533,7 +8533,7 @@ kernel_mom_vlasov_hamil_vel_dense_int_five_moments_2x3v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_2x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -8562,7 +8562,7 @@ kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_2x3v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_int_five_moments_2x3v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -8591,7 +8591,7 @@ kernel_mom_vlasov_hamil_vel_dense_int_five_moments_2x3v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_2x3v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -8620,7 +8620,7 @@ kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_2x3v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_int_five_moments_3x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -8649,7 +8649,7 @@ kernel_mom_vlasov_hamil_vel_dense_int_five_moments_3x3v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_3x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -8723,7 +8723,7 @@ GKYL_CU_D static const gkyl_vlasov_mom_kern_list ser_hamil_vel_sparse_int_five_m
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_int_five_moments_1x1v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -8752,7 +8752,7 @@ kernel_mom_vlasov_hamil_vel_dense_int_five_moments_1x1v_tensor_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_int_five_moments_1x1v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -8781,7 +8781,7 @@ kernel_mom_vlasov_hamil_vel_dense_int_five_moments_1x1v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_int_five_moments_1x1v_tensor_p3(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -8810,7 +8810,7 @@ kernel_mom_vlasov_hamil_vel_dense_int_five_moments_1x1v_tensor_p3(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_int_five_moments_1x2v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -8839,7 +8839,7 @@ kernel_mom_vlasov_hamil_vel_dense_int_five_moments_1x2v_tensor_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_int_five_moments_1x2v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -8868,7 +8868,7 @@ kernel_mom_vlasov_hamil_vel_dense_int_five_moments_1x2v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_1x2v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -8897,7 +8897,7 @@ kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_1x2v_tensor_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_1x2v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -8926,7 +8926,7 @@ kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_1x2v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_int_five_moments_1x3v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -8955,7 +8955,7 @@ kernel_mom_vlasov_hamil_vel_dense_int_five_moments_1x3v_tensor_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_int_five_moments_1x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -8984,7 +8984,7 @@ kernel_mom_vlasov_hamil_vel_dense_int_five_moments_1x3v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_1x3v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -9013,7 +9013,7 @@ kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_1x3v_tensor_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_1x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -9042,7 +9042,7 @@ kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_1x3v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_int_five_moments_2x1v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -9071,7 +9071,7 @@ kernel_mom_vlasov_hamil_vel_dense_int_five_moments_2x1v_tensor_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_int_five_moments_2x1v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -9100,7 +9100,7 @@ kernel_mom_vlasov_hamil_vel_dense_int_five_moments_2x1v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_int_five_moments_2x1v_tensor_p3(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -9129,7 +9129,7 @@ kernel_mom_vlasov_hamil_vel_dense_int_five_moments_2x1v_tensor_p3(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_int_five_moments_2x2v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -9158,7 +9158,7 @@ kernel_mom_vlasov_hamil_vel_dense_int_five_moments_2x2v_tensor_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_int_five_moments_2x2v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -9188,7 +9188,7 @@ kernel_mom_vlasov_hamil_vel_dense_int_five_moments_2x2v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_int_five_moments_2x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -9219,7 +9219,7 @@ kernel_mom_vlasov_hamil_vel_dense_int_five_moments_2x3v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_dense_int_five_moments_3x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -9249,7 +9249,7 @@ kernel_mom_vlasov_hamil_vel_dense_int_five_moments_3x3v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_2x2v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -9278,7 +9278,7 @@ kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_2x2v_tensor_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_2x2v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -9308,7 +9308,7 @@ kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_2x2v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_2x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -9339,7 +9339,7 @@ kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_2x3v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_3x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -9418,7 +9418,7 @@ GKYL_CU_D static const gkyl_vlasov_mom_kern_list
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_int_five_moments_1x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -9447,7 +9447,7 @@ kernel_mom_vlasov_hamil_phase_int_five_moments_1x1v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_int_five_moments_1x1v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -9476,7 +9476,7 @@ kernel_mom_vlasov_hamil_phase_int_five_moments_1x1v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_int_five_moments_1x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -9505,7 +9505,7 @@ kernel_mom_vlasov_hamil_phase_int_five_moments_1x1v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_int_five_moments_1x1v_ser_p3(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -9534,7 +9534,7 @@ kernel_mom_vlasov_hamil_phase_int_five_moments_1x1v_ser_p3(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_int_five_moments_1x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -9563,7 +9563,7 @@ kernel_mom_vlasov_hamil_phase_int_five_moments_1x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_int_five_moments_1x2v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -9592,7 +9592,7 @@ kernel_mom_vlasov_hamil_phase_int_five_moments_1x2v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_int_five_moments_1x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -9621,7 +9621,7 @@ kernel_mom_vlasov_hamil_phase_int_five_moments_1x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_int_five_moments_1x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -9650,7 +9650,7 @@ kernel_mom_vlasov_hamil_phase_int_five_moments_1x3v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_int_five_moments_1x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -9679,7 +9679,7 @@ kernel_mom_vlasov_hamil_phase_int_five_moments_1x3v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_int_five_moments_1x3v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -9708,7 +9708,7 @@ kernel_mom_vlasov_hamil_phase_int_five_moments_1x3v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_int_five_moments_2x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -9737,7 +9737,7 @@ kernel_mom_vlasov_hamil_phase_int_five_moments_2x1v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_int_five_moments_2x1v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -9766,7 +9766,7 @@ kernel_mom_vlasov_hamil_phase_int_five_moments_2x1v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_int_five_moments_2x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -9795,7 +9795,7 @@ kernel_mom_vlasov_hamil_phase_int_five_moments_2x1v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_int_five_moments_2x1v_ser_p3(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -9824,7 +9824,7 @@ kernel_mom_vlasov_hamil_phase_int_five_moments_2x1v_ser_p3(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_int_five_moments_2x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -9853,7 +9853,7 @@ kernel_mom_vlasov_hamil_phase_int_five_moments_2x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_int_five_moments_2x2v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -9882,7 +9882,7 @@ kernel_mom_vlasov_hamil_phase_int_five_moments_2x2v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_int_five_moments_2x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -9911,7 +9911,7 @@ kernel_mom_vlasov_hamil_phase_int_five_moments_2x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_int_five_moments_2x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -9941,7 +9941,7 @@ kernel_mom_vlasov_hamil_phase_int_five_moments_2x3v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_int_five_moments_2x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -9971,7 +9971,7 @@ kernel_mom_vlasov_hamil_phase_int_five_moments_2x3v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_int_five_moments_3x3v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -10001,7 +10001,7 @@ kernel_mom_vlasov_hamil_phase_int_five_moments_3x3v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_hamil_phase_int_five_moments_3x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -10112,7 +10112,7 @@ GKYL_CU_D static const gkyl_vlasov_mom_kern_list tensor_hamil_phase_int_five_mom
 GKYL_CU_DH static void
 kernel_mom_vlasov_M0_upper_1x1v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -10135,7 +10135,7 @@ kernel_mom_vlasov_M0_upper_1x1v_tensor_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M0_upper_1x1v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -10158,7 +10158,7 @@ kernel_mom_vlasov_M0_upper_1x1v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M0_upper_1x1v_tensor_p3(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -10181,7 +10181,7 @@ kernel_mom_vlasov_M0_upper_1x1v_tensor_p3(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M0_upper_2x1v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -10204,7 +10204,7 @@ kernel_mom_vlasov_M0_upper_2x1v_tensor_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M0_upper_2x1v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -10227,7 +10227,7 @@ kernel_mom_vlasov_M0_upper_2x1v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M0_upper_2x1v_tensor_p3(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -10250,7 +10250,7 @@ kernel_mom_vlasov_M0_upper_2x1v_tensor_p3(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M0_lower_1x1v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -10273,7 +10273,7 @@ kernel_mom_vlasov_M0_lower_1x1v_tensor_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M0_lower_1x1v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -10296,7 +10296,7 @@ kernel_mom_vlasov_M0_lower_1x1v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M0_lower_1x1v_tensor_p3(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -10319,7 +10319,7 @@ kernel_mom_vlasov_M0_lower_1x1v_tensor_p3(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M0_lower_2x1v_tensor_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -10342,7 +10342,7 @@ kernel_mom_vlasov_M0_lower_2x1v_tensor_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M0_lower_2x1v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -10365,7 +10365,7 @@ kernel_mom_vlasov_M0_lower_2x1v_tensor_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M0_lower_2x1v_tensor_p3(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -10390,7 +10390,7 @@ kernel_mom_vlasov_M0_lower_2x1v_tensor_p3(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M0_upper_1x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -10413,7 +10413,7 @@ kernel_mom_vlasov_M0_upper_1x1v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M0_upper_1x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -10436,7 +10436,7 @@ kernel_mom_vlasov_M0_upper_1x1v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M0_upper_1x1v_ser_p3(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -10459,7 +10459,7 @@ kernel_mom_vlasov_M0_upper_1x1v_ser_p3(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M0_upper_2x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -10482,7 +10482,7 @@ kernel_mom_vlasov_M0_upper_2x1v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M0_upper_2x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -10505,7 +10505,7 @@ kernel_mom_vlasov_M0_upper_2x1v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M0_upper_2x1v_ser_p3(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -10528,7 +10528,7 @@ kernel_mom_vlasov_M0_upper_2x1v_ser_p3(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M0_lower_1x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -10551,7 +10551,7 @@ kernel_mom_vlasov_M0_lower_1x1v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M0_lower_1x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -10574,7 +10574,7 @@ kernel_mom_vlasov_M0_lower_1x1v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M0_lower_1x1v_ser_p3(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -10597,7 +10597,7 @@ kernel_mom_vlasov_M0_lower_1x1v_ser_p3(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M0_lower_2x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -10620,7 +10620,7 @@ kernel_mom_vlasov_M0_lower_2x1v_ser_p2(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M0_lower_2x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
@@ -10643,7 +10643,7 @@ kernel_mom_vlasov_M0_lower_2x1v_ser_p1(
 GKYL_CU_DH static void
 kernel_mom_vlasov_M0_lower_2x1v_ser_p3(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);

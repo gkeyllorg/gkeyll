@@ -122,6 +122,29 @@ ifneq (,$(filter $(CC),nvcc nvc))
 	SQL_CFLAGS = --forward-unknown-to-host-compiler -fPIC
 endif
 
+# Per-kernel-family register caps (GPU builds only). The moment and flux advance
+# kernels dispatch through function pointers, so nvlink sizes them for the largest
+# kernel of the family they can call and, uncapped, they land at ~206-255 registers:
+# one resident 256-thread block per SM. Capping the whole family at a register-cliff
+# value (128 -> 2 blocks/SM, 64 -> 4 blocks/SM) trades a few spills for occupancy,
+# which these latency-bound kernels need. nvlink requires every function a capped
+# kernel can reach (for an indirect call: every address-taken function with the same
+# PTX prototype, see momf_t in core/zero/gkyl_mom_type.h) to fit the cap, so a cap
+# covers a whole family: MOM_MAX_REGS applies to the moment and LBO boundary-correction
+# kernels, wrappers and advance kernels of the vlasov, gyrokinetic and pkpm solvers;
+# FLUX_MAX_REGS to the vlasov flux kernels (ker/flux_vlasov/) and the
+# dg_vlasov_{vel,conf}_flux_surf advance kernels. The hyper_dg volume/surface kernels
+# are dense straight-line code and are left alone. Set MOM_MAX_REGS= or FLUX_MAX_REGS=
+# (empty) in config.mak or on the make command line to disable a cap.
+MOM_MAX_REGS ?= 64
+FLUX_MAX_REGS ?= 128
+NVCC_MOM_FLAGS =
+NVCC_FLUX_FLAGS =
+ifdef USING_NVCC
+	NVCC_MOM_FLAGS = $(if $(MOM_MAX_REGS),-maxrregcount=$(MOM_MAX_REGS))
+	NVCC_FLUX_FLAGS = $(if $(FLUX_MAX_REGS),-maxrregcount=$(FLUX_MAX_REGS))
+endif
+
 CFLAGS += ${HAVE_APP_FLAGS}
 
 # Directory for storing shared data, like ADAS reaction rates and radiation fits
@@ -240,7 +263,7 @@ MKDIR_P ?= mkdir -p
 
 export CC CFLAGS ARCH_FLAGS CUDA_ARCH LDFLAGS BUILD_DIR KERNELS_DIR
 export PREFIX INSTALL_PREFIX PROJ_NAME UNAME
-export USING_NVCC NVCC_FLAGS CUDA_LIBS SQL_CFLAGS CUDAMATH_LIBDIR
+export USING_NVCC NVCC_FLAGS NVCC_MOM_FLAGS NVCC_FLUX_FLAGS CUDA_LIBS SQL_CFLAGS CUDAMATH_LIBDIR
 export USING_MPI MPI_INC_DIR MPI_LIB_DIR MPI_LIBS MPI_RPATH
 export USING_NCCL NCCL_INC_DIR NCCL_LIB_DIR NCCL_LIBS
 export USING_CUDSS CUDSS_INC_DIR CUDSS_LIB_DIR CUDSS_LIBS CUDSS_RPATH

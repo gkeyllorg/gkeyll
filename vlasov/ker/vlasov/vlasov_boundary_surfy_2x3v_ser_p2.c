@@ -5,16 +5,7 @@ GKYL_CU_DH double vlasov_boundary_surfy_2x3v_ser_p2(const double *w, const doubl
 { 
   double dx11 = 2.0/dxv[1]; 
   for (int k = 0; k < 48; ++k) { 
-  const int a = vst_2x3v_ser_p2_prj_x1_kamap[k]; 
-  const int b = vst_2x3v_ser_p2_prj_x1_kbmap[k]; 
-  double g = 0.0; 
-  for (int i = 0; i < 3; ++i) { 
-    double t = 0.0; 
-    for (int j = 0; j < 27; ++j) { 
-      t += vst_2x3v_ser_p2_prj_x1_Vw[j*20 + b]*flux[81 + i*27 + j]; 
-    } 
-    g += vst_2x3v_ser_p2_prj_x1_Cw[i*3 + a]*t; 
-  } 
+  const double g = flux[48 + k]; 
   if (edge == -1) { 
     for (int q = vst_2x3v_ser_p2_prj_x1_out_off[k]; q < vst_2x3v_ser_p2_prj_x1_out_off[k+1]; ++q) { 
       out[vst_2x3v_ser_p2_prj_x1_out_mode[q]] += dx11*vst_2x3v_ser_p2_prj_x1_out_cr[q]*g; 

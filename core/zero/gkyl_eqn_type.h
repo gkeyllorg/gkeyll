@@ -208,7 +208,8 @@ enum gkyl_vel_edge {
   GKYL_VZ_LOWER,
   GKYL_VX_UPPER,
   GKYL_VY_UPPER,
-  GKYL_VZ_UPPER
+  GKYL_VZ_UPPER,
+  GKYL_VEL_EDGE_NONE // Not at a velocity-space boundary (ordinary moments).
 };
 
 // Identifiers for FLR models (in gyrokinetics).

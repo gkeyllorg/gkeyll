@@ -36,7 +36,7 @@ gkyl_mom_calc_bcorr_advance_cu_ker(
     }
 
     // reduce local f to local mom
-    bcorr->momt->kernel(bcorr->momt, xc, bcorr->grid.dx, pidx, fptr, &momLocal[0], &edge);
+    bcorr->momt->kernel(bcorr->momt, xc, bcorr->grid.dx, pidx, fptr, &momLocal[0], edge);
 
     // get conf-space linear index.
     for (unsigned int k = 0; k < conf_rng.ndim; k++) {

@@ -156,6 +156,27 @@ GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x1v_ser_p3_ph_v0_cma
   3, 
   1, 
 }; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x1v_ser_p3_ph_v0_aoff[5] = { 
+  0, 
+  4, 
+  8, 
+  10, 
+  12, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x1v_ser_p3_ph_v0_aks[12] = { 
+  0, 
+  2, 
+  5, 
+  9, 
+  1, 
+  3, 
+  7, 
+  11, 
+  4, 
+  6, 
+  8, 
+  10, 
+}; 
 GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x1v_ser_p3_ph_v0_vlmap[12] = { 
   0, 
   0, 
@@ -371,6 +392,24 @@ GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x1v_ser_p3_ph_x0_cma
   0, 
   0, 
   0, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x1v_ser_p3_ph_x0_aoff[2] = { 
+  0, 
+  12, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x1v_ser_p3_ph_x0_aks[12] = { 
+  0, 
+  1, 
+  2, 
+  3, 
+  4, 
+  5, 
+  6, 
+  7, 
+  8, 
+  9, 
+  10, 
+  11, 
 }; 
 GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x1v_ser_p3_ph_x0_vlmap[12] = { 
   0, 
@@ -665,6 +704,27 @@ GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x1v_ser_p3_ho_ph_v0_
   3, 
   1, 
 }; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x1v_ser_p3_ho_ph_v0_aoff[5] = { 
+  0, 
+  4, 
+  8, 
+  10, 
+  12, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x1v_ser_p3_ho_ph_v0_aks[12] = { 
+  0, 
+  2, 
+  5, 
+  9, 
+  1, 
+  3, 
+  7, 
+  11, 
+  4, 
+  6, 
+  8, 
+  10, 
+}; 
 GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x1v_ser_p3_ho_ph_v0_vlmap[12] = { 
   0, 
   0, 
@@ -896,6 +956,24 @@ GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x1v_ser_p3_ho_ph_x0_
   0, 
   0, 
   0, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x1v_ser_p3_ho_ph_x0_aoff[2] = { 
+  0, 
+  12, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x1v_ser_p3_ho_ph_x0_aks[12] = { 
+  0, 
+  1, 
+  2, 
+  3, 
+  4, 
+  5, 
+  6, 
+  7, 
+  8, 
+  9, 
+  10, 
+  11, 
 }; 
 GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x1v_ser_p3_ho_ph_x0_vlmap[12] = { 
   0, 

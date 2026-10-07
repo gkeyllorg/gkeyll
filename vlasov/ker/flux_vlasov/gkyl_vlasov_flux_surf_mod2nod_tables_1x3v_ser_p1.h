@@ -466,6 +466,29 @@ GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x3v_ser_p1_ph_v0_cma
   0, 
   1, 
 }; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x3v_ser_p1_ph_v0_aoff[3] = { 
+  0, 
+  8, 
+  16, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x3v_ser_p1_ph_v0_aks[16] = { 
+  0, 
+  2, 
+  3, 
+  4, 
+  7, 
+  9, 
+  10, 
+  14, 
+  1, 
+  5, 
+  6, 
+  8, 
+  11, 
+  12, 
+  13, 
+  15, 
+}; 
 GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x3v_ser_p1_ph_v0_vlmap[16] = { 
   0, 
   0, 
@@ -885,6 +908,29 @@ GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x3v_ser_p1_ph_v1_cma
   0, 
   1, 
 }; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x3v_ser_p1_ph_v1_aoff[3] = { 
+  0, 
+  8, 
+  16, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x3v_ser_p1_ph_v1_aks[16] = { 
+  0, 
+  2, 
+  3, 
+  4, 
+  7, 
+  9, 
+  10, 
+  14, 
+  1, 
+  5, 
+  6, 
+  8, 
+  11, 
+  12, 
+  13, 
+  15, 
+}; 
 GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x3v_ser_p1_ph_v1_vlmap[16] = { 
   0, 
   0, 
@@ -1303,6 +1349,29 @@ GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x3v_ser_p1_ph_v2_cma
   1, 
   0, 
   1, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x3v_ser_p1_ph_v2_aoff[3] = { 
+  0, 
+  8, 
+  16, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x3v_ser_p1_ph_v2_aks[16] = { 
+  0, 
+  2, 
+  3, 
+  4, 
+  7, 
+  9, 
+  10, 
+  14, 
+  1, 
+  5, 
+  6, 
+  8, 
+  11, 
+  12, 
+  13, 
+  15, 
 }; 
 GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x3v_ser_p1_ph_v2_vlmap[16] = { 
   0, 
@@ -2015,6 +2084,28 @@ GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x3v_ser_p1_ph_x0_cma
   0, 
   0, 
   0, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x3v_ser_p1_ph_x0_aoff[2] = { 
+  0, 
+  16, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x3v_ser_p1_ph_x0_aks[16] = { 
+  0, 
+  1, 
+  2, 
+  3, 
+  4, 
+  5, 
+  6, 
+  7, 
+  8, 
+  9, 
+  10, 
+  11, 
+  12, 
+  13, 
+  14, 
+  15, 
 }; 
 GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x3v_ser_p1_ph_x0_vlmap[16] = { 
   0, 

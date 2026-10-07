@@ -33,7 +33,7 @@ gkyl_mom_calc_advance_cu_ker(
     }
 
     // reduce local f to local mom
-    mcalc->momt->kernel(mcalc->momt, xc, mcalc->grid.dx, pidx, fptr, &momLocal[0], 0);
+    mcalc->momt->kernel(mcalc->momt, xc, mcalc->grid.dx, pidx, fptr, &momLocal[0], GKYL_VEL_EDGE_NONE);
 
     // get conf-space linear index.
     for (unsigned int k = 0; k < conf_range.ndim; k++) {

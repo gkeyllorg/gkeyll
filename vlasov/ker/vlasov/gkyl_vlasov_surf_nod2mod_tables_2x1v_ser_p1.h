@@ -76,6 +76,16 @@ GKYL_CU_TABLE __attribute__((unused)) static const double vst_2x1v_ser_p1_prj_v0
   -0.16970562748477142, 
   -0.29393876913398137, 
 }; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_2x1v_ser_p1_prj_v0_pm_s[8] = { 
+  0, 
+  1, 
+  2, 
+  0, 
+  3, 
+  1, 
+  2, 
+  3, 
+}; 
 GKYL_CU_TABLE __attribute__((unused)) static const int vst_2x1v_ser_p1_prj_v0_pm_a[8] = { 
   0, 
   1, 
@@ -178,6 +188,16 @@ GKYL_CU_TABLE __attribute__((unused)) static const double vst_2x1v_ser_p1_prj_x0
   -0.16970562748477142, 
   -0.29393876913398137, 
 }; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_2x1v_ser_p1_prj_x0_pm_s[8] = { 
+  0, 
+  0, 
+  1, 
+  2, 
+  1, 
+  2, 
+  3, 
+  3, 
+}; 
 GKYL_CU_TABLE __attribute__((unused)) static const int vst_2x1v_ser_p1_prj_x0_pm_a[8] = { 
   0, 
   0, 
@@ -279,6 +299,16 @@ GKYL_CU_TABLE __attribute__((unused)) static const double vst_2x1v_ser_p1_prj_x1
   -0.42426406871192845, 
   -0.16970562748477142, 
   -0.29393876913398137, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_2x1v_ser_p1_prj_x1_pm_s[8] = { 
+  0, 
+  1, 
+  0, 
+  2, 
+  1, 
+  3, 
+  2, 
+  3, 
 }; 
 GKYL_CU_TABLE __attribute__((unused)) static const int vst_2x1v_ser_p1_prj_x1_pm_a[8] = { 
   0, 

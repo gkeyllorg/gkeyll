@@ -207,8 +207,8 @@ struct vm_collisionless {
   bool has_phi; // Do we have scalar potentials (electrostatic/gravitational)?
   bool has_B; // Do we have magnetic fields?
   bool has_gr_em_triad_coupling; // Do we need GR-Maxwell Lorentz-force fields for triad species?
-  int num_surf_conf_nodes; // number of surface nodes at configuration-space surfaces
-  int num_surf_vel_nodes; // number of surface nodes at velocity-space surfaces
+  int num_surf_conf_basis; // Surface modal basis size per configuration direction.
+  int num_surf_vel_basis; // Surface modal basis size per velocity direction.
 
   struct gkyl_array *conf_flux_surf; // Modal expansion of surface fluxes at conf-space surfaces.
   struct gkyl_array *vel_flux_surf; // Modal expansion of surface fluxes at velocity-space surfaces.

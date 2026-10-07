@@ -72,6 +72,17 @@ GKYL_CU_TABLE __attribute__((unused)) static const double vst_1x1v_tensor_p2_prj
   0.503487835006964, 
   0.65, 
 }; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x1v_tensor_p2_prj_v0_pm_s[9] = { 
+  0, 
+  1, 
+  0, 
+  1, 
+  2, 
+  0, 
+  2, 
+  1, 
+  2, 
+}; 
 GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x1v_tensor_p2_prj_v0_pm_a[9] = { 
   0, 
   1, 

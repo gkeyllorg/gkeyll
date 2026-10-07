@@ -103,7 +103,6 @@ vm_species_collisionless_init(
 {
   int cdim = app->cdim, vdim = app->vdim;
   int pdim = cdim + vdim;
-  enum gkyl_basis_type b_type = app->basis.b_type;
 
   // Allocate array to store q/m*(E,B) or potentials (q/m*phi + m*phi_g, q/m*A) depending on equation system.
   // Note: the potentials are the total potentials and thus can include both (or either) gravitational
@@ -204,37 +203,9 @@ vm_species_collisionless_init(
     cls->use_preset_geom = true;
   }
 
-  // Select the number of nodes, with case for hybrid-tensor.
-  int highorder = cls->use_lo ? 0 : 1;
-
-  // p + 1 is equivalent to p + 2 for ser p1
-  if ((app->poly_order == 1) && (b_type == GKYL_BASIS_MODAL_SERENDIPITY)) {
-    highorder = 0;
-  }
-  cls->num_surf_vel_nodes = pow(app->poly_order + 1 + highorder, pdim - 1);
-  if ((b_type == GKYL_BASIS_MODAL_TENSOR) && (app->poly_order == 1)) {
-    // Tensor p=1 hybrid: a velocity-direction surface has 2 nodes per
-    // configuration direction and 3 (lo) or 4 (ho) nodes per remaining
-    // velocity direction. Must match the vel_flux updater's
-    // num_nodes_conf*num_nodes_vel.
-    int nq_vel = cls->use_lo ? 3 : 4;
-    cls->num_surf_vel_nodes = (int)(pow(2, cdim) * pow(nq_vel, vdim - 1));
-  }
-
-  // Allocate nodal surface expansion of velocity space flux array (conf).
+  // Configuration-space surface fluxes (modal surface expansion per
+  // configuration direction) and the updater that fills them.
   if (vms->model_id == GKYL_MODEL_TRIAD || vms->hamil_id == GKYL_HAMIL_PHASE) {
-    // Compute the number of configuration space nodes, with case for hybrid-tensor.
-    cls->num_surf_conf_nodes = pow(app->poly_order + 1 + highorder, pdim - 1);
-    if ((b_type == GKYL_BASIS_MODAL_TENSOR) && (app->poly_order == 1)) {
-      // Tensor p=1 hybrid: a configuration-direction surface has 2 nodes per
-      // remaining configuration direction and 3 (lo) or 4 (ho) nodes per
-      // velocity direction.
-      int nq_vel = cls->use_lo ? 3 : 4;
-      cls->num_surf_conf_nodes = (int)(pow(2, cdim - 1) * pow(nq_vel, vdim));
-    }
-
-    cls->conf_flux_surf =
-      mkarr(app->use_gpu, cdim * cls->num_surf_conf_nodes, vms->local_ext.volume);
     struct gkyl_dg_vlasov_conf_flux_surf_inp inp_conf_flux = {
       .phase_grid = &vms->grid,
       .conf_basis = &app->basis,
@@ -250,10 +221,13 @@ vm_species_collisionless_init(
       .use_gpu = app->use_gpu,
     };
     cls->calc_conf_flux = gkyl_dg_vlasov_conf_flux_surf_inew(&inp_conf_flux);
+    cls->num_surf_conf_basis = gkyl_dg_vlasov_conf_flux_surf_num_surf_basis(cls->calc_conf_flux);
+    cls->conf_flux_surf =
+      mkarr(app->use_gpu, cdim * cls->num_surf_conf_basis, vms->local_ext.volume);
   }
 
-  // Allocate nodal surface expansion of velocity space flux array (vel).
-  cls->vel_flux_surf = mkarr(app->use_gpu, vdim * cls->num_surf_vel_nodes, vms->local_ext.volume);
+  // Velocity-space surface fluxes (modal surface expansion per velocity
+  // direction) and the updater that fills them.
   struct gkyl_dg_vlasov_vel_flux_surf_inp inp_vel_flux = {
     .phase_grid = &vms->grid,
     .conf_basis = &app->basis,
@@ -272,6 +246,8 @@ vm_species_collisionless_init(
     .use_gpu = app->use_gpu,
   };
   cls->calc_vel_flux = gkyl_dg_vlasov_vel_flux_surf_inew(&inp_vel_flux);
+  cls->num_surf_vel_basis = gkyl_dg_vlasov_vel_flux_surf_num_surf_basis(cls->calc_vel_flux);
+  cls->vel_flux_surf = mkarr(app->use_gpu, vdim * cls->num_surf_vel_basis, vms->local_ext.volume);
 
   struct gkyl_dg_vlasov_inp inp_eqn = {
     .conf_basis = &app->basis,

@@ -81,7 +81,7 @@ gkyl_mom_calc_advance(
 
       gkyl_mom_type_calc(
         calc->momt, xc, calc->grid.dx, pidx, gkyl_array_cfetch(fin, fidx),
-        gkyl_array_fetch(mout, midx), 0
+        gkyl_array_fetch(mout, midx), GKYL_VEL_EDGE_NONE
       );
     }
   }

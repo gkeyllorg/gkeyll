@@ -89,4 +89,13 @@ void gkyl_dg_vlasov_conf_flux_surf_advance_cu(
   const struct gkyl_array *fin, struct gkyl_array *cflrate, struct gkyl_array *conf_flux_surf
 );
 
+/**
+ * Number of surface modal basis functions per direction in the flux array this
+ * updater fills (the array needs cdim times this many components per cell).
+ *
+ * @param up Updater.
+ * @return Surface modal basis size.
+ */
+int gkyl_dg_vlasov_conf_flux_surf_num_surf_basis(const struct gkyl_dg_vlasov_conf_flux_surf *up);
+
 void gkyl_dg_vlasov_conf_flux_surf_release(struct gkyl_dg_vlasov_conf_flux_surf *up);

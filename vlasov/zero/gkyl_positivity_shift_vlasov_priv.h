@@ -5,7 +5,6 @@
 #include <gkyl_positivity_shift_vlasov.h>
 #include <gkyl_positivity_shift_vlasov_kernels.h>
 #include <gkyl_mom_vlasov_kernels.h>
-#include <gkyl_mom_vlasov_priv.h>
 #include <gkyl_dg_bin_ops_priv.h>
 #include <gkyl_util.h>
 #include <assert.h>

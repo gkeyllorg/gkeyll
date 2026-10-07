@@ -5,16 +5,7 @@ GKYL_CU_DH double vlasov_boundary_surfvy_2x2v_tensor_p2(const double *w, const d
 { 
   double dv11 = 2.0/dxv[3]; 
   for (int k = 0; k < 27; ++k) { 
-  const int a = vst_2x2v_tensor_p2_prj_v1_kamap[k]; 
-  const int b = vst_2x2v_tensor_p2_prj_v1_kbmap[k]; 
-  double g = 0.0; 
-  for (int i = 0; i < 16; ++i) { 
-    double t = 0.0; 
-    for (int j = 0; j < 4; ++j) { 
-      t += vst_2x2v_tensor_p2_prj_v1_Vw[j*3 + b]*flux[64 + i*4 + j]; 
-    } 
-    g += vst_2x2v_tensor_p2_prj_v1_Cw[i*9 + a]*t; 
-  } 
+  const double g = flux[27 + k]; 
   if (edge == -1) { 
     for (int q = vst_2x2v_tensor_p2_prj_v1_out_off[k]; q < vst_2x2v_tensor_p2_prj_v1_out_off[k+1]; ++q) { 
       out[vst_2x2v_tensor_p2_prj_v1_out_mode[q]] += dv11*vst_2x2v_tensor_p2_prj_v1_out_cr[q]*g; 

@@ -112,7 +112,7 @@ gkyl_mom_calc_bcorr_advance(
         long fidx = gkyl_range_idx(&vel_rng, vel_iter.idx);
         gkyl_mom_type_calc(
           bcorr->momt, xc, bcorr->grid.dx, pidx, gkyl_array_cfetch(fIn, fidx),
-          gkyl_array_fetch(out, midx), &edge
+          gkyl_array_fetch(out, midx), edge
         );
       }
 
@@ -132,7 +132,7 @@ gkyl_mom_calc_bcorr_advance(
         long fidx = gkyl_range_idx(&vel_rng, vel_iter.idx);
         gkyl_mom_type_calc(
           bcorr->momt, xc, bcorr->grid.dx, pidx, gkyl_array_cfetch(fIn, fidx),
-          gkyl_array_fetch(out, midx), &edge
+          gkyl_array_fetch(out, midx), edge
         );
       }
       rem_dir[cdim + d] = 0;
