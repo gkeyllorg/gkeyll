@@ -4910,13 +4910,46 @@ tok_contour_leaves(const struct gkyl_tok_geo *geo, double psi,
   if (tok_eval_psi_grad_rz_local(geo, mr, mz, &gr, &gz) && hypot(gr, gz) > 0.0)
     located = 1e-9*fmax(1.0, fabs(psi))/hypot(gr, gz);
   // Depth is bounded by halving to the double-precision resolution of l1.
-  if (fabs(l2-l1) <= sqrt(DBL_EPSILON)*l2 || l1 <= 4.0*located || depth >= 52) {
+  if (l1 <= 4.0*located || depth >= 52) {
     const double arc = l2+(l2-l1)/3.0;
     // split the corrected arc between the halves in proportion to their chords
     const double a0 = hypot(mr-r0, mz-z0)/l2*arc;
     tok_leaves_push(lv, mr, mz, a0);
     tok_leaves_push(lv, r1, z1, arc-a0);
     return true;
+  }
+  // One halving is blind to a piece with an inflection at its middle: the
+  // midpoint then lies on the chord, halving changes nothing, and the chord is
+  // taken for the arc. So the piece is accepted only when the next halving
+  // agrees as well. Measured on STEP: one bracket beside each X point of CORE_R's
+  // separatrix row was taken ~0.5 um short, displacing every node of that row
+  // by 0.5 um and lengthening its two end cells by as much, so the theta-seam
+  // grading mismatch there grew with theta (1.7e-6 at x4, 7.0e-6 at x16); with
+  // the second halving it is 3e-8 and 2e-8.
+  // ... and only a piece within one cell of the psi representation: psi is one
+  // polynomial there, but only C1 across cells, so a contour crossing several
+  // has curvature jumps that three or five points can straddle unseen. Measured
+  // on STEP (theta x4, DN_SOL_OUT_MID row 2): a 0.29 m cell spanning several
+  // psi cells passed both halvings and was taken 217 nm (7.5e-7) short.
+  const struct gkyl_rect_grid *pg = geo->use_cubics ? &geo->rzgrid_cubic : &geo->rzgrid;
+  if (fabs(l2-l1) <= sqrt(DBL_EPSILON)*l2 && l1 <= fmin(pg->dx[0], pg->dx[1])) {
+    const double la = hypot(mr-r0, mz-z0), lb = hypot(r1-mr, z1-mz);
+    double ar = 0.0, az = 0.0, br = 0.0, bz = 0.0;
+    if (tok_chord_normal_solve(geo, psi, 0.5*(r0+mr), 0.5*(z0+mz), mr-r0, mz-z0, 0.5*la, &ar, &az) &&
+        tok_chord_normal_solve(geo, psi, 0.5*(mr+r1), 0.5*(mz+z1), r1-mr, z1-mz, 0.5*lb, &br, &bz)) {
+      const double c1 = hypot(ar-r0, az-z0), c2 = hypot(mr-ar, mz-az);
+      const double c3 = hypot(br-mr, bz-mz), c4 = hypot(r1-br, z1-bz);
+      const double l4 = c1+c2+c3+c4;
+      if (fabs(l4-l2) <= sqrt(DBL_EPSILON)*l4) {
+        // split the corrected arc between the quarters in proportion to their chords
+        const double arc = l4+(l4-l2)/3.0;
+        tok_leaves_push(lv, ar, az, c1/l4*arc);
+        tok_leaves_push(lv, mr, mz, c2/l4*arc);
+        tok_leaves_push(lv, br, bz, c3/l4*arc);
+        tok_leaves_push(lv, r1, z1, c4/l4*arc);
+        return true;
+      }
+    }
   }
   return tok_contour_leaves(geo, psi, r0, z0, mr, mz, depth+1, lv) &&
     tok_contour_leaves(geo, psi, mr, mz, r1, z1, depth+1, lv);
