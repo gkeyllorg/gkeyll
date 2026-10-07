@@ -25,10 +25,9 @@ bc_sheath_gyrokinetic_diag_init(
   const struct gkyl_range *phase_local
 )
 {
-  // Decomposition is only along the parallel direction, so the (perpendicular
-  // conf-space + mu) vcutsq array is owned entirely by the single rank abutting
-  // this edge's boundary. That rank (non-empty skin range) writes it out
-  // serially; all others do nothing.
+  // Skip empty skin ranges (e.g. an empty SOL region). Local skin ranges can
+  // also be non-empty on interior ranks; the app must restrict serial writes
+  // to the rank owning this edge's physical boundary.
   up->vcutsq_write = up->skin_r->volume > 0;
   if (!phase_grid || !phase_local || !up->vcutsq_write) {
     return;
