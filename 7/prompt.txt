@@ -1,0 +1,141 @@
+In runregression, I don't like these batch compile outputs. Please remove them. It's okay to have one line "compiling" then "compiled". It would be good to say like "worker 1 running test" It's good to have the worker number report which test it's working on, but I don't like how redundant the info is.
+
+[Lua] moments/luareg/rt_maxwell_plane_wave_1d_mp.lua completed (0.573 sec; 51/544 completed)
+... saving accepted results to /home/maxwell-rosen/gkylsoft/gkeyll-results/moments/luareg-accepted/cpu_serial/rt_maxwell_plane_wave_1d_mp ...
+[Batch 57/544] Running moments/luareg/rt_euler_riem_2d_hllc.lua ...
+
+[Lua] moments/luareg/rt_euler_riem_2d_hllc.lua completed (14.012 sec; 52/544 completed)
+... saving accepted results to /home/maxwell-rosen/gkylsoft/gkeyll-results/moments/luareg-accepted/cpu_serial/rt_euler_riem_2d_hllc ...
+[Batch 58/544] Running moments/luareg/rt_gr_quadrants_2d.lua ...
+
+[Lua] moments/luareg/rt_gr_ultra_rel_shock_tetrad.lua completed (33.866 sec; 53/544 completed)
+... saving accepted results to /home/maxwell-rosen/gkylsoft/gkeyll-results/moments/luareg-accepted/cpu_serial/rt_gr_ultra_rel_shock_tetrad ...
+[Batch 59/544] Running moments/luareg/rt_gr_wald_magnetosphere_static_tetrad.lua ...
+
+[Lua] moments/luareg/rt_10m_gem.lua completed (51.664 sec; 54/544 completed)
+... saving accepted results to /home/maxwell-rosen/gkylsoft/gkeyll-results/moments/luareg-accepted/cpu_serial/rt_10m_gem ...
+[Batch 60/544] Running moments/luareg/rt_gr_einstein_plane_shock.lua ...
+
+[Lua] moments/luareg/rt_gr_einstein_plane_shock.lua completed (5.801 sec; 55/544 completed)
+... saving accepted results to /home/maxwell-rosen/gkylsoft/gkeyll-results/moments/luareg-accepted/cpu_serial/rt_gr_einstein_plane_shock ...
+[Batch 61/544] Running moments/luareg/rt_gr_perturbed_density.lua ...
+^C
+(jenkins-github-runreg-costs) gkeyll: 
+(jenkins-github-runreg-costs) gkeyll: 
+(jenkins-github-runreg-costs) gkeyll: gkeyll runregression run create                   
+CPU-only build
+Compiling 313 C regression tests with 1 worker(s) ...
+[Batch-Compile] Submitting 313 job(s), up to 1 at a time; refilling workers as jobs finish.
+[Batch-Compile 1/313] Compiling moments/creg/rt_maxwell_plane_wave_2d_mp ...
+[C] moments/creg/rt_maxwell_plane_wave_2d_mp compiled (0.206 sec; 1/313 completed)
+[Batch-Compile 2/313] Compiling moments/creg/rt_maxwell_plane_wave_1d ...
+[C] moments/creg/rt_maxwell_plane_wave_1d compiled (0.197 sec; 2/313 completed)
+[Batch-Compile 3/313] Compiling moments/creg/rt_mhd_ot ...
+[C] moments/creg/rt_mhd_ot compiled (0.208 sec; 3/313 completed)
+[Batch-Compile 4/313] Compiling moments/creg/rt_5m_expanding_sodshock ...
+[C] moments/creg/rt_5m_expanding_sodshock compiled (0.219 sec; 4/313 completed)
+[Batch-Compile 5/313] Compiling moments/creg/rt_iso_gem ...
+
+---
+
+In runregression, I don't like these batch compile outputs. Please remove them. It's okay to have one line "compiling" then "compiled". It would be good to say like "worker 1 running test" It's good to have the worker number report which test it's working on, but I don't like how redundant the info is.
+
+[Lua] moments/luareg/rt_maxwell_plane_wave_1d_mp.lua completed (0.573 sec; 51/544 completed)
+... saving accepted results to /home/maxwell-rosen/gkylsoft/gkeyll-results/moments/luareg-accepted/cpu_serial/rt_maxwell_plane_wave_1d_mp ...
+[Batch 57/544] Running moments/luareg/rt_euler_riem_2d_hllc.lua ...
+
+[Lua] moments/luareg/rt_euler_riem_2d_hllc.lua completed (14.012 sec; 52/544 completed)
+... saving accepted results to /home/maxwell-rosen/gkylsoft/gkeyll-results/moments/luareg-accepted/cpu_serial/rt_euler_riem_2d_hllc ...
+[Batch 58/544] Running moments/luareg/rt_gr_quadrants_2d.lua ...
+
+[Lua] moments/luareg/rt_gr_ultra_rel_shock_tetrad.lua completed (33.866 sec; 53/544 completed)
+... saving accepted results to /home/maxwell-rosen/gkylsoft/gkeyll-results/moments/luareg-accepted/cpu_serial/rt_gr_ultra_rel_shock_tetrad ...
+[Batch 59/544] Running moments/luareg/rt_gr_wald_magnetosphere_static_tetrad.lua ...
+
+[Lua] moments/luareg/rt_10m_gem.lua completed (51.664 sec; 54/544 completed)
+... saving accepted results to /home/maxwell-rosen/gkylsoft/gkeyll-results/moments/luareg-accepted/cpu_serial/rt_10m_gem ...
+[Batch 60/544] Running moments/luareg/rt_gr_einstein_plane_shock.lua ...
+
+[Lua] moments/luareg/rt_gr_einstein_plane_shock.lua completed (5.801 sec; 55/544 completed)
+... saving accepted results to /home/maxwell-rosen/gkylsoft/gkeyll-results/moments/luareg-accepted/cpu_serial/rt_gr_einstein_plane_shock ...
+[Batch 61/544] Running moments/luareg/rt_gr_perturbed_density.lua ...
+^C
+(jenkins-github-runreg-costs) gkeyll: 
+(jenkins-github-runreg-costs) gkeyll: 
+(jenkins-github-runreg-costs) gkeyll: gkeyll runregression run create                   
+CPU-only build
+Compiling 313 C regression tests with 1 worker(s) ...
+[Batch-Compile] Submitting 313 job(s), up to 1 at a time; refilling workers as jobs finish.
+[Batch-Compile 1/313] Compiling moments/creg/rt_maxwell_plane_wave_2d_mp ...
+[C] moments/creg/rt_maxwell_plane_wave_2d_mp compiled (0.206 sec; 1/313 completed)
+[Batch-Compile 2/313] Compiling moments/creg/rt_maxwell_plane_wave_1d ...
+[C] moments/creg/rt_maxwell_plane_wave_1d compiled (0.197 sec; 2/313 completed)
+[Batch-Compile 3/313] Compiling moments/creg/rt_mhd_ot ...
+[C] moments/creg/rt_mhd_ot compiled (0.208 sec; 3/313 completed)
+[Batch-Compile 4/313] Compiling moments/creg/rt_5m_expanding_sodshock ...
+[C] moments/creg/rt_5m_expanding_sodshock compiled (0.219 sec; 4/313 completed)
+[Batch-Compile 5/313] Compiling moments/creg/rt_iso_gem ...
+
+---
+
+I still want it to print to the terminal for each compiled file, as well as each test run but it should be consise
+
+---
+
+I still want it to print to the terminal for each compiled file, as well as each test run but it should be consise
+
+---
+
+Running 544 tests with 1 worker(s).
+Worker 1 running moments/luareg/rt_euler_superwedge.lua
+Worker 1 completed (15.849 sec; 1/544 completed)
+Worker 1 running moments/luareg/rt_iso_gem.lua
+Worker 1 completed (2.182 sec; 2/544 completed)
+Worker 1 running moments/luareg/rt_advect_wv_mp.lua
+Worker 1 completed (0.601 sec; 3/544 completed)
+Worker 1 running moments/luareg/rt_reactive_euler_detonation.lua
+Worker 1 completed (0.294 sec; 4/544 completed)
+Worker 1 running moments/luareg/rt_10m_par_firehose.lua
+
+---
+
+Running 544 tests with 1 worker(s).
+Worker 1 running moments/luareg/rt_euler_superwedge.lua
+Worker 1 completed (15.849 sec; 1/544 completed)
+Worker 1 running moments/luareg/rt_iso_gem.lua
+Worker 1 completed (2.182 sec; 2/544 completed)
+Worker 1 running moments/luareg/rt_advect_wv_mp.lua
+Worker 1 completed (0.601 sec; 3/544 completed)
+Worker 1 running moments/luareg/rt_reactive_euler_detonation.lua
+Worker 1 completed (0.294 sec; 4/544 completed)
+Worker 1 running moments/luareg/rt_10m_par_firehose.lua
+
+---
+
+I would preffer it saying
+
+... saving accepted results to /dir (2.312 sec; 3/534)
+
+Likewise, when compiling it should say 
+
+[C] (or lua)
+
+Right now, it shows something like
+
+
+Compiled pkpm/creg/rt_pkpm_neut_sodshock_p1
+Compiled pkpm/creg/rt_pkpm_em_advect_p1
+Compiled pkpm/creg/rt_pkpm_es_pot_well_1x_p1
+Compiled 313 C regression test(s); 0 failed.
+Running 544 tests with 1 worker(s).
+Worker 1 running moments/luareg/rt_euler_superwedge.lua
+Worker 1 completed (16.188 sec; 1/544 completed)
+Worker 1 running moments/luareg/rt_iso_gem.lua
+
+When running with 1 worker, it should not show the worker number. Perhaps put the worker number like
+
+... [Worker 3] saving accepted results to /dir (2.342 sec, 5/312)
+
+But with 1 worker it becomes
+
+... saving accepted results to /dir (3.234 sec, 5/422)
