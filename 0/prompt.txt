@@ -1,0 +1,7 @@
+Resolve the merge conflict from merging branch ci_tweak into jenkins-github-more-reporting
+The more-reporting added some extra details into the logs posted to github. Retain all features from both branches
+
+---
+
+Resolve the merge conflict from merging branch ci_tweak into jenkins-github-more-reporting
+The more-reporting added some extra details into the logs posted to github. Retain all features from both branches
