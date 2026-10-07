@@ -1,0 +1,21 @@
+Does runregression asyncronously execute the different regression tests when running with -j #? How is it paralellized? is it possible to do asyncronous execution?
+
+---
+
+Does runregression asyncronously execute the different regression tests when running with -j #? How is it paralellized? is it possible to do asyncronous execution?
+
+---
+
+Since this is asyncronously paralellized, do we need test_costs, which is an ordered list of test costs? We want to ensure that runregression is maximally paralellized
+
+---
+
+Since this is asyncronously paralellized, do we need test_costs, which is an ordered list of test costs? We want to ensure that runregression is maximally paralellized
+
+---
+
+I'm inclined to remove the ordering because it creates another piece of infrastructure to maintain. If this will only yield a performance hit in the final regression test, remove the usage of a test_costs ordering. Do asynchronous execution of the regression tests, including this in the CI
+
+---
+
+I'm inclined to remove the ordering because it creates another piece of infrastructure to maintain. If this will only yield a performance hit in the final regression test, remove the usage of a test_costs ordering. Do asynchronous execution of the regression tests, including this in the CI
