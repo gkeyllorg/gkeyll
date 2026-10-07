@@ -131,20 +131,6 @@ vlasovApp = Vlasov.App.new {
   },
 
   skipField = true,
-
-  -- Field.
-  field = Vlasov.Field.new {
-    epsilon0 = 1.0, mu0 = 1.0,
-
-    -- Initial conditions function.
-    init = function (t, xn)
-      return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
-    end,
-
-    evolve = false, -- Evolve field?
-    elcErrorSpeedFactor = 0.0,
-    mgnErrorSpeedFactor = 0.0,
-  }
 }
 
 vlasovApp:run()
