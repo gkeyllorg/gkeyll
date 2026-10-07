@@ -1,0 +1,5 @@
+In the jnenkinsfiles, I'd like the ability to specify different numbers of processors for compiling the regression tests and running them. For instance, someone may want to run 10 workers for compiling, but only 4 for running.
+
+---
+
+In the jnenkinsfiles, I'd like the ability to specify different numbers of processors for compiling the regression tests and running them. For instance, someone may want to run 10 workers for compiling, but only 4 for running.

@@ -3,10 +3,12 @@
   "checkpoint_id": "01M4BSMH78R4FRN6AHWQY49FWY",
   "strategy": "manual-commit",
   "branch": "jenkins-github-runreg-costs",
-  "checkpoints_count": 26,
+  "checkpoints_count": 28,
   "files_touched": [
     "ci/jenkins/README.md",
+    "ci/jenkins/README.perlmutter_gpu.md",
     "ci/jenkins/README.personal.md",
+    "ci/jenkins/README.stellar_cpu.md",
     "ci/jenkins/README.team_workstation.md",
     "ci/jenkins/jenkinsfile.perlmutter_gpu",
     "ci/jenkins/jenkinsfile.personal",
@@ -71,14 +73,21 @@
       "compact_transcript": "/7/transcript.jsonl",
       "content_hash": "/7/content_hash.txt",
       "prompt": "/7/prompt.txt"
+    },
+    {
+      "metadata": "/8/metadata.json",
+      "transcript": "/8/full.jsonl",
+      "compact_transcript": "/8/transcript.jsonl",
+      "content_hash": "/8/content_hash.txt",
+      "prompt": "/8/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 224945,
+    "input_tokens": 284595,
     "cache_creation_tokens": 0,
-    "cache_read_tokens": 1996032,
-    "output_tokens": 24484,
-    "api_call_count": 71,
+    "cache_read_tokens": 2232320,
+    "output_tokens": 26679,
+    "api_call_count": 80,
     "subagent_tokens_complete": true
   }
 }
