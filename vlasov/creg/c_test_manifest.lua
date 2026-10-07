@@ -25,7 +25,6 @@ return {
          "rt_can_pb_neut_bgk_sodshock_im_1x2v_p2",
          "rt_can_pb_bgk_surf_annulus_sodshock_im_2x2v_p1",
          "rt_can_pb_bgk_surf_toroidal_sodshock_im_2x3v_p2",
-         "rt_dg_euler_kh_2d",
          "rt_can_pb_bgk_surf_annulus_sodshock_im_1x2v_p2",
          "rt_diffusion_1x",
       },

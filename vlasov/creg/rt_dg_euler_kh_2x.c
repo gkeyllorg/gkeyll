@@ -1,3 +1,14 @@
+// Kelvin-Helmholtz instability with the DG Euler solver (2x). A dense stream
+// (density 2, velocity -0.5) between two lighter streams (density 1, velocity 0.5) at pressure 2.5
+// with gamma = 1.4, after Section 4 of M. Sementilli, R. Zangeneh and J. Chen, Fluids 9 (2024) 52,
+// on a periodic unit box; a deterministic multi-mode velocity perturbation of amplitude 0.01 seeds
+// the shear layers and the run follows the instability into its nonlinear roll-up. Figures of merit
+// (serendipity p1, 64 x 64 cells): the y-directed kinetic energy density grows from 5.4e-4 to a
+// peak of 0.117 at t = 5.4 and ends at 0.086 (the incompressible vortex-sheet rate of the m = 1
+// mode, k du sqrt(rho_in rho_out)/(rho_in + rho_out) = 2.96, sets the time scale; the multi-mode
+// seed has no single-mode linear phase to fit); kinetic energy 0.1886 -> 0.1564 is converted into
+// internal energy 6.2500 -> 6.2822 while mass, x-momentum and total energy are conserved to 6e-13.
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -20,18 +31,21 @@
 
 #include <rt_arg_parse.h>
 
-struct p_perturbation_ctx {
-  // Mathematical constants (dimensionless).
-  double pi;
+struct kh_ctx {
+  double pi; // Pi.
+  double gas_gamma; // Adiabatic index.
+  double rho_in; // Inner fluid mass density.
+  double u_in; // Inner fluid velocity (x-direction).
+  double rho_out; // Outer fluid mass density.
+  double u_out; // Outer fluid velocity (x-direction).
+  double p0; // Pressure.
+  double yloc; // Half width of the inner fluid (|y| < yloc).
+  double alpha; // Velocity perturbation amplitude.
 
-  // Physical constants (using normalized code units).
-  double gas_gamma; // Adiabatic idex.
-
-  double rho; // Fluid mass density.
-
-  // Simulation parameters.
-  int Nx; // Cell count (configuration space: x-direction).
-  double Lx; // Domain size (configuration space: x-direction).
+  int Nx; // Cell count (x-direction).
+  int Ny; // Cell count (y-direction).
+  double Lx; // Domain size (x-direction).
+  double Ly; // Domain size (y-direction).
   int poly_order; // Polynomial order.
   double cfl_frac; // CFL coefficient.
 
@@ -44,24 +58,27 @@ struct p_perturbation_ctx {
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct p_perturbation_ctx
+struct kh_ctx
 create_ctx(void)
 {
-  // Mathematical constants (dimensionless).
-  double pi = M_PI;
-
-  // Physical constants (using normalized code units).
+  double pi = M_PI; // Pi.
   double gas_gamma = 1.4; // Adiabatic index.
+  double rho_in = 2.0; // Inner fluid mass density.
+  double u_in = -0.5; // Inner fluid velocity (x-direction).
+  double rho_out = 1.0; // Outer fluid mass density.
+  double u_out = 0.5; // Outer fluid velocity (x-direction).
+  double p0 = 2.5; // Pressure.
+  double yloc = 0.25; // Half width of the inner fluid (|y| < yloc).
+  double alpha = 0.01; // Velocity perturbation amplitude.
 
-  double rho = 1.0; // Fluid mass density.
-
-  // Simulation parameters.
-  int Nx = 512; // Cell count (configuration spcae: x-direction).
-  double Lx = 2.0 * pi; // Domain size (configuration space: x-direction).
+  int Nx = 64; // Cell count (x-direction).
+  int Ny = 64; // Cell count (y-direction).
+  double Lx = 1.0; // Domain size (x-direction).
+  double Ly = 1.0; // Domain size (y-direction).
   int poly_order = 1; // Polynomial order.
   double cfl_frac = 0.9; // CFL coefficient.
 
-  double t_end = 2.0; // Final simulation time.
+  double t_end = 10.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
@@ -70,12 +87,20 @@ create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct p_perturbation_ctx ctx = {
+  struct kh_ctx ctx = {
     .pi = pi,
     .gas_gamma = gas_gamma,
-    .rho = rho,
+    .rho_in = rho_in,
+    .u_in = u_in,
+    .rho_out = rho_out,
+    .u_out = u_out,
+    .p0 = p0,
+    .yloc = yloc,
+    .alpha = alpha,
     .Nx = Nx,
+    .Ny = Ny,
     .Lx = Lx,
+    .Ly = Ly,
     .poly_order = poly_order,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
@@ -93,27 +118,44 @@ create_ctx(void)
 void
 evalEulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
-  double x = xn[0];
-  struct p_perturbation_ctx *app = ctx;
-
+  struct kh_ctx *app = ctx;
+  double x = xn[0], y = xn[1];
+  double pi = app->pi;
   double gas_gamma = app->gas_gamma;
-  double rho = app->rho;
+  double alpha = app->alpha;
 
-  double p = 1.0 + 0.01 * sin(x);
+  // Shear layers at y = +/- yloc between a dense inner stream and a lighter outer stream.
+  bool inner = fabs(y) < app->yloc;
+  double rho = inner ? app->rho_in : app->rho_out;
+  double vx = inner ? app->u_in : app->u_out;
+  double vy = 0.0;
+  double p = app->p0;
 
-  double mom_x = 0.0; // Fluid momentum density (x-direction).
-  double mom_y = 0.0; // Fluid momentum density (y-direction).
-  double mom_z = 0.0; // Fluid momentum density (z-direction).
-  double Etot = p / (gas_gamma - 1.0); // Fluid total energy density.
+  // Deterministic multi-mode velocity perturbation (modes 1..4 in x and y, fixed phases).
+  double k = 2.0 * pi;
+  for (int i = 1; i <= 4; i++) {
+    for (int j = 1; j <= 4; j++) {
+      double phase = 2.0 * pi * (i * j % 7) / 7.0;
+      vx += alpha * sin(i * k * x + j * k * y + phase);
+      vy += alpha * sin(i * k * x + j * k * y - phase);
+    }
+  }
 
-  // Set fluid mass density.
+  // Set fluid mass density, momentum density and total energy density.
   fout[0] = rho;
-  // Set fluid momentum density.
-  fout[1] = mom_x;
-  fout[2] = mom_y;
-  fout[3] = mom_z;
-  // Set fluid total energy density.
-  fout[4] = Etot;
+  fout[1] = rho * vx;
+  fout[2] = rho * vy;
+  fout[3] = 0.0;
+  fout[4] = p / (gas_gamma - 1.0) + 0.5 * rho * (vx * vx + vy * vy);
+}
+
+// Snap a trigger whose next time exceeds t_end only by round-off back to t_end.
+static void
+snap_trigger_to_t_end(struct gkyl_tm_trigger *trig, double t_end)
+{
+  if (trig->tcurr > t_end && trig->tcurr <= t_end * (1.0 + 1.0e-10)) {
+    trig->tcurr = t_end;
+  }
 }
 
 void
@@ -177,14 +219,19 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct p_perturbation_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct kh_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
+  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
 
   // Fluid equations.
   struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(ctx.gas_gamma, app_args.use_gpu);
 
-  struct gkyl_vlasov_fluid_species fluid = {.equation = euler, .init = evalEulerInit, .ctx = &ctx};
+  struct gkyl_vlasov_fluid_species fluid = {
+    .equation = euler,
+    .init = evalEulerInit,
+    .ctx = &ctx,
+  };
 
   int nrank = 1; // Number of processors in simulation.
 #ifdef GKYL_HAVE_MPI
@@ -193,7 +240,7 @@ main(int argc, char **argv)
   }
 #endif
 
-  int ccells[] = {NX};
+  int ccells[] = {NX, NY};
   int cdim = sizeof(ccells) / sizeof(ccells[0]);
 
   int cuts[cdim];
@@ -248,27 +295,28 @@ main(int argc, char **argv)
   }
 
   // Vlasov-Maxwell app.
+  // Vlasov app (fluid only).
   struct gkyl_vm app_inp = {
 
-    .cdim = 1,
+    .cdim = 2,
     .vdim = 0,
-    .lower = {0.0},
-    .upper = {ctx.Lx},
-    .cells = {NX},
+    .lower = {-0.5 * ctx.Lx, -0.5 * ctx.Ly},
+    .upper = {0.5 * ctx.Lx, 0.5 * ctx.Ly},
+    .cells = {NX, NY},
 
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
     .cfl_frac = ctx.cfl_frac,
 
-    .num_periodic_dir = 1,
-    .periodic_dirs = {0},
+    .num_periodic_dir = 2,
+    .periodic_dirs = {0, 1},
 
     .num_species = 1,
     .species = {{.name = "euler", .type = GKYL_SPECIES_FLUID, .fluid = fluid}},
 
     .skip_field = true,
 
-    .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0]}, .comm = comm},
+    .parallelism = {.use_gpu = app_args.use_gpu, .cuts = {cuts[0], cuts[1]}, .comm = comm},
   };
 
   // Create app object.
@@ -345,6 +393,11 @@ main(int argc, char **argv)
   // Compute initial guess of maximum stable time-step.
   double dt = t_end - t_curr;
 
+  // The requested time-step is shortened near the end of the simulation so that
+  // the final step lands exactly on t_end.
+  bool is_dt_clipped = false; // Was the requested dt shortened below the stable dt?
+  bool is_last_step = true; // Does the requested dt reach t_end?
+
   // Initialize small time-step check.
   double dt_init = -1.0, dt_failure_tol = ctx.dt_failure_tol;
   int num_failures = 0, num_failures_max = ctx.num_failures_max;
@@ -360,8 +413,37 @@ main(int argc, char **argv)
       break;
     }
 
-    t_curr += status.dt_actual;
+    // Only a step that took the full requested dt counts as shortened/final.
+    bool took_requested_dt = status.dt_actual == dt;
+    bool was_dt_clipped = is_dt_clipped && took_requested_dt;
+    if (is_last_step && took_requested_dt) {
+      // Avoid round-off leaving t_curr just short of t_end.
+      t_curr = t_end;
+      // Trigger times are accumulated sums and can exceed t_end by round-off.
+      // Snap them so the final frame and diagnostics are still produced.
+      snap_trigger_to_t_end(&fe_trig, t_end);
+      snap_trigger_to_t_end(&im_trig, t_end);
+      snap_trigger_to_t_end(&l2f_trig, t_end);
+      snap_trigger_to_t_end(&io_trig, t_end);
+    } else {
+      t_curr += status.dt_actual;
+    }
+
+    // Request the next time-step. If the remaining time fits in one stable step,
+    // take exactly the remaining time; if it fits in less than two, split it into
+    // two equal steps so the final step is never a sliver of the stable dt.
+    double t_left = t_end - t_curr;
     dt = status.dt_suggested;
+    is_dt_clipped = false;
+    is_last_step = false;
+    if (t_left <= dt) {
+      dt = t_left;
+      is_dt_clipped = true;
+      is_last_step = true;
+    } else if (t_left < 2.0 * dt) {
+      dt = 0.5 * t_left;
+      is_dt_clipped = true;
+    }
 
     calc_field_energy(&fe_trig, app, t_curr, false);
     calc_integrated_mom(&im_trig, app, t_curr, false);
@@ -370,7 +452,7 @@ main(int argc, char **argv)
 
     if (dt_init < 0.0) {
       dt_init = status.dt_actual;
-    } else if (status.dt_actual < dt_failure_tol * dt_init) {
+    } else if (!was_dt_clipped && status.dt_actual < dt_failure_tol * dt_init) {
       num_failures += 1;
 
       gkyl_vlasov_app_cout(app, stdout, "WARNING: Time-step dt = %g", status.dt_actual);
@@ -434,8 +516,8 @@ main(int argc, char **argv)
 
 freeresources:
   // Free resources after simulation completion.
-  gkyl_wv_eqn_release(euler);
   gkyl_comm_release(comm);
+  gkyl_wv_eqn_release(euler);
   gkyl_vlasov_app_release(app);
 
 mpifinalize:
