@@ -1,0 +1,5 @@
+When I runregression create, where do the test_costs get written to?
+
+---
+
+When I runregression create, where do the test_costs get written to?
