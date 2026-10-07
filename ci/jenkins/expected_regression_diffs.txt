@@ -1,15 +1,22 @@
-# Tests whose C regression output is expected to change in the current
-# PR (e.g. because of an intentional physics/algorithm change), one test per
-# line with a short reason. Name a test as the CI report prints it
+# Tests whose C regression output is expected to change in the current PR
+# (e.g. because of an intentional physics/algorithm change), one test per line
+# with a short reason. CI only honors lines that are new or changed relative to
+# the PR baseline; unchanged lines inherited from main are intentionally inert.
+# Name a test as the CI report prints it
 # ("moments/creg/rt_euler_sodshock"), as "<layer>/<test-name>", or by bare
 # test name. Jenkins compares all
-# non-ignored C tests against a baseline built fresh from the PR's target branch,
-# so any test listed here is exempted from failing the build; unlisted
-# failures/diffs still fail it. See ci/jenkins/README.md.
+# non-ignored C tests against a baseline built fresh from the PR's target branch.
+# Only a line new or changed from that baseline exempts its test; all other
+# failures/diffs still fail the build. See ci/jenkins/README.md.
+# A candidate-only test is executed but not numerically compared until it is
+# present in a future baseline; it must still compile, finish, and write output.
 #
-# Clear this file back out (remove your lines) once the PR is merged --
-# otherwise a real future regression on the same test name could be
-# silently masked.
+# Remove stale lines in any later PR to keep this file tidy. Removing a line
+# never acknowledges a difference. To deliberately acknowledge a new change to
+# a test already listed by the baseline, replace its line with an updated
+# reason; that changed line is a fresh acknowledgment.
 #
 # Example:
 # gyrokinetic/rt_gk_ion_sound_1x2v_p1   # updated collision-operator normalization
+
+gyrokinetic/rt_gk_sheath_2x2v_p1   # fixed output of vcutsq

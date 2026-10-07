@@ -2,9 +2,9 @@
 --
 -- Jenkins helper: evaluate regression results written by
 -- 'gkeyll runregression run ... check' and fail (os.exit(1)) if any test
--- did not pass, unless it's listed in the candidate acknowledgment file.
+-- did not pass, unless it has an active candidate acknowledgment.
 --
--- Usage: gkeyll ci/jenkins/check_regression_results.lua <resultsDir> [ackFile] [summaryFile]
+-- Usage: gkeyll ci/jenkins/check_regression_results.lua <resultsDir> [ackFile] [summaryFile] [baselineAckFile] [baselineResultsDir]
 --   <resultsDir>  the gkeyll-results/ directory written by 'runregression
 --                 configure' (i.e. <prefix>/gkeyll-results).
 --   [ackFile]     optional path to a text file listing tests (one per line,
@@ -14,6 +14,13 @@
 --                 as "<layer>/<basename>" ("moments/rt_euler_sodshock"), or by
 --                 basename alone. See ci/jenkins/expected_regression_diffs.txt.
 --   [summaryFile] optional machine-readable pass/acknowledged/failure counts.
+--   [baselineAckFile] when supplied, acknowledgments already present in this
+--                 baseline file are ignored. Only candidate lines that are new
+--                 or changed relative to the baseline can acknowledge a diff.
+--   [baselineResultsDir] when supplied, a numerical comparison failure for a
+--                 test absent from this baseline results database is reported
+--                 as candidate-only rather than failing CI. Execution errors
+--                 for candidate-only tests still fail CI.
 --
 --    _______     ___
 -- + 6 @ |||| # P ||| +
@@ -33,28 +40,85 @@ local BAD_STATUSES = { [0] = true, [-3] = true, [-4] = true, [-5] = true, [-6] =
 local resultsDir = GKYL_COMMANDS_L[1]
 local ackFile = GKYL_COMMANDS_L[2]
 local summaryFile = GKYL_COMMANDS_L[3]
+local baselineAckFile = GKYL_COMMANDS_L[4]
+local baselineResultsDir = GKYL_COMMANDS_L[5]
 
 if not resultsDir then
-   print("Usage: gkeyll check_regression_results.lua <resultsDir> [ackFile] [summaryFile]")
+   print("Usage: gkeyll check_regression_results.lua <resultsDir> [ackFile] [summaryFile] [baselineAckFile] [baselineResultsDir]")
    os.exit(1)
 end
 
--- Parse the acknowledgment file into a set of "<layer>/<name>" entries.
--- Blank lines and '#' comments (including trailing '# reason' text) are
--- ignored.
-local acked = {}
-if ackFile then
-   local f = io.open(ackFile, "r")
+-- Parse an acknowledgment file into full, trimmed source lines mapped to their
+-- test names. Keep the comment in the source-line key: changing a reason is a
+-- deliberate new acknowledgment, while an identical inherited line is inert.
+local function readAcknowledgments(path)
+   local entries = {}
+   if not path then return entries end
+   local f = io.open(path, "r")
    if f then
       for line in f:lines() do
-         local entry = line:gsub("#.*$", ""):match("^%s*(.-)%s*$")
-         if entry and entry ~= "" then acked[entry] = true end
+         local sourceLine = line:match("^%s*(.-)%s*$")
+         local entry = sourceLine:gsub("#.*$", ""):match("^%s*(.-)%s*$")
+         if entry and entry ~= "" then entries[sourceLine] = entry end
       end
       f:close()
    end
+   return entries
 end
 
-local npass, ackedHits, unacked = 0, {}, {}
+local function countEntries(entries)
+   local count = 0
+   for _ in pairs(entries) do count = count + 1 end
+   return count
+end
+
+local candidateAcknowledgments = readAcknowledgments(ackFile)
+local baselineAcknowledgments = readAcknowledgments(baselineAckFile)
+local acked, activeAcknowledgmentLines = {}, 0
+for sourceLine, entry in pairs(candidateAcknowledgments) do
+   -- Without a baseline file retain the historical standalone behavior: every
+   -- candidate entry is active. Jenkins always supplies the baseline file.
+   if not baselineAckFile or not baselineAcknowledgments[sourceLine] then
+      acked[entry] = true
+      activeAcknowledgmentLines = activeAcknowledgmentLines + 1
+   end
+end
+
+if baselineAckFile then
+   print(string.format(
+      "Regression acknowledgments: %d candidate line(s), %d new or updated relative to %s",
+      countEntries(candidateAcknowledgments),
+      activeAcknowledgmentLines, baselineAckFile))
+end
+
+-- Record test names from the baseline's most recent C-regression run. The
+-- candidate check has no accepted output for a test introduced by the PR, so
+-- its otherwise expected comparison failure must not block the build.
+local baselineTests = {}
+if baselineResultsDir then
+   for _, layer in ipairs(LAYERS) do
+      local dbPath = string.format("%s/%s/regressiondb", baselineResultsDir, layer)
+      local f = io.open(dbPath, "r")
+      if f then
+         f:close()
+         local conn = sql.open(dbPath)
+         local guid = conn:rowexec("select guid from RegressionMeta order by rowid desc limit 1")
+         if guid then
+            local names, nrows = conn:exec(string.format(
+               "select name from RegressionData where guid=='%s'", guid))
+            baselineTests[layer] = {}
+            for i = 1, nrows do baselineTests[layer][names.name[i]] = true end
+         end
+         conn:close()
+      end
+   end
+end
+
+local function isCandidateOnly(layer, name)
+   return baselineResultsDir and baselineTests[layer] and not baselineTests[layer][name]
+end
+
+local npass, ackedHits, candidateOnly, unacked = 0, {}, {}, {}
 local layerCounts = {}  -- layerCounts[layer] = { passed, acked, failed }
 
 -- Names are stored layer-qualified ("moments/creg/rt_x"); accept the shorter
@@ -106,7 +170,13 @@ for _, layer in ipairs(LAYERS) do
                npass = npass + 1
                layerCounts[layer].passed = layerCounts[layer].passed + 1
             elseif BAD_STATUSES[status] then
-               if isAcked(layer, key) then
+               -- A new test has no baseline accepted output, which
+               -- runregression records as a comparison failure. Ignore only
+               -- that status; crashes, timeouts, compile failures, and no
+               -- output remain CI failures even for candidate-only tests.
+               if status == 0 and isCandidateOnly(layer, key) then
+                  table.insert(candidateOnly, key)
+               elseif isAcked(layer, key) then
                   table.insert(ackedHits, key)
                   layerCounts[layer].acked = layerCounts[layer].acked + 1
                else
@@ -124,8 +194,8 @@ for _, layer in ipairs(LAYERS) do
 end
 
 print(string.format(
-   "Regression results: %d passed, %d acknowledged diff(s), %d unacknowledged failure(s)",
-   npass, #ackedHits, #unacked))
+   "Regression results: %d passed, %d candidate-only, %d acknowledged diff(s), %d unacknowledged failure(s)",
+   npass, #candidateOnly, #ackedHits, #unacked))
 
 if summaryFile then
    local summary, message = io.open(summaryFile, "w")
@@ -134,8 +204,8 @@ if summaryFile then
       os.exit(1)
    end
    summary:write(string.format(
-      "c_regression_passed=%d\nc_regression_acknowledged=%d\nc_regression_unacknowledged=%d\n",
-      npass, #ackedHits, #unacked))
+      "c_regression_passed=%d\nc_regression_candidate_only=%d\nc_regression_acknowledged=%d\nc_regression_unacknowledged=%d\n",
+      npass, #candidateOnly, #ackedHits, #unacked))
    -- One line per test so the GitHub report (ci/jenkins/github_report.py)
    -- can list failures without opening the SQLite database.
    for _, layer in ipairs(LAYERS) do
@@ -153,12 +223,20 @@ if summaryFile then
    for _, key in ipairs(ackedHits) do
       summary:write(string.format("c_regression_acknowledged_test=%s\n", key))
    end
+   for _, key in ipairs(candidateOnly) do
+      summary:write(string.format("c_regression_candidate_only_test=%s\n", key))
+   end
    summary:close()
 end
 
 if #ackedHits > 0 then
    print(string.format("Acknowledged (per %s):", tostring(ackFile)))
    for _, key in ipairs(ackedHits) do print("  " .. key) end
+end
+
+if #candidateOnly > 0 then
+   print("Candidate-only tests (executed but not compared to a baseline):")
+   for _, key in ipairs(candidateOnly) do print("  " .. key) end
 end
 
 if #unacked > 0 then
