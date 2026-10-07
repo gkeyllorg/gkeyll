@@ -404,7 +404,12 @@ write_nodal_coordinates(const char *nm, struct gkyl_range *nrange, struct gkyl_a
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
 
-  gkyl_grid_sub_array_write(&grid, nrange, 0, nodes, nm);
+  struct gkyl_msgpack_map_elem meta[] = {
+    {.key = "value_form", .elem_type = GKYL_MP_STRING, .cval = "nodal"}
+  };
+  struct gkyl_msgpack_data *mt = gkyl_msgpack_create(sizeof(meta) / sizeof(meta[0]), meta);
+  gkyl_grid_sub_array_write(&grid, nrange, mt, nodes, nm);
+  gkyl_msgpack_data_release(mt);
 }
 
 void

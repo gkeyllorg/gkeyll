@@ -47,12 +47,13 @@ EOF
 command_usage() {
     case "$1" in
         run) cat <<'EOF'
-Usage: gkeyll-ci.sh run (--pr NUMBER | --candidate-ref REF --baseline-ref REF) [--follow]
+Usage: gkeyll-ci.sh run (--pr NUMBER | --candidate-ref REF --baseline-ref REF) [--allow-behind-candidate] [--follow]
 
 Flags:
   --pr NUMBER           Build GitHub pull request NUMBER.
   --candidate-ref REF   Candidate branch or commit; requires --baseline-ref.
   --baseline-ref REF    Baseline branch or commit; requires --candidate-ref.
+  --allow-behind-candidate  Permit a candidate that does not contain the baseline.
   --follow              Stream the build console after Jenkins queues it.
 
 Specify a platform to run the build: gkeyll-ci.sh <platform> run ...
