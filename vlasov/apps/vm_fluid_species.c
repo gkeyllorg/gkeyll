@@ -1,12 +1,3 @@
-#include <assert.h>
-#include <float.h>
-
-#include <gkyl_alloc.h>
-#include <gkyl_array_ops.h>
-#include <gkyl_array_rio.h>
-#include <gkyl_array_rio_priv.h>
-#include <gkyl_dg_eqn.h>
-#include <gkyl_util.h>
 #include <gkyl_vlasov_priv.h>
 
 // Euler and isothermal Euler function pointers for primitive/auxiliary variables,
@@ -398,7 +389,7 @@ vm_fluid_species_can_pb_fluid_calc_integrated(
   vm_fluid_species_prim_vars(app, f, f->fluid);
   // integrate |grad phi|^2
   gkyl_array_integrate_advance(
-    f->calc_can_pb_energy, f->phi, app->grid.cellVolume, f->can_pb_energy_fac, &app->local,
+    f->calc_can_pb_energy, f->phi, 1.0, f->can_pb_energy_fac, &app->local,
     &app->local, f->red_can_pb_energy
   );
   gkyl_comm_allreduce(
@@ -556,6 +547,19 @@ vm_fluid_species_can_pb_fluid_init(
   }
   f->has_poisson = true;
 
+  // Hasegawa-Wakatani: the adiabatic coupling relaxes phi toward n at the rate
+  // alpha (1 + k^2)/k^2, fastest for the longest box mode and independent of the flow, so
+  // (like omega_H in gyrokinetics) it enters the time-step limit as a global rate that seeds
+  // the CFL rate array; zero for the other canonical PB fluids.
+  f->can_pb_alpha_cfl_rate = 0.0;
+  if (f->eqn_type == GKYL_EQN_CAN_PB_HASEGAWA_WAKATANI) {
+    double alpha = gkyl_wv_can_pb_hasegawa_wakatani_alpha(f->equation);
+    double L_max =
+      fmax(app->grid.upper[0] - app->grid.lower[0], app->grid.upper[1] - app->grid.lower[1]);
+    double k_min_sq = pow(2.0 * M_PI / L_max, 2);
+    f->can_pb_alpha_cfl_rate = alpha * (1.0 + k_min_sq) / k_min_sq;
+  }
+
   // Need to figure out size of alpha_surf and sgn_alpha_surf by finding size of surface basis set
   struct gkyl_basis surf_basis, surf_quad_basis;
   if (app->basis.b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
@@ -668,7 +672,9 @@ vm_fluid_species_rhs_enabled(
 
   double omegaCfl = 1 / DBL_MAX;
 
-  gkyl_array_clear(fluid_species->cflrate, 0.0);
+  // The CFL rate starts from the adiabatic-coupling rate of Hasegawa-Wakatani (zero for the other
+  // fluids); the advection and diffusion updaters accumulate their rates on top of it.
+  gkyl_array_clear(fluid_species->cflrate, fluid_species->can_pb_alpha_cfl_rate);
   gkyl_array_clear(rhs, 0.0);
 
   // If we are solving a Poisson equation, need to compute
@@ -765,6 +771,7 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   int cdim = app->cdim;
   // Only the canonical-PB initialization sets has_poisson; default it here.
   f->has_poisson = false;
+  f->can_pb_alpha_cfl_rate = 0.0; // Only Hasegawa-Wakatani sets a nonzero rate below.
   // Setup equation-specific memory and equation type/number of equations based on input table
   f->eqn_type = f->info.equation->type;
   // The fluid DG updater has no isothermal Euler solver yet (it would fall

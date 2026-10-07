@@ -36,8 +36,9 @@ struct gkyl_vlasov_lte_correct_inp {
     *h_ij_inv; // (Can-pb quantitiy) inverse metric tensor (contravariant components)
   const struct gkyl_array *det_h; // (Can-pb quantitiy) determinant of the metric tensor
   enum gkyl_quad_type quad_type; // type of quadrature to use: defaults to Gaussian
-  bool use_last_converged; // Boolean for if we are using the results of the iterative scheme
-    // *even if* the scheme fails to converge.
+  bool use_last_converged; // In cells that do not converge within max_iter, keep the last
+    // iterate when it is closer to the target than the uncorrected projection (true), or
+    // always fall back to the uncorrected projection (false).
   bool
     use_extended_hamil_def; // bool to determine if we are using the extended canonical-pb hamiltonian
   const struct gkyl_array
@@ -50,8 +51,10 @@ struct gkyl_vlasov_lte_correct_inp {
 
 // Correction status
 struct gkyl_vlasov_lte_correct_status {
-  bool iter_converged; // true if iterations converged
+  bool iter_converged; // 0 when every cell converged to the tolerance, 1 otherwise (this
+    // is the value the apps write to the correction-status diagnostic).
   int num_iter; // number of iterations for the correction
+  int num_cells_dropped; // number of cells that fell back to the uncorrected projection
   double error[5]; // error in each moment, up to 5 (vdim+2) components
 };
 
@@ -71,8 +74,10 @@ struct gkyl_vlasov_lte_correct *gkyl_vlasov_lte_correct_inew(
  * Fix the LTE (local thermodynamic equlibrium) distribution function
  * (Maxwellian for non-relativistic/Maxwell-Juttner for relativistic)
  * so that *all* its stationary-frame moments (n, V_drift, T/m) match target moments.
- * NOTE: If this algorithm fails, the returns the original distribution function
- * with only the desired stationary-frame density moment corrected.
+ * The correction is a fixed-point iteration carried out cell by cell. A cell whose iterate
+ * loses positivity, or that has not converged after max_iter iterations (see use_last_converged),
+ * is dropped from the correction and returned as the projection of its target moments with
+ * only the density corrected; the other cells keep their corrected distribution.
  *
  * @param up LTE distribution function moment correction updater
  * @param f_lte LTE distribution function to fix (modified in-place)
@@ -87,12 +92,14 @@ struct gkyl_vlasov_lte_correct_status gkyl_vlasov_lte_correct_all_moments(
 );
 
 /**
- * Host-side wrapper for computing the absolute value of the 
- * difference in cell averages between the target moments and iterative moments.
+ * Host-side wrapper for computing the per-cell errors of the iterate against the target
+ * moments and dropping cells from the correction (see the private header).
  */
-void gkyl_vlasov_lte_correct_all_moments_abs_diff_cu(
-  const struct gkyl_range *conf_range, int num_comp, int nc, const struct gkyl_array *moms_target,
-  const struct gkyl_array *moms_iter, struct gkyl_array *moms_abs_diff
+void gkyl_vlasov_lte_correct_cell_errors_cu(
+  const struct gkyl_range *conf_range, int num_comp, int nc, double tol, int drop_mode,
+  const struct gkyl_array *moms_target, const struct gkyl_array *moms_iter,
+  const struct gkyl_array *abs_diff_init, struct gkyl_array *corr_mask,
+  struct gkyl_array *abs_diff_moms
 );
 
 /**

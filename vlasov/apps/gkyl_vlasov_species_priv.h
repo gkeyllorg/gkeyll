@@ -75,6 +75,7 @@
 #include <gkyl_vlasov_velocity_map.h>
 #include <gkyl_vlasov_position_map.h>
 #include <gkyl_wave_geom.h>
+#include <gkyl_wv_canonical_pb_fluid.h>
 #include <gkyl_wv_eqn.h>
 #include <gkyl_wv_maxwell.h>
 
@@ -718,6 +719,9 @@ struct vm_fluid_species {
       struct gkyl_array *phi_host; // host copy for use IO
       struct gkyl_array
         *can_pb_n0; // background density gradient for driving turbulence in some fluid systems.
+      // Rate of the adiabatic (alpha) coupling for the slowest box mode, alpha (1 + k_min^2)/k_min^2,
+      // seeding the CFL rate so the explicit RK stepping of this stiff mode stays stable.
+      double can_pb_alpha_cfl_rate;
       struct gkyl_array *
         epsilon; // Permittivity in Poisson equation, set to -1.0 for canonical PB Poisson equations.
       struct gkyl_array *
@@ -1402,7 +1406,7 @@ void vm_species_lte_init(
  * @param fin Input distribution function
  */
 void vm_species_lte_moms(
-  gkyl_vlasov_app *app, const struct vm_species *vms, struct vm_lte *lte,
+  gkyl_vlasov_app *app, const struct vm_species *vms, const struct vm_lte *lte,
   const struct gkyl_array *fin
 );
 

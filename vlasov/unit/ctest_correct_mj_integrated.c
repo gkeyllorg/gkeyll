@@ -935,6 +935,196 @@ test_1x3v(int poly_order)
   gkyl_array_release(gamma_inv);
 }
 
+// Target moments on which the fixed-point iteration diverges: the stage-2 BGK target of the
+// cell just downstream of the discontinuity in the 1x3v relativistic Sod shock, whose drift
+// varies strongly across the cell (DG coefficients of n, u_x, u_y, u_z, T/m for p=2 in 1x).
+static const double mj_fallback_target[15] = {2.06320760498451466e-01,  -5.46987598627980132e-02,
+                                              7.24594823326405874e-02,  2.55979252925000109e-02,
+                                              -1.39957476198517006e-01, 2.21202617756487557e-01,
+                                              -1.74030772561605432e-17, 5.09906948417988900e-17,
+                                              -9.08740454877392963e-17, 6.08168842274632045e-17,
+                                              3.68874613371038098e-17,  8.49427149405520160e-18,
+                                              1.10692016396860993e+00,  -3.94062410884381542e-02,
+                                              7.17817100737195152e-02};
+
+// Two cells: a Maxwell-Juttner at rest that converges, next to the target above that does
+// not. The converged cell must keep its corrected distribution and the other must fall back
+// to the projection of its target moments.
+void
+test_1x3v_fallback(bool use_last_converged)
+{
+  int poly_order = 2;
+  double lower[] = {0.0, -20.0, -20.0, -20.0}, upper[] = {1.0, 20.0, 20.0, 20.0};
+  int cells[] = {2, 16, 16, 16};
+  int vdim = 3, cdim = 1;
+  int ndim = cdim + vdim;
+
+  double confLower[] = {lower[0]}, confUpper[] = {upper[0]};
+  double velLower[] = {lower[1], lower[2], lower[3]}, velUpper[] = {upper[1], upper[2], upper[3]};
+  int confCells[] = {cells[0]};
+  int velCells[] = {cells[1], cells[2], cells[3]};
+
+  struct gkyl_rect_grid grid, confGrid, vel_grid;
+  gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
+  gkyl_rect_grid_init(&confGrid, cdim, confLower, confUpper, confCells);
+  gkyl_rect_grid_init(&vel_grid, vdim, velLower, velUpper, velCells);
+
+  int velGhost[] = {0, 0, 0};
+  struct gkyl_range velLocal, velLocal_ext;
+  gkyl_create_grid_ranges(&vel_grid, velGhost, &velLocal_ext, &velLocal);
+
+  struct gkyl_basis basis, confBasis, velBasis;
+  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
+  gkyl_cart_modal_serendip(&velBasis, vdim, poly_order);
+
+  int confGhost[] = {1};
+  struct gkyl_range confLocal, confLocal_ext;
+  gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
+
+  int ghost[] = {confGhost[0], 0, 0, 0};
+  struct gkyl_range local, local_ext;
+  gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
+
+  int nc = confBasis.num_basis;
+  int num_comp = vdim + 2;
+  struct gkyl_array *moms_target = gkyl_array_new(GKYL_DOUBLE, num_comp * nc, confLocal_ext.volume);
+  struct gkyl_array *moms = gkyl_array_new(GKYL_DOUBLE, num_comp * nc, confLocal_ext.volume);
+  gkyl_array_clear(moms_target, 0.0);
+  double *tg1 = gkyl_array_fetch(moms_target, gkyl_range_idx(&confLocal, (int[1]){1}));
+  tg1[0 * nc] = 1.0 * sqrt(2.0); // n = 1, u = 0
+  tg1[(num_comp - 1) * nc] = 1.0 * sqrt(2.0); // T/m = 1
+  double *tg2 = gkyl_array_fetch(moms_target, gkyl_range_idx(&confLocal, (int[1]){2}));
+  for (int k = 0; k < num_comp * nc; ++k) {
+    tg2[k] = mj_fallback_target[k];
+  }
+
+  struct gkyl_array *hamil = mkarr(velBasis.num_basis, velLocal.volume);
+  struct gkyl_array *gamma_inv = mkarr(velBasis.num_basis, velLocal.volume);
+  struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = {0};
+  struct gkyl_vlasov_velocity_map *vel_map =
+    gkyl_vlasov_velocity_map_new(&vel_grid, &velLocal, &velBasis, inp_vmap, false, false);
+  gkyl_dg_vlasov_calc_hamil(
+    &vel_grid, &velBasis, &velLocal, GKYL_MODEL_SR, vel_map, hamil, gamma_inv, false
+  );
+
+  struct gkyl_array *distf = mkarr(basis.num_basis, local_ext.volume);
+  struct gkyl_array *distf_uncorrected = mkarr(basis.num_basis, local_ext.volume);
+
+  struct gkyl_vlasov_lte_proj_on_basis_inp inp_lte = {
+    .phase_grid = &grid,
+    .vel_grid = &vel_grid,
+    .conf_basis = &confBasis,
+    .vel_basis = &velBasis,
+    .phase_basis = &basis,
+    .conf_range = &confLocal,
+    .conf_range_ext = &confLocal_ext,
+    .vel_range = &velLocal,
+    .phase_range = &local,
+    .hamil = hamil,
+    .hamil_range = &velLocal,
+    .gamma_inv = gamma_inv,
+    .model_id = GKYL_MODEL_SR,
+    .hamil_id = gkyl_hamil_id_from_model_id(GKYL_MODEL_SR),
+    .use_extended_hamil_def = false,
+    .use_gpu = false,
+    .vel_map = vel_map,
+  };
+  gkyl_vlasov_lte_proj_on_basis *proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_lte);
+  gkyl_vlasov_lte_proj_on_basis_advance(proj_lte, &local, &confLocal, moms_target, distf);
+  gkyl_array_copy(distf_uncorrected, distf);
+
+  struct gkyl_vlasov_lte_correct_inp inp_corr = {
+    .phase_grid = &grid,
+    .vel_grid = &vel_grid,
+    .conf_basis = &confBasis,
+    .vel_basis = &velBasis,
+    .phase_basis = &basis,
+    .conf_range = &confLocal,
+    .conf_range_ext = &confLocal_ext,
+    .vel_range = &velLocal,
+    .phase_range = &local,
+    .hamil = hamil,
+    .hamil_range = &velLocal,
+    .gamma_inv = gamma_inv,
+    .model_id = GKYL_MODEL_SR,
+    .hamil_id = gkyl_hamil_id_from_model_id(GKYL_MODEL_SR),
+    .use_extended_hamil_def = false,
+    .use_gpu = false,
+    .max_iter = 100,
+    .eps = 1e-12,
+    .use_last_converged = use_last_converged,
+    .vel_map = vel_map,
+  };
+  gkyl_vlasov_lte_correct *corr_mj = gkyl_vlasov_lte_correct_inew(&inp_corr);
+  struct gkyl_vlasov_lte_correct_status status =
+    gkyl_vlasov_lte_correct_all_moments(corr_mj, distf, moms_target, &local, &confLocal);
+  gkyl_vlasov_lte_correct_release(corr_mj);
+
+  TEST_CHECK(status.iter_converged == 1);
+  TEST_CHECK(status.num_iter == 100);
+  TEST_CHECK(status.num_cells_dropped == 1);
+
+  struct gkyl_vlasov_lte_moments_inp inp_mom = {
+    .phase_grid = &grid,
+    .vel_grid = &vel_grid,
+    .conf_basis = &confBasis,
+    .vel_basis = &velBasis,
+    .phase_basis = &basis,
+    .conf_range = &confLocal,
+    .conf_range_ext = &confLocal_ext,
+    .vel_range = &velLocal,
+    .phase_range = &local,
+    .hamil = hamil,
+    .hamil_range = &velLocal,
+    .gamma_inv = gamma_inv,
+    .model_id = GKYL_MODEL_SR,
+    .hamil_id = gkyl_hamil_id_from_model_id(GKYL_MODEL_SR),
+    .use_extended_hamil_def = false,
+    .use_gpu = false,
+    .vel_map = vel_map,
+  };
+  gkyl_vlasov_lte_moments *lte_moms = gkyl_vlasov_lte_moments_inew(&inp_mom);
+  gkyl_vlasov_lte_moments_advance(lte_moms, &local, &confLocal, distf, moms);
+
+  // The converged cell matches its target to the tolerance.
+  const double *m1 = gkyl_array_cfetch(moms, gkyl_range_idx(&confLocal, (int[1]){1}));
+  for (int c = 0; c < num_comp; ++c) {
+    TEST_CHECK(gkyl_compare_double(m1[c * nc], tg1[c * nc], 1e-12));
+  }
+  // The reported errors are those of the returned distribution over both cells; the density
+  // of the dropped cell is fixed by the projection to about 1e-5 for this varying target.
+  TEST_CHECK(status.error[0] < 1e-4);
+
+  // The dropped cell is the projection of its target moments.
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &local);
+  while (gkyl_range_iter_next(&iter)) {
+    if (iter.idx[0] != 2) {
+      continue;
+    }
+    long loc = gkyl_range_idx(&local, iter.idx);
+    const double *f = gkyl_array_cfetch(distf, loc);
+    const double *f_uncorrected = gkyl_array_cfetch(distf_uncorrected, loc);
+    for (int k = 0; k < basis.num_basis; ++k) {
+      TEST_CHECK(gkyl_compare_double(f[k], f_uncorrected[k], 1e-15));
+    }
+  }
+  // Its reported error is that of the uncorrected projection, well below the diverged iterate.
+  TEST_CHECK(status.error[1] > 1e-3 && status.error[1] < 0.1);
+  TEST_CHECK(status.error[num_comp - 1] > 1e-3 && status.error[num_comp - 1] < 0.1);
+
+  gkyl_array_release(moms_target);
+  gkyl_array_release(moms);
+  gkyl_array_release(distf);
+  gkyl_array_release(distf_uncorrected);
+  gkyl_vlasov_lte_moments_release(lte_moms);
+  gkyl_vlasov_lte_proj_on_basis_release(proj_lte);
+  gkyl_array_release(hamil);
+  gkyl_vlasov_velocity_map_release(vel_map);
+  gkyl_array_release(gamma_inv);
+}
+
 // special note, the p1 basis does not function
 void
 test_correct_mj_integrated_1x1v_p2_ho()
@@ -952,6 +1142,18 @@ test_correct_mj_integrated_1x2v_p2_ho()
   test_1x2v(2);
 }
 void
+test_correct_mj_integrated_1x3v_fallback_keep_last_ho()
+{
+  test_1x3v_fallback(true);
+}
+
+void
+test_correct_mj_integrated_1x3v_fallback_ho()
+{
+  test_1x3v_fallback(false);
+}
+
+void
 test_correct_mj_integrated_1x3v_p2_ho()
 {
   test_1x3v(2);
@@ -963,5 +1165,8 @@ TEST_LIST = {
    test_correct_mj_integrated_1x1v_p2_spatially_varied_ho},
   {"test_correct_mj_integrated_1x2v_p2_ho", test_correct_mj_integrated_1x2v_p2_ho},
   {"test_correct_mj_integrated_1x3v_p2_ho", test_correct_mj_integrated_1x3v_p2_ho},
+  {"test_correct_mj_integrated_1x3v_fallback_keep_last_ho",
+   test_correct_mj_integrated_1x3v_fallback_keep_last_ho},
+  {"test_correct_mj_integrated_1x3v_fallback_ho", test_correct_mj_integrated_1x3v_fallback_ho},
   {NULL, NULL}
 };

@@ -4,12 +4,6 @@
 return {
    ignore = {
       tests = {
-         "rt_dg_incompress_euler_vortex_waltz_p1",
-         "rt_dg_incompress_euler_double_shear_p1",
-         "rt_dg_incompress_euler_vortex_waltz_p2",
-         "rt_dg_incompress_euler_double_shear_p2",
-         "rt_dg_hasegawa_mima_p2",
-         "rt_dg_hasegawa_mima_p1",
          "rt_can_pb_bgk_surf_cylindrical_sodshock_im_3x3v_p1",
          "rt_can_pb_ex_bgk_surf_flat_sq_ic",
          "rt_can_pb_bgk_surf_annulus_sodshock_im_2x2v_p2",
@@ -20,7 +14,6 @@ return {
          "rt_can_pb_bgk_surf_toroidal_sodshock_im_3x3v_p1",
          "rt_can_pb_neut_bgk_sodshock_im_1x2v_p2",
          "rt_can_pb_bgk_surf_annulus_sodshock_im_1x2v_p2",
-         "rt_vlasov_neut_lbo_sodshock_1x3v_p2",
          "rt_can_pb_bgk_surf_toroidal_sodshock_im_2x3v_p2",
          "rt_can_pb_bgk_surf_annulus_sodshock_im_2x2v_p1",
       },
@@ -29,7 +22,7 @@ return {
    },
    moat = {
       "rt_vlasov_landau_damping_1x1v_ser_p2", "rt_vlasov_twostream_1x1v_ser_p2",
-      "rt_vlasov_es_shock_1x1v_ser_p2", "rt_vlasov_bgk_relax_1x1v_p2",
+      "rt_vlasov_es_shock_1x1v_ser_p2", "rt_vlasov_bgk_relax_1x1v_ser_p2",
    },
    parallel = {},
 }

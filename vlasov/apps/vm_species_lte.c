@@ -75,7 +75,7 @@ vm_species_lte_init(
     lte->n_iter = 0;
     lte->corr_lte = gkyl_vlasov_lte_correct_inew(&inp_corr);
 
-    lte->corr_stat = gkyl_dynvec_new(GKYL_DOUBLE, 7);
+    lte->corr_stat = gkyl_dynvec_new(GKYL_DOUBLE, 8);
     lte->is_first_corr_status_write_call = true;
   }
 
@@ -86,7 +86,7 @@ vm_species_lte_init(
 // the density so they are physical
 void
 vm_species_lte_moms(
-  gkyl_vlasov_app *app, const struct vm_species *vms, struct vm_lte *lte,
+  gkyl_vlasov_app *app, const struct vm_species *vms, const struct vm_lte *lte,
   const struct gkyl_array *fin
 )
 {
@@ -125,14 +125,18 @@ vm_species_lte_from_moms(
     status_corr = gkyl_vlasov_lte_correct_all_moments(
       lte->corr_lte, lte->f_lte, moms_lte, &vms->local, &app->local
     );
-    double corr_vec[7] = {0.0};
+    // Iterations, convergence flag, the error of each moment (maximum over ranks) and the
+    // number of cells that fell back to the uncorrected projection (summed over ranks).
+    double corr_vec[8] = {0.0};
     corr_vec[0] = status_corr.num_iter;
     corr_vec[1] = status_corr.iter_converged;
     for (int i = 0; i < app->vdim + 2; ++i) {
       corr_vec[2 + i] = status_corr.error[i];
     }
-    double corr_vec_global[7] = {0.0};
+    double corr_vec_global[8] = {0.0};
     gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 7, corr_vec, corr_vec_global);
+    double num_dropped = status_corr.num_cells_dropped;
+    gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, &num_dropped, &corr_vec_global[7]);
     gkyl_dynvec_append(lte->corr_stat, app->tcurr, corr_vec_global);
 
     lte->n_iter += status_corr.num_iter;

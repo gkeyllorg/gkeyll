@@ -273,6 +273,9 @@ vm_species_lbo_init(
   lbo->write_mom_func = vmlbo_write_mom_disabled;
 
   if (lbo->collision_id == GKYL_LBO_COLLISIONS) {
+    // The LBO kernels assume a uniform velocity grid (no velocity-space Jacobian).
+    assert(vms->vel_map->is_identity);
+
     lbo->num_cross_collisions = vms->info.collisions.num_cross_collisions;
 
     int cdim = app->cdim, vdim = app->vdim;

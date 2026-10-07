@@ -389,6 +389,11 @@ vm_species_bgk_cross_init(
 
   if (bgk->collision_id == GKYL_BGK_COLLISIONS) {
     if (vms->bgk.num_cross_collisions) {
+      // The cross-species target is a Maxwellian built from non-relativistic primitive
+      // moments, so cross BGK collisions need the separable H = v^2/2 (sparse velocity-space
+      // Hamiltonian), not the relativistic (dense) or phase-space Hamiltonians.
+      assert(vms->mom_hamil_id == GKYL_HAMIL_VEL_SPARSE);
+
       bgk->betaGreenep1 = 1.0; // Greene's beta factor + 1.
       bgk->delta_sr = 2.0; // delta_sr free parameter.
 
