@@ -147,10 +147,10 @@ System → Global properties → Environment variables**, set:
 | `PERLMUTTER_GPU_SLURM_ACCOUNT` | Required NERSC project/account |
 | `PERLMUTTER_GPU_NODE_LABEL` | Optional; default `perlmutter_gpu` |
 | `PERLMUTTER_GPU_SLURM_QOS` | Optional; default `shared` |
-| `PERLMUTTER_GPU_BUILD_JOBS` | Optional; default `3` |
+| `PERLMUTTER_GPU_BUILD_JOBS` | Optional compilation workers, including C regressions; default `3` |
 | `PERLMUTTER_GPU_UNIT_TIME` | Optional; default `00:30:00` |
 | `PERLMUTTER_GPU_REGRESSION_TIME` | Optional; default `04:00:00` |
-| `PERLMUTTER_GPU_REGRESSION_JOBS` | Optional; default `4` |
+| `PERLMUTTER_GPU_REGRESSION_JOBS` | Optional concurrent serial C test runs; default `4` |
 | `PERLMUTTER_GPU_REGRESSION_TEST_TIMEOUT` | Optional; default `900` |
 | `GKEYLL_CI_TRUSTED_REF` | Optional branch or full SHA to fetch `github_report.py` from; default `main`. Set it only while staging a CI change |
 

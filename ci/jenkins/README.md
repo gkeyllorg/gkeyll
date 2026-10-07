@@ -203,6 +203,40 @@ cat "$queue_test_home/queue-test-result.txt"
 This test requires an empty job directory and shuts down its test JVM on
 completion. Never install `test_queue_status.groovy` on a production controller.
 
+## Regression scheduling
+
+Jenkins configures compilation and execution separately using each platform's
+`*_BUILD_JOBS` and `*_REGRESSION_JOBS` environment variables. For example, set
+`PERSONAL_BUILD_JOBS=10` and `PERSONAL_REGRESSION_JOBS=4` for 10 compilation
+workers and 4 concurrent serial regression runs. Use the `TEAM_WORKSTATION`,
+`STELLAR_CPU`, or `PERLMUTTER_GPU` prefix for the other workflows. The pipelines
+invoke `run --c-only --jobs N compile` first, then `run --c-only --execute-only
+--jobs M create` or `check`. MPI regressions continue to run one test at a time
+with four MPI ranks per test.
+
+`runregression run --jobs N` uses up to N compilation workers, then up to N
+execution workers. `--jobs 0` detects the available CPU count. C and Lua tests
+share an execution queue without runtime-cost ordering. Workers take the next
+test as soon as a slot is free, without waiting for a batch to finish. No cost
+table or scheduling artifacts need maintaining. Unequal test durations can
+leave workers idle as the queue drains at the end.
+
+MPI regression collectives still execute one test at a time; `--jobs`
+parallelizes their compilation. GPU worker counts must fit the devices and
+memory allocated to the job.
+
+HPC compile stages pass their configured build worker count to runregression;
+execution uses the existing regression worker allocation. Personal and team
+workstation regression workers default to their build worker count (three),
+with the existing regression-jobs setting available as an override. Updated
+trusted Jenkinsfiles must be deployed for these CI defaults to take effect.
+
+The scheduler fixtures use tiny shell/make jobs, not plasma simulations:
+
+```sh
+LUAJIT=/path/to/luajit python3 -m unittest discover -s ci/jenkins -p 'test_*.py'
+```
+
 ## Unified local command
 
 The script `gkeyll-ci.sh` provides a CLI to run, query and terminate CI. See

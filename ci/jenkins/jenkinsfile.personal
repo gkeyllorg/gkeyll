@@ -181,15 +181,17 @@ def createBaseline(String baseline, String mkdeps, String configure, String jobs
         sh 'git rev-parse HEAD | tee ../ci-baseline-commit.txt'
         buildTree('baseline', "${env.WORKSPACE}/_baseline/gkylsoft", mkdeps, configure, jobs)
         loggedSh("baseline-regression-configure", "\"${env.WORKSPACE}/_baseline/gkylsoft/gkeyll/bin/gkeyll\" runregression configure --source-dir \"${env.WORKSPACE}/_baseline\" --prefix \"${env.WORKSPACE}/_baseline/gkylsoft\"")
-        timeCommand('../baseline-c-regression-create-seconds.txt', "\"${env.WORKSPACE}/_baseline/gkylsoft/gkeyll/bin/gkeyll\" runregression run --c-only create --timeout 900 --jobs ${regressionJobs}")
+        timeCommand('../baseline-c-compile-seconds.txt', "\"${env.WORKSPACE}/_baseline/gkylsoft/gkeyll/bin/gkeyll\" runregression run --c-only compile --jobs ${jobs}")
+        timeCommand('../baseline-c-regression-create-seconds.txt', "\"${env.WORKSPACE}/_baseline/gkylsoft/gkeyll/bin/gkeyll\" runregression run --c-only --execute-only create --timeout 900 --jobs ${regressionJobs}")
     }
 }
 
-def runCandidateRegressions(String regressionJobs) {
+def runCandidateRegressions(String jobs, String regressionJobs) {
     def gkeyll = "${env.WORKSPACE}/gkylsoft/gkeyll/bin/gkeyll"
     def results = "${env.WORKSPACE}/gkylsoft/gkeyll-results"
     def baseline = "${env.WORKSPACE}/_baseline/gkylsoft/gkeyll-results"
     loggedSh("candidate-regression-configure", "\"${gkeyll}\" runregression configure --source-dir \"${env.WORKSPACE}\" --prefix \"${env.WORKSPACE}/gkylsoft\"")
+    timeCommand('candidate-c-compile-seconds.txt', "\"${gkeyll}\" runregression run --c-only compile --jobs ${jobs}")
     loggedSh("candidate-regression-check", """set -euo pipefail
         for layer in moments vlasov gyrokinetic pkpm; do
             if [ -d \"${baseline}/\$layer/creg-accepted\" ]; then
@@ -198,7 +200,7 @@ def runCandidateRegressions(String regressionJobs) {
             fi
         done
         started=\$(date +%s)
-        \"${gkeyll}\" runregression run --c-only check --timeout 900 --jobs ${regressionJobs}
+        \"${gkeyll}\" runregression run --c-only --execute-only check --timeout 900 --jobs ${regressionJobs}
         elapsed=\$(( \$(date +%s) - started ))
         printf '%s\\n' "\$elapsed" > candidate-c-regression-check-seconds.txt
         echo "Candidate C-regression check runtime: \$elapsed seconds"
@@ -222,7 +224,7 @@ def runParallelRegressions(String mpiExec) {
 
         "${baselineGkeyll}" runregression configure --source-dir "${env.WORKSPACE}/_baseline" --prefix "${env.WORKSPACE}/_baseline/gkylsoft" --results-subdir parallel-c-4 --mpiexec "${baselineMpiExec}"
         started=\$(date +%s)
-        "${baselineGkeyll}" runregression run --c-only --parallel compile
+        "${baselineGkeyll}" runregression run --c-only --parallel --jobs ${env.PERSONAL_BUILD_JOBS ?: '3'} compile
         elapsed=\$(( \$(date +%s) - started ))
         printf '%s\\n' "\$elapsed" > baseline-parallel-c-compile-seconds.txt
 
@@ -233,7 +235,7 @@ def runParallelRegressions(String mpiExec) {
 
         "${gkeyll}" runregression configure --source-dir "${env.WORKSPACE}" --prefix "${env.WORKSPACE}/gkylsoft" --results-subdir parallel-c-4 --mpiexec "${candidateMpiExec}"
         started=\$(date +%s)
-        "${gkeyll}" runregression run --c-only --parallel compile
+        "${gkeyll}" runregression run --c-only --parallel --jobs ${env.PERSONAL_BUILD_JOBS ?: '3'} compile
         elapsed=\$(( \$(date +%s) - started ))
         printf '%s\\n' "\$elapsed" > candidate-parallel-c-compile-seconds.txt
 
@@ -276,6 +278,8 @@ def writeCiTimingSummary() {
         baseline_regression_build="$(metric baseline-regression-build-seconds.txt)"
         candidate_install="$(metric candidate-install-seconds.txt)"
         baseline_install="$(metric baseline-install-seconds.txt)"
+        candidate_compile="$(metric candidate-c-compile-seconds.txt)"
+        baseline_compile="$(metric baseline-c-compile-seconds.txt)"
         candidate_parallel_compile="$(metric candidate-parallel-c-compile-seconds.txt)"
         baseline_parallel_compile="$(metric baseline-parallel-c-compile-seconds.txt)"
         regression_create="$(metric baseline-c-regression-create-seconds.txt)"
@@ -292,6 +296,8 @@ def writeCiTimingSummary() {
             printf 'baseline_regression_build_seconds=%s\n' "$baseline_regression_build"
             printf 'candidate_install_seconds=%s\n' "$candidate_install"
             printf 'baseline_install_seconds=%s\n' "$baseline_install"
+            printf 'candidate_c_compile_seconds=%s\n' "$candidate_compile"
+            printf 'baseline_c_compile_seconds=%s\n' "$baseline_compile"
             printf 'candidate_parallel_c_compile_seconds=%s\n' "$candidate_parallel_compile"
             printf 'baseline_parallel_c_compile_seconds=%s\n' "$baseline_parallel_compile"
             printf 'baseline_c_regression_create_seconds=%s\n' "$regression_create"
@@ -318,7 +324,7 @@ def mkdeps = validateBranchName('PERSONAL_MKDEPS_SCRIPT', requireValue('PERSONAL
 def configure = validateBranchName('PERSONAL_CONFIGURE_SCRIPT', requireValue('PERSONAL_CONFIGURE_SCRIPT', env.PERSONAL_CONFIGURE_SCRIPT))
 def statusCredentialsId = requireValue('PERSONAL_GITHUB_CREDENTIAL_ID', env.PERSONAL_GITHUB_CREDENTIAL_ID)
 def jobs = (env.PERSONAL_BUILD_JOBS ?: '3').trim()
-def regressionJobs = (env.PERSONAL_REGRESSION_JOBS ?: '1').trim()
+def regressionJobs = (env.PERSONAL_REGRESSION_JOBS ?: env.PERSONAL_BUILD_JOBS ?: '3').trim()
 def mpiExec = (env.PERSONAL_MPIEXEC ?: '').trim()
 if (!(jobs ==~ /[1-9][0-9]*/) || !(regressionJobs ==~ /[1-9][0-9]*/)) error('PERSONAL_BUILD_JOBS and PERSONAL_REGRESSION_JOBS must be positive integers.')
 
@@ -369,7 +375,7 @@ def runCi = {
         ciStage('Report pending') { publishStatus(statusCredentialsId, statusContext, commit, 'pending', 'Gkeyll CI is running.') }
         ciStage('Build candidate') { buildTree('candidate', "${env.WORKSPACE}/gkylsoft", mkdeps, configure, jobs) }
         ciStage('Build baseline') { createBaseline(requestedBaseline, mkdeps, configure, jobs, regressionJobs) }
-        ciStage('C regressions') { runCandidateRegressions(regressionJobs) }
+        ciStage('C regressions') { runCandidateRegressions(jobs, regressionJobs) }
         ciStage('Parallel C regressions') { runParallelRegressions(mpiExec); status = 'success'; description = 'Personal CI passed.' }
     } catch (err) {
         failureMessage = err.toString()
