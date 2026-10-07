@@ -1,0 +1,43 @@
+{
+  "cli_version": "0.11.3",
+  "checkpoint_id": "01M4BGGWCFRPFP8RDSFDZ7A8XM",
+  "strategy": "manual-commit",
+  "branch": "jenkins-github-queue-status",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "gyrokinetic/creg/rt_gk_mirror_boltz_elc_1x2v_p1.c",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b0-geo_surf0_deltats.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b0-geo_surf1_deltats.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b1-geo_surf0_deltats.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b1-geo_surf1_deltats.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b2-geo_surf0_deltats.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b2-geo_surf1_deltats.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b3-geo_surf0_deltats.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b3-geo_surf1_deltats.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b4-geo_surf0_deltats.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b4-geo_surf1_deltats.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b5-geo_surf0_deltats.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b5-geo_surf1_deltats.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b6-geo_surf0_deltats.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b6-geo_surf1_deltats.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b7-geo_surf0_deltats.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b7-geo_surf1_deltats.gkyl"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 23549,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 84864,
+    "output_tokens": 1082,
+    "api_call_count": 4,
+    "subagent_tokens_complete": true
+  }
+}

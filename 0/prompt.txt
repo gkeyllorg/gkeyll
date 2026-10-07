@@ -1,0 +1,1 @@
+Will the implementation of the fdot multiplier affect the equilibrium? For instance, if I use GKYL_GK_FDOT_MULTIPLIER_FIXED_FACTOR_TIMES_OMEGA_MAX with a coefficient of 1/1000, will this modify the equilibrium in steady-state?
