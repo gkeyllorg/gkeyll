@@ -4,12 +4,6 @@
 return {
    ignore = {
       tests = {
-         "rt_dg_incompress_euler_vortex_waltz_p1",
-         "rt_dg_incompress_euler_double_shear_p1",
-         "rt_dg_incompress_euler_vortex_waltz_p2",
-         "rt_dg_incompress_euler_double_shear_p2",
-         "rt_dg_hasegawa_mima_p2",
-         "rt_dg_hasegawa_mima_p1",
          "rt_can_pb_bgk_surf_cylindrical_sodshock_im_3x3v_p1",
          "rt_can_pb_ex_bgk_surf_flat_sq_ic",
          "rt_can_pb_bgk_surf_annulus_sodshock_im_2x2v_p2",
