@@ -1,0 +1,5 @@
+Add the ability for the jenkins CI runs to use some pre-built dependencies so that they don't have to build every time. The paths to each dependency and the config file should be specified. For instance, someone might install Gkeyll on the machine which runs CI, then we can use the config file from that build, as well as the dependencies it's using.
+
+---
+
+Add the ability for the jenkins CI runs to use some pre-built dependencies so that they don't have to build every time. The paths to each dependency and the config file should be specified. For instance, someone might install Gkeyll on the machine which runs CI, then we can use the config file from that build, as well as the dependencies it's using.
