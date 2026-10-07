@@ -1,0 +1,1 @@
+Run the ci/format-all.sh script to ensure that each branch is formatted corectly too

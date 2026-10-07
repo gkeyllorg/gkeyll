@@ -1,0 +1,66 @@
+{
+  "cli_version": "0.11.3",
+  "checkpoint_id": "01M4C0Q7TP5WP2Y0QMHEB89YFN",
+  "session_id": "01a112a3-1f78-7da2-8b08-736e65720c79",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-07T20:26:23.521578347Z",
+  "branch": "jenkins-github-more-reporting",
+  "checkpoints_count": 2,
+  "save_step_count": 1,
+  "files_touched": [
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b0-geo_surf0_deltats.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b0-geo_surf1_deltats.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b1-geo_surf0_deltats.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b1-geo_surf1_deltats.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b2-geo_surf0_deltats.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b2-geo_surf1_deltats.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b3-geo_surf0_deltats.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b3-geo_surf1_deltats.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b4-geo_surf0_deltats.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b4-geo_surf1_deltats.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b5-geo_surf0_deltats.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b5-geo_surf1_deltats.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b6-geo_surf0_deltats.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b6-geo_surf1_deltats.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b7-geo_surf0_deltats.gkyl",
+    "gyrokinetic/data/eirene/rt_gk_multib_step_eirene_2x2v_p1_b7-geo_surf1_deltats.gkyl"
+  ],
+  "agent": "Codex",
+  "model": "gpt-6-astra",
+  "turn_id": "e46041a0697f",
+  "checkpoint_transcript_start": 223,
+  "transcript_lines_at_start": 223,
+  "compact_transcript_start": 25,
+  "token_usage": {
+    "input_tokens": 40781,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 2437248,
+    "output_tokens": 8956,
+    "api_call_count": 28,
+    "subagent_tokens_complete": false
+  },
+  "session_metrics": {
+    "turn_count": 2
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-10-07T20:26:23.447523446Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 731,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 731,
+    "total_lines_changed": 1912,
+    "agent_percentage": 0,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
+}
