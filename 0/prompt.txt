@@ -1,0 +1,7 @@
+Resolve the merge conflict from merging branch jenkins-github-more-reporting into jenkins-github-queue-status
+The more-reporting added some extra details into the logs posted to github. Retain all features from both branches
+
+---
+
+Resolve the merge conflict from merging branch jenkins-github-more-reporting into jenkins-github-queue-status
+The more-reporting added some extra details into the logs posted to github. Retain all features from both branches
