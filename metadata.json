@@ -3,7 +3,7 @@
   "checkpoint_id": "01M4BSMH78R4FRN6AHWQY49FWY",
   "strategy": "manual-commit",
   "branch": "jenkins-github-runreg-costs",
-  "checkpoints_count": 12,
+  "checkpoints_count": 14,
   "files_touched": [
     "ci/jenkins/README.md",
     "ci/jenkins/README.personal.md",
@@ -50,14 +50,21 @@
       "compact_transcript": "/4/transcript.jsonl",
       "content_hash": "/4/content_hash.txt",
       "prompt": "/4/prompt.txt"
+    },
+    {
+      "metadata": "/5/metadata.json",
+      "transcript": "/5/full.jsonl",
+      "compact_transcript": "/5/transcript.jsonl",
+      "content_hash": "/5/content_hash.txt",
+      "prompt": "/5/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 142853,
+    "input_tokens": 166917,
     "cache_creation_tokens": 0,
-    "cache_read_tokens": 1143680,
-    "output_tokens": 14252,
-    "api_call_count": 38,
+    "cache_read_tokens": 1350016,
+    "output_tokens": 17606,
+    "api_call_count": 47,
     "subagent_tokens_complete": true
   }
 }

@@ -1,0 +1,29 @@
+So far, I see the output of 
+
+(jenkins-github-runreg-costs) gkeyll: gkeyll runregression run create -j 6 --no-parallel
+CPU-only build
+Compiling 313 C regression tests with 6 worker(s) ...
+Compiled 313 C regression test(s); 0 failed.
+Running 544 tests with 6 worker(s), fastest first.
+
+Does this show each test after it runs? I want the normal print statements, but using some kind of clarity that it's batching the submissions, similar to how /home/maxwell-rosen/Downloads/gkeyll-PM/gkeyll/gkeyll/lua/Tool/runregression.lua formats the output. It prints out each compiled test and after each test that was run
+
+---
+
+So far, I see the output of 
+
+(jenkins-github-runreg-costs) gkeyll: gkeyll runregression run create -j 6 --no-parallel
+CPU-only build
+Compiling 313 C regression tests with 6 worker(s) ...
+Compiled 313 C regression test(s); 0 failed.
+Running 544 tests with 6 worker(s), fastest first.
+
+Does this show each test after it runs? I want the normal print statements, but using some kind of clarity that it's batching the submissions, similar to how /home/maxwell-rosen/Downloads/gkeyll-PM/gkeyll/gkeyll/lua/Tool/runregression.lua formats the output. It prints out each compiled test and after each test that was run
+
+---
+
+Similarly, before these changes, we should preserve the style of printing before the batching and sorting by cost. The print outs to the terminal should be clear and transparant
+
+---
+
+Similarly, before these changes, we should preserve the style of printing before the batching and sorting by cost. The print outs to the terminal should be clear and transparant
