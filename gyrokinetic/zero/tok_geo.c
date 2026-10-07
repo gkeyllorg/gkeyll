@@ -5167,6 +5167,40 @@ tok_phi_integral(const struct gkyl_tok_geo *geo, double psi, double fpol,
   return tok_phi_integral_rec(geo, psi, fpol, r0, z0, r1, z1, &whole, 0, out);
 }
 
+// The angle gained along a trace from its point (r0, z0) to (r, z), a point of
+// the contour in the bracket (r0, z0) -> (r1, z1) whose own increment p01 the
+// trace already holds. On the separatrix the angle diverges logarithmically at
+// the X point, and a trace of it holds the X point itself; an integral from
+// there is a truncated divergent one, cut off wherever the bisection stops,
+// and a second such integral, to the node, is cut off elsewhere than the
+// trace's own for the bracket -- offsetting the node from its neighbours by up
+// to C ln 2 (C the divergence's coefficient, F/(R |H|)): measured 2.8 rad on
+// ASDEX at theta x4 at the separatrix node 14 mm from the X point. A bracket
+// that starts at an X point is therefore integrated from its other end, so the
+// node shares the trace's own cut-off and its angle relative to every other
+// point of the row is the finite integral between them.
+static bool
+tok_phi_into_bracket(const struct gkyl_tok_geo *geo, double psi, double fpol,
+  double r0, double z0, double r1, double z1, double p01, double r, double z,
+  double *out)
+{
+  *out = 0.0;
+  if (r == r0 && z == z0)
+    return true;
+  for (int k=0; k<2; ++k) {
+    double xr = 0.0, xz = 0.0;
+    if (tok_ext_xpoint_rz(geo, k ? TOK_EXT_UPPER_XPT : TOK_EXT_LOWER_XPT, &xr, &xz) &&
+        r0 == xr && z0 == xz) {
+      double e = 0.0;
+      if (!tok_phi_integral(geo, psi, fpol, r, z, r1, z1, &e))
+        return false;
+      *out = p01-e;
+      return true;
+    }
+  }
+  return tok_phi_integral(geo, psi, fpol, r0, z0, r, z, out);
+}
+
 static bool
 tok_trace_sample(const struct gkyl_tok_geo *geo, double psi,
   const double *tr, const double *tz, const double *ts, int n,
@@ -8177,8 +8211,10 @@ tok_ext_set_phi_reference(const struct gkyl_tok_geo_grid_inp *inp,
       best_phi = arc_ctx->map_trace_phi[best_i];
     else if (best_w >= 1.0)
       best_phi = arc_ctx->map_trace_phi[best_i+1];
-    else if (tok_phi_integral(arc_ctx->geo, arc_ctx->psi, fpol,
+    else if (tok_phi_into_bracket(arc_ctx->geo, arc_ctx->psi, fpol,
         arc_ctx->map_trace_r[best_i], arc_ctx->map_trace_z[best_i],
+        arc_ctx->map_trace_r[best_i+1], arc_ctx->map_trace_z[best_i+1],
+        arc_ctx->map_trace_phi[best_i+1]-arc_ctx->map_trace_phi[best_i],
         target_r, target_z, &d))
       best_phi = arc_ctx->map_trace_phi[best_i]+d;
     else
@@ -9447,8 +9483,10 @@ tok_ordered_map_lookup(const struct gkyl_tok_geo_grid_inp *inp,
     double d = 0.0;
     if (out->r == arc_ctx->map_trace_r[i+1] && out->z == arc_ctx->map_trace_z[i+1])
       path_phi = arc_ctx->map_trace_phi[i+1];
-    else if (tok_phi_integral(arc_ctx->geo, arc_ctx->psi, fpol,
-        arc_ctx->map_trace_r[i], arc_ctx->map_trace_z[i], out->r, out->z, &d))
+    else if (tok_phi_into_bracket(arc_ctx->geo, arc_ctx->psi, fpol,
+        arc_ctx->map_trace_r[i], arc_ctx->map_trace_z[i],
+        arc_ctx->map_trace_r[i+1], arc_ctx->map_trace_z[i+1],
+        arc_ctx->map_trace_phi[i+1]-arc_ctx->map_trace_phi[i], out->r, out->z, &d))
       path_phi = arc_ctx->map_trace_phi[i]+d;
     else
       fprintf(stderr,
