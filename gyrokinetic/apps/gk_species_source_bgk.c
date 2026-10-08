@@ -481,7 +481,9 @@ gk_species_source_bgk_write_array(
     arr_ho = gkyl_array_acquire(arrout);
   }
 
-  gkyl_comm_array_write(app->comm, &grid, &local, mt, arr_ho, fileNm);
+  // MPI file offsets and cell counts must use the decomposition of this array.
+  struct gkyl_comm *comm = grid.ndim == app->cdim ? app->comm : gks->comm;
+  gkyl_comm_array_write(comm, &grid, &local, mt, arr_ho, fileNm);
   gkyl_msgpack_data_release(mt);
   gkyl_array_release(arr_ho);
 }

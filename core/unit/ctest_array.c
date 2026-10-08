@@ -372,6 +372,37 @@ test_grid_array_new_from_file_1_ho()
 }
 
 void
+test_grid_array_new_from_file_bad_cell_count(void)
+{
+  // Model a phase-space write using a configuration-space decomposition:
+  // the grid and block contain four cells, but the header declares only two.
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, 1, (double[]){0.0}, (double[]){1.0}, (int[]){4});
+  const char *fname = "ctest_grid_array_bad_cell_count.gkyl";
+  FILE *fp = fopen(fname, "wb");
+  TEST_ASSERT(fp != NULL);
+  struct gkyl_array_header_info hdr = {
+    .file_type = gkyl_file_type_int[GKYL_MULTI_RANGE_DATA_FILE],
+    .etype = GKYL_DOUBLE,
+    .esznc = sizeof(double),
+    .tot_cells = 2,
+  };
+  gkyl_grid_sub_array_header_write_fp(&grid, &hdr, fp);
+  uint64_t block[] = {1, 1, 4, 4}; // nrange, lower, upper, block size.
+  double values[] = {1.0, 2.0, 3.0, 4.0};
+  fwrite(block, sizeof(block), 1, fp);
+  fwrite(values, sizeof(values), 1, fp);
+  fclose(fp);
+
+  struct gkyl_array *arr = gkyl_grid_array_new_from_file(&grid, fname);
+  TEST_CHECK(arr == NULL);
+  if (arr) {
+    gkyl_array_release(arr);
+  }
+  remove(fname);
+}
+
+void
 test_grid_array_read_p1_ho(void)
 {
   // read just header
@@ -706,6 +737,7 @@ TEST_LIST = {
   {"grid_sub_array_read_1_ho", test_grid_sub_array_read_1_ho},
   {"grid_sub_array_read_2_ho", test_grid_sub_array_read_2_ho},
   {"grid_array_new_from_file_1_ho", test_grid_array_new_from_file_1_ho},
+  {"grid_array_new_from_file_bad_cell_count", test_grid_array_new_from_file_bad_cell_count},
   {"grid_array_read_p1_ho", test_grid_array_read_p1_ho},
   {"array_from_buff_ho", test_array_from_buff_ho},
 #ifdef GKYL_HAVE_CUDA

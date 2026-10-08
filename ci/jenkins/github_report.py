@@ -80,6 +80,11 @@ def code(text):
     return "`" + text.replace("`", "'") + "`"
 
 
+def dropdown(title, body):
+    return '<details><summary>{}</summary>\n\n{}\n\n</details>'.format(
+        html.escape(title), body)
+
+
 def wrapped_log(text):
     # GitHub's inline code preserves spaces and wraps to the available width.
     # Put breaks outside code (GitHub hides br inside code), and keep this HTML
@@ -109,8 +114,9 @@ def regression_section(title, summary_file):
     candidate_only = first(values, "c_regression_candidate_only", "0")
     acked = first(values, "c_regression_acknowledged", "0")
     unacked = first(values, "c_regression_unacknowledged", "0")
-    lines = ["**{}:** {} passed, {} candidate-only, {} acknowledged, {} unacknowledged".format(
-        title, passed, candidate_only, acked, unacked)]
+    head = "{}: {} passed, {} candidate-only, {} acknowledged, {} unacknowledged".format(
+        title, passed, candidate_only, acked, unacked)
+    lines = []
     layers = [entry.split(":") for entry in values.get("c_regression_layer", [])]
     layers = [row for row in layers if len(row) == 4]
     if layers:
@@ -131,8 +137,8 @@ def regression_section(title, summary_file):
         for entry in failures:
             name = entry.rpartition(":")[0] or entry
             if details.get(name):
-                lines += ["", "<details><summary>{}: files that differ from the baseline</summary>".format(code(name)),
-                          "", wrapped_log("\n".join(details[name])), "", "</details>"]
+                lines += ["", dropdown(name + ': files that differ from the baseline',
+                                       wrapped_log("\n".join(details[name])))]
     acked_tests = values.get("c_regression_acknowledged_test", [])
     if acked_tests:
         lines += ["", "Acknowledged diffs (new or updated versus the baseline): "
@@ -141,7 +147,7 @@ def regression_section(title, summary_file):
     if candidate_only_tests:
         lines += ["", "Candidate-only tests (executed but not compared to a baseline): "
                   + ", ".join(code(t) for t in candidate_only_tests)]
-    return "\n".join(lines)
+    return dropdown(head, "\n".join(lines).strip() or 'No per-test details recorded.')
 
 
 ERROR_LINE = re.compile(
@@ -345,17 +351,13 @@ def unit_section(label, results_file, log_file):
     total = sum(e["passed"] for e in layers.values())
     head = "{} unit tests: {} passed, {} failed".format(label, total, nfail)
     table = ["| Layer | Passed | Failed | Failing tests |", "| --- | ---: | ---: | --- |"] + rows
-    if nfail:
-        body = ["**{}**".format(head), ""] + table
-    else:  # all green: keep the per-layer table one click away; no markup in <summary>
-        body = ["<details><summary>{}</summary>".format(head), ""] + table + ["", "</details>"]
+    body = table
     for layer in order:
         for test in layers.get(layer, {}).get("failed", []):
             detail = assertion_lines(test, log_file)
             if detail:
-                body += ["", "<details><summary>{}: failed checks</summary>".format(code(test)),
-                         "", wrapped_log("\n".join(detail)), "", "</details>"]
-    return "\n".join(body), nfail, failing
+                body += ["", dropdown(test + ': failed checks', wrapped_log("\n".join(detail)))]
+    return dropdown(head, "\n".join(body)), nfail, failing
 
 
 def status_description(result, stage, unit_fail, unit_failing, regression_files):
@@ -433,7 +435,7 @@ def timing_section(elapsed=None):
     body += ["| {} | {} |".format(k[:-len("_seconds")].replace("_", " "), v) for k, v in rows]
     if elapsed is not None:
         body.append("| **Total elapsed** | **{}** |".format(elapsed))
-    return "<details><summary>Timings</summary>\n\n" + "\n".join(body) + "\n\n</details>"
+    return dropdown('Timings', "\n".join(body))
 
 
 def run_timing():
@@ -502,7 +504,7 @@ def build_report(args):
         meta.append('**Setup retry waiting:** {} s (included in execution elapsed)'.format(int(retry_ms) // 1000))
     if os.environ.get('CI_QUEUE_ID'):
         meta.append('**Jenkins queue:** #' + os.environ['CI_QUEUE_ID'])
-    parts.append('**Status context:** ' + code(args.context))
+    meta.insert(0, '**Status context:** ' + code(args.context))
     if preflight:
         behind = first(preflight, "behind_by", "?")
         override = first(preflight, "override", "false")
@@ -511,14 +513,15 @@ def build_report(args):
     if cache:
         meta.append("**Baseline cache:** {} ({})".format(
             first(cache, "status", "unknown"), code(short(first(cache, "baseline_commit", baseline)))))
-    parts.append("  \n".join(meta))
+    parts.append(dropdown('Run details', "  \n".join(meta)))
 
     stage = first(failure, "stage", os.environ.get('CI_FAILURE_STAGE', 'unknown'))
     if args.result == 'pending':
-        parts.append('**Current stage:** ' + stage)
+        parts.append(dropdown('Current stage: ' + stage, '**Current stage:** ' + stage))
     elif args.result != "success":
         message = re.sub(r"^(?:[A-Za-z_$][\w$]*\.)+[A-Z]\w*(?:Exception|Error): ", "", first(failure, "message", ""))
-        parts.append("**Failed at stage:** {}{}".format(stage, " — " + message if message else ""))
+        parts.append(dropdown('Failed at stage: ' + stage,
+                              "**Failed at stage:** {}{}".format(stage, " — " + message if message else "")))
         parts.extend(failure_sections())
 
     unit_fail, unit_failing = 0, []
@@ -539,15 +542,16 @@ def build_report(args):
     stage_timings = read_text('ci-stage-timings.json')
     if stage_timings:
         rows = json.loads(stage_timings).get('stages', [])
-        parts.append('**Stage durations**\n\n| Stage | Duration | Result |\n| --- | ---: | --- |\n' +
+        parts.append(dropdown('Stage durations', '| Stage | Duration | Result |\n| --- | ---: | --- |\n' +
                      '\n'.join('| {} | {:.3f} s | {} |'.format(
-                         code(row['stage']), row['elapsed_ms'] / 1000, row['result']) for row in rows))
+                         code(row['stage']), row['elapsed_ms'] / 1000, row['result']) for row in rows)))
     timings = timing_section(elapsed)
     if timings:
         parts.append(timings)
 
-    parts.append("_Full raw logs and regression databases stay on that machine; its owner can fetch them with "
-                 "`./ci/jenkins/gkeyll-ci.sh {} artifact --build {} --fetch`._".format(args.platform, build_number))
+    parts.append(dropdown('Fetch full logs and regression databases',
+                 "_Full raw logs and regression databases stay on that machine; its owner can fetch them with "
+                 "`./ci/jenkins/gkeyll-ci.sh {} artifact --build {} --fetch`._".format(args.platform, build_number)))
 
     progress = read_text('ci-stage-history.txt').strip()
     if progress:

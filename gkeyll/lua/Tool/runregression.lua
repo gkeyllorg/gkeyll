@@ -1478,8 +1478,8 @@ local function compareFiles(f1, f2, absTol, relTol)
       local g2, a2 = G0.Zero.arrayNewFromFile(f2)
       if not g1 or not g2 then
          verboseLog(string.format(
-            "    ... skipping %s (unsupported file format)\n", shortPath(f1)))
-         return true
+            "    ... failed to read array data from %s or %s\n", shortPath(f1), shortPath(f2)))
+         return false, "array read failed"
       end
 
       if not G0.Zero.rectGridCmp(g1, g2) then

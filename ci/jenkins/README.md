@@ -377,8 +377,14 @@ queue positions and elapsed-time/ETA indicators every minute. Progress does not
 create comment notifications. Cancellation and timeout descriptions are
 explicit; both use GitHub's `error` status. Reports identify the candidate,
 baseline, machine, build and queue IDs, and status context, with unit/regression
-results, timings, and collapsible sections for:
+results and diagnostics organized into dropdowns that are collapsed by default.
+Only the overall result heading is expanded; dropdown labels show test totals
+and the current or failed stage. Sections include:
 
+- **Run details**, including commit selection, provenance, machine, and timing metadata.
+- **Candidate/Baseline unit tests** and **Serial/Parallel C regressions**, with
+  per-layer tables and nested failure details, including when tests fail.
+- **Stage durations** and **Timings**.
 - **New warnings vs main** (or the explicitly selected baseline).
 - **All warnings** and **all errors**, with source log names, line numbers, and
   nearby diagnostic context.
@@ -389,8 +395,9 @@ results, timings, and collapsible sections for:
   Absolute and relative paths to the same log share one excerpt, with the
   command and exit code combined when available.
 - An inventory of captured logs.
+- Stage history, Slurm allocation details, and instructions for fetching artifacts.
 
-The header includes UTC start/end timestamps and elapsed time. The Timings table
+Run details include UTC start/end timestamps and elapsed time. The Timings table
 ends with total wall-clock time from the Jenkins build start through report
 generation, including the initial agent wait. Individual timings can overlap,
 so this total is not the sum of the step durations.
