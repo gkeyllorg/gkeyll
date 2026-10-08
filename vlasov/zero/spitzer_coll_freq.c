@@ -359,7 +359,7 @@ gkyl_spitzer_coll_freq_advance(
 
     double rMin = GKYL_MAX2(
       fabs(qSelf * qOther) * up->r4pieps0_fac / (mReduced * uRelSq),
-      up->hbar_fac / (2.0 * exp(0.5) * mReduced * sqrt(uRelSq))
+      up->hbar_fac / (mReduced * sqrt(uRelSq))
     );
 
     double logLambda =
