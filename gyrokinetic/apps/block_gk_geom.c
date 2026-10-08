@@ -15,9 +15,7 @@ struct gkyl_gk_block_geom {
   int num_blocks; // total number of blocks
   struct gkyl_gk_block_geom_info *blocks; // info for each block
   struct gkyl_block_topo *btopo; // topology of blocks
-  void *row_arc_owner;
-  void (*row_arc_owner_release)(void *);
-  
+
   struct gkyl_ref_count ref_count;
 };
 
@@ -25,8 +23,6 @@ static void
 gk_block_geom_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_gk_block_geom *bgeom = container_of(ref, struct gkyl_gk_block_geom, ref_count);
-  if (bgeom->row_arc_owner_release)
-    bgeom->row_arc_owner_release(bgeom->row_arc_owner);
   gkyl_free(bgeom->blocks);
   gkyl_block_topo_release(bgeom->btopo);
   gkyl_free(bgeom);
@@ -38,8 +34,6 @@ gkyl_gk_block_geom_new(int ndim, int nblocks)
   struct gkyl_gk_block_geom *bgeom = gkyl_malloc(sizeof(struct gkyl_gk_block_geom));
   bgeom->ndim = ndim;
   bgeom->num_blocks = nblocks;
-  bgeom->row_arc_owner = 0;
-  bgeom->row_arc_owner_release = 0;
   bgeom->blocks = gkyl_calloc(sizeof(struct gkyl_gk_block_geom_info), nblocks);
 
   bgeom->btopo = gkyl_block_topo_new(ndim, nblocks);
@@ -47,15 +41,6 @@ gkyl_gk_block_geom_new(int ndim, int nblocks)
   bgeom->ref_count = gkyl_ref_count_init(gk_block_geom_free);
 
   return bgeom;
-}
-
-void
-gkyl_gk_block_geom_set_row_arc_owner(struct gkyl_gk_block_geom *bgeom,
-  void *owner, void (*release)(void *))
-{
-  assert(!bgeom->row_arc_owner && !bgeom->row_arc_owner_release);
-  bgeom->row_arc_owner = owner;
-  bgeom->row_arc_owner_release = release;
 }
 
 int
@@ -113,69 +98,26 @@ gkyl_gk_block_geom_get_block(const struct gkyl_gk_block_geom *bgeom, int bidx)
   return &bgeom->blocks[bidx];
 }
 
-// Where two blocks disagree about taking the extended construction across a
-// radial interface, the legacy block adopts its peer's separatrix row, so the
-// shared row comes from one trace builder. It is the difference between a seam
-// that closes and one that does not: measured at x1 against a 0.01 cell
-// tolerance, asdex 0.826 -> 0.000077 and tcv 2.044 -> 0.0031. Devices with no
-// mixed interface (step, NSTX-U) never engage it.
-static bool
-gk_block_geom_shared_sep_row_enabled(void)
-{
-  return true;
-}
-
-// EXPERIMENTAL, default OFF. Let an EXTENDED block adopt a radial peer's
-// separatrix row too, not just a legacy one.
-//
-// Why it might matter: two blocks that do not share a parameterization measure
-// theta against their OWN contours, and the ratio of their arc lengths drifts
-// off the separatrix -- 0.08% on a TCV seam that shares, 21.30% on the TCV PF
-// seam that does not, and 11-19% on NSTX-U where NOTHING shares because every
-// block is extended. The theta split is fixed at the separatrix, so that drift
-// is exactly the seam discontinuity.
-//
-// Off by default because this predicate also feeds the seam-participation guard
-// and the `unshared` count that gates strict mode: changing eligibility changes
-// what tier-0 certifies, which is a PR-scope question and not only a geometry
-// one.
-static bool
-gk_block_geom_shared_row_extended_enabled(void)
-{
-  const char *on = getenv("GKYL_TOK_SHARED_ROW_EXTENDED");
-  return on && on[0] == '1';
-}
-
-bool
-gkyl_gk_block_geom_shared_row_extended(void)
-{
-  return gk_block_geom_shared_row_extended_enabled();
-}
-
 enum gkyl_gk_shared_sep_row_status
 gkyl_gk_block_geom_shared_sep_row_status(const struct gkyl_gk_block_geom_info *legacy,
   const struct gkyl_gk_block_geom_info *peer, int src_dir, int tgt_dir)
 {
-  if (!gk_block_geom_shared_sep_row_enabled())
-    return GKYL_GK_SHARED_SEP_ROW_NONE;
-
   if (legacy->geometry.geometry_id != GKYL_GEOMETRY_TOKAMAK ||
       peer->geometry.geometry_id != GKYL_GEOMETRY_TOKAMAK)
     return GKYL_GK_SHARED_SEP_ROW_NONE;
 
-  // Only a block that does NOT take the extended construction can adopt a
-  // peer's row, and only from one that does.  Anything else -- both extended,
-  // both legacy, or the pair the wrong way round -- is a different question.
+  // A mixed interface: one block legacy, its radial peer extended. Both blocks
+  // place the shared separatrix row uniformly in arc length along their own
+  // trace of the same contour, so they place the same nodes there exactly
+  // when they trace the same curve (checked below). Anything else -- both
+  // extended, both legacy, or the pair the wrong way round -- is not mixed.
   bool legacy_ext = gkyl_tok_geo_uses_extended_construction(&legacy->geometry.tok_grid_info);
   bool peer_ext = gkyl_tok_geo_uses_extended_construction(&peer->geometry.tok_grid_info);
-  if (!peer_ext)
-    return GKYL_GK_SHARED_SEP_ROW_NONE;
-  if (legacy_ext && !gk_block_geom_shared_row_extended_enabled())
+  if (!peer_ext || legacy_ext)
     return GKYL_GK_SHARED_SEP_ROW_NONE;
 
   // The shared row is the separatrix row, which two blocks share only across a
-  // RADIAL interface.  A theta interface joins two different rows, so nothing
-  // there can be taken from one trace builder.
+  // RADIAL interface.  A theta interface joins two different rows.
   if (src_dir != 0)
     return GKYL_GK_SHARED_SEP_ROW_NONE;
   if (tgt_dir != 0)
@@ -195,11 +137,10 @@ gkyl_gk_block_geom_shared_sep_row_status(const struct gkyl_gk_block_geom_info *l
   return GKYL_GK_SHARED_SEP_ROW_SHARED;
 }
 
-// Whether the shared-separatrix-row construction covers a mixed interface,
-// asked the way the multiblock app wires it: from the legacy block's own
-// radial connections.  A block adopts at most ONE peer row, so if both of its
-// radial edges qualify the app refuses; report that as not covered rather than
-// guessing which one wins.
+// Whether a mixed interface's shared row is placed identically from both
+// sides, asked from the legacy block's own radial connections.  A legacy block
+// with two qualifying radial edges is reported as not covered rather than
+// guessing which of them carries its separatrix row.
 static bool
 gk_block_geom_seam_row_is_shared(const struct gkyl_gk_block_geom *bgeom,
   int legacy_bid, int peer_bid)
@@ -215,14 +156,6 @@ gk_block_geom_seam_row_is_shared(const struct gkyl_gk_block_geom *bgeom,
     enum gkyl_gk_shared_sep_row_status st =
       gkyl_gk_block_geom_shared_sep_row_status(legacy,
         &bgeom->blocks[te->bid], 0, te->dir);
-    // Same direction rule as the app: only the higher index adopts, or the
-    // guard would count a pair as shared in both directions.
-    if (st != GKYL_GK_SHARED_SEP_ROW_NONE &&
-        gkyl_gk_block_geom_shared_row_extended() &&
-        gkyl_tok_geo_uses_extended_construction(&legacy->geometry.tok_grid_info) &&
-        gkyl_tok_geo_uses_extended_construction(&bgeom->blocks[te->bid].geometry.tok_grid_info) &&
-        legacy_bid < te->bid)
-      st = GKYL_GK_SHARED_SEP_ROW_NONE;
     if (st == GKYL_GK_SHARED_SEP_ROW_NONE)
       continue;
     nedge += 1;
@@ -235,35 +168,21 @@ gk_block_geom_seam_row_is_shared(const struct gkyl_gk_block_geom *bgeom,
 // Report interfaces whose two blocks disagree about taking the extended
 // construction.
 //
-// The extended path reparameterizes a block's separatrix row -- the theta
-// ladder, and the |grad psi| poloidal measure -- while the legacy path leaves
-// it on plain arc length.  Two blocks that SHARE that row and disagree about
-// taking it therefore trace the same curve and still place different nodes
-// along it.  Measured on asdex/tcv, which declare straight_xpt_ray on 3 of 6
-// blocks: the two sides agree on arc length to 7e-05 relative and on both
-// endpoints to 1e-14 m, and differ only in the interior, by 35-66 mm -- which
-// is 0.6-0.8 cells at x1 and DOUBLES at every refinement, because it is a fixed
-// offset rather than a convergence error.
+// Two such blocks build the row they share separately. That row is placed
+// uniformly in arc length on both sides (the legacy construction always, the
+// row rule on its separatrix row), so they agree exactly when they trace the
+// same curve -- same equilibrium file and representation, no X-point bounding
+// polygon (gkyl_gk_block_geom_shared_sep_row_status). Every mixed interface is
+// reported; one whose two sides do not trace the same curve, or that is not
+// radial, is a defect.
 //
 // This detects one declaration-level risk without constructing geometry.
 // Uniform participation alone does not establish interface alignment or
 // interior ordering; those still require checks on the constructed grid.
 //
-// Note the participation predicate deliberately comes from
-// gkyl_tok_geo_uses_extended_construction() rather than being restated: it also
-// depends on half_domain and on an environment override, and a second copy
-// would drift.
-//
-// The offset above is what happens when the two sides build the row
-// SEPARATELY.  Where the shared-separatrix-row construction applies, the
-// legacy block takes the row from its extended peer's trace builder, and then
-// no declaration can make the two disagree: measured A/B at x1 with a 0.01
-// cell tolerance, asdex goes 0.83 -> 7.7e-05 cells and tcv 2.04 -> 3.1e-03.
-// So the interface is reported either way, but only an interface whose row is
-// genuinely built twice is a defect -- a deliberate mixed declaration with the
-// shared row on is a supported configuration, not a latent one.
-//
-// Every mixed interface is reported; an unshared one is an error.
+// The participation predicate comes from
+// gkyl_tok_geo_uses_extended_construction() rather than being restated, so
+// the two cannot drift.
 static int
 gk_block_geom_check_seam_participation(const struct gkyl_gk_block_geom *bgeom,
   int *interfaces_examined, int *mixed, int *unshared)
@@ -327,14 +246,9 @@ gk_block_geom_check_seam_participation(const struct gkyl_gk_block_geom *bgeom,
         if (ext_i == ext_j)
           continue;
 
-        // Mixed participation only misparameterizes the shared row if the two
-        // blocks actually build it separately.  When the shared-separatrix-row
-        // construction covers this interface the row comes from ONE trace
-        // builder, so the disagreement has nothing left to act on -- measured
-        // on asdex/tcv, where turning that construction off moves the seam
-        // from 7.7e-05/3.1e-03 cells to 0.83/2.04 cells against a 0.01
-        // tolerance.  Report the interface either way; fail only on the ones
-        // that are genuinely built twice.
+        // Mixed participation misparameterizes the shared row only if the two
+        // sides do not trace the same curve. Report the interface either way;
+        // fail only on those.
         bool shared_row = gk_block_geom_seam_row_is_shared(bgeom,
           ext_i ? j : i, ext_i ? i : j);
 
@@ -370,14 +284,14 @@ gk_block_geom_check_seam_participation(const struct gkyl_gk_block_geom *bgeom,
 
   if (nmixed > nunshared)
     fprintf(stderr,
-      "TOK_SEAM_PARTICIPATION %d of %d mixed interface(s) take their shared row "
-      "from one trace builder; those cannot be misparameterized by the "
-      "declaration and do not fail\n", nmixed - nunshared, nmixed);
+      "TOK_SEAM_PARTICIPATION %d of %d mixed interface(s) trace the same curve "
+      "on both sides; those cannot be misparameterized by the declaration and "
+      "do not fail\n", nmixed - nunshared, nmixed);
 
   if (nunshared > 0) {
     fprintf(stderr,
-      "TOK_SEAM_PARTICIPATION %d mixed interface(s) build their shared row "
-      "twice; failing\n", nunshared);
+      "TOK_SEAM_PARTICIPATION %d mixed interface(s) do not trace the same "
+      "curve on both sides; failing\n", nunshared);
     return 0;
   }
   return 1;

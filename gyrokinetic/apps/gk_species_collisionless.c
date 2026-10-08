@@ -1,91 +1,5 @@
 #include <assert.h>
-#include <float.h>
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <gkyl_gyrokinetic_priv.h>
-
-static void
-gk_species_collisionless_write_boundary_flux_diag(gkyl_gyrokinetic_app *app,
-  struct gk_species *species, struct gk_collisionless *gkcls)
-{
-  const char *diag_path = getenv("GKYL_GK_FLUX_BOUNDARY_DIAG");
-  if (diag_path == 0 || diag_path[0] == '\0')
-    return;
-
-  FILE *fp = fopen(diag_path, "a");
-  if (fp == 0)
-    return;
-
-  if (ftell(fp) == 0) {
-    fprintf(fp, "app,species,call,dir,edge,nvals,sum,l1,l2,maxabs,minval,maxval\n");
-  }
-
-  static long call_count = 0;
-  long call_id = call_count++;
-
-  int cdim = app->cdim, vdim = species->info.vdim;
-  int pdim = cdim + vdim;
-
-  struct gkyl_basis surf_basis, surf_vpar_basis;
-  if (app->poly_order > 1) {
-    gkyl_cart_modal_serendip(&surf_basis, pdim-1, app->poly_order);
-  }
-  else {
-    gkyl_cart_modal_serendip(&surf_vpar_basis, pdim-1, app->poly_order);
-    if (vdim > 1)
-      gkyl_cart_modal_gkhybrid(&surf_basis, cdim-1, vdim);
-    else
-      gkyl_cart_modal_serendip(&surf_basis, pdim-1, 2);
-  }
-
-  for (int dir=0; dir<cdim; ++dir) {
-    for (int edge=0; edge<2; ++edge) {
-      enum gkyl_gyrokinetic_bc_type bc = edge == 0 ?
-        species->lower_bc[dir].type : species->upper_bc[dir].type;
-      if (bc != GKYL_BC_GK_SKIP)
-        continue;
-
-      double sum = 0.0, l1 = 0.0, l2 = 0.0, maxabs = 0.0;
-      double minval = DBL_MAX, maxval = -DBL_MAX;
-      long nvals = 0;
-
-      struct gkyl_range_iter iter;
-      gkyl_range_iter_init(&iter, &species->local);
-      while (gkyl_range_iter_next(&iter)) {
-        if ((edge == 0 && iter.idx[dir] != species->local.lower[dir]) ||
-            (edge == 1 && iter.idx[dir] != species->local.upper[dir]))
-          continue;
-
-        int idx[GKYL_MAX_DIM];
-        gkyl_copy_int_arr(pdim, iter.idx, idx);
-        if (edge == 1)
-          idx[dir] += 1;
-
-        long loc = gkyl_range_idx(edge == 0 ? &species->local : &species->local_ext, idx);
-        const double *flux = gkyl_array_cfetch(gkcls->flux_surf, loc);
-        int offset = dir * surf_basis.num_basis;
-        for (int k=0; k<surf_basis.num_basis; ++k) {
-          double val = flux[offset+k];
-          double aval = fabs(val);
-          sum += val;
-          l1 += aval;
-          l2 += val*val;
-          maxabs = fmax(maxabs, aval);
-          minval = fmin(minval, val);
-          maxval = fmax(maxval, val);
-          nvals += 1;
-        }
-      }
-
-      fprintf(fp, "%s,%s,%ld,%d,%s,%ld,%.17e,%.17e,%.17e,%.17e,%.17e,%.17e\n",
-        app->name, species->info.name, call_id, dir, edge == 0 ? "lower" : "upper",
-        nvals, sum, l1, sqrt(l2), maxabs, minval, maxval);
-    }
-  }
-
-  fclose(fp);
-}
 
 static void
 eval_on_nodes_c2p_position_func(const double *xcomp, double *xphys, void *ctx)
@@ -114,7 +28,6 @@ gk_species_collisionless_flux_enabled(gkyl_gyrokinetic_app *app, struct gk_speci
   gkyl_gk_collisionless_flux_surf(gkcls->surf_flux_op, 
     &app->local, &species->local, &app->local_ext, &species->local_ext, 
     species->gyro_phi, fin, gkcls->flux_surf, species->cflrate);
-  gk_species_collisionless_write_boundary_flux_diag(app, species, gkcls);
 }
 
 static void

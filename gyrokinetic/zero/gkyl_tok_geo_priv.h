@@ -35,10 +35,6 @@ struct arc_length_ctx {
   // the historical expressions apply.
   double arc_lo, arc_hi, arc_darc_dtheta;
   bool arc_interval_valid;
-  // One-row cache for the experimental C1 arc/end-cell map.
-  bool row_arc_fit_ready;
-  double row_arc_fit_psi, row_arc_fit_length, row_arc_fit_sigma[2];
-  double row_arc_fit_y[4], row_arc_fit_m[4];
   double arcL_right; // this is for when we need to switch sides
   double arcL_left; // this is for when we need to switch sides
   double arcL_tot; // total arc length
@@ -69,35 +65,6 @@ struct arc_length_ctx {
   // adjacent psi rows makes consecutive flux surfaces cross.
   bool ext_force_generic_route;
   bool ext_last_trace_used_generic;
-  // Anchoring's rho = S_ref/T, regularized across psi within this block.
-  // T's derivative is SPIKY near the separatrix (measured on NSTX-U
-  // DN_SOL_OUT_MID: |d(tot)/dpsi| max 154x its median, second difference
-  // 36626x its median, both peaking at psisep), and anchoring stretches each
-  // row by rho, so an isolated spike displaces one row's theta nodes relative
-  // to its neighbours and inverts cells.  These carry the causal filter state.
-  //
-  // The filter used to key on ARRIVAL, on the stated assumption that rows
-  // arrive in psi order.  They do not.  Measured 2026-08-30 on step_nonuniform
-  // ftype 16: 21 distinct psi rows, each re-traced ~39 times, arriving
-  // 1.5093 -> 1.5224 -> 1.5593 -> 1.5107 -> 1.5106 -> ..., so median-of-3 over
-  // the last two ARRIVALS mixed non-adjacent surfaces and substituted rho by
-  // up to 0.11.  In psi order that same rho_raw sequence is smooth and
-  // monotone (1.000000, 1.005842, ..., 1.203241) -- there was no spike to
-  // reject, only damage to do.
-  //
-  // The history is now ordered by RADIAL FRACTION, which is 0 at the
-  // separatrix on every block whichever way psi runs.  The separatrix row
-  // therefore has no inward neighbour, is never filtered, and keeps
-  // rho_raw == 1 exactly -- which is the cross-block seam invariant.  Ordering
-  // the filter correctly is what makes that hold, rather than a special case.
-  double anchor_rho_smooth, anchor_rf_prev;
-  int anchor_rho_hist;
-  // (radial_fraction, rho_raw) seen so far in this block, sorted by radial
-  // fraction.  A block has ~21 distinct rows; 256 is slack, and overflow
-  // degrades to unfiltered rather than to a wrong neighbour.
-  double anchor_rf_tab[256];
-  double anchor_rho_tab[256];
-  int anchor_tab_n;
   // Which crossing of the target surface anchors an X-point-ray endpoint when
   // the ray crosses more than once.  Set only by tok_ext_build_domain_trace's
   // retry, after the first-crossing anchor has produced a trace that no route
@@ -110,22 +77,14 @@ struct arc_length_ctx {
   // normalized contour arc lengths from folding the first radial cell.
   double *far_trace_r, *far_trace_z, *far_trace_s, *trace_corr_v;
   int far_trace_n, trace_corr_n;
-  // Reparameterization of the block's poloidal coordinate by the measure
-  // d(mu) = |grad psi| dl.  One map per block, applied to u BEFORE any surface
-  // is sampled, so every surface moves together and no row is perturbed
-  // relative to its neighbour.  Built lazily on first use.
-  double *gradpsi_map_v;
-  int gradpsi_map_n;
-  bool gradpsi_map_ready, gradpsi_map_failed;
   bool far_trace_initialized, far_trace_param_is_r;
   bool ordered_boundaries_initialized;
-  // Marched theta correspondence w(u,psi), tabulated on a psi ladder running
-  // from the separatrix to the far boundary.  trace_corr_v above is a
-  // boundary-to-boundary map, so the two-point blend built from it is smooth in
-  // psi and cannot represent a discontinuity at an INTERIOR surface -- which is
-  // exactly what a plate-root annihilation (204951) or a near-tangent X-point
-  // ray (205004) produces.  Marching rung to rung propagates the poloidal
-  // coordinate through such a surface instead of interpolating across it.
+  // Theta correspondence w(u,psi), one row per node row of the block, built by
+  // the row rule (tok_ext_build_theta_rows) from the separatrix to the far
+  // boundary.  trace_corr_v above is a boundary-to-boundary map, so the
+  // two-point blend built from it is smooth in psi and cannot represent a
+  // discontinuity at an INTERIOR surface -- which is exactly what a plate-root
+  // annihilation (204951) or a near-tangent X-point ray (205004) produces.
   // Row k holds ext_ladder_n node positions at radial fraction
   // ext_ladder_rf[k].  Those fractions are NOT uniform: they are the block's
   // own node rows, placed by the position map (see
@@ -896,91 +855,6 @@ tok_theta_from_arc(const struct gkyl_tok_geo_grid_inp *inp,
   return d != 0.0 ? lo + (arc-a->arc_lo)/d*w : lo;
 }
 
-// |grad psi| dl/dZ -- integrand of the THETA MEASURE.
-//
-// The node grading distributes theta uniformly in |grad psi| along the block's
-// trace (tok_ext_ladder_seed_by_gradpsi), so the poloidal element works out to
-// S*mtot/(|grad psi|*T) and a seam closes exactly when S*mtot/T matches on both
-// sides. S*mtot is this integral. Allocating theta in proportion to it is what
-// makes the arc-length/Jacobian jump vanish.
-//
-// NOTE: an earlier attempt applied this BEFORE the block's arc share was stored
-// separately, which relocated blocks and made every seam worse. It is only
-// correct after tok_geo_set_extent() has captured inp->arc_frac_*.
-static inline double
-measure_contour_func(double Z, void *ctx)
-{
-  struct contour_ctx *c = ctx;
-  c->ncall += 1;
-  double R[4] = { 0 }, dRdZ[4] = { 0 }, dR[4] = { 0 }, dZ[4] = { 0 };
-  int nr = gkyl_tok_geo_R_psiZ(c->geo, c->psi, Z, 4, R, dRdZ, dR, dZ);
-  if (nr <= 0)
-    return 0.0;
-  double drdz = nr == 1 ? dRdZ[0] : choose_closest(c->last_R, R, dRdZ, nr);
-  double r_curr = nr == 1 ? R[0] : choose_closest(c->last_R, R, R, nr);
-  double g;
-  if (c->geo->use_cubics) {
-    double xn[2] = {r_curr, Z}, fout[3];
-    c->geo->efit->evf->eval_cubic_wgrad(0.0, xn, fout, c->geo->efit->evf->ctx);
-    g = sqrt(fout[1]*fout[1] + fout[2]*fout[2]);
-  }
-  else {
-    int rzidx[2];
-    int it = c->geo->rzlocal.lower[0]
-      + (int) floor((r_curr - c->geo->rzgrid.lower[0])/c->geo->rzgrid.dx[0]);
-    rzidx[0] = GKYL_MAX2(c->geo->rzlocal.lower[0], GKYL_MIN2(it, c->geo->rzlocal.upper[0]));
-    it = c->geo->rzlocal.lower[1]
-      + (int) floor((Z - c->geo->rzgrid.lower[1])/c->geo->rzgrid.dx[1]);
-    rzidx[1] = GKYL_MAX2(c->geo->rzlocal.lower[1], GKYL_MIN2(it, c->geo->rzlocal.upper[1]));
-    long loc = gkyl_range_idx((&c->geo->rzlocal), rzidx);
-    const double *psih = gkyl_array_cfetch(c->geo->psiRZ, loc);
-    double xc[2];
-    gkyl_rect_grid_cell_center((&c->geo->rzgrid), rzidx, xc);
-    double eta[2] = { (r_curr-xc[0])/(c->geo->rzgrid.dx[0]*0.5),
-                      (Z-xc[1])/(c->geo->rzgrid.dx[1]*0.5) };
-    g = c->geo->calc_grad_psi(psih, eta, c->geo->rzgrid.dx);
-  }
-  return g*sqrt(1+drdz*drdz);
-}
-
-// Contour integral of |grad psi| over a z-span. Same cell-by-cell scheme as
-// integrate_psi_contour_memo; deliberately no memo, which is keyed to the arc
-// integrand and must not be shared with this one.
-static double
-integrate_psi_measure(const struct gkyl_tok_geo *geo, double psi,
-  double zmin, double zmax, double rclose)
-{
-  struct contour_ctx ctx = { .geo = geo, .psi = psi, .ncall = 0, .last_R = rclose };
-  int nlevels = geo->quad_param.max_level;
-  double eps = geo->quad_param.eps;
-  struct gkyl_rect_grid rzgrid;
-  struct gkyl_range rzlocal;
-  if (geo->use_cubics) { rzgrid = geo->rzgrid_cubic; rzlocal = geo->rzlocal_cubic; }
-  else                 { rzgrid = geo->rzgrid;       rzlocal = geo->rzlocal; }
-  double dz = rzgrid.dx[1], zlo = rzgrid.lower[1];
-  int izlo = rzlocal.lower[1];
-  int ilo = get_idx(1, zmin, &rzgrid, &rzlocal);
-  int iup = get_idx(1, zmax, &rzgrid, &rzlocal);
-  double res = 0.0;
-  for (int i=ilo; i<=iup; ++i) {
-    double z1 = gkyl_median(zmin, zlo+(i-izlo)*dz, zlo+(i-izlo+1)*dz);
-    double z2 = gkyl_median(zmax, zlo+(i-izlo)*dz, zlo+(i-izlo+1)*dz);
-    if (z1 < z2) {
-      struct gkyl_qr_res r = gkyl_dbl_exp(measure_contour_func, &ctx, z1, z2, nlevels, eps);
-      res += r.res;
-    }
-  }
-  ((struct gkyl_tok_geo *)geo)->stat.nquad_cont_calls += ctx.ncall;
-  return res;
-}
-
-static inline bool
-tok_theta_by_measure_enabled(void)
-{
-  const char *on = getenv("GKYL_TOK_THETA_BY_MEASURE");
-  return on && on[0] == '1';
-}
-
 // Function to pass to numerical quadrature to integrate along a contour
 static inline double
 contour_func(double Z, void *ctx)
@@ -1256,14 +1130,6 @@ void tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *
 /* Initialize only the state needed by the ordered X-point mapping.  Unlike
  * tok_find_endpoints, this does not integrate and invert the legacy
  * independently normalized contour-arclength map. */
-// See tok_geo.c. Returns S*mtot for the block, on the grading's own trace.
-// See tok_geo.c. Y = S*(dw/du) at the block's two theta faces.
-bool tok_ext_block_face_weights(const struct gkyl_tok_geo_grid_inp *inp,
-  struct gkyl_tok_geo *geo, double psi, double *y_lo, double *y_hi);
-
-bool tok_ext_block_measure(const struct gkyl_tok_geo_grid_inp *inp,
-  struct gkyl_tok_geo *geo, double psi, double *out);
-
 void tok_prepare_ordered_map(struct gkyl_tok_geo_grid_inp *inp,
   struct arc_length_ctx *arc_ctx, double psi_curr);
 

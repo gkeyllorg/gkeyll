@@ -24,14 +24,6 @@ efit_clamp(double x, double lo, double hi)
   return x < lo ? lo : (x > hi ? hi : x);
 }
 
-// Should the X-point search prefer a candidate that is a genuine critical point
-// interior to its own cell over one that had to be clamped onto a cell face?
-// Yes: the validated construction does, on every device.
-static bool
-efit_xpt_prefer_unclamped(void)
-{
-  return true;
-}
 
 // Is an X-point candidate inside the caller-supplied vessel outline?  Candidates are
 // tested at -|Z| against the lower-half polygon, since a reflected equilibrium yields
@@ -214,9 +206,8 @@ find_quadratic_xpt_near_target(gkyl_efit *up, double Rtar, double Ztar,
   gkyl_rect_grid_find_cell(&up->rzgrid, point, pick_lower, (int[2]) {-1, -1}, base_idx);
 
   // Two selections are tracked at once: bd_* is the historical nearest-to-target
-  // rule and bu_* additionally outranks clamped candidates.  Keeping both lets
-  // the routine report every equilibrium where the two disagree -- the blast
-  // radius of the preference -- even on runs that do not enable it.
+  // rule and bu_* additionally outranks clamped candidates. bu_* is returned;
+  // bd_* is kept to report every equilibrium where the two disagree.
   bool found = false;
   bool bd_clamped = false, bu_clamped = false;
   double bd_m = DBL_MAX, bu_m = DBL_MAX;
@@ -286,22 +277,23 @@ find_quadratic_xpt_near_target(gkyl_efit *up, double Rtar, double Ztar,
   }
 
   if (found) {
-    bool prefer = efit_xpt_prefer_unclamped();
+    // A genuine critical point interior to its own cell is preferred over one
+    // that had to be clamped onto a cell face. The distance-only pick is
+    // reported where it differs.
     if (bd_R != bu_R || bd_Z != bu_Z)
       fprintf(stderr,
         "EFIT_XPT_CLAMP_PREF target=(%.17g,%.17g) "
         "dist_pick=(%.17g,%.17g) dist_clamped=%d dist_psi=%.17g "
         "unclamped_pick=(%.17g,%.17g) unclamped_psi=%.17g "
-        "separation=%.17g dpsi=%.17g active=%s\n",
+        "separation=%.17g dpsi=%.17g active=unclamped\n",
         Rtar, Ztar, bd_R, bd_Z, (int) bd_clamped, bd_psi,
         bu_R, bu_Z, bu_psi,
-        sqrt(efit_dist2(bd_R, bd_Z, bu_R, bu_Z)), bu_psi - bd_psi,
-        prefer ? "unclamped" : "dist");
+        sqrt(efit_dist2(bd_R, bd_Z, bu_R, bu_Z)), bu_psi - bd_psi);
 
-    *Rout = prefer ? bu_R : bd_R;
-    *Zout = prefer ? bu_Z : bd_Z;
-    *psiout = prefer ? bu_psi : bd_psi;
-    *metric_out = prefer ? bu_m : bd_m;
+    *Rout = bu_R;
+    *Zout = bu_Z;
+    *psiout = bu_psi;
+    *metric_out = bu_m;
   }
   return found;
 }

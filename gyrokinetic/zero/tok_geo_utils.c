@@ -1143,13 +1143,6 @@ tok_nearest_point_on_surface(const struct gkyl_tok_geo_grid_inp *inp,
   return isfinite(best_r) && isfinite(best_z);
 }
 
-static bool
-tok_xpt_branch_diag_enabled(void)
-{
-  const char *d = getenv("GKYL_TOK_XPT_BRANCH_DIAG");
-  return d && d[0] != '\0' && d[0] != '0';
-}
-
 bool
 tok_xpt_classify_branch_at_point(const struct gkyl_tok_geo_grid_inp *inp,
   const struct arc_length_ctx *arc_ctx, double Rpoint, double Zpoint,
@@ -1160,11 +1153,6 @@ tok_xpt_classify_branch_at_point(const struct gkyl_tok_geo_grid_inp *inp,
     4, R, dRdZ, dR, dZ);
   *resolved = false;
   if (nr < 2) {
-    if (tok_xpt_branch_diag_enabled())
-      fprintf(stderr,
-        "TOK_XPT_BRANCH_DIAG outcome=unresolved_too_few_roots ftype=%d nr=%d "
-        "point=(%.17g,%.17g) psi=%.17g\n",
-        inp->ftype, nr, Rpoint, Zpoint, psi);
     return true;
   }
 
@@ -1172,31 +1160,12 @@ tok_xpt_classify_branch_at_point(const struct gkyl_tok_geo_grid_inp *inp,
   double rl = choose_closest(inp->rleft, R, R, nr);
   double scale = fmax(1.0, fmax(fabs(rr), fabs(rl)));
   if (fabs(rr-rl) <= 1e-8*scale) {
-    if (tok_xpt_branch_diag_enabled())
-      fprintf(stderr,
-        "TOK_XPT_BRANCH_DIAG outcome=unresolved_coalesced ftype=%d nr=%d "
-        "point=(%.17g,%.17g) psi=%.17g rr=%.17g rl=%.17g\n",
-        inp->ftype, nr, Rpoint, Zpoint, psi, rr, rl);
     return true;
   }
 
   double error_right = fabs(Rpoint-rr), error_left = fabs(Rpoint-rl);
   *on_right = error_right <= error_left;
   *resolved = true;
-  if (tok_xpt_branch_diag_enabled()) {
-    // margin is the fraction by which the winning side wins; a value near 0 means
-    // the probe sits nearly equidistant from both candidate roots, so the label is
-    // a coin flip rather than a real branch identity.
-    double denom = fmax(error_right+error_left, 1e-300);
-    double margin = fabs(error_right-error_left)/denom;
-    fprintf(stderr,
-      "TOK_XPT_BRANCH_DIAG outcome=resolved ftype=%d nr=%d point=(%.17g,%.17g) "
-      "psi=%.17g roots=[%.17g,%.17g,%.17g,%.17g] rr=%.17g rl=%.17g "
-      "err_r=%.17g err_l=%.17g margin=%.6e on_right=%d\n",
-      inp->ftype, nr, Rpoint, Zpoint, psi,
-      R[0], R[1], nr > 2 ? R[2] : 0.0/0.0, nr > 3 ? R[3] : 0.0/0.0,
-      rr, rl, error_right, error_left, margin, (int) *on_right);
-  }
   return true;
 }
 
@@ -1416,9 +1385,7 @@ tok_xpt_ray_anchor(const struct gkyl_tok_geo_grid_inp *inp,
     // outboard-SOL blocks that fold are exactly the three with
     // ray_qmin <= -6.3e-3, while every non-folding one stays above -7.9e-4 --
     // an order of magnitude of separation either side of this threshold.
-    const char *tol_env = getenv("GKYL_TOK_XPT_RAY_BAND_TOL");
-    const double ray_band_tol =
-      tol_env && tol_env[0] != '\0' ? atof(tol_env) : 3.0e-3;
+    const double ray_band_tol = 3.0e-3;
     if (ray_qmin < -ray_band_tol &&
         !tok_xpt_ray_reanchor_in_band(inp, arc_ctx, rx, zx, delta,
           ray_band_tol))
@@ -1966,20 +1933,6 @@ void find_upper_turning_point_pf_lo(struct gkyl_tok_geo *geo, double psi_curr, d
     }
 }
 
-
-
-
-static bool
-tok_extent_diag_enabled(void)
-{
-  static int cached = -1;
-  if (cached < 0) {
-    const char *env = getenv("GKYL_TOK_EXTENT_DIAG");
-    cached = (env && env[0] != '\0' && env[0] != '0') ? 1 : 0;
-  }
-  return cached == 1;
-}
-
 // The DN block decomposition assumes the plate-derived span brackets both
 // X-points: zmin < zxpt_lo < zxpt_up < zmax. When it does not, the divertor-leg
 // arc integrals below collapse to zero and the corresponding _LO/_UP block is
@@ -2150,8 +2103,7 @@ tok_plate_root_s(const struct gkyl_qr_res *res, bool lower, double psi)
     "  psi(plate(s)) has no usable crossing with this surface for s in [0,1],\n"
     "  and no crossing beyond the X point was found either.  Either the plate\n"
     "  does not reach this flux surface, or it is crossed in a way this\n"
-    "  selection does not cover.  Set GKYL_TOK_EXTENT_DIAG=1 to list every\n"
-    "  crossing considered (TOK_PLATE_ROOT_CAND, with its beyond= flag).\n"
+    "  selection does not cover.\n"
     "  There is deliberately no override: the behaviour this replaced\n"
     "  substituted a plate end and could build a WRONG grid without saying so.\n",
     lower ? "lower" : "upper", psi, res->status, res->res);
@@ -2248,13 +2200,6 @@ tok_plate_root_s_hinted(struct gkyl_tok_geo *geo, struct plate_ctx *pctx,
         if (nbeyond == 0 || dr < best_dr) { best_dr = dr; best_s = sroot; }
         nbeyond++;
       }
-      if (tok_extent_diag_enabled()) {
-        fprintf(stderr,
-          "TOK_PLATE_ROOT_CAND plate=%s idx=%d s=%.17g rz=(%.17g,%.17g) "
-          "zxpt=%.17g beyond=%d\n",
-          pctx->lower ? "lower" : "upper", nroots-1, sroot, rzplate[0],
-          rzplate[1], zxpt, fabs(rzplate[1]) > fabs(zxpt));
-      }
     }
     s_prev = s; f_prev = f;
   }
@@ -2275,13 +2220,6 @@ static double
 tok_plate_extent_root_s(struct gkyl_tok_geo *geo, struct plate_ctx *pctx,
   const struct gkyl_qr_res *res, bool lower, double psi, double hint_r)
 {
-  if (tok_extent_diag_enabled()) {
-    fprintf(stderr,
-      "TOK_EXTENT_ROOT plate=%s psi=%.17g hint_r=%.17g status=%d res=%.17g "
-      "usable=%d\n",
-      lower ? "lower" : "upper", psi, hint_r, res->status, res->res,
-      res->res >= 0.0 && res->res <= 1.0);
-  }
   if (res->res >= 0.0 && res->res <= 1.0)
     return res->res;
   double s_hint;
@@ -2317,13 +2255,6 @@ void set_upper_plate(struct gkyl_tok_geo *geo, struct arc_length_ctx* arc_ctx, s
         geo->plate_func_upper(smax, rzplate);
       }
       arc_ctx->zmax = rzplate[1];
-      if (tok_extent_diag_enabled()) {
-        fprintf(stderr,
-          "TOK_EXTENT_PLATE side=upper ftype=%d psi=%.17g fa=%.17g fb=%.17g "
-          "bracketed=%d s=%.17g status=%d rz=(%.17g,%.17g)\n",
-          arc_ctx->ftype, psi_curr, fa, fb, (fa*fb <= 0.0), smax, res.status,
-          rzplate[0], rzplate[1]);
-      }
 }
 
 // Sets zmin if plate is specified
@@ -2346,14 +2277,6 @@ void set_lower_plate(struct gkyl_tok_geo *geo, struct arc_length_ctx* arc_ctx, s
         geo->plate_func_lower(smin, rzplate);
       }
       arc_ctx->zmin = rzplate[1];
-      if (tok_extent_diag_enabled()) {
-        fprintf(stderr,
-          "TOK_EXTENT_PLATE side=lower ftype=%d psi=%.17g fa=%.17g fb=%.17g "
-          "bracketed=%d s=%.17g status=%d rz=(%.17g,%.17g)\n",
-          arc_ctx->ftype, psi_curr, fa, fb, (fa*fb <= 0.0), smin, res.status,
-          rzplate[0], rzplate[1]);
-        tok_plate_scan_diag(geo, pctx, "lower", arc_ctx->ftype, psi_curr);
-      }
 }
 
 // Sets zmax if plate is specified
@@ -2393,60 +2316,6 @@ void set_lower_iwl_plate(struct gkyl_tok_geo *geo, struct arc_length_ctx* arc_ct
 }
 
 
-// Solve a theta chain so the poloidal element matches across every seam in it.
-//
-// A seam closes when Y_A(up)/T_A == Y_B(lo)/T_B, so along a path chain
-// T_i/T_{i+1} = Y_i(up)/Y_{i+1}(lo); the tiling constraint sum T_i = span closes
-// the system. n blocks and n-1 seams is exactly determined -- one step, no
-// iteration. Only valid for a PATH: a cyclic chain (self-periodic) is
-// over-determined and is deliberately not attempted.
-//
-// `span_lo/span_hi` is the theta the chain tiles, which is NOT always
-// [-pi, pi]: a half-domain double null gives its outboard chain [-pi, 0] and its
-// inboard chain [0, pi].
-static bool
-tok_theta_chain_solve(const struct gkyl_tok_geo_grid_inp *inp,
-  struct gkyl_tok_geo *geo, const enum gkyl_tok_geo_type *chain, int n,
-  double span_lo, double span_hi, double *out_lo, double *out_hi)
-{
-  enum { MAXC = 8 };
-  if (n < 2 || n > MAXC || !(span_hi > span_lo))
-    return false;
-  double ylo[MAXC], yhi[MAXC], c[MAXC];
-  for (int i=0; i<n; ++i) {
-    struct gkyl_tok_geo_grid_inp si = *inp;
-    si.ftype = chain[i];
-    if (!tok_ext_block_face_weights(&si, geo, geo->psisep, &ylo[i], &yhi[i]))
-      return false;
-  }
-  c[0] = 1.0;
-  for (int i=1; i<n; ++i) {
-    if (!(yhi[i-1] > 0.0))
-      return false;
-    c[i] = c[i-1]*ylo[i]/yhi[i-1];
-  }
-  double tot = 0.0;
-  for (int i=0; i<n; ++i)
-    tot += c[i];
-  if (!(tot > 0.0) || !isfinite(tot))
-    return false;
-  double w = span_hi-span_lo, edge = span_lo;
-  for (int i=0; i<n; ++i) {
-    double t = c[i]/tot*w;
-    if (chain[i] == inp->ftype) {
-      *out_lo = edge;
-      *out_hi = edge+t;
-      if (tok_extent_diag_enabled())
-        fprintf(stderr, "TOK_THETA_CHAIN_SOLVE ftype=%d n=%d span=[%.17g,%.17g] "
-          "theta=[%.17g,%.17g]\n", inp->ftype, n, span_lo, span_hi,
-          *out_lo, *out_hi);
-      return true;
-    }
-    edge += t;
-  }
-  return false;
-}
-
 void 
 tok_geo_set_extent(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, double *theta_lo, double *theta_up)
 {
@@ -2479,24 +2348,6 @@ tok_geo_set_extent(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
   };
 
   double del = 1.0e-14;
-  // Measure-based theta fractions for this block, filled in per ftype below.
-  // Negative means "not computed"; the arc-proportional split then stands.
-  // NOTE: the chain solve is wired for LSN_SOL only. It was wired for
-  // DN_SOL_OUT/IN too and MEASURED WORSE on NSTX-U 202806 -- b3|b4 went
-  // 8.665e-02 -> 2.503e-01 and b1|b2 1.490e-01 -> 1.876e-01 -- so it was
-  // removed. The face weight is a finite-difference estimate of a derivative
-  // that is SINGULAR at an X point, and NSTX-U's cond(g) reaches 2.2e15 against
-  // ASDEX's 7.2e12, so the estimate degrades exactly where it is needed most.
-  // A resolution-matched face weight was then tried -- sampling the map over the
-  // block's own theta cell (7-13 cells) instead of the map's 1/256 spacing -- and
-  // it changed NOTHING: the recovered widths were bit-identical, because the map
-  // is near-linear over both intervals. So the face-weight ESTIMATE is not the
-  // cause; the chain premise T_i/T_{i+1} = Y_i(up)/Y_{i+1}(lo) itself does not
-  // hold for DN_SOL, and why is not yet known. Do not re-wire DN_SOL until it is.
-  double mfr_lo = -1.0, mfr_hi = -1.0;
-  double mth_lo = 0.0, mth_hi = 0.0;
-  bool mth_valid = false;
-  const bool by_measure = tok_theta_by_measure_enabled();
 
   if (inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT || inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_LO || inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_MID || inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_UP) {
     // Immediately set rclose
@@ -2535,15 +2386,6 @@ tok_geo_set_extent(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
     }
     tok_check_xpt_span(inp->ftype, arc_ctx.zmin, arc_ctx.zmax, zxpt_lo, zxpt_up,
       arcL_tot, arcL_lo, arcL_up);
-    if (tok_extent_diag_enabled()) {
-      fprintf(stderr,
-        "TOK_EXTENT_ARCS ftype=%d rclose=%.17g zmin=%.17g zmax=%.17g "
-        "zxpt_lo=%.17g zxpt_up=%.17g arcL_tot=%.17g arcL_lo=%.17g "
-        "arcL_mid=%.17g arcL_up=%.17g theta_lo=%.17g theta_up=%.17g\n",
-        inp->ftype, arc_ctx.rclose, arc_ctx.zmin, arc_ctx.zmax,
-        zxpt_lo, zxpt_up, arcL_tot, arcL_lo, arcL_mid, arcL_up,
-        *theta_lo, *theta_up);
-    }
   }
 
   else if(inp->ftype==GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN || inp->ftype==GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_LO || inp->ftype==GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_MID || inp->ftype==GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_UP){
@@ -2583,15 +2425,6 @@ tok_geo_set_extent(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
     }
     tok_check_xpt_span(inp->ftype, arc_ctx.zmin, arc_ctx.zmax, zxpt_lo, zxpt_up,
       arcL_tot, arcL_lo, arcL_up);
-    if (tok_extent_diag_enabled()) {
-      fprintf(stderr,
-        "TOK_EXTENT_ARCS ftype=%d rclose=%.17g zmin=%.17g zmax=%.17g "
-        "zxpt_lo=%.17g zxpt_up=%.17g arcL_tot=%.17g arcL_lo=%.17g "
-        "arcL_mid=%.17g arcL_up=%.17g theta_lo=%.17g theta_up=%.17g\n",
-        inp->ftype, arc_ctx.rclose, arc_ctx.zmin, arc_ctx.zmax,
-        zxpt_lo, zxpt_up, arcL_tot, arcL_lo, arcL_mid, arcL_up,
-        *theta_lo, *theta_up);
-    }
   }
   else if(inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE || inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE_R || inp->ftype ==  GKYL_GEOMETRY_TOKAMAK_CORE_L){
     // Immediately set rleft and rright. Will need both
@@ -2706,14 +2539,6 @@ tok_geo_set_extent(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
     }
     double arcL_tot = arcL_lo + arcL_mid_l + arcL_mid_r + arcL_up;
 
-    if (by_measure && inp->ftype != GKYL_GEOMETRY_TOKAMAK_LSN_SOL) {
-      static const enum gkyl_tok_geo_type ch[3] = {
-        GKYL_GEOMETRY_TOKAMAK_LSN_SOL_LO,
-        GKYL_GEOMETRY_TOKAMAK_LSN_SOL_MID,
-        GKYL_GEOMETRY_TOKAMAK_LSN_SOL_UP };
-      mth_valid = tok_theta_chain_solve(inp, geo, ch, 3, -M_PI+del, M_PI-del,
-        &mth_lo, &mth_hi);
-    }
     if (inp->ftype == GKYL_GEOMETRY_TOKAMAK_LSN_SOL) {
       *theta_lo = -M_PI+del;
       *theta_up = M_PI-del;
@@ -2901,58 +2726,6 @@ tok_geo_set_extent(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
   inp->arc_frac_hi = (*theta_up+M_PI)/(2.0*M_PI);
   inp->arc_frac_valid = isfinite(inp->arc_frac_lo) && isfinite(inp->arc_frac_hi)
     && inp->arc_frac_hi > inp->arc_frac_lo;
-
-  // DECOUPLING PROBE. Shift the block's theta interval AFTER its arc fraction
-  // has been captured. If the interval is still the block's geometric address
-  // the grid moves; if the redesign works the grid is bit-identical, because
-  // every consumer is now block-relative and the arc share is stored separately.
-  // Diagnostic only -- never set in production.
-  // Reallocate theta in proportion to the grading's own measure. Applied HERE,
-  // after arc_frac is recorded, so the grid does not move -- only the metric.
-  if (by_measure && mth_valid && mth_hi > mth_lo) {
-    *theta_lo = mth_lo;
-    *theta_up = mth_hi;
-  }
-  else if (by_measure && mfr_lo >= 0.0 && mfr_hi > mfr_lo) {
-    *theta_lo = -M_PI + mfr_lo*2.0*M_PI;
-    *theta_up = -M_PI + mfr_hi*2.0*M_PI;
-    fprintf(stderr, "TOK_THETA_BY_MEASURE ftype=%d theta=[%.17g,%.17g] "
-      "arc_frac=[%.17g,%.17g]\n", inp->ftype, *theta_lo, *theta_up,
-      inp->arc_frac_lo, inp->arc_frac_hi);
-  }
-
-  const char *shift = getenv("GKYL_TOK_THETA_SHIFT");
-  if (shift && inp->arc_frac_valid) {
-    double d = atof(shift);
-    *theta_lo += d;
-    *theta_up += d;
-  }
-
-  // REALLOCATION. "<ftype>=<lo>,<hi>;..." sets a block's theta interval outright,
-  // again AFTER the arc fraction is captured, so the grid does not move: the
-  // element scales exactly as 1/T while every node stays put. Equalising T
-  // across a seam is therefore a pure relabelling, and it is what closes the
-  // arc-length/Jacobian jump. Blocks not named keep the arc-proportional split.
-  const char *set = getenv("GKYL_TOK_THETA_SET");
-  if (set && inp->arc_frac_valid) {
-    const char *p = set;
-    while (*p) {
-      int ft = -1; double lo = 0.0, hi = 0.0; int adv = 0;
-      if (sscanf(p, "%d=%lf,%lf%n", &ft, &lo, &hi, &adv) == 3 && adv > 0) {
-        if (ft == (int) inp->ftype && hi > lo) {
-          *theta_lo = lo;
-          *theta_up = hi;
-          fprintf(stderr, "TOK_THETA_SET ftype=%d theta=[%.17g,%.17g] "
-            "arc_frac=[%.17g,%.17g]\n", ft, lo, hi,
-            inp->arc_frac_lo, inp->arc_frac_hi);
-        }
-        p += adv;
-      }
-      else
-        ++p;
-      while (*p == ';' || *p == ' ') ++p;
-    }
-  }
 
   gkyl_free(arc_memo);
   gkyl_free(arc_memo_left);

@@ -207,11 +207,6 @@ struct gkyl_tok_geo_xpt_seam_trial_status {
 
 // Inputs to create geometry for a specific computational grid
 struct gkyl_tok_geo_grid_inp {
-  // Experimental internal view of an actual radial neighbor. Owned by the
-  // multiblock declaration; used only during geometry construction.
-  const struct gkyl_tok_geo_grid_inp *shared_theta_peer;
-  int shared_theta_radial_edge;
-  bool shared_theta_reverse;
   struct gkyl_rect_grid cgrid;
   struct gkyl_basis cbasis;
   enum gkyl_tok_geo_type ftype; // type of geometry
@@ -254,49 +249,6 @@ struct gkyl_tok_geo_grid_inp {
   bool inexact_roots; // If true we will allow approximate roots when no root is found
   bool use_cubics; // If true will use the cubic rep of psi rather than the quadratic representation
   bool use_hyperbolic_numbers; // If true will use the hyperbolic numbers to do cubic root finding (much faster)
-  // Endpoint-slope multipliers for the theta grading, one per theta edge
-  // ([0]=lower, [1]=upper). They make two blocks meeting at a theta interface
-  // agree on the poloidal element there, WITHOUT flattening the |grad psi|
-  // clustering that conditions the metric at the X point: the grading is
-  // composed with a monotone cubic that has these endpoint slopes and still
-  // maps [0,1] onto [0,1], so each block's total arc is untouched.
-  //
-  // They are COUPLED along a chain -- a block's element depends on the
-  // multipliers at both of its ends -- so they are solved once over all blocks
-  // in gyrokinetic_multib.c rather than derived per block.
-  //
-  // Zero or negative means "unset" and is read as 1.0, so a declaration that
-  // never mentions this field is unaffected.
-  double theta_seam_slope[2];
-
-  // Optional multiblock row-arclength probe and immutable endpoint-rate plan.
-  // Context is owned by the effective block geometry, never by this view.
-  // Capture takes physical psi, row length, theta width, and theta cell count.
-  // Rates returns physical ds/dtheta at both block ends on the requested row.
-  void *row_arc_ctx;
-  void (*row_arc_capture)(void *, double, double, double, int);
-  bool (*row_arc_rates)(void *, double, double *, double *);
-
-  // Shape parameter for the SHARED theta grading. One grading function, used
-  // identically by every block, with EQUAL END SLOPES:
-  //
-  //   G'(u) = c (1 + k (1-2u)^2),   c = 3/(3+k)   so that G(1) = 1
-  //
-  // Equal end slopes are what makes a theta interface close: the element there
-  // is (S/w)*G'(end), so two blocks whose declarations already satisfy
-  // S_A/w_A = S_B/w_B agree automatically. Using ONE function for every block
-  // is what preserves radial conformality -- radial partners trace the same
-  // separatrix segment, so a per-block grading moves the row they share.
-  //
-  // k > 0 enlarges the end cells relative to the middle, which is the direction
-  // the |grad psi| map already goes: it pushes quadrature points AWAY from the
-  // X-point saddle (measured: worst-conditioned point sits 23.0 mm from the X
-  // point with that map on, 8.5 mm with it off).
-  //
-  // k is derived from the equilibrium in gyrokinetic_multib.c, never declared.
-  // Zero means unset, and the shared grading is then not used.
-  double theta_shared_k;
-
   bool straight_xpt_ray; // Align supported half-domain, full-domain double-null,
                          // and lower-single-null block interfaces on straight,
                          // flux-surface-intersecting rays from their X points to
@@ -517,38 +469,6 @@ struct gkyl_tok_geo_stat gkyl_tok_geo_get_stat(const struct gkyl_tok_geo *geo);
  * @return true if this block uses the extended construction
  */
 bool gkyl_tok_geo_uses_extended_construction(const struct gkyl_tok_geo_grid_inp *inp);
-
-/**
- * True when this block reaches its nodes through the CHORD construction --
- * ordered placement without the extended build. Only such a block is graded by
- * the per-block |grad psi| theta map, so only such a block is corrected by the
- * seam-slope multipliers. Distinct from the extended predicate: a block can be
- * non-extended and still not be a chord block (it marches arc length instead),
- * and correcting one of those would be a no-op that nonetheless poisons its
- * neighbour's target.
- *
- * @param inp Grid input
- * @return true when the chord construction places this block's nodes
- */
-bool gkyl_tok_geo_uses_chord_construction(const struct gkyl_tok_geo_grid_inp *inp);
-
-/**
- * Separatrix-row capture, used by the multiblock seam-slope solve. Between
- * begin() and end(), every block built records its separatrix-row node arc
- * positions, keyed by ftype. get() returns the number of theta CELLS (so n+1
- * values are written into s) and the block's theta width in w, or 0 when that
- * ftype was not captured.
- */
-void gkyl_tok_geo_seam_capture_begin(void);
-void gkyl_tok_geo_seam_capture_end(void);
-int gkyl_tok_geo_seam_capture_get(int ftype, double *s, int max, double *w,
-  double *dist_xpt);
-
-/**
- * The captured separatrix row's two endpoints, so a caller can group the
- * block-ends that meet at one physical junction. Each is written as {R, Z}.
- */
-bool gkyl_tok_geo_seam_capture_ends(int ftype, double *rz_lo, double *rz_hi);
 
 /**
  * Delete updater.

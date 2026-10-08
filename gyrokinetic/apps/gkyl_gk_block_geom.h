@@ -29,12 +29,6 @@ typedef struct gkyl_gk_block_geom gkyl_gk_block_geom;
  */
 struct gkyl_gk_block_geom *gkyl_gk_block_geom_new(int ndim, int nblocks);
 
-// Transfer ownership of an internal row-arclength plan to this block geometry.
-// Its callback contexts remain valid until the final geometry reference dies.
-// The caller must attach at most one owner to a newly cloned declaration.
-void gkyl_gk_block_geom_set_row_arc_owner(struct gkyl_gk_block_geom *bgeom,
-  void *owner, void (*release)(void *));
-
 /**
  * Return geometry dimension
  *
@@ -120,38 +114,30 @@ gkyl_gk_block_geom_apply_xpt_seam_selection(struct gkyl_gk_block_geom *bgeom,
 const struct gkyl_gk_block_geom_info *gkyl_gk_block_geom_get_block(
   const struct gkyl_gk_block_geom *bgeom, int bidx);
     
-// Whether the shared-separatrix-row construction takes a radial interface's
-// shared row from ONE trace builder.  This is the property that decides
+// Whether a mixed radial interface (one block legacy, its peer extended)
+// places its shared separatrix row identically from both sides.  Both blocks
+// place that row uniformly in arc length along the same contour, so they agree
+// exactly when they trace the same curve.  This is the property that decides
 // whether mixed extended-construction participation across that interface can
-// actually misparameterize the row: when the row is shared, the two blocks
-// cannot place different nodes on it no matter what each declares.
+// actually misparameterize the row.
 enum gkyl_gk_shared_sep_row_status {
-  GKYL_GK_SHARED_SEP_ROW_NONE = 0,     // construction does not apply here
-  GKYL_GK_SHARED_SEP_ROW_SHARED,       // legacy block takes the peer's row
-  GKYL_GK_SHARED_SEP_ROW_UNSUPPORTED,  // applies, but the descriptors disagree
+  GKYL_GK_SHARED_SEP_ROW_NONE = 0,     // not a mixed radial interface
+  GKYL_GK_SHARED_SEP_ROW_SHARED,       // both sides trace the same curve
+  GKYL_GK_SHARED_SEP_ROW_UNSUPPORTED,  // mixed, but the descriptors disagree
 };
 
 /**
- * Status of the shared-separatrix-row construction for one interface, asked
- * from the LEGACY block's side: @a legacy is the block that would adopt the
- * row, @a peer the extended-construction block it would adopt it from.
+ * Shared-separatrix-row status of one interface, asked from the LEGACY block's
+ * side: @a legacy takes the legacy construction, @a peer the extended one.
+ * Used by the seam-participation guard to decide whether a mixed interface
+ * can misparameterize its shared row.
  *
- * Single source of truth for both the multiblock app (which wires the row) and
- * the seam-participation guard (which decides whether a mixed interface can
- * still misparameterize it).  Restating either half separately would drift.
- *
- * @param legacy Block that would adopt a peer's separatrix row
- * @param peer Block the row would come from
+ * @param legacy Legacy-construction block
+ * @param peer Its extended-construction radial peer
  * @param src_dir Direction of @a legacy's edge at this interface
  * @param tgt_dir Direction of @a peer's edge at this interface
- * @return Whether the row is shared, unsupported, or the construction is off
+ * @return Whether the row is shared, unsupported, or the interface is not mixed
  */
-// True when an EXTENDED block is allowed to adopt a radial peer's row
-// (GKYL_TOK_SHARED_ROW_EXTENDED=1). Callers need it to pick a deterministic
-// adoption direction: with both blocks extended, either could adopt, so the
-// higher block index adopts from the lower.
-bool gkyl_gk_block_geom_shared_row_extended(void);
-
 enum gkyl_gk_shared_sep_row_status
 gkyl_gk_block_geom_shared_sep_row_status(const struct gkyl_gk_block_geom_info *legacy,
   const struct gkyl_gk_block_geom_info *peer, int src_dir, int tgt_dir);

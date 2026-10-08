@@ -109,7 +109,7 @@ signed_jacobian_guard_enabled(void)
 {
   static int enabled = -1;
   if (enabled < 0) {
-    // ON by default. This is the criterion that matters: J is what enters the
+    // Always on. This is the criterion that matters: J is what enters the
     // equations, and it is evaluated here at the quadrature points from the
     // map's own derivatives. The corner-node shoelace in tok_geo.c cannot
     // decide this -- it joins the corners with CHORDS, and where a radial band
@@ -117,13 +117,9 @@ signed_jacobian_guard_enabled(void)
     // while the curved cell does not. Measured on STEP psi x8/x16 and ASDEX
     // psi x2/x4/x8 theta x1: the shoelace reports a fold, this guard reports
     // none, and jacobgeo is +1.64 or better at every corner of every cell.
-    // Set GKYL_MAP_JACOBIAN_SIGN_GUARD=0 to disable.
-    const char *value = getenv("GKYL_MAP_JACOBIAN_SIGN_GUARD");
-    enabled = !(value && value[0] != '\0' && value[0] == '0');
-    if (enabled) {
-      fprintf(stderr, "GKYL_SIGNED_JACOBIAN_GUARD enabled version=1\n");
-      fflush(stderr);
-    }
+    enabled = 1;
+    fprintf(stderr, "GKYL_SIGNED_JACOBIAN_GUARD enabled version=1\n");
+    fflush(stderr);
   }
   return enabled != 0;
 }
@@ -202,9 +198,7 @@ check_orthonormality(const double tan[9], const double dual[9], bool exit_at_che
   // scale factor, or carrying non-zero off-diagonal products, passes it
   // silently.  Measure the full identity |e_i . e^j - delta_ij| as well.
   //
-  // This REPORTS by default and is fatal only under
-  // GKYL_METRIC_STRICT_ORTHONORMALITY=1, following the same opt-in pattern as
-  // the seam-participation guard.  The coordinate system is genuinely singular
+  // This REPORTS and does not abort.  The coordinate system is genuinely singular
   // at X-point and divertor-plate corners, so a check that aborted by default
   // would reject geometry the plan explicitly expects to build; what matters is
   // WHERE the residual is large, not merely that it is non-zero somewhere.
@@ -213,19 +207,9 @@ check_orthonormality(const double tan[9], const double dual[9], bool exit_at_che
   // singular coordinate is not mistaken for an error; measured 2026-10-07 on
   // the NSTX-U, STEP, ASDEX and TCV fixtures: at most 0.28 of that bound.
   {
-    static double tol = -1.0;
-    static int strict = -1;
+    const double tol = 1.0;
     static double worst_seen = 0.0;
     static double last_reported = 0.0;
-    if (tol < 0.0) {
-      const char *s = getenv("GKYL_METRIC_ORTHONORMALITY_TOL");
-      tol = (s && s[0]) ? atof(s) : 1.0;
-      if (!(tol > 0.0)) tol = 1.0;
-    }
-    if (strict < 0) {
-      const char *s = getenv("GKYL_METRIC_STRICT_ORTHONORMALITY");
-      strict = (s && s[0] && s[0] != '0') ? 1 : 0;
-    }
     // Judged against the roundoff of the computation itself: e^j = e_a x e_b / J
     // (a, b cyclic after j), so e_i . e^j - delta_ij carries the rounding of
     // two three-term sums and a two-term cross product and a division,
@@ -233,8 +217,7 @@ check_orthonormality(const double tan[9], const double dual[9], bool exit_at_che
     // An absolute tolerance confused that with an error where the coordinates
     // are singular: at an X point dR/dpsi diverges (|e_1| ~ 6e6 on NSTX-U at
     // theta x8) and the residual there was 2^-17 of pure roundoff. `worst` is the
-    // residual in units of that bound; `tol` (GKYL_METRIC_ORTHONORMALITY_TOL)
-    // now applies to it, default 1.
+    // residual in units of that bound, and `tol` is the bound itself.
     double worst = 0.0, worst_abs = 0.0; int wi = 0, wj = 0;
     double nrm[3], cr[3];
     for (int i = 0; i < 3; i++)
@@ -271,12 +254,6 @@ check_orthonormality(const double tan[9], const double dual[9], bool exit_at_che
           worst, wi+1, wj+1, tol, over_tol ? "OVER_TOLERANCE" : "within_tolerance", worst_abs,
           prod[0][0], prod[1][1], prod[2][2]);
         last_reported = worst;
-      }
-      if (over_tol && strict) {
-        fprintf(stderr, "calc_metric.c: orthonormality residual %.9e exceeds "
-                        "tolerance %.3e under GKYL_METRIC_STRICT_ORTHONORMALITY\n",
-                        worst, tol);
-        assert(!exit_at_check);
       }
     }
   }

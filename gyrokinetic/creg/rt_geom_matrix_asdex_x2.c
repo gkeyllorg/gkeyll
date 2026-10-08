@@ -1429,6 +1429,8 @@ main(int argc, char **argv)
   app_inp->use_gpu = app_args.use_gpu;
   app_inp->cfl_frac = 1.0;
   app_inp->gk_block_geom = bgeom;
+  // Step a SOL/PF bound that leaves the vessel outline inward until it fits.
+  app_inp->adjust_if_exceeding_wall = true;
   app_inp->num_species = 2;
   app_inp->num_neut_species = 0;
   app_inp->species[0] = elc;

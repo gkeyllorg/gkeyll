@@ -27,7 +27,7 @@ static bool efit_finite(double value)
 }
 
 
-// A/B HOOK (GKYL_EFIT_ACTIVE_HALF=1), 2026-09-29.  With reflect, the reader
+// Active half (2026-09-29).  With reflect, the reader
 // keeps the LOWER half of the flux array and mirrors it upward, so the grid is
 // always built around the lower X point.  In an upper-biased double null the
 // plasma boundary passes through the UPPER X point and the lower one lies on a
@@ -40,14 +40,7 @@ static bool efit_finite(double value)
 // X-point flux (2026-10-05, see gkyl_efit_new) -- keeps the lower half; no
 // threshold is set by hand.  The kept equilibrium is presented
 // mirrored in Z, so everything downstream still finds its X point below.
-// DEFAULT ON since 2026-10-02 (user decision: grid around the active X
-// point).  GKYL_EFIT_ACTIVE_HALF=0 restores the lower-half-always reader for A/B.
-static bool
-efit_active_half_enabled(void)
-{
-  const char *e = getenv("GKYL_EFIT_ACTIVE_HALF");
-  return !(e && e[0] == '0');
-}
+// User decision 2026-10-02: grid around the active X point.
 
 // Set while the two candidate halves are being built, so that only the kept
 // one reports itself.
@@ -676,7 +669,7 @@ efit_new_impl(const struct gkyl_efit_inp *inp, bool flip_z)
 gkyl_efit*
 gkyl_efit_new(const struct gkyl_efit_inp *inp)
 {
-  if (!inp->reflect || !efit_active_half_enabled())
+  if (!inp->reflect)
     return efit_new_impl(inp, false);
 
   efit_trial_quiet = 1;
