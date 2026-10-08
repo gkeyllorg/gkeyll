@@ -143,24 +143,40 @@ def loggedSh(String label, String script) {
 def trustedReportScript() {
     // The report tool must come from reviewed code, never from the candidate
     // checkout, because 'publish' runs with the GitHub token bound.
-    def trustedDir = env.TRUSTED_CI_DIR?.trim()
-    if (trustedDir) {
-        sh "cp '${trustedDir}/ci/jenkins/github_report.py' _trusted_github_report.py"
-    } else {
-        // GKEYLL_CI_TRUSTED_REF exists so a reviewed CI branch can be staged
-        // before merge; production controllers leave it unset (main).
-        def ref = validateRef('GKEYLL_CI_TRUSTED_REF', env.GKEYLL_CI_TRUSTED_REF?.trim() ?: 'main')
-        withEnv(["CI_TRUSTED_REPORT_REF=${ref}"]) {
-            sh '''#!/bin/bash
-                set -euo pipefail
-                mkdir -p .ci-report-source
-                git -C .ci-report-source init --quiet
-                git -C .ci-report-source fetch --quiet --depth 1 https://github.com/gkeyllorg/gkeyll.git "$CI_TRUSTED_REPORT_REF"
-                git -C .ci-report-source show FETCH_HEAD:ci/jenkins/github_report.py > _trusted_github_report.py
-            '''
-        }
+    // The team bootstrap pins the reviewed checkout to an exact commit.
+    def ref = validateRef('trusted CI ref', env.CI_TRUSTED_CI_COMMIT?.trim()
+        ?: env.GKEYLL_CI_TRUSTED_REF?.trim() ?: 'main')
+    withEnv(["CI_TRUSTED_REPORT_REF=${ref}"]) {
+        sh '''#!/bin/bash
+            set -euo pipefail
+            mkdir -p .ci-report-source
+            git -C .ci-report-source init --quiet
+            git -C .ci-report-source fetch --quiet --depth 1 https://github.com/gkeyllorg/gkeyll.git "$CI_TRUSTED_REPORT_REF"
+            rm -f -- _trusted_github_report.py
+            git -C .ci-report-source show FETCH_HEAD:ci/jenkins/github_report.py > _trusted_github_report.py
+        '''
     }
     return '_trusted_github_report.py'
+}
+
+def prepareTrustedRegressionChecker() {
+    // The candidate must not choose the code that decides whether its results pass.
+    // The team bootstrap supplies an exact reviewed commit; standalone jobs use
+    // the same trusted ref as the report tool.
+    def ref = validateRef('trusted CI ref', env.CI_TRUSTED_CI_COMMIT?.trim()
+        ?: env.GKEYLL_CI_TRUSTED_REF?.trim() ?: 'main')
+    def checker = "${env.WORKSPACE}/_trusted_check_regression_results.lua"
+    withEnv(["CI_TRUSTED_CHECKER_REF=${ref}", "CI_TRUSTED_CHECKER_PATH=${checker}"]) {
+        sh '''#!/bin/bash
+            set -euo pipefail
+            git fetch --quiet --depth 1 https://github.com/gkeyllorg/gkeyll.git "$CI_TRUSTED_CHECKER_REF"
+            rm -f -- "$CI_TRUSTED_CHECKER_PATH"
+            git show FETCH_HEAD:ci/jenkins/check_regression_results.lua > "$CI_TRUSTED_CHECKER_PATH"
+            test -s "$CI_TRUSTED_CHECKER_PATH"
+            git rev-parse FETCH_HEAD > ci-trusted-checker-commit.txt
+        '''
+    }
+    return checker
 }
 
 def publishReport(String statusCredentialsId, String context, String platform, String commit, String state, String candidatePr, String candidateRef) {
@@ -248,7 +264,7 @@ def createBaseline(String baseline, String baselineDir, String mkdeps, String co
     }
 }
 
-def runCandidateRegressions(String candidateDir, String baselineDir, String jobs, String regressionJobs) {
+def runCandidateRegressions(String candidateDir, String baselineDir, String jobs, String regressionJobs, String checker) {
     def gkeyll = "${candidateDir}/gkylsoft/gkeyll/bin/gkeyll"
     def baselineGkeyll = "${baselineDir}/gkylsoft/gkeyll/bin/gkeyll"
     def results = "${candidateDir}/gkylsoft/gkeyll-results"
@@ -267,13 +283,14 @@ def runCandidateRegressions(String candidateDir, String baselineDir, String jobs
         elapsed=\$(( \$(date +%s) - started ))
         printf '%s\\n' "\$elapsed" > "${env.WORKSPACE}/candidate-c-regression-check-seconds.txt"
         echo "Candidate C-regression check runtime: \$elapsed seconds"
-        \"${baselineGkeyll}\" \"${baselineDir}/gkeyll/ci/jenkins/check_regression_results.lua\" \\
+        cd \"${baselineDir}/gkeyll\"
+        \"${baselineGkeyll}\" -S \"${checker}\" \\
           \"${results}\" \"${candidateDir}/gkeyll/ci/jenkins/expected_regression_diffs.txt\" \"${env.WORKSPACE}/ci-regression-summary.txt\" \\
           \"${baselineDir}/gkeyll/ci/jenkins/expected_regression_diffs.txt\" \"${baseline}\"
     """)
 }
 
-def runParallelRegressions(String candidateDir, String baselineDir, String mpiExec) {
+def runParallelRegressions(String candidateDir, String baselineDir, String mpiExec, String checker) {
     def mpiHome = env.PERSONAL_MPI_HOME?.trim()
     mpiExec = mpiExec ?: (mpiHome ? "${mpiHome}/bin/mpiexec" : '')
     def candidateMpiExec = mpiExec ?: "${candidateDir}/gkylsoft/openmpi/bin/mpiexec"
@@ -303,7 +320,8 @@ def runParallelRegressions(String candidateDir, String baselineDir, String mpiEx
         "${gkeyll}" runregression run --c-only --parallel --execute-only check
         elapsed=\$(( \$(date +%s) - started ))
         printf '%s\\n' "\$elapsed" > "${env.WORKSPACE}/candidate-parallel-c-regression-check-seconds.txt"
-        "${baselineGkeyll}" "${baselineDir}/gkeyll/ci/jenkins/check_regression_results.lua" \\
+        cd "${baselineDir}/gkeyll"
+        "${baselineGkeyll}" -S "${checker}" \\
           "${results}" "${candidateDir}/gkeyll/ci/jenkins/expected_regression_diffs.txt" "${env.WORKSPACE}/ci-parallel-regression-summary.txt" \\
           "${baselineDir}/gkeyll/ci/jenkins/expected_regression_diffs.txt" "${baselineResults}"
     """)
@@ -410,6 +428,7 @@ def runCi = {
     def baselineDir = ''
     def baselineStage = ''
     def candidateDir = ''
+    def trustedChecker = ''
     def baselineCacheHit = false
     // Every controller needs its own status context, otherwise two machines
     // testing the same commit overwrite each other's status on GitHub.
@@ -479,8 +498,9 @@ EOF
             }
         }
         ciStage('Record baseline cache') { sh "git -C '${baselineDir}/gkeyll' rev-parse HEAD | tee ci-baseline-commit.txt" }
-        ciStage('C regressions') { dir("${candidateDir}/gkeyll") { runCandidateRegressions(candidateDir, baselineDir, jobs, regressionJobs) } }
-        ciStage('Parallel C regressions') { dir("${candidateDir}/gkeyll") { runParallelRegressions(candidateDir, baselineDir, mpiExec) }; status = 'success'; description = 'Personal CI passed.' }
+        ciStage('Prepare trusted regression checker') { trustedChecker = prepareTrustedRegressionChecker() }
+        ciStage('C regressions') { dir("${candidateDir}/gkeyll") { runCandidateRegressions(candidateDir, baselineDir, jobs, regressionJobs, trustedChecker) } }
+        ciStage('Parallel C regressions') { dir("${candidateDir}/gkeyll") { runParallelRegressions(candidateDir, baselineDir, mpiExec, trustedChecker) }; status = 'success'; description = 'Personal CI passed.' }
     } catch (err) {
         failureMessage = err.toString()
         if (currentBuild.currentResult == 'ABORTED' || err.toString().contains('FlowInterruptedException')) { status = 'error'; description = 'Personal CI was aborted.' }
@@ -518,7 +538,7 @@ EOF
                     echo "WARNING: could not publish the GitHub CI report: ${reportError}"
                 }
             }
-            archiveArtifacts allowEmptyArchive: true, artifacts: 'ci-selection.txt,ci-baseline-preflight.txt,ci-baseline-cache.txt,ci-trusted-ci-commit.txt,ci-candidate-commit.txt,ci-baseline-commit.txt,*-seconds.txt,*-unit-results.txt,candidate-*.log,baseline-*.log,ci-failure-detail.txt,ci-report*.md,ci-report*.md.json,ci-command-logs/**,ci-timing-summary.txt,ci-regression-summary.txt,ci-parallel-regression-summary.txt,ci-failure-summary.txt,build/**/*.log,cuda-build/**/*.log,_baseline/build/**/*.log,_baseline/cuda-build/**/*.log,_baseline/gkylsoft/gkeyll-results/**/regressiondb,_baseline/gkylsoft/gkeyll-results/**/_rr_failures.txt,gkylsoft/gkeyll-results/**/regressiondb,gkylsoft/gkeyll-results/**/_rr_failures.txt'
+            archiveArtifacts allowEmptyArchive: true, artifacts: 'ci-selection.txt,ci-baseline-preflight.txt,ci-baseline-cache.txt,ci-trusted-checker-commit.txt,ci-trusted-ci-commit.txt,ci-candidate-commit.txt,ci-baseline-commit.txt,*-seconds.txt,*-unit-results.txt,candidate-*.log,baseline-*.log,ci-failure-detail.txt,ci-report*.md,ci-report*.md.json,ci-command-logs/**,ci-timing-summary.txt,ci-regression-summary.txt,ci-parallel-regression-summary.txt,ci-failure-summary.txt,build/**/*.log,cuda-build/**/*.log,_baseline/build/**/*.log,_baseline/cuda-build/**/*.log,_baseline/gkylsoft/gkeyll-results/**/regressiondb,_baseline/gkylsoft/gkeyll-results/**/_rr_failures.txt,gkylsoft/gkeyll-results/**/regressiondb,gkylsoft/gkeyll-results/**/_rr_failures.txt'
             if (reportError) description = "${description} (report not posted)".take(140)
         }
         if (candidateDir && baselineCommit) {

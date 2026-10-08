@@ -24,7 +24,9 @@ fi
 [[ "$CI_REGRESSION_MODE" == candidate-check ]] || { echo "Unknown CI_REGRESSION_MODE: $CI_REGRESSION_MODE" >&2; exit 2; }
 : "${CI_CANDIDATE_PREFIX:?}"
 : "${CI_CANDIDATE_DIR:?}"
+: "${CI_TRUSTED_CHECKER:?}"
 candidate_gkeyll="$CI_CANDIDATE_PREFIX/gkeyll/bin/gkeyll"
+test -s "$CI_TRUSTED_CHECKER"
 
 cd "$CI_CANDIDATE_DIR"
 for layer in moments vlasov gyrokinetic pkpm; do
@@ -38,7 +40,8 @@ started="$(date +%s)"
 elapsed="$(( $(date +%s) - started ))"
 printf '%s\n' "$elapsed" > "$CI_WORKSPACE/candidate-parallel-c-regression-check-seconds.txt"
 echo "Candidate parallel C-regression check runtime: $elapsed seconds"
-"$baseline_gkeyll" "$CI_BASELINE_DIR/ci/jenkins/check_regression_results.lua" \
+cd "$CI_BASELINE_DIR"
+"$baseline_gkeyll" -S "$CI_TRUSTED_CHECKER" \
   "$CI_CANDIDATE_PREFIX/gkeyll-results/parallel-c-4" \
   "$CI_CANDIDATE_DIR/ci/jenkins/expected_regression_diffs.txt" \
   "$CI_WORKSPACE/ci-parallel-regression-summary.txt" \
