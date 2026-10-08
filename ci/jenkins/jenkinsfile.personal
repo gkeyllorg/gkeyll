@@ -213,6 +213,13 @@ def usePrebuiltConfig(String prefix) {
         .replace('${PREFIX}', '${GKEYLL_CI_DEPENDENCY_PREFIX}')
     config += "\n# Jenkins workspace installation\noverride PREFIX := ${prefix}\noverride INSTALL_PREFIX := ${prefix}\n"
     writeFile file: 'config.mak', text: config
+    // configure normally creates this second file too. Build before installing,
+    // including with parallel make, and reuse the checkout's install recipes.
+    writeFile file: 'alltargets.mak', text: '''.PHONY: all install
+all: gkeyll
+install: gkeyll
+	$(MAKE) gkeyll-install
+'''
     echo "Using prebuilt dependencies from ${source}; installing Gkeyll in ${prefix}"
     return true
 }
