@@ -22,11 +22,16 @@ class PrebuiltConfigTests(unittest.TestCase):
         (self.original / 'OpenBLAS/include').mkdir()
         (self.library / 'libfixture.so.1').write_text('original library')
         (self.library / 'libfixture.so').symlink_to(self.library / 'libfixture.so.1')
+        self.adas = self.original / 'gkeyll/share/adas'
+        self.adas.mkdir(parents=True)
+        for name in ('ioniz_h.npy', 'recomb_h.npy', 'logT_h.npy', 'logN_h.npy'):
+            (self.adas / name).write_bytes(b'\x00ADAS fixture\xff')
+        (self.adas / 'radiation_fit_parameters.txt').write_text('original radiation fits')
         (self.original / 'gkeyll-results').mkdir()
         (self.original / 'gkeyll-results/old-result.gkyl').write_text('old result')
         self.config = self.root / 'source-config.mak'
         self.config.write_text(
-            f'PREFIX={self.original}\nCC=cc\n'
+            f'PREFIX={self.original}\nCC=cc\nBUILD_APP=pkpm\n'
             'LAPACK_INC_DIR=$(PREFIX)/OpenBLAS/include\n'
             'LAPACK_LIB_DIR=${PREFIX}/OpenBLAS/lib\n')
         self.run = self.root / 'run-1'
@@ -69,6 +74,90 @@ class PrebuiltConfigTests(unittest.TestCase):
         self.assertTrue(copied_dir.is_relative_to(self.dependencies))
         self.assertEqual((copied_dir / 'libsuperlu.so').read_text(), 'external library')
         self.assertEqual(self.config.read_bytes(), original)
+
+    def test_adas_snapshot_and_build_trees_are_isolated(self):
+        # Both an installation alias and file symlinks must be dereferenced.
+        external = self.root / 'external-adas'
+        self.adas.rename(external)
+        self.adas.symlink_to(external, target_is_directory=True)
+        table = external / 'ioniz_h.npy'
+        table.rename(external / 'table.npy')
+        table.symlink_to(external / 'table.npy')
+        self.prepare()
+        manifest = json.loads((self.dependencies / 'manifest.json').read_text())
+        snapshot = Path(manifest['adas_dir'])
+        self.assertTrue(snapshot.is_relative_to(self.dependencies))
+        candidate = self.prefix / 'gkeyll/share/adas'
+        for directory in (snapshot, candidate):
+            self.assertFalse(directory.is_symlink())
+            self.assertFalse((directory / 'ioniz_h.npy').is_symlink())
+            self.assertEqual((directory / 'ioniz_h.npy').read_bytes(), table.read_bytes())
+        (candidate / 'ioniz_h.npy').write_bytes(b'candidate edit')
+        (candidate / 'radiation_fit_parameters.txt').write_text('candidate radiation fits')
+        # Reusing the run must not need the original installation or data.
+        self.original.rename(self.root / 'original-unavailable')
+        external.rename(self.root / 'adas-unavailable')
+        baseline_prefix = self.run / 'baseline/gkylsoft'
+        write_config(self.config, baseline_prefix, self.dependencies, self.output)
+        baseline = baseline_prefix / 'gkeyll/share/adas'
+        self.assertEqual((baseline / 'ioniz_h.npy').read_bytes(), b'\x00ADAS fixture\xff')
+        (baseline / 'radiation_fit_parameters.txt').write_text('baseline radiation fits')
+        self.assertEqual((candidate / 'radiation_fit_parameters.txt').read_text(),
+                         'candidate radiation fits')
+        self.assertEqual((snapshot / 'radiation_fit_parameters.txt').read_text(),
+                         'original radiation fits')
+        self.assertEqual((snapshot / 'ioniz_h.npy').read_bytes(), b'\x00ADAS fixture\xff')
+        (self.root / 'original-unavailable').rename(self.original)
+        (self.root / 'adas-unavailable').rename(external)
+        self.assertEqual(table.read_bytes(), b'\x00ADAS fixture\xff')
+        table.write_bytes(b'updated source table')
+        second_prefix = self.root / 'run-2/candidate/gkylsoft'
+        write_config(self.config, second_prefix, self.root / 'run-2/dependencies', self.output)
+        self.assertEqual((second_prefix / 'gkeyll/share/adas/ioniz_h.npy').read_bytes(),
+                         b'updated source table')
+        self.assertEqual((snapshot / 'ioniz_h.npy').read_bytes(), b'\x00ADAS fixture\xff')
+
+    def test_adas_copied_when_library_root_is_entire_prefix(self):
+        (self.original / 'include').mkdir()
+        (self.original / 'lib').mkdir()
+        (self.original / 'gkeyll/bin').mkdir()
+        (self.original / 'gkeyll/bin/gkeyll').write_text('old executable')
+        with self.config.open('a') as config:
+            config.write('LAPACK_INC_DIR=$(PREFIX)/include\nLAPACK_LIB_DIR=$(PREFIX)/lib\n')
+        self.prepare()
+        self.assertFalse((self.dependencies / 'gkylsoft/gkeyll').exists())
+        self.assertFalse((self.dependencies / 'gkylsoft/gkeyll-results').exists())
+        self.assertFalse((self.prefix / 'gkeyll/bin/gkeyll').exists())
+        self.assertEqual((self.prefix / 'gkeyll/share/adas/recomb_h.npy').read_bytes(),
+                         (self.adas / 'recomb_h.npy').read_bytes())
+
+    def test_missing_adas_fails_before_building_for_gyrokinetic_and_pkpm(self):
+        for table in self.adas.glob('*.npy'):
+            table.unlink()
+        for app in ('gyrokinetic', 'pkpm'):
+            with self.subTest(app=app):
+                with self.config.open('a') as config:
+                    config.write(f'BUILD_APP={app}\n')
+                with self.assertRaisesRegex(ValueError, 'Missing ADAS .npy data'):
+                    self.prepare()
+                self.assertFalse(self.output.exists())
+                self.assertFalse(self.dependencies.exists())
+
+    def test_non_gyrokinetic_build_does_not_require_adas(self):
+        shutil.rmtree(self.adas)
+        with self.config.open('a') as config:
+            config.write('BUILD_APP=vlasov\n')
+        self.prepare()
+        self.assertFalse((self.prefix / 'gkeyll/share/adas').exists())
+
+    def test_old_snapshot_requires_new_run(self):
+        self.prepare()
+        path = self.dependencies / 'manifest.json'
+        manifest = json.loads(path.read_text())
+        del manifest['adas_dir']
+        path.write_text(json.dumps(manifest))
+        with self.assertRaisesRegex(ValueError, 'start a new CI run'):
+            self.prepare()
 
     def test_config_change_cannot_mix_candidate_and_baseline_dependencies(self):
         self.prepare()

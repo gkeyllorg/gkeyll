@@ -13,8 +13,9 @@ credentials, and command-line client.
   pull requests into `main` from every author, with optional selected runs.
 
 The Jenkinsfiles publish machine-specific GitHub commit statuses for queue,
-stage, progress, and final results. Completed reports are readable PR or commit
-comments, updated in place, and linked from the status's **Details** button.
+stage, progress, and final results. Completed reports are comments on the exact
+tested commit, including PR runs, updated in place per commit and status context,
+and linked from the status's **Details** button.
 Reporting uses the existing username/token credential. Public source discovery
 and checkouts remain anonymous. See [Reporting credentials](#reporting-credentials)
 and the platform guide for setup. Do not place credentials in the repository
@@ -75,6 +76,15 @@ this private copy within the run; every subsequent run gets a new copy. The
 supplied config and original dependencies remain untouched. OS libraries under
 `/usr`, `/lib`, `/lib64`, and `/System`, compilers, and platform SDKs remain
 machine-provided; they are not copied into the run.
+
+ADAS runtime data is copied from the original `PREFIX/gkeyll/share/adas` into
+`dependencies/data/adas`, then copied into each build's own
+`gkylsoft/gkeyll/share/adas` before compilation and tests. These are independent
+directories so installing a revision's radiation fits cannot modify the other
+build, the dependency snapshot, or the original installation. Prebuilt
+gyrokinetic and PKPM configs require ADAS `.npy` tables in the original
+installation; setup fails early if none are present. Prepare that installation
+with `install-deps/mkdeps.sh --build-adas=yes` before using it for CI.
 
 Each build gets a config pointing to the copied libraries, with `PREFIX` and
 `INSTALL_PREFIX` set to its own `gkylsoft` directory. CI uses the copied MPI
@@ -144,16 +154,15 @@ Use the platform's existing `*_GITHUB_CREDENTIAL_ID` Jenkins **Username with
 password** credential, with the GitHub username and token as its password.
 An existing classic PAT with `public_repo` scope covers status and comment
 publication on this public repository. A fine-grained token needs **Commit
-statuses: write**, **Pull requests: write** (PR comments), and **Contents: write**
-(commit comments) on `gkeyllorg/gkeyll`; its owner needs push access for statuses.
+statuses: write** and **Contents: write** (to create and update commit comments)
+on `gkeyllorg/gkeyll`; its owner needs push access for statuses.
 There is no additional credential or reporting plugin to configure. See GitHub's
-[commit status API](https://docs.github.com/en/rest/commits/statuses),
-[PR comment API](https://docs.github.com/en/rest/issues/comments), and
+[commit status API](https://docs.github.com/en/rest/commits/statuses) and
 [commit comment API](https://docs.github.com/en/rest/commits/comments).
 
 Each controller must use its own stable status context. Keep existing contexts
 so branch protection continues to use the same names. Retries update the same
-report comment for that context. Delivery diagnostics are archived in
+report comment for that commit and context. Delivery diagnostics are archived in
 `ci-report-delivery.json`; reporting outages do not change test results.
 
 ### Queued builds and superseded PR commits
@@ -274,11 +283,12 @@ manual cancellation and a normal running/completed build.
 
 ### Completed build reports
 
-Every completed or failed run attempts to publish a Markdown comment on the PR,
-or on the exact candidate commit for branch/SHA selections. Stage and command
+Every completed or failed run attempts to publish a Markdown comment on the
+exact candidate commit, including PR runs. A new commit gets its own report;
+reruns update the report for the same commit and status context. Stage and command
 transitions update the commit status immediately; the controller refreshes
 queue positions and elapsed-time/ETA indicators every minute. Progress does not
-create PR comment notifications. Cancellation and timeout descriptions are
+create comment notifications. Cancellation and timeout descriptions are
 explicit; both use GitHub's `error` status. Reports identify the candidate,
 baseline, machine, build and queue IDs, and status context, with unit/regression
 results, timings, and collapsible sections for:
@@ -314,8 +324,9 @@ Markdown fences and collapsed sections balanced. The reporter only edits
 comments written by the authenticated account with the exact context marker;
 it clears obsolete continuation pages when a later report is shorter. Accepted
 queue IDs (or build numbers within a job) prevent an older run from replacing
-a newer report already on the PR. The archived `ci-report.md` contains the
-entire report; `ci-report.md.json` contains the report pages. Raw logs remain
+a newer report for the same commit and context. Reports on other commits remain
+intact even when an older run finishes later. The archived `ci-report.md` contains
+the entire report; `ci-report.md.json` contains the report pages. Raw logs remain
 available through the artifact command below. `ci-stage-history.txt` records
 stage changes in UTC, including stages before candidate checkout.
 
@@ -333,8 +344,12 @@ archived report in that case.
 Report generation and GitHub publication live in `github_report.py`. Shared
 Pipeline stage/command reporting lives in `jenkins_reporting.groovy`; the
 controller only needs `queue-status.groovy`. The older standalone `build` and
-`publish` commands remain supported. Pipelines load both shared report files
-before candidate checkout from reviewed code (`main`, the pinned trusted team
+`publish` commands remain supported. Publication requires the full tested SHA
+in `--commit`; `--pr` and `--ref` are accepted for compatibility but never select
+the comment target. If checkout failed before recording a SHA, keep the report
+as an artifact instead of resolving a branch or PR that may have moved.
+Pipelines load both shared report files before candidate checkout from reviewed
+code (`main`, the pinned trusted team
 checkout, or `GKEYLL_CI_TRUSTED_REF` while staging changes). Deploy those files
 with the updated Jenkinsfiles. Diagnostic collection runs before binding the
 GitHub token; credential-bearing shell steps are not captured in published logs.

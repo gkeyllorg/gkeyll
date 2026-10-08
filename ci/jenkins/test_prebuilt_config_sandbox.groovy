@@ -54,9 +54,12 @@ node {
         sh \'\'\'#!/bin/bash
             set -euo pipefail
             mkdir -p original/OpenBLAS/{include,lib} original/openmpi/{include,lib,bin}
+            mkdir -p original/gkeyll/share/adas
+            printf 'ADAS fixture' > original/gkeyll/share/adas/ioniz_h.npy
             printf '#!/bin/sh\\nexit 0\\n' > original/openmpi/bin/mpiexec
             cat > original.mak <<EOF
 PREFIX=$PWD/original
+BUILD_APP=pkpm
 LAPACK_INC_DIR=$PWD/original/OpenBLAS/include
 LAPACK_LIB_DIR=$PWD/original/OpenBLAS/lib
 USE_MPI=$CI_TEST_MPI
@@ -69,6 +72,7 @@ EOF
         dir(tree) {
             def prefix = "${root}/${tree}/gkylsoft"
             assert usePrebuiltConfig(prefix)
+            assert readFile("${prefix}/gkeyll/share/adas/ioniz_h.npy") == 'ADAS fixture'
             assert readFile('config.mak').contains("PREFIX=${prefix}\\n")
             assert fileExists('alltargets.mak')
             assert env.GKEYLL_CI_DEPENDENCY_ENV == "${root}/run/dependencies/env.sh"

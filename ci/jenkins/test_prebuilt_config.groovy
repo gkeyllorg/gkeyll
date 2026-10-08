@@ -17,12 +17,14 @@ try {
     def original = new File(tmp, 'installed-config.mak')
     def dependencies = new File(tmp, 'original')
     ['OpenBLAS/include', 'OpenBLAS/lib', 'superlu/include', 'superlu/lib',
-     'openmpi/include', 'openmpi/lib', 'openmpi/bin', 'luajit/lib'].each {
+     'openmpi/include', 'openmpi/lib', 'openmpi/bin', 'luajit/lib', 'gkeyll/share/adas'].each {
         new File(dependencies, it).mkdirs()
     }
     new File(dependencies, 'openmpi/bin/mpiexec').text = '#!/bin/sh\nexit 0\n'
+    new File(dependencies, 'gkeyll/share/adas/ioniz_h.npy').text = 'ADAS fixture'
     original.text = """PREFIX=${dependencies}
 INSTALL_PREFIX=${dependencies}
+BUILD_APP=pkpm
 LAPACK_INC_DIR=\$(PREFIX)/OpenBLAS/include
 LAPACK_LIB_DIR=\$(PREFIX)/OpenBLAS/lib
 SUPERLU_INC_DIR=\${PREFIX}/superlu/include
@@ -79,6 +81,7 @@ CONF_LUA_LIB_DIR=${dependencies}/luajit/lib
     ['candidate', 'baseline'].each { tree ->
         def prefix = "${tmp}/${tree}/gkylsoft"
         assert helper.usePrebuiltConfig(prefix)
+        assert new File(prefix, 'gkeyll/share/adas/ioniz_h.npy').text == 'ADAS fixture'
         // Historical regression tools read the first literal PREFIX= line
         // from the installed config instead of evaluating it with Make.
         def legacyPrefix = output.readLines().findResult { line ->

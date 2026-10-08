@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build Jenkins reports and publish GitHub commit statuses and PR/commit comments.
+"""Build Jenkins reports and publish GitHub statuses and comments on tested commits.
 
 Standard library only; uses the existing platform username/token credential.
 
@@ -609,23 +609,17 @@ def publish_report(args, token=None):
     token = token or os.environ.get("GITHUB_TOKEN")
     if not token:
         raise ValueError("GITHUB_TOKEN is not set")
-    if not args.pr and not args.commit and args.ref:
-        commit, _ = api('GET', '{}/repos/{}/commits/{}'.format(
-            API, args.repo, urllib.parse.quote(args.ref, safe='')), token)
-        args.commit = commit.get('sha', '')
-    if not args.pr and not re.fullmatch(r"[0-9a-fA-F]{40}", args.commit):
+    # The PR head or branch can move during a run. Only the recorded candidate
+    # SHA identifies the commit whose results this report describes.
+    if not re.fullmatch(r"[0-9a-fA-F]{40}", args.commit):
         raise ValueError("--commit must be a full 40-character SHA")
     body = read_text(args.report)
     marker = MARKER_FORMAT.format(args.context)
     if not body.startswith(marker + '\n'):
         raise ValueError('Report does not carry the expected context marker')
     base = '{}/repos/{}'.format(API, args.repo)
-    if args.pr:
-        list_url = base + '/issues/{}/comments'.format(args.pr)
-        update_url = base + '/issues/comments/{}'
-    else:
-        list_url = base + '/commits/{}/comments'.format(args.commit)
-        update_url = base + '/comments/{}'
+    list_url = base + '/commits/{}/comments'.format(args.commit)
+    update_url = base + '/comments/{}'
 
     pages_path = args.report + '.json'
     pages = json.loads(read_text(pages_path)) if os.path.isfile(pages_path) else [body]
@@ -742,7 +736,7 @@ def update_report(args):
             raise ValueError('Reporting requires the exact candidate commit SHA')
         target = ''
         # Stage progress uses statuses. One comment is updated at completion,
-        # avoiding a stream of PR notifications for every command or heartbeat.
+        # avoiding a stream of comment notifications for every command or heartbeat.
         if args.result != 'pending':
             try:
                 comment = retry(lambda: publish_report(args, token))
@@ -782,16 +776,16 @@ def main(argv):
     build.add_argument("--output", default="ci-report.md")
     build.set_defaults(func=build_report)
 
-    publish = sub.add_parser("publish", help="create or update the GitHub comment carrying the report")
+    publish = sub.add_parser("publish", help="create or update the GitHub commit comment carrying the report")
     publish.add_argument("--report", default="ci-report.md")
-    publish.add_argument("--commit", default="", help="candidate commit SHA")
-    publish.add_argument("--ref", default="", help="resolve this ref if checkout failed before recording a SHA")
+    publish.add_argument("--commit", required=True, help="exact tested commit SHA")
+    publish.add_argument("--ref", default="", help="candidate ref (informational only; --commit selects the target)")
     publish.add_argument("--context", required=True)
-    publish.add_argument("--pr", default="", help="pull-request number; omitted for commit comments")
+    publish.add_argument("--pr", default="", help="pull-request number (informational only; --commit selects the target)")
     publish.add_argument("--repo", default=DEFAULT_REPO)
     publish.set_defaults(func=publish_report)
 
-    update = sub.add_parser('update', help='publish commit status and the completed PR/commit report')
+    update = sub.add_parser('update', help='publish commit status and the completed report on the tested commit')
     update.add_argument('--report', default='ci-report.md')
     update.add_argument('--commit', required=True)
     update.add_argument('--context', required=True)
@@ -799,8 +793,8 @@ def main(argv):
     update.add_argument('--result', required=True, choices=sorted(STATE_LABEL))
     update.add_argument('--description', default='')
     update.add_argument('--stage', default=os.environ.get('CI_FAILURE_STAGE', 'starting'))
-    update.add_argument('--pr', default='')
-    update.add_argument('--ref', default='')
+    update.add_argument('--pr', default='', help='pull-request number (informational only; --commit selects the target)')
+    update.add_argument('--ref', default='', help='candidate ref (informational only; --commit selects the target)')
     update.add_argument('--repo', default=DEFAULT_REPO)
     update.add_argument('--queue-id', default=os.environ.get('CI_QUEUE_ID', ''))
     update.set_defaults(func=update_report)

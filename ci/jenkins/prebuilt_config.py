@@ -19,7 +19,7 @@ GROUPS = (
     ('USE_NCCL', ('CONF_NCCL_INC_DIR', 'CONF_NCCL_LIB_DIR')),
     ('USE_CUDSS', ('CONF_CUDSS_INC_DIR', 'CONF_CUDSS_LIB_DIR')),
 )
-VARIABLES = ('PREFIX', 'CC', 'USE_LAPACK_LITE', 'CUDAMATH_LIB_DIR') + tuple(dict.fromkeys(
+VARIABLES = ('PREFIX', 'BUILD_APP', 'CC', 'USE_LAPACK_LITE', 'CUDAMATH_LIB_DIR') + tuple(dict.fromkeys(
     name for flag, paths in GROUPS for name in (flag, *paths) if name))
 
 
@@ -70,6 +70,8 @@ def prepare_dependencies(source, destination, mpiexec):
         manifest = json.loads(manifest_file.read_text())
         if manifest['source_sha256'] != digest:
             raise ValueError('Prebuilt config changed during this run; start a new CI run')
+        if 'adas_dir' not in manifest:
+            raise ValueError('Dependency snapshot predates ADAS copying; start a new CI run')
         return manifest
     if destination.exists():
         raise ValueError(f'Incomplete dependency copy already exists: {destination}')
@@ -77,6 +79,11 @@ def prepare_dependencies(source, destination, mpiexec):
     original_prefix = Path(values['PREFIX'])
     if original_prefix == Path('/') or not original_prefix.is_absolute() or not original_prefix.is_dir():
         raise ValueError(f'Prebuilt PREFIX is not an absolute directory: {original_prefix}')
+    adas_source = original_prefix / 'gkeyll/share/adas'
+    if values['BUILD_APP'] in ('gyrokinetic', 'pkpm') and not any(
+            path.is_file() for path in adas_source.glob('*.npy')):
+        raise ValueError(f'Missing ADAS .npy data in {adas_source}; '
+                         'prepare the prebuilt dependencies with --build-adas=yes')
     paths = {}
     for flag, names in GROUPS:
         if flag and values[flag] != '1':
@@ -131,6 +138,13 @@ def prepare_dependencies(source, destination, mpiexec):
             canonical_copies[canonical] = target
             mappings[str(root)] = str(target)
             mappings[str(canonical)] = str(target)
+        # ADAS is a runtime dependency inside the otherwise excluded Gkeyll
+        # installation. Snapshot it separately, including for system prefixes.
+        adas_dir = ''
+        if adas_source.is_dir():
+            relative = Path('data/adas')
+            shutil.copytree(adas_source, stage / relative, symlinks=False)
+            adas_dir = str(destination / relative)
         paths = {name: remap(value.rstrip('/'), mappings) for name, value in paths.items()}
         libdirs = list(dict.fromkeys(value for name, value in paths.items() if 'LIB_DIR' in name))
         mpi_home = ''
@@ -142,7 +156,8 @@ def prepare_dependencies(source, destination, mpiexec):
                 mpiexec = str(dependency_root(Path(values['CONF_MPI_LIB_DIR'])) / 'bin/mpiexec')
         manifest = dict(source_config=str(source), source_sha256=digest,
                         mappings=mappings, paths=paths, library_dirs=libdirs,
-                        mpi_home=mpi_home, mpiexec=remap(mpiexec, mappings))
+                        mpi_home=mpi_home, mpiexec=remap(mpiexec, mappings),
+                        adas_dir=adas_dir)
         (stage / 'source-config.mak').write_text(source_text)
         (stage / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
         environment = runtime_environment(manifest, destination)
@@ -170,6 +185,11 @@ def runtime_environment(manifest, destination):
 
 def write_config(source, prefix, destination, output, mpiexec=''):
     manifest = prepare_dependencies(source, destination, mpiexec)
+    if manifest['adas_dir']:
+        # Each build owns its share directory: Make installs revision-specific
+        # radiation fits here, so do not link it to the shared dependency copy.
+        shutil.copytree(manifest['adas_dir'], prefix / 'gkeyll/share/adas',
+                        symlinks=False, dirs_exist_ok=True)
     config = (destination / 'source-config.mak').read_text()
     config = re.sub(r'(?m)^(override\s+)?PREFIX(?=\s*[:?]?=)',
                     lambda match: (match[1] or '') + 'GKEYLL_CI_DEPENDENCY_PREFIX', config)

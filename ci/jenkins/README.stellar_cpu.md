@@ -125,12 +125,12 @@ uses it only against loopback Jenkins and does not disable CSRF protection.
 ### Create the GitHub credential
 
 The [shared reporter](README.md#reporting-credentials) uses this existing
-username/token credential for commit statuses and PR/commit comments.
+username/token credential for statuses and report comments on the tested commit.
 
 Create a classic GitHub PAT with only the `public_repo` scope and a short
-expiration. That scope covers commit statuses and pull-request or commit
-comments on the public repository; a fine-grained token needs **Commit
-statuses: write**, **Pull requests: write**, and **Contents: write** (commit
+expiration. That scope covers commit statuses and commit comments on the public
+repository; a fine-grained token needs **Commit
+statuses: write** and **Contents: write** (to create and update commit
 comments) on `gkeyllorg/gkeyll` instead. Its owner must have push access to
 `gkeyllorg/gkeyll`, which GitHub requires to publish commit statuses. In Jenkins, add it as a **Username with
 password** credential, using the owner's GitHub username and the PAT. Give it

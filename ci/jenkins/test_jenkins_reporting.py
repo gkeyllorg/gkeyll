@@ -47,24 +47,33 @@ class ReportingTests(unittest.TestCase):
     def api(self, method, url, token, payload=None):
         self.assertEqual(token, 'existing-token')
         self.calls.append((method, url, payload))
+        base = '{}/repos/{}'.format(report.API, self.args.repo)
+        comments_url = base + '/commits/{}/comments'.format(self.args.commit)
         if url.endswith('/user'):
             return {'id': 1}, ''
         if method == 'GET' and '/status?' in url:
-            return {'statuses': self.statuses[:1]}, ''
+            self.assertEqual(url.split('?')[0], base + '/commits/{}/status'.format(self.args.commit))
+            return {'statuses': [s for s in self.statuses
+                                 if s.get('sha', self.args.commit) == self.args.commit][:1]}, ''
         if method == 'POST' and '/statuses/' in url:
-            status = dict(payload, id=len(self.statuses) + 100)
+            self.assertEqual(url, base + '/statuses/' + self.args.commit)
+            status = dict(payload, id=len(self.statuses) + 100, sha=self.args.commit)
             self.statuses.insert(0, status)
             return status, ''
         if method == 'GET':
-            self.assertIn('/comments?', url)
-            return list(self.comments), ''
+            self.assertEqual(url.split('?')[0], comments_url)
+            return [c for c in self.comments if c.get('commit_id', self.args.commit) == self.args.commit], ''
         if method == 'POST':
+            self.assertEqual(url, comments_url)
             comment = dict(payload, id=len(self.comments) + 1, user={'id': 1},
-                           html_url='https://github.com/report/{}'.format(len(self.comments) + 1))
+                           commit_id=self.args.commit,
+                           html_url='https://github.com/{}/commit/{}#commitcomment-{}'.format(
+                               self.args.repo, self.args.commit, len(self.comments) + 1))
             self.comments.append(comment)
         else:
             self.assertEqual(method, 'PATCH')
             comment = next(c for c in self.comments if c['id'] == int(url.rsplit('/', 1)[-1]))
+            self.assertEqual(url, base + '/comments/{}'.format(comment['id']))
             comment.update(payload)
         return dict(comment), ''
 
@@ -94,6 +103,37 @@ class ReportingTests(unittest.TestCase):
         self.update()
         self.assertTrue(any('/commits/' + self.args.commit + '/comments' in c[1] for c in self.calls))
         self.assertFalse(any('/issues/' in c[1] for c in self.calls))
+
+    def test_pr_runs_publish_on_the_recorded_commit(self):
+        self.args.ref = 'feature-branch'
+        self.update()
+        self.assertTrue(any(c[:2] == ('POST', '{}/repos/{}/commits/{}/comments'.format(
+            report.API, self.args.repo, self.args.commit)) for c in self.calls))
+        self.assertFalse(any('/issues/' in c[1] or self.args.ref in c[1] for c in self.calls))
+        self.assertEqual(self.comments[0]['commit_id'], self.args.commit)
+
+    def test_older_pr_commit_keeps_its_report_after_a_newer_commit_finishes(self):
+        original_commit = self.args.commit
+        self.args.commit = 'b' * 40
+        self.args.queue_id = '43'
+        self.pages(['Newer commit summary', 'Warnings', 'More warnings'])
+        self.update()
+        newer_comments = [dict(c) for c in self.comments]
+        newer_status = dict(self.statuses[0])
+
+        self.args.commit = original_commit
+        self.args.queue_id = '42'
+        self.pages(['Original commit summary'])
+        delivery = self.update()
+        self.assertTrue(delivery['comment'])
+        self.assertTrue(delivery['status'])
+        self.assertEqual(len(self.comments), 4)
+        self.assertEqual(self.comments[:3], newer_comments)
+        self.assertEqual(self.comments[-1]['commit_id'], original_commit)
+        self.assertEqual(report.comment_metadata(self.comments[-1]['body'])['commit'], original_commit)
+        self.assertEqual(len(self.statuses), 2)
+        self.assertEqual(self.statuses[1], newer_status)
+        self.assertEqual(self.statuses[0]['target_url'], self.comments[-1]['html_url'])
 
     def test_progress_posts_status_without_comment_notifications(self):
         self.args.result = 'pending'
@@ -235,6 +275,25 @@ class ReportingTests(unittest.TestCase):
                 self.update()
             self.assertTrue(json.loads(Path('ci-report-delivery.json').read_text())['errors'])
         self.assertEqual(self.calls, [])
+
+    def test_standalone_publication_requires_sha_even_with_pr_or_ref(self):
+        for pr in ('', '1157'):
+            for commit in ('', 'main', 'a' * 7):
+                with self.subTest(pr=pr, commit=commit):
+                    self.args.pr = pr
+                    self.args.ref = 'main'
+                    self.args.commit = commit
+                    with self.assertRaisesRegex(ValueError, '--commit must be a full 40-character SHA'):
+                        report.publish_report(self.args)
+        self.assertEqual(self.calls, [])
+
+    def test_standalone_cli_publishes_pr_report_on_the_commit(self):
+        with contextlib.redirect_stdout(io.StringIO()):
+            report.main(['publish', '--context', self.args.context, '--commit', self.args.commit,
+                         '--pr', self.args.pr, '--ref', 'feature-branch'])
+        self.assertEqual(len(self.comments), 1)
+        self.assertEqual(self.comments[0]['commit_id'], self.args.commit)
+        self.assertFalse(any('/issues/' in c[1] for c in self.calls))
 
     def test_oversized_and_mismatched_pages_fail_before_network_access(self):
         for page in ['bad marker', report.MARKER_FORMAT.format(self.args.context) + '\n' + '漢' * 30000]:
