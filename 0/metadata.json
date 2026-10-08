@@ -1,0 +1,74 @@
+{
+  "cli_version": "0.11.3",
+  "checkpoint_id": "01M4E0EEEBRZ0P7RQQZJDYZFX6",
+  "session_id": "01a11c05-83cf-7212-9fc6-f574a02e0fef",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-08T14:59:58.986456706Z",
+  "branch": "jenkins-github-more-reporting",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "ci/jenkins/jenkinsfile.personal"
+  ],
+  "agent": "Codex",
+  "model": "gpt-6-astra",
+  "turn_id": "0523435f6967",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 33886,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 276736,
+    "output_tokens": 2125,
+    "api_call_count": 10
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-10-08T14:59:58.958811055Z",
+    "agent_lines": 0,
+    "agent_removed": 17,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 14,
+    "total_committed": 0,
+    "total_lines_changed": 41,
+    "agent_percentage": 41.46341463414634,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 808,
+      "user_lines_removed": 15,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "ci/jenkins/README.md": 9,
+        "ci/jenkins/README.perlmutter_gpu.md": 1,
+        "ci/jenkins/README.personal.md": 1,
+        "ci/jenkins/README.stellar_cpu.md": 2,
+        "ci/jenkins/jenkinsfile.perlmutter_gpu": 25,
+        "ci/jenkins/jenkinsfile.personal": 52,
+        "ci/jenkins/jenkinsfile.stellar_cpu": 25,
+        "ci/jenkins/slurm-parallel-regression-tests.perlmutter_gpu.sh": 4,
+        "ci/jenkins/slurm-parallel-regression-tests.stellar_cpu.sh": 4,
+        "ci/jenkins/slurm-regression-tests.perlmutter_gpu.sh": 4,
+        "ci/jenkins/slurm-regression-tests.stellar_cpu.sh": 4,
+        "ci/jenkins/test_check_regression_results.sh": 1,
+        "ci/jenkins/test_github_report.py": 81,
+        "ci/jenkins/test_prebuilt_config.groovy": 93,
+        "ci/jenkins/test_queue_status.groovy": 363,
+        "ci/jenkins/test_regression_scheduling.py": 124,
+        "pr-branches.md": 15
+      },
+      "user_removed_per_file": {
+        "ci/jenkins/README.perlmutter_gpu.md": 1,
+        "ci/jenkins/README.personal.md": 1,
+        "ci/jenkins/README.stellar_cpu.md": 2,
+        "ci/jenkins/jenkinsfile.personal": 6,
+        "ci/jenkins/slurm-parallel-regression-tests.perlmutter_gpu.sh": 1,
+        "ci/jenkins/slurm-parallel-regression-tests.stellar_cpu.sh": 1,
+        "ci/jenkins/slurm-regression-tests.perlmutter_gpu.sh": 1,
+        "ci/jenkins/slurm-regression-tests.stellar_cpu.sh": 1,
+        "ci/jenkins/test_check_regression_results.sh": 1
+      }
+    }
+  ]
+}
