@@ -123,6 +123,9 @@ chmod 600 "$GKEYLL_CI_ROOT/jenkins_home/jenkins-cli.auth"
 
 ### Create the GitHub credential
 
+The [shared reporter](README.md#reporting-credentials) uses this existing
+username/token credential for commit statuses and PR/commit comments.
+
 Create a classic GitHub PAT with only the `public_repo` scope and a short
 expiration. That scope covers commit statuses and pull-request or commit
 comments on the public repository; a fine-grained token needs **Commit
@@ -155,7 +158,7 @@ System → Global properties → Environment variables**, set:
 | `PERLMUTTER_GPU_REGRESSION_TIME` | Optional; default `04:00:00` |
 | `PERLMUTTER_GPU_REGRESSION_JOBS` | Optional concurrent serial C test runs; default `4` |
 | `PERLMUTTER_GPU_REGRESSION_TEST_TIMEOUT` | Optional; default `900` |
-| `GKEYLL_CI_TRUSTED_REF` | Optional reviewed branch or full SHA for `github_report.py` and `check_regression_results.lua`; default `main`. Set it only while staging a CI change |
+| `GKEYLL_CI_TRUSTED_REF` | Optional reviewed branch or full SHA for `github_report.py`, `jenkins_reporting.groovy`, and `check_regression_results.lua`; default `main`. Set it only while staging a CI change |
 
 `GKEYLL_CI_ROOT` retains SHA-addressed baseline and candidate build/result directories
 visible to GPU nodes. Remove `baseline-cache/perlmutter-gpu` manually after an

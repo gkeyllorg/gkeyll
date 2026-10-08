@@ -1,0 +1,273 @@
+"""Offline publication, retry, identity and report-format tests."""
+import argparse
+import contextlib
+import io
+import json
+import os
+from pathlib import Path
+import tempfile
+import unittest
+from unittest.mock import patch
+
+import github_report as report
+
+
+class ReportingTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.previous = os.getcwd()
+        os.chdir(self.tmp.name)
+        self.args = argparse.Namespace(
+            platform='personal', context='ci/personal', commit='a' * 40, pr='1157', ref='',
+            result='success', description='Passed: unit tests and C regressions.', stage='tests',
+            repo='gkeyllorg/gkeyll', report='ci-report.md', queue_id='42')
+        self.comments, self.statuses, self.calls = [], [], []
+        self.pages(['Report summary'])
+        self.environment = patch.dict(os.environ, GITHUB_TOKEN='existing-token')
+        self.environment.start()
+        self.http = patch.object(report, 'api', side_effect=self.api)
+        self.http.start()
+        self.sleep_patch = patch.object(report.time, 'sleep')
+        self.sleep = self.sleep_patch.start()
+
+    def tearDown(self):
+        self.sleep_patch.stop()
+        self.http.stop()
+        self.environment.stop()
+        os.chdir(self.previous)
+        self.tmp.cleanup()
+
+    def pages(self, sections):
+        pages = [report.MARKER_FORMAT.format(self.args.context if i == 0 else
+                 self.args.context + '/part-{}'.format(i + 1)) + '\n\n' + text
+                 for i, text in enumerate(sections)]
+        Path('ci-report.md.json').write_text(json.dumps(pages))
+        Path('ci-report.md').write_text('\n\n'.join(pages))
+
+    def api(self, method, url, token, payload=None):
+        self.assertEqual(token, 'existing-token')
+        self.calls.append((method, url, payload))
+        if url.endswith('/user'):
+            return {'id': 1}, ''
+        if method == 'GET' and '/status?' in url:
+            return {'statuses': self.statuses[:1]}, ''
+        if method == 'POST' and '/statuses/' in url:
+            status = dict(payload, id=len(self.statuses) + 100)
+            self.statuses.insert(0, status)
+            return status, ''
+        if method == 'GET':
+            self.assertIn('/comments?', url)
+            return list(self.comments), ''
+        if method == 'POST':
+            comment = dict(payload, id=len(self.comments) + 1, user={'id': 1},
+                           html_url='https://github.com/report/{}'.format(len(self.comments) + 1))
+            self.comments.append(comment)
+        else:
+            self.assertEqual(method, 'PATCH')
+            comment = next(c for c in self.comments if c['id'] == int(url.rsplit('/', 1)[-1]))
+            comment.update(payload)
+        return dict(comment), ''
+
+    def update(self):
+        with contextlib.redirect_stdout(io.StringIO()):
+            report.update_report(self.args)
+        return json.loads(Path('ci-report-delivery.json').read_text())
+
+    def test_uses_existing_token_for_comments_and_linked_commit_status(self):
+        delivery = self.update()
+        self.assertTrue(delivery['comment'])
+        self.assertTrue(delivery['status'])
+        self.assertEqual(self.statuses[0]['target_url'], self.comments[0]['html_url'])
+        self.assertEqual(self.statuses[0]['state'], 'success')
+        self.assertIn('Jenkins queue #42', self.statuses[0]['description'])
+        self.assertTrue(any('/statuses/' + self.args.commit in c[1] for c in self.calls))
+
+    def test_retries_update_existing_comment_and_do_not_repeat_status(self):
+        self.update()
+        self.update()
+        self.assertEqual(len(self.comments), 1)
+        self.assertEqual(len(self.statuses), 1)
+
+    def test_commit_runs_publish_commit_comments(self):
+        self.args.pr = ''
+        self.update()
+        self.assertTrue(any('/commits/' + self.args.commit + '/comments' in c[1] for c in self.calls))
+        self.assertFalse(any('/issues/' in c[1] for c in self.calls))
+
+    def test_progress_posts_status_without_comment_notifications(self):
+        self.args.result = 'pending'
+        self.args.description = 'Running: Build candidate.'
+        self.update()
+        self.assertEqual(self.comments, [])
+        self.assertIn('Gkeyll CI running: Build candidate.', self.statuses[0]['description'])
+        self.assertIn(self.args.commit, self.statuses[0]['target_url'])
+
+    def test_late_progress_does_not_reopen_terminal_status(self):
+        self.update()
+        self.args.result = 'pending'
+        delivery = self.update()
+        self.assertTrue(delivery['status_skipped'])
+        self.assertEqual(self.statuses[0]['state'], 'success')
+        self.assertEqual(len(self.statuses), 1)
+
+    def test_older_run_cannot_replace_newer_report_or_status(self):
+        self.args.queue_id = '43'
+        self.update()
+        self.args.queue_id = '42'
+        delivery = self.update()
+        self.assertTrue(delivery['comment_skipped'])
+        self.assertTrue(delivery['status_skipped'])
+        self.assertEqual(len(self.statuses), 1)
+        self.assertEqual(report.comment_metadata(self.comments[0]['body'])['queue_id'], '43')
+
+    def test_build_numbers_protect_reports_without_queue_listener(self):
+        self.assertTrue(report.superseded({'job': 'ci/PR-1', 'build_number': '10'},
+                                         {'job': 'ci/PR-1', 'build_number': '9'}))
+        self.assertFalse(report.superseded({'job': 'ci/PR-2', 'build_number': '10'},
+                                          {'job': 'ci/PR-1', 'build_number': '9'}))
+
+    def test_overflow_pages_are_linked_and_old_pages_are_cleared(self):
+        self.pages(['Summary', 'Warnings', 'More warnings'])
+        self.update()
+        self.assertIn('part-3', self.comments[0]['body'])
+        self.assertIn('Next diagnostics page', self.comments[1]['body'])
+        main = next(c for c in self.comments if 'Summary' in c['body'])
+        self.assertIn('[Part 2](', main['body'])
+        self.assertIn('[Part 3](', main['body'])
+        self.assertEqual(self.statuses[0]['target_url'], main['html_url'])
+        self.pages(['Short clean report'])
+        self.update()
+        self.assertEqual(len(self.comments), 3)
+        self.assertTrue(all('no longer needed' in c['body'] for c in self.comments[:2]))
+
+    def test_other_users_and_other_contexts_are_never_edited(self):
+        self.comments.append(dict(id=1, user={'id': 2}, body=Path('ci-report.md').read_text()))
+        self.comments.append(dict(id=2, user={'id': 1}, body='<!-- gkeyll-ci-report context="ci/another" -->\nOther report'))
+        originals = [dict(c) for c in self.comments]
+        self.update()
+        self.assertEqual(self.comments[:2], originals)
+        self.assertEqual(len(self.comments), 3)
+
+    def test_large_reports_keep_navigation_within_the_comment_limit(self):
+        self.pages(['Summary\n' + 'x' * 59500] + ['Diagnostics'] * 200)
+        self.update()
+        self.assertIn('[Continue diagnostics]', self.comments[-1]['body'])
+        self.assertTrue(all(len(c['body'].encode('utf-8')) <= 65000 for c in self.comments))
+        self.assertTrue(all('Next diagnostics page' in c['body'] for c in self.comments[1:-1]))
+
+    def test_cancellation_timeout_and_errors_use_error_status(self):
+        for result in ('cancelled', 'timed_out', 'error'):
+            self.args.result = result
+            self.args.description = ''
+            self.update()
+            self.assertEqual(self.statuses[0]['state'], 'error')
+        self.assertIn('Errored at stage', self.statuses[0]['description'])
+
+    def test_comment_outage_still_publishes_test_result_and_records_error(self):
+        with patch.object(report, 'publish_report', side_effect=report.GitHubError('POST', 403)):
+            with self.assertRaisesRegex(RuntimeError, 'Comment: GitHub POST failed: HTTP 403'):
+                self.update()
+        self.assertEqual(self.statuses[0]['state'], 'success')
+        self.assertIn('report unavailable', self.statuses[0]['description'])
+        self.assertTrue(json.loads(Path('ci-report-delivery.json').read_text())['status'])
+        self.sleep.assert_not_called()
+
+    def test_status_outage_still_publishes_comment_and_records_error(self):
+        with patch.object(report, 'publish_status', side_effect=OSError('network unavailable')):
+            with self.assertRaisesRegex(RuntimeError, 'Commit status'):
+                self.update()
+        self.assertEqual(len(self.comments), 1)
+        self.assertTrue(json.loads(Path('ci-report-delivery.json').read_text())['comment'])
+        self.assertEqual(self.sleep.call_count, 2)
+
+    def test_lost_comment_response_is_retried_without_duplicate_comment(self):
+        failed = False
+        def flaky(method, url, token, payload=None):
+            nonlocal failed
+            result = self.api(method, url, token, payload)
+            if method == 'POST' and '/comments' in url and not failed:
+                failed = True
+                raise OSError('lost response after POST')
+            return result
+        with patch.object(report, 'api', side_effect=flaky):
+            self.update()
+        self.assertEqual(len(self.comments), 1)
+        self.sleep.assert_called_once_with(1)
+
+    def test_missing_token_and_invalid_sha_are_recorded_without_api_calls(self):
+        for commit, token in [('a' * 40, ''), ('main', 'existing-token')]:
+            self.args.commit = commit
+            with patch.dict(os.environ, GITHUB_TOKEN=token), self.assertRaises(RuntimeError):
+                self.update()
+            self.assertTrue(json.loads(Path('ci-report-delivery.json').read_text())['errors'])
+        self.assertEqual(self.calls, [])
+
+    def test_oversized_and_mismatched_pages_fail_before_network_access(self):
+        for page in ['bad marker', report.MARKER_FORMAT.format(self.args.context) + '\n' + '漢' * 30000]:
+            Path('ci-report.md.json').write_text(json.dumps([page]))
+            with self.assertRaises(ValueError):
+                report.publish_report(self.args)
+        self.assertEqual(self.calls, [])
+
+    def test_pagination_discovers_existing_report(self):
+        self.update()
+        saved = dict(self.comments[0])
+        def paginated(method, url, token, payload=None):
+            if method == 'GET' and '/comments?' in url and 'page=2' not in url:
+                return [], '<' + url + '&page=2>; rel="next"'
+            return self.api(method, url, token, payload)
+        with patch.object(report, 'api', side_effect=paginated):
+            self.update()
+        self.assertEqual(len(self.comments), 1)
+        self.assertEqual(self.comments[0], saved)
+
+    def test_failed_checkout_still_records_the_accepted_candidate(self):
+        args = argparse.Namespace(platform='personal', context='ci/test', result='failure', pr='1157', output='ci-report.md')
+        with patch.dict(os.environ, CI_REPORT_COMMIT='a' * 40), contextlib.redirect_stdout(io.StringIO()):
+            report.build_report(args)
+        self.assertIn('PR #1157 @ `aaaaaaa`', Path('ci-report.md').read_text())
+
+    def test_pending_report_does_not_claim_failure(self):
+        args = argparse.Namespace(platform='personal', context='ci/test', result='pending', pr='1157', output='ci-report.md')
+        with patch.dict(os.environ, CI_FAILURE_STAGE='Build candidate'), contextlib.redirect_stdout(io.StringIO()):
+            report.build_report(args)
+        text = Path(args.output).read_text()
+        self.assertIn('Current stage:** Build candidate', text)
+        self.assertNotIn('Failed at stage', text)
+        self.assertNotIn('finished ', text)
+
+    def test_utf8_reports_fit_github_limits_without_broken_sections(self):
+        sections = report.detail_sections('Warnings', 'warning: λ漢字\n' * 14000)
+        pages = report.report_pages('Summary', sections, 'ci/test')
+        self.assertGreater(len(pages), 2)
+        for page in pages:
+            self.assertLessEqual(len(page.encode('utf-8')), report.COMMENT_LIMIT)
+            self.assertEqual(page.count('<details>'), page.count('</details>'))
+            self.assertEqual(page.count('```') % 2, 0)
+
+    def test_warning_comparison_requires_the_same_completed_step(self):
+        Path('candidate-unit-build.log').write_text('core/zero/a.c:50: warning: example\n')
+        Path('baseline-unit-build.log').write_text('completed with no warnings\n')
+        Path('baseline-unit-build-seconds.txt').write_text('5\n')
+        # An identical warning in a different baseline command is not evidence
+        # that it already existed in the corresponding candidate command.
+        Path('baseline-install.log').write_text('core/zero/a.c:10: warning: example\n')
+        Path('baseline-install-seconds.txt').write_text('1\n')
+        report.diagnostic_sections('diagnostics.json')
+        self.assertEqual(json.loads(Path('diagnostics.json').read_text())['new_warnings'], 1)
+        Path('baseline-unit-build.log').write_text('core/zero/a.c:10: warning: example\n')
+        report.diagnostic_sections('diagnostics.json')
+        self.assertEqual(json.loads(Path('diagnostics.json').read_text())['new_warnings'], 0)
+
+    def test_failed_baseline_does_not_claim_clean_warning_comparison(self):
+        Path('candidate-unit-build.log').write_text('core/zero/a.c:50: warning: example\n')
+        Path('baseline-unit-build.log').write_text('failed before compiling\n')
+        Path('baseline-unit-build.log.exit').write_text('2\n')
+        report.diagnostic_sections('diagnostics.json')
+        values = json.loads(Path('diagnostics.json').read_text())
+        self.assertIsNone(values['new_warnings'])
+        self.assertEqual(values['unclassified_warnings'], 1)
+
+
+if __name__ == '__main__':
+    unittest.main()

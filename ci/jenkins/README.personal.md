@@ -36,6 +36,9 @@ chmod 600 "$HOME/.config/gkeyll/jenkins/personal.auth"
 
 ### Create the GitHub credential
 
+The [shared reporter](README.md#reporting-credentials) uses this existing
+username/token credential for commit statuses and PR/commit comments.
+
 Create a classic GitHub PAT with only the `public_repo` scope and a short
 expiration. That scope covers commit statuses and pull-request or commit
 comments on the public repository; a fine-grained token needs **Commit
@@ -68,7 +71,7 @@ and Python with NumPy. Set these global environment variables:
 | `PERSONAL_MPIEXEC` | Optional launcher override for both trees; default is `bin/mpiexec` under the selected MPI installation |
 | `PERSONAL_STATUS_CONTEXT` | Set explicitly for queue reporting, e.g. `continuous-integration/jenkins/personal-<hostname>`; use a distinct context for each computer |
 | `GKEYLL_CI_ROOT` | Required persistent writable root for baseline and candidate source, build, and regression data |
-| `GKEYLL_CI_TRUSTED_REF` | Optional reviewed branch or full SHA for `github_report.py` and `check_regression_results.lua`; default `main`. Set it only while staging a CI change |
+| `GKEYLL_CI_TRUSTED_REF` | Optional reviewed branch or full SHA for `github_report.py`, `jenkins_reporting.groovy`, and `check_regression_results.lua`; default `main`. Set it only while staging a CI change |
 
 The selected dependency script must pass `--build-adas=yes` to
 `install-deps/mkdeps.sh` so ADAS data is available before unit tests run.

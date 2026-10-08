@@ -88,6 +88,9 @@ chmod 600 "$HOME/.config/gkeyll/jenkins/team-workstation.auth"
 
 ### Create the GitHub credential
 
+The [shared reporter](README.md#reporting-credentials) uses this existing
+username/token credential for commit statuses and PR/commit comments.
+
 Create a short-lived classic GitHub PAT with only the `public_repo` scope (or a
 fine-grained token with commit-status, pull-request, and contents write access
 to `gkeyllorg/gkeyll`) and add it as a Jenkins **Username with password**

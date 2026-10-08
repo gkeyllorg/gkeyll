@@ -12,15 +12,13 @@ credentials, and command-line client.
 - [Team workstation CI](README.team_workstation.md): periodically discover
   pull requests into `main` from every author, with optional selected runs.
 
-The Jenkinsfiles and clients in this directory publish machine-specific GitHub
-commit statuses and a per-machine CI report comment (see below). Gkeyll is
-public, so Pipeline source and candidate checkouts are anonymous. Each
-controller stores its own classic GitHub PAT with only the `public_repo` scope
-for authenticated GitHub API requests, status publication, and report
-comments; an outside collaborator with push access can use this model without
-Gkeyll organization membership. See the platform guide for the
-credential owner. Do not place credentials in the repository or in candidate
-branches.
+The Jenkinsfiles publish machine-specific GitHub commit statuses for queue,
+stage, progress, and final results. Completed reports are readable PR or commit
+comments, updated in place, and linked from the status's **Details** button.
+Reporting uses the existing username/token credential. Public source discovery
+and checkouts remain anonymous. See [Reporting credentials](#reporting-credentials)
+and the platform guide for setup. Do not place credentials in the repository
+or in candidate branches.
 
 ## Reusing installed dependencies
 
@@ -87,11 +85,29 @@ java -cp /path/to/groovy-all.jar groovy.ui.GroovyMain ci/jenkins/test_prebuilt_c
 
 ## Results in GitHub
 
+### Reporting credentials
+
+Use the platform's existing `*_GITHUB_CREDENTIAL_ID` Jenkins **Username with
+password** credential, with the GitHub username and token as its password.
+An existing classic PAT with `public_repo` scope covers status and comment
+publication on this public repository. A fine-grained token needs **Commit
+statuses: write**, **Pull requests: write** (PR comments), and **Contents: write**
+(commit comments) on `gkeyllorg/gkeyll`; its owner needs push access for statuses.
+There is no additional credential or reporting plugin to configure. See GitHub's
+[commit status API](https://docs.github.com/en/rest/commits/statuses),
+[PR comment API](https://docs.github.com/en/rest/issues/comments), and
+[commit comment API](https://docs.github.com/en/rest/commits/comments).
+
+Each controller must use its own stable status context. Keep existing contexts
+so branch protection continues to use the same names. Retries update the same
+report comment for that context. Delivery diagnostics are archived in
+`ci-report-delivery.json`; reporting outages do not change test results.
+
 ### Queued builds and superseded PR commits
 
 Install [queue-status.groovy](queue-status.groovy) on **each Jenkins controller**
-to publish a yellow `pending` status as soon as a job is accepted into its
-queue. This covers CLI and browser submissions on personal, Stellar CPU, and
+to publish a yellow `pending` commit status as soon as a job is accepted into
+its queue. This covers CLI and browser submissions on personal, Stellar CPU, and
 Perlmutter GPU controllers, plus automatic and manual team-workstation builds.
 The listener runs without a build executor, including when
 `disableConcurrentBuilds()` blocks another run of the same job. It also covers
@@ -112,8 +128,11 @@ The estimate comes from Jenkins' historical build duration, not completed test
 counts; elapsed time uses Jenkins' build start time (including the Pipeline's
 initial agent wait). Runs with no estimate show `ETA unavailable`; runs exceeding
 the estimate say so instead of claiming completion. Unchanged descriptions are
-not reposted, and final results replace progress. Install the updated controller
-hook and trusted Jenkinsfiles together to enable progress for all four platforms.
+not reposted, and final results replace progress. Stage names are shortened
+before timing information so the ETA remains readable. Queue position does not
+predict a start time: blocked agents and Slurm scheduling make that uncertain.
+Install the updated controller hook and trusted Jenkinsfiles together to enable
+progress for all four platforms.
 
 The listener resolves and records the candidate SHA before releasing the job
 to run. The Pipeline checks out that exact SHA and updates the same status to
@@ -195,10 +214,14 @@ manual cancellation and a normal running/completed build.
 
 ### Completed build reports
 
-Every completed or failed run attempts to post a Markdown report to GitHub.
-PR runs update a pull-request comment; selected branch/commit runs update a
-comment on the candidate commit. Reports include the failed stage and command
-output, unit and regression results, timings, and collapsible sections for:
+Every completed or failed run attempts to publish a Markdown comment on the PR,
+or on the exact candidate commit for branch/SHA selections. Stage and command
+transitions update the commit status immediately; the controller refreshes
+queue positions and elapsed-time/ETA indicators every minute. Progress does not
+create PR comment notifications. Cancellation and timeout descriptions are
+explicit; both use GitHub's `error` status. Reports identify the candidate,
+baseline, machine, build and queue IDs, and status context, with unit/regression
+results, timings, and collapsible sections for:
 
 - **New warnings vs main** (or the explicitly selected baseline).
 - **All warnings** and **all errors**, with source log names, line numbers, and
@@ -218,24 +241,36 @@ or unmatched logs remain visible in **All warnings**. A selected baseline other
 than `main` is labeled explicitly. HPC runs also compile baseline unit tests so
 candidate unit-build warnings have a corresponding baseline.
 
-Large diagnostic sections continue in additional comments rather than being
-truncated. Hidden markers keyed on the machine's status context allow later runs
-to update those comments and clear obsolete continuation pages. The archived
-`ci-report.md` contains the entire report; `ci-report.md.json` contains the exact
-comment pages. Raw logs remain available through the artifact command below.
+Large diagnostic sections continue in linked report comments, published before
+the main report is updated. Pages leave room within GitHub's size limit and keep
+Markdown fences and collapsed sections balanced. The reporter only edits
+comments written by the authenticated account with the exact context marker;
+it clears obsolete continuation pages when a later report is shorter. Accepted
+queue IDs (or build numbers within a job) prevent an older run from replacing
+a newer report already on the PR. The archived `ci-report.md` contains the
+entire report; `ci-report.md.json` contains the report pages. Raw logs remain
+available through the artifact command below. `ci-stage-history.txt` records
+stage changes in UTC, including stages before candidate checkout.
 
-Reporting runs during failure cleanup, including checkout failures when a PR or
-candidate ref is known. Timing-summary errors do not skip publication. Publishing
-retries three times; GitHub/network outages, missing credentials, or an unavailable
-Jenkins agent can still prevent delivery. Publication failure leaves the original
-build result unchanged and adds "(report not posted)" to the status description
-when status publication is possible.
+Reporting runs during failure cleanup. If no exact candidate SHA was resolved,
+the generated report stays in Jenkins artifacts. Timing-summary errors do not
+skip publication. Network/timeouts and transient server errors receive up to
+three attempts; each comment retry discovers existing pages first to recover
+from a lost POST response. Status publication is attempted even if comments
+fail, and vice versa. The delivery artifact records which operation failed.
+The controller closes pending statuses for early failures and preserves detailed
+terminal results against late progress updates. A persistent GitHub outage or
+an unavailable agent can still prevent delivery; consult the build log and
+archived report in that case.
 
-The Pipeline runs `github_report.py` only from reviewed code (the trusted
-team-workstation checkout, otherwise `main`, or `GKEYLL_CI_TRUSTED_REF` when
-staging a CI change), never from the candidate checkout. Diagnostic collection
-runs before binding the GitHub token. Credential-bearing shell steps are not
-captured in published logs.
+Report generation and GitHub publication live in `github_report.py`. Shared
+Pipeline stage/command reporting lives in `jenkins_reporting.groovy`; the
+controller only needs `queue-status.groovy`. The older standalone `build` and
+`publish` commands remain supported. Pipelines load both shared report files
+before candidate checkout from reviewed code (`main`, the pinned trusted team
+checkout, or `GKEYLL_CI_TRUSTED_REF` while staging changes). Deploy those files
+with the updated Jenkinsfiles. Diagnostic collection runs before binding the
+GitHub token; credential-bearing shell steps are not captured in published logs.
 
 The regression-result checker also comes from the reviewed trusted CI commit,
 recorded in `ci-trusted-checker-commit.txt`. CI runs it with the baseline
@@ -246,6 +281,7 @@ Run offline reporter tests with:
 
 ```sh
 python3 -m unittest discover -s ci/jenkins -p 'test_*.py'
+java -cp /path/to/groovy-all.jar groovy.ui.GroovyMain ci/jenkins/test_jenkins_reporting.groovy
 ```
 
 The queue listener's integration test runs on a disposable Jenkins controller
@@ -253,7 +289,8 @@ with mocked GitHub responses. It checks all four configurations, supersession
 before Pipeline start and during agent wait, manual cancellation, active-build
 preservation, queue persistence data, and reporting failures. Install Credentials,
 Folders, Pipeline: Job, Pipeline: Groovy, Pipeline: Basic Steps, and Pipeline:
-Nodes and Processes (including dependencies) in that test controller. With a
+Nodes and Processes, and Credentials Binding (including dependencies) in that
+test controller. With a
 Jenkins WAR and those plugin archives available locally:
 
 ```sh

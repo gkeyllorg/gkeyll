@@ -1,3 +1,31 @@
+import groovy.transform.Field
+@Field def reporting
+
+def loggedSh(String label, String command) { reporting.loggedSh(label, command) }
+def timeCommand(String metric, String command) { reporting.timeCommand(metric, command) }
+
+def loadReporting(Map settings) {
+    def ref = env.CI_TRUSTED_CI_COMMIT?.trim() ?: env.GKEYLL_CI_TRUSTED_REF?.trim() ?: 'main'
+    if (!(ref ==~ /[A-Za-z0-9][A-Za-z0-9._\/-]*/) || ref.contains('..') || ref.endsWith('.lock')) {
+        error('Invalid trusted reporting ref.')
+    }
+    // This directory is outside the candidate checkout, which is deleted below.
+    dir(pwd(tmp: true) + '/trusted-reporting') {
+        deleteDir()
+        withEnv(["CI_TRUSTED_REPORT_REF=${ref}"]) {
+            sh '''#!/bin/bash
+                set -euo pipefail
+                git init --quiet
+                git fetch --quiet --depth 1 https://github.com/gkeyllorg/gkeyll.git "$CI_TRUSTED_REPORT_REF"
+                git show FETCH_HEAD:ci/jenkins/jenkins_reporting.groovy > jenkins_reporting.groovy
+                git show FETCH_HEAD:ci/jenkins/github_report.py > github_report.py
+            '''
+        }
+        reporting = load('jenkins_reporting.groovy')
+        reporting.configure(settings)
+    }
+}
+
 // Manual Level-1 CUDA CI for NERSC's Perlmutter GPU cluster.
 //
 // Configure the Jenkins job to load *this file* from a reviewed, trusted CI
@@ -189,82 +217,6 @@ print(base_ref)
     return validateBranchName('GitHub PR base branch', baseRef)
 }
 
-def publishGitHubCommitStatus(String statusCredentialsId, String commit, String state, String description) {
-    if (!(commit ==~ /[0-9a-f]{40}/)) {
-        error("Cannot publish a GitHub status for invalid commit SHA '${commit}'.")
-    }
-    if (state == 'pending' && params.CI_QUEUE_ID?.trim()) {
-        description = "Gkeyll CI running: starting (Jenkins queue #${params.CI_QUEUE_ID})."
-    }
-    if (!['pending', 'success', 'failure', 'error'].contains(state)) {
-        error("Invalid GitHub commit-status state '${state}'.")
-    }
-
-    // Bind the token only for this trusted API request, never while a shell
-    // command from the PR checkout is running.
-    withCredentials([usernamePassword(
-        credentialsId: statusCredentialsId,
-        usernameVariable: 'GITHUB_STATUS_USERNAME',
-        passwordVariable: 'GITHUB_STATUS_TOKEN'
-    )]) {
-        withEnv([
-            "GITHUB_STATUS_COMMIT=${commit}",
-            "GITHUB_STATUS_STATE=${state}",
-            "GITHUB_STATUS_DESCRIPTION=${description}"
-        ]) {
-            sh '''#!/bin/bash
-                set -euo pipefail
-
-                payload="$(printf '{"state":"%s","context":"continuous-integration/jenkins/perlmutter_gpu","description":"%s"}' "${GITHUB_STATUS_STATE}" "${GITHUB_STATUS_DESCRIPTION}")"
-                curl --fail --silent --show-error \
-                    --retry 2 --connect-timeout 15 --max-time 45 \
-                    --request POST \
-                    --header 'Accept: application/vnd.github+json' \
-                    --header 'X-GitHub-Api-Version: 2022-11-28' \
-                    --header "Authorization: Bearer ${GITHUB_STATUS_TOKEN}" \
-                    --header 'Content-Type: application/json' \
-                    --data "$payload" \
-                    --output /dev/null --write-out 'GitHub Perlmutter status: %{http_code}\\n' \
-                    "https://api.github.com/repos/gkeyllorg/gkeyll/statuses/${GITHUB_STATUS_COMMIT}"
-            '''
-        }
-    }
-}
-
-// Capture stdout and stderr without losing the command's exit status. Never
-// use this for credential-bearing commands. Logs live outside the baseline tree.
-def loggedSh(String label, String script) {
-    def quoted = "'" + script.replace("'", "'\"'\"'") + "'"
-    withEnv(["CI_COMMAND_LOG=${env.WORKSPACE}/ci-command-logs/${label}.log"]) {
-        sh """#!/bin/bash
-            set -uo pipefail
-            mkdir -p "\$WORKSPACE/ci-command-logs"
-            bash ${script.startsWith('#!/bin/bash -l') ? '-l' : ''} -e -o pipefail -c ${quoted} 2>&1 | tee "\$CI_COMMAND_LOG"
-            result=\$?
-            printf '%s\\n' "\$result" > "\$CI_COMMAND_LOG.exit"
-            exit "\$result"
-        """
-    }
-}
-
-def trustedReportScript() {
-    // The report tool must come from reviewed code, never from the candidate
-    // checkout, because 'publish' runs with the GitHub token bound.
-    // GKEYLL_CI_TRUSTED_REF exists so a reviewed CI branch can be staged
-    // before merge; production controllers leave it unset (main).
-    def ref = validateRefSelector('GKEYLL_CI_TRUSTED_REF', env.GKEYLL_CI_TRUSTED_REF?.trim() ?: 'main')
-    withEnv(["CI_TRUSTED_REPORT_REF=${ref}"]) {
-        sh '''#!/bin/bash -l
-            set -euo pipefail
-            mkdir -p .ci-report-source
-            git -C .ci-report-source init --quiet
-            git -C .ci-report-source fetch --quiet --depth 1 https://github.com/gkeyllorg/gkeyll.git "$CI_TRUSTED_REPORT_REF"
-            git -C .ci-report-source show FETCH_HEAD:ci/jenkins/github_report.py > _trusted_github_report.py
-        '''
-    }
-    return '_trusted_github_report.py'
-}
-
 def prepareTrustedRegressionChecker() {
     def ref = validateRefSelector('GKEYLL_CI_TRUSTED_REF', env.GKEYLL_CI_TRUSTED_REF?.trim() ?: 'main')
     withEnv(["CI_TRUSTED_CHECKER_REF=${ref}"]) {
@@ -276,25 +228,6 @@ def prepareTrustedRegressionChecker() {
             test -s _trusted_check_regression_results.lua
             git rev-parse FETCH_HEAD > ci-trusted-checker-commit.txt
         '''
-    }
-}
-
-def publishGitHubReport(String statusCredentialsId, String commit, String state, String candidatePr, String candidateRef) {
-    // Builds ci-report.md from the workspace summaries and posts it as one
-    // pull-request comment (or commit comment) that later runs update in place.
-    def script = trustedReportScript()
-    withEnv(["CI_REPORT_CONTEXT=continuous-integration/jenkins/perlmutter_gpu", "CI_REPORT_PLATFORM=perlmutter_gpu", "CI_REPORT_RESULT=${state}",
-             "CI_REPORT_PR=${candidatePr ?: ''}", "CI_REPORT_COMMIT=${commit}", "CI_REPORT_REF=${candidateRef ?: ''}"]) {
-        sh "python3 ${script} build --platform \"\$CI_REPORT_PLATFORM\" --context \"\$CI_REPORT_CONTEXT\" --result \"\$CI_REPORT_RESULT\" --pr \"\$CI_REPORT_PR\" --output ci-report.md"
-        withCredentials([usernamePassword(
-            credentialsId: statusCredentialsId,
-            usernameVariable: 'GITHUB_USERNAME',
-            passwordVariable: 'GITHUB_TOKEN'
-        )]) {
-            retry(3) {
-                sh "python3 ${script} publish --report ci-report.md --commit \"\$CI_REPORT_COMMIT\" --context \"\$CI_REPORT_CONTEXT\" --pr \"\$CI_REPORT_PR\" --ref \"\$CI_REPORT_REF\""
-            }
-        }
     }
 }
 
@@ -698,20 +631,16 @@ def baselineDir = ''
 def baselineStage = ''
 def baselineCacheHit = false
 
-def ciStage(String stageName, Closure body) {
-    env.CI_FAILURE_STAGE = stageName
-    stage(stageName) { body.call() }
-}
+def ciStage(String name, Closure body) { reporting.ciStage(name, body) }
 
-def writeCiFailureSummary(String result, String stageName, String message) {
-    def compactMessage = (message ?: 'unknown failure').replaceAll('[\\r\\n]+', ' ').trim().take(500)
-    writeFile file: 'ci-failure-summary.txt', text: "result=${result}\nstage=${stageName ?: 'unknown'}\nmessage=${compactMessage}\n"
-}
+def writeCiFailureSummary(String result, String name, String message) { reporting.writeCiFailureSummary(result, name, message) }
 
 node(nodeLabel) {
     // Perlmutter compute nodes must see this path. Configure the root on a shared
     // filesystem such as the project's /scratch/gpfs location, never /tmp.
     ws("${workspaceRoot}/${env.JOB_NAME}/${env.BUILD_TAG}") {
+        loadReporting([credential: statusCredentialsId, context: params.CI_QUEUE_CONTEXT?.trim() ?: 'continuous-integration/jenkins/perlmutter_gpu',
+            platform: 'perlmutter_gpu', pr: candidatePr ?: '', ref: candidateRef ?: '', commit: candidateCommit])
         try {
             ciStage('Resolve candidate and baseline') {
                 currentBuild.displayName = "#${env.BUILD_NUMBER} ${candidatePr ? "PR-${candidatePr}" : shortRef(candidateRef)}"
@@ -736,6 +665,7 @@ node(nodeLabel) {
                     checkoutRef(candidateRef, 'candidate')
                 }
                 candidateCommit = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
+                reporting.settings.commit = candidateCommit
                 writeFile file: 'ci-candidate-commit.txt', text: "${candidateCommit}\n"
                 currentBuild.description += " @ ${candidateCommit.take(7)}"
                 sh 'git status --short'
@@ -759,14 +689,8 @@ node(nodeLabel) {
                 if (!baselineCacheHit) baselineStage = sh(returnStdout: true, script: "ci/jenkins/baseline_cache.sh prepare-baseline '${gkeyllCiRoot}' 'perlmutter-gpu' '${baselineCommit}'").trim()
                 writeFile file: 'ci-baseline-cache.txt', text: "status=${baselineCacheHit ? 'hit' : 'miss'}\nplatform=perlmutter-gpu\nbaseline_commit=${baselineCommit}\npath=${baselineCacheHit ? baselineDir : baselineStage}\n"
             }
-            ciStage('Report pending to GitHub') {
-                publishGitHubCommitStatus(
-                    statusCredentialsId,
-                    candidateCommit,
-                    'pending',
-                    'Perlmutter GPU candidate CI is running.'
-                )
-            }
+            reporting.progress('Gkeyll CI is running.')
+
             ciStage('Build dependencies') {
                 if (!env.GKEYLL_CI_PREBUILT_CONFIG?.trim()) withEnv(["PREFIX=${candidateDir}/gkylsoft"]) {
                     dir("${candidateDir}/gkeyll") {
@@ -923,16 +847,14 @@ EOF"""
             terminalDescription = 'Perlmutter GPU unit and C regression tests passed.'
         } catch (err) {
             failureMessage = err.toString()
-            if (currentBuild.currentResult == 'ABORTED' || err.toString().contains('FlowInterruptedException')) {
-                terminalStatus = 'error'
-                terminalDescription = 'Perlmutter GPU CI was aborted.'
-            }
+            terminalStatus = reporting.failureResult(err, currentBuild.currentResult)
+            if (terminalStatus in ['cancelled', 'timed_out']) terminalDescription = "CI ${terminalStatus}."
             throw err
         } finally {
             try {
                 finalizeUnfinishedSlurmJob()
             } catch (err) {
-                terminalStatus = 'error'
+                terminalStatus = 'cancelled'
                 terminalDescription = 'Perlmutter GPU CI cleanup failed.'
                 if (!failureMessage) {
                     failureMessage = err.toString()
@@ -965,17 +887,17 @@ EOF"""
                     }
                     if (terminalStatus != 'success') writeCiFailureSummary(terminalStatus, env.CI_FAILURE_STAGE, failureMessage ?: terminalDescription)
                     // Best effort: a GitHub outage must not turn a passing build red.
-                    // The commit status below remains the authoritative signal.
+                    // Keep the full report locally if both GitHub transports are unavailable.
                     if (candidateCommit || candidatePr || candidateRef) {
                         try {
-                            publishGitHubReport(statusCredentialsId, candidateCommit, terminalStatus, candidatePr ?: '', candidateRef ?: '')
+                            reporting.publish(terminalStatus, terminalDescription, true)
                         } catch (err) {
                             echo "WARNING: could not publish the GitHub CI report: ${err}"
                             terminalDescription = "${terminalDescription} (report not posted)".take(140)
                         }
                     }
                     archiveArtifacts allowEmptyArchive: true,
-                        artifacts: 'ci-selection.txt,ci-baseline-preflight.txt,ci-baseline-cache.txt,ci-trusted-checker-commit.txt,ci-candidate-commit.txt,ci-baseline-commit.txt,ci-report*.md,ci-report*.md.json,ci-command-logs/**,*-unit-results.txt,*-c-compile-seconds.txt,ci-timing-summary.txt,ci-regression-summary.txt,ci-failure-summary.txt,slurm-*.out,slurm-*-job-id.txt,slurm-*-job-status.txt,build/**/*.log,cuda-build/**/*.log,_baseline/build/**/*.log,_baseline/cuda-build/**/*.log,_baseline/gkylsoft/gkeyll-results/**/regressiondb,_baseline/gkylsoft/gkeyll-results/**/_rr_failures.txt,gkylsoft/gkeyll-results/**/regressiondb,gkylsoft/gkeyll-results/**/_rr_failures.txt'
+                        artifacts: 'ci-selection.txt,ci-baseline-preflight.txt,ci-baseline-cache.txt,ci-trusted-checker-commit.txt,ci-candidate-commit.txt,ci-baseline-commit.txt,ci-report*.md,ci-report*.md.json,ci-report-delivery.json,ci-diagnostic-summary.json,ci-stage-history.txt,ci-command-logs/**,*-unit-results.txt,*-c-compile-seconds.txt,ci-timing-summary.txt,ci-regression-summary.txt,ci-failure-summary.txt,slurm-*.out,slurm-*-job-id.txt,slurm-*-job-status.txt,build/**/*.log,cuda-build/**/*.log,_baseline/build/**/*.log,_baseline/cuda-build/**/*.log,_baseline/gkylsoft/gkeyll-results/**/regressiondb,_baseline/gkylsoft/gkeyll-results/**/_rr_failures.txt,gkylsoft/gkeyll-results/**/regressiondb,gkylsoft/gkeyll-results/**/_rr_failures.txt'
                 } catch (err) {
                     terminalStatus = 'error'
                     terminalDescription = 'Perlmutter GPU CI artifact archival failed.'
@@ -984,14 +906,6 @@ EOF"""
                     try {
                         if (candidateDir && baselineCommit) {
                             sh "ci/jenkins/baseline_cache.sh finalize-candidate '${gkeyllCiRoot}' 'perlmutter-gpu' '${candidateCommit}' '${baselineCommit}' '${terminalStatus}' '${env.CI_FAILURE_STAGE ?: ''}' '${env.WORKSPACE}'"
-                        }
-                        if (candidateCommit) {
-                            publishGitHubCommitStatus(
-                                statusCredentialsId,
-                                candidateCommit,
-                                terminalStatus,
-                                terminalDescription
-                            )
                         }
                     } finally {
                         deleteDir()

@@ -1,3 +1,31 @@
+import groovy.transform.Field
+@Field def reporting
+
+def loggedSh(String label, String command) { reporting.loggedSh(label, command) }
+def timeCommand(String metric, String command) { reporting.timeCommand(metric, command) }
+
+def loadReporting(Map settings) {
+    def ref = env.CI_TRUSTED_CI_COMMIT?.trim() ?: env.GKEYLL_CI_TRUSTED_REF?.trim() ?: 'main'
+    if (!(ref ==~ /[A-Za-z0-9][A-Za-z0-9._\/-]*/) || ref.contains('..') || ref.endsWith('.lock')) {
+        error('Invalid trusted reporting ref.')
+    }
+    // This directory is outside the candidate checkout, which is deleted below.
+    dir(pwd(tmp: true) + '/trusted-reporting') {
+        deleteDir()
+        withEnv(["CI_TRUSTED_REPORT_REF=${ref}"]) {
+            sh '''#!/bin/bash
+                set -euo pipefail
+                git init --quiet
+                git fetch --quiet --depth 1 https://github.com/gkeyllorg/gkeyll.git "$CI_TRUSTED_REPORT_REF"
+                git show FETCH_HEAD:ci/jenkins/jenkins_reporting.groovy > jenkins_reporting.groovy
+                git show FETCH_HEAD:ci/jenkins/github_report.py > github_report.py
+            '''
+        }
+        reporting = load('jenkins_reporting.groovy')
+        reporting.configure(settings)
+    }
+}
+
 // Manually selected local CI. Configure this trusted Pipeline job from main.
 properties([
     buildDiscarder(logRotator(numToKeepStr: '20', artifactNumToKeepStr: '20')),
@@ -82,83 +110,6 @@ def pullRequestBase(String statusCredentialsId, String number) {
     validateBranchName('GitHub PR base branch', base)
 }
 
-def publishStatus(String statusCredentialsId, String context, String commit, String state, String description) {
-    if (state == 'pending' && params.CI_QUEUE_ID?.trim()) {
-        description = "Gkeyll CI running: starting (Jenkins queue #${params.CI_QUEUE_ID})."
-    }
-    withCredentials([usernamePassword(credentialsId: statusCredentialsId, usernameVariable: 'GITHUB_USERNAME', passwordVariable: 'GITHUB_TOKEN')]) {
-        withEnv(["CI_STATUS_CONTEXT=${context}", "CI_STATUS_COMMIT=${commit}", "CI_STATUS_STATE=${state}", "CI_STATUS_DESCRIPTION=${description.take(140)}"]) {
-            sh '''#!/bin/bash
-                set -euo pipefail
-                payload="$(python3 -c 'import json,os; print(json.dumps({"state":os.environ["CI_STATUS_STATE"],"context":os.environ["CI_STATUS_CONTEXT"],"description":os.environ["CI_STATUS_DESCRIPTION"]}))')"
-                curl --fail --silent --show-error --request POST --header 'Accept: application/vnd.github+json' --header "Authorization: Bearer $GITHUB_TOKEN" --header 'Content-Type: application/json' --data "$payload" "https://api.github.com/repos/gkeyllorg/gkeyll/statuses/$CI_STATUS_COMMIT"
-            '''
-        }
-    }
-}
-
-def timeCommand(String metricFile, String command) {
-    // Keep the command's output in a log next to its metric file. On failure,
-    // extract the error lines into ci-failure-detail.txt (workspace root) so
-    // the GitHub report shows the actual compiler or test error.
-    def logFile = metricFile.replaceFirst(/-seconds\.txt$/, '') + '.log'
-    def detailFile = metricFile.replaceFirst(/[^\/]*$/, '') + 'ci-failure-detail.txt'
-    def logName = logFile.replaceFirst(/^\.\.\//, '')
-    sh """#!/bin/bash
-        set -euo pipefail
-        started=\$(date +%s)
-        if ! ( ${command} ) 2>&1 | tee '${logFile}'; then
-            {
-                echo "Command: ${command}"
-                echo "Full log: ${logName} (archived with the build)"
-                echo '--- error lines ---'
-                grep -nE 'error:|undefined reference|FAIL |^make.*Error [0-9]+' '${logFile}' | head -n 40 || true
-                echo '--- last 40 lines ---'
-                tail -n 40 '${logFile}'
-            } > '${detailFile}'
-            exit 1
-        fi
-        elapsed=\$(( \$(date +%s) - started ))
-        printf '%s\\n' "\$elapsed" > '${metricFile}'
-        echo "${metricFile}: \$elapsed seconds"
-    """
-}
-
-// Capture stdout and stderr without losing the command's exit status. Never
-// use this for credential-bearing commands. Logs live outside the baseline tree.
-def loggedSh(String label, String script) {
-    def quoted = "'" + script.replace("'", "'\"'\"'") + "'"
-    withEnv(["CI_COMMAND_LOG=${env.WORKSPACE}/ci-command-logs/${label}.log"]) {
-        sh """#!/bin/bash
-            set -uo pipefail
-            mkdir -p "\$WORKSPACE/ci-command-logs"
-            bash ${script.startsWith('#!/bin/bash -l') ? '-l' : ''} -e -o pipefail -c ${quoted} 2>&1 | tee "\$CI_COMMAND_LOG"
-            result=\$?
-            printf '%s\\n' "\$result" > "\$CI_COMMAND_LOG.exit"
-            exit "\$result"
-        """
-    }
-}
-
-def trustedReportScript() {
-    // The report tool must come from reviewed code, never from the candidate
-    // checkout, because 'publish' runs with the GitHub token bound.
-    // The team bootstrap pins the reviewed checkout to an exact commit.
-    def ref = validateRef('trusted CI ref', env.CI_TRUSTED_CI_COMMIT?.trim()
-        ?: env.GKEYLL_CI_TRUSTED_REF?.trim() ?: 'main')
-    withEnv(["CI_TRUSTED_REPORT_REF=${ref}"]) {
-        sh '''#!/bin/bash
-            set -euo pipefail
-            mkdir -p .ci-report-source
-            git -C .ci-report-source init --quiet
-            git -C .ci-report-source fetch --quiet --depth 1 https://github.com/gkeyllorg/gkeyll.git "$CI_TRUSTED_REPORT_REF"
-            rm -f -- _trusted_github_report.py
-            git -C .ci-report-source show FETCH_HEAD:ci/jenkins/github_report.py > _trusted_github_report.py
-        '''
-    }
-    return '_trusted_github_report.py'
-}
-
 def prepareTrustedRegressionChecker() {
     // The candidate must not choose the code that decides whether its results pass.
     // The team bootstrap supplies an exact reviewed commit; standalone jobs use
@@ -177,21 +128,6 @@ def prepareTrustedRegressionChecker() {
         '''
     }
     return checker
-}
-
-def publishReport(String statusCredentialsId, String context, String platform, String commit, String state, String candidatePr, String candidateRef) {
-    def script = trustedReportScript()
-    withEnv(["CI_REPORT_CONTEXT=${context}", "CI_REPORT_PLATFORM=${platform}", "CI_REPORT_RESULT=${state}",
-             "CI_REPORT_PR=${candidatePr ?: ''}", "CI_REPORT_COMMIT=${commit}", "CI_REPORT_REF=${candidateRef ?: ''}"]) {
-        sh "python3 ${script} build --platform \"\$CI_REPORT_PLATFORM\" --context \"\$CI_REPORT_CONTEXT\" --result \"\$CI_REPORT_RESULT\" --pr \"\$CI_REPORT_PR\" --output ci-report.md"
-        withCredentials([usernamePassword(credentialsId: statusCredentialsId, usernameVariable: 'GITHUB_USERNAME', passwordVariable: 'GITHUB_TOKEN')]) {
-            retry(3) {
-                sh "python3 ${script} publish --report ci-report.md --commit \"\$CI_REPORT_COMMIT\" --context \"\$CI_REPORT_CONTEXT\" --pr \"\$CI_REPORT_PR\" --ref \"\$CI_REPORT_REF\""
-            }
-        }
-    }
-    // One line naming the failing layer/tests, for the GitHub status description.
-    return fileExists('ci-status-description.txt') ? readFile('ci-status-description.txt').trim() : ''
 }
 
 // The config is supplied by the machine owner, outside disposable workspaces.
@@ -414,15 +350,9 @@ def mpiExec = (env.PERSONAL_MPIEXEC ?: '').trim()
 def gkeyllCiRoot = requireValue('GKEYLL_CI_ROOT', env.GKEYLL_CI_ROOT)
 if (!(jobs ==~ /[1-9][0-9]*/) || !(regressionJobs ==~ /[1-9][0-9]*/)) error('PERSONAL_BUILD_JOBS and PERSONAL_REGRESSION_JOBS must be positive integers.')
 
-def ciStage(String stageName, Closure body) {
-    env.CI_FAILURE_STAGE = stageName
-    stage(stageName) { body.call() }
-}
+def ciStage(String name, Closure body) { reporting.ciStage(name, body) }
 
-def writeCiFailureSummary(String result, String stageName, String message) {
-    def compactMessage = (message ?: 'unknown failure').replaceAll('[\\r\\n]+', ' ').trim().take(500)
-    writeFile file: 'ci-failure-summary.txt', text: "result=${result}\nstage=${stageName ?: 'unknown'}\nmessage=${compactMessage}\n"
-}
+def writeCiFailureSummary(String result, String name, String message) { reporting.writeCiFailureSummary(result, name, message) }
 
 def runCi = {
     def commit = queuedCommit ?: (isCommitSha(candidateRef ?: '') ? candidateRef : '')
@@ -444,6 +374,8 @@ def runCi = {
         def host = sh(returnStdout: true, script: 'hostname -s 2>/dev/null || hostname').trim().toLowerCase().replaceAll(/[^a-z0-9._-]/, '-')
         statusContext = "continuous-integration/jenkins/personal-${host ?: 'unknown'}"
     }
+    loadReporting([credential: statusCredentialsId, context: statusContext, platform: platform,
+        pr: candidatePr ?: '', ref: candidateRef ?: '', commit: commit])
     try {
         ciStage('Resolve candidate and baseline') {
             currentBuild.displayName = "#${env.BUILD_NUMBER} ${candidatePr ? "PR-${candidatePr}" : shortRef(candidateRef)}"
@@ -457,6 +389,7 @@ def runCi = {
             else if (candidatePr) checkoutPullRequest(candidatePr)
             else checkoutRef(candidateRef, 'candidate')
             commit = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
+            reporting.settings.commit = commit
             writeFile file: 'ci-candidate-commit.txt', text: "${commit}\n"
             // Written after deleteDir() above so it survives into the artifacts and report.
             currentBuild.description += " @ ${commit.take(7)}"
@@ -478,7 +411,7 @@ def runCi = {
         ciStage('Prepare candidate build') {
             candidateDir = sh(returnStdout: true, script: "ci/jenkins/baseline_cache.sh prepare-candidate '${gkeyllCiRoot}' '${cachePlatform}' '${commit}' '${env.WORKSPACE}' '${baselineCommit}'").trim()
         }
-        ciStage('Report pending') { publishStatus(statusCredentialsId, statusContext, commit, 'pending', 'Gkeyll CI is running.') }
+        reporting.progress('Gkeyll CI is running.')
         ciStage('Build candidate') { dir("${candidateDir}/gkeyll") { buildTree('candidate', "${candidateDir}/gkylsoft", mkdeps, configure, jobs, "${env.WORKSPACE}/") } }
         ciStage('Resolve baseline cache') {
             baselineDir = sh(returnStdout: true, script: "ci/jenkins/baseline_cache.sh baseline-path '${gkeyllCiRoot}' '${cachePlatform}' '${baselineCommit}'").trim()
@@ -510,7 +443,8 @@ EOF
         ciStage('Parallel C regressions') { dir("${candidateDir}/gkeyll") { runParallelRegressions(candidateDir, baselineDir, mpiExec, trustedChecker) }; status = 'success'; description = 'Personal CI passed.' }
     } catch (err) {
         failureMessage = err.toString()
-        if (currentBuild.currentResult == 'ABORTED' || err.toString().contains('FlowInterruptedException')) { status = 'error'; description = 'Personal CI was aborted.' }
+        status = reporting.failureResult(err, currentBuild.currentResult)
+        if (status in ['cancelled', 'timed_out']) description = "Personal CI ${status}."
         throw err
     } finally {
         try {
@@ -534,25 +468,22 @@ EOF
             }
             if (status != 'success') writeCiFailureSummary(status, env.CI_FAILURE_STAGE, failureMessage ?: description)
             // Best effort: a GitHub outage must not turn a passing build red.
-            // The commit status below remains the authoritative signal.
+            // Keep the full report locally if both GitHub transports are unavailable.
             def reportError = ''
             if (commit || candidatePr || candidateRef) {
                 try {
-                    def summaryLine = publishReport(statusCredentialsId, statusContext, platform, commit, status, candidatePr ?: '', candidateRef ?: '')
+                    def summaryLine = reporting.publish(status, description, true)
                     if (summaryLine) description = summaryLine.take(140)
                 } catch (err) {
                     reportError = err.toString()
                     echo "WARNING: could not publish the GitHub CI report: ${reportError}"
                 }
             }
-            archiveArtifacts allowEmptyArchive: true, artifacts: 'ci-selection.txt,ci-baseline-preflight.txt,ci-baseline-cache.txt,ci-trusted-checker-commit.txt,ci-trusted-ci-commit.txt,ci-candidate-commit.txt,ci-baseline-commit.txt,*-seconds.txt,*-unit-results.txt,candidate-*.log,baseline-*.log,ci-failure-detail.txt,ci-report*.md,ci-report*.md.json,ci-command-logs/**,ci-timing-summary.txt,ci-regression-summary.txt,ci-parallel-regression-summary.txt,ci-failure-summary.txt,build/**/*.log,cuda-build/**/*.log,_baseline/build/**/*.log,_baseline/cuda-build/**/*.log,_baseline/gkylsoft/gkeyll-results/**/regressiondb,_baseline/gkylsoft/gkeyll-results/**/_rr_failures.txt,gkylsoft/gkeyll-results/**/regressiondb,gkylsoft/gkeyll-results/**/_rr_failures.txt'
+            archiveArtifacts allowEmptyArchive: true, artifacts: 'ci-selection.txt,ci-baseline-preflight.txt,ci-baseline-cache.txt,ci-trusted-checker-commit.txt,ci-trusted-ci-commit.txt,ci-candidate-commit.txt,ci-baseline-commit.txt,*-seconds.txt,*-unit-results.txt,candidate-*.log,baseline-*.log,ci-failure-detail.txt,ci-report*.md,ci-report*.md.json,ci-report-delivery.json,ci-diagnostic-summary.json,ci-stage-history.txt,ci-command-logs/**,ci-timing-summary.txt,ci-regression-summary.txt,ci-parallel-regression-summary.txt,ci-failure-summary.txt,build/**/*.log,cuda-build/**/*.log,_baseline/build/**/*.log,_baseline/cuda-build/**/*.log,_baseline/gkylsoft/gkeyll-results/**/regressiondb,_baseline/gkylsoft/gkeyll-results/**/_rr_failures.txt,gkylsoft/gkeyll-results/**/regressiondb,gkylsoft/gkeyll-results/**/_rr_failures.txt'
             if (reportError) description = "${description} (report not posted)".take(140)
         }
         if (candidateDir && baselineCommit) {
             sh "ci/jenkins/baseline_cache.sh finalize-candidate '${gkeyllCiRoot}' '${cachePlatform}' '${commit}' '${baselineCommit}' '${status}' '${env.CI_FAILURE_STAGE ?: ''}' '${env.WORKSPACE}'"
-        }
-        if (commit) {
-            publishStatus(statusCredentialsId, statusContext, commit, status, description)
         }
         deleteDir()
     }

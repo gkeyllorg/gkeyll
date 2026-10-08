@@ -124,6 +124,9 @@ uses it only against loopback Jenkins and does not disable CSRF protection.
 
 ### Create the GitHub credential
 
+The [shared reporter](README.md#reporting-credentials) uses this existing
+username/token credential for commit statuses and PR/commit comments.
+
 Create a classic GitHub PAT with only the `public_repo` scope and a short
 expiration. That scope covers commit statuses and pull-request or commit
 comments on the public repository; a fine-grained token needs **Commit
@@ -160,7 +163,7 @@ set the following values. Paste an expanded scratch path, not a literal `$USER`.
 | `STELLAR_CPU_REGRESSION_JOBS` | Optional concurrent serial C test runs; default `4` |
 | `STELLAR_CPU_REGRESSION_TEST_TIMEOUT` | Optional per-test limit in seconds; default `900` |
 | `STELLAR_CPU_NODE_LABEL` | Optional node label; default `stellar_cpu` |
-| `GKEYLL_CI_TRUSTED_REF` | Optional reviewed branch or full SHA for `github_report.py` and `check_regression_results.lua`; default `main`. Set it only while staging a CI change |
+| `GKEYLL_CI_TRUSTED_REF` | Optional reviewed branch or full SHA for `github_report.py`, `jenkins_reporting.groovy`, and `check_regression_results.lua`; default `main`. Set it only while staging a CI change |
 
 Do not set a broad global `PATH` to an interactive shell configuration. The
 Pipeline initializes Stellar modules for each build and Slurm job. Its

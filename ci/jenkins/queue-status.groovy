@@ -28,11 +28,16 @@ import java.util.concurrent.ThreadFactory
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.logging.Logger
+import java.net.http.HttpClient
+import java.net.http.HttpRequest
+import java.net.http.HttpResponse
+import java.time.Duration
 
 class GkeyllQueueStatus {
     static final Logger LOG = Logger.getLogger('gkeyll.queue-status')
     static final List INTERNAL = ['CI_QUEUE_ID', 'CI_QUEUE_COMMIT', 'CI_QUEUE_CONTEXT',
         'CI_QUEUE_STARTED', 'CI_QUEUE_CANCEL_DESCRIPTION']
+    static final HttpClient HTTP = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build()
     static final Map PLATFORMS = [
         personal: ['PERSONAL', 'gkeyll-ci-personal', null],
         stellar_cpu: ['STELLAR_CPU', 'gkeyll-ci-stellar_cpu', 'continuous-integration/jenkins/stellar_cpu'],
@@ -66,7 +71,23 @@ class GkeyllQueueStatus {
     } as ThreadFactory)
 
     void start() {
-        timer.scheduleWithFixedDelay({ checkSuperseded(); refreshPositions(); refreshRunning() } as Runnable, 60, 60, TimeUnit.SECONDS)
+        timer.scheduleWithFixedDelay({ sweep() } as Runnable, 60, 60, TimeUnit.SECONDS)
+    }
+
+    void sweep() {
+        // Executor threads otherwise run anonymously and cannot discover jobs
+        // on controllers with anonymous read access disabled.
+        def context = ACL.as2(ACL.SYSTEM2)
+        try {
+            checkSuperseded()
+            refreshPositions()
+            refreshRunning()
+        } catch (Exception failure) {
+            // An exception escaping a scheduled task suppresses future sweeps.
+            LOG.warning("Cannot refresh CI reporting (${failure.class.simpleName}); will retry.")
+        } finally {
+            context.close()
+        }
     }
 
     Map configuration(Job job) {
@@ -109,18 +130,30 @@ class GkeyllQueueStatus {
             status.description.endsWith(" (Jenkins queue #${id}).")
     }
 
+    Map currentStatus(Job job, Map config, Map metadata) {
+        for (int page = 1; ; page++) {
+            def path = "commits/${metadata.CI_QUEUE_COMMIT}/status?per_page=100" + (page > 1 ? "&page=${page}" : '')
+            def statuses = request(job, config, 'GET', path).statuses
+            def current = statuses.find { it.context == metadata.CI_QUEUE_CONTEXT }
+            if (current || statuses.size() < 100) return current
+        }
+    }
+
     static String minutes(long milliseconds) {
         long value = Math.max(0L, milliseconds).intdiv(60000L)
         value < 60 ? "${value} m" : "${value.intdiv(60)} hr ${value % 60} m"
     }
 
-    static String runningDescription(long id, long elapsed, long estimated) {
+    static String runningDescription(long id, long elapsed, long estimated, String stage = '') {
         elapsed = Math.max(0L, elapsed)
         String progress = estimated <= 0 ? 'ETA unavailable' :
             (elapsed >= estimated ? 'exceeded estimate; ETA unavailable' :
                 "~${Math.min(99, (int) (100.0 * elapsed / estimated))}%; est. remaining ${minutes(estimated - elapsed)}")
         String suffix = " (Jenkins queue #${id})."
-        "Gkeyll CI running: started ${minutes(elapsed)} ago; ${progress}".take(140 - suffix.size()) + suffix
+        def timing = "started ${minutes(elapsed)} ago; ${progress}"
+        int room = Math.max(0, 140 - 'Gkeyll CI running: '.size() - timing.size() - suffix.size() - 2)
+        def activity = stage && room ? stage.take(Math.min(36, room)) + '; ' : ''
+        "Gkeyll CI running: ${activity}${timing}".take(140 - suffix.size()) + suffix
     }
 
     void refreshRunning() {
@@ -146,16 +179,15 @@ class GkeyllQueueStatus {
                     !(metadata.CI_QUEUE_COMMIT ==~ /[0-9a-f]{40}/)) return
                 def config = configuration(run.parent)
                 if (!config?.credential) return
-                def current = request(run.parent, config, 'GET',
-                    "commits/${metadata.CI_QUEUE_COMMIT}/status?per_page=100")
-                    .statuses.find { it.context == metadata.CI_QUEUE_CONTEXT }
-                if (!ownsQueuedStatus(current, run.queueId) && !ownsRunningStatus(current, run.queueId)) return
+                def stage = run.getAction(org.jenkinsci.plugins.workflow.cps.EnvActionImpl)?.getOverriddenEnvironment()?.get('CI_FAILURE_STAGE') ?: ''
                 def description = runningDescription(run.queueId,
-                    System.currentTimeMillis() - run.startTimeInMillis, run.estimatedDuration)
-                if (!run.isBuilding() || current.description == description) return
-                if (current.id != null) progressBase.putIfAbsent(run.queueId, current.id as long)
+                    System.currentTimeMillis() - run.startTimeInMillis, run.estimatedDuration, stage)
+                def current = currentStatus(run.parent, config, metadata)
+                if (current && !ownsQueuedStatus(current, run.queueId) && !ownsRunningStatus(current, run.queueId)) return
+                if (!run.isBuilding() || current?.description == description) return
+                if (current?.id != null) progressBase.putIfAbsent(run.queueId, current.id as long)
                 def body = [state: 'pending', context: metadata.CI_QUEUE_CONTEXT, description: description]
-                if (current.target_url) body.target_url = current.target_url
+                if (current?.target_url) body.target_url = current.target_url
                 request(run.parent, config, 'POST', "statuses/${metadata.CI_QUEUE_COMMIT}", body)
             } catch (Exception failure) {
                 LOG.warning("Queue #${run.queueId}: progress update failed (${failure.class.simpleName}); will retry.")
@@ -208,17 +240,15 @@ class GkeyllQueueStatus {
                         if (!entry.run && !states.get(entry.id)?.ready?.get()) return
                         def metadata = entry.run ? parameters(entry.run) : queuedParameters(entry.id, entry.job)
                         if (!(metadata.CI_QUEUE_COMMIT ==~ /[0-9a-f]{40}/)) return
-                        def current = request(entry.job, entry.config, 'GET',
-                            "commits/${metadata.CI_QUEUE_COMMIT}/status?per_page=100")
-                            .statuses.find { it.context == metadata.CI_QUEUE_CONTEXT }
-                        if (!ownsQueuedStatus(current, entry.id)) return
+                        def current = currentStatus(entry.job, entry.config, metadata)
+                        if (current && !ownsQueuedStatus(current, entry.id)) return
                         // Recompute after the HTTP call: the build may now be running or cancelled.
                         String description = null
                         Queue.withLock({
                             def live = queuePositions()[entry.id]
                             if (!live) return
                             def updated = queuedDescription(entry.id, live.position, live.total)
-                            if (current.description == updated) return
+                            if (current?.description == updated) return
                             description = updated
                             positionWrites.add(entry.id)
                         } as Runnable)
@@ -282,26 +312,16 @@ class GkeyllQueueStatus {
             URIRequirementBuilder.fromUri('https://api.github.com').build()
         ).find { it.id == config.credential }
         if (!credential) throw new IOException('GitHub credential is unavailable')
-        def connection = new URL("https://api.github.com/repos/gkeyllorg/gkeyll/${path}").openConnection()
-        connection.connectTimeout = 10000
-        connection.readTimeout = 15000
-        connection.instanceFollowRedirects = false
-        connection.requestMethod = method
-        connection.setRequestProperty('Accept', 'application/vnd.github+json')
-        connection.setRequestProperty('Authorization', "Bearer ${credential.password.plainText}")
-        connection.setRequestProperty('User-Agent', 'gkeyll-jenkins-queue-status')
-        try {
-            if (body != null) {
-                connection.doOutput = true
-                connection.setRequestProperty('Content-Type', 'application/json')
-                connection.outputStream.withCloseable { it.write(JsonOutput.toJson(body).getBytes('UTF-8')) }
-            }
-            int status = connection.responseCode
-            if (status < 200 || status >= 300) throw new IOException("GitHub HTTP ${status}")
-            connection.inputStream.withCloseable { new JsonSlurper().parse(it, 'UTF-8') }
-        } finally {
-            connection.disconnect()
-        }
+        def builder = HttpRequest.newBuilder(URI.create("https://api.github.com/repos/gkeyllorg/gkeyll/${path}"))
+            .timeout(Duration.ofSeconds(25)).header('Accept', 'application/vnd.github+json')
+            .header('Authorization', "Bearer ${credential.password.plainText}")
+            .header('X-GitHub-Api-Version', '2022-11-28').header('User-Agent', 'gkeyll-jenkins-reporting')
+            .header('Content-Type', 'application/json')
+        def publisher = body == null ? HttpRequest.BodyPublishers.noBody() :
+            HttpRequest.BodyPublishers.ofString(JsonOutput.toJson(body))
+        def response = HTTP.send(builder.method(method, publisher).build(), HttpResponse.BodyHandlers.ofString())
+        if (response.statusCode() < 200 || response.statusCode() >= 300) throw new IOException("GitHub HTTP ${response.statusCode()}")
+        response.body() ? new JsonSlurper().parseText(response.body()) : [:]
     }
 
     Map selection(Job job, Map config, Map values) {
@@ -378,7 +398,11 @@ class GkeyllQueueStatus {
         // Wait for that short scheduling transaction, without holding the lock for HTTP.
         def position = null
         Queue.withLock({ position = queuePositions()[item.id] } as Runnable)
-        if (!position) return
+        if (record.cancelled.get()) return
+        // Some queue callbacks run before the new snapshot is visible even
+        // after withLock. Always publish the initial accepted state; the next
+        // position sweep replaces this provisional rank once the item appears.
+        position = position ?: [position: 1, total: 1]
         request(item.task, config, 'POST', "statuses/${selected.sha}",
             [state: 'pending', context: metadata.CI_QUEUE_CONTEXT,
              description: queuedDescription(item.id, position.position, position.total)])
@@ -392,7 +416,7 @@ class GkeyllQueueStatus {
             // Wait for any in-flight pending POST before sending cancellation.
             synchronized (record ?: new Object()) {
                 def metadata = record?.metadata ?: queuedParameters(item.id, item.task)
-                finish(item.task, metadata, item.id, 'error',
+                finish(item.task, metadata, item.id, 'cancelled',
                     record?.cancelDescription ?: 'Gkeyll CI cancelled while queued.')
                 forget(item.id)
             }
@@ -489,9 +513,11 @@ class GkeyllQueueStatus {
         if (metadata.CI_QUEUE_ID != run.queueId.toString()) return
         workers.submit({
             def state = run.result == Result.SUCCESS ? 'success' :
-                (run.result in [Result.FAILURE, Result.UNSTABLE] ? 'failure' : 'error')
+                (run.result in [Result.FAILURE, Result.UNSTABLE] ? 'failure' : 'cancelled')
+            if (run.getAction(jenkins.model.InterruptedBuildAction)?.causes?.any { it.class.simpleName == 'ExceededTimeout' }) state = 'timed_out'
             def description = metadata.CI_QUEUE_CANCEL_DESCRIPTION ?:
-                (run.result == Result.ABORTED && metadata.CI_QUEUE_STARTED != 'true'
+                (state == 'timed_out' ? 'Gkeyll CI timed out.' :
+                 run.result == Result.ABORTED && metadata.CI_QUEUE_STARTED != 'true'
                     ? 'Gkeyll CI cancelled while queued.' : "Gkeyll CI finished: ${run.result}.")
             finish(run.parent, metadata, run.queueId, state, description)
             progressBase.remove(run.queueId)
@@ -500,7 +526,9 @@ class GkeyllQueueStatus {
 
     void finish(Job job, Map metadata, long id, String state, String description) {
         // Cancellation must follow an in-flight position POST, never precede it.
-        synchronized (statusLock(id)) { finishStatus(job, metadata, id, state, description) }
+        synchronized (statusLock(id)) {
+            finishStatus(job, metadata, id, state in ['cancelled', 'timed_out'] ? 'error' : state, description)
+        }
     }
 
     void finishStatus(Job job, Map metadata, long id, String state, String description) {
@@ -508,10 +536,20 @@ class GkeyllQueueStatus {
         def config = configuration(job)
         if (!config?.credential) return
         try {
-            def current = request(job, config, 'GET', "commits/${metadata.CI_QUEUE_COMMIT}/status?per_page=100")
-                .statuses.find { it.context == metadata.CI_QUEUE_CONTEXT }
+            def current = currentStatus(job, config, metadata)
+            def suffix = " (Jenkins queue #${id})."
+            def failedAfterReport = "Jenkins failed after the test report: ${description}".take(140 - suffix.size()) + suffix
+            // Artifact archival/cleanup can fail after tests were reported green.
+            // Correct only this run's success, retaining the diagnostic report link.
+            if (current?.state == 'success' && state != 'success' &&
+                    current.description?.endsWith(suffix)) {
+                request(job, config, 'POST', "statuses/${metadata.CI_QUEUE_COMMIT}",
+                    [state: state, context: metadata.CI_QUEUE_CONTEXT, target_url: current.target_url,
+                     description: failedAfterReport])
+                return
+            }
             // Preserve the Pipeline's detailed terminal status and another run's newer status.
-            if (!ownsQueuedStatus(current, id) && !ownsRunningStatus(current, id)) return
+            if (current && !ownsQueuedStatus(current, id) && !ownsRunningStatus(current, id)) return
             // The Pipeline can publish its detailed result while a progress POST
             // is in flight. Recover that result rather than leaving stale pending
             // or replacing its diagnostics with our generic completion message.
@@ -522,13 +560,18 @@ class GkeyllQueueStatus {
                 if (terminal) {
                     def body = [state: terminal.state, context: metadata.CI_QUEUE_CONTEXT,
                         description: terminal.description]
+                    if (terminal.state == 'success' && state != 'success' && terminal.description?.endsWith(suffix)) {
+                        body.state = state
+                        body.description = failedAfterReport
+                    }
                     if (terminal.target_url) body.target_url = terminal.target_url
                     request(job, config, 'POST', "statuses/${metadata.CI_QUEUE_COMMIT}", body)
                     return
                 }
             }
             request(job, config, 'POST', "statuses/${metadata.CI_QUEUE_COMMIT}",
-                [state: state, context: metadata.CI_QUEUE_CONTEXT, description: description])
+                [state: state, context: metadata.CI_QUEUE_CONTEXT,
+                 description: description.take(140 - suffix.size()) + suffix])
         } catch (Exception failure) {
             LOG.warning("Queue #${id}: GitHub final queue status failed (${failure.class.simpleName}).")
         }

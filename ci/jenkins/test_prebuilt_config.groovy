@@ -28,7 +28,7 @@ CONF_LUA_LIB_DIR=/opt/PREFIX/lua/lib
         env: [:],
         fileExists: { String path -> new File(path).isFile() },
         readFile: { Map args -> new File(args.file).text },
-        writeFile: { Map args -> output.text = args.text },
+        writeFile: { Map args -> new File(tmp, args.file).text = args.text },
         echo: { String message -> },
         error: { String message -> throw new IllegalArgumentException(message) }
     ])

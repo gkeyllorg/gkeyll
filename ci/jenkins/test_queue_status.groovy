@@ -38,17 +38,20 @@ def controls = new ConcurrentHashMap()
 service.metaClass.request = { Job job, Map config, String method, String path, Map body = null ->
     calls << [method: method, path: path, body: body]
     if (controls.fail) throw new IOException('Simulated GitHub outage')
-    if (path == 'pulls/10' && controls.gate) {
+    def gate = controls.gate
+    def postGate = controls.postGate
+    def positionGate = controls.positionGate
+    if (path == 'pulls/10' && gate) {
         controls.entered.countDown()
-        assert controls.gate.await(30, TimeUnit.SECONDS)
+        assert gate.await(30, TimeUnit.SECONDS)
     }
-    if (method == 'POST' && controls.postGate && path == 'statuses/' + 'e' * 40) {
+    if (method == 'POST' && postGate && path == 'statuses/' + 'e' * 40) {
         controls.postEntered.countDown()
-        assert controls.postGate.await(30, TimeUnit.SECONDS)
+        assert postGate.await(30, TimeUnit.SECONDS)
     }
-    if (method == 'POST' && controls.positionGate && path == 'statuses/' + '40' * 20) {
+    if (method == 'POST' && positionGate && path == 'statuses/' + '40' * 20) {
         controls.positionEntered.countDown()
-        assert controls.positionGate.await(30, TimeUnit.SECONDS)
+        assert positionGate.await(30, TimeUnit.SECONDS)
     }
     if (method == 'POST') {
         assert path.startsWith('statuses/')
@@ -93,6 +96,8 @@ Thread.start('gkeyll-queue-integration-tests') {
         assert service.runningDescription(42L, 60000L, 60000L).contains('exceeded estimate')
         assert !service.runningDescription(42L, 120000L, 60000L).contains('100%')
         assert service.runningDescription(42L, -1L, 60000L).contains('started 0 m ago; ~0%')
+        def staged = service.runningDescription(42L, 29L * 60000, 139L * 60000, 'A very long stage name ' * 4)
+        assert staged.size() <= 140 && staged.contains('est. remaining 1 hr 50 m')
         assert service.runningDescription(Long.MAX_VALUE, Long.MAX_VALUE, 1L).size() <= 140
         assert service.ownsRunningStatus([state: 'pending', description:
             service.runningDescription(Long.MAX_VALUE, Long.MAX_VALUE, 1L)], Long.MAX_VALUE)
@@ -161,6 +166,10 @@ Thread.start('gkeyll-queue-integration-tests') {
         service.refreshPositions()
         assert calls.count { it.method == 'POST' } == posts
         passed('positions count waiting builds per platform and unchanged positions are not reposted')
+        statuses.remove('1' * 40 + ':' + contexts[0])
+        service.refreshPositions()
+        assert service.ownsQueuedStatus(statuses['1' * 40 + ':' + contexts[0]], items[0].id)
+        passed('queue sweeps recover a missing initial status after a temporary reporting outage')
 
         heads['1'] = 'a' * 40
         service.checkSuperseded()
@@ -340,12 +349,61 @@ Thread.start('gkeyll-queue-integration-tests') {
         assert statuses['8' * 40 + ':' + contexts[3]].description == 'Detailed timings preserved'
         passed('normal Pipeline result descriptions are preserved')
 
+        heads['74'] = '74' * 20
+        def lateFailure = create(team, 'PR-74', "sleep time: 2, unit: 'SECONDS'; error 'artifact archival failed'")
+        def lateCompletion = lateFailure.scheduleBuild2(0)
+        await('pending before late failure') { statuses[heads['74'] + ':' + contexts[3]]?.state == 'pending' }
+        await('late failure run started') { lateFailure.lastBuild?.isBuilding() }
+        statuses[heads['74'] + ':' + contexts[3]] = [state: 'success', context: contexts[3],
+            description: "Tests passed (Jenkins queue #${lateFailure.lastBuild.queueId}).",
+            target_url: 'https://github.com/report/74']
+        assert lateCompletion.get(30, TimeUnit.SECONDS).result == Result.FAILURE
+        await('late failure status corrected') { statuses[heads['74'] + ':' + contexts[3]]?.state == 'failure' }
+        assert statuses[heads['74'] + ':' + contexts[3]].description.contains('failed after the test report')
+        assert statuses[heads['74'] + ':' + contexts[3]].description.endsWith(" (Jenkins queue #${lateFailure.lastBuild.queueId}).")
+        assert statuses[heads['74'] + ':' + contexts[3]].target_url == 'https://github.com/report/74'
+        passed('post-report archival or cleanup failures cannot leave a green status')
+
         controls.fail = true
         heads['9'] = '9' * 40
         def outage = create(team, 'PR-9', "echo 'reporter outage does not block builds'")
         assert outage.scheduleBuild2(0).get(30, TimeUnit.SECONDS).result == Result.SUCCESS
         controls.remove('fail')
         passed('GitHub outages release the dispatcher and allow the existing Pipeline to run')
+
+        heads['73'] = '73' * 20
+        def timeoutJob = create(team, 'PR-73', "timeout(time: 1, unit: 'SECONDS') { sleep time: 30, unit: 'SECONDS' }")
+        def timeoutRun = timeoutJob.scheduleBuild2(0).get(30, TimeUnit.SECONDS)
+        await('timeout status') { statuses[heads['73'] + ':' + contexts[3]]?.state == 'error' }
+        assert statuses[heads['73'] + ':' + contexts[3]].description.contains('timed out')
+        passed('Pipeline timeouts close the pending status with an explicit reason')
+
+        def smoke = create(jenkins, 'reporting-pipeline-smoke', '')
+        smoke.definition = new CpsFlowDefinition('''
+node('queue-test-runner') {
+    deleteDir()
+    writeFile file: 'github_report.py', text: readFile(SOURCE + '/github_report.py')
+    def reporter = load(SOURCE + '/jenkins_reporting.groovy')
+    reporter.configure([platform: 'personal', context: 'ci/smoke', credential: 'intentionally-missing', commit: 'a' * 40])
+    reporter.ciStage('Smoke test') {
+        reporter.loggedSh('candidate-smoke', "printf 'captured output\\n'")
+        try { reporter.timeCommand('candidate-unit-build-seconds.txt', "printf 'example.c:3: error: deliberate test failure\\n'; exit 3") }
+        catch (err) { echo 'EXPECTED_COMMAND_FAILURE' }
+    }
+    reporter.writeCiFailureSummary('failure', 'Smoke test', 'deliberate fixture failure')
+    try { reporter.publish('failure', 'smoke failure', true) }
+    catch (err) { echo 'EXPECTED_MISSING_CREDENTIAL' }
+    assert readFile('candidate-unit-build.log.exit').trim() == '3'
+    assert readFile('ci-report.md').contains('Failed at stage:** Smoke test')
+    assert readFile('ci-report.md').contains('deliberate test failure')
+    assert readFile('ci-stage-history.txt').contains('Smoke test')
+    assert readFile('ci-report-delivery.json').contains('GitHub publication did not complete')
+    echo 'SHARED_REPORTING_SMOKE_PASSED'
+}
+'''.replace('SOURCE', groovy.json.JsonOutput.toJson(source.absolutePath)), true)
+        def smokeRun = smoke.scheduleBuild2(0).get(60, TimeUnit.SECONDS)
+        assert smokeRun.result == Result.SUCCESS : smokeRun.getLog(100).join('\n')
+        passed('shared reporter runs in a real sandboxed Pipeline, retains command exits and builds diagnostic reports')
 
         ['personal', 'team_workstation', 'stellar_cpu', 'perlmutter_gpu'].each {
             shell.classLoader.parseClass(new File(source, "jenkinsfile.${it}"))

@@ -1,20 +1,16 @@
 #!/usr/bin/env python3
-"""Build a Markdown CI report from Jenkins workspace artifacts and publish it
-to GitHub as a pull-request comment (or a commit comment when the run has no
-pull request). Standard library only.
+"""Build Jenkins reports and publish GitHub commit statuses and PR/commit comments.
 
-    github_report.py build   --platform NAME --context CTX --result STATE [--pr N] [--output ci-report.md]
-    github_report.py publish --report ci-report.md --commit SHA --context CTX [--pr N] [--repo OWNER/NAME]
+Standard library only; uses the existing platform username/token credential.
 
-`build` reads the summary files the Jenkinsfiles already write into the
-workspace root (ci-selection.txt, ci-candidate-commit.txt, ci-failure-summary.txt,
-ci-regression-summary.txt, ...). `publish` needs GITHUB_TOKEN in the environment
-and updates the previous report comment for the same context in place, so each
-CI machine owns exactly one comment per pull request or commit.
+    github_report.py build --platform NAME --context CTX --result STATE [--pr N]
+    github_report.py update --platform NAME --context CTX --result STATE --commit SHA [--pr N]
+    github_report.py publish --report ci-report.md --context CTX --commit SHA [--pr N]
 
-The Jenkinsfiles run `publish` only from a trusted copy of this file (main, or
-the team-workstation trusted checkout), never from the candidate checkout, so
-that the token is never bound while candidate code runs.
+`build` reads workspace artifacts without credentials. `update` publishes stage
+statuses or the completed report, recording delivery in ci-report-delivery.json.
+`publish` supports older jobs that publish their commit status separately.
+The Pipelines load this file from reviewed, trusted CI code before checkout.
 """
 
 import argparse
@@ -28,6 +24,7 @@ import re
 import socket
 import sqlite3
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -35,7 +32,8 @@ import urllib.request
 API = "https://api.github.com"
 DEFAULT_REPO = "gkeyllorg/gkeyll"
 MARKER_FORMAT = '<!-- gkeyll-ci-report context="{}" -->'
-COMMENT_LIMIT = 60000  # GitHub allows 65536 characters; keep headroom.
+COMMENT_LIMIT = 60000  # UTF-8 bytes; leave room for run metadata and navigation.
+RUN_MARKER = '<!-- gkeyll-ci-run {} -->'
 
 
 # ---- helpers ---------------------------------------------------------------
@@ -93,6 +91,8 @@ STATE_LABEL = {
     "failure": ":x: failed",
     "error": ":warning: errored or aborted",
     "pending": ":hourglass: running",
+    "cancelled": ":stop_sign: cancelled",
+    "timed_out": ":alarm_clock: timed out",
 }
 
 
@@ -187,11 +187,15 @@ def warning_key(line):
     return line.strip()
 
 
+def byte_prefix(text, limit):
+    return text.encode('utf-8')[:limit].decode('utf-8', errors='ignore')
+
+
 def detail_sections(title, text):
     """Split inside the log, keeping every comment's HTML and fences balanced."""
     chunks = []
     while text:
-        end = min(len(text), 48000)
+        end = len(byte_prefix(text, 48000))
         if end < len(text):
             end = text.rfind('\n', 0, end) + 1 or end
         chunks.append(text[:end])
@@ -201,9 +205,9 @@ def detail_sections(title, text):
         fenced(chunk)) for i, chunk in enumerate(chunks or ['None.'])]
 
 
-def diagnostic_sections():
+def diagnostic_sections(summary_output=None):
     warnings, errors = [], []
-    candidate, baseline = {}, set()
+    candidate, baseline = {}, {}
     comparable = set()
     paths = []
     for path, name, output, complete in captured_logs():
@@ -230,7 +234,8 @@ def diagnostic_sections():
                 warnings.append(entry)
                 key = warning_key(line)
                 if is_baseline:
-                    baseline.add(key)
+                    step = name[len('baseline-'):] if name.startswith('baseline-') else name
+                    baseline.setdefault(step, set()).add(key)
                 elif name.startswith('candidate-'):
                     candidate[(name[len('candidate-'):], key)] = entry
             if ERROR_LINE.search(line) and not WARNING_LINE.search(line):
@@ -238,7 +243,8 @@ def diagnostic_sections():
 
     selection = read_kv('ci-selection.txt')
     ref = first(selection, 'baseline_selector', 'main')
-    new = [entry for (step, key), entry in candidate.items() if step in comparable and key not in baseline]
+    new = [entry for (step, key), entry in candidate.items()
+           if step in comparable and key not in baseline.get(step, set())]
     unknown = [entry for (step, key), entry in candidate.items() if step not in comparable]
     note = 'Compared equivalent completed build steps against {}. Source line/column shifts are ignored.'.format(ref)
     if ref != 'main':
@@ -252,13 +258,18 @@ def diagnostic_sections():
     sections += detail_sections('All warnings ({})'.format(len(warnings)), '\n\n'.join(warnings) or 'No warnings found in captured logs.')
     sections += detail_sections('All errors ({})'.format(len(errors)), '\n\n'.join(errors) or 'No recognised error lines in captured logs; see failure details for command exits and infrastructure failures.')
     sections += detail_sections('Captured logs ({})'.format(len(paths)), '\n'.join(paths) or 'No command logs were produced before this run ended.')
+    if summary_output:
+        with open(summary_output, 'w', encoding='utf-8') as stream:
+            json.dump({'warnings': len(warnings), 'new_warnings': len(new) if comparable else None,
+                       'unclassified_warnings': len(unknown), 'errors': len(errors),
+                       'captured_logs': len(paths)}, stream)
     return sections
 
 
 def report_pages(summary, sections, context):
     pages, current = [], summary
     for section in sections:
-        if len(current) + len(section) + 2 > COMMENT_LIMIT:
+        if len((current + '\n\n' + section).encode('utf-8')) > COMMENT_LIMIT:
             pages.append(current)
             current = MARKER_FORMAT.format(context + '/part-{}'.format(len(pages) + 1)) + '\n\n### CI diagnostics (continued)'
         current += '\n\n' + section
@@ -340,8 +351,11 @@ def status_description(result, stage, unit_fail, unit_failing, regression_files)
     """One line for the GitHub status: name what failed, or what passed."""
     if result == "success":
         return "Passed: unit tests and C regressions."
-    if result == "error":
-        return "Aborted or errored at stage: {}.".format(stage)
+    if result == "pending":
+        return "Running: {}.".format(stage)
+    if result in ("error", "cancelled", "timed_out"):
+        return "{} at stage: {}.".format(
+            {'error': 'Errored', 'cancelled': 'Cancelled', 'timed_out': 'Timed out'}[result], stage)
     if unit_fail:
         by_layer = {}
         for item in unit_failing:
@@ -405,7 +419,8 @@ def build_report(args):
     selection = read_kv("ci-selection.txt")
     preflight = read_kv("ci-baseline-preflight.txt")
     cache = read_kv("ci-baseline-cache.txt")
-    candidate = read_text("ci-candidate-commit.txt").strip() or first(preflight, "candidate_commit")
+    candidate = (read_text("ci-candidate-commit.txt").strip() or first(preflight, "candidate_commit")
+                 or os.environ.get("CI_REPORT_COMMIT", ""))
     baseline = read_text("ci-baseline-commit.txt").strip() or first(preflight, "baseline_commit")
     failure = read_kv("ci-failure-summary.txt")
     build_number = os.environ.get("BUILD_NUMBER", "?")
@@ -425,8 +440,12 @@ def build_report(args):
     # dead for everyone but the machine owner. The build number is what that
     # owner needs to fetch artifacts (see the footer).
     finished = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-    meta.append("**Run:** {} build #{} on {}, finished {}".format(
-        code(args.platform), build_number, code(node), finished))
+    meta.append("**Run:** {} build #{} on {}, {} {}".format(
+        code(args.platform), build_number, code(node),
+        'updated' if args.result == 'pending' else 'finished', finished))
+    if os.environ.get('CI_QUEUE_ID'):
+        meta.append('**Jenkins queue:** #' + os.environ['CI_QUEUE_ID'])
+    parts.append('**Status context:** ' + code(args.context))
     if preflight:
         behind = first(preflight, "behind_by", "?")
         override = first(preflight, "override", "false")
@@ -437,8 +456,10 @@ def build_report(args):
             first(cache, "status", "unknown"), code(short(first(cache, "baseline_commit", baseline)))))
     parts.append("  \n".join(meta))
 
-    stage = first(failure, "stage", "unknown")
-    if args.result != "success":
+    stage = first(failure, "stage", os.environ.get('CI_FAILURE_STAGE', 'unknown'))
+    if args.result == 'pending':
+        parts.append('**Current stage:** ' + stage)
+    elif args.result != "success":
         message = re.sub(r"^(?:[A-Za-z_$][\w$]*\.)+[A-Z]\w*(?:Exception|Error): ", "", first(failure, "message", ""))
         parts.append("**Failed at stage:** {}{}".format(stage, " — " + message if message else ""))
         parts.extend(failure_sections())
@@ -465,11 +486,17 @@ def build_report(args):
     parts.append("_Full raw logs and regression databases stay on that machine; its owner can fetch them with "
                  "`./ci/jenkins/gkeyll-ci.sh {} artifact --build {} --fetch`._".format(args.platform, build_number))
 
+    progress = read_text('ci-stage-history.txt').strip()
+    if progress:
+        parts += detail_sections('Stage history (UTC)', progress)
+    for path in sorted(glob.glob('slurm-*-job-status.txt')):
+        parts += detail_sections('Slurm allocation: ' + path, read_text(path))
+
     summary_sections = []
     for part in parts[1:]:
-        summary_sections.extend([part] if len(part) <= 48000 else
+        summary_sections.extend([part] if len(part.encode('utf-8')) <= 48000 else
                                 detail_sections('Extended CI summary (Markdown)', part))
-    pages = report_pages(parts[0], summary_sections + diagnostic_sections(), args.context)
+    pages = report_pages(parts[0], summary_sections + diagnostic_sections('ci-diagnostic-summary.json'), args.context)
     with open(args.output + '.json', 'w', encoding='utf-8') as f:
         json.dump(pages, f)
     report = '\n\n'.join(pages)
@@ -478,6 +505,12 @@ def build_report(args):
     print("Wrote {} ({} characters)".format(args.output, len(report)))
     line = status_description(args.result, stage, unit_fail, unit_failing,
                               ["ci-regression-summary.txt", "ci-parallel-regression-summary.txt"])
+    diagnostics = json.loads(read_text('ci-diagnostic-summary.json'))
+    if diagnostics['warnings']:
+        if diagnostics['new_warnings'] is None:
+            line += ' Warning comparison unavailable.'
+        elif diagnostics['new_warnings']:
+            line += ' {} new warning(s).'.format(diagnostics['new_warnings'])
     with open("ci-status-description.txt", "w", encoding="utf-8") as f:
         f.write(line + "\n")
     print("Status description: " + line)
@@ -485,7 +518,17 @@ def build_report(args):
 
 # ---- publish ---------------------------------------------------------------
 
+class GitHubError(RuntimeError):
+    def __init__(self, method, status, retryable=False):
+        super().__init__('GitHub {} failed: HTTP {}'.format(method, status))
+        self.retryable = retryable
+
+
 def api(method, url, token, payload=None):
+    # Pagination links must never redirect the credential to another host.
+    parsed = urllib.parse.urlsplit(url)
+    if parsed.scheme != 'https' or parsed.netloc != 'api.github.com':
+        raise ValueError('Unexpected GitHub API URL')
     data = json.dumps(payload).encode() if payload is not None else None
     request = urllib.request.Request(url, data=data, method=method, headers={
         "Accept": "application/vnd.github+json",
@@ -495,13 +538,26 @@ def api(method, url, token, payload=None):
         "User-Agent": "gkeyll-ci-report",
     })
     try:
-        with urllib.request.urlopen(request, timeout=45) as response:
+        with urllib.request.urlopen(request, timeout=25) as response:
             body = response.read().decode("utf-8", "replace")
-            link = response.headers.get("Link", "")
-            return (json.loads(body) if body else None), link
+            return (json.loads(body) if body else None), response.headers.get("Link", "")
     except urllib.error.HTTPError as err:
-        body = err.read().decode("utf-8", "replace")[:500]
-        sys.exit("GitHub API {} {} failed: HTTP {} {}".format(method, url, err.code, body))
+        # Response bodies can contain private data; archive only method/status.
+        raise GitHubError(method, err.code, err.code in (408, 429, 500, 502, 503, 504)) from None
+    except (OSError, TimeoutError):
+        raise OSError('GitHub {} request failed (network or timeout)'.format(method)) from None
+
+
+def retry(operation):
+    # Retry the entire operation, including comment discovery. If a POST was
+    # accepted before a connection failed, the next attempt updates that comment.
+    for attempt in range(3):
+        try:
+            return operation()
+        except (GitHubError, OSError) as err:
+            if attempt == 2 or (isinstance(err, GitHubError) and not err.retryable):
+                raise
+            time.sleep(2 ** attempt)
 
 
 def next_link(link_header):
@@ -512,62 +568,180 @@ def next_link(link_header):
     return None
 
 
-def publish_report(args):
-    token = os.environ.get("GITHUB_TOKEN")
+def run_metadata(args):
+    return dict(commit=args.commit, queue_id=getattr(args, 'queue_id', '') or os.environ.get('CI_QUEUE_ID', ''),
+                build_id=os.environ.get('BUILD_TAG', ''), job=os.environ.get('JOB_NAME', ''),
+                build_number=os.environ.get('BUILD_NUMBER', ''), result=getattr(args, 'result', ''))
+
+
+def comment_metadata(body):
+    match = re.search(r'^<!-- gkeyll-ci-run (.+) -->$', body, re.M)
+    try:
+        value = json.loads(match.group(1)) if match else {}
+        return value if isinstance(value, dict) else {}
+    except ValueError:
+        return {}
+
+
+def superseded(previous, current):
+    """Queue IDs increase on a controller; contexts must be unique per machine."""
+    before, after = str(previous.get('queue_id', '')), str(current.get('queue_id', ''))
+    if before.isdigit() and after.isdigit():
+        return int(before) > int(after)
+    before, after = str(previous.get('build_number', '')), str(current.get('build_number', ''))
+    return (bool(current.get('job')) and previous.get('job') == current['job'] and
+            before.isdigit() and after.isdigit() and int(before) > int(after))
+
+
+def publish_report(args, token=None):
+    token = token or os.environ.get("GITHUB_TOKEN")
     if not token:
-        sys.exit("GITHUB_TOKEN is not set")
+        raise ValueError("GITHUB_TOKEN is not set")
     if not args.pr and not args.commit and args.ref:
         commit, _ = api('GET', '{}/repos/{}/commits/{}'.format(
             API, args.repo, urllib.parse.quote(args.ref, safe='')), token)
         args.commit = commit.get('sha', '')
     if not args.pr and not re.fullmatch(r"[0-9a-fA-F]{40}", args.commit):
-        sys.exit("--commit must be a full 40-character SHA")
+        raise ValueError("--commit must be a full 40-character SHA")
     body = read_text(args.report)
     marker = MARKER_FORMAT.format(args.context)
-    if marker not in body:
-        sys.exit("report {} does not carry the marker for context {}".format(args.report, args.context))
-    repo = args.repo
-
+    if not body.startswith(marker + '\n'):
+        raise ValueError('Report does not carry the expected context marker')
+    base = '{}/repos/{}'.format(API, args.repo)
     if args.pr:
-        list_url = "{}/repos/{}/issues/{}/comments".format(API, repo, args.pr)
-        update_url = "{}/repos/{}/issues/comments/{{}}".format(API, repo)
-        target = "PR #{}".format(args.pr)
+        list_url = base + '/issues/{}/comments'.format(args.pr)
+        update_url = base + '/issues/comments/{}'
     else:
-        list_url = "{}/repos/{}/commits/{}/comments".format(API, repo, args.commit)
-        update_url = "{}/repos/{}/comments/{{}}".format(API, repo)
-        target = "commit {}".format(short(args.commit))
+        list_url = base + '/commits/{}/comments'.format(args.commit)
+        update_url = base + '/comments/{}'
 
     pages_path = args.report + '.json'
     pages = json.loads(read_text(pages_path)) if os.path.isfile(pages_path) else [body]
     if not isinstance(pages, list) or not pages:
-        sys.exit('Report has no pages')
+        raise ValueError('Report has no pages')
     markers = [MARKER_FORMAT.format(args.context if i == 0 else args.context + '/part-{}'.format(i + 1))
                for i in range(len(pages))]
     for page, page_marker in zip(pages, markers):
-        if not isinstance(page, str) or page_marker not in page or len(page) > COMMENT_LIMIT:
-            sys.exit('Invalid or oversized report page')
-    # List once, including older overflow pages so shorter later runs cannot
-    # leave stale errors and warnings on the PR.
+        if not isinstance(page, str) or not page.startswith(page_marker + '\n') or len(page.encode('utf-8')) > COMMENT_LIMIT:
+            raise ValueError('Invalid or oversized report page')
+    # Never edit a contributor's comment just because it quotes a report marker.
+    user, _ = api('GET', API + '/user', token)
     comments = []
     url = list_url + '?per_page=100'
     while url:
         batch, link = api('GET', url, token)
-        comments.extend(batch or [])
+        comments.extend(c for c in batch or [] if c.get('user', {}).get('id') == user['id'])
         url = next_link(link)
-    for page, page_marker in zip(pages, markers):
-        existing = next((c['id'] for c in comments if page_marker in (c.get('body') or '')), None)
+    metadata = run_metadata(args)
+    main = next((c for c in reversed(comments) if (c.get('body') or '').startswith(marker + '\n')), None)
+    if main and superseded(comment_metadata(main['body']), metadata):
+        print('A newer run owns the current report; this report remains in Jenkins artifacts.')
+        return {'skipped': True, 'html_url': ''}
+
+    published = {}
+    # Publish continuations first so a completed main report never points to
+    # missing diagnostics. Reuse those comments and clear obsolete pages.
+    for index in reversed(range(len(pages))):
+        page, page_marker = pages[index], markers[index]
+        existing = next((c for c in reversed(comments) if (c.get('body') or '').startswith(page_marker + '\n')), None)
+        content = page.replace(page_marker, page_marker + '\n' + RUN_MARKER.format(json.dumps(metadata)), 1)
+        if index > 0 and index + 1 in published:
+            content += '\n\n[Next diagnostics page]({})'.format(published[index + 1]['html_url'])
+        if index == 0 and published:
+            navigation = '\n\n**More diagnostics:** ' + ' · '.join(
+                '[Part {}]({})'.format(i + 1, published[i]['html_url']) for i in sorted(published))
+            if len((content + navigation).encode('utf-8')) > 65000:
+                navigation = '\n\n[Continue diagnostics]({}) ({} more pages).'.format(
+                    published[1]['html_url'], len(published))
+            content += navigation
+        if len(content.encode('utf-8')) > 65000:
+            raise ValueError('Report page exceeds the publication limit after adding metadata')
         result, _ = api('PATCH' if existing else 'POST',
-                        update_url.format(existing) if existing else list_url, token, {'body': page})
-        print('Published CI report on {}: {}'.format(target, (result or {}).get('html_url', '')))
+                        update_url.format(existing['id']) if existing else list_url, token, {'body': content})
+        published[index] = result
     prefix = MARKER_FORMAT.format(args.context + '/part-').split('" -->')[0]
     for comment in comments:
         old = comment.get('body') or ''
-        if prefix in old and not any(m in old for m in markers):
-            old_marker = re.search(re.escape(prefix) + r'\d+" -->', old)
+        if old.startswith(prefix) and not any(old.startswith(m + '\n') for m in markers):
+            old_marker = re.match(re.escape(prefix) + r'\d+" -->', old)
             if old_marker:
-                api('PATCH', update_url.format(comment['id']), token,
-                    {'body': old_marker.group() + '\n\nDiagnostics for this part were cleared by the latest CI run; see the main report.'})
+                api('PATCH', update_url.format(comment['id']), token, {'body': old_marker.group() +
+                    '\n\nThis continuation is no longer needed; see the [current report]({}).'.format(published[0]['html_url'])})
+    print('Published CI report: ' + published[0]['html_url'])
+    return published[0]
 
+
+def latest_status(args, token):
+    url = '{}/repos/{}/commits/{}/status?per_page=100'.format(API, args.repo, args.commit)
+    while url:
+        response, link = api('GET', url, token)
+        current = next((s for s in response['statuses'] if s['context'] == args.context), None)
+        if current:
+            return current
+        url = next_link(link)
+    return None
+
+
+def publish_status(args, token, target_url='', report_failed=False):
+    state = {'cancelled': 'error', 'timed_out': 'error'}.get(args.result, args.result)
+    description = args.description or status_description(args.result, args.stage, 0, [], [])
+    suffix = ' (Jenkins queue #{}).'.format(args.queue_id) if args.queue_id else ''
+    if args.result == 'pending':
+        description = 'Gkeyll CI running: ' + (description[9:] if description.startswith('Running: ') else description)
+    if report_failed:
+        suffix = '; report unavailable' + suffix
+    description = description[:140 - len(suffix)] + suffix
+    current = latest_status(args, token)
+    owner = re.search(r' \(Jenkins queue #(\d+)\)\.$', (current or {}).get('description') or '')
+    if owner and args.queue_id.isdigit():
+        if int(owner.group(1)) > int(args.queue_id):
+            return {'skipped': True}
+        if owner.group(1) == args.queue_id and current['state'] != 'pending' and state == 'pending':
+            return {'skipped': True}
+    payload = {'state': state, 'context': args.context, 'description': description}
+    # Controllers are loopback-only. Always link to a GitHub page people can read.
+    payload['target_url'] = target_url or (current or {}).get('target_url') or \
+        'https://github.com/{}/commit/{}'.format(args.repo, args.commit)
+    if current and all(current.get(k) == v for k, v in payload.items()):
+        return current
+    return api('POST', '{}/repos/{}/statuses/{}'.format(API, args.repo, args.commit), token, payload)[0]
+
+
+def update_report(args):
+    delivery = dict(commit=args.commit, context=args.context, queue_id=args.queue_id,
+                    comment=False, status=False, errors=[])
+    try:
+        token = os.environ.get('GITHUB_TOKEN')
+        if not token:
+            raise ValueError('GITHUB_TOKEN is not set')
+        if not re.fullmatch(r'[0-9a-f]{40}', args.commit):
+            raise ValueError('Reporting requires the exact candidate commit SHA')
+        target = ''
+        # Stage progress uses statuses. One comment is updated at completion,
+        # avoiding a stream of PR notifications for every command or heartbeat.
+        if args.result != 'pending':
+            try:
+                comment = retry(lambda: publish_report(args, token))
+                delivery['comment'] = not comment.get('skipped', False)
+                delivery['comment_skipped'] = comment.get('skipped', False)
+                target = comment.get('html_url', '')
+                delivery['report_url'] = target
+            except (RuntimeError, OSError, ValueError) as err:
+                delivery['errors'].append('Comment: ' + str(err))
+        try:
+            status = retry(lambda: publish_status(args, token, target, bool(delivery['errors'])))
+            delivery['status'] = not status.get('skipped', False)
+            delivery['status_skipped'] = status.get('skipped', False)
+        except (RuntimeError, OSError, ValueError) as err:
+            delivery['errors'].append('Commit status: ' + str(err))
+    except (RuntimeError, OSError, ValueError) as err:
+        delivery['errors'].append(str(err))
+    finally:
+        with open('ci-report-delivery.json', 'w', encoding='utf-8') as stream:
+            json.dump(delivery, stream, indent=2)
+    if delivery['errors']:
+        raise RuntimeError('CI reporting incomplete: ' + '; '.join(delivery['errors']) +
+                           '; see ci-report-delivery.json')
 
 
 # ---- main ------------------------------------------------------------------
@@ -593,9 +767,26 @@ def main(argv):
     publish.add_argument("--repo", default=DEFAULT_REPO)
     publish.set_defaults(func=publish_report)
 
+    update = sub.add_parser('update', help='publish commit status and the completed PR/commit report')
+    update.add_argument('--report', default='ci-report.md')
+    update.add_argument('--commit', required=True)
+    update.add_argument('--context', required=True)
+    update.add_argument('--platform', required=True)
+    update.add_argument('--result', required=True, choices=sorted(STATE_LABEL))
+    update.add_argument('--description', default='')
+    update.add_argument('--stage', default=os.environ.get('CI_FAILURE_STAGE', 'starting'))
+    update.add_argument('--pr', default='')
+    update.add_argument('--ref', default='')
+    update.add_argument('--repo', default=DEFAULT_REPO)
+    update.add_argument('--queue-id', default=os.environ.get('CI_QUEUE_ID', ''))
+    update.set_defaults(func=update_report)
+
     args = parser.parse_args(argv)
     args.func(args)
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    try:
+        main(sys.argv[1:])
+    except (RuntimeError, OSError, ValueError) as err:
+        sys.exit('ERROR: ' + str(err))
