@@ -75,6 +75,8 @@ def publish(String result, String description = '', boolean detailed = false) {
 }
 
 def progress(String description) {
+    // The controller polls this independently of the agent's long shell steps.
+    env.CI_PROGRESS_STAGE = description.replaceFirst(/^Running: /, '').replaceFirst(/\.$/, '')
     try { publish('pending', description) }
     catch (err) {
         if (err.toString().contains('FlowInterruptedException')) throw err

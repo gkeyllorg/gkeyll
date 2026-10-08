@@ -158,25 +158,15 @@ local runTolerance = nil
 local isConfiguring = false
 local configVals    = nil
 
--- Path of the configuration file written by 'configure' and read by 'run'.
--- Preferred location: <prefix>/gkeyll-results/runregression.config.lua, derived
--- from config.mak (same logic as prefix auto-detection in config_action).
--- Falls back to ~/runregression.config.lua for backwards compatibility.
+-- Keep configuration local to the executable's installation, even when
+-- config.mak uses Make expressions/overrides or a separate dependency PREFIX.
+-- A custom --prefix changes the results location stored in this file, not
+-- where later invocations look for the file itself.
+local installPrefix = GKYL_EXEC_PATH and GKYL_EXEC_PATH:match("^(.+)/gkeyll/bin/?$")
 local function computeConfFile()
-   local gkeyllDir = GKYL_EXEC_PATH and GKYL_EXEC_PATH:match("^(.+)/bin$")
-   if gkeyllDir then
-      local mf = io.open(gkeyllDir .. "/share/config.mak", "r")
-      if mf then
-         for line in mf:lines() do
-            local p = line:match("^PREFIX%s*=%s*(.+)%s*$")
-            if p then
-               mf:close()
-               return p .. "/gkeyll-results/runregression.config.lua",
-                      p .. "/gkeyll-results"
-            end
-         end
-         mf:close()
-      end
+   if installPrefix then
+      return installPrefix .. "/gkeyll-results/runregression.config.lua",
+             installPrefix .. "/gkeyll-results"
    end
    return os.getenv("HOME") .. "/runregression.config.lua", nil
 end
@@ -551,15 +541,15 @@ local function configure(prefix, mpiExec, mpiArgs, sourceDir, args)
    -- 'run', 'check', 'list', etc. invocations.
    -- 'prefix' is stored so that runCTest can locate share/Makefile for
    -- compiling C regression tests on-the-fly.
-   local fn = io.open(confFile, "w")
-   fn:write("return {\n")
-   fn:write(string.format("  mpiExec     = \"%s\",\n", mpiExec))
-   fn:write(string.format("  mpiArgs     = \"%s\",\n", mpiArgs or ""))
-   fn:write(string.format("  prefix      = \"%s\",\n", prefix))
-   fn:write(string.format("  results_dir = \"%s\",\n", resultsDir))
-   fn:write(string.format("  source_dir  = \"%s\",\n", sourceDir))
-   fn:write("}\n")
-   fn:close()
+   if confFileResultsDir then mkdir(confFileResultsDir) end
+   local fn, err = io.open(confFile, "w")
+   assert(fn, string.format("Unable to write regression configuration '%s': %s",
+      confFile, err or ""))
+   assert(fn:write(string.format(
+      "return {\n  mpiExec = %q,\n  mpiArgs = %q,\n  prefix = %q,\n"
+      .. "  results_dir = %q,\n  source_dir = %q,\n}\n",
+      mpiExec, mpiArgs or "", prefix, resultsDir, sourceDir)))
+   assert(fn:close())
    log(string.format("Configuration written to %s\n", confFile))
 end
 
@@ -1878,22 +1868,8 @@ local function config_action(args, name)
 
    local prefix = args.config_prefix
    if not prefix then
-      -- Auto-detect from the installed config.mak.
-      -- GKYL_EXEC_PATH is the bin dir (e.g. ~/gkylsoft/gkeyll/bin);
-      -- config.mak lives one level up in share/.
-      local gkeyllDir = GKYL_EXEC_PATH:match("^(.+)/bin$")
-      if gkeyllDir then
-         local mf = io.open(gkeyllDir .. "/share/config.mak", "r")
-         if mf then
-            for line in mf:lines() do
-               local p = line:match("^PREFIX%s*=%s*(.+)%s*$")
-               if p then prefix = p; break end
-            end
-            mf:close()
-         end
-      end
-      prefix = prefix or (os.getenv("HOME") .. "/gkylsoft")
-      log(string.format("Auto-detected prefix from config.mak: %s\n", prefix))
+      prefix = installPrefix or (os.getenv("HOME") .. "/gkylsoft")
+      log(string.format("Auto-detected installation prefix: %s\n", prefix))
    end
 
    local mpiexec = args.config_mpiexec
@@ -2569,7 +2545,7 @@ different machines that share the regression-results directory.
 parser:flag("-v --verbose", "Print verbose messages as tests are run")
 
 -- 'configure' command ---------------------------------------------------------
--- Sets up directories, databases, and writes ~/runregression.config.lua.
+-- Sets up directories, databases, and writes the installation's configuration.
 local c_conf = parser:command("configure", "Configure regression tests")
    :action(config_action)
 
@@ -2580,7 +2556,7 @@ c_conf:option("-s --source-dir",
    :target("config_source_dir")
 c_conf:option("-p --prefix",
    "Where to write gkeyll-results/.\n"
-   .. "Auto-detected from config.mak if omitted.")
+   .. "Defaults to the executable's installation prefix.")
    :target("config_prefix")
 c_conf:option("-m --mpiexec",
    "Full path to MPI launcher used by --parallel.")

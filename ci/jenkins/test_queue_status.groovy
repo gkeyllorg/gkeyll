@@ -89,15 +89,24 @@ Thread.start('gkeyll-queue-integration-tests') {
     }
     def passed = { String label -> checks++; println("PASS: ${label}") }
     try {
-        assert service.runningDescription(42L, 29L * 60000, 139L * 60000) ==
-            'Gkeyll CI running: started 29 m ago; ~20%; est. remaining 1 hr 50 m (Jenkins queue #42).'
+        assert service.queuedDescription(304L, 4) ==
+            'Gkeyll CI queued: waiting behind 3 other jobs (Jenkins ID 304).'
+        assert service.queuedDescription(304L, 2).contains('waiting behind 1 other job (')
+        assert service.queuedDescription(304L, 1).contains('no jobs ahead; waiting for an executor')
+        assert service.ownsQueuedStatus([state: 'pending', description: service.queuedDescription(304L, 4)], 304L)
+        assert !service.ownsQueuedStatus([state: 'pending', description: service.queuedDescription(304L, 4)], 303L)
+        assert service.ownsQueuedStatus([state: 'pending', description:
+            'Gkeyll CI queued: position 4 of 10 (Jenkins queue #304).'], 304L)
+        passed('queue descriptions count other waiting jobs, independently of the submission ID')
+        assert service.runningDescription(42L, 29L * 60000, 139L * 60000, 'candidate unit build', 11) ==
+            'Gkeyll CI running: candidate unit build; elapsed 29 m; ETA ~1 hr 50 m (Jenkins build #11; ID 42).'
         assert service.runningDescription(42L, 60000L, -1L).contains('ETA unavailable')
         assert service.runningDescription(42L, 60000L, 0L).contains('ETA unavailable')
-        assert service.runningDescription(42L, 60000L, 60000L).contains('exceeded estimate')
+        assert service.runningDescription(42L, 60000L, 60000L).contains('estimate exceeded')
         assert !service.runningDescription(42L, 120000L, 60000L).contains('100%')
-        assert service.runningDescription(42L, -1L, 60000L).contains('started 0 m ago; ~0%')
+        assert service.runningDescription(42L, -1L, 60000L).contains('elapsed 0 m; ETA ~1 m')
         def staged = service.runningDescription(42L, 29L * 60000, 139L * 60000, 'A very long stage name ' * 4)
-        assert staged.size() <= 140 && staged.contains('est. remaining 1 hr 50 m')
+        assert staged.size() <= 140 && staged.contains('ETA ~1 hr 50 m')
         assert service.runningDescription(Long.MAX_VALUE, Long.MAX_VALUE, 1L).size() <= 140
         assert service.ownsRunningStatus([state: 'pending', description:
             service.runningDescription(Long.MAX_VALUE, Long.MAX_VALUE, 1L)], Long.MAX_VALUE)
@@ -153,15 +162,15 @@ Thread.start('gkeyll-queue-integration-tests') {
         assert jenkins.queue.items.size() == 4
         passed('repeated automatic submissions still coalesce into one Jenkins queue item')
 
-        assert statuses['1' * 40 + ':' + contexts[0]].description.contains('position 1 of 1')
+        assert statuses['1' * 40 + ':' + contexts[0]].description.contains('no jobs ahead')
         heads['40'] = '40' * 20
         def laterJob = create(team, 'PR-40', "echo 'BUILD_EXECUTED'")
         def later = submit(laterJob, 600, [:])
         pending(later, '40' * 20, contexts[3])
         service.refreshPositions()
-        assert statuses['4' * 40 + ':' + contexts[3]].description.contains('position 1 of 2')
-        assert statuses['40' * 20 + ':' + contexts[3]].description.contains('position 2 of 2')
-        assert statuses['1' * 40 + ':' + contexts[0]].description.contains('position 1 of 1')
+        assert statuses['4' * 40 + ':' + contexts[3]].description.contains('no jobs ahead')
+        assert statuses['40' * 20 + ':' + contexts[3]].description.contains('waiting behind 1 other job (')
+        assert statuses['1' * 40 + ':' + contexts[0]].description.contains('no jobs ahead')
         def posts = calls.count { it.method == 'POST' }
         service.refreshPositions()
         assert calls.count { it.method == 'POST' } == posts
@@ -209,7 +218,7 @@ Thread.start('gkeyll-queue-integration-tests') {
         def dispatcher = ExtensionList.lookup(hudson.model.queue.QueueTaskDispatcher)
             .find { it.class.simpleName == 'GkeyllQueueDispatcher' }
         assert dispatcher.canRun(jenkins.queue.getItem(later.id)) != null
-        assert calls.last().body.description.contains('position 1 of 1')
+        assert calls.last().body.description.contains('no jobs ahead')
         assert jenkins.queue.cancel(jenkins.queue.getItem(later.id))
         controls.positionGate.countDown()
         refreshing.join(30000)
@@ -266,7 +275,7 @@ Thread.start('gkeyll-queue-integration-tests') {
         assert statuses['5' * 40 + ':' + contexts[3]].state == 'pending'
         service.refreshPositions()
         assert service.queuePositions()[waitRun.queueId].position == 1
-        assert statuses['5' * 40 + ':' + contexts[3]].description.contains('position 1 of 1')
+        assert statuses['5' * 40 + ':' + contexts[3]].description.contains('no jobs ahead')
         service.refreshRunning()
         assert service.ownsQueuedStatus(statuses['5' * 40 + ':' + contexts[3]], waitRun.queueId)
         heads['5'] = 'f' * 40
@@ -290,12 +299,42 @@ Thread.start('gkeyll-queue-integration-tests') {
         service.refreshRunning()
         assert calls.count { it.method == 'POST' } == posts
         def runningKey = '6' * 40 + ':' + contexts[3]
+        // Reproduce the production failure: scheduled executor threads are
+        // anonymous, while secured controllers hide their jobs from that user.
+        def authorization = jenkins.authorizationStrategy
+        def secured = new hudson.security.FullControlOnceLoggedInAuthorizationStrategy()
+        secured.setAllowAnonymousRead(false)
+        jenkins.setAuthorizationStrategy(secured)
+        def anonymous = hudson.security.ACL.as2(Jenkins.ANONYMOUS2)
+        try {
+            assert jenkins.getAllItems(Job).empty
+            statuses[runningKey] = [state: 'pending', context: contexts[3], description:
+                "Gkeyll CI running: candidate unit build. (Jenkins queue #${running.lastBuild.queueId})."]
+            service.sweep()
+            assert statuses[runningKey].description.contains('candidate unit build; elapsed ')
+            assert statuses[runningKey].description.contains('ETA unavailable')
+            assert statuses[runningKey].description.contains("Jenkins build #${running.lastBuild.number}; ID ")
+            assert !statuses[runningKey].description.contains('queue')
+            assert jenkins.getAllItems(Job).empty // Authentication is restored.
+        } finally {
+            anonymous.close()
+            jenkins.setAuthorizationStrategy(authorization)
+        }
+        def environment = org.jenkinsci.plugins.workflow.cps.EnvActionImpl.forRun(running.lastBuild)
+        environment.setProperty('CI_FAILURE_STAGE', 'Build candidate')
+        environment.setProperty('CI_PROGRESS_STAGE', 'candidate regression build')
+        service.sweep()
+        assert statuses[runningKey].description.contains('candidate regression build; elapsed ')
+        environment.setProperty('CI_PROGRESS_STAGE', 'candidate install')
+        service.sweep()
+        assert statuses[runningKey].description.contains('candidate install; elapsed ')
+        passed('secured-controller sweeps publish Jenkins timing and follow command changes during running builds')
         def savedProgress = statuses[runningKey]
         statuses[runningKey] = [state: 'success', context: contexts[3], description: 'Detailed terminal status']
         service.refreshRunning()
         assert statuses[runningKey].description == 'Detailed terminal status'
         statuses[runningKey] = [state: 'pending', context: contexts[3],
-            description: service.queuedDescription(running.lastBuild.queueId + 1, 1, 1)]
+            description: service.queuedDescription(running.lastBuild.queueId + 1, 1)]
         service.refreshRunning()
         assert service.ownsQueuedStatus(statuses[runningKey], running.lastBuild.queueId + 1)
         statuses[runningKey] = savedProgress + [description: "Gkeyll CI running: starting (Jenkins queue #${running.lastBuild.queueId})."]
@@ -360,7 +399,7 @@ Thread.start('gkeyll-queue-integration-tests') {
         assert lateCompletion.get(30, TimeUnit.SECONDS).result == Result.FAILURE
         await('late failure status corrected') { statuses[heads['74'] + ':' + contexts[3]]?.state == 'failure' }
         assert statuses[heads['74'] + ':' + contexts[3]].description.contains('failed after the test report')
-        assert statuses[heads['74'] + ':' + contexts[3]].description.endsWith(" (Jenkins queue #${lateFailure.lastBuild.queueId}).")
+        assert statuses[heads['74'] + ':' + contexts[3]].description.endsWith(service.runSuffix(lateFailure.lastBuild.queueId, lateFailure.lastBuild.number))
         assert statuses[heads['74'] + ':' + contexts[3]].target_url == 'https://github.com/report/74'
         passed('post-report archival or cleanup failures cannot leave a green status')
 

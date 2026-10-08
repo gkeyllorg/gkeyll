@@ -19,6 +19,7 @@ def loadReporting(Map settings) {
                 git fetch --quiet --depth 1 https://github.com/gkeyllorg/gkeyll.git "$CI_TRUSTED_REPORT_REF"
                 git show FETCH_HEAD:ci/jenkins/jenkins_reporting.groovy > jenkins_reporting.groovy
                 git show FETCH_HEAD:ci/jenkins/github_report.py > github_report.py
+                git show FETCH_HEAD:ci/jenkins/prebuilt_config.py > prebuilt_config.py
                 git show FETCH_HEAD:ci/jenkins/baseline_cache.sh > baseline_cache.sh
                 chmod +x baseline_cache.sh
             '''
@@ -26,6 +27,7 @@ def loadReporting(Map settings) {
         settings.reportingCommit = sh(returnStdout: true, script: 'git rev-parse FETCH_HEAD').trim()
         settings.cacheScript = pwd() + '/baseline_cache.sh'
         reporting = load('jenkins_reporting.groovy')
+        settings.prebuiltScript = pwd() + '/prebuilt_config.py'
         reporting.configure(settings)
     }
 }
@@ -45,8 +47,12 @@ if (env.CI_TEAM_WORKSTATION_BOOTSTRAPPED != 'true') {
     ciParameters += [string(name: 'CI_REF', defaultValue: '', trim: true,
         description: 'CI implementation branch or full SHA; blank uses GKEYLL_CI_TRUSTED_REF, then main. Independent of the candidate.')]
 }
+def buildsToKeep = env.GKEYLL_CI_BUILDS_TO_KEEP?.trim() ?: ''
+if (buildsToKeep && !(buildsToKeep ==~ /[1-9][0-9]*/)) {
+    error('GKEYLL_CI_BUILDS_TO_KEEP must be a positive build count, or empty for no limit.')
+}
 def jobProperties = [
-    buildDiscarder(logRotator(numToKeepStr: '20', artifactNumToKeepStr: '20')),
+    buildDiscarder(logRotator(numToKeepStr: buildsToKeep, artifactNumToKeepStr: buildsToKeep)),
     disableConcurrentBuilds(),
     parameters(ciParameters)
 ]
@@ -195,25 +201,35 @@ def usePrebuiltConfig(String prefix) {
     if (!source.startsWith('/') || !fileExists(source)) {
         error('GKEYLL_CI_PREBUILT_CONFIG must name an existing absolute config.mak path on the agent.')
     }
-    def config = readFile(file: source)
-    if (!(config =~ /(?m)^PREFIX\s*[:?]?=/)) {
-        error('Prebuilt config.mak must define PREFIX and the paths for its dependencies.')
+    if (!env.CI_RUN_DIR?.trim()) error('CI_RUN_DIR must be prepared before copying dependencies.')
+    def launcher = env.PERSONAL_MPIEXEC?.trim()
+        ?: (env.PERSONAL_MPI_HOME?.trim() ? "${env.PERSONAL_MPI_HOME.trim()}/bin/mpiexec" : '')
+    def runtime
+    withEnv(["CI_PREBUILT_SOURCE=${source}", "CI_PREBUILT_PREFIX=${prefix}",
+             "CI_PREBUILT_DEPENDENCIES=${env.CI_RUN_DIR}/dependencies",
+             "CI_PREBUILT_SCRIPT=${reporting.settings.prebuiltScript}",
+             "CI_PREBUILT_MPIEXEC=${launcher}"]) {
+        runtime = new groovy.json.JsonSlurperClassic().parseText(sh(returnStdout: true, script: '''#!/bin/bash
+            set -euo pipefail
+            python3 -I "$CI_PREBUILT_SCRIPT" --config "$CI_PREBUILT_SOURCE" \
+                --prefix "$CI_PREBUILT_PREFIX" --dependencies "$CI_PREBUILT_DEPENDENCIES" \
+                --mpiexec "$CI_PREBUILT_MPIEXEC"
+        '''))
     }
-    // Preserve dependency expressions relative to the original PREFIX, while
-    // installing and linking Gkeyll itself exclusively inside this build.
-    config = config.replaceAll(/(?m)^PREFIX(?=\s*[:?]?=)/, 'GKEYLL_CI_DEPENDENCY_PREFIX')
-    config = config.replace('$(PREFIX)', '$(GKEYLL_CI_DEPENDENCY_PREFIX)')
-        .replace('${PREFIX}', '${GKEYLL_CI_DEPENDENCY_PREFIX}')
-    config += "\n# Jenkins workspace installation\noverride PREFIX := ${prefix}\noverride INSTALL_PREFIX := ${prefix}\n"
-    writeFile file: 'config.mak', text: config
-    // configure normally creates this second file too. Build before installing,
-    // including with parallel make, and reuse the checkout's install recipes.
+    env.LD_LIBRARY_PATH = runtime.LD_LIBRARY_PATH
+    env.GKEYLL_CI_DEPENDENCY_ENV = runtime.GKEYLL_CI_DEPENDENCY_ENV
+    if (runtime.MPI_HOME) {
+        env.MPI_HOME = runtime.MPI_HOME
+        env.OPAL_PREFIX = runtime.OPAL_PREFIX
+        env.PERSONAL_MPI_HOME = runtime.MPI_HOME
+    }
+    if (runtime.MPIEXEC) env.PERSONAL_MPIEXEC = runtime.MPIEXEC
     writeFile file: 'alltargets.mak', text: '''.PHONY: all install
 all: gkeyll
 install: gkeyll
 	$(MAKE) gkeyll-install
 '''
-    echo "Using prebuilt dependencies from ${source}; installing Gkeyll in ${prefix}"
+    echo "Using this run's dependency copy at ${env.CI_RUN_DIR}/dependencies; installing Gkeyll in ${prefix}"
     return true
 }
 
@@ -222,9 +238,10 @@ def buildTree(String label, String prefix, String mkdeps, String configure, Stri
         !env.PERSONAL_MPIEXEC?.trim() && !env.PERSONAL_MPI_HOME?.trim()) {
         error('Prebuilt dependencies require PERSONAL_MPIEXEC or PERSONAL_MPI_HOME (TEAM_WORKSTATION_MPIEXEC or WORKSTATION_MPI_HOME for team CI).')
     }
+    def prebuilt = usePrebuiltConfig(prefix)
     def mpiHome = env.PERSONAL_MPI_HOME?.trim() ?: "${prefix}/openmpi"
     withEnv(["PREFIX=${prefix}", "MPI_HOME=${mpiHome}"]) {
-        if (!usePrebuiltConfig(prefix)) {
+        if (!prebuilt) {
             loggedSh("${label}-setup", """#!/bin/bash
                 set -euo pipefail
                 ./machines/${mkdeps}
@@ -246,7 +263,7 @@ def createBaseline(String baseline, String baselineDir, String mkdeps, String co
         timeCommand("${env.WORKSPACE}/baseline-c-compile-seconds.txt", "\"${baselineDir}/gkylsoft/gkeyll/bin/gkeyll\" runregression run --c-only compile --jobs ${jobs}")
         timeCommand("${env.WORKSPACE}/baseline-c-regression-create-seconds.txt", "\"${baselineDir}/gkylsoft/gkeyll/bin/gkeyll\" runregression run --c-only --execute-only create --timeout 900 --jobs ${regressionJobs}")
         def mpiHome = env.PERSONAL_MPI_HOME?.trim()
-        mpiExec = mpiExec ?: (mpiHome ? "${mpiHome}/bin/mpiexec" : '')
+        mpiExec = env.PERSONAL_MPIEXEC?.trim() ?: mpiExec ?: (mpiHome ? "${mpiHome}/bin/mpiexec" : '')
         def baselineMpiExec = mpiExec ?: "${baselineDir}/gkylsoft/openmpi/bin/mpiexec"
         loggedSh("baseline-parallel-regressions", """#!/bin/bash
             set -euo pipefail
@@ -275,7 +292,7 @@ def runCandidateRegressions(String candidateDir, String baselineDir, String jobs
         for layer in moments vlasov gyrokinetic pkpm; do
             if [ -d \"${baseline}/\$layer/creg-accepted\" ]; then
                 rm -rf \"${results}/\$layer/creg-accepted\"
-                ln -s \"${baseline}/\$layer/creg-accepted\" \"${results}/\$layer/creg-accepted\"
+                cp -a \"${baseline}/\$layer/creg-accepted\" \"${results}/\$layer/creg-accepted\"
             fi
         done
         started=\$(date +%s)
@@ -292,7 +309,7 @@ def runCandidateRegressions(String candidateDir, String baselineDir, String jobs
 
 def runParallelRegressions(String candidateDir, String baselineDir, String mpiExec, String checker) {
     def mpiHome = env.PERSONAL_MPI_HOME?.trim()
-    mpiExec = mpiExec ?: (mpiHome ? "${mpiHome}/bin/mpiexec" : '')
+    mpiExec = env.PERSONAL_MPIEXEC?.trim() ?: mpiExec ?: (mpiHome ? "${mpiHome}/bin/mpiexec" : '')
     def candidateMpiExec = mpiExec ?: "${candidateDir}/gkylsoft/openmpi/bin/mpiexec"
     def baselineMpiExec = mpiExec ?: "${baselineDir}/gkylsoft/openmpi/bin/mpiexec"
     def gkeyll = "${candidateDir}/gkylsoft/gkeyll/bin/gkeyll"
@@ -313,7 +330,7 @@ def runParallelRegressions(String candidateDir, String baselineDir, String mpiEx
         for layer in moments vlasov gyrokinetic pkpm; do
             if [ -d "${baselineResults}/\$layer/creg-accepted" ]; then
                 rm -rf "${results}/\$layer/creg-accepted"
-                ln -s "${baselineResults}/\$layer/creg-accepted" "${results}/\$layer/creg-accepted"
+                cp -a "${baselineResults}/\$layer/creg-accepted" "${results}/\$layer/creg-accepted"
             fi
         done
         started=\$(date +%s)
@@ -467,6 +484,8 @@ def runCi = {
             requestedBaseline = baselineCommit
         }
         ciStage('Prepare candidate build') {
+            env.CI_RUN_DIR = sh(returnStdout: true, script: "'${cacheScript}' run-path '${gkeyllCiRoot}' '${cachePlatform}'").trim()
+            writeFile file: 'ci-run-path.txt', text: "${env.CI_RUN_DIR}\n"
             candidateDir = sh(returnStdout: true, script: "'${cacheScript}' prepare-candidate '${gkeyllCiRoot}' '${cachePlatform}' '${commit}' '${env.WORKSPACE}' '${baselineCommit}'").trim()
         }
         reporting.progress('Gkeyll CI is running.')
@@ -537,7 +556,7 @@ EOF
                     echo "WARNING: could not publish the GitHub CI report: ${reportError}"
                 }
             }
-            archiveArtifacts allowEmptyArchive: true, artifacts: 'ci-trusted-ci-commit.txt,ci-reporting-commit.txt,ci-selection.txt,ci-baseline-preflight.txt,ci-baseline-cache.txt,ci-trusted-checker-commit.txt,ci-candidate-commit.txt,ci-baseline-commit.txt,*-seconds.txt,*-unit-results.txt,candidate-*.log,baseline-*.log,ci-failure-detail.txt,ci-report*.md,ci-report*.md.json,ci-report-delivery.json,ci-diagnostic-summary.json,ci-stage-history.txt,ci-command-logs/**,ci-timing-summary.txt,ci-regression-summary.txt,ci-parallel-regression-summary.txt,ci-failure-summary.txt,build/**/*.log,cuda-build/**/*.log,_baseline/build/**/*.log,_baseline/cuda-build/**/*.log,_baseline/gkylsoft/gkeyll-results/**/regressiondb,_baseline/gkylsoft/gkeyll-results/**/_rr_failures.txt,gkylsoft/gkeyll-results/**/regressiondb,gkylsoft/gkeyll-results/**/_rr_failures.txt'
+            archiveArtifacts allowEmptyArchive: true, artifacts: 'ci-run-path.txt,ci-*-config.mak,ci-dependencies/**,ci-trusted-ci-commit.txt,ci-reporting-commit.txt,ci-selection.txt,ci-baseline-preflight.txt,ci-baseline-cache.txt,ci-trusted-checker-commit.txt,ci-candidate-commit.txt,ci-baseline-commit.txt,*-seconds.txt,*-unit-results.txt,candidate-*.log,baseline-*.log,ci-failure-detail.txt,ci-report*.md,ci-report*.md.json,ci-report-delivery.json,ci-diagnostic-summary.json,ci-stage-history.txt,ci-command-logs/**,ci-timing-summary.txt,ci-regression-summary.txt,ci-parallel-regression-summary.txt,ci-failure-summary.txt,build/**/*.log,cuda-build/**/*.log,_baseline/build/**/*.log,_baseline/cuda-build/**/*.log,_baseline/gkylsoft/gkeyll-results/**,gkylsoft/gkeyll-results/**'
             if (reportError) description = "${description} (report not posted)".take(140)
         }
         if (candidateDir && baselineCommit) {

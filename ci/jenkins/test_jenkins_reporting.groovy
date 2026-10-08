@@ -25,6 +25,7 @@ script.configure([platform: 'personal', context: 'ci/test', credential: 'existin
 script.ciStage('Build candidate') { }
 assert files['ci-stage-history.txt'].contains('Build candidate')
 assert environment.CI_FAILURE_STAGE == 'Build candidate'
+assert environment.CI_PROGRESS_STAGE == 'Build candidate'
 assert script.publish('success', '', true) == 'Passed.'
 assert commands.any { it.contains(' build --platform ') }
 assert commands.last().contains(' update --platform ')
@@ -35,6 +36,12 @@ assert environments.any { it == 'CI_QUEUE_ID=42' }
 assert files['/workspace@tmp/github_report.py'] == '# trusted source'
 assert files['ci-trusted-ci-commit.txt'] == 'b' * 40 + '\n'
 assert files['ci-reporting-commit.txt'] == 'c' * 40 + '\n'
+
+script.timeCommand('candidate-unit-build-seconds.txt', 'make unit')
+assert environment.CI_PROGRESS_STAGE == 'candidate unit build'
+assert environment.CI_FAILURE_STAGE == 'Build candidate'
+script.loggedSh('configure-candidate', './configure')
+assert environment.CI_PROGRESS_STAGE == 'Build candidate (configure-candidate)'
 
 // Generate and retain the failure report even when checkout never resolved a SHA.
 script.settings.commit = ''

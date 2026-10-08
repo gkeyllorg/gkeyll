@@ -23,7 +23,7 @@ class ReportingTests(unittest.TestCase):
             repo='gkeyllorg/gkeyll', report='ci-report.md', queue_id='42')
         self.comments, self.statuses, self.calls = [], [], []
         self.pages(['Report summary'])
-        self.environment = patch.dict(os.environ, GITHUB_TOKEN='existing-token')
+        self.environment = patch.dict(os.environ, GITHUB_TOKEN='existing-token', BUILD_NUMBER='11')
         self.environment.start()
         self.http = patch.object(report, 'api', side_effect=self.api)
         self.http.start()
@@ -79,7 +79,8 @@ class ReportingTests(unittest.TestCase):
         self.assertTrue(delivery['status'])
         self.assertEqual(self.statuses[0]['target_url'], self.comments[0]['html_url'])
         self.assertEqual(self.statuses[0]['state'], 'success')
-        self.assertIn('Jenkins queue #42', self.statuses[0]['description'])
+        self.assertIn('Jenkins build #11; ID 42', self.statuses[0]['description'])
+        self.assertNotIn('queue', self.statuses[0]['description'])
         self.assertTrue(any('/statuses/' + self.args.commit in c[1] for c in self.calls))
 
     def test_retries_update_existing_comment_and_do_not_repeat_status(self):
@@ -99,8 +100,41 @@ class ReportingTests(unittest.TestCase):
         self.args.description = 'Running: Build candidate.'
         self.update()
         self.assertEqual(self.comments, [])
-        self.assertIn('Gkeyll CI running: Build candidate.', self.statuses[0]['description'])
+        self.assertIn('Gkeyll CI running: Build candidate', self.statuses[0]['description'])
         self.assertIn(self.args.commit, self.statuses[0]['target_url'])
+
+    def test_stage_updates_preserve_jenkins_timing_within_status_limit(self):
+        self.statuses.append(dict(state='pending', context=self.args.context,
+            description='Gkeyll CI running: candidate unit build; elapsed 29 m; ETA ~1 hr 50 m '
+                        '(Jenkins build #11; ID 42).'))
+        self.args.result = 'pending'
+        self.args.description = 'Running: ' + 'candidate regression build ' * 10
+        self.update()
+        description = self.statuses[0]['description']
+        self.assertTrue(description.startswith('Gkeyll CI running: candidate regression build'))
+        self.assertIn('; elapsed 29 m; ETA ~1 hr 50 m', description)
+        self.assertTrue(description.endswith(' (Jenkins build #11; ID 42).'))
+        self.assertLessEqual(len(description), 140)
+        self.assertEqual(self.comments, [])
+
+    def test_new_run_does_not_inherit_previous_run_timing(self):
+        self.statuses.append(dict(state='pending', context=self.args.context,
+            description='Gkeyll CI running: candidate unit build; elapsed 29 m; ETA ~1 hr 50 m '
+                        '(Jenkins build #10; ID 41).'))
+        self.args.result = 'pending'
+        self.args.description = 'Running: Build candidate.'
+        self.update()
+        self.assertNotIn('elapsed 29 m', self.statuses[0]['description'])
+
+    def test_legacy_statuses_retain_newer_run_and_terminal_protection(self):
+        for state, queue_id in [('pending', '43'), ('success', '42')]:
+            with self.subTest(state=state, queue_id=queue_id):
+                self.statuses[:] = [dict(state=state, context=self.args.context,
+                    description='Legacy status (Jenkins queue #{}).'.format(queue_id))]
+                self.args.result = 'pending'
+                delivery = self.update()
+                self.assertTrue(delivery['status_skipped'])
+                self.assertEqual(len(self.statuses), 1)
 
     def test_late_progress_does_not_reopen_terminal_status(self):
         self.update()

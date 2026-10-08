@@ -697,19 +697,31 @@ def latest_status(args, token):
 def publish_status(args, token, target_url='', report_failed=False):
     state = {'cancelled': 'error', 'timed_out': 'error'}.get(args.result, args.result)
     description = args.description or status_description(args.result, args.stage, 0, [], [])
-    suffix = ' (Jenkins queue #{}).'.format(args.queue_id) if args.queue_id else ''
-    if args.result == 'pending':
-        description = 'Gkeyll CI running: ' + (description[9:] if description.startswith('Running: ') else description)
-    if report_failed:
-        suffix = '; report unavailable' + suffix
-    description = description[:140 - len(suffix)] + suffix
     current = latest_status(args, token)
-    owner = re.search(r' \(Jenkins queue #(\d+)\)\.$', (current or {}).get('description') or '')
+    previous_description = (current or {}).get('description') or ''
+    # Retain compatibility with installed controller hooks and older Pipelines.
+    owner = re.search(r' \(Jenkins (?:queue #|(?:build #\d+; )?ID )(\d+)\)\.$', previous_description)
     if owner and args.queue_id.isdigit():
         if int(owner.group(1)) > int(args.queue_id):
             return {'skipped': True}
         if owner.group(1) == args.queue_id and current['state'] != 'pending' and state == 'pending':
             return {'skipped': True}
+    build_number = os.environ.get('BUILD_NUMBER', '')
+    build = 'build #{}; '.format(build_number) if build_number.isdigit() else ''
+    suffix = ' (Jenkins {}ID {}).'.format(build, args.queue_id) if args.queue_id else ''
+    if args.result == 'pending':
+        activity = (description[9:] if description.startswith('Running: ') else description).rstrip('.')
+        # Keep the most recent Jenkins timing snapshot through stage changes.
+        # The controller refreshes both elapsed time and ETA every minute.
+        timing = None
+        if owner and owner.group(1) == args.queue_id and current['state'] == 'pending':
+            timing = re.search(r'(?:^Gkeyll CI running: |; )(elapsed .*; ETA .*?) \(Jenkins ', previous_description)
+        timing = '; ' + timing.group(1) if timing else ''
+        prefix = 'Gkeyll CI running: '
+        description = prefix + activity[:max(0, 140 - len(prefix + timing + suffix))] + timing
+    if report_failed:
+        suffix = '; report unavailable' + suffix
+    description = description[:140 - len(suffix)] + suffix
     payload = {'state': state, 'context': args.context, 'description': description}
     # Controllers are loopback-only. Always link to a GitHub page people can read.
     payload['target_url'] = target_url or (current or {}).get('target_url') or \

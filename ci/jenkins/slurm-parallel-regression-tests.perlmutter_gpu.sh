@@ -8,6 +8,7 @@ set -euo pipefail
 
 cd "$CI_WORKSPACE"
 . machines/module_load.perlmutter-gpu.sh
+if [ -n "${GKEYLL_CI_DEPENDENCY_ENV:-}" ]; then . "$GKEYLL_CI_DEPENDENCY_ENV"; fi
 export SLURM_CPU_BIND=cores
 
 baseline_gkeyll="$CI_BASELINE_PREFIX/gkeyll/bin/gkeyll"
@@ -34,7 +35,7 @@ for layer in moments vlasov gyrokinetic pkpm; do
   src="$CI_BASELINE_PREFIX/gkeyll-results/parallel-c-4/$layer/creg-accepted"
   dst="$CI_CANDIDATE_PREFIX/gkeyll-results/parallel-c-4/$layer/creg-accepted"
   rm -rf "$dst"
-  if [[ -d "$src" ]]; then ln -s "$src" "$dst"; fi
+  if [[ -d "$src" ]]; then cp -a "$src" "$dst"; fi
 done
 started="$(date +%s)"
 "$candidate_gkeyll" runregression run -c --parallel --execute-only check

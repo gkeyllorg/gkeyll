@@ -17,12 +17,33 @@ platform_dir() {
     personal|team-workstation|stellar-cpu|perlmutter-gpu) ;;
     *) die "invalid CI platform: $3" ;;
   esac
-  root="$(cache_root "$1")"
+  root="$(cache_root "$1")" || return
   printf '%s/%s/%s' "$root" "$2" "$3"
 }
 
-baseline_path() { platform_dir "$1" baseline-cache "$2"; }
-candidate_path() { platform_dir "$1" candidate-cache "$2"; }
+run_path() {
+  local tag="${BUILD_TAG:?BUILD_TAG must identify this CI run}" parent
+  [[ "$tag" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ && "$tag" != *..* ]] || die 'invalid BUILD_TAG'
+  parent="$(platform_dir "$1" runs "$2")" || return
+  printf '%s/%s' "$parent" "$tag"
+}
+
+baseline_path() {
+  if [[ -n "${GKEYLL_CI_PREBUILT_CONFIG:-}" ]]; then
+    # A cached executable embeds its dependency paths. Rebuild it against this
+    # run's private dependencies rather than reuse another run's installation.
+    local run
+    run="$(run_path "$1" "$2")" || return
+    printf '%s/baseline' "$run"
+  else
+    platform_dir "$1" baseline-cache "$2"
+  fi
+}
+candidate_path() {
+  local run
+  run="$(run_path "$1" "$2")" || return
+  printf '%s/candidate' "$run"
+}
 
 cache_tree_valid() {
   local entry="$1" platform="$2" sha="$3" manifest head layer
@@ -54,7 +75,11 @@ prepare_baseline_stage() {
   target="$parent/$sha"
   # Installed binaries and libraries can embed this absolute path. Keep it fixed
   # from the build through every later cache hit.
-  rm -rf "$target"
+  if [[ -n "${GKEYLL_CI_PREBUILT_CONFIG:-}" ]]; then
+    [[ ! -e "$target" ]] || die "baseline already exists for this CI run: $target"
+  else
+    rm -rf "$target"
+  fi
   mkdir -p "$target/gkeyll"
   printf '%s' "$target"
 }
@@ -89,7 +114,7 @@ prepare_candidate() {
   [[ "$head" == "$sha" ]] || die "candidate checkout does not match $sha"
   parent="$(candidate_path "$root" "$platform")"
   target="$parent/$sha"
-  rm -rf "$parent"
+  [[ ! -e "$target" ]] || die "candidate already exists for this CI run: $target"
   mkdir -p "$target/gkeyll"
   # Copy source before building; installed libraries must stay at this path.
   cp -a "$source/." "$target/gkeyll/"
@@ -106,7 +131,7 @@ finalize_candidate() {
   [[ -d "$target/gkeyll/.git" ]] || die "candidate checkout is missing: $target/gkeyll"
   [[ -d "$workspace" ]] || die "Jenkins workspace is missing: $workspace"
   [[ "$(git -C "$target/gkeyll" rev-parse HEAD 2>/dev/null || true)" == "$sha" ]] || die "candidate checkout does not match $sha"
-  for file in "$workspace"/ci-*.txt "$workspace"/*-unit-results.txt "$workspace"/*-seconds.txt "$workspace"/candidate-*.log "$workspace"/baseline-*.log "$workspace"/slurm-*.out "$workspace"/ci-report*.md "$workspace"/ci-report*.md.json; do
+  for file in "$workspace"/ci-*.txt "$workspace"/ci-*-config.mak "$workspace"/*-unit-results.txt "$workspace"/*-seconds.txt "$workspace"/candidate-*.log "$workspace"/baseline-*.log "$workspace"/slurm-*.out "$workspace"/ci-report*.md "$workspace"/ci-report*.md.json; do
     [[ -f "$file" && ! -L "$file" ]] || continue
     destination="$target/$(basename "$file")"
     rm -f "$destination"
@@ -131,6 +156,19 @@ stage_candidate_artifacts() {
   [[ -d "$workspace" ]] || die "Jenkins workspace is missing: $workspace"
   target="$(candidate_path "$root" "$platform")/$sha"
   [[ -d "$target" ]] || die "candidate directory is missing: $target"
+  if [[ -f "$target/gkeyll/config.mak" && ! -L "$target/gkeyll/config.mak" ]]; then
+    rm -f "$workspace/ci-candidate-config.mak"
+    cp "$target/gkeyll/config.mak" "$workspace/ci-candidate-config.mak"
+  fi
+  local dependencies="$(run_path "$root" "$platform")/dependencies"
+  rm -rf "$workspace/ci-dependencies"
+  if [[ -d "$dependencies" ]]; then
+    mkdir -p "$workspace/ci-dependencies"
+    for file in manifest.json source-config.mak env.sh; do
+      [[ -f "$dependencies/$file" && ! -L "$dependencies/$file" ]] || continue
+      cp "$dependencies/$file" "$workspace/ci-dependencies/$file"
+    done
+  fi
   # The workspace came from the candidate checkout; recreate these archive
   # destinations so tracked symlinks cannot redirect diagnostic copies.
   rm -rf "$workspace/gkylsoft" "$workspace/build" "$workspace/cuda-build"
@@ -141,11 +179,15 @@ stage_candidate_artifacts() {
       relative="${relative#gkeyll/}"
       mkdir -p "$workspace/$(dirname "$relative")"
       cp "$file" "$workspace/$relative"
-    done < <(find "$target/$subtree" -type f \( -name regressiondb -o -name _rr_failures.txt -o -name '*.log' \) -print0)
+    done < <(find "$target/$subtree" -type f \( -path '*/gkeyll-results/*' -o -name '*.log' \) -print0)
   done
   if [[ -n "$baseline_sha" ]]; then
     [[ "$baseline_sha" =~ ^[0-9a-f]{40}$ ]] || die 'baseline commit must be a full SHA'
     baseline="$(baseline_path "$root" "$platform")/$baseline_sha"
+    if [[ -f "$baseline/gkeyll/config.mak" && ! -L "$baseline/gkeyll/config.mak" ]]; then
+      rm -f "$workspace/ci-baseline-config.mak"
+      cp "$baseline/gkeyll/config.mak" "$workspace/ci-baseline-config.mak"
+    fi
     rm -rf "$workspace/_baseline"
     for subtree in gkylsoft/gkeyll-results gkeyll/build gkeyll/cuda-build; do
       [[ -d "$baseline/$subtree" ]] || continue
@@ -154,7 +196,7 @@ stage_candidate_artifacts() {
         relative="${relative#gkeyll/}"
         mkdir -p "$workspace/_baseline/$(dirname "$relative")"
         cp "$file" "$workspace/_baseline/$relative"
-      done < <(find "$baseline/$subtree" -type f \( -name regressiondb -o -name _rr_failures.txt -o -name '*.log' \) -print0)
+      done < <(find "$baseline/$subtree" -type f \( -path '*/gkeyll-results/*' -o -name '*.log' \) -print0)
     done
     # Restore completed baseline diagnostics on cache hits, without replacing
     # logs from a baseline built during this run.
@@ -166,9 +208,16 @@ stage_candidate_artifacts() {
       cp "$file" "$workspace/$relative"
     done
   fi
+  # Preserve the baseline snapshot with this run even after the shared cache
+  # changes. The staging loops above copy regular files only.
+  if [[ -d "$workspace/_baseline" && ! -L "$workspace/_baseline" ]]; then
+    rm -rf "$target/_baseline"
+    cp -a "$workspace/_baseline" "$target/_baseline"
+  fi
 }
 
 case "${1:-}" in
+  run-path) run_path "$2" "$3"; echo ;;
   valid) manifest_valid "$2" "$3" "$4" ;;
   baseline-path) printf '%s\n' "$(baseline_path "$2" "$3")/$4" ;;
   prepare-baseline) prepare_baseline_stage "$2" "$3" "$4"; echo ;;
@@ -176,5 +225,5 @@ case "${1:-}" in
   prepare-candidate) prepare_candidate "$2" "$3" "$4" "$5" "$6"; echo ;;
   finalize-candidate) finalize_candidate "$2" "$3" "$4" "$5" "$6" "$7" "$8" ;;
   stage-candidate-artifacts) stage_candidate_artifacts "$2" "$3" "$4" "$5" "${6:-}" ;;
-  *) die 'usage: baseline_cache.sh {valid|baseline-path|prepare-baseline|publish-baseline|prepare-candidate|finalize-candidate|stage-candidate-artifacts} ...' ;;
+  *) die 'usage: baseline_cache.sh {run-path|valid|baseline-path|prepare-baseline|publish-baseline|prepare-candidate|finalize-candidate|stage-candidate-artifacts} ...' ;;
 esac

@@ -34,8 +34,8 @@ GKEYLL_CI_PREBUILT_CONFIG=/opt/gkylsoft/gkeyll/share/config.mak
 You can use either the `config.mak` from a configured source checkout or the
 copy saved by `make install` in `<prefix>/gkeyll/share/config.mak`. Keep the
 config and dependencies outside Jenkins workspaces, which are deleted during
-checkout. The Jenkins agent must be able to read them; on Slurm machines the
-libraries must also be visible at the same paths on compute nodes.
+checkout. The Jenkins agent must be able to read them. On Slurm machines the
+CI run directory must be visible at the same path on compute nodes.
 
 Specify each dependency's include and library paths in this config. A generated
 config already contains these settings; for dependencies installed elsewhere,
@@ -68,19 +68,46 @@ their existing Slurm launchers. `PERSONAL_MKDEPS_SCRIPT` and
 required in prebuilt mode.
 
 With this variable set, candidate and baseline both skip the machine dependency
-and configure scripts. Each gets its own copy of the config with Gkeyll's
-`PREFIX` and `INSTALL_PREFIX` redirected to its workspace `gkylsoft` directory.
-Dependency references to the old prefix are preserved. The supplied config and
-installed dependencies are not modified. Gkeyll itself is still rebuilt and
-all existing test lanes run. An invalid config path fails the build rather than
-silently rebuilding dependencies. Leave the variable unset or empty to retain
-the existing dependency-build behavior. Deploy the updated trusted Jenkinsfiles
+and configure scripts. CI copies the configured dependency installations into
+`$GKEYLL_CI_ROOT/runs/<platform>/<BUILD_TAG>/dependencies/`, following symlinks
+to keep those copies independent of the originals. Candidate and baseline reuse
+this private copy within the run; every subsequent run gets a new copy. The
+supplied config and original dependencies remain untouched. OS libraries under
+`/usr`, `/lib`, `/lib64`, and `/System`, compilers, and platform SDKs remain
+machine-provided; they are not copied into the run.
+
+Each build gets a config pointing to the copied libraries, with `PREFIX` and
+`INSTALL_PREFIX` set to its own `gkylsoft` directory. CI uses the copied MPI
+launcher and library paths; `dependencies/env.sh` saves that runtime environment
+for later inspection or reruns. Source it before manually running a retained
+executable. Gkeyll's candidate and baseline are rebuilt inside each run because
+their installed binaries embed these private paths. Prebuilt mode therefore
+does not reuse another run's baseline executable. All existing test lanes run.
+Invalid paths or a source config changed midway through a run fail the build.
+Leave the variable unset or empty to retain the dependency-build and shared
+baseline-cache behavior. Deploy the updated trusted Jenkinsfiles and helpers
 to enable this option; candidate and baseline refs can predate it.
 
-The offline config test uses Groovy 2.4 and GNU Make:
+Regression configuration is stored at
+`<installation-prefix>/gkeyll-results/runregression.config.lua`. The regression
+tools derive this location from the installed executable. The trusted prebuilt
+config helper also retains a literal `PREFIX=` entry for historical runners
+that cannot read Make's `override PREFIX :=` syntax. Deploy the updated trusted
+Jenkinsfiles to fix those older baseline refs; updating only the candidate's
+runner does not change the baseline's runner.
+
+The offline config tests use Python 3, Groovy 2.4, GNU Make, and a C compiler:
 
 ```sh
 java -cp /path/to/groovy-all.jar groovy.ui.GroovyMain ci/jenkins/test_prebuilt_config.groovy
+python3 -m unittest -v ci.jenkins.test_prebuilt_config
+```
+
+The installed-tool fixture checks configure/load, installation isolation, and
+Lua failure exit codes without running simulations:
+
+```sh
+GKEYLL=/path/to/gkeyll/bin/gkeyll python3 -m unittest -v ci.jenkins.test_regression_config
 ```
 
 ## Results in GitHub
@@ -113,23 +140,30 @@ The listener runs without a build executor, including when
 `disableConcurrentBuilds()` blocks another run of the same job. It also covers
 Pipelines waiting for their first `node()` allocation.
 
-The pending description includes the position, for example
-`Gkeyll CI queued: position 3 of 10 (Jenkins queue #42).` Positions count waiting
+The pending description counts other jobs ahead, for example
+`Gkeyll CI queued: waiting behind 3 other jobs (Jenkins ID 304).` With none ahead,
+it says `no jobs ahead; waiting for an executor`. The count includes waiting
 Gkeyll builds for the same platform on that controller in original submission
-order, including the first agent wait, and exclude builds already allocated an
-agent. They refresh after queue changes and every minute; unchanged positions
-are not reposted. This is a submission-order position, not a guaranteed execution
-order: Jenkins can skip blocked jobs or allocate multiple available executors.
+order, including the first agent wait, and excludes builds already allocated an
+agent. It refreshes after queue changes and every minute; unchanged counts
+are not reposted. Jenkins can skip blocked jobs or allocate multiple available
+executors, so submission order does not guarantee execution order. The trailing
+ID identifies the original submission for rerun tracking; it is never the count
+of jobs ahead.
 
-Once an agent is allocated, the same status refreshes every minute with elapsed
-build time, an approximate percentage, and estimated remaining time, for example
-`Gkeyll CI running: started 29 m ago; ~20%; est. remaining 1 hr 50 m (Jenkins queue #42).`
-The estimate comes from Jenkins' historical build duration, not completed test
-counts; elapsed time uses Jenkins' build start time (including the Pipeline's
-initial agent wait). Runs with no estimate show `ETA unavailable`; runs exceeding
-the estimate say so instead of claiming completion. Unchanged descriptions are
-not reposted, and final results replace progress. Stage names are shortened
-before timing information so the ETA remains readable. Queue position does not
+Once an agent is allocated, the same status refreshes every minute with the
+current stage or command, elapsed build time, Jenkins' estimated remaining time,
+and the build number, for example
+`Gkeyll CI running: candidate unit build; elapsed 29 m; ETA ~1 hr 50 m (Jenkins build #111; ID 304).`
+The controller reads Jenkins' `estimatedDuration` and build start time each
+minute; elapsed time includes the Pipeline's initial agent wait. This is a
+historical duration estimate, not a count of completed tests. Runs with no
+estimate show `ETA unavailable`; overruns say `ETA unavailable (estimate exceeded)`.
+Stage transitions retain the latest timing snapshot until the next controller
+update. Unchanged descriptions are not reposted, and final results replace
+progress. Stage names are shortened before timing information so the ETA remains
+readable. GitHub's commit-status API uses yellow `pending` for both queued and
+running work; the description distinguishes them. Queue position does not
 predict a start time: blocked agents and Slurm scheduling make that uncertain.
 Install the updated controller hook and trusted Jenkinsfiles together to enable
 progress for all four platforms.
@@ -294,7 +328,9 @@ java -cp /path/to/groovy-all.jar groovy.ui.GroovyMain ci/jenkins/test_jenkins_re
 The queue listener's integration test runs on a disposable Jenkins controller
 with mocked GitHub responses. It checks all four configurations, supersession
 before Pipeline start and during agent wait, manual cancellation, active-build
-preservation, queue persistence data, and reporting failures. Install Credentials,
+preservation, queue persistence data, and reporting failures. It also verifies
+job counts ahead and progress polling with anonymous job access disabled.
+Install Credentials,
 Folders, Pipeline: Job, Pipeline: Groovy, Pipeline: Basic Steps, and Pipeline:
 Nodes and Processes, and Credentials Binding (including dependencies) in that
 test controller. With a
@@ -384,24 +420,36 @@ CI artifact and GitHub report record that override.
 ## Persistent regression data
 
 Every Jenkins controller requires a writable, agent-visible `GKEYLL_CI_ROOT`.
-CI retains one complete baseline per platform in
-`$GKEYLL_CI_ROOT/baseline-cache/<platform>/<baseline-sha>/`. A repeated run
-against the same resolved baseline SHA reuses that tree; a changed SHA rebuilds
-and replaces it. The candidate source, build, installed executable, and
-regression results are kept together in
-`$GKEYLL_CI_ROOT/candidate-cache/<platform>/<candidate-sha>/`. CI rebuilds the
-candidate from scratch on every run, even when its SHA is unchanged, and keeps
-only the latest candidate tree per platform.
-Within either SHA directory, `gkeyll/` is the source checkout and `gkylsoft/`
-is its sibling install and results directory. For example, the executable is
-`<sha>/gkylsoft/gkeyll/bin/gkeyll` and regression output is under
-`<sha>/gkylsoft/gkeyll-results/`.
+Each build keeps a separate directory, including on failure:
 
-Both trees are built at their final paths so installed libraries retain valid
-absolute paths. An incomplete baseline build has no valid cache manifest and
-is rebuilt on the next run. Jenkins keeps summaries and small diagnostic
-artifacts in its workspace for reporting, then removes that workspace; the
-complete candidate build and results remain under `candidate-cache`.
+```text
+$GKEYLL_CI_ROOT/runs/<platform>/<BUILD_TAG>/
+  dependencies/                  private prebuilt libraries and saved environment
+  candidate/<candidate-sha>/
+    gkeyll/                      source, build, and config.mak
+    gkylsoft/gkeyll/              installed Gkeyll
+    gkylsoft/gkeyll-results/      databases, configs, logs, and .gkyl outputs
+    _baseline/                   snapshot of baseline results and diagnostics
+  baseline/<baseline-sha>/        full baseline build when using prebuilt dependencies
+```
+
+The `ci-run-path.txt` artifact records the exact directory. CI builds at these
+final paths and does not delete previous run directories, including repeated
+runs of the same commit. The original prebuilt installation receives no results.
+Without prebuilt dependencies, CI continues to reuse
+`$GKEYLL_CI_ROOT/baseline-cache/<platform>/<baseline-sha>/`, while retaining a
+snapshot of that baseline's results with each candidate run.
+
+Jenkins archives the complete regression result trees for candidate and
+baseline, including `.gkyl` outputs, databases, configuration, and logs. The
+temporary Jenkins workspace is removed after archival; the run directory
+remains. Accepted baseline outputs are copied into the candidate's result tree
+so inspecting an old run does not depend on a surviving shared-cache symlink.
+Jenkins builds and artifacts have no automatic count limit by default. Set
+`GKEYLL_CI_BUILDS_TO_KEEP` to a positive build count to opt into Jenkins retention
+limits; this does not delete directories under `runs/`. Remove retained run
+directories explicitly when their data is no longer needed.
+
 The `<platform>` directory is `personal`, `team-workstation`, `stellar-cpu`,
 or `perlmutter-gpu`, depending on the Jenkins job.
 

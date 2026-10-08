@@ -116,18 +116,33 @@ class GkeyllQueueStatus {
         values
     }
 
-    static String queuedDescription(def id, int position, int total) {
-        "Gkeyll CI queued: position ${position} of ${total} (Jenkins queue #${id})."
+    static String queuedDescription(long id, int position) {
+        int ahead = Math.max(0, position - 1)
+        def waiting = ahead ? "waiting behind ${ahead} other job${ahead == 1 ? '' : 's'}" :
+            'no jobs ahead; waiting for an executor'
+        "Gkeyll CI queued: ${waiting}" + runSuffix(id)
     }
 
     static boolean ownsQueuedStatus(Map status, def id) {
         status?.state == 'pending' && (status.description == "Gkeyll CI queued (Jenkins queue #${id})." ||
-            status.description ==~ /Gkeyll CI queued: position [1-9][0-9]* of [1-9][0-9]* \(Jenkins queue #${id}\)\./)
+            status.description ==~ /Gkeyll CI queued: position [1-9][0-9]* of [1-9][0-9]* \(Jenkins queue #${id}\)\./ ||
+            (status.description?.startsWith('Gkeyll CI queued: ') && ownsStatus(status, id)))
     }
 
     static boolean ownsRunningStatus(Map status, def id) {
         status?.state == 'pending' && status.description?.startsWith('Gkeyll CI running: ') &&
-            status.description.endsWith(" (Jenkins queue #${id}).")
+            ownsStatus(status, id)
+    }
+
+    static boolean ownsStatus(Map status, def id) {
+        // Accept older reporters during rolling upgrades. The submission ID is
+        // monotonic across jobs; a build number alone cannot identify its owner.
+        status?.description?.endsWith(" (Jenkins queue #${id}).") ||
+            status?.description ==~ /.* \(Jenkins (?:build #[0-9]+; )?ID ${id}\)\./
+    }
+
+    static String runSuffix(long id, def buildNumber = null) {
+        " (Jenkins ${buildNumber ? 'build #' + buildNumber + '; ' : ''}ID ${id})."
     }
 
     Map currentStatus(Job job, Map config, Map metadata) {
@@ -144,16 +159,24 @@ class GkeyllQueueStatus {
         value < 60 ? "${value} m" : "${value.intdiv(60)} hr ${value % 60} m"
     }
 
-    static String runningDescription(long id, long elapsed, long estimated, String stage = '') {
+    static String runningDescription(long id, long elapsed, long estimated, String stage = '', def buildNumber = null) {
         elapsed = Math.max(0L, elapsed)
         String progress = estimated <= 0 ? 'ETA unavailable' :
-            (elapsed >= estimated ? 'exceeded estimate; ETA unavailable' :
-                "~${Math.min(99, (int) (100.0 * elapsed / estimated))}%; est. remaining ${minutes(estimated - elapsed)}")
-        String suffix = " (Jenkins queue #${id})."
-        def timing = "started ${minutes(elapsed)} ago; ${progress}"
+            (elapsed >= estimated ? 'ETA unavailable (estimate exceeded)' :
+                "ETA ~${minutes(estimated - elapsed)}")
+        String suffix = runSuffix(id, buildNumber)
+        def timing = "elapsed ${minutes(elapsed)}; ${progress}"
         int room = Math.max(0, 140 - 'Gkeyll CI running: '.size() - timing.size() - suffix.size() - 2)
-        def activity = stage && room ? stage.take(Math.min(36, room)) + '; ' : ''
+        def activity = stage && room ? stage.take(room) + '; ' : ''
         "Gkeyll CI running: ${activity}${timing}".take(140 - suffix.size()) + suffix
+    }
+
+    static String runningStage(Map status) {
+        if (!status?.description?.startsWith('Gkeyll CI running: ')) return ''
+        def stage = status.description.substring('Gkeyll CI running: '.size())
+            .replaceFirst(/ \(Jenkins .*\)\.$/, '')
+            .replaceFirst(/; (?:elapsed|started) .*/, '').replaceFirst(/\.$/, '')
+        stage.startsWith('elapsed ') || stage.startsWith('started ') ? '' : stage
     }
 
     void refreshRunning() {
@@ -179,11 +202,14 @@ class GkeyllQueueStatus {
                     !(metadata.CI_QUEUE_COMMIT ==~ /[0-9a-f]{40}/)) return
                 def config = configuration(run.parent)
                 if (!config?.credential) return
-                def stage = run.getAction(org.jenkinsci.plugins.workflow.cps.EnvActionImpl)?.getOverriddenEnvironment()?.get('CI_FAILURE_STAGE') ?: ''
-                def description = runningDescription(run.queueId,
-                    System.currentTimeMillis() - run.startTimeInMillis, run.estimatedDuration, stage)
                 def current = currentStatus(run.parent, config, metadata)
                 if (current && !ownsQueuedStatus(current, run.queueId) && !ownsRunningStatus(current, run.queueId)) return
+                def environment = run.getAction(org.jenkinsci.plugins.workflow.cps.EnvActionImpl)?.getOverriddenEnvironment() ?: [:]
+                // Command detail survives minute updates, including Pipelines
+                // already running with an older reporting adapter.
+                def stage = environment.CI_PROGRESS_STAGE ?: runningStage(current) ?: environment.CI_FAILURE_STAGE ?: 'starting'
+                def description = runningDescription(run.queueId,
+                    System.currentTimeMillis() - run.startTimeInMillis, run.estimatedDuration, stage, run.number)
                 if (!run.isBuilding() || current?.description == description) return
                 if (current?.id != null) progressBase.putIfAbsent(run.queueId, current.id as long)
                 def body = [state: 'pending', context: metadata.CI_QUEUE_CONTEXT, description: description]
@@ -247,7 +273,7 @@ class GkeyllQueueStatus {
                         Queue.withLock({
                             def live = queuePositions()[entry.id]
                             if (!live) return
-                            def updated = queuedDescription(entry.id, live.position, live.total)
+                            def updated = queuedDescription(entry.id, live.position)
                             if (current?.description == updated) return
                             description = updated
                             positionWrites.add(entry.id)
@@ -405,7 +431,7 @@ class GkeyllQueueStatus {
         position = position ?: [position: 1, total: 1]
         request(item.task, config, 'POST', "statuses/${selected.sha}",
             [state: 'pending', context: metadata.CI_QUEUE_CONTEXT,
-             description: queuedDescription(item.id, position.position, position.total)])
+             description: queuedDescription(item.id, position.position)])
     }
 
     void left(Queue.LeftItem item) {
@@ -519,30 +545,30 @@ class GkeyllQueueStatus {
                 (state == 'timed_out' ? 'Gkeyll CI timed out.' :
                  run.result == Result.ABORTED && metadata.CI_QUEUE_STARTED != 'true'
                     ? 'Gkeyll CI cancelled while queued.' : "Gkeyll CI finished: ${run.result}.")
-            finish(run.parent, metadata, run.queueId, state, description)
+            finish(run.parent, metadata, run.queueId, state, description, run.number)
             progressBase.remove(run.queueId)
         } as Runnable)
     }
 
-    void finish(Job job, Map metadata, long id, String state, String description) {
+    void finish(Job job, Map metadata, long id, String state, String description, def buildNumber = null) {
         // Cancellation must follow an in-flight position POST, never precede it.
         synchronized (statusLock(id)) {
-            finishStatus(job, metadata, id, state in ['cancelled', 'timed_out'] ? 'error' : state, description)
+            finishStatus(job, metadata, id, state in ['cancelled', 'timed_out'] ? 'error' : state, description, buildNumber)
         }
     }
 
-    void finishStatus(Job job, Map metadata, long id, String state, String description) {
+    void finishStatus(Job job, Map metadata, long id, String state, String description, def buildNumber = null) {
         if (metadata.CI_QUEUE_ID != id.toString() || !(metadata.CI_QUEUE_COMMIT ==~ /[0-9a-f]{40}/)) return
         def config = configuration(job)
         if (!config?.credential) return
         try {
             def current = currentStatus(job, config, metadata)
-            def suffix = " (Jenkins queue #${id})."
+            def suffix = buildNumber ? runSuffix(id, buildNumber) : " (Jenkins queue #${id})."
             def failedAfterReport = "Jenkins failed after the test report: ${description}".take(140 - suffix.size()) + suffix
             // Artifact archival/cleanup can fail after tests were reported green.
             // Correct only this run's success, retaining the diagnostic report link.
             if (current?.state == 'success' && state != 'success' &&
-                    current.description?.endsWith(suffix)) {
+                    ownsStatus(current, id)) {
                 request(job, config, 'POST', "statuses/${metadata.CI_QUEUE_COMMIT}",
                     [state: state, context: metadata.CI_QUEUE_CONTEXT, target_url: current.target_url,
                      description: failedAfterReport])
@@ -560,7 +586,7 @@ class GkeyllQueueStatus {
                 if (terminal) {
                     def body = [state: terminal.state, context: metadata.CI_QUEUE_CONTEXT,
                         description: terminal.description]
-                    if (terminal.state == 'success' && state != 'success' && terminal.description?.endsWith(suffix)) {
+                    if (terminal.state == 'success' && state != 'success' && ownsStatus(terminal, id)) {
                         body.state = state
                         body.description = failedAfterReport
                     }

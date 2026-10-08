@@ -19,10 +19,15 @@ def loadReporting(Map settings) {
                 git fetch --quiet --depth 1 https://github.com/gkeyllorg/gkeyll.git "$CI_TRUSTED_REPORT_REF"
                 git show FETCH_HEAD:ci/jenkins/jenkins_reporting.groovy > jenkins_reporting.groovy
                 git show FETCH_HEAD:ci/jenkins/github_report.py > github_report.py
+                git show FETCH_HEAD:ci/jenkins/baseline_cache.sh > baseline_cache.sh
+                chmod +x baseline_cache.sh
+                git show FETCH_HEAD:ci/jenkins/prebuilt_config.py > prebuilt_config.py
             '''
         }
         settings.reportingCommit = sh(returnStdout: true, script: 'git rev-parse FETCH_HEAD').trim()
         reporting = load('jenkins_reporting.groovy')
+        settings.cacheScript = pwd() + '/baseline_cache.sh'
+        settings.prebuiltScript = pwd() + '/prebuilt_config.py'
         reporting.configure(settings)
     }
 }
@@ -35,10 +40,14 @@ def loadReporting(Map settings) {
 // pipeline that decides what SLURM work to submit. Once validated, the job can
 // move to main without changing this file.
 
+def buildsToKeep = env.GKEYLL_CI_BUILDS_TO_KEEP?.trim() ?: ''
+if (buildsToKeep && !(buildsToKeep ==~ /[1-9][0-9]*/)) {
+    error('GKEYLL_CI_BUILDS_TO_KEEP must be a positive build count, or empty for no limit.')
+}
 properties([
     buildDiscarder(logRotator(
-        numToKeepStr: '20',
-        artifactNumToKeepStr: '20'
+        numToKeepStr: buildsToKeep,
+        artifactNumToKeepStr: buildsToKeep
     )),
     disableConcurrentBuilds(),
     parameters([
@@ -413,25 +422,35 @@ def usePrebuiltConfig(String prefix) {
     if (!source.startsWith('/') || !fileExists(source)) {
         error('GKEYLL_CI_PREBUILT_CONFIG must name an existing absolute config.mak path on the agent.')
     }
-    def config = readFile(file: source)
-    if (!(config =~ /(?m)^PREFIX\s*[:?]?=/)) {
-        error('Prebuilt config.mak must define PREFIX and the paths for its dependencies.')
+    if (!env.CI_RUN_DIR?.trim()) error('CI_RUN_DIR must be prepared before copying dependencies.')
+    def launcher = env.PERSONAL_MPIEXEC?.trim()
+        ?: (env.PERSONAL_MPI_HOME?.trim() ? "${env.PERSONAL_MPI_HOME.trim()}/bin/mpiexec" : '')
+    def runtime
+    withEnv(["CI_PREBUILT_SOURCE=${source}", "CI_PREBUILT_PREFIX=${prefix}",
+             "CI_PREBUILT_DEPENDENCIES=${env.CI_RUN_DIR}/dependencies",
+             "CI_PREBUILT_SCRIPT=${reporting.settings.prebuiltScript}",
+             "CI_PREBUILT_MPIEXEC=${launcher}"]) {
+        runtime = new groovy.json.JsonSlurperClassic().parseText(sh(returnStdout: true, script: '''#!/bin/bash
+            set -euo pipefail
+            python3 -I "$CI_PREBUILT_SCRIPT" --config "$CI_PREBUILT_SOURCE" \
+                --prefix "$CI_PREBUILT_PREFIX" --dependencies "$CI_PREBUILT_DEPENDENCIES" \
+                --mpiexec "$CI_PREBUILT_MPIEXEC"
+        '''))
     }
-    // Preserve dependency expressions relative to the original PREFIX, while
-    // installing and linking Gkeyll itself exclusively inside this build.
-    config = config.replaceAll(/(?m)^PREFIX(?=\s*[:?]?=)/, 'GKEYLL_CI_DEPENDENCY_PREFIX')
-    config = config.replace('$(PREFIX)', '$(GKEYLL_CI_DEPENDENCY_PREFIX)')
-        .replace('${PREFIX}', '${GKEYLL_CI_DEPENDENCY_PREFIX}')
-    config += "\n# Jenkins workspace installation\noverride PREFIX := ${prefix}\noverride INSTALL_PREFIX := ${prefix}\n"
-    writeFile file: 'config.mak', text: config
-    // configure normally creates this second file too. Build before installing,
-    // including with parallel make, and reuse the checkout's install recipes.
+    env.LD_LIBRARY_PATH = runtime.LD_LIBRARY_PATH
+    env.GKEYLL_CI_DEPENDENCY_ENV = runtime.GKEYLL_CI_DEPENDENCY_ENV
+    if (runtime.MPI_HOME) {
+        env.MPI_HOME = runtime.MPI_HOME
+        env.OPAL_PREFIX = runtime.OPAL_PREFIX
+        env.PERSONAL_MPI_HOME = runtime.MPI_HOME
+    }
+    if (runtime.MPIEXEC) env.PERSONAL_MPIEXEC = runtime.MPIEXEC
     writeFile file: 'alltargets.mak', text: '''.PHONY: all install
 all: gkeyll
 install: gkeyll
 	$(MAKE) gkeyll-install
 '''
-    echo "Using prebuilt dependencies from ${source}; installing Gkeyll in ${prefix}"
+    echo "Using this run's dependency copy at ${env.CI_RUN_DIR}/dependencies; installing Gkeyll in ${prefix}"
     return true
 }
 
@@ -450,6 +469,7 @@ def configureAndCompileCRegressions(String label, String driver, String sourceDi
         loggedSh("${label}-c-compile", '''#!/bin/bash -l
             set -euo pipefail
             . "$CI_REGRESSION_MODULE_FILE"
+            if [ -n "${GKEYLL_CI_DEPENDENCY_ENV:-}" ]; then . "$GKEYLL_CI_DEPENDENCY_ENV"; fi
             "$CI_REGRESSION_DRIVER" runregression configure \
                 --source-dir "$CI_REGRESSION_SOURCE_DIR" \
                 --prefix "$CI_REGRESSION_PREFIX" ${CI_REGRESSION_CONFIGURE_OPTIONS:-}
@@ -682,12 +702,14 @@ node(nodeLabel) {
                 if (behind > 0) echo("WARNING: allowing candidate behind baseline by ${behind} commit(s).")
             }
             ciStage('Prepare candidate build') {
-                candidateDir = sh(returnStdout: true, script: "ci/jenkins/baseline_cache.sh prepare-candidate '${gkeyllCiRoot}' 'perlmutter-gpu' '${candidateCommit}' '${env.WORKSPACE}' '${baselineCommit}'").trim()
+                env.CI_RUN_DIR = sh(returnStdout: true, script: "'${reporting.settings.cacheScript}' run-path '${gkeyllCiRoot}' 'perlmutter-gpu'").trim()
+                writeFile file: 'ci-run-path.txt', text: "${env.CI_RUN_DIR}\n"
+                candidateDir = sh(returnStdout: true, script: "'${reporting.settings.cacheScript}' prepare-candidate '${gkeyllCiRoot}' 'perlmutter-gpu' '${candidateCommit}' '${env.WORKSPACE}' '${baselineCommit}'").trim()
             }
             ciStage('Resolve baseline cache') {
-                baselineDir = sh(returnStdout: true, script: "ci/jenkins/baseline_cache.sh baseline-path '${gkeyllCiRoot}' 'perlmutter-gpu' '${baselineCommit}'").trim()
-                baselineCacheHit = sh(returnStatus: true, script: "ci/jenkins/baseline_cache.sh valid '${gkeyllCiRoot}' 'perlmutter-gpu' '${baselineCommit}'") == 0
-                if (!baselineCacheHit) baselineStage = sh(returnStdout: true, script: "ci/jenkins/baseline_cache.sh prepare-baseline '${gkeyllCiRoot}' 'perlmutter-gpu' '${baselineCommit}'").trim()
+                baselineDir = sh(returnStdout: true, script: "'${reporting.settings.cacheScript}' baseline-path '${gkeyllCiRoot}' 'perlmutter-gpu' '${baselineCommit}'").trim()
+                baselineCacheHit = sh(returnStatus: true, script: "'${reporting.settings.cacheScript}' valid '${gkeyllCiRoot}' 'perlmutter-gpu' '${baselineCommit}'") == 0
+                if (!baselineCacheHit) baselineStage = sh(returnStdout: true, script: "'${reporting.settings.cacheScript}' prepare-baseline '${gkeyllCiRoot}' 'perlmutter-gpu' '${baselineCommit}'").trim()
                 writeFile file: 'ci-baseline-cache.txt', text: "status=${baselineCacheHit ? 'hit' : 'miss'}\nplatform=perlmutter-gpu\nbaseline_commit=${baselineCommit}\npath=${baselineCacheHit ? baselineDir : baselineStage}\n"
             }
             reporting.progress('Gkeyll CI is running.')
@@ -720,6 +742,7 @@ node(nodeLabel) {
                     # Each Jenkins sh step is a new process, so source the
                     # same environment used by the Perlmutter machine scripts.
                     . machines/module_load.perlmutter-gpu.sh
+                    if [ -n "\${GKEYLL_CI_DEPENDENCY_ENV:-}" ]; then . "\$GKEYLL_CI_DEPENDENCY_ENV"; fi
                     module list
                     started=\$(date +%s)
                     make -j${jobs} unit
@@ -738,6 +761,7 @@ node(nodeLabel) {
                     loggedSh("candidate-install", """#!/bin/bash -l
                     set -euo pipefail
                     . machines/module_load.perlmutter-gpu.sh
+                    if [ -n "\${GKEYLL_CI_DEPENDENCY_ENV:-}" ]; then . "\$GKEYLL_CI_DEPENDENCY_ENV"; fi
                     started=\$(date +%s)
                     make -j${jobs} install
                     elapsed=\$(( \$(date +%s) - started ))
@@ -767,6 +791,7 @@ node(nodeLabel) {
                         if (!usePrebuiltConfig("${baselineStage}/gkylsoft")) loggedSh("baseline-setup", '''#!/bin/bash -l
                             set -euo pipefail
                             . machines/module_load.perlmutter-gpu.sh
+                            if [ -n "${GKEYLL_CI_DEPENDENCY_ENV:-}" ]; then . "$GKEYLL_CI_DEPENDENCY_ENV"; fi
                             ./machines/mkdeps.perlmutter.gpu.sh
                             ./machines/configure.perlmutter.gpu.sh
                         ''')
@@ -779,6 +804,7 @@ node(nodeLabel) {
                         loggedSh("baseline-unit-build", """#!/bin/bash -l
                             set -euo pipefail
                             . machines/module_load.perlmutter-gpu.sh
+                            if [ -n "\${GKEYLL_CI_DEPENDENCY_ENV:-}" ]; then . "\$GKEYLL_CI_DEPENDENCY_ENV"; fi
                             make -j${jobs} unit
                         """)
                     }
@@ -789,6 +815,7 @@ node(nodeLabel) {
                     loggedSh("baseline-install", """#!/bin/bash -l
                         set -euo pipefail
                         . machines/module_load.perlmutter-gpu.sh
+                        if [ -n "\${GKEYLL_CI_DEPENDENCY_ENV:-}" ]; then . "\$GKEYLL_CI_DEPENDENCY_ENV"; fi
                         started=\$(date +%s)
                         make -j${jobs} install
                         elapsed=\$(( \$(date +%s) - started ))
@@ -824,7 +851,7 @@ created_utc=\$(date -u +%Y-%m-%dT%H:%M:%SZ)
 serial_c_results=present
 parallel_c_4_results=present
 EOF"""
-                    baselineDir = sh(returnStdout: true, script: "ci/jenkins/baseline_cache.sh publish-baseline '${gkeyllCiRoot}' 'perlmutter-gpu' '${baselineCommit}' '${baselineStage}' '${env.WORKSPACE}'").trim()
+                    baselineDir = sh(returnStdout: true, script: "'${reporting.settings.cacheScript}' publish-baseline '${gkeyllCiRoot}' 'perlmutter-gpu' '${baselineCommit}' '${baselineStage}' '${env.WORKSPACE}'").trim()
                     writeFile file: 'ci-baseline-cache.txt', text: "status=miss\nplatform=perlmutter-gpu\nbaseline_commit=${baselineCommit}\npath=${baselineDir}\n"
                 }
             }
@@ -882,7 +909,7 @@ EOF"""
                 }
                 try {
                     try {
-                        if (candidateDir) sh "ci/jenkins/baseline_cache.sh stage-candidate-artifacts '${gkeyllCiRoot}' 'perlmutter-gpu' '${candidateCommit}' '${env.WORKSPACE}' '${baselineCommit}'"
+                        if (candidateDir) sh "'${reporting.settings.cacheScript}' stage-candidate-artifacts '${gkeyllCiRoot}' 'perlmutter-gpu' '${candidateCommit}' '${env.WORKSPACE}' '${baselineCommit}'"
                     } catch (err) {
                         echo "WARNING: could not stage CI report artifacts: ${err}"
                     }
@@ -898,7 +925,7 @@ EOF"""
                         }
                     }
                     archiveArtifacts allowEmptyArchive: true,
-                        artifacts: 'ci-trusted-ci-commit.txt,ci-reporting-commit.txt,ci-selection.txt,ci-baseline-preflight.txt,ci-baseline-cache.txt,ci-trusted-checker-commit.txt,ci-candidate-commit.txt,ci-baseline-commit.txt,ci-report*.md,ci-report*.md.json,ci-report-delivery.json,ci-diagnostic-summary.json,ci-stage-history.txt,ci-command-logs/**,*-unit-results.txt,*-c-compile-seconds.txt,ci-timing-summary.txt,ci-regression-summary.txt,ci-failure-summary.txt,slurm-*.out,slurm-*-job-id.txt,slurm-*-job-status.txt,build/**/*.log,cuda-build/**/*.log,_baseline/build/**/*.log,_baseline/cuda-build/**/*.log,_baseline/gkylsoft/gkeyll-results/**/regressiondb,_baseline/gkylsoft/gkeyll-results/**/_rr_failures.txt,gkylsoft/gkeyll-results/**/regressiondb,gkylsoft/gkeyll-results/**/_rr_failures.txt'
+                        artifacts: 'ci-run-path.txt,ci-*-config.mak,ci-dependencies/**,ci-trusted-ci-commit.txt,ci-reporting-commit.txt,ci-selection.txt,ci-baseline-preflight.txt,ci-baseline-cache.txt,ci-trusted-checker-commit.txt,ci-candidate-commit.txt,ci-baseline-commit.txt,ci-report*.md,ci-report*.md.json,ci-report-delivery.json,ci-diagnostic-summary.json,ci-stage-history.txt,ci-command-logs/**,*-unit-results.txt,*-c-compile-seconds.txt,ci-timing-summary.txt,ci-regression-summary.txt,ci-failure-summary.txt,slurm-*.out,slurm-*-job-id.txt,slurm-*-job-status.txt,build/**/*.log,cuda-build/**/*.log,_baseline/build/**/*.log,_baseline/cuda-build/**/*.log,_baseline/gkylsoft/gkeyll-results/**,gkylsoft/gkeyll-results/**'
                 } catch (err) {
                     terminalStatus = 'error'
                     terminalDescription = 'Perlmutter GPU CI artifact archival failed.'
@@ -906,7 +933,7 @@ EOF"""
                 } finally {
                     try {
                         if (candidateDir && baselineCommit) {
-                            sh "ci/jenkins/baseline_cache.sh finalize-candidate '${gkeyllCiRoot}' 'perlmutter-gpu' '${candidateCommit}' '${baselineCommit}' '${terminalStatus}' '${env.CI_FAILURE_STAGE ?: ''}' '${env.WORKSPACE}'"
+                            sh "'${reporting.settings.cacheScript}' finalize-candidate '${gkeyllCiRoot}' 'perlmutter-gpu' '${candidateCommit}' '${baselineCommit}' '${terminalStatus}' '${env.CI_FAILURE_STAGE ?: ''}' '${env.WORKSPACE}'"
                         }
                     } finally {
                         deleteDir()

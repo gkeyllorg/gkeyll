@@ -160,9 +160,11 @@ System → Global properties → Environment variables**, set:
 | `PERLMUTTER_GPU_REGRESSION_TEST_TIMEOUT` | Optional; default `900` |
 | `GKEYLL_CI_TRUSTED_REF` | Optional reviewed branch or full SHA for `github_report.py`, `jenkins_reporting.groovy`, and `check_regression_results.lua`; default `main`. Set it only while staging a CI change |
 
-`GKEYLL_CI_ROOT` retains SHA-addressed baseline and candidate build/result directories
-visible to GPU nodes. Remove `baseline-cache/perlmutter-gpu` manually after an
-intentional toolchain change that must force baseline regeneration.
+`GKEYLL_CI_ROOT` retains a separate directory for each build under
+`runs/perlmutter-gpu/`, visible to GPU nodes; see
+[persistent regression data](README.md#persistent-regression-data). When building
+dependencies instead of copying prebuilt ones, remove `baseline-cache/perlmutter-gpu`
+manually after an intentional toolchain change that must force baseline regeneration.
 
 ### Create the one parameterized Pipeline job
 
