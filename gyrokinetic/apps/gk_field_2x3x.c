@@ -609,7 +609,6 @@ gk_field_adiabatic_init_2x3x(gkyl_gyrokinetic_app *app, struct gk_field *gkf)
     double q_s = gks->info.charge;
     double K_0 = q_s * q_s * n_ref / T_ref;
     gkyl_array_accumulate(gkf->epsilon, K_0, gkf->flr_rhoSq);
-    gkyl_array_set(gkf->es_energy_fac, 0.5, gkf->epsilon);
     gkf->adiab.flr_zonal_fac = K_0 * gkf->flr_local_fac;
     gkyl_gyrokinetic_app_cout(
       app, stdout, "Adiabatic species FLR term: n_ref = %.6e, T_ref = %.6e.\n", n_ref, T_ref
