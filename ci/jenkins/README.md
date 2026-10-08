@@ -227,6 +227,12 @@ and supersession checks require a working GitHub API and valid credentials.
 
 #### Setup resource failures and early reports
 
+Containerized build agents must run an init process to reap orphaned children.
+See [containerized build agents](README.personal.md#containerized-build-agents)
+for a reusable Podman Quadlet drop-in, installation commands, and verification.
+This host configuration applies to personal and team workers; Jenkinsfile
+retries cannot clear zombies owned by container PID 1.
+
 Personal CI records pipeline selection and reporter loading before the shared
 reporter is available. A Git setup command that reports process/thread exhaustion
 or an allocation failure gets up to **four total attempts**, with Jenkins-managed

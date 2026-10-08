@@ -82,6 +82,59 @@ If `PERSONAL_MPI_HOME` is unset or blank, it uses that tree's SHA-local
 an existing MPI installation for both builds and parallel regressions.
 An ambient `MPI_HOME` does not select the CI installation.
 
+### Containerized build agents
+
+Long-lived build-agent containers need an init process to reap orphaned children
+from shell wrappers, Git helpers, and MPI daemons. Java running as container PID 1
+can leave these exited children as zombies. Zombies still consume process slots;
+they cannot be removed with `kill`, and pipeline retries cannot reclaim them.
+This is a host container configuration requirement, not a Jenkinsfile setting.
+
+For Podman Quadlet, install [50-worker-processes.conf](quadlet/50-worker-processes.conf)
+as a drop-in for the worker's `.container` source. It enables `RunInit=true` and
+sets `PidsLimit=2048` (processes and threads combined). The init process reaps
+orphaned children continuously; no periodic cleanup job is needed. Keep a finite
+process limit, and size it for the node's intended build concurrency. This
+addresses process exhaustion; it does not establish memory safety of build code
+or impose a RAM limit.
+
+For the `gkeyll-ci-personal-gpu` worker on this computer, run the following from
+the repository root as the user who owns the container, without `sudo`. Stop
+the failed build in Jenkins first; restarting the worker interrupts any build
+using it. Installation preserves the existing image, mounts, and credentials.
+
+```sh
+install -D -m 0644 ci/jenkins/quadlet/50-worker-processes.conf \
+  "$HOME/.config/containers/systemd/gkeyll-ci-personal-gpu.container.d/50-worker-processes.conf"
+systemctl --user daemon-reload
+systemctl --user restart gkeyll-ci-personal-gpu.service
+```
+
+For a different Quadlet worker, substitute its name in the destination and
+service. The drop-in belongs in `containers/systemd/<worker>.container.d/`, not
+`systemd/user/<worker>.service.d/`. A service restart recreates the container
+with init and clears existing zombies; `podman restart` alone does not apply
+the new container creation options.
+
+Verify the running configuration and process state before rerunning CI:
+
+```sh
+podman inspect gkeyll-ci-personal-gpu \
+  --format 'Init={{.HostConfig.Init}} PidsLimit={{.HostConfig.PidsLimit}}'
+podman top gkeyll-ci-personal-gpu pid ppid state comm
+```
+
+Expect `Init=true PidsLimit=2048`, an init process such as `podman-init` as PID 1,
+and Java as its child. Check again after several builds: zombies (`Z` state)
+should not accumulate under PID 1. Init can reap adopted orphans; live parents
+must still reap their own children. A persistent zombie under another parent
+requires investigating that parent.
+
+For agents created directly with Podman or Docker, use `--init --pids-limit=2048`
+when creating the container. See the
+[Quadlet documentation](https://docs.podman.io/en/stable/markdown/podman-systemd.unit.5.html)
+for `RunInit`, `PidsLimit`, and drop-in configuration.
+
 ### Create the one parameterized Pipeline job
 
 Create Pipeline `gkeyll-ci-personal` from SCM repository
@@ -169,3 +222,8 @@ retries and per-attempt diagnostics. The controller can publish a timed fallback
 report even if the selected pipeline or reporting scripts cannot be fetched.
 See [setup resource failures and early reports](README.md#setup-resource-failures-and-early-reports)
 for retry limits, artifacts, and the required controller-hook update.
+
+If diagnostics show `pids.current` reaching `pids.max` and many zombies parented
+by PID 1, apply the [containerized build-agent configuration](#containerized-build-agents)
+and recreate the worker. Raising the limit or adding retries only postpones
+failure when exited children are not being reaped.
