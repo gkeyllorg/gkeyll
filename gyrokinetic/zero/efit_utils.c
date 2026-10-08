@@ -26,13 +26,11 @@ efit_clamp(double x, double lo, double hi)
 
 // Should the X-point search prefer a candidate that is a genuine critical point
 // interior to its own cell over one that had to be clamped onto a cell face?
-// Off by default because psisep and the X-point location are shared by every
-// block type, so moving them shuffles failures across the whole suite.
+// Yes: the validated construction does, on every device.
 static bool
 efit_xpt_prefer_unclamped(void)
 {
-  const char *on = getenv("GKYL_EFIT_XPT_PREFER_UNCLAMPED");
-  return on && on[0] != '\0' && on[0] != '0';
+  return true;
 }
 
 // Is an X-point candidate inside the caller-supplied vessel outline?  Candidates are

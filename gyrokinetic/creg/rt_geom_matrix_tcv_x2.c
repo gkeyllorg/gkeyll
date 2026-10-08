@@ -152,6 +152,7 @@ create_asdex_lsn_gk_block_geom(void *ctx)
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_GEOMETRY_TOKAMAK_PF_LO_R,
+          .enforce_wall = true,
           .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
           .straight_xpt_ray = true,
           .relaxed_xpt_seam = true,
@@ -200,6 +201,7 @@ create_asdex_lsn_gk_block_geom(void *ctx)
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_GEOMETRY_TOKAMAK_LSN_SOL_LO,
+          .enforce_wall = true,
           .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
           .rmin   = 0.618,
           .rmax   = 1.14,
@@ -245,6 +247,7 @@ create_asdex_lsn_gk_block_geom(void *ctx)
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_GEOMETRY_TOKAMAK_LSN_SOL_MID,
+          .enforce_wall = true,
           .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
           .rmin   = 0.618,
           .rmax   = 1.14,
@@ -290,6 +293,7 @@ create_asdex_lsn_gk_block_geom(void *ctx)
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_GEOMETRY_TOKAMAK_LSN_SOL_UP,
+          .enforce_wall = true,
           .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
           .rmin   = 0.618,
           .rmax   = 1.14,
@@ -335,6 +339,7 @@ create_asdex_lsn_gk_block_geom(void *ctx)
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_GEOMETRY_TOKAMAK_PF_LO_L,
+          .enforce_wall = true,
           .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
           .straight_xpt_ray = true,
           .relaxed_xpt_seam = true,
@@ -383,6 +388,7 @@ create_asdex_lsn_gk_block_geom(void *ctx)
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_GEOMETRY_TOKAMAK_CORE,
+          .enforce_wall = true,
           .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
           .straight_xpt_ray = true,
           .relaxed_xpt_seam = true,

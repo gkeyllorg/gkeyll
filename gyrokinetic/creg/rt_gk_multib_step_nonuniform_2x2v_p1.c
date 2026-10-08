@@ -177,7 +177,6 @@ create_gk_block_geom(void)
           // declaration is required for STEP to build. It is checked, not trusted:
           // if a usable outline ever appears in this EQDSK the declaration is refused
           // as contradictory, and every block reports TOK_GEO_WALL_NOT_ENFORCED.
-          .no_vessel_outline = true,
           .straight_xpt_ray = true,
           .relaxed_xpt_seam = true,
           .relaxed_xpt_seam_optimize = true,
@@ -222,7 +221,6 @@ create_gk_block_geom(void)
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_LO,
-          .no_vessel_outline = true,
           .straight_xpt_ray = true,
           .relaxed_xpt_seam = true,
           .relaxed_xpt_seam_optimize = true,
@@ -269,7 +267,6 @@ create_gk_block_geom(void)
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_MID,
-          .no_vessel_outline = true,
           .straight_xpt_ray = true,
           .relaxed_xpt_seam = true,
           .relaxed_xpt_seam_optimize = true,
@@ -316,7 +313,6 @@ create_gk_block_geom(void)
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_UP,
-          .no_vessel_outline = true,
           .straight_xpt_ray = true,
           .relaxed_xpt_seam = true,
           .relaxed_xpt_seam_optimize = true,
@@ -364,7 +360,6 @@ create_gk_block_geom(void)
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_GEOMETRY_TOKAMAK_PF_UP_R,
           .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
-          .no_vessel_outline = true,
           .straight_xpt_ray = true,
           .relaxed_xpt_seam = true,
           .relaxed_xpt_seam_optimize = true,
@@ -410,7 +405,6 @@ create_gk_block_geom(void)
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_GEOMETRY_TOKAMAK_PF_UP_L,
           .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
-          .no_vessel_outline = true,
           .straight_xpt_ray = true,
           .relaxed_xpt_seam = true,
           .relaxed_xpt_seam_optimize = true,
@@ -456,7 +450,6 @@ create_gk_block_geom(void)
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_UP,
           .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
-          .no_vessel_outline = true,
           .straight_xpt_ray = true,
           .relaxed_xpt_seam = true,
           .relaxed_xpt_seam_optimize = true,
@@ -502,7 +495,6 @@ create_gk_block_geom(void)
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_MID,
           .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
-          .no_vessel_outline = true,
           .straight_xpt_ray = true,
           .relaxed_xpt_seam = true,
           .relaxed_xpt_seam_optimize = true,
@@ -548,7 +540,6 @@ create_gk_block_geom(void)
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_LO,
           .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
-          .no_vessel_outline = true,
           .straight_xpt_ray = true,
           .relaxed_xpt_seam = true,
           .relaxed_xpt_seam_optimize = true,
@@ -594,7 +585,6 @@ create_gk_block_geom(void)
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_GEOMETRY_TOKAMAK_PF_LO_L,
           .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
-          .no_vessel_outline = true,
           .straight_xpt_ray = true,
           .relaxed_xpt_seam = true,
           .relaxed_xpt_seam_optimize = true,
@@ -640,7 +630,6 @@ create_gk_block_geom(void)
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_GEOMETRY_TOKAMAK_CORE_R,
-          .no_vessel_outline = true,
           .straight_xpt_ray = true,
           .relaxed_xpt_seam = true,
           .relaxed_xpt_seam_optimize = true,
@@ -682,7 +671,6 @@ create_gk_block_geom(void)
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_GEOMETRY_TOKAMAK_CORE_L,
-          .no_vessel_outline = true,
           .straight_xpt_ray = true,
           .relaxed_xpt_seam = true,
           .relaxed_xpt_seam_optimize = true,

@@ -85,7 +85,6 @@ main(int argc, char **argv)
       .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
         .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN,
         .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
-        .no_vessel_outline = true,
         .rleft = 2.0,
         .rright = rright_out,
         .rmin = 0.0,

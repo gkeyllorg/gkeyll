@@ -113,22 +113,16 @@ gkyl_gk_block_geom_get_block(const struct gkyl_gk_block_geom *bgeom, int bidx)
   return &bgeom->blocks[bidx];
 }
 
-// ON by default; set GKYL_TOK_SHARED_SEP_THETA=0 to disable.
-//
-// The default is on because the construction only ever engages where two blocks
-// disagree about taking the extended construction across a radial interface,
-// and there it is the difference between a seam that closes and one that does
-// not: measured at x1 against a 0.01 cell tolerance, asdex 0.826 -> 0.000077
-// and tcv 2.044 -> 0.0031. Every other case measured in this campaign --
-// step at x1/x2/x4 uniform and nonuniform, and all 8 blocks of every NSTX-U
-// shot -- has no mixed interface at all, so the construction never engages and
-// those results are untouched. The escape exists so the A/B that establishes
-// this stays runnable, not because any case is expected to want it off.
+// Where two blocks disagree about taking the extended construction across a
+// radial interface, the legacy block adopts its peer's separatrix row, so the
+// shared row comes from one trace builder. It is the difference between a seam
+// that closes and one that does not: measured at x1 against a 0.01 cell
+// tolerance, asdex 0.826 -> 0.000077 and tcv 2.044 -> 0.0031. Devices with no
+// mixed interface (step, NSTX-U) never engage it.
 static bool
 gk_block_geom_shared_sep_row_enabled(void)
 {
-  const char *off = getenv("GKYL_TOK_SHARED_SEP_THETA");
-  return !(off && off[0] == '0');
+  return true;
 }
 
 // EXPERIMENTAL, default OFF. Let an EXTENDED block adopt a radial peer's
@@ -269,16 +263,11 @@ gk_block_geom_seam_row_is_shared(const struct gkyl_gk_block_geom *bgeom,
 // genuinely built twice is a defect -- a deliberate mixed declaration with the
 // shared row on is a supported configuration, not a latent one.
 //
-// This REPORTS by default and does not change the verdict, because existing
-// multiblock cases carry mixed interfaces today and would begin failing at
-// setup.  Set GKYL_TOK_STRICT_SEAM_PARTICIPATION=1 to make an unshared one an
-// error.
+// Every mixed interface is reported; an unshared one is an error.
 static int
 gk_block_geom_check_seam_participation(const struct gkyl_gk_block_geom *bgeom,
   int *interfaces_examined, int *mixed, int *unshared)
 {
-  const char *strict_env = getenv("GKYL_TOK_STRICT_SEAM_PARTICIPATION");
-  bool strict = strict_env && strict_env[0] != '\0' && strict_env[0] != '0';
   const char *diag_env = getenv("GKYL_TOK_SEAM_PARTICIPATION_DIAG");
   bool diag = diag_env && diag_env[0] != '\0' && diag_env[0] != '0';
   int nmixed = 0, nunshared = 0, nchecked = 0;
@@ -385,11 +374,10 @@ gk_block_geom_check_seam_participation(const struct gkyl_gk_block_geom *bgeom,
       "from one trace builder; those cannot be misparameterized by the "
       "declaration and do not fail\n", nmixed - nunshared, nmixed);
 
-  if (nunshared > 0 && strict) {
+  if (nunshared > 0) {
     fprintf(stderr,
       "TOK_SEAM_PARTICIPATION %d mixed interface(s) build their shared row "
-      "twice; failing because GKYL_TOK_STRICT_SEAM_PARTICIPATION is set\n",
-      nunshared);
+      "twice; failing\n", nunshared);
     return 0;
   }
   return 1;
@@ -479,13 +467,30 @@ gkyl_gyrokinetic_multib_app_geometry_preflight(const struct gkyl_gyrokinetic_mul
       mbinp->cdim, bgeom->ndim);
     ok = 0;
   }
-  const char *strict_env = getenv("GKYL_TOK_STRICT_SEAM_PARTICIPATION");
-  bool strict = strict_env && strict_env[0] != '\0' && strict_env[0] != '0';
+  // Containment is one decision for the whole domain: blocks share faces, and a
+  // face judged against the wall from one side only is not judged.
+  int wall_ref = -1;
+  for (int i=0; bgeom && i<bgeom->num_blocks; ++i) {
+    const struct gkyl_gk_block_geom_info *bi = &bgeom->blocks[i];
+    if (bi->geometry.geometry_id != GKYL_GEOMETRY_TOKAMAK)
+      continue;
+    if (wall_ref < 0) {
+      wall_ref = i;
+      continue;
+    }
+    const bool want = bgeom->blocks[wall_ref].geometry.tok_grid_info.enforce_wall;
+    if (bi->geometry.tok_grid_info.enforce_wall != want) {
+      fprintf(stderr, "GKYL_BLOCK_GEOMETRY_INVALID enforce_wall block=%d is %d but block=%d is %d\n",
+        i, (int) bi->geometry.tok_grid_info.enforce_wall, wall_ref, (int) want);
+      ok = 0;
+      break;
+    }
+  }
   fprintf(stderr,
     "GKYL_GEOMETRY_PREFLIGHT status=%s scope=declaration num_blocks=%d "
-    "strict=%d interfaces_examined=%d mixed=%d unshared=%d\n",
+    "strict=1 interfaces_examined=%d mixed=%d unshared=%d\n",
     ok ? "PASS" : "FAIL", bgeom ? bgeom->num_blocks : 0,
-    (int) strict, interfaces_examined, mixed, unshared);
+    interfaces_examined, mixed, unshared);
   fflush(stderr);
   return ok;
 }

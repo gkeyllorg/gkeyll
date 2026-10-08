@@ -8,35 +8,13 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-// Opt-in for routing half-domain blocks through the extended, topology-aware
-// node construction instead of the separatrix-chord one.  Off by default, so
-// the validated half-domain path stays bitwise unchanged; set
-// GKYL_TOK_EXT_HALF_DOMAIN=1 to A/B it over a full scan.
-static inline bool
-tok_ext_half_domain_enabled(void)
-{
-  static int cached = -1;
-  if (cached < 0) {
-    const char *env = getenv("GKYL_TOK_EXT_HALF_DOMAIN");
-    cached = env && env[0] != '\0' && env[0] != '0' ? 1 : 0;
-    // Announce it once per translation unit. A silently-ignored opt-in would
-    // otherwise produce a clean-looking run of the OLD construction under the
-    // new run tag, which is the expensive mistake to make on a 450-shot suite.
-    if (cached == 1)
-      fprintf(stderr, "TOK_EXT_HALF_DOMAIN enabled: half-domain blocks use the "
-        "extended topology-aware construction\n");
-  }
-  return cached == 1;
-}
-
 // True when this block's nodes come from the extended construction: it traces
 // the CURRENT psi contour between topology-matched endpoints and samples it
 // directly, rather than intersecting separatrix-to-far-surface chords.
 static inline bool
 tok_ext_construction(const struct gkyl_tok_geo_grid_inp *inp)
 {
-  return inp->straight_xpt_ray &&
-    (!inp->half_domain || tok_ext_half_domain_enabled());
+  return inp->straight_xpt_ray;
 }
 
 // Function context to pass to root finder

@@ -929,8 +929,7 @@ tok_ext_anchor_rho_regularized(struct arc_length_ctx *arc_ctx, double rho_raw,
 static bool
 tok_ext_anchor_enabled(void)
 {
-  const char *e = getenv("GKYL_TOK_EXT_ANCHOR");
-  return !(e && e[0] == '0');
+  return false;
 }
 
 static bool
@@ -5731,8 +5730,7 @@ tok_ext_ladder_from_far(void)
 static bool
 tok_ext_theta_ladder_enabled(void)
 {
-  const char *e = getenv("GKYL_TOK_EXT_THETA_LADDER");
-  return e && e[0] != '\0' && e[0] != '0';
+  return true;
 }
 
 // Core surfaces are closed flux surfaces cut at a seam: the two ends of the cut
@@ -5789,18 +5787,13 @@ tok_ext_ladder_core_hook(void)
   return on == 1;
 }
 
-// PROTOTYPE (GKYL_TOK_EXT_ROW_RULE=1, default off): replace the marched ladder
-// by the per-row construction of tok_ext_build_theta_rows below.  It serves
-// every open block, the core halves included -- see that function.
+// The per-row construction of tok_ext_build_theta_rows below replaces the
+// marched ladder.  It serves every open block, the core halves included -- see
+// that function.
 static bool
 tok_ext_row_rule(void)
 {
-  static int on = -1;
-  if (on < 0) {
-    const char *e = getenv("GKYL_TOK_EXT_ROW_RULE");
-    on = (e && e[0] != '\0' && e[0] != '0') ? 1 : 0;
-  }
-  return on == 1;
+  return true;
 }
 
 static bool
@@ -6701,8 +6694,8 @@ tok_ext_build_theta_ladder(const struct gkyl_tok_geo_grid_inp *inp,
 }
 
 // ---------------------------------------------------------------------------
-// PROTOTYPE: the per-row correspondence with a fold-derived absorption of the
-// X-point-ray endpoint offset (GKYL_TOK_EXT_ROW_RULE=1).
+// The per-row correspondence with a fold-derived absorption of the X-point-ray
+// endpoint offset (the row rule).
 //
 // MEASURED 2026-09-22/23 on the NSTX-U 450 and the STEP/ASDEX/TCV theta
 // ladders (fable-handoff/01 §11-§16):
@@ -7531,8 +7524,7 @@ tok_shared_theta(const struct gkyl_tok_geo_grid_inp *inp,
     peer_geo.plate_spec=peer->plate_spec;
     peer_geo.plate_func_lower=peer->plate_func_lower;
     peer_geo.plate_func_upper=peer->plate_func_upper;
-    const char *peer_extend=getenv("EXTEND_TO_LIMITER");
-    peer_geo.extend_to_limiter=peer_extend ? !strcmp(peer_extend,"1") : peer->extend_to_limiter;
+    peer_geo.extend_to_limiter=peer->extend_to_limiter;
     for (int slot=0;slot<2;++slot) {
       const struct gkyl_tok_geo_wall_target *target=&peer->divertor_wall[slot];
       if ((target->num_segments || target->segments) &&
@@ -10212,14 +10204,6 @@ gkyl_tok_geo_new(const struct gkyl_efit_inp *inp, const struct gkyl_tok_geo_grid
 
   geo->plate_spec = ginp->plate_spec;
   geo->extend_to_limiter = ginp->extend_to_limiter;
-  const char *extend = getenv("EXTEND_TO_LIMITER");
-  if (extend) {
-    if (strcmp(extend, "0") && strcmp(extend, "1")) {
-      fprintf(stderr, "TOK_GEO_PLATE_INVALID EXTEND_TO_LIMITER must be 0 or 1\n");
-      abort();
-    }
-    geo->extend_to_limiter = !strcmp(extend, "1");
-  }
   geo->plate_func_lower = ginp->plate_func_lower;
   geo->plate_func_upper = ginp->plate_func_upper;
   for (int slot=0;slot<2;++slot) {
@@ -10379,19 +10363,33 @@ tok_theta_arc_diag(const struct gk_geometry *up, const struct gkyl_range *nrange
   fclose(fp);
 }
 
+// Whether this block's containment tests run: only when the input asks for
+// them. Asked for against an outline that cannot bound a region, the block is
+// rejected here (the multiblock preflight rejects it earlier, with the block
+// number). Not asked for, the block says so, so an unenforced wall is never
+// silent in the log.
+static bool
+tok_wall_enforced(const struct gkyl_tok_geo *geo, const struct gkyl_tok_geo_grid_inp *inp)
+{
+  enum gkyl_tok_wall_policy policy = gkyl_tok_wall_policy_for(inp,geo->efit);
+  if (policy == GKYL_TOK_WALL_ENFORCE)
+    return true;
+  if (policy == GKYL_TOK_WALL_NOT_ENFORCED) {
+    fprintf(stderr,"TOK_GEO_WALL_NOT_ENFORCED ftype=%d limiter_status=%d vertices=%d reason=%s\n",
+      inp->ftype,geo->efit->limiter_status,geo->efit->limiter_n,gkyl_tok_wall_policy_reason(policy));
+    return false;
+  }
+  fprintf(stderr,"TOK_GEO_WALL_UNAVAILABLE ftype=%d limiter_status=%d vertices=%d reason=%s\n",
+    inp->ftype,geo->efit->limiter_status,geo->efit->limiter_n,gkyl_tok_wall_policy_reason(policy));
+  abort();
+}
+
 void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct gkyl_tok_geo *geo, 
   struct gkyl_tok_geo_grid_inp *inp, struct gkyl_position_map *position_map)
 {
 
-  // Vessel-outline policy for this block, decided once. An acknowledged absent
-  // outline builds without wall enforcement; an unusable outline with no
-  // acknowledgement never reaches here (the multiblock preflight rejects it),
-  // and the standalone path rejects at the first containment test below.
-  const bool enforce_wall = gkyl_tok_wall_policy_for(inp,geo->efit)==GKYL_TOK_WALL_ENFORCE;
-  if (!enforce_wall)
-    fprintf(stderr,"TOK_GEO_WALL_NOT_ENFORCED ftype=%d limiter_status=%d vertices=%d reason=%s\n",
-      inp->ftype,geo->efit->limiter_status,geo->efit->limiter_n,
-      gkyl_tok_wall_policy_reason(gkyl_tok_wall_policy_for(inp,geo->efit)));
+  // Vessel-outline policy for this block, decided once.
+  const bool enforce_wall = tok_wall_enforced(geo,inp);
 
   geo->rleft = inp->rleft;
   geo->rright = inp->rright;
@@ -11064,15 +11062,8 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
     struct gkyl_tok_geo *geo, struct gkyl_tok_geo_grid_inp *inp, struct gkyl_position_map *position_map)
 {
 
-  // Vessel-outline policy for this block, decided once. An acknowledged absent
-  // outline builds without wall enforcement; an unusable outline with no
-  // acknowledgement never reaches here (the multiblock preflight rejects it),
-  // and the standalone path rejects at the first containment test below.
-  const bool enforce_wall = gkyl_tok_wall_policy_for(inp,geo->efit)==GKYL_TOK_WALL_ENFORCE;
-  if (!enforce_wall)
-    fprintf(stderr,"TOK_GEO_WALL_NOT_ENFORCED ftype=%d limiter_status=%d vertices=%d reason=%s\n",
-      inp->ftype,geo->efit->limiter_status,geo->efit->limiter_n,
-      gkyl_tok_wall_policy_reason(gkyl_tok_wall_policy_for(inp,geo->efit)));
+  // Vessel-outline policy for this block, decided once.
+  const bool enforce_wall = tok_wall_enforced(geo,inp);
 
   geo->rleft = inp->rleft;
   geo->rright = inp->rright;
@@ -11501,15 +11492,8 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
     struct gkyl_tok_geo *geo, struct gkyl_tok_geo_grid_inp *inp, struct gkyl_position_map *position_map)
 {
 
-  // Vessel-outline policy for this block, decided once. An acknowledged absent
-  // outline builds without wall enforcement; an unusable outline with no
-  // acknowledgement never reaches here (the multiblock preflight rejects it),
-  // and the standalone path rejects at the first containment test below.
-  const bool enforce_wall = gkyl_tok_wall_policy_for(inp,geo->efit)==GKYL_TOK_WALL_ENFORCE;
-  if (!enforce_wall)
-    fprintf(stderr,"TOK_GEO_WALL_NOT_ENFORCED ftype=%d limiter_status=%d vertices=%d reason=%s\n",
-      inp->ftype,geo->efit->limiter_status,geo->efit->limiter_n,
-      gkyl_tok_wall_policy_reason(gkyl_tok_wall_policy_for(inp,geo->efit)));
+  // Vessel-outline policy for this block, decided once.
+  const bool enforce_wall = tok_wall_enforced(geo,inp);
 
   geo->rleft = inp->rleft;
   geo->rright = inp->rright;

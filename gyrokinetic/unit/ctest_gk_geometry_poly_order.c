@@ -120,7 +120,6 @@ make_cylinder_geometry(int poly_order, struct gkyl_position_map **pmap_out)
   struct gkyl_tok_geo_grid_inp ginp = {
     // straight_cylinder.geqdsk is an analytic equilibrium with no vessel
     // outline in the file, so the absence is declared here.
-    .no_vessel_outline = true,
     .rclose = 0.5,
     .zmin = -1., .zmax = 1.,
     .rleft = 0.001, .rmax = 1.0, .rright = 1.0,

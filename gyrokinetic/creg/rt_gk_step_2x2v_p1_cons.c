@@ -646,7 +646,6 @@ main(int argc, char **argv)
     // unusable outline that is not acknowledged. Checked, not trusted: refused as
     // contradictory if a usable outline ever appears, and never accepted for a
     // malformed record. Each block reports TOK_GEO_WALL_NOT_ENFORCED.
-    .no_vessel_outline = true,
     .rclose = 6.2,            // closest R to region of interest
     .rright= 6.2,             // Closest R to outboard SOL
     .rleft= 2.0,              // closest R to inboard SOL

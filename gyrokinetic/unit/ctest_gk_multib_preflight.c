@@ -80,7 +80,6 @@ check_constructors_reject(struct gkyl_gk_block_geom *bgeom)
 static void
 test_uniform(void)
 {
-  setenv("GKYL_TOK_STRICT_SEAM_PARTICIPATION", "1", 1);
   for (int extended=0; extended<2; ++extended) {
     struct gkyl_gk_block_geom *bgeom = make_pair(extended, extended);
     struct gkyl_gyrokinetic_multib inp = { .cdim = 2, .gk_block_geom = bgeom };
@@ -89,74 +88,39 @@ test_uniform(void)
       "strict=1 interfaces_examined=1 mixed=0");
     gkyl_gk_block_geom_release(bgeom);
   }
-  unsetenv("GKYL_TOK_STRICT_SEAM_PARTICIPATION");
 }
 
+// A mixed interface whose shared row is built twice is fatal. A THETA interface
+// joins two different rows, so nothing there can come from one trace builder.
 static void
-test_mixed_default_and_strict(void)
+test_mixed_unshared(void)
 {
-  unsetenv("GKYL_TOK_STRICT_SEAM_PARTICIPATION");
-  // The shared-separatrix-row construction is ON by default, so this test --
-  // which is about what a genuinely twice-built row does -- must opt out of it.
-  setenv("GKYL_TOK_SHARED_SEP_THETA", "0", 1);
-  struct gkyl_gk_block_geom *bgeom = make_pair(true, false);
+  struct gkyl_gk_block_geom *bgeom = make_pair_dir(1, true, false);
   struct gkyl_gyrokinetic_multib inp = { .cdim = 2, .gk_block_geom = bgeom };
-  check_preflight_report(&inp, 1,
-    "GKYL_GEOMETRY_PREFLIGHT status=PASS scope=declaration num_blocks=2 "
-    "strict=0 interfaces_examined=1 mixed=1");
-  setenv("GKYL_TOK_STRICT_SEAM_PARTICIPATION", "1", 1);
   check_preflight_report(&inp, 0,
     "GKYL_GEOMETRY_PREFLIGHT status=FAIL scope=declaration num_blocks=2 "
-    "strict=1 interfaces_examined=1 mixed=1");
+    "strict=1 interfaces_examined=1 mixed=1 unshared=1");
   check_constructors_reject(bgeom);
-  // Strict rejection must leave the caller's declaration usable and owned.
-  unsetenv("GKYL_TOK_STRICT_SEAM_PARTICIPATION");
-  TEST_CHECK(gkyl_gk_block_geom_check_consistency(bgeom) == 1);
+  // Rejection must leave the caller's declaration usable and owned: the same
+  // check gives the same answer again, and the caller can still release it.
+  TEST_CHECK(gkyl_gk_block_geom_check_consistency(bgeom) == 0);
   gkyl_gk_block_geom_release(bgeom);
-  unsetenv("GKYL_TOK_SHARED_SEP_THETA");
 }
 
 // A mixed declaration is only a defect when the two blocks build their shared
-// separatrix row SEPARATELY.  With the shared-row construction on, a radial
-// interface takes that row from one trace builder, so 3-of-6 straight_xpt_ray
-// -- asdex's and tcv's deliberate declaration -- is a supported configuration
-// and must survive strict.  The measured stake: the same seam is 7.7e-05
+// separatrix row SEPARATELY.  A radial interface takes that row from one trace
+// builder, so 3-of-6 straight_xpt_ray -- asdex's and tcv's deliberate
+// declaration -- is a supported configuration.  The measured stake: the same seam is 7.7e-05
 // (asdex) / 3.1e-03 (tcv) cells with the row shared and 0.83 / 2.04 cells
 // without it, against a 0.01 cell tolerance.
 static void
 test_mixed_shared_row(void)
 {
-  setenv("GKYL_TOK_STRICT_SEAM_PARTICIPATION", "1", 1);
-  // DEFAULT, not opted in: the construction is on unless disabled, so a mixed
-  // declaration passes strict out of the box.
-  unsetenv("GKYL_TOK_SHARED_SEP_THETA");
   struct gkyl_gk_block_geom *bgeom = make_pair(true, false);
   struct gkyl_gyrokinetic_multib inp = { .cdim = 2, .gk_block_geom = bgeom };
   check_preflight_report(&inp, 1,
     "GKYL_GEOMETRY_PREFLIGHT status=PASS scope=declaration num_blocks=2 "
     "strict=1 interfaces_examined=1 mixed=1 unshared=0");
-  // An explicit "1" must mean the same thing as the default.
-  setenv("GKYL_TOK_SHARED_SEP_THETA", "1", 1);
-  check_preflight_report(&inp, 1,
-    "GKYL_GEOMETRY_PREFLIGHT status=PASS scope=declaration num_blocks=2 "
-    "strict=1 interfaces_examined=1 mixed=1 unshared=0");
-  // The same declaration, with only the construction switched off, is fatal:
-  // the pass above is a property of how the row is built, not of the guard
-  // having been weakened.
-  setenv("GKYL_TOK_SHARED_SEP_THETA", "0", 1);
-  check_preflight_report(&inp, 0,
-    "GKYL_GEOMETRY_PREFLIGHT status=FAIL scope=declaration num_blocks=2 "
-    "strict=1 interfaces_examined=1 mixed=1 unshared=1");
-  gkyl_gk_block_geom_release(bgeom);
-
-  // A THETA interface joins two different rows, so nothing there can come
-  // from one trace builder and the construction cannot excuse it.
-  unsetenv("GKYL_TOK_SHARED_SEP_THETA");
-  bgeom = make_pair_dir(1, true, false);
-  inp = (struct gkyl_gyrokinetic_multib) { .cdim = 2, .gk_block_geom = bgeom };
-  check_preflight_report(&inp, 0,
-    "GKYL_GEOMETRY_PREFLIGHT status=FAIL scope=declaration num_blocks=2 "
-    "strict=1 interfaces_examined=1 mixed=1 unshared=1");
   gkyl_gk_block_geom_release(bgeom);
 
   // A row can only be reused when it is the SAME curve. Differing equilibrium
@@ -189,13 +153,11 @@ test_mixed_shared_row(void)
     TEST_MSG("differing %s must not count as a shared row", field[i]);
     gkyl_gk_block_geom_release(bgeom);
   }
-  unsetenv("GKYL_TOK_STRICT_SEAM_PARTICIPATION");
 }
 
 static void
 test_malformed(void)
 {
-  unsetenv("GKYL_TOK_STRICT_SEAM_PARTICIPATION");
   const struct gkyl_target_edge malformed[] = {
     { .bid = 1, .dir = 0, .edge = 0 }, // unspecified
     { .bid = 2, .dir = 0, .edge = GKYL_LOWER_POSITIVE }, // invalid block
@@ -219,7 +181,6 @@ test_malformed(void)
 static void
 test_orientation_and_rotated_restriction(void)
 {
-  setenv("GKYL_TOK_STRICT_SEAM_PARTICIPATION", "1", 1);
   struct gkyl_gk_block_geom *bgeom = make_pair(true, true);
   struct gkyl_gk_block_geom_info a = *gkyl_gk_block_geom_get_block(bgeom, 0);
   struct gkyl_gk_block_geom_info b = *gkyl_gk_block_geom_get_block(bgeom, 1);
@@ -245,13 +206,11 @@ test_orientation_and_rotated_restriction(void)
   gkyl_gk_block_geom_set_block(bgeom, 1, &b);
   check_constructors_reject(bgeom);
   gkyl_gk_block_geom_release(bgeom);
-  unsetenv("GKYL_TOK_STRICT_SEAM_PARTICIPATION");
 }
 
 static void
 test_same_side_radial_edges(void)
 {
-  setenv("GKYL_TOK_STRICT_SEAM_PARTICIPATION", "1", 1);
   for (int side=0; side<2; ++side) {
     struct gkyl_gk_block_geom *bgeom = make_pair(true, true);
     for (int bid=0; bid<2; ++bid) {
@@ -270,16 +229,36 @@ test_same_side_radial_edges(void)
       "strict=1 interfaces_examined=1 mixed=0");
     gkyl_gk_block_geom_release(bgeom);
   }
-  unsetenv("GKYL_TOK_STRICT_SEAM_PARTICIPATION");
+}
+
+// Containment is one decision for the whole domain: blocks that disagree about
+// enforce_wall are rejected before any geometry is built.
+static void
+test_enforce_wall_agreement(void)
+{
+  for (int disagree=0; disagree<2; ++disagree) {
+    struct gkyl_gk_block_geom *bgeom = make_pair(true, true);
+    for (int b=0; b<2; ++b) {
+      struct gkyl_gk_block_geom_info info = *gkyl_gk_block_geom_get_block(bgeom, b);
+      info.geometry.tok_grid_info.enforce_wall = disagree ? b == 1 : true;
+      gkyl_gk_block_geom_set_block(bgeom, b, &info);
+    }
+    struct gkyl_gyrokinetic_multib inp = { .cdim = 2, .gk_block_geom = bgeom };
+    check_preflight_report(&inp, !disagree, disagree ?
+      "GKYL_BLOCK_GEOMETRY_INVALID enforce_wall block=1 is 1 but block=0 is 0" :
+      "GKYL_GEOMETRY_PREFLIGHT status=PASS scope=declaration num_blocks=2");
+    if (disagree)
+      check_constructors_reject(bgeom);
+    gkyl_gk_block_geom_release(bgeom);
+  }
 }
 
 static void
 test_missing_or_dimension_mismatch(void)
 {
-  unsetenv("GKYL_TOK_STRICT_SEAM_PARTICIPATION");
   check_preflight_report(NULL, 0,
     "GKYL_GEOMETRY_PREFLIGHT status=FAIL scope=declaration num_blocks=0 "
-    "strict=0 interfaces_examined=0 mixed=0");
+    "strict=1 interfaces_examined=0 mixed=0");
   TEST_CHECK(gkyl_gyrokinetic_multib_app_new_geom(NULL) == NULL);
   TEST_CHECK(gkyl_gyrokinetic_multib_app_new(NULL) == NULL);
   check_constructors_reject(NULL);
@@ -295,11 +274,12 @@ test_missing_or_dimension_mismatch(void)
 
 TEST_LIST = {
   { "uniform", test_uniform },
-  { "mixed_default_and_strict", test_mixed_default_and_strict },
+  { "mixed_unshared", test_mixed_unshared },
   { "mixed_shared_row", test_mixed_shared_row },
   { "malformed", test_malformed },
   { "orientation_and_rotated_restriction", test_orientation_and_rotated_restriction },
   { "same_side_radial_edges", test_same_side_radial_edges },
+  { "enforce_wall_agreement", test_enforce_wall_agreement },
   { "missing_or_dimension_mismatch", test_missing_or_dimension_mismatch },
   { NULL, NULL },
 };

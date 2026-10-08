@@ -135,7 +135,6 @@ struct gkyl_tok_geo {
   // at the inboard midplane which lies on the LCFS.
   bool plate_spec;
   // Continue an insufficient plate on the actual EQDSK limiter. Default off.
-  // Environment EXTEND_TO_LIMITER=0 or 1 overrides this input.
   bool extend_to_limiter;
   plate_func plate_func_lower;
   plate_func plate_func_upper;
@@ -231,7 +230,6 @@ struct gkyl_tok_geo_grid_inp {
   // Specifications for divertor plate
   bool plate_spec;
   // Continue an insufficient plate on the actual EQDSK limiter. Default off.
-  // Environment EXTEND_TO_LIMITER=0 or 1 overrides this input.
   bool extend_to_limiter; // whether a shape function is provided for divertor plates
   // With extension enabled, explicit wall arcs replace the corresponding
   // material plate target. Slot 0 is plate_func_lower, slot 1 plate_func_upper
@@ -240,20 +238,14 @@ struct gkyl_tok_geo_grid_inp {
   // follow the wall bends; strike-point chords only visualize that curved face.
   struct gkyl_tok_geo_wall_target divertor_wall[2];
 
-  // Explicit acknowledgement that this equilibrium supplies NO usable vessel
-  // outline, so geometry is built without wall enforcement. Required because
-  // silence must never disable a safety constraint: an equilibrium whose
-  // outline is absent (limiter_status 0) or degenerate (status 2) and which
-  // carries no acknowledgement is REJECTED. Every block built under this
-  // acknowledgement reports TOK_GEO_WALL_NOT_ENFORCED, so an unenforced wall is
-  // always visible in the run log.
-  //
-  // The acknowledgement is checked, not trusted, and is refused two ways:
-  //   * a usable outline exists  -> contradictory declaration, rejected;
-  //   * the record is MALFORMED (status -1) -> unreadable or non-finite data is
-  //     an input error to fix, never something to declare away.
-  // It grants no permission to leave a wall that does exist.
-  bool no_vessel_outline;
+  // Reject a grid that leaves the equilibrium's vessel outline. Default off:
+  // the outline is then not consulted for containment, and every block reports
+  // TOK_GEO_WALL_NOT_ENFORCED so an unenforced wall is visible in the run log.
+  // When on, the outline must be usable (gkyl_tok_wall_usable); an absent,
+  // degenerate or malformed outline is rejected, since containment cannot be
+  // judged against it. Every tokamak block of a multiblock app must declare
+  // the same value.
+  bool enforce_wall;
   plate_func plate_func_lower; // lower plate specification. Gives R,Z in terms of s \in [0,1]
   plate_func plate_func_upper; // upper plate specification. Gives R,Z in terms of s \in [0,1]
                                // In a lower single null "lower" is the outer divertor and
@@ -364,11 +356,10 @@ gkyl_tok_wall_usable(const struct gkyl_efit *e)
 }
 
 enum gkyl_tok_wall_policy {
-  GKYL_TOK_WALL_ENFORCE = 0,          // usable outline: enforce containment
-  GKYL_TOK_WALL_NOT_ENFORCED,         // no usable outline, acknowledged: build unenforced
-  GKYL_TOK_WALL_REJECT_UNDECLARED,    // no usable outline and no acknowledgement
-  GKYL_TOK_WALL_REJECT_CONTRADICTED,  // acknowledged, yet a usable outline exists
-  GKYL_TOK_WALL_REJECT_MALFORMED,     // unreadable/non-finite record: never declarable
+  GKYL_TOK_WALL_ENFORCE = 0,          // requested, usable outline: enforce containment
+  GKYL_TOK_WALL_NOT_ENFORCED,         // not requested: build without containment tests
+  GKYL_TOK_WALL_REJECT_UNUSABLE,      // requested, but the outline is absent or degenerate
+  GKYL_TOK_WALL_REJECT_MALFORMED,     // requested, but the outline record is unreadable
 };
 
 // Decide the vessel-outline policy for one block. Pure: the caller reports, with
@@ -377,13 +368,11 @@ enum gkyl_tok_wall_policy {
 static inline enum gkyl_tok_wall_policy
 gkyl_tok_wall_policy_for(const struct gkyl_tok_geo_grid_inp *inp, const struct gkyl_efit *e)
 {
-  bool usable = gkyl_tok_wall_usable(e);
-  if (inp && inp->no_vessel_outline) {
-    if (usable) return GKYL_TOK_WALL_REJECT_CONTRADICTED;
-    if (e && e->limiter_status == -1) return GKYL_TOK_WALL_REJECT_MALFORMED;
+  if (!(inp && inp->enforce_wall))
     return GKYL_TOK_WALL_NOT_ENFORCED;
-  }
-  return usable ? GKYL_TOK_WALL_ENFORCE : GKYL_TOK_WALL_REJECT_UNDECLARED;
+  if (gkyl_tok_wall_usable(e))
+    return GKYL_TOK_WALL_ENFORCE;
+  return e && e->limiter_status == -1 ? GKYL_TOK_WALL_REJECT_MALFORMED : GKYL_TOK_WALL_REJECT_UNUSABLE;
 }
 
 // Name for diagnostics, so every site reports the same reason string.
@@ -392,10 +381,9 @@ gkyl_tok_wall_policy_reason(enum gkyl_tok_wall_policy p)
 {
   switch (p) {
     case GKYL_TOK_WALL_ENFORCE: return "enforced";
-    case GKYL_TOK_WALL_NOT_ENFORCED: return "acknowledged_absent_outline";
-    case GKYL_TOK_WALL_REJECT_UNDECLARED: return "outline_unusable_and_undeclared";
-    case GKYL_TOK_WALL_REJECT_CONTRADICTED: return "declared_absent_but_outline_usable";
-    case GKYL_TOK_WALL_REJECT_MALFORMED: return "outline_malformed_not_declarable";
+    case GKYL_TOK_WALL_NOT_ENFORCED: return "not_requested";
+    case GKYL_TOK_WALL_REJECT_UNUSABLE: return "requested_but_outline_unusable";
+    case GKYL_TOK_WALL_REJECT_MALFORMED: return "requested_but_outline_malformed";
   }
   return "unknown";
 }

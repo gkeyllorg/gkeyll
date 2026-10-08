@@ -240,9 +240,8 @@ test_quadratic_excursion_between_nodes(void)
   TEST_CHECK(!tok_wall_curve_inside(&e,c,n,d));
 }
 
-// The vessel-outline declaration is a two-way contract, so test both directions:
-// it must permit a genuinely absent outline and must refuse every other case,
-// including a declaration that contradicts a wall that is actually present.
+// Containment is opt-in. Without the request no outline is consulted, whatever
+// state it is in; with it, only an outline that can bound a region is accepted.
 static void
 test_vessel_outline_declaration(void)
 {
@@ -253,24 +252,21 @@ test_vessel_outline_declaration(void)
   struct gkyl_efit malformed=wall(4,R,Z); malformed.limiter_status=-1; malformed.limiter_n=0;
 
   struct gkyl_tok_geo_grid_inp silent={0};
-  struct gkyl_tok_geo_grid_inp declared={0}; declared.no_vessel_outline=true;
+  struct gkyl_tok_geo_grid_inp enforced={0}; enforced.enforce_wall=true;
 
-  // A usable outline is enforced, declaration or not -- and declaring absence
-  // when a wall exists is a contradiction, never a way to switch enforcement off.
-  TEST_CHECK(gkyl_tok_wall_policy_for(&silent,&usable)==GKYL_TOK_WALL_ENFORCE);
-  TEST_CHECK(gkyl_tok_wall_policy_for(&declared,&usable)==GKYL_TOK_WALL_REJECT_CONTRADICTED);
+  // Not requested: never enforced, never rejected.
+  TEST_CHECK(gkyl_tok_wall_policy_for(&silent,&usable)==GKYL_TOK_WALL_NOT_ENFORCED);
+  TEST_CHECK(gkyl_tok_wall_policy_for(&silent,&absent)==GKYL_TOK_WALL_NOT_ENFORCED);
+  TEST_CHECK(gkyl_tok_wall_policy_for(&silent,&degenerate)==GKYL_TOK_WALL_NOT_ENFORCED);
+  TEST_CHECK(gkyl_tok_wall_policy_for(&silent,&malformed)==GKYL_TOK_WALL_NOT_ENFORCED);
+  TEST_CHECK(gkyl_tok_wall_policy_for(NULL,&usable)==GKYL_TOK_WALL_NOT_ENFORCED);
 
-  // Silence never disables the constraint.
-  TEST_CHECK(gkyl_tok_wall_policy_for(&silent,&absent)==GKYL_TOK_WALL_REJECT_UNDECLARED);
-  TEST_CHECK(gkyl_tok_wall_policy_for(&silent,&degenerate)==GKYL_TOK_WALL_REJECT_UNDECLARED);
-
-  // Absent and degenerate outlines are benign and declarable.
-  TEST_CHECK(gkyl_tok_wall_policy_for(&declared,&absent)==GKYL_TOK_WALL_NOT_ENFORCED);
-  TEST_CHECK(gkyl_tok_wall_policy_for(&declared,&degenerate)==GKYL_TOK_WALL_NOT_ENFORCED);
-
-  // Unreadable data is an input error and stays un-declarable either way.
-  TEST_CHECK(gkyl_tok_wall_policy_for(&silent,&malformed)==GKYL_TOK_WALL_REJECT_UNDECLARED);
-  TEST_CHECK(gkyl_tok_wall_policy_for(&declared,&malformed)==GKYL_TOK_WALL_REJECT_MALFORMED);
+  // Requested: enforced against a usable outline, rejected against anything else.
+  TEST_CHECK(gkyl_tok_wall_policy_for(&enforced,&usable)==GKYL_TOK_WALL_ENFORCE);
+  TEST_CHECK(gkyl_tok_wall_policy_for(&enforced,&absent)==GKYL_TOK_WALL_REJECT_UNUSABLE);
+  TEST_CHECK(gkyl_tok_wall_policy_for(&enforced,&degenerate)==GKYL_TOK_WALL_REJECT_UNUSABLE);
+  TEST_CHECK(gkyl_tok_wall_policy_for(&enforced,&malformed)==GKYL_TOK_WALL_REJECT_MALFORMED);
+  TEST_CHECK(gkyl_tok_wall_policy_for(&enforced,NULL)==GKYL_TOK_WALL_REJECT_UNUSABLE);
 
   // The usability predicate itself, which every site now shares.
   TEST_CHECK(gkyl_tok_wall_usable(&usable));

@@ -128,7 +128,6 @@ test_elliptical()
     // elliptical.geqdsk and straight_cylinder.geqdsk are analytic equilibria
     // with no vessel outline in the file, so the absence is declared here.
     // Without this the block is rejected: silence never disables the wall.
-    .no_vessel_outline = true,
     .rmin = 0.0,
     .rmax = 5.0,
     .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT,
@@ -269,7 +268,6 @@ test_3x_p1_straight_cylinder()
     // elliptical.geqdsk and straight_cylinder.geqdsk are analytic equilibria
     // with no vessel outline in the file, so the absence is declared here.
     // Without this the block is rejected: silence never disables the wall.
-    .no_vessel_outline = true,
     .rclose = 0.5,
     .zmin = -1.,
     .zmax =  1.,
@@ -641,6 +639,7 @@ test_asdex_qprofile_core()
   };
   struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_GEOMETRY_TOKAMAK_CORE,
+    .enforce_wall = true,
     .rmin = 0.0,
     .rmax = 5.0,
     .rclose = 2.5,
@@ -723,6 +722,7 @@ test_asdex_qprofile_sol()
 
   struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_GEOMETRY_TOKAMAK_LSN_SOL,
+    .enforce_wall = true,
     .rmin = 0.0,
     .rmax = 5.0,
     .rclose = 2.5,
@@ -800,6 +800,7 @@ test_asdex_qprofile_sol_contained()
 
   struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_GEOMETRY_TOKAMAK_LSN_SOL,
+    .enforce_wall = true,
     .rmin = 0.0,
     .rmax = 5.0,
     .rclose = 2.5,

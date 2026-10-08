@@ -80,8 +80,8 @@ tok_wall_arc_sagitta(double ax, double ay, double bx, double by,
 // is exactly where we do not know where the wall is. Supplying a better outline
 // tightens the guard; no code change can.
 //
-// Strict containment: the rule since 2026-10-05 (user decision; the
-// GKYL_TOK_WALL_STRICT=1 prototype of 2026-09-29, now unconditional).
+// Strict containment: the rule since 2026-10-05 (user decision), applied
+// whenever a block declares enforce_wall.
 //
 // The sagitta reads a CORNER of the outline as curvature of the edges next to
 // it. A long straight wall that ends at a corner therefore gets a large slack:
@@ -205,7 +205,7 @@ tok_wall_point_inside(const struct gkyl_efit *e, const double p[2])
 {
   // "No usable outline" answers false here because the question -- is this point
   // inside the wall? -- has no answer without one. Callers must therefore not
-  // reach this when the outline is acknowledged absent; they gate on
+  // reach this unless the block enforces the wall; they gate on
   // gkyl_tok_wall_policy_for first.
   if (!gkyl_tok_wall_usable(e) || !tok_geo_finite(p[0]) || !tok_geo_finite(p[1])) return false;
   for (int i=0; i<e->limiter_n; ++i)
@@ -965,7 +965,7 @@ tok_plate_coverage_status(const struct gkyl_tok_geo *geo,
     if (!tok_plate_slot_required(geo,inp->ftype,psi,side)) continue;
     double r,z;
     if (!tok_plate_intersection(geo,side ? geo->plate_func_upper : geo->plate_func_lower,psi,&r,&z)) {
-      fprintf(stderr,"TOK_GEO_ACTIVE_PLATE_FAILED ftype=%d plate=%s psi=%.17g EXTEND_TO_LIMITER=%d limiter_status=%d\n",
+      fprintf(stderr,"TOK_GEO_ACTIVE_PLATE_FAILED ftype=%d plate=%s psi=%.17g extend_to_limiter=%d limiter_status=%d\n",
         inp->ftype,side ? "upper" : "lower",psi,geo->extend_to_limiter,geo->efit->limiter_status);
       int failure=geo->extend_to_limiter && geo->divertor_wall[side].num_segments ? 1 : 2;
       status=GKYL_MAX2(status,failure);
@@ -3208,20 +3208,11 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
     arc_ctx->rleft = inp->rleft;
     //Find the  upper turning point
     arc_ctx->zmax = inp->zmax; // Initial guess
-    double zlo = fmax(inp->zmin_left, inp->zmin_right);
-    const char *bounded_turn = getenv("GKYL_TOK_LEGACY_BOUNDED_TURN");
-    if (bounded_turn && bounded_turn[0] && bounded_turn[0] != '0') {
-      double rturn;
-      if (!tok_ext_turning_point(inp, geo, psi_curr, true, &rturn, &arc_ctx->zmax)) {
-        fprintf(stderr, "TOK_LEGACY_BOUNDED_TURN failed ftype=%d psi=%.17g\n", inp->ftype, psi_curr);
-        abort();
-      }
-      if (getenv("GKYL_TOK_LEGACY_TURN_DIAG"))
-        fprintf(stderr, "TOK_LEGACY_BOUNDED_TURN ftype=%d psi=%.17g guess=%.17g turn=(%.17g,%.17g)\n",
-          inp->ftype, psi_curr, inp->zmax, rturn, arc_ctx->zmax);
+    double rturn;
+    if (!tok_ext_turning_point(inp, geo, psi_curr, true, &rturn, &arc_ctx->zmax)) {
+      fprintf(stderr, "TOK_LEGACY_BOUNDED_TURN failed ftype=%d psi=%.17g\n", inp->ftype, psi_curr);
+      abort();
     }
-    else
-      find_upper_turning_point(geo, psi_curr, zlo, &arc_ctx->zmax, 0);
 
     // Set zmin left and zmin right wither with plate or fixed
     // This one can't be used with the general func for setting upper and lower plates because it uses zmin left and zmin right

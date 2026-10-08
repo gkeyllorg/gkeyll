@@ -119,6 +119,7 @@ make_geo(plate_func lower, plate_func upper)
   };
   struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_GEOMETRY_TOKAMAK_LSN_SOL,
+    .enforce_wall = true,
     .rmin = 0.0, .rmax = 5.0,
     .rclose = 2.5, .rright = 2.5, .rleft = 0.7,
     .zmin = -1.3, .zmax = 1.0,

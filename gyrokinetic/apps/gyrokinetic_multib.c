@@ -619,17 +619,15 @@ gyrokinetic_multib_material_preflight(const struct gkyl_gyrokinetic_multib *inp)
     const struct gkyl_tok_geo_grid_inp *ti=&bi->geometry.tok_grid_info;
     struct gkyl_tok_geo *geo=gkyl_tok_geo_new(&bi->geometry.efit_info,ti);
     enum gkyl_tok_wall_policy policy=gkyl_tok_wall_policy_for(ti,geo->efit);
-    bool ok=policy!=GKYL_TOK_WALL_REJECT_UNDECLARED &&
-            policy!=GKYL_TOK_WALL_REJECT_CONTRADICTED &&
-            policy!=GKYL_TOK_WALL_REJECT_MALFORMED;
+    bool ok=policy==GKYL_TOK_WALL_ENFORCE || policy==GKYL_TOK_WALL_NOT_ENFORCED;
     if (!ok)
       fprintf(stderr,"TOK_GEO_WALL_UNAVAILABLE block=%d limiter_status=%d vertices=%d reason=%s\n",
         b,geo->efit->limiter_status,geo->efit->limiter_n,gkyl_tok_wall_policy_reason(policy));
-    // An acknowledged absent outline builds without wall enforcement. Say so on
+    // A block that did not ask for containment builds without it. Say so on
     // every such block, so an unenforced wall is never silent in the log.
     if (policy==GKYL_TOK_WALL_NOT_ENFORCED)
-      fprintf(stderr,"TOK_GEO_WALL_NOT_ENFORCED block=%d limiter_status=%d vertices=%d\n",
-        b,geo->efit->limiter_status,geo->efit->limiter_n);
+      fprintf(stderr,"TOK_GEO_WALL_NOT_ENFORCED block=%d limiter_status=%d vertices=%d reason=%s\n",
+        b,geo->efit->limiter_status,geo->efit->limiter_n,gkyl_tok_wall_policy_reason(policy));
     // Includes both radial bounds. This early check does not substitute for
     // checks at the actual mapped radial coordinates during construction.
     // Plate coverage is a material-target question, so it is only meaningful
@@ -1642,16 +1640,20 @@ static gkyl_gyrokinetic_multib_app *gyrokinetic_multib_app_new_impl(const struct
 static gkyl_gyrokinetic_multib_app *
 gyrokinetic_multib_app_wall_wrapper(const struct gkyl_gyrokinetic_multib *inp, bool geometry_only)
 {
-  const char *adjust=getenv("ADJUST_IF_EXCEEDING_WALL");
-  if (adjust && strcmp(adjust,"0") && strcmp(adjust,"1")) {
-    fprintf(stderr,"TOK_RHO_WALL_ADJUST_FAILED ADJUST_IF_EXCEEDING_WALL must be 0 or 1\n");
-    return 0;
+  // Off unless the input asks for it. Adjustment judges each trial domain by
+  // the containment tests, so a block that does not enforce the wall would let
+  // every trial pass and the requested bounds would be kept silently.
+  const bool adjust_wall=inp && inp->adjust_if_exceeding_wall;
+  if (adjust_wall) {
+    const struct gkyl_gk_block_geom *bg=inp->gk_block_geom;
+    for (int b=0; b<gkyl_gk_block_geom_num_blocks(bg); ++b) {
+      const struct gkyl_gk_block_geom_info *bi=gkyl_gk_block_geom_get_block(bg,b);
+      if (bi->geometry.geometry_id==GKYL_GEOMETRY_TOKAMAK && !bi->geometry.tok_grid_info.enforce_wall) {
+        fprintf(stderr,"TOK_RHO_WALL_ADJUST_FAILED reason=wall_not_enforced block=%d\n",b);
+        return 0;
+      }
+    }
   }
-  // ON by default. A requested rho that leaves the machine is not a valid
-  // domain, and the library's answer is to step the outer boundary inward until
-  // it fits -- so that has to happen whether or not the caller thought to ask.
-  // ADJUST_IF_EXCEEDING_WALL=0 restores the old opt-in behaviour.
-  const bool adjust_wall=!(adjust && !strcmp(adjust,"0"));
   const bool row_arc=row_arc_plan_enabled();
   if (!adjust_wall && !row_arc)
     return geometry_only ? gyrokinetic_multib_app_new_geom_impl(inp) : gyrokinetic_multib_app_new_impl(inp);

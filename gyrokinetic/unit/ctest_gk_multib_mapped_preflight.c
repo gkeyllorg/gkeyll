@@ -48,6 +48,9 @@ make_block(double lo, double hi, enum gkyl_position_map_id id, double *shift)
       },
       .tok_grid_info = {
         .ftype = GKYL_GEOMETRY_TOKAMAK_LSN_SOL_LO,
+        // Material preflight judges plate coverage only where the wall is
+        // enforced; this fixture tests that judgement.
+        .enforce_wall = true,
         .rmin = 0.0, .rmax = 5.0, .rclose = 2.5, .rright = 2.5, .rleft = 0.7,
         .zmin = -1.3, .zmax = 1.0, .zmin_left = -1.0, .zmin_right = -0.9,
         // Without plate_spec, coverage succeeds without inspecting a plate.
@@ -88,9 +91,6 @@ check_preflight(double lo, double hi, enum gkyl_position_map_id id,
         _exit(120);
       signal(SIGSEGV, SIG_DFL);
       alarm(60);
-      unsetenv("ADJUST_IF_EXCEEDING_WALL");
-      unsetenv("EXTEND_TO_LIMITER");
-      unsetenv("GKYL_TOK_STRICT_SEAM_PARTICIPATION");
       struct gkyl_gk_block_geom *bg = make_block(lo, hi, id, shift);
       struct gkyl_comm_priv sentinel = { .get_rank = stop_at_rank };
       struct gkyl_gyrokinetic_multib inp = {
