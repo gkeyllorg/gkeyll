@@ -1,5 +1,8 @@
 # Gkeyll Jenkins CI on Princeton Stellar CPU
 
+To reuse an existing installation’s dependency paths and `config.mak`, see
+[Reusing installed dependencies](README.md#reusing-installed-dependencies).
+
 This guide sets up Gkeyll's private, CPU-only Jenkins CI on Princeton Stellar.
 After SSH/Duo authentication, a developer manually starts a build for a GitHub
 pull request or an explicit candidate/baseline comparison. Jenkins runs on the
@@ -151,10 +154,10 @@ set the following values. Paste an expanded scratch path, not a literal `$USER`.
 | `STELLAR_CPU_GITHUB_CREDENTIAL_ID` | GitHub status/API credential ID, e.g. `gkeyll-github-stellar-cpu` |
 | `STELLAR_CPU_SLURM_QOS` | A valid CPU QoS for your group |
 | `STELLAR_CPU_SLURM_ACCOUNT` | Project account when required; otherwise omit it |
-| `STELLAR_CPU_BUILD_JOBS` | Optional login-node compile parallelism; default `3` |
+| `STELLAR_CPU_BUILD_JOBS` | Optional compilation workers, including C regressions; default `3` |
 | `STELLAR_CPU_UNIT_TIME` | Optional unit-test allocation limit; default `00:30:00` |
 | `STELLAR_CPU_REGRESSION_TIME` | Optional C-regression allocation limit; default `04:00:00` |
-| `STELLAR_CPU_REGRESSION_JOBS` | Optional concurrent C test runs; default `4` |
+| `STELLAR_CPU_REGRESSION_JOBS` | Optional concurrent serial C test runs; default `4` |
 | `STELLAR_CPU_REGRESSION_TEST_TIMEOUT` | Optional per-test limit in seconds; default `900` |
 | `STELLAR_CPU_NODE_LABEL` | Optional node label; default `stellar_cpu` |
 | `GKEYLL_CI_TRUSTED_REF` | Optional reviewed branch or full SHA for `github_report.py` and `check_regression_results.lua`; default `main`. Set it only while staging a CI change |

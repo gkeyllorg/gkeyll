@@ -1,5 +1,8 @@
 # Gkeyll Jenkins CI on a Personal Computer
 
+To reuse an existing installation’s dependency paths and `config.mak`, see
+[Reusing installed dependencies](README.md#reusing-installed-dependencies).
+
 This private CI lets the computer owner explicitly test a Gkeyll PR or
 candidate/baseline comparison. It does not poll GitHub or execute unselected
 contributor code.
@@ -59,8 +62,8 @@ and Python with NumPy. Set these global environment variables:
 | `PERSONAL_MKDEPS_SCRIPT` | `machines/` dependency script |
 | `PERSONAL_CONFIGURE_SCRIPT` | `machines/` configure script |
 | `PERSONAL_GITHUB_CREDENTIAL_ID` | GitHub status/API credential ID |
-| `PERSONAL_BUILD_JOBS` | Optional; default `3` |
-| `PERSONAL_REGRESSION_JOBS` | Optional; default `1` |
+| `PERSONAL_BUILD_JOBS` | Optional compilation workers, including C regressions; default `3` |
+| `PERSONAL_REGRESSION_JOBS` | Optional concurrent serial C test runs; defaults to `PERSONAL_BUILD_JOBS` (default `3`) |
 | `PERSONAL_MPI_HOME` | Optional MPI installation path for both trees; default is each tree's `gkylsoft/openmpi` |
 | `PERSONAL_MPIEXEC` | Optional launcher override for both trees; default is `bin/mpiexec` under the selected MPI installation |
 | `PERSONAL_STATUS_CONTEXT` | Set explicitly for queue reporting, e.g. `continuous-integration/jenkins/personal-<hostname>`; use a distinct context for each computer |

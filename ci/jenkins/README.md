@@ -22,6 +22,69 @@ Gkeyll organization membership. See the platform guide for the
 credential owner. Do not place credentials in the repository or in candidate
 branches.
 
+## Reusing installed dependencies
+
+All four workflows accept the optional Jenkins environment variable
+`GKEYLL_CI_PREBUILT_CONFIG`. Set it in **Manage Jenkins → System → Global
+properties → Environment variables** to the absolute path of an existing
+Gkeyll `config.mak` on the build agent, for example:
+
+```text
+GKEYLL_CI_PREBUILT_CONFIG=/opt/gkylsoft/gkeyll/share/config.mak
+```
+
+You can use either the `config.mak` from a configured source checkout or the
+copy saved by `make install` in `<prefix>/gkeyll/share/config.mak`. Keep the
+config and dependencies outside Jenkins workspaces, which are deleted during
+checkout. The Jenkins agent must be able to read them; on Slurm machines the
+libraries must also be visible at the same paths on compute nodes.
+
+Specify each dependency's include and library paths in this config. A generated
+config already contains these settings; for dependencies installed elsewhere,
+make a dedicated CI copy and edit the appropriate entries:
+
+| Dependency | Path variables in `config.mak` |
+| --- | --- |
+| BLAS/LAPACK | `LAPACK_INC_DIR`, `LAPACK_LIB_DIR` (and `LAPACK_LIB_NAME`) |
+| SuperLU | `SUPERLU_INC_DIR`, `SUPERLU_LIB_DIR` (and `SUPERLU_LIB_NAME`) |
+| MPI | `CONF_MPI_INC_DIR`, `CONF_MPI_LIB_DIR` |
+| LuaJIT | `CONF_LUA_INC_DIR`, `CONF_LUA_LIB_DIR` (and `CONF_LUA_LIB`) |
+| NCCL | `CONF_NCCL_INC_DIR`, `CONF_NCCL_LIB_DIR` |
+| cuDSS | `CONF_CUDSS_INC_DIR`, `CONF_CUDSS_LIB_DIR` |
+| CUDA math libraries | `CUDAMATH_LIB_DIR` |
+
+Use absolute paths for enabled dependencies, or expressions relative to the
+config's original `PREFIX`, such as `$(PREFIX)/superlu/lib`. Supply a complete,
+self-contained generated config with `PREFIX` defined; relative includes and
+paths relative to the original source checkout are not supported. Its compiler,
+architecture, solver and feature settings are reused too. Choose settings
+compatible with the machine's existing CI lanes: Lua and MPI are needed by the
+regression runner, and Perlmutter requires the CUDA/NCCL configuration. Existing
+HPC module-loading steps still run; dependencies must match those modules.
+
+For personal CI also specify `PERSONAL_MPIEXEC=/opt/mpi/bin/mpiexec` or
+`PERSONAL_MPI_HOME=/opt/mpi`, matching the MPI in the config. For team-workstation
+CI use `TEAM_WORKSTATION_MPIEXEC` or `WORKSTATION_MPI_HOME`. HPC workflows retain
+their existing Slurm launchers. `PERSONAL_MKDEPS_SCRIPT` and
+`PERSONAL_CONFIGURE_SCRIPT` (or their `TEAM_WORKSTATION_*` equivalents) are not
+required in prebuilt mode.
+
+With this variable set, candidate and baseline both skip the machine dependency
+and configure scripts. Each gets its own copy of the config with Gkeyll's
+`PREFIX` and `INSTALL_PREFIX` redirected to its workspace `gkylsoft` directory.
+Dependency references to the old prefix are preserved. The supplied config and
+installed dependencies are not modified. Gkeyll itself is still rebuilt and
+all existing test lanes run. An invalid config path fails the build rather than
+silently rebuilding dependencies. Leave the variable unset or empty to retain
+the existing dependency-build behavior. Deploy the updated trusted Jenkinsfiles
+to enable this option; candidate and baseline refs can predate it.
+
+The offline config test uses Groovy 2.4 and GNU Make:
+
+```sh
+java -cp /path/to/groovy-all.jar groovy.ui.GroovyMain ci/jenkins/test_prebuilt_config.groovy
+```
+
 ## Results in GitHub
 
 ### Queued builds and superseded PR commits
@@ -207,6 +270,40 @@ cat "$queue_test_home/queue-test-result.txt"
 
 This test requires an empty job directory and shuts down its test JVM on
 completion. Never install `test_queue_status.groovy` on a production controller.
+
+## Regression scheduling
+
+Jenkins configures compilation and execution separately using each platform's
+`*_BUILD_JOBS` and `*_REGRESSION_JOBS` environment variables. For example, set
+`PERSONAL_BUILD_JOBS=10` and `PERSONAL_REGRESSION_JOBS=4` for 10 compilation
+workers and 4 concurrent serial regression runs. Use the `TEAM_WORKSTATION`,
+`STELLAR_CPU`, or `PERLMUTTER_GPU` prefix for the other workflows. The pipelines
+invoke `run --c-only --jobs N compile` first, then `run --c-only --execute-only
+--jobs M create` or `check`. MPI regressions continue to run one test at a time
+with four MPI ranks per test.
+
+`runregression run --jobs N` uses up to N compilation workers, then up to N
+execution workers. `--jobs 0` detects the available CPU count. C and Lua tests
+share an execution queue without runtime-cost ordering. Workers take the next
+test as soon as a slot is free, without waiting for a batch to finish. No cost
+table or scheduling artifacts need maintaining. Unequal test durations can
+leave workers idle as the queue drains at the end.
+
+MPI regression collectives still execute one test at a time; `--jobs`
+parallelizes their compilation. GPU worker counts must fit the devices and
+memory allocated to the job.
+
+HPC compile stages pass their configured build worker count to runregression;
+execution uses the existing regression worker allocation. Personal and team
+workstation regression workers default to their build worker count (three),
+with the existing regression-jobs setting available as an override. Updated
+trusted Jenkinsfiles must be deployed for these CI defaults to take effect.
+
+The scheduler fixtures use tiny shell/make jobs, not plasma simulations:
+
+```sh
+LUAJIT=/path/to/luajit python3 -m unittest discover -s ci/jenkins -p 'test_*.py'
+```
 
 ## Numerical regression differences
 

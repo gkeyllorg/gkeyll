@@ -1,5 +1,8 @@
 # Gkeyll Jenkins CI on NERSC Perlmutter GPU
 
+To reuse an existing installation’s dependency paths and `config.mak`, see
+[Reusing installed dependencies](README.md#reusing-installed-dependencies).
+
 This private, manually triggered CUDA CI builds candidate and baseline CUDA/NCCL
 installations on the login node, then submits unit and C-regression work to GPU
 nodes. The trusted Pipeline never comes from the candidate PR. CUDA unit tests
@@ -147,10 +150,10 @@ System → Global properties → Environment variables**, set:
 | `PERLMUTTER_GPU_SLURM_ACCOUNT` | Required NERSC project/account |
 | `PERLMUTTER_GPU_NODE_LABEL` | Optional; default `perlmutter_gpu` |
 | `PERLMUTTER_GPU_SLURM_QOS` | Optional; default `shared` |
-| `PERLMUTTER_GPU_BUILD_JOBS` | Optional; default `3` |
+| `PERLMUTTER_GPU_BUILD_JOBS` | Optional compilation workers, including C regressions; default `3` |
 | `PERLMUTTER_GPU_UNIT_TIME` | Optional; default `00:30:00` |
 | `PERLMUTTER_GPU_REGRESSION_TIME` | Optional; default `04:00:00` |
-| `PERLMUTTER_GPU_REGRESSION_JOBS` | Optional; default `4` |
+| `PERLMUTTER_GPU_REGRESSION_JOBS` | Optional concurrent serial C test runs; default `4` |
 | `PERLMUTTER_GPU_REGRESSION_TEST_TIMEOUT` | Optional; default `900` |
 | `GKEYLL_CI_TRUSTED_REF` | Optional reviewed branch or full SHA for `github_report.py` and `check_regression_results.lua`; default `main`. Set it only while staging a CI change |
 
