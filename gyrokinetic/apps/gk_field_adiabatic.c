@@ -149,10 +149,11 @@ gk_field_adiab_elc_rhs_phi_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_fiel
   gk_field_adiab_elc_response_solve(app, field, ad->psi, ad->phi2); // Solve H phi2 = K E psi.
   gkyl_array_accumulate_range(field->phi_smooth, 1.0, ad->phi2, &app->local); // phi = phi1 + phi2.
 
+  // Finish the field solve with FLR effects.
+  field->invert_flr(app, field, field->phi_smooth);
+
   // Smooth the potential along z.
   field->fem_projection_par_phi_func(app, field, field->phi_smooth, field->phi_smooth);
-
-  field->invert_flr(app, field, field->phi_smooth);
 }
 
 // out = phi - <phi>.

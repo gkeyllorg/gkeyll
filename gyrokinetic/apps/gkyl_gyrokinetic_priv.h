@@ -1680,7 +1680,6 @@ struct gk_field {
 
   struct gkyl_fem_poisson_perp
     *fem_poisson_perp; // Solves - nabla . (epsilon * nabla phi) - kSq * phi = rho.
-  struct gkyl_poisson_bc poisson_bcs; // Boundary conditions for Poisson solver.
 
   // Objects needed for FLR effects.
   bool use_flr; // Whether to apply FLR effects.
