@@ -19,6 +19,13 @@
 //   phi = phi1 + H^{-1} K E psi,  H phi1 = rho,  (I - G) psi = R phi1,
 // where G = R H^{-1} K E is an m x m matrix (m = Nx*num_basis_x) built
 // at init with Nx*num_basis_x 1D Helmholtz solves.
+//
+// With Pade FLR the solve is for Phi_0 (phi = A Phi_0, A = 1 - rho^2*nabla_perp^2) and the
+// response is M (Phi_0 - <Phi_0>), M = K - div(K_0 rho^2 J g^ij grad), so H = L + M with
+// L = -div(eps_pol J g^ij grad). Since M = a H + (1-a) K, a = K_0 rho^2/(eps_pol + K_0 rho^2),
+// the Woodbury identity with M E in place of K E gives
+//   Phi_0 = phi1 + H^{-1} K E psi + (K_0 rho^2/eps_pol) (E psi - phi_rhs0),
+// with the same G and psi: the zonal Phi_0 then obeys L Phi_0 = rho, without K_0 rho^2.
 
 // Copy an array w(x,p) into a contiguous vector v(m) with m=1,...,Nx*num_basis_x.
 static void
@@ -148,6 +155,12 @@ gk_field_adiab_elc_rhs_phi_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_fiel
   gk_field_adiab_elc_zonal_solve(app, field); // Solve (I - G) psi = <phi1>.
   gk_field_adiab_elc_response_solve(app, field, ad->psi, ad->phi2); // Solve H phi2 = K E psi.
   gkyl_array_accumulate_range(field->phi_smooth, 1.0, ad->phi2, &app->local); // phi = phi1 + phi2.
+  if (ad->flr_zonal_fac > 0.0) { // This is not good programming because we introduce a logic in the time loop. We should consider function pointers to avoid this.
+    // Pade FLR: add (K_0 rho^2/eps_pol) (E psi - phi_rhs0).
+    gk_field_adiab_elc_inflate(app, field, ad->psi, ad->rhs2);
+    gkyl_array_accumulate_range(ad->rhs2, -1.0, ad->phi_rhs0, &app->local);
+    gkyl_array_accumulate_range(field->phi_smooth, ad->flr_zonal_fac, ad->rhs2, &app->local);
+  }
 
   // Smooth the potential along z.
   field->fem_projection_par_phi_func(app, field, field->phi_smooth, field->phi_smooth);

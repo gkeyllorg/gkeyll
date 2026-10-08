@@ -1598,6 +1598,7 @@ struct gk_field_adiabatic {
   // Adiabatic electron objects (2x/3x): flux-surface average and zonal (Woodbury) system.
   struct gkyl_array *phi2, *rhs2; // Scratch fields for the zonal response solve.
   struct gkyl_array *phi_rhs0; // Solution with rhs = 0.
+  double flr_zonal_fac; // K_0*rho^2/eps_pol, zonal correction with Pade FLR (0 without FLR).
 
   struct gkyl_basis basis_x; // 1D basis in x.
   struct gkyl_range local_x, local_x_ext; // 1D ranges in x.
@@ -1664,7 +1665,6 @@ struct gk_field {
   struct gkyl_array *phi_bc; // Spatially varying BC.
   struct gkyl_array *epsilon; // Polarization weight including geometric factors.
   bool has_adiabatic_species; // Whether a species has an adiabatic response.
-  struct gkyl_poisson_bc poisson_bcs; // Perpendicular Poisson BCs (2x/3x).
   struct gk_field_adiabatic adiab; // Adiabatic species response.
   int num_rhoc_species; // Number of species whose charge density enters rho_c.
   int rhoc_species_idx[GKYL_MAX_SPECIES]; // Indices of the species whose charge enters rho_c.
@@ -1688,7 +1688,7 @@ struct gk_field {
     gkyl_gyrokinetic_app *app, struct gk_field *field,
     struct gkyl_array *phi
   ); // Function retrieving phi from the modified potential Phi_0 by inverting the FLR operator, i.e. applying A = 1 - rho^2*nabla_perp^2.
-  double flr_local_fac; // rho_i^2/eps_pol in the local term phi = Phi_0 + (rho_i^2/eps_pol)*rho_c/J.
+  double flr_local_fac; // rho_i^2/eps_pol, as in the local term phi = Phi_0 + (rho_i^2/eps_pol)*rho_c/J.
   struct gkyl_array *flr_rhoSq; // rho^2 weight (times J*g^ij) in the perpendicular Laplacian of A.
   struct gkyl_array *flr_kSq; // -J weight of the identity term in the FLR operator.
   struct gkyl_fem_poisson_perp
