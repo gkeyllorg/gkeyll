@@ -427,17 +427,22 @@ def usePrebuiltConfig(String prefix) {
     if (!env.CI_RUN_DIR?.trim()) error('CI_RUN_DIR must be prepared before copying dependencies.')
     def launcher = env.PERSONAL_MPIEXEC?.trim()
         ?: (env.PERSONAL_MPI_HOME?.trim() ? "${env.PERSONAL_MPI_HOME.trim()}/bin/mpiexec" : '')
-    def runtime
+    def runtime = [:]
     withEnv(["CI_PREBUILT_SOURCE=${source}", "CI_PREBUILT_PREFIX=${prefix}",
              "CI_PREBUILT_DEPENDENCIES=${env.CI_RUN_DIR}/dependencies",
              "CI_PREBUILT_SCRIPT=${reporting.settings.prebuiltScript}",
              "CI_PREBUILT_MPIEXEC=${launcher}"]) {
-        runtime = new groovy.json.JsonSlurperClassic().parseText(sh(returnStdout: true, script: '''#!/bin/bash
+        // Literal KEY=value lines avoid JSON APIs that need sandbox approval.
+        def output = sh(returnStdout: true, script: '''#!/bin/bash
             set -euo pipefail
             python3 -I "$CI_PREBUILT_SCRIPT" --config "$CI_PREBUILT_SOURCE" \
                 --prefix "$CI_PREBUILT_PREFIX" --dependencies "$CI_PREBUILT_DEPENDENCIES" \
-                --mpiexec "$CI_PREBUILT_MPIEXEC"
-        '''))
+                --mpiexec "${CI_PREBUILT_MPIEXEC:-}" --format env
+        ''')
+        output.readLines().each { line ->
+            def fields = line.split('=', 2)
+            runtime[fields[0]] = fields[1]
+        }
     }
     env.LD_LIBRARY_PATH = runtime.LD_LIBRARY_PATH
     env.GKEYLL_CI_DEPENDENCY_ENV = runtime.GKEYLL_CI_DEPENDENCY_ENV

@@ -48,7 +48,9 @@ CONF_LUA_LIB_DIR=${dependencies}/luajit/lib
         def savedEnv = [:] + binding.env
         values.each { value ->
             def fields = value.split('=', 2)
-            binding.env[fields[0]] = fields[1]
+            // Jenkins withEnv unsets variables whose overrides are empty.
+            if (fields[1]) binding.env[fields[0]] = fields[1]
+            else binding.env.remove(fields[0])
         }
         try { body.call() }
         finally { binding.env.clear(); binding.env.putAll(savedEnv) }

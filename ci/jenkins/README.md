@@ -88,6 +88,11 @@ Leave the variable unset or empty to retain the dependency-build and shared
 baseline-cache behavior. Deploy the updated trusted Jenkinsfiles and helpers
 to enable this option; candidate and baseline refs can predate it.
 
+The trusted Python helper returns literal `KEY=value` lines to the Pipeline,
+which reads them with sandbox-approved string operations. Prebuilt setup needs
+no additional script approvals or Pipeline Utility Steps plugin. The helper's
+default CLI output remains JSON; Jenkins selects `--format env`.
+
 Regression configuration is stored at
 `<installation-prefix>/gkeyll-results/runregression.config.lua`. The regression
 tools derive this location from the installed executable. The trusted prebuilt
@@ -102,6 +107,27 @@ The offline config tests use Python 3, Groovy 2.4, GNU Make, and a C compiler:
 java -cp /path/to/groovy-all.jar groovy.ui.GroovyMain ci/jenkins/test_prebuilt_config.groovy
 python3 -m unittest -v ci.jenkins.test_prebuilt_config
 ```
+
+The sandbox integration test uses a fresh Jenkins home with Pipeline: Job,
+Pipeline: Groovy, Pipeline: Basic Steps, and Pipeline: Nodes and Processes
+(including dependencies). With the WAR and plugin archives available locally:
+
+```sh
+prebuilt_test_home=$(mktemp -d)
+mkdir -p "$prebuilt_test_home/plugins" "$prebuilt_test_home/init.groovy.d"
+cp /path/to/test-plugin-archives/*.jpi "$prebuilt_test_home/plugins/"
+cp ci/jenkins/test_prebuilt_config_sandbox.groovy "$prebuilt_test_home/init.groovy.d/90-prebuilt-test.groovy"
+JENKINS_HOME="$prebuilt_test_home" java \
+  -Djenkins.install.runSetupWizard=false -Dgkeyll.prebuilt.test=true \
+  -Dgkeyll.prebuilt.source="$PWD/ci/jenkins" \
+  -jar /path/to/jenkins.war --httpPort=-1
+cat "$prebuilt_test_home/prebuilt-test-result.txt"
+```
+
+This runs every helper in the default Groovy sandbox for both candidate and
+baseline, with and without MPI. It uses small dependency fixtures and shuts
+down its test JVM on completion. Use only a disposable controller; the offline
+Groovy tests alone do not check Jenkins sandbox permissions.
 
 The installed-tool fixture checks configure/load, installation isolation, and
 Lua failure exit codes without running simulations:

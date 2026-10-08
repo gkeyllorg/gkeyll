@@ -1,8 +1,10 @@
 """Check private dependency copies and Make configuration without simulations."""
+import json
 import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -88,6 +90,36 @@ class PrebuiltConfigTests(unittest.TestCase):
         self.assertEqual(values['PREFIX'], str(self.prefix))
         self.assertEqual(values['LAPACK_INC_DIR'], '/usr/include')
         self.assertEqual(values['LAPACK_LIB_DIR'], '/usr/lib')
+
+    def run_cli(self, *options, library_path=''):
+        return subprocess.run(
+            [sys.executable, '-I', str(Path(__file__).with_name('prebuilt_config.py')),
+             '--config', str(self.config), '--prefix', str(self.prefix),
+             '--dependencies', str(self.dependencies), '--output', str(self.output), *options],
+            env=dict(os.environ, LD_LIBRARY_PATH=library_path),
+            capture_output=True, text=True)
+
+    def test_cli_env_matches_json_with_empty_and_literal_values(self):
+        library_path = '/existing/lib=with spaces:/literal/"quotes"/and\\backslash'
+        default = self.run_cli(library_path=library_path)
+        self.assertEqual(default.returncode, 0, default.stderr)
+        expected = json.loads(default.stdout)
+        self.assertEqual(expected['MPI_HOME'], '')
+        self.assertEqual(expected['OPAL_PREFIX'], '')
+        self.assertEqual(expected['MPIEXEC'], '')
+        self.assertTrue(expected['LD_LIBRARY_PATH'].endswith(':' + library_path))
+        result = self.run_cli('--format', 'env', library_path=library_path)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(dict(line.split('=', 1) for line in result.stdout.splitlines()), expected)
+
+    def test_cli_env_rejects_line_breaks_without_partial_output(self):
+        for line_break in ('\n', '\r'):
+            with self.subTest(line_break=line_break):
+                result = self.run_cli('--format', 'env',
+                                      library_path='/existing/lib' + line_break + 'MPI_HOME=/wrong')
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn('must not contain line breaks', result.stderr)
+                self.assertEqual(result.stdout, '')
 
     @unittest.skipUnless(shutil.which('cc'), 'A C compiler is needed for the runtime fixture')
     def test_runtime_uses_copied_transitive_libraries(self):

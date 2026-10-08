@@ -197,15 +197,25 @@ def main():
     parser.add_argument('--dependencies', type=Path, required=True)
     parser.add_argument('--output', type=Path, default=Path('config.mak'))
     parser.add_argument('--mpiexec', default='')
+    parser.add_argument('--format', choices=('json', 'env'), default='json',
+                        help='Runtime environment output (env uses literal KEY=value lines)')
     args = parser.parse_args()
     for path in (args.config, args.prefix, args.dependencies):
         if not path.is_absolute():
             parser.error(f'Expected an absolute path: {path}')
     try:
         result = write_config(args.config, args.prefix, args.dependencies, args.output, args.mpiexec)
+        if args.format == 'env':
+            # Jenkins can read these using sandbox-approved string operations.
+            # Reject line breaks so one value cannot turn into multiple entries.
+            if any('\n' in value or '\r' in value for value in result.values()):
+                raise ValueError('Runtime environment values must not contain line breaks')
+            output = '\n'.join(f'{key}={value}' for key, value in result.items())
+        else:
+            output = json.dumps(result)
     except (OSError, ValueError, subprocess.CalledProcessError) as error:
         parser.exit(1, f'prebuilt-config: {error}\n')
-    print(json.dumps(result))
+    print(output)
 
 
 if __name__ == '__main__':
