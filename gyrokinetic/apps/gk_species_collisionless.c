@@ -130,11 +130,14 @@ gk_species_collisionless_write_diags_enabled(
   // Package metadata.
   gkyl_msgpack_map_elem_set_double(gks->io_meta_phase_len, gks->io_meta_phase, "time", tm);
   gkyl_msgpack_map_elem_set_uint(gks->io_meta_phase_len, gks->io_meta_phase, "frame", frame);
-  struct gkyl_msgpack_map_elem desc[] = {{
-    .key = "Description",
-    .elem_type = GKYL_MP_STRING,
-    .cval = "Collisionless flux at cell surface.",
-  }};
+  struct gkyl_msgpack_map_elem desc[] = {
+    {
+      .key = "Description",
+      .elem_type = GKYL_MP_STRING,
+      .cval = "Collisionless flux at cell surface.",
+    },
+    {.key = "value_form", .elem_type = GKYL_MP_STRING, .cval = "modal"}
+  };
   int io_meta_len[] = {gks->io_meta_phase_len, app->gk_geom->io_meta_basic_len, 1};
   const struct gkyl_msgpack_map_elem *io_meta[] = {
     gks->io_meta_phase, app->gk_geom->io_meta_basic, desc

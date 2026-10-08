@@ -200,6 +200,11 @@ gkyl_velocity_map_write(
     gkyl_array_copy(jacobvel_ho, gvm->jacobvel);
   }
 
+  struct gkyl_msgpack_map_elem meta[] = {
+    {.key = "value_form", .elem_type = GKYL_MP_STRING, .cval = "modal"}
+  };
+  struct gkyl_msgpack_data *mt = gkyl_msgpack_create(sizeof(meta) / sizeof(meta[0]), meta);
+
   int rank, sz;
   int err = gkyl_comm_get_rank(species_comm, &rank);
   if (rank == 0) {
@@ -208,15 +213,20 @@ gkyl_velocity_map_write(
     sz = gkyl_calc_strlen(fmt0, app_name, species_name);
     char fileNm0[sz + 1]; // ensures no buffer overflow
     snprintf(fileNm0, sizeof fileNm0, fmt0, app_name, species_name);
-    gkyl_grid_sub_array_write(&gvm->grid_vel, &gvm->local_vel, NULL, vmap_ho, fileNm0);
+    gkyl_grid_sub_array_write(&gvm->grid_vel, &gvm->local_vel, mt, vmap_ho, fileNm0);
   }
+
+  gkyl_msgpack_data_release(mt);
+  meta[0].cval = "nodal"; // The Jacobian is stored as a cell-wise value.
+  mt = gkyl_msgpack_create(sizeof(meta) / sizeof(meta[0]), meta);
 
   // Write out the velocity space Jacobian.
   const char *fmt1 = "%s-%s_jacobvel.gkyl";
   sz = gkyl_calc_strlen(fmt1, app_name, species_name);
   char fileNm1[sz + 1]; // ensures no buffer overflow
   snprintf(fileNm1, sizeof fileNm1, fmt1, app_name, species_name);
-  gkyl_comm_array_write(species_comm, &gvm->grid, &gvm->local, NULL, jacobvel_ho, fileNm1);
+  gkyl_comm_array_write(species_comm, &gvm->grid, &gvm->local, mt, jacobvel_ho, fileNm1);
+  gkyl_msgpack_data_release(mt);
 
   if (gkyl_velocity_map_is_cu_dev(gvm)) {
     gkyl_array_release(jacobvel_ho);
