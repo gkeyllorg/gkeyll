@@ -9,7 +9,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-import github_report as report
+from ci.jenkins import github_report as report
 
 
 class ReportingTests(unittest.TestCase):

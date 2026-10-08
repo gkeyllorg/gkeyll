@@ -9,7 +9,7 @@ import subprocess
 import tempfile
 import unittest
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 LUAJIT = os.environ.get('LUAJIT') or shutil.which('luajit')
 SOURCE = (ROOT / 'gkeyll/lua/Tool/runregression.lua').read_text()
 

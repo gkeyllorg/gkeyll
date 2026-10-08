@@ -7,6 +7,7 @@ def directories = []
 def environment = [WORKSPACE: '/workspace', BUILD_NUMBER: '10', CI_TRUSTED_CI_COMMIT: 'b' * 40]
 def binding = new Binding([
     env: environment, params: [CI_QUEUE_ID: '42'],
+    currentBuild: [startTimeInMillis: 1700000000000L],
     readFile: { String path -> files[path] },
     writeFile: { Map value -> files[value.file] = value.text },
     fileExists: { String path -> files.containsKey(path) },
@@ -33,6 +34,8 @@ assert commands.every { it.startsWith('python3 -I "$CI_REPORT_SCRIPT" ') }
 assert directories.every { it == '/workspace' }
 assert credentials.every { it.credentialsId == 'existing-token' }
 assert environments.any { it == 'CI_QUEUE_ID=42' }
+assert environments.any { it == 'CI_REPORT_START_MS=1700000000000' }
+assert environments.any { it.startsWith('CI_REPORT_END_MS=') && it.split('=')[1].toLong() >= 1700000000000L }
 assert files['/workspace@tmp/github_report.py'] == '# trusted source'
 assert files['ci-trusted-ci-commit.txt'] == 'b' * 40 + '\n'
 assert files['ci-reporting-commit.txt'] == 'c' * 40 + '\n'

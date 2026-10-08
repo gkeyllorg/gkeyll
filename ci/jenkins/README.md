@@ -114,8 +114,8 @@ runner does not change the baseline's runner.
 The offline config tests use Python 3, Groovy 2.4, GNU Make, and a C compiler:
 
 ```sh
-java -cp /path/to/groovy-all.jar groovy.ui.GroovyMain ci/jenkins/test_prebuilt_config.groovy
-python3 -m unittest -v ci.jenkins.test_prebuilt_config
+java -cp /path/to/groovy-all.jar groovy.ui.GroovyMain ci/jenkins/tests/test_prebuilt_config.groovy
+python3 -m unittest -v ci.jenkins.tests.test_prebuilt_config
 ```
 
 The sandbox integration test uses a fresh Jenkins home with Pipeline: Job,
@@ -126,7 +126,7 @@ Pipeline: Groovy, Pipeline: Basic Steps, and Pipeline: Nodes and Processes
 prebuilt_test_home=$(mktemp -d)
 mkdir -p "$prebuilt_test_home/plugins" "$prebuilt_test_home/init.groovy.d"
 cp /path/to/test-plugin-archives/*.jpi "$prebuilt_test_home/plugins/"
-cp ci/jenkins/test_prebuilt_config_sandbox.groovy "$prebuilt_test_home/init.groovy.d/90-prebuilt-test.groovy"
+cp ci/jenkins/tests/test_prebuilt_config_sandbox.groovy "$prebuilt_test_home/init.groovy.d/90-prebuilt-test.groovy"
 JENKINS_HOME="$prebuilt_test_home" java \
   -Djenkins.install.runSetupWizard=false -Dgkeyll.prebuilt.test=true \
   -Dgkeyll.prebuilt.source="$PWD/ci/jenkins" \
@@ -143,7 +143,7 @@ The installed-tool fixture checks configure/load, installation isolation, and
 Lua failure exit codes without running simulations:
 
 ```sh
-GKEYLL=/path/to/gkeyll/bin/gkeyll python3 -m unittest -v ci.jenkins.test_regression_config
+GKEYLL=/path/to/gkeyll/bin/gkeyll python3 -m unittest -v ci.jenkins.tests.test_regression_config
 ```
 
 ## Results in GitHub
@@ -300,7 +300,16 @@ results, timings, and collapsible sections for:
   in a collapsed dropdown preserving compiler commands, source lines, and carets.
   This excerpt preserves the original output order (including any warnings);
   extracted warnings and errors remain in their own separate dropdowns.
+  Absolute and relative paths to the same log share one excerpt, with the
+  command and exit code combined when available.
 - An inventory of captured logs.
+
+The header includes UTC start/end timestamps and elapsed time. The Timings table
+ends with total wall-clock time from the Jenkins build start through report
+generation, including the initial agent wait. Individual timings can overlap,
+so this total is not the sum of the step durations.
+Displayed log excerpts wrap at 100 characters, with continuation lines indented
+by two spaces. Archived raw logs retain their original lines.
 
 Reports also show the full Jenkinsfile, reporting-tool, and regression-checker
 commits when recorded. Personal CI's `CI_REF` selects an implementation
@@ -362,8 +371,8 @@ check does not require MPI.
 Run offline reporter tests with:
 
 ```sh
-python3 -m unittest discover -s ci/jenkins -p 'test_*.py'
-java -cp /path/to/groovy-all.jar groovy.ui.GroovyMain ci/jenkins/test_jenkins_reporting.groovy
+python3 -m unittest discover -s ci/jenkins/tests -p 'test_*.py'
+java -cp /path/to/groovy-all.jar groovy.ui.GroovyMain ci/jenkins/tests/test_jenkins_reporting.groovy
 ```
 
 The queue listener's integration test runs on a disposable Jenkins controller
@@ -381,7 +390,7 @@ Jenkins WAR and those plugin archives available locally:
 queue_test_home=$(mktemp -d)
 mkdir -p "$queue_test_home/plugins" "$queue_test_home/init.groovy.d"
 cp /path/to/test-plugin-archives/*.jpi "$queue_test_home/plugins/"
-cp ci/jenkins/test_queue_status.groovy "$queue_test_home/init.groovy.d/90-queue-test.groovy"
+cp ci/jenkins/tests/test_queue_status.groovy "$queue_test_home/init.groovy.d/90-queue-test.groovy"
 JENKINS_HOME="$queue_test_home" java \
   -Djenkins.install.runSetupWizard=false -Dgkeyll.queue.test=true \
   -Dgkeyll.queue.source="$PWD/ci/jenkins" \
@@ -423,7 +432,7 @@ trusted Jenkinsfiles must be deployed for these CI defaults to take effect.
 The scheduler fixtures use tiny shell/make jobs, not plasma simulations:
 
 ```sh
-LUAJIT=/path/to/luajit python3 -m unittest discover -s ci/jenkins -p 'test_*.py'
+LUAJIT=/path/to/luajit python3 -m unittest discover -s ci/jenkins/tests -p 'test_*.py'
 ```
 
 ## Numerical regression differences

@@ -10,7 +10,7 @@ import subprocess
 import tempfile
 import unittest
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[3]
 GKEYLL = os.environ.get('GKEYLL') or shutil.which('gkeyll')
 LAYERS = ('moments', 'vlasov', 'gyrokinetic', 'pkpm')
 

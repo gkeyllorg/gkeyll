@@ -24,6 +24,7 @@ import re
 import socket
 import sqlite3
 import sys
+import textwrap
 import time
 import urllib.error
 import urllib.parse
@@ -81,7 +82,13 @@ def code(text):
 
 
 def fenced(text, lang="text"):
-    return "```{}\n{}\n```".format(lang, text.rstrip("\n").replace("```", "'''"))
+    # GitHub strips inline styles, so wrap displayed logs before posting them.
+    # Keep short lines (including source/caret indentation) and all log text.
+    wrapper = textwrap.TextWrapper(width=100, subsequent_indent='  ',
+                                   expand_tabs=False, replace_whitespace=False,
+                                   drop_whitespace=False, break_on_hyphens=False)
+    text = '\n'.join(wrapper.fill(line) for line in text.rstrip('\n').split('\n'))
+    return "```{}\n{}\n```".format(lang, text.replace("```", "'''"))
 
 
 # ---- build -----------------------------------------------------------------
@@ -380,18 +387,26 @@ def failure_sections():
     match = re.search(r'^Full log: (.+?)(?: \(archived with the build\))?$', detail, re.M)
     command = re.search(r'^Command: (.*)$', detail, re.M)
     logs = {}
+
+    def log_metadata(path):
+        # Failure records can use absolute paths while discovery uses relative
+        # paths. Resolve aliases before merging metadata and rendering one tail.
+        return logs.setdefault(os.path.relpath(os.path.realpath(path)), [])
+
     if match and os.path.isfile(match.group(1)):
-        logs[match.group(1)] = ['Command: ' + command.group(1)] if command else []
+        metadata = log_metadata(match.group(1))
+        if command:
+            metadata.append('Command: ' + command.group(1))
     for path in log_paths():
         exit_code = read_text(path + '.exit').strip()
         if exit_code and exit_code != '0':
-            logs.setdefault(path, []).append('Exit code: ' + exit_code)
+            log_metadata(path).append('Exit code: ' + exit_code)
     # A Slurm launcher log describes scheduling, while the .out contains the
     # compiler/test output. Include both when a Slurm command failed.
     if not logs or any('shared-slurm-' in path for path in logs):
         outs = glob.glob('slurm-*.out')
         if outs:
-            logs.setdefault(max(outs, key=os.path.getmtime), [])
+            log_metadata(max(outs, key=os.path.getmtime))
     sections = []
     for path, metadata in logs.items():
         tail = '\n'.join(ANSI.sub('', read_text(path)).splitlines()[-100:])
@@ -404,15 +419,31 @@ def failure_sections():
     return sections
 
 
-def timing_section():
+def timing_section(elapsed=None):
     values = read_kv("ci-timing-summary.txt")
     rows = [(k, first(values, k)) for k in values if k.endswith("_seconds")]
     rows = [(k, v) for k, v in rows if v and v != "not-recorded"]
-    if not rows:
+    if not rows and elapsed is None:
         return ""
     body = ["| Step | Seconds |", "| --- | ---: |"]
     body += ["| {} | {} |".format(k[:-len("_seconds")].replace("_", " "), v) for k, v in rows]
+    if elapsed is not None:
+        body.append("| **Total elapsed** | **{}** |".format(elapsed))
     return "<details><summary>Timings</summary>\n\n" + "\n".join(body) + "\n\n</details>"
+
+
+def run_timing():
+    """Use controller timestamps so agent clock differences do not affect elapsed time."""
+    end_ms = int(os.environ.get('CI_REPORT_END_MS') or time.time() * 1000)
+    finished = datetime.datetime.fromtimestamp(end_ms / 1000, datetime.timezone.utc)
+    try:
+        start_ms = int(os.environ.get('CI_REPORT_START_MS', ''))
+        if not 0 <= start_ms <= end_ms:
+            return None, finished, None
+        started = datetime.datetime.fromtimestamp(start_ms / 1000, datetime.timezone.utc)
+    except (ValueError, OverflowError, OSError):
+        return None, finished, None
+    return started, finished, (end_ms - start_ms) // 1000
 
 
 def build_report(args):
@@ -451,10 +482,13 @@ def build_report(args):
     # No controller URL: every controller is loopback-only, so a link would be
     # dead for everyone but the machine owner. The build number is what that
     # owner needs to fetch artifacts (see the footer).
-    finished = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-    meta.append("**Run:** {} build #{} on {}, {} {}".format(
-        code(args.platform), build_number, code(node),
-        'updated' if args.result == 'pending' else 'finished', finished))
+    started, finished, elapsed = run_timing()
+    timestamp_format = "%Y-%m-%d %H:%M:%S UTC"
+    meta.append("**Run:** {} build #{} on {}".format(code(args.platform), build_number, code(node)))
+    meta.append("**Start:** {} · **{}:** {} · **Elapsed:** {}".format(
+        started.strftime(timestamp_format) if started else 'not recorded',
+        'Updated' if args.result == 'pending' else 'End', finished.strftime(timestamp_format),
+        '{} ({} s)'.format(datetime.timedelta(seconds=elapsed), elapsed) if elapsed is not None else 'not recorded'))
     if os.environ.get('CI_QUEUE_ID'):
         meta.append('**Jenkins queue:** #' + os.environ['CI_QUEUE_ID'])
     parts.append('**Status context:** ' + code(args.context))
@@ -491,7 +525,7 @@ def build_report(args):
         if section:
             parts.append(section)
 
-    timings = timing_section()
+    timings = timing_section(elapsed)
     if timings:
         parts.append(timings)
 

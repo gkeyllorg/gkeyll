@@ -22,6 +22,8 @@ def runReporter(String arguments, boolean authenticated = false) {
     withEnv(["CI_REPORT_SCRIPT=${script}", "CI_REPORT_CONTEXT=${settings.context}",
              "CI_REPORT_PLATFORM=${settings.platform}", "CI_REPORT_PR=${settings.pr ?: ''}",
              "CI_REPORT_REF=${settings.ref ?: ''}", "CI_REPORT_COMMIT=${settings.commit ?: ''}",
+             "CI_REPORT_START_MS=${currentBuild.startTimeInMillis}",
+             "CI_REPORT_END_MS=${new Date().time}",
              "CI_QUEUE_ID=${params.CI_QUEUE_ID ?: ''}"]) {
         def command = 'python3 -I "$CI_REPORT_SCRIPT" ' + arguments
         if (authenticated) {

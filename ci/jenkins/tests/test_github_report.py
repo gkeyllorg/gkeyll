@@ -1,4 +1,4 @@
-"""Offline checks for failure log presentation."""
+"""Offline checks for report timing and log presentation."""
 import argparse
 import contextlib
 import io
@@ -8,7 +8,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-import github_report as report
+from ci.jenkins import github_report as report
 
 
 class FailureReportTests(unittest.TestCase):
@@ -24,6 +24,57 @@ class FailureReportTests(unittest.TestCase):
     def write(self, path, text):
         Path(path).parent.mkdir(parents=True, exist_ok=True)
         Path(path).write_text(text)
+
+    def test_run_header_and_total_use_wall_time_instead_of_overlapping_steps(self):
+        self.write('ci-timing-summary.txt', 'candidate_unit_build_seconds=3000\n'
+                   'unit_slurm_elapsed_seconds=3500\nmissing_seconds=not-recorded\n')
+        args = argparse.Namespace(platform='personal', context='ci/test', result='success', pr='', output='ci-report.md')
+        with patch.dict(os.environ, CI_REPORT_START_MS='1700000000000', CI_REPORT_END_MS='1700003661000'), \
+                contextlib.redirect_stdout(io.StringIO()):
+            report.build_report(args)
+        body = Path(args.output).read_text()
+        self.assertIn('**Start:** 2023-11-14 22:13:20 UTC', body)
+        self.assertIn('**End:** 2023-11-14 23:14:21 UTC', body)
+        self.assertIn('**Elapsed:** 1:01:01 (3661 s)', body)
+        self.assertIn('| unit slurm elapsed | 3500 |\n| **Total elapsed** | **3661** |\n\n</details>', body)
+        self.assertNotIn('| missing |', body)
+
+    def test_early_failure_and_pending_reports_have_timing_without_step_artifacts(self):
+        for result in ('failure', 'cancelled', 'timed_out', 'pending'):
+            with self.subTest(result=result):
+                args = argparse.Namespace(platform='personal', context='ci/test', result=result, pr='', output='ci-report.md')
+                with patch.dict(os.environ, CI_REPORT_START_MS='1700000000000', CI_REPORT_END_MS='1700000000000'), \
+                        contextlib.redirect_stdout(io.StringIO()):
+                    report.build_report(args)
+                body = Path(args.output).read_text()
+                self.assertIn('**Elapsed:** 0:00:00 (0 s)', body)
+                self.assertIn('| **Total elapsed** | **0** |', body)
+                self.assertIn('**Updated:**' if result == 'pending' else '**End:**', body)
+                if result == 'pending':
+                    self.assertNotIn('**End:**', body)
+
+    def test_missing_or_invalid_start_does_not_invent_elapsed_time(self):
+        for start in ('', 'invalid', '-1', '1700000001000'):
+            with patch.dict(os.environ, CI_REPORT_START_MS=start, CI_REPORT_END_MS='1700000000000'):
+                started, finished, elapsed = report.run_timing()
+            self.assertIsNone(started)
+            self.assertIsNone(elapsed)
+        self.assertEqual(report.timing_section(), '')
+
+    def test_long_log_lines_wrap_without_losing_text_or_short_line_indentation(self):
+        lines = ['warning: ' + 'long diagnostic ' * 30, '/workspace/' + 'long-path/' * 40,
+                 '   56 |     bad', '      |     ^~~', '']
+        for line in lines:
+            rendered = report.fenced(line).split('\n')[1:-1]
+            self.assertTrue(all(len(part) <= 100 for part in rendered))
+            self.assertEqual(rendered[0] + ''.join(part[2:] for part in rendered[1:]), line)
+
+    def test_wrapped_large_diagnostics_fit_comment_limits(self):
+        sections = report.detail_sections('Long diagnostic', 'x' * 120000)
+        pages = report.report_pages('Summary', sections, 'ci/test')
+        self.assertGreater(len(pages), 1)
+        self.assertTrue(all(len(page.encode('utf-8')) <= report.COMMENT_LIMIT for page in pages))
+        self.assertTrue(all(page.count('```') % 2 == 0 for page in pages))
 
     def test_pipeline_provenance_is_distinct_from_candidate_and_baseline(self):
         self.write('ci-candidate-commit.txt', 'a' * 40)
@@ -88,6 +139,33 @@ class FailureReportTests(unittest.TestCase):
         self.assertIn('Exit code: 7', body)
         self.assertIn('\n'.join(lines[-100:]), body)
         self.assertNotIn('line 24\n', body)
+
+    def test_failed_build_path_aliases_share_one_tail_and_metadata(self):
+        path = 'candidate-unit-build.log'
+        lines = ['build line {}'.format(i) for i in range(125)] + ['make: *** [unit] Error 2']
+        self.write(path, '\n'.join(lines) + '\n')
+        self.write(path + '.exit', '2\n')
+        Path('build-log-alias').symlink_to(path)
+        for recorded_path in (str(Path(path).resolve()), './' + path, 'build-log-alias'):
+            with self.subTest(recorded_path=recorded_path):
+                self.write('ci-failure-detail.txt', 'Command: make -j8 unit\n'
+                           'Full log: {} (archived with the build)\n'.format(recorded_path))
+                body = '\n'.join(report.failure_sections())
+                self.assertEqual(body.count('<summary>Failed build log'), 1)
+                self.assertIn('last 100 lines: ' + path + '</summary>', body)
+                self.assertIn('Command: make -j8 unit\nExit code: 2', body)
+                tail = body.split('Full log: ' + path + '\n\n', 1)[1].split('\n```', 1)[0]
+                self.assertEqual(tail.splitlines(), lines[-100:])
+
+    def test_distinct_failed_logs_with_same_basename_keep_separate_tails(self):
+        for directory in ('build', '_baseline/build'):
+            path = directory + '/compile.log'
+            self.write(path, directory + ' failure\n')
+            self.write(path + '.exit', '2\n')
+        body = '\n'.join(report.failure_sections())
+        self.assertEqual(body.count('<summary>Failed build log'), 2)
+        for directory in ('build', '_baseline/build'):
+            self.assertIn('last 100 lines: ' + directory + '/compile.log</summary>', body)
 
     def test_slurm_fallback_and_missing_logs(self):
         self.assertIn('build log unavailable', report.failure_sections()[0])

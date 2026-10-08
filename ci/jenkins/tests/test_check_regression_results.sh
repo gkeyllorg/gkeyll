@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Focused acceptance test for candidate-versus-baseline regression acknowledgments.
-# Usage: ci/jenkins/test_check_regression_results.sh /path/to/gkeyll
+# Usage: ci/jenkins/tests/test_check_regression_results.sh /path/to/gkeyll
 set -euo pipefail
 
 gkeyll="${1:?Usage: $0 /path/to/gkeyll}"
@@ -37,7 +37,7 @@ run_case() {
   printf '%s\n' "$baseline_line" > "$baseline_file"
 
   set +e
-  "$gkeyll" -S "$script_dir/check_regression_results.lua" "$results_dir" \
+  "$gkeyll" -S "$script_dir/../check_regression_results.lua" "$results_dir" \
     "$candidate_file" "$summary_file" "$baseline_file" "$baseline_results_dir" > "$work_dir/${name}.log" 2>&1
   local status=$?
   set -e

@@ -2,7 +2,7 @@
 # Focused acceptance test for persistent CI cache lifecycle helpers.
 set -euo pipefail
 
-repo_root="$(cd "$(dirname "$0")/../.." && pwd)"
+repo_root="$(cd "$(dirname "$0")/../../.." && pwd)"
 cache_tool="$repo_root/ci/jenkins/baseline_cache.sh"
 work_dir="$(mktemp -d "${TMPDIR:-/tmp}/gkeyll-baseline-cache.XXXXXX")"
 trap 'rm -rf "$work_dir"' EXIT

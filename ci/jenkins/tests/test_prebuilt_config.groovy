@@ -1,4 +1,4 @@
-// Run with: java -cp /path/to/groovy-all.jar groovy.ui.GroovyMain ci/jenkins/test_prebuilt_config.groovy
+// Run with: java -cp /path/to/groovy-all.jar groovy.ui.GroovyMain ci/jenkins/tests/test_prebuilt_config.groovy
 // No Jenkins controller or dependency builds required.
 import java.nio.file.Files
 

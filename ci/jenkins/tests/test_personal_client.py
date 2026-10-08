@@ -10,7 +10,7 @@ import unittest
 from urllib.parse import parse_qs
 
 
-CLIENT = Path(__file__).resolve().parent / 'jenkins-personal.sh'
+CLIENT = Path(__file__).resolve().parents[1] / 'jenkins-personal.sh'
 
 
 class PersonalClientTests(unittest.TestCase):

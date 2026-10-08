@@ -182,7 +182,7 @@ class PrebuiltConfigTests(unittest.TestCase):
 
     def run_cli(self, *options, library_path=''):
         return subprocess.run(
-            [sys.executable, '-I', str(Path(__file__).with_name('prebuilt_config.py')),
+            [sys.executable, '-I', str(Path(__file__).resolve().parents[1] / 'prebuilt_config.py'),
              '--config', str(self.config), '--prefix', str(self.prefix),
              '--dependencies', str(self.dependencies), '--output', str(self.output), *options],
             env=dict(os.environ, LD_LIBRARY_PATH=library_path),
