@@ -436,6 +436,18 @@ def build_report(args):
     baseline_sel = first(selection, "baseline_selector", "?")
     meta = ["**Candidate:** " + describe(candidate_sel, candidate),
             "**Baseline:** " + describe(baseline_sel, baseline)]
+    pipeline_commit = (read_text('ci-trusted-ci-commit.txt').strip()
+                       or os.environ.get('CI_TRUSTED_CI_COMMIT', ''))
+    pipeline_ref = os.environ.get('CI_TRUSTED_CI_REF', '')
+    reporting_commit = read_text('ci-reporting-commit.txt').strip()
+    checker_commit = read_text('ci-trusted-checker-commit.txt').strip()
+    for label, commit in [('Jenkinsfile', pipeline_commit), ('Reporting tools', reporting_commit),
+                          ('Regression checker', checker_commit)]:
+        if re.fullmatch(r'[0-9a-fA-F]{40}', commit):
+            source = '[{}](https://github.com/{}/commit/{})'.format(code(commit), DEFAULT_REPO, commit)
+            if label == 'Jenkinsfile' and pipeline_ref:
+                source = code(pipeline_ref) + ' @ ' + source
+            meta.append('**{}:** {}'.format(label, source))
     # No controller URL: every controller is loopback-only, so a link would be
     # dead for everyone but the machine owner. The build number is what that
     # owner needs to fetch artifacts (see the footer).

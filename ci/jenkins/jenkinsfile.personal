@@ -19,28 +19,85 @@ def loadReporting(Map settings) {
                 git fetch --quiet --depth 1 https://github.com/gkeyllorg/gkeyll.git "$CI_TRUSTED_REPORT_REF"
                 git show FETCH_HEAD:ci/jenkins/jenkins_reporting.groovy > jenkins_reporting.groovy
                 git show FETCH_HEAD:ci/jenkins/github_report.py > github_report.py
+                git show FETCH_HEAD:ci/jenkins/baseline_cache.sh > baseline_cache.sh
+                chmod +x baseline_cache.sh
             '''
         }
+        settings.reportingCommit = sh(returnStdout: true, script: 'git rev-parse FETCH_HEAD').trim()
+        settings.cacheScript = pwd() + '/baseline_cache.sh'
         reporting = load('jenkins_reporting.groovy')
         reporting.configure(settings)
     }
 }
 
 // Manually selected local CI. Configure this trusted Pipeline job from main.
-properties([
+def ciParameters = [
+    string(name: 'CANDIDATE_PR', defaultValue: '', trim: true,
+        description: 'GitHub PR number; set this, or both reference fields.'),
+    string(name: 'CANDIDATE_REF', defaultValue: '', trim: true,
+        description: 'Candidate branch or full 40-character commit SHA.'),
+    string(name: 'BASELINE_REF', defaultValue: '', trim: true,
+        description: 'Baseline branch or full 40-character commit SHA.'),
+    booleanParam(name: 'ALLOW_BEHIND_CANDIDATE', defaultValue: false,
+        description: 'Allow a candidate that does not contain the baseline commit.')
+]
+if (env.CI_TEAM_WORKSTATION_BOOTSTRAPPED != 'true') {
+    ciParameters += [string(name: 'CI_REF', defaultValue: '', trim: true,
+        description: 'CI implementation branch or full SHA; blank uses GKEYLL_CI_TRUSTED_REF, then main. Independent of the candidate.')]
+}
+def jobProperties = [
     buildDiscarder(logRotator(numToKeepStr: '20', artifactNumToKeepStr: '20')),
     disableConcurrentBuilds(),
-    parameters([
-        string(name: 'CANDIDATE_PR', defaultValue: '', trim: true,
-            description: 'GitHub PR number; set this, or both reference fields.'),
-        string(name: 'CANDIDATE_REF', defaultValue: '', trim: true,
-            description: 'Candidate branch or full 40-character commit SHA.'),
-        string(name: 'BASELINE_REF', defaultValue: '', trim: true,
-            description: 'Baseline branch or full 40-character commit SHA.'),
-        booleanParam(name: 'ALLOW_BEHIND_CANDIDATE', defaultValue: false,
-            description: 'Allow a candidate that does not contain the baseline commit.')
-    ])
-])
+    parameters(ciParameters)
+]
+properties(jobProperties)
+
+// Resolve the implementation once, before executing the selected Jenkinsfile.
+// This also works for older implementations: they already honor the team
+// bootstrap's CI_NODE_ALREADY_ALLOCATED and CI_TRUSTED_CI_COMMIT variables.
+if (env.CI_TEAM_WORKSTATION_BOOTSTRAPPED == 'true') {
+    if (params.CI_REF?.trim()) error('Team CI selects its implementation through TEAM_WORKSTATION_TRUSTED_CI_REF, not CI_REF.')
+} else if (env.CI_PERSONAL_BOOTSTRAPPED != 'true') {
+    def ciRef = validateRef('CI_REF', params.CI_REF?.trim() ?: env.GKEYLL_CI_TRUSTED_REF?.trim() ?: 'main')
+    node(requireValue('PERSONAL_NODE_LABEL', env.PERSONAL_NODE_LABEL)) {
+        def workspace = pwd()
+        def trustedDir = pwd(tmp: true) + '/selected-ci'
+        def ciCommit = ''
+        stage('Load CI pipeline') {
+            dir(trustedDir) {
+                deleteDir()
+                def refspec = isCommitSha(ciRef) ? ciRef : "refs/heads/${ciRef}"
+                withEnv(["CI_SELECTED_REFSPEC=${refspec}"]) {
+                    sh '''#!/bin/bash
+                        set -euo pipefail
+                        git init --quiet
+                        git fetch --quiet --no-tags --depth 1 https://github.com/gkeyllorg/gkeyll.git "$CI_SELECTED_REFSPEC"
+                        git checkout --quiet --detach FETCH_HEAD
+                    '''
+                }
+                ciCommit = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
+            }
+            echo "CI Jenkinsfile: ci/jenkins/jenkinsfile.personal\nCI source ref: ${ciRef}\nCI source commit: ${ciCommit}"
+        }
+        withEnv(['CI_PERSONAL_BOOTSTRAPPED=true', 'CI_NODE_ALREADY_ALLOCATED=true',
+                 "CI_TRUSTED_CI_REF=${ciRef}", "CI_TRUSTED_CI_COMMIT=${ciCommit}"]) {
+            try {
+                load "${trustedDir}/ci/jenkins/jenkinsfile.personal"
+            } finally {
+                // Older Jenkinsfiles replace the job parameters and delete the
+                // workspace. Preserve both the selector and provenance even
+                // when testing those versions, or when loading the script fails.
+                properties(jobProperties)
+                dir(workspace) {
+                    writeFile file: 'ci-pipeline-source.txt', text: "jenkinsfile=ci/jenkins/jenkinsfile.personal\nref=${ciRef}\ncommit=${ciCommit}\n"
+                    writeFile file: 'ci-trusted-ci-commit.txt', text: "${ciCommit}\n"
+                    archiveArtifacts artifacts: 'ci-pipeline-source.txt,ci-trusted-ci-commit.txt'
+                }
+            }
+        }
+    }
+    return
+}
 
 def requireValue(String name, String value) {
     value = value?.trim()
@@ -376,6 +433,7 @@ def runCi = {
     }
     loadReporting([credential: statusCredentialsId, context: statusContext, platform: platform,
         pr: candidatePr ?: '', ref: candidateRef ?: '', commit: commit])
+    def cacheScript = reporting.settings.cacheScript
     try {
         ciStage('Resolve candidate and baseline') {
             currentBuild.displayName = "#${env.BUILD_NUMBER} ${candidatePr ? "PR-${candidatePr}" : shortRef(candidateRef)}"
@@ -409,14 +467,14 @@ def runCi = {
             requestedBaseline = baselineCommit
         }
         ciStage('Prepare candidate build') {
-            candidateDir = sh(returnStdout: true, script: "ci/jenkins/baseline_cache.sh prepare-candidate '${gkeyllCiRoot}' '${cachePlatform}' '${commit}' '${env.WORKSPACE}' '${baselineCommit}'").trim()
+            candidateDir = sh(returnStdout: true, script: "'${cacheScript}' prepare-candidate '${gkeyllCiRoot}' '${cachePlatform}' '${commit}' '${env.WORKSPACE}' '${baselineCommit}'").trim()
         }
         reporting.progress('Gkeyll CI is running.')
         ciStage('Build candidate') { dir("${candidateDir}/gkeyll") { buildTree('candidate', "${candidateDir}/gkylsoft", mkdeps, configure, jobs, "${env.WORKSPACE}/") } }
         ciStage('Resolve baseline cache') {
-            baselineDir = sh(returnStdout: true, script: "ci/jenkins/baseline_cache.sh baseline-path '${gkeyllCiRoot}' '${cachePlatform}' '${baselineCommit}'").trim()
-            baselineCacheHit = sh(returnStatus: true, script: "ci/jenkins/baseline_cache.sh valid '${gkeyllCiRoot}' '${cachePlatform}' '${baselineCommit}'") == 0
-            if (!baselineCacheHit) baselineStage = sh(returnStdout: true, script: "ci/jenkins/baseline_cache.sh prepare-baseline '${gkeyllCiRoot}' '${cachePlatform}' '${baselineCommit}'").trim()
+            baselineDir = sh(returnStdout: true, script: "'${cacheScript}' baseline-path '${gkeyllCiRoot}' '${cachePlatform}' '${baselineCommit}'").trim()
+            baselineCacheHit = sh(returnStatus: true, script: "'${cacheScript}' valid '${gkeyllCiRoot}' '${cachePlatform}' '${baselineCommit}'") == 0
+            if (!baselineCacheHit) baselineStage = sh(returnStdout: true, script: "'${cacheScript}' prepare-baseline '${gkeyllCiRoot}' '${cachePlatform}' '${baselineCommit}'").trim()
             writeFile file: 'ci-baseline-cache.txt', text: "status=${baselineCacheHit ? 'hit' : 'miss'}\nplatform=${cachePlatform}\nbaseline_commit=${baselineCommit}\npath=${baselineCacheHit ? baselineDir : baselineStage}\n"
         }
         if (!baselineCacheHit) {
@@ -433,7 +491,7 @@ serial_c_results=present
 parallel_c_4_results=present
 EOF
                 """
-                baselineDir = sh(returnStdout: true, script: "ci/jenkins/baseline_cache.sh publish-baseline '${gkeyllCiRoot}' '${cachePlatform}' '${baselineCommit}' '${baselineStage}' '${env.WORKSPACE}'").trim()
+                baselineDir = sh(returnStdout: true, script: "'${cacheScript}' publish-baseline '${gkeyllCiRoot}' '${cachePlatform}' '${baselineCommit}' '${baselineStage}' '${env.WORKSPACE}'").trim()
                 writeFile file: 'ci-baseline-cache.txt', text: "status=miss\nplatform=${cachePlatform}\nbaseline_commit=${baselineCommit}\npath=${baselineDir}\n"
             }
         }
@@ -462,7 +520,7 @@ EOF
             echo "WARNING: could not write CI timings: ${err}"
         } finally {
             try {
-                if (candidateDir) sh "ci/jenkins/baseline_cache.sh stage-candidate-artifacts '${gkeyllCiRoot}' '${cachePlatform}' '${commit}' '${env.WORKSPACE}' '${baselineCommit}'"
+                if (candidateDir) sh "'${cacheScript}' stage-candidate-artifacts '${gkeyllCiRoot}' '${cachePlatform}' '${commit}' '${env.WORKSPACE}' '${baselineCommit}'"
             } catch (err) {
                 echo "WARNING: could not stage CI report artifacts: ${err}"
             }
@@ -479,11 +537,11 @@ EOF
                     echo "WARNING: could not publish the GitHub CI report: ${reportError}"
                 }
             }
-            archiveArtifacts allowEmptyArchive: true, artifacts: 'ci-selection.txt,ci-baseline-preflight.txt,ci-baseline-cache.txt,ci-trusted-checker-commit.txt,ci-trusted-ci-commit.txt,ci-candidate-commit.txt,ci-baseline-commit.txt,*-seconds.txt,*-unit-results.txt,candidate-*.log,baseline-*.log,ci-failure-detail.txt,ci-report*.md,ci-report*.md.json,ci-report-delivery.json,ci-diagnostic-summary.json,ci-stage-history.txt,ci-command-logs/**,ci-timing-summary.txt,ci-regression-summary.txt,ci-parallel-regression-summary.txt,ci-failure-summary.txt,build/**/*.log,cuda-build/**/*.log,_baseline/build/**/*.log,_baseline/cuda-build/**/*.log,_baseline/gkylsoft/gkeyll-results/**/regressiondb,_baseline/gkylsoft/gkeyll-results/**/_rr_failures.txt,gkylsoft/gkeyll-results/**/regressiondb,gkylsoft/gkeyll-results/**/_rr_failures.txt'
+            archiveArtifacts allowEmptyArchive: true, artifacts: 'ci-trusted-ci-commit.txt,ci-reporting-commit.txt,ci-selection.txt,ci-baseline-preflight.txt,ci-baseline-cache.txt,ci-trusted-checker-commit.txt,ci-candidate-commit.txt,ci-baseline-commit.txt,*-seconds.txt,*-unit-results.txt,candidate-*.log,baseline-*.log,ci-failure-detail.txt,ci-report*.md,ci-report*.md.json,ci-report-delivery.json,ci-diagnostic-summary.json,ci-stage-history.txt,ci-command-logs/**,ci-timing-summary.txt,ci-regression-summary.txt,ci-parallel-regression-summary.txt,ci-failure-summary.txt,build/**/*.log,cuda-build/**/*.log,_baseline/build/**/*.log,_baseline/cuda-build/**/*.log,_baseline/gkylsoft/gkeyll-results/**/regressiondb,_baseline/gkylsoft/gkeyll-results/**/_rr_failures.txt,gkylsoft/gkeyll-results/**/regressiondb,gkylsoft/gkeyll-results/**/_rr_failures.txt'
             if (reportError) description = "${description} (report not posted)".take(140)
         }
         if (candidateDir && baselineCommit) {
-            sh "ci/jenkins/baseline_cache.sh finalize-candidate '${gkeyllCiRoot}' '${cachePlatform}' '${commit}' '${baselineCommit}' '${status}' '${env.CI_FAILURE_STAGE ?: ''}' '${env.WORKSPACE}'"
+            sh "'${cacheScript}' finalize-candidate '${gkeyllCiRoot}' '${cachePlatform}' '${commit}' '${baselineCommit}' '${status}' '${env.CI_FAILURE_STAGE ?: ''}' '${env.WORKSPACE}'"
         }
         deleteDir()
     }

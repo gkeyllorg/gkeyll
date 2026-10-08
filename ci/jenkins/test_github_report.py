@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 import github_report as report
 
@@ -23,6 +24,31 @@ class FailureReportTests(unittest.TestCase):
     def write(self, path, text):
         Path(path).parent.mkdir(parents=True, exist_ok=True)
         Path(path).write_text(text)
+
+    def test_pipeline_provenance_is_distinct_from_candidate_and_baseline(self):
+        self.write('ci-candidate-commit.txt', 'a' * 40)
+        self.write('ci-baseline-commit.txt', 'b' * 40)
+        self.write('ci-trusted-ci-commit.txt', 'c' * 40)
+        self.write('ci-reporting-commit.txt', 'd' * 40)
+        self.write('ci-trusted-checker-commit.txt', 'e' * 40)
+        args = argparse.Namespace(platform='personal', context='ci/test', result='success', pr='', output='ci-report.md')
+        with patch.dict(os.environ, CI_TRUSTED_CI_REF='ci-feature'), contextlib.redirect_stdout(io.StringIO()):
+            report.build_report(args)
+        body = Path(args.output).read_text()
+        self.assertIn('**Jenkinsfile:** `ci-feature` @ [`' + 'c' * 40 + '`]', body)
+        self.assertIn('**Reporting tools:** [`' + 'd' * 40 + '`]', body)
+        self.assertIn('**Regression checker:** [`' + 'e' * 40 + '`]', body)
+        self.assertIn('https://github.com/gkeyllorg/gkeyll/commit/' + 'c' * 40, body)
+
+    def test_pipeline_provenance_survives_early_failure_and_never_guesses_candidate(self):
+        self.write('ci-candidate-commit.txt', 'a' * 40)
+        args = argparse.Namespace(platform='personal', context='ci/test', result='failure', pr='', output='ci-report.md')
+        for commit in ['', 'f' * 40]:
+            with patch.dict(os.environ, CI_TRUSTED_CI_COMMIT=commit), contextlib.redirect_stdout(io.StringIO()):
+                report.build_report(args)
+            body = Path(args.output).read_text()
+            self.assertEqual('**Jenkinsfile:**' in body, bool(commit))
+            self.assertNotIn('**Reporting tools:**', body)
 
     def test_failed_build_tail_is_collapsed_and_before_test_results(self):
         lines = ['build line {}'.format(i) for i in range(110)] + [

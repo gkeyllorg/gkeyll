@@ -10,6 +10,7 @@ import groovy.json.JsonOutput
 def configure(Map values) {
     settings = values + [workspace: env.WORKSPACE]
     pythonSource = readFile('github_report.py')
+    if (settings.reportingCommit) echo "CI reporting tools commit: ${settings.reportingCommit}"
     return this
 }
 
@@ -47,6 +48,13 @@ def publish(String result, String description = '', boolean detailed = false) {
         withEnv(["CI_REPORT_RESULT=${result}", "CI_REPORT_DESCRIPTION=${description}"]) {
             if (detailed) {
                 writeFile file: 'ci-stage-history.txt', text: stageHistory
+                // Recreate provenance after candidate checkout deletes the workspace.
+                if (env.CI_TRUSTED_CI_COMMIT?.trim()) {
+                    writeFile file: 'ci-trusted-ci-commit.txt', text: "${env.CI_TRUSTED_CI_COMMIT.trim()}\n"
+                }
+                if (settings.reportingCommit) {
+                    writeFile file: 'ci-reporting-commit.txt', text: "${settings.reportingCommit}\n"
+                }
                 runReporter('build --platform "$CI_REPORT_PLATFORM" --context "$CI_REPORT_CONTEXT" ' +
                     '--result "$CI_REPORT_RESULT" --pr "$CI_REPORT_PR" --output ci-report.md')
                 description = readFile('ci-status-description.txt').trim()

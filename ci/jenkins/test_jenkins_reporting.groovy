@@ -4,7 +4,7 @@ def commands = []
 def credentials = []
 def environments = []
 def directories = []
-def environment = [WORKSPACE: '/workspace', BUILD_NUMBER: '10']
+def environment = [WORKSPACE: '/workspace', BUILD_NUMBER: '10', CI_TRUSTED_CI_COMMIT: 'b' * 40]
 def binding = new Binding([
     env: environment, params: [CI_QUEUE_ID: '42'],
     readFile: { String path -> files[path] },
@@ -20,7 +20,8 @@ def binding = new Binding([
     echo: { String message -> }
 ])
 def script = new GroovyShell(binding).evaluate(new File('ci/jenkins/jenkins_reporting.groovy'))
-script.configure([platform: 'personal', context: 'ci/test', credential: 'existing-token', commit: 'a' * 40])
+script.configure([platform: 'personal', context: 'ci/test', credential: 'existing-token',
+    commit: 'a' * 40, reportingCommit: 'c' * 40])
 script.ciStage('Build candidate') { }
 assert files['ci-stage-history.txt'].contains('Build candidate')
 assert environment.CI_FAILURE_STAGE == 'Build candidate'
@@ -32,6 +33,8 @@ assert directories.every { it == '/workspace' }
 assert credentials.every { it.credentialsId == 'existing-token' }
 assert environments.any { it == 'CI_QUEUE_ID=42' }
 assert files['/workspace@tmp/github_report.py'] == '# trusted source'
+assert files['ci-trusted-ci-commit.txt'] == 'b' * 40 + '\n'
+assert files['ci-reporting-commit.txt'] == 'c' * 40 + '\n'
 
 // Generate and retain the failure report even when checkout never resolved a SHA.
 script.settings.commit = ''

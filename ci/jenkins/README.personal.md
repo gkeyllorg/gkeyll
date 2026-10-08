@@ -71,7 +71,7 @@ and Python with NumPy. Set these global environment variables:
 | `PERSONAL_MPIEXEC` | Optional launcher override for both trees; default is `bin/mpiexec` under the selected MPI installation |
 | `PERSONAL_STATUS_CONTEXT` | Set explicitly for queue reporting, e.g. `continuous-integration/jenkins/personal-<hostname>`; use a distinct context for each computer |
 | `GKEYLL_CI_ROOT` | Required persistent writable root for baseline and candidate source, build, and regression data |
-| `GKEYLL_CI_TRUSTED_REF` | Optional reviewed branch or full SHA for `github_report.py`, `jenkins_reporting.groovy`, and `check_regression_results.lua`; default `main`. Set it only while staging a CI change |
+| `GKEYLL_CI_TRUSTED_REF` | Default branch or full SHA for the personal Jenkinsfile and CI helpers; default `main`. A run's `CI_REF` overrides it |
 
 The selected dependency script must pass `--build-adas=yes` to
 `install-deps/mkdeps.sh` so ADAS data is available before unit tests run.
@@ -91,6 +91,12 @@ Gkeyll is public and the status credential is not a Git checkout credential.
 Do not let a selected PR provide its Pipeline. Run it once without selectors
 to register parameters.
 
+The SCM Jenkinsfile supplies the initial loader. It resolves `CI_REF` (or the
+default above) to one commit, then loads `jenkinsfile.personal` and its CI
+helpers from that commit. Candidate selection does not select the CI
+implementation. When staging a change to the loader itself, point the job's
+SCM branch and refspec to your CI feature branch too.
+
 Install the [controller queue listener](README.md#controller-installation) to
 report pending before an executor is available and cancel superseded queued PR
 commits. Set `PERSONAL_STATUS_CONTEXT` globally to the context already used by
@@ -109,12 +115,33 @@ this machine, so queued and final statuses update the same GitHub check.
 ./ci/jenkins/gkeyll-ci.sh personal abort --build 42
 ```
 
+To compare `branch1` with `main` using the CI implementation from `branch2`:
+
+```sh
+./ci/jenkins/gkeyll-ci.sh personal run \
+  --candidate-ref branch1 --baseline-ref main --ci-ref branch2 --follow
+```
+
+`--ci-ref` also accepts a full commit SHA and can be combined with `--pr`.
+The branch must exist in `gkeyllorg/gkeyll`. This selector executes CI code with
+the job's normal access, so select a CI revision you trust. Team CI continues to
+use its administrator-controlled `TEAM_WORKSTATION_TRUSTED_CI_REF`.
+
+The console prints the selected ref and full Jenkinsfile commit before the
+build starts. `ci-pipeline-source.txt` and `ci-trusted-ci-commit.txt` retain that
+selection, including when an older selected Jenkinsfile deletes its workspace
+or fails. Current reporting code also puts Jenkinsfile, reporting-tool, and
+regression-checker commits in the GitHub report. Branch movement during the run
+does not change the pinned CI implementation. Older Jenkinsfiles must support
+`CI_NODE_ALREADY_ALLOCATED` and `CI_TRUSTED_CI_COMMIT` to run under this loader.
+
 Set `JENKINS_CLI_AUTH_FILE` only to use a credential file at a different path.
 
 ## Browser launch
 
 Open `gkeyll-ci-personal`, select **Build with Parameters**, and set either a
-PR number or both candidate and baseline references.
+PR number or both candidate and baseline references. Optionally set **CI_REF**
+to choose the Jenkinsfile and CI helpers independently.
 
 # Troubleshooting
 

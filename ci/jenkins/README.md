@@ -232,6 +232,13 @@ results, timings, and collapsible sections for:
   extracted warnings and errors remain in their own separate dropdowns.
 - An inventory of captured logs.
 
+Reports also show the full Jenkinsfile, reporting-tool, and regression-checker
+commits when recorded. Personal CI's `CI_REF` selects an implementation
+independently of candidate and baseline; see the
+[personal guide](README.personal.md#cli-launch). The loader logs its resolved
+commit before running that implementation and archives it on completion. The controller queue
+listener is installed separately and is not replaced by a per-run selection.
+
 The reporter reads build/configuration logs, Slurm output, and the individual
 compiler/runtime logs stored in regression databases. Warning comparison uses
 matching completed baseline steps from the same run. It ignores checkout paths,

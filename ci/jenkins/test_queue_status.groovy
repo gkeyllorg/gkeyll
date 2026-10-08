@@ -405,6 +405,83 @@ node('queue-test-runner') {
         assert smokeRun.result == Result.SUCCESS : smokeRun.getLog(100).join('\n')
         passed('shared reporter runs in a real sandboxed Pipeline, retains command exits and builds diagnostic reports')
 
+        // Execute the actual personal bootstrap against a local Git fixture.
+        // The loaded scripts stand in for old/new CI implementations, so this
+        // checks selection and cleanup without running simulations or GitHub.
+        def repository = new File(jenkins.rootDir, 'ci-source-fixture')
+        def pipeline = new File(repository, 'ci/jenkins/jenkinsfile.personal')
+        pipeline.parentFile.mkdirs()
+        def git = { List arguments ->
+            def process = new ProcessBuilder(['git'] + arguments).directory(repository).redirectErrorStream(true).start()
+            def output = process.inputStream.text
+            assert process.waitFor() == 0 : output
+            output.trim()
+        }
+        git(['init', '-b', 'main'])
+        git(['config', 'user.name', 'CI fixture'])
+        git(['config', 'user.email', 'fixture@example.test'])
+        def bootstrapSource = new File(source, 'jenkinsfile.personal').text.replace(
+            'https://github.com/gkeyllorg/gkeyll.git', 'file://' + repository.absolutePath)
+        ['jenkins_reporting.groovy', 'github_report.py', 'baseline_cache.sh'].each { name ->
+            new File(pipeline.parentFile, name).text = new File(source, name).text
+        }
+        // Use the real helper loader and publisher without a candidate SHA, so
+        // no authenticated GitHub request can run. The simulated checkout must
+        // not erase the selected cache helper or the report's CI provenance.
+        pipeline.text = bootstrapSource.substring(0, bootstrapSource.indexOf('// Manually selected local CI.')) + '''
+echo 'DEFAULT_CI_IMPLEMENTATION'
+assert env.CI_NODE_ALREADY_ALLOCATED == 'true'
+loadReporting([platform: 'personal', context: 'ci/test', commit: ''])
+assert reporting.settings.reportingCommit == env.CI_TRUSTED_CI_COMMIT
+deleteDir()
+assert fileExists(reporting.settings.cacheScript)
+reporting.publish('failure', 'fixture', true)
+assert readFile('ci-report.md').contains(env.CI_TRUSTED_CI_COMMIT)
+assert readFile('ci-reporting-commit.txt').trim() == env.CI_TRUSTED_CI_COMMIT
+'''
+        git(['add', '.'])
+        git(['commit', '-m', 'Default implementation'])
+        def defaultCommit = git(['rev-parse', 'HEAD'])
+        git(['checkout', '-b', 'ci-feature'])
+        pipeline.text = '''
+echo 'SELECTED_CI_IMPLEMENTATION'
+assert env.CI_NODE_ALREADY_ALLOCATED == 'true'
+assert env.CI_PERSONAL_BOOTSTRAPPED == 'true'
+assert env.CI_TRUSTED_CI_REF == 'ci-feature' || env.CI_TRUSTED_CI_REF == env.CI_TRUSTED_CI_COMMIT
+// Simulate an older implementation replacing parameters and deleting artifacts.
+properties([parameters([string(name: 'CANDIDATE_REF', defaultValue: '')])])
+deleteDir()
+error('EXPECTED_SELECTED_PIPELINE_FAILURE')
+'''
+        git(['add', '.'])
+        git(['commit', '-m', 'Selected implementation'])
+        def selectedCommit = git(['rev-parse', 'HEAD'])
+        def bootstrap = create(jenkins, 'personal-bootstrap-smoke', '')
+        bootstrap.addProperty(new ParametersDefinitionProperty([new StringParameterDefinition('CI_REF', '')]))
+        def bootstrapVars = jenkins.globalNodeProperties.get(EnvironmentVariablesNodeProperty).envVars
+        bootstrapVars.put('PERSONAL_NODE_LABEL', 'queue-test-runner')
+        bootstrapVars.put('GKEYLL_CI_TRUSTED_REF', 'main')
+        bootstrap.definition = new CpsFlowDefinition(bootstrapSource, true)
+        ['', 'ci-feature', selectedCommit, '../invalid'].each { ref ->
+            def run = bootstrap.scheduleBuild2(0, new ParametersAction(new StringParameterValue('CI_REF', ref)))
+                .get(60, TimeUnit.SECONDS)
+            def log = run.getLog(200).join('\n')
+            if (ref == '../invalid') {
+                assert run.result == Result.FAILURE
+                assert log.contains('CI_REF must be a safe branch name')
+                assert !log.contains('SELECTED_CI_IMPLEMENTATION')
+            } else {
+                def commit = ref ? selectedCommit : defaultCommit
+                assert run.result == (ref ? Result.FAILURE : Result.SUCCESS) : log
+                assert log.contains(ref ? 'SELECTED_CI_IMPLEMENTATION' : 'DEFAULT_CI_IMPLEMENTATION') : log
+                assert log.contains('CI source commit: ' + commit)
+                assert new File(run.artifactsDir, 'ci-trusted-ci-commit.txt').text.trim() == commit
+                assert new File(run.artifactsDir, 'ci-pipeline-source.txt').text.contains('ref=' + (ref ?: 'main'))
+                assert bootstrap.getProperty(ParametersDefinitionProperty).getParameterDefinition('CI_REF') != null
+            }
+        }
+        passed('personal CI pins branch/SHA selections, retains provenance on failure and restores parameters for older implementations')
+
         ['personal', 'team_workstation', 'stellar_cpu', 'perlmutter_gpu'].each {
             shell.classLoader.parseClass(new File(source, "jenkinsfile.${it}"))
         }
