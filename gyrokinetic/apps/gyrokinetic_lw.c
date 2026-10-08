@@ -518,6 +518,8 @@ gyrokinetic_species_lw_new(lua_State *L)
   with_lua_tbl_tbl(L, "scaling")
   {
     gk_species.scaling.type = glua_tbl_get_integer(L, "type", 0);
+    gk_species.scaling.den_ref = glua_tbl_get_number(L, "referenceDensity", 0.0);
+    gk_species.scaling.temp_ref = glua_tbl_get_number(L, "referenceTemperature", 0.0);
   }
 
   enum gkyl_collision_id collision_id = GKYL_NO_COLLISIONS;

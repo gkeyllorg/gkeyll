@@ -560,6 +560,61 @@ gk_field_adiabatic_init_2x3x(gkyl_gyrokinetic_app *app, struct gk_field *gkf)
 {
   gk_field_adiabatic_profiles_calc(app, gkf);
 
+  // With the Pade FLR model the adiabatic response acts on the true potential phi = A Phi_0,
+  // A = 1 - rho^2*nabla_perp^2, which adds K_0*rho^2*J*g^ij to epsilon. The Pade operators have
+  // constant coefficients, so K_0 = q_s^2 n_ref/T_ref with n_ref and T_ref the scaling den_ref and
+  // temp_ref of the adiabatic species. Those not given are the t=0 values at the center of the
+  // domain.
+  gkf->adiab.flr_zonal_fac = 0.0;
+  if (gkf->use_flr) {
+    assert(gkf->info.flr.use_fem_operator); // flr_rhoSq = rho^2*J*g^ij.
+    struct gk_species *gks = &app->species[gkf->adiab.species_idx];
+    double n_ref = gks->info.scaling.den_ref, T_ref = gks->info.scaling.temp_ref;
+
+    if (n_ref <= 0.0 || T_ref <= 0.0) {
+      // Cell containing the center of the domain, and the logical coordinates of the center in it.
+      int nb = app->basis.num_basis;
+      int idx[GKYL_MAX_CDIM];
+      double xcell[GKYL_MAX_CDIM], xlog[GKYL_MAX_CDIM];
+      for (int d = 0; d < app->cdim; d++) {
+        idx[d] = app->global.lower[d] + app->grid.cells[d] / 2;
+      }
+      gkyl_rect_grid_cell_center(&app->grid, idx, xcell);
+      for (int d = 0; d < app->cdim; d++) {
+        xlog[d] = (app->grid.lower[d] + app->grid.upper[d] - 2.0 * xcell[d]) / app->grid.dx[d];
+      }
+
+      // Density and temperature at the center from the moments n*J, upar, T/m of profiles_calc.
+      double center_local[2] = {0.0, 0.0}, center[2];
+      if (gkyl_range_contains_idx(&app->local, idx)) {
+        struct gkyl_array *moms = gks->lte.moms.marr;
+        struct gkyl_array *moms_ho = mkarr(false, moms->ncomp, moms->size);
+        struct gkyl_array *jac_ho = mkarr(false, nb, app->local_ext.volume);
+        gkyl_array_copy(moms_ho, moms);
+        gkyl_array_copy(jac_ho, app->gk_geom->geo_int.jacobgeo);
+        long lidx = gkyl_range_idx(&app->local, idx);
+        const double *moms_c = gkyl_array_cfetch(moms_ho, lidx);
+        center_local[0] = app->basis.eval_expand(xlog, moms_c) /
+                          app->basis.eval_expand(xlog, gkyl_array_cfetch(jac_ho, lidx));
+        center_local[1] = gks->info.mass * app->basis.eval_expand(xlog, &moms_c[2 * nb]);
+        gkyl_array_release(moms_ho);
+        gkyl_array_release(jac_ho);
+      }
+      gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 2, center_local, center);
+
+      n_ref = n_ref > 0.0 ? n_ref : center[0];
+      T_ref = T_ref > 0.0 ? T_ref : center[1];
+    }
+
+    double q_s = gks->info.charge;
+    double K_0 = q_s * q_s * n_ref / T_ref;
+    gkyl_array_accumulate(gkf->epsilon, K_0, gkf->flr_rhoSq);
+    gkf->adiab.flr_zonal_fac = K_0 * gkf->flr_local_fac;
+    gkyl_gyrokinetic_app_cout(
+      app, stdout, "Adiabatic species FLR term: n_ref = %.6e, T_ref = %.6e.\n", n_ref, T_ref
+    );
+  }
+
   gkf->adiab.kSq = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   gkyl_array_set(gkf->adiab.kSq, -1.0, gkf->adiab.kJ);
   gkf->fem_poisson_perp = gkyl_fem_poisson_perp_new(
@@ -608,6 +663,9 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
                                                            app->bmag_ref;
   // Linearized polarization density
   for (int i = 0; i < app->num_species; ++i) {
+    if (i == gkf->adiab.species_idx) {
+      continue; // An adiabatic species has no polarization.
+    }
     struct gk_species *gks = &app->species[i];
     polarization_weight +=
       gks->info.polarization_density * gks->info.mass / pow(polarization_bmag, 2);

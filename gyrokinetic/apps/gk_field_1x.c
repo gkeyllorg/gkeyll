@@ -155,6 +155,9 @@ gk_field_fem_new_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
                                                            app->bmag_ref;
   // Linearized polarization density
   for (int i = 0; i < app->num_species; ++i) {
+    if (i == gkf->adiab.species_idx) {
+      continue; // An adiabatic species has no polarization.
+    }
     struct gk_species *gks = &app->species[i];
     polarization_weight +=
       gks->info.polarization_density * gks->info.mass / pow(polarization_bmag, 2);

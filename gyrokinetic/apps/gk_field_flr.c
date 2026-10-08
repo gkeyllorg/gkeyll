@@ -25,6 +25,9 @@ gk_field_flr_new(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
     //   rho^2 = sum_s eps_s0*rho_s0^2 / sum_s eps_s0,  eps_s0 = n_s0*m_s/B^2,
     double eps_sum = 0.0;
     for (int i = 0; i < app->num_species; ++i) {
+      if (i == gkf->adiab.species_idx) {
+        continue; // An adiabatic species has no polarization.
+      }
       struct gk_species *gks = &app->species[i];
       double eps_s0 = gks->info.polarization_density * gks->info.mass / pow(polarization_bmag, 2.0);
       rhoSq_ref += eps_s0 * gks->flr_rhoSq_ref;
@@ -58,15 +61,20 @@ gk_field_flr_new(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
   gkf->flr_energy_red = app->use_gpu ? gkyl_cu_malloc(sizeof(double[1])) :
                                        gkyl_malloc(sizeof(double[1]));
 
+  // rho_i^2/eps_pol, used by the local term and the zonal response of an adiabatic species.
+  double polarization_weight = 0.0;
+  for (int i = 0; i < app->num_species; ++i) {
+    if (i == gkf->adiab.species_idx) {
+      continue; // An adiabatic species has no polarization.
+    }
+    struct gk_species *gks = &app->species[i];
+    polarization_weight +=
+      gks->info.polarization_density * gks->info.mass / pow(polarization_bmag, 2);
+  }
+  gkf->flr_local_fac = rhoSq_ref / polarization_weight;
+
   if (!gkf->info.flr.use_fem_operator) {
     // Use the simplification phi = Phi_0 + (rho_i^2/eps_pol)*rho_c/J
-    double polarization_weight = 0.0;
-    for (int i = 0; i < app->num_species; ++i) {
-      struct gk_species *gks = &app->species[i];
-      polarization_weight +=
-        gks->info.polarization_density * gks->info.mass / pow(polarization_bmag, 2);
-    }
-    gkf->flr_local_fac = rhoSq_ref / polarization_weight;
     return;
   }
 

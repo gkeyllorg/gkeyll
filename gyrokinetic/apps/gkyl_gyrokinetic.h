@@ -353,6 +353,10 @@ struct gkyl_gyrokinetic_scaling_inp {
   char ref_species_name[128]; // Name of reference species.
   double fixed_fraction; // Fraction of reference species density.
 
+  // Info for GKYL_GK_SPECIES_SCALING_ADIABATIC (default: t=0 values at the domain center).
+  double den_ref; // Density in the Pade FLR term.
+  double temp_ref; // Temperature in the Pade FLR term.
+
   bool write_diagnostics; // Whether to write diagnostics.
 };
 
