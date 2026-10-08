@@ -1,0 +1,38 @@
+{
+  "cli_version": "0.11.3",
+  "checkpoint_id": "01M4CRXHWT0BN817TRPQW82NDP",
+  "strategy": "manual-commit",
+  "branch": "jenkins-github-runreg-costs",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "ci/jenkins/README.md",
+    "ci/jenkins/README.perlmutter_gpu.md",
+    "ci/jenkins/README.personal.md",
+    "ci/jenkins/README.stellar_cpu.md",
+    "ci/jenkins/jenkinsfile.perlmutter_gpu",
+    "ci/jenkins/jenkinsfile.personal",
+    "ci/jenkins/jenkinsfile.stellar_cpu",
+    "ci/jenkins/slurm-parallel-regression-tests.perlmutter_gpu.sh",
+    "ci/jenkins/slurm-parallel-regression-tests.stellar_cpu.sh",
+    "ci/jenkins/slurm-regression-tests.perlmutter_gpu.sh",
+    "ci/jenkins/slurm-regression-tests.stellar_cpu.sh",
+    "ci/jenkins/test_check_regression_results.sh"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 36298,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 321664,
+    "output_tokens": 2392,
+    "api_call_count": 10,
+    "subagent_tokens_complete": true
+  }
+}
