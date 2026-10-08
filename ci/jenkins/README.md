@@ -71,9 +71,10 @@ required in prebuilt mode.
 With this variable set, candidate and baseline both skip the machine dependency
 and configure scripts. CI copies the configured dependency installations into
 `$GKEYLL_CI_ROOT/runs/<platform>/<BUILD_TAG>/dependencies/`, following symlinks
-to keep those copies independent of the originals. Candidate and baseline reuse
-this private copy within the run; every subsequent run gets a new copy. The
-supplied config and original dependencies remain untouched. OS libraries under
+to keep those copies independent of the originals. The candidate gets a new
+copy each run. The baseline owns a separate persistent copy under
+`baseline-cache/<platform>/<baseline-sha>/dependencies/`, reused with its
+executable and results. The supplied config and original dependencies remain untouched. OS libraries under
 `/usr`, `/lib`, `/lib64`, and `/System`, compilers, and platform SDKs remain
 machine-provided; they are not copied into the run.
 
@@ -129,12 +130,12 @@ Each build gets a config pointing to the copied libraries, with `PREFIX` and
 `INSTALL_PREFIX` set to its own `gkylsoft` directory. CI uses the copied MPI
 launcher and library paths; `dependencies/env.sh` saves that runtime environment
 for later inspection or reruns. Source it before manually running a retained
-executable. Gkeyll's candidate and baseline are rebuilt inside each run because
-their installed binaries embed these private paths. Prebuilt mode therefore
-does not reuse another run's baseline executable. All existing test lanes run.
+executable. Both installations stay at their final paths because binaries embed
+those paths. A cache hit skips baseline checkout, dependency copying, compilation,
+unit tests, and regression creation. Candidate test lanes still run.
 Invalid paths or a source config changed midway through a run fail the build.
-Leave the variable unset or empty to retain the dependency-build and shared
-baseline-cache behavior. Deploy the updated trusted Jenkinsfiles and helpers
+Leave the variable unset or empty to build dependencies from machine scripts;
+the baseline cache is shared across runs in either mode. Deploy the updated trusted Jenkinsfiles and helpers
 to enable this option; candidate and baseline refs can predate it.
 
 The trusted Python helper returns literal `KEY=value` lines to the Pipeline,
@@ -575,15 +576,43 @@ $GKEYLL_CI_ROOT/runs/<platform>/<BUILD_TAG>/
     gkylsoft/gkeyll/              installed Gkeyll
     gkylsoft/gkeyll-results/      databases, configs, logs, and .gkyl outputs
     _baseline/                   snapshot of baseline results and diagnostics
-  baseline/<baseline-sha>/        full baseline build when using prebuilt dependencies
 ```
 
 The `ci-run-path.txt` artifact records the exact directory. CI builds at these
 final paths and does not delete previous run directories, including repeated
 runs of the same commit. The original prebuilt installation receives no results.
-Without prebuilt dependencies, CI continues to reuse
-`$GKEYLL_CI_ROOT/baseline-cache/<platform>/<baseline-sha>/`, while retaining a
-snapshot of that baseline's results with each candidate run.
+CI reuses `$GKEYLL_CI_ROOT/baseline-cache/<platform>/<baseline-sha>/` in both
+prebuilt and machine-script modes. It retains source/build trees, installed
+Gkeyll, its dependencies and runtime environment, serial and parallel accepted
+outputs, regression databases/configuration, compiler logs with exit codes,
+unit results, Slurm diagnostics, and timings. Each candidate retains a snapshot
+of the baseline results and diagnostics.
+
+A matching full baseline SHA and build configuration loads the cache. Changing
+the baseline builds and publishes a replacement; only successful publication
+removes the previous entry. Missing or corrupt saved artifacts, failed regression
+creation, or an interrupted publication cannot produce a cache hit. A manifest
+is published atomically after validation and diagnostic copies finish. Old
+manifest formats trigger a one-time rebuild. The GitHub report labels the
+baseline `(loaded from cache)` or `(saved to cache)`; a failed attempt remains
+`(cache miss; not saved)`. Restored baseline timings describe the original build,
+while the report's total elapsed time describes the current run.
+
+Compatibility includes the supplied prebuilt config content, trusted cache and
+dependency helpers, configured local machine scripts/MPI paths, and
+`GKEYLL_CI_CACHE_REVISION`. Change that revision on the agent after an in-place
+compiler, module, SDK, or dependency upgrade (for example, `2026-10-toolchain-2`).
+System toolchains and dependency contents at the original installation are not
+rehashed on every hit. A platform's jobs share a filesystem lease until artifact
+staging finishes, so concurrent jobs wait instead of replacing a live baseline.
+The lease is released on success, failure, and normal cancellation. After an
+unrecoverable controller/agent loss, remove `baseline-cache/<platform>/.lock`
+only after confirming the recorded owner is no longer running. Waiting for a
+lease times out after 12 hours.
+
+Deploy the updated trusted Jenkinsfiles together with `jenkins_reporting.groovy`,
+`baseline_cache.sh`, `prebuilt_config.py`, and `github_report.py`. HPC payloads
+also source the baseline's saved runtime when invoking the trusted comparator.
 
 Jenkins archives the complete regression result trees for candidate and
 baseline, including `.gkyl` outputs, databases, configuration, and logs. The

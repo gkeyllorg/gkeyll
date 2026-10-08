@@ -3,6 +3,7 @@ import argparse
 import contextlib
 from html.parser import HTMLParser
 import io
+import json
 import os
 from pathlib import Path
 import tempfile
@@ -49,6 +50,32 @@ class FailureReportTests(unittest.TestCase):
     def write(self, path, text):
         Path(path).parent.mkdir(parents=True, exist_ok=True)
         Path(path).write_text(text)
+
+    def test_baseline_cache_status_is_on_baseline_line(self):
+        sha = 'a' * 40
+        self.write('ci-baseline-commit.txt', sha)
+        for status, label in [('hit', 'loaded from cache'), ('saved', 'saved to cache'),
+                              ('miss', 'cache miss; not saved')]:
+            with self.subTest(status=status):
+                self.write('ci-baseline-cache.txt', f'status={status}\nbaseline_commit={sha}\n')
+                args = argparse.Namespace(platform='personal', context='ci/test', result='success', pr='', output='ci-report.md')
+                with contextlib.redirect_stdout(io.StringIO()):
+                    report.build_report(args)
+                line = next(line for line in Path(args.output).read_text().splitlines() if '**Baseline:**' in line)
+                self.assertIn(f'({label})', line)
+                self.assertIn(sha[:7], line)
+
+    def test_cached_compiler_warnings_compare_across_persistent_roots(self):
+        baseline = '/ci/baseline-cache/personal/' + 'a' * 40 + '/gkeyll/'
+        candidate = '/ci/runs/personal/jenkins-run-2/candidate/' + 'b' * 40 + '/gkeyll/'
+        self.write('baseline-unit-build.log', baseline + 'core/example.c:10:2: warning: existing warning\n')
+        self.write('baseline-unit-build.log.exit', '0\n')
+        self.write('candidate-unit-build.log', candidate + 'core/example.c:20:3: warning: existing warning\n'
+                   + candidate + 'core/example.c:30:4: warning: introduced warning\n')
+        report.diagnostic_sections('diagnostics.json')
+        summary = json.loads(Path('diagnostics.json').read_text())
+        self.assertEqual(summary['new_warnings'], 1)
+        self.assertEqual(summary['unclassified_warnings'], 0)
 
     def test_run_header_and_total_use_wall_time_instead_of_overlapping_steps(self):
         self.write('ci-timing-summary.txt', 'candidate_unit_build_seconds=3000\n'

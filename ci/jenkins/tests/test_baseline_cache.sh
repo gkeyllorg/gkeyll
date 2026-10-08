@@ -10,7 +10,7 @@ trap 'rm -rf "$work_dir"' EXIT
 root="$work_dir/root"
 platform=personal
 export BUILD_TAG=fixture-run-1
-unset GKEYLL_CI_PREBUILT_CONFIG
+unset GKEYLL_CI_PREBUILT_CONFIG CI_BASELINE_CACHE_CONTEXT GKEYLL_CI_CACHE_REVISION
 
 fixture="$work_dir/fixture"
 git init -q "$fixture"
@@ -45,15 +45,35 @@ done
 touch "$stage/dependency"
 printf '#!/usr/bin/env bash\ntest -f "%s/dependency"\n' "$stage" > "$stage/gkylsoft/gkeyll/bin/gkeyll"
 chmod +x "$stage/gkylsoft/gkeyll/bin/gkeyll"
-cat > "$stage/cache-manifest.txt" <<EOF
-format_version=1
-platform=$platform
-baseline_commit=$sha
-EOF
+# Real SQLite fixtures also exercise create-run validation at publication.
+make_results() {
+  python3 - "$1" <<'PYTHON'
+from pathlib import Path
+import sqlite3
+import sys
+root = Path(sys.argv[1]) / 'gkylsoft/gkeyll-results'
+for results in (root, root / 'parallel-c-4'):
+    results.mkdir(parents=True, exist_ok=True)
+    (root / 'runregression.config.lua').write_text('return {}\n')
+    for layer in ('moments', 'vlasov', 'gyrokinetic', 'pkpm'):
+        accepted = results / layer / 'creg-accepted'
+        accepted.mkdir(parents=True, exist_ok=True)
+        (accepted / 'field.gkyl').write_bytes(b'accepted fixture')
+        with sqlite3.connect(results / layer / 'regressiondb') as db:
+            db.executescript("""create table RegressionMeta (guid text, ntotal integer, nfail integer);
+                create table RegressionData (guid text, status integer);
+                insert into RegressionMeta values ('create', 1, 0);
+                insert into RegressionData values ('create', -2);""")
+PYTHON
+}
+make_results "$stage"
 
 mkdir -p "$work_dir/baseline-workspace/ci-command-logs" "$stage/gkeyll/cuda-build"
 printf 'baseline warning\n' > "$work_dir/baseline-workspace/ci-command-logs/baseline-unit-build.log"
 printf '0\n' > "$work_dir/baseline-workspace/ci-command-logs/baseline-unit-build.log.exit"
+printf 'baseline compile warning\n' > "$work_dir/baseline-workspace/baseline-c-compile.log"
+printf '0\n' > "$work_dir/baseline-workspace/baseline-c-compile.log.exit"
+printf '0\n' > "$work_dir/baseline-workspace/baseline-install.log.exit"
 printf 'baseline install warning\n' > "$work_dir/baseline-workspace/baseline-install.log"
 printf '12\n' > "$work_dir/baseline-workspace/baseline-install-seconds.txt"
 printf 'baseline CUDA log\n' > "$stage/gkeyll/cuda-build/compile.log"
@@ -160,9 +180,95 @@ test ! -e "$entry/dependency"
 test -f "$candidate/_baseline/cuda-build/compile.log"
 test -f "$candidate/_baseline/gkylsoft/gkeyll-results/moments/creg-accepted/field.gkyl"
 
+# Prebuilt baselines use the same persistent path, independent of BUILD_TAG.
 export GKEYLL_CI_PREBUILT_CONFIG="$work_dir/prebuilt-config.mak"
-private_baseline="$($cache_tool prepare-baseline "$root" "$platform" "$sha")"
-test "$private_baseline" = "$root/runs/$platform/$BUILD_TAG/baseline/$sha"
-test -d "$entry"
+printf 'PREFIX=/fixture\n' > "$GKEYLL_CI_PREBUILT_CONFIG"
+$cache_tool acquire "$root" "$platform"
+if BUILD_TAG=other-run "$cache_tool" acquire "$root" "$platform" 2>/dev/null; then
+  echo 'overlapping cache user was allowed' >&2; exit 1
+fi
+if BUILD_TAG=other-run "$cache_tool" release "$root" "$platform" 2>/dev/null; then
+  echo 'another run released the cache lease' >&2; exit 1
+fi
+
+populate_baseline() {
+  local commit="$1" target
+  target="$($cache_tool prepare-baseline "$root" "$platform" "$commit")"
+  git clone -q "$fixture" "$target/gkeyll"
+  git -C "$target/gkeyll" checkout -q "$commit"
+  mkdir -p "$target/gkylsoft/gkeyll/bin" "$target/dependencies/lib"
+  printf 'PREFIX=baseline\n' > "$target/gkeyll/config.mak"
+  printf 'dependency contents\n' > "$target/dependencies/lib/library.so"
+  printf 'export BASELINE_LIBRARY=%q\n' "$target/dependencies/lib/library.so" > "$target/dependencies/env.sh"
+  printf '{}\n' > "$target/dependencies/manifest.json"
+  printf '#!/bin/bash\ntest -f "$BASELINE_LIBRARY"\n' > "$target/gkylsoft/gkeyll/bin/gkeyll"
+  chmod +x "$target/gkylsoft/gkeyll/bin/gkeyll"
+  make_results "$target"
+}
+populate_baseline "$sha"
+entry="$($cache_tool publish-baseline "$root" "$platform" "$sha" "$entry" "$work_dir/baseline-workspace")"
+$cache_tool release "$root" "$platform"
+
+for run in fixture-run-4 fixture-run-5; do
+  export BUILD_TAG="$run"
+  $cache_tool acquire "$root" "$platform"
+  $cache_tool valid "$root" "$platform" "$sha"
+  test "$($cache_tool baseline-path "$root" "$platform" "$sha")" = "$entry"
+  # No checkout, rebuild or baseline execution: restore directly into a new run.
+  mkdir -p "$work_dir/$run"
+  $cache_tool restore-diagnostics "$entry" "$work_dir/$run"
+  cmp "$work_dir/baseline-workspace/baseline-c-compile.log.exit" "$work_dir/$run/baseline-c-compile.log.exit"
+  cmp "$work_dir/baseline-workspace/baseline-install.log" "$work_dir/$run/baseline-install.log"
+  ( . "$entry/dependencies/env.sh"; "$entry/gkylsoft/gkeyll/bin/gkeyll" )
+  $cache_tool release "$root" "$platform"
+done
+
+# The trusted helper itself can be fetched to a different temporary directory.
+mkdir "$work_dir/other-tools"
+cp "$cache_tool" "$repo_root/ci/jenkins/prebuilt_config.py" "$work_dir/other-tools/"
+test "$($cache_tool context)" = "$("$work_dir/other-tools/baseline_cache.sh" context)"
+
+for file in baseline-install.log baseline-c-compile.log.exit gkylsoft/gkeyll-results/moments/creg-accepted/field.gkyl dependencies/lib/library.so; do
+  mv "$entry/$file" "$work_dir/missing"
+  if $cache_tool valid "$root" "$platform" "$sha" 2>/dev/null; then
+    echo "missing $file was accepted" >&2; exit 1
+  fi
+  mv "$work_dir/missing" "$entry/$file"
+done
+printf 'corrupt output\n' >> "$entry/gkylsoft/gkeyll-results/moments/creg-accepted/field.gkyl"
+if $cache_tool valid "$root" "$platform" "$sha"; then
+  echo 'corrupt accepted output was accepted' >&2; exit 1
+fi
+populate_baseline "$sha"
+$cache_tool publish-baseline "$root" "$platform" "$sha" "$entry" "$work_dir/baseline-workspace" >/dev/null
+printf '# new settings\n' >> "$GKEYLL_CI_PREBUILT_CONFIG"
+if $cache_tool valid "$root" "$platform" "$sha"; then
+  echo 'changed prebuilt config was accepted' >&2; exit 1
+fi
+sed -i '$d' "$GKEYLL_CI_PREBUILT_CONFIG"
+if GKEYLL_CI_CACHE_REVISION=changed $cache_tool valid "$root" "$platform" "$sha"; then
+  echo 'changed toolchain revision was accepted' >&2; exit 1
+fi
+$cache_tool valid "$root" "$platform" "$sha"
+
+# Failed creation never publishes or evicts the previous complete baseline.
+populate_baseline "$next_sha"
+next_entry="$($cache_tool baseline-path "$root" "$platform" "$next_sha")"
+python3 - "$next_entry/gkylsoft/gkeyll-results/moments/regressiondb" <<'PYTHON'
+import sqlite3, sys
+with sqlite3.connect(sys.argv[1]) as db:
+    db.execute('update RegressionData set status=-3')
+PYTHON
+if $cache_tool publish-baseline "$root" "$platform" "$next_sha" "$next_entry" "$work_dir/baseline-workspace" >/dev/null 2>&1; then
+  echo 'failed create run was published' >&2; exit 1
+fi
+test ! -e "$next_entry/cache-manifest.txt"
+$cache_tool valid "$root" "$platform" "$sha"
+populate_baseline "$next_sha"
+$cache_tool publish-baseline "$root" "$platform" "$next_sha" "$next_entry" "$work_dir/baseline-workspace" >/dev/null
+$cache_tool valid "$root" "$platform" "$next_sha"
+test ! -e "$entry"
+# Results retained with an earlier candidate survive replacement of the cache.
+test -f "$candidate/_baseline/gkylsoft/gkeyll-results/moments/creg-accepted/field.gkyl"
 
 echo 'baseline cache helper test passed'

@@ -192,6 +192,9 @@ def warning_key(line):
     line = ANSI.sub('', line)
     root = os.environ.get('WORKSPACE', os.getcwd()).rstrip('/')
     line = line.replace(root + '/_baseline/', '').replace(root + '/', '')
+    # Baseline logs survive across runs and retain their original absolute root.
+    line = re.sub(r'(?<!\w)/[^\s:]*?/(?:baseline-cache/[^/]+/[0-9a-f]{40}'
+                  r'|runs/[^/]+/[^/]+/(?:candidate|baseline)/[0-9a-f]{40})/gkeyll/', '', line)
     line = re.sub(r'(?<!\w)(?:\.\./|\./|_baseline/)+', '', line)
     line = re.sub(r':\d+(?::\d+)?(?=:)', '', line)
     line = re.sub(r'\(\d+(?:,\d+)?\)(?=\s*:)', '', line)
@@ -471,8 +474,13 @@ def build_report(args):
 
     candidate_sel = first(selection, "candidate_selector", "PR #{}".format(args.pr) if args.pr else "?")
     baseline_sel = first(selection, "baseline_selector", "?")
+    cache_label = {'hit': 'loaded from cache', 'saved': 'saved to cache',
+                   'miss': 'cache miss; not saved'}.get(first(cache, 'status'), '')
+    if first(cache, 'baseline_commit') != baseline:
+        cache_label = ''
     meta = ["**Candidate:** " + describe(candidate_sel, candidate),
-            "**Baseline:** " + describe(baseline_sel, baseline)]
+            "**Baseline:** " + describe(baseline_sel, baseline)
+            + (" ({})".format(cache_label) if cache_label else '')]
     pipeline_commit = (read_text('ci-trusted-ci-commit.txt').strip()
                        or os.environ.get('CI_TRUSTED_CI_COMMIT', ''))
     pipeline_ref = os.environ.get('CI_TRUSTED_CI_REF', '')
@@ -510,9 +518,6 @@ def build_report(args):
         override = first(preflight, "override", "false")
         state = "override enabled" if override == "true" else "verified"
         meta.append("**Baseline preflight:** {} ({} commit(s) behind)".format(state, behind))
-    if cache:
-        meta.append("**Baseline cache:** {} ({})".format(
-            first(cache, "status", "unknown"), code(short(first(cache, "baseline_commit", baseline)))))
     parts.append(dropdown('Run details', "  \n".join(meta)))
 
     stage = first(failure, "stage", os.environ.get('CI_FAILURE_STAGE', 'unknown'))

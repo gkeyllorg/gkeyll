@@ -337,14 +337,24 @@ def usePrebuiltConfig(String prefix) {
     if (!env.CI_RUN_DIR?.trim()) error('CI_RUN_DIR must be prepared before copying dependencies.')
     def launcher = env.PERSONAL_MPIEXEC?.trim()
         ?: (env.PERSONAL_MPI_HOME?.trim() ? "${env.PERSONAL_MPI_HOME.trim()}/bin/mpiexec" : '')
+    // Keep the owner's launcher across candidate/baseline environment changes.
+    if (!env.CI_PREBUILT_SOURCE_MPIEXEC) env.CI_PREBUILT_SOURCE_MPIEXEC = launcher ?: 'auto'
+    launcher = env.CI_PREBUILT_SOURCE_MPIEXEC == 'auto' ? '' : env.CI_PREBUILT_SOURCE_MPIEXEC
+    def dependencies = env.CI_BASELINE_DEPENDENCIES ?: "${env.CI_RUN_DIR}/dependencies"
     def runtime = [:]
     withEnv(["CI_PREBUILT_SOURCE=${source}", "CI_PREBUILT_PREFIX=${prefix}",
-             "CI_PREBUILT_DEPENDENCIES=${env.CI_RUN_DIR}/dependencies",
+             "CI_PREBUILT_DEPENDENCIES=${dependencies}",
              "CI_PREBUILT_SCRIPT=${reporting.settings.prebuiltScript}",
              "CI_PREBUILT_MPIEXEC=${launcher}"]) {
         // Literal KEY=value lines avoid JSON APIs that need sandbox approval.
         def output = sh(returnStdout: true, script: '''#!/bin/bash
             set -euo pipefail
+            if [[ -n "${CI_BASELINE_DEPENDENCIES:-}" ]]; then
+                cmp "$CI_PREBUILT_SOURCE" "$CI_RUN_DIR/dependencies/source-config.mak" || {
+                    echo 'Prebuilt config changed during this run; start a new CI run.' >&2
+                    exit 1
+                }
+            fi
             python3 -I "$CI_PREBUILT_SCRIPT" --config "$CI_PREBUILT_SOURCE" \
                 --prefix "$CI_PREBUILT_PREFIX" --dependencies "$CI_PREBUILT_DEPENDENCIES" \
                 --mpiexec "${CI_PREBUILT_MPIEXEC:-}" --format env
@@ -367,7 +377,7 @@ all: gkeyll
 install: gkeyll
 	$(MAKE) gkeyll-install
 '''
-    echo "Using this run's dependency copy at ${env.CI_RUN_DIR}/dependencies; installing Gkeyll in ${prefix}"
+    echo "Using dependency copy at ${dependencies}; installing Gkeyll in ${prefix}"
     return true
 }
 
@@ -438,6 +448,7 @@ def runCandidateRegressions(String candidateDir, String baselineDir, String jobs
         elapsed=\$(( \$(date +%s) - started ))
         printf '%s\\n' "\$elapsed" > "${env.WORKSPACE}/candidate-c-regression-check-seconds.txt"
         echo "Candidate C-regression check runtime: \$elapsed seconds"
+        if [ -f \"${baselineDir}/dependencies/env.sh\" ]; then . \"${baselineDir}/dependencies/env.sh\"; fi
         cd \"${baselineDir}/gkeyll\"
         \"${baselineGkeyll}\" -S \"${checker}\" \\
           \"${results}\" \"${candidateDir}/gkeyll/ci/jenkins/expected_regression_diffs.txt\" \"${env.WORKSPACE}/ci-regression-summary.txt\" \\
@@ -475,6 +486,7 @@ def runParallelRegressions(String candidateDir, String baselineDir, String mpiEx
         "${gkeyll}" runregression run --c-only --parallel --execute-only check
         elapsed=\$(( \$(date +%s) - started ))
         printf '%s\\n' "\$elapsed" > "${env.WORKSPACE}/candidate-parallel-c-regression-check-seconds.txt"
+        if [ -f "${baselineDir}/dependencies/env.sh" ]; then . "${baselineDir}/dependencies/env.sh"; fi
         cd "${baselineDir}/gkeyll"
         "${baselineGkeyll}" -S "${checker}" \\
           "${results}" "${candidateDir}/gkeyll/ci/jenkins/expected_regression_diffs.txt" "${env.WORKSPACE}/ci-parallel-regression-summary.txt" \\
@@ -589,6 +601,7 @@ def runCi = {
     loadReporting([credential: statusCredentialsId, context: statusContext, platform: platform,
         pr: candidatePr ?: '', ref: candidateRef ?: '', commit: commit])
     def cacheScript = reporting.settings.cacheScript
+    reporting.withBaselineCache(gkeyllCiRoot, cachePlatform) {
     try {
         ciStage('Resolve candidate and baseline') {
             currentBuild.displayName = "#${env.BUILD_NUMBER} ${candidatePr ? "PR-${candidatePr}" : shortRef(candidateRef)}"
@@ -622,37 +635,33 @@ def runCi = {
             requestedBaseline = baselineCommit
         }
         ciStage('Prepare candidate build') {
+            env.CI_BASELINE_CACHE_CONTEXT = sh(returnStdout: true, script: "'${cacheScript}' context").trim()
             env.CI_RUN_DIR = sh(returnStdout: true, script: "'${cacheScript}' run-path '${gkeyllCiRoot}' '${cachePlatform}'").trim()
             writeFile file: 'ci-run-path.txt', text: "${env.CI_RUN_DIR}\n"
             candidateDir = sh(returnStdout: true, script: "'${cacheScript}' prepare-candidate '${gkeyllCiRoot}' '${cachePlatform}' '${commit}' '${env.WORKSPACE}' '${baselineCommit}'").trim()
         }
         reporting.progress('Gkeyll CI is running.')
-        ciStage('Build candidate') { dir("${candidateDir}/gkeyll") { buildTree('candidate', "${candidateDir}/gkylsoft", mkdeps, configure, jobs, "${env.WORKSPACE}/") } }
         ciStage('Resolve baseline cache') {
             baselineDir = sh(returnStdout: true, script: "'${cacheScript}' baseline-path '${gkeyllCiRoot}' '${cachePlatform}' '${baselineCommit}'").trim()
             baselineCacheHit = sh(returnStatus: true, script: "'${cacheScript}' valid '${gkeyllCiRoot}' '${cachePlatform}' '${baselineCommit}'") == 0
             if (!baselineCacheHit) baselineStage = sh(returnStdout: true, script: "'${cacheScript}' prepare-baseline '${gkeyllCiRoot}' '${cachePlatform}' '${baselineCommit}'").trim()
             writeFile file: 'ci-baseline-cache.txt', text: "status=${baselineCacheHit ? 'hit' : 'miss'}\nplatform=${cachePlatform}\nbaseline_commit=${baselineCommit}\npath=${baselineCacheHit ? baselineDir : baselineStage}\n"
+            if (baselineCacheHit) sh "'${cacheScript}' restore-diagnostics '${baselineDir}' '${env.WORKSPACE}'"
         }
+        ciStage('Build candidate') { dir("${candidateDir}/gkeyll") { buildTree('candidate', "${candidateDir}/gkylsoft", mkdeps, configure, jobs, "${env.WORKSPACE}/") } }
         if (!baselineCacheHit) {
-            ciStage('Build baseline cache') {
-                createBaseline(requestedBaseline, baselineStage, mkdeps, configure, jobs, regressionJobs, mpiExec)
-                sh """#!/bin/bash
-                    set -euo pipefail
-                    cat > '${baselineStage}/cache-manifest.txt' <<EOF
-format_version=1
-platform=${cachePlatform}
-baseline_commit=${baselineCommit}
-created_utc=\$(date -u +%Y-%m-%dT%H:%M:%SZ)
-serial_c_results=present
-parallel_c_4_results=present
-EOF
-                """
-                baselineDir = sh(returnStdout: true, script: "'${cacheScript}' publish-baseline '${gkeyllCiRoot}' '${cachePlatform}' '${baselineCommit}' '${baselineStage}' '${env.WORKSPACE}'").trim()
-                writeFile file: 'ci-baseline-cache.txt', text: "status=miss\nplatform=${cachePlatform}\nbaseline_commit=${baselineCommit}\npath=${baselineDir}\n"
+            reporting.withBaselineEnvironment(baselineStage) {
+                ciStage('Build baseline cache') {
+                    createBaseline(requestedBaseline, baselineStage, mkdeps, configure, jobs, regressionJobs, mpiExec)
+                    baselineDir = sh(returnStdout: true, script: "'${cacheScript}' publish-baseline '${gkeyllCiRoot}' '${cachePlatform}' '${baselineCommit}' '${baselineStage}' '${env.WORKSPACE}'").trim()
+                    writeFile file: 'ci-baseline-cache.txt', text: "status=saved\nplatform=${cachePlatform}\nbaseline_commit=${baselineCommit}\npath=${baselineDir}\n"
+                }
             }
         }
-        ciStage('Record baseline cache') { sh "git -C '${baselineDir}/gkeyll' rev-parse HEAD | tee ci-baseline-commit.txt" }
+        ciStage('Record baseline cache') {
+            writeFile file: 'ci-baseline-commit.txt', text: "${baselineCommit}\n"
+            sh "'${cacheScript}' restore-diagnostics '${baselineDir}' '${env.WORKSPACE}'"
+        }
         ciStage('Prepare trusted regression checker') { trustedChecker = prepareTrustedRegressionChecker() }
         ciStage('C regressions') { dir("${candidateDir}/gkeyll") { runCandidateRegressions(candidateDir, baselineDir, jobs, regressionJobs, trustedChecker) } }
         ciStage('Parallel C regressions') { dir("${candidateDir}/gkeyll") { runParallelRegressions(candidateDir, baselineDir, mpiExec, trustedChecker) }; status = 'success'; description = 'Personal CI passed.' }
@@ -694,13 +703,14 @@ EOF
                     echo "WARNING: could not publish the GitHub CI report: ${reportError}"
                 }
             }
-            archiveArtifacts allowEmptyArchive: true, artifacts: 'ci-run-path.txt,ci-*-config.mak,ci-dependencies/**,ci-trusted-ci-commit.txt,ci-reporting-commit.txt,ci-selection.txt,ci-baseline-preflight.txt,ci-baseline-cache.txt,ci-trusted-checker-commit.txt,ci-candidate-commit.txt,ci-baseline-commit.txt,*-seconds.txt,*-unit-results.txt,candidate-*.log,baseline-*.log,ci-failure-detail.txt,ci-report*.md,ci-report*.md.json,ci-report-delivery.json,ci-diagnostic-summary.json,ci-stage-history.txt,ci-stage-timings.json,ci-command-logs/**,ci-timing-summary.txt,ci-regression-summary.txt,ci-parallel-regression-summary.txt,ci-failure-summary.txt,build/**/*.log,cuda-build/**/*.log,_baseline/build/**/*.log,_baseline/cuda-build/**/*.log,_baseline/gkylsoft/gkeyll-results/**,gkylsoft/gkeyll-results/**'
+            archiveArtifacts allowEmptyArchive: true, artifacts: 'ci-run-path.txt,ci-*-config.mak,ci-dependencies/**,ci-trusted-ci-commit.txt,ci-reporting-commit.txt,ci-selection.txt,ci-baseline-preflight.txt,ci-baseline-cache.txt,ci-trusted-checker-commit.txt,ci-candidate-commit.txt,ci-baseline-commit.txt,*-seconds.txt,*-unit-results.txt,candidate-*.log*,baseline-*.log*,ci-failure-detail.txt,ci-report*.md,ci-report*.md.json,ci-report-delivery.json,ci-diagnostic-summary.json,ci-stage-history.txt,ci-stage-timings.json,ci-command-logs/**,ci-timing-summary.txt,ci-regression-summary.txt,ci-parallel-regression-summary.txt,ci-failure-summary.txt,build/**/*.log,cuda-build/**/*.log,_baseline/build/**/*.log,_baseline/cuda-build/**/*.log,_baseline/gkylsoft/gkeyll-results/**,gkylsoft/gkeyll-results/**'
             if (reportError) description = "${description} (report not posted)".take(140)
         }
         if (candidateDir && baselineCommit) {
             sh "'${cacheScript}' finalize-candidate '${gkeyllCiRoot}' '${cachePlatform}' '${commit}' '${baselineCommit}' '${status}' '${env.CI_FAILURE_STAGE ?: ''}' '${env.WORKSPACE}'"
         }
         deleteDir()
+    }
     }
 }
 

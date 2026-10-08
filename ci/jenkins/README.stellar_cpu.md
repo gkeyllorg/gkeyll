@@ -169,9 +169,8 @@ Do not set a broad global `PATH` to an interactive shell configuration. The
 Pipeline initializes Stellar modules for each build and Slurm job. Its
 `GKEYLL_CI_ROOT` must exactly match the controller's root.
 It retains a separate directory for each build under `runs/stellar-cpu/`;
-see [persistent regression data](README.md#persistent-regression-data). When
-building dependencies instead of copying prebuilt ones, remove
-`baseline-cache/stellar-cpu` manually after an intentional toolchain change.
+see [persistent regression data](README.md#persistent-regression-data). After an intentional in-place toolchain or dependency upgrade, change
+`GKEYLL_CI_CACHE_REVISION` to force baseline regeneration in either dependency mode.
 
 ### Create the one parameterized Pipeline job
 

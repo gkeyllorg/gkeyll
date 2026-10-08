@@ -41,6 +41,7 @@ started="$(date +%s)"
 elapsed="$(( $(date +%s) - started ))"
 printf '%s\n' "$elapsed" > "$CI_WORKSPACE/candidate-parallel-c-regression-check-seconds.txt"
 echo "Candidate parallel C-regression check runtime: $elapsed seconds"
+if [[ -f "$CI_BASELINE_DIR/../dependencies/env.sh" ]]; then . "$CI_BASELINE_DIR/../dependencies/env.sh"; fi
 cd "$CI_BASELINE_DIR"
 "$baseline_gkeyll" -S "$CI_TRUSTED_CHECKER" \
   "$CI_CANDIDATE_PREFIX/gkeyll-results/parallel-c-4" \

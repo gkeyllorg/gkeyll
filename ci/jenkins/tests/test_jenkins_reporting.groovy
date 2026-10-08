@@ -67,3 +67,23 @@ assert files['ci-failure-summary.txt'].contains('message=failed on two lines')
 assert script.failureResult(new RuntimeException('command failed'), 'FAILURE') == 'failure'
 assert script.failureResult(new RuntimeException('aborted'), 'ABORTED') == 'cancelled'
 println 'PASS: shared Pipeline publishing uses existing credentials and workspace artifacts, isolates Python, and retains early failure reports'
+
+// Contending jobs wait; the lease is released even when a Pipeline body fails.
+script.settings.cacheScript = '/trusted/baseline_cache.sh'
+commands.clear()
+def attempts = [75, 0]
+binding.setVariable('timeout', { Map options, Closure body -> body() })
+binding.setVariable('waitUntil', { Map options, Closure body -> while (!body()) { } })
+binding.setVariable('error', { String message -> throw new IllegalStateException(message) })
+binding.setVariable('sh', { Object command ->
+    commands << command
+    command instanceof Map ? attempts.remove(0) : null
+})
+try {
+    script.withBaselineCache('/cache', 'personal') { throw new RuntimeException('cache body failed') }
+    assert false
+} catch (RuntimeException expected) { assert expected.message == 'cache body failed' }
+assert attempts.empty
+assert commands.size() == 3
+assert commands.last().contains(' release ')
+println 'PASS: cache contention waits and failed builds release the lease'

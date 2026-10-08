@@ -29,14 +29,21 @@ Thread.start('gkeyll-prebuilt-sandbox-tests') {
         jenkins.setNumExecutors(1)
         jenkins.globalNodeProperties.add(new EnvironmentVariablesNodeProperty(
             new EnvironmentVariablesNodeProperty.Entry('CI_PREBUILT_TEST_SCRIPT',
-                new File(source, 'prebuilt_config.py').absolutePath)))
+                new File(source, 'prebuilt_config.py').absolutePath),
+            new EnvironmentVariablesNodeProperty.Entry('CI_CACHE_TEST_SCRIPT',
+                new File(source, 'baseline_cache.sh').absolutePath)))
         ['personal', 'stellar_cpu', 'perlmutter_gpu'].each { platform ->
             def pipeline = new File(source, "jenkinsfile.${platform}").text
             def start = pipeline.indexOf('def usePrebuiltConfig(')
             def helper = pipeline.substring(start, pipeline.indexOf('\n}\n', start) + 3)
+            def reporting = new File(source, 'jenkins_reporting.groovy').text
+            def envStart = reporting.indexOf('def withBaselineEnvironment(')
+            helper += reporting.substring(envStart, reporting.indexOf('\n}\n', envStart) + 3)
+            def cacheStart = reporting.indexOf('def withBaselineCache(')
+            helper += reporting.substring(cacheStart, reporting.indexOf('\n}\n', cacheStart) + 3)
             [true, false].each { mpi ->
                 def job = jenkins.createProject(WorkflowJob, "prebuilt-${platform}-${mpi ? 'mpi' : 'serial'}")
-                job.definition = new CpsFlowDefinition('import groovy.transform.Field\n@Field def reporting\n'
+                job.definition = new CpsFlowDefinition('import groovy.transform.Field\n@Field def reporting\n@Field def settings\n'
                     + helper + "\ndef mpi = ${mpi}\n" + '''
 node {
     reporting = [settings: [prebuiltScript: env.CI_PREBUILT_TEST_SCRIPT]]
@@ -47,6 +54,16 @@ node {
     env.PERSONAL_MPIEXEC = ''
     assert !usePrebuiltConfig('/unused')
     def root = pwd()
+    settings = [cacheScript: env.CI_CACHE_TEST_SCRIPT]
+    withBaselineCache("${root}/cache", 'personal') {
+        assert fileExists("${root}/cache/baseline-cache/personal/.lock/owner")
+    }
+    assert !fileExists("${root}/cache/baseline-cache/personal/.lock")
+    try {
+        withBaselineCache("${root}/cache", 'personal') { error('lease cleanup fixture') }
+        assert false
+    } catch (Exception expected) { }
+    assert !fileExists("${root}/cache/baseline-cache/personal/.lock")
     env.CI_RUN_DIR = "${root}/run"
     env.GKEYLL_CI_PREBUILT_CONFIG = "${root}/original.mak"
     env.LD_LIBRARY_PATH = '/existing/lib=with space'
@@ -69,18 +86,20 @@ EOF
         \'\'\'
     }
     ['candidate', 'baseline'].each { tree ->
+        def prepareTree = {
         dir(tree) {
             def prefix = "${root}/${tree}/gkylsoft"
             assert usePrebuiltConfig(prefix)
             assert readFile("${prefix}/gkeyll/share/adas/ioniz_h.npy") == 'ADAS fixture'
             assert readFile('config.mak').contains("PREFIX=${prefix}\\n")
             assert fileExists('alltargets.mak')
-            assert env.GKEYLL_CI_DEPENDENCY_ENV == "${root}/run/dependencies/env.sh"
+            def dependencies = tree == 'baseline' ? "${root}/baseline-cache/dependencies" : "${root}/run/dependencies"
+            assert env.GKEYLL_CI_DEPENDENCY_ENV == "${dependencies}/env.sh"
             assert fileExists(env.GKEYLL_CI_DEPENDENCY_ENV)
-            assert env.LD_LIBRARY_PATH.startsWith("${root}/run/dependencies/")
+            assert env.LD_LIBRARY_PATH.startsWith("${dependencies}/")
             assert env.LD_LIBRARY_PATH.endsWith(':/existing/lib=with space')
             if (mpi) {
-                assert env.MPI_HOME == "${root}/run/dependencies/gkylsoft/openmpi"
+                assert env.MPI_HOME == "${dependencies}/gkylsoft/openmpi"
                 assert env.PERSONAL_MPI_HOME == env.MPI_HOME
                 assert env.OPAL_PREFIX == env.MPI_HOME
                 assert env.PERSONAL_MPIEXEC == "${env.MPI_HOME}/bin/mpiexec"
@@ -89,6 +108,21 @@ EOF
                 assert !env.MPI_HOME && !env.PERSONAL_MPIEXEC
             }
         }
+        }
+        if (tree == 'baseline') {
+            def candidateEnvironment = env.GKEYLL_CI_DEPENDENCY_ENV
+            withBaselineEnvironment("${root}/baseline-cache") { prepareTree() }
+            assert env.GKEYLL_CI_DEPENDENCY_ENV == candidateEnvironment
+            assert env.LD_LIBRARY_PATH.startsWith("${root}/run/dependencies/")
+            try {
+                withBaselineEnvironment("${root}/baseline-cache") {
+                    env.LD_LIBRARY_PATH = '/baseline-only'
+                    error('fixture interruption')
+                }
+                assert false
+            } catch (Exception expected) { }
+            assert env.LD_LIBRARY_PATH.startsWith("${root}/run/dependencies/")
+        } else { prepareTree() }
     }
 }
 ''', true)

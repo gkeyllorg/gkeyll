@@ -162,9 +162,8 @@ System → Global properties → Environment variables**, set:
 
 `GKEYLL_CI_ROOT` retains a separate directory for each build under
 `runs/perlmutter-gpu/`, visible to GPU nodes; see
-[persistent regression data](README.md#persistent-regression-data). When building
-dependencies instead of copying prebuilt ones, remove `baseline-cache/perlmutter-gpu`
-manually after an intentional toolchain change that must force baseline regeneration.
+[persistent regression data](README.md#persistent-regression-data). After an intentional in-place toolchain or dependency upgrade, change
+`GKEYLL_CI_CACHE_REVISION` to force baseline regeneration in either dependency mode.
 
 ### Create the one parameterized Pipeline job
 

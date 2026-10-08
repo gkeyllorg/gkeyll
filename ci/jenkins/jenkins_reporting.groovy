@@ -129,6 +129,43 @@ def failureResult(def failure, String currentResult) {
     return currentResult == 'ABORTED' ? 'cancelled' : 'failure'
 }
 
+// One platform cache is shared by jobs, including multibranch builds. Keep
+// another job from pruning a live tree until its reader has saved a snapshot.
+def withBaselineCache(String root, String platform, Closure body) {
+    withEnv(["CI_CACHE_ROOT=${root}", "CI_CACHE_PLATFORM=${platform}",
+             "CI_CACHE_SCRIPT=${settings.cacheScript}"]) {
+        timeout(time: 12, unit: 'HOURS') {
+            waitUntil(initialRecurrencePeriod: 10000, quiet: true) {
+                def result = sh(returnStatus: true,
+                    script: '"$CI_CACHE_SCRIPT" acquire "$CI_CACHE_ROOT" "$CI_CACHE_PLATFORM"')
+                if (result != 0 && result != 75) error('Could not acquire baseline cache lease.')
+                return result == 0
+            }
+        }
+        try { body() }
+        finally { sh '"$CI_CACHE_SCRIPT" release "$CI_CACHE_ROOT" "$CI_CACHE_PLATFORM"' }
+    }
+}
+
+// usePrebuiltConfig updates Jenkins env for later shell/Slurm steps. Restore
+// the candidate environment even if baseline creation fails or is cancelled.
+def withBaselineEnvironment(String baseline, Closure body) {
+    // Explicit properties work with Jenkins' default sandbox whitelist.
+    def saved = [libraries: env.LD_LIBRARY_PATH ?: '', mpi: env.MPI_HOME ?: '',
+        opal: env.OPAL_PREFIX ?: '', personalMpi: env.PERSONAL_MPI_HOME ?: '',
+        launcher: env.PERSONAL_MPIEXEC ?: '', dependencies: env.GKEYLL_CI_DEPENDENCY_ENV ?: '']
+    try {
+        withEnv(["CI_BASELINE_DEPENDENCIES=${baseline}/dependencies"]) { body() }
+    } finally {
+        env.LD_LIBRARY_PATH = saved.libraries
+        env.MPI_HOME = saved.mpi
+        env.OPAL_PREFIX = saved.opal
+        env.PERSONAL_MPI_HOME = saved.personalMpi
+        env.PERSONAL_MPIEXEC = saved.launcher
+        env.GKEYLL_CI_DEPENDENCY_ENV = saved.dependencies
+    }
+}
+
 // Capture stdout/stderr and retain the original exit code. Never call these
 // helpers with credential-bearing commands.
 def loggedSh(String label, String script) {

@@ -109,6 +109,30 @@ probe:
         assert binding.env.PERSONAL_MPIEXEC.startsWith(binding.env.CI_RUN_DIR + '/dependencies/')
         assert original.text == saved : 'Shared config must remain untouched'
     }
+    // A persistent baseline owns its dependencies. Building it must restore
+    // the candidate environment on success and on an interrupted build.
+    def reportingSource = new File(root, 'jenkins_reporting.groovy').text
+    def envStart = reportingSource.indexOf('def withBaselineEnvironment(')
+    def envHelper = reportingSource.substring(envStart, reportingSource.indexOf('\n}\n', envStart) + 3)
+    def environmentHelper = new GroovyShell(binding).parse(envHelper)
+    def candidateEnv = [:] + binding.env
+    def baseline = new File(tmp, 'baseline-cache/reference').absolutePath
+    environmentHelper.withBaselineEnvironment(baseline) {
+        assert helper.usePrebuiltConfig("${baseline}/gkylsoft")
+        assert binding.env.GKEYLL_CI_DEPENDENCY_ENV == "${baseline}/dependencies/env.sh"
+        assert binding.env.PERSONAL_MPIEXEC.startsWith("${baseline}/dependencies/")
+        assert new File(binding.env.PERSONAL_MPIEXEC).isFile()
+    }
+    assert binding.env == candidateEnv
+    try {
+        environmentHelper.withBaselineEnvironment(baseline) {
+            binding.env.LD_LIBRARY_PATH = '/baseline/only'
+            throw new IllegalStateException('interrupted baseline')
+        }
+        assert false : 'Expected fixture interruption'
+    } catch (IllegalStateException expected) { }
+    assert binding.env == candidateEnv
+
     // Exercise the actual local/team build function with Jenkins steps mocked.
     def personal = new File(root, 'jenkinsfile.personal').text
     def start = personal.indexOf('def buildTree(')
@@ -137,6 +161,38 @@ probe:
         helper.usePrebuiltConfig('/unused')
         assert false : 'Config without PREFIX should fail'
     } catch (IllegalArgumentException expected) { }
+    // Execute the real local/team cache-control stages. A hit must never
+    // enter createBaseline (which owns checkout, compilation and creation).
+    def cacheStart = personal.indexOf("        ciStage('Resolve baseline cache')")
+    def cacheEnd = personal.indexOf("        ciStage('Prepare trusted regression checker')", cacheStart)
+    def control = personal.substring(cacheStart, cacheEnd)
+    [true, false].each { hit ->
+        def creations = 0
+        def candidateBuilds = 0
+        def artifacts = [:]
+        def cacheBinding = new Binding([
+            env: [WORKSPACE: tmp.absolutePath], cacheScript: '/trusted/cache',
+            gkeyllCiRoot: '/cache', cachePlatform: 'personal', baselineCommit: 'a' * 40,
+            requestedBaseline: 'a' * 40, baselineDir: '', baselineStage: '', baselineCacheHit: false,
+            candidateDir: '/candidate', mkdeps: '', configure: '', jobs: '2', regressionJobs: '2', mpiExec: '',
+            ciStage: { String name, Closure body -> body() },
+            dir: { String path, Closure body -> body() },
+            reporting: [withBaselineEnvironment: { String path, Closure body -> body() }],
+            buildTree: { Object... args -> candidateBuilds++ },
+            createBaseline: { Object... args -> creations++ },
+            writeFile: { Map args -> artifacts[args.file] = args.text },
+            sh: { Object args ->
+                if (args instanceof Map) {
+                    if (args.returnStatus) return hit ? 0 : 1
+                    return '/cache/baseline-cache/personal/' + 'a' * 40
+                }
+            }
+        ])
+        new GroovyShell(cacheBinding).evaluate(control)
+        assert candidateBuilds == 1
+        assert creations == (hit ? 0 : 1)
+        assert artifacts['ci-baseline-cache.txt'].contains('status=' + (hit ? 'hit' : 'saved'))
+    }
     println 'PASS: Jenkinsfiles parse; prebuilt config validation, dependency paths and candidate/baseline isolation'
 } finally {
     tmp.deleteDir()
