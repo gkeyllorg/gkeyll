@@ -262,6 +262,20 @@ def trustedReportScript() {
     return '_trusted_github_report.py'
 }
 
+def prepareTrustedRegressionChecker() {
+    def ref = validateRefSelector('GKEYLL_CI_TRUSTED_REF', env.GKEYLL_CI_TRUSTED_REF?.trim() ?: 'main')
+    withEnv(["CI_TRUSTED_CHECKER_REF=${ref}"]) {
+        sh '''#!/bin/bash -l
+            set -euo pipefail
+            git fetch --quiet --depth 1 https://github.com/gkeyllorg/gkeyll.git "$CI_TRUSTED_CHECKER_REF"
+            rm -f -- _trusted_check_regression_results.lua
+            git show FETCH_HEAD:ci/jenkins/check_regression_results.lua > _trusted_check_regression_results.lua
+            test -s _trusted_check_regression_results.lua
+            git rev-parse FETCH_HEAD > ci-trusted-checker-commit.txt
+        '''
+    }
+}
+
 def publishGitHubReport(String statusCredentialsId, String commit, String state, String candidatePr, String candidateRef) {
     // Builds ci-report.md from the workspace summaries and posts it as one
     // pull-request comment (or commit comment) that later runs update in place.
@@ -430,6 +444,7 @@ def submitRegressionTests(String mode, String baselineDir, String candidateDir) 
             "CI_BASELINE_PREFIX=${baselineDir}/gkylsoft",
             "CI_CANDIDATE_DIR=${candidateDir}/gkeyll",
             "CI_CANDIDATE_PREFIX=${candidateDir}/gkylsoft",
+            "CI_TRUSTED_CHECKER=${env.WORKSPACE}/_trusted_check_regression_results.lua",
             "CI_REGRESSION_MODE=${mode}",
             "CI_REGRESSION_JOBS=${jobs}",
             "CI_REGRESSION_TEST_TIMEOUT=${timeout}"
@@ -448,6 +463,7 @@ def submitParallelRegressionTests(String mode, String baselineDir, String candid
             "CI_BASELINE_PREFIX=${baselineDir}/gkylsoft",
             "CI_CANDIDATE_DIR=${candidateDir}/gkeyll",
             "CI_CANDIDATE_PREFIX=${candidateDir}/gkylsoft",
+            "CI_TRUSTED_CHECKER=${env.WORKSPACE}/_trusted_check_regression_results.lua",
             "CI_REGRESSION_MODE=${mode}"
         ],
         '4'
@@ -852,6 +868,7 @@ EOF"""
                 }
             }
             ciStage('Record baseline cache') { sh "git -C '${baselineDir}/gkeyll' rev-parse HEAD | tee ci-baseline-commit.txt" }
+            ciStage('Prepare trusted regression checker') { prepareTrustedRegressionChecker() }
             ciStage('Run candidate C regressions (SLURM)') { submitRegressionTests('candidate-check', baselineDir, candidateDir) }
             ciStage('Compile candidate parallel C regressions') {
                 dir("${candidateDir}/gkeyll") {
@@ -922,7 +939,7 @@ EOF"""
                         }
                     }
                     archiveArtifacts allowEmptyArchive: true,
-                        artifacts: 'ci-selection.txt,ci-baseline-preflight.txt,ci-baseline-cache.txt,ci-candidate-commit.txt,ci-baseline-commit.txt,ci-report*.md,ci-report*.md.json,ci-command-logs/**,*-unit-results.txt,*-c-compile-seconds.txt,ci-timing-summary.txt,ci-regression-summary.txt,ci-failure-summary.txt,slurm-*.out,slurm-*-job-id.txt,slurm-*-job-status.txt,build/**/*.log,cuda-build/**/*.log,_baseline/build/**/*.log,_baseline/cuda-build/**/*.log,_baseline/gkylsoft/gkeyll-results/**/regressiondb,_baseline/gkylsoft/gkeyll-results/**/_rr_failures.txt,gkylsoft/gkeyll-results/**/regressiondb,gkylsoft/gkeyll-results/**/_rr_failures.txt'
+                        artifacts: 'ci-selection.txt,ci-baseline-preflight.txt,ci-baseline-cache.txt,ci-trusted-checker-commit.txt,ci-candidate-commit.txt,ci-baseline-commit.txt,ci-report*.md,ci-report*.md.json,ci-command-logs/**,*-unit-results.txt,*-c-compile-seconds.txt,ci-timing-summary.txt,ci-regression-summary.txt,ci-failure-summary.txt,slurm-*.out,slurm-*-job-id.txt,slurm-*-job-status.txt,build/**/*.log,cuda-build/**/*.log,_baseline/build/**/*.log,_baseline/cuda-build/**/*.log,_baseline/gkylsoft/gkeyll-results/**/regressiondb,_baseline/gkylsoft/gkeyll-results/**/_rr_failures.txt,gkylsoft/gkeyll-results/**/regressiondb,gkylsoft/gkeyll-results/**/_rr_failures.txt'
                 } catch (err) {
                     terminalStatus = 'error'
                     terminalDescription = 'Stellar CPU CPU CI artifact archival failed.'

@@ -66,6 +66,11 @@ staging a CI change), never from the candidate checkout. Diagnostic collection
 runs before binding the GitHub token. Credential-bearing shell steps are not
 captured in published logs.
 
+The regression-result checker also comes from the reviewed trusted CI commit,
+recorded in `ci-trusted-checker-commit.txt`. CI runs it with the baseline
+executable from the baseline source directory, using `-S` because this Lua
+check does not require MPI.
+
 Run offline reporter tests with:
 
 ```sh

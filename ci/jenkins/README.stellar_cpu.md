@@ -157,7 +157,7 @@ set the following values. Paste an expanded scratch path, not a literal `$USER`.
 | `STELLAR_CPU_REGRESSION_JOBS` | Optional concurrent C test runs; default `4` |
 | `STELLAR_CPU_REGRESSION_TEST_TIMEOUT` | Optional per-test limit in seconds; default `900` |
 | `STELLAR_CPU_NODE_LABEL` | Optional node label; default `stellar_cpu` |
-| `GKEYLL_CI_TRUSTED_REF` | Optional branch or full SHA to fetch `github_report.py` from; default `main`. Set it only while staging a CI change |
+| `GKEYLL_CI_TRUSTED_REF` | Optional reviewed branch or full SHA for `github_report.py` and `check_regression_results.lua`; default `main`. Set it only while staging a CI change |
 
 Do not set a broad global `PATH` to an interactive shell configuration. The
 Pipeline initializes Stellar modules for each build and Slurm job. Its
@@ -343,7 +343,7 @@ Finally submit the execution-only comparison:
 cd "$candidate_root/gkeyll"
 sbatch --wait --qos <qos> --nodes 1 --ntasks 1 --cpus-per-task 8 \
   --time 04:00:00 --chdir "$PWD" \
-  --export=ALL,CI_WORKSPACE="$PWD",CI_CANDIDATE_DIR="$PWD",CI_BASELINE_DIR="$baseline_root/gkeyll",CI_BASELINE_PREFIX="$baseline_root/gkylsoft",CI_CANDIDATE_PREFIX="$candidate_root/gkylsoft",CI_REGRESSION_MODE=candidate-check,CI_REGRESSION_JOBS=4,CI_REGRESSION_TEST_TIMEOUT=900 \
+  --export=ALL,CI_WORKSPACE="$PWD",CI_CANDIDATE_DIR="$PWD",CI_BASELINE_DIR="$baseline_root/gkeyll",CI_BASELINE_PREFIX="$baseline_root/gkylsoft",CI_CANDIDATE_PREFIX="$candidate_root/gkylsoft",CI_TRUSTED_CHECKER="$baseline_root/gkeyll/ci/jenkins/check_regression_results.lua",CI_REGRESSION_MODE=candidate-check,CI_REGRESSION_JOBS=4,CI_REGRESSION_TEST_TIMEOUT=900 \
   ci/jenkins/slurm-regression-tests.stellar_cpu.sh
 ```
 

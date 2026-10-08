@@ -65,7 +65,7 @@ and Python with NumPy. Set these global environment variables:
 | `PERSONAL_MPIEXEC` | Optional launcher override for both trees; default is `bin/mpiexec` under the selected MPI installation |
 | `PERSONAL_STATUS_CONTEXT` | Optional GitHub status context; default `continuous-integration/jenkins/personal-<hostname>` so each computer's status and report stay distinct |
 | `GKEYLL_CI_ROOT` | Required persistent writable root for baseline and candidate source, build, and regression data |
-| `GKEYLL_CI_TRUSTED_REF` | Optional branch or full SHA to fetch `github_report.py` from; default `main`. Set it only while staging a CI change |
+| `GKEYLL_CI_TRUSTED_REF` | Optional reviewed branch or full SHA for `github_report.py` and `check_regression_results.lua`; default `main`. Set it only while staging a CI change |
 
 The selected dependency script must pass `--build-adas=yes` to
 `install-deps/mkdeps.sh` so ADAS data is available before unit tests run.
