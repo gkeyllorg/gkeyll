@@ -36,7 +36,7 @@ import java.time.Duration
 class GkeyllQueueStatus {
     static final Logger LOG = Logger.getLogger('gkeyll.queue-status')
     static final List INTERNAL = ['CI_QUEUE_ID', 'CI_QUEUE_COMMIT', 'CI_QUEUE_CONTEXT',
-        'CI_QUEUE_STARTED', 'CI_QUEUE_CANCEL_DESCRIPTION']
+        'CI_QUEUE_STARTED', 'CI_QUEUE_CANCEL_DESCRIPTION', 'CI_QUEUE_ENQUEUED_MS', 'CI_AGENT_STARTED_MS']
     static final HttpClient HTTP = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build()
     static final Map PLATFORMS = [
         personal: ['PERSONAL', 'gkeyll-ci-personal', null],
@@ -413,7 +413,9 @@ class GkeyllQueueStatus {
         if (!selected || record.cancelled.get()) return
         def metadata = [CI_QUEUE_ID: item.id.toString(), CI_QUEUE_COMMIT: selected.sha,
             CI_QUEUE_CONTEXT: saved.CI_QUEUE_CONTEXT ?: config.context,
-            CI_QUEUE_STARTED: 'false', CI_QUEUE_CANCEL_DESCRIPTION: '', CANDIDATE_PR: selected.pr,
+            CI_QUEUE_STARTED: 'false', CI_QUEUE_CANCEL_DESCRIPTION: '',
+            CI_QUEUE_ENQUEUED_MS: saved.CI_QUEUE_ENQUEUED_MS ?: item.inQueueSince.toString(),
+            CI_AGENT_STARTED_MS: '', CANDIDATE_PR: selected.pr,
             CANDIDATE_REF: selected.ref, BASELINE_REF: selected.baseline]
         // Do not change queue ParametersAction: doing so breaks Jenkins' duplicate
         // submission folding (e.g. every multibranch scan could enqueue another run).
@@ -472,7 +474,8 @@ class GkeyllQueueStatus {
         def metadata = parameters(run)
         if (metadata.CI_QUEUE_ID != run.queueId.toString() || metadata.CI_QUEUE_STARTED == 'true') return
         if (!item.cancelled) {
-            def update = new ParametersAction([new StringParameterValue('CI_QUEUE_STARTED', 'true')], INTERNAL)
+            def update = new ParametersAction([new StringParameterValue('CI_QUEUE_STARTED', 'true'),
+                new StringParameterValue('CI_AGENT_STARTED_MS', System.currentTimeMillis().toString())], INTERNAL)
             run.addOrReplaceAction(run.getAction(ParametersAction).merge(update))
             workers.submit({ run.save(); refreshRun(run) } as Runnable)
         }
@@ -534,6 +537,82 @@ class GkeyllQueueStatus {
         } as Runnable)
     }
 
+    static String durationText(long milliseconds) {
+        long seconds = Math.max(0L, milliseconds).intdiv(1000L)
+        seconds < 60 ? "${seconds} s" : "${seconds.intdiv(60)} m ${seconds % 60} s"
+    }
+
+    static String escapeReport(String value) {
+        (value ?: '').replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+    }
+
+    static String reportExcerpt(String value, int byteLimit) {
+        // Bound rendered UTF-8, including HTML expansion, not just input chars.
+        def text = value ?: ''
+        while (escapeReport(text).getBytes('UTF-8').length > byteLimit) {
+            text = text.take(text.length().intdiv(2))
+        }
+        escapeReport(text) + (text == (value ?: '') ? '' : '\n[excerpt truncated]')
+    }
+
+    Map completionDetails(Run run, Map metadata) {
+        def environment = run.getAction(org.jenkinsci.plugins.workflow.cps.EnvActionImpl)?.getOverriddenEnvironment() ?: [:]
+        long end = run.startTimeInMillis + run.duration
+        long start = (metadata.CI_AGENT_STARTED_MS ?: environment.CI_EXECUTION_START_MS ?: run.startTimeInMillis).toString().toLong()
+        long queued = metadata.CI_QUEUE_ENQUEUED_MS ? Math.max(0L, start - metadata.CI_QUEUE_ENQUEUED_MS.toLong()) : -1L
+        def stage = environment.CI_FAILURE_STAGE ?: 'Pipeline startup'
+        def log = 'Jenkins console excerpt unavailable.'
+        try { log = run.getLog(100).join('\n') }
+        catch (Exception ignored) { /* Status publication must survive missing logs. */ }
+        boolean bootstrap = environment.CI_BOOTSTRAP_COMPLETE != 'true' && environment.CI_BOOTSTRAP_COMMAND
+        def excerpt = bootstrap ? (environment.CI_BOOTSTRAP_ERROR ?: log) : log
+        def cause = environment.CI_FAILURE_MESSAGE ?: log.readLines().find { it.startsWith('ERROR: ') } ?: 'See diagnostic excerpt.'
+        if (excerpt =~ /(?i)(unable to create thread|unable to create threaded lstat|Resource temporarily unavailable)/) {
+            cause = 'Process/thread creation failed (resource exhaustion).'
+        }
+        [stage: stage, cause: cause, elapsed: durationText(end - start), queued: queued,
+         started: start, ended: end, log: excerpt.take(12000), bootstrap: bootstrap,
+         resources: bootstrap ? environment.CI_BOOTSTRAP_RESOURCES ?: 'Snapshot unavailable.' : '',
+         command: bootstrap ? environment.CI_BOOTSTRAP_COMMAND : '',
+         attempts: bootstrap ? environment.CI_BOOTSTRAP_ATTEMPT : '',
+         exit: bootstrap ? environment.CI_BOOTSTRAP_EXIT : '',
+         stageMs: bootstrap && environment.CI_BOOTSTRAP_STAGE_START_MS ?
+            Math.max(0L, (environment.CI_BOOTSTRAP_STAGE_END_MS ?: end).toString().toLong() - environment.CI_BOOTSTRAP_STAGE_START_MS.toLong()) : null,
+         retryMs: (environment.CI_BOOTSTRAP_RETRY_WAIT_MS ?: '0').toLong()]
+    }
+
+    String fallbackReport(Run run, Map config, Map metadata, Map detail) {
+        // Per-run marker permits idempotent delivery without overwriting another
+        // run's comment. No agent processes or workspace access are required.
+        def marker = "<!-- gkeyll-ci-fallback ${metadata.CI_QUEUE_CONTEXT} ${run.queueId} -->"
+        def body = "${marker}\n\n**Gkeyll CI ${run.result} after ${detail.elapsed}**\n\n" +
+            "Jenkins build #${run.number}; ID ${run.queueId}. Candidate: `${metadata.CI_QUEUE_COMMIT}`.\n\n" +
+            "**Stage:** ${reportExcerpt(detail.stage, 1000)}\n\n**Cause:** ${reportExcerpt(detail.cause, 2000)}\n\n" +
+            "Execution: ${detail.elapsed}. Queue wait: ${detail.queued < 0 ? 'not recorded' : durationText(detail.queued)}. " +
+            "Retry waiting: ${durationText(detail.retryMs)}.\n\n" +
+            "Started: ${java.time.Instant.ofEpochMilli(detail.started)}; ended: ${java.time.Instant.ofEpochMilli(detail.ended)}.\n\n"
+        if (detail.bootstrap) {
+            body += "CI setup failed; compilation and tests did not start. Attempts: ${detail.attempts}; exit: ${detail.exit}. " +
+                "Stage duration: ${detail.stageMs == null ? 'not recorded' : durationText(detail.stageMs)}.\n\n" +
+                "**Command:**\n<pre>${reportExcerpt(detail.command, 6000)}</pre>\n\n" +
+                "**Resource snapshot** (best effort; visible limits only):\n<pre>${reportExcerpt(detail.resources, 12000)}</pre>\n\n"
+        }
+        body += "**Diagnostic excerpt** (bounded; full log retained by Jenkins):\n<pre>${reportExcerpt(detail.log, 16000)}</pre>\n\n" +
+            'The controller posted this fallback because no detailed Pipeline report was available.'
+        new File(run.rootDir, 'gkeyll-fallback-report.md').setText(body, 'UTF-8')
+        def path = "commits/${metadata.CI_QUEUE_COMMIT}/comments"
+        def existing = null
+        for (int page = 1; ; page++) {
+            def comments = request(run.parent, config, 'GET', "${path}?per_page=100&page=${page}")
+            existing = comments.find { it.body?.startsWith(marker + '\n') }
+            if (existing || comments.size() < 100) break
+        }
+        def comment = existing ?: request(run.parent, config, 'POST', path, [body: body])
+        def target = comment.html_url ?: ''
+        new File(run.rootDir, 'gkeyll-fallback-delivery.json').setText(JsonOutput.toJson([comment: true, url: target]), 'UTF-8')
+        target
+    }
+
     void completed(Run run) {
         def metadata = parameters(run)
         if (metadata.CI_QUEUE_ID != run.queueId.toString()) return
@@ -541,23 +620,24 @@ class GkeyllQueueStatus {
             def state = run.result == Result.SUCCESS ? 'success' :
                 (run.result in [Result.FAILURE, Result.UNSTABLE] ? 'failure' : 'cancelled')
             if (run.getAction(jenkins.model.InterruptedBuildAction)?.causes?.any { it.class.simpleName == 'ExceededTimeout' }) state = 'timed_out'
+            def detail = completionDetails(run, metadata)
+            def outcome = state == 'success' ? 'Passed' : state == 'timed_out' ? 'timed out' : state == 'cancelled' ? 'Cancelled' : 'Failed'
             def description = metadata.CI_QUEUE_CANCEL_DESCRIPTION ?:
-                (state == 'timed_out' ? 'Gkeyll CI timed out.' :
-                 run.result == Result.ABORTED && metadata.CI_QUEUE_STARTED != 'true'
-                    ? 'Gkeyll CI cancelled while queued.' : "Gkeyll CI finished: ${run.result}.")
-            finish(run.parent, metadata, run.queueId, state, description, run.number)
+                (state == 'cancelled' && metadata.CI_QUEUE_STARTED != 'true'
+                    ? 'Gkeyll CI cancelled while queued.' : state == 'success' ? "Passed after ${detail.elapsed}." : "${outcome} after ${detail.elapsed}: ${detail.stage}; ${detail.cause}")
+            finish(run.parent, metadata, run.queueId, state, description, run.number, run)
             progressBase.remove(run.queueId)
         } as Runnable)
     }
 
-    void finish(Job job, Map metadata, long id, String state, String description, def buildNumber = null) {
+    void finish(Job job, Map metadata, long id, String state, String description, def buildNumber = null, Run run = null) {
         // Cancellation must follow an in-flight position POST, never precede it.
         synchronized (statusLock(id)) {
-            finishStatus(job, metadata, id, state in ['cancelled', 'timed_out'] ? 'error' : state, description, buildNumber)
+            finishStatus(job, metadata, id, state in ['cancelled', 'timed_out'] ? 'error' : state, description, buildNumber, run)
         }
     }
 
-    void finishStatus(Job job, Map metadata, long id, String state, String description, def buildNumber = null) {
+    void finishStatus(Job job, Map metadata, long id, String state, String description, def buildNumber = null, Run run = null) {
         if (metadata.CI_QUEUE_ID != id.toString() || !(metadata.CI_QUEUE_COMMIT ==~ /[0-9a-f]{40}/)) return
         def config = configuration(job)
         if (!config?.credential) return
@@ -595,9 +675,27 @@ class GkeyllQueueStatus {
                     return
                 }
             }
-            request(job, config, 'POST', "statuses/${metadata.CI_QUEUE_COMMIT}",
-                [state: state, context: metadata.CI_QUEUE_CONTEXT,
-                 description: description.take(140 - suffix.size()) + suffix])
+            def target = ''
+            if (run && state != 'success') {
+                try {
+                    target = fallbackReport(run, config, metadata, completionDetails(run, metadata))
+                } catch (Exception failure) {
+                    new File(run.rootDir, 'gkeyll-fallback-delivery.json').setText(
+                        JsonOutput.toJson([comment: false, error: failure.class.simpleName]), 'UTF-8')
+                    LOG.warning("Queue #${id}: fallback comment failed (${failure.class.simpleName}); posting status anyway.")
+                    description += '; report unavailable'
+                }
+            }
+            // Comment delivery can take seconds. Recheck ownership after it so
+            // an intervening detailed report or newer run keeps its status.
+            if (run && state != 'success') {
+                def latest = currentStatus(job, config, metadata)
+                if (latest && !ownsQueuedStatus(latest, id) && !ownsRunningStatus(latest, id)) return
+            }
+            def body = [state: state, context: metadata.CI_QUEUE_CONTEXT,
+                description: description.take(140 - suffix.size()) + suffix]
+            if (target) body.target_url = target
+            request(job, config, 'POST', "statuses/${metadata.CI_QUEUE_COMMIT}", body)
         } catch (Exception failure) {
             LOG.warning("Queue #${id}: GitHub final queue status failed (${failure.class.simpleName}).")
         }

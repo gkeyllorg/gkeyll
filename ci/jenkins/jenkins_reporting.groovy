@@ -6,6 +6,7 @@ import groovy.json.JsonOutput
 @Field Map settings = [:]
 @Field String pythonSource = ''
 @Field String stageHistory = ''
+@Field List stageTimings = []
 
 def configure(Map values) {
     settings = values + [workspace: env.WORKSPACE]
@@ -22,7 +23,9 @@ def runReporter(String arguments, boolean authenticated = false) {
     withEnv(["CI_REPORT_SCRIPT=${script}", "CI_REPORT_CONTEXT=${settings.context}",
              "CI_REPORT_PLATFORM=${settings.platform}", "CI_REPORT_PR=${settings.pr ?: ''}",
              "CI_REPORT_REF=${settings.ref ?: ''}", "CI_REPORT_COMMIT=${settings.commit ?: ''}",
-             "CI_REPORT_START_MS=${currentBuild.startTimeInMillis}",
+             "CI_REPORT_START_MS=${params.CI_AGENT_STARTED_MS ?: env.CI_EXECUTION_START_MS ?: currentBuild.startTimeInMillis}",
+             "CI_QUEUE_ENQUEUED_MS=${params.CI_QUEUE_ENQUEUED_MS ?: ''}",
+             "CI_BOOTSTRAP_RETRY_WAIT_MS=${env.CI_BOOTSTRAP_RETRY_WAIT_MS ?: '0'}",
              "CI_REPORT_END_MS=${new Date().time}",
              "CI_QUEUE_ID=${params.CI_QUEUE_ID ?: ''}"]) {
         def command = 'python3 -I "$CI_REPORT_SCRIPT" ' + arguments
@@ -50,6 +53,7 @@ def publish(String result, String description = '', boolean detailed = false) {
         withEnv(["CI_REPORT_RESULT=${result}", "CI_REPORT_DESCRIPTION=${description}"]) {
             if (detailed) {
                 writeFile file: 'ci-stage-history.txt', text: stageHistory
+                writeFile file: 'ci-stage-timings.json', text: JsonOutput.toJson([stages: stageTimings])
                 // Recreate provenance after candidate checkout deletes the workspace.
                 if (env.CI_TRUSTED_CI_COMMIT?.trim()) {
                     writeFile file: 'ci-trusted-ci-commit.txt', text: "${env.CI_TRUSTED_CI_COMMIT.trim()}\n"
@@ -88,6 +92,7 @@ def progress(String description) {
 
 def ciStage(String name, Closure body) {
     env.CI_FAILURE_STAGE = name
+    env.CI_FAILURE_MESSAGE = ''
     // Keep history in Pipeline state as checkout deletes workspace files.
     stageHistory += "${new Date().format("yyyy-MM-dd'T'HH:mm:ss'Z'", TimeZone.getTimeZone('UTC'))}  ${name}\n"
     dir(settings.workspace) {
@@ -96,7 +101,19 @@ def ciStage(String name, Closure body) {
     if (settings.commit) {
         progress("Running: ${name}.")
     }
-    stage(name) { body.call() }
+    def started = new Date().time
+    def result = 'success'
+    try {
+        stage(name) { body.call() }
+    } catch (err) {
+        result = failureResult(err, currentBuild.currentResult)
+        env.CI_FAILURE_MESSAGE = err.toString().take(1000)
+        throw err
+    } finally {
+        def ended = new Date().time
+        stageTimings << [stage: name, started_ms: started, ended_ms: ended,
+                         elapsed_ms: ended - started, result: result]
+    }
 }
 
 def writeCiFailureSummary(String result, String stageName, String message) {
@@ -140,11 +157,11 @@ def timeCommand(String metricFile, String command) {
         bash -e -o pipefail -c ${quoted} 2>&1 | tee '${logFile}'
         result=\$?
         printf '%s\\n' "\$result" > '${logFile}.exit'
+        printf '%s\\n' "\$(( \$(date +%s) - started ))" > '${metricFile}'
         if [ "\$result" -ne 0 ]; then
             { printf 'Command: %s\\nFull log: %s (archived with the build)\\n' ${quoted} '${logFile}'; tail -n 100 '${logFile}'; } > '${detailFile}'
             exit "\$result"
         fi
-        printf '%s\\n' "\$(( \$(date +%s) - started ))" > '${metricFile}'
     """
 }
 

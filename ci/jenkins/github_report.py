@@ -24,7 +24,6 @@ import re
 import socket
 import sqlite3
 import sys
-import textwrap
 import time
 import urllib.error
 import urllib.parse
@@ -81,14 +80,13 @@ def code(text):
     return "`" + text.replace("`", "'") + "`"
 
 
-def fenced(text, lang="text"):
-    # GitHub strips inline styles, so wrap displayed logs before posting them.
-    # Keep short lines (including source/caret indentation) and all log text.
-    wrapper = textwrap.TextWrapper(width=100, subsequent_indent='  ',
-                                   expand_tabs=False, replace_whitespace=False,
-                                   drop_whitespace=False, break_on_hyphens=False)
-    text = '\n'.join(wrapper.fill(line) for line in text.rstrip('\n').split('\n'))
-    return "```{}\n{}\n```".format(lang, text.replace("```", "'''"))
+def wrapped_log(text):
+    # GitHub's inline code preserves spaces and wraps to the available width.
+    # Put breaks outside code (GitHub hides br inside code), and keep this HTML
+    # block free of blank source lines so log contents cannot become Markdown.
+    return '<div>\n' + '<br>\n'.join(
+        '<code>{}</code>'.format(html.escape(line, quote=False))
+        for line in text.split('\n')) + '\n</div>'
 
 
 # ---- build -----------------------------------------------------------------
@@ -134,7 +132,7 @@ def regression_section(title, summary_file):
             name = entry.rpartition(":")[0] or entry
             if details.get(name):
                 lines += ["", "<details><summary>{}: files that differ from the baseline</summary>".format(code(name)),
-                          "", fenced("\n".join(details[name])), "", "</details>"]
+                          "", wrapped_log("\n".join(details[name])), "", "</details>"]
     acked_tests = values.get("c_regression_acknowledged_test", [])
     if acked_tests:
         lines += ["", "Acknowledged diffs (new or updated versus the baseline): "
@@ -199,17 +197,23 @@ def byte_prefix(text, limit):
 
 
 def detail_sections(title, text):
-    """Split inside the log, keeping every comment's HTML and fences balanced."""
+    """Split inside the log, keeping rendered HTML within the comment limit."""
     chunks = []
     while text:
         end = len(byte_prefix(text, 48000))
-        if end < len(text):
-            end = text.rfind('\n', 0, end) + 1 or end
-        chunks.append(text[:end])
+        while True:
+            if end < len(text):
+                end = text.rfind('\n', 0, end) + 1 or end
+            chunk = wrapped_log(text[:end])
+            if len(chunk.encode('utf-8')) <= 48000:
+                break
+            # Escaping and per-line tags can expand the log substantially.
+            end //= 2
+        chunks.append(chunk)
         text = text[end:]
     return ['<details><summary>{}{}</summary>\n\n{}\n\n</details>'.format(
         html.escape(title), ' (part {})'.format(i + 1) if len(chunks) > 1 else '',
-        fenced(chunk)) for i, chunk in enumerate(chunks or ['None.'])]
+        chunk) for i, chunk in enumerate(chunks or [wrapped_log('None.')])]
 
 
 def diagnostic_sections(summary_output=None):
@@ -350,7 +354,7 @@ def unit_section(label, results_file, log_file):
             detail = assertion_lines(test, log_file)
             if detail:
                 body += ["", "<details><summary>{}: failed checks</summary>".format(code(test)),
-                         "", fenced("\n".join(detail)), "", "</details>"]
+                         "", wrapped_log("\n".join(detail)), "", "</details>"]
     return "\n".join(body), nfail, failing
 
 
@@ -489,6 +493,13 @@ def build_report(args):
         started.strftime(timestamp_format) if started else 'not recorded',
         'Updated' if args.result == 'pending' else 'End', finished.strftime(timestamp_format),
         '{} ({} s)'.format(datetime.timedelta(seconds=elapsed), elapsed) if elapsed is not None else 'not recorded'))
+    queued_ms = os.environ.get('CI_QUEUE_ENQUEUED_MS', '')
+    if queued_ms.isdigit() and started:
+        queue_seconds = max(0, (int(started.timestamp() * 1000) - int(queued_ms)) // 1000)
+        meta.append('**Queue wait:** {} s (excluded from execution elapsed)'.format(queue_seconds))
+    retry_ms = os.environ.get('CI_BOOTSTRAP_RETRY_WAIT_MS', '')
+    if retry_ms.isdigit():
+        meta.append('**Setup retry waiting:** {} s (included in execution elapsed)'.format(int(retry_ms) // 1000))
     if os.environ.get('CI_QUEUE_ID'):
         meta.append('**Jenkins queue:** #' + os.environ['CI_QUEUE_ID'])
     parts.append('**Status context:** ' + code(args.context))
@@ -525,6 +536,12 @@ def build_report(args):
         if section:
             parts.append(section)
 
+    stage_timings = read_text('ci-stage-timings.json')
+    if stage_timings:
+        rows = json.loads(stage_timings).get('stages', [])
+        parts.append('**Stage durations**\n\n| Stage | Duration | Result |\n| --- | ---: | --- |\n' +
+                     '\n'.join('| {} | {:.3f} s | {} |'.format(
+                         code(row['stage']), row['elapsed_ms'] / 1000, row['result']) for row in rows))
     timings = timing_section(elapsed)
     if timings:
         parts.append(timings)
@@ -551,6 +568,10 @@ def build_report(args):
     print("Wrote {} ({} characters)".format(args.output, len(report)))
     line = status_description(args.result, stage, unit_fail, unit_failing,
                               ["ci-regression-summary.txt", "ci-parallel-regression-summary.txt"])
+    if elapsed is not None and args.result != 'pending':
+        outcome, separator, detail = line.partition(':')
+        outcome = re.sub(r' at stage$', '', outcome.rstrip('.'))
+        line = '{} after {} s{}{}'.format(outcome, elapsed, separator, detail)
     diagnostics = json.loads(read_text('ci-diagnostic-summary.json'))
     if diagnostics['warnings']:
         if diagnostics['new_warnings'] is None:

@@ -33,6 +33,7 @@ def heads = new ConcurrentHashMap<String, String>()
 def statuses = new ConcurrentHashMap<String, Map>()
 def calls = Collections.synchronizedList([])
 def history = Collections.synchronizedList([])
+def comments = Collections.synchronizedList([])
 def statusIds = new java.util.concurrent.atomic.AtomicLong()
 def controls = new ConcurrentHashMap()
 service.metaClass.request = { Job job, Map config, String method, String path, Map body = null ->
@@ -52,6 +53,18 @@ service.metaClass.request = { Job job, Map config, String method, String path, M
     if (method == 'POST' && positionGate && path == 'statuses/' + '40' * 20) {
         controls.positionEntered.countDown()
         assert positionGate.await(30, TimeUnit.SECONDS)
+    }
+    if (path.contains('/comments')) {
+        if (controls.commentFailure) throw new IOException('Simulated comment delivery failure')
+        if (method == 'GET') return comments.findAll { it.path == path.tokenize('?')[0] }
+        assert method == 'POST'
+        def comment = [id: comments.size() + 1, body: body.body, path: path,
+            html_url: "https://github.com/mock/commitcomment-${comments.size() + 1}"]
+        comments << comment
+        if (controls.commentNewerStatus) {
+            statuses[path.split('/')[1] + ':' + config.context] = controls.remove('commentNewerStatus')
+        }
+        return comment
     }
     if (method == 'POST') {
         assert path.startsWith('statuses/')
@@ -377,7 +390,28 @@ Thread.start('gkeyll-queue-integration-tests') {
         def failed = create(team, 'PR-7', "error 'intentional pre-agent failure'")
         assert failed.scheduleBuild2(0).get(30, TimeUnit.SECONDS).result == Result.FAILURE
         await('pre-agent failure status') { statuses['7' * 40 + ':' + contexts[3]]?.state == 'failure' }
-        passed('a failure before agent allocation closes the pending status')
+        assert statuses['7' * 40 + ':' + contexts[3]].description.startsWith('Failed after ')
+        assert statuses['7' * 40 + ':' + contexts[3]].target_url.startsWith('https://github.com/mock/')
+        def earlyComment = comments.find { it.path.contains('7' * 40) }
+        assert earlyComment.body.contains('intentional pre-agent failure')
+        assert earlyComment.body.contains('Queue wait:')
+        def beforeRepeat = comments.size()
+        service.fallbackReport(failed.lastBuild, service.configuration(failed), service.parameters(failed.lastBuild),
+            service.completionDetails(failed.lastBuild, service.parameters(failed.lastBuild)))
+        assert comments.size() == beforeRepeat
+        passed('pre-agent failures include timed statuses and idempotent controller comments without an agent')
+        def largeDetail = service.completionDetails(failed.lastBuild, service.parameters(failed.lastBuild))
+        largeDetail.log = '<&漢字>' * 10000
+        largeDetail.resources = '<&漢字>' * 10000
+        largeDetail.command = '<&漢字>' * 10000
+        largeDetail.bootstrap = true
+        service.fallbackReport(failed.lastBuild, service.configuration(failed), service.parameters(failed.lastBuild), largeDetail)
+        def bounded = new File(failed.lastBuild.rootDir, 'gkeyll-fallback-report.md').text
+        assert bounded.getBytes('UTF-8').length < 60000
+        assert bounded.contains('[excerpt truncated]') && !bounded.contains('<&漢字>')
+        assert comments.size() == beforeRepeat
+        passed('fallback excerpts escape HTML and bound rendered UTF-8 within GitHub comment limits')
+
 
         heads['8'] = '8' * 40
         def completed = create(team, 'PR-8', "sleep time: 2, unit: 'SECONDS'")
@@ -433,6 +467,8 @@ node('queue-test-runner') {
     try { reporter.publish('failure', 'smoke failure', true) }
     catch (err) { echo 'EXPECTED_MISSING_CREDENTIAL' }
     assert readFile('candidate-unit-build.log.exit').trim() == '3'
+    assert readFile('candidate-unit-build-seconds.txt').trim().toInteger() >= 0
+    assert readFile('ci-stage-timings.json').contains('Smoke test')
     assert readFile('ci-report.md').contains('Failed at stage:** Smoke test')
     assert readFile('ci-report.md').contains('deliberate test failure')
     assert readFile('ci-stage-history.txt').contains('Smoke test')
@@ -461,7 +497,7 @@ node('queue-test-runner') {
         git(['config', 'user.email', 'fixture@example.test'])
         def bootstrapSource = new File(source, 'jenkinsfile.personal').text.replace(
             'https://github.com/gkeyllorg/gkeyll.git', 'file://' + repository.absolutePath)
-        ['jenkins_reporting.groovy', 'github_report.py', 'baseline_cache.sh'].each { name ->
+        ['jenkins_reporting.groovy', 'github_report.py', 'baseline_cache.sh', 'prebuilt_config.py'].each { name ->
             new File(pipeline.parentFile, name).text = new File(source, name).text
         }
         // Use the real helper loader and publisher without a candidate SHA, so
@@ -520,6 +556,89 @@ error('EXPECTED_SELECTED_PIPELINE_FAILURE')
             }
         }
         passed('personal CI pins branch/SHA selections, retains provenance on failure and restores parameters for older implementations')
+        def helperSource = bootstrapSource.substring(0, bootstrapSource.indexOf('// Manually selected local CI.'))
+            .replace('def delays = [15, 30, 60]', 'def delays = [0, 0, 0]')
+        bootstrap.definition = new CpsFlowDefinition(helperSource + """
+node('queue-test-runner') {
+    deleteDir()
+    bootstrapStage('Load CI pipeline') {
+        bootstrapSh('resource-recovery', '''
+            if [ ! -f retry-once ]; then
+                touch retry-once
+                printf 'fatal: unable to create thread: Resource temporarily unavailable\\n'
+                exit 128
+            fi
+            printf 'RECOVERED\\n'
+        ''')
+    }
+    assert env.CI_BOOTSTRAP_ATTEMPT == '2'
+    assert env.CI_FAILURE_MESSAGE == ''
+    try {
+        bootstrapStage('Load CI reporting') {
+            bootstrapSh('resource-exhausted', "printf 'fatal: unable to create thread: Resource temporarily unavailable\\n'; exit 128")
+        }
+        error('Expected retry exhaustion')
+    } catch (err) { assert env.CI_BOOTSTRAP_ATTEMPT == '4' }
+    archiveBootstrap()
+}
+""", true)
+        def retried = bootstrap.scheduleBuild2(0).get(120, TimeUnit.SECONDS)
+        assert retried.result == Result.SUCCESS : retried.getLog(100).join('\n')
+        assert new File(retried.artifactsDir, 'ci-bootstrap/resource-recovery-1.txt').text.contains('exit=128')
+        assert new File(retried.artifactsDir, 'ci-bootstrap/resource-exhausted-4.log').text.contains('Resource temporarily unavailable')
+        assert new File(retried.artifactsDir, 'ci-bootstrap/resource-exhausted-4-after.txt').text.contains('/proc/self/limits')
+        passed('sandboxed setup commands recover, exhaust retries and archive resource snapshots')
+        heads['76'] = '76' * 20
+        def bootstrapFailure = create(team, 'PR-76', '')
+        bootstrapFailure.definition = new CpsFlowDefinition(helperSource + """
+node('queue-test-runner') {
+    try {
+        bootstrapStage('Load CI pipeline') {
+            bootstrapSh('load-pipeline', "printf 'fatal: unable to create thread: Resource temporarily unavailable\\n'; exit 128")
+        }
+    } finally { archiveBootstrap() }
+}
+""", true)
+        def failedSetup = bootstrapFailure.scheduleBuild2(0).get(120, TimeUnit.SECONDS)
+        assert failedSetup.result == Result.FAILURE
+        def setupKey = heads['76'] + ':' + contexts[3]
+        await('bootstrap failure report') { statuses[setupKey]?.state == 'failure' }
+        assert statuses[setupKey].description.contains('Failed after ')
+        assert statuses[setupKey].description.contains('Load CI pipeline')
+        def setupComment = comments.find { it.path.contains(heads['76']) }
+        assert setupComment.body.contains('Attempts: 4; exit: 128')
+        assert setupComment.body.contains('compilation and tests did not start')
+        assert setupComment.body.contains('Resource temporarily unavailable')
+        assert setupComment.body.contains('/proc/self/limits')
+        assert setupComment.body.contains('Retry waiting:')
+        passed('exhausted bootstrap retries publish a controller report with command, resource evidence and timing')
+
+        heads['77'] = '77' * 20
+        def raced = create(team, 'PR-77', "error 'fallback racing with a newer run'")
+        controls.commentNewerStatus = [state: 'pending', context: contexts[3],
+            description: service.runningDescription(99999L, 0L, 1000L, 'newer run', 2)]
+        def racedRun = raced.scheduleBuild2(0).get(30, TimeUnit.SECONDS)
+        def racedKey = heads['77'] + ':' + contexts[3]
+        await('newer status during comment delivery') { statuses[racedKey]?.description?.contains('ID 99999') }
+        // Join the completion operation under the same lock before asserting.
+        synchronized (service.statusLock(racedRun.queueId)) {
+            assert statuses[racedKey].state == 'pending'
+            assert statuses[racedKey].description.contains('ID 99999')
+        }
+        passed('fallback comment delivery cannot overwrite a newer run status')
+
+        heads['78'] = '78' * 20
+        controls.commentFailure = true
+        def commentOutage = create(team, 'PR-78', "error 'original setup failure'")
+        def commentOutageRun = commentOutage.scheduleBuild2(0).get(30, TimeUnit.SECONDS)
+        await('status despite comment outage') { statuses[heads['78'] + ':' + contexts[3]]?.state == 'failure' }
+        controls.remove('commentFailure')
+        assert new File(commentOutageRun.rootDir, 'gkeyll-fallback-report.md').text.contains('original setup failure')
+        assert new File(commentOutageRun.rootDir, 'gkeyll-fallback-delivery.json').text.contains('"comment":false')
+        passed('comment delivery failure preserves a local report and still posts the failure status')
+
+
+
 
         ['personal', 'team_workstation', 'stellar_cpu', 'perlmutter_gpu'].each {
             shell.classLoader.parseClass(new File(source, "jenkinsfile.${it}"))

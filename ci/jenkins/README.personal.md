@@ -160,3 +160,12 @@ Expected numerical changes require a reviewed, new or updated entry in
 Entries unchanged from the baseline are inert, so stale entries may safely be
 removed in any later PR. Update the reason on a baseline entry to acknowledge
 a new intentional change for that same test.
+
+### Early setup failures
+
+`PERSONAL_BUILD_JOBS` controls compilation only; it does not control Git's
+threads during CI setup. Resource-related setup failures receive bounded
+retries and per-attempt diagnostics. The controller can publish a timed fallback
+report even if the selected pipeline or reporting scripts cannot be fetched.
+See [setup resource failures and early reports](README.md#setup-resource-failures-and-early-reports)
+for retry limits, artifacts, and the required controller-hook update.

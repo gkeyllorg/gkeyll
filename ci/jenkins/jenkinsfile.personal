@@ -4,31 +4,158 @@ import groovy.transform.Field
 def loggedSh(String label, String command) { reporting.loggedSh(label, command) }
 def timeCommand(String metric, String command) { reporting.timeCommand(metric, command) }
 
-def loadReporting(Map settings) {
-    def ref = env.CI_TRUSTED_CI_COMMIT?.trim() ?: env.GKEYLL_CI_TRUSTED_REF?.trim() ?: 'main'
-    if (!(ref ==~ /[A-Za-z0-9][A-Za-z0-9._\/-]*/) || ref.contains('..') || ref.endsWith('.lock')) {
-        error('Invalid trusted reporting ref.')
+// Bootstrap reporting cannot depend on fetching another script or starting Python.
+// Only anonymous, trusted setup commands may use this recorder.
+def bootstrapStage(String name, Closure body) {
+    env.CI_FAILURE_STAGE = name
+    env.CI_PROGRESS_STAGE = name
+    env.CI_FAILURE_MESSAGE = ''
+    env.CI_BOOTSTRAP_STAGE_START_MS = "${new Date().time}"
+    try {
+        stage(name) { body() }
+    } catch (err) {
+        if (!env.CI_FAILURE_MESSAGE) env.CI_FAILURE_MESSAGE = err.toString().take(1000)
+        throw err
+    } finally {
+        env.CI_BOOTSTRAP_STAGE_END_MS = "${new Date().time}"
     }
-    // This directory is outside the candidate checkout, which is deleted below.
-    dir(pwd(tmp: true) + '/trusted-reporting') {
-        deleteDir()
-        withEnv(["CI_TRUSTED_REPORT_REF=${ref}"]) {
-            sh '''#!/bin/bash
-                set -euo pipefail
-                git init --quiet
-                git fetch --quiet --depth 1 https://github.com/gkeyllorg/gkeyll.git "$CI_TRUSTED_REPORT_REF"
-                git show FETCH_HEAD:ci/jenkins/jenkins_reporting.groovy > jenkins_reporting.groovy
-                git show FETCH_HEAD:ci/jenkins/github_report.py > github_report.py
-                git show FETCH_HEAD:ci/jenkins/prebuilt_config.py > prebuilt_config.py
-                git show FETCH_HEAD:ci/jenkins/baseline_cache.sh > baseline_cache.sh
-                chmod +x baseline_cache.sh
+}
+
+def bootstrapSnapshot(String path) {
+    // Shell builtins still work when fork() cannot. Include visible cgroup v2
+    // ancestors; a container may hide ancestors, which need a host-side check.
+    try {
+        withEnv(["CI_RESOURCE_LOG=${path}"]) {
+            sh returnStatus: true, script: '''#!/bin/bash
+                exec > "$CI_RESOURCE_LOG" 2>&1
+                show() {
+                    local file="$1" line
+                    [ -r "$file" ] || return 0
+                    printf '\\n%s\\n' "$file"
+                    while IFS= read -r line; do printf '%s\\n' "$line"; done < "$file"
+                }
+                printf 'Process limit: '; ulimit -u
+                show /proc/self/limits
+                show /proc/meminfo
+                show /proc/self/cgroup
+                cg=/sys/fs/cgroup
+                while IFS=: read -r hierarchy controllers relative; do
+                    if [ "$hierarchy" = 0 ] && [ -d "/sys/fs/cgroup$relative" ]; then
+                        cg="/sys/fs/cgroup$relative"
+                    fi
+                done < /proc/self/cgroup
+                while :; do
+                    for metric in pids.current pids.max pids.events memory.current memory.max memory.events; do
+                        show "$cg/$metric"
+                    done
+                    [ "$cg" = /sys/fs/cgroup ] && break
+                    cg="${cg%/*}"
+                done
+                ps -eo pid,ppid,nlwp,rss,comm --sort=-nlwp
             '''
         }
-        settings.reportingCommit = sh(returnStdout: true, script: 'git rev-parse FETCH_HEAD').trim()
-        settings.cacheScript = pwd() + '/baseline_cache.sh'
-        reporting = load('jenkins_reporting.groovy')
-        settings.prebuiltScript = pwd() + '/prebuilt_config.py'
-        reporting.configure(settings)
+        env.CI_BOOTSTRAP_RESOURCES = readFile(path).take(6000)
+    } catch (err) {
+        if (err.toString().contains('FlowInterruptedException')) throw err
+        echo 'Resource snapshot unavailable; retaining the original setup failure.'
+    }
+}
+
+def bootstrapSh(String label, String command) {
+    if (!env.CI_BOOTSTRAP_LOG_DIR) env.CI_BOOTSTRAP_LOG_DIR = pwd(tmp: true) + '/bootstrap-records/' + (env.BUILD_NUMBER ?: 'current')
+    def delays = [15, 30, 60]
+    timeout(time: 10, unit: 'MINUTES') {
+        for (int attempt = 1; attempt <= 4; attempt++) {
+            def base = "${env.CI_BOOTSTRAP_LOG_DIR}/ci-bootstrap/${label}-${attempt}"
+            writeFile file: base + '.log', text: ''
+            env.CI_BOOTSTRAP_ATTEMPT = "${attempt}"
+            env.CI_BOOTSTRAP_COMMAND = command.trim().take(2000)
+            env.CI_BOOTSTRAP_EXIT = 'unavailable'
+            env.CI_BOOTSTRAP_ERROR = ''
+            env.CI_BOOTSTRAP_RESOURCES = ''
+            bootstrapSnapshot(base + '-before.txt')
+            def started = new Date().time
+            def result = -1
+            def output = ''
+            try {
+                withEnv(["CI_BOOTSTRAP_COMMAND_LOG=${base}.log"]) {
+                    // Redirect directly: tee and an extra shell also need process slots.
+                    result = sh(returnStatus: true, script: '#!/bin/bash\nexec > "$CI_BOOTSTRAP_COMMAND_LOG" 2>&1\nset -euo pipefail\n' + command)
+                }
+            } finally {
+                env.CI_BOOTSTRAP_EXIT = result < 0 ? 'unavailable' : "${result}"
+                env.CI_BOOTSTRAP_ATTEMPT_MS = "${new Date().time - started}"
+                // This may fail if the agent disappeared; the controller log remains.
+                try {
+                    output = readFile(base + '.log')
+                    env.CI_BOOTSTRAP_ERROR = output.take(8000)
+                    echo output.take(8000)
+                    writeFile file: base + '.txt', text: "attempt=${attempt}\nexit=${env.CI_BOOTSTRAP_EXIT}\nelapsed_ms=${env.CI_BOOTSTRAP_ATTEMPT_MS}\ncommand=${command.trim()}\n"
+                } catch (recordError) {
+                    if (recordError.toString().contains('FlowInterruptedException')) throw recordError
+                    echo 'Setup log unavailable on agent; controller fallback will report the failure.'
+                }
+            }
+            if (result == 0) { env.CI_FAILURE_MESSAGE = ''; return }
+            bootstrapSnapshot(base + '-after.txt')
+            def resourceFailure = output =~ /(?i)(unable to create (?:thread|threaded lstat).*Resource temporarily unavailable|(?:fork|cannot fork|mkdir).*Resource temporarily unavailable|cannot allocate memory)/
+            // Matcher objects cannot survive Pipeline suspension.
+            boolean retryable = resourceFailure.find()
+            resourceFailure = null
+            env.CI_FAILURE_MESSAGE = retryable ? 'Git setup could not create a process/thread or allocate memory.' : "Git setup exited ${result}."
+            if (!retryable || attempt == 4) error(env.CI_FAILURE_MESSAGE)
+            int delay = delays[attempt - 1]
+            echo "Resource exhaustion: attempt ${attempt}/4 failed; retrying in ${delay} s."
+            def waiting = new Date().time
+            try { sleep time: delay, unit: 'SECONDS' }
+            finally {
+                env.CI_BOOTSTRAP_RETRY_WAIT_MS = "${(env.CI_BOOTSTRAP_RETRY_WAIT_MS ?: '0').toLong() + new Date().time - waiting}"
+            }
+        }
+    }
+}
+
+def archiveBootstrap() {
+    if (!env.CI_BOOTSTRAP_LOG_DIR) return
+    try {
+        dir(env.CI_BOOTSTRAP_LOG_DIR) {
+            archiveArtifacts allowEmptyArchive: true, artifacts: 'ci-bootstrap/**'
+        }
+    } catch (err) {
+        if (err.toString().contains('FlowInterruptedException')) throw err
+        echo 'Bootstrap artifacts unavailable; controller fallback retains diagnostics.'
+    }
+}
+
+def loadReporting(Map settings) {
+    bootstrapStage('Load CI reporting') {
+        try {
+            def ref = env.CI_TRUSTED_CI_COMMIT?.trim() ?: env.GKEYLL_CI_TRUSTED_REF?.trim() ?: 'main'
+            if (!(ref ==~ /[A-Za-z0-9][A-Za-z0-9._\/-]*/) || ref.contains('..') || ref.endsWith('.lock')) {
+                error('Invalid trusted reporting ref.')
+            }
+            // This directory is outside the candidate checkout, which is deleted below.
+            dir(pwd(tmp: true) + '/trusted-reporting') {
+                deleteDir()
+                withEnv(["CI_TRUSTED_REPORT_REF=${ref}"]) {
+                    bootstrapSh('load-reporting', '''
+                        git init --quiet
+                        git fetch --quiet --depth 1 https://github.com/gkeyllorg/gkeyll.git "$CI_TRUSTED_REPORT_REF"
+                        git show FETCH_HEAD:ci/jenkins/jenkins_reporting.groovy > jenkins_reporting.groovy
+                        git show FETCH_HEAD:ci/jenkins/github_report.py > github_report.py
+                        git show FETCH_HEAD:ci/jenkins/prebuilt_config.py > prebuilt_config.py
+                        git show FETCH_HEAD:ci/jenkins/baseline_cache.sh > baseline_cache.sh
+                        chmod +x baseline_cache.sh
+                    ''')
+                }
+                settings.reportingCommit = sh(returnStdout: true, script: 'git rev-parse FETCH_HEAD').trim()
+                settings.cacheScript = pwd() + '/baseline_cache.sh'
+                reporting = load('jenkins_reporting.groovy')
+                settings.prebuiltScript = pwd() + '/prebuilt_config.py'
+                reporting.configure(settings)
+                env.CI_BOOTSTRAP_COMPLETE = 'true'
+            }
+        } finally { archiveBootstrap() }
     }
 }
 
@@ -69,38 +196,44 @@ if (env.CI_TEAM_WORKSTATION_BOOTSTRAPPED == 'true') {
         def workspace = pwd()
         def trustedDir = pwd(tmp: true) + '/selected-ci'
         def ciCommit = ''
-        stage('Load CI pipeline') {
-            dir(trustedDir) {
-                deleteDir()
-                def refspec = isCommitSha(ciRef) ? ciRef : "refs/heads/${ciRef}"
-                withEnv(["CI_SELECTED_REFSPEC=${refspec}"]) {
-                    sh '''#!/bin/bash
-                        set -euo pipefail
-                        git init --quiet
-                        git fetch --quiet --no-tags --depth 1 https://github.com/gkeyllorg/gkeyll.git "$CI_SELECTED_REFSPEC"
-                        git checkout --quiet --detach FETCH_HEAD
-                    '''
+        env.CI_EXECUTION_START_MS = "${new Date().time}"
+        try {
+            bootstrapStage('Load CI pipeline') {
+                dir(trustedDir) {
+                    deleteDir()
+                    def refspec = isCommitSha(ciRef) ? ciRef : "refs/heads/${ciRef}"
+                    withEnv(["CI_SELECTED_REFSPEC=${refspec}"]) {
+                        bootstrapSh('load-pipeline', '''
+                            git init --quiet
+                            git fetch --quiet --no-tags --depth 1 https://github.com/gkeyllorg/gkeyll.git "$CI_SELECTED_REFSPEC"
+                            git checkout --quiet --detach FETCH_HEAD
+                        ''')
+                    }
+                    ciCommit = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
                 }
-                ciCommit = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
+                echo "CI Jenkinsfile: ci/jenkins/jenkinsfile.personal\nCI source ref: ${ciRef}\nCI source commit: ${ciCommit}"
             }
-            echo "CI Jenkinsfile: ci/jenkins/jenkinsfile.personal\nCI source ref: ${ciRef}\nCI source commit: ${ciCommit}"
-        }
-        withEnv(['CI_PERSONAL_BOOTSTRAPPED=true', 'CI_NODE_ALREADY_ALLOCATED=true',
-                 "CI_TRUSTED_CI_REF=${ciRef}", "CI_TRUSTED_CI_COMMIT=${ciCommit}"]) {
-            try {
-                load "${trustedDir}/ci/jenkins/jenkinsfile.personal"
-            } finally {
-                // Older Jenkinsfiles replace the job parameters and delete the
-                // workspace. Preserve both the selector and provenance even
-                // when testing those versions, or when loading the script fails.
-                properties(jobProperties)
-                dir(workspace) {
-                    writeFile file: 'ci-pipeline-source.txt', text: "jenkinsfile=ci/jenkins/jenkinsfile.personal\nref=${ciRef}\ncommit=${ciCommit}\n"
-                    writeFile file: 'ci-trusted-ci-commit.txt', text: "${ciCommit}\n"
-                    archiveArtifacts artifacts: 'ci-pipeline-source.txt,ci-trusted-ci-commit.txt'
+            withEnv(['CI_PERSONAL_BOOTSTRAPPED=true', 'CI_NODE_ALREADY_ALLOCATED=true',
+                     "CI_TRUSTED_CI_REF=${ciRef}", "CI_TRUSTED_CI_COMMIT=${ciCommit}"]) {
+                try {
+                    env.CI_FAILURE_STAGE = 'Load CI implementation'
+                    load "${trustedDir}/ci/jenkins/jenkinsfile.personal"
+                } finally {
+                    // Older Jenkinsfiles replace the job parameters and delete the
+                    // workspace. Preserve both the selector and provenance even
+                    // when testing those versions, or when loading the script fails.
+                    properties(jobProperties)
+                    dir(workspace) {
+                        writeFile file: 'ci-pipeline-source.txt', text: "jenkinsfile=ci/jenkins/jenkinsfile.personal\nref=${ciRef}\ncommit=${ciCommit}\n"
+                        writeFile file: 'ci-trusted-ci-commit.txt', text: "${ciCommit}\n"
+                        archiveArtifacts artifacts: 'ci-pipeline-source.txt,ci-trusted-ci-commit.txt'
+                    }
                 }
             }
-        }
+        } catch (err) {
+            if (!env.CI_FAILURE_MESSAGE) env.CI_FAILURE_MESSAGE = err.toString().take(1000)
+            throw err
+        } finally { archiveBootstrap() }
     }
     return
 }
@@ -561,7 +694,7 @@ EOF
                     echo "WARNING: could not publish the GitHub CI report: ${reportError}"
                 }
             }
-            archiveArtifacts allowEmptyArchive: true, artifacts: 'ci-run-path.txt,ci-*-config.mak,ci-dependencies/**,ci-trusted-ci-commit.txt,ci-reporting-commit.txt,ci-selection.txt,ci-baseline-preflight.txt,ci-baseline-cache.txt,ci-trusted-checker-commit.txt,ci-candidate-commit.txt,ci-baseline-commit.txt,*-seconds.txt,*-unit-results.txt,candidate-*.log,baseline-*.log,ci-failure-detail.txt,ci-report*.md,ci-report*.md.json,ci-report-delivery.json,ci-diagnostic-summary.json,ci-stage-history.txt,ci-command-logs/**,ci-timing-summary.txt,ci-regression-summary.txt,ci-parallel-regression-summary.txt,ci-failure-summary.txt,build/**/*.log,cuda-build/**/*.log,_baseline/build/**/*.log,_baseline/cuda-build/**/*.log,_baseline/gkylsoft/gkeyll-results/**,gkylsoft/gkeyll-results/**'
+            archiveArtifacts allowEmptyArchive: true, artifacts: 'ci-run-path.txt,ci-*-config.mak,ci-dependencies/**,ci-trusted-ci-commit.txt,ci-reporting-commit.txt,ci-selection.txt,ci-baseline-preflight.txt,ci-baseline-cache.txt,ci-trusted-checker-commit.txt,ci-candidate-commit.txt,ci-baseline-commit.txt,*-seconds.txt,*-unit-results.txt,candidate-*.log,baseline-*.log,ci-failure-detail.txt,ci-report*.md,ci-report*.md.json,ci-report-delivery.json,ci-diagnostic-summary.json,ci-stage-history.txt,ci-stage-timings.json,ci-command-logs/**,ci-timing-summary.txt,ci-regression-summary.txt,ci-parallel-regression-summary.txt,ci-failure-summary.txt,build/**/*.log,cuda-build/**/*.log,_baseline/build/**/*.log,_baseline/cuda-build/**/*.log,_baseline/gkylsoft/gkeyll-results/**,gkylsoft/gkeyll-results/**'
             if (reportError) description = "${description} (report not posted)".take(140)
         }
         if (candidateDir && baselineCommit) {

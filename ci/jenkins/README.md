@@ -225,6 +225,47 @@ writing, to preserve a newer run's status and the Pipeline's detailed results.
 GitHub outages are logged and do not prevent builds from starting; notification
 and supersession checks require a working GitHub API and valid credentials.
 
+#### Setup resource failures and early reports
+
+Personal CI records pipeline selection and reporter loading before the shared
+reporter is available. A Git setup command that reports process/thread exhaustion
+or an allocation failure gets up to **four total attempts**, with Jenkins-managed
+waits of **15, 30, and 60 seconds**, within a **10-minute timeout per setup command**.
+Other failures (including an invalid ref with exit 128) fail immediately. User
+cancellation and timeouts are not retried. This does not retry compiler errors or
+failed tests, or change the configured compilation worker count.
+
+Each attempt archives its output, exit code, command, elapsed milliseconds, and
+best-effort resource snapshots under `ci-bootstrap/`. Records live outside the
+checkout and are isolated by build number. Snapshots include process limits,
+memory, visible cgroup v2 PID/memory limits and ancestors, and process thread
+counts. Containers can hide ancestor limits; inspect those on the host when the
+visible limits do not explain exhaustion. CPU count alone does not establish
+available process/thread capacity. Repeated failures need the actual resource
+limit or competing workload corrected; retries only address temporary contention.
+
+If the Pipeline cannot publish a detailed result, the controller posts a bounded
+failure comment on the candidate commit accepted at queue time and links the
+terminal status to it. This works before checkout and without a working agent
+shell. It preserves detailed reports and newer runs' statuses. A per-run comment
+marker prevents duplicate fallback comments. Full command logs remain Jenkins
+artifacts; the fallback Markdown and delivery outcome are also retained in the
+controller's build directory as `gkeyll-fallback-report.md` and
+`gkeyll-fallback-delivery.json`. A GitHub delivery failure is logged and does not
+replace the original build failure.
+
+Terminal statuses include seconds, for example `Failed after 7 s: Load CI
+pipeline; Process/thread creation failed ...`. Reports distinguish queue wait
+from execution elapsed, and list setup retry waiting as part of execution.
+Failed commands retain timing just like successful commands. Shared-reporter
+stage durations and outcomes are archived in `ci-stage-timings.json` and included
+in the report. Older controllers without queue timestamps report the timing
+that is available rather than inventing a queue duration.
+
+Both the trusted entry Jenkinsfile and the **installed controller hook** must be
+updated. Changing only the repository does not update `init.groovy.d`; follow the
+installation instructions below and restart the controller while idle.
+
 #### Controller installation
 
 First deploy the updated trusted Jenkinsfiles along with the listener. It uses
@@ -308,8 +349,9 @@ The header includes UTC start/end timestamps and elapsed time. The Timings table
 ends with total wall-clock time from the Jenkins build start through report
 generation, including the initial agent wait. Individual timings can overlap,
 so this total is not the sum of the step durations.
-Displayed log excerpts wrap at 100 characters, with continuation lines indented
-by two spaces. Archived raw logs retain their original lines.
+Displayed log excerpts wrap automatically to the available width using inline
+code formatting, preserving original line breaks and indentation. Archived raw
+logs retain their original lines.
 
 Reports also show the full Jenkinsfile, reporting-tool, and regression-checker
 commits when recorded. Personal CI's `CI_REF` selects an implementation
@@ -373,6 +415,7 @@ Run offline reporter tests with:
 ```sh
 python3 -m unittest discover -s ci/jenkins/tests -p 'test_*.py'
 java -cp /path/to/groovy-all.jar groovy.ui.GroovyMain ci/jenkins/tests/test_jenkins_reporting.groovy
+java -cp /path/to/groovy-all.jar groovy.ui.GroovyMain ci/jenkins/tests/test_bootstrap_reporting.groovy
 ```
 
 The queue listener's integration test runs on a disposable Jenkins controller

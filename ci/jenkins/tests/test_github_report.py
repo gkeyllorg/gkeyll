@@ -1,6 +1,7 @@
 """Offline checks for report timing and log presentation."""
 import argparse
 import contextlib
+from html.parser import HTMLParser
 import io
 import os
 from pathlib import Path
@@ -9,6 +10,30 @@ import unittest
 from unittest.mock import patch
 
 from ci.jenkins import github_report as report
+
+
+def log_text(markup):
+    """Read displayed log text, ignoring report headings and HTML layout."""
+    class LogParser(HTMLParser):
+        in_code = False
+
+        def handle_starttag(self, tag, attrs):
+            if tag == 'code':
+                self.in_code = True
+            elif tag == 'br':
+                parts.append('\n')
+
+        def handle_endtag(self, tag):
+            if tag == 'code':
+                self.in_code = False
+
+        def handle_data(self, data):
+            if self.in_code:
+                parts.append(data)
+
+    parts = []
+    LogParser().feed(markup)
+    return ''.join(parts)
 
 
 class FailureReportTests(unittest.TestCase):
@@ -61,20 +86,31 @@ class FailureReportTests(unittest.TestCase):
             self.assertIsNone(elapsed)
         self.assertEqual(report.timing_section(), '')
 
-    def test_long_log_lines_wrap_without_losing_text_or_short_line_indentation(self):
+    def test_log_lines_allow_wrapping_without_losing_text_or_indentation(self):
         lines = ['warning: ' + 'long diagnostic ' * 30, '/workspace/' + 'long-path/' * 40,
-                 '   56 |     bad', '      |     ^~~', '']
-        for line in lines:
-            rendered = report.fenced(line).split('\n')[1:-1]
-            self.assertTrue(all(len(part) <= 100 for part in rendered))
-            self.assertEqual(rendered[0] + ''.join(part[2:] for part in rendered[1:]), line)
+                 '   56 |     bad', '      |     ^~~', '',
+                 '<script>bad & worse</script> ``` **literal**', '',
+                 '</code></div></details>', '\tindented', '']
+        text = '\n'.join(lines)
+        rendered = report.wrapped_log(text)
+        self.assertEqual(log_text(rendered), text)
+        self.assertNotIn('<pre', rendered)
+        self.assertNotIn('<script>', rendered)
+        self.assertNotIn('</details>', rendered)
+        self.assertNotIn('\n\n', rendered)
+        self.assertIn('<code>   56 |     bad</code>', rendered)
 
     def test_wrapped_large_diagnostics_fit_comment_limits(self):
-        sections = report.detail_sections('Long diagnostic', 'x' * 120000)
-        pages = report.report_pages('Summary', sections, 'ci/test')
-        self.assertGreater(len(pages), 1)
-        self.assertTrue(all(len(page.encode('utf-8')) <= report.COMMENT_LIMIT for page in pages))
-        self.assertTrue(all(page.count('```') % 2 == 0 for page in pages))
+        for text in ('x' * 120000, '<&>λ漢字' * 20000, '\n' * 10000):
+            with self.subTest(sample=text[:10]):
+                sections = report.detail_sections('Long diagnostic', text)
+                pages = report.report_pages('Summary', sections, 'ci/test')
+                self.assertGreater(len(pages), 1)
+                self.assertTrue(all(len(page.encode('utf-8')) <= report.COMMENT_LIMIT for page in pages))
+                self.assertEqual(log_text('\n'.join(pages)), text)
+                for page in pages:
+                    for tag in ('details', 'div', 'code'):
+                        self.assertEqual(page.count('<' + tag + '>'), page.count('</' + tag + '>'))
 
     def test_pipeline_provenance_is_distinct_from_candidate_and_baseline(self):
         self.write('ci-candidate-commit.txt', 'a' * 40)
@@ -120,7 +156,7 @@ class FailureReportTests(unittest.TestCase):
             report.build_report(args)
         body = Path(args.output).read_text()
         tail = body.split('<summary>Failed build log — last 100 lines:')[1].split('</details>')[0]
-        self.assertIn('\n'.join(lines[-100:]), tail)
+        self.assertIn('\n'.join(lines[-100:]), log_text(tail))
         self.assertNotIn('build line 17\n', tail)
         self.assertNotIn('<details open', body)
         self.assertLess(body.index('Failed build log'), body.index('Candidate unit tests'))
@@ -137,7 +173,7 @@ class FailureReportTests(unittest.TestCase):
         self.write(path + '.exit', '7\n')
         body = '\n'.join(report.failure_sections())
         self.assertIn('Exit code: 7', body)
-        self.assertIn('\n'.join(lines[-100:]), body)
+        self.assertIn('\n'.join(lines[-100:]), log_text(body))
         self.assertNotIn('line 24\n', body)
 
     def test_failed_build_path_aliases_share_one_tail_and_metadata(self):
@@ -153,8 +189,9 @@ class FailureReportTests(unittest.TestCase):
                 body = '\n'.join(report.failure_sections())
                 self.assertEqual(body.count('<summary>Failed build log'), 1)
                 self.assertIn('last 100 lines: ' + path + '</summary>', body)
-                self.assertIn('Command: make -j8 unit\nExit code: 2', body)
-                tail = body.split('Full log: ' + path + '\n\n', 1)[1].split('\n```', 1)[0]
+                displayed = log_text(body)
+                self.assertIn('Command: make -j8 unit\nExit code: 2', displayed)
+                tail = displayed.split('Full log: ' + path + '\n\n', 1)[1]
                 self.assertEqual(tail.splitlines(), lines[-100:])
 
     def test_distinct_failed_logs_with_same_basename_keep_separate_tails(self):
@@ -172,7 +209,7 @@ class FailureReportTests(unittest.TestCase):
         self.write('slurm-unit-123.out', 'compiler command\nerror: failed\n')
         body = '\n'.join(report.failure_sections())
         self.assertIn('last 100 lines: slurm-unit-123.out', body)
-        self.assertIn('compiler command\nerror: failed', body)
+        self.assertIn('compiler command\nerror: failed', log_text(body))
 
     def test_warning_mentioning_error_is_not_an_error(self):
         self.write('candidate-unit-build.log', 'a.c:4: warning: error: in diagnostic message\n')

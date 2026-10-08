@@ -320,6 +320,20 @@ class ReportingTests(unittest.TestCase):
             report.build_report(args)
         self.assertIn('PR #1157 @ `aaaaaaa`', Path('ci-report.md').read_text())
 
+    def test_failure_status_and_report_include_execution_queue_and_stage_time(self):
+        args = argparse.Namespace(platform='personal', context='ci/test', result='failure', pr='', output='ci-report.md')
+        Path('ci-stage-timings.json').write_text(json.dumps({'stages': [dict(
+            stage='Build candidate', elapsed_ms=7123, result='failure')]}))
+        with patch.dict(os.environ, CI_REPORT_START_MS='1700000000000', CI_REPORT_END_MS='1700000007000',
+                        CI_QUEUE_ENQUEUED_MS='1699999990000', CI_BOOTSTRAP_RETRY_WAIT_MS='1500',
+                        CI_FAILURE_STAGE='Build candidate'), contextlib.redirect_stdout(io.StringIO()):
+            report.build_report(args)
+        self.assertIn('Failed after 7 s', Path('ci-status-description.txt').read_text())
+        text = Path('ci-report.md').read_text()
+        self.assertIn('Queue wait:** 10 s', text)
+        self.assertIn('Setup retry waiting:** 1 s', text)
+        self.assertIn('7.123 s | failure', text)
+
     def test_pending_report_does_not_claim_failure(self):
         args = argparse.Namespace(platform='personal', context='ci/test', result='pending', pr='1157', output='ci-report.md')
         with patch.dict(os.environ, CI_FAILURE_STAGE='Build candidate'), contextlib.redirect_stdout(io.StringIO()):
@@ -336,7 +350,8 @@ class ReportingTests(unittest.TestCase):
         for page in pages:
             self.assertLessEqual(len(page.encode('utf-8')), report.COMMENT_LIMIT)
             self.assertEqual(page.count('<details>'), page.count('</details>'))
-            self.assertEqual(page.count('```') % 2, 0)
+            self.assertEqual(page.count('<div>'), page.count('</div>'))
+            self.assertEqual(page.count('<code>'), page.count('</code>'))
 
     def test_warning_comparison_requires_the_same_completed_step(self):
         Path('candidate-unit-build.log').write_text('core/zero/a.c:50: warning: example\n')

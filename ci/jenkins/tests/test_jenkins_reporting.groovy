@@ -40,6 +40,15 @@ assert files['/workspace@tmp/github_report.py'] == '# trusted source'
 assert files['ci-trusted-ci-commit.txt'] == 'b' * 40 + '\n'
 assert files['ci-reporting-commit.txt'] == 'c' * 40 + '\n'
 
+try {
+    script.ciStage('Failed stage') { throw new RuntimeException('stage fixture') }
+    assert false
+} catch (RuntimeException expected) { assert expected.message == 'stage fixture' }
+assert script.stageTimings.last().result == 'failure'
+assert script.stageTimings.last().elapsed_ms >= 0
+assert environment.CI_FAILURE_MESSAGE.contains('stage fixture')
+script.ciStage('Build candidate') { }
+
 script.timeCommand('candidate-unit-build-seconds.txt', 'make unit')
 assert environment.CI_PROGRESS_STAGE == 'candidate unit build'
 assert environment.CI_FAILURE_STAGE == 'Build candidate'
