@@ -6,6 +6,7 @@
 #include <gkyl_bc_twistshift_priv.h>
 
 #include <assert.h>
+#include <math.h>
 
 // allocate array (filled with zeros)
 static inline struct gkyl_array *
@@ -48,13 +49,62 @@ bc_twistshift_advance_ts(
 }
 
 static void
+bc_twistshift_shift_dir_avg(struct gkyl_bc_twistshift *up)
+{
+  // This seems like recoding the array average DG operator but we cannot use it now for two reasons:
+  // - The avg updater outputs a reduced dimensionality array.
+  // - The avg updater cannot deal with GK hybrid basis and we need to apply twist-shift on distf.
+  // These limitations will be addressed later.
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu) {
+    gkyl_bc_twistshift_shift_dir_avg_cu(up);
+    return;
+  }
+#endif
+
+  int sdir = up->shift_dir;
+  int num_cells_shift = up->ghost_r.upper[sdir] - up->ghost_r.lower[sdir] + 1;
+  int idx[GKYL_MAX_DIM];
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &up->ghost_avg_r);
+  while (gkyl_range_iter_next(&iter)) {
+    for (int d = 0; d < up->ghost_r.ndim; d++) {
+      idx[d] = iter.idx[d];
+    }
+    for (int k = 0; k < up->fprolong->ncomp; k++) {
+      if (!up->shift_indep[k]) {
+        continue;
+      }
+      double avg = 0.0;
+      for (int i = up->ghost_r.lower[sdir]; i <= up->ghost_r.upper[sdir]; i++) {
+        idx[sdir] = i;
+        const double *f_c = gkyl_array_cfetch(up->fprolong, gkyl_range_idx(&up->ghost_r, idx));
+        avg += f_c[k];
+      }
+      avg /= num_cells_shift;
+      for (int i = up->ghost_r.lower[sdir]; i <= up->ghost_r.upper[sdir]; i++) {
+        idx[sdir] = i;
+        double *favg_c = gkyl_array_fetch(up->favg, gkyl_range_idx(&up->ghost_r, idx));
+        favg_c[k] = avg;
+      }
+    }
+  }
+}
+
+static void
 bc_twistshift_advance_ts_filtered(
   struct gkyl_bc_twistshift *up, struct gkyl_array *fdo, struct gkyl_array *ftar
 )
 {
   up->prolong_func(up, fdo);
   gkyl_twistshift_dg_advance(up->ts, up->fprolong, up->fprolong);
+
+  // Filter only the part fluctuating along shift_dir, and add its average back.
+  bc_twistshift_shift_dir_avg(up);
+  gkyl_array_accumulate_range(up->fprolong, -1.0, up->favg, &up->ghost_r);
   gkyl_dg_lowpass_filter_advance(up->filter, up->fprolong, up->filt_buff);
+  gkyl_array_accumulate_range(up->filt_buff, 1.0, up->favg, &up->ghost_r);
+
   gkyl_array_copy_range(up->fprolong, up->filt_buff, &up->ghost_r);
   up->coarsen_func(up, ftar);
 }
@@ -199,6 +249,57 @@ gkyl_bc_twistshift_inew(const struct gkyl_bc_twistshift_inp *inp)
     &up->ghost_r, inp->use_gpu
   );
 
+  // The following is complicated stuff to detect the correct basis functions that are y-independent.
+  // It will be removed once we have adapted DG average updater to treat phase space.
+  up->shift_dir = inp->shift_dir;
+  assert(
+    up->ghost_r.upper[up->shift_dir] - up->ghost_r.lower[up->shift_dir] + 1 ==
+    inp->grid->cells[up->shift_dir]
+  );
+  int alo[GKYL_MAX_DIM], aup[GKYL_MAX_DIM];
+  for (int d = 0; d < ndim; d++) {
+    alo[d] = up->ghost_r.lower[d];
+    aup[d] = up->ghost_r.upper[d];
+  }
+  aup[up->shift_dir] = alo[up->shift_dir];
+  gkyl_sub_range_init(&up->ghost_avg_r, &up->ts_ext_r, alo, aup);
+  up->favg = mkarr(inp->use_gpu, inp->basis->num_basis, up->ts_ext_r.volume);
+
+  // This is a bad check to see if the basis is independent of shift_dir, but it will do for now.
+  int nb = inp->basis->num_basis;
+  up->shift_indep = gkyl_malloc(nb * sizeof(int));
+  double *b0 = gkyl_malloc(nb * sizeof(double)), *b1 = gkyl_malloc(nb * sizeof(double));
+  double zset[2][GKYL_MAX_DIM] = {
+    {0.23, -0.41, 0.67, 0.19, -0.53, 0.31}, {-0.62, 0.37, -0.17, 0.83, 0.29, -0.71}
+  };
+  for (int k = 0; k < nb; k++) {
+    up->shift_indep[k] = 1;
+  }
+  for (int s = 0; s < 2; s++) {
+    double z0[GKYL_MAX_DIM], z1[GKYL_MAX_DIM];
+    for (int d = 0; d < ndim; d++) {
+      z0[d] = z1[d] = zset[s][d];
+    }
+    z0[up->shift_dir] = -0.6;
+    z1[up->shift_dir] = 0.35;
+    inp->basis->eval(z0, b0);
+    inp->basis->eval(z1, b1);
+    for (int k = 0; k < nb; k++) {
+      if (fabs(b0[k] - b1[k]) > 1.0e-12) {
+        up->shift_indep[k] = 0;
+      }
+    }
+  }
+  gkyl_free(b0);
+  gkyl_free(b1);
+  up->shift_indep_cu = NULL;
+#ifdef GKYL_HAVE_CUDA
+  if (inp->use_gpu) {
+    up->shift_indep_cu = gkyl_cu_malloc(nb * sizeof(int));
+    gkyl_cu_memcpy(up->shift_indep_cu, up->shift_indep, nb * sizeof(int), GKYL_CU_MEMCPY_H2D);
+  }
+#endif
+
   if (up->upsample_factor > 1) {
     up->prolong = gkyl_dg_interpolate_new(
       inp->cdim, inp->basis, inp->grid, &up->ts_grid, &up->coarse_ghost_r, &up->ghost_r,
@@ -291,6 +392,13 @@ gkyl_bc_twistshift_release(struct gkyl_bc_twistshift *up)
     gkyl_dg_lowpass_filter_release(up->filter);
     gkyl_array_release(up->fprolong);
     gkyl_array_release(up->filt_buff);
+    gkyl_array_release(up->favg);
+    gkyl_free(up->shift_indep);
+#ifdef GKYL_HAVE_CUDA
+    if (up->use_gpu) {
+      gkyl_cu_free(up->shift_indep_cu);
+    }
+#endif
   }
   if (up->shift_dg_fine) {
     gkyl_array_release(up->shift_dg_fine);
