@@ -31,7 +31,7 @@ coulomb_log(
   double wcr = qr * bmag / mr; // Cyclotron frequency for species r
   double inner1 = (wps * wps + wcs * wcs) / (Ts / ms + 3 * Ts / ms) +
                   (wpr * wpr + wcr * wcr) / (Tr / mr + 3 * Ts / ms);
-  double usq = 3 * (vts * vts + vtr * vtr); // Relative velocity
+  double usq = 3 * (vts * vts + vtr * vtr); // Squared relative velocity.
   double msr = ms * mr / (ms + mr); // Reduced mass
   double inner2 =
     fmax(fabs(qs * qr) / (4 * M_PI * eps0 * msr * usq), hbar / (2 * exp(0.5) * msr * sqrt(usq)));
