@@ -415,6 +415,101 @@ test_bc_twistshift_conserves_particles_ho(void)
   }
 }
 
+static void
+init_donor_ky0(double t, const double *xn, double *fout, void *ctx)
+{
+  // Steep y-independent (ky = 0) radial profile.
+  double x = xn[0], y = xn[1];
+  double amp_ky = *(double *)ctx;
+  fout[0] = 1.0 + tanh((x - 0.4) / 0.25) +
+            amp_ky * cos(2.0 * M_PI * y / (ts_upper[1] - ts_lower[1])) * exp(-x * x);
+}
+
+void
+test_bc_twistshift_preserves_y_average_ho(void)
+{
+  // The twist-shift only moves the field along y at each x, so it must leave the
+  // y-average (ky = 0 part) of every x cell unchanged.
+  struct ts_ctx tctx = {.offset = 0.75, .shear = 2.9};
+  double dx = (ts_upper[0] - ts_lower[0]) / ts_cells[0];
+  int upsample[] = {1, 4, 4};
+  int half_width[] = {-1, 1, 4};
+  double cutoff[] = {0.0, 2.0 * dx, 2.0 * dx};
+  const char *label[] = {"no filter", "default filter (4,1,2dx)", "filter (4,4,2dx)"};
+  double amp_ky[] = {0.0, 0.5};
+  int ky0_coeffs[] = {0, 1, 3, 5};
+
+  for (int e = 0; e < 2; e++) {
+    enum gkyl_edge_loc edge = e == 0 ? GKYL_LOWER_EDGE : GKYL_UPPER_EDGE;
+    struct ts_setup s;
+    ts_setup_init(&s, edge);
+
+    for (int d = 0; d < 2; d++) {
+      for (int c = 0; c < 3; c++) {
+        // Donor, with periodicity applied along bc_dir.
+        struct gkyl_array *f = gkyl_array_new(GKYL_DOUBLE, s.basis.num_basis, s.local_ext.volume);
+        gkyl_array_clear(f, 0.0);
+        gkyl_proj_on_basis *proj = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
+          .grid = &s.grid,
+          .basis = &s.basis,
+          .num_ret_vals = 1,
+          .eval = init_donor_ky0,
+          .ctx = &amp_ky[d],
+        });
+        gkyl_proj_on_basis_advance(proj, 0.0, &s.local, f);
+        gkyl_proj_on_basis_release(proj);
+        gkyl_array_copy_range_to_range(f, f, &s.ghost_r, &s.skin_r);
+
+        struct gkyl_bc_twistshift *up = gkyl_bc_twistshift_inew(&(struct gkyl_bc_twistshift_inp){
+          .bc_dir = ts_bc_dir,
+          .shift_dir = 1,
+          .shear_dir = 0,
+          .edge = edge,
+          .cdim = ts_cdim,
+          .bcdir_ext_update_r = &s.update_r,
+          .num_ghost = s.ghost,
+          .basis = &s.basis,
+          .grid = &s.grid,
+          .shift_func = shift_func,
+          .shift_func_ctx = &tctx,
+          .use_gpu = false,
+          .upsample_factor = upsample[c],
+          .filter_half_width = half_width[c],
+          .filter_cutoff_wavelength = cutoff[c],
+        });
+        gkyl_bc_twistshift_advance(up, f, f);
+        gkyl_bc_twistshift_release(up);
+
+        // Compare the y-sums of the y-independent coefficients, ghost vs skin, per x cell.
+        int iz_gh = s.ghost_r.lower[ts_bc_dir], iz_sk = s.skin_r.lower[ts_bc_dir];
+        double maxd = 0.0, maxref = 0.0;
+        for (int ix = s.local.lower[0]; ix <= s.local.upper[0]; ix++) {
+          for (int k = 0; k < 4; k++) {
+            double sum_gh = 0.0, sum_sk = 0.0;
+            for (int iy = s.local.lower[1]; iy <= s.local.upper[1]; iy++) {
+              int idx_gh[] = {ix, iy, iz_gh}, idx_sk[] = {ix, iy, iz_sk};
+              sum_gh += ((const double *)gkyl_array_cfetch(f, gkyl_range_idx(&s.local_ext, idx_gh))
+              )[ky0_coeffs[k]];
+              sum_sk += ((const double *)gkyl_array_cfetch(f, gkyl_range_idx(&s.local_ext, idx_sk))
+              )[ky0_coeffs[k]];
+            }
+            maxd = GKYL_MAX2(maxd, fabs(sum_gh - sum_sk));
+            maxref = GKYL_MAX2(maxref, fabs(sum_sk));
+          }
+        }
+
+        TEST_CHECK(maxd < 1.0e-12 * maxref);
+        TEST_MSG(
+          "edge %d, ky!=0 amplitude %.1f, %s: max |<f>_y(ghost) - <f>_y(skin)| / max|<f>_y| = %.3e",
+          e, amp_ky[d], label[c], maxd / maxref
+        );
+
+        gkyl_array_release(f);
+      }
+    }
+  }
+}
+
 void
 test_bc_twistshift_zero_shift_is_identity_ho(void)
 {
@@ -495,8 +590,8 @@ TEST_LIST = {
   {"test_bc_twistshift_plain_matches_twistshift_dg_ho",
    test_bc_twistshift_plain_matches_twistshift_dg_ho},
   {"test_bc_twistshift_conserves_particles_ho", test_bc_twistshift_conserves_particles_ho},
-  {"test_bc_twistshift_only_ghost_plane_written_ho", test_bc_twistshift_only_ghost_plane_written_ho
-  },
+  {"test_bc_twistshift_only_ghost_plane_written_ho",
+   test_bc_twistshift_only_ghost_plane_written_ho},
   {"test_bc_twistshift_identity_filter_matches_plain_ho",
    test_bc_twistshift_identity_filter_matches_plain_ho},
   {"test_bc_twistshift_upsample_no_shear_matches_plain_ho",
@@ -505,5 +600,6 @@ TEST_LIST = {
    test_bc_twistshift_shift_dg_matches_shift_func_ho},
   {"test_bc_twistshift_dealiasing_smooths_shear_direction_ho",
    test_bc_twistshift_dealiasing_smooths_shear_direction_ho},
+  {"test_bc_twistshift_preserves_y_average_ho", test_bc_twistshift_preserves_y_average_ho},
   {NULL, NULL}
 };
