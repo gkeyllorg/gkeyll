@@ -1407,7 +1407,36 @@ local function shortPath(p)
    return p
 end
 
--- Compares two .gkyl files (field data or dynvector) element-by-element.
+-- Type-5 files contain only a base header and MessagePack metadata, not an
+-- array. Read the native-endian uint64 header as written by array_rio.c and
+-- check its length before decoding, so truncated metadata cannot pass.
+local function readMultiblockMeta(path)
+   local file = io.open(path, "rb")
+   if not file then return nil end
+   local data = file:read("*a")
+   file:close()
+   if not data or #data < 29 or data:sub(1, 5) ~= "gkyl0" then return nil end
+
+   local ffi = require "ffi"
+   local header = ffi.new("uint64_t[3]")
+   ffi.copy(header, data:sub(6, 29), 24)
+   if header[0] ~= 1 or header[1] ~= 5 or header[2] ~= #data - 29 then
+      return nil
+   end
+   local ok, meta = pcall(require("Lib.MessagePack").unpack, data:sub(30))
+   if not ok or type(meta) ~= "table" then return nil end
+   if type(meta.time) ~= "number" or meta.time ~= meta.time
+      or math.abs(meta.time) == math.huge
+      or type(meta.frame) ~= "number" or meta.frame < 0
+      or meta.frame == math.huge or meta.frame ~= math.floor(meta.frame)
+      or type(meta.topo_file) ~= "string" or meta.topo_file == ""
+      or type(meta.app_name) ~= "string" or meta.app_name == "" then
+      return nil
+   end
+   return meta
+end
+
+-- Compares .gkyl arrays, dynvectors, topology, and multiblock metadata.
 -- absTol / relTol: optional absolute and relative tolerance thresholds.
 --   Defaults to 1e-12 for both (strict CPU comparison).
 --   Pass looser values (e.g. 1e-7) for GPU-vs-accepted comparisons.
@@ -1473,6 +1502,26 @@ local function compareFiles(f1, f2, absTol, relTol)
          return true
       end
 
+      if f1type == "multi-block-meta" then
+         local meta1, meta2 = readMultiblockMeta(f1), readMultiblockMeta(f2)
+         if not meta1 or not meta2 then
+            return false, "multiblock metadata read failed"
+         end
+         -- Compare scalar metadata exactly, independent of MessagePack map
+         -- ordering. The file walk separately checks block arrays and topology.
+         for key, value in pairs(meta1) do
+            if value ~= meta2[key] then
+               return false, "multiblock metadata mismatch: " .. tostring(key)
+            end
+         end
+         for key in pairs(meta2) do
+            if meta1[key] == nil then
+               return false, "multiblock metadata mismatch: " .. tostring(key)
+            end
+         end
+         return true
+      end
+
       -- arrayNewFromFile returns (nil, nil) on failure rather than throwing.
       local g1, a1 = G0.Zero.arrayNewFromFile(f1)
       local g2, a2 = G0.Zero.arrayNewFromFile(f2)
@@ -1493,6 +1542,9 @@ local function compareFiles(f1, f2, absTol, relTol)
       local diff = G0.Zero.arrayDiff(a1, a2, r1)
 
       if not diff.is_compatible then return false, "incompatible arrays" end
+      -- arrayDiff returns signed extrema of (accepted - candidate). Use both
+      -- ends so increases in candidate values cannot evade the absolute check.
+      local maxAbsDiff = math.max(math.abs(diff.max_abs_diff), math.abs(diff.min_abs_diff))
       -- Combined tolerance: fail only when BOTH absolute and relative thresholds
       -- are exceeded.  Near-zero values naturally have large relative differences
       -- (e.g. 1e-15 vs -1e-15 → rel=200%) but negligible absolute differences;
@@ -1500,12 +1552,12 @@ local function compareFiles(f1, f2, absTol, relTol)
       -- differences.  Failing on either alone produces false positives.
       -- When max_abs_diff is 0, the condition short-circuits safely (handles the
       -- 0/0 → DBL_MAX rel case from gkyl_array_diff).
-      if diff.max_abs_diff > absTol and diff.max_rel_diff > relTol then
+      if maxAbsDiff > absTol and diff.max_rel_diff > relTol then
          verboseLog(string.format(
             "    ... max abs diff %g (tol %g), max rel diff %g (tol %g)\n",
-            diff.max_abs_diff, absTol, diff.max_rel_diff, relTol))
+            maxAbsDiff, absTol, diff.max_rel_diff, relTol))
          return false, string.format("max_abs=%.3g max_rel=%.3g",
-            diff.max_abs_diff, diff.max_rel_diff)
+            maxAbsDiff, diff.max_rel_diff)
       end
 
       return true
