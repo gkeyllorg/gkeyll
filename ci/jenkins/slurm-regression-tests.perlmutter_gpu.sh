@@ -38,8 +38,10 @@ fi
 [[ "$CI_REGRESSION_MODE" == candidate-check ]] || { echo "Unknown CI_REGRESSION_MODE: $CI_REGRESSION_MODE" >&2; exit 2; }
 : "${CI_CANDIDATE_PREFIX:?CI_CANDIDATE_PREFIX must name the candidate install prefix}"
 : "${CI_CANDIDATE_DIR:?CI_CANDIDATE_DIR must name the candidate checkout}"
+: "${CI_TRUSTED_CHECKER:?CI_TRUSTED_CHECKER must name the reviewed regression checker}"
 candidate_gkeyll="$CI_CANDIDATE_PREFIX/gkeyll/bin/gkeyll"
 test -x "$candidate_gkeyll"
+test -s "$CI_TRUSTED_CHECKER"
 
 cd "$CI_CANDIDATE_DIR"
 # Use only C accepted output from the fixed baseline. Do not carry Lua
@@ -61,7 +63,8 @@ srun --ntasks=1 --cpus-per-task=32 --gpus-per-task=1 --cpu-bind=cores \
 elapsed="$(( $(date +%s) - started ))"
 printf '%s\n' "$elapsed" > "$CI_WORKSPACE/candidate-c-regression-check-seconds.txt"
 echo "Candidate C-regression check runtime: $elapsed seconds"
-"$baseline_gkeyll" "$CI_BASELINE_DIR/ci/jenkins/check_regression_results.lua" \
+cd "$CI_BASELINE_DIR"
+"$baseline_gkeyll" -S "$CI_TRUSTED_CHECKER" \
   "$CI_CANDIDATE_PREFIX/gkeyll-results" \
   "$CI_CANDIDATE_DIR/ci/jenkins/expected_regression_diffs.txt" \
   "$CI_WORKSPACE/ci-regression-summary.txt" \
