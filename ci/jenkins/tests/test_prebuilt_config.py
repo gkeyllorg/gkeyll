@@ -131,6 +131,79 @@ class PrebuiltConfigTests(unittest.TestCase):
         self.assertEqual((self.prefix / 'gkeyll/share/adas/recomb_h.npy').read_bytes(),
                          (self.adas / 'recomb_h.npy').read_bytes())
 
+    @unittest.skipUnless(shutil.which('cc'), 'A C compiler is needed for the runtime fixture')
+    def test_compiled_runtime_reads_each_builds_adas_with_legacy_share_override(self):
+        repository = Path(__file__).resolve().parents[3]
+        original_config = self.config.read_text()
+        main = self.run / 'adas_probe.c'
+        main.write_text('''#include <stdio.h>
+
+int
+main(void)
+{
+  const char *files[] = {
+    "ioniz_h.npy", "recomb_h.npy", "logT_h.npy", "logN_h.npy", "radiation_fit_parameters.txt"
+  };
+  puts(GKYL_SHARE_DIR);
+  for (int index = 0; index < 5; ++index) {
+    char path[4096];
+    snprintf(path, sizeof path, "%s/adas/%s", GKYL_SHARE_DIR, files[index]);
+    FILE *file = fopen(path, "rb");
+    if (!file) {
+      perror(path);
+      return 1;
+    }
+    int first_byte = fgetc(file);
+    fclose(file);
+    if (first_byte != (index == 4 ? 'r' : 0)) return 2;
+  }
+  return 0;
+}
+''')
+        probe = self.run / 'probe.mk'
+        # Use the real Makefile's compiler flag and recursive-make export, not
+        # a separate approximation of how GKYL_SHARE_DIR becomes a C string.
+        probe.write_text(
+            'ci-adas-probe:\n\t$(MAKE) -f probe.mk ci-adas-compile\n'
+            'ci-adas-compile:\n'
+            '\t$(CC) $(CFLAGS) adas_probe.c -o adas_probe\n')
+        assignments = (
+            '',  # Generated configs normally use the Makefile default.
+            f'GKYL_SHARE_DIR = {self.original}/gkeyll/share\n',  # Run 117.
+            'GKYL_SHARE_DIR := "$(PREFIX)/gkeyll/share"\n',
+            'override GKYL_SHARE_DIR := /unavailable/share\n',
+        )
+        for index, assignment in enumerate(assignments):
+            with self.subTest(assignment=assignment):
+                self.config.write_text(original_config + assignment)
+                dependencies = self.run / f'dependencies-{index}'
+                for tree in ('candidate', 'baseline'):
+                    prefix = self.run / f'{tree}-{index}/gkylsoft'
+                    write_config(self.config, prefix, dependencies, self.output)
+                    # The source installation and snapshot must not be needed
+                    # to read runtime data after copying into this build.
+                    self.original.rename(self.root / 'original-unavailable')
+                    snapshot = dependencies / 'data/adas'
+                    snapshot.rename(dependencies / 'adas-unavailable')
+                    try:
+                        # Each revision installs its own radiation fits.
+                        (prefix / 'gkeyll/share/adas/radiation_fit_parameters.txt').write_text(
+                            f'revision-specific {tree} fits')
+                        build = subprocess.run(
+                            ['make', '-s', '-f', str(repository / 'Makefile'), '-f', str(probe),
+                             'ci-adas-probe', 'GIT_TIP=fixture',
+                             *(['GKYL_SHARE_DIR=/wrong-command-line-path'] if index == 0 else [])],
+                            cwd=self.run, capture_output=True, text=True)
+                        self.assertEqual(build.returncode, 0, build.stdout + build.stderr)
+                        result = subprocess.run([str(self.run / 'adas_probe')],
+                                                capture_output=True, text=True)
+                        self.assertEqual(result.returncode, 0, result.stderr)
+                        self.assertEqual(result.stdout.strip(), str(prefix / 'gkeyll/share'))
+                    finally:
+                        (self.root / 'original-unavailable').rename(self.original)
+                        (dependencies / 'adas-unavailable').rename(snapshot)
+                self.assertEqual(self.config.read_text(), original_config + assignment)
+
     def test_missing_adas_fails_before_building_for_gyrokinetic_and_pkpm(self):
         for table in self.adas.glob('*.npy'):
             table.unlink()

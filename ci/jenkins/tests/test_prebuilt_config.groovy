@@ -25,6 +25,7 @@ try {
     original.text = """PREFIX=${dependencies}
 INSTALL_PREFIX=${dependencies}
 BUILD_APP=pkpm
+GKYL_SHARE_DIR=${dependencies}/gkeyll/share
 LAPACK_INC_DIR=\$(PREFIX)/OpenBLAS/include
 LAPACK_LIB_DIR=\$(PREFIX)/OpenBLAS/lib
 SUPERLU_INC_DIR=\${PREFIX}/superlu/include
@@ -93,14 +94,15 @@ CONF_LUA_LIB_DIR=${dependencies}/luajit/lib
         probe.text = '''include config.mak
 .PHONY: probe
 probe:
-\t@printf '%s\\n' '$(PREFIX)' '$(INSTALL_PREFIX)' '$(LAPACK_INC_DIR)' '$(SUPERLU_LIB_DIR)' '$(CONF_MPI_LIB_DIR)' '$(CONF_LUA_LIB_DIR)'
+\t@printf '%s\\n' '$(PREFIX)' '$(INSTALL_PREFIX)' '$(GKYL_SHARE_DIR)' '$(LAPACK_INC_DIR)' '$(SUPERLU_LIB_DIR)' '$(CONF_MPI_LIB_DIR)' '$(CONF_LUA_LIB_DIR)'
 '''
         def process = ['make', '-s', '-f', probe.name, 'probe',
                        'PREFIX=/wrong', 'INSTALL_PREFIX=/wrong'].execute(null, tmp)
         def result = process.text.readLines()
         assert process.waitFor() == 0
         assert result.take(2) == [prefix, prefix]
-        result.drop(2).each { path ->
+        assert result[2] == "${prefix}/gkeyll/share"
+        result.drop(3).each { path ->
             assert path.startsWith(binding.env.CI_RUN_DIR + '/dependencies/')
             assert new File(path).isDirectory()
         }

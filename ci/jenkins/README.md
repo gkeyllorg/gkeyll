@@ -84,7 +84,46 @@ directories so installing a revision's radiation fits cannot modify the other
 build, the dependency snapshot, or the original installation. Prebuilt
 gyrokinetic and PKPM configs require ADAS `.npy` tables in the original
 installation; setup fails early if none are present. Prepare that installation
-with `install-deps/mkdeps.sh --build-adas=yes` before using it for CI.
+with `--build-adas=yes` before using it for CI. Run `mkdeps.sh` from
+`install-deps/` and pass the same absolute prefix used by the supplied config;
+otherwise it defaults to the invoking user's `$HOME/gkylsoft`. For an existing
+dependency installation, only the data needs preparing:
+
+```sh
+# Run from the repository root, with Python and NumPy available.
+set -e
+prebuilt_prefix=/opt/gkylsoft  # Replace with PREFIX from the prebuilt config.
+(
+    cd install-deps
+    ./mkdeps.sh --prefix="$prebuilt_prefix" --build-adas=yes
+)
+# Check every generated table; a lone .npy file is not a complete installation.
+for element in h he li be b c n o ar; do
+    for table in ioniz recomb logT logN; do
+        test -s "$prebuilt_prefix/gkeyll/share/adas/${table}_${element}.npy"
+    done
+done
+```
+
+When starting from scratch, build the libraries with the appropriate machine
+dependency script (including ADAS), then configure Gkeyll with that same prefix
+and the intended compiler, MPI, Lua, and CPU/GPU options. Retain the generated
+`config.mak` outside disposable workspaces. Prebuilding a Gkeyll executable is
+not required when supplying the source checkout's config. The agent must see
+the config's absolute dependency paths; container mounts must preserve them.
+
+The runtime path is compiled into Gkeyll through `GKYL_SHARE_DIR`. CI explicitly
+overrides this to each build's `gkylsoft/gkeyll/share`, including when an older
+prebuilt config pins it to the reference installation. Generic dependency-path
+rewriting alone would point such an override into the excluded
+`dependencies/gkylsoft/gkeyll` tree, despite successful ADAS copying. The unit
+build installs radiation fits from the candidate or baseline source revision
+into its own share directory before running tests. These fits are versioned
+source data, separate from the downloaded reaction tables.
+
+After updating the trusted `prebuilt_config.py`, start a new CI run so both
+builds compile with the corrected path. Copying data or editing `config.mak`
+after compilation does not change the path embedded in an existing binary.
 
 Each build gets a config pointing to the copied libraries, with `PREFIX` and
 `INSTALL_PREFIX` set to its own `gkylsoft` directory. CI uses the copied MPI

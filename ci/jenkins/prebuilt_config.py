@@ -206,6 +206,10 @@ def write_config(source, prefix, destination, output, mpiexec=''):
     # Keep the literal assignment for historical regression-tool readers.
     config += (f'\n# Jenkins run installation\nPREFIX={prefix}\n'
                f'override PREFIX := {prefix}\noverride INSTALL_PREFIX := {prefix}\n')
+    # Legacy configs can pin GKYL_SHARE_DIR to the original installation.
+    # Generic dependency remapping points that at an excluded gkeyll tree;
+    # compile against this build's data copy and revision-specific fits instead.
+    config += f'override GKYL_SHARE_DIR := {prefix}/gkeyll/share\n'
     output.write_text(config)
     return runtime_environment(manifest, destination)
 
