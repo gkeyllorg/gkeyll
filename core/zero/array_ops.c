@@ -53,7 +53,6 @@ gkyl_array_accumulate(struct gkyl_array *out, double a, const struct gkyl_array 
   const double *inp_d = inp->data;
   for (size_t i = 0; i < NELM(out); ++i) {
     out_d[i] += a * inp_d[i];
-    asdfasldkfjasldkfn
   }
   return out;
 }

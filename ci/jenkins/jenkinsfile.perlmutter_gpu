@@ -193,6 +193,9 @@ def publishGitHubCommitStatus(String statusCredentialsId, String commit, String 
     if (!(commit ==~ /[0-9a-f]{40}/)) {
         error("Cannot publish a GitHub status for invalid commit SHA '${commit}'.")
     }
+    if (state == 'pending' && params.CI_QUEUE_ID?.trim()) {
+        description = "Gkeyll CI running: starting (Jenkins queue #${params.CI_QUEUE_ID})."
+    }
     if (!['pending', 'success', 'failure', 'error'].contains(state)) {
         error("Invalid GitHub commit-status state '${state}'.")
     }
@@ -468,9 +471,40 @@ def submitParallelRegressionTests(String mode, String baselineDir, String candid
     )
 }
 
+// The config is supplied by the machine owner, outside disposable workspaces.
+// Keep this helper in the trusted Pipeline so older candidate/baseline refs work.
+def usePrebuiltConfig(String prefix) {
+    def source = env.GKEYLL_CI_PREBUILT_CONFIG?.trim()
+    if (!source) return false
+    if (!source.startsWith('/') || !fileExists(source)) {
+        error('GKEYLL_CI_PREBUILT_CONFIG must name an existing absolute config.mak path on the agent.')
+    }
+    def config = readFile(file: source)
+    if (!(config =~ /(?m)^PREFIX\s*[:?]?=/)) {
+        error('Prebuilt config.mak must define PREFIX and the paths for its dependencies.')
+    }
+    // Preserve dependency expressions relative to the original PREFIX, while
+    // installing and linking Gkeyll itself exclusively inside this build.
+    config = config.replaceAll(/(?m)^PREFIX(?=\s*[:?]?=)/, 'GKEYLL_CI_DEPENDENCY_PREFIX')
+    config = config.replace('$(PREFIX)', '$(GKEYLL_CI_DEPENDENCY_PREFIX)')
+        .replace('${PREFIX}', '${GKEYLL_CI_DEPENDENCY_PREFIX}')
+    config += "\n# Jenkins workspace installation\noverride PREFIX := ${prefix}\noverride INSTALL_PREFIX := ${prefix}\n"
+    writeFile file: 'config.mak', text: config
+    // configure normally creates this second file too. Build before installing,
+    // including with parallel make, and reuse the checkout's install recipes.
+    writeFile file: 'alltargets.mak', text: '''.PHONY: all install
+all: gkeyll
+install: gkeyll
+	$(MAKE) gkeyll-install
+'''
+    echo "Using prebuilt dependencies from ${source}; installing Gkeyll in ${prefix}"
+    return true
+}
+
 def configureAndCompileCRegressions(String label, String driver, String sourceDir, String prefix, String moduleFile, String runOptions = '', String configureOptions = '') {
     withEnv([
         "CI_REGRESSION_LABEL=${label}",
+        "CI_REGRESSION_COMPILE_JOBS=${buildJobs()}",
         "CI_REGRESSION_DRIVER=${driver}",
         "CI_REGRESSION_SOURCE_DIR=${sourceDir}",
         "CI_REGRESSION_PREFIX=${prefix}",
@@ -486,7 +520,7 @@ def configureAndCompileCRegressions(String label, String driver, String sourceDi
                 --source-dir "$CI_REGRESSION_SOURCE_DIR" \
                 --prefix "$CI_REGRESSION_PREFIX" ${CI_REGRESSION_CONFIGURE_OPTIONS:-}
             started="$(date +%s)"
-            "$CI_REGRESSION_DRIVER" runregression run -c ${CI_REGRESSION_RUN_OPTIONS:-} compile
+            "$CI_REGRESSION_DRIVER" runregression run -c ${CI_REGRESSION_RUN_OPTIONS:-} --jobs "$CI_REGRESSION_COMPILE_JOBS" compile
             elapsed="$(( $(date +%s) - started ))"
             printf '%s\n' "$elapsed" > "$CI_WORKSPACE/$CI_REGRESSION_LABEL-c-compile-seconds.txt"
             echo "$CI_REGRESSION_LABEL C-regression compile time: $elapsed seconds"
@@ -652,8 +686,10 @@ def workspaceRoot = "${gkeyllCiRoot}/workspaces"
 def statusCredentialsId = requireValue('PERLMUTTER_GPU_GITHUB_CREDENTIAL_ID', env.PERLMUTTER_GPU_GITHUB_CREDENTIAL_ID)
 def candidateSelector = ''
 def baselineSelector = ''
+def queuedCommit = params.CI_QUEUE_COMMIT?.trim()
+if (queuedCommit && !isCommitSha(queuedCommit)) error('CI_QUEUE_COMMIT must be a full commit SHA.')
+def candidateCommit = queuedCommit ?: (isCommitSha(candidateRef ?: '') ? candidateRef : '')
 def baselineCommit = ''
-def candidateCommit = isCommitSha(candidateRef ?: '') ? candidateRef : ''
 def candidateDir = ''
 def terminalStatus = 'failure'
 def terminalDescription = 'Perlmutter GPU CI failed.'
@@ -692,7 +728,9 @@ node(nodeLabel) {
             }
             ciStage('Checkout candidate') {
                 deleteDir()
-                if (candidatePr) {
+                if (queuedCommit) {
+                    checkoutRef(queuedCommit, 'candidate')
+                } else if (candidatePr) {
                     checkoutPullRequest(candidatePr)
                 } else {
                     checkoutRef(candidateRef, 'candidate')
@@ -730,7 +768,7 @@ node(nodeLabel) {
                 )
             }
             ciStage('Build dependencies') {
-                withEnv(["PREFIX=${candidateDir}/gkylsoft"]) {
+                if (!env.GKEYLL_CI_PREBUILT_CONFIG?.trim()) withEnv(["PREFIX=${candidateDir}/gkylsoft"]) {
                     dir("${candidateDir}/gkeyll") {
                         loggedSh("candidate-dependencies", '''#!/bin/bash -l
                         set -euo pipefail
@@ -742,7 +780,7 @@ node(nodeLabel) {
             ciStage('Configure') {
                 withEnv(["PREFIX=${candidateDir}/gkylsoft"]) {
                     dir("${candidateDir}/gkeyll") {
-                        loggedSh("candidate-configure", '''#!/bin/bash -l
+                        if (!usePrebuiltConfig("${candidateDir}/gkylsoft")) loggedSh("candidate-configure", '''#!/bin/bash -l
                         set -euo pipefail
                         ./machines/configure.perlmutter.gpu.sh
                     ''')
@@ -801,7 +839,7 @@ node(nodeLabel) {
                 ciStage('Build Perlmutter GPU baseline') {
                     withEnv(["PREFIX=${baselineStage}/gkylsoft"]) {
                         dir("${baselineStage}/gkeyll") {
-                        loggedSh("baseline-setup", '''#!/bin/bash -l
+                        if (!usePrebuiltConfig("${baselineStage}/gkylsoft")) loggedSh("baseline-setup", '''#!/bin/bash -l
                             set -euo pipefail
                             . machines/module_load.perlmutter-gpu.sh
                             ./machines/mkdeps.perlmutter.gpu.sh
