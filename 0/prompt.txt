@@ -1,0 +1,71 @@
+I see that the last build had a segfault here. Explain why it happened. How can we fix it? What went wrong? Can you reproduce the error? 
+
+Will write accepted results to /home/jenkins/agent/ci-data/runs/personal/jenkins-gkeyll-ci-personal-118/candidate/26a475835127bfccad866cfd075a8b93e5036a41/gkylsoft/gkeyll-results ...
+Creating DB for layer 'moments' at /home/jenkins/agent/ci-data/runs/personal/jenkins-gkeyll-ci-personal-118/candidate/26a475835127bfccad866cfd075a8b93e5036a41/gkylsoft/gkeyll-results/parallel-c-4/moments/regressiondb
+Creating DB for layer 'vlasov' at /home/jenkins/agent/ci-data/runs/personal/jenkins-gkeyll-ci-personal-118/candidate/26a475835127bfccad866cfd075a8b93e5036a41/gkylsoft/gkeyll-results/parallel-c-4/vlasov/regressiondb
+Creating DB for layer 'gyrokinetic' at /home/jenkins/agent/ci-data/runs/personal/jenkins-gkeyll-ci-personal-118/candidate/26a475835127bfccad866cfd075a8b93e5036a41/gkylsoft/gkeyll-results/parallel-c-4/gyrokinetic/regressiondb
+Creating DB for layer 'pkpm' at /home/jenkins/agent/ci-data/runs/personal/jenkins-gkeyll-ci-personal-118/candidate/26a475835127bfccad866cfd075a8b93e5036a41/gkylsoft/gkeyll-results/parallel-c-4/pkpm/regressiondb
+Configuration written to /home/jenkins/agent/ci-data/runs/personal/jenkins-gkeyll-ci-personal-118/candidate/26a475835127bfccad866cfd075a8b93e5036a41/gkylsoft/gkeyll-results/runregression.config.lua
+CPU-only build
+Compiling 16 C regression tests with 12 worker(s) ...
+[C] Compiled vlasov/creg/rt_vlasov_twostream_p2
+[C] Compiled gyrokinetic/creg/rt_gk_ion_sound_adiabatic_elc_1x2v_p1
+[C] Compiled vlasov/creg/rt_vlasov_weibel_2x2v_p2
+[C] Compiled gyrokinetic/creg/rt_gk_sheath_2x2v_p1
+[C] Compiled moments/creg/rt_5m_mom_beach
+[C] Compiled gyrokinetic/creg/rt_gk_ltx_1x2v_p1
+[C] Compiled gyrokinetic/creg/rt_gk_multib_step_sol_2x2v_p1
+[C] Compiled gyrokinetic/creg/rt_gk_mirror_boltz_elc_1x2v_p1
+[C] Compiled moments/creg/rt_10m_gem
+[C] Compiled gyrokinetic/creg/rt_gk_d3d_iwl_2x2v_p1
+[C] Compiled gyrokinetic/creg/rt_gk_lapd_cyl_3x2v_p1
+[C] Compiled gyrokinetic/creg/rt_gk_cbc_3x2v_p1
+[C] Compiled pkpm/creg/rt_pkpm_alf_soliton_1x_p2
+[C] Compiled gyrokinetic/creg/rt_gk_wham_boltz_elc_poa_1x2v_p1
+[C] Compiled pkpm/creg/rt_pkpm_2d_travel_pulse_p1
+[C] Compiled gyrokinetic/creg/rt_gk_tcv_iwl_adapt_source_3x2v_p1
+Compiled 16 C regression test(s); 0 failed.
+CPU-only build
+Running parallel C regression tests serially by MPI collective ...
+
+[C] running moments/creg/rt_5m_mom_beach
+... completed (0.159 sec, 1/16)
+... passed moments/creg/rt_5m_mom_beach.
+[C] running moments/creg/rt_10m_gem
+... completed (2.541 sec, 2/16)
+... passed moments/creg/rt_10m_gem.
+[C] running vlasov/creg/rt_vlasov_twostream_p2
+... completed (4.426 sec, 3/16)
+... passed vlasov/creg/rt_vlasov_twostream_p2.
+[C] running vlasov/creg/rt_vlasov_weibel_2x2v_p2
+... completed (3.089 sec, 4/16)
+... passed vlasov/creg/rt_vlasov_weibel_2x2v_p2.
+[C] running gyrokinetic/creg/rt_gk_cbc_3x2v_p1
+... completed (5.620 sec, 5/16)
+bash: line 19: 48065 Segmentation fault         (core dumped) "/home/jenkins/agent/ci-data/runs/personal/jenkins-gkeyll-ci-personal-118/candidate/26a475835127bfccad866cfd075a8b93e5036a41/gkylsoft/gkeyll/bin/gkeyll" runregression run --c-only --parallel --execute-only check
+[Pipeline] }
+[Pipeline] // withEnv
+[Pipeline] }
+[Pipeline] // dir
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] sh
+baseline_cache_status=miss
+candidate_unit_build_seconds=184
+baseline_unit_build_seconds=153
+candidate_unit_test_seconds=47
+baseline_unit_test_seconds=46
+candidate_regression_build_seconds=10
+baseline_regression_build_seconds=8
+candidate_install_seconds=6
+baseline_install_seconds=6
+candidate_c_compile_seconds=8
+baseline_c_compile_seconds=53
+candidate_parallel_c_compile_seconds=1
+baseline_parallel_c_compile_seconds=4
+baseline_c_regression_create_seconds=1316
+candidate_c_regression_check_seconds=548
+baseline_parallel_c_regression_create_seconds=265
+candidate_parallel_c_regression_check_seconds=not-recorded
+[Pipeline] sh
++ /home/jenkins/agent/workspace/gkeyll-ci-personal@tmp/trusted-reporting/baseline_cache.sh stage-candidate-artifacts /home/jenkins/agent/ci-data personal 26a475835127bfccad866cfd075a8b93e5036a41 /home/jenkins/agent/workspace/gkeyll-ci-personal c8e4e4d01325ebd3cb0351ebbefab9f68ce2c504

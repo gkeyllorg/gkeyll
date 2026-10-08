@@ -1,0 +1,30 @@
+{
+  "cli_version": "0.11.4",
+  "checkpoint_id": "01M4ES9QZ8Y6V1W1228KBE2E59",
+  "strategy": "manual-commit",
+  "branch": "jenkins-github-more-reporting",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "core/unit/ctest_array.c",
+    "core/zero/array_rio.c",
+    "gkeyll/lua/Tool/runregression.lua",
+    "gyrokinetic/apps/gk_species_source_bgk.c"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 92818,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 3283200,
+    "output_tokens": 12655,
+    "api_call_count": 49,
+    "subagent_tokens_complete": true
+  }
+}
