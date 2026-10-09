@@ -6,16 +6,16 @@
 #include <gkyl_dg_vlasov_priv.h>
 
 void
-test_dg_vlasov()
+test_dg_vlasov_ho()
 {
   struct gkyl_basis cbasis, pbasis;
   gkyl_cart_modal_serendip(&cbasis, 1, 1);
   gkyl_cart_modal_serendip(&pbasis, 2, 1);
 
   struct gkyl_range crange;
-  gkyl_range_init_from_shape(&crange, 1, (int[]) { 100 } );
+  gkyl_range_init_from_shape(&crange, 1, (int[]){100});
   struct gkyl_range prange;
-  gkyl_range_init_from_shape(&prange, 2, (int[]) { 100, 100 } );
+  gkyl_range_init_from_shape(&prange, 2, (int[]){100, 100});
 
   // initialize eqn
   struct gkyl_dg_eqn *eqn;
@@ -23,15 +23,15 @@ test_dg_vlasov()
   enum gkyl_model_id model_id = GKYL_MODEL_DEFAULT;
   eqn = gkyl_dg_vlasov_new(&cbasis, &pbasis, &crange, &prange, model_id, field_id, false);
 
-  TEST_CHECK( eqn->num_equations == 1 );
+  TEST_CHECK(eqn->num_equations == 1);
 
   // this is not possible from user code and should NOT be done. This
   // is for testing only
   struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
 
-  TEST_CHECK( vlasov->cdim == 1 );
-  TEST_CHECK( vlasov->pdim == 2 );
-  TEST_CHECK( vlasov->conf_range.volume == 100 );
+  TEST_CHECK(vlasov->cdim == 1);
+  TEST_CHECK(vlasov->pdim == 2);
+  TEST_CHECK(vlasov->conf_range.volume == 100);
 
   gkyl_dg_eqn_release(eqn);
 }
@@ -41,16 +41,16 @@ test_dg_vlasov()
 int cu_vlasov_test(const struct gkyl_dg_eqn *eqn);
 
 void
-test_cu_dg_vlasov()
+test_dg_vlasov_dev()
 {
   struct gkyl_basis cbasis, pbasis;
   gkyl_cart_modal_serendip(&cbasis, 1, 1);
   gkyl_cart_modal_serendip(&pbasis, 2, 1);
 
   struct gkyl_range crange;
-  gkyl_range_init_from_shape(&crange, 1, (int[]) { 100 } );
+  gkyl_range_init_from_shape(&crange, 1, (int[]){100});
   struct gkyl_range prange;
-  gkyl_range_init_from_shape(&prange, 2, (int[]) { 100, 100 } );
+  gkyl_range_init_from_shape(&prange, 2, (int[]){100, 100});
 
   // initialize eqn
   struct gkyl_dg_eqn *eqn;
@@ -62,9 +62,9 @@ test_cu_dg_vlasov()
   // is for testing only
   struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
 
-  TEST_CHECK( vlasov->cdim == 1 );
-  TEST_CHECK( vlasov->pdim == 2 );
-  TEST_CHECK( vlasov->conf_range.volume == 100 );
+  TEST_CHECK(vlasov->cdim == 1);
+  TEST_CHECK(vlasov->pdim == 2);
+  TEST_CHECK(vlasov->conf_range.volume == 100);
 
   /* int nfail = cu_vlasov_test(eqn->on_dev); */
 
@@ -76,9 +76,9 @@ test_cu_dg_vlasov()
 #endif
 
 TEST_LIST = {
-  { "dg_vlasov", test_dg_vlasov },
+  {"dg_vlasov_ho", test_dg_vlasov_ho},
 #ifdef GKYL_HAVE_CUDA
-  { "cu_dg_vlasov", test_cu_dg_vlasov },
-#endif  
-  { NULL, NULL },
+  {"dg_vlasov_dev", test_dg_vlasov_dev},
+#endif
+  {NULL, NULL}
 };

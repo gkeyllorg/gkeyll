@@ -22,6 +22,6 @@ void gkyl_array_reduce(double *res, const struct gkyl_array *arr, enum gkyl_arra
  * @param op Reduction operators.
  * @param range Range specifying region.
  */
-void gkyl_array_reduce_range(double *res,
-  const struct gkyl_array *arr, enum gkyl_array_op op, const struct gkyl_range *range);
-
+void gkyl_array_reduce_range(
+  double *res, const struct gkyl_array *arr, enum gkyl_array_op op, const struct gkyl_range *range
+);

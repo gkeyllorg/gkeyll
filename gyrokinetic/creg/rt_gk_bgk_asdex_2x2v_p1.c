@@ -68,7 +68,8 @@ eval_density(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fou
   double floor = 0.01;
 
   fout[0] = fmax(
-    exp(-128.48398224 * x + 62.52416972), floor
+    exp(-128.48398224 * x + 62.52416972),
+    floor
   ); // The coefficients from fitting the data points on Fig. 7 Carralero 2017 Nuclear Fusion.
 }
 
@@ -447,8 +448,8 @@ main(int argc, char **argv)
          .projection = elc_ic,
        },
        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-       {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
-       {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH}},
+       {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+       {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}},
 
     .num_diag_moments = 9,
     .diag_moments =
@@ -549,8 +550,8 @@ main(int argc, char **argv)
          .projection = ion_ic,
        },
        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-       {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
-       {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH}},
+       {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+       {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}},
 
     .num_diag_moments = 9,
     .diag_moments =

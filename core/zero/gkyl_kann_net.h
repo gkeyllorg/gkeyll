@@ -19,11 +19,11 @@ struct gkyl_kann_net;
  * Hyperparameters for training a feed-forward network.
  */
 struct gkyl_kann_train_params {
-  float learning_rate;    // learning rate for RMSprop
-  int mini_size;          // mini-batch size
-  int max_epoch;          // maximum number of training epochs
-  int max_drop_streak;    // max epochs without validation improvement
-  float frac_val;         // fraction of samples used for validation
+  float learning_rate; // learning rate for RMSprop
+  int mini_size; // mini-batch size
+  int max_epoch; // maximum number of training epochs
+  int max_drop_streak; // max epochs without validation improvement
+  float frac_val; // fraction of samples used for validation
 };
 
 /**
@@ -35,7 +35,7 @@ struct gkyl_kann_train_params {
  * @param use_gpu If true, allocate network data on GPU
  * @return New network wrapper, or NULL on failure
  */
-struct gkyl_kann_net* gkyl_kann_net_new(kad_node_t *cost, bool use_gpu);
+struct gkyl_kann_net *gkyl_kann_net_new(kad_node_t *cost, bool use_gpu);
 
 /**
  * Load a previously saved KANN network from file.
@@ -44,7 +44,7 @@ struct gkyl_kann_net* gkyl_kann_net_new(kad_node_t *cost, bool use_gpu);
  * @param use_gpu If true, allocate network data on GPU
  * @return Loaded network wrapper, or NULL on failure
  */
-struct gkyl_kann_net* gkyl_kann_net_load(const char *filename, bool use_gpu);
+struct gkyl_kann_net *gkyl_kann_net_load(const char *filename, bool use_gpu);
 
 /**
  * Save the network to file. If the network is on GPU, weights are
@@ -65,9 +65,10 @@ void gkyl_kann_net_save(const struct gkyl_kann_net *net, const char *filename);
  * @param out Training output vectors (nvec samples, each of length N)
  * @return Number of epochs completed
  */
-int gkyl_kann_net_train_fnn1(struct gkyl_kann_net *net,
-  const struct gkyl_kann_train_params *params,
-  const struct gkyl_kn_vec *inp, const struct gkyl_kn_vec *out);
+int gkyl_kann_net_train_fnn1(
+  struct gkyl_kann_net *net, const struct gkyl_kann_train_params *params,
+  const struct gkyl_kn_vec *inp, const struct gkyl_kn_vec *out
+);
 
 /**
  * Run inference on a batch of input vectors.
@@ -77,8 +78,9 @@ int gkyl_kann_net_train_fnn1(struct gkyl_kann_net *net,
  * @param out Output vectors (nvec samples, each of length N = n_out).
  *            Filled by this function.
  */
-void gkyl_kann_net_apply(struct gkyl_kann_net *net,
-  const struct gkyl_kn_vec *inp, struct gkyl_kn_vec *out);
+void gkyl_kann_net_apply(
+  struct gkyl_kann_net *net, const struct gkyl_kn_vec *inp, struct gkyl_kn_vec *out
+);
 
 /**
  * Run sequential RNN inference over a sequence of input vectors.
@@ -92,8 +94,9 @@ void gkyl_kann_net_apply(struct gkyl_kann_net *net,
  * @param out Output vectors (nvec timesteps, each of length N = n_out).
  *            Filled by this function.
  */
-void gkyl_kann_net_apply_rnn(struct gkyl_kann_net *net,
-  const struct gkyl_kn_vec *inp, struct gkyl_kn_vec *out);
+void gkyl_kann_net_apply_rnn(
+  struct gkyl_kann_net *net, const struct gkyl_kn_vec *inp, struct gkyl_kn_vec *out
+);
 
 /**
  * Get the input dimension of the network (number of floats per input
@@ -135,7 +138,7 @@ bool gkyl_kann_net_is_cu_dev(const struct gkyl_kann_net *net);
  * @param net Network to acquire
  * @return Pointer to acquired network
  */
-struct gkyl_kann_net* gkyl_kann_net_acquire(const struct gkyl_kann_net *net);
+struct gkyl_kann_net *gkyl_kann_net_acquire(const struct gkyl_kann_net *net);
 
 /**
  * Release a reference to the network. When the reference count

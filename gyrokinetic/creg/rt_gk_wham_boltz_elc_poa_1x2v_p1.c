@@ -246,12 +246,12 @@ create_ctx(void)
   double tau_oap = 3.0e-6;
   double tau_fdp = 2.0e-9;
   double tau_fdp_extra = 2. * tau_fdp;
-  int num_cycles = 2; // Number of OAP+FDP cycles to run.
+  int num_cycles = 3; // Number of OAP+FDP cycles to run.
 
   // Frame counts for each phase type (specified independently)
   int num_frames_oap = 1; // Frames per OAP phase
   int num_frames_fdp = 1; // Frames per FDP phase
-  int num_frames_fdp_extra = 1; // Frames for the extra FDP phase
+  int num_frames_fdp_extra = 2 * num_frames_fdp; // Frames for the extra FDP phase
 
   // Whether to evolve the field.
   bool is_static_field_oap = true;
@@ -640,8 +640,8 @@ main(int argc, char **argv)
     .positivity = {.type = GKYL_GK_POSITIVITY_SHIFT, .write_diagnostics = true},
 
     .bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH}},
+      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}},
 
     .write_omega_cfl = true,
     .num_diag_moments = 8,

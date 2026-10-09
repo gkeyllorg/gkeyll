@@ -493,9 +493,9 @@ create_ctx(void)
   double vpar_max_ion = 20 * vti;
   double mu_max_ion = mi * pow(3. * vti, 2.) / (2. * B_p);
   int Nx = 4;
-  int Nz = 64;
-  int Nvpar = 32; // Number of cells in the paralell velocity direction 96
-  int Nmu = 32; // Number of cells in the mu direction 192
+  int Nz = 8;
+  int Nvpar = 8; // Number of cells in the paralell velocity direction 96
+  int Nmu = 16; // Number of cells in the mu direction 192
   int poly_order = 1;
 
   double t_end = 1.5e-10;
@@ -681,8 +681,8 @@ main(int argc, char **argv)
          .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
          .projection = elc_ic,
        },
-       {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
-       {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH}},
+       {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+       {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}},
 
     .num_diag_moments = 8,
     .diag_moments =
@@ -775,8 +775,8 @@ main(int argc, char **argv)
          .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
          .projection = ion_ic,
        },
-       {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
-       {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH}},
+       {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+       {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}},
 
     .num_diag_moments = 8,
     .diag_moments =

@@ -61,7 +61,8 @@ gyrokinetic_cuts_check(
       if (comm_rank == 0) {
         fprintf(
           iostream,
-          "\n*** Parallelization only allowed in z. Number of ranks, %d, in direction %d cannot be > 1!\n\n",
+          "\n*** Parallelization only allowed in z. Number of ranks, %d, in direction %d cannot be "
+          "> 1!\n\n",
           cuts_used[d], d
         );
       }
@@ -200,6 +201,10 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
 
   int cdim = app->cdim = gk->cdim;
   int poly_order = app->poly_order = gk->poly_order;
+
+  // Closed flux surface BCs (filter defaults are set in bc_twistshift).
+  app->core_parallel_bcs = gk->geometry.core_parallel_bcs;
+
   int ns = app->num_species = gk->num_species;
   int neuts = app->num_neut_species = gk->num_neut_species;
 
@@ -369,10 +374,10 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
     .comm = app->comm,
     .has_LCFS = gk->geometry.has_LCFS,
     .x_LCFS = gk->geometry.x_LCFS,
-    .parallel_lower_bc_shift_func = gk->geometry.parallel_lower_bc_shift_func,
-    .parallel_upper_bc_shift_func = gk->geometry.parallel_upper_bc_shift_func,
-    .parallel_lower_bc_shift_ctx = gk->geometry.parallel_lower_bc_shift_ctx,
-    .parallel_upper_bc_shift_ctx = gk->geometry.parallel_upper_bc_shift_ctx,
+    .lower_shift_func = gk->geometry.core_parallel_bcs.lower_shift_func,
+    .upper_shift_func = gk->geometry.core_parallel_bcs.upper_shift_func,
+    .lower_shift_ctx = gk->geometry.core_parallel_bcs.lower_shift_ctx,
+    .upper_shift_ctx = gk->geometry.core_parallel_bcs.upper_shift_ctx,
   };
   strcpy(geometry_inp.geometry_path, gk->geometry.geometry_path);
   for (int i = 0; i < 3; i++) {
@@ -533,6 +538,7 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
 
   // Metadata for grid quantities (including metadata optional from user).
   struct gkyl_msgpack_map_elem io_meta_dg[] = {
+    {.key = "value_form", .elem_type = GKYL_MP_STRING, .cval = "modal"},
     {.key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0},
     {.key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0},
     {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = app->basis.poly_order},
@@ -723,8 +729,7 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
 
   if (app->cdim == 3 && (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK ||
                          (app->gk_geom->geometry_id == GKYL_GEOMETRY_MAPC2P &&
-                          app->gk_geom->parallel_lower_bc_shift_func &&
-                          app->gk_geom->parallel_upper_bc_shift_func))) {
+                          app->gk_geom->lower_shift_func && app->gk_geom->upper_shift_func))) {
     // Create grid, range and basis on which the 1D shift will be defined.
     gkyl_rect_grid_init(&app->delta_ts_x_grid, 1, app->grid.lower, app->grid.upper, app->grid.cells);
     struct gkyl_range *ts_s_rng = gk->geometry.has_LCFS ? &app->local_core : &app->local;
@@ -1392,7 +1397,7 @@ gyrokinetic_app_write_ts_shift_mapc2p(struct gkyl_gyrokinetic_app *app)
   for (int eI = 0; eI < 2; eI++) {
     int ghost[] = {1, 1, 1};
     // TS BC updater.
-    struct gkyl_bc_twistshift_inp ts_inp = {
+    struct gkyl_twistshift_dg_inp ts_inp = {
       .bc_dir = par_dir,
       .shift_dir = 1, // y shift.
       .shear_dir = 0, // shift varies with x.
@@ -1404,16 +1409,14 @@ gyrokinetic_app_write_ts_shift_mapc2p(struct gkyl_gyrokinetic_app *app)
       .num_ghost = ghost, // one ghost per config direction
       .basis = &app->basis,
       .grid = &app->grid,
-      .shift_func = eI == 0 ? app->gk_geom->parallel_lower_bc_shift_func :
-                              app->gk_geom->parallel_upper_bc_shift_func,
-      .shift_func_ctx = eI == 0 ? app->gk_geom->parallel_lower_bc_shift_ctx :
-                                  app->gk_geom->parallel_upper_bc_shift_ctx,
+      .shift_func = eI == 0 ? app->gk_geom->lower_shift_func : app->gk_geom->upper_shift_func,
+      .shift_func_ctx = eI == 0 ? app->gk_geom->lower_shift_ctx : app->gk_geom->upper_shift_ctx,
       .use_gpu = app->use_gpu,
     };
-    struct gkyl_bc_twistshift *bc_ts_op = gkyl_bc_twistshift_inew(&ts_inp);
+    struct gkyl_twistshift_dg *bc_ts_op = gkyl_twistshift_dg_inew(&ts_inp);
 
     struct gkyl_array *delta_ts_x = eI == 0 ? app->delta_ts_x_lo : app->delta_ts_x_up;
-    delta_ts_x = gkyl_bc_twistshift_get_shift_objects(
+    delta_ts_x = gkyl_twistshift_dg_get_shift_objects(
       bc_ts_op, &app->delta_ts_x_grid, &app->delta_ts_x_rng, &app->delta_ts_x_basis
     );
 
@@ -1441,6 +1444,7 @@ gyrokinetic_app_write_ts_shift_mapc2p(struct gkyl_gyrokinetic_app *app)
 
     // Package metadata for shift file.
     struct gkyl_msgpack_map_elem io_meta_shift_dg[] = {
+      {.key = "value_form", .elem_type = GKYL_MP_STRING, .cval = "modal"},
       {
         .key = "poly_order",
         .elem_type = GKYL_MP_UNSIGNED_INT,
@@ -1466,7 +1470,7 @@ gyrokinetic_app_write_ts_shift_mapc2p(struct gkyl_gyrokinetic_app *app)
 
     gkyl_array_release(delta_ts_x);
     gkyl_msgpack_data_release(mt_shift);
-    gkyl_bc_twistshift_release(bc_ts_op);
+    gkyl_twistshift_dg_release(bc_ts_op);
   }
 }
 
@@ -1480,7 +1484,7 @@ gyrokinetic_app_write_ts_shift(gkyl_gyrokinetic_app *app)
   }
 
   if (app->gk_geom->geometry_id == GKYL_GEOMETRY_MAPC2P &&
-      (app->gk_geom->parallel_lower_bc_shift_func && app->gk_geom->parallel_upper_bc_shift_func)) {
+      (app->gk_geom->lower_shift_func && app->gk_geom->upper_shift_func)) {
     gyrokinetic_app_write_ts_shift_mapc2p(app);
   } else if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK) {
     int comm_rank, comm_size;
@@ -1490,6 +1494,7 @@ gyrokinetic_app_write_ts_shift(gkyl_gyrokinetic_app *app)
 
     // Write the shift for TS BCs.
     struct gkyl_msgpack_map_elem io_meta_x[] = {
+      {.key = "value_form", .elem_type = GKYL_MP_STRING, .cval = "modal"},
       {
         .key = "poly_order",
         .elem_type = GKYL_MP_UNSIGNED_INT,
@@ -1803,11 +1808,14 @@ gkyl_gyrokinetic_app_write_geometry(
     sprintf(fileNm, fmt, app->name, "geo_corn_nodes");
 
     // Package metadata for node file.
-    struct gkyl_msgpack_map_elem desc_nodes[] = {{
-      .key = "Description",
-      .elem_type = GKYL_MP_STRING,
-      .cval = "Physical coordinates of grid corner nodes.",
-    }};
+    struct gkyl_msgpack_map_elem desc_nodes[] = {
+      {
+        .key = "Description",
+        .elem_type = GKYL_MP_STRING,
+        .cval = "Physical coordinates of grid corner nodes.",
+      },
+      {.key = "value_form", .elem_type = GKYL_MP_STRING, .cval = "nodal"}
+    };
     int io_meta_nodes_len[] = {app->io_meta_dg_len, app->gk_geom->io_meta_basic_len, 1};
     const struct gkyl_msgpack_map_elem *io_meta_nodes[] = {
       app->io_meta_dg, app->gk_geom->io_meta_basic, desc_nodes
@@ -1848,14 +1856,24 @@ gkyl_gyrokinetic_app_write_geometry(
     char fileNm[sz + 1]; // ensures no buffer overflow
     sprintf(fileNm, fmt, app->name, "geo_int_nodes");
 
-    struct gkyl_msgpack_map_elem desc_nodesint[] = {{
-      .key = "Description",
-      .elem_type = GKYL_MP_STRING,
-      .cval = "Physical coordinates of grid interior nodes.",
-    }};
-    int io_meta_nodesint_len[] = {app->io_meta_dg_len, app->gk_geom->io_meta_basic_len, 1};
+    struct gkyl_msgpack_map_elem desc_nodesint[] = {
+      {
+        .key = "Description",
+        .elem_type = GKYL_MP_STRING,
+        .cval = "Physical coordinates of grid interior nodes.",
+      },
+      {.key = "value_form", .elem_type = GKYL_MP_STRING, .cval = "quad"},
+      {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = app->basis.poly_order},
+      {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = app->basis.id},
+      {.key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0},
+      {.key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0}
+    };
+    int io_meta_nodesint_len[] = {
+      app->io_meta_basic_len, app->gk_geom->io_meta_basic_len,
+      sizeof(desc_nodesint) / sizeof(desc_nodesint[0])
+    };
     const struct gkyl_msgpack_map_elem *io_meta_nodesint[] = {
-      app->io_meta_dg, app->gk_geom->io_meta_basic, desc_nodesint
+      app->io_meta_basic, app->gk_geom->io_meta_basic, desc_nodesint
     };
     struct gkyl_msgpack_data *mt_nodesint = gkyl_msgpack_create_union(
       sizeof(io_meta_nodesint_len) / sizeof(int), io_meta_nodesint_len, io_meta_nodesint
@@ -4518,8 +4536,7 @@ gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app *app)
 
   if (app->cdim == 3 && (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK ||
                          (app->gk_geom->geometry_id == GKYL_GEOMETRY_MAPC2P &&
-                          app->gk_geom->parallel_lower_bc_shift_func &&
-                          app->gk_geom->parallel_upper_bc_shift_func))) {
+                          app->gk_geom->lower_shift_func && app->gk_geom->upper_shift_func))) {
     gkyl_array_release(app->delta_ts_x_lo);
     gkyl_array_release(app->delta_ts_x_up);
   }

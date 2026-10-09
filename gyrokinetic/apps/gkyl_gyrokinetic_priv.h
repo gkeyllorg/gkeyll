@@ -26,6 +26,7 @@
 #include <gkyl_bc_emission_elastic.h>
 #include <gkyl_bc_sheath_gyrokinetic.h>
 #include <gkyl_bc_twistshift.h>
+#include <gkyl_twistshift_dg.h>
 #include <gkyl_bgk_collisions.h>
 #include <gkyl_boundary_flux.h>
 #include <gkyl_dg_advection.h>
@@ -119,8 +120,8 @@ struct gk_species_moment {
   struct gk_geometry *gk_geom; // geometry struct for dividing moments by Jacobian
   struct gkyl_dg_bin_op_mem *mem_geo; // memory needed in dividing moments by Jacobian
   bool is_integrated; // boolean for if computing integrated moments
-    // integrated moments do not need to divide by Jacobian since
-    // the inverse Jacobian is already included in the computation
+  // integrated moments do not need to divide by Jacobian since
+  // the inverse Jacobian is already included in the computation
   int num_mom; // number of moments
 
   struct gkyl_array *marr; // array to moment data
@@ -732,9 +733,9 @@ struct gk_react {
     react_type[GKYL_MAX_REACT]; // Input struct for type of reactions.
 
   struct gkyl_array *f_react; // Distribution function array which holds update for each reaction
-    // form depends on type_self, e.g., for ionization and type_self == GKYL_SELF_ELC
-    // f_react = n_donor*(fmax1(n_elc, upar_elc, vtiz1^2) + fmax2(n_elc, upar_donor, vtiz2^2) - f_elc)
-    // RHS update is then obtained by incrementing rhs += coeff_react*f_react
+  // form depends on type_self, e.g., for ionization and type_self == GKYL_SELF_ELC
+  // f_react = n_donor*(fmax1(n_elc, upar_elc, vtiz1^2) + fmax2(n_elc, upar_donor, vtiz2^2) - f_elc)
+  // RHS update is then obtained by incrementing rhs += coeff_react*f_react
 
   enum gkyl_react_id
     react_id[GKYL_MAX_REACT]; // What type of reaction (ionization, charge exchange, recombination).
@@ -1292,6 +1293,12 @@ struct gk_species {
 
   struct gkyl_array *gyro_phi; // Gyroaveraged electrostatic potential.
 
+  struct gk_species_moment
+    sheath_moms; // Maxwellian moment array to get temperature and density for sheath BCs.
+  struct gkyl_array *dens_sheath; // Zeroth maxwellian moment, at the sheath used for surrogate BCs.
+  struct gkyl_array
+    *temp_sheath; // Third maxwellian moment times mass, at the sheath used for surrogate BCs.
+
   struct gk_species_moment m0; // Computes charge density.
   struct gk_species_moment integ_moms; // Integrated moments.
   struct gk_species_moment *moms; // Diagnostic moments
@@ -1342,6 +1349,16 @@ struct gk_species {
   struct gkyl_range local_upper_skin_par_sol, local_upper_ghost_par_sol;
   // GK IWL sims need a core range extended in z, and a TS BC updater.
   struct gkyl_range local_par_ext_core; // Core range extended in parallel direction.
+  // Objects used in IWL simulations and TS BCs.
+  struct gkyl_rect_grid bc_ts_grid; // Higher resolution grid for TS BC.
+  struct gkyl_range bc_ts_local_ext, bc_ts_local; // Higher resolution ranges for TS BC.
+  struct gkyl_range bc_ts_local_lower_skin_par,
+    bc_ts_local_upper_skin_par; // Parallel skin for TS BC.
+  struct gkyl_range bc_ts_local_lower_ghost_par,
+    bc_ts_local_upper_ghost_par; // Parallel ghost for TS BC.
+  struct gkyl_dg_interpolate *bc_ts_prolong, *bc_ts_coarsen; // Interpolation operators for TS BC.
+  struct gkyl_array *bc_ts_buffer_fine, *bc_ts_buffer_coar; // Buffer for TS BCs.
+  struct gkyl_range bc_ts_local_par_ext; // Range extended in parallel direction for TS BC.
   struct gkyl_bc_twistshift *bc_ts_lo, *bc_ts_up;
 
   struct gk_proj proj_init; // Projector for initial conditions.
@@ -1384,7 +1401,7 @@ struct gk_species {
     gkyl_gyrokinetic_app *app, struct gk_species *species, const struct gkyl_array *fin,
     struct gkyl_array *rhs, struct gkyl_array **bflux_moms, double dt
   );
-  void (*bc_func)(gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gkyl_array *f);
+  void (*bc_func)(gkyl_gyrokinetic_app *app, struct gk_species *species, struct gkyl_array *f);
   void (*release_func)(const gkyl_gyrokinetic_app *app, const struct gk_species *s);
   void (*step_f_func)(struct gkyl_array *out, double dt, const struct gkyl_array *inp);
   void (*combine_func)(
@@ -1598,7 +1615,7 @@ struct gk_field {
   struct gkyl_array *phi_pol; // Initial polarization density potential.
 
   struct gkyl_range global_sub_range; // sub range of intersection of global range and local range
-    // for solving subset of Poisson solves with parallelization in z
+  // for solving subset of Poisson solves with parallelization in z
 
   // organization of the different equation objects and the required data and solvers
   union {
@@ -1635,7 +1652,8 @@ struct gk_field {
   // Objects needed for FLR effects.
   bool use_flr; // Whether to apply FLR effects.
   void (*invert_flr)(
-    gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *phi
+    gkyl_gyrokinetic_app *app, struct gk_field *field,
+    struct gkyl_array *phi
   ); // Function inverting  FLR  operator.
   struct gkyl_array *flr_rhoSq_sum; // Laplacian weight in FLR operator.
   struct gkyl_array *flr_kSq; // Field multiplying phi in FLR operator.
@@ -1669,7 +1687,16 @@ struct gk_field {
   );
 
   // Objects used in IWL simulations and TS BCs.
-  struct gkyl_bc_twistshift *bc_ts_lo, *bc_ts_up;
+  struct gkyl_rect_grid bc_ts_grid; // Higher resolution grid for TS BC.
+  struct gkyl_range bc_ts_global_ext, bc_ts_global; // Higher resolution ranges for TS BC.
+  struct gkyl_range bc_ts_global_lower_skin_par,
+    bc_ts_global_upper_skin_par; // Parallel skin for TS BC.
+  struct gkyl_range bc_ts_global_lower_ghost_par,
+    bc_ts_global_upper_ghost_par; // Parallel ghost for TS BC.
+  struct gkyl_dg_interpolate *bc_ts_prolong, *bc_ts_coarsen; // Interpolation operators for TS BC.
+  struct gkyl_array *bc_ts_buffer_fine, *bc_ts_buffer_coar; // Buffer for TS BCs.
+  struct gkyl_range bc_ts_global_par_ext; // Range extended in parallel direction for TS BC.
+  struct gkyl_bc_twistshift *bc_ts_lo, *bc_ts_up; // Fills z-ghosts with TS BC.
   struct gkyl_bc_basic_gyrokinetic
     *gfss_bc_op_core_up; // Fills upper core  z-ghost with skin  boundary value.
   struct gkyl_bc_basic_gyrokinetic
@@ -1712,6 +1739,7 @@ struct gkyl_gyrokinetic_app {
 
   int cdim; // Configuration space dimensions.
   int poly_order; // Polynomial order.
+  struct gkyl_gyrokinetic_core_parallel_bcs core_parallel_bcs; // BCs in closed flux surface region.
   double tcurr; // Current time.
   double cfl; // CFL number.
   double cfl_omegaH; // CFL number used for omega_H.
@@ -3826,7 +3854,7 @@ void gk_species_apply_pos_shift(gkyl_gyrokinetic_app *app, struct gk_species *gk
  * @param f Field to apply BCs.
  */
 void gk_species_apply_bc(
-  gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gkyl_array *f
+  gkyl_gyrokinetic_app *app, struct gk_species *species, struct gkyl_array *f
 );
 
 /**

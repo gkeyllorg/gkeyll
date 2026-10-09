@@ -600,13 +600,11 @@ nonuniform_position_map_z(
   double z = zc[0];
 
   double Lz = app->Lz;
-
-  double Z = 0.0;
-
+  double Z = z;
   if (fabs(z) < Lz * 0.25) {
-    Z = -((z - (0.25 * Lz)) * (z - (0.25 * Lz)) / (0.5 * Lz)) + (0.25 * Lz);
-  } else {
-    Z = z;
+    double zn = 4.0 * z / Lz;
+    double shape = 1.0 - zn * zn;
+    Z += (Lz / 16.0) * shape * shape * shape;
   }
 
   // Set rescaled configuration space coordinate Z, from old configuration space coordinate z.
@@ -702,8 +700,8 @@ main(int argc, char **argv)
     .bcs =
       {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
-       {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
-       {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH}},
+       {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+       {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}},
 
     .num_diag_moments = 5,
     .diag_moments =
@@ -780,8 +778,8 @@ main(int argc, char **argv)
     .bcs =
       {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
-       {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
-       {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH}},
+       {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+       {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}},
 
     .num_diag_moments = 5,
     .diag_moments =

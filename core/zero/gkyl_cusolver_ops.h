@@ -25,7 +25,7 @@ typedef struct gkyl_culinsolver_prob gkyl_culinsolver_prob;
  *      dimensions and sparsity pattern) where each problem only has a
  *      right-side vector with a single column.
  */
-struct gkyl_culinsolver_prob* gkyl_culinsolver_prob_new(int nprob, int mrow, int ncol, int nrhs);
+struct gkyl_culinsolver_prob *gkyl_culinsolver_prob_new(int nprob, int mrow, int ncol, int nrhs);
 
 /**
  * Initialize cuSolver matrix A in Ax=B problem from a list of triples.
@@ -33,7 +33,9 @@ struct gkyl_culinsolver_prob* gkyl_culinsolver_prob_new(int nprob, int mrow, int
  * @param prob cuSolver struct holding arrays used in problem.
  * @param tri (array of) coordinates & values of non-zero entries in A matrix (triplets).
  */
-void gkyl_culinsolver_amat_from_triples(struct gkyl_culinsolver_prob *prob, struct gkyl_mat_triples **tri);
+void gkyl_culinsolver_amat_from_triples(
+  struct gkyl_culinsolver_prob *prob, struct gkyl_mat_triples **tri
+);
 
 /**
  * Initialize right-hand-side cuSolver matrix B in Ax=B problem from a list of
@@ -73,7 +75,7 @@ void gkyl_culinsolver_clear_rhs(struct gkyl_culinsolver_prob *prob, double val);
  * @param loc element we wish to return a pointer to.
  * @return pointer to loc-th element in RHS vector. 
  */
-double* gkyl_culinsolver_get_rhs_ptr(struct gkyl_culinsolver_prob *prob, long loc);
+double *gkyl_culinsolver_get_rhs_ptr(struct gkyl_culinsolver_prob *prob, long loc);
 
 /**
  * Get a pointer to the element of the solution vector at a given location.
@@ -84,7 +86,7 @@ double* gkyl_culinsolver_get_rhs_ptr(struct gkyl_culinsolver_prob *prob, long lo
  * @param loc element we wish to return a pointer to.
  * @return pointer to loc-th element in solution vector. 
  */
-double* gkyl_culinsolver_get_sol_ptr(struct gkyl_culinsolver_prob *prob, long loc);
+double *gkyl_culinsolver_get_sol_ptr(struct gkyl_culinsolver_prob *prob, long loc);
 
 /**
  * Obtain the RHS ielement-th value of the jprob-th linear problem.

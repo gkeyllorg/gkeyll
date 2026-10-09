@@ -495,8 +495,8 @@ create_ctx(void)
   double mu_max_ion = mi * pow(3. * vti, 2.) / (2. * B_p);
   int Nx = 4;
   int Ny = 4;
-  int Nz = 16;
-  int Nvpar = 16; // Number of cells in the paralell velocity direction 96
+  int Nz = 8;
+  int Nvpar = 8; // Number of cells in the paralell velocity direction 96
   int Nmu = 16; // Number of cells in the mu direction 192
   int poly_order = 1;
 
@@ -662,8 +662,8 @@ run_2x_sim(
          .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
          .projection = elc_ic,
        },
-       {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
-       {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH}},
+       {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+       {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}},
 
     .num_diag_moments = 8,
     .diag_moments =
@@ -756,8 +756,8 @@ run_2x_sim(
          .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
          .projection = ion_ic,
        },
-       {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
-       {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH}},
+       {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+       {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}},
 
     .num_diag_moments = 8,
     .diag_moments =
@@ -914,8 +914,8 @@ run_3x_sim(
          .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
          .projection = elc_ic,
        },
-       {.dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
-       {.dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH}},
+       {.dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+       {.dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}},
 
     .num_diag_moments = 8,
     .diag_moments =
@@ -975,8 +975,8 @@ run_3x_sim(
          .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
          .projection = ion_ic,
        },
-       {.dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
-       {.dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH}},
+       {.dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+       {.dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}},
 
     .num_diag_moments = 8,
     .diag_moments =

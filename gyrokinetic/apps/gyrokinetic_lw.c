@@ -113,8 +113,7 @@ static const struct gkyl_str_int_pair gk_react_self_type[] = {
 };
 
 // Species boundary conditions -> enum map.
-static const struct gkyl_str_int_pair gk_bcs[] = {
-  // Particle BCs.
+static const struct gkyl_str_int_pair gk_bcs[] = { // Particle BCs.
   {"speciesSkip", GKYL_BC_GK_SKIP}, // Do not apply any BCs
   {"speciesCopy", GKYL_BC_GK_SPECIES_COPY}, // Copy skin into ghost.
   {"speciesReflect", GKYL_BC_GK_SPECIES_REFLECT}, // Reflect particles.
@@ -122,7 +121,8 @@ static const struct gkyl_str_int_pair gk_bcs[] = {
   {"speciesFunc", GKYL_BC_GK_SPECIES_FUNC}, // Fill ghost cell using a user-function.
   {"speciesFixedFunc", GKYL_BC_GK_SPECIES_FIXED_FUNC}, // Fixed function, time-independent.
   {"speciesZeroFlux", GKYL_BC_GK_SPECIES_ZERO_FLUX}, // Zero flux.
-  {"speciesSheath", GKYL_BC_GK_SPECIES_SHEATH}, // Sheath.
+  {"speciesSheathConducting", GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}, // Sheath.
+  {"speciesSheathSurrogate", GKYL_BC_GK_SPECIES_SHEATH_SURROGATE}, // Sheath.
   {"speciesRecycle", GKYL_BC_GK_SPECIES_RECYCLE}, // Recycling.
   {"speciesPeriodic", GKYL_BC_GK_SPECIES_PERIODIC}, // Periodic.
   {"speciesTwistshift", GKYL_BC_GK_SPECIES_TWISTSHIFT}, // Twist-shift.

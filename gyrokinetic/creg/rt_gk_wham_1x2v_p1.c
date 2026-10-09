@@ -559,18 +559,6 @@ main(int argc, char **argv)
 
     .mapc2p = {.mapping = mapc2p_vel_elc, .ctx = &ctx},
 
-    .time_rate_multiplier =
-      {
-        .num_multipliers = 1,
-        .multiplier[0] =
-          {
-            .type = GKYL_GK_FDOT_MULTIPLIER_MASK_F_THRESHOLD,
-            .f_threshold = 1e-30,
-            .cellwise_const = true,
-            .write_diagnostics = true,
-          },
-      },
-
     .projection =
       {
         .proj_id = GKYL_PROJ_BIMAXWELLIAN,
@@ -622,8 +610,8 @@ main(int argc, char **argv)
       },
 
     .bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH}},
+      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}},
 
     .write_omega_cfl = true,
     .num_diag_moments = 8,
@@ -652,18 +640,6 @@ main(int argc, char **argv)
     .polarization_density = ctx.n0,
 
     .mapc2p = {.mapping = mapc2p_vel_ion, .ctx = &ctx},
-
-    .time_rate_multiplier =
-      {
-        .num_multipliers = 1,
-        .multiplier[0] =
-          {
-            .type = GKYL_GK_FDOT_MULTIPLIER_MASK_F_FRAC_LOCAL,
-            .f_threshold = 1e-4,
-            .cellwise_const = true,
-            .write_diagnostics = true,
-          },
-      },
 
     .projection =
       {
@@ -716,8 +692,8 @@ main(int argc, char **argv)
       },
 
     .bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH}},
+      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}},
 
     .write_omega_cfl = true,
     .num_diag_moments = 8,

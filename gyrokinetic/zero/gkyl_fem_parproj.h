@@ -14,7 +14,7 @@ enum gkyl_fem_parproj_bc_type {
   GKYL_FEM_PARPROJ_PERIODIC = 0,
   GKYL_FEM_PARPROJ_DIRICHLET_GHOST, // Solution = ghost evaluated at the boundary.
   GKYL_FEM_PARPROJ_DIRICHLET_SKIN, // Solution = skin evaluated at the boundary.
-  GKYL_FEM_PARPROJ_NONE,      // does not enforce a BC.
+  GKYL_FEM_PARPROJ_NONE // does not enforce a BC.
 };
 
 /**
@@ -38,10 +38,12 @@ enum gkyl_fem_parproj_bc_type {
  * @param use_gpu boolean indicating whether to use the GPU.
  * @return New updater pointer.
  */
-struct gkyl_fem_parproj* gkyl_fem_parproj_new(const struct gkyl_range *solve_range, const struct gkyl_rect_grid *grid,
-  const struct gkyl_basis *basis, enum gkyl_fem_parproj_bc_type bctype, struct gkyl_poisson_bias_line_list* bias_line_list,
-  const struct gkyl_array *weight_left, const struct gkyl_array *weight_right,
-  bool use_gpu);
+struct gkyl_fem_parproj *gkyl_fem_parproj_new(
+  const struct gkyl_range *solve_range, const struct gkyl_rect_grid *grid,
+  const struct gkyl_basis *basis, enum gkyl_fem_parproj_bc_type bctype,
+  struct gkyl_poisson_bias_line_list *bias_line_list, const struct gkyl_array *weight_left,
+  const struct gkyl_array *weight_right, bool use_gpu
+);
 
 /**
  * Assign the right-side vector with the discontinuous (DG) source field.
@@ -50,15 +52,16 @@ struct gkyl_fem_parproj* gkyl_fem_parproj_new(const struct gkyl_range *solve_ran
  * @param rhsin DG field to set as RHS source.
  * @param phibc Potential to use for Dirichlet BCs.
  */
-void gkyl_fem_parproj_set_rhs(struct gkyl_fem_parproj* up,
-  const struct gkyl_array *rhsin, const struct gkyl_array *phibc);
+void gkyl_fem_parproj_set_rhs(
+  struct gkyl_fem_parproj *up, const struct gkyl_array *rhsin, const struct gkyl_array *phibc
+);
 
 /**
  * Solve the linear problem.
  *
  * @param up FEM project updater to run.
  */
-void gkyl_fem_parproj_solve(struct gkyl_fem_parproj* up, struct gkyl_array *phiout);
+void gkyl_fem_parproj_solve(struct gkyl_fem_parproj *up, struct gkyl_array *phiout);
 
 /**
  * Delete updater.

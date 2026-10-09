@@ -29,20 +29,19 @@ typedef struct gkyl_dg_calc_fluid_em_coupling gkyl_dg_calc_fluid_em_coupling;
  * @param use_gpu          bool to determine if on GPU
  * @return New updater pointer.
  */
-struct gkyl_dg_calc_fluid_em_coupling* 
-gkyl_dg_calc_fluid_em_coupling_new(const struct gkyl_basis* cbasis, 
-  const struct gkyl_range *mem_range, 
-  int num_fluids, double qbym[GKYL_MAX_SPECIES], double epsilon0,
-  bool use_gpu);
+struct gkyl_dg_calc_fluid_em_coupling *gkyl_dg_calc_fluid_em_coupling_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_range *mem_range, int num_fluids,
+  double qbym[GKYL_MAX_SPECIES], double epsilon0, bool use_gpu
+);
 
 /**
  * Create new updater to compute fluid variables on
  * NV-GPU. See new() method for documentation.
  */
-struct gkyl_dg_calc_fluid_em_coupling* 
-gkyl_dg_calc_fluid_em_coupling_cu_dev_new(const struct gkyl_basis* cbasis, 
-  const struct gkyl_range *mem_range, 
-  int num_fluids, double qbym[GKYL_MAX_SPECIES], double epsilon0);
+struct gkyl_dg_calc_fluid_em_coupling *gkyl_dg_calc_fluid_em_coupling_cu_dev_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_range *mem_range, int num_fluids,
+  double qbym[GKYL_MAX_SPECIES], double epsilon0
+);
 
 /**
  * Compute the updated fluid momentum and electric field implicitly from time-centered source solve.
@@ -57,10 +56,12 @@ gkyl_dg_calc_fluid_em_coupling_cu_dev_new(const struct gkyl_basis* cbasis,
  *                              (update is done in place with electric field modified to new time)
  * 
  */
-void gkyl_dg_calc_fluid_em_coupling_advance(struct gkyl_dg_calc_fluid_em_coupling *up, double dt, 
-  const struct gkyl_array* app_accel[GKYL_MAX_SPECIES], 
-  const struct gkyl_array* ext_em, const struct gkyl_array* app_current, 
-  struct gkyl_array* fluid[GKYL_MAX_SPECIES], struct gkyl_array* em);
+void gkyl_dg_calc_fluid_em_coupling_advance(
+  struct gkyl_dg_calc_fluid_em_coupling *up, double dt,
+  const struct gkyl_array *app_accel[GKYL_MAX_SPECIES], const struct gkyl_array *ext_em,
+  const struct gkyl_array *app_current, struct gkyl_array *fluid[GKYL_MAX_SPECIES],
+  struct gkyl_array *em
+);
 
 /**
  * Compute the updated fluid energy (if Euler/5-moment) from updated momentum and old pressure.
@@ -72,8 +73,10 @@ void gkyl_dg_calc_fluid_em_coupling_advance(struct gkyl_dg_calc_fluid_em_couplin
  *                (update is done in place utilizing momentum at new time to compute energy at new time)
  * 
  */
-void gkyl_dg_calc_fluid_em_coupling_energy(struct gkyl_dg_calc_fluid_em_coupling *up, 
-  const struct gkyl_array* u_i_new, const struct gkyl_array* p_old, struct gkyl_array* fluid);
+void gkyl_dg_calc_fluid_em_coupling_energy(
+  struct gkyl_dg_calc_fluid_em_coupling *up, const struct gkyl_array *u_i_new,
+  const struct gkyl_array *p_old, struct gkyl_array *fluid
+);
 
 /**
  * Delete pointer to updater to compute fluid variables.
@@ -86,10 +89,14 @@ void gkyl_dg_calc_fluid_em_coupling_release(struct gkyl_dg_calc_fluid_em_couplin
  * Host-side wrappers for fluid vars operations on device
  */
 
-void gkyl_dg_calc_fluid_em_coupling_advance_cu(struct gkyl_dg_calc_fluid_em_coupling *up, double dt, 
-  const struct gkyl_array* app_accel[GKYL_MAX_SPECIES], 
-  const struct gkyl_array* ext_em, const struct gkyl_array* app_current, 
-  struct gkyl_array* fluid[GKYL_MAX_SPECIES], struct gkyl_array* em);
+void gkyl_dg_calc_fluid_em_coupling_advance_cu(
+  struct gkyl_dg_calc_fluid_em_coupling *up, double dt,
+  const struct gkyl_array *app_accel[GKYL_MAX_SPECIES], const struct gkyl_array *ext_em,
+  const struct gkyl_array *app_current, struct gkyl_array *fluid[GKYL_MAX_SPECIES],
+  struct gkyl_array *em
+);
 
-void gkyl_dg_calc_fluid_em_coupling_energy_cu(struct gkyl_dg_calc_fluid_em_coupling *up, 
-  const struct gkyl_array* u_i_new, const struct gkyl_array* p_old, struct gkyl_array* fluid);
+void gkyl_dg_calc_fluid_em_coupling_energy_cu(
+  struct gkyl_dg_calc_fluid_em_coupling *up, const struct gkyl_array *u_i_new,
+  const struct gkyl_array *p_old, struct gkyl_array *fluid
+);

@@ -12,7 +12,7 @@ struct gkyl_dg_iz {
 
   const struct gkyl_range *conf_rng; // Configuration-space range
   bool use_gpu;
-  
+
   double elem_charge; // elementary charge value
   double mass_elc; // mass of the electron
 
@@ -39,7 +39,7 @@ struct gkyl_dg_iz {
  * Create new ionization updater type object on NV-GPU: 
  * see new() method above for documentation.
  */
-struct gkyl_dg_iz* gkyl_dg_iz_cu_dev_new(struct gkyl_dg_iz_inp *inp);
+struct gkyl_dg_iz *gkyl_dg_iz_cu_dev_new(struct gkyl_dg_iz_inp *inp);
 
 /**
  * Compute ionization collision term for use in neutral reactions. 
@@ -52,8 +52,9 @@ struct gkyl_dg_iz* gkyl_dg_iz_cu_dev_new(struct gkyl_dg_iz_inp *inp);
  * @param coef_iz Output reaction rate coefficient.
  * @param cflrate CFL scalar rate (frequency) array (units of 1/[T]).
  */
-void gkyl_dg_iz_coll_cu(const struct gkyl_dg_iz *up, 
-  const struct gkyl_array *maxwellian_moms_elc, 
-  struct gkyl_array *vtSq_iz1, struct gkyl_array *vtSq_iz2,
-  struct gkyl_array *coef_iz, struct gkyl_array *cflrate);
+void gkyl_dg_iz_coll_cu(
+  const struct gkyl_dg_iz *up, const struct gkyl_array *maxwellian_moms_elc,
+  struct gkyl_array *vtSq_iz1, struct gkyl_array *vtSq_iz2, struct gkyl_array *coef_iz,
+  struct gkyl_array *cflrate
+);
 #endif
