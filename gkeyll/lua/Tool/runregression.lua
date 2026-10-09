@@ -1419,11 +1419,10 @@ local function compareFiles(f1, f2, absTol, relTol)
       -- arrayNewFromFile returns (nil, nil) on failure rather than throwing.
       local g1, a1 = G0.Zero.arrayNewFromFile(f1)
       local g2, a2 = G0.Zero.arrayNewFromFile(f2)
-      if not g1 or not g2 then
-         verboseLog(string.format(
-            "    ... skipping %s (unsupported file format)\n", shortPath(f1)))
-         return true
-      end
+      -- Diagnose the candidate first: a broken baseline must never hide broken
+      -- candidate output. A baseline-only failure can be acknowledged narrowly.
+      if not g2 then return false, "candidate array read failed" end
+      if not g1 then return false, "baseline array read failed (candidate readable)" end
 
       if not G0.Zero.rectGridCmp(g1, g2) then
          return false, "grid mismatch"
