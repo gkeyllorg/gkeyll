@@ -55,6 +55,53 @@ assert environment.CI_FAILURE_STAGE == 'Build candidate'
 script.loggedSh('configure-candidate', './configure')
 assert environment.CI_PROGRESS_STAGE == 'Build candidate (configure-candidate)'
 
+// Execute the generated wrapper: startup files may return nonzero, but the
+// workload must still enforce errexit and pipefail and retain output/status.
+def shellRoot = java.nio.file.Files.createTempDirectory('gkeyll-reporting-shell-').toFile()
+def savedWorkspace = environment.WORKSPACE
+try {
+    environment.WORKSPACE = shellRoot.absolutePath
+    def startup = new File(shellRoot, 'startup.sh')
+    startup.text = 'false\n'
+    [false, true].each { login ->
+        [
+            [name: 'success', body: "printf \"it's working\\n\"; echo stderr-message >&2", status: 0],
+            [name: 'errexit', body: 'echo before-failure; false; echo should-not-run', status: 1],
+            [name: 'pipefail', body: 'echo before-failure; false | cat; echo should-not-run', status: 1]
+        ].each { fixture ->
+            def label = "shell-${login}-${fixture.name}"
+            def workload = (login ? '#!/bin/bash -l\n' : '#!/bin/bash\n') + fixture.body
+            script.loggedSh(label, workload)
+            def wrapper = new File(shellRoot, 'wrapper.sh')
+            wrapper.text = commands.last()
+            def processBuilder = new ProcessBuilder('/bin/bash', wrapper.absolutePath).redirectErrorStream(true)
+            processBuilder.environment().putAll([
+                WORKSPACE: shellRoot.absolutePath,
+                CI_COMMAND_LOG: new File(shellRoot, "ci-command-logs/${label}.log").absolutePath,
+                BASH_ENV: startup.absolutePath
+            ])
+            def process = processBuilder.start()
+            def finished = process.waitFor(30, java.util.concurrent.TimeUnit.SECONDS)
+            if (!finished) process.destroyForcibly()
+            assert finished: 'shell fixture timed out'
+            def output = process.inputStream.text
+            assert process.exitValue() == fixture.status: output
+            def log = new File(shellRoot, "ci-command-logs/${label}.log").text
+            assert new File(shellRoot, "ci-command-logs/${label}.log.exit").text.trim() == fixture.status.toString()
+            assert !log.contains('should-not-run')
+            if (fixture.status == 0) {
+                assert log.contains("it's working") && log.contains('stderr-message')
+            } else {
+                assert log.contains('before-failure')
+            }
+        }
+    }
+} finally {
+    environment.WORKSPACE = savedWorkspace
+    shellRoot.deleteDir()
+}
+println 'PASS: shell startup precedes strict mode; workload failures and logs are preserved'
+
 // Generate and retain the failure report even when checkout never resolved a SHA.
 script.settings.commit = ''
 commands.clear()

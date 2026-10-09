@@ -170,12 +170,15 @@ def withBaselineEnvironment(String baseline, Closure body) {
 // helpers with credential-bearing commands.
 def loggedSh(String label, String script) {
     progress("Running: ${env.CI_FAILURE_STAGE ?: label} (${label}).")
-    def quoted = "'" + script.replace("'", "'\"'\"'") + "'"
+    // Login profiles may return nonzero during normal initialization. Enable
+    // strict mode in the command body, after Bash has loaded startup files.
+    def command = 'set -e -o pipefail\n' + script
+    def quoted = "'" + command.replace("'", "'\"'\"'") + "'"
     withEnv(["CI_COMMAND_LOG=${env.WORKSPACE}/ci-command-logs/${label}.log"]) {
         sh """#!/bin/bash
             set -uo pipefail
             mkdir -p "\$WORKSPACE/ci-command-logs"
-            bash ${script.startsWith('#!/bin/bash -l') ? '-l' : ''} -e -o pipefail -c ${quoted} 2>&1 | tee "\$CI_COMMAND_LOG"
+            bash ${script.startsWith('#!/bin/bash -l') ? '-l' : ''} -c ${quoted} 2>&1 | tee "\$CI_COMMAND_LOG"
             result=\$?
             printf '%s\\n' "\$result" > "\$CI_COMMAND_LOG.exit"
             exit "\$result"
