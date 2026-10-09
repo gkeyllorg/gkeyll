@@ -1416,6 +1416,25 @@ local function compareFiles(f1, f2, absTol, relTol)
          return true
       end
 
+      if f1type == "multi-block-meta" then
+         -- These are small descriptors (time, frame, topology filename and app
+         -- name), not arrays. Compare their serialized contents exactly. The
+         -- per-block fields and topology are compared separately by check.
+         local function readDescriptor(path)
+            local file = io.open(path, "rb")
+            if not file then return nil end
+            local contents = file:read("*a")
+            file:close()
+            return contents
+         end
+         local baseline = readDescriptor(f1)
+         local candidate = readDescriptor(f2)
+         if not candidate then return false, "candidate multiblock metadata read failed" end
+         if not baseline then return false, "baseline multiblock metadata read failed" end
+         if baseline ~= candidate then return false, "multiblock metadata mismatch" end
+         return true
+      end
+
       -- arrayNewFromFile returns (nil, nil) on failure rather than throwing.
       local g1, a1 = G0.Zero.arrayNewFromFile(f1)
       local g2, a2 = G0.Zero.arrayNewFromFile(f2)
