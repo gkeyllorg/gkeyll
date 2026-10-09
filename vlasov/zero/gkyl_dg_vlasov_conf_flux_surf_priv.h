@@ -29,14 +29,15 @@ typedef int (*hamil_alpha_shared_conf_t)(
   const double *hamil, double *GKYL_RESTRICT O, double *GKYL_RESTRICT I
 );
 
-// Nodal Lax-Friedrichs flux in three stages, each doing one unit per call:
-// the launcher gives one thread per surface node, the CPU dispatch loops over
-// the nodes, and units beyond a stage's count are no-ops (there are never
-// more units than surface nodes). Stage 1 of the sum-factorized nodal
-// evaluation of f: item = (outer shape, inner node) pair, fills G_l[j*NA + a],
+// Nodal Lax-Friedrichs flux in three stages. Stages 1 and 3 are cooperative:
+// node thread tid does item tid (the launcher gives one thread per surface
+// node, the CPU dispatch loops over them; items beyond a stage's count are
+// no-ops, and there are never more items than surface nodes). Stage 1 of the
+// sum-factorized nodal evaluation of f: item = (outer shape, inner node) pair,
+// fills G_l[j*NA + a],
 // G_r[j*NA + a] from f_l, f_r.
 typedef void (*lax_g_t)(
-  int item, const double *f_l, const double *f_r, double *GKYL_RESTRICT G_l,
+  int tid, const double *f_l, const double *f_r, double *GKYL_RESTRICT G_l,
   double *GKYL_RESTRICT G_r
 );
 
@@ -48,9 +49,9 @@ typedef double (*lax_flux_nodal_t)(
 );
 
 // Stage 3: projection of the nodal buffer onto the surface modal basis, stored
-// at the direction's modal offset of the flux array; unit = one inner surface
+// at the direction's modal offset of the flux array; item = one inner surface
 // mode (or one surface mode, by the kernel's choice).
-typedef void (*lax_prj_t)(int unit, const double *Fhat_nodal, double *GKYL_RESTRICT flux);
+typedef void (*lax_prj_t)(int tid, const double *Fhat_nodal, double *GKYL_RESTRICT flux);
 
 // CFL estimate of the surface from the reduced alpha_max.
 typedef double (*lax_cfl_t)(
@@ -223,9 +224,9 @@ no_hamil_alpha_shared(
 // Configuration-space flux of one cell surface (CPU dispatch). This is the
 // serial form of the algorithm the CUDA kernel runs with one thread per surface
 // node: the shared work of the cell (the force factors and stage 1 of the
-// nodal f evaluation, one row/item per node thread), then the per-node work
+// nodal f evaluation, one item per node thread), then the per-node work
 // (force by the factor dot product, nodal Lax flux), then the projection onto
-// the surface modal basis (one unit per node thread). Returns the surface CFL
+// the surface modal basis (one item per node thread). Returns the surface CFL
 // estimate.
 static double
 conf_flux_surf_arrays(
@@ -269,8 +270,8 @@ conf_flux_surf_arrays(
   }
 
   // Projection of the nodal flux onto the surface modal basis.
-  for (int unit = 0; unit < num_nodes; ++unit) {
-    up->lax_prj[dir](unit, Fhat_nodal, conf_flux_surf);
+  for (int tid = 0; tid < num_nodes; ++tid) {
+    up->lax_prj[dir](tid, Fhat_nodal, conf_flux_surf);
   }
   double cflrate = up->lax_cfl[dir](dxv, jacob_pos_l, jacob_pos_r, alpha_max);
 

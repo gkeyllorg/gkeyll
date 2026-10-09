@@ -1,12 +1,12 @@
 #include <gkyl_flux_vlasov_kernels.h> 
 #include <gkyl_vlasov_flux_surf_mod2nod_tables_1x3v_ser_p1.h> 
 #include <gkyl_vlasov_surf_nod2mod_tables_1x3v_ser_p1.h> 
-GKYL_CU_DH void lax_flux_nodal_vx_1x3v_ser_p1_g(int item, const double *f_l, const double *f_r,
+GKYL_CU_DH void lax_flux_nodal_vx_1x3v_ser_p1_g(int tid, const double *f_l, const double *f_r,
   double* GKYL_RESTRICT G_l, double* GKYL_RESTRICT G_r) 
 { 
-  if (item >= 8) return; 
-  const int a = item/4; 
-  const int j = item - a*4; 
+  if (tid >= 8) return; 
+  const int a = tid/4; 
+  const int j = tid - a*4; 
   double g_l = 0.0; 
   double g_r = 0.0; 
   for (int q = vst_1x3v_ser_p1_ph_v0_aoff[a]; q < vst_1x3v_ser_p1_ph_v0_aoff[a+1]; ++q) { 
@@ -33,10 +33,10 @@ GKYL_CU_DH double lax_flux_nodal_vx_1x3v_ser_p1_node(int i, int j, const double 
   return fabs(alpha); 
 } 
 
-GKYL_CU_DH void lax_flux_nodal_vx_1x3v_ser_p1_prj(int unit, const double *Fhat_nodal, double* GKYL_RESTRICT flux) 
+GKYL_CU_DH void lax_flux_nodal_vx_1x3v_ser_p1_prj(int tid, const double *Fhat_nodal, double* GKYL_RESTRICT flux) 
 { 
-  if (unit >= 4) return; 
-  const int b = unit; 
+  if (tid >= 4) return; 
+  const int b = tid; 
   double t[2]; 
   for (int i = 0; i < 2; ++i) t[i] = 0.0; 
   for (int j = 0; j < 4; ++j) { 
@@ -66,13 +66,13 @@ GKYL_CU_DH double lax_flux_nodal_vx_1x3v_ser_p1(const double *dxv, const double 
   double G_l[8]; 
   double G_r[8]; 
   double Fhat_nodal[8]; 
-  for (int item = 0; item < 8; ++item) lax_flux_nodal_vx_1x3v_ser_p1_g(item, f_l, f_r, G_l, G_r); 
+  for (int tid = 0; tid < 8; ++tid) lax_flux_nodal_vx_1x3v_ser_p1_g(tid, f_l, f_r, G_l, G_r); 
   double alpha_max = 0.0; 
   for (int i = 0; i < 2; ++i) { 
     for (int j = 0; j < 4; ++j) { 
       alpha_max = fmax(alpha_max, lax_flux_nodal_vx_1x3v_ser_p1_node(i, j, jacob_vel_surf_r, alpha_quad[i*4 + j], G_l, G_r, Fhat_nodal)); 
     } 
   } 
-  for (int unit = 0; unit < 8; ++unit) lax_flux_nodal_vx_1x3v_ser_p1_prj(unit, Fhat_nodal, flux); 
+  for (int tid = 0; tid < 8; ++tid) lax_flux_nodal_vx_1x3v_ser_p1_prj(tid, Fhat_nodal, flux); 
   return lax_flux_nodal_vx_1x3v_ser_p1_cfl(dxv, jacob_vel_surf_l, jacob_vel_surf_r, alpha_max); 
 } 

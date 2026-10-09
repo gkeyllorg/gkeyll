@@ -1,12 +1,12 @@
 #include <gkyl_flux_vlasov_kernels.h> 
 #include <gkyl_vlasov_flux_surf_mod2nod_tables_1x2v_ser_p2.h> 
 #include <gkyl_vlasov_surf_nod2mod_tables_1x2v_ser_p2.h> 
-GKYL_CU_DH void ho_lax_flux_nodal_x_1x2v_ser_p2_g(int item, const double *f_l, const double *f_r,
+GKYL_CU_DH void ho_lax_flux_nodal_x_1x2v_ser_p2_g(int tid, const double *f_l, const double *f_r,
   double* GKYL_RESTRICT G_l, double* GKYL_RESTRICT G_r) 
 { 
-  if (item >= 16) return; 
-  const int a = item/16; 
-  const int j = item - a*16; 
+  if (tid >= 16) return; 
+  const int a = tid/16; 
+  const int j = tid - a*16; 
   double g_l = 0.0; 
   double g_r = 0.0; 
   for (int q = vst_1x2v_ser_p2_ho_ph_x0_aoff[a]; q < vst_1x2v_ser_p2_ho_ph_x0_aoff[a+1]; ++q) { 
@@ -34,10 +34,10 @@ GKYL_CU_DH double ho_lax_flux_nodal_x_1x2v_ser_p2_node(int i, int j, const doubl
   return fabs(alpha); 
 } 
 
-GKYL_CU_DH void ho_lax_flux_nodal_x_1x2v_ser_p2_prj(int unit, const double *Fhat_nodal, double* GKYL_RESTRICT flux) 
+GKYL_CU_DH void ho_lax_flux_nodal_x_1x2v_ser_p2_prj(int tid, const double *Fhat_nodal, double* GKYL_RESTRICT flux) 
 { 
-  if (unit >= 8) return; 
-  const int b = unit; 
+  if (tid >= 8) return; 
+  const int b = tid; 
   double t[1]; 
   for (int i = 0; i < 1; ++i) t[i] = 0.0; 
   for (int j = 0; j < 16; ++j) { 
@@ -67,13 +67,13 @@ GKYL_CU_DH double ho_lax_flux_nodal_x_1x2v_ser_p2(const double *dxv, const doubl
   double G_l[16]; 
   double G_r[16]; 
   double Fhat_nodal[16]; 
-  for (int item = 0; item < 16; ++item) ho_lax_flux_nodal_x_1x2v_ser_p2_g(item, f_l, f_r, G_l, G_r); 
+  for (int tid = 0; tid < 16; ++tid) ho_lax_flux_nodal_x_1x2v_ser_p2_g(tid, f_l, f_r, G_l, G_r); 
   double alpha_max = 0.0; 
   for (int i = 0; i < 1; ++i) { 
     for (int j = 0; j < 16; ++j) { 
       alpha_max = fmax(alpha_max, ho_lax_flux_nodal_x_1x2v_ser_p2_node(i, j, jacob_pos_l, jacob_pos_r, alpha_quad[i*16 + j], G_l, G_r, Fhat_nodal)); 
     } 
   } 
-  for (int unit = 0; unit < 16; ++unit) ho_lax_flux_nodal_x_1x2v_ser_p2_prj(unit, Fhat_nodal, flux); 
+  for (int tid = 0; tid < 16; ++tid) ho_lax_flux_nodal_x_1x2v_ser_p2_prj(tid, Fhat_nodal, flux); 
   return ho_lax_flux_nodal_x_1x2v_ser_p2_cfl(dxv, jacob_pos_l, jacob_pos_r, alpha_max); 
 } 

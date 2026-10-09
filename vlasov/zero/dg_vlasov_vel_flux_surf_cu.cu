@@ -71,11 +71,23 @@ gkyl_dg_vlasov_vel_flux_surf_advance_cu_kernel(
   int cdim = up->cdim;
   int vdim = pdim - cdim;
 
-  // 3D thread block: threadIdx.x is the cell of the block, threadIdx.y the
-  // configuration-space node i_node and threadIdx.z the transverse
-  // velocity-space node j_node of the surface node this thread owns. tid is the thread's index among the cell's
-  // num_nodes node threads (in the block's thread order), by which the
-  // shared-work stages are handed one row/item/unit each.
+  // One thread per surface node of each cell: threadIdx.x is the cell within
+  // the block, (threadIdx.y, threadIdx.z) = (i_node, j_node) the
+  // configuration-space and transverse velocity-space node the thread owns.
+  //
+  // The thread has two indices because the stages of the per-cell algorithm
+  // divide their work differently:
+  //  - the per-node stage (force dot product, Lax flux) works on the thread's
+  //    own node and takes (i_node, j_node);
+  //  - the cooperative stages (force-producer rows, stage 1 of the nodal f
+  //    evaluation, the projection) have fewer work items than node threads
+  //    and take tid, the thread's index among the cell's num_nodes node
+  //    threads in the block's thread order: item tid goes to thread tid, so
+  //    each stage's items occupy the fewest warps. Indexing those stages by
+  //    the node instead spreads their items across warps, which slows the
+  //    stage down: a warp runs a stage's code for all its lanes whether one
+  //    or thirty-two of them have work. Which (shape, node) or mode item tid
+  //    is, is decided inside the kernels; the launcher does not know.
   const int NO = up->num_nodes_conf, NI = up->num_nodes_vel;
   const int num_nodes = NO * NI;
   const int i_node = threadIdx.y;
@@ -159,7 +171,7 @@ gkyl_dg_vlasov_vel_flux_surf_advance_cu_kernel(
       jacob_vel_l_d = (const double *)gkyl_array_cfetch(jacob_vel_surf, vidx_l);
       jacob_vel_d = (const double *)gkyl_array_cfetch(jacob_vel_surf, vidx);
 
-      // Shared work of the cell, one row/item per node thread: this thread's
+      // Shared work of the cell, one item per node thread: this thread's
       // row of the outer/inner factors of every force producer (each
       // producer's terms follow the previous one's) and its item of stage 1
       // of the nodal f evaluation.
@@ -191,7 +203,7 @@ gkyl_dg_vlasov_vel_flux_surf_advance_cu_kernel(
 
     if (valid && !edge) {
       // Stage 3: projection of the cell's nodal flux onto the surface modal
-      // basis, one unit (inner surface mode or surface mode) per node thread.
+      // basis, one item (an inner surface mode or a surface mode) per node thread.
       up->lax_prj[dir](tid, F_cell, flux);
       // First level of the alpha_max reduction, in the last node threads.
       if (tid >= num_nodes - num_red) {

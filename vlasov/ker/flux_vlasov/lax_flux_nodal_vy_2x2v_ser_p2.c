@@ -1,12 +1,12 @@
 #include <gkyl_flux_vlasov_kernels.h> 
 #include <gkyl_vlasov_flux_surf_mod2nod_tables_2x2v_ser_p2.h> 
 #include <gkyl_vlasov_surf_nod2mod_tables_2x2v_ser_p2.h> 
-GKYL_CU_DH void lax_flux_nodal_vy_2x2v_ser_p2_g(int item, const double *f_l, const double *f_r,
+GKYL_CU_DH void lax_flux_nodal_vy_2x2v_ser_p2_g(int tid, const double *f_l, const double *f_r,
   double* GKYL_RESTRICT G_l, double* GKYL_RESTRICT G_r) 
 { 
-  if (item >= 24) return; 
-  const int a = item/3; 
-  const int j = item - a*3; 
+  if (tid >= 24) return; 
+  const int a = tid/3; 
+  const int j = tid - a*3; 
   double g_l = 0.0; 
   double g_r = 0.0; 
   for (int q = vst_2x2v_ser_p2_ph_v1_aoff[a]; q < vst_2x2v_ser_p2_ph_v1_aoff[a+1]; ++q) { 
@@ -33,10 +33,10 @@ GKYL_CU_DH double lax_flux_nodal_vy_2x2v_ser_p2_node(int i, int j, const double 
   return fabs(alpha); 
 } 
 
-GKYL_CU_DH void lax_flux_nodal_vy_2x2v_ser_p2_prj(int unit, const double *Fhat_nodal, double* GKYL_RESTRICT flux) 
+GKYL_CU_DH void lax_flux_nodal_vy_2x2v_ser_p2_prj(int tid, const double *Fhat_nodal, double* GKYL_RESTRICT flux) 
 { 
-  if (unit >= 20) return; 
-  const int k = unit; 
+  if (tid >= 20) return; 
+  const int k = tid; 
   const int a = vst_2x2v_ser_p2_prj_v1_kamap[k]; 
   const int b = vst_2x2v_ser_p2_prj_v1_kbmap[k]; 
   double t[9]; 
@@ -64,13 +64,13 @@ GKYL_CU_DH double lax_flux_nodal_vy_2x2v_ser_p2(const double *dxv, const double 
   double G_l[24]; 
   double G_r[24]; 
   double Fhat_nodal[27]; 
-  for (int item = 0; item < 24; ++item) lax_flux_nodal_vy_2x2v_ser_p2_g(item, f_l, f_r, G_l, G_r); 
+  for (int tid = 0; tid < 24; ++tid) lax_flux_nodal_vy_2x2v_ser_p2_g(tid, f_l, f_r, G_l, G_r); 
   double alpha_max = 0.0; 
   for (int i = 0; i < 9; ++i) { 
     for (int j = 0; j < 3; ++j) { 
       alpha_max = fmax(alpha_max, lax_flux_nodal_vy_2x2v_ser_p2_node(i, j, jacob_vel_surf_r, alpha_quad[i*3 + j], G_l, G_r, Fhat_nodal)); 
     } 
   } 
-  for (int unit = 0; unit < 27; ++unit) lax_flux_nodal_vy_2x2v_ser_p2_prj(unit, Fhat_nodal, flux); 
+  for (int tid = 0; tid < 27; ++tid) lax_flux_nodal_vy_2x2v_ser_p2_prj(tid, Fhat_nodal, flux); 
   return lax_flux_nodal_vy_2x2v_ser_p2_cfl(dxv, jacob_vel_surf_l, jacob_vel_surf_r, alpha_max); 
 } 

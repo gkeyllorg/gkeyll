@@ -1,12 +1,12 @@
 #include <gkyl_flux_vlasov_kernels.h> 
 #include <gkyl_vlasov_flux_surf_mod2nod_tables_2x1v_tensor_p1.h> 
 #include <gkyl_vlasov_surf_nod2mod_tables_2x1v_tensor_p1.h> 
-GKYL_CU_DH void lax_flux_nodal_vx_2x1v_tensor_p1_g(int item, const double *f_l, const double *f_r,
+GKYL_CU_DH void lax_flux_nodal_vx_2x1v_tensor_p1_g(int tid, const double *f_l, const double *f_r,
   double* GKYL_RESTRICT G_l, double* GKYL_RESTRICT G_r) 
 { 
-  if (item >= 4) return; 
-  const int a = item/1; 
-  const int j = item - a*1; 
+  if (tid >= 4) return; 
+  const int a = tid/1; 
+  const int j = tid - a*1; 
   double g_l = 0.0; 
   double g_r = 0.0; 
   for (int q = vst_2x1v_tensor_p1_ph_v0_aoff[a]; q < vst_2x1v_tensor_p1_ph_v0_aoff[a+1]; ++q) { 
@@ -32,10 +32,10 @@ GKYL_CU_DH double lax_flux_nodal_vx_2x1v_tensor_p1_node(int i, int j, const doub
   return fabs(alpha); 
 } 
 
-GKYL_CU_DH void lax_flux_nodal_vx_2x1v_tensor_p1_prj(int unit, const double *Fhat_nodal, double* GKYL_RESTRICT flux) 
+GKYL_CU_DH void lax_flux_nodal_vx_2x1v_tensor_p1_prj(int tid, const double *Fhat_nodal, double* GKYL_RESTRICT flux) 
 { 
-  if (unit >= 4) return; 
-  const int k = unit; 
+  if (tid >= 4) return; 
+  const int k = tid; 
   const int a = vst_2x1v_tensor_p1_prj_v0_kamap[k]; 
   const int b = vst_2x1v_tensor_p1_prj_v0_kbmap[k]; 
   double t[4]; 
@@ -63,13 +63,13 @@ GKYL_CU_DH double lax_flux_nodal_vx_2x1v_tensor_p1(const double *dxv, const doub
   double G_l[4]; 
   double G_r[4]; 
   double Fhat_nodal[4]; 
-  for (int item = 0; item < 4; ++item) lax_flux_nodal_vx_2x1v_tensor_p1_g(item, f_l, f_r, G_l, G_r); 
+  for (int tid = 0; tid < 4; ++tid) lax_flux_nodal_vx_2x1v_tensor_p1_g(tid, f_l, f_r, G_l, G_r); 
   double alpha_max = 0.0; 
   for (int i = 0; i < 4; ++i) { 
     for (int j = 0; j < 1; ++j) { 
       alpha_max = fmax(alpha_max, lax_flux_nodal_vx_2x1v_tensor_p1_node(i, j, jacob_vel_surf_r, alpha_quad[i*1 + j], G_l, G_r, Fhat_nodal)); 
     } 
   } 
-  for (int unit = 0; unit < 4; ++unit) lax_flux_nodal_vx_2x1v_tensor_p1_prj(unit, Fhat_nodal, flux); 
+  for (int tid = 0; tid < 4; ++tid) lax_flux_nodal_vx_2x1v_tensor_p1_prj(tid, Fhat_nodal, flux); 
   return lax_flux_nodal_vx_2x1v_tensor_p1_cfl(dxv, jacob_vel_surf_l, jacob_vel_surf_r, alpha_max); 
 } 
