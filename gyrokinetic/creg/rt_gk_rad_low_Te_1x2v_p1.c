@@ -386,6 +386,12 @@ main(int argc, char **argv)
     .diag_moments =
       {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR,
        GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP},
+
+    .num_integrated_diag_moments = 1,
+    .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
+    .time_rate_diagnostics = true,
+    .num_balance_moments = 1,
+    .balance_moments = {GKYL_F_MOMENT_M0},
   };
 
   // 2nd Electron species.
@@ -443,6 +449,12 @@ main(int argc, char **argv)
     .diag_moments =
       {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR,
        GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP},
+
+    .num_integrated_diag_moments = 1,
+    .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
+    .time_rate_diagnostics = true,
+    .num_balance_moments = 1,
+    .balance_moments = {GKYL_F_MOMENT_M0},
   };
 
   // Ion species.
@@ -482,12 +494,25 @@ main(int argc, char **argv)
         .temp_ref = ctx.Ti,
       },
 
-    .source = {.source_id = GKYL_PROJ_SOURCE, .num_sources = 0},
+    .source =
+      {
+        .source_id = GKYL_PROJ_SOURCE,
+        .num_sources = 0,
+        .diagnostics =
+          {.num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}
+          },
+      },
 
     .num_diag_moments = 7,
     .diag_moments =
       {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR,
        GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP},
+
+    .num_integrated_diag_moments = 1,
+    .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
+    .time_rate_diagnostics = true,
+    .num_balance_moments = 1,
+    .balance_moments = {GKYL_F_MOMENT_M0},
   };
 
   // D0

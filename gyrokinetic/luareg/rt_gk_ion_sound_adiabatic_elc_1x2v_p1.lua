@@ -88,6 +88,7 @@ gyrokineticApp = Gyrokinetic.App.new {
 
   -- Ions.
   ion = Gyrokinetic.Species.new {
+    balanceMoments = { G0.Moment.M0 },
     charge = charge_ion, mass = mass_ion,
     
     -- Velocity space grid.

@@ -491,7 +491,7 @@ create_ctx(void)
 
   double t_end = 1.0e-4;
   int num_frames = 1;
-  double write_phase_freq = 0.01;
+  double write_phase_freq = 1.0;
   int int_diag_calc_num = num_frames * 100;
   double dt_failure_tol = 1.0e-3; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
@@ -765,6 +765,8 @@ main(int argc, char **argv)
     .num_integrated_diag_moments = 1,
     .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
     .time_rate_diagnostics = true,
+    .num_balance_moments = 1,
+    .balance_moments = {GKYL_F_MOMENT_M0},
     .boundary_flux_diagnostics =
       {
         .num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
@@ -942,6 +944,8 @@ main(int argc, char **argv)
     .num_integrated_diag_moments = 1,
     .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
     .time_rate_diagnostics = true,
+    .num_balance_moments = 1,
+    .balance_moments = {GKYL_F_MOMENT_M0},
     .boundary_flux_diagnostics =
       {
         .num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},

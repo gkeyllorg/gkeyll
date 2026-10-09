@@ -401,6 +401,17 @@ gyrokinetic_species_lw_new(lua_State *L)
     gk_species.num_diag_moments = num_diag_moments;
   }
 
+  with_lua_tbl_tbl(L, "balanceMoments")
+  {
+    int num_balance_moments = glua_objlen(L);
+
+    for (int i = 0; i < num_balance_moments; i++) {
+      gk_species.balance_moments[i] = glua_tbl_iget_integer(L, i + 1, 0);
+    }
+
+    gk_species.num_balance_moments = num_balance_moments;
+  }
+
   with_lua_tbl_tbl(L, "bcs")
   {
     int num_bcs = glua_objlen(L);

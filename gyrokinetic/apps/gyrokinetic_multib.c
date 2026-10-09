@@ -191,6 +191,10 @@ singleb_app_new_solver(
       species_inp.integrated_diag_moments[n] = sp->integrated_diag_moments[n];
     }
     species_inp.time_rate_diagnostics = sp->time_rate_diagnostics;
+    species_inp.num_balance_moments = sp->num_balance_moments;
+    for (int n = 0; n < species_inp.num_balance_moments; ++n) {
+      species_inp.balance_moments[n] = sp->balance_moments[n];
+    }
     species_inp.boundary_flux_diagnostics = sp->boundary_flux_diagnostics;
 
     // Choose proper block-specific species input.

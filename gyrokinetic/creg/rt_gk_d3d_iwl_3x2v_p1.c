@@ -592,10 +592,10 @@ create_ctx(void)
 
   // Grid parameters
   int Nx = 32;
-  int Ny = 4;
-  int Nz = 8;
-  int Nvpar = 8;
-  int Nmu = 4;
+  int Ny = 8;
+  int Nz = 6;
+  int Nvpar = 4;
+  int Nmu = 2;
   int poly_order = 1;
 
   double vpar_max_elc = 4. * vte;
@@ -791,6 +791,8 @@ main(int argc, char **argv)
     .num_integrated_diag_moments = 1,
     .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
     .time_rate_diagnostics = true,
+    .num_balance_moments = 1,
+    .balance_moments = {GKYL_F_MOMENT_M0},
 
     .boundary_flux_diagnostics =
       {
@@ -881,6 +883,8 @@ main(int argc, char **argv)
     .num_integrated_diag_moments = 1,
     .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
     .time_rate_diagnostics = true,
+    .num_balance_moments = 1,
+    .balance_moments = {GKYL_F_MOMENT_M0},
 
     .boundary_flux_diagnostics =
       {
