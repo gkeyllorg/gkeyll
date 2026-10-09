@@ -447,6 +447,28 @@ GKYL_CU_TABLE __attribute__((unused)) static const int vst_2x1v_tensor_p3_prj_v0
   0, 
   0, 
 }; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_2x1v_tensor_p3_prj_v0_boff[2] = { 
+  0, 
+  16, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_2x1v_tensor_p3_prj_v0_bks[16] = { 
+  0, 
+  1, 
+  2, 
+  3, 
+  4, 
+  5, 
+  6, 
+  7, 
+  8, 
+  9, 
+  10, 
+  11, 
+  12, 
+  13, 
+  14, 
+  15, 
+}; 
 GKYL_CU_TABLE __attribute__((unused)) static const int vst_2x1v_tensor_p3_prj_v0_out_off[17] = { 
   0, 
   4, 

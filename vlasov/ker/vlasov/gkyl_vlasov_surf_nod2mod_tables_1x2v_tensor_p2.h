@@ -56,6 +56,23 @@ GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x2v_tensor_p2_prj_v0
   2, 
   2, 
 }; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x2v_tensor_p2_prj_v0_boff[4] = { 
+  0, 
+  3, 
+  6, 
+  9, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x2v_tensor_p2_prj_v0_bks[9] = { 
+  0, 
+  1, 
+  4, 
+  2, 
+  3, 
+  6, 
+  5, 
+  7, 
+  8, 
+}; 
 GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x2v_tensor_p2_prj_v0_out_off[10] = { 
   0, 
   3, 
@@ -350,6 +367,23 @@ GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x2v_tensor_p2_prj_v1
   1, 
   2, 
   2, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x2v_tensor_p2_prj_v1_boff[4] = { 
+  0, 
+  3, 
+  6, 
+  9, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x2v_tensor_p2_prj_v1_bks[9] = { 
+  0, 
+  1, 
+  4, 
+  2, 
+  3, 
+  6, 
+  5, 
+  7, 
+  8, 
 }; 
 GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x2v_tensor_p2_prj_v1_out_off[10] = { 
   0, 

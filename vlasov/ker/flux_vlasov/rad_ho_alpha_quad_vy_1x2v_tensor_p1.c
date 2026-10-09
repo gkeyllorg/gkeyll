@@ -1,14 +1,18 @@
 #include <gkyl_flux_vlasov_kernels.h> 
 #include <gkyl_vlasov_flux_surf_mod2nod_tables_1x2v_tensor_p1.h> 
-GKYL_CU_DH int rad_ho_alpha_quad_vy_1x2v_tensor_p1_shared(int tid, int nthreads, const double *dxv, const double *rad,
+GKYL_CU_DH int rad_ho_alpha_quad_vy_1x2v_tensor_p1_shared(int tid, int off, const double *dxv, const double *rad,
   double* GKYL_RESTRICT O, double* GKYL_RESTRICT I) 
 { 
   if (O == NULL) return 1; 
+  O += off*2; 
+  I += off*4; 
   const double *rad_vy = &rad[9]; 
-  for (int i = tid; i < 2; i += nthreads) { 
+  if (tid < 2) { 
+    const int i = tid; 
     O[i] = 1.0; 
   } 
-  for (int j = tid; j < 4; j += nthreads) { 
+  if (tid < 4) { 
+    const int j = tid; 
     double rad_quad = 0.0; 
     for (int b = 0; b < 9; ++b) rad_quad += vst_1x2v_tensor_p1_ho_vel_ev_v1[j*9 + b]*rad_vy[b]; 
     I[j] = rad_quad; 
@@ -20,7 +24,7 @@ GKYL_CU_DH void rad_ho_alpha_quad_vy_1x2v_tensor_p1(const double *dxv, const dou
 { 
   double O[2]; 
   double I[4]; 
-  rad_ho_alpha_quad_vy_1x2v_tensor_p1_shared(0, 1, dxv, rad, O, I); 
+  for (int tid = 0; tid < 4; ++tid) rad_ho_alpha_quad_vy_1x2v_tensor_p1_shared(tid, 0, dxv, rad, O, I); 
   for (int i = 0; i < 2; ++i) { 
     for (int j = 0; j < 4; ++j) { 
       double alpha = 0.0; 

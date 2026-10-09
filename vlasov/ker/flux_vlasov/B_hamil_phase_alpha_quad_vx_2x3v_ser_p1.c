@@ -1,12 +1,15 @@
 #include <gkyl_flux_vlasov_kernels.h> 
 #include <gkyl_vlasov_flux_surf_mod2nod_tables_2x3v_ser_p1.h> 
-GKYL_CU_DH int B_hamil_phase_alpha_quad_vx_2x3v_ser_p1_shared(int tid, int nthreads, const double *dxv, const double *jacob_vel_surf, const double *hamil, const double *qmem,
+GKYL_CU_DH int B_hamil_phase_alpha_quad_vx_2x3v_ser_p1_shared(int tid, int off, const double *dxv, const double *jacob_vel_surf, const double *hamil, const double *qmem,
   double* GKYL_RESTRICT O, double* GKYL_RESTRICT I) 
 { 
   if (O == NULL) return 8; 
+  O += off*4; 
+  I += off*4; 
   const double *Bz = &qmem[20]; 
   const double *By = &qmem[16]; 
-  for (int i = tid; i < 4; i += nthreads) { 
+  if (tid < 4) { 
+    const int i = tid; 
     double Bz_quad = 0.0; 
     for (int a = 0; a < 4; ++a) Bz_quad += vst_2x3v_ser_p1_conf_ev[i*4 + a]*Bz[a]; 
     for (int a = 0; a < 4; ++a) O[(0 + a)*4 + i] = Bz_quad*vst_2x3v_ser_p1_ph_v0_Cm[i*4 + a]; 
@@ -14,7 +17,8 @@ GKYL_CU_DH int B_hamil_phase_alpha_quad_vx_2x3v_ser_p1_shared(int tid, int nthre
     for (int a = 0; a < 4; ++a) By_quad += vst_2x3v_ser_p1_conf_ev[i*4 + a]*By[a]; 
     for (int a = 0; a < 4; ++a) O[(4 + a)*4 + i] = -By_quad*vst_2x3v_ser_p1_ph_v0_Cm[i*4 + a]; 
   } 
-  for (int j = tid; j < 4; j += nthreads) { 
+  if (tid < 4) { 
+    const int j = tid; 
     double Gd1[4]; 
     for (int a = 0; a < 4; ++a) Gd1[a] = 0.0; 
     for (int b = 0; b < 32; ++b) { 
@@ -35,7 +39,7 @@ GKYL_CU_DH void B_hamil_phase_alpha_quad_vx_2x3v_ser_p1(const double *dxv, const
 { 
   double O[32]; 
   double I[32]; 
-  B_hamil_phase_alpha_quad_vx_2x3v_ser_p1_shared(0, 1, dxv, jacob_vel_surf, hamil, qmem, O, I); 
+  for (int tid = 0; tid < 4; ++tid) B_hamil_phase_alpha_quad_vx_2x3v_ser_p1_shared(tid, 0, dxv, jacob_vel_surf, hamil, qmem, O, I); 
   for (int i = 0; i < 4; ++i) { 
     for (int j = 0; j < 4; ++j) { 
       double alpha = 0.0; 

@@ -1,16 +1,19 @@
 #include <gkyl_flux_vlasov_kernels.h> 
 #include <gkyl_vlasov_flux_surf_mod2nod_tables_1x2v_ser_p1.h> 
-GKYL_CU_DH int nc_hamil_vel_dense_alpha_quad_vy_1x2v_ser_p1_shared(int tid, int nthreads, const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, const double *hamil,
+GKYL_CU_DH int nc_hamil_vel_dense_alpha_quad_vy_1x2v_ser_p1_shared(int tid, int off, const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, const double *hamil,
   double* GKYL_RESTRICT O, double* GKYL_RESTRICT I) 
 { 
   if (O == NULL) return 2; 
+  O += off*2; 
+  I += off*2; 
   const double *vmap_v0 = &vmap[0]; 
   const double *vmap_v1 = &vmap[4]; 
   const double dv10 = 2.0/dxv[1]; 
   const double jacob_vx_inv = 1.0/jacob_vel_surf[0]; 
   const double *poisson_tensor_conf_0 = &poisson_tensor_conf[8]; 
   const double *poisson_tensor_conf_1 = &poisson_tensor_conf[10]; 
-  for (int i = tid; i < 2; i += nthreads) { 
+  if (tid < 2) { 
+    const int i = tid; 
     double p0_q = 0.0; 
     double p1_q = 0.0; 
     for (int a = 0; a < 2; ++a) { 
@@ -20,7 +23,8 @@ GKYL_CU_DH int nc_hamil_vel_dense_alpha_quad_vy_1x2v_ser_p1_shared(int tid, int 
     O[0*2 + i] = -p0_q; 
     O[1*2 + i] = -p1_q; 
   } 
-  for (int j = tid; j < 2; j += nthreads) { 
+  if (tid < 2) { 
+    const int j = tid; 
     double dH_dv0 = 0.0; 
     for (int b = 0; b < 4; ++b) dH_dv0 += vst_1x2v_ser_p1_vel_dv0_v1[j*4 + b]*hamil[b]; 
     const double vt1 = 0.7071067811865475*vmap_v0[0] + 1.224744871391589*vmap_v0[1]*vst_1x2v_ser_p1_vel_nodes_v1[j*1 + 0]; 
@@ -35,7 +39,7 @@ GKYL_CU_DH void nc_hamil_vel_dense_alpha_quad_vy_1x2v_ser_p1(const double *w, co
 { 
   double O[4]; 
   double I[4]; 
-  nc_hamil_vel_dense_alpha_quad_vy_1x2v_ser_p1_shared(0, 1, w, dxv, vmap, jacob_pos, jacob_vel_surf, poisson_tensor_conf, hamil, O, I); 
+  for (int tid = 0; tid < 2; ++tid) nc_hamil_vel_dense_alpha_quad_vy_1x2v_ser_p1_shared(tid, 0, w, dxv, vmap, jacob_pos, jacob_vel_surf, poisson_tensor_conf, hamil, O, I); 
   for (int i = 0; i < 2; ++i) { 
     for (int j = 0; j < 2; ++j) { 
       double alpha = 0.0; 

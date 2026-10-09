@@ -1,16 +1,20 @@
 #include <gkyl_flux_vlasov_kernels.h> 
 #include <gkyl_vlasov_flux_surf_mod2nod_tables_2x2v_ser_p2.h> 
-GKYL_CU_DH int B_hamil_vel_sparse_alpha_quad_vx_2x2v_ser_p2_shared(int tid, int nthreads, const double *dxv, const double *jacob_vel_surf, const double *hamil, const double *qmem,
+GKYL_CU_DH int B_hamil_vel_sparse_alpha_quad_vx_2x2v_ser_p2_shared(int tid, int off, const double *dxv, const double *jacob_vel_surf, const double *hamil, const double *qmem,
   double* GKYL_RESTRICT O, double* GKYL_RESTRICT I) 
 { 
   if (O == NULL) return 1; 
+  O += off*9; 
+  I += off*3; 
   const double *Bz = &qmem[40]; 
-  for (int i = tid; i < 9; i += nthreads) { 
+  if (tid < 9) { 
+    const int i = tid; 
     double Bz_quad = 0.0; 
     for (int a = 0; a < 8; ++a) Bz_quad += vst_2x2v_ser_p2_conf_ev[i*8 + a]*Bz[a]; 
     O[0*9 + i] = Bz_quad; 
   } 
-  for (int j = tid; j < 3; j += nthreads) { 
+  if (tid < 3) { 
+    const int j = tid; 
     double dH_dvy = 0.0; 
     for (int s = 0; s < 5; ++s) { 
       const int b = vst_2x2v_ser_p2_vel_sparse_idx[s]; 
@@ -25,7 +29,7 @@ GKYL_CU_DH void B_hamil_vel_sparse_alpha_quad_vx_2x2v_ser_p2(const double *dxv, 
 { 
   double O[9]; 
   double I[3]; 
-  B_hamil_vel_sparse_alpha_quad_vx_2x2v_ser_p2_shared(0, 1, dxv, jacob_vel_surf, hamil, qmem, O, I); 
+  for (int tid = 0; tid < 9; ++tid) B_hamil_vel_sparse_alpha_quad_vx_2x2v_ser_p2_shared(tid, 0, dxv, jacob_vel_surf, hamil, qmem, O, I); 
   for (int i = 0; i < 9; ++i) { 
     for (int j = 0; j < 3; ++j) { 
       double alpha = 0.0; 

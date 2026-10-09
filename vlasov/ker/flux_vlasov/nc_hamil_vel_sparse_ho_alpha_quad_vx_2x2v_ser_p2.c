@@ -1,16 +1,19 @@
 #include <gkyl_flux_vlasov_kernels.h> 
 #include <gkyl_vlasov_flux_surf_mod2nod_tables_2x2v_ser_p2.h> 
-GKYL_CU_DH int nc_hamil_vel_sparse_ho_alpha_quad_vx_2x2v_ser_p2_shared(int tid, int nthreads, const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, const double *hamil,
+GKYL_CU_DH int nc_hamil_vel_sparse_ho_alpha_quad_vx_2x2v_ser_p2_shared(int tid, int off, const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, const double *hamil,
   double* GKYL_RESTRICT O, double* GKYL_RESTRICT I) 
 { 
   if (O == NULL) return 2; 
+  O += off*16; 
+  I += off*4; 
   const double *vmap_v0 = &vmap[0]; 
   const double *vmap_v1 = &vmap[4]; 
   const double dv11 = 2.0/dxv[3]; 
   const double jacob_vy_inv = 1.0/jacob_vel_surf[4]; 
   const double *poisson_tensor_conf_0 = &poisson_tensor_conf[32]; 
   const double *poisson_tensor_conf_1 = &poisson_tensor_conf[40]; 
-  for (int i = tid; i < 16; i += nthreads) { 
+  if (tid < 16) { 
+    const int i = tid; 
     double p0_q = 0.0; 
     double p1_q = 0.0; 
     for (int a = 0; a < 8; ++a) { 
@@ -20,7 +23,8 @@ GKYL_CU_DH int nc_hamil_vel_sparse_ho_alpha_quad_vx_2x2v_ser_p2_shared(int tid, 
     O[0*16 + i] = p0_q; 
     O[1*16 + i] = p1_q; 
   } 
-  for (int j = tid; j < 4; j += nthreads) { 
+  if (tid < 4) { 
+    const int j = tid; 
     double dH_dv1 = 0.0; 
     for (int s = 0; s < 5; ++s) { 
       const int b = vst_2x2v_ser_p2_ho_vel_sparse_idx[s]; 
@@ -38,7 +42,7 @@ GKYL_CU_DH void nc_hamil_vel_sparse_ho_alpha_quad_vx_2x2v_ser_p2(const double *w
 { 
   double O[32]; 
   double I[8]; 
-  nc_hamil_vel_sparse_ho_alpha_quad_vx_2x2v_ser_p2_shared(0, 1, w, dxv, vmap, jacob_pos, jacob_vel_surf, poisson_tensor_conf, hamil, O, I); 
+  for (int tid = 0; tid < 16; ++tid) nc_hamil_vel_sparse_ho_alpha_quad_vx_2x2v_ser_p2_shared(tid, 0, w, dxv, vmap, jacob_pos, jacob_vel_surf, poisson_tensor_conf, hamil, O, I); 
   for (int i = 0; i < 16; ++i) { 
     for (int j = 0; j < 4; ++j) { 
       double alpha = 0.0; 

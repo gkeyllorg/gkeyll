@@ -33,6 +33,15 @@ GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x1v_tensor_p2_prj_v0
   0, 
   0, 
 }; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x1v_tensor_p2_prj_v0_boff[2] = { 
+  0, 
+  3, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x1v_tensor_p2_prj_v0_bks[3] = { 
+  0, 
+  1, 
+  2, 
+}; 
 GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x1v_tensor_p2_prj_v0_out_off[4] = { 
   0, 
   3, 

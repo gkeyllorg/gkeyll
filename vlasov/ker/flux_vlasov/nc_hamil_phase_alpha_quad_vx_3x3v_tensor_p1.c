@@ -1,9 +1,11 @@
 #include <gkyl_flux_vlasov_kernels.h> 
 #include <gkyl_vlasov_flux_surf_mod2nod_tables_3x3v_tensor_p1.h> 
-GKYL_CU_DH int nc_hamil_phase_alpha_quad_vx_3x3v_tensor_p1_shared(int tid, int nthreads, const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, const double *hamil,
+GKYL_CU_DH int nc_hamil_phase_alpha_quad_vx_3x3v_tensor_p1_shared(int tid, int off, const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, const double *hamil,
   double* GKYL_RESTRICT O, double* GKYL_RESTRICT I) 
 { 
   if (O == NULL) return 56; 
+  O += off*8; 
+  I += off*9; 
   const double dx10 = 2.0/dxv[0]; 
   const double dx11 = 2.0/dxv[1]; 
   const double dx12 = 2.0/dxv[2]; 
@@ -24,7 +26,8 @@ GKYL_CU_DH int nc_hamil_phase_alpha_quad_vx_3x3v_tensor_p1_shared(int tid, int n
   const double *poisson_tensor_conf_4 = &poisson_tensor_conf[104]; 
   const double *poisson_tensor_conf_6 = &poisson_tensor_conf[120]; 
   const double *poisson_tensor_conf_7 = &poisson_tensor_conf[128]; 
-  for (int i = tid; i < 8; i += nthreads) { 
+  if (tid < 8) { 
+    const int i = tid; 
     double px0_q = 0.0; 
     double px1_q = 0.0; 
     double px2_q = 0.0; 
@@ -55,7 +58,8 @@ GKYL_CU_DH int nc_hamil_phase_alpha_quad_vx_3x3v_tensor_p1_shared(int tid, int n
     for (int a = 0; a < 8; ++a) O[(40 + a)*8 + i] = p4_q*vst_3x3v_tensor_p1_ph_v0_Cm[i*8 + a]; 
     for (int a = 0; a < 8; ++a) O[(48 + a)*8 + i] = p7_q*vst_3x3v_tensor_p1_ph_v0_Cm[i*8 + a]; 
   } 
-  for (int j = tid; j < 9; j += nthreads) { 
+  if (tid < 9) { 
+    const int j = tid; 
     double G[8]; 
     double Gd1[8]; 
     double Gd2[8]; 
@@ -90,7 +94,7 @@ GKYL_CU_DH void nc_hamil_phase_alpha_quad_vx_3x3v_tensor_p1(const double *w, con
 { 
   double O[448]; 
   double I[504]; 
-  nc_hamil_phase_alpha_quad_vx_3x3v_tensor_p1_shared(0, 1, w, dxv, vmap, jacob_pos, jacob_vel_surf, poisson_tensor_conf, hamil, O, I); 
+  for (int tid = 0; tid < 9; ++tid) nc_hamil_phase_alpha_quad_vx_3x3v_tensor_p1_shared(tid, 0, w, dxv, vmap, jacob_pos, jacob_vel_surf, poisson_tensor_conf, hamil, O, I); 
   for (int i = 0; i < 8; ++i) { 
     for (int j = 0; j < 9; ++j) { 
       double alpha = 0.0; 

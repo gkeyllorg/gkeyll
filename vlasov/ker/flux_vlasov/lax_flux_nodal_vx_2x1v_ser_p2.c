@@ -5,17 +5,17 @@ GKYL_CU_DH void lax_flux_nodal_vx_2x1v_ser_p2_g(int item, const double *f_l, con
   double* GKYL_RESTRICT G_l, double* GKYL_RESTRICT G_r) 
 { 
   if (item >= 8) return; 
-  const int j = item/8; 
-  const int a = item - j*8; 
+  const int a = item/1; 
+  const int j = item - a*1; 
   double g_l = 0.0; 
   double g_r = 0.0; 
   for (int q = vst_2x1v_ser_p2_ph_v0_aoff[a]; q < vst_2x1v_ser_p2_ph_v0_aoff[a+1]; ++q) { 
     const int k = vst_2x1v_ser_p2_ph_v0_aks[q]; 
-    g_l += vst_2x1v_ser_p2_ph_v0_V[j*3 + vst_2x1v_ser_p2_ph_v0_vlmap[k]]*(vst_2x1v_ser_p2_ph_v0_coefl[k]*f_l[k]); 
-    g_r += vst_2x1v_ser_p2_ph_v0_V[j*3 + vst_2x1v_ser_p2_ph_v0_vrmap[k]]*(vst_2x1v_ser_p2_ph_v0_coefr[k]*f_r[k]); 
+    g_l += vst_2x1v_ser_p2_ph_v0_Wl[k*1 + j]*f_l[k]; 
+    g_r += vst_2x1v_ser_p2_ph_v0_Wr[k*1 + j]*f_r[k]; 
   } 
-  G_l[item] = g_l; 
-  G_r[item] = g_r; 
+  G_l[j*8 + a] = g_l; 
+  G_r[j*8 + a] = g_r; 
 } 
 
 GKYL_CU_DH double lax_flux_nodal_vx_2x1v_ser_p2_node(int i, int j, const double *jacob_vel_surf_r,
@@ -32,9 +32,10 @@ GKYL_CU_DH double lax_flux_nodal_vx_2x1v_ser_p2_node(int i, int j, const double 
   return fabs(alpha); 
 } 
 
-GKYL_CU_DH void lax_flux_nodal_vx_2x1v_ser_p2_prj(int k, const double *Fhat_nodal, double* GKYL_RESTRICT flux) 
+GKYL_CU_DH void lax_flux_nodal_vx_2x1v_ser_p2_prj(int unit, const double *Fhat_nodal, double* GKYL_RESTRICT flux) 
 { 
-  if (k >= 8) return; 
+  if (unit >= 8) return; 
+  const int k = unit; 
   const int a = vst_2x1v_ser_p2_prj_v0_kamap[k]; 
   const int b = vst_2x1v_ser_p2_prj_v0_kbmap[k]; 
   double t[9]; 
@@ -69,6 +70,6 @@ GKYL_CU_DH double lax_flux_nodal_vx_2x1v_ser_p2(const double *dxv, const double 
       alpha_max = fmax(alpha_max, lax_flux_nodal_vx_2x1v_ser_p2_node(i, j, jacob_vel_surf_r, alpha_quad[i*1 + j], G_l, G_r, Fhat_nodal)); 
     } 
   } 
-  for (int k = 0; k < 8; ++k) lax_flux_nodal_vx_2x1v_ser_p2_prj(k, Fhat_nodal, flux); 
+  for (int unit = 0; unit < 9; ++unit) lax_flux_nodal_vx_2x1v_ser_p2_prj(unit, Fhat_nodal, flux); 
   return lax_flux_nodal_vx_2x1v_ser_p2_cfl(dxv, jacob_vel_surf_l, jacob_vel_surf_r, alpha_max); 
 } 

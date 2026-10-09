@@ -177,6 +177,21 @@ GKYL_CU_TABLE __attribute__((unused)) static const int vst_2x1v_tensor_p2_prj_v0
   0, 
   0, 
 }; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_2x1v_tensor_p2_prj_v0_boff[2] = { 
+  0, 
+  9, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_2x1v_tensor_p2_prj_v0_bks[9] = { 
+  0, 
+  1, 
+  2, 
+  3, 
+  4, 
+  5, 
+  6, 
+  7, 
+  8, 
+}; 
 GKYL_CU_TABLE __attribute__((unused)) static const int vst_2x1v_tensor_p2_prj_v0_out_off[10] = { 
   0, 
   3, 

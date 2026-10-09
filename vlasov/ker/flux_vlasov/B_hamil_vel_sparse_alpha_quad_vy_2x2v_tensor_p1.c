@@ -1,16 +1,20 @@
 #include <gkyl_flux_vlasov_kernels.h> 
 #include <gkyl_vlasov_flux_surf_mod2nod_tables_2x2v_tensor_p1.h> 
-GKYL_CU_DH int B_hamil_vel_sparse_alpha_quad_vy_2x2v_tensor_p1_shared(int tid, int nthreads, const double *dxv, const double *jacob_vel_surf, const double *hamil, const double *qmem,
+GKYL_CU_DH int B_hamil_vel_sparse_alpha_quad_vy_2x2v_tensor_p1_shared(int tid, int off, const double *dxv, const double *jacob_vel_surf, const double *hamil, const double *qmem,
   double* GKYL_RESTRICT O, double* GKYL_RESTRICT I) 
 { 
   if (O == NULL) return 1; 
+  O += off*4; 
+  I += off*3; 
   const double *Bz = &qmem[20]; 
-  for (int i = tid; i < 4; i += nthreads) { 
+  if (tid < 4) { 
+    const int i = tid; 
     double Bz_quad = 0.0; 
     for (int a = 0; a < 4; ++a) Bz_quad += vst_2x2v_tensor_p1_conf_ev[i*4 + a]*Bz[a]; 
     O[0*4 + i] = -Bz_quad; 
   } 
-  for (int j = tid; j < 3; j += nthreads) { 
+  if (tid < 3) { 
+    const int j = tid; 
     double dH_dvx = 0.0; 
     for (int s = 0; s < 5; ++s) { 
       const int b = vst_2x2v_tensor_p1_vel_sparse_idx[s]; 
@@ -25,7 +29,7 @@ GKYL_CU_DH void B_hamil_vel_sparse_alpha_quad_vy_2x2v_tensor_p1(const double *dx
 { 
   double O[4]; 
   double I[3]; 
-  B_hamil_vel_sparse_alpha_quad_vy_2x2v_tensor_p1_shared(0, 1, dxv, jacob_vel_surf, hamil, qmem, O, I); 
+  for (int tid = 0; tid < 4; ++tid) B_hamil_vel_sparse_alpha_quad_vy_2x2v_tensor_p1_shared(tid, 0, dxv, jacob_vel_surf, hamil, qmem, O, I); 
   for (int i = 0; i < 4; ++i) { 
     for (int j = 0; j < 3; ++j) { 
       double alpha = 0.0; 

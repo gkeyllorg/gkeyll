@@ -91,6 +91,28 @@ GKYL_CU_TABLE __attribute__((unused)) static const double vst_1x1v_tensor_p2_ph_
   2.5, 
   -3.8461538461538463, 
 }; 
+GKYL_CU_TABLE __attribute__((unused)) static const double vst_1x1v_tensor_p2_ph_v0_Wl[9] = { 
+  0.5, 
+  0.34641016151377546, 
+  0.8660254037844386, 
+  0.6, 
+  -0.2906888370749726, 
+  1.118033988749895, 
+  -0.5034878350069641, 
+  0.7745966692414833, 
+  -0.65, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const double vst_1x1v_tensor_p2_ph_v0_Wr[9] = { 
+  0.5, 
+  0.34641016151377546, 
+  -0.8660254037844386, 
+  -0.6, 
+  -0.2906888370749726, 
+  1.118033988749895, 
+  0.5034878350069641, 
+  0.7745966692414833, 
+  -0.65, 
+}; 
 GKYL_CU_TABLE __attribute__((unused)) static const double vst_1x1v_tensor_p2_ph_v0_coefl[9] = { 
   0.5, 
   0.34641016151377546, 

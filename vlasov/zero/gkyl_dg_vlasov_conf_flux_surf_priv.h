@@ -16,21 +16,25 @@
 // Force producer in sum-factorized form. The force at surface node (outer
 // transverse-configuration node i, inner velocity node j) is
 //   alpha(i, j) = sum_t O[t*NO + i] * I[t*NI + j]
-// over the producer's terms t. _shared fills the outer factors O (one item per
-// outer node) and inner factors I (one item per inner node), grid-stride over
-// (tid, nthreads), and returns its number of terms; called with O == NULL it
-// only returns the term count (used to size the buffers). hamil_pt_edge selects
-// the face (-1: this cell's lower face, +1: upper).
+// over the producer's terms t. _shared is called once per surface-node thread
+// tid: it fills the outer factors O[(off + t)*NO + tid] if tid < NO and the
+// inner factors I[(off + t)*NI + tid] if tid < NI (max(NO, NI) <= NO*NI, so one
+// thread per surface node covers it), off being where its terms start, and
+// returns its number of terms; called with
+// O == NULL it only returns the term count (used to size the buffers).
+// hamil_pt_edge selects the face (-1: this cell's lower face, +1: upper).
 typedef int (*hamil_alpha_shared_conf_t)(
-  int tid, int nthreads, const double *w, const double *dxv, const int hamil_pt_edge,
-  const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-  const double *poisson_tensor_conf, const double *hamil, double *GKYL_RESTRICT O,
-  double *GKYL_RESTRICT I
+  int tid, int off, const double *w, const double *dxv, const int hamil_pt_edge, const double *vmap,
+  const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf,
+  const double *hamil, double *GKYL_RESTRICT O, double *GKYL_RESTRICT I
 );
 
-// Nodal Lax-Friedrichs flux in three stages. Stage 1 of the sum-factorized
-// nodal evaluation of f: item = j*NA + a indexes the (inner node, outer shape)
-// pairs; fills G_l[item], G_r[item] from f_l, f_r.
+// Nodal Lax-Friedrichs flux in three stages, each doing one unit per call:
+// the launcher gives one thread per surface node, the CPU dispatch loops over
+// the nodes, and units beyond a stage's count are no-ops (there are never
+// more units than surface nodes). Stage 1 of the sum-factorized nodal
+// evaluation of f: item = (outer shape, inner node) pair, fills G_l[j*NA + a],
+// G_r[j*NA + a] from f_l, f_r.
 typedef void (*lax_g_t)(
   int item, const double *f_l, const double *f_r, double *GKYL_RESTRICT G_l,
   double *GKYL_RESTRICT G_r
@@ -43,9 +47,10 @@ typedef double (*lax_flux_nodal_t)(
   const double *G_l, const double *G_r, double *GKYL_RESTRICT Fhat_nodal
 );
 
-// Stage 3: projection of surface mode k of the nodal buffer onto the surface
-// modal basis, stored at the direction's modal offset of the flux array.
-typedef void (*lax_prj_t)(int k, const double *Fhat_nodal, double *GKYL_RESTRICT flux);
+// Stage 3: projection of the nodal buffer onto the surface modal basis, stored
+// at the direction's modal offset of the flux array; unit = one inner surface
+// mode (or one surface mode, by the kernel's choice).
+typedef void (*lax_prj_t)(int unit, const double *Fhat_nodal, double *GKYL_RESTRICT flux);
 
 // CFL estimate of the surface from the reduced alpha_max.
 typedef double (*lax_cfl_t)(
@@ -90,6 +95,9 @@ typedef struct {
 // Largest force-factor buffer, in doubles, over all kernels: alpha_nterms_max
 // * (num_nodes_conf + num_nodes_vel) (3x3v tensor p=1 phase: 12 terms x 68 nodes).
 #define GKYL_VLASOV_CONF_FLUX_SURF_MAX_ALPHA_FACTORS 816
+// Node threads per cell that do the first level of the CUDA kernels' alpha_max
+// (CFL) reduction; the last node thread folds their partials.
+#define GKYL_FLUX_SURF_CFL_REDUCERS 8
 
 struct gkyl_dg_vlasov_conf_flux_surf {
   struct gkyl_rect_grid phase_grid; // Phase-space grid.
@@ -113,9 +121,9 @@ struct gkyl_dg_vlasov_conf_flux_surf {
   const struct gkyl_array *
     jacob_pos; // Configuration-space (position-map) Jacobian, per-conf-cell constant (borrowed from pos_map; defined on the extended conf range).
   hamil_alpha_shared_conf_t hamil_alpha_shared[3]; // Hamiltonian force Pi . dH/dv.
-  lax_g_t lax_g[3]; // Stage 1 of the nodal f evaluation, one (inner node, outer shape) item per call.
+  lax_g_t lax_g[3]; // Stage 1 of the nodal f evaluation (fills G_l, G_r).
   lax_flux_nodal_t lax_flux_nodal[3]; // Stage 2: Lax-Friedrichs flux at one surface node.
-  lax_prj_t lax_prj[3]; // Stage 3: nodal -> surface-modal projection, one mode per call.
+  lax_prj_t lax_prj[3]; // Stage 3: nodal -> surface-modal projection.
   lax_cfl_t lax_cfl[3]; // CFL estimate from the reduced alpha_max.
   int num_nodes_conf; // Remaining configuration-space surface nodes per configuration surface.
   int num_nodes_vel; // Velocity-space volume nodes per configuration surface.
@@ -198,16 +206,15 @@ conf_flux_surf_num_nodes(
 GKYL_CU_DH static inline int
 conf_flux_surf_alpha_nterms(const struct gkyl_dg_vlasov_conf_flux_surf *up, int dir)
 {
-  return up->hamil_alpha_shared[dir](0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+  return up->hamil_alpha_shared[dir](0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 }
 
 // Empty function pointer for cases where this force does not exist (no terms).
 GKYL_CU_DH static int
 no_hamil_alpha_shared(
-  int tid, int nthreads, const double *w, const double *dxv, const int hamil_pt_edge,
-  const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-  const double *poisson_tensor_conf, const double *hamil, double *GKYL_RESTRICT O,
-  double *GKYL_RESTRICT I
+  int tid, int off, const double *w, const double *dxv, const int hamil_pt_edge, const double *vmap,
+  const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf,
+  const double *hamil, double *GKYL_RESTRICT O, double *GKYL_RESTRICT I
 )
 {
   return 0;
@@ -215,10 +222,11 @@ no_hamil_alpha_shared(
 
 // Configuration-space flux of one cell surface (CPU dispatch). This is the
 // serial form of the algorithm the CUDA kernel runs with one thread per surface
-// node: shared work of the cell first (the force factors and stage 1 of the
-// nodal f evaluation), then the per-node work (force by the factor dot product,
-// nodal Lax flux), then the projection onto the surface modal basis. Returns
-// the surface CFL estimate.
+// node: the shared work of the cell (the force factors and stage 1 of the
+// nodal f evaluation, one row/item per node thread), then the per-node work
+// (force by the factor dot product, nodal Lax flux), then the projection onto
+// the surface modal basis (one unit per node thread). Returns the surface CFL
+// estimate.
 static double
 conf_flux_surf_arrays(
   struct gkyl_dg_vlasov_conf_flux_surf *up, int dir, const double *w, const double *dxv,
@@ -233,13 +241,16 @@ conf_flux_surf_arrays(
   double G_l[GKYL_DEFAULT_NUM_THREADS], G_r[GKYL_DEFAULT_NUM_THREADS];
   double Fhat_nodal[GKYL_DEFAULT_NUM_THREADS];
 
-  // Shared work of the cell: outer/inner factors of the force producer and
-  // stage 1 of the nodal f evaluation.
-  int nt = up->hamil_alpha_shared[dir](
-    0, 1, w, dxv, hamil_pt_edge, vmap, jacob_pos_r, jacob_vel_surf, poisson_tensor_conf, hamil, O, I
-  );
-  for (int item = 0; item < num_nodes; ++item) {
-    up->lax_g[dir](item, f_l, f_r, G_l, G_r);
+  // Shared work of the cell, as each surface-node thread of the CUDA kernel
+  // does it: its row of the outer/inner factors of the force producer and its
+  // item of stage 1 of the nodal f evaluation.
+  int nt = 0;
+  for (int tid = 0; tid < num_nodes; ++tid) {
+    nt = up->hamil_alpha_shared[dir](
+      tid, 0, w, dxv, hamil_pt_edge, vmap, jacob_pos_r, jacob_vel_surf, poisson_tensor_conf, hamil,
+      O, I
+    );
+    up->lax_g[dir](tid, f_l, f_r, G_l, G_r);
   }
 
   // Per-node work: the force at node (i, j) is the dot product of the outer
@@ -258,8 +269,8 @@ conf_flux_surf_arrays(
   }
 
   // Projection of the nodal flux onto the surface modal basis.
-  for (int k = 0; k < up->num_surf_basis; ++k) {
-    up->lax_prj[dir](k, Fhat_nodal, conf_flux_surf);
+  for (int unit = 0; unit < num_nodes; ++unit) {
+    up->lax_prj[dir](unit, Fhat_nodal, conf_flux_surf);
   }
   double cflrate = up->lax_cfl[dir](dxv, jacob_pos_l, jacob_pos_r, alpha_max);
 

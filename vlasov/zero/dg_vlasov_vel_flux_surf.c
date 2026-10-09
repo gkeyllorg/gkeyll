@@ -486,9 +486,6 @@ gkyl_dg_vlasov_vel_flux_surf_inew(const struct gkyl_dg_vlasov_vel_flux_surf_inp 
   up->num_surf_basis = vel_flux_surf_num_surf_basis(
     gkyl_basis_phase_kernel_type(inp->conf_basis, inp->phase_basis), cdim, vdim, poly_order
   );
-  // The GPU launcher projects with one thread per surface node, so the surface
-  // quadrature must have at least as many nodes as surface modes.
-  assert(up->num_surf_basis <= up->num_nodes_conf * up->num_nodes_vel);
   // Size of the force-factor buffers: the largest total term count over the directions.
   up->alpha_nterms_max = 0;
   for (int d = 0; d < vdim; ++d) {

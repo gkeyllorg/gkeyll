@@ -5,17 +5,17 @@ GKYL_CU_DH void ho_lax_flux_nodal_vz_3x3v_tensor_p1_g(int item, const double *f_
   double* GKYL_RESTRICT G_l, double* GKYL_RESTRICT G_r) 
 { 
   if (item >= 128) return; 
-  const int j = item/8; 
-  const int a = item - j*8; 
+  const int a = item/16; 
+  const int j = item - a*16; 
   double g_l = 0.0; 
   double g_r = 0.0; 
   for (int q = vst_3x3v_tensor_p1_ho_ph_v2_aoff[a]; q < vst_3x3v_tensor_p1_ho_ph_v2_aoff[a+1]; ++q) { 
     const int k = vst_3x3v_tensor_p1_ho_ph_v2_aks[q]; 
-    g_l += vst_3x3v_tensor_p1_ho_ph_v2_V[j*27 + vst_3x3v_tensor_p1_ho_ph_v2_vlmap[k]]*(vst_3x3v_tensor_p1_ho_ph_v2_coefl[k]*f_l[k]); 
-    g_r += vst_3x3v_tensor_p1_ho_ph_v2_V[j*27 + vst_3x3v_tensor_p1_ho_ph_v2_vrmap[k]]*(vst_3x3v_tensor_p1_ho_ph_v2_coefr[k]*f_r[k]); 
+    g_l += vst_3x3v_tensor_p1_ho_ph_v2_Wl[k*16 + j]*f_l[k]; 
+    g_r += vst_3x3v_tensor_p1_ho_ph_v2_Wr[k*16 + j]*f_r[k]; 
   } 
-  G_l[item] = g_l; 
-  G_r[item] = g_r; 
+  G_l[j*8 + a] = g_l; 
+  G_r[j*8 + a] = g_r; 
 } 
 
 GKYL_CU_DH double ho_lax_flux_nodal_vz_3x3v_tensor_p1_node(int i, int j, const double *jacob_vel_surf_r,
@@ -33,20 +33,23 @@ GKYL_CU_DH double ho_lax_flux_nodal_vz_3x3v_tensor_p1_node(int i, int j, const d
   return fabs(alpha); 
 } 
 
-GKYL_CU_DH void ho_lax_flux_nodal_vz_3x3v_tensor_p1_prj(int k, const double *Fhat_nodal, double* GKYL_RESTRICT flux) 
+GKYL_CU_DH void ho_lax_flux_nodal_vz_3x3v_tensor_p1_prj(int unit, const double *Fhat_nodal, double* GKYL_RESTRICT flux) 
 { 
-  if (k >= 72) return; 
-  const int a = vst_3x3v_tensor_p1_ho_prj_v2_kamap[k]; 
-  const int b = vst_3x3v_tensor_p1_ho_prj_v2_kbmap[k]; 
+  if (unit >= 9) return; 
+  const int b = unit; 
   double t[8]; 
   for (int i = 0; i < 8; ++i) t[i] = 0.0; 
   for (int j = 0; j < 16; ++j) { 
     const double w = vst_3x3v_tensor_p1_ho_prj_v2_Vw[j*9 + b]; 
     for (int i = 0; i < 8; ++i) t[i] += w*Fhat_nodal[i*16 + j]; 
   } 
-  double g = 0.0; 
-  for (int i = 0; i < 8; ++i) g += vst_3x3v_tensor_p1_ho_prj_v2_Cw[i*8 + a]*t[i]; 
-  flux[144 + k] = g; 
+  for (int q = vst_3x3v_tensor_p1_ho_prj_v2_boff[b]; q < vst_3x3v_tensor_p1_ho_prj_v2_boff[b+1]; ++q) { 
+    const int k = vst_3x3v_tensor_p1_ho_prj_v2_bks[q]; 
+    const int a = vst_3x3v_tensor_p1_ho_prj_v2_kamap[k]; 
+    double g = 0.0; 
+    for (int i = 0; i < 8; ++i) g += vst_3x3v_tensor_p1_ho_prj_v2_Cw[i*8 + a]*t[i]; 
+    flux[144 + k] = g; 
+  } 
 } 
 
 GKYL_CU_DH double ho_lax_flux_nodal_vz_3x3v_tensor_p1_cfl(const double *dxv, const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, double alpha_max) 
@@ -70,6 +73,6 @@ GKYL_CU_DH double ho_lax_flux_nodal_vz_3x3v_tensor_p1(const double *dxv, const d
       alpha_max = fmax(alpha_max, ho_lax_flux_nodal_vz_3x3v_tensor_p1_node(i, j, jacob_vel_surf_r, alpha_quad[i*16 + j], G_l, G_r, Fhat_nodal)); 
     } 
   } 
-  for (int k = 0; k < 72; ++k) ho_lax_flux_nodal_vz_3x3v_tensor_p1_prj(k, Fhat_nodal, flux); 
+  for (int unit = 0; unit < 128; ++unit) ho_lax_flux_nodal_vz_3x3v_tensor_p1_prj(unit, Fhat_nodal, flux); 
   return ho_lax_flux_nodal_vz_3x3v_tensor_p1_cfl(dxv, jacob_vel_surf_l, jacob_vel_surf_r, alpha_max); 
 } 

@@ -5,17 +5,17 @@ GKYL_CU_DH void lax_flux_nodal_vy_2x2v_ser_p2_g(int item, const double *f_l, con
   double* GKYL_RESTRICT G_l, double* GKYL_RESTRICT G_r) 
 { 
   if (item >= 24) return; 
-  const int j = item/8; 
-  const int a = item - j*8; 
+  const int a = item/3; 
+  const int j = item - a*3; 
   double g_l = 0.0; 
   double g_r = 0.0; 
   for (int q = vst_2x2v_ser_p2_ph_v1_aoff[a]; q < vst_2x2v_ser_p2_ph_v1_aoff[a+1]; ++q) { 
     const int k = vst_2x2v_ser_p2_ph_v1_aks[q]; 
-    g_l += vst_2x2v_ser_p2_ph_v1_V[j*8 + vst_2x2v_ser_p2_ph_v1_vlmap[k]]*(vst_2x2v_ser_p2_ph_v1_coefl[k]*f_l[k]); 
-    g_r += vst_2x2v_ser_p2_ph_v1_V[j*8 + vst_2x2v_ser_p2_ph_v1_vrmap[k]]*(vst_2x2v_ser_p2_ph_v1_coefr[k]*f_r[k]); 
+    g_l += vst_2x2v_ser_p2_ph_v1_Wl[k*3 + j]*f_l[k]; 
+    g_r += vst_2x2v_ser_p2_ph_v1_Wr[k*3 + j]*f_r[k]; 
   } 
-  G_l[item] = g_l; 
-  G_r[item] = g_r; 
+  G_l[j*8 + a] = g_l; 
+  G_r[j*8 + a] = g_r; 
 } 
 
 GKYL_CU_DH double lax_flux_nodal_vy_2x2v_ser_p2_node(int i, int j, const double *jacob_vel_surf_r,
@@ -33,9 +33,10 @@ GKYL_CU_DH double lax_flux_nodal_vy_2x2v_ser_p2_node(int i, int j, const double 
   return fabs(alpha); 
 } 
 
-GKYL_CU_DH void lax_flux_nodal_vy_2x2v_ser_p2_prj(int k, const double *Fhat_nodal, double* GKYL_RESTRICT flux) 
+GKYL_CU_DH void lax_flux_nodal_vy_2x2v_ser_p2_prj(int unit, const double *Fhat_nodal, double* GKYL_RESTRICT flux) 
 { 
-  if (k >= 20) return; 
+  if (unit >= 20) return; 
+  const int k = unit; 
   const int a = vst_2x2v_ser_p2_prj_v1_kamap[k]; 
   const int b = vst_2x2v_ser_p2_prj_v1_kbmap[k]; 
   double t[9]; 
@@ -70,6 +71,6 @@ GKYL_CU_DH double lax_flux_nodal_vy_2x2v_ser_p2(const double *dxv, const double 
       alpha_max = fmax(alpha_max, lax_flux_nodal_vy_2x2v_ser_p2_node(i, j, jacob_vel_surf_r, alpha_quad[i*3 + j], G_l, G_r, Fhat_nodal)); 
     } 
   } 
-  for (int k = 0; k < 20; ++k) lax_flux_nodal_vy_2x2v_ser_p2_prj(k, Fhat_nodal, flux); 
+  for (int unit = 0; unit < 27; ++unit) lax_flux_nodal_vy_2x2v_ser_p2_prj(unit, Fhat_nodal, flux); 
   return lax_flux_nodal_vy_2x2v_ser_p2_cfl(dxv, jacob_vel_surf_l, jacob_vel_surf_r, alpha_max); 
 } 

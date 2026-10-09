@@ -30,6 +30,17 @@ GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x2v_ser_p1_prj_v0_kb
   1, 
   1, 
 }; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x2v_ser_p1_prj_v0_boff[3] = { 
+  0, 
+  2, 
+  4, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x2v_ser_p1_prj_v0_bks[4] = { 
+  0, 
+  1, 
+  2, 
+  3, 
+}; 
 GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x2v_ser_p1_prj_v0_out_off[5] = { 
   0, 
   2, 
@@ -141,6 +152,17 @@ GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x2v_ser_p1_prj_v1_kb
   0, 
   1, 
   1, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x2v_ser_p1_prj_v1_boff[3] = { 
+  0, 
+  2, 
+  4, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x2v_ser_p1_prj_v1_bks[4] = { 
+  0, 
+  1, 
+  2, 
+  3, 
 }; 
 GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x2v_ser_p1_prj_v1_out_off[5] = { 
   0, 
@@ -258,6 +280,19 @@ GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x2v_ser_p1_prj_x0_ka
   0, 
 }; 
 GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x2v_ser_p1_prj_x0_kbmap[4] = { 
+  0, 
+  1, 
+  2, 
+  3, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x2v_ser_p1_prj_x0_boff[5] = { 
+  0, 
+  1, 
+  2, 
+  3, 
+  4, 
+}; 
+GKYL_CU_TABLE __attribute__((unused)) static const int vst_1x2v_ser_p1_prj_x0_bks[4] = { 
   0, 
   1, 
   2, 

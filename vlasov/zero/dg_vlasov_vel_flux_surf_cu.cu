@@ -15,17 +15,22 @@ extern "C" {
 
 #include <cassert>
 
+// 3D thread block: x indexes the phase-space cells of the block, y the
+// configuration-space surface nodes, z the velocity-space surface nodes
+// (one thread per surface node of each cell; a block holds as many cells as
+// fit in GKYL_DEFAULT_NUM_THREADS).
 static void
-gkyl_parallelize_components_kernel_launch_dims(
-  dim3 *dimGrid, dim3 *dimBlock, gkyl_range range, int ncomp
+flux_surf_kernel_launch_dims(
+  dim3 *dimGrid, dim3 *dimBlock, gkyl_range range, int num_nodes_conf, int num_nodes_vel
 )
 {
-  // Create a 2D thread grid so we launch ncomp*range.volume number of threads
-  // so we can parallelize over components too
-  dimBlock->y = ncomp; // ncomp *must* be less than 256
-  dimGrid->y = 1;
-  dimBlock->x = GKYL_DEFAULT_NUM_THREADS / ncomp;
+  int num_nodes = num_nodes_conf * num_nodes_vel;
+  dimBlock->x = GKYL_DEFAULT_NUM_THREADS / num_nodes;
+  dimBlock->y = num_nodes_conf;
+  dimBlock->z = num_nodes_vel;
   dimGrid->x = gkyl_int_div_up(range.volume, dimBlock->x);
+  dimGrid->y = 1;
+  dimGrid->z = 1;
 }
 
 __global__ void
@@ -38,16 +43,19 @@ gkyl_dg_vlasov_vel_flux_surf_advance_cu_kernel(
   struct gkyl_array *vel_flux_surf
 )
 {
-  // Per-node |alpha| values for the block, reduced to alpha_max per (cell, dir)
-  // by the last node thread of each cell: the projection threads are the first
-  // num_surf_basis node threads, so the reduction runs in a different warp and
-  // overlaps with them instead of serializing behind them.
+  // Per-node |alpha| values of the block, reduced to alpha_max per (cell, dir)
+  // in two levels: the last GKYL_FLUX_SURF_CFL_REDUCERS node threads of each
+  // cell each fold every GKYL_FLUX_SURF_CFL_REDUCERS-th node into a partial
+  // (alongside the projection, which runs in the first node threads), and the
+  // last node thread folds the partials after the barrier. fmax is exact, so
+  // the result equals the CPU dispatch's serial reduction.
   __shared__ double alpha_smem[GKYL_DEFAULT_NUM_THREADS];
+  __shared__ double alpha_part_smem[GKYL_DEFAULT_NUM_THREADS];
   // Stage-1 arrays of the sum-factorized nodal f evaluation, G[j*NA + a] per
-  // side, filled cooperatively: each cell owns a block of blockDim.y entries
-  // per side (there are at most as many (inner node, outer shape) items as
-  // surface nodes), so one thread per item fills them and every node thread
-  // of the cell then reads its stage-2 dot product from shared memory.
+  // side, filled cooperatively by the cell's node threads (one (outer shape,
+  // inner node) item each; each cell owns a block of num_nodes entries per
+  // side, which bounds the items); every node thread of the cell then reads
+  // its stage-2 dot product from shared memory.
   __shared__ double G_smem[2 * GKYL_DEFAULT_NUM_THREADS];
   // This direction's nodal Lax flux, one entry per surface node of each cell
   // of the block; projected onto the surface modal basis by the lax_prj stage
@@ -63,19 +71,20 @@ gkyl_dg_vlasov_vel_flux_surf_advance_cu_kernel(
   int cdim = up->cdim;
   int vdim = pdim - cdim;
 
-  // 2D thread grid: linc2 indexes the surface node (i_node: configuration-space
-  // nodes, j_node: transverse velocity-space nodes, matching the CPU dispatch's
-  // i-major/j-minor node order); threads in x index the phase-space cell.
-  // blockDim.y == num_nodes_conf*num_nodes_vel by construction of the launch.
-  int num_nodes_vel = up->num_nodes_vel;
-  int num_nodes = up->num_nodes_conf * num_nodes_vel;
-  int linc2 = threadIdx.y;
-  int i_node = linc2 / num_nodes_vel;
-  int j_node = linc2 % num_nodes_vel;
-  double *G_l = &G_smem[2 * blockDim.y * threadIdx.x];
-  double *G_c = G_l + blockDim.y;
-  double *F_cell = &F_smem[blockDim.y * threadIdx.x];
+  // 3D thread block: threadIdx.x is the cell of the block, threadIdx.y the
+  // configuration-space node i_node and threadIdx.z the transverse
+  // velocity-space node j_node of the surface node this thread owns. tid is the thread's index among the cell's
+  // num_nodes node threads (in the block's thread order), by which the
+  // shared-work stages are handed one row/item/unit each.
   const int NO = up->num_nodes_conf, NI = up->num_nodes_vel;
+  const int num_nodes = NO * NI;
+  const int i_node = threadIdx.y;
+  const int j_node = threadIdx.z;
+  const int tid = threadIdx.y + NO * threadIdx.z;
+  const int num_red = GKYL_MIN2(GKYL_FLUX_SURF_CFL_REDUCERS, num_nodes);
+  double *G_l = &G_smem[2 * num_nodes * threadIdx.x];
+  double *G_c = G_l + num_nodes;
+  double *F_cell = &F_smem[num_nodes * threadIdx.x];
   double *O = &alpha_factors_smem[threadIdx.x * up->alpha_nterms_max * (NO + NI)];
   double *I = O + up->alpha_nterms_max * NO;
 
@@ -150,24 +159,19 @@ gkyl_dg_vlasov_vel_flux_surf_advance_cu_kernel(
       jacob_vel_l_d = (const double *)gkyl_array_cfetch(jacob_vel_surf, vidx_l);
       jacob_vel_d = (const double *)gkyl_array_cfetch(jacob_vel_surf, vidx);
 
-      // Shared work of the cell, cooperatively over its node threads: the
-      // outer/inner factors of every force producer (one item per outer or
-      // inner node; each producer's terms follow the previous one's) and stage
-      // 1 of the nodal f evaluation (one item per (inner node, outer shape)).
+      // Shared work of the cell, one row/item per node thread: this thread's
+      // row of the outer/inner factors of every force producer (each
+      // producer's terms follow the previous one's) and its item of stage 1
+      // of the nodal f evaluation.
       const double *dx = up->phase_grid.dx;
       nt += up->hamil_alpha_shared[dir](
-        linc2, blockDim.y, xcC, dx, vmap_d, jacob_pos_d, jacob_vel_d, poisson_tensor_conf_d,
-        hamil_d, O + nt * NO, I + nt * NI
+        tid, nt, xcC, dx, vmap_d, jacob_pos_d, jacob_vel_d, poisson_tensor_conf_d, hamil_d, O, I
       );
-      nt += up->E_alpha_shared[dir](linc2, blockDim.y, dx, qmem_d, O + nt * NO, I + nt * NI);
-      nt += up->phi_alpha_shared[dir](
-        linc2, blockDim.y, dx, jacob_pos_d, pot_tot_d, O + nt * NO, I + nt * NI
-      );
-      nt += up->B_alpha_shared[dir](
-        linc2, blockDim.y, dx, jacob_vel_d, hamil_d, qmem_d, O + nt * NO, I + nt * NI
-      );
-      nt += up->rad_alpha_shared[dir](linc2, blockDim.y, dx, rad_d, O + nt * NO, I + nt * NI);
-      up->lax_g[dir](linc2, f_l, f_c, G_l, G_c);
+      nt += up->E_alpha_shared[dir](tid, nt, dx, qmem_d, O, I);
+      nt += up->phi_alpha_shared[dir](tid, nt, dx, jacob_pos_d, pot_tot_d, O, I);
+      nt += up->B_alpha_shared[dir](tid, nt, dx, jacob_vel_d, hamil_d, qmem_d, O, I);
+      nt += up->rad_alpha_shared[dir](tid, nt, dx, rad_d, O, I);
+      up->lax_g[dir](tid, f_l, f_c, G_l, G_c);
     }
     __syncthreads();
 
@@ -182,38 +186,47 @@ gkyl_dg_vlasov_vel_flux_surf_advance_cu_kernel(
       }
       node_alpha = up->lax_flux_nodal[dir](i_node, j_node, jacob_vel_d, alpha, G_l, G_c, F_cell);
     }
-    alpha_smem[threadIdx.x + blockDim.x * threadIdx.y] = node_alpha;
+    alpha_smem[threadIdx.x + blockDim.x * tid] = node_alpha;
     __syncthreads();
 
     if (valid && !edge) {
-      // Stage 3: project this thread's surface mode of the cell's nodal flux
-      // onto the surface modal basis (a no-op for linc2 >= num_surf_basis).
-      up->lax_prj[dir](linc2, F_cell, flux);
-    }
-    if (valid && threadIdx.y == blockDim.y - 1) {
-      if (edge) {
-        cflrate_d[0] += up->vel_flux_surf_edge(
-          up, dir, xcC, up->phase_grid.dx,
-          jacob_vel_surf ? (const double *)gkyl_array_cfetch(jacob_vel_surf, vidx) : 0,
-          poisson_tensor_conf_d, hamil_d, qmem_d, pot_tot_d, rad_d, f_c, flux
-        );
-      } else {
-        // Reduce alpha_max in the CPU dispatch's node order so the fmax chain,
-        // and hence the CFL estimate, matches the CPU loop exactly.
-        double alpha_max = 0.0;
-        for (int n = 0; n < num_nodes; ++n) {
-          alpha_max = fmax(alpha_max, alpha_smem[threadIdx.x + blockDim.x * n]);
+      // Stage 3: projection of the cell's nodal flux onto the surface modal
+      // basis, one unit (inner surface mode or surface mode) per node thread.
+      up->lax_prj[dir](tid, F_cell, flux);
+      // First level of the alpha_max reduction, in the last node threads.
+      if (tid >= num_nodes - num_red) {
+        int r = tid - (num_nodes - num_red);
+        double alpha_part = 0.0;
+        for (int n = r; n < num_nodes; n += num_red) {
+          alpha_part = fmax(alpha_part, alpha_smem[threadIdx.x + blockDim.x * n]);
         }
-        double cfl = up->lax_cfl[dir](up->phase_grid.dx, jacob_vel_l_d, jacob_vel_d, alpha_max);
-        // Always compute the flux, but if we are below threshold, ignore the stable time step estimate.
-        if (fabs(f_l[0]) < up->skip_cell_thresh && fabs(f_c[0]) < up->skip_cell_thresh) {
-          cfl = 0.0;
-        }
-        cflrate_d[0] += cfl;
+        alpha_part_smem[threadIdx.x + blockDim.x * r] = alpha_part;
       }
+    }
+    if (valid && edge && tid == num_nodes - 1) {
+      cflrate_d[0] += up->vel_flux_surf_edge(
+        up, dir, xcC, up->phase_grid.dx,
+        jacob_vel_surf ? (const double *)gkyl_array_cfetch(jacob_vel_surf, vidx) : 0,
+        poisson_tensor_conf_d, hamil_d, qmem_d, pot_tot_d, rad_d, f_c, flux
+      );
     }
     // alpha_smem, G_smem and F_smem are reused by the next direction.
     __syncthreads();
+
+    if (valid && !edge && tid == num_nodes - 1) {
+      // Second level of the reduction and the cell's CFL estimate (the next
+      // direction's partials are only written after its two barriers).
+      double alpha_max = 0.0;
+      for (int r = 0; r < num_red; ++r) {
+        alpha_max = fmax(alpha_max, alpha_part_smem[threadIdx.x + blockDim.x * r]);
+      }
+      double cfl = up->lax_cfl[dir](up->phase_grid.dx, jacob_vel_l_d, jacob_vel_d, alpha_max);
+      // Always compute the flux, but if we are below threshold, ignore the stable time step estimate.
+      if (fabs(f_l[0]) < up->skip_cell_thresh && fabs(f_c[0]) < up->skip_cell_thresh) {
+        cfl = 0.0;
+      }
+      cflrate_d[0] += cfl;
+    }
   }
 }
 
@@ -226,11 +239,13 @@ gkyl_dg_vlasov_vel_flux_surf_advance_cu(
   struct gkyl_array *vel_flux_surf
 )
 {
-  // 2D thread grid: parallelize over surface nodes as well as phase-space cells.
+  // One thread per surface node of each cell.
   int num_nodes = up->num_nodes_conf * up->num_nodes_vel;
   assert(num_nodes <= GKYL_DEFAULT_NUM_THREADS);
   dim3 dimGrid, dimBlock;
-  gkyl_parallelize_components_kernel_launch_dims(&dimGrid, &dimBlock, *phase_range, num_nodes);
+  flux_surf_kernel_launch_dims(
+    &dimGrid, &dimBlock, *phase_range, up->num_nodes_conf, up->num_nodes_vel
+  );
   // Dynamic shared memory for the force producers' shared factors: per cell of
   // the block, alpha_nterms_max outer + inner factor rows.
   size_t alpha_smem =
@@ -729,7 +744,7 @@ gkyl_dg_vlasov_vel_flux_surf_cu_dev_inew(const struct gkyl_dg_vlasov_vel_flux_su
   up->jacob_pos = 0;
 
   // Surface node counts and modal size of the stored flux (the advance wrapper
-  // sizes the 2D (cells x nodes) kernel launch from them).
+  // sizes the (cells x nodes) kernel launch from them).
   vel_flux_surf_num_nodes(
     gkyl_basis_phase_kernel_type(inp->conf_basis, inp->phase_basis), cdim, vdim, poly_order,
     inp->use_lo, &up->num_nodes_conf, &up->num_nodes_vel
@@ -737,7 +752,6 @@ gkyl_dg_vlasov_vel_flux_surf_cu_dev_inew(const struct gkyl_dg_vlasov_vel_flux_su
   up->num_surf_basis = vel_flux_surf_num_surf_basis(
     gkyl_basis_phase_kernel_type(inp->conf_basis, inp->phase_basis), cdim, vdim, poly_order
   );
-  assert(up->num_surf_basis <= up->num_nodes_conf * up->num_nodes_vel);
 
   up->flags = 0;
   GKYL_SET_CU_ALLOC(up->flags);
