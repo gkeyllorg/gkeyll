@@ -61,12 +61,15 @@ gkyl_dg_nodes_per_dir(int poly_order, int cells)
   // through four separate copies of this calculation and leave the caller's
   // shape array uninitialised, so stack garbage reached range construction.
   if (poly_order < 1 || poly_order > 2) {
-    fprintf(stderr,
+    fprintf(
+      stderr,
       "GKYL_GEOMETRY_UNSUPPORTED_POLY_ORDER poly_order=%d supported=1,2 "
-      "context=nodal_shape\n", poly_order);
+      "context=nodal_shape\n",
+      poly_order
+    );
     gkyl_exit("unsupported basis polynomial order for a nodal grid");
   }
-  return poly_order*cells + 1;
+  return poly_order * cells + 1;
 }
 
 int

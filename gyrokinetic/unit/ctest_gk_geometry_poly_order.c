@@ -84,13 +84,13 @@ enum { PSI_IDX, AL_IDX, TH_IDX };
 
 static const double psi_min = 0.1, psi_max = 0.2;
 static const double alpha_min = -1.0, alpha_max = 1.0;
-static const int cells[3] = { 4, 1, 4 };
+static const int cells[3] = {4, 1, 4};
 
 // psi = 0.25*R^2 on the straight cylinder, so R = 2*sqrt(psi).
 static double
 cylinder_R_of_psi(double psi)
 {
-  return 2.0*sqrt(psi);
+  return 2.0 * sqrt(psi);
 }
 
 static struct gk_geometry *
@@ -99,14 +99,14 @@ make_cylinder_geometry(int poly_order, struct gkyl_position_map **pmap_out)
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, 3, poly_order);
 
-  double lower[3] = { psi_min, alpha_min, -M_PI+1e-14 };
-  double upper[3] = { psi_max, alpha_max,  M_PI-1e-14 };
+  double lower[3] = {psi_min, alpha_min, -M_PI + 1e-14};
+  double upper[3] = {psi_max, alpha_max, M_PI - 1e-14};
 
   struct gkyl_rect_grid grid;
-  gkyl_rect_grid_init(&grid, 3, lower, upper, (int[3]){ cells[0], cells[1], cells[2] });
+  gkyl_rect_grid_init(&grid, 3, lower, upper, (int[3]){cells[0], cells[1], cells[2]});
 
   struct gkyl_range ext_range, range;
-  int nghost[3] = { 1, 1, 1 };
+  int nghost[3] = {1, 1, 1};
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
 
   struct gkyl_position_map *pmap = gkyl_position_map_null_new();
@@ -120,19 +120,25 @@ make_cylinder_geometry(int poly_order, struct gkyl_position_map **pmap_out)
   struct gkyl_tok_geo_grid_inp ginp = {
     // straight_cylinder.geqdsk is an analytic equilibrium with no vessel
     // outline in the file, so the absence is declared here.
-    .rclose = 0.5,
-    .zmin = -1., .zmax = 1.,
-    .rleft = 0.001, .rmax = 1.0, .rright = 1.0,
+    .rclose = 0.5, .zmin = -1., .zmax = 1., .rleft = 0.001, .rmax = 1.0, .rright = 1.0,
   };
   struct gkyl_gk_geometry_inp geometry_input = {
     .geometry_id = GKYL_GEOMETRY_TOKAMAK,
     .efit_info = einp,
     .tok_grid_info = ginp,
     .position_map = pmap,
-    .grid = grid, .local = range, .local_ext = ext_range,
-    .global = range, .global_ext = ext_range, .basis = basis,
-    .geo_grid = grid, .geo_local = range, .geo_local_ext = ext_range,
-    .geo_global = range, .geo_global_ext = ext_range, .geo_basis = basis,
+    .grid = grid,
+    .local = range,
+    .local_ext = ext_range,
+    .global = range,
+    .global_ext = ext_range,
+    .basis = basis,
+    .geo_grid = grid,
+    .geo_local = range,
+    .geo_local_ext = ext_range,
+    .geo_global = range,
+    .geo_global_ext = ext_range,
+    .geo_basis = basis,
   };
 
   struct gk_geometry *geom = gkyl_gk_geometry_tok_new(&geometry_input);
@@ -161,12 +167,16 @@ geometry_order_supported(int poly_order)
 static bool
 skip_unless_supported(int poly_order, const char *what)
 {
-  if (geometry_order_supported(poly_order)) return false;
-  fprintf(stderr,
+  if (geometry_order_supported(poly_order)) {
+    return false;
+  }
+  fprintf(
+    stderr,
     "SKIPPED %s: p%d geometry cannot be built by this library "
     "(no DG inverse kernel for bmag_inv). This test does NOT currently cover "
     "the dx_fact fix; it activates when ser_3x_p%d_inv exists.\n",
-    what, poly_order, poly_order);
+    what, poly_order, poly_order
+  );
   return true;
 }
 
@@ -182,56 +192,70 @@ check_corner_nodes(int poly_order)
   struct gk_geometry *geom = make_cylinder_geometry(poly_order, &pmap);
   TEST_ASSERT(geom != NULL);
 
-  const double dpsi_expected = (psi_max-psi_min)/cells[PSI_IDX]/poly_order;
-  const double dalpha_expected = (alpha_max-alpha_min)/cells[AL_IDX]/poly_order;
+  const double dpsi_expected = (psi_max - psi_min) / cells[PSI_IDX] / poly_order;
+  const double dalpha_expected = (alpha_max - alpha_min) / cells[AL_IDX] / poly_order;
 
   // The nodal range itself must be order-correct: p*cells+1 per direction.
-  for (int d=0; d<3; ++d) {
-    int expected = poly_order*cells[d] + 1;
+  for (int d = 0; d < 3; ++d) {
+    int expected = poly_order * cells[d] + 1;
     TEST_CHECK(gkyl_range_shape(&geom->nrange_corn, d) == expected);
-    TEST_MSG("dir %d: corner nodal shape %d, expected %d (p%d)",
-      d, gkyl_range_shape(&geom->nrange_corn, d), expected, poly_order);
+    TEST_MSG(
+      "dir %d: corner nodal shape %d, expected %d (p%d)", d,
+      gkyl_range_shape(&geom->nrange_corn, d), expected, poly_order
+    );
   }
 
   // A tolerance on psi of 1e-12 is ~1e-11 relative here; the construction is
   // arithmetic on the bounds, not an iterative solve, so this is generous.
   const double tol_psi = 1.0e-12;
-  const double tol_R = 1.0e-9;   // R comes from a root find in the EFIT map.
+  const double tol_R = 1.0e-9; // R comes from a root find in the EFIT map.
 
   int idx[3];
   double psi_seen_lo = 0.0, psi_seen_hi = 0.0;
   int nfail_psi = 0, nfail_R = 0, nfail_alpha = 0;
 
-  for (int ip=geom->nrange_corn.lower[PSI_IDX]; ip<=geom->nrange_corn.upper[PSI_IDX]; ++ip) {
-    for (int ia=geom->nrange_corn.lower[AL_IDX]; ia<=geom->nrange_corn.upper[AL_IDX]; ++ia) {
-      for (int it=geom->nrange_corn.lower[TH_IDX]; it<=geom->nrange_corn.upper[TH_IDX]; ++it) {
-        idx[PSI_IDX] = ip; idx[AL_IDX] = ia; idx[TH_IDX] = it;
+  for (int ip = geom->nrange_corn.lower[PSI_IDX]; ip <= geom->nrange_corn.upper[PSI_IDX]; ++ip) {
+    for (int ia = geom->nrange_corn.lower[AL_IDX]; ia <= geom->nrange_corn.upper[AL_IDX]; ++ia) {
+      for (int it = geom->nrange_corn.lower[TH_IDX]; it <= geom->nrange_corn.upper[TH_IDX]; ++it) {
+        idx[PSI_IDX] = ip;
+        idx[AL_IDX] = ia;
+        idx[TH_IDX] = it;
         long lin = gkyl_range_idx(&geom->nrange_corn, idx);
         const double *nu = gkyl_array_cfetch(geom->geo_corn.mc2nu_pos_nodal, lin);
         const double *xp = gkyl_array_cfetch(geom->geo_corn.mc2p_nodal, lin);
 
-        double psi_expected = psi_min + ip*dpsi_expected;
-        double alpha_expected = alpha_min + ia*dalpha_expected;
+        double psi_expected = psi_min + ip * dpsi_expected;
+        double alpha_expected = alpha_min + ia * dalpha_expected;
 
-        if (fabs(nu[PSI_IDX]-psi_expected) > tol_psi) {
-          if (nfail_psi++ == 0)
-            TEST_MSG("psi node (%d,%d,%d): got %.17g, expected %.17g (dpsi=%.17g)",
-              ip, ia, it, nu[PSI_IDX], psi_expected, dpsi_expected);
+        if (fabs(nu[PSI_IDX] - psi_expected) > tol_psi) {
+          if (nfail_psi++ == 0) {
+            TEST_MSG(
+              "psi node (%d,%d,%d): got %.17g, expected %.17g (dpsi=%.17g)", ip, ia, it,
+              nu[PSI_IDX], psi_expected, dpsi_expected
+            );
+          }
         }
-        if (fabs(nu[AL_IDX]-alpha_expected) > tol_psi) {
-          if (nfail_alpha++ == 0)
-            TEST_MSG("alpha node (%d,%d,%d): got %.17g, expected %.17g",
-              ip, ia, it, nu[AL_IDX], alpha_expected);
+        if (fabs(nu[AL_IDX] - alpha_expected) > tol_psi) {
+          if (nfail_alpha++ == 0) {
+            TEST_MSG(
+              "alpha node (%d,%d,%d): got %.17g, expected %.17g", ip, ia, it, nu[AL_IDX],
+              alpha_expected
+            );
+          }
         }
         // mc2p_nodal holds [R, Z, phi] at corner nodes.
         double R_expected = cylinder_R_of_psi(psi_expected);
-        if (fabs(xp[0]-R_expected) > tol_R) {
-          if (nfail_R++ == 0)
-            TEST_MSG("R node (%d,%d,%d): got %.17g, expected %.17g",
-              ip, ia, it, xp[0], R_expected);
+        if (fabs(xp[0] - R_expected) > tol_R) {
+          if (nfail_R++ == 0) {
+            TEST_MSG("R node (%d,%d,%d): got %.17g, expected %.17g", ip, ia, it, xp[0], R_expected);
+          }
         }
-        if (ip == geom->nrange_corn.lower[PSI_IDX]) psi_seen_lo = nu[PSI_IDX];
-        if (ip == geom->nrange_corn.upper[PSI_IDX]) psi_seen_hi = nu[PSI_IDX];
+        if (ip == geom->nrange_corn.lower[PSI_IDX]) {
+          psi_seen_lo = nu[PSI_IDX];
+        }
+        if (ip == geom->nrange_corn.upper[PSI_IDX]) {
+          psi_seen_hi = nu[PSI_IDX];
+        }
       }
     }
   }
@@ -245,11 +269,14 @@ check_corner_nodes(int poly_order)
 
   // The blunt non-degeneracy statement, kept separate so a collapsed grid is
   // unmistakable in the log rather than being one more tolerance failure.
-  TEST_CHECK(fabs((psi_seen_hi-psi_seen_lo) - (psi_max-psi_min)) < tol_psi);
-  TEST_MSG("p%d: psi spans %.17g across the block, expected %.17g%s",
-    poly_order, psi_seen_hi-psi_seen_lo, psi_max-psi_min,
-    fabs(psi_seen_hi-psi_seen_lo) < tol_psi
-      ? "  -- the nodal grid has COLLAPSED to a single psi" : "");
+  TEST_CHECK(fabs((psi_seen_hi - psi_seen_lo) - (psi_max - psi_min)) < tol_psi);
+  TEST_MSG(
+    "p%d: psi spans %.17g across the block, expected %.17g%s", poly_order,
+    psi_seen_hi - psi_seen_lo, psi_max - psi_min,
+    fabs(psi_seen_hi - psi_seen_lo) < tol_psi ?
+      "  -- the nodal grid has COLLAPSED to a single psi" :
+      ""
+  );
 
   gkyl_gk_geometry_release(geom);
   gkyl_position_map_release(pmap);
@@ -268,7 +295,9 @@ test_p1_corner_node_spacing(void)
 static void
 test_p2_corner_node_spacing(void)
 {
-  if (skip_unless_supported(2, "p2_corner_node_spacing")) return;
+  if (skip_unless_supported(2, "p2_corner_node_spacing")) {
+    return;
+  }
   check_corner_nodes(2);
 }
 
@@ -279,23 +308,24 @@ test_p2_corner_node_spacing(void)
 static void
 test_p2_fd_steps_nonzero(void)
 {
-  if (skip_unless_supported(2, "p2_fd_steps_nonzero")) return;
+  if (skip_unless_supported(2, "p2_fd_steps_nonzero")) {
+    return;
+  }
   struct gkyl_position_map *pmap = NULL;
   struct gk_geometry *geom = make_cylinder_geometry(2, &pmap);
   TEST_ASSERT(geom != NULL);
 
-  const char *name[3] = { "dzc[0] (psi)", "dzc[1] (alpha)", "dzc[2] (theta)" };
-  for (int d=0; d<3; ++d) {
+  const char *name[3] = {"dzc[0] (psi)", "dzc[1] (alpha)", "dzc[2] (theta)"};
+  for (int d = 0; d < 3; ++d) {
     TEST_CHECK(geom->dzc[d] > 0.0 && isfinite(geom->dzc[d]));
-    TEST_MSG("%s = %.17g; the metric finite differences divide by this",
-      name[d], geom->dzc[d]);
+    TEST_MSG("%s = %.17g; the metric finite differences divide by this", name[d], geom->dzc[d]);
   }
 
   // The steps are 1e-2 of the nodal spacing, so state the expected values too
   // rather than only that they are nonzero.
-  double dpsi_node = (psi_max-psi_min)/cells[PSI_IDX]/2.0;
-  TEST_CHECK(fabs(geom->dzc[0] - dpsi_node*1e-2) < 1.0e-15);
-  TEST_MSG("dzc[0] = %.17g, expected %.17g", geom->dzc[0], dpsi_node*1e-2);
+  double dpsi_node = (psi_max - psi_min) / cells[PSI_IDX] / 2.0;
+  TEST_CHECK(fabs(geom->dzc[0] - dpsi_node * 1e-2) < 1.0e-15);
+  TEST_MSG("dzc[0] = %.17g, expected %.17g", geom->dzc[0], dpsi_node * 1e-2);
 
   gkyl_gk_geometry_release(geom);
   gkyl_position_map_release(pmap);
@@ -314,55 +344,62 @@ test_p2_fd_steps_nonzero(void)
 static void
 test_p2_interior_quadrature_nodes(void)
 {
-  if (skip_unless_supported(2, "p2_interior_quadrature_nodes")) return;
+  if (skip_unless_supported(2, "p2_interior_quadrature_nodes")) {
+    return;
+  }
   struct gkyl_position_map *pmap = NULL;
   struct gk_geometry *geom = make_cylinder_geometry(2, &pmap);
   TEST_ASSERT(geom != NULL);
 
-  const int nq = 3;  // poly_order+1 quadrature points per direction at p2
+  const int nq = 3; // poly_order+1 quadrature points per direction at p2
 
   // Gauss-Legendre 3-point ordinates on [-1,1], written out independently
   // rather than read from the library's own table, so that a wrong table
   // cannot make this test agree with the code it is checking.
-  const double X[3] = { -0.7745966692414833770359, 0.0, 0.7745966692414833770359 };
+  const double X[3] = {-0.7745966692414833770359, 0.0, 0.7745966692414833770359};
 
-  const double h = (psi_max-psi_min)/cells[PSI_IDX];   // cell width in psi
+  const double h = (psi_max - psi_min) / cells[PSI_IDX]; // cell width in psi
   // The defect displaces a node by ~0.0986*h, so a tolerance three orders of
   // magnitude below that separates it from the EFIT interpolation error
   // without being a tuned constant.
-  const double tol = 1.0e-3*h;
+  const double tol = 1.0e-3 * h;
 
-  TEST_CHECK(gkyl_range_shape(&geom->nrange_int, PSI_IDX) == cells[PSI_IDX]*nq);
-  TEST_MSG("interior nodal shape in psi is %d, expected %d",
-    gkyl_range_shape(&geom->nrange_int, PSI_IDX), cells[PSI_IDX]*nq);
+  TEST_CHECK(gkyl_range_shape(&geom->nrange_int, PSI_IDX) == cells[PSI_IDX] * nq);
+  TEST_MSG(
+    "interior nodal shape in psi is %d, expected %d", gkyl_range_shape(&geom->nrange_int, PSI_IDX),
+    cells[PSI_IDX] * nq
+  );
 
   int idx[3];
   int nfail = 0;
-  for (int ip=geom->nrange_int.lower[PSI_IDX]; ip<=geom->nrange_int.upper[PSI_IDX]; ++ip) {
+  for (int ip = geom->nrange_int.lower[PSI_IDX]; ip <= geom->nrange_int.upper[PSI_IDX]; ++ip) {
     int i = ip - geom->nrange_int.lower[PSI_IDX];
-    int cell = i/nq, k = i%nq;
-    double psi_expected = psi_min + cell*h + h*(1.0 + X[k])/2.0;
+    int cell = i / nq, k = i % nq;
+    double psi_expected = psi_min + cell * h + h * (1.0 + X[k]) / 2.0;
 
     idx[PSI_IDX] = ip;
     idx[AL_IDX] = geom->nrange_int.lower[AL_IDX];
     idx[TH_IDX] = geom->nrange_int.lower[TH_IDX];
-    const double *xp = gkyl_array_cfetch(geom->geo_int.mc2p_nodal,
-      gkyl_range_idx(&geom->nrange_int, idx));
+    const double *xp =
+      gkyl_array_cfetch(geom->geo_int.mc2p_nodal, gkyl_range_idx(&geom->nrange_int, idx));
 
     // psi = 0.25 R^2 on this equilibrium, so the node's psi is recoverable
     // from the physical R it produced.
-    double psi_actual = 0.25*xp[0]*xp[0];
-    if (fabs(psi_actual-psi_expected) > tol) {
-      if (nfail++ < 4)
-        TEST_MSG("interior node %d (cell %d, gauss point %d): psi %.17g, "
+    double psi_actual = 0.25 * xp[0] * xp[0];
+    if (fabs(psi_actual - psi_expected) > tol) {
+      if (nfail++ < 4) {
+        TEST_MSG(
+          "interior node %d (cell %d, gauss point %d): psi %.17g, "
           "expected %.17g, off by %.3g (cell width %.17g)",
-          i, cell, k, psi_actual, psi_expected,
-          psi_actual-psi_expected, h);
+          i, cell, k, psi_actual, psi_expected, psi_actual - psi_expected, h
+        );
+      }
     }
   }
   TEST_CHECK(nfail == 0);
-  TEST_MSG("%d of %d interior psi nodes are not at the cell's Gauss-3 points",
-    nfail, cells[PSI_IDX]*nq);
+  TEST_MSG(
+    "%d of %d interior psi nodes are not at the cell's Gauss-3 points", nfail, cells[PSI_IDX] * nq
+  );
 
   gkyl_gk_geometry_release(geom);
   gkyl_position_map_release(pmap);
@@ -378,7 +415,7 @@ test_p2_refused_when_no_inverse_kernel(void)
     // The kernel now exists: the refusal must be gone, not merely unreachable.
     TEST_CHECK(true);
     TEST_MSG("p2 is now supported; the refusal below no longer applies and the "
-      "p2 node-placement tests should be enforcing.");
+             "p2 node-placement tests should be enforcing.");
     return;
   }
 
@@ -392,33 +429,40 @@ test_p2_refused_when_no_inverse_kernel(void)
     dup2(errfd, STDERR_FILENO);
     struct gkyl_position_map *pmap = NULL;
     struct gk_geometry *geom = make_cylinder_geometry(2, &pmap);
-    fprintf(stderr, "RETURNED_WITHOUT_REFUSING geom=%p\n", (void *) geom);
+    fprintf(stderr, "RETURNED_WITHOUT_REFUSING geom=%p\n", (void *)geom);
     fflush(stderr);
     _exit(0);
   }
   int status = 0;
   TEST_ASSERT(waitpid(pid, &status, 0) == pid);
 
-  char report[8192] = { 0 };
+  char report[8192] = {0};
   rewind(capture);
-  size_t n = fread(report, 1, sizeof(report)-1, capture);
+  size_t n = fread(report, 1, sizeof(report) - 1, capture);
   report[n] = '\0';
   fclose(capture);
 
   bool exited_cleanly = WIFEXITED(status) && WEXITSTATUS(status) == 0;
   TEST_CHECK(!exited_cleanly);
-  TEST_MSG("p2 was accepted though it cannot be completed; child said: %s",
-    report[0] ? report : "(nothing)");
+  TEST_MSG(
+    "p2 was accepted though it cannot be completed; child said: %s",
+    report[0] ? report : "(nothing)"
+  );
 
   TEST_CHECK(strstr(report, "GKYL_GEOMETRY_UNSUPPORTED_POLY_ORDER") != NULL);
   TEST_MSG("no named refusal. stderr: %s", report[0] ? report : "(nothing)");
   TEST_CHECK(strstr(report, "reason=no_dg_inverse_kernel") != NULL);
-  TEST_MSG("the refusal must name the CAUSE, not just the order. stderr: %s",
-    report[0] ? report : "(nothing)");
+  TEST_MSG(
+    "the refusal must name the CAUSE, not just the order. stderr: %s",
+    report[0] ? report : "(nothing)"
+  );
   // It must refuse before the folded-cell guard, i.e. before building a grid.
   TEST_CHECK(strstr(report, "TOK_GEO_FOLDED_CELLS") == NULL);
-  TEST_MSG("geometry was constructed before the refusal; it should refuse "
-    "while nothing is allocated. stderr: %s", report);
+  TEST_MSG(
+    "geometry was constructed before the refusal; it should refuse "
+    "while nothing is allocated. stderr: %s",
+    report
+  );
 }
 
 // Defect 3.3. gkyl_gk_geometry_init_nodal_range sizes an uninitialised
@@ -432,8 +476,8 @@ test_p2_refused_when_no_inverse_kernel(void)
 static void
 test_unsupported_poly_order_rejected(void)
 {
-  const int unsupported[] = { 3, 4 };
-  for (size_t k=0; k<sizeof(unsupported)/sizeof(unsupported[0]); ++k) {
+  const int unsupported[] = {3, 4};
+  for (size_t k = 0; k < sizeof(unsupported) / sizeof(unsupported[0]); ++k) {
     int order = unsupported[k];
 
     FILE *capture = tmpfile();
@@ -446,16 +490,15 @@ test_unsupported_poly_order_rejected(void)
     TEST_ASSERT(pid >= 0);
     if (pid == 0) {
       dup2(errfd, STDERR_FILENO);
-      double lower[3] = { 0.0, 0.0, 0.0 }, upper[3] = { 1.0, 1.0, 1.0 };
+      double lower[3] = {0.0, 0.0, 0.0}, upper[3] = {1.0, 1.0, 1.0};
       struct gkyl_rect_grid grid;
-      gkyl_rect_grid_init(&grid, 3, lower, upper, (int[3]){ 2, 2, 2 });
+      gkyl_rect_grid_init(&grid, 3, lower, upper, (int[3]){2, 2, 2});
       struct gkyl_range ext_range, range;
-      gkyl_create_grid_ranges(&grid, (int[3]){ 1, 1, 1 }, &ext_range, &range);
+      gkyl_create_grid_ranges(&grid, (int[3]){1, 1, 1}, &ext_range, &range);
       struct gkyl_range nrange;
       gkyl_gk_geometry_init_nodal_range(&nrange, &range, order);
       // Reached only if the unsupported order was silently accepted.
-      fprintf(stderr, "RETURNED_WITHOUT_REJECTING volume=%ld\n",
-        (long) nrange.volume);
+      fprintf(stderr, "RETURNED_WITHOUT_REJECTING volume=%ld\n", (long)nrange.volume);
       fflush(stderr);
       _exit(0);
     }
@@ -463,9 +506,9 @@ test_unsupported_poly_order_rejected(void)
     int status = 0;
     TEST_ASSERT(waitpid(pid, &status, 0) == pid);
 
-    char report[4096] = { 0 };
+    char report[4096] = {0};
     rewind(capture);
-    size_t n = fread(report, 1, sizeof(report)-1, capture);
+    size_t n = fread(report, 1, sizeof(report) - 1, capture);
     report[n] = '\0';
     fclose(capture);
 
@@ -473,22 +516,26 @@ test_unsupported_poly_order_rejected(void)
     bool named_the_order = strstr(report, "GKYL_GEOMETRY_UNSUPPORTED_POLY_ORDER") != NULL;
 
     TEST_CHECK(!exited_cleanly);
-    TEST_MSG("poly_order %d was accepted rather than refused; child said: %s",
-      order, report[0] ? report : "(nothing)");
+    TEST_MSG(
+      "poly_order %d was accepted rather than refused; child said: %s", order,
+      report[0] ? report : "(nothing)"
+    );
     TEST_CHECK(named_the_order);
-    TEST_MSG("poly_order %d: no GKYL_GEOMETRY_UNSUPPORTED_POLY_ORDER diagnostic. "
-      "Child %s. stderr: %s", order,
-      WIFEXITED(status) ? "exited" : "was killed by a signal",
-      report[0] ? report : "(nothing)");
+    TEST_MSG(
+      "poly_order %d: no GKYL_GEOMETRY_UNSUPPORTED_POLY_ORDER diagnostic. "
+      "Child %s. stderr: %s",
+      order, WIFEXITED(status) ? "exited" : "was killed by a signal",
+      report[0] ? report : "(nothing)"
+    );
   }
 }
 
 TEST_LIST = {
-  { "p1_corner_node_spacing", test_p1_corner_node_spacing },
-  { "p2_corner_node_spacing", test_p2_corner_node_spacing },
-  { "p2_fd_steps_nonzero", test_p2_fd_steps_nonzero },
-  { "p2_interior_quadrature_nodes", test_p2_interior_quadrature_nodes },
-  { "p2_refused_when_no_inverse_kernel", test_p2_refused_when_no_inverse_kernel },
-  { "unsupported_poly_order_rejected", test_unsupported_poly_order_rejected },
-  { NULL, NULL },
+  {"p1_corner_node_spacing", test_p1_corner_node_spacing},
+  {"p2_corner_node_spacing", test_p2_corner_node_spacing},
+  {"p2_fd_steps_nonzero", test_p2_fd_steps_nonzero},
+  {"p2_interior_quadrature_nodes", test_p2_interior_quadrature_nodes},
+  {"p2_refused_when_no_inverse_kernel", test_p2_refused_when_no_inverse_kernel},
+  {"unsupported_poly_order_rejected", test_unsupported_poly_order_rejected},
+  {NULL, NULL}
 };

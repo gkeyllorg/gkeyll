@@ -108,22 +108,20 @@ test_math_ridders_ho(void)
   do {
     double x1 = 1.0, x2 = 2.0;
     double f1 = rfunc_1(x1, 0), f2 = rfunc_1(x2, 0);
-    struct gkyl_qr_res res = gkyl_ridders(rfunc_1, 0, x1, x2, f1, f2,
-      100, 1e-12);
-    TEST_CHECK( res.status == 0 );
-    TEST_CHECK( res.nevals == 0 );
-    TEST_CHECK( res.res == x1 );
-  } while(0);
+    struct gkyl_qr_res res = gkyl_ridders(rfunc_1, 0, x1, x2, f1, f2, 100, 1e-12);
+    TEST_CHECK(res.status == 0);
+    TEST_CHECK(res.nevals == 0);
+    TEST_CHECK(res.res == x1);
+  } while (0);
 
   do {
     double x1 = 0.5, x2 = 1.0;
     double f1 = rfunc_1(x1, 0), f2 = rfunc_1(x2, 0);
-    struct gkyl_qr_res res = gkyl_ridders(rfunc_1, 0, x1, x2, f1, f2,
-      100, 1e-12);
-    TEST_CHECK( res.status == 0 );
-    TEST_CHECK( res.nevals == 0 );
-    TEST_CHECK( res.res == x2 );
-  } while(0);
+    struct gkyl_qr_res res = gkyl_ridders(rfunc_1, 0, x1, x2, f1, f2, 100, 1e-12);
+    TEST_CHECK(res.status == 0);
+    TEST_CHECK(res.nevals == 0);
+    TEST_CHECK(res.res == x2);
+  } while (0);
 
   do {
     double x1 = 0.5, x2 = 2.0;

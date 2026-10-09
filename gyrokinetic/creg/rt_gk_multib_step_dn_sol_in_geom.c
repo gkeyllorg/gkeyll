@@ -38,15 +38,15 @@
 static void
 shaped_pfunc_upper_inner(double s, double *RZ)
 {
-  RZ[0] = 1.651 + (1.8 - 1.651)*s;
-  RZ[1] = 6.331 + (6.777 - 6.331)*s;
+  RZ[0] = 1.651 + (1.8 - 1.651) * s;
+  RZ[1] = 6.331 + (6.777 - 6.331) * s;
 }
 
 static void
 shaped_pfunc_lower_inner(double s, double *RZ)
 {
-  RZ[0] = 1.651 + (1.8 - 1.651)*s;
-  RZ[1] = -(6.331 + (6.777 - 6.331)*s);
+  RZ[0] = 1.651 + (1.8 - 1.651) * s;
+  RZ[1] = -(6.331 + (6.777 - 6.331) * s);
 }
 
 int
@@ -65,51 +65,51 @@ main(int argc, char **argv)
   double psisep = efit->psisep_cubic; // the flux of the representation traced on (C1, 2026-10-05)
   gkyl_efit_release(efit);
 
-  const double win = 0.05;                 /* inner-SOL width  */
-  const double zinner = 6.34;              /* inboard z extent */
+  const double win = 0.05; /* inner-SOL width  */
+  const double zinner = 6.34; /* inboard z extent */
   const double rright_out = 5.2;
   double psi_lo_inner_sol = psisep - win;
   double psi_up_inner_sol = psisep;
 
   struct gkyl_gk_block_geom *bgeom = gkyl_gk_block_geom_new(2, 1);
 
-  gkyl_gk_block_geom_set_block(bgeom, 0, &(struct gkyl_gk_block_geom_info) {
-    .lower = { psi_lo_inner_sol, -M_PI },
-    .upper = { psi_up_inner_sol,  M_PI },
-    .cells = { 2, 16 },                    /* npsi_inner_sol = 2 */
-    .cuts  = { 1, 1 },
-    .geometry = {
-      .world = { 0.0 },
-      .geometry_id = GKYL_GEOMETRY_TOKAMAK,
-      .efit_info = efit_inp,
-      .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
-        .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN,
-        .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
-        .rleft = 2.0,
-        .rright = rright_out,
-        .rmin = 0.0,
-        .rmax = 6.2,
-        .zmin = -zinner,
-        .zmax = zinner,
-        .plate_spec = true,
-        .plate_func_upper = shaped_pfunc_upper_inner,
-        .plate_func_lower = shaped_pfunc_lower_inner,
-      },
-    },
-    /* One isolated block: every edge is a physical boundary, so no reciprocal
+  gkyl_gk_block_geom_set_block(
+    bgeom, 0,
+    &(struct gkyl_gk_block_geom_info){
+      .lower = {psi_lo_inner_sol, -M_PI},
+      .upper = {psi_up_inner_sol, M_PI},
+      .cells = {2, 16}, /* npsi_inner_sol = 2 */
+      .cuts = {1, 1},
+      .geometry =
+        {
+          .world = {0.0},
+          .geometry_id = GKYL_GEOMETRY_TOKAMAK,
+          .efit_info = efit_inp,
+          .tok_grid_info =
+            (struct gkyl_tok_geo_grid_inp){
+              .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN,
+              .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
+              .rleft = 2.0,
+              .rright = rright_out,
+              .rmin = 0.0,
+              .rmax = 6.2,
+              .zmin = -zinner,
+              .zmax = zinner,
+              .plate_spec = true,
+              .plate_func_upper = shaped_pfunc_upper_inner,
+              .plate_func_lower = shaped_pfunc_lower_inner,
+            },
+        },
+      /* One isolated block: every edge is a physical boundary, so no reciprocal
      * connection has to be invented for a type whose neighbours are absent. */
-    .connections[0] = {
-      { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL },
-      { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL },
-    },
-    .connections[1] = {
-      { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL },
-      { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL },
-    },
-  });
+      .connections[0] =
+        {{.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}},
+      .connections[1] =
+        {{.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}, {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}},
+    }
+  );
 
-  struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi,
-    app_args.use_gpu, stderr);
+  struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, stderr);
 
   struct gkyl_gyrokinetic_multib app_inp = {
     .name = "rt_gk_multib_step_dn_sol_in_geom",
@@ -124,8 +124,7 @@ main(int argc, char **argv)
     .comm = comm,
   };
 
-  struct gkyl_gyrokinetic_multib_app *app =
-    gkyl_gyrokinetic_multib_app_new_geom(&app_inp);
+  struct gkyl_gyrokinetic_multib_app *app = gkyl_gyrokinetic_multib_app_new_geom(&app_inp);
   if (app == 0) {
     fprintf(stderr, "GEOM_FAIL: could not construct DN_SOL_IN geometry\n");
     gkyl_gk_block_geom_release(bgeom);

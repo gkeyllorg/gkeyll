@@ -64,8 +64,7 @@ gkyl_rho_wall_finite(double value)
 {
   uint64_t bits;
   memcpy(&bits, &value, sizeof bits);
-  return (bits & UINT64_C(0x7ff0000000000000)) !=
-    UINT64_C(0x7ff0000000000000);
+  return (bits & UINT64_C(0x7ff0000000000000)) != UINT64_C(0x7ff0000000000000);
 }
 
 // Return trial number step measured from the ORIGINAL requested boundary.
@@ -75,43 +74,54 @@ gkyl_rho_wall_finite(double value)
 // This computes a candidate only; it does not certify wall containment.
 // Both output objects must be distinct, non-NULL, and remain untouched on error.
 static inline bool
-gkyl_rho_wall_next_phased(double requested_rho, double other_rho,
-  double psi_axis, double psi_sep, int family, int coarse_steps, int fine_steps,
-  double *rho, double *psi)
+gkyl_rho_wall_next_phased(
+  double requested_rho, double other_rho, double psi_axis, double psi_sep, int family,
+  int coarse_steps, int fine_steps, double *rho, double *psi
+)
 {
-  const int step = coarse_steps*10 + fine_steps;   // in units of the FINE step
-  if (!rho || !psi || rho == psi || coarse_steps < 0 || fine_steps < 0 ||
-      step < 1 ||
+  const int step = coarse_steps * 10 + fine_steps; // in units of the FINE step
+  if (!rho || !psi || rho == psi || coarse_steps < 0 || fine_steps < 0 || step < 1 ||
       step > GKYL_RHO_WALL_MAX_STEPS || (family != 1 && family != 2) ||
-      !gkyl_rho_wall_finite(requested_rho) ||
-      !gkyl_rho_wall_finite(other_rho) || other_rho < 0.0 ||
-      !gkyl_rho_wall_finite(psi_axis) ||
-      !gkyl_rho_wall_finite(psi_sep) || psi_axis == psi_sep)
+      !gkyl_rho_wall_finite(requested_rho) || !gkyl_rho_wall_finite(other_rho) || other_rho < 0.0 ||
+      !gkyl_rho_wall_finite(psi_axis) || !gkyl_rho_wall_finite(psi_sep) || psi_axis == psi_sep) {
     return false;
+  }
 
   // COARSE_STEP is exactly 10*STEP, so the two phases share one lattice and a
   // polished answer can never land between representable fine points.
-  const double delta = GKYL_RHO_WALL_COARSE_STEP*coarse_steps
-                     + GKYL_RHO_WALL_STEP*fine_steps;
+  const double delta = GKYL_RHO_WALL_COARSE_STEP * coarse_steps + GKYL_RHO_WALL_STEP * fine_steps;
   double next;
   if (family == 1) {
-    if (!(requested_rho > 1.0)) return false;
+    if (!(requested_rho > 1.0)) {
+      return false;
+    }
     const double stop = other_rho > 1.0 ? other_rho : 1.0;
-    next = requested_rho-delta;
-    if (!(next > stop && next < requested_rho)) return false;
-  }
-  else {
-    if (!(requested_rho >= 0.0 && requested_rho < 1.0)) return false;
+    next = requested_rho - delta;
+    if (!(next > stop && next < requested_rho)) {
+      return false;
+    }
+  } else {
+    if (!(requested_rho >= 0.0 && requested_rho < 1.0)) {
+      return false;
+    }
     const double stop = other_rho < 1.0 ? other_rho : 1.0;
-    next = requested_rho+delta;
-    if (!(next < stop && next > requested_rho)) return false;
+    next = requested_rho + delta;
+    if (!(next < stop && next > requested_rho)) {
+      return false;
+    }
   }
-  if (!gkyl_rho_wall_finite(next)) return false;
+  if (!gkyl_rho_wall_finite(next)) {
+    return false;
+  }
 
-  const double flux_span = psi_sep-psi_axis;
-  if (!gkyl_rho_wall_finite(flux_span) || flux_span == 0.0) return false;
-  const double next_psi = psi_axis+next*next*flux_span;
-  if (!gkyl_rho_wall_finite(next_psi)) return false;
+  const double flux_span = psi_sep - psi_axis;
+  if (!gkyl_rho_wall_finite(flux_span) || flux_span == 0.0) {
+    return false;
+  }
+  const double next_psi = psi_axis + next * next * flux_span;
+  if (!gkyl_rho_wall_finite(next_psi)) {
+    return false;
+  }
   // The contract above says the separatrix is never crossed OR REACHED, but a
   // rho test alone cannot enforce that.  Under this project's -ffast-math
   // builds the compiler contracts requested_rho+COARSE_STEP*coarse into an FMA,
@@ -125,8 +135,9 @@ gkyl_rho_wall_next_phased(double requested_rho, double other_rho,
   // in PSI.  The threshold is derived from the flux span and machine epsilon,
   // not tuned: it is the point at which the interval stops being representable,
   // and it scales with the equilibrium rather than assuming one.
-  if (!(fabs(psi_sep-next_psi) > 8.0*DBL_EPSILON*fabs(flux_span)))
+  if (!(fabs(psi_sep - next_psi) > 8.0 * DBL_EPSILON * fabs(flux_span))) {
     return false;
+  }
 
   *rho = next;
   *psi = next_psi;
@@ -136,10 +147,12 @@ gkyl_rho_wall_next_phased(double requested_rho, double other_rho,
 // Single-phase form, kept so existing callers and tests read unchanged: a
 // pure fine-step walk is the coarse count set to zero.
 static inline bool
-gkyl_rho_wall_next(double requested_rho, double other_rho,
-  double psi_axis, double psi_sep, int family, int step,
-  double *rho, double *psi)
+gkyl_rho_wall_next(
+  double requested_rho, double other_rho, double psi_axis, double psi_sep, int family, int step,
+  double *rho, double *psi
+)
 {
-  return gkyl_rho_wall_next_phased(requested_rho, other_rho, psi_axis, psi_sep,
-    family, 0, step, rho, psi);
+  return gkyl_rho_wall_next_phased(
+    requested_rho, other_rho, psi_axis, psi_sep, family, 0, step, rho, psi
+  );
 }

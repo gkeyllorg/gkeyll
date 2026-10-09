@@ -1850,8 +1850,7 @@ gkyl_gyrokinetic_app *gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk);
  * @param gk Gyrokinetic input struct.
  * @return A gyrokinetic app object.
  */
-gkyl_gyrokinetic_app*
-gkyl_gyrokinetic_app_new_geom_no_write(struct gkyl_gk *gk);
+gkyl_gyrokinetic_app *gkyl_gyrokinetic_app_new_geom_no_write(struct gkyl_gk *gk);
 
 /**
  * Initialize the rest of the gyrokinetic app solver, after having called

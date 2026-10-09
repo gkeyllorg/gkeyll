@@ -20,8 +20,9 @@ bool tok_wall_trial_record_scope(bool fixed_radial_boundary, bool node_outside);
  * the movable side of the block: the half of its radial span nearer the edge
  * the trial may move (2026-10-05). A violation whose location is not known
  * counts as off that side. */
-bool tok_wall_trial_record_where(bool fixed_radial_boundary, bool node_outside,
-  bool on_movable_side);
+bool tok_wall_trial_record_where(
+  bool fixed_radial_boundary, bool node_outside, bool on_movable_side
+);
 /** True when the trial failed and every violation lay on the movable side:
  * the wall cuts the region being shrunk, and nothing else is wrong. */
 bool tok_wall_trial_only_movable_side(void);

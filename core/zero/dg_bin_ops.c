@@ -593,8 +593,9 @@ gkyl_dg_inv_op_supported(const struct gkyl_basis *basis)
   // The kernel tables are indexed [ndim][poly_order] and are sparse, so the
   // bounds are checked before the lookup rather than assumed.
   int ndim = basis->ndim, poly_order = basis->poly_order;
-  if (ndim < 1 || ndim > 3 || poly_order < 1 || poly_order > 3)
+  if (ndim < 1 || ndim > 3 || poly_order < 1 || poly_order > 3) {
     return false;
+  }
   switch (basis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       return choose_ser_inv_kern(ndim, poly_order) != NULL;

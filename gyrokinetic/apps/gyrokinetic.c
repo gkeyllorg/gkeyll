@@ -4595,10 +4595,10 @@ gkyl_gyrokinetic_app_cout(const gkyl_gyrokinetic_app *app, FILE *fp, const char 
 void
 gkyl_gyrokinetic_app_release_geom(gkyl_gyrokinetic_app *app)
 {
-  bool has_delta_ts_x = app->cdim == 3 && (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK ||
-                                           (app->gk_geom->geometry_id == GKYL_GEOMETRY_MAPC2P &&
-                                            app->gk_geom->parallel_lower_bc_shift_func &&
-                                            app->gk_geom->parallel_upper_bc_shift_func));
+  bool has_delta_ts_x = app->cdim == 3 &&
+                        (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK ||
+                         (app->gk_geom->geometry_id == GKYL_GEOMETRY_MAPC2P &&
+                          app->gk_geom->lower_shift_func && app->gk_geom->upper_shift_func));
 
   gkyl_array_release(app->jacobtot_inv_weak);
   if (has_delta_ts_x) {

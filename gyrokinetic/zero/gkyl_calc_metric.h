@@ -31,8 +31,7 @@ gkyl_calc_metric *gkyl_calc_metric_new(
  * Make signed R-Z Jacobian failures nonfatal while retaining their status.
  * This is used only by disposable X-point optimizer trial geometries.
  */
-void gkyl_calc_metric_set_signed_jacobian_guard_nonfatal(
-  gkyl_calc_metric *up, bool nonfatal);
+void gkyl_calc_metric_set_signed_jacobian_guard_nonfatal(gkyl_calc_metric *up, bool nonfatal);
 
 /** Return whether all signed R-Z Jacobians seen so far were finite, nonzero,
  * and consistently oriented. */
