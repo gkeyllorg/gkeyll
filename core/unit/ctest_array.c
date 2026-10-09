@@ -374,30 +374,28 @@ test_grid_array_new_from_file_1_ho()
 void
 test_grid_array_new_from_file_bad_cell_count(void)
 {
-  // Model a phase-space write using a configuration-space decomposition:
-  // the grid and block contain four cells, but the header declares only two.
+  // Write only two cells of a four-cell grid: the full-grid reader must
+  // reject the mismatch between the header's cell count and the grid.
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 1, (double[]){0.0}, (double[]){1.0}, (int[]){4});
-  const char *fname = "ctest_grid_array_bad_cell_count.gkyl";
-  FILE *fp = fopen(fname, "wb");
-  TEST_ASSERT(fp != NULL);
-  struct gkyl_array_header_info hdr = {
-    .file_type = gkyl_file_type_int[GKYL_MULTI_RANGE_DATA_FILE],
-    .etype = GKYL_DOUBLE,
-    .esznc = sizeof(double),
-    .tot_cells = 2,
-  };
-  gkyl_grid_sub_array_header_write_fp(&grid, &hdr, fp);
-  uint64_t block[] = {1, 1, 4, 4}; // nrange, lower, upper, block size.
-  double values[] = {1.0, 2.0, 3.0, 4.0};
-  fwrite(block, sizeof(block), 1, fp);
-  fwrite(values, sizeof(values), 1, fp);
-  fclose(fp);
+  struct gkyl_range range;
+  gkyl_range_init_from_shape1(&range, 1, (int[]){2});
 
-  struct gkyl_array *arr = gkyl_grid_array_new_from_file(&grid, fname);
-  TEST_CHECK(arr == NULL);
-  if (arr) {
-    gkyl_array_release(arr);
+  struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 1, range.volume);
+  for (long i = 0; i < range.volume; ++i) {
+    double *values = gkyl_array_fetch(arr, i);
+    values[0] = i + 1.0;
+  }
+
+  const char *fname = "ctest_grid_array_bad_cell_count.gkyl";
+  int status = gkyl_grid_sub_array_write(&grid, &range, 0, arr, fname);
+  gkyl_array_release(arr);
+  TEST_ASSERT(status == GKYL_ARRAY_RIO_SUCCESS);
+
+  struct gkyl_array *arr2 = gkyl_grid_array_new_from_file(&grid, fname);
+  TEST_CHECK(arr2 == NULL);
+  if (arr2) {
+    gkyl_array_release(arr2);
   }
   remove(fname);
 }

@@ -1,7 +1,7 @@
 # Gkeyll Jenkins CI on Princeton Stellar CPU
 
 To reuse an existing installation’s dependency paths and `config.mak`, see
-[Reusing installed dependencies](README.md#reusing-installed-dependencies).
+[Reusing installed dependencies](README.dependencies.md).
 
 This guide sets up Gkeyll's private, CPU-only Jenkins CI on Princeton Stellar.
 After SSH/Duo authentication, a developer manually starts a build for a GitHub
@@ -124,7 +124,7 @@ uses it only against loopback Jenkins and does not disable CSRF protection.
 
 ### Create the GitHub credential
 
-The [shared reporter](README.md#reporting-credentials) uses this existing
+The [shared reporter](README.reporting.md#reporting-credentials) uses this existing
 username/token credential for statuses and report comments on the tested commit.
 
 Create a classic GitHub PAT with only the `public_repo` scope and a short
@@ -169,12 +169,12 @@ Do not set a broad global `PATH` to an interactive shell configuration. The
 Pipeline initializes Stellar modules for each build and Slurm job. Its
 `GKEYLL_CI_ROOT` must exactly match the controller's root.
 It retains a separate directory for each build under `runs/stellar-cpu/`;
-see [persistent regression data](README.md#persistent-regression-data). After an intentional in-place toolchain or dependency upgrade, change
+see [persistent regression data](README.storage.md). After an intentional in-place toolchain or dependency upgrade, change
 `GKEYLL_CI_CACHE_REVISION` to force baseline regeneration in either dependency mode.
 
 ### Create the one parameterized Pipeline job
 
-Install the [controller queue listener](README.md#controller-installation) in
+Install the [controller queue listener](README.reporting.md#controller-installation) in
 `$GKEYLL_CI_ROOT/jenkins_home/init.groovy.d/` to report pending while jobs wait
 and cancel superseded queued PR commits. It uses the global
 `STELLAR_CPU_GITHUB_CREDENTIAL_ID` and requires no Slurm allocation.
@@ -282,8 +282,8 @@ scancel <jobid>
 
 Do not remove a workspace while its Slurm job appears in `squeue`. After it
 stops, it is safe to remove the abandoned workspace below
-`$GKEYLL_CI_ROOT/workspaces` and restart Jenkins. Jenkins retains 20 recent
-build records and archives artifacts before removing normal completed workspaces.
+`$GKEYLL_CI_ROOT/workspaces` and restart Jenkins. Jenkins archives artifacts
+before removing completed workspaces; see [retention settings](README.storage.md#retention).
 
 ## Numerical regression differences
 

@@ -1,7 +1,7 @@
 # Gkeyll Jenkins CI on a Personal Computer
 
 To reuse an existing installation’s dependency paths and `config.mak`, see
-[Reusing installed dependencies](README.md#reusing-installed-dependencies).
+[Reusing installed dependencies](README.dependencies.md).
 
 This private CI lets the computer owner explicitly test a Gkeyll PR or
 candidate/baseline comparison. It does not poll GitHub or execute unselected
@@ -36,7 +36,7 @@ chmod 600 "$HOME/.config/gkeyll/jenkins/personal.auth"
 
 ### Create the GitHub credential
 
-The [shared reporter](README.md#reporting-credentials) uses this existing
+The [shared reporter](README.reporting.md#reporting-credentials) uses this existing
 username/token credential for statuses and report comments on the tested commit.
 
 Create a classic GitHub PAT with only the `public_repo` scope and a short
@@ -150,7 +150,7 @@ helpers from that commit. Candidate selection does not select the CI
 implementation. When staging a change to the loader itself, point the job's
 SCM branch and refspec to your CI feature branch too.
 
-Install the [controller queue listener](README.md#controller-installation) to
+Install the [controller queue listener](README.reporting.md#controller-installation) to
 report pending before an executor is available and cancel superseded queued PR
 commits. Set `PERSONAL_STATUS_CONTEXT` globally to the context already used by
 this machine, so queued and final statuses update the same GitHub check.
@@ -220,7 +220,7 @@ a new intentional change for that same test.
 threads during CI setup. Resource-related setup failures receive bounded
 retries and per-attempt diagnostics. The controller can publish a timed fallback
 report even if the selected pipeline or reporting scripts cannot be fetched.
-See [setup resource failures and early reports](README.md#setup-resource-failures-and-early-reports)
+See [setup resource failures and early reports](README.reporting.md#setup-resource-failures-and-early-reports)
 for retry limits, artifacts, and the required controller-hook update.
 
 If diagnostics show `pids.current` reaching `pids.max` and many zombies parented

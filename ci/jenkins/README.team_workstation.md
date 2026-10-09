@@ -1,7 +1,7 @@
 # Gkeyll Jenkins CI on a Team Workstation
 
 To reuse an existing installation’s dependency paths and `config.mak`, see
-[Reusing installed dependencies](README.md#reusing-installed-dependencies).
+[Reusing installed dependencies](README.dependencies.md).
 
 This CI automatically discovers `main` and pull requests targeting `main`.
 Each PR is built in its own multibranch child job, but no PR supplies the
@@ -88,7 +88,7 @@ chmod 600 "$HOME/.config/gkeyll/jenkins/team-workstation.auth"
 
 ### Create the GitHub credential
 
-The [shared reporter](README.md#reporting-credentials) uses this existing
+The [shared reporter](README.reporting.md#reporting-credentials) uses this existing
 username/token credential for statuses and report comments on the tested commit.
 
 Create a short-lived classic GitHub PAT with only the `public_repo` scope (or a
@@ -132,7 +132,7 @@ these per-run dependency builds.
 
 ### Create the one centralized multibranch Pipeline job
 
-Install the [controller queue listener](README.md#controller-installation) to
+Install the [controller queue listener](README.reporting.md#controller-installation) to
 report pending for automatic PR discovery and explicit submissions before a
 build agent is available. It also cancels queued runs superseded by a newer PR
 head. The listener uses `TEAM_WORKSTATION_GITHUB_CREDENTIAL_ID` and

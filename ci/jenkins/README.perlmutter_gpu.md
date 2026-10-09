@@ -1,7 +1,7 @@
 # Gkeyll Jenkins CI on NERSC Perlmutter GPU
 
 To reuse an existing installation’s dependency paths and `config.mak`, see
-[Reusing installed dependencies](README.md#reusing-installed-dependencies).
+[Reusing installed dependencies](README.dependencies.md).
 
 This private, manually triggered CUDA CI builds candidate and baseline CUDA/NCCL
 installations on the login node, then submits unit and C-regression work to GPU
@@ -123,7 +123,7 @@ chmod 600 "$GKEYLL_CI_ROOT/jenkins_home/jenkins-cli.auth"
 
 ### Create the GitHub credential
 
-The [shared reporter](README.md#reporting-credentials) uses this existing
+The [shared reporter](README.reporting.md#reporting-credentials) uses this existing
 username/token credential for statuses and report comments on the tested commit.
 
 Create a classic GitHub PAT with only the `public_repo` scope and a short
@@ -162,12 +162,12 @@ System → Global properties → Environment variables**, set:
 
 `GKEYLL_CI_ROOT` retains a separate directory for each build under
 `runs/perlmutter-gpu/`, visible to GPU nodes; see
-[persistent regression data](README.md#persistent-regression-data). After an intentional in-place toolchain or dependency upgrade, change
+[persistent regression data](README.storage.md). After an intentional in-place toolchain or dependency upgrade, change
 `GKEYLL_CI_CACHE_REVISION` to force baseline regeneration in either dependency mode.
 
 ### Create the one parameterized Pipeline job
 
-Install the [controller queue listener](README.md#controller-installation) in
+Install the [controller queue listener](README.reporting.md#controller-installation) in
 `$GKEYLL_CI_ROOT/jenkins_home/init.groovy.d/` to report pending while jobs wait
 and cancel superseded queued PR commits. It uses the global
 `PERLMUTTER_GPU_GITHUB_CREDENTIAL_ID` and requires no Slurm allocation.
