@@ -1,0 +1,63 @@
+{
+  "cli_version": "0.11.3",
+  "checkpoint_id": "01M4H8XR20MMV5ECHY1QD5RK4P",
+  "session_id": "01a12284-ebde-7af0-b11f-5b72d38b6a75",
+  "strategy": "manual-commit",
+  "created_at": "2026-10-09T21:25:51.885985216Z",
+  "branch": "gk-lc-mask-yushmanov",
+  "checkpoints_count": 6,
+  "save_step_count": 3,
+  "files_touched": [
+    "gkeyll/lua/Tool/runregression.lua"
+  ],
+  "agent": "Codex",
+  "model": "gpt-6-astra",
+  "turn_id": "c9dfcb96948e",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 61501,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 1615488,
+    "output_tokens": 8306,
+    "api_call_count": 32,
+    "subagent_tokens_complete": true
+  },
+  "session_metrics": {
+    "turn_count": 6
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-10-09T21:25:51.860087543Z",
+    "agent_lines": 19,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 19,
+    "total_lines_changed": 19,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 619,
+      "agent_lines_removed": 193
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 619,
+      "agent_lines_removed": 193
+    }
+  ]
+}
