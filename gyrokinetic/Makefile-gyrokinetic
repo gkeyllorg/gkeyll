@@ -70,13 +70,6 @@ all: $(LLIB) $(SLLIB) ## Build all targets
 .DEFAULT_GOAL := all
 
 # c -> o files
-# These kernels deliberately handle non-finite inputs. Fast-math's finite-only
-# assumption removes their isfinite guards (and triggers Clang diagnostics).
-# Apply to both CPU and CUDA recipes without editing generated kernels.
-AMBI_BOLT_OBJS := $(filter ../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/ambi_bolt_potential/%.c.o,$(OBJS))
-$(AMBI_BOLT_OBJS): override CFLAGS += -fno-finite-math-only
-$(AMBI_BOLT_OBJS): Makefile-gyrokinetic
-
 ../$(BUILD_DIR)/gyrokinetic/%.c.o: %.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) -c $(CFLAGS) $(ARCH_FLAGS) $(INCS) $< -o $@
