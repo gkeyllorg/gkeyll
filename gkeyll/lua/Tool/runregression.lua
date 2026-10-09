@@ -1211,7 +1211,8 @@ local function validate_precompiled_c_regressions(cTests)
 end
 
 -- executeBatch(items) → list of {runtm, runlog, timedOut, exitCode}
--- Runs at most jobCount items concurrently, refilling slots on completion.
+-- Uses at most jobCount worker slots, refilling slots on completion. MPI items
+-- reserve parallelRanks slots; an item larger than the budget runs alone.
 -- Each item has {cmd, runDir}. Optional onComplete runs as each item finishes,
 -- while results are returned in submission order. logStarts enables worker logs.
 --
@@ -1223,7 +1224,9 @@ end
 executeBatch = function(items, jobCount, onComplete, logStarts)
    if #items == 0 then return {} end
 
-   jobCount = math.min(jobCount or #items, #items)
+   local totalSlots = 0
+   for _, item in ipairs(items) do totalSlots = totalSlots + (item.parallelRanks or 1) end
+   jobCount = math.min(jobCount or totalSlots, totalSlots)
    local timestamp = hasCmd("perl")
       and "perl -MTime::HiRes=time -e 'printf \"%.6f\\n\", time'"
       or "date +%s"
@@ -1245,21 +1248,28 @@ executeBatch = function(items, jobCount, onComplete, logStarts)
    local coordPath = items[1].runDir .. "/_rr_batch_coordinator.sh"
    local cf = io.open(coordPath, "w")
    cf:write("#!/bin/sh\nset -e\n")
-   -- Each worker returns its slot number as soon as it exits.
+   -- Each item returns all its reserved slot numbers as soon as it exits.
    local fifo = shellQuote(coordPath .. ".fifo")
    cf:write("rm -f " .. fifo .. "; mkfifo " .. fifo .. "\n")
    cf:write("exec 3<> " .. fifo .. "\nrm -f " .. fifo .. "\n")
+   local nextWorker = 1
    for idx, item in ipairs(items) do
       local itemScript = item.runDir .. "/_rr_batch_item.sh"
       local outFile = item.runDir .. "/_parallel_out.txt"
-      if idx > jobCount then
-         cf:write("read -r worker <&3\n")
-      else
-         cf:write(string.format("worker=%d\n", idx))
+      cf:write("workers=''\n")
+      for slot = 1, math.min(item.parallelRanks or 1, jobCount) do
+         if nextWorker > jobCount then
+            cf:write("read -r worker <&3\n")
+         else
+            cf:write(string.format("worker=%d\n", nextWorker))
+            nextWorker = nextWorker + 1
+         end
+         if slot == 1 then cf:write("firstWorker=$worker\n") end
+         cf:write("workers=\"$workers $worker\"\n")
       end
-      cf:write(string.format("printf 'START %d %%s\\n' \"$worker\"\n", idx))
+      cf:write(string.format("printf 'START %d %%s\\n' \"$firstWorker\"\n", idx))
       cf:write(string.format(
-         "(sh %s > %s 2>&1 || :; printf 'DONE %d\\n'; printf '%%s\\n' \"$worker\" >&3) &\n",
+         "(sh %s > %s 2>&1 || :; printf 'DONE %d\\n'; printf '%%s\\n' $workers >&3) &\n",
          shellQuote(itemScript), shellQuote(outFile), idx))
    end
    for worker = 1, jobCount do cf:write("read -r token <&3\n") end
@@ -2086,24 +2096,6 @@ local function run_action(args, name)
       return prep
    end
 
-   if args.parallel then
-      log("Running parallel C regression tests serially by MPI collective ...\n\n")
-      for index, test in ipairs(cTests) do
-         layerCounts[test.layer].total = layerCounts[test.layer].total + 1
-            local prep = prepareC(test, true)
-         if prep.compileFailed then
-            store(test, "c", -4, prep.compileSecs, prep.runDir,
-               "COMPILE FAILED:\n" .. prep.compileLog)
-         else
-            local result = executeBatch({ prep }, 1, nil, true)[1]
-            collect(test, "c", prep, result, index, #cTests)
-         end
-      end
-      log(string.format("\nAll regression tests completed in %g secs\n", Time.clock() - tmStart))
-      finalizeRegressionRun()
-      return
-   end
-
    local queue = {}
    for _, test in ipairs(luaTests) do
       test.testType = "lua"
@@ -2118,7 +2110,7 @@ local function run_action(args, name)
       layerCounts[test.layer].total = layerCounts[test.layer].total + 1
       local prep = test.testType == "lua"
          and prepareLuaRun(test, timeoutSecs, GPU_BUILD and "gpu" or nil)
-         or prepareC(test, false)
+         or prepareC(test, args.parallel)
       if prep.mpiSkip then
          log(string.format("**** NOT RUNNING PARALLEL TEST %s\n", test.name))
          store(test, test.testType, -1, 0, prep.runDir, "")
@@ -2680,7 +2672,8 @@ c_run:option("--gpu-parallel-tol", "Tolerance for GPU-parallel-vs-accepted (defa
    :argname("<tol>"):convert(tonumber):default(1e-7)
 c_run:option("-j --jobs",
    "Concurrent compilation/execution workers (0 = available CPU count, 1 = serial).\n"
-   .. "MPI tests execute one collective at a time; GPU jobs share the available devices.")
+   .. "MPI tests reserve one worker per rank; tests larger than the budget run alone.\n"
+   .. "GPU jobs share the available devices; the MPI launcher controls placement.")
    :convert(tonumber)
    :default(1)
 

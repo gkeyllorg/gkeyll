@@ -110,7 +110,7 @@ toolchain, `cmake`, and Python/NumPy. Set these global environment variables:
 | `TEAM_WORKSTATION_CONFIGURE_SCRIPT` | Required `machines/` configure script |
 | `TEAM_WORKSTATION_GITHUB_CREDENTIAL_ID` | GitHub status/API credential ID |
 | `TEAM_WORKSTATION_BUILD_JOBS` | Optional compilation workers, including C regressions; default `3` |
-| `TEAM_WORKSTATION_REGRESSION_JOBS` | Optional concurrent serial C test runs; defaults to `TEAM_WORKSTATION_BUILD_JOBS` (default `3`) |
+| `TEAM_WORKSTATION_REGRESSION_JOBS` | Optional regression worker budget (one per serial test or MPI rank); defaults to `TEAM_WORKSTATION_BUILD_JOBS` (default `3`) |
 | `WORKSTATION_MPI_HOME` | Optional MPI installation path for both trees; default is each tree's `gkylsoft/openmpi` |
 | `TEAM_WORKSTATION_MPIEXEC` | Optional launcher override for both trees; default is `bin/mpiexec` under the selected MPI installation |
 | `TEAM_WORKSTATION_STATUS_CONTEXT` | Optional status context; default team-workstation |

@@ -77,6 +77,29 @@ class FailureReportTests(unittest.TestCase):
         self.assertEqual(summary['new_warnings'], 1)
         self.assertEqual(summary['unclassified_warnings'], 0)
 
+    def test_large_captured_log_inventory_is_archived_without_comment_pages(self):
+        paths = ['gkylsoft/gkeyll-results/' + 'long-directory/' * 10 +
+                 'regressiondb:test_{}'.format(i) for i in range(674)]
+        logs = [(path, 'candidate-regression/test_{}'.format(i), '', True)
+                for i, path in enumerate(paths)]
+        logs.append(('candidate-unit-build.log', 'candidate-unit-build.log',
+                     'example.c:1: warning: example warning\nexample.c:2: error: example error\n', False))
+        args = argparse.Namespace(platform='personal', context='ci/test', result='success', pr='', output='ci-report.md')
+        with patch.object(report, 'captured_logs', return_value=iter(logs)), \
+                contextlib.redirect_stdout(io.StringIO()):
+            report.build_report(args)
+        summary = json.loads(Path('ci-diagnostic-summary.json').read_text())
+        self.assertEqual(summary['captured_log_paths'], paths + ['candidate-unit-build.log'])
+        self.assertEqual(summary['captured_logs'], len(logs))
+        pages = json.loads(Path(args.output + '.json').read_text())
+        self.assertEqual(len(pages), 1)
+        self.assertNotIn('Captured logs', pages[0])
+        self.assertNotIn('regressiondb:test_', pages[0])
+        self.assertIn('All warnings (1)', pages[0])
+        self.assertIn('example warning', pages[0])
+        self.assertIn('All errors (1)', pages[0])
+        self.assertIn('example error', pages[0])
+
     def test_run_header_and_total_use_wall_time_instead_of_overlapping_steps(self):
         self.write('ci-timing-summary.txt', 'candidate_unit_build_seconds=3000\n'
                    'unit_slurm_elapsed_seconds=3500\nmissing_seconds=not-recorded\n')

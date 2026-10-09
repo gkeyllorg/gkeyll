@@ -6,6 +6,7 @@ Set GKEYLL to a built executable. Its shared libraries must be discoverable
 import os
 from pathlib import Path
 import shutil
+import sqlite3
 import subprocess
 import tempfile
 import unittest
@@ -119,6 +120,45 @@ class RegressionConfigTests(unittest.TestCase):
                                '--source-dir', self.source, success=False)
         self.assertIn(str(config_file), result.stderr)
         self.assertNotIn("attempt to index local 'fn'", result.stderr)
+
+    def test_parallel_execution_uses_shared_worker_pool(self):
+        prefix, executable = self.install('parallel')
+        launcher = self.root / 'mpiexec'
+        launcher.write_text('#!/bin/sh\nset -eu\n'
+                            'test "$1" = -n && test "$2" = 4\nshift 2\nexec "$@"\n')
+        launcher.chmod(0o755)
+        self.configure(executable, '--mpiexec', launcher)
+        names = [f'rt_mpi_fixture_{idx}' for idx in range(4)]
+        creg = self.source / 'moments/creg'
+        (creg / 'c_test_manifest.lua').write_text(
+            'return {parallel={' + ','.join(
+                '{name="' + name + '", cuts={2,2}}' for name in names) + '}}\n')
+        run_root = prefix / 'gkeyll-results/moments/creg-runs/cpu_parallel'
+        for idx, name in enumerate(names):
+            (creg / (name + '.c')).touch()
+            run_dir = run_root / name
+            run_dir.mkdir(parents=True)
+            binary = run_dir / name
+            binary.write_text('#!/bin/sh\nset -eu\n'
+                              'test "$*" = "-M -c 2 -d 2"\n'
+                              f'sleep {1.5 if idx == 0 else 0.1}\n'
+                              'printf fixture > result.gkyl\n')
+            binary.chmod(0o755)
+        result = self.run_tool(executable, 'runregression', 'run', 'moments',
+                               '--parallel', '--execute-only', '--jobs', '8', 'create')
+        intervals = []
+        for name in names:
+            raw = (run_root / name / '_parallel_out.txt').read_text()
+            markers = dict(line.split(':', 1) for line in raw.splitlines()
+                           if line.startswith(('__START__:', '__END__:')))
+            intervals.append((float(markers['__START__']), float(markers['__END__'])))
+        self.assertLess(intervals[1][0], intervals[0][1], result.stdout)
+        self.assertLess(intervals[3][0], intervals[0][1], result.stdout)
+        self.assertGreaterEqual(intervals[2][0], intervals[1][1])
+        self.assertGreaterEqual(intervals[3][0], intervals[2][1])
+        with sqlite3.connect(prefix / 'gkeyll-results/moments/regressiondb') as db:
+            rows = db.execute('SELECT name, test_type, status FROM RegressionData').fetchall()
+        self.assertCountEqual(rows, [('moments/creg/' + name, 'c', -2) for name in names])
 
     def test_legacy_home_configuration(self):
         prefix, executable = self.install('legacy')

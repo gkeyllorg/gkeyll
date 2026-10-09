@@ -160,7 +160,7 @@ set the following values. Paste an expanded scratch path, not a literal `$USER`.
 | `STELLAR_CPU_BUILD_JOBS` | Optional compilation workers, including C regressions; default `3` |
 | `STELLAR_CPU_UNIT_TIME` | Optional unit-test allocation limit; default `00:30:00` |
 | `STELLAR_CPU_REGRESSION_TIME` | Optional C-regression allocation limit; default `04:00:00` |
-| `STELLAR_CPU_REGRESSION_JOBS` | Optional concurrent serial C test runs; default `4` |
+| `STELLAR_CPU_REGRESSION_JOBS` | Optional regression worker budget (one per serial test or MPI rank); default `4` |
 | `STELLAR_CPU_REGRESSION_TEST_TIMEOUT` | Optional per-test limit in seconds; default `900` |
 | `STELLAR_CPU_NODE_LABEL` | Optional node label; default `stellar_cpu` |
 | `GKEYLL_CI_TRUSTED_REF` | Optional reviewed branch or full SHA for `github_report.py`, `jenkins_reporting.groovy`, and `check_regression_results.lua`; default `main`. Set it only while staging a CI change |

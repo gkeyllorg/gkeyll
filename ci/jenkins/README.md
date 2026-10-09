@@ -430,8 +430,10 @@ it clears obsolete continuation pages when a later report is shorter. Accepted
 queue IDs (or build numbers within a job) prevent an older run from replacing
 a newer report for the same commit and context. Reports on other commits remain
 intact even when an older run finishes later. The archived `ci-report.md` contains
-the entire report; `ci-report.md.json` contains the report pages. Raw logs remain
-available through the artifact command below. `ci-stage-history.txt` records
+the entire report; `ci-report.md.json` contains the report pages. The captured-log
+inventory is kept only in the archived `ci-diagnostic-summary.json`, under
+`captured_log_paths`, with its count in `captured_logs`; it is omitted from GitHub
+comments. Raw logs remain available through the artifact command below. `ci-stage-history.txt` records
 stage changes in UTC, including stages before candidate checkout.
 
 Reporting runs during failure cleanup. If no exact candidate SHA was resolved,
@@ -505,8 +507,8 @@ Jenkins configures compilation and execution separately using each platform's
 workers and 4 concurrent serial regression runs. Use the `TEAM_WORKSTATION`,
 `STELLAR_CPU`, or `PERLMUTTER_GPU` prefix for the other workflows. The pipelines
 invoke `run --c-only --jobs N compile` first, then `run --c-only --execute-only
---jobs M create` or `check`. MPI regressions continue to run one test at a time
-with four MPI ranks per test.
+--jobs M create` or `check`. MPI execution uses the same regression worker
+setting as a rank budget: eight workers allow two four-rank tests concurrently.
 
 `runregression run --jobs N` uses up to N compilation workers, then up to N
 execution workers. `--jobs 0` detects the available CPU count. C and Lua tests
@@ -515,9 +517,22 @@ test as soon as a slot is free, without waiting for a batch to finish. No cost
 table or scheduling artifacts need maintaining. Unequal test durations can
 leave workers idle as the queue drains at the end.
 
-MPI regression collectives still execute one test at a time; `--jobs`
-parallelizes their compilation. GPU worker counts must fit the devices and
-memory allocated to the job.
+MPI tests use the same asynchronous queue, reserving one worker per rank in
+their manifest decomposition. A test starts once enough workers are free;
+results are processed on completion. A test requiring more ranks than the
+budget runs alone, so the default `--jobs 1` still runs MPI tests sequentially.
+Compilation continues to use one worker per test. For example:
+
+```sh
+gkeyll runregression run --c-only --parallel --execute-only --jobs 8 check
+```
+
+The MPI launcher controls CPU/GPU placement. GPU worker counts must fit the
+devices and memory allocated to the job. Stellar allocates at least four MPI
+tasks, increasing the allocation to the configured regression worker budget;
+its `srun --exact` steps reserve only each test's requested resources.
+Perlmutter caps the MPI budget at its four allocated GPUs, so its current
+four-rank tests continue to run one at a time.
 
 HPC compile stages pass their configured build worker count to runregression;
 execution uses the existing regression worker allocation. Personal and team

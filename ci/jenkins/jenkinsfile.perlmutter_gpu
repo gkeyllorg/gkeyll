@@ -398,6 +398,8 @@ def submitRegressionTests(String mode, String baselineDir, String candidateDir) 
 }
 
 def submitParallelRegressionTests(String mode, String baselineDir, String candidateDir) {
+    // The single-node allocation has four GPUs, one per MPI rank.
+    def jobs = Math.min(4, regressionJobs().toInteger()).toString()
     submitSlurmJob(
         'parallel-regression',
         'ci/jenkins/slurm-parallel-regression-tests.perlmutter_gpu.sh',
@@ -408,7 +410,8 @@ def submitParallelRegressionTests(String mode, String baselineDir, String candid
             "CI_CANDIDATE_DIR=${candidateDir}/gkeyll",
             "CI_CANDIDATE_PREFIX=${candidateDir}/gkylsoft",
             "CI_TRUSTED_CHECKER=${env.WORKSPACE}/_trusted_check_regression_results.lua",
-            "CI_REGRESSION_MODE=${mode}"
+            "CI_REGRESSION_MODE=${mode}",
+            "CI_REGRESSION_JOBS=${jobs}"
         ],
         '4', '8', '1'
     )
@@ -857,7 +860,7 @@ node(nodeLabel) {
                         configureAndCompileCRegressions(
                             'baseline-parallel', "${baselineStage}/gkylsoft/gkeyll/bin/gkeyll", "${baselineStage}/gkeyll",
                             "${baselineStage}/gkylsoft", 'machines/module_load.perlmutter-gpu.sh',
-                            '--parallel', '--results-subdir parallel-c-4 --mpiexec srun'
+                            '--parallel', '--results-subdir parallel-c-4 --mpiexec srun --mpi-args=--exact'
                         )
                     }
                     ciStage('Run baseline parallel C regressions (SLURM)') { submitParallelRegressionTests('baseline-create', baselineStage, candidateDir) }
@@ -881,7 +884,7 @@ node(nodeLabel) {
                         "${candidateDir}/gkeyll",
                         "${candidateDir}/gkylsoft",
                         'machines/module_load.perlmutter-gpu.sh',
-                        '--parallel', '--results-subdir parallel-c-4 --mpiexec srun'
+                        '--parallel', '--results-subdir parallel-c-4 --mpiexec srun --mpi-args=--exact'
                     )
                 }
             }

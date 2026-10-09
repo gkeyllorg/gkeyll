@@ -156,7 +156,7 @@ System → Global properties → Environment variables**, set:
 | `PERLMUTTER_GPU_BUILD_JOBS` | Optional compilation workers, including C regressions; default `3` |
 | `PERLMUTTER_GPU_UNIT_TIME` | Optional; default `00:30:00` |
 | `PERLMUTTER_GPU_REGRESSION_TIME` | Optional; default `04:00:00` |
-| `PERLMUTTER_GPU_REGRESSION_JOBS` | Optional concurrent serial C test runs; default `4` |
+| `PERLMUTTER_GPU_REGRESSION_JOBS` | Optional regression worker budget (one per serial test or MPI rank; MPI capped at four GPUs); default `4` |
 | `PERLMUTTER_GPU_REGRESSION_TEST_TIMEOUT` | Optional; default `900` |
 | `GKEYLL_CI_TRUSTED_REF` | Optional reviewed branch or full SHA for `github_report.py`, `jenkins_reporting.groovy`, and `check_regression_results.lua`; default `main`. Set it only while staging a CI change |
 

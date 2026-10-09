@@ -422,7 +422,7 @@ def createBaseline(String baseline, String baselineDir, String mkdeps, String co
             elapsed=\$(( \$(date +%s) - started ))
             printf '%s\\n' "\$elapsed" > "${env.WORKSPACE}/baseline-parallel-c-compile-seconds.txt"
             started=\$(date +%s)
-            "${baselineDir}/gkylsoft/gkeyll/bin/gkeyll" runregression run --c-only --parallel --execute-only create
+            "${baselineDir}/gkylsoft/gkeyll/bin/gkeyll" runregression run --c-only --parallel --execute-only --jobs ${regressionJobs} create
             elapsed=\$(( \$(date +%s) - started ))
             printf '%s\\n' "\$elapsed" > "${env.WORKSPACE}/baseline-parallel-c-regression-create-seconds.txt"
         """)
@@ -456,7 +456,7 @@ def runCandidateRegressions(String candidateDir, String baselineDir, String jobs
     """)
 }
 
-def runParallelRegressions(String candidateDir, String baselineDir, String mpiExec, String checker) {
+def runParallelRegressions(String candidateDir, String baselineDir, String mpiExec, String checker, String regressionJobs) {
     def mpiHome = env.PERSONAL_MPI_HOME?.trim()
     mpiExec = env.PERSONAL_MPIEXEC?.trim() ?: mpiExec ?: (mpiHome ? "${mpiHome}/bin/mpiexec" : '')
     def candidateMpiExec = mpiExec ?: "${candidateDir}/gkylsoft/openmpi/bin/mpiexec"
@@ -483,7 +483,7 @@ def runParallelRegressions(String candidateDir, String baselineDir, String mpiEx
             fi
         done
         started=\$(date +%s)
-        "${gkeyll}" runregression run --c-only --parallel --execute-only check
+        "${gkeyll}" runregression run --c-only --parallel --execute-only --jobs ${regressionJobs} check
         elapsed=\$(( \$(date +%s) - started ))
         printf '%s\\n' "\$elapsed" > "${env.WORKSPACE}/candidate-parallel-c-regression-check-seconds.txt"
         if [ -f "${baselineDir}/dependencies/env.sh" ]; then . "${baselineDir}/dependencies/env.sh"; fi
@@ -664,7 +664,7 @@ def runCi = {
         }
         ciStage('Prepare trusted regression checker') { trustedChecker = prepareTrustedRegressionChecker() }
         ciStage('C regressions') { dir("${candidateDir}/gkeyll") { runCandidateRegressions(candidateDir, baselineDir, jobs, regressionJobs, trustedChecker) } }
-        ciStage('Parallel C regressions') { dir("${candidateDir}/gkeyll") { runParallelRegressions(candidateDir, baselineDir, mpiExec, trustedChecker) }; status = 'success'; description = 'Personal CI passed.' }
+        ciStage('Parallel C regressions') { dir("${candidateDir}/gkeyll") { runParallelRegressions(candidateDir, baselineDir, mpiExec, trustedChecker, regressionJobs) }; status = 'success'; description = 'Personal CI passed.' }
     } catch (err) {
         failureMessage = err.toString()
         status = reporting.failureResult(err, currentBuild.currentResult)

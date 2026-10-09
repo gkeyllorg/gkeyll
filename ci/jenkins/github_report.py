@@ -277,12 +277,11 @@ def diagnostic_sections(summary_output=None):
                                note + '\n\n' + ('\n\n'.join(new) if new else 'No new warnings in comparable steps.' if comparable else ''))
     sections += detail_sections('All warnings ({})'.format(len(warnings)), '\n\n'.join(warnings) or 'No warnings found in captured logs.')
     sections += detail_sections('All errors ({})'.format(len(errors)), '\n\n'.join(errors) or 'No recognised error lines in captured logs; see failure details for command exits and infrastructure failures.')
-    sections += detail_sections('Captured logs ({})'.format(len(paths)), '\n'.join(paths) or 'No command logs were produced before this run ended.')
     if summary_output:
         with open(summary_output, 'w', encoding='utf-8') as stream:
             json.dump({'warnings': len(warnings), 'new_warnings': len(new) if comparable else None,
                        'unclassified_warnings': len(unknown), 'errors': len(errors),
-                       'captured_logs': len(paths)}, stream)
+                       'captured_logs': len(paths), 'captured_log_paths': paths}, stream)
     return sections
 
 

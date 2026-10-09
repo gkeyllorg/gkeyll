@@ -11,11 +11,12 @@ cd "$CI_WORKSPACE"
 if [ -n "${GKEYLL_CI_DEPENDENCY_ENV:-}" ]; then . "$GKEYLL_CI_DEPENDENCY_ENV"; fi
 
 baseline_gkeyll="$CI_BASELINE_PREFIX/gkeyll/bin/gkeyll"
+regression_jobs="${CI_REGRESSION_JOBS:-4}"
 
 if [[ "$CI_REGRESSION_MODE" == baseline-create ]]; then
   cd "$CI_BASELINE_DIR"
   started="$(date +%s)"
-  "$baseline_gkeyll" runregression run -c --parallel --execute-only create
+  "$baseline_gkeyll" runregression run -c --parallel --execute-only --jobs "$regression_jobs" create
   elapsed="$(( $(date +%s) - started ))"
   printf '%s\n' "$elapsed" > "$CI_WORKSPACE/baseline-parallel-c-regression-create-seconds.txt"
   echo "Baseline parallel C-regression create runtime: $elapsed seconds"
@@ -37,7 +38,7 @@ for layer in moments vlasov gyrokinetic pkpm; do
   if [[ -d "$src" ]]; then cp -a "$src" "$dst"; fi
 done
 started="$(date +%s)"
-"$candidate_gkeyll" runregression run -c --parallel --execute-only check
+"$candidate_gkeyll" runregression run -c --parallel --execute-only --jobs "$regression_jobs" check
 elapsed="$(( $(date +%s) - started ))"
 printf '%s\n' "$elapsed" > "$CI_WORKSPACE/candidate-parallel-c-regression-check-seconds.txt"
 echo "Candidate parallel C-regression check runtime: $elapsed seconds"
