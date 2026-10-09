@@ -74,7 +74,7 @@ all: $(LLIB) $(SLLIB) ## Build all targets
 # assumption removes their isfinite guards (and triggers Clang diagnostics).
 # Apply to both CPU and CUDA recipes without editing generated kernels.
 AMBI_BOLT_OBJS := $(filter ../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/ambi_bolt_potential/%.c.o,$(OBJS))
-$(AMBI_BOLT_OBJS): private override CFLAGS += -fno-finite-math-only
+$(AMBI_BOLT_OBJS): override CFLAGS += -fno-finite-math-only
 $(AMBI_BOLT_OBJS): Makefile-gyrokinetic
 
 ../$(BUILD_DIR)/gyrokinetic/%.c.o: %.c
