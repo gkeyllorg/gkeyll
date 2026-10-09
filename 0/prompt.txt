@@ -1,0 +1,33 @@
+It does look like there is an issue with this file. I refreshed the cache of main, so I thought this issue would be fixed. I think this issue was fixed in the branch jenkins-github-more-reporting
+
+
+... gyrokinetic/creg/rt_gk_cbc_3x2v_p1 FAILED!
+  Failing files (2):
+    rt_gk_cbc_3x2v_p1-elc_source_bgk_feq_0.gkyl  [DIFF]  baseline array read failed (candidate readable)
+    rt_gk_cbc_3x2v_p1-ion_source_bgk_feq_0.gkyl  [DIFF]  baseline array read failed (candidate readable)
+
+---
+
+It does look like there is an issue with this file. I refreshed the cache of main, so I thought this issue would be fixed. I think this issue was fixed in the branch jenkins-github-more-reporting
+
+
+... gyrokinetic/creg/rt_gk_cbc_3x2v_p1 FAILED!
+  Failing files (2):
+    rt_gk_cbc_3x2v_p1-elc_source_bgk_feq_0.gkyl  [DIFF]  baseline array read failed (candidate readable)
+    rt_gk_cbc_3x2v_p1-ion_source_bgk_feq_0.gkyl  [DIFF]  baseline array read failed (candidate readable)
+
+---
+
+Add these files to the expected diffs then
+
+
+      rt_gk_cbc_3x2v_p1-elc_source_bgk_feq_0.gkyl  [DIFF]  baseline array read failed (candidate readable)
+      rt_gk_cbc_3x2v_p1-ion_source_bgk_feq_0.gkyl  [DIFF]  baseline array read failed (candidate readable)
+
+---
+
+Add these files to the expected diffs then
+
+
+      rt_gk_cbc_3x2v_p1-elc_source_bgk_feq_0.gkyl  [DIFF]  baseline array read failed (candidate readable)
+      rt_gk_cbc_3x2v_p1-ion_source_bgk_feq_0.gkyl  [DIFF]  baseline array read failed (candidate readable)
