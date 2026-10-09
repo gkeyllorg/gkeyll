@@ -19,7 +19,7 @@ struct gkyl_eval_on_nodes_inp {
   void *ctx; // Context for function evaluation. Can be NULL.
 
   eval_on_nodes_c2p_t c2p_func; // Function that transforms a set of ndim
-                                // computational coordinates to physical ones.
+  // computational coordinates to physical ones.
   void *c2p_func_ctx; // Context for c2p_func.
 };
 
@@ -31,7 +31,7 @@ struct gkyl_eval_on_nodes_inp {
  * @param inp Input parameters
  * @return New updater pointer.
  */
-gkyl_eval_on_nodes* gkyl_eval_on_nodes_inew(const struct gkyl_eval_on_nodes_inp *inp);
+gkyl_eval_on_nodes *gkyl_eval_on_nodes_inew(const struct gkyl_eval_on_nodes_inp *inp);
 
 /**
  * Create new updater to compute function on nodes and calculate its
@@ -45,9 +45,10 @@ gkyl_eval_on_nodes* gkyl_eval_on_nodes_inew(const struct gkyl_eval_on_nodes_inp 
  * @param ctx Context for function evaluation. Can be NULL.
  * @return New updater pointer.
  */
-gkyl_eval_on_nodes* gkyl_eval_on_nodes_new(
-  const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
-  int num_ret_vals, evalf_t eval, void *ctx);
+gkyl_eval_on_nodes *gkyl_eval_on_nodes_new(
+  const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis, int num_ret_vals, evalf_t eval,
+  void *ctx
+);
 
 /**
  * Compute evaluation on nodes and corresponding expansion
@@ -61,8 +62,10 @@ gkyl_eval_on_nodes* gkyl_eval_on_nodes_new(
  * @param update_rng Range on which to run eval.
  * @param out Output array
  */
-void gkyl_eval_on_nodes_advance(const gkyl_eval_on_nodes *up,
-  double tm, const struct gkyl_range *update_rng, struct gkyl_array *out);
+void gkyl_eval_on_nodes_advance(
+  const gkyl_eval_on_nodes *up, double tm, const struct gkyl_range *update_rng,
+  struct gkyl_array *out
+);
 
 /**
  * Perform the nodal to modal transformation.
@@ -71,7 +74,9 @@ void gkyl_eval_on_nodes_advance(const gkyl_eval_on_nodes *up,
  * @param fun_at_nodes Function evaluated at nodes in one cell.
  * @param f Modal coefficients of the function in one cell.
  */
-void gkyl_eval_on_nodes_nod2mod(const gkyl_eval_on_nodes *up, const struct gkyl_array *fun_at_nodes, double *f);
+void gkyl_eval_on_nodes_nod2mod(
+  const gkyl_eval_on_nodes *up, const struct gkyl_array *fun_at_nodes, double *f
+);
 
 /**
  * Get the coordinates of a given node.
@@ -80,7 +85,7 @@ void gkyl_eval_on_nodes_nod2mod(const gkyl_eval_on_nodes *up, const struct gkyl_
  * @param node Index indicate the desired node.
  * @return Node coordinates.
  */
-double* gkyl_eval_on_nodes_fetch_node(const gkyl_eval_on_nodes *up, long node);
+double *gkyl_eval_on_nodes_fetch_node(const gkyl_eval_on_nodes *up, long node);
 
 /**
  * Delete updater.

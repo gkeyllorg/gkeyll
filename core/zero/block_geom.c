@@ -9,7 +9,7 @@ struct gkyl_block_geom {
   int num_blocks; // total number of blocks
   struct gkyl_block_geom_info *blocks; // info for each block
   struct gkyl_block_topo *btopo; // topology of blocks
-  
+
   struct gkyl_ref_count ref_count;
 };
 
@@ -22,7 +22,7 @@ block_geom_free(const struct gkyl_ref_count *ref)
   gkyl_free(bgeom);
 }
 
-struct gkyl_block_geom*
+struct gkyl_block_geom *
 gkyl_block_geom_new(int ndim, int nblocks)
 {
   struct gkyl_block_geom *bgeom = gkyl_malloc(sizeof(struct gkyl_block_geom));
@@ -50,22 +50,28 @@ gkyl_block_geom_num_blocks(const struct gkyl_block_geom *bgeom)
 }
 
 void
-gkyl_block_geom_set_block(struct gkyl_block_geom *bgeom, int bidx,
-  const struct gkyl_block_geom_info *info)
+gkyl_block_geom_set_block(
+  struct gkyl_block_geom *bgeom, int bidx, const struct gkyl_block_geom_info *info
+)
 {
   memcpy(&bgeom->blocks[bidx], info, sizeof(struct gkyl_block_geom_info));
-  
-  for (int d=0; d<bgeom->ndim; ++d)
+
+  for (int d = 0; d < bgeom->ndim; ++d) {
     bgeom->blocks[bidx].cuts[d] = info->cuts[d] > 0 ? info->cuts[d] : 1;
-  
+  }
+
   // set topology information
-  for (int i=0; i<bgeom->ndim; ++i)
-    for (int e=0; e<2; ++e)
-      bgeom->btopo->conn[bidx].connections[i][e] = info->connections[i][e];  
+  for (int i = 0; i < bgeom->ndim; ++i) {
+    for (int e = 0; e < 2; ++e) {
+      bgeom->btopo->conn[bidx].connections[i][e] = info->connections[i][e];
+    }
+  }
 }
 
 void
-gkyl_block_geom_reset_block_extents(struct gkyl_block_geom *bgeom, int bidx, double *lower, double *upper)
+gkyl_block_geom_reset_block_extents(
+  struct gkyl_block_geom *bgeom, int bidx, double *lower, double *upper
+)
 {
   struct gkyl_block_geom_info *bgi = &bgeom->blocks[bidx];
   for (int i = 0; i < bgeom->ndim; ++i) {
@@ -74,7 +80,7 @@ gkyl_block_geom_reset_block_extents(struct gkyl_block_geom *bgeom, int bidx, dou
   }
 }
 
-const struct gkyl_block_geom_info*
+const struct gkyl_block_geom_info *
 gkyl_block_geom_get_block(const struct gkyl_block_geom *bgeom, int bidx)
 {
   return &bgeom->blocks[bidx];
@@ -88,20 +94,20 @@ gkyl_block_geom_check_consistency(const struct gkyl_block_geom *bgeom)
 }
 
 struct gkyl_block_geom *
-gkyl_block_geom_acquire(const struct gkyl_block_geom* bgeom)
+gkyl_block_geom_acquire(const struct gkyl_block_geom *bgeom)
 {
   gkyl_ref_count_inc(&bgeom->ref_count);
-  return (struct gkyl_block_geom*) bgeom;
+  return (struct gkyl_block_geom *)bgeom;
 }
 
-struct gkyl_block_topo*
+struct gkyl_block_topo *
 gkyl_block_geom_topo(const struct gkyl_block_geom *bgeom)
 {
   return gkyl_block_topo_acquire(bgeom->btopo);
 }
 
 void
-gkyl_block_geom_release(struct gkyl_block_geom* bgeom)
+gkyl_block_geom_release(struct gkyl_block_geom *bgeom)
 {
   gkyl_ref_count_dec(&bgeom->ref_count);
 }

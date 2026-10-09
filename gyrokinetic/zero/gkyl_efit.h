@@ -23,13 +23,13 @@ struct gkyl_efit_inp {
   // can select one of those instead of the plasma X-point.  When xpt_bound_n > 0,
   // candidates outside this polygon are rejected.  Leave unset (0/NULL) to search
   // the whole domain, which is the previous behaviour.
-  int xpt_bound_n;             // number of polygon vertices (0 disables the filter)
-  const double *xpt_bound_R;   // vertex R coordinates
-  const double *xpt_bound_Z;   // vertex Z coordinates (all <= 0)
+  int xpt_bound_n; // number of polygon vertices (0 disables the filter)
+  const double *xpt_bound_R; // vertex R coordinates
+  const double *xpt_bound_Z; // vertex Z coordinates (all <= 0)
 };
 
-struct gkyl_efit{
-  const char* filepath;
+struct gkyl_efit {
+  const char *filepath;
   char name[1024]; // name (filepath stripped of full path and extension)
   int nr, nz;
   double rdim, zdim, rcentr, rleft, zmid, rmaxis, zmaxis, simag, sibry, bcentr, current, xdum;
@@ -62,8 +62,8 @@ struct gkyl_efit{
 
   double psisep; // Separatrix psi for our DG representation
   double psisep_cubic; // Separatrix psi for our cubic DG representation
-                 // Can differ from sibry, but we need to keep sibry
-                 // because fpol, q, etc. are defined based on it
+  // Can differ from sibry, but we need to keep sibry
+  // because fpol, q, etc. are defined based on it
 
   struct gkyl_basis rzbasis;
   struct gkyl_basis rzbasis_cubic;
@@ -76,15 +76,15 @@ struct gkyl_efit{
   struct gkyl_array *psizr;
   struct gkyl_array *psizr_cubic;
   struct gkyl_array *bmagzr;
-  struct gkyl_basis_ops_evalf *evf ;
+  struct gkyl_basis_ops_evalf *evf;
 
   struct gkyl_basis fluxbasis;
   struct gkyl_rect_grid fluxgrid;
   struct gkyl_range fluxlocal;
   struct gkyl_range fluxlocal_ext;
-  struct gkyl_array* fpolflux;
-  struct gkyl_array* fpolprimeflux;
-  struct gkyl_array* qflux;
+  struct gkyl_array *fpolflux;
+  struct gkyl_array *fpolprimeflux;
+  struct gkyl_array *qflux;
 
   int num_xpts; // Number of X-points
   double *Rxpt; // R coordinates of X points
@@ -122,7 +122,7 @@ struct gkyl_efit{
  * @return New updater pointer.
  */
 
-gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp);
+gkyl_efit *gkyl_efit_new(const struct gkyl_efit_inp *inp);
 
 /**
  * Number of properly crossing non-adjacent edge pairs in the vessel outline.
@@ -151,7 +151,8 @@ void gkyl_efit_get_psi_bounds(const gkyl_efit *up, double *simag, double *psisep
  * classified: is_opoint[k] is 1 for an extremum and 0 for a saddle. Returns the number found; the arrays receive the first
  * nmax. The magnetic axis is one of the O points.
  */
-int gkyl_efit_critical_points(gkyl_efit *up, int nmax, double *R, double *Z,
-  double *psi, int *is_opoint);
+int gkyl_efit_critical_points(
+  gkyl_efit *up, int nmax, double *R, double *Z, double *psi, int *is_opoint
+);
 
-void gkyl_efit_release(gkyl_efit* up);
+void gkyl_efit_release(gkyl_efit *up);

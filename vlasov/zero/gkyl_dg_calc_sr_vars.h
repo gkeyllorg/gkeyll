@@ -34,19 +34,21 @@ typedef struct gkyl_dg_calc_sr_vars gkyl_dg_calc_sr_vars;
  * @param use_gpu bool to determine if on GPU
  * @return New updater pointer.
  */
-struct gkyl_dg_calc_sr_vars* 
-gkyl_dg_calc_sr_vars_new(const struct gkyl_rect_grid *phase_grid, const struct gkyl_rect_grid *vel_grid, 
-  const struct gkyl_basis *conf_basis, const struct gkyl_basis *vel_basis, 
-  const struct gkyl_range *mem_range, const struct gkyl_range *vel_range, bool use_gpu);
+struct gkyl_dg_calc_sr_vars *gkyl_dg_calc_sr_vars_new(
+  const struct gkyl_rect_grid *phase_grid, const struct gkyl_rect_grid *vel_grid,
+  const struct gkyl_basis *conf_basis, const struct gkyl_basis *vel_basis,
+  const struct gkyl_range *mem_range, const struct gkyl_range *vel_range, bool use_gpu
+);
 
 /**
  * Create new updater to compute relativistic variables on
  * NV-GPU. See new() method for documentation.
  */
-struct gkyl_dg_calc_sr_vars* 
-gkyl_dg_calc_sr_vars_cu_dev_new(const struct gkyl_rect_grid *phase_grid, const struct gkyl_rect_grid *vel_grid, 
-  const struct gkyl_basis *conf_basis, const struct gkyl_basis *vel_basis, 
-  const struct gkyl_range *mem_range, const struct gkyl_range *vel_range);
+struct gkyl_dg_calc_sr_vars *gkyl_dg_calc_sr_vars_cu_dev_new(
+  const struct gkyl_rect_grid *phase_grid, const struct gkyl_rect_grid *vel_grid,
+  const struct gkyl_basis *conf_basis, const struct gkyl_basis *vel_basis,
+  const struct gkyl_range *mem_range, const struct gkyl_range *vel_range
+);
 
 /**
  * Compute the momentum grid variables for special relativistic simulations
@@ -57,8 +59,9 @@ gkyl_dg_calc_sr_vars_cu_dev_new(const struct gkyl_rect_grid *phase_grid, const s
  * @param gamma     Output array of particle Lorentz boost factor, gamma = sqrt(1 + p^2) 
  * @param gamma_inv Output array of inverse particle Lorentz boost factor, 1/gamma = 1/sqrt(1 + p^2) 
  */
-void gkyl_calc_sr_vars_init_p_vars(struct gkyl_dg_calc_sr_vars *up, 
-  struct gkyl_array* gamma, struct gkyl_array* gamma_inv);
+void gkyl_calc_sr_vars_init_p_vars(
+  struct gkyl_dg_calc_sr_vars *up, struct gkyl_array *gamma, struct gkyl_array *gamma_inv
+);
 
 /**
  * Compute the rest-frame density n = GammaV_inv*M0 where GammaV_inv = sqrt(1 - |V_drift|^2).
@@ -79,8 +82,10 @@ void gkyl_calc_sr_vars_init_p_vars(struct gkyl_dg_calc_sr_vars *up,
  * @param M1i Input lab-frame flux = GammaV*n*V_drift
  * @param n   Output rest-frame density.
  */
-void gkyl_dg_calc_sr_vars_n(struct gkyl_dg_calc_sr_vars *up, 
-  const struct gkyl_array* M0, const struct gkyl_array* M1i, struct gkyl_array* n);
+void gkyl_dg_calc_sr_vars_n(
+  struct gkyl_dg_calc_sr_vars *up, const struct gkyl_array *M0, const struct gkyl_array *M1i,
+  struct gkyl_array *n
+);
 
 /**
  * Compute derived quantities from spatial component of the bulk four-velocity u_i = GammaV*V_drift.
@@ -94,10 +99,11 @@ void gkyl_dg_calc_sr_vars_n(struct gkyl_dg_calc_sr_vars *up,
  * @param GammaV     Output Lorentz boost factor for the bulk four-velocity sqrt(1 + |u_i|^2)
  * @param GammaV_sq  Output square of the Lorentz boost factor for the bulk four-velocity
  */
-void gkyl_dg_calc_sr_vars_GammaV(struct gkyl_dg_calc_sr_vars *up, 
-  const struct gkyl_range *conf_range,
-  const struct gkyl_array* u_i, struct gkyl_array* u_i_sq, 
-  struct gkyl_array* GammaV, struct gkyl_array* GammaV_sq);
+void gkyl_dg_calc_sr_vars_GammaV(
+  struct gkyl_dg_calc_sr_vars *up, const struct gkyl_range *conf_range,
+  const struct gkyl_array *u_i, struct gkyl_array *u_i_sq, struct gkyl_array *GammaV,
+  struct gkyl_array *GammaV_sq
+);
 
 /**
  * Compute the rest-frame pressure = n*T. The rest-frame pressure is computed as a velocity moment.
@@ -120,12 +126,13 @@ void gkyl_dg_calc_sr_vars_GammaV(struct gkyl_dg_calc_sr_vars *up,
  * @param f           Input distribution function
  * @param sr_pressure Output pressure
  */
-void gkyl_dg_calc_sr_vars_pressure(struct gkyl_dg_calc_sr_vars *up, 
-  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
-  const struct gkyl_array* gamma, const struct gkyl_array* gamma_inv, 
-  const struct gkyl_array* u_i, const struct gkyl_array* u_i_sq, 
-  const struct gkyl_array* GammaV, const struct gkyl_array* GammaV_sq, 
-  const struct gkyl_array* f, struct gkyl_array* sr_pressure);
+void gkyl_dg_calc_sr_vars_pressure(
+  struct gkyl_dg_calc_sr_vars *up, const struct gkyl_range *conf_range,
+  const struct gkyl_range *phase_range, const struct gkyl_array *gamma,
+  const struct gkyl_array *gamma_inv, const struct gkyl_array *u_i, const struct gkyl_array *u_i_sq,
+  const struct gkyl_array *GammaV, const struct gkyl_array *GammaV_sq, const struct gkyl_array *f,
+  struct gkyl_array *sr_pressure
+);
 
 /**
  * Delete pointer to updater to compute sr variables.
@@ -138,20 +145,25 @@ void gkyl_dg_calc_sr_vars_release(struct gkyl_dg_calc_sr_vars *up);
  * Host-side wrappers for sr vars operations on device
  */
 
-void gkyl_calc_sr_vars_init_p_vars_cu(struct gkyl_dg_calc_sr_vars *up, 
-  struct gkyl_array* gamma, struct gkyl_array* gamma_inv);
+void gkyl_calc_sr_vars_init_p_vars_cu(
+  struct gkyl_dg_calc_sr_vars *up, struct gkyl_array *gamma, struct gkyl_array *gamma_inv
+);
 
-void gkyl_dg_calc_sr_vars_n_cu(struct gkyl_dg_calc_sr_vars *up, 
-  const struct gkyl_array* M0, const struct gkyl_array* M1i, struct gkyl_array* n);
+void gkyl_dg_calc_sr_vars_n_cu(
+  struct gkyl_dg_calc_sr_vars *up, const struct gkyl_array *M0, const struct gkyl_array *M1i,
+  struct gkyl_array *n
+);
 
-void gkyl_dg_calc_sr_vars_GammaV_cu(struct gkyl_dg_calc_sr_vars *up, 
-  const struct gkyl_range *conf_range,
-  const struct gkyl_array* u_i, struct gkyl_array* u_i_sq, 
-  struct gkyl_array* GammaV, struct gkyl_array* GammaV_sq);
+void gkyl_dg_calc_sr_vars_GammaV_cu(
+  struct gkyl_dg_calc_sr_vars *up, const struct gkyl_range *conf_range,
+  const struct gkyl_array *u_i, struct gkyl_array *u_i_sq, struct gkyl_array *GammaV,
+  struct gkyl_array *GammaV_sq
+);
 
-void gkyl_dg_calc_sr_vars_pressure_cu(struct gkyl_dg_calc_sr_vars *up, 
-  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
-  const struct gkyl_array* gamma, const struct gkyl_array* gamma_inv, 
-  const struct gkyl_array* u_i, const struct gkyl_array* u_i_sq, 
-  const struct gkyl_array* GammaV, const struct gkyl_array* GammaV_sq, 
-  const struct gkyl_array* f, struct gkyl_array* sr_pressure);
+void gkyl_dg_calc_sr_vars_pressure_cu(
+  struct gkyl_dg_calc_sr_vars *up, const struct gkyl_range *conf_range,
+  const struct gkyl_range *phase_range, const struct gkyl_array *gamma,
+  const struct gkyl_array *gamma_inv, const struct gkyl_array *u_i, const struct gkyl_array *u_i_sq,
+  const struct gkyl_array *GammaV, const struct gkyl_array *GammaV_sq, const struct gkyl_array *f,
+  struct gkyl_array *sr_pressure
+);

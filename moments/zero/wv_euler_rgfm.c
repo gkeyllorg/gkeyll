@@ -7,7 +7,7 @@
 #include <gkyl_wv_euler_rgfm_priv.h>
 
 void
-gkyl_euler_rgfm_prim_vars(int num_species, double* gas_gamma_s, const double* q, double* v)
+gkyl_euler_rgfm_prim_vars(int num_species, double *gas_gamma_s, const double *q, double *v)
 {
   double rho_total = q[0];
   double momx_total = q[1];
@@ -45,7 +45,9 @@ gkyl_euler_rgfm_prim_vars(int num_species, double* gas_gamma_s, const double* q,
 
   double *p_s = gkyl_malloc(sizeof(double[num_species]));
   for (int i = 0; i < num_species; i++) {
-    p_s[i] = (gas_gamma_s[i] - 1.0) * (E_total - (0.5 * rho_total * ((vx_total * vx_total) + (vy_total * vy_total) + (vz_total * vz_total))));
+    p_s[i] = (gas_gamma_s[i] - 1.0) *
+             (E_total - (0.5 * rho_total *
+                         ((vx_total * vx_total) + (vy_total * vy_total) + (vz_total * vz_total))));
   }
 
   double p_total = 0.0;
@@ -74,7 +76,7 @@ gkyl_euler_rgfm_prim_vars(int num_species, double* gas_gamma_s, const double* q,
 }
 
 static inline double
-gkyl_euler_rgfm_max_abs_speed(int num_species, double* gas_gamma_s, const double* q)
+gkyl_euler_rgfm_max_abs_speed(int num_species, double *gas_gamma_s, const double *q)
 {
   double *v = gkyl_malloc(sizeof(double[5 + (2 * num_species)]));
   gkyl_euler_rgfm_prim_vars(num_species, gas_gamma_s, q, v);
@@ -105,7 +107,7 @@ gkyl_euler_rgfm_max_abs_speed(int num_species, double* gas_gamma_s, const double
 }
 
 void
-gkyl_euler_rgfm_flux(int num_species, double* gas_gamma_s, const double* q, double* flux)
+gkyl_euler_rgfm_flux(int num_species, double *gas_gamma_s, const double *q, double *flux)
 {
   double *v = gkyl_malloc(sizeof(double[5 + (2 * num_species)]));
   gkyl_euler_rgfm_prim_vars(num_species, gas_gamma_s, q, v);
@@ -136,7 +138,7 @@ gkyl_euler_rgfm_flux(int num_species, double* gas_gamma_s, const double* q, doub
   flux[2] = rho_total * (vx_total * vy_total);
   flux[3] = rho_total * (vx_total * vz_total);
   flux[4] = (E_total * vx_total) + (vx_total * p_total);
-  
+
   for (int i = 0; i < num_species - 1; i++) {
     flux[5 + i] = rho_total * (vx_total * level_set_s[i]);
   }
@@ -152,7 +154,7 @@ gkyl_euler_rgfm_flux(int num_species, double* gas_gamma_s, const double* q, doub
 }
 
 static inline void
-cons_to_riem(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* qin, double* wout)
+cons_to_riem(const struct gkyl_wv_eqn *eqn, const double *qstate, const double *qin, double *wout)
 {
   const struct wv_euler_rgfm *euler_rgfm = container_of(eqn, struct wv_euler_rgfm, eqn);
   int num_species = euler_rgfm->num_species;
@@ -164,7 +166,7 @@ cons_to_riem(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* 
 }
 
 static inline void
-riem_to_cons(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* win, double* qout)
+riem_to_cons(const struct gkyl_wv_eqn *eqn, const double *qstate, const double *win, double *qout)
 {
   const struct wv_euler_rgfm *euler_rgfm = container_of(eqn, struct wv_euler_rgfm, eqn);
   int num_species = euler_rgfm->num_species;
@@ -176,7 +178,10 @@ riem_to_cons(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* 
 }
 
 static void
-euler_rgfm_wall(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx)
+euler_rgfm_wall(
+  const struct gkyl_wv_eqn *eqn, double t, int nc, const double *skin, double *GKYL_RESTRICT ghost,
+  void *ctx
+)
 {
   const struct wv_euler_rgfm *euler_rgfm = container_of(eqn, struct wv_euler_rgfm, eqn);
   int num_species = euler_rgfm->num_species;
@@ -189,7 +194,10 @@ euler_rgfm_wall(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* s
 }
 
 static void
-euler_rgfm_no_slip(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx)
+euler_rgfm_no_slip(
+  const struct gkyl_wv_eqn *eqn, double t, int nc, const double *skin, double *GKYL_RESTRICT ghost,
+  void *ctx
+)
 {
   const struct wv_euler_rgfm *euler_rgfm = container_of(eqn, struct wv_euler_rgfm, eqn);
   int num_species = euler_rgfm->num_species;
@@ -197,16 +205,17 @@ euler_rgfm_no_slip(const struct gkyl_wv_eqn* eqn, double t, int nc, const double
   for (int i = 0; i < 5 + (2 * num_species); i++) {
     if (i > 0 && i < 4) {
       ghost[i] = -skin[i];
-    }
-    else {
+    } else {
       ghost[i] = skin[i];
     }
   }
 }
 
 static inline void
-rot_to_local(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* tau2, const double* norm, const double* GKYL_RESTRICT qglobal,
-  double* GKYL_RESTRICT qlocal)
+rot_to_local(
+  const struct gkyl_wv_eqn *eqn, const double *tau1, const double *tau2, const double *norm,
+  const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal
+)
 {
   const struct wv_euler_rgfm *euler_rgfm = container_of(eqn, struct wv_euler_rgfm, eqn);
   int num_species = euler_rgfm->num_species;
@@ -221,8 +230,10 @@ rot_to_local(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* ta
 }
 
 static inline void
-rot_to_global(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* tau2, const double* norm, const double* GKYL_RESTRICT qlocal,
-  double* GKYL_RESTRICT qglobal)
+rot_to_global(
+  const struct gkyl_wv_eqn *eqn, const double *tau1, const double *tau2, const double *norm,
+  const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal
+)
 {
   const struct wv_euler_rgfm *euler_rgfm = container_of(eqn, struct wv_euler_rgfm, eqn);
   int num_species = euler_rgfm->num_species;
@@ -237,11 +248,14 @@ rot_to_global(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* t
 }
 
 static double
-wave_lax(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, const double* qr, double* waves, double* s)
+wave_lax(
+  const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql, const double *qr,
+  double *waves, double *s
+)
 {
   const struct wv_euler_rgfm *euler_rgfm = container_of(eqn, struct wv_euler_rgfm, eqn);
   int num_species = euler_rgfm->num_species;
-  double* gas_gamma_s = euler_rgfm->gas_gamma_s;
+  double *gas_gamma_s = euler_rgfm->gas_gamma_s;
   int reinit_freq = euler_rgfm->reinit_freq;
 
   double sl = gkyl_euler_rgfm_max_abs_speed(num_species, gas_gamma_s, ql);
@@ -269,7 +283,10 @@ wave_lax(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
 }
 
 static void
-qfluct_lax(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, const double* waves, const double* s, double* amdq, double* apdq)
+qfluct_lax(
+  const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, const double *waves,
+  const double *s, double *amdq, double *apdq
+)
 {
   const struct wv_euler_rgfm *euler_rgfm = container_of(eqn, struct wv_euler_rgfm, eqn);
   int num_species = euler_rgfm->num_species;
@@ -285,20 +302,26 @@ qfluct_lax(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, co
 }
 
 static double
-wave_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, const double phil, const double phir, double* waves, double* s)
+wave_lax_l(
+  const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *delta, const double *ql,
+  const double *qr, const double phil, const double phir, double *waves, double *s
+)
 {
   return wave_lax(eqn, delta, ql, qr, waves, s);
 }
 
 static void
-qfluct_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double phil, const double phir, const double* waves, const double* s,
-  double* amdq, double* apdq)
+qfluct_lax_l(
+  const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *ql, const double *qr,
+  const double phil, const double phir, const double *waves, const double *s, double *amdq,
+  double *apdq
+)
 {
   return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
 }
 
 static double
-flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, double* flux_jump)
+flux_jump(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, double *flux_jump)
 {
   const struct wv_euler_rgfm *euler_rgfm = container_of(eqn, struct wv_euler_rgfm, eqn);
   int num_species = euler_rgfm->num_species;
@@ -316,7 +339,7 @@ flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, dou
 
   double amaxl = gkyl_euler_rgfm_max_abs_speed(num_species, gas_gamma_s, ql);
   double amaxr = gkyl_euler_rgfm_max_abs_speed(num_species, gas_gamma_s, qr);
-  
+
   gkyl_free(fr);
   gkyl_free(fl);
 
@@ -324,7 +347,7 @@ flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, dou
 }
 
 static bool
-check_inv(const struct gkyl_wv_eqn* eqn, const double* q)
+check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
 {
   const struct wv_euler_rgfm *euler_rgfm = container_of(eqn, struct wv_euler_rgfm, eqn);
   int num_species = euler_rgfm->num_species;
@@ -339,7 +362,7 @@ check_inv(const struct gkyl_wv_eqn* eqn, const double* q)
       return false;
     }
   }
-  
+
   double level_set_total = 0.0;
   for (int i = 0; i < num_species - 1; i++) {
     level_set_total += v[5 + i];
@@ -352,25 +375,24 @@ check_inv(const struct gkyl_wv_eqn* eqn, const double* q)
   if (v[0] < 0.0 || v[4] < 0.0) {
     gkyl_free(v);
     return false;
-  }
-  else {
+  } else {
     gkyl_free(v);
     return true;
   }
 }
 
 static double
-max_speed(const struct gkyl_wv_eqn* eqn, const double* q)
+max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
 {
   const struct wv_euler_rgfm *euler_rgfm = container_of(eqn, struct wv_euler_rgfm, eqn);
   int num_species = euler_rgfm->num_species;
-  double* gas_gamma_s = euler_rgfm->gas_gamma_s;
+  double *gas_gamma_s = euler_rgfm->gas_gamma_s;
 
   return gkyl_euler_rgfm_max_abs_speed(num_species, gas_gamma_s, q);
 }
 
 static inline void
-euler_rgfm_cons_to_diag(const struct gkyl_wv_eqn* eqn, const double* qin, double* diag)
+euler_rgfm_cons_to_diag(const struct gkyl_wv_eqn *eqn, const double *qin, double *diag)
 {
   const struct wv_euler_rgfm *euler_rgfm = container_of(eqn, struct wv_euler_rgfm, eqn);
   int num_species = euler_rgfm->num_species;
@@ -381,7 +403,7 @@ euler_rgfm_cons_to_diag(const struct gkyl_wv_eqn* eqn, const double* qin, double
 }
 
 static inline void
-euler_rgfm_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout)
+euler_rgfm_source(const struct gkyl_wv_eqn *eqn, const double *qin, double *sout)
 {
   const struct wv_euler_rgfm *euler_rgfm = container_of(eqn, struct wv_euler_rgfm, eqn);
   int num_species = euler_rgfm->num_species;
@@ -392,9 +414,9 @@ euler_rgfm_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout
 }
 
 void
-gkyl_euler_rgfm_free(const struct gkyl_ref_count* ref)
+gkyl_euler_rgfm_free(const struct gkyl_ref_count *ref)
 {
-  struct gkyl_wv_eqn* base = container_of(ref, struct gkyl_wv_eqn, ref_count);
+  struct gkyl_wv_eqn *base = container_of(ref, struct gkyl_wv_eqn, ref_count);
 
   if (gkyl_wv_eqn_is_cu_dev(base)) {
     // Free inner on_dev object.
@@ -406,21 +428,20 @@ gkyl_euler_rgfm_free(const struct gkyl_ref_count* ref)
   gkyl_free(euler_rgfm);
 }
 
-struct gkyl_wv_eqn*
-gkyl_wv_euler_rgfm_new(int num_species, double* gas_gamma_s, int reinit_freq, bool use_gpu)
+struct gkyl_wv_eqn *
+gkyl_wv_euler_rgfm_new(int num_species, double *gas_gamma_s, int reinit_freq, bool use_gpu)
 {
-  return gkyl_wv_euler_rgfm_inew(&(struct gkyl_wv_euler_rgfm_inp) {
-      .num_species = num_species,
-      .gas_gamma_s = gas_gamma_s,
-      .reinit_freq = reinit_freq,
-      .rp_type = WV_EULER_RGFM_RP_LAX,
-      .use_gpu = use_gpu,
-    }
-  );
+  return gkyl_wv_euler_rgfm_inew(&(struct gkyl_wv_euler_rgfm_inp){
+    .num_species = num_species,
+    .gas_gamma_s = gas_gamma_s,
+    .reinit_freq = reinit_freq,
+    .rp_type = WV_EULER_RGFM_RP_LAX,
+    .use_gpu = use_gpu,
+  });
 }
 
-struct gkyl_wv_eqn*
-gkyl_wv_euler_rgfm_inew(const struct gkyl_wv_euler_rgfm_inp* inp)
+struct gkyl_wv_eqn *
+gkyl_wv_euler_rgfm_inew(const struct gkyl_wv_euler_rgfm_inp *inp)
 {
   struct wv_euler_rgfm *euler_rgfm = gkyl_malloc(sizeof(struct wv_euler_rgfm));
 
@@ -443,7 +464,7 @@ gkyl_wv_euler_rgfm_inew(const struct gkyl_wv_euler_rgfm_inp* inp)
   euler_rgfm->eqn.max_speed_func = max_speed;
   euler_rgfm->eqn.rotate_to_local_func = rot_to_local;
   euler_rgfm->eqn.rotate_to_global_func = rot_to_global;
-  
+
   euler_rgfm->eqn.wall_bc_func = euler_rgfm_wall;
   euler_rgfm->eqn.no_slip_bc_func = euler_rgfm_no_slip;
 
@@ -465,7 +486,7 @@ gkyl_wv_euler_rgfm_inew(const struct gkyl_wv_euler_rgfm_inp* inp)
 }
 
 int
-gkyl_wv_euler_rgfm_num_species(const struct gkyl_wv_eqn* eqn)
+gkyl_wv_euler_rgfm_num_species(const struct gkyl_wv_eqn *eqn)
 {
   const struct wv_euler_rgfm *euler_rgfm = container_of(eqn, struct wv_euler_rgfm, eqn);
   int num_species = euler_rgfm->num_species;
@@ -473,8 +494,8 @@ gkyl_wv_euler_rgfm_num_species(const struct gkyl_wv_eqn* eqn)
   return num_species;
 }
 
-double*
-gkyl_wv_euler_rgfm_gas_gamma_s(const struct gkyl_wv_eqn* eqn)
+double *
+gkyl_wv_euler_rgfm_gas_gamma_s(const struct gkyl_wv_eqn *eqn)
 {
   const struct wv_euler_rgfm *euler_rgfm = container_of(eqn, struct wv_euler_rgfm, eqn);
   double *gas_gamma_s = euler_rgfm->gas_gamma_s;
@@ -483,7 +504,7 @@ gkyl_wv_euler_rgfm_gas_gamma_s(const struct gkyl_wv_eqn* eqn)
 }
 
 int
-gkyl_wv_euler_rgfm_reinit_freq(const struct gkyl_wv_eqn* eqn)
+gkyl_wv_euler_rgfm_reinit_freq(const struct gkyl_wv_eqn *eqn)
 {
   const struct wv_euler_rgfm *euler_rgfm = container_of(eqn, struct wv_euler_rgfm, eqn);
   int reinit_freq = euler_rgfm->reinit_freq;

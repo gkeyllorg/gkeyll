@@ -19,13 +19,13 @@
 #include <stdint.h>
 
 // Keep malformed-file rejection effective under -ffast-math.
-static bool efit_finite(double value)
+static bool
+efit_finite(double value)
 {
   uint64_t bits;
-  memcpy(&bits,&value,sizeof bits);
+  memcpy(&bits, &value, sizeof bits);
   return (bits & UINT64_C(0x7ff0000000000000)) != UINT64_C(0x7ff0000000000000);
 }
-
 
 // Active half (2026-09-29).  With reflect, the reader
 // keeps the LOWER half of the flux array and mirrors it upward, so the grid is
@@ -55,12 +55,13 @@ efit_xpt_value(const double *arr, int n, int idx)
 static void
 write_xpt_diag_once(const struct gkyl_efit *up)
 {
-  static char last_filepath[1024] = { 0 };
-  if (strncmp(last_filepath, up->filepath, sizeof(last_filepath)) == 0)
+  static char last_filepath[1024] = {0};
+  if (strncmp(last_filepath, up->filepath, sizeof(last_filepath)) == 0) {
     return;
+  }
 
-  strncpy(last_filepath, up->filepath, sizeof(last_filepath)-1);
-  last_filepath[sizeof(last_filepath)-1] = '\0';
+  strncpy(last_filepath, up->filepath, sizeof(last_filepath) - 1);
+  last_filepath[sizeof(last_filepath) - 1] = '\0';
 
   double cubic_R0 = efit_xpt_value(up->Rxpt_cubic, up->num_xpts_cubic, 0);
   double cubic_Z0 = efit_xpt_value(up->Zxpt_cubic, up->num_xpts_cubic, 0);
@@ -71,21 +72,23 @@ write_xpt_diag_once(const struct gkyl_efit *up)
   double quad_R1 = efit_xpt_value(up->Rxpt, up->num_xpts, 1);
   double quad_Z1 = efit_xpt_value(up->Zxpt, up->num_xpts, 1);
 
-  fprintf(stderr,
+  fprintf(
+    stderr,
     "XPT_DIAG name=%s filepath=%s reflect=%d cubic_n=%d cubic_psisep=%.16e "
     "cubic0=(%.16e,%.16e) cubic1=(%.16e,%.16e) quad_n=%d quad_psisep=%.16e "
     "quad0=(%.16e,%.16e) quad1=(%.16e,%.16e) raw_quad_found=%d "
     "raw_quad=(%.16e,%.16e) raw_quad_psi=%.16e raw_quad_dist_cell=%.16e "
     "fallback_to_cubic=%d\n",
-    up->name, up->filepath, up->reflect, up->num_xpts_cubic, up->psisep_cubic,
-    cubic_R0, cubic_Z0, cubic_R1, cubic_Z1, up->num_xpts, up->psisep,
-    quad_R0, quad_Z0, quad_R1, quad_Z1, up->xpt_diag_quadratic_found,
-    up->xpt_diag_quad_R, up->xpt_diag_quad_Z, up->xpt_diag_quad_psi,
-    up->xpt_diag_quad_dist_cell, up->xpt_diag_fallback_to_cubic);
+    up->name, up->filepath, up->reflect, up->num_xpts_cubic, up->psisep_cubic, cubic_R0, cubic_Z0,
+    cubic_R1, cubic_Z1, up->num_xpts, up->psisep, quad_R0, quad_Z0, quad_R1, quad_Z1,
+    up->xpt_diag_quadratic_found, up->xpt_diag_quad_R, up->xpt_diag_quad_Z, up->xpt_diag_quad_psi,
+    up->xpt_diag_quad_dist_cell, up->xpt_diag_fallback_to_cubic
+  );
 
   const char *csv_path = getenv("GKYL_EFIT_XPT_DIAG_CSV");
-  if (!csv_path || !csv_path[0])
+  if (!csv_path || !csv_path[0]) {
     return;
+  }
 
   FILE *csv = fopen(csv_path, "a");
   if (!csv) {
@@ -93,13 +96,14 @@ write_xpt_diag_once(const struct gkyl_efit *up)
     return;
   }
 
-  fprintf(csv,
+  fprintf(
+    csv,
     "%s,%s,%d,%d,%.16e,%.16e,%.16e,%.16e,%.16e,%d,%.16e,%.16e,%.16e,%.16e,%.16e,%d,%.16e,%.16e,%.16e,%.16e,%d\n",
-    up->name, up->filepath, up->reflect, up->num_xpts_cubic, up->psisep_cubic,
-    cubic_R0, cubic_Z0, cubic_R1, cubic_Z1, up->num_xpts, up->psisep,
-    quad_R0, quad_Z0, quad_R1, quad_Z1, up->xpt_diag_quadratic_found,
-    up->xpt_diag_quad_R, up->xpt_diag_quad_Z, up->xpt_diag_quad_psi,
-    up->xpt_diag_quad_dist_cell, up->xpt_diag_fallback_to_cubic);
+    up->name, up->filepath, up->reflect, up->num_xpts_cubic, up->psisep_cubic, cubic_R0, cubic_Z0,
+    cubic_R1, cubic_Z1, up->num_xpts, up->psisep, quad_R0, quad_Z0, quad_R1, quad_Z1,
+    up->xpt_diag_quadratic_found, up->xpt_diag_quad_R, up->xpt_diag_quad_Z, up->xpt_diag_quad_psi,
+    up->xpt_diag_quad_dist_cell, up->xpt_diag_fallback_to_cubic
+  );
   fclose(csv);
 }
 
@@ -116,27 +120,38 @@ write_xpt_diag_once(const struct gkyl_efit *up)
 int
 gkyl_efit_limiter_self_intersections(const struct gkyl_efit *e)
 {
-  if (!e || e->limiter_status != 1 || e->limiter_n < 4) return 0;
+  if (!e || e->limiter_status != 1 || e->limiter_n < 4) {
+    return 0;
+  }
   const int n = e->limiter_n;
   int crossings = 0, overlaps = 0;
-  for (int i=0; i<n; ++i) {
-    double ax=e->limiter_R[i], ay=e->limiter_Z[i];
-    double bx=e->limiter_R[(i+1)%n], by=e->limiter_Z[(i+1)%n];
-    if (ax==bx && ay==by) continue;                    // zero-length edge
-    for (int j=i+1; j<n; ++j) {
+  for (int i = 0; i < n; ++i) {
+    double ax = e->limiter_R[i], ay = e->limiter_Z[i];
+    double bx = e->limiter_R[(i + 1) % n], by = e->limiter_Z[(i + 1) % n];
+    if (ax == bx && ay == by) {
+      continue; // zero-length edge
+    }
+    for (int j = i + 1; j < n; ++j) {
       // Skip the two edges that share a vertex with edge i, including the
       // wrap-around pair (i=0, j=n-1).
-      if (j==i+1 || (i==0 && j==n-1)) continue;
-      double cx=e->limiter_R[j], cy=e->limiter_Z[j];
-      double dx=e->limiter_R[(j+1)%n], dy=e->limiter_Z[(j+1)%n];
-      if (cx==dx && cy==dy) continue;
-      double r1=(bx-ax)*(cy-ay)-(by-ay)*(cx-ax);
-      double r2=(bx-ax)*(dy-ay)-(by-ay)*(dx-ax);
-      double r3=(dx-cx)*(ay-cy)-(dy-cy)*(ax-cx);
-      double r4=(dx-cx)*(by-cy)-(dy-cy)*(bx-cx);
+      if (j == i + 1 || (i == 0 && j == n - 1)) {
+        continue;
+      }
+      double cx = e->limiter_R[j], cy = e->limiter_Z[j];
+      double dx = e->limiter_R[(j + 1) % n], dy = e->limiter_Z[(j + 1) % n];
+      if (cx == dx && cy == dy) {
+        continue;
+      }
+      double r1 = (bx - ax) * (cy - ay) - (by - ay) * (cx - ax);
+      double r2 = (bx - ax) * (dy - ay) - (by - ay) * (dx - ax);
+      double r3 = (dx - cx) * (ay - cy) - (dy - cy) * (ax - cx);
+      double r4 = (dx - cx) * (by - cy) - (dy - cy) * (bx - cx);
       // A proper crossing: strict sign changes on both tests. The interior is
       // genuinely ambiguous here.
-      if (((r1>0)!=(r2>0)) && ((r3>0)!=(r4>0))) { crossings++; continue; }
+      if (((r1 > 0) != (r2 > 0)) && ((r3 > 0) != (r4 > 0))) {
+        crossings++;
+        continue;
+      }
       // Collinear edges that OVERLAP over a positive length: the outline
       // retraces part of itself. This does not change the crossing-number
       // interior (retracing a line preserves parity), which is why the one
@@ -144,14 +159,16 @@ gkyl_efit_limiter_self_intersections(const struct gkyl_efit *e)
       // but it is still malformed input worth naming. Touching at a single
       // point is NOT counted: that is what a duplicate vertex produces, and
       // every one of the 450 NSTX-U outlines has two of those.
-      if (r1==0.0 && r2==0.0 && r3==0.0 && r4==0.0) {
-        double ux=bx-ax, uy=by-ay, uu=ux*ux+uy*uy;
-        if (uu>0.0) {
-          double tc=((cx-ax)*ux+(cy-ay)*uy)/uu;
-          double td=((dx-ax)*ux+(dy-ay)*uy)/uu;
-          double t0=tc<td?tc:td, t1=tc<td?td:tc;
-          double lo=t0>0.0?t0:0.0, hi=t1<1.0?t1:1.0;
-          if (hi-lo > 0.0) overlaps++;
+      if (r1 == 0.0 && r2 == 0.0 && r3 == 0.0 && r4 == 0.0) {
+        double ux = bx - ax, uy = by - ay, uu = ux * ux + uy * uy;
+        if (uu > 0.0) {
+          double tc = ((cx - ax) * ux + (cy - ay) * uy) / uu;
+          double td = ((dx - ax) * ux + (dy - ay) * uy) / uu;
+          double t0 = tc < td ? tc : td, t1 = tc < td ? td : tc;
+          double lo = t0 > 0.0 ? t0 : 0.0, hi = t1 < 1.0 ? t1 : 1.0;
+          if (hi - lo > 0.0) {
+            overlaps++;
+          }
         }
       }
     }
@@ -159,7 +176,7 @@ gkyl_efit_limiter_self_intersections(const struct gkyl_efit *e)
   return crossings + overlaps;
 }
 
-static gkyl_efit*
+static gkyl_efit *
 efit_new_impl(const struct gkyl_efit_inp *inp, bool flip_z)
 {
   gkyl_efit *up = gkyl_calloc(1, sizeof(struct gkyl_efit));
@@ -174,9 +191,9 @@ efit_new_impl(const struct gkyl_efit_inp *inp, bool flip_z)
   up->xpt_bound_Z = 0;
   if (inp->xpt_bound_n > 0 && inp->xpt_bound_R && inp->xpt_bound_Z) {
     up->xpt_bound_n = inp->xpt_bound_n;
-    up->xpt_bound_R = gkyl_malloc(sizeof(double)*inp->xpt_bound_n);
-    up->xpt_bound_Z = gkyl_malloc(sizeof(double)*inp->xpt_bound_n);
-    for (int i=0; i<inp->xpt_bound_n; ++i) {
+    up->xpt_bound_R = gkyl_malloc(sizeof(double) * inp->xpt_bound_n);
+    up->xpt_bound_Z = gkyl_malloc(sizeof(double) * inp->xpt_bound_n);
+    for (int i = 0; i < inp->xpt_bound_n; ++i) {
       up->xpt_bound_R[i] = inp->xpt_bound_R[i];
       up->xpt_bound_Z[i] = inp->xpt_bound_Z[i];
     }
@@ -186,14 +203,14 @@ efit_new_impl(const struct gkyl_efit_inp *inp, bool flip_z)
   gkyl_cart_modal_tensor(&up->rzbasis_cubic, 2, 3);
   gkyl_cart_modal_serendip(&up->fluxbasis, 1, inp->flux_poly_order);
   gkyl_cart_modal_tensor(&up->rzbasis, 2, inp->rz_poly_order);
-  
+
   // Check if file exists using gkyl_check_file_exists and handle error only on rank 0.
   if (!gkyl_check_file_exists(up->filepath)) {
     fprintf(stderr, "efit.c: Failed to open the eqdsk file: %s\n", up->filepath);
     assert(false);
   }
 
-  FILE *ptr = fopen(up->filepath,"r"); 
+  FILE *ptr = fopen(up->filepath, "r");
 
   // Read the last two ints in the first line, assuming they are N_R and N_Z.
   int MAX_LINE_LENGTH = 256;
@@ -233,10 +250,12 @@ efit_new_impl(const struct gkyl_efit_inp *inp, bool flip_z)
   // rmaxis,zmaxis,simag,sibry,bcentr;
   // current,simag,xdum,rmaxis,xdum;
   // zmaxis,xdum,sibry,xdum,xdum;
-  size_t status = fscanf(ptr,"%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf", 
-    &up->rdim, &up->zdim, &up->rcentr, &up->rleft, &up->zmid, &up-> rmaxis, &up->zmaxis, 
-    &up->simag, &up->sibry, &up->bcentr, &up-> current, &up->simag, &up->xdum, &up->rmaxis, 
-    &up->xdum, &up-> zmaxis, &up->xdum, &up->sibry, &up->xdum, &up->xdum);
+  size_t status = fscanf(
+    ptr, "%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf", &up->rdim, &up->zdim,
+    &up->rcentr, &up->rleft, &up->zmid, &up->rmaxis, &up->zmaxis, &up->simag, &up->sibry,
+    &up->bcentr, &up->current, &up->simag, &up->xdum, &up->rmaxis, &up->xdum, &up->zmaxis,
+    &up->xdum, &up->sibry, &up->xdum, &up->xdum
+  );
 
   up->psisep = up->sibry;
   up->psisep_cubic = up->sibry;
@@ -250,32 +269,33 @@ efit_new_impl(const struct gkyl_efit_inp *inp, bool flip_z)
     up->zmaxis = 0.0;
   }
 
-
   // Now we need to make the grid
-  up->zmin = up->zmid - up->zdim/2;
-  up->zmax = up->zmid + up->zdim/2;
+  up->zmin = up->zmid - up->zdim / 2;
+  up->zmax = up->zmid + up->zdim / 2;
   up->rmin = up->rleft;
-  up->rmax = up->rleft+up->rdim;
+  up->rmax = up->rleft + up->rdim;
 
-  double rzlower[2] = {up->rmin, up->zmin };
+  double rzlower[2] = {up->rmin, up->zmin};
   double rzupper[2] = {up->rmax, up->zmax};
   int rzcells[2] = {0};
-  int rzghost[2] = {1,1};
-  if(up->rzbasis.poly_order==1){
-    rzcells[0] = up->nr-1;
-    rzcells[1]= up->nz-1;
+  int rzghost[2] = {1, 1};
+  if (up->rzbasis.poly_order == 1) {
+    rzcells[0] = up->nr - 1;
+    rzcells[1] = up->nz - 1;
   }
-  if(up->rzbasis.poly_order==2){
-    rzcells[0] = (up->nr-1)/2;
-    rzcells[1] = (up->nz-1)/2;
+  if (up->rzbasis.poly_order == 2) {
+    rzcells[0] = (up->nr - 1) / 2;
+    rzcells[1] = (up->nz - 1) / 2;
   }
   gkyl_rect_grid_init(&up->rzgrid, 2, rzlower, rzupper, rzcells);
   gkyl_create_grid_ranges(&up->rzgrid, rzghost, &up->rzlocal_ext, &up->rzlocal);
 
-  int cells_cubic[2] = {up->nr-1, up->nz-1};
-  int rzghost_cubic[2] = {0,0};
+  int cells_cubic[2] = {up->nr - 1, up->nz - 1};
+  int rzghost_cubic[2] = {0, 0};
   gkyl_rect_grid_init(&up->rzgrid_cubic, 2, rzlower, rzupper, cells_cubic);
-  gkyl_create_grid_ranges(&up->rzgrid_cubic, rzghost_cubic, &up->rzlocal_cubic_ext, &up->rzlocal_cubic);
+  gkyl_create_grid_ranges(
+    &up->rzgrid_cubic, rzghost_cubic, &up->rzlocal_cubic_ext, &up->rzlocal_cubic
+  );
 
   double fluxlower[1];
   double fluxupper[1];
@@ -284,20 +304,19 @@ efit_new_impl(const struct gkyl_efit_inp *inp, bool flip_z)
     step_convention = true;
     fluxlower[0] = up->sibry;
     fluxupper[0] = up->simag;
-  }
-  else {
+  } else {
     step_convention = false;
     fluxlower[0] = up->simag;
     fluxupper[0] = up->sibry;
   }
 
   int fluxcells[1] = {0};
-  int fluxghost[2] = {1,1};
-  if (up->fluxbasis.poly_order==1){
-    fluxcells[0] = up->nr-1;
+  int fluxghost[2] = {1, 1};
+  if (up->fluxbasis.poly_order == 1) {
+    fluxcells[0] = up->nr - 1;
   }
-  if (up->fluxbasis.poly_order==2){
-    fluxcells[0] = (up->nr-1)/2;
+  if (up->fluxbasis.poly_order == 2) {
+    fluxcells[0] = (up->nr - 1) / 2;
   }
 
   gkyl_rect_grid_init(&up->fluxgrid, 1, fluxlower, fluxupper, fluxcells);
@@ -305,10 +324,12 @@ efit_new_impl(const struct gkyl_efit_inp *inp, bool flip_z)
 
   // allocate the necessary arrays
   up->psizr = gkyl_array_new(GKYL_DOUBLE, up->rzbasis.num_basis, up->rzlocal_ext.volume);
-  up->psizr_cubic = gkyl_array_new(GKYL_DOUBLE, up->rzbasis_cubic.num_basis, up->rzlocal_cubic_ext.volume);
+  up->psizr_cubic =
+    gkyl_array_new(GKYL_DOUBLE, up->rzbasis_cubic.num_basis, up->rzlocal_cubic_ext.volume);
   up->bmagzr = gkyl_array_new(GKYL_DOUBLE, up->rzbasis.num_basis, up->rzlocal_ext.volume);
   up->fpolflux = gkyl_array_new(GKYL_DOUBLE, up->fluxbasis.num_basis, up->fluxlocal_ext.volume);
-  up->fpolprimeflux = gkyl_array_new(GKYL_DOUBLE, up->fluxbasis.num_basis, up->fluxlocal_ext.volume);
+  up->fpolprimeflux =
+    gkyl_array_new(GKYL_DOUBLE, up->fluxbasis.num_basis, up->fluxlocal_ext.volume);
   up->qflux = gkyl_array_new(GKYL_DOUBLE, up->fluxbasis.num_basis, up->fluxlocal_ext.volume);
 
   // Read fpol because we do want that
@@ -319,30 +340,31 @@ efit_new_impl(const struct gkyl_efit_inp *inp, bool flip_z)
   int fidx[1];
   // fpol is given on a uniform flux grid from the magnetic axis to plasma boundary
   if (step_convention) {
-    for (int i = up->nr-1; i>=0; i--){
+    for (int i = up->nr - 1; i >= 0; i--) {
       fidx[0] = i;
-      double *fpol_n= gkyl_array_fetch(fpolflux_n, gkyl_range_idx(&flux_nrange, fidx));
-      status = fscanf(ptr,"%lf", fpol_n);
+      double *fpol_n = gkyl_array_fetch(fpolflux_n, gkyl_range_idx(&flux_nrange, fidx));
+      status = fscanf(ptr, "%lf", fpol_n);
     }
-  }
-  else {
-    for(int i = 0; i<up->nr; i++){
+  } else {
+    for (int i = 0; i < up->nr; i++) {
       fidx[0] = i;
-      double *fpol_n= gkyl_array_fetch(fpolflux_n, gkyl_range_idx(&flux_nrange, fidx));
-      status = fscanf(ptr,"%lf", fpol_n);
+      double *fpol_n = gkyl_array_fetch(fpolflux_n, gkyl_range_idx(&flux_nrange, fidx));
+      status = fscanf(ptr, "%lf", fpol_n);
     }
   }
 
   struct gkyl_nodal_ops *n2m_flux = gkyl_nodal_ops_new(&up->fluxbasis, &up->fluxgrid, false);
-  gkyl_nodal_ops_n2m(n2m_flux, &up->fluxbasis, &up->fluxgrid, 
-    &flux_nrange, &up->fluxlocal, 1, fpolflux_n, up->fpolflux, false);
+  gkyl_nodal_ops_n2m(
+    n2m_flux, &up->fluxbasis, &up->fluxgrid, &flux_nrange, &up->fluxlocal, 1, fpolflux_n,
+    up->fpolflux, false
+  );
 
   // Now we have 3 of the 1d arrays, all of length nr :
   // pres, ffprim, pprime
   // I don't actually care about pres or pprime, so skip those
 
   //skip pres
-  for(int i = 0; i<up->nr; i++){
+  for (int i = 0; i < up->nr; i++) {
     status = fscanf(ptr, "%lf", &up->xdum);
   }
 
@@ -350,28 +372,29 @@ efit_new_impl(const struct gkyl_efit_inp *inp, bool flip_z)
   struct gkyl_array *fpolprimeflux_n = gkyl_array_new(GKYL_DOUBLE, 1, flux_nrange.volume);
   // fpol*fpolprime is given on a uniform flux grid from the magnetic axis to plasma boundary
   if (step_convention) {
-    for (int i = up->nr-1; i>=0; i--){
+    for (int i = up->nr - 1; i >= 0; i--) {
       fidx[0] = i;
       double *fpolprime_n = gkyl_array_fetch(fpolprimeflux_n, gkyl_range_idx(&flux_nrange, fidx));
-      status = fscanf(ptr,"%lf", fpolprime_n);
+      status = fscanf(ptr, "%lf", fpolprime_n);
       double *fpol_n = gkyl_array_fetch(fpolflux_n, gkyl_range_idx(&flux_nrange, fidx));
-      fpolprime_n[0] = fpolprime_n[0]/fpol_n[0]; // divide out fpol
+      fpolprime_n[0] = fpolprime_n[0] / fpol_n[0]; // divide out fpol
     }
-  }
-  else {
-    for(int i = 0; i<up->nr; i++){
+  } else {
+    for (int i = 0; i < up->nr; i++) {
       fidx[0] = i;
-      double *fpolprime_n= gkyl_array_fetch(fpolprimeflux_n, gkyl_range_idx(&flux_nrange, fidx));
-      status = fscanf(ptr,"%lf", fpolprime_n);
+      double *fpolprime_n = gkyl_array_fetch(fpolprimeflux_n, gkyl_range_idx(&flux_nrange, fidx));
+      status = fscanf(ptr, "%lf", fpolprime_n);
       double *fpol_n = gkyl_array_fetch(fpolflux_n, gkyl_range_idx(&flux_nrange, fidx));
-      fpolprime_n[0] = fpolprime_n[0]/fpol_n[0]; // divide out fpol
+      fpolprime_n[0] = fpolprime_n[0] / fpol_n[0]; // divide out fpol
     }
   }
-  gkyl_nodal_ops_n2m(n2m_flux, &up->fluxbasis, &up->fluxgrid, 
-    &flux_nrange, &up->fluxlocal, 1, fpolprimeflux_n, up->fpolprimeflux, false);
+  gkyl_nodal_ops_n2m(
+    n2m_flux, &up->fluxbasis, &up->fluxgrid, &flux_nrange, &up->fluxlocal, 1, fpolprimeflux_n,
+    up->fpolprimeflux, false
+  );
 
   // skip pprime
-  for(int i = 0; i<up->nr; i++){
+  for (int i = 0; i < up->nr; i++) {
     status = fscanf(ptr, "%lf", &up->xdum);
   }
 
@@ -384,16 +407,16 @@ efit_new_impl(const struct gkyl_efit_inp *inp, bool flip_z)
   // Now lets loop through
   // Not only do we want psi at the nodes, we also want psi/R and psi/R^2 so we can use them for the magnetc field
   double R = up->rmin;
-  double dR = up->rdim/(up->nr-1);
+  double dR = up->rdim / (up->nr - 1);
   int idx[2];
-  for(int iz = 0; iz < up->nz; iz++){
+  for (int iz = 0; iz < up->nz; iz++) {
     idx[1] = iz;
-    for(int ir = 0; ir < up->nr; ir++){
-      R = up->rmin+ir*dR;
+    for (int ir = 0; ir < up->nr; ir++) {
+      R = up->rmin + ir * dR;
       idx[0] = ir;
       // set psi
       double *psi_n = gkyl_array_fetch(psizr_n, gkyl_range_idx(&nrange, idx));
-      status = fscanf(ptr,"%lf", psi_n);
+      status = fscanf(ptr, "%lf", psi_n);
     }
   }
 
@@ -401,12 +424,14 @@ efit_new_impl(const struct gkyl_efit_inp *inp, bool flip_z)
     // Mirror the nodal flux in Z about the middle of the file's box, BEFORE
     // anything is derived from it, so the DG and cubic representations, the
     // field and the X-point search all see one consistent equilibrium.
-    for (int iz = 0; iz < up->nz/2; iz++) {
+    for (int iz = 0; iz < up->nz / 2; iz++) {
       for (int ir = 0; ir < up->nr; ir++) {
-        int ia[2] = { ir, iz }, ib[2] = { ir, up->nz-1-iz };
+        int ia[2] = {ir, iz}, ib[2] = {ir, up->nz - 1 - iz};
         double *a = gkyl_array_fetch(psizr_n, gkyl_range_idx(&nrange, ia));
         double *b = gkyl_array_fetch(psizr_n, gkyl_range_idx(&nrange, ib));
-        double t = a[0]; a[0] = b[0]; b[0] = t;
+        double t = a[0];
+        a[0] = b[0];
+        b[0] = t;
       }
     }
   }
@@ -422,9 +447,9 @@ efit_new_impl(const struct gkyl_efit_inp *inp, bool flip_z)
     // where the quadratic's are mirror-equal; DN_SOL_IN_LO's theta range
     // then collapsed to zero.  Mirror the nodal values the same way, so
     // both representations describe the same equilibrium.
-    for (int iz = 0; iz < up->nz/2; iz++) {
+    for (int iz = 0; iz < up->nz / 2; iz++) {
       for (int ir = 0; ir < up->nr; ir++) {
-        int ia[2] = { ir, iz }, ib[2] = { ir, up->nz-1-iz };
+        int ia[2] = {ir, iz}, ib[2] = {ir, up->nz - 1 - iz};
         const double *a = gkyl_array_cfetch(psizr_n, gkyl_range_idx(&nrange, ia));
         double *b = gkyl_array_fetch(psizr_n, gkyl_range_idx(&nrange, ib));
         b[0] = a[0];
@@ -434,7 +459,9 @@ efit_new_impl(const struct gkyl_efit_inp *inp, bool flip_z)
 
   // We filled psizr_nodal
   struct gkyl_nodal_ops *n2m_rz = gkyl_nodal_ops_new(&up->rzbasis, &up->rzgrid, false);
-  gkyl_nodal_ops_n2m(n2m_rz, &up->rzbasis, &up->rzgrid, &nrange, &up->rzlocal, 1, psizr_n, up->psizr, false);
+  gkyl_nodal_ops_n2m(
+    n2m_rz, &up->rzbasis, &up->rzgrid, &nrange, &up->rzlocal, 1, psizr_n, up->psizr, false
+  );
 
   // Reflect psi for double null
   // Reflect DG coeffs rather than nodal data to avoid symmetry errors in n2m conversion
@@ -442,36 +469,38 @@ efit_new_impl(const struct gkyl_efit_inp *inp, bool flip_z)
     struct gkyl_range_iter iter;
     gkyl_range_iter_init(&iter, &up->rzlocal);
     while (gkyl_range_iter_next(&iter)) {
-      if (iter.idx[1] < gkyl_range_shape(&up->rzlocal,1)/2 +1 ) {
-        int idx_change[2] = {iter.idx[0], gkyl_range_shape(&up->rzlocal, 1) - iter.idx[1]+1};
-        const double *coeffs_ref = gkyl_array_cfetch(up->psizr, gkyl_range_idx(&up->rzlocal, iter.idx));
-        double *coeffs  = gkyl_array_fetch(up->psizr, gkyl_range_idx(&up->rzlocal, idx_change));
-        up->rzbasis.flip_odd_sign( 1, coeffs_ref, coeffs);
+      if (iter.idx[1] < gkyl_range_shape(&up->rzlocal, 1) / 2 + 1) {
+        int idx_change[2] = {iter.idx[0], gkyl_range_shape(&up->rzlocal, 1) - iter.idx[1] + 1};
+        const double *coeffs_ref =
+          gkyl_array_cfetch(up->psizr, gkyl_range_idx(&up->rzlocal, iter.idx));
+        double *coeffs = gkyl_array_fetch(up->psizr, gkyl_range_idx(&up->rzlocal, idx_change));
+        up->rzbasis.flip_odd_sign(1, coeffs_ref, coeffs);
       }
     }
   }
- 
+
   // Now lets read the q profile
   struct gkyl_array *qflux_n = gkyl_array_new(GKYL_DOUBLE, 1, flux_nrange.volume);
   int geqdsk_sign_convention = up->sibry > up->simag ? 0 : 1;
   if (geqdsk_sign_convention) {
     // psi increases toward magnetic axis.
-    for (int i = up->nr-1; i>=0; i--) {
+    for (int i = up->nr - 1; i >= 0; i--) {
       fidx[0] = i;
-      double *q_n= gkyl_array_fetch(qflux_n, gkyl_range_idx(&flux_nrange, fidx));
+      double *q_n = gkyl_array_fetch(qflux_n, gkyl_range_idx(&flux_nrange, fidx));
       status = fscanf(ptr, "%lf", q_n);
     }
   } else {
     // psi increases away from magnetic axis.
-    for (int i = 0; i<up->nr; i++) {
+    for (int i = 0; i < up->nr; i++) {
       fidx[0] = i;
-      double *q_n= gkyl_array_fetch(qflux_n, gkyl_range_idx(&flux_nrange, fidx));
+      double *q_n = gkyl_array_fetch(qflux_n, gkyl_range_idx(&flux_nrange, fidx));
       status = fscanf(ptr, "%lf", q_n);
     }
   }
-  gkyl_nodal_ops_n2m(n2m_flux, &up->fluxbasis, &up->fluxgrid, 
-    &flux_nrange, &up->fluxlocal, 1, qflux_n, up->qflux, false);
-
+  gkyl_nodal_ops_n2m(
+    n2m_flux, &up->fluxbasis, &up->fluxgrid, &flux_nrange, &up->fluxlocal, 1, qflux_n, up->qflux,
+    false
+  );
 
   // Standard EQDSK tail: plasma boundary count, limiter count, then R,Z pairs.
   // Older equilibrium files can omit the tail; only a requested extension
@@ -480,72 +509,83 @@ efit_new_impl(const struct gkyl_efit_inp *inp, bool flip_z)
   int counts = fscanf(ptr, "%d %d", &nboundary, &nlimiter);
   if (counts != EOF) {
     up->limiter_status = -1;
-    if (counts == 2 && nboundary >= 0 && nboundary <= 1000000 &&
-        nlimiter >= 0 && nlimiter <= 1000000) {
+    if (counts == 2 && nboundary >= 0 && nboundary <= 1000000 && nlimiter >= 0 &&
+        nlimiter <= 1000000) {
       bool valid = true;
       double R, Z;
-      for (int i=0; i<nboundary && valid; ++i)
+      for (int i = 0; i < nboundary && valid; ++i) {
         valid = fscanf(ptr, "%lf %lf", &R, &Z) == 2 && efit_finite(R) && efit_finite(Z);
+      }
       // Classify by vertex count exhaustively. Previously nlimiter==1 matched
       // neither branch and kept the pessimistic -1, so a readable record was
       // reported as corrupt (this is why step.geqdsk read as malformed); and
       // nlimiter==2 was accepted as status 1 even though every consumer
       // requires >=3, so the reader and its consumers disagreed.
       if (valid && nlimiter >= 1) {
-        double *wall_R = gkyl_malloc(nlimiter*sizeof(double));
-        double *wall_Z = gkyl_malloc(nlimiter*sizeof(double));
-        for (int i=0; i<nlimiter && valid; ++i)
-          valid = fscanf(ptr, "%lf %lf", &wall_R[i], &wall_Z[i]) == 2 &&
-            efit_finite(wall_R[i]) && efit_finite(wall_Z[i]);
+        double *wall_R = gkyl_malloc(nlimiter * sizeof(double));
+        double *wall_Z = gkyl_malloc(nlimiter * sizeof(double));
+        for (int i = 0; i < nlimiter && valid; ++i) {
+          valid = fscanf(ptr, "%lf %lf", &wall_R[i], &wall_Z[i]) == 2 && efit_finite(wall_R[i]) &&
+                  efit_finite(wall_Z[i]);
+        }
         // The wall belongs to the machine, so it is mirrored with the flux.
-        if (valid && flip_z)
-          for (int i=0; i<nlimiter; ++i)
-            wall_Z[i] = 2.0*zmid_file-wall_Z[i];
+        if (valid && flip_z) {
+          for (int i = 0; i < nlimiter; ++i) {
+            wall_Z[i] = 2.0 * zmid_file - wall_Z[i];
+          }
+        }
         if (valid && nlimiter >= 3) {
           up->limiter_n = nlimiter;
-          up->limiter_R = wall_R; up->limiter_Z = wall_Z;
+          up->limiter_R = wall_R;
+          up->limiter_Z = wall_Z;
           up->limiter_status = 1;
           // Shape is diagnosed here and nowhere else. It does NOT feed
           // limiter_status: this reports, it does not decide.
           up->limiter_self_intersections = gkyl_efit_limiter_self_intersections(up);
-          if (up->limiter_self_intersections > 0)
-            fprintf(stderr,
-              "TOK_GEO_WALL_MALFORMED_SHAPE name=%s vertices=%d self_intersections=%d\n",
-              up->name, up->limiter_n, up->limiter_self_intersections);
-        }
-        else if (valid) {
+          if (up->limiter_self_intersections > 0) {
+            fprintf(
+              stderr, "TOK_GEO_WALL_MALFORMED_SHAPE name=%s vertices=%d self_intersections=%d\n",
+              up->name, up->limiter_n, up->limiter_self_intersections
+            );
+          }
+        } else if (valid) {
           // Readable, but too few vertices to bound a region. Keep the count
           // for diagnostics; do not expose an unusable outline as geometry.
           up->limiter_n = nlimiter;
-          gkyl_free(wall_R); gkyl_free(wall_Z);
+          gkyl_free(wall_R);
+          gkyl_free(wall_Z);
           up->limiter_status = 2;
+        } else {
+          gkyl_free(wall_R);
+          gkyl_free(wall_Z);
         }
-        else { gkyl_free(wall_R); gkyl_free(wall_Z); }
-      }
-      else if (valid && nlimiter == 0)
+      } else if (valid && nlimiter == 0) {
         up->limiter_status = 0;
+      }
     }
   }
 
   // Make the cubic interpolator
-  up->evf  = gkyl_dg_basis_ops_evalf_new(&up->rzgrid_cubic, psizr_n);
+  up->evf = gkyl_dg_basis_ops_evalf_new(&up->rzgrid_cubic, psizr_n);
   gkyl_dg_basis_op_mem *mem = 0;
   mem = gkyl_dg_alloc_cubic_2d(cells_cubic);
-  gkyl_dg_calc_cubic_2d_from_nodal_vals(mem, cells_cubic, up->rzgrid_cubic.dx, psizr_n, up->psizr_cubic);
+  gkyl_dg_calc_cubic_2d_from_nodal_vals(
+    mem, cells_cubic, up->rzgrid_cubic.dx, psizr_n, up->psizr_cubic
+  );
   gkyl_dg_basis_op_mem_release(mem);
 
   // Calculate B.
   struct gkyl_array *bpolzr_n = gkyl_array_new(GKYL_DOUBLE, 1, nrange.volume);
   struct gkyl_array *bphizr_n = gkyl_array_new(GKYL_DOUBLE, 1, nrange.volume);
   struct gkyl_array *bmagzr_n = gkyl_array_new(GKYL_DOUBLE, 1, nrange.volume);
-  double dZ = up->zdim/(up->nz-1);
-  double scale_factorR = 2.0/(up->rzgrid_cubic.dx[0]);
-  double scale_factorZ = 2.0/(up->rzgrid_cubic.dx[1]);
-  for (int iz = 0; iz < up->nz; iz++){
+  double dZ = up->zdim / (up->nz - 1);
+  double scale_factorR = 2.0 / (up->rzgrid_cubic.dx[0]);
+  double scale_factorZ = 2.0 / (up->rzgrid_cubic.dx[1]);
+  for (int iz = 0; iz < up->nz; iz++) {
     idx[1] = iz;
-    double Z = up->zmin+iz*dZ;
-    for (int ir = 0; ir < up->nr; ir++){
-      R = up->rmin+ir*dR;
+    double Z = up->zmin + iz * dZ;
+    for (int ir = 0; ir < up->nr; ir++) {
+      R = up->rmin + ir * dR;
       idx[0] = ir;
 
       // Calculate Bpol.
@@ -557,42 +597,45 @@ efit_new_impl(const struct gkyl_efit_inp *inp, bool flip_z)
         psi_curr = fout[0];
         br = fout[3];
         bz = -fout[1];
-      }
-      else {
+      } else {
         double fout[3];
         up->evf->eval_cubic_wgrad(0.0, xn, fout, up->evf->ctx);
         psi_curr = fout[0];
-        br = 1.0/R*fout[2];
-        bz = -1.0/R*fout[1];
+        br = 1.0 / R * fout[2];
+        bz = -1.0 / R * fout[1];
       }
       double *bpol_n = gkyl_array_fetch(bpolzr_n, gkyl_range_idx(&nrange, idx));
-      bpol_n[0] = sqrt(br*br + bz*bz);
+      bpol_n[0] = sqrt(br * br + bz * bz);
 
       // Calculate Bphi.
-      if (psi_curr < up->fluxgrid.lower[0] || psi_curr > up->fluxgrid.upper[0]){
+      if (psi_curr < up->fluxgrid.lower[0] || psi_curr > up->fluxgrid.upper[0]) {
         psi_curr = up->sibry;
       }
-      fidx[0] = up->fluxlocal.lower[0] + (int) floor((psi_curr - up->fluxgrid.lower[0])/up->fluxgrid.dx[0]);
+      fidx[0] = up->fluxlocal.lower[0] +
+                (int)floor((psi_curr - up->fluxgrid.lower[0]) / up->fluxgrid.dx[0]);
       fidx[0] = GKYL_MIN2(fidx[0], up->fluxlocal.upper[0]);
       fidx[0] = GKYL_MAX2(fidx[0], up->fluxlocal.lower[0]);
       long flux_loc = gkyl_range_idx(&up->fluxlocal, fidx);
       const double *coeffs = gkyl_array_cfetch(up->fpolflux, flux_loc);
       double fxc;
       gkyl_rect_grid_cell_center(&up->fluxgrid, fidx, &fxc);
-      double fx = (psi_curr - fxc)/(up->fluxgrid.dx[0]*0.5);
+      double fx = (psi_curr - fxc) / (up->fluxgrid.dx[0] * 0.5);
       double fpol = up->fluxbasis.eval_expand(&fx, coeffs);
       double *bphi_n = gkyl_array_fetch(bphizr_n, gkyl_range_idx(&nrange, idx));
-      if (fpol == 0.0 && R == 0.0)
+      if (fpol == 0.0 && R == 0.0) {
         bphi_n[0] = 0.0;
-      else 
-        bphi_n[0] = fpol/R;
+      } else {
+        bphi_n[0] = fpol / R;
+      }
 
       // Calculate Bmag.
       double *bmag_n = gkyl_array_fetch(bmagzr_n, gkyl_range_idx(&nrange, idx));
-      bmag_n[0] = sqrt(bpol_n[0]*bpol_n[0] + bphi_n[0]*bphi_n[0]);
+      bmag_n[0] = sqrt(bpol_n[0] * bpol_n[0] + bphi_n[0] * bphi_n[0]);
     }
   }
-  gkyl_nodal_ops_n2m(n2m_rz, &up->rzbasis, &up->rzgrid, &nrange, &up->rzlocal, 1, bmagzr_n, up->bmagzr, false);
+  gkyl_nodal_ops_n2m(
+    n2m_rz, &up->rzbasis, &up->rzgrid, &nrange, &up->rzlocal, 1, bmagzr_n, up->bmagzr, false
+  );
 
   // Reflect B for double null.
   // Reflect DG coeffs rather than nodal data to avoid symmetry errors in n2m conversion.
@@ -600,15 +643,16 @@ efit_new_impl(const struct gkyl_efit_inp *inp, bool flip_z)
     struct gkyl_range_iter iter;
     gkyl_range_iter_init(&iter, &up->rzlocal);
     while (gkyl_range_iter_next(&iter)) {
-      if (iter.idx[1] < gkyl_range_shape(&up->rzlocal,1)/2 +1 ) {
-        int idx_change[2] = {iter.idx[0], gkyl_range_shape(&up->rzlocal, 1) - iter.idx[1]+1};
-        const double *coeffs_ref = gkyl_array_cfetch(up->bmagzr, gkyl_range_idx(&up->rzlocal, iter.idx));
-        double *coeffs  = gkyl_array_fetch(up->bmagzr, gkyl_range_idx(&up->rzlocal, idx_change));
-        up->rzbasis.flip_odd_sign( 1, coeffs_ref, coeffs);
+      if (iter.idx[1] < gkyl_range_shape(&up->rzlocal, 1) / 2 + 1) {
+        int idx_change[2] = {iter.idx[0], gkyl_range_shape(&up->rzlocal, 1) - iter.idx[1] + 1};
+        const double *coeffs_ref =
+          gkyl_array_cfetch(up->bmagzr, gkyl_range_idx(&up->rzlocal, iter.idx));
+        double *coeffs = gkyl_array_fetch(up->bmagzr, gkyl_range_idx(&up->rzlocal, idx_change));
+        up->rzbasis.flip_odd_sign(1, coeffs_ref, coeffs);
       }
     }
   }
-  
+
   // Free n2m operators
   gkyl_nodal_ops_release(n2m_flux);
   gkyl_nodal_ops_release(n2m_rz);
@@ -621,7 +665,7 @@ efit_new_impl(const struct gkyl_efit_inp *inp, bool flip_z)
   gkyl_array_release(bphizr_n);
   gkyl_array_release(bmagzr_n);
   // Done reading the equilibrium and its optional material boundary.
-  
+
   fclose(ptr);
 
   int num_max_xpts = 10;
@@ -629,8 +673,8 @@ efit_new_impl(const struct gkyl_efit_inp *inp, bool flip_z)
   double Zxpt[num_max_xpts];
 
   up->num_xpts_cubic = find_xpts_cubic(up, Rxpt, Zxpt);
-  up->Rxpt_cubic = gkyl_malloc(sizeof(double)*fmax(2, up->num_xpts_cubic));
-  up->Zxpt_cubic = gkyl_malloc(sizeof(double)*fmax(2, up->num_xpts_cubic));
+  up->Rxpt_cubic = gkyl_malloc(sizeof(double) * fmax(2, up->num_xpts_cubic));
+  up->Zxpt_cubic = gkyl_malloc(sizeof(double) * fmax(2, up->num_xpts_cubic));
   for (int i = 0; i < up->num_xpts_cubic; i++) {
     up->Rxpt_cubic[i] = Rxpt[i];
     up->Zxpt_cubic[i] = Zxpt[i];
@@ -639,20 +683,23 @@ efit_new_impl(const struct gkyl_efit_inp *inp, bool flip_z)
   }
 
   up->num_xpts = find_xpts(up, up->num_xpts_cubic, up->Rxpt_cubic, up->Zxpt_cubic, Rxpt, Zxpt);
-  up->Rxpt = gkyl_malloc(sizeof(double)*fmax(2, up->num_xpts));
-  up->Zxpt = gkyl_malloc(sizeof(double)*fmax(2, up->num_xpts));
+  up->Rxpt = gkyl_malloc(sizeof(double) * fmax(2, up->num_xpts));
+  up->Zxpt = gkyl_malloc(sizeof(double) * fmax(2, up->num_xpts));
   // Callers index Rxpt[0]/Zxpt[0] unconditionally.  If no X-point was found (possible
   // once an X-point search region is supplied), leave NaN rather than whatever the
   // allocation happened to contain, so the failure surfaces instead of propagating
   // silently as a garbage position.
-  for (int i = 0; i < (int) fmax(2, up->num_xpts); ++i) {
+  for (int i = 0; i < (int)fmax(2, up->num_xpts); ++i) {
     up->Rxpt[i] = NAN;
     up->Zxpt[i] = NAN;
   }
-  if (up->num_xpts == 0)
-    fprintf(stderr,
+  if (up->num_xpts == 0) {
+    fprintf(
+      stderr,
       "EFIT_XPT no X-point found inside the supplied search region name=%s bound_n=%d cubic_n=%d\n",
-      up->name, up->xpt_bound_n, up->num_xpts_cubic);
+      up->name, up->xpt_bound_n, up->num_xpts_cubic
+    );
+  }
   for (int i = 0; i < up->num_xpts; i++) {
     up->Rxpt[i] = Rxpt[i];
     up->Zxpt[i] = Zxpt[i];
@@ -660,17 +707,19 @@ efit_new_impl(const struct gkyl_efit_inp *inp, bool flip_z)
     //  printf("Rxpt[%d] = %1.16f, Zxpt[%d] = %1.16f | psisep = %1.16f\n", i, up->Rxpt[i], i, up->Zxpt[i], up->psisep);
   }
 
-  if (!efit_trial_quiet)
+  if (!efit_trial_quiet) {
     write_xpt_diag_once(up);
+  }
 
   return up;
 }
 
-gkyl_efit*
+gkyl_efit *
 gkyl_efit_new(const struct gkyl_efit_inp *inp)
 {
-  if (!inp->reflect)
+  if (!inp->reflect) {
     return efit_new_impl(inp, false);
+  }
 
   efit_trial_quiet = 1;
   gkyl_efit *lo = efit_new_impl(inp, false);
@@ -694,22 +743,26 @@ gkyl_efit_new(const struct gkyl_efit_inp *inp)
   // upper half; 9 NSTX-U shots are near-balanced double nulls the same way.
   // No threshold is set by hand; a half missing either X point has no
   // measured uncertainty and contributes none.
-  double unc_lo = lo->num_xpts_cubic > 0 && lo->num_xpts > 0 ? fabs(lo->psisep_cubic-lo->psisep) : 0.0;
-  double unc_hi = hi->num_xpts_cubic > 0 && hi->num_xpts > 0 ? fabs(hi->psisep_cubic-hi->psisep) : 0.0;
+  double unc_lo = lo->num_xpts_cubic > 0 && lo->num_xpts > 0 ? fabs(lo->psisep_cubic - lo->psisep) :
+                                                               0.0;
+  double unc_hi = hi->num_xpts_cubic > 0 && hi->num_xpts > 0 ? fabs(hi->psisep_cubic - hi->psisep) :
+                                                               0.0;
   bool tie = lo_ok && hi_ok &&
-    fabs(fabs(psi_hi-hi->simag) - fabs(psi_lo-lo->simag)) <= fmax(unc_lo, unc_hi);
-  bool use_hi = hi_ok && !tie && (!lo_ok || fabs(psi_hi-hi->simag) < fabs(psi_lo-lo->simag));
+             fabs(fabs(psi_hi - hi->simag) - fabs(psi_lo - lo->simag)) <= fmax(unc_lo, unc_hi);
+  bool use_hi = hi_ok && !tie && (!lo_ok || fabs(psi_hi - hi->simag) < fabs(psi_lo - lo->simag));
 
-  static char last_filepath[1024] = { 0 };
+  static char last_filepath[1024] = {0};
   if (strncmp(last_filepath, inp->filepath, sizeof(last_filepath)) != 0) {
-    strncpy(last_filepath, inp->filepath, sizeof(last_filepath)-1);
-    last_filepath[sizeof(last_filepath)-1] = '\0';
-    fprintf(stderr,
+    strncpy(last_filepath, inp->filepath, sizeof(last_filepath) - 1);
+    last_filepath[sizeof(last_filepath) - 1] = '\0';
+    fprintf(
+      stderr,
       "EFIT_ACTIVE_HALF name=%s kept=%s mirrored_in_z=%d psi_axis=%.16e "
       "psi_xpt_lower=%.16e psi_xpt_upper=%.16e psi_boundary_file=%.16e "
       "xpt_found_lower=%d xpt_found_upper=%d unc_lower=%.3e unc_upper=%.3e tie=%d\n",
-      lo->name, use_hi ? "upper" : "lower", use_hi ? 1 : 0, lo->simag,
-      psi_lo, psi_hi, lo->sibry, lo_ok ? 1 : 0, hi_ok ? 1 : 0, unc_lo, unc_hi, tie ? 1 : 0);
+      lo->name, use_hi ? "upper" : "lower", use_hi ? 1 : 0, lo->simag, psi_lo, psi_hi, lo->sibry,
+      lo_ok ? 1 : 0, hi_ok ? 1 : 0, unc_lo, unc_hi, tie ? 1 : 0
+    );
     fflush(stderr);
   }
 
@@ -722,13 +775,17 @@ gkyl_efit_new(const struct gkyl_efit_inp *inp)
 void
 gkyl_efit_get_psi_bounds(const gkyl_efit *up, double *simag, double *psisep)
 {
-  if (simag)
+  if (simag) {
     *simag = up->simag;
-  if (psisep)
+  }
+  if (psisep) {
     *psisep = up->psisep;
+  }
 }
 
-void gkyl_efit_release(gkyl_efit* up){
+void
+gkyl_efit_release(gkyl_efit *up)
+{
   gkyl_free(up->Rxpt);
   gkyl_free(up->Zxpt);
   gkyl_free(up->Rxpt_cubic);

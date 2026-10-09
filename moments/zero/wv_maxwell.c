@@ -39,7 +39,7 @@
 #include <gkyl_wv_maxwell_priv.h>
 
 static inline void
-maxwell_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout)
+maxwell_source(const struct gkyl_wv_eqn *eqn, const double *qin, double *sout)
 {
   for (int i = 0; i < 8; i++) {
     sout[i] = 0.0;
@@ -47,9 +47,9 @@ maxwell_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout)
 }
 
 void
-gkyl_wv_maxwell_free(const struct gkyl_ref_count* ref)
+gkyl_wv_maxwell_free(const struct gkyl_ref_count *ref)
 {
-  struct gkyl_wv_eqn* base = container_of(ref, struct gkyl_wv_eqn, ref_count);
+  struct gkyl_wv_eqn *base = container_of(ref, struct gkyl_wv_eqn, ref_count);
 
   if (gkyl_wv_eqn_is_cu_dev(base)) {
     // Free inner on_dev object.
@@ -61,27 +61,26 @@ gkyl_wv_maxwell_free(const struct gkyl_ref_count* ref)
   gkyl_free(maxwell);
 }
 
-struct gkyl_wv_eqn*
+struct gkyl_wv_eqn *
 gkyl_wv_maxwell_new(double c, double e_fact, double b_fact, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
-  if(use_gpu) {
+  if (use_gpu) {
     return gkyl_wv_maxwell_cu_dev_new(c, e_fact, b_fact);
-  } 
+  }
 #endif
 
-  return gkyl_wv_maxwell_inew(&(struct gkyl_wv_maxwell_inp) {
-      .c = c,
-      .e_fact = e_fact,
-      .b_fact = b_fact,
-      .rp_type = WV_MAXWELL_RP_ROE,
-      .use_gpu = use_gpu,
-    }
-  );
+  return gkyl_wv_maxwell_inew(&(struct gkyl_wv_maxwell_inp){
+    .c = c,
+    .e_fact = e_fact,
+    .b_fact = b_fact,
+    .rp_type = WV_MAXWELL_RP_ROE,
+    .use_gpu = use_gpu,
+  });
 }
 
-struct gkyl_wv_eqn*
-gkyl_wv_maxwell_inew(const struct gkyl_wv_maxwell_inp* inp)
+struct gkyl_wv_eqn *
+gkyl_wv_maxwell_inew(const struct gkyl_wv_maxwell_inp *inp)
 {
   struct wv_maxwell *maxwell = gkyl_malloc(sizeof(struct wv_maxwell));
 
@@ -97,8 +96,7 @@ gkyl_wv_maxwell_inew(const struct gkyl_wv_maxwell_inp* inp)
     maxwell->eqn.num_waves = 6;
     maxwell->eqn.waves_func = wave;
     maxwell->eqn.qfluct_func = qfluct;
-  }
-  else if (inp->rp_type == WV_MAXWELL_RP_LAX) {
+  } else if (inp->rp_type == WV_MAXWELL_RP_LAX) {
     maxwell->eqn.num_waves = 2;
     maxwell->eqn.waves_func = wave_lax_l;
     maxwell->eqn.qfluct_func = qfluct_lax_l;
@@ -109,7 +107,7 @@ gkyl_wv_maxwell_inew(const struct gkyl_wv_maxwell_inp* inp)
   maxwell->eqn.max_speed_func = max_speed;
   maxwell->eqn.rotate_to_local_func = rot_to_local;
   maxwell->eqn.rotate_to_global_func = rot_to_global;
-  
+
   maxwell->eqn.wall_bc_func = maxwell_wall;
   maxwell->eqn.no_slip_bc_func = maxwell_no_slip;
 

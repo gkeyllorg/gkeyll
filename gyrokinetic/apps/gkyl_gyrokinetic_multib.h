@@ -31,7 +31,8 @@ struct gkyl_gyrokinetic_multib_species {
   int num_diag_moments; // Number of diagnostic moments.
   enum gkyl_distribution_moments diag_moments[12]; // List of diagnostic moments.
   int num_integrated_diag_moments; // Number of integrated diagnostic moments.
-  enum gkyl_distribution_moments integrated_diag_moments[12]; // List of integrated diagnostic moments.
+  enum gkyl_distribution_moments
+    integrated_diag_moments[12]; // List of integrated diagnostic moments.
   bool time_rate_diagnostics; // Whether to ouput df/dt diagnostics.
 
   struct gkyl_phase_diagnostics_inp boundary_flux_diagnostics;
@@ -92,7 +93,7 @@ struct gkyl_gyrokinetic_multib_neut_species {
   // Reactions with plasma species to include.
   struct gkyl_gyrokinetic_react react_neut;
 
-  bool duplicate_across_blocks; // set to true if all blocks are identical  
+  bool duplicate_across_blocks; // set to true if all blocks are identical
   // species inputs per-block: only one is needed if duplicate_across_blocks = true
   const struct gkyl_gyrokinetic_multib_neut_species_pb *blocks;
 
@@ -101,7 +102,7 @@ struct gkyl_gyrokinetic_multib_neut_species {
   const struct gkyl_gyrokinetic_bc *bcs;
 };
 
-// Field input per block 
+// Field input per block
 struct gkyl_gyrokinetic_multib_field_pb {
   int block_id; // block ID
 
@@ -113,15 +114,17 @@ struct gkyl_gyrokinetic_multib_field_pb {
   void *phi_wall_lo_ctx; // context for biased wall potential on lower wall
   // pointer to biased wall potential on lower wall function
   void (*phi_wall_lo)(double t, const double *xn, double *phi_wall_lo_out, void *ctx);
-  bool phi_wall_lo_evolve; // set to true if biased wall potential on lower wall function is time dependent  
+  bool
+    phi_wall_lo_evolve; // set to true if biased wall potential on lower wall function is time dependent
 
   void *phi_wall_up_ctx; // context for biased wall potential on upper wall
   // pointer to biased wall potential on upper wall function
   void (*phi_wall_up)(double t, const double *xn, double *phi_wall_up_out, void *ctx);
-  bool phi_wall_up_evolve; // set to true if biased wall potential on upper wall function is time dependent  
+  bool
+    phi_wall_up_evolve; // set to true if biased wall potential on upper wall function is time dependent
 };
 
-// Field input 
+// Field input
 struct gkyl_gyrokinetic_multib_field {
   enum gkyl_gkfield_id gkfield_id;
   double kperpSq; // kperp^2 parameter for 1D field equations
@@ -131,10 +134,10 @@ struct gkyl_gyrokinetic_multib_field {
 
   //struct gkyl_poisson_bc poisson_bcs;
 
-  bool duplicate_across_blocks; // set to true if all blocks are identical  
+  bool duplicate_across_blocks; // set to true if all blocks are identical
   // field inputs per-block: only one is needed if duplicate_across_blocks = true
-  bool half_domain; // For use in double null simulations. 
-                    // If true core BCs will be set for simulation of lower half of domain (Z < 0)
+  bool half_domain; // For use in double null simulations.
+  // If true core BCs will be set for simulation of lower half of domain (Z < 0)
   const struct gkyl_gyrokinetic_multib_field_pb *blocks;
 
   // Physical boundary conditions
@@ -142,7 +145,7 @@ struct gkyl_gyrokinetic_multib_field {
   const struct gkyl_gyrokinetic_bc *bcs;
 
   bool time_rate_diagnostics; // Writes the time rate of change of field energy.
-  
+
   struct gkyl_poisson_bias_line_list *bias_line_list; // Biased lines constraining the solution.
 };
 
@@ -160,7 +163,7 @@ struct gkyl_gyrokinetic_multib {
 
   double cfl_frac; // CFL fraction to use (default 1.0)
   double cfl_frac_omegaH; // CFL fraction to use for omegaH (default 1.7)
-  
+
   int num_periodic_dir; // Number of periodic directions.
   int periodic_dirs[3]; // List of periodic directions.
 
@@ -179,8 +182,8 @@ struct gkyl_gyrokinetic_multib {
   // EIRENE inputs
   struct gkyl_gyrokinetic_eirene eirene;
 
-  // Communicator to use.  
-  struct gkyl_comm *comm;  
+  // Communicator to use.
+  struct gkyl_comm *comm;
 
   struct gkyl_gyrokinetic_metadata_inp metadata; // Optional metadata for output files.
 
@@ -226,7 +229,9 @@ int gkyl_gyrokinetic_multib_app_geometry_preflight(const struct gkyl_gyrokinetic
  * @return New multi-block gk app object, or NULL if declarations or process
  *     counts are invalid. Rejected declarations allocate no app resources.
  */
-gkyl_gyrokinetic_multib_app* gkyl_gyrokinetic_multib_app_new(const struct gkyl_gyrokinetic_multib *mbinp);
+gkyl_gyrokinetic_multib_app *gkyl_gyrokinetic_multib_app_new(
+  const struct gkyl_gyrokinetic_multib *mbinp
+);
 
 /**
  * Construct a new gk multi-block app (geom only).
@@ -239,7 +244,9 @@ gkyl_gyrokinetic_multib_app* gkyl_gyrokinetic_multib_app_new(const struct gkyl_g
  * @return New multi-block gk app object, or NULL if declarations or process
  *     counts are invalid. Rejected declarations allocate no app resources.
  */
-gkyl_gyrokinetic_multib_app* gkyl_gyrokinetic_multib_app_new_geom(const struct gkyl_gyrokinetic_multib *mbinp);
+gkyl_gyrokinetic_multib_app *gkyl_gyrokinetic_multib_app_new_geom(
+  const struct gkyl_gyrokinetic_multib *mbinp
+);
 
 /**
  * Initialize species by projecting initial conditions on
@@ -248,7 +255,7 @@ gkyl_gyrokinetic_multib_app* gkyl_gyrokinetic_multib_app_new_geom(const struct g
  * @param app App object.
  * @param t0 Time for initial conditions.
  */
-void gkyl_gyrokinetic_multib_app_apply_ic(gkyl_gyrokinetic_multib_app* app, double t0);
+void gkyl_gyrokinetic_multib_app_apply_ic(gkyl_gyrokinetic_multib_app *app, double t0);
 
 /**
  * Initialize species by projecting initial conditions on basis
@@ -259,7 +266,9 @@ void gkyl_gyrokinetic_multib_app_apply_ic(gkyl_gyrokinetic_multib_app* app, doub
  * @param sidx Index of species to initialize.
  * @param t0 Time for initial conditions
  */
-void gkyl_gyrokinetic_multib_app_apply_ic_species(gkyl_gyrokinetic_multib_app* app, int sidx, double t0);
+void gkyl_gyrokinetic_multib_app_apply_ic_species(
+  gkyl_gyrokinetic_multib_app *app, int sidx, double t0
+);
 
 /**
  * Initialize neutral species by projecting initial conditions on basis
@@ -270,7 +279,9 @@ void gkyl_gyrokinetic_multib_app_apply_ic_species(gkyl_gyrokinetic_multib_app* a
  * @param sidx Index of neutral species to initialize.
  * @param t0 Time for initial conditions
  */
-void gkyl_gyrokinetic_multib_app_apply_ic_neut_species(gkyl_gyrokinetic_multib_app* app, int sidx, double t0);
+void gkyl_gyrokinetic_multib_app_apply_ic_neut_species(
+  gkyl_gyrokinetic_multib_app *app, int sidx, double t0
+);
 
 /**
  * Initialize field from file
@@ -278,8 +289,9 @@ void gkyl_gyrokinetic_multib_app_apply_ic_neut_species(gkyl_gyrokinetic_multib_a
  * @param app App object
  * @param fname file to read
  */
-struct gkyl_app_restart_status
-gkyl_gyrokinetic_multib_app_from_file_field(gkyl_gyrokinetic_multib_app *app, const char *fname);
+struct gkyl_app_restart_status gkyl_gyrokinetic_multib_app_from_file_field(
+  gkyl_gyrokinetic_multib_app *app, const char *fname
+);
 
 /**
  * Initialize gyrokinetic species from file
@@ -288,9 +300,9 @@ gkyl_gyrokinetic_multib_app_from_file_field(gkyl_gyrokinetic_multib_app *app, co
  * @param sidx gk species index
  * @param fname file to read
  */
-struct gkyl_app_restart_status 
-gkyl_gyrokinetic_multib_app_from_file_species(gkyl_gyrokinetic_multib_app *app, int sidx,
-  const char *fname);
+struct gkyl_app_restart_status gkyl_gyrokinetic_multib_app_from_file_species(
+  gkyl_gyrokinetic_multib_app *app, int sidx, const char *fname
+);
 
 /**
  * Initialize neutral species from file
@@ -299,9 +311,9 @@ gkyl_gyrokinetic_multib_app_from_file_species(gkyl_gyrokinetic_multib_app *app, 
  * @param sidx neut species index
  * @param fname file to read
  */
-struct gkyl_app_restart_status 
-gkyl_gyrokinetic_multib_app_from_file_neut_species(gkyl_gyrokinetic_multib_app *app, int sidx,
-  const char *fname);
+struct gkyl_app_restart_status gkyl_gyrokinetic_multib_app_from_file_neut_species(
+  gkyl_gyrokinetic_multib_app *app, int sidx, const char *fname
+);
 
 /**
  * Initialize the gyrokinetic app from a specific frame.
@@ -309,8 +321,9 @@ gkyl_gyrokinetic_multib_app_from_file_neut_species(gkyl_gyrokinetic_multib_app *
  * @param app App object
  * @param frame frame to read
  */
-struct gkyl_app_restart_status
-gkyl_gyrokinetic_multib_app_read_from_frame(gkyl_gyrokinetic_multib_app *app, int frame);
+struct gkyl_app_restart_status gkyl_gyrokinetic_multib_app_read_from_frame(
+  gkyl_gyrokinetic_multib_app *app, int frame
+);
 
 /**
  * Initialize field from frame
@@ -318,8 +331,9 @@ gkyl_gyrokinetic_multib_app_read_from_frame(gkyl_gyrokinetic_multib_app *app, in
  * @param app App object
  * @param frame frame to read
  */
-struct gkyl_app_restart_status
-gkyl_gyrokinetic_multib_app_from_frame_field(gkyl_gyrokinetic_multib_app *app, int frame);
+struct gkyl_app_restart_status gkyl_gyrokinetic_multib_app_from_frame_field(
+  gkyl_gyrokinetic_multib_app *app, int frame
+);
 
 /**
  * Initialize gyrokinetic species from file
@@ -328,8 +342,9 @@ gkyl_gyrokinetic_multib_app_from_frame_field(gkyl_gyrokinetic_multib_app *app, i
  * @param sidx gk species index
  * @param frame frame to read
  */
-struct gkyl_app_restart_status
-gkyl_gyrokinetic_multib_app_from_frame_species(gkyl_gyrokinetic_multib_app *app, int sidx, int frame);
+struct gkyl_app_restart_status gkyl_gyrokinetic_multib_app_from_frame_species(
+  gkyl_gyrokinetic_multib_app *app, int sidx, int frame
+);
 
 /**
  * Initialize neutral species from file
@@ -338,8 +353,9 @@ gkyl_gyrokinetic_multib_app_from_frame_species(gkyl_gyrokinetic_multib_app *app,
  * @param sidx neut species index
  * @param frame frame to read
  */
-struct gkyl_app_restart_status
-gkyl_gyrokinetic_multib_app_from_frame_neut_species(gkyl_gyrokinetic_multib_app *app, int sidx, int frame);
+struct gkyl_app_restart_status gkyl_gyrokinetic_multib_app_from_frame_neut_species(
+  gkyl_gyrokinetic_multib_app *app, int sidx, int frame
+);
 
 /**
  * Write output to console: this is mainly for diagnostic messages the
@@ -351,14 +367,16 @@ gkyl_gyrokinetic_multib_app_from_frame_neut_species(gkyl_gyrokinetic_multib_app 
  * @param fmt Format string for console output
  * @param argp Objects to write
  */
-void gkyl_gyrokinetic_multib_app_cout(const gkyl_gyrokinetic_multib_app* app, FILE *fp, const char *fmt, ...);
+void gkyl_gyrokinetic_multib_app_cout(
+  const gkyl_gyrokinetic_multib_app *app, FILE *fp, const char *fmt, ...
+);
 
 /**
  * Write block topology to file.
  * 
  * @param app App object.
  */
-void gkyl_gyrokinetic_multib_app_write_topo(const gkyl_gyrokinetic_multib_app* app);
+void gkyl_gyrokinetic_multib_app_write_topo(const gkyl_gyrokinetic_multib_app *app);
 
 /**
  * Write geometry file.
@@ -374,7 +392,7 @@ void gkyl_gyrokinetic_multib_app_write_geometry(gkyl_gyrokinetic_multib_app *app
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_gyrokinetic_multib_app_write_field(gkyl_gyrokinetic_multib_app* app, double tm, int frame);
+void gkyl_gyrokinetic_multib_app_write_field(gkyl_gyrokinetic_multib_app *app, double tm, int frame);
 
 /**
  * Calculate integrated field energy
@@ -382,7 +400,7 @@ void gkyl_gyrokinetic_multib_app_write_field(gkyl_gyrokinetic_multib_app* app, d
  * @param tm Time at which integrated diagnostic are to be computed
  * @param app App object.
  */
-void gkyl_gyrokinetic_multib_app_calc_field_energy(gkyl_gyrokinetic_multib_app* app, double tm);
+void gkyl_gyrokinetic_multib_app_calc_field_energy(gkyl_gyrokinetic_multib_app *app, double tm);
 
 /**
  * Write field energy to file. Field energy data is appended to the
@@ -390,7 +408,7 @@ void gkyl_gyrokinetic_multib_app_calc_field_energy(gkyl_gyrokinetic_multib_app* 
  * 
  * @param app App object.
  */
-void gkyl_gyrokinetic_multib_app_write_field_energy(gkyl_gyrokinetic_multib_app* app);
+void gkyl_gyrokinetic_multib_app_write_field_energy(gkyl_gyrokinetic_multib_app *app);
 
 /**
  * Write species data to file.
@@ -400,7 +418,9 @@ void gkyl_gyrokinetic_multib_app_write_field_energy(gkyl_gyrokinetic_multib_app*
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_gyrokinetic_multib_app_write_species(gkyl_gyrokinetic_multib_app* app, int sidx, double tm, int frame);
+void gkyl_gyrokinetic_multib_app_write_species(
+  gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame
+);
 
 /**
  * Write neutral species data to file.
@@ -410,7 +430,9 @@ void gkyl_gyrokinetic_multib_app_write_species(gkyl_gyrokinetic_multib_app* app,
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_gyrokinetic_multib_app_write_neut_species(gkyl_gyrokinetic_multib_app* app, int sidx, double tm, int frame);
+void gkyl_gyrokinetic_multib_app_write_neut_species(
+  gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame
+);
 
 /**
  * Write diagnostic moments for species to file.
@@ -420,7 +442,9 @@ void gkyl_gyrokinetic_multib_app_write_neut_species(gkyl_gyrokinetic_multib_app*
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_gyrokinetic_multib_app_write_species_mom(gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame);
+void gkyl_gyrokinetic_multib_app_write_species_mom(
+  gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame
+);
 
 /**
  * Write diagnostic moments for neutral species to file.
@@ -430,7 +454,9 @@ void gkyl_gyrokinetic_multib_app_write_species_mom(gkyl_gyrokinetic_multib_app *
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_gyrokinetic_multib_app_write_neut_species_mom(gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame);
+void gkyl_gyrokinetic_multib_app_write_neut_species_mom(
+  gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame
+);
 
 /**
  * Calculate integrated diagnostic moments for a plasma species.
@@ -439,7 +465,9 @@ void gkyl_gyrokinetic_multib_app_write_neut_species_mom(gkyl_gyrokinetic_multib_
  * @param sidx Index of species to initialize.
  * @param tm Time at which integrated diagnostics are to be computed
  */
-void gkyl_gyrokinetic_multib_app_calc_species_integrated_mom(gkyl_gyrokinetic_multib_app* app, int sidx, double tm);
+void gkyl_gyrokinetic_multib_app_calc_species_integrated_mom(
+  gkyl_gyrokinetic_multib_app *app, int sidx, double tm
+);
 
 /**
  * Calculate integrated diagnostic moments for a neutral species.
@@ -448,7 +476,9 @@ void gkyl_gyrokinetic_multib_app_calc_species_integrated_mom(gkyl_gyrokinetic_mu
  * @param sidx Index of neutral species to initialize.
  * @param tm Time at which integrated diagnostics are to be computed
  */
-void gkyl_gyrokinetic_multib_app_calc_neut_species_integrated_mom(gkyl_gyrokinetic_multib_app* app, int sidx, double tm);
+void gkyl_gyrokinetic_multib_app_calc_neut_species_integrated_mom(
+  gkyl_gyrokinetic_multib_app *app, int sidx, double tm
+);
 
 /**
  * Calculate integrated diagnostic moments of the boundary fluxes for a plasma species.
@@ -457,7 +487,9 @@ void gkyl_gyrokinetic_multib_app_calc_neut_species_integrated_mom(gkyl_gyrokinet
  * @param sidx Index of species to initialize.
  * @param tm Time at which integrated diagnostics are to be computed
  */
-void gkyl_gyrokinetic_multib_app_calc_species_boundary_flux_integrated_mom(gkyl_gyrokinetic_multib_app* app, int sidx, double tm);
+void gkyl_gyrokinetic_multib_app_calc_species_boundary_flux_integrated_mom(
+  gkyl_gyrokinetic_multib_app *app, int sidx, double tm
+);
 
 /**
  * Write integrated diagnostic moments for charged species to file. Integrated
@@ -466,7 +498,9 @@ void gkyl_gyrokinetic_multib_app_calc_species_boundary_flux_integrated_mom(gkyl_
  * @param app App object.
  * @param sidx Index of species to initialize.
  */
-void gkyl_gyrokinetic_multib_app_write_species_integrated_mom(gkyl_gyrokinetic_multib_app *app, int sidx);
+void gkyl_gyrokinetic_multib_app_write_species_integrated_mom(
+  gkyl_gyrokinetic_multib_app *app, int sidx
+);
 
 /**
  * Write integrated diagnostic moments for neutral species to file. Integrated
@@ -475,7 +509,9 @@ void gkyl_gyrokinetic_multib_app_write_species_integrated_mom(gkyl_gyrokinetic_m
  * @param app App object.
  * @param sidx Index of neutral species to initialize.
  */
-void gkyl_gyrokinetic_multib_app_write_neut_species_integrated_mom(gkyl_gyrokinetic_multib_app *app, int sidx);
+void gkyl_gyrokinetic_multib_app_write_neut_species_integrated_mom(
+  gkyl_gyrokinetic_multib_app *app, int sidx
+);
 
 /**
  * Write integrated diagnostic moments of the boundary fluxes for charged
@@ -484,7 +520,9 @@ void gkyl_gyrokinetic_multib_app_write_neut_species_integrated_mom(gkyl_gyrokine
  * @param app App object.
  * @param sidx Index of species to initialize.
  */
-void gkyl_gyrokinetic_multib_app_write_species_boundary_flux_integrated_mom(gkyl_gyrokinetic_multib_app *app, int sidx);
+void gkyl_gyrokinetic_multib_app_write_species_boundary_flux_integrated_mom(
+  gkyl_gyrokinetic_multib_app *app, int sidx
+);
 
 /**
  * Write species source to file.
@@ -494,7 +532,9 @@ void gkyl_gyrokinetic_multib_app_write_species_boundary_flux_integrated_mom(gkyl
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_gyrokinetic_multib_app_write_species_source(gkyl_gyrokinetic_multib_app* app, int sidx, double tm, int frame);
+void gkyl_gyrokinetic_multib_app_write_species_source(
+  gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame
+);
 
 /**
  * Write neutral species source to file.
@@ -504,7 +544,9 @@ void gkyl_gyrokinetic_multib_app_write_species_source(gkyl_gyrokinetic_multib_ap
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_gyrokinetic_multib_app_write_neut_species_source(gkyl_gyrokinetic_multib_app* app, int sidx, double tm, int frame);
+void gkyl_gyrokinetic_multib_app_write_neut_species_source(
+  gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame
+);
 
 /**
  * Write diagnostic moments for species source to file.
@@ -514,7 +556,9 @@ void gkyl_gyrokinetic_multib_app_write_neut_species_source(gkyl_gyrokinetic_mult
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_gyrokinetic_multib_app_write_species_source_mom(gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame);
+void gkyl_gyrokinetic_multib_app_write_species_source_mom(
+  gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame
+);
 
 /**
  * Write diagnostic moments for neutral species source to file.
@@ -524,7 +568,9 @@ void gkyl_gyrokinetic_multib_app_write_species_source_mom(gkyl_gyrokinetic_multi
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_gyrokinetic_multib_app_write_neut_species_source_mom(gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame);
+void gkyl_gyrokinetic_multib_app_write_neut_species_source_mom(
+  gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame
+);
 
 /**
  * Calculate integrated diagnostic moments for a plasma species source.
@@ -533,7 +579,9 @@ void gkyl_gyrokinetic_multib_app_write_neut_species_source_mom(gkyl_gyrokinetic_
  * @param sidx Index of species to write.
  * @param tm Time at which integrated diagnostics are to be computed
  */
-void gkyl_gyrokinetic_multib_app_calc_species_source_integrated_mom(gkyl_gyrokinetic_multib_app* app, int sidx, double tm);
+void gkyl_gyrokinetic_multib_app_calc_species_source_integrated_mom(
+  gkyl_gyrokinetic_multib_app *app, int sidx, double tm
+);
 
 /**
  * Calculate integrated diagnostic moments for a neutral species source.
@@ -542,7 +590,9 @@ void gkyl_gyrokinetic_multib_app_calc_species_source_integrated_mom(gkyl_gyrokin
  * @param sidx Index of neutral species to write.
  * @param tm Time at which integrated diagnostics are to be computed
  */
-void gkyl_gyrokinetic_multib_app_calc_neut_species_source_integrated_mom(gkyl_gyrokinetic_multib_app* app, int sidx, double tm);
+void gkyl_gyrokinetic_multib_app_calc_neut_species_source_integrated_mom(
+  gkyl_gyrokinetic_multib_app *app, int sidx, double tm
+);
 
 /**
  * Write integrated diagnostic moments for charged species source to file. Integrated
@@ -551,7 +601,9 @@ void gkyl_gyrokinetic_multib_app_calc_neut_species_source_integrated_mom(gkyl_gy
  * @param app App object.
  * @param sidx Index of species to write.
  */
-void gkyl_gyrokinetic_multib_app_write_species_source_integrated_mom(gkyl_gyrokinetic_multib_app *app, int sidx);
+void gkyl_gyrokinetic_multib_app_write_species_source_integrated_mom(
+  gkyl_gyrokinetic_multib_app *app, int sidx
+);
 
 /**
  * Write integrated diagnostic moments for neutral species source to file. Integrated
@@ -560,7 +612,9 @@ void gkyl_gyrokinetic_multib_app_write_species_source_integrated_mom(gkyl_gyroki
  * @param app App object.
  * @param sidx Index of neutral species to write.
  */
-void gkyl_gyrokinetic_multib_app_write_neut_species_source_integrated_mom(gkyl_gyrokinetic_multib_app *app, int sidx);
+void gkyl_gyrokinetic_multib_app_write_neut_species_source_integrated_mom(
+  gkyl_gyrokinetic_multib_app *app, int sidx
+);
 
 /**
  * Write species integrated correct Maxwellian status of the to file. 
@@ -569,7 +623,9 @@ void gkyl_gyrokinetic_multib_app_write_neut_species_source_integrated_mom(gkyl_g
  * @param app App object.
  * @param sidx Index of species to write.
  */
-void gkyl_gyrokinetic_multib_app_write_species_lte_max_corr_status(gkyl_gyrokinetic_multib_app *app, int sidx);
+void gkyl_gyrokinetic_multib_app_write_species_lte_max_corr_status(
+  gkyl_gyrokinetic_multib_app *app, int sidx
+);
 
 /**
  * Write neutral species integrated correct Maxwellian status of the to file. 
@@ -578,7 +634,9 @@ void gkyl_gyrokinetic_multib_app_write_species_lte_max_corr_status(gkyl_gyrokine
  * @param app App object.
  * @param sidx Index of species to write.
  */
-void gkyl_gyrokinetic_multib_app_write_neut_species_lte_max_corr_status(gkyl_gyrokinetic_multib_app *app, int sidx);
+void gkyl_gyrokinetic_multib_app_write_neut_species_lte_max_corr_status(
+  gkyl_gyrokinetic_multib_app *app, int sidx
+);
 
 /**
  * Write LBO collisional moments for species to file.
@@ -588,7 +646,9 @@ void gkyl_gyrokinetic_multib_app_write_neut_species_lte_max_corr_status(gkyl_gyr
  * @param tm Time-stamp.
  * @param frame Frame number.
  */
-void gkyl_gyrokinetic_multib_app_write_species_lbo_mom(gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame);
+void gkyl_gyrokinetic_multib_app_write_species_lbo_mom(
+  gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame
+);
 
 /**
  * Write BGK cross moments for species to file.
@@ -598,7 +658,9 @@ void gkyl_gyrokinetic_multib_app_write_species_lbo_mom(gkyl_gyrokinetic_multib_a
  * @param tm Time-stamp.
  * @param frame Frame number.
  */
-void gkyl_gyrokinetic_multib_app_write_species_bgk_mom(gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame);
+void gkyl_gyrokinetic_multib_app_write_species_bgk_mom(
+  gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame
+);
 
 /**
  * Write radiation drag coefficients for species to file.
@@ -608,7 +670,9 @@ void gkyl_gyrokinetic_multib_app_write_species_bgk_mom(gkyl_gyrokinetic_multib_a
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_gyrokinetic_multib_app_write_species_rad_drag(gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame);
+void gkyl_gyrokinetic_multib_app_write_species_rad_drag(
+  gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame
+);
 
 /**
  * Write radiation emissivity of each species that species sidx collides with
@@ -618,7 +682,9 @@ void gkyl_gyrokinetic_multib_app_write_species_rad_drag(gkyl_gyrokinetic_multib_
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_gyrokinetic_multib_app_write_species_rad_emissivity(gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame);
+void gkyl_gyrokinetic_multib_app_write_species_rad_emissivity(
+  gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame
+);
 
 /**
  * Calculate integrated diagnostic moments of the radiation model.
@@ -627,7 +693,9 @@ void gkyl_gyrokinetic_multib_app_write_species_rad_emissivity(gkyl_gyrokinetic_m
  * @param sidx Index of species to write.
  * @param tm Time at which integrated diagnostics are to be computed
  */
-void gkyl_gyrokinetic_multib_app_calc_species_rad_integrated_mom(gkyl_gyrokinetic_multib_app *app, int sidx, double tm);
+void gkyl_gyrokinetic_multib_app_calc_species_rad_integrated_mom(
+  gkyl_gyrokinetic_multib_app *app, int sidx, double tm
+);
 
 /**
  * Write integrated moments of radiation rhs for radiating species 
@@ -635,7 +703,9 @@ void gkyl_gyrokinetic_multib_app_calc_species_rad_integrated_mom(gkyl_gyrokineti
  * @param app App object.
  * @param sidx Index of species from which to write radiation.
  */
-void gkyl_gyrokinetic_multib_app_write_species_rad_integrated_mom(gkyl_gyrokinetic_multib_app *app, int sidx);
+void gkyl_gyrokinetic_multib_app_write_species_rad_integrated_mom(
+  gkyl_gyrokinetic_multib_app *app, int sidx
+);
 
 /**
  * Write iz react rate coefficients for species to file.
@@ -646,7 +716,9 @@ void gkyl_gyrokinetic_multib_app_write_species_rad_integrated_mom(gkyl_gyrokinet
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_gyrokinetic_multib_app_write_species_iz_react(gkyl_gyrokinetic_multib_app* app, int sidx, int ridx, double tm, int frame);
+void gkyl_gyrokinetic_multib_app_write_species_iz_react(
+  gkyl_gyrokinetic_multib_app *app, int sidx, int ridx, double tm, int frame
+);
 
 /**
  * Write iz react rate coefficients for species to file.
@@ -657,7 +729,9 @@ void gkyl_gyrokinetic_multib_app_write_species_iz_react(gkyl_gyrokinetic_multib_
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_gyrokinetic_multib_app_write_species_iz_react_neut(gkyl_gyrokinetic_multib_app* app, int sidx, int ridx, double tm, int frame);
+void gkyl_gyrokinetic_multib_app_write_species_iz_react_neut(
+  gkyl_gyrokinetic_multib_app *app, int sidx, int ridx, double tm, int frame
+);
 
 /**
  * Write recomb react rate coefficients for species to file.
@@ -668,7 +742,9 @@ void gkyl_gyrokinetic_multib_app_write_species_iz_react_neut(gkyl_gyrokinetic_mu
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_gyrokinetic_multib_app_write_species_recomb_react(gkyl_gyrokinetic_multib_app* app, int sidx, int ridx, double tm, int frame);
+void gkyl_gyrokinetic_multib_app_write_species_recomb_react(
+  gkyl_gyrokinetic_multib_app *app, int sidx, int ridx, double tm, int frame
+);
 
 /**
  * Write recomb react rate coefficients for species to file.
@@ -679,7 +755,9 @@ void gkyl_gyrokinetic_multib_app_write_species_recomb_react(gkyl_gyrokinetic_mul
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_gyrokinetic_multib_app_write_species_recomb_react_neut(gkyl_gyrokinetic_multib_app* app, int sidx, int ridx, double tm, int frame);
+void gkyl_gyrokinetic_multib_app_write_species_recomb_react_neut(
+  gkyl_gyrokinetic_multib_app *app, int sidx, int ridx, double tm, int frame
+);
 
 /**
  * Write cx react rate coefficients for species to file.
@@ -690,7 +768,9 @@ void gkyl_gyrokinetic_multib_app_write_species_recomb_react_neut(gkyl_gyrokineti
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_gyrokinetic_multib_app_write_cx_react_neut(gkyl_gyrokinetic_multib_app* app, int sidx, int ridx, double tm, int frame);
+void gkyl_gyrokinetic_multib_app_write_cx_react_neut(
+  gkyl_gyrokinetic_multib_app *app, int sidx, int ridx, double tm, int frame
+);
 
 /**
  * Write the phase-space diagnostics for a charged species.
@@ -700,7 +780,9 @@ void gkyl_gyrokinetic_multib_app_write_cx_react_neut(gkyl_gyrokinetic_multib_app
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_gyrokinetic_multib_app_write_species_phase(gkyl_gyrokinetic_multib_app* app, int sidx, double tm, int frame);
+void gkyl_gyrokinetic_multib_app_write_species_phase(
+  gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame
+);
 
 /**
  * Write the phase-space diagnostics for a neutral species.
@@ -710,7 +792,9 @@ void gkyl_gyrokinetic_multib_app_write_species_phase(gkyl_gyrokinetic_multib_app
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_gyrokinetic_multib_app_write_neut_species_phase(gkyl_gyrokinetic_multib_app* app, int sidx, double tm, int frame);
+void gkyl_gyrokinetic_multib_app_write_neut_species_phase(
+  gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame
+);
 
 /**
  * Write the conf-space diagnostics for a charged species.
@@ -720,7 +804,9 @@ void gkyl_gyrokinetic_multib_app_write_neut_species_phase(gkyl_gyrokinetic_multi
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_gyrokinetic_multib_app_write_species_conf(gkyl_gyrokinetic_multib_app* app, int sidx, double tm, int frame);
+void gkyl_gyrokinetic_multib_app_write_species_conf(
+  gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame
+);
 
 /**
  * Write the conf-space diagnostics for a neutral species.
@@ -730,7 +816,9 @@ void gkyl_gyrokinetic_multib_app_write_species_conf(gkyl_gyrokinetic_multib_app*
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_gyrokinetic_multib_app_write_neut_species_conf(gkyl_gyrokinetic_multib_app* app, int sidx, double tm, int frame);
+void gkyl_gyrokinetic_multib_app_write_neut_species_conf(
+  gkyl_gyrokinetic_multib_app *app, int sidx, double tm, int frame
+);
 
 /**
  * Write diagnostic moments for all species (including sources) to file.
@@ -747,7 +835,7 @@ void gkyl_gyrokinetic_multib_app_write_mom(gkyl_gyrokinetic_multib_app *app, dou
  * @param app App object.
  * @param tm Time at which integrated diagnostics are to be computed
  */
-void gkyl_gyrokinetic_multib_app_calc_integrated_mom(gkyl_gyrokinetic_multib_app* app, double tm);
+void gkyl_gyrokinetic_multib_app_calc_integrated_mom(gkyl_gyrokinetic_multib_app *app, double tm);
 
 /**
  * Write integrated diagnostic moments for all species (including sources)
@@ -764,7 +852,7 @@ void gkyl_gyrokinetic_multib_app_write_integrated_mom(gkyl_gyrokinetic_multib_ap
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_gyrokinetic_multib_app_write_phase(gkyl_gyrokinetic_multib_app* app, double tm, int frame);
+void gkyl_gyrokinetic_multib_app_write_phase(gkyl_gyrokinetic_multib_app *app, double tm, int frame);
 
 /**
  * Write configuration space diagnostics to file.
@@ -773,7 +861,7 @@ void gkyl_gyrokinetic_multib_app_write_phase(gkyl_gyrokinetic_multib_app* app, d
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_gyrokinetic_multib_app_write_conf(gkyl_gyrokinetic_multib_app* app, double tm, int frame);
+void gkyl_gyrokinetic_multib_app_write_conf(gkyl_gyrokinetic_multib_app *app, double tm, int frame);
 
 /**
  * Write both conf and phase-space diagnostics to file.
@@ -782,14 +870,14 @@ void gkyl_gyrokinetic_multib_app_write_conf(gkyl_gyrokinetic_multib_app* app, do
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_gyrokinetic_multib_app_write(gkyl_gyrokinetic_multib_app* app, double tm, int frame);
+void gkyl_gyrokinetic_multib_app_write(gkyl_gyrokinetic_multib_app *app, double tm, int frame);
 
 /**
  * Write stats to file. Data is written in json format.
  *
  * @param app App object.
  */
-void gkyl_gyrokinetic_multib_app_stat_write(gkyl_gyrokinetic_multib_app* app);
+void gkyl_gyrokinetic_multib_app_stat_write(gkyl_gyrokinetic_multib_app *app);
 
 /**
  * Print timing of solver components to iostream.
@@ -797,8 +885,7 @@ void gkyl_gyrokinetic_multib_app_stat_write(gkyl_gyrokinetic_multib_app* app);
  * @param app App object.
  * @param iostream Where to write timers to (e.g. stdout, stderr);
  */
-void
-gkyl_gyrokinetic_multib_app_print_timings(gkyl_gyrokinetic_multib_app* app, FILE *iostream);
+void gkyl_gyrokinetic_multib_app_print_timings(gkyl_gyrokinetic_multib_app *app, FILE *iostream);
 
 /**
  * Record the time step (in private dynvector).
@@ -807,16 +894,14 @@ gkyl_gyrokinetic_multib_app_print_timings(gkyl_gyrokinetic_multib_app* app, FILE
  * @param tm Time stamp.
  * @param dt Time step to record (e.g. provided by app's status object).
  */
-void
-gkyl_gyrokinetic_multib_app_save_dt(gkyl_gyrokinetic_multib_app* app, double tm, double dt);
+void gkyl_gyrokinetic_multib_app_save_dt(gkyl_gyrokinetic_multib_app *app, double tm, double dt);
 
 /**
  * Write the time step over time.
  *
  * @param app App object.
  */
-void
-gkyl_gyrokinetic_multib_app_write_dt(gkyl_gyrokinetic_multib_app* app);
+void gkyl_gyrokinetic_multib_app_write_dt(gkyl_gyrokinetic_multib_app *app);
 
 /**
  * Read geometry file.
@@ -835,7 +920,9 @@ void gkyl_gyrokinetic_multib_app_read_geometry(gkyl_gyrokinetic_multib_app *app)
  * @param fmt Format string for console output
  * @param argp Objects to write
  */
-void gkyl_gyrokinetic_multib_app_cout(const gkyl_gyrokinetic_multib_app* app, FILE *fp, const char *fmt, ...);
+void gkyl_gyrokinetic_multib_app_cout(
+  const gkyl_gyrokinetic_multib_app *app, FILE *fp, const char *fmt, ...
+);
 
 /**
  * Advance simulation by a suggested time-step 'dt'. The dt may be too
@@ -853,25 +940,27 @@ void gkyl_gyrokinetic_multib_app_cout(const gkyl_gyrokinetic_multib_app* app, FI
  * @param dt Suggested time-step to advance simulation
  * @return Status of update.
  */
-struct gkyl_update_status gkyl_gyrokinetic_multib_update(gkyl_gyrokinetic_multib_app* app, double dt);
+struct gkyl_update_status gkyl_gyrokinetic_multib_update(
+  gkyl_gyrokinetic_multib_app *app, double dt
+);
 
 /**
  * Return simulation statistics.
  * 
  * @return Return statistics object.
  */
-struct gkyl_gyrokinetic_stat gkyl_gyrokinetic_multib_app_stat(gkyl_gyrokinetic_multib_app* app);
+struct gkyl_gyrokinetic_stat gkyl_gyrokinetic_multib_app_stat(gkyl_gyrokinetic_multib_app *app);
 
 /**
  * Free gk app.
  *
  * @param app App to release.
  */
-void gkyl_gyrokinetic_multib_app_release(gkyl_gyrokinetic_multib_app* app);
+void gkyl_gyrokinetic_multib_app_release(gkyl_gyrokinetic_multib_app *app);
 
 /**
  * Free gk app (geom only).
  *
  * @param app App to release.
  */
-void gkyl_gyrokinetic_multib_app_release_geom(gkyl_gyrokinetic_multib_app* app);
+void gkyl_gyrokinetic_multib_app_release_geom(gkyl_gyrokinetic_multib_app *app);
