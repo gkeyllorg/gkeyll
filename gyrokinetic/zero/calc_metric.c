@@ -10,8 +10,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-// test commit for slack channel 5 (after new clone and commits and pushes included on front end)
-
 gkyl_calc_metric *
 gkyl_calc_metric_new(
   const struct gkyl_basis *cbasis, const struct gkyl_rect_grid *grid,
