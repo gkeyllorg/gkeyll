@@ -113,9 +113,21 @@ Containers are optional. On clusters and native Ubuntu workers, install or load
 Valgrind in the execution environment. On Bazzite or other container hosts, install
 it in the worker image. The host operating system need not match the image.
 
-Each machine's deployer manages its worker image, Valgrind installation,
-mounts, credentials, and scheduling. This repository does not provide a worker
-container build. Switch an existing worker to a new image when it is idle.
+`Containerfile.valgrind` is a reusable layer for Debian/Ubuntu and Fedora/RHEL
+worker images. It adds Valgrind without changing the base image's entrypoint or
+mount layout. Supply your base image and its original runtime user:
+
+```sh
+podman build -f ci/jenkins/Containerfile.valgrind \
+  --build-arg BASE_IMAGE=your-worker-image:tag \
+  --build-arg RUNTIME_USER=jenkins -t your-worker-image:valgrind ci/jenkins
+```
+
+Docker accepts the same build arguments. The default base is Ubuntu 24.04 and
+the default runtime user is root; that produces a minimal Valgrind image, not
+a complete Jenkins worker. For existing workers, explicitly restore their user
+by name or UID:GID. Configure mounts, credentials, and worker scheduling outside
+the image. Switch an existing worker to the new image when it is idle.
 
 On macOS, use a Linux VM/container worker for this workflow, including ARM64
 Linux on Apple Silicon. These checks exercise the Linux build, not native macOS
