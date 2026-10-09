@@ -457,6 +457,7 @@ gk_species_calc_int_mom_dt_enabled(gkyl_gyrokinetic_app* app, struct gk_species 
   // Need to do it after the fields are updated.
   gk_species_moment_calc(&gks->integ_moms, gks->local, app->local, gks->f); 
   gkyl_array_set(fdot_int_mom, 1.0/dt, gks->integ_moms.marr);
+  gk_species_balance_step(app, gks, &gks->bal, dt, fdot_int_mom == gks->fdot_mom_old);
   app->stat.fdot_tm += gkyl_time_diff_now_sec(wst);
 }
 
@@ -509,6 +510,8 @@ gk_species_calc_integrated_mom_dynamic(gkyl_gyrokinetic_app* app, struct gk_spec
     gkyl_dynvec_append(gks->fdot_integ_diag, tm, avals_global);
   }
 
+  gk_species_balance_calc(app, gks, &gks->bal, tm);
+
   app->stat.species_diag_calc_tm += gkyl_time_diff_now_sec(wst);
   app->stat.n_diag += 1;
 }
@@ -523,6 +526,9 @@ static void
 gk_species_write_integrated_mom_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *gks)
 {
   struct timespec wst = gkyl_wall_clock();
+
+  // All integrated moment files of the species are appended to after the first write.
+  bool is_first_write = gks->is_first_integ_write_call;
 
   int rank;
   gkyl_comm_get_rank(app->comm, &rank);
@@ -579,6 +585,8 @@ gk_species_write_integrated_mom_dynamic(gkyl_gyrokinetic_app *app, struct gk_spe
     gkyl_dynvec_clear(gks->fdot_integ_diag);
     app->stat.n_diag_io += 1;
   }
+
+  gk_species_balance_write(app, gks, &gks->bal, is_first_write);
 
   app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wst);
 }
@@ -749,6 +757,8 @@ gk_species_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk_spec
     gkyl_array_release(s->fdot_mom_new);
     gkyl_dynvec_release(s->fdot_integ_diag);
   }
+
+  gk_species_balance_release(app, &s->bal);
 }
 
 static void
@@ -812,6 +822,9 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
     gks->fdot_integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, gks->integ_moms.num_mom);
     gks->is_first_fdot_integ_write_call = true;
   }
+
+  // Particle (M0) balance diagnostic (needs the bfluxes, initialized earlier).
+  gk_species_balance_init(app, gks, &gks->bal);
 
   // Objects for L2 norm diagnostic.
   gks->integ_wfsq_op = gkyl_array_integrate_new(&gks->grid, &gks->basis, 1, GKYL_ARRAY_INTEGRATE_OP_SQ_WEIGHTED, app->use_gpu);
@@ -1785,6 +1798,8 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   if (adaptive_sources) {
     add_bflux_moms_inp.diag_moments[nmom_extra[0]++] = GKYL_F_MOMENT_M2;
   }
+  // The M0 balance diagnostic needs the M0 moment of the boundary fluxes.
+  gk_species_balance_pre_init(app, gks, &gks->bal, &bflux_type, &add_bflux_moms_inp);
   // Introduce new moments into moms_inp if needed.
   gk_species_bflux_init(app, gks, &gks->bflux, bflux_type, add_bflux_moms_inp);
   

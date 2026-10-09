@@ -484,6 +484,8 @@ main(int argc, char **argv)
     
     .num_diag_moments = 5,
     .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP },
+    .num_balance_moments = 1,
+    .balance_moments = { GKYL_F_MOMENT_M0 },
   };
 
   // Ions.
@@ -520,6 +522,8 @@ main(int argc, char **argv)
     
     .num_diag_moments = 5,
     .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP },
+    .num_balance_moments = 1,
+    .balance_moments = { GKYL_F_MOMENT_M0 },
   };
 
   // Ar1+ ions.
@@ -584,6 +588,8 @@ main(int argc, char **argv)
     
     .num_diag_moments = 5,
     .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP },
+    .num_balance_moments = 1,
+    .balance_moments = { GKYL_F_MOMENT_M0 },
   };
 
   // Ar2+ ions.
@@ -648,6 +654,8 @@ main(int argc, char **argv)
     
     .num_diag_moments = 5,
     .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP },
+    .num_balance_moments = 1,
+    .balance_moments = { GKYL_F_MOMENT_M0 },
   };
 
   // Field.

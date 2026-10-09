@@ -690,6 +690,8 @@ run_2x_sim(struct gk_mirror_ctx ctx, const struct gkyl_app_args app_args,
     .num_integrated_diag_moments = 1,
     .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
     .time_rate_diagnostics = true,
+    .num_balance_moments = 1,
+    .balance_moments = { GKYL_F_MOMENT_M0 },
 
     .boundary_flux_diagnostics = {
       .num_integrated_diag_moments = 1,
@@ -776,6 +778,8 @@ run_2x_sim(struct gk_mirror_ctx ctx, const struct gkyl_app_args app_args,
     .num_integrated_diag_moments = 1,
     .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
     .time_rate_diagnostics = true,
+    .num_balance_moments = 1,
+    .balance_moments = { GKYL_F_MOMENT_M0 },
 
     .boundary_flux_diagnostics = {
       .num_integrated_diag_moments = 1,
@@ -936,6 +940,8 @@ run_3x_sim(struct gk_mirror_ctx ctx, const struct gkyl_app_args app_args,
     .num_integrated_diag_moments = 1,
     .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
     .time_rate_diagnostics = true,
+    .num_balance_moments = 1,
+    .balance_moments = { GKYL_F_MOMENT_M0 },
 
     .boundary_flux_diagnostics = {
       .num_integrated_diag_moments = 1,
@@ -993,6 +999,8 @@ run_3x_sim(struct gk_mirror_ctx ctx, const struct gkyl_app_args app_args,
     .num_integrated_diag_moments = 1,
     .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
     .time_rate_diagnostics = true,
+    .num_balance_moments = 1,
+    .balance_moments = { GKYL_F_MOMENT_M0 },
 
     .boundary_flux_diagnostics = {
       .num_integrated_diag_moments = 1,

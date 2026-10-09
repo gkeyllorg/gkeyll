@@ -85,6 +85,7 @@ gyrokineticApp = Gyrokinetic.App.new {
 
     -- Top hat species.
   square = Gyrokinetic.Species.new {
+    balanceMoments = { G0.Moment.M0 },
     charge = charge, mass = mass,
     
     -- Velocity space grid.
@@ -139,6 +140,7 @@ gyrokineticApp = Gyrokinetic.App.new {
 
   -- Bump species.
   bump = Gyrokinetic.Species.new {
+    balanceMoments = { G0.Moment.M0 },
     charge = charge, mass = mass,
     
     -- Velocity space grid.

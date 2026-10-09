@@ -33,6 +33,8 @@ struct gkyl_gyrokinetic_multib_species {
   int num_integrated_diag_moments; // Number of integrated diagnostic moments.
   enum gkyl_distribution_moments integrated_diag_moments[12]; // List of integrated diagnostic moments.
   bool time_rate_diagnostics; // Whether to ouput df/dt diagnostics.
+  int num_balance_moments; // Number of balance moments (see gkyl_gyrokinetic.h).
+  enum gkyl_distribution_moments balance_moments[12]; // List of balance moments.
 
   struct gkyl_phase_diagnostics_inp boundary_flux_diagnostics;
 
