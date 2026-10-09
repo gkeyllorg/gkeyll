@@ -19,6 +19,7 @@
 # Example:
 # gyrokinetic/rt_gk_ion_sound_1x2v_p1   # updated collision-operator normalization
 
+gyrokinetic/creg/rt_gk_cbc_3x2v_p1   # Baseline rt_gk_cbc_3x2v_p1-{elc,ion}_source_bgk_feq_0.gkyl arrays are unreadable due to the BGK phase-space write using app->comm on main; candidate uses the corrected gks->comm and is readable.
 gyrokinetic/creg/rt_gk_mirror_boltz_elc_damped_1x2v_p1   # All these changed because of the modifications to the mirror loss cone in the POA or the modifications to the non-uniform grids
 gyrokinetic/creg/rt_gk_mirror_boltz_elc_poa_1x2v_p1   # All these changed because of the modifications to the mirror loss cone in the POA or the modifications to the non-uniform grids
 gyrokinetic/creg/rt_gk_mirror_boltz_elc_poa_2x2v_p1   # All these changed because of the modifications to the mirror loss cone in the POA or the modifications to the non-uniform grids
