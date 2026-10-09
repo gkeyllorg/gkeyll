@@ -589,12 +589,23 @@ the baseline file. Unchanged inherited entries are inert, so a later PR can
 safely remove stale lines. Updating an inherited line's reason explicitly
 acknowledges a new intentional change for that test.
 
-For a writer fix whose old baseline array is corrupt, use the narrower form
-`<full-test-name> <run-mode> <filename> baseline-array-read-failed # reason`.
-This acknowledges only that file's baseline read failure, and only when the
-candidate array is readable. Every failing file must have a matching entry;
-numerical differences, missing or unreadable candidate files, and execution
-failures still fail CI. These entries follow the same new-or-changed rule.
+Entries accept four forms, with an optional `# reason` comment:
+
+```text
+test_name                            # entire test, all modes
+test_name cpu_parallel               # entire test, CPU parallel only
+test_name file_name                  # one file, all modes
+test_name cpu_parallel file_name     # one file, CPU parallel only
+```
+
+Modes are `cpu_serial`, `cpu_parallel`, `gpu_serial`, and `gpu_parallel`.
+Test names may use the full report name, `<layer>/<basename>`, or the bare
+basename. Separate fields with spaces or tabs; filenames are matched exactly.
+File entries acknowledge any comparison failure for the named file, including
+numerical differences and missing or unreadable arrays. Every failing file
+must match an entry. Execution failures (crashes, timeouts, compilation
+failures, or no output) require an entire-test or entire-mode entry. Tests
+still run, and all entries follow the same new-or-changed rule.
 
 A C regression test introduced by the candidate is executed, but is not
 numerically compared until it exists in a baseline. CI reports it as

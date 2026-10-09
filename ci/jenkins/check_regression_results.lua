@@ -12,7 +12,8 @@
 --                 this candidate and should not fail the build. A test may be
 --                 named as stored in the database ("moments/creg/rt_euler_sodshock"),
 --                 as "<layer>/<basename>" ("moments/rt_euler_sodshock"), or by
---                 basename alone. See ci/jenkins/expected_regression_diffs.txt.
+--                 basename alone, optionally followed by a run mode and/or
+--                 filename. See ci/jenkins/expected_regression_diffs.txt.
 --   [summaryFile] optional machine-readable pass/acknowledged/failure counts.
 --   [baselineAckFile] when supplied, acknowledgments already present in this
 --                 baseline file are ignored. Only candidate lines that are new
@@ -59,7 +60,7 @@ local function readAcknowledgments(path)
       for line in f:lines() do
          local sourceLine = line:match("^%s*(.-)%s*$")
          local entry = sourceLine:gsub("#.*$", ""):match("^%s*(.-)%s*$")
-         if entry and entry ~= "" then entries[sourceLine] = entry end
+         if entry and entry ~= "" then entries[sourceLine] = entry:gsub("%s+", " ") end
       end
       f:close()
    end
@@ -125,18 +126,24 @@ local layerCounts = {}  -- layerCounts[layer] = { passed, acked, failed }
 -- spellings in the acknowledgment file too.
 local function isAcked(layer, name, mode, status, runlog)
    local base = name:match("([^/]+)$") or name
-   if acked[name] or acked[layer .. "/" .. base] or acked[base] then return true end
+   local function matches(suffix)
+      return acked[name .. suffix] or acked[layer .. "/" .. base .. suffix] or acked[base .. suffix]
+   end
+   if matches("") or (mode and matches(" " .. mode)) then return true end
 
-   -- A repaired writer can make an old baseline unreadable. Limit this
-   -- transition to explicitly named files and modes, with readable candidate
-   -- arrays. Never waive another difference or an execution failure.
+   -- File entries acknowledge any comparison failure for those files, but
+   -- cannot acknowledge execution failures. Every failing file must match.
    if status ~= 0 then return false end
    local body = runlog and runlog:match("%-%-%- Comparison failures %-%-%-\n(.*)$")
    if not body or body == "" then return false end
    local matched = false
    for line in body:gmatch("[^\n]+") do
-      local file = line:match("^(%S+)  %[DIFF%]  baseline array read failed %(candidate readable%)$")
-      if not file or not acked[table.concat({name, mode, file, "baseline-array-read-failed"}, " ")] then
+      local file, kind, detail = line:match("^(%S+)%s+%[(%u+)%](.*)$")
+      if not file or (kind ~= "DIFF" and kind ~= "MISSING")
+         or (detail ~= "" and not detail:match("^%s")) then
+         return false
+      end
+      if not matches(" " .. file) and not (mode and matches(" " .. mode .. " " .. file)) then
          return false
       end
       matched = true
