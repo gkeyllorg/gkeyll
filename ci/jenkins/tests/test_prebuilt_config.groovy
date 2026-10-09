@@ -40,7 +40,8 @@ CONF_LUA_LIB_DIR=${dependencies}/luajit/lib
     def output = new File(tmp, 'config.mak')
     def binding = new Binding([
         env: [CI_RUN_DIR: new File(tmp, 'run').absolutePath],
-        reporting: [settings: [prebuiltScript: new File(root, 'prebuilt_config.py').absolutePath]],
+        reporting: [settings: [prebuiltScript: new File(root, 'prebuilt_config.py').absolutePath],
+                    prepareValgrind: { String label -> }, runValgrind: { -> }],
         fileExists: { String path -> new File(path).isFile() },
         readFile: { Map args -> new File(args.file).text },
         writeFile: { Map args -> new File(tmp, args.file).text = args.text },

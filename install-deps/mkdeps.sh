@@ -1,6 +1,8 @@
 #!/bin/sh
+set -e
 
 # Defaults
+GKEYLL_USE_VALGRIND=${GKEYLL_USE_VALGRIND:-0}
 PREFIX=$HOME/gkylsoft
 
 # default build options
@@ -45,6 +47,7 @@ MPICXX                      MPI C and C++ compilers to use
 
 --download                  [yes] Download packages?
 --build                     [yes] Build packages?
+--use-valgrind=yes|no        [no] Build Valgrind-compatible dependencies.
 
 --prefix=DIR                Prefix where dependencies should be installed.
                             Default is $HOME/gkylsoft
@@ -115,6 +118,16 @@ do
       [ -n "$value" ] || die "Missing value in flag $key."
       DOWNLOAD_PKGS="$value"
       ;;
+   --use-valgrind)
+      case "$value" in
+         yes) GKEYLL_USE_VALGRIND=1 ;;
+         no) GKEYLL_USE_VALGRIND=0 ;;
+         *) die "--use-valgrind requires yes or no" ;;
+      esac
+      ;;
+   GKEYLL_USE_VALGRIND) # Compatibility with existing scripts.
+      GKEYLL_USE_VALGRIND="$value"
+      ;;
    CC)
       [ -n "$value" ] || die "Missing value in flag $key."
       CC="$value"
@@ -180,6 +193,12 @@ do
    shift
 done
 
+case "$GKEYLL_USE_VALGRIND" in
+   0|1) ;;
+   *) die "GKEYLL_USE_VALGRIND must be 0 or 1" ;;
+esac
+export GKEYLL_USE_VALGRIND
+
 CMAKE_SUPERLU_DIST_GPU=OFF
 # Set package options
 if [ "$BUILD_SUPERLU_DIST_GPU" = "yes" ]
@@ -196,6 +215,7 @@ cat <<EOF1 > build-opts.sh
 # Download/Build options
 DOWNLOAD_PKGS=$DOWNLOAD_PKGS
 BUILD_PKGS=$BUILD_PKGS
+GKEYLL_USE_VALGRIND=$GKEYLL_USE_VALGRIND
 
 # Installation directory
 GKYLSOFT=$PREFIX

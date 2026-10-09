@@ -16,6 +16,9 @@ outside disposable Jenkins workspaces, readable by the agent. Container mounts
 must preserve absolute dependency paths; Slurm compute nodes must see the run
 directory at the same path. Leave the variable empty to use machine scripts.
 
+For `GKEYLL_USE_VALGRIND=1`, prepare CPU dependencies with AVX512 disabled in
+OpenBLAS and use the [Valgrind configuration guide](README.valgrind.md).
+
 ## Configuration
 
 Supply a complete, self-contained generated config with `PREFIX` defined.

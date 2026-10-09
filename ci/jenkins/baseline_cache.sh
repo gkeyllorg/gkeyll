@@ -38,7 +38,7 @@ cache_context() {
   local name
   {
     printf 'cache-format=2\n'
-    for name in GKEYLL_CI_CACHE_REVISION GKEYLL_CI_PREBUILT_CONFIG PERSONAL_MKDEPS_SCRIPT PERSONAL_CONFIGURE_SCRIPT PERSONAL_MPIEXEC PERSONAL_MPI_HOME CC CXX CUDA_HOME; do
+    for name in GKEYLL_CI_CACHE_REVISION GKEYLL_CI_PREBUILT_CONFIG GKEYLL_USE_VALGRIND PERSONAL_MKDEPS_SCRIPT PERSONAL_CONFIGURE_SCRIPT PERSONAL_MPIEXEC PERSONAL_MPI_HOME CC CXX CUDA_HOME; do
       printf '%s=%s\n' "$name" "${!name:-}"
     done
     if [[ -n "${GKEYLL_CI_PREBUILT_CONFIG:-}" ]]; then
@@ -46,6 +46,8 @@ cache_context() {
     fi
     sha256sum < "${BASH_SOURCE[0]}" || return
     local helper="$(dirname "${BASH_SOURCE[0]}")/prebuilt_config.py"
+    if [[ -f "$helper" ]]; then sha256sum < "$helper" || return; fi
+    helper="$(dirname "${BASH_SOURCE[0]}")/valgrind.py"
     if [[ -f "$helper" ]]; then sha256sum < "$helper" || return; fi
   } | sha256sum | cut -d' ' -f1
 }
@@ -251,6 +253,9 @@ finalize_candidate() {
     done
   fi
   rm -f "$target/candidate-manifest.txt"
+  if [[ -d "$workspace/ci-valgrind" && ! -L "$workspace/ci-valgrind" ]]; then
+    cp -R "$workspace/ci-valgrind" "$target/"
+  fi
   printf 'candidate_commit=%s\nbaseline_commit=%s\nresult=%s\nterminal_stage=%s\nbuild_tag=%s\nfinished_utc=%s\n' \
     "$sha" "$baseline_sha" "$result" "$stage" "${BUILD_TAG:-manual}" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$target/candidate-manifest.txt"
 }

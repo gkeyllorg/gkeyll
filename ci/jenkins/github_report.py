@@ -390,6 +390,39 @@ def diagnostic_sections(summary_output=None):
     return sections
 
 
+def valgrind_sections():
+    sections = []
+    roots = sorted(glob.glob('ci-valgrind/*'))
+    if not roots:
+        state = ('Requested; no results were produced.' if
+                 os.environ.get('GKEYLL_USE_VALGRIND') == '1' else 'Disabled (GKEYLL_USE_VALGRIND=0).')
+        return [dropdown('Valgrind memory checks', state)]
+    for root in roots:
+        label = os.path.basename(root).capitalize()
+        try:
+            summary = json.loads(read_text(os.path.join(root, 'summary.json')))
+        except (ValueError, OSError):
+            summary = {'status': 'incomplete', 'tests': [], 'error': 'Missing or invalid summary'}
+        tests = summary.get('tests', [])
+        failed = [test for test in tests if test['status'] != 'passed']
+        body = ['Status: {}. {} passed, {} failed.'.format(
+            summary['status'], len(tests) - len(failed), len(failed))]
+        if summary.get('error'):
+            body.append(summary['error'])
+        for test in failed:
+            body.append('{}: {} error(s), process exit {}; log {}.'.format(
+                test['name'], test['errors'] if test['errors'] is not None else 'unknown',
+                test['exit'] if test['exit'] is not None else 'unavailable', test['log'] or 'missing'))
+        sections += detail_sections(label + ' Valgrind memory checks', '\n'.join(body))
+        # Include unlisted logs as well: a terminated process may leave only
+        # partial results. Never truncate diagnostics or just print error lines.
+        passed_logs = {test['log'] for test in tests if test['status'] == 'passed'}
+        for path in sorted(glob.glob(root + '/**/*.log', recursive=True)):
+            if os.path.relpath(path, root) not in passed_logs:
+                sections += detail_sections('Valgrind errors — full log: ' + path, read_text(path))
+    return sections
+
+
 def report_pages(summary, sections, context):
     pages, current = [], summary
     for section in sections:
@@ -674,7 +707,8 @@ def build_report(args):
     for part in parts[1:]:
         summary_sections.extend([part] if len(part.encode('utf-8')) <= 48000 else
                                 detail_sections('Extended CI summary (Markdown)', part))
-    pages = report_pages(parts[0], summary_sections + diagnostic_sections('ci-diagnostic-summary.json'), args.context)
+    pages = report_pages(parts[0], summary_sections + valgrind_sections() +
+                         diagnostic_sections('ci-diagnostic-summary.json'), args.context)
     with open(args.output + '.json', 'w', encoding='utf-8') as f:
         json.dump(pages, f)
     report = '\n\n'.join(pages)

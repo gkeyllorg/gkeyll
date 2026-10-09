@@ -15,6 +15,34 @@ def configure(Map values) {
     return this
 }
 
+def valgrindEnabled() {
+    def value = env.GKEYLL_USE_VALGRIND ?: '0'
+    if (!(value in ['0', '1'])) error('GKEYLL_USE_VALGRIND must be 0 or 1.')
+    if (value == '1' && settings.platform == 'perlmutter_gpu') {
+        error('Valgrind requires a CPU workflow; Perlmutter GPU is unsupported.')
+    }
+    return value == '1'
+}
+
+def prepareValgrind(String label) {
+    if (!valgrindEnabled()) return
+    withEnv(["CI_VALGRIND_SCRIPT=${settings.valgrindScript}"]) {
+        loggedSh("${label}-valgrind-configure", 'python3 -I "$CI_VALGRIND_SCRIPT" configure')
+    }
+}
+
+def runValgrind() {
+    if (!valgrindEnabled()) return
+    def previousStage = env.CI_FAILURE_STAGE
+    ciStage('Valgrind serial unit tests') {
+        withEnv(["CI_VALGRIND_SCRIPT=${settings.valgrindScript}"]) {
+            timeCommand("${env.WORKSPACE}/candidate-valgrind-seconds.txt",
+                'python3 -I "$CI_VALGRIND_SCRIPT" run --output "$WORKSPACE/ci-valgrind/candidate"')
+        }
+    }
+    env.CI_FAILURE_STAGE = previousStage
+}
+
 def runReporter(String arguments, boolean authenticated = false) {
     // A Pipeline temporary directory is outside the candidate checkout. Python
     // isolated mode excludes candidate modules and PYTHONPATH from imports.

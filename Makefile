@@ -1,5 +1,7 @@
 # -*- makefile-gmake -*-
 
+GKEYLL_MAKEFILE_DIR := $(dir $(lastword $(MAKEFILE_LIST)))
+
 # Type "make help" to see help for this Makefile
 
 # determine date of build
@@ -184,6 +186,8 @@ endif
 # Command to make dir
 MKDIR_P ?= mkdir -p
 
+include $(GKEYLL_MAKEFILE_DIR)Makefile.valgrind
+
 # At this point, export all top-level variables to sub-makes and
 # recurse downwards.
 #
@@ -283,6 +287,7 @@ core-regression: core ## Build core regression tests
 
 core-install: ## Install core infrastructure code
 	cd core && $(MAKE) -f Makefile-core install
+	cp Makefile.valgrind ${INSTALL_PREFIX}/${PROJ_NAME}/share/Makefile.valgrind
 	test -e config.mak && cp -f config.mak ${INSTALL_PREFIX}/${PROJ_NAME}/share/config.mak || echo "No config.mak"
 	sed '${SED_REPS_STR1};${SED_REPS_STR2}' Makefile_for_ext_C_input > ${INSTALL_PREFIX}/${PROJ_NAME}/share/Makefile
 
@@ -416,6 +421,17 @@ gkeyll-install: ${BUILD_APP}-install ## Install Gkeyll executable
 
 # build all unit tests
 unit: pkpm-unit gyrokinetic-unit vlasov-unit moments-unit core-unit ## Build all unit tests
+
+# Memory-check serial tests in the configured solver and all its dependencies.
+VALGRIND_APPS := core moments vlasov gyrokinetic pkpm
+ifneq ($(filter $(BUILD_APP),$(VALGRIND_APPS)),)
+VALGRIND_APPS := $(shell echo '$(VALGRIND_APPS)' | sed 's/$(BUILD_APP) .*/$(BUILD_APP)/')
+endif
+.PHONY: valcheck
+valcheck: ## Run Valgrind on serial unit tests in the configured solver stack
+	@status=0; for app in $(VALGRIND_APPS); do \
+	  $(MAKE) $$app-valcheck || status=1; \
+	done; exit $$status
 
 # build all regression tests 
 regression: pkpm-regression gyrokinetic-regression vlasov-regression moments-regression core-regression ## Build all regression tests

@@ -1,0 +1,15 @@
+# Optional Valgrind layer for an existing Linux worker image.
+# Supply the worker's original USER with --build-arg RUNTIME_USER=... .
+ARG BASE_IMAGE=ubuntu:24.04
+FROM ${BASE_IMAGE}
+USER root
+RUN if command -v apt-get >/dev/null 2>&1; then \
+      apt-get update && apt-get install -y --no-install-recommends valgrind \
+      && rm -rf /var/lib/apt/lists/*; \
+    elif command -v dnf >/dev/null 2>&1; then \
+      dnf -y install valgrind && dnf clean all; \
+    else \
+      echo 'Use a Debian/Ubuntu or Fedora/RHEL worker image' >&2; exit 1; \
+    fi
+ARG RUNTIME_USER=root
+USER ${RUNTIME_USER}

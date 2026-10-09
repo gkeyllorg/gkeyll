@@ -106,3 +106,5 @@ install: gkeyll-install cgkeyll-install gkeyll-header
 .PHONY: clean
 clean: ## Clean build output
 	rm -rf ../${BUILD_DIR}/gkeyll
+
+include ../Makefile.valgrind
