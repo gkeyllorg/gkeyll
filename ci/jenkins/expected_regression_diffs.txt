@@ -33,4 +33,4 @@
 gyrokinetic/creg/rt_gk_cbc_3x2v_p1 cpu_parallel rt_gk_cbc_3x2v_p1-elc_source_bgk_feq_0.gkyl # fixed BGK equilibrium MPI writer decomposition
 gyrokinetic/creg/rt_gk_cbc_3x2v_p1 cpu_parallel rt_gk_cbc_3x2v_p1-ion_source_bgk_feq_0.gkyl # fixed BGK equilibrium MPI writer decomposition
 gyrokinetic/creg/rt_gk_cbc_3x2v_p1 gpu_parallel rt_gk_cbc_3x2v_p1-elc_source_bgk_feq_0.gkyl # fixed BGK equilibrium MPI writer decomposition
-gyrokinetic/creg/rt_gk_cbc_3x2v_p1 gpu_parallel rt_gk_cbc_3x2v_p1-ion_source_bgk_feq_0.gkyl # fixed BGK equilibrium MPI writer decomposition
+gyrokinetic/creg/rt_gk_cbc_3x2v_p1 gpu_parallel rt_gk_cbc_3x2v_p1-ion_source_bgk_feq_0.gkyl # fixed BGK equilibrium MPI writer decomposition 
