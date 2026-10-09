@@ -1,0 +1,21 @@
+Make this change
+
+phi_wall is not information about the field. What we call "the field" is the plasma potential. This is a wall potential, a property of the wall and our BC. It's got nothing to do with the plasma field. Much like the recycling coefficient is a property of the wall and we put that in our BC (or in the case of adaptive sources in the source).
+
+Can we at least propose a solution to gk_species_phi_wall.c ? It's a 64 lines code that seems compressible and could fit in a few lines in gk_species.c.
+
+I do think this is reasonable, @Maxwell-Rosen. This is a very small file, so I think you can move its contents to gk_species.c. It's only 60 lines or less
+
+What will eventually happen in the future is that we'll need a gk_species_bc.c, and all the logic and implementation of BC handling in gk_species.c will move out.
+
+---
+
+Make this change
+
+phi_wall is not information about the field. What we call "the field" is the plasma potential. This is a wall potential, a property of the wall and our BC. It's got nothing to do with the plasma field. Much like the recycling coefficient is a property of the wall and we put that in our BC (or in the case of adaptive sources in the source).
+
+Can we at least propose a solution to gk_species_phi_wall.c ? It's a 64 lines code that seems compressible and could fit in a few lines in gk_species.c.
+
+I do think this is reasonable, @Maxwell-Rosen. This is a very small file, so I think you can move its contents to gk_species.c. It's only 60 lines or less
+
+What will eventually happen in the future is that we'll need a gk_species_bc.c, and all the logic and implementation of BC handling in gk_species.c will move out.
