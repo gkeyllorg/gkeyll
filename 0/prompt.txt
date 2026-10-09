@@ -1,0 +1,123 @@
+CI failed again, citing array reading operations from a file we didn't touch. Make an appropriate fix 
+
+All regression tests completed in 1274.94 secs
+  Layer moments       mode=cpu_serial   total=96  passed=95  failed=1
+  Layer vlasov        mode=cpu_serial   total=93  passed=93  failed=0
+  Layer gyrokinetic   mode=cpu_serial   total=108  passed=98  failed=10
+  Layer pkpm          mode=cpu_serial   total=20  passed=20  failed=0
+Candidate C-regression check runtime: 1275 seconds
+Gkeyll built with Git changeset "c8e4e4d01325"
+Gkeyll built on "2026-10-09 16:27:23 UTC"
+Built without CUDA
+Built without NCCL
+Built with MPI
+Moments App enabled
+Vlasov App enabled
+Gyrokinetic App enabled
+PKPM App enabled
+
+Regression acknowledgments: 11 candidate line(s), 11 new or updated relative to /home/jenkins/agent/ci-data/baseline-cache/personal/c8e4e4d01325ebd3cb0351ebbefab9f68ce2c504/gkeyll/ci/jenkins/expected_regression_diffs.txt
+Regression results: 306 passed, 4 candidate-only, 6 acknowledged diff(s), 1 unacknowledged failure(s)
+Acknowledged (per /home/jenkins/agent/ci-data/runs/personal/jenkins-gkeyll-ci-personal-142/candidate/e2d0b290d48963a6331e6e1e1a34391a3ab5d5a1/gkeyll/ci/jenkins/expected_regression_diffs.txt):
+  gyrokinetic/creg/rt_gk_mirror_boltz_elc_damped_1x2v_p1
+  gyrokinetic/creg/rt_gk_mirror_boltz_elc_poa_1x2v_p1
+  gyrokinetic/creg/rt_gk_wham_boltz_elc_poa_1x2v_p1
+  gyrokinetic/creg/rt_gk_wham_nonuniformx_1x2v_p1
+  gyrokinetic/creg/rt_gk_wham_nonuniformx_2x2v_p1
+  gyrokinetic/creg/rt_gk_wham_nonuniformx_3x2v_p1
+Candidate-only tests (executed but not compared to a baseline):
+  gyrokinetic/creg/rt_gk_mirror_boltz_elc_poa_2x2v_p1
+  gyrokinetic/creg/rt_gk_mirror_kinetic_elc_poa_1x2v_p1
+  gyrokinetic/creg/rt_gk_mirror_tandem_boltz_elc_poa_1x2v
+  gyrokinetic/creg/rt_gk_wham_kinetic_poa_1x2v_p1
+
+UNACKNOWLEDGED FAILURES:
+  moments/creg/rt_multib_euler_2d [fail]
+      rt_multib_euler_2d-euler_0.gkyl  [DIFF]  candidate array read failed
+
+If any of these are an expected/intentional change (e.g. a physics
+or algorithm change), add a line for each to
+ci/jenkins/expected_regression_diffs.txt with a short reason, e.g.:
+  moments/creg/rt_multib_euler_2d   # <why this changed>
+
+---
+
+CI failed again, citing array reading operations from a file we didn't touch. Make an appropriate fix 
+
+All regression tests completed in 1274.94 secs
+  Layer moments       mode=cpu_serial   total=96  passed=95  failed=1
+  Layer vlasov        mode=cpu_serial   total=93  passed=93  failed=0
+  Layer gyrokinetic   mode=cpu_serial   total=108  passed=98  failed=10
+  Layer pkpm          mode=cpu_serial   total=20  passed=20  failed=0
+Candidate C-regression check runtime: 1275 seconds
+Gkeyll built with Git changeset "c8e4e4d01325"
+Gkeyll built on "2026-10-09 16:27:23 UTC"
+Built without CUDA
+Built without NCCL
+Built with MPI
+Moments App enabled
+Vlasov App enabled
+Gyrokinetic App enabled
+PKPM App enabled
+
+Regression acknowledgments: 11 candidate line(s), 11 new or updated relative to /home/jenkins/agent/ci-data/baseline-cache/personal/c8e4e4d01325ebd3cb0351ebbefab9f68ce2c504/gkeyll/ci/jenkins/expected_regression_diffs.txt
+Regression results: 306 passed, 4 candidate-only, 6 acknowledged diff(s), 1 unacknowledged failure(s)
+Acknowledged (per /home/jenkins/agent/ci-data/runs/personal/jenkins-gkeyll-ci-personal-142/candidate/e2d0b290d48963a6331e6e1e1a34391a3ab5d5a1/gkeyll/ci/jenkins/expected_regression_diffs.txt):
+  gyrokinetic/creg/rt_gk_mirror_boltz_elc_damped_1x2v_p1
+  gyrokinetic/creg/rt_gk_mirror_boltz_elc_poa_1x2v_p1
+  gyrokinetic/creg/rt_gk_wham_boltz_elc_poa_1x2v_p1
+  gyrokinetic/creg/rt_gk_wham_nonuniformx_1x2v_p1
+  gyrokinetic/creg/rt_gk_wham_nonuniformx_2x2v_p1
+  gyrokinetic/creg/rt_gk_wham_nonuniformx_3x2v_p1
+Candidate-only tests (executed but not compared to a baseline):
+  gyrokinetic/creg/rt_gk_mirror_boltz_elc_poa_2x2v_p1
+  gyrokinetic/creg/rt_gk_mirror_kinetic_elc_poa_1x2v_p1
+  gyrokinetic/creg/rt_gk_mirror_tandem_boltz_elc_poa_1x2v
+  gyrokinetic/creg/rt_gk_wham_kinetic_poa_1x2v_p1
+
+UNACKNOWLEDGED FAILURES:
+  moments/creg/rt_multib_euler_2d [fail]
+      rt_multib_euler_2d-euler_0.gkyl  [DIFF]  candidate array read failed
+
+If any of these are an expected/intentional change (e.g. a physics
+or algorithm change), add a line for each to
+ci/jenkins/expected_regression_diffs.txt with a short reason, e.g.:
+  moments/creg/rt_multib_euler_2d   # <why this changed>
+
+---
+
+You may want to include some other modifications directly from jenkins-github-more-reporting. The branch gk-lc-mask-yushmanov will eventually be merged into jenkins-github-more-reporting, so I'd like to lead to less merge conflicts
+
+---
+
+You may want to include some other modifications directly from jenkins-github-more-reporting. The branch gk-lc-mask-yushmanov will eventually be merged into jenkins-github-more-reporting, so I'd like to lead to less merge conflicts
+
+---
+
+How does this address specifically why the file rt_multib_euler_2d-euler_0.gkyl  [DIFF]  candidate array read failed
+was failing. Jenkins is using the CI files from branch jenkins-github-more-reporting, so I'd be surprised if this fixes the issues?
+
+---
+
+How does this address specifically why the file rt_multib_euler_2d-euler_0.gkyl  [DIFF]  candidate array read failed
+was failing. Jenkins is using the CI files from branch jenkins-github-more-reporting, so I'd be surprised if this fixes the issues?
+
+---
+
+So what are the minimum files I need here in order to get this working? Can I undo the changes to the jenkinsfiles, github report, baseline cache and tests? can I just keep the changes to runregression here?
+
+---
+
+So what are the minimum files I need here in order to get this working? Can I undo the changes to the jenkinsfiles, github report, baseline cache and tests? can I just keep the changes to runregression here?
+
+---
+
+Now I only got failures from 
+      rt_gk_cbc_3x2v_p1-elc_source_bgk_feq_0.gkyl  [DIFF]  baseline array read failed (candidate readable)
+I thought this would be resolved by the relevant changes to gk_species_source_bgk.c Fix the errors
+
+---
+
+Now I only got failures from 
+      rt_gk_cbc_3x2v_p1-elc_source_bgk_feq_0.gkyl  [DIFF]  baseline array read failed (candidate readable)
+I thought this would be resolved by the relevant changes to gk_species_source_bgk.c Fix the errors
