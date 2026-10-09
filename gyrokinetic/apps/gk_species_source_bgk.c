@@ -449,7 +449,8 @@ static void
 gk_species_source_bgk_write_array(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_source_bgk *src, int frame,
   double stime, char *file_suffix, char *description, struct gkyl_msgpack_map_elem *iom,
-  int iom_len, struct gkyl_rect_grid grid, struct gkyl_range local, struct gkyl_array *arrout
+  int iom_len, struct gkyl_rect_grid grid, struct gkyl_range local, struct gkyl_comm *comm,
+  struct gkyl_array *arrout
 )
 {
   // Write out a conf-space or a phase-space array.
@@ -481,7 +482,7 @@ gk_species_source_bgk_write_array(
     arr_ho = gkyl_array_acquire(arrout);
   }
 
-  gkyl_comm_array_write(app->comm, &grid, &local, mt, arr_ho, fileNm);
+  gkyl_comm_array_write(comm, &grid, &local, mt, arr_ho, fileNm);
   gkyl_msgpack_data_release(mt);
   gkyl_array_release(arr_ho);
 }
@@ -597,11 +598,11 @@ gk_species_source_bgk_init(
           gk_species_source_bgk_update_integrated_diags_enabled;
         gk_species_source_bgk_write_array(
           app, gks, src, 0, 0.0, "source_bgk_rate", "BGK source relaxation rate.",
-          gks->io_meta_conf, gks->io_meta_conf_len, app->grid, app->local, src->rate
+          gks->io_meta_conf, gks->io_meta_conf_len, app->grid, app->local, app->comm, src->rate
         );
         gk_species_source_bgk_write_array(
           app, gks, src, 0, 0.0, "source_bgk_feq", "BGK source equilibrium function.",
-          gks->io_meta_phase, gks->io_meta_phase_len, gks->grid, gks->local, src->Jrate_df
+          gks->io_meta_phase, gks->io_meta_phase_len, gks->grid, gks->local, gks->comm, src->Jrate_df
         );
       }
 
@@ -673,11 +674,11 @@ gk_species_source_bgk_init(
         // Write out the source_bgk rate and vtsq shape.
         gk_species_source_bgk_write_array(
           app, gks, src, 0, 0.0, "source_bgk_rate", "BGK source relaxation rate.",
-          gks->io_meta_conf, gks->io_meta_conf_len, app->grid, app->local, src->rate
+          gks->io_meta_conf, gks->io_meta_conf_len, app->grid, app->local, app->comm, src->rate
         );
         gk_species_source_bgk_write_array(
           app, gks, src, 0, 0.0, "source_bgk_temp_shape", "BGK source temperature shape.",
-          gks->io_meta_conf, gks->io_meta_conf_len, app->grid, app->local, src->vtsq_shape
+          gks->io_meta_conf, gks->io_meta_conf_len, app->grid, app->local, app->comm, src->vtsq_shape
         );
       }
 
