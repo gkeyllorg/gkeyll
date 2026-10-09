@@ -298,6 +298,7 @@ test_1x1v_lte_correct(int poly_order)
     .conf_range_ext = &conf_local_ext,
     .vel_range = &vel_local,
     .vel_map = NULL,
+    .mass = 1.0,
     .phase_range = &phase_local,
     .model_id = GKYL_MODEL_DEFAULT,
     .use_last_converged = false,
