@@ -386,6 +386,11 @@ and the current or failed stage. Sections include:
 - **Candidate/Baseline unit tests** and **Serial/Parallel C regressions**, with
   per-layer tables and nested failure details, including when tests fail.
 - **Stage durations** and **Timings**.
+- **20 slowest candidate regression tests**, with per-test execution seconds,
+  result, suite/layer, test type, and CPU/GPU serial/parallel mode.
+- **Regression timing changes**, showing baseline/candidate seconds, signed
+  differences, and candidate/baseline ratios for observations at least 2x slower
+  or faster, with both executions taking at least 5 seconds.
 - **New warnings vs main** (or the explicitly selected baseline).
 - **All warnings** and **all errors**, with source log names, line numbers, and
   nearby diagnostic context.
@@ -402,6 +407,28 @@ Run details include UTC start/end timestamps and elapsed time. The Timings table
 ends with total wall-clock time from the Jenkins build start through report
 generation, including the initial agent wait. Individual timings can overlap,
 so this total is not the sum of the step durations.
+
+Per-test timings come from `runregression`'s SQLite `runtime` values and exclude
+compilation and output comparison. The reporter uses the latest finalized
+invocation in each suite/layer database, omitting unfinished or incomplete runs,
+invalid times, and ambiguous duplicate results. The slowest list includes
+completed tests with numerical differences; timing comparisons require passed
+or baseline-created results with matching suite/layer, name, type, and run mode.
+Missing or incompatible timing data is reported as unavailable, never as zero.
+Timing observations do not change CI status.
+
+The 2x and 5-second cutoffs filter small changes and short tests; they do not
+establish statistical significance. These are single-run wall-clock measurements,
+affected by concurrent workers, shared GPUs, machine load, I/O, and baseline cache
+age. Reports explicitly identify cached baseline timing observations. To confirm a
+cost change, rerun the affected baseline and candidate tests repeatedly on the
+same hardware, interleaving revisions with fixed worker/rank counts and controlled
+load. Check medians and run-to-run variability (ideally a confidence interval for
+the timing ratio). Keep inputs, compiler settings, and workload comparable;
+changed step counts or output frequency can change total cost without changing
+per-step performance. The current database does not provide repeated measurements
+under controlled conditions, so the report labels differences as observations.
+
 Displayed log excerpts wrap automatically to the available width using inline
 code formatting, preserving original line breaks and indentation. Archived raw
 logs retain their original lines.

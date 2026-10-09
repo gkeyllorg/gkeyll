@@ -19,6 +19,7 @@ import datetime
 import glob
 import html
 import json
+import math
 import os
 import re
 import socket
@@ -148,6 +149,110 @@ def regression_section(title, summary_file):
         lines += ["", "Candidate-only tests (executed but not compared to a baseline): "
                   + ", ".join(code(t) for t in candidate_only_tests)]
     return dropdown(head, "\n".join(lines).strip() or 'No per-test details recorded.')
+
+
+def regression_timings(root):
+    """Read the latest finalized invocation in each suite/layer database."""
+    timings, issues = {}, []
+    for path in sorted(glob.glob(root + '/**/regressiondb', recursive=True)):
+        suite = os.path.relpath(os.path.dirname(path), root)
+        try:
+            uri = 'file:' + urllib.parse.quote(os.path.abspath(path)) + '?mode=ro'
+            with closing(sqlite3.connect(uri, uri=True)) as db:
+                meta = db.execute('SELECT guid, run_mode, ntotal FROM RegressionMeta '
+                                  'ORDER BY rowid DESC LIMIT 1').fetchone()
+                last = db.execute('SELECT guid FROM RegressionData ORDER BY rowid DESC LIMIT 1').fetchone()
+                if meta is None and last is None:
+                    continue  # No tests selected for this layer.
+                if meta is None or (last and last[0] != meta[0]):
+                    issues.append(path + ': latest invocation is unfinished; timings omitted.')
+                    continue
+                guid, mode, total = meta
+                rows = db.execute('SELECT name, test_type, status, runtime FROM RegressionData '
+                                  'WHERE guid=?', (guid,)).fetchall()
+            if len(rows) != total or mode not in ('cpu_serial', 'cpu_parallel', 'gpu_serial', 'gpu_parallel'):
+                issues.append(path + ': incomplete results or unknown execution mode; timings omitted.')
+                continue
+            seen, duplicates = set(), set()
+            for name, test_type, status, runtime in rows:
+                key = (suite, str(name), str(test_type), mode)
+                if key in seen:
+                    duplicates.add(key)
+                seen.add(key)
+                # Include numerical differences in the slowest list, but not
+                # in performance comparisons. Failed execution is not a speedup.
+                if status not in (-2, 0, 1):
+                    continue
+                if not isinstance(runtime, (int, float)) or not math.isfinite(runtime) or runtime <= 0:
+                    issues.append(path + ': invalid execution time for ' + str(name) + '; timing omitted.')
+                    continue
+                timings[key] = (runtime, status)
+            for key in duplicates:
+                timings.pop(key, None)
+                issues.append(path + ': duplicate result for ' + key[1] + '; timing omitted.')
+        except sqlite3.Error as err:
+            issues.append(path + ': timing data unavailable: ' + str(err))
+    return timings, issues
+
+
+def regression_timing_sections():
+    candidate, candidate_issues = regression_timings('gkylsoft/gkeyll-results')
+    baseline, baseline_issues = regression_timings('_baseline/gkylsoft/gkeyll-results')
+    if not candidate and not baseline and not candidate_issues and not baseline_issues:
+        return []
+
+    def cells(key):
+        suite, name, test_type, mode = key
+        return ' | '.join(code(value.replace('|', '&#124;').replace('\n', ' '))
+                          for value in (name, suite, test_type, mode))
+
+    slowest = sorted(candidate, key=lambda key: (-candidate[key][0], key))[:20]
+    body = ['Per-test wall-clock execution time from the latest finalized run in each suite/layer. '
+            'Compilation and output comparison are excluded. Only completed executions are listed.', '',
+            '| Test | Suite/layer | Type | Mode | Candidate (s) | Result |',
+            '| --- | --- | --- | --- | ---: | --- |']
+    labels = {-2: 'created', 0: 'numerical difference', 1: 'passed'}
+    body += ['| {} | {:.3f} | {} |'.format(cells(key), candidate[key][0], labels[candidate[key][1]])
+             for key in slowest]
+    if not slowest:
+        body = ['No completed candidate execution timings available.']
+    sections = [dropdown('20 slowest candidate regression tests', '\n'.join(body))]
+
+    comparable = [key for key in candidate.keys() & baseline.keys()
+                  if candidate[key][1] in (-2, 1) and baseline[key][1] in (-2, 1)]
+    eligible = [key for key in comparable if min(candidate[key][0], baseline[key][0]) >= 5]
+    changed = [key for key in eligible
+               if candidate[key][0] >= 2 * baseline[key][0] or baseline[key][0] >= 2 * candidate[key][0]]
+    changed.sort(key=lambda key: (-abs(candidate[key][0] - baseline[key][0]), key))
+    body = ['Observed changes of at least 2x in either direction, with **both executions at least 5 s**. '
+            'Matches require the same suite/layer, test name, test type, and CPU/GPU serial/parallel mode. '
+            'Only passed or baseline-created results are compared.', '',
+            '**Single-run observations, not statistically significant findings.** '
+            'Concurrent tests, machine load, I/O, and cached baseline measurements can affect these times. '
+            'These observations do not change CI status. Confirm changes with repeated, interleaved '
+            'baseline/candidate runs on the same hardware with fixed worker/rank counts and controlled load; '
+            'compare medians and variability before attributing a cost change to the candidate.', '',
+            '{} matched successful tests; {} with both times at least 5 s; {} at least 2x different.'.format(
+                len(comparable), len(eligible), len(changed))]
+    if first(read_kv('ci-baseline-cache.txt'), 'status') == 'hit':
+        body += ['', '**Baseline timings were loaded from cache and measured in an earlier run.**']
+    if changed:
+        body += ['', '| Test | Suite/layer | Type | Mode | Baseline (s) | Candidate (s) | Change (s) | Candidate / baseline | Observation |',
+                 '| --- | --- | --- | --- | ---: | ---: | ---: | ---: | --- |']
+        for key in changed:
+            cand, base = candidate[key][0], baseline[key][0]
+            body.append('| {} | {:.3f} | {:.3f} | {:+.3f} | {:.3f}x | {} |'.format(
+                cells(key), base, cand, cand - base, cand / base, 'slower' if cand > base else 'faster'))
+    else:
+        body += ['', 'No comparisons meet the reporting thresholds.' if comparable else
+                 'Timing comparison unavailable: no matching successful baseline/candidate results.']
+    sections.append(dropdown('Regression timing changes: {} slower, {} faster (observed)'.format(
+        sum(candidate[key][0] > baseline[key][0] for key in changed),
+        sum(candidate[key][0] < baseline[key][0] for key in changed)), '\n'.join(body)))
+    if candidate_issues or baseline_issues:
+        sections += detail_sections('Regression timing data unavailable or omitted',
+                                    '\n'.join(candidate_issues + baseline_issues))
+    return sections
 
 
 ERROR_LINE = re.compile(
@@ -542,6 +647,8 @@ def build_report(args):
         section = regression_section(title, path)
         if section:
             parts.append(section)
+
+    parts.extend(regression_timing_sections())
 
     stage_timings = read_text('ci-stage-timings.json')
     if stage_timings:
