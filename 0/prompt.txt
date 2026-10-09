@@ -1,0 +1,16 @@
+I see these pages in the github report. What are they? Why are they helpful. Should we remove it? is it valuable information?
+
+CI diagnostics (continued)
+Captured logs (674) (part 2)
+Maxwell-Rosen commented 2 minutes ago
+@Maxwell-Rosen
+Maxwell-Rosen
+2m ago
+Collaborator
+Author
+CI diagnostics (continued)
+Captured logs (674) (part 1)
+
+---
+
+Remove it from the github comments, but keep it in the jenkins artifacts
