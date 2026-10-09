@@ -418,10 +418,16 @@ gkyl_grid_array_new_from_file(struct gkyl_rect_grid *grid, const char *fname)
     return 0;
   }
 
-  size_t nc = hdr.esznc / gkyl_elem_type_size[hdr.etype];
-  arr = gkyl_array_new(hdr.etype, nc, hdr.tot_cells);
   struct gkyl_range range;
   gkyl_range_init_from_shape1(&range, grid->ndim, grid->cells);
+  // Reading a full grid indexes the allocation using grid->cells. Reject
+  // inconsistent headers before a smaller allocation can be overwritten.
+  if (hdr.tot_cells != range.volume) {
+    return 0;
+  }
+
+  size_t nc = hdr.esznc / gkyl_elem_type_size[hdr.etype];
+  arr = gkyl_array_new(hdr.etype, nc, hdr.tot_cells);
 
   status = gkyl_grid_sub_array_read(grid, &range, arr, fname);
 

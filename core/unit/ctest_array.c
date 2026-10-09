@@ -372,6 +372,35 @@ test_grid_array_new_from_file_1_ho()
 }
 
 void
+test_grid_array_new_from_file_bad_cell_count(void)
+{
+  // Write only two cells of a four-cell grid: the full-grid reader must
+  // reject the mismatch between the header's cell count and the grid.
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, 1, (double[]){0.0}, (double[]){1.0}, (int[]){4});
+  struct gkyl_range range;
+  gkyl_range_init_from_shape1(&range, 1, (int[]){2});
+
+  struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 1, range.volume);
+  for (long i = 0; i < range.volume; ++i) {
+    double *values = gkyl_array_fetch(arr, i);
+    values[0] = i + 1.0;
+  }
+
+  const char *fname = "ctest_grid_array_bad_cell_count.gkyl";
+  int status = gkyl_grid_sub_array_write(&grid, &range, 0, arr, fname);
+  gkyl_array_release(arr);
+  TEST_ASSERT(status == GKYL_ARRAY_RIO_SUCCESS);
+
+  struct gkyl_array *arr2 = gkyl_grid_array_new_from_file(&grid, fname);
+  TEST_CHECK(arr2 == NULL);
+  if (arr2) {
+    gkyl_array_release(arr2);
+  }
+  remove(fname);
+}
+
+void
 test_grid_array_read_p1_ho(void)
 {
   // read just header
@@ -706,6 +735,7 @@ TEST_LIST = {
   {"grid_sub_array_read_1_ho", test_grid_sub_array_read_1_ho},
   {"grid_sub_array_read_2_ho", test_grid_sub_array_read_2_ho},
   {"grid_array_new_from_file_1_ho", test_grid_array_new_from_file_1_ho},
+  {"grid_array_new_from_file_bad_cell_count", test_grid_array_new_from_file_bad_cell_count},
   {"grid_array_read_p1_ho", test_grid_array_read_p1_ho},
   {"array_from_buff_ho", test_array_from_buff_ho},
 #ifdef GKYL_HAVE_CUDA
