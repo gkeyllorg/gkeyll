@@ -505,7 +505,7 @@ barrier(struct gkyl_comm *comm)
 }
 
 // set of functions to help with parallel array output using MPI-IO
-static void
+static int
 sub_array_decomp_write(
   struct mpi_comm *comm, const struct gkyl_rect_decomp *decomp, const struct gkyl_range *range,
   const struct gkyl_msgpack_data *meta, const struct gkyl_array *arr, MPI_File fp
@@ -522,7 +522,10 @@ sub_array_decomp_write(
                     rank * gkyl_file_type_3_range_hrd_size(range->ndim);
 
   MPI_Offset fp_offset = file_loc;
-  MPI_File_seek(fp, fp_offset, MPI_SEEK_SET);
+  int err = MPI_File_seek(fp, fp_offset, MPI_SEEK_SET);
+  if (err != MPI_SUCCESS) {
+    return err;
+  }
 
   do {
     char *buff;
@@ -543,9 +546,12 @@ sub_array_decomp_write(
     fclose(fbuff);
 
     MPI_Status status;
-    MPI_File_write(fp, buff, buff_sz, MPI_CHAR, &status);
+    err = MPI_File_write(fp, buff, buff_sz, MPI_CHAR, &status);
 
     free(buff);
+    if (err != MPI_SUCCESS) {
+      return err;
+    }
 
   } while (0);
 
@@ -563,10 +569,14 @@ sub_array_decomp_write(
   MPI_Status status;
   while (gkyl_range_iter_next(&iter)) {
     long start = gkyl_range_idx(&skip.range, iter.idx);
-    MPI_File_write(fp, _F(start), arr->esznc * skip.delta, MPI_CHAR, &status);
+    err = MPI_File_write(fp, _F(start), arr->esznc * skip.delta, MPI_CHAR, &status);
+    if (err != MPI_SUCCESS) {
+      return err;
+    }
   }
 
 #undef _F
+  return MPI_SUCCESS;
 }
 
 static int
@@ -600,17 +610,20 @@ grid_sub_array_decomp_write_fp(
   // actual header IO is only done by rank 0
   int rank;
   MPI_Comm_rank(comm->mcomm, &rank);
+  int err = MPI_SUCCESS;
   if (rank == 0) {
     MPI_Status status;
-    MPI_File_write(fp, buff, buff_sz, MPI_CHAR, &status);
+    err = MPI_File_write(fp, buff, buff_sz, MPI_CHAR, &status);
   }
   free(buff);
+  if (err != MPI_SUCCESS) {
+    return err;
+  }
 
   struct gkyl_msgpack_data zero_meta = (struct gkyl_msgpack_data){.meta_sz = 0, .meta = 0};
 
   // write data in array
-  sub_array_decomp_write(comm, decomp, range, meta ? meta : &zero_meta, arr, fp);
-  return errno;
+  return sub_array_decomp_write(comm, decomp, range, meta ? meta : &zero_meta, arr, fp);
 }
 
 static int
@@ -620,14 +633,34 @@ array_write(
 )
 {
   struct mpi_comm *mpi = container_of(comm, struct mpi_comm, priv_comm.pub_comm);
+  // Offsets and total cell counts come from the communicator's decomposition.
+  // Reject a different range before any rank opens or modifies the file.
+  int rank;
+  MPI_Comm_rank(mpi->mcomm, &rank);
+  const struct gkyl_range *local = mpi->decomp ? &mpi->decomp->ranges[rank] : 0;
+  int invalid = !local || grid->ndim != local->ndim || range->ndim != local->ndim;
+  if (!invalid) {
+    for (int d = 0; d < range->ndim; ++d) {
+      invalid |= range->lower[d] != local->lower[d] || range->upper[d] != local->upper[d];
+      invalid |= grid->cells[d] != gkyl_range_shape(&mpi->decomp->parent_range, d);
+    }
+  }
+  int any_invalid = 0;
+  int err = MPI_Allreduce(&invalid, &any_invalid, 1, MPI_INT, MPI_MAX, mpi->mcomm);
+  if (err != MPI_SUCCESS) {
+    return err;
+  }
+  if (any_invalid) {
+    return EINVAL;
+  }
   MPI_File fp;
-  int err = MPI_File_open(mpi->mcomm, fname, MPI_MODE_CREATE | MPI_MODE_WRONLY, MPI_INFO_NULL, &fp);
+  err = MPI_File_open(mpi->mcomm, fname, MPI_MODE_CREATE | MPI_MODE_WRONLY, MPI_INFO_NULL, &fp);
   if (err != MPI_SUCCESS) {
     return err;
   }
   err = grid_sub_array_decomp_write_fp(mpi, grid, mpi->decomp, range, meta, arr, fp);
-  MPI_File_close(&fp);
-  return err;
+  int close_err = MPI_File_close(&fp);
+  return err != MPI_SUCCESS ? err : close_err;
 }
 
 static int

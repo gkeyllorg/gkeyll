@@ -1525,11 +1525,10 @@ local function compareFiles(f1, f2, absTol, relTol)
       -- arrayNewFromFile returns (nil, nil) on failure rather than throwing.
       local g1, a1 = G0.Zero.arrayNewFromFile(f1)
       local g2, a2 = G0.Zero.arrayNewFromFile(f2)
-      if not g1 or not g2 then
-         verboseLog(string.format(
-            "    ... failed to read array data from %s or %s\n", shortPath(f1), shortPath(f2)))
-         return false, "array read failed"
-      end
+      -- Diagnose the candidate first: a broken baseline must never hide broken
+      -- candidate output. A baseline-only failure can be acknowledged narrowly.
+      if not g2 then return false, "candidate array read failed" end
+      if not g1 then return false, "baseline array read failed (candidate readable)" end
 
       if not G0.Zero.rectGridCmp(g1, g2) then
          return false, "grid mismatch"
@@ -1664,7 +1663,7 @@ local function check_action(test, runDir, testType, absTol, relTol)
          for _, ff in ipairs(failedFiles) do
             log(string.format("    %s\n", ff))
          end
-         log("  Legend: [DIFF] values exceed tolerance  [MISSING] file not produced by run\n")
+         log("  Legend: [DIFF] comparison failed  [MISSING] file not produced by run\n")
          -- Build checkLog for DB storage so queryrdb --test N surfaces magnitudes.
          checkLog = "--- Comparison failures ---\n"
             .. table.concat(failedFiles, "\n")

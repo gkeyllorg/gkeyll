@@ -531,6 +531,13 @@ The scheduler fixtures use tiny shell/make jobs, not plasma simulations:
 LUAJIT=/path/to/luajit python3 -m unittest discover -s ci/jenkins/tests -p 'test_*.py'
 ```
 
+The BGK output fixture also exercises the real CBC input for one step in serial
+and on four MPI ranks, and compares the source rate and equilibrium arrays.
+Set `GKEYLL` to the installed executable, `GKEYLL_CBC` to the built
+`rt_gk_cbc_3x2v_p1`, and `MPIEXEC` to the matching MPI launcher, then run
+`python3 -m unittest ci.jenkins.tests.test_bgk_source_io`. When using build-tree
+executables, expose their shared libraries through `LD_LIBRARY_PATH`.
+
 ## Numerical regression differences
 
 Expected numerical changes require a reviewed, new or updated entry in
@@ -539,6 +546,13 @@ honors only lines that are new or changed in the candidate file relative to
 the baseline file. Unchanged inherited entries are inert, so a later PR can
 safely remove stale lines. Updating an inherited line's reason explicitly
 acknowledges a new intentional change for that test.
+
+For a writer fix whose old baseline array is corrupt, use the narrower form
+`<full-test-name> <run-mode> <filename> baseline-array-read-failed # reason`.
+This acknowledges only that file's baseline read failure, and only when the
+candidate array is readable. Every failing file must have a matching entry;
+numerical differences, missing or unreadable candidate files, and execution
+failures still fail CI. These entries follow the same new-or-changed rule.
 
 A C regression test introduced by the candidate is executed, but is not
 numerically compared until it exists in a baseline. CI reports it as

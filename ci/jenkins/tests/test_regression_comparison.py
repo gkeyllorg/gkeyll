@@ -44,6 +44,16 @@ def field_file(value):
             1, 1, 0, 2, 1, 1, 0., 1., 8, 1, value))
 
 
+def parallel_field_file(tot_cells=6):
+    # Two uneven MPI blocks, with a 2D grid and two values per cell.
+    header = (b'gkyl0' + struct.pack('=QQQ', 1, 3, 0)
+              + struct.pack('=QQQQddddQQQ', 2, 2, 3, 2,
+                            0., 0., 1., 1., 16, tot_cells, 2))
+    first = struct.pack('=QQQQQ8d', 1, 1, 2, 2, 4, *range(8))
+    second = struct.pack('=QQQQQ4d', 3, 1, 3, 2, 2, *range(8, 12))
+    return header + first + second
+
+
 @unittest.skipUnless(GKEYLL, 'Set GKEYLL to run the comparison fixtures')
 class ComparisonTests(unittest.TestCase):
     def setUp(self):
@@ -128,6 +138,25 @@ assert(detail:find(%s, 1, true), detail)
     def test_block_data_within_tolerance(self):
         (self.run / 'rt_fixture_b0-euler_0.gkyl').write_bytes(field_file(1. + 1e-13))
         self.check()
+
+    def test_parallel_arrays(self):
+        for directory in (self.accepted, self.run):
+            (directory / 'rt_fixture_b0-euler_0.gkyl').write_bytes(parallel_field_file())
+        self.check()
+
+    def test_parallel_array_read_failures_identify_side(self):
+        name = 'rt_fixture_b0-euler_0.gkyl'
+        valid = parallel_field_file()
+        # The historical BGK writer advertised only configuration-space cells.
+        for corrupt in (parallel_field_file(tot_cells=3), valid[:-8]):
+            for bad_baseline, bad_candidate, detail in (
+                    (True, False, 'baseline array read failed (candidate readable)'),
+                    (False, True, 'candidate array read failed'),
+                    (True, True, 'candidate array read failed')):
+                with self.subTest(baseline=bad_baseline, candidate=bad_candidate):
+                    (self.accepted / name).write_bytes(corrupt if bad_baseline else valid)
+                    (self.run / name).write_bytes(corrupt if bad_candidate else valid)
+                    self.check(False, detail)
 
     def test_changed_topology(self):
         (self.run / 'rt_fixture_btopo.gkyl').write_bytes(meta_file(

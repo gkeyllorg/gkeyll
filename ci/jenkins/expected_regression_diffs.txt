@@ -18,5 +18,3 @@
 #
 # Example:
 # gyrokinetic/rt_gk_ion_sound_1x2v_p1   # updated collision-operator normalization
-
-gyrokinetic/rt_gk_sheath_2x2v_p1   # fixed output of vcutsq

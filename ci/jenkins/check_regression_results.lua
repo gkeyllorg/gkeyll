@@ -49,7 +49,7 @@ if not resultsDir then
 end
 
 -- Parse an acknowledgment file into full, trimmed source lines mapped to their
--- test names. Keep the comment in the source-line key: changing a reason is a
+-- test names or scoped entries. Keep the comment in the source-line key: changing a reason is a
 -- deliberate new acknowledgment, while an identical inherited line is inert.
 local function readAcknowledgments(path)
    local entries = {}
@@ -123,9 +123,25 @@ local layerCounts = {}  -- layerCounts[layer] = { passed, acked, failed }
 
 -- Names are stored layer-qualified ("moments/creg/rt_x"); accept the shorter
 -- spellings in the acknowledgment file too.
-local function isAcked(layer, name)
+local function isAcked(layer, name, mode, status, runlog)
    local base = name:match("([^/]+)$") or name
-   return acked[name] or acked[layer .. "/" .. base] or acked[base]
+   if acked[name] or acked[layer .. "/" .. base] or acked[base] then return true end
+
+   -- A repaired writer can make an old baseline unreadable. Limit this
+   -- transition to explicitly named files and modes, with readable candidate
+   -- arrays. Never waive another difference or an execution failure.
+   if status ~= 0 then return false end
+   local body = runlog and runlog:match("%-%-%- Comparison failures %-%-%-\n(.*)$")
+   if not body or body == "" then return false end
+   local matched = false
+   for line in body:gmatch("[^\n]+") do
+      local file = line:match("^(%S+)  %[DIFF%]  baseline array read failed %(candidate readable%)$")
+      if not file or not acked[table.concat({name, mode, file, "baseline-array-read-failed"}, " ")] then
+         return false
+      end
+      matched = true
+   end
+   return matched
 end
 
 -- Per-file comparison lines from the stored run log, for the CI report.
@@ -159,6 +175,7 @@ for _, layer in ipairs(LAYERS) do
             .. "; rerun runregression configure --drop-tables.")
       end
       local guid = conn:rowexec("select guid from RegressionMeta order by rowid desc limit 1")
+      local mode = conn:rowexec("select run_mode from RegressionMeta order by rowid desc limit 1")
       layerCounts[layer] = { passed = 0, acked = 0, failed = 0 }
       if guid then
          local t, nrow = conn:exec(string.format(
@@ -176,7 +193,7 @@ for _, layer in ipairs(LAYERS) do
                -- output remain CI failures even for candidate-only tests.
                if status == 0 and isCandidateOnly(layer, key) then
                   table.insert(candidateOnly, key)
-               elseif isAcked(layer, key) then
+               elseif isAcked(layer, key, mode, status, t.runlog[i]) then
                   table.insert(ackedHits, key)
                   layerCounts[layer].acked = layerCounts[layer].acked + 1
                else
