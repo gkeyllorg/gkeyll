@@ -6,11 +6,13 @@
  *
  * @param comm Communicator
  * @param grid Grid object to write
- * @param range Range describing portion of the array to output.
+ * @param range Range describing portion of the array to output. For MPI, its
+ * bounds and dimension must match this rank's communicator decomposition.
  * @param meta Meta-data to write. Set to NULL or 0 if no metadata
  * @param arr Array object to write
  * @param fname Name of output file (include .gkyl extension)
- * @return Status flag: 0 if write succeeded, 'errno' otherwise
+ * @return Status flag: 0 if write succeeded, nonzero otherwise (MPI error code
+ * or EINVAL for a mismatched MPI decomposition).
  */
 int gkyl_comm_array_write(
   struct gkyl_comm *comm, const struct gkyl_rect_grid *grid, const struct gkyl_range *range,

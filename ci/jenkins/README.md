@@ -15,7 +15,6 @@ credentials, and command-line client.
 Shared guides cover [installed dependencies](README.dependencies.md),
 [GitHub reporting and controller setup](README.reporting.md),
 [regression scheduling and expected differences](README.regressions.md),
-[Valgrind memory checking](README.valgrind.md),
 [storage and caching](README.storage.md), and [CI development tests](tests/README.md).
 
 ## Unified local command
@@ -54,7 +53,6 @@ The status's **Details** link opens it. Reruns update one report per commit and
 machine context. Reports include unit and regression results, compiler
 diagnostics, warnings relative to the baseline, stage durations, the 20 slowest
 regressions, and timing changes. Reporting failures do not change test results.
-Optional Valgrind checks include complete memory-error logs in the report.
 
 Source discovery and checkouts are anonymous. Each controller uses its existing
 GitHub username/token credential for statuses and comments; see

@@ -6,7 +6,6 @@ USER=`whoami`
 echo "# OS type is $OSTYPE on $MACHINE user $USER"
 
 # Defaults
-GKEYLL_USE_VALGRIND=${GKEYLL_USE_VALGRIND:-0}
 PREFIX=${HOME}/gkylsoft
 APP=pkpm
 ALLTARGETS=gkeyll
@@ -64,7 +63,6 @@ CUDA_ARCH                  CUDA architecture flag to specify compute capability.
 --use-nccl                 [no] Build NCCL-dependent code
 --use-cudss                [no] Build CUDSS-dependent code
 --use-lua                  [no] Build Lua dependent code
---use-valgrind=yes|no       [no] Build for CPU memory checking with Valgrind
 --use-lapack-lite          [no] Build LAPACK-lite (lower efficiency that OpenBLAS)
                            Cannot be combined with --lapack-* options or
                            LAPACK_INC_DIR/LAPACK_LIB_DIR/LAPACK_LIB_NAME overrides.
@@ -141,16 +139,6 @@ do
    --help)
       show_help
       exit 0
-      ;;
-   --use-valgrind)
-      case "$value" in
-         yes) GKEYLL_USE_VALGRIND=1 ;;
-         no) GKEYLL_USE_VALGRIND=0 ;;
-         *) die "--use-valgrind requires yes or no" ;;
-      esac
-      ;;
-   GKEYLL_USE_VALGRIND) # Compatibility with existing scripts.
-      GKEYLL_USE_VALGRIND="$value"
       ;;
    CC)
       [ -n "$value" ] || die "Missing value in flag $key."
@@ -376,12 +364,6 @@ else
 fi
 : "${SUPERLU_LIB_NAME=superlu}"
 
-case "$GKEYLL_USE_VALGRIND" in
-   0|1) ;;
-   *) die "GKEYLL_USE_VALGRIND must be 0 or 1" ;;
-esac
-export GKEYLL_USE_VALGRIND
-
 # Write out config.mak
 cat <<EOF1 > config.mak
 # -*- makefile-gmake -*-
@@ -392,7 +374,6 @@ PREFIX=$PREFIX
 # Compilers
 CC=$CC
 ARCH_FLAGS=$ARCH_FLAGS
-GKEYLL_USE_VALGRIND=$GKEYLL_USE_VALGRIND
 CUDA_ARCH=$CUDA_ARCH
 
 # App to build

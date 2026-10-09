@@ -22,17 +22,13 @@ def loadReporting(Map settings) {
                 git show FETCH_HEAD:ci/jenkins/baseline_cache.sh > baseline_cache.sh
                 chmod +x baseline_cache.sh
                 git show FETCH_HEAD:ci/jenkins/prebuilt_config.py > prebuilt_config.py
-                git show FETCH_HEAD:ci/jenkins/valgrind.py > valgrind.py
-                git show FETCH_HEAD:core/minus/valcheck.sh > valcheck.sh
             '''
         }
         settings.reportingCommit = sh(returnStdout: true, script: 'git rev-parse FETCH_HEAD').trim()
         reporting = load('jenkins_reporting.groovy')
         settings.cacheScript = pwd() + '/baseline_cache.sh'
         settings.prebuiltScript = pwd() + '/prebuilt_config.py'
-        settings.valgrindScript = pwd() + '/valgrind.py'
         reporting.configure(settings)
-        reporting.valgrindEnabled()
     }
 }
 
@@ -947,7 +943,7 @@ node(nodeLabel) {
                         }
                     }
                     archiveArtifacts allowEmptyArchive: true,
-                        artifacts: 'ci-valgrind/**,ci-run-path.txt,ci-*-config.mak,ci-dependencies/**,ci-trusted-ci-commit.txt,ci-reporting-commit.txt,ci-selection.txt,ci-baseline-preflight.txt,ci-baseline-cache.txt,ci-trusted-checker-commit.txt,ci-candidate-commit.txt,ci-baseline-commit.txt,ci-report*.md,ci-report*.md.json,ci-report-delivery.json,ci-diagnostic-summary.json,ci-stage-history.txt,ci-stage-timings.json,ci-command-logs/**,baseline-*.log*,baseline-slurm-*,*-unit-results.txt,*-seconds.txt,ci-timing-summary.txt,ci-regression-summary.txt,ci-failure-summary.txt,slurm-*.out,slurm-*-job-id.txt,slurm-*-job-status.txt,build/**/*.log,cuda-build/**/*.log,_baseline/build/**/*.log,_baseline/cuda-build/**/*.log,_baseline/gkylsoft/gkeyll-results/**,gkylsoft/gkeyll-results/**'
+                        artifacts: 'ci-run-path.txt,ci-*-config.mak,ci-dependencies/**,ci-trusted-ci-commit.txt,ci-reporting-commit.txt,ci-selection.txt,ci-baseline-preflight.txt,ci-baseline-cache.txt,ci-trusted-checker-commit.txt,ci-candidate-commit.txt,ci-baseline-commit.txt,ci-report*.md,ci-report*.md.json,ci-report-delivery.json,ci-diagnostic-summary.json,ci-stage-history.txt,ci-stage-timings.json,ci-command-logs/**,baseline-*.log*,baseline-slurm-*,*-unit-results.txt,*-seconds.txt,ci-timing-summary.txt,ci-regression-summary.txt,ci-failure-summary.txt,slurm-*.out,slurm-*-job-id.txt,slurm-*-job-status.txt,build/**/*.log,cuda-build/**/*.log,_baseline/build/**/*.log,_baseline/cuda-build/**/*.log,_baseline/gkylsoft/gkeyll-results/**,gkylsoft/gkeyll-results/**'
                 } catch (err) {
                     terminalStatus = 'error'
                     terminalDescription = 'Perlmutter GPU CI artifact archival failed.'

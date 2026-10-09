@@ -112,8 +112,6 @@ Reports use collapsed sections for:
   trusted code commits, UTC timestamps, and queue/execution times.
 - Candidate/baseline unit tests and serial/parallel C regressions, with layer
   totals and failure details.
-- Optional [Valgrind memory checks](README.valgrind.md), with complete failing
-  test logs, including every stack trace and leak record across continuation comments.
 - Stage durations, timings, the 20 slowest candidate regressions, and regression
   timing changes.
 - New warnings relative to the selected baseline, all warnings/errors with log

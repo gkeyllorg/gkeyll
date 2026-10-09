@@ -114,8 +114,6 @@ printf '1\n' > "$work_dir/workspace/ci-command-logs/candidate-unit-build.log.exi
 printf 'report part\n' > "$work_dir/workspace/ci-report-2.md"
 printf '{}\n' > "$work_dir/workspace/ci-report.md.json"
 printf 'unit results\n' > "$work_dir/workspace/candidate-unit-results.txt"
-mkdir -p "$work_dir/workspace/ci-valgrind/candidate"
-printf 'full memory error log\n' > "$work_dir/workspace/ci-valgrind/candidate/ctest_fixture.log"
 rm "$candidate/candidate-manifest.txt"
 ln -s "$work_dir/outside-manifest.txt" "$candidate/candidate-manifest.txt"
 $cache_tool finalize-candidate "$root" "$platform" "$sha" "$sha" failure 'C regressions' "$work_dir/workspace"
@@ -128,7 +126,6 @@ cmp "$work_dir/workspace/ci-command-logs/candidate-unit-build.log" "$candidate/c
 test -f "$candidate/ci-command-logs/candidate-unit-build.log.exit"
 test -f "$candidate/ci-report-2.md"
 test -f "$candidate/ci-report.md.json"
-cmp "$work_dir/workspace/ci-valgrind/candidate/ctest_fixture.log" "$candidate/ci-valgrind/candidate/ctest_fixture.log"
 ln -s "$work_dir" "$work_dir/workspace/gkylsoft"
 ln -s "$work_dir" "$work_dir/workspace/build"
 $cache_tool stage-candidate-artifacts "$root" "$platform" "$sha" "$work_dir/workspace" "$sha"
@@ -228,7 +225,7 @@ done
 
 # The trusted helper itself can be fetched to a different temporary directory.
 mkdir "$work_dir/other-tools"
-cp "$cache_tool" "$repo_root/ci/jenkins/prebuilt_config.py" "$repo_root/ci/jenkins/valgrind.py" "$work_dir/other-tools/"
+cp "$cache_tool" "$repo_root/ci/jenkins/prebuilt_config.py" "$work_dir/other-tools/"
 test "$($cache_tool context)" = "$("$work_dir/other-tools/baseline_cache.sh" context)"
 
 for file in baseline-install.log baseline-c-compile.log.exit gkylsoft/gkeyll-results/moments/creg-accepted/field.gkyl dependencies/lib/library.so; do

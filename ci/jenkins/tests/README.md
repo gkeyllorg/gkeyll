@@ -14,12 +14,7 @@ Run offline reporter tests with:
 python3 -m unittest discover -s ci/jenkins/tests -p 'test_*.py'
 java -cp /path/to/groovy-all.jar groovy.ui.GroovyMain ci/jenkins/tests/test_jenkins_reporting.groovy
 java -cp /path/to/groovy-all.jar groovy.ui.GroovyMain ci/jenkins/tests/test_bootstrap_reporting.groovy
-java -cp /path/to/groovy-all.jar groovy.ui.GroovyMain ci/jenkins/tests/test_valgrind.groovy
 ```
-
-The [Valgrind fixtures](../README.valgrind.md#verification) include real
-memory-error injection when Valgrind and a C compiler are available. Run these
-inside the CI worker container to exercise the installed runtime.
 
 The queue integration test mocks GitHub for all four platforms, checking
 supersession before agent allocation, cancellation, active runs, persistence,

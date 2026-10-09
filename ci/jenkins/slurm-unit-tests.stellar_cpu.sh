@@ -17,14 +17,6 @@ cd "$CI_CANDIDATE_DIR"
 . machines/module_load.stellar-intel.sh
 if [ -n "${GKEYLL_CI_DEPENDENCY_ENV:-}" ]; then . "$GKEYLL_CI_DEPENDENCY_ENV"; fi
 
-if [ "${GKEYLL_USE_VALGRIND:-0}" = 1 ]; then
-    started="$(date +%s)"
-    result=0
-    python3 -I "$CI_VALGRIND_SCRIPT" run --output "$CI_WORKSPACE/ci-valgrind/candidate" || result=$?
-    printf '%s\n' "$(( $(date +%s) - started ))" > "$CI_WORKSPACE/candidate-valgrind-seconds.txt"
-    [ "$result" -eq 0 ] || exit "$result"
-fi
-
 started="$(date +%s)"
 GKYL_UNIT_RESULTS="$CI_WORKSPACE/candidate-unit-results.txt" make unit-run
 elapsed="$(( $(date +%s) - started ))"

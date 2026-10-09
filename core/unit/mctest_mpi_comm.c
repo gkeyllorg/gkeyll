@@ -2,6 +2,7 @@
 
 #ifdef GKYL_HAVE_MPI
 
+#include <errno.h>
 #include <math.h>
 #include <mpi.h>
 #include <stc/cstr.h>
@@ -1573,7 +1574,77 @@ mpi_bcast_2d_host_ho()
   }
 }
 
+// Exercise phase-space offsets with an uneven configuration-space partition.
+static void
+mpi_array_write_1x1v_ho(void)
+{
+  int rank, nrank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &nrank);
+  struct gkyl_range conf, vel;
+  gkyl_range_init_from_shape1(&conf, 1, (int[]){2 * nrank + 1});
+  gkyl_range_init_from_shape1(&vel, 1, (int[]){3});
+  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(1, &nrank, &conf);
+  struct gkyl_rect_decomp *phase_decomp = gkyl_rect_decomp_extended_new(&vel, decomp);
+  struct gkyl_comm *comm =
+    gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){.mpi_comm = MPI_COMM_WORLD, .decomp = decomp});
+  struct gkyl_comm *phase_comm = gkyl_comm_extend_comm(comm, &vel);
+
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, 2, (double[]){0., -1.}, (double[]){1., 1.}, (int[]){2 * nrank + 1, 3});
+  struct gkyl_range local, local_ext;
+  gkyl_create_ranges(&phase_decomp->ranges[rank], (int[]){1, 0}, &local_ext, &local);
+  struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 1, local_ext.volume);
+  gkyl_array_clear(arr, -1.);
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &local);
+  while (gkyl_range_iter_next(&iter)) {
+    double *val = gkyl_array_fetch(arr, gkyl_range_idx(&local, iter.idx));
+    val[0] = 10. * iter.idx[0] + iter.idx[1];
+  }
+
+  const char *fname = "ctest_mpi_array_write_1x1v.gkyl";
+  TEST_CHECK(gkyl_comm_array_write(phase_comm, &grid, &local, 0, arr, fname) == 0);
+  // The old BGK mistake must be rejected collectively without damaging output.
+  TEST_CHECK(gkyl_comm_array_write(comm, &grid, &local, 0, arr, fname) == EINVAL);
+  struct gkyl_range bad_local = local;
+  if (rank == 0) {
+    bad_local.upper[0]++;
+  }
+  TEST_CHECK(gkyl_comm_array_write(phase_comm, &grid, &bad_local, 0, arr, fname) == EINVAL);
+  struct gkyl_rect_grid bad_grid = grid;
+  if (rank == 0) {
+    bad_grid.cells[1]++;
+  }
+  TEST_CHECK(gkyl_comm_array_write(phase_comm, &bad_grid, &local, 0, arr, fname) == EINVAL);
+
+  struct gkyl_rect_grid read_grid;
+  struct gkyl_array *read_arr = gkyl_grid_array_new_from_file(&read_grid, fname);
+  TEST_CHECK(read_arr != NULL);
+  if (read_arr) {
+    struct gkyl_range global;
+    gkyl_range_init_from_shape1(&global, 2, grid.cells);
+    TEST_CHECK(read_arr->size == global.volume);
+    gkyl_range_iter_init(&iter, &global);
+    while (gkyl_range_iter_next(&iter)) {
+      const double *val = gkyl_array_cfetch(read_arr, gkyl_range_idx(&global, iter.idx));
+      TEST_CHECK(val[0] == 10. * iter.idx[0] + iter.idx[1]);
+    }
+    gkyl_array_release(read_arr);
+  }
+  gkyl_comm_barrier(comm);
+  if (rank == 0) {
+    remove(fname);
+  }
+  gkyl_array_release(arr);
+  gkyl_comm_release(phase_comm);
+  gkyl_comm_release(comm);
+  gkyl_rect_decomp_release(phase_decomp);
+  gkyl_rect_decomp_release(decomp);
+}
+
 TEST_LIST = {
+  {"mpi_array_write_1x1v_ho", mpi_array_write_1x1v_ho},
   {"mpi_0_ho", mpi_0_ho},
   {"mpi_1_ho", mpi_1_ho},
   {"mpi_n2_allreduce_ho", mpi_n2_allreduce_ho},

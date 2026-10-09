@@ -70,6 +70,13 @@ all: $(LLIB) $(SLLIB) ## Build all targets
 .DEFAULT_GOAL := all
 
 # c -> o files
+# These kernels deliberately handle non-finite inputs. Fast-math's finite-only
+# assumption removes their isfinite guards (and triggers Clang diagnostics).
+# Apply to both CPU and CUDA recipes without editing generated kernels.
+AMBI_BOLT_OBJS := $(filter ../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/ambi_bolt_potential/%.c.o,$(OBJS))
+$(AMBI_BOLT_OBJS): override CFLAGS += -fno-finite-math-only
+$(AMBI_BOLT_OBJS): Makefile-gyrokinetic
+
 ../$(BUILD_DIR)/gyrokinetic/%.c.o: %.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) -c $(CFLAGS) $(ARCH_FLAGS) $(INCS) $< -o $@
@@ -235,7 +242,8 @@ unit-run: ## Run unit tests without (re)building them
 	fi
 
 valcheck: unit ## Run valgrind on unit test
-	cd .. && sh core/minus/valcheck.sh $(patsubst ../%,%,$(UNITS))
+	cd ../ && $(foreach unit,$(UNITS),valgrind --leak-check=full ./$(patsubst ../%,%,$(unit)) -E 2>./$(patsubst ../%,%,$(unit))_val_err 1>/dev/null;)
+	$(foreach unit,$(UNITS),../core/minus/checkval.sh $(unit);)
 
 -include $(DEPS)
 
@@ -258,5 +266,3 @@ install: all
 .PHONY: clean
 clean: ## Clean build output
 	rm -rf ../${BUILD_DIR}/gyrokinetic
-
-include ../Makefile.valgrind

@@ -144,8 +144,6 @@ def loadReporting(Map settings) {
                         git show FETCH_HEAD:ci/jenkins/jenkins_reporting.groovy > jenkins_reporting.groovy
                         git show FETCH_HEAD:ci/jenkins/github_report.py > github_report.py
                         git show FETCH_HEAD:ci/jenkins/prebuilt_config.py > prebuilt_config.py
-                        git show FETCH_HEAD:ci/jenkins/valgrind.py > valgrind.py
-                        git show FETCH_HEAD:core/minus/valcheck.sh > valcheck.sh
                         git show FETCH_HEAD:ci/jenkins/baseline_cache.sh > baseline_cache.sh
                         chmod +x baseline_cache.sh
                     ''')
@@ -154,9 +152,7 @@ def loadReporting(Map settings) {
                 settings.cacheScript = pwd() + '/baseline_cache.sh'
                 reporting = load('jenkins_reporting.groovy')
                 settings.prebuiltScript = pwd() + '/prebuilt_config.py'
-                settings.valgrindScript = pwd() + '/valgrind.py'
                 reporting.configure(settings)
-                reporting.valgrindEnabled()
                 env.CI_BOOTSTRAP_COMPLETE = 'true'
             }
         } finally { archiveBootstrap() }
@@ -400,9 +396,7 @@ def buildTree(String label, String prefix, String mkdeps, String configure, Stri
                 ./machines/${configure}
             """)
         }
-        reporting.prepareValgrind(label)
         timeCommand("${metricDirectory}${label}-unit-build-seconds.txt", "make -j${jobs} unit")
-        if (label == 'candidate') reporting.runValgrind()
         timeCommand("${metricDirectory}${label}-unit-test-seconds.txt", "GKYL_UNIT_RESULTS='${env.WORKSPACE}/${label}-unit-results.txt' make unit-run")
         timeCommand("${metricDirectory}${label}-regression-build-seconds.txt", "make -j${jobs} regression")
         timeCommand("${metricDirectory}${label}-install-seconds.txt", "make -j${jobs} install")
@@ -709,7 +703,7 @@ def runCi = {
                     echo "WARNING: could not publish the GitHub CI report: ${reportError}"
                 }
             }
-            archiveArtifacts allowEmptyArchive: true, artifacts: 'ci-valgrind/**,ci-run-path.txt,ci-*-config.mak,ci-dependencies/**,ci-trusted-ci-commit.txt,ci-reporting-commit.txt,ci-selection.txt,ci-baseline-preflight.txt,ci-baseline-cache.txt,ci-trusted-checker-commit.txt,ci-candidate-commit.txt,ci-baseline-commit.txt,*-seconds.txt,*-unit-results.txt,candidate-*.log*,baseline-*.log*,ci-failure-detail.txt,ci-report*.md,ci-report*.md.json,ci-report-delivery.json,ci-diagnostic-summary.json,ci-stage-history.txt,ci-stage-timings.json,ci-command-logs/**,ci-timing-summary.txt,ci-regression-summary.txt,ci-parallel-regression-summary.txt,ci-failure-summary.txt,build/**/*.log,cuda-build/**/*.log,_baseline/build/**/*.log,_baseline/cuda-build/**/*.log,_baseline/gkylsoft/gkeyll-results/**,gkylsoft/gkeyll-results/**'
+            archiveArtifacts allowEmptyArchive: true, artifacts: 'ci-run-path.txt,ci-*-config.mak,ci-dependencies/**,ci-trusted-ci-commit.txt,ci-reporting-commit.txt,ci-selection.txt,ci-baseline-preflight.txt,ci-baseline-cache.txt,ci-trusted-checker-commit.txt,ci-candidate-commit.txt,ci-baseline-commit.txt,*-seconds.txt,*-unit-results.txt,candidate-*.log*,baseline-*.log*,ci-failure-detail.txt,ci-report*.md,ci-report*.md.json,ci-report-delivery.json,ci-diagnostic-summary.json,ci-stage-history.txt,ci-stage-timings.json,ci-command-logs/**,ci-timing-summary.txt,ci-regression-summary.txt,ci-parallel-regression-summary.txt,ci-failure-summary.txt,build/**/*.log,cuda-build/**/*.log,_baseline/build/**/*.log,_baseline/cuda-build/**/*.log,_baseline/gkylsoft/gkeyll-results/**,gkylsoft/gkeyll-results/**'
             if (reportError) description = "${description} (report not posted)".take(140)
         }
         if (candidateDir && baselineCommit) {

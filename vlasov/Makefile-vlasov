@@ -186,7 +186,8 @@ unit-run: ## Run unit tests without (re)building them
 	fi
 
 valcheck: unit ## Run valgrind on unit test
-	cd .. && sh core/minus/valcheck.sh $(patsubst ../%,%,$(UNITS))
+	cd ../ && $(foreach unit,$(UNITS),valgrind --leak-check=full ./$(patsubst ../%,%,$(unit)) -E 2>./$(patsubst ../%,%,$(unit))_val_err 1>/dev/null;)
+	$(foreach unit,$(UNITS),../core/minus/checkval.sh $(unit);)
 
 # load each DEPS fragments
 -include $(DEPS)
@@ -209,5 +210,3 @@ install: all
 .PHONY: clean
 clean: ## Clean build output
 	rm -rf ../${BUILD_DIR}/vlasov
-
-include ../Makefile.valgrind

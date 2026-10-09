@@ -1621,7 +1621,89 @@ test_ambi_bolt_phi_calc_3x_parabola_ho()
   gkyl_proj_on_basis_release(proj_func);
 }
 
+// Non-finite flux/density must take the kernel fallback even in optimized builds.
+static void
+test_ambi_bolt_nonfinite_ho(void)
+{
+  const char *inputs[] = {"inf", "-inf", "nan"};
+  for (int cdim = 1; cdim <= 3; ++cdim) {
+    for (int poly_order = 1; poly_order <= 2; ++poly_order) {
+      struct gkyl_rect_grid grid;
+      gkyl_rect_grid_init(
+        &grid, cdim, (double[]){0., 0., 0.}, (double[]){1., 1., 1.}, (int[]){2, 2, 2}
+      );
+      struct gkyl_basis basis;
+      gkyl_cart_modal_serendip(&basis, cdim, poly_order);
+      int ghost[] = {1, 1, 1};
+      struct gkyl_range local, local_ext;
+      gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
+      struct gkyl_ambi_bolt_potential *up =
+        gkyl_ambi_bolt_potential_new(&grid, &basis, 1., -1., 1., false);
+      struct gkyl_array *one = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+      struct gkyl_array *flux = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+      struct gkyl_array *sheath =
+        gkyl_array_new(GKYL_DOUBLE, 2 * basis.num_basis, local_ext.volume);
+      struct gkyl_array *phi = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+      gkyl_array_clear(one, 0.);
+      for (long loc = 0; loc < local_ext.volume; ++loc) {
+        double *val = gkyl_array_fetch(one, loc);
+        val[0] = pow(2., cdim / 2.);
+      }
+      for (int input = 0; input < 3; ++input) {
+        // Parse at runtime so the test itself needs no non-finite literals or
+        // floating-point classification under fast-math.
+        double nonfinite = strtod(inputs[input], NULL);
+        gkyl_array_clear(flux, 0.);
+        for (long loc = 0; loc < local_ext.volume; ++loc) {
+          double *val = gkyl_array_fetch(flux, loc);
+          val[0] = nonfinite;
+        }
+        for (int edge = 0; edge < 2; ++edge) {
+          struct gkyl_range skin, ghost_range;
+          gkyl_skin_ghost_ranges(&skin, &ghost_range, cdim - 1, edge, &local_ext, ghost);
+          gkyl_array_clear(sheath, 0.);
+          gkyl_ambi_bolt_potential_sheath_calc(
+            up, edge, &skin, &ghost_range, one, one, flux, one, one, sheath
+          );
+          struct gkyl_range_iter iter;
+          gkyl_range_iter_init(&iter, &ghost_range);
+          while (gkyl_range_iter_next(&iter)) {
+            const double *val = gkyl_array_cfetch(sheath, gkyl_range_idx(&ghost_range, iter.idx));
+            for (int k = basis.num_basis; k < 2 * basis.num_basis; ++k) {
+              uint64_t bits;
+              memcpy(&bits, &val[k], sizeof bits);
+              TEST_CHECK((bits & UINT64_C(0x7fffffffffffffff)) == 0);
+            }
+          }
+        }
+        gkyl_array_clear(sheath, 0.);
+        for (long loc = 0; loc < local_ext.volume; ++loc) {
+          double *val = gkyl_array_fetch(sheath, loc);
+          val[0] = nonfinite;
+        }
+        gkyl_ambi_bolt_potential_phi_calc(up, &local, &local_ext, one, sheath, phi);
+        struct gkyl_range_iter iter;
+        gkyl_range_iter_init(&iter, &local);
+        while (gkyl_range_iter_next(&iter)) {
+          const double *val = gkyl_array_cfetch(phi, gkyl_range_idx(&local, iter.idx));
+          for (int k = 0; k < basis.num_basis; ++k) {
+            uint64_t bits;
+            memcpy(&bits, &val[k], sizeof bits);
+            TEST_CHECK((bits & UINT64_C(0x7fffffffffffffff)) == 0);
+          }
+        }
+      }
+      gkyl_array_release(one);
+      gkyl_array_release(flux);
+      gkyl_array_release(sheath);
+      gkyl_array_release(phi);
+      gkyl_ambi_bolt_potential_release(up);
+    }
+  }
+}
+
 TEST_LIST = {
+  {"test_ambi_bolt_nonfinite_ho", test_ambi_bolt_nonfinite_ho},
   {"test_ambi_bolt_init_1x_ho", test_ambi_bolt_init_1x_ho},
   {"test_ambi_bolt_sheath_calc_1x_ho", test_ambi_bolt_sheath_calc_1x_ho},
   {"test_ambi_bolt_phi_calc_1x_ho", test_ambi_bolt_phi_calc_1x_ho},
