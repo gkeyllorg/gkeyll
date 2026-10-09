@@ -56,6 +56,10 @@ gyrokinetic/creg/rt_gk_multib_step_sol_2x2v_p1   # change to coulomb log
 gyrokinetic/creg/rt_gk_rad_1x2v_p1   # change to coulomb log
 gyrokinetic/creg/rt_gk_rad_low_Te_1x2v_p1   # change to coulomb log
 gyrokinetic/creg/rt_gk_rad_nonuniformv_1x2v_p1   # change to coulomb log
+gyrokinetic/creg/rt_gk_solovev_out_3x2v_p1   # change to coulomb log
+gyrokinetic/creg/rt_gk_slab_2x2v_p1   # change to coulomb log
+gyrokinetic/creg/rt_gk_step_2x2v_p1_cons   # change to coulomb log
+gyrokinetic/creg/rt_gk_step_out_2x2v_p1   # change to coulomb log
 gyrokinetic/creg/rt_gk_sheath_1x2v_p1_cons   # change to coulomb log
 gyrokinetic/creg/rt_gk_sheath_1x2v_p1   # change to coulomb log
 gyrokinetic/creg/rt_gk_sheath_2x2v_p1   # change to coulomb log
@@ -69,3 +73,16 @@ gyrokinetic/creg/rt_gk_sheath_nonuniformv_2x2v_p1   # change to coulomb log
 gyrokinetic/creg/rt_gk_sheath_nonuniformv_3x2v_p1   # change to coulomb log
 gyrokinetic/creg/rt_gk_sheath_nonuniformx_1x2v_p1   # change to coulomb log
 gyrokinetic/creg/rt_gk_sheath_nonuniformx_2x2v_p1   # change to coulomb log
+gyrokinetic/creg/rt_gk_sheath_nonuniformx_3x2v_p1   # change to coulomb log
+gyrokinetic/creg/rt_gk_tcv_core_3x2v_p1   # change to coulomb log
+gyrokinetic/creg/rt_gk_tcv_iwl_adapt_source_2x2v_p1   # change to coulomb log
+gyrokinetic/creg/rt_gk_tcv_iwl_adapt_source_3x2v_p1   # change to coulomb log
+gyrokinetic/creg/rt_gk_tcv_iwl_sheath_surr_1x2v_p1   # change to coulomb log
+gyrokinetic/creg/rt_gk_wham_1x2v_p1_static_field   # change to coulomb log
+gyrokinetic/creg/rt_gk_wham_1x2v_p1   # change to coulomb log
+gyrokinetic/creg/rt_gk_wham_3x2v_p1   # change to coulomb log
+gyrokinetic/creg/rt_gk_wham_2x2v_p1   # change to coulomb log
+gyrokinetic/creg/rt_gk_wham_boltz_elc_poa_1x2v_p1   # change to coulomb log
+gyrokinetic/creg/rt_gk_wham_nonuniformx_1x2v_p1   # change to coulomb log
+gyrokinetic/creg/rt_gk_wham_nonuniformx_3x2v_p1   # change to coulomb log
+gyrokinetic/creg/rt_gk_wham_nonuniformx_2x2v_p1   # change to coulomb log
