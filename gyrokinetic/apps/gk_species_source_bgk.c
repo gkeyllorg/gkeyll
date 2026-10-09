@@ -602,7 +602,8 @@ gk_species_source_bgk_init(
         );
         gk_species_source_bgk_write_array(
           app, gks, src, 0, 0.0, "source_bgk_feq", "BGK source equilibrium function.",
-          gks->io_meta_phase, gks->io_meta_phase_len, gks->grid, gks->local, gks->comm, src->Jrate_df
+          gks->io_meta_phase, gks->io_meta_phase_len, gks->grid, gks->local, gks->comm,
+          src->Jrate_df
         );
       }
 
@@ -678,7 +679,8 @@ gk_species_source_bgk_init(
         );
         gk_species_source_bgk_write_array(
           app, gks, src, 0, 0.0, "source_bgk_temp_shape", "BGK source temperature shape.",
-          gks->io_meta_conf, gks->io_meta_conf_len, app->grid, app->local, app->comm, src->vtsq_shape
+          gks->io_meta_conf, gks->io_meta_conf_len, app->grid, app->local, app->comm,
+          src->vtsq_shape
         );
       }
 
