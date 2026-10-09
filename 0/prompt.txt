@@ -1,0 +1,113 @@
+Ci failed again, even after merging the last bug fix. What is causing this error?
+
+---
+
+Ci failed again, even after merging the last bug fix. What is causing this error?
+
+---
+
+[C]   Compiling pkpm/creg/rt_pkpm_2d_travel_pulse_p1 ...
+... pkpm/creg/rt_pkpm_2d_travel_pulse_p1 compiled.
+Compiled 16 C regression test(s).
+CPU-only build
+Running parallel C regression tests serially by MPI collective ...
+
+... passed moments/creg/rt_5m_mom_beach.
+... passed moments/creg/rt_10m_gem.
+... passed vlasov/creg/rt_vlasov_twostream_p2.
+... passed vlasov/creg/rt_vlasov_weibel_2x2v_p2.
+bash: line 20: 14573 Segmentation fault         (core dumped) "/home/jenkins/agent/ci-data/runs/personal/jenkins-gkeyll-ci-personal-140/candidate/f845ee7679f8b3356f030d48963b8a738ec68287/gkylsoft/gkeyll/bin/gkeyll" runregression run --c-only --parallel --execute-only --jobs 12 check
+
+---
+
+[C]   Compiling pkpm/creg/rt_pkpm_2d_travel_pulse_p1 ...
+... pkpm/creg/rt_pkpm_2d_travel_pulse_p1 compiled.
+Compiled 16 C regression test(s).
+CPU-only build
+Running parallel C regression tests serially by MPI collective ...
+
+... passed moments/creg/rt_5m_mom_beach.
+... passed moments/creg/rt_10m_gem.
+... passed vlasov/creg/rt_vlasov_twostream_p2.
+... passed vlasov/creg/rt_vlasov_weibel_2x2v_p2.
+bash: line 20: 14573 Segmentation fault         (core dumped) "/home/jenkins/agent/ci-data/runs/personal/jenkins-gkeyll-ci-personal-140/candidate/f845ee7679f8b3356f030d48963b8a738ec68287/gkylsoft/gkeyll/bin/gkeyll" runregression run --c-only --parallel --execute-only --jobs 12 check
+
+---
+
+<send_user_message_question_reply>
+[{"answer":"I can't this is the most info I can get from Jenkins","question":"Can you share the core backtrace or the last comparison lines from a verbose rerun of this CI command? The reported crash is in the gkeyll regression runner, and those details would identify which file it was reading.","questionItemId":"[\"request_user_input_async\",\"call_2017cedaa76b4ec687ad7ff9062d5972\",0]"}]
+</send_user_message_question_reply>
+
+---
+
+<send_user_message_question_reply>
+[{"answer":"I can't this is the most info I can get from Jenkins","question":"Can you share the core backtrace or the last comparison lines from a verbose rerun of this CI command? The reported crash is in the gkeyll regression runner, and those details would identify which file it was reading.","questionItemId":"[\"request_user_input_async\",\"call_2017cedaa76b4ec687ad7ff9062d5972\",0]"}]
+</send_user_message_question_reply>
+
+---
+
+These look similar to changes made in 
+jenkins-github-more-reporting
+Make sure these changes are compatable with that branch
+void
+test_grid_array_new_from_file_bad_cell_count(void)
+{
+  // Write only two cells of a four-cell grid: the full-grid reader must
+  // reject the mismatch between the header's cell count and the grid.
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, 1, (double[]){0.0}, (double[]){1.0}, (int[]){4});
+  struct gkyl_range range;
+  gkyl_range_init_from_shape1(&range, 1, (int[]){2});
+
+  struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 1, range.volume);
+  for (long i = 0; i < range.volume; ++i) {
+    double *values = gkyl_array_fetch(arr, i);
+    values[0] = i + 1.0;
+  }
+
+  const char *fname = "ctest_grid_array_bad_cell_count.gkyl";
+  int status = gkyl_grid_sub_array_write(&grid, &range, 0, arr, fname);
+  gkyl_array_release(arr);
+  TEST_ASSERT(status == GKYL_ARRAY_RIO_SUCCESS);
+
+  struct gkyl_array *arr2 = gkyl_grid_array_new_from_file(&grid, fname);
+  TEST_CHECK(arr2 == NULL);
+  if (arr2) {
+    gkyl_array_release(arr2);
+  }
+  remove(fname);
+}
+
+---
+
+These look similar to changes made in 
+jenkins-github-more-reporting
+Make sure these changes are compatable with that branch
+void
+test_grid_array_new_from_file_bad_cell_count(void)
+{
+  // Write only two cells of a four-cell grid: the full-grid reader must
+  // reject the mismatch between the header's cell count and the grid.
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, 1, (double[]){0.0}, (double[]){1.0}, (int[]){4});
+  struct gkyl_range range;
+  gkyl_range_init_from_shape1(&range, 1, (int[]){2});
+
+  struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 1, range.volume);
+  for (long i = 0; i < range.volume; ++i) {
+    double *values = gkyl_array_fetch(arr, i);
+    values[0] = i + 1.0;
+  }
+
+  const char *fname = "ctest_grid_array_bad_cell_count.gkyl";
+  int status = gkyl_grid_sub_array_write(&grid, &range, 0, arr, fname);
+  gkyl_array_release(arr);
+  TEST_ASSERT(status == GKYL_ARRAY_RIO_SUCCESS);
+
+  struct gkyl_array *arr2 = gkyl_grid_array_new_from_file(&grid, fname);
+  TEST_CHECK(arr2 == NULL);
+  if (arr2) {
+    gkyl_array_release(arr2);
+  }
+  remove(fname);
+}
