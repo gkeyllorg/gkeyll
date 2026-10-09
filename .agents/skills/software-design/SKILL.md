@@ -24,7 +24,13 @@ There may also be some additional auxiliary private or public functions.
 - All dynamic (heap) allocations should happen in the initialization function,
   and freed in the release function, using the appropriate gkyl_ allocation/deallocation functions when possible.
 - Don't place logic branching (e.g. if-statements) that depend on a
-  time-independent choice or parameter inside the methods called in the time loop of a simulation (e.g. _advance). Instead, use function pointers to set the appropriate method during the initialization of the module, and call that method inside the time loop.
+  time-independent choice or parameter inside the methods called in the time loop of a simulation
+  (e.g. _advance). Instead, use function pointers to set the appropriate method during the initialization
+  of the module, and call that method inside the time loop.
+- Function signatures in header files should contain a brief comment describing
+  what the function does, and a description of each argument following existing styles.
+- Methods to initialize an updater in zero/ which take all arguments inside a
+  single input struct should have a name with the suffix _inew (instead of _new).
 
 ### Other principles to follow
 

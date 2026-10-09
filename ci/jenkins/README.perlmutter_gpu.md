@@ -152,7 +152,11 @@ System → Global properties → Environment variables**, set:
 | `PERLMUTTER_GPU_REGRESSION_TIME` | Optional; default `04:00:00` |
 | `PERLMUTTER_GPU_REGRESSION_JOBS` | Optional; default `4` |
 | `PERLMUTTER_GPU_REGRESSION_TEST_TIMEOUT` | Optional; default `900` |
-| `GKEYLL_CI_TRUSTED_REF` | Optional branch or full SHA to fetch `github_report.py` from; default `main`. Set it only while staging a CI change |
+| `GKEYLL_CI_TRUSTED_REF` | Optional reviewed branch or full SHA for `github_report.py` and `check_regression_results.lua`; default `main`. Set it only while staging a CI change |
+
+`GKEYLL_CI_ROOT` retains SHA-addressed baseline and candidate build/result directories
+visible to GPU nodes. Remove `baseline-cache/perlmutter-gpu` manually after an
+intentional toolchain change that must force baseline regeneration.
 
 ### Create the one parameterized Pipeline job
 
@@ -186,6 +190,24 @@ Open the job through the tunnel, select **Build with Parameters**, and set
 either `CANDIDATE_PR` or both `CANDIDATE_REF` and `BASELINE_REF`.
 
 # Troubleshooting
+
+## Candidate freshness
+
+Before dependency builds or Slurm submission, CI resolves both references to
+commits and rejects a candidate that does not contain its baseline. Merge or
+rebase the baseline into the candidate before rerunning. For an intentional
+historical comparison, use `--allow-behind-candidate` or enable `ALLOW_BEHIND_CANDIDATE` in
+**Build with Parameters**; the resulting artifact
+and GitHub report record the override.
+
+## Numerical regression differences
+
+An unlisted numerical regression difference fails CI. Review a genuine change
+and add a new or updated accepted difference to
+`ci/jenkins/expected_regression_diffs.txt`; do not acknowledge output
+differences merely to make a build pass. Entries unchanged from the baseline
+are inert, so stale entries may safely be removed in any later PR. Updating a
+baseline entry's reason acknowledges a new intentional change for that test.
 
 ## Controller and Slurm jobs
 

@@ -363,6 +363,11 @@ gk_species_source_adapt_enabled(
     double sum_particle_loss_local = 0.0;
     double sum_energy_loss_local = 0.0;
     for (int j = 0; j < adapt_src->num_boundaries; ++j) {
+      // Do not contribute if not a real domain edge (MPI boundary).
+      if (!adapt_src->boundaries_is_domain_edge[j]) {
+        continue;
+      }
+
       double integ_m0_local_j,
         integ_m2_local_j; // Integrated boundary flux moments summed over boundaries.
 
@@ -645,6 +650,9 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, s
             edge == GKYL_LOWER_EDGE ? app->local_lower_ghost[dir] : app->local_upper_ghost[dir];
           adapt_src->dir[j] = dir;
           adapt_src->edge[j] = edge;
+          adapt_src->boundaries_is_domain_edge[j] =
+            edge == GKYL_LOWER_EDGE ? app->local.lower[dir] == app->global.lower[dir] :
+                                      app->local.upper[dir] == app->global.upper[dir];
 
           // Specific scenario if we are in a inner wall limited case. We select only SOL range in parallel direction.
           if (dir == app->cdim - 1 && app->gk_geom->has_LCFS) {

@@ -452,13 +452,17 @@ gk_species_write_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *gks, doub
   app->stat.n_io += 1;
 
   // Write out the sheath BC velocity cutoff (vcutsq).
+  // Every rank has local skin ranges, but only physical boundary ranks may
+  // write these serial files. Decomposition is only along the parallel direction.
   int par_dir = app->cdim - 1; // Sheath BC acts in the parallel direction.
-  if (gks->lower_bc[par_dir].type == GKYL_BC_GK_SPECIES_SHEATH_SURROGATE ||
-      gks->lower_bc[par_dir].type == GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING) {
+  if (gks->local.lower[par_dir] == gks->global.lower[par_dir] &&
+      (gks->lower_bc[par_dir].type == GKYL_BC_GK_SPECIES_SHEATH_SURROGATE ||
+       gks->lower_bc[par_dir].type == GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING)) {
     gk_species_write_vcutsq(app, gks, gks->bc_sheath_lo, "z", "lower", tm, frame);
   }
-  if (gks->upper_bc[par_dir].type == GKYL_BC_GK_SPECIES_SHEATH_SURROGATE ||
-      gks->upper_bc[par_dir].type == GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING) {
+  if (gks->local.upper[par_dir] == gks->global.upper[par_dir] &&
+      (gks->upper_bc[par_dir].type == GKYL_BC_GK_SPECIES_SHEATH_SURROGATE ||
+       gks->upper_bc[par_dir].type == GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING)) {
     gk_species_write_vcutsq(app, gks, gks->bc_sheath_up, "z", "upper", tm, frame);
   }
 }

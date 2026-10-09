@@ -104,10 +104,11 @@ def regression_section(title, summary_file):
     if not values:
         return ""
     passed = first(values, "c_regression_passed", "?")
+    candidate_only = first(values, "c_regression_candidate_only", "0")
     acked = first(values, "c_regression_acknowledged", "0")
     unacked = first(values, "c_regression_unacknowledged", "0")
-    lines = ["**{}:** {} passed, {} acknowledged, {} unacknowledged".format(
-        title, passed, acked, unacked)]
+    lines = ["**{}:** {} passed, {} candidate-only, {} acknowledged, {} unacknowledged".format(
+        title, passed, candidate_only, acked, unacked)]
     layers = [entry.split(":") for entry in values.get("c_regression_layer", [])]
     layers = [row for row in layers if len(row) == 4]
     if layers:
@@ -132,8 +133,12 @@ def regression_section(title, summary_file):
                           "", fenced("\n".join(details[name])), "", "</details>"]
     acked_tests = values.get("c_regression_acknowledged_test", [])
     if acked_tests:
-        lines += ["", "Acknowledged diffs (listed in expected_regression_diffs.txt): "
+        lines += ["", "Acknowledged diffs (new or updated versus the baseline): "
                   + ", ".join(code(t) for t in acked_tests)]
+    candidate_only_tests = values.get("c_regression_candidate_only_test", [])
+    if candidate_only_tests:
+        lines += ["", "Candidate-only tests (executed but not compared to a baseline): "
+                  + ", ".join(code(t) for t in candidate_only_tests)]
     return "\n".join(lines)
 
 
@@ -290,8 +295,10 @@ def timing_section():
 
 def build_report(args):
     selection = read_kv("ci-selection.txt")
-    candidate = read_text("ci-candidate-commit.txt").strip()
-    baseline = read_text("ci-baseline-commit.txt").strip()
+    preflight = read_kv("ci-baseline-preflight.txt")
+    cache = read_kv("ci-baseline-cache.txt")
+    candidate = read_text("ci-candidate-commit.txt").strip() or first(preflight, "candidate_commit")
+    baseline = read_text("ci-baseline-commit.txt").strip() or first(preflight, "baseline_commit")
     failure = read_kv("ci-failure-summary.txt")
     build_number = os.environ.get("BUILD_NUMBER", "?")
     node = os.environ.get("NODE_NAME", "")
@@ -312,6 +319,14 @@ def build_report(args):
     finished = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     meta.append("**Run:** {} build #{} on {}, finished {}".format(
         code(args.platform), build_number, code(node), finished))
+    if preflight:
+        behind = first(preflight, "behind_by", "?")
+        override = first(preflight, "override", "false")
+        state = "override enabled" if override == "true" else "verified"
+        meta.append("**Baseline preflight:** {} ({} commit(s) behind)".format(state, behind))
+    if cache:
+        meta.append("**Baseline cache:** {} ({})".format(
+            first(cache, "status", "unknown"), code(short(first(cache, "baseline_commit", baseline)))))
     parts.append("  \n".join(meta))
 
     stage = first(failure, "stage", "unknown")

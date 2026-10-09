@@ -108,6 +108,7 @@ toolchain, `cmake`, and Python/NumPy. Set these global environment variables:
 | `WORKSTATION_MPI_HOME` | Optional MPI installation path for both trees; default is each tree's `gkylsoft/openmpi` |
 | `TEAM_WORKSTATION_MPIEXEC` | Optional launcher override for both trees; default is `bin/mpiexec` under the selected MPI installation |
 | `TEAM_WORKSTATION_STATUS_CONTEXT` | Optional status context; default team-workstation |
+| `GKEYLL_CI_ROOT` | Required persistent writable root visible to the workstation agent; stores baseline and candidate source, build, and regression data |
 | `TEAM_WORKSTATION_TRUSTED_CI_REF` | Trusted workflow branch/SHA; production value `main`. The CI report tool is loaded from this same checkout |
 
 The selected dependency script must pass `--build-adas=yes` to
@@ -224,6 +225,15 @@ comparisons.
 
 # Troubleshooting
 
+## Candidate freshness
+
+The automatic PR jobs and explicit comparisons resolve both references to
+commits and reject a candidate that does not contain its baseline before any
+expensive build work. Update the candidate with its baseline before rerunning.
+For an intentional historical comparison through the trusted `main` child, use
+`--allow-behind-candidate` or enable `ALLOW_BEHIND_CANDIDATE` in **Build with
+Parameters**; the artifact and GitHub report record the override.
+
 ## Jenkins API and builds
 
 If a PR child does not appear, run `team scan` and inspect the multibranch
@@ -254,5 +264,8 @@ trusted ref to `main`. Merge only after that staging run succeeds.
 
 ## Numerical regression differences
 
-Expected numerical changes require a reviewed entry in
+Expected numerical changes require a reviewed, new or updated entry in
 `ci/jenkins/expected_regression_diffs.txt`; unlisted differences fail CI.
+Entries unchanged from the baseline are inert, so stale entries may safely be
+removed in any later PR. Update the reason on a baseline entry to acknowledge
+a new intentional change for that same test.
