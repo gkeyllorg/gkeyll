@@ -1,0 +1,11 @@
+In the Jenkins CI, it seems like it's spending a lot of time archiving artifacts (around 10 minutes) Why is it spending so much time in this stage? How can we accelerate it?
+
+---
+
+<send_user_message_question_reply>
+[{"answer":"personal","question":"Which Jenkins platform/build shows the ~10-minute archive step (personal/team workstation, Stellar CPU, or Perlmutter GPU)? A build number or console timing excerpt would help distinguish copying the results from Jenkins storing them.","questionItemId":"[\"request_user_input_async\",\"call_dca91726bb6b434d9100f5a997ec15e3\",0]"}]
+</send_user_message_question_reply>
+
+---
+
+Implement 1 and 2 1. Replace per-file shell copying with a bulk copy operation 2. Package numerical outputs into a few archives directly from the retained result trees
