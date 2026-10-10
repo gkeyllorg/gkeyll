@@ -210,8 +210,80 @@ gk_species_rhs_implicit_static(
 }
 
 static void
+gk_species_phi_wall_advance_disabled(
+  gkyl_gyrokinetic_app *app, const struct gk_species_wall_potential *wall, double tm
+)
+{
+}
+
+static void
+gk_species_phi_wall_advance_enabled(
+  gkyl_gyrokinetic_app *app, const struct gk_species_wall_potential *wall, double tm
+)
+{
+  gkyl_eval_on_nodes_advance(wall->projector, tm, &app->local_ext, wall->phi_host);
+  if (app->use_gpu) {
+    gkyl_array_copy(wall->phi, wall->phi_host);
+  }
+}
+
+void
+gk_species_phi_wall_init(
+  gkyl_gyrokinetic_app *app, const struct gkyl_gyrokinetic_bc *bc,
+  struct gk_species_wall_potential *wall
+)
+{
+  *wall = (struct gk_species_wall_potential){.advance_func = gk_species_phi_wall_advance_disabled};
+  if (bc->type != GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING &&
+      bc->type != GKYL_BC_GK_SPECIES_SHEATH_SURROGATE) {
+    return;
+  }
+
+  wall->phi = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  gkyl_array_clear(wall->phi, 0.0);
+
+  wall->phi_host = wall->phi;
+  if (bc->aux_profile) {
+    if (app->use_gpu) {
+      wall->phi_host = mkarr(false, wall->phi->ncomp, wall->phi->size);
+    }
+
+    wall->projector =
+      gkyl_eval_on_nodes_new(&app->grid, &app->basis, 1, bc->aux_profile, bc->aux_ctx);
+    wall->advance_func = gk_species_phi_wall_advance_enabled;
+    gk_species_phi_wall_advance(app, wall, 0.0);
+  }
+}
+
+void
+gk_species_phi_wall_advance(
+  gkyl_gyrokinetic_app *app, const struct gk_species_wall_potential *wall, double tm
+)
+{
+  wall->advance_func(app, wall, tm);
+}
+
+void
+gk_species_phi_wall_release(
+  const gkyl_gyrokinetic_app *app, const struct gk_species_wall_potential *wall
+)
+{
+  if (!wall->phi) {
+    return;
+  }
+
+  gkyl_array_release(wall->phi);
+  if (wall->projector) {
+    gkyl_eval_on_nodes_release(wall->projector);
+    if (app->use_gpu) {
+      gkyl_array_release(wall->phi_host);
+    }
+  }
+}
+
+static void
 gk_species_apply_bc_dynamic(
-  gkyl_gyrokinetic_app *app, struct gk_species *species, struct gkyl_array *f
+  gkyl_gyrokinetic_app *app, struct gk_species *species, double tm, struct gkyl_array *f
 )
 {
   struct timespec wst = gkyl_wall_clock();
@@ -225,12 +297,14 @@ gk_species_apply_bc_dynamic(
     if (species->bc_is_np[d]) {
       switch (species->lower_bc[d].type) {
         case GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING:
+          gk_species_phi_wall_advance(app, &species->phi_wall_lo, tm);
           gkyl_bc_sheath_gyrokinetic_advance(
-            species->bc_sheath_lo, app->field->phi_smooth, app->field->phi_wall_lo, NULL, NULL,
+            species->bc_sheath_lo, app->field->phi_smooth, species->phi_wall_lo.phi, NULL, NULL,
             NULL, NULL, f, &app->local
           );
           break;
         case GKYL_BC_GK_SPECIES_SHEATH_SURROGATE:
+          gk_species_phi_wall_advance(app, &species->phi_wall_lo, tm);
           gk_species_moment_calc(&species->sheath_moms, species->local, app->local, f);
           gk_species_moment_diag_jacobgeo_div(
             app, &species->sheath_moms, species->sheath_moms.marr, species->sheath_moms.marr
@@ -243,7 +317,7 @@ gk_species_apply_bc_dynamic(
             2 * app->basis.num_basis, &app->local
           );
           gkyl_bc_sheath_gyrokinetic_advance(
-            species->bc_sheath_lo, app->field->phi_smooth, app->field->phi_wall_lo,
+            species->bc_sheath_lo, app->field->phi_smooth, species->phi_wall_lo.phi,
             species->dens_sheath, species->temp_sheath, app->gk_geom->geo_int.bmag,
             app->gk_geom->geo_surf[d].bimpactangle, f, &app->local
           );
@@ -267,12 +341,14 @@ gk_species_apply_bc_dynamic(
 
       switch (species->upper_bc[d].type) {
         case GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING:
+          gk_species_phi_wall_advance(app, &species->phi_wall_up, tm);
           gkyl_bc_sheath_gyrokinetic_advance(
-            species->bc_sheath_up, app->field->phi_smooth, app->field->phi_wall_up, NULL, NULL,
+            species->bc_sheath_up, app->field->phi_smooth, species->phi_wall_up.phi, NULL, NULL,
             NULL, NULL, f, &app->local
           );
           break;
         case GKYL_BC_GK_SPECIES_SHEATH_SURROGATE:
+          gk_species_phi_wall_advance(app, &species->phi_wall_up, tm);
           gk_species_moment_calc(&species->sheath_moms, species->local, app->local, f);
           gk_species_moment_diag_jacobgeo_div(
             app, &species->sheath_moms, species->sheath_moms.marr, species->sheath_moms.marr
@@ -285,7 +361,7 @@ gk_species_apply_bc_dynamic(
             2 * app->basis.num_basis, &app->local
           );
           gkyl_bc_sheath_gyrokinetic_advance(
-            species->bc_sheath_up, app->field->phi_smooth, app->field->phi_wall_up,
+            species->bc_sheath_up, app->field->phi_smooth, species->phi_wall_up.phi,
             species->dens_sheath, species->temp_sheath, app->gk_geom->geo_int.bmag,
             app->gk_geom->geo_surf[d].bimpactangle, f, &app->local
           );
@@ -322,7 +398,7 @@ gk_species_apply_bc_dynamic(
 
 static void
 gk_species_apply_bc_static(
-  gkyl_gyrokinetic_app *app, struct gk_species *species, struct gkyl_array *f
+  gkyl_gyrokinetic_app *app, struct gk_species *species, double tm, struct gkyl_array *f
 )
 {
   // do nothing
@@ -828,8 +904,10 @@ gk_species_release_dynamic(const gkyl_gyrokinetic_app *app, const struct gk_spec
   for (int d = 0; d < app->cdim; ++d) {
     if (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING) {
       gkyl_bc_sheath_gyrokinetic_release(gks->bc_sheath_lo);
+      gk_species_phi_wall_release(app, &gks->phi_wall_lo);
     } else if (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_SHEATH_SURROGATE) {
       gkyl_bc_sheath_gyrokinetic_release(gks->bc_sheath_lo);
+      gk_species_phi_wall_release(app, &gks->phi_wall_lo);
       release_surr_aux_var = true;
     } else if (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_TWISTSHIFT) {
       gkyl_bc_twistshift_release(gks->bc_ts_lo);
@@ -842,8 +920,10 @@ gk_species_release_dynamic(const gkyl_gyrokinetic_app *app, const struct gk_spec
 
     if (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING) {
       gkyl_bc_sheath_gyrokinetic_release(gks->bc_sheath_up);
+      gk_species_phi_wall_release(app, &gks->phi_wall_up);
     } else if (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_SHEATH_SURROGATE) {
       gkyl_bc_sheath_gyrokinetic_release(gks->bc_sheath_up);
+      gk_species_phi_wall_release(app, &gks->phi_wall_up);
       release_surr_aux_var = true;
     } else if (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_TWISTSHIFT) {
       gkyl_bc_twistshift_release(gks->bc_ts_up);
@@ -1061,6 +1141,7 @@ gk_species_init_dynamic(
         2.0 * (gks->info.charge / gks->info.mass), gks->lower_bc[d].type, gks->lower_bc[d].aux_str,
         &gks->grid, &gks->local, gks->basis.poly_order, app->use_gpu
       );
+      gk_species_phi_wall_init(app, &gks->lower_bc[d], &gks->phi_wall_lo);
     } else if (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_TWISTSHIFT) {
       assert(cdim == 3);
       struct gkyl_bc_twistshift_inp tsinp = {
@@ -1135,6 +1216,7 @@ gk_species_init_dynamic(
         2.0 * (gks->info.charge / gks->info.mass), gks->upper_bc[d].type, gks->upper_bc[d].aux_str,
         &gks->grid, &gks->local, gks->basis.poly_order, app->use_gpu
       );
+      gk_species_phi_wall_init(app, &gks->upper_bc[d], &gks->phi_wall_up);
     } else if (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_TWISTSHIFT) {
       assert(cdim == 3);
       struct gkyl_bc_twistshift_inp tsinp = {
@@ -2265,9 +2347,11 @@ gk_species_copy_range(
 }
 
 void
-gk_species_apply_bc(gkyl_gyrokinetic_app *app, struct gk_species *species, struct gkyl_array *f)
+gk_species_apply_bc(
+  gkyl_gyrokinetic_app *app, struct gk_species *species, double tm, struct gkyl_array *f
+)
 {
-  species->bc_func(app, species, f);
+  species->bc_func(app, species, tm, f);
 }
 
 void
