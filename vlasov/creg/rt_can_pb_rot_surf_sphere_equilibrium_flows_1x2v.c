@@ -1,11 +1,17 @@
 // Stationary Maxwell-Boltzmann equilibrium on a rotating unit sphere in the extended-Hamiltonian
 // form with a background flow (0, omega sin^2 theta) and the centrifugal potential -omega^2 sin^2
-// theta / 2 (1x2v, collisionless). The extended Hamiltonian (1/2) h^ij (p_i - A_i)(p_j - A_j) + Phi
-// equals the rotating-frame Hamiltonian of the companion test, so the same f = exp(-H/T) must stay
-// stationary between reflecting walls at theta = pi/4 and 5 pi/8 for t = 5. Figures of merit
-// (serendipity p2, 32 x 12 x 12 cells, 5766 steps): over t = 5 the density profile changes by at
-// most 1.7e-3 (relative), the temperature by 1.4e-3 and the mean p_phi by 2.1e-3; mass and energy
-// conserved to round-off. The result equals the rotating-frame Hamiltonian test to 4e-14.
+// theta / 2, set up through the LTE projection and held by implicit BGK collisions (1x2v). The
+// Hamiltonian is the full rotating-frame one of the companion test, H = p^2/2 - omega p_phi = (1/2)
+// h^ij (p_i - A_i)(p_j - A_j) + Phi, which the LTE moments and projection require when a background
+// flow and potential are declared, so the LTE projection with density n0 2 pi T sin(theta)
+// exp(omega^2 sin^2 theta / 2T), zero drift relative to the flow and temperature T must reproduce
+// the companion's f = exp(-H/T), the LTE moments must return that drift and temperature, and the
+// BGK target must leave the state stationary between reflecting walls at theta = pi/4 and 5 pi/8
+// for t = 2 (nu t = 20). Figures of merit (serendipity p2, 32 x 12 x 12 cells, 2307 steps): the LTE
+// projection reproduces the companion's directly projected f = exp(-H/T) to 1.0e-4 of its peak and
+// its LTE moments return zero drift and T = 1 to round-off; under implicit BGK at nu = 10 the
+// density, temperature and mean p_phi change by at most 2.2e-4, 1.9e-4 and 7.2e-5 over t = 2; mass
+// and energy conserved to round-off.
 
 #include <math.h>
 #include <stdio.h>
@@ -35,6 +41,7 @@ struct sphere_rot_ctx {
   double T0; // Temperature.
   double omega; // Rotation rate of the sphere.
   double vt; // Thermal velocity.
+  double nu; // Collision frequency.
 
   int Ntheta; // Cell count (configuration space: polar direction).
   int Nvtheta; // Cell count (velocity space: polar momentum).
@@ -63,6 +70,7 @@ create_ctx(void)
   double T0 = 1.0; // Temperature.
   double omega = 1.0; // Rotation rate of the sphere.
   double vt = 1.0; // Thermal velocity.
+  double nu = 10.0; // Collision frequency.
 
   int Ntheta = 32; // Cell count (configuration space: polar direction).
   int Nvtheta = 12; // Cell count (velocity space: polar momentum).
@@ -73,7 +81,7 @@ create_ctx(void)
   int poly_order = 2; // Polynomial order.
   double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 5.0; // Final simulation time.
+  double t_end = 2.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
@@ -89,6 +97,7 @@ create_ctx(void)
     .T0 = T0,
     .omega = omega,
     .vt = vt,
+    .nu = nu,
     .Ntheta = Ntheta,
     .Nvtheta = Nvtheta,
     .Nvphi = Nvphi,
@@ -110,17 +119,41 @@ create_ctx(void)
 }
 
 void
-evalInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+evalDensityInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct sphere_rot_ctx *app = ctx;
-  double theta = xn[0], p_theta_dot = xn[1], p_phi_dot = xn[2];
+  double theta = xn[0];
   double s2 = sin(theta) * sin(theta);
 
-  // Exact equilibrium f = n0 exp(-H/T) of the rotating-frame Hamiltonian
-  // H = p_theta^2/2 + p_phi^2/(2 sin^2 theta) - omega p_phi, projected directly.
-  double H = (0.5 * p_theta_dot * p_theta_dot) + (0.5 * p_phi_dot * p_phi_dot / s2) -
-             (app->omega * p_phi_dot);
-  fout[0] = app->n0 * exp(-H / app->T0);
+  // M0 of the equilibrium n0 exp(-H/T): the Boltzmann factor of the centrifugal potential
+  // times the Maxwellian measure 2 pi T sin(theta).
+  fout[0] =
+    app->n0 * 2.0 * M_PI * app->T0 * sin(theta) * exp(0.5 * app->omega * app->omega * s2 / app->T0);
+}
+
+void
+evalTempInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct sphere_rot_ctx *app = ctx;
+  // Set isotropic temperature.
+  fout[0] = app->T0;
+}
+
+void
+evalVDriftInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct sphere_rot_ctx *app = ctx;
+  // Set drift velocity relative to the background flow (none).
+  fout[0] = 0.0;
+  fout[1] = 0.0;
+}
+
+void
+evalNu(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct sphere_rot_ctx *app = ctx;
+  // Set collision frequency.
+  fout[0] = app->nu;
 }
 
 void
@@ -129,15 +162,11 @@ evalHamiltonian(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT 
   struct sphere_rot_ctx *app = ctx;
   double q_theta = xn[0];
   double p_theta_dot = xn[1], p_phi_dot = xn[2];
+  double s2 = sin(q_theta) * sin(q_theta);
 
-  double inv_metric_aa = 1.0;
-  double inv_metric_ab = 0.0;
-  double inv_metric_bb = 1.0 / (sin(q_theta) * sin(q_theta));
-
-  // Canonical Hamiltonian H = (1/2) g^ij p_i p_j.
-  fout[0] = (0.5 * inv_metric_aa * p_theta_dot * p_theta_dot) +
-            (inv_metric_ab * p_theta_dot * p_phi_dot) +
-            (0.5 * inv_metric_bb * p_phi_dot * p_phi_dot);
+  // Rotating-frame Hamiltonian H = p_theta^2/2 + p_phi^2/(2 sin^2 theta) - omega p_phi.
+  fout[0] = (0.5 * p_theta_dot * p_theta_dot) + (0.5 * p_phi_dot * p_phi_dot / s2) -
+            (app->omega * p_phi_dot);
 }
 
 void
@@ -352,7 +381,31 @@ main(int argc, char **argv)
     .effective_potential_ctx = &ctx,
 
     .num_init = 1,
-    .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalInit, .ctx_func = &ctx},
+    .projection[0] =
+      {
+        .proj_id = GKYL_PROJ_VLASOV_LTE,
+        .density = evalDensityInit,
+        .ctx_density = &ctx,
+        .temp = evalTempInit,
+        .ctx_temp = &ctx,
+        .V_drift = evalVDriftInit,
+        .ctx_V_drift = &ctx,
+        .correct_all_moms = true,
+        .iter_eps = 0.0,
+        .max_iter = 0,
+        .use_last_converged = false,
+      },
+
+    .collisions =
+      {
+        .collision_id = GKYL_BGK_COLLISIONS,
+        .self_nu = evalNu,
+        .self_nu_ctx = &ctx,
+        .is_implicit = true,
+      },
+
+    .correct =
+      {.correct_all_moms = true, .iter_eps = 1.0e-12, .max_iter = 100, .use_last_converged = false},
 
     .bcx = {.lower = {.type = GKYL_SPECIES_REFLECT}, .upper = {.type = GKYL_SPECIES_REFLECT}},
 

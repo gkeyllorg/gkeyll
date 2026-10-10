@@ -1,11 +1,17 @@
 -- Stationary Maxwell-Boltzmann equilibrium on a rotating unit sphere in the extended-Hamiltonian
 -- form with a background flow (0, omega sin^2 theta) and the centrifugal potential -omega^2 sin^2
--- theta / 2 (1x2v, collisionless). The extended Hamiltonian (1/2) h^ij (p_i - A_i)(p_j - A_j) + Phi
--- equals the rotating-frame Hamiltonian of the companion test, so the same f = exp(-H/T) must stay
--- stationary between reflecting walls at theta = pi/4 and 5 pi/8 for t = 5. Figures of merit
--- (serendipity p1, 32 x 12 x 12 cells): over t = 5 the density profile changes by at most 3.9e-2
--- (relative), the temperature by 2.8e-2 and the mean p_phi by 1.8e-2; mass and energy conserved to
--- round-off.
+-- theta / 2, set up through the LTE projection and held by implicit BGK collisions (1x2v). The
+-- Hamiltonian is the full rotating-frame one of the companion test, H = p^2/2 - omega p_phi = (1/2)
+-- h^ij (p_i - A_i)(p_j - A_j) + Phi, which the LTE moments and projection require when a background
+-- flow and potential are declared, so the LTE projection with density n0 2 pi T sin(theta)
+-- exp(omega^2 sin^2 theta / 2T), zero drift relative to the flow and temperature T must reproduce
+-- the companion's f = exp(-H/T), the LTE moments must return that drift and temperature, and the
+-- BGK target must leave the state stationary between reflecting walls at theta = pi/4 and 5 pi/8
+-- for t = 2 (nu t = 20). Figures of merit (serendipity p1, 32 x 12 x 12 cells): the LTE projection
+-- differs from the companion's directly projected f = exp(-H/T) by 0.20 of its peak
+-- (the p1 Maxwellian is corrected to the requested moments) while its LTE moments return zero drift
+-- and T = 1 to round-off; under implicit BGK at nu = 10 the density, temperature and mean p_phi
+-- change by at most 9.3e-2, 6.7e-2 and 6.1e-3 over t = 2; mass and energy conserved to round-off.
 local Vlasov = G0.Vlasov
 
 mass = 1.0 -- Neutral mass.
@@ -14,6 +20,7 @@ n0 = 1.0 -- Amplitude of the distribution function.
 T0 = 1.0 -- Temperature.
 omega = 1.0 -- Rotation rate of the sphere.
 vt = 1.0 -- Thermal velocity.
+nu = 10.0 -- Collision frequency.
 
 Ntheta = 32 -- Cell count (configuration space: polar direction).
 Nvtheta = 12 -- Cell count (velocity space: polar momentum).
@@ -26,7 +33,7 @@ basis_type = "serendipity" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
 cfl_frac = 1.0 -- CFL coefficient.
 
-t_end = 5.0 -- Final simulation time.
+t_end = 2.0 -- Final simulation time.
 num_frames = 1 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.
@@ -65,15 +72,11 @@ vlasovApp = Vlasov.App.new {
     hamiltonian = function (t, xn)
       local q_theta = xn[1]
       local p_theta_dot, p_phi_dot = xn[2], xn[3]
+      local s2 = math.sin(q_theta) * math.sin(q_theta)
 
-      local inv_metric_aa = 1.0
-      local inv_metric_ab = 0.0
-      local inv_metric_bb = 1.0 / (math.sin(q_theta) * math.sin(q_theta))
-
-      -- Canonical Hamiltonian H = (1/2) g^ij p_i p_j.
-      return (0.5 * inv_metric_aa * p_theta_dot * p_theta_dot) +
-        (inv_metric_ab * p_theta_dot * p_phi_dot) +
-        (0.5 * inv_metric_bb * p_phi_dot * p_phi_dot)
+      -- Rotating-frame Hamiltonian H = p_theta^2/2 + p_phi^2/(2 sin^2 theta) - omega p_phi.
+      return (0.5 * p_theta_dot * p_theta_dot) + (0.5 * p_phi_dot * p_phi_dot / s2) -
+        (omega * p_phi_dot)
     end,
     inverseMetric = function (t, xn)
       local q_theta = xn[1]
@@ -112,18 +115,42 @@ vlasovApp = Vlasov.App.new {
     numInit = 1,
     projections = {
       {
-        projectionID = G0.Projection.Func,
-        init = function (t, xn)
-          local theta, p_theta_dot, p_phi_dot = xn[1], xn[2], xn[3]
+        projectionID = G0.Projection.LTE,
+        densityInit = function (t, xn)
+          local theta = xn[1]
           local s2 = math.sin(theta) * math.sin(theta)
 
-          -- Exact equilibrium f = n0 exp(-H/T) of the rotating-frame Hamiltonian
-          -- H = p_theta^2/2 + p_phi^2/(2 sin^2 theta) - omega p_phi, projected directly.
-          local H = (0.5 * p_theta_dot * p_theta_dot) + (0.5 * p_phi_dot * p_phi_dot / s2) -
-            (omega * p_phi_dot)
-          return n0 * math.exp(-H / T0)
-        end
+          -- M0 of the equilibrium n0 exp(-H/T): the Boltzmann factor of the centrifugal
+          -- potential times the Maxwellian measure 2 pi T sin(theta).
+          return n0 * 2.0 * math.pi * T0 * math.sin(theta) * math.exp(0.5 * omega * omega * s2 / T0)
+        end,
+        temperatureInit = function (t, xn)
+          -- Isotropic temperature.
+          return T0
+        end,
+        driftVelocityInit = function (t, xn)
+          -- Drift velocity relative to the background flow (none).
+          return 0.0, 0.0
+        end,
+        correctAllMoments = true,
+        iterationEpsilon = 0.0,
+        maxIterations = 0,
+        useLastConverged = false
       }
+    },
+
+    collisions = {
+      collisionID = G0.Collisions.BGK,
+      selfNu = function (t, xn)
+        return nu -- Collision frequency.
+      end,
+      useImplicitCollisionScheme = true
+    },
+    correct = {
+      correctAllMoments = true,
+      iterationEpsilon = 1e-12,
+      maxIterations = 100,
+      useLastConverged = false
     },
 
     bcx = {
