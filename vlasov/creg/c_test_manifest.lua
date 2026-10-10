@@ -4,7 +4,6 @@
 return {
    ignore = {
       tests = {
-         "rt_escreen_sr",
          "rt_hyper_vlasov_tm",
          "rt_vlasov_kerntm",
          "rt_vlasov_moments",
@@ -14,7 +13,6 @@ return {
          "rt_dg_5m_mom_beach_p2",
          "rt_vlasov_sr_freestream",
          "rt_dg_diffusion_gen_3x",
-         "rt_escreen_sr",
          "rt_dg_5m_mom_beach_p3",
          "rt_hyper_vlasov_tm",
          "rt_dg_diffusion_gen_2x",

@@ -1,6 +1,22 @@
 #include <assert.h>
 #include <gkyl_vlasov_priv.h>
 
+// Is slot j of the partner's source the counterpart of slot i of mine: it names my
+// species and integrates the same half plane above the same threshold? A species may
+// list the same partner twice (one slot per half plane), so the name alone does not
+// identify the slot.
+static bool
+adapt_slot_matches(
+  const struct gkyl_vlasov_source *mine, int i, const char *my_name,
+  const struct gkyl_vlasov_source *theirs, int j
+)
+{
+  bool same_name = 0 == strcmp(my_name, theirs->source_with[j]);
+  bool same_half_plane = theirs->source_with_upper_half[j] == mine->source_with_upper_half[i];
+  bool same_thresh = theirs->source_with_v_thresh[j] == mine->source_with_v_thresh[i];
+  return same_name && same_half_plane && same_thresh;
+}
+
 void
 vm_species_source_init(struct gkyl_vlasov_app *app, struct vm_species *vms, struct vm_source *src)
 {
@@ -52,7 +68,7 @@ vm_species_source_init(struct gkyl_vlasov_app *app, struct vm_species *vms, stru
       assert(other->info.source.source_id == GKYL_PROJ_ADAPT_DENSITY_SOURCE);
       src->adapt_source_slot[i] = -1;
       for (int j = 0; j < other->info.source.num_cross_source; ++j) {
-        if (0 == strcmp(vms->name, other->info.source.source_with[j])) {
+        if (adapt_slot_matches(&vms->info.source, i, vms->name, &other->info.source, j)) {
           src->adapt_source_slot[i] = j;
           break;
         }
@@ -95,6 +111,26 @@ vm_species_source_init(struct gkyl_vlasov_app *app, struct vm_species *vms, stru
         .use_gpu = app->use_gpu,
       };
       src->gauss_filter = gkyl_dg_gaussian_filter_inew(&inp);
+
+      // The filter reads the neighbours of the skin cells from the ghost cells, so the
+      // ghosts must hold boundary data: copy BCs for the non-periodic directions (the
+      // periodic directions are synchronized before each filter pass).
+      long buff_sz = 0;
+      for (int d = 0; d < app->cdim; ++d) {
+        long vol = GKYL_MAX2(app->lower_skin[d].volume, app->upper_skin[d].volume);
+        buff_sz = buff_sz > vol ? buff_sz : vol;
+      }
+      src->filter_bc_buffer = mkarr(app->use_gpu, app->basis.num_basis, buff_sz);
+      for (int d = 0; d < app->cdim; ++d) {
+        src->filter_bc_lo[d] = gkyl_bc_basic_new(
+          d, GKYL_LOWER_EDGE, GKYL_BC_COPY, app->basis_on_dev, &app->lower_skin[d],
+          &app->lower_ghost[d], app->basis.num_basis, app->cdim, app->use_gpu
+        );
+        src->filter_bc_up[d] = gkyl_bc_basic_new(
+          d, GKYL_UPPER_EDGE, GKYL_BC_COPY, app->basis_on_dev, &app->upper_skin[d],
+          &app->upper_ghost[d], app->basis.num_basis, app->cdim, app->use_gpu
+        );
+      }
     }
   }
 
@@ -166,8 +202,24 @@ vm_species_source_adapt_moms(
       if (src->filter) {
         // Optionally filter repeatedly.
         for (int j = 0; j < src->num_filters; j++) {
-          // Synchronize ghost cells before filtering so ghost cells are included in filter.
+          // Fill the ghost cells before filtering so they are included in the filter:
+          // synchronize across the decomposition and the periodic directions, and copy
+          // the skin value into the ghosts of the non-periodic directions.
           gkyl_comm_array_sync(app->comm, &app->local, &app->local_ext, src->scale_m0[i]);
+          gkyl_comm_array_per_sync(
+            app->comm, &app->local, &app->local_ext, app->num_periodic_dir, app->periodic_dirs,
+            src->scale_m0[i]
+          );
+          int is_np_bc[GKYL_MAX_CDIM] = {1, 1, 1};
+          for (int d = 0; d < app->num_periodic_dir; ++d) {
+            is_np_bc[app->periodic_dirs[d]] = 0;
+          }
+          for (int d = 0; d < app->cdim; ++d) {
+            if (is_np_bc[d]) {
+              gkyl_bc_basic_advance(src->filter_bc_lo[d], src->filter_bc_buffer, src->scale_m0[i]);
+              gkyl_bc_basic_advance(src->filter_bc_up[d], src->filter_bc_buffer, src->scale_m0[i]);
+            }
+          }
           gkyl_dg_gaussian_filter_advance(src->gauss_filter, &app->local, src->scale_m0[i]);
         }
       }
@@ -426,6 +478,11 @@ vm_species_source_release(const struct gkyl_vlasov_app *app, const struct vm_sou
     }
     if (src->filter) {
       gkyl_dg_gaussian_filter_release(src->gauss_filter);
+      for (int d = 0; d < app->cdim; ++d) {
+        gkyl_bc_basic_release(src->filter_bc_lo[d]);
+        gkyl_bc_basic_release(src->filter_bc_up[d]);
+      }
+      gkyl_array_release(src->filter_bc_buffer);
     }
   }
 

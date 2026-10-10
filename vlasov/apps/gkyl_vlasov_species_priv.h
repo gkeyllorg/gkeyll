@@ -456,6 +456,11 @@ struct vm_source {
   bool filter; // boolean for if we are filtering rescaled M0
   int num_filters; // number of times to apply filter
   gkyl_dg_gaussian_filter *gauss_filter; // updater for filtering rescaled M0
+  // Ghost cells of the rescaled M0 are filled before every filter pass: periodic directions are
+  // synchronized and non-periodic directions copy the skin value into the ghosts.
+  struct gkyl_bc_basic *filter_bc_lo[GKYL_MAX_CDIM]; // copy BC updaters, lower edges
+  struct gkyl_bc_basic *filter_bc_up[GKYL_MAX_CDIM]; // copy BC updaters, upper edges
+  struct gkyl_array *filter_bc_buffer; // buffer for the copy BC updaters
 
   struct gkyl_array *source; // applied source
   struct gkyl_array *source_host; // host copy for use in IO
