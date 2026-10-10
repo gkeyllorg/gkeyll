@@ -3,6 +3,7 @@
 #include <acutest.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_array_rio.h>
+#include <gkyl_const.h>
 #include <gkyl_spitzer_coll_freq.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
@@ -529,6 +530,164 @@ test_3x(int poly_order, bool use_gpu)
 }
 
 void
+eval_bmag_phys_1x(double t, const double *xn, double *restrict fout, void *ctx)
+{
+  fout[0] = 1.0; // Tesla.
+}
+void
+eval_m0_phys_1x(double t, const double *xn, double *restrict fout, void *ctx)
+{
+  fout[0] = 1.0e19; // m^-3.
+}
+void
+eval_vtsq_elc_phys_1x(double t, const double *xn, double *restrict fout, void *ctx)
+{
+  fout[0] = 100.0 * GKYL_ELEMENTARY_CHARGE / GKYL_ELECTRON_MASS; // Te/me, Te=100 eV.
+}
+void
+eval_vtsq_ion_phys_1x(double t, const double *xn, double *restrict fout, void *ctx)
+{
+  double md = GKYL_PROTON_MASS * 2.01410177811; // Deuterium mass.
+  fout[0] = 100.0 * GKYL_ELEMENTARY_CHARGE / md; // Ti/md, Ti=100 eV.
+}
+
+void
+test_physical_1x(bool use_gpu)
+{
+  // Test using physical SI units.
+  // Expected collision frequencies computed independently in Python using the
+  // same formula as coulomb_log and gkyl_spitzer_coll_freq_advance in
+  // spitzer_coll_freq.c, for n=1e19 m^-3, Te=Ti=100 eV, B=1 T, deuterium ions.
+  double nu_ei_expected = 4.46772581565451401e+05;
+  double nu_ie_expected = 1.20808171444521520e+02;
+
+  double qe = -GKYL_ELEMENTARY_CHARGE, qd = GKYL_ELEMENTARY_CHARGE;
+  double me = GKYL_ELECTRON_MASS, md = GKYL_PROTON_MASS * 2.01410177811;
+  double eps0 = GKYL_EPSILON0;
+  double hbar = GKYL_PLANCKS_CONSTANT_H / (2.0 * M_PI);
+
+  double Lx = 1.0;
+  double lower[] = {0.}, upper[] = {Lx};
+  int cells[] = {4};
+  int poly_order = 1;
+  int ndim = 1;
+
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
+
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+
+  int ghost[] = {1};
+  struct gkyl_range local, local_ext;
+  gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
+
+  struct gkyl_array *bmag, *m0, *vtsq_elc, *vtsq_ion;
+  bmag = mkarr(use_gpu, basis.num_basis, local_ext.volume);
+  m0 = mkarr(use_gpu, basis.num_basis, local_ext.volume);
+  vtsq_elc = mkarr(use_gpu, basis.num_basis, local_ext.volume);
+  vtsq_ion = mkarr(use_gpu, basis.num_basis, local_ext.volume);
+  struct gkyl_array *bmag_ho, *m0_ho, *vtsq_elc_ho, *vtsq_ion_ho;
+  if (use_gpu) {
+    bmag_ho = mkarr(false, bmag->ncomp, bmag->size);
+    m0_ho = mkarr(false, m0->ncomp, m0->size);
+    vtsq_elc_ho = mkarr(false, vtsq_elc->ncomp, vtsq_elc->size);
+    vtsq_ion_ho = mkarr(false, vtsq_ion->ncomp, vtsq_ion->size);
+  } else {
+    bmag_ho = gkyl_array_acquire(bmag);
+    m0_ho = gkyl_array_acquire(m0);
+    vtsq_elc_ho = gkyl_array_acquire(vtsq_elc);
+    vtsq_ion_ho = gkyl_array_acquire(vtsq_ion);
+  }
+
+  gkyl_proj_on_basis *proj_bmag =
+    gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 1, eval_bmag_phys_1x, NULL);
+  gkyl_proj_on_basis *proj_m0 =
+    gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 1, eval_m0_phys_1x, NULL);
+  gkyl_proj_on_basis *proj_vtsq_elc =
+    gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 1, eval_vtsq_elc_phys_1x, NULL);
+  gkyl_proj_on_basis *proj_vtsq_ion =
+    gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 1, eval_vtsq_ion_phys_1x, NULL);
+
+  gkyl_proj_on_basis_advance(proj_bmag, 0.0, &local, bmag_ho);
+  gkyl_proj_on_basis_advance(proj_m0, 0.0, &local, m0_ho);
+  gkyl_proj_on_basis_advance(proj_vtsq_elc, 0.0, &local, vtsq_elc_ho);
+  gkyl_proj_on_basis_advance(proj_vtsq_ion, 0.0, &local, vtsq_ion_ho);
+
+  gkyl_array_copy(bmag, bmag_ho);
+  gkyl_array_copy(m0, m0_ho);
+  gkyl_array_copy(vtsq_elc, vtsq_elc_ho);
+  gkyl_array_copy(vtsq_ion, vtsq_ion_ho);
+
+  // Package moments into Maxwellian moments arrays (n, u=0, vtSq).
+  struct gkyl_array *moms_elc = mkarr(use_gpu, 3 * basis.num_basis, local_ext.volume);
+  gkyl_array_set_offset(moms_elc, 1.0, m0, 0);
+  gkyl_array_set_offset(moms_elc, 1.0, vtsq_elc, 2 * basis.num_basis);
+  struct gkyl_array *moms_ion = mkarr(use_gpu, 3 * basis.num_basis, local_ext.volume);
+  gkyl_array_set_offset(moms_ion, 1.0, m0, 0);
+  gkyl_array_set_offset(moms_ion, 1.0, vtsq_ion, 2 * basis.num_basis);
+
+  struct gkyl_array *nu_ei, *nu_ie, *nu_ei_ho, *nu_ie_ho;
+  nu_ei = mkarr(use_gpu, basis.num_basis, local_ext.volume);
+  nu_ie = mkarr(use_gpu, basis.num_basis, local_ext.volume);
+  nu_ei_ho = use_gpu ? mkarr(false, nu_ei->ncomp, nu_ei->size) : gkyl_array_acquire(nu_ei);
+  nu_ie_ho = use_gpu ? mkarr(false, nu_ie->ncomp, nu_ie->size) : gkyl_array_acquire(nu_ie);
+
+  gkyl_spitzer_coll_freq *spitz_up =
+    gkyl_spitzer_coll_freq_new(&basis, poly_order + 1, 1.0, eps0, hbar, use_gpu);
+
+  gkyl_spitzer_coll_freq_advance(
+    spitz_up, &local, bmag, qe, me, moms_elc, 0., qd, md, moms_ion, 0., nu_ei
+  );
+  gkyl_spitzer_coll_freq_advance(
+    spitz_up, &local, bmag, qd, md, moms_ion, 0., qe, me, moms_elc, 0., nu_ie
+  );
+  gkyl_array_copy(nu_ei_ho, nu_ei);
+  gkyl_array_copy(nu_ie_ho, nu_ie);
+
+  // Fields are spatially uniform, so for the constant orthonormal basis
+  // function b_0=1/sqrt(2^ndim), the cell-average coefficient equals the
+  // physical value times sqrt(2^ndim) in every cell.
+  double cellav_fac = 1. / sqrt(pow(2., ndim));
+  for (int k = 0; k < cells[0]; k++) {
+    int idx[] = {k + 1};
+    long linidx = gkyl_range_idx(&local, idx);
+    const double *nu_ei_p = gkyl_array_cfetch(nu_ei_ho, linidx);
+    const double *nu_ie_p = gkyl_array_cfetch(nu_ie_ho, linidx);
+
+    TEST_CHECK(gkyl_compare(nu_ei_expected, nu_ei_p[0] * cellav_fac, 1e-8));
+    TEST_MSG("Expected nu_ei: %.13e in cell (%d)", nu_ei_expected, idx[0]);
+    TEST_MSG("Produced nu_ei: %.13e", nu_ei_p[0] * cellav_fac);
+
+    TEST_CHECK(gkyl_compare(nu_ie_expected, nu_ie_p[0] * cellav_fac, 1e-8));
+    TEST_MSG("Expected nu_ie: %.13e in cell (%d)", nu_ie_expected, idx[0]);
+    TEST_MSG("Produced nu_ie: %.13e", nu_ie_p[0] * cellav_fac);
+  }
+
+  gkyl_array_release(bmag);
+  gkyl_array_release(m0);
+  gkyl_array_release(vtsq_elc);
+  gkyl_array_release(vtsq_ion);
+  gkyl_array_release(bmag_ho);
+  gkyl_array_release(m0_ho);
+  gkyl_array_release(vtsq_elc_ho);
+  gkyl_array_release(vtsq_ion_ho);
+  gkyl_array_release(moms_elc);
+  gkyl_array_release(moms_ion);
+  gkyl_array_release(nu_ei);
+  gkyl_array_release(nu_ie);
+  gkyl_array_release(nu_ei_ho);
+  gkyl_array_release(nu_ie_ho);
+
+  gkyl_proj_on_basis_release(proj_bmag);
+  gkyl_proj_on_basis_release(proj_m0);
+  gkyl_proj_on_basis_release(proj_vtsq_elc);
+  gkyl_proj_on_basis_release(proj_vtsq_ion);
+
+  gkyl_spitzer_coll_freq_release(spitz_up);
+}
+
+void
 test_spitzer_coll_freq_1x_p1_ho()
 {
   test_1x(1, false);
@@ -559,6 +718,12 @@ void
 test_spitzer_coll_freq_3x_p2_ho()
 {
   test_3x(2, false);
+}
+
+void
+test_spitzer_coll_freq_physical_1x_ho()
+{
+  test_physical_1x(false);
 }
 
 #ifdef GKYL_HAVE_CUDA
@@ -594,6 +759,12 @@ test_spitzer_coll_freq_3x_p2_dev()
 {
   test_3x(2, true);
 }
+
+void
+test_spitzer_coll_freq_physical_1x_dev()
+{
+  test_physical_1x(true);
+}
 #endif
 
 TEST_LIST = {
@@ -605,6 +776,8 @@ TEST_LIST = {
 
   {"test_spitzer_coll_freq_3x_p1_ho", test_spitzer_coll_freq_3x_p1_ho},
   {"test_spitzer_coll_freq_3x_p2_ho", test_spitzer_coll_freq_3x_p2_ho},
+
+  {"test_spitzer_coll_freq_physical_1x_ho", test_spitzer_coll_freq_physical_1x_ho},
 #ifdef GKYL_HAVE_CUDA
   {"test_spitzer_coll_freq_1x_p1_dev", test_spitzer_coll_freq_1x_p1_dev},
   {"test_spitzer_coll_freq_1x_p2_dev", test_spitzer_coll_freq_1x_p2_dev},
@@ -614,6 +787,8 @@ TEST_LIST = {
 
   {"test_spitzer_coll_freq_3x_p1_dev", test_spitzer_coll_freq_3x_p1_dev},
   {"test_spitzer_coll_freq_3x_p2_dev", test_spitzer_coll_freq_3x_p2_dev},
+
+  {"test_spitzer_coll_freq_physical_1x_dev", test_spitzer_coll_freq_physical_1x_dev},
 #endif
   {NULL, NULL}
 };

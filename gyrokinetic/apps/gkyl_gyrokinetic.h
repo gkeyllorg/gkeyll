@@ -131,7 +131,7 @@ struct gkyl_gyrokinetic_collisions {
   double den_ref; // Reference density.
   double temp_ref; // Regerence temperature.
   double bmag_ref; // Reference magnetic field magnitude.
-  double hbar, eps0, eV; // Planck's constant/2 pi, vacuum permittivity, elementary charge.
+  double hbar, eps0; // Planck's constant/2 pi, vacuum permittivity.
 
   // Boolean for using implicit BGK collisions (replaces rk3).
   bool is_implicit;

@@ -300,7 +300,6 @@ main(int argc, char **argv)
         .temp_ref = pow(ctx.vt, 2) * ctx.mass,
         .eps0 = 1.0,
         .hbar = 1.0,
-        .eV = 1.0,
       },
 
     .num_diag_moments = 7,
@@ -337,7 +336,6 @@ main(int argc, char **argv)
         .temp_ref = pow(ctx.vt, 2) * ctx.mass,
         .eps0 = 1.0,
         .hbar = 1.0,
-        .eV = 1.0,
       },
 
     .num_diag_moments = 7,
