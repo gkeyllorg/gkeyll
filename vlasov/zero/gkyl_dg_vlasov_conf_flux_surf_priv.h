@@ -454,7 +454,7 @@ GKYL_CU_D static const gkyl_hamil_alpha_quad_kern_list tensor_hamil_phase_alpha_
   // 2x kernels
   {NULL, NULL, NULL, NULL}, // 3
   {NULL, hamil_phase_alpha_quad_x_2x2v_tensor_p1_shared, NULL, NULL}, // 4
-  {NULL, GKYL_HYB_2X3V(hamil_phase_alpha_quad_x_2x3v_tensor_p1_shared), NULL, NULL}, // 5
+  {NULL, hamil_phase_alpha_quad_x_2x3v_tensor_p1_shared, NULL, NULL}, // 5
   // 3x kernels
   {NULL, GKYL_HYB_3X3V_PHASE(hamil_phase_alpha_quad_x_3x3v_tensor_p1_shared), NULL, NULL} // 6
 };
@@ -467,7 +467,7 @@ GKYL_CU_D static const gkyl_hamil_alpha_quad_kern_list tensor_hamil_phase_alpha_
   // 2x kernels
   {NULL, NULL, NULL, NULL}, // 3
   {NULL, hamil_phase_alpha_quad_y_2x2v_tensor_p1_shared, NULL, NULL}, // 4
-  {NULL, GKYL_HYB_2X3V(hamil_phase_alpha_quad_y_2x3v_tensor_p1_shared), NULL, NULL}, // 5
+  {NULL, hamil_phase_alpha_quad_y_2x3v_tensor_p1_shared, NULL, NULL}, // 5
   // 3x kernels
   {NULL, GKYL_HYB_3X3V_PHASE(hamil_phase_alpha_quad_y_3x3v_tensor_p1_shared), NULL, NULL} // 6
 };
@@ -494,7 +494,7 @@ GKYL_CU_D static const gkyl_hamil_alpha_quad_kern_list
     // 2x kernels
     {NULL, NULL, NULL, NULL}, // 3
     {NULL, hamil_phase_ho_alpha_quad_x_2x2v_tensor_p1_shared, NULL, NULL}, // 4
-    {NULL, GKYL_HYB_2X3V(hamil_phase_ho_alpha_quad_x_2x3v_tensor_p1_shared), NULL, NULL}, // 5
+    {NULL, hamil_phase_ho_alpha_quad_x_2x3v_tensor_p1_shared, NULL, NULL}, // 5
     // 3x kernels
     {NULL, GKYL_HYB_3X3V_PHASE(hamil_phase_ho_alpha_quad_x_3x3v_tensor_p1_shared), NULL, NULL} // 6
 };
@@ -508,7 +508,7 @@ GKYL_CU_D static const gkyl_hamil_alpha_quad_kern_list
     // 2x kernels
     {NULL, NULL, NULL, NULL}, // 3
     {NULL, hamil_phase_ho_alpha_quad_y_2x2v_tensor_p1_shared, NULL, NULL}, // 4
-    {NULL, GKYL_HYB_2X3V(hamil_phase_ho_alpha_quad_y_2x3v_tensor_p1_shared), NULL, NULL}, // 5
+    {NULL, hamil_phase_ho_alpha_quad_y_2x3v_tensor_p1_shared, NULL, NULL}, // 5
     // 3x kernels
     {NULL, GKYL_HYB_3X3V_PHASE(hamil_phase_ho_alpha_quad_y_3x3v_tensor_p1_shared), NULL, NULL} // 6
 };
@@ -537,7 +537,7 @@ GKYL_CU_D static const gkyl_hamil_alpha_quad_kern_list
     // 2x kernels
     {NULL, NULL, NULL, NULL}, // 3
     {NULL, hamil_vel_sparse_alpha_quad_x_2x2v_tensor_p1_shared, NULL, NULL}, // 4
-    {NULL, GKYL_HYB_2X3V(hamil_vel_sparse_alpha_quad_x_2x3v_tensor_p1_shared), NULL, NULL}, // 5
+    {NULL, hamil_vel_sparse_alpha_quad_x_2x3v_tensor_p1_shared, NULL, NULL}, // 5
     // 3x kernels
     {NULL, GKYL_HYB_3X3V(hamil_vel_sparse_alpha_quad_x_3x3v_tensor_p1_shared), NULL, NULL} // 6
 };
@@ -551,7 +551,7 @@ GKYL_CU_D static const gkyl_hamil_alpha_quad_kern_list
     // 2x kernels
     {NULL, NULL, NULL, NULL}, // 3
     {NULL, hamil_vel_sparse_ho_alpha_quad_x_2x2v_tensor_p1_shared, NULL, NULL}, // 4
-    {NULL, GKYL_HYB_2X3V(hamil_vel_sparse_ho_alpha_quad_x_2x3v_tensor_p1_shared), NULL, NULL}, // 5
+    {NULL, hamil_vel_sparse_ho_alpha_quad_x_2x3v_tensor_p1_shared, NULL, NULL}, // 5
     // 3x kernels
     {NULL, GKYL_HYB_3X3V(hamil_vel_sparse_ho_alpha_quad_x_3x3v_tensor_p1_shared), NULL, NULL} // 6
 };
@@ -565,7 +565,7 @@ GKYL_CU_D static const gkyl_hamil_alpha_quad_kern_list
     // 2x kernels
     {NULL, NULL, NULL, NULL}, // 3
     {NULL, hamil_vel_sparse_alpha_quad_y_2x2v_tensor_p1_shared, NULL, NULL}, // 4
-    {NULL, GKYL_HYB_2X3V(hamil_vel_sparse_alpha_quad_y_2x3v_tensor_p1_shared), NULL, NULL}, // 5
+    {NULL, hamil_vel_sparse_alpha_quad_y_2x3v_tensor_p1_shared, NULL, NULL}, // 5
     // 3x kernels
     {NULL, GKYL_HYB_3X3V(hamil_vel_sparse_alpha_quad_y_3x3v_tensor_p1_shared), NULL, NULL} // 6
 };
@@ -579,7 +579,7 @@ GKYL_CU_D static const gkyl_hamil_alpha_quad_kern_list
     // 2x kernels
     {NULL, NULL, NULL, NULL}, // 3
     {NULL, hamil_vel_sparse_ho_alpha_quad_y_2x2v_tensor_p1_shared, NULL, NULL}, // 4
-    {NULL, GKYL_HYB_2X3V(hamil_vel_sparse_ho_alpha_quad_y_2x3v_tensor_p1_shared), NULL, NULL}, // 5
+    {NULL, hamil_vel_sparse_ho_alpha_quad_y_2x3v_tensor_p1_shared, NULL, NULL}, // 5
     // 3x kernels
     {NULL, GKYL_HYB_3X3V(hamil_vel_sparse_ho_alpha_quad_y_3x3v_tensor_p1_shared), NULL, NULL} // 6
 };
@@ -622,7 +622,7 @@ GKYL_CU_D static const gkyl_hamil_alpha_quad_kern_list
     // 2x kernels
     {NULL, NULL, NULL, NULL}, // 3
     {NULL, hamil_vel_dense_alpha_quad_x_2x2v_tensor_p1_shared, NULL, NULL}, // 4
-    {NULL, GKYL_HYB_2X3V(hamil_vel_dense_alpha_quad_x_2x3v_tensor_p1_shared), NULL, NULL}, // 5
+    {NULL, hamil_vel_dense_alpha_quad_x_2x3v_tensor_p1_shared, NULL, NULL}, // 5
     // 3x kernels
     {NULL, GKYL_HYB_3X3V(hamil_vel_dense_alpha_quad_x_3x3v_tensor_p1_shared), NULL, NULL} // 6
 };
@@ -636,7 +636,7 @@ GKYL_CU_D static const gkyl_hamil_alpha_quad_kern_list
     // 2x kernels
     {NULL, NULL, NULL, NULL}, // 3
     {NULL, hamil_vel_dense_alpha_quad_y_2x2v_tensor_p1_shared, NULL, NULL}, // 4
-    {NULL, GKYL_HYB_2X3V(hamil_vel_dense_alpha_quad_y_2x3v_tensor_p1_shared), NULL, NULL}, // 5
+    {NULL, hamil_vel_dense_alpha_quad_y_2x3v_tensor_p1_shared, NULL, NULL}, // 5
     // 3x kernels
     {NULL, GKYL_HYB_3X3V(hamil_vel_dense_alpha_quad_y_3x3v_tensor_p1_shared), NULL, NULL} // 6
 };
@@ -664,7 +664,7 @@ GKYL_CU_D static const gkyl_hamil_alpha_quad_kern_list
     // 2x kernels
     {NULL, NULL, NULL, NULL}, // 3
     {NULL, hamil_vel_dense_ho_alpha_quad_x_2x2v_tensor_p1_shared, NULL, NULL}, // 4
-    {NULL, GKYL_HYB_2X3V(hamil_vel_dense_ho_alpha_quad_x_2x3v_tensor_p1_shared), NULL, NULL}, // 5
+    {NULL, hamil_vel_dense_ho_alpha_quad_x_2x3v_tensor_p1_shared, NULL, NULL}, // 5
     // 3x kernels
     {NULL, GKYL_HYB_3X3V(hamil_vel_dense_ho_alpha_quad_x_3x3v_tensor_p1_shared), NULL, NULL} // 6
 };
@@ -678,7 +678,7 @@ GKYL_CU_D static const gkyl_hamil_alpha_quad_kern_list
     // 2x kernels
     {NULL, NULL, NULL, NULL}, // 3
     {NULL, hamil_vel_dense_ho_alpha_quad_y_2x2v_tensor_p1_shared, NULL, NULL}, // 4
-    {NULL, GKYL_HYB_2X3V(hamil_vel_dense_ho_alpha_quad_y_2x3v_tensor_p1_shared), NULL, NULL}, // 5
+    {NULL, hamil_vel_dense_ho_alpha_quad_y_2x3v_tensor_p1_shared, NULL, NULL}, // 5
     // 3x kernels
     {NULL, GKYL_HYB_3X3V(hamil_vel_dense_ho_alpha_quad_y_3x3v_tensor_p1_shared), NULL, NULL} // 6
 };
@@ -705,7 +705,7 @@ GKYL_CU_D static const gkyl_lax_flux_nodal_kern_list tensor_lax_flux_nodal_x_ker
   // 2x kernels
   {NULL, NULL, NULL, NULL}, // 3
   {NULL, lax_flux_nodal_x_2x2v_tensor_p1_node, NULL, NULL}, // 4
-  {NULL, GKYL_HYB_2X3V(lax_flux_nodal_x_2x3v_tensor_p1_node), NULL, NULL}, // 5
+  {NULL, lax_flux_nodal_x_2x3v_tensor_p1_node, NULL, NULL}, // 5
   // 3x kernels
   {NULL, GKYL_HYB_3X3V(lax_flux_nodal_x_3x3v_tensor_p1_node), NULL, NULL} // 6
 };
@@ -718,7 +718,7 @@ GKYL_CU_D static const gkyl_lax_prj_kern_list tensor_lax_flux_nodal_x_prj_kernel
   // 2x kernels
   {NULL, NULL, NULL, NULL}, // 3
   {NULL, lax_flux_nodal_x_2x2v_tensor_p1_prj, NULL, NULL}, // 4
-  {NULL, GKYL_HYB_2X3V(lax_flux_nodal_x_2x3v_tensor_p1_prj), NULL, NULL}, // 5
+  {NULL, lax_flux_nodal_x_2x3v_tensor_p1_prj, NULL, NULL}, // 5
   // 3x kernels
   {NULL, GKYL_HYB_3X3V(lax_flux_nodal_x_3x3v_tensor_p1_prj), NULL, NULL} // 6
 };
@@ -731,7 +731,7 @@ GKYL_CU_D static const gkyl_lax_g_kern_list tensor_lax_flux_nodal_x_g_kernels[] 
   // 2x kernels
   {NULL, NULL, NULL, NULL}, // 3
   {NULL, lax_flux_nodal_x_2x2v_tensor_p1_g, NULL, NULL}, // 4
-  {NULL, GKYL_HYB_2X3V(lax_flux_nodal_x_2x3v_tensor_p1_g), NULL, NULL}, // 5
+  {NULL, lax_flux_nodal_x_2x3v_tensor_p1_g, NULL, NULL}, // 5
   // 3x kernels
   {NULL, GKYL_HYB_3X3V(lax_flux_nodal_x_3x3v_tensor_p1_g), NULL, NULL} // 6
 };
@@ -744,7 +744,7 @@ GKYL_CU_D static const gkyl_lax_cfl_kern_list tensor_lax_flux_nodal_x_cfl_kernel
   // 2x kernels
   {NULL, NULL, NULL, NULL}, // 3
   {NULL, lax_flux_nodal_x_2x2v_tensor_p1_cfl, NULL, NULL}, // 4
-  {NULL, GKYL_HYB_2X3V(lax_flux_nodal_x_2x3v_tensor_p1_cfl), NULL, NULL}, // 5
+  {NULL, lax_flux_nodal_x_2x3v_tensor_p1_cfl, NULL, NULL}, // 5
   // 3x kernels
   {NULL, GKYL_HYB_3X3V(lax_flux_nodal_x_3x3v_tensor_p1_cfl), NULL, NULL} // 6
 };
@@ -757,7 +757,7 @@ GKYL_CU_D static const gkyl_lax_flux_nodal_kern_list tensor_lax_flux_nodal_y_ker
   // 2x kernels
   {NULL, NULL, NULL, NULL}, // 3
   {NULL, lax_flux_nodal_y_2x2v_tensor_p1_node, NULL, NULL}, // 4
-  {NULL, GKYL_HYB_2X3V(lax_flux_nodal_y_2x3v_tensor_p1_node), NULL, NULL}, // 5
+  {NULL, lax_flux_nodal_y_2x3v_tensor_p1_node, NULL, NULL}, // 5
   // 3x kernels
   {NULL, GKYL_HYB_3X3V(lax_flux_nodal_y_3x3v_tensor_p1_node), NULL, NULL} // 6
 };
@@ -770,7 +770,7 @@ GKYL_CU_D static const gkyl_lax_prj_kern_list tensor_lax_flux_nodal_y_prj_kernel
   // 2x kernels
   {NULL, NULL, NULL, NULL}, // 3
   {NULL, lax_flux_nodal_y_2x2v_tensor_p1_prj, NULL, NULL}, // 4
-  {NULL, GKYL_HYB_2X3V(lax_flux_nodal_y_2x3v_tensor_p1_prj), NULL, NULL}, // 5
+  {NULL, lax_flux_nodal_y_2x3v_tensor_p1_prj, NULL, NULL}, // 5
   // 3x kernels
   {NULL, GKYL_HYB_3X3V(lax_flux_nodal_y_3x3v_tensor_p1_prj), NULL, NULL} // 6
 };
@@ -783,7 +783,7 @@ GKYL_CU_D static const gkyl_lax_g_kern_list tensor_lax_flux_nodal_y_g_kernels[] 
   // 2x kernels
   {NULL, NULL, NULL, NULL}, // 3
   {NULL, lax_flux_nodal_y_2x2v_tensor_p1_g, NULL, NULL}, // 4
-  {NULL, GKYL_HYB_2X3V(lax_flux_nodal_y_2x3v_tensor_p1_g), NULL, NULL}, // 5
+  {NULL, lax_flux_nodal_y_2x3v_tensor_p1_g, NULL, NULL}, // 5
   // 3x kernels
   {NULL, GKYL_HYB_3X3V(lax_flux_nodal_y_3x3v_tensor_p1_g), NULL, NULL} // 6
 };
@@ -796,7 +796,7 @@ GKYL_CU_D static const gkyl_lax_cfl_kern_list tensor_lax_flux_nodal_y_cfl_kernel
   // 2x kernels
   {NULL, NULL, NULL, NULL}, // 3
   {NULL, lax_flux_nodal_y_2x2v_tensor_p1_cfl, NULL, NULL}, // 4
-  {NULL, GKYL_HYB_2X3V(lax_flux_nodal_y_2x3v_tensor_p1_cfl), NULL, NULL}, // 5
+  {NULL, lax_flux_nodal_y_2x3v_tensor_p1_cfl, NULL, NULL}, // 5
   // 3x kernels
   {NULL, GKYL_HYB_3X3V(lax_flux_nodal_y_3x3v_tensor_p1_cfl), NULL, NULL} // 6
 };
@@ -1019,7 +1019,7 @@ GKYL_CU_D static const gkyl_lax_flux_nodal_kern_list tensor_ho_lax_flux_nodal_x_
   // 2x kernels
   {NULL, NULL, NULL, NULL}, // 3
   {NULL, ho_lax_flux_nodal_x_2x2v_tensor_p1_node, NULL, NULL}, // 4
-  {NULL, GKYL_HYB_2X3V(ho_lax_flux_nodal_x_2x3v_tensor_p1_node), NULL, NULL}, // 5
+  {NULL, ho_lax_flux_nodal_x_2x3v_tensor_p1_node, NULL, NULL}, // 5
   // 3x kernels
   {NULL, GKYL_HYB_3X3V(ho_lax_flux_nodal_x_3x3v_tensor_p1_node), NULL, NULL} // 6
 };
@@ -1032,7 +1032,7 @@ GKYL_CU_D static const gkyl_lax_prj_kern_list tensor_ho_lax_flux_nodal_x_prj_ker
   // 2x kernels
   {NULL, NULL, NULL, NULL}, // 3
   {NULL, ho_lax_flux_nodal_x_2x2v_tensor_p1_prj, NULL, NULL}, // 4
-  {NULL, GKYL_HYB_2X3V(ho_lax_flux_nodal_x_2x3v_tensor_p1_prj), NULL, NULL}, // 5
+  {NULL, ho_lax_flux_nodal_x_2x3v_tensor_p1_prj, NULL, NULL}, // 5
   // 3x kernels
   {NULL, GKYL_HYB_3X3V(ho_lax_flux_nodal_x_3x3v_tensor_p1_prj), NULL, NULL} // 6
 };
@@ -1045,7 +1045,7 @@ GKYL_CU_D static const gkyl_lax_g_kern_list tensor_ho_lax_flux_nodal_x_g_kernels
   // 2x kernels
   {NULL, NULL, NULL, NULL}, // 3
   {NULL, ho_lax_flux_nodal_x_2x2v_tensor_p1_g, NULL, NULL}, // 4
-  {NULL, GKYL_HYB_2X3V(ho_lax_flux_nodal_x_2x3v_tensor_p1_g), NULL, NULL}, // 5
+  {NULL, ho_lax_flux_nodal_x_2x3v_tensor_p1_g, NULL, NULL}, // 5
   // 3x kernels
   {NULL, GKYL_HYB_3X3V(ho_lax_flux_nodal_x_3x3v_tensor_p1_g), NULL, NULL} // 6
 };
@@ -1058,7 +1058,7 @@ GKYL_CU_D static const gkyl_lax_cfl_kern_list tensor_ho_lax_flux_nodal_x_cfl_ker
   // 2x kernels
   {NULL, NULL, NULL, NULL}, // 3
   {NULL, ho_lax_flux_nodal_x_2x2v_tensor_p1_cfl, NULL, NULL}, // 4
-  {NULL, GKYL_HYB_2X3V(ho_lax_flux_nodal_x_2x3v_tensor_p1_cfl), NULL, NULL}, // 5
+  {NULL, ho_lax_flux_nodal_x_2x3v_tensor_p1_cfl, NULL, NULL}, // 5
   // 3x kernels
   {NULL, GKYL_HYB_3X3V(ho_lax_flux_nodal_x_3x3v_tensor_p1_cfl), NULL, NULL} // 6
 };
@@ -1071,7 +1071,7 @@ GKYL_CU_D static const gkyl_lax_flux_nodal_kern_list tensor_ho_lax_flux_nodal_y_
   // 2x kernels
   {NULL, NULL, NULL, NULL}, // 3
   {NULL, ho_lax_flux_nodal_y_2x2v_tensor_p1_node, NULL, NULL}, // 4
-  {NULL, GKYL_HYB_2X3V(ho_lax_flux_nodal_y_2x3v_tensor_p1_node), NULL, NULL}, // 5
+  {NULL, ho_lax_flux_nodal_y_2x3v_tensor_p1_node, NULL, NULL}, // 5
   // 3x kernels
   {NULL, GKYL_HYB_3X3V(ho_lax_flux_nodal_y_3x3v_tensor_p1_node), NULL, NULL} // 6
 };
@@ -1084,7 +1084,7 @@ GKYL_CU_D static const gkyl_lax_prj_kern_list tensor_ho_lax_flux_nodal_y_prj_ker
   // 2x kernels
   {NULL, NULL, NULL, NULL}, // 3
   {NULL, ho_lax_flux_nodal_y_2x2v_tensor_p1_prj, NULL, NULL}, // 4
-  {NULL, GKYL_HYB_2X3V(ho_lax_flux_nodal_y_2x3v_tensor_p1_prj), NULL, NULL}, // 5
+  {NULL, ho_lax_flux_nodal_y_2x3v_tensor_p1_prj, NULL, NULL}, // 5
   // 3x kernels
   {NULL, GKYL_HYB_3X3V(ho_lax_flux_nodal_y_3x3v_tensor_p1_prj), NULL, NULL} // 6
 };
@@ -1097,7 +1097,7 @@ GKYL_CU_D static const gkyl_lax_g_kern_list tensor_ho_lax_flux_nodal_y_g_kernels
   // 2x kernels
   {NULL, NULL, NULL, NULL}, // 3
   {NULL, ho_lax_flux_nodal_y_2x2v_tensor_p1_g, NULL, NULL}, // 4
-  {NULL, GKYL_HYB_2X3V(ho_lax_flux_nodal_y_2x3v_tensor_p1_g), NULL, NULL}, // 5
+  {NULL, ho_lax_flux_nodal_y_2x3v_tensor_p1_g, NULL, NULL}, // 5
   // 3x kernels
   {NULL, GKYL_HYB_3X3V(ho_lax_flux_nodal_y_3x3v_tensor_p1_g), NULL, NULL} // 6
 };
@@ -1110,7 +1110,7 @@ GKYL_CU_D static const gkyl_lax_cfl_kern_list tensor_ho_lax_flux_nodal_y_cfl_ker
   // 2x kernels
   {NULL, NULL, NULL, NULL}, // 3
   {NULL, ho_lax_flux_nodal_y_2x2v_tensor_p1_cfl, NULL, NULL}, // 4
-  {NULL, GKYL_HYB_2X3V(ho_lax_flux_nodal_y_2x3v_tensor_p1_cfl), NULL, NULL}, // 5
+  {NULL, ho_lax_flux_nodal_y_2x3v_tensor_p1_cfl, NULL, NULL}, // 5
   // 3x kernels
   {NULL, GKYL_HYB_3X3V(ho_lax_flux_nodal_y_3x3v_tensor_p1_cfl), NULL, NULL} // 6
 };

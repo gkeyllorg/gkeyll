@@ -41,12 +41,11 @@ else
 endif
 -include alltargets.mak
 
-# Optional heavy kernel sets (tensor p=1 hybrid basis in 2x3v and 3x3v). Off by
-# default: they add tens of MB of generated kernels and, under nvcc, tens of
-# minutes of compile time. Set the knobs in config.mak (see ./configure --help).
-# The corresponding kernel tables get NULL rows when a set is not built, and the
-# apps refuse such configurations with a message pointing here.
-BUILD_VLASOV_HYB_2X3V ?=
+# Optional heavy kernel set (tensor p=1 hybrid basis in 3x3v). Off by default:
+# it adds tens of MB of generated kernels and, under nvcc, tens of minutes of
+# compile time. Set the knobs in config.mak (see ./configure --help). The
+# corresponding kernel tables get NULL rows when the set is not built, and the
+# apps refuse such configurations with a message pointing here. 
 BUILD_VLASOV_HYB_3X3V ?=
 BUILD_VLASOV_HYB_3X3V_PHASE ?=
 
@@ -152,9 +151,6 @@ GKYL_SHARE_DIR ?= "${INSTALL_PREFIX}/${PROJ_NAME}/share"
 CFLAGS += -DGKYL_SHARE_DIR=\"$(GKYL_SHARE_DIR)\"
 
 # Optional heavy kernel set defines (knobs resolved above)
-ifeq ($(BUILD_VLASOV_HYB_2X3V),1)
-	CFLAGS += -DGKYL_BUILD_VLASOV_HYB_2X3V
-endif
 ifeq ($(BUILD_VLASOV_HYB_3X3V),1)
 	CFLAGS += -DGKYL_BUILD_VLASOV_HYB_3X3V
 endif
@@ -275,7 +271,7 @@ export FIN_APP_LIB_DIR FIN_APP_LIB HAVE_APP_FLAGS
 export MKDIR_P GKYL_SHARE_DIR BUILD_APP
 export GKEYLL_SHARE_INSTALL_PREFIX SED_REPS_STR1 SED_REPS_STR2 MAKEFILE_FOR_EXT_C_INP_PHONY
 export CONF_MPI_INC_DIR CONF_MPI_LIB_DIR
-export BUILD_VLASOV_HYB_2X3V BUILD_VLASOV_HYB_3X3V BUILD_VLASOV_HYB_3X3V_PHASE
+export BUILD_VLASOV_HYB_3X3V BUILD_VLASOV_HYB_3X3V_PHASE
 export CONF_NCCL_INC_DIR CONF_NCCL_LIB_DIR
 export CONF_CUDSS_INC_DIR CONF_CUDSS_LIB_DIR
 export CONF_LUA_INC_DIR CONF_LUA_LIB_DIR CONF_LUA_LIB

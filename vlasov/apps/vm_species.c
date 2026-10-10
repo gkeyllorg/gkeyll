@@ -1319,13 +1319,6 @@ vm_species_check_hyb_build(struct gkyl_vlasov_app *app, struct vm_species *vms)
     return;
   }
   int cdim = app->cdim, vdim = vms->basis.ndim - cdim;
-#ifndef GKYL_BUILD_VLASOV_HYB_2X3V
-  if (cdim == 2 && vdim == 3) {
-    gkyl_exit(
-      "vm_species: the 2x3v tensor p=1 hybrid kernels were not built. Reconfigure with --build-vlasov-hyb-2x3v=yes."
-    );
-  }
-#endif
 #ifndef GKYL_BUILD_VLASOV_HYB_3X3V
   if (cdim == 3 && vdim == 3) {
     gkyl_exit(

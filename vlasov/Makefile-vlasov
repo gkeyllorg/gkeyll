@@ -24,10 +24,6 @@ SLLIB :=
 # built earlier and is now switched off are deleted before linking.
 KER_EXCLUDE :=
 KER_PRUNE :=
-ifneq ($(BUILD_VLASOV_HYB_2X3V),1)
-KER_EXCLUDE += -not -name '*2x3v_tensor_p1*'
-KER_PRUNE += -o -name '*2x3v_tensor_p1*.o'
-endif
 ifneq ($(BUILD_VLASOV_HYB_3X3V),1)
 KER_EXCLUDE += -not -name '*3x3v_tensor_p1*'
 KER_PRUNE += -o -name '*3x3v_tensor_p1*.o'

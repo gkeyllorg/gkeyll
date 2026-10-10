@@ -45,7 +45,7 @@ GKYL_CU_D static const pos_shift_vlasov_kern_list_shift pos_shift_vlasov_kern_li
    {positivity_shift_vlasov_shift_only_1x2v_tensor_p1, NULL, NULL},
    {positivity_shift_vlasov_shift_only_1x3v_tensor_p1, NULL, NULL},
    {positivity_shift_vlasov_shift_only_2x2v_tensor_p1, NULL, NULL},
-   {GKYL_HYB_2X3V(positivity_shift_vlasov_shift_only_2x3v_tensor_p1), NULL, NULL},
+   {positivity_shift_vlasov_shift_only_2x3v_tensor_p1, NULL, NULL},
    {GKYL_HYB_3X3V(positivity_shift_vlasov_shift_only_3x3v_tensor_p1), NULL, NULL}};
 
 GKYL_CU_D static const pos_shift_vlasov_kern_list_shift
@@ -54,7 +54,7 @@ GKYL_CU_D static const pos_shift_vlasov_kern_list_shift
     {positivity_shift_vlasov_MRS_limiter_1x2v_tensor_p1, NULL, NULL},
     {positivity_shift_vlasov_MRS_limiter_1x3v_tensor_p1, NULL, NULL},
     {positivity_shift_vlasov_MRS_limiter_2x2v_tensor_p1, NULL, NULL},
-    {GKYL_HYB_2X3V(positivity_shift_vlasov_MRS_limiter_2x3v_tensor_p1), NULL, NULL},
+    {positivity_shift_vlasov_MRS_limiter_2x3v_tensor_p1, NULL, NULL},
     {GKYL_HYB_3X3V(positivity_shift_vlasov_MRS_limiter_3x3v_tensor_p1), NULL, NULL}
 };
 

@@ -88,7 +88,7 @@ GKYL_CU_D static const gkyl_prim_lbo_vlasov_self_kern_list ten_self_prim_kernels
    vlasov_self_prim_moments_2x1v_tensor_p3}, // 3
   {NULL, vlasov_self_prim_moments_2x2v_tensor_p1, vlasov_self_prim_moments_2x2v_tensor_p2, NULL
   }, // 4
-  {NULL, GKYL_HYB_2X3V(vlasov_self_prim_moments_2x3v_tensor_p1),
+  {NULL, vlasov_self_prim_moments_2x3v_tensor_p1,
    vlasov_self_prim_moments_2x3v_tensor_p2, NULL}, // 5
   // 3x kernels
   {NULL, GKYL_HYB_3X3V(vlasov_self_prim_moments_3x3v_tensor_p1), NULL, NULL} // 6
@@ -108,7 +108,7 @@ GKYL_CU_D static const gkyl_prim_lbo_vlasov_cross_kern_list ten_cross_prim_kerne
    vlasov_cross_prim_moments_2x1v_tensor_p3}, // 3
   {NULL, vlasov_cross_prim_moments_2x2v_tensor_p1, vlasov_cross_prim_moments_2x2v_tensor_p2, NULL
   }, // 4
-  {NULL, GKYL_HYB_2X3V(vlasov_cross_prim_moments_2x3v_tensor_p1),
+  {NULL, vlasov_cross_prim_moments_2x3v_tensor_p1,
    vlasov_cross_prim_moments_2x3v_tensor_p2, NULL}, // 5
   // 3x kernels
   {NULL, GKYL_HYB_3X3V(vlasov_cross_prim_moments_3x3v_tensor_p1), NULL, NULL} // 6

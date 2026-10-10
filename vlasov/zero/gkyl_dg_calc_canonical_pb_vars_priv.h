@@ -111,7 +111,7 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_m1i_contra_to_cov_kern_list
     // 2x kernels
     {NULL, canonical_pb_vars_m1i_contra_to_cov_2x2v_tensor_p1,
      canonical_pb_vars_m1i_contra_to_cov_2x2v_tensor_p2}, // 3
-    {NULL, GKYL_HYB_2X3V(canonical_pb_vars_m1i_contra_to_cov_2x3v_tensor_p1), NULL}, //4
+    {NULL, canonical_pb_vars_m1i_contra_to_cov_2x3v_tensor_p1, NULL}, //4
     // 3x kernels
     {NULL, GKYL_HYB_3X3V(canonical_pb_vars_m1i_contra_to_cov_3x3v_tensor_p1), NULL} // 5
 };
@@ -129,7 +129,7 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_pressure_kern_list
     // 2x kernels
     {NULL, canonical_pb_vars_pressure_2x2v_tensor_p1, canonical_pb_vars_pressure_2x2v_tensor_p2
     }, // 3
-    {NULL, GKYL_HYB_2X3V(canonical_pb_vars_pressure_2x3v_tensor_p1), NULL}, //4
+    {NULL, canonical_pb_vars_pressure_2x3v_tensor_p1, NULL}, //4
     // 3x kernels
     {NULL, GKYL_HYB_3X3V(canonical_pb_vars_pressure_3x3v_tensor_p1), NULL} // 5
 };

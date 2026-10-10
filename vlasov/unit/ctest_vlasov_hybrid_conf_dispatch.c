@@ -190,7 +190,6 @@ t_ser_1x3v(void)
 {
   test_hybrid_m0(1, GKYL_BASIS_MODAL_SERENDIPITY, false);
 }
-#ifdef GKYL_BUILD_VLASOV_HYB_2X3V
 static void
 t_ten_2x3v(void)
 {
@@ -207,7 +206,6 @@ t_ser_2x3v_cu(void)
 {
   test_hybrid_m0(2, GKYL_BASIS_MODAL_SERENDIPITY, true);
 }
-#endif
 #endif
 #ifdef GKYL_BUILD_VLASOV_HYB_3X3V
 static void
@@ -237,12 +235,10 @@ t_ser_3x3v_cu(void)
 TEST_LIST = {
   {"hybrid_m0_tensor_typed_conf_1x3v", t_ten_1x3v},
   {"hybrid_m0_ser_typed_conf_1x3v", t_ser_1x3v},
-#ifdef GKYL_BUILD_VLASOV_HYB_2X3V
   {"hybrid_m0_tensor_typed_conf_2x3v", t_ten_2x3v},
   {"hybrid_m0_ser_typed_conf_2x3v", t_ser_2x3v},
 #ifdef GKYL_HAVE_CUDA
   {"cu_hybrid_m0_ser_typed_conf_2x3v", t_ser_2x3v_cu},
-#endif
 #endif
 #ifdef GKYL_BUILD_VLASOV_HYB_3X3V
   {"hybrid_m0_tensor_typed_conf_3x3v", t_ten_3x3v},
