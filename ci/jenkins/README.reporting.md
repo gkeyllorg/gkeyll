@@ -114,8 +114,9 @@ Reports use collapsed sections for:
   totals and failure details.
 - Stage durations, timings, the 20 slowest candidate regressions, and regression
   timing changes.
-- New warnings relative to the selected baseline, all warnings/errors with log
-  locations and context, and the failed build log's last 100 lines.
+- New warnings relative to the selected baseline, the total warning count,
+  all errors with log locations and context, and the failed build log's last
+  100 lines.
 - Stage history, Slurm details, and artifact retrieval instructions.
 
 The failed-log excerpt preserves output order, compiler commands, source lines,
@@ -124,8 +125,21 @@ while preserving line breaks and indentation; archived logs remain raw.
 
 Warning comparison uses matching completed baseline steps, ignoring checkout
 paths, ANSI colors, and source line/column changes. Missing or failed steps show
-comparison as unavailable; unmatched/shared warnings remain in **All warnings**.
+comparison as unavailable; unmatched/shared warnings remain in the total count
+and full warning artifact.
 HPC builds baseline unit tests too, providing corresponding compiler diagnostics.
+
+To reduce comment notifications, **All warnings** shows only the total number
+of warning occurrences across candidate, baseline, and shared logs. **New
+warnings** retains the distinct new messages per matching build/test step.
+Repeated time-step warnings are grouped by log/test and threshold, showing their
+distinct-message count, line range, time-step range, and maximum `num_failures`.
+Grouping changes display only; warning counts and baseline comparison stay the
+same. The complete new/all warning sections, including every captured occurrence
+and its context, are retained in `ci-report-warnings.md` in Jenkins artifacts.
+This artifact uses the full diagnostic formatter for future reporting transports.
+Other large sections, including many distinct non-time-step warnings, can still
+produce continuation comments.
 
 Per-test timing uses SQLite `runtime` from the latest finalized invocation per
 suite/layer, excluding compilation and comparison. Incomplete, invalid, or
@@ -149,7 +163,8 @@ context marker are edited; obsolete continuation pages are cleared. Queue IDs
 (or build numbers within a job) prevent older runs from replacing newer reports
 on the same commit/context. Other commits' reports remain intact.
 
-Artifacts include `ci-report.md` (full report), `ci-report.md.json` (pages),
+Artifacts include `ci-report.md` (posted report), `ci-report.md.json` (pages),
+`ci-report-warnings.md` (complete new/all warning details),
 `ci-stage-history.txt` (UTC transitions, including before checkout), and
 `ci-stage-timings.json`. The captured-log inventory is artifact-only, in
 `ci-diagnostic-summary.json` as `captured_log_paths` and count `captured_logs`.

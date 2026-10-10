@@ -330,7 +330,46 @@ def detail_sections(title, text):
         chunk) for i, chunk in enumerate(chunks or [wrapped_log('None.')])]
 
 
-def diagnostic_sections(summary_output=None):
+def group_timestep_warnings(entries):
+    """Summarize changing time-step values per log/test without changing counts."""
+    grouped, groups = [], {}
+    pattern = re.compile(r'^(.*):(\d+): .*?\bWARNING:\s*Time-step dt = (\S+) '
+                         r'is below (\S+)\*dt_init \.\.\. num_failures = (\d+)\s*$', re.I)
+    for entry in entries:
+        match = pattern.fullmatch(entry.split('\n', 1)[0])
+        if match:
+            path, line, dt, threshold, failures = match.groups()
+            try:
+                value = float(dt)
+            except ValueError:
+                value = math.nan
+            if math.isfinite(value):
+                key = (path, threshold)
+                if key not in groups:
+                    groups[key] = dict(index=len(grouped), count=0, first=int(line), last=int(line),
+                                       minimum=value, maximum=value, failures=0)
+                    grouped.append(entry)
+                group = groups[key]
+                group['count'] += 1
+                group['first'] = min(group['first'], int(line))
+                group['last'] = max(group['last'], int(line))
+                group['minimum'] = min(group['minimum'], value)
+                group['maximum'] = max(group['maximum'], value)
+                group['failures'] = max(group['failures'], int(failures))
+                continue
+        grouped.append(entry)
+    for (path, threshold), group in groups.items():
+        if group['count'] > 1:
+            grouped[group['index']] = (
+                '{}:{}-{}: WARNING: Time-step dt below {}*dt_init: '
+                '{} distinct new warnings grouped; dt range {:.6g} to {:.6g}; '
+                'maximum num_failures = {}. Full messages are archived.').format(
+                    path, group['first'], group['last'], threshold, group['count'],
+                    group['minimum'], group['maximum'], group['failures'])
+    return grouped
+
+
+def diagnostic_sections(summary_output=None, full_warnings_output=None):
     warnings, errors = [], []
     candidate, baseline = {}, {}
     comparable = set()
@@ -378,9 +417,23 @@ def diagnostic_sections(summary_output=None):
         note = 'Comparison unavailable: no matching completed baseline build logs. Warnings cannot be classified as new.'
     elif unknown:
         note += '\n{} distinct candidate warnings could not be compared because their baseline step did not complete.'.format(len(unknown))
-    sections = detail_sections('New warnings vs {} ({})'.format(ref, len(new) if comparable else 'unknown'),
-                               note + '\n\n' + ('\n\n'.join(new) if new else 'No new warnings in comparable steps.' if comparable else ''))
-    sections += detail_sections('All warnings ({})'.format(len(warnings)), '\n\n'.join(warnings) or 'No warnings found in captured logs.')
+    title = 'New warnings vs {} ({})'.format(ref, len(new) if comparable else 'unknown')
+    empty = 'No new warnings in comparable steps.' if comparable else ''
+    # Keep the complete formatter and every message for artifact inspection and
+    # a future reporting transport. Only the compact sections become comments.
+    if full_warnings_output:
+        full = detail_sections(title, note + '\n\n' + ('\n\n'.join(new) or empty))
+        full += detail_sections('All warnings ({})'.format(len(warnings)),
+                                '\n\n'.join(warnings) or 'No warnings found in captured logs.')
+        with open(full_warnings_output, 'w', encoding='utf-8') as stream:
+            stream.write('\n\n'.join(full))
+    sections = detail_sections(title, note + '\n\n' + ('\n\n'.join(group_timestep_warnings(new)) or empty))
+    sections.append(dropdown('All warnings ({})'.format(len(warnings)),
+                             '{} warning occurrences across captured candidate, baseline, and shared logs. '
+                             'New warnings above count distinct messages per matching build/test step; '
+                             'repeated time-step warnings are grouped for display. '
+                             'Full warning details are retained in the Jenkins artifact '
+                             '`ci-report-warnings.md` and the raw logs.'.format(len(warnings))))
     sections += detail_sections('All errors ({})'.format(len(errors)), '\n\n'.join(errors) or 'No recognised error lines in captured logs; see failure details for command exits and infrastructure failures.')
     if summary_output:
         with open(summary_output, 'w', encoding='utf-8') as stream:
@@ -682,7 +735,8 @@ def build_report(args):
     for part in parts[1:]:
         summary_sections.extend([part] if len(part.encode('utf-8')) <= 48000 else
                                 detail_sections('Extended CI summary (Markdown)', part))
-    pages = report_pages(parts[0], summary_sections + diagnostic_sections('ci-diagnostic-summary.json'), args.context)
+    pages = report_pages(parts[0], summary_sections + diagnostic_sections(
+        'ci-diagnostic-summary.json', 'ci-report-warnings.md'), args.context)
     with open(args.output + '.json', 'w', encoding='utf-8') as f:
         json.dump(pages, f)
     report = '\n\n'.join(pages)

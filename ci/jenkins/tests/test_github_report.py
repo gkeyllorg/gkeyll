@@ -96,9 +96,61 @@ class FailureReportTests(unittest.TestCase):
         self.assertNotIn('Captured logs', pages[0])
         self.assertNotIn('regressiondb:test_', pages[0])
         self.assertIn('All warnings (1)', pages[0])
-        self.assertIn('example warning', pages[0])
+        self.assertNotIn('example warning', pages[0])
+        self.assertIn('example warning', Path('ci-report-warnings.md').read_text())
         self.assertIn('All errors (1)', pages[0])
         self.assertIn('example error', pages[0])
+
+    def test_large_timestep_warning_report_preserves_artifact_without_comment_flood(self):
+        warnings = ['WARNING: Time-step dt = {}e-16 is below 0.001*dt_init ... num_failures = 1'.format(i)
+                    for i in range(1, 17001)]
+        logs = [('baseline:test', 'baseline-regression/test', warnings[0], True),
+                ('candidate:test', 'candidate-regression/test', '\n'.join(warnings), True),
+                ('baseline-build.log', 'baseline-build.log', 'a.c:1: warning: existing\n', True),
+                ('candidate-build.log', 'candidate-build.log',
+                 'a.c:2: warning: existing\na.c:3: warning: introduced\n', True)]
+        args = argparse.Namespace(platform='personal', context='ci/test', result='success', pr='', output='ci-report.md')
+        with patch.object(report, 'captured_logs', return_value=iter(logs)), \
+                contextlib.redirect_stdout(io.StringIO()):
+            report.build_report(args)
+        summary = json.loads(Path('ci-diagnostic-summary.json').read_text())
+        self.assertEqual(summary['warnings'], 17004)
+        self.assertEqual(summary['new_warnings'], 17000)
+        pages = json.loads(Path(args.output + '.json').read_text())
+        self.assertEqual(len(pages), 1)
+        self.assertIn('16999 distinct new warnings grouped', pages[0])
+        self.assertIn('warning: introduced', pages[0])
+        self.assertNotIn('warning: existing', pages[0])
+        self.assertIn('All warnings (17004)', pages[0])
+        archived = log_text(Path('ci-report-warnings.md').read_text())
+        for warning in warnings:
+            self.assertIn(warning, archived)
+        self.assertIn('a.c:1: warning: existing', archived)
+
+    def test_timestep_groups_keep_tests_thresholds_and_other_warnings_separate(self):
+        def warning(path, line, dt, threshold='0.001', failures=1):
+            return '{}:{}: WARNING: Time-step dt = {} is below {}*dt_init ... num_failures = {}'.format(
+                path, line, dt, threshold, failures)
+        entries = [warning('db:test-a', 3, '2e-12'), 'a.c:7: warning: keep this compiler message',
+                   warning('db:test-b', 4, '3e-12'), warning('db:test-a', 8, '1e-12', failures=4),
+                   warning('db:test-a', 9, '4e-12', threshold='0.01'), warning('db:test-a', 10, 'nan')]
+        grouped = report.group_timestep_warnings(entries)
+        self.assertEqual(len(grouped), 5)
+        self.assertIn('db:test-a:3-8:', grouped[0])
+        self.assertIn('2 distinct new warnings grouped', grouped[0])
+        self.assertIn('dt range 1e-12 to 2e-12', grouped[0])
+        self.assertIn('maximum num_failures = 4', grouped[0])
+        self.assertEqual(grouped[1:], [entries[i] for i in (1, 2, 4, 5)])
+
+    def test_unavailable_baseline_preserves_warnings_only_in_artifact(self):
+        self.write('candidate-build.log', 'a.c:1: warning: cannot classify\n')
+        body = '\n'.join(report.diagnostic_sections('diagnostics.json', 'ci-report-warnings.md'))
+        self.assertIn('New warnings vs main (unknown)', body)
+        self.assertIn('Comparison unavailable', body)
+        self.assertIn('All warnings (1)', body)
+        self.assertNotIn('warning: cannot classify', body)
+        self.assertIn('warning: cannot classify', Path('ci-report-warnings.md').read_text())
+        self.assertIsNone(json.loads(Path('diagnostics.json').read_text())['new_warnings'])
 
     def test_run_header_and_total_use_wall_time_instead_of_overlapping_steps(self):
         self.write('ci-timing-summary.txt', 'candidate_unit_build_seconds=3000\n'
