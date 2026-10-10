@@ -421,6 +421,11 @@ struct vlasov_species_lw {
   bool has_metric_determinant_func; // Is there a metric determinant function?
   struct lua_func_ctx
     metric_determinant_func_ref; // Lua registry reference to metric determinant function.
+  bool has_background_flows_func; // Is there a background flows function (extended Hamiltonian)?
+  struct lua_func_ctx background_flows_func_ref; // Lua registry reference to background flows function.
+  bool has_effective_potential_func; // Is there an effective potential function (extended Hamiltonian)?
+  struct lua_func_ctx
+    effective_potential_func_ref; // Lua registry reference to effective potential function.
 
   int num_init; // Number of projection objects.
   enum gkyl_projection_id proj_id[GKYL_MAX_PROJ]; // Projection type.
@@ -685,6 +690,10 @@ vlasov_species_lw_new(lua_State *L)
 
   bool has_metric_determinant_func = false;
   int metric_determinant_func_ref = LUA_NOREF;
+  bool has_background_flows_func = false;
+  int background_flows_func_ref = LUA_NOREF;
+  bool has_effective_potential_func = false;
+  int effective_potential_func_ref = LUA_NOREF;
 
   if (glua_tbl_get_func(L, "covTangentBasis")) {
     cov_tangent_basis_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
@@ -729,6 +738,17 @@ vlasov_species_lw_new(lua_State *L)
   if (glua_tbl_get_func(L, "metricDeterminant")) {
     metric_determinant_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
     has_metric_determinant_func = true;
+  }
+
+  // Extended Hamiltonian: background flows and effective potential (used together).
+  if (glua_tbl_get_func(L, "backgroundFlows")) {
+    background_flows_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    has_background_flows_func = true;
+  }
+
+  if (glua_tbl_get_func(L, "effectivePotential")) {
+    effective_potential_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    has_effective_potential_func = true;
   }
 
   enum gkyl_projection_id proj_id[GKYL_MAX_PROJ];
@@ -1113,6 +1133,22 @@ vlasov_species_lw_new(lua_State *L)
   vms_lw->has_metric_determinant_func = has_metric_determinant_func;
   vms_lw->metric_determinant_func_ref = (struct lua_func_ctx){
     .func_ref = metric_determinant_func_ref,
+    .ndim = 0, // This will be set later.
+    .nret = 1,
+    .L = L,
+  };
+
+  vms_lw->has_background_flows_func = has_background_flows_func;
+  vms_lw->background_flows_func_ref = (struct lua_func_ctx){
+    .func_ref = background_flows_func_ref,
+    .ndim = 0, // This will be set later.
+    .nret = vdim,
+    .L = L,
+  };
+
+  vms_lw->has_effective_potential_func = has_effective_potential_func;
+  vms_lw->effective_potential_func_ref = (struct lua_func_ctx){
+    .func_ref = effective_potential_func_ref,
     .ndim = 0, // This will be set later.
     .nret = 1,
     .L = L,
@@ -2219,6 +2255,16 @@ vm_app_new(lua_State *L)
       vm.species[s].kinetic.det_h = gkyl_lw_eval_cb;
       vm.species[s].kinetic.det_h_ctx =
         vm_app_ctx(app_lw, &species[s]->metric_determinant_func_ref, cdim);
+    }
+
+    if (species[s]->has_background_flows_func && species[s]->has_effective_potential_func) {
+      vm.species[s].kinetic.use_extended_hamil_def = true;
+      vm.species[s].kinetic.background_flows = gkyl_lw_eval_cb;
+      vm.species[s].kinetic.background_flows_ctx =
+        vm_app_ctx(app_lw, &species[s]->background_flows_func_ref, cdim);
+      vm.species[s].kinetic.effective_potential = gkyl_lw_eval_cb;
+      vm.species[s].kinetic.effective_potential_ctx =
+        vm_app_ctx(app_lw, &species[s]->effective_potential_func_ref, cdim);
     }
 
     vm.species[s].kinetic.num_init = species[s]->num_init;
