@@ -1416,14 +1416,32 @@ local function compareFiles(f1, f2, absTol, relTol)
          return true
       end
 
+      if f1type == "multi-block-meta" then
+         -- These are small descriptors (time, frame, topology filename and app
+         -- name), not arrays. Compare their serialized contents exactly. The
+         -- per-block fields and topology are compared separately by check.
+         local function readDescriptor(path)
+            local file = io.open(path, "rb")
+            if not file then return nil end
+            local contents = file:read("*a")
+            file:close()
+            return contents
+         end
+         local baseline = readDescriptor(f1)
+         local candidate = readDescriptor(f2)
+         if not candidate then return false, "candidate multiblock metadata read failed" end
+         if not baseline then return false, "baseline multiblock metadata read failed" end
+         if baseline ~= candidate then return false, "multiblock metadata mismatch" end
+         return true
+      end
+
       -- arrayNewFromFile returns (nil, nil) on failure rather than throwing.
       local g1, a1 = G0.Zero.arrayNewFromFile(f1)
       local g2, a2 = G0.Zero.arrayNewFromFile(f2)
-      if not g1 or not g2 then
-         verboseLog(string.format(
-            "    ... skipping %s (unsupported file format)\n", shortPath(f1)))
-         return true
-      end
+      -- Diagnose the candidate first: a broken baseline must never hide broken
+      -- candidate output. A baseline-only failure can be acknowledged narrowly.
+      if not g2 then return false, "candidate array read failed" end
+      if not g1 then return false, "baseline array read failed (candidate readable)" end
 
       if not G0.Zero.rectGridCmp(g1, g2) then
          return false, "grid mismatch"
