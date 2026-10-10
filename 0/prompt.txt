@@ -1,0 +1,22 @@
+It seems like people are getting tons of emails. They seem to be from github. Some of them say CI diagnostics (continued) New warnings vs c8e4e ... 
+Another says Gkeyll CI on personsal : check
+
+Another says All warnings (216) (part 3). One of them has 100 emails in it. What is causing this mass emailing? It seems on github's end, but why are there so many emails?
+
+---
+
+I want to maintain this level of reporting on github, with all the information and having CI be fully inspectable from GitHub. How can we reduce the amount of emails people are getting without decreasing the amount of information accessible on github? Can we post files to github for this?
+
+---
+
+Would putting this inside github checks resolve this issue? Maybe for now we can just report the total number of warnings, new warnings, compress the timestep warnings, and keep  this code for later if we put this in github checks. Can Jenkins post actions artifacts?
+
+---
+
+We can just keep the full warnings log in the artifacts for detailed inspections, but report the total number of warnings and the new warnings on github
+
+---
+
+<send_user_message_question_reply>
+[{"answer":"Total count plus new-warning messages, grouping repeated time-step warnings","question":"For the GitHub report, should “new warnings” mean only their count, or their messages too? Full warning details will remain in Jenkins artifacts either way.","questionItemId":"[\"request_user_input_async\",\"call_fa809f5ee29d4c5dbd94dbd30aaae4e2\",0]"}]
+</send_user_message_question_reply>
