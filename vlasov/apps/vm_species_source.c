@@ -202,10 +202,11 @@ vm_species_source_adapt_moms(
       if (src->filter) {
         // Optionally filter repeatedly.
         for (int j = 0; j < src->num_filters; j++) {
-          // Fill the ghost cells before filtering so they are included in the filter:
-          // synchronize across the decomposition and the periodic directions, and copy
-          // the skin value into the ghosts of the non-periodic directions.
-          gkyl_comm_array_sync(app->comm, &app->local, &app->local_ext, src->scale_m0[i]);
+          // Fill the ghost cells before filtering so they are included in the filter, in
+          // the same order as the species BCs: periodic directions, then copy BCs on the
+          // non-periodic directions (which also touch the interior edges of a decomposed
+          // domain), then the decomposition sync so the interior ghosts end with the
+          // neighbour's data.
           gkyl_comm_array_per_sync(
             app->comm, &app->local, &app->local_ext, app->num_periodic_dir, app->periodic_dirs,
             src->scale_m0[i]
@@ -220,6 +221,7 @@ vm_species_source_adapt_moms(
               gkyl_bc_basic_advance(src->filter_bc_up[d], src->filter_bc_buffer, src->scale_m0[i]);
             }
           }
+          gkyl_comm_array_sync(app->comm, &app->local, &app->local_ext, src->scale_m0[i]);
           gkyl_dg_gaussian_filter_advance(src->gauss_filter, &app->local, src->scale_m0[i]);
         }
       }
