@@ -42,12 +42,13 @@ EOF
 command_usage() {
     case "$1" in
         run) cat <<'EOF'
-Usage: jenkins-personal.sh run (--pr NUMBER | --candidate-ref REF --baseline-ref REF) [--allow-behind-candidate] [--follow]
+Usage: jenkins-personal.sh run (--pr NUMBER | --candidate-ref REF --baseline-ref REF) [--ci-ref REF] [--allow-behind-candidate] [--follow]
 
 Flags:
   --pr NUMBER           Build GitHub pull request NUMBER.
   --candidate-ref REF   Candidate branch or commit; requires --baseline-ref.
   --baseline-ref REF    Baseline branch or commit; requires --candidate-ref.
+  --ci-ref REF          Jenkinsfile and CI helpers branch or full commit SHA.
   --allow-behind-candidate  Permit a candidate that does not contain the baseline.
   --follow              Stream the build console after Jenkins queues it.
 EOF
@@ -114,7 +115,7 @@ ci_build_url() { printf '%s%s/%s' "$JENKINS_URL" "$(job_path)" "$1"; }
 prepare_auth() {
     [[ -f "$JENKINS_CLI_AUTH_FILE" ]] || die "credential file is missing: $JENKINS_CLI_AUTH_FILE"
     [[ -O "$JENKINS_CLI_AUTH_FILE" ]] || die "credential file is not owned by $USER"
-    [[ "$(stat -f '%Lp' "$JENKINS_CLI_AUTH_FILE" 2>/dev/null || stat -c '%a' "$JENKINS_CLI_AUTH_FILE")" == 600 ]] || die 'credential file must have mode 600'
+    [[ "$(stat -c '%a' "$JENKINS_CLI_AUTH_FILE" 2>/dev/null || stat -f '%Lp' "$JENKINS_CLI_AUTH_FILE")" == 600 ]] || die 'credential file must have mode 600'
     local credential; credential="$(<"$JENKINS_CLI_AUTH_FILE")"
     [[ "$credential" =~ ^[^[:space:]:]+:[^[:space:]:]+$ ]] || die 'credential file must contain user:api-token'
     CURL_CONFIG="$(mktemp "${TMPDIR:-/tmp}/gkeyll-jenkins.XXXXXX")"; chmod 600 "$CURL_CONFIG"
@@ -285,10 +286,10 @@ follow_command() {
     esac
 }
 submit() {
-    local pr="$1" candidate="$2" baseline="$3" allow_behind="$4" headers queue
+    local pr="$1" candidate="$2" baseline="$3" allow_behind="$4" ci_ref="$5" headers queue
     headers="$(mktemp "${TMPDIR:-/tmp}/gkeyll-jenkins-headers.XXXXXX")"
     curl_auth --dump-header "$headers" --output /dev/null --request POST \
-        --data-urlencode "CANDIDATE_PR=$pr" --data-urlencode "CANDIDATE_REF=$candidate" --data-urlencode "BASELINE_REF=$baseline" --data-urlencode "ALLOW_BEHIND_CANDIDATE=$allow_behind" \
+        --data-urlencode "CANDIDATE_PR=$pr" --data-urlencode "CANDIDATE_REF=$candidate" --data-urlencode "BASELINE_REF=$baseline" --data-urlencode "ALLOW_BEHIND_CANDIDATE=$allow_behind" --data-urlencode "CI_REF=$ci_ref" \
         "${JENKINS_URL}$(job_path)/buildWithParameters" || { rm -f "$headers"; die 'Jenkins rejected the build'; }
     queue="$(awk 'BEGIN{IGNORECASE=1} /^Location:/{sub(/^[^:]*: /,""); sub(/\r$/,""); print; exit}' "$headers")"; rm -f "$headers"
     [[ "$queue" =~ /queue/item/([0-9]+)/ ]] || die 'Jenkins accepted the build but returned no queue ID'
@@ -296,10 +297,16 @@ submit() {
     echo "Queued $JENKINS_JOB as queue item $QUEUE_ID"
 }
 run() {
-    local pr='' candidate='' baseline='' allow_behind=false want_follow=false
-    while (($#)); do case "$1" in --pr) (($#>=2))||die '--pr requires a number'; pr="$2"; shift 2;; --candidate-ref) (($#>=2))||die '--candidate-ref requires a ref'; candidate="$2"; shift 2;; --baseline-ref) (($#>=2))||die '--baseline-ref requires a ref'; baseline="$2"; shift 2;; --allow-behind-candidate) allow_behind=true; shift;; --follow) want_follow=true; shift;; *) die "unknown run option: $1";; esac; done
+    local pr='' candidate='' baseline='' ci_ref='' allow_behind=false want_follow=false
+    while (($#)); do case "$1" in --pr) (($#>=2))||die '--pr requires a number'; pr="$2"; shift 2;; --candidate-ref) (($#>=2))||die '--candidate-ref requires a ref'; candidate="$2"; shift 2;; --baseline-ref) (($#>=2))||die '--baseline-ref requires a ref'; baseline="$2"; shift 2;; --ci-ref) (($#>=2)) && [[ -n "$2" ]] || die '--ci-ref requires a ref'; ci_ref="$2"; shift 2;; --allow-behind-candidate) allow_behind=true; shift;; --follow) want_follow=true; shift;; *) die "unknown run option: $1";; esac; done
     if [[ -n "$pr" ]]; then positive '--pr' "$pr"; [[ -z "$candidate$baseline" ]] || die '--pr cannot be combined with refs'; else [[ -n "$candidate" && -n "$baseline" ]] || die 'provide --pr, or both --candidate-ref and --baseline-ref'; fi
-    submit "$pr" "$candidate" "$baseline" "$allow_behind"
+    if [[ -n "$ci_ref" ]]; then
+        local definitions
+        definitions="$(curl_auth "${JENKINS_URL}$(job_path)/api/json?tree=property[parameterDefinitions[name]]")"
+        python3 -c 'import json,sys; sys.exit(not any(p.get("name") == "CI_REF" for prop in json.load(sys.stdin).get("property", []) for p in prop.get("parameterDefinitions", [])))' <<< "$definitions" \
+            || die 'This job does not expose CI_REF yet; run the updated personal Jenkinsfile once to register it.'
+    fi
+    submit "$pr" "$candidate" "$baseline" "$allow_behind" "$ci_ref"
     if [[ "$want_follow" == true ]]; then
         wait_for_build_number "$QUEUE_ID"
         follow "$RESOLVED_BUILD_NUMBER"
@@ -316,9 +323,9 @@ def selectors(actions):
     values={}
     for action in actions or []:
         for parameter in action.get("parameters") or []:
-            if parameter.get("name") in ("CANDIDATE_PR","CANDIDATE_REF","BASELINE_REF"):
+            if parameter.get("name") in ("CANDIDATE_PR","CANDIDATE_REF","BASELINE_REF","CI_REF"):
                 values[parameter["name"]]=parameter.get("value") or "-"
-    return "pr={0} candidate={1} baseline={2}".format(values.get("CANDIDATE_PR","-"),values.get("CANDIDATE_REF","-"),values.get("BASELINE_REF","-"))
+    return "pr={0} candidate={1} baseline={2} ci={3}".format(values.get("CANDIDATE_PR","-"),values.get("CANDIDATE_REF","-"),values.get("BASELINE_REF","-"),values.get("CI_REF","default"))
 for build in json.load(sys.stdin).get("builds",[]):
     if active_only and not build.get("building",False): continue
     if count >= limit: break
@@ -338,9 +345,9 @@ def selectors(actions):
     values={}
     for action in actions or []:
         for parameter in action.get("parameters") or []:
-            if parameter.get("name") in ("CANDIDATE_PR","CANDIDATE_REF","BASELINE_REF"):
+            if parameter.get("name") in ("CANDIDATE_PR","CANDIDATE_REF","BASELINE_REF","CI_REF"):
                 values[parameter["name"]]=parameter.get("value") or "-"
-    return "pr={0} candidate={1} baseline={2}".format(values.get("CANDIDATE_PR","-"),values.get("CANDIDATE_REF","-"),values.get("BASELINE_REF","-"))
+    return "pr={0} candidate={1} baseline={2} ci={3}".format(values.get("CANDIDATE_PR","-"),values.get("CANDIDATE_REF","-"),values.get("BASELINE_REF","-"),values.get("CI_REF","default"))
 for item in json.load(sys.stdin).get("items",[]):
     if (item.get("task") or {}).get("name") != job or item.get("executable"): continue
     state="CANCELLED" if item.get("cancelled",False) else "QUEUED"

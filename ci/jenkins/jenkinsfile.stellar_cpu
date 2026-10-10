@@ -1,3 +1,37 @@
+import groovy.transform.Field
+@Field def reporting
+
+def loggedSh(String label, String command) { reporting.loggedSh(label, command) }
+def timeCommand(String metric, String command) { reporting.timeCommand(metric, command) }
+
+def loadReporting(Map settings) {
+    def ref = env.CI_TRUSTED_CI_COMMIT?.trim() ?: env.GKEYLL_CI_TRUSTED_REF?.trim() ?: 'main'
+    if (!(ref ==~ /[A-Za-z0-9][A-Za-z0-9._\/-]*/) || ref.contains('..') || ref.endsWith('.lock')) {
+        error('Invalid trusted reporting ref.')
+    }
+    // This directory is outside the candidate checkout, which is deleted below.
+    dir(pwd(tmp: true) + '/trusted-reporting') {
+        deleteDir()
+        withEnv(["CI_TRUSTED_REPORT_REF=${ref}"]) {
+            sh '''#!/bin/bash
+                set -euo pipefail
+                git init --quiet
+                git fetch --quiet --depth 1 https://github.com/gkeyllorg/gkeyll.git "$CI_TRUSTED_REPORT_REF"
+                git show FETCH_HEAD:ci/jenkins/jenkins_reporting.groovy > jenkins_reporting.groovy
+                git show FETCH_HEAD:ci/jenkins/github_report.py > github_report.py
+                git show FETCH_HEAD:ci/jenkins/baseline_cache.sh > baseline_cache.sh
+                chmod +x baseline_cache.sh
+                git show FETCH_HEAD:ci/jenkins/prebuilt_config.py > prebuilt_config.py
+            '''
+        }
+        settings.reportingCommit = sh(returnStdout: true, script: 'git rev-parse FETCH_HEAD').trim()
+        reporting = load('jenkins_reporting.groovy')
+        settings.cacheScript = pwd() + '/baseline_cache.sh'
+        settings.prebuiltScript = pwd() + '/prebuilt_config.py'
+        reporting.configure(settings)
+    }
+}
+
 // Manual, CPU-only Level-1 CI for Princeton's Stellar CPU cluster.
 //
 // Configure the Jenkins job to load *this file* from a reviewed, trusted CI
@@ -6,10 +40,14 @@
 // pipeline that decides what SLURM work to submit. Once validated, the job can
 // move to main without changing this file.
 
+def buildsToKeep = env.GKEYLL_CI_BUILDS_TO_KEEP?.trim() ?: ''
+if (buildsToKeep && !(buildsToKeep ==~ /[1-9][0-9]*/)) {
+    error('GKEYLL_CI_BUILDS_TO_KEEP must be a positive build count, or empty for no limit.')
+}
 properties([
     buildDiscarder(logRotator(
-        numToKeepStr: '20',
-        artifactNumToKeepStr: '20'
+        numToKeepStr: buildsToKeep,
+        artifactNumToKeepStr: buildsToKeep
     )),
     disableConcurrentBuilds(),
     parameters([
@@ -189,61 +227,6 @@ print(base_ref)
     return validateBranchName('GitHub PR base branch', baseRef)
 }
 
-def publishGitHubCommitStatus(String statusCredentialsId, String commit, String state, String description) {
-    if (!(commit ==~ /[0-9a-f]{40}/)) {
-        error("Cannot publish a GitHub status for invalid commit SHA '${commit}'.")
-    }
-    if (!['pending', 'success', 'failure', 'error'].contains(state)) {
-        error("Invalid GitHub commit-status state '${state}'.")
-    }
-
-    // Bind the token only for this trusted API request, never while a shell
-    // command from the PR checkout is running.
-    withCredentials([usernamePassword(
-        credentialsId: statusCredentialsId,
-        usernameVariable: 'GITHUB_STATUS_USERNAME',
-        passwordVariable: 'GITHUB_STATUS_TOKEN'
-    )]) {
-        withEnv([
-            "GITHUB_STATUS_COMMIT=${commit}",
-            "GITHUB_STATUS_STATE=${state}",
-            "GITHUB_STATUS_DESCRIPTION=${description}"
-        ]) {
-            sh '''#!/bin/bash
-                set -euo pipefail
-
-                payload="$(printf '{"state":"%s","context":"continuous-integration/jenkins/stellar_cpu","description":"%s"}' "${GITHUB_STATUS_STATE}" "${GITHUB_STATUS_DESCRIPTION}")"
-                curl --fail --silent --show-error \
-                    --retry 2 --connect-timeout 15 --max-time 45 \
-                    --request POST \
-                    --header 'Accept: application/vnd.github+json' \
-                    --header 'X-GitHub-Api-Version: 2022-11-28' \
-                    --header "Authorization: Bearer ${GITHUB_STATUS_TOKEN}" \
-                    --header 'Content-Type: application/json' \
-                    --data "$payload" \
-                    --output /dev/null --write-out 'GitHub Stellar status: %{http_code}\\n' \
-                    "https://api.github.com/repos/gkeyllorg/gkeyll/statuses/${GITHUB_STATUS_COMMIT}"
-            '''
-        }
-    }
-}
-
-def trustedReportScript() {
-    // The report tool must come from reviewed code, never from the candidate
-    // checkout, because 'publish' runs with the GitHub token bound.
-    // GKEYLL_CI_TRUSTED_REF exists so a reviewed CI branch can be staged
-    // before merge; production controllers leave it unset (main).
-    def ref = validateRefSelector('GKEYLL_CI_TRUSTED_REF', env.GKEYLL_CI_TRUSTED_REF?.trim() ?: 'main')
-    withEnv(["CI_TRUSTED_REPORT_REF=${ref}"]) {
-        sh '''#!/bin/bash -l
-            set -euo pipefail
-            git fetch --quiet --depth 1 https://github.com/gkeyllorg/gkeyll.git "$CI_TRUSTED_REPORT_REF"
-            git show FETCH_HEAD:ci/jenkins/github_report.py > _trusted_github_report.py
-        '''
-    }
-    return '_trusted_github_report.py'
-}
-
 def prepareTrustedRegressionChecker() {
     def ref = validateRefSelector('GKEYLL_CI_TRUSTED_REF', env.GKEYLL_CI_TRUSTED_REF?.trim() ?: 'main')
     withEnv(["CI_TRUSTED_CHECKER_REF=${ref}"]) {
@@ -255,23 +238,6 @@ def prepareTrustedRegressionChecker() {
             test -s _trusted_check_regression_results.lua
             git rev-parse FETCH_HEAD > ci-trusted-checker-commit.txt
         '''
-    }
-}
-
-def publishGitHubReport(String statusCredentialsId, String commit, String state, String candidatePr) {
-    // Builds ci-report.md from the workspace summaries and posts it as one
-    // pull-request comment (or commit comment) that later runs update in place.
-    def script = trustedReportScript()
-    withEnv(["CI_REPORT_CONTEXT=continuous-integration/jenkins/stellar_cpu", "CI_REPORT_PLATFORM=stellar_cpu", "CI_REPORT_RESULT=${state}",
-             "CI_REPORT_PR=${candidatePr ?: ''}", "CI_REPORT_COMMIT=${commit}"]) {
-        sh "python3 ${script} build --platform \"\$CI_REPORT_PLATFORM\" --context \"\$CI_REPORT_CONTEXT\" --result \"\$CI_REPORT_RESULT\" --pr \"\$CI_REPORT_PR\" --output ci-report.md"
-        withCredentials([usernamePassword(
-            credentialsId: statusCredentialsId,
-            usernameVariable: 'GITHUB_USERNAME',
-            passwordVariable: 'GITHUB_TOKEN'
-        )]) {
-            sh "python3 ${script} publish --report ci-report.md --commit \"\$CI_REPORT_COMMIT\" --context \"\$CI_REPORT_CONTEXT\" --pr \"\$CI_REPORT_PR\""
-        }
     }
 }
 
@@ -302,7 +268,7 @@ def submitSlurmJob(String kind, String payload, String cpus, String timeLimit, L
         "CI_SLURM_EXPORTS=${exports.join(',')}",
         "CI_SLURM_OUTPUT=${outputFile}"
     ]) {
-        sh '''#!/bin/bash -l
+        loggedSh("shared-slurm-${kind}", '''#!/bin/bash -l
             set -euo pipefail
 
             job_id=''
@@ -397,7 +363,7 @@ def submitSlurmJob(String kind, String payload, String cpus, String timeLimit, L
                 exit 0
             fi
             exit 1
-        '''
+        ''')
     }
 }
 
@@ -433,6 +399,7 @@ def submitRegressionTests(String mode, String baselineDir, String candidateDir) 
 }
 
 def submitParallelRegressionTests(String mode, String baselineDir, String candidateDir) {
+    def jobs = regressionJobs()
     submitSlurmJob(
         'parallel-regression',
         'ci/jenkins/slurm-parallel-regression-tests.stellar_cpu.sh',
@@ -444,15 +411,72 @@ def submitParallelRegressionTests(String mode, String baselineDir, String candid
             "CI_CANDIDATE_DIR=${candidateDir}/gkeyll",
             "CI_CANDIDATE_PREFIX=${candidateDir}/gkylsoft",
             "CI_TRUSTED_CHECKER=${env.WORKSPACE}/_trusted_check_regression_results.lua",
-            "CI_REGRESSION_MODE=${mode}"
+            "CI_REGRESSION_MODE=${mode}",
+            "CI_REGRESSION_JOBS=${jobs}"
         ],
-        '4'
+        Math.max(4, jobs.toInteger()).toString()
     )
+}
+
+// The config is supplied by the machine owner, outside disposable workspaces.
+// Keep this helper in the trusted Pipeline so older candidate/baseline refs work.
+def usePrebuiltConfig(String prefix) {
+    def source = env.GKEYLL_CI_PREBUILT_CONFIG?.trim()
+    if (!source) return false
+    if (!source.startsWith('/') || !fileExists(source)) {
+        error('GKEYLL_CI_PREBUILT_CONFIG must name an existing absolute config.mak path on the agent.')
+    }
+    if (!env.CI_RUN_DIR?.trim()) error('CI_RUN_DIR must be prepared before copying dependencies.')
+    def launcher = env.PERSONAL_MPIEXEC?.trim()
+        ?: (env.PERSONAL_MPI_HOME?.trim() ? "${env.PERSONAL_MPI_HOME.trim()}/bin/mpiexec" : '')
+    // Keep the owner's launcher across candidate/baseline environment changes.
+    if (!env.CI_PREBUILT_SOURCE_MPIEXEC) env.CI_PREBUILT_SOURCE_MPIEXEC = launcher ?: 'auto'
+    launcher = env.CI_PREBUILT_SOURCE_MPIEXEC == 'auto' ? '' : env.CI_PREBUILT_SOURCE_MPIEXEC
+    def dependencies = env.CI_BASELINE_DEPENDENCIES ?: "${env.CI_RUN_DIR}/dependencies"
+    def runtime = [:]
+    withEnv(["CI_PREBUILT_SOURCE=${source}", "CI_PREBUILT_PREFIX=${prefix}",
+             "CI_PREBUILT_DEPENDENCIES=${dependencies}",
+             "CI_PREBUILT_SCRIPT=${reporting.settings.prebuiltScript}",
+             "CI_PREBUILT_MPIEXEC=${launcher}"]) {
+        // Literal KEY=value lines avoid JSON APIs that need sandbox approval.
+        def output = sh(returnStdout: true, script: '''#!/bin/bash
+            set -euo pipefail
+            if [[ -n "${CI_BASELINE_DEPENDENCIES:-}" ]]; then
+                cmp "$CI_PREBUILT_SOURCE" "$CI_RUN_DIR/dependencies/source-config.mak" || {
+                    echo 'Prebuilt config changed during this run; start a new CI run.' >&2
+                    exit 1
+                }
+            fi
+            python3 -I "$CI_PREBUILT_SCRIPT" --config "$CI_PREBUILT_SOURCE" \
+                --prefix "$CI_PREBUILT_PREFIX" --dependencies "$CI_PREBUILT_DEPENDENCIES" \
+                --mpiexec "${CI_PREBUILT_MPIEXEC:-}" --format env
+        ''')
+        output.readLines().each { line ->
+            def fields = line.split('=', 2)
+            runtime[fields[0]] = fields[1]
+        }
+    }
+    env.LD_LIBRARY_PATH = runtime.LD_LIBRARY_PATH
+    env.GKEYLL_CI_DEPENDENCY_ENV = runtime.GKEYLL_CI_DEPENDENCY_ENV
+    if (runtime.MPI_HOME) {
+        env.MPI_HOME = runtime.MPI_HOME
+        env.OPAL_PREFIX = runtime.OPAL_PREFIX
+        env.PERSONAL_MPI_HOME = runtime.MPI_HOME
+    }
+    if (runtime.MPIEXEC) env.PERSONAL_MPIEXEC = runtime.MPIEXEC
+    writeFile file: 'alltargets.mak', text: '''.PHONY: all install
+all: gkeyll
+install: gkeyll
+	$(MAKE) gkeyll-install
+'''
+    echo "Using dependency copy at ${dependencies}; installing Gkeyll in ${prefix}"
+    return true
 }
 
 def configureAndCompileCRegressions(String label, String driver, String sourceDir, String prefix, String moduleFile, String runOptions = '', String configureOptions = '') {
     withEnv([
         "CI_REGRESSION_LABEL=${label}",
+        "CI_REGRESSION_COMPILE_JOBS=${buildJobs()}",
         "CI_REGRESSION_DRIVER=${driver}",
         "CI_REGRESSION_SOURCE_DIR=${sourceDir}",
         "CI_REGRESSION_PREFIX=${prefix}",
@@ -461,18 +485,19 @@ def configureAndCompileCRegressions(String label, String driver, String sourceDi
         "CI_REGRESSION_CONFIGURE_OPTIONS=${configureOptions}",
         "CI_WORKSPACE=${env.WORKSPACE}"
     ]) {
-        sh '''#!/bin/bash -l
+        loggedSh("${label}-c-compile", '''#!/bin/bash -l
             set -euo pipefail
             . "$CI_REGRESSION_MODULE_FILE"
+            if [ -n "${GKEYLL_CI_DEPENDENCY_ENV:-}" ]; then . "$GKEYLL_CI_DEPENDENCY_ENV"; fi
             "$CI_REGRESSION_DRIVER" runregression configure \
                 --source-dir "$CI_REGRESSION_SOURCE_DIR" \
                 --prefix "$CI_REGRESSION_PREFIX" ${CI_REGRESSION_CONFIGURE_OPTIONS:-}
             started="$(date +%s)"
-            "$CI_REGRESSION_DRIVER" runregression run -c ${CI_REGRESSION_RUN_OPTIONS:-} compile
+            "$CI_REGRESSION_DRIVER" runregression run -c ${CI_REGRESSION_RUN_OPTIONS:-} --jobs "$CI_REGRESSION_COMPILE_JOBS" compile
             elapsed="$(( $(date +%s) - started ))"
             printf '%s\n' "$elapsed" > "$CI_WORKSPACE/$CI_REGRESSION_LABEL-c-compile-seconds.txt"
             echo "$CI_REGRESSION_LABEL C-regression compile time: $elapsed seconds"
-        '''
+        ''')
     }
 }
 
@@ -556,7 +581,9 @@ def writeCiTimingSummary() {
         baseline_cache_status="${baseline_cache_status:-not-recorded}"
 
         compile_total='not-recorded'
-        if [[ "$candidate_compile" =~ ^[0-9]+$ && "$baseline_compile" =~ ^[0-9]+$ ]]; then
+        if [[ "$baseline_cache_status" == hit ]]; then
+            compile_total="$candidate_compile"
+        elif [[ "$candidate_compile" =~ ^[0-9]+$ && "$baseline_compile" =~ ^[0-9]+$ ]]; then
             compile_total="$((candidate_compile + baseline_compile))"
         fi
 
@@ -583,7 +610,15 @@ def writeCiTimingSummary() {
             printf 'c_regression_passed=%s\n' "$c_passed"
             printf 'c_regression_acknowledged=%s\n' "$c_acknowledged"
             printf 'c_regression_unacknowledged=%s\n' "$c_unacknowledged"
-        } > ci-timing-summary.txt
+        } | awk -F= -v cache_status="$baseline_cache_status" '
+            # Restored measurements belong to the run that populated the cache.
+            cache_status == "hit" && $1 ~ /^baseline_.*_seconds$/ {
+                if ($2 != "not-recorded") print "cached_" $0
+                print $1 "=0"
+                next
+            }
+            { print }
+        ' > ci-timing-summary.txt
         cat ci-timing-summary.txt
     '''
 }
@@ -634,8 +669,10 @@ def workspaceRoot = "${gkeyllCiRoot}/workspaces"
 def statusCredentialsId = requireValue('STELLAR_CPU_GITHUB_CREDENTIAL_ID', env.STELLAR_CPU_GITHUB_CREDENTIAL_ID)
 def candidateSelector = ''
 def baselineSelector = ''
+def queuedCommit = params.CI_QUEUE_COMMIT?.trim()
+if (queuedCommit && !isCommitSha(queuedCommit)) error('CI_QUEUE_COMMIT must be a full commit SHA.')
+def candidateCommit = queuedCommit ?: (isCommitSha(candidateRef ?: '') ? candidateRef : '')
 def baselineCommit = ''
-def candidateCommit = ''
 def candidateDir = ''
 def terminalStatus = 'failure'
 def terminalDescription = 'Stellar CPU CPU CI failed.'
@@ -644,20 +681,17 @@ def baselineDir = ''
 def baselineStage = ''
 def baselineCacheHit = false
 
-def ciStage(String stageName, Closure body) {
-    env.CI_FAILURE_STAGE = stageName
-    stage(stageName) { body.call() }
-}
+def ciStage(String name, Closure body) { reporting.ciStage(name, body) }
 
-def writeCiFailureSummary(String result, String stageName, String message) {
-    def compactMessage = (message ?: 'unknown failure').replaceAll('[\\r\\n]+', ' ').trim().take(500)
-    writeFile file: 'ci-failure-summary.txt', text: "result=${result}\nstage=${stageName ?: 'unknown'}\nmessage=${compactMessage}\n"
-}
+def writeCiFailureSummary(String result, String name, String message) { reporting.writeCiFailureSummary(result, name, message) }
 
 node(nodeLabel) {
     // Stellar compute nodes must see this path. Configure the root on a shared
     // filesystem such as the project's /scratch/gpfs location, never /tmp.
     ws("${workspaceRoot}/${env.JOB_NAME}/${env.BUILD_TAG}") {
+        loadReporting([credential: statusCredentialsId, context: params.CI_QUEUE_CONTEXT?.trim() ?: 'continuous-integration/jenkins/stellar_cpu',
+            platform: 'stellar_cpu', pr: candidatePr ?: '', ref: candidateRef ?: '', commit: candidateCommit])
+        reporting.withBaselineCache(gkeyllCiRoot, 'stellar-cpu') {
         try {
             ciStage('Resolve candidate and baseline') {
                 currentBuild.displayName = "#${env.BUILD_NUMBER} ${candidatePr ? "PR-${candidatePr}" : shortRef(candidateRef)}"
@@ -674,12 +708,15 @@ node(nodeLabel) {
             }
             ciStage('Checkout candidate') {
                 deleteDir()
-                if (candidatePr) {
+                if (queuedCommit) {
+                    checkoutRef(queuedCommit, 'candidate')
+                } else if (candidatePr) {
                     checkoutPullRequest(candidatePr)
                 } else {
                     checkoutRef(candidateRef, 'candidate')
                 }
                 candidateCommit = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
+                reporting.settings.commit = candidateCommit
                 writeFile file: 'ci-candidate-commit.txt', text: "${candidateCommit}\n"
                 currentBuild.description += " @ ${candidateCommit.take(7)}"
                 sh 'git status --short'
@@ -695,57 +732,56 @@ node(nodeLabel) {
                 if (behind > 0) echo("WARNING: allowing candidate behind baseline by ${behind} commit(s).")
             }
             ciStage('Prepare candidate build') {
-                candidateDir = sh(returnStdout: true, script: "ci/jenkins/baseline_cache.sh prepare-candidate '${gkeyllCiRoot}' 'stellar-cpu' '${candidateCommit}' '${env.WORKSPACE}' '${baselineCommit}'").trim()
+                env.CI_BASELINE_CACHE_CONTEXT = sh(returnStdout: true, script: "'${reporting.settings.cacheScript}' context").trim()
+                env.CI_RUN_DIR = sh(returnStdout: true, script: "'${reporting.settings.cacheScript}' run-path '${gkeyllCiRoot}' 'stellar-cpu'").trim()
+                writeFile file: 'ci-run-path.txt', text: "${env.CI_RUN_DIR}\n"
+                candidateDir = sh(returnStdout: true, script: "'${reporting.settings.cacheScript}' prepare-candidate '${gkeyllCiRoot}' 'stellar-cpu' '${candidateCommit}' '${env.WORKSPACE}' '${baselineCommit}'").trim()
             }
             ciStage('Resolve baseline cache') {
-                baselineDir = sh(returnStdout: true, script: "ci/jenkins/baseline_cache.sh baseline-path '${gkeyllCiRoot}' 'stellar-cpu' '${baselineCommit}'").trim()
-                baselineCacheHit = sh(returnStatus: true, script: "ci/jenkins/baseline_cache.sh valid '${gkeyllCiRoot}' 'stellar-cpu' '${baselineCommit}'") == 0
-                if (!baselineCacheHit) baselineStage = sh(returnStdout: true, script: "ci/jenkins/baseline_cache.sh prepare-baseline '${gkeyllCiRoot}' 'stellar-cpu' '${baselineCommit}'").trim()
+                baselineDir = sh(returnStdout: true, script: "'${reporting.settings.cacheScript}' baseline-path '${gkeyllCiRoot}' 'stellar-cpu' '${baselineCommit}'").trim()
+                baselineCacheHit = sh(returnStatus: true, script: "'${reporting.settings.cacheScript}' valid '${gkeyllCiRoot}' 'stellar-cpu' '${baselineCommit}'") == 0
+                if (!baselineCacheHit) baselineStage = sh(returnStdout: true, script: "'${reporting.settings.cacheScript}' prepare-baseline '${gkeyllCiRoot}' 'stellar-cpu' '${baselineCommit}'").trim()
                 writeFile file: 'ci-baseline-cache.txt', text: "status=${baselineCacheHit ? 'hit' : 'miss'}\nplatform=stellar-cpu\nbaseline_commit=${baselineCommit}\npath=${baselineCacheHit ? baselineDir : baselineStage}\n"
+                if (baselineCacheHit) sh "'${reporting.settings.cacheScript}' restore-diagnostics '${baselineDir}' '${env.WORKSPACE}'"
             }
-            ciStage('Report pending to GitHub') {
-                publishGitHubCommitStatus(
-                    statusCredentialsId,
-                    candidateCommit,
-                    'pending',
-                    'Stellar CPU candidate CI is running.'
-                )
-            }
+            reporting.progress('Gkeyll CI is running.')
+
             ciStage('Build dependencies') {
-                withEnv(["PREFIX=${candidateDir}/gkylsoft"]) {
+                if (!env.GKEYLL_CI_PREBUILT_CONFIG?.trim()) withEnv(["PREFIX=${candidateDir}/gkylsoft"]) {
                     dir("${candidateDir}/gkeyll") {
-                        sh '''#!/bin/bash -l
+                        loggedSh("candidate-dependencies", '''#!/bin/bash -l
                         set -euo pipefail
                         ./machines/mkdeps.stellar-intel.sh
-                    '''
+                    ''')
                     }
                 }
             }
             ciStage('Configure') {
                 withEnv(["PREFIX=${candidateDir}/gkylsoft"]) {
                     dir("${candidateDir}/gkeyll") {
-                        sh '''#!/bin/bash -l
+                        if (!usePrebuiltConfig("${candidateDir}/gkylsoft")) loggedSh("candidate-configure", '''#!/bin/bash -l
                         set -euo pipefail
                         ./machines/configure.stellar-intel.sh
-                    '''
+                    ''')
                     }
                 }
             }
             ciStage('Build unit tests') {
                 def jobs = buildJobs()
                 dir("${candidateDir}/gkeyll") {
-                    sh """#!/bin/bash -l
+                    loggedSh("candidate-unit-build", """#!/bin/bash -l
                     set -euo pipefail
                     # Each Jenkins sh step is a new process, so source the
                     # same environment used by the Stellar machine scripts.
                     . machines/module_load.stellar-intel.sh
+                    if [ -n "\${GKEYLL_CI_DEPENDENCY_ENV:-}" ]; then . "\$GKEYLL_CI_DEPENDENCY_ENV"; fi
                     module list
                     started=\$(date +%s)
                     make -j${jobs} unit
                     elapsed=\$(( \$(date +%s) - started ))
                     printf '%s\\n' "\$elapsed" > "${env.WORKSPACE}/candidate-unit-build-seconds.txt"
                     echo "Candidate unit-test build time: \$elapsed seconds"
-                    """
+                    """)
                 }
             }
             ciStage('Run unit tests (SLURM)') {
@@ -754,15 +790,16 @@ node(nodeLabel) {
             ciStage('Install candidate for C regression') {
                 def jobs = buildJobs()
                 dir("${candidateDir}/gkeyll") {
-                    sh """#!/bin/bash -l
+                    loggedSh("candidate-install", """#!/bin/bash -l
                     set -euo pipefail
                     . machines/module_load.stellar-intel.sh
+                    if [ -n "\${GKEYLL_CI_DEPENDENCY_ENV:-}" ]; then . "\$GKEYLL_CI_DEPENDENCY_ENV"; fi
                     started=\$(date +%s)
                     make -j${jobs} install
                     elapsed=\$(( \$(date +%s) - started ))
                     printf '%s\\n' "\$elapsed" > "${env.WORKSPACE}/candidate-install-seconds.txt"
                     echo "Candidate install time: \$elapsed seconds"
-                    """
+                    """)
                 }
             }
             ciStage('Compile candidate C regressions') {
@@ -777,67 +814,77 @@ node(nodeLabel) {
                 }
             }
             if (!baselineCacheHit) {
-                ciStage('Checkout Stellar CPU baseline') {
-                    dir("${baselineStage}/gkeyll") { checkoutRef(baselineCommit, 'baseline') }
-                }
-                ciStage('Build Stellar CPU baseline') {
-                    withEnv(["PREFIX=${baselineStage}/gkylsoft"]) {
+                reporting.withBaselineEnvironment(baselineStage) {
+                    ciStage('Checkout Stellar CPU baseline') {
+                        dir("${baselineStage}/gkeyll") { checkoutRef(baselineCommit, 'baseline') }
+                    }
+                    ciStage('Build Stellar CPU baseline') {
+                        withEnv(["PREFIX=${baselineStage}/gkylsoft"]) {
+                            dir("${baselineStage}/gkeyll") {
+                            if (!usePrebuiltConfig("${baselineStage}/gkylsoft")) loggedSh("baseline-setup", '''#!/bin/bash -l
+                                set -euo pipefail
+                                . machines/module_load.stellar-intel.sh
+                                if [ -n "${GKEYLL_CI_DEPENDENCY_ENV:-}" ]; then . "$GKEYLL_CI_DEPENDENCY_ENV"; fi
+                                ./machines/mkdeps.stellar-intel.sh
+                                ./machines/configure.stellar-intel.sh
+                            ''')
+                        }
+                    }
+                    }
+                    ciStage('Build baseline unit tests') {
+                        def jobs = buildJobs()
                         dir("${baselineStage}/gkeyll") {
-                        sh '''#!/bin/bash -l
+                            loggedSh("baseline-unit-build", """#!/bin/bash -l
+                                set -euo pipefail
+                                . machines/module_load.stellar-intel.sh
+                                if [ -n "\${GKEYLL_CI_DEPENDENCY_ENV:-}" ]; then . "\$GKEYLL_CI_DEPENDENCY_ENV"; fi
+                                make -j${jobs} unit
+                            """)
+                        }
+                    }
+                    ciStage('Install Stellar CPU baseline') {
+                    def jobs = buildJobs()
+                    dir("${baselineStage}/gkeyll") {
+                        loggedSh("baseline-install", """#!/bin/bash -l
                             set -euo pipefail
                             . machines/module_load.stellar-intel.sh
-                            ./machines/mkdeps.stellar-intel.sh
-                            ./machines/configure.stellar-intel.sh
-                        '''
+                            if [ -n "\${GKEYLL_CI_DEPENDENCY_ENV:-}" ]; then . "\$GKEYLL_CI_DEPENDENCY_ENV"; fi
+                            started=\$(date +%s)
+                            make -j${jobs} install
+                            elapsed=\$(( \$(date +%s) - started ))
+                            printf '%s\\n' "\$elapsed" > "${env.WORKSPACE}/baseline-install-seconds.txt"
+                            echo "Baseline install time: \$elapsed seconds"
+                        """)
+                    }
+                    }
+                    ciStage('Compile Stellar CPU baseline C regressions') {
+                    configureAndCompileCRegressions(
+                        'baseline',
+                        "${baselineStage}/gkylsoft/gkeyll/bin/gkeyll",
+                        "${baselineStage}/gkeyll",
+                        "${baselineStage}/gkylsoft",
+                        'machines/module_load.stellar-intel.sh'
+                    )
+                    }
+                    ciStage('Run baseline C regressions (SLURM)') { submitRegressionTests('baseline-create', baselineStage, candidateDir) }
+                    ciStage('Compile baseline parallel C regressions') {
+                        configureAndCompileCRegressions(
+                            'baseline-parallel', "${baselineStage}/gkylsoft/gkeyll/bin/gkeyll", "${baselineStage}/gkeyll",
+                            "${baselineStage}/gkylsoft", 'machines/module_load.stellar-intel.sh',
+                            '--parallel', '--results-subdir parallel-c-4 --mpiexec srun --mpi-args=--exact'
+                        )
+                    }
+                    ciStage('Run baseline parallel C regressions (SLURM)') { submitParallelRegressionTests('baseline-create', baselineStage, candidateDir) }
+                    ciStage('Publish baseline cache') {
+                        baselineDir = sh(returnStdout: true, script: "'${reporting.settings.cacheScript}' publish-baseline '${gkeyllCiRoot}' 'stellar-cpu' '${baselineCommit}' '${baselineStage}' '${env.WORKSPACE}'").trim()
+                        writeFile file: 'ci-baseline-cache.txt', text: "status=saved\nplatform=stellar-cpu\nbaseline_commit=${baselineCommit}\npath=${baselineDir}\n"
                     }
                 }
-                }
-                ciStage('Install Stellar CPU baseline') {
-                def jobs = buildJobs()
-                dir("${baselineStage}/gkeyll") {
-                    sh """#!/bin/bash -l
-                        set -euo pipefail
-                        . machines/module_load.stellar-intel.sh
-                        started=\$(date +%s)
-                        make -j${jobs} install
-                        elapsed=\$(( \$(date +%s) - started ))
-                        printf '%s\\n' "\$elapsed" > "${env.WORKSPACE}/baseline-install-seconds.txt"
-                        echo "Baseline install time: \$elapsed seconds"
-                    """
-                }
-                }
-                ciStage('Compile Stellar CPU baseline C regressions') {
-                configureAndCompileCRegressions(
-                    'baseline',
-                    "${baselineStage}/gkylsoft/gkeyll/bin/gkeyll",
-                    "${baselineStage}/gkeyll",
-                    "${baselineStage}/gkylsoft",
-                    'machines/module_load.stellar-intel.sh'
-                )
-                }
-                ciStage('Run baseline C regressions (SLURM)') { submitRegressionTests('baseline-create', baselineStage, candidateDir) }
-                ciStage('Compile baseline parallel C regressions') {
-                    configureAndCompileCRegressions(
-                        'baseline-parallel', "${baselineStage}/gkylsoft/gkeyll/bin/gkeyll", "${baselineStage}/gkeyll",
-                        "${baselineStage}/gkylsoft", 'machines/module_load.stellar-intel.sh',
-                        '--parallel', '--results-subdir parallel-c-4 --mpiexec srun'
-                    )
-                }
-                ciStage('Run baseline parallel C regressions (SLURM)') { submitParallelRegressionTests('baseline-create', baselineStage, candidateDir) }
-                ciStage('Publish baseline cache') {
-                    sh """cat > '${baselineStage}/cache-manifest.txt' <<EOF
-format_version=1
-platform=stellar-cpu
-baseline_commit=${baselineCommit}
-created_utc=\$(date -u +%Y-%m-%dT%H:%M:%SZ)
-serial_c_results=present
-parallel_c_4_results=present
-EOF"""
-                    baselineDir = sh(returnStdout: true, script: "ci/jenkins/baseline_cache.sh publish-baseline '${gkeyllCiRoot}' 'stellar-cpu' '${baselineCommit}' '${baselineStage}'").trim()
-                    writeFile file: 'ci-baseline-cache.txt', text: "status=miss\nplatform=stellar-cpu\nbaseline_commit=${baselineCommit}\npath=${baselineDir}\n"
-                }
             }
-            ciStage('Record baseline cache') { sh "git -C '${baselineDir}/gkeyll' rev-parse HEAD | tee ci-baseline-commit.txt" }
+            ciStage('Record baseline cache') {
+                writeFile file: 'ci-baseline-commit.txt', text: "${baselineCommit}\n"
+                sh "'${reporting.settings.cacheScript}' restore-diagnostics '${baselineDir}' '${env.WORKSPACE}'"
+            }
             ciStage('Prepare trusted regression checker') { prepareTrustedRegressionChecker() }
             ciStage('Run candidate C regressions (SLURM)') { submitRegressionTests('candidate-check', baselineDir, candidateDir) }
             ciStage('Compile candidate parallel C regressions') {
@@ -848,7 +895,7 @@ EOF"""
                         "${candidateDir}/gkeyll",
                         "${candidateDir}/gkylsoft",
                         'machines/module_load.stellar-intel.sh',
-                        '--parallel', '--results-subdir parallel-c-4 --mpiexec srun'
+                        '--parallel', '--results-subdir parallel-c-4 --mpiexec srun --mpi-args=--exact'
                     )
                 }
             }
@@ -857,19 +904,21 @@ EOF"""
             terminalDescription = 'Stellar CPU CPU unit and C regression tests passed.'
         } catch (err) {
             failureMessage = err.toString()
-            if (currentBuild.currentResult == 'ABORTED' || err.toString().contains('FlowInterruptedException')) {
-                terminalStatus = 'error'
-                terminalDescription = 'Stellar CPU CPU CI was aborted.'
-            }
+            terminalStatus = reporting.failureResult(err, currentBuild.currentResult)
+            if (terminalStatus in ['cancelled', 'timed_out']) terminalDescription = "CI ${terminalStatus}."
             throw err
         } finally {
             try {
                 finalizeUnfinishedSlurmJob()
             } catch (err) {
-                terminalStatus = 'error'
+                terminalStatus = 'cancelled'
                 terminalDescription = 'Stellar CPU CPU CI cleanup failed.'
-                failureMessage = err.toString()
-                env.CI_FAILURE_STAGE = 'Finalize SLURM job'
+                if (!failureMessage) {
+                    failureMessage = err.toString()
+                    env.CI_FAILURE_STAGE = 'Finalize SLURM job'
+                } else {
+                    failureMessage += " | Slurm cleanup also failed: ${err}"
+                }
                 throw err
             } finally {
                 try {
@@ -878,25 +927,34 @@ EOF"""
                 } catch (err) {
                     terminalStatus = 'error'
                     terminalDescription = 'Stellar CPU CPU CI timing summary failed.'
-                    failureMessage = err.toString()
-                    env.CI_FAILURE_STAGE = 'Write CI timing summary'
-                    throw err
+                    if (!failureMessage) {
+                        failureMessage = err.toString()
+                        env.CI_FAILURE_STAGE = 'Write CI timing summary'
+                    } else {
+                        failureMessage += " | Timing summary also failed: ${err}"
+                    }
+                    currentBuild.result = 'FAILURE'
+                    echo "WARNING: could not write CI timings: ${err}"
                 }
                 try {
+                    try {
+                        if (candidateDir) sh "'${reporting.settings.cacheScript}' stage-candidate-artifacts '${gkeyllCiRoot}' 'stellar-cpu' '${candidateCommit}' '${env.WORKSPACE}' '${baselineCommit}'"
+                    } catch (err) {
+                        echo "WARNING: could not stage CI report artifacts: ${err}"
+                    }
                     if (terminalStatus != 'success') writeCiFailureSummary(terminalStatus, env.CI_FAILURE_STAGE, failureMessage ?: terminalDescription)
                     // Best effort: a GitHub outage must not turn a passing build red.
-                    // The commit status below remains the authoritative signal.
-                    if (candidateCommit) {
+                    // Keep the full report locally if both GitHub transports are unavailable.
+                    if (candidateCommit || candidatePr || candidateRef) {
                         try {
-                            publishGitHubReport(statusCredentialsId, candidateCommit, terminalStatus, candidatePr ?: '')
+                            reporting.publish(terminalStatus, terminalDescription, true)
                         } catch (err) {
                             echo "WARNING: could not publish the GitHub CI report: ${err}"
                             terminalDescription = "${terminalDescription} (report not posted)".take(140)
                         }
                     }
-                    if (candidateDir) sh "ci/jenkins/baseline_cache.sh stage-candidate-artifacts '${gkeyllCiRoot}' 'stellar-cpu' '${candidateCommit}' '${env.WORKSPACE}'"
                     archiveArtifacts allowEmptyArchive: true,
-                        artifacts: 'ci-selection.txt,ci-baseline-preflight.txt,ci-baseline-cache.txt,ci-trusted-checker-commit.txt,ci-candidate-commit.txt,ci-baseline-commit.txt,ci-report.md,*-unit-results.txt,*-c-compile-seconds.txt,ci-timing-summary.txt,ci-regression-summary.txt,ci-failure-summary.txt,slurm-*.out,slurm-*-job-id.txt,slurm-*-job-status.txt,build/**/*.log,gkylsoft/gkeyll-results/**/regressiondb,gkylsoft/gkeyll-results/**/_rr_failures.txt'
+                        artifacts: 'ci-run-path.txt,ci-*-config.mak,ci-dependencies/**,ci-numerical/*.tar.zst,ci-numerical/*.tar.gz,ci-trusted-ci-commit.txt,ci-reporting-commit.txt,ci-selection.txt,ci-baseline-preflight.txt,ci-baseline-cache.txt,ci-trusted-checker-commit.txt,ci-candidate-commit.txt,ci-baseline-commit.txt,ci-report*.md,ci-report*.md.json,ci-report-delivery.json,ci-diagnostic-summary.json,ci-stage-history.txt,ci-stage-timings.json,ci-command-logs/**,baseline-*.log*,baseline-slurm-*,*-unit-results.txt,*-seconds.txt,ci-timing-summary.txt,ci-regression-summary.txt,ci-failure-summary.txt,slurm-*.out,slurm-*-job-id.txt,slurm-*-job-status.txt,build/**/*.log,cuda-build/**/*.log,_baseline/build/**/*.log,_baseline/cuda-build/**/*.log,_baseline/gkylsoft/gkeyll-results/**,gkylsoft/gkeyll-results/**'
                 } catch (err) {
                     terminalStatus = 'error'
                     terminalDescription = 'Stellar CPU CPU CI artifact archival failed.'
@@ -904,21 +962,14 @@ EOF"""
                 } finally {
                     try {
                         if (candidateDir && baselineCommit) {
-                            sh "ci/jenkins/baseline_cache.sh finalize-candidate '${gkeyllCiRoot}' 'stellar-cpu' '${candidateCommit}' '${baselineCommit}' '${terminalStatus}' '${env.CI_FAILURE_STAGE ?: ''}' '${env.WORKSPACE}'"
-                        }
-                        if (candidateCommit) {
-                            publishGitHubCommitStatus(
-                                statusCredentialsId,
-                                candidateCommit,
-                                terminalStatus,
-                                terminalDescription
-                            )
+                            sh "'${reporting.settings.cacheScript}' finalize-candidate '${gkeyllCiRoot}' 'stellar-cpu' '${candidateCommit}' '${baselineCommit}' '${terminalStatus}' '${env.CI_FAILURE_STAGE ?: ''}' '${env.WORKSPACE}'"
                         }
                     } finally {
                         deleteDir()
                     }
                 }
             }
+        }
         }
     }
 }

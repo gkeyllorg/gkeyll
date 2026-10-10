@@ -1,5 +1,8 @@
 # Gkeyll Jenkins CI on Princeton Stellar CPU
 
+To reuse an existing installation’s dependency paths and `config.mak`, see
+[Reusing installed dependencies](README.dependencies.md).
+
 This guide sets up Gkeyll's private, CPU-only Jenkins CI on Princeton Stellar.
 After SSH/Duo authentication, a developer manually starts a build for a GitHub
 pull request or an explicit candidate/baseline comparison. Jenkins runs on the
@@ -121,10 +124,13 @@ uses it only against loopback Jenkins and does not disable CSRF protection.
 
 ### Create the GitHub credential
 
+The [shared reporter](README.reporting.md#reporting-credentials) uses this existing
+username/token credential for statuses and report comments on the tested commit.
+
 Create a classic GitHub PAT with only the `public_repo` scope and a short
-expiration. That scope covers commit statuses and pull-request or commit
-comments on the public repository; a fine-grained token needs **Commit
-statuses: write**, **Pull requests: write**, and **Contents: write** (commit
+expiration. That scope covers commit statuses and commit comments on the public
+repository; a fine-grained token needs **Commit
+statuses: write** and **Contents: write** (to create and update commit
 comments) on `gkeyllorg/gkeyll` instead. Its owner must have push access to
 `gkeyllorg/gkeyll`, which GitHub requires to publish commit statuses. In Jenkins, add it as a **Username with
 password** credential, using the owner's GitHub username and the PAT. Give it
@@ -151,21 +157,27 @@ set the following values. Paste an expanded scratch path, not a literal `$USER`.
 | `STELLAR_CPU_GITHUB_CREDENTIAL_ID` | GitHub status/API credential ID, e.g. `gkeyll-github-stellar-cpu` |
 | `STELLAR_CPU_SLURM_QOS` | A valid CPU QoS for your group |
 | `STELLAR_CPU_SLURM_ACCOUNT` | Project account when required; otherwise omit it |
-| `STELLAR_CPU_BUILD_JOBS` | Optional login-node compile parallelism; default `3` |
+| `STELLAR_CPU_BUILD_JOBS` | Optional compilation workers, including C regressions; default `3` |
 | `STELLAR_CPU_UNIT_TIME` | Optional unit-test allocation limit; default `00:30:00` |
 | `STELLAR_CPU_REGRESSION_TIME` | Optional C-regression allocation limit; default `04:00:00` |
-| `STELLAR_CPU_REGRESSION_JOBS` | Optional concurrent C test runs; default `4` |
+| `STELLAR_CPU_REGRESSION_JOBS` | Optional regression worker budget (one per serial test or MPI rank); default `4` |
 | `STELLAR_CPU_REGRESSION_TEST_TIMEOUT` | Optional per-test limit in seconds; default `900` |
 | `STELLAR_CPU_NODE_LABEL` | Optional node label; default `stellar_cpu` |
-| `GKEYLL_CI_TRUSTED_REF` | Optional reviewed branch or full SHA for `github_report.py` and `check_regression_results.lua`; default `main`. Set it only while staging a CI change |
+| `GKEYLL_CI_TRUSTED_REF` | Optional reviewed branch or full SHA for `github_report.py`, `jenkins_reporting.groovy`, and `check_regression_results.lua`; default `main`. Set it only while staging a CI change |
 
 Do not set a broad global `PATH` to an interactive shell configuration. The
 Pipeline initializes Stellar modules for each build and Slurm job. Its
 `GKEYLL_CI_ROOT` must exactly match the controller's root.
-It retains SHA-addressed baseline and candidate build/result directories; remove
-`baseline-cache/stellar-cpu` manually after an intentional toolchain change.
+It retains a separate directory for each build under `runs/stellar-cpu/`;
+see [persistent regression data](README.storage.md). After an intentional in-place toolchain or dependency upgrade, change
+`GKEYLL_CI_CACHE_REVISION` to force baseline regeneration in either dependency mode.
 
 ### Create the one parameterized Pipeline job
+
+Install the [controller queue listener](README.reporting.md#controller-installation) in
+`$GKEYLL_CI_ROOT/jenkins_home/init.groovy.d/` to report pending while jobs wait
+and cancel superseded queued PR commits. It uses the global
+`STELLAR_CPU_GITHUB_CREDENTIAL_ID` and requires no Slurm allocation.
 
 Create **New Item → Pipeline** named `gkeyll-ci-stellar_cpu`. Configure
 **Pipeline script from SCM** with:
@@ -270,8 +282,8 @@ scancel <jobid>
 
 Do not remove a workspace while its Slurm job appears in `squeue`. After it
 stops, it is safe to remove the abandoned workspace below
-`$GKEYLL_CI_ROOT/workspaces` and restart Jenkins. Jenkins retains 20 recent
-build records and archives artifacts before removing normal completed workspaces.
+`$GKEYLL_CI_ROOT/workspaces` and restart Jenkins. Jenkins archives artifacts
+before removing completed workspaces; see [retention settings](README.storage.md#retention).
 
 ## Numerical regression differences
 

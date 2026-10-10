@@ -1,5 +1,8 @@
 # Gkeyll Jenkins CI on a Team Workstation
 
+To reuse an existing installation’s dependency paths and `config.mak`, see
+[Reusing installed dependencies](README.dependencies.md).
+
 This CI automatically discovers `main` and pull requests targeting `main`.
 Each PR is built in its own multibranch child job, but no PR supplies the
 Pipeline that controls the build: Jenkins runs a small controller-owned
@@ -85,8 +88,11 @@ chmod 600 "$HOME/.config/gkeyll/jenkins/team-workstation.auth"
 
 ### Create the GitHub credential
 
+The [shared reporter](README.reporting.md#reporting-credentials) uses this existing
+username/token credential for statuses and report comments on the tested commit.
+
 Create a short-lived classic GitHub PAT with only the `public_repo` scope (or a
-fine-grained token with commit-status, pull-request, and contents write access
+fine-grained token with commit-status and contents write access
 to `gkeyllorg/gkeyll`) and add it as a Jenkins **Username with password**
 credential. The workflow uses it only to read PR metadata, publish the commit
 status, and post the CI report comment; source discovery and Git checkouts are
@@ -103,8 +109,8 @@ toolchain, `cmake`, and Python/NumPy. Set these global environment variables:
 | `TEAM_WORKSTATION_MKDEPS_SCRIPT` | Required `machines/` dependency script |
 | `TEAM_WORKSTATION_CONFIGURE_SCRIPT` | Required `machines/` configure script |
 | `TEAM_WORKSTATION_GITHUB_CREDENTIAL_ID` | GitHub status/API credential ID |
-| `TEAM_WORKSTATION_BUILD_JOBS` | Optional; default `3` |
-| `TEAM_WORKSTATION_REGRESSION_JOBS` | Optional; default `1` |
+| `TEAM_WORKSTATION_BUILD_JOBS` | Optional compilation workers, including C regressions; default `3` |
+| `TEAM_WORKSTATION_REGRESSION_JOBS` | Optional regression worker budget (one per serial test or MPI rank); defaults to `TEAM_WORKSTATION_BUILD_JOBS` (default `3`) |
 | `WORKSTATION_MPI_HOME` | Optional MPI installation path for both trees; default is each tree's `gkylsoft/openmpi` |
 | `TEAM_WORKSTATION_MPIEXEC` | Optional launcher override for both trees; default is `bin/mpiexec` under the selected MPI installation |
 | `TEAM_WORKSTATION_STATUS_CONTEXT` | Optional status context; default team-workstation |
@@ -125,6 +131,13 @@ installation. Clear shared dependency include/library overrides when validating
 these per-run dependency builds.
 
 ### Create the one centralized multibranch Pipeline job
+
+Install the [controller queue listener](README.reporting.md#controller-installation) to
+report pending for automatic PR discovery and explicit submissions before a
+build agent is available. It also cancels queued runs superseded by a newer PR
+head. The listener uses `TEAM_WORKSTATION_GITHUB_CREDENTIAL_ID` and
+`TEAM_WORKSTATION_STATUS_CONTEXT` from the global environment; source discovery
+and checkout remain anonymous as described below.
 
 Create Multibranch Pipeline `gkeyll-ci-team-workstation` from GitHub source
 `gkeyllorg/gkeyll`. Discover `main` and pull requests, exclude ordinary

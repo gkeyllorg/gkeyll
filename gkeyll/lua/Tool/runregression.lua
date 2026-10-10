@@ -90,11 +90,11 @@ end
 -- back to a Perl-based fork+alarm implementation (Perl is always present on
 -- macOS and Linux).
 local TIMEOUT_CMD
+local function hasCmd(name)
+   return os.execute(
+      string.format("command -v %s > /dev/null 2>&1", name)) == 0
+end
 do
-   local function hasCmd(name)
-      return os.execute(
-         string.format("which %s > /dev/null 2>&1", name)) == 0
-   end
    if     hasCmd("timeout")  then TIMEOUT_CMD = "timeout"
    elseif hasCmd("gtimeout") then TIMEOUT_CMD = "gtimeout"
    else                           TIMEOUT_CMD = nil  -- use Perl fallback
@@ -158,25 +158,15 @@ local runTolerance = nil
 local isConfiguring = false
 local configVals    = nil
 
--- Path of the configuration file written by 'configure' and read by 'run'.
--- Preferred location: <prefix>/gkeyll-results/runregression.config.lua, derived
--- from config.mak (same logic as prefix auto-detection in config_action).
--- Falls back to ~/runregression.config.lua for backwards compatibility.
+-- Keep configuration local to the executable's installation, even when
+-- config.mak uses Make expressions/overrides or a separate dependency PREFIX.
+-- A custom --prefix changes the results location stored in this file, not
+-- where later invocations look for the file itself.
+local installPrefix = GKYL_EXEC_PATH and GKYL_EXEC_PATH:match("^(.+)/gkeyll/bin/?$")
 local function computeConfFile()
-   local gkeyllDir = GKYL_EXEC_PATH and GKYL_EXEC_PATH:match("^(.+)/bin$")
-   if gkeyllDir then
-      local mf = io.open(gkeyllDir .. "/share/config.mak", "r")
-      if mf then
-         for line in mf:lines() do
-            local p = line:match("^PREFIX%s*=%s*(.+)%s*$")
-            if p then
-               mf:close()
-               return p .. "/gkeyll-results/runregression.config.lua",
-                      p .. "/gkeyll-results"
-            end
-         end
-         mf:close()
-      end
+   if installPrefix then
+      return installPrefix .. "/gkeyll-results/runregression.config.lua",
+             installPrefix .. "/gkeyll-results"
    end
    return os.getenv("HOME") .. "/runregression.config.lua", nil
 end
@@ -263,7 +253,7 @@ local function splitList(listStr)
 end
 
 local function shellQuote(value)
-   return "'" .. tostring(value):gsub("'", "'\\\"'\\\"'") .. "'"
+   return "'" .. tostring(value):gsub("'", "'\"'\"'") .. "'"
 end
 
 local function hasGkylOutput(dir)
@@ -551,15 +541,15 @@ local function configure(prefix, mpiExec, mpiArgs, sourceDir, args)
    -- 'run', 'check', 'list', etc. invocations.
    -- 'prefix' is stored so that runCTest can locate share/Makefile for
    -- compiling C regression tests on-the-fly.
-   local fn = io.open(confFile, "w")
-   fn:write("return {\n")
-   fn:write(string.format("  mpiExec     = \"%s\",\n", mpiExec))
-   fn:write(string.format("  mpiArgs     = \"%s\",\n", mpiArgs or ""))
-   fn:write(string.format("  prefix      = \"%s\",\n", prefix))
-   fn:write(string.format("  results_dir = \"%s\",\n", resultsDir))
-   fn:write(string.format("  source_dir  = \"%s\",\n", sourceDir))
-   fn:write("}\n")
-   fn:close()
+   if confFileResultsDir then mkdir(confFileResultsDir) end
+   local fn, err = io.open(confFile, "w")
+   assert(fn, string.format("Unable to write regression configuration '%s': %s",
+      confFile, err or ""))
+   assert(fn:write(string.format(
+      "return {\n  mpiExec = %q,\n  mpiArgs = %q,\n  prefix = %q,\n"
+      .. "  results_dir = %q,\n  source_dir = %q,\n}\n",
+      mpiExec, mpiArgs or "", prefix, resultsDir, sourceDir)))
+   assert(fn:close())
    log(string.format("Configuration written to %s\n", confFile))
 end
 
@@ -946,15 +936,15 @@ end
 --   shell background jobs and collects the results.
 
 -- Compiles a single C regression test in its scratch directory.
--- Copies test.src and the installed share/Makefile into scratchDir, then
--- runs 'make <testname>' there.
--- Returns: ok (boolean), compileLog (string).
-local function compileCTest(test, scratchDir)
+-- Copies the sources into scratchDir and returns a single-job make command.
+-- The worker pool controls total compilation parallelism. Returns nil, error
+-- when the installed Makefile is unavailable.
+local function prepareCompileCommand(test, scratchDir)
    local testname      = stripext(basename(test.src))
    local shareMakefile = configVals.prefix .. "/gkeyll/share/Makefile"
 
    if not lfs.attributes(shareMakefile) then
-      return false, string.format(
+      return nil, string.format(
          "share/Makefile not found at '%s'.\n"
          .. "Ensure 'make install' has been run for the current build.\n",
          shareMakefile)
@@ -972,9 +962,16 @@ local function compileCTest(test, scratchDir)
       os.execute(string.format("cp -f '%s' '%s/'", argParseH, scratchDir))
    end
 
-   -- Compile: 'make <testname>' from the scratch directory.
-   local compileCmd = string.format(
-      "cd '%s' && make '%s' 2>&1; echo __COMPILE_EXIT__:$?", scratchDir, testname)
+   local binPath = scratchDir .. "/" .. testname
+   os.remove(binPath)
+   return string.format("cd %s && make -j1 %s 2>&1",
+      shellQuote(scratchDir), shellQuote(testname))
+end
+
+local function compileCTest(test, scratchDir)
+   local cmd, err = prepareCompileCommand(test, scratchDir)
+   if not cmd then return false, err end
+   local compileCmd = cmd .. "; echo __COMPILE_EXIT__:$?"
    local proc    = io.popen(compileCmd, "r")
    local rawOut  = proc:read("*a")
    proc:close()
@@ -1147,27 +1144,46 @@ end
 -- Compile selected C regression tests without running them. Executables remain
 -- in their normal creg-runs directories for a later --execute-only invocation.
 -- Returns true only when every selected test compiled successfully.
-local function compile_c_regressions(cTests)
-   local nfailed = 0
-   log("Compiling C regression tests ...\n")
+local executeBatch
 
+local function compile_c_regressions(cTests, jobCount)
+   local items, compiled = {}, {}
+   log(string.format("Compiling %d C regression tests with %d worker(s) ...\n", #cTests, jobCount))
    for _, test in ipairs(cTests) do
-      local prep = prepareCRun(test, 0, nil, false)
-      if prep.compileFailed then
-         nfailed = nfailed + 1
-         log(string.format("Compiler output for %s:\n%s", test.name, prep.compileLog))
-         if not string.match(prep.compileLog, "\n$") then log("\n") end
+      local runDir = configVals.results_dir .. "/" .. test.layer
+         .. "/creg-runs/" .. runMode .. "/" .. stripext(basename(test.src))
+      mkdir(runDir)
+      local cmd, err = prepareCompileCommand(test, runDir)
+      local item = { test = test, runDir = runDir, compileSecs = 0 }
+      compiled[test.name] = item
+      if cmd then
+         item.cmd = wrapWithTimeout(cmd, 0, runDir)
+         table.insert(items, item)
       else
-         log(string.format("... %s compiled.\n", test.name))
+         item.compileFailed, item.compileLog = true, err
+         log(string.format("[C] %s COMPILE FAILED (preparation)\n%s\n", test.name, err))
       end
    end
-
-   if nfailed > 0 then
-      log(string.format("C regression compilation failed for %d test(s).\n", nfailed))
-      return false
+   executeBatch(items, jobCount, function(item, result)
+      item.compileFailed = result.exitCode ~= 0
+      item.compileLog, item.compileSecs = result.runlog, result.runtm
+      log(string.format("[C] %s %s\n",
+         item.compileFailed and "COMPILE FAILED" or "Compiled", item.test.name))
+      if item.compileFailed then
+         log(string.format("Compiler output for %s:\n%s\n", item.test.name, result.runlog))
+      else
+         verboseLog(result.runlog)
+      end
+   end)
+   local nfailed = 0
+   for _, test in ipairs(cTests) do
+      local item = compiled[test.name]
+      if item.compileFailed then
+         nfailed = nfailed + 1
+      end
    end
-   log(string.format("Compiled %d C regression test(s).\n", #cTests))
-   return true
+   log(string.format("Compiled %d C regression test(s); %d failed.\n", #cTests - nfailed, nfailed))
+   return nfailed == 0, compiled
 end
 
 -- Verify a complete prior compile before executing a C-only suite. This makes
@@ -1195,26 +1211,34 @@ local function validate_precompiled_c_regressions(cTests)
 end
 
 -- executeBatch(items) → list of {runtm, runlog, timedOut, exitCode}
--- Runs all items concurrently via shell background jobs.  Each item must have
--- {cmd, runDir}.  The function blocks until every job in the batch finishes.
+-- Uses at most jobCount worker slots, refilling slots on completion. MPI items
+-- reserve parallelRanks slots; an item larger than the budget runs alone.
+-- Each item has {cmd, runDir}. Optional onComplete runs as each item finishes,
+-- while results are returned in submission order. logStarts enables worker logs.
 --
 -- Per-item timing uses __START__:epoch / __END__:epoch markers written around
 -- each command's execution; exit status comes from wrapWithTimeout's existing
 -- __EXIT__:N marker.  All output (stdout + stderr) goes to
 -- runDir/_parallel_out.txt.  The coordinator script is placed in results_dir
 -- and rewritten each call; per-item scripts go in their own runDir.
-local function executeBatch(items)
+executeBatch = function(items, jobCount, onComplete, logStarts)
    if #items == 0 then return {} end
 
+   local totalSlots = 0
+   for _, item in ipairs(items) do totalSlots = totalSlots + (item.parallelRanks or 1) end
+   jobCount = math.min(jobCount or totalSlots, totalSlots)
+   local timestamp = hasCmd("perl")
+      and "perl -MTime::HiRes=time -e 'printf \"%.6f\\n\", time'"
+      or "date +%s"
    -- Step 1: write a per-item wrapper script so we never have to embed
    -- arbitrary command strings inside the coordinator (avoids quoting issues).
    for _, item in ipairs(items) do
       local sf = io.open(item.runDir .. "/_rr_batch_item.sh", "w")
       sf:write("#!/bin/sh\n")
-      sf:write("echo __START__:$(date +%s)\n")
+      sf:write("echo __START__:$(" .. timestamp .. ")\n")
       -- item.cmd already ends with '; echo __EXIT__:$?' from wrapWithTimeout.
       sf:write(item.cmd .. "\n")
-      sf:write("echo __END__:$(date +%s)\n")
+      sf:write("echo __END__:$(" .. timestamp .. ")\n")
       sf:close()
    end
 
@@ -1223,34 +1247,50 @@ local function executeBatch(items)
    -- processes (e.g. different layers running in parallel) never share a file.
    local coordPath = items[1].runDir .. "/_rr_batch_coordinator.sh"
    local cf = io.open(coordPath, "w")
-   cf:write("#!/bin/sh\n")
-   for _, item in ipairs(items) do
+   cf:write("#!/bin/sh\nset -e\n")
+   -- Each item returns all its reserved slot numbers as soon as it exits.
+   local fifo = shellQuote(coordPath .. ".fifo")
+   cf:write("rm -f " .. fifo .. "; mkfifo " .. fifo .. "\n")
+   cf:write("exec 3<> " .. fifo .. "\nrm -f " .. fifo .. "\n")
+   local nextWorker = 1
+   for idx, item in ipairs(items) do
       local itemScript = item.runDir .. "/_rr_batch_item.sh"
-      local outFile    = item.runDir .. "/_parallel_out.txt"
-      cf:write(string.format("sh '%s' > '%s' 2>&1 &\n", itemScript, outFile))
+      local outFile = item.runDir .. "/_parallel_out.txt"
+      cf:write("workers=''\n")
+      for slot = 1, math.min(item.parallelRanks or 1, jobCount) do
+         if nextWorker > jobCount then
+            cf:write("read -r worker <&3\n")
+         else
+            cf:write(string.format("worker=%d\n", nextWorker))
+            nextWorker = nextWorker + 1
+         end
+         if slot == 1 then cf:write("firstWorker=$worker\n") end
+         cf:write("workers=\"$workers $worker\"\n")
+      end
+      cf:write(string.format("printf 'START %d %%s\\n' \"$firstWorker\"\n", idx))
+      cf:write(string.format(
+         "(sh %s > %s 2>&1 || :; printf 'DONE %d\\n'; printf '%%s\\n' $workers >&3) &\n",
+         shellQuote(itemScript), shellQuote(outFile), idx))
    end
-   cf:write("wait\n")
+   for worker = 1, jobCount do cf:write("read -r token <&3\n") end
+   cf:write("wait\nexec 3>&-\nprintf 'FINISHED\\n'\n")
    cf:close()
 
-   -- Step 3: run the coordinator (blocks until all background jobs finish).
-   os.execute(string.format("sh '%s'", coordPath))
-
-   -- Step 4: collect results.
-   local results = {}
-   for _, item in ipairs(items) do
+   -- Read each result only after the worker closes its output file.
+   local function readResult(item)
       local rf = io.open(item.runDir .. "/_parallel_out.txt", "r")
       local raw = rf and rf:read("*a") or ""
       if rf then rf:close() end
 
-      local startEpoch = tonumber(raw:match("__START__:(%d+)"))
-      local endEpoch   = tonumber(raw:match("__END__:(%d+)"))
+      local startEpoch = tonumber(raw:match("__START__:([%d.]+)"))
+      local endEpoch   = tonumber(raw:match("__END__:([%d.]+)"))
       local runtm = (startEpoch and endEpoch) and (endEpoch - startEpoch) or 0
 
       -- Strip timing markers first so they don't interfere with EXIT parsing.
       local stripped = raw
-         :gsub("\n?__START__:%d+\n?", "\n")
-         :gsub("\n?__END__:%d+\n?",   "\n")
-      local exitCode = tonumber(stripped:match("__EXIT__:(%d+)%s*$")) or 0
+         :gsub("\n?__START__:[%d.]+\n?", "\n")
+         :gsub("\n?__END__:[%d.]+\n?",   "\n")
+      local exitCode = tonumber(stripped:match("__EXIT__:(%d+)%s*$")) or 1
       local runlog   = stripped:gsub("\n?__EXIT__:%d+%s*$", "")
       -- Guarantee a trailing newline so whatever runregression logs next
       -- (e.g. "... saving accepted results" or the first "Comparing" line)
@@ -1259,14 +1299,41 @@ local function executeBatch(items)
          runlog = runlog .. "\n"
       end
 
-      table.insert(results, {
+      return {
          runtm    = runtm,
          runlog   = runlog,
          timedOut = (exitCode == 124),
          exitCode = exitCode,
-      })
+      }
    end
 
+   -- Stream small coordinator events; simulation output stays in per-test files
+   -- so concurrent workers cannot interleave their logs.
+   local pipe = assert(io.popen("sh " .. shellQuote(coordPath), "r"))
+   local results, completed, finished = {}, 0, false
+   for event in pipe:lines() do
+      local kind, index, worker = event:match("^(%u+) (%d+)%s*(%d*)$")
+      local idx = tonumber(index)
+      if kind == "START" then
+         items[idx].worker = tonumber(worker)
+         items[idx].workerLabel = jobCount > 1
+            and string.format("[Worker %d] ", items[idx].worker) or ""
+         if logStarts then
+            local test = items[idx].test
+            local testType = test.testType == "lua" and "Lua" or "C"
+            log(string.format("[%s] %srunning %s\n", testType, items[idx].workerLabel, test.name))
+         end
+      elseif kind == "DONE" then
+         local result = readResult(items[idx])
+         results[idx] = result
+         completed = completed + 1
+         if onComplete then onComplete(items[idx], result, completed, #items) end
+      elseif event == "FINISHED" then
+         finished = true
+      end
+   end
+   pipe:close()
+   assert(finished and completed == #items, "Regression worker coordinator failed")
    return results
 end
 
@@ -1350,7 +1417,36 @@ local function shortPath(p)
    return p
 end
 
--- Compares two .gkyl files (field data or dynvector) element-by-element.
+-- Type-5 files contain only a base header and MessagePack metadata, not an
+-- array. Read the native-endian uint64 header as written by array_rio.c and
+-- check its length before decoding, so truncated metadata cannot pass.
+local function readMultiblockMeta(path)
+   local file = io.open(path, "rb")
+   if not file then return nil end
+   local data = file:read("*a")
+   file:close()
+   if not data or #data < 29 or data:sub(1, 5) ~= "gkyl0" then return nil end
+
+   local ffi = require "ffi"
+   local header = ffi.new("uint64_t[3]")
+   ffi.copy(header, data:sub(6, 29), 24)
+   if header[0] ~= 1 or header[1] ~= 5 or header[2] ~= #data - 29 then
+      return nil
+   end
+   local ok, meta = pcall(require("Lib.MessagePack").unpack, data:sub(30))
+   if not ok or type(meta) ~= "table" then return nil end
+   if type(meta.time) ~= "number" or meta.time ~= meta.time
+      or math.abs(meta.time) == math.huge
+      or type(meta.frame) ~= "number" or meta.frame < 0
+      or meta.frame == math.huge or meta.frame ~= math.floor(meta.frame)
+      or type(meta.topo_file) ~= "string" or meta.topo_file == ""
+      or type(meta.app_name) ~= "string" or meta.app_name == "" then
+      return nil
+   end
+   return meta
+end
+
+-- Compares .gkyl arrays, dynvectors, topology, and multiblock metadata.
 -- absTol / relTol: optional absolute and relative tolerance thresholds.
 --   Defaults to 1e-12 for both (strict CPU comparison).
 --   Pass looser values (e.g. 1e-7) for GPU-vs-accepted comparisons.
@@ -1417,21 +1513,22 @@ local function compareFiles(f1, f2, absTol, relTol)
       end
 
       if f1type == "multi-block-meta" then
-         -- These are small descriptors (time, frame, topology filename and app
-         -- name), not arrays. Compare their serialized contents exactly. The
-         -- per-block fields and topology are compared separately by check.
-         local function readDescriptor(path)
-            local file = io.open(path, "rb")
-            if not file then return nil end
-            local contents = file:read("*a")
-            file:close()
-            return contents
+         local meta1, meta2 = readMultiblockMeta(f1), readMultiblockMeta(f2)
+         if not meta1 or not meta2 then
+            return false, "multiblock metadata read failed"
          end
-         local baseline = readDescriptor(f1)
-         local candidate = readDescriptor(f2)
-         if not candidate then return false, "candidate multiblock metadata read failed" end
-         if not baseline then return false, "baseline multiblock metadata read failed" end
-         if baseline ~= candidate then return false, "multiblock metadata mismatch" end
+         -- Compare scalar metadata exactly, independent of MessagePack map
+         -- ordering. The file walk separately checks block arrays and topology.
+         for key, value in pairs(meta1) do
+            if value ~= meta2[key] then
+               return false, "multiblock metadata mismatch: " .. tostring(key)
+            end
+         end
+         for key in pairs(meta2) do
+            if meta1[key] == nil then
+               return false, "multiblock metadata mismatch: " .. tostring(key)
+            end
+         end
          return true
       end
 
@@ -1454,6 +1551,9 @@ local function compareFiles(f1, f2, absTol, relTol)
       local diff = G0.Zero.arrayDiff(a1, a2, r1)
 
       if not diff.is_compatible then return false, "incompatible arrays" end
+      -- arrayDiff returns signed extrema of (accepted - candidate). Use both
+      -- ends so increases in candidate values cannot evade the absolute check.
+      local maxAbsDiff = math.max(math.abs(diff.max_abs_diff), math.abs(diff.min_abs_diff))
       -- Combined tolerance: fail only when BOTH absolute and relative thresholds
       -- are exceeded.  Near-zero values naturally have large relative differences
       -- (e.g. 1e-15 vs -1e-15 → rel=200%) but negligible absolute differences;
@@ -1461,12 +1561,12 @@ local function compareFiles(f1, f2, absTol, relTol)
       -- differences.  Failing on either alone produces false positives.
       -- When max_abs_diff is 0, the condition short-circuits safely (handles the
       -- 0/0 → DBL_MAX rel case from gkyl_array_diff).
-      if diff.max_abs_diff > absTol and diff.max_rel_diff > relTol then
+      if maxAbsDiff > absTol and diff.max_rel_diff > relTol then
          verboseLog(string.format(
             "    ... max abs diff %g (tol %g), max rel diff %g (tol %g)\n",
-            diff.max_abs_diff, absTol, diff.max_rel_diff, relTol))
+            maxAbsDiff, absTol, diff.max_rel_diff, relTol))
          return false, string.format("max_abs=%.3g max_rel=%.3g",
-            diff.max_abs_diff, diff.max_rel_diff)
+            maxAbsDiff, diff.max_rel_diff)
       end
 
       return true
@@ -1502,9 +1602,10 @@ local function acceptedDir(test, testType)
       .. "/" .. runMode .. "/" .. nm
 end
 
-local function create_action(test, runDir, testType)
+local function create_action(test, runDir, testType, progress)
    local aDir = acceptedDir(test, testType)
-   log(string.format("... saving accepted results to %s ...\n", aDir))
+   log(string.format("... %ssaving accepted results to %s%s\n",
+      progress and progress.prefix or "", aDir, progress and progress.suffix or ""))
    mkdir(aDir)
    -- Remove any stale accepted files first, so append-mode dynvector files
    -- from a previous campaign can't linger and merge with the fresh copy.
@@ -1572,7 +1673,7 @@ local function check_action(test, runDir, testType, absTol, relTol)
          for _, ff in ipairs(failedFiles) do
             log(string.format("    %s\n", ff))
          end
-         log("  Legend: [DIFF] values exceed tolerance  [MISSING] file not produced by run\n")
+         log("  Legend: [DIFF] comparison failed  [MISSING] file not produced by run\n")
          -- Build checkLog for DB storage so queryrdb --test N surfaces magnitudes.
          checkLog = "--- Comparison failures ---\n"
             .. table.concat(failedFiles, "\n")
@@ -1828,22 +1929,8 @@ local function config_action(args, name)
 
    local prefix = args.config_prefix
    if not prefix then
-      -- Auto-detect from the installed config.mak.
-      -- GKYL_EXEC_PATH is the bin dir (e.g. ~/gkylsoft/gkeyll/bin);
-      -- config.mak lives one level up in share/.
-      local gkeyllDir = GKYL_EXEC_PATH:match("^(.+)/bin$")
-      if gkeyllDir then
-         local mf = io.open(gkeyllDir .. "/share/config.mak", "r")
-         if mf then
-            for line in mf:lines() do
-               local p = line:match("^PREFIX%s*=%s*(.+)%s*$")
-               if p then prefix = p; break end
-            end
-            mf:close()
-         end
-      end
-      prefix = prefix or (os.getenv("HOME") .. "/gkylsoft")
-      log(string.format("Auto-detected prefix from config.mak: %s\n", prefix))
+      prefix = installPrefix or (os.getenv("HOME") .. "/gkylsoft")
+      log(string.format("Auto-detected installation prefix: %s\n", prefix))
    end
 
    local mpiexec = args.config_mpiexec
@@ -1895,12 +1982,7 @@ local function finalizeRegressionRun()
    end
 end
 
--- 'run' command: execute regression tests and optionally create or check results.
--- On a GPU build (CC=nvcc), GPU-capable layers (vlasov, gyrokinetic, pkpm) run
--- each test twice: once in CPU mode, once in GPU mode.  Both are compared against
--- the same accepted baselines, and then CPU vs GPU output is compared to detect
--- GPU-specific divergence.  The 'create' action always forces CPU mode so that
--- accepted baselines are deterministic.
+-- Execute the selected platform/multiprocessing mode, creating or checking results.
 local function run_action(args, name)
    loadConfigure(args)
    if args.parallel and args.no_parallel then
@@ -1935,13 +2017,20 @@ local function run_action(args, name)
       gpu_serial = args.gpu_serial_tol, gpu_parallel = args.gpu_parallel_tol,
    }
    runTolerance = toleranceByMode[runMode]
+   local jobCount = args.jobs or 1
+   if jobCount < 0 or jobCount ~= math.floor(jobCount) or jobCount == math.huge then
+      error("--jobs must be a nonnegative integer")
+   end
+   if jobCount == 0 then jobCount = physicalCpuCount() end
    local luaTests, cTests = list_tests(detectedLayer, args)
+   if args.c_only then luaTests = {} end
+   if args.lua_only then cTests = {} end
    if args.compile then
       if not args.c_only or args.lua_only then
          log("ERROR: 'run compile' requires --c-only.\n")
          os.exit(1)
       end
-      if not compile_c_regressions(cTests) then os.exit(1) end
+      if not compile_c_regressions(cTests, jobCount) then os.exit(1) end
       return
    end
    if args.execute_only and (not args.c_only or args.lua_only) then
@@ -1958,11 +2047,11 @@ local function run_action(args, name)
          return check_action(test, runDir, testType, runTolerance, runTolerance)
       end
    end
-   local function store(test, testType, status, runtime, runDir, runlog)
+   local function store(test, testType, status, runtime, runDir, runlog, progress)
       local compared = false
       if status == nil then
          compared = args.check
-         local checkStatus, checkLog = postRun(test, runDir, testType)
+         local checkStatus, checkLog = postRun(test, runDir, testType, progress)
          status = checkStatus
          if checkLog and checkLog ~= "" then runlog = runlog .. "\n" .. checkLog end
       end
@@ -1973,79 +2062,70 @@ local function run_action(args, name)
       end
       insertRegressionData(test.layer, runID, test.name, testType, status, runtime, runlog or "")
    end
-   local function collect(test, testType, prep, result)
+   local function collect(test, testType, prep, result, completed, total)
       local runlog = (prep.compileLog or "") .. "\n" .. result.runlog
       local status = classifyExecution(prep.runDir, runlog, result.timedOut, result.exitCode)
-      store(test, testType, status, result.runtm, prep.runDir, runlog)
+      local outcome = ({ [-3] = "TIMED OUT", [-6] = "CRASHED", [-5] = "NO OUTPUT" })[status]
+         or "completed"
+      local count = completed and string.format(", %d/%d", completed, total) or ""
+      local progress = {
+         prefix = prep.workerLabel or "",
+         suffix = string.format(" (%.3f sec%s)", result.runtm, count),
+      }
+      if not (args.create and status == nil) then
+         log(string.format("... %s%s%s\n", progress.prefix, outcome, progress.suffix))
+      end
+      verboseLog(result.runlog)
+      store(test, testType, status, result.runtm, prep.runDir, runlog, progress)
    end
    local tmStart = Time.clock()
-
-   if args.parallel then
-      log("Running parallel C regression tests serially by MPI collective ...\n\n")
-      for _, test in ipairs(cTests) do
-         layerCounts[test.layer].total = layerCounts[test.layer].total + 1
-         local useGpu = GPU_BUILD and GPU_LAYERS[test.layer]
-         local prep = prepareParallelCRun(test, timeoutSecs, args.execute_only, useGpu)
-         if prep.compileFailed then
-            store(test, "c", -4, prep.compileSecs, prep.runDir,
-               "COMPILE FAILED:\n" .. prep.compileLog)
-         else
-            local result = executeBatch({ prep })[1]
-            collect(test, "c", prep, result)
-         end
+   local compiled = {}
+   if not args.execute_only then
+      local ok
+      ok, compiled = compile_c_regressions(cTests, jobCount)
+   end
+   local function prepareC(test, parallel)
+      local compilation = compiled[test.name]
+      if compilation and compilation.compileFailed then return compilation end
+      local mode = GPU_BUILD and GPU_LAYERS[test.layer] and "gpu" or nil
+      local prep = parallel and prepareParallelCRun(test, timeoutSecs, true, mode == "gpu")
+         or prepareCRun(test, timeoutSecs, mode, true)
+      if compilation then
+         prep.compileLog, prep.compileSecs = compilation.compileLog, compilation.compileSecs
       end
-      log(string.format("\nAll regression tests completed in %g secs\n", Time.clock() - tmStart))
-      finalizeRegressionRun()
-      return
+      return prep
    end
 
-   if true then
-   -- C compilation remains serial; independent executions retain --jobs batching.
-   local jobCount = args.jobs or 1
-   if jobCount == 0 then jobCount = physicalCpuCount() end
-   local function executePreps(preps, testType)
-      for first = 1, #preps, jobCount do
-         local batch = {}
-         for i = first, math.min(first + jobCount - 1, #preps) do
-            table.insert(batch, preps[i])
-         end
-         local results = executeBatch(batch)
-         for i, prep in ipairs(batch) do
-            collect(prep.test, testType, prep, results[i])
-         end
+   local queue = {}
+   for _, test in ipairs(luaTests) do
+      test.testType = "lua"
+      table.insert(queue, test)
+   end
+   for _, test in ipairs(cTests) do
+      test.testType = "c"
+      table.insert(queue, test)
+   end
+   local preps = {}
+   for _, test in ipairs(queue) do
+      layerCounts[test.layer].total = layerCounts[test.layer].total + 1
+      local prep = test.testType == "lua"
+         and prepareLuaRun(test, timeoutSecs, GPU_BUILD and "gpu" or nil)
+         or prepareC(test, args.parallel)
+      if prep.mpiSkip then
+         log(string.format("**** NOT RUNNING PARALLEL TEST %s\n", test.name))
+         store(test, test.testType, -1, 0, prep.runDir, "")
+      elseif prep.compileFailed then
+         store(test, "c", -4, prep.compileSecs, prep.runDir, "COMPILE FAILED:\n" .. prep.compileLog)
+      else
+         table.insert(preps, prep)
       end
    end
-   if not args.c_only then
-      local preps = {}
-      for _, test in ipairs(luaTests) do
-         layerCounts[test.layer].total = layerCounts[test.layer].total + 1
-         local prep = prepareLuaRun(test, timeoutSecs, GPU_BUILD and "gpu" or nil)
-         if prep.mpiSkip then
-            store(test, "lua", -1, 0, prep.runDir, "")
-         else
-            table.insert(preps, prep)
-         end
-      end
-      executePreps(preps, "lua")
-   end
-   if not args.lua_only then
-      local preps = {}
-      for _, test in ipairs(cTests) do
-         layerCounts[test.layer].total = layerCounts[test.layer].total + 1
-         local mode = GPU_BUILD and GPU_LAYERS[test.layer] and "gpu" or nil
-         local prep = prepareCRun(test, timeoutSecs, mode, args.execute_only)
-         if prep.compileFailed then
-            store(test, "c", -4, prep.compileSecs, prep.runDir,
-               "COMPILE FAILED:\n" .. prep.compileLog)
-         else
-            table.insert(preps, prep)
-         end
-      end
-      executePreps(preps, "c")
-   end
+   log(string.format("Running %d tests with %d worker(s).\n", #preps, jobCount))
+   executeBatch(preps, jobCount, function(prep, result, completed, total)
+      collect(prep.test, prep.test.testType, prep, result, completed, total)
+   end, true)
    log(string.format("\nAll regression tests completed in %g secs\n", Time.clock() - tmStart))
    finalizeRegressionRun()
-   end
 
    if false then -- Legacy dual CPU/GPU path retained below temporarily for reference.
 
@@ -2508,7 +2588,7 @@ different machines that share the regression-results directory.
 parser:flag("-v --verbose", "Print verbose messages as tests are run")
 
 -- 'configure' command ---------------------------------------------------------
--- Sets up directories, databases, and writes ~/runregression.config.lua.
+-- Sets up directories, databases, and writes the installation's configuration.
 local c_conf = parser:command("configure", "Configure regression tests")
    :action(config_action)
 
@@ -2519,7 +2599,7 @@ c_conf:option("-s --source-dir",
    :target("config_source_dir")
 c_conf:option("-p --prefix",
    "Where to write gkeyll-results/.\n"
-   .. "Auto-detected from config.mak if omitted.")
+   .. "Defaults to the executable's installation prefix.")
    :target("config_prefix")
 c_conf:option("-m --mpiexec",
    "Full path to MPI launcher used by --parallel.")
@@ -2591,8 +2671,9 @@ c_run:option("--gpu-serial-tol", "Tolerance for GPU-vs-accepted (default 1e-7)."
 c_run:option("--gpu-parallel-tol", "Tolerance for GPU-parallel-vs-accepted (default 1e-7).")
    :argname("<tol>"):convert(tonumber):default(1e-7)
 c_run:option("-j --jobs",
-   "Concurrent tests per batch (0 = physical core count, 1 = serial).\n"
-   .. "C compilation is always serial; GPU variants always run serially.")
+   "Concurrent compilation/execution workers (0 = available CPU count, 1 = serial).\n"
+   .. "MPI tests reserve one worker per rank; tests larger than the budget run alone.\n"
+   .. "GPU jobs share the available devices; the MPI launcher controls placement.")
    :convert(tonumber)
    :default(1)
 

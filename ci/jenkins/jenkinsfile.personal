@@ -1,18 +1,242 @@
+import groovy.transform.Field
+@Field def reporting
+
+def loggedSh(String label, String command) { reporting.loggedSh(label, command) }
+def timeCommand(String metric, String command) { reporting.timeCommand(metric, command) }
+
+// Bootstrap reporting cannot depend on fetching another script or starting Python.
+// Only anonymous, trusted setup commands may use this recorder.
+def bootstrapStage(String name, Closure body) {
+    env.CI_FAILURE_STAGE = name
+    env.CI_PROGRESS_STAGE = name
+    env.CI_FAILURE_MESSAGE = ''
+    env.CI_BOOTSTRAP_STAGE_START_MS = "${new Date().time}"
+    try {
+        stage(name) { body() }
+    } catch (err) {
+        if (!env.CI_FAILURE_MESSAGE) env.CI_FAILURE_MESSAGE = err.toString().take(1000)
+        throw err
+    } finally {
+        env.CI_BOOTSTRAP_STAGE_END_MS = "${new Date().time}"
+    }
+}
+
+def bootstrapSnapshot(String path) {
+    // Shell builtins still work when fork() cannot. Include visible cgroup v2
+    // ancestors; a container may hide ancestors, which need a host-side check.
+    try {
+        withEnv(["CI_RESOURCE_LOG=${path}"]) {
+            sh returnStatus: true, script: '''#!/bin/bash
+                exec > "$CI_RESOURCE_LOG" 2>&1
+                show() {
+                    local file="$1" line
+                    [ -r "$file" ] || return 0
+                    printf '\\n%s\\n' "$file"
+                    while IFS= read -r line; do printf '%s\\n' "$line"; done < "$file"
+                }
+                printf 'Process limit: '; ulimit -u
+                show /proc/self/limits
+                show /proc/meminfo
+                show /proc/self/cgroup
+                cg=/sys/fs/cgroup
+                while IFS=: read -r hierarchy controllers relative; do
+                    if [ "$hierarchy" = 0 ] && [ -d "/sys/fs/cgroup$relative" ]; then
+                        cg="/sys/fs/cgroup$relative"
+                    fi
+                done < /proc/self/cgroup
+                while :; do
+                    for metric in pids.current pids.max pids.events memory.current memory.max memory.events; do
+                        show "$cg/$metric"
+                    done
+                    [ "$cg" = /sys/fs/cgroup ] && break
+                    cg="${cg%/*}"
+                done
+                ps -eo pid,ppid,nlwp,rss,comm --sort=-nlwp
+            '''
+        }
+        env.CI_BOOTSTRAP_RESOURCES = readFile(path).take(6000)
+    } catch (err) {
+        if (err.toString().contains('FlowInterruptedException')) throw err
+        echo 'Resource snapshot unavailable; retaining the original setup failure.'
+    }
+}
+
+def bootstrapSh(String label, String command) {
+    if (!env.CI_BOOTSTRAP_LOG_DIR) env.CI_BOOTSTRAP_LOG_DIR = pwd(tmp: true) + '/bootstrap-records/' + (env.BUILD_NUMBER ?: 'current')
+    def delays = [15, 30, 60]
+    timeout(time: 10, unit: 'MINUTES') {
+        for (int attempt = 1; attempt <= 4; attempt++) {
+            def base = "${env.CI_BOOTSTRAP_LOG_DIR}/ci-bootstrap/${label}-${attempt}"
+            writeFile file: base + '.log', text: ''
+            env.CI_BOOTSTRAP_ATTEMPT = "${attempt}"
+            env.CI_BOOTSTRAP_COMMAND = command.trim().take(2000)
+            env.CI_BOOTSTRAP_EXIT = 'unavailable'
+            env.CI_BOOTSTRAP_ERROR = ''
+            env.CI_BOOTSTRAP_RESOURCES = ''
+            bootstrapSnapshot(base + '-before.txt')
+            def started = new Date().time
+            def result = -1
+            def output = ''
+            try {
+                withEnv(["CI_BOOTSTRAP_COMMAND_LOG=${base}.log"]) {
+                    // Redirect directly: tee and an extra shell also need process slots.
+                    result = sh(returnStatus: true, script: '#!/bin/bash\nexec > "$CI_BOOTSTRAP_COMMAND_LOG" 2>&1\nset -euo pipefail\n' + command)
+                }
+            } finally {
+                env.CI_BOOTSTRAP_EXIT = result < 0 ? 'unavailable' : "${result}"
+                env.CI_BOOTSTRAP_ATTEMPT_MS = "${new Date().time - started}"
+                // This may fail if the agent disappeared; the controller log remains.
+                try {
+                    output = readFile(base + '.log')
+                    env.CI_BOOTSTRAP_ERROR = output.take(8000)
+                    echo output.take(8000)
+                    writeFile file: base + '.txt', text: "attempt=${attempt}\nexit=${env.CI_BOOTSTRAP_EXIT}\nelapsed_ms=${env.CI_BOOTSTRAP_ATTEMPT_MS}\ncommand=${command.trim()}\n"
+                } catch (recordError) {
+                    if (recordError.toString().contains('FlowInterruptedException')) throw recordError
+                    echo 'Setup log unavailable on agent; controller fallback will report the failure.'
+                }
+            }
+            if (result == 0) { env.CI_FAILURE_MESSAGE = ''; return }
+            bootstrapSnapshot(base + '-after.txt')
+            def resourceFailure = output =~ /(?i)(unable to create (?:thread|threaded lstat).*Resource temporarily unavailable|(?:fork|cannot fork|mkdir).*Resource temporarily unavailable|cannot allocate memory)/
+            // Matcher objects cannot survive Pipeline suspension.
+            boolean retryable = resourceFailure.find()
+            resourceFailure = null
+            env.CI_FAILURE_MESSAGE = retryable ? 'Git setup could not create a process/thread or allocate memory.' : "Git setup exited ${result}."
+            if (!retryable || attempt == 4) error(env.CI_FAILURE_MESSAGE)
+            int delay = delays[attempt - 1]
+            echo "Resource exhaustion: attempt ${attempt}/4 failed; retrying in ${delay} s."
+            def waiting = new Date().time
+            try { sleep time: delay, unit: 'SECONDS' }
+            finally {
+                env.CI_BOOTSTRAP_RETRY_WAIT_MS = "${(env.CI_BOOTSTRAP_RETRY_WAIT_MS ?: '0').toLong() + new Date().time - waiting}"
+            }
+        }
+    }
+}
+
+def archiveBootstrap() {
+    if (!env.CI_BOOTSTRAP_LOG_DIR) return
+    try {
+        dir(env.CI_BOOTSTRAP_LOG_DIR) {
+            archiveArtifacts allowEmptyArchive: true, artifacts: 'ci-bootstrap/**'
+        }
+    } catch (err) {
+        if (err.toString().contains('FlowInterruptedException')) throw err
+        echo 'Bootstrap artifacts unavailable; controller fallback retains diagnostics.'
+    }
+}
+
+def loadReporting(Map settings) {
+    bootstrapStage('Load CI reporting') {
+        try {
+            def ref = env.CI_TRUSTED_CI_COMMIT?.trim() ?: env.GKEYLL_CI_TRUSTED_REF?.trim() ?: 'main'
+            if (!(ref ==~ /[A-Za-z0-9][A-Za-z0-9._\/-]*/) || ref.contains('..') || ref.endsWith('.lock')) {
+                error('Invalid trusted reporting ref.')
+            }
+            // This directory is outside the candidate checkout, which is deleted below.
+            dir(pwd(tmp: true) + '/trusted-reporting') {
+                deleteDir()
+                withEnv(["CI_TRUSTED_REPORT_REF=${ref}"]) {
+                    bootstrapSh('load-reporting', '''
+                        git init --quiet
+                        git fetch --quiet --depth 1 https://github.com/gkeyllorg/gkeyll.git "$CI_TRUSTED_REPORT_REF"
+                        git show FETCH_HEAD:ci/jenkins/jenkins_reporting.groovy > jenkins_reporting.groovy
+                        git show FETCH_HEAD:ci/jenkins/github_report.py > github_report.py
+                        git show FETCH_HEAD:ci/jenkins/prebuilt_config.py > prebuilt_config.py
+                        git show FETCH_HEAD:ci/jenkins/baseline_cache.sh > baseline_cache.sh
+                        chmod +x baseline_cache.sh
+                    ''')
+                }
+                settings.reportingCommit = sh(returnStdout: true, script: 'git rev-parse FETCH_HEAD').trim()
+                settings.cacheScript = pwd() + '/baseline_cache.sh'
+                reporting = load('jenkins_reporting.groovy')
+                settings.prebuiltScript = pwd() + '/prebuilt_config.py'
+                reporting.configure(settings)
+                env.CI_BOOTSTRAP_COMPLETE = 'true'
+            }
+        } finally { archiveBootstrap() }
+    }
+}
+
 // Manually selected local CI. Configure this trusted Pipeline job from main.
-properties([
-    buildDiscarder(logRotator(numToKeepStr: '20', artifactNumToKeepStr: '20')),
+def ciParameters = [
+    string(name: 'CANDIDATE_PR', defaultValue: '', trim: true,
+        description: 'GitHub PR number; set this, or both reference fields.'),
+    string(name: 'CANDIDATE_REF', defaultValue: '', trim: true,
+        description: 'Candidate branch or full 40-character commit SHA.'),
+    string(name: 'BASELINE_REF', defaultValue: '', trim: true,
+        description: 'Baseline branch or full 40-character commit SHA.'),
+    booleanParam(name: 'ALLOW_BEHIND_CANDIDATE', defaultValue: false,
+        description: 'Allow a candidate that does not contain the baseline commit.')
+]
+if (env.CI_TEAM_WORKSTATION_BOOTSTRAPPED != 'true') {
+    ciParameters += [string(name: 'CI_REF', defaultValue: '', trim: true,
+        description: 'CI implementation branch or full SHA; blank uses GKEYLL_CI_TRUSTED_REF, then main. Independent of the candidate.')]
+}
+def buildsToKeep = env.GKEYLL_CI_BUILDS_TO_KEEP?.trim() ?: ''
+if (buildsToKeep && !(buildsToKeep ==~ /[1-9][0-9]*/)) {
+    error('GKEYLL_CI_BUILDS_TO_KEEP must be a positive build count, or empty for no limit.')
+}
+def jobProperties = [
+    buildDiscarder(logRotator(numToKeepStr: buildsToKeep, artifactNumToKeepStr: buildsToKeep)),
     disableConcurrentBuilds(),
-    parameters([
-        string(name: 'CANDIDATE_PR', defaultValue: '', trim: true,
-            description: 'GitHub PR number; set this, or both reference fields.'),
-        string(name: 'CANDIDATE_REF', defaultValue: '', trim: true,
-            description: 'Candidate branch or full 40-character commit SHA.'),
-        string(name: 'BASELINE_REF', defaultValue: '', trim: true,
-            description: 'Baseline branch or full 40-character commit SHA.'),
-        booleanParam(name: 'ALLOW_BEHIND_CANDIDATE', defaultValue: false,
-            description: 'Allow a candidate that does not contain the baseline commit.')
-    ])
-])
+    parameters(ciParameters)
+]
+properties(jobProperties)
+
+// Resolve the implementation once, before executing the selected Jenkinsfile.
+// This also works for older implementations: they already honor the team
+// bootstrap's CI_NODE_ALREADY_ALLOCATED and CI_TRUSTED_CI_COMMIT variables.
+if (env.CI_TEAM_WORKSTATION_BOOTSTRAPPED == 'true') {
+    if (params.CI_REF?.trim()) error('Team CI selects its implementation through TEAM_WORKSTATION_TRUSTED_CI_REF, not CI_REF.')
+} else if (env.CI_PERSONAL_BOOTSTRAPPED != 'true') {
+    def ciRef = validateRef('CI_REF', params.CI_REF?.trim() ?: env.GKEYLL_CI_TRUSTED_REF?.trim() ?: 'main')
+    node(requireValue('PERSONAL_NODE_LABEL', env.PERSONAL_NODE_LABEL)) {
+        def workspace = pwd()
+        def trustedDir = pwd(tmp: true) + '/selected-ci'
+        def ciCommit = ''
+        env.CI_EXECUTION_START_MS = "${new Date().time}"
+        try {
+            bootstrapStage('Load CI pipeline') {
+                dir(trustedDir) {
+                    deleteDir()
+                    def refspec = isCommitSha(ciRef) ? ciRef : "refs/heads/${ciRef}"
+                    withEnv(["CI_SELECTED_REFSPEC=${refspec}"]) {
+                        bootstrapSh('load-pipeline', '''
+                            git init --quiet
+                            git fetch --quiet --no-tags --depth 1 https://github.com/gkeyllorg/gkeyll.git "$CI_SELECTED_REFSPEC"
+                            git checkout --quiet --detach FETCH_HEAD
+                        ''')
+                    }
+                    ciCommit = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
+                }
+                echo "CI Jenkinsfile: ci/jenkins/jenkinsfile.personal\nCI source ref: ${ciRef}\nCI source commit: ${ciCommit}"
+            }
+            withEnv(['CI_PERSONAL_BOOTSTRAPPED=true', 'CI_NODE_ALREADY_ALLOCATED=true',
+                     "CI_TRUSTED_CI_REF=${ciRef}", "CI_TRUSTED_CI_COMMIT=${ciCommit}"]) {
+                try {
+                    env.CI_FAILURE_STAGE = 'Load CI implementation'
+                    load "${trustedDir}/ci/jenkins/jenkinsfile.personal"
+                } finally {
+                    // Older Jenkinsfiles replace the job parameters and delete the
+                    // workspace. Preserve both the selector and provenance even
+                    // when testing those versions, or when loading the script fails.
+                    properties(jobProperties)
+                    dir(workspace) {
+                        writeFile file: 'ci-pipeline-source.txt', text: "jenkinsfile=ci/jenkins/jenkinsfile.personal\nref=${ciRef}\ncommit=${ciCommit}\n"
+                        writeFile file: 'ci-trusted-ci-commit.txt', text: "${ciCommit}\n"
+                        archiveArtifacts artifacts: 'ci-pipeline-source.txt,ci-trusted-ci-commit.txt'
+                    }
+                }
+            }
+        } catch (err) {
+            if (!env.CI_FAILURE_MESSAGE) env.CI_FAILURE_MESSAGE = err.toString().take(1000)
+            throw err
+        } finally { archiveBootstrap() }
+    }
+    return
+}
 
 def requireValue(String name, String value) {
     value = value?.trim()
@@ -82,62 +306,6 @@ def pullRequestBase(String statusCredentialsId, String number) {
     validateBranchName('GitHub PR base branch', base)
 }
 
-def publishStatus(String statusCredentialsId, String context, String commit, String state, String description) {
-    withCredentials([usernamePassword(credentialsId: statusCredentialsId, usernameVariable: 'GITHUB_USERNAME', passwordVariable: 'GITHUB_TOKEN')]) {
-        withEnv(["CI_STATUS_CONTEXT=${context}", "CI_STATUS_COMMIT=${commit}", "CI_STATUS_STATE=${state}", "CI_STATUS_DESCRIPTION=${description.take(140)}"]) {
-            sh '''#!/bin/bash
-                set -euo pipefail
-                payload="$(python3 -c 'import json,os; print(json.dumps({"state":os.environ["CI_STATUS_STATE"],"context":os.environ["CI_STATUS_CONTEXT"],"description":os.environ["CI_STATUS_DESCRIPTION"]}))')"
-                curl --fail --silent --show-error --request POST --header 'Accept: application/vnd.github+json' --header "Authorization: Bearer $GITHUB_TOKEN" --header 'Content-Type: application/json' --data "$payload" "https://api.github.com/repos/gkeyllorg/gkeyll/statuses/$CI_STATUS_COMMIT"
-            '''
-        }
-    }
-}
-
-def timeCommand(String metricFile, String command) {
-    // Keep the command's output in a log next to its metric file. On failure,
-    // extract the error lines into ci-failure-detail.txt (workspace root) so
-    // the GitHub report shows the actual compiler or test error.
-    def logFile = metricFile.replaceFirst(/-seconds\.txt$/, '') + '.log'
-    def detailFile = metricFile.replaceFirst(/[^\/]*$/, '') + 'ci-failure-detail.txt'
-    def logName = logFile.replaceFirst(/^\.\.\//, '')
-    sh """#!/bin/bash
-        set -euo pipefail
-        started=\$(date +%s)
-        if ! ( ${command} ) 2>&1 | tee '${logFile}'; then
-            {
-                echo "Command: ${command}"
-                echo "Full log: ${logName} (archived with the build)"
-                echo '--- error lines ---'
-                grep -nE 'error:|undefined reference|FAIL |^make.*Error [0-9]+' '${logFile}' | head -n 40 || true
-                echo '--- last 40 lines ---'
-                tail -n 40 '${logFile}'
-            } > '${detailFile}'
-            exit 1
-        fi
-        elapsed=\$(( \$(date +%s) - started ))
-        printf '%s\\n' "\$elapsed" > '${metricFile}'
-        echo "${metricFile}: \$elapsed seconds"
-    """
-}
-
-def trustedReportScript() {
-    // The report tool must come from reviewed code, never from the candidate
-    // checkout, because 'publish' runs with the GitHub token bound.
-    // The team bootstrap pins the reviewed checkout to an exact commit.
-    def ref = validateRef('trusted CI ref', env.CI_TRUSTED_CI_COMMIT?.trim()
-        ?: env.GKEYLL_CI_TRUSTED_REF?.trim() ?: 'main')
-    withEnv(["CI_TRUSTED_REPORT_REF=${ref}"]) {
-        sh '''#!/bin/bash
-            set -euo pipefail
-            git fetch --quiet --depth 1 https://github.com/gkeyllorg/gkeyll.git "$CI_TRUSTED_REPORT_REF"
-            rm -f -- _trusted_github_report.py
-            git show FETCH_HEAD:ci/jenkins/github_report.py > _trusted_github_report.py
-        '''
-    }
-    return '_trusted_github_report.py'
-}
-
 def prepareTrustedRegressionChecker() {
     // The candidate must not choose the code that decides whether its results pass.
     // The team bootstrap supplies an exact reviewed commit; standalone jobs use
@@ -158,27 +326,76 @@ def prepareTrustedRegressionChecker() {
     return checker
 }
 
-def publishReport(String statusCredentialsId, String context, String platform, String commit, String state, String candidatePr) {
-    def script = trustedReportScript()
-    withEnv(["CI_REPORT_CONTEXT=${context}", "CI_REPORT_PLATFORM=${platform}", "CI_REPORT_RESULT=${state}",
-             "CI_REPORT_PR=${candidatePr ?: ''}", "CI_REPORT_COMMIT=${commit}"]) {
-        sh "python3 ${script} build --platform \"\$CI_REPORT_PLATFORM\" --context \"\$CI_REPORT_CONTEXT\" --result \"\$CI_REPORT_RESULT\" --pr \"\$CI_REPORT_PR\" --output ci-report.md"
-        withCredentials([usernamePassword(credentialsId: statusCredentialsId, usernameVariable: 'GITHUB_USERNAME', passwordVariable: 'GITHUB_TOKEN')]) {
-            sh "python3 ${script} publish --report ci-report.md --commit \"\$CI_REPORT_COMMIT\" --context \"\$CI_REPORT_CONTEXT\" --pr \"\$CI_REPORT_PR\""
+// The config is supplied by the machine owner, outside disposable workspaces.
+// Keep this helper in the trusted Pipeline so older candidate/baseline refs work.
+def usePrebuiltConfig(String prefix) {
+    def source = env.GKEYLL_CI_PREBUILT_CONFIG?.trim()
+    if (!source) return false
+    if (!source.startsWith('/') || !fileExists(source)) {
+        error('GKEYLL_CI_PREBUILT_CONFIG must name an existing absolute config.mak path on the agent.')
+    }
+    if (!env.CI_RUN_DIR?.trim()) error('CI_RUN_DIR must be prepared before copying dependencies.')
+    def launcher = env.PERSONAL_MPIEXEC?.trim()
+        ?: (env.PERSONAL_MPI_HOME?.trim() ? "${env.PERSONAL_MPI_HOME.trim()}/bin/mpiexec" : '')
+    // Keep the owner's launcher across candidate/baseline environment changes.
+    if (!env.CI_PREBUILT_SOURCE_MPIEXEC) env.CI_PREBUILT_SOURCE_MPIEXEC = launcher ?: 'auto'
+    launcher = env.CI_PREBUILT_SOURCE_MPIEXEC == 'auto' ? '' : env.CI_PREBUILT_SOURCE_MPIEXEC
+    def dependencies = env.CI_BASELINE_DEPENDENCIES ?: "${env.CI_RUN_DIR}/dependencies"
+    def runtime = [:]
+    withEnv(["CI_PREBUILT_SOURCE=${source}", "CI_PREBUILT_PREFIX=${prefix}",
+             "CI_PREBUILT_DEPENDENCIES=${dependencies}",
+             "CI_PREBUILT_SCRIPT=${reporting.settings.prebuiltScript}",
+             "CI_PREBUILT_MPIEXEC=${launcher}"]) {
+        // Literal KEY=value lines avoid JSON APIs that need sandbox approval.
+        def output = sh(returnStdout: true, script: '''#!/bin/bash
+            set -euo pipefail
+            if [[ -n "${CI_BASELINE_DEPENDENCIES:-}" ]]; then
+                cmp "$CI_PREBUILT_SOURCE" "$CI_RUN_DIR/dependencies/source-config.mak" || {
+                    echo 'Prebuilt config changed during this run; start a new CI run.' >&2
+                    exit 1
+                }
+            fi
+            python3 -I "$CI_PREBUILT_SCRIPT" --config "$CI_PREBUILT_SOURCE" \
+                --prefix "$CI_PREBUILT_PREFIX" --dependencies "$CI_PREBUILT_DEPENDENCIES" \
+                --mpiexec "${CI_PREBUILT_MPIEXEC:-}" --format env
+        ''')
+        output.readLines().each { line ->
+            def fields = line.split('=', 2)
+            runtime[fields[0]] = fields[1]
         }
     }
-    // One line naming the failing layer/tests, for the GitHub status description.
-    return fileExists('ci-status-description.txt') ? readFile('ci-status-description.txt').trim() : ''
+    env.LD_LIBRARY_PATH = runtime.LD_LIBRARY_PATH
+    env.GKEYLL_CI_DEPENDENCY_ENV = runtime.GKEYLL_CI_DEPENDENCY_ENV
+    if (runtime.MPI_HOME) {
+        env.MPI_HOME = runtime.MPI_HOME
+        env.OPAL_PREFIX = runtime.OPAL_PREFIX
+        env.PERSONAL_MPI_HOME = runtime.MPI_HOME
+    }
+    if (runtime.MPIEXEC) env.PERSONAL_MPIEXEC = runtime.MPIEXEC
+    writeFile file: 'alltargets.mak', text: '''.PHONY: all install
+all: gkeyll
+install: gkeyll
+	$(MAKE) gkeyll-install
+'''
+    echo "Using dependency copy at ${dependencies}; installing Gkeyll in ${prefix}"
+    return true
 }
 
 def buildTree(String label, String prefix, String mkdeps, String configure, String jobs, String metricDirectory = '') {
+    if (env.GKEYLL_CI_PREBUILT_CONFIG?.trim() &&
+        !env.PERSONAL_MPIEXEC?.trim() && !env.PERSONAL_MPI_HOME?.trim()) {
+        error('Prebuilt dependencies require PERSONAL_MPIEXEC or PERSONAL_MPI_HOME (TEAM_WORKSTATION_MPIEXEC or WORKSTATION_MPI_HOME for team CI).')
+    }
+    def prebuilt = usePrebuiltConfig(prefix)
     def mpiHome = env.PERSONAL_MPI_HOME?.trim() ?: "${prefix}/openmpi"
     withEnv(["PREFIX=${prefix}", "MPI_HOME=${mpiHome}"]) {
-        sh """#!/bin/bash
-            set -euo pipefail
-            ./machines/${mkdeps}
-            ./machines/${configure}
-        """
+        if (!prebuilt) {
+            loggedSh("${label}-setup", """#!/bin/bash
+                set -euo pipefail
+                ./machines/${mkdeps}
+                ./machines/${configure}
+            """)
+        }
         timeCommand("${metricDirectory}${label}-unit-build-seconds.txt", "make -j${jobs} unit")
         timeCommand("${metricDirectory}${label}-unit-test-seconds.txt", "GKYL_UNIT_RESULTS='${env.WORKSPACE}/${label}-unit-results.txt' make unit-run")
         timeCommand("${metricDirectory}${label}-regression-build-seconds.txt", "make -j${jobs} regression")
@@ -190,85 +407,91 @@ def createBaseline(String baseline, String baselineDir, String mkdeps, String co
     dir("${baselineDir}/gkeyll") {
         checkoutRef(baseline, 'baseline')
         buildTree('baseline', "${baselineDir}/gkylsoft", mkdeps, configure, jobs, "${env.WORKSPACE}/")
-        sh "\"${baselineDir}/gkylsoft/gkeyll/bin/gkeyll\" runregression configure --source-dir \"${baselineDir}/gkeyll\" --prefix \"${baselineDir}/gkylsoft\""
-        timeCommand("${env.WORKSPACE}/baseline-c-regression-create-seconds.txt", "\"${baselineDir}/gkylsoft/gkeyll/bin/gkeyll\" runregression run --c-only create --timeout 900 --jobs ${regressionJobs}")
+        loggedSh("baseline-regression-configure", "\"${baselineDir}/gkylsoft/gkeyll/bin/gkeyll\" runregression configure --source-dir \"${baselineDir}/gkeyll\" --prefix \"${baselineDir}/gkylsoft\"")
+        timeCommand("${env.WORKSPACE}/baseline-c-compile-seconds.txt", "\"${baselineDir}/gkylsoft/gkeyll/bin/gkeyll\" runregression run --c-only compile --jobs ${jobs}")
+        timeCommand("${env.WORKSPACE}/baseline-c-regression-create-seconds.txt", "\"${baselineDir}/gkylsoft/gkeyll/bin/gkeyll\" runregression run --c-only --execute-only create --timeout 900 --jobs ${regressionJobs}")
+        def mpiHome = env.PERSONAL_MPI_HOME?.trim()
+        mpiExec = env.PERSONAL_MPIEXEC?.trim() ?: mpiExec ?: (mpiHome ? "${mpiHome}/bin/mpiexec" : '')
         def baselineMpiExec = mpiExec ?: "${baselineDir}/gkylsoft/openmpi/bin/mpiexec"
-        sh """#!/bin/bash
+        loggedSh("baseline-parallel-regressions", """#!/bin/bash
             set -euo pipefail
             test -x "${baselineMpiExec}"
             "${baselineDir}/gkylsoft/gkeyll/bin/gkeyll" runregression configure --source-dir "${baselineDir}/gkeyll" --prefix "${baselineDir}/gkylsoft" --results-subdir parallel-c-4 --mpiexec "${baselineMpiExec}"
             started=\$(date +%s)
-            "${baselineDir}/gkylsoft/gkeyll/bin/gkeyll" runregression run --c-only --parallel compile
+            "${baselineDir}/gkylsoft/gkeyll/bin/gkeyll" runregression run --c-only --parallel --jobs ${jobs} compile
             elapsed=\$(( \$(date +%s) - started ))
             printf '%s\\n' "\$elapsed" > "${env.WORKSPACE}/baseline-parallel-c-compile-seconds.txt"
             started=\$(date +%s)
-            "${baselineDir}/gkylsoft/gkeyll/bin/gkeyll" runregression run --c-only --parallel --execute-only create
+            "${baselineDir}/gkylsoft/gkeyll/bin/gkeyll" runregression run --c-only --parallel --execute-only --jobs ${regressionJobs} create
             elapsed=\$(( \$(date +%s) - started ))
             printf '%s\\n' "\$elapsed" > "${env.WORKSPACE}/baseline-parallel-c-regression-create-seconds.txt"
-        """
+        """)
     }
 }
 
-def runCandidateRegressions(String candidateDir, String baselineDir, String regressionJobs, String checker) {
+def runCandidateRegressions(String candidateDir, String baselineDir, String jobs, String regressionJobs, String checker) {
     def gkeyll = "${candidateDir}/gkylsoft/gkeyll/bin/gkeyll"
     def baselineGkeyll = "${baselineDir}/gkylsoft/gkeyll/bin/gkeyll"
     def results = "${candidateDir}/gkylsoft/gkeyll-results"
     def baseline = "${baselineDir}/gkylsoft/gkeyll-results"
-    sh "\"${gkeyll}\" runregression configure --source-dir \"${candidateDir}/gkeyll\" --prefix \"${candidateDir}/gkylsoft\""
-    sh """set -euo pipefail
+    loggedSh("candidate-regression-configure", "\"${gkeyll}\" runregression configure --source-dir \"${candidateDir}/gkeyll\" --prefix \"${candidateDir}/gkylsoft\"")
+    timeCommand("${env.WORKSPACE}/candidate-c-compile-seconds.txt", "\"${gkeyll}\" runregression run --c-only compile --jobs ${jobs}")
+    loggedSh("candidate-regression-check", """set -euo pipefail
         for layer in moments vlasov gyrokinetic pkpm; do
             if [ -d \"${baseline}/\$layer/creg-accepted\" ]; then
                 rm -rf \"${results}/\$layer/creg-accepted\"
-                ln -s \"${baseline}/\$layer/creg-accepted\" \"${results}/\$layer/creg-accepted\"
+                cp -a \"${baseline}/\$layer/creg-accepted\" \"${results}/\$layer/creg-accepted\"
             fi
         done
         started=\$(date +%s)
-        \"${gkeyll}\" runregression run --c-only check --timeout 900 --jobs ${regressionJobs}
+        \"${gkeyll}\" runregression run --c-only --execute-only check --timeout 900 --jobs ${regressionJobs}
         elapsed=\$(( \$(date +%s) - started ))
         printf '%s\\n' "\$elapsed" > "${env.WORKSPACE}/candidate-c-regression-check-seconds.txt"
         echo "Candidate C-regression check runtime: \$elapsed seconds"
+        if [ -f \"${baselineDir}/dependencies/env.sh\" ]; then . \"${baselineDir}/dependencies/env.sh\"; fi
         cd \"${baselineDir}/gkeyll\"
         \"${baselineGkeyll}\" -S \"${checker}\" \\
           \"${results}\" \"${candidateDir}/gkeyll/ci/jenkins/expected_regression_diffs.txt\" \"${env.WORKSPACE}/ci-regression-summary.txt\" \\
           \"${baselineDir}/gkeyll/ci/jenkins/expected_regression_diffs.txt\" \"${baseline}\"
-    """
+    """)
 }
 
-def runParallelRegressions(String candidateDir, String baselineDir, String mpiExec, String checker) {
+def runParallelRegressions(String candidateDir, String baselineDir, String mpiExec, String checker, String regressionJobs) {
     def mpiHome = env.PERSONAL_MPI_HOME?.trim()
-    mpiExec = mpiExec ?: (mpiHome ? "${mpiHome}/bin/mpiexec" : '')
+    mpiExec = env.PERSONAL_MPIEXEC?.trim() ?: mpiExec ?: (mpiHome ? "${mpiHome}/bin/mpiexec" : '')
     def candidateMpiExec = mpiExec ?: "${candidateDir}/gkylsoft/openmpi/bin/mpiexec"
     def baselineMpiExec = mpiExec ?: "${baselineDir}/gkylsoft/openmpi/bin/mpiexec"
     def gkeyll = "${candidateDir}/gkylsoft/gkeyll/bin/gkeyll"
     def baselineGkeyll = "${baselineDir}/gkylsoft/gkeyll/bin/gkeyll"
     def results = "${candidateDir}/gkylsoft/gkeyll-results/parallel-c-4"
     def baselineResults = "${baselineDir}/gkylsoft/gkeyll-results/parallel-c-4"
-    sh """#!/bin/bash
+    loggedSh("shared-parallel-regressions", """#!/bin/bash
         set -euo pipefail
         test -x "${candidateMpiExec}"
         test -x "${baselineMpiExec}"
 
         "${gkeyll}" runregression configure --source-dir "${candidateDir}/gkeyll" --prefix "${candidateDir}/gkylsoft" --results-subdir parallel-c-4 --mpiexec "${candidateMpiExec}"
         started=\$(date +%s)
-        "${gkeyll}" runregression run --c-only --parallel compile
+        "${gkeyll}" runregression run --c-only --parallel --jobs ${env.PERSONAL_BUILD_JOBS ?: '3'} compile
         elapsed=\$(( \$(date +%s) - started ))
         printf '%s\\n' "\$elapsed" > "${env.WORKSPACE}/candidate-parallel-c-compile-seconds.txt"
 
         for layer in moments vlasov gyrokinetic pkpm; do
             if [ -d "${baselineResults}/\$layer/creg-accepted" ]; then
                 rm -rf "${results}/\$layer/creg-accepted"
-                ln -s "${baselineResults}/\$layer/creg-accepted" "${results}/\$layer/creg-accepted"
+                cp -a "${baselineResults}/\$layer/creg-accepted" "${results}/\$layer/creg-accepted"
             fi
         done
         started=\$(date +%s)
-        "${gkeyll}" runregression run --c-only --parallel --execute-only check
+        "${gkeyll}" runregression run --c-only --parallel --execute-only --jobs ${regressionJobs} check
         elapsed=\$(( \$(date +%s) - started ))
         printf '%s\\n' "\$elapsed" > "${env.WORKSPACE}/candidate-parallel-c-regression-check-seconds.txt"
+        if [ -f "${baselineDir}/dependencies/env.sh" ]; then . "${baselineDir}/dependencies/env.sh"; fi
         cd "${baselineDir}/gkeyll"
         "${baselineGkeyll}" -S "${checker}" \\
           "${results}" "${candidateDir}/gkeyll/ci/jenkins/expected_regression_diffs.txt" "${env.WORKSPACE}/ci-parallel-regression-summary.txt" \\
           "${baselineDir}/gkeyll/ci/jenkins/expected_regression_diffs.txt" "${baselineResults}"
-    """
+    """)
 }
 
 def writeCiTimingSummary() {
@@ -296,6 +519,8 @@ def writeCiTimingSummary() {
         baseline_regression_build="$(metric baseline-regression-build-seconds.txt)"
         candidate_install="$(metric candidate-install-seconds.txt)"
         baseline_install="$(metric baseline-install-seconds.txt)"
+        candidate_compile="$(metric candidate-c-compile-seconds.txt)"
+        baseline_compile="$(metric baseline-c-compile-seconds.txt)"
         candidate_parallel_compile="$(metric candidate-parallel-c-compile-seconds.txt)"
         baseline_parallel_compile="$(metric baseline-parallel-c-compile-seconds.txt)"
         regression_create="$(metric baseline-c-regression-create-seconds.txt)"
@@ -315,19 +540,31 @@ def writeCiTimingSummary() {
             printf 'baseline_regression_build_seconds=%s\n' "$baseline_regression_build"
             printf 'candidate_install_seconds=%s\n' "$candidate_install"
             printf 'baseline_install_seconds=%s\n' "$baseline_install"
+            printf 'candidate_c_compile_seconds=%s\n' "$candidate_compile"
+            printf 'baseline_c_compile_seconds=%s\n' "$baseline_compile"
             printf 'candidate_parallel_c_compile_seconds=%s\n' "$candidate_parallel_compile"
             printf 'baseline_parallel_c_compile_seconds=%s\n' "$baseline_parallel_compile"
             printf 'baseline_c_regression_create_seconds=%s\n' "$regression_create"
             printf 'candidate_c_regression_check_seconds=%s\n' "$regression_check"
             printf 'baseline_parallel_c_regression_create_seconds=%s\n' "$parallel_regression_create"
             printf 'candidate_parallel_c_regression_check_seconds=%s\n' "$parallel_regression_check"
-        } > ci-timing-summary.txt
+        } | awk -F= -v cache_status="$baseline_cache_status" '
+            # Restored measurements belong to the run that populated the cache.
+            cache_status == "hit" && $1 ~ /^baseline_.*_seconds$/ {
+                if ($2 != "not-recorded") print "cached_" $0
+                print $1 "=0"
+                next
+            }
+            { print }
+        ' > ci-timing-summary.txt
         cat ci-timing-summary.txt
     '''
 }
 
 def candidatePr = params.CANDIDATE_PR?.trim() ?: env.CI_CANDIDATE_PR?.trim()
 def candidateRef = params.CANDIDATE_REF?.trim() ?: env.CI_CANDIDATE_REF?.trim()
+def queuedCommit = params.CI_QUEUE_COMMIT?.trim()
+if (queuedCommit && !isCommitSha(queuedCommit)) error('CI_QUEUE_COMMIT must be a full commit SHA.')
 def requestedBaseline = params.BASELINE_REF?.trim() ?: env.CI_BASELINE_REF?.trim()
 if (!!candidatePr == !!candidateRef) error('Set exactly one of CANDIDATE_PR or CANDIDATE_REF.')
 if (candidatePr && !(candidatePr ==~ /[1-9][0-9]*/)) error("CANDIDATE_PR must be a positive integer, got '${candidatePr}'.")
@@ -336,27 +573,21 @@ if (candidateRef) { candidateRef = validateRef('CANDIDATE_REF', candidateRef); r
 def allowBehindCandidate = params.ALLOW_BEHIND_CANDIDATE || env.CI_ALLOW_BEHIND_CANDIDATE == 'true'
 
 def label = requireValue('PERSONAL_NODE_LABEL', env.PERSONAL_NODE_LABEL)
-def mkdeps = validateBranchName('PERSONAL_MKDEPS_SCRIPT', requireValue('PERSONAL_MKDEPS_SCRIPT', env.PERSONAL_MKDEPS_SCRIPT))
-def configure = validateBranchName('PERSONAL_CONFIGURE_SCRIPT', requireValue('PERSONAL_CONFIGURE_SCRIPT', env.PERSONAL_CONFIGURE_SCRIPT))
+def mkdeps = env.GKEYLL_CI_PREBUILT_CONFIG?.trim() ? '' : validateBranchName('PERSONAL_MKDEPS_SCRIPT', requireValue('PERSONAL_MKDEPS_SCRIPT', env.PERSONAL_MKDEPS_SCRIPT))
+def configure = env.GKEYLL_CI_PREBUILT_CONFIG?.trim() ? '' : validateBranchName('PERSONAL_CONFIGURE_SCRIPT', requireValue('PERSONAL_CONFIGURE_SCRIPT', env.PERSONAL_CONFIGURE_SCRIPT))
 def statusCredentialsId = requireValue('PERSONAL_GITHUB_CREDENTIAL_ID', env.PERSONAL_GITHUB_CREDENTIAL_ID)
 def jobs = (env.PERSONAL_BUILD_JOBS ?: '3').trim()
-def regressionJobs = (env.PERSONAL_REGRESSION_JOBS ?: '1').trim()
+def regressionJobs = (env.PERSONAL_REGRESSION_JOBS ?: env.PERSONAL_BUILD_JOBS ?: '3').trim()
 def mpiExec = (env.PERSONAL_MPIEXEC ?: '').trim()
 def gkeyllCiRoot = requireValue('GKEYLL_CI_ROOT', env.GKEYLL_CI_ROOT)
 if (!(jobs ==~ /[1-9][0-9]*/) || !(regressionJobs ==~ /[1-9][0-9]*/)) error('PERSONAL_BUILD_JOBS and PERSONAL_REGRESSION_JOBS must be positive integers.')
 
-def ciStage(String stageName, Closure body) {
-    env.CI_FAILURE_STAGE = stageName
-    stage(stageName) { body.call() }
-}
+def ciStage(String name, Closure body) { reporting.ciStage(name, body) }
 
-def writeCiFailureSummary(String result, String stageName, String message) {
-    def compactMessage = (message ?: 'unknown failure').replaceAll('[\\r\\n]+', ' ').trim().take(500)
-    writeFile file: 'ci-failure-summary.txt', text: "result=${result}\nstage=${stageName ?: 'unknown'}\nmessage=${compactMessage}\n"
-}
+def writeCiFailureSummary(String result, String name, String message) { reporting.writeCiFailureSummary(result, name, message) }
 
 def runCi = {
-    def commit = ''
+    def commit = queuedCommit ?: (isCommitSha(candidateRef ?: '') ? candidateRef : '')
     def baselineCommit = ''
     def status = 'failure'
     def description = 'Personal CI failed.'
@@ -370,11 +601,15 @@ def runCi = {
     def baselineCacheHit = false
     // Every controller needs its own status context, otherwise two machines
     // testing the same commit overwrite each other's status on GitHub.
-    def statusContext = env.CI_STATUS_CONTEXT?.trim() ?: env.PERSONAL_STATUS_CONTEXT?.trim()
+    def statusContext = params.CI_QUEUE_CONTEXT?.trim() ?: env.CI_STATUS_CONTEXT?.trim() ?: env.PERSONAL_STATUS_CONTEXT?.trim()
     if (!statusContext) {
         def host = sh(returnStdout: true, script: 'hostname -s 2>/dev/null || hostname').trim().toLowerCase().replaceAll(/[^a-z0-9._-]/, '-')
         statusContext = "continuous-integration/jenkins/personal-${host ?: 'unknown'}"
     }
+    loadReporting([credential: statusCredentialsId, context: statusContext, platform: platform,
+        pr: candidatePr ?: '', ref: candidateRef ?: '', commit: commit])
+    def cacheScript = reporting.settings.cacheScript
+    reporting.withBaselineCache(gkeyllCiRoot, cachePlatform) {
     try {
         ciStage('Resolve candidate and baseline') {
             currentBuild.displayName = "#${env.BUILD_NUMBER} ${candidatePr ? "PR-${candidatePr}" : shortRef(candidateRef)}"
@@ -383,8 +618,12 @@ def runCi = {
         }
         ciStage('Checkout candidate') {
             deleteDir()
-            if (candidatePr) checkoutPullRequest(candidatePr); else checkoutRef(candidateRef, 'candidate')
+            // Report and test the exact commit accepted by the controller's queue listener.
+            if (queuedCommit) checkoutRef(queuedCommit, 'candidate')
+            else if (candidatePr) checkoutPullRequest(candidatePr)
+            else checkoutRef(candidateRef, 'candidate')
             commit = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
+            reporting.settings.commit = commit
             writeFile file: 'ci-candidate-commit.txt', text: "${commit}\n"
             // Written after deleteDir() above so it survives into the artifacts and report.
             currentBuild.description += " @ ${commit.take(7)}"
@@ -404,41 +643,40 @@ def runCi = {
             requestedBaseline = baselineCommit
         }
         ciStage('Prepare candidate build') {
-            candidateDir = sh(returnStdout: true, script: "ci/jenkins/baseline_cache.sh prepare-candidate '${gkeyllCiRoot}' '${cachePlatform}' '${commit}' '${env.WORKSPACE}' '${baselineCommit}'").trim()
+            env.CI_BASELINE_CACHE_CONTEXT = sh(returnStdout: true, script: "'${cacheScript}' context").trim()
+            env.CI_RUN_DIR = sh(returnStdout: true, script: "'${cacheScript}' run-path '${gkeyllCiRoot}' '${cachePlatform}'").trim()
+            writeFile file: 'ci-run-path.txt', text: "${env.CI_RUN_DIR}\n"
+            candidateDir = sh(returnStdout: true, script: "'${cacheScript}' prepare-candidate '${gkeyllCiRoot}' '${cachePlatform}' '${commit}' '${env.WORKSPACE}' '${baselineCommit}'").trim()
         }
-        ciStage('Report pending') { publishStatus(statusCredentialsId, statusContext, commit, 'pending', 'Gkeyll CI is running.') }
-        ciStage('Build candidate') { dir("${candidateDir}/gkeyll") { buildTree('candidate', "${candidateDir}/gkylsoft", mkdeps, configure, jobs, "${env.WORKSPACE}/") } }
+        reporting.progress('Gkeyll CI is running.')
         ciStage('Resolve baseline cache') {
-            baselineDir = sh(returnStdout: true, script: "ci/jenkins/baseline_cache.sh baseline-path '${gkeyllCiRoot}' '${cachePlatform}' '${baselineCommit}'").trim()
-            baselineCacheHit = sh(returnStatus: true, script: "ci/jenkins/baseline_cache.sh valid '${gkeyllCiRoot}' '${cachePlatform}' '${baselineCommit}'") == 0
-            if (!baselineCacheHit) baselineStage = sh(returnStdout: true, script: "ci/jenkins/baseline_cache.sh prepare-baseline '${gkeyllCiRoot}' '${cachePlatform}' '${baselineCommit}'").trim()
+            baselineDir = sh(returnStdout: true, script: "'${cacheScript}' baseline-path '${gkeyllCiRoot}' '${cachePlatform}' '${baselineCommit}'").trim()
+            baselineCacheHit = sh(returnStatus: true, script: "'${cacheScript}' valid '${gkeyllCiRoot}' '${cachePlatform}' '${baselineCommit}'") == 0
+            if (!baselineCacheHit) baselineStage = sh(returnStdout: true, script: "'${cacheScript}' prepare-baseline '${gkeyllCiRoot}' '${cachePlatform}' '${baselineCommit}'").trim()
             writeFile file: 'ci-baseline-cache.txt', text: "status=${baselineCacheHit ? 'hit' : 'miss'}\nplatform=${cachePlatform}\nbaseline_commit=${baselineCommit}\npath=${baselineCacheHit ? baselineDir : baselineStage}\n"
+            if (baselineCacheHit) sh "'${cacheScript}' restore-diagnostics '${baselineDir}' '${env.WORKSPACE}'"
         }
+        ciStage('Build candidate') { dir("${candidateDir}/gkeyll") { buildTree('candidate', "${candidateDir}/gkylsoft", mkdeps, configure, jobs, "${env.WORKSPACE}/") } }
         if (!baselineCacheHit) {
-            ciStage('Build baseline cache') {
-                createBaseline(requestedBaseline, baselineStage, mkdeps, configure, jobs, regressionJobs, mpiExec)
-                sh """#!/bin/bash
-                    set -euo pipefail
-                    cat > '${baselineStage}/cache-manifest.txt' <<EOF
-format_version=1
-platform=${cachePlatform}
-baseline_commit=${baselineCommit}
-created_utc=\$(date -u +%Y-%m-%dT%H:%M:%SZ)
-serial_c_results=present
-parallel_c_4_results=present
-EOF
-                """
-                baselineDir = sh(returnStdout: true, script: "ci/jenkins/baseline_cache.sh publish-baseline '${gkeyllCiRoot}' '${cachePlatform}' '${baselineCommit}' '${baselineStage}'").trim()
-                writeFile file: 'ci-baseline-cache.txt', text: "status=miss\nplatform=${cachePlatform}\nbaseline_commit=${baselineCommit}\npath=${baselineDir}\n"
+            reporting.withBaselineEnvironment(baselineStage) {
+                ciStage('Build baseline cache') {
+                    createBaseline(requestedBaseline, baselineStage, mkdeps, configure, jobs, regressionJobs, mpiExec)
+                    baselineDir = sh(returnStdout: true, script: "'${cacheScript}' publish-baseline '${gkeyllCiRoot}' '${cachePlatform}' '${baselineCommit}' '${baselineStage}' '${env.WORKSPACE}'").trim()
+                    writeFile file: 'ci-baseline-cache.txt', text: "status=saved\nplatform=${cachePlatform}\nbaseline_commit=${baselineCommit}\npath=${baselineDir}\n"
+                }
             }
         }
-        ciStage('Record baseline cache') { sh "git -C '${baselineDir}/gkeyll' rev-parse HEAD | tee ci-baseline-commit.txt" }
+        ciStage('Record baseline cache') {
+            writeFile file: 'ci-baseline-commit.txt', text: "${baselineCommit}\n"
+            sh "'${cacheScript}' restore-diagnostics '${baselineDir}' '${env.WORKSPACE}'"
+        }
         ciStage('Prepare trusted regression checker') { trustedChecker = prepareTrustedRegressionChecker() }
-        ciStage('C regressions') { dir("${candidateDir}/gkeyll") { runCandidateRegressions(candidateDir, baselineDir, regressionJobs, trustedChecker) } }
-        ciStage('Parallel C regressions') { dir("${candidateDir}/gkeyll") { runParallelRegressions(candidateDir, baselineDir, mpiExec, trustedChecker) }; status = 'success'; description = 'Personal CI passed.' }
+        ciStage('C regressions') { dir("${candidateDir}/gkeyll") { runCandidateRegressions(candidateDir, baselineDir, jobs, regressionJobs, trustedChecker) } }
+        ciStage('Parallel C regressions') { dir("${candidateDir}/gkeyll") { runParallelRegressions(candidateDir, baselineDir, mpiExec, trustedChecker, regressionJobs) }; status = 'success'; description = 'Personal CI passed.' }
     } catch (err) {
         failureMessage = err.toString()
-        if (currentBuild.currentResult == 'ABORTED' || err.toString().contains('FlowInterruptedException')) { status = 'error'; description = 'Personal CI was aborted.' }
+        status = reporting.failureResult(err, currentBuild.currentResult)
+        if (status in ['cancelled', 'timed_out']) description = "Personal CI ${status}."
         throw err
     } finally {
         try {
@@ -446,34 +684,41 @@ EOF
         } catch (err) {
             status = 'error'
             description = 'Personal CI timing summary failed.'
-            failureMessage = err.toString()
-            env.CI_FAILURE_STAGE = 'Write CI timing summary'
-            throw err
+            if (!failureMessage) {
+                failureMessage = err.toString()
+                env.CI_FAILURE_STAGE = 'Write CI timing summary'
+            } else {
+                failureMessage += " | Timing summary also failed: ${err}"
+            }
+            currentBuild.result = 'FAILURE'
+            echo "WARNING: could not write CI timings: ${err}"
         } finally {
+            try {
+                if (candidateDir) sh "'${cacheScript}' stage-candidate-artifacts '${gkeyllCiRoot}' '${cachePlatform}' '${commit}' '${env.WORKSPACE}' '${baselineCommit}'"
+            } catch (err) {
+                echo "WARNING: could not stage CI report artifacts: ${err}"
+            }
             if (status != 'success') writeCiFailureSummary(status, env.CI_FAILURE_STAGE, failureMessage ?: description)
             // Best effort: a GitHub outage must not turn a passing build red.
-            // The commit status below remains the authoritative signal.
+            // Keep the full report locally if both GitHub transports are unavailable.
             def reportError = ''
-            if (commit) {
+            if (commit || candidatePr || candidateRef) {
                 try {
-                    def summaryLine = publishReport(statusCredentialsId, statusContext, platform, commit, status, candidatePr ?: '')
+                    def summaryLine = reporting.publish(status, description, true)
                     if (summaryLine) description = summaryLine.take(140)
                 } catch (err) {
                     reportError = err.toString()
                     echo "WARNING: could not publish the GitHub CI report: ${reportError}"
                 }
             }
-            if (candidateDir) sh "ci/jenkins/baseline_cache.sh stage-candidate-artifacts '${gkeyllCiRoot}' '${cachePlatform}' '${commit}' '${env.WORKSPACE}'"
-            archiveArtifacts allowEmptyArchive: true, artifacts: 'ci-selection.txt,ci-baseline-preflight.txt,ci-baseline-cache.txt,ci-trusted-ci-commit.txt,ci-trusted-checker-commit.txt,ci-candidate-commit.txt,ci-baseline-commit.txt,*-seconds.txt,*-unit-results.txt,candidate-*.log,baseline-*.log,ci-failure-detail.txt,ci-report.md,ci-timing-summary.txt,ci-regression-summary.txt,ci-parallel-regression-summary.txt,ci-failure-summary.txt,build/**/*.log,gkylsoft/gkeyll-results/**/regressiondb,gkylsoft/gkeyll-results/**/_rr_failures.txt'
+            archiveArtifacts allowEmptyArchive: true, artifacts: 'ci-run-path.txt,ci-*-config.mak,ci-dependencies/**,ci-numerical/*.tar.zst,ci-numerical/*.tar.gz,ci-trusted-ci-commit.txt,ci-reporting-commit.txt,ci-selection.txt,ci-baseline-preflight.txt,ci-baseline-cache.txt,ci-trusted-checker-commit.txt,ci-candidate-commit.txt,ci-baseline-commit.txt,*-seconds.txt,*-unit-results.txt,candidate-*.log*,baseline-*.log*,ci-failure-detail.txt,ci-report*.md,ci-report*.md.json,ci-report-delivery.json,ci-diagnostic-summary.json,ci-stage-history.txt,ci-stage-timings.json,ci-command-logs/**,ci-timing-summary.txt,ci-regression-summary.txt,ci-parallel-regression-summary.txt,ci-failure-summary.txt,build/**/*.log,cuda-build/**/*.log,_baseline/build/**/*.log,_baseline/cuda-build/**/*.log,_baseline/gkylsoft/gkeyll-results/**,gkylsoft/gkeyll-results/**'
             if (reportError) description = "${description} (report not posted)".take(140)
         }
         if (candidateDir && baselineCommit) {
-            sh "ci/jenkins/baseline_cache.sh finalize-candidate '${gkeyllCiRoot}' '${cachePlatform}' '${commit}' '${baselineCommit}' '${status}' '${env.CI_FAILURE_STAGE ?: ''}' '${env.WORKSPACE}'"
-        }
-        if (commit) {
-            publishStatus(statusCredentialsId, statusContext, commit, status, description)
+            sh "'${cacheScript}' finalize-candidate '${gkeyllCiRoot}' '${cachePlatform}' '${commit}' '${baselineCommit}' '${status}' '${env.CI_FAILURE_STAGE ?: ''}' '${env.WORKSPACE}'"
         }
         deleteDir()
+    }
     }
 }
 
