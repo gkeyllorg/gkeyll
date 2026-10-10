@@ -1,0 +1,39 @@
+{
+  "cli_version": "0.11.4",
+  "checkpoint_id": "01M4K6186MWMAGWTGHEHQY9VZY",
+  "strategy": "manual-commit",
+  "branch": "jenkins-github-more-reporting",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "ci/jenkins/expected_regression_diffs.txt",
+    "gyrokinetic/apps/gk_species_bgk.c",
+    "gyrokinetic/apps/gk_species_lbo.c",
+    "gyrokinetic/apps/gkyl_gyrokinetic.h",
+    "gyrokinetic/apps/gyrokinetic_lw.c",
+    "gyrokinetic/creg/rt_gk_bgk_relax_1x2v_p1.c",
+    "gyrokinetic/creg/rt_gk_lbo_relax_varnu_1x2v_p1.c",
+    "machines/module_load.stellar-amd.sh",
+    "machines/module_load.stellar-intel.sh",
+    "machines/module_load.stellarai-cpu.sh",
+    "machines/module_load.stellarai-gpu.sh",
+    "vlasov/unit/ctest_spitzer_coll_freq.c",
+    "vlasov/zero/gkyl_spitzer_coll_freq.h",
+    "vlasov/zero/spitzer_coll_freq.c"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 29145,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 165120,
+    "output_tokens": 1392,
+    "api_call_count": 7
+  }
+}
