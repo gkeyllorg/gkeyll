@@ -673,7 +673,23 @@ gkyl_vlasov_lte_proj_on_basis_advance(
                        );
             }
           } else if (up->is_canonical_pb) {
-            // Assumes a (particle) hamiltonian in canocial form: H = 1/2 g^{ij} p_i p_j
+            // Assumes a (particle) hamiltonian in canonical form: H = 1/2 g^{ij} p_i p_j, or, with
+            // use_extended_hamil_def, H = 1/2 g^{ij} (p_i - A_i)(p_j - A_j) + Phi with the
+            // background flow A_i and effective potential Phi declared separately. The species must
+            // still carry the full H: the LTE moments differentiate and integrate that array, so a
+            // kinetic-only H combined with declared flows yields a target centred at p = 0 with
+            // width T + Phi.
+            //
+            // We could instead project the target directly as A exp(-(H - lambda^i p_i)/T) from the
+            // Hamiltonian array at the quadrature nodes, with (A, lambda, T) matched to (n, int p_i
+            // f, int H f) by the existing correction. That is the maximum-entropy state for the
+            // conserved quantities of any H (rotating frames, potentials, Newtonian 1/r, GR),
+            // reduces to this Maxwellian for quadratic H, and would make the extended-definition
+            // inputs and the -2 n Phi bookkeeping in the LTE moments unnecessary.
+            // In the relativistic case this is the Juttner family exp(-u_mu p^mu / T) with lambda =
+            // v and T' = T / gamma_u, so the correction matches the lab-frame N^0, T^0i and T^00
+            // (Landau matching, which conserves energy) and the rest-frame n and T are derived from
+            // lambda afterwards for the diagnostics.
             const double *h_ij_inv_quad = gkyl_array_cfetch(up->h_ij_inv_quad, midx);
             const double *background_flows_quad;
             if (up->use_extended_hamil_def) {
