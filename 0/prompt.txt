@@ -1,0 +1,21 @@
+So on a CI run 149, I noticed these timings
+
+baseline_cache_status=hit
+candidate_unit_build_seconds=147
+baseline_unit_build_seconds=144
+candidate_unit_test_seconds=47
+baseline_unit_test_seconds=47
+candidate_regression_build_seconds=9
+baseline_regression_build_seconds=10
+candidate_install_seconds=6
+baseline_install_seconds=6
+candidate_c_compile_seconds=52
+baseline_c_compile_seconds=54
+candidate_parallel_c_compile_seconds=3
+baseline_parallel_c_compile_seconds=3
+baseline_c_regression_create_seconds=1313
+candidate_c_regression_check_seconds=1356
+baseline_parallel_c_regression_create_seconds=264
+candidate_parallel_c_regression_check_seconds=263
+
+This says that the cache was hit, but the timings are still saying that the baseline took lots of time to build and run. If the cache was hit, why is the baseline compiling? It should take all information from the cache so that the baseline doesn't need to be cloned, compiled, or run
