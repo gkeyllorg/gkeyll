@@ -4,8 +4,6 @@
 return {
    ignore = {
       tests = {
-         "rt_triad_bgk_spherical_blast_1x3v_p2",
-         "rt_triad_bgk_spherical_blast_1x3v_p1",
          "rt_escreen_sr",
          "rt_hyper_vlasov_tm",
          "rt_vlasov_kerntm",
