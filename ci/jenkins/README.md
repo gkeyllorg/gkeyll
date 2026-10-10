@@ -95,7 +95,9 @@ retains its candidate source, executable, results, and baseline snapshot under
 `runs/<platform>/<BUILD_TAG>/`; `ci-run-path.txt` records the path. A compatible
 baseline is reused from `baseline-cache/<platform>/<baseline-sha>/`.
 
-Jenkins archives full regression results, then removes its temporary workspace.
+Jenkins archives full regression results, packing numerical outputs into
+candidate and baseline archives while leaving diagnostics individually
+downloadable, then removes its temporary workspace.
 Runs and Jenkins artifacts have no automatic retention limit by default.
 See [storage and caching](README.storage.md) for layout, cache invalidation,
 concurrency, and cleanup.

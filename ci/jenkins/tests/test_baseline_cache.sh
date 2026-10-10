@@ -132,8 +132,19 @@ $cache_tool stage-candidate-artifacts "$root" "$platform" "$sha" "$work_dir/work
 test -f "$work_dir/workspace/gkylsoft/gkeyll-results/moments/creg-runs/_rr_failures.txt"
 test -f "$work_dir/workspace/build/compile.log"
 test -f "$work_dir/workspace/cuda-build/compile.log"
-test -f "$work_dir/workspace/gkylsoft/gkeyll-results/moments/creg-runs/output.gkyl"
-cmp "$stage/gkylsoft/gkeyll-results/moments/creg-accepted/field.gkyl" "$work_dir/workspace/_baseline/gkylsoft/gkeyll-results/moments/creg-accepted/field.gkyl"
+test ! -e "$work_dir/workspace/gkylsoft/gkeyll-results/moments/creg-runs/output.gkyl"
+test ! -e "$work_dir/workspace/_baseline/gkylsoft/gkeyll-results/moments/creg-accepted/field.gkyl"
+cmp "$stage/gkylsoft/gkeyll-results/moments/creg-accepted/field.gkyl" "$candidate/_baseline/gkylsoft/gkeyll-results/moments/creg-accepted/field.gkyl"
+test -f "$work_dir/workspace/_baseline/gkylsoft/gkeyll-results/moments/regressiondb"
+for name in candidate baseline; do
+  if [[ -f "$work_dir/workspace/ci-numerical/$name.tar.zst" ]]; then
+    zstd -q -d -c "$work_dir/workspace/ci-numerical/$name.tar.zst"
+  else
+    gzip -d -c "$work_dir/workspace/ci-numerical/$name.tar.gz"
+  fi | tar -t -f - > "$work_dir/$name-members.txt"
+done
+grep -q 'gkylsoft/gkeyll-results/moments/creg-runs/output.gkyl' "$work_dir/candidate-members.txt"
+grep -q 'gkylsoft/gkeyll-results/moments/creg-accepted/field.gkyl' "$work_dir/baseline-members.txt"
 cmp "$stage/gkylsoft/gkeyll-results/runregression.config.lua" "$work_dir/workspace/_baseline/gkylsoft/gkeyll-results/runregression.config.lua"
 cmp "$stage/gkeyll/config.mak" "$work_dir/workspace/ci-baseline-config.mak"
 cmp "$candidate/gkeyll/config.mak" "$work_dir/workspace/ci-candidate-config.mak"

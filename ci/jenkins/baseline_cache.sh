@@ -266,8 +266,53 @@ restore_diagnostics() {
     done
 }
 
+# Stream regular files in bulk, without following symlinks or starting a shell
+# command for each file. NUL-delimited names preserve spaces and newlines.
+copy_artifact_files() {
+  local source="$1" destination="$2" selection="$3"
+  [[ -d "$source" && ! -L "$source" ]] || return 0
+  mkdir -p "$destination"
+  (
+    cd "$source"
+    case "$selection" in
+      all) find . -type f -print0 ;;
+      diagnostics) find . -type f ! -name '*.gkyl' -print0 ;;
+      logs) find . -type f -name '*.log' -print0 ;;
+      *) die "invalid artifact selection: $selection" ;;
+    esac | tar -c -f - --null -T -
+  ) | tar -x -f - -C "$destination"
+}
+
+pack_numerical_outputs() {
+  local source="$1" destination="$2" extension started=$SECONDS
+  local -a compressor
+  [[ -d "$source/gkylsoft/gkeyll-results" && ! -L "$source/gkylsoft" && ! -L "$source/gkylsoft/gkeyll-results" ]] || return 0
+  # Bound compression workers on shared agents. Gzip keeps agents without zstd
+  # usable, including personal macOS installations.
+  if command -v zstd >/dev/null 2>&1; then
+    compressor=(zstd -q -1 -T2 -c)
+    extension=zst
+  else
+    compressor=(gzip -1 -c)
+    extension=gz
+  fi
+  destination="$destination.tar.$extension"
+  # Publish only a complete archive. Jenkins excludes the temporary filename.
+  if (
+    cd "$source" || exit 1
+    find gkylsoft/gkeyll-results -type f -name '*.gkyl' -print0 |
+      tar -c -f - --null -T - | "${compressor[@]}" > "$destination.tmp"
+  ); then
+    mv "$destination.tmp" "$destination"
+  else
+    rm -f "$destination.tmp"
+    die "could not package numerical outputs from $source"
+  fi
+  echo "Packaged $destination: $(wc -c < "$destination") bytes in $((SECONDS - started)) s"
+}
+
 stage_candidate_artifacts() {
-  local root="$1" platform="$2" sha="$3" workspace="$4" baseline_sha="${5:-}" target subtree file relative baseline
+  local root="$1" platform="$2" sha="$3" workspace="$4" baseline_sha="${5:-}" target subtree file baseline started=$SECONDS
   [[ "$sha" =~ ^[0-9a-f]{40}$ ]] || die 'candidate commit must be a full SHA'
   [[ -d "$workspace" ]] || die "Jenkins workspace is missing: $workspace"
   target="$(candidate_path "$root" "$platform")/$sha"
@@ -287,15 +332,13 @@ stage_candidate_artifacts() {
   fi
   # The workspace came from the candidate checkout; recreate these archive
   # destinations so tracked symlinks cannot redirect diagnostic copies.
-  rm -rf "$workspace/gkylsoft" "$workspace/build" "$workspace/cuda-build"
-  for subtree in gkylsoft/gkeyll-results gkeyll/build gkeyll/cuda-build; do
-    [[ -d "$target/$subtree" ]] || continue
-    while IFS= read -r -d '' file; do
-      relative="${file#"$target"/}"
-      relative="${relative#gkeyll/}"
-      mkdir -p "$workspace/$(dirname "$relative")"
-      cp "$file" "$workspace/$relative"
-    done < <(find "$target/$subtree" -type f \( -path '*/gkeyll-results/*' -o -name '*.log' \) -print0)
+  rm -rf "$workspace/gkylsoft" "$workspace/build" "$workspace/cuda-build" "$workspace/_baseline" "$workspace/ci-numerical"
+  mkdir -p "$workspace/ci-numerical"
+  if [[ ! -L "$target/gkylsoft" ]]; then
+    copy_artifact_files "$target/gkylsoft/gkeyll-results" "$workspace/gkylsoft/gkeyll-results" diagnostics
+  fi
+  for subtree in build cuda-build; do
+    copy_artifact_files "$target/gkeyll/$subtree" "$workspace/$subtree" logs
   done
   if [[ -n "$baseline_sha" ]]; then
     [[ "$baseline_sha" =~ ^[0-9a-f]{40}$ ]] || die 'baseline commit must be a full SHA'
@@ -304,25 +347,27 @@ stage_candidate_artifacts() {
       rm -f "$workspace/ci-baseline-config.mak"
       cp "$baseline/gkeyll/config.mak" "$workspace/ci-baseline-config.mak"
     fi
-    rm -rf "$workspace/_baseline"
-    for subtree in gkylsoft/gkeyll-results gkeyll/build gkeyll/cuda-build; do
-      [[ -d "$baseline/$subtree" ]] || continue
-      while IFS= read -r -d '' file; do
-        relative="${file#"$baseline"/}"
-        relative="${relative#gkeyll/}"
-        mkdir -p "$workspace/_baseline/$(dirname "$relative")"
-        cp "$file" "$workspace/_baseline/$relative"
-      done < <(find "$baseline/$subtree" -type f \( -path '*/gkeyll-results/*' -o -name '*.log' \) -print0)
+    # Preserve a complete independent snapshot before the shared cache changes.
+    # Numerical data is copied once, directly into the retained run tree.
+    rm -rf "$target/_baseline"
+    if [[ ! -L "$baseline/gkylsoft" ]]; then
+      copy_artifact_files "$baseline/gkylsoft/gkeyll-results" "$target/_baseline/gkylsoft/gkeyll-results" all
+    fi
+    copy_artifact_files "$target/_baseline/gkylsoft/gkeyll-results" "$workspace/_baseline/gkylsoft/gkeyll-results" diagnostics
+    for subtree in build cuda-build; do
+      copy_artifact_files "$baseline/gkeyll/$subtree" "$target/_baseline/$subtree" logs
+      copy_artifact_files "$target/_baseline/$subtree" "$workspace/_baseline/$subtree" logs
     done
     # Restore completed baseline diagnostics on cache hits, without replacing
     # logs from a baseline built during this run.
     restore_diagnostics "$baseline" "$workspace"
   fi
-  # Preserve the baseline snapshot with this run even after the shared cache
-  # changes. The staging loops above copy regular files only.
-  if [[ -d "$workspace/_baseline" && ! -L "$workspace/_baseline" ]]; then
-    rm -rf "$target/_baseline"
-    cp -a "$workspace/_baseline" "$target/_baseline"
+  echo "Staged diagnostics and retained baseline snapshot in $((SECONDS - started)) s"
+  # Package directly from retained trees: never stage thousands of loose .gkyl
+  # files only to have Jenkins transfer and recreate them on the controller.
+  pack_numerical_outputs "$target" "$workspace/ci-numerical/candidate"
+  if [[ -n "$baseline_sha" ]]; then
+    pack_numerical_outputs "$target/_baseline" "$workspace/ci-numerical/baseline"
   fi
 }
 

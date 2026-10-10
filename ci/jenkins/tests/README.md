@@ -6,6 +6,17 @@ Run these commands from the repository root. The controller integration tests
 require disposable Jenkins homes; never install their hooks on a production
 controller.
 
+## Artifact staging and baseline cache
+
+These fixtures exercise bulk staging, numerical archive round-trips (including
+the gzip fallback), symlink exclusion, interrupted packaging, and retained
+baseline snapshots without running simulations:
+
+```sh
+bash ci/jenkins/tests/test_baseline_cache.sh
+python3 -m unittest -v ci.jenkins.tests.test_artifact_staging
+```
+
 ## Reporting and queue listener
 
 Run offline reporter tests with:

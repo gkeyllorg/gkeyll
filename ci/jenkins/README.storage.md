@@ -64,9 +64,39 @@ baseline's saved runtime when invoking the trusted comparator.
 
 ## Retention
 
-Jenkins archives complete candidate and baseline regression trees, including
-`.gkyl` outputs, databases, configs, and logs, then removes its temporary
-workspace. Run directories remain.
+Jenkins retains all candidate and baseline regression results, then removes its
+temporary workspace. Run directories remain, including unpacked numerical
+outputs and a complete independent baseline snapshot.
+
+Databases, configs, logs, and other non-`.gkyl` files remain individually
+downloadable at their existing artifact paths. The staging helper copies these
+files in bulk. It packages all `.gkyl` files directly from the retained trees
+into two artifacts under `ci-numerical/`: `candidate.tar.zst` and
+`baseline.tar.zst`. Each contains paths rooted at `gkylsoft/gkeyll-results/`,
+including serial and parallel results. Symlinks and special files are excluded
+from both staging and packaging. There is no filtering of successful tests.
+
+Packaging uses zstd level 1 with two compression workers when `zstd` is on the
+agent's PATH; otherwise it uses gzip level 1 and the names end in `.tar.gz`.
+Install `zstd` on agents for faster compression. A missing results tree (for
+example, after an early build failure) produces no numerical archive. The helper
+logs staging time, packaging time, and compressed sizes separately.
+
+For example, download and unpack a personal build's numerical outputs:
+
+```sh
+./ci/jenkins/gkeyll-ci.sh personal artifact --build 200 --fetch \
+  --only ci-numerical/candidate.tar.zst,ci-numerical/baseline.tar.zst \
+  --output-dir results-200
+cd results-200
+mkdir -p _baseline
+zstd -dc ci-numerical/candidate.tar.zst | tar -xf -
+zstd -dc ci-numerical/baseline.tar.zst | tar -xf - -C _baseline
+```
+
+Use the build's actual archive names (`artifact --build NUMBER --list` lists
+them). For `.tar.gz` archives, substitute `gzip -dc` and `.tar.gz` above. Builds
+created before this packaging change retain their original loose `.gkyl` files.
 
 Jenkins builds and artifacts have no automatic count limit by default. Set
 `GKEYLL_CI_BUILDS_TO_KEEP` to a positive count to limit Jenkins retention.
