@@ -495,6 +495,7 @@ gkyl_dg_vlasov_vel_flux_surf_inew(const struct gkyl_dg_vlasov_vel_flux_surf_inp 
     up->alpha_nterms_max * (up->num_nodes_conf + up->num_nodes_vel) <=
     GKYL_VLASOV_VEL_FLUX_SURF_MAX_ALPHA_FACTORS
   );
+  assert(up->num_nodes_conf * up->num_nodes_vel <= GKYL_VLASOV_FLUX_SURF_MAX_NODES);
 
   // ensure non-NULL pointers
   for (int i = 0; i < vdim; ++i) {

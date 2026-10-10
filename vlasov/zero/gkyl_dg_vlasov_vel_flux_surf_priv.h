@@ -138,6 +138,8 @@ typedef struct {
 // Largest force-factor buffer, in doubles, over all kernels: alpha_nterms_max
 // * (num_nodes_conf + num_nodes_vel) (3x3v tensor p=1 triad: 56 terms x 24 nodes).
 #define GKYL_VLASOV_VEL_FLUX_SURF_MAX_ALPHA_FACTORS 1344
+// Largest number of surface nodes of the per-node dispatch (2x3v p2 higher-order: 4 x 64).
+#define GKYL_VLASOV_FLUX_SURF_MAX_NODES 256
 // Node threads per cell that do the first level of the CUDA kernels' alpha_max
 // (CFL) reduction; the last node thread folds their partials.
 #define GKYL_FLUX_SURF_CFL_REDUCERS 8
@@ -333,8 +335,10 @@ vel_flux_surf_arrays(
   const int NO = up->num_nodes_conf, NI = up->num_nodes_vel, num_nodes = NO * NI;
   double alpha_factors[GKYL_VLASOV_VEL_FLUX_SURF_MAX_ALPHA_FACTORS];
   double *O = alpha_factors, *I = alpha_factors + up->alpha_nterms_max * NO;
-  double G_l[GKYL_DEFAULT_NUM_THREADS], G_c[GKYL_DEFAULT_NUM_THREADS];
-  double Fhat_nodal[GKYL_DEFAULT_NUM_THREADS];
+  // Sized for the largest surface node count (2x3v p2: 4 x 64 nodes); GKYL_DEFAULT_NUM_THREADS
+  // is 1 on non-CUDA builds and must not size these buffers.
+  double G_l[GKYL_VLASOV_FLUX_SURF_MAX_NODES], G_c[GKYL_VLASOV_FLUX_SURF_MAX_NODES];
+  double Fhat_nodal[GKYL_VLASOV_FLUX_SURF_MAX_NODES];
 
   // Shared work of the cell, as each surface-node thread of the CUDA kernel
   // does it: its row of the outer/inner factors of every force producer (each
