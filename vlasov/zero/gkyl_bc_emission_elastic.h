@@ -1,4 +1,5 @@
 #pragma once
+#include <gkyl_proj_on_basis.h>
 
 #include <gkyl_range.h>
 #include <gkyl_basis.h>
@@ -33,7 +34,8 @@ struct gkyl_bc_emission_elastic *gkyl_bc_emission_elastic_new(
   struct gkyl_emission_elastic_model *elastic_model, struct gkyl_array *elastic_yield, int dir,
   enum gkyl_edge_loc edge, int cdim, int vdim, double mass, int ncomp, struct gkyl_rect_grid *grid,
   struct gkyl_range *emit_buff_r, int poly_order, const struct gkyl_basis *dev_basis,
-  struct gkyl_basis *basis, struct gkyl_array *proj_buffer, bool use_gpu
+  struct gkyl_basis *basis, struct gkyl_array *proj_buffer, proj_on_basis_c2p_t c2p_emit,
+  void *c2p_emit_ctx, bool use_gpu
 );
 
 /**

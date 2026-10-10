@@ -25,29 +25,6 @@ gkyl_bc_emission_spectrum_set_exterm_params_cu_ker(
 }
 
 __global__ static void
-gkyl_bc_emission_spectrum_sey_calc_cu_ker(
-  struct gkyl_rect_grid grid, const struct gkyl_range ghost_r, struct gkyl_array *yield,
-  struct gkyl_emission_yield_model *yield_model
-)
-{
-  double xc[GKYL_MAX_DIM];
-  int pidx[GKYL_MAX_DIM];
-
-  for (unsigned long linc = threadIdx.x + blockIdx.x * blockDim.x; linc < ghost_r.volume;
-       linc += blockDim.x * gridDim.x) {
-    // inverse index from linc1 to idx
-    // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}
-    // since update_range is a subrange
-    gkyl_sub_range_inv_idx(&ghost_r, linc, pidx);
-
-    long loc = gkyl_range_idx(&ghost_r, pidx);
-    double *out = (double *)gkyl_array_fetch(yield, loc);
-    gkyl_rect_grid_cell_center(&grid, pidx, xc);
-    yield_model->function(out, yield_model, xc);
-  }
-}
-
-__global__ static void
 gkyl_bc_emission_spectrum_advance_cu_weight_ker(
   int cdim, int dir, enum gkyl_edge_loc edge, const struct gkyl_array *bflux,
   struct gkyl_array *weight, struct gkyl_rect_grid grid, struct gkyl_array *yield,
@@ -129,19 +106,6 @@ gkyl_bc_emission_spectrum_set_extern_params_cu(
 {
   gkyl_bc_emission_spectrum_set_exterm_params_cu_ker<<<1, 1>>>(
     up->spectrum_model->on_dev, up->yield_model->on_dev, cdim, vdim, mass_in, mass_out
-  );
-}
-
-void
-gkyl_bc_emission_spectrum_sey_calc_cu(
-  const struct gkyl_bc_emission_spectrum *up, struct gkyl_array *yield, struct gkyl_rect_grid *grid,
-  const struct gkyl_range *impact_buff_r
-)
-{
-  int nblocks = impact_buff_r->nblocks, nthreads = impact_buff_r->nthreads;
-
-  gkyl_bc_emission_spectrum_sey_calc_cu_ker<<<nblocks, nthreads>>>(
-    *grid, *impact_buff_r, yield->on_dev, up->yield_model->on_dev
   );
 }
 

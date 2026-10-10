@@ -13,7 +13,7 @@ vm_proj_c2p_conf(const double *xcomp, double *xphys, void *ctx)
 // Phase-space c2p: map conf coords via the position map and velocity coords via
 // the velocity map (the DG maps the solver kernels assume). Used by the FUNC
 // initial-condition projection.
-static void
+void
 vm_proj_c2p_phase(const double *xcomp, double *xphys, void *ctx)
 {
   struct vm_proj_c2p_ctx *c = ctx;

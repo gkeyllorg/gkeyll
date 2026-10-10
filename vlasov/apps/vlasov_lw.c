@@ -1,6 +1,7 @@
 #ifdef GKYL_HAVE_LUA
 
 #include <gkyl_alloc.h>
+#include <gkyl_bc_emission.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_lua_utils.h>
 #include <gkyl_lw_priv.h>
@@ -165,6 +166,7 @@ enum vlasov_magic_ids {
   VLASOV_FIELD_DEFAULT, // Maxwell equations.
   VLASOV_FLUID_SPECIES_DEFAULT, // Fluid species.
   VLASOV_EQN_DEFAULT, // Equation object.
+  VLASOV_EMISSION_DEFAULT, // Emission model or emitting-wall context object.
   VLASOV_GEOM_DEFAULT // Vlasov Geometry.
 };
 
@@ -372,6 +374,9 @@ eqn_openlibs(lua_State *L)
   luaL_register(L, "G0.Vlasov.Eq.HasegawaWakatani", eqn_hasegawa_wakatani_ctor);
 }
 
+// Emitting-wall boundary condition context, defined with the emission objects below.
+static struct gkyl_bc_emission_ctx *emission_get(lua_State *L);
+
 /* *************** */
 /* Species methods */
 /* *************** */
@@ -422,8 +427,10 @@ struct vlasov_species_lw {
   struct lua_func_ctx
     metric_determinant_func_ref; // Lua registry reference to metric determinant function.
   bool has_background_flows_func; // Is there a background flows function (extended Hamiltonian)?
-  struct lua_func_ctx background_flows_func_ref; // Lua registry reference to background flows function.
-  bool has_effective_potential_func; // Is there an effective potential function (extended Hamiltonian)?
+  struct lua_func_ctx
+    background_flows_func_ref; // Lua registry reference to background flows function.
+  bool
+    has_effective_potential_func; // Is there an effective potential function (extended Hamiltonian)?
   struct lua_func_ctx
     effective_potential_func_ref; // Lua registry reference to effective potential function.
 
@@ -611,11 +618,19 @@ vlasov_species_lw_new(lua_State *L)
     with_lua_tbl_tbl(L, "lower")
     {
       vm_species.bcx.lower.type = glua_tbl_get_integer(L, "type", 0);
+      with_lua_tbl_key(L, "emission")
+      {
+        vm_species.bcx.lower.aux_ctx = emission_get(L);
+      }
     }
 
     with_lua_tbl_tbl(L, "upper")
     {
       vm_species.bcx.upper.type = glua_tbl_get_integer(L, "type", 0);
+      with_lua_tbl_key(L, "emission")
+      {
+        vm_species.bcx.upper.aux_ctx = emission_get(L);
+      }
     }
   }
 
@@ -624,11 +639,19 @@ vlasov_species_lw_new(lua_State *L)
     with_lua_tbl_tbl(L, "lower")
     {
       vm_species.bcy.lower.type = glua_tbl_get_integer(L, "type", 0);
+      with_lua_tbl_key(L, "emission")
+      {
+        vm_species.bcy.lower.aux_ctx = emission_get(L);
+      }
     }
 
     with_lua_tbl_tbl(L, "upper")
     {
       vm_species.bcy.upper.type = glua_tbl_get_integer(L, "type", 0);
+      with_lua_tbl_key(L, "emission")
+      {
+        vm_species.bcy.upper.aux_ctx = emission_get(L);
+      }
     }
   }
 
@@ -637,11 +660,19 @@ vlasov_species_lw_new(lua_State *L)
     with_lua_tbl_tbl(L, "lower")
     {
       vm_species.bcz.lower.type = glua_tbl_get_integer(L, "type", 0);
+      with_lua_tbl_key(L, "emission")
+      {
+        vm_species.bcz.lower.aux_ctx = emission_get(L);
+      }
     }
 
     with_lua_tbl_tbl(L, "upper")
     {
       vm_species.bcz.upper.type = glua_tbl_get_integer(L, "type", 0);
+      with_lua_tbl_key(L, "emission")
+      {
+        vm_species.bcz.upper.aux_ctx = emission_get(L);
+      }
     }
   }
 
@@ -2038,6 +2069,554 @@ vm_parse_script_cli(struct gkyl_tool_args *acv)
   return cli;
 }
 
+/* ************************************************ */
+/* Emitting-wall boundary condition (emission objects) */
+/* ************************************************ */
+
+// The emission models and the emitting-wall context are Lua userdata wrapping the
+// corresponding gkyl objects, in the same way the wave-equation objects are. A species
+// uses one through its boundary condition table:
+//   bcx = { upper = { type = G0.SpeciesBc.bcEmission, emission = emission_ctx } }
+// Because the species anchors its input table, the objects live as long as the species.
+
+// Whether this run is on the GPU (the models need device copies when it is).
+static bool
+vm_lw_use_gpu(lua_State *L)
+{
+  struct gkyl_tool_args *args = gkyl_tool_args_new(L);
+  struct script_cli cli = vm_parse_script_cli(args);
+  bool use_gpu = cli.use_gpu;
+  gkyl_tool_args_release(cli.rest);
+  gkyl_tool_args_release(args);
+  return use_gpu;
+}
+
+#define VLASOV_EMISSION_SPECTRUM_METATABLE_NM "GkeyllZero.App.Vlasov.EmissionSpectrum"
+#define VLASOV_EMISSION_YIELD_METATABLE_NM "GkeyllZero.App.Vlasov.EmissionYield"
+#define VLASOV_EMISSION_ELASTIC_METATABLE_NM "GkeyllZero.App.Vlasov.EmissionElastic"
+#define VLASOV_EMISSION_METATABLE_NM "GkeyllZero.App.Vlasov.Emission"
+
+struct emission_spectrum_lw {
+  int magic; // This must be the first element in the struct.
+  struct gkyl_emission_spectrum_model *model;
+};
+
+struct emission_yield_lw {
+  int magic; // This must be the first element in the struct.
+  struct gkyl_emission_yield_model *model;
+};
+
+struct emission_elastic_lw {
+  int magic; // This must be the first element in the struct.
+  struct gkyl_emission_elastic_model *model;
+};
+
+struct emission_lw {
+  int magic; // This must be the first element in the struct.
+  struct gkyl_bc_emission_ctx *ctx;
+};
+
+static int
+emission_spectrum_lw_gc(lua_State *L)
+{
+  struct emission_spectrum_lw **l_lw = GKYL_CHECK_UDATA(L, VLASOV_EMISSION_SPECTRUM_METATABLE_NM);
+  gkyl_emission_spectrum_model_release((*l_lw)->model);
+  gkyl_free(*l_lw);
+  return 0;
+}
+
+static int
+emission_yield_lw_gc(lua_State *L)
+{
+  struct emission_yield_lw **l_lw = GKYL_CHECK_UDATA(L, VLASOV_EMISSION_YIELD_METATABLE_NM);
+  gkyl_emission_yield_model_release((*l_lw)->model);
+  gkyl_free(*l_lw);
+  return 0;
+}
+
+static int
+emission_elastic_lw_gc(lua_State *L)
+{
+  struct emission_elastic_lw **l_lw = GKYL_CHECK_UDATA(L, VLASOV_EMISSION_ELASTIC_METATABLE_NM);
+  gkyl_emission_elastic_model_release((*l_lw)->model);
+  gkyl_free(*l_lw);
+  return 0;
+}
+
+static int
+emission_lw_gc(lua_State *L)
+{
+  struct emission_lw **l_lw = GKYL_CHECK_UDATA(L, VLASOV_EMISSION_METATABLE_NM);
+  gkyl_bc_emission_release((*l_lw)->ctx);
+  gkyl_free(*l_lw);
+  return 0;
+}
+
+// Wrap a freshly created model in a userdata with the given metatable (the object on the
+// top of the stack is the result).
+static int
+emission_spectrum_lw_push(lua_State *L, struct gkyl_emission_spectrum_model *model)
+{
+  struct emission_spectrum_lw *lw = gkyl_malloc(sizeof(*lw));
+  lw->magic = VLASOV_EMISSION_DEFAULT;
+  lw->model = model;
+  struct emission_spectrum_lw **l_lw = lua_newuserdata(L, sizeof(struct emission_spectrum_lw *));
+  *l_lw = lw;
+  luaL_getmetatable(L, VLASOV_EMISSION_SPECTRUM_METATABLE_NM);
+  lua_setmetatable(L, -2);
+  return 1;
+}
+
+static int
+emission_yield_lw_push(lua_State *L, struct gkyl_emission_yield_model *model)
+{
+  struct emission_yield_lw *lw = gkyl_malloc(sizeof(*lw));
+  lw->magic = VLASOV_EMISSION_DEFAULT;
+  lw->model = model;
+  struct emission_yield_lw **l_lw = lua_newuserdata(L, sizeof(struct emission_yield_lw *));
+  *l_lw = lw;
+  luaL_getmetatable(L, VLASOV_EMISSION_YIELD_METATABLE_NM);
+  lua_setmetatable(L, -2);
+  return 1;
+}
+
+static int
+emission_elastic_lw_push(lua_State *L, struct gkyl_emission_elastic_model *model)
+{
+  struct emission_elastic_lw *lw = gkyl_malloc(sizeof(*lw));
+  lw->magic = VLASOV_EMISSION_DEFAULT;
+  lw->model = model;
+  struct emission_elastic_lw **l_lw = lua_newuserdata(L, sizeof(struct emission_elastic_lw *));
+  *l_lw = lw;
+  luaL_getmetatable(L, VLASOV_EMISSION_ELASTIC_METATABLE_NM);
+  lua_setmetatable(L, -2);
+  return 1;
+}
+
+static int
+emission_lw_push(lua_State *L, struct gkyl_bc_emission_ctx *ctx)
+{
+  struct emission_lw *lw = gkyl_malloc(sizeof(*lw));
+  lw->magic = VLASOV_EMISSION_DEFAULT;
+  lw->ctx = ctx;
+  struct emission_lw **l_lw = lua_newuserdata(L, sizeof(struct emission_lw *));
+  *l_lw = lw;
+  luaL_getmetatable(L, VLASOV_EMISSION_METATABLE_NM);
+  lua_setmetatable(L, -2);
+  return 1;
+}
+
+// Acquire the wrapped objects (the userdata is on the top of the stack).
+static struct gkyl_emission_spectrum_model *
+emission_spectrum_get(lua_State *L)
+{
+  struct emission_spectrum_lw **l_lw =
+    luaL_checkudata(L, -1, VLASOV_EMISSION_SPECTRUM_METATABLE_NM);
+  return (*l_lw)->model;
+}
+
+static struct gkyl_emission_yield_model *
+emission_yield_get(lua_State *L)
+{
+  struct emission_yield_lw **l_lw = luaL_checkudata(L, -1, VLASOV_EMISSION_YIELD_METATABLE_NM);
+  return (*l_lw)->model;
+}
+
+static struct gkyl_emission_elastic_model *
+emission_elastic_get(lua_State *L)
+{
+  struct emission_elastic_lw **l_lw = luaL_checkudata(L, -1, VLASOV_EMISSION_ELASTIC_METATABLE_NM);
+  return (*l_lw)->model;
+}
+
+static struct gkyl_bc_emission_ctx *
+emission_get(lua_State *L)
+{
+  struct emission_lw **l_lw = luaL_checkudata(L, -1, VLASOV_EMISSION_METATABLE_NM);
+  return (*l_lw)->ctx;
+}
+
+// Emission spectra. Every model takes `charge`, the unit charge converting m v^2 / 2 to the
+// energy unit of its parameters (the elementary charge for parameters in eV; 1 when the
+// parameters are given in the code's energy unit).
+
+// EmissionSpectrum.ChungEverhart.new { charge = 1.602e-19, phi = 4.68 }
+static int
+emission_spectrum_chung_everhart_lw_new(lua_State *L)
+{
+  double charge = glua_tbl_get_number(L, "charge", 1.0);
+  double phi = glua_tbl_get_number(L, "phi", 1.0);
+  return emission_spectrum_lw_push(
+    L, gkyl_emission_spectrum_chung_everhart_new(charge, phi, vm_lw_use_gpu(L))
+  );
+}
+
+// EmissionSpectrum.Gaussian.new { charge = 1.602e-19, E0 = 1.97, tau = 0.88 }
+static int
+emission_spectrum_gaussian_lw_new(lua_State *L)
+{
+  double charge = glua_tbl_get_number(L, "charge", 1.0);
+  double E_0 = glua_tbl_get_number(L, "E0", 1.0);
+  double tau = glua_tbl_get_number(L, "tau", 1.0);
+  return emission_spectrum_lw_push(
+    L, gkyl_emission_spectrum_gaussian_new(charge, E_0, tau, vm_lw_use_gpu(L))
+  );
+}
+
+// EmissionSpectrum.Maxwellian.new { charge = 1.602e-19, vt = 1.0 }
+static int
+emission_spectrum_maxwellian_lw_new(lua_State *L)
+{
+  double charge = glua_tbl_get_number(L, "charge", 1.0);
+  double vt = glua_tbl_get_number(L, "vt", 1.0);
+  return emission_spectrum_lw_push(
+    L, gkyl_emission_spectrum_maxwellian_new(charge, vt, vm_lw_use_gpu(L))
+  );
+}
+
+static struct luaL_Reg emission_spectrum_chung_everhart_ctor[] = {
+  {"new", emission_spectrum_chung_everhart_lw_new},
+  {0, 0}
+};
+static struct luaL_Reg emission_spectrum_gaussian_ctor[] = {
+  {"new", emission_spectrum_gaussian_lw_new},
+  {0, 0}
+};
+static struct luaL_Reg emission_spectrum_maxwellian_ctor[] = {
+  {"new", emission_spectrum_maxwellian_lw_new},
+  {0, 0}
+};
+
+// Emission yields.
+
+// EmissionYield.FurmanPivi.new { charge, deltaHat, EHat, t1, t2, t3, t4, s }
+static int
+emission_yield_furman_pivi_lw_new(lua_State *L)
+{
+  double charge = glua_tbl_get_number(L, "charge", 1.0);
+  double deltahat_ts = glua_tbl_get_number(L, "deltaHat", 1.0);
+  double Ehat_ts = glua_tbl_get_number(L, "EHat", 1.0);
+  double t1 = glua_tbl_get_number(L, "t1", 0.66);
+  double t2 = glua_tbl_get_number(L, "t2", 0.8);
+  double t3 = glua_tbl_get_number(L, "t3", 0.7);
+  double t4 = glua_tbl_get_number(L, "t4", 1.0);
+  double s = glua_tbl_get_number(L, "s", 1.54);
+  return emission_yield_lw_push(
+    L, gkyl_emission_yield_furman_pivi_new(
+         charge, deltahat_ts, Ehat_ts, t1, t2, t3, t4, s, vm_lw_use_gpu(L)
+       )
+  );
+}
+
+// EmissionYield.Schou.new { charge, intWall, a2, a3, a4, a5, nw }
+static int
+emission_yield_schou_lw_new(lua_State *L)
+{
+  double charge = glua_tbl_get_number(L, "charge", 1.0);
+  double int_wall = glua_tbl_get_number(L, "intWall", 1.0);
+  double a2 = glua_tbl_get_number(L, "a2", 0.0);
+  double a3 = glua_tbl_get_number(L, "a3", 0.0);
+  double a4 = glua_tbl_get_number(L, "a4", 0.0);
+  double a5 = glua_tbl_get_number(L, "a5", 0.0);
+  double nw = glua_tbl_get_number(L, "nw", 1.0);
+  return emission_yield_lw_push(
+    L, gkyl_emission_yield_schou_new(charge, int_wall, a2, a3, a4, a5, nw, vm_lw_use_gpu(L))
+  );
+}
+
+// EmissionYield.SchouSRIM.new { charge, intWall, lorentzNorm, E0, tau, alpha, beta,
+//   gaussNorm, gaussE0, gaussTau }
+static int
+emission_yield_schou_srim_lw_new(lua_State *L)
+{
+  double charge = glua_tbl_get_number(L, "charge", 1.0);
+  double int_wall = glua_tbl_get_number(L, "intWall", 1.0);
+  double lorentz_norm = glua_tbl_get_number(L, "lorentzNorm", 1.0);
+  double E0 = glua_tbl_get_number(L, "E0", 1.0);
+  double tau = glua_tbl_get_number(L, "tau", 1.0);
+  double alpha = glua_tbl_get_number(L, "alpha", 1.0);
+  double beta = glua_tbl_get_number(L, "beta", 1.0);
+  double gauss_norm = glua_tbl_get_number(L, "gaussNorm", 1.0);
+  double gauss_E0 = glua_tbl_get_number(L, "gaussE0", 1.0);
+  double gauss_tau = glua_tbl_get_number(L, "gaussTau", 1.0);
+  return emission_yield_lw_push(
+    L, gkyl_emission_yield_schou_srim_new(
+         charge, int_wall, lorentz_norm, E0, tau, alpha, beta, gauss_norm, gauss_E0, gauss_tau,
+         vm_lw_use_gpu(L)
+       )
+  );
+}
+
+// EmissionYield.Constant.new { charge, delta }
+static int
+emission_yield_constant_lw_new(lua_State *L)
+{
+  double charge = glua_tbl_get_number(L, "charge", 1.0);
+  double delta = glua_tbl_get_number(L, "delta", 0.0);
+  return emission_yield_lw_push(
+    L, gkyl_emission_yield_constant_new(charge, delta, vm_lw_use_gpu(L))
+  );
+}
+
+static struct luaL_Reg emission_yield_furman_pivi_ctor[] = {
+  {"new", emission_yield_furman_pivi_lw_new},
+  {0, 0}
+};
+static struct luaL_Reg emission_yield_schou_ctor[] = {{"new", emission_yield_schou_lw_new}, {0, 0}};
+static struct luaL_Reg emission_yield_schou_srim_ctor[] = {
+  {"new", emission_yield_schou_srim_lw_new},
+  {0, 0}
+};
+static struct luaL_Reg emission_yield_constant_ctor[] = {
+  {"new", emission_yield_constant_lw_new},
+  {0, 0}
+};
+
+// Elastic (backscattering) yields.
+
+// EmissionElastic.FurmanPivi.new { charge, P1Inf, P1Hat, EHat, W, p }
+static int
+emission_elastic_furman_pivi_lw_new(lua_State *L)
+{
+  double charge = glua_tbl_get_number(L, "charge", 1.0);
+  double P1_inf = glua_tbl_get_number(L, "P1Inf", 0.0);
+  double P1_hat = glua_tbl_get_number(L, "P1Hat", 0.0);
+  double E_hat = glua_tbl_get_number(L, "EHat", 0.0);
+  double W = glua_tbl_get_number(L, "W", 1.0);
+  double p = glua_tbl_get_number(L, "p", 1.0);
+  return emission_elastic_lw_push(
+    L, gkyl_emission_elastic_furman_pivi_new(charge, P1_inf, P1_hat, E_hat, W, p, vm_lw_use_gpu(L))
+  );
+}
+
+// EmissionElastic.Cazaux.new { charge, EF, phi }
+static int
+emission_elastic_cazaux_lw_new(lua_State *L)
+{
+  double charge = glua_tbl_get_number(L, "charge", 1.0);
+  double E_f = glua_tbl_get_number(L, "EF", 1.0);
+  double phi = glua_tbl_get_number(L, "phi", 1.0);
+  return emission_elastic_lw_push(
+    L, gkyl_emission_elastic_cazaux_new(charge, E_f, phi, vm_lw_use_gpu(L))
+  );
+}
+
+// EmissionElastic.Constant.new { charge, delta }
+static int
+emission_elastic_constant_lw_new(lua_State *L)
+{
+  double charge = glua_tbl_get_number(L, "charge", 1.0);
+  double delta = glua_tbl_get_number(L, "delta", 0.0);
+  return emission_elastic_lw_push(
+    L, gkyl_emission_elastic_constant_new(charge, delta, vm_lw_use_gpu(L))
+  );
+}
+
+static struct luaL_Reg emission_elastic_furman_pivi_ctor[] = {
+  {"new", emission_elastic_furman_pivi_lw_new},
+  {0, 0}
+};
+static struct luaL_Reg emission_elastic_cazaux_ctor[] = {
+  {"new", emission_elastic_cazaux_lw_new},
+  {0, 0}
+};
+static struct luaL_Reg emission_elastic_constant_ctor[] = {
+  {"new", emission_elastic_constant_lw_new},
+  {0, 0}
+};
+
+// Read the impacting species names of an emission table into in_species.
+static int
+emission_in_species(lua_State *L, char in_species[][128])
+{
+  int num_species = 0;
+  with_lua_tbl_tbl(L, "inSpecies")
+  {
+    num_species = glua_objlen(L);
+    for (int i = 0; i < num_species; ++i) {
+      const char *nm = glua_tbl_iget_string(L, i + 1, "");
+      strcpy(in_species[i], nm);
+    }
+  }
+  if (num_species == 0) {
+    luaL_error(L, "Emission \"inSpecies\" (the impacting species) not specified!");
+  }
+  return num_species;
+}
+
+// Emission.new {
+//   tBound = 0.0, -- time over which the emission is ramped up from zero
+//   inSpecies = { "elc" }, -- impacting species, one spectrum and yield per species
+//   spectrum = { spectrum_model }, yield = { yield_model },
+//   elastic = elastic_model, -- optional
+// }
+static int
+emission_lw_new(lua_State *L)
+{
+  double t_bound = glua_tbl_get_number(L, "tBound", 0.0);
+  char in_species[GKYL_MAX_SPECIES][128];
+  int num_species = emission_in_species(L, in_species);
+
+  struct gkyl_emission_spectrum_model *spectrum_model[GKYL_MAX_SPECIES] = {0};
+  struct gkyl_emission_yield_model *yield_model[GKYL_MAX_SPECIES] = {0};
+  struct gkyl_emission_elastic_model *elastic_model = 0;
+
+  int num_spectrum = 0, num_yield = 0;
+  with_lua_tbl_tbl(L, "spectrum")
+  {
+    num_spectrum = glua_objlen(L);
+    for (int i = 0; i < num_spectrum && i < GKYL_MAX_SPECIES; ++i) {
+      lua_rawgeti(L, -1, i + 1);
+      if (lua_isuserdata(L, -1)) {
+        spectrum_model[i] = emission_spectrum_get(L);
+      }
+      lua_pop(L, 1);
+    }
+  }
+  with_lua_tbl_tbl(L, "yield")
+  {
+    num_yield = glua_objlen(L);
+    for (int i = 0; i < num_yield && i < GKYL_MAX_SPECIES; ++i) {
+      lua_rawgeti(L, -1, i + 1);
+      if (lua_isuserdata(L, -1)) {
+        yield_model[i] = emission_yield_get(L);
+      }
+      lua_pop(L, 1);
+    }
+  }
+  if (num_spectrum != num_species || num_yield != num_species) {
+    return luaL_error(
+      L, "Emission needs one \"spectrum\" and one \"yield\" model per impacting species!"
+    );
+  }
+  for (int i = 0; i < num_species; ++i) {
+    if (!spectrum_model[i] || !yield_model[i]) {
+      return luaL_error(L, "Emission \"spectrum\"/\"yield\" entry %d is not a model object!", i + 1);
+    }
+  }
+  bool elastic = false;
+  with_lua_tbl_key(L, "elastic")
+  {
+    elastic_model = emission_elastic_get(L);
+    elastic = true;
+  }
+
+  return emission_lw_push(
+    L, gkyl_bc_emission_new(
+         num_species, t_bound, elastic, spectrum_model, yield_model, elastic_model, in_species
+       )
+  );
+}
+
+// Material presets (physical units, parameters in eV): Emission.Copper.new { tBound, inSpecies }
+// and likewise LithiumOxidized, LithiumClean (electron impact) and IonImpactCopper.
+static int
+emission_copper_lw_new(lua_State *L)
+{
+  double t_bound = glua_tbl_get_number(L, "tBound", 0.0);
+  char in_species[GKYL_MAX_SPECIES][128];
+  int num_species = emission_in_species(L, in_species);
+  return emission_lw_push(
+    L, gkyl_bc_emission_secondary_electron_copper_new(
+         num_species, t_bound, in_species, vm_lw_use_gpu(L)
+       )
+  );
+}
+
+static int
+emission_lithium_oxidized_lw_new(lua_State *L)
+{
+  double t_bound = glua_tbl_get_number(L, "tBound", 0.0);
+  char in_species[GKYL_MAX_SPECIES][128];
+  int num_species = emission_in_species(L, in_species);
+  return emission_lw_push(
+    L, gkyl_bc_emission_secondary_electron_lithium_oxidized_new(
+         num_species, t_bound, in_species, vm_lw_use_gpu(L)
+       )
+  );
+}
+
+static int
+emission_lithium_clean_lw_new(lua_State *L)
+{
+  double t_bound = glua_tbl_get_number(L, "tBound", 0.0);
+  char in_species[GKYL_MAX_SPECIES][128];
+  int num_species = emission_in_species(L, in_species);
+  return emission_lw_push(
+    L, gkyl_bc_emission_secondary_electron_lithium_clean_new(
+         num_species, t_bound, in_species, vm_lw_use_gpu(L)
+       )
+  );
+}
+
+static int
+emission_ion_impact_copper_lw_new(lua_State *L)
+{
+  double t_bound = glua_tbl_get_number(L, "tBound", 0.0);
+  char in_species[GKYL_MAX_SPECIES][128];
+  int num_species = emission_in_species(L, in_species);
+  return emission_lw_push(
+    L, gkyl_bc_emission_ion_impact_copper_new(num_species, t_bound, in_species, vm_lw_use_gpu(L))
+  );
+}
+
+static struct luaL_Reg emission_ctor[] = {{"new", emission_lw_new}, {0, 0}};
+static struct luaL_Reg emission_copper_ctor[] = {{"new", emission_copper_lw_new}, {0, 0}};
+static struct luaL_Reg emission_lithium_oxidized_ctor[] = {
+  {"new", emission_lithium_oxidized_lw_new},
+  {0, 0}
+};
+static struct luaL_Reg emission_lithium_clean_ctor[] = {
+  {"new", emission_lithium_clean_lw_new},
+  {0, 0}
+};
+static struct luaL_Reg emission_ion_impact_copper_ctor[] = {
+  {"new", emission_ion_impact_copper_lw_new},
+  {0, 0}
+};
+
+// Register and load all emission objects.
+static void
+emission_openlibs(lua_State *L)
+{
+  luaL_newmetatable(L, VLASOV_EMISSION_SPECTRUM_METATABLE_NM);
+  lua_pushstring(L, "__gc");
+  lua_pushcfunction(L, emission_spectrum_lw_gc);
+  lua_settable(L, -3);
+  luaL_register(
+    L, "G0.Vlasov.EmissionSpectrum.ChungEverhart", emission_spectrum_chung_everhart_ctor
+  );
+  luaL_register(L, "G0.Vlasov.EmissionSpectrum.Gaussian", emission_spectrum_gaussian_ctor);
+  luaL_register(L, "G0.Vlasov.EmissionSpectrum.Maxwellian", emission_spectrum_maxwellian_ctor);
+
+  luaL_newmetatable(L, VLASOV_EMISSION_YIELD_METATABLE_NM);
+  lua_pushstring(L, "__gc");
+  lua_pushcfunction(L, emission_yield_lw_gc);
+  lua_settable(L, -3);
+  luaL_register(L, "G0.Vlasov.EmissionYield.FurmanPivi", emission_yield_furman_pivi_ctor);
+  luaL_register(L, "G0.Vlasov.EmissionYield.Schou", emission_yield_schou_ctor);
+  luaL_register(L, "G0.Vlasov.EmissionYield.SchouSRIM", emission_yield_schou_srim_ctor);
+  luaL_register(L, "G0.Vlasov.EmissionYield.Constant", emission_yield_constant_ctor);
+
+  luaL_newmetatable(L, VLASOV_EMISSION_ELASTIC_METATABLE_NM);
+  lua_pushstring(L, "__gc");
+  lua_pushcfunction(L, emission_elastic_lw_gc);
+  lua_settable(L, -3);
+  luaL_register(L, "G0.Vlasov.EmissionElastic.FurmanPivi", emission_elastic_furman_pivi_ctor);
+  luaL_register(L, "G0.Vlasov.EmissionElastic.Cazaux", emission_elastic_cazaux_ctor);
+  luaL_register(L, "G0.Vlasov.EmissionElastic.Constant", emission_elastic_constant_ctor);
+
+  luaL_newmetatable(L, VLASOV_EMISSION_METATABLE_NM);
+  lua_pushstring(L, "__gc");
+  lua_pushcfunction(L, emission_lw_gc);
+  lua_settable(L, -3);
+  luaL_register(L, "G0.Vlasov.Emission", emission_ctor);
+  luaL_register(L, "G0.Vlasov.Emission.Copper", emission_copper_ctor);
+  luaL_register(L, "G0.Vlasov.Emission.LithiumOxidized", emission_lithium_oxidized_ctor);
+  luaL_register(L, "G0.Vlasov.Emission.LithiumClean", emission_lithium_clean_ctor);
+  luaL_register(L, "G0.Vlasov.Emission.IonImpactCopper", emission_ion_impact_copper_ctor);
+}
+
 // Create top-level App object.
 static int
 vm_app_new(lua_State *L)
@@ -3327,6 +3906,7 @@ gkyl_vlasov_lw_openlibs(lua_State *L)
   gkyl_register_vlasov_radiation_types(L);
 
   eqn_openlibs(L);
+  emission_openlibs(L);
   app_openlibs(L);
 }
 

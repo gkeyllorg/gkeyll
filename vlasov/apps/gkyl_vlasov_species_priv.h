@@ -129,6 +129,10 @@ struct vm_proj_c2p_ctx {
   const struct gkyl_vlasov_velocity_map *vel_map; // velocity-space map
 };
 
+// Phase-space computational-to-physical map (position map for the conf coordinates, velocity
+// map for the velocity coordinates), shared by the projections and the emission BCs.
+void vm_proj_c2p_phase(const double *xcomp, double *xphys, void *ctx);
+
 struct vm_proj {
   enum gkyl_projection_id proj_id; // type of projection
   enum gkyl_model_id model_id;
@@ -411,7 +415,17 @@ struct vm_emitting_wall {
   struct gkyl_array *flux[GKYL_MAX_SPECIES];
   struct gkyl_array *bflux_arr[GKYL_MAX_SPECIES];
   struct gkyl_array *k[GKYL_MAX_SPECIES];
+  // Yield diagnostic: per impact species, the flux-weighted effective yield and the incoming
+  // flux the emitted spectrum is normalized with, appended at every frame.
+  struct gkyl_array *weight_host[GKYL_MAX_SPECIES];
+  struct gkyl_array *flux_host[GKYL_MAX_SPECIES];
+  gkyl_dynvec yield_diag;
+  bool is_first_yield_write_call;
   struct vm_species *impact_species[GKYL_MAX_SPECIES]; // pointers to impacting species
+  // Coordinate maps: the yield is evaluated on the impacting species' phase space, the spectrum
+  // and elastic yield on the emitting species' phase space.
+  struct vm_proj_c2p_ctx c2p_emit;
+  struct vm_proj_c2p_ctx c2p_impact[GKYL_MAX_SPECIES];
   struct gkyl_range impact_normal_r[GKYL_MAX_SPECIES];
   // Moment type per impact species: the boundary-flux moments are taken of each
   // impact species' distribution, so the type must capture *that* species'

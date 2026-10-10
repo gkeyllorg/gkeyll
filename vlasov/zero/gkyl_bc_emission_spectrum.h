@@ -5,6 +5,7 @@
 #include <gkyl_array.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_emission_spectrum_model.h>
+#include <gkyl_proj_on_basis.h>
 #include <gkyl_emission_yield_model.h>
 #include <gkyl_emission_elastic_model.h>
 
@@ -31,6 +32,12 @@ typedef struct gkyl_bc_emission_spectrum gkyl_bc_emission_spectrum;
  * @param poly_order Polynomial order of basis functions.
  * @param basis Basis functions
  * @param proj_buffer Host array to temporarily store projection of emission spectrum
+ * @param c2p_impact Computational-to-physical map of the impacting species' phase space (NULL:
+ *                   identity); the yield is evaluated at physical velocities
+ * @param c2p_impact_ctx Context for c2p_impact
+ * @param c2p_emit Computational-to-physical map of the emitting species' phase space (NULL:
+ *                 identity); the spectrum is projected at physical velocities
+ * @param c2p_emit_ctx Context for c2p_emit
  * @param use_gpu Boolean to indicate whether to use the GPU
  * @return New updater pointer
  */
@@ -40,7 +47,8 @@ struct gkyl_bc_emission_spectrum *gkyl_bc_emission_spectrum_new(
   struct gkyl_array *spectrum, int dir, enum gkyl_edge_loc edge, int cdim, int vdim, double mass_in,
   double mass_out, struct gkyl_range *impact_buff_r, struct gkyl_range *emit_buff_r,
   struct gkyl_rect_grid *impact_grid, struct gkyl_rect_grid *emit_grid, int poly_order,
-  struct gkyl_basis *basis, struct gkyl_array *proj_buffer, bool use_gpu
+  struct gkyl_basis *basis, struct gkyl_array *proj_buffer, proj_on_basis_c2p_t c2p_impact,
+  void *c2p_impact_ctx, proj_on_basis_c2p_t c2p_emit, void *c2p_emit_ctx, bool use_gpu
 );
 
 /**
@@ -64,7 +72,8 @@ void gkyl_bc_emission_spectrum_advance(
 );
 
 /**
- * Loop over impacting species velocity space and calculate SEY at cell centers
+ * Loop over impacting species velocity space and calculate SEY at the physical velocities of the
+ * cell centers. Computed on the host and copied to the device when the yield array lives there.
  *
  * @param up BC updater
  * @param yield Array of calculated yield values at cell centers

@@ -41,7 +41,8 @@ gkyl_bc_emission_elastic_new(
   struct gkyl_emission_elastic_model *elastic_model, struct gkyl_array *elastic_yield, int dir,
   enum gkyl_edge_loc edge, int cdim, int vdim, double mass, int ncomp, struct gkyl_rect_grid *grid,
   struct gkyl_range *emit_buff_r, int poly_order, const struct gkyl_basis *dev_basis,
-  struct gkyl_basis *basis, struct gkyl_array *proj_buffer, bool use_gpu
+  struct gkyl_basis *basis, struct gkyl_array *proj_buffer, proj_on_basis_c2p_t c2p_emit,
+  void *c2p_emit_ctx, bool use_gpu
 )
 {
   // Allocate space for new updater.
@@ -64,9 +65,19 @@ gkyl_bc_emission_elastic_new(
   up->elastic_model->vdim = vdim;
   up->elastic_model->mass = mass;
 
-  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(
-    grid, basis, poly_order + 1, 1, up->elastic_model->function, up->elastic_model
-  );
+  // The elastic yield is a function of the physical velocity: project it through the
+  // computational-to-physical map of the emitting species (identity on uniform grids).
+  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
+    .grid = grid,
+    .basis = basis,
+    .qtype = GKYL_GAUSS_QUAD,
+    .num_quad = poly_order + 1,
+    .num_ret_vals = 1,
+    .eval = up->elastic_model->function,
+    .ctx = up->elastic_model,
+    .c2p_func = c2p_emit,
+    .c2p_func_ctx = c2p_emit_ctx,
+  });
 
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {

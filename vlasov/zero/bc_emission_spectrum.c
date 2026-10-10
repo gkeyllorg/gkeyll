@@ -55,22 +55,32 @@ gkyl_bc_emission_spectrum_sey_calc(
   const struct gkyl_range *impact_buff_r
 )
 {
-#ifdef GKYL_HAVE_CUDA
-  if (up->use_gpu) {
-    gkyl_bc_emission_spectrum_sey_calc_cu(up, yield, grid, impact_buff_r);
-    return;
-  }
-#endif
-  double xc[GKYL_MAX_DIM];
+  // The yield is a fixed function of the incoming velocity, so it is computed once on the host
+  // (at the physical velocity of each cell center) and copied to the device if needed.
+  struct gkyl_array *yield_host = up->use_gpu ?
+                                    gkyl_array_new(GKYL_DOUBLE, yield->ncomp, yield->size) :
+                                    gkyl_array_acquire(yield);
+  double xc[GKYL_MAX_DIM], xp[GKYL_MAX_DIM];
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, impact_buff_r);
   while (gkyl_range_iter_next(&iter)) {
     long loc = gkyl_range_idx(impact_buff_r, iter.idx);
-    double *out = gkyl_array_fetch(yield, loc);
+    double *out = gkyl_array_fetch(yield_host, loc);
     gkyl_rect_grid_cell_center(grid, iter.idx, xc);
-    up->yield_model->function(out, up->yield_model, xc);
+    if (up->c2p_impact) {
+      up->c2p_impact(xc, xp, up->c2p_impact_ctx);
+    } else {
+      for (int d = 0; d < grid->ndim; ++d) {
+        xp[d] = xc[d];
+      }
+    }
+    up->yield_model->function(out, up->yield_model, xp);
   }
+  if (up->use_gpu) {
+    gkyl_array_copy(yield, yield_host);
+  }
+  gkyl_array_release(yield_host);
 }
 
 struct gkyl_bc_emission_spectrum *
@@ -80,12 +90,15 @@ gkyl_bc_emission_spectrum_new(
   struct gkyl_array *spectrum, int dir, enum gkyl_edge_loc edge, int cdim, int vdim, double mass_in,
   double mass_out, struct gkyl_range *impact_buff_r, struct gkyl_range *emit_buff_r,
   struct gkyl_rect_grid *impact_grid, struct gkyl_rect_grid *emit_grid, int poly_order,
-  struct gkyl_basis *basis, struct gkyl_array *proj_buffer, bool use_gpu
+  struct gkyl_basis *basis, struct gkyl_array *proj_buffer, proj_on_basis_c2p_t c2p_impact,
+  void *c2p_impact_ctx, proj_on_basis_c2p_t c2p_emit, void *c2p_emit_ctx, bool use_gpu
 )
 {
   // Allocate space for new updater.
   struct gkyl_bc_emission_spectrum *up = gkyl_malloc(sizeof(struct gkyl_bc_emission_spectrum));
 
+  up->c2p_impact = c2p_impact;
+  up->c2p_impact_ctx = c2p_impact_ctx;
   up->dir = dir;
   up->cdim = cdim;
   up->vdim = vdim;
@@ -110,9 +123,19 @@ gkyl_bc_emission_spectrum_new(
   up->yield_model->vdim = vdim;
   up->yield_model->mass = mass_in;
 
-  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(
-    emit_grid, basis, poly_order + 1, 1, up->spectrum_model->distribution, up->spectrum_model
-  );
+  // The spectrum is a function of the physical velocity: project it through the
+  // computational-to-physical map of the emitting species (identity on uniform grids).
+  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
+    .grid = emit_grid,
+    .basis = basis,
+    .qtype = GKYL_GAUSS_QUAD,
+    .num_quad = poly_order + 1,
+    .num_ret_vals = 1,
+    .eval = up->spectrum_model->distribution,
+    .ctx = up->spectrum_model,
+    .c2p_func = c2p_emit,
+    .c2p_func_ctx = c2p_emit_ctx,
+  });
 
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
