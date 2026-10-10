@@ -548,7 +548,15 @@ def writeCiTimingSummary() {
             printf 'candidate_c_regression_check_seconds=%s\n' "$regression_check"
             printf 'baseline_parallel_c_regression_create_seconds=%s\n' "$parallel_regression_create"
             printf 'candidate_parallel_c_regression_check_seconds=%s\n' "$parallel_regression_check"
-        } > ci-timing-summary.txt
+        } | awk -F= -v cache_status="$baseline_cache_status" '
+            # Restored measurements belong to the run that populated the cache.
+            cache_status == "hit" && $1 ~ /^baseline_.*_seconds$/ {
+                if ($2 != "not-recorded") print "cached_" $0
+                print $1 "=0"
+                next
+            }
+            { print }
+        ' > ci-timing-summary.txt
         cat ci-timing-summary.txt
     '''
 }

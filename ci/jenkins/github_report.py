@@ -538,10 +538,18 @@ def timing_section(elapsed=None):
     rows = [(k, v) for k, v in rows if v and v != "not-recorded"]
     if not rows and elapsed is None:
         return ""
+    cached_rows = [(k, v) for k, v in rows if k.startswith('cached_baseline_')]
+    rows = [(k, v) for k, v in rows if not k.startswith('cached_baseline_')]
     body = ["| Step | Seconds |", "| --- | ---: |"]
     body += ["| {} | {} |".format(k[:-len("_seconds")].replace("_", " "), v) for k, v in rows]
     if elapsed is not None:
         body.append("| **Total elapsed** | **{}** |".format(elapsed))
+    if cached_rows:
+        body += ['', 'Baseline work was skipped on this cache hit. The following measurements '
+                 'come from the earlier run that populated the cache and are excluded from current-run timings.',
+                 '', '| Cached baseline step | Seconds |', '| --- | ---: |']
+        body += ['| {} | {} |'.format(k[len('cached_baseline_'):-len('_seconds')].replace('_', ' '), v)
+                 for k, v in cached_rows]
     return dropdown('Timings', "\n".join(body))
 
 

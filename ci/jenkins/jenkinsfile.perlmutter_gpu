@@ -580,7 +580,9 @@ def writeCiTimingSummary() {
         baseline_cache_status="${baseline_cache_status:-not-recorded}"
 
         compile_total='not-recorded'
-        if [[ "$candidate_compile" =~ ^[0-9]+$ && "$baseline_compile" =~ ^[0-9]+$ ]]; then
+        if [[ "$baseline_cache_status" == hit ]]; then
+            compile_total="$candidate_compile"
+        elif [[ "$candidate_compile" =~ ^[0-9]+$ && "$baseline_compile" =~ ^[0-9]+$ ]]; then
             compile_total="$((candidate_compile + baseline_compile))"
         fi
 
@@ -607,7 +609,15 @@ def writeCiTimingSummary() {
             printf 'c_regression_passed=%s\n' "$c_passed"
             printf 'c_regression_acknowledged=%s\n' "$c_acknowledged"
             printf 'c_regression_unacknowledged=%s\n' "$c_unacknowledged"
-        } > ci-timing-summary.txt
+        } | awk -F= -v cache_status="$baseline_cache_status" '
+            # Restored measurements belong to the run that populated the cache.
+            cache_status == "hit" && $1 ~ /^baseline_.*_seconds$/ {
+                if ($2 != "not-recorded") print "cached_" $0
+                print $1 "=0"
+                next
+            }
+            { print }
+        ' > ci-timing-summary.txt
         cat ci-timing-summary.txt
     '''
 }

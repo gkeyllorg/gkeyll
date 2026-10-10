@@ -43,8 +43,12 @@ dependency upgrade, for example to `2026-10-toolchain-2`. System toolchains and
 original dependency contents are not rehashed on every hit.
 
 Reports label baselines `loaded from cache`, `saved to cache`, or
-`cache miss; not saved`. Restored baseline timings describe the original build;
-total elapsed time describes the current run. Each candidate retains baseline
+`cache miss; not saved`. On a cache hit, `baseline_*_seconds` in
+`ci-timing-summary.txt` are zero for skipped work. Historical measurements use
+`cached_baseline_*_seconds` and appear separately in the report; they do not
+contribute to current-run compile totals. Restored raw `baseline-*-seconds.txt`
+files describe the original build. Total elapsed time describes the current run.
+Each candidate retains baseline
 diagnostics and copies of accepted outputs, so old runs do not depend on a
 surviving cache symlink.
 

@@ -5,6 +5,7 @@ import io
 import os
 from pathlib import Path
 import sqlite3
+import subprocess
 import tempfile
 import unittest
 
@@ -39,6 +40,62 @@ class RegressionTimingTests(unittest.TestCase):
 
     def sections(self):
         return report.regression_timing_sections()
+
+    def pipeline_summary(self, platform):
+        # Execute the actual shell payload passed to Jenkins sh, without a controller.
+        source = (Path(__file__).resolve().parents[1] / ('jenkinsfile.' + platform)).read_text()
+        script = source.split('def writeCiTimingSummary() {', 1)[1].split("'''", 2)[1]
+        subprocess.run(['bash', '-c', script], check=True, capture_output=True, text=True)
+        return dict(line.split('=', 1) for line in Path('ci-timing-summary.txt').read_text().splitlines())
+
+    def test_pipeline_cache_hit_timings_exclude_historical_work(self):
+        measurements = {'unit-build': 144, 'unit-test': 47, 'regression-build': 10,
+                        'install': 6, 'c-compile': 54, 'parallel-c-compile': 3,
+                        'c-regression-create': 1313, 'parallel-c-regression-create': 264}
+        for step, seconds in measurements.items():
+            Path('baseline-' + step + '-seconds.txt').write_text(str(seconds) + '\n')
+        Path('candidate-c-compile-seconds.txt').write_text('52\n')
+        Path('ci-baseline-cache.txt').write_text('status=hit\n')
+        for platform in ('personal', 'stellar_cpu', 'perlmutter_gpu'):
+            with self.subTest(platform=platform):
+                values = self.pipeline_summary(platform)
+                self.assertEqual(values['candidate_c_compile_seconds'], '52')
+                for step, seconds in measurements.items():
+                    key = 'baseline_' + step.replace('-', '_') + '_seconds'
+                    if key not in values:
+                        continue  # HPC pipelines do not report regression-build separately.
+                    self.assertEqual(values[key], '0')
+                    if platform == 'personal' or step != 'unit-test':
+                        self.assertEqual(values['cached_' + key], str(seconds))
+                    self.assertEqual(Path('baseline-' + step + '-seconds.txt').read_text(), str(seconds) + '\n')
+                if platform != 'personal':
+                    self.assertEqual(values['login_c_compile_seconds'], '52')
+                current, cached = report.timing_section(1800).split('| Cached baseline step |')
+                self.assertIn('| baseline c compile | 0 |', current)
+                self.assertIn('| **Total elapsed** | **1800** |', current)
+                self.assertNotIn('| 1313 |', current)
+                self.assertIn('| c regression create | 1313 |', cached)
+                self.assertIn('earlier run', current)
+
+    def test_pipeline_uncached_and_missing_timings(self):
+        for platform in ('personal', 'stellar_cpu', 'perlmutter_gpu'):
+            for status in ('miss', 'saved', None):
+                with self.subTest(platform=platform, status=status):
+                    cache = Path('ci-baseline-cache.txt')
+                    if status:
+                        cache.write_text('status=' + status + '\n')
+                    else:
+                        cache.unlink()
+                    Path('candidate-c-compile-seconds.txt').write_text('52\n')
+                    Path('baseline-c-compile-seconds.txt').write_text('54\n')
+                    values = self.pipeline_summary(platform)
+                    self.assertEqual(values['baseline_c_compile_seconds'], '54')
+                    self.assertEqual(values['baseline_install_seconds'], 'not-recorded')
+                    self.assertFalse(any(k.startswith('cached_') for k in values))
+                    if platform != 'personal':
+                        self.assertEqual(values['login_c_compile_seconds'], '106')
+                    Path('baseline-c-compile-seconds.txt').unlink()
+                    self.assertEqual(self.pipeline_summary(platform)['baseline_c_compile_seconds'], 'not-recorded')
 
     def test_top_twenty_and_build_integration(self):
         self.database([('test{:02}'.format(i), 'c', 1, i) for i in range(1, 26)])
