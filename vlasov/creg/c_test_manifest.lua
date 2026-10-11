@@ -4,18 +4,10 @@
 return {
    ignore = {
       tests = {
-         "rt_hyper_vlasov_tm",
-         "rt_vlasov_kerntm",
-         "rt_vlasov_moments",
-         "rt_diffusion_1x",
       },
       gpu = {
          "rt_dg_diffusion_gen_3x",
-         "rt_hyper_vlasov_tm",
          "rt_dg_diffusion_gen_2x",
-         "rt_diffusion_1x",
-         "rt_vlasov_kerntm",
-         "rt_diffusion_2x",
       },
    },
    moat = {
