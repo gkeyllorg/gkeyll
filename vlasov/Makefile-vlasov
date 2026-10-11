@@ -49,7 +49,9 @@ $(filter-out ../$(BUILD_DIR)/vlasov/$(KERNELS_DIR)/%,$(OBJS)) $(UNITS) $(REGS): 
 
 UNITS := $(patsubst %.c,../${BUILD_DIR}/vlasov/%,$(wildcard unit/ctest_*.c))
 MPI_UNITS := $(patsubst %.c,../${BUILD_DIR}/vlasov/%,$(wildcard unit/mctest_*.c))
-LUA_UNITS := $(patsubst %.c,../${BUILD_DIR}/vlasov/%,$(wildcard unit/lctest_*.c))
+# Lua unit tests: input files that exercise the Lua wrapper itself (object lifetimes, callback
+# contexts). They run through the gkeyll executable, each in a scratch directory.
+LUA_TESTS := $(wildcard unit/lua/ltest_*.lua)
 
 # We need to build CUDA unit-test objects                                                                                                                                            
 UNIT_CU_SRCS =
@@ -220,6 +222,39 @@ endif
 # Run all unit tests
 check: unit unit-run ## Build (if needed) and run all unit tests
 
+
+# Loop over the Lua unit tests; expects app, npass, nfail and GKYL_TEST_LOG to be set by the caller
+# and the shell to be in the repository root.
+define run-lua-units
+	root=$$PWD; \
+	for test in ${LUA_TESTS}; do \
+	  tname=$$(basename $$test); scratch=$$(mktemp -d); ln -s "$$root/${BUILD_DIR}" "$$scratch/build"; \
+	  if (cd "$$scratch" && ./build/gkeyll/gkeyll "$$root/vlasov/$$test" > "$$scratch/log.txt" 2>&1); then \
+	    npass=$$((npass+1)); echo "PASS $$app: $$tname" >> "$$GKYL_TEST_LOG"; \
+	  else \
+	    nfail=$$((nfail+1)); echo "FAIL $$app: $$tname" >> "$$GKYL_TEST_LOG"; cat "$$scratch/log.txt"; \
+	  fi; \
+	  rm -rf "$$scratch"; \
+	done
+endef
+
+# Run the Lua unit tests without (re)building the executable
+lua-unit-run: ## Run Lua unit tests (unit/lua/ltest_*.lua) through the gkeyll executable
+	@cd ..; app=vlasov; own_log=0; \
+	if [ ! -x ${BUILD_DIR}/gkeyll/gkeyll ]; then echo "lua-unit-run: ${BUILD_DIR}/gkeyll/gkeyll not built (needs a Lua-enabled build)"; exit 1; fi; \
+	if [ -z "$$GKYL_TEST_LOG" ]; then GKYL_TEST_LOG=$$(mktemp); own_log=1; fi; \
+	npass=0; nfail=0; \
+	$(run-lua-units); \
+	if [ $$own_log -eq 1 ]; then \
+	  echo "==================== $$app Lua unit test summary ===================="; \
+	  echo "Passed: $$npass   Failed: $$nfail"; \
+	  if [ $$nfail -gt 0 ]; then \
+	    echo "Failed tests:"; grep '^FAIL ' "$$GKYL_TEST_LOG" | sed 's/^FAIL /  /'; rm -f "$$GKYL_TEST_LOG"; exit 1; \
+	  else \
+	    echo "All $$app Lua unit tests passed."; rm -f "$$GKYL_TEST_LOG"; \
+	  fi; \
+	fi
+
 # Run all unit tests without (re)building them
 unit-run: ## Run unit tests without (re)building them
 	@cd ..; app=vlasov; own_log=0; \
@@ -233,6 +268,7 @@ unit-run: ## Run unit tests without (re)building them
 	    nfail=$$((nfail+1)); echo "FAIL $$app: $$tname" >> "$$GKYL_TEST_LOG"; \
 	  fi; \
 	done; \
+	if [ -x ${BUILD_DIR}/gkeyll/gkeyll ]; then $(run-lua-units); fi; \
 	if [ $$own_log -eq 1 ]; then \
 	  echo "==================== $$app test summary ===================="; \
 	  echo "Passed: $$npass   Failed: $$nfail"; \

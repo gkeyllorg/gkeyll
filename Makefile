@@ -411,6 +411,9 @@ vlasov-check: vlasov ## (Re)build and run unit tests in Vlasov
 vlasov-unit-run: ## Run Vlasov unit tests
 	cd vlasov && $(MAKE) -f Makefile-vlasov unit-run
 
+vlasov-lua-unit-run: ## Run Vlasov Lua unit tests (unit/lua/ltest_*.lua)
+	cd vlasov && $(MAKE) -f Makefile-vlasov lua-unit-run
+
 vlasov-valcheck: vlasov ## Run valgrind on unit tests in Vlasov
 	cd vlasov && $(MAKE) -f Makefile-vlasov valcheck
 

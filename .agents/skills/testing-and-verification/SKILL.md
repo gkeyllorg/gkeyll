@@ -65,6 +65,19 @@ unit test (for example `mctest_mpi_comm.c`) may be run with
 <mpi_install_prefix>/bin/mpirun -np 4 build/core/unit/mctest_mpi_comm
 ```
 
+### Lua unit tests
+
+Input files under `<solver>/unit/lua/ltest_*.lua` test the Lua wrapper itself (object lifetimes,
+callback contexts) rather than physics; they need a Lua-enabled build. They run through the
+`gkeyll` executable, each in a scratch directory, with
+
+```sh
+make vlasov-lua-unit-run
+```
+
+and are also run by `make vlasov-unit-run`. A test fails when the Lua script errors or an
+`assert` fails (non-zero exit).
+
 # Running regression tests
 
 ## C regression tests
