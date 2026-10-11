@@ -1,10 +1,9 @@
--- Garbage-collector test for the App's ownership of its inputs. The App keeps
--- the species/field userdata alive through a private anchor table built from
--- the input table at construction, so editing or dropping entries of the
--- caller's table afterwards must not free the userdata a live app was built
--- from. The weak reference below detects collection directly. Keep this test:
--- the app's callback contexts are its own copies, and the Lua functions are
--- rooted by registry references, so the userdata anchor is what this pins.
+-- Garbage-collector test for the App's ownership of its inputs. The App anchors the species
+-- and field userdata through a private table built from the input table at construction, so
+-- editing or dropping entries of the caller's table afterwards must not free the userdata a live
+-- app was built from. A weak reference detects collection directly; the app's callback contexts
+-- are its own copies and the Lua functions are rooted by registry references, so the userdata
+-- anchor is what this test pins.
 
 local Vlasov = G0.Vlasov
 

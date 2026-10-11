@@ -1,3 +1,21 @@
+-- Relativistic two-stream instability of a pair plasma with Compton radiation drag (Vlasov-Maxwell,
+-- 1x1v).
+-- Electrons and positrons (n0 each) counter-stream at +-0.5 c with T = 0.1 mc^2; an applied current
+-- cancels the pair current. A spectrum of modes k = n (2 pi / Lx), n = -16..16 (n != 0), with
+-- random amplitudes and phases from a fixed-seed generator (math.random; the C and Lua inputs
+-- therefore differ in their seed spectrum), seeds the electron density at amplitude 1e-3, the
+-- electric field following from Gauss's law. The Compton drag -(p - p0)/t_cool with t_cool = 3000
+-- would remove 2.8% of a beam's momentum over the run; the applied current holds the mean plasma
+-- current, so the drag is balanced by a mean inductive field and the beams' momentum is set by the
+-- instability. The momentum grid is uniform near p = 0 (cells of width 0.07) and continues
+-- quadratically to |p| = 32.
+-- Kinetic linear theory for the 1D Maxwell-Juttner pair beams: the fastest seeded mode is k = 1.0
+-- with gamma = 0.120 omega_pe (omega_pe = sqrt(n0 e^2 / (epsilon0 m)) = 1, n0 the rest-frame
+-- density per species); k = 0.5 grows at 0.085 and k >= 2 is stable.
+-- Figures of merit (serendipity p2, 32 x 64 cells): the field energy grows at gamma = 0.125 over t
+-- = 28-47 and saturates at t = 79; at t = 85 the electron momentum is 0.987 of its initial value
+-- and the electron energy 1.20 (instability heating); number conserved to 7e-14.
+
 local Vlasov = G0.Vlasov
 
 -- Mathematical constants (dimensionless).

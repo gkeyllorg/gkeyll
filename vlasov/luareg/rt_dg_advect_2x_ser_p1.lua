@@ -1,4 +1,9 @@
--- Constant advection in 2x using a serendipity p1 DG discretization of the advection equation. 
+-- Constant advection in 2x using a serendipity p1 DG discretization of the advection equation.
+-- A cosine bump of radius 0.2 centred at (1/4, 1/2) rotates rigidly about the centre of the unit
+-- box, u = (1/2 - y, x - 1/2), through one full turn (t = 2 pi) and must return to its initial
+-- state.
+-- Figures of merit (16 x 16 cells): relative L2 error against the initial state 1.9e-01, maximum
+-- cell-average error 1.9e-01 of the peak, integral of f^2 retained to 0.8276.
 
 local Vlasov = G0.Vlasov
 local LinearAdvection = G0.Vlasov.Eq.LinearAdvection

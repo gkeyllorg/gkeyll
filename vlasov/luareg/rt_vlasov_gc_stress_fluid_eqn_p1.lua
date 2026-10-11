@@ -1,17 +1,13 @@
--- Garbage-collector stress test for the equation-object lifetime chain. The
--- fluid species' gkyl_wv_eqn is created by a Lua-wrapped constructor whose
--- userdata historically had to be saved in a global reference table to
--- survive the window between FluidSpecies.new and App.new. That table is
--- gone: each constructor now anchors its input table as its userdata's
--- environment (lua_setfenv), so the equation userdata is kept alive by the
--- species, and the species by the App. This test creates the equation and
--- species as otherwise-unreferenced locals and forces full collections in
--- BOTH windows (before App construction, and before the run). If any link in
--- the anchoring chain is removed, the equation or the callback contexts are
--- collected here. Keep this test: it encodes the GC history that originally
--- forced the global reference table and the callback-mirror design.
+-- Garbage-collector stress test for the equation-object lifetime chain. The fluid species'
+-- gkyl_wv_eqn is created by a Lua-wrapped constructor; each constructor anchors its input table
+-- as its userdata's environment (lua_setfenv), so the equation userdata is kept alive by the
+-- species and the species by the App. The test creates the equation and species as
+-- otherwise-unreferenced locals and forces full collections both before App construction and
+-- before the run: if any link in the anchoring chain is removed, the equation or the callback
+-- contexts are collected here.
 
--- Sod-type shock tube test for the Euler equations using the DG/Vlasov solver, with first-order polynomial reconstruction.
+-- Sod-type shock tube test for the Euler equations using the DG/Vlasov solver, with first-order
+-- polynomial reconstruction.
 -- Input parameters match the initial conditions in Section 2.6.2, with the contact discontinuity placed at x = 0.75 rather than x = 0.5, from the thesis:
 -- A. Hakim (2006), "High Resolution Wave Propagation Schemes for Two-Fluid Plasma Simulations",
 -- PhD Thesis, University of Washington.

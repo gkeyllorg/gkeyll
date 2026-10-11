@@ -1,3 +1,14 @@
+-- Linear Landau damping of a Langmuir wave with the Vlasov-Poisson system (1x1v).
+-- A Maxwellian electron plasma (vt = 1, lambda_D = 1) on a neutralizing ion background is perturbed
+-- in density at k lambda_D = 0.5 with amplitude 1e-4; the electric field follows from Gauss's law.
+-- LBO self-collisions at nu = 0.05 omega_pe act on the electrons.
+-- Collisionless linear theory at k lambda_D = 0.5: omega = 1.4157 omega_pe, damping rate gamma =
+-- 0.1533 omega_pe.
+-- Figures of merit (tensor p1 (hybrid), 32 x 32 cells): the field-energy peaks over t = 0.5-12
+-- decay at gamma = 0.1239 and recur at omega = 1.403; the field energy at t = 20 is 0.0019 of its
+-- initial value. The collisions slow the damping from the collisionless 0.155 measured on this
+-- grid.
+
 local Vlasov = G0.Vlasov
 
 -- Mathematical constants (dimensionless).

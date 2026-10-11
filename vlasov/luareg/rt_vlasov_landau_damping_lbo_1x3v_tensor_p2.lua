@@ -1,3 +1,15 @@
+-- Linear Landau damping of a Langmuir wave with the Vlasov-Maxwell system (1x3v).
+-- A Maxwellian electron plasma (vt = 1, lambda_D = 1) on a neutralizing ion background is perturbed
+-- in density at k lambda_D = 0.5 with amplitude 1e-4; the electric field follows from Gauss's law.
+-- The 3V Maxwellian keeps vy and vz on 4 cells each. LBO self-collisions at nu = 0.05 omega_pe act
+-- on the electrons.
+-- Collisionless linear theory at k lambda_D = 0.5: omega = 1.4157 omega_pe, damping rate gamma =
+-- 0.1533 omega_pe.
+-- Figures of merit (tensor p2, 8 x 16 x 4 x 4 cells): the field-energy peaks over t = 0.5-12 decay
+-- at gamma = 0.1453 and recur at omega = 1.388; the field energy at t = 20 is 0.00059 of its
+-- initial value. The rate differs from the 1x1v value 0.123 because the 3V collisions also scatter
+-- into the perpendicular directions and relax the isotropic temperature.
+
 local Vlasov = G0.Vlasov
 
 -- Mathematical constants (dimensionless).

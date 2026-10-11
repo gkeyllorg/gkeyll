@@ -1,3 +1,16 @@
+-- Relativistic two-stream instability with the Vlasov-Maxwell system (1x3v).
+-- Two counter-streaming Maxwell-Juttner electron beams (drift +-0.9 c, T = 0.04 mc^2, n0/2 each) on
+-- a neutralizing ion background are perturbed in density at k = 0.3 omega_pe/c with amplitude 1e-5;
+-- the electric field follows from Gauss's law. The 3V beams keep py and pz on 4 cells each. The
+-- momentum grid is mapped as p = p_lin pc + (p_max - p_lin) pc |pc| in each direction (p_lin = 4 in
+-- px, 0.4 in py and pz), so the cells are finest near p = 0.
+-- Kinetic linear theory for the 1D Maxwell-Juttner beams at k = 0.3: a purely growing mode with
+-- gamma = 0.1561 omega_pe, omega_pe = sqrt(n0 e^2 / (epsilon0 m)) = 1 with n0 the rest-frame
+-- density.
+-- Figures of merit (tensor p1 (hybrid), 8 x 16 x 4 x 4 cells): the field energy grows at gamma =
+-- 0.1456 over t = 30-60 and saturates at t = 76 with energy 2.31 at t = 80; electron number
+-- conserved to 7e-15.
+
 local Vlasov = G0.Vlasov
 
 -- Mathematical constants (dimensionless).

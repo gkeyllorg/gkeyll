@@ -1,9 +1,8 @@
--- Test that a species definition can be shared by several apps without the
--- apps affecting each other: the callback contexts (including the coordinate
--- dimension a callback is called with) are copied into each app, so building a
--- 2D app from the same fluid species must not change how the live 1D app
--- calls its initial-condition function. Keep this test: it pins the per-app
--- ownership of callback contexts.
+-- Test that a species definition can be shared by several apps without the apps affecting each
+-- other: the callback contexts (including the coordinate dimension a callback is called with)
+-- are copied into each app, so building a 2D app from the same fluid species must not change how
+-- the live 1D app calls its initial-condition function. This pins the per-app ownership of the
+-- callback contexts.
 
 local Vlasov = G0.Vlasov
 

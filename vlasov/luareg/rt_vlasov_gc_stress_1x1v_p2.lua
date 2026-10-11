@@ -1,11 +1,9 @@
--- Garbage-collector stress test for the Lua wrapper's input-lifetime
--- invariant. The C input structs point directly at lua_func_ctx structs that
--- live inside the species/field/geom userdata; those userdata are anchored to
--- the App userdata via its environment table (see vm_app_new in vlasov_lw.c).
--- This test forces a full collection between App construction and the run: if
--- the anchoring is ever removed or broken, the input userdata are collected
--- here and the callback contexts dangle. Keep this test -- it encodes the GC
--- history that originally forced the callback-mirroring design.
+-- Garbage-collector stress test for the Lua wrapper's input-lifetime invariant. The C input
+-- structs point directly at lua_func_ctx structs that live inside the species, field and
+-- geometry userdata; those userdata are anchored to the App userdata through its environment
+-- table (see vm_app_new in vlasov_lw.c). The test forces a full collection between App
+-- construction and the run: if the anchoring is removed, the input userdata are collected here
+-- and the callback contexts dangle.
 
 local Vlasov = G0.Vlasov
 
