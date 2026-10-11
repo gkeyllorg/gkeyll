@@ -129,15 +129,59 @@ vp_field_new_epsilon(struct gkyl_vlasov_app *app, double scale)
   return epsilon;
 }
 
+// Per-cell constant DG scalar 'scale' times the conf Jacobian J (1 on an
+// identity position map) on the local extended range, or allgathered to the
+// global extended range the FEM solver reads. Used for the Helmholtz mass term
+// and for the weight of the int phi^2 energy term, whose computational-space
+// integrals need J to equal the physical ones.
+static struct gkyl_array *
+vp_field_new_jacobian_scalar(struct gkyl_vlasov_app *app, double scale, bool is_global)
+{
+  int nb = app->basis.num_basis;
+  double dg0 = pow(sqrt(2.0), app->cdim); // 0th DG coeff representing a constant value.
+  const struct gkyl_range *ext = is_global ? &app->global_ext : &app->local_ext;
+
+  struct gkyl_array *arr = mkarr(app->use_gpu, nb, ext->volume);
+  gkyl_array_clear(arr, 0.0);
+  if (app->pos_map->is_identity) {
+    gkyl_array_shiftc(arr, scale * dg0, 0);
+    return arr;
+  }
+
+  struct gkyl_array *arr_local = is_global ? mkarr(app->use_gpu, nb, app->local_ext.volume) :
+                                             gkyl_array_acquire(arr);
+  struct gkyl_array *arr_local_ho = app->use_gpu ? mkarr(false, nb, app->local_ext.volume) :
+                                                   gkyl_array_acquire(arr_local);
+  gkyl_array_clear(arr_local_ho, 0.0);
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &app->local);
+  while (gkyl_range_iter_next(&iter)) {
+    long cidx = gkyl_range_idx(&app->local, iter.idx);
+    const double *jacob_pos_gauss = gkyl_array_cfetch(app->pos_map->jacob_pos_gauss_host, cidx);
+    double *arr_d = gkyl_array_fetch(arr_local_ho, cidx);
+    arr_d[0] = scale * jacob_pos_gauss[0] * dg0;
+  }
+  if (app->use_gpu) {
+    gkyl_array_copy(arr_local, arr_local_ho);
+  }
+  if (is_global) {
+    gkyl_comm_array_allgather(app->comm, &app->local, &app->global, arr_local, arr);
+  }
+  gkyl_array_release(arr_local);
+  gkyl_array_release(arr_local_ho);
+  return arr;
+}
+
 // --- One potential: allocation, solve, diagnostics, release -------------------
 
-// Allocate the source, potential, permittivity (scalar eps_scale), Poisson
-// solver and energy diagnostic of a potential; its names and coupling laws are
-// set by the caller. All potentials share the field's Poisson boundary
-// conditions.
+// Allocate the source, potential, permittivity (scalar eps_scale), screening
+// (mu_sq > 0 adds the Helmholtz term eps_scale * mu_sq * phi), Poisson solver
+// and energy diagnostic of a potential; its names and coupling laws are set by
+// the caller. All potentials share the field's Poisson boundary conditions.
 static void
 vp_potential_init(
-  struct gkyl_vlasov_app *app, struct vm_field *field, struct vp_potential *pot, double eps_scale
+  struct gkyl_vlasov_app *app, struct vm_field *field, struct vp_potential *pot, double eps_scale,
+  double mu_sq
 )
 {
   int nb = app->basis.num_basis;
@@ -150,18 +194,38 @@ vp_potential_init(
   pot->phi_host = app->use_gpu ? mkarr(false, pot->phi->ncomp, pot->phi->size) :
                                  gkyl_array_acquire(pot->phi);
 
+  // The FEM solver solves - nabla . (epsilon * nabla phi) - kSq * phi = rho, so
+  // the screening term + eps_scale * mu_sq * phi is kSq = - eps_scale * mu_sq.
+  pot->mu_sq = mu_sq;
+  pot->ksq = NULL;
+  pot->sq_wgt = NULL;
+  pot->calc_sq = NULL;
+  if (mu_sq > 0.0) {
+    pot->ksq = vp_field_new_jacobian_scalar(app, -eps_scale * mu_sq, true);
+    pot->sq_wgt = vp_field_new_jacobian_scalar(app, 1.0, false);
+    pot->calc_sq = gkyl_array_integrate_new(
+      &app->grid, &app->basis, 1, GKYL_ARRAY_INTEGRATE_OP_SQ_WEIGHTED, app->use_gpu
+    );
+  }
+
   pot->epsilon = vp_field_new_epsilon(app, eps_scale);
   pot->fem_poisson = gkyl_fem_poisson_new(
-    &app->global, &app->grid, app->basis, &field->info.poisson_bcs, NULL, pot->epsilon, NULL,
+    &app->global, &app->grid, app->basis, &field->info.poisson_bcs, NULL, pot->epsilon, pot->ksq,
     app->pos_map->is_identity, app->use_gpu
   );
 
+  // Reductions of [int |grad phi|^2, int phi^2]; the second stays 0 if unscreened.
+  double zeros[2] = {0.0, 0.0};
   if (app->use_gpu) {
-    pot->energy_red = gkyl_cu_malloc(sizeof(double[1]));
-    pot->energy_red_global = gkyl_cu_malloc(sizeof(double[1]));
+    pot->energy_red = gkyl_cu_malloc(sizeof(double[2]));
+    pot->energy_red_global = gkyl_cu_malloc(sizeof(double[2]));
+    gkyl_cu_memcpy(pot->energy_red, zeros, sizeof(double[2]), GKYL_CU_MEMCPY_H2D);
+    gkyl_cu_memcpy(pot->energy_red_global, zeros, sizeof(double[2]), GKYL_CU_MEMCPY_H2D);
   } else {
-    pot->energy_red = gkyl_malloc(sizeof(double[1]));
-    pot->energy_red_global = gkyl_malloc(sizeof(double[1]));
+    pot->energy_red = gkyl_malloc(sizeof(double[2]));
+    pot->energy_red_global = gkyl_malloc(sizeof(double[2]));
+    memcpy(pot->energy_red, zeros, sizeof(double[2]));
+    memcpy(pot->energy_red_global, zeros, sizeof(double[2]));
   }
   pot->integ_energy = gkyl_dynvec_new(GKYL_DOUBLE, 1);
 }
@@ -180,6 +244,11 @@ vp_potential_release(const struct gkyl_vlasov_app *app, struct vp_potential *pot
 
   gkyl_fem_poisson_release(pot->fem_poisson);
   gkyl_array_release(pot->epsilon);
+  if (pot->calc_sq) {
+    gkyl_array_integrate_release(pot->calc_sq);
+    gkyl_array_release(pot->sq_wgt);
+    gkyl_array_release(pot->ksq);
+  }
 
   gkyl_array_release(pot->phi_host);
   gkyl_array_release(pot->phi);
@@ -203,8 +272,8 @@ vp_potential_solve(gkyl_vlasov_app *app, struct vm_field *field, struct vp_poten
   gkyl_array_copy_range_to_range(pot->phi, pot->phi_global, &app->local, &field->global_sub_range);
 }
 
-// Append the integrated |grad phi|^2 (scaled by the potential's energy factor)
-// at time tm to the potential's energy diagnostic.
+// Append the integrated |grad phi|^2 + mu_sq phi^2 (scaled by the potential's
+// energy factor) at time tm to the potential's energy diagnostic.
 static void
 vp_potential_calc_energy(
   gkyl_vlasov_app *app, const struct vm_field *field, struct vp_potential *pot, double tm
@@ -215,16 +284,22 @@ vp_potential_calc_energy(
     field->calc_grad_sq, pot->phi, 1.0, field->grad_sq_wgt, &app->local, &app->local,
     pot->energy_red
   );
-
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, pot->energy_red, pot->energy_red_global);
-
-  double energy_global[1] = {0.0};
-  if (app->use_gpu) {
-    gkyl_cu_memcpy(energy_global, pot->energy_red_global, sizeof(double[1]), GKYL_CU_MEMCPY_D2H);
-  } else {
-    energy_global[0] = pot->energy_red_global[0];
+  if (pot->calc_sq) {
+    gkyl_array_integrate_advance(
+      pot->calc_sq, pot->phi, 1.0, pot->sq_wgt, &app->local, &app->local, pot->energy_red + 1
+    );
   }
-  energy_global[0] *= pot->energy_fac;
+
+  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 2, pot->energy_red, pot->energy_red_global);
+
+  double red_global[2] = {0.0, 0.0};
+  if (app->use_gpu) {
+    gkyl_cu_memcpy(red_global, pot->energy_red_global, sizeof(double[2]), GKYL_CU_MEMCPY_D2H);
+  } else {
+    red_global[0] = pot->energy_red_global[0];
+    red_global[1] = pot->energy_red_global[1];
+  }
+  double energy_global[1] = {pot->energy_fac * (red_global[0] + pot->mu_sq * red_global[1])};
 
   gkyl_dynvec_append(pot->integ_energy, tm, energy_global);
 }
@@ -302,15 +377,16 @@ vp_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
 
   vpf->num_pots = 0;
   if (vpf->info.epsilon0 > 0.0 && has_charge) {
-    // Electrostatics: - nabla . (epsilon0 * nabla phi) = sum_s q_s n_s.
+    // Electrostatics: - nabla . (epsilon0 * nabla phi) + epsilon0 * mu_sq * phi =
+    // sum_s q_s n_s, screened by a massive dark photon when mu_sq > 0.
     struct vp_potential *pot = &vpf->pots[vpf->num_pots++];
     strcpy(pot->frame_name, "field");
     strcpy(pot->energy_name, "field-energy");
     pot->coupling = vpf->info.epsilon0;
-    pot->energy_fac = 1.0; // Diagnostic is int |grad phi|^2 (no epsilon0/2).
+    pot->energy_fac = 1.0; // Diagnostic is int |grad phi|^2 + mu_sq phi^2 (no epsilon0/2).
     pot->src_weight = vp_field_es_src_weight;
     pot->force_weight = vp_field_es_force_weight;
-    vp_potential_init(app, vpf, pot, vpf->info.epsilon0);
+    vp_potential_init(app, vpf, pot, vpf->info.epsilon0, vpf->info.mu_sq);
   }
   if (vpf->info.alpha_g > 0.0 && has_mass) {
     // Self-gravity: nabla^2 phi_g = alpha_g * sum_s m_s n_s, i.e. a permittivity
@@ -324,7 +400,7 @@ vp_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
     pot->energy_fac = 1.0 / vpf->info.alpha_g;
     pot->src_weight = vp_field_grav_src_weight;
     pot->force_weight = vp_field_grav_force_weight;
-    vp_potential_init(app, vpf, pot, -1.0);
+    vp_potential_init(app, vpf, pot, -1.0, 0.0);
   }
 
   // Coordinate map for projecting external fields/potentials: their user
@@ -388,9 +464,10 @@ vp_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
     });
   }
 
-  // Vlasov-Poisson doesn't presently use external currents or limiters.
+  // Vlasov-Poisson doesn't presently use external currents. (EM limiting is a
+  // Vlasov-Maxwell member of the field union, so it must not be written here:
+  // it aliases the potentials.)
   vpf->has_app_current = vpf->app_current_evolve = false;
-  vpf->limit_em = false;
 
   // Integrated |grad phi|^2 energy diagnostic shared by the potentials. For an
   // identity position map this is the plain |grad phi|^2 operator (GRAD_SQ) with

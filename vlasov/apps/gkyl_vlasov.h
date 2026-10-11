@@ -364,6 +364,12 @@ struct gkyl_vlasov_field {
   // the gravitational to the electrostatic coupling between two reference
   // particles.
   double alpha_g;
+  // Screening of the electrostatic potential by a massive (dark) photon: with
+  // mu_sq > 0 the Vlasov-Poisson electrostatic solve is the screened Poisson
+  // (Helmholtz) equation -nabla^2 phi + mu_sq phi = rho_c/epsilon0, where mu =
+  // m_A c/hbar is the inverse screening length (the photon's Compton wave
+  // number), and the field energy diagnostic becomes int |grad phi|^2 + mu_sq phi^2.
+  double mu_sq;
   // Correction speeds as a fraction of the speed of light for div(E)/div(B) errors.
   double elcErrorSpeedFactor, mgnErrorSpeedFactor;
   double K_phi, K_psi; // Geometric source coefficients for electric/magnetic cleaning fields.

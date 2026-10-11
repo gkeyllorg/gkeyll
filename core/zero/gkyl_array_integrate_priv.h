@@ -130,7 +130,9 @@ gkyl_array_integrate_choose_kernel(
   } else if (op == GKYL_ARRAY_INTEGRATE_OP_SQ) {
     up->kernel = gkyl_array_integrate_sq_ker_list_ser[ndim - 1].kernels[poly_order - 1];
   } else if (op == GKYL_ARRAY_INTEGRATE_OP_SQ_WEIGHTED) {
-    if (basis->b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
+    // The tensor basis coincides with the serendipity basis in 1D and at p=1.
+    bool tensor_is_ser = basis->b_type == GKYL_BASIS_MODAL_TENSOR && (ndim == 1 || poly_order == 1);
+    if (basis->b_type == GKYL_BASIS_MODAL_SERENDIPITY || tensor_is_ser) {
       up->kernel = gkyl_array_integrate_sq_weighted_ker_list_ser[ndim - 1].kernels[poly_order - 1];
     } else if (basis->b_type == GKYL_BASIS_MODAL_GKHYBRID) {
       up->kernel =

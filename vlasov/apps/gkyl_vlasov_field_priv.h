@@ -35,19 +35,21 @@ struct vm_field_proj_c2p_ctx {
 // field: the electrostatic and the gravitational potential.
 #define VP_MAX_POTENTIALS 2
 
-// One scalar potential of the Vlasov-Poisson field: the Poisson problem
-//   - nabla . (epsilon * nabla phi) = rho,  rho = sum_s src_weight(q_s, m_s) * n_s
+// One scalar potential of the Vlasov-Poisson field: the (screened) Poisson problem
+//   - nabla . (epsilon * nabla phi) + epsilon * mu_sq * phi = rho,  rho = sum_s src_weight(q_s, m_s) * n_s
 // solved over the species, the weight with which the potential enters each
 // species' total potential (acceleration -force_weight(q_s, m_s) * grad(phi)),
-// and the integrated |grad phi|^2 diagnostic. The electrostatic potential has
-// epsilon = epsilon0, src_weight = q and force_weight = q/m; the gravitational
-// potential has epsilon = -1 (so that nabla^2 phi_g = rho), src_weight =
-// alpha_g * m and force_weight = 1 (the same acceleration for every species).
+// and the integrated |grad phi|^2 + mu_sq phi^2 diagnostic. The electrostatic
+// potential has epsilon = epsilon0, src_weight = q and force_weight = q/m, and
+// is screened (mu_sq > 0) by a massive dark photon; the gravitational potential
+// has epsilon = -1 (so that nabla^2 phi_g = rho), src_weight = alpha_g * m and
+// force_weight = 1 (the same acceleration for every species).
 struct vp_potential {
   char frame_name[32]; // Output name of the potential frames: <app>-<frame_name>_<frame>.gkyl.
   char energy_name[32]; // Output name of the energy diagnostic: <app>-<energy_name>.gkyl.
   double coupling; // Coupling constant of the source (alpha_g for gravity; unused otherwise).
-  double energy_fac; // Scale of the integrated |grad phi|^2 energy diagnostic.
+  double mu_sq; // Inverse screening length squared (0 for an unscreened potential).
+  double energy_fac; // Scale of the integrated |grad phi|^2 + mu_sq phi^2 energy diagnostic.
   // Weight of a species' number density in the source, and of the potential in
   // that species' total potential, given the species' charge and mass.
   double (*src_weight)(const struct vp_potential *pot, double charge, double mass);
@@ -58,8 +60,14 @@ struct vp_potential {
   struct gkyl_array *rho, *rho_global; // Local and global source density.
   struct gkyl_array *phi, *phi_global; // Local and global potential.
   struct gkyl_array *phi_host; // Host copy of the potential for I/O.
+  struct gkyl_array *
+    ksq; // -epsilon * mu_sq (times the conf Jacobian on a mapped mesh) in the Helmholtz solve; NULL if unscreened.
   struct gkyl_fem_poisson *fem_poisson; // Poisson solver.
-  double *energy_red, *energy_red_global; // Memory for use in reduction of the energy.
+  struct gkyl_array
+    *sq_wgt; // Weight (the conf Jacobian) of the int phi^2 energy term; NULL if unscreened.
+  struct gkyl_array_integrate *calc_sq; // int phi^2 integrator; NULL if unscreened.
+  // Memory for use in reduction of the energy: [int |grad phi|^2, int phi^2].
+  double *energy_red, *energy_red_global;
   gkyl_dynvec integ_energy; // Integrated energy diagnostic.
 };
 
@@ -755,9 +763,9 @@ void vp_field_write(gkyl_vlasov_app *app, double tm, int frame, const struct gky
 
 /**
  * Compute the field energy diagnostic of each potential (the potentials are
- * solved here from fin[] so they are at time tm): int |grad phi|^2 for the
- * electrostatic potential and int |grad phi_g|^2 / alpha_g for the
- * gravitational one.
+ * solved here from fin[] so they are at time tm): int |grad phi|^2 + mu_sq phi^2
+ * for the electrostatic potential (mu_sq = 0 unless screened) and
+ * int |grad phi_g|^2 / alpha_g for the gravitational one.
  *
  * @param app Vlasov app object
  * @param tm Time at which diagnostic is computed
