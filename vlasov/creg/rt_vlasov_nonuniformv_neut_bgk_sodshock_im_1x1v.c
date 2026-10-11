@@ -1,11 +1,15 @@
 // Sod shock tube for a neutral gas with BGK collisions (Vlasov, 1x1v).
-// Density 1 and pressure 1 on the left, density 1/8 and pressure 1/10 on the right, at rest. The collision
-// frequency puts the mean free path at 1/40 of a cell, so the solution follows the Euler Sod solution of a gas
-// with adiabatic index (d+2)/d = 3 with the discontinuities resolved to the grid scale.
-// The BGK relaxation is integrated implicitly, split from the explicit RK3 step of the collisionless terms.
+// Density 1 and pressure 1 on the left, density 1/8 and pressure 1/10 on the right, at rest. The
+// collision frequency puts the mean free path at 1/40 of a cell, so the solution follows the Euler
+// Sod solution of a gas with adiabatic index (d+2)/d = 3 with the discontinuities resolved to the
+// grid scale.
+// The BGK relaxation is integrated implicitly, split from the explicit RK3 step of the
+// collisionless terms.
 // Quadratic velocity maps cluster the cells at the origin of velocity space.
-// Exact solution at t = 0.1: shock at x = 0.727, contact at 0.561, post-shock density 0.171, velocity 0.609.
-// The shock and contact positions agree to within a cell and the plateaus to 0.2%; the density L1 error is 0.004.
+// Exact solution at t = 0.1: shock at x = 0.727, contact at 0.561, post-shock density 0.171,
+// velocity 0.609.
+// The shock and contact positions agree to within a cell and the plateaus to 0.2%; the density L1
+// error is 0.004.
 // The density differs from the explicit run at the same collision frequency by 2% at most.
 
 #include <math.h>

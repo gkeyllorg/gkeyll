@@ -1,11 +1,13 @@
 // Sod shock tube for a neutral gas with BGK collisions (special-relativistic Vlasov, 1x3v).
-// Density 1 and pressure 1 on the left, density 1/8 and pressure 1/10 on the right, at rest. The collision
-// frequency puts the mean free path at one cell. Temperatures are in units of mc^2, so the gas is
-// relativistically hot; the reference is the exact Riemann solution of the Maxwell-Juttner gas.
+// Density 1 and pressure 1 on the left, density 1/8 and pressure 1/10 on the right, at rest. The
+// collision frequency puts the mean free path at one cell. Temperatures are in units of mc^2, so
+// the gas is relativistically hot; the reference is the exact Riemann solution of the
+// Maxwell-Juttner gas.
 // Note: the relativistic BGK target matches the pressure of f, not its energy, so the post-shock
 // state drifts from the exact one as energy is not conserved (6% over this run).
 // Quadratic velocity maps cluster the cells at the origin of velocity space.
-// Exact solution at t = 0.2: shock at x = 0.646, contact at 0.588, post-shock lab-frame density 0.313, velocity 0.438.
+// Exact solution at t = 0.2: shock at x = 0.646, contact at 0.588, post-shock lab-frame density
+// 0.313, velocity 0.438.
 // The kinetic shock position agrees within 2%; the measured post-shock lab density is 0.38.
 
 #include <math.h>

@@ -1,10 +1,11 @@
--- Relativistic Weibel instability of two cold counter-streaming electron beams (special-relativistic
--- Vlasov-Maxwell, 1x2v): beams at +-0.9 c along y with the same drift and temperature scale as the
--- relativistic two-stream tests, filamentation mode k = 0.5 along x seeded by a magnetic field
--- perturbation. Ions are a neutralizing background.
+-- Relativistic Weibel instability of two cold counter-streaming electron beams
+-- (special-relativistic Vlasov-Maxwell, 1x2v): beams at +-0.9 c along y with the same drift and
+-- temperature scale as the relativistic two-stream tests, filamentation mode k = 0.5 along x seeded
+-- by a magnetic field perturbation. Ions are a neutralizing background.
 -- Quadratic momentum maps cluster the cells at the origin of momentum space.
--- Growth rate of the magnetic energy from linear theory (lab-frame plasma frequency sqrt(gamma_drift)):
--- gamma = 0.525 (measured 0.524-0.527 over t = 5-20); the mode saturates at t = 32.
+-- Growth rate of the magnetic energy from linear theory (lab-frame plasma frequency
+-- sqrt(gamma_drift)): gamma = 0.525 (measured 0.524-0.527 over t = 5-20); the mode saturates at t =
+-- 32.
 local Vlasov = G0.Vlasov
 
 -- Mathematical constants (dimensionless).

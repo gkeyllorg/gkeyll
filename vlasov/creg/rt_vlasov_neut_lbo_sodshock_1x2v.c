@@ -1,9 +1,12 @@
 // Sod shock tube for a neutral gas with LBO collisions (Vlasov, 1x2v).
-// Density 1 and pressure 1 on the left, density 1/8 and pressure 1/10 on the right, at rest. The collision
-// frequency puts the mean free path at one cell, so the solution follows the Euler Sod solution of a gas
-// with adiabatic index (d+2)/d = 2 with the discontinuities smoothed over a few mean free paths.
-// Exact solution at t = 0.1: shock at x = 0.696, contact at 0.576, post-shock density 0.204, velocity 0.760.
-// The kinetic shock position agrees within 1%, the plateaus within 5%; the density L1 error is 0.013.
+// Density 1 and pressure 1 on the left, density 1/8 and pressure 1/10 on the right, at rest. The
+// collision frequency puts the mean free path at one cell, so the solution follows the Euler Sod
+// solution of a gas with adiabatic index (d+2)/d = 2 with the discontinuities smoothed over a few
+// mean free paths.
+// Exact solution at t = 0.1: shock at x = 0.696, contact at 0.576, post-shock density 0.204,
+// velocity 0.760.
+// The kinetic shock position agrees within 1%, the plateaus within 5%; the density L1 error is
+// 0.013.
 
 #include <math.h>
 #include <stdio.h>

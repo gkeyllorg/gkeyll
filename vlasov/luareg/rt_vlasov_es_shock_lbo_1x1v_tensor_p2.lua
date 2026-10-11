@@ -4,8 +4,8 @@
 -- Maxwellians fixed (reservoir). Ions slower than the shock potential are reflected ahead of it.
 -- Weak LBO self-collisions act on both species.
 -- Figures of merit at t_end (serendipity p2): shock front at x = 58 lambda_D (speed 0.97 c_s),
--- downstream density 2.4 n0, potential jump across the front e*dphi/Te = 1.3-1.4, reflected ions ahead
--- of the front 0.25 n0 at 3.0 c_s.
+-- downstream density 2.4 n0, potential jump across the front e*dphi/Te = 1.3-1.4, reflected ions
+-- ahead of the front 0.25 n0 at 3.0 c_s.
 
 local Vlasov = G0.Vlasov
 
