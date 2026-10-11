@@ -207,7 +207,7 @@ struct vm_collisionless {
   struct gkyl_array *qmem; // array for q/m*(E,B)
   struct gkyl_array *
     em_no_J; // physical E,B (stored field J*E,J*B divided by the conf Jacobian) for the Lorentz force on a mapped grid
-  struct gkyl_array *pot_tot; // array for total potentials (q/m*phi + m*phi_g, q/m*A)
+  struct gkyl_array *pot_tot; // array for total potentials (q/m*(phi + phi_ext) + phi_g, q/m*A_ext)
   bool has_E; // Do we have electric fields?
   bool has_phi; // Do we have scalar potentials (electrostatic/gravitational)?
   bool has_B; // Do we have magnetic fields?
@@ -859,8 +859,8 @@ struct vlasov_species {
   );
   // Explicit field-particle coupling: accumulate this species' source
   // contribution onto the field's target array (Maxwell: the current onto the
-  // EM RHS; Poisson: the charge density onto rho_c; no-op for fluid species
-  // and the null field).
+  // EM RHS; Poisson: the weighted number density onto the source of each
+  // potential, target unused; no-op for fluid species and the null field).
   void (*accumulate_field_coupling_func)(
     gkyl_vlasov_app *app, struct vlasov_species *sp, const struct gkyl_array *fin,
     const struct gkyl_array *fluidin, struct gkyl_array *target
@@ -937,14 +937,15 @@ void vlasov_species_calc_coupled_vars(
 
 /**
  * Accumulate this species' explicit source contribution onto the field's
- * target array (Maxwell: the current onto emout; Poisson: the charge density
- * onto rho_c; no-op for fluid species and the null field).
+ * target array (Maxwell: the current onto emout; Poisson: the weighted number
+ * density onto the source of each potential the field solves for; no-op for
+ * fluid species and the null field).
  *
  * @param app Vlasov app object
  * @param sp Species container
  * @param fin Input distribution function (NULL if no kinetic aspect)
  * @param fluidin Input fluid moments (NULL if no fluid aspect)
- * @param target Field array to accumulate onto
+ * @param target Field array to accumulate onto (unused for Poisson)
  */
 void vlasov_species_accumulate_field_coupling(
   gkyl_vlasov_app *app, struct vlasov_species *sp, const struct gkyl_array *fin,

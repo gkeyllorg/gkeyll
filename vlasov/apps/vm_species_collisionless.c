@@ -3,7 +3,8 @@
 
 // Assemble the forces acting on the species: q/m*(E, B) in qmem (applied
 // acceleration, external EM field, and the Maxwell or GR-Maxwell field) and the
-// total potentials q/m*(phi + phi_ext, A_ext) in pot_tot for Vlasov-Poisson.
+// total potentials (q/m*(phi + phi_ext) + phi_g, q/m*A_ext) in pot_tot for
+// Vlasov-Poisson.
 static void
 vm_species_collisionless_calc_force(
   gkyl_vlasov_app *app, struct vm_species *vms, struct vm_collisionless *cls,
@@ -37,9 +38,18 @@ vm_species_collisionless_calc_force(
       em, cls->qmem
     );
   } else if (vms->field_id == GKYL_FIELD_PHI) {
-    gkyl_array_set_offset(cls->pot_tot, cls->qbym, app->field->phi, 0);
+    // Total potentials: q/m times the external (phi, A), plus each solved
+    // potential weighted by its coupling to this species (q/m for the
+    // electrostatic potential, 1 for the gravitational one).
     if (app->field->has_ext_pot) {
-      gkyl_array_accumulate_offset(cls->pot_tot, cls->qbym, app->field->ext_pot, 0);
+      gkyl_array_set_offset(cls->pot_tot, cls->qbym, app->field->ext_pot, 0);
+    } else {
+      gkyl_array_clear(cls->pot_tot, 0.0);
+    }
+    for (int p = 0; p < app->field->num_pots; ++p) {
+      const struct vp_potential *pot = &app->field->pots[p];
+      double weight = pot->force_weight(pot, vms->charge, vms->mass);
+      gkyl_array_accumulate_offset(cls->pot_tot, weight, pot->phi, 0);
     }
   }
 }
@@ -104,9 +114,9 @@ vm_species_collisionless_init(
   int cdim = app->cdim, vdim = app->vdim;
   int pdim = cdim + vdim;
 
-  // Allocate array to store q/m*(E,B) or potentials (q/m*phi + m*phi_g, q/m*A) depending on equation system.
-  // Note: the potentials are the total potentials and thus can include both (or either) gravitational
-  // or electrostatic interactions.
+  // Allocate array to store q/m*(E,B) or potentials (q/m*(phi + phi_ext) + phi_g, q/m*A_ext) depending
+  // on equation system. Note: the potentials are the total potentials and thus can include both (or
+  // either) gravitational or electrostatic interactions.
   cls->qbym = vms->charge / vms->mass;
   cls->has_gr_em_triad_coupling =
     vm_species_has_gr_em_triad_coupling(app, vms->field_id, vms->model_id);

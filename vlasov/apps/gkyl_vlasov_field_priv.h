@@ -31,6 +31,38 @@ struct vm_field_proj_c2p_ctx {
   const struct gkyl_vlasov_position_map *pos_map; // configuration-space position map.
 };
 
+// Maximum number of self-consistent potentials solved for by the Vlasov-Poisson
+// field: the electrostatic and the gravitational potential.
+#define VP_MAX_POTENTIALS 2
+
+// One scalar potential of the Vlasov-Poisson field: the Poisson problem
+//   - nabla . (epsilon * nabla phi) = rho,  rho = sum_s src_weight(q_s, m_s) * n_s
+// solved over the species, the weight with which the potential enters each
+// species' total potential (acceleration -force_weight(q_s, m_s) * grad(phi)),
+// and the integrated |grad phi|^2 diagnostic. The electrostatic potential has
+// epsilon = epsilon0, src_weight = q and force_weight = q/m; the gravitational
+// potential has epsilon = -1 (so that nabla^2 phi_g = rho), src_weight =
+// alpha_g * m and force_weight = 1 (the same acceleration for every species).
+struct vp_potential {
+  char frame_name[32]; // Output name of the potential frames: <app>-<frame_name>_<frame>.gkyl.
+  char energy_name[32]; // Output name of the energy diagnostic: <app>-<energy_name>.gkyl.
+  double coupling; // Coupling constant of the source (alpha_g for gravity; unused otherwise).
+  double energy_fac; // Scale of the integrated |grad phi|^2 energy diagnostic.
+  // Weight of a species' number density in the source, and of the potential in
+  // that species' total potential, given the species' charge and mass.
+  double (*src_weight)(const struct vp_potential *pot, double charge, double mass);
+  double (*force_weight)(const struct vp_potential *pot, double charge, double mass);
+
+  struct gkyl_array
+    *epsilon; // Permittivity in the Poisson equation (constant, or metric tensor on a mapped mesh).
+  struct gkyl_array *rho, *rho_global; // Local and global source density.
+  struct gkyl_array *phi, *phi_global; // Local and global potential.
+  struct gkyl_array *phi_host; // Host copy of the potential for I/O.
+  struct gkyl_fem_poisson *fem_poisson; // Poisson solver.
+  double *energy_red, *energy_red_global; // Memory for use in reduction of the energy.
+  gkyl_dynvec integ_energy; // Integrated energy diagnostic.
+};
+
 // field data
 struct vm_field {
   struct gkyl_vlasov_field info; // data for field
@@ -121,22 +153,20 @@ struct vm_field {
 
     // Vlasov-Poisson.
     struct {
-      struct gkyl_array *epsilon; // Permittivity in Poisson equation.
-
-      struct gkyl_array *rho_c, *rho_c_global; // Local and global charge density.
-      struct gkyl_array *phi, *phi_global; // Local and global potential.
-
-      struct gkyl_array *phi_host; // host copy for use IO and initialization
+      // Potentials solved for, in order: the electrostatic potential when
+      // epsilon0 > 0 and some species is charged, then the gravitational
+      // potential when alpha_g > 0 and some species has mass.
+      int num_pots; // Number of potentials solved for (0 to VP_MAX_POTENTIALS).
+      struct vp_potential pots[VP_MAX_POTENTIALS];
 
       struct gkyl_range global_sub_range; // sub range of intersection of global range and local range
         // for solving subset of Poisson solves with parallelization in z
 
-      struct gkyl_fem_poisson
-        *fem_poisson; // Poisson solver for - nabla . (epsilon * nabla phi) - kSq * phi = rho.
-
-      struct gkyl_array *es_energy_fac; // Factor in calculation of ES energy diagnostic.
-      struct gkyl_array_integrate *calc_es_energy;
-      double *es_energy_red, *es_energy_red_global; // Memory for use in GPU reduction of ES energy.
+      // Integrated |grad phi|^2 energy diagnostic shared by the potentials: the
+      // weight (1 on a uniform mesh, the metric tensor on a mapped mesh) and the
+      // integrate updater.
+      struct gkyl_array *grad_sq_wgt;
+      struct gkyl_array_integrate *calc_grad_sq;
     };
   };
 
@@ -170,8 +200,9 @@ struct vm_field {
   struct vm_field_proj_c2p_ctx
     ext_c2p_ctx; // comp->phys map for external-field projection on mapped grids
 
-  gkyl_dynvec integ_energy; // integrated energy components
-  bool is_first_energy_write_call; // flag for energy dynvec written first time
+  gkyl_dynvec
+    integ_energy; // integrated energy components (Vlasov-Maxwell; Vlasov-Poisson keeps one per potential)
+  bool is_first_energy_write_call; // flag for energy dynvec(s) written first time
 };
 
 /** vlasov_field API: type-agnostic operations on the field object (vlasov_field.c). */
@@ -647,10 +678,11 @@ struct gkyl_app_restart_status vp_field_from_file(
 );
 
 /**
- * Solve for the electrostatic potential from the distribution functions:
- * accumulate the charge density over all species, then solve the Poisson
- * equation. The single definition of the potential, used by the field update
- * (each forward Euler stage) and by the field diagnostics.
+ * Solve for the potentials (electrostatic and/or gravitational) from the
+ * distribution functions: accumulate each potential's source over all species,
+ * then solve its Poisson equation. The single definition of the potentials,
+ * used by the field update (each forward Euler stage) and by the field
+ * diagnostics.
  *
  * @param app Vlasov app object.
  * @param field Pointer to field.
@@ -659,9 +691,9 @@ struct gkyl_app_restart_status vp_field_from_file(
 void vp_field_solve(gkyl_vlasov_app *app, struct vm_field *field, const struct gkyl_array *fin[]);
 
 /**
- * Update the field at the current time: solve for the potential from the charge
- * density. Assigned to the field's update_func; the elliptic solve imposes no
- * CFL constraint, so it returns DBL_MAX.
+ * Update the field at the current time: solve for the potentials from the
+ * species densities. Assigned to the field's update_func; the elliptic solves
+ * impose no CFL constraint, so it returns DBL_MAX.
  *
  * @param app Vlasov app object.
  * @param tcurr Current time.
@@ -710,8 +742,9 @@ void vp_field_apply_bc(gkyl_vlasov_app *app, const struct vm_field *field, struc
 void vp_field_limiter(gkyl_vlasov_app *app, struct vm_field *field, struct gkyl_array *em);
 
 /**
- * Write out the potential (solved here from fin[] so it is at time tm) and the
- * external fields/potentials.
+ * Write out the potentials (solved here from fin[] so they are at time tm; the
+ * electrostatic potential as <app>-field_<frame>.gkyl, the gravitational one as
+ * <app>-field_grav_<frame>.gkyl) and the external fields/potentials.
  *
  * @param app Vlasov app object
  * @param tm Time-stamp
@@ -721,8 +754,10 @@ void vp_field_limiter(gkyl_vlasov_app *app, struct vm_field *field, struct gkyl_
 void vp_field_write(gkyl_vlasov_app *app, double tm, int frame, const struct gkyl_array *fin[]);
 
 /**
- * Compute the electrostatic field energy diagnostic (the potential is solved
- * here from fin[] so it is at time tm).
+ * Compute the field energy diagnostic of each potential (the potentials are
+ * solved here from fin[] so they are at time tm): int |grad phi|^2 for the
+ * electrostatic potential and int |grad phi_g|^2 / alpha_g for the
+ * gravitational one.
  *
  * @param app Vlasov app object
  * @param tm Time at which diagnostic is computed
@@ -734,7 +769,8 @@ void vp_field_calc_energy(
 );
 
 /**
- * Write out potential field energy.
+ * Write out the field energy diagnostic of each potential
+ * (<app>-field-energy.gkyl and <app>-field-grav-energy.gkyl).
  *
  * @param app Vlasov app object
  */

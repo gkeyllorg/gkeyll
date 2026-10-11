@@ -124,10 +124,13 @@ kinetic_accumulate_current_gr(
   kinetic_accumulate_ghost_current(app, s, qbyeps, target);
 }
 
-// Explicit coupling to Vlasov-Poisson: accumulate this species' charge density
-// onto the Poisson source ('target' is the field's rho_c), rho_s = q_s * m0.
+// Explicit coupling to Vlasov-Poisson: deposit this species' number density
+// onto the source of each potential the field solves for, weighted by the
+// species' coupling to that potential (q for the electrostatic potential,
+// alpha_g*m for the gravitational one). The sources live on the field's
+// potentials, so 'target' is unused.
 static void
-kinetic_accumulate_charge_dens(
+kinetic_accumulate_poisson_sources(
   gkyl_vlasov_app *app, struct vlasov_species *sp, const struct gkyl_array *fin,
   const struct gkyl_array *fluidin, struct gkyl_array *target
 )
@@ -135,7 +138,11 @@ kinetic_accumulate_charge_dens(
   struct vm_species *s = sp->kinetic;
 
   vm_species_moment_calc(&s->m0, s->local, app->local, fin);
-  gkyl_array_accumulate_range(target, sp->charge, s->m0.marr, &app->local);
+  for (int p = 0; p < app->field->num_pots; ++p) {
+    struct vp_potential *pot = &app->field->pots[p];
+    double weight = pot->src_weight(pot, sp->charge, sp->mass);
+    gkyl_array_accumulate_range(pot->rho, weight, s->m0.marr, &app->local);
+  }
 }
 
 // --- Constructors ------------------------------------------------------------
@@ -187,14 +194,15 @@ vlasov_kinetic_species_init(
   sp->calc_coupled_vars_func = kinetic_calc_coupled_vars;
   // Explicit field coupling by field type: Maxwell fields take the current
   // density (through the GR kernel for a triad species coupled to GR-Maxwell),
-  // Poisson fields the charge density, the null field nothing.
+  // Poisson fields the weighted number density of each potential, the null
+  // field nothing.
   enum gkyl_field_id field_id = app->field->field_id;
   switch (field_id) {
     case GKYL_FIELD_NULL:
       sp->accumulate_field_coupling_func = species_no_field_coupling;
       break;
     case GKYL_FIELD_PHI:
-      sp->accumulate_field_coupling_func = kinetic_accumulate_charge_dens;
+      sp->accumulate_field_coupling_func = kinetic_accumulate_poisson_sources;
       break;
     default:
       sp->accumulate_field_coupling_func =
@@ -252,8 +260,9 @@ vlasov_species_calc_coupled_vars(
 }
 
 // Accumulate this species' explicit source contribution onto the field's
-// target array (Maxwell: current onto emout; Poisson: charge density onto
-// rho_c; no-op for the null field and for implicitly-coupled fluid species).
+// target array (Maxwell: current onto emout; Poisson: the weighted number
+// density onto the source of each potential, target unused; no-op for the null
+// field and for implicitly-coupled fluid species).
 void
 vlasov_species_accumulate_field_coupling(
   gkyl_vlasov_app *app, struct vlasov_species *sp, const struct gkyl_array *fin,

@@ -1626,6 +1626,7 @@ vlasov_field_lw_new(lua_State *L)
 
   vm_field.epsilon0 = glua_tbl_get_number(L, "epsilon0", 1.0);
   vm_field.mu0 = glua_tbl_get_number(L, "mu0", 1.0);
+  vm_field.alpha_g = glua_tbl_get_number(L, "alphaG", 0.0);
   vm_field.elcErrorSpeedFactor = glua_tbl_get_number(L, "elcErrorSpeedFactor", 0.0);
   vm_field.mgnErrorSpeedFactor = glua_tbl_get_number(L, "mgnErrorSpeedFactor", 0.0);
   vm_field.K_phi = glua_tbl_get_number(L, "K_phi", 0.0);

@@ -354,6 +354,16 @@ struct gkyl_vlasov_field {
 
   double epsilon0; // Permittivity of free space.
   double mu0; // Permeability of free space.
+  // Gravitational coupling 4 pi G in code units: Vlasov-Poisson solves the
+  // self-gravity Poisson equation nabla^2 phi_g = alpha_g * sum_s m_s n_s and
+  // accelerates every species by -grad(phi_g) when alpha_g > 0 (and some species
+  // has mass). The electrostatic Poisson equation is solved when epsilon0 > 0
+  // (and some species is charged); either, both, or neither may be present. In
+  // normalized units with epsilon0 = 1 and a reference species of unit charge
+  // and mass, alpha_g = 4 pi G epsilon0 m^2/q^2 is the dimensionless ratio of
+  // the gravitational to the electrostatic coupling between two reference
+  // particles.
+  double alpha_g;
   // Correction speeds as a fraction of the speed of light for div(E)/div(B) errors.
   double elcErrorSpeedFactor, mgnErrorSpeedFactor;
   double K_phi, K_psi; // Geometric source coefficients for electric/magnetic cleaning fields.

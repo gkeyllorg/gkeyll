@@ -43,7 +43,7 @@ struct gkyl_dg_vlasov_inp {
     *hamil; // Hamiltonian utilized to compute advection in configuration and velocity space.
   const struct gkyl_array *
     qmem; // q/m*(E,B) electromagnetic fields (including external electromagnetic fields and forces).
-  const struct gkyl_array *pot_tot; // (q/m*(phi + phi_ext) + m*phi_g, q/m*A_ext) total potentials.
+  const struct gkyl_array *pot_tot; // (q/m*(phi + phi_ext) + phi_g, q/m*A_ext) total potentials.
   const struct gkyl_array *rad; // Radiation drag forces, F_rad(v).
   const struct gkyl_array
     *conf_flux_surf; // Modal expansion of fluxes at configuration space surfaces.
