@@ -507,7 +507,7 @@ main(int argc, char **argv)
     .cells = {cells_v[0], cells_v[1]},
     .polarization_density = ctx.n0,
 
-    .flr = {.type = GKYL_GK_FLR_PADE_CONST, .Tperp = ctx.Te},
+    .flr = {.Tperp = ctx.Te},
 
     .projection =
       {
@@ -574,7 +574,7 @@ main(int argc, char **argv)
     .cells = {cells_v[0], cells_v[1]},
     .polarization_density = ctx.n0,
 
-    .flr = {.type = GKYL_GK_FLR_PADE_CONST, .Tperp = ctx.Ti},
+    .flr = {.Tperp = ctx.Ti},
 
     .projection =
       {
@@ -635,6 +635,7 @@ main(int argc, char **argv)
     .poisson_bcs =
       {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}}},
+    .flr = {.type = GKYL_GK_FLR_PADE},
   };
 
   // GK app.

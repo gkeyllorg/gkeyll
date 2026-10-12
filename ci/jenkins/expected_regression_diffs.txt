@@ -66,7 +66,7 @@ gyrokinetic/creg/rt_gk_sheath_1x2v_p1   # change to coulomb log
 gyrokinetic/creg/rt_gk_sheath_2x2v_p1   # change to coulomb log
 gyrokinetic/creg/rt_gk_sheath_3x2v_p1   # change to coulomb log
 gyrokinetic/creg/rt_gk_sheath_cx_2x2v_p1   # change to coulomb log
-gyrokinetic/creg/rt_gk_sheath_flr_2x2v_p1   # change to coulomb log
+gyrokinetic/creg/rt_gk_sheath_flr_2x2v_p1   # FLR Pade rework (DR #797): field-level FLR type, operator fixes, FLR field energy
 gyrokinetic/creg/rt_gk_sheath_fluid_neut_1x2v_p1   # change to coulomb log
 gyrokinetic/creg/rt_gk_sheath_heat_source_2x2v_p1   # change to coulomb log
 gyrokinetic/creg/rt_gk_sheath_nonuniformv_1x2v_p1   # change to coulomb log

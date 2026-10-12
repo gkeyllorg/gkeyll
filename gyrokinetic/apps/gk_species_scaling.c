@@ -102,7 +102,7 @@ gk_species_scaling_apply_boltzmann(
   );
 
   // Compute ( phi-phi_sheath)/(T/m) ).
-  gkyl_array_copy_range(sca->buffer_conf, app->field->phi_smooth, &app->local);
+  gkyl_array_copy_range(sca->buffer_conf, gks->gyro_phi, &app->local);
   gkyl_array_accumulate_range(sca->buffer_conf, -1.0, sca->sheath_val, &app->local);
   gkyl_dg_div_op_range(
     gks->lte.moms.mem_geo, &app->basis, 0, sca->buffer_conf, 0, sca->buffer_conf, 2,

@@ -66,6 +66,16 @@ void gkyl_superlu_brhs_from_array(struct gkyl_superlu_prob *prob, const double *
 void gkyl_superlu_solve(struct gkyl_superlu_prob *prob);
 
 /**
+ * Compute the matrix-vector products y_i = A_i*x_i for each of the nprob
+ * problem matrices A_i. Does not require the A_i to be factorized.
+ *
+ * @param prob SuperLu struct holding the assembled A matrices.
+ * @param x Input vector (length nprob*ncol).
+ * @param y Output vector (length nprob*mrow).
+ */
+void gkyl_superlu_mat_vec(struct gkyl_superlu_prob *prob, const double *x, double *y);
+
+/**
  * Update the values of the left-hand-side SuperLU matrix A in Ax=B problem from a list of
  * triples. Assumes the sparsity pattern didn't change.
  *
