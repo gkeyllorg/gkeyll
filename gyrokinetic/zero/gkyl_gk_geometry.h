@@ -19,10 +19,10 @@ struct gk_geom_surf {
     jacobgeo_ratio; // 1 component. Ratio of jacobgeo from neigboring blocks (valid only at the boundary, stored in ghost cell).
   struct gkyl_array *bmag; // 1 component. B Magnitude of magnetic field.
   struct gkyl_array
-    *b_i; // 3 components. Contravariant components of magnetic field vector b_1, b_2, b_3.
-  struct gkyl_array *cmag; // 1 component. C = JB/sqrt(g_33).
+    *b_i; // 3 components. Covariant components of magnetic field unit vector b_1, b_2, b_3.
+  struct gkyl_array *cmag; // 1 component. Clebsch magnitude J|B|/sqrt(g_33).
   struct gkyl_array *jacobtot_inv; // 1 component. 1/(JB).
-  struct gkyl_array *B3; // 1 component n^3 \dot \vec{B} = 1/g_33.
+  struct gkyl_array *B3; // 1 component. Signed n^3 \dot \vec{B}.
   struct gkyl_array *normcurlbhat; // 1 component, n^m \dot curl(bhat).
   struct gkyl_array
     *normals; // 9 components Cartesian components of normal. vectors in order n^1, n^2, n^3.
@@ -39,9 +39,9 @@ struct gk_geom_surf {
   struct gkyl_array *normcurlbhat_nodal; // 1 component, n^m \dot curl(bhat).
   struct gkyl_array *jacobgeo_nodal; // 1 component. Configuration space jacobian J.
   struct gkyl_array
-    *b_i_nodal; // 3 components. Contravariant components of magnetic field vector b_1, b_2, b_3.
+    *b_i_nodal; // 3 components. Covariant components of magnetic field unit vector b_1, b_2, b_3.
   struct gkyl_array *b_i_nodal_fd; // 3 components. b_i at surf quad nodes and nodes epsilon away.
-  struct gkyl_array *cmag_nodal; // 1 component. C = JB/sqrt(g_33).
+  struct gkyl_array *cmag_nodal; // 1 component. Clebsch magnitude J|B|/sqrt(g_33).
   struct gkyl_array *jacobtot_inv_nodal; // 1 component. 1/(JB).
   struct gkyl_array *ddtheta_nodal; // dphi/dtheta, dR/dtheta, dz/dtheta at surf quad nodes.
   struct gkyl_array *ddpsi_nodal; // dPsi/dpsi at surf quad nodes.
@@ -56,7 +56,7 @@ struct gk_geom_surf {
   struct gkyl_array
     *bcart_nodal; // 3 components. Cartesian components of magnetic field unit vector b_X, b_Y, b_Z.
 
-  struct gkyl_array *B3_nodal; // 1 component n^3 \dot \vec{B} = 1/g_33.
+  struct gkyl_array *B3_nodal; // 1 component. Signed n^3 \dot \vec{B}.
   struct gkyl_array *lenr_nodal; // 1 components Jc|n^i|.
   struct gkyl_array *bimpactangle_nodal; // 1 component arcsin(1/sqrt(g_33 * g^33))
   struct gkyl_array *deltats_nodal; // 1 component. Function of psi-alpha.
@@ -105,7 +105,7 @@ struct gk_geom_int {
     *b_i; // 3 components. Covariant components of magnetic field unit vector b_1, b_2, b_3.
   struct gkyl_array
     *bcart; // 3 components. Cartesian components of magnetic field unit vector b_X, b_Y, b_Z.
-  struct gkyl_array *cmag; // 1 component. C = JB/sqrt(g_33).
+  struct gkyl_array *cmag; // 1 component. Clebsch magnitude J|B|/sqrt(g_33).
   struct gkyl_array *jacobtot; // 1 component. Phase space Jacobian = JB.
   struct gkyl_array *jacobtot_inv; // 1 component. 1/(JB).
   struct gkyl_array *gxxj; // 1 component. g^{xx} * J. For poisson solve.
@@ -116,9 +116,9 @@ struct gk_geom_int {
     *eps2; // 1 component. eps2 = Jg^33 - J/g_33. For poisson if z derivatives are kept.
   struct gkyl_array *dualcurlbhat; // 3 components, e^m \dot curl(bhat).
   struct gkyl_array *dualcurlbhatoverB; // 3 components, e^m \dot curl(bhat)/|B|.
-  struct gkyl_array *rtg33inv; // 1 component 1/sqrt(g_33).
-  struct gkyl_array *bioverJB; // 1 component b_i/J/|B|.
-  struct gkyl_array *B3; // 1 component e^3 \dot \vec{B} = 1/g_33.
+  struct gkyl_array *rtg33inv; // 1 component. Signed b^3 = B^3/|B|; +1/sqrt(g_33) if B is along e_3.
+  struct gkyl_array *bioverJB; // 3 components b_i/J/|B|.
+  struct gkyl_array *B3; // 1 component. Signed e^3 \dot \vec{B}.
   struct gkyl_array *qprofile; // 1 component. Flux surface averaged q profle q(psi).
 
   // Arrays below are just for computation of arrays above
@@ -162,9 +162,9 @@ struct gk_geom_int {
   struct gkyl_array *b_i_nodal_fd; // 3 components. b_i at interior quad nodes and nodes epsilon away
   struct gkyl_array
     *bcart_nodal; // 3 components. Cartesian components of magnetic field unit vector b_X, b_Y, b_Z.
-  struct gkyl_array *B3_nodal; // 1 component e^3 \dot \vec{B} = 1/g_33
+  struct gkyl_array *B3_nodal; // 1 component. Signed e^3 \dot \vec{B}.
   struct gkyl_array *dualcurlbhatoverB_nodal; // 3 components, e^m \dot curl(bhat)/|B|
-  struct gkyl_array *rtg33inv_nodal; // 1 component 1/sqrt(g_33)
+  struct gkyl_array *rtg33inv_nodal; // 1 component. Signed b^3 = B^3/|B|.
   struct gkyl_array *bioverJB_nodal; // 3 components b_i/J/|B|
 };
 
