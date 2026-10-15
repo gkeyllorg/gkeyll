@@ -120,3 +120,12 @@ double gkyl_calc_Morse_alpha_E(
   double ns, double nr, double ms, double mr, double qs, double qr, double Ts, double Tr,
   double bmag, double eps0, double hbar
 );
+
+/** Species-ordered Coulomb logarithm; temperatures are energies (T/m = v_t^2).
+ * This is the native one-sided expression. Collision frequencies use the
+ * average of the s,r and r,s expressions. All parameters use consistent units.
+ */
+double gkyl_spitzer_coll_freq_calc_coulomb_log(
+  double ns, double nr, double ms, double mr, double Ts, double Tr, double qs, double qr,
+  double bmag, double eps0, double hbar
+);
