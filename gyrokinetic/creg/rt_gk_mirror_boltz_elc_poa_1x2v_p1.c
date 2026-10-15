@@ -368,7 +368,7 @@ create_ctx(void)
   double Z_m = 0.98;
 
   // POA parameters
-  double alpha_oap = 5e-6; // Factor multiplying collisionless terms.
+  double alpha_oap = 5e-5; // Factor multiplying collisionless terms.
   double alpha_fdp = 1.0;
 
   // Duration of each phase.
@@ -596,6 +596,17 @@ run_phase(
   struct gkyl_gyrokinetic_collisionless collisionless_inp = {
     .type = GKYL_GK_COLLISIONLESS_ES,
     .scale_factor = pparams->alpha,
+    .time_rate_multiplier =
+      {
+        .num_multipliers = pparams->phase == GK_POA_OAP ? 1 : 0,
+        .multiplier[0] =
+          {
+            .type = GKYL_GK_FDOT_MULTIPLIER_FIXED_FACTOR_TIMES_OMEGA_MAX,
+            .cellwise_const = true,
+            .cfl_factor_times_omega_max = 0.1,
+            .write_diagnostics = true,
+          },
+      },
   };
   struct gkyl_gyrokinetic_fdot_multiplier fdot_mult_inp = {
     .num_multipliers = 1,
