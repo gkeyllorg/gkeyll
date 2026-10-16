@@ -302,36 +302,6 @@ bfield_func(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
   fout[2] = B_z;
 }
 
-void
-bc_shift_func_lo(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
-{
-  double x = xc[0];
-  struct gk_app_ctx *app = ctx;
-
-  double Cy = app->Cy;
-  double z_min = app->z_min;
-  double z_max = app->z_max;
-
-  double r = r_x(x, app->r0);
-
-  fout[0] = Cy * (alpha(r, z_min, 0.0, ctx) - alpha(r, z_max, 0.0, ctx));
-}
-
-void
-bc_shift_func_up(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
-{
-  double x = xc[0];
-  struct gk_app_ctx *app = ctx;
-
-  double Cy = app->Cy;
-  double z_min = app->z_min;
-  double z_max = app->z_max;
-
-  double r = r_x(x, app->r0);
-
-  fout[0] = -Cy * (alpha(r, z_min, 0.0, ctx) - alpha(r, z_max, 0.0, ctx));
-}
-
 double
 Bmag(double r, double theta, void *ctx)
 {
@@ -943,13 +913,6 @@ main(int argc, char **argv)
     .c2p_ctx = &ctx,
     .bfield_func = bfield_func, // magnetic field magnitude
     .bfield_ctx = &ctx,
-    .core_parallel_bcs =
-      {
-        .lower_shift_func = bc_shift_func_lo,
-        .upper_shift_func = bc_shift_func_up,
-        .lower_shift_ctx = &ctx,
-        .upper_shift_ctx = &ctx,
-      },
   };
 
   // Parallelism

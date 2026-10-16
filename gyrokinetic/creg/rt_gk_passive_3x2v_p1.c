@@ -21,6 +21,9 @@ struct passive_ctx {
   double Te; // Electron temperature.
   double n0; // Reference number density (1 / m^3).
   double B0; // Reference magnetic field strength (Tesla).
+  double R0, r0; // Major radius, and minor radius at x = 0.
+  double Cy; // Binormal normalization (y/Cy is a toroidal angle).
+  double q0, q_shear; // Safety factor q(x) = q0 + q_shear*x.
 
   double ux, uy, uz; // Passive advection velocity.
   double f_amplitude; // Amplitude of the distribution.
@@ -78,6 +81,12 @@ create_ctx(void)
   double Lx = 1.0; // Domain size (configuration space: x-direction).
   double Ly = 1.0; // Domain size (configuration space: y-direction).
   double Lz = 1.0; // Domain size (configuration space: z-direction).
+
+  // Closed geometry: circular flux surfaces, with y spanning the whole torus (Ly = 2*pi*Cy).
+  double R0 = 10.0, r0 = 0.5; // Major radius, and minor radius at x = 0.
+  double Cy = Ly / (2.0 * M_PI); // Binormal normalization.
+  // q(x) = 2.5 + x, so the twist-shift shift is S_lo = -2*pi*Cy*q(x) = -(2.5 + x)*Ly.
+  double q0 = 2.5, q_shear = 1.0;
   double vpar_max_elc =
     4.0 * vte; // Domain boundary (electron velocity space: parallel velocity direction).
   double mu_max_elc =
@@ -102,9 +111,14 @@ create_ctx(void)
     .Te = Te,
     .n0 = n0,
     .B0 = B0,
+    .R0 = R0,
+    .r0 = r0,
+    .Cy = Cy,
+    .q0 = q0,
+    .q_shear = q_shear,
     .ux = ux,
     .uy = uy,
-    uz = uz,
+    .uz = uz,
     .f_amplitude = f_amplitude,
     .f_floor = f_floor,
     .Nx = Nx,
@@ -170,48 +184,53 @@ passive_velocity_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_REST
   fout[2] = uz;
 }
 
+static inline double
+qprofile(double x, struct passive_ctx *app)
+{
+  // Safety factor, linear in x.
+  return app->q0 + app->q_shear * x;
+}
+
 static inline void
 mapc2p(double t, const double *GKYL_RESTRICT zc, double *GKYL_RESTRICT xp, void *ctx)
 {
+  // Concentric circular flux surfaces with straight field lines: r = r0 + x,
+  // theta = 2*pi*z/Lz - pi and phi = y/Cy - q(x)*theta. z_lo and z_up are the same
+  // poloidal location, so the app computes the twist-shift shift from this mapping.
   double x = zc[0], y = zc[1], z = zc[2];
 
   struct passive_ctx *app = ctx;
+  double r = app->r0 + x;
+  double theta = 2.0 * M_PI * z / app->Lz - M_PI;
+  double phi = y / app->Cy - qprofile(x, app) * theta;
+  double R = app->R0 + r * cos(theta);
 
-  xp[0] = x;
-  xp[1] = y;
-  xp[2] = z;
+  xp[0] = R * cos(phi);
+  xp[1] = R * sin(phi);
+  xp[2] = r * sin(theta);
 }
 
 void
 bfield_func(double t, const double *GKYL_RESTRICT zc, double *GKYL_RESTRICT fout, void *ctx)
 {
+  // Magnetic field of magnitude B0 along the field lines (x, y = const) of mapc2p.
   double x = zc[0], y = zc[1], z = zc[2];
 
   struct passive_ctx *app = ctx;
-  double B0 = app->B0;
+  double r = app->r0 + x, q = qprofile(x, app);
+  double theta = 2.0 * M_PI * z / app->Lz - M_PI;
+  double phi = y / app->Cy - q * theta;
+  double R = app->R0 + r * cos(theta);
 
-  // zc are computational coords.
-  // Set Cartesian components of magnetic field.
-  fout[0] = 0.0;
-  fout[1] = 0.0;
-  fout[2] = B0;
-}
-
-void
-bc_shift_func_lo(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
-{
-  double x = xc[0], y = xc[1], z = xc[2];
-
-  struct gk_app_ctx *app = ctx;
-
-  fout[0] = -(x - 0.5);
-}
-
-void
-bc_shift_func_up(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
-{
-  bc_shift_func_lo(t, xc, fout, ctx);
-  fout[0] *= -1.0;
+  // Cartesian components of d(mapc2p)/dtheta along a field line.
+  double b[3] = {
+    -r * sin(theta) * cos(phi) + R * q * sin(phi), -r * sin(theta) * sin(phi) - R * q * cos(phi),
+    r * cos(theta)
+  };
+  double bnorm = sqrt(b[0] * b[0] + b[1] * b[1] + b[2] * b[2]);
+  for (int d = 0; d < 3; d++) {
+    fout[d] = app->B0 * b[d] / bnorm;
+  }
 }
 
 int
@@ -312,13 +331,6 @@ main(int argc, char **argv)
         .c2p_ctx = &ctx,
         .bfield_func = bfield_func,
         .bfield_ctx = &ctx,
-        .core_parallel_bcs =
-          {
-            .lower_shift_func = bc_shift_func_lo,
-            .upper_shift_func = bc_shift_func_up,
-            .lower_shift_ctx = &ctx,
-            .upper_shift_ctx = &ctx,
-          },
       },
 
     .num_periodic_dir = 1,

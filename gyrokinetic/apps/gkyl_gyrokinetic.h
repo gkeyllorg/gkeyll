@@ -236,14 +236,6 @@ struct gkyl_gyrokinetic_bc {
 
 // Parameters for BCs in closed flux surfaces.
 struct gkyl_gyrokinetic_core_parallel_bcs {
-  void (*lower_shift_func)(
-    double t, const double *xn, double *fout, void *ctx
-  ); // Lower twist-shift function.
-  void (*upper_shift_func)(
-    double t, const double *xn, double *fout, void *ctx
-  ); // Upper twist-shift function.
-  void *lower_shift_ctx; // Context for lower twist-shift function.
-  void *upper_shift_ctx; // Context for upper twist-shift function.
   int ts_upsample_factor; // Twist-shift supersampling factor (default 4), set to -1 to disable filter.
   int ts_filter_half_width; // Twist-shift filter stencil half-width in cells of the simulation grid (default 1), set to -1 to disable filter.
   double

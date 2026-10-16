@@ -834,12 +834,14 @@ and the maximum number of cuts in a block is %d\n\n",
       gkyl_array_copy_range_to_range(
         buffer, delta_ts, &sbapp->local_upper_skin[par_dir], &sbapp->local_upper_ghost[par_dir]
       );
-      gkyl_array_accumulate_range(delta_ts, -1.0, buffer, &sbapp->local_upper_skin[par_dir]);
+      gkyl_array_scale_range(delta_ts, -1.0, &sbapp->local_upper_skin[par_dir]);
+      gkyl_array_accumulate_range(delta_ts, 1.0, buffer, &sbapp->local_upper_skin[par_dir]);
 
       gkyl_array_copy_range_to_range(
         buffer, delta_ts, &sbapp->local_lower_skin[par_dir], &sbapp->local_lower_ghost[par_dir]
       );
-      gkyl_array_accumulate_range(delta_ts, -1.0, buffer, &sbapp->local_lower_skin[par_dir]);
+      gkyl_array_scale_range(delta_ts, -1.0, &sbapp->local_lower_skin[par_dir]);
+      gkyl_array_accumulate_range(delta_ts, 1.0, buffer, &sbapp->local_lower_skin[par_dir]);
 
       gkyl_array_release(buffer);
 
