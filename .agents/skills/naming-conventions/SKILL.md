@@ -30,3 +30,4 @@ description: Apply Gkeyll naming conventions when creating, editing, or reviewin
 ### Variables
 
 - Do not use single letter names for variables whose scope spans more than 15 lines.
+- Refer to buffer arrays as "buffer" and not as "scratch". 

@@ -3,7 +3,7 @@
 
 static void
 gk_neut_species_collisionless_rhs_disabled(
-  gkyl_gyrokinetic_app *app, struct gk_neut_species *species, struct gk_collisionless *gkcls,
+  gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gk_collisionless *gkcls,
   const struct gkyl_array *fin, struct gkyl_array *rhs
 )
 {
@@ -11,13 +11,13 @@ gk_neut_species_collisionless_rhs_disabled(
 
 static void
 gk_neut_species_collisionless_rhs_enabled(
-  gkyl_gyrokinetic_app *app, struct gk_neut_species *species, struct gk_collisionless *gkcls,
+  gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gk_collisionless *gkcls,
   const struct gkyl_array *fin, struct gkyl_array *rhs
 )
 {
   struct timespec wst = gkyl_wall_clock();
 
-  gkyl_dg_updater_vlasov_advance(gkcls->vlasov_slvr, &species->local, fin, species->cflrate, rhs);
+  gkyl_dg_updater_vlasov_advance(gkcls->vlasov_slvr, &gkns->local, fin, gkns->cflrate, rhs);
 
   app->stat.neut_species_collisionless_tm += gkyl_time_diff_now_sec(wst);
 }
@@ -116,11 +116,11 @@ gk_neut_species_collisionless_init(
 
 void
 gk_neut_species_collisionless_rhs(
-  gkyl_gyrokinetic_app *app, struct gk_neut_species *species, struct gk_collisionless *gkcls,
+  gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gk_collisionless *gkcls,
   const struct gkyl_array *fin, struct gkyl_array *rhs
 )
 {
-  gkcls->rhs_func_neut(app, species, gkcls, fin, rhs);
+  gkcls->rhs_func_neut(app, gkns, gkcls, fin, rhs);
 }
 
 void

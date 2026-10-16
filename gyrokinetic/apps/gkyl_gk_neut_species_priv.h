@@ -21,10 +21,10 @@
  * 
  * @param gk Input parameters from input files.
  * @param app Gyrokinetic app.
- * @param ns Neutral species to initialize.
+ * @param gkns Neutral species to initialize.
  */
 void gk_neut_species_fluid_init(
-  struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_neut_species *ns
+  struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns
 );
 
 /**
@@ -32,10 +32,10 @@ void gk_neut_species_fluid_init(
  * 
  * @param gk Input parameters from input files.
  * @param app Gyrokinetic app.
- * @param ns Neutral species to initialize.
+ * @param gkns Neutral species to initialize.
  */
 void gk_neut_species_kinetic_init(
-  struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_neut_species *ns
+  struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns
 );
 
 /**
@@ -45,17 +45,17 @@ void gk_neut_species_kinetic_init(
  */
 
 double gk_neut_species_rhs_static(
-  gkyl_gyrokinetic_app *app, struct gk_neut_species *species, const struct gkyl_array *fin,
+  gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, const struct gkyl_array *fin,
   struct gkyl_array *rhs, struct gkyl_array **bflux_moms
 );
 
 double gk_neut_species_rhs_implicit_static(
-  gkyl_gyrokinetic_app *app, struct gk_neut_species *species, const struct gkyl_array *fin,
+  gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, const struct gkyl_array *fin,
   struct gkyl_array *rhs, struct gkyl_array **bflux_moms, double dt
 );
 
 void gk_neut_species_apply_bc_static(
-  gkyl_gyrokinetic_app *app, const struct gk_neut_species *species, struct gkyl_array *f
+  gkyl_gyrokinetic_app *app, const struct gk_neut_species *gkns, struct gkyl_array *f
 );
 
 void gk_neut_species_step_f_dynamic(struct gkyl_array *out, double dt, const struct gkyl_array *inp);
@@ -129,5 +129,5 @@ void gk_neut_species_n_iter_corr_disabled(
 );
 
 void gk_neut_species_release_static(
-  const gkyl_gyrokinetic_app *app, const struct gk_neut_species *s
+  const gkyl_gyrokinetic_app *app, const struct gk_neut_species *gkns
 );

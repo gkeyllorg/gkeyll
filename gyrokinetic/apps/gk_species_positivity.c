@@ -6,8 +6,8 @@ gk_species_positivity_num_species_in_quasineut(gkyl_gyrokinetic_app *app)
 {
   int num_quasineut_rescale = 0;
   for (int i = 0; i < app->num_species; ++i) {
-    struct gk_species *s = &app->species[i];
-    if (s->info.positivity.type && s->info.positivity.quasineutrality_rescale) {
+    struct gk_species *gks = &app->species[i];
+    if (gks->info.positivity.type && gks->info.positivity.quasineutrality_rescale) {
       num_quasineut_rescale += 1;
     }
   }
@@ -27,7 +27,7 @@ gks_pos_deltaf_moms_calc(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_positivity *pos
 )
 {
-  gk_species_moment_calc(&pos->moms, gks->local, app->local, pos->fbuffer_ptr);
+  gk_species_moment_calc(app, &pos->moms, gks->local, app->local, pos->fbuffer_ptr);
 
   // Rescale moment by inverse of Jacobian if needed.
   gk_species_moment_diag_jacobgeo_div(app, &pos->moms, pos->moms.marr, pos->moms.marr);
@@ -106,7 +106,7 @@ gks_pos_deltaf_integ_moms_calc(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_positivity *pos
 )
 {
-  gk_species_moment_calc(&pos->integ_moms, gks->local, app->local, pos->fbuffer_ptr);
+  gk_species_moment_calc(app, &pos->integ_moms, gks->local, app->local, pos->fbuffer_ptr);
 }
 
 static void

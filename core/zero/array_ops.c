@@ -118,32 +118,41 @@ gkyl_array_set(struct gkyl_array *out, double a, const struct gkyl_array *inp)
 struct gkyl_array *
 gkyl_array_set_offset(struct gkyl_array *out, double a, const struct gkyl_array *inp, int coff)
 {
-  assert(out->type == GKYL_DOUBLE);
+  return gkyl_array_set_offset_ncoeff(
+    out, a, inp, GKYL_MIN2(out->ncomp, inp->ncomp), out->ncomp < inp->ncomp ? coff : 0,
+    out->ncomp < inp->ncomp ? 0 : coff
+  );
+}
+
+struct gkyl_array *
+gkyl_array_set_offset_ncoeff(
+  struct gkyl_array *out, double a, const struct gkyl_array *inp, int ncoeff, int inp_offset,
+  int out_offset
+)
+{
+  assert(out->type == GKYL_DOUBLE && inp->type == GKYL_DOUBLE);
   assert(out->size == inp->size);
+  assert(ncoeff >= 0 && inp_offset >= 0 && out_offset >= 0);
+  assert((size_t)inp_offset <= inp->ncomp && (size_t)ncoeff <= inp->ncomp - inp_offset);
+  assert((size_t)out_offset <= out->ncomp && (size_t)ncoeff <= out->ncomp - out_offset);
+  assert(gkyl_array_is_cu_dev(out) == gkyl_array_is_cu_dev(inp));
+
+  if (ncoeff == 0 || out->size == 0) {
+    return out;
+  }
 
 #ifdef GKYL_HAVE_CUDA
-  assert(gkyl_array_is_cu_dev(out) == gkyl_array_is_cu_dev(inp));
   if (gkyl_array_is_cu_dev(out)) {
-    gkyl_array_set_offset_cu(out, a, inp, coff);
+    gkyl_array_set_offset_ncoeff_cu(out, a, inp, ncoeff, inp_offset, out_offset);
     return out;
   }
 #endif
 
   double *out_d = out->data;
   const double *inp_d = inp->data;
-  if (NCOM(out) < NCOM(inp)) {
-    // Interpret offset as offset in input components.
-    for (size_t i = 0; i < out->size; ++i) {
-      for (size_t c = 0; c < NCOM(out); ++c) {
-        out_d[i * NCOM(out) + c] = a * inp_d[i * NCOM(inp) + c + coff];
-      }
-    }
-  } else {
-    // Interpret offset as offset in output components.
-    for (size_t i = 0; i < out->size; ++i) {
-      for (size_t c = 0; c < NCOM(inp); ++c) {
-        out_d[i * NCOM(out) + c + coff] = a * inp_d[i * NCOM(inp) + c];
-      }
+  for (size_t i = 0; i < out->size; ++i) {
+    for (int k = 0; k < ncoeff; ++k) {
+      out_d[i * NCOM(out) + out_offset + k] = a * inp_d[i * NCOM(inp) + inp_offset + k];
     }
   }
   return out;
@@ -468,29 +477,35 @@ gkyl_array_set_offset_range(
   const struct gkyl_range *range
 )
 {
+  return gkyl_array_set_offset_ncoeff_range(
+    out, a, inp, GKYL_MIN2(out->ncomp, inp->ncomp), out->ncomp < inp->ncomp ? coff : 0,
+    out->ncomp < inp->ncomp ? 0 : coff, range
+  );
+}
+
+struct gkyl_array *
+gkyl_array_set_offset_ncoeff_range(
+  struct gkyl_array *out, double a, const struct gkyl_array *inp, int ncoeff, int inp_offset,
+  int out_offset, const struct gkyl_range *range
+)
+{
   assert(out->type == GKYL_DOUBLE && inp->type == GKYL_DOUBLE);
   assert(out->size == inp->size);
+  assert(ncoeff >= 0 && inp_offset >= 0 && out_offset >= 0);
+  assert((size_t)inp_offset <= inp->ncomp && (size_t)ncoeff <= inp->ncomp - inp_offset);
+  assert((size_t)out_offset <= out->ncomp && (size_t)ncoeff <= out->ncomp - out_offset);
+  assert(gkyl_array_is_cu_dev(out) == gkyl_array_is_cu_dev(inp));
+
+  if (ncoeff == 0 || range->volume == 0) {
+    return out;
+  }
 
 #ifdef GKYL_HAVE_CUDA
-  assert(gkyl_array_is_cu_dev(out) == gkyl_array_is_cu_dev(inp));
   if (gkyl_array_is_cu_dev(out)) {
-    gkyl_array_set_offset_range_cu(out, a, inp, coff, range);
+    gkyl_array_set_offset_ncoeff_range_cu(out, a, inp, ncoeff, inp_offset, out_offset, range);
     return out;
   }
 #endif
-
-  long outnc = NCOM(out), inpnc = NCOM(inp);
-  long n;
-  int outoff, inoff;
-  if (outnc < inpnc) {
-    n = outnc;
-    outoff = 0;
-    inoff = coff;
-  } else {
-    n = inpnc;
-    outoff = coff;
-    inoff = 0;
-  }
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, range);
@@ -498,7 +513,9 @@ gkyl_array_set_offset_range(
     long start = gkyl_range_idx(range, iter.idx);
     double *out_d = gkyl_array_fetch(out, start);
     const double *inp_d = gkyl_array_cfetch(inp, start);
-    array_set1(n, out_d + outoff, a, inp_d + inoff);
+    for (int k = 0; k < ncoeff; ++k) {
+      out_d[out_offset + k] = a * inp_d[inp_offset + k];
+    }
   }
 
   return out;

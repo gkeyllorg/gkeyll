@@ -333,7 +333,8 @@ enum gkyl_gk_species_scaling_type {
   GKYL_GK_SPECIES_SCALING_NONE = 0, // No scaling.
   GKYL_GK_SPECIES_SCALING_RECYCLING_IZ_BALANCE, // Balance between recycling and ionization.
   GKYL_GK_SPECIES_SCALING_FIXED_FRACTION, // Maintains fixed fraction relative to another species.
-  GKYL_GK_SPECIES_SCALING_BOLTZMANN // n_s = n_{s,sheath}*exp(-q_s*(phi-phi_sheath)/T_s).
+  GKYL_GK_SPECIES_SCALING_BOLTZMANN, // n_s = n_{s,sheath}*exp(-q_s*(phi-phi_sheath)/T_s).
+  GKYL_GK_SPECIES_SCALING_ADIABATIC // Adiabatic response for core simulations.
 };
 
 // Input parameters for scaling a species every time step.
@@ -448,9 +449,9 @@ struct gkyl_gyrokinetic_species {
   char name[128]; // Species name.
 
   double charge, mass; // Charge and mass.
-  int vdim; // Velocity-space dimensions.
+  int vdim; // Velocity-space dimensions; ignored for fluid species, which always assume 2.
   double lower[GKYL_MAX_VDIM], upper[GKYL_MAX_VDIM]; // Lower, upper bounds of velocity-space.
-  int cells[GKYL_MAX_VDIM]; // Velocity-space cells.
+  int cells[GKYL_MAX_VDIM]; // Velocity-space cells; cells[0]==0 selects fluid.
 
   struct gkyl_mapc2p_inp mapc2p;
 
@@ -579,8 +580,9 @@ struct gkyl_gyrokinetic_field {
   double polarization_bmag; // B factor in the polarization density.
   double kperpSq; // kperp^2 parameter for 1D field equations
 
-  // parameters for adiabatic electrons simulations
-  double electron_mass, electron_charge, electron_density, electron_temp;
+  // Parameters for Boltzmann electron simulations. Adiabatic species are
+  // instead set with GKYL_GK_SPECIES_SCALING_ADIABATIC in the species input.
+  double electron_mass, electron_charge, electron_temp;
 
   struct gkyl_gyrokinetic_bc poisson_bcs[2 * GKYL_MAX_CDIM];
 
