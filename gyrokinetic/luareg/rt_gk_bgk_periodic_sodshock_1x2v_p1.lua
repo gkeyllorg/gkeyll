@@ -80,6 +80,7 @@ gyrokineticApp = Gyrokinetic.App.new {
 
   -- Neutral species.
   neut = Gyrokinetic.Species.new {
+    balanceMoments = { G0.Moment.M0 },
     charge = charge, mass = mass,
     
     -- Velocity space grid.

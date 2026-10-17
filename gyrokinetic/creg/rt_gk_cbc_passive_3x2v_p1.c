@@ -619,6 +619,10 @@ main(int argc, char **argv)
     .integrated_diag_moments = {GKYL_F_MOMENT_M0M1M2},
     .boundary_flux_diagnostics =
       {.num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_M0M1M2}},
+
+    .time_rate_diagnostics = true,
+    .num_balance_moments = 1,
+    .balance_moments = {GKYL_F_MOMENT_M0},
   };
 
   // field

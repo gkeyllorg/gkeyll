@@ -772,6 +772,11 @@ main(int argc, char **argv)
             .upar = eval_upar_ion_source,
             .ctx_temp = &ctx,
             .temp = eval_temp_ion_source,
+            .diagnostics =
+              {
+                .num_integrated_diag_moments = 1,
+                .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
+              },
           },
         .diagnostics =
           {
@@ -797,8 +802,19 @@ main(int argc, char **argv)
     .time_rate_diagnostics = true,
 
     .boundary_flux_diagnostics =
-      {.num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_M0M1M2PARM2PERP}
+      {
+        .num_integrated_diag_moments = 1,
+        .integrated_diag_moments = {GKYL_F_MOMENT_M0M1M2PARM2PERP},
       },
+
+    .num_integrated_diag_moments = 1,
+    .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
+    .time_rate_diagnostics = true,
+    .num_balance_moments = 1,
+    .balance_moments = {GKYL_F_MOMENT_M0},
+
+    .boundary_flux_diagnostics =
+      {.num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}},
   };
   struct gkyl_gyrokinetic_field field = {
     .gkfield_id = GKYL_GK_FIELD_BOLTZMANN,
