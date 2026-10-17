@@ -15,6 +15,7 @@ cd "$CI_CANDIDATE_DIR"
 # reliable or reproducible way. Source the same environment used to configure
 # and build this checkout.
 . machines/module_load.stellar-intel.sh
+if [ -n "${GKEYLL_CI_DEPENDENCY_ENV:-}" ]; then . "$GKEYLL_CI_DEPENDENCY_ENV"; fi
 
 started="$(date +%s)"
 GKYL_UNIT_RESULTS="$CI_WORKSPACE/candidate-unit-results.txt" make unit-run

@@ -1,5 +1,8 @@
 # Gkeyll Jenkins CI on NERSC Perlmutter GPU
 
+To reuse an existing installation’s dependency paths and `config.mak`, see
+[Reusing installed dependencies](README.dependencies.md).
+
 This private, manually triggered CUDA CI builds candidate and baseline CUDA/NCCL
 installations on the login node, then submits unit and C-regression work to GPU
 nodes. The trusted Pipeline never comes from the candidate PR. CUDA unit tests
@@ -15,6 +18,20 @@ gyrokinetic, and PKPM, plus a moments CPU MPI test.
 Use a controller only in an authenticated Perlmutter session and as permitted
 by NERSC policy. Set a project scratch root visible to compute nodes; do not
 use `/tmp` or retain durable credentials only there.
+
+Keep the controller's `JENKINS_HOME`, plugins, extracted WAR, logs, and build
+artifacts on the shared CI scratch filesystem too, not just its workspaces.
+An exhausted home quota prevents Jenkins from saving Pipeline state and can
+produce misleading `cannot find current thread in CpsStepContext` or agent
+offline messages even when the agent is connected. Check `showquota` and the
+controller log for `Disk quota exceeded` before treating these as network errors.
+The launcher defaults `JENKINS_HOME` to `$GKEYLL_CI_ROOT/jenkins_home`; verify
+that an inherited `JENKINS_HOME` does not override it with a home-directory path.
+
+Scratch storage is subject to purge. Keep a private backup of controller
+configuration, job definitions, users, `credentials.xml`, and the complete
+`secrets/` directory on durable storage. Back up after stopping the controller
+for consistency, and refresh the backup after credential or configuration changes.
 
 An existing Java 21 (or newer) installation is sufficient. To install Java 21
 through the NERSC Spack module, use the following once:
@@ -120,10 +137,13 @@ chmod 600 "$GKEYLL_CI_ROOT/jenkins_home/jenkins-cli.auth"
 
 ### Create the GitHub credential
 
+The [shared reporter](README.reporting.md#reporting-credentials) uses this existing
+username/token credential for statuses and report comments on the tested commit.
+
 Create a classic GitHub PAT with only the `public_repo` scope and a short
-expiration. That scope covers commit statuses and pull-request or commit
-comments on the public repository; a fine-grained token needs **Commit
-statuses: write**, **Pull requests: write**, and **Contents: write** (commit
+expiration. That scope covers commit statuses and commit comments on the public
+repository; a fine-grained token needs **Commit
+statuses: write** and **Contents: write** (to create and update commit
 comments) on `gkeyllorg/gkeyll` instead. Its owner must have push access to
 `gkeyllorg/gkeyll`, which GitHub requires to publish commit statuses. In **Manage Jenkins → Credentials**, add
 it to this controller as a **Username with password** credential: use the
@@ -147,18 +167,26 @@ System → Global properties → Environment variables**, set:
 | `PERLMUTTER_GPU_SLURM_ACCOUNT` | Required NERSC project/account |
 | `PERLMUTTER_GPU_NODE_LABEL` | Optional; default `perlmutter_gpu` |
 | `PERLMUTTER_GPU_SLURM_QOS` | Optional; default `shared` |
-| `PERLMUTTER_GPU_BUILD_JOBS` | Optional; default `3` |
+| `PERLMUTTER_GPU_BUILD_JOBS` | Optional compilation workers, including C regressions; default `3` |
 | `PERLMUTTER_GPU_UNIT_TIME` | Optional; default `00:30:00` |
 | `PERLMUTTER_GPU_REGRESSION_TIME` | Optional; default `04:00:00` |
-| `PERLMUTTER_GPU_REGRESSION_JOBS` | Optional; default `4` |
+| `PERLMUTTER_GPU_REGRESSION_JOBS` | Optional regression worker budget (one per serial test or MPI rank; MPI capped at four GPUs); default `4` |
 | `PERLMUTTER_GPU_REGRESSION_TEST_TIMEOUT` | Optional; default `900` |
-| `GKEYLL_CI_TRUSTED_REF` | Optional reviewed branch or full SHA for `github_report.py` and `check_regression_results.lua`; default `main`. Set it only while staging a CI change |
+| `GKEYLL_CI_TRUSTED_REF` | Optional reviewed branch or full SHA for `github_report.py`, `jenkins_reporting.groovy`, and `check_regression_results.lua`; default `main`. Set it only while staging a CI change |
 
-`GKEYLL_CI_ROOT` retains SHA-addressed baseline and candidate build/result directories
-visible to GPU nodes. Remove `baseline-cache/perlmutter-gpu` manually after an
-intentional toolchain change that must force baseline regeneration.
+`GKEYLL_CI_ROOT` retains a separate directory for each build under
+`runs/perlmutter-gpu/`, visible to GPU nodes; see
+[persistent regression data](README.storage.md). After an intentional in-place toolchain or dependency upgrade, change
+`GKEYLL_CI_CACHE_REVISION` to force baseline regeneration in either dependency mode.
+Jenkins defaults to retaining two builds and their artifacts;
+`GKEYLL_CI_BUILDS_TO_KEEP` overrides this count.
 
 ### Create the one parameterized Pipeline job
+
+Install the [controller queue listener](README.reporting.md#controller-installation) in
+`$GKEYLL_CI_ROOT/jenkins_home/init.groovy.d/` to report pending while jobs wait
+and cancel superseded queued PR commits. It uses the global
+`PERLMUTTER_GPU_GITHUB_CREDENTIAL_ID` and requires no Slurm allocation.
 
 Create **New Item → Pipeline** named `gkeyll-ci-perlmutter_gpu`. Use
 **Pipeline script from SCM** with repository `https://github.com/gkeyllorg/gkeyll.git`,
@@ -223,3 +251,6 @@ then submit `slurm-unit-tests.perlmutter_gpu.sh` using your account, `shared`
 QoS, `--constraint gpu`, 32 CPUs, and one GPU. Build a separate baseline prefix
 and compile C regressions in both trees before submitting the regression
 Slurm script. This separates NERSC toolchain/allocation failures from Jenkins setup.
+
+Run compaction is disabled by default. Set `GKEYLL_CI_COMPACT_RUNS=1` to
+archive completed run trees; see [compaction](README.storage.md#optional-run-compaction).

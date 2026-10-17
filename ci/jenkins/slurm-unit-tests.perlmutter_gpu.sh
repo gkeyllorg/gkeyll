@@ -15,6 +15,7 @@ cd "$CI_CANDIDATE_DIR"
 # reliable or reproducible way. Source the same environment used to configure
 # and build this checkout.
 . machines/module_load.perlmutter-gpu.sh
+if [ -n "${GKEYLL_CI_DEPENDENCY_ENV:-}" ]; then . "$GKEYLL_CI_DEPENDENCY_ENV"; fi
 
 export SLURM_CPU_BIND=cores
 started="$(date +%s)"

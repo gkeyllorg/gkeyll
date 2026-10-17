@@ -826,7 +826,8 @@ test_2x(int poly_order, bool use_gpu, double te)
 }
 
 static int num_ne[1] = {1};
-static int num_ne2[1] = {20};
+// The bundled Li+ radiation data contains 12 density fits.
+static int num_ne2[1] = {12};
 void
 test_1x2v_p1_10eV()
 {
@@ -886,7 +887,7 @@ test_rad_gk_1x2v_p1_Li1_midNe_ho()
 void
 test_rad_gk_1x2v_p1_Li1_highNe_ho()
 {
-  test_1x(1, false, 30.0, 3, 1, num_ne2, 13);
+  test_1x(1, false, 30.0, 3, 1, num_ne2, 12);
 }
 
 #ifdef GKYL_HAVE_CUDA
