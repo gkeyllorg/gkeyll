@@ -278,6 +278,8 @@ struct gkyl_gyrokinetic_geometry {
   struct gkyl_mirror_geo_grid_inp
     mirror_grid_info; // Context for mirror geometry with computational domain info.
   struct gkyl_position_map_inp position_map_info; // Position map object.
+
+  bool is_verbose; // Print geometry construction diagnostics (default: errors and warnings only).
 };
 
 // Parameters for species radiation.

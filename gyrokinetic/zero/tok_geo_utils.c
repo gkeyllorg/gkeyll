@@ -1,9 +1,2179 @@
 #include <gkyl_tok_geo_priv.h>
+#include <gkyl_tok_geo_wall_target_priv.h>
 #include <assert.h>
+#include <float.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 // Helper functions for finding turning points when necessary
 
+void find_lower_turning_point(
+  struct gkyl_tok_geo *geo, double psi_curr, double zup, double *zmin, double tolerance
+);
+
+static double
+tok_eval_psi_rz(const struct gkyl_tok_geo *geo, double R, double Z)
+{
+  if (geo->use_cubics) {
+    double xn[2] = {R, Z}, psi;
+    geo->efit->evf->eval_cubic(0.0, xn, &psi, geo->efit->evf->ctx);
+    return psi;
+  }
+
+  int rzidx[2];
+  rzidx[0] = fmin(
+    geo->rzlocal.lower[0] + (int)floor((R - geo->rzgrid.lower[0]) / geo->rzgrid.dx[0]),
+    geo->rzlocal.upper[0]
+  );
+  rzidx[1] = fmin(
+    geo->rzlocal.lower[1] + (int)floor((Z - geo->rzgrid.lower[1]) / geo->rzgrid.dx[1]),
+    geo->rzlocal.upper[1]
+  );
+  rzidx[0] = fmax(rzidx[0], geo->rzlocal.lower[0]);
+  rzidx[1] = fmax(rzidx[1], geo->rzlocal.lower[1]);
+
+  long loc = gkyl_range_idx(&geo->rzlocal, rzidx);
+  const double *coeffs = gkyl_array_cfetch(geo->psiRZ, loc);
+  double xc[2], xy[2];
+  gkyl_rect_grid_cell_center(&geo->rzgrid, rzidx, xc);
+  xy[0] = (R - xc[0]) / (0.5 * geo->rzgrid.dx[0]);
+  xy[1] = (Z - xc[1]) / (0.5 * geo->rzgrid.dx[1]);
+  return geo->rzbasis.eval_expand(xy, coeffs);
+}
+
+static double
+tok_wall_tolerance(const struct gkyl_efit *e)
+{
+  return 1e-8 * fmax(1.0, fmax(e->rdim, e->zdim));
+}
+
+// Sagitta of the circle through vertices a,b,c, over a chord of length `len`:
+// how far a smooth curve carrying all three can bow away from that chord.
+// Degenerate (collinear or coincident) triples carry no curvature and answer 0.
+static double
+tok_wall_arc_sagitta(double ax, double ay, double bx, double by, double cx, double cy, double len)
+{
+  const double A = hypot(bx - ax, by - ay), B = hypot(cx - bx, cy - by),
+               C = hypot(cx - ax, cy - ay);
+  const double area2 = fabs((bx - ax) * (cy - ay) - (cx - ax) * (by - ay));
+  if (!(area2 > 0.0) || !(A > 0.0) || !(B > 0.0) || !(C > 0.0)) {
+    return 0.0;
+  }
+  const double radius = A * B * C / (2.0 * area2);
+  if (!(2.0 * radius > len)) {
+    return 0.0;
+  }
+  const double s = radius - sqrt(radius * radius - 0.25 * len * len);
+  return isfinite(s) && s > 0.0 ? s : 0.0;
+}
+
+// How precisely can THIS outline locate the wall along the edge j->i?
+//
+// The outline is a CHORD approximation to the vessel, and judging a point
+// against it to machine roundoff asks a precision the data does not carry.
+// ASDEX ships 31 vertices with 189 mm chords while `tok_wall_tolerance` is
+// 1e-8*max(rdim,zdim) = 24 nm -- nearly eight orders of magnitude finer than
+// the outline can say where the wall is. A divertor leg terminates ON the
+// plate, so its nodes land a fraction of a millimetre either side of a chord
+// and were being reported as the plasma boundary leaving the machine
+// (measured: 0.07, 0.52 and 0.94 mm outside, against chords of 158-221 mm).
+//
+// So derive the tolerance from the outline's OWN discretization: the sagitta of
+// the circle through each neighbouring vertex triple bounds how far the true
+// wall can sit from this chord. Nothing is tuned, and it scales the right way --
+// a finely resolved outline collapses it back to roundoff (TCV, 512 vertices:
+// median 0.00 mm, max 3.7 mm, so the guard stays strict), and it opens only
+// where the description is coarse (the ASDEX divertor corner, 65-100 mm), which
+// is exactly where we do not know where the wall is. Supplying a better outline
+// tightens the guard; no code change can.
+//
+// Strict containment: the rule since 2026-10-05 (user decision), applied
+// whenever a block declares enforce_wall.
+//
+// The sagitta reads a CORNER of the outline as curvature of the edges next to
+// it. A long straight wall that ends at a corner therefore gets a large slack:
+// measured on NSTX-U, 92 mm on the centre column (two straight 1050 mm chords),
+// 115 mm on the inner vertical target. There the containment test is off in
+// practice: 91 of 450 shots wrote an inboard SOL block 0.1-10 mm through the
+// wall, the boundary adjustment never moved an inner SOL, and 3
+// inner-wall-limited shots passed with the separatrix outside the vessel.
+//
+// The slack was introduced for ONE case: a node on a plate the driver declared
+// separately from the outline lands a fraction of a millimetre either side of
+// the chord. Since 2026-10-05 it is used for one test only: checking the
+// declared PLATE itself against the outline (tok_wall_pocket_build), which is
+// exactly the question the outline's resolution can answer. Every point of
+// the grid is judged to roundoff, against the outline together with the
+// pockets between the block's plates and the outline (see the pocket block
+// below). Exempting only the plate's own nodes made the verdict depend on
+// theta resolution: ASDEX x1 built, x2 refused 553 points of the cells beside
+// the inner target. The caller says when it is testing the plate
+// (tok_wall_declared_plate_scope_set).
+static _Thread_local bool tok_wall_declared_plate_scope;
+
+void
+tok_wall_declared_plate_scope_set(bool on)
+{
+  tok_wall_declared_plate_scope = on;
+}
+
+static double
+tok_wall_edge_tolerance(const struct gkyl_efit *e, int j, int i)
+{
+  const int n = e->limiter_n;
+  const double tol = tok_wall_tolerance(e);
+  if (!tok_wall_declared_plate_scope) {
+    return tol;
+  }
+  if (n < 3) {
+    return tol;
+  }
+  const double *R = e->limiter_R, *Z = e->limiter_Z;
+  const int jm = (j - 1 + n) % n, ip = (i + 1) % n;
+  const double len = hypot(R[i] - R[j], Z[i] - Z[j]);
+  if (!(len > 0.0)) {
+    return tol;
+  }
+  const double s = fmax(
+    tok_wall_arc_sagitta(R[jm], Z[jm], R[j], Z[j], R[i], Z[i], len),
+    tok_wall_arc_sagitta(R[j], Z[j], R[i], Z[i], R[ip], Z[ip], len)
+  );
+  return fmax(tol, s);
+}
+
+// ---------------------------------------------------------------------------
+// The pocket between a declared plate and the outline (2026-10-05).
+//
+// A block that ends on a plate the driver declared SEPARATELY from the vessel
+// outline (ASDEX, TCV, STEP) has two descriptions of the same wall at that end:
+// the plate, which the grid is built to, and the outline's chords. They
+// disagree by up to the outline's own resolution (ASDEX inner target: 3.7 mm
+// outside chords of 80-158 mm). Judged against the chords, the cells beside
+// the plate failed once theta was refined (ASDEX x2: 553 points, every one in
+// a leg or private-flux block, none in the main-chamber SOL), and the adjuster
+// cleared them by shrinking the whole SOL, main chamber included, from rho
+// 1.040 to 1.0095. User decision 2026-10-05: legs terminate on their plates by
+// design; the wall test is for where the flux surfaces meet the vessel.
+//
+// So a plate-terminated block is judged against the outline together with
+// the POCKET between the plate and the outline: the plate, sampled as the
+// root finder resolves it, closed back along the outline between the points
+// nearest its two ends. Every point, segment and boundary curve of the block
+// is judged to roundoff against that union: the flux surfaces against the
+// outline away from the plate, the cells beside the plate against the plate.
+// Nothing is exempted by cell layer, so the verdict does not depend on the
+// resolution. The plate itself is compared with the outline at the outline's
+// resolution when its pocket is built, and any excess REPORTED, not refused
+// (user decision 2026-10-06: ASDEX's inner target lies 0.13 mm past the band
+// along 2 mm of its length; refusing it refused every ASDEX input).
+// ---------------------------------------------------------------------------
+static _Thread_local const struct tok_wall_pocket *tok_wall_pockets[2];
+
+void
+tok_wall_pockets_set(const struct tok_wall_pocket *lo, const struct tok_wall_pocket *up)
+{
+  tok_wall_pockets[0] = lo && lo->n >= 3 ? lo : 0;
+  tok_wall_pockets[1] = up && up->n >= 3 ? up : 0;
+}
+
+static int
+tok_wall_pocket_vertices(void)
+{
+  int n = 0;
+  for (int k = 0; k < 2; ++k) {
+    if (tok_wall_pockets[k]) {
+      n += tok_wall_pockets[k]->n;
+    }
+  }
+  return n;
+}
+
+// Even-odd containment in a closed polygon, with points within `tol` of an
+// edge counted inside: the outline test of tok_wall_point_inside, one
+// tolerance for every edge.
+static bool
+tok_wall_polygon_contains(int n, const double *R, const double *Z, const double p[2], double tol)
+{
+  bool inside = false;
+  for (int i = 0, j = n - 1; i < n; j = i++) {
+    double ax = R[j], ay = Z[j], bx = R[i], by = Z[i];
+    double dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy;
+    if (l2 > 0.0) {
+      double t = fmax(0.0, fmin(1.0, ((p[0] - ax) * dx + (p[1] - ay) * dy) / l2));
+      if (hypot(p[0] - ax - t * dx, p[1] - ay - t * dy) <= tol) {
+        return true;
+      }
+    }
+    if ((ay > p[1]) != (by > p[1]) && p[0] < ax + (p[1] - ay) * dx / (by - ay)) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+static bool
+tok_wall_in_pocket(const struct gkyl_efit *e, const double p[2])
+{
+  for (int k = 0; k < 2; ++k) {
+    const struct tok_wall_pocket *pk = tok_wall_pockets[k];
+    if (pk && tok_wall_polygon_contains(pk->n, pk->R, pk->Z, p, tok_wall_tolerance(e))) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool
+tok_wall_point_inside(const struct gkyl_efit *e, const double p[2])
+{
+  // "No usable outline" answers false here because the question -- is this point
+  // inside the wall? -- has no answer without one. Callers must therefore not
+  // reach this unless the block enforces the wall; they gate on
+  // gkyl_tok_wall_policy_for first.
+  if (!gkyl_tok_wall_usable(e) || !tok_geo_finite(p[0]) || !tok_geo_finite(p[1])) {
+    return false;
+  }
+  for (int i = 0; i < e->limiter_n; ++i) {
+    if (!tok_geo_finite(e->limiter_R[i]) || !tok_geo_finite(e->limiter_Z[i])) {
+      return false;
+    }
+  }
+  bool inside = false;
+  // EQDSK supplies an ordered vessel outline. Its last-to-first edge closes
+  // the polygon; a repeated first vertex is optional.
+  for (int i = 0, j = e->limiter_n - 1; i < e->limiter_n; j = i++) {
+    double ax = e->limiter_R[j], ay = e->limiter_Z[j];
+    double bx = e->limiter_R[i], by = e->limiter_Z[i];
+    if (!tok_geo_finite(ax) || !tok_geo_finite(ay) || !tok_geo_finite(bx) || !tok_geo_finite(by)) {
+      return false;
+    }
+    double dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy;
+    if (l2 > 0.0) {
+      // Per EDGE, not per outline: how well the wall is located varies along it.
+      double tol = tok_wall_edge_tolerance(e, j, i);
+      double t = fmax(0.0, fmin(1.0, ((p[0] - ax) * dx + (p[1] - ay) * dy) / l2));
+      if (hypot(p[0] - ax - t * dx, p[1] - ay - t * dy) <= tol) {
+        return true;
+      }
+    }
+    if ((ay > p[1]) != (by > p[1]) && p[0] < ax + (p[1] - ay) * dx / (by - ay)) {
+      inside = !inside;
+    }
+  }
+  return inside || tok_wall_in_pocket(e, p);
+}
+
+static int
+tok_wall_compare_double(const void *a, const void *b)
+{
+  double x = *(const double *)a, y = *(const double *)b;
+  return (x > y) - (x < y);
+}
+
+// Parameters t in (0,1) where the segment a + t*(dx,dy) meets an edge of the
+// closed polygon (R,Z,nv), appended to cuts[n..]; at most two per edge.
+static int
+tok_wall_segment_cuts(
+  int nv, const double *R, const double *Z, const double a[2], double dx, double dy, double l2,
+  double tol, double *cuts, int n
+)
+{
+  for (int i = 0, j = nv - 1; i < nv; j = i++) {
+    double px = R[j] - a[0], py = Z[j] - a[1];
+    double ex = R[i] - R[j], ey = Z[i] - Z[j];
+    double den = dx * ey - dy * ex;
+    double roundoff = 64.0 * DBL_EPSILON * fmax(DBL_MIN, sqrt(l2) * hypot(ex, ey));
+    if (fabs(den) > roundoff) {
+      double t = (px * ey - py * ex) / den, u = (px * dy - py * dx) / den;
+      if (t > 0.0 && t < 1.0 && u >= 0.0 && u <= 1.0) {
+        cuts[n++] = t;
+      }
+    } else if (fabs(px * dy - py * dx) <= tol * sqrt(l2)) {
+      double t = (px * dx + py * dy) / l2;
+      if (t > 0.0 && t < 1.0) {
+        cuts[n++] = t;
+      }
+      t = ((px + ex) * dx + (py + ey) * dy) / l2;
+      if (t > 0.0 && t < 1.0) {
+        cuts[n++] = t;
+      }
+    }
+  }
+  return n;
+}
+
+bool
+tok_wall_segment_inside(const struct gkyl_efit *e, const double a[2], const double b[2])
+{
+  if (!tok_wall_point_inside(e, a) || !tok_wall_point_inside(e, b)) {
+    return false;
+  }
+  double dx = b[0] - a[0], dy = b[1] - a[1], l2 = dx * dx + dy * dy;
+  double tol = tok_wall_tolerance(e);
+  if (l2 <= tol * tol) {
+    return true;
+  }
+  // Partition at EVERY intersection (including collinear wall vertices), then
+  // test each open interval. Endpoints alone miss excursions across a concavity.
+  // The pockets' edges partition too: the union's boundary is made of both.
+  double *cuts =
+    gkyl_malloc((2 * (e->limiter_n + tok_wall_pocket_vertices()) + 2) * sizeof(double));
+  int n = 0;
+  cuts[n++] = 0.0;
+  cuts[n++] = 1.0;
+  n = tok_wall_segment_cuts(e->limiter_n, e->limiter_R, e->limiter_Z, a, dx, dy, l2, tol, cuts, n);
+  for (int k = 0; k < 2; ++k) {
+    if (tok_wall_pockets[k]) {
+      n = tok_wall_segment_cuts(
+        tok_wall_pockets[k]->n, tok_wall_pockets[k]->R, tok_wall_pockets[k]->Z, a, dx, dy, l2, tol,
+        cuts, n
+      );
+    }
+  }
+  qsort(cuts, n, sizeof(double), tok_wall_compare_double);
+  bool ok = true;
+  for (int i = 1; i < n && ok; ++i) {
+    double t = 0.5 * (cuts[i - 1] + cuts[i]);
+    double p[2] = {a[0] + t * dx, a[1] + t * dy};
+    ok = tok_wall_point_inside(e, p);
+  }
+  gkyl_free(cuts);
+  return ok;
+}
+
+// Distance from a point to the wall outline, as a positive number. Only
+// meaningful for a point already known to be outside.
+static double
+tok_wall_distance_to_outline(const struct gkyl_efit *e, const double p[2])
+{
+  double best = DBL_MAX;
+  for (int i = 0, j = e->limiter_n - 1; i < e->limiter_n; j = i++) {
+    double ax = e->limiter_R[j], ay = e->limiter_Z[j];
+    double bx = e->limiter_R[i], by = e->limiter_Z[i];
+    double dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy;
+    double t = l2 > 0.0 ? fmax(0.0, fmin(1.0, ((p[0] - ax) * dx + (p[1] - ay) * dy) / l2)) : 0.0;
+    double d = hypot(p[0] - ax - t * dx, p[1] - ay - t * dy);
+    if (d < best) {
+      best = d;
+    }
+  }
+  return best == DBL_MAX ? 0.0 : best;
+}
+
+// REPORTING ONLY: how far outside the wall this segment gets, in metres.
+//
+// This does not decide anything. tok_wall_segment_inside above is the verdict,
+// and it is exact; this exists so a rejection can say whether it is a
+// millimetre of discretisation overshoot or a quarter metre of misdeclared
+// domain. It reuses the same partition so the outside intervals are found
+// exactly, then samples within them -- so the figure is a lower bound on the
+// true maximum, tight enough to tell those two cases apart.
+//
+// Runs only on the rejection path, so an O(samples x vertices) scan is cheap.
+double
+tok_wall_segment_excursion(const struct gkyl_efit *e, const double a[2], const double b[2])
+{
+  if (!gkyl_tok_wall_usable(e)) {
+    return 0.0;
+  }
+  double dx = b[0] - a[0], dy = b[1] - a[1], l2 = dx * dx + dy * dy;
+  double tol = tok_wall_tolerance(e);
+  if (l2 <= tol * tol) {
+    return 0.0;
+  }
+
+  double *cuts = gkyl_malloc((2 * e->limiter_n + 2) * sizeof(double));
+  int n = 0;
+  cuts[n++] = 0.0;
+  cuts[n++] = 1.0;
+  for (int i = 0, j = e->limiter_n - 1; i < e->limiter_n; j = i++) {
+    double px = e->limiter_R[j] - a[0], py = e->limiter_Z[j] - a[1];
+    double ex = e->limiter_R[i] - e->limiter_R[j], ey = e->limiter_Z[i] - e->limiter_Z[j];
+    double den = dx * ey - dy * ex;
+    double roundoff = 64.0 * DBL_EPSILON * fmax(DBL_MIN, sqrt(l2) * hypot(ex, ey));
+    if (fabs(den) > roundoff) {
+      double t = (px * ey - py * ex) / den, u = (px * dy - py * dx) / den;
+      if (t > 0.0 && t < 1.0 && u >= 0.0 && u <= 1.0) {
+        cuts[n++] = t;
+      }
+    }
+  }
+  qsort(cuts, n, sizeof(double), tok_wall_compare_double);
+
+  double worst = 0.0;
+  const int nsample = 64;
+  for (int i = 1; i < n; ++i) {
+    double t0 = cuts[i - 1], t1 = cuts[i];
+    double tm = 0.5 * (t0 + t1);
+    double pm[2] = {a[0] + tm * dx, a[1] + tm * dy};
+    if (tok_wall_point_inside(e, pm)) {
+      continue; // this interval is inside
+    }
+    for (int k = 0; k <= nsample; ++k) {
+      double t = t0 + (t1 - t0) * k / (double)nsample;
+      double p[2] = {a[0] + t * dx, a[1] + t * dy};
+      if (tok_wall_point_inside(e, p)) {
+        continue;
+      }
+      double d = tok_wall_distance_to_outline(e, p);
+      if (d > worst) {
+        worst = d;
+      }
+    }
+  }
+  gkyl_free(cuts);
+  return worst;
+}
+
+// Roots of a*t^2+b*t+c in [0,1], with a stable quadratic formula.
+static int
+tok_wall_quadratic_roots(double a, double b, double c, double roots[2])
+{
+  double scale = fmax(fabs(a), fmax(fabs(b), fabs(c)));
+  if (scale == 0.0) {
+    return 0;
+  }
+  a /= scale;
+  b /= scale;
+  c /= scale;
+  int n = 0;
+  if (fabs(a) <= 64 * DBL_EPSILON) {
+    if (fabs(b) > 64 * DBL_EPSILON) {
+      double t = -c / b;
+      if (t > 0.0 && t < 1.0) {
+        roots[n++] = t;
+      }
+    }
+  } else {
+    double disc = b * b - 4 * a * c;
+    if (disc >= 0.0) {
+      double q = -0.5 * (b + copysign(sqrt(disc), b));
+      double t = q / a;
+      if (t > 0.0 && t < 1.0) {
+        roots[n++] = t;
+      }
+      if (q != 0.0) {
+        t = c / q;
+        if (t > 0.0 && t < 1.0) {
+          roots[n++] = t;
+        }
+      }
+    }
+  }
+  return n;
+}
+
+// Parameters t in (0,1) where the curve p0 + t*b + t^2*a meets an edge of the
+// closed polygon (R,Z,nv), appended to cuts[n..]; at most four per edge.
+static int
+tok_wall_curve_cuts(
+  int nv, const double *R, const double *Z, const double p0[2], const double a[2],
+  const double b[2], double tol, double *cuts, int nc
+)
+{
+  for (int i = 0, j = nv - 1; i < nv; j = i++) {
+    double ex = R[i] - R[j], ey = Z[i] - Z[j];
+    double l2 = ex * ex + ey * ey;
+    if (l2 == 0.0) {
+      continue;
+    }
+    double cx = p0[0] - R[j], cy = p0[1] - Z[j];
+    double qa = a[0] * ey - a[1] * ex, qb = b[0] * ey - b[1] * ex, qc = cx * ey - cy * ex;
+    double roots[2];
+    double threshold = 64 * DBL_EPSILON * sqrt(l2) *
+                       fmax(1.0, hypot(a[0], a[1]) + hypot(b[0], b[1]) + hypot(cx, cy));
+    if (fmax(fabs(qa), fmax(fabs(qb), fabs(qc))) <= threshold) {
+      // Curve lies on this wall line. Its passage past either end of the
+      // finite wall segment still partitions inside from outside intervals.
+      int d = fabs(ex) >= fabs(ey) ? 0 : 1;
+      for (int end = 0; end < 2; ++end) {
+        int vertex = end ? i : j;
+        double value = d == 0 ? R[vertex] : Z[vertex];
+        int nr = tok_wall_quadratic_roots(a[d], b[d], p0[d] - value, roots);
+        for (int k = 0; k < nr; ++k) {
+          cuts[nc++] = roots[k];
+        }
+      }
+    } else {
+      int nr = tok_wall_quadratic_roots(qa, qb, qc, roots);
+      for (int k = 0; k < nr; ++k) {
+        double t = roots[k], r = p0[0] + t * (b[0] + t * a[0]), z = p0[1] + t * (b[1] + t * a[1]);
+        double u = ((r - R[j]) * ex + (z - Z[j]) * ey) / l2;
+        if (u >= -tol / sqrt(l2) && u <= 1.0 + tol / sqrt(l2)) {
+          cuts[nc++] = t;
+        }
+      }
+    }
+  }
+  return nc;
+}
+
+// Exact containment test for the represented p1/p2 boundary curve through
+// t=0,1/2,1. This catches an excursion between all three interpolation nodes.
+bool
+tok_wall_curve_inside(
+  const struct gkyl_efit *e, const double p0[2], const double pm[2], const double p1[2]
+)
+{
+  if (!tok_wall_point_inside(e, p0) || !tok_wall_point_inside(e, pm) ||
+      !tok_wall_point_inside(e, p1)) {
+    return false;
+  }
+  double a[2], b[2];
+  for (int d = 0; d < 2; ++d) {
+    a[d] = 2 * (p1[d] + p0[d] - 2 * pm[d]);
+    b[d] = 4 * pm[d] - 3 * p0[d] - p1[d];
+  }
+  // The pockets' edges partition too, as in tok_wall_segment_inside.
+  double *cuts =
+    gkyl_malloc((4 * (e->limiter_n + tok_wall_pocket_vertices()) + 2) * sizeof(double));
+  int nc = 0;
+  cuts[nc++] = 0.0;
+  cuts[nc++] = 1.0;
+  double tol = tok_wall_tolerance(e);
+  nc = tok_wall_curve_cuts(e->limiter_n, e->limiter_R, e->limiter_Z, p0, a, b, tol, cuts, nc);
+  for (int k = 0; k < 2; ++k) {
+    if (tok_wall_pockets[k]) {
+      nc = tok_wall_curve_cuts(
+        tok_wall_pockets[k]->n, tok_wall_pockets[k]->R, tok_wall_pockets[k]->Z, p0, a, b, tol, cuts,
+        nc
+      );
+    }
+  }
+  qsort(cuts, nc, sizeof(double), tok_wall_compare_double);
+  bool ok = true;
+  for (int i = 1; i < nc && ok; ++i) {
+    double t = 0.5 * (cuts[i - 1] + cuts[i]);
+    double p[2] = {p0[0] + t * (b[0] + t * a[0]), p0[1] + t * (b[1] + t * a[1])};
+    ok = tok_wall_point_inside(e, p);
+  }
+  gkyl_free(cuts);
+  return ok;
+}
+
+struct tok_wall_pocket_pt {
+  double key, r, z;
+};
+
+static int
+tok_wall_pocket_pt_compare(const void *a, const void *b)
+{
+  double x = ((const struct tok_wall_pocket_pt *)a)->key;
+  double y = ((const struct tok_wall_pocket_pt *)b)->key;
+  return (x > y) - (x < y);
+}
+
+// The point of the outline nearest p: on edge j -> (j+1)%n at fraction t.
+static void
+tok_wall_outline_nearest(
+  const struct gkyl_efit *e, const double p[2], int *edge, double *frac, double q[2]
+)
+{
+  double best = DBL_MAX;
+  for (int i = 0, j = e->limiter_n - 1; i < e->limiter_n; j = i++) {
+    double ax = e->limiter_R[j], ay = e->limiter_Z[j];
+    double dx = e->limiter_R[i] - ax, dy = e->limiter_Z[i] - ay, l2 = dx * dx + dy * dy;
+    double t = l2 > 0.0 ? fmax(0.0, fmin(1.0, ((p[0] - ax) * dx + (p[1] - ay) * dy) / l2)) : 0.0;
+    double d = hypot(p[0] - ax - t * dx, p[1] - ay - t * dy);
+    if (d < best) {
+      best = d;
+      *edge = j;
+      *frac = t;
+      q[0] = ax + t * dx;
+      q[1] = ay + t * dy;
+    }
+  }
+}
+
+// How far p lies past the outline's band -- the least, over edges, of its
+// distance to the edge less that edge's tolerance (positive: outside every
+// band) -- and its plain distance to the outline. Under the plate scope.
+static double
+tok_wall_band_excess(const struct gkyl_efit *e, const double p[2], double *outside)
+{
+  double best = DBL_MAX, d0 = DBL_MAX;
+  for (int i = 0, j = e->limiter_n - 1; i < e->limiter_n; j = i++) {
+    double ax = e->limiter_R[j], ay = e->limiter_Z[j];
+    double dx = e->limiter_R[i] - ax, dy = e->limiter_Z[i] - ay, l2 = dx * dx + dy * dy;
+    if (!(l2 > 0.0)) {
+      continue;
+    }
+    double t = fmax(0.0, fmin(1.0, ((p[0] - ax) * dx + (p[1] - ay) * dy) / l2));
+    double d = hypot(p[0] - ax - t * dx, p[1] - ay - t * dy);
+    best = fmin(best, d - tok_wall_edge_tolerance(e, j, i));
+    d0 = fmin(d0, d);
+  }
+  *outside = d0;
+  return best;
+}
+
+bool
+tok_wall_pocket_build(
+  const struct gkyl_efit *e, plate_func plate, int nnodes, const double *nodes,
+  struct tok_wall_pocket *pk, struct tok_wall_plate_report *rep
+)
+{
+  pk->n = 0;
+  pk->R = pk->Z = 0;
+  *rep = (struct tok_wall_plate_report){0};
+  const int ns = TOK_PLATE_NSAMP, n = e->limiter_n;
+  if (!plate || n < 3) {
+    return false;
+  }
+  const int m = ns + 1 + nnodes;
+  struct tok_wall_pocket_pt *pt = gkyl_malloc(m * sizeof *pt);
+  for (int k = 0; k <= ns; ++k) {
+    double rz[2];
+    plate(k / (double)ns, rz);
+    if (!tok_geo_finite(rz[0]) || !tok_geo_finite(rz[1])) {
+      rep->rz[0] = rz[0];
+      rep->rz[1] = rz[1];
+      gkyl_free(pt);
+      return false;
+    }
+    pt[k] = (struct tok_wall_pocket_pt){.key = k, .r = rz[0], .z = rz[1]};
+  }
+  // The nodes on the plate join the polyline where they project onto it.
+  for (int q = 0; q < nnodes; ++q) {
+    const double *x = nodes + 2 * q;
+    double best = DBL_MAX, key = 0.0;
+    for (int k = 0; k < ns; ++k) {
+      double ax = pt[k].r, ay = pt[k].z, dx = pt[k + 1].r - ax, dy = pt[k + 1].z - ay,
+             l2 = dx * dx + dy * dy;
+      double t = l2 > 0.0 ? fmax(0.0, fmin(1.0, ((x[0] - ax) * dx + (x[1] - ay) * dy) / l2)) : 0.0;
+      double d = hypot(x[0] - ax - t * dx, x[1] - ay - t * dy);
+      if (d < best) {
+        best = d;
+        key = k + t;
+      }
+    }
+    pt[ns + 1 + q] = (struct tok_wall_pocket_pt){.key = key, .r = x[0], .z = x[1]};
+  }
+  qsort(pt, m, sizeof *pt, tok_wall_pocket_pt_compare);
+
+  // The plate against the outline, at the outline's own resolution: within
+  // the per-edge sagitta band, the two describe the same wall. Judged alone,
+  // without any pocket; the worst excess is reported, the pocket built anyway.
+  const struct tok_wall_pocket *saved[2] = {tok_wall_pockets[0], tok_wall_pockets[1]};
+  tok_wall_pockets[0] = tok_wall_pockets[1] = 0;
+  tok_wall_declared_plate_scope_set(true);
+  rep->beyond_m = -DBL_MAX;
+  for (int k = 0; k + 1 < m; ++k) {
+    double a[2] = {pt[k].r, pt[k].z}, b[2] = {pt[k + 1].r, pt[k + 1].z};
+    if (tok_wall_segment_inside(e, a, b)) {
+      continue;
+    }
+    rep->beyond_band = true;
+    const double mid[2] = {0.5 * (a[0] + b[0]), 0.5 * (a[1] + b[1])};
+    const double *cand[3] = {a, mid, b};
+    for (int c = 0; c < 3; ++c) {
+      double out, x = tok_wall_band_excess(e, cand[c], &out);
+      if (x > rep->beyond_m) {
+        rep->beyond_m = x;
+        rep->outside_m = out;
+        rep->rz[0] = cand[c][0];
+        rep->rz[1] = cand[c][1];
+      }
+    }
+  }
+  if (!rep->beyond_band) {
+    rep->beyond_m = 0.0;
+  }
+  tok_wall_declared_plate_scope_set(false);
+  tok_wall_pockets[0] = saved[0];
+  tok_wall_pockets[1] = saved[1];
+
+  // Close the plate back along the outline, between the outline points
+  // nearest its two ends. Of the two ways round, the pocket is the smaller;
+  // the other is the vessel with the plate in place of its stretch of the
+  // outline, and its union with the outline is the same region.
+  int ja, jb;
+  double ta, tb, A[2], B[2];
+  tok_wall_outline_nearest(e, (double[2]){pt[0].r, pt[0].z}, &ja, &ta, A);
+  tok_wall_outline_nearest(e, (double[2]){pt[m - 1].r, pt[m - 1].z}, &jb, &tb, B);
+  const int cap = m + n + 2;
+  double *R2[2], *Z2[2], area[2];
+  int n2[2];
+  for (int way = 0; way < 2; ++way) {
+    R2[way] = gkyl_malloc(cap * sizeof(double));
+    Z2[way] = gkyl_malloc(cap * sizeof(double));
+    int c = 0;
+    for (int k = 0; k < m; ++k) {
+      R2[way][c] = pt[k].r;
+      Z2[way][c++] = pt[k].z;
+    }
+    R2[way][c] = B[0];
+    Z2[way][c++] = B[1];
+    // From B forward (way 0) or backward (way 1) through the outline's
+    // vertices to A; none when A lies ahead of B on B's own edge that way.
+    bool direct = ja == jb && (way == 0 ? ta >= tb : ta <= tb);
+    if (!direct) {
+      int v = way == 0 ? (jb + 1) % n : jb, stop = way == 0 ? ja : (ja + 1) % n;
+      for (;;) {
+        R2[way][c] = e->limiter_R[v];
+        Z2[way][c++] = e->limiter_Z[v];
+        if (v == stop) {
+          break;
+        }
+        v = way == 0 ? (v + 1) % n : (v - 1 + n) % n;
+      }
+    }
+    R2[way][c] = A[0];
+    Z2[way][c++] = A[1];
+    n2[way] = c;
+    double s = 0.0;
+    for (int i = 0, j = c - 1; i < c; j = i++) {
+      s += R2[way][j] * Z2[way][i] - R2[way][i] * Z2[way][j];
+    }
+    area[way] = fabs(0.5 * s);
+  }
+  gkyl_free(pt);
+  int pick = area[0] <= area[1] ? 0 : 1;
+  gkyl_free(R2[1 - pick]);
+  gkyl_free(Z2[1 - pick]);
+  pk->n = n2[pick];
+  pk->R = R2[pick];
+  pk->Z = Z2[pick];
+  return true;
+}
+
+void
+tok_wall_pocket_release(struct tok_wall_pocket *pk)
+{
+  if (pk->R) {
+    gkyl_free(pk->R);
+  }
+  if (pk->Z) {
+    gkyl_free(pk->Z);
+  }
+  pk->n = 0;
+  pk->R = pk->Z = 0;
+}
+
+// A join is geometric, not a device-specific distance allowance. Require the
+// callback endpoint (and a nearby interior point) to lie on the stored wall.
+static bool
+tok_wall_contains(const struct gkyl_efit *efit, const double p[2], double tol)
+{
+  for (int j = 0; j < efit->limiter_n; ++j) {
+    int next = (j + 1) % efit->limiter_n;
+    double dr = efit->limiter_R[next] - efit->limiter_R[j];
+    double dz = efit->limiter_Z[next] - efit->limiter_Z[j];
+    double l2 = dr * dr + dz * dz;
+    if (l2 == 0.0) {
+      continue;
+    }
+    double t = ((p[0] - efit->limiter_R[j]) * dr + (p[1] - efit->limiter_Z[j]) * dz) / l2;
+    t = fmax(0.0, fmin(1.0, t));
+    if (hypot(p[0] - efit->limiter_R[j] - t * dr, p[1] - efit->limiter_Z[j] - t * dz) <= tol) {
+      return true;
+    }
+  }
+  return false;
+}
+
+static bool
+tok_wall_in_equilibrium(const struct gkyl_tok_geo *geo, const double p[2])
+{
+  const struct gkyl_rect_grid *g = geo->use_cubics ? &geo->rzgrid_cubic : &geo->rzgrid;
+  return p[0] >= g->lower[0] && p[0] <= g->upper[0] && p[1] >= g->lower[1] && p[1] <= g->upper[1];
+}
+
+int
+tok_divertor_wall_slot(const struct gkyl_tok_geo *geo, plate_func plate)
+{
+  if (!geo->extend_to_limiter || !plate) {
+    return -1;
+  }
+  int slot = -1;
+  if (plate == geo->plate_func_lower && geo->divertor_wall[0].num_segments) {
+    slot = 0;
+  }
+  if (plate == geo->plate_func_upper && geo->divertor_wall[1].num_segments) {
+    slot = slot >= 0 ? -2 : 1;
+  }
+  return slot;
+}
+
+// Solve only on the explicitly named connected material target. Requiring a
+// unique native root prevents a remote leg/root from replacing an earlier
+// contact. The retained contour and all nonmaterial edges are still checked
+// against the entire wall after construction.
+bool
+tok_divertor_wall_intersection(
+  const struct gkyl_tok_geo *geo, int slot, double psi, double *r, double *z
+)
+{
+  if (slot < 0 || slot > 1 || !tok_geo_finite(psi)) {
+    return false;
+  }
+  const struct gkyl_tok_geo_wall_target *target = &geo->divertor_wall[slot];
+  const struct gkyl_efit *e = geo->efit;
+  const struct gkyl_rect_grid *grid = geo->use_cubics ? &geo->rzgrid_cubic : &geo->rzgrid;
+  if (!tok_wall_target_valid(e, target->num_segments, target->segments)) {
+    return false;
+  }
+  double step = 0.1 * fmin(grid->dx[0], grid->dx[1]);
+  if (!(step > 0.0) || !tok_geo_finite(step)) {
+    return false;
+  }
+  double flux_tol = 1e-10 * fmax(1.0, fabs(psi)), root_r = 0.0, root_z = 0.0;
+  int roots = 0;
+  for (int k = 0; k < target->num_segments; ++k) {
+    int i = target->segments[k], j = (i + 1) % e->limiter_n;
+    double a[2] = {e->limiter_R[i], e->limiter_Z[i]};
+    double b[2] = {e->limiter_R[j], e->limiter_Z[j]};
+    if (!tok_wall_in_equilibrium(geo, a) || !tok_wall_in_equilibrium(geo, b)) {
+      return false;
+    }
+    double count = ceil(hypot(b[0] - a[0], b[1] - a[1]) / step);
+    if (!tok_geo_finite(count) || count > 100000) {
+      return false;
+    }
+    int ns = (int)count;
+    ns = GKYL_MAX2(ns, 32);
+    if (ns > 100000) {
+      return false;
+    }
+    double f0 = tok_eval_psi_rz(geo, a[0], a[1]) - psi;
+    if (!tok_geo_finite(f0)) {
+      return false;
+    }
+    for (int t = 0; t <= ns; ++t) {
+      double u = t / (double)ns;
+      double p[2] = {a[0] + u * (b[0] - a[0]), a[1] + u * (b[1] - a[1])};
+      double f = tok_eval_psi_rz(geo, p[0], p[1]) - psi;
+      if (!tok_geo_finite(f)) {
+        return false;
+      }
+      bool exact = fabs(f) <= flux_tol;
+      if (exact || (t && f * f0 < 0.0)) {
+        if (!exact) {
+          double lo = (t - 1) / (double)ns, hi = u, flo = f0;
+          for (int iter = 0; iter < 64; ++iter) {
+            double mid = 0.5 * (lo + hi);
+            double fm =
+              tok_eval_psi_rz(geo, a[0] + mid * (b[0] - a[0]), a[1] + mid * (b[1] - a[1])) - psi;
+            if (!tok_geo_finite(fm)) {
+              return false;
+            }
+            if (flo * fm <= 0.0) {
+              hi = mid;
+            } else {
+              lo = mid;
+              flo = fm;
+            }
+          }
+          u = 0.5 * (lo + hi);
+          p[0] = a[0] + u * (b[0] - a[0]);
+          p[1] = a[1] + u * (b[1] - a[1]);
+        }
+        if (fabs(tok_eval_psi_rz(geo, p[0], p[1]) - psi) > flux_tol) {
+          return false;
+        }
+        if (roots && hypot(p[0] - root_r, p[1] - root_z) > tok_wall_tolerance(e)) {
+          fprintf(
+            stderr, "TOK_GEO_DIVERTOR_ROOT_FAILED reason=ambiguous slot=%d psi=%.17g\n", slot, psi
+          );
+          return false;
+        }
+        root_r = p[0];
+        root_z = p[1];
+        ++roots;
+      }
+      f0 = f;
+    }
+  }
+  if (!roots) {
+    return false;
+  }
+  *r = root_r;
+  *z = root_z;
+  return true;
+}
+
+// Follow one outward endpoint continuation in file order or its reverse.
+// Stop if flux turns away before reaching the target, or if wall data runs
+// out. This deliberately refuses to jump to another leg elsewhere on the wall.
+static bool
+tok_wall_walk(
+  const struct gkyl_tok_geo *geo, int seg, int dir, const double start[2], double psi, double *r,
+  double *z, double *distance
+)
+{
+  const struct gkyl_efit *e = geo->efit;
+  double p[2] = {start[0], start[1]}, travelled = 0.0;
+  if (!tok_wall_in_equilibrium(geo, p)) {
+    return false;
+  }
+  double f = tok_eval_psi_rz(geo, p[0], p[1]) - psi;
+  double tol = 1e-10 * fmax(1.0, fabs(psi));
+  const struct gkyl_rect_grid *g = geo->use_cubics ? &geo->rzgrid_cubic : &geo->rzgrid;
+  double step = 0.05 * fmin(g->dx[0], g->dx[1]);
+  for (int visited = 0; visited < e->limiter_n; ++visited) {
+    int v = dir > 0 ? (seg + 1) % e->limiter_n : seg;
+    double end[2] = {e->limiter_R[v], e->limiter_Z[v]};
+    double base[2] = {p[0], p[1]}, length = hypot(end[0] - p[0], end[1] - p[1]);
+    int ns = (int)ceil(length / step);
+    ns = GKYL_MAX2(ns, 32);
+    if (ns > 100000) {
+      return false;
+    }
+    for (int k = 1; k <= ns; ++k) {
+      double q[2] = {base[0] + (end[0] - base[0]) * k / ns, base[1] + (end[1] - base[1]) * k / ns};
+      if (!tok_wall_in_equilibrium(geo, q)) {
+        return false;
+      }
+      double fq = tok_eval_psi_rz(geo, q[0], q[1]) - psi;
+      if (!tok_geo_finite(fq) || !tok_geo_finite(f)) {
+        return false;
+      }
+      if (f * fq <= 0.0 || fabs(fq) <= tol) {
+        double lo = 0.0, hi = 1.0, flo = f;
+        if (fabs(fq) > tol) {
+          for (int it = 0; it < 64; ++it) {
+            double t = 0.5 * (lo + hi);
+            double fm =
+              tok_eval_psi_rz(geo, p[0] + t * (q[0] - p[0]), p[1] + t * (q[1] - p[1])) - psi;
+            if (!tok_geo_finite(fm)) {
+              return false;
+            }
+            if (flo * fm <= 0.0) {
+              hi = t;
+            } else {
+              lo = t;
+              flo = fm;
+            }
+          }
+        }
+        double t = fabs(fq) <= tol ? 1.0 : 0.5 * (lo + hi);
+        *r = p[0] + t * (q[0] - p[0]);
+        *z = p[1] + t * (q[1] - p[1]);
+        *distance = travelled + hypot(*r - p[0], *z - p[1]);
+        return fabs(tok_eval_psi_rz(geo, *r, *z) - psi) <= tol;
+      }
+      if (fabs(fq) > fabs(f) + tol) {
+        return false;
+      }
+      travelled += hypot(q[0] - p[0], q[1] - p[1]);
+      p[0] = q[0];
+      p[1] = q[1];
+      f = fq;
+    }
+    seg = (seg + dir + e->limiter_n) % e->limiter_n;
+  }
+  return false;
+}
+
+bool
+tok_limiter_plate_intersection(
+  const struct gkyl_tok_geo *geo, plate_func plate, double psi, double *r, double *z
+)
+{
+  const struct gkyl_efit *e = geo->efit;
+  if (!geo->extend_to_limiter || !plate || e->limiter_status != 1) {
+    return false;
+  }
+  double tol = 1e-8 * fmax(1.0, fmax(e->rdim, e->zdim));
+  // Extend the endpoint through which this flux family leaves the original
+  // plate's range. The remote endpoint can otherwise reach the same psi after
+  // walking around the vessel onto the other divertor leg.
+  double closest_flux = DBL_MAX;
+  for (int i = 0; i <= 512; ++i) {
+    double p[2];
+    plate(i / 512.0, p);
+    if (!tok_wall_in_equilibrium(geo, p)) {
+      return false;
+    }
+    double f = fabs(tok_eval_psi_rz(geo, p[0], p[1]) - psi);
+    if (!tok_geo_finite(f)) {
+      return false;
+    }
+    closest_flux = fmin(closest_flux, f);
+  }
+  double flux_tol = 1e-10 * fmax(1.0, fabs(psi));
+  int found = 0, picked_end = -1;
+  double best_r = 0.0, best_z = 0.0, best_dist = 0.0;
+  for (int edge = 0; edge < 2; ++edge) {
+    double p[2], inside[2];
+    plate(edge, p);
+    plate(edge ? 1.0 - 1e-4 : 1e-4, inside);
+    if (fabs(tok_eval_psi_rz(geo, p[0], p[1]) - psi) > closest_flux + flux_tol) {
+      continue;
+    }
+    if (!tok_wall_contains(e, p, tol) || !tok_wall_contains(e, inside, tol)) {
+      continue;
+    }
+    double tr = p[0] - inside[0], tz = p[1] - inside[1], tn = hypot(tr, tz);
+    if (tn <= tol) {
+      continue;
+    }
+    int start_seg = -1, start_dir = 0, joins = 0;
+    for (int j = 0; j < e->limiter_n; ++j) {
+      int next = (j + 1) % e->limiter_n;
+      double dr = e->limiter_R[next] - e->limiter_R[j];
+      double dz = e->limiter_Z[next] - e->limiter_Z[j], ln = hypot(dr, dz);
+      if (ln <= tol) {
+        continue;
+      }
+      double t = ((p[0] - e->limiter_R[j]) * dr + (p[1] - e->limiter_Z[j]) * dz) / (ln * ln);
+      if (t < -tol / ln || t > 1.0 + tol / ln) {
+        continue;
+      }
+      if (hypot(p[0] - e->limiter_R[j] - t * dr, p[1] - e->limiter_Z[j] - t * dz) > tol) {
+        continue;
+      }
+      double align = (tr * dr + tz * dz) / (tn * ln);
+      if (fabs(align) < 0.5) {
+        continue;
+      }
+      int dir = align > 0.0 ? 1 : -1;
+      if ((dir > 0 && (1.0 - t) * ln <= tol) || (dir < 0 && t * ln <= tol)) {
+        continue;
+      }
+      start_seg = j;
+      start_dir = dir;
+      ++joins;
+    }
+    if (joins != 1) {
+      continue;
+    }
+    double rr, zz, dist;
+    if (tok_wall_walk(geo, start_seg, start_dir, p, psi, &rr, &zz, &dist)) {
+      if (found && hypot(rr - best_r, zz - best_z) > tol) {
+        return false;
+      }
+      best_r = rr;
+      best_z = zz;
+      best_dist = dist;
+      picked_end = edge;
+      ++found;
+    }
+  }
+  if (!found) {
+    return false;
+  }
+  *r = best_r;
+  *z = best_z;
+  static int nreport = 0;
+  if (geo->is_verbose && nreport++ < 8) {
+    fprintf(
+      stderr, "TOK_GEO_PLATE_EXTENDED psi=%.17g endpoint=%d rz=(%.17g,%.17g) wall_distance=%.17g\n",
+      psi, picked_end, *r, *z, best_dist
+    );
+  }
+  return true;
+}
+
+// Find the unique intersection of psi=psi0 with a shaped plate.  The search
+// uses only the fixed target surface, so the cached X-point ray is identical
+// in corner, interior, and surface geometry passes.
+static bool
+tok_plate_intersection(
+  const struct gkyl_tok_geo *geo, plate_func plate, double psi0, double *rplate, double *zplate
+)
+{
+  int slot = tok_divertor_wall_slot(geo, plate);
+  if (slot != -1) {
+    return tok_divertor_wall_intersection(geo, slot, psi0, rplate, zplate);
+  }
+  if (!plate) {
+    return false;
+  }
+  const int nsamp = 512;
+  const double flux_tol = 1e-10 * fmax(1.0, fabs(psi0));
+  int nroot = 0;
+  double last_root = -DBL_MAX, root_s = 0.0;
+  double roots[8];
+  double rz0[2], rz1[2];
+  plate(0.0, rz0);
+  double f0 = tok_eval_psi_rz(geo, rz0[0], rz0[1]) - psi0;
+  if (isfinite(f0) && fabs(f0) <= flux_tol) {
+    root_s = 0.0;
+    last_root = 0.0;
+    roots[0] = 0.0;
+    nroot = 1;
+  }
+  for (int i = 1; i <= nsamp; ++i) {
+    double s1 = i / (double)nsamp;
+    plate(s1, rz1);
+    double f1 = tok_eval_psi_rz(geo, rz1[0], rz1[1]) - psi0;
+    bool endpoint = isfinite(f1) && fabs(f1) <= flux_tol;
+    bool bracket = isfinite(f0) && isfinite(f1) && f0 * f1 < 0.0;
+    if (endpoint || bracket) {
+      double sr = s1;
+      if (!endpoint) {
+        double lo = (i - 1) / (double)nsamp, hi = s1, flo = f0;
+        for (int k = 0; k < 64; ++k) {
+          double mid = 0.5 * (lo + hi), rzm[2];
+          plate(mid, rzm);
+          double fm = tok_eval_psi_rz(geo, rzm[0], rzm[1]) - psi0;
+          if (!isfinite(fm)) {
+            return false;
+          }
+          if (flo * fm <= 0.0) {
+            hi = mid;
+          } else {
+            lo = mid;
+            flo = fm;
+          }
+        }
+        sr = 0.5 * (lo + hi);
+      }
+      if (fabs(sr - last_root) > 2e-10) {
+        root_s = sr;
+        last_root = sr;
+        if (nroot < (int)(sizeof(roots) / sizeof(roots[0]))) {
+          roots[nroot] = sr;
+        }
+        ++nroot;
+      }
+    }
+    rz0[0] = rz1[0];
+    rz0[1] = rz1[1];
+    f0 = f1;
+  }
+  if (nroot > 1) {
+    // A plate long enough to reach past the X-point (an inner plate continued
+    // onto the floor) is crossed twice by one surface: once by the main-SOL
+    // boundary and once by the divertor leg. Rejecting outright would discard
+    // the perfectly good leg strike, so select it the same way
+    // tok_plate_select_leg_root does -- the crossing beyond the X-point in |Z|
+    // that is nearest to it. Falls back to the old rejection when no crossing
+    // lies beyond the X-point, and the nroot==1 path below is untouched.
+    int nbeyond = 0;
+    double best_s = 0.0, best_absz = 0.0;
+    int navail = nroot < (int)(sizeof(roots) / sizeof(roots[0])) ?
+                   nroot :
+                   (int)(sizeof(roots) / sizeof(roots[0]));
+    for (int k = 0; k < navail; ++k) {
+      double rzk[2];
+      plate(roots[k], rzk);
+      double zxpt = rzk[1] < 0.0 ?
+                      (geo->use_cubics ? geo->efit->Zxpt_cubic[0] : geo->efit->Zxpt[0]) :
+                      ((geo->efit->num_xpts > 1 ?
+                          (geo->use_cubics ? geo->efit->Zxpt_cubic[1] : geo->efit->Zxpt[1]) :
+                          (geo->use_cubics ? geo->efit->Zxpt_cubic[0] : geo->efit->Zxpt[0])));
+      if (fabs(rzk[1]) > fabs(zxpt)) {
+        if (nbeyond == 0 || fabs(rzk[1]) < best_absz) {
+          best_absz = fabs(rzk[1]);
+          best_s = roots[k];
+        }
+        ++nbeyond;
+      }
+    }
+    if (nbeyond == 0) {
+      return false;
+    }
+    root_s = best_s;
+  } else if (nroot != 1) {
+    return tok_limiter_plate_intersection(geo, plate, psi0, rplate, zplate);
+  }
+
+  // The sign-change test cannot tell a crossing from a DISCONTINUITY in the
+  // plate. plate_func is not required to be continuous -- two separate divertor
+  // tiles are an ordinary thing to describe -- and where two disjoint pieces
+  // sit on opposite sides of the surface, f changes sign with no root between
+  // them. Bisection then converges onto the gap, and every value it evaluates
+  // stays on one piece, so it never notices.
+  //
+  // Measured before this check existed: a plate split by a gap spanning 40% of
+  // its length reported a strike point about 55 mm from the requested surface
+  // AND reported success -- a false acceptance, where every other failure mode
+  // in this routine refuses. So confirm the point actually lies on the surface
+  // before accepting it. A genuine bisected root converges to ~1e-23 here and a
+  // root found by the endpoint test satisfies this by construction, so the
+  // existing tolerance is the right bar rather than a new tuned one.
+  double rz[2];
+  plate(root_s, rz);
+  double resid = tok_eval_psi_rz(geo, rz[0], rz[1]) - psi0;
+  if (!isfinite(resid) || fabs(resid) > flux_tol) {
+    fprintf(
+      stderr,
+      "TOK_GEO_PLATE_ROOT_REJECTED reason=residual s=%.17g psi_target=%.17g "
+      "residual=%.17g tol=%.17g\n",
+      root_s, psi0, resid, flux_tol
+    );
+    return false;
+  }
+  *rplate = rz[0];
+  *zplate = rz[1];
+  return isfinite(*rplate) && isfinite(*zplate);
+}
+
+// Only material endpoints actually owned by this block are mandatory. In
+// particular, half-domain PF setup also evaluates the other, unused plate.
+static bool
+tok_plate_slot_required(
+  const struct gkyl_tok_geo *geo, enum gkyl_tok_geo_type ftype, double psi, int side
+)
+{
+  bool lower = false, upper = false;
+  switch (ftype) {
+    case GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT:
+    case GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN:
+    case GKYL_GEOMETRY_TOKAMAK_LSN_SOL:
+      lower = upper = true;
+      break;
+    case GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_LO:
+    case GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_LO:
+    case GKYL_GEOMETRY_TOKAMAK_LSN_SOL_LO:
+    case GKYL_GEOMETRY_TOKAMAK_PF_LO_R:
+    case GKYL_GEOMETRY_TOKAMAK_PF_UP_L:
+      lower = true;
+      break;
+    case GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_UP:
+    case GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_UP:
+    case GKYL_GEOMETRY_TOKAMAK_LSN_SOL_UP:
+    case GKYL_GEOMETRY_TOKAMAK_PF_LO_L:
+    case GKYL_GEOMETRY_TOKAMAK_PF_UP_R:
+      upper = true;
+      break;
+    case GKYL_GEOMETRY_TOKAMAK_IWL:
+      lower = upper = (psi - geo->sibry) * (geo->sibry - geo->efit->simag) >= 0.0;
+      break;
+    default:
+      break;
+  }
+  return side ? upper : lower;
+}
+
+int
+tok_plate_coverage_status(
+  const struct gkyl_tok_geo *geo, const struct gkyl_tok_geo_grid_inp *inp, double psi
+)
+{
+  if (!geo->plate_spec) {
+    return 0;
+  }
+  int status = 0;
+  for (int side = 0; side < 2; ++side) {
+    if (!tok_plate_slot_required(geo, inp->ftype, psi, side)) {
+      continue;
+    }
+    double r, z;
+    if (!tok_plate_intersection(
+          geo, side ? geo->plate_func_upper : geo->plate_func_lower, psi, &r, &z
+        )) {
+      fprintf(
+        stderr,
+        "TOK_GEO_ACTIVE_PLATE_FAILED ftype=%d plate=%s psi=%.17g extend_to_limiter=%d limiter_status=%d\n",
+        inp->ftype, side ? "upper" : "lower", psi, geo->extend_to_limiter, geo->efit->limiter_status
+      );
+      int failure = geo->extend_to_limiter && geo->divertor_wall[side].num_segments ? 1 : 2;
+      status = GKYL_MAX2(status, failure);
+    }
+  }
+  return status;
+}
+
+bool
+gkyl_tok_geo_check_plate_coverage(
+  const struct gkyl_tok_geo *geo, const struct gkyl_tok_geo_grid_inp *inp, double psi
+)
+{
+  return tok_plate_coverage_status(geo, inp, psi) == 0;
+}
+
+enum tok_xpt_sector {
+  TOK_XPT_CORE,
+  TOK_XPT_PF,
+  TOK_XPT_SOL_OUT,
+  TOK_XPT_SOL_IN,
+  TOK_XPT_UNSUPPORTED
+};
+
+static enum tok_xpt_sector
+tok_xpt_sector_from_ftype(enum gkyl_tok_geo_type ftype)
+{
+  switch (ftype) {
+    case GKYL_GEOMETRY_TOKAMAK_CORE_R:
+    case GKYL_GEOMETRY_TOKAMAK_CORE_L:
+      return TOK_XPT_CORE;
+    case GKYL_GEOMETRY_TOKAMAK_PF_LO_R:
+    case GKYL_GEOMETRY_TOKAMAK_PF_LO_L:
+      return TOK_XPT_PF;
+    case GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_LO:
+    case GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_MID:
+      return TOK_XPT_SOL_OUT;
+    case GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_MID:
+    case GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_LO:
+      return TOK_XPT_SOL_IN;
+    default:
+      return TOK_XPT_UNSUPPORTED;
+  }
+}
+
+static bool
+tok_xpt_ray_enabled(const struct gkyl_tok_geo_grid_inp *inp)
+{
+  enum tok_xpt_sector sector = tok_xpt_sector_from_ftype(inp->ftype);
+  if (sector == TOK_XPT_UNSUPPORTED) {
+    return false;
+  }
+  if (inp->straight_xpt_ray) {
+    return true;
+  }
+  return inp->straight_core_xpt_ray && sector == TOK_XPT_CORE;
+}
+
+static bool
+tok_nearest_root_at_z(
+  const struct gkyl_tok_geo_grid_inp *inp, const struct gkyl_tok_geo *geo,
+  enum tok_xpt_sector sector, double psi0, double z, double rx, double zx, double *rbest,
+  double *d2best
+)
+{
+  double R[4] = {0}, dRdZ[4] = {0}, dR[4] = {0}, dZ[4] = {0};
+  int nr = gkyl_tok_geo_R_psiZ(geo, psi0, z, 4, R, dRdZ, dR, dZ);
+  bool found = false;
+  *d2best = DBL_MAX;
+
+  // An R threshold around the X point lets the inboard and outboard tests
+  // overlap whenever the two roots approach the saddle.  Select the root
+  // belonging to the requested SOL branch by its established branch seed
+  // instead.  Core and PF searches remain global because their nearest point
+  // can lie on either side of a turning point.
+  int nlo = 0, nhi = nr;
+  int selected = -1;
+  if (sector == TOK_XPT_SOL_OUT || sector == TOK_XPT_SOL_IN) {
+    double reference = sector == TOK_XPT_SOL_OUT ? inp->rright : inp->rleft;
+    double best_reference_distance = DBL_MAX;
+    for (int n = 0; n < nr; ++n) {
+      double distance = fabs(R[n] - reference);
+      if (distance < best_reference_distance) {
+        best_reference_distance = distance;
+        selected = n;
+      }
+    }
+    nlo = selected;
+    nhi = selected + 1;
+  }
+  for (int n = 0; n < nr; ++n) {
+    if (n < nlo || n >= nhi) {
+      continue;
+    }
+    double d2 = SQ(R[n] - rx) + SQ(z - zx);
+    if (d2 < *d2best) {
+      *d2best = d2;
+      *rbest = R[n];
+      found = true;
+    }
+  }
+  return found;
+}
+
+static bool
+tok_nearest_point_on_surface(
+  const struct gkyl_tok_geo_grid_inp *inp, struct arc_length_ctx *arc_ctx,
+  enum tok_xpt_sector sector, double psi0, double rx, double zx, double *rnear, double *znear
+)
+{
+  const struct gkyl_tok_geo *geo = arc_ctx->geo;
+  double zlo, zhi;
+  if (sector == TOK_XPT_PF) {
+    // These input bounds are fixed for the block.  Do not use the current
+    // surface's plate intersections here: corner, interior, and surface
+    // calculations begin at different radial quadrature points, but must all
+    // initialize exactly the same ray on xpt_ray_psi0.
+    zlo = fmax(geo->rzgrid.lower[1], fmin(inp->zmin_left, inp->zmin_right));
+    zhi = zx;
+  } else if (sector == TOK_XPT_SOL_OUT || sector == TOK_XPT_SOL_IN) {
+    // A lower-SOL half surface runs from its physical divertor plate to the
+    // magnetic-axis midplane.  The nearest point to the X point is allowed to
+    // lie below the X point; restricting this search to X->midplane selected a
+    // visibly non-nearest ray in shot 203730.
+    double rplate = 0.0, zplate = 0.0;
+    if (!tok_plate_intersection(geo, geo->plate_func_lower, psi0, &rplate, &zplate)) {
+      return false;
+    }
+    zlo = fmin(zplate, geo->zmaxis);
+    zhi = fmax(zplate, geo->zmaxis);
+  } else {
+    zlo = fmin(zx, geo->zmaxis);
+    zhi = fmax(zx, geo->zmaxis);
+  }
+  if (!(zhi > zlo)) {
+    return false;
+  }
+
+  // This search is intentionally global in Z. It is run only once per block,
+  // and avoids making the selected ray depend on a branch-local Newton guess.
+  const int nsamp = 4 * geo->rzgrid.cells[1] + 1;
+  double best_d2 = DBL_MAX, best_r = 0.0, best_z = 0.0;
+  int best_i = -1;
+  for (int i = 0; i < nsamp; ++i) {
+    double z = zlo + (zhi - zlo) * i / (nsamp - 1.0), r, d2;
+    if (tok_nearest_root_at_z(inp, geo, sector, psi0, z, rx, zx, &r, &d2) && d2 < best_d2) {
+      best_d2 = d2;
+      best_r = r;
+      best_z = z;
+      best_i = i;
+    }
+  }
+  if (best_i < 0) {
+    return false;
+  }
+
+  // Refine the sampled minimum without differentiating through DG-cell
+  // interfaces or assuming that only one R root exists at a given Z.
+  double dzs = (zhi - zlo) / (nsamp - 1.0);
+  double a = fmax(zlo, best_z - dzs), b = fmin(zhi, best_z + dzs);
+  const double gr = 0.6180339887498948482;
+  for (int iter = 0; iter < 64; ++iter) {
+    double ztrial[2] = {b - gr * (b - a), a + gr * (b - a)};
+    double dtrial[2] = {DBL_MAX, DBL_MAX}, rtrial[2] = {best_r, best_r};
+    for (int k = 0; k < 2; ++k) {
+      tok_nearest_root_at_z(inp, geo, sector, psi0, ztrial[k], rx, zx, &rtrial[k], &dtrial[k]);
+    }
+    if (dtrial[0] < best_d2) {
+      best_d2 = dtrial[0];
+      best_r = rtrial[0];
+      best_z = ztrial[0];
+    }
+    if (dtrial[1] < best_d2) {
+      best_d2 = dtrial[1];
+      best_r = rtrial[1];
+      best_z = ztrial[1];
+    }
+    if (dtrial[0] <= dtrial[1]) {
+      b = ztrial[1];
+    } else {
+      a = ztrial[0];
+    }
+  }
+
+  *rnear = best_r;
+  *znear = best_z;
+  return isfinite(best_r) && isfinite(best_z);
+}
+
+bool
+tok_xpt_classify_branch_at_point(
+  const struct gkyl_tok_geo_grid_inp *inp, const struct arc_length_ctx *arc_ctx, double Rpoint,
+  double Zpoint, double psi, bool *resolved, bool *on_right
+)
+{
+  double R[4] = {0}, dRdZ[4] = {0}, dR[4] = {0}, dZ[4] = {0};
+  int nr = gkyl_tok_geo_R_psiZ(arc_ctx->geo, psi, Zpoint, 4, R, dRdZ, dR, dZ);
+  *resolved = false;
+  if (nr < 2) {
+    return true;
+  }
+
+  double rr = choose_closest(inp->rright, R, R, nr);
+  double rl = choose_closest(inp->rleft, R, R, nr);
+  double scale = fmax(1.0, fmax(fabs(rr), fabs(rl)));
+  if (fabs(rr - rl) <= 1e-8 * scale) {
+    return true;
+  }
+
+  double error_right = fabs(Rpoint - rr), error_left = fabs(Rpoint - rl);
+  *on_right = error_right <= error_left;
+  *resolved = true;
+  return true;
+}
+
+static bool
+tok_xpt_initialize_branch(
+  const struct gkyl_tok_geo_grid_inp *inp, struct arc_length_ctx *arc_ctx,
+  enum tok_xpt_sector sector, double rx, double zx
+)
+{
+  if (sector == TOK_XPT_SOL_OUT || sector == TOK_XPT_SOL_IN) {
+    arc_ctx->xpt_ray_on_right = sector == TOK_XPT_SOL_OUT;
+    arc_ctx->xpt_ray_branch_valid = true;
+    return true;
+  }
+
+  // A nearest core/PF endpoint is commonly a turning point, where the two R
+  // roots coalesce and cannot label the branch.  Probe the already-fixed ray
+  // away from both endpoints, using psi evaluated at the probe itself.  This
+  // makes branch identity independent of which corner/Gauss surface happened
+  // to initialize this arc-length context first.
+  // Each probe evaluates psi at its own location, so the probes sample different
+  // flux surfaces, and the classifier labels a point by whether it is the larger or
+  // smaller of the two R roots at that Z.  That rank is not invariant along a
+  // straight ray: the contour legs are curved, so their ordering relative to the ray
+  // can swap with no change in the ray's actual branch identity.  Treating a single
+  // disagreement as fatal therefore rejects otherwise sound geometry.  Take the
+  // majority over all probes instead; on a tie, trust the probe farthest from the
+  // X point, where the two roots are best separated.  Shots whose probes already
+  // agree unanimously are unaffected.
+  const double probes[] = {0.5, 0.25, 0.75, 0.125, 0.875};
+  int n_right = 0, n_left = 0;
+  double smax_right = -1.0, smax_left = -1.0;
+  for (unsigned i = 0; i < sizeof(probes) / sizeof(probes[0]); ++i) {
+    double s = probes[i];
+    double R = rx + s * (arc_ctx->xpt_ray_r0 - rx);
+    double Z = zx + s * (arc_ctx->xpt_ray_z0 - zx);
+    double psi = tok_eval_psi_rz(arc_ctx->geo, R, Z);
+    bool resolved = false, on_right = false;
+    if (!tok_xpt_classify_branch_at_point(inp, arc_ctx, R, Z, psi, &resolved, &on_right)) {
+      return false;
+    }
+    if (!resolved) {
+      continue;
+    }
+    if (on_right) {
+      ++n_right;
+      smax_right = fmax(smax_right, s);
+    } else {
+      ++n_left;
+      smax_left = fmax(smax_left, s);
+    }
+  }
+  if (n_right == 0 && n_left == 0) {
+    fprintf(
+      stderr, "TOK_XPT_RAY_DIAG reason=unresolved_ray_branch ftype=%d endpoint=(%.17g,%.17g)\n",
+      inp->ftype, arc_ctx->xpt_ray_r0, arc_ctx->xpt_ray_z0
+    );
+    return false;
+  }
+  bool selected_right = n_right != n_left ? n_right > n_left : smax_right > smax_left;
+  if (n_right > 0 && n_left > 0) {
+    if (arc_ctx->geo->is_verbose) {
+      fprintf(
+        stderr,
+        "TOK_XPT_RAY_DIAG reason=ray_branch_probe_disagreement ftype=%d "
+        "n_right=%d n_left=%d smax_right=%.17g smax_left=%.17g selected_right=%d\n",
+        inp->ftype, n_right, n_left, smax_right, smax_left, (int)selected_right
+      );
+    }
+  }
+  arc_ctx->xpt_ray_on_right = selected_right;
+  arc_ctx->xpt_ray_branch_valid = true;
+  return true;
+}
+
+// Walk a straight ray leaving the X point at a fixed angle and report where it
+// first reaches the far flux surface, together with how far outside the flux
+// band [psisep, psi0] it strayed on the way.  q is the normalized flux
+// coordinate, 0 on the separatrix and 1 on the far surface, so it is sign
+// convention independent: some equilibria have psi increasing outward and
+// others decreasing.
+static bool
+tok_xpt_ray_walk(
+  const struct gkyl_tok_geo *geo, double rx, double zx, double angle, double smax, double psisep,
+  double delta, double *s_cross, double *qmin
+)
+{
+  const int nsamp = 2048;
+  double ca = cos(angle), sa = sin(angle);
+  double q_prev = 0.0, s_prev = 0.0;
+  *qmin = 0.0;
+  *s_cross = 0.0;
+  for (int i = 1; i <= nsamp; ++i) {
+    double s = smax * i / nsamp;
+    double q = (tok_eval_psi_rz(geo, rx + s * ca, zx + s * sa) - psisep) / delta;
+    if (!isfinite(q)) {
+      return false;
+    }
+    *qmin = fmin(*qmin, q);
+    if (q >= 1.0) {
+      // Bisect the bracketing interval for the crossing itself.
+      double lo = s_prev, hi = s;
+      for (int k = 0; k < 60; ++k) {
+        double mid = 0.5 * (lo + hi);
+        double qm = (tok_eval_psi_rz(geo, rx + mid * ca, zx + mid * sa) - psisep) / delta;
+        if (!isfinite(qm)) {
+          return false;
+        }
+        if (qm >= 1.0) {
+          hi = mid;
+        } else {
+          lo = mid;
+        }
+      }
+      *s_cross = 0.5 * (lo + hi);
+      return *s_cross > 0.0;
+    }
+    q_prev = q;
+    s_prev = s;
+  }
+  (void)q_prev;
+  return false;
+}
+
+// Replace an X-point ray that leaves its own flux band.  The anchor is normally
+// the nearest point on the far surface, which points the ray along the saddle's
+// principal axis -- correct where the SOL channel is straight.  Where the
+// channel bends sharply away from that axis the straight ray crosses a
+// separatrix branch, runs outside the block's own flux region and re-enters,
+// and the seam it defines is no longer a boundary of the block.  Sweep the ray
+// angle and take the nearest anchor whose entire ray stays in the band.
+static bool
+tok_xpt_ray_reanchor_in_band(
+  const struct gkyl_tok_geo_grid_inp *inp, struct arc_length_ctx *arc_ctx, double rx, double zx,
+  double delta, double band_tol
+)
+{
+  const struct gkyl_tok_geo *geo = arc_ctx->geo;
+  double angle0 = atan2(arc_ctx->xpt_ray_z0 - zx, arc_ctx->xpt_ray_r0 - rx);
+  double s0 = hypot(arc_ctx->xpt_ray_r0 - rx, arc_ctx->xpt_ray_z0 - zx);
+  if (!(s0 > 0.0) || !isfinite(angle0)) {
+    return false;
+  }
+  const double sweep = 60.0 * M_PI / 180.0;
+  const int nangle = 961;
+  // Accept only rays that stay in the band to within DG round-off, not merely
+  // to within the trigger threshold: an anchor taken from the edge of the valid
+  // angular range grazes the separatrix branch and folds the corner cell just
+  // as the original did.  The trigger stays loose so that rays with a harmless
+  // wiggle are left exactly as they are.
+  const double accept_tol = 1.0e-6 * fmax(1.0, band_tol / 1.0e-3);
+  double best_s = DBL_MAX, best_angle = 0.0, best_qmin = 0.0;
+  for (int i = 0; i < nangle; ++i) {
+    double angle = angle0 + sweep * (2.0 * i / (nangle - 1.0) - 1.0);
+    double s_cross = 0.0, qmin = 0.0;
+    if (!tok_xpt_ray_walk(geo, rx, zx, angle, 4.0 * s0, geo->psisep, delta, &s_cross, &qmin)) {
+      continue;
+    }
+    if (qmin < -accept_tol || s_cross >= best_s) {
+      continue;
+    }
+    best_s = s_cross;
+    best_angle = angle;
+    best_qmin = qmin;
+  }
+  if (best_s == DBL_MAX) {
+    return false;
+  }
+  double r_new = rx + best_s * cos(best_angle);
+  double z_new = zx + best_s * sin(best_angle);
+  if (arc_ctx->geo->is_verbose) {
+    fprintf(
+      stderr,
+      "TOK_XPT_RAY_DIAG reason=reanchored_in_band ftype=%d old_angle=%.6f "
+      "new_angle=%.6f old_s=%.17g new_s=%.17g new_qmin=%.6e "
+      "old_endpoint=(%.17g,%.17g) new_endpoint=(%.17g,%.17g)\n",
+      inp->ftype, angle0 * 180.0 / M_PI, best_angle * 180.0 / M_PI, s0, best_s, best_qmin,
+      arc_ctx->xpt_ray_r0, arc_ctx->xpt_ray_z0, r_new, z_new
+    );
+  }
+  arc_ctx->xpt_ray_r0 = r_new;
+  arc_ctx->xpt_ray_z0 = z_new;
+  return true;
+}
+
+static bool
+tok_xpt_ray_anchor(
+  const struct gkyl_tok_geo_grid_inp *inp, struct arc_length_ctx *arc_ctx, double psi_curr
+)
+{
+  const struct gkyl_tok_geo *geo = arc_ctx->geo;
+  enum tok_xpt_sector sector = tok_xpt_sector_from_ftype(inp->ftype);
+  arc_ctx->xpt_anchor_valid = false;
+  double rx = geo->use_cubics ? geo->efit->Rxpt_cubic[0] : geo->efit->Rxpt[0];
+  double zx = geo->use_cubics ? geo->efit->Zxpt_cubic[0] : geo->efit->Zxpt[0];
+
+  if (!arc_ctx->xpt_ray_initialized) {
+    if (!tok_nearest_point_on_surface(
+          inp, arc_ctx, sector, arc_ctx->xpt_ray_psi0, rx, zx, &arc_ctx->xpt_ray_r0,
+          &arc_ctx->xpt_ray_z0
+        )) {
+      fprintf(
+        stderr, "TOK_XPT_RAY_DIAG reason=no_far_surface_point ftype=%d target_psi=%.17g\n",
+        inp->ftype, arc_ctx->xpt_ray_psi0
+      );
+      return false;
+    }
+
+    double psi_endpoint = tok_eval_psi_rz(geo, arc_ctx->xpt_ray_r0, arc_ctx->xpt_ray_z0);
+    double flux_scale = fmax(1.0, fmax(fabs(arc_ctx->xpt_ray_psi0), fabs(geo->psisep)));
+    if (!isfinite(psi_endpoint) || fabs(psi_endpoint - arc_ctx->xpt_ray_psi0) > 1e-9 * flux_scale) {
+      fprintf(
+        stderr,
+        "TOK_XPT_RAY_DIAG reason=far_surface_flux_residual ftype=%d residual=%.17g requested_psi=%.17g evaluated_psi=%.17g endpoint=(%.17g,%.17g)\n",
+        inp->ftype, psi_endpoint - arc_ctx->xpt_ray_psi0, arc_ctx->xpt_ray_psi0, psi_endpoint,
+        arc_ctx->xpt_ray_r0, arc_ctx->xpt_ray_z0
+      );
+      return false;
+    }
+    double delta = arc_ctx->xpt_ray_psi0 - geo->psisep;
+    if (!isfinite(delta) || fabs(delta) <= 256.0 * DBL_EPSILON * flux_scale) {
+      fprintf(
+        stderr, "TOK_XPT_RAY_DIAG reason=degenerate_flux_span ftype=%d psi_x=%.17g psi_far=%.17g\n",
+        inp->ftype, geo->psisep, arc_ctx->xpt_ray_psi0
+      );
+      return false;
+    }
+
+    // The quadratic DG representation can have a small local reversal at a
+    // cell boundary even when the underlying equilibrium is smooth.  A global
+    // monotonicity test therefore rejects otherwise unambiguous rays.  Check
+    // finiteness here; uniqueness is tested below for every actual geometry
+    // and finite-difference target before an anchor is accepted.
+    double ray_qmin = 0.0;
+    for (int i = 1; i <= 256; ++i) {
+      double s = i / 256.0;
+      double R = rx + s * (arc_ctx->xpt_ray_r0 - rx);
+      double Z = zx + s * (arc_ctx->xpt_ray_z0 - zx);
+      double q = (tok_eval_psi_rz(geo, R, Z) - geo->psisep) / delta;
+      if (!isfinite(q)) {
+        fprintf(
+          stderr,
+          "TOK_XPT_RAY_DIAG reason=nonfinite_initial_ray ftype=%d sample=%d endpoint=(%.17g,%.17g)\n",
+          inp->ftype, i, arc_ctx->xpt_ray_r0, arc_ctx->xpt_ray_z0
+        );
+        return false;
+      }
+      ray_qmin = fmin(ray_qmin, q);
+    }
+    // A ray that dips out of its own flux band has crossed a separatrix branch
+    // and no longer bounds this block: the seam it defines cuts across the
+    // neighbouring region, and the last interior theta column overtakes it,
+    // folding the corner cells.  Measured over 450 NSTX-U equilibria, the
+    // outboard-SOL blocks that fold are exactly the three with
+    // ray_qmin <= -6.3e-3, while every non-folding one stays above -7.9e-4 --
+    // an order of magnitude of separation either side of this threshold.
+    const double ray_band_tol = 3.0e-3;
+    if (ray_qmin < -ray_band_tol &&
+        !tok_xpt_ray_reanchor_in_band(inp, arc_ctx, rx, zx, delta, ray_band_tol)) {
+      if (arc_ctx->geo->is_verbose) {
+        fprintf(
+          stderr,
+          "TOK_XPT_RAY_DIAG reason=no_in_band_reanchor ftype=%d ray_qmin=%.6e "
+          "endpoint=(%.17g,%.17g)\n",
+          inp->ftype, ray_qmin, arc_ctx->xpt_ray_r0, arc_ctx->xpt_ray_z0
+        );
+      }
+    }
+    if (!tok_xpt_initialize_branch(inp, arc_ctx, sector, rx, zx)) {
+      return false;
+    }
+    arc_ctx->xpt_ray_initialized = true;
+  }
+
+  double psi1 = arc_ctx->xpt_ray_psi0;
+  double delta = psi1 - geo->psisep;
+  double scale = fmax(1.0, fmax(fabs(psi_curr), fabs(geo->psisep)));
+  double tol = 128.0 * DBL_EPSILON * scale;
+  if (fabs(psi_curr - geo->psisep) <= tol) {
+    arc_ctx->xpt_anchor_r = rx;
+    arc_ctx->xpt_anchor_z = zx;
+    arc_ctx->xpt_anchor_valid = true;
+    return true;
+  }
+  if (fabs(psi_curr - psi1) <= tol) {
+    arc_ctx->xpt_anchor_r = arc_ctx->xpt_ray_r0;
+    arc_ctx->xpt_anchor_z = arc_ctx->xpt_ray_z0;
+    arc_ctx->xpt_anchor_valid = true;
+    return true;
+  }
+
+  double dr = arc_ctx->xpt_ray_r0 - rx, dz = arc_ctx->xpt_ray_z0 - zx;
+  double smax = DBL_MAX;
+  if (dr > 0.0) {
+    smax = fmin(smax, (geo->rzgrid.upper[0] - rx) / dr);
+  } else if (dr < 0.0) {
+    smax = fmin(smax, (geo->rzgrid.lower[0] - rx) / dr);
+  }
+  if (dz > 0.0) {
+    smax = fmin(smax, (geo->rzgrid.upper[1] - zx) / dz);
+  } else if (dz < 0.0) {
+    smax = fmin(smax, (geo->rzgrid.lower[1] - zx) / dz);
+  }
+  smax *= 1.0 - 64.0 * DBL_EPSILON;
+  if (!isfinite(smax) || smax <= 0.0) {
+    fprintf(
+      stderr, "TOK_XPT_RAY_DIAG reason=invalid_ray_extent ftype=%d smax=%.17g\n", inp->ftype, smax
+    );
+    return false;
+  }
+
+  double qtarget = (psi_curr - geo->psisep) / delta;
+  if (qtarget < -1e-8 || qtarget > 1.0 + 1e-8) {
+    fprintf(
+      stderr,
+      "TOK_XPT_RAY_DIAG reason=target_outside_ray_span ftype=%d qtarget=%.17g psi=%.17g ray_psi=(%.17g,%.17g)\n",
+      inp->ftype, qtarget, psi_curr, geo->psisep, psi1
+    );
+    return false;
+  }
+  double search_max = fmin(1.0, smax);
+  double qprev = (tok_eval_psi_rz(geo, rx, zx) - geo->psisep) / delta;
+  double qpeak = qprev;
+  double sprev = 0.0, slo = -1.0, sup = -1.0;
+  // Track the last upward crossing and the deepest dip after the first one, so a
+  // spurious local reversal in the DG representation (all crossings clustered in a
+  // tiny s window) can be told apart from a genuinely folded ray.
+  double slast_lo = -1.0, slast_up = -1.0, qmin_after_first = DBL_MAX;
+  // Lowest q seen before the ray first reaches the target surface. If the ray
+  // never dips inside the separatrix on that stretch, the first crossing is
+  // joined to the X point through the block's own flux band.
+  double qmin_before_first = 0.0;
+  int upward_crossings = 0, downward_crossings = 0;
+  double crossing_tol = 1e-13 * fmax(1.0, fabs(qtarget));
+  const int nsamp = 512;
+  for (int i = 1; i <= nsamp; ++i) {
+    double s = search_max * i / (double)nsamp;
+    double R = rx + s * dr, Z = zx + s * dz;
+    double q = (tok_eval_psi_rz(geo, R, Z) - geo->psisep) / delta;
+    if (!isfinite(q)) {
+      fprintf(
+        stderr,
+        "TOK_XPT_RAY_DIAG reason=nonfinite_anchor_search ftype=%d sample=%d qtarget=%.17g\n",
+        inp->ftype, i, qtarget
+      );
+      return false;
+    }
+    bool upward = qprev < qtarget - crossing_tol && q >= qtarget - crossing_tol;
+    bool downward = qprev > qtarget + crossing_tol && q <= qtarget + crossing_tol;
+    if (upward) {
+      upward_crossings++;
+      if (slo < 0.0) {
+        slo = sprev;
+        sup = s;
+      }
+      slast_lo = sprev;
+      slast_up = s;
+    }
+    if (downward) {
+      downward_crossings++;
+    }
+    if (upward_crossings == 0) {
+      qmin_before_first = fmin(qmin_before_first, q);
+    }
+    if (upward_crossings > 0) {
+      qmin_after_first = fmin(qmin_after_first, q);
+    }
+    qprev = q;
+    qpeak = fmax(qpeak, q);
+    sprev = s;
+  }
+  if (slo < 0.0) {
+    fprintf(
+      stderr,
+      "TOK_XPT_RAY_DIAG reason=no_anchor_bracket ftype=%d qtarget=%.17g qpeak=%.17g qend=%.17g smax=%.17g\n",
+      inp->ftype, qtarget, qpeak, qprev, search_max
+    );
+    return false;
+  }
+  // A ray that folds back can cross psi=psi_curr more than once, and the
+  // residual check accepts either crossing, so this used to bail out. But the
+  // crossings are not interchangeable: the anchor has to vary continuously with
+  // psi_curr, because psi=psisep anchors exactly at the X point above and the
+  // near-separatrix samples here are the finite-difference stencil for the
+  // radial derivative there. Only the FIRST crossing tends to the X point as
+  // psi_curr -> psisep; a later one stays a finite distance away and would put a
+  // step in the derivative.
+  //
+  // Accept the first crossing when the ray reaches it without ever dipping
+  // inside the separatrix, i.e. it is joined to the X point through the block's
+  // own flux band. A ray that wandered out of that band before arriving is still
+  // rejected. upward_crossings==1 never enters here, so shots that already
+  // anchor unambiguously are untouched.
+  // The X point is a saddle, so psi is stationary there and a sub-millimetre
+  // error in its location -- the cubic and quadratic reps routinely disagree by
+  // ~1e-3 m -- puts the first samples on the wrong side of psisep by a
+  // vanishing amount. Judging "did the ray leave the flux band" at 1e-13 would
+  // call that noise a genuine excursion, so measure the dip against the flux
+  // offset actually being resolved. Measured separation is wide: 204502 dips to
+  // 0.22% of qtarget (4.8e-8 in psi, 6e-7 of psisep), whereas a ray that really
+  // crosses into the confined region dips by 1800% of qtarget.
+  double band_tol = fmax(crossing_tol, 0.05 * fabs(qtarget));
+  if (upward_crossings > 1 && qmin_before_first >= -band_tol) {
+    if (arc_ctx->geo->is_verbose) {
+      fprintf(
+        stderr,
+        "TOK_XPT_RAY_DIAG reason=first_crossing_anchor ftype=%d qtarget=%.17g "
+        "upward_crossings=%d bracket=(%.17g,%.17g) qmin_before_first=%.6e\n",
+        inp->ftype, qtarget, upward_crossings, slo, sup, qmin_before_first
+      );
+    }
+  } else if (upward_crossings != 1) {
+    double crossing_span = slast_up - slo;
+    double dip_below = qtarget - qmin_after_first;
+    // How high q rises on the near-X-point lobe before it dips back decides how
+    // many radial nodes are ambiguous: every node with qtarget < qlobe_max sees
+    // two crossings, every node above it sees only the far one.
+    {
+      double qlobe_max = -DBL_MAX, s_lobe = -1.0, qp = 0.0;
+      for (int i = 1; i <= nsamp; ++i) {
+        double s = search_max * i / (double)nsamp;
+        double q = (tok_eval_psi_rz(geo, rx + s * dr, zx + s * dz) - geo->psisep) / delta;
+        if (i > 1 && q < qp) {
+          break; // first turnover ends the lobe
+        }
+        if (q > qlobe_max) {
+          qlobe_max = q;
+          s_lobe = s;
+        }
+        qp = q;
+      }
+      fprintf(
+        stderr,
+        "TOK_XPT_RAY_LOBE ftype=%d qtarget=%.17g qlobe_max=%.17g s_lobe=%.17g "
+        "psi_curr=%.17g psisep=%.17g psi_far=%.17g xpt=(%.17g,%.17g) far=(%.17g,%.17g) "
+        "qmin_before_first=%.6e (dpsi=%.6e) qmin_after_first=%.6e\n",
+        inp->ftype, qtarget, qlobe_max, s_lobe, psi_curr, geo->psisep, psi1, rx, zx,
+        arc_ctx->xpt_ray_r0, arc_ctx->xpt_ray_z0, qmin_before_first, qmin_before_first * delta,
+        qmin_after_first
+      );
+    }
+    fprintf(
+      stderr,
+      "TOK_XPT_RAY_DIAG reason=ambiguous_anchor_crossing ftype=%d qtarget=%.17g upward_crossings=%d downward_crossings=%d first_bracket=(%.17g,%.17g) last_bracket=(%.17g,%.17g) crossing_span=%.17g dip_below_target=%.6e search_max=%.17g\n",
+      inp->ftype, qtarget, upward_crossings, downward_crossings, slo, sup, slast_lo, slast_up,
+      crossing_span, dip_below, search_max
+    );
+    return false;
+  }
+
+  for (int n = 0; n < 80; ++n) {
+    double smid = 0.5 * (slo + sup);
+    double R = rx + smid * dr, Z = zx + smid * dz;
+    double qmid = (tok_eval_psi_rz(geo, R, Z) - geo->psisep) / delta;
+    if (!isfinite(qmid)) {
+      fprintf(
+        stderr,
+        "TOK_XPT_RAY_DIAG reason=nonfinite_anchor_refinement ftype=%d qtarget=%.17g s=%.17g\n",
+        inp->ftype, qtarget, smid
+      );
+      return false;
+    }
+    if (qmid - qtarget >= 0.0) {
+      sup = smid;
+    } else {
+      slo = smid;
+    }
+  }
+  double s = 0.5 * (slo + sup);
+  arc_ctx->xpt_anchor_r = rx + s * dr;
+  arc_ctx->xpt_anchor_z = zx + s * dz;
+  double residual = tok_eval_psi_rz(geo, arc_ctx->xpt_anchor_r, arc_ctx->xpt_anchor_z) - psi_curr;
+  if (!isfinite(residual) || fabs(residual) > 1e-9 * scale) {
+    fprintf(
+      stderr,
+      "TOK_XPT_RAY_DIAG reason=anchor_flux_residual ftype=%d residual=%.17g anchor=(%.17g,%.17g)\n",
+      inp->ftype, residual, arc_ctx->xpt_anchor_r, arc_ctx->xpt_anchor_z
+    );
+    return false;
+  }
+  arc_ctx->xpt_anchor_valid = true;
+  return true;
+}
+
+static bool
+tok_xpt_anchor_on_right(
+  const struct gkyl_tok_geo_grid_inp *inp, const struct arc_length_ctx *arc_ctx
+)
+{
+  if (!arc_ctx->xpt_ray_branch_valid) {
+    fprintf(stderr, "TOK_XPT_RAY_DIAG reason=missing_cached_branch ftype=%d\n", inp->ftype);
+    abort();
+  }
+  bool resolved = false, on_right = false;
+  if (!tok_xpt_classify_branch_at_point(
+        inp, arc_ctx, arc_ctx->xpt_anchor_r, arc_ctx->xpt_anchor_z, arc_ctx->psi, &resolved,
+        &on_right
+      )) {
+    abort();
+  }
+  // The cached branch is a majority decision over probes spanning the ray (see
+  // tok_xpt_initialize_branch).  A single anchor sample disagreeing with it carries
+  // the same rank-swap ambiguity as any individual probe, so it is not grounds to
+  // abort the whole build; the cached value is the better-supported answer and is
+  // what this function returns either way.
+  if (resolved && on_right != arc_ctx->xpt_ray_on_right) {
+    if (arc_ctx->geo->is_verbose) {
+      fprintf(
+        stderr,
+        "TOK_XPT_RAY_DIAG reason=anchor_branch_disagrees_with_cached ftype=%d psi=%.17g anchor=(%.17g,%.17g) cached_right=%d resolved_right=%d action=keep_cached\n",
+        inp->ftype, arc_ctx->psi, arc_ctx->xpt_anchor_r, arc_ctx->xpt_anchor_z,
+        arc_ctx->xpt_ray_on_right, on_right
+      );
+    }
+  }
+  return arc_ctx->xpt_ray_on_right;
+}
+
+static void
+tok_xpt_map_interval(
+  const struct gkyl_tok_geo_grid_inp *inp, struct arc_length_ctx *arc_ctx, double lo, double hi
+)
+{
+  double dtheta = inp->cgrid.upper[2] - inp->cgrid.lower[2];
+  if (!isfinite(lo) || !isfinite(hi) || !(hi > lo) || !(dtheta > 0.0)) {
+    fprintf(
+      stderr,
+      "TOK_XPT_RAY invalid arc interval ftype=%d psi=%.17g lo=%.17g hi=%.17g dtheta=%.17g\n",
+      inp->ftype, arc_ctx->psi, lo, hi, dtheta
+    );
+    abort();
+  }
+  arc_ctx->xpt_map_arc_lo = lo;
+  arc_ctx->xpt_map_arc_hi = hi;
+  arc_ctx->xpt_map_darc_dtheta = (hi - lo) / dtheta;
+  arc_ctx->xpt_map_valid = true;
+}
+
+static void
+tok_configure_xpt_map(const struct gkyl_tok_geo_grid_inp *inp, struct arc_length_ctx *arc_ctx)
+{
+  arc_ctx->xpt_map_valid = false;
+  arc_ctx->xpt_anchor_valid = false;
+  if (!tok_xpt_ray_enabled(inp)) {
+    return;
+  }
+  // Blocks on the extended construction get their poloidal origin from the
+  // topology-aware boundary traces built in tok_geo.c, which can carry two
+  // distinct X-point rays or a closed core seam. The scalar lower-X-point
+  // anchor and arc-interval map below are specific to the chord construction,
+  // so they are simply not built for those blocks (matching the early return
+  // in tok_prepare_ordered_map).
+  if (tok_ext_construction(inp)) {
+    return;
+  }
+  if (!inp->half_domain) {
+    fprintf(stderr, "TOK_XPT_RAY ftype=%d currently requires half_domain=true\n", inp->ftype);
+    abort();
+  }
+  if (!tok_xpt_ray_anchor(inp, arc_ctx, arc_ctx->psi)) {
+    fprintf(
+      stderr, "TOK_XPT_RAY failed ftype=%d psi=%.17g target_psi=%.17g\n", inp->ftype, arc_ctx->psi,
+      arc_ctx->xpt_ray_psi0
+    );
+    abort();
+  }
+
+  enum tok_xpt_sector sector = tok_xpt_sector_from_ftype(inp->ftype);
+  double cut = 0.0, lo = 0.0, hi = 0.0;
+  bool at_sep = fabs(arc_ctx->psi - arc_ctx->geo->psisep) <=
+                128.0 * DBL_EPSILON * fmax(1.0, fabs(arc_ctx->geo->psisep));
+
+  if (sector == TOK_XPT_CORE) {
+    if (at_sep) {
+      cut = 0.0;
+    } else if (tok_xpt_anchor_on_right(inp, arc_ctx)) {
+      cut = integrate_psi_contour_memo(
+        arc_ctx->geo, arc_ctx->psi, arc_ctx->zmin, arc_ctx->xpt_anchor_z, inp->rright, true, false,
+        arc_ctx->arc_memo_right
+      );
+    } else {
+      cut = arc_ctx->arcL_right + integrate_psi_contour_memo(
+                                    arc_ctx->geo, arc_ctx->psi, arc_ctx->xpt_anchor_z,
+                                    arc_ctx->zmax, inp->rleft, true, false, arc_ctx->arc_memo_left
+                                  );
+    }
+    double out_mid = integrate_psi_contour_memo(
+      arc_ctx->geo, arc_ctx->psi, arc_ctx->zmin, arc_ctx->geo->zmaxis, inp->rright, true, false,
+      arc_ctx->arc_memo_right
+    );
+    double in_mid = arc_ctx->arcL_right + integrate_psi_contour_memo(
+                                            arc_ctx->geo, arc_ctx->psi, arc_ctx->geo->zmaxis,
+                                            arc_ctx->zmax, inp->rleft, true, false,
+                                            arc_ctx->arc_memo_left
+                                          );
+    if (inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE_R) {
+      lo = cut;
+      hi = out_mid;
+    } else {
+      lo = in_mid;
+      hi = cut;
+    }
+    while (hi <= lo) {
+      hi += arc_ctx->arcL_tot;
+    }
+  } else if (sector == TOK_XPT_PF) {
+    if (at_sep) {
+      cut = arc_ctx->arcL_right;
+    } else if (tok_xpt_anchor_on_right(inp, arc_ctx)) {
+      cut = integrate_psi_contour_memo(
+        arc_ctx->geo, arc_ctx->psi, arc_ctx->zmin_right, arc_ctx->xpt_anchor_z, inp->rright, true,
+        false, arc_ctx->arc_memo_right
+      );
+    } else {
+      cut = arc_ctx->arcL_right + integrate_psi_contour_memo(
+                                    arc_ctx->geo, arc_ctx->psi, arc_ctx->xpt_anchor_z,
+                                    arc_ctx->zmax, inp->rleft, true, false, arc_ctx->arc_memo_left
+                                  );
+    }
+    if (inp->ftype == GKYL_GEOMETRY_TOKAMAK_PF_LO_R) {
+      lo = 0.0;
+      hi = cut;
+    } else {
+      lo = cut;
+      hi = arc_ctx->arcL_tot;
+    }
+  } else if (sector == TOK_XPT_SOL_OUT) {
+    cut = at_sep ? integrate_psi_contour_memo(
+                     arc_ctx->geo, arc_ctx->psi, arc_ctx->zmin, arc_ctx->xpt_anchor_z, inp->rright,
+                     true, false, arc_ctx->arc_memo
+                   ) :
+                   integrate_psi_contour_memo(
+                     arc_ctx->geo, arc_ctx->psi, arc_ctx->zmin, arc_ctx->xpt_anchor_z, inp->rright,
+                     true, false, arc_ctx->arc_memo
+                   );
+    double mid = integrate_psi_contour_memo(
+      arc_ctx->geo, arc_ctx->psi, arc_ctx->zmin, arc_ctx->geo->zmaxis, inp->rright, true, false,
+      arc_ctx->arc_memo
+    );
+    if (inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_LO) {
+      lo = 0.0;
+      hi = cut;
+    } else {
+      lo = cut;
+      hi = mid;
+    }
+  } else if (sector == TOK_XPT_SOL_IN) {
+    cut = integrate_psi_contour_memo(
+      arc_ctx->geo, arc_ctx->psi, arc_ctx->xpt_anchor_z, arc_ctx->zmax, inp->rleft, true, false,
+      arc_ctx->arc_memo
+    );
+    double mid = integrate_psi_contour_memo(
+      arc_ctx->geo, arc_ctx->psi, arc_ctx->geo->zmaxis, arc_ctx->zmax, inp->rleft, true, false,
+      arc_ctx->arc_memo
+    );
+    if (inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_MID) {
+      lo = mid;
+      hi = cut;
+    } else {
+      lo = cut;
+      hi = arc_ctx->arcL_tot;
+    }
+  }
+  tok_xpt_map_interval(inp, arc_ctx, lo, hi);
+}
+
+void
+tok_prepare_ordered_map(
+  struct gkyl_tok_geo_grid_inp *inp, struct arc_length_ctx *arc_ctx, double psi_curr
+)
+{
+  arc_ctx->psi = psi_curr;
+  arc_ctx->xpt_map_valid = false;
+  arc_ctx->xpt_anchor_valid = false;
+  // Preserve the old coordinate algebra in callers while the ordered map
+  // consumes theta directly; no physical contour length is needed here.
+  arc_ctx->arcL_tot = 2.0 * M_PI;
+  // Full-domain single- and double-null blocks use topology-aware boundary
+  // traces built lazily in tok_geo.c.  They can have two distinct X-point
+  // rays (or a closed core seam), so the scalar lower-X-point anchor used by
+  // the original half-domain path is intentionally bypassed here.
+  if (tok_ext_construction(inp)) {
+    tok_set_arc_interval(inp, arc_ctx);
+    return;
+  }
+  if (!tok_xpt_ray_enabled(inp) || !tok_xpt_ray_anchor(inp, arc_ctx, psi_curr)) {
+    fprintf(
+      stderr, "TOK_ORDERED_MAP failed to initialize ray ftype=%d psi=%.17g target_psi=%.17g\n",
+      inp->ftype, psi_curr, arc_ctx->xpt_ray_psi0
+    );
+    abort();
+  }
+  tok_set_arc_interval(inp, arc_ctx);
+}
+
 // This function will set zmax to be the upper turning point location
+// 2026-10-02 (C1 wiring, handoff 16 gap 9): the four turning-point searches
+// below used to call the QUADRATIC root solver R_psiZ directly, so on a
+// cubic-representation build they bounded the private-flux and core extents
+// with the quadratic psi at the cubic separatrix flux -- a different contour
+// -- and PF_LO_L's theta range came out zero (204046 on r25).  They now go
+// through gkyl_tok_geo_R_psiZ, which dispatches on use_cubics like every
+// other root solve.
 void
 find_upper_turning_point(
   struct gkyl_tok_geo *geo, double psi_curr, double zlo, double *zmax, double tolerance
@@ -19,8 +2189,8 @@ find_upper_turning_point(
   double Rup[4], dRdZup[4];
   double dRup[4], dZup[4];
   while (true) {
-    int nlo = R_psiZ(geo, psi_curr, zlo, 4, R, dRdZ, dR, dZ);
-    int nup = R_psiZ(geo, psi_curr, zup, 4, Rup, dRdZup, dRup, dZup);
+    int nlo = gkyl_tok_geo_R_psiZ(geo, psi_curr, zlo, 4, R, dRdZ, dR, dZ);
+    int nup = gkyl_tok_geo_R_psiZ(geo, psi_curr, zup, 4, Rup, dRdZup, dRup, dZup);
     //printf("nlo, nup = %d %d; zlo, zup = %g %g\n", nlo, nup, zlo, zup);
     if (nup > 0) { // This is for the PF_LO regions. Does not seem to break core_L or core_R
       // However I need to think thos through more. I think it is ok only when xpt
@@ -58,8 +2228,8 @@ find_lower_turning_point(
   double Rlo[4], dRdZlo[4];
   double dRlo[4], dZlo[4];
   while (true) {
-    int nup = R_psiZ(geo, psi_curr, zup, 4, R, dRdZ, dR, dZ);
-    int nlo = R_psiZ(geo, psi_curr, zlo, 4, Rlo, dRdZlo, dRlo, dZlo);
+    int nup = gkyl_tok_geo_R_psiZ(geo, psi_curr, zup, 4, R, dRdZ, dR, dZ);
+    int nlo = gkyl_tok_geo_R_psiZ(geo, psi_curr, zlo, 4, Rlo, dRdZlo, dRlo, dZlo);
     //printf("psi = %g;lo, nup = %d %d; zlo, zup = %g %g\n", psi_curr, nlo, nup, zlo, zup);
     if (nlo > 0) {
       *zmin = zlo;
@@ -92,8 +2262,8 @@ find_lower_turning_point_pf_up(struct gkyl_tok_geo *geo, double psi_curr, double
   double Rlo[4], dRdZlo[4];
   double dRlo[4], dZlo[4];
   while (true) {
-    int nup = R_psiZ(geo, psi_curr, zup, 4, R, dRdZ, dR, dZ);
-    int nlo = R_psiZ(geo, psi_curr, zlo, 4, Rlo, dRlo, dRlo, dZlo);
+    int nup = gkyl_tok_geo_R_psiZ(geo, psi_curr, zup, 4, R, dRdZ, dR, dZ);
+    int nlo = gkyl_tok_geo_R_psiZ(geo, psi_curr, zlo, 4, Rlo, dRlo, dRlo, dZlo);
     //if(nlo==1){
     //  if (Rlo[0] < geo->rleft)
     //    nlo=0;
@@ -134,8 +2304,8 @@ find_upper_turning_point_pf_lo(struct gkyl_tok_geo *geo, double psi_curr, double
   double Rup[4], dRdZup[4];
   double dRup[4], dZup[4];
   while (true) {
-    int nlo = R_psiZ(geo, psi_curr, zlo, 4, R, dRdZ, dR, dZ);
-    int nup = R_psiZ(geo, psi_curr, zup, 4, Rup, dRdZup, dRup, dZup);
+    int nlo = gkyl_tok_geo_R_psiZ(geo, psi_curr, zlo, 4, R, dRdZ, dR, dZ);
+    int nup = gkyl_tok_geo_R_psiZ(geo, psi_curr, zup, 4, Rup, dRdZup, dRup, dZup);
     if (nup == 1) {
       if (Rup[0] < geo->rleft) {
         nup = 0;
@@ -166,7 +2336,325 @@ find_upper_turning_point_pf_lo(struct gkyl_tok_geo *geo, double psi_curr, double
   }
 }
 
+// The DN block decomposition assumes the plate-derived span brackets both
+// X-points: zmin < zxpt_lo < zxpt_up < zmax. When it does not, the divertor-leg
+// arc integrals below collapse to zero and the corresponding _LO/_UP block is
+// handed a zero-width theta range, which only surfaces much later as a
+// divide-by-zero in tok_ordered_map_lookup. Report it here, where the cause is
+// still visible. Diagnostic only -- no behaviour change when the span is sane.
+static void
+tok_check_xpt_span(
+  enum gkyl_tok_geo_type ftype, double zmin, double zmax, double zxpt_lo, double zxpt_up,
+  double arcL_tot, double arcL_lo, double arcL_up
+)
+{
+  if (zmin < zxpt_lo && zxpt_up < zmax) {
+    return;
+  }
+  fprintf(
+    stderr,
+    "TOK_EXTENT reason=xpt_outside_plate_span ftype=%d zmin=%.17g zxpt_lo=%.17g "
+    "zxpt_up=%.17g zmax=%.17g margin_lo=%.17g margin_up=%.17g "
+    "arcL_tot=%.17g arcL_lo=%.17g arcL_up=%.17g\n",
+    ftype, zmin, zxpt_lo, zxpt_up, zmax, zxpt_lo - zmin, zmax - zxpt_up, arcL_tot, arcL_lo, arcL_up
+  );
+}
+
+// A divertor plate that reaches past the X-point in |Z| (e.g. an inner plate
+// continued onto the floor) can be crossed by one flux surface more than once:
+// once by the main-SOL boundary and once by the divertor leg itself. gkyl_ridders
+// is only given the whole [0,1] bracket and returns an arbitrary one of them.
+//
+// Select deterministically instead: among crossings that lie *beyond* the
+// X-point in |Z| -- the only ones that can be a leg strike -- take the one
+// nearest the X-point, i.e. the first material surface the leg reaches.
+//
+// This is a no-op unless the plate really is crossed more than once, and even
+// then it can only ever prefer a crossing at smaller |Z|, so adding plate
+// length further out (larger |Z|) cannot change a shot that already had a valid
+// crossing. Returns true and writes *s_out when it selects a root; false leaves
+// the caller's existing gkyl_ridders answer in place.
+// Note the X-point to compare against is chosen from each candidate root's own
+// Z sign, not from the caller's upper/lower naming: PF_LO_L legitimately passes
+// the *lower* inner plate as its plate_func_upper.
+static bool
+tok_plate_select_leg_root(
+  struct gkyl_tok_geo *geo, struct plate_ctx *pctx, double s_ridders, double *s_out
+)
+{
+  double zxpt_lo = geo->use_cubics ? geo->efit->Zxpt_cubic[0] : geo->efit->Zxpt[0];
+  double zxpt_up =
+    (geo->efit->num_xpts > 1 ? (geo->use_cubics ? geo->efit->Zxpt_cubic[1] : geo->efit->Zxpt[1]) :
+                               (geo->use_cubics ? geo->efit->Zxpt_cubic[0] : geo->efit->Zxpt[0]));
+  enum { NSAMP = 801 };
+  double rzplate[2];
+  double s_prev = 0.0, f_prev = tok_plate_psi_func(0.0, pctx);
+  double best_s = 0.0, best_absz = 0.0;
+  int nroots = 0, nbeyond = 0;
+  for (int i = 1; i < NSAMP; ++i) {
+    double s = (double)i / (NSAMP - 1);
+    double f = tok_plate_psi_func(s, pctx);
+    if (f_prev == 0.0 || (f_prev < 0.0) != (f < 0.0)) {
+      double a = s_prev, b = s, fa = f_prev;
+      for (int it = 0; it < 60; ++it) {
+        double m = 0.5 * (a + b), fm = tok_plate_psi_func(m, pctx);
+        if ((fa < 0.0) != (fm < 0.0)) {
+          b = m;
+        } else {
+          a = m;
+          fa = fm;
+        }
+      }
+      double sroot = 0.5 * (a + b);
+      nroots++;
+      if (pctx->lower) {
+        geo->plate_func_lower(sroot, rzplate);
+      } else {
+        geo->plate_func_upper(sroot, rzplate);
+      }
+      // "Beyond the X-point" means further from the midplane on this root's own
+      // side of the machine.
+      double zxpt = rzplate[1] < 0.0 ? zxpt_lo : zxpt_up;
+      if (fabs(rzplate[1]) > fabs(zxpt)) {
+        if (nbeyond == 0 || fabs(rzplate[1]) < best_absz) {
+          best_absz = fabs(rzplate[1]);
+          best_s = sroot;
+        }
+        nbeyond++;
+      }
+    }
+    s_prev = s;
+    f_prev = f;
+  }
+  if (nroots <= 1 || nbeyond == 0) {
+    return false;
+  }
+  // Only override when we actually land on a *different* crossing than
+  // gkyl_ridders found. Where the two agree, returning false keeps the original
+  // value bit-for-bit, so this cannot perturb zmin/zmax by root-finder rounding
+  // on the shots that were already correct.
+  if (pctx->lower) {
+    geo->plate_func_lower(s_ridders, rzplate);
+  } else {
+    geo->plate_func_upper(s_ridders, rzplate);
+  }
+  if (fabs(fabs(rzplate[1]) - best_absz) < 1e-8) {
+    return false;
+  }
+  *s_out = best_s;
+  return true;
+}
+
 // Sets zmax if plate is specified
+// gkyl_ridders reports an invalid bracket rather than iterating on one, and
+// every plate solve below took its result on faith.  status != 0 means
+// psi(plate(s)) never reaches the requested surface's psi for any s in [0,1]
+// -- the divertor plate does not span that surface, which is exactly what
+// asking the SOL to reach past the plate looks like.  The reported root is
+// DBL_MAX there, and it was fed straight into the plate parameterization: on
+// a straight plate Z_lo + (Z_up-Z_lo)*s that returns DBL_MAX scaled by the
+// plate's extent, poisoning zmin/zmax.  The run then died far downstream in a
+// wild psi fetch, with nothing said about the geometry that caused it.
+static double
+tok_plate_root_s(const struct gkyl_qr_res *res, bool lower, double psi)
+{
+  // NOT keyed on status, and not on isfinite either: gkyl_ridders reports
+  // status=2 both for an invalid bracket and for a solve that stopped before
+  // meeting eps, and the latter still returns a usable root these callers have
+  // always relied on.  Its unusable value is the DBL_MAX the search starts
+  // from -- a finite double, so isfinite() does not see it.  Every plate solve
+  // here brackets s on [0,1], so a usable root lies in it and the sentinel
+  // does not.
+  if (res->res >= 0.0 && res->res <= 1.0) {
+    return res->res;
+  }
+  // No usable root.  ABORT by default rather than substitute a plate end.
+  //
+  // This was a CLAMP until 2026-09-14, added 2026-08-26 because 12 NSTX-U shots
+  // aborted here (203963_ms457, 204046_ms433, 204051_ms450, 204076_ms193,
+  // 204077_ms187, 204080_ms193, 204112_ms907, 204118_ms553, 204170_ms580,
+  // 205017_ms205, 205050_ms219, 205088_ms195), all with plate=upper at psisep
+  // from the PF_LO extent setup.  Every one of those was a plate the surface
+  // crosses an EVEN number of times, which gkyl_ridders rightly refuses; they
+  // are now resolved by tok_plate_extent_root_s and none of them reaches here.
+  // Re-measured with the abort restored: 0 aborts and 0 clamps on all 12, plus
+  // 20 extent plate solves on TCV and 116 on STEP with no unusable root.
+  //
+  // The clamp's own premise was false -- it read a refused bracket as "the
+  // plate does not span this surface", conflating zero crossings with an even
+  // number of them -- and it was not even consistent: on 204051 it substituted
+  // the WRONG crossing and inverted the private-flux theta split, while on
+  // 203963 it happened to substitute the right one.  A silently wrong grid is
+  // worse than a stopped run, so what is left here is a stop with a diagnosis.
+  //
+  fprintf(
+    stderr,
+    "TOK_GEO_PLATE_ROOT_FAILED plate=%s psi=%.17g status=%d res=%.17g\n"
+    "  psi(plate(s)) has no usable crossing with this surface for s in [0,1],\n"
+    "  and no crossing beyond the X point was found either.  Either the plate\n"
+    "  does not reach this flux surface, or it is crossed in a way this\n"
+    "  selection does not cover.\n"
+    "  There is deliberately no override: the behaviour this replaced\n"
+    "  substituted a plate end and could build a WRONG grid without saying so.\n",
+    lower ? "lower" : "upper", psi, res->status, res->res
+  );
+  abort();
+}
+
+static void
+tok_legacy_plate_point(
+  struct gkyl_tok_geo *geo, bool lower, enum gkyl_tok_geo_type ftype, double psi,
+  const struct gkyl_qr_res *res, double *s, double rz[2]
+)
+{
+  plate_func plate = lower ? geo->plate_func_lower : geo->plate_func_upper;
+  int slot = lower ? 0 : 1;
+  if (geo->extend_to_limiter && geo->divertor_wall[slot].num_segments) {
+    if (tok_divertor_wall_intersection(geo, slot, psi, &rz[0], &rz[1])) {
+      *s = -1.0;
+      return;
+    }
+    if (tok_plate_slot_required(geo, ftype, psi, slot)) {
+      fprintf(stderr, "TOK_GEO_DIVERTOR_ROOT_FAILED slot=%d psi=%.17g\n", slot, psi);
+      abort();
+    }
+    // Inactive half-domain endpoints retain the existing auxiliary fallback;
+    // this point is never granted ownership of a material face.
+  }
+  if (res->res >= 0.0 && res->res <= 1.0) {
+    *s = res->res;
+    plate(*s, rz);
+    return;
+  }
+  if (tok_plate_intersection(geo, plate, psi, &rz[0], &rz[1])) {
+    *s = -1.0; // resolved R,Z may be on the wall, outside the callback's domain
+    return;
+  }
+  // This can only serve an auxiliary endpoint: active endpoints are checked
+  // before contour construction. Keep the historical half-domain clamp here.
+  *s = tok_plate_root_s(res, lower, psi);
+  plate(*s, rz);
+}
+
+// gkyl_ridders requires a sign-changing bracket and reports status=2 with
+// nevals=0 when it is not handed one.  A plate that the requested surface
+// crosses an EVEN number of times produces exactly that, and it is NOT the
+// "plate does not span this surface" case tok_plate_root_s clamps for.  On
+// NSTX-U the inner plate runs down the inboard wall and then turns outboard
+// along the floor, so psisep crosses it twice: once at the leg strike and once
+// further out on the floor.  f(0) and f(1) are then both positive with two
+// interior sign changes between them.
+//
+// Enumerate every crossing and take the one whose R lies nearest the end of the
+// block this plate is setting.  That is the rule the ordered-map node placement
+// already applies (tok_plate_flux_intersection), and the two are computing the
+// same strike point, so they are expected to agree.  Returns false only when
+// there is no crossing at all, which is the case the clamp exists for.
+static bool
+tok_plate_root_s_hinted(
+  struct gkyl_tok_geo *geo, struct plate_ctx *pctx, double hint_r, double *s_out
+)
+{
+  // Two filters, and BOTH are needed.  Restricting to crossings beyond the
+  // X-point in |Z| is what makes a crossing a leg strike at all: a plate that
+  // runs up the inboard wall is also cut by the same surface ABOVE the X point,
+  // and that crossing is the main-SOL boundary, not a strike point.  Taking it
+  // as an extent endpoint puts the end of a private-flux block on the wrong
+  // side of the saddle.  On 203963_ms457 the two differ by 0.9 mm -- the
+  // above-X-point crossing sits at Z=-1.37065 against Zxpt=-1.37158 -- and
+  // selecting it builds a grid that dies downstream with no diagnostic.
+  //
+  // Among the crossings that survive that filter, the R hint picks which half
+  // of a shared private-flux plate this block owns.
+  double zxpt_lo = geo->use_cubics ? geo->efit->Zxpt_cubic[0] : geo->efit->Zxpt[0];
+  double zxpt_up =
+    (geo->efit->num_xpts > 1 ? (geo->use_cubics ? geo->efit->Zxpt_cubic[1] : geo->efit->Zxpt[1]) :
+                               (geo->use_cubics ? geo->efit->Zxpt_cubic[0] : geo->efit->Zxpt[0]));
+  enum { NSAMP = 801 };
+  double rzplate[2];
+  double s_prev = 0.0, f_prev = tok_plate_psi_func(0.0, pctx);
+  double best_s = 0.0, best_dr = 0.0;
+  int nroots = 0, nbeyond = 0;
+  for (int i = 1; i < NSAMP; ++i) {
+    double s = (double)i / (NSAMP - 1);
+    double f = tok_plate_psi_func(s, pctx);
+    if (f_prev == 0.0 || (f_prev < 0.0) != (f < 0.0)) {
+      double a = s_prev, b = s, fa = f_prev;
+      for (int it = 0; it < 60; ++it) {
+        double m = 0.5 * (a + b), fm = tok_plate_psi_func(m, pctx);
+        if ((fa < 0.0) != (fm < 0.0)) {
+          b = m;
+        } else {
+          a = m;
+          fa = fm;
+        }
+      }
+      double sroot = 0.5 * (a + b);
+      if (pctx->lower) {
+        geo->plate_func_lower(sroot, rzplate);
+      } else {
+        geo->plate_func_upper(sroot, rzplate);
+      }
+      nroots++;
+      // Compare against the X point on this root's OWN side of the machine:
+      // PF_LO_L legitimately passes the lower inner plate as plate_func_upper.
+      double zxpt = rzplate[1] < 0.0 ? zxpt_lo : zxpt_up;
+      if (fabs(rzplate[1]) > fabs(zxpt)) {
+        double dr = fabs(rzplate[0] - hint_r);
+        if (nbeyond == 0 || dr < best_dr) {
+          best_dr = dr;
+          best_s = sroot;
+        }
+        nbeyond++;
+      }
+    }
+    s_prev = s;
+    f_prev = f;
+  }
+  // No crossing beyond the X point means no leg strike on this plate for this
+  // surface.  That is the case the clamp exists for, so leave it to the caller.
+  if (nbeyond == 0) {
+    return false;
+  }
+  *s_out = best_s;
+  return true;
+}
+
+// Resolve the plate parameter for one end of a block's extent.  gkyl_ridders'
+// answer is preferred wherever it produced one, so every plate crossed exactly
+// once is bit-for-bit unchanged; the hinted enumeration is tried only where the
+// clamp would otherwise have fired, so it can only replace a substituted plate
+// end with an actual crossing.
+static double
+tok_plate_extent_root_s(
+  struct gkyl_tok_geo *geo, struct plate_ctx *pctx, const struct gkyl_qr_res *res, bool lower,
+  double psi, double hint_r
+)
+{
+  if (res->res >= 0.0 && res->res <= 1.0) {
+    return res->res;
+  }
+  double s_hint;
+  if (tok_plate_root_s_hinted(geo, pctx, hint_r, &s_hint)) {
+    double rz[2];
+    if (lower) {
+      geo->plate_func_lower(s_hint, rz);
+    } else {
+      geo->plate_func_upper(s_hint, rz);
+    }
+    if (geo->is_verbose) {
+      fprintf(
+        stderr,
+        "TOK_GEO_PLATE_ROOT_MULTI plate=%s psi=%.17g hint_r=%.17g s=%.17g "
+        "rz=(%.17g,%.17g)\n",
+        lower ? "lower" : "upper", psi, hint_r, s_hint, rz[0], rz[1]
+      );
+    }
+    return s_hint;
+  }
+  return tok_plate_root_s(res, lower, psi);
+}
+
 void
 set_upper_plate(
   struct gkyl_tok_geo *geo, struct arc_length_ctx *arc_ctx, struct plate_ctx *pctx, double psi_curr
@@ -181,8 +2669,13 @@ set_upper_plate(
   double fb = tok_plate_psi_func(b, pctx);
   struct gkyl_qr_res res =
     gkyl_ridders(tok_plate_psi_func, pctx, a, b, fa, fb, geo->root_param.max_iter, 1e-10);
-  double smax = res.res;
-  geo->plate_func_upper(smax, rzplate);
+  double smax;
+  tok_legacy_plate_point(geo, false, arc_ctx->ftype, psi_curr, &res, &smax, rzplate);
+  double s_leg;
+  if (smax >= 0.0 && smax <= 1.0 && tok_plate_select_leg_root(geo, pctx, smax, &s_leg)) {
+    smax = s_leg;
+    geo->plate_func_upper(smax, rzplate);
+  }
   arc_ctx->zmax = rzplate[1];
 }
 
@@ -201,8 +2694,13 @@ set_lower_plate(
   double fb = tok_plate_psi_func(b, pctx);
   struct gkyl_qr_res res =
     gkyl_ridders(tok_plate_psi_func, pctx, a, b, fa, fb, geo->root_param.max_iter, 1e-10);
-  double smin = res.res;
-  geo->plate_func_lower(smin, rzplate);
+  double smin;
+  tok_legacy_plate_point(geo, true, arc_ctx->ftype, psi_curr, &res, &smin, rzplate);
+  double s_leg;
+  if (smin >= 0.0 && smin <= 1.0 && tok_plate_select_leg_root(geo, pctx, smin, &s_leg)) {
+    smin = s_leg;
+    geo->plate_func_lower(smin, rzplate);
+  }
   arc_ctx->zmin = rzplate[1];
 }
 
@@ -221,8 +2719,8 @@ set_upper_iwl_plate(
   double fb = tok_plate_psi_func(b, pctx);
   struct gkyl_qr_res res =
     gkyl_ridders(tok_plate_psi_func, pctx, a, b, fa, fb, geo->root_param.max_iter, 1e-10);
-  double smax = res.res;
-  geo->plate_func_upper(smax, rzplate);
+  double smax;
+  tok_legacy_plate_point(geo, false, arc_ctx->ftype, psi_curr, &res, &smax, rzplate);
   arc_ctx->zmax_iwl_plate = rzplate[1];
   geo->rmin = rzplate[0];
 }
@@ -242,8 +2740,8 @@ set_lower_iwl_plate(
   double fb = tok_plate_psi_func(b, pctx);
   struct gkyl_qr_res res =
     gkyl_ridders(tok_plate_psi_func, pctx, a, b, fa, fb, geo->root_param.max_iter, 1e-10);
-  double smin = res.res;
-  geo->plate_func_lower(smin, rzplate);
+  double smin;
+  tok_legacy_plate_point(geo, true, arc_ctx->ftype, psi_curr, &res, &smin, rzplate);
   arc_ctx->zmin_iwl_plate = rzplate[1];
   geo->rmin = rzplate[0];
 }
@@ -296,7 +2794,9 @@ tok_geo_set_extent(
       arc_ctx.zmin = inp->zmin;
       arc_ctx.zmax = inp->zmax;
     }
-    double zxpt_up = geo->use_cubics ? geo->efit->Zxpt_cubic[1] : geo->efit->Zxpt[1];
+    double zxpt_up =
+      (geo->efit->num_xpts > 1 ? (geo->use_cubics ? geo->efit->Zxpt_cubic[1] : geo->efit->Zxpt[1]) :
+                                 (geo->use_cubics ? geo->efit->Zxpt_cubic[0] : geo->efit->Zxpt[0]));
     double zxpt_lo = geo->use_cubics ? geo->efit->Zxpt_cubic[0] : geo->efit->Zxpt[0];
     // Set the arc length
     double arcL_tot = integrate_psi_contour_memo(
@@ -324,6 +2824,9 @@ tok_geo_set_extent(
       *theta_lo = M_PI - del - arcL_up / arcL_tot * 2.0 * M_PI;
       *theta_up = M_PI - del;
     }
+    tok_check_xpt_span(
+      inp->ftype, arc_ctx.zmin, arc_ctx.zmax, zxpt_lo, zxpt_up, arcL_tot, arcL_lo, arcL_up
+    );
   }
 
   else if (inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN ||
@@ -340,7 +2843,9 @@ tok_geo_set_extent(
       arc_ctx.zmin = inp->zmin;
       arc_ctx.zmax = inp->zmax;
     }
-    double zxpt_up = geo->use_cubics ? geo->efit->Zxpt_cubic[1] : geo->efit->Zxpt[1];
+    double zxpt_up =
+      (geo->efit->num_xpts > 1 ? (geo->use_cubics ? geo->efit->Zxpt_cubic[1] : geo->efit->Zxpt[1]) :
+                                 (geo->use_cubics ? geo->efit->Zxpt_cubic[0] : geo->efit->Zxpt[0]));
     double zxpt_lo = geo->use_cubics ? geo->efit->Zxpt_cubic[0] : geo->efit->Zxpt[0];
     // Set the arc Length
     double arcL_tot = integrate_psi_contour_memo(
@@ -368,6 +2873,9 @@ tok_geo_set_extent(
       *theta_lo = M_PI - del - arcL_up / arcL_tot * 2.0 * M_PI;
       *theta_up = M_PI - del;
     }
+    tok_check_xpt_span(
+      inp->ftype, arc_ctx.zmin, arc_ctx.zmax, zxpt_lo, zxpt_up, arcL_tot, arcL_lo, arcL_up
+    );
   } else if (inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE ||
              inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE_R ||
              inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE_L) {
@@ -375,7 +2883,9 @@ tok_geo_set_extent(
     arc_ctx.rright = inp->rright;
     arc_ctx.rleft = inp->rleft;
 
-    double zxpt_up = geo->use_cubics ? geo->efit->Zxpt_cubic[1] : geo->efit->Zxpt[1];
+    double zxpt_up =
+      (geo->efit->num_xpts > 1 ? (geo->use_cubics ? geo->efit->Zxpt_cubic[1] : geo->efit->Zxpt[1]) :
+                                 (geo->use_cubics ? geo->efit->Zxpt_cubic[0] : geo->efit->Zxpt[0]));
     double zxpt_lo = geo->use_cubics ? geo->efit->Zxpt_cubic[0] : geo->efit->Zxpt[0];
     arc_ctx.zmax = inp->zmax ? inp->zmax : zxpt_up; // Initial guess.
     // zmax is specified for single null full core
@@ -426,14 +2936,20 @@ tok_geo_set_extent(
       double rzplate[2];
       pctx.psi_curr = geo->psisep;
       pctx.lower = false;
+
       double a = 0;
       double b = 1;
       double fa = tok_plate_psi_func(a, &pctx);
       double fb = tok_plate_psi_func(b, &pctx);
       struct gkyl_qr_res res =
         gkyl_ridders(tok_plate_psi_func, &pctx, a, b, fa, fb, geo->root_param.max_iter, 1e-10);
-      double smax = res.res;
-      geo->plate_func_upper(smax, rzplate);
+      double smax;
+      if (geo->extend_to_limiter && geo->divertor_wall[1].num_segments) {
+        tok_legacy_plate_point(geo, false, inp->ftype, geo->psisep, &res, &smax, rzplate);
+      } else {
+        smax = tok_plate_extent_root_s(geo, &pctx, &res, false, geo->psisep, inp->rleft);
+        geo->plate_func_upper(smax, rzplate);
+      }
       arc_ctx.zmin_left = rzplate[1];
 
       pctx.lower = true;
@@ -442,8 +2958,13 @@ tok_geo_set_extent(
       fa = tok_plate_psi_func(a, &pctx);
       fb = tok_plate_psi_func(b, &pctx);
       res = gkyl_ridders(tok_plate_psi_func, &pctx, a, b, fa, fb, geo->root_param.max_iter, 1e-10);
-      double smin = res.res;
-      geo->plate_func_lower(smin, rzplate);
+      double smin;
+      if (geo->extend_to_limiter && geo->divertor_wall[0].num_segments) {
+        tok_legacy_plate_point(geo, true, inp->ftype, geo->psisep, &res, &smin, rzplate);
+      } else {
+        smin = tok_plate_extent_root_s(geo, &pctx, &res, true, geo->psisep, inp->rright);
+        geo->plate_func_lower(smin, rzplate);
+      }
       arc_ctx.zmin_right = rzplate[1];
     } else {
       arc_ctx.zmin_left = inp->zmin_left;
@@ -467,6 +2988,19 @@ tok_geo_set_extent(
     double arcL_up = integrate_psi_contour_memo(
       geo, geo->psisep, arc_ctx.zmin_left, zxpt, arc_ctx.rleft, false, false, arc_memo_left
     );
+    // The separatrix's four pieces at exact arc (see tok_lsn_exact_row): the
+    // block boundaries stay fractions of the separatrix's arc, now exact, so
+    // the separatrix cut is exactly the X point.
+    double sep_arcs[4];
+    if (tok_lsn_exact_row(
+          geo, geo->psisep, arc_ctx.zmin_right, arc_ctx.zmax, arc_ctx.zmin_left, arc_ctx.rright,
+          arc_ctx.rleft, 0, 0, sep_arcs
+        )) {
+      arcL_lo = sep_arcs[0];
+      arcL_mid_r = sep_arcs[1];
+      arcL_mid_l = sep_arcs[2];
+      arcL_up = sep_arcs[3];
+    }
     double arcL_tot = arcL_lo + arcL_mid_l + arcL_mid_r + arcL_up;
 
     if (inp->ftype == GKYL_GEOMETRY_TOKAMAK_LSN_SOL) {
@@ -477,9 +3011,11 @@ tok_geo_set_extent(
       *theta_up = -M_PI + del + arcL_lo / arcL_tot * 2.0 * M_PI;
     } else if (inp->ftype == GKYL_GEOMETRY_TOKAMAK_LSN_SOL_MID) {
       *theta_lo = -M_PI + del + arcL_lo / arcL_tot * 2.0 * M_PI;
-      *theta_up = M_PI + del - arcL_up / arcL_tot * 2.0 * M_PI;
+      double theta_pi = inp->straight_xpt_ray && !inp->half_domain ? M_PI - del : M_PI + del;
+      *theta_up = theta_pi - arcL_up / arcL_tot * 2.0 * M_PI;
     } else if (inp->ftype == GKYL_GEOMETRY_TOKAMAK_LSN_SOL_UP) {
-      *theta_lo = M_PI + del - arcL_up / arcL_tot * 2.0 * M_PI;
+      double theta_pi = inp->straight_xpt_ray && !inp->half_domain ? M_PI - del : M_PI + del;
+      *theta_lo = theta_pi - arcL_up / arcL_tot * 2.0 * M_PI;
       *theta_up = M_PI - del;
     }
   }
@@ -501,14 +3037,20 @@ tok_geo_set_extent(
       double rzplate[2];
       pctx.psi_curr = geo->psisep;
       pctx.lower = false;
+
       double a = 0;
       double b = 1;
       double fa = tok_plate_psi_func(a, &pctx);
       double fb = tok_plate_psi_func(b, &pctx);
       struct gkyl_qr_res res =
         gkyl_ridders(tok_plate_psi_func, &pctx, a, b, fa, fb, geo->root_param.max_iter, 1e-10);
-      double smax = res.res;
-      geo->plate_func_upper(smax, rzplate);
+      double smax;
+      if (geo->extend_to_limiter && geo->divertor_wall[1].num_segments) {
+        tok_legacy_plate_point(geo, false, inp->ftype, geo->psisep, &res, &smax, rzplate);
+      } else {
+        smax = tok_plate_extent_root_s(geo, &pctx, &res, false, geo->psisep, inp->rleft);
+        geo->plate_func_upper(smax, rzplate);
+      }
       arc_ctx.zmin_left = rzplate[1];
 
       pctx.lower = true;
@@ -517,8 +3059,13 @@ tok_geo_set_extent(
       fa = tok_plate_psi_func(a, &pctx);
       fb = tok_plate_psi_func(b, &pctx);
       res = gkyl_ridders(tok_plate_psi_func, &pctx, a, b, fa, fb, geo->root_param.max_iter, 1e-10);
-      double smin = res.res;
-      geo->plate_func_lower(smin, rzplate);
+      double smin;
+      if (geo->extend_to_limiter && geo->divertor_wall[0].num_segments) {
+        tok_legacy_plate_point(geo, true, inp->ftype, geo->psisep, &res, &smin, rzplate);
+      } else {
+        smin = tok_plate_extent_root_s(geo, &pctx, &res, true, geo->psisep, inp->rright);
+        geo->plate_func_lower(smin, rzplate);
+      }
       arc_ctx.zmin_right = rzplate[1];
     } else {
       arc_ctx.zmin_left = inp->zmin_left;
@@ -541,6 +3088,10 @@ tok_geo_set_extent(
     );
     double arcL_tot = arcL_l + arcL_r;
 
+    // PF is deliberately NOT reallocated. Its seam ratio VARIES radially (Class 2),
+    // so no scalar width can close it, and the z-span |grad psi| measure tried
+    // here made ASDEX worse (7.5e-02 -> 1.95e-01). PF keeps the arc split until
+    // the Class 2 cause is addressed.
     if (inp->ftype == GKYL_GEOMETRY_TOKAMAK_PF_LO_R) {
       *theta_lo = -M_PI + del;
       *theta_up = -M_PI + del + arcL_r / arcL_tot * 2.0 * M_PI;
@@ -555,7 +3106,9 @@ tok_geo_set_extent(
     arc_ctx.rright = inp->rright;
     arc_ctx.rleft = inp->rleft;
     //Find the lower turning point to set zmin
-    double zxpt_up = geo->use_cubics ? geo->efit->Zxpt_cubic[1] : geo->efit->Zxpt[1];
+    double zxpt_up =
+      (geo->efit->num_xpts > 1 ? (geo->use_cubics ? geo->efit->Zxpt_cubic[1] : geo->efit->Zxpt[1]) :
+                                 (geo->use_cubics ? geo->efit->Zxpt_cubic[0] : geo->efit->Zxpt[0]));
     arc_ctx.zmin = zxpt_up; // Initial guess
     double zup = fmax(inp->zmax_left, inp->zmax_right);
     find_lower_turning_point(geo, geo->psisep, zup, &arc_ctx.zmin, 1e-15);
@@ -567,14 +3120,20 @@ tok_geo_set_extent(
       double rzplate[2];
       pctx.psi_curr = geo->psisep;
       pctx.lower = false;
+
       double a = 0;
       double b = 1;
       double fa = tok_plate_psi_func(a, &pctx);
       double fb = tok_plate_psi_func(b, &pctx);
       struct gkyl_qr_res res =
         gkyl_ridders(tok_plate_psi_func, &pctx, a, b, fa, fb, geo->root_param.max_iter, 1e-10);
-      double smax = res.res;
-      geo->plate_func_upper(smax, rzplate);
+      double smax;
+      if (geo->extend_to_limiter && geo->divertor_wall[1].num_segments) {
+        tok_legacy_plate_point(geo, false, inp->ftype, geo->psisep, &res, &smax, rzplate);
+      } else {
+        smax = tok_plate_extent_root_s(geo, &pctx, &res, false, geo->psisep, inp->rleft);
+        geo->plate_func_upper(smax, rzplate);
+      }
       arc_ctx.zmax_right = rzplate[1];
 
       pctx.lower = true;
@@ -583,8 +3142,13 @@ tok_geo_set_extent(
       fa = tok_plate_psi_func(a, &pctx);
       fb = tok_plate_psi_func(b, &pctx);
       res = gkyl_ridders(tok_plate_psi_func, &pctx, a, b, fa, fb, geo->root_param.max_iter, 1e-10);
-      double smin = res.res;
-      geo->plate_func_lower(smin, rzplate);
+      double smin;
+      if (geo->extend_to_limiter && geo->divertor_wall[0].num_segments) {
+        tok_legacy_plate_point(geo, true, inp->ftype, geo->psisep, &res, &smin, rzplate);
+      } else {
+        smin = tok_plate_extent_root_s(geo, &pctx, &res, true, geo->psisep, inp->rright);
+        geo->plate_func_lower(smin, rzplate);
+      }
       arc_ctx.zmax_left = rzplate[1];
     } else {
       arc_ctx.zmax_left = inp->zmax_left;
@@ -616,10 +3180,26 @@ tok_geo_set_extent(
     }
   }
 
+  // Record the block's arc share SEPARATELY from its theta bounds. Today the
+  // two are the same number because the split is arc-proportional; recording it
+  // here is what lets the split change later without moving the block.
+  inp->arc_frac_lo = (*theta_lo + M_PI) / (2.0 * M_PI);
+  inp->arc_frac_hi = (*theta_up + M_PI) / (2.0 * M_PI);
+  inp->arc_frac_valid = isfinite(inp->arc_frac_lo) && isfinite(inp->arc_frac_hi) &&
+                        inp->arc_frac_hi > inp->arc_frac_lo;
+
   gkyl_free(arc_memo);
   gkyl_free(arc_memo_left);
   gkyl_free(arc_memo_right);
 }
+
+// NOTE: a per-psi "geometric" interval was tried here and is WRONG. The theta
+// split is computed ONCE at the separatrix and then applied as a fixed FRACTION
+// of each psi surface's own arcL_tot; the geometric pieces at psi != psisep are
+// a different quantity. Measured 2026-09-13 on ASDEX: the arc origin agreed to
+// 1.6e-15 but the far end disagreed by 5.5e-2, growing with psi, and both
+// devices aborted. The fraction is captured at the separatrix instead --
+// see inp->arc_frac_lo/hi in tok_geo_set_extent().
 
 void
 tok_find_endpoints(
@@ -631,8 +3211,14 @@ tok_find_endpoints(
   enum { PH_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
   enum { X_IDX, Y_IDX, Z_IDX }; // arrangement of cartesian coordinates
 
+  if (!gkyl_tok_geo_check_plate_coverage(geo, inp, psi_curr)) {
+    abort();
+  }
+
   // Set psicurr no matter what
   arc_ctx->psi = psi_curr;
+  arc_ctx->xpt_map_valid = false;
+  arc_ctx->xpt_anchor_valid = false;
 
   if (inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE || inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE_R ||
       inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE_L) {
@@ -640,7 +3226,9 @@ tok_find_endpoints(
     arc_ctx->rright = inp->rright;
     arc_ctx->rleft = inp->rleft;
 
-    double zxpt_up = geo->use_cubics ? geo->efit->Zxpt_cubic[1] : geo->efit->Zxpt[1];
+    double zxpt_up =
+      (geo->efit->num_xpts > 1 ? (geo->use_cubics ? geo->efit->Zxpt_cubic[1] : geo->efit->Zxpt[1]) :
+                                 (geo->use_cubics ? geo->efit->Zxpt_cubic[0] : geo->efit->Zxpt[0]));
     double zxpt_lo = geo->use_cubics ? geo->efit->Zxpt_cubic[0] : geo->efit->Zxpt[0];
     arc_ctx->zmax = inp->zmax ? inp->zmax : zxpt_up; // Initial guess.
     // zmax is specified for single null full core
@@ -649,6 +3237,9 @@ tok_find_endpoints(
     arc_ctx->zmin = zxpt_lo; // Initial guess
     double zup = geo->zmaxis;
     find_lower_turning_point(geo, psi_curr, zup, &arc_ctx->zmin, 0);
+    if (fabs(psi_curr - geo->psisep) <= 128.0 * DBL_EPSILON * fmax(1.0, fabs(geo->psisep))) {
+      arc_ctx->zmin = zxpt_lo;
+    }
     // Done finding turning points
     arc_ctx->arcL_right = integrate_psi_contour_memo(
       geo, psi_curr, arc_ctx->zmin, arc_ctx->zmax, arc_ctx->rright, true, true, arc_memo_right
@@ -677,7 +3268,6 @@ tok_find_endpoints(
       double extra_arcL = arcL_extent - arc_ctx->arcL_right;
       arc_ctx->arcL_start = extra_arcL / 2.0;
     }
-
     arc_ctx->right = true;
     arc_ctx->phi_right = 0.0;
     arc_ctx->rclose = arc_ctx->rright;
@@ -700,6 +3290,9 @@ tok_find_endpoints(
     arc_ctx->zmax = zxpt_lo; // Initial guess
     double zlo = fmin(inp->zmin_left, inp->zmin_right);
     find_upper_turning_point(geo, psi_curr, zlo, &arc_ctx->zmax, 1e-15);
+    if (fabs(psi_curr - geo->psisep) <= 128.0 * DBL_EPSILON * fmax(1.0, fabs(geo->psisep))) {
+      arc_ctx->zmax = zxpt_lo;
+    }
 
     // Set zmin left and zmin right wither with plate or fixed
     // This one can't be used with the general func for setting upper and lower plates because it uses zmin left and zmin right
@@ -713,8 +3306,8 @@ tok_find_endpoints(
       double fb = tok_plate_psi_func(b, pctx);
       struct gkyl_qr_res res =
         gkyl_ridders(tok_plate_psi_func, pctx, a, b, fa, fb, geo->root_param.max_iter, 1e-10);
-      double smax = res.res;
-      geo->plate_func_upper(smax, rzplate);
+      double smax;
+      tok_legacy_plate_point(geo, false, arc_ctx->ftype, psi_curr, &res, &smax, rzplate);
       arc_ctx->zmin_left = rzplate[1];
 
       pctx->lower = true;
@@ -723,8 +3316,8 @@ tok_find_endpoints(
       fa = tok_plate_psi_func(a, pctx);
       fb = tok_plate_psi_func(b, pctx);
       res = gkyl_ridders(tok_plate_psi_func, pctx, a, b, fa, fb, geo->root_param.max_iter, 1e-10);
-      double smin = res.res;
-      geo->plate_func_lower(smin, rzplate);
+      double smin;
+      tok_legacy_plate_point(geo, true, arc_ctx->ftype, psi_curr, &res, &smin, rzplate);
       arc_ctx->zmin_right = rzplate[1];
     } else {
       arc_ctx->zmin_left = inp->zmin_left;
@@ -761,7 +3354,9 @@ tok_find_endpoints(
     arc_ctx->rright = inp->rright;
     arc_ctx->rleft = inp->rleft;
     //Find the lower turning point to set zmin
-    double zxpt_up = geo->use_cubics ? geo->efit->Zxpt_cubic[1] : geo->efit->Zxpt[1];
+    double zxpt_up =
+      (geo->efit->num_xpts > 1 ? (geo->use_cubics ? geo->efit->Zxpt_cubic[1] : geo->efit->Zxpt[1]) :
+                                 (geo->use_cubics ? geo->efit->Zxpt_cubic[0] : geo->efit->Zxpt[0]));
     arc_ctx->zmin = zxpt_up; // Initial guess
     double zup = fmax(inp->zmax_left, inp->zmax_right);
     find_lower_turning_point(geo, psi_curr, zup, &arc_ctx->zmin, 1e-15);
@@ -779,8 +3374,8 @@ tok_find_endpoints(
       double fb = tok_plate_psi_func(b, pctx);
       struct gkyl_qr_res res =
         gkyl_ridders(tok_plate_psi_func, pctx, a, b, fa, fb, geo->root_param.max_iter, 1e-10);
-      double smax = res.res;
-      geo->plate_func_upper(smax, rzplate);
+      double smax;
+      tok_legacy_plate_point(geo, false, arc_ctx->ftype, psi_curr, &res, &smax, rzplate);
       arc_ctx->zmax_right = rzplate[1];
 
       pctx->lower = true;
@@ -789,8 +3384,8 @@ tok_find_endpoints(
       fa = tok_plate_psi_func(a, pctx);
       fb = tok_plate_psi_func(b, pctx);
       res = gkyl_ridders(tok_plate_psi_func, pctx, a, b, fa, fb, geo->root_param.max_iter, 1e-10);
-      double smin = res.res;
-      geo->plate_func_lower(smin, rzplate);
+      double smin;
+      tok_legacy_plate_point(geo, true, arc_ctx->ftype, psi_curr, &res, &smin, rzplate);
       arc_ctx->zmax_left = rzplate[1];
     } else {
       arc_ctx->zmax_left = inp->zmax_left;
@@ -870,8 +3465,11 @@ tok_find_endpoints(
     arc_ctx->rleft = inp->rleft;
     //Find the  upper turning point
     arc_ctx->zmax = inp->zmax; // Initial guess
-    double zlo = fmax(inp->zmin_left, inp->zmin_right);
-    find_upper_turning_point(geo, psi_curr, zlo, &arc_ctx->zmax, 0);
+    double rturn;
+    if (!tok_ext_turning_point(inp, geo, psi_curr, true, &rturn, &arc_ctx->zmax)) {
+      fprintf(stderr, "TOK_LEGACY_BOUNDED_TURN failed ftype=%d psi=%.17g\n", inp->ftype, psi_curr);
+      abort();
+    }
 
     // Set zmin left and zmin right wither with plate or fixed
     // This one can't be used with the general func for setting upper and lower plates because it uses zmin left and zmin right
@@ -885,8 +3483,8 @@ tok_find_endpoints(
       double fb = tok_plate_psi_func(b, pctx);
       struct gkyl_qr_res res =
         gkyl_ridders(tok_plate_psi_func, pctx, a, b, fa, fb, geo->root_param.max_iter, 1e-10);
-      double smax = res.res;
-      geo->plate_func_upper(smax, rzplate);
+      double smax;
+      tok_legacy_plate_point(geo, false, arc_ctx->ftype, psi_curr, &res, &smax, rzplate);
       arc_ctx->zmin_left = rzplate[1];
 
       pctx->lower = true;
@@ -895,8 +3493,8 @@ tok_find_endpoints(
       fa = tok_plate_psi_func(a, pctx);
       fb = tok_plate_psi_func(b, pctx);
       res = gkyl_ridders(tok_plate_psi_func, pctx, a, b, fa, fb, geo->root_param.max_iter, 1e-10);
-      double smin = res.res;
-      geo->plate_func_lower(smin, rzplate);
+      double smin;
+      tok_legacy_plate_point(geo, true, arc_ctx->ftype, psi_curr, &res, &smin, rzplate);
       arc_ctx->zmin_right = rzplate[1];
     } else {
       arc_ctx->zmin_left = inp->zmin_left;
@@ -912,6 +3510,16 @@ tok_find_endpoints(
       geo, psi_curr, arc_ctx->zmin_left, arc_ctx->zmax, arc_ctx->rleft, true, true, arc_memo_left
     );
     arc_ctx->arcL_tot = arcL_l + arc_ctx->arcL_right;
+    // The row at exact arc, replacing the integrated lengths (see
+    // tok_lsn_exact_row); the nodes are then placed on its trace.
+    double exact_right = 0.0, exact_tot = 0.0;
+    if (tok_lsn_exact_row(
+          geo, psi_curr, arc_ctx->zmin_right, arc_ctx->zmax, arc_ctx->zmin_left, arc_ctx->rright,
+          arc_ctx->rleft, &exact_right, &exact_tot, 0
+        )) {
+      arc_ctx->arcL_right = exact_right;
+      arc_ctx->arcL_tot = exact_tot;
+    }
 
     arc_ctx->right = true;
     arc_ctx->phi_right = 0.0;
@@ -931,6 +3539,13 @@ tok_find_endpoints(
     int nr_lcfs = gkyl_tok_geo_R_psiZ(
       geo, geo->efit->sibry, geo->efit->zmaxis, 4, R_lcfs, dRdZ_lcfs, dR_lcfs, dZ_lcfs
     );
+    if (nr_lcfs <= 0) {
+      fprintf(
+        stderr, "TOK_GEOMETRY IWL failed to find LCFS root at psi=%.17g Z=%.17g\n",
+        geo->efit->sibry, geo->efit->zmaxis
+      );
+      abort();
+    }
     double r_lcfs = nr_lcfs == 1 ? R_lcfs[0] :
                                    choose_closest(arc_ctx->rleft, R_lcfs, R_lcfs, nr_lcfs);
     double rz_lcfs[2];
@@ -1003,6 +3618,9 @@ tok_find_endpoints(
     arc_ctx->rclose = arc_ctx->rright;
     arc_ctx->phi_right = phi_func(alpha_curr, arc_ctx->zmax, arc_ctx) - alpha_curr;
   }
+
+  tok_configure_xpt_map(inp, arc_ctx);
+  tok_set_arc_interval(inp, arc_ctx);
 }
 
 void
@@ -1026,7 +3644,26 @@ tok_set_ridders(
   }
 
   if (inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE_R || inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE_L) {
-    if (arcL_curr <= arc_ctx->arcL_start) {
+    if (arc_ctx->xpt_map_valid) {
+      while (arcL_curr < 0.0) {
+        arcL_curr += arc_ctx->arcL_tot;
+      }
+      while (arcL_curr >= arc_ctx->arcL_tot) {
+        arcL_curr -= arc_ctx->arcL_tot;
+      }
+      arc_ctx->pre = false;
+      if (arcL_curr <= arc_ctx->arcL_right) {
+        *rclose = arc_ctx->rright;
+        arc_ctx->right = true;
+        *ridders_min = -arcL_curr;
+        *ridders_max = arc_ctx->arcL_tot - arcL_curr;
+      } else {
+        *rclose = arc_ctx->rleft;
+        arc_ctx->right = false;
+        *ridders_min = arc_ctx->arcL_tot - arcL_curr;
+        *ridders_max = arc_ctx->arcL_right - arcL_curr;
+      }
+    } else if (arcL_curr <= arc_ctx->arcL_start) {
       *rclose = arc_ctx->rleft;
       arc_ctx->right = false;
       arc_ctx->pre = true;

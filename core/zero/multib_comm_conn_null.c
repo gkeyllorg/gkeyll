@@ -1,6 +1,7 @@
 #include <gkyl_multib_comm_conn_priv.h>
 #include <gkyl_comm_priv.h>
 #include <gkyl_null_comm_priv.h>
+#include <assert.h>
 
 int
 gkyl_multib_comm_conn_array_transfer_null(
@@ -31,6 +32,12 @@ gkyl_multib_comm_conn_array_transfer_null(
           break;
         }
       }
+      assert(
+        (bid_src_idx >= 0) &&
+        "gkyl_multib_comm_conn_array_transfer_null: recv connection references a "
+        "source block that is not in local_blocks (block topology is inconsistent "
+        "with the local block list)"
+      );
       struct gkyl_multib_comm_conn *mbcc_s = mbcc_send[bid_src_idx];
       int conn_src_idx = -1;
       for (int ns = 0; ns < mbcc_s->num_comm_conn; ++ns) {
@@ -39,6 +46,14 @@ gkyl_multib_comm_conn_array_transfer_null(
           break;
         }
       }
+      assert(
+        (conn_src_idx >= 0) &&
+        "gkyl_multib_comm_conn_array_transfer_null: no send connection matches "
+        "this recv connection's (block_id, tar_edge) -- the block_geom_info "
+        "connections[][] entries for this pair of blocks are not mutually "
+        "consistent (e.g. one side's declared target edge doesn't match the "
+        "local edge the other side actually uses for this connection)"
+      );
 
       struct gkyl_range *range_src = &mbcc_s->comm_conn[conn_src_idx].range;
 

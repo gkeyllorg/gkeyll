@@ -23,6 +23,14 @@ struct gkyl_tok_geo_stat {
 
 typedef void (*plate_func)(double s, double *RZ);
 
+// Explicit material target on the unchanged EQDSK limiter. Segment i joins
+// vertex i to (i+1)%limiter_n. Supply a connected, nonclosed sequence in either
+// file order or its reverse; no device-dependent divertor labels are inferred.
+struct gkyl_tok_geo_wall_target {
+  int num_segments;
+  const int *segments;
+};
+
 // Type of flux surface
 enum gkyl_tok_geo_type {
   // Full blocks to be used as stand alone simulations
@@ -52,8 +60,8 @@ enum gkyl_tok_geo_type {
   GKYL_GEOMETRY_TOKAMAK_PF_LO_R, // Right half of Private flux region at bottom (outboard lower plate to lower xpt)
 
   // Core Block types that can be used with SN or DN configurations in multi-block simulations
-  GKYL_GEOMETRY_TOKAMAK_CORE_L, // Left half of core (lower to upper xpt)
-  GKYL_GEOMETRY_TOKAMAK_CORE_R, // Right half of core (upper to lower xpt)
+  GKYL_GEOMETRY_TOKAMAK_CORE_L, // Left half of core (upper to lower xpt)
+  GKYL_GEOMETRY_TOKAMAK_CORE_R, // Right half of core (lower to upper xpt)
 
   GKYL_GEOMETRY_TOKAMAK_IWL // Inner Wall Limited
 };
@@ -72,6 +80,15 @@ struct gkyl_tok_geo {
   int num_rzbasis; // number of basis functions in RZ
   const struct gkyl_array *psiRZ; // psi(R,Z) DG representation
   const struct gkyl_array *psiRZ_cubic; // cubic psi(R,Z) DG representation
+  // Conservative enclosure of psi over each RZ cell (2 components, lo and
+  // hi). Lets the R-root scan skip cells that cannot hold the requested
+  // level set. NULL when the enclosure does not apply.
+  struct gkyl_array *psi_cell_bounds;
+  // Coarse enclosure over runs of psi_block_size neighbouring R cells, so a
+  // whole run can be rejected with one test. NULL when unavailable.
+  double *psi_block_bounds;
+  int psi_block_size;
+  int psi_num_blocks;
   struct gkyl_basis_ops_evalf *evf; // wrapper for cubic evaluation
 
   struct gkyl_rect_grid fgrid; // flux grid for fpol
@@ -97,12 +114,30 @@ struct gkyl_tok_geo {
 
   // Flag and functions to specify the plate location/shape in RZ coordinates
   // The functions should specify R(s) and Z(s) on the plate where s is a parameter \in [0,1]
+  //
+  // RESOLUTION FLOOR. The strike point is found by sampling the plate at 512
+  // uniform values of s and bracketing sign changes of psi(plate(s)) - psi0.
+  // Two consequences a plate author needs to know, both measured (gate 4):
+  //
+  //   * Two crossings of the same flux surface separated by less than the
+  //     sample spacing, 1/512 of the plate parameter, are not resolved.
+  //   * A crossing that is TANGENT -- the plate grazes the surface without
+  //     passing through it -- is not found at all, because there is no sign
+  //     change to bracket.
+  //
+  // In both cases the library REFUSES the domain (TOK_GEO_ACTIVE_PLATE_FAILED)
+  // rather than guessing a strike point, so the failure is conservative. Shape
+  // a plate with features coarser than 1/512 of its length, and avoid grazing
+  // incidence, or expect a rejection you have to diagnose.
   // For single null, the "lower" plate is the outboard plate and the "upper plate" is the inboard plate
   // For IWL, when s=0, the plate function must return the coordinates of the corner of the limiter plate
   // at the inboard midplane which lies on the LCFS.
   bool plate_spec;
+  // Continue an insufficient plate on the actual EQDSK limiter. Default off.
+  bool extend_to_limiter;
   plate_func plate_func_lower;
   plate_func plate_func_upper;
+  struct gkyl_tok_geo_wall_target divertor_wall[2]; // owned copies; callback lower/upper slots
 
   struct {
     int max_iter;
@@ -117,6 +152,7 @@ struct gkyl_tok_geo {
   bool use_cubics; // If true will use the cubic rep of psi rather than the quadratic representation
   bool
     use_hyperbolic_numbers; // If true will use the hyperbolic numbers to do cubic root finding (much faster)
+  bool is_verbose; // Print construction diagnostics (gkyl_tok_geo_grid_inp.is_verbose).
 
   // pointer to root finder (depends on polyorder)
   struct RdRdZ_sol (*calc_roots)(
@@ -129,9 +165,50 @@ struct gkyl_tok_geo {
   struct gkyl_array *mc2p_nodal_fd;
   struct gkyl_range *nrange;
   double *dzc;
+
+  // The enclosures above (psi_cell_bounds, psi_block_*) for the cubic
+  // representation psiRZ_cubic on rzgrid_cubic. Built only with use_cubics;
+  // NULL otherwise.
+  struct gkyl_array *psi_cell_bounds_cubic;
+  double *psi_block_bounds_cubic;
+  int psi_block_size_cubic;
+  int psi_num_blocks_cubic;
+  // The cubic tensor basis under exchange of its coordinates:
+  // b_k(x, y) = b_{cubic_transpose[k]}(y, x). Lets the Z-root solve at fixed R
+  // reuse the R-root coefficients. cubic_transpose_ok is false if no such
+  // permutation was found, and the Z solve then keeps its sampling scan.
+  int cubic_transpose[16];
+  bool cubic_transpose_ok;
 };
 
 // Inputs to create a new GK geometry creation object
+
+enum gkyl_tok_geo_xpt_seam_trial_failure {
+  GKYL_XPT_SEAM_TRIAL_OK = 0,
+  GKYL_XPT_SEAM_TRIAL_INVALID_PARAMETER,
+  GKYL_XPT_SEAM_TRIAL_CONTOUR,
+  GKYL_XPT_SEAM_TRIAL_BRANCH,
+  GKYL_XPT_SEAM_TRIAL_TRACE_ORDERING,
+  GKYL_XPT_SEAM_TRIAL_NONFINITE_MAP,
+  GKYL_XPT_SEAM_TRIAL_CELL_JACOBIAN,
+  GKYL_XPT_SEAM_TRIAL_METRIC_JACOBIAN,
+  GKYL_XPT_SEAM_TRIAL_REMOTE_FAILURE
+};
+
+// Status shared by one diagnostic optimizer trial and the mapping/metric
+// builders. Applications should leave the corresponding trial pointer unset.
+struct gkyl_tok_geo_xpt_seam_trial_status {
+  bool contour_valid;
+  bool branch_valid;
+  bool trace_ordering_valid;
+  bool finite_map_valid;
+  bool cell_jacobian_valid;
+  bool jacobian_valid;
+  int jacobian_sign;
+  int first_failure_reason;
+  double max_realized_displacement;
+  double min_cell_jacobian_margin;
+};
 
 // Inputs to create geometry for a specific computational grid
 struct gkyl_tok_geo_grid_inp {
@@ -151,7 +228,23 @@ struct gkyl_tok_geo_grid_inp {
   double zmax_left, zmax_right; // for upper single null and PF cases diff b/t in and outboard side
 
   // Specifications for divertor plate
-  bool plate_spec; // whether a shape function is provided for divertor plates
+  bool plate_spec;
+  // Continue an insufficient plate on the actual EQDSK limiter. Default off.
+  bool extend_to_limiter; // whether a shape function is provided for divertor plates
+  // With extension enabled, explicit wall arcs replace the corresponding
+  // material plate target. Slot 0 is plate_func_lower, slot 1 plate_func_upper
+  // (LSN: outboard/inboard, not geometric lower/upper). Zero entries preserve
+  // the original plate policy. Inputs are copied. Native material-face maps
+  // follow the wall bends; strike-point chords only visualize that curved face.
+  struct gkyl_tok_geo_wall_target divertor_wall[2];
+
+  // Reject a grid that leaves the equilibrium's vessel outline. Default off:
+  // the outline is then not consulted for containment (reported as
+  // TOK_GEO_WALL_NOT_ENFORCED when is_verbose is set). When on, the outline must be usable (gkyl_tok_wall_usable); an absent,
+  // degenerate or malformed outline is rejected, since containment cannot be
+  // judged against it. Every tokamak block of a multiblock app must declare
+  // the same value.
+  bool enforce_wall;
   plate_func plate_func_lower; // lower plate specification. Gives R,Z in terms of s \in [0,1]
   plate_func plate_func_upper; // upper plate specification. Gives R,Z in terms of s \in [0,1]
   // In a lower single null "lower" is the outer divertor and
@@ -161,6 +254,37 @@ struct gkyl_tok_geo_grid_inp {
   bool use_cubics; // If true will use the cubic rep of psi rather than the quadratic representation
   bool
     use_hyperbolic_numbers; // If true will use the hyperbolic numbers to do cubic root finding (much faster)
+  // Print construction diagnostics to stderr. Default off: only errors and
+  // warnings are printed. The gyrokinetic app sets it from
+  // gkyl_gyrokinetic_geometry.is_verbose.
+  bool is_verbose;
+  bool straight_xpt_ray; // Align supported half-domain, full-domain double-null,
+    // and lower-single-null block interfaces on straight,
+    // flux-surface-intersecting rays from their X points to
+    // the requested far radial surface.
+  bool straight_core_xpt_ray; // Align the CORE_L/CORE_R interface on a straight,
+    // flux-surface-intersecting ray from the lower X-point
+    // to the nearest point on the innermost core surface.
+    // Retained for backward compatibility; straight_xpt_ray
+    // enables the same construction for every supported region.
+  bool relaxed_xpt_seam; // Route supported half-domain X-point seams through
+    // the delta-s parameterization. The initial mode
+    // enforces delta_s=0 and is exactly the straight ray.
+  bool relaxed_xpt_seam_sweep; // Master enable for a nonzero delta-s: with
+    // this false, relaxed_xpt_seam_delta_s_coeff
+    // is ignored and the seam stays exactly the
+    // straight ray regardless of its value. Used
+    // both for diagnostic-only sweeps/trials and,
+    // once a coefficient has been selected and
+    // guard-checked, for the applied production
+    // choice -- it does not by itself imply
+    // either.
+  double relaxed_xpt_seam_delta_s_coeff; // Peak B1 coefficient [m].
+  double relaxed_xpt_seam_delta_s_bound; // Hard displacement bound [m].
+  bool relaxed_xpt_seam_optimize; // Run the diagnostic bounded optimizer.
+  bool relaxed_xpt_seam_optimizer_trial; // Internal trial marker.
+  struct gkyl_tok_geo_xpt_seam_trial_status
+    *relaxed_xpt_seam_trial_status; // Internal trial status; otherwise NULL.
 
   // Parameters for root finder: leave unset to use defaults
   struct {
@@ -172,7 +296,65 @@ struct gkyl_tok_geo_grid_inp {
     int max_levels; // typically 6-7
     double eps; // typically 1e-10
   } quad_param;
+
+  // The block's share of its chain's separatrix arc, as a fraction, captured by
+  // tok_geo_set_extent(). Historically this fraction was recoverable ONLY from
+  // the theta bounds -- (theta+pi)/(2pi) -- which is exactly what made the theta
+  // interval the block's geometric address and blocked any reallocation of it.
+  // Storing it here separates "which arc the block owns" from "how much theta it
+  // is allotted". See gate7/continuity/THETA_ARCHITECTURE.md.
+  double arc_frac_lo, arc_frac_hi;
+  bool arc_frac_valid;
 };
+
+// A usable vessel outline: enough finite vertices to bound a region. This is the
+// single predicate behind every wall decision; the enforcement sites must not
+// re-derive it, or they will disagree the way the reader and its consumers did.
+static inline bool
+gkyl_tok_wall_usable(const struct gkyl_efit *e)
+{
+  return e && e->limiter_status == 1 && e->limiter_n >= 3 && e->limiter_R && e->limiter_Z;
+}
+
+enum gkyl_tok_wall_policy {
+  GKYL_TOK_WALL_ENFORCE = 0, // requested, usable outline: enforce containment
+  GKYL_TOK_WALL_NOT_ENFORCED, // not requested: build without containment tests
+  GKYL_TOK_WALL_REJECT_UNUSABLE, // requested, but the outline is absent or degenerate
+  GKYL_TOK_WALL_REJECT_MALFORMED // requested, but the outline record is unreadable
+};
+
+// Decide the vessel-outline policy for one block. Pure: the caller reports, with
+// its own context. Absence of a wall is deliberately NOT treated as being
+// outside one -- that conflation is what made wall-less equilibria unbuildable.
+static inline enum gkyl_tok_wall_policy
+gkyl_tok_wall_policy_for(const struct gkyl_tok_geo_grid_inp *inp, const struct gkyl_efit *e)
+{
+  if (!(inp && inp->enforce_wall)) {
+    return GKYL_TOK_WALL_NOT_ENFORCED;
+  }
+  if (gkyl_tok_wall_usable(e)) {
+    return GKYL_TOK_WALL_ENFORCE;
+  }
+  return e && e->limiter_status == -1 ? GKYL_TOK_WALL_REJECT_MALFORMED :
+                                        GKYL_TOK_WALL_REJECT_UNUSABLE;
+}
+
+// Name for diagnostics, so every site reports the same reason string.
+static inline const char *
+gkyl_tok_wall_policy_reason(enum gkyl_tok_wall_policy p)
+{
+  switch (p) {
+    case GKYL_TOK_WALL_ENFORCE:
+      return "enforced";
+    case GKYL_TOK_WALL_NOT_ENFORCED:
+      return "not_requested";
+    case GKYL_TOK_WALL_REJECT_UNUSABLE:
+      return "requested_but_outline_unusable";
+    case GKYL_TOK_WALL_REJECT_MALFORMED:
+      return "requested_but_outline_malformed";
+  }
+  return "unknown";
+}
 
 /**
  * Create new updater to compute the geometry needed in GK
@@ -301,8 +483,33 @@ void gkyl_tok_geo_set_extent(
 struct gkyl_tok_geo_stat gkyl_tok_geo_get_stat(const struct gkyl_tok_geo *geo);
 
 /**
+ * Does this block take the extended, topology-aware construction?
+ *
+ * Exposed because it is a property of a block that its NEIGHBOURS need to
+ * agree with.  The extended path reparameterizes a block's separatrix row (the
+ * theta ladder, and the |grad psi| poloidal measure) while the legacy path does
+ * not, so two blocks that share that row and disagree about taking it will
+ * place different nodes along it -- a seam error that is invisible per block
+ * and grows with resolution.  A multiblock consistency check needs to ask this
+ * question of both sides of an interface, so the predicate lives here rather
+ * than being restated where it is checked.
+ *
+ * @param inp Grid input for one block
+ * @return true if this block uses the extended construction
+ */
+bool gkyl_tok_geo_uses_extended_construction(const struct gkyl_tok_geo_grid_inp *inp);
+
+/**
  * Delete updater.
  *
  * @param geo Geometry object to delete
  */
 void gkyl_tok_geo_release(struct gkyl_tok_geo *geo);
+
+/** Check active material endpoints at a requested flux, without writing a grid.
+ * Uses the same native psi evaluator and connected limiter continuation as mapping.
+ * False means that this requested surface cannot terminate on its active plate.
+ */
+bool gkyl_tok_geo_check_plate_coverage(
+  const struct gkyl_tok_geo *geo, const struct gkyl_tok_geo_grid_inp *inp, double psi
+);

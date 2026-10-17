@@ -15,15 +15,198 @@
 #include <gkyl_nodal_ops.h>
 #include <assert.h>
 #include <ctype.h>
+#include <float.h>
+#include <stdint.h>
 
-gkyl_efit *
-gkyl_efit_new(const struct gkyl_efit_inp *inp)
+// Keep malformed-file rejection effective under -ffast-math.
+static bool
+efit_finite(double value)
+{
+  uint64_t bits;
+  memcpy(&bits, &value, sizeof bits);
+  return (bits & UINT64_C(0x7ff0000000000000)) != UINT64_C(0x7ff0000000000000);
+}
+
+// Active half (2026-09-29).  With reflect, the reader
+// keeps the LOWER half of the flux array and mirrors it upward, so the grid is
+// always built around the lower X point.  In an upper-biased double null the
+// plasma boundary passes through the UPPER X point and the lower one lies on a
+// second separatrix outside the plasma.  Measured on the NSTX-U 450: 75 of 448
+// shots, by more than 0.2% of the core flux, and every curled-divertor-leg
+// fold or abort is one of them (fable-handoff/11).  With the hook the reader
+// builds both halves and keeps the one whose X-point flux is nearer the flux
+// on the magnetic axis -- the first separatrix met going outward.  A tie --
+// a difference within the two representations' own disagreement on the
+// X-point flux (2026-10-05, see gkyl_efit_new) -- keeps the lower half; no
+// threshold is set by hand.  The kept equilibrium is presented
+// mirrored in Z, so everything downstream still finds its X point below.
+// User decision 2026-10-02: grid around the active X point.
+
+// Set while the two candidate halves are being built, so that only the kept
+// one reports itself.
+static int efit_trial_quiet = 0;
+
+static double
+efit_xpt_value(const double *arr, int n, int idx)
+{
+  return idx < n ? arr[idx] : DBL_MAX;
+}
+
+static void
+write_xpt_diag_once(const struct gkyl_efit *up)
+{
+  // Each output once per file; a quiet construction does not use up the
+  // verbose report.
+  static char last_printed[1024] = {0}, last_written[1024] = {0};
+  const char *csv_path = getenv("GKYL_EFIT_XPT_DIAG_CSV");
+  bool print = up->is_verbose && strncmp(last_printed, up->filepath, sizeof(last_printed)) != 0;
+  bool append_csv = csv_path && csv_path[0] &&
+                    strncmp(last_written, up->filepath, sizeof(last_written)) != 0;
+  if (!print && !append_csv) {
+    return;
+  }
+
+  double cubic_R0 = efit_xpt_value(up->Rxpt_cubic, up->num_xpts_cubic, 0);
+  double cubic_Z0 = efit_xpt_value(up->Zxpt_cubic, up->num_xpts_cubic, 0);
+  double cubic_R1 = efit_xpt_value(up->Rxpt_cubic, up->num_xpts_cubic, 1);
+  double cubic_Z1 = efit_xpt_value(up->Zxpt_cubic, up->num_xpts_cubic, 1);
+  double quad_R0 = efit_xpt_value(up->Rxpt, up->num_xpts, 0);
+  double quad_Z0 = efit_xpt_value(up->Zxpt, up->num_xpts, 0);
+  double quad_R1 = efit_xpt_value(up->Rxpt, up->num_xpts, 1);
+  double quad_Z1 = efit_xpt_value(up->Zxpt, up->num_xpts, 1);
+
+  if (print) {
+    strncpy(last_printed, up->filepath, sizeof(last_printed) - 1);
+    last_printed[sizeof(last_printed) - 1] = '\0';
+    fprintf(
+      stderr,
+      "XPT_DIAG name=%s filepath=%s reflect=%d cubic_n=%d cubic_psisep=%.16e "
+      "cubic0=(%.16e,%.16e) cubic1=(%.16e,%.16e) quad_n=%d quad_psisep=%.16e "
+      "quad0=(%.16e,%.16e) quad1=(%.16e,%.16e) raw_quad_found=%d "
+      "raw_quad=(%.16e,%.16e) raw_quad_psi=%.16e raw_quad_dist_cell=%.16e "
+      "fallback_to_cubic=%d\n",
+      up->name, up->filepath, up->reflect, up->num_xpts_cubic, up->psisep_cubic, cubic_R0, cubic_Z0,
+      cubic_R1, cubic_Z1, up->num_xpts, up->psisep, quad_R0, quad_Z0, quad_R1, quad_Z1,
+      up->xpt_diag_quadratic_found, up->xpt_diag_quad_R, up->xpt_diag_quad_Z, up->xpt_diag_quad_psi,
+      up->xpt_diag_quad_dist_cell, up->xpt_diag_fallback_to_cubic
+    );
+  }
+
+  if (!append_csv) {
+    return;
+  }
+  strncpy(last_written, up->filepath, sizeof(last_written) - 1);
+  last_written[sizeof(last_written) - 1] = '\0';
+
+  FILE *csv = fopen(csv_path, "a");
+  if (!csv) {
+    fprintf(stderr, "XPT_DIAG failed_to_open_csv=%s\n", csv_path);
+    return;
+  }
+
+  fprintf(
+    csv,
+    "%s,%s,%d,%d,%.16e,%.16e,%.16e,%.16e,%.16e,%d,%.16e,%.16e,%.16e,%.16e,%.16e,%d,%.16e,%.16e,%.16e,%.16e,%d\n",
+    up->name, up->filepath, up->reflect, up->num_xpts_cubic, up->psisep_cubic, cubic_R0, cubic_Z0,
+    cubic_R1, cubic_Z1, up->num_xpts, up->psisep, quad_R0, quad_Z0, quad_R1, quad_Z1,
+    up->xpt_diag_quadratic_found, up->xpt_diag_quad_R, up->xpt_diag_quad_Z, up->xpt_diag_quad_psi,
+    up->xpt_diag_quad_dist_cell, up->xpt_diag_fallback_to_cubic
+  );
+  fclose(csv);
+}
+
+// Do any two non-adjacent edges of the closed outline properly cross?
+//
+// O(n^2) over n = 31..87 vertices, run once when an equilibrium is read, so the
+// quadratic cost is irrelevant. Adjacent edges share an endpoint by
+// construction and are skipped; zero-length edges (a repeated vertex, which is
+// common and benign -- all 450 NSTX-U outlines have two) are skipped as well,
+// since they cannot cross anything.
+//
+// A properly crossing pair means the crossing-number interior test is being
+// asked a question that has no single right answer.
+int
+gkyl_efit_limiter_self_intersections(const struct gkyl_efit *e)
+{
+  if (!e || e->limiter_status != 1 || e->limiter_n < 4) {
+    return 0;
+  }
+  const int n = e->limiter_n;
+  int crossings = 0, overlaps = 0;
+  for (int i = 0; i < n; ++i) {
+    double ax = e->limiter_R[i], ay = e->limiter_Z[i];
+    double bx = e->limiter_R[(i + 1) % n], by = e->limiter_Z[(i + 1) % n];
+    if (ax == bx && ay == by) {
+      continue; // zero-length edge
+    }
+    for (int j = i + 1; j < n; ++j) {
+      // Skip the two edges that share a vertex with edge i, including the
+      // wrap-around pair (i=0, j=n-1).
+      if (j == i + 1 || (i == 0 && j == n - 1)) {
+        continue;
+      }
+      double cx = e->limiter_R[j], cy = e->limiter_Z[j];
+      double dx = e->limiter_R[(j + 1) % n], dy = e->limiter_Z[(j + 1) % n];
+      if (cx == dx && cy == dy) {
+        continue;
+      }
+      double r1 = (bx - ax) * (cy - ay) - (by - ay) * (cx - ax);
+      double r2 = (bx - ax) * (dy - ay) - (by - ay) * (dx - ax);
+      double r3 = (dx - cx) * (ay - cy) - (dy - cy) * (ax - cx);
+      double r4 = (dx - cx) * (by - cy) - (dy - cy) * (bx - cx);
+      // A proper crossing: strict sign changes on both tests. The interior is
+      // genuinely ambiguous here.
+      if (((r1 > 0) != (r2 > 0)) && ((r3 > 0) != (r4 > 0))) {
+        crossings++;
+        continue;
+      }
+      // Collinear edges that OVERLAP over a positive length: the outline
+      // retraces part of itself. This does not change the crossing-number
+      // interior (retracing a line preserves parity), which is why the one
+      // real instance measures as zero area and zero containment difference --
+      // but it is still malformed input worth naming. Touching at a single
+      // point is NOT counted: that is what a duplicate vertex produces, and
+      // every one of the 450 NSTX-U outlines has two of those.
+      if (r1 == 0.0 && r2 == 0.0 && r3 == 0.0 && r4 == 0.0) {
+        double ux = bx - ax, uy = by - ay, uu = ux * ux + uy * uy;
+        if (uu > 0.0) {
+          double tc = ((cx - ax) * ux + (cy - ay) * uy) / uu;
+          double td = ((dx - ax) * ux + (dy - ay) * uy) / uu;
+          double t0 = tc < td ? tc : td, t1 = tc < td ? td : tc;
+          double lo = t0 > 0.0 ? t0 : 0.0, hi = t1 < 1.0 ? t1 : 1.0;
+          if (hi - lo > 0.0) {
+            overlaps++;
+          }
+        }
+      }
+    }
+  }
+  return crossings + overlaps;
+}
+
+static gkyl_efit *
+efit_new_impl(const struct gkyl_efit_inp *inp, bool flip_z)
 {
   gkyl_efit *up = gkyl_calloc(1, sizeof(struct gkyl_efit));
 
   up->reflect = inp->reflect;
   up->use_gpu = inp->use_gpu;
+  up->is_verbose = inp->is_verbose;
   up->filepath = inp->filepath;
+
+  // Copy the optional X-point search outline; the caller's arrays need not outlive us.
+  up->xpt_bound_n = 0;
+  up->xpt_bound_R = 0;
+  up->xpt_bound_Z = 0;
+  if (inp->xpt_bound_n > 0 && inp->xpt_bound_R && inp->xpt_bound_Z) {
+    up->xpt_bound_n = inp->xpt_bound_n;
+    up->xpt_bound_R = gkyl_malloc(sizeof(double) * inp->xpt_bound_n);
+    up->xpt_bound_Z = gkyl_malloc(sizeof(double) * inp->xpt_bound_n);
+    for (int i = 0; i < inp->xpt_bound_n; ++i) {
+      up->xpt_bound_R[i] = inp->xpt_bound_R[i];
+      up->xpt_bound_Z[i] = inp->xpt_bound_Z[i];
+    }
+  }
   get_stripped_filename(up->filepath, up->name);
 
   gkyl_cart_modal_tensor(&up->rzbasis_cubic, 2, 3);
@@ -82,6 +265,12 @@ gkyl_efit_new(const struct gkyl_efit_inp *inp)
     &up->bcentr, &up->current, &up->simag, &up->xdum, &up->rmaxis, &up->xdum, &up->zmaxis,
     &up->xdum, &up->sibry, &up->xdum, &up->xdum
   );
+
+  up->psisep = up->sibry;
+  up->psisep_cubic = up->sibry;
+  // The file's own mid-height, before reflect overrides it: a mirrored
+  // equilibrium is mirrored about the middle of the file's box.
+  const double zmid_file = up->zmid;
 
   // Set zmid to 0 for double null
   if (up->reflect) {
@@ -240,6 +429,43 @@ gkyl_efit_new(const struct gkyl_efit_inp *inp)
     }
   }
 
+  if (flip_z) {
+    // Mirror the nodal flux in Z about the middle of the file's box, BEFORE
+    // anything is derived from it, so the DG and cubic representations, the
+    // field and the X-point search all see one consistent equilibrium.
+    for (int iz = 0; iz < up->nz / 2; iz++) {
+      for (int ir = 0; ir < up->nr; ir++) {
+        int ia[2] = {ir, iz}, ib[2] = {ir, up->nz - 1 - iz};
+        double *a = gkyl_array_fetch(psizr_n, gkyl_range_idx(&nrange, ia));
+        double *b = gkyl_array_fetch(psizr_n, gkyl_range_idx(&nrange, ib));
+        double t = a[0];
+        a[0] = b[0];
+        b[0] = t;
+      }
+    }
+  }
+  if (up->reflect) {
+    // The reflected (double-null) equilibrium: the LOWER half is the
+    // equilibrium, the upper half is its mirror image.  The quadratic DG
+    // coefficients get that mirroring below (the flip_odd_sign block), but
+    // until 2026-10-02 the cubic interpolator and psizr_cubic were fitted to
+    // this nodal array as read, i.e. to the file's REAL upper half, whose
+    // separatrix is a different flux.  Measured on NSTX-U 204046: on the
+    // cubic psi the inboard upper leg of the separatrix integrated to zero
+    // arc (0.178 m on the lower leg) and the outboard legs differed by 16%,
+    // where the quadratic's are mirror-equal; DN_SOL_IN_LO's theta range
+    // then collapsed to zero.  Mirror the nodal values the same way, so
+    // both representations describe the same equilibrium.
+    for (int iz = 0; iz < up->nz / 2; iz++) {
+      for (int ir = 0; ir < up->nr; ir++) {
+        int ia[2] = {ir, iz}, ib[2] = {ir, up->nz - 1 - iz};
+        const double *a = gkyl_array_cfetch(psizr_n, gkyl_range_idx(&nrange, ia));
+        double *b = gkyl_array_fetch(psizr_n, gkyl_range_idx(&nrange, ib));
+        b[0] = a[0];
+      }
+    }
+  }
+
   // We filled psizr_nodal
   struct gkyl_nodal_ops *n2m_rz = gkyl_nodal_ops_new(&up->rzbasis, &up->rzgrid, false);
   gkyl_nodal_ops_n2m(
@@ -284,6 +510,71 @@ gkyl_efit_new(const struct gkyl_efit_inp *inp)
     n2m_flux, &up->fluxbasis, &up->fluxgrid, &flux_nrange, &up->fluxlocal, 1, qflux_n, up->qflux,
     false
   );
+
+  // Standard EQDSK tail: plasma boundary count, limiter count, then R,Z pairs.
+  // Older equilibrium files can omit the tail; only a requested extension
+  // requires it. Never expose a partially read wall as usable geometry.
+  int nboundary = 0, nlimiter = 0;
+  int counts = fscanf(ptr, "%d %d", &nboundary, &nlimiter);
+  if (counts != EOF) {
+    up->limiter_status = -1;
+    if (counts == 2 && nboundary >= 0 && nboundary <= 1000000 && nlimiter >= 0 &&
+        nlimiter <= 1000000) {
+      bool valid = true;
+      double R, Z;
+      for (int i = 0; i < nboundary && valid; ++i) {
+        valid = fscanf(ptr, "%lf %lf", &R, &Z) == 2 && efit_finite(R) && efit_finite(Z);
+      }
+      // Classify by vertex count exhaustively. Previously nlimiter==1 matched
+      // neither branch and kept the pessimistic -1, so a readable record was
+      // reported as corrupt (this is why step.geqdsk read as malformed); and
+      // nlimiter==2 was accepted as status 1 even though every consumer
+      // requires >=3, so the reader and its consumers disagreed.
+      if (valid && nlimiter >= 1) {
+        double *wall_R = gkyl_malloc(nlimiter * sizeof(double));
+        double *wall_Z = gkyl_malloc(nlimiter * sizeof(double));
+        for (int i = 0; i < nlimiter && valid; ++i) {
+          valid = fscanf(ptr, "%lf %lf", &wall_R[i], &wall_Z[i]) == 2 && efit_finite(wall_R[i]) &&
+                  efit_finite(wall_Z[i]);
+        }
+        // The wall belongs to the machine, so it is mirrored with the flux.
+        if (valid && flip_z) {
+          for (int i = 0; i < nlimiter; ++i) {
+            wall_Z[i] = 2.0 * zmid_file - wall_Z[i];
+          }
+        }
+        if (valid && nlimiter >= 3) {
+          up->limiter_n = nlimiter;
+          up->limiter_R = wall_R;
+          up->limiter_Z = wall_Z;
+          up->limiter_status = 1;
+          // Shape is diagnosed here and nowhere else. It does NOT feed
+          // limiter_status: this reports, it does not decide.
+          up->limiter_self_intersections = gkyl_efit_limiter_self_intersections(up);
+          if (up->limiter_self_intersections > 0) {
+            if (up->is_verbose) {
+              fprintf(
+                stderr, "TOK_GEO_WALL_MALFORMED_SHAPE name=%s vertices=%d self_intersections=%d\n",
+                up->name, up->limiter_n, up->limiter_self_intersections
+              );
+            }
+          }
+        } else if (valid) {
+          // Readable, but too few vertices to bound a region. Keep the count
+          // for diagnostics; do not expose an unusable outline as geometry.
+          up->limiter_n = nlimiter;
+          gkyl_free(wall_R);
+          gkyl_free(wall_Z);
+          up->limiter_status = 2;
+        } else {
+          gkyl_free(wall_R);
+          gkyl_free(wall_Z);
+        }
+      } else if (valid && nlimiter == 0) {
+        up->limiter_status = 0;
+      }
+    }
+  }
 
   // Make the cubic interpolator
   up->evf = gkyl_dg_basis_ops_evalf_new(&up->rzgrid_cubic, psizr_n);
@@ -384,23 +675,13 @@ gkyl_efit_new(const struct gkyl_efit_inp *inp)
   gkyl_array_release(bpolzr_n);
   gkyl_array_release(bphizr_n);
   gkyl_array_release(bmagzr_n);
-  // Done, don't care about the rest
+  // Done reading the equilibrium and its optional material boundary.
 
   fclose(ptr);
 
   int num_max_xpts = 10;
   double Rxpt[num_max_xpts];
   double Zxpt[num_max_xpts];
-
-  up->num_xpts = find_xpts(up, Rxpt, Zxpt);
-  up->Rxpt = gkyl_malloc(sizeof(double) * fmax(2, up->num_xpts));
-  up->Zxpt = gkyl_malloc(sizeof(double) * fmax(2, up->num_xpts));
-  for (int i = 0; i < up->num_xpts; i++) {
-    up->Rxpt[i] = Rxpt[i];
-    up->Zxpt[i] = Zxpt[i];
-    // AS 9/24/24 This commented print statement is useful for checking the X-point Locations
-    //  printf("Rxpt[%d] = %1.16f, Zxpt[%d] = %1.16f | psisep = %1.16f\n", i, up->Rxpt[i], i, up->Zxpt[i], up->psisep);
-  }
 
   up->num_xpts_cubic = find_xpts_cubic(up, Rxpt, Zxpt);
   up->Rxpt_cubic = gkyl_malloc(sizeof(double) * fmax(2, up->num_xpts_cubic));
@@ -412,7 +693,107 @@ gkyl_efit_new(const struct gkyl_efit_inp *inp)
     //  printf("cubic: Rxpt[%d] = %1.16f, Zxpt[%d] = %1.16f | psisep = %1.16f\n", i, up->Rxpt_cubic[i], i, up->Zxpt_cubic[i], up->psisep_cubic);
   }
 
+  up->num_xpts = find_xpts(up, up->num_xpts_cubic, up->Rxpt_cubic, up->Zxpt_cubic, Rxpt, Zxpt);
+  up->Rxpt = gkyl_malloc(sizeof(double) * fmax(2, up->num_xpts));
+  up->Zxpt = gkyl_malloc(sizeof(double) * fmax(2, up->num_xpts));
+  // Callers index Rxpt[0]/Zxpt[0] unconditionally.  If no X-point was found (possible
+  // once an X-point search region is supplied), leave NaN rather than whatever the
+  // allocation happened to contain, so the failure surfaces instead of propagating
+  // silently as a garbage position.
+  for (int i = 0; i < (int)fmax(2, up->num_xpts); ++i) {
+    up->Rxpt[i] = NAN;
+    up->Zxpt[i] = NAN;
+  }
+  if (up->num_xpts == 0) {
+    if (up->is_verbose) {
+      fprintf(
+        stderr,
+        "EFIT_XPT no X-point found inside the supplied search region name=%s bound_n=%d cubic_n=%d\n",
+        up->name, up->xpt_bound_n, up->num_xpts_cubic
+      );
+    }
+  }
+  for (int i = 0; i < up->num_xpts; i++) {
+    up->Rxpt[i] = Rxpt[i];
+    up->Zxpt[i] = Zxpt[i];
+    // AS 9/24/24 This commented print statement is useful for checking the X-point Locations
+    //  printf("Rxpt[%d] = %1.16f, Zxpt[%d] = %1.16f | psisep = %1.16f\n", i, up->Rxpt[i], i, up->Zxpt[i], up->psisep);
+  }
+
+  if (!efit_trial_quiet) {
+    write_xpt_diag_once(up);
+  }
+
   return up;
+}
+
+gkyl_efit *
+gkyl_efit_new(const struct gkyl_efit_inp *inp)
+{
+  if (!inp->reflect) {
+    return efit_new_impl(inp, false);
+  }
+
+  efit_trial_quiet = 1;
+  gkyl_efit *lo = efit_new_impl(inp, false);
+  gkyl_efit *hi = efit_new_impl(inp, true);
+  efit_trial_quiet = 0;
+
+  bool lo_ok = lo->num_xpts_cubic > 0 || lo->num_xpts > 0;
+  bool hi_ok = hi->num_xpts_cubic > 0 || hi->num_xpts > 0;
+  double psi_lo = lo->num_xpts_cubic > 0 ? lo->psisep_cubic : lo->psisep;
+  double psi_hi = hi->num_xpts_cubic > 0 ? hi->psisep_cubic : hi->psisep;
+  // Nearer the axis flux = the first separatrix met going outward.  A tie
+  // keeps the lower half, which is what the reader always did.
+  //
+  // What counts as a tie (2026-10-05, user decision): a difference the data do
+  // not resolve.  Each half's X-point flux is known only as well as the two
+  // representations of the same flux agree on it -- |psisep_cubic - psisep|,
+  // quadratic against cubic -- so halves whose fluxes differ by no more than
+  // the larger of those disagreements are a tie.  Before this, "strictly
+  // nearer" let roundoff choose: STEP's reflected double null differs by
+  // 4.9e-6 against a representation disagreement of 1.1e-5, and kept the
+  // upper half; 9 NSTX-U shots are near-balanced double nulls the same way.
+  // No threshold is set by hand; a half missing either X point has no
+  // measured uncertainty and contributes none.
+  double unc_lo = lo->num_xpts_cubic > 0 && lo->num_xpts > 0 ? fabs(lo->psisep_cubic - lo->psisep) :
+                                                               0.0;
+  double unc_hi = hi->num_xpts_cubic > 0 && hi->num_xpts > 0 ? fabs(hi->psisep_cubic - hi->psisep) :
+                                                               0.0;
+  bool tie = lo_ok && hi_ok &&
+             fabs(fabs(psi_hi - hi->simag) - fabs(psi_lo - lo->simag)) <= fmax(unc_lo, unc_hi);
+  bool use_hi = hi_ok && !tie && (!lo_ok || fabs(psi_hi - hi->simag) < fabs(psi_lo - lo->simag));
+
+  static char last_filepath[1024] = {0};
+  if (inp->is_verbose && strncmp(last_filepath, inp->filepath, sizeof(last_filepath)) != 0) {
+    strncpy(last_filepath, inp->filepath, sizeof(last_filepath) - 1);
+    last_filepath[sizeof(last_filepath) - 1] = '\0';
+    fprintf(
+      stderr,
+      "EFIT_ACTIVE_HALF name=%s kept=%s mirrored_in_z=%d psi_axis=%.16e "
+      "psi_xpt_lower=%.16e psi_xpt_upper=%.16e psi_boundary_file=%.16e "
+      "xpt_found_lower=%d xpt_found_upper=%d unc_lower=%.3e unc_upper=%.3e tie=%d\n",
+      lo->name, use_hi ? "upper" : "lower", use_hi ? 1 : 0, lo->simag, psi_lo, psi_hi, lo->sibry,
+      lo_ok ? 1 : 0, hi_ok ? 1 : 0, unc_lo, unc_hi, tie ? 1 : 0
+    );
+    fflush(stderr);
+  }
+
+  gkyl_efit *keep = use_hi ? hi : lo;
+  gkyl_efit_release(use_hi ? lo : hi);
+  write_xpt_diag_once(keep);
+  return keep;
+}
+
+void
+gkyl_efit_get_psi_bounds(const gkyl_efit *up, double *simag, double *psisep)
+{
+  if (simag) {
+    *simag = up->simag;
+  }
+  if (psisep) {
+    *psisep = up->psisep;
+  }
 }
 
 void
@@ -422,6 +803,10 @@ gkyl_efit_release(gkyl_efit *up)
   gkyl_free(up->Zxpt);
   gkyl_free(up->Rxpt_cubic);
   gkyl_free(up->Zxpt_cubic);
+  gkyl_free(up->limiter_R);
+  gkyl_free(up->limiter_Z);
+  gkyl_free(up->xpt_bound_R);
+  gkyl_free(up->xpt_bound_Z);
   gkyl_array_release(up->psizr);
   gkyl_array_release(up->psizr_cubic);
   gkyl_array_release(up->bmagzr);

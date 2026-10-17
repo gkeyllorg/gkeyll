@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <gkyl_util.h>
 
 #include <gkyl_deflated_fem_poisson.h>
 #include <gkyl_deflated_fem_poisson_priv.h>
@@ -50,15 +51,8 @@ gkyl_deflated_fem_poisson_new(
 
   // Create 2d/3d nodal range nodal array to be populated
   int nodes[GKYL_MAX_DIM];
-  if (poly_order == 1) {
-    for (int d = 0; d < up->cdim; ++d) {
-      nodes[d] = gkyl_range_shape(&up->local, d) + 1;
-    }
-  }
-  if (poly_order == 2) {
-    for (int d = 0; d < up->cdim; ++d) {
-      nodes[d] = 2 * gkyl_range_shape(&up->local, d) + 1;
-    }
+  for (int d = 0; d < up->cdim; ++d) {
+    nodes[d] = gkyl_dg_nodes_per_dir(poly_order, gkyl_range_shape(&up->local, d));
   }
   gkyl_range_init_from_shape(&up->nrange, up->cdim, nodes);
 

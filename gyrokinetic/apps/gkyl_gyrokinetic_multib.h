@@ -174,14 +174,48 @@ struct gkyl_gyrokinetic_multib {
   struct gkyl_comm *comm;
 
   struct gkyl_gyrokinetic_metadata_inp metadata; // Optional metadata for output files.
+
+  // Step a SOL/PF radial bound that leaves the vessel outline inward until the
+  // domain fits (see gkyl_gyrokinetic_multib_app_new). Default off. Requires
+  // enforce_wall on every tokamak block.
+  bool adjust_if_exceeding_wall;
 };
+
+/**
+ * Check block declarations without constructing geometry or accessing the
+ * communicator. Checks topology and extended-construction participation: a
+ * mixed interface is an error unless its shared row comes from one trace
+ * builder, and every tokamak block must declare the same enforce_wall.
+ * Requires aligned logical directions and reciprocal target edges. Same-side
+ * radial connections are supported; reciprocal rotated axes remain unsupported.
+ *
+ * Writes a GKYL_GEOMETRY_PREFLIGHT summary to stderr including status, block
+ * count, strict mode, interfaces examined, and mixed interfaces. A PASS only
+ * validates these declarations; it does not validate the constructed grid.
+ * The caller owns any declaration-only exit and cleanup.
+ *
+ * @param mbinp App inputs; only cdim and gk_block_geom are inspected.
+ * @return 1 if declarations pass, 0 otherwise (including NULL inputs).
+ */
+int gkyl_gyrokinetic_multib_app_geometry_preflight(const struct gkyl_gyrokinetic_multib *mbinp);
 
 /**
  * Construct a new gk multi-block app.
  *
+ * With adjust_if_exceeding_wall set, wall-contained SOL/PF bounds are
+ * selected in GKYL_RHO_WALL_STEP normalized-rho steps, on an owned declaration
+ * copy. SOL rho decreases; PF rho increases toward 1. Core and fixed-boundary
+ * violations reject. Unset, the requested bounds are kept. Adjustment needs
+ * every tokamak block to declare enforce_wall, and its present scope is serial
+ * p1 with identity or built-in X-point maps.
+ * Actual no-output trials are discarded, then hard-guarded geometry is built.
+ * Requested/effective bounds are reported as TOK_RHO_WALL_BOUND diagnostics.
+ * extend_to_limiter remains a separate plate-coverage policy.
+ *
  * @param mbinp App inputs. See struct docs. All struct params MUST be
  *     initialized
- * @return New multi-block gk app object.
+ * @return New multi-block gk app object, or NULL if declarations or process
+ *     counts are invalid. Rejected declarations allocate no app resources.
  */
 gkyl_gyrokinetic_multib_app *gkyl_gyrokinetic_multib_app_new(
   const struct gkyl_gyrokinetic_multib *mbinp
@@ -190,9 +224,13 @@ gkyl_gyrokinetic_multib_app *gkyl_gyrokinetic_multib_app_new(
 /**
  * Construct a new gk multi-block app (geom only).
  *
+ * adjust_if_exceeding_wall has the same scope and semantics as in
+ * gkyl_gyrokinetic_multib_app_new above.
+ *
  * @param mbinp App inputs. See struct docs. All struct params MUST be
  *     initialized
- * @return New multi-block gk app object.
+ * @return New multi-block gk app object, or NULL if declarations or process
+ *     counts are invalid. Rejected declarations allocate no app resources.
  */
 gkyl_gyrokinetic_multib_app *gkyl_gyrokinetic_multib_app_new_geom(
   const struct gkyl_gyrokinetic_multib *mbinp

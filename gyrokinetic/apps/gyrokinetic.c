@@ -185,8 +185,8 @@ gyrokinetic_deflate_delta_ts(struct gkyl_gyrokinetic_app *app, struct gkyl_array
   gkyl_array_release(delta_ts_x_dev);
 }
 
-gkyl_gyrokinetic_app *
-gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
+static gkyl_gyrokinetic_app *
+gyrokinetic_app_new_geom_impl(struct gkyl_gk *gk, bool write_geometry)
 {
   disable_denorm_float();
 
@@ -383,6 +383,8 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
   for (int i = 0; i < 3; i++) {
     geometry_inp.world[i] = gk->geometry.world[i];
   }
+  geometry_inp.efit_info.is_verbose |= gk->geometry.is_verbose;
+  geometry_inp.tok_grid_info.is_verbose |= gk->geometry.is_verbose;
 
   if (app->cdim < 3) {
     geometry_inp.geo_grid = gkyl_gk_geometry_augment_grid(app->grid, geometry_inp);
@@ -762,10 +764,23 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
     }
   }
 
-  // Write geometric quantities to file.
-  gkyl_gyrokinetic_app_write_geometry(app, &geometry_inp);
+  if (write_geometry) {
+    gkyl_gyrokinetic_app_write_geometry(app, &geometry_inp);
+  }
 
   return app;
+}
+
+gkyl_gyrokinetic_app *
+gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
+{
+  return gyrokinetic_app_new_geom_impl(gk, true);
+}
+
+gkyl_gyrokinetic_app *
+gkyl_gyrokinetic_app_new_geom_no_write(struct gkyl_gk *gk)
+{
+  return gyrokinetic_app_new_geom_impl(gk, false);
 }
 
 static void
@@ -1364,6 +1379,43 @@ gyrokinetic_app_geometry_copy_and_write_surf(
 }
 
 static void
+gyrokinetic_app_geometry_write_surf_nodal(
+  gkyl_gyrokinetic_app *app, struct gkyl_array *arr, char *varNm, int dir, const char *description
+)
+{
+  int rank;
+  gkyl_comm_get_rank(app->comm, &rank);
+  if (rank != 0) {
+    return;
+  }
+
+  struct gkyl_rect_grid ngrid_surf;
+  gkyl_gk_geometry_init_nodal_grid(&ngrid_surf, &app->grid, &app->gk_geom->nrange_surf[dir]);
+
+  const char *fmt = "%s-geo_surf%d_%s.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name, dir, varNm);
+  char fileNm[sz + 1];
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, dir, varNm);
+
+  struct gkyl_msgpack_map_elem desc_elem[] = {
+    {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = (char *)description}
+  };
+  int io_meta_len[] = {app->io_meta_dg_len, app->gk_geom->io_meta_basic_len, 1};
+  const struct gkyl_msgpack_map_elem *io_meta[] = {
+    app->io_meta_dg, app->gk_geom->io_meta_basic, desc_elem
+  };
+  struct gkyl_msgpack_data *mt =
+    gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
+
+  // In GPU runs the geometry arrays live on the device; the writer reads host memory.
+  struct gkyl_array *arr_ho = mkarr(false, arr->ncomp, arr->size);
+  gkyl_array_copy(arr_ho, arr);
+  gkyl_grid_sub_array_write(&ngrid_surf, &app->gk_geom->nrange_surf[dir], mt, arr_ho, fileNm);
+  gkyl_array_release(arr_ho);
+  gkyl_msgpack_data_release(mt);
+}
+
+static void
 gyrokinetic_app_write_ts_shift_mapc2p(struct gkyl_gyrokinetic_app *app)
 {
   // Write the discretized shift (for TS BCs) to file for mapc2p geo.
@@ -1711,6 +1763,58 @@ gkyl_gyrokinetic_app_write_geometry(
     gyrokinetic_app_geometry_copy_and_write_surf(
       app, app->gk_geom->geo_surf[dir].jacobgeo, arr_surf_ho1, arr_surf_ho2, "jacobgeo", dir,
       "Conf-space Jacobian."
+    );
+    // NOTE: geo_surf[dir].mc2p_nodal is NOT populated for tokamak geometry
+    // (see gk_geometry.c's deflate step, ~line 605: "the tokamak mapping
+    // does not populate [mc2p_nodal]"). The tokamak surface position lives
+    // in the base (first 3 of 39) components of mc2p_nodal_fd instead;
+    // the remaining components are per-direction epsilon-shifted
+    // finite-difference stencil points, some of which are the
+    // "unpopulated FD offsets" already flagged as an open risk (see
+    // gkeyll_relaxed_xpt_commit5 memory) -- write the full array (matching
+    // every other _fd consumer in this codebase) but readers should only
+    // use components 0:3.
+    gyrokinetic_app_geometry_write_surf_nodal(
+      app, app->gk_geom->geo_surf[dir].mc2p_nodal_fd, "mc2p_nodal_fd", dir,
+      "Cartesian coordinates at surface quadrature nodes and FD-offset nodes (components 0:3 are the base surface position; the rest are FD stencil offsets, not all populated for every geometry type)."
+    );
+    // The surface node POSITIONS on their own, next to geo_corn_nodes
+    // (2026-09-30). A cell edge is a curve through its corner and its two
+    // Gauss surface nodes; judged by the corner chord alone, a long thin cell
+    // on a curved row reports a fold it does not have (ASDEX x2: 7 cells whose
+    // chords cross while no edge does and the Jacobian guard is silent). Every
+    // consumer that judges cells therefore needs these nodes, and the 39
+    // component file above is thirteen times larger than they are, so it is
+    // pruned from large suites. This file is small enough to keep always.
+    {
+      struct gkyl_array *pos =
+        mkarr(app->use_gpu, 3, app->gk_geom->geo_surf[dir].mc2p_nodal_fd->size);
+      gkyl_array_set_offset(pos, 1.0, app->gk_geom->geo_surf[dir].mc2p_nodal_fd, 0);
+      gyrokinetic_app_geometry_write_surf_nodal(
+        app, pos, "nodes", dir,
+        "Physical coordinates of the surface quadrature nodes (the two Gauss nodes on every cell edge in this direction)."
+      );
+      gkyl_array_release(pos);
+    }
+    gyrokinetic_app_geometry_write_surf_nodal(
+      app, app->gk_geom->geo_surf[dir].g_ij_nodal, "g_ij_nodal", dir,
+      "Covariant metric tensor at surface quadrature nodes."
+    );
+    gyrokinetic_app_geometry_write_surf_nodal(
+      app, app->gk_geom->geo_surf[dir].lenr_nodal, "lenr_nodal", dir,
+      "Length ratios for coordinate surface integrals at surface quadrature nodes."
+    );
+    gyrokinetic_app_geometry_write_surf_nodal(
+      app, app->gk_geom->geo_surf[dir].cmag_nodal, "cmag_nodal", dir,
+      "Ratio of (Clebsch) magnetic field to the volume element at surface quadrature nodes."
+    );
+    gyrokinetic_app_geometry_write_surf_nodal(
+      app, app->gk_geom->geo_surf[dir].jacobtot_inv_nodal, "jacobtot_inv_nodal", dir,
+      "Reciprocal of conf-space Jacobian times magnetic field at surface quadrature nodes."
+    );
+    gyrokinetic_app_geometry_write_surf_nodal(
+      app, app->gk_geom->geo_surf[dir].B3_nodal, "B3_nodal", dir,
+      "Contravariant z component of the magnetic field at surface quadrature nodes."
     );
     gyrokinetic_app_geometry_copy_and_write_surf(
       app, app->gk_geom->geo_surf[dir].jacobtot_inv, arr_surf_ho1, arr_surf_ho2, "jacobtot_inv",
@@ -4491,7 +4595,20 @@ gkyl_gyrokinetic_app_cout(const gkyl_gyrokinetic_app *app, FILE *fp, const char 
 void
 gkyl_gyrokinetic_app_release_geom(gkyl_gyrokinetic_app *app)
 {
+  bool has_delta_ts_x = app->cdim == 3 &&
+                        (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK ||
+                         (app->gk_geom->geometry_id == GKYL_GEOMETRY_MAPC2P &&
+                          app->gk_geom->lower_shift_func && app->gk_geom->upper_shift_func));
+
+  gkyl_array_release(app->jacobtot_inv_weak);
+  if (has_delta_ts_x) {
+    gkyl_array_release(app->delta_ts_x_lo);
+    gkyl_array_release(app->delta_ts_x_up);
+  }
+
   gkyl_gk_geometry_release(app->gk_geom);
+  gkyl_dg_geom_release(app->dg_geom);
+  gkyl_gk_dg_geom_release(app->gk_dg_geom);
   gkyl_position_map_release(app->position_map);
   for (int dir = 0; dir < app->cdim; ++dir) {
     gkyl_rect_decomp_release(app->decomp_plane[dir]);
@@ -4503,6 +4620,11 @@ gkyl_gyrokinetic_app_release_geom(gkyl_gyrokinetic_app *app)
   if (app->use_gpu) {
     gkyl_cu_free(app->basis_on_dev);
   }
+
+  gkyl_msgpack_map_elem_release(app->io_meta_basic_len, app->io_meta_basic);
+  gkyl_msgpack_map_elem_release(app->io_meta_dg_len, app->io_meta_dg);
+
+  gkyl_free(app);
 }
 
 void

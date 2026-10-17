@@ -44,15 +44,8 @@ gk_geometry_set_nodal_ranges(struct gk_geometry *up)
 
   // nodes tensor
   int num_nodes_corners[GKYL_MAX_CDIM];
-  if (poly_order == 1) {
-    for (int d = 0; d < up->grid.ndim; ++d) {
-      num_nodes_corners[d] = gkyl_range_shape(&up->local, d) + 1;
-    }
-  }
-  if (poly_order == 2) {
-    for (int d = 0; d < up->grid.ndim; ++d) {
-      num_nodes_corners[d] = 2 * gkyl_range_shape(&up->local, d) + 1;
-    }
+  for (int d = 0; d < up->grid.ndim; ++d) {
+    num_nodes_corners[d] = gkyl_dg_nodes_per_dir(poly_order, gkyl_range_shape(&up->local, d));
   }
 
   int num_quad_points = poly_order + 1;
@@ -102,6 +95,8 @@ gk_geometry_surf_alloc_nodal(struct gk_geometry *gk_geom, int dir)
     gkyl_array_new(GKYL_DOUBLE, 1, gk_geom->nrange_surf[dir].volume);
   gk_geom->geo_surf[dir].jacobgeo_nodal =
     gkyl_array_new(GKYL_DOUBLE, 1, gk_geom->nrange_surf[dir].volume);
+  gk_geom->geo_surf[dir].jacobgeo_signed_nodal =
+    gkyl_array_new(GKYL_DOUBLE, 1, gk_geom->nrange_surf[dir].volume);
   gk_geom->geo_surf[dir].b_i_nodal =
     gkyl_array_new(GKYL_DOUBLE, 3, gk_geom->nrange_surf[dir].volume);
   gk_geom->geo_surf[dir].b_i_nodal_fd =
@@ -139,6 +134,8 @@ gk_geometry_surf_alloc_expansions(struct gk_geometry *up, int dir)
     gkyl_array_new(GKYL_DOUBLE, 1 * up->num_surf_basis, up->local_ext.volume);
   up->geo_surf[dir].jacobgeo =
     gkyl_array_new(GKYL_DOUBLE, 1 * up->num_surf_basis, up->local_ext.volume);
+  up->geo_surf[dir].jacobgeo_signed =
+    gkyl_array_new(GKYL_DOUBLE, 1 * up->num_surf_basis, up->local_ext.volume);
   up->geo_surf[dir].jacobgeo_ratio =
     gkyl_array_new(GKYL_DOUBLE, 1 * up->num_surf_basis, up->local_ext.volume);
   up->geo_surf[dir].b_i = gkyl_array_new(GKYL_DOUBLE, 3 * up->num_surf_basis, up->local_ext.volume);
@@ -170,6 +167,7 @@ gk_geometry_surf_release_nodal(struct gk_geometry *gk_geom, int dir)
   gkyl_array_release(gk_geom->geo_surf[dir].ddtheta_nodal);
   gkyl_array_release(gk_geom->geo_surf[dir].ddpsi_nodal);
   gkyl_array_release(gk_geom->geo_surf[dir].jacobgeo_nodal);
+  gkyl_array_release(gk_geom->geo_surf[dir].jacobgeo_signed_nodal);
   gkyl_array_release(gk_geom->geo_surf[dir].b_i_nodal);
   gkyl_array_release(gk_geom->geo_surf[dir].b_i_nodal_fd);
   gkyl_array_release(gk_geom->geo_surf[dir].cmag_nodal);
@@ -341,6 +339,10 @@ gk_geometry_surf_calc_expansions(
   gkyl_nodal_ops_n2m_surface(
     n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf, &local_ext_in_dir, 1,
     up_surf.jacobgeo_nodal, up_surf.jacobgeo, dir
+  );
+  gkyl_nodal_ops_n2m_surface(
+    n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf, &local_ext_in_dir, 1,
+    up_surf.jacobgeo_signed_nodal, up_surf.jacobgeo_signed, dir
   );
   gkyl_nodal_ops_n2m_surface(
     n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf, &local_ext_in_dir, 3,
