@@ -980,6 +980,8 @@ struct gk_adapt_source {
   int num_boundaries; // Number of boundaries to adapt to.
   int dir[2 * GKYL_MAX_CDIM]; // Direction to adapt.
   enum gkyl_edge_loc edge[2 * GKYL_MAX_CDIM]; // Edge to adapt.
+  bool boundaries_is_domain_edge
+    [2 * GKYL_MAX_CDIM]; // Whether the local edge is a domain edge (not shared with another rank).
   struct gkyl_range boundaries_phase_ghost
     [2 * GKYL_MAX_CDIM]; // Range of computation of the bflux and moment (ALL phase space ghost).
   struct gkyl_range boundaries_conf_ghost
