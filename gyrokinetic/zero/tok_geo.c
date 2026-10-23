@@ -10206,6 +10206,16 @@ gkyl_tok_geo_calc(
   gkyl_free(ordered_trace_storage);
 }
 
+// Slope of a position map for a block's computational grid. A block whose psi falls outward (TCV) is declared
+// with lower > upper, so its cell width is negative; gkyl_position_map_slope takes a positive step and ordered bounds.
+static double
+tok_position_map_slope(
+  const struct gkyl_position_map *gpm, int ix_map, double x, double delta, double bound_a, double bound_b
+)
+{
+  return gkyl_position_map_slope(gpm, ix_map, x, fabs(delta), fmin(bound_a, bound_b), fmax(bound_a, bound_b));
+}
+
 void
 gkyl_tok_geo_calc_interior(
   struct gk_geometry *up, struct gkyl_range *nrange, double dzc[3], struct gkyl_tok_geo *geo,
@@ -10307,7 +10317,7 @@ gkyl_tok_geo_calc_interior(
         // Non-uniform psi. Finite differences are calculated in calc_metric.c
         double Psi_curr;
         position_map->maps[0](0.0, &psi_curr, &Psi_curr, position_map->ctxs[0]);
-        double dPsi_dpsi = gkyl_position_map_slope(
+        double dPsi_dpsi = tok_position_map_slope(
           position_map, 0, psi_curr, delta_psi, up->grid.lower[0], up->grid.upper[0]
         );
         psi_curr = Psi_curr;
@@ -10370,7 +10380,7 @@ gkyl_tok_geo_calc_interior(
           // Non-uniform theta
           double Theta_curr;
           position_map->maps[2](0.0, &theta_curr, &Theta_curr, position_map->ctxs[2]);
-          double dTheta_dtheta = gkyl_position_map_slope(
+          double dTheta_dtheta = tok_position_map_slope(
             position_map, 2, theta_curr, delta_theta, up->grid.lower[2], up->grid.upper[2]
           );
           theta_curr = Theta_curr;
@@ -10809,7 +10819,7 @@ gkyl_tok_geo_calc_surface(
         // Non-uniform psi. Finite differences are calculated in calc_metric.c
         double Psi_curr;
         position_map->maps[0](0.0, &psi_curr, &Psi_curr, position_map->ctxs[0]);
-        double dPsi_dpsi = gkyl_position_map_slope(
+        double dPsi_dpsi = tok_position_map_slope(
           position_map, 0, psi_curr, delta_psi, up->grid.lower[0], up->grid.upper[0]
         );
         psi_curr = Psi_curr;
@@ -10849,7 +10859,7 @@ gkyl_tok_geo_calc_surface(
           // Non-uniform theta
           double Theta_curr;
           position_map->maps[2](0.0, &theta_curr, &Theta_curr, position_map->ctxs[2]);
-          double dTheta_dtheta = gkyl_position_map_slope(
+          double dTheta_dtheta = tok_position_map_slope(
             position_map, 2, theta_curr, delta_theta, up->grid.lower[2], up->grid.upper[2]
           );
           theta_curr = Theta_curr;
