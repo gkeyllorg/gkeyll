@@ -9,6 +9,8 @@ trap 'rm -rf "$work_dir"' EXIT
 
 root="$work_dir/root"
 platform=personal
+export BUILD_TAG=jenkins-cache-test-1 JOB_NAME=cache-test BUILD_NUMBER=1
+export BUILD_URL=http://127.0.0.1:8080/job/cache-test/1/
 
 fixture="$work_dir/fixture"
 git init -q "$fixture"
@@ -57,7 +59,7 @@ test "$entry" = "$stage"
 printf 'outside manifest\n' > "$work_dir/outside-manifest.txt"
 ln -s "$work_dir/outside-manifest.txt" "$fixture/candidate-manifest.txt"
 candidate="$($cache_tool prepare-candidate "$root" "$platform" "$sha" "$fixture" "$sha")"
-test "$candidate" = "$root/candidate-cache/$platform/$sha"
+test "$candidate" = "$root/candidate-cache/$platform/$BUILD_TAG/$sha"
 test "$(git -C "$candidate/gkeyll" rev-parse HEAD)" = "$sha"
 test -f "$candidate/gkeyll/placeholder"
 test "$(cat "$work_dir/outside-manifest.txt")" = 'outside manifest'
@@ -98,7 +100,7 @@ git -C "$fixture" add another-file
 GIT_AUTHOR_DATE='2000-01-02T00:00:00Z' GIT_COMMITTER_DATE='2000-01-02T00:00:00Z' git -C "$fixture" commit -qm another
 next_sha="$(git -C "$fixture" rev-parse HEAD)"
 next_candidate="$($cache_tool prepare-candidate "$root" "$platform" "$next_sha" "$fixture" "$sha")"
-test "$next_candidate" = "$root/candidate-cache/$platform/$next_sha"
+test "$next_candidate" = "$root/candidate-cache/$platform/$BUILD_TAG/$next_sha"
 test ! -e "$candidate"
 
 rm "$entry/cache-manifest.txt"
