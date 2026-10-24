@@ -158,25 +158,15 @@ local runTolerance = nil
 local isConfiguring = false
 local configVals    = nil
 
--- Path of the configuration file written by 'configure' and read by 'run'.
--- Preferred location: <prefix>/gkeyll-results/runregression.config.lua, derived
--- from config.mak (same logic as prefix auto-detection in config_action).
--- Falls back to ~/runregression.config.lua for backwards compatibility.
+-- Keep configuration local to the executable's installation, even when
+-- config.mak uses Make expressions/overrides or a separate dependency PREFIX.
+-- A custom --prefix changes the results location stored in this file, not
+-- where later invocations look for the file itself.
+local installPrefix = GKYL_EXEC_PATH and GKYL_EXEC_PATH:match("^(.+)/gkeyll/bin/?$")
 local function computeConfFile()
-   local gkeyllDir = GKYL_EXEC_PATH and GKYL_EXEC_PATH:match("^(.+)/bin$")
-   if gkeyllDir then
-      local mf = io.open(gkeyllDir .. "/share/config.mak", "r")
-      if mf then
-         for line in mf:lines() do
-            local p = line:match("^PREFIX%s*=%s*(.+)%s*$")
-            if p then
-               mf:close()
-               return p .. "/gkeyll-results/runregression.config.lua",
-                      p .. "/gkeyll-results"
-            end
-         end
-         mf:close()
-      end
+   if installPrefix then
+      return installPrefix .. "/gkeyll-results/runregression.config.lua",
+             installPrefix .. "/gkeyll-results"
    end
    return os.getenv("HOME") .. "/runregression.config.lua", nil
 end
@@ -551,15 +541,15 @@ local function configure(prefix, mpiExec, mpiArgs, sourceDir, args)
    -- 'run', 'check', 'list', etc. invocations.
    -- 'prefix' is stored so that runCTest can locate share/Makefile for
    -- compiling C regression tests on-the-fly.
-   local fn = io.open(confFile, "w")
-   fn:write("return {\n")
-   fn:write(string.format("  mpiExec     = \"%s\",\n", mpiExec))
-   fn:write(string.format("  mpiArgs     = \"%s\",\n", mpiArgs or ""))
-   fn:write(string.format("  prefix      = \"%s\",\n", prefix))
-   fn:write(string.format("  results_dir = \"%s\",\n", resultsDir))
-   fn:write(string.format("  source_dir  = \"%s\",\n", sourceDir))
-   fn:write("}\n")
-   fn:close()
+   if confFileResultsDir then mkdir(confFileResultsDir) end
+   local fn, err = io.open(confFile, "w")
+   assert(fn, string.format("Unable to write regression configuration '%s': %s",
+      confFile, err or ""))
+   assert(fn:write(string.format(
+      "return {\n  mpiExec = %q,\n  mpiArgs = %q,\n  prefix = %q,\n"
+      .. "  results_dir = %q,\n  source_dir = %q,\n}\n",
+      mpiExec, mpiArgs or "", prefix, resultsDir, sourceDir)))
+   assert(fn:close())
    log(string.format("Configuration written to %s\n", confFile))
 end
 
@@ -1237,9 +1227,21 @@ executeBatch = function(items, jobCount, onComplete, logStarts)
    local totalSlots = 0
    for _, item in ipairs(items) do totalSlots = totalSlots + (item.parallelRanks or 1) end
    jobCount = math.min(jobCount or totalSlots, totalSlots)
-   local timestamp = hasCmd("perl")
-      and "perl -MTime::HiRes=time -e 'printf \"%.6f\\n\", time'"
-      or "date +%s"
+   -- Probe the clock, not just the executable: compute nodes may have Perl
+   -- without Time::HiRes, and BSD date does not implement %N. Empty timing
+   -- markers would otherwise hide a successful command's exit marker.
+   local timestamp
+   for _, command in ipairs({"date +%s.%N",
+      "perl -MTime::HiRes=time -e 'printf \"%.6f\\n\", time'", "date +%s"}) do
+      local probe = io.popen(command .. " 2>/dev/null", "r")
+      local value = probe and probe:read("*a") or ""
+      if probe then probe:close() end
+      if tonumber(value) then
+         timestamp = command .. " 2>/dev/null || date +%s"
+         break
+      end
+   end
+   assert(timestamp, "No working clock for regression timings")
    -- Step 1: write a per-item wrapper script so we never have to embed
    -- arbitrary command strings inside the coordinator (avoids quoting issues).
    for _, item in ipairs(items) do
@@ -1433,21 +1435,41 @@ local function shortPath(p)
    return p
 end
 
--- Compares two .gkyl files (field data or dynvector) element-by-element.
+-- Type-5 files contain only a base header and MessagePack metadata, not an
+-- array. Read the native-endian uint64 header as written by array_rio.c and
+-- check its length before decoding, so truncated metadata cannot pass.
+local function readMultiblockMeta(path)
+   local file = io.open(path, "rb")
+   if not file then return nil end
+   local data = file:read("*a")
+   file:close()
+   if not data or #data < 29 or data:sub(1, 5) ~= "gkyl0" then return nil end
+
+   local ffi = require "ffi"
+   local header = ffi.new("uint64_t[3]")
+   ffi.copy(header, data:sub(6, 29), 24)
+   if header[0] ~= 1 or header[1] ~= 5 or header[2] ~= #data - 29 then
+      return nil
+   end
+   local ok, meta = pcall(require("Lib.MessagePack").unpack, data:sub(30))
+   if not ok or type(meta) ~= "table" then return nil end
+   if type(meta.time) ~= "number" or meta.time ~= meta.time
+      or math.abs(meta.time) == math.huge
+      or type(meta.frame) ~= "number" or meta.frame < 0
+      or meta.frame == math.huge or meta.frame ~= math.floor(meta.frame)
+      or type(meta.topo_file) ~= "string" or meta.topo_file == ""
+      or type(meta.app_name) ~= "string" or meta.app_name == "" then
+      return nil
+   end
+   return meta
+end
+
+-- Compares .gkyl arrays, dynvectors, topology, and multiblock metadata.
 -- absTol / relTol: optional absolute and relative tolerance thresholds.
 --   Defaults to 1e-12 for both (strict CPU comparison).
 --   Pass looser values (e.g. 1e-7) for GPU-vs-accepted comparisons.
 -- File comparison uses the G0.Zero Lua-C API registered by
 -- gkyl_zero_lw_openlibs at startup (core/apps/zero_lw.c). 
--- gkyl_array_diff / dynvecDiff report signed absolute-difference extrema of
--- (accepted - run).  A run uniformly above its baseline can have a negative
--- max_abs_diff, so compare the magnitudes of both extrema.
-local function diffMagnitudes(diff)
-   local absD = math.max(math.abs(diff.max_abs_diff or 0), math.abs(diff.min_abs_diff or 0))
-   local relD = math.max(math.abs(diff.max_rel_diff or 0), math.abs(diff.min_rel_diff or 0))
-   return absD, relD
-end
-
 local function compareFiles(f1, f2, absTol, relTol)
    absTol = absTol or 1e-12
    relTol = relTol or 1e-12
@@ -1475,22 +1497,20 @@ local function compareFiles(f1, f2, absTol, relTol)
       end
 
       if f1type == "dynvector" then
-         local diff = G0.Zero.dynvecDiff(f1, f2)
+         local diff = G0.Zero.dynvecDiff(f1, f2, absTol, relTol)
          if not diff.is_compatible then
             verboseLog("    ... dynvector files not compatible (size/type mismatch or read failure)\n")
             return false, "dynvec not compatible"
          end
-         -- Combined tolerance: fail only when BOTH absolute and relative
-         -- thresholds are exceeded.  This avoids false failures for near-zero
-         -- values (tiny abs but large rel%) and for large values (large abs but
-         -- tiny rel%).  A zero absolute difference passes even if the
-         -- relative difference is large.
-         local absD, relD = diffMagnitudes(diff)
-         if absD > absTol and relD > relTol then
+         local maxAbsDiff = math.max(math.abs(diff.max_abs_diff), math.abs(diff.min_abs_diff))
+         -- Extrema may come from different components or times. The native
+         -- reader applies both tolerances to each value before reducing.
+         if not diff.within_tolerance then
             verboseLog(string.format(
                "    ... dynvec max abs diff %g (tol %g), max rel diff %g (tol %g)\n",
-               absD, absTol, relD, relTol))
-            return false, string.format("dynvec max_abs=%.3g max_rel=%.3g", absD, relD)
+               maxAbsDiff, absTol, diff.max_rel_diff, relTol))
+            return false, string.format("dynvec max_abs=%.3g max_rel=%.3g",
+               maxAbsDiff, diff.max_rel_diff)
          end
          if diff.tm_max_abs_diff > 1e-10 then
             verboseLog(string.format(
@@ -1509,21 +1529,22 @@ local function compareFiles(f1, f2, absTol, relTol)
       end
 
       if f1type == "multi-block-meta" then
-         -- These are small descriptors (time, frame, topology filename and app
-         -- name), not arrays. Compare their serialized contents exactly. The
-         -- per-block fields and topology are compared separately by check.
-         local function readDescriptor(path)
-            local file = io.open(path, "rb")
-            if not file then return nil end
-            local contents = file:read("*a")
-            file:close()
-            return contents
+         local meta1, meta2 = readMultiblockMeta(f1), readMultiblockMeta(f2)
+         if not meta1 or not meta2 then
+            return false, "multiblock metadata read failed"
          end
-         local baseline = readDescriptor(f1)
-         local candidate = readDescriptor(f2)
-         if not candidate then return false, "candidate multiblock metadata read failed" end
-         if not baseline then return false, "baseline multiblock metadata read failed" end
-         if baseline ~= candidate then return false, "multiblock metadata mismatch" end
+         -- Compare scalar metadata exactly, independent of MessagePack map
+         -- ordering. The file walk separately checks block arrays and topology.
+         for key, value in pairs(meta1) do
+            if value ~= meta2[key] then
+               return false, "multiblock metadata mismatch: " .. tostring(key)
+            end
+         end
+         for key in pairs(meta2) do
+            if meta1[key] == nil then
+               return false, "multiblock metadata mismatch: " .. tostring(key)
+            end
+         end
          return true
       end
 
@@ -1543,22 +1564,19 @@ local function compareFiles(f1, f2, absTol, relTol)
       local r1, er1 = G0.Zero.createGridRanges(g1, nghost)
       local r2, er2 = G0.Zero.createGridRanges(g2, nghost)
 
-      local diff = G0.Zero.arrayDiff(a1, a2, r1)
+      local diff = G0.Zero.arrayDiff(a1, a2, r1, absTol, relTol)
 
       if not diff.is_compatible then return false, "incompatible arrays" end
-      -- Combined tolerance: fail only when BOTH absolute and relative thresholds
-      -- are exceeded.  Near-zero values naturally have large relative differences
-      -- (e.g. 1e-15 vs -1e-15 → rel=200%) but negligible absolute differences;
-      -- large values can have large absolute differences but tiny relative
-      -- differences.  Failing on either alone produces false positives.
-      -- A zero absolute difference passes even if the relative difference is
-      -- large.
-      local absD, relD = diffMagnitudes(diff)
-      if absD > absTol and relD > relTol then
+      -- arrayDiff returns signed extrema of (accepted - candidate). Use both
+      -- ends so increases in candidate values cannot evade the absolute check.
+      local maxAbsDiff = math.max(math.abs(diff.max_abs_diff), math.abs(diff.min_abs_diff))
+      -- Apply absolute and relative tolerances to the same array element.
+      if not diff.within_tolerance then
          verboseLog(string.format(
             "    ... max abs diff %g (tol %g), max rel diff %g (tol %g)\n",
-            absD, absTol, relD, relTol))
-         return false, string.format("max_abs=%.3g max_rel=%.3g", absD, relD)
+            maxAbsDiff, absTol, diff.max_rel_diff, relTol))
+         return false, string.format("max_abs=%.3g max_rel=%.3g",
+            maxAbsDiff, diff.max_rel_diff)
       end
 
       return true
@@ -1665,7 +1683,7 @@ local function check_action(test, runDir, testType, absTol, relTol)
          for _, ff in ipairs(failedFiles) do
             log(string.format("    %s\n", ff))
          end
-         log("  Legend: [DIFF] values exceed tolerance  [MISSING] file not produced by run\n")
+         log("  Legend: [DIFF] comparison failed  [MISSING] file not produced by run\n")
          -- Build checkLog for DB storage so queryrdb --test N surfaces magnitudes.
          checkLog = "--- Comparison failures ---\n"
             .. table.concat(failedFiles, "\n")
@@ -1921,22 +1939,8 @@ local function config_action(args, name)
 
    local prefix = args.config_prefix
    if not prefix then
-      -- Auto-detect from the installed config.mak.
-      -- GKYL_EXEC_PATH is the bin dir (e.g. ~/gkylsoft/gkeyll/bin);
-      -- config.mak lives one level up in share/.
-      local gkeyllDir = GKYL_EXEC_PATH:match("^(.+)/bin$")
-      if gkeyllDir then
-         local mf = io.open(gkeyllDir .. "/share/config.mak", "r")
-         if mf then
-            for line in mf:lines() do
-               local p = line:match("^PREFIX%s*=%s*(.+)%s*$")
-               if p then prefix = p; break end
-            end
-            mf:close()
-         end
-      end
-      prefix = prefix or (os.getenv("HOME") .. "/gkylsoft")
-      log(string.format("Auto-detected prefix from config.mak: %s\n", prefix))
+      prefix = installPrefix or (os.getenv("HOME") .. "/gkylsoft")
+      log(string.format("Auto-detected installation prefix: %s\n", prefix))
    end
 
    local mpiexec = args.config_mpiexec
@@ -2594,7 +2598,7 @@ different machines that share the regression-results directory.
 parser:flag("-v --verbose", "Print verbose messages as tests are run")
 
 -- 'configure' command ---------------------------------------------------------
--- Sets up directories, databases, and writes ~/runregression.config.lua.
+-- Sets up directories, databases, and writes the installation's configuration.
 local c_conf = parser:command("configure", "Configure regression tests")
    :action(config_action)
 
@@ -2605,7 +2609,7 @@ c_conf:option("-s --source-dir",
    :target("config_source_dir")
 c_conf:option("-p --prefix",
    "Where to write gkeyll-results/.\n"
-   .. "Auto-detected from config.mak if omitted.")
+   .. "Defaults to the executable's installation prefix.")
    :target("config_prefix")
 c_conf:option("-m --mpiexec",
    "Full path to MPI launcher used by --parallel.")

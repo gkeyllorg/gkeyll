@@ -5,8 +5,13 @@
 # PS1 even in a non-interactive shell.
 : "${PS1:=}"
 
+# CI batch jobs start without login profiles or inherited module state.
+if ! type module >/dev/null 2>&1; then
+  . /usr/share/Modules/init/bash
+fi
+
 module purge
 module load intel-classic/2023.2.3
 module load openmpi/intel-classic-2023.2.3/5.0.10
 module load openblas/0.3.x
-module load anaconda3/2026.7 # To download ADAS.
+# Keep Anaconda MPI out of the build and simulation runtime.
