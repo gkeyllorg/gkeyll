@@ -1065,7 +1065,6 @@ struct gk_damping {
 
 struct gk_fdot_multiplier_comp {
   enum gkyl_gyrokinetic_fdot_multiplier_type type; // Type of multiplicative function term.
-  bool evolve; // Whether the multiplicative function is time dependent.
   struct gkyl_array *buffer; // Per-component working storage.
   struct gkyl_array *buffer_ho; // Host copy for use in IO and projecting.
   struct gk_proj_on_basis_c2p_func_ctx proj_on_basis_c2p_ctx; // c2p function context.
@@ -1094,6 +1093,13 @@ struct gk_fdot_multiplier_comp {
 
   struct gk_species
     *species_dt_is_set_from; // Pointer to another species which sets dt for the present species.
+
+  // Original update used once when a time-dependent component is frozen.
+  void (*advance_once_func)(
+    gkyl_gyrokinetic_app *app, const struct gk_species *gks, struct gk_fdot_multiplier_comp *fdmul,
+    const struct gkyl_array *phi, const struct gkyl_array *f, const struct gkyl_array *cflrate,
+    struct gkyl_array *combined_multiplier
+  );
 
   // Function chosen at runtime: computes this component's contribution and multiplies it into combined_multiplier.
   void (*advance_func)(
@@ -3575,6 +3581,8 @@ void gk_species_fdot_multiplier_release(
 
 /**
  * Reset the df/dt multiplier operator.
+ * Static components are recomputed at the next CFL/RHS evaluation, then frozen
+ * until the next reset.
  *
  * @param app gyrokinetic app object.
  * @param tm Current simulation time.
