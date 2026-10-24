@@ -23,123 +23,69 @@ mkarr(long nc, long size)
   return a;
 }
 
-struct lte_test_ctx {double n; double drift; double T_over_m;};
-struct multi_temp_max_test_ctx {double n; double drift[2]; double T_over_m[2];};
-struct kappa_test_ctx {double n; double drift; double T_over_m; double kappa;};
+// Distribution context and analytical callbacks.
+struct dist_test_ctx {
+  int vdim;
+  int num_temp;
+  double n;
+  double drift[3];
+  double T_over_m[3];
+  double kappa;
+};
 
-// LTE 
 static void
-eval_lte_density(double t, const double *xn, double *restrict fout, void *ctx)
+eval_density(double t, const double *xn, double *restrict fout, void *ctx)
 {
-  struct lte_test_ctx *p = ctx;
-  fout[0] = p->n;
+  const struct dist_test_ctx *params = ctx;
+  fout[0] = params->n;
 }
 
 static void
-eval_lte_drift(double t, const double *xn, double *restrict fout, void *ctx)
+eval_drift(double t, const double *xn, double *restrict fout, void *ctx)
 {
-  struct lte_test_ctx *p = ctx;
-  fout[0] = p->drift;
+  const struct dist_test_ctx *params = ctx;
+  for (int d = 0; d < params->vdim; ++d)
+    fout[d] = params->drift[d];
 }
 
 static void
-eval_lte_temperature(double t, const double *xn, double *restrict fout, void *ctx)
+eval_temperature(double t, const double *xn, double *restrict fout, void *ctx)
 {
-  struct lte_test_ctx *p = ctx;
-  fout[0] = p->T_over_m;
+  const struct dist_test_ctx *params = ctx;
+  for (int d = 0; d < params->num_temp; ++d)
+    fout[d] = params->T_over_m[d];
 }
 
+// LTE uses one temperature; multi-temperature Maxwellian uses one per direction.
 static void
-eval_lte_dist(double t, const double *xn, double *restrict fout, void *ctx)
+eval_maxwellian_dist(double t, const double *xn, double *restrict fout, void *ctx)
 {
-  struct lte_test_ctx *p = ctx;
-
-  double v = xn[1];
-  double dv = v - p->drift;
-
-  fout[0] = p->n/sqrt(2.0*GKYL_PI*p->T_over_m) * exp(-dv*dv/(2.0*p->T_over_m));
-}
-
-// Multi-temperature Maxwellian 
-static void
-eval_multi_temp_max_density(double t, const double *xn, double *restrict fout, void *ctx)
-{
-  struct multi_temp_max_test_ctx *p = ctx;
-  fout[0] = p->n;
-}
-
-static void
-eval_multi_temp_max_drift(double t, const double *xn, double *restrict fout, void *ctx)
-{
-  struct multi_temp_max_test_ctx *p = ctx;
-
-  fout[0] = p->drift[0];
-  fout[1] = p->drift[1];
-}
-
-static void
-eval_multi_temp_max_temperature(double t, const double *xn, double *restrict fout, void *ctx)
-{
-  struct multi_temp_max_test_ctx *p = ctx;
-
-  fout[0] = p->T_over_m[0];
-  fout[1] = p->T_over_m[1];
-}
-
-static void
-eval_multi_temp_max_dist(double t, const double *xn, double *restrict fout, void *ctx)
-{
-  struct multi_temp_max_test_ctx *p = ctx;
-
-  double dv1 = xn[1] - p->drift[0];
-  double dv2 = xn[2] - p->drift[1];
-
-  double T1 = p->T_over_m[0];
-  double T2 = p->T_over_m[1];
-
-  fout[0] = p->n/(2.0*GKYL_PI*sqrt(T1*T2)) * exp(-0.5*(dv1*dv1/T1 + dv2*dv2/T2));
-}
-
-// Kappa 
-static void
-eval_kappa_density(double t, const double *xn, double *restrict fout, void *ctx)
-{
-  struct kappa_test_ctx *p = ctx;
-  fout[0] = p->n;
-}
-
-static void
-eval_kappa_drift(double t, const double *xn, double *restrict fout, void *ctx)
-{
-  struct kappa_test_ctx *p = ctx;
-  fout[0] = p->drift;
-}
-
-static void
-eval_kappa_temperature(double t, const double *xn, double *restrict fout, void *ctx)
-{
-  struct kappa_test_ctx *p = ctx;
-  fout[0] = p->T_over_m;
+  const struct dist_test_ctx *params = ctx;
+  double value = params->n;
+  for (int d = 0; d < params->vdim; ++d) {
+    double temperature = params->T_over_m[params->num_temp == 1 ? 0 : d];
+    double relative_velocity = xn[d+1] - params->drift[d];
+    value *= exp(-0.5*relative_velocity*relative_velocity/temperature)
+      /sqrt(2.0*GKYL_PI*temperature);
+  }
+  fout[0] = value;
 }
 
 static void
 eval_kappa_dist(double t, const double *xn, double *restrict fout, void *ctx)
 {
-  struct kappa_test_ctx *p = ctx;
-
-  double kappa = p->kappa;
-  double alpha = (2.0*kappa-1.0)*p->T_over_m;
-  double v = xn[1];
-  double dv = v - p->drift;
-
-  double norm = p->n*exp(
-    lgamma(kappa+1.0)
-    - lgamma(kappa+0.5)
-    - 0.5*log(GKYL_PI*alpha));
-
-  fout[0] = norm*pow(1.0+dv*dv/alpha, -(kappa+1.0));
+  const struct dist_test_ctx *params = ctx;
+  double alpha = (2.0*params->kappa-params->vdim)*params->T_over_m[0];
+  double relative_speed_sq = 0.0;
+  for (int d = 0; d < params->vdim; ++d) {
+    double relative_velocity = xn[d+1] - params->drift[d];
+    relative_speed_sq += relative_velocity*relative_velocity;
+  }
+  double norm = params->n*exp(
+    lgamma(params->kappa+1.0) - lgamma(params->kappa+1.0-0.5*params->vdim)
+    - 0.5*params->vdim*log(GKYL_PI*alpha));
+  fout[0] = norm*pow(1.0+relative_speed_sq/alpha, -(params->kappa+1.0));
 }
-
 
 // Test configuration
 typedef void (*test_evalf_t)(double t, const double *xn,
@@ -150,9 +96,9 @@ struct dist_test_case {
 
   int vdim;
   int num_mom;
-  double lower[3];
-  double upper[3];
-  int cells[3];
+  double lower[4];
+  double upper[4];
+  int cells[4];
   void *ctx;
   const double *param;
   test_evalf_t eval_dist;
@@ -191,8 +137,8 @@ init_test_geometry(struct dist_test_geometry *g, const struct dist_test_case *tc
   double conf_upper[] = {tc->upper[0]};
   int conf_cells[] = {tc->cells[0]};
 
-  double vel_lower[2], vel_upper[2];
-  int vel_cells[2];
+  double vel_lower[3], vel_upper[3];
+  int vel_cells[3];
 
   for (int d=0; d<vdim; ++d) {
     vel_lower[d] = tc->lower[d+1];
@@ -212,8 +158,8 @@ init_test_geometry(struct dist_test_geometry *g, const struct dist_test_case *tc
 
   // Ranges
   int conf_ghost[] = {1};
-  int vel_ghost[] = {0, 0};
-  int phase_ghost[] = {1, 0, 0};
+  int vel_ghost[] = {0, 0, 0};
+  int phase_ghost[] = {1, 0, 0, 0};
   gkyl_create_grid_ranges(&g->conf_grid, conf_ghost, &g->conf_local_ext, &g->conf_local);
   gkyl_create_grid_ranges(&g->vel_grid, vel_ghost, &g->vel_local_ext, &g->vel_local);
   gkyl_create_grid_ranges(&g->phase_grid, phase_ghost, &g->phase_local_ext, &g->phase_local);
@@ -507,10 +453,12 @@ test_distribution_correct(int poly_order, struct dist_test_case *tc)
 void
 test_1x1v_lte(int poly_order)
 {
-  struct lte_test_ctx ctx = {
+  struct dist_test_ctx ctx = {
+    .vdim = 1,
+    .num_temp = 1,
     .n = 1.0,
-    .drift = 0.5,
-    .T_over_m = 1.0,
+    .drift = {0.5},
+    .T_over_m = {1.0},
   };
 
   struct dist_test_case tc = {
@@ -522,11 +470,41 @@ test_1x1v_lte(int poly_order)
     .cells = {2, 32},
     .ctx = &ctx,
     .param = NULL,
-    .eval_dist = eval_lte_dist,
-    .eval_density = eval_lte_density,
-    .eval_drift = eval_lte_drift,
-    .eval_temperature = eval_lte_temperature,
+    .eval_dist = eval_maxwellian_dist,
+    .eval_density = eval_density,
+    .eval_drift = eval_drift,
+    .eval_temperature = eval_temperature,
     .name = "lte_1x1v",
+  };
+
+  test_distribution_moments(poly_order, &tc, 1e-10);
+}
+
+void
+test_1x3v_lte(int poly_order)
+{
+  struct dist_test_ctx ctx = {
+    .vdim = 3,
+    .num_temp = 1,
+    .n = 1.25,
+    .drift = {0.5, -0.25, 0.75},
+    .T_over_m = {1.0, 1.0, 1.0},
+  };
+
+  struct dist_test_case tc = {
+    .dist_id = GKYL_DIST_TYPE_LTE,
+    .vdim = 3,
+    .num_mom = 5,
+    .lower = {0.1, -10.0, -10.0, -10.0},
+    .upper = {1.0, 10.0, 10.0, 10.0},
+    .cells = {2, 32, 32, 32},
+    .ctx = &ctx,
+    .param = NULL,
+    .eval_dist = eval_maxwellian_dist,
+    .eval_density = eval_density,
+    .eval_drift = eval_drift,
+    .eval_temperature = eval_temperature,
+    .name = "lte_1x3v",
   };
 
   test_distribution_moments(poly_order, &tc, 1e-10);
@@ -536,10 +514,12 @@ test_1x1v_lte(int poly_order)
 void
 test_1x1v_lte_correct(int poly_order)
 {
-  struct lte_test_ctx ctx = {
+  struct dist_test_ctx ctx = {
+    .vdim = 1,
+    .num_temp = 1,
     .n = 1.0,
-    .drift = 1.5,
-    .T_over_m = 1.0,
+    .drift = {1.5},
+    .T_over_m = {1.0},
   };
 
   struct dist_test_case tc = {
@@ -551,11 +531,41 @@ test_1x1v_lte_correct(int poly_order)
     .cells = {2, 32},
     .ctx = &ctx,
     .param = NULL,
-    .eval_dist = eval_lte_dist,
-    .eval_density = eval_lte_density,
-    .eval_drift = eval_lte_drift,
-    .eval_temperature = eval_lte_temperature,
+    .eval_dist = eval_maxwellian_dist,
+    .eval_density = eval_density,
+    .eval_drift = eval_drift,
+    .eval_temperature = eval_temperature,
     .name = "lte_1x1v",
+  };
+
+  test_distribution_correct(poly_order, &tc);
+}
+
+void
+test_1x3v_lte_correct(int poly_order)
+{
+  struct dist_test_ctx ctx = {
+    .vdim = 3,
+    .num_temp = 1,
+    .n = 1.25,
+    .drift = {0.5, -0.25, 0.75},
+    .T_over_m = {1.0, 1.0, 1.0},
+  };
+
+  struct dist_test_case tc = {
+    .dist_id = GKYL_DIST_TYPE_LTE,
+    .vdim = 3,
+    .num_mom = 5,
+    .lower = {0.1, -5.0, -5.0, -5.0},
+    .upper = {1.0, 5.0, 5.0, 5.0},
+    .cells = {2, 24, 24, 24},
+    .ctx = &ctx,
+    .param = NULL,
+    .eval_dist = eval_maxwellian_dist,
+    .eval_density = eval_density,
+    .eval_drift = eval_drift,
+    .eval_temperature = eval_temperature,
+    .name = "lte_correct_1x3v",
   };
 
   test_distribution_correct(poly_order, &tc);
@@ -565,7 +575,9 @@ test_1x1v_lte_correct(int poly_order)
 void
 test_1x2v_multi_temp_max(int poly_order)
 {
-  struct multi_temp_max_test_ctx ctx = {
+  struct dist_test_ctx ctx = {
+    .vdim = 2,
+    .num_temp = 2,
     .n = 1.25,
     .drift = {0.5, -0.25},
     .T_over_m = {1.0, 2.0},
@@ -580,11 +592,41 @@ test_1x2v_multi_temp_max(int poly_order)
     .cells = {2, 32, 32},
     .ctx = &ctx,
     .param = NULL,
-    .eval_dist = eval_multi_temp_max_dist,
-    .eval_density = eval_multi_temp_max_density,
-    .eval_drift = eval_multi_temp_max_drift,
-    .eval_temperature = eval_multi_temp_max_temperature,
+    .eval_dist = eval_maxwellian_dist,
+    .eval_density = eval_density,
+    .eval_drift = eval_drift,
+    .eval_temperature = eval_temperature,
     .name = "multi_temp_max_1x2v",
+  };
+
+  test_distribution_moments(poly_order, &tc, 1e-8);
+}
+
+void
+test_1x3v_multi_temp_max(int poly_order)
+{
+  struct dist_test_ctx ctx = {
+    .vdim = 3,
+    .num_temp = 3,
+    .n = 1.25,
+    .drift = {0.5, -0.25, 0.75},
+    .T_over_m = {1.0, 2.0, 0.75},
+  };
+
+  struct dist_test_case tc = {
+    .dist_id = GKYL_DIST_TYPE_MULTI_TEMP_MAX,
+    .vdim = 3,
+    .num_mom = 7,
+    .lower = {0.1, -10.0, -10.0, -10.0},
+    .upper = {1.0, 10.0, 10.0, 10.0},
+    .cells = {2, 32, 32, 32},
+    .ctx = &ctx,
+    .param = NULL,
+    .eval_dist = eval_maxwellian_dist,
+    .eval_density = eval_density,
+    .eval_drift = eval_drift,
+    .eval_temperature = eval_temperature,
+    .name = "multi_temp_max_1x3v",
   };
 
   test_distribution_moments(poly_order, &tc, 1e-8);
@@ -594,7 +636,9 @@ test_1x2v_multi_temp_max(int poly_order)
 void
 test_1x2v_multi_temp_max_correct(int poly_order)
 {
-  struct multi_temp_max_test_ctx ctx = {
+  struct dist_test_ctx ctx = {
+    .vdim = 2,
+    .num_temp = 2,
     .n = 1.25,
     .drift = {0.5, -0.25},
     .T_over_m = {1.0, 2.0},
@@ -609,11 +653,41 @@ test_1x2v_multi_temp_max_correct(int poly_order)
     .cells = {2, 32, 32},
     .ctx = &ctx,
     .param = NULL,
-    .eval_dist = eval_multi_temp_max_dist,
-    .eval_density = eval_multi_temp_max_density,
-    .eval_drift = eval_multi_temp_max_drift,
-    .eval_temperature = eval_multi_temp_max_temperature,
+    .eval_dist = eval_maxwellian_dist,
+    .eval_density = eval_density,
+    .eval_drift = eval_drift,
+    .eval_temperature = eval_temperature,
     .name = "multi_temp_max_1x2v",
+  };
+
+  test_distribution_correct(poly_order, &tc);
+}
+
+void
+test_1x3v_multi_temp_max_correct(int poly_order)
+{
+  struct dist_test_ctx ctx = {
+    .vdim = 3,
+    .num_temp = 3,
+    .n = 1.25,
+    .drift = {0.5, -0.25, 0.75},
+    .T_over_m = {1.0, 2.0, 0.75},
+  };
+
+  struct dist_test_case tc = {
+    .dist_id = GKYL_DIST_TYPE_MULTI_TEMP_MAX,
+    .vdim = 3,
+    .num_mom = 7,
+    .lower = {0.1, -5.0, -5.0, -5.0},
+    .upper = {1.0, 5.0, 5.0, 5.0},
+    .cells = {2, 24, 24, 24},
+    .ctx = &ctx,
+    .param = NULL,
+    .eval_dist = eval_maxwellian_dist,
+    .eval_density = eval_density,
+    .eval_drift = eval_drift,
+    .eval_temperature = eval_temperature,
+    .name = "multi_temp_max_correct_1x3v",
   };
 
   test_distribution_correct(poly_order, &tc);
@@ -623,11 +697,13 @@ test_1x2v_multi_temp_max_correct(int poly_order)
 void
 test_1x1v_kappa(int poly_order)
 {
-  struct kappa_test_ctx ctx = {
+  struct dist_test_ctx ctx = {
+    .vdim = 1,
+    .num_temp = 1,
     .n = 1.0,
-    .drift = 0.5,
-    .T_over_m = 1.0,
-    .kappa = 3.0,
+    .drift = {0.5},
+    .T_over_m = {1.0},
+    .kappa = 7.0,
   };
 
   double param[] = {ctx.kappa};
@@ -642,23 +718,58 @@ test_1x1v_kappa(int poly_order)
     .ctx = &ctx,
     .param = param,
     .eval_dist = eval_kappa_dist,
-    .eval_density = eval_kappa_density,
-    .eval_drift = eval_kappa_drift,
-    .eval_temperature = eval_kappa_temperature,
+    .eval_density = eval_density,
+    .eval_drift = eval_drift,
+    .eval_temperature = eval_temperature,
     .name = "kappa_1x1v",
   };
 
-  test_distribution_moments(poly_order, &tc, 1e-6);
+  test_distribution_moments(poly_order, &tc, 1e-7);
+}
+
+void
+test_1x3v_kappa(int poly_order)
+{
+  struct dist_test_ctx ctx = {
+    .vdim = 3,
+    .num_temp = 1,
+    .n = 1.25,
+    .drift = {0.5, -0.25, 0.75},
+    .T_over_m = {1.0},
+    .kappa = 10.0,
+  };
+
+  double param[] = {ctx.kappa};
+
+  struct dist_test_case tc = {
+    .dist_id = GKYL_DIST_TYPE_KAPPA,
+    .vdim = 3,
+    .num_mom = 5,
+    .lower = {0.1, -12.0, -12.0, -12.0},
+    .upper = {1.0, 12.0, 12.0, 12.0},
+    .cells = {2, 48, 48, 48},
+    .ctx = &ctx,
+    .param = param,
+    .eval_dist = eval_kappa_dist,
+    .eval_density = eval_density,
+    .eval_drift = eval_drift,
+    .eval_temperature = eval_temperature,
+    .name = "kappa_1x3v",
+  };
+
+  test_distribution_moments(poly_order, &tc, 1e-7);
 }
 
 // Kappa correction test
 void
 test_1x1v_kappa_correct(int poly_order)
 {
-  struct kappa_test_ctx ctx = {
+  struct dist_test_ctx ctx = {
+    .vdim = 1,
+    .num_temp = 1,
     .n = 1.0,
-    .drift = 0.5,
-    .T_over_m = 1.0,
+    .drift = {0.5},
+    .T_over_m = {1.0},
     .kappa = 3.0,
   };
 
@@ -674,10 +785,43 @@ test_1x1v_kappa_correct(int poly_order)
     .ctx = &ctx,
     .param = param,
     .eval_dist = eval_kappa_dist,
-    .eval_density = eval_kappa_density,
-    .eval_drift = eval_kappa_drift,
-    .eval_temperature = eval_kappa_temperature,
+    .eval_density = eval_density,
+    .eval_drift = eval_drift,
+    .eval_temperature = eval_temperature,
     .name = "kappa_1x1v",
+  };
+
+  test_distribution_correct(poly_order, &tc);
+}
+
+void
+test_1x3v_kappa_correct(int poly_order)
+{
+  struct dist_test_ctx ctx = {
+    .vdim = 3,
+    .num_temp = 1,
+    .n = 1.25,
+    .drift = {0.5, -0.25, 0.75},
+    .T_over_m = {1.0},
+    .kappa = 10.0,
+  };
+
+  double param[] = {ctx.kappa};
+
+  struct dist_test_case tc = {
+    .dist_id = GKYL_DIST_TYPE_KAPPA,
+    .vdim = 3,
+    .num_mom = 5,
+    .lower = {0.1, -5.0, -5.0, -5.0},
+    .upper = {1.0, 5.0, 5.0, 5.0},
+    .cells = {2, 24, 24, 24},
+    .ctx = &ctx,
+    .param = param,
+    .eval_dist = eval_kappa_dist,
+    .eval_density = eval_density,
+    .eval_drift = eval_drift,
+    .eval_temperature = eval_temperature,
+    .name = "kappa_correct_1x3v",
   };
 
   test_distribution_correct(poly_order, &tc);
@@ -687,26 +831,50 @@ void
 test_1x1v_lte_p2(void){test_1x1v_lte(2);}
 
 void
+test_1x3v_lte_p2(void){test_1x3v_lte(2);}
+
+void
 test_1x1v_lte_correct_p2(void){test_1x1v_lte_correct(2);}
+
+void
+test_1x3v_lte_correct_p2(void){test_1x3v_lte_correct(2);}
 
 void
 test_1x2v_multi_temp_max_p2(void){test_1x2v_multi_temp_max(2);}
 
 void
+test_1x3v_multi_temp_max_p2(void){test_1x3v_multi_temp_max(2);}
+
+void
 test_1x2v_multi_temp_max_correct_p2(void){test_1x2v_multi_temp_max_correct(2);}
+
+void
+test_1x3v_multi_temp_max_correct_p2(void){test_1x3v_multi_temp_max_correct(2);}
 
 void
 test_1x1v_kappa_p2(void){test_1x1v_kappa(2);}
 
 void
+test_1x3v_kappa_p2(void){test_1x3v_kappa(2);}
+
+void
 test_1x1v_kappa_correct_p2(void){test_1x1v_kappa_correct(2);}
+
+void
+test_1x3v_kappa_correct_p2(void){test_1x3v_kappa_correct(2);}
 
 TEST_LIST = {
   {"test_1x1v_lte_p2", test_1x1v_lte_p2},
+  {"test_1x3v_lte_p2", test_1x3v_lte_p2},
   {"test_1x1v_lte_correct_p2", test_1x1v_lte_correct_p2},
+  {"test_1x3v_lte_correct_p2", test_1x3v_lte_correct_p2},
   {"test_1x2v_multi_temp_max_p2", test_1x2v_multi_temp_max_p2},
+  {"test_1x3v_multi_temp_max_p2", test_1x3v_multi_temp_max_p2},
   {"test_1x2v_multi_temp_max_correct_p2", test_1x2v_multi_temp_max_correct_p2},
+  {"test_1x3v_multi_temp_max_correct_p2", test_1x3v_multi_temp_max_correct_p2},
   {"test_1x1v_kappa_p2", test_1x1v_kappa_p2},
+  {"test_1x3v_kappa_p2", test_1x3v_kappa_p2},
   {"test_1x1v_kappa_correct_p2", test_1x1v_kappa_correct_p2},
+  {"test_1x3v_kappa_correct_p2", test_1x3v_kappa_correct_p2},
   {NULL, NULL},
 };
