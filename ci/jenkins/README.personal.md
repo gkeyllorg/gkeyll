@@ -75,6 +75,7 @@ and Python with NumPy. Set these global environment variables:
 | `PERSONAL_MPIEXEC` | Optional launcher override for both trees; default is `bin/mpiexec` under the selected MPI installation |
 | `PERSONAL_STATUS_CONTEXT` | Set explicitly for queue reporting, e.g. `continuous-integration/jenkins/personal-<hostname>`; use a distinct context for each computer |
 | `GKEYLL_CI_ROOT` | Required persistent writable root for baseline and candidate source, build, and regression data |
+| `CI_JENKINS_LOCAL_URL` | Optional controller URL reachable from the agent for cache cleanup; defaults to the controller in `BUILD_URL`. Container workers should use the controller's container-network address. |
 | `GKEYLL_CI_TRUSTED_REF` | Default branch or full SHA for the personal Jenkinsfile and CI helpers; default `main`. A run's `CI_REF` overrides it |
 
 The selected dependency script must pass `--build-adas=yes` to

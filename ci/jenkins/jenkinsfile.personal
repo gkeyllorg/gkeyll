@@ -284,6 +284,7 @@ def cacheManager(String command, String sha = '') {
                 --root "$GKEYLL_CI_ROOT" --platform "$CI_CACHE_PLATFORM" \
                 --tag "$BUILD_TAG" --job "$JOB_NAME" --number "$BUILD_NUMBER" \
                 --url "$BUILD_URL" --auth-file "${CI_JENKINS_READ_AUTH_FILE:-}" \
+                --controller-url "${CI_JENKINS_LOCAL_URL:-}" \
                 --sha "${CI_CACHE_SHA:-}" --run-layout \
                 --retain-runs "${GKEYLL_CI_RETAIN_RUNS:-1}" \
                 --cache-tool "$CI_BASELINE_CACHE_TOOL"
