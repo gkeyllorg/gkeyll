@@ -75,6 +75,7 @@ and Python with NumPy. Set these global environment variables:
 | `PERSONAL_MPIEXEC` | Optional launcher override for both trees; default is `bin/mpiexec` under the selected MPI installation |
 | `PERSONAL_STATUS_CONTEXT` | Set explicitly for queue reporting, e.g. `continuous-integration/jenkins/personal-<hostname>`; use a distinct context for each computer |
 | `GKEYLL_CI_ROOT` | Required persistent writable root for baseline and candidate source, build, and regression data |
+| `GKEYLL_CI_RETAIN_RUNS` | Default `0` retains the latest run plus active runs; `1` opts into unlimited run history |
 | `CI_JENKINS_LOCAL_URL` | Optional controller URL reachable from the agent for cache cleanup; defaults to the controller in `BUILD_URL`. Container workers should use the controller's container-network address. |
 | `GKEYLL_CI_TRUSTED_REF` | Default branch or full SHA for the personal Jenkinsfile and CI helpers; default `main`. A run's `CI_REF` overrides it |
 
@@ -88,6 +89,22 @@ an existing MPI installation for both builds and parallel regressions.
 An ambient `MPI_HOME` does not select the CI installation.
 
 ### Containerized build agents
+
+The Jenkins read credential must exist inside the worker container. For the
+personal worker below, add a `<worker>.container.d/60-cache-access.conf` drop-in:
+
+```ini
+[Container]
+Volume=%h/.config/gkeyll/jenkins/personal.auth:/home/jenkins/.config/gkeyll/jenkins/personal.auth:ro
+Environment=CI_JENKINS_LOCAL_URL=http://gkeyll-ci-personal-controller:8080
+Environment=GKEYLL_CI_RETAIN_RUNS=0
+```
+
+Adjust the container credential path and controller hostname for other agents.
+After changing the drop-in, reload systemd and restart the idle worker service
+as shown below. A file on the host and `daemon-reload` alone do not update an
+existing container's mounts or environment. Without API access, cache cleanup
+fails safely because it cannot establish which older builds are still running.
 
 Long-lived build-agent containers need an init process to reap orphaned children
 from shell wrappers, Git helpers, and MPI daemons. Java running as container PID 1
@@ -237,7 +254,9 @@ failure when exited children are not being reaped.
 
 Jenkins defaults to retaining two builds and their artifacts;
 `GKEYLL_CI_BUILDS_TO_KEEP` overrides this count. The team workstation uses
-this same workflow. Run directories remain until explicitly removed;
+this same workflow. By default only the latest run directory is retained, plus
+any still-active runs; outdated baseline caches are removed after replacement.
+Set `GKEYLL_CI_RETAIN_RUNS=1` only to opt into unlimited run history;
 see [storage and retention](README.storage.md#retention).
 
 Run compaction is disabled by default. Set `GKEYLL_CI_COMPACT_RUNS=1` to

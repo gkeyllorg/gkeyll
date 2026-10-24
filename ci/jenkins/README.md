@@ -112,7 +112,8 @@ Jenkins archives full regression results, packing numerical outputs into
 candidate and baseline archives while leaving diagnostics individually
 downloadable, then removes its temporary workspace.
 Jenkins defaults to retaining two builds and their artifacts.
-Run directories have no automatic retention limit.
+By default only the latest run directory and one reusable baseline cache are
+retained per platform, plus any entries still needed by active builds.
 See [storage and caching](README.storage.md) for layout, cache invalidation,
 concurrency, and cleanup.
 

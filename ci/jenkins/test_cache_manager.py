@@ -218,6 +218,43 @@ class CacheManagerTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "validation failed"):
                 manager.baseline_compatible(baseline, sha)
 
+    def test_run_layout_defaults_to_one_latest_run(self):
+        args = self.args("jenkins-test-1", "1")
+        args.run_layout = True
+        old = cache_manager.CacheManager(args)
+        old.begin()
+        old_path = old.candidates / old.tag
+        old_path.mkdir(parents=True)
+        old.finish()
+
+        args = self.args()
+        args.run_layout = True
+        new = cache_manager.CacheManager(args)
+        new.begin()
+        new_path = new.candidates / new.tag
+        new_path.mkdir(parents=True)
+        new.finish()
+        self.assertEqual(list(new.candidates.iterdir()), [new_path])
+
+    def test_old_baseline_removed_only_after_replacement_is_published(self):
+        old_sha, new_sha = "a" * 40, "b" * 40
+        manager = self.manager()
+        old_path = manager.baselines / old_sha
+        old_path.mkdir(parents=True)
+        valid = {old_sha}
+        with patch.object(cache_manager.CacheManager, "baseline_valid",
+                          side_effect=lambda path, sha: sha in valid and path.exists()):
+            manager.begin()
+            self.assertEqual(manager.claim_baseline(new_sha), "build")
+            self.assertTrue(old_path.exists())
+            with self.assertRaisesRegex(RuntimeError, "incomplete"):
+                manager.publish_baseline(new_sha)
+            self.assertTrue(old_path.exists())
+            valid.add(new_sha)
+            manager.publish_baseline(new_sha)
+            manager.finish()
+            self.assertEqual(list(manager.baselines.iterdir()), [manager.baselines / new_sha])
+
     def test_symlink_is_not_followed(self):
         outside = self.root / "outside"
         outside.mkdir()

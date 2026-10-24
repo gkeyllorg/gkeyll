@@ -78,8 +78,9 @@ baseline's saved runtime when invoking the trusted comparator.
 ## Retention
 
 Jenkins retains all candidate and baseline regression results, then removes its
-temporary workspace. Run directories remain, including unpacked numerical
-outputs and a complete independent baseline snapshot.
+temporary workspace. By default only the latest run directory remains, including
+unpacked numerical outputs and a complete independent baseline snapshot. Active
+runs are preserved until they finish.
 
 Databases, configs, logs, and other non-`.gkyl` files remain individually
 downloadable at their existing artifact paths. The staging helper copies these
@@ -116,13 +117,16 @@ All four platforms default to retaining two Jenkins builds and their artifacts.
 Set `GKEYLL_CI_BUILDS_TO_KEEP` to a positive count to override it. Jenkins may
 preserve protected builds in addition to this count. Retention takes effect
 when the updated pipeline runs.
-By default `GKEYLL_CI_RETAIN_RUNS=1` preserves `runs/` directories for later
-inspection and optional compaction. Set `GKEYLL_CI_RETAIN_RUNS=0` on personal,
-team workstation, Stellar CPU, or Perlmutter to enable bounded retention:
+By default `GKEYLL_CI_RETAIN_RUNS=0` enables bounded retention on personal,
+team workstation, Stellar CPU, and Perlmutter:
 startup removes inactive older runs, and completion retains only the most
 recently started run plus any still-active runs. This includes compacted
 archives and run-local dependencies. Unknown owners stop cleanup; drain and
 manually remove older untracked run directories before enabling this policy.
+Set `GKEYLL_CI_RETAIN_RUNS=1` to explicitly retain unlimited run history.
+The reusable baseline cache independently retains one valid entry, deleting the
+outdated entry after its replacement is successfully published; entries still
+used by active builds are removed once those builds finish.
 Jenkins artifact retention remains independent of this setting. Use the [artifact command](README.md#unified-local-command) to retrieve
 archived files.
 

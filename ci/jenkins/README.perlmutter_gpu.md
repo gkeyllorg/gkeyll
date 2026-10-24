@@ -175,7 +175,7 @@ System → Global properties → Environment variables**, set:
 | `GKEYLL_CI_TRUSTED_REF` | Optional reviewed branch or full SHA for reporting, regression checking, and cache tools; default `main`. Set it only while staging a CI change |
 | `CI_JENKINS_READ_AUTH_FILE` | Optional agent-readable Jenkins `user:api-token` file; default `$GKEYLL_CI_ROOT/jenkins_home/jenkins-cli.auth`; empty for anonymous reads |
 | `CI_JENKINS_LOCAL_URL` | Optional controller URL reachable from the login agent; default `http://127.0.0.1:8080` |
-| `GKEYLL_CI_RETAIN_RUNS` | Default `1` retains run history; `0` cleans inactive older runs after Jenkins/Slurm checks |
+| `GKEYLL_CI_RETAIN_RUNS` | Default `0` retains only the latest run plus active runs after Jenkins/Slurm checks; `1` retains unlimited run history |
 
 `GKEYLL_CI_ROOT` retains a separate directory for each build under
 `runs/perlmutter-gpu/`, visible to GPU nodes; see

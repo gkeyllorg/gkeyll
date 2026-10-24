@@ -167,7 +167,7 @@ set the following values. Paste an expanded scratch path, not a literal `$USER`.
 | `GKEYLL_CI_TRUSTED_REF` | Optional reviewed branch or full SHA for reporting, regression checking, and cache tools; default `main`. Set it only while staging a CI change |
 | `CI_JENKINS_READ_AUTH_FILE` | Optional agent-readable Jenkins `user:api-token` file; default `$GKEYLL_CI_ROOT/jenkins_home/jenkins-cli.auth`; empty for anonymous reads |
 | `CI_JENKINS_LOCAL_URL` | Optional controller URL reachable from the login agent; default `http://127.0.0.1:8080` |
-| `GKEYLL_CI_RETAIN_RUNS` | Default `1` retains run history; `0` cleans inactive older runs after Jenkins/Slurm checks |
+| `GKEYLL_CI_RETAIN_RUNS` | Default `0` retains only the latest run plus active runs after Jenkins/Slurm checks; `1` retains unlimited run history |
 
 Do not set a broad global `PATH` to an interactive shell configuration. The
 Pipeline initializes Stellar modules for each build and Slurm job. Its

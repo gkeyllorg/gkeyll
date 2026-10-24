@@ -130,7 +130,7 @@ def cacheManager(String command, String sha = '') {
                 --url "$BUILD_URL" --controller-url "${CI_JENKINS_LOCAL_URL:-http://127.0.0.1:8080}" \
                 --auth-file "${CI_JENKINS_READ_AUTH_FILE:-}" \
                 --sha "${CI_CACHE_SHA:-}" --run-layout \
-                --retain-runs "${GKEYLL_CI_RETAIN_RUNS:-1}" \
+                --retain-runs "${GKEYLL_CI_RETAIN_RUNS:-0}" \
                 --cache-tool "$CI_BASELINE_CACHE_TOOL"
         ''').trim()
     }
