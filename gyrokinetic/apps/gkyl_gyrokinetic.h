@@ -422,6 +422,7 @@ struct gkyl_gyrokinetic_fdot_multiplier_comp {
   void (*profile)(double t, const double *xn, double *fout, void *ctx);
   void *profile_ctx;
 
+  bool is_static; // Default false. If true, freeze this component at its first CFL evaluation.
   bool cellwise_const; // If true, multiplier is constant within each cell (p=0 basis).
   bool write_diagnostics; // If true, write multiplier array to file.
 
@@ -1557,6 +1558,8 @@ void gkyl_gyrokinetic_app_reset_cfl_frac_omegaH(
 
 /**
  * Reset the df/dt multiplier operator for a given species.
+ * Static components are recomputed at the next CFL/RHS evaluation, then frozen
+ * until the next reset.
  *
  * @param app App object.
  * @param tm Time-stamp.
