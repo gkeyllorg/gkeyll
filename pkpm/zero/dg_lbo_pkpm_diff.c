@@ -60,7 +60,7 @@ gkyl_dg_lbo_pkpm_diff_new(
   lbo_pkpm_diff->cdim = cdim;
   lbo_pkpm_diff->pdim = pdim;
 
-  lbo_pkpm_diff->eqn.num_equations = 2;
+  lbo_pkpm_diff->eqn.num_equations = 8;
   lbo_pkpm_diff->eqn.surf_term = surf;
   lbo_pkpm_diff->eqn.boundary_surf_term = boundary_surf;
 

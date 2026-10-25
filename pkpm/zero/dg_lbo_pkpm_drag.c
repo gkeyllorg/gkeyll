@@ -60,7 +60,7 @@ gkyl_dg_lbo_pkpm_drag_new(
   lbo_pkpm_drag->cdim = cdim;
   lbo_pkpm_drag->pdim = pdim;
 
-  lbo_pkpm_drag->eqn.num_equations = 2;
+  lbo_pkpm_drag->eqn.num_equations = 8;
   lbo_pkpm_drag->eqn.surf_term = surf;
   lbo_pkpm_drag->eqn.boundary_surf_term = boundary_surf;
 

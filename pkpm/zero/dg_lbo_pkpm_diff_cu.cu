@@ -89,7 +89,7 @@ gkyl_dg_lbo_pkpm_diff_cu_dev_new(
   lbo_pkpm_diff->cdim = cdim;
   lbo_pkpm_diff->pdim = pdim;
 
-  lbo_pkpm_diff->eqn.num_equations = 2;
+  lbo_pkpm_diff->eqn.num_equations = 8;
   lbo_pkpm_diff->conf_range = *conf_range;
   lbo_pkpm_diff->vMaxSq = pow(pgrid->upper[cdim], 2);
   lbo_pkpm_diff->num_cbasis = cbasis->num_basis;

@@ -54,7 +54,7 @@ test_lbo_pkpm_drag_1x1v_p1()
 
   struct gkyl_dg_eqn *eqn = gkyl_dg_lbo_pkpm_drag_new(&cbasis, &pbasis, &conf, &pgrid, false);
 
-  TEST_CHECK(eqn->num_equations == 2);
+  TEST_CHECK(eqn->num_equations == 8);
   TEST_CHECK(eqn->vol_term != NULL);
   TEST_CHECK(eqn->surf_term != NULL);
   TEST_CHECK(eqn->boundary_surf_term != NULL);
@@ -76,7 +76,7 @@ test_lbo_pkpm_diff_1x1v_p1()
 
   struct gkyl_dg_eqn *eqn = gkyl_dg_lbo_pkpm_diff_new(&cbasis, &pbasis, &conf, &pgrid, false);
 
-  TEST_CHECK(eqn->num_equations == 2);
+  TEST_CHECK(eqn->num_equations == 8);
   TEST_CHECK(eqn->vol_term != NULL);
   TEST_CHECK(eqn->surf_term != NULL);
 
@@ -97,8 +97,8 @@ test_lbo_pkpm_2x1v_p1()
 
   struct gkyl_dg_eqn *drag = gkyl_dg_lbo_pkpm_drag_new(&cbasis, &pbasis, &conf, &pgrid, false);
   struct gkyl_dg_eqn *diff = gkyl_dg_lbo_pkpm_diff_new(&cbasis, &pbasis, &conf, &pgrid, false);
-  TEST_CHECK(drag->num_equations == 2);
-  TEST_CHECK(diff->num_equations == 2);
+  TEST_CHECK(drag->num_equations == 8);
+  TEST_CHECK(diff->num_equations == 8);
   TEST_CHECK(drag->surf_term != NULL);
   TEST_CHECK(diff->surf_term != NULL);
   gkyl_dg_eqn_release(drag);

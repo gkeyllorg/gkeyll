@@ -73,6 +73,18 @@ struct pkpm_species_lw {
 
   int num_cross_collisions; // Number of species that we cross-collide with.
   char collide_with[GKYL_MAX_SPECIES][128]; // Names of species that we cross-collide with.
+  bool fixed_temp_relax; // BGK: relax to a Maxwellian at the initial temperature?
+
+  enum gkyl_source_id source_id; // Source type.
+  double source_length; // Boundary-flux source: the length the density profile integrates to.
+  char source_species[128]; // Boundary-flux source: species whose wall losses set the rate.
+  bool write_source; // Write the fluid image of the source at frame 0?
+  bool has_source_density_func; // Is there a source density function?
+  struct lua_func_ctx source_density_func_ref; // Lua registry reference to the source density.
+  bool has_source_temp_func; // Is there a source temperature function?
+  struct lua_func_ctx source_temp_func_ref; // Lua registry reference to the source temperature.
+  bool has_source_drift_func; // Is there a source drift-velocity function?
+  struct lua_func_ctx source_drift_func_ref; // Lua registry reference to the source drift velocity.
 };
 
 static int
@@ -184,9 +196,12 @@ pkpm_species_lw_new(lua_State *L)
   int num_cross_collisions = 0;
   char collide_with[GKYL_MAX_SPECIES][128];
 
+  bool fixed_temp_relax = false;
+
   with_lua_tbl_tbl(L, "collisions")
   {
     collision_id = glua_tbl_get_integer(L, "collisionID", 0);
+    fixed_temp_relax = glua_tbl_get_bool(L, "fixedTempRelax", false);
 
     if (glua_tbl_get_func(L, "selfNu")) {
       self_nu_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
@@ -199,6 +214,45 @@ pkpm_species_lw_new(lua_State *L)
       for (int i = 0; i < num_cross_collisions; i++) {
         const char *collide_with_char = glua_tbl_iget_string(L, i + 1, "");
         strcpy(collide_with[i], collide_with_char);
+      }
+    }
+  }
+
+  // Source: one LTE profile (density, isotropic temperature, drift velocity), in the layout of
+  // the Vlasov source table (a single projection).
+  enum gkyl_source_id source_id = GKYL_NO_SOURCE;
+  double source_length = 1.0;
+  char source_species[128] = "";
+  bool write_source = false;
+  int source_density_func_ref = LUA_NOREF, source_temp_func_ref = LUA_NOREF,
+      source_drift_func_ref = LUA_NOREF;
+  bool has_source_density_func = false, has_source_temp_func = false, has_source_drift_func = false;
+
+  with_lua_tbl_tbl(L, "source")
+  {
+    source_id = glua_tbl_get_integer(L, "sourceID", 0);
+    source_length = glua_tbl_get_number(L, "sourceLength", 1.0);
+    strcpy(source_species, glua_tbl_get_string(L, "sourceSpecies", ""));
+    write_source = glua_tbl_get_bool(L, "writeSource", false);
+
+    int num_sources = glua_tbl_get_integer(L, "numSources", 1);
+    assert(num_sources == 1); // PKPM species carry a single LTE source profile.
+    with_lua_tbl_tbl(L, "projections")
+    {
+      if (glua_tbl_iget_tbl(L, 1)) {
+        if (glua_tbl_get_func(L, "densityInit")) {
+          source_density_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+          has_source_density_func = true;
+        }
+        if (glua_tbl_get_func(L, "temperatureInit")) {
+          source_temp_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+          has_source_temp_func = true;
+        }
+        if (glua_tbl_get_func(L, "driftVelocityInit")) {
+          source_drift_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+          has_source_drift_func = true;
+        }
+        lua_pop(L, 1);
       }
     }
   }
@@ -248,6 +302,21 @@ pkpm_species_lw_new(lua_State *L)
   for (int i = 0; i < num_cross_collisions; i++) {
     strcpy(pkpm_s_lw->collide_with[i], collide_with[i]);
   }
+  pkpm_s_lw->fixed_temp_relax = fixed_temp_relax;
+
+  pkpm_s_lw->source_id = source_id;
+  pkpm_s_lw->source_length = source_length;
+  strcpy(pkpm_s_lw->source_species, source_species);
+  pkpm_s_lw->write_source = write_source;
+  pkpm_s_lw->has_source_density_func = has_source_density_func;
+  pkpm_s_lw->source_density_func_ref =
+    (struct lua_func_ctx){.func_ref = source_density_func_ref, .ndim = 0, .nret = 1, .L = L};
+  pkpm_s_lw->has_source_temp_func = has_source_temp_func;
+  pkpm_s_lw->source_temp_func_ref =
+    (struct lua_func_ctx){.func_ref = source_temp_func_ref, .ndim = 0, .nret = 1, .L = L};
+  pkpm_s_lw->has_source_drift_func = has_source_drift_func;
+  pkpm_s_lw->source_drift_func_ref =
+    (struct lua_func_ctx){.func_ref = source_drift_func_ref, .ndim = 0, .nret = 3, .L = L};
 
   // Set metatable.
   luaL_getmetatable(L, PKPM_SPECIES_METATABLE_NM);
@@ -424,9 +493,14 @@ struct pkpm_app_lw {
   char collide_with[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES]
                    [128]; // Names of species that we cross-collide with.
 
+  struct lua_func_ctx source_density_func_ctx[GKYL_MAX_SPECIES]; // Context for source density.
+  struct lua_func_ctx source_temp_func_ctx[GKYL_MAX_SPECIES]; // Context for source temperature.
+  struct lua_func_ctx source_drift_func_ctx[GKYL_MAX_SPECIES]; // Context for source drift velocity.
+
   struct lua_func_ctx field_func_ctx; // Function context for field.
   bool has_mapc2p_pos_func[GKYL_MAX_CDIM]; // Is there a (per-direction) configuration-space mapping?
-  struct lua_func_ctx mapc2p_pos_func_ctx[GKYL_MAX_CDIM]; // Lua registry reference to the configuration-space mapping.
+  struct lua_func_ctx
+    mapc2p_pos_func_ctx[GKYL_MAX_CDIM]; // Lua registry reference to the configuration-space mapping.
   struct lua_func_ctx external_field_func_ctx; // Function context for external field.
   struct lua_func_ctx applied_current_func_ctx; // Function context for applied current.
 
@@ -486,6 +560,10 @@ get_species_inp(lua_State *L, int cdim, struct pkpm_species_lw *species[GKYL_MAX
         if (pkpm_s->has_self_nu_func) {
           pkpm_s->self_nu_func_ref.ndim = cdim;
         }
+
+        pkpm_s->source_density_func_ref.ndim = cdim;
+        pkpm_s->source_temp_func_ref.ndim = cdim;
+        pkpm_s->source_drift_func_ref.ndim = cdim;
 
         if (lua_type(L, TKEY) == LUA_TSTRING) {
           const char *key = lua_tolstring(L, TKEY, 0);
@@ -831,6 +909,30 @@ pkpm_app_new(lua_State *L)
     pkpm.species[s].collisions.num_cross_collisions = app_lw->num_cross_collisions[s];
     for (int i = 0; i < app_lw->num_cross_collisions[s]; i++) {
       strcpy(pkpm.species[s].collisions.collide_with[i], app_lw->collide_with[s][i]);
+    }
+    pkpm.species[s].collisions.fixed_temp_relax = species[s]->fixed_temp_relax;
+
+    if (species[s]->source_id != GKYL_NO_SOURCE) {
+      pkpm.species[s].source.source_id = species[s]->source_id;
+      pkpm.species[s].source.source_length = species[s]->source_length;
+      strcpy(pkpm.species[s].source.source_species, species[s]->source_species);
+      pkpm.species[s].source.write_source = species[s]->write_source;
+
+      app_lw->source_density_func_ctx[s] = species[s]->source_density_func_ref;
+      app_lw->source_temp_func_ctx[s] = species[s]->source_temp_func_ref;
+      app_lw->source_drift_func_ctx[s] = species[s]->source_drift_func_ref;
+      if (species[s]->has_source_density_func) {
+        pkpm.species[s].source.density = gkyl_lw_eval_cb;
+        pkpm.species[s].source.ctx_density = &app_lw->source_density_func_ctx[s];
+      }
+      if (species[s]->has_source_temp_func) {
+        pkpm.species[s].source.temp = gkyl_lw_eval_cb;
+        pkpm.species[s].source.ctx_temp = &app_lw->source_temp_func_ctx[s];
+      }
+      if (species[s]->has_source_drift_func) {
+        pkpm.species[s].source.V_drift = gkyl_lw_eval_cb;
+        pkpm.species[s].source.ctx_V_drift = &app_lw->source_drift_func_ctx[s];
+      }
     }
   }
 
@@ -1183,6 +1285,15 @@ write_data(struct gkyl_tm_trigger *iot, gkyl_pkpm_app *app, double t_curr, bool 
     gkyl_pkpm_app_write_field_energy(app);
     gkyl_pkpm_app_write_integrated_mom(app);
     gkyl_pkpm_app_write_integrated_L2_f(app);
+  }
+}
+
+// Snap a trigger whose next time exceeds t_end only by round-off back to t_end.
+static void
+snap_trigger_to_t_end(struct gkyl_tm_trigger *trig, double t_end)
+{
+  if (trig->tcurr > t_end && trig->tcurr <= t_end * (1.0 + 1.0e-10)) {
+    trig->tcurr = t_end;
   }
 }
 
@@ -1558,6 +1669,11 @@ pkpm_app_run(lua_State *L)
   // Compute initial guess of maximum stable time-step.
   double dt = t_end - t_curr;
 
+  // The requested time-step is shortened near the end of the simulation so that
+  // the final step lands exactly on t_end.
+  bool is_dt_clipped = false; // Was the requested dt shortened below the stable dt?
+  bool is_last_step = true; // Does the requested dt reach t_end?
+
   // Initialize small time-step check.
   double dt_init = -1.0, dt_failure_tol = app_lw->dt_failure_tol;
   int num_failures = 0, num_failures_max = app_lw->num_failures_max;
@@ -1579,8 +1695,37 @@ pkpm_app_run(lua_State *L)
       break;
     }
 
-    t_curr += status.dt_actual;
+    // Only a step that took the full requested dt counts as shortened/final.
+    bool took_requested_dt = status.dt_actual == dt;
+    bool was_dt_clipped = is_dt_clipped && took_requested_dt;
+    if (is_last_step && took_requested_dt) {
+      // Avoid round-off leaving t_curr just short of t_end.
+      t_curr = t_end;
+      // Trigger times are accumulated sums and can exceed t_end by round-off.
+      // Snap them so the final frame and diagnostics are still produced.
+      snap_trigger_to_t_end(&fe_trig, t_end);
+      snap_trigger_to_t_end(&im_trig, t_end);
+      snap_trigger_to_t_end(&l2f_trig, t_end);
+      snap_trigger_to_t_end(&io_trig, t_end);
+    } else {
+      t_curr += status.dt_actual;
+    }
+
+    // Request the next time-step. If the remaining time fits in one stable step,
+    // take exactly the remaining time; if it fits in less than two, split it into
+    // two equal steps so the final step is never a sliver of the stable dt.
+    double t_left = t_end - t_curr;
     dt = status.dt_suggested;
+    is_dt_clipped = false;
+    is_last_step = false;
+    if (t_left <= dt) {
+      dt = t_left;
+      is_dt_clipped = true;
+      is_last_step = true;
+    } else if (t_left < 2.0 * dt) {
+      dt = 0.5 * t_left;
+      is_dt_clipped = true;
+    }
 
     calc_field_energy(&fe_trig, app, t_curr, false);
     calc_integrated_mom(&im_trig, app, t_curr, false);
@@ -1603,7 +1748,7 @@ pkpm_app_run(lua_State *L)
 
     if (dt_init < 0.0) {
       dt_init = status.dt_actual;
-    } else if (status.dt_actual < dt_failure_tol * dt_init) {
+    } else if (!was_dt_clipped && status.dt_actual < dt_failure_tol * dt_init) {
       num_failures += 1;
 
       gkyl_pkpm_app_cout(app, stdout, "WARNING: Time-step dt = %g", status.dt_actual);
