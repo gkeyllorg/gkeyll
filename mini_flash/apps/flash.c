@@ -39,11 +39,7 @@ gkyl_flash_app_new(struct gkyl_flash_inp *inp)
   gkyl_cart_modal_serendip(&app->fvBasis, cdim, 0); // p=0 basis for fluid BCs
 
   // Initialize stats object.
-  app->stat = (struct gkyl_flash_stat) {
-    .nup = 0,
-    .nfail = 0,
-    .nfeuler = 0,
-  };
+  app->stat = (struct gkyl_flash_stat) { };
 
   // Initialize configuration space grids.
   // Configuration space grid for distribution function is half
@@ -139,17 +135,23 @@ gkyl_flash_app_compute_dt_max(gkyl_flash_app *app)
 void
 gkyl_flash_app_apply_ic_species(gkyl_flash_app* app, int sidx, double t0)
 {
+  struct timespec wst = gkyl_wall_clock();
   flash_species_apply_ic(app, &app->species[sidx], t0);
+  app->stat.init_species_tm += gkyl_time_diff_now_sec(wst);
 
   if (!app->skip_fluid_species){
+    wst = gkyl_wall_clock();
     flash_fluid_species_apply_ic(app, &app->fluid_species[sidx], t0);
+    app->stat.init_fluid_species_tm += gkyl_time_diff_now_sec(wst);
   }
 }
 
-void 
+void
 gkyl_flash_app_apply_ic_field(gkyl_flash_app* app, double t0)
 {
+  struct timespec wst = gkyl_wall_clock();
   flash_field_apply_ic(app, app->field, t0);
+  app->stat.init_field_tm += gkyl_time_diff_now_sec(wst);
 }
 
 void
@@ -161,7 +163,6 @@ gkyl_flash_app_apply_ic(gkyl_flash_app *app, double t0)
   for (int i=0; i<app->num_species; ++i) {
     gkyl_flash_app_apply_ic_species(app, i, t0);
   }
-  app->stat.init_species_tm += gkyl_time_diff_now_sec(wst);
 
   // Initialize electromagnetic field variables
   gkyl_flash_app_apply_ic_field(app, t0);
@@ -421,6 +422,51 @@ struct gkyl_flash_stat
 gkyl_flash_app_stat(gkyl_flash_app *app)
 {
   return app->stat;
+}
+
+// Percentage of num relative to den, or 0 if den is 0.
+static double
+ratio_to_percent(double num, double den)
+{
+  return den > 0.0 ? 100.0*num/den : 0.0;
+}
+
+void
+gkyl_flash_app_print_timings(gkyl_flash_app *app, FILE *fp)
+{
+  const struct gkyl_flash_stat *st = &app->stat;
+  double ref = st->fwd_euler_tm;
+
+  gkyl_flash_app_cout(app, fp, "Number of update calls: %d\n", st->nup);
+  gkyl_flash_app_cout(app, fp, "Number of forward Euler calls: %d\n", st->nfeuler);
+  gkyl_flash_app_cout(app, fp, "Number of failed RK stages: %d\n", st->nfail);
+  gkyl_flash_app_cout(app, fp, "Timing:\n");
+  gkyl_flash_app_cout(app, fp, "  - Initial conditions:          %.4e sec.\n", st->init_tm);
+  gkyl_flash_app_cout(app, fp, "    * Kinetic species:           %.4e sec.\n", st->init_species_tm);
+  gkyl_flash_app_cout(app, fp, "    * Fluid species:             %.4e sec.\n", st->init_fluid_species_tm);
+  gkyl_flash_app_cout(app, fp, "    * Field:                     %.4e sec.\n", st->init_field_tm);
+  gkyl_flash_app_cout(app, fp, "  - Updates:                     %.4e sec.\n", st->total_tm);
+  gkyl_flash_app_cout(app, fp, "    * Forward Euler:             %.4e sec. / %6.2f %%\n",
+    st->fwd_euler_tm, ratio_to_percent(st->fwd_euler_tm, st->total_tm));
+  gkyl_flash_app_cout(app, fp, "      ^ Field variables:         %.4e sec. / %6.2f %%\n",
+    st->field_vars_tm, ratio_to_percent(st->field_vars_tm, ref));
+  gkyl_flash_app_cout(app, fp, "      ^ Kinetic moments:         %.4e sec. / %6.2f %%\n",
+    st->species_mom_tm, ratio_to_percent(st->species_mom_tm, ref));
+  gkyl_flash_app_cout(app, fp, "      ^ Collision moments:       %.4e sec. / %6.2f %%\n",
+    st->species_coll_mom_tm, ratio_to_percent(st->species_coll_mom_tm, ref));
+  gkyl_flash_app_cout(app, fp, "      ^ Kinetic-fluid coupling:  %.4e sec. / %6.2f %%\n",
+    st->coupling_tm, ratio_to_percent(st->coupling_tm, ref));
+  gkyl_flash_app_cout(app, fp, "      ^ Kinetic RHS:             %.4e sec. / %6.2f %%\n",
+    st->species_rhs_tm, ratio_to_percent(st->species_rhs_tm, ref));
+  gkyl_flash_app_cout(app, fp, "      ^ Collision RHS:           %.4e sec. / %6.2f %%\n",
+    st->species_coll_tm, ratio_to_percent(st->species_coll_tm, ref));
+  gkyl_flash_app_cout(app, fp, "      ^ Fluid update:            %.4e sec. / %6.2f %%\n",
+    st->fluid_rhs_tm, ratio_to_percent(st->fluid_rhs_tm, ref));
+  gkyl_flash_app_cout(app, fp, "      ^ Kinetic BCs:             %.4e sec. / %6.2f %%\n",
+    st->species_bc_tm, ratio_to_percent(st->species_bc_tm, ref));
+  gkyl_flash_app_cout(app, fp, "      ^ Fluid BCs:               %.4e sec. / %6.2f %%\n",
+    st->fluid_species_bc_tm, ratio_to_percent(st->fluid_species_bc_tm, ref));
+  gkyl_flash_app_cout(app, fp, "  - I/O:                         %.4e sec.\n", st->io_tm);
 }
 
 void

@@ -256,17 +256,9 @@ int main(int argc, char **argv) {
 
   double runtime = gkyl_time_diff_now_sec(tm);
 
-  struct gkyl_flash_stat stat = gkyl_flash_app_stat(app);
-
   gkyl_flash_app_cout(app, stdout, "\n");
   gkyl_flash_app_cout(app, stdout, "Took %ld steps to final time %g.\n\n", step-1, tcurr);
-  gkyl_flash_app_cout(app, stdout, "Total time spent initializing app: %5.5f\n", stat.init_tm);
-  gkyl_flash_app_cout(app, stdout, "Time spent initializing all species: %5.5f\n", stat.init_species_tm);
-  gkyl_flash_app_cout(app, stdout, "Number of forward Euler calls: %d\n", stat.nfeuler);
-  gkyl_flash_app_cout(app, stdout, "Number of failed update calls: %d\n", stat.nfail);
-  gkyl_flash_app_cout(app, stdout, "Species updates took %5.5f sec\n", stat.species_rhs_tm);
-  gkyl_flash_app_cout(app, stdout, "Fluid updates took %5.5f sec\n", stat.fluid_rhs_tm);
-  gkyl_flash_app_cout(app, stdout, "I/O took %5.5f sec\n", stat.io_tm);
+  gkyl_flash_app_print_timings(app, stdout);
   gkyl_flash_app_cout(app, stdout, "Total time: %5.5f\n", runtime);
 
   gkyl_flash_app_release(app);

@@ -80,6 +80,7 @@ flash_forward_euler(gkyl_flash_app *app, double tcurr, double dt0,
     flash_species_apply_bc(app, &app->species[i], fout[i]);
     flash_fluid_species_apply_bc(app, &app->fluid_species[i], fv_fluidout[i]);
   }
+  app->stat.fwd_euler_tm += gkyl_time_diff_now_sec(tm);
 }
 
 // Take a single forward Euler timestep of the hybrid Euler-PKPM equation system
@@ -140,4 +141,5 @@ flash_vlasov_forward_euler(gkyl_flash_app *app, double tcurr, double dt0,
 
     flash_species_apply_bc(app, &app->species[i], fout[i]);
   }
+  app->stat.fwd_euler_tm += gkyl_time_diff_now_sec(tm);
 }

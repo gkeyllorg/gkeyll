@@ -349,11 +349,15 @@ void
 flash_species_calc_pkpm_moms(gkyl_flash_app *app, struct flash_species *species,
   const struct gkyl_array *fin)
 {
+  struct timespec wst = gkyl_wall_clock();
+
   gkyl_array_clear(species->pkpm_moms, 0.0);
 
   // Compute rho, p_par, and p_perp
-  gkyl_dg_updater_moment_pkpm_advance(species->pkpm_mom_calc, 
+  gkyl_dg_updater_moment_pkpm_advance(species->pkpm_mom_calc,
     &species->local_ext, &app->local_kinetic_ext, fin, species->pkpm_moms);
+
+  app->stat.species_mom_tm += gkyl_time_diff_now_sec(wst);
 }
 
 // Compute quantities needed by the kinetic update:
@@ -363,6 +367,8 @@ void
 flash_species_calc_pkpm_vars(gkyl_flash_app *app, struct flash_species *species,
   const struct gkyl_array *fin)
 {
+  struct timespec wst = gkyl_wall_clock();
+
   gkyl_array_clear(species->pkpm_div_ppar, 0.0);
   gkyl_array_clear(species->pkpm_p_ij, 0.0);
   gkyl_array_clear(species->pkpm_prim, 0.0);
@@ -391,8 +397,10 @@ flash_species_calc_pkpm_vars(gkyl_flash_app *app, struct flash_species *species,
   gkyl_array_clear(species->pkpm_penalization, 0.0);
   gkyl_dg_calc_pkpm_vars_penalization(species->calc_pkpm_vars, 
     &app->local_kinetic, &app->local_kinetic_ext, 
-    species->pkpm_moms, species->pkpm_p_ij, species->pkpm_prim, species->fluid_rhou, 
+    species->pkpm_moms, species->pkpm_p_ij, species->pkpm_prim, species->fluid_rhou,
     species->pkpm_lax, species->pkpm_penalization);
+
+  app->stat.species_mom_tm += gkyl_time_diff_now_sec(wst);
 }
 
 // Compute variables used in the kinetic update:
@@ -401,6 +409,8 @@ void
 flash_species_calc_pkpm_update_vars(gkyl_flash_app *app, struct flash_species *species,
   const struct gkyl_array *fin)
 {
+  struct timespec wst = gkyl_wall_clock();
+
   // Calculate PKPM acceleration vars.
   gkyl_array_clear(species->pkpm_accel, 0.0);
   gkyl_dg_calc_pkpm_vars_accel(species->calc_pkpm_vars, &app->local_kinetic,
@@ -415,6 +425,8 @@ flash_species_calc_pkpm_update_vars(gkyl_flash_app *app, struct flash_species *s
     app->field->div_b, species->pkpm_accel, 
     fin, species->F_k_p_1, 
     species->g_dist_source, species->F_k_m_1);
+
+  app->stat.species_mom_tm += gkyl_time_diff_now_sec(wst);
 
   // Compute LBO moments
   flash_species_lbo_moms(app, species, &species->lbo, fin);
@@ -436,12 +448,13 @@ flash_species_rhs(gkyl_flash_app *app,
   gkyl_dg_updater_flash_advance(s->updater, &s->local,
     &app->local_kinetic, fin, s->cflrate_f, rhs_f);
 
+  app->stat.species_rhs_tm += gkyl_time_diff_now_sec(tm);
+
   // Call updater to compute RHS of PKPM LBO collision operator.
   flash_species_lbo_rhs(app, s, &s->lbo, fin, rhs_f);
 
   // Compute timestep
   gkyl_array_reduce_range(s->omegaCFL_ptr, s->cflrate_f, GKYL_MAX, &s->local);
-  // printf("\n Computed dt = %.6e\n", app->cfl/s->omegaCFL_ptr[0]);s
 
   return app->cfl/s->omegaCFL_ptr[0];
 }
@@ -602,11 +615,15 @@ flash_species_interp_rhou_to_dg(struct gkyl_flash_app *app,
   struct flash_species *species, struct flash_fluid_species *fluid_species, 
   const struct gkyl_array *fv_fluidin)
 {
-  gkyl_flash_interp_vars_rhou_to_dg(app->interp_vars, 
-    &app->local_kinetic, &app->local_fluid, fv_fluidin, species->fluid_rhou);  
+  struct timespec wst = gkyl_wall_clock();
+
+  gkyl_flash_interp_vars_rhou_to_dg(app->interp_vars,
+    &app->local_kinetic, &app->local_fluid, fv_fluidin, species->fluid_rhou);
 
   for (int d=0; d<3; ++d)
     gkyl_dg_mul_op(&app->confBasis, d, species->fluid_rhou, d, species->fluid_rhou, 0, species->pkpm_moms);
+
+  app->stat.coupling_tm += gkyl_time_diff_now_sec(wst);
 
   // Apply boundary conditions to rho*u
   flash_species_apply_bc_rhou(app, species, species->fluid_rhou);
@@ -617,6 +634,8 @@ void
 flash_species_calc_coupling_fluxes(struct gkyl_flash_app *app,
   struct flash_species *species, const struct gkyl_array *fin)
 {
+  struct timespec wst = gkyl_wall_clock();
+
   gkyl_array_clear(species->flash_coupling_fluxes, 0.0);
 
   // Compute div(P) - grad(p) and (P-pI):grad(u)
@@ -626,6 +645,8 @@ flash_species_calc_coupling_fluxes(struct gkyl_flash_app *app,
     species->pkpm_div_ppar, app->field->bvar, 
     app->field->bvar_surf, app->field->max_b,
     species->flash_coupling_fluxes);
+
+  app->stat.coupling_tm += gkyl_time_diff_now_sec(wst);
 }
 
 void

@@ -199,7 +199,7 @@ flash_fluid_species_apply_bc(gkyl_flash_app *app, const struct flash_fluid_speci
 
   gkyl_comm_array_sync(app->comm_fluid, &app->local_fluid, &app->local_fluid_ext, fluid);
 
-  app->stat.species_bc_tm += gkyl_time_diff_now_sec(wst);
+  app->stat.fluid_species_bc_tm += gkyl_time_diff_now_sec(wst);
 }
 
 // Compute (rho, ux, uy, uz, p) for diagnostic writing.
@@ -237,15 +237,22 @@ flash_fluid_species_update(gkyl_flash_app *app, double tcurr, double dt0,
   const struct gkyl_array *fluidin, struct gkyl_array *fluidout)
 {
   struct gkyl_wave_prop_status wv_status;
+  struct timespec wst = gkyl_wall_clock();
 
   // Compute fluid update to next time step with wave propagation updater
-  wv_status = gkyl_wave_prop_advance(fs->up_wave_prop, tcurr, dt0, 
+  wv_status = gkyl_wave_prop_advance(fs->up_wave_prop, tcurr, dt0,
       &app->local_fluid, fs->fluid_phi, fluidin, fluidout);
+
+  app->stat.fluid_rhs_tm += gkyl_time_diff_now_sec(wst);
+  wst = gkyl_wall_clock();
 
   // Interpolate kinetic flux contributions onto fluid grid
   gkyl_flash_interp_vars_coupling_fluxes_to_fv(app->interp_vars,
-    &app->local_kinetic, &app->local_fluid, 
+    &app->local_kinetic, &app->local_fluid,
     s->flash_coupling_fluxes, fs->flash_coupling_fluxes);
+
+  app->stat.coupling_tm += gkyl_time_diff_now_sec(wst);
+  wst = gkyl_wall_clock();
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &app->local_fluid);
@@ -267,6 +274,8 @@ flash_fluid_species_update(gkyl_flash_app *app, double tcurr, double dt0,
     fluidout_d[1] -= dt0*div_pi;
     fluidout_d[4] -= dt0*(pi_gradu + u_divpi + div_q);
   }
+
+  app->stat.fluid_rhs_tm += gkyl_time_diff_now_sec(wst);
 
   return wv_status.dt_suggested;
 }

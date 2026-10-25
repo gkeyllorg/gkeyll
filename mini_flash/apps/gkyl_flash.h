@@ -10,19 +10,29 @@ typedef struct gkyl_flash_app gkyl_flash_app;
 struct gkyl_flash_stat {
   int nup; // Number of update calls.
   int nfeuler; // Number of forward Euler steps taken.
-  int nfail; // Number of failed predictor-corrector updates due to smaller dt.
+  int nfail; // Number of failed SSP-RK stages due to a smaller dt.
 
-  double total_tm; // Total time spent updating app.
-  double init_tm; // Time to initialize all species.
-  double init_species_tm; // Time to initialize app object.
+  double total_tm; // Time spent in update calls (excludes initial conditions and I/O).
+  double fwd_euler_tm; // Time spent in forward Euler steps.
+
+  double init_tm; // Time to apply initial and boundary conditions to all species and the field.
+  double init_species_tm; // Time to apply initial conditions to kinetic species.
+  double init_fluid_species_tm; // Time to apply initial conditions to fluid species.
+  double init_field_tm; // Time to apply initial conditions to the field.
+
+  double field_vars_tm; // Time to compute b_hat, div(b) and max(b).
+  double species_mom_tm; // Time to compute PKPM moments and variables for the kinetic update.
   double species_coll_mom_tm; // Time to compute collision operator moments.
-  double species_coll_tm; // Time to compute collision update RHS.
+  double coupling_tm; // Time to interpolate between kinetic and fluid grids and compute coupling fluxes.
 
-  double species_rhs_tm; // Time to compute kinetic update.
-  double fluid_rhs_tm; // Time to compute fluid update.
-  double species_bc_tm; // Time to apply boundary conditions.
+  double species_rhs_tm; // Time to compute collisionless kinetic RHS.
+  double species_coll_tm; // Time to compute collision operator RHS.
+  double fluid_rhs_tm; // Time to compute fluid update (wave propagation and kinetic closure terms).
 
-  double io_tm; // Time to compute and write output frames.
+  double species_bc_tm; // Time to apply kinetic species boundary conditions.
+  double fluid_species_bc_tm; // Time to apply fluid species boundary conditions.
+
+  double io_tm; // Time to compute and write output frames (includes diagnostic moments).
 };
 
 // Input object specifying details for collisions in mini-FLASH updater.
@@ -247,6 +257,15 @@ gkyl_flash_update(gkyl_flash_app* app, double dt);
  */
 struct gkyl_flash_stat
 gkyl_flash_app_stat(gkyl_flash_app *app);
+
+/**
+ * Print timing statistics to console (from rank 0 only).
+ *
+ * @param app App object.
+ * @param fp File pointer for output.
+ */
+void
+gkyl_flash_app_print_timings(gkyl_flash_app *app, FILE *fp);
 
 /**
  * Release memory for app and associated pointer members.

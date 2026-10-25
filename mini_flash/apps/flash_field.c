@@ -84,6 +84,8 @@ flash_field_apply_ic(struct gkyl_flash_app *app, struct flash_field *field, doub
 void
 flash_field_calc_bvar(gkyl_flash_app *app, struct flash_field *field, struct gkyl_array *em)
 {
+  struct timespec wst = gkyl_wall_clock();
+
   gkyl_array_clear(field->tot_em, 0.0);
   gkyl_array_set(field->tot_em, 1.0, em); // em as input arg here to allow for computing div(b) at intermediate steps.
 
@@ -99,8 +101,10 @@ flash_field_calc_bvar(gkyl_flash_app *app, struct flash_field *field, struct gky
   // Compute div(b) and max_b = max(|b_i_l|, |b_i_r|)
   gkyl_array_clear(field->div_b, 0.0); // Incremented in each dimension, so clear beforehand
   gkyl_dg_calc_em_vars_div_b(field->calc_bvar, &app->local_kinetic, 
-    field->bvar_surf, field->bvar, 
+    field->bvar_surf, field->bvar,
     field->max_b, field->div_b);
+
+  app->stat.field_vars_tm += gkyl_time_diff_now_sec(wst);
 }
 
 void
