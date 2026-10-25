@@ -404,11 +404,15 @@ flash_species_calc_pkpm_vars(gkyl_flash_app *app, struct flash_species *species,
 }
 
 // Compute variables used in the kinetic update:
-// pkpm_accel, F_k_p_1, g_dist_source, F_k_m_1.
+// LBO moments, pkpm_accel, F_k_p_1, g_dist_source, F_k_m_1.
 void
 flash_species_calc_pkpm_update_vars(gkyl_flash_app *app, struct flash_species *species,
   const struct gkyl_array *fin)
 {
+  // Compute LBO moments first: nu_prim_moms is needed by the mirror force below.
+  // pkpm_moms should be computed prior to this call.
+  flash_species_lbo_moms(app, species, &species->lbo, fin);
+
   struct timespec wst = gkyl_wall_clock();
 
   // Calculate PKPM acceleration vars.
@@ -427,9 +431,6 @@ flash_species_calc_pkpm_update_vars(gkyl_flash_app *app, struct flash_species *s
     species->g_dist_source, species->F_k_m_1);
 
   app->stat.species_mom_tm += gkyl_time_diff_now_sec(wst);
-
-  // Compute LBO moments
-  flash_species_lbo_moms(app, species, &species->lbo, fin);
 }
 
 // Compute the RHS for the PKPM Vlasov update. Return maximum

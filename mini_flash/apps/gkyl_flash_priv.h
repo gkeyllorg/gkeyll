@@ -27,9 +27,9 @@
 struct flash_io_meta {
   int frame; // Frame number.
   double time; // Output time of frame.
-  int poly_order; // Polynomial order.
-  const char *basis_type; // Name of basis set.
-  char basis_type_nm[64]; // Basis type name for read.
+  const char *basis_type; // Name of basis set, or NULL for finite-volume data.
+  int poly_order; // Polynomial order (ignored if basis_type is NULL).
+  int num_cdim, num_vdim; // Phase-space split, written if num_vdim > 0.
 };
 
 // LBO collisions object.
@@ -219,7 +219,7 @@ struct gkyl_flash_app {
   struct gkyl_rect_decomp *decomp_fluid, *decomp_kinetic; // Grid decomposition objects.
   struct gkyl_comm *comm_fluid, *comm_kinetic; // Communicator objects for configuration space.
 
-  struct gkyl_basis basis, confBasis, fvBasis; // Config. and phase space basis sets.
+  struct gkyl_basis basis, confBasis; // Config. and phase space basis sets.
 
   struct flash_field *field; // Pointer to field object.
 

@@ -36,7 +36,6 @@ gkyl_flash_app_new(struct gkyl_flash_inp *inp)
   // Basis functions: always p=1 Tensor in configuration space, hybrid in phase space.
   gkyl_cart_modal_serendip(&app->confBasis, cdim, poly_order);
   gkyl_cart_modal_hybrid(&app->basis, cdim, vdim);
-  gkyl_cart_modal_serendip(&app->fvBasis, cdim, 0); // p=0 basis for fluid BCs
 
   // Initialize stats object.
   app->stat = (struct gkyl_flash_stat) { };
@@ -215,15 +214,27 @@ flash_io_meta_new(struct flash_io_meta meta) {
   mpack_write_cstr(&writer, "frame");
   mpack_write_i64(&writer, meta.frame);
 
-  mpack_write_cstr(&writer, "polyOrder");
-  mpack_write_i64(&writer, meta.poly_order);
+  // If finite volume data, basis_type is not set.
+  if (meta.basis_type) {
+    mpack_write_cstr(&writer, "polyOrder");
+    mpack_write_i64(&writer, meta.poly_order);
 
-  mpack_write_cstr(&writer, "basisType");
-  mpack_write_cstr(&writer, meta.basis_type);
+    mpack_write_cstr(&writer, "basisType");
+    mpack_write_cstr(&writer, meta.basis_type);
+  }
+
+  // 
+  if (meta.num_vdim > 0) {
+    mpack_write_cstr(&writer, "num_cdim");
+    mpack_write_i64(&writer, meta.num_cdim);
+
+    mpack_write_cstr(&writer, "num_vdim");
+    mpack_write_i64(&writer, meta.num_vdim);
+  }
 
   mpack_complete_map(&writer);
 
-    int status = mpack_writer_destroy(&writer);
+  int status = mpack_writer_destroy(&writer);
 
   if (status != mpack_ok) {
     free(mt->meta); // we need to use free here as mpack does its own malloc
@@ -251,82 +262,107 @@ gkyl_flash_app_calc_L2(gkyl_flash_app *app, double tm, int frame)
   }
 }
 
+// Metadata for phase-space DG data (hybrid basis).
+static struct gkyl_msgpack_data*
+flash_io_meta_phase_new(const gkyl_flash_app *app, double tm, int frame)
+{
+  return flash_io_meta_new( (struct flash_io_meta) {
+      .frame = frame,
+      .time = tm,
+      .basis_type = app->basis.id,
+      .poly_order = app->basis.poly_order,
+      .num_cdim = app->cdim,
+      .num_vdim = app->vdim,
+    }
+  );
+}
+
+// Metadata for DG data on the kinetic configuration space grid.
+static struct gkyl_msgpack_data*
+flash_io_meta_conf_new(const gkyl_flash_app *app, double tm, int frame)
+{
+  return flash_io_meta_new( (struct flash_io_meta) {
+      .frame = frame,
+      .time = tm,
+      .basis_type = app->confBasis.id,
+      .poly_order = app->confBasis.poly_order,
+    }
+  );
+}
+
+// Metadata for finite volume data on the fluid grid.
+static struct gkyl_msgpack_data*
+flash_io_meta_fv_new(const gkyl_flash_app *app, double tm, int frame)
+{
+  return flash_io_meta_new( (struct flash_io_meta) {
+      .frame = frame,
+      .time = tm,
+    }
+  );
+}
+
+// Write an array to <app name>-<name><suffix>_<frame>.gkyl.
+static void
+flash_app_write_array(const gkyl_flash_app *app, const struct gkyl_rect_grid *grid,
+  const struct gkyl_range *range, const struct gkyl_msgpack_data *mt,
+  const struct gkyl_array *arr, const char *name, const char *suffix, int frame)
+{
+  const char *fmt = "%s-%s%s_%d.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name, name, suffix, frame);
+  char fileNm[sz+1]; // ensures no buffer overflow
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, name, suffix, frame);
+
+  gkyl_grid_sub_array_write(grid, range, mt, arr, fileNm);
+}
+
 // Write species data to gkyl output files.
 void
 gkyl_flash_app_write_species(gkyl_flash_app *app, int sidx, double tm, int frame)
 {
-  struct gkyl_msgpack_data *mt = flash_io_meta_new( (struct flash_io_meta) {
-      .frame = frame,
-      .time = tm,
-      .poly_order = app->poly_order,
-      .basis_type = app->basis.id
-    }
-  );
-
+  struct timespec wst = gkyl_wall_clock();
   struct flash_species *s = &app->species[sidx];
 
   // Write distribution function.
-  const char *fmt = "%s-%s_%d.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name, s->info.name_kinetic, frame);
-  char fileNm[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, s->info.name_kinetic, frame);
-
-  gkyl_grid_sub_array_write(&s->grid, &s->local, mt, s->f, fileNm);
-
-  // Write fluid bulk velocity if we don't have a fluid species.
-  const char *fmt1 = "%s-%s_fluid_rhou_%d.gkyl";
-  sz = gkyl_calc_strlen(fmt1, app->name, s->info.name_kinetic, frame);
-  char fileNm1[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm1, sizeof fileNm1, fmt1, app->name, s->info.name_kinetic, frame);
-
-  gkyl_grid_sub_array_write(&app->grid_kinetic, &app->local_kinetic, mt, s->fluid_rhou, fileNm1);
+  struct gkyl_msgpack_data *mt = flash_io_meta_phase_new(app, tm, frame);
+  flash_app_write_array(app, &s->grid, &s->local, mt, s->f, s->info.name_kinetic, "", frame);
   flash_io_meta_release(mt);
+
+  // Write fluid momentum density if we don't have a fluid species.
+  if (app->skip_fluid_species) {
+    mt = flash_io_meta_conf_new(app, tm, frame);
+    flash_app_write_array(app, &app->grid_kinetic, &app->local_kinetic, mt, s->fluid_rhou,
+      s->info.name_kinetic, "_fluid_rhou", frame);
+    flash_io_meta_release(mt);
+  }
+  app->stat.io_tm += gkyl_time_diff_now_sec(wst);
 }
 
 // Write fluid species data to output files.
 void
 gkyl_flash_app_write_fluid_species(gkyl_flash_app *app, int sidx, double tm, int frame)
 {
+  struct timespec wst = gkyl_wall_clock();
   struct flash_fluid_species *fs = &app->fluid_species[sidx];
+  struct gkyl_msgpack_data *mt = flash_io_meta_fv_new(app, tm, frame);
 
-  // Write fluid moments.
-  const char *fmt = "%s-%s_%d.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name, fs->info.name_fluid, frame);
-  char fileNm[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, fs->info.name_fluid, frame);
+  // Conserved variables, [rho, rho*ux, rho*uy, rho*uz, E].
+  flash_app_write_array(app, &app->grid_fluid, &app->local_fluid, mt, fs->fluid,
+    fs->info.name_fluid, "", frame);
 
-  struct gkyl_msgpack_data *mt = flash_io_meta_new( (struct flash_io_meta) {
-      .frame = frame,
-      .time = tm,
-      .poly_order = 0,
-      .basis_type = app->basis.id
-    }
-  );
-  gkyl_grid_sub_array_write(&app->grid_fluid, &app->local_fluid, mt, fs->fluid, fileNm);
-
-  // Primitive moments
+  // Primitive variables, [rho, ux, uy, uz, p].
   flash_fluid_species_prim_vars(app, fs, fs->fluid, fs->fluid_prim);
-  const char *fmt1 = "%s-%s_prim_%d.gkyl";
-  int sz1 = gkyl_calc_strlen(fmt1, app->name, fs->info.name_fluid, frame);
-  char fileNm1[sz1+1]; // ensures no buffer overflow
-  snprintf(fileNm1, sizeof fileNm1, fmt1, app->name, fs->info.name_fluid, frame);
-  gkyl_grid_sub_array_write(&app->grid_fluid, &app->local_fluid, mt, fs->fluid_prim, fileNm1);
+  flash_app_write_array(app, &app->grid_fluid, &app->local_fluid, mt, fs->fluid_prim,
+    fs->info.name_fluid, "_prim", frame);
 
   flash_io_meta_release(mt);
+  app->stat.io_tm += gkyl_time_diff_now_sec(wst);
 }
 
 // Write PKPM diagnostic moments to file.
 void
 gkyl_flash_app_write_pkpm_moms(gkyl_flash_app* app, int sidx, double tm, int frame)
 {
-  struct gkyl_msgpack_data *mt = flash_io_meta_new( (struct flash_io_meta) {
-      .frame = frame,
-      .time = tm,
-      .poly_order = app->poly_order,
-      .basis_type = app->basis.id
-    }
-  );
-
+  struct timespec wst = gkyl_wall_clock();
   struct flash_species *s = &app->species[sidx];
   struct flash_fluid_species *fs = &app->fluid_species[sidx];
 
@@ -336,42 +372,30 @@ gkyl_flash_app_write_pkpm_moms(gkyl_flash_app* app, int sidx, double tm, int fra
   }
   flash_species_calc_pkpm_diags(app, s, s->f);
 
-  // Write PKPM diagnostic moments
-  const char *fmt = "%s-%s_pkpm_moms_%d.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name, s->info.name_kinetic, frame);
-  char fileNm[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, s->info.name_kinetic, frame);
-  gkyl_grid_sub_array_write(&app->grid_kinetic, &app->local_kinetic, mt, s->pkpm_moms_diag, fileNm);
+  struct gkyl_msgpack_data *mt = flash_io_meta_conf_new(app, tm, frame);
 
-  // Write PKPM primitive variables, [ux, uy, uz, 1/rho*div(p_par b), T_perp/m, m/T_perp, 3*T_xx/m, 3*T_yy/m, 3*T_zz/m]
-  fmt = "%s-%s_pkpm_prim_%d.gkyl";
-  sz = gkyl_calc_strlen(fmt, app->name, s->info.name_kinetic, frame);
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, s->info.name_kinetic, frame);
-  gkyl_grid_sub_array_write(&app->grid_kinetic, &app->local_kinetic, mt, s->pkpm_prim, fileNm);
+  // PKPM diagnostic moments, [rho, M1, p_par, p_perp, q_par, q_perp, r_parpar, r_parperp].
+  flash_app_write_array(app, &app->grid_kinetic, &app->local_kinetic, mt, s->pkpm_moms_diag,
+    s->info.name_kinetic, "_pkpm_moms", frame);
+
+  // PKPM primitive variables, [ux, uy, uz, 1/rho*div(p_par b), T_perp/m, m/T_perp, 3*T_xx/m, 3*T_yy/m, 3*T_zz/m].
+  flash_app_write_array(app, &app->grid_kinetic, &app->local_kinetic, mt, s->pkpm_prim,
+    s->info.name_kinetic, "_pkpm_prim", frame);
 
   flash_io_meta_release(mt);
+  app->stat.io_tm += gkyl_time_diff_now_sec(wst);
 }
 
 // Write electromagnetic field data to file.
 void
 gkyl_flash_app_write_field(gkyl_flash_app *app, double tm, int frame)
 {
-  struct gkyl_msgpack_data *mt = flash_io_meta_new( (struct flash_io_meta) {
-      .frame = frame,
-      .time = tm,
-      .poly_order = app->poly_order,
-      .basis_type = app->basis.id
-    }
-  );
-
-  // Write electromagnetic fields.
-  const char *fmt = "%s-field_%d.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name, frame);
-  char fileNm[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, frame);
-
-  gkyl_grid_sub_array_write(&app->grid_kinetic, &app->local_kinetic, mt, app->field->em, fileNm);
+  struct timespec wst = gkyl_wall_clock();
+  struct gkyl_msgpack_data *mt = flash_io_meta_conf_new(app, tm, frame);
+  flash_app_write_array(app, &app->grid_kinetic, &app->local_kinetic, mt, app->field->em,
+    "field", "", frame);
   flash_io_meta_release(mt);
+  app->stat.io_tm += gkyl_time_diff_now_sec(wst);
 }
 
 // Private function to handle variable argument list for printing.
@@ -395,11 +419,10 @@ gkyl_flash_app_cout(const gkyl_flash_app *app, FILE *fp, const char *fmt, ...)
   va_end(argp);
 }
 
-//  Write species and field data to files.
+//  Write species and field data to files. Each write method accumulates io_tm.
 void
-gkyl_flash_app_write(gkyl_flash_app *app, double tm, int frame) 
+gkyl_flash_app_write(gkyl_flash_app *app, double tm, int frame)
 {
-  struct timespec wst = gkyl_wall_clock();
   // Write species data
   for (int i=0; i<app->num_species; ++i) {
     gkyl_flash_app_write_species(app, i, tm, frame);
@@ -415,7 +438,6 @@ gkyl_flash_app_write(gkyl_flash_app *app, double tm, int frame)
 
   // Write field data
   gkyl_flash_app_write_field(app, tm, frame);
-  app->stat.io_tm += gkyl_time_diff_now_sec(wst);
 }
 
 struct gkyl_flash_stat
