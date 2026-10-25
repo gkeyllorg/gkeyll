@@ -17,7 +17,6 @@ import argparse
 from contextlib import closing
 import datetime
 import glob
-import hashlib
 import html
 import json
 import math
@@ -172,7 +171,7 @@ def frame_ranges(frames):
     return ', '.join(parts)
 
 
-def regression_preview(name, status, lines):
+def regression_preview(name, status, lines, compact=False):
     groups = regression_file_groups(lines)
 
     def cell(value):
@@ -200,6 +199,18 @@ def regression_preview(name, status, lines):
     worst = worst_metrics(groups)
     if worst:
         body += ['Largest differences across all files: ' + worst]
+    if compact:
+        reasons = {}
+        for group in groups:
+            reason = group['reason'] or ('numerical difference' if group['kind'] == 'DIFF'
+                                         else 'missing output')
+            reasons[reason] = reasons.get(reason, 0) + max(1, len(group['files']))
+        ordered = sorted(reasons.items(), key=lambda item: (-item[1], item[0]))
+        body += ['Comparison reasons: ' + '; '.join(
+            '{} × {}'.format(count, cell(reason)) for reason, count in ordered[:4])]
+        if len(ordered) > 4:
+            body += ['{} other reason types; see artifact.'.format(len(ordered) - 4)]
+        return '\n\n'.join(body)
     rows = ['| Files | Result | Largest differences / details |', '| --- | --- | --- |']
     for group in groups[:REGRESSION_GROUP_LIMIT]:
         files = group['files']
@@ -235,7 +246,7 @@ def regression_dropdowns(title, blocks):
 
 
 def regression_sections(title, summary_file):
-    """Return compact preview sections and complete file-list continuations."""
+    """Return GitHub summaries and complete file lists for the artifact."""
     values = read_kv(summary_file)
     if not values:
         return [], []
@@ -271,8 +282,7 @@ def regression_sections(title, summary_file):
         lines += ["", "Candidate-only tests (executed but not compared to a baseline): "
                   + ", ".join(code(t) for t in candidate_only_tests)]
     # Keep totals and the two failure groups in sibling dropdowns.
-    # Return separate sections so large file lists paginate as rendered content,
-    # rather than being escaped as an "Extended CI summary (Markdown)" log.
+    # Full file lists are returned separately for the artifact, never published.
     sections = [dropdown(head, "\n".join(lines).strip())]
     full_sections = []
     acked_status = dict(entry.rsplit(':', 1) for entry in
@@ -293,26 +303,19 @@ def regression_sections(title, summary_file):
         tests = sorted(tests, key=lambda item: (item[1] in ('fail', 'status unavailable'), item[0]))
         body = []
         if label == 'Acknowledged tests':
-            body += ['Acknowledgments are new or updated relative to the baseline.']
+            body += ['Accepted differences do not fail CI. Acknowledgments are new or updated relative to the baseline.']
         group_title = '{}: {} ({})'.format(title, label, count)
-        full_start = len(full_sections)
-        if any(details.get(name) for name, _ in tests):
-            token = hashlib.sha256((title + '/' + label).encode('utf-8')).hexdigest()[:16]
-            body += ['Up to {} file groups per test; numbered ranges contain only observed frames. '
-                     'Long labels are shortened. '
-                     '[Full file lists and comparison details](#ci-regression-files-{}).'.format(
-                         REGRESSION_GROUP_LIMIT, token)]
+        if tests:
+            body += ['Full file lists and original comparison details: '
+                     '`ci-report-regressions.md` in this build’s Jenkins artifacts.']
         for name, status in tests:
             test_details = details.get(name, [])
-            body.append(regression_preview(name, status, test_details))
+            body.append(regression_preview(name, status, test_details, compact=True))
             if test_details:
                 for chunk in wrapped_log_chunks('\n'.join(test_details)):
                     # Repeat identity on every chunk, including splits within a test.
                     full_sections.append(dropdown(group_title + ' — full file lists',
                         '**{} [{}]**\n\n{}'.format(code(name), code(status), chunk)))
-        if len(full_sections) > full_start:
-            full_sections[full_start] = '<!-- ci-regression-files-{} -->\n\n{}'.format(
-                token, full_sections[full_start])
         if not tests:
             body.append('None.' if count == '0' else 'Per-test details unavailable from the regression checker.')
         if label == 'Unacknowledged tests' and tests:
@@ -463,9 +466,15 @@ def regression_timing_sections():
         sections.append(dropdown('Regression timing changes: {} slower, {} faster (observed)'.format(
             sum(candidate[key][0] > baseline[key][0] for key in changed),
             sum(candidate[key][0] < baseline[key][0] for key in changed)), '\n'.join(body)))
-    if candidate_issues or baseline_issues:
-        sections += detail_sections('Regression timing data unavailable or omitted',
-                                    '\n'.join(candidate_issues + baseline_issues))
+    issues = candidate_issues + baseline_issues
+    with open('ci-report-timing-details.md', 'w', encoding='utf-8') as output:
+        output.write('\n\n'.join(detail_sections('Regression timing data unavailable or omitted',
+                                               '\n'.join(issues))) if issues else 'No timing issues.\n')
+    if issues:
+        sections.append(dropdown('Regression timing data unavailable or omitted',
+            '{} candidate and {} baseline timing diagnostics; full details in '
+            '`ci-report-timing-details.md` in Jenkins artifacts.'.format(
+                len(candidate_issues), len(baseline_issues))))
     return sections
 
 
@@ -890,6 +899,16 @@ def failure_sections(regression_details_available=False):
             log_metadata(max(outs, key=os.path.getmtime))
     sections = []
     for path, metadata in logs.items():
+        # A completed checker summary already explains comparison failures.
+        summary_path = ('ci-parallel-regression-summary.txt' if 'parallel' in path
+                        else 'ci-regression-summary.txt')
+        unacknowledged = first(read_kv(summary_path), 'c_regression_unacknowledged')
+        if ('regression-check' in os.path.basename(path) and 'Exit code: 1' in metadata
+                and unacknowledged.isdigit() and int(unacknowledged) > 0):
+            sections.append(dropdown('Regression comparison command failed',
+                '; '.join(metadata + ['Full log (Jenkins artifact): ' + code(path)])
+                + '. See regression summaries below.'))
+            continue
         tail = '\n'.join(ANSI.sub('', read_text(path)).splitlines()[-100:])
         heading = metadata + ['Full log: ' + path, '', tail or '(log is empty)']
         sections += detail_sections('Failed build log — last 100 lines: ' + path,
@@ -1118,8 +1137,10 @@ def build_report(args):
     for part in parts[1:]:
         summary_sections.extend([part] if len(part.encode('utf-8')) <= COMMENT_LIMIT - 2000 else
                                 detail_sections('Extended CI summary (Markdown)', part))
+    with open('ci-report-regressions.md', 'w', encoding='utf-8') as output:
+        output.write('\n\n'.join(regression_files) or 'No per-file comparison details recorded.\n')
     pages = report_pages(parts[0], summary_sections + diagnostic_sections(
-        'ci-diagnostic-summary.json', 'ci-report-warnings.md'), args.context, regression_files)
+        'ci-diagnostic-summary.json', 'ci-report-warnings.md'), args.context)
     with open(args.output + '.json', 'w', encoding='utf-8') as f:
         json.dump(pages, f)
     report = '\n\n'.join(pages)

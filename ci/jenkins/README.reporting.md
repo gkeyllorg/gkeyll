@@ -145,21 +145,22 @@ Reports use collapsed sections for:
 The unacknowledged group includes copyable lines for
 `ci/jenkins/expected_regression_diffs.txt` and explains how to add a reason,
 refresh inherited acknowledgments, or narrow them to a run mode or file.
-Each test preview shows differing/missing file counts and at most ten file
-groups. Execution failures appear first; missing files precede numerical
-differences. Final numbered outputs with the same failure kind and reason are
-grouped into exact arithmetic ranges (for example, `elc_{0,10,…,100}.gkyl`);
-gaps and zero padding are preserved. Each group and test shows the largest
-absolute and relative differences with their filenames, including maxima from
-groups omitted from the preview. Unavailable metrics are not invented.
+Each test summary shows its status, differing/missing file counts, the largest
+absolute and relative differences with their filenames, and counts by comparison
+reason (for example, numerical differences or incompatible dynvec outputs).
+Maxima cover every file, including files not named in the summary. At most four
+reason types are shown, with an explicit count of additional types. These are
+observed comparison failures, not inferred physical root causes. Accepted
+differences are explicitly identified as not failing CI.
 
-Omitted file/group counts are explicit. Long labels and diagnostic text are
-shortened in previews. Each acknowledgment group links directly to its complete
-file lists and original comparison details in GitHub continuation comments,
-inside dropdowns, with test identities repeated across page splits.
-No files are discarded from the checker summary or the full GitHub report.
-The report includes the regression information directly, without a fetch-logs
-dropdown.
+Complete file lists and original comparison details are retained in
+`ci-report-regressions.md` in Jenkins artifacts, rather than repeated in GitHub
+continuation comments. Regression-check command tails are replaced by log paths
+and exit codes when a checker summary is available; incomplete checks and other
+failed commands retain their tails. Raw logs remain archived. Timing-data
+omissions are summarized by candidate/baseline diagnostic counts on GitHub;
+every diagnostic is preserved in `ci-report-timing-details.md`. Existing
+`ci-report*.md` archive patterns include both new artifacts on all platforms.
 
 Deploy both `github_report.py` and `check_regression_results.lua` in the trusted
 CI revision for complete acknowledged-file details. Older summaries remain
@@ -233,6 +234,8 @@ on the same commit/context. Other commits' reports remain intact.
 
 Artifacts include `ci-report.md` (posted report), `ci-report.md.json` (pages),
 `ci-report-warnings.md` (complete new/all warning details),
+`ci-report-regressions.md` (complete regression comparisons),
+`ci-report-timing-details.md` (timing-data diagnostics),
 `ci-stage-history.txt` (UTC transitions, including before checkout), and
 `ci-stage-timings.json`. The captured-log inventory is artifact-only, in
 `ci-diagnostic-summary.json` as `captured_log_paths` and count `captured_logs`.

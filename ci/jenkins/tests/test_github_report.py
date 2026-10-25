@@ -139,11 +139,10 @@ class FailureReportTests(unittest.TestCase):
             displayed = log_text(section)
             self.assertIn('rt_' + failure, displayed)
             self.assertIn(status, displayed)
-            self.assertIn(name + '_{0, 1, …, 14}.gkyl', displayed)
+            self.assertIn('Comparison reasons:', section)
             self.assertIn('15 differing files, 1 missing file.', section)
             self.assertIn('max_abs=1 ({}_0.gkyl)'.format(name), displayed)
-            self.assertIn(name + '_missing.gkyl', displayed)
-            self.assertLess(section.index(name + '_missing.gkyl'), section.index(name + '_{'))
+            self.assertIn('missing output', displayed)
             self.assertLess(section.index('rt_' + failure), section.index('rt_' + name))
         for name in ('ack', 'diff'):
             for index in range(15):
@@ -172,30 +171,91 @@ class FailureReportTests(unittest.TestCase):
         self.assertIn('status unavailable', text)
         self.assertIn('No per-file comparison details recorded.', text)
 
-    def test_large_regression_report_keeps_all_files_rendered_on_github(self):
+    def test_large_regression_report_keeps_all_files_in_artifact(self):
         self.regression_fixture(files=1000)
         args = argparse.Namespace(platform='personal', context='ci/test', result='failure', pr='', output='ci-report.md')
         with contextlib.redirect_stdout(io.StringIO()):
             report.build_report(args)
         pages = json.loads(Path(args.output + '.json').read_text())
-        self.assertGreater(len(pages), 1)
+        self.assertEqual(len(pages), 1)
         for page in pages:
             self.assertLessEqual(len(page.encode('utf-8')), report.COMMENT_LIMIT)
             for tag in ('details', 'div', 'code'):
                 self.assertEqual(page.count('<' + tag + '>'), page.count('</' + tag + '>'))
         text = '\n'.join(pages)
         self.assertEqual(pages[0].count('<details><summary>Serial C regressions:'), 3)
-        self.assertIn('ack_{0, 1, …, 999}.gkyl', pages[0])
+        self.assertIn('1000 differing files', pages[0])
         self.assertNotIn('ack_500.gkyl', pages[0])
-        self.assertTrue(any('ack_500.gkyl' in page for page in pages[1:]))
+        self.assertNotIn('full file lists</summary>', text)
         self.assertNotIn('Extended CI summary (Markdown)', text)
         self.assertNotIn('Fetch full logs', text)
         self.assertNotIn('artifact --build', text)
-        displayed = log_text(text)
+        displayed = log_text(Path('ci-report-regressions.md').read_text())
         for name in ('ack', 'diff'):
             for index in range(1000):
                 self.assertEqual(displayed.count('{}_{}.gkyl  [DIFF]'.format(name, index)), 1)
-        self.assertIn('moments/creg/rt_diff   # <why this changed>', displayed)
+        self.assertIn('moments/creg/rt_diff   # <why this changed>', log_text(text))
+
+    def test_many_accepted_diffs_fit_one_comment(self):
+        lines = ['c_regression_passed=281', 'c_regression_acknowledged=37',
+                 'c_regression_unacknowledged=2']
+        for index in range(39):
+            name = 'gyrokinetic/creg/rt_gk_helical_adapt_src_sheath_surr_3x2v_p1_{}'.format(index)
+            if index < 37:
+                lines += ['c_regression_acknowledged_test=' + name,
+                          'c_regression_acknowledged_status=' + name + ':fail']
+                kind = 'acknowledged'
+            else:
+                lines += ['c_regression_failure=' + name + ':fail']
+                kind = 'failure'
+            for field in range(70):
+                lines += ['c_regression_{}_detail={}|{}-moment_{}_1.gkyl [DIFF] '
+                          'max_abs={} max_rel=1'.format(kind, name, name.rsplit('/', 1)[-1], field, field)]
+        self.write('ci-regression-summary.txt', '\n'.join(lines))
+        args = argparse.Namespace(platform='personal', context='ci/test', result='failure', pr='', output='ci-report.md')
+        with contextlib.redirect_stdout(io.StringIO()):
+            report.build_report(args)
+        pages = json.loads(Path(args.output + '.json').read_text())
+        self.assertEqual(len(pages), 1)
+        self.assertLess(len(pages[0].encode('utf-8')), 40000)
+        self.assertEqual(Path('ci-report-regressions.md').read_text().count('[DIFF]'), 39 * 70)
+        for index in range(39):
+            self.assertIn('3x2v_p1_{}'.format(index), pages[0])
+
+    def test_compact_reasons_and_distinct_maxima(self):
+        lines = ['test-elc_1.gkyl [DIFF] max_abs=10 max_rel=0.1',
+                 'test-ion_1.gkyl [DIFF] max_abs=2 max_rel=1',
+                 'test-dt.gkyl [DIFF] dynvec not compatible',
+                 'test-moms.gkyl [DIFF] dynvec not compatible',
+                 'test-field.gkyl [MISSING]']
+        text = report.regression_preview('test', 'fail', lines, compact=True)
+        self.assertIn('4 differing files, 1 missing file', text)
+        self.assertIn('2 × <code>dynvec not compatible', text)
+        self.assertIn('2 × <code>numerical difference', text)
+        self.assertIn('max_abs=10 (test-elc_1.gkyl)', text)
+        self.assertIn('max_rel=1 (test-ion_1.gkyl)', text)
+        self.assertNotIn('| Files |', text)
+
+    def test_comparison_log_is_summarized_only_with_checker_results(self):
+        path = 'ci-command-logs/candidate-regression-check.log'
+        self.write(path, 'UNACKNOWLEDGED FAILURES:\nrepeated file listing')
+        self.write(path + '.exit', '1')
+        self.assertIn('repeated file listing', '\n'.join(report.failure_sections()))
+        self.regression_fixture()
+        text = '\n'.join(report.failure_sections())
+        self.assertIn(path, text)
+        self.assertIn('Exit code: 1', text)
+        self.assertNotIn('repeated file listing', text)
+
+    def test_timing_omissions_are_preserved_in_artifact(self):
+        issues = ['database: invalid execution time for test{}'.format(i) for i in range(200)]
+        with patch.object(report, 'regression_timings', side_effect=[({}, issues), ({}, [])]):
+            text = '\n'.join(report.regression_timing_sections())
+        self.assertIn('200 candidate and 0 baseline', text)
+        self.assertNotIn('test199', text)
+        artifact = Path('ci-report-timing-details.md').read_text()
+        for issue in issues:
+            self.assertIn(issue, artifact)
 
     def test_frame_ranges_are_exact_and_preserve_padding(self):
         for frames, expected in [(['0', '20', '10', '40'], '0, 10, …, 20, 40'),

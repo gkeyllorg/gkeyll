@@ -182,7 +182,8 @@ class RegressionTimingTests(unittest.TestCase):
         path = self.database([('test', 'c', 1, 10)])
         with contextlib.closing(sqlite3.connect(path)) as db, db:
             db.execute('UPDATE RegressionMeta SET ntotal=2')
-        self.assertIn('incomplete results', '\n'.join(self.sections()))
+        self.assertIn('1 candidate and 0 baseline', '\n'.join(self.sections()))
+        self.assertIn('incomplete results', Path('ci-report-timing-details.md').read_text())
         path.write_bytes(b'not a database')
         self.assertIn('timing data unavailable', '\n'.join(self.sections()))
         path.unlink()

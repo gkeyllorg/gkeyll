@@ -98,7 +98,7 @@ class ReportingTests(unittest.TestCase):
         self.assertNotIn('queue', self.statuses[0]['description'])
         self.assertTrue(any('/statuses/' + self.args.commit in c[1] for c in self.calls))
 
-    def test_regression_previews_link_to_their_complete_github_file_lists(self):
+    def test_regression_summaries_publish_without_full_file_lists(self):
         for path, mode in [('ci-regression-summary.txt', 'serial'),
                            ('ci-parallel-regression-summary.txt', 'parallel')]:
             lines = ['c_regression_acknowledged=1', 'c_regression_unacknowledged=1',
@@ -115,24 +115,18 @@ class ReportingTests(unittest.TestCase):
         with contextlib.redirect_stdout(io.StringIO()):
             report.build_report(build_args)
             report.publish_report(self.args)
-        previews = [comment for comment in self.comments
-                    if '[Full file lists and comparison details]' in comment['body']]
-        self.assertTrue(previews)
-        links = []
-        for comment in previews:
-            self.assertNotIn('](#ci-regression-files-', comment['body'])
-            links += re.findall(r'\[Full file lists and comparison details\]\(([^)]+)\)', comment['body'])
-        self.assertEqual(len(links), 4)
-        for url in links:
-            destination = next(comment for comment in self.comments if comment['html_url'] == url)
-            self.assertIn('<!-- ci-regression-files-', destination['body'])
-            self.assertNotIn('<details>', destination['body'])
+        self.assertEqual(len(self.comments), 1)
+        body = self.comments[0]['body']
+        self.assertIn('ci-report-regressions.md', body)
+        self.assertNotIn('ci-regression-files-', body)
+        artifact = Path('ci-report-regressions.md').read_text()
         for mode in ('serial', 'parallel'):
             for name in ('ack', 'diff'):
                 for i in range(1000):
-                    self.assertTrue(any('{}_{}_{}.gkyl [DIFF]'.format(mode, name, i) in comment['body']
-                                        for comment in self.comments))
-        self.assertTrue(all(len(comment['body'].encode('utf-8')) <= 65000 for comment in self.comments))
+                    line = '{}_{}_{}.gkyl [DIFF]'.format(mode, name, i)
+                    self.assertIn(line, artifact)
+                    self.assertNotIn(line, body)
+        self.assertLessEqual(len(body.encode('utf-8')), 65000)
 
     def test_retries_update_existing_comment_and_do_not_repeat_status(self):
         self.update()
