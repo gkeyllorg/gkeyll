@@ -6,6 +6,7 @@
 
 #include <assert.h>
 #include <mpack.h>
+#include <stdarg.h>
 
 gkyl_flash_app*
 gkyl_flash_app_new(struct gkyl_flash_inp *inp)
@@ -269,7 +270,6 @@ gkyl_flash_app_write_species(gkyl_flash_app *app, int sidx, double tm, int frame
   char fileNm[sz+1]; // ensures no buffer overflow
   snprintf(fileNm, sizeof fileNm, fmt, app->name, s->info.name_kinetic, frame);
 
-  printf("Writing file: %s\n", fileNm);
   gkyl_grid_sub_array_write(&s->grid, &s->local, mt, s->f, fileNm);
 
   // Write fluid bulk velocity if we don't have a fluid species.
@@ -371,6 +371,27 @@ gkyl_flash_app_write_field(gkyl_flash_app *app, double tm, int frame)
 
   gkyl_grid_sub_array_write(&app->grid_kinetic, &app->local_kinetic, mt, app->field->em, fileNm);
   flash_io_meta_release(mt);
+}
+
+// Private function to handle variable argument list for printing.
+static void
+v_flash_app_cout(const gkyl_flash_app *app, FILE *fp, const char *fmt, va_list argp)
+{
+  int rank;
+  gkyl_comm_get_rank(app->comm_kinetic, &rank);
+  if ((rank == 0) && fp) {
+    vfprintf(fp, fmt, argp);
+    fflush(fp);
+  }
+}
+
+void
+gkyl_flash_app_cout(const gkyl_flash_app *app, FILE *fp, const char *fmt, ...)
+{
+  va_list argp;
+  va_start(argp, fmt);
+  v_flash_app_cout(app, fp, fmt, argp);
+  va_end(argp);
 }
 
 //  Write species and field data to files.

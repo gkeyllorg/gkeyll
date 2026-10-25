@@ -7,6 +7,7 @@
 #include <gkyl_util.h>
 
 #include <assert.h>
+#include <stdarg.h>
 
 // Compute total number of ranges specified by cuts.
 static inline int
@@ -671,6 +672,27 @@ gkyl_flash_multib_app_write(gkyl_flash_multib_app *app, double tm, int frame)
       }
     }
   }
+}
+
+// Private function to handle variable argument list for printing.
+static void
+v_flash_multib_app_cout(const gkyl_flash_multib_app *app, FILE *fp, const char *fmt, va_list argp)
+{
+  int rank;
+  gkyl_comm_get_rank(app->comm, &rank);
+  if ((rank == 0) && fp) {
+    vfprintf(fp, fmt, argp);
+    fflush(fp);
+  }
+}
+
+void
+gkyl_flash_multib_app_cout(const gkyl_flash_multib_app *app, FILE *fp, const char *fmt, ...)
+{
+  va_list argp;
+  va_start(argp, fmt);
+  v_flash_multib_app_cout(app, fp, fmt, argp);
+  va_end(argp);
 }
 
 void

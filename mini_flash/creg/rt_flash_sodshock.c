@@ -233,9 +233,9 @@ int main(int argc, char **argv) {
   struct timespec tm = gkyl_wall_clock();
 
   while ((tcurr < tend) && (step <= args.num_steps)) {
-    printf("Taking time step %ld at t = %g ... ", step, tcurr);
+    gkyl_flash_app_cout(app, stdout, "Taking time step %ld at t = %g ... ", step, tcurr);
     status = gkyl_flash_update(app, dt);
-    printf("dt = %g\n", status.dt_actual);
+    gkyl_flash_app_cout(app, stdout, "dt = %g\n", status.dt_actual);
 
     tcurr += status.dt_actual;
     dt = status.dt_suggested;
@@ -258,16 +258,16 @@ int main(int argc, char **argv) {
 
   struct gkyl_flash_stat stat = gkyl_flash_app_stat(app);
 
-  printf("\n");
-  printf("Took %ld steps to final time %g.\n\n", step-1, tcurr);
-  printf("Total time spent initializing app: %5.5f\n", stat.init_tm);
-  printf("Time spent initializing all species: %5.5f\n", stat.init_species_tm);
-  printf("Number of forward Euler calls: %d\n", stat.nfeuler);
-  printf("Number of failed update calls: %d\n", stat.nfail);
-  printf("Species updates took %5.5f sec\n", stat.species_rhs_tm);
-  printf("Fluid updates took %5.5f sec\n", stat.fluid_rhs_tm);
-  printf("I/O took %5.5f sec\n", stat.io_tm);
-  printf("Total time: %5.5f\n", runtime);
+  gkyl_flash_app_cout(app, stdout, "\n");
+  gkyl_flash_app_cout(app, stdout, "Took %ld steps to final time %g.\n\n", step-1, tcurr);
+  gkyl_flash_app_cout(app, stdout, "Total time spent initializing app: %5.5f\n", stat.init_tm);
+  gkyl_flash_app_cout(app, stdout, "Time spent initializing all species: %5.5f\n", stat.init_species_tm);
+  gkyl_flash_app_cout(app, stdout, "Number of forward Euler calls: %d\n", stat.nfeuler);
+  gkyl_flash_app_cout(app, stdout, "Number of failed update calls: %d\n", stat.nfail);
+  gkyl_flash_app_cout(app, stdout, "Species updates took %5.5f sec\n", stat.species_rhs_tm);
+  gkyl_flash_app_cout(app, stdout, "Fluid updates took %5.5f sec\n", stat.fluid_rhs_tm);
+  gkyl_flash_app_cout(app, stdout, "I/O took %5.5f sec\n", stat.io_tm);
+  gkyl_flash_app_cout(app, stdout, "Total time: %5.5f\n", runtime);
 
   gkyl_flash_app_release(app);
 

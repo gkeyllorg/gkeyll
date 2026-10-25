@@ -213,6 +213,19 @@ void
 gkyl_flash_app_write_field(gkyl_flash_app *app, double tm, int frame);
 
 /**
+ * Write output to console: this is mainly for diagnostic messages the
+ * driver code wants to write to console. It accounts for parallel
+ * output by only writing from rank 0 of the kinetic communicator.
+ *
+ * @param app App object
+ * @param fp File pointer for open file for output
+ * @param fmt Format string for console output
+ * @param argp Objects to write
+ */
+void
+gkyl_flash_app_cout(const gkyl_flash_app *app, FILE *fp, const char *fmt, ...);
+
+/**
  * Advance the mini-FLASH hybrid system by a single timestep with suggested
  * interval dt. The actual dt used in the update may be smaller than the 
  * suggested one but never larger, and is returned in the `gkyl_update_status`

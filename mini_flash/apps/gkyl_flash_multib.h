@@ -153,6 +153,19 @@ void
 gkyl_flash_multib_app_write(struct gkyl_flash_multib_app *app, double tm, int frame);
 
 /**
+ * Write output to console: this is mainly for diagnostic messages the
+ * driver code wants to write to console. It accounts for parallel
+ * output by only writing from rank 0 of the global communicator.
+ *
+ * @param app App object
+ * @param fp File pointer for open file for output
+ * @param fmt Format string for console output
+ * @param argp Objects to write
+ */
+void
+gkyl_flash_multib_app_cout(const gkyl_flash_multib_app *app, FILE *fp, const char *fmt, ...);
+
+/**
  * Compute the maximum stable timestep over all blocks on all ranks.
  *
  * @param app

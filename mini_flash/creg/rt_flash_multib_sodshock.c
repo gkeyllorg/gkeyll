@@ -327,9 +327,9 @@ int main(int argc, char **argv) {
   struct timespec tm = gkyl_wall_clock();
 
   while ((tcurr < tend) && (step <= args.num_steps)) {
-    printf("Taking time step %ld at t = %g ... ", step, tcurr);
+    gkyl_flash_multib_app_cout(app, stdout, "Taking time step %ld at t = %g ... ", step, tcurr);
     struct gkyl_update_status status = gkyl_flash_multib_update(app, fmin(dt, tend - tcurr));
-    printf("dt = %g\n", status.dt_actual);
+    gkyl_flash_multib_app_cout(app, stdout, "dt = %g\n", status.dt_actual);
 
     tcurr += status.dt_actual;
     dt = status.dt_suggested;
@@ -342,9 +342,9 @@ int main(int argc, char **argv) {
 
   double runtime = gkyl_time_diff_now_sec(tm);
 
-  printf("\n");
-  printf("Took %ld steps to final time %g.\n", step-1, tcurr);
-  printf("Total time: %5.5f\n", runtime);
+  gkyl_flash_multib_app_cout(app, stdout, "\n");
+  gkyl_flash_multib_app_cout(app, stdout, "Took %ld steps to final time %g.\n", step-1, tcurr);
+  gkyl_flash_multib_app_cout(app, stdout, "Total time: %5.5f\n", runtime);
 
   gkyl_flash_multib_app_release(app);
   gkyl_flash_block_geom_release(bgeom);
