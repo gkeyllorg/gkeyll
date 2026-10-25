@@ -101,7 +101,7 @@ struct gkyl_flash_inp {
   int cdim, vdim; // Configuration and velocity space dimensionality.
   double lower_conf[GKYL_MAX_CDIM], upper_conf[GKYL_MAX_CDIM]; // Configuration space bounds.
   int cells_fluid[GKYL_MAX_CDIM]; // Number of configuration space cells for finite volume fluid species.
-  int nghost_kinetic[GKYL_MAX_CDIM], nghost_fluid[GKYL_MAX_CDIM]; // Number of ghost cells for kinetic/fluid vars (defaults to 1).
+  int nghost_kinetic[GKYL_MAX_CDIM], nghost_fluid[GKYL_MAX_CDIM]; // Number of ghost cells for kinetic/fluid vars (defaults to 1/2).
   double cfl_frac;
 
   int num_species;

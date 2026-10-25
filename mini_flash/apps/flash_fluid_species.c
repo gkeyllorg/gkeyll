@@ -1,4 +1,4 @@
-#include <gkyl_array_reduce.h>
+#include <gkyl_app_priv.h>
 #include <gkyl_flash_priv.h>
 #include <gkyl_fv_proj.h>
 #include <gkyl_wv_euler.h>
@@ -9,7 +9,7 @@ void flash_fluid_species_init(struct gkyl_flash_inp *inp,
   int cdim = app->cdim;
 
   int ghost[GKYL_MAX_DIM];
-  for (int d=0; d<cdim; ++d) ghost[d] = 1;
+  for (int d=0; d<cdim; ++d) ghost[d] = app->nghost_fluid[d];
 
   // Set up finite volume grid.
   gkyl_rect_grid_init(&s->grid, cdim, app->grid_fluid.lower, app->grid_fluid.upper, app->grid_fluid.cells);
@@ -32,7 +32,7 @@ void flash_fluid_species_init(struct gkyl_flash_inp *inp,
   s->flash_coupling_fluxes = mkarr(app->use_gpu, 3, app->local_fluid_ext.volume);
 
   // Euler wave equation object
-  s->gas_gamma = s->info.gas_gamma = 0 ? 5.0/3.0 : s->info.gas_gamma;
+  s->gas_gamma = s->info.gas_gamma == 0 ? 5.0/3.0 : s->info.gas_gamma;
   s->wv_eqn = gkyl_wv_euler_new(s->gas_gamma, app->use_gpu);
 
   // Geometry object for Euler wave_prop solver (on fluid grid)
@@ -65,7 +65,7 @@ void flash_fluid_species_init(struct gkyl_flash_inp *inp,
     periodic_dirs[d] = app->periodic_dirs[d];
   
   // Store non-periodic boundary directions
-  int is_np[3];
+  int is_np[3] = {1, 1, 1};
   for (int d=0; d<num_periodic_dir; ++d) {
     is_np[periodic_dirs[d]] = 0;
   }
@@ -100,6 +100,8 @@ void flash_fluid_species_init(struct gkyl_flash_inp *inp,
   // means the mass density is 0 in the ghost cells (divide by zero)
   s->bc_is_absorb = false;
   for (int d=0; d<cdim; ++d) {
+    s->bc_lo[d] = s->bc_up[d] = 0;
+
     // Lower BC updater. Copy BCs by default.
     enum gkyl_bc_basic_type bctype_dist = GKYL_BC_COPY;
     enum gkyl_bc_basic_type bctype_fluid = GKYL_BC_COPY;
@@ -185,10 +187,13 @@ flash_fluid_species_apply_bc(gkyl_flash_app *app, const struct flash_fluid_speci
 
   double tm = 0.0; // HARDCODE: No time-dependent boundary conditions.
 
+  // Apply boundary conditions in non-periodic directions with definied BCs.
   for (int d=0; d<app->cdim; ++d) {
     if (is_np_bc[d]) {
-      gkyl_wv_apply_bc_advance(species->bc_lo[d], tm, &species->local_ext, fluid);
-      gkyl_wv_apply_bc_advance(species->bc_up[d], tm, &species->local_ext, fluid);
+      if (species->bc_lo[d])
+        gkyl_wv_apply_bc_advance(species->bc_lo[d], tm, &species->local_ext, fluid);
+      if (species->bc_up[d])
+        gkyl_wv_apply_bc_advance(species->bc_up[d], tm, &species->local_ext, fluid);
     }
   }
 
@@ -282,7 +287,9 @@ flash_fluid_species_release(struct flash_fluid_species *fs)
 
   // BC updaters only exist in the cdim configuration-space directions.
   for (int d=0; d<fs->grid.ndim; ++d) {
-    gkyl_wv_apply_bc_release(fs->bc_lo[d]);
-    gkyl_wv_apply_bc_release(fs->bc_up[d]);
+    if (fs->bc_lo[d]) 
+      gkyl_wv_apply_bc_release(fs->bc_lo[d]);
+    if (fs->bc_up[d]) 
+      gkyl_wv_apply_bc_release(fs->bc_up[d]);
   }
 }

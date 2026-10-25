@@ -32,24 +32,6 @@ struct flash_sod_ctx create_ctx() {
   double uxr = 0.0;
   double pr = 0.1;
 
-  // // Diverging shocks
-  // double nl = 1.0;
-  // double uxl = 1.0;
-  // double pl = 1.0;
-
-  // double nr = 1.0;
-  // double uxr = -1.0;
-  // double pr = 0.5;
-
-  // // 123 problem, diverging rarefaction waves
-  // double nl = 1.0;
-  // double uxl = -2.0;
-  // double pl = 0.4;
-
-  // double nr = 1.0;
-  // double uxr = 2.0;
-  // double pr = 0.4;
-
   double rhol = mass*nl;
   double rhor = mass*nr;
   double vthl = sqrt(pl/rhol);
@@ -225,7 +207,7 @@ int main(int argc, char **argv) {
 
     .cells_fluid = { NX },
 
-    .cfl_frac = 0.9,
+    .cfl_frac = 1.0,
 
     .num_species = 1,
     .species = { spec },

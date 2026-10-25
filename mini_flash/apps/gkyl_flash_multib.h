@@ -57,6 +57,9 @@ struct gkyl_flash_multib_species {
   int cells[3]; // Number of velocity space cells for Vlasov species.
   double lower[3], upper[3]; // Velocity space bounds.
 
+  double gas_gamma; // Adiabatic index of the Euler fluid (defaults to 5/3).
+  enum gkyl_wave_limiter limiter; // Fluid slope limiter (defaults to monotonized centered).
+
   int num_physical_bcs; // Number of domain boundary conditions.
   struct gkyl_flash_block_physical_bcs *bcs; // Physical boundary conditions.
 
@@ -87,7 +90,7 @@ struct gkyl_flash_multib_inp {
 
   int cells_flu[GKYL_MAX_CDIM]; // Cells per block.
   double lower[GKYL_MAX_CDIM], upper[GKYL_MAX_CDIM]; // Global configuration space bounds.
-  int nghost_kin[GKYL_MAX_CDIM], nghost_flu[GKYL_MAX_CDIM]; // Number of ghost cells for kinetic/fluid vars (defaults to 1).
+  int nghost_kin[GKYL_MAX_CDIM], nghost_flu[GKYL_MAX_CDIM]; // Number of ghost cells for kinetic/fluid vars (defaults to 1/2).
   struct gkyl_flash_block_geom *block_geom; // Block geometry object.
 
   double cfl_frac; // CFL scaling factor (default 1.0).
@@ -149,11 +152,45 @@ gkyl_flash_multib_app_apply_bc(gkyl_flash_multib_app *app, double tcurr,
 void
 gkyl_flash_multib_app_write(struct gkyl_flash_multib_app *app, double tm, int frame);
 
+/**
+ * Compute the maximum stable timestep over all blocks on all ranks.
+ *
+ * @param app
+ * @return double
+ */
 double
 gkyl_flash_multib_app_compute_dt_max(gkyl_flash_multib_app *app);
 
-void
+/**
+ * Take a single forward Euler step of ONLY the kinetic equation on every block,
+ * using the global stable timestep (never larger than dt0). 
+ * The returned status struct contains the actual and suggested timesteps, which
+ * are the minimum over all blocks on all ranks.
+ *
+ * @param app
+ * @param dt0 Suggested timestep
+ * @return struct gkyl_update_status
+ */
+struct gkyl_update_status
+gkyl_flash_multib_kinetic_update(gkyl_flash_multib_app *app, double dt0);
+
+/**
+ * Advance the hybrid system on every block by a single SSP-RK3 update.
+ * The actual dt may be smaller than the suggested timestep dt0 but never larger.
+ * The returned status struct contains the actual and suggested timesteps, which
+ * are the minimum over all blocks on all ranks.
+ *
+ * @param app
+ * @param dt0 Suggested timestep
+ * @return struct gkyl_update_status
+ */
+struct gkyl_update_status
 gkyl_flash_multib_update(gkyl_flash_multib_app *app, double dt0);
 
+/**
+ * Release memory for multiblock app object.
+ * 
+ * @param mbapp App to free
+ */
 void
 gkyl_flash_multib_app_release(gkyl_flash_multib_app *mbapp);

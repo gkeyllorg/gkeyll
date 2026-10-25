@@ -1,10 +1,10 @@
 #include <gkyl_alloc.h>
+#include <gkyl_app_priv.h>
 #include <gkyl_array_reduce.h>
-#include <gkyl_const.h>
 #include <gkyl_dg_bin_ops.h>
-#include <gkyl_dg_updater_flash_priv.h>
 #include <gkyl_dg_vlasov_pkpm.h>
 #include <gkyl_flash_priv.h>
+#include <gkyl_flash_proj_pkpm_lte_on_basis.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
@@ -26,7 +26,7 @@ void flash_species_init(struct gkyl_flash_inp *inp,
   double lower_kinetic[GKYL_MAX_DIM], upper_kinetic[GKYL_MAX_DIM];
   double lower_vel[GKYL_MAX_DIM], upper_vel[GKYL_MAX_DIM];
   for (int d=0; d<cdim; ++d) {
-    ghost[d] = 1;
+    ghost[d] = app->nghost_kinetic[d];
     cells_kinetic[d] = (int)(inp->cells_fluid[d]/2);
     lower_kinetic[d] = inp->lower_conf[d];
     upper_kinetic[d] = inp->upper_conf[d];
@@ -181,7 +181,7 @@ void flash_species_init(struct gkyl_flash_inp *inp,
   for (int d=0; d<cdim; ++d) 
     periodic_dirs[d] = app->periodic_dirs[d];
 
-  int is_np[3];
+  int is_np[3] = {1, 1, 1};
   for (int d=0; d<num_periodic_dir; ++d) {
     is_np[periodic_dirs[d]] = 0;
   }
@@ -233,7 +233,7 @@ void flash_species_init(struct gkyl_flash_inp *inp,
   s->bc_is_absorb = false;
   for (int d=0; d<cdim; ++d) {
     // Lower BC updater. Copy BCs by default.
-    enum gkyl_bc_basic_type bctype = GKYL_BC_COPY;
+    enum gkyl_bc_basic_type bctype = GKYL_BC_COPY, bctype_conf = GKYL_BC_COPY;
     if (s->lower_bc[d] == GKYL_SPECIES_COPY) {
       bctype = GKYL_BC_COPY;
     }
@@ -245,6 +245,7 @@ void flash_species_init(struct gkyl_flash_inp *inp,
     }
     else if (s->lower_bc[d] == GKYL_SPECIES_REFLECT) {
       bctype = GKYL_BC_PKPM_SPECIES_REFLECT;
+      bctype_conf = GKYL_BC_PKPM_MOM_REFLECT;
     }
     else if (s->lower_bc[d] == GKYL_SPECIES_FIXED_FUNC) {
       // bctype_dist = GKYL_BC_FIXED_FUNC;
@@ -254,10 +255,11 @@ void flash_species_init(struct gkyl_flash_inp *inp,
     // Distribution function non-periodic lower boundary conditions
     s->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, bctype, &app->basis,
       &s->lower_skin[d], &s->lower_ghost[d], s->f->ncomp, app->cdim, app->use_gpu);
-    s->bc_conf_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, bctype, &app->fvBasis,
-      &s->lower_skin_conf[d], &s->lower_ghost_conf[d], app->vdim, app->cdim, app->use_gpu);
+    s->bc_conf_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, bctype_conf, &app->confBasis,
+      &s->lower_skin_conf[d], &s->lower_ghost_conf[d], s->fluid_rhou->ncomp, app->cdim, app->use_gpu);
 
-      // Upper BC updater. Copy BCs by default.
+    // Upper BC updater. Copy BCs by default.
+    bctype = bctype_conf = GKYL_BC_COPY;
     if (s->upper_bc[d] == GKYL_SPECIES_COPY) {
       bctype = GKYL_BC_COPY;
     }
@@ -268,6 +270,7 @@ void flash_species_init(struct gkyl_flash_inp *inp,
     }
     else if (s->upper_bc[d] == GKYL_SPECIES_REFLECT) {
       bctype = GKYL_BC_PKPM_SPECIES_REFLECT;
+      bctype_conf = GKYL_BC_PKPM_MOM_REFLECT;
     }
     else if (s->upper_bc[d] == GKYL_SPECIES_FIXED_FUNC) {
       bctype = GKYL_BC_FIXED_FUNC;
@@ -276,8 +279,8 @@ void flash_species_init(struct gkyl_flash_inp *inp,
     // Distribution function non-periodic upper boundary conditions
     s->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, bctype, &app->basis,
       &s->upper_skin[d], &s->upper_ghost[d], s->f->ncomp, app->cdim, app->use_gpu);
-    s->bc_conf_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, bctype, &app->fvBasis,
-      &s->upper_skin_conf[d], &s->upper_ghost_conf[d], app->vdim, app->cdim, app->use_gpu);
+    s->bc_conf_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, bctype_conf, &app->confBasis,
+      &s->upper_skin_conf[d], &s->upper_ghost_conf[d], s->fluid_rhou->ncomp, app->cdim, app->use_gpu);
   }
 }
 

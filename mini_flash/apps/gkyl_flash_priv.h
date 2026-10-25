@@ -202,6 +202,7 @@ struct gkyl_flash_app {
   int poly_order; // Polynomial order of kinetic species basis.
   int cdim, vdim; // Configuration and velocity space dimensionality.
   struct gkyl_rect_grid grid_kinetic, grid_fluid; // Config. space grids for Vlasov and fluid species.
+  int nghost_fluid[GKYL_MAX_CDIM], nghost_kinetic[GKYL_MAX_CDIM]; // Number of config. space ghost cells.
   int num_periodic_dir; // Number of directions with periodic BCs.
   int periodic_dirs[GKYL_MAX_CDIM]; // Array of directions with periodic BCs.
   

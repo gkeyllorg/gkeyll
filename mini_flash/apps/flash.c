@@ -1,8 +1,7 @@
 #include <gkyl_alloc.h>
-#include <gkyl_app_priv.h>
-#include <gkyl_dg_updater_flash_priv.h>
 #include <gkyl_flash_priv.h>
 #include <gkyl_flash.h>
+#include <gkyl_null_comm.h>
 #include <gkyl_util.h>
 
 #include <assert.h>
@@ -57,18 +56,13 @@ gkyl_flash_app_new(struct gkyl_flash_inp *inp)
   gkyl_rect_grid_init(&app->grid_kinetic, cdim, inp->lower_conf, inp->upper_conf, cells_kinetic);
 
   // Set number of ghost cells for kinetic and fluid quantities.
-  int nghost_fluid[GKYL_MAX_CDIM] = { 1 };
-  int nghost_kinetic[GKYL_MAX_CDIM] = { 1 };
+  // Note that wave_prop requires 2 ghost cells.
   for (int d=0; d<GKYL_MAX_CDIM; ++d) {
-    if (inp->nghost_fluid[d] != 0) {
-      nghost_fluid[d] = inp->nghost_fluid[d];
-    }
-    if (inp->nghost_kinetic[d] != 0) {
-      nghost_kinetic[d] = inp->nghost_kinetic[d];
-    }
+    app->nghost_fluid[d] = inp->nghost_fluid[d] != 0 ? inp->nghost_fluid[d] : 2;
+    app->nghost_kinetic[d] = inp->nghost_kinetic[d] != 0 ? inp->nghost_kinetic[d] : 1;
   }
-  gkyl_create_grid_ranges(&app->grid_fluid, nghost_fluid, &app->global_fluid_ext, &app->global_fluid);
-  gkyl_create_grid_ranges(&app->grid_kinetic, nghost_kinetic, &app->global_kinetic_ext, &app->global_kinetic);
+  gkyl_create_grid_ranges(&app->grid_fluid, app->nghost_fluid, &app->global_fluid_ext, &app->global_fluid);
+  gkyl_create_grid_ranges(&app->grid_kinetic, app->nghost_kinetic, &app->global_kinetic_ext, &app->global_kinetic);
 
   // HARDCODE: No MPI
   int cuts[3] = { 1, 1, 1 };

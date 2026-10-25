@@ -1,7 +1,5 @@
 #include <gkyl_flash_block_geom.h>
 #include <gkyl_alloc.h>
-#include <gkyl_app_priv.h>
-#include <gkyl_dg_updater_flash_priv.h>
 #include <gkyl_flash_multib.h>
 #include <gkyl_flash_multib_priv.h>
 #include <gkyl_flash.h>
@@ -9,7 +7,6 @@
 #include <gkyl_util.h>
 
 #include <assert.h>
-#include <mpack.h>
 
 // Compute total number of ranges specified by cuts.
 static inline int
@@ -74,6 +71,8 @@ gkyl_flash_singleb_app_new(const struct gkyl_flash_multib_inp *mbinp, int block_
     strcpy(spec_inp.name_fluid, mb_spec->name_flu);
 
     spec_inp.mass = mb_spec->mass;
+    spec_inp.gas_gamma = mb_spec->gas_gamma;
+    spec_inp.limiter = mb_spec->limiter;
     // spec_inp.collisions = mb_spec->collisions;
     memcpy(&spec_inp.collisions, &mb_spec->collisions, sizeof(mb_spec->collisions));
 
@@ -300,17 +299,12 @@ gkyl_flash_multib_app_new(struct gkyl_flash_multib_inp *mbinp)
     printf("Rank %d handles block %d\n", my_rank, mbapp->local_blocks[b]);
   }
 
-  // One layer of ghost cells in each configuration space dimension by default
-  int nghost_flu[3], nghost_kin[3] = {1};
+  // Ghost cells in each configuration space dimension. Defaults must match
+  // those of the single-block apps (1 kinetic, 2 fluid).
+  int nghost_flu[3], nghost_kin[3];
   for (int d=0; d<mbapp->cdim; ++d) {
-    if (mbinp->nghost_flu[d] != 0)
-      nghost_flu[d] = mbinp->nghost_flu[d];
-    else 
-      nghost_flu[d] = 1;
-    if (mbinp->nghost_kin[d] != 0)
-      nghost_kin[d] = mbinp->nghost_kin[d];
-    else 
-      nghost_kin[d] = 1;
+    nghost_flu[d] = mbinp->nghost_flu[d] != 0 ? mbinp->nghost_flu[d] : 2;
+    nghost_kin[d] = mbinp->nghost_kin[d] != 0 ? mbinp->nghost_kin[d] : 1;
   }
 
   // Initialize single-block apps
@@ -352,8 +346,6 @@ gkyl_flash_multib_app_new(struct gkyl_flash_multib_inp *mbinp)
       struct gkyl_range phase_range;
       gkyl_range_ten_prod(&phase_range, &ccs_kin->range, &sbapp->species[0].local_vel);
 
-      printf("Block %d (rank %d) sending to block %d (rank %d)\n", block_id, my_rank, ccs_kin->block_id, ccs_kin->rank);
-
       // Convert data transfer range into a sub-range of the global block range (for indexing).
       gkyl_sub_range_init(&ccs_kin->range, &sbapp->species[0].local_ext, phase_range.lower, phase_range.upper);
     }
@@ -368,10 +360,47 @@ gkyl_flash_multib_app_new(struct gkyl_flash_multib_inp *mbinp)
       struct gkyl_range phase_range;
       gkyl_range_ten_prod(&phase_range, &ccr_kin->range, &sbapp->species[0].local_vel);
 
-      printf("Block %d (rank %d) receiving from block %d (rank %d)\n", block_id, my_rank, ccr_kin->block_id, ccr_kin->rank);
-
       // Convert data transfer range into a sub-range of the global block range (for indexing).
       gkyl_sub_range_init(&ccr_kin->range, &sbapp->species[0].local_ext, phase_range.lower, phase_range.upper);
+    }
+  }
+
+  // Connections for configuration-space arrays on the kinetic grid
+  mbapp->mbcc_sync_conf = gkyl_malloc(sizeof(struct gkyl_mbcc_sr));
+  mbapp->mbcc_sync_conf->recv = gkyl_malloc(mbapp->num_local_blocks*sizeof(struct gkyl_multib_comm_conn*));
+  mbapp->mbcc_sync_conf->send = gkyl_malloc(mbapp->num_local_blocks*sizeof(struct gkyl_multib_comm_conn*));
+  for (int b=0; b<mbapp->num_local_blocks; ++b) {
+    block_id = mbapp->local_blocks[b];
+    struct gkyl_flash_app *sbapp = mbapp->block_apps[b];
+
+    flash_multib_app_getranks(mbapp, block_id, rank_list);
+    int brank = -1;
+    for (int i=0; i<branks[block_id]; ++i)
+      if (rank_list[i] == my_rank) brank = i;
+
+    struct gkyl_multib_comm_conn **sends_conf = mbapp->mbcc_sync_conf->send;
+    struct gkyl_multib_comm_conn **recvs_conf = mbapp->mbcc_sync_conf->recv;
+
+    sends_conf[b] = gkyl_multib_comm_conn_new_send(block_id, brank, nghost_kin, &mbapp->topo->conn[block_id], mbapp->decomps_kin);
+    recvs_conf[b] = gkyl_multib_comm_conn_new_recv(block_id, brank, nghost_kin, &mbapp->topo->conn[block_id], mbapp->decomps_kin);
+
+    // Set rank of partner block for send/recv operations
+    struct gkyl_multib_comm_conn *mbcc_conf_s = sends_conf[b], *mbcc_conf_r = recvs_conf[b];
+    for (int ns=0; ns<mbcc_conf_s->num_comm_conn; ++ns) {
+      struct gkyl_comm_conn *ccs_conf = &mbcc_conf_s->comm_conn[ns];
+      flash_multib_app_getranks(mbapp, ccs_conf->block_id, rank_list);
+      ccs_conf->rank = rank_list[ccs_conf->rank];
+
+      // Convert data transfer range into a sub-range of the global block range (for indexing).
+      gkyl_sub_range_init(&ccs_conf->range, &sbapp->local_kinetic_ext, ccs_conf->range.lower, ccs_conf->range.upper);
+    }
+    for (int nr=0; nr<mbcc_conf_r->num_comm_conn; ++nr) {
+      struct gkyl_comm_conn *ccr_conf = &mbcc_conf_r->comm_conn[nr];
+      flash_multib_app_getranks(mbapp, ccr_conf->block_id, rank_list);
+      ccr_conf->rank = rank_list[ccr_conf->rank];
+      
+      // Convert data transfer range into a sub-range of the global block range (for indexing).
+      gkyl_sub_range_init(&ccr_conf->range, &sbapp->local_kinetic_ext, ccr_conf->range.lower, ccr_conf->range.upper);
     }
   }
 
@@ -385,21 +414,22 @@ gkyl_flash_multib_app_new(struct gkyl_flash_multib_inp *mbinp)
       struct gkyl_flash_app *sbapp = mbapp->block_apps[b];
 
       flash_multib_app_getranks(mbapp, block_id, rank_list);
-      int brank;
+      int brank = -1;
       for (int i=0; i<branks[block_id]; ++i) {
         if (rank_list[i] == my_rank) brank = i;
       }
 
       struct gkyl_multib_comm_conn **recvs_flu = mbapp->mbcc_sync_flu->recv;
       struct gkyl_multib_comm_conn **sends_flu = mbapp->mbcc_sync_flu->send;
-      
-      sends_flu[b] = gkyl_multib_comm_conn_new_send(block_id, brank, nghost_flu, &mbapp->topo->conn[b], mbapp->decomps_flu);
-      recvs_flu[b] = gkyl_multib_comm_conn_new_recv(block_id, brank, nghost_flu, &mbapp->topo->conn[b], mbapp->decomps_flu);
+
+      sends_flu[b] = gkyl_multib_comm_conn_new_send(block_id, brank, nghost_flu, &mbapp->topo->conn[block_id], mbapp->decomps_flu);
+      recvs_flu[b] = gkyl_multib_comm_conn_new_recv(block_id, brank, nghost_flu, &mbapp->topo->conn[block_id], mbapp->decomps_flu);
 
       // Set rank of partner block for send/recv operations
       struct gkyl_multib_comm_conn *mbcc_flu_s = sends_flu[b], *mbcc_flu_r = recvs_flu[b];
       for (int ns=0; ns<mbcc_flu_s->num_comm_conn; ++ns) {
         struct gkyl_comm_conn *ccs_flu = &mbcc_flu_s->comm_conn[ns];
+        flash_multib_app_getranks(mbapp, ccs_flu->block_id, rank_list);
         ccs_flu->rank = rank_list[ccs_flu->rank];
 
         // Convert data transfer range into a sub-range of the global block range (for indexing).
@@ -408,6 +438,7 @@ gkyl_flash_multib_app_new(struct gkyl_flash_multib_inp *mbinp)
 
       for (int nr=0; nr<mbcc_flu_r->num_comm_conn; ++nr) {
         struct gkyl_comm_conn *ccr_flu = &mbcc_flu_r->comm_conn[nr];
+        flash_multib_app_getranks(mbapp, ccr_flu->block_id, rank_list);
         ccr_flu->rank = rank_list[ccr_flu->rank];
 
         // Convert data transfer range into a sub-range of the global block range (for indexing).
@@ -463,7 +494,7 @@ gkyl_flash_multib_app_apply_bc(gkyl_flash_multib_app *app, double tcurr,
       flash_species_apply_bc(sbapp, &sbapp->species[i], distf[lin_idx+i]);
 
       if (!app->skip_fluid_species) 
-        flash_fluid_species_apply_bc(sbapp, &sbapp->fluid_species[i], distf[lin_idx+i]);
+        flash_fluid_species_apply_bc(sbapp, &sbapp->fluid_species[i], fluid[lin_idx+i]);
     }
   }
 
@@ -531,40 +562,58 @@ gkyl_flash_multib_app_apply_ic(gkyl_flash_multib_app *app, double t0)
 double
 gkyl_flash_multib_app_compute_dt_max(gkyl_flash_multib_app *app)
 {
-  double dt = DBL_MIN;
+  // Compute maximum stable timestep as global minimum across all blocks/ranks.
+  double dt_local = DBL_MAX;
   for (int b=0; b<app->num_local_blocks; ++b) {
-    dt = fmax(dt, gkyl_flash_app_compute_dt_max(app->block_apps[b]));
+    dt_local = fmin(dt_local, gkyl_flash_app_compute_dt_max(app->block_apps[b]));
   }
-  return dt;
+
+  double dt_global;
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MIN, 1, &dt_local, &dt_global);
+  return dt_global;
 }
 
-void
-gkyl_flash_multib_update(gkyl_flash_multib_app *app, double dt0)
+struct gkyl_update_status
+gkyl_flash_multib_kinetic_update(gkyl_flash_multib_app *app, double dt0)
 {
   app->stat.nup += 1;
 
   struct timespec wst = gkyl_wall_clock();
-  struct gkyl_update_status status;
+  struct gkyl_update_status status = { .success = true };
 
   int ns = app->num_species;
   const struct gkyl_array *fin[ns];
   struct gkyl_array *fout[ns];
 
-  // Compute maximum timestep
+  // Compute maximum stable timestep as global minimum across all blocks/ranks.
   double dt = fmin(dt0, gkyl_flash_multib_app_compute_dt_max(app));
 
-  // Call forward Euler update
+  // Call forward Euler update on local blocks, storing maximum stable timesteps.
+  double dt_local[2] = { DBL_MAX, DBL_MAX }; // [dt_actual, dt_suggested]
   for (int b=0; b<app->num_local_blocks; ++b) {
     struct gkyl_flash_app *sbapp = app->block_apps[b];
 
     for (int i=0; i<ns; ++i) {
       fin[i] = sbapp->species[i].f;
       fout[i] = sbapp->species[i].f1;
-      flash_vlasov_forward_euler(sbapp, sbapp->tcurr, dt, fin, fout, &status);
-
-    gkyl_array_copy_range(sbapp->species[i].f, fout[i], &sbapp->species[i].local_ext);
     }
+
+    struct gkyl_update_status st_b;
+    flash_vlasov_forward_euler(sbapp, sbapp->tcurr, dt, fin, fout, &st_b);
+
+    for (int i=0; i<ns; ++i) {
+      gkyl_array_copy_range(sbapp->species[i].f, fout[i], &sbapp->species[i].local_ext);
+    }
+
+    dt_local[0] = fmin(dt_local[0], st_b.dt_actual);
+    dt_local[1] = fmin(dt_local[1], st_b.dt_suggested);
   }
+
+  // Global limiting timesteps across all ranks.
+  double dt_global[2];
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MIN, 2, dt_local, dt_global);
+  status.dt_actual = dt_global[0];
+  status.dt_suggested = dt_global[1];
 
   app->tcurr += status.dt_actual;
 
@@ -583,6 +632,26 @@ gkyl_flash_multib_update(gkyl_flash_multib_app *app, double dt0)
   }
 
   gkyl_flash_multib_app_apply_bc(app, app->tcurr, distf, fluid);
+  return status;
+}
+
+struct gkyl_update_status
+gkyl_flash_multib_update(gkyl_flash_multib_app *app, double dt0)
+{
+  app->stat.nup += 1;
+
+  struct timespec wst = gkyl_wall_clock();
+  struct gkyl_update_status status;
+  if (!app->skip_fluid_species) {
+    status = gkyl_flash_multib_update_ssp_rk3(app, dt0);
+  } else {
+    gkyl_exit("Calling gkyl_flash_multib_update without a fluid species! Try with skip_fluid_species = false in app initialization.");
+  }
+  app->tcurr += status.dt_actual;
+
+  app->stat.total_tm += gkyl_time_diff_now_sec(wst);
+
+  return status;
 }
 
 void
@@ -593,6 +662,9 @@ gkyl_flash_multib_app_write(gkyl_flash_multib_app *app, double tm, int frame)
   
     for (int n=0; n<app->num_species; ++n) {
       gkyl_flash_app_write_species(sbapp, n, tm, frame);
+
+      if (!app->skip_fluid_species)
+        gkyl_flash_app_write_fluid_species(sbapp, n, tm, frame);
 
       if (sbapp->species[n].info.write_pkpm_diags) {
         gkyl_flash_app_write_pkpm_moms(sbapp, n, tm, frame);
@@ -614,6 +686,14 @@ gkyl_flash_multib_app_release(gkyl_flash_multib_app *mbapp)
   gkyl_free(mbapp->mbcc_sync_kin->recv);
   gkyl_free(mbapp->mbcc_sync_kin->send);
   gkyl_free(mbapp->mbcc_sync_kin);
+
+  for (int b=0; b<mbapp->num_local_blocks; ++b) {
+    gkyl_multib_comm_conn_release(mbapp->mbcc_sync_conf->send[b]);
+    gkyl_multib_comm_conn_release(mbapp->mbcc_sync_conf->recv[b]);
+  }
+  gkyl_free(mbapp->mbcc_sync_conf->recv);
+  gkyl_free(mbapp->mbcc_sync_conf->send);
+  gkyl_free(mbapp->mbcc_sync_conf);
 
   if (!mbapp->skip_fluid_species) {
     for (int b=0; b<mbapp->num_local_blocks; ++b) {

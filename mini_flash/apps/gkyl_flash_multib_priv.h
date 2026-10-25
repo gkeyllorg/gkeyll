@@ -1,6 +1,5 @@
 #pragma once
 
-#include <gkyl_block_geom.h>
 #include <gkyl_block_topo.h>
 #include <gkyl_comm.h>
 #include <gkyl_flash_decomp.h>
@@ -40,8 +39,9 @@ struct gkyl_flash_multib_app {
   // Space for grid decomposition pointers.
   struct gkyl_rect_decomp **decomps_kin, **decomps_flu; // Blockwise grid decomposition.
 
-  struct gkyl_mbcc_sr *mbcc_sync_kin; // Connections for configuration space syncing.
-  struct gkyl_mbcc_sr *mbcc_sync_flu; // Connections for configuration space syncing.
+  struct gkyl_mbcc_sr *mbcc_sync_kin; // Connections for phase-space (distribution function) syncing.
+  struct gkyl_mbcc_sr *mbcc_sync_conf; // Connections for configuration-space syncing on the kinetic grid.
+  struct gkyl_mbcc_sr *mbcc_sync_flu; // Connections for configuration-space syncing on the fluid grid.
 
   double tcurr;
 
@@ -49,3 +49,15 @@ struct gkyl_flash_multib_app {
 
   bool skip_fluid_species; // Flag to not initialize fluid species.
 };
+
+/**
+ * Advance the hybrid system on all blocks by a single timestep using the
+ * SSP-RK3 method. The timestep is the same on every block and rank, is never
+ * larger than the suggested timestep dt0, and is returned in the status struct.
+ *
+ * @param app Multiblock app object.
+ * @param dt0 Suggested timestep.
+ * @return struct gkyl_update_status
+ */
+struct gkyl_update_status
+gkyl_flash_multib_update_ssp_rk3(struct gkyl_flash_multib_app *app, double dt0);

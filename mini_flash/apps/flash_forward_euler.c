@@ -45,25 +45,35 @@ flash_forward_euler(gkyl_flash_app *app, double tcurr, double dt0,
     dtmin = fmin(dtmin, dt1);
   }
 
-  // Advance Euler system with wave propagation algorithm.
+  // Advance Euler system with wave propagation algorithm,
+  // storing fluid timestep to determine if CFL was violated.
+  double dt_flu = DBL_MAX;
   for (int i=0; i<app->num_species; ++i) {
     double dt1 = flash_fluid_species_update(app, tcurr, dt0, &app->species[i], &app->fluid_species[i], fv_fluidin[i], fv_fluidout[i]);
-    dtmin = fmin(dtmin, dt1);
+    dt_flu = fmin(dt_flu, dt1);
   }
+  dtmin = fmin(dtmin, dt_flu);
 
   double dt_max_rel_diff = 0.01;
   // check if dtmin is slightly smaller than dt. Use dt if it is
   // (avoids retaking steps if dt changes are very small).
+  // Not applied if the fluid update failed.
   double dt_rel_diff = (dt0-dtmin)/dt0;
-  if (dt_rel_diff > 0 && dt_rel_diff < dt_max_rel_diff)
+  if (dt_flu >= dt0 && dt_rel_diff > 0 && dt_rel_diff < dt_max_rel_diff)
     dtmin = dt0;
 
   // don't take a time-step larger that input dt
   double dta = st->dt_actual = dt0 < dtmin ? dt0 : dtmin;
   st->dt_suggested = dtmin;
 
+  // If wave propagation update failed earlier due to violating CFL, re-run with the proper timestep.
+  if (dta < dt0) {
+    for (int i=0; i<app->num_species; ++i)
+      flash_fluid_species_update(app, tcurr, dta, &app->species[i], &app->fluid_species[i], fv_fluidin[i], fv_fluidout[i]);
+  }
+
   // Complete forward Euler update of distribution functions,
-  // and apply BCs to distribution functions and Euler variables
+  // and apply BCs to distribution functions and Euler variables.
   for (int i=0; i<app->num_species; ++i) {
     gkyl_array_accumulate(gkyl_array_scale(fout[i], dta), 1.0, fin[i]);
 
