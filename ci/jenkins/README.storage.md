@@ -16,7 +16,7 @@ $GKEYLL_CI_ROOT/runs/<platform>/<BUILD_TAG>/
 ```
 
 `ci-run-path.txt` records the exact path. Platform names are `personal`,
-`team-workstation`, `stellar-cpu`, and `perlmutter-gpu`. Builds use their final
+`team-workstation`, `stellar-cpu`, `stellar-ai-cpu`, and `perlmutter-gpu`. Builds use their final
 paths so embedded library and data paths remain valid. The original prebuilt
 installation receives no results.
 
@@ -78,9 +78,10 @@ baseline's saved runtime when invoking the trusted comparator.
 ## Retention
 
 Jenkins retains all candidate and baseline regression results, then removes its
-temporary workspace. By default only the latest run directory remains, including
-unpacked numerical outputs and a complete independent baseline snapshot. Active
-runs are preserved until they finish.
+temporary workspace. By default the two newest builds per job retain their
+entire run directories, including source, build objects, installed binaries,
+run-local dependencies, numerical outputs, and independent baseline snapshots.
+Active runs are preserved until they finish.
 
 Databases, configs, logs, and other non-`.gkyl` files remain individually
 downloadable at their existing artifact paths. The staging helper copies these
@@ -113,21 +114,36 @@ Use the build's actual archive names (`artifact --build NUMBER --list` lists
 them). For `.tar.gz` archives, substitute `gzip -dc` and `.tar.gz` above. Builds
 created before this packaging change retain their original loose `.gkyl` files.
 
-All four platforms default to retaining two Jenkins builds and their artifacts.
-Set `GKEYLL_CI_BUILDS_TO_KEEP` to a positive count to override it. Jenkins may
-preserve protected builds in addition to this count. Retention takes effect
-when the updated pipeline runs.
-By default `GKEYLL_CI_RETAIN_RUNS=0` enables bounded retention on personal,
-team workstation, Stellar CPU, and Perlmutter:
-startup removes inactive older runs, and completion retains only the most
-recently started run plus any still-active runs. This includes compacted
-archives and run-local dependencies. Unknown owners stop cleanup; drain and
-manually remove older untracked run directories before enabling this policy.
-Set `GKEYLL_CI_RETAIN_RUNS=1` to explicitly retain unlimited run history.
+Personal, team workstation, Stellar CPU, Stellar AI CPU, and Perlmutter default
+to retaining two Jenkins builds, their artifacts, and their **entire run
+directories**. `GKEYLL_CI_BUILDS_TO_KEEP` sets this positive count for both
+Jenkins and disk retention (`--runs-to-keep` in the cache manager).
+Jenkins may preserve explicitly protected builds in addition to this count;
+that protection does not pin their external run directories.
+
+With the default `GKEYLL_CI_RETAIN_RUNS=0`, startup reserves a slot for the
+incoming build and deletes older inactive run directories. Completion retries
+cleanup. Runs are ordered by build number within each job, not modification
+time. Deletion removes the whole directory, including `dependencies/`,
+`candidate/`, and any `run.tar.*` archive. Jenkins and Slurm activity checks
+protect active runs, which can temporarily exceed the limit. Query failures
+preserve files and fail cleanup. Keep the Jenkins read credentials configured.
+
+The next updated build also prunes existing directories whose tags identify
+older builds of the same job, even when Jenkins has discarded their records.
+Unknown owners are never deleted automatically. Managed platforms stop on
+unknown owners; Stellar AI only considers tags belonging to the current job.
+Stellar AI prunes while holding its platform lease; completion pruning requires
+successful artifact archival and Slurm finalization. Deploy the Jenkinsfile and
+`cache_manager.py` together through the trusted CI revision.
+
+`GKEYLL_CI_RETAIN_RUNS=1` explicitly disables run-directory pruning and retains
+unlimited history, overriding the disk count. Leave it unset or `0` to bound
+disk usage. Jenkins history remains bounded by `GKEYLL_CI_BUILDS_TO_KEEP`.
 The reusable baseline cache independently retains one valid entry, deleting the
 outdated entry after its replacement is successfully published; entries still
 used by active builds are removed once those builds finish.
-Jenkins artifact retention remains independent of this setting. Use the [artifact command](README.md#unified-local-command) to retrieve
+Use the [artifact command](README.md#unified-local-command) to retrieve
 archived files.
 
 ## Optional run compaction

@@ -62,7 +62,8 @@ if (buildsToKeep && !(buildsToKeep ==~ /[1-9][0-9]*/)) {
 properties([
     buildDiscarder(logRotator(
         numToKeepStr: buildsToKeep,
-        artifactNumToKeepStr: buildsToKeep
+        artifactNumToKeepStr: buildsToKeep,
+        removeLastBuild: true
     )),
     parameters([
         string(
@@ -131,6 +132,7 @@ def cacheManager(String command, String sha = '') {
                 --auth-file "${CI_JENKINS_READ_AUTH_FILE:-}" \
                 --sha "${CI_CACHE_SHA:-}" --run-layout \
                 --retain-runs "${GKEYLL_CI_RETAIN_RUNS:-0}" \
+                --runs-to-keep "${GKEYLL_CI_BUILDS_TO_KEEP:-2}" \
                 --cache-tool "$CI_BASELINE_CACHE_TOOL"
         ''').trim()
     }

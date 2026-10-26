@@ -68,6 +68,8 @@ class CacheManager:
         self.auth_file = Path(args.auth_file) if args.auth_file else None
         self.run_layout = getattr(args, "run_layout", False)
         self.retain_runs = getattr(args, "retain_runs", "0") == "1"
+        self.runs_to_keep = getattr(args, "runs_to_keep", 2)
+        require(self.runs_to_keep > 0, "runs-to-keep must be positive")
         self.cache_tool = getattr(args, "cache_tool", "")
         self.candidates = self.root / ("runs" if self.run_layout else "candidate-cache") / self.platform
         self.baselines = self.root / "baseline-cache" / self.platform
@@ -126,12 +128,14 @@ class CacheManager:
 
     def slurm_uses_tag(self, tag):
         for path in self.active_slurm_directories():
-            if self.root in path.parents and tag in path.relative_to(self.root).parts:
+            if self.root in path.parents and any(
+                    part == tag or part.startswith(tag + "@")
+                    for part in path.relative_to(self.root).parts):
                 return True
         return False
 
-    def is_live(self, tag):
-        if tag == self.tag:
+    def is_live(self, tag, check_current=False):
+        if tag == self.tag and not check_current:
             return True
         if tag in self.live_cache:
             return self.live_cache[tag]
@@ -150,7 +154,8 @@ class CacheManager:
                 building = json.load(response).get("building")
             require(isinstance(building, bool), f"Jenkins returned no build state: {url}")
         except urllib.error.HTTPError as error:
-            if error.code == 404:
+            error.close()
+            if error.code == 404 and tag != self.tag:
                 building = False
             else:
                 raise RuntimeError(f"Jenkins build-state query failed ({error.code}): {url}") from error
@@ -166,10 +171,76 @@ class CacheManager:
         require(not self.candidates.is_symlink(), "candidate root is a symlink")
         return sorted(path for path in self.candidates.iterdir() if path.is_dir() and not path.is_symlink())
 
+    def prune_runs(self):
+        """Bound one job's run history while its legacy platform lease is held."""
+        require(self.run_layout, "prune-runs requires --run-layout")
+        require(self.runs_to_keep > 0, "runs-to-keep must be positive")
+        prefix = f"jenkins-{self.job.replace('/', '-')}-"
+        require(self.tag == prefix + self.number, "build tag does not match job and number")
+
+        def operation():
+            lease = self.baselines / ".lock" / "owner"
+            require(lease.is_file() and lease.read_text().strip() == self.tag,
+                    "run pruning requires this build's baseline cache lease")
+            require(not (self.root / "runs").is_symlink() and not self.candidates.is_symlink(),
+                    "run root is a symlink")
+            if not self.candidates.exists():
+                return
+            pattern = re.compile(re.escape(prefix) + r"([1-9][0-9]*)\Z")
+            paths = []
+            for path in self.candidates.iterdir():
+                match = pattern.fullmatch(path.name)
+                if match:
+                    require(path.is_dir() and not path.is_symlink(), f"unsafe run directory: {path}")
+                    paths.append(path)
+            self.prune_run_history(paths)
+
+        self.locked(operation)
+
+    def prune_run_history(self, paths):
+        if self.retain_runs:
+            return
+        # Reserve a slot before this build creates its directory, bounding peak
+        # storage as well as completed history. Include the newest registered
+        # build when an older, overlapping build finishes last.
+        tags = {path.name for path in paths} | {self.tag}
+        if self.latest_path.is_file():
+            latest = json.loads(self.latest_path.read_text()).get("tag", "")
+            require(TAG.fullmatch(latest) is not None, "invalid latest run marker")
+            tags.add(latest)
+        jobs = {}
+        for tag in tags:
+            record = self.read_record(tag)
+            require(record is not None, f"cannot identify owner of {tag}; preserve its files")
+            jobs.setdefault(record["job"], []).append((int(record["number"]), tag))
+        selected = {tag for entries in jobs.values()
+                    for _, tag in sorted(entries, reverse=True)[:self.runs_to_keep]}
+        obsolete = [path for path in paths if path.name not in selected]
+        if not obsolete:
+            return
+        # Check every owner before deleting anything. Existing runs need no
+        # migration record if their tags identify a build of the current job.
+        # Verify a known build first: a wrong controller URL or hidden job must
+        # not turn every old build's 404 response into permission to delete it.
+        self.is_live(self.tag, check_current=True)
+        self.active_slurm_directories()
+        removable = []
+        for path in obsolete:
+            if self.is_live(path.name):
+                print(f"cache-manager: preserving active run {path}", file=sys.stderr)
+            else:
+                removable.append(path)
+        for path in removable:
+            remove_tree(path)
+
     def prune_candidates(self, keep_latest=False):
         if self.retain_runs:
             return
         paths = self.candidate_tags()
+        if self.run_layout:
+            require(not self.candidates.parent.is_symlink(), "run root is a symlink")
+            self.prune_run_history(paths)
+            return
         latest = ""
         if keep_latest:
             latest = json.loads(self.latest_path.read_text()).get("tag", "")
@@ -370,7 +441,7 @@ class CacheManager:
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=("begin", "claim-baseline", "publish-baseline", "abort-baseline", "finish"))
+    parser.add_argument("command", choices=("begin", "claim-baseline", "publish-baseline", "abort-baseline", "finish", "prune-runs"))
     parser.add_argument("--root", required=True)
     parser.add_argument("--platform", required=True)
     parser.add_argument("--tag", required=True)
@@ -383,10 +454,12 @@ def main():
     parser.add_argument("--cache-tool", default="", help="trusted baseline_cache.sh validator")
     parser.add_argument("--run-layout", action="store_true", help="manage runs/<platform>/<tag> trees")
     parser.add_argument("--retain-runs", choices=("0", "1"), default="0")
+    parser.add_argument("--runs-to-keep", type=int, default=2, help="entire run directories to retain per job (default: 2)")
     args = parser.parse_args()
-    manager = CacheManager(args)
     try:
-        result = getattr(manager, args.command.replace("-", "_"))(args.sha) if args.command in ("claim-baseline", "publish-baseline", "abort-baseline") else getattr(manager, args.command)()
+        manager = CacheManager(args)
+        operation = getattr(manager, args.command.replace("-", "_"))
+        result = operation(args.sha) if args.command in ("claim-baseline", "publish-baseline", "abort-baseline") else operation()
         if result is not None:
             print(result)
     except (OSError, ValueError, RuntimeError) as error:

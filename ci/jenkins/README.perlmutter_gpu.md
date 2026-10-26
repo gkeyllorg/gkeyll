@@ -175,14 +175,17 @@ System → Global properties → Environment variables**, set:
 | `GKEYLL_CI_TRUSTED_REF` | Optional reviewed branch or full SHA for reporting, regression checking, and cache tools; default `main`. Set it only while staging a CI change |
 | `CI_JENKINS_READ_AUTH_FILE` | Optional agent-readable Jenkins `user:api-token` file; default `$GKEYLL_CI_ROOT/jenkins_home/jenkins-cli.auth`; empty for anonymous reads |
 | `CI_JENKINS_LOCAL_URL` | Optional controller URL reachable from the login agent; default `http://127.0.0.1:8080` |
-| `GKEYLL_CI_RETAIN_RUNS` | Default `0` retains only the latest run plus active runs after Jenkins/Slurm checks; `1` retains unlimited run history |
+| `GKEYLL_CI_BUILDS_TO_KEEP` | Positive count of Jenkins builds, artifacts, and entire run directories to retain per job; default `2` |
+| `GKEYLL_CI_RETAIN_RUNS` | Default `0` enables bounded retention after Jenkins/Slurm checks; `1` retains unlimited disk history |
 
 `GKEYLL_CI_ROOT` retains a separate directory for each build under
 `runs/perlmutter-gpu/`, visible to GPU nodes; see
 [persistent regression data](README.storage.md). After an intentional in-place toolchain or dependency upgrade, change
 `GKEYLL_CI_CACHE_REVISION` to force baseline regeneration in either dependency mode.
-Jenkins defaults to retaining two builds and their artifacts;
-`GKEYLL_CI_BUILDS_TO_KEEP` overrides this count.
+Jenkins defaults to retaining two builds, their artifacts, and their entire run
+directories; `GKEYLL_CI_BUILDS_TO_KEEP` overrides all three counts. Older inactive
+run trees, including dependencies and archives, are deleted at startup and
+completion. Active runs remain protected.
 
 ### Create the one parameterized Pipeline job
 

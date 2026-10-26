@@ -129,10 +129,21 @@ editing the job. The locally installed controller queue hook and launcher are
 separate: update those from a reviewed checkout and restart Jenkins while idle.
 The bootstrap hook does not overwrite administrator changes on restart.
 
-The job retains **two Jenkins builds and their artifacts**, including removal
-of older last-successful/last-stable records. This follows the existing CI
-storage convention: persistent run directories are separate and are not
-pruned by Jenkins build retention. See [storage](README.storage.md).
+The job retains **two Jenkins builds, their artifacts, and their entire run
+directories**. `GKEYLL_CI_BUILDS_TO_KEEP` overrides the count for both Jenkins
+and disk retention. Startup reserves a slot for the incoming build; completion
+prunes again after artifact archival and Slurm cleanup. Older inactive run
+trees are deleted in full, including dependencies and compacted archives.
+Jenkins/Slurm checks preserve active runs; failed checks preserve files and
+fail cleanup. The shared baseline cache is separate. Leave
+`GKEYLL_CI_RETAIN_RUNS` unset or `0`; `1` opts into unlimited disk history.
+
+Pruning reads Jenkins using `$GKEYLL_CI_ROOT/jenkins_home/jenkins-cli.auth` and
+`http://127.0.0.1:8080`. Override `CI_JENKINS_READ_AUTH_FILE` or
+`CI_JENKINS_LOCAL_URL` if needed; an explicitly empty auth-file value permits
+anonymous reads. Deploy both this Jenkinsfile and `cache_manager.py` on the
+trusted CI branch; the next build also cleans up older runs. See
+[storage](README.storage.md#retention).
 
 The baseline lives outside Jenkins workspaces and build records at
 `$GKEYLL_CI_ROOT/baseline-cache/stellar-ai-cpu/<baseline-sha>/`. The first run

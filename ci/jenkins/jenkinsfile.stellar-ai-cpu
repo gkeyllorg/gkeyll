@@ -609,6 +609,21 @@ def finalizeUnfinishedSlurmJob() {
     '''
 }
 
+def pruneRunDirectories(String root, String count) {
+    def authFile = env.CI_JENKINS_READ_AUTH_FILE != null ? env.CI_JENKINS_READ_AUTH_FILE.trim() : "${root}/jenkins_home/jenkins-cli.auth"
+    withEnv(["CI_PRUNE_ROOT=${root}", "CI_PRUNE_COUNT=${count}", "CI_PRUNE_AUTH_FILE=${authFile}"]) {
+        sh '''#!/bin/bash -l
+            set -euo pipefail
+            python3 "$CI_STELLAR_AI_CPU_TOOLS_DIR/ci/jenkins/cache_manager.py" prune-runs \\
+                --root "$CI_PRUNE_ROOT" --platform stellar-ai-cpu --run-layout \\
+                --tag "$BUILD_TAG" --job "$JOB_NAME" --number "$BUILD_NUMBER" \\
+                --url "$BUILD_URL" --controller-url "${CI_JENKINS_LOCAL_URL:-http://127.0.0.1:8080}" \\
+                --auth-file "$CI_PRUNE_AUTH_FILE" --runs-to-keep "$CI_PRUNE_COUNT" \\
+                --retain-runs "${GKEYLL_CI_RETAIN_RUNS:-0}"
+        '''
+    }
+}
+
 def writeCiTimingSummary() {
     sh '''#!/bin/bash -l
         set -euo pipefail
@@ -767,6 +782,7 @@ node(nodeLabel) {
             platform: 'stellar-ai-cpu', pr: candidatePr ?: '', ref: candidateRef ?: '', commit: candidateCommit])
         reporting.withBaselineCache(gkeyllCiRoot, 'stellar-ai-cpu') {
         try {
+            ciStage('Prune inactive CI runs') { pruneRunDirectories(gkeyllCiRoot, buildsToKeep) }
             ciStage('Resolve candidate and baseline') {
                 currentBuild.displayName = "#${env.BUILD_NUMBER} ${candidatePr ? "PR-${candidatePr}" : shortRef(candidateRef)}"
                 if (candidatePr) {
@@ -990,6 +1006,7 @@ node(nodeLabel) {
             throw err
         } finally {
             def slurmFinalized = false
+            def artifactsArchived = false
             try {
                 finalizeUnfinishedSlurmJob()
                 slurmFinalized = true
@@ -1040,6 +1057,7 @@ node(nodeLabel) {
                     }
                     archiveArtifacts allowEmptyArchive: true, excludes: statisticsArchiveExcludes(),
                         artifacts: 'ci-statistics.md,ci-run-path.txt,ci-*-config.mak,ci-dependencies/**,ci-numerical/*.tar.zst,ci-numerical/*.tar.gz,ci-trusted-ci-commit.txt,ci-reporting-commit.txt,ci-selection.txt,ci-baseline-preflight.txt,ci-baseline-cache.txt,ci-trusted-checker-commit.txt,ci-candidate-commit.txt,ci-baseline-commit.txt,ci-report*.md,ci-report*.md.json,ci-report-delivery.json,ci-diagnostic-summary.json,ci-stage-history.txt,ci-stage-timings.json,ci-command-logs/**,baseline-*.log*,baseline-slurm-*,*-unit-results.txt,*-seconds.txt,ci-timing-summary.txt,ci-regression-summary.txt,ci-failure-summary.txt,slurm-*.out,slurm-*-job-id.txt,slurm-*-job-status.txt,build/**/*.log,cuda-build/**/*.log,_baseline/build/**/*.log,_baseline/cuda-build/**/*.log,_baseline/gkylsoft/gkeyll-results/**,gkylsoft/gkeyll-results/**'
+                    artifactsArchived = true
                 } catch (err) {
                     terminalStatus = 'error'
                     terminalDescription = 'Stellar AI CPU CI artifact archival failed.'
@@ -1053,6 +1071,10 @@ node(nodeLabel) {
                                     sh "'${reporting.settings.cacheScript}' compact-run '${gkeyllCiRoot}' 'stellar-ai-cpu'"
                                 }
                             }
+                        }
+                        if (slurmFinalized && artifactsArchived) {
+                            echo "Pruning inactive Stellar AI run directories; keeping newest ${buildsToKeep}."
+                            pruneRunDirectories(gkeyllCiRoot, buildsToKeep)
                         }
                     } finally {
                         deleteDir()

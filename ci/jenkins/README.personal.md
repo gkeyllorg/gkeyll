@@ -75,7 +75,8 @@ and Python with NumPy. Set these global environment variables:
 | `PERSONAL_MPIEXEC` | Optional launcher override for both trees; default is `bin/mpiexec` under the selected MPI installation |
 | `PERSONAL_STATUS_CONTEXT` | Set explicitly for queue reporting, e.g. `continuous-integration/jenkins/personal-<hostname>`; use a distinct context for each computer |
 | `GKEYLL_CI_ROOT` | Required persistent writable root for baseline and candidate source, build, and regression data |
-| `GKEYLL_CI_RETAIN_RUNS` | Default `0` retains the latest run plus active runs; `1` opts into unlimited run history |
+| `GKEYLL_CI_BUILDS_TO_KEEP` | Positive count of Jenkins builds, artifacts, and entire run directories to retain per job; default `2` |
+| `GKEYLL_CI_RETAIN_RUNS` | Default `0` enables bounded run retention; `1` opts into unlimited disk history |
 | `CI_JENKINS_LOCAL_URL` | Optional controller URL reachable from the agent for cache cleanup; defaults to the controller in `BUILD_URL`. Container workers should use the controller's container-network address. |
 | `GKEYLL_CI_TRUSTED_REF` | Default branch or full SHA for the personal Jenkinsfile and CI helpers; default `main`. A run's `CI_REF` overrides it |
 
@@ -252,10 +253,11 @@ failure when exited children are not being reaped.
 
 ## Run storage
 
-Jenkins defaults to retaining two builds and their artifacts;
-`GKEYLL_CI_BUILDS_TO_KEEP` overrides this count. The team workstation uses
-this same workflow. By default only the latest run directory is retained, plus
-any still-active runs; outdated baseline caches are removed after replacement.
+Jenkins defaults to retaining two builds, their artifacts, and their entire run
+directories; `GKEYLL_CI_BUILDS_TO_KEEP` overrides all three counts. The team
+workstation uses this same workflow. Startup reserves space for the incoming
+run by deleting older inactive run trees, including dependencies and archives.
+Active runs remain protected; outdated baseline caches are removed after replacement.
 Set `GKEYLL_CI_RETAIN_RUNS=1` only to opt into unlimited run history;
 see [storage and retention](README.storage.md#retention).
 

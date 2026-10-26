@@ -194,7 +194,7 @@ if (buildsToKeep && !(buildsToKeep ==~ /[1-9][0-9]*/)) {
     error('GKEYLL_CI_BUILDS_TO_KEEP must be a positive build count (default: 2).')
 }
 def jobProperties = [
-    buildDiscarder(logRotator(numToKeepStr: buildsToKeep, artifactNumToKeepStr: buildsToKeep)),
+    buildDiscarder(logRotator(numToKeepStr: buildsToKeep, artifactNumToKeepStr: buildsToKeep, removeLastBuild: true)),
     disableConcurrentBuilds(),
     parameters(ciParameters)
 ]
@@ -287,6 +287,7 @@ def cacheManager(String command, String sha = '') {
                 --controller-url "${CI_JENKINS_LOCAL_URL:-}" \
                 --sha "${CI_CACHE_SHA:-}" --run-layout \
                 --retain-runs "${GKEYLL_CI_RETAIN_RUNS:-0}" \
+                --runs-to-keep "${GKEYLL_CI_BUILDS_TO_KEEP:-2}" \
                 --cache-tool "$CI_BASELINE_CACHE_TOOL"
         ''').trim()
     }

@@ -14,6 +14,7 @@ baseline snapshots without running simulations:
 
 ```sh
 python3 ci/jenkins/test_cache_manager.py
+java -cp /path/to/groovy-all.jar groovy.ui.GroovyMain ci/jenkins/tests/test_run_retention.groovy
 bash ci/jenkins/tests/test_baseline_cache.sh
 TEST_CACHE_PLATFORM=stellar-ai-cpu bash ci/jenkins/tests/test_baseline_cache.sh
 python3 -m unittest -v ci.jenkins.tests.test_artifact_staging ci.jenkins.tests.test_run_compaction

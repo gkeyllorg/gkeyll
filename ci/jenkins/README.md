@@ -111,9 +111,10 @@ baseline is reused from `baseline-cache/<platform>/<baseline-sha>/`.
 Jenkins archives full regression results, packing numerical outputs into
 candidate and baseline archives while leaving diagnostics individually
 downloadable, then removes its temporary workspace.
-Jenkins defaults to retaining two builds and their artifacts.
-By default only the latest run directory and one reusable baseline cache are
-retained per platform, plus any entries still needed by active builds.
+`GKEYLL_CI_BUILDS_TO_KEEP` defaults to `2` and limits both Jenkins builds with
+their artifacts and entire run directories per job on every platform.
+One reusable baseline cache is retained per platform, plus any entries still
+needed by active builds. Active run directories are protected during pruning.
 See [storage and caching](README.storage.md) for layout, cache invalidation,
 concurrency, and cleanup.
 
