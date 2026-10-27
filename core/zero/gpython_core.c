@@ -1,13 +1,13 @@
-/* gpython.c — implementation of the postgkyl support API (gkyl_gpython.h).
+/* gpython_core.c — implementation of the postgkyl support API (gkyl_gpython_core.h).
  *
  * Compiled into libg0core.so alongside the code it wraps, so the shim and
  * the library can never drift apart. Every struct field access, signature,
  * and by-value convention below is checked by the C compiler against the
  * headers in this tree: a core API change that affects the shim fails this
  * build, here at the producer, instead of corrupting postgkyl's data at
- * runtime. Consumers see only gkyl_gpython.h (opaque handles + scalars).
+ * runtime. Consumers see only gkyl_gpython_core.h (opaque handles + scalars).
  */
-#include <gkyl_gpython.h>
+#include <gkyl_gpython_core_priv.h>
 
 #include <assert.h>
 #include <stdlib.h>
@@ -39,13 +39,6 @@ gpython_api_version(void)
 {
   return GPYTHON_API_VERSION;
 }
-
-/* The handles are the gkyl objects themselves; the opaque gpython types exist
- * so that no gkyl type is ever named in gpython.h. */
-#define ARR(a) ((struct gkyl_array *)(a))
-#define CARR(a) ((const struct gkyl_array *)(a))
-#define BAS(b) ((struct gkyl_basis *)(b))
-#define CBAS(b) ((const struct gkyl_basis *)(b))
 
 /* ---- arrays ------------------------------------------------------------ */
 gpython_array *
@@ -736,7 +729,7 @@ gpython_write_field(
 }
 
 /* ---- dynvector (time-series) I/O ------------------------------------------
- * The dynvec object itself never crosses gkyl_gpython.h: it is created, filled,
+ * The dynvec object itself never crosses gkyl_gpython_core.h: it is created, filled,
  * and released entirely inside this function, and its contents move to the
  * caller only as gpython_arrays (already opaque, already RAII'd). */
 int

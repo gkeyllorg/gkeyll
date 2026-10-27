@@ -514,7 +514,7 @@ gk_species_damping_calc_fbar_mom_dt_same_basis(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, double dt, struct gkyl_array *mom
 )
 {
-  gk_species_moment_calc(&gks->integ_moms, gks->local, app->local, gks->damping.fbar);
+  gk_species_moment_calc(app, &gks->integ_moms, gks->local, app->local, gks->damping.fbar);
   gkyl_array_set(mom, 1.0 / dt, gks->integ_moms.marr);
 }
 
@@ -525,7 +525,9 @@ gk_species_damping_calc_fbar_mom_dt_cellwise_const(
 {
   gkyl_array_clear(gks->damping.fbar_mom_buffer, 0.0);
   gkyl_array_set_offset(gks->damping.fbar_mom_buffer, 1.0, gks->damping.fbar, 0);
-  gk_species_moment_calc(&gks->integ_moms, gks->local, app->local, gks->damping.fbar_mom_buffer);
+  gk_species_moment_calc(
+    app, &gks->integ_moms, gks->local, app->local, gks->damping.fbar_mom_buffer
+  );
   gkyl_array_set(mom, 1.0 / dt, gks->integ_moms.marr);
 }
 

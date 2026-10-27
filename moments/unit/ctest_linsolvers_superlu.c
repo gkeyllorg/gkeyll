@@ -7,16 +7,6 @@
 
 #include <stdbool.h>
 
-void test_cusolver_qr_dev();
-void test_cusolver_rf_dev();
-void test_cusolver_ops_dev();
-void test_cusolver_ops_multiple_rhs_dev();
-void test_cusolver_ops_multiple_prob_dev();
-void test_cudss_simple_dev();
-void test_cudss_ops_dev();
-void test_cudss_ops_update_amat_dev();
-void test_cudss_ops_multiple_rhs_dev();
-
 void
 test_slu_example_ho()
 {
@@ -630,19 +620,5 @@ TEST_LIST = {
   {"superlu_ops_separateLU_ho", test_superlu_ops_separateLU_ho},
   {"superlu_ops_multiple_prob_ho", test_superlu_ops_multiple_prob_ho},
   {"superlu_ops_multiple_prob_update_amat_ho", test_superlu_ops_multiple_prob_update_amat_ho},
-#ifdef GKYL_HAVE_CUDA
-#ifdef GKYL_HAVE_CUDSS
-  {"cudss_simple_dev", test_cudss_simple_dev},
-  {"cudss_ops_dev", test_cudss_ops_dev},
-  {"cudss_ops_update_amat_dev", test_cudss_ops_update_amat_dev},
-  {"cudss_ops_multiple_rhs_dev", test_cudss_ops_multiple_rhs_dev},
-#else
-  {"cusolver_qr_dev", test_cusolver_qr_dev},
-  {"cusolver_rf_dev", test_cusolver_rf_dev},
-  {"cusolver_ops_dev", test_cusolver_ops_dev},
-  {"cusolver_ops_multiple_rhs_dev", test_cusolver_ops_multiple_rhs_dev},
-  {"cusolver_ops_multiple_prob_dev", test_cusolver_ops_multiple_prob_dev},
-#endif
-#endif
   {NULL, NULL}
 };

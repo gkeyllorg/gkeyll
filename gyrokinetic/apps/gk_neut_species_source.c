@@ -3,59 +3,78 @@
 
 void
 gk_neut_species_source_init(
-  struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s, struct gk_source *src
+  struct gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gk_source *src
 )
 {
-  src->source_id = s->info.source.source_id;
+  src->source_id = gkns->info.source.source_id;
 
   if (src->source_id) {
-    int vdim = s->info.vdim;
+    int vdim = gkns->info.vdim;
     // we need to ensure source has same shape as distribution function
-    src->source = mkarr(app->use_gpu, s->basis.num_basis, s->local_ext.volume);
+    src->source = mkarr(app->use_gpu, gkns->basis.num_basis, gkns->local_ext.volume);
     src->source_host = src->source;
     if (app->use_gpu) {
-      src->source_host = mkarr(false, s->basis.num_basis, s->local_ext.volume);
+      src->source_host = mkarr(false, gkns->basis.num_basis, gkns->local_ext.volume);
     }
 
-    src->evolve = s->info.source.evolve; // Whether the source is time dependent.
+    src->evolve = gkns->info.source.evolve; // Whether the source is time dependent.
 
-    src->num_sources = s->info.source.num_sources;
-    for (int k = 0; k < s->info.source.num_sources; k++) {
-      gk_neut_species_projection_init(app, s, s->info.source.projection[k], &src->proj_source[k]);
+    src->num_sources = gkns->info.source.num_sources;
+    if (src->source_id == GKYL_SOURCE_FROMFILE) {
+      // A file-imported source shape is static: no time dependence.
+      assert(!src->evolve);
+      struct gkyl_array *fdo = mkarr(app->use_gpu, gkns->basis.num_basis, gkns->local_ext.volume);
+      gkyl_array_clear(src->source, 0.0);
+      for (int k = 0; k < gkns->info.source.num_sources; k++) {
+        assert(!gkns->info.source.source_import[k].enforce_positivity
+        ); // Not supported for sources yet.
+        gk_neut_species_kinetic_read_distf_from_file(
+          app, gkns, gkns->info.source.source_import[k], fdo
+        );
+        gkyl_array_accumulate(src->source, 1., fdo);
+      }
+      gkyl_array_release(fdo);
+    } else {
+      for (int k = 0; k < gkns->info.source.num_sources; k++) {
+        gk_neut_species_projection_init(
+          app, gkns, gkns->info.source.projection[k], &src->proj_source[k]
+        );
+      }
     }
 
     // Allocate data and updaters for diagnostic moments.
-    src->num_diag_mom = s->info.num_diag_moments;
-    s->src.moms = gkyl_malloc(sizeof(struct gk_species_moment[src->num_diag_mom]));
+    src->num_diag_mom = gkns->info.num_diag_moments;
+    gkns->src.moms = gkyl_malloc(sizeof(struct gk_species_moment[src->num_diag_mom]));
     for (int m = 0; m < src->num_diag_mom; ++m) {
-      gk_neut_species_moment_init(app, s, &s->src.moms[m], s->info.diag_moments[m], false);
+      gk_neut_species_moment_init(app, gkns, &gkns->src.moms[m], gkns->info.diag_moments[m], false);
     }
 
     // Allocate data and updaters for integrated moments.
-    gk_neut_species_moment_init(app, s, &s->src.integ_moms, GKYL_F_MOMENT_M0M1M2, true);
-    int num_mom = s->src.integ_moms.num_mom;
+    gk_neut_species_moment_init(app, gkns, &gkns->src.integ_moms, GKYL_F_MOMENT_M0M1M2, true);
+    int num_mom = gkns->src.integ_moms.num_mom;
     if (app->use_gpu) {
-      s->src.red_integ_diag = gkyl_cu_malloc(sizeof(double[num_mom]));
-      s->src.red_integ_diag_global = gkyl_cu_malloc(sizeof(double[num_mom]));
+      gkns->src.red_integ_diag = gkyl_cu_malloc(sizeof(double[num_mom]));
+      gkns->src.red_integ_diag_global = gkyl_cu_malloc(sizeof(double[num_mom]));
     } else {
-      s->src.red_integ_diag = gkyl_malloc(sizeof(double[num_mom]));
-      s->src.red_integ_diag_global = gkyl_malloc(sizeof(double[num_mom]));
+      gkns->src.red_integ_diag = gkyl_malloc(sizeof(double[num_mom]));
+      gkns->src.red_integ_diag_global = gkyl_malloc(sizeof(double[num_mom]));
     }
     // allocate dynamic-vector to store all-reduced integrated moments
-    s->src.integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, num_mom);
-    s->src.is_first_integ_write_call = true;
+    gkns->src.integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, num_mom);
+    gkns->src.is_first_integ_write_call = true;
   }
 }
 
 void
 gk_neut_species_source_calc(
-  gkyl_gyrokinetic_app *app, struct gk_neut_species *s, struct gk_source *src,
+  gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gk_source *src,
   struct gkyl_array *f_buffer, double tm
 )
 {
-  if (src->source_id) {
-    for (int k = 0; k < s->info.source.num_sources; k++) {
-      gk_neut_species_projection_calc(app, s, &src->proj_source[k], f_buffer, tm);
+  // A file-imported source's shape was already read once in gk_neut_species_source_init.
+  if (src->source_id && src->source_id != GKYL_SOURCE_FROMFILE) {
+    for (int k = 0; k < gkns->info.source.num_sources; k++) {
+      gk_neut_species_projection_calc(app, gkns, &src->proj_source[k], f_buffer, tm);
       gkyl_array_accumulate(src->source, 1., f_buffer);
     }
   }
@@ -64,7 +83,7 @@ gk_neut_species_source_calc(
 // Compute rhs of the source
 void
 gk_neut_species_source_rhs(
-  gkyl_gyrokinetic_app *app, const struct gk_neut_species *species, struct gk_source *src,
+  gkyl_gyrokinetic_app *app, const struct gk_neut_species *gkns, struct gk_source *src,
   const struct gkyl_array *fin, struct gkyl_array *rhs
 )
 {
@@ -141,7 +160,9 @@ gk_neut_species_source_write_mom(
 
     for (int m = 0; m < gkns->info.num_diag_moments; ++m) {
       struct timespec wst = gkyl_wall_clock();
-      gk_neut_species_moment_calc(&gkns->src.moms[m], gkns->local, app->local, gkns->src.source);
+      gk_neut_species_moment_calc(
+        app, &gkns->src.moms[m], gkns->local, app->local, gkns->src.source
+      );
       app->stat.n_neut_mom += 1;
 
       // Rescale moment by inverse of Jacobian if needed.
@@ -189,7 +210,9 @@ gk_neut_species_source_calc_integrated_mom(
     int vdim = gkns->info.vdim;
     int num_mom = gkns->src.integ_moms.num_mom;
     double avals_global[num_mom];
-    gk_neut_species_moment_calc(&gkns->src.integ_moms, gkns->local, app->local, gkns->src.source);
+    gk_neut_species_moment_calc(
+      app, &gkns->src.integ_moms, gkns->local, app->local, gkns->src.source
+    );
     app->stat.n_neut_mom += 1;
 
     // reduce to compute sum over whole domain, append to diagnostics
@@ -265,8 +288,10 @@ gk_neut_species_source_release(const struct gkyl_gyrokinetic_app *app, const str
     if (app->use_gpu) {
       gkyl_array_release(src->source_host);
     }
-    for (int k = 0; k < src->num_sources; k++) {
-      gk_neut_species_projection_release(app, &src->proj_source[k]);
+    if (src->source_id != GKYL_SOURCE_FROMFILE) {
+      for (int k = 0; k < src->num_sources; k++) {
+        gk_neut_species_projection_release(app, &src->proj_source[k]);
+      }
     }
 
     // Release moment data.

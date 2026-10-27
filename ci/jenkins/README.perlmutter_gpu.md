@@ -152,11 +152,17 @@ System → Global properties → Environment variables**, set:
 | `PERLMUTTER_GPU_REGRESSION_TIME` | Optional; default `04:00:00` |
 | `PERLMUTTER_GPU_REGRESSION_JOBS` | Optional; default `4` |
 | `PERLMUTTER_GPU_REGRESSION_TEST_TIMEOUT` | Optional; default `900` |
-| `GKEYLL_CI_TRUSTED_REF` | Optional reviewed branch or full SHA for `github_report.py` and `check_regression_results.lua`; default `main`. Set it only while staging a CI change |
+| `GKEYLL_CI_TRUSTED_REF` | Optional reviewed branch or full SHA for CI reporting, regression checking, and cache tools; default `main`. Set it only while staging a CI change |
+| `CI_JENKINS_READ_AUTH_FILE` | Optional agent-readable Jenkins `user:api-token` file; default `$GKEYLL_CI_ROOT/jenkins_home/jenkins-cli.auth` |
+| `CI_JENKINS_LOCAL_URL` | Optional Jenkins API URL reachable from the login-side agent; default `http://127.0.0.1:8080`. Use the server port, not the laptop SSH tunnel port |
 
-`GKEYLL_CI_ROOT` retains SHA-addressed baseline and candidate build/result directories
-visible to GPU nodes. Remove `baseline-cache/perlmutter-gpu` manually after an
-intentional toolchain change that must force baseline regeneration.
+`GKEYLL_CI_ROOT` retains the baseline and latest candidate build/results visible
+to GPU nodes. The next run removes inactive old candidates and build-tag
+workspaces after checking Jenkins and Slurm; parallel runs require a shared
+filesystem with working `flock` and enough Jenkins executors. Drain older runs
+before deploying the new cache layout. Remove `baseline-cache/perlmutter-gpu`
+manually after an intentional toolchain change that must force baseline
+regeneration.
 
 ### Create the one parameterized Pipeline job
 

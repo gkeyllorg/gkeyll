@@ -25,12 +25,21 @@ There may also be some additional auxiliary private or public functions.
   and freed in the release function, using the appropriate gkyl_ allocation/deallocation functions when possible.
 - Don't place logic branching (e.g. if-statements) that depend on a
   time-independent choice or parameter inside the methods called in the time loop of a simulation
+ 
   (e.g. _advance). Instead, use function pointers to set the appropriate method during the initialization
+ 
   of the module, and call that method inside the time loop.
 - Function signatures in header files should contain a brief comment describing
   what the function does, and a description of each argument following existing styles.
+- Comments should follow standard English grammar rules, and culminate with a period (.).
 - Methods to initialize an updater in zero/ which take all arguments inside a
   single input struct should have a name with the suffix _inew (instead of _new).
+- Gkeyll simulations on a GPU run entirely on the device and only copy between device and host (or
+  viceversa) during initialization or for I/O. The only exception are copying very small arrays
+  (1-64 numbers) for things like reducing the CFL constraint or time step. Do not copy between host
+  and device unnecessarily.
+- Avoid forward declarations in .c and .cu files; just place functions higher
+  up the file.
 
 ### Other principles to follow
 

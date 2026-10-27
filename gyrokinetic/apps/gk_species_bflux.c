@@ -322,7 +322,8 @@ gk_species_bflux_calc_moms_enabled(
 
     for (int m = 0; m < bflux->num_calc_moms; m++) {
       gk_species_moment_calc(
-        &bflux->moms_op[m], *bflux->boundaries_phase_ghost[b], *bflux->boundaries_conf_ghost[b], rhs
+        app, &bflux->moms_op[m], *bflux->boundaries_phase_ghost[b],
+        *bflux->boundaries_conf_ghost[b], rhs
       );
 
       gkyl_array_copy_range(

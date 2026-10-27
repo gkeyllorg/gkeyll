@@ -18,6 +18,7 @@
 #
 # Example:
 # gyrokinetic/rt_gk_ion_sound_1x2v_p1   # updated collision-operator normalization
+
 gyrokinetic/creg/rt_gk_mirror_boltz_elc_damped_1x2v_p1	# Modified in this PR
 gyrokinetic/creg/rt_gk_mirror_boltz_elc_poa_1x2v_p1	# Modified in this PR
 gyrokinetic/creg/rt_gk_wham_1x2v_p1 # Modified in this PR

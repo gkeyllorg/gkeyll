@@ -31,6 +31,10 @@ printf '%s:%s\n' '<jenkins-user>' '<jenkins-api-token>' > "$HOME/.config/gkeyll/
 chmod 600 "$HOME/.config/gkeyll/jenkins/personal.auth"
 ```
 
+The CI agent also reads this file to determine whether an older build is still
+running before pruning its cache. If the agent uses another Unix account, set
+`CI_JENKINS_READ_AUTH_FILE` to an agent-readable mode-600 `user:api-token` file.
+
 ### Create the GitHub credential
 
 Create a classic GitHub PAT with only the `public_repo` scope and a short

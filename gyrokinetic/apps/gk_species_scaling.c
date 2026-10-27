@@ -1,5 +1,31 @@
 #include <assert.h>
 #include <gkyl_gyrokinetic_priv.h>
+#include <gkyl_gk_fluid_moments.h>
+
+// The target density includes J. Scale all conserved fields by the density ratio.
+static void
+gk_species_scaling_set_density_fluid(
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gkyl_array *fin,
+  struct gkyl_array *density
+)
+{
+  gkyl_gk_fluid_moments_set_density(gks->m0.gf_moms, &app->local, density, fin);
+}
+
+static void
+gk_species_scaling_set_density_kinetic(
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gkyl_array *fin,
+  struct gkyl_array *density
+)
+{
+  gk_species_moment_calc(app, &gks->m0, gks->local, app->local, fin);
+  gkyl_dg_div_op_range(
+    gks->m0.mem_geo, &app->basis, 0, density, 0, density, 0, gks->m0.marr, &app->local
+  );
+  gkyl_dg_mul_conf_phase_op_range(
+    &app->basis, &gks->basis, fin, density, fin, &app->local, &gks->local
+  );
+}
 
 static void
 gk_species_scaling_cross_moms_disabled(
@@ -20,31 +46,17 @@ gk_species_scaling_rhs_disabled(
 }
 
 static void
-gk_species_scaling_apply_fixed_fraction(
+gk_species_scaling_apply_fixed_fraction_fluid(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_scaling *sca, struct gkyl_array *fin,
   struct gkyl_array **bflux[]
 )
 {
   struct gk_species *gks_ref = &app->species[sca->ref_species_idx];
 
-  // Reciprocal of the density of this species.
-  struct gkyl_array *m0_inv = gks->lte.moms.marr;
-  gk_species_moment_calc(&gks->m0, gks->local, app->local, fin);
-  gkyl_dg_inv_op_range(&app->basis, 0, m0_inv, 0, gks->m0.marr, &app->local);
-
-  // Density of the reference species.
-  gk_species_moment_calc(&gks_ref->m0, gks_ref->local, app->local, gks_ref->f);
-
-  // Ratio of the densities.
-  struct gkyl_array *m0ratio = gks->m0.marr;
-  gkyl_dg_mul_op_range(&app->basis, 0, m0ratio, 0, m0_inv, 0, gks_ref->m0.marr, &app->local);
-
-  // Multiply this species by ratio of densities times fixed_fraction.
-  gkyl_array_scale_range(m0ratio, sca->fixed_fraction, &app->local);
-
-  gkyl_dg_mul_conf_phase_op_range(
-    &app->basis, &gks->basis, fin, m0ratio, fin, &app->local, &gks->local
-  );
+  gk_species_moment_calc(app, &gks_ref->m0, gks_ref->local, app->local, gks_ref->f);
+  struct gkyl_array *target = sca->buffer_conf;
+  gkyl_array_set_range(target, sca->fixed_fraction, gks_ref->m0.marr, &app->local);
+  sca->set_density_func(app, gks, fin, target);
 }
 
 static void
@@ -79,7 +91,7 @@ copy_lower_z_ghost_to_all_z_conf(
 }
 
 static void
-gk_species_scaling_apply_boltzmann(
+gk_species_scaling_boltzmann_density(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_scaling *sca, struct gkyl_array *fin,
   struct gkyl_array **bflux[]
 )
@@ -87,7 +99,7 @@ gk_species_scaling_apply_boltzmann(
   struct gk_species *gks_ref = &app->species[sca->ref_species_idx];
 
   // Compute density and temperature.
-  gk_species_moment_calc(&gks->lte.moms, gks->local, app->local, fin);
+  gk_species_moment_calc(app, &gks->lte.moms, gks->local, app->local, fin);
   gkyl_dg_div_op_range(
     gks->lte.moms.mem_geo, &app->basis, 0, gks->lte.moms.marr, 0, gks->lte.moms.marr, 0,
     app->gk_geom->geo_int.jacobgeo, &app->local
@@ -123,6 +135,57 @@ gk_species_scaling_apply_boltzmann(
   gkyl_dg_mul_op_range(
     &app->basis, 0, sca->buffer_conf, 0, sca->sheath_val, 0, m0_boltz, &app->local
   );
+}
+
+static void
+gk_species_scaling_apply_boltzmann_fluid(
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_scaling *sca, struct gkyl_array *fin,
+  struct gkyl_array **bflux[]
+)
+{
+  gk_species_scaling_boltzmann_density(app, gks, sca, fin, bflux);
+  gkyl_dg_mul_op_range(
+    &app->basis, 0, sca->buffer_conf, 0, sca->buffer_conf, 0, app->gk_geom->geo_int.jacobgeo,
+    &app->local
+  );
+  sca->set_density_func(app, gks, fin, sca->buffer_conf);
+}
+
+static void
+gk_species_scaling_apply_fixed_fraction_kinetic(
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_scaling *sca, struct gkyl_array *fin,
+  struct gkyl_array **bflux[]
+)
+{
+  struct gk_species *gks_ref = &app->species[sca->ref_species_idx];
+
+  // Reciprocal of the density of this species.
+  struct gkyl_array *m0_inv = gks->lte.moms.marr;
+  gk_species_moment_calc(app, &gks->m0, gks->local, app->local, fin);
+  gkyl_dg_inv_op_range(&app->basis, 0, m0_inv, 0, gks->m0.marr, &app->local);
+
+  // Density of the reference species.
+  gk_species_moment_calc(app, &gks_ref->m0, gks_ref->local, app->local, gks_ref->f);
+
+  // Ratio of the densities.
+  struct gkyl_array *m0ratio = gks->m0.marr;
+  gkyl_dg_mul_op_range(&app->basis, 0, m0ratio, 0, m0_inv, 0, gks_ref->m0.marr, &app->local);
+
+  // Multiply this species by ratio of densities times fixed_fraction.
+  gkyl_array_scale_range(m0ratio, sca->fixed_fraction, &app->local);
+
+  gkyl_dg_mul_conf_phase_op_range(
+    &app->basis, &gks->basis, fin, m0ratio, fin, &app->local, &gks->local
+  );
+}
+
+static void
+gk_species_scaling_apply_boltzmann_kinetic(
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_scaling *sca, struct gkyl_array *fin,
+  struct gkyl_array **bflux[]
+)
+{
+  gk_species_scaling_boltzmann_density(app, gks, sca, fin, bflux);
 
   // Reciprocal of the density.
   struct gkyl_array *m0_inv = gks->m0.marr;
@@ -136,6 +199,25 @@ gk_species_scaling_apply_boltzmann(
   gkyl_dg_mul_conf_phase_op_range(
     &app->basis, &gks->basis, fin, m0ratio, fin, &app->local, &gks->local
   );
+}
+
+static void
+gk_species_scaling_apply_adiabatic(
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_scaling *sca, struct gkyl_array *fin,
+  struct gkyl_array **bflux[]
+)
+{
+  const struct gk_field *field = app->field;
+  struct gkyl_array *dens = sca->dens_adiab;
+
+  // n_s*J = n_s0*J*(1 - q_s*(phi-<phi>)/T_s) = (q_s*n_s0*J - K_s*(phi-<phi>))/q_s, with the
+  // background charge density and K_s of this species (from its t=0 moments).
+  field->gk_adiab.dphi_func(app, field, field->phi_smooth, dens);
+  gkyl_dg_mul_op_range(&app->basis, 0, dens, 0, sca->kJ, 0, dens, &app->local);
+  gkyl_array_accumulate_range(dens, -1.0, sca->rho_bg, &app->local);
+  gkyl_array_scale_range(dens, -1.0 / gks->info.charge, &app->local);
+
+  sca->set_density_func(app, gks, fin, dens);
 }
 
 static void
@@ -189,6 +271,9 @@ gk_species_scaling_init(
 {
   struct gkyl_gyrokinetic_scaling_inp *sca_inp = &gks->info.scaling;
 
+  sca->set_density_func = gks->is_fluid ? gk_species_scaling_set_density_fluid :
+                                          gk_species_scaling_set_density_kinetic;
+
   sca->type = 0;
   sca->cross_moms_func = gk_species_scaling_cross_moms_disabled;
   sca->rhs_func = gk_species_scaling_rhs_disabled;
@@ -199,9 +284,11 @@ gk_species_scaling_init(
     sca->type = sca_inp->type;
     sca->write_diagnostics = sca_inp->write_diagnostics;
 
+    sca->buffer_conf = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     sca->fixed_fraction = sca_inp->fixed_fraction;
 
-    sca->apply_func = gk_species_scaling_apply_fixed_fraction;
+    sca->apply_func = gks->is_fluid ? gk_species_scaling_apply_fixed_fraction_fluid :
+                                      gk_species_scaling_apply_fixed_fraction_kinetic;
     if (sca->write_diagnostics) {
       sca->write_func = gk_species_scaling_write_enabled;
     } else {
@@ -214,13 +301,38 @@ gk_species_scaling_init(
     sca->proj_exp =
       gkyl_proj_exp_on_basis_new(&app->basis, app->basis.poly_order + 1, app->use_gpu);
 
-    sca->apply_func = gk_species_scaling_apply_boltzmann;
+    sca->apply_func = gks->is_fluid ? gk_species_scaling_apply_boltzmann_fluid :
+                                      gk_species_scaling_apply_boltzmann_kinetic;
     if (sca->write_diagnostics) {
       sca->write_func = gk_species_scaling_write_enabled;
     } else {
       sca->write_func = gk_species_scaling_write_disabled;
     }
+  } else if (sca_inp->type == GKYL_GK_SPECIES_SCALING_ADIABATIC) {
+    sca->type = sca_inp->type;
+    sca->rho_bg = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    sca->kJ = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    sca->dens_adiab = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    sca->apply_func = gk_species_scaling_apply_adiabatic;
   }
+}
+
+void
+gk_species_scaling_adiabatic_init(
+  struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_scaling *sca
+)
+{
+  double q_s = gks->info.charge;
+
+  // Maxwellian moments n_s0*J, upar and T_s/m_s.
+  struct gk_species_moment *moms = &gks->lte.moms;
+  gk_species_moment_calc(app, moms, gks->local, app->local, gks->f);
+
+  gkyl_array_set_offset(sca->rho_bg, q_s, moms->marr, 0);
+  gkyl_dg_div_op_range(
+    moms->mem_geo, &app->basis, 0, sca->kJ, 0, moms->marr, 2, moms->marr, &app->local
+  );
+  gkyl_array_scale(sca->kJ, q_s * q_s / gks->info.mass);
 }
 
 void
@@ -285,9 +397,14 @@ void
 gk_species_scaling_release(const struct gkyl_gyrokinetic_app *app, const struct gk_scaling *sca)
 {
   if (sca->type == GKYL_GK_SPECIES_SCALING_FIXED_FRACTION) {
+    gkyl_array_release(sca->buffer_conf);
   } else if (sca->type == GKYL_GK_SPECIES_SCALING_BOLTZMANN) {
     gkyl_proj_exp_on_basis_release(sca->proj_exp);
     gkyl_array_release(sca->sheath_val);
     gkyl_array_release(sca->buffer_conf);
+  } else if (sca->type == GKYL_GK_SPECIES_SCALING_ADIABATIC) {
+    gkyl_array_release(sca->rho_bg);
+    gkyl_array_release(sca->kJ);
+    gkyl_array_release(sca->dens_adiab);
   }
 }

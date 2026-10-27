@@ -11,22 +11,30 @@ typedef struct gkyl_array_average gkyl_array_average;
 // Input of the new routine is packaged as a struct
 typedef struct gkyl_array_average_inp gkyl_array_average_inp;
 /**
- * The input structure contains the parameters required to perform a weighted array average:
- * 
+ * The input structure contains the parameters required to perform an array average:
+ *
  * @param grid Pointer to the computational grid, used to compute the surface element.
- * @param basis Total basis, describes the full dimensionality (ndim), polynomial type, and order.
- * @param basis_avg Subset basis, describes the reduced dimensionality, polynomial type, and order for the output.
- * @param local Full range of the input array, covering all dimensions of the total basis.
- * @param local_avg Reduced range of the output array, covering only the non-averaged dimensions.
- * @param local_avg_ext Extended reduced range of the output array, used only to define the integrated weight.
- * @param weight Pointer to the array containing weight for the averaging process.
- * @param avg_dim Flag array to set which dimension is averaged
+ * @param basis Basis of the input array.
+ * @param basis_avg Basis of the output array, i.e. the basis spanned by the non-averaged dimensions
+ *   (ignored if full_dim_out=true).
+ * @param vdim Number of velocity-space dimensions of the input array (0 for a conf-space array).
+ * @param full_dim_out If true the output array has the basis and range of the input array.
+ * @param local Range of the input array.
+ * @param local_avg Range of the output array, covering only the non-averaged dimensions
+ *   (ignored if full_dim_out=true).
+ * @param local_avg_ext Extended range of the output array, used only to size the integrated weight
+ *   (the extended range of local if full_dim_out=true).
+ * @param weight Pointer to the array containing the weight (same basis and range as the input
+ *   array), or NULL for an unweighted average. Only supported for conf-space arrays.
+ * @param avg_dim Flag array (size ndim) selecting the dimensions to average.
  * @param use_gpu Boolean flag indicating whether the computation should be performed on a GPU.
  */
 struct gkyl_array_average_inp {
   const struct gkyl_rect_grid *grid;
   const struct gkyl_basis basis;
   const struct gkyl_basis basis_avg;
+  int vdim;
+  bool full_dim_out;
   const struct gkyl_range *local;
   const struct gkyl_range *local_avg;
   const struct gkyl_range *local_avg_ext;
@@ -37,12 +45,12 @@ struct gkyl_array_average_inp {
 
 /**
  * Create a new updater that computes the weighted average of a gkyl_array.
- * The average can be performed in a subset of the dimensions of the input array and is written generally as:
+ * The average can be performed over any subset $i$ of the dimensions of the input array and is
+ * written generally as:
  * ```math
  *  \int f(x_k) w(x_i) dx^i / \int w(x_k) dx^i
  * ```
- * where $f(x_k)$ is the input array, $w(x_i)$ is the weight.
- * The input are arrays in the configuration space coordinates $\{x_k\}$ and the integral is performed over the dimensions $i$.
+ * where $f(x_k)$ is the input array, $w(x_i)$ is the weight (conf-space arrays only).
  * 
  * If no weighted average is required (weight = NULL), the method will compute the average of the input array, 
  * divided by the volume of the averaging space, i.e.:
@@ -69,8 +77,9 @@ struct gkyl_array_average_inp {
 struct gkyl_array_average *gkyl_array_average_inew(const struct gkyl_array_average_inp *inp);
 
 /**
- * Create a new updater that computes the weighted average of a gkyl_array.
- * 
+ * Create a new updater that computes the weighted average of a conf-space gkyl_array,
+ * with the output in the basis of the non-averaged dimensions.
+ *
  * @param grid Pointer to the computational grid, used to compute the surface element.
  * @param basis Total basis, describes the full dimensionality (ndim), polynomial type, and order.
  * @param basis_avg Subset basis, describes the reduced dimensionality, polynomial type, and order for the output.

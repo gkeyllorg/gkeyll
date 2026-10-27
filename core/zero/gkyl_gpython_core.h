@@ -1,10 +1,10 @@
-/* gkyl_gpython.h — the postgkyl support API (the "gpython shim").
+/* gkyl_gpython_core.h — the postgkyl support API (the "gpython shim").
  *
  * A small, stable C surface over the core library for the postgkyl
  * post-processing tool. It deliberately exposes NO gkyl types: only opaque
  * handles, scalars, and plain buffers, so a consumer compiled against this
  * header holds no knowledge of struct layouts or calling conventions.
- * Everything layout- and ABI-sensitive lives in zero/gpython.c, compiled into
+ * Everything layout- and ABI-sensitive lives in zero/gpython_core.c, compiled into
  * libg0core.so — so shim and library can never drift apart, and any core
  * API change that affects the shim fails THIS build, at the producer.
  *
@@ -36,7 +36,7 @@ extern "C" {
 int gpython_api_version(void);
 
 /* Enough for GKYL_MAX_DIM; fixed here so callers can size buffers without
- * seeing gkyl headers. gpython.c statically asserts it matches GKYL_MAX_DIM. */
+ * seeing gkyl headers. gpython_core.c statically asserts it matches GKYL_MAX_DIM. */
 #define gpython_MAX_DIM 7
 
 typedef struct gpython_array gpython_array; /* wraps a gkyl_array* (double data)   */

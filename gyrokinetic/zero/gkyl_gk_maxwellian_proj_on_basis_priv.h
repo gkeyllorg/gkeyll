@@ -7,6 +7,7 @@
 #include <gkyl_basis.h>
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_gk_maxwellian_moments.h>
+#include <gkyl_gk_maxwellian_proj_on_basis.h>
 #include <gkyl_mat.h>
 #include <gkyl_mat_priv.h>
 #include <gkyl_range.h>
@@ -90,3 +91,35 @@ struct gkyl_gk_maxwellian_proj_on_basis {
   // stores the info to convert phase
   // space nodal to modal gkyl arrays
 };
+
+#ifdef GKYL_HAVE_CUDA
+/**
+ * Evaluate geometry variables at configuration-space quadrature points on the GPU.
+ *
+ * @param up Projection updater storing the quadrature-point values.
+ * @param conf_range Configuration-space range over which to evaluate geometry.
+ * @param bmag Magnetic-field magnitude in configuration-space DG representation.
+ * @param jacobtot Total Jacobian in configuration-space DG representation.
+ */
+void gkyl_gk_maxwellian_proj_on_basis_geom_quad_vars_cu(
+  gkyl_gk_maxwellian_proj_on_basis *up, const struct gkyl_range *conf_range,
+  const struct gkyl_array *bmag, const struct gkyl_array *jacobtot
+);
+
+/**
+ * Project a Maxwellian or bi-Maxwellian distribution on the GPU and correct its density.
+ *
+ * @param up Projection updater to run.
+ * @param phase_range Phase-space range over which to project.
+ * @param conf_range Configuration-space range for the primitive moments.
+ * @param moms_maxwellian Primitive moments (n, upar, T/m) or (n, upar, Tpar/m, Tperp/m).
+ * @param use_jacobtot Whether to use the total Jacobian instead of only the
+ *   velocity-space Jacobian in the exponential weighting.
+ * @param f_maxwellian Output Maxwellian or bi-Maxwellian distribution.
+ */
+void gkyl_gk_maxwellian_proj_on_basis_advance_cu(
+  gkyl_gk_maxwellian_proj_on_basis *up, const struct gkyl_range *phase_range,
+  const struct gkyl_range *conf_range, const struct gkyl_array *moms_maxwellian, bool use_jacobtot,
+  struct gkyl_array *f_maxwellian
+);
+#endif
