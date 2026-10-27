@@ -1315,6 +1315,14 @@ struct gk_species {
   gkyl_dynvec integ_diag; // Integrated moments reduced across grid
   bool is_first_integ_write_call; // Whether dynvec is being written for the first time.
 
+  gkyl_dynvec frequencies_max; // Rate extrema across configuration space and MPI ranks.
+  struct gkyl_msgpack_data *frequencies_meta;
+  struct gk_species_moment frequency_moms; // Diagnostic bi-Maxwellian moments.
+  struct gkyl_array *frequency_geometry, *frequency_nu; // Host diagnostic buffers.
+  double frequency_rates[4], transit_frequency_min;
+  double transit_frequency; // Local, time-independent resolved parallel transit rate.
+  bool is_first_frequencies_write_call;
+
   struct gkyl_array *fdot_mom_old, *fdot_mom_new; // Moments of f_old and f_new.
   gkyl_dynvec fdot_integ_diag; // Integrated moments of Delta f=f_new - f_old..
   bool is_first_fdot_integ_write_call; // Whether dynvec is being written for the first time.
@@ -5166,3 +5174,16 @@ void gyrokinetic_post_positivity_quasineut(gkyl_gyrokinetic_app *app, struct gky
  * @param app Gyrokinetic app object.
  */
 void gyrokinetic_post_positivity_quasineut_release(gkyl_gyrokinetic_app *app);
+
+// Frequency diagnostic lifecycle. app supplies geometry/communicator, gks the species.
+void gk_species_frequencies_init(gkyl_gyrokinetic_app *app, struct gk_species *gks);
+// Calculate local rates, reduce extrema and record at time tm.
+void gk_species_frequencies_calc(gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm);
+// Write buffered rates with component metadata, then clear the buffer.
+void gk_species_frequencies_write(gkyl_gyrokinetic_app *app, struct gk_species *gks);
+// Release the species frequency buffer and serialized metadata.
+void gk_species_frequencies_release(const gkyl_gyrokinetic_app *app, const struct gk_species *gks);
+// Local omega_H estimate for distribution fin, including equation scaling, without CFL factors.
+double gk_species_omegaH_frequency(
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, const struct gkyl_array *fin
+);

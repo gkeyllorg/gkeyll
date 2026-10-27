@@ -479,6 +479,12 @@ struct gkyl_gyrokinetic_species {
     integrated_diag_moments[12]; // List of integrated diagnostic moments.
   bool time_rate_diagnostics; // Whether to ouput df/dt diagnostics.
   bool write_omega_cfl; // Whether to ouput dt diagnostic for the CFL constraint.
+  // Write <app>-<species>_frequencies.gkyl at integrated diagnostic times
+  // for evolving species. Components: omega_H_max, transit_therm, transit_max,
+  // transit_min, omega_d_therm (thermal magnetic drift), and nu_max (collisions), in 1/s.
+  // File metadata defines scales and reductions for each component.
+  // Reductions are within each block in multiblock runs.
+  bool frequency_diagnostics;
 
   struct gkyl_gyrokinetic_collisionless collisionless; // Collisionless terms.
 

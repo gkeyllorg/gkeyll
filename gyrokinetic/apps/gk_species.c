@@ -507,6 +507,10 @@ gk_species_calc_integrated_mom_dynamic(gkyl_gyrokinetic_app *app, struct gk_spec
   }
   gkyl_dynvec_append(gks->integ_diag, tm, avals_global);
 
+  if (!gks->is_fluid && gks->info.frequency_diagnostics) {
+    gk_species_frequencies_calc(app, gks, tm);
+  }
+
   if (gks->info.time_rate_diagnostics) {
     // Reduce (sum) over whole domain, append to diagnostics.
     gkyl_array_accumulate(gks->fdot_mom_new, -1.0, gks->fdot_mom_old);
@@ -568,6 +572,10 @@ gk_species_write_integrated_mom_dynamic(gkyl_gyrokinetic_app *app, struct gk_spe
   }
   gkyl_dynvec_clear(gks->integ_diag);
   app->stat.n_diag_io += 1;
+
+  if (!gks->is_fluid && gks->info.frequency_diagnostics) {
+    gk_species_frequencies_write(app, gks);
+  }
 
   if (gks->info.time_rate_diagnostics) {
     if (rank == 0) {
