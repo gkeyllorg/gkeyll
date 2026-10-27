@@ -3,7 +3,7 @@
 // Each entry supplies a local rate and its definition. Storage and component
 // metadata follow this registry; transit_min uses a minimum MPI reduction.
 struct gk_frequency_descriptor {
-  const char *name, *definition;
+  const char *description;
   double (*calc)(gkyl_gyrokinetic_app *, struct gk_species *);
 };
 
@@ -46,22 +46,22 @@ gk_frequency_collision(gkyl_gyrokinetic_app *app, struct gk_species *gks)
 }
 
 static const struct gk_frequency_descriptor frequency_registry[] = {
-  {"omega_H",
-   "Local omega_H stability estimate, including equation scaling; zero for Boltzmann/adiabatic fields. No CFL factor.",
+  {"omega_H_max: "
+   "Maximum omega_H stability estimate, including equation scaling; zero for Boltzmann/adiabatic fields. No CFL factor.",
    gk_frequency_omegaH},
-  {"transit",
+  {"transit_therm: "
    "max_x sqrt(T_parallel/m)*abs(<C/(JB)>)/L_z; cell-average primitive temperature, computational block length L_z, equation scaling, no 2*pi or CFL factor.",
    gk_frequency_transit},
-  {"transit_max",
+  {"transit_max: "
    "Velocity-domain upper transit estimate: max|v_parallel|*max_x abs(<C/(JB)>)/L_z; equation scaling, no 2*pi or CFL factor.",
    gk_frequency_transit_max},
-  {"transit_min",
+  {"transit_min: "
    "Minimum velocity-domain transit estimate: min|v_parallel|*min_x abs(<C/(JB)>)/L_z; zero if the continuous velocity interval contains zero. Equation scaling, no 2*pi or CFL factor.",
    gk_frequency_transit_min},
-  {"omega_d",
+  {"omega_d_therm: "
    "Thermal magnetic drift estimate max_x sum_i (abs(v_curvature^i)+abs(v_gradB^i))/L_i over simulated perpendicular directions; v_d=(T_parallel/m)*curl(b)/Omega+(T_perp/qB)*b cross grad(log B). Cell-center geometry and cell-average temperatures, no mean-flow contribution, equation scaling, no 2*pi or CFL factor. Zero in 1x.",
    gk_frequency_drift},
-  {"nu",
+  {"nu_max: "
    "max_x cell-average sum of self and cross LBO/BGK collision frequencies, refreshed at diagnostic time; includes configured nu_frac, excludes collisionless and time-dilation scaling. Zero without collisions.",
    gk_frequency_collision}
 };
@@ -160,8 +160,8 @@ gk_species_frequencies_init(gkyl_gyrokinetic_app *app, struct gk_species *gks)
   gkyl_array_release(parfac);
 
   // Flat, zero-based component keys are readable by existing msgpack readers.
-  struct gkyl_msgpack_map_elem meta[3 + 2 * num_frequencies];
-  char name_keys[num_frequencies][32], definition_keys[num_frequencies][32];
+  struct gkyl_msgpack_map_elem meta[3 + num_frequencies];
+  char name_keys[num_frequencies][32];
   meta[0] = gmpe_cval(
     "Description",
     "Characteristic frequencies reduced across MPI ranks within this block; maxima except transit_min (minimum)."
@@ -170,19 +170,13 @@ gk_species_frequencies_init(gkyl_gyrokinetic_app *app, struct gk_species *gks)
   meta[2] = gmpe_ival("numComponents", num_frequencies);
   for (int i = 0; i < num_frequencies; ++i) {
     snprintf(name_keys[i], sizeof name_keys[i], "component%d", i);
-    snprintf(definition_keys[i], sizeof definition_keys[i], "component%dDefinition", i);
-    meta[3 + 2 * i] = (struct gkyl_msgpack_map_elem){
+    meta[3 + i] = (struct gkyl_msgpack_map_elem){
       .key = name_keys[i],
       .elem_type = GKYL_MP_STRING,
-      .cval = frequency_registry[i].name,
-    };
-    meta[4 + 2 * i] = (struct gkyl_msgpack_map_elem){
-      .key = definition_keys[i],
-      .elem_type = GKYL_MP_STRING,
-      .cval = frequency_registry[i].definition,
+      .cval = frequency_registry[i].description,
     };
   }
-  int lengths[] = {gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 3 + 2 * num_frequencies};
+  int lengths[] = {gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 3 + num_frequencies};
   const struct gkyl_msgpack_map_elem *lists[] = {
     gks->io_meta_basic, app->gk_geom->io_meta_basic, meta
   };
@@ -250,7 +244,7 @@ gk_species_frequencies_write(gkyl_gyrokinetic_app *app, struct gk_species *gks)
   int rank;
   gkyl_comm_get_rank(app->comm, &rank);
   if (rank == 0) {
-    const char *fmt = "%s-%s_frequencies_max.gkyl";
+    const char *fmt = "%s-%s_frequencies.gkyl";
     int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name);
     char filename[sz + 1];
     snprintf(filename, sizeof filename, fmt, app->name, gks->info.name);
