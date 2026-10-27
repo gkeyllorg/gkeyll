@@ -44,7 +44,7 @@ gk_species_kinetic_omegaH_dt(
 static double
 gk_species_kinetic_rhs_dynamic(
   gkyl_gyrokinetic_app *app, struct gk_species *species, const struct gkyl_array *fin,
-  struct gkyl_array *rhs, struct gkyl_array **bflux_moms
+  const struct gkyl_array *fbar_in, struct gkyl_array *rhs, struct gkyl_array **bflux_moms
 )
 {
   // Gyroaverage the potential if needed.
@@ -58,7 +58,7 @@ gk_species_kinetic_rhs_dynamic(
 
   // Damping term.
   gk_species_damping_advance(
-    app, species, &species->damping, app->field->phi_smooth, fin, species->lte.f_lte, rhs,
+    app, species, &species->damping, app->field->phi_smooth, fin, fbar_in, species->lte.f_lte, rhs,
     species->cflrate
   );
 
@@ -336,6 +336,11 @@ gk_species_kinetic_release_dynamic(const gkyl_gyrokinetic_app *app, const struct
   }
 
   gk_species_release_integrated_mom(app, gks);
+  if (gks->fbardot_integ_diag) {
+    gkyl_array_release(gks->fbardot_mom_old);
+    gkyl_array_release(gks->fbardot_mom_new);
+    gkyl_dynvec_release(gks->fbardot_integ_diag);
+  }
 
   // Release L2 norm memory.
   gkyl_array_integrate_release(gks->integ_wfsq_op);
@@ -379,6 +384,7 @@ gk_species_kinetic_init_dynamic(
   }
 
   gk_species_init_integrated_mom(app, gks);
+  gk_species_init_fbar_diagnostics(app, gks);
 
   // Objects for L2 norm diagnostic.
   gks->integ_wfsq_op = gkyl_array_integrate_new(
@@ -1259,6 +1265,9 @@ gk_species_kinetic_init(
   gk_species_anomalous_diff_init(app, gks, &gks->anom_diff);
 
   // Damping term -nu*f on RHS.
+  gks->fbardot_mom_old = gks->fbardot_mom_new = 0;
+  gks->fbardot_integ_diag = 0;
+  gks->damping = (struct gk_damping){};
   gk_species_damping_init(app, gks, &gks->damping);
 
   // Function multiplying df/dt.
