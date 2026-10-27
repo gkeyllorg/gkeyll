@@ -379,6 +379,17 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
     geometry_inp.world[i] = gk->geometry.world[i];
   }
 
+  // Pass periodicity to the geometry input to avoid asymmetry at periodic boundaries.
+  for (int d = 0; d < 3; d++) {
+    geometry_inp.geo_is_periodic[d] = false;
+  }
+
+  for (int d = 0; d < app->num_periodic_dir; d++) {
+    int dir = app->periodic_dirs[d];
+    int geo_dir = app->cdim == 3 ? dir : (app->cdim == 2 ? (dir == 0 ? 0 : 2) : 2);
+    geometry_inp.geo_is_periodic[geo_dir] = true;
+  }
+
   if (app->cdim < 3) {
     geometry_inp.geo_grid = gkyl_gk_geometry_augment_grid(app->grid, geometry_inp);
     switch (gk->basis_type) {
