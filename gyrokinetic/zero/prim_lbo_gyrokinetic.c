@@ -22,25 +22,22 @@ prim_lbo_gyrokinetic_free(const struct gkyl_ref_count *ref)
 }
 
 struct gkyl_prim_lbo_type *
-gkyl_prim_lbo_gyrokinetic_new(
-  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, bool use_gpu
+gkyl_prim_lbo_gyrokinetic_new_with_vdim(
+  const struct gkyl_basis *cbasis, int vdim, int num_phase, bool use_gpu
 )
 {
-  assert(cbasis->poly_order == pbasis->poly_order);
-
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
-    return gkyl_prim_lbo_gyrokinetic_cu_dev_new(cbasis, pbasis);
+    return gkyl_prim_lbo_gyrokinetic_cu_dev_new_with_vdim(cbasis, vdim, num_phase);
   }
 #endif
   struct prim_lbo_type_gyrokinetic *prim_gyrokinetic =
     gkyl_malloc(sizeof(struct prim_lbo_type_gyrokinetic));
   int cdim = prim_gyrokinetic->prim.cdim = cbasis->ndim;
-  int pdim = prim_gyrokinetic->prim.pdim = pbasis->ndim;
-  int vdim = pdim - cdim;
+  int pdim = prim_gyrokinetic->prim.pdim = cdim + vdim;
   int poly_order = prim_gyrokinetic->prim.poly_order = cbasis->poly_order;
   prim_gyrokinetic->prim.num_config = cbasis->num_basis;
-  prim_gyrokinetic->prim.num_phase = pbasis->num_basis;
+  prim_gyrokinetic->prim.num_phase = num_phase;
   prim_gyrokinetic->prim.self_prim = self_prim;
   prim_gyrokinetic->prim.cross_prim = cross_prim;
   prim_gyrokinetic->prim.udim = 1;
@@ -72,4 +69,15 @@ gkyl_prim_lbo_gyrokinetic_new(
   prim_gyrokinetic->prim.on_dev = &prim_gyrokinetic->prim;
 
   return &prim_gyrokinetic->prim;
+}
+
+struct gkyl_prim_lbo_type *
+gkyl_prim_lbo_gyrokinetic_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, bool use_gpu
+)
+{
+  assert(cbasis->poly_order == pbasis->poly_order);
+  return gkyl_prim_lbo_gyrokinetic_new_with_vdim(
+    cbasis, pbasis->ndim - cbasis->ndim, pbasis->num_basis, use_gpu
+  );
 }

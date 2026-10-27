@@ -44,7 +44,7 @@ gk_geometry_set_int_cu_kernel(
   struct gkyl_array *bcart, struct gkyl_array *cmag, struct gkyl_array *jacobtot,
   struct gkyl_array *jacobtot_inv, struct gkyl_array *gxxj, struct gkyl_array *gxyj,
   struct gkyl_array *gyyj, struct gkyl_array *gxzj, struct gkyl_array *eps2,
-  struct gkyl_array *rtg33inv, struct gkyl_array *dualcurlbhatoverB, struct gkyl_array *bioverJB,
+  struct gkyl_array *B3overB, struct gkyl_array *dualcurlbhatoverB, struct gkyl_array *bioverJB,
   struct gkyl_array *B3, struct gkyl_array *dualcurlbhat, struct gkyl_array *mc2p_nodal_fd,
   struct gkyl_array *mc2p_nodal, struct gkyl_array *bmag_nodal, struct gkyl_array *ddtheta_nodal,
   struct gkyl_array *ddpsi_nodal, struct gkyl_array *curlbhat_nodal,
@@ -53,7 +53,7 @@ gk_geometry_set_int_cu_kernel(
   struct gkyl_array *dzdx_nodal, struct gkyl_array *dualmag_nodal, struct gkyl_array *normals_nodal,
   struct gkyl_array *gij_neut_nodal, struct gkyl_array *b_i_nodal, struct gkyl_array *b_i_nodal_fd,
   struct gkyl_array *bcart_nodal, struct gkyl_array *B3_nodal,
-  struct gkyl_array *dualcurlbhatoverB_nodal, struct gkyl_array *rtg33inv_nodal,
+  struct gkyl_array *dualcurlbhatoverB_nodal, struct gkyl_array *B3overB_nodal,
   struct gkyl_array *bioverJB_nodal, struct gkyl_array *qprofile
 )
 {
@@ -81,7 +81,7 @@ gk_geometry_set_int_cu_kernel(
   gk_geom->geo_int.gyyj = gyyj;
   gk_geom->geo_int.gxzj = gxzj;
   gk_geom->geo_int.eps2 = eps2;
-  gk_geom->geo_int.rtg33inv = rtg33inv;
+  gk_geom->geo_int.B3overB = B3overB;
   gk_geom->geo_int.dualcurlbhatoverB = dualcurlbhatoverB;
   gk_geom->geo_int.dualcurlbhat = dualcurlbhat;
   gk_geom->geo_int.bioverJB = bioverJB;
@@ -108,7 +108,7 @@ gk_geometry_set_int_cu_kernel(
   gk_geom->geo_int.bcart_nodal = bcart_nodal;
   gk_geom->geo_int.B3_nodal = B3_nodal;
   gk_geom->geo_int.dualcurlbhatoverB_nodal = dualcurlbhatoverB_nodal;
-  gk_geom->geo_int.rtg33inv_nodal = rtg33inv_nodal;
+  gk_geom->geo_int.B3overB_nodal = B3overB_nodal;
   gk_geom->geo_int.bioverJB_nodal = bioverJB_nodal;
 }
 
@@ -192,7 +192,7 @@ gkyl_geometry_set_int_cu(struct gk_geometry *gk_geom, struct gk_geom_int *geo_in
     geo_int->gij_neut->on_dev, geo_int->b_i->on_dev, geo_int->bcart->on_dev, geo_int->cmag->on_dev,
     geo_int->jacobtot->on_dev, geo_int->jacobtot_inv->on_dev, geo_int->gxxj->on_dev,
     geo_int->gxyj->on_dev, geo_int->gyyj->on_dev, geo_int->gxzj->on_dev, geo_int->eps2->on_dev,
-    geo_int->rtg33inv->on_dev, geo_int->dualcurlbhatoverB->on_dev, geo_int->bioverJB->on_dev,
+    geo_int->B3overB->on_dev, geo_int->dualcurlbhatoverB->on_dev, geo_int->bioverJB->on_dev,
     geo_int->B3->on_dev, geo_int->dualcurlbhat->on_dev, geo_int->mc2p_nodal_fd->on_dev,
     geo_int->mc2p_nodal->on_dev, geo_int->bmag_nodal->on_dev, geo_int->ddtheta_nodal->on_dev,
     geo_int->ddpsi_nodal->on_dev, geo_int->curlbhat_nodal->on_dev,
@@ -201,7 +201,7 @@ gkyl_geometry_set_int_cu(struct gk_geometry *gk_geom, struct gk_geom_int *geo_in
     geo_int->dzdx_nodal->on_dev, geo_int->dualmag_nodal->on_dev, geo_int->normals_nodal->on_dev,
     geo_int->gij_neut_nodal->on_dev, geo_int->b_i_nodal->on_dev, geo_int->b_i_nodal_fd->on_dev,
     geo_int->bcart_nodal->on_dev, geo_int->B3_nodal->on_dev,
-    geo_int->dualcurlbhatoverB_nodal->on_dev, geo_int->rtg33inv_nodal->on_dev,
+    geo_int->dualcurlbhatoverB_nodal->on_dev, geo_int->B3overB_nodal->on_dev,
     geo_int->bioverJB_nodal->on_dev, geo_int->qprofile->on_dev
   );
 }
@@ -329,8 +329,8 @@ gk_geometry_int_cu_dev_alloc(struct gk_geom_int up_int_host)
     gkyl_array_cu_dev_new(up_int_host.gxzj->type, up_int_host.gxzj->ncomp, up_int_host.gxzj->size);
   up_int_dev->eps2 =
     gkyl_array_cu_dev_new(up_int_host.eps2->type, up_int_host.eps2->ncomp, up_int_host.eps2->size);
-  up_int_dev->rtg33inv = gkyl_array_cu_dev_new(
-    up_int_host.rtg33inv->type, up_int_host.rtg33inv->ncomp, up_int_host.rtg33inv->size
+  up_int_dev->B3overB = gkyl_array_cu_dev_new(
+    up_int_host.B3overB->type, up_int_host.B3overB->ncomp, up_int_host.B3overB->size
   );
   up_int_dev->dualcurlbhatoverB = gkyl_array_cu_dev_new(
     up_int_host.dualcurlbhatoverB->type, up_int_host.dualcurlbhatoverB->ncomp,
@@ -418,9 +418,9 @@ gk_geometry_int_cu_dev_alloc(struct gk_geom_int up_int_host)
     up_int_host.dualcurlbhatoverB_nodal->type, up_int_host.dualcurlbhatoverB_nodal->ncomp,
     up_int_host.dualcurlbhatoverB_nodal->size
   );
-  up_int_dev->rtg33inv_nodal = gkyl_array_cu_dev_new(
-    up_int_host.rtg33inv_nodal->type, up_int_host.rtg33inv_nodal->ncomp,
-    up_int_host.rtg33inv_nodal->size
+  up_int_dev->B3overB_nodal = gkyl_array_cu_dev_new(
+    up_int_host.B3overB_nodal->type, up_int_host.B3overB_nodal->ncomp,
+    up_int_host.B3overB_nodal->size
   );
   up_int_dev->bioverJB_nodal = gkyl_array_cu_dev_new(
     up_int_host.bioverJB_nodal->type, up_int_host.bioverJB_nodal->ncomp,
@@ -576,6 +576,9 @@ gkyl_gk_geometry_cu_dev_new(struct gk_geometry *geo_host, struct gkyl_gk_geometr
   }
   up->geqdsk_sign_convention = geo_host->geqdsk_sign_convention;
   up->half_domain = geo_host->half_domain;
+  for (int d = 0; d < 3; d++) {
+    up->is_periodic[d] = geo_host->is_periodic[d];
+  }
   up->has_LCFS = geo_host->has_LCFS;
   if (up->has_LCFS) {
     up->x_LCFS = geo_host->x_LCFS;
@@ -644,7 +647,7 @@ gkyl_gk_geometry_cu_dev_new(struct gk_geometry *geo_host, struct gkyl_gk_geometr
   gkyl_array_copy(geo_int_dev->gyyj, geo_host->geo_int.gyyj);
   gkyl_array_copy(geo_int_dev->gxzj, geo_host->geo_int.gxzj);
   gkyl_array_copy(geo_int_dev->eps2, geo_host->geo_int.eps2);
-  gkyl_array_copy(geo_int_dev->rtg33inv, geo_host->geo_int.rtg33inv);
+  gkyl_array_copy(geo_int_dev->B3overB, geo_host->geo_int.B3overB);
   gkyl_array_copy(geo_int_dev->dualcurlbhatoverB, geo_host->geo_int.dualcurlbhatoverB);
   gkyl_array_copy(geo_int_dev->bioverJB, geo_host->geo_int.bioverJB);
   gkyl_array_copy(geo_int_dev->B3, geo_host->geo_int.B3);
@@ -671,7 +674,7 @@ gkyl_gk_geometry_cu_dev_new(struct gk_geometry *geo_host, struct gkyl_gk_geometr
   gkyl_array_copy(geo_int_dev->bcart_nodal, geo_host->geo_int.bcart_nodal);
   gkyl_array_copy(geo_int_dev->B3_nodal, geo_host->geo_int.B3_nodal);
   gkyl_array_copy(geo_int_dev->dualcurlbhatoverB_nodal, geo_host->geo_int.dualcurlbhatoverB_nodal);
-  gkyl_array_copy(geo_int_dev->rtg33inv_nodal, geo_host->geo_int.rtg33inv_nodal);
+  gkyl_array_copy(geo_int_dev->B3overB_nodal, geo_host->geo_int.B3overB_nodal);
   gkyl_array_copy(geo_int_dev->bioverJB_nodal, geo_host->geo_int.bioverJB_nodal);
 
   for (int dir = 0; dir < up->grid.ndim; ++dir) {
@@ -772,7 +775,7 @@ gkyl_gk_geometry_cu_dev_new(struct gk_geometry *geo_host, struct gkyl_gk_geometr
   up->geo_int.gyyj = geo_int_dev->gyyj;
   up->geo_int.gxzj = geo_int_dev->gxzj;
   up->geo_int.eps2 = geo_int_dev->eps2;
-  up->geo_int.rtg33inv = geo_int_dev->rtg33inv;
+  up->geo_int.B3overB = geo_int_dev->B3overB;
   up->geo_int.dualcurlbhatoverB = geo_int_dev->dualcurlbhatoverB;
   up->geo_int.bioverJB = geo_int_dev->bioverJB;
   up->geo_int.B3 = geo_int_dev->B3;
@@ -799,7 +802,7 @@ gkyl_gk_geometry_cu_dev_new(struct gk_geometry *geo_host, struct gkyl_gk_geometr
   up->geo_int.bcart_nodal = geo_int_dev->bcart_nodal;
   up->geo_int.B3_nodal = geo_int_dev->B3_nodal;
   up->geo_int.dualcurlbhatoverB_nodal = geo_int_dev->dualcurlbhatoverB_nodal;
-  up->geo_int.rtg33inv_nodal = geo_int_dev->rtg33inv_nodal;
+  up->geo_int.B3overB_nodal = geo_int_dev->B3overB_nodal;
   up->geo_int.bioverJB_nodal = geo_int_dev->bioverJB_nodal;
   gkyl_free(geo_int_dev);
 

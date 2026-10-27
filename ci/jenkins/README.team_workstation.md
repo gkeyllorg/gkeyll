@@ -83,6 +83,10 @@ printf '%s:%s\n' '<jenkins-user>' '<jenkins-api-token>' > "$HOME/.config/gkeyll/
 chmod 600 "$HOME/.config/gkeyll/jenkins/team-workstation.auth"
 ```
 
+The CI agent also reads this file to check older builds before pruning their
+caches. If it uses another Unix account, set `CI_JENKINS_READ_AUTH_FILE` to an
+agent-readable mode-600 `user:api-token` file.
+
 ### Create the GitHub credential
 
 Create a short-lived classic GitHub PAT with only the `public_repo` scope (or a

@@ -108,6 +108,7 @@ struct gkyl_position_map_const_B_ctx {
 };
 
 struct gkyl_position_map_xpt_ctx {
+  mc2nu_t map_derivs_backup[3]; // Derivatives of backup maps (NULL selects finite differences).
   mc2nu_t maps_backup[3]; // Backup of the position mapping functions.
   void *ctxs_backup[3]; // Backup of the context for each position mapping function.
   double compression_factor; // Factor by which cells near X-point are compressed
@@ -202,18 +203,22 @@ void gkyl_position_map_eval_mc2nu(
 
 /**
  * Evaluate the slope of the position mapping at a specific computational (position) coordinate.
+ * Numerical derivatives use a centered second-order difference with step dx.
+ * Within dx of a global endpoint, use an inward second-order one-sided
+ * difference, reducing the step if needed to keep both samples in bounds.
+ * Bounds are explicit in the map's full 3D coordinates, even for reduced
+ * dimensional simulations. No rank-local indices enter stencil selection.
  * 
  * @param gpm Gkyl position map object.
  * @param ix_map Index of the map to evaluate. Calls gpm->maps[index].
  * @param x Computational position coordinates.
- * @param dx Computational position increment to use for finite difference.
- * @param ix_comp Index in the geometry loop of which cell we are discussing
- * @param nrange Range of the computational coordinates.
+ * @param dx Maximum computational increment for finite differences (>0).
+ * @param lower Global lower computational bound for this map.
+ * @param upper Global upper computational bound for this map.
  * @return Slope of the position mapping.
  */
 double gkyl_position_map_slope(
-  const struct gkyl_position_map *gpm, int ix_map, double x, double dx, int ix_comp,
-  const struct gkyl_range *nrange
+  const struct gkyl_position_map *gpm, int ix_map, double x, double dx, double lower, double upper
 );
 
 /**

@@ -20,6 +20,38 @@ def requireValue(String name, String value) {
     value
 }
 
+def prepareTrustedCacheTools(String root) {
+    def ref = validateRef('GKEYLL_CI_TRUSTED_REF', env.CI_TRUSTED_CI_COMMIT?.trim() ?: env.GKEYLL_CI_TRUSTED_REF?.trim() ?: 'main')
+    def control = "${root}/cache-control/${env.BUILD_TAG}"
+    withEnv(["CI_CONTROL_DIR=${control}", "CI_TRUSTED_CACHE_REF=${ref}"]) {
+        sh '''#!/bin/bash
+            set -euo pipefail
+            mkdir -p "$CI_CONTROL_DIR"
+            git init -q "$CI_CONTROL_DIR"
+            git -C "$CI_CONTROL_DIR" fetch --quiet --depth 1 https://github.com/gkeyllorg/gkeyll.git "$CI_TRUSTED_CACHE_REF"
+            git -C "$CI_CONTROL_DIR" show FETCH_HEAD:ci/jenkins/cache_manager.py > "$CI_CONTROL_DIR/cache_manager.py"
+            git -C "$CI_CONTROL_DIR" show FETCH_HEAD:ci/jenkins/baseline_cache.sh > "$CI_CONTROL_DIR/baseline_cache.sh"
+            chmod +x "$CI_CONTROL_DIR/baseline_cache.sh"
+            rm -rf "$CI_CONTROL_DIR/.git"
+        '''
+    }
+    env.CI_CACHE_MANAGER = "${control}/cache_manager.py"
+    env.CI_BASELINE_CACHE_TOOL = "${control}/baseline_cache.sh"
+}
+
+def cacheManager(String command, String sha = '') {
+    withEnv(["CI_CACHE_COMMAND=${command}", "CI_CACHE_SHA=${sha}"]) {
+        return sh(returnStdout: true, script: '''#!/bin/bash
+            set -euo pipefail
+            python3 "$CI_CACHE_MANAGER" "$CI_CACHE_COMMAND" \
+                --root "$GKEYLL_CI_ROOT" --platform "$CI_CACHE_PLATFORM" \
+                --tag "$BUILD_TAG" --job "$JOB_NAME" --number "$BUILD_NUMBER" \
+                --url "$BUILD_URL" --auth-file "${CI_JENKINS_READ_AUTH_FILE:-}" \
+                --sha "${CI_CACHE_SHA:-}"
+        ''').trim()
+    }
+}
+
 def isCommitSha(String value) { value ==~ /[0-9a-fA-F]{40}/ }
 
 def shortRef(String ref) { isCommitSha(ref) ? ref.take(7) : ref }
@@ -363,11 +395,16 @@ def runCi = {
     def failureMessage = ''
     def platform = env.CI_PLATFORM?.trim() ?: 'personal'
     def cachePlatform = platform == 'team' ? 'team-workstation' : platform
+    env.CI_JENKINS_READ_AUTH_FILE = env.CI_JENKINS_READ_AUTH_FILE?.trim() ?:
+        "${env.HOME}/.config/gkeyll/jenkins/${cachePlatform == 'team-workstation' ? 'team-workstation' : 'personal'}.auth"
     def baselineDir = ''
     def baselineStage = ''
     def candidateDir = ''
     def trustedChecker = ''
     def baselineCacheHit = false
+    def baselinePublished = false
+    def cacheStarted = false
+    env.CI_CACHE_PLATFORM = cachePlatform
     // Every controller needs its own status context, otherwise two machines
     // testing the same commit overwrite each other's status on GitHub.
     def statusContext = env.CI_STATUS_CONTEXT?.trim() ?: env.PERSONAL_STATUS_CONTEXT?.trim()
@@ -376,6 +413,8 @@ def runCi = {
         statusContext = "continuous-integration/jenkins/personal-${host ?: 'unknown'}"
     }
     try {
+        ciStage('Prepare trusted cache tools') { prepareTrustedCacheTools(gkeyllCiRoot) }
+        ciStage('Clean inactive CI caches') { cacheManager('begin'); cacheStarted = true }
         ciStage('Resolve candidate and baseline') {
             currentBuild.displayName = "#${env.BUILD_NUMBER} ${candidatePr ? "PR-${candidatePr}" : shortRef(candidateRef)}"
             if (candidatePr) { candidateRef = "PR #${candidatePr}"; requestedBaseline = pullRequestBase(statusCredentialsId, candidatePr) }
@@ -404,14 +443,21 @@ def runCi = {
             requestedBaseline = baselineCommit
         }
         ciStage('Prepare candidate build') {
-            candidateDir = sh(returnStdout: true, script: "ci/jenkins/baseline_cache.sh prepare-candidate '${gkeyllCiRoot}' '${cachePlatform}' '${commit}' '${env.WORKSPACE}' '${baselineCommit}'").trim()
+            candidateDir = sh(returnStdout: true, script: "'${env.CI_BASELINE_CACHE_TOOL}' prepare-candidate '${gkeyllCiRoot}' '${cachePlatform}' '${commit}' '${env.WORKSPACE}' '${baselineCommit}'").trim()
         }
         ciStage('Report pending') { publishStatus(statusCredentialsId, statusContext, commit, 'pending', 'Gkeyll CI is running.') }
         ciStage('Build candidate') { dir("${candidateDir}/gkeyll") { buildTree('candidate', "${candidateDir}/gkylsoft", mkdeps, configure, jobs, "${env.WORKSPACE}/") } }
         ciStage('Resolve baseline cache') {
-            baselineDir = sh(returnStdout: true, script: "ci/jenkins/baseline_cache.sh baseline-path '${gkeyllCiRoot}' '${cachePlatform}' '${baselineCommit}'").trim()
-            baselineCacheHit = sh(returnStatus: true, script: "ci/jenkins/baseline_cache.sh valid '${gkeyllCiRoot}' '${cachePlatform}' '${baselineCommit}'") == 0
-            if (!baselineCacheHit) baselineStage = sh(returnStdout: true, script: "ci/jenkins/baseline_cache.sh prepare-baseline '${gkeyllCiRoot}' '${cachePlatform}' '${baselineCommit}'").trim()
+            baselineDir = sh(returnStdout: true, script: "'${env.CI_BASELINE_CACHE_TOOL}' baseline-path '${gkeyllCiRoot}' '${cachePlatform}' '${baselineCommit}'").trim()
+            def disposition = ''
+            timeout(time: 12, unit: 'HOURS') {
+                while (!(disposition in ['hit', 'build'])) {
+                    disposition = cacheManager('claim-baseline', baselineCommit)
+                    if (disposition == 'wait') sleep time: 15, unit: 'SECONDS'
+                }
+            }
+            baselineCacheHit = disposition == 'hit'
+            if (!baselineCacheHit) baselineStage = baselineDir
             writeFile file: 'ci-baseline-cache.txt', text: "status=${baselineCacheHit ? 'hit' : 'miss'}\nplatform=${cachePlatform}\nbaseline_commit=${baselineCommit}\npath=${baselineCacheHit ? baselineDir : baselineStage}\n"
         }
         if (!baselineCacheHit) {
@@ -428,7 +474,8 @@ serial_c_results=present
 parallel_c_4_results=present
 EOF
                 """
-                baselineDir = sh(returnStdout: true, script: "ci/jenkins/baseline_cache.sh publish-baseline '${gkeyllCiRoot}' '${cachePlatform}' '${baselineCommit}' '${baselineStage}'").trim()
+                cacheManager('publish-baseline', baselineCommit)
+                baselinePublished = true
                 writeFile file: 'ci-baseline-cache.txt', text: "status=miss\nplatform=${cachePlatform}\nbaseline_commit=${baselineCommit}\npath=${baselineDir}\n"
             }
         }
@@ -450,25 +497,36 @@ EOF
             env.CI_FAILURE_STAGE = 'Write CI timing summary'
             throw err
         } finally {
-            if (status != 'success') writeCiFailureSummary(status, env.CI_FAILURE_STAGE, failureMessage ?: description)
-            // Best effort: a GitHub outage must not turn a passing build red.
-            // The commit status below remains the authoritative signal.
-            def reportError = ''
-            if (commit) {
+            try {
+                if (status != 'success') writeCiFailureSummary(status, env.CI_FAILURE_STAGE, failureMessage ?: description)
+                // Best effort: a GitHub outage must not turn a passing build red.
+                // The commit status below remains the authoritative signal.
+                def reportError = ''
+                if (commit) {
+                    try {
+                        def summaryLine = publishReport(statusCredentialsId, statusContext, platform, commit, status, candidatePr ?: '')
+                        if (summaryLine) description = summaryLine.take(140)
+                    } catch (err) {
+                        reportError = err.toString()
+                        echo "WARNING: could not publish the GitHub CI report: ${reportError}"
+                    }
+                }
+                if (candidateDir) sh "'${env.CI_BASELINE_CACHE_TOOL}' stage-candidate-artifacts '${gkeyllCiRoot}' '${cachePlatform}' '${commit}' '${env.WORKSPACE}'"
+                archiveArtifacts allowEmptyArchive: true, artifacts: 'ci-selection.txt,ci-baseline-preflight.txt,ci-baseline-cache.txt,ci-trusted-ci-commit.txt,ci-trusted-checker-commit.txt,ci-candidate-commit.txt,ci-baseline-commit.txt,*-seconds.txt,*-unit-results.txt,candidate-*.log,baseline-*.log,ci-failure-detail.txt,ci-report.md,ci-timing-summary.txt,ci-regression-summary.txt,ci-parallel-regression-summary.txt,ci-failure-summary.txt,build/**/*.log,gkylsoft/gkeyll-results/**/regressiondb,gkylsoft/gkeyll-results/**/_rr_failures.txt'
+                if (reportError) description = "${description} (report not posted)".take(140)
+            } finally {
                 try {
-                    def summaryLine = publishReport(statusCredentialsId, statusContext, platform, commit, status, candidatePr ?: '')
-                    if (summaryLine) description = summaryLine.take(140)
-                } catch (err) {
-                    reportError = err.toString()
-                    echo "WARNING: could not publish the GitHub CI report: ${reportError}"
+                    if (cacheStarted && baselineStage && !baselinePublished) cacheManager('abort-baseline', baselineCommit)
+                } finally {
+                    try {
+                        if (candidateDir && baselineCommit) {
+                            sh "'${env.CI_BASELINE_CACHE_TOOL}' finalize-candidate '${gkeyllCiRoot}' '${cachePlatform}' '${commit}' '${baselineCommit}' '${status}' '${env.CI_FAILURE_STAGE ?: ''}' '${env.WORKSPACE}'"
+                        }
+                    } finally {
+                        if (cacheStarted) cacheManager('finish')
+                    }
                 }
             }
-            if (candidateDir) sh "ci/jenkins/baseline_cache.sh stage-candidate-artifacts '${gkeyllCiRoot}' '${cachePlatform}' '${commit}' '${env.WORKSPACE}'"
-            archiveArtifacts allowEmptyArchive: true, artifacts: 'ci-selection.txt,ci-baseline-preflight.txt,ci-baseline-cache.txt,ci-trusted-ci-commit.txt,ci-trusted-checker-commit.txt,ci-candidate-commit.txt,ci-baseline-commit.txt,*-seconds.txt,*-unit-results.txt,candidate-*.log,baseline-*.log,ci-failure-detail.txt,ci-report.md,ci-timing-summary.txt,ci-regression-summary.txt,ci-parallel-regression-summary.txt,ci-failure-summary.txt,build/**/*.log,gkylsoft/gkeyll-results/**/regressiondb,gkylsoft/gkeyll-results/**/_rr_failures.txt'
-            if (reportError) description = "${description} (report not posted)".take(140)
-        }
-        if (candidateDir && baselineCommit) {
-            sh "ci/jenkins/baseline_cache.sh finalize-candidate '${gkeyllCiRoot}' '${cachePlatform}' '${commit}' '${baselineCommit}' '${status}' '${env.CI_FAILURE_STAGE ?: ''}' '${env.WORKSPACE}'"
         }
         if (commit) {
             publishStatus(statusCredentialsId, statusContext, commit, status, description)

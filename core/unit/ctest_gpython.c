@@ -2,7 +2,7 @@
 
 #include <acutest.h>
 #include <gkyl_alloc.h>
-#include <gkyl_gpython.h>
+#include <gkyl_gpython_core.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>

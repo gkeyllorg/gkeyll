@@ -91,7 +91,7 @@ struct gkyl_array *gkyl_array_set(struct gkyl_array *out, double a, const struct
 /**
  * Set out = a*inp[coff] where coff is a component-offset if
  * out->ncomp < inp->ncomp, or out[coff] = a*inp if
- * out->ncomp > inp->ncomp. Returns out.
+ * out->ncomp >= inp->ncomp. Returns out.
  *
  * @param out Output array
  * @param a Factor to multiply input array
@@ -101,6 +101,27 @@ struct gkyl_array *gkyl_array_set(struct gkyl_array *out, double a, const struct
  */
 struct gkyl_array *gkyl_array_set_offset(
   struct gkyl_array *out, double a, const struct gkyl_array *inp, int coff
+);
+
+/**
+ * Set ncoeff coefficients per cell: out[out_offset+k] = a*inp[inp_offset+k].
+ * Other coefficients are unchanged. Arrays must have equal sizes, double
+ * elements, and the same memory location (host or device). Counts and offsets
+ * are DG coefficients, not vector component/indices, and both blocks must fit in a
+ * cell. A zero count is a no-op. In-place blocks may be identical or disjoint;
+ * shifted overlapping blocks are unsupported.
+ *
+ * @param out Output array.
+ * @param a Factor to multiply input array.
+ * @param inp Input array.
+ * @param ncoeff Number of coefficients to set per cell.
+ * @param inp_offset Input coefficient offset.
+ * @param out_offset Output coefficient offset.
+ * @return out array.
+ */
+struct gkyl_array *gkyl_array_set_offset_ncoeff(
+  struct gkyl_array *out, double a, const struct gkyl_array *inp, int ncoeff, int inp_offset,
+  int out_offset
 );
 
 /**
@@ -235,17 +256,38 @@ struct gkyl_array *gkyl_array_set_range_to_range(
 /**
  * Set out = a*inp[coff] where coff is a component-offset if
  * out->ncomp < inp->ncomp, or out[coff] = a*inp if
- * out->ncomp > inp->ncomp, over a range of indices. Returns out.
+ * out->ncomp >= inp->ncomp, over a range of indices. Returns out.
  *
  * @param out Output array
  * @param a Factor to multiply input array
  * @param inp Input array
- * @return out array
+ * @param coff Component offset
  * @param range Range specifying region to set
+ * @return out array
  */
 struct gkyl_array *gkyl_array_set_offset_range(
   struct gkyl_array *out, double a, const struct gkyl_array *inp, int coff,
   const struct gkyl_range *range
+);
+
+/**
+ * Set ncoeff coefficients per selected cell:
+ * out[out_offset+k] = a*inp[inp_offset+k]. Other coefficients and cells are
+ * unchanged. Array and coefficient-block requirements are the same as
+ * gkyl_array_set_offset_ncoeff. A zero count or empty range is a no-op.
+ *
+ * @param out Output array
+ * @param a Factor to multiply input array
+ * @param inp Input array
+ * @param ncoeff Number of coefficients to set per cell
+ * @param inp_offset Input component offset
+ * @param out_offset Output component offset
+ * @param range Range specifying region to set (with array-compatible indexing)
+ * @return out array
+ */
+struct gkyl_array *gkyl_array_set_offset_ncoeff_range(
+  struct gkyl_array *out, double a, const struct gkyl_array *inp, int ncoeff, int inp_offset,
+  int out_offset, const struct gkyl_range *range
 );
 
 /**
@@ -408,8 +450,9 @@ void gkyl_array_accumulate_offset_cu(
 
 void gkyl_array_set_cu(struct gkyl_array *out, double a, const struct gkyl_array *inp);
 
-void gkyl_array_set_offset_cu(
-  struct gkyl_array *out, double a, const struct gkyl_array *inp, int coff
+void gkyl_array_set_offset_ncoeff_cu(
+  struct gkyl_array *out, double a, const struct gkyl_array *inp, int ncoeff, int inp_offset,
+  int out_offset
 );
 
 void gkyl_array_scale_cu(struct gkyl_array *out, double a);
@@ -454,6 +497,11 @@ void gkyl_array_set_range_to_range_cu(
 void gkyl_array_set_offset_range_cu(
   struct gkyl_array *out, double a, const struct gkyl_array *inp, int coff,
   const struct gkyl_range *range
+);
+
+void gkyl_array_set_offset_ncoeff_range_cu(
+  struct gkyl_array *out, double a, const struct gkyl_array *inp, int ncoeff, int inp_offset,
+  int out_offset, const struct gkyl_range *range
 );
 
 void gkyl_array_scale_range_cu(struct gkyl_array *out, double a, const struct gkyl_range *range);

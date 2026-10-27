@@ -1148,6 +1148,362 @@ test_3x_avgyz_avgx(int poly_order, bool use_gpu)
   gkyl_array_release(wxyz_c_ho);
 }
 
+// Average over y with the output in the 2x basis, compared with the reduced-dim output.
+void
+test_2x_fulldim(int poly_order, bool use_gpu)
+{
+  double lower[] = {-4.0, -3.0}, upper[] = {6.0, 5.0};
+  int cells[] = {16, 8};
+  int ndim = sizeof(lower) / sizeof(lower[0]);
+
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
+  struct gkyl_rect_grid grid_x;
+  gkyl_rect_grid_init(&grid_x, 1, &lower[0], &upper[0], &cells[0]);
+
+  struct gkyl_basis basis, basis_x;
+  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  gkyl_cart_modal_serendip(&basis_x, 1, poly_order);
+
+  int ghost[] = {1, 1};
+  struct gkyl_range local, local_ext, local_x, local_x_ext;
+  gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
+  gkyl_create_grid_ranges(&grid_x, &ghost[0], &local_x_ext, &local_x);
+
+  gkyl_proj_on_basis *projf =
+    gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 1, evalFunc_2x, NULL);
+  gkyl_proj_on_basis *projw =
+    gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 1, evalWeight_2x, NULL);
+  struct gkyl_array *f_ho = mkarr(basis.num_basis, local_ext.volume, false);
+  struct gkyl_array *w_ho = mkarr(basis.num_basis, local_ext.volume, false);
+  gkyl_proj_on_basis_advance(projf, 0.0, &local_ext, f_ho);
+  gkyl_proj_on_basis_advance(projw, 0.0, &local_ext, w_ho);
+  gkyl_proj_on_basis_release(projf);
+  gkyl_proj_on_basis_release(projw);
+  struct gkyl_array *f = mkarr(basis.num_basis, local_ext.volume, use_gpu);
+  struct gkyl_array *w = mkarr(basis.num_basis, local_ext.volume, use_gpu);
+  gkyl_array_copy(f, f_ho);
+  gkyl_array_copy(w, w_ho);
+
+  int avg_dim[] = {0, 1};
+  struct gkyl_array *avg_ho = mkarr(basis_x.num_basis, local_x_ext.volume, false);
+  struct gkyl_array *favg_ho = mkarr(basis.num_basis, local_ext.volume, false);
+  struct gkyl_array *avg = mkarr(basis_x.num_basis, local_x_ext.volume, use_gpu);
+  struct gkyl_array *favg = mkarr(basis.num_basis, local_ext.volume, use_gpu);
+
+  for (int weighted = 0; weighted < 2; weighted++) {
+    struct gkyl_array_average_inp inp = {
+      .grid = &grid,
+      .basis = basis,
+      .basis_avg = basis_x,
+      .local = &local,
+      .local_avg = &local_x,
+      .local_avg_ext = &local_x_ext,
+      .weight = weighted ? w : NULL,
+      .avg_dim = avg_dim,
+      .use_gpu = use_gpu,
+    };
+    struct gkyl_array_average *up_red = gkyl_array_average_inew(&inp);
+    gkyl_array_average_advance(up_red, f, avg);
+    gkyl_array_average_release(up_red);
+
+    inp.full_dim_out = true;
+    inp.local_avg_ext = &local_ext;
+    struct gkyl_array_average *up_full = gkyl_array_average_inew(&inp);
+    gkyl_array_average_advance(up_full, f, favg);
+    gkyl_array_average_release(up_full);
+
+    gkyl_array_copy(avg_ho, avg);
+    gkyl_array_copy(favg_ho, favg);
+
+    // The full-dim output evaluated anywhere in y must match the reduced output.
+    double zs[][2] = {{-0.7, 0.3}, {0.2, -0.9}, {0.95, 0.85}};
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init(&iter, &local);
+    while (gkyl_range_iter_next(&iter)) {
+      const double *favg_c = gkyl_array_cfetch(favg_ho, gkyl_range_idx(&local, iter.idx));
+      const double *avg_c = gkyl_array_cfetch(avg_ho, gkyl_range_idx(&local_x, &iter.idx[0]));
+      for (int i = 0; i < 3; i++) {
+        double ref = basis_x.eval_expand(&zs[i][0], avg_c);
+        TEST_CHECK(gkyl_compare(basis.eval_expand(zs[i], favg_c), ref, 1e-12 * fabs(ref)));
+      }
+    }
+  }
+
+  gkyl_array_release(f);
+  gkyl_array_release(w);
+  gkyl_array_release(f_ho);
+  gkyl_array_release(w_ho);
+  gkyl_array_release(avg);
+  gkyl_array_release(favg);
+  gkyl_array_release(avg_ho);
+  gkyl_array_release(favg_ho);
+}
+
+struct ctx_3x2v {
+  int ndim; // Dimensionality of the function.
+  int avg_dir; // Direction averaged over.
+  bool averaged; // Whether to evaluate the average (on the reduced coordinates).
+};
+
+// a(s)*g(other coordinates), with a quadratic and g a product of Gaussians.
+void
+evalFunc_3x2v(double t, const double *xn, double *restrict fout, void *ctx)
+{
+  struct ctx_3x2v *pctx = ctx;
+  if (pctx->averaged) {
+    fout[0] = 1.0 + 0.1 / 3.0;
+    for (int r = 0; r < pctx->ndim; r++) {
+      int d = r < pctx->avg_dir ? r : r + 1;
+      fout[0] *= exp(-(0.5 + 0.1 * d) * xn[r] * xn[r]);
+    }
+  } else {
+    double s = xn[pctx->avg_dir];
+    fout[0] = 1.0 + 0.3 * s + 0.1 * s * s;
+    for (int d = 0; d < pctx->ndim; d++) {
+      if (d != pctx->avg_dir) {
+        fout[0] *= exp(-(0.5 + 0.1 * d) * xn[d] * xn[d]);
+      }
+    }
+  }
+}
+
+// Basis of a cdim x vdim phase-space field, and of the field left after
+// averaging over avg_dir.
+static void
+phase_bases(
+  int cdim, int vdim, enum gkyl_basis_type b_type, int poly_order, int avg_dir,
+  struct gkyl_basis *basis, struct gkyl_basis *basis_red
+)
+{
+  int ndim = cdim + vdim;
+  int cdim_red = avg_dir < cdim ? cdim - 1 : cdim;
+  int vdim_red = avg_dir < cdim ? vdim : vdim - 1;
+  if (b_type == GKYL_BASIS_MODAL_GKHYBRID) {
+    gkyl_cart_modal_gkhybrid(basis, cdim, vdim);
+    if (vdim_red == 0) {
+      gkyl_cart_modal_serendip(basis_red, cdim_red, 1);
+    } else if (cdim_red == 0) {
+      if (avg_dir == cdim) {
+        gkyl_cart_modal_serendip(basis_red, 1, 1); // mu only.
+      } else {
+        gkyl_cart_modal_gkhybrid_vel(basis_red, vdim_red);
+      }
+    } else if (avg_dir == cdim) {
+      gkyl_cart_modal_serendip(basis_red, cdim_red + 1, 1); // vpar averaged.
+    } else if (avg_dir == cdim + 1) {
+      gkyl_cart_modal_hybrid(basis_red, cdim_red, 1); // mu averaged.
+    } else {
+      gkyl_cart_modal_gkhybrid(basis_red, cdim_red, vdim_red);
+    }
+  } else if (b_type == GKYL_BASIS_MODAL_HYBRID) {
+    gkyl_cart_modal_hybrid(basis, cdim, vdim);
+    if (vdim_red == 0) {
+      gkyl_cart_modal_serendip(basis_red, cdim_red, 1);
+    } else if (cdim_red == 0) {
+      gkyl_cart_modal_serendip(basis_red, vdim_red, 2);
+    } else {
+      gkyl_cart_modal_hybrid(basis_red, cdim_red, vdim_red);
+    }
+  } else {
+    gkyl_cart_modal_serendip(basis, ndim, poly_order);
+    gkyl_cart_modal_serendip(basis_red, ndim - 1, poly_order);
+  }
+}
+
+// Average a phase-space array over the dimensions flagged in avg_dim. The
+// full-dim output is compared with the mean of the cells along those
+// dimensions and, for a single averaged dimension, the reduced output with
+// the projection of the analytic average.
+void
+test_3x2v(
+  int cdim, int vdim, enum gkyl_basis_type b_type, int poly_order, const int *avg_dim, bool use_gpu
+)
+{
+  int ndim = cdim + vdim, ndim_red = ndim - 1, avg_dir = -1, num_avg_dim = 0;
+  for (int d = 0; d < ndim; d++) {
+    if (avg_dim[d]) {
+      avg_dir = d;
+      num_avg_dim++;
+    }
+  }
+  bool single_dir = num_avg_dim == 1;
+
+  double lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM], lower_red[GKYL_MAX_DIM], upper_red[GKYL_MAX_DIM];
+  int cells[GKYL_MAX_DIM], ghost[GKYL_MAX_DIM], cells_red[GKYL_MAX_DIM], ghost_red[GKYL_MAX_DIM];
+  for (int d = 0, r = 0; d < ndim; d++) {
+    lower[d] = -1.0;
+    upper[d] = 1.0;
+    cells[d] = avg_dim[d] ? 6 : 4;
+    ghost[d] = 0;
+    if (d != avg_dir) {
+      lower_red[r] = lower[d];
+      upper_red[r] = upper[d];
+      cells_red[r] = cells[d];
+      ghost_red[r] = 0;
+      r++;
+    }
+  }
+
+  struct gkyl_rect_grid grid, grid_red;
+  gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
+  gkyl_rect_grid_init(&grid_red, ndim_red, lower_red, upper_red, cells_red);
+
+  struct gkyl_basis basis, basis_red;
+  phase_bases(cdim, vdim, b_type, poly_order, avg_dir, &basis, &basis_red);
+
+  struct gkyl_range local, local_ext, local_red, local_red_ext;
+  gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
+  gkyl_create_grid_ranges(&grid_red, ghost_red, &local_red_ext, &local_red);
+
+  struct ctx_3x2v ctx = {.ndim = ndim, .avg_dir = avg_dir, .averaged = false};
+  struct ctx_3x2v ctx_red = {.ndim = ndim_red, .avg_dir = avg_dir, .averaged = true};
+  gkyl_proj_on_basis *projf = gkyl_proj_on_basis_new(&grid, &basis, 3, 1, evalFunc_3x2v, &ctx);
+  gkyl_proj_on_basis *projf_red =
+    gkyl_proj_on_basis_new(&grid_red, &basis_red, 3, 1, evalFunc_3x2v, &ctx_red);
+  struct gkyl_array *f_ho = mkarr(basis.num_basis, local_ext.volume, false);
+  struct gkyl_array *ref_ho = mkarr(basis_red.num_basis, local_red_ext.volume, false);
+  gkyl_proj_on_basis_advance(projf, 0.0, &local, f_ho);
+  gkyl_proj_on_basis_advance(projf_red, 0.0, &local_red, ref_ho);
+  gkyl_proj_on_basis_release(projf);
+  gkyl_proj_on_basis_release(projf_red);
+  struct gkyl_array *f = mkarr(basis.num_basis, local_ext.volume, use_gpu);
+  gkyl_array_copy(f, f_ho);
+
+  struct gkyl_array_average_inp inp = {
+    .grid = &grid,
+    .basis = basis,
+    .basis_avg = basis_red,
+    .vdim = vdim,
+    .local = &local,
+    .local_avg = &local_red,
+    .local_avg_ext = &local_red_ext,
+    .avg_dim = avg_dim,
+    .use_gpu = use_gpu,
+  };
+  struct gkyl_array *avg = mkarr(basis_red.num_basis, local_red_ext.volume, use_gpu);
+  struct gkyl_array *avg_ho = mkarr(basis_red.num_basis, local_red_ext.volume, false);
+  if (single_dir) {
+    struct gkyl_array_average *up_red = gkyl_array_average_inew(&inp);
+    gkyl_array_average_advance(up_red, f, avg);
+    gkyl_array_average_release(up_red);
+    gkyl_array_copy(avg_ho, avg);
+  }
+
+  inp.full_dim_out = true;
+  inp.local_avg_ext = &local_ext;
+  struct gkyl_array_average *up_full = gkyl_array_average_inew(&inp);
+  struct gkyl_array *favg = mkarr(basis.num_basis, local_ext.volume, use_gpu);
+  gkyl_array_average_advance(up_full, f, favg);
+  gkyl_array_average_release(up_full);
+  struct gkyl_array *favg_ho = mkarr(basis.num_basis, local_ext.volume, false);
+  gkyl_array_copy(favg_ho, favg);
+
+  double f_max = 0.0;
+  for (long i = 0; i < f_ho->size * f_ho->ncomp; i++) {
+    f_max = fmax(f_max, fabs(((const double *)f_ho->data)[i]));
+  }
+
+  struct gkyl_range_iter iter;
+  if (single_dir) {
+    gkyl_range_iter_init(&iter, &local_red);
+    while (gkyl_range_iter_next(&iter)) {
+      long lidx = gkyl_range_idx(&local_red, iter.idx);
+      const double *avg_c = gkyl_array_cfetch(avg_ho, lidx);
+      const double *ref_c = gkyl_array_cfetch(ref_ho, lidx);
+      for (int k = 0; k < basis_red.num_basis; k++) {
+        TEST_CHECK(fabs(avg_c[k] - ref_c[k]) < 1e-11 * f_max);
+        TEST_MSG(
+          "cdim=%d vdim=%d b_type=%d avg_dir=%d k=%d: %g vs %g", cdim, vdim, b_type, avg_dir, k,
+          avg_c[k], ref_c[k]
+        );
+      }
+    }
+  }
+
+  // Basis functions independent of the averaged dimensions.
+  int indep[160], dim_remains[GKYL_MAX_DIM];
+  double z0[GKYL_MAX_DIM], z1[GKYL_MAX_DIM], b0[160], b1[160];
+  for (int d = 0; d < ndim; d++) {
+    dim_remains[d] = 1 - avg_dim[d];
+    z0[d] = z1[d] = 0.17 + 0.11 * d;
+    if (avg_dim[d]) {
+      z0[d] = -0.6 + 0.07 * d;
+      z1[d] = 0.35 - 0.05 * d;
+    }
+  }
+  basis.eval(z0, b0);
+  basis.eval(z1, b1);
+  for (int k = 0; k < basis.num_basis; k++) {
+    indep[k] = fabs(b0[k] - b1[k]) < 1e-12;
+  }
+
+  int num_cells_avg = 1;
+  for (int d = 0; d < ndim; d++) {
+    num_cells_avg *= avg_dim[d] ? cells[d] : 1;
+  }
+  gkyl_range_iter_init(&iter, &local);
+  while (gkyl_range_iter_next(&iter)) {
+    const double *favg_c = gkyl_array_cfetch(favg_ho, gkyl_range_idx(&local, iter.idx));
+    struct gkyl_range rng_avg;
+    struct gkyl_range_iter iter_avg;
+    gkyl_range_deflate(&rng_avg, &local, dim_remains, iter.idx);
+    for (int k = 0; k < basis.num_basis; k++) {
+      double mean = 0.0;
+      gkyl_range_iter_no_split_init(&iter_avg, &rng_avg);
+      while (gkyl_range_iter_next(&iter_avg)) {
+        const double *f_c = gkyl_array_cfetch(f_ho, gkyl_range_idx(&rng_avg, iter_avg.idx));
+        mean += indep[k] ? f_c[k] / num_cells_avg : 0.0;
+      }
+      TEST_CHECK(fabs(favg_c[k] - mean) < 1e-12 * f_max);
+      TEST_MSG("cdim=%d vdim=%d b_type=%d k=%d: %g vs %g", cdim, vdim, b_type, k, favg_c[k], mean);
+    }
+  }
+
+  gkyl_array_release(f);
+  gkyl_array_release(f_ho);
+  gkyl_array_release(ref_ho);
+  gkyl_array_release(avg);
+  gkyl_array_release(favg);
+  gkyl_array_release(avg_ho);
+  gkyl_array_release(favg_ho);
+}
+
+void
+test_3x2v_all(bool use_gpu)
+{
+  enum gkyl_basis_type gkhyb = GKYL_BASIS_MODAL_GKHYBRID, hyb = GKYL_BASIS_MODAL_HYBRID,
+                       ser = GKYL_BASIS_MODAL_SERENDIPITY;
+  // Single averaged dimension (conf or velocity).
+  test_3x2v(1, 1, gkhyb, 1, (int[]){1, 0}, use_gpu);
+  test_3x2v(1, 1, gkhyb, 1, (int[]){0, 1}, use_gpu);
+  test_3x2v(1, 2, gkhyb, 1, (int[]){1, 0, 0}, use_gpu);
+  test_3x2v(1, 2, gkhyb, 1, (int[]){0, 1, 0}, use_gpu);
+  test_3x2v(1, 2, gkhyb, 1, (int[]){0, 0, 1}, use_gpu);
+  test_3x2v(2, 2, gkhyb, 1, (int[]){0, 1, 0, 0}, use_gpu);
+  test_3x2v(2, 2, gkhyb, 1, (int[]){0, 0, 0, 1}, use_gpu);
+  test_3x2v(3, 2, gkhyb, 1, (int[]){0, 1, 0, 0, 0}, use_gpu);
+  test_3x2v(3, 2, gkhyb, 1, (int[]){0, 0, 0, 1, 0}, use_gpu);
+  test_3x2v(1, 2, hyb, 1, (int[]){1, 0, 0}, use_gpu);
+  test_3x2v(1, 2, hyb, 1, (int[]){0, 1, 0}, use_gpu);
+  test_3x2v(1, 3, hyb, 1, (int[]){0, 0, 0, 1}, use_gpu);
+  test_3x2v(2, 2, hyb, 1, (int[]){1, 0, 0, 0}, use_gpu);
+  test_3x2v(2, 2, hyb, 1, (int[]){0, 0, 0, 1}, use_gpu);
+  test_3x2v(2, 3, hyb, 1, (int[]){0, 1, 0, 0, 0}, use_gpu);
+  test_3x2v(2, 3, hyb, 1, (int[]){0, 0, 1, 0, 0}, use_gpu);
+  test_3x2v(1, 2, ser, 2, (int[]){1, 0, 0}, use_gpu);
+  test_3x2v(1, 3, ser, 2, (int[]){0, 0, 0, 1}, use_gpu);
+  test_3x2v(2, 2, ser, 2, (int[]){0, 1, 0, 0}, use_gpu);
+  test_3x2v(2, 2, ser, 2, (int[]){0, 0, 1, 0}, use_gpu);
+  // Several averaged dimensions (full-dim output only).
+  test_3x2v(1, 2, gkhyb, 1, (int[]){1, 1, 0}, use_gpu);
+  test_3x2v(2, 2, gkhyb, 1, (int[]){1, 0, 1, 1}, use_gpu);
+  test_3x2v(3, 2, gkhyb, 1, (int[]){0, 1, 0, 1, 1}, use_gpu);
+  test_3x2v(2, 2, hyb, 1, (int[]){0, 1, 1, 0}, use_gpu);
+  test_3x2v(2, 3, hyb, 1, (int[]){1, 0, 0, 1, 1}, use_gpu);
+  test_3x2v(2, 2, ser, 2, (int[]){1, 1, 0, 1}, use_gpu);
+}
+
 void
 test_array_average_1x_ho()
 {
@@ -1164,7 +1520,14 @@ test_array_average_2x_ho()
     test_2x_intx_inty(p, false);
     test_2x_avgx_avgy(p, false);
     test_2x_avgy_avgx(p, false);
+    test_2x_fulldim(p, false);
   }
+}
+
+void
+test_array_average_3x2v_ho()
+{
+  test_3x2v_all(false);
 }
 
 void
@@ -1193,7 +1556,14 @@ test_array_average_2x_dev()
     test_2x_intx_inty(p, true);
     test_2x_avgx_avgy(p, true);
     test_2x_avgy_avgx(p, true);
+    test_2x_fulldim(p, true);
   }
+}
+
+void
+test_array_average_3x2v_dev()
+{
+  test_3x2v_all(true);
 }
 
 void
@@ -1211,10 +1581,12 @@ TEST_LIST = {
   {"test_array_average_1x_ho", test_array_average_1x_ho},
   {"test_array_average_2x_ho", test_array_average_2x_ho},
   {"test_array_average_3x_ho", test_array_average_3x_ho},
+  {"test_array_average_3x2v_ho", test_array_average_3x2v_ho},
 #ifdef GKYL_HAVE_CUDA
   {"test_array_average_1x_dev", test_array_average_1x_dev},
   {"test_array_average_2x_dev", test_array_average_2x_dev},
   {"test_array_average_3x_dev", test_array_average_3x_dev},
+  {"test_array_average_3x2v_dev", test_array_average_3x2v_dev},
 #endif
   {NULL, NULL}
 };

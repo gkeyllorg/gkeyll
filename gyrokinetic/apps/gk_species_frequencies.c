@@ -192,7 +192,7 @@ gk_species_frequencies_init(gkyl_gyrokinetic_app *app, struct gk_species *gks)
 void
 gk_species_frequencies_calc(gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm)
 {
-  gk_species_moment_calc(&gks->frequency_moms, gks->local, app->local, gks->f);
+  gk_species_moment_calc(app, &gks->frequency_moms, gks->local, app->local, gks->f);
   gkyl_array_copy(gks->frequency_moms.marr_host, gks->frequency_moms.marr);
   // Cross-species rates require all partners' moments from the same state.
   if (gks->lbo.collision_id == GKYL_LBO_COLLISIONS ||
