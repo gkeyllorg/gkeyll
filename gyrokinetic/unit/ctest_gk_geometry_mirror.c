@@ -429,12 +429,6 @@ test_mirror_3x_p1_straight_cylinder_ho(void)
 
   // Second let's validate geo_int. Many coponents still need to be added
 
-  // Plus 3 away from axis to avoid errors
-  double dels[2] = {1.0 / sqrt(3), 1.0 - 1.0 / sqrt(3)};
-  double theta_lo = grid.lower[TH_IDX] + dels[1] * grid.dx[TH_IDX] / 2.0;
-  double psi_lo = grid.lower[PSI_IDX] + dels[1] * grid.dx[PSI_IDX] / 2.0;
-  double alpha_lo = grid.lower[AL_IDX] + dels[1] * grid.dx[AL_IDX] / 2.0;
-
   // geo_int.mc2p
   struct gkyl_array *mc2p_nodal_interior =
     gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange_quad_interior.volume);
@@ -455,12 +449,15 @@ test_mirror_3x_p1_straight_cylinder_ho(void)
         double *mc2p_n =
           gkyl_array_fetch(mc2p_nodal_interior, gkyl_range_idx(&nrange_quad_interior, cidx));
 
-        double psi =
-          calc_running_coord(psi_lo, ip - nrange_quad_interior.lower[PSI_IDX], grid.dx[PSI_IDX]);
-        double alpha =
-          calc_running_coord(alpha_lo, ia - nrange_quad_interior.lower[AL_IDX], grid.dx[AL_IDX]);
-        double theta =
-          calc_running_coord(theta_lo, it - nrange_quad_interior.lower[TH_IDX], grid.dx[TH_IDX]);
+        double psi = gk_geometry_node_coord(
+          &grid, &range, &range, &nrange_quad_interior, PSI_IDX, ip, num_quad_points, true
+        );
+        double alpha = gk_geometry_node_coord(
+          &grid, &range, &range, &nrange_quad_interior, AL_IDX, ia, num_quad_points, true
+        );
+        double theta = gk_geometry_node_coord(
+          &grid, &range, &range, &nrange_quad_interior, TH_IDX, it, num_quad_points, true
+        );
         double xn[3] = {psi, -alpha, theta};
         double fout[3];
         mapc2p(0.0, xn, fout, 0);
@@ -795,12 +792,15 @@ test_mirror_3x_p1_straight_cylinder_ho(void)
         cidx[TH_IDX] = it;
         double *normals_n =
           gkyl_array_fetch(normals_nodal, gkyl_range_idx(&nrange_quad_interior, cidx));
-        double psi =
-          calc_running_coord(psi_lo, ia - nrange_quad_interior.lower[PSI_IDX], grid.dx[PSI_IDX]);
-        double alpha =
-          calc_running_coord(alpha_lo, ia - nrange_quad_interior.lower[AL_IDX], grid.dx[AL_IDX]);
-        double theta =
-          calc_running_coord(theta_lo, ia - nrange_quad_interior.lower[TH_IDX], grid.dx[TH_IDX]);
+        double psi = gk_geometry_node_coord(
+          &grid, &range, &range, &nrange_quad_interior, PSI_IDX, ip, num_quad_points, true
+        );
+        double alpha = gk_geometry_node_coord(
+          &grid, &range, &range, &nrange_quad_interior, AL_IDX, ia, num_quad_points, true
+        );
+        double theta = gk_geometry_node_coord(
+          &grid, &range, &range, &nrange_quad_interior, TH_IDX, it, num_quad_points, true
+        );
         double xn[3] = {psi, alpha, theta};
         double fout[9];
         exact_normals(0.0, xn, fout, 0);
@@ -1157,11 +1157,6 @@ test_mirror_3x_p1_pmap_straight_cylinder_ho(void)
 
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&basis, &grid, false);
 
-  double dels[2] = {1.0 / sqrt(3), 1.0 - 1.0 / sqrt(3)};
-  double theta_lo = grid.lower[TH_IDX] + dels[1] * grid.dx[TH_IDX] / 2.0;
-  double psi_lo = grid.lower[PSI_IDX] + dels[1] * grid.dx[PSI_IDX] / 2.0;
-  double alpha_lo = grid.lower[AL_IDX] + dels[1] * grid.dx[AL_IDX] / 2.0;
-
   struct gkyl_array *mapc2p_nodal = gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange.volume);
   gkyl_nodal_ops_m2n(
     n2m, &basis, &grid, &nrange, &range, 3, mapc2p_nodal, gk_geom->geo_corn.mc2p, false
@@ -1213,12 +1208,15 @@ test_mirror_3x_p1_pmap_straight_cylinder_ho(void)
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
         cidx[TH_IDX] = it;
-        double psi =
-          calc_running_coord(psi_lo, ia - nrange_quad_interior.lower[PSI_IDX], grid.dx[PSI_IDX]);
-        double alpha =
-          calc_running_coord(alpha_lo, ia - nrange_quad_interior.lower[AL_IDX], grid.dx[AL_IDX]);
-        double theta =
-          calc_running_coord(theta_lo, ia - nrange_quad_interior.lower[TH_IDX], grid.dx[TH_IDX]);
+        double psi = gk_geometry_node_coord(
+          &grid, &range, &range, &nrange_quad_interior, PSI_IDX, ip, num_quad_points, true
+        );
+        double alpha = gk_geometry_node_coord(
+          &grid, &range, &range, &nrange_quad_interior, AL_IDX, ia, num_quad_points, true
+        );
+        double theta = gk_geometry_node_coord(
+          &grid, &range, &range, &nrange_quad_interior, TH_IDX, it, num_quad_points, true
+        );
         double xn[3] = {psi, alpha, theta};
         double *dualmag_n =
           gkyl_array_fetch(dualmag_nodal, gkyl_range_idx(&nrange_quad_interior, cidx));
@@ -1291,12 +1289,15 @@ test_mirror_3x_p1_pmap_straight_cylinder_ho(void)
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
         cidx[TH_IDX] = it;
-        double psi =
-          calc_running_coord(psi_lo, ia - nrange_quad_interior.lower[PSI_IDX], grid.dx[PSI_IDX]);
-        double alpha =
-          calc_running_coord(alpha_lo, ia - nrange_quad_interior.lower[AL_IDX], grid.dx[AL_IDX]);
-        double theta =
-          calc_running_coord(theta_lo, ia - nrange_quad_interior.lower[TH_IDX], grid.dx[TH_IDX]);
+        double psi = gk_geometry_node_coord(
+          &grid, &range, &range, &nrange_quad_interior, PSI_IDX, ip, num_quad_points, true
+        );
+        double alpha = gk_geometry_node_coord(
+          &grid, &range, &range, &nrange_quad_interior, AL_IDX, ia, num_quad_points, true
+        );
+        double theta = gk_geometry_node_coord(
+          &grid, &range, &range, &nrange_quad_interior, TH_IDX, it, num_quad_points, true
+        );
         double *gij_n = gkyl_array_fetch(gij_nodal, gkyl_range_idx(&nrange_quad_interior, cidx));
         double xn[3] = {psi, alpha, theta};
         double fout[6];
@@ -1325,12 +1326,15 @@ test_mirror_3x_p1_pmap_straight_cylinder_ho(void)
         cidx[TH_IDX] = it;
         double *gij_contra_n =
           gkyl_array_fetch(gij_contra_nodal, gkyl_range_idx(&nrange_quad_interior, cidx));
-        double psi =
-          calc_running_coord(psi_lo, ia - nrange_quad_interior.lower[PSI_IDX], grid.dx[PSI_IDX]);
-        double alpha =
-          calc_running_coord(alpha_lo, ia - nrange_quad_interior.lower[AL_IDX], grid.dx[AL_IDX]);
-        double theta =
-          calc_running_coord(theta_lo, ia - nrange_quad_interior.lower[TH_IDX], grid.dx[TH_IDX]);
+        double psi = gk_geometry_node_coord(
+          &grid, &range, &range, &nrange_quad_interior, PSI_IDX, ip, num_quad_points, true
+        );
+        double alpha = gk_geometry_node_coord(
+          &grid, &range, &range, &nrange_quad_interior, AL_IDX, ia, num_quad_points, true
+        );
+        double theta = gk_geometry_node_coord(
+          &grid, &range, &range, &nrange_quad_interior, TH_IDX, it, num_quad_points, true
+        );
         double xn[3] = {psi, alpha, theta};
         double fout[6];
         exact_g_contra_ij_pmap(0.0, xn, fout, 0);
@@ -1468,12 +1472,15 @@ test_mirror_3x_p1_pmap_straight_cylinder_ho(void)
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
         cidx[TH_IDX] = it;
-        double psi =
-          calc_running_coord(psi_lo, ia - nrange_quad_interior.lower[PSI_IDX], grid.dx[PSI_IDX]);
-        double alpha =
-          calc_running_coord(alpha_lo, ia - nrange_quad_interior.lower[AL_IDX], grid.dx[AL_IDX]);
-        double theta =
-          calc_running_coord(theta_lo, ia - nrange_quad_interior.lower[TH_IDX], grid.dx[TH_IDX]);
+        double psi = gk_geometry_node_coord(
+          &grid, &range, &range, &nrange_quad_interior, PSI_IDX, ip, num_quad_points, true
+        );
+        double alpha = gk_geometry_node_coord(
+          &grid, &range, &range, &nrange_quad_interior, AL_IDX, ia, num_quad_points, true
+        );
+        double theta = gk_geometry_node_coord(
+          &grid, &range, &range, &nrange_quad_interior, TH_IDX, it, num_quad_points, true
+        );
         // mapc2p_n[0] = R, mapc2p_n[1] = Theta, mapc2p_n[2] = Z_cylindrical
         double *mapc2p_n = gkyl_array_fetch(mapc2p_nodal, gkyl_range_idx(&nrange, cidx));
         mapz(0.0, &theta, &theta, 0);
@@ -1498,12 +1505,15 @@ test_mirror_3x_p1_pmap_straight_cylinder_ho(void)
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
         cidx[TH_IDX] = it;
-        double psi =
-          calc_running_coord(psi_lo, ia - nrange_quad_interior.lower[PSI_IDX], grid.dx[PSI_IDX]);
-        double alpha =
-          calc_running_coord(alpha_lo, ia - nrange_quad_interior.lower[AL_IDX], grid.dx[AL_IDX]);
-        double theta =
-          calc_running_coord(theta_lo, ia - nrange_quad_interior.lower[TH_IDX], grid.dx[TH_IDX]);
+        double psi = gk_geometry_node_coord(
+          &grid, &range, &range, &nrange_quad_interior, PSI_IDX, ip, num_quad_points, true
+        );
+        double alpha = gk_geometry_node_coord(
+          &grid, &range, &range, &nrange_quad_interior, AL_IDX, ia, num_quad_points, true
+        );
+        double theta = gk_geometry_node_coord(
+          &grid, &range, &range, &nrange_quad_interior, TH_IDX, it, num_quad_points, true
+        );
         mapz(0.0, &theta, &theta, 0);
         double xn[3] = {psi, alpha, theta};
         double *mc2nu_pos_n = gkyl_array_fetch(mc2nu_pos_nodal, gkyl_range_idx(&nrange, cidx));
@@ -1533,12 +1543,15 @@ test_mirror_3x_p1_pmap_straight_cylinder_ho(void)
         cidx[TH_IDX] = it;
         double *normals_n =
           gkyl_array_fetch(normals_nodal, gkyl_range_idx(&nrange_quad_interior, cidx));
-        double psi =
-          calc_running_coord(psi_lo, ia - nrange_quad_interior.lower[PSI_IDX], grid.dx[PSI_IDX]);
-        double alpha =
-          calc_running_coord(alpha_lo, ia - nrange_quad_interior.lower[AL_IDX], grid.dx[AL_IDX]);
-        double theta =
-          calc_running_coord(theta_lo, ia - nrange_quad_interior.lower[TH_IDX], grid.dx[TH_IDX]);
+        double psi = gk_geometry_node_coord(
+          &grid, &range, &range, &nrange_quad_interior, PSI_IDX, ip, num_quad_points, true
+        );
+        double alpha = gk_geometry_node_coord(
+          &grid, &range, &range, &nrange_quad_interior, AL_IDX, ia, num_quad_points, true
+        );
+        double theta = gk_geometry_node_coord(
+          &grid, &range, &range, &nrange_quad_interior, TH_IDX, it, num_quad_points, true
+        );
         double xn[3] = {psi, alpha, theta};
         double fout[9];
         exact_normals_pmap(0.0, xn, fout, 0);
@@ -1687,7 +1700,7 @@ check_mirror_field_direction(double curvature)
            surface ? face->normcurlbhat : vol->dualcurlbhat},
           {"dualcurlbhatoverB", 3, surface ? NULL : vol->dualcurlbhatoverB_nodal,
            surface ? NULL : vol->dualcurlbhatoverB},
-          {"rtg33inv", 1, surface ? NULL : vol->rtg33inv_nodal, surface ? NULL : vol->rtg33inv},
+          {"B3overB", 1, surface ? NULL : vol->B3overB_nodal, surface ? NULL : vol->B3overB},
           {"bioverJB", 3, surface ? NULL : vol->bioverJB_nodal, surface ? NULL : vol->bioverJB},
           {"cmag", 1, surface ? face->cmag_nodal : NULL, surface ? face->cmag : vol->cmag}
         };

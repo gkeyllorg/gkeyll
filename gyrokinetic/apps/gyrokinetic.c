@@ -283,46 +283,41 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
   }
 
   // Create plane communicators.
-  if (app->cdim == 1) {
-    app->decomp_plane[0] = gkyl_rect_decomp_acquire(app->decomp);
-    app->comm_plane[0] = gkyl_comm_acquire(app->comm);
-  } else {
-    for (int dir = 0; dir < app->cdim; ++dir) {
-      // Identify ranks on the same plane as this one.
-      int num_ranks_plane = 0;
-      int ranks_plane[app->decomp->ndecomp];
-      for (int i = 0; i < app->decomp->ndecomp; i++) {
-        if (app->decomp->ranges[i].lower[dir] == app->local.lower[dir]) {
-          ranks_plane[num_ranks_plane] = i;
-          num_ranks_plane++;
-        }
+  for (int dir = 0; dir < app->cdim; ++dir) {
+    // Identify ranks on the same plane as this one.
+    int num_ranks_plane = 0;
+    int ranks_plane[app->decomp->ndecomp];
+    for (int i = 0; i < app->decomp->ndecomp; i++) {
+      if (app->decomp->ranges[i].lower[dir] == app->local.lower[dir]) {
+        ranks_plane[num_ranks_plane] = i;
+        num_ranks_plane++;
       }
-      // Create a range tangentially global, and local in perp direction.
-      int lower_plane[app->cdim], upper_plane[app->cdim];
-      for (int d = 0; d < app->cdim; ++d) {
-        lower_plane[d] = app->global.lower[d];
-        upper_plane[d] = app->global.upper[d];
-      }
-      lower_plane[dir] = app->local.lower[dir];
-      upper_plane[dir] = app->local.upper[dir];
-      struct gkyl_range range_plane;
-      gkyl_range_init(&range_plane, app->cdim, lower_plane, upper_plane);
-
-      // Create decomp.
-      int cuts_plane[GKYL_MAX_CDIM];
-      for (int d = 0; d < app->cdim; ++d) {
-        cuts_plane[d] = gk->parallelism.cuts[d];
-      }
-      cuts_plane[dir] = 1;
-      app->decomp_plane[dir] = gkyl_rect_decomp_new_from_cuts(app->cdim, cuts_plane, &range_plane);
-
-      // Create a new communicator with ranks on plane.
-      bool is_comm_valid;
-      app->comm_plane[dir] = gkyl_comm_create_comm_from_ranks(
-        app->comm, num_ranks_plane, ranks_plane, app->decomp_plane[dir], &is_comm_valid
-      );
-      assert(is_comm_valid);
     }
+    // Create a range global in perpendicular directions, and local in parallel direction.
+    int lower_plane[app->cdim], upper_plane[app->cdim];
+    for (int d = 0; d < app->cdim; ++d) {
+      lower_plane[d] = app->global.lower[d];
+      upper_plane[d] = app->global.upper[d];
+    }
+    lower_plane[dir] = app->local.lower[dir];
+    upper_plane[dir] = app->local.upper[dir];
+    struct gkyl_range range_plane;
+    gkyl_range_init(&range_plane, app->cdim, lower_plane, upper_plane);
+
+    // Create decomp.
+    int cuts_plane[GKYL_MAX_CDIM];
+    for (int d = 0; d < app->cdim; ++d) {
+      cuts_plane[d] = gk->parallelism.cuts[d];
+    }
+    cuts_plane[dir] = 1;
+    app->decomp_plane[dir] = gkyl_rect_decomp_new_from_cuts(app->cdim, cuts_plane, &range_plane);
+
+    // Create a new communicator with ranks on plane.
+    bool is_comm_valid;
+    app->comm_plane[dir] = gkyl_comm_create_comm_from_ranks(
+      app->comm, num_ranks_plane, ranks_plane, app->decomp_plane[dir], &is_comm_valid
+    );
+    assert(is_comm_valid);
   }
 
   // Skin and ghost ranges for configuration space fields.
@@ -382,6 +377,17 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
   strcpy(geometry_inp.geometry_path, gk->geometry.geometry_path);
   for (int i = 0; i < 3; i++) {
     geometry_inp.world[i] = gk->geometry.world[i];
+  }
+
+  // Pass periodicity to the geometry input to avoid asymmetry at periodic boundaries.
+  for (int d = 0; d < 3; d++) {
+    geometry_inp.geo_is_periodic[d] = false;
+  }
+
+  for (int d = 0; d < app->num_periodic_dir; d++) {
+    int dir = app->periodic_dirs[d];
+    int geo_dir = app->cdim == 3 ? dir : (app->cdim == 2 ? (dir == 0 ? 0 : 2) : 2);
+    geometry_inp.geo_is_periodic[geo_dir] = true;
   }
 
   if (app->cdim < 3) {
@@ -807,8 +813,7 @@ gkyl_gyrokinetic_app_omegaH_init(gkyl_gyrokinetic_app *app)
 
   app->omegaH_gf = 1.0 / DBL_MAX;
 
-  if (!(app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN ||
-        app->field->gkfield_id == GKYL_GK_FIELD_ADIABATIC)) {
+  if (!(app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN || app->field->has_adiabatic_species)) {
     // Compute parfac = (cmag/(jacobgeo*B^_\parallel))*kpar_max.
     struct gkyl_array *parfac = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     gkyl_dg_mul_op_range(
@@ -1181,6 +1186,11 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app *app, double t0)
     gkyl_gyrokinetic_app_apply_ic_species(app, i, t0);
   }
 
+  // Set up the response of the adiabatic species from their t=0 moments.
+  if (app->field->has_adiabatic_species) {
+    gk_field_adiabatic_init(app, app->field);
+  }
+
   for (int i = 0; i < app->num_neut_species; ++i) {
     gkyl_gyrokinetic_app_apply_ic_neut_species(app, i, t0);
   }
@@ -1208,15 +1218,15 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app *app, double t0)
   if (app->field->calc_init_field) {
     if (app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) {
       for (int i = 0; i < app->num_species; ++i) {
-        struct gk_species *s = &app->species[i];
+        struct gk_species *gks = &app->species[i];
 
         // Compute the collisionless flux so we can compute the initial boundary flux.
-        gk_species_collisionless_flux(app, s, &s->collisionless, distf[i]);
+        gk_species_collisionless_flux(app, gks, &gks->collisionless, distf[i]);
 
         // Compute and store (in the ghost cell of out) the boundary fluxes.
-        gk_species_bflux_rhs(app, &s->bflux, distf[i], distf[i]);
+        gk_species_bflux_rhs(app, &gks->bflux, distf[i], distf[i]);
         // Compute moments of the boundary fluxes.
-        gk_species_bflux_calc_moms(app, &s->bflux, distf[i], bflux[i]);
+        gk_species_bflux_calc_moms(app, &gks->bflux, distf[i], bflux[i]);
       }
     }
 
@@ -1236,10 +1246,12 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app *app, double t0)
     }
   }
 
-  // Compute the phase-space advection speeds and boundary fluxes as t=0
-  // diagnostics and emission BCs may need them.
   for (int i = 0; i < app->num_species; ++i) {
     struct gk_species *gks = &app->species[i];
+    // Scale the adiabatic species to set its density.
+    gk_species_scaling_apply(app, gks, &gks->sca, gks->f, bflux);
+    // Compute the phase-space advection speeds and boundary fluxes as t=0
+    // diagnostics and emission BCs may need them.
     gk_species_collisionless_flux(app, gks, &gks->collisionless, distf[i]);
     gk_species_bflux_rhs(app, &gks->bflux, gks->f, gks->f);
     gk_species_bflux_calc_moms(app, &gks->bflux, gks->f, bflux[i]);
@@ -1274,11 +1286,11 @@ gkyl_gyrokinetic_app_apply_ic_neut_species(gkyl_gyrokinetic_app *app, int sidx, 
 {
   assert(sidx < app->num_neut_species);
 
-  struct gk_neut_species *gk_ns = &app->neut_species[sidx];
+  struct gk_neut_species *gkns = &app->neut_species[sidx];
 
   app->tcurr = t0;
   struct timespec wtm = gkyl_wall_clock();
-  gk_neut_species_apply_ic(app, gk_ns, t0);
+  gk_neut_species_apply_ic(app, gkns, t0);
   app->stat.init_neut_species_tm += gkyl_time_diff_now_sec(wtm);
 }
 
@@ -1300,11 +1312,11 @@ gkyl_gyrokinetic_app_apply_ic_cross_neut_species(gkyl_gyrokinetic_app *app, int 
 {
   assert(sidx < app->num_neut_species);
 
-  struct gk_neut_species *gk_ns = &app->neut_species[sidx];
+  struct gk_neut_species *gkns = &app->neut_species[sidx];
 
   app->tcurr = t0;
   struct timespec wtm = gkyl_wall_clock();
-  gk_neut_species_apply_ic_cross(app, gk_ns, t0);
+  gk_neut_species_apply_ic_cross(app, gkns, t0);
   app->stat.init_species_tm += gkyl_time_diff_now_sec(wtm);
 }
 
@@ -1682,7 +1694,7 @@ gkyl_gyrokinetic_app_write_geometry(
     app, app->gk_geom->geo_int.qprofile, arr_ho1, "geo_int_qprofile", "Safety factor."
   );
   gyrokinetic_app_geometry_copy_and_write(
-    app, app->gk_geom->geo_int.rtg33inv, arr_ho1, "geo_int_rtg33inv",
+    app, app->gk_geom->geo_int.B3overB, arr_ho1, "geo_int_B3overB",
     "Reciprocal square root of the zz covariant metric component."
   );
   gyrokinetic_app_geometry_copy_and_write(
@@ -2693,8 +2705,8 @@ gyrokinetic_rhs(
     gk_species_bgk_moms(app, gk_s, &gk_s->bgk, fin[i]);
   }
   for (int i = 0; i < app->num_neut_species; ++i) {
-    struct gk_neut_species *gk_ns = &app->neut_species[i];
-    gk_neut_species_bgk_moms(app, gk_ns, &gk_ns->bgk, fin_neut[i]);
+    struct gk_neut_species *gkns = &app->neut_species[i];
+    gk_neut_species_bgk_moms(app, gkns, &gkns->bgk, fin_neut[i]);
   }
 
   // Compute cross-species moments needed by various modules.
@@ -2716,13 +2728,13 @@ gyrokinetic_rhs(
     gk_species_scaling_cross_moms(app, gk_s, &gk_s->sca, fin, fin_neut);
   }
   for (int i = 0; i < app->num_neut_species; ++i) {
-    struct gk_neut_species *gk_ns = &app->neut_species[i];
+    struct gk_neut_species *gkns = &app->neut_species[i];
 
     // Reactions (e.g. ionization, recombination charge exchange).
-    gk_neut_species_react_cross_moms(app, gk_ns, &gk_ns->react_neut, fin, fin_neut);
+    gk_neut_species_react_cross_moms(app, gkns, &gkns->react_neut, fin, fin_neut);
 
     // Scaling.
-    gk_neut_species_scaling_cross_moms(app, gk_ns, &gk_ns->sca, fin, fin_neut);
+    gk_neut_species_scaling_cross_moms(app, gkns, &gkns->sca, fin, fin_neut);
   }
 
   // Compute df/dt (not including sources).
@@ -2732,8 +2744,8 @@ gyrokinetic_rhs(
     dtmin = fmin(dtmin, dt1);
   }
   for (int i = 0; i < app->num_neut_species; ++i) {
-    struct gk_neut_species *gk_ns = &app->neut_species[i];
-    double dt1 = gk_neut_species_rhs(app, gk_ns, fin_neut[i], fout_neut[i], bflux_out_neut[i]);
+    struct gk_neut_species *gkns = &app->neut_species[i];
+    double dt1 = gk_neut_species_rhs(app, gkns, fin_neut[i], fout_neut[i], bflux_out_neut[i]);
     dtmin = fmin(dtmin, dt1);
   }
 
@@ -2791,8 +2803,8 @@ gyrokinetic_rhs_implicit(
     gk_species_bgk_moms_implicit(app, gk_s, &gk_s->bgk, fin[i]);
   }
   for (int i = 0; i < app->num_neut_species; ++i) {
-    struct gk_neut_species *gk_ns = &app->neut_species[i];
-    gk_neut_species_bgk_moms_implicit(app, gk_ns, &gk_ns->bgk, fin_neut[i]);
+    struct gk_neut_species *gkns = &app->neut_species[i];
+    gk_neut_species_bgk_moms_implicit(app, gkns, &gkns->bgk, fin_neut[i]);
   }
 
   // Compute cross-species moments needed by various modules.
@@ -2808,8 +2820,8 @@ gyrokinetic_rhs_implicit(
     gk_species_rhs_implicit(app, gk_s, fin[i], fout[i], bflux_out[i], dt);
   }
   for (int i = 0; i < app->num_neut_species; ++i) {
-    struct gk_neut_species *gk_ns = &app->neut_species[i];
-    gk_neut_species_rhs_implicit(app, gk_ns, fin_neut[i], fout_neut[i], bflux_out_neut[i], dt);
+    struct gk_neut_species *gkns = &app->neut_species[i];
+    gk_neut_species_rhs_implicit(app, gkns, fin_neut[i], fout_neut[i], bflux_out_neut[i], dt);
   }
 }
 
@@ -3460,8 +3472,8 @@ gkyl_gyrokinetic_app_stat_write(gkyl_gyrokinetic_app *app)
   }
 
   for (int i = 0; i < app->num_neut_species; ++i) {
-    struct gk_neut_species *gk_ns = &app->neut_species[i];
-    gk_neut_species_n_iter_corr(app, gk_ns, i);
+    struct gk_neut_species *gkns = &app->neut_species[i];
+    gk_neut_species_n_iter_corr(app, gkns, i);
   }
 
   struct gkyl_gyrokinetic_stat stat = {};
@@ -3925,8 +3937,12 @@ header_from_file(gkyl_gyrokinetic_app *app, const char *fname)
   with_file(fp, fname, "r")
   {
     struct gkyl_rect_grid grid;
-    struct gkyl_array_header_info hdr;
+    struct gkyl_array_header_info hdr = {0};
     rstat.io_status = gkyl_grid_sub_array_header_read_fp(&grid, &hdr, fp);
+
+    if (rstat.io_status != GKYL_ARRAY_RIO_SUCCESS) {
+      continue; // with_file closes fp; failed headers must not be parsed.
+    }
 
     if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
       if (hdr.etype != GKYL_DOUBLE) {
@@ -4159,7 +4175,7 @@ gkyl_gyrokinetic_app_read_geometry(
     app, app->gk_geom->geo_int.qprofile, arr_ho1, geometry_inp->geometry_path, "geo_int_qprofile"
   );
   gyrokinetic_app_geometry_read_and_copy(
-    app, app->gk_geom->geo_int.rtg33inv, arr_ho1, geometry_inp->geometry_path, "geo_int_rtg33inv"
+    app, app->gk_geom->geo_int.B3overB, arr_ho1, geometry_inp->geometry_path, "geo_int_B3overB"
   );
   gyrokinetic_app_geometry_read_and_copy(
     app, app->gk_geom->geo_int.dualcurlbhatoverB, arr_ho3, geometry_inp->geometry_path,
@@ -4275,11 +4291,7 @@ gkyl_gyrokinetic_app_from_file_species(gkyl_gyrokinetic_app *app, int sidx, cons
   struct gk_species *gk_s = &app->species[sidx];
 
   if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
-    rstat.io_status =
-      gkyl_comm_array_read(gk_s->comm, &gk_s->grid, &gk_s->local, gk_s->f_host, fname);
-    if (app->use_gpu) {
-      gkyl_array_copy(gk_s->f, gk_s->f_host);
-    }
+    rstat.io_status = gk_species_read(app, gk_s, fname);
 
     if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
       // Use f as a valid fallback filtered state when no fbar file is configured.
@@ -4298,19 +4310,19 @@ gkyl_gyrokinetic_app_from_file_neut_species(gkyl_gyrokinetic_app *app, int sidx,
 {
   struct gkyl_app_restart_status rstat = header_from_file(app, fname);
 
-  struct gk_neut_species *gk_ns = &app->neut_species[sidx];
+  struct gk_neut_species *gkns = &app->neut_species[sidx];
 
   if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
     rstat.io_status =
-      gkyl_comm_array_read(gk_ns->comm, &gk_ns->grid, &gk_ns->local, gk_ns->f_host, fname);
+      gkyl_comm_array_read(gkns->comm, &gkns->grid, &gkns->local, gkns->f_host, fname);
     if (app->use_gpu) {
-      gkyl_array_copy(gk_ns->f, gk_ns->f_host);
+      gkyl_array_copy(gkns->f, gkns->f_host);
     }
 
     if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
-      gk_neut_species_source_calc(app, gk_ns, &gk_ns->src, gk_ns->lte.f_lte, 0.0);
+      gk_neut_species_source_calc(app, gkns, &gkns->src, gkns->lte.f_lte, 0.0);
       // Read volume and time integrated boundary flux diagnostics.
-      gk_neut_species_bflux_read_voltime_integrated_mom(app, gk_ns, &gk_ns->bflux);
+      gk_neut_species_bflux_read_voltime_integrated_mom(app, gkns, &gkns->bflux);
     }
   }
 
@@ -4382,24 +4394,24 @@ gkyl_gyrokinetic_app_from_frame_species(gkyl_gyrokinetic_app *app, int sidx, int
 struct gkyl_app_restart_status
 gkyl_gyrokinetic_app_from_frame_neut_species(gkyl_gyrokinetic_app *app, int sidx, int frame)
 {
-  struct gk_neut_species *gk_ns = &app->neut_species[sidx];
+  struct gk_neut_species *gkns = &app->neut_species[sidx];
 
-  cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, gk_ns->info.name, frame);
+  cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, gkns->info.name, frame);
   struct gkyl_app_restart_status rstat =
     gkyl_gyrokinetic_app_from_file_neut_species(app, sidx, fileNm.str);
-  gk_ns->is_first_integ_write_call = false; // append to existing diagnostic
+  gkns->is_first_integ_write_call = false; // append to existing diagnostic
   cstr_drop(&fileNm);
 
   // Append to existing integrated diagnostics.
-  gk_ns->is_first_integ_write_call = false;
-  if (gk_ns->src.source_id) {
-    gk_ns->src.is_first_integ_write_call = false;
+  gkns->is_first_integ_write_call = false;
+  if (gkns->src.source_id) {
+    gkns->src.is_first_integ_write_call = false;
   }
-  if (gk_ns->positivity.type) {
-    gk_ns->positivity.is_first_integ_write_call = false;
+  if (gkns->positivity.type) {
+    gkns->positivity.is_first_integ_write_call = false;
   }
-  if (gk_ns->lte.correct_all_moms) {
-    gk_ns->lte.is_first_corr_status_write_call = false;
+  if (gkns->lte.correct_all_moms) {
+    gkns->lte.is_first_corr_status_write_call = false;
   }
 
   return rstat;
@@ -4424,9 +4436,19 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
     }
   }
   for (int i = 0; i < app->num_species; i++) {
-    if (app->species[i].info.is_static) {
+    if (app->species[i].info.is_static ||
+        app->species[i].sca.type == GKYL_GK_SPECIES_SCALING_ADIABATIC) {
       gk_species_apply_ic(app, &app->species[i], 0.0);
-    } else {
+    }
+  }
+
+  // Capture the adiabatic response from the initial state before loading evolved states.
+  if (app->field->has_adiabatic_species) {
+    gk_field_adiabatic_init(app, app->field);
+  }
+
+  for (int i = 0; i < app->num_species; ++i) {
+    if (!app->species[i].info.is_static) {
       rstat = gkyl_gyrokinetic_app_from_frame_species(app, i, frame);
       if (rstat.io_status != GKYL_ARRAY_RIO_SUCCESS) {
         return rstat;
@@ -4454,15 +4476,15 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
     if (app->field->update_field) {
       if (app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) {
         for (int i = 0; i < app->num_species; ++i) {
-          struct gk_species *s = &app->species[i];
+          struct gk_species *gks = &app->species[i];
 
           // Compute the collisionless flux so we can compute the initial boundary flux.
-          gk_species_collisionless_flux(app, s, &s->collisionless, distf[i]);
+          gk_species_collisionless_flux(app, gks, &gks->collisionless, distf[i]);
 
           // Compute and store (in the ghost cell of of out) the boundary fluxes.
-          gk_species_bflux_rhs(app, &s->bflux, distf[i], distf[i]);
+          gk_species_bflux_rhs(app, &gks->bflux, distf[i], distf[i]);
           // Compute moments of the boundary fluxes.
-          gk_species_bflux_calc_moms(app, &s->bflux, distf[i], bflux[i]);
+          gk_species_bflux_calc_moms(app, &gks->bflux, distf[i], bflux[i]);
         }
       }
 
@@ -4477,15 +4499,15 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
 
     // Compute boundary fluxes, for recycling and diagnostics and adapt the source.
     for (int i = 0; i < app->num_species; ++i) {
-      struct gk_species *s = &app->species[i];
+      struct gk_species *gks = &app->species[i];
 
       // Compute the collisionless flux so we can compute the initial boundary flux.
-      gk_species_collisionless_flux(app, s, &s->collisionless, distf[i]);
+      gk_species_collisionless_flux(app, gks, &gks->collisionless, distf[i]);
 
       // Compute and store (in the ghost cell of of out) the boundary fluxes.
-      gk_species_bflux_rhs(app, &s->bflux, distf[i], distf[i]);
+      gk_species_bflux_rhs(app, &gks->bflux, distf[i], distf[i]);
       // Compute moments of the boundary fluxes.
-      gk_species_bflux_calc_moms(app, &s->bflux, distf[i], bflux[i]);
+      gk_species_bflux_calc_moms(app, &gks->bflux, distf[i], bflux[i]);
     }
 
     // Apply boundary conditions.

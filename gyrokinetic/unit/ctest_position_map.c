@@ -853,6 +853,8 @@ asymmetric_bmag(double t, const double *xn, double *out, void *ctx)
   int profile = *(int *)ctx;
   if (profile == 0) {
     out[0] = xn[0] < 0.25 ? 2.0 - xn[0] : 1.75 + 2.0 * (xn[0] - 0.25);
+  } else if (profile == 3) {
+    out[0] = 2.0 + xn[0];
   } else {
     // Include a constant field with roundoff-sized oscillations.
     out[0] = 2.0 + (profile == 2 ? 8.0 * DBL_EPSILON * (cos(4.0 * M_PI * xn[0]) + xn[0]) : 0.0);
@@ -862,10 +864,12 @@ asymmetric_bmag(double t, const double *xn, double *out, void *ctx)
 static void
 test_numeric_degenerate_and_strength(void)
 {
-  for (int profile = 0; profile < 3; ++profile) {
+  for (int profile = 0; profile < 4; ++profile) {
+    // Exercise a linear field on the smallest grid.
+    int nz = profile == 3 ? 1 : 16;
     struct gkyl_rect_grid grid, grid3;
-    gkyl_rect_grid_init(&grid, 1, (double[]){-1}, (double[]){1}, (int[]){16});
-    gkyl_rect_grid_init(&grid3, 3, (double[]){-2, -1, -1}, (double[]){-1, 1, 1}, (int[]){1, 1, 16});
+    gkyl_rect_grid_init(&grid, 1, (double[]){-1}, (double[]){1}, (int[]){nz});
+    gkyl_rect_grid_init(&grid3, 3, (double[]){-2, -1, -1}, (double[]){-1, 1, 1}, (int[]){1, 1, nz});
     struct gkyl_range local, ext, global3, ext3;
     gkyl_create_grid_ranges(&grid, (int[]){1}, &ext, &local);
     gkyl_create_grid_ranges(&grid3, (int[]){1, 1, 1}, &ext3, &global3);
@@ -876,7 +880,7 @@ test_numeric_degenerate_and_strength(void)
       grid, local, ext, local, ext, basis
     );
     struct gkyl_array *bmag = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, ext.volume);
-    bool uniform = profile != 0;
+    bool uniform = profile == 1 || profile == 2;
     struct gkyl_proj_on_basis *proj =
       gkyl_proj_on_basis_new(&grid, &basis, 2, 1, asymmetric_bmag, &profile);
     gkyl_proj_on_basis_advance(proj, 0.0, &local, bmag);
@@ -891,6 +895,20 @@ test_numeric_degenerate_and_strength(void)
       TEST_CHECK(pmap->constB_ctx->theta_extrema[1] == 1.0);
       TEST_CHECK(pmap->constB_ctx->dB_cell == 0.0);
     }
+    if (profile == 0) {
+      // The centered derivative vanishes exactly at this sampled minimum.
+      // Record it once, with the correct classification.
+      TEST_CHECK(pmap->constB_ctx->num_extrema == 3);
+      TEST_CHECK(gkyl_compare(pmap->constB_ctx->theta_extrema[1], 0.25, 1e-12));
+      TEST_CHECK(!pmap->constB_ctx->min_or_max[1]);
+    } else if (profile == 3) {
+      // Exercise the minimum scan resolution: one interior sample.
+      pmap->constB_ctx->N_theta_boundaries = 1;
+      find_B_field_extrema(pmap);
+      refine_B_field_extrema(pmap);
+      TEST_CHECK(pmap->constB_ctx->num_extrema == 2);
+      TEST_CHECK(gkyl_compare(pmap->constB_ctx->dB_cell, 2.0, 1e-12));
+    }
     for (int strength = 0; strength < 3; ++strength) {
       pmap->constB_ctx->map_strength = 0.5 * strength;
       for (int point = 0; point <= 32; ++point) {
@@ -901,7 +919,7 @@ test_numeric_degenerate_and_strength(void)
         double full = change <= 1.25 ? -1.0 + change : 0.25 + (change - 1.25) / 2.0;
         double actual;
         pmap->maps[2](0, &x, &actual, pmap->ctxs[2]);
-        double expected = uniform ? x : (1.0 - 0.5 * strength) * x + 0.5 * strength * full;
+        double expected = profile != 0 ? x : (1.0 - 0.5 * strength) * x + 0.5 * strength * full;
         TEST_CHECK(gkyl_compare(actual, expected, 2e-12));
         TEST_MSG(
           "profile %d strength %g x %g actual %g expected %g", profile, 0.5 * strength, x, actual,
@@ -909,7 +927,7 @@ test_numeric_degenerate_and_strength(void)
         );
       }
     }
-    if (!uniform) {
+    if (profile == 0) {
       pmap->constB_ctx->enable_maximum_slope_limits_at_min_B = true;
       pmap->constB_ctx->enable_maximum_slope_limits_at_max_B = true;
       pmap->constB_ctx->maximum_slope_at_min_B = 2.0;

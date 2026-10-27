@@ -69,7 +69,7 @@ gk_species_source_bgk_rhs_heating_enabled(
   struct timespec wst = gkyl_wall_clock();
 
   // Compute Maxwellian moments (n, u_par, T/m).
-  gk_species_moment_calc(&species->lte.moms, species->local, app->local, fin);
+  gk_species_moment_calc(app, &species->lte.moms, species->local, app->local, fin);
   gkyl_dg_div_op_range(
     species->lte.moms.mem_geo, &app->basis, 0, species->lte.moms.marr, 0, species->lte.moms.marr, 0,
     app->gk_geom->geo_int.jacobgeo, &app->local
@@ -128,13 +128,13 @@ gk_species_source_bgk_rhs_accumulate_maxwellian(
   struct timespec wst = gkyl_wall_clock();
 
   // Compute Maxwellian moments (n, u_par, T/m).
-  gk_species_moment_calc(&species->lte.moms, species->local, app->local, fin);
+  gk_species_moment_calc(app, &species->lte.moms, species->local, app->local, fin);
   gk_species_moment_diag_jacobgeo_div(
     app, &species->lte.moms, species->lte.moms.marr, species->lte.moms.marr
   );
 
   // Compute M0,M1,M2
-  gk_species_moment_calc(&src->correct_mom_op, species->local, app->local, fin);
+  gk_species_moment_calc(app, &src->correct_mom_op, species->local, app->local, fin);
   gk_species_moment_diag_jacobgeo_div(
     app, &src->correct_mom_op, src->correct_mom_op.marr, src->correct_mom_op.marr
   );
@@ -347,7 +347,7 @@ gk_species_source_bgk_update_integrated_diags_enabled(
   double avals_global[num_mom];
 
   // Compute integrated moments of source term.
-  gk_species_moment_calc(&src->integ_mom_op, gks->local, app->local, src->Jrate_df);
+  gk_species_moment_calc(app, &src->integ_mom_op, gks->local, app->local, src->Jrate_df);
   app->stat.n_mom += 1;
 
   // Reduce (sum) over whole domain, append to diagnostics.

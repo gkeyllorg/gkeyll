@@ -206,6 +206,10 @@ gkyl_efit_new(const struct gkyl_efit_inp *inp)
   }
   // FF'/F is undefined where F vanishes (including a purely poloidal
   // field). There use the derivative of the tabulated F itself.
+  // These nodal arrays contain the full, unpartitioned EQDSK flux profile,
+  // independent of the simulation's domain decomposition. flux_nrange is
+  // initialized from shape {nr}, so its indices and flat array offsets both
+  // run from 0 to nr-1.
   double dpsi_node = (fluxupper[0] - fluxlower[0]) / (up->nr - 1);
   for (int i = 0; i < up->nr; ++i) {
     const double *fpol_n = gkyl_array_cfetch(fpolflux_n, i);

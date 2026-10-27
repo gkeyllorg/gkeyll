@@ -669,10 +669,6 @@ test_tok_3x_p1_straight_cylinder_ho()
 
   // Check normals
   // Plus 3 away from axis to avoid errors
-  double dels[2] = {1.0 / sqrt(3), 1.0 - 1.0 / sqrt(3)};
-  double theta_lo = grid.lower[TH_IDX] + dels[1] * grid.dx[TH_IDX] / 2.0;
-  double psi_lo = grid.lower[PSI_IDX] + dels[1] * grid.dx[PSI_IDX] / 2.0;
-  double alpha_lo = grid.lower[AL_IDX] + dels[1] * grid.dx[AL_IDX] / 2.0;
   struct gkyl_array *normals_nodal =
     gkyl_array_new(GKYL_DOUBLE, 9 * basis.num_basis, nrange_quad_interior.volume);
   gkyl_nodal_ops_m2n(
@@ -690,12 +686,15 @@ test_tok_3x_p1_straight_cylinder_ho()
         cidx[TH_IDX] = it;
         double *normals_n =
           gkyl_array_fetch(normals_nodal, gkyl_range_idx(&nrange_quad_interior, cidx));
-        double psi =
-          calc_running_coord(psi_lo, ia - nrange_quad_interior.lower[PSI_IDX], grid.dx[PSI_IDX]);
-        double alpha =
-          calc_running_coord(alpha_lo, ia - nrange_quad_interior.lower[AL_IDX], grid.dx[AL_IDX]);
-        double theta =
-          calc_running_coord(theta_lo, ia - nrange_quad_interior.lower[TH_IDX], grid.dx[TH_IDX]);
+        double psi = gk_geometry_node_coord(
+          &grid, &range, &range, &nrange_quad_interior, PSI_IDX, ip, num_quad_points, true
+        );
+        double alpha = gk_geometry_node_coord(
+          &grid, &range, &range, &nrange_quad_interior, AL_IDX, ia, num_quad_points, true
+        );
+        double theta = gk_geometry_node_coord(
+          &grid, &range, &range, &nrange_quad_interior, TH_IDX, it, num_quad_points, true
+        );
         double xn[3] = {psi, alpha, theta};
         double fout[9];
         exact_normals(0.0, xn, fout, 0);

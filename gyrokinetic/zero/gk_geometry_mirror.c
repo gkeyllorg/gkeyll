@@ -25,6 +25,9 @@ gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp)
   up->geqdsk_sign_convention =
     0.0; // Hardcoded 0. Means psi increases from axis. Always true for mirror geometry.
   up->half_domain = 0;
+  for (int d = 0; d < 3; d++) {
+    up->is_periodic[d] = geometry_inp->geo_is_periodic[d];
+  }
   up->has_LCFS = false; // MF 2025/09/19: Hardcodded for now.
 
   // Initialize nodal ranges for corner, interior, and surface geometry
@@ -79,6 +82,8 @@ gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp)
       .write_psi_cubic = false,
     });
 
+  assert(mirror_grid_corn);
+
   // Create mirror geometry for interior.
   struct gkyl_mirror_grid_gen *mirror_grid_int =
     gkyl_mirror_grid_gen_int_inew(&(struct gkyl_mirror_grid_gen_inp){
@@ -100,6 +105,8 @@ gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp)
       .include_axis = geometry_inp->mirror_grid_info.include_axis,
       .write_psi_cubic = false,
     });
+
+  assert(mirror_grid_int);
 
   // create mirror geometry for surfaces
   struct gkyl_mirror_grid_gen *mirror_grid_surf[3];
@@ -124,6 +131,7 @@ gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp)
       .include_axis = geometry_inp->mirror_grid_info.include_axis,
       .write_psi_cubic = false,
     });
+    assert(mirror_grid_surf[dir]);
   }
 
   // Now calculate the derived geometric coefficients at necessary nodes and compute modal expansions where required.

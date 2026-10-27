@@ -12,7 +12,7 @@ gkbgk_moms_disabled(
 }
 
 static void
-gkbgk_moms_enabled(
+gkbgk_moms_kinetic(
   gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gk_bgk_collisions *bgk,
   const struct gkyl_array *fin
 )
@@ -20,7 +20,7 @@ gkbgk_moms_enabled(
   struct timespec wst = gkyl_wall_clock();
 
   // Compute Maxwellian moments (n, u_par, T/m).
-  gk_species_moment_calc(&species->lte.moms, species->local, app->local, fin);
+  gk_species_moment_calc(app, &species->lte.moms, species->local, app->local, fin);
   gkyl_dg_div_op_range(
     species->lte.moms.mem_geo, &app->basis, 0, species->lte.moms.marr, 0, species->lte.moms.marr, 0,
     app->gk_geom->geo_int.jacobgeo, &app->local
@@ -56,7 +56,8 @@ gkbgk_self_nu_calc_normNu(
 
 static void
 gkbgk_cross_nu_calc_constNu(
-  gkyl_gyrokinetic_app *app, const struct gk_species *s, struct gk_bgk_collisions *bgk, int coll_idx
+  gkyl_gyrokinetic_app *app, const struct gk_species *gks, struct gk_bgk_collisions *bgk,
+  int coll_idx
 )
 {
   // Empty method.
@@ -64,12 +65,13 @@ gkbgk_cross_nu_calc_constNu(
 
 static void
 gkbgk_cross_nu_calc_normNu(
-  gkyl_gyrokinetic_app *app, const struct gk_species *s, struct gk_bgk_collisions *bgk, int coll_idx
+  gkyl_gyrokinetic_app *app, const struct gk_species *gks, struct gk_bgk_collisions *bgk,
+  int coll_idx
 )
 {
   // Calculate nu_sr(x,t).
   gkyl_spitzer_coll_freq_advance_normnu(
-    bgk->spitzer_calc, &app->local, s->lte.moms.marr, bgk->vtsq_min,
+    bgk->spitzer_calc, &app->local, gks->lte.moms.marr, bgk->vtsq_min,
     bgk->collide_with[coll_idx]->lte.moms.marr, bgk->collide_with[coll_idx]->bgk.vtsq_min,
     bgk->norm_nu_fac_cross[coll_idx], bgk->cross_nu[coll_idx]
   );
@@ -79,7 +81,8 @@ gkbgk_cross_nu_calc_normNu(
 
 static void
 gkbgk_alpha_E_constNu(
-  gkyl_gyrokinetic_app *app, const struct gk_species *s, struct gk_bgk_collisions *bgk, int coll_idx
+  gkyl_gyrokinetic_app *app, const struct gk_species *gks, struct gk_bgk_collisions *bgk,
+  int coll_idx
 )
 {
   gkyl_array_clear(bgk->alpha_E, 0.0);
@@ -88,11 +91,12 @@ gkbgk_alpha_E_constNu(
 
 static void
 gkbgk_alpha_E_normNu(
-  gkyl_gyrokinetic_app *app, const struct gk_species *s, struct gk_bgk_collisions *bgk, int coll_idx
+  gkyl_gyrokinetic_app *app, const struct gk_species *gks, struct gk_bgk_collisions *bgk,
+  int coll_idx
 )
 {
   gkyl_dg_mul_op_range(
-    &app->basis, 0, bgk->alpha_E, 0, bgk->cross_nu[coll_idx], 0, s->lte.moms.marr, &app->local
+    &app->basis, 0, bgk->alpha_E, 0, bgk->cross_nu[coll_idx], 0, gks->lte.moms.marr, &app->local
   );
   gkyl_array_scale_range(bgk->alpha_E, bgk->alpha_E_fac[coll_idx], &app->local);
 }
@@ -128,6 +132,17 @@ gkbgk_cross_moms_enabled(
   );
 
   app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);
+}
+
+static void
+gkbgk_cross_moms_fluid(
+  gkyl_gyrokinetic_app *app, const struct gk_species *gks, struct gk_bgk_collisions *bgk,
+  const struct gkyl_array *fin
+)
+{
+  for (int i = 0; i < bgk->num_cross_collisions; ++i) {
+    bgk->cross_moms_func(app, gks, bgk, i);
+  }
 }
 
 static void
@@ -237,6 +252,8 @@ gk_species_bgk_init(
 
   // Empty methods.
   bgk->moms_func = gkbgk_moms_disabled;
+  bgk->cross_moms_method_func = gkbgk_moms_disabled;
+  bgk->cross_moms_method_implicit_func = gkbgk_moms_disabled;
   bgk->rhs_func = gkbgk_rhs_disabled;
   bgk->moms_func_implicit = gkbgk_moms_disabled;
   bgk->rhs_func_implicit = gkbgk_rhs_disabled;
@@ -284,12 +301,14 @@ gk_species_bgk_init(
                                                         app->bmag_ref;
 
       // Compute a minimum representable temperature based on the smallest dv in the grid.
-      double dv_min[vdim];
-      gkyl_velocity_map_reduce_dv_range(gks->vel_map, GKYL_MIN, dv_min, gks->vel_map->local_vel);
+      if (!gks->is_fluid) {
+        double dv_min[vdim];
+        gkyl_velocity_map_reduce_dv_range(gks->vel_map, GKYL_MIN, dv_min, gks->vel_map->local_vel);
 
-      double tpar_min = (gks->info.mass / 6.0) * pow(dv_min[0], 2);
-      double tperp_min = vdim > 1 ? (bmag_ref / 3.0) * dv_min[1] : tpar_min;
-      bgk->vtsq_min = (tpar_min + 2.0 * tperp_min) / (3.0 * gks->info.mass);
+        double tpar_min = (gks->info.mass / 6.0) * pow(dv_min[0], 2);
+        double tperp_min = vdim > 1 ? (bmag_ref / 3.0) * dv_min[1] : tpar_min;
+        bgk->vtsq_min = (tpar_min + 2.0 * tperp_min) / (3.0 * gks->info.mass);
+      }
 
       bgk->spitzer_calc =
         gkyl_spitzer_coll_freq_new(&app->basis, app->poly_order + 1, 1.0, 1.0, 1.0, app->use_gpu);
@@ -319,21 +338,25 @@ gk_species_bgk_init(
     }
 
     // Collision frequency times Maxwellian.
-    bgk->nu_fmax = mkarr(app->use_gpu, gks->basis.num_basis, gks->local_ext.volume);
+    if (!gks->is_fluid) {
+      bgk->nu_fmax = mkarr(app->use_gpu, gks->basis.num_basis, gks->local_ext.volume);
+    }
 
     // BGK updater.
-    bgk->up_bgk = gkyl_bgk_collisions_new(&app->basis, &gks->basis, app->use_gpu);
+    if (!gks->is_fluid) {
+      bgk->up_bgk = gkyl_bgk_collisions_new(&app->basis, &gks->basis, app->use_gpu);
+    }
 
     // Methods chosen at runtime.
     if (bgk->implicit_step) {
       bgk->moms_func = gkbgk_moms_disabled;
       bgk->rhs_func = gkbgk_rhs_disabled;
-      bgk->moms_func_implicit = gkbgk_moms_enabled;
+      bgk->moms_func_implicit = gkbgk_moms_kinetic;
       if (!gks->info.collisions.not_in_dfdt) {
         bgk->rhs_func_implicit = gkbgk_rhs_enabled;
       }
     } else {
-      bgk->moms_func = gkbgk_moms_enabled;
+      bgk->moms_func = gkbgk_moms_kinetic;
       if (!gks->info.collisions.not_in_dfdt) {
         bgk->rhs_func = gkbgk_rhs_enabled;
       }
@@ -364,6 +387,11 @@ gk_species_bgk_cross_init(
       int my_idx_in_other[GKYL_MAX_SPECIES];
       for (int i = 0; i < bgk->num_cross_collisions; ++i) {
         bgk->collide_with[i] = gk_find_species(app, gks->info.collisions.collide_with[i]);
+        if (!bgk->collide_with[i] ||
+            bgk->collide_with[i]->info.collisions.collision_id != bgk->collision_id ||
+            bgk->collide_with[i]->info.vdim != gks->info.vdim) {
+          gkyl_exit("Cross collisions require matching collision models and velocity dimensions.");
+        }
         my_idx_in_other[i] = -1;
         for (int j = 0; j < bgk->collide_with[i]->bgk.num_cross_collisions; ++j) {
           if (0 == strcmp(gks->info.name, bgk->collide_with[i]->info.collisions.collide_with[j])) {
@@ -474,11 +502,19 @@ gk_species_bgk_cross_init(
       }
 
       // Cross-primitive moment calculator.
-      bgk->cross_calc =
-        gkyl_gyrokinetic_cross_prim_moms_bgk_new(&gks->basis, &app->basis, app->use_gpu);
+      bgk->cross_calc = gkyl_gyrokinetic_cross_prim_moms_bgk_new_with_vdim(
+        &app->basis, gks->info.vdim, app->use_gpu
+      );
 
       // Methods chosen at runtime.
       bgk->cross_moms_func = gkbgk_cross_moms_enabled;
+      if (gks->is_fluid) {
+        if (bgk->implicit_step) {
+          bgk->cross_moms_method_implicit_func = gkbgk_cross_moms_fluid;
+        } else {
+          bgk->cross_moms_method_func = gkbgk_cross_moms_fluid;
+        }
+      }
     }
   }
 }
@@ -507,7 +543,8 @@ gk_species_bgk_cross_moms(
   const struct gkyl_array *fin
 )
 {
-  // Compute this in bgk_rhs
+  // Kinetic species compute this in bgk_rhs; fluids have no collision RHS.
+  bgk->cross_moms_method_func(app, species, bgk, fin);
 }
 
 void
@@ -516,7 +553,7 @@ gk_species_bgk_cross_moms_implicit(
   const struct gkyl_array *fin
 )
 {
-  // Compute this in bgk_rhs
+  bgk->cross_moms_method_implicit_func(app, species, bgk, fin);
 }
 
 void
@@ -557,8 +594,12 @@ gk_species_bgk_release(const struct gkyl_gyrokinetic_app *app, const struct gk_b
       gkyl_array_release(bgk->cross_prim_moms);
     }
 
-    gkyl_array_release(bgk->nu_fmax);
-    gkyl_bgk_collisions_release(bgk->up_bgk);
+    if (bgk->nu_fmax) {
+      gkyl_array_release(bgk->nu_fmax);
+    }
+    if (bgk->up_bgk) {
+      gkyl_bgk_collisions_release(bgk->up_bgk);
+    }
 
     if (bgk->write_diagnostics) {
       if (app->use_gpu) {

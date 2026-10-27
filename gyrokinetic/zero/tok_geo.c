@@ -701,7 +701,7 @@ curlbhat_func(double psi, double r_curr, double Z, double phi, double *curlbhat,
     1 / bmag * (Br * dBrdR + Bz * dBzdR + fpol / r_curr * (dFdR / r_curr - fpol / r_curr / r_curr));
   dBdZ = 1 / bmag * (Br * dBrdZ + Bz * dBzdZ + fpol / r_curr * dFdZ / r_curr);
 
-  // Get the polar components (contravariant, upperscript components on tangent basis)
+  // Get contravariant R-Z-phi components of curlbhat (upperscript components on tangent basis).
   double polar_comp[3] = {0.0};
   polar_comp[0] = -dFdZ / (bmag * r_curr) + dBdZ * fpol / (bmag * bmag * r_curr); // R component ^1
   polar_comp[1] = (dBrdZ - dBzdR) / (bmag * r_curr) +

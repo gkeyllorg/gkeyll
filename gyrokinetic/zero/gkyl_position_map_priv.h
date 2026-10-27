@@ -299,12 +299,16 @@ find_B_field_extrema(struct gkyl_position_map *gpm)
   int extrema = 1; // Offset by 1 for the first point
   double *theta_extrema = gkyl_malloc(sizeof(double) * (npts + 1));
   double *bmag_extrema = gkyl_malloc(sizeof(double) * (npts + 1));
-  double bmag_min = DBL_MAX, bmag_max = -DBL_MAX;
 
   // Seed the previous sample used by the first sign-change comparison.
   xp[Z_IDX] = theta_lo;
   gkyl_calc_bmag_global(0.0, xp, &bmag_vals[0], bmag_ctx);
   dbmag_vals[0] = calc_bmag_global_derivative(theta_lo, gpm);
+  xp[Z_IDX] = theta_hi;
+  gkyl_calc_bmag_global(0.0, xp, &bmag_vals[npts], bmag_ctx);
+  // Include both endpoints even when there is only one interior sample.
+  double bmag_min = fmin(bmag_vals[0], bmag_vals[npts]);
+  double bmag_max = fmax(bmag_vals[0], bmag_vals[npts]);
 
   for (int i = 1; i < npts; i++) {
     double theta = theta_lo + i * theta_dxi;
@@ -716,18 +720,10 @@ map_value:
     double max_slope_min_B = gpm->constB_ctx->maximum_slope_at_min_B;
     double max_slope_max_B = gpm->constB_ctx->maximum_slope_at_max_B;
 
-    double right_straight_line_value, left_straight_line_value;
-    if (left_is_maximum) {
-      left_straight_line_value = Theta_left + max_slope_max_B * (theta - theta_left);
-    } else {
-      left_straight_line_value = Theta_left + max_slope_min_B * (theta - theta_left);
-    }
-
-    if (right_is_maximum) {
-      right_straight_line_value = Theta_right + max_slope_max_B * (theta - theta_right);
-    } else {
-      right_straight_line_value = Theta_right + max_slope_min_B * (theta - theta_right);
-    }
+    double left_slope = left_is_maximum ? max_slope_max_B : max_slope_min_B;
+    double right_slope = right_is_maximum ? max_slope_max_B : max_slope_min_B;
+    double left_straight_line_value = Theta_left + left_slope * (theta - theta_left);
+    double right_straight_line_value = Theta_right + right_slope * (theta - theta_right);
 
     if (fout[0] < right_straight_line_value && ((right_is_maximum && enable_limits_max_B) ||
                                                 ((!right_is_maximum) && enable_limits_min_B))) {

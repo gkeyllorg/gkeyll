@@ -373,7 +373,7 @@ create_ctx(void)
   double alpha_fdp = 1.0;
 
   // Duration of each phase.
-  double tau_oap = 2400.0e-9;
+  double tau_oap = 1.0e-3;
   double tau_fdp = 24.0e-9;
   double tau_fdp_extra = 2 * tau_fdp;
   int num_cycles = 2; // Number of OAP+FDP cycles to run.
@@ -437,7 +437,7 @@ create_ctx(void)
   double write_phase_freq =
     1; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
   double int_diag_calc_freq =
-    5; // Frequency of calculating integrated diagnostics (as a factor of num_frames).
+    1000; // Frequency of calculating integrated diagnostics (as a factor of num_frames).
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 

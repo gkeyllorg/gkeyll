@@ -470,11 +470,6 @@ test_mapc2p_3x_p1_pmap_ho()
 
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&basis, &grid, false);
 
-  double dels[2] = {1.0 / sqrt(3), 1.0 - 1.0 / sqrt(3)};
-  double theta_lo = grid.lower[TH_IDX] + dels[1] * grid.dx[TH_IDX] / 2.0;
-  double psi_lo = grid.lower[PSI_IDX] + dels[1] * grid.dx[PSI_IDX] / 2.0;
-  double alpha_lo = grid.lower[AL_IDX] + dels[1] * grid.dx[AL_IDX] / 2.0;
-
   struct gkyl_array *mapc2p_nodal = gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange.volume);
   gkyl_nodal_ops_m2n(
     n2m, &basis, &grid, &nrange, &range, 3, mapc2p_nodal, gk_geom->geo_corn.mc2p, false
@@ -533,12 +528,15 @@ test_mapc2p_3x_p1_pmap_ho()
         cidx[PSI_IDX] = ip;
         cidx[AL_IDX] = ia;
         cidx[TH_IDX] = it;
-        double psi =
-          calc_running_coord(psi_lo, ip - nrange_quad_interior.lower[PSI_IDX], grid.dx[PSI_IDX]);
-        double alpha =
-          calc_running_coord(alpha_lo, ia - nrange_quad_interior.lower[AL_IDX], grid.dx[AL_IDX]);
-        double theta =
-          calc_running_coord(theta_lo, it - nrange_quad_interior.lower[TH_IDX], grid.dx[TH_IDX]);
+        double psi = gk_geometry_node_coord(
+          &grid, &range, &range, &nrange_quad_interior, PSI_IDX, ip, num_quad_points, true
+        );
+        double alpha = gk_geometry_node_coord(
+          &grid, &range, &range, &nrange_quad_interior, AL_IDX, ia, num_quad_points, true
+        );
+        double theta = gk_geometry_node_coord(
+          &grid, &range, &range, &nrange_quad_interior, TH_IDX, it, num_quad_points, true
+        );
         double *jacobgeo_n =
           gkyl_array_fetch(jacobgeo_nodal, gkyl_range_idx(&nrange_quad_interior, cidx));
         // mapc2p_n[0] = x, mapc2p_n[1] = y, mapc2p_n[2] = z

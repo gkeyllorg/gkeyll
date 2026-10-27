@@ -322,7 +322,8 @@ gk_species_bflux_calc_moms_enabled(
 
     for (int m = 0; m < bflux->num_calc_moms; m++) {
       gk_species_moment_calc(
-        &bflux->moms_op[m], *bflux->boundaries_phase_ghost[b], *bflux->boundaries_conf_ghost[b], rhs
+        app, &bflux->moms_op[m], *bflux->boundaries_phase_ghost[b],
+        *bflux->boundaries_conf_ghost[b], rhs
       );
 
       gkyl_array_copy_range(
@@ -474,12 +475,9 @@ gk_species_bflux_calc_voltime_integrated_mom_enabled(
     for (int b = 0; b < bflux->num_boundaries; ++b) {
       // Integrated moment of the boundary flux.
       int dir = bflux->boundaries_dir[b];
-      bool owns_boundary = bflux->boundaries_edge[b] == GKYL_LOWER_EDGE ?
-                             app->local.lower[dir] == app->global.lower[dir] :
-                             app->local.upper[dir] == app->global.upper[dir];
       gkyl_array_integrate_advance(
-        bflux->integ_op[m], bflux->f[b * bflux->num_calc_moms + int_mom_idx],
-        owns_boundary ? 1.0 : 0.0, 0, bflux->boundaries_conf_ghost[b], 0, bflux->int_moms_local
+        bflux->integ_op[m], bflux->f[b * bflux->num_calc_moms + int_mom_idx], 1., 0,
+        bflux->boundaries_conf_ghost[b], 0, bflux->int_moms_local
       );
 
       gkyl_comm_allreduce(
