@@ -1,6 +1,5 @@
 #include <float.h>
 #include <math.h>
-#include <stdint.h>
 #include <string.h>
 
 #include <gkyl_alloc.h>
@@ -24,25 +23,6 @@ struct gk_oa_group {
 struct gk_oa_geometry {
   struct gkyl_array *bmag, *phi, *jacobgeo, *mask, *wall_lo, *wall_up;
 };
-
-// The build normally enables fast-math; test finite inputs by their IEEE bits.
-static bool
-gk_oa_finite(double value)
-{
-  uint64_t bits;
-  memcpy(&bits, &value, sizeof bits);
-  volatile uint64_t checked = bits;
-  return (checked & UINT64_C(0x7ff0000000000000)) != UINT64_C(0x7ff0000000000000);
-}
-
-static bool
-gk_oa_positive_infinity(double value)
-{
-  uint64_t bits;
-  memcpy(&bits, &value, sizeof bits);
-  volatile uint64_t checked = bits;
-  return checked == UINT64_C(0x7ff0000000000000);
-}
 
 static struct gkyl_array *
 gk_oa_host_copy(const struct gkyl_array *source)
@@ -114,7 +94,7 @@ gk_oa_cholesky(int size, double *matrix)
         value -= matrix[row * size + inner] * matrix[col * size + inner];
       }
       if (row == col) {
-        if (!(value > 0.0) || !gk_oa_finite(value)) {
+        if (!(value > 0.0)) {
           return false;
         }
         matrix[row * size + col] = sqrt(value);
@@ -367,8 +347,7 @@ gk_oa_accept_cell(
     double jacgeo = gk_oa_field(inp, geo->jacobgeo, index[0], eta[0]);
     double potential_local = mu * bmag + inp->charge * gk_oa_field(inp, geo->phi, index[0], eta[0]);
     double energy = 0.5 * inp->mass * velocity * velocity + potential_local;
-    if (!(bmag > 0.0 && jacgeo > 0.0 && jacvel > 0.0 && mu >= 0.0) || !gk_oa_finite(energy) ||
-        !gk_oa_finite(bmag * jacgeo * jacvel)) {
+    if (!(bmag > 0.0 && jacgeo > 0.0 && jacvel > 0.0 && mu >= 0.0)) {
       return false;
     }
     gk_oa_potential(inp, geo, mu, potential);
@@ -613,13 +592,7 @@ gk_oa_geometry_valid(
       double eta = side ? 1.0 : -1.0;
       double bmag = gk_oa_field(inp, geo->bmag, iz, eta);
       double jacobian = gk_oa_field(inp, geo->jacobgeo, iz, eta);
-      double phi = gk_oa_field(inp, geo->phi, iz, eta);
-      if (!(bmag > 0.0 && jacobian > 0.0) || !gk_oa_finite(bmag) || !gk_oa_finite(jacobian) ||
-          !gk_oa_finite(phi)) {
-        return false;
-      }
-      if ((geo->wall_lo && !gk_oa_finite(gk_oa_field(inp, geo->wall_lo, iz, eta))) ||
-          (geo->wall_up && !gk_oa_finite(gk_oa_field(inp, geo->wall_up, iz, eta)))) {
+      if (!(bmag > 0.0 && jacobian > 0.0)) {
         return false;
       }
     }
@@ -630,8 +603,7 @@ gk_oa_geometry_valid(
         double eta = side ? 1.0 : -1.0;
         double velocity, mu, jacobian;
         gk_oa_velocity(inp, iv, imu, eta, eta, &velocity, &mu, &jacobian);
-        if (!gk_oa_finite(velocity) || !gk_oa_finite(mu) || !gk_oa_finite(jacobian) ||
-            !(mu >= 0.0 && jacobian > 0.0)) {
+        if (!(mu >= 0.0 && jacobian > 0.0)) {
           return false;
         }
       }
@@ -652,8 +624,7 @@ gkyl_orbit_average_gyrokinetic_inew(
   }
   if (!inp || !inp->grid || !inp->conf_basis || !inp->phase_basis || !inp->phase_range ||
       !inp->conf_range || !inp->vel_map || !inp->bmag || !inp->phi || !inp->jacobgeo ||
-      !inp->mask || !(inp->mass > 0.0) || !gk_oa_finite(inp->mass) || !gk_oa_finite(inp->charge) ||
-      !gk_oa_finite(inp->separatrix_margin) || !(inp->separatrix_margin >= 0.0) ||
+      !inp->mask || !(inp->mass > 0.0) || !(inp->separatrix_margin >= 0.0) ||
       inp->num_energy_nodes < 2) {
     return 0;
   }
@@ -696,7 +667,7 @@ gkyl_orbit_average_gyrokinetic_inew(
     return 0;
   }
   for (int dimension = 0; dimension < 3; ++dimension) {
-    if (!(inp->grid->dx[dimension] > 0.0) || !gk_oa_finite(inp->grid->dx[dimension])) {
+    if (!(inp->grid->dx[dimension] > 0.0)) {
       return 0;
     }
   }
@@ -715,6 +686,7 @@ gkyl_orbit_average_gyrokinetic_inew(
   up->num_pos = GKYL_ORBIT_NUM_POS;
   up->use_gpu = inp->use_gpu;
   up->positivity = inp->positivity;
+  up->frequency_is_infinite = inp->frequency_is_infinite;
   up->eval = gkyl_malloc(up->num_pos * up->num_basis * sizeof(double));
   double nodes[GKYL_ORBIT_NUM_POS * 3], weights[GKYL_ORBIT_NUM_QUAD];
   int node = 0;
@@ -799,9 +771,8 @@ gkyl_orbit_average_gyrokinetic_advance(
 )
 {
   struct gkyl_orbit_average_gyrokinetic_result result = {false, 0.0, 0};
-  if (!up || !f || f->type != GKYL_DOUBLE || f->ncomp != up->num_basis || !gk_oa_finite(dt) ||
-      !(dt >= 0.0) || !(frequency >= 0.0) ||
-      (!gk_oa_finite(frequency) && !gk_oa_positive_infinity(frequency)) ||
+  if (!up || !f || f->type != GKYL_DOUBLE || f->ncomp != up->num_basis || !(dt >= 0.0) ||
+      (!up->frequency_is_infinite && !(frequency >= 0.0)) ||
       gkyl_array_is_cu_dev(f) != up->use_gpu) {
     return result;
   }
@@ -810,7 +781,7 @@ gkyl_orbit_average_gyrokinetic_advance(
       return result;
     }
   }
-  if (dt == 0.0 || frequency == 0.0 || up->num_cells == 0) {
+  if (dt == 0.0 || (!up->frequency_is_infinite && frequency == 0.0) || up->num_cells == 0) {
     result.success = true;
     return result;
   }
@@ -820,7 +791,7 @@ gkyl_orbit_average_gyrokinetic_advance(
   }
 #endif
   double beta = 1.0;
-  if (!gk_oa_positive_infinity(frequency) && (dt <= 1.0 || frequency <= DBL_MAX / dt)) {
+  if (!up->frequency_is_infinite && (dt <= 1.0 || frequency <= DBL_MAX / dt)) {
     double product = dt * frequency;
     beta = product >= 1.0 ? 1.0 - 1.0 / (1.0 + product) : product / (1.0 + product);
   }
@@ -834,9 +805,6 @@ gkyl_orbit_average_gyrokinetic_advance(
       for (int cell = 0; cell < block->num_cells; ++cell) {
         const double *modal = gkyl_array_cfetch(f, up->cell_indices[block->cell_offset + cell]);
         for (int basis = 0; basis < up->num_basis; ++basis) {
-          if (!gk_oa_finite(modal[basis])) {
-            return result;
-          }
           coefficient += dual[cell * up->num_basis + basis] * modal[basis];
         }
       }
@@ -853,9 +821,6 @@ gkyl_orbit_average_gyrokinetic_advance(
             up->q[block->basis_offset + (long)mode * block->num_modes + cell * up->num_basis + basis] *
             up->coeff[block->reduce_offset + mode];
         }
-        if (!gk_oa_finite(value)) {
-          return result;
-        }
         correction[basis] = value;
       }
       if (up->positivity) {
@@ -863,7 +828,7 @@ gkyl_orbit_average_gyrokinetic_advance(
           const double *basis = up->eval + node * up->num_basis;
           double initial = gk_oa_dot(up->num_basis, basis, modal);
           double change = gk_oa_dot(up->num_basis, basis, correction);
-          if (!(initial >= 0.0) || !gk_oa_finite(initial) || !gk_oa_finite(change)) {
+          if (!(initial >= 0.0)) {
             return result;
           }
           if (change < 0.0) {

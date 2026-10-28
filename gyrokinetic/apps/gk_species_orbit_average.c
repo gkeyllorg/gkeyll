@@ -44,7 +44,8 @@ gk_species_orbit_average_prepare(gkyl_gyrokinetic_app *app, struct gk_species *g
       app->field->gkfield_id == GKYL_GK_FIELD_EM || gks->info.flr.type || gks->info.scaling.type ||
       (type != GKYL_GK_COLLISIONLESS_NONE && type != GKYL_GK_COLLISIONLESS_ES &&
        type != GKYL_GK_COLLISIONLESS_ES_NO_BY) ||
-      options->frequency < 0.0 || options->num_energy_nodes < 0 || options->num_energy_nodes == 1) {
+      (!options->frequency_is_infinite && options->frequency < 0.0) ||
+      options->num_energy_nodes < 0 || options->num_energy_nodes == 1) {
     gkyl_gyrokinetic_app_cout(
       app, stderr,
       "Orbit averaging for %s requires a dynamic 1x2v P1 kinetic species, a frozen "
@@ -133,6 +134,7 @@ gk_species_orbit_average_prepare(gkyl_gyrokinetic_app *app, struct gk_species *g
       .num_energy_nodes = options->num_energy_nodes ? options->num_energy_nodes : 16,
       .separatrix_margin = options->separatrix_margin,
       .positivity = options->positivity,
+      .frequency_is_infinite = options->frequency_is_infinite,
       .use_gpu = app->use_gpu,
     };
     orbit->up = gkyl_orbit_average_gyrokinetic_inew(&inp, &status);

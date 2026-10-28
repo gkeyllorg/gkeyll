@@ -15,7 +15,7 @@ struct gkyl_orbit_average_gyrokinetic_block {
 };
 
 struct gkyl_orbit_average_gyrokinetic {
-  bool use_gpu, positivity;
+  bool use_gpu, positivity, frequency_is_infinite;
   int num_basis, num_pos, num_blocks;
   long num_cells, num_rejected, num_reduced;
   long basis_size;

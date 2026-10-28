@@ -17,7 +17,13 @@ enum gkyl_orbit_average_gyrokinetic_status {
   GKYL_ORBIT_AVERAGE_SINGULAR
 };
 
-/** Inputs for a frozen-field, 1x2v P1 gyrokinetic orbit projector. */
+/**
+ * Inputs for a frozen-field, 1x2v P1 gyrokinetic orbit projector.
+ * All numeric inputs and array coefficients must be finite. Grid spacings,
+ * mass, B, and geometry/velocity Jacobians must be positive; mapped mu and
+ * separatrix_margin must be nonnegative. Evaluated fields and intermediate
+ * energies and metric weights must remain representable as finite doubles.
+ */
 struct gkyl_orbit_average_gyrokinetic_inp {
   const struct gkyl_rect_grid *grid;
   const struct gkyl_basis *conf_basis, *phase_basis;
@@ -27,9 +33,10 @@ struct gkyl_orbit_average_gyrokinetic_inp {
   const struct gkyl_array *mask; // Cellwise candidate mask; zero cells remain unchanged.
   const struct gkyl_array *phi_wall_lo, *phi_wall_up;
   enum gkyl_gk_trapped_passing_orbit_type lower_orbit, upper_orbit;
-  double mass, charge;
+  double mass, charge; // Finite mass > 0 and finite signed charge.
   double separatrix_margin; // Energy buffer at escape barriers and internal saddles, >=0.
   int num_energy_nodes; // At least two. Uniform base knots are split at critical energies.
+  bool frequency_is_infinite; // Use the projection limit; ignore the advance frequency.
   bool positivity; // Limit relaxation at volume quadrature and tensor cell corners.
   bool use_gpu;
 };
@@ -72,8 +79,13 @@ gkyl_orbit_average_gyrokinetic *gkyl_orbit_average_gyrokinetic_inew(
 /**
  * Apply f <- f + beta(Pf-f), beta=dt*frequency/(1+dt*frequency), in place.
  * A single positivity factor is used per coupled magnetic-moment block.
- * frequency=INFINITY requests the projection limit when dt>0. dt and
- * frequency must be nonnegative; dt=0 and frequency=0 are exact no-ops.
+ * dt must be finite and nonnegative. With frequency_is_infinite=false,
+ * frequency must also be finite and nonnegative; frequency=0 is an exact no-op.
+ * With frequency_is_infinite=true, frequency is ignored and dt>0 requests
+ * the projection limit. dt=0 is always an exact no-op.
+ * Distribution coefficients and their evaluated values must be finite, with
+ * representable intermediate reductions. Positivity limiting additionally
+ * requires nonnegative values at monitored nodes. Finiteness is not checked.
  * No allocation or geometry reconstruction occurs during this update.
  *
  * @param up Frozen projector.

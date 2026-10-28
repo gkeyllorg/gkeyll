@@ -451,6 +451,24 @@ orbit_test_projection(bool use_gpu, bool mapped)
   status = orbit_test_update(up, use_gpu, 1.0, -1.0, initial, twice);
   TEST_CHECK(!status.success && orbit_test_difference(initial, twice) == 0.0);
 
+  // The explicit infinite-frequency option overrides the numeric rate.
+  struct gkyl_orbit_average_gyrokinetic_inp inp = orbit_test_input(&test, use_gpu, false);
+  inp.frequency_is_infinite = true;
+  enum gkyl_orbit_average_gyrokinetic_status construction;
+  gkyl_orbit_average_gyrokinetic *infinite =
+    gkyl_orbit_average_gyrokinetic_inew(&inp, &construction);
+  TEST_ASSERT(infinite != 0);
+  TEST_CHECK(construction == GKYL_ORBIT_AVERAGE_SUCCESS);
+  status = orbit_test_update(infinite, use_gpu, 1.0, 0.0, initial, twice);
+  TEST_CHECK(status.success && status.min_blend == 1.0);
+  TEST_CHECK(orbit_test_difference(projected, twice) < 2e-11);
+  status = orbit_test_update(infinite, use_gpu, 1.0, 3.0, initial, twice);
+  TEST_CHECK(status.success && status.min_blend == 1.0);
+  TEST_CHECK(orbit_test_difference(projected, twice) < 2e-11);
+  status = orbit_test_update(infinite, use_gpu, 0.0, 0.0, initial, twice);
+  TEST_CHECK(status.success && orbit_test_difference(initial, twice) == 0.0);
+  gkyl_orbit_average_gyrokinetic_release(infinite);
+
   if (use_gpu) {
     gkyl_orbit_average_gyrokinetic *cpu = orbit_test_updater(&test, false, false);
     status = orbit_test_update(cpu, false, 1.0, 1e20, initial, twice);

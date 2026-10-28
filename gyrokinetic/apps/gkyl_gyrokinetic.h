@@ -115,7 +115,8 @@ struct gkyl_gyrokinetic_collisionless {
  */
 struct gkyl_gyrokinetic_orbit_average {
   bool enabled; // Enable implicit orbit relaxation.
-  double frequency; // Nonnegative relaxation rate; backward Euler has no rate CFL.
+  double frequency; // Finite nonnegative relaxation rate; backward Euler has no rate CFL.
+  bool frequency_is_infinite; // Use the projection limit, ignoring frequency.
   int num_energy_nodes; // Energy knots per topology branch (0 selects 16).
   double separatrix_margin; // Nonnegative energy buffer around escape/internal saddle levels.
   bool positivity; // Limit the correction conservatively at monitored nodes.

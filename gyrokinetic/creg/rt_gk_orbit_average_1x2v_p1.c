@@ -138,8 +138,10 @@ orbit_check_collisionless_independence(const struct gkyl_gk *reference)
   time += update.dt_actual;
   gkyl_gyrokinetic_app_calc_integrated_mom(app, time);
 
-  // Restore only the stiff orbit term: its implicit rate must not restrict dt.
+  // Restore only the projection limit: it must ignore a zero rate and not restrict dt.
   options.enabled = true;
+  options.frequency = 0.0;
+  options.frequency_is_infinite = true;
   gkyl_gyrokinetic_app_reset_species_orbit_average(app, "ion", options);
   update = gkyl_gyrokinetic_update(app, dt);
   stat = gkyl_gyrokinetic_app_species_orbit_average_stat(app, "ion");
@@ -150,6 +152,7 @@ orbit_check_collisionless_independence(const struct gkyl_gk *reference)
 
   // Restore ES with zero orbit rate so its RHS and CFL can be checked alone.
   options.frequency = 0.0;
+  options.frequency_is_infinite = false;
   gkyl_gyrokinetic_app_reset_species_orbit_average(app, "ion", options);
   gkyl_gyrokinetic_app_reset_species_collisionless(
     app, time, "ion",

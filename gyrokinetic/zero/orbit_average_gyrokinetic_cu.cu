@@ -1,7 +1,6 @@
 /* -*- c++ -*- */
 #include <float.h>
 #include <math.h>
-#include <stdint.h>
 
 extern "C" {
 #include <gkyl_alloc.h>
@@ -21,27 +20,14 @@ struct gk_orbit_cu {
   double *block_invalid, *block_limited, *status;
 };
 
-// Avoid arithmetic on infinity in the host wrapper, whose flags may include
-// -ffast-math. The public interface explicitly supports the projection limit.
 static double
-gk_orbit_beta_cu(double dt, double frequency)
+gk_orbit_beta_cu(double dt, double frequency, bool frequency_is_infinite)
 {
-  volatile union {
-    double value;
-    uint64_t bits;
-  } rate = {frequency};
-  if (rate.bits == UINT64_C(0x7ff0000000000000) || (dt > 1.0 && frequency > DBL_MAX / dt)) {
+  if (frequency_is_infinite || (dt > 1.0 && frequency > DBL_MAX / dt)) {
     return 1.0;
   }
   const double product = dt * frequency;
   return product >= 1.0 ? 1.0 - 1.0 / (1.0 + product) : product / (1.0 + product);
-}
-
-// The bit test remains valid with the application's fast-math compiler flags.
-__device__ static bool
-gk_orbit_isfinite_cu(double value)
-{
-  return (__double_as_longlong(value) & 0x7ff0000000000000LL) != 0x7ff0000000000000LL;
 }
 
 __global__ static void
@@ -111,18 +97,8 @@ gk_orbit_limit_cu_kernel(
   __shared__ int invalid[GKYL_ORBIT_CU_THREADS];
   for (int block_id = blockIdx.x; block_id < num_blocks; block_id += gridDim.x) {
     const struct gkyl_orbit_average_gyrokinetic_block block = blocks[block_id];
-    double bound = INFINITY;
+    double bound = DBL_MAX;
     int bad = 0;
-    // Check modal data even when positivity limiting is disabled. Nonfinite
-    // data must not permit a partial update of otherwise valid blocks.
-    for (int mode = threadIdx.x; mode < block.num_modes; mode += blockDim.x) {
-      const long cell = block.cell_offset + mode / num_basis;
-      const double *fin_d = (const double *)gkyl_array_cfetch(fin, cell_indices[cell]);
-      if (!gk_orbit_isfinite_cu(fin_d[mode % num_basis]) ||
-          !gk_orbit_isfinite_cu(correction[cell * num_basis + mode % num_basis])) {
-        bad = 1;
-      }
-    }
     if (positivity) {
       for (long node = threadIdx.x; node < (long)block.num_cells * num_pos; node += blockDim.x) {
         const long cell = block.cell_offset + node / num_pos;
@@ -134,7 +110,7 @@ gk_orbit_limit_cu_kernel(
           value += eval_d[mode] * fin_d[mode];
           delta += eval_d[mode] * delta_d[mode];
         }
-        if (!gk_orbit_isfinite_cu(value) || !gk_orbit_isfinite_cu(delta) || value < 0.0) {
+        if (value < 0.0) {
           bad = 1;
         }
         if (delta < 0.0) {
@@ -253,10 +229,10 @@ gkyl_orbit_average_gyrokinetic_advance_cu(
 )
 {
   struct gkyl_orbit_average_gyrokinetic_result result = {true, 0.0, 0};
-  if (dt == 0.0 || frequency == 0.0 || up->num_cells == 0) {
+  if (dt == 0.0 || (!up->frequency_is_infinite && frequency == 0.0) || up->num_cells == 0) {
     return result;
   }
-  const double beta = gk_orbit_beta_cu(dt, frequency);
+  const double beta = gk_orbit_beta_cu(dt, frequency, up->frequency_is_infinite);
   const struct gk_orbit_cu *gpu = (const struct gk_orbit_cu *)up->gpu;
   const long num_modes = up->num_cells * up->num_basis;
   const int mode_blocks = (int)fmin(65535.0, (double)((num_modes - 1) / GKYL_ORBIT_CU_THREADS + 1));
