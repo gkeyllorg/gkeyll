@@ -14,6 +14,8 @@
 #include <arkode/arkode_erkstep.h> // Access to ERKStep.
 #include <sundomeigest/sundomeigest_power.h> // Power iteration dominant eigen value estimator.
 #include <arkode/arkode_splittingstep.h> // Operator splitting.
+#include <arkode/arkode_mristep.h> // Extended STS (MRIStep).
+#include <sunadaptcontroller/sunadaptcontroller_soderlind.h> // Time step controller (ExtSTS).
 
 // Give access to the Gkeyll vector from within the NVECTOR.
 #define NV_CONTENT_GKZ(v) ((N_VectorContent_Gkeyll)(v->content))
@@ -32,6 +34,7 @@ struct _N_VectorContent_Gkeyll
   sunbooleantype use_gpu; // Whether data is on GPU.
   struct gkyl_comm *comm; // Communicator.
   struct gkyl_range *local_range; // Local range.
+  double global_volume; // Number of cells over all ranks (normalization of the WRMS norm).
   struct gkyl_sundials_reduce_mem *red_mem; // Memory for reductions.
   bool no_error_norm; // Whether to exclude it from the calculation of dt or error norms.
   bool not_stepped; // Whether to exclude it from time stepping.
@@ -57,8 +60,10 @@ struct gkyl_sundials
   struct gkyl_sundials_app_ctx *app_ctx; // App-specific context.
   SUNDomEigEstimator dom_eig_est; // Dominant eigenvalue estimator.
   bool is_opsplit; // Whether we are using an operator split approach.
+  bool is_extsts; // Whether we are using an extended STS (MRI) method.
+  SUNAdaptController adapt_controller; // Time step controller of adaptive ExtSTS (owned here; NULL if unused).
   SUNStepper stepper_ssprk, stepper_sts; // Steppers for operator splitting.
-  void *arkode_mem_opsplit; // Memory for operator splotting.
+  void *arkode_mem_outer; // Memory for the outermost ARKODE stepper (e.g. operator split).
   // Methods assigned by specific apps.
   int (*snvec_efun_cell_norm_func)(N_Vector manyx, N_Vector manyw, void *ctx);
 
@@ -84,6 +89,9 @@ struct gkyl_sundials
   int (*post_process_step_sts_func)(sunrealtype t_curr, N_Vector manynvec_y, long int step, void* ctx);
   int (*pre_process_rk_stage_sts_func)(sunrealtype t_curr, N_Vector manynvec_y, void* ctx);
   int (*post_process_rk_stage_sts_func)(sunrealtype t_curr, N_Vector manynvec_y, void* ctx);
+
+  int (*pre_process_rk_stage_extsts_func)(sunrealtype t_curr, N_Vector manynvec_y, void* ctx);
+  int (*post_process_stage_extsts_func)(sunrealtype t_curr, N_Vector manynvec_y, void* ctx);
 
   int (*pre_process_step_opsplit_func)(sunrealtype t_curr, N_Vector manynvec_y, long int step, int attempt, void* ctx);
   int (*post_process_step_opsplit_func)(sunrealtype t_curr, N_Vector manynvec_y, long int step, void* ctx);

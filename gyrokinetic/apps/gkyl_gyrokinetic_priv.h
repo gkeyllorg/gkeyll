@@ -4765,6 +4765,20 @@ gyrokinetic_post_process_step_ssprk(gkyl_gyrokinetic_app* app, double tcurr, dou
   struct gkyl_gyrokinetic_fdot_args *fdot_args);
 
 /**
+ * Perform some operations at the end of an ExtSTS outer stage.
+ *
+ * @param app Gyrokinetic app.
+ * @param tcurr Current simulation time.
+ * @param dt Suggested time step.
+ * @param fdot_args Arguments for df/dt calculation.
+ * @param stage_idx Outer stage index.
+ * @param num_stages Number of outer stages.
+ */
+void
+gyrokinetic_post_process_stage_extsts(gkyl_gyrokinetic_app* app, double tcurr, double dt,
+  struct gkyl_gyrokinetic_fdot_args *fdot_args, int stage_idx, int num_stages);
+
+/**
  * Perform some operations at the beginning of an STS step.
  *
  * @param app Gyrokinetic app.
