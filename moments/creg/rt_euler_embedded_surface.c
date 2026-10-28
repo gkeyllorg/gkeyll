@@ -141,12 +141,6 @@ evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
     p = app->p1;
   }
 
-  if (((x-xc)*(x-xc) + (y-yc)*(y-yc)) < r*r) {
-    rho = 0.0;
-    u = 0.0;
-    p = 0.0;
-  }
-
   double mom_x = rho*u; // Fluid momentum density (x-direction).
   double mom_y = 0.0; // Fluid momentum density (y-direction).
   double mom_z = 0.0; // Fluid momentum density (z-direction).
