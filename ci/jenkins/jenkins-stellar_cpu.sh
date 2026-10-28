@@ -34,9 +34,9 @@ die() {
 }
 
 usage() {
-    cat <<'EOF'
+    cat <<EOF
 Usage:
-  jenkins-stellar_cpu.sh <command> [flags]
+  ${GKEYLL_CI_CLIENT_NAME:-jenkins-stellar_cpu.sh} <command> [flags]
 
 Commands:
   start    Start Jenkins in detached tmux.
@@ -53,14 +53,14 @@ The run command returns after Jenkins accepts the request. --follow streams
 the build console and returns its final Jenkins result. Press Ctrl-C to stop
 following without aborting the Jenkins build.
 
-GKEYLL_CI_ROOT defaults to /scratch/gpfs/$USER/gkeyll_ci. The Jenkins API
-credential file defaults to $JENKINS_HOME/jenkins-cli.auth and must contain
+GKEYLL_CI_ROOT is $CI_ROOT. The Jenkins API
+credential file defaults to \$JENKINS_HOME/jenkins-cli.auth and must contain
 one line in the form: jenkins-user:api-token
 EOF
 }
 
 command_usage() {
-    local script='jenkins-stellar_cpu.sh'
+    local script="${GKEYLL_CI_CLIENT_NAME:-jenkins-stellar_cpu.sh}"
     case "$1" in
         start) cat <<EOF
 Usage: $script start
@@ -169,7 +169,7 @@ start_controller() {
     if controller_running; then
         echo "Jenkins tmux session already exists: $JENKINS_SESSION"
     else
-        tmux new-session -d -s "$JENKINS_SESSION" "$SCRIPT_PATH" __controller
+        tmux new-session -d -s "$JENKINS_SESSION" "${GKEYLL_CI_CONTROLLER_LAUNCHER:-$SCRIPT_PATH}" __controller
         echo "Started Jenkins in tmux session: $JENKINS_SESSION"
     fi
     wait_for_controller

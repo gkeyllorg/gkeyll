@@ -14,12 +14,13 @@ Usage:
 Platforms:
   personal       Local personal-computer Jenkins CI.
   stellar_cpu    Stellar CPU Slurm Jenkins CI.
+  stellar-ai-cpu Stellar AI CPU Slurm Jenkins CI.
   perlmutter_gpu Perlmutter GPU Slurm Jenkins CI.
   team           Local team-workstation Jenkins CI.
 
 Commands:
   scan           Discover branches and report scheduled builds (team only).
-  start          Start the Jenkins controller (stellar_cpu, perlmutter_gpu).
+  start          Start the Jenkins controller (stellar_cpu, stellar-ai-cpu, perlmutter_gpu).
   run            Queue a pull-request or candidate/baseline comparison build.
   active         List queued and running work.
   recent         List retained builds.
@@ -129,7 +130,7 @@ EOF
         start) cat <<'EOF'
 Usage: gkeyll-ci.sh start
 
-This command takes no flags and is available on stellar_cpu and perlmutter_gpu.
+This command takes no flags and is available on stellar_cpu, stellar-ai-cpu and perlmutter_gpu.
 Specify a platform: gkeyll-ci.sh <platform> start
 EOF
         ;;
@@ -167,6 +168,7 @@ main() {
             return
             ;;
         personal) client='jenkins-personal.sh' ;;
+        stellar-ai-cpu|stellar_ai_cpu|stellarai_cpu) client='jenkins-stellar-ai-cpu.sh' ;;
         stellar_cpu) client='jenkins-stellar_cpu.sh' ;;
         perlmutter_gpu) client='jenkins-perlmutter_gpu.sh' ;;
         team) client='jenkins-team-workstation.sh' ;;

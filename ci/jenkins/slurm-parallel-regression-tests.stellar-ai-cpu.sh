@@ -1,0 +1,68 @@
+#!/bin/bash
+set -euo pipefail
+
+: "${CI_WORKSPACE:?}"
+: "${CI_BASELINE_DIR:?}"
+: "${CI_BASELINE_PREFIX:?}"
+: "${CI_REGRESSION_MODE:?}"
+
+cd "$CI_WORKSPACE"
+. machines/module_load.stellarai-cpu.sh
+if [ -n "${GKEYLL_CI_DEPENDENCY_ENV:-}" ]; then . "$GKEYLL_CI_DEPENDENCY_ENV"; fi
+
+# Stellar AI exposes pmix_v5 but does not set Slurm's MpiDefault. The
+# regression runner uses srun --exact, so select PMIx for every MPI step.
+export SLURM_MPI_TYPE=pmix
+printf 'Slurm MPI plugin: %s\n' "$SLURM_MPI_TYPE"
+
+# Collective implementations can use different floating-point sum trees. Use
+# Open MPI's rank-ordered recursive doubling for reproducible CI baselines
+# and candidate runs, including reductions feeding adaptive sources.
+export OMPI_MCA_coll=^hcoll,han
+export OMPI_MCA_coll_hcoll_enable=0
+export OMPI_MCA_coll_tuned_use_dynamic_rules=1
+export OMPI_MCA_coll_tuned_allreduce_algorithm=3
+printf 'MPI regression policy: hcoll=%s tuned_dynamic=%s allreduce=%s\n' \
+  "$OMPI_MCA_coll_hcoll_enable" "$OMPI_MCA_coll_tuned_use_dynamic_rules" \
+  "$OMPI_MCA_coll_tuned_allreduce_algorithm"
+
+baseline_gkeyll="$CI_BASELINE_PREFIX/gkeyll/bin/gkeyll"
+regression_jobs="${CI_REGRESSION_JOBS:-4}"
+
+if [[ "$CI_REGRESSION_MODE" == baseline-create ]]; then
+  cd "$CI_BASELINE_DIR"
+  started="$(date +%s)"
+  "$baseline_gkeyll" runregression run -c --parallel --execute-only --jobs "$regression_jobs" create
+  elapsed="$(( $(date +%s) - started ))"
+  printf '%s\n' "$elapsed" > "$CI_WORKSPACE/baseline-parallel-c-regression-create-seconds.txt"
+  echo "Baseline parallel C-regression create runtime: $elapsed seconds"
+  exit 0
+fi
+
+[[ "$CI_REGRESSION_MODE" == candidate-check ]] || { echo "Unknown CI_REGRESSION_MODE: $CI_REGRESSION_MODE" >&2; exit 2; }
+: "${CI_CANDIDATE_PREFIX:?}"
+: "${CI_CANDIDATE_DIR:?}"
+: "${CI_TRUSTED_CHECKER:?}"
+candidate_gkeyll="$CI_CANDIDATE_PREFIX/gkeyll/bin/gkeyll"
+test -s "$CI_TRUSTED_CHECKER"
+
+cd "$CI_CANDIDATE_DIR"
+for layer in moments vlasov gyrokinetic pkpm; do
+  src="$CI_BASELINE_PREFIX/gkeyll-results/parallel-c-4/$layer/creg-accepted"
+  dst="$CI_CANDIDATE_PREFIX/gkeyll-results/parallel-c-4/$layer/creg-accepted"
+  rm -rf "$dst"
+  if [[ -d "$src" ]]; then cp -a "$src" "$dst"; fi
+done
+started="$(date +%s)"
+"$candidate_gkeyll" runregression run -c --parallel --execute-only --jobs "$regression_jobs" check
+elapsed="$(( $(date +%s) - started ))"
+printf '%s\n' "$elapsed" > "$CI_WORKSPACE/candidate-parallel-c-regression-check-seconds.txt"
+echo "Candidate parallel C-regression check runtime: $elapsed seconds"
+if [[ -f "$CI_BASELINE_DIR/../dependencies/env.sh" ]]; then . "$CI_BASELINE_DIR/../dependencies/env.sh"; fi
+cd "$CI_BASELINE_DIR"
+"$baseline_gkeyll" -S "$CI_TRUSTED_CHECKER" \
+  "$CI_CANDIDATE_PREFIX/gkeyll-results/parallel-c-4" \
+  "$CI_CANDIDATE_DIR/ci/jenkins/expected_regression_diffs.txt" \
+  "$CI_WORKSPACE/ci-parallel-regression-summary.txt" \
+  "$CI_BASELINE_DIR/ci/jenkins/expected_regression_diffs.txt" \
+  "$CI_BASELINE_PREFIX/gkeyll-results/parallel-c-4"

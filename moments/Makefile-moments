@@ -30,7 +30,10 @@ LUA_UNITS := $(patsubst %.c,../${BUILD_DIR}/moments/%,$(wildcard unit/lctest_*.c
 UNIT_CU_SRCS =
 UNIT_CU_OBJS =
 ifdef USING_NVCC
-    UNIT_CU_SRCS = unit/ctest_wave_geom_cu.cu unit/ctest_wv_euler_cu.cu unit/ctest_wv_maxwell_cu.cu unit/ctest_wv_ten_moment_cu.cu
+    UNIT_CU_SRCS = unit/ctest_cusolver_cu.cu unit/ctest_wave_geom_cu.cu unit/ctest_wv_euler_cu.cu unit/ctest_wv_maxwell_cu.cu unit/ctest_wv_ten_moment_cu.cu
+ifdef USING_CUDSS
+    UNIT_CU_SRCS += unit/ctest_cudss_cu.cu
+endif
     UNIT_CU_OBJS = $(UNIT_CU_SRCS:%=../$(BUILD_DIR)/moments/%.o)
 endif
 

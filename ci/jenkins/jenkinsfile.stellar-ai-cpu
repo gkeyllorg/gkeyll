@@ -1,0 +1,1087 @@
+import groovy.transform.Field
+@Field def reporting
+
+def loggedSh(String label, String command) { reporting.loggedSh(label, command) }
+def timeCommand(String metric, String command) { reporting.timeCommand(metric, command) }
+
+// Reporting may be pinned to a revision predating statistics consolidation.
+// Keep the original artifacts when that optional helper is unavailable.
+def statisticsArchiveExcludes() {
+    try {
+        return reporting.statisticsArchiveExcludes()
+    } catch (MissingMethodException err) {
+        if (err.method != 'statisticsArchiveExcludes') throw err
+    } catch (NoSuchMethodError err) {
+        // Jenkins resolves missing loaded-script methods as Pipeline DSL steps.
+        if (!err.message?.contains("No such DSL method 'statisticsArchiveExcludes'")) throw err
+    }
+    echo 'WARNING: trusted reporting tools lack statistics consolidation; archiving original artifacts.'
+    return ''
+}
+
+def loadReporting(Map settings) {
+    def ref = env.CI_TRUSTED_CI_COMMIT?.trim() ?: env.GKEYLL_CI_TRUSTED_REF?.trim() ?: 'jenkins-github-more-reporting'
+    if (!(ref ==~ /[A-Za-z0-9][A-Za-z0-9._\/-]*/) || ref.contains('..') || ref.endsWith('.lock')) {
+        error('Invalid trusted CI ref.')
+    }
+    // Freeze one reviewed CI revision per run, outside the candidate checkout.
+    // Neither candidate nor baseline selectors choose these workflow files.
+    dir(pwd(tmp: true) + '/trusted-ci') {
+        deleteDir()
+        withEnv(["CI_TRUSTED_REPORT_REF=${ref}"]) {
+            sh '''#!/bin/bash
+                set -euo pipefail
+                git init --quiet
+                git fetch --quiet --depth 1 https://github.com/gkeyllorg/gkeyll.git "$CI_TRUSTED_REPORT_REF"
+                git archive FETCH_HEAD ci/jenkins machines | tar -xf -
+            '''
+        }
+        settings.reportingCommit = sh(returnStdout: true, script: 'git rev-parse FETCH_HEAD').trim()
+        env.CI_TRUSTED_CI_COMMIT = settings.reportingCommit
+        env.CI_STELLAR_AI_CPU_TOOLS_DIR = pwd()
+        dir('ci/jenkins') {
+            reporting = load('jenkins_reporting.groovy')
+            settings.cacheScript = pwd() + '/baseline_cache.sh'
+            settings.prebuiltScript = pwd() + '/prebuilt_config.py'
+            reporting.configure(settings)
+        }
+    }
+}
+
+// Manual, CPU-only Level-1 CI for Princeton's Stellar AI CPU cluster.
+//
+// Configure the Jenkins job to load *this file* from a reviewed, trusted CI
+// branch jenkins-github-more-reporting. The PR checkout below is
+// intentionally separate: a pull request must not be able to replace the
+// pipeline that decides what SLURM work to submit.
+
+def buildsToKeep = env.GKEYLL_CI_BUILDS_TO_KEEP?.trim() ?: '2'
+if (buildsToKeep && !(buildsToKeep ==~ /[1-9][0-9]*/)) {
+    error('GKEYLL_CI_BUILDS_TO_KEEP must be a positive build count (default: 2).')
+}
+properties([
+    buildDiscarder(logRotator(
+        numToKeepStr: buildsToKeep,
+        artifactNumToKeepStr: buildsToKeep,
+        removeLastBuild: true
+    )),
+    disableConcurrentBuilds(),
+    parameters([
+        string(
+            name: 'CANDIDATE_PR',
+            defaultValue: '',
+            trim: true,
+            description: 'GitHub pull-request number. Set exactly one of CANDIDATE_PR or CANDIDATE_REF.'
+        ),
+        string(
+            name: 'CANDIDATE_REF',
+            defaultValue: '',
+            trim: true,
+            description: 'Candidate branch name or full 40-character commit SHA. Requires BASELINE_REF.'
+        ),
+        string(
+            name: 'BASELINE_REF',
+            defaultValue: '',
+            trim: true,
+            description: 'Baseline branch name or full 40-character commit SHA for CANDIDATE_REF runs.'
+        ),
+        booleanParam(
+            name: 'ALLOW_BEHIND_CANDIDATE',
+            defaultValue: false,
+            description: 'Allow a candidate that does not contain the baseline commit.'
+        )
+    ])
+])
+
+def requireValue(String name, String value) {
+    value = value?.trim()
+    if (!value) {
+        error("${name} is not configured. See ci/jenkins/README.stellar-ai-cpu.md.")
+    }
+    return value
+}
+
+def buildJobs() {
+    def value = (env.STELLAR_AI_CPU_BUILD_JOBS ?: '8').trim()
+    return positiveInteger('STELLAR_AI_CPU_BUILD_JOBS', value)
+}
+
+def positiveInteger(String name, String value) {
+    if (!(value ==~ /[1-9][0-9]*/)) {
+        error("${name} must be a positive integer, got '${value}'.")
+    }
+    return value
+}
+
+def regressionJobs() {
+    return positiveInteger(
+        'STELLAR_AI_CPU_REGRESSION_JOBS',
+        (env.STELLAR_AI_CPU_REGRESSION_JOBS ?: '16').trim()
+    )
+}
+
+def regressionTestTimeout() {
+    return positiveInteger(
+        'STELLAR_AI_CPU_REGRESSION_TEST_TIMEOUT',
+        (env.STELLAR_AI_CPU_REGRESSION_TEST_TIMEOUT ?: '900').trim()
+    )
+}
+
+def isCommitSha(String value) {
+    return value ==~ /[0-9a-fA-F]{40}/
+}
+
+def shortRef(String ref) {
+    return isCommitSha(ref) ? ref.take(7) : ref
+}
+
+def validateBranchName(String name, String value) {
+    if (!(value ==~ /[A-Za-z0-9][A-Za-z0-9._\/-]*/)
+        || value.contains('..') || value.contains('//')
+        || value.endsWith('/') || value.endsWith('.') || value.endsWith('.lock')) {
+        error("${name} must be a safe branch name or a full 40-character commit SHA, got '${value}'.")
+    }
+    return value
+}
+
+def validateRefSelector(String name, String value) {
+    value = requireValue(name, value)
+    return isCommitSha(value) ? value.toLowerCase() : validateBranchName(name, value)
+}
+
+def checkoutPullRequest(String prNumber) {
+    checkout([
+        $class: 'GitSCM',
+        branches: [[name: "refs/remotes/origin/candidate"]],
+        doGenerateSubmoduleConfigurations: false,
+        extensions: [
+            [$class: 'CleanBeforeCheckout'],
+            [$class: 'CloneOption', depth: 1, honorRefspec: true, noTags: true, shallow: true]
+        ],
+        userRemoteConfigs: [[
+            refspec: "+refs/pull/${prNumber}/head:refs/remotes/origin/candidate",
+            url: 'https://github.com/gkeyllorg/gkeyll.git'
+        ]]
+    ])
+}
+
+def checkoutRef(String selector, String localRef) {
+    def refspec = isCommitSha(selector)
+        ? "+${selector}:refs/remotes/origin/${localRef}"
+        : "+refs/heads/${selector}:refs/remotes/origin/${localRef}"
+    checkout([
+        $class: 'GitSCM',
+        branches: [[name: "refs/remotes/origin/${localRef}"]],
+        doGenerateSubmoduleConfigurations: false,
+        extensions: [
+            [$class: 'CleanBeforeCheckout'],
+            [$class: 'CloneOption', depth: 1, honorRefspec: true, noTags: true, shallow: true]
+        ],
+        userRemoteConfigs: [[
+            refspec: refspec,
+            url: 'https://github.com/gkeyllorg/gkeyll.git'
+        ]]
+    ])
+}
+
+def resolveRefCommit(String selector) {
+    if (isCommitSha(selector)) return selector.toLowerCase()
+    def commit = sh(returnStdout: true, script: "git ls-remote https://github.com/gkeyllorg/gkeyll.git refs/heads/${selector} | cut -f1 | head -n 1").trim()
+    if (!(commit ==~ /[0-9a-f]{40}/)) error("Could not resolve baseline ref '${selector}' to a commit SHA.")
+    return commit
+}
+
+def baselineBehindCount(String statusCredentialsId, String baseline, String candidate) {
+    withCredentials([usernamePassword(
+        credentialsId: statusCredentialsId,
+        usernameVariable: 'GITHUB_STATUS_USERNAME',
+        passwordVariable: 'GITHUB_STATUS_TOKEN'
+    )]) {
+        withEnv(["CI_BASELINE_COMMIT=${baseline}", "CI_CANDIDATE_COMMIT=${candidate}"]) {
+            return sh(returnStdout: true, script: '''#!/bin/bash
+                set -euo pipefail
+                curl --fail --silent --show-error \
+                    --retry 2 --connect-timeout 15 --max-time 45 \
+                    --header 'Accept: application/vnd.github+json' \
+                    --header "Authorization: Bearer $GITHUB_STATUS_TOKEN" \
+                    "https://api.github.com/repos/gkeyllorg/gkeyll/compare/$CI_BASELINE_COMMIT...$CI_CANDIDATE_COMMIT" \
+                    | python3 -c 'import json,sys; print(json.load(sys.stdin)["behind_by"])'
+            ''').trim().toInteger()
+        }
+    }
+}
+
+def resolvePullRequestBase(String statusCredentialsId, String prNumber) {
+    def baseRef = ''
+    withCredentials([usernamePassword(
+        credentialsId: statusCredentialsId,
+        usernameVariable: 'GITHUB_STATUS_USERNAME',
+        passwordVariable: 'GITHUB_STATUS_TOKEN'
+    )]) {
+        withEnv(["GITHUB_PR_NUMBER=${prNumber}"]) {
+            baseRef = sh(returnStdout: true, script: '''#!/bin/bash
+                set -euo pipefail
+                curl --fail --silent --show-error \
+                    --retry 2 --connect-timeout 15 --max-time 45 \
+                    --header 'Accept: application/vnd.github+json' \
+                    --header 'X-GitHub-Api-Version: 2022-11-28' \
+                    --header "Authorization: Bearer ${GITHUB_STATUS_TOKEN}" \
+                    "https://api.github.com/repos/gkeyllorg/gkeyll/pulls/${GITHUB_PR_NUMBER}" \
+                    | python3 -c '
+import json
+import sys
+
+pull = json.load(sys.stdin)
+base_ref = (pull.get("base") or {}).get("ref") or ""
+if not isinstance(base_ref, str):
+    raise SystemExit("GitHub pull-request base ref is not a string")
+print(base_ref)
+'
+            ''').trim()
+        }
+    }
+    return validateBranchName('GitHub PR base branch', baseRef)
+}
+
+def prepareTrustedRegressionChecker() {
+    sh '''#!/bin/bash
+        set -euo pipefail
+        rm -f -- _trusted_check_regression_results.lua
+        cp "$CI_STELLAR_AI_CPU_TOOLS_DIR/ci/jenkins/check_regression_results.lua" _trusted_check_regression_results.lua
+    '''
+    writeFile file: 'ci-trusted-checker-commit.txt', text: "${env.CI_TRUSTED_CI_COMMIT}\n"
+}
+
+// Candidates and baselines may predate the cluster scripts. Both use the same
+// reviewed workflow revision, frozen before either source checkout.
+def prepareClusterScripts() {
+    sh '''#!/bin/bash
+        set -euo pipefail
+        mkdir -p machines ci/jenkins
+        for name in module_load configure mkdeps; do
+            rm -f "machines/$name.stellarai-cpu.sh"
+            cp "$CI_STELLAR_AI_CPU_TOOLS_DIR/machines/$name.stellarai-cpu.sh" machines/
+        done
+        for name in unit-tests regression-tests parallel-regression-tests; do
+            rm -f "ci/jenkins/slurm-$name.stellar-ai-cpu.sh"
+            cp "$CI_STELLAR_AI_CPU_TOOLS_DIR/ci/jenkins/slurm-$name.stellar-ai-cpu.sh" ci/jenkins/
+        done
+    '''
+}
+
+def submitSlurmJob(String kind, String payload, String cpus, String timeLimit, List<String> extraExports = [], String tasks = '1') {
+    def qos = (kind == 'unit'
+        ? (env.STELLAR_AI_CPU_UNIT_QOS ?: 'test')
+        : (env.STELLAR_AI_CPU_SLURM_QOS ?: 'short')).trim()
+    def account = env.STELLAR_AI_CPU_SLURM_ACCOUNT?.trim()
+    def idFile = "slurm-${kind}-job-id.txt"
+    def statusFile = "slurm-${kind}-job-status.txt"
+    def outputFile = "slurm-${kind}-%j.out"
+    def exports = [
+        "CI_WORKSPACE=${env.WORKSPACE}",
+        "CI_SLURM_JOB_KIND=${kind}",
+        "CI_SLURM_JOB_ID_FILE=${idFile}",
+        "CI_SLURM_JOB_STATUS_FILE=${statusFile}"
+    ] + extraExports
+
+    withEnv([
+        "CI_WORKSPACE=${env.WORKSPACE}",
+        "CI_SLURM_JOB_KIND=${kind}",
+        "CI_SLURM_JOB_ID_FILE=${idFile}",
+        "CI_SLURM_JOB_STATUS_FILE=${statusFile}",
+        "CI_STELLAR_AI_CPU_QOS=${qos}",
+        "CI_STELLAR_AI_CPU_TIME=${timeLimit}",
+        "CI_STELLAR_AI_CPU_ACCOUNT=${account ?: ''}",
+        "CI_STELLAR_AI_CPU_CPUS=${cpus}",
+        "CI_SLURM_TASKS=${tasks}",
+        "CI_SLURM_PAYLOAD=${payload}",
+        "CI_SLURM_EXPORTS=${exports.join(',')}",
+        "CI_SLURM_OUTPUT=${outputFile}"
+    ]) {
+        loggedSh("shared-slurm-${kind}", '''#!/bin/bash -l
+            set -euo pipefail
+
+            job_id=''
+
+            write_status() {
+                printf 'job_id=%s\nstate=%s\nexit_code=%s\nelapsed_seconds=%s\n' \
+                    "$job_id" "$1" "${2:-}" "${3:-}" > "$CI_SLURM_JOB_STATUS_FILE"
+            }
+
+            cancel_submitted_job() {
+                trap - INT TERM
+                if [[ -z "$job_id" ]]; then
+                    exit 143
+                fi
+
+                echo "Jenkins interrupted; cancelling Slurm job $job_id"
+                scancel "$job_id" || true
+                while :; do
+                    state="$(squeue --noheader --jobs="$job_id" --format='%T' | head -n 1 || true)"
+                    if [[ -z "$state" ]]; then
+                        break
+                    fi
+                    echo "Waiting for Slurm job $job_id to stop (state: $state)"
+                    sleep 5
+                done
+                write_status 'CANCELLED_BY_JENKINS'
+                exit 143
+            }
+
+            trap cancel_submitted_job INT TERM
+
+            sbatch_args=(
+                --parsable
+                "--job-name=gkyl-ci-${CI_SLURM_JOB_KIND}-${BUILD_NUMBER}"
+                --partition=cpu
+                --nodes=1
+                "--ntasks=${CI_SLURM_TASKS}"
+                "--cpus-per-task=${CI_STELLAR_AI_CPU_CPUS}"
+                --mem-per-cpu=3G
+                "--qos=${CI_STELLAR_AI_CPU_QOS}"
+                "--time=${CI_STELLAR_AI_CPU_TIME}"
+                "--output=${CI_WORKSPACE}/${CI_SLURM_OUTPUT}"
+                "--chdir=${CI_WORKSPACE}"
+                "--export=ALL,${CI_SLURM_EXPORTS}"
+            )
+            if [[ -n "${CI_STELLAR_AI_CPU_ACCOUNT:-}" ]]; then
+                sbatch_args+=("--account=${CI_STELLAR_AI_CPU_ACCOUNT}")
+            fi
+
+            # The visualization host's GPU modulefiles are not all installed
+            # on CPU nodes. Export only the batch runtime and explicit CI paths,
+            # never its module bookkeeping, library paths or shell functions.
+            submission="$(env -i HOME="$HOME" USER="$USER" LOGNAME="${LOGNAME:-$USER}" \
+                PATH=/usr/bin:/bin SLURM_EXPORT_ENV=ALL \
+                GKEYLL_CI_DEPENDENCY_ENV="${GKEYLL_CI_DEPENDENCY_ENV:-}" \
+                "$(command -v sbatch)" "${sbatch_args[@]}" "$CI_SLURM_PAYLOAD")"
+            job_id="${submission%%;*}"
+            if [[ ! "$job_id" =~ ^[0-9]+(_[0-9]+)?$ ]]; then
+                echo "ERROR: Could not parse Slurm job ID from: $submission" >&2
+                exit 1
+            fi
+            printf '%s\n' "$job_id" > "$CI_SLURM_JOB_ID_FILE"
+            echo "Submitted ${CI_SLURM_JOB_KIND} Slurm job $job_id"
+
+            previous_state=''
+            while :; do
+                state="$(squeue --noheader --jobs="$job_id" --format='%T' | head -n 1 || true)"
+                if [[ -z "$state" ]]; then
+                    break
+                fi
+                if [[ "$state" != "$previous_state" ]]; then
+                    echo "${CI_SLURM_JOB_KIND} Slurm job $job_id state: $state"
+                    previous_state="$state"
+                fi
+                sleep 5
+            done
+
+            # Slurm accounting can lag briefly after a job disappears from
+            # squeue. Query the allocation record only (-X) until it appears.
+            record=''
+            for attempt in {1..6}; do
+                record="$(sacct --noheader --parsable2 --allocations --jobs="$job_id" \
+                    --format=State,ExitCode,ElapsedRaw | head -n 1 || true)"
+                if [[ -n "$record" ]]; then
+                    break
+                fi
+                echo "Waiting for Slurm accounting record for job $job_id ($attempt/6)"
+                sleep 5
+            done
+            if [[ -z "$record" ]]; then
+                write_status 'UNKNOWN'
+                echo "ERROR: No Slurm accounting record found for job $job_id" >&2
+                exit 1
+            fi
+
+            IFS='|' read -r final_state exit_code elapsed_seconds <<< "$record"
+            write_status "$final_state" "$exit_code" "$elapsed_seconds"
+            echo "${CI_SLURM_JOB_KIND} Slurm job $job_id finished: state=$final_state exit_code=$exit_code elapsed_seconds=$elapsed_seconds"
+            if [[ "$final_state" == COMPLETED* && "$exit_code" == '0:0' ]]; then
+                exit 0
+            fi
+            exit 1
+        ''')
+    }
+}
+
+def submitUnitTests(String candidateDir) {
+    submitSlurmJob(
+        'unit',
+        'ci/jenkins/slurm-unit-tests.stellar-ai-cpu.sh',
+        '4',
+        (env.STELLAR_AI_CPU_UNIT_TIME ?: '00:30:00').trim(),
+        ["CI_CANDIDATE_DIR=${candidateDir}/gkeyll"]
+    )
+}
+
+def submitRegressionTests(String mode, String baselineDir, String candidateDir) {
+    def jobs = regressionJobs()
+    def timeout = regressionTestTimeout()
+    submitSlurmJob(
+        'regression',
+        'ci/jenkins/slurm-regression-tests.stellar-ai-cpu.sh',
+        jobs,
+        (env.STELLAR_AI_CPU_REGRESSION_TIME ?: '04:00:00').trim(),
+        [
+            "CI_BASELINE_DIR=${baselineDir}/gkeyll",
+            "CI_BASELINE_PREFIX=${baselineDir}/gkylsoft",
+            "CI_CANDIDATE_DIR=${candidateDir}/gkeyll",
+            "CI_CANDIDATE_PREFIX=${candidateDir}/gkylsoft",
+            "CI_TRUSTED_CHECKER=${env.WORKSPACE}/_trusted_check_regression_results.lua",
+            "CI_REGRESSION_MODE=${mode}",
+            "CI_REGRESSION_JOBS=${jobs}",
+            "CI_REGRESSION_TEST_TIMEOUT=${timeout}"
+        ]
+    )
+}
+
+// Build on Intel vis2 and execute on AMD Turin. GCC 14.3.1 on Stellar AI
+// miscompiles binop_cross_mul_1d_3d_ser_p1 with AVX-512 SLP vectorization.
+// Use their shared AVX2 ISA until the compiler is fixed and revalidated.
+def ciArchitectureFlags() {
+    return '-march=x86-64-v3 -mtune=znver5'
+}
+
+// Only modify the disposable CI config, including copies of prebuilt configs.
+// The installed regression Makefile inherits this setting through config.mak.
+def applyCiArchitecture() {
+    withEnv(["CI_ARCH_FLAGS=${ciArchitectureFlags()}"]) {
+        sh '''#!/bin/bash
+            set -euo pipefail
+            test -s config.mak
+            printf '\\n# Stellar AI CPU CI architecture\\noverride ARCH_FLAGS := %s\\n' "$CI_ARCH_FLAGS" >> config.mak
+        '''
+    }
+}
+
+// Architecture, toolchain and MPI reduction policy must match the baseline.
+// Hash the payload actually submitted for both baseline and candidate runs.
+def baselineCacheContext() {
+    withEnv(["CI_BASELINE_CACHE_TOOL=${reporting.settings.cacheScript}",
+             "CI_ARCH_FLAGS=${ciArchitectureFlags()}"]) {
+        return sh(returnStdout: true, script: '''#!/bin/bash
+            set -euo pipefail
+            {
+                "$CI_BASELINE_CACHE_TOOL" context
+                printf 'ARCH_FLAGS=%s\\n' "$CI_ARCH_FLAGS"
+                sha256sum machines/{module_load,configure,mkdeps}.stellarai-cpu.sh
+                sha256sum ci/jenkins/slurm-*.stellar-ai-cpu.sh
+            } | sha256sum | cut -d' ' -f1
+        ''').trim()
+    }
+}
+
+def submitParallelRegressionTests(String mode, String baselineDir, String candidateDir) {
+    def jobs = regressionJobs()
+    submitSlurmJob(
+        'parallel-regression',
+        'ci/jenkins/slurm-parallel-regression-tests.stellar-ai-cpu.sh',
+        '1',
+        (env.STELLAR_AI_CPU_REGRESSION_TIME ?: '04:00:00').trim(),
+        [
+            "CI_BASELINE_DIR=${baselineDir}/gkeyll",
+            "CI_BASELINE_PREFIX=${baselineDir}/gkylsoft",
+            "CI_CANDIDATE_DIR=${candidateDir}/gkeyll",
+            "CI_CANDIDATE_PREFIX=${candidateDir}/gkylsoft",
+            "CI_TRUSTED_CHECKER=${env.WORKSPACE}/_trusted_check_regression_results.lua",
+            "CI_REGRESSION_MODE=${mode}",
+            "CI_REGRESSION_JOBS=${jobs}"
+        ],
+        Math.max(4, jobs.toInteger()).toString()
+    )
+}
+
+// The config is supplied by the machine owner, outside disposable workspaces.
+// Keep this helper in the trusted Pipeline so older candidate/baseline refs work.
+def usePrebuiltConfig(String prefix) {
+    def source = env.GKEYLL_CI_PREBUILT_CONFIG?.trim()
+    if (!source) return false
+    if (!source.startsWith('/') || !fileExists(source)) {
+        error('GKEYLL_CI_PREBUILT_CONFIG must name an existing absolute config.mak path on the agent.')
+    }
+    if (!env.CI_RUN_DIR?.trim()) error('CI_RUN_DIR must be prepared before copying dependencies.')
+    def launcher = env.PERSONAL_MPIEXEC?.trim()
+        ?: (env.PERSONAL_MPI_HOME?.trim() ? "${env.PERSONAL_MPI_HOME.trim()}/bin/mpiexec" : '')
+    // Keep the owner's launcher across candidate/baseline environment changes.
+    if (!env.CI_PREBUILT_SOURCE_MPIEXEC) env.CI_PREBUILT_SOURCE_MPIEXEC = launcher ?: 'auto'
+    launcher = env.CI_PREBUILT_SOURCE_MPIEXEC == 'auto' ? '' : env.CI_PREBUILT_SOURCE_MPIEXEC
+    def dependencies = env.CI_BASELINE_DEPENDENCIES ?: "${env.CI_RUN_DIR}/dependencies"
+    def runtime = [:]
+    withEnv(["CI_PREBUILT_SOURCE=${source}", "CI_PREBUILT_PREFIX=${prefix}",
+             "CI_PREBUILT_DEPENDENCIES=${dependencies}",
+             "CI_PREBUILT_SCRIPT=${reporting.settings.prebuiltScript}",
+             "CI_PREBUILT_MPIEXEC=${launcher}"]) {
+        // Literal KEY=value lines avoid JSON APIs that need sandbox approval.
+        def output = sh(returnStdout: true, script: '''#!/bin/bash
+            set -euo pipefail
+            if [[ -n "${CI_BASELINE_DEPENDENCIES:-}" ]]; then
+                cmp "$CI_PREBUILT_SOURCE" "$CI_RUN_DIR/dependencies/source-config.mak" || {
+                    echo 'Prebuilt config changed during this run; start a new CI run.' >&2
+                    exit 1
+                }
+            fi
+            python3 -I "$CI_PREBUILT_SCRIPT" --config "$CI_PREBUILT_SOURCE" \
+                --prefix "$CI_PREBUILT_PREFIX" --dependencies "$CI_PREBUILT_DEPENDENCIES" \
+                --mpiexec "${CI_PREBUILT_MPIEXEC:-}" --format env
+        ''')
+        output.readLines().each { line ->
+            def fields = line.split('=', 2)
+            runtime[fields[0]] = fields[1]
+        }
+    }
+    env.LD_LIBRARY_PATH = runtime.LD_LIBRARY_PATH
+    env.GKEYLL_CI_DEPENDENCY_ENV = runtime.GKEYLL_CI_DEPENDENCY_ENV
+    if (runtime.MPI_HOME) {
+        env.MPI_HOME = runtime.MPI_HOME
+        env.OPAL_PREFIX = runtime.OPAL_PREFIX
+        env.PERSONAL_MPI_HOME = runtime.MPI_HOME
+    }
+    if (runtime.MPIEXEC) env.PERSONAL_MPIEXEC = runtime.MPIEXEC
+    writeFile file: 'alltargets.mak', text: '''.PHONY: all install
+all: gkeyll
+install: gkeyll
+	$(MAKE) gkeyll-install
+'''
+    echo "Using dependency copy at ${dependencies}; installing Gkeyll in ${prefix}"
+    return true
+}
+
+def configureAndCompileCRegressions(String label, String driver, String sourceDir, String prefix, String moduleFile, String runOptions = '', String configureOptions = '') {
+    withEnv([
+        "CI_REGRESSION_LABEL=${label}",
+        "CI_REGRESSION_COMPILE_JOBS=${buildJobs()}",
+        "CI_REGRESSION_DRIVER=${driver}",
+        "CI_REGRESSION_SOURCE_DIR=${sourceDir}",
+        "CI_REGRESSION_PREFIX=${prefix}",
+        "CI_REGRESSION_MODULE_FILE=${moduleFile}",
+        "CI_REGRESSION_RUN_OPTIONS=${runOptions}",
+        "CI_REGRESSION_CONFIGURE_OPTIONS=${configureOptions}",
+        "CI_WORKSPACE=${env.WORKSPACE}"
+    ]) {
+        loggedSh("${label}-c-compile", '''#!/bin/bash -l
+            set -euo pipefail
+            . "$CI_REGRESSION_MODULE_FILE"
+            if [ -n "${GKEYLL_CI_DEPENDENCY_ENV:-}" ]; then . "$GKEYLL_CI_DEPENDENCY_ENV"; fi
+            "$CI_REGRESSION_DRIVER" runregression configure \
+                --source-dir "$CI_REGRESSION_SOURCE_DIR" \
+                --prefix "$CI_REGRESSION_PREFIX" ${CI_REGRESSION_CONFIGURE_OPTIONS:-}
+            started="$(date +%s)"
+            "$CI_REGRESSION_DRIVER" runregression run -c ${CI_REGRESSION_RUN_OPTIONS:-} --jobs "$CI_REGRESSION_COMPILE_JOBS" compile
+            elapsed="$(( $(date +%s) - started ))"
+            printf '%s\n' "$elapsed" > "$CI_WORKSPACE/$CI_REGRESSION_LABEL-c-compile-seconds.txt"
+            echo "$CI_REGRESSION_LABEL C-regression compile time: $elapsed seconds"
+        ''')
+    }
+}
+
+def finalizeUnfinishedSlurmJob() {
+    // Jenkins may terminate a durable-task process tree before its shell trap
+    // completes. Run this from the Pipeline finally block as a second chance
+    // to cancel a submitted job and preserve an abort-status artifact.
+    sh '''#!/bin/bash -l
+        set -euo pipefail
+
+        for id_file in slurm-*-job-id.txt; do
+            [[ -e "$id_file" ]] || continue
+            status_file="${id_file%-id.txt}-status.txt"
+            [[ -e "$status_file" ]] && continue
+
+            job_id="$(<"$id_file")"
+            if [[ ! "$job_id" =~ ^[0-9]+(_[0-9]+)?$ ]]; then
+                printf 'job_id=%s\nstate=UNKNOWN\nexit_code=\n' "$job_id" > "$status_file"
+                echo "WARNING: Cannot cancel malformed Slurm job ID '$job_id'" >&2
+                continue
+            fi
+
+            echo "Pipeline finalizer: cancelling unfinished Slurm job $job_id"
+            scancel "$job_id" || true
+            while :; do
+                state="$(squeue --noheader --jobs="$job_id" --format='%T' | head -n 1 || true)"
+                if [[ -z "$state" ]]; then
+                    break
+                fi
+                echo "Pipeline finalizer: waiting for job $job_id to stop (state: $state)"
+                sleep 5
+            done
+            printf 'job_id=%s\nstate=CANCELLED_BY_JENKINS\nexit_code=\n' "$job_id" > "$status_file"
+        done
+    '''
+}
+
+def pruneRunDirectories(String root, String count) {
+    def authFile = env.CI_JENKINS_READ_AUTH_FILE != null ? env.CI_JENKINS_READ_AUTH_FILE.trim() : "${root}/jenkins_home/jenkins-cli.auth"
+    withEnv(["CI_PRUNE_ROOT=${root}", "CI_PRUNE_COUNT=${count}", "CI_PRUNE_AUTH_FILE=${authFile}"]) {
+        sh '''#!/bin/bash -l
+            set -euo pipefail
+            python3 "$CI_STELLAR_AI_CPU_TOOLS_DIR/ci/jenkins/cache_manager.py" prune-runs \\
+                --root "$CI_PRUNE_ROOT" --platform stellar-ai-cpu --run-layout \\
+                --tag "$BUILD_TAG" --job "$JOB_NAME" --number "$BUILD_NUMBER" \\
+                --url "$BUILD_URL" --controller-url "${CI_JENKINS_LOCAL_URL:-http://127.0.0.1:8080}" \\
+                --auth-file "$CI_PRUNE_AUTH_FILE" --runs-to-keep "$CI_PRUNE_COUNT" \\
+                --retain-runs "${GKEYLL_CI_RETAIN_RUNS:-0}"
+        '''
+    }
+}
+
+def writeCiTimingSummary() {
+    sh '''#!/bin/bash -l
+        set -euo pipefail
+
+        metric() {
+            local file="$1"
+            local key="$2"
+            if [[ -f "$file" ]]; then
+                local value
+                if [[ "$key" == '__file__' ]]; then
+                    value="$(tr -d '[:space:]' < "$file")"
+                else
+                    value="$(sed -n -E "s/^${key}=//p" "$file" | tail -n 1)"
+                fi
+                if [[ -n "$value" ]]; then
+                    printf '%s' "$value"
+                    return
+                fi
+            fi
+            printf 'not-recorded'
+        }
+
+        candidate_compile="$(metric candidate-c-compile-seconds.txt __file__)"
+        baseline_compile="$(metric baseline-c-compile-seconds.txt __file__)"
+        candidate_parallel_compile="$(metric candidate-parallel-c-compile-seconds.txt __file__)"
+        baseline_parallel_compile="$(metric baseline-parallel-c-compile-seconds.txt __file__)"
+        candidate_install="$(metric candidate-install-seconds.txt __file__)"
+        baseline_install="$(metric baseline-install-seconds.txt __file__)"
+        candidate_unit_build="$(metric candidate-unit-build-seconds.txt __file__)"
+        baseline_unit_build="$(metric baseline-unit-build-seconds.txt __file__)"
+        candidate_unit_test="$(metric unit-test-seconds.txt __file__)"
+        baseline_unit_test='not-recorded'
+        regression_create="$(metric baseline-c-regression-create-seconds.txt __file__)"
+        regression_check="$(metric candidate-c-regression-check-seconds.txt __file__)"
+        parallel_regression_create="$(metric baseline-parallel-c-regression-create-seconds.txt __file__)"
+        parallel_regression_check="$(metric candidate-parallel-c-regression-check-seconds.txt __file__)"
+        unit_elapsed="$(metric slurm-unit-job-status.txt elapsed_seconds)"
+        regression_elapsed="$(metric slurm-regression-job-status.txt elapsed_seconds)"
+        parallel_regression_elapsed="$(metric slurm-parallel-regression-job-status.txt elapsed_seconds)"
+        c_passed="$(metric ci-regression-summary.txt c_regression_passed)"
+        c_acknowledged="$(metric ci-regression-summary.txt c_regression_acknowledged)"
+        c_unacknowledged="$(metric ci-regression-summary.txt c_regression_unacknowledged)"
+        baseline_cache_status="$(awk -F= '$1 == "status" {print $2; exit}' ci-baseline-cache.txt 2>/dev/null || true)"
+        baseline_cache_status="${baseline_cache_status:-not-recorded}"
+
+        compile_total='not-recorded'
+        if [[ "$baseline_cache_status" == hit ]]; then
+            compile_total="$candidate_compile"
+        elif [[ "$candidate_compile" =~ ^[0-9]+$ && "$baseline_compile" =~ ^[0-9]+$ ]]; then
+            compile_total="$((candidate_compile + baseline_compile))"
+        fi
+
+        {
+            printf 'baseline_cache_status=%s\n' "$baseline_cache_status"
+            printf 'candidate_c_compile_seconds=%s\n' "$candidate_compile"
+            printf 'baseline_c_compile_seconds=%s\n' "$baseline_compile"
+            printf 'candidate_parallel_c_compile_seconds=%s\n' "$candidate_parallel_compile"
+            printf 'baseline_parallel_c_compile_seconds=%s\n' "$baseline_parallel_compile"
+            printf 'login_c_compile_seconds=%s\n' "$compile_total"
+            printf 'candidate_install_seconds=%s\n' "$candidate_install"
+            printf 'baseline_install_seconds=%s\n' "$baseline_install"
+            printf 'candidate_unit_build_seconds=%s\n' "$candidate_unit_build"
+            printf 'baseline_unit_build_seconds=%s\n' "$baseline_unit_build"
+            printf 'candidate_unit_test_seconds=%s\n' "$candidate_unit_test"
+            printf 'baseline_unit_test_seconds=%s\n' "$baseline_unit_test"
+            printf 'baseline_c_regression_create_seconds=%s\n' "$regression_create"
+            printf 'candidate_c_regression_check_seconds=%s\n' "$regression_check"
+            printf 'baseline_parallel_c_regression_create_seconds=%s\n' "$parallel_regression_create"
+            printf 'candidate_parallel_c_regression_check_seconds=%s\n' "$parallel_regression_check"
+            printf 'unit_slurm_elapsed_seconds=%s\n' "$unit_elapsed"
+            printf 'regression_slurm_elapsed_seconds=%s\n' "$regression_elapsed"
+            printf 'parallel_regression_slurm_elapsed_seconds=%s\n' "$parallel_regression_elapsed"
+            printf 'c_regression_passed=%s\n' "$c_passed"
+            printf 'c_regression_acknowledged=%s\n' "$c_acknowledged"
+            printf 'c_regression_unacknowledged=%s\n' "$c_unacknowledged"
+        } | awk -F= -v cache_status="$baseline_cache_status" '
+            # Restored measurements belong to the run that populated the cache.
+            cache_status == "hit" && $1 ~ /^baseline_.*_seconds$/ {
+                if ($2 != "not-recorded") print "cached_" $0
+                print $1 "=0"
+                next
+            }
+            { print }
+        ' > ci-timing-summary.txt
+        cat ci-timing-summary.txt
+    '''
+}
+
+def timingMetric(String key) {
+    if (!fileExists('ci-timing-summary.txt')) {
+        return 'n/a'
+    }
+    def expression = '(?m)^' + java.util.regex.Pattern.quote(key) + '=([^\\r\\n]+)$'
+    def match = readFile('ci-timing-summary.txt') =~ expression
+    return match.find() ? match.group(1) : 'n/a'
+}
+
+def timingStatusDescription(String status) {
+    def passed = timingMetric('c_regression_passed')
+    def acknowledged = timingMetric('c_regression_acknowledged')
+    def unacknowledged = timingMetric('c_regression_unacknowledged')
+    def candidateCompile = timingMetric('candidate_c_compile_seconds')
+    def baselineCompile = timingMetric('baseline_c_compile_seconds')
+    def unitElapsed = timingMetric('unit_slurm_elapsed_seconds')
+    def regressionElapsed = timingMetric('regression_slurm_elapsed_seconds')
+    def outcome = status == 'success' ? 'passed' : (status == 'error' ? 'errored' : 'failed')
+    def description = "Stellar CI ${outcome}: C ${passed}/${acknowledged}/${unacknowledged}; comp C/B ${candidateCompile}/${baselineCompile}s; Slurm U/R ${unitElapsed}/${regressionElapsed}s"
+    return description.take(140)
+}
+
+def candidatePr = params.CANDIDATE_PR?.trim()
+def candidateRef = params.CANDIDATE_REF?.trim()
+def requestedBaselineRef = params.BASELINE_REF?.trim()
+if (!!candidatePr == !!candidateRef) {
+    error('Set exactly one of CANDIDATE_PR or CANDIDATE_REF.')
+}
+if (candidatePr && !(candidatePr ==~ /[1-9][0-9]*/)) {
+    error("CANDIDATE_PR must be a positive integer, got '${candidatePr}'.")
+}
+if (candidatePr && requestedBaselineRef) {
+    error('BASELINE_REF must be empty with CANDIDATE_PR; the GitHub PR base branch is used automatically.')
+}
+if (candidateRef) {
+    candidateRef = validateRefSelector('CANDIDATE_REF', candidateRef)
+    requestedBaselineRef = validateRefSelector('BASELINE_REF', requestedBaselineRef)
+}
+def allowBehindCandidate = params.ALLOW_BEHIND_CANDIDATE || env.CI_ALLOW_BEHIND_CANDIDATE == 'true'
+
+def nodeLabel = (env.STELLAR_AI_CPU_NODE_LABEL ?: 'stellar-ai-cpu').trim()
+def gkeyllCiRoot = requireValue('GKEYLL_CI_ROOT', env.GKEYLL_CI_ROOT)
+def workspaceRoot = "${gkeyllCiRoot}/workspaces"
+def statusCredentialsId = requireValue('STELLAR_AI_CPU_GITHUB_CREDENTIAL_ID', env.STELLAR_AI_CPU_GITHUB_CREDENTIAL_ID)
+def candidateSelector = ''
+def baselineSelector = ''
+def queuedCommit = params.CI_QUEUE_COMMIT?.trim()
+if (queuedCommit && !isCommitSha(queuedCommit)) error('CI_QUEUE_COMMIT must be a full commit SHA.')
+def candidateCommit = queuedCommit ?: (isCommitSha(candidateRef ?: '') ? candidateRef : '')
+def baselineCommit = ''
+def candidateDir = ''
+def terminalStatus = 'failure'
+def terminalDescription = 'Stellar AI CPU CI failed.'
+def failureMessage = ''
+def baselineDir = ''
+def baselineStage = ''
+def baselineCacheHit = false
+
+def ciStage(String name, Closure body) { reporting.ciStage(name, body) }
+
+def writeCiFailureSummary(String result, String name, String message) { reporting.writeCiFailureSummary(result, name, message) }
+
+node(nodeLabel) {
+    // Stellar compute nodes must see this path. Configure the root on a shared
+    // filesystem such as the project's /scratch/gpfs location, never /tmp.
+    ws("${workspaceRoot}/${env.JOB_NAME}/${env.BUILD_TAG}") {
+        loadReporting([credential: statusCredentialsId, context: params.CI_QUEUE_CONTEXT?.trim() ?: 'continuous-integration/jenkins/stellar-ai-cpu',
+            platform: 'stellar-ai-cpu', pr: candidatePr ?: '', ref: candidateRef ?: '', commit: candidateCommit])
+        reporting.withBaselineCache(gkeyllCiRoot, 'stellar-ai-cpu') {
+        try {
+            ciStage('Prune inactive CI runs') { pruneRunDirectories(gkeyllCiRoot, buildsToKeep) }
+            ciStage('Resolve candidate and baseline') {
+                currentBuild.displayName = "#${env.BUILD_NUMBER} ${candidatePr ? "PR-${candidatePr}" : shortRef(candidateRef)}"
+                if (candidatePr) {
+                    candidateSelector = "PR #${candidatePr}"
+                    baselineSelector = resolvePullRequestBase(statusCredentialsId, candidatePr)
+                } else {
+                    candidateSelector = candidateRef
+                    baselineSelector = requestedBaselineRef
+                }
+                echo "Candidate selector: ${candidateSelector}"
+                echo "Baseline selector: ${baselineSelector}"
+                currentBuild.description = "${shortRef(candidateSelector)} vs ${shortRef(baselineSelector)}"
+            }
+            ciStage('Checkout candidate') {
+                deleteDir()
+                if (queuedCommit) {
+                    checkoutRef(queuedCommit, 'candidate')
+                } else if (candidatePr) {
+                    checkoutPullRequest(candidatePr)
+                } else {
+                    checkoutRef(candidateRef, 'candidate')
+                }
+                candidateCommit = sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
+                reporting.settings.commit = candidateCommit
+                writeFile file: 'ci-candidate-commit.txt', text: "${candidateCommit}\n"
+                currentBuild.description += " @ ${candidateCommit.take(7)}"
+                prepareClusterScripts()
+                sh 'git status --short'
+            }
+            ciStage('Verify candidate contains baseline') {
+                baselineCommit = resolveRefCommit(baselineSelector)
+                def behind = baselineBehindCount(statusCredentialsId, baselineCommit, candidateCommit)
+                writeFile file: 'ci-baseline-preflight.txt', text: "candidate_commit=${candidateCommit}\nbaseline_selector=${baselineSelector}\nbaseline_commit=${baselineCommit}\nbehind_by=${behind}\noverride=${allowBehindCandidate}\n"
+                writeFile file: 'ci-selection.txt', text: "candidate_selector=${candidateSelector}\nbaseline_selector=${baselineSelector}\ncandidate_commit=${candidateCommit}\nbaseline_commit=${baselineCommit}\nallow_behind=${allowBehindCandidate}\n"
+                if (behind > 0 && !allowBehindCandidate) {
+                    error("Candidate ${candidateCommit.take(7)} is behind baseline ${baselineCommit.take(7)} by ${behind} commit(s); merge or rebase the baseline, or set ALLOW_BEHIND_CANDIDATE for an intentional historical comparison.")
+                }
+                if (behind > 0) echo("WARNING: allowing candidate behind baseline by ${behind} commit(s).")
+            }
+            ciStage('Prepare candidate build') {
+                env.CI_BASELINE_CACHE_CONTEXT = baselineCacheContext()
+                env.CI_RUN_DIR = sh(returnStdout: true, script: "'${reporting.settings.cacheScript}' run-path '${gkeyllCiRoot}' 'stellar-ai-cpu'").trim()
+                writeFile file: 'ci-run-path.txt', text: "${env.CI_RUN_DIR}\n"
+                candidateDir = sh(returnStdout: true, script: "'${reporting.settings.cacheScript}' prepare-candidate '${gkeyllCiRoot}' 'stellar-ai-cpu' '${candidateCommit}' '${env.WORKSPACE}' '${baselineCommit}'").trim()
+            }
+            ciStage('Resolve baseline cache') {
+                baselineDir = sh(returnStdout: true, script: "'${reporting.settings.cacheScript}' baseline-path '${gkeyllCiRoot}' 'stellar-ai-cpu' '${baselineCommit}'").trim()
+                baselineCacheHit = sh(returnStatus: true, script: "'${reporting.settings.cacheScript}' valid '${gkeyllCiRoot}' 'stellar-ai-cpu' '${baselineCommit}'") == 0
+                if (!baselineCacheHit) baselineStage = sh(returnStdout: true, script: "'${reporting.settings.cacheScript}' prepare-baseline '${gkeyllCiRoot}' 'stellar-ai-cpu' '${baselineCommit}'").trim()
+                writeFile file: 'ci-baseline-cache.txt', text: "status=${baselineCacheHit ? 'hit' : 'miss'}\nplatform=stellar-ai-cpu\nbaseline_commit=${baselineCommit}\npath=${baselineCacheHit ? baselineDir : baselineStage}\n"
+                if (baselineCacheHit) sh "'${reporting.settings.cacheScript}' restore-diagnostics '${baselineDir}' '${env.WORKSPACE}'"
+            }
+            reporting.progress('Gkeyll CI is running.')
+
+            ciStage('Build dependencies') {
+                if (!env.GKEYLL_CI_PREBUILT_CONFIG?.trim()) withEnv(["PREFIX=${candidateDir}/gkylsoft"]) {
+                    dir("${candidateDir}/gkeyll") {
+                        loggedSh("candidate-dependencies", '''#!/bin/bash -l
+                        set -euo pipefail
+                        ./machines/mkdeps.stellarai-cpu.sh
+                    ''')
+                    }
+                }
+            }
+            ciStage('Configure') {
+                withEnv(["PREFIX=${candidateDir}/gkylsoft"]) {
+                    dir("${candidateDir}/gkeyll") {
+                        if (!usePrebuiltConfig("${candidateDir}/gkylsoft")) loggedSh("candidate-configure", '''#!/bin/bash -l
+                        set -euo pipefail
+                        ./machines/configure.stellarai-cpu.sh
+                    ''')
+                        applyCiArchitecture()
+                    }
+                }
+            }
+            ciStage('Build unit tests') {
+                def jobs = buildJobs()
+                dir("${candidateDir}/gkeyll") {
+                    loggedSh("candidate-unit-build", """#!/bin/bash -l
+                    set -euo pipefail
+                    # Each Jenkins sh step is a new process, so source the
+                    # same environment used by the Stellar machine scripts.
+                    . machines/module_load.stellarai-cpu.sh
+                    if [ -n "\${GKEYLL_CI_DEPENDENCY_ENV:-}" ]; then . "\$GKEYLL_CI_DEPENDENCY_ENV"; fi
+                    module list
+                    started=\$(date +%s)
+                    make -j${jobs} unit
+                    elapsed=\$(( \$(date +%s) - started ))
+                    printf '%s\\n' "\$elapsed" > "${env.WORKSPACE}/candidate-unit-build-seconds.txt"
+                    echo "Candidate unit-test build time: \$elapsed seconds"
+                    """)
+                }
+            }
+            ciStage('Run unit tests (SLURM)') {
+                submitUnitTests(candidateDir)
+            }
+            ciStage('Install candidate for C regression') {
+                def jobs = buildJobs()
+                dir("${candidateDir}/gkeyll") {
+                    loggedSh("candidate-install", """#!/bin/bash -l
+                    set -euo pipefail
+                    . machines/module_load.stellarai-cpu.sh
+                    if [ -n "\${GKEYLL_CI_DEPENDENCY_ENV:-}" ]; then . "\$GKEYLL_CI_DEPENDENCY_ENV"; fi
+                    started=\$(date +%s)
+                    make -j${jobs} install
+                    elapsed=\$(( \$(date +%s) - started ))
+                    printf '%s\\n' "\$elapsed" > "${env.WORKSPACE}/candidate-install-seconds.txt"
+                    echo "Candidate install time: \$elapsed seconds"
+                    """)
+                }
+            }
+            ciStage('Compile candidate C regressions') {
+                dir("${candidateDir}/gkeyll") {
+                    configureAndCompileCRegressions(
+                        'candidate',
+                        "${candidateDir}/gkylsoft/gkeyll/bin/gkeyll",
+                        "${candidateDir}/gkeyll",
+                        "${candidateDir}/gkylsoft",
+                        'machines/module_load.stellarai-cpu.sh'
+                    )
+                }
+            }
+            if (!baselineCacheHit) {
+                reporting.withBaselineEnvironment(baselineStage) {
+                    ciStage('Checkout Stellar AI CPU baseline') {
+                        dir("${baselineStage}/gkeyll") {
+                            checkoutRef(baselineCommit, 'baseline')
+                            prepareClusterScripts()
+                        }
+                    }
+                    ciStage('Build Stellar AI CPU baseline') {
+                        withEnv(["PREFIX=${baselineStage}/gkylsoft"]) {
+                            dir("${baselineStage}/gkeyll") {
+                            if (!usePrebuiltConfig("${baselineStage}/gkylsoft")) loggedSh("baseline-setup", '''#!/bin/bash -l
+                                set -euo pipefail
+                                . machines/module_load.stellarai-cpu.sh
+                                if [ -n "${GKEYLL_CI_DEPENDENCY_ENV:-}" ]; then . "$GKEYLL_CI_DEPENDENCY_ENV"; fi
+                                ./machines/mkdeps.stellarai-cpu.sh
+                                ./machines/configure.stellarai-cpu.sh
+                            ''')
+                            applyCiArchitecture()
+                        }
+                    }
+                    }
+                    ciStage('Build baseline unit tests') {
+                        def jobs = buildJobs()
+                        dir("${baselineStage}/gkeyll") {
+                            loggedSh("baseline-unit-build", """#!/bin/bash -l
+                                set -euo pipefail
+                                . machines/module_load.stellarai-cpu.sh
+                                if [ -n "\${GKEYLL_CI_DEPENDENCY_ENV:-}" ]; then . "\$GKEYLL_CI_DEPENDENCY_ENV"; fi
+                                make -j${jobs} unit
+                            """)
+                        }
+                    }
+                    ciStage('Install Stellar AI CPU baseline') {
+                    def jobs = buildJobs()
+                    dir("${baselineStage}/gkeyll") {
+                        loggedSh("baseline-install", """#!/bin/bash -l
+                            set -euo pipefail
+                            . machines/module_load.stellarai-cpu.sh
+                            if [ -n "\${GKEYLL_CI_DEPENDENCY_ENV:-}" ]; then . "\$GKEYLL_CI_DEPENDENCY_ENV"; fi
+                            started=\$(date +%s)
+                            make -j${jobs} install
+                            elapsed=\$(( \$(date +%s) - started ))
+                            printf '%s\\n' "\$elapsed" > "${env.WORKSPACE}/baseline-install-seconds.txt"
+                            echo "Baseline install time: \$elapsed seconds"
+                        """)
+                    }
+                    }
+                    ciStage('Compile Stellar AI CPU baseline C regressions') {
+                    configureAndCompileCRegressions(
+                        'baseline',
+                        "${baselineStage}/gkylsoft/gkeyll/bin/gkeyll",
+                        "${baselineStage}/gkeyll",
+                        "${baselineStage}/gkylsoft",
+                        'machines/module_load.stellarai-cpu.sh'
+                    )
+                    }
+                    ciStage('Run baseline C regressions (SLURM)') { submitRegressionTests('baseline-create', baselineStage, candidateDir) }
+                    ciStage('Compile baseline parallel C regressions') {
+                        configureAndCompileCRegressions(
+                            'baseline-parallel', "${baselineStage}/gkylsoft/gkeyll/bin/gkeyll", "${baselineStage}/gkeyll",
+                            "${baselineStage}/gkylsoft", 'machines/module_load.stellarai-cpu.sh',
+                            '--parallel', '--results-subdir parallel-c-4 --mpiexec srun --mpi-args=--exact'
+                        )
+                    }
+                    ciStage('Run baseline parallel C regressions (SLURM)') { submitParallelRegressionTests('baseline-create', baselineStage, candidateDir) }
+                    ciStage('Publish baseline cache') {
+                        loggedSh("baseline-cache-publish", "'${reporting.settings.cacheScript}' publish-baseline '${gkeyllCiRoot}' 'stellar-ai-cpu' '${baselineCommit}' '${baselineStage}' '${env.WORKSPACE}'")
+                        baselineDir = baselineStage
+                        writeFile file: 'ci-baseline-cache.txt', text: "status=saved\nplatform=stellar-ai-cpu\nbaseline_commit=${baselineCommit}\npath=${baselineDir}\n"
+                    }
+                }
+            }
+            ciStage('Record baseline cache') {
+                writeFile file: 'ci-baseline-commit.txt', text: "${baselineCommit}\n"
+                sh "'${reporting.settings.cacheScript}' restore-diagnostics '${baselineDir}' '${env.WORKSPACE}'"
+            }
+            ciStage('Prepare trusted regression checker') { prepareTrustedRegressionChecker() }
+            ciStage('Run candidate C regressions (SLURM)') { submitRegressionTests('candidate-check', baselineDir, candidateDir) }
+            ciStage('Compile candidate parallel C regressions') {
+                dir("${candidateDir}/gkeyll") {
+                    configureAndCompileCRegressions(
+                        'candidate-parallel',
+                        "${candidateDir}/gkylsoft/gkeyll/bin/gkeyll",
+                        "${candidateDir}/gkeyll",
+                        "${candidateDir}/gkylsoft",
+                        'machines/module_load.stellarai-cpu.sh',
+                        '--parallel', '--results-subdir parallel-c-4 --mpiexec srun --mpi-args=--exact'
+                    )
+                }
+            }
+            ciStage('Run candidate parallel C regressions (SLURM)') { submitParallelRegressionTests('candidate-check', baselineDir, candidateDir) }
+            terminalStatus = 'success'
+            terminalDescription = 'Stellar AI CPU unit and C regression tests passed.'
+        } catch (err) {
+            failureMessage = err.toString()
+            terminalStatus = reporting.failureResult(err, currentBuild.currentResult)
+            if (terminalStatus in ['cancelled', 'timed_out']) terminalDescription = "CI ${terminalStatus}."
+            throw err
+        } finally {
+            def slurmFinalized = false
+            def artifactsArchived = false
+            try {
+                finalizeUnfinishedSlurmJob()
+                slurmFinalized = true
+            } catch (err) {
+                terminalStatus = 'cancelled'
+                terminalDescription = 'Stellar AI CPU CI cleanup failed.'
+                if (!failureMessage) {
+                    failureMessage = err.toString()
+                    env.CI_FAILURE_STAGE = 'Finalize SLURM job'
+                } else {
+                    failureMessage += " | Slurm cleanup also failed: ${err}"
+                }
+                throw err
+            } finally {
+                try {
+                    writeCiTimingSummary()
+                    terminalDescription = timingStatusDescription(terminalStatus)
+                } catch (err) {
+                    terminalStatus = 'error'
+                    terminalDescription = 'Stellar AI CPU CI timing summary failed.'
+                    if (!failureMessage) {
+                        failureMessage = err.toString()
+                        env.CI_FAILURE_STAGE = 'Write CI timing summary'
+                    } else {
+                        failureMessage += " | Timing summary also failed: ${err}"
+                    }
+                    currentBuild.result = 'FAILURE'
+                    echo "WARNING: could not write CI timings: ${err}"
+                }
+                try {
+                    try {
+                        withEnv(["CI_COMPRESSION_JOBS=${regressionJobs()}"]) {
+                            if (candidateDir) sh "'${reporting.settings.cacheScript}' stage-candidate-artifacts '${gkeyllCiRoot}' 'stellar-ai-cpu' '${candidateCommit}' '${env.WORKSPACE}' '${baselineCommit}'"
+                        }
+                    } catch (err) {
+                        echo "WARNING: could not stage CI report artifacts: ${err}"
+                    }
+                    if (terminalStatus != 'success') writeCiFailureSummary(terminalStatus, env.CI_FAILURE_STAGE, failureMessage ?: terminalDescription)
+                    // Best effort: a GitHub outage must not turn a passing build red.
+                    // Keep the full report locally if both GitHub transports are unavailable.
+                    if (candidateCommit || candidatePr || candidateRef) {
+                        try {
+                            reporting.publish(terminalStatus, terminalDescription, true)
+                        } catch (err) {
+                            echo "WARNING: could not publish the GitHub CI report: ${err}"
+                            terminalDescription = "${terminalDescription} (report not posted)".take(140)
+                        }
+                    }
+                    archiveArtifacts allowEmptyArchive: true, excludes: statisticsArchiveExcludes(),
+                        artifacts: 'ci-statistics.md,ci-run-path.txt,ci-*-config.mak,ci-dependencies/**,ci-numerical/*.tar.zst,ci-numerical/*.tar.gz,ci-trusted-ci-commit.txt,ci-reporting-commit.txt,ci-selection.txt,ci-baseline-preflight.txt,ci-baseline-cache.txt,ci-trusted-checker-commit.txt,ci-candidate-commit.txt,ci-baseline-commit.txt,ci-report*.md,ci-report*.md.json,ci-report-delivery.json,ci-diagnostic-summary.json,ci-stage-history.txt,ci-stage-timings.json,ci-command-logs/**,baseline-*.log*,baseline-slurm-*,*-unit-results.txt,*-seconds.txt,ci-timing-summary.txt,ci-regression-summary.txt,ci-failure-summary.txt,slurm-*.out,slurm-*-job-id.txt,slurm-*-job-status.txt,build/**/*.log,cuda-build/**/*.log,_baseline/build/**/*.log,_baseline/cuda-build/**/*.log,_baseline/gkylsoft/gkeyll-results/**,gkylsoft/gkeyll-results/**'
+                    artifactsArchived = true
+                } catch (err) {
+                    terminalStatus = 'error'
+                    terminalDescription = 'Stellar AI CPU CI artifact archival failed.'
+                    throw err
+                } finally {
+                    try {
+                        if (candidateDir && baselineCommit) {
+                            sh "'${reporting.settings.cacheScript}' finalize-candidate '${gkeyllCiRoot}' 'stellar-ai-cpu' '${candidateCommit}' '${baselineCommit}' '${terminalStatus}' '${env.CI_FAILURE_STAGE ?: ''}' '${env.WORKSPACE}'"
+                            if (slurmFinalized && env.GKEYLL_CI_COMPACT_RUNS == '1') {
+                                withEnv(["CI_COMPRESSION_JOBS=${regressionJobs()}"]) {
+                                    sh "'${reporting.settings.cacheScript}' compact-run '${gkeyllCiRoot}' 'stellar-ai-cpu'"
+                                }
+                            }
+                        }
+                        if (slurmFinalized && artifactsArchived) {
+                            echo "Pruning inactive Stellar AI run directories; keeping newest ${buildsToKeep}."
+                            pruneRunDirectories(gkeyllCiRoot, buildsToKeep)
+                        }
+                    } finally {
+                        deleteDir()
+                    }
+                }
+            }
+        }
+        }
+    }
+}

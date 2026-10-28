@@ -1,5 +1,8 @@
 # Gkeyll Jenkins CI on Princeton Stellar CPU
 
+To reuse an existing installation’s dependency paths and `config.mak`, see
+[Reusing installed dependencies](README.dependencies.md).
+
 This guide sets up Gkeyll's private, CPU-only Jenkins CI on Princeton Stellar.
 After SSH/Duo authentication, a developer manually starts a build for a GitHub
 pull request or an explicit candidate/baseline comparison. Jenkins runs on the
@@ -121,10 +124,13 @@ uses it only against loopback Jenkins and does not disable CSRF protection.
 
 ### Create the GitHub credential
 
+The [shared reporter](README.reporting.md#reporting-credentials) uses this existing
+username/token credential for statuses and report comments on the tested commit.
+
 Create a classic GitHub PAT with only the `public_repo` scope and a short
-expiration. That scope covers commit statuses and pull-request or commit
-comments on the public repository; a fine-grained token needs **Commit
-statuses: write**, **Pull requests: write**, and **Contents: write** (commit
+expiration. That scope covers commit statuses and commit comments on the public
+repository; a fine-grained token needs **Commit
+statuses: write** and **Contents: write** (to create and update commit
 comments) on `gkeyllorg/gkeyll` instead. Its owner must have push access to
 `gkeyllorg/gkeyll`, which GitHub requires to publish commit statuses. In Jenkins, add it as a **Username with
 password** credential, using the owner's GitHub username and the PAT. Give it
@@ -151,26 +157,107 @@ set the following values. Paste an expanded scratch path, not a literal `$USER`.
 | `STELLAR_CPU_GITHUB_CREDENTIAL_ID` | GitHub status/API credential ID, e.g. `gkeyll-github-stellar-cpu` |
 | `STELLAR_CPU_SLURM_QOS` | A valid CPU QoS for your group |
 | `STELLAR_CPU_SLURM_ACCOUNT` | Project account when required; otherwise omit it |
-| `STELLAR_CPU_BUILD_JOBS` | Optional login-node compile parallelism; default `3` |
+| `STELLAR_CPU_BUILD_JOBS` | Optional login-node compilation workers, including C regressions; default `8` |
 | `STELLAR_CPU_UNIT_TIME` | Optional unit-test allocation limit; default `00:30:00` |
 | `STELLAR_CPU_REGRESSION_TIME` | Optional C-regression allocation limit; default `04:00:00` |
-| `STELLAR_CPU_REGRESSION_JOBS` | Optional concurrent C test runs; default `4` |
+| `STELLAR_CPU_REGRESSION_JOBS` | Optional regression worker budget (one per serial test or MPI rank); default `16` |
 | `STELLAR_CPU_REGRESSION_TEST_TIMEOUT` | Optional per-test limit in seconds; default `900` |
 | `STELLAR_CPU_NODE_LABEL` | Optional node label; default `stellar_cpu` |
-| `GKEYLL_CI_TRUSTED_REF` | Optional reviewed branch or full SHA for CI reporting, regression checking, and cache tools; default `main`. Set it only while staging a CI change |
-| `CI_JENKINS_READ_AUTH_FILE` | Optional agent-readable Jenkins `user:api-token` file; default `$GKEYLL_CI_ROOT/jenkins_home/jenkins-cli.auth` |
-| `CI_JENKINS_LOCAL_URL` | Optional Jenkins API URL reachable from the login-side agent; default `http://127.0.0.1:8080`. Use the server port, not the laptop SSH tunnel port |
+| `PERL5LIB` | Shared Perl library path when compute nodes lack `Time::HiRes`; see [runtime verification](#verify-the-compute-node-perl-runtime) |
+| `GKEYLL_CI_TRUSTED_REF` | Optional reviewed branch or full SHA for reporting, regression checking, and cache tools; default `main`. Set it only while staging a CI change |
+| `CI_JENKINS_READ_AUTH_FILE` | Optional agent-readable Jenkins `user:api-token` file; default `$GKEYLL_CI_ROOT/jenkins_home/jenkins-cli.auth`; empty for anonymous reads |
+| `CI_JENKINS_LOCAL_URL` | Optional controller URL reachable from the login agent; default `http://127.0.0.1:8080` |
+| `GKEYLL_CI_BUILDS_TO_KEEP` | Positive count of Jenkins builds, artifacts, and entire run directories to retain per job; default `2` |
+| `GKEYLL_CI_RETAIN_RUNS` | Default `0` enables bounded retention after Jenkins/Slurm checks; `1` retains unlimited disk history |
 
 Do not set a broad global `PATH` to an interactive shell configuration. The
 Pipeline initializes Stellar modules for each build and Slurm job. Its
 `GKEYLL_CI_ROOT` must exactly match the controller's root.
-It retains baseline and latest candidate build/result directories. Cache cleanup
-uses Jenkins build state, Slurm working directories, and a shared-storage
-`flock`; verify the agent can query both services before enabling parallel
-executors. Drain older runs before deploying the new cache layout. Remove
-`baseline-cache/stellar-cpu` manually after an intentional toolchain change.
+It retains a separate directory for each build under `runs/stellar-cpu/`;
+see [persistent regression data](README.storage.md). After an intentional in-place toolchain or dependency upgrade, change
+`GKEYLL_CI_CACHE_REVISION` to force baseline regeneration in either dependency mode.
+Jenkins defaults to retaining two builds, their artifacts, and their entire run
+directories; `GKEYLL_CI_BUILDS_TO_KEEP` overrides all three counts. Older inactive
+run trees, including dependencies and archives, are deleted at startup and
+completion. Active runs remain protected.
+
+Serial regressions request one CPU per worker: the default is 16 concurrent
+tests on 16 CPUs. MPI regressions request one CPU per rank slot (at least four
+slots) and reserve each test's manifest rank count until it finishes. With the
+default 16-slot budget, four four-rank tests can run concurrently; available
+slots are reused as tests finish. These settings apply to both baseline and
+candidate runs.
+
+Parallel regressions disable Open MPI's HCOLL component and select tuned
+recursive-doubling allreduce (`coll_tuned_allreduce_algorithm=3`) for both baseline
+creation and candidate checks. This fixes the rank-based summation order for a
+given rank count; reduction roundoff can otherwise affect integrated diagnostics
+and feed back into adaptive sources. The parallel Slurm payload is included in
+the baseline-cache fingerprint, so changing this policy regenerates the baseline
+once. Existing baselines made with another reduction policy must not be reused.
+
+### Verify the compute-node Perl runtime
+
+The regression runner uses Perl's `Time::HiRes` module for execution timings.
+Stellar login and compute nodes can have different Perl packages: a successful
+login-node check does not establish that this module is available in Slurm.
+Verify it before the first CI build and after runtime upgrades, using the same
+account, QoS, modules, and `PERL5LIB` as Jenkins.
+
+From the reviewed checkout, create and submit this preflight script. Replace
+`<qos>` and `<account>` with the Jenkins settings (omit `--account` if unused):
+
+```sh
+mkdir -p "$GKEYLL_CI_ROOT/tmp" "$GKEYLL_CI_ROOT/logs"
+cat > "$GKEYLL_CI_ROOT/tmp/perl-preflight.sh" <<'EOF'
+#!/bin/bash -l
+set -euo pipefail
+. machines/module_load.stellar-intel.sh
+hostname
+perl -V:version -V:archname
+perl -MTime::HiRes=time -e 'printf "%.6f\n", time'
+EOF
+sbatch --wait --account <account> --qos <qos> \
+  --nodes 1 --ntasks 1 --cpus-per-task 1 --time 00:05:00 \
+  --chdir "$PWD" --export=ALL \
+  --output "$GKEYLL_CI_ROOT/logs/perl-preflight-%j.log" \
+  "$GKEYLL_CI_ROOT/tmp/perl-preflight.sh"
+```
+
+Require a successful job and a numeric timestamp in its log. If it reports
+`Can't locate Time/HiRes.pm`, install `Time::HiRes` for the compute node's Perl
+in shared storage, such as `$GKEYLL_CI_ROOT/runtime/perl5`. Do not install it
+only on the login node or in a node-local temporary directory.
+
+For matching system Perl versions and architectures, the login node's existing
+module can be copied into this account-local directory. Compare the preflight's
+`version` and `archname` with `perl -V:version -V:archname` on the login node
+first. The following paths apply to Stellar's system Perl 5.26.3 installation;
+use a compatible module installation if the paths or runtime differ:
+
+```sh
+mkdir -p "$GKEYLL_CI_ROOT/runtime/perl5/Time" \
+  "$GKEYLL_CI_ROOT/runtime/perl5/auto/Time/HiRes"
+cp /usr/lib64/perl5/vendor_perl/Time/HiRes.pm \
+  "$GKEYLL_CI_ROOT/runtime/perl5/Time/"
+cp /usr/lib64/perl5/vendor_perl/auto/Time/HiRes/HiRes.so \
+  "$GKEYLL_CI_ROOT/runtime/perl5/auto/Time/HiRes/"
+export PERL5LIB="$GKEYLL_CI_ROOT/runtime/perl5${PERL5LIB:+:$PERL5LIB}"
+```
+
+Repeat the Slurm preflight with this environment. Once it passes, set Jenkins's
+**global environment variable** `PERL5LIB` to the same expanded absolute path
+(or colon-separated paths if preserving an existing value). A terminal-only
+`export` does not update an already running Jenkins controller. The Pipeline
+passes its environment to Slurm with `--export=ALL`. Revalidate the module,
+including its compiled `HiRes.so`, after a system Perl upgrade.
 
 ### Create the one parameterized Pipeline job
+
+Install the [controller queue listener](README.reporting.md#controller-installation) in
+`$GKEYLL_CI_ROOT/jenkins_home/init.groovy.d/` to report pending while jobs wait
+and cancel superseded queued PR commits. It uses the global
+`STELLAR_CPU_GITHUB_CREDENTIAL_ID` and requires no Slurm allocation.
 
 Create **New Item → Pipeline** named `gkeyll-ci-stellar_cpu`. Configure
 **Pipeline script from SCM** with:
@@ -273,9 +360,23 @@ squeue --me
 scancel <jobid>
 ```
 
-Do not remove a workspace while its Slurm job appears in `squeue`. The next
-CI run removes inactive old build-tag workspaces automatically. Jenkins retains
-20 recent build records and archives artifacts separately.
+Do not remove a workspace while its Slurm job appears in `squeue`. After it
+stops, it is safe to remove the abandoned workspace below
+`$GKEYLL_CI_ROOT/workspaces` and restart Jenkins. Jenkins archives artifacts
+before removing completed workspaces; see [retention settings](README.storage.md#retention).
+
+## Every regression reported as a crash
+
+Inspect the per-test `runlog` in the retained regression databases. Missing
+`Time::HiRes` can produce empty `__START__:`/`__END__:` markers and Perl errors
+after a successful `__EXIT__:0`. The runner's exit-marker parsing can then
+misclassify successful executions as crashes, with no completed timings.
+Passing unit tests do not validate this regression-runner dependency.
+
+Follow [runtime verification](#verify-the-compute-node-perl-runtime), persist
+the repaired environment in Jenkins, and rerun the PR. Do not acknowledge
+these failures in `expected_regression_diffs.txt`; numerical comparisons still
+need to run successfully after the runtime is repaired.
 
 ## Numerical regression differences
 
@@ -353,3 +454,6 @@ sbatch --wait --qos <qos> --nodes 1 --ntasks 1 --cpus-per-task 8 \
 
 The baseline's accepted C-regression output is linked into the candidate
 results tree for checking. These manual checkouts are disposable.
+
+Run compaction is disabled by default. Set `GKEYLL_CI_COMPACT_RUNS=1` to
+archive completed run trees; see [compaction](README.storage.md#optional-run-compaction).

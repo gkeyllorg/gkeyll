@@ -12,7 +12,8 @@
 --                 this candidate and should not fail the build. A test may be
 --                 named as stored in the database ("moments/creg/rt_euler_sodshock"),
 --                 as "<layer>/<basename>" ("moments/rt_euler_sodshock"), or by
---                 basename alone. See ci/jenkins/expected_regression_diffs.txt.
+--                 basename alone, optionally followed by a run mode and/or
+--                 filename. See ci/jenkins/expected_regression_diffs.txt.
 --   [summaryFile] optional machine-readable pass/acknowledged/failure counts.
 --   [baselineAckFile] when supplied, acknowledgments already present in this
 --                 baseline file are ignored. Only candidate lines that are new
@@ -49,7 +50,7 @@ if not resultsDir then
 end
 
 -- Parse an acknowledgment file into full, trimmed source lines mapped to their
--- test names. Keep the comment in the source-line key: changing a reason is a
+-- test names or scoped entries. Keep the comment in the source-line key: changing a reason is a
 -- deliberate new acknowledgment, while an identical inherited line is inert.
 local function readAcknowledgments(path)
    local entries = {}
@@ -59,7 +60,7 @@ local function readAcknowledgments(path)
       for line in f:lines() do
          local sourceLine = line:match("^%s*(.-)%s*$")
          local entry = sourceLine:gsub("#.*$", ""):match("^%s*(.-)%s*$")
-         if entry and entry ~= "" then entries[sourceLine] = entry end
+         if entry and entry ~= "" then entries[sourceLine] = entry:gsub("%s+", " ") end
       end
       f:close()
    end
@@ -120,21 +121,60 @@ end
 
 local npass, ackedHits, candidateOnly, unacked = 0, {}, {}, {}
 local layerCounts = {}  -- layerCounts[layer] = { passed, acked, failed }
+local listedPassing = {}
+local runModes = { cpu_serial = true, cpu_parallel = true, gpu_serial = true, gpu_parallel = true }
+
+-- Include inherited entries in this advisory: they cannot excuse failures,
+-- but may still be worth removing when their test agrees with the baseline.
+local function recordListedPassing(layer, name, mode)
+   local base = name:match("([^/]+)$") or name
+   for sourceLine, entry in pairs(candidateAcknowledgments) do
+      local test, scope = entry:match("^(%S+)%s*(%S*)")
+      if (test == name or test == layer .. "/" .. base or test == base)
+         and (not runModes[scope] or scope == mode) then
+         table.insert(listedPassing, {
+            key = name, entry = sourceLine,
+            origin = baselineAcknowledgments[sourceLine] and "inherited" or "new or updated",
+         })
+      end
+   end
+end
 
 -- Names are stored layer-qualified ("moments/creg/rt_x"); accept the shorter
 -- spellings in the acknowledgment file too.
-local function isAcked(layer, name)
+local function isAcked(layer, name, mode, status, runlog)
    local base = name:match("([^/]+)$") or name
-   return acked[name] or acked[layer .. "/" .. base] or acked[base]
+   local function matches(suffix)
+      return acked[name .. suffix] or acked[layer .. "/" .. base .. suffix] or acked[base .. suffix]
+   end
+   if matches("") or (mode and matches(" " .. mode)) then return true end
+
+   -- File entries acknowledge any comparison failure for those files, but
+   -- cannot acknowledge execution failures. Every failing file must match.
+   if status ~= 0 then return false end
+   local body = runlog and runlog:match("%-%-%- Comparison failures %-%-%-\n(.*)$")
+   if not body or body == "" then return false end
+   local matched = false
+   for line in body:gmatch("[^\n]+") do
+      local file, kind, detail = line:match("^(%S+)%s+%[(%u+)%](.*)$")
+      if not file or (kind ~= "DIFF" and kind ~= "MISSING")
+         or (detail ~= "" and not detail:match("^%s")) then
+         return false
+      end
+      if not matches(" " .. file) and not (mode and matches(" " .. mode .. " " .. file)) then
+         return false
+      end
+      matched = true
+   end
+   return matched
 end
 
 -- Per-file comparison lines from the stored run log, for the CI report.
-local function comparisonLines(runlog, maxLines)
+local function comparisonLines(runlog)
    local lines = {}
    local body = runlog and runlog:match("%-%-%- Comparison failures %-%-%-\n(.*)$")
    if body then
       for line in body:gmatch("[^\n]+") do
-         if #lines >= maxLines then table.insert(lines, "..."); break end
          table.insert(lines, line)
       end
    end
@@ -159,6 +199,7 @@ for _, layer in ipairs(LAYERS) do
             .. "; rerun runregression configure --drop-tables.")
       end
       local guid = conn:rowexec("select guid from RegressionMeta order by rowid desc limit 1")
+      local mode = conn:rowexec("select run_mode from RegressionMeta order by rowid desc limit 1")
       layerCounts[layer] = { passed = 0, acked = 0, failed = 0 }
       if guid then
          local t, nrow = conn:exec(string.format(
@@ -169,6 +210,7 @@ for _, layer in ipairs(LAYERS) do
             if status == 1 then
                npass = npass + 1
                layerCounts[layer].passed = layerCounts[layer].passed + 1
+               recordListedPassing(layer, key, mode)
             elseif BAD_STATUSES[status] then
                -- A new test has no baseline accepted output, which
                -- runregression records as a comparison failure. Ignore only
@@ -176,14 +218,17 @@ for _, layer in ipairs(LAYERS) do
                -- output remain CI failures even for candidate-only tests.
                if status == 0 and isCandidateOnly(layer, key) then
                   table.insert(candidateOnly, key)
-               elseif isAcked(layer, key) then
-                  table.insert(ackedHits, key)
+               elseif isAcked(layer, key, mode, status, t.runlog[i]) then
+                  table.insert(ackedHits, {
+                     key = key, status = statusToString[status] or tostring(status),
+                     detail = comparisonLines(t.runlog[i]),
+                  })
                   layerCounts[layer].acked = layerCounts[layer].acked + 1
                else
                   layerCounts[layer].failed = layerCounts[layer].failed + 1
                   table.insert(unacked, {
                      key = key, status = statusToString[status] or tostring(status),
-                     detail = comparisonLines(t.runlog[i], 10),
+                     detail = comparisonLines(t.runlog[i]),
                   })
                end
             end
@@ -196,6 +241,11 @@ end
 print(string.format(
    "Regression results: %d passed, %d candidate-only, %d acknowledged diff(s), %d unacknowledged failure(s)",
    npass, #candidateOnly, #ackedHits, #unacked))
+
+table.sort(listedPassing, function(left, right)
+   if left.key == right.key then return left.entry < right.entry end
+   return left.key < right.key
+end)
 
 if summaryFile then
    local summary, message = io.open(summaryFile, "w")
@@ -220,18 +270,33 @@ if summaryFile then
          summary:write(string.format("c_regression_failure_detail=%s|%s\n", u.key, line))
       end
    end
-   for _, key in ipairs(ackedHits) do
-      summary:write(string.format("c_regression_acknowledged_test=%s\n", key))
+   for _, entry in ipairs(ackedHits) do
+      summary:write(string.format("c_regression_acknowledged_test=%s\n", entry.key))
+      summary:write(string.format("c_regression_acknowledged_status=%s:%s\n", entry.key, entry.status))
+      for _, line in ipairs(entry.detail) do
+         summary:write(string.format("c_regression_acknowledged_detail=%s|%s\n", entry.key, line))
+      end
    end
    for _, key in ipairs(candidateOnly) do
       summary:write(string.format("c_regression_candidate_only_test=%s\n", key))
+   end
+   for _, entry in ipairs(listedPassing) do
+      summary:write(string.format("c_regression_listed_passing=%s|%s|%s\n",
+         entry.key, entry.origin, entry.entry))
    end
    summary:close()
 end
 
 if #ackedHits > 0 then
    print(string.format("Acknowledged (per %s):", tostring(ackFile)))
-   for _, key in ipairs(ackedHits) do print("  " .. key) end
+   for _, entry in ipairs(ackedHits) do print("  " .. entry.key) end
+end
+
+if #listedPassing > 0 then
+   print("Expected-diff entries whose tests passed (review for removal in this run mode):")
+   for _, entry in ipairs(listedPassing) do
+      print(string.format("  %s [%s]: %s", entry.key, entry.origin, entry.entry))
+   end
 end
 
 if #candidateOnly > 0 then

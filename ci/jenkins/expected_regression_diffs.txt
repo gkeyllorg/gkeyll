@@ -1,5 +1,5 @@
 # Tests whose C regression output is expected to change in the current PR
-# (e.g. because of an intentional physics/algorithm change), one test per line
+# (e.g. because of an intentional physics/algorithm change), one acknowledgment per line
 # with a short reason. CI only honors lines that are new or changed relative to
 # the PR baseline; unchanged lines inherited from main are intentionally inert.
 # Name a test as the CI report prints it
@@ -16,9 +16,13 @@
 # a test already listed by the baseline, replace its line with an updated
 # reason; that changed line is a fresh acknowledgment.
 #
-# Example:
-# gyrokinetic/rt_gk_ion_sound_1x2v_p1   # updated collision-operator normalization
-
-pkpm/creg/rt_pkpm_alf_wave_p1   # Change num_frames
-pkpm/creg/rt_pkpm_neut_sodshock_p1   # Change num_frames
-pkpm/creg/rt_pkpm_ot_p1   # Change num_frames
+# Examples (replace test/file names; separate fields with spaces or tabs):
+# moments/creg/rt_euler_sodshock # entire test, all modes
+# moments/creg/rt_euler_sodshock cpu_parallel # entire test, CPU MPI only
+# moments/creg/rt_euler_sodshock gpu_parallel # entire test, GPU MPI only
+# moments/creg/rt_euler_sodshock out.gkyl # one file, all modes
+# moments/creg/rt_euler_sodshock cpu_parallel out.gkyl # one file, CPU MPI only
+# moments/creg/rt_euler_sodshock gpu_parallel out.gkyl # one file, GPU MPI only
+# Modes: cpu_serial, cpu_parallel, gpu_serial, gpu_parallel.
+# File entries cover any comparison failure; list every failing file.
+# Execution failures require an entire-test or entire-mode entry. Tests still run.

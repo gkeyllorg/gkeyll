@@ -1,0 +1,23 @@
+#!/bin/bash
+# Unit-test payload for ci/jenkins/jenkinsfile.stellar-ai-cpu.
+#
+# This script deliberately has no #SBATCH directives. The trusted Jenkins
+# pipeline owns the resource request, while this script owns only the runtime
+# environment and the test command.
+set -euo pipefail
+
+: "${CI_WORKSPACE:?CI_WORKSPACE must name the shared Jenkins workspace}"
+: "${CI_CANDIDATE_DIR:?CI_CANDIDATE_DIR must name the candidate checkout}"
+
+cd "$CI_CANDIDATE_DIR"
+
+# Initialize the compute node's modules without reading user login profiles.
+# Source the same toolchain used to configure and build this checkout.
+. machines/module_load.stellarai-cpu.sh
+if [ -n "${GKEYLL_CI_DEPENDENCY_ENV:-}" ]; then . "$GKEYLL_CI_DEPENDENCY_ENV"; fi
+
+started="$(date +%s)"
+GKYL_UNIT_RESULTS="$CI_WORKSPACE/candidate-unit-results.txt" make unit-run
+elapsed="$(( $(date +%s) - started ))"
+printf '%s\n' "$elapsed" > "$CI_WORKSPACE/unit-test-seconds.txt"
+echo "Unit-test runtime: $elapsed seconds"

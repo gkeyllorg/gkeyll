@@ -16,6 +16,7 @@ set -euo pipefail
 
 cd "$CI_WORKSPACE"
 . machines/module_load.stellar-intel.sh
+if [ -n "${GKEYLL_CI_DEPENDENCY_ENV:-}" ]; then . "$GKEYLL_CI_DEPENDENCY_ENV"; fi
 
 baseline_gkeyll="$CI_BASELINE_PREFIX/gkeyll/bin/gkeyll"
 
@@ -49,7 +50,7 @@ for layer in moments vlasov gyrokinetic pkpm; do
   candidate_accepted="$CI_CANDIDATE_PREFIX/gkeyll-results/$layer/creg-accepted"
   rm -rf "$candidate_accepted"
   if [[ -d "$baseline_accepted" ]]; then
-    ln -s "$baseline_accepted" "$candidate_accepted"
+    cp -a "$baseline_accepted" "$candidate_accepted"
   fi
 done
 
@@ -60,6 +61,7 @@ started="$(date +%s)"
 elapsed="$(( $(date +%s) - started ))"
 printf '%s\n' "$elapsed" > "$CI_WORKSPACE/candidate-c-regression-check-seconds.txt"
 echo "Candidate C-regression check runtime: $elapsed seconds"
+if [[ -f "$CI_BASELINE_DIR/../dependencies/env.sh" ]]; then . "$CI_BASELINE_DIR/../dependencies/env.sh"; fi
 cd "$CI_BASELINE_DIR"
 "$baseline_gkeyll" -S "$CI_TRUSTED_CHECKER" \
   "$CI_CANDIDATE_PREFIX/gkeyll-results" \
