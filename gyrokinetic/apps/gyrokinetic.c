@@ -184,6 +184,12 @@ gyrokinetic_deflate_delta_ts(struct gkyl_gyrokinetic_app *app, struct gkyl_array
   gkyl_array_release(buffer_perp);
   gkyl_array_copy(app->delta_ts_x_up, delta_ts_x_dev);
   gkyl_array_release(delta_ts_x_dev);
+
+  // The shift for TSBCs must come from the physical ends.
+  int comm_size;
+  gkyl_comm_get_size(app->comm, &comm_size);
+  gkyl_comm_array_bcast_host(app->comm, app->delta_ts_x_lo, app->delta_ts_x_lo, 0);
+  gkyl_comm_array_bcast_host(app->comm, app->delta_ts_x_up, app->delta_ts_x_up, comm_size - 1);
 }
 
 // Resolve the generated equilibrium before constructing any configuration grid.

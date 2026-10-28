@@ -122,6 +122,10 @@ ifdef USING_NVCC
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
+../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/fem_proj/%.c.o : $(KERNELS_DIR)/fem_proj/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
+
 ../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/fem_parproj/%.c.o : $(KERNELS_DIR)/fem_parproj/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@

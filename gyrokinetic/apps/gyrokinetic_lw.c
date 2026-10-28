@@ -1711,6 +1711,11 @@ gk_app_new(lua_State *L)
   {
     gk.geometry.geometry_id = glua_tbl_get_integer(L, "geometryID", 0);
 
+    with_lua_tbl_tbl(L, "coreParallelBcs")
+    {
+      gk.geometry.core_parallel_bcs.ts_field_dg = glua_tbl_get_bool(L, "tsFieldDg", false);
+    }
+
     with_lua_tbl_tbl(L, "world")
     {
       for (int d = 0; d < 3 - cdim; d++) {

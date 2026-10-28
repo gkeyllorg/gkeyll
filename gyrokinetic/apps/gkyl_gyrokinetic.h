@@ -242,6 +242,7 @@ struct gkyl_gyrokinetic_bc {
 
 // Parameters for BCs in closed flux surfaces.
 struct gkyl_gyrokinetic_core_parallel_bcs {
+  bool ts_field_dg; // Keep the shifted potential ghost field discontinuous in x-y (default false).
   int ts_upsample_factor; // Twist-shift supersampling factor (default 4), set to -1 to disable filter.
   int ts_filter_half_width; // Twist-shift filter stencil half-width in cells of the simulation grid (default 1), set to -1 to disable filter.
   double
