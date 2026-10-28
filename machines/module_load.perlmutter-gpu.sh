@@ -6,7 +6,7 @@ module load cray-mpich/9.0.1
 module load cudatoolkit/13.0
 module load nccl/2.29.2-cu13
 module load cray-libsci/25.09.0
-module load python
+module load python/3.13-26.1.0
 
 # Gkeyll uses NCCL for GPU communication rather than CUDA-aware MPI.
 export MPICH_GPU_SUPPORT_ENABLED=0

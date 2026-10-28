@@ -19,6 +19,9 @@
 # Example:
 # gyrokinetic/rt_gk_ion_sound_1x2v_p1   # updated collision-operator normalization
 
-pkpm/creg/rt_pkpm_alf_wave_p1   # Change num_frames
-pkpm/creg/rt_pkpm_neut_sodshock_p1   # Change num_frames
-pkpm/creg/rt_pkpm_ot_p1   # Change num_frames
+gyrokinetic/creg/rt_gk_mirror_boltz_elc_poa_1x2v_p1 # Changed number of output files
+gyrokinetic/creg/rt_gk_mirror_boltz_elc_poa_2x2v_p1 # Changed number of output files
+gyrokinetic/creg/rt_gk_mirror_kinetic_elc_poa_1x2v_p1 # Changed number of output files
+gyrokinetic/creg/rt_gk_mirror_tandem_boltz_elc_poa_1x2v_p1 # Changed number of output files
+gyrokinetic/creg/rt_gk_wham_boltz_elc_poa_1x2v_p1 # Changed number of output files
+gyrokinetic/creg/rt_gk_wham_kinetic_poa_1x2v_p1 # Changed number of output files

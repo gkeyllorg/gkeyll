@@ -61,6 +61,27 @@ write output.
 
 ## Unified local command
 
+### Regression worker budget
+
+`gkeyll runregression run --jobs N` uses a worker pool for C compilation and
+test execution. Each finished job releases its slots immediately so the next
+test can start without waiting for a whole batch. Compilation finishes before
+execution starts, with each compiler invocation limited to `make -j1`.
+
+Serial tests use one slot; `--parallel` tests reserve one slot per MPI rank.
+For example, `--parallel --jobs 12` can run three four-rank tests concurrently.
+A test requiring more ranks than the budget runs alone. The default remains
+`--jobs 1`; `--jobs 0` detects the available CPU count. GPU jobs share available
+devices, with placement controlled by the MPI launcher.
+
+The scheduling tests exercise small shell and make jobs without simulations:
+
+```sh
+LUAJIT=/path/to/luajit python3 -m unittest -v ci.jenkins.tests.test_regression_scheduling
+```
+
+### CI client
+
 The script `gkeyll-ci.sh` provides a CLI to run, query and terminate CI. See
 
 ```sh
