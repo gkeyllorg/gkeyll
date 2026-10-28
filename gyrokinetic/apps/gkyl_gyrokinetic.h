@@ -107,7 +107,29 @@ struct gkyl_gyrokinetic_collisionless {
   void *passive_speeds_ctx; // Context for passive_speeds.
 };
 
-// Parameters for species collisions
+/** Frozen-field POA relaxation (1x2v, P1).
+ * The selected closed region relaxes implicitly toward functions of H and mu.
+ * This term is independent of collisionless advection. Set collisionless.type
+ * to GKYL_GK_COLLISIONLESS_NONE to replace advection during OAP. Zero
+ * initialization disables relaxation.
+ */
+struct gkyl_gyrokinetic_orbit_average {
+  bool enabled; // Enable implicit orbit relaxation.
+  double frequency; // Nonnegative relaxation rate; backward Euler has no rate CFL.
+  int num_energy_nodes; // Energy knots per topology branch (0 selects 16).
+  double separatrix_margin; // Nonnegative energy buffer around escape/internal saddle levels.
+  bool positivity; // Limit the correction conservatively at monitored nodes.
+};
+
+/** Cached-space and most recent implicit-relaxation diagnostics. */
+struct gkyl_gyrokinetic_orbit_average_stat {
+  bool enabled, prepared;
+  long num_selected_cells, num_rejected_cells, num_modes;
+  long num_limited_blocks;
+  double min_blend;
+};
+
+// Parameters for species collisions.
 struct gkyl_gyrokinetic_collisions {
   enum gkyl_collision_id collision_id; // type of collisions (see gkyl_eqn_type.h)
   bool write_diagnostics; // Whether to output diagnostics.
@@ -481,6 +503,8 @@ struct gkyl_gyrokinetic_species {
   bool write_omega_cfl; // Whether to ouput dt diagnostic for the CFL constraint.
 
   struct gkyl_gyrokinetic_collisionless collisionless; // Collisionless terms.
+
+  struct gkyl_gyrokinetic_orbit_average orbit_average; // Implicit frozen-field OAP operator.
 
   struct gkyl_gyrokinetic_flr flr; // Options for FLR effects.
 
@@ -1569,7 +1593,11 @@ void gkyl_gyrokinetic_app_reset_species_fdot_multiplier(
 );
 
 /**
- * Reset the collisionless multiplier for a given species.
+ * Reset the collisionless type and multiplier for a given species.
+ * The type may be NONE or the type configured at initialization. Solvers and
+ * diagnostics are retained when disabled, allowing the original type to be
+ * restored without reallocating them. A zero scale factor retains the default
+ * multiplier of one; use type NONE to disable collisionless terms.
  *
  * @param app App object.
  * @param tm Time-stamp.
@@ -1579,6 +1607,26 @@ void gkyl_gyrokinetic_app_reset_species_fdot_multiplier(
 void gkyl_gyrokinetic_app_reset_species_collisionless(
   gkyl_gyrokinetic_app *app, double tm, const char *species_name,
   struct gkyl_gyrokinetic_collisionless gkcls_inp
+);
+
+/**
+ * Enable/disable or reconfigure orbit averaging at a POA phase boundary.
+ * Rebuilds the frozen projector on the next update. Enable only with a static
+ * electrostatic field; periodic or time-dependent wall topology is unsupported.
+ * Reselects the time integrator without changing the collisionless terms.
+ * Call after changing the frozen field, reapplying initial conditions, or
+ * loading a restart into an app that already has a prepared projector.
+ * @param app Application.
+ * @param species_name Charged kinetic species name.
+ * @param inp Orbit-average options (zero initialized disables relaxation).
+ */
+void gkyl_gyrokinetic_app_reset_species_orbit_average(
+  gkyl_gyrokinetic_app *app, const char *species_name, struct gkyl_gyrokinetic_orbit_average inp
+);
+
+/** Read orbit diagnostics for a charged species; an unknown name returns zeros. */
+struct gkyl_gyrokinetic_orbit_average_stat gkyl_gyrokinetic_app_species_orbit_average_stat(
+  const gkyl_gyrokinetic_app *app, const char *species_name
 );
 
 /**

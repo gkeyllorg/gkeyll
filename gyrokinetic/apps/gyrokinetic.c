@@ -1046,27 +1046,26 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
     gk_neut_species_source_init(app, &app->neut_species[i], &app->neut_species[i].src);
   }
 
-  // Use implicit BGK collisions if specified
-  bool has_implicit_coll_scheme = false;
+  // Use implicit substeps if physical collisions or orbit averaging requests them.
+  bool has_implicit_coll_scheme = false, has_orbit_average = false;
   for (int i = 0; i < ns; ++i) {
     if (gk->species[i].collisions.is_implicit) {
       has_implicit_coll_scheme = true;
     }
+    has_orbit_average |= gk->species[i].orbit_average.enabled;
   }
   for (int i = 0; i < neuts; ++i) {
     if (gk->neut_species[i].collisions.is_implicit) {
       has_implicit_coll_scheme = true;
     }
   }
+  app->has_implicit_coll_scheme = has_implicit_coll_scheme;
 
   // Initialize EIRENE.
   app->eirene = gk_eirene_init(app, gk);
 
-  // Set the appropriate update function for taking a single time step
-  // If we have implicit BGK collisions for either the gyrokinetic or neutral species,
-  // we perform a first-order operator split and treat those terms implicitly.
-  // Otherwise, we default to an SSP-RK3 method.
-  if (has_implicit_coll_scheme) {
+  // Set the appropriate update function for taking a single time step.
+  if (has_implicit_coll_scheme || has_orbit_average) {
     app->update_func = gyrokinetic_update_op_split;
   } else {
     app->update_func = gyrokinetic_update_ssp_rk3;
@@ -4636,6 +4635,15 @@ gkyl_gyrokinetic_app_reset_species_positivity(
 {
   struct gk_species *gks = gk_find_species(app, species_name);
   gk_species_positivity_reset(app, tm, gks, &gks->positivity, pos_inp);
+}
+
+void
+gkyl_gyrokinetic_app_reset_species_orbit_average(
+  gkyl_gyrokinetic_app *app, const char *species_name, struct gkyl_gyrokinetic_orbit_average inp
+)
+{
+  struct gk_species *gks = gk_find_species(app, species_name);
+  gk_species_orbit_average_reset(app, gks, &gks->orbit_average, inp);
 }
 
 void

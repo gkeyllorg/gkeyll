@@ -399,6 +399,28 @@ gk_species_collisionless_reset(
   struct gkyl_gyrokinetic_collisionless gkcls_inp
 )
 {
+  // Retain the allocated solver so it can be enabled again after a POA phase.
+  if (gkcls_inp.type != GKYL_GK_COLLISIONLESS_NONE && gkcls_inp.type != gkcls->collisionless_id) {
+    gkyl_exit(
+      "Collisionless reset can only disable or restore the type configured at initialization."
+    );
+  }
+  gks->info.collisionless.type = gkcls_inp.type;
+  if (gkcls_inp.type == GKYL_GK_COLLISIONLESS_NONE) {
+    gkcls->flux_func = gk_species_collisionless_flux_disabled;
+    gkcls->rhs_func = gk_species_collisionless_rhs_disabled;
+    if (gkcls->collisionless_id) {
+      // Boundary-flux solvers share this array: discard the previous phase's flux.
+      gkyl_array_clear(gkcls->flux_surf, 0.0);
+    }
+  } else if (gkcls_inp.type == GKYL_GK_COLLISIONLESS_PASSIVE) {
+    gkcls->flux_func = gk_species_collisionless_passive_flux;
+    gkcls->rhs_func = gk_species_collisionless_passive_rhs;
+  } else {
+    gkcls->flux_func = gk_species_collisionless_flux_enabled;
+    gkcls->rhs_func = gk_species_collisionless_rhs_enabled;
+  }
+
   gkcls->scale_fac = 1.0;
   gkcls->fdot_scaling = gk_species_collisionless_fdot_scaling_disabled;
   if (1.0e-16 < fabs(gkcls_inp.scale_factor)) {

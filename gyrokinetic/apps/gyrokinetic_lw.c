@@ -514,6 +514,15 @@ gyrokinetic_species_lw_new(lua_State *L)
     collisionless_type = glua_tbl_get_integer(L, "type", 0);
   }
 
+  with_lua_tbl_tbl(L, "orbitAverage")
+  {
+    gk_species.orbit_average.enabled = glua_tbl_get_bool(L, "enabled", false);
+    gk_species.orbit_average.frequency = glua_tbl_get_number(L, "frequency", 0.0);
+    gk_species.orbit_average.num_energy_nodes = glua_tbl_get_integer(L, "numEnergyNodes", 16);
+    gk_species.orbit_average.separatrix_margin = glua_tbl_get_number(L, "separatrixMargin", 0.0);
+    gk_species.orbit_average.positivity = glua_tbl_get_bool(L, "positivity", true);
+  }
+
   with_lua_tbl_tbl(L, "scaling")
   {
     gk_species.scaling.type = glua_tbl_get_integer(L, "type", 0);

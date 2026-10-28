@@ -5,6 +5,9 @@ gk_species_kinetic_omegaH_dt(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, const struct gkyl_array *fin
 )
 {
+  if (gks->info.collisionless.type == GKYL_GK_COLLISIONLESS_NONE) {
+    return DBL_MAX;
+  }
   // Compute the time step under which the omega_H mode is stable, dt_omegaH =
   // omegaH_CFL/omega_H.
   // Each species computes its own omega_H as:
@@ -1254,6 +1257,9 @@ gk_species_kinetic_init(
   gks->collisionless = (struct gk_collisionless){};
   gk_species_collisionless_init(app, gks, &gks->collisionless);
 
+  // Initialize orbit averaging independently of the collisionless solver.
+  gk_species_orbit_average_init(app, gks, &gks->orbit_average);
+
   // Initialize an anomalous diffusion term.
   gks->anom_diff = (struct gk_anomalous_diff){};
   gk_species_anomalous_diff_init(app, gks, &gks->anom_diff);
@@ -1533,6 +1539,10 @@ gk_species_kinetic_release(const gkyl_gyrokinetic_app *app, const struct gk_spec
   gkyl_velocity_map_release(gks->vel_map);
 
   gk_species_collisionless_release(app, &gks->collisionless);
+
+  if (gks->orbit_average.up) {
+    gk_species_orbit_average_release(&gks->orbit_average);
+  }
 
   gk_species_scaling_release(app, &gks->sca);
 
