@@ -584,6 +584,15 @@ main(int argc, char **argv)
         .write_diagnostics = true,
       },
 
+    .damping =
+      {
+        .type = GKYL_GK_DAMPING_LOW_PASS_FILTER,
+        .rate_const = 1e-6,
+        .write_rate = true,
+        .write_fbar = true,
+        .cellwise_const = true,
+      },
+
     .source =
       {
         .source_id = GKYL_PROJ_SOURCE,
@@ -620,7 +629,10 @@ main(int argc, char **argv)
        GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP},
     .num_integrated_diag_moments = 1,
     .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-    .time_rate_diagnostics = true,
+    .num_time_rate_diagnostics = 2,
+    .time_rate_diagnostics =
+      {GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_INTEGRATED_MOMENTS,
+       GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_ABS_INTEGRATED_MOMENTS},
 
     .boundary_flux_diagnostics =
       {.num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}},
@@ -700,7 +712,10 @@ main(int argc, char **argv)
        GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP},
     .num_integrated_diag_moments = 1,
     .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-    .time_rate_diagnostics = true,
+    .num_time_rate_diagnostics = 2,
+    .time_rate_diagnostics =
+      {GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_INTEGRATED_MOMENTS,
+       GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_ABS_INTEGRATED_MOMENTS},
 
     .boundary_flux_diagnostics =
       {.num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}},

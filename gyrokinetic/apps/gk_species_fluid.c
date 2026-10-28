@@ -23,7 +23,7 @@ gk_species_fluid_file_import_init(
 static double
 gk_species_fluid_rhs_dynamic(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, const struct gkyl_array *fin,
-  struct gkyl_array *rhs, struct gkyl_array **bflux_moms
+  const struct gkyl_array *fbar_in, struct gkyl_array *rhs, struct gkyl_array **bflux_moms
 )
 {
   gkyl_array_clear(rhs, 0.0);
@@ -121,7 +121,8 @@ gk_species_fluid_init(struct gkyl_gk *inp, gkyl_gyrokinetic_app *app, struct gk_
       gks->info.positivity.quasineutrality_rescale || gks->info.damping.type ||
       gks->info.anomalous_diffusion.anomalous_diff_id ||
       gks->info.time_rate_multiplier.num_multipliers || gks->info.scale_with_polarization ||
-      gks->info.time_rate_diagnostics || gks->info.write_omega_cfl || gks->info.mapc2p.mapping ||
+      gks->info.num_time_rate_diagnostics || gks->info.omegaH_dt_diagnostic ||
+      gks->info.write_omega_cfl || gks->info.mapc2p.mapping ||
       gks->info.boundary_flux_diagnostics.num_diag_moments ||
       gks->info.boundary_flux_diagnostics.num_integrated_diag_moments) {
     gkyl_exit("Fluid gyrokinetic species: requested kinetic-only operator or diagnostic.");
@@ -223,7 +224,9 @@ gk_species_fluid_init(struct gkyl_gk *inp, gkyl_gyrokinetic_app *app, struct gk_
   gk_species_damping_init(app, gks, &gks->damping);
 
   // Disable time-rate multipliers.
-  gk_species_fdot_multiplier_init(app, gks, &gks->fdot_mult);
+  gk_species_fdot_multiplier_init(
+    app, gks, &gks->fdot_mult, &gks->info.time_rate_multiplier, "fdot_multiplier"
+  );
 
   // Disable the BGK source.
   gk_species_source_bgk_init(app, gks, &gks->bgk_src);

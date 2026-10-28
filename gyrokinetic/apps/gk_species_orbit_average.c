@@ -218,7 +218,8 @@ gyrokinetic_update_orbit_average(gkyl_gyrokinetic_app *app, double dt)
   for (int i = 0; i < app->num_species; ++i) {
     struct gk_species *gks = &app->species[i];
     if (gks->info.orbit_average.enabled) {
-      gk_species_calc_int_mom_dt(app, gks, dt, gks->fdot_mom_new);
+      gk_species_calc_int_mom_dt(app, gks, dt, gks->fdot_mom_new, gks->fbardot_mom_new);
+      gk_species_calc_fdot_mom(app, gks);
     }
   }
 }

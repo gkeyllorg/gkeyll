@@ -31,7 +31,7 @@ void gk_species_gyroaverage_enabled(
 
 double gk_species_rhs_static(
   gkyl_gyrokinetic_app *app, struct gk_species *species, const struct gkyl_array *fin,
-  struct gkyl_array *rhs, struct gkyl_array **bflux_moms
+  const struct gkyl_array *fbar_in, struct gkyl_array *rhs, struct gkyl_array **bflux_moms
 );
 
 double gk_species_rhs_implicit_static(
@@ -95,15 +95,18 @@ void gk_species_write_mom_static(
 );
 
 void gk_species_calc_int_mom_dt_enabled(
-  gkyl_gyrokinetic_app *app, struct gk_species *gks, double dt, struct gkyl_array *fdot_int_mom
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, double dt, struct gkyl_array *fdot_int_mom,
+  struct gkyl_array *fbardot_int_mom
 );
 
 void gk_species_calc_int_mom_dt_disabled(
-  gkyl_gyrokinetic_app *app, struct gk_species *gks, double dt, struct gkyl_array *fdot_int_mom
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, double dt, struct gkyl_array *fdot_int_mom,
+  struct gkyl_array *fbardot_int_mom
 );
 
 void gk_species_calc_int_mom_dt(
-  gkyl_gyrokinetic_app *app, struct gk_species *gks, double dt, struct gkyl_array *fdot_int_mom
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, double dt, struct gkyl_array *fdot_int_mom,
+  struct gkyl_array *fbardot_int_mom
 );
 
 void gk_species_calc_integrated_mom_dynamic(
@@ -168,7 +171,7 @@ void gk_species_apply_ic_cross(gkyl_gyrokinetic_app *app, struct gk_species *gks
 
 double gk_species_rhs(
   gkyl_gyrokinetic_app *app, struct gk_species *species, const struct gkyl_array *fin,
-  struct gkyl_array *rhs, struct gkyl_array **bflux_moms
+  const struct gkyl_array *fbar_in, struct gkyl_array *rhs, struct gkyl_array **bflux_moms
 );
 
 double gk_species_rhs_implicit(
@@ -219,3 +222,8 @@ void gk_species_release_integrated_mom(
 void gk_species_kinetic_init(struct gkyl_gk *, struct gkyl_gyrokinetic_app *, struct gk_species *);
 void gk_species_fluid_init(struct gkyl_gk *, struct gkyl_gyrokinetic_app *, struct gk_species *);
 void gk_species_kinetic_release(const gkyl_gyrokinetic_app *, const struct gk_species *);
+
+// Stable time step including species and collisionless time dilation.
+double gk_species_omegaH_dt(
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, const struct gkyl_array *fin
+);

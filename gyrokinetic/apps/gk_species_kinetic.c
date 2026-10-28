@@ -1,53 +1,9 @@
 #include <gkyl_gk_species_priv.h>
 
 static double
-gk_species_kinetic_omegaH_dt(
-  gkyl_gyrokinetic_app *app, struct gk_species *gks, const struct gkyl_array *fin
-)
-{
-  if (gks->info.collisionless.type == GKYL_GK_COLLISIONLESS_NONE) {
-    return DBL_MAX;
-  }
-  // Compute the time step under which the omega_H mode is stable, dt_omegaH =
-  // omegaH_CFL/omega_H.
-  // Each species computes its own omega_H as:
-  //   omega_H = q_e*sqrt(jacobgeo*n_{s0}/m_s) * omegaH_gf
-  // where
-  //   - n_{s0} is either a reference, average or max density.
-  //   - omegaH_gf = (cmag/(jacobgeo*B^_\parallel))*kpar_max /
-  //                 min(sqrt(k_x^2*eps_xx+k_x*k_y*eps_xy+k_y^2*eps_yy+)).
-  // and k_x,k_y,k_par are wavenumbers in computational space, and eps_ij is
-  // the polarization weight in our field equation.
-
-  if (!(app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN || app->field->has_adiabatic_species)) {
-    // Obtain the maximum density (using cell centers).
-    gk_species_moment_calc(app, &gks->m0, gks->local, app->local, fin);
-    gkyl_array_reduce_range(gks->m0_max, gks->m0.marr, GKYL_MAX, &app->local);
-
-    double m0_max[1];
-    if (app->use_gpu) {
-      gkyl_cu_memcpy(m0_max, gks->m0_max, sizeof(double), GKYL_CU_MEMCPY_D2H);
-    } else {
-      m0_max[0] = gks->m0_max[0];
-    }
-    m0_max[0] *= 1.0 / pow(sqrt(2.0), app->cdim);
-
-    double time_dilation_scale_const =
-      gk_fdot_multiplier_get_time_dilation_scale_const(app, &gks->fdot_mult);
-
-    double omegaH = fabs(gks->info.charge) * sqrt(GKYL_MAX2(0.0, m0_max[0]) / gks->info.mass) *
-                    app->omegaH_gf * time_dilation_scale_const * gks->collisionless.scale_fac;
-
-    return omegaH > 1e-20 ? app->cfl_omegaH / omegaH : DBL_MAX;
-  } else {
-    return DBL_MAX;
-  }
-}
-
-static double
 gk_species_kinetic_rhs_dynamic(
   gkyl_gyrokinetic_app *app, struct gk_species *species, const struct gkyl_array *fin,
-  struct gkyl_array *rhs, struct gkyl_array **bflux_moms
+  const struct gkyl_array *fbar_in, struct gkyl_array *rhs, struct gkyl_array **bflux_moms
 )
 {
   // Gyroaverage the potential if needed.
@@ -61,7 +17,7 @@ gk_species_kinetic_rhs_dynamic(
 
   // Damping term.
   gk_species_damping_advance(
-    app, species, &species->damping, app->field->phi_smooth, fin, species->lte.f_lte, rhs,
+    app, species, &species->damping, app->field->phi_smooth, fin, fbar_in, species->lte.f_lte, rhs,
     species->cflrate
   );
 
@@ -112,7 +68,7 @@ gk_species_kinetic_rhs_dynamic(
   double dt_out = app->cfl / omega_cfl_ho[0];
 
   // Apply omega_H constraint on dt.
-  species->dt_omegaH = gk_species_kinetic_omegaH_dt(app, species, fin);
+  species->dt_omegaH = gk_species_omegaH_dt(app, species, fin);
   dt_out = fmin(dt_out, species->dt_omegaH);
 
   species->dt_cfl_global_ho = dt_out;
@@ -691,11 +647,6 @@ gk_species_kinetic_init_dynamic(
   gks->write_integrated_mom_func = gk_species_write_integrated_mom_dynamic;
   gks->calc_L2norm_func = gk_species_calc_L2norm_dynamic;
   gks->write_L2norm_func = gk_species_write_L2norm_dynamic;
-  if (gks->info.time_rate_diagnostics) {
-    gks->calc_int_mom_dt_func = gk_species_calc_int_mom_dt_enabled;
-  } else {
-    gks->calc_int_mom_dt_func = gk_species_calc_int_mom_dt_disabled;
-  }
 }
 
 void
@@ -958,10 +909,12 @@ gk_species_kinetic_file_import_init(
   gk_species_kinetic_read_distf_from_file(app, gks, inp, gks->f);
 
   if (inp.enforce_positivity) {
+    // Import corrections apply everywhere, independent of runtime region restrictions.
+    struct gkyl_positivity_shift_gyrokinetic_regions shift_everywhere = {.num_regions = 0};
     // Positivity enforcing by shifting f (ps=positivity shift).
     struct gkyl_positivity_shift_gyrokinetic *pos_shift_op = gkyl_positivity_shift_gyrokinetic_new(
       app->basis, gks->basis, gks->grid, gks->info.mass, app->gk_geom, gks->vel_map,
-      &app->local_ext, app->use_gpu
+      &app->local_ext, shift_everywhere, app->use_gpu
     );
 
     gkyl_positivity_shift_gyrokinetic_advance(
@@ -1268,7 +1221,9 @@ gk_species_kinetic_init(
   gk_species_damping_init(app, gks, &gks->damping);
 
   // Function multiplying df/dt.
-  gk_species_fdot_multiplier_init(app, gks, &gks->fdot_mult);
+  gk_species_fdot_multiplier_init(
+    app, gks, &gks->fdot_mult, &gks->info.time_rate_multiplier, "fdot_multiplier"
+  );
 
   // Allocate data for diagnostic moments.
   int ndm = gks->info.num_diag_moments;

@@ -102,9 +102,52 @@ gk_species_gyroaverage_enabled(
 }
 
 double
+gk_species_omegaH_dt(gkyl_gyrokinetic_app *app, struct gk_species *gks, const struct gkyl_array *fin)
+{
+  if (gks->info.collisionless.type == GKYL_GK_COLLISIONLESS_NONE) {
+    return DBL_MAX;
+  }
+  // Compute the time step under which the omega_H mode is stable, dt_omegaH =
+  // omegaH_CFL/omega_H.
+  // Each species computes its own omega_H as:
+  //   omega_H = q_e*sqrt(jacobgeo*n_{s0}/m_s) * omegaH_gf
+  // where
+  //   - n_{s0} is either a reference, average or max density.
+  //   - omegaH_gf = (cmag/(jacobgeo*B^_\parallel))*kpar_max /
+  //                 min(sqrt(k_x^2*eps_xx+k_x*k_y*eps_xy+k_y^2*eps_yy+)).
+  // and k_x,k_y,k_par are wavenumbers in computational space, and eps_ij is
+  // the polarization weight in our field equation.
+
+  if (!(app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN || app->field->has_adiabatic_species)) {
+    // Obtain the maximum density (using cell centers).
+    gk_species_moment_calc(app, &gks->m0, gks->local, app->local, fin);
+    gkyl_array_reduce_range(gks->m0_max, gks->m0.marr, GKYL_MAX, &app->local);
+
+    double m0_max[1];
+    if (app->use_gpu) {
+      gkyl_cu_memcpy(m0_max, gks->m0_max, sizeof(double), GKYL_CU_MEMCPY_D2H);
+    } else {
+      m0_max[0] = gks->m0_max[0];
+    }
+    m0_max[0] *= 1.0 / pow(sqrt(2.0), app->cdim);
+
+    double time_dilation_scale_const =
+      gk_fdot_multiplier_get_time_dilation_scale_const(app, &gks->fdot_mult) *
+      gk_fdot_multiplier_get_time_dilation_scale_const(app, &gks->collisionless.fdot_mult);
+
+    double omegaH = fabs(gks->info.charge) * sqrt(GKYL_MAX2(0.0, m0_max[0]) / gks->info.mass) *
+                    app->omegaH_gf * time_dilation_scale_const * gks->collisionless.scale_fac;
+
+    return omegaH > 1e-20 ? app->cfl_omegaH / omegaH : DBL_MAX;
+  } else {
+    return DBL_MAX;
+  }
+}
+
+double
 gk_species_rhs_static(
   gkyl_gyrokinetic_app *app, struct gk_species *species, const struct gkyl_array *fin,
-  struct gkyl_array *rhs, struct gkyl_array **bflux_moms
+  const struct gkyl_array *fbar_in, struct gkyl_array *rhs, struct gkyl_array **bflux_moms
 )
 {
   double omega_cfl = 1 / DBL_MAX;
@@ -341,6 +384,62 @@ gk_species_write_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *gks, doub
        gks->upper_bc[par_dir].type == GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING)) {
     gk_species_write_vcutsq(app, gks, gks->bc_sheath_up, "z", "upper", tm, frame);
   }
+
+  if (!gks->info.is_static && gks->time_rate_diagnostics[GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT]) {
+    // The matching RHS is produced by stage 1 of the next RK step. Queue its
+    // metadata so it can be written before the forward-Euler update overwrites it.
+    gks->fdot_io_pending = true;
+    gks->fdot_io_tm = tm;
+    gks->fdot_io_frame = frame;
+  }
+}
+
+void
+gk_species_write_fdot(
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, const struct gkyl_array *fdot
+)
+{
+  if (!gks->fdot_io_pending) {
+    return;
+  }
+
+  struct timespec wst = gkyl_wall_clock();
+
+  gkyl_msgpack_map_elem_set_double(
+    gks->io_meta_phase_len, gks->io_meta_phase, "time", gks->fdot_io_tm
+  );
+  gkyl_msgpack_map_elem_set_uint(
+    gks->io_meta_phase_len, gks->io_meta_phase, "frame", gks->fdot_io_frame
+  );
+
+  struct gkyl_msgpack_map_elem io_meta_fdot[] = {{
+    .key = "Description",
+    .elem_type = GKYL_MP_STRING,
+    .cval = "Explicit SSP-RK3 stage-1 time rate of change of the distribution function.",
+  }};
+  int io_meta_len[] = {gks->io_meta_phase_len, app->gk_geom->io_meta_basic_len, 1};
+  const struct gkyl_msgpack_map_elem *io_meta[] = {
+    gks->io_meta_phase, app->gk_geom->io_meta_basic, io_meta_fdot
+  };
+  struct gkyl_msgpack_data *mt =
+    gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
+
+  const char *fmt = "%s-%s_fdot_%d.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, gks->fdot_io_frame);
+  char fileNm[sz + 1]; // Ensures no buffer overflow.
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, gks->fdot_io_frame);
+
+  const struct gkyl_array *fdot_host = fdot;
+  if (app->use_gpu) {
+    gkyl_array_copy(gks->f_host, fdot);
+    fdot_host = gks->f_host;
+  }
+  gkyl_comm_array_write(gks->comm, &gks->grid, &gks->local, mt, fdot_host, fileNm);
+
+  gks->fdot_io_pending = false;
+  gkyl_msgpack_data_release(mt);
+  app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wst);
+  app->stat.n_diag_io += 1;
 }
 
 void
@@ -454,9 +553,130 @@ gk_species_write_mom_static(gkyl_gyrokinetic_app *app, struct gk_species *gks, d
   // do nothing
 }
 
+static bool
+gk_species_has_fdot_mom_diagnostic(const struct gk_species *gks)
+{
+  return !gks->info.is_static &&
+         (gks->time_rate_diagnostics[GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_MOMENTS] ||
+          gks->time_rate_diagnostics[GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_ABS_MOMENTS] ||
+          gks->time_rate_diagnostics[GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_INTEGRATED_MOMENTS] ||
+          gks->time_rate_diagnostics[GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_ABS_INTEGRATED_MOMENTS]);
+}
+
+static void
+gk_species_write_one_fdot_mom(
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame, const char *fdot_name,
+  const char *description
+)
+{
+  struct timespec wst = gkyl_wall_clock();
+
+  gkyl_msgpack_map_elem_set_double(gks->io_meta_conf_len, gks->io_meta_conf, "time", tm);
+  gkyl_msgpack_map_elem_set_uint(gks->io_meta_conf_len, gks->io_meta_conf, "frame", frame);
+
+  enum gkyl_distribution_moments mom_type = gks->info.num_integrated_diag_moments == 0 ?
+                                              GKYL_F_MOMENT_M0M1M2PARM2PERP :
+                                              gks->info.integrated_diag_moments[0];
+  const char *mom_name = gkyl_distribution_moments_strs[mom_type];
+
+  struct gkyl_msgpack_map_elem io_meta_fdot_mom[] = {
+    {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0},
+    {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = "serendipity"},
+    {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = (char *)description}
+  };
+  int io_meta_len[] = {
+    gks->io_meta_conf_len, app->gk_geom->io_meta_basic_len,
+    sizeof(io_meta_fdot_mom) / sizeof(io_meta_fdot_mom[0])
+  };
+  const struct gkyl_msgpack_map_elem *io_meta[] = {
+    gks->io_meta_conf, app->gk_geom->io_meta_basic, io_meta_fdot_mom
+  };
+  struct gkyl_msgpack_data *mt =
+    gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
+
+  const char *fmt = "%s-%s_%s_%s_%d.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, fdot_name, mom_name, frame);
+  char fileNm[sz + 1]; // Ensures no buffer overflow.
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, fdot_name, mom_name, frame);
+
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, gks->integ_moms.marr_host, fileNm);
+
+  gkyl_msgpack_data_release(mt);
+  app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wst);
+  app->stat.n_diag_io += 1;
+}
+
+static void
+gk_species_write_fdot_mom_disabled(
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame
+)
+{
+}
+
+static void
+gk_species_copy_fdot_mom_to_host(struct gk_species *gks)
+{
+  gkyl_array_copy(gks->integ_moms.marr_host, gks->fdot_mom_new);
+}
+
+static void
+gk_species_abs_fdot_mom_host(gkyl_gyrokinetic_app *app, struct gk_species *gks)
+{
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &app->local);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&app->local, iter.idx);
+    double *fdot_mom = gkyl_array_fetch(gks->integ_moms.marr_host, loc);
+    for (int m = 0; m < gks->integ_moms.num_mom; ++m) {
+      fdot_mom[m] = fabs(fdot_mom[m]);
+    }
+  }
+}
+
+static void
+gk_species_write_fdot_mom_enabled(
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame
+)
+{
+  gk_species_copy_fdot_mom_to_host(gks);
+  gk_species_write_one_fdot_mom(
+    app, gks, tm, frame, "fdot", "Configuration-space moments of (f_new-f_old)/dt."
+  );
+}
+
+static void
+gk_species_write_fdot_abs_mom_enabled(
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame
+)
+{
+  gk_species_copy_fdot_mom_to_host(gks);
+  gk_species_abs_fdot_mom_host(app, gks);
+  gk_species_write_one_fdot_mom(
+    app, gks, tm, frame, "fdot_abs",
+    "Absolute value of the configuration-space moments of (f_new-f_old)/dt."
+  );
+}
+
+static void
+gk_species_write_fdot_and_abs_mom_enabled(
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame
+)
+{
+  gk_species_copy_fdot_mom_to_host(gks);
+  gk_species_write_one_fdot_mom(
+    app, gks, tm, frame, "fdot", "Configuration-space moments of (f_new-f_old)/dt."
+  );
+  gk_species_abs_fdot_mom_host(app, gks);
+  gk_species_write_one_fdot_mom(
+    app, gks, tm, frame, "fdot_abs",
+    "Absolute value of the configuration-space moments of (f_new-f_old)/dt."
+  );
+}
+
 void
 gk_species_calc_int_mom_dt_enabled(
-  gkyl_gyrokinetic_app *app, struct gk_species *gks, double dt, struct gkyl_array *fdot_int_mom
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, double dt, struct gkyl_array *fdot_int_mom,
+  struct gkyl_array *fbardot_int_mom
 )
 {
   struct timespec wst = gkyl_wall_clock();
@@ -464,22 +684,56 @@ gk_species_calc_int_mom_dt_enabled(
   // Need to do it after the fields are updated.
   gk_species_moment_calc(app, &gks->integ_moms, gks->local, app->local, gks->f);
   gkyl_array_set(fdot_int_mom, 1.0 / dt, gks->integ_moms.marr);
+  if (gks->time_rate_diagnostics[GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_INTEGRATED_MOMENTS] &&
+      gks->damping.type == GKYL_GK_DAMPING_LOW_PASS_FILTER) {
+    const struct gkyl_array *fbar = gks->damping.fbar;
+    if (gks->damping.cellwise_const) {
+      // The moment updater expects the species basis: all higher modes are zero.
+      gkyl_array_clear(gks->damping.fbar_mom_buffer, 0.0);
+      gkyl_array_set_offset(gks->damping.fbar_mom_buffer, 1.0, fbar, 0);
+      fbar = gks->damping.fbar_mom_buffer;
+    }
+    gk_species_moment_calc(app, &gks->integ_moms, gks->local, app->local, fbar);
+    gkyl_array_set(fbardot_int_mom, 1.0 / dt, gks->integ_moms.marr);
+  }
   app->stat.fdot_tm += gkyl_time_diff_now_sec(wst);
 }
 
 void
 gk_species_calc_int_mom_dt_disabled(
-  gkyl_gyrokinetic_app *app, struct gk_species *gks, double dt, struct gkyl_array *fdot_int_mom
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, double dt, struct gkyl_array *fdot_int_mom,
+  struct gkyl_array *fbardot_int_mom
 )
 {
 }
 
 void
 gk_species_calc_int_mom_dt(
-  gkyl_gyrokinetic_app *app, struct gk_species *gks, double dt, struct gkyl_array *fdot_int_mom
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, double dt, struct gkyl_array *fdot_int_mom,
+  struct gkyl_array *fbardot_int_mom
 )
 {
-  gks->calc_int_mom_dt_func(app, gks, dt, fdot_int_mom);
+  gks->calc_int_mom_dt_func(app, gks, dt, fdot_int_mom, fbardot_int_mom);
+}
+
+static void
+gk_species_calc_fdot_mom_enabled(gkyl_gyrokinetic_app *app, struct gk_species *gks)
+{
+  struct timespec wst = gkyl_wall_clock();
+  gkyl_array_accumulate(gks->fdot_mom_new, -1.0, gks->fdot_mom_old);
+  gks->write_fdot_mom_func = gks->write_fdot_mom_ready_func;
+  app->stat.fdot_tm += gkyl_time_diff_now_sec(wst);
+}
+
+static void
+gk_species_calc_fdot_mom_disabled(gkyl_gyrokinetic_app *app, struct gk_species *gks)
+{
+}
+
+void
+gk_species_calc_fdot_mom(gkyl_gyrokinetic_app *app, struct gk_species *gks)
+{
+  gks->calc_fdot_mom_func(app, gks);
 }
 
 void
@@ -507,21 +761,67 @@ gk_species_calc_integrated_mom_dynamic(gkyl_gyrokinetic_app *app, struct gk_spec
   }
   gkyl_dynvec_append(gks->integ_diag, tm, avals_global);
 
-  if (gks->info.time_rate_diagnostics) {
-    // Reduce (sum) over whole domain, append to diagnostics.
-    gkyl_array_accumulate(gks->fdot_mom_new, -1.0, gks->fdot_mom_old);
-    gkyl_array_reduce_range(gks->red_integ_diag, gks->fdot_mom_new, GKYL_SUM, &app->local);
-    gkyl_comm_allreduce(
-      app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, gks->red_integ_diag, gks->red_integ_diag_global
+  if (gks->info.omegaH_dt_diagnostic) {
+    double omegaH_dt_local = gk_species_omegaH_dt(app, gks, gks->f);
+    double omegaH_dt_global = DBL_MAX;
+    gkyl_comm_allreduce_host(
+      app->comm, GKYL_DOUBLE, GKYL_MIN, 1, &omegaH_dt_local, &omegaH_dt_global
     );
-    if (app->use_gpu) {
-      gkyl_cu_memcpy(
-        avals_global, gks->red_integ_diag_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H
-      );
-    } else {
-      memcpy(avals_global, gks->red_integ_diag_global, sizeof(double[num_mom]));
+    gkyl_dynvec_append(gks->omegaH_dt, tm, &omegaH_dt_global);
+  }
+
+  bool calc_fdot_integ =
+    gks->time_rate_diagnostics[GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_INTEGRATED_MOMENTS];
+  bool calc_fdot_abs_integ =
+    gks->time_rate_diagnostics[GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_ABS_INTEGRATED_MOMENTS];
+  if (calc_fdot_integ || calc_fdot_abs_integ) {
+    if (calc_fdot_integ) {
+      struct gkyl_array *mom_new[] = {gks->fdot_mom_new, gks->fbardot_mom_new};
+      gkyl_dynvec diags[] = {gks->fdot_integ_diag, gks->fbardot_integ_diag};
+      for (int rate = 0; rate < 2; ++rate) {
+        // Keep both time series aligned, including before the filter is enabled.
+        // Ignore stored filter moments when inactive: they may belong to an earlier step.
+        if (rate == 1 && gks->damping.type != GKYL_GK_DAMPING_LOW_PASS_FILTER) {
+          memset(avals_global, 0, sizeof(double[num_mom]));
+          gkyl_dynvec_append(diags[rate], tm, avals_global);
+          continue;
+        }
+        // fdot is already differenced after the time step; difference fbar in scratch storage.
+        gkyl_array_set(gks->integ_moms.marr, 1.0, mom_new[rate]);
+        if (rate == 1) {
+          gkyl_array_accumulate(gks->integ_moms.marr, -1.0, gks->fbardot_mom_old);
+        }
+        gkyl_array_reduce_range(gks->red_integ_diag, gks->integ_moms.marr, GKYL_SUM, &app->local);
+        gkyl_comm_allreduce(
+          app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, gks->red_integ_diag, gks->red_integ_diag_global
+        );
+        if (app->use_gpu) {
+          gkyl_cu_memcpy(
+            avals_global, gks->red_integ_diag_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H
+          );
+        } else {
+          memcpy(avals_global, gks->red_integ_diag_global, sizeof(double[num_mom]));
+        }
+        gkyl_dynvec_append(diags[rate], tm, avals_global);
+      }
     }
-    gkyl_dynvec_append(gks->fdot_integ_diag, tm, avals_global);
+
+    if (calc_fdot_abs_integ) {
+      // Sum the absolute time-rate moment in each cell over the whole domain.
+      // Taking the absolute value before the reduction prevents spatial cancellation.
+      gkyl_array_reduce_range(gks->red_integ_diag, gks->fdot_mom_new, GKYL_SUM_ABS, &app->local);
+      gkyl_comm_allreduce(
+        app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, gks->red_integ_diag, gks->red_integ_diag_global
+      );
+      if (app->use_gpu) {
+        gkyl_cu_memcpy(
+          avals_global, gks->red_integ_diag_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H
+        );
+      } else {
+        memcpy(avals_global, gks->red_integ_diag_global, sizeof(double[num_mom]));
+      }
+      gkyl_dynvec_append(gks->fdot_abs_integ_diag, tm, avals_global);
+    }
   }
 
   app->stat.species_diag_calc_tm += gkyl_time_diff_now_sec(wst);
@@ -569,19 +869,90 @@ gk_species_write_integrated_mom_dynamic(gkyl_gyrokinetic_app *app, struct gk_spe
   gkyl_dynvec_clear(gks->integ_diag);
   app->stat.n_diag_io += 1;
 
-  if (gks->info.time_rate_diagnostics) {
+  if (gks->info.omegaH_dt_diagnostic) {
     if (rank == 0) {
-      // Write integrated diagnostic moments.
-      const char *fmt = "%s-%s_fdot_%s.gkyl";
-      int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, "integrated_moms");
-      char fileNm[sz + 1]; // ensures no buffer overflow
-      snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, "integrated_moms");
+      const char *fmt = "%s-%s_omegaH_dt.gkyl";
+      int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name);
+      char fileNm[sz + 1];
+      snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name);
 
-      if (gks->is_first_fdot_integ_write_call) {
+      if (gks->is_first_omegaH_dt_write_call) {
+        struct gkyl_msgpack_map_elem io_meta_omegaH_dt[] = {{
+          .key = "Description",
+          .elem_type = GKYL_MP_STRING,
+          .cval = "Stable time step for the omega_H mode for this charged species.",
+        }};
+        int io_meta_len[] = {gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
+        const struct gkyl_msgpack_map_elem *io_meta[] = {
+          gks->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_omegaH_dt
+        };
+        struct gkyl_msgpack_data *mt =
+          gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
+
+        gkyl_dynvec_write_wmeta(gks->omegaH_dt, fileNm, mt);
+        gks->is_first_omegaH_dt_write_call = false;
+        gkyl_msgpack_data_release(mt);
+      } else {
+        gkyl_dynvec_awrite(gks->omegaH_dt, fileNm);
+      }
+    }
+    gkyl_dynvec_clear(gks->omegaH_dt);
+    app->stat.n_diag_io += 1;
+  }
+
+  if (gks->time_rate_diagnostics[GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_INTEGRATED_MOMENTS]) {
+    gkyl_dynvec diags[] = {gks->fdot_integ_diag, gks->fbardot_integ_diag};
+    bool *first_write[] = {
+      &gks->is_first_fdot_integ_write_call, &gks->is_first_fbardot_integ_write_call
+    };
+    const char *names[] = {"fdot", "fbardot"};
+    const char *descriptions[] = {
+      "Volume integrated moments of time rate of change.",
+      "Volume integrated moments of time rate of change of the low-pass-filtered distribution."
+    };
+    for (int rate = 0; rate < 2; ++rate) {
+      if (rank == 0) {
+        // Write integrated diagnostic moments.
+        const char *fmt = "%s-%s_%s_integrated_moms.gkyl";
+        int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, names[rate]);
+        char fileNm[sz + 1]; // ensures no buffer overflow
+        snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, names[rate]);
+
+        if (*first_write[rate]) {
+          struct gkyl_msgpack_map_elem io_meta_phi[] = {
+            {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = descriptions[rate]}
+          };
+          int io_meta_len[] = {gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
+          const struct gkyl_msgpack_map_elem *io_meta[] = {
+            gks->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi
+          };
+          struct gkyl_msgpack_data *mt =
+            gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
+
+          gkyl_dynvec_write_wmeta(diags[rate], fileNm, mt);
+          *first_write[rate] = false;
+          gkyl_msgpack_data_release(mt);
+        } else {
+          gkyl_dynvec_awrite(diags[rate], fileNm);
+        }
+      }
+      gkyl_dynvec_clear(diags[rate]);
+      app->stat.n_diag_io += 1;
+    }
+  }
+
+  if (gks->time_rate_diagnostics[GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_ABS_INTEGRATED_MOMENTS]) {
+    if (rank == 0) {
+      const char *abs_fmt = "%s-%s_fdot_abs_%s.gkyl";
+      int abs_sz = gkyl_calc_strlen(abs_fmt, app->name, gks->info.name, "integrated_moms");
+      char abs_fileNm[abs_sz + 1]; // ensures no buffer overflow
+      snprintf(abs_fileNm, sizeof abs_fileNm, abs_fmt, app->name, gks->info.name, "integrated_moms");
+
+      if (gks->is_first_fdot_abs_integ_write_call) {
         struct gkyl_msgpack_map_elem io_meta_phi[] = {{
           .key = "Description",
           .elem_type = GKYL_MP_STRING,
-          .cval = "Volume integrated moments of time rate of change.",
+          .cval = "Volume integral of absolute moments of time rate of change.",
         }};
         int io_meta_len[] = {gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
         const struct gkyl_msgpack_map_elem *io_meta[] = {
@@ -590,14 +961,14 @@ gk_species_write_integrated_mom_dynamic(gkyl_gyrokinetic_app *app, struct gk_spe
         struct gkyl_msgpack_data *mt =
           gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
 
-        gkyl_dynvec_write_wmeta(gks->fdot_integ_diag, fileNm, mt);
-        gks->is_first_fdot_integ_write_call = false;
+        gkyl_dynvec_write_wmeta(gks->fdot_abs_integ_diag, abs_fileNm, mt);
+        gks->is_first_fdot_abs_integ_write_call = false;
         gkyl_msgpack_data_release(mt);
       } else {
-        gkyl_dynvec_awrite(gks->fdot_integ_diag, fileNm);
+        gkyl_dynvec_awrite(gks->fdot_abs_integ_diag, abs_fileNm);
       }
     }
-    gkyl_dynvec_clear(gks->fdot_integ_diag);
+    gkyl_dynvec_clear(gks->fdot_abs_integ_diag);
     app->stat.n_diag_io += 1;
   }
 
@@ -713,6 +1084,9 @@ gk_species_init_static(
   gks->calc_L2norm_func = gk_species_calc_L2norm_static;
   gks->write_L2norm_func = gk_species_write_L2norm_static;
   gks->calc_int_mom_dt_func = gk_species_calc_int_mom_dt_disabled;
+  gks->calc_fdot_mom_func = gk_species_calc_fdot_mom_disabled;
+  gks->write_fdot_mom_func = gk_species_write_fdot_mom_disabled;
+  gks->write_fdot_mom_ready_func = gk_species_write_fdot_mom_disabled;
 }
 
 void
@@ -721,6 +1095,9 @@ gk_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_species *gks, double t0
   if (gks->info.init_from_file.type == 0) {
     gk_species_projection_calc(app, gks, &gks->proj_init, gks->f, t0);
   }
+
+  // Initialize fbar for low-pass filter damping
+  gk_species_damping_set_fbar_to_f(gks, &gks->damping, gks->f);
 
   // We are pre-computing source for now as it is time-independent.
   gk_species_source_calc(app, gks, &gks->src, gks->lte.f_lte, t0);
@@ -780,10 +1157,10 @@ gk_species_apply_ic_cross(gkyl_gyrokinetic_app *app, struct gk_species *gks_self
 double
 gk_species_rhs(
   gkyl_gyrokinetic_app *app, struct gk_species *species, const struct gkyl_array *fin,
-  struct gkyl_array *rhs, struct gkyl_array **bflux_moms
+  const struct gkyl_array *fbar_in, struct gkyl_array *rhs, struct gkyl_array **bflux_moms
 )
 {
-  return species->rhs_func(app, species, fin, rhs, bflux_moms);
+  return species->rhs_func(app, species, fin, fbar_in, rhs, bflux_moms);
 }
 
 double
@@ -854,6 +1231,7 @@ gk_species_write_mom(gkyl_gyrokinetic_app *app, struct gk_species *gks, double t
   } else {
     gks->write_mom_func(app, gks, tm, frame);
   }
+  gks->write_fdot_mom_func(app, gks, tm, frame);
 }
 
 void
@@ -964,14 +1342,61 @@ gk_species_init_integrated_mom(struct gkyl_gyrokinetic_app *app, struct gk_speci
   gks->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, gks->integ_moms.num_mom);
   gks->is_first_integ_write_call = true;
 
-  // Allocate dynamic-vector to store Delta f integrated moments.
-  if (gks->info.time_rate_diagnostics) {
+  if (gks->info.omegaH_dt_diagnostic) {
+    gks->omegaH_dt = gkyl_dynvec_new(GKYL_DOUBLE, 1);
+    gks->is_first_omegaH_dt_write_call = true;
+  }
+
+  // Allocate dynamic-vectors to store Delta f integrated moments.
+  bool calc_fdot_integ =
+    gks->time_rate_diagnostics[GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_INTEGRATED_MOMENTS];
+  bool calc_fdot_abs_integ =
+    gks->time_rate_diagnostics[GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_ABS_INTEGRATED_MOMENTS];
+  bool write_fdot_mom = gks->time_rate_diagnostics[GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_MOMENTS];
+  bool write_fdot_abs_mom =
+    gks->time_rate_diagnostics[GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_ABS_MOMENTS];
+  if (gk_species_has_fdot_mom_diagnostic(gks)) {
     gks->fdot_mom_old =
       mkarr(app->use_gpu, gks->integ_moms.marr->ncomp, gks->integ_moms.marr->size);
     gks->fdot_mom_new =
       mkarr(app->use_gpu, gks->integ_moms.marr->ncomp, gks->integ_moms.marr->size);
+    gkyl_array_clear(gks->fdot_mom_old, 0.0);
+    gkyl_array_clear(gks->fdot_mom_new, 0.0);
+  }
+  if (calc_fdot_integ) {
     gks->fdot_integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, gks->integ_moms.num_mom);
     gks->is_first_fdot_integ_write_call = true;
+    // Keep diagnostics across runtime damping resets, including enabling the filter later.
+    gks->fbardot_mom_old =
+      mkarr(app->use_gpu, gks->integ_moms.marr->ncomp, gks->integ_moms.marr->size);
+    gks->fbardot_mom_new =
+      mkarr(app->use_gpu, gks->integ_moms.marr->ncomp, gks->integ_moms.marr->size);
+    gkyl_array_clear(gks->fbardot_mom_old, 0.0);
+    gkyl_array_clear(gks->fbardot_mom_new, 0.0);
+    gks->fbardot_integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, gks->integ_moms.num_mom);
+    gks->is_first_fbardot_integ_write_call = true;
+  }
+  if (calc_fdot_abs_integ) {
+    gks->fdot_abs_integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, gks->integ_moms.num_mom);
+    gks->is_first_fdot_abs_integ_write_call = true;
+  }
+
+  if (gk_species_has_fdot_mom_diagnostic(gks)) {
+    gks->calc_int_mom_dt_func = gk_species_calc_int_mom_dt_enabled;
+    gks->calc_fdot_mom_func = gk_species_calc_fdot_mom_enabled;
+  } else {
+    gks->calc_int_mom_dt_func = gk_species_calc_int_mom_dt_disabled;
+    gks->calc_fdot_mom_func = gk_species_calc_fdot_mom_disabled;
+  }
+  gks->write_fdot_mom_func = gk_species_write_fdot_mom_disabled;
+  if (write_fdot_mom && write_fdot_abs_mom) {
+    gks->write_fdot_mom_ready_func = gk_species_write_fdot_and_abs_mom_enabled;
+  } else if (write_fdot_mom) {
+    gks->write_fdot_mom_ready_func = gk_species_write_fdot_mom_enabled;
+  } else if (write_fdot_abs_mom) {
+    gks->write_fdot_mom_ready_func = gk_species_write_fdot_abs_mom_enabled;
+  } else {
+    gks->write_fdot_mom_ready_func = gk_species_write_fdot_mom_disabled;
   }
 }
 
@@ -993,11 +1418,25 @@ gk_species_release_integrated_mom(
     gkyl_free(gks->red_integ_diag_global);
   }
 
-  if (gks->info.time_rate_diagnostics) {
-    // Free df/dt diagnostics memory.
+  if (gks->info.omegaH_dt_diagnostic) {
+    gkyl_dynvec_release(gks->omegaH_dt);
+  }
+  bool calc_fdot_integ =
+    gks->time_rate_diagnostics[GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_INTEGRATED_MOMENTS];
+  bool calc_fdot_abs_integ =
+    gks->time_rate_diagnostics[GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_ABS_INTEGRATED_MOMENTS];
+  if (gk_species_has_fdot_mom_diagnostic(gks)) {
     gkyl_array_release(gks->fdot_mom_old);
     gkyl_array_release(gks->fdot_mom_new);
+  }
+  if (calc_fdot_integ) {
     gkyl_dynvec_release(gks->fdot_integ_diag);
+    gkyl_array_release(gks->fbardot_mom_old);
+    gkyl_array_release(gks->fbardot_mom_new);
+    gkyl_dynvec_release(gks->fbardot_integ_diag);
+  }
+  if (calc_fdot_abs_integ) {
+    gkyl_dynvec_release(gks->fdot_abs_integ_diag);
   }
 }
 
@@ -1014,6 +1453,18 @@ gk_species_init(struct gkyl_gk *inp, struct gkyl_gyrokinetic_app *app, struct gk
 
   gks->info = info;
   gks->is_fluid = info.cells[0] == 0;
+
+  assert(gks->info.num_time_rate_diagnostics >= 0);
+  assert(gks->info.num_time_rate_diagnostics <= GKYL_GK_TIME_RATE_DIAGNOSTIC_NUM);
+  for (int d = 0; d < GKYL_GK_TIME_RATE_DIAGNOSTIC_NUM; ++d) {
+    gks->time_rate_diagnostics[d] = false;
+  }
+  gks->fdot_io_pending = false;
+  for (int d = 0; d < gks->info.num_time_rate_diagnostics; ++d) {
+    enum gkyl_gyrokinetic_time_rate_diagnostic diag = gks->info.time_rate_diagnostics[d];
+    assert(diag >= 0 && diag < GKYL_GK_TIME_RATE_DIAGNOSTIC_NUM);
+    gks->time_rate_diagnostics[diag] = true;
+  }
 
   if (gks->is_fluid) {
     gk_species_fluid_init(inp, app, gks);

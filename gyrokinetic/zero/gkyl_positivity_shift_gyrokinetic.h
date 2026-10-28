@@ -6,9 +6,21 @@
 #include <gkyl_velocity_map.h>
 #include <gkyl_range.h>
 #include <gkyl_array.h>
+#include <gkyl_util.h>
 
 // Object type.
 typedef struct gkyl_positivity_shift_gyrokinetic gkyl_positivity_shift_gyrokinetic;
+
+// Configuration-space regions, specified in z-coordinates, in which to restrict
+// the positivity shift. The shift is only applied where the coordinate along
+// the field line (z, the last configuration-space direction) lies within one of
+// the regions. Region r covers the interval [lower[r], upper[r]]. If num_regions
+// is 0 (the default) the shift is applied everywhere.
+struct gkyl_positivity_shift_gyrokinetic_regions {
+  int num_regions; // Number of regions; 0 applies the shift everywhere.
+  double lower[GKYL_MAX_POSITIVITY_SHIFT_REGIONS]; // Lower z-coordinate of each region.
+  double upper[GKYL_MAX_POSITIVITY_SHIFT_REGIONS]; // Upper z-coordinate of each region.
+};
 
 /**
  * Create a new upater which shifts f up to a floor wherever f<0, and computes
@@ -23,13 +35,15 @@ typedef struct gkyl_positivity_shift_gyrokinetic gkyl_positivity_shift_gyrokinet
  * @param gk_geom Geometry object.
  * @param vel_map Velocity mapping object.
  * @param conf_rng_ext Extended configuration space range.
+ * @param shift_regions Conf-space regions (in z-coordinates) to restrict the shift to.
  * @param use_gpu bool to determine if on GPU.
  * @return New positivity shift updater pointer.
  */
 struct gkyl_positivity_shift_gyrokinetic *gkyl_positivity_shift_gyrokinetic_new(
   struct gkyl_basis cbasis, struct gkyl_basis pbasis, struct gkyl_rect_grid grid, double mass,
   const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map,
-  const struct gkyl_range *conf_rng_ext, bool use_gpu
+  const struct gkyl_range *conf_rng_ext,
+  struct gkyl_positivity_shift_gyrokinetic_regions shift_regions, bool use_gpu
 );
 
 /**

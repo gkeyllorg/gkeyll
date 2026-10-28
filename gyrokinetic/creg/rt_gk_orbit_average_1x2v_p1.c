@@ -227,7 +227,7 @@ orbit_check_boltzmann_initialization(const struct gkyl_gk *reference)
     .num_integrated_diag_moments = 1,
     .integrated_diag_moments = {GKYL_F_MOMENT_M0},
   };
-  inp->species[0].time_rate_diagnostics = false;
+  inp->species[0].num_time_rate_diagnostics = 0;
   inp->species[0].num_integrated_diag_moments = 0;
   inp->field = (struct gkyl_gyrokinetic_field){
     .gkfield_id = GKYL_GK_FIELD_BOLTZMANN,
@@ -343,7 +343,10 @@ main(int argc, char **argv)
        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_REFLECT}},
     .num_integrated_diag_moments = 1,
     .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-    .time_rate_diagnostics = true,
+    .num_time_rate_diagnostics = 2,
+    .time_rate_diagnostics =
+      {GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_INTEGRATED_MOMENTS,
+       GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_ABS_INTEGRATED_MOMENTS},
   };
   struct gkyl_gk inp = {
     .cdim = 1,

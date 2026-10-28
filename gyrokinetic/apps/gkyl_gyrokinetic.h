@@ -11,6 +11,7 @@
 #include <gkyl_gyrokinetic_comms.h>
 #include <gkyl_mom_type.h>
 #include <gkyl_gk_bc_type.h>
+#include <gkyl_positivity_shift_gyrokinetic.h>
 
 #include <stdbool.h>
 
@@ -96,15 +97,14 @@ struct gkyl_phase_diagnostics_inp {
   bool time_integrated; // Whether to use time integrated diags.
 };
 
-// Parameters for collisionless terms.
-struct gkyl_gyrokinetic_collisionless {
-  enum gkyl_gk_collisionless_type type; // Type of collisionless terms.
-  bool write_diagnostics; // Whether to output diagnostics.
-  double scale_factor; // Factor multiplying collisionless terms (should be > 0).
-  // Passive advection speeds in x, y, z (for GKYL_GK_COLLISIONLESS_PASSIVE).
-  // Assumes no advection/dependence on vpar/mu. Should return cdim values.
-  evalf_t passive_speeds;
-  void *passive_speeds_ctx; // Context for passive_speeds.
+// Time-rate diagnostics for a gyrokinetic distribution function.
+enum gkyl_gyrokinetic_time_rate_diagnostic {
+  GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT = 0, // Phase-space (f_new-f_old)/dt.
+  GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_INTEGRATED_MOMENTS, // Volume-integrated moments of fdot.
+  GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_ABS_INTEGRATED_MOMENTS, // Volume integral of the absolute fdot moments.
+  GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_MOMENTS, // Configuration-space moments of fdot.
+  GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_ABS_MOMENTS, // Absolute value of the configuration-space fdot moments.
+  GKYL_GK_TIME_RATE_DIAGNOSTIC_NUM // Sentinal value. Not a diagnostic. Index for total number of time-rate diagnostics.
 };
 
 /** Frozen-field POA relaxation (1x2v, P1).
@@ -407,19 +407,39 @@ struct gkyl_gyrokinetic_positivity {
   bool
     quasineutrality_rescale; // Whether to rescale this species to enforce quasineutrality in the simulation.
   bool write_diagnostics; // Whether to output diagnostics.
+  // Conf-space regions (in z-coordinates, along the field line) to restrict the
+  // shift to. If left zeroed, the shift is applied everywhere. For example, set
+  //   .shift_regions = { .num_regions = 2, .lower = {-1.1, 0.9}, .upper = {-0.9, 1.1} }
+  // to only shift f where z is in [-1.1, -0.9] or [0.9, 1.1].
+  struct gkyl_positivity_shift_gyrokinetic_regions shift_regions;
 };
 
-enum gkyl_gyrokinetic_damping_type { GKYL_GK_DAMPING_NONE = 0, GKYL_GK_DAMPING_USER_INPUT };
+enum gkyl_gyrokinetic_damping_type {
+  GKYL_GK_DAMPING_NONE = 0,
+  GKYL_GK_DAMPING_USER_INPUT,
+  GKYL_GK_DAMPING_LOW_PASS_FILTER
+};
 
 struct gkyl_gyrokinetic_damping {
   // Add a damping term to the RHS of the gyrokinetic equation
   //   df/dt = - rate(z) * f
   // with the function rate(z) being:
   //   - a function given by the user (type = GKYL_GK_DAMPING_USER_INPUT).
+  //   Alternativly, a low-pass filter can be applied (type = GKYL_GK_DAMPING_LOW_PASS_FILTER), which projects f to a lower-dimensional function fbar(z) and applies the damping as df/dt = - rate(z) * (f - fbar).
+  // The filtered state evolves as dfbar/dt = rate * (P f - fbar), where P
+  // selects the chosen fbar basis. The time-rate multiplier scales both
+  // derivatives equally, preserving the filter exchange in the shared modes.
   enum gkyl_gyrokinetic_damping_type type;
+
+  double rate_const;
   void (*rate_profile)(double t, const double *xn, double *fout, void *ctx);
   void *rate_profile_ctx; // Context for rate_profile function.
   int num_quad; // Number of quadrature points in each direction to use in projecting the rate.
+  bool write_rate; // Whether to write damping-rate diagnostics.
+  bool write_fbar; // For low-pass filter damping, write fbar diagnostics each output frame.
+  bool cellwise_const; // For low-pass filter damping, whether fbar uses a single value per cell.
+  bool
+    do_not_reset_fbar; // On runtime reset, preserve the existing low-pass-filter fbar instead of reinitializing from f.
 };
 
 // Types of df/dt multipliers: M(x,v,t) modifies df/dt -> M * df/dt.
@@ -467,6 +487,20 @@ struct gkyl_gyrokinetic_fdot_multiplier {
   struct gkyl_gyrokinetic_fdot_multiplier_comp multiplier[GKYL_MAX_FDOT_MUL];
 };
 
+// Parameters for collisionless terms.
+struct gkyl_gyrokinetic_collisionless {
+  enum gkyl_gk_collisionless_type type; // Type of collisionless terms.
+  bool write_diagnostics; // Whether to output diagnostics.
+  double scale_factor; // Factor multiplying collisionless terms (should be > 0).
+  // Passive advection speeds in x, y, z (for GKYL_GK_COLLISIONLESS_PASSIVE).
+  // Assumes no advection/dependence on vpar/mu. Should return cdim values.
+  evalf_t passive_speeds;
+  void *passive_speeds_ctx; // Context for passive_speeds.
+  // Gyrokinetic species only: multiply the collisionless RHS and CFL rate after scale_factor.
+  // Collisions and sources are unaffected. An empty chain leaves the update unchanged.
+  struct gkyl_gyrokinetic_fdot_multiplier time_rate_multiplier;
+};
+
 // Parameters for gk species.
 struct gkyl_gyrokinetic_species {
   char name[128]; // Species name.
@@ -500,8 +534,11 @@ struct gkyl_gyrokinetic_species {
   int num_integrated_diag_moments; // Number of integrated diagnostic moments.
   enum gkyl_distribution_moments
     integrated_diag_moments[12]; // List of integrated diagnostic moments.
-  bool time_rate_diagnostics; // Whether to ouput df/dt diagnostics.
+  int num_time_rate_diagnostics; // Number of time-rate diagnostics.
+  enum gkyl_gyrokinetic_time_rate_diagnostic
+    time_rate_diagnostics[GKYL_GK_TIME_RATE_DIAGNOSTIC_NUM]; // List of time-rate diagnostics.
   bool write_omega_cfl; // Whether to ouput dt diagnostic for the CFL constraint.
+  bool omegaH_dt_diagnostic; // Whether to output the omega_H stable time step as a dynvector.
 
   struct gkyl_gyrokinetic_collisionless collisionless; // Collisionless terms.
 
@@ -1599,6 +1636,7 @@ void gkyl_gyrokinetic_app_reset_species_fdot_multiplier(
  * diagnostics are retained when disabled, allowing the original type to be
  * restored without reallocating them. A zero scale factor retains the default
  * multiplier of one; use type NONE to disable collisionless terms.
+ * The time_rate_multiplier is also reset; an empty chain disables time dilation.
  *
  * @param app App object.
  * @param tm Time-stamp.
@@ -1640,6 +1678,19 @@ struct gkyl_gyrokinetic_orbit_average_stat gkyl_gyrokinetic_app_species_orbit_av
 void gkyl_gyrokinetic_app_reset_species_positivity(
   gkyl_gyrokinetic_app *app, double tm, const char *species_name,
   struct gkyl_gyrokinetic_positivity pos_inp
+);
+
+/**
+ * Reset the damping for a given species.
+ *
+ * @param app App object.
+ * @param tm Time-stamp.
+ * @param species_name Name of the species to reset.
+ * @param damping_inp Input parameters for damping terms.
+ */
+void gkyl_gyrokinetic_app_reset_species_damping(
+  gkyl_gyrokinetic_app *app, double tm, const char *species_name,
+  struct gkyl_gyrokinetic_damping damping_inp
 );
 
 /**

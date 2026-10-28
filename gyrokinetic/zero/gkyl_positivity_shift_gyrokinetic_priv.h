@@ -71,6 +71,38 @@ struct gkyl_positivity_shift_gyrokinetic_kernels {
   mul_op_t conf_phase_mul_op; // Conf-phase weak multiplication kernel.
 };
 
+// Configuration-space regions to restrict the shift to, expressed as inclusive
+// cell-index intervals along the field-line direction (z). This is the
+// cell-index counterpart of gkyl_positivity_shift_gyrokinetic_regions, computed
+// once from the user's z-coordinates in _new().
+struct gkyl_positivity_shift_gyrokinetic_shift_region_idx {
+  int z_dir; // Field-line (z) direction, the last conf-space direction.
+  int num_regions; // Number of regions; 0 applies the shift everywhere.
+  int idx_lo[GKYL_MAX_POSITIVITY_SHIFT_REGIONS]; // Lower z cell index of each region (inclusive).
+  int idx_hi[GKYL_MAX_POSITIVITY_SHIFT_REGIONS]; // Upper z cell index of each region (inclusive).
+};
+
+// Return true if the conf-space cell with index conf_idx should be shifted,
+// i.e. its z cell index falls within one of the restriction regions. With no
+// regions specified the shift is applied everywhere.
+GKYL_CU_DH static inline bool
+pos_shift_gk_apply_in_cell(
+  const struct gkyl_positivity_shift_gyrokinetic_shift_region_idx *regions, const int *conf_idx
+)
+{
+  if (regions->num_regions == 0) {
+    return true;
+  }
+
+  int z_idx = conf_idx[regions->z_dir];
+  for (int r = 0; r < regions->num_regions; r++) {
+    if (regions->idx_lo[r] <= z_idx && z_idx <= regions->idx_hi[r]) {
+      return true;
+    }
+  }
+  return false;
+}
+
 // Primary struct in this updater.
 struct gkyl_positivity_shift_gyrokinetic {
   int num_cbasis; // Number of conf-space basis monomials.
@@ -81,6 +113,7 @@ struct gkyl_positivity_shift_gyrokinetic {
   double cellav_fac; // Factor multiplying 0th DG coefficient to give cellav.
   const struct gk_geometry *gk_geom; // Pointer to geometry object.
   const struct gkyl_velocity_map *vel_map; // Pointer to velocity mapping object.
+  struct gkyl_positivity_shift_gyrokinetic_shift_region_idx shift_regions; // Conf-cells to shift.
   bool use_gpu;
   struct gkyl_positivity_shift_gyrokinetic_kernels *kernels;
   struct gkyl_array *shiftedf; // Marks if a shift occured at a given conf-cell.

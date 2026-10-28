@@ -95,7 +95,7 @@ struct gkyl_array* gkyl_array_cu_host_new(enum gkyl_elem_type type, size_t ncomp
  */
 bool gkyl_array_is_cu_dev(const struct gkyl_array *arr);
 
-enum gkyl_array_op { GKYL_MIN, GKYL_MAX, GKYL_SUM };
+enum gkyl_array_op { GKYL_MIN, GKYL_MAX, GKYL_SUM, GKYL_SUM_ABS };
 
 
 /**
@@ -519,6 +519,8 @@ local array_fn = {
          enum = 1
       elseif op == "sum" then
          enum = 2
+      elseif op == "sum_abs" then
+         enum = 3
       end
       ffiC.gkyl_array_reduce_range(out, self, enum, rng)
    end,
