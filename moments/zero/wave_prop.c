@@ -272,12 +272,12 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
           is_cfl_violated = 1.0;
 
         if (is_cfl_violated > 0) {
-          // we need to use this goto to jump out of this deep loop to
-          // avoid potential problems with taking too large a
-          // time-step. NOTE: This jump is local to a rank. An
-          // all-reduce here can't be done as one may end up with a
-          // hang due to missing allreduce from some ranks.
-          goto outsideloop;
+          // need to finish the loop over all sweeps instead of exiting the loop
+          // as different sweeps can first trigger this condition based on how
+          // the domain is decomposed, leading to a different suggested time step
+          // in parallel
+          state = WV_FIN_SWEEP;
+          continue;
         }
 
         // compute first-order update in each cell
@@ -367,9 +367,11 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
           // of each bad cell
           for (int i=loidx_c; i<=upidx_c; ++i) {
             idxl[dir] = i;
-            const double *qt = gkyl_array_cfetch(qout, gkyl_range_idx(update_range, idxl));
-            if (!gkyl_wv_eqn_check_inv(wv->equation, qt)) {
-
+            long lidx = gkyl_range_idx(update_range, idxl);
+            const double *qt = gkyl_array_cfetch(qout, lidx);
+            const double *phic = gkyl_array_cfetch(phi, lidx);
+            // Masked cells are prevented from triggering a resweep
+            if (phic[0] >= 0.0 && !gkyl_wv_eqn_check_inv(wv->equation, qt)) {
               double *redo_fluct_l = gkyl_array_fetch(wv->redo_fluct, gkyl_ridx(slice_range, i));
               double *redo_fluct_r = gkyl_array_fetch(wv->redo_fluct, gkyl_ridx(slice_range, i+1));
               // mark left and right edges so fluctuations are redone
@@ -429,9 +431,6 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
       } // end loop over sweeps
     } // end loop over perpendicular directions
   } // end loop over directions
-
-  outsideloop:
-  ;
 
   // compute actual CFL, status & max-speed across all domains
   double red_vars[3] = { cfla, is_cfl_violated, max_speed };
