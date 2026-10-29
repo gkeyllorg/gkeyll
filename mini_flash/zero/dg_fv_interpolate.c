@@ -4,9 +4,10 @@
 #include <gkyl_dg_fv_interpolate_priv.h>
 
 #include <assert.h>
+#include <math.h>
 
 struct gkyl_dg_fv_interpolate*
-gkyl_dg_fv_interpolate_new(struct gkyl_basis *basis, 
+gkyl_dg_fv_interpolate_new(struct gkyl_basis *basis,
   struct gkyl_rect_grid *grid_dg, struct gkyl_rect_grid *grid_fv)
 {
   // Allocate memory for updater.
@@ -16,153 +17,98 @@ gkyl_dg_fv_interpolate_new(struct gkyl_basis *basis,
 
   // Verify that grid dimensions match.
   assert(grid_dg->ndim == grid_fv->ndim);
+  assert(grid_dg->ndim <= GKYL_MAX_CDIM);
   up->ndim = grid_dg->ndim;
 
   // Verify that grid resolutions are correct.
   for (int i=0; i<up->ndim; ++i) {
     assert(2*grid_dg->cells[i] == grid_fv->cells[i]);
   }
-  up->grid_dg = grid_dg;
-  up->grid_fv = grid_fv;
 
   // Set function pointers.
   up->kernels.modal_to_fv = choose_dg_fv_interp_modal_to_fv_kernel(up->ndim);
   up->kernels.fv_to_modal = choose_dg_fv_interp_fv_to_modal_kernel(up->ndim);
-  up->kernels.fv_to_modal_recov = choose_dg_fv_interp_fv_to_modal_recov_kernel(up->ndim);
 
   return up;
 }
 
-void
-gkyl_dg_fv_interpolate_fv_to_modal_advance(gkyl_dg_fv_interpolate *up, 
-  struct gkyl_range *range_dg, struct gkyl_range *range_fv,
-  const struct gkyl_array *fv_in, int comp_in,
-  struct gkyl_array *dg_out, int comp_out)
+// Determine linear offsets of the 2^ndim finite volume cells corresponding to a
+// single DG cell. Returns the number of cells.
+// Ordering is row-major,  e.g. in 2D, the offsets are:
+// (0,0), (0,1), (1,0), (1,1).
+static int
+fv_cell_offsets(const struct gkyl_range *range_fv, int ndim, long offsets[8])
 {
-  // Array of pointers to finite volume data. Up to 8 because we only ever
-  // need at most 8 FV cells per DG cell (3D).
-  const double *fv_data[8];
+  // Number of finite volume cells.
+  int num_fv = (int)pow(2, ndim);
 
-  // Sub range to iterate over corresponding cells in FV grid.
-  struct gkyl_range sub_range;
-  int sub_lower[GKYL_MAX_DIM], sub_upper[GKYL_MAX_DIM];
+  for (int k=0; k<num_fv; ++k) {
+    int rel[GKYL_MAX_DIM] = { 0 };
 
-  // Iterate over coarse DG grid.
-  struct gkyl_range_iter iter, sub_iter;
-  gkyl_range_iter_init(&iter, range_dg);
-  while (gkyl_range_iter_next(&iter)) {
-    long linc = gkyl_range_idx(range_dg, iter.idx);
-    double *dg_out_d = &(((double *)gkyl_array_fetch(dg_out, linc))[comp_out*up->num_basis]);
+    for (int d=0; d<ndim; ++d)
+      rel[d] = (k / (int)pow(2, ndim-1-d)) % 2;
 
-    // Compute indices of cells in refined grid at lower and 
-    // upper corners of the coarse cell.
-    for (int i=0; i<up->ndim; ++i) {
-      sub_lower[i] = iter.idx[i]*2 - 1;
-      sub_upper[i] = sub_lower[i] + 1;
-    }
-
-    // Fetch pointers to corresponding refined grid cells.
-    gkyl_sub_range_init(&sub_range, range_fv, sub_lower, sub_upper);
-    gkyl_range_iter_init(&sub_iter, &sub_range);
-    int count = 0;
-    while (gkyl_range_iter_next(&sub_iter)) {
-      long sub_linc = gkyl_range_idx(range_fv, sub_iter.idx);
-
-      fv_data[count] = &(((const double*)gkyl_array_cfetch(fv_in, sub_linc))[comp_in]);
-      count++;
-    }
-
-    // Convert finite volume data to p=1 modal data.
-    up->kernels.fv_to_modal(fv_data, dg_out_d);
+    offsets[k] = gkyl_range_offset(range_fv, rel);
   }
+  return num_fv;
 }
 
+// Determine linear index of the finite volume cell in the lower corner of
+// the DG cell with index `idx_dg`.
+static inline long
+fv_cell_lower_idx(const struct gkyl_range *range_fv, int ndim, const int *idx_dg)
+{
+  int idx_fv[GKYL_MAX_DIM];
+  for (int d=0; d<ndim; ++d)
+    idx_fv[d] = 2*idx_dg[d] - 1;
+  return gkyl_range_idx(range_fv, idx_fv);
+}
 
 void
-gkyl_dg_fv_interpolate_fv_to_modal_recov_advance(gkyl_dg_fv_interpolate *up, 
+gkyl_dg_fv_interpolate_fv_to_modal_advance(gkyl_dg_fv_interpolate *up,
   struct gkyl_range *range_dg, struct gkyl_range *range_fv,
   const struct gkyl_array *fv_in, int comp_in,
-  struct gkyl_array *dg_out, int comp_out)
+  struct gkyl_array *dg_out, int comp_out, int ncomp)
 {
-  // Array of pointers to finite volume data. Up to 8 because we only ever
-  // need at most 8 FV cells per DG cell (3D).
+  long offsets[8];
+  int num_fv = fv_cell_offsets(range_fv, up->ndim, offsets);
   const double *fv_data[8];
 
-  // Sub range to iterate over corresponding cells in FV grid.
-  struct gkyl_range sub_range;
-  int sub_lower[GKYL_MAX_DIM], sub_upper[GKYL_MAX_DIM];
-
-  // Iterate over coarse DG grid.
-  struct gkyl_range_iter iter, sub_iter;
+  struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, range_dg);
   while (gkyl_range_iter_next(&iter)) {
-    long linc = gkyl_range_idx(range_dg, iter.idx);
+    long lower_fv = fv_cell_lower_idx(range_fv, up->ndim, iter.idx);
+    double *dg_out_d = gkyl_array_fetch(dg_out, gkyl_range_idx(range_dg, iter.idx));
 
-    double *dg_out_d = &(((double *)gkyl_array_fetch(dg_out, linc))[comp_out*up->num_basis]);
-
-    // Compute indices of cells in refined grid at lower and 
-    // upper corners of the coarse cell.
-    for (int i=0; i<up->ndim; ++i) {
-      sub_lower[i] = iter.idx[i]*2 - 1;
-      sub_upper[i] = sub_lower[i] + 1;
+    for (int c=0; c<ncomp; ++c) {
+      for (int k=0; k<num_fv; ++k)
+        fv_data[k] = (const double *)gkyl_array_cfetch(fv_in, lower_fv+offsets[k]) + comp_in + c;
+      up->kernels.fv_to_modal(fv_data, &dg_out_d[(comp_out+c)*up->num_basis]);
     }
-
-    // Fetch pointers to corresponding refined grid cells.
-    gkyl_sub_range_init(&sub_range, range_fv, sub_lower, sub_upper);
-    gkyl_range_iter_init(&sub_iter, &sub_range);
-    int count = 0;
-    while (gkyl_range_iter_next(&sub_iter)) {
-      long sub_linc = gkyl_range_idx(range_fv, sub_iter.idx);
-      
-      fv_data[count] = &(((const double*)gkyl_array_cfetch(fv_in, sub_linc))[comp_in]);
-      count++;
-    }
-
-    // Convert finite volume data to p=1 modal data.
-    up->kernels.fv_to_modal_recov(fv_data, dg_out_d);
   }
 }
 
 void
-gkyl_dg_fv_interpolate_modal_to_fv_advance(gkyl_dg_fv_interpolate *up, 
+gkyl_dg_fv_interpolate_modal_to_fv_advance(gkyl_dg_fv_interpolate *up,
   struct gkyl_range *range_dg, struct gkyl_range *range_fv,
   const struct gkyl_array *dg_in, int comp_in,
-  struct gkyl_array *fv_out, int comp_out) {
-  // Array of pointers to finite volume data. Up to 8 because we only ever
-  // need at most 8 cells (3D).
+  struct gkyl_array *fv_out, int comp_out, int ncomp)
+{
+  long offsets[8];
+  int num_fv = fv_cell_offsets(range_fv, up->ndim, offsets);
   double *fv_data[8];
 
-  // Sub range to iterate over corresponding cells in FV grid.
-  struct gkyl_range sub_range;
-  int sub_lower[GKYL_MAX_DIM], sub_upper[GKYL_MAX_DIM];
-
-  // Iterate over coarse DG grid.
-  struct gkyl_range_iter iter, sub_iter;
+  struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, range_dg);
   while (gkyl_range_iter_next(&iter)) {
-    long linc = gkyl_range_idx(range_dg, iter.idx);
-    const double *dg_in_d = &(((double *)gkyl_array_cfetch(dg_in, linc))[comp_in*up->num_basis]);
+    long lower_fv = fv_cell_lower_idx(range_fv, up->ndim, iter.idx);
+    const double *dg_in_d = gkyl_array_cfetch(dg_in, gkyl_range_idx(range_dg, iter.idx));
 
-    // Compute indices of cells in refined grid at lower and 
-    // upper corners of the coarse cell.
-    for (int i=0; i<up->ndim; ++i) {
-      sub_lower[i] = iter.idx[i]*2 - 1;
-      sub_upper[i] = sub_lower[i] + 1;
+    for (int c=0; c<ncomp; ++c) {
+      for (int k=0; k<num_fv; ++k)
+        fv_data[k] = (double *)gkyl_array_fetch(fv_out, lower_fv+offsets[k]) + comp_out + c;
+      up->kernels.modal_to_fv(&dg_in_d[(comp_in+c)*up->num_basis], fv_data);
     }
-
-    // Fetch pointers to corresponding refined grid cells.
-    gkyl_sub_range_init(&sub_range, range_fv, sub_lower, sub_upper);
-    gkyl_range_iter_init(&sub_iter, &sub_range);
-    int count = 0;
-    while (gkyl_range_iter_next(&sub_iter)) {
-      long sub_linc = gkyl_range_idx(range_fv, sub_iter.idx);
-
-      fv_data[count] = &(((double*)gkyl_array_fetch(fv_out, sub_linc))[comp_out]);
-      count++;
-    }
-
-    // Convert finite volume data to p=1 modal data.
-    up->kernels.modal_to_fv(dg_in_d, fv_data);
   }
 }
 

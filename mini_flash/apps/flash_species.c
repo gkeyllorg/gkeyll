@@ -287,7 +287,7 @@ void flash_species_init(struct gkyl_flash_inp *inp,
 // Compute initial distribution function as Maxwellian using input fluid moment data.
 // Moments are [n, ux, uy, uz, T/m].
 void
-flash_species_calc_distf_from_moms(gkyl_flash_app *app, struct flash_species *s, struct gkyl_array *init_dist_moms, double t0)
+flash_species_calc_distf_from_moms(gkyl_flash_app *app, struct flash_species *s, struct gkyl_array *init_dist_moms)
 {
   struct gkyl_basis vel_basis;
   if (app->basis.b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
@@ -329,7 +329,7 @@ flash_species_apply_ic(gkyl_flash_app *app, struct flash_species *s, double t0)
   // If user specified input moments to initialize distribution functions, use them.
   // Otherwise, project from provided function.
   if (s->init_dist_from_arrays) {
-    flash_species_calc_distf_from_moms(app, s, s->init_dist_moms, t0);
+    flash_species_calc_distf_from_moms(app, s, s->init_dist_moms);
     return;
   }
 
@@ -613,8 +613,7 @@ flash_species_apply_bc_rhou(gkyl_flash_app *app, const struct flash_species *spe
 // DG on coarsened mesh for use in PKPM kinetic update.
 void
 flash_species_interp_rhou_to_dg(struct gkyl_flash_app *app,
-  struct flash_species *species, struct flash_fluid_species *fluid_species, 
-  const struct gkyl_array *fv_fluidin)
+  struct flash_species *species, const struct gkyl_array *fv_fluidin)
 {
   struct timespec wst = gkyl_wall_clock();
 

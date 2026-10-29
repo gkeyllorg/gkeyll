@@ -41,7 +41,7 @@ flash_multib_forward_euler(struct gkyl_flash_multib_app *app, double tcurr, doub
 
     for (int i=0; i<ns; ++i) {
       flash_species_calc_pkpm_moms(sbapp, &sbapp->species[i], fin[b*ns+i]);
-      flash_species_interp_rhou_to_dg(sbapp, &sbapp->species[i], &sbapp->fluid_species[i], fluidin[b*ns+i]);
+      flash_species_interp_rhou_to_dg(sbapp, &sbapp->species[i], fluidin[b*ns+i]);
     }
   }
   // Sync fluid momentum density across connected blocks.

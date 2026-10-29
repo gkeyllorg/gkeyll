@@ -13,17 +13,16 @@ typedef struct gkyl_flash_interp_vars gkyl_flash_interp_vars;
  * 1. Momentum density (rho u_x, rho u_y rho u_z) from finite volume to DG grid.
  * 2. Pressure tensor (p_ij) from DG grid to finite volume grid. 
  * 
- * @param basis 
+ * @param basis DG basis.
  * @param grid_kinetic 
  * @param grid_fluid 
- * @param range_kinetic 
- * @param range_fluid 
- * @return struct gkyl_flash_interp_vars* 
+ * @param range_fluid_ext Extended fluid range.
+ * @return struct gkyl_flash_interp_vars*
  */
 struct gkyl_flash_interp_vars*
 gkyl_flash_interp_vars_new(struct gkyl_basis *basis, 
   struct gkyl_rect_grid *grid_kinetic, struct gkyl_rect_grid *grid_fluid,
-  struct gkyl_range *range_kinetic, struct gkyl_range *range_fluid);
+  struct gkyl_range *range_fluid_ext);
 
 /**
  * Interpolate momentum density (rho u_x, rho u_y rho u_z) from kinetic DG grid

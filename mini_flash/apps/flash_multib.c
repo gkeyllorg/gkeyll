@@ -600,7 +600,7 @@ gkyl_flash_multib_kinetic_update(gkyl_flash_multib_app *app, double dt0)
     }
 
     struct gkyl_update_status st_b;
-    flash_vlasov_forward_euler(sbapp, sbapp->tcurr, dt, fin, fout, &st_b);
+    flash_vlasov_forward_euler(sbapp, dt, fin, fout, &st_b);
 
     for (int i=0; i<ns; ++i) {
       gkyl_array_copy_range(sbapp->species[i].f, fout[i], &sbapp->species[i].local_ext);

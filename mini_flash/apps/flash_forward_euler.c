@@ -25,7 +25,7 @@ flash_forward_euler(gkyl_flash_app *app, double tcurr, double dt0,
     flash_species_calc_pkpm_moms(app, &app->species[i], fin[i]);
 
     // Interpolate fluid momentum density vector onto kinetic grid.
-    flash_species_interp_rhou_to_dg(app, &app->species[i], &app->fluid_species[i], fv_fluidin[i]);
+    flash_species_interp_rhou_to_dg(app, &app->species[i], fv_fluidin[i]);
 
     // Compute coupling moments, self-consistent pressure
     // force (div(p_par b_hat)), and primitive variables
@@ -88,7 +88,7 @@ flash_forward_euler(gkyl_flash_app *app, double tcurr, double dt0,
 // suggested timestep, and both the suggested and actual timesteps are returned
 // in the status structure.
 void
-flash_vlasov_forward_euler(gkyl_flash_app *app, double tcurr, double dt0,
+flash_vlasov_forward_euler(gkyl_flash_app *app, double dt0,
   const struct gkyl_array *fin[], struct gkyl_array *fout[],
   struct gkyl_update_status *st)
 {

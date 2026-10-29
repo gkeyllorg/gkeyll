@@ -97,12 +97,12 @@ gkyl_flash_app_new(struct gkyl_flash_inp *inp)
 
     // Initialize fluid species unless specified
     if (!app->skip_fluid_species)
-      flash_fluid_species_init(inp, app, &app->fluid_species[i]);
+      flash_fluid_species_init(app, &app->fluid_species[i]);
   }
 
   // Updater to interpolate between finite volume and DG quantities
   app->interp_vars = gkyl_flash_interp_vars_new(&app->confBasis, &app->grid_kinetic,
-    &app->grid_fluid, &app->local_kinetic_ext, &app->local_fluid_ext);
+    &app->grid_fluid, &app->local_fluid_ext);
 
   return app;
 }
@@ -368,7 +368,7 @@ gkyl_flash_app_write_pkpm_moms(gkyl_flash_app* app, int sidx, double tm, int fra
 
   // If there's a fluid species, interpolate the fluid velocity to DG
   if (!app->skip_fluid_species) {
-    flash_species_interp_rhou_to_dg(app, s, fs, fs->fluid);
+    flash_species_interp_rhou_to_dg(app, s, fs->fluid);
   }
   flash_species_calc_pkpm_diags(app, s, s->f);
 

@@ -71,7 +71,7 @@ gkyl_flash_app_init_maxwellian_from_moms(gkyl_flash_app *app, struct gkyl_array 
 
   // Initialize the distribution function
   for (int i=0; i<app->num_species; ++i) {
-    flash_species_calc_distf_from_moms(app, &app->species[i], app->species[i].init_dist_moms, 0.0);
+    flash_species_calc_distf_from_moms(app, &app->species[i], app->species[i].init_dist_moms);
     
     flash_species_apply_bc(app, &app->species[i], app->species[i].f);
   }
@@ -96,7 +96,7 @@ gkyl_flash_multib_app_init_maxwellian_from_moms_block(gkyl_flash_multib_app *app
   // Initialize the distribution function
   for (int i=0; i<sbapp->num_species; ++i) {
     flash_species_calc_distf_from_moms(sbapp, &sbapp->species[i], 
-      sbapp->species[i].init_dist_moms, 0.0);
+      sbapp->species[i].init_dist_moms);
   
     flash_species_apply_bc(sbapp, &sbapp->species[i], sbapp->species[i].f);
   }
@@ -209,7 +209,7 @@ gkyl_flash_app_kinetic_update(gkyl_flash_app *app, double dt)
   for (int i=0; i<ns; ++i) {
     fin[i] = app->species[i].f;
     fout[i] = app->species[i].f1;
-    flash_vlasov_forward_euler(app, app->tcurr, dt, fin, fout, &status);
+    flash_vlasov_forward_euler(app, dt, fin, fout, &status);
 
     // gkyl_array_copy_range(app->species[i].f, fout[i], &app->species[i].local_ext);
     gkyl_array_copy_range(app->species[i].f, fout[i], &app->species[i].local);

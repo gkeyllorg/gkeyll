@@ -260,8 +260,7 @@ flash_species_init(struct gkyl_flash_inp *inp,
  */
 void
 flash_species_interp_rhou_to_dg(struct gkyl_flash_app *app,
-  struct flash_species *species, struct flash_fluid_species *fluid_species,
-  const struct gkyl_array *fv_fluidin);
+  struct flash_species *species, const struct gkyl_array *fv_fluidin);
 
 // Compute pkpm moments, [rho, p_par, p_perp].
 void
@@ -389,11 +388,10 @@ flash_species_calc_coupling_fluxes(struct gkyl_flash_app *app,
  * @param app 
  * @param s 
  * @param init_dist_moms
- * @param t0 
  */
 void
 flash_species_calc_distf_from_moms(gkyl_flash_app *app, struct flash_species *s, 
-  struct gkyl_array *init_dist_moms, double t0);
+  struct gkyl_array *init_dist_moms);
 
 /**
  * Adjust the velocity space extents of the input species' internal phase space grid.
@@ -464,13 +462,11 @@ flash_species_lbo_release(const struct flash_lbo_collisions *lbo);
 /**
  * Initialize finite volume fluid species object. 
  * 
- * @param inp 
  * @param app 
  * @param spec 
  */
 void
-flash_fluid_species_init(struct gkyl_flash_inp *inp, 
-  struct gkyl_flash_app *app, struct flash_fluid_species *spec);
+flash_fluid_species_init(struct gkyl_flash_app *app, struct flash_fluid_species *spec);
 
 /**
  * Apply initial conditions to finite volume fluid quantities.
@@ -597,14 +593,13 @@ flash_forward_euler(gkyl_flash_app *app, double tcurr, double dt0,
  * The true dt used in the update is returned in the `gkyl_update_status` struct.
  * 
  * @param app 
- * @param tcurr 
  * @param dt0 
  * @param fin 
  * @param fout 
  * @param st 
 */
 void
-flash_vlasov_forward_euler(gkyl_flash_app *app, double tcurr, double dt0,
+flash_vlasov_forward_euler(gkyl_flash_app *app, double dt0,
   const struct gkyl_array *fin[], struct gkyl_array *fout[],
   struct gkyl_update_status *st);
 

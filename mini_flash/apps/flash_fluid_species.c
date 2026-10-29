@@ -3,8 +3,7 @@
 #include <gkyl_fv_proj.h>
 #include <gkyl_wv_euler.h>
 
-void flash_fluid_species_init(struct gkyl_flash_inp *inp, 
-  struct gkyl_flash_app *app, struct flash_fluid_species *s)
+void flash_fluid_species_init(struct gkyl_flash_app *app, struct flash_fluid_species *s)
 {
   int cdim = app->cdim;
 
