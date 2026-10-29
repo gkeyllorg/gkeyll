@@ -247,7 +247,7 @@ create_gk_block_geom(void *ctx)
 
   struct gkyl_efit *efit = gkyl_efit_new(&efit_inp);
   // double psisep = -0.0354402478890806; // from eqdsk our rep
-  double psisep = efit->psisep;
+  double psisep = efit->psisep_cubic; // the flux of the representation traced on (C1, 2026-10-05)
   gkyl_efit_release(efit);
   double wout = 0.0069402478890806 / 4.0;
   double win = 0.0069402478890806 / 4.0;
@@ -323,7 +323,7 @@ create_gk_block_geom(void *ctx)
               .rmin = rmin, // smallest R in machine
               .rmax = rright_out, // largest R in machine
               .use_cubics =
-                false, // Whether to use cubic representation of psi(R,Z) for field line tracing
+                true, // Whether to use cubic representation of psi(R,Z) for field line tracing
               .zmin = -zouter,
               .zmax = zouter,
               .plate_spec = true,
@@ -380,7 +380,7 @@ create_gk_block_geom(void *ctx)
               .rmin = rmin, // smallest R in machine
               .rmax = rright_out, // largest R in machine
               .use_cubics =
-                false, // Whether to use cubic representation of psi(R,Z) for field line tracing
+                true, // Whether to use cubic representation of psi(R,Z) for field line tracing
               .zmin = -zouter,
               .zmax = zouter,
               .plate_spec = true,
@@ -437,7 +437,7 @@ create_gk_block_geom(void *ctx)
               .rmin = rmin, // smallest R in machine
               .rmax = rright_out, // largest R in machine
               .use_cubics =
-                false, // Whether to use cubic representation of psi(R,Z) for field line tracing
+                true, // Whether to use cubic representation of psi(R,Z) for field line tracing
               .zmin = -zouter,
               .zmax = zouter,
               .plate_spec = true,

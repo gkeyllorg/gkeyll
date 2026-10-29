@@ -130,14 +130,12 @@ test_tok_elliptical_ho()
   struct gkyl_position_map *pmap = gkyl_position_map_null_new();
 
   struct gkyl_tok_geo_grid_inp ginp = {
-    .rmin = 0.0,
-    .rmax = 5.0,
-    .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT,
-    .rclose = 6.0,
-    .rright = 6.0,
-    .rleft = 0.0,
-    .zmin = -3.0,
-    .zmax = 3.0,
+    // elliptical.geqdsk and straight_cylinder.geqdsk are analytic equilibria
+    // with no vessel outline in the file, so the absence is declared here.
+    // Without this the block is rejected: silence never disables the wall.
+    .rmin = 0.0,   .rmax = 5.0,   .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT,
+    .rclose = 6.0, .rright = 6.0, .rleft = 0.0,
+    .zmin = -3.0,  .zmax = 3.0,
   };
 
   struct gkyl_gk_geometry_inp geometry_inp = {
@@ -275,12 +273,10 @@ test_tok_3x_p1_straight_cylinder_ho()
     .reflect = true,
   };
   struct gkyl_tok_geo_grid_inp ginp = {
-    .rclose = 0.5,
-    .zmin = -1.,
-    .zmax = 1.,
-    .rleft = 0.001,
-    .rmax = 1.0,
-    .rright = 1.0,
+    // elliptical.geqdsk and straight_cylinder.geqdsk are analytic equilibria
+    // with no vessel outline in the file, so the absence is declared here.
+    // Without this the block is rejected: silence never disables the wall.
+    .rclose = 0.5, .zmin = -1., .zmax = 1., .rleft = 0.001, .rmax = 1.0, .rright = 1.0,
   };
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_input = {
@@ -749,6 +745,7 @@ test_tok_asdex_qprofile_core_ho()
   };
   struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_GEOMETRY_TOKAMAK_CORE,
+    .enforce_wall = true,
     .rmin = 0.0,
     .rmax = 5.0,
     .rclose = 2.5,
@@ -801,6 +798,10 @@ test_tok_asdex_qprofile_core_ho()
   gkyl_position_map_release(pmap);
 }
 
+// RETAINED UNCHANGED as a registered expected rejection. Its domain genuinely
+// leaves the ASDEX vessel, so it is no longer asserted in TEST_LIST, but the
+// input is preserved exactly: historical fixtures must not be edited to pass.
+
 void
 test_tok_asdex_qprofile_sol_ho()
 {
@@ -826,6 +827,7 @@ test_tok_asdex_qprofile_sol_ho()
 
   struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_GEOMETRY_TOKAMAK_LSN_SOL,
+    .enforce_wall = true,
     .rmin = 0.0,
     .rmax = 5.0,
     .rclose = 2.5,
@@ -860,6 +862,84 @@ test_tok_asdex_qprofile_sol_ho()
 
   struct gk_geometry *gk_geom = gkyl_gk_geometry_tok_new(&geometry_inp);
   write_geometry(gk_geom, cgrid, clocal, "asdex_sol");
+  gkyl_gk_geometry_release(gk_geom);
+  gkyl_position_map_release(pmap);
+}
+
+// A wall-contained ASDEX LSN_SOL block, so ASDEX SOL coverage is a POSITIVE test
+// rather than only a rejection. Every number here was derived by sweeping the
+// declaration against the actual EQDSK outline, not chosen by hand:
+//
+//   * psi in [0.1500, 0.1520] (psisep ~ 0.14975). Contained up to 0.1535 and
+//     refused from 0.1540, so this leaves margin.
+//   * zmin_left = -1.0, zmin_right = -0.9. With the historical -1.2 / -1.0 even
+//     a 0.5 mPsi band is refused: BOTH the cuts and the width had to change.
+//   * ntheta = 16. Contained at 8, 16, 32, 64 and 128; refused at 4, where the
+//     straight chord between nodes 90 degrees apart cuts outside the concave
+//     inboard bend. Refinement fixes that, which is what distinguishes it from
+//     test_tok_asdex_qprofile_sol_ho below.
+//
+// See research/nstxu/pr_gates_20260909/gate2/asdex_sol_refusal_findings.json.
+void
+test_tok_asdex_qprofile_sol_contained_ho()
+{
+  double clower[] = {0.1500, -0.01, -M_PI + 1e-14};
+  double cupper[] = {0.1520, 0.01, M_PI - 1e-14};
+  int ccells[] = {4, 1, 16};
+
+  int cpoly_order = 1;
+  int cnghost[GKYL_MAX_CDIM] = {1, 1, 1};
+  struct gkyl_rect_grid cgrid;
+  struct gkyl_range clocal, clocal_ext;
+  struct gkyl_basis cbasis;
+  gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
+  gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
+  gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
+
+  struct gkyl_efit_inp efit_inp = {
+    // psiRZ and related inputs
+    .filepath = "gyrokinetic/data/eqdsk/asdex.geqdsk",
+    .rz_poly_order = 2,
+    .flux_poly_order = 1,
+  };
+
+  struct gkyl_tok_geo_grid_inp ginp = {
+    .ftype = GKYL_GEOMETRY_TOKAMAK_LSN_SOL,
+    .enforce_wall = true,
+    .rmin = 0.0,
+    .rmax = 5.0,
+    .rclose = 2.5,
+    .rright = 2.5,
+    .rleft = 0.7,
+    .zmin = -1.3,
+    .zmax = 1.0,
+    .zmin_left = -1.0,
+    .zmin_right = -0.9,
+  };
+
+  struct gkyl_position_map *pmap = gkyl_position_map_null_new();
+
+  struct gkyl_gk_geometry_inp geometry_inp = {
+    .geometry_id = GKYL_GEOMETRY_TOKAMAK,
+    .efit_info = efit_inp,
+    .tok_grid_info = ginp,
+    .position_map = pmap,
+    .grid = cgrid,
+    .local = clocal,
+    .local_ext = clocal_ext,
+    .global = clocal,
+    .global_ext = clocal_ext,
+    .basis = cbasis,
+    .geo_grid = cgrid,
+    .geo_local = clocal,
+    .geo_local_ext = clocal_ext,
+    .geo_global = clocal,
+    .geo_global_ext = clocal_ext,
+    .geo_basis = cbasis,
+  };
+
+  struct gk_geometry *gk_geom = gkyl_gk_geometry_tok_new(&geometry_inp);
+  write_geometry(gk_geom, cgrid, clocal, "asdex_sol_contained");
   gkyl_gk_geometry_release(gk_geom);
   gkyl_position_map_release(pmap);
 }
@@ -1087,6 +1167,12 @@ TEST_LIST = {
   {"test_tok_elliptical_ho", test_tok_elliptical_ho},
   {"test_tok_3x_p1_straight_cylinder_ho", test_tok_3x_p1_straight_cylinder_ho},
   {"test_tok_asdex_qprofile_core_ho", test_tok_asdex_qprofile_core_ho},
-  {"test_tok_asdex_qprofile_sol_ho", test_tok_asdex_qprofile_sol_ho},
+  {"test_tok_asdex_qprofile_sol_contained_ho", test_tok_asdex_qprofile_sol_contained_ho},
+  // test_tok_asdex_qprofile_sol_ho is retained above but NOT run as a positive test.
+  // Its domain genuinely leaves the ASDEX vessel: refused at every theta
+  // resolution from 4 to 128, with the far endpoint of the failing segment
+  // measured 4.9-257 mm OUTSIDE the outline by an independent point-in-polygon
+  // check. It is a registered expected rejection, not a regression, and it is
+  // kept in place because historical inputs must not be edited to pass.
   {NULL, NULL}
 };

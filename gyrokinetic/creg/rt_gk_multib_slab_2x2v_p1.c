@@ -746,6 +746,7 @@ main(int argc, char **argv)
   app_inp->cfl_frac = 1.0;
   app_inp->gk_block_geom = bgeom;
   app_inp->num_species = 2;
+  app_inp->num_neut_species = 0;
   app_inp->species[0] = elc;
   app_inp->species[1] = ion;
   app_inp->field = field;

@@ -1915,6 +1915,15 @@ gk_fetch_bc_with_dir_edge(
 gkyl_gyrokinetic_app *gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk);
 
 /**
+ * Allocate a geometry-only gyrokinetic app without writing geometry files.
+ * The returned app must be released with gkyl_gyrokinetic_app_release_geom.
+ *
+ * @param gk Gyrokinetic input struct.
+ * @return A gyrokinetic app object.
+ */
+gkyl_gyrokinetic_app *gkyl_gyrokinetic_app_new_geom_no_write(struct gkyl_gk *gk);
+
+/**
  * Initialize the rest of the gyrokinetic app solver, after having called
  * the gkyl_gyrokinetic_app_new_geom method.
  *

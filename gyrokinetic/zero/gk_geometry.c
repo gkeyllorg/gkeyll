@@ -509,15 +509,8 @@ gkyl_gk_geometry_init_nodal_range(
 )
 {
   int nodes[GKYL_MAX_DIM];
-  if (poly_order == 1) {
-    for (int d = 0; d < range->ndim; ++d) {
-      nodes[d] = gkyl_range_shape(range, d) + 1;
-    }
-  }
-  if (poly_order == 2) {
-    for (int d = 0; d < range->ndim; ++d) {
-      nodes[d] = 2 * gkyl_range_shape(range, d) + 1;
-    }
+  for (int d = 0; d < range->ndim; ++d) {
+    nodes[d] = gkyl_dg_nodes_per_dir(poly_order, gkyl_range_shape(range, d));
   }
   gkyl_range_init_from_shape(nrange, range->ndim, nodes);
 }
@@ -695,6 +688,10 @@ gkyl_gk_geometry_deflate(const struct gk_geometry *up_3d, struct gkyl_gk_geometr
     up->geo_int.jacobgeo_nodal, 1
   );
   gkyl_deflate_geo_advance_nodal(
+    deflator, &up_3d->nrange_int, &up->nrange_int, up_3d->geo_int.g_ij_nodal,
+    up->geo_int.g_ij_nodal, 6
+  );
+  gkyl_deflate_geo_advance_nodal(
     deflator, &up_3d->nrange_int, &up->nrange_int, up_3d->geo_int.dxdz_nodal,
     up->geo_int.dxdz_nodal, 9
   );
@@ -776,6 +773,10 @@ gkyl_gk_geometry_deflate(const struct gk_geometry *up_3d, struct gkyl_gk_geometr
         up->geo_surf[count].jacobgeo, 1
       );
       gkyl_deflate_geo_surf_advance(
+        deflator_surf, &local_ext_in_dir_3d, &local_ext_in_dir,
+        up_3d->geo_surf[dir].jacobgeo_signed, up->geo_surf[count].jacobgeo_signed, 1
+      );
+      gkyl_deflate_geo_surf_advance(
         deflator_surf, &local_ext_in_dir_3d, &local_ext_in_dir, up_3d->geo_surf[dir].jacobgeo_ratio,
         up->geo_surf[count].jacobgeo_ratio, 1
       );
@@ -820,9 +821,37 @@ gkyl_gk_geometry_deflate(const struct gk_geometry *up_3d, struct gkyl_gk_geometr
         deflator_surf, &up_3d->nrange_surf[dir], &up->nrange_surf[count],
         up_3d->geo_surf[dir].bmag_nodal, up->geo_surf[count].bmag_nodal, 1
       );
+      // Tokamak surface positions are stored in the base triplet of the
+      // finite-difference array.  Preserve the full array so diagnostics can
+      // read the surface position without relying on mc2p_nodal, which the
+      // tokamak mapping does not populate.
+      gkyl_deflate_geo_surf_advance_nodal(
+        deflator_surf, &up_3d->nrange_surf[dir], &up->nrange_surf[count],
+        up_3d->geo_surf[dir].mc2p_nodal_fd, up->geo_surf[count].mc2p_nodal_fd, 39
+      );
       gkyl_deflate_geo_surf_advance_nodal(
         deflator_surf, &up_3d->nrange_surf[dir], &up->nrange_surf[count],
         up_3d->geo_surf[dir].jacobgeo_nodal, up->geo_surf[count].jacobgeo_nodal, 1
+      );
+      gkyl_deflate_geo_surf_advance_nodal(
+        deflator_surf, &up_3d->nrange_surf[dir], &up->nrange_surf[count],
+        up_3d->geo_surf[dir].jacobgeo_signed_nodal, up->geo_surf[count].jacobgeo_signed_nodal, 1
+      );
+      gkyl_deflate_geo_surf_advance_nodal(
+        deflator_surf, &up_3d->nrange_surf[dir], &up->nrange_surf[count],
+        up_3d->geo_surf[dir].cmag_nodal, up->geo_surf[count].cmag_nodal, 1
+      );
+      gkyl_deflate_geo_surf_advance_nodal(
+        deflator_surf, &up_3d->nrange_surf[dir], &up->nrange_surf[count],
+        up_3d->geo_surf[dir].jacobtot_inv_nodal, up->geo_surf[count].jacobtot_inv_nodal, 1
+      );
+      gkyl_deflate_geo_surf_advance_nodal(
+        deflator_surf, &up_3d->nrange_surf[dir], &up->nrange_surf[count],
+        up_3d->geo_surf[dir].g_ij_nodal, up->geo_surf[count].g_ij_nodal, 6
+      );
+      gkyl_deflate_geo_surf_advance_nodal(
+        deflator_surf, &up_3d->nrange_surf[dir], &up->nrange_surf[count],
+        up_3d->geo_surf[dir].dxdz_nodal, up->geo_surf[count].dxdz_nodal, 9
       );
       gkyl_deflate_geo_surf_advance_nodal(
         deflator_surf, &up_3d->nrange_surf[dir], &up->nrange_surf[count],
@@ -956,6 +985,7 @@ gkyl_gk_geometry_free(const struct gkyl_ref_count *ref)
 
   for (int dir = 0; dir < up->grid.ndim; dir++) {
     gkyl_array_release(up->geo_surf[dir].jacobgeo);
+    gkyl_array_release(up->geo_surf[dir].jacobgeo_signed);
     gkyl_array_release(up->geo_surf[dir].jacobgeo_ratio);
     gkyl_array_release(up->geo_surf[dir].bmag);
     gkyl_array_release(up->geo_surf[dir].b_i);

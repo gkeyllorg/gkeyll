@@ -1,3 +1,4 @@
+#include <gkyl_tok_geo_wall_trial_priv.h>
 #include <gkyl_calc_metric.h>
 #include <gkyl_calc_metric_priv.h>
 #include <gkyl_alloc.h>
@@ -5,6 +6,9 @@
 #include <gkyl_range.h>
 #include <gkyl_nodal_ops.h>
 #include <gkyl_array_ops_priv.h>
+#include <float.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 gkyl_calc_metric *
 gkyl_calc_metric_new(
@@ -31,8 +35,36 @@ gkyl_calc_metric_new(
 
   up->local = *local;
   up->local_ext = *local_ext;
+  up->rz_expected_jacobian_sign = 0;
+  up->rz_jacobian_valid = true;
+  up->rz_jacobian_guard_nonfatal = false;
+  up->is_verbose = false;
 
   return up;
+}
+
+void
+gkyl_calc_metric_set_signed_jacobian_guard_nonfatal(gkyl_calc_metric *up, bool nonfatal)
+{
+  up->rz_jacobian_guard_nonfatal = nonfatal;
+}
+
+void
+gkyl_calc_metric_set_verbose(gkyl_calc_metric *up, bool is_verbose)
+{
+  up->is_verbose = is_verbose;
+}
+
+bool
+gkyl_calc_metric_signed_jacobian_valid(const gkyl_calc_metric *up)
+{
+  return up->rz_jacobian_valid;
+}
+
+int
+gkyl_calc_metric_signed_jacobian_sign(const gkyl_calc_metric *up)
+{
+  return up->rz_expected_jacobian_sign;
 }
 
 static inline double
@@ -71,6 +103,80 @@ dot(const double a[3], const double b[3])
   return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 }
 
+static inline double
+signed_jacobian_rz(double R, double dRdpsi, double dZdpsi, double dRdtheta, double dZdtheta)
+{
+  return R * (dRdpsi * dZdtheta - dRdtheta * dZdpsi);
+}
+
+struct signed_jacobian_guard_state {
+  int expected_sign;
+  bool valid;
+  bool nonfatal;
+};
+
+static bool
+signed_jacobian_guard_enabled(void)
+{
+  // Always on. This is the criterion that matters: J is what enters the
+  // equations, and it is evaluated here at the quadrature points from the
+  // map's own derivatives. The corner-node shoelace in tok_geo.c cannot
+  // decide this -- it joins the corners with CHORDS, and where a radial band
+  // is ~1e-4 m against a ~1 m poloidal cell the chord quadrilateral inverts
+  // while the curved cell does not. Measured on STEP psi x8/x16 and ASDEX
+  // psi x2/x4/x8 theta x1: the shoelace reports a fold, this guard reports
+  // none, and jacobgeo is +1.64 or better at every corner of every cell.
+  return true;
+}
+
+static void
+signed_jacobian_guard_check(
+  struct signed_jacobian_guard_state *state, double J, bool enforce_sign, const char *location,
+  int dir, const int cidx[3]
+)
+{
+  bool enabled = signed_jacobian_guard_enabled();
+  if (!isfinite(J) || J == 0.0) {
+    state->valid = false;
+    if (!enabled || state->nonfatal) {
+      return;
+    }
+    fprintf(
+      stderr,
+      "GKYL_SIGNED_JACOBIAN_GUARD failure version=1 location=%s dir=%d index=%d,%d,%d J=%.17g reason=%s\n",
+      location, dir, cidx[0], cidx[1], cidx[2], J, isfinite(J) ? "zero" : "nonfinite"
+    );
+    // Inside a disposable wall trial the failure is recorded for the adjuster
+    // to classify (region_degenerate or construction failure); it is fatal
+    // everywhere else, exactly as before.
+    if (tok_wall_trial_note_jacobian_invalid()) {
+      return;
+    }
+    abort();
+  }
+  if (!enforce_sign) {
+    return;
+  }
+  int sign = J < 0.0 ? -1 : 1;
+  if (state->expected_sign == 0) {
+    state->expected_sign = sign;
+  } else if (sign != state->expected_sign) {
+    state->valid = false;
+    if (!enabled || state->nonfatal) {
+      return;
+    }
+    fprintf(
+      stderr,
+      "GKYL_SIGNED_JACOBIAN_GUARD failure version=1 location=%s dir=%d index=%d,%d,%d J=%.17g expected_sign=%d reason=sign_reversal\n",
+      location, dir, cidx[0], cidx[1], cidx[2], J, state->expected_sign
+    );
+    if (tok_wall_trial_note_jacobian_invalid()) {
+      return;
+    }
+    abort();
+  }
+}
+
 static inline void
 cross(const double a[3], const double b[3], double c[3])
 {
@@ -80,7 +186,7 @@ cross(const double a[3], const double b[3], double c[3])
 }
 
 static inline void
-check_orthonormality(const double tan[9], const double dual[9], bool exit_at_check)
+check_orthonormality(const double tan[9], const double dual[9], bool exit_at_check, bool verbose)
 {
   // Check that the coordinate system has tangent/dual vectors
   // satisfying orthonormality.
@@ -101,7 +207,86 @@ check_orthonormality(const double tan[9], const double dual[9], bool exit_at_che
           stderr, "calc_metric.c: Orthonormality violated : e_%d . e^%d = %.6e\n", i + 1, j + 1,
           prod[i][j]
         );
+        fprintf(
+          stderr, "calc_metric.c: diagonal products = [%.6e, %.6e, %.6e]\n", prod[0][0], prod[1][1],
+          prod[2][2]
+        );
         assert(!exit_at_check);
+      }
+    }
+  }
+
+  // The loop above tests only the SIGN of the diagonal, so a metric wrong by a
+  // scale factor, or carrying non-zero off-diagonal products, passes it
+  // silently.  Measure the full identity |e_i . e^j - delta_ij| as well.
+  //
+  // This REPORTS and does not abort.  The coordinate system is genuinely singular
+  // at X-point and divertor-plate corners, so a check that aborted by default
+  // would reject geometry the plan explicitly expects to build; what matters is
+  // WHERE the residual is large, not merely that it is non-zero somewhere.
+  //
+  // The residual is measured in units of its own roundoff bound (below), so a
+  // singular coordinate is not mistaken for an error; measured 2026-10-07 on
+  // the NSTX-U, STEP, ASDEX and TCV fixtures: at most 0.28 of that bound.
+  {
+    const double tol = 1.0;
+    static double worst_seen = 0.0;
+    static double last_reported = 0.0;
+    // Judged against the roundoff of the computation itself: e^j = e_a x e_b / J
+    // (a, b cyclic after j), so e_i . e^j - delta_ij carries the rounding of
+    // two three-term sums and a two-term cross product and a division,
+    // |err| <= 9 eps |e_i||e_a||e_b|/|J| (gamma_3 twice, gamma_2, one division).
+    // An absolute tolerance confused that with an error where the coordinates
+    // are singular: at an X point dR/dpsi diverges (|e_1| ~ 6e6 on NSTX-U at
+    // theta x8) and the residual there was 2^-17 of pure roundoff. `worst` is the
+    // residual in units of that bound, and `tol` is the bound itself.
+    double worst = 0.0, worst_abs = 0.0;
+    int wi = 0, wj = 0;
+    double nrm[3], cr[3];
+    for (int i = 0; i < 3; i++) {
+      nrm[i] = sqrt(
+        tan[3 * i] * tan[3 * i] + tan[3 * i + 1] * tan[3 * i + 1] + tan[3 * i + 2] * tan[3 * i + 2]
+      );
+    }
+    cross(&tan[3], &tan[6], cr);
+    const double vol = fabs(tan[0] * cr[0] + tan[1] * cr[1] + tan[2] * cr[2]);
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        const double d = fabs(prod[i][j] - (i == j ? 1.0 : 0.0));
+        const double bound = 9.0 * DBL_EPSILON * nrm[i] * nrm[(j + 1) % 3] * nrm[(j + 2) % 3] / vol;
+        const double rel = vol > 0.0 ? d / bound : (d > 0.0 ? INFINITY : 0.0);
+        if (rel > worst) {
+          worst = rel;
+          worst_abs = d;
+          wi = i;
+          wj = j;
+        }
+      }
+    }
+    // Track the RUNNING MAXIMUM rather than capping a count of violations.
+    //
+    // A fixed report cap reports the FIRST N residuals, which are not the worst
+    // ones, so the true maximum can be suppressed and never seen. Worse, a cap
+    // keyed on the tolerance is blind to residuals that creep upward while
+    // still passing -- exactly the latent error this check exists to catch.
+    //
+    // Reporting only on a NEW maximum means the last line emitted IS the worst
+    // residual encountered, so nothing is skipped. Requiring each report to
+    // double the previous one bounds the output to roughly log2 of the observed
+    // range (tens of lines at most) without a magic count. A residual over
+    // tolerance is always reported; one inside it only when verbose.
+    if (worst > worst_seen) {
+      worst_seen = worst;
+      bool over_tol = worst > tol;
+      if (over_tol || (verbose && worst >= 2.0 * last_reported)) {
+        fprintf(
+          stderr,
+          "TOK_METRIC_ORTHONORMALITY_MAX residual=%.9e at e_%d.e^%d tol=%.3e "
+          "status=%s abs=%.3e diag=[%.9e,%.9e,%.9e]\n",
+          worst, wi + 1, wj + 1, tol, over_tol ? "OVER_TOLERANCE" : "within_tolerance", worst_abs,
+          prod[0][0], prod[1][1], prod[2][2]
+        );
+        last_reported = worst;
       }
     }
   }
@@ -213,6 +398,192 @@ check_axisymmetric(struct gkyl_array *arr, struct gkyl_range *range, bool exit_a
   }
 }
 
+static int metric_diag_block_id = -1;
+
+struct metric_diag_stats {
+  long nodes;
+  long bad_jacobgeo;
+  long bad_bmag;
+  long bad_gdiag;
+  double min_jacobgeo, max_jacobgeo, min_abs_jacobgeo;
+  double min_bmag, max_bmag;
+  double min_g11, min_g22, min_g33;
+  double max_g11, max_g22, max_g33;
+  int min_abs_jacobgeo_idx[3];
+  int max_g11_idx[3];
+  int max_g22_idx[3];
+  int max_g33_idx[3];
+};
+
+static void
+metric_diag_stats_init(struct metric_diag_stats *s)
+{
+  s->nodes = 0;
+  s->bad_jacobgeo = 0;
+  s->bad_bmag = 0;
+  s->bad_gdiag = 0;
+  s->min_jacobgeo = DBL_MAX;
+  s->max_jacobgeo = -DBL_MAX;
+  s->min_abs_jacobgeo = DBL_MAX;
+  s->min_bmag = DBL_MAX;
+  s->max_bmag = -DBL_MAX;
+  s->min_g11 = DBL_MAX;
+  s->min_g22 = DBL_MAX;
+  s->min_g33 = DBL_MAX;
+  s->max_g11 = -DBL_MAX;
+  s->max_g22 = -DBL_MAX;
+  s->max_g33 = -DBL_MAX;
+  for (int d = 0; d < 3; ++d) {
+    s->min_abs_jacobgeo_idx[d] = 0;
+    s->max_g11_idx[d] = 0;
+    s->max_g22_idx[d] = 0;
+    s->max_g33_idx[d] = 0;
+  }
+}
+
+static void
+metric_diag_update_minmax(double v, double *minv, double *maxv)
+{
+  if (v < *minv) {
+    *minv = v;
+  }
+  if (v > *maxv) {
+    *maxv = v;
+  }
+}
+
+static void
+metric_diag_scan(
+  struct metric_diag_stats *s, const struct gkyl_range *range, const struct gkyl_array *jacobgeo,
+  const struct gkyl_array *bmag, const struct gkyl_array *g_ij
+)
+{
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, range);
+  while (gkyl_range_iter_next(&iter)) {
+    long linidx = gkyl_range_idx(range, iter.idx);
+    const double *j_n = gkyl_array_cfetch(jacobgeo, linidx);
+    const double *b_n = gkyl_array_cfetch(bmag, linidx);
+    const double *g_n = gkyl_array_cfetch(g_ij, linidx);
+
+    s->nodes++;
+    if (!isfinite(j_n[0]) || j_n[0] <= 0.0) {
+      s->bad_jacobgeo++;
+    } else {
+      metric_diag_update_minmax(j_n[0], &s->min_jacobgeo, &s->max_jacobgeo);
+      double abs_j = fabs(j_n[0]);
+      if (abs_j < s->min_abs_jacobgeo) {
+        s->min_abs_jacobgeo = abs_j;
+        for (int d = 0; d < 3; ++d) {
+          s->min_abs_jacobgeo_idx[d] = iter.idx[d];
+        }
+      }
+    }
+
+    if (!isfinite(b_n[0]) || b_n[0] <= 0.0) {
+      s->bad_bmag++;
+    } else {
+      metric_diag_update_minmax(b_n[0], &s->min_bmag, &s->max_bmag);
+    }
+
+    if (!isfinite(g_n[0]) || !isfinite(g_n[3]) || !isfinite(g_n[5]) || g_n[0] <= 0.0 ||
+        g_n[3] <= 0.0 || g_n[5] <= 0.0) {
+      s->bad_gdiag++;
+    } else {
+      metric_diag_update_minmax(g_n[0], &s->min_g11, &s->max_g11);
+      metric_diag_update_minmax(g_n[3], &s->min_g22, &s->max_g22);
+      metric_diag_update_minmax(g_n[5], &s->min_g33, &s->max_g33);
+      if (g_n[0] >= s->max_g11) {
+        for (int d = 0; d < 3; ++d) {
+          s->max_g11_idx[d] = iter.idx[d];
+        }
+      }
+      if (g_n[3] >= s->max_g22) {
+        for (int d = 0; d < 3; ++d) {
+          s->max_g22_idx[d] = iter.idx[d];
+        }
+      }
+      if (g_n[5] >= s->max_g33) {
+        for (int d = 0; d < 3; ++d) {
+          s->max_g33_idx[d] = iter.idx[d];
+        }
+      }
+    }
+  }
+}
+
+static void
+metric_diag_write(const char *location, int dir, const struct metric_diag_stats *s)
+{
+  const char *csv_path = getenv("GKYL_METRIC_DIAG_CSV");
+  if (!csv_path || !csv_path[0]) {
+    return;
+  }
+  const char *case_name = getenv("GKYL_METRIC_DIAG_CASE");
+  if (!case_name || !case_name[0]) {
+    case_name = "unknown";
+  }
+
+  fprintf(
+    stderr,
+    "METRIC_DIAG case=%s block=%d location=%s dir=%d nodes=%ld bad_jacobgeo=%ld "
+    "bad_bmag=%ld bad_gdiag=%ld min_jacobgeo=%.16e max_jacobgeo=%.16e "
+    "min_abs_jacobgeo=%.16e min_abs_jacobgeo_idx=(%d,%d,%d) "
+    "min_bmag=%.16e max_bmag=%.16e min_g11=%.16e min_g22=%.16e min_g33=%.16e "
+    "max_g11=%.16e max_g11_idx=(%d,%d,%d) max_g22=%.16e max_g22_idx=(%d,%d,%d) "
+    "max_g33=%.16e max_g33_idx=(%d,%d,%d)\n",
+    case_name, metric_diag_block_id, location, dir, s->nodes, s->bad_jacobgeo, s->bad_bmag,
+    s->bad_gdiag, s->min_jacobgeo, s->max_jacobgeo, s->min_abs_jacobgeo, s->min_abs_jacobgeo_idx[0],
+    s->min_abs_jacobgeo_idx[1], s->min_abs_jacobgeo_idx[2], s->min_bmag, s->max_bmag, s->min_g11,
+    s->min_g22, s->min_g33, s->max_g11, s->max_g11_idx[0], s->max_g11_idx[1], s->max_g11_idx[2],
+    s->max_g22, s->max_g22_idx[0], s->max_g22_idx[1], s->max_g22_idx[2], s->max_g33,
+    s->max_g33_idx[0], s->max_g33_idx[1], s->max_g33_idx[2]
+  );
+
+  FILE *csv = fopen(csv_path, "a");
+  if (!csv) {
+    fprintf(stderr, "METRIC_DIAG failed_to_open_csv=%s\n", csv_path);
+    return;
+  }
+
+  fprintf(
+    csv,
+    "%s,%d,%s,%d,%ld,%ld,%ld,%ld,%.16e,%.16e,%.16e,%d,%d,%d,%.16e,%.16e,%.16e,%.16e,%.16e,%.16e,%d,%d,%d,%.16e,%d,%d,%d,%.16e,%d,%d,%d\n",
+    case_name, metric_diag_block_id, location, dir, s->nodes, s->bad_jacobgeo, s->bad_bmag,
+    s->bad_gdiag, s->min_jacobgeo, s->max_jacobgeo, s->min_abs_jacobgeo, s->min_abs_jacobgeo_idx[0],
+    s->min_abs_jacobgeo_idx[1], s->min_abs_jacobgeo_idx[2], s->min_bmag, s->max_bmag, s->min_g11,
+    s->min_g22, s->min_g33, s->max_g11, s->max_g11_idx[0], s->max_g11_idx[1], s->max_g11_idx[2],
+    s->max_g22, s->max_g22_idx[0], s->max_g22_idx[1], s->max_g22_idx[2], s->max_g33,
+    s->max_g33_idx[0], s->max_g33_idx[1], s->max_g33_idx[2]
+  );
+  fclose(csv);
+}
+
+static void
+metric_diag_write_interior(const struct gk_geometry *gk_geom)
+{
+  metric_diag_block_id++;
+  struct metric_diag_stats s;
+  metric_diag_stats_init(&s);
+  metric_diag_scan(
+    &s, &gk_geom->nrange_int, gk_geom->geo_int.jacobgeo_nodal, gk_geom->geo_int.bmag_nodal,
+    gk_geom->geo_int.g_ij_nodal
+  );
+  metric_diag_write("interior", -1, &s);
+}
+
+static void
+metric_diag_write_surface(int dir, const struct gk_geometry *gk_geom)
+{
+  struct metric_diag_stats s;
+  metric_diag_stats_init(&s);
+  metric_diag_scan(
+    &s, &gk_geom->nrange_surf[dir], gk_geom->geo_surf[dir].jacobgeo_nodal,
+    gk_geom->geo_surf[dir].bmag_nodal, gk_geom->geo_surf[dir].g_ij_nodal
+  );
+  metric_diag_write("surface", dir, &s);
+}
+
 void
 gkyl_calc_metric_advance_rz(
   gkyl_calc_metric *up, struct gkyl_range *nrange, struct gkyl_array *mc2p_nodal_fd,
@@ -232,6 +603,7 @@ gkyl_calc_metric_advance_rz(
   enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
   enum { R_IDX, Z_IDX, PHI_IDX }; // arrangement of cartesian coordinates
   int cidx[3];
+  struct signed_jacobian_guard_state jac_guard = {0};
   for (int ia = nrange->lower[AL_IDX]; ia <= nrange->upper[AL_IDX]; ++ia) {
     for (int ip = nrange->lower[PSI_IDX]; ip <= nrange->upper[PSI_IDX]; ++ip) {
       for (int it = nrange->lower[TH_IDX]; it <= nrange->upper[TH_IDX]; ++it) {
@@ -332,12 +704,9 @@ gkyl_calc_metric_advance_rz(
         // J = R(dR/dpsi*dZ/dtheta - dR/dtheta*dZ/dpsi)
         double *jFld_n = gkyl_array_fetch(jFld_nodal, gkyl_range_idx(nrange, cidx));
         double R = mc2p_n[R_IDX];
-        jFld_n[0] = sqrt(
-          R * R *
-          (dxdz[0][0] * dxdz[0][0] * dxdz[1][2] * dxdz[1][2] +
-           dxdz[0][2] * dxdz[0][2] * dxdz[1][0] * dxdz[1][0] -
-           2 * dxdz[0][0] * dxdz[0][2] * dxdz[1][0] * dxdz[1][2])
-        );
+        double signed_J = signed_jacobian_rz(R, dxdz[0][0], dxdz[1][0], dxdz[0][2], dxdz[1][2]);
+        signed_jacobian_guard_check(&jac_guard, signed_J, true, "rz", -1, cidx);
+        jFld_n[0] = fabs(signed_J);
 
         // Calculate dphi/dtheta based on the divergence free condition
         // on B: 1 = J*B/sqrt(g_33)
@@ -472,6 +841,10 @@ gkyl_calc_metric_advance_rz_interior(gkyl_calc_metric *up, struct gk_geometry *g
   enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
   enum { R_IDX, Z_IDX, PHI_IDX }; // arrangement of cartesian coordinates
   int cidx[3];
+  struct signed_jacobian_guard_state jac_guard = {
+    .valid = true,
+    .nonfatal = up->rz_jacobian_guard_nonfatal,
+  };
   for (int ia = gk_geom->nrange_int.lower[AL_IDX]; ia <= gk_geom->nrange_int.upper[AL_IDX]; ++ia) {
     for (int ip = gk_geom->nrange_int.lower[PSI_IDX]; ip <= gk_geom->nrange_int.upper[PSI_IDX];
          ++ip) {
@@ -515,12 +888,10 @@ gkyl_calc_metric_advance_rz_interior(gkyl_calc_metric *up, struct gk_geometry *g
           gk_geom->geo_int.jacobgeo_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx)
         );
         double R = mc2p_n[R_IDX];
-        jFld_n[0] = sqrt(
-          R * R *
-          (dxdz[0][0] * dxdz[0][0] * dxdz[1][2] * dxdz[1][2] +
-           dxdz[0][2] * dxdz[0][2] * dxdz[1][0] * dxdz[1][0] -
-           2 * dxdz[0][0] * dxdz[0][2] * dxdz[1][0] * dxdz[1][2])
-        );
+        double J = signed_jacobian_rz(R, dxdz[0][0], dxdz[1][0], dxdz[0][2], dxdz[1][2]);
+        signed_jacobian_guard_check(&jac_guard, J, true, "interior", -1, cidx);
+        jFld_n[0] = fabs(J);
+        double alpha_sign = J < 0.0 ? -1.0 : 1.0;
 
         // Calculate dphi/dtheta based on the divergence free condition
         // on B: 1 = J*B/sqrt(g_33)
@@ -545,11 +916,11 @@ gkyl_calc_metric_advance_rz_interior(gkyl_calc_metric *up, struct gk_geometry *g
           gkyl_array_fetch(gk_geom->geo_int.g_ij_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
         gFld_n[0] =
           dxdz[0][0] * dxdz[0][0] + R * R * dxdz[2][0] * dxdz[2][0] + dxdz[1][0] * dxdz[1][0];
-        gFld_n[1] = R * R * dxdz[2][0];
+        gFld_n[1] = alpha_sign * R * R * dxdz[2][0];
         gFld_n[2] =
           dxdz[0][0] * dxdz[0][2] + R * R * dxdz[2][0] * dphidtheta + dxdz[1][0] * dxdz[1][2];
         gFld_n[3] = R * R;
-        gFld_n[4] = R * R * dphidtheta;
+        gFld_n[4] = alpha_sign * R * R * dphidtheta;
         gFld_n[5] =
           dxdz[0][2] * dxdz[0][2] + R * R * dphidtheta * dphidtheta + dxdz[1][2] * dxdz[1][2];
 
@@ -565,15 +936,14 @@ gkyl_calc_metric_advance_rz_interior(gkyl_calc_metric *up, struct gk_geometry *g
 
         // Set cartesian components of tangents and duals
         double Z = mc2p_n[Z_IDX];
-        double J = jFld_n[0];
         double *tanvecFld_n =
           gkyl_array_fetch(gk_geom->geo_int.dxdz_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
         tanvecFld_n[0] = dxdz[0][0] * cos(phi) - R * sin(phi) * dxdz[2][0];
         tanvecFld_n[1] = dxdz[0][0] * sin(phi) + R * cos(phi) * dxdz[2][0];
         tanvecFld_n[2] = dxdz[1][0];
 
-        tanvecFld_n[3] = -R * sin(phi);
-        tanvecFld_n[4] = +R * cos(phi);
+        tanvecFld_n[3] = alpha_sign * (-R * sin(phi));
+        tanvecFld_n[4] = alpha_sign * (+R * cos(phi));
         tanvecFld_n[5] = 0.0;
 
         tanvecFld_n[6] = dxdz[0][2] * cos(phi) - R * sin(phi) * dphidtheta;
@@ -582,27 +952,16 @@ gkyl_calc_metric_advance_rz_interior(gkyl_calc_metric *up, struct gk_geometry *g
 
         double *dualFld_n =
           gkyl_array_fetch(gk_geom->geo_int.dzdx_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
-        dualFld_n[0] = +R / J * cos(phi) * dxdz[1][2];
-        dualFld_n[1] = +R / J * sin(phi) * dxdz[1][2];
-        dualFld_n[2] = -R / J * dxdz[0][2];
-
-        dualFld_n[3] =
-          1 / J *
-          (dxdz[1][0] * dxdz[0][2] * sin(phi) + dxdz[1][0] * R * cos(phi) * dphidtheta -
-           dxdz[1][2] * dxdz[0][0] * sin(phi) - dxdz[1][2] * R * cos(phi) * dxdz[2][0]);
-        dualFld_n[4] =
-          -1 / J *
-          (dxdz[1][0] * dxdz[0][2] * cos(phi) - dxdz[1][0] * R * sin(phi) * dphidtheta -
-           dxdz[1][2] * dxdz[0][0] * cos(phi) + dxdz[1][2] * R * sin(phi) * dxdz[2][0]);
-        dualFld_n[5] = R / J * (dxdz[0][2] * dxdz[2][0] - dxdz[0][0] * dphidtheta);
-
-        dualFld_n[6] = -R / J * cos(phi) * dxdz[1][0];
-        dualFld_n[7] = -R / J * sin(phi) * dxdz[1][0];
-        dualFld_n[8] = +R / J * dxdz[0][0];
+        const double e1[3] = {tanvecFld_n[0], tanvecFld_n[1], tanvecFld_n[2]};
+        const double e2[3] = {tanvecFld_n[3], tanvecFld_n[4], tanvecFld_n[5]};
+        const double e3[3] = {tanvecFld_n[6], tanvecFld_n[7], tanvecFld_n[8]};
+        calc_dual(jFld_n[0], e2, e3, &dualFld_n[0]);
+        calc_dual(jFld_n[0], e3, e1, &dualFld_n[3]);
+        calc_dual(jFld_n[0], e1, e2, &dualFld_n[6]);
 
         // Check that the coordinate system has tangent/dual vectors
         // satisfying orthonormality, and that it's right handed.
-        check_orthonormality(tanvecFld_n, dualFld_n, up->exit_at_checks);
+        check_orthonormality(tanvecFld_n, dualFld_n, up->exit_at_checks, up->is_verbose);
         check_right_handed(tanvecFld_n, dualFld_n, up->exit_at_checks);
 
         double norm1 = sqrt(
@@ -729,6 +1088,9 @@ gkyl_calc_metric_advance_rz_interior(gkyl_calc_metric *up, struct gk_geometry *g
     up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 1,
     gk_geom->geo_int.B3_nodal, gk_geom->geo_int.B3, true
   );
+  up->rz_expected_jacobian_sign = jac_guard.expected_sign;
+  up->rz_jacobian_valid = jac_guard.valid;
+  metric_diag_write_interior(gk_geom);
 }
 
 void
@@ -737,6 +1099,11 @@ gkyl_calc_metric_advance_rz_surface(gkyl_calc_metric *up, int dir, struct gk_geo
   enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
   enum { R_IDX, Z_IDX, PHI_IDX }; // arrangement of cartesian coordinates
   int cidx[3];
+  struct signed_jacobian_guard_state jac_guard = {
+    .expected_sign = up->rz_expected_jacobian_sign,
+    .valid = true,
+    .nonfatal = up->rz_jacobian_guard_nonfatal,
+  };
   for (int ia = gk_geom->nrange_surf[dir].lower[AL_IDX];
        ia <= gk_geom->nrange_surf[dir].upper[AL_IDX]; ++ia) {
     for (int ip = gk_geom->nrange_surf[dir].lower[PSI_IDX];
@@ -790,32 +1157,75 @@ gkyl_calc_metric_advance_rz_surface(gkyl_calc_metric *up, int dir, struct gk_geo
           gk_geom->geo_surf[dir].ddpsi_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx)
         );
 
-        // dxdz is in cylindrical coords, calculate J as
-        // J = R(dR/dpsi*dZ/dtheta - dR/dtheta*dZ/dpsi)
-        double *jFld_n = gkyl_array_fetch(
-          gk_geom->geo_surf[dir].jacobgeo_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx)
-        );
-        double R = mc2p_n[R_IDX];
-        jFld_n[0] = sqrt(
-          R * R *
-          (dxdz[0][0] * dxdz[0][0] * dxdz[1][2] * dxdz[1][2] +
-           dxdz[0][2] * dxdz[0][2] * dxdz[1][0] * dxdz[1][0] -
-           2 * dxdz[0][0] * dxdz[0][2] * dxdz[1][0] * dxdz[1][2])
-        );
-
-        // Calculate dphi/dtheta based on the divergence free condition
-        // on B: 1 = J*B/sqrt(g_33)
         double *bmag_n = gkyl_array_fetch(
           gk_geom->geo_surf[dir].bmag_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx)
         );
-        double dphidtheta =
-          (jFld_n[0] * jFld_n[0] * bmag_n[0] * bmag_n[0] / ddpsi_n[0] / ddpsi_n[0] -
-           dxdz[0][2] * dxdz[0][2] - dxdz[1][2] * dxdz[1][2]) /
-          R / R;
+        double R = mc2p_n[R_IDX];
+
+        // At a physical psi boundary, the one-sided finite-difference
+        // stencil can acquire a large, non-smooth component tangent to a
+        // separatrix contour.  Retain that tangential component (it is set
+        // by the theta coordinate), but obtain the normal component from
+        // the independently evaluated EQDSK quantities.  This enforces
+        //
+        //   J |B| / (dPsi/dpsi) = sqrt(g_33)
+        //
+        // without changing the requested psi/rho extent.
+        bool psi_boundary = dir == PSI_IDX &&
+                            ((ip == gk_geom->nrange_surf[dir].lower[PSI_IDX] &&
+                              up->local.lower[PSI_IDX] == up->global.lower[PSI_IDX]) ||
+                             (ip == gk_geom->nrange_surf[dir].upper[PSI_IDX] &&
+                              up->local.upper[PSI_IDX] == up->global.upper[PSI_IDX]));
+        if (psi_boundary) {
+          double tangent_sq = dxdz[0][2] * dxdz[0][2] + dxdz[1][2] * dxdz[1][2];
+          double g33_exact = tangent_sq + R * R * ddtheta_n[2] * ddtheta_n[2];
+          double cross_rz = dxdz[0][0] * dxdz[1][2] - dxdz[0][2] * dxdz[1][0];
+          // Preserve the orientation established by the block's interior
+          // mapping.  The raw one-sided radial stencil supplies only the
+          // tangential projection here; its sign can be noisy at a
+          // separatrix and must not flip surface metrics or normals.
+          double cross_sign = up->rz_expected_jacobian_sign != 0 ? up->rz_expected_jacobian_sign :
+                                                                   (cross_rz < 0.0 ? -1.0 : 1.0);
+          double cross_exact = cross_sign * fabs(ddpsi_n[0]) * sqrt(g33_exact) / (R * bmag_n[0]);
+          double tangent_projection =
+            (dxdz[0][0] * dxdz[0][2] + dxdz[1][0] * dxdz[1][2]) / tangent_sq;
+          dxdz[0][0] = tangent_projection * dxdz[0][2] + cross_exact * dxdz[1][2] / tangent_sq;
+          dxdz[1][0] = tangent_projection * dxdz[1][2] - cross_exact * dxdz[0][2] / tangent_sq;
+        }
+
+        // dxdz is in cylindrical coords, calculate J as
+        // J = R(dR/dpsi*dZ/dtheta - dR/dtheta*dZ/dpsi)
+        long surf_idx = gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx);
+
+        double *jFld_n = gkyl_array_fetch(gk_geom->geo_surf[dir].jacobgeo_nodal, surf_idx);
+
+        double *jSignedFld_n =
+          gkyl_array_fetch(gk_geom->geo_surf[dir].jacobgeo_signed_nodal, surf_idx);
+
+        double J = signed_jacobian_rz(R, dxdz[0][0], dxdz[1][0], dxdz[0][2], dxdz[1][2]);
+
+        signed_jacobian_guard_check(&jac_guard, J, true, "surface", dir, cidx);
+
+        // Diagnostic orientation-preserving value.
+        jSignedFld_n[0] = J;
+
+        // Existing positive physical volume factor.
+        jFld_n[0] = fabs(J);
+        double alpha_sign = J < 0.0 ? -1.0 : 1.0;
+
+        // Calculate dphi/dtheta based on the divergence free condition
+        // on B: 1 = J*B/sqrt(g_33)
         // Argument is >= 0 analytically; clamp away roundoff so sqrt does not return NaN.
-        dphidtheta = sqrt(fmax(0.0, dphidtheta));
+        double dphidtheta =
+          psi_boundary ?
+            ddtheta_n[2] :
+            sqrt(fmax(
+              0.0, (jFld_n[0] * jFld_n[0] * bmag_n[0] * bmag_n[0] / ddpsi_n[0] / ddpsi_n[0] -
+                    dxdz[0][2] * dxdz[0][2] - dxdz[1][2] * dxdz[1][2]) /
+                     R / R
+            ));
         // Recover sign from exact dphidtheta = F(psi)/R/\grad(psi).
-        if (ddtheta_n[2] < 0) {
+        if (!psi_boundary && ddtheta_n[2] < 0) {
           dphidtheta = -dphidtheta;
         }
 
@@ -824,11 +1234,11 @@ gkyl_calc_metric_advance_rz_surface(gkyl_calc_metric *up, int dir, struct gk_geo
         );
         gFld_n[0] =
           dxdz[0][0] * dxdz[0][0] + R * R * dxdz[2][0] * dxdz[2][0] + dxdz[1][0] * dxdz[1][0];
-        gFld_n[1] = R * R * dxdz[2][0];
+        gFld_n[1] = alpha_sign * R * R * dxdz[2][0];
         gFld_n[2] =
           dxdz[0][0] * dxdz[0][2] + R * R * dxdz[2][0] * dphidtheta + dxdz[1][0] * dxdz[1][2];
         gFld_n[3] = R * R;
-        gFld_n[4] = R * R * dphidtheta;
+        gFld_n[4] = alpha_sign * R * R * dphidtheta;
         gFld_n[5] =
           dxdz[0][2] * dxdz[0][2] + R * R * dphidtheta * dphidtheta + dxdz[1][2] * dxdz[1][2];
 
@@ -862,7 +1272,6 @@ gkyl_calc_metric_advance_rz_surface(gkyl_calc_metric *up, int dir, struct gk_geo
 
         // Set cartesian components of tangents and duals
         double Z = mc2p_n[Z_IDX];
-        double J = jFld_n[0];
         double *tanvecFld_n = gkyl_array_fetch(
           gk_geom->geo_surf[dir].dxdz_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx)
         );
@@ -870,8 +1279,8 @@ gkyl_calc_metric_advance_rz_surface(gkyl_calc_metric *up, int dir, struct gk_geo
         tanvecFld_n[1] = dxdz[0][0] * sin(phi) + R * cos(phi) * dxdz[2][0];
         tanvecFld_n[2] = dxdz[1][0];
 
-        tanvecFld_n[3] = -R * sin(phi);
-        tanvecFld_n[4] = +R * cos(phi);
+        tanvecFld_n[3] = alpha_sign * (-R * sin(phi));
+        tanvecFld_n[4] = alpha_sign * (+R * cos(phi));
         tanvecFld_n[5] = 0.0;
 
         tanvecFld_n[6] = dxdz[0][2] * cos(phi) - R * sin(phi) * dphidtheta;
@@ -881,27 +1290,16 @@ gkyl_calc_metric_advance_rz_surface(gkyl_calc_metric *up, int dir, struct gk_geo
         double *dualFld_n = gkyl_array_fetch(
           gk_geom->geo_surf[dir].dzdx_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx)
         );
-        dualFld_n[0] = +R / J * cos(phi) * dxdz[1][2];
-        dualFld_n[1] = +R / J * sin(phi) * dxdz[1][2];
-        dualFld_n[2] = -R / J * dxdz[0][2];
-
-        dualFld_n[3] =
-          1 / J *
-          (dxdz[1][0] * dxdz[0][2] * sin(phi) + dxdz[1][0] * R * cos(phi) * dphidtheta -
-           dxdz[1][2] * dxdz[0][0] * sin(phi) - dxdz[1][2] * R * cos(phi) * dxdz[2][0]);
-        dualFld_n[4] =
-          -1 / J *
-          (dxdz[1][0] * dxdz[0][2] * cos(phi) - dxdz[1][0] * R * sin(phi) * dphidtheta -
-           dxdz[1][2] * dxdz[0][0] * cos(phi) + dxdz[1][2] * R * sin(phi) * dxdz[2][0]);
-        dualFld_n[5] = R / J * (dxdz[0][2] * dxdz[2][0] - dxdz[0][0] * dphidtheta);
-
-        dualFld_n[6] = -R / J * cos(phi) * dxdz[1][0];
-        dualFld_n[7] = -R / J * sin(phi) * dxdz[1][0];
-        dualFld_n[8] = +R / J * dxdz[0][0];
+        const double e1[3] = {tanvecFld_n[0], tanvecFld_n[1], tanvecFld_n[2]};
+        const double e2[3] = {tanvecFld_n[3], tanvecFld_n[4], tanvecFld_n[5]};
+        const double e3[3] = {tanvecFld_n[6], tanvecFld_n[7], tanvecFld_n[8]};
+        calc_dual(jFld_n[0], e2, e3, &dualFld_n[0]);
+        calc_dual(jFld_n[0], e3, e1, &dualFld_n[3]);
+        calc_dual(jFld_n[0], e1, e2, &dualFld_n[6]);
 
         // Check that the coordinate system has tangent/dual vectors
         // satisfying orthonormality, and that it's right handed.
-        check_orthonormality(tanvecFld_n, dualFld_n, up->exit_at_checks);
+        check_orthonormality(tanvecFld_n, dualFld_n, up->exit_at_checks, up->is_verbose);
         check_right_handed(tanvecFld_n, dualFld_n, up->exit_at_checks);
 
         double norm1 = sqrt(
@@ -970,6 +1368,8 @@ gkyl_calc_metric_advance_rz_surface(gkyl_calc_metric *up, int dir, struct gk_geo
       }
     }
   }
+  up->rz_jacobian_valid = up->rz_jacobian_valid && jac_guard.valid;
+  metric_diag_write_surface(dir, gk_geom);
 }
 
 void
@@ -1819,7 +2219,7 @@ gkyl_calc_metric_advance_interior(gkyl_calc_metric *up, struct gk_geometry *gk_g
 
         // Check that the coordinate system has tangent/dual vectors
         // satisfying orthonormality, and that it's right handed.
-        check_orthonormality(tanvecFld_n, dualFld_n, up->exit_at_checks);
+        check_orthonormality(tanvecFld_n, dualFld_n, up->exit_at_checks, up->is_verbose);
         check_right_handed(tanvecFld_n, dualFld_n, up->exit_at_checks);
 
         // Check if bhat and e_3 are parallel.
@@ -2199,7 +2599,7 @@ gkyl_calc_metric_advance_surface(gkyl_calc_metric *up, int dir, struct gk_geomet
 
         // Check that the coordinate system has tangent/dual vectors
         // satisfying orthonormality, and that it's right handed.
-        check_orthonormality(tanvecFld_n, dualFld_n, up->exit_at_checks);
+        check_orthonormality(tanvecFld_n, dualFld_n, up->exit_at_checks, up->is_verbose);
         check_right_handed(tanvecFld_n, dualFld_n, up->exit_at_checks);
 
         double norm1 = sqrt(

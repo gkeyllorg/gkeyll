@@ -228,8 +228,8 @@ test_asdex_shaped_plate_ho()
     .flux_poly_order = 1,
   };
 
-  double clower[] = {0.16, -0.01, -M_PI + 1e-14};
-  double cupper[] = {0.17501, 0.01, M_PI - 1e-14};
+  double clower[] = {0.1500, -0.01, -M_PI + 1e-14};
+  double cupper[] = {0.1540, 0.01, M_PI - 1e-14};
 
   int ccells[] = {2, 1, 2};
 
@@ -253,7 +253,7 @@ test_asdex_shaped_plate_ho()
     .rleft = 0.7,
     .zmin = -1.3,
     .zmax = 1.0,
-    .zmin_left = -1.2,
+    .zmin_left = -0.98,
     .zmin_right = -1.0,
   };
   struct gkyl_gk_geometry_inp geometry_inp = {
@@ -298,8 +298,8 @@ test_asdex_lower_ho()
     .flux_poly_order = 1,
   };
 
-  double clower[] = {0.16, -0.01, -M_PI + 1e-14};
-  double cupper[] = {0.17501, 0.01, M_PI - 1e-14};
+  double clower[] = {0.1500, -0.01, -M_PI + 1e-14};
+  double cupper[] = {0.1540, 0.01, M_PI - 1e-14};
   int ccells[] = {2, 1, 2};
 
   struct gkyl_tok_geo_grid_inp ginp = {
@@ -311,10 +311,10 @@ test_asdex_lower_ho()
     .rleft = 0.7,
     .zmin = -1.3,
     .zmax = 1.0,
-    .zmin_left = -1.2,
+    .zmin_left = -0.98,
     .zmin_right = -1.0,
   };
-  gkyl_gk_geometry_tok_set_grid_extents(efit_inp, ginp, &clower[2], &cupper[2]);
+  gkyl_gk_geometry_tok_set_grid_extents(efit_inp, &ginp, &clower[2], &cupper[2]);
 
   struct gkyl_rect_grid cgrid;
   gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
@@ -369,8 +369,8 @@ test_asdex_middle_ho()
     .flux_poly_order = 1,
   };
 
-  double clower[] = {0.16, -0.01, -M_PI + 1e-14};
-  double cupper[] = {0.17501, 0.01, M_PI - 1e-14};
+  double clower[] = {0.1500, -0.01, -M_PI + 1e-14};
+  double cupper[] = {0.1540, 0.01, M_PI - 1e-14};
   int ccells[] = {2, 1, 2};
 
   struct gkyl_tok_geo_grid_inp ginp = {
@@ -382,10 +382,10 @@ test_asdex_middle_ho()
     .rleft = 0.7,
     .zmin = -1.3,
     .zmax = 1.0,
-    .zmin_left = -1.2,
+    .zmin_left = -0.98,
     .zmin_right = -1.0,
   };
-  gkyl_gk_geometry_tok_set_grid_extents(efit_inp, ginp, &clower[2], &cupper[2]);
+  gkyl_gk_geometry_tok_set_grid_extents(efit_inp, &ginp, &clower[2], &cupper[2]);
 
   struct gkyl_rect_grid cgrid;
   gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
@@ -440,8 +440,8 @@ test_asdex_upper_ho()
     .flux_poly_order = 1,
   };
 
-  double clower[] = {0.16, -0.01, -M_PI + 1e-14};
-  double cupper[] = {0.17501, 0.01, M_PI - 1e-14};
+  double clower[] = {0.1500, -0.01, -M_PI + 1e-14};
+  double cupper[] = {0.1540, 0.01, M_PI - 1e-14};
   int ccells[] = {2, 1, 2};
 
   struct gkyl_tok_geo_grid_inp ginp = {
@@ -453,10 +453,10 @@ test_asdex_upper_ho()
     .rleft = 0.7,
     .zmin = -1.3,
     .zmax = 1.0,
-    .zmin_left = -1.2,
+    .zmin_left = -0.98,
     .zmin_right = -1.0,
   };
-  gkyl_gk_geometry_tok_set_grid_extents(efit_inp, ginp, &clower[2], &cupper[2]);
+  gkyl_gk_geometry_tok_set_grid_extents(efit_inp, &ginp, &clower[2], &cupper[2]);
 
   struct gkyl_rect_grid cgrid;
   gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);

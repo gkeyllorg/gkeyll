@@ -68,7 +68,7 @@ create_gk_block_geom(void)
   };
 
   struct gkyl_efit *efit = gkyl_efit_new(&efit_inp);
-  double psisep = efit->psisep;
+  double psisep = efit->psisep_cubic; // the flux of the representation traced on (C1, 2026-10-05)
   psisep = 1.4688;
   gkyl_efit_release(efit);
   double psi_up_core = 1.8;
@@ -103,6 +103,13 @@ create_gk_block_geom(void)
           .tok_grid_info =
             (struct gkyl_tok_geo_grid_inp){
               .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_LO,
+              .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
+              // step.geqdsk carries a single limiter vertex (limitr=1), which reads as
+              // limiter_status=2: a degenerate outline that cannot bound a region. The
+              // wall policy rejects an unusable outline that is not acknowledged, so this
+              // declaration is required for STEP to build. It is checked, not trusted:
+              // if a usable outline ever appears in this EQDSK the declaration is refused
+              // as contradictory, and every block reports TOK_GEO_WALL_NOT_ENFORCED.
               .rright = 6.2,
               .rleft = 1.1,
               .rmin = 2.1,
@@ -139,6 +146,7 @@ create_gk_block_geom(void)
           .tok_grid_info =
             (struct gkyl_tok_geo_grid_inp){
               .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_MID,
+              .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
               .rright = 6.2,
               .rleft = 1.1,
               .rmin = 2.1,
@@ -175,6 +183,7 @@ create_gk_block_geom(void)
           .tok_grid_info =
             (struct gkyl_tok_geo_grid_inp){
               .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_UP,
+              .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
               .rright = 6.2,
               .rleft = 1.1,
               .rmin = 2.1,
@@ -618,6 +627,7 @@ main(int argc, char **argv)
   app_inp->cfl_frac = 1.0;
   app_inp->gk_block_geom = bgeom;
   app_inp->num_species = 2;
+  app_inp->num_neut_species = 0;
   app_inp->species[0] = elc;
   app_inp->species[1] = ion;
   app_inp->field = field;

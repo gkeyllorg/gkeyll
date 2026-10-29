@@ -71,7 +71,7 @@ struct gk_app_ctx {
 void
 pfunc_upper(double s, double *RZ)
 {
-  RZ[0] = 0.1406517200151616;
+  RZ[0] = 0.1406566528807585;
   RZ[1] = -s * 0.6;
 }
 
@@ -80,7 +80,7 @@ pfunc_upper(double s, double *RZ)
 void
 pfunc_lower(double s, double *RZ)
 {
-  RZ[0] = 0.1406517200151616;
+  RZ[0] = 0.1406566528807585;
   RZ[1] = s * 0.6;
 }
 
@@ -513,6 +513,7 @@ main(int argc, char **argv)
 
   struct gkyl_tok_geo_grid_inp grid_inp = {
     .ftype = GKYL_GEOMETRY_TOKAMAK_IWL,
+    .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
     .rclose = 0.7,
     .rleft = 0.1,
     .rright = 0.7,
