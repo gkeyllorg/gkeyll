@@ -1379,12 +1379,21 @@ gyrokinetic_app_geometry_copy_and_write_surf(
   char fileNm[sz + 1]; // ensures no buffer overflow
   snprintf(fileNm, sizeof fileNm, fmt, app->name, dir, varNm);
 
+  char value_form[32];
+  snprintf(value_form, sizeof value_form, "modal_surf%d", dir);
+  struct gkyl_msgpack_map_elem io_meta_surf[app->io_meta_dg_len];
+  for (int i = 0; i < app->io_meta_dg_len; i++) {
+    io_meta_surf[i] = app->io_meta_dg[i];
+    if (strcmp(io_meta_surf[i].key, "value_form") == 0) {
+      io_meta_surf[i].cval = value_form;
+    }
+  }
   struct gkyl_msgpack_map_elem desc_elem[] = {
     {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = (char *)description}
   };
   int io_meta_len[] = {app->io_meta_dg_len, app->gk_geom->io_meta_basic_len, 1};
   const struct gkyl_msgpack_map_elem *io_meta[] = {
-    app->io_meta_dg, app->gk_geom->io_meta_basic, desc_elem
+    io_meta_surf, app->gk_geom->io_meta_basic, desc_elem
   };
   struct gkyl_msgpack_data *mt =
     gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
