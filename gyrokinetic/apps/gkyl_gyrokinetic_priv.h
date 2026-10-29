@@ -1306,8 +1306,6 @@ struct gk_species_wall_potential {
 // Species data.
 struct gk_orbit_average {
   struct gkyl_orbit_average_gyrokinetic *up; // Cached frozen-field projector.
-  struct gkyl_array *global_f; // Device-resident global state for MPI-spanning orbits.
-  struct gkyl_range local_in_global; // Local subrange with global array strides.
   double min_blend; // Last implicit update's minimum accepted relaxation fraction.
   long num_limited_blocks; // Last implicit update's positivity-limited blocks.
 };

@@ -9,6 +9,13 @@
 
 typedef struct gkyl_orbit_average_gyrokinetic gkyl_orbit_average_gyrokinetic;
 
+/** Caller-owned collective: sum=true sums, otherwise takes minima. Buffers
+ * contain count doubles on the updater's memory space. Return zero on success.
+ * All ranks must participate, including ranks without selected local cells. */
+typedef int (*gkyl_orbit_average_reduce_t)(
+  void *ctx, bool sum, long count, const double *input, double *output
+);
+
 /** Result of constructing a frozen orbit projector. */
 enum gkyl_orbit_average_gyrokinetic_status {
   GKYL_ORBIT_AVERAGE_SUCCESS = 0,
@@ -39,6 +46,11 @@ struct gkyl_orbit_average_gyrokinetic_inp {
   bool frequency_is_infinite; // Use the projection limit; ignore the advance frequency.
   bool positivity; // Limit relaxation at volume quadrature and tensor cell corners.
   bool use_gpu;
+  // Optional local range with distribution strides. Setup still needs global geometry.
+  // All ranks must use the same global inputs and disjoint local ranges covering phase_range.
+  const struct gkyl_range *local_range;
+  gkyl_orbit_average_reduce_t reduce; // Required for a distributed local_range.
+  void *reduce_ctx; // Borrowed until release; communication remains caller-owned.
 };
 
 /** Diagnostics for one implicit update. A failed update does not change f. */
@@ -91,7 +103,12 @@ gkyl_orbit_average_gyrokinetic *gkyl_orbit_average_gyrokinetic_inew(
  * @param up Frozen projector.
  * @param dt Accepted time step.
  * @param frequency Orbit relaxation rate.
- * @param f Jacobian-weighted DG distribution on the constructor's phase range.
+ * Distributed callers must supply valid local arrays and identical dt/frequency
+ * on every rank. A negative limiter bound communicates invalid input so no rank
+ * commits an update if any rank fails positivity. Statistics describe global blocks.
+ *
+ * @param f Jacobian-weighted DG distribution on local_range, if supplied,
+ *          otherwise on the constructor's phase_range.
  * @return Success and limiter diagnostics; negative monitored input fails
  *         transactionally if positivity limiting is enabled.
  */
