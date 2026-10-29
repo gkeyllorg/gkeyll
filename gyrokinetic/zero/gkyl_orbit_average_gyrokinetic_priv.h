@@ -18,7 +18,10 @@ struct gkyl_orbit_average_gyrokinetic {
   bool use_gpu, positivity, frequency_is_infinite;
   int num_basis, num_pos, num_blocks;
   long num_cells, num_rejected, num_reduced;
-  long basis_size;
+  long basis_size, num_global_cells, max_cell_index;
+  gkyl_orbit_average_reduce_t reduce;
+  void *reduce_ctx;
+  double *reduce_buffer;
   struct gkyl_orbit_average_gyrokinetic_block *blocks;
   long *cell_indices;
   double *q, *dual; // Column-major Q and M Q for M-orthonormal invariant columns.

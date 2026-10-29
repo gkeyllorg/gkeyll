@@ -548,6 +548,59 @@ gk_oa_build_block(
   return success;
 }
 
+// Restrict rows after constructing a common global basis. Keep every block and
+// reduced column, even on ranks with no selected cells, for matching collectives.
+static void
+gk_oa_localize(
+  gkyl_orbit_average_gyrokinetic *up, const struct gkyl_orbit_average_gyrokinetic_inp *inp
+)
+{
+  up->num_global_cells = up->num_cells;
+  up->reduce = inp->reduce;
+  up->reduce_ctx = inp->reduce_ctx;
+  if (!inp->local_range) {
+    return;
+  }
+  long cells = 0, entries = 0;
+  for (int ib = 0; ib < up->num_blocks; ++ib) {
+    struct gkyl_orbit_average_gyrokinetic_block old = up->blocks[ib];
+    int *selected = gkyl_malloc((old.num_cells > 0 ? old.num_cells : 1) * sizeof(int));
+    int count = 0;
+    for (int cell = 0; cell < old.num_cells; ++cell) {
+      int idx[GKYL_MAX_DIM];
+      gkyl_range_inv_idx(inp->phase_range, up->cell_indices[old.cell_offset + cell], idx);
+      if (gkyl_range_contains_idx(inp->local_range, idx)) {
+        selected[count] = cell;
+        up->cell_indices[cells + count++] = gkyl_range_idx(inp->local_range, idx);
+      }
+    }
+    int modes = count * up->num_basis;
+    for (int col = 0; col < old.rank; ++col) {
+      for (int cell = 0; cell < count; ++cell) {
+        for (int mode = 0; mode < up->num_basis; ++mode) {
+          long src =
+            old.basis_offset + (long)col * old.num_modes + selected[cell] * up->num_basis + mode;
+          long dst = entries + (long)col * modes + cell * up->num_basis + mode;
+          up->q[dst] = up->q[src];
+          up->dual[dst] = up->dual[src];
+        }
+      }
+    }
+    up->blocks[ib].cell_offset = cells;
+    up->blocks[ib].num_cells = count;
+    up->blocks[ib].num_modes = modes;
+    up->blocks[ib].basis_offset = entries;
+    cells += count;
+    entries += (long)modes * old.rank;
+    gkyl_free(selected);
+  }
+  up->num_cells = cells;
+  up->basis_size = entries;
+  up->cell_indices = gkyl_realloc(up->cell_indices, (cells > 0 ? cells : 1) * sizeof(long));
+  up->q = gkyl_realloc(up->q, (entries > 0 ? entries : 1) * sizeof(double));
+  up->dual = gkyl_realloc(up->dual, (entries > 0 ? entries : 1) * sizeof(double));
+}
+
 void
 gkyl_orbit_average_gyrokinetic_release(gkyl_orbit_average_gyrokinetic *up)
 {
@@ -567,6 +620,7 @@ gkyl_orbit_average_gyrokinetic_release(gkyl_orbit_average_gyrokinetic *up)
   gkyl_free(up->coeff);
   gkyl_free(up->correction);
   gkyl_free(up->blend);
+  gkyl_free(up->reduce_buffer);
   gkyl_free(up);
 }
 
@@ -627,6 +681,17 @@ gkyl_orbit_average_gyrokinetic_inew(
       !inp->mask || !(inp->mass > 0.0) || !(inp->separatrix_margin >= 0.0) ||
       inp->num_energy_nodes < 2) {
     return 0;
+  }
+  if (inp->local_range) {
+    if (!inp->reduce || inp->local_range->ndim != inp->phase_range->ndim) {
+      return 0;
+    }
+    for (int d = 0; d < inp->phase_range->ndim; ++d) {
+      if (inp->local_range->lower[d] < inp->phase_range->lower[d] ||
+          inp->local_range->upper[d] > inp->phase_range->upper[d]) {
+        return 0;
+      }
+    }
   }
   if (inp->conf_basis->ndim != 1 || inp->conf_basis->poly_order != 1 ||
       inp->phase_basis->ndim != 3 || inp->phase_basis->b_type != GKYL_BASIS_MODAL_GKHYBRID ||
@@ -739,6 +804,15 @@ gkyl_orbit_average_gyrokinetic_inew(
     }
     return 0;
   }
+  gk_oa_localize(up, inp);
+  up->max_cell_index = -1;
+  for (long cell = 0; cell < up->num_cells; ++cell) {
+    if (up->cell_indices[cell] > up->max_cell_index) {
+      up->max_cell_index = up->cell_indices[cell];
+    }
+  }
+  long reduce_size = up->num_reduced > up->num_blocks ? up->num_reduced : up->num_blocks;
+  up->reduce_buffer = gkyl_calloc(reduce_size > 0 ? reduce_size : 1, sizeof(double));
   up->coeff = gkyl_calloc(up->num_reduced > 0 ? up->num_reduced : 1, sizeof(double));
   up->correction =
     gkyl_calloc(up->num_cells > 0 ? up->num_cells * up->num_basis : 1, sizeof(double));
@@ -758,7 +832,7 @@ struct gkyl_orbit_average_gyrokinetic_info
 gkyl_orbit_average_gyrokinetic_get_info(const gkyl_orbit_average_gyrokinetic *up)
 {
   return (struct gkyl_orbit_average_gyrokinetic_info){
-    up->num_cells,
+    up->num_global_cells,
     up->num_rejected,
     up->num_reduced,
     up->num_blocks,
@@ -776,12 +850,10 @@ gkyl_orbit_average_gyrokinetic_advance(
       gkyl_array_is_cu_dev(f) != up->use_gpu) {
     return result;
   }
-  for (long cell = 0; cell < up->num_cells; ++cell) {
-    if (up->cell_indices[cell] < 0 || up->cell_indices[cell] >= f->size) {
-      return result;
-    }
+  if (up->num_cells && up->max_cell_index >= f->size) {
+    return result;
   }
-  if (dt == 0.0 || (!up->frequency_is_infinite && frequency == 0.0) || up->num_cells == 0) {
+  if (dt == 0.0 || (!up->frequency_is_infinite && frequency == 0.0) || up->num_global_cells == 0) {
     result.success = true;
     return result;
   }
@@ -810,6 +882,15 @@ gkyl_orbit_average_gyrokinetic_advance(
       }
       up->coeff[block->reduce_offset + mode] = coefficient;
     }
+  }
+  if (up->reduce) {
+    if (up->reduce(up->reduce_ctx, true, up->num_reduced, up->coeff, up->reduce_buffer)) {
+      return result;
+    }
+    memcpy(up->coeff, up->reduce_buffer, up->num_reduced * sizeof(double));
+  }
+  for (int iblock = 0; iblock < up->num_blocks; ++iblock) {
+    const struct gkyl_orbit_average_gyrokinetic_block *block = up->blocks + iblock;
     double bound = DBL_MAX;
     for (int cell = 0; cell < block->num_cells; ++cell) {
       const double *modal = gkyl_array_cfetch(f, up->cell_indices[block->cell_offset + cell]);
@@ -829,13 +910,26 @@ gkyl_orbit_average_gyrokinetic_advance(
           double initial = gk_oa_dot(up->num_basis, basis, modal);
           double change = gk_oa_dot(up->num_basis, basis, correction);
           if (!(initial >= 0.0)) {
-            return result;
+            bound = -1.0;
           }
           if (change < 0.0) {
             bound = fmin(bound, initial / -change);
           }
         }
       }
+    }
+    up->blend[iblock] = bound;
+  }
+  if (up->reduce) {
+    if (up->reduce(up->reduce_ctx, false, up->num_blocks, up->blend, up->reduce_buffer)) {
+      return result;
+    }
+    memcpy(up->blend, up->reduce_buffer, up->num_blocks * sizeof(double));
+  }
+  for (int iblock = 0; iblock < up->num_blocks; ++iblock) {
+    double bound = up->blend[iblock];
+    if (bound < 0.0) {
+      return result;
     }
     up->blend[iblock] = bound < beta ? fmax(0.0, 0.99 * bound) : beta;
     if (up->blend[iblock] < beta) {

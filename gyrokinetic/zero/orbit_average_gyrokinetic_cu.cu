@@ -17,7 +17,7 @@ struct gk_orbit_cu {
   long *cell_indices;
   int *cell_blocks, *reduced_blocks;
   double *q, *dual, *eval, *coeff, *correction, *blend;
-  double *block_invalid, *block_limited, *status;
+  double *status, *reduce_buffer;
 };
 
 static double
@@ -87,10 +87,9 @@ gk_orbit_correction_cu_kernel(
 
 __global__ static void
 gk_orbit_limit_cu_kernel(
-  int num_basis, int num_pos, int num_blocks, bool positivity, double beta,
+  int num_basis, int num_pos, int num_blocks, bool positivity,
   const struct gkyl_orbit_average_gyrokinetic_block *blocks, const long *cell_indices,
-  const double *eval, const double *correction, const struct gkyl_array *fin, double *blend,
-  double *block_invalid, double *block_limited
+  const double *eval, const double *correction, const struct gkyl_array *fin, double *blend
 )
 {
   __shared__ double bounds[GKYL_ORBIT_CU_THREADS];
@@ -129,27 +128,23 @@ gk_orbit_limit_cu_kernel(
       __syncthreads();
     }
     if (threadIdx.x == 0) {
-      const bool limited = bounds[0] < beta;
-      blend[block_id] = limited ? fmax(0.0, 0.99 * bounds[0]) : beta;
-      block_invalid[block_id] = invalid[0];
-      block_limited[block_id] = limited;
+      blend[block_id] = invalid[0] ? -1.0 : bounds[0];
     }
     __syncthreads();
   }
 }
 
 __global__ static void
-gk_orbit_status_cu_kernel(
-  int num_blocks, double beta, const double *blend, const double *block_invalid,
-  const double *block_limited, double *status
-)
+gk_orbit_status_cu_kernel(int num_blocks, double beta, double *blend, double *status)
 {
   // Only scalar diagnostics are reduced here, after the parallel node checks.
   double invalid = 0.0, min_blend = beta, num_limited = 0.0;
   for (int block_id = 0; block_id < num_blocks; ++block_id) {
-    invalid = fmax(invalid, block_invalid[block_id]);
+    double bound = blend[block_id];
+    invalid = fmax(invalid, bound < 0.0 ? 1.0 : 0.0);
+    blend[block_id] = bound < beta ? fmax(0.0, 0.99 * bound) : beta;
     min_blend = fmin(min_blend, blend[block_id]);
-    num_limited += block_limited[block_id];
+    num_limited += blend[block_id] < beta;
   }
   status[0] = invalid;
   status[1] = min_blend;
@@ -176,19 +171,20 @@ gkyl_orbit_average_gyrokinetic_cu_init(gkyl_orbit_average_gyrokinetic *up)
 {
   struct gk_orbit_cu *gpu = (struct gk_orbit_cu *)gkyl_calloc(1, sizeof(*gpu));
   up->gpu = gpu;
-  if (up->num_cells == 0) {
+  if (up->num_global_cells == 0) {
     return;
   }
 
   const size_t block_bytes = up->num_blocks * sizeof(*up->blocks);
   gpu->blocks = (struct gkyl_orbit_average_gyrokinetic_block *)gkyl_cu_malloc(block_bytes);
   gkyl_cu_memcpy(gpu->blocks, up->blocks, block_bytes, GKYL_CU_MEMCPY_H2D);
-  gpu->cell_indices = (long *)gkyl_cu_malloc(up->num_cells * sizeof(long));
+  gpu->cell_indices =
+    (long *)gkyl_cu_malloc((up->num_cells > 0 ? up->num_cells : 1) * sizeof(long));
   gkyl_cu_memcpy(
     gpu->cell_indices, up->cell_indices, up->num_cells * sizeof(long), GKYL_CU_MEMCPY_H2D
   );
 
-  int *cell_blocks = (int *)gkyl_malloc(up->num_cells * sizeof(int));
+  int *cell_blocks = (int *)gkyl_malloc((up->num_cells > 0 ? up->num_cells : 1) * sizeof(int));
   int *reduced_blocks = (int *)gkyl_malloc(up->num_reduced * sizeof(int));
   for (int block_id = 0; block_id < up->num_blocks; ++block_id) {
     const struct gkyl_orbit_average_gyrokinetic_block *block = up->blocks + block_id;
@@ -199,7 +195,7 @@ gkyl_orbit_average_gyrokinetic_cu_init(gkyl_orbit_average_gyrokinetic *up)
       reduced_blocks[block->reduce_offset + column] = block_id;
     }
   }
-  gpu->cell_blocks = (int *)gkyl_cu_malloc(up->num_cells * sizeof(int));
+  gpu->cell_blocks = (int *)gkyl_cu_malloc((up->num_cells > 0 ? up->num_cells : 1) * sizeof(int));
   gpu->reduced_blocks = (int *)gkyl_cu_malloc(up->num_reduced * sizeof(int));
   gkyl_cu_memcpy(gpu->cell_blocks, cell_blocks, up->num_cells * sizeof(int), GKYL_CU_MEMCPY_H2D);
   gkyl_cu_memcpy(
@@ -208,18 +204,20 @@ gkyl_orbit_average_gyrokinetic_cu_init(gkyl_orbit_average_gyrokinetic *up)
   gkyl_free(cell_blocks);
   gkyl_free(reduced_blocks);
 
-  gpu->q = (double *)gkyl_cu_malloc(up->basis_size * sizeof(double));
-  gpu->dual = (double *)gkyl_cu_malloc(up->basis_size * sizeof(double));
+  gpu->q = (double *)gkyl_cu_malloc((up->basis_size > 0 ? up->basis_size : 1) * sizeof(double));
+  gpu->dual = (double *)gkyl_cu_malloc((up->basis_size > 0 ? up->basis_size : 1) * sizeof(double));
   gkyl_cu_memcpy(gpu->q, up->q, up->basis_size * sizeof(double), GKYL_CU_MEMCPY_H2D);
   gkyl_cu_memcpy(gpu->dual, up->dual, up->basis_size * sizeof(double), GKYL_CU_MEMCPY_H2D);
   const size_t eval_bytes = up->num_pos * up->num_basis * sizeof(double);
   gpu->eval = (double *)gkyl_cu_malloc(eval_bytes);
   gkyl_cu_memcpy(gpu->eval, up->eval, eval_bytes, GKYL_CU_MEMCPY_H2D);
   gpu->coeff = (double *)gkyl_cu_malloc(up->num_reduced * sizeof(double));
-  gpu->correction = (double *)gkyl_cu_malloc(up->num_cells * up->num_basis * sizeof(double));
+  gpu->correction = (double *)gkyl_cu_malloc(
+    (up->num_cells > 0 ? up->num_cells * up->num_basis : 1) * sizeof(double)
+  );
   gpu->blend = (double *)gkyl_cu_malloc(up->num_blocks * sizeof(double));
-  gpu->block_invalid = (double *)gkyl_cu_malloc(up->num_blocks * sizeof(double));
-  gpu->block_limited = (double *)gkyl_cu_malloc(up->num_blocks * sizeof(double));
+  long reduce_size = up->num_reduced > up->num_blocks ? up->num_reduced : up->num_blocks;
+  gpu->reduce_buffer = (double *)gkyl_cu_malloc(reduce_size * sizeof(double));
   gpu->status = (double *)gkyl_cu_malloc(3 * sizeof(double));
 }
 
@@ -229,11 +227,11 @@ gkyl_orbit_average_gyrokinetic_advance_cu(
 )
 {
   struct gkyl_orbit_average_gyrokinetic_result result = {true, 0.0, 0};
-  if (dt == 0.0 || (!up->frequency_is_infinite && frequency == 0.0) || up->num_cells == 0) {
+  if (dt == 0.0 || (!up->frequency_is_infinite && frequency == 0.0) || up->num_global_cells == 0) {
     return result;
   }
   const double beta = gk_orbit_beta_cu(dt, frequency, up->frequency_is_infinite);
-  const struct gk_orbit_cu *gpu = (const struct gk_orbit_cu *)up->gpu;
+  struct gk_orbit_cu *gpu = (struct gk_orbit_cu *)up->gpu;
   const long num_modes = up->num_cells * up->num_basis;
   const int mode_blocks = (int)fmin(65535.0, (double)((num_modes - 1) / GKYL_ORBIT_CU_THREADS + 1));
   const int reduced_blocks = (int)fmin(65535.0, (double)up->num_reduced);
@@ -242,18 +240,33 @@ gkyl_orbit_average_gyrokinetic_advance_cu(
     up->num_basis, up->num_reduced, gpu->blocks, gpu->cell_indices, gpu->reduced_blocks, gpu->dual,
     f->on_dev, gpu->coeff
   );
+  if (up->reduce) {
+    if (up->reduce(up->reduce_ctx, true, up->num_reduced, gpu->coeff, gpu->reduce_buffer)) {
+      result.success = false;
+      return result;
+    }
+    gkyl_cu_memcpy(
+      gpu->coeff, gpu->reduce_buffer, up->num_reduced * sizeof(double), GKYL_CU_MEMCPY_D2D
+    );
+  }
   gk_orbit_correction_cu_kernel<<<mode_blocks, GKYL_ORBIT_CU_THREADS>>>(
     up->num_basis, num_modes, gpu->blocks, gpu->cell_indices, gpu->cell_blocks, gpu->q, gpu->coeff,
     f->on_dev, gpu->correction
   );
   gk_orbit_limit_cu_kernel<<<limit_blocks, GKYL_ORBIT_CU_THREADS>>>(
-    up->num_basis, up->num_pos, up->num_blocks, up->positivity, beta, gpu->blocks,
-    gpu->cell_indices, gpu->eval, gpu->correction, f->on_dev, gpu->blend, gpu->block_invalid,
-    gpu->block_limited
+    up->num_basis, up->num_pos, up->num_blocks, up->positivity, gpu->blocks, gpu->cell_indices,
+    gpu->eval, gpu->correction, f->on_dev, gpu->blend
   );
-  gk_orbit_status_cu_kernel<<<1, 1>>>(
-    up->num_blocks, beta, gpu->blend, gpu->block_invalid, gpu->block_limited, gpu->status
-  );
+  if (up->reduce) {
+    if (up->reduce(up->reduce_ctx, false, up->num_blocks, gpu->blend, gpu->reduce_buffer)) {
+      result.success = false;
+      return result;
+    }
+    gkyl_cu_memcpy(
+      gpu->blend, gpu->reduce_buffer, up->num_blocks * sizeof(double), GKYL_CU_MEMCPY_D2D
+    );
+  }
+  gk_orbit_status_cu_kernel<<<1, 1>>>(up->num_blocks, beta, gpu->blend, gpu->status);
   double status[3];
   gkyl_cu_memcpy(status, gpu->status, sizeof(status), GKYL_CU_MEMCPY_D2H);
   result.success = status[0] == 0.0;
@@ -275,7 +288,7 @@ gkyl_orbit_average_gyrokinetic_cu_release(gkyl_orbit_average_gyrokinetic *up)
   if (gpu == 0) {
     return;
   }
-  if (up->num_cells > 0) {
+  if (up->num_global_cells > 0) {
     gkyl_cu_free(gpu->blocks);
     gkyl_cu_free(gpu->cell_indices);
     gkyl_cu_free(gpu->cell_blocks);
@@ -286,9 +299,8 @@ gkyl_orbit_average_gyrokinetic_cu_release(gkyl_orbit_average_gyrokinetic *up)
     gkyl_cu_free(gpu->coeff);
     gkyl_cu_free(gpu->correction);
     gkyl_cu_free(gpu->blend);
-    gkyl_cu_free(gpu->block_invalid);
-    gkyl_cu_free(gpu->block_limited);
     gkyl_cu_free(gpu->status);
+    gkyl_cu_free(gpu->reduce_buffer);
   }
   gkyl_free(gpu);
   up->gpu = 0;

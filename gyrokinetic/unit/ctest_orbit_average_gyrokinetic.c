@@ -2,6 +2,9 @@
 
 #include <float.h>
 #include <math.h>
+#include <pthread.h>
+#include <string.h>
+#include <gkyl_alloc.h>
 
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
@@ -792,7 +795,196 @@ test_midpoint_opening_cu(void)
 }
 #endif
 
+// Exercise real concurrent collectives without requiring mpirun for unit tests.
+// Unequal partitions include the two boundary slabs with no selected cells.
+struct orbit_test_collective {
+  pthread_barrier_t barrier;
+  double *partial[4], *total;
+  bool use_gpu, zero_coeff[4];
+};
+struct orbit_test_rank {
+  struct orbit_test_collective *collective;
+  int rank;
+  gkyl_orbit_average_gyrokinetic *up;
+  struct gkyl_array *f;
+  struct gkyl_orbit_average_gyrokinetic_result result;
+};
+
+static int
+orbit_test_reduce(void *ctx, bool sum, long count, const double *input, double *output)
+{
+  struct orbit_test_rank *rank = ctx;
+  struct orbit_test_collective *comm = rank->collective;
+  size_t bytes = count * sizeof(double);
+#ifdef GKYL_HAVE_CUDA
+  if (comm->use_gpu) {
+    gkyl_cu_memcpy(comm->partial[rank->rank], input, bytes, GKYL_CU_MEMCPY_D2H);
+  } else
+#endif
+    memcpy(comm->partial[rank->rank], input, bytes);
+  if (sum) {
+    comm->zero_coeff[rank->rank] = true;
+    for (long i = 0; i < count; ++i) {
+      comm->zero_coeff[rank->rank] &= comm->partial[rank->rank][i] == 0.0;
+    }
+  }
+  pthread_barrier_wait(&comm->barrier);
+  if (rank->rank == 0) {
+    for (long i = 0; i < count; ++i) {
+      double value = sum ? 0.0 : DBL_MAX;
+      for (int r = 0; r < 4; ++r) {
+        value = sum ? value + comm->partial[r][i] : fmin(value, comm->partial[r][i]);
+      }
+      comm->total[i] = value;
+    }
+  }
+  pthread_barrier_wait(&comm->barrier);
+#ifdef GKYL_HAVE_CUDA
+  if (comm->use_gpu) {
+    gkyl_cu_memcpy(output, comm->total, bytes, GKYL_CU_MEMCPY_H2D);
+  } else
+#endif
+    memcpy(output, comm->total, bytes);
+  pthread_barrier_wait(&comm->barrier);
+  return 0;
+}
+
+static void *
+orbit_test_rank_advance(void *ctx)
+{
+  struct orbit_test_rank *rank = ctx;
+  rank->result = gkyl_orbit_average_gyrokinetic_advance(rank->up, 1.0, 1e20, rank->f);
+  return 0;
+}
+
+static void
+orbit_test_distributed(bool use_gpu)
+{
+  struct orbit_test test;
+  orbit_test_init(&test, true, false);
+  gkyl_orbit_average_gyrokinetic *reference = orbit_test_updater(&test, use_gpu, true);
+  struct gkyl_orbit_average_gyrokinetic_info info =
+    gkyl_orbit_average_gyrokinetic_get_info(reference);
+  struct orbit_test_collective comm = {.use_gpu = use_gpu};
+  pthread_barrier_init(&comm.barrier, 0, 4);
+  long count = info.num_modes > info.num_blocks ? info.num_modes : info.num_blocks;
+  comm.total = gkyl_malloc(count * sizeof(double));
+  struct orbit_test_rank ranks[4];
+  struct gkyl_range locals[4], exts[4];
+  int starts[] = {1, 2, 9, 16}, ends[] = {1, 8, 15, 16};
+  for (int r = 0; r < 4; ++r) {
+    comm.partial[r] = gkyl_malloc(count * sizeof(double));
+    int lower[] = {starts[r], 1, 1}, upper[] = {ends[r], 8, 2};
+    gkyl_range_init(&locals[r], 3, lower, upper);
+    gkyl_range_extend(&exts[r], &locals[r], (int[]){1, 0, 0}, (int[]){1, 0, 0});
+    gkyl_sub_range_init(&locals[r], &exts[r], lower, upper);
+    ranks[r] = (struct orbit_test_rank){.collective = &comm, .rank = r};
+    struct gkyl_orbit_average_gyrokinetic_inp inp = orbit_test_input(&test, use_gpu, true);
+    inp.local_range = &locals[r];
+    inp.reduce = orbit_test_reduce;
+    inp.reduce_ctx = &ranks[r];
+    ranks[r].up = gkyl_orbit_average_gyrokinetic_inew(&inp, 0);
+    TEST_ASSERT(ranks[r].up != 0);
+    ranks[r].f = use_gpu ?
+                   gkyl_array_cu_dev_new(GKYL_DOUBLE, test.basis.num_basis, exts[r].volume) :
+                   gkyl_array_new(GKYL_DOUBLE, test.basis.num_basis, exts[r].volume);
+  }
+  struct gkyl_array *initial = orbit_test_distribution_new(&test, ORBIT_TEST_SMOOTH);
+  struct gkyl_array *expected = gkyl_array_clone(initial), *actual = gkyl_array_clone(initial);
+  for (int invalid = 0; invalid < 2; ++invalid) {
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init(&iter, &test.local);
+    while (gkyl_range_iter_next(&iter)) {
+      double *modal = gkyl_array_fetch(initial, gkyl_range_idx(&test.local, iter.idx));
+      modal[0] = sqrt(8.0) * (iter.idx[0] == 7 && iter.idx[1] == 4 ? 1.0 : 0.001);
+      if (invalid && iter.idx[0] == 7) {
+        modal[0] = -1.0;
+      }
+      for (int m = 1; m < test.basis.num_basis; ++m) {
+        modal[m] = 0.0;
+      }
+    }
+    gkyl_array_copy(actual, initial);
+    struct gkyl_orbit_average_gyrokinetic_result result =
+      orbit_test_update(reference, use_gpu, 1.0, 1e20, initial, expected);
+    TEST_CHECK(result.success == !invalid);
+    if (!invalid) {
+      TEST_CHECK(result.num_limited_blocks > 0);
+    }
+    pthread_t threads[4];
+    for (int r = 0; r < 4; ++r) {
+      struct gkyl_array *host = gkyl_array_new(GKYL_DOUBLE, test.basis.num_basis, exts[r].volume);
+      gkyl_range_iter_init(&iter, &locals[r]);
+      while (gkyl_range_iter_next(&iter)) {
+        memcpy(
+          gkyl_array_fetch(host, gkyl_range_idx(&locals[r], iter.idx)),
+          gkyl_array_cfetch(initial, gkyl_range_idx(&test.local, iter.idx)),
+          test.basis.num_basis * sizeof(double)
+        );
+      }
+      gkyl_array_copy(ranks[r].f, host);
+      gkyl_array_release(host);
+      TEST_ASSERT(pthread_create(&threads[r], 0, orbit_test_rank_advance, &ranks[r]) == 0);
+    }
+    for (int r = 0; r < 4; ++r) {
+      pthread_join(threads[r], 0);
+      TEST_CHECK(ranks[r].result.success == !invalid);
+      if (!invalid) {
+        TEST_CHECK(fabs(ranks[r].result.min_blend - result.min_blend) < 1e-12);
+        TEST_CHECK(ranks[r].result.num_limited_blocks == result.num_limited_blocks);
+      }
+      struct gkyl_array *host = gkyl_array_new(GKYL_DOUBLE, test.basis.num_basis, exts[r].volume);
+      gkyl_array_copy(host, ranks[r].f);
+      gkyl_range_iter_init(&iter, &locals[r]);
+      while (gkyl_range_iter_next(&iter)) {
+        memcpy(
+          gkyl_array_fetch(actual, gkyl_range_idx(&test.local, iter.idx)),
+          gkyl_array_cfetch(host, gkyl_range_idx(&locals[r], iter.idx)),
+          test.basis.num_basis * sizeof(double)
+        );
+      }
+      gkyl_array_release(host);
+    }
+    TEST_CHECK(comm.zero_coeff[0] && comm.zero_coeff[3]);
+    TEST_CHECK(orbit_test_difference(expected, actual) < 2e-12);
+    if (invalid) {
+      TEST_CHECK(orbit_test_difference(initial, actual) == 0.0);
+    } else {
+      orbit_test_check_moments(&test, initial, actual);
+    }
+  }
+  for (int r = 0; r < 4; ++r) {
+    gkyl_orbit_average_gyrokinetic_release(ranks[r].up);
+    gkyl_array_release(ranks[r].f);
+    gkyl_free(comm.partial[r]);
+  }
+  pthread_barrier_destroy(&comm.barrier);
+  gkyl_free(comm.total);
+  gkyl_array_release(initial);
+  gkyl_array_release(expected);
+  gkyl_array_release(actual);
+  gkyl_orbit_average_gyrokinetic_release(reference);
+  orbit_test_release(&test);
+}
+
+static void
+test_distributed(void)
+{
+  orbit_test_distributed(false);
+}
+#ifdef GKYL_HAVE_CUDA
+static void
+test_distributed_cu(void)
+{
+  orbit_test_distributed(true);
+}
+#endif
+
 TEST_LIST = {
+  {"distributed", test_distributed},
+#ifdef GKYL_HAVE_CUDA
+  {"distributed_cu", test_distributed_cu},
+#endif
   {"projection", test_projection},
   {"mapped_projection", test_mapped_projection},
   {"stationarity", test_stationarity},

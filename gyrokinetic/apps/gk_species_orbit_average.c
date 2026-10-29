@@ -1,5 +1,24 @@
 #include <gkyl_gyrokinetic_priv.h>
 #include <gkyl_orbit_average_gyrokinetic.h>
+#include <limits.h>
+
+static int
+gk_orbit_reduce(void *ctx, bool sum, long count, const double *input, double *output)
+{
+  struct gkyl_comm *comm = ctx;
+  while (count > 0) {
+    int chunk = count > INT_MAX ? INT_MAX : (int)count;
+    int error =
+      gkyl_comm_allreduce(comm, GKYL_DOUBLE, sum ? GKYL_SUM : GKYL_MIN, chunk, input, output);
+    if (error) {
+      return error;
+    }
+    count -= chunk;
+    input += chunk;
+    output += chunk;
+  }
+  return 0;
+}
 
 static enum gkyl_gk_trapped_passing_orbit_type
 gk_orbit_boundary(enum gkyl_gyrokinetic_bc_type type)
@@ -119,6 +138,9 @@ gk_species_orbit_average_prepare(gkyl_gyrokinetic_app *app, struct gk_species *g
       .conf_basis = &app->basis,
       .phase_basis = &gks->basis,
       .phase_range = &gks->global,
+      .local_range = &gks->local,
+      .reduce = gk_orbit_reduce,
+      .reduce_ctx = gks->comm,
       .conf_range = &app->global,
       .vel_map = gks->vel_map,
       .bmag = bmag,
@@ -157,8 +179,6 @@ gk_species_orbit_average_prepare(gkyl_gyrokinetic_app *app, struct gk_species *g
     );
     return false;
   }
-  orbit->global_f = mkarr(app->use_gpu, gks->basis.num_basis, gks->global_ext.volume);
-  gkyl_sub_range_init(&orbit->local_in_global, &gks->global, gks->local.lower, gks->local.upper);
   struct gkyl_orbit_average_gyrokinetic_info info =
     gkyl_orbit_average_gyrokinetic_get_info(orbit->up);
   if (!info.num_selected_cells) {
@@ -178,11 +198,8 @@ gk_species_orbit_average_advance(gkyl_gyrokinetic_app *app, struct gk_species *g
     return;
   }
   struct gk_orbit_average *orbit = &gks->orbit_average;
-  if (gkyl_comm_array_allgather(gks->comm, &gks->local, &gks->global, gks->f, orbit->global_f)) {
-    gkyl_exit("Orbit-average phase-space allgather failed.");
-  }
   struct gkyl_orbit_average_gyrokinetic_result result = gkyl_orbit_average_gyrokinetic_advance(
-    orbit->up, dt, gks->info.orbit_average.frequency, orbit->global_f
+    orbit->up, dt, gks->info.orbit_average.frequency, gks->f
   );
   if (!result.success) {
     gkyl_exit(
@@ -191,7 +208,6 @@ gk_species_orbit_average_advance(gkyl_gyrokinetic_app *app, struct gk_species *g
   }
   orbit->min_blend = result.min_blend;
   orbit->num_limited_blocks = result.num_limited_blocks;
-  gkyl_array_copy_range_to_range(gks->f, orbit->global_f, &gks->local, &orbit->local_in_global);
 }
 
 void
@@ -252,9 +268,6 @@ gk_species_orbit_average_release(const struct gk_orbit_average *orbit)
 {
   if (orbit->up) {
     gkyl_orbit_average_gyrokinetic_release(orbit->up);
-  }
-  if (orbit->global_f) {
-    gkyl_array_release(orbit->global_f);
   }
 }
 
