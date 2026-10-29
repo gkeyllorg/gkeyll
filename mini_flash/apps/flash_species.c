@@ -289,25 +289,10 @@ void flash_species_init(struct gkyl_flash_inp *inp,
 void
 flash_species_calc_distf_from_moms(gkyl_flash_app *app, struct flash_species *s, struct gkyl_array *init_dist_moms)
 {
-  struct gkyl_basis vel_basis;
-  if (app->basis.b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
-    gkyl_cart_modal_serendip(&vel_basis, app->vdim, app->poly_order);
-  }
-  else if (app->basis.b_type == GKYL_BASIS_MODAL_HYBRID) {
-    gkyl_cart_modal_serendip(&vel_basis, app->vdim, app->poly_order+1);
-  }
-
   struct gkyl_flash_proj_pkpm_lte_on_basis_inp inp = {
     .phase_grid = &s->grid,
-    .vel_grid = &s->grid_vel,
     .conf_basis = &app->confBasis,
-    .vel_basis = &vel_basis,
     .phase_basis = &app->basis,
-    .conf_range = &app->local_kinetic_ext,
-    .conf_range_ext = &app->local_kinetic_ext,
-    .vel_range = &s->local_vel,
-    .phase_range = &s->local,
-    .mass = s->mass,
     .use_gpu = app->use_gpu,
     .quad_type = GKYL_GAUSS_QUAD
   };

@@ -6,6 +6,9 @@
 struct gkyl_flash_proj_pkpm_lte_on_basis*
 gkyl_flash_proj_pkpm_lte_on_basis_new(struct gkyl_flash_proj_pkpm_lte_on_basis_inp *inp)
 {
+  if (inp->use_gpu)
+    gkyl_exit("gkyl_flash_proj_pkpm_lte_on_basis does not support GPUs.");
+
   struct gkyl_flash_proj_pkpm_lte_on_basis *up = gkyl_malloc(sizeof(*up));
 
   up->phase_grid = *inp->phase_grid;
@@ -14,37 +17,31 @@ gkyl_flash_proj_pkpm_lte_on_basis_new(struct gkyl_flash_proj_pkpm_lte_on_basis_i
 
   up->cdim = up->conf_basis.ndim;
   up->pdim = up->phase_basis.ndim;
-  int vdim = up->pdim - up->cdim;
+  up->vdim = up->pdim - up->cdim;
   up->num_conf_basis = up->conf_basis.num_basis;
   up->num_phase_basis = up->phase_basis.num_basis;
-  up->use_gpu = inp->use_gpu;
 
   int num_quad = up->conf_basis.poly_order+3;
+  bool is_vdim_p2[3];
+  int num_quad_v = vel_quad_shape(&up->phase_basis, up->vdim, num_quad, is_vdim_p2);
 
-  // initialize data needed for conf-space quadrature 
+  // initialize data needed for conf-space quadrature; only the basis at the
+  // ordinates is needed.
+  struct gkyl_array *conf_ordinates, *conf_weights;
   up->tot_conf_quad = init_quad_values(up->cdim, &up->conf_basis, 
-    inp->quad_type, num_quad,
-    &up->conf_ordinates, &up->conf_weights, &up->conf_basis_at_ords, false);
+    inp->quad_type, num_quad, num_quad_v, is_vdim_p2,
+    &conf_ordinates, &conf_weights, &up->conf_basis_at_ords);
+  gkyl_array_release(conf_ordinates);
+  gkyl_array_release(conf_weights);
 
   // initialize data needed for phase-space quadrature 
   up->tot_quad = init_quad_values(up->cdim, &up->phase_basis, 
-    inp->quad_type, num_quad,
-    &up->ordinates, &up->weights, &up->basis_at_ords, false);
+    inp->quad_type, num_quad, num_quad_v, is_vdim_p2,
+    &up->ordinates, &up->weights, &up->basis_at_ords);
 
-  up->f0_at_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_quad); // Only used in CPU implementation.
-  up->g_at_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_quad); // Only used in CPU implementation.
+  up->f0_at_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_quad);
+  up->g_at_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_quad);
 
-  // To avoid creating iterators over ranges in device kernel, we'll
-  // create a map between phase-space and conf-space ordinates.
-  int num_quad_v = num_quad;  // Hybrid basis have p=2 in velocity space.
-  // hybrid basis have p=2 in velocity space.
-  bool is_vdim_p2[] = {false, false, false};  // 3 is the max vdim.
-  if (up->phase_basis.b_type == GKYL_BASIS_MODAL_HYBRID) {
-    num_quad_v = num_quad+1;
-    for (int d=0; d<vdim; d++) {
-      is_vdim_p2[d] = true;
-    }
-  }
   up->conf_qrange = get_qrange(up->cdim, up->cdim, num_quad, num_quad_v, is_vdim_p2);
   up->phase_qrange = get_qrange(up->cdim, up->pdim, num_quad, num_quad_v, is_vdim_p2);
 
@@ -57,8 +54,7 @@ gkyl_flash_proj_pkpm_lte_on_basis_advance(gkyl_flash_proj_pkpm_lte_on_basis *up,
   const struct gkyl_array *moms, struct gkyl_array *f_lte)
 {
   double f_floor = 1.e-40; 
-  int cdim = up->cdim, pdim = up->pdim;
-  int vdim = pdim-cdim;
+  int cdim = up->cdim, pdim = up->pdim, vdim = up->vdim;
   int tot_quad = up->tot_quad;
   int num_phase_basis = up->num_phase_basis;  
 
@@ -72,7 +68,7 @@ gkyl_flash_proj_pkpm_lte_on_basis_advance(gkyl_flash_proj_pkpm_lte_on_basis *up,
   for (int d=0; d<conf_range->ndim; ++d) rem_dir[d] = 1;
 
   double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM];
-  double n_quad[tot_conf_quad], V_drift_quad[tot_conf_quad][vdim], T_over_m_quad[tot_conf_quad];
+  double n_quad[tot_conf_quad], T_over_m_quad[tot_conf_quad];
   double expamp_quad[tot_conf_quad];
 
   // outer loop over configuration space cells; for each
@@ -83,28 +79,21 @@ gkyl_flash_proj_pkpm_lte_on_basis_advance(gkyl_flash_proj_pkpm_lte_on_basis *up,
 
     const double *moms_d = gkyl_array_cfetch(moms, midx);
     const double *n_d = moms_d;
-    const double *V_drift_d = &moms_d[num_conf_basis];
     const double *T_over_m_d = &moms_d[num_conf_basis*(GKYL_MAX_VDIM+1)];
 
-    // Sum over basis for given LTE moments (n, V_drift, T/m) in the stationary frame
+    // Evaluate n and T/m at the conf-space ordinates. (Note PKPM is in moving reference frame).
     for (int n=0; n<tot_conf_quad; ++n) {
       const double *b_ord = gkyl_array_cfetch(up->conf_basis_at_ords, n);
 
       // Zero out quadrature values
       n_quad[n] = 0.0;
-      for (int d=0; d<vdim; ++d) {
-        V_drift_quad[n][d] = 0.0;
-      }
       T_over_m_quad[n] = 0.0;
 
       // Compute the configuration-space quadrature
       for (int k=0; k<num_conf_basis; ++k) {
         n_quad[n] += n_d[k]*b_ord[k];
-        for (int d=0; d<vdim; ++d) {
-          V_drift_quad[n][d] += V_drift_d[num_conf_basis*d+k]*b_ord[k];
-        }
         T_over_m_quad[n] += T_over_m_d[k]*b_ord[k];
-      }  
+      }
 
       if ((n_quad[n] > 0.0) && (T_over_m_quad[n] > 0.0)) {
         expamp_quad[n] = n_quad[n]/sqrt(pow(2.0*GKYL_PI*T_over_m_quad[n], vdim));
@@ -142,7 +131,7 @@ gkyl_flash_proj_pkpm_lte_on_basis_advance(gkyl_flash_proj_pkpm_lte_on_basis *up,
         if (T_over_m_quad[cqidx] > 0.0) {
           double v_sq = 0.0;
           for (int d=0; d<vdim; ++d) {
-            v_sq += (xmu[cdim+d]-V_drift_quad[cqidx][d])*(xmu[cdim+d]-V_drift_quad[cqidx][d]);
+            v_sq += pow(xmu[cdim+d], 2.0);
           }
 
           double f0_tmp = expamp_quad[cqidx]*exp(-v_sq/(2.0*T_over_m_quad[cqidx])); 
@@ -165,8 +154,6 @@ gkyl_flash_proj_pkpm_lte_on_basis_release(gkyl_flash_proj_pkpm_lte_on_basis *up)
   gkyl_array_release(up->ordinates);
   gkyl_array_release(up->weights);
   gkyl_array_release(up->basis_at_ords);
-  gkyl_array_release(up->conf_ordinates);
-  gkyl_array_release(up->conf_weights);
   gkyl_array_release(up->conf_basis_at_ords);
   gkyl_array_release(up->f0_at_ords);
   gkyl_array_release(up->g_at_ords);

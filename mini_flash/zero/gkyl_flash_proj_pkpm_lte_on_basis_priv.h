@@ -30,21 +30,12 @@ struct gkyl_flash_proj_pkpm_lte_on_basis {
 
   // for quadrature in Configuration-space
   int tot_conf_quad; // total number of Configuration-space quadrature points
-  struct gkyl_array *conf_ordinates; // Configuration-space ordinates for quadrature
-  struct gkyl_array *conf_weights; // weights for Configuration-space quadrature  
   struct gkyl_array *conf_basis_at_ords; // Configuration-space basis functions at ordinates
 
   struct gkyl_array *f0_at_ords; // function LTE distribution evaluated at
                                  // ordinates in a cell.
   struct gkyl_array *g_at_ords; // function LTE distribution evaluated at
                                  // ordinates in a cell.
-
-  int *p2c_qidx;  // Mapping between Configuration-space and Phase-space ordinates.
-  struct gkyl_array *f_lte_quad; // Array keeping f_lte at phase-space quadrature nodes
-  struct gkyl_array *moms_lte_quad; // Array keeping moms_lte (n, V_drift, T/m) 
-                                    // at configuration-space quadrature nodes
-
-  bool use_gpu;
 };
 
 GKYL_CU_DH
@@ -77,69 +68,44 @@ get_qrange(int cdim, int dim, int num_quad, int num_quad_v, bool *is_vdim_p2)
   return qrange;
 }
 
+// Number of quadrature points in velocity space, and which velocity directions
+// use it. Hybrid basis have p=2 in velocity space, so they need one more point.
+static inline int
+vel_quad_shape(const struct gkyl_basis *phase_basis, int vdim, int num_quad, bool is_vdim_p2[3])
+{
+  bool is_hybrid = phase_basis->b_type == GKYL_BASIS_MODAL_HYBRID;
+  for (int d=0; d<3; ++d) is_vdim_p2[d] = is_hybrid && d < vdim;  // 3 is the max vdim.
+  return is_hybrid ? num_quad+1 : num_quad;
+}
+
 // Sets ordinates, weights and basis functions at ords.
 // Returns the total number of quadrature nodes
 static int
 init_quad_values(int cdim, const struct gkyl_basis *basis,
-  enum gkyl_quad_type quad_type, int num_quad,
+  enum gkyl_quad_type quad_type, int num_quad, int num_quad_v, bool *is_vdim_p2,
   struct gkyl_array **ordinates,
-  struct gkyl_array **weights, struct gkyl_array **basis_at_ords, bool use_gpu)
+  struct gkyl_array **weights, struct gkyl_array **basis_at_ords)
 {
   int ndim = basis->ndim;
-  int vdim = ndim-cdim;
-  int num_quad_v = num_quad;
-  // hybrid basis have p=2 in velocity space.
-  bool is_vdim_p2[] = {false, false, false};  // 3 is the max vdim.
-  if (basis->b_type == GKYL_BASIS_MODAL_HYBRID) {
-    num_quad_v = num_quad+1;
-    for (int d=0; d<vdim; d++) {
-      is_vdim_p2[d] = true;
-    }
-  }
 
   double ordinates1[num_quad], weights1[num_quad];
   double ordinates1_v[num_quad_v], weights1_v[num_quad_v];
 
-  if (quad_type == GKYL_POSITIVITY_QUAD) {
-    // Positivity nodes are -1/3, 1/3 and have weights 1.0. All other
-    // weights are set to zero.
-    for (int i=0; i<num_quad; ++i) {
-      ordinates1[i] = 0.0;
-      weights1[i] = 0.0;
-    }
-    for (int i=0; i<num_quad_v; ++i) {
-      ordinates1_v[i] = 0.0;
-      weights1_v[i] = 0.0;
-    }
-    ordinates1[0] = -1.0/3.0;
-    ordinates1[1] = 1.0/3.0;
-    weights1[0] = 1.0;
-    weights1[1] = 1.0;
-
-    ordinates1_v[0] = -1.0/3.0;
-    ordinates1_v[1] = 0.0;
-    ordinates1_v[2] = 1.0/3.0;
-    weights1_v[0] = 3.0;
-    weights1_v[1] = -4.0;
-    weights1_v[2] = 3.0;
-  }
+  if (num_quad <= gkyl_gauss_max) {
+    // use pre-computed values if possible (these are more accurate
+  // than computing them on the fly)
+    memcpy(ordinates1, gkyl_gauss_ordinates[num_quad], sizeof(double[num_quad]));
+    memcpy(weights1, gkyl_gauss_weights[num_quad], sizeof(double[num_quad]));
+  } 
   else {
-    if (num_quad <= gkyl_gauss_max) {
-      // use pre-computed values if possible (these are more accurate
-    // than computing them on the fly)
-      memcpy(ordinates1, gkyl_gauss_ordinates[num_quad], sizeof(double[num_quad]));
-      memcpy(weights1, gkyl_gauss_weights[num_quad], sizeof(double[num_quad]));
-    } 
-    else {
-      gkyl_gauleg(-1, 1, ordinates1, weights1, num_quad);
-    }
-    if (num_quad_v <= gkyl_gauss_max) {
-      memcpy(ordinates1_v, gkyl_gauss_ordinates[num_quad_v], sizeof(double[num_quad_v]));
-      memcpy(weights1_v, gkyl_gauss_weights[num_quad_v], sizeof(double[num_quad_v]));
-    } 
-    else {
-      gkyl_gauleg(-1, 1, ordinates1_v, weights1_v, num_quad_v);
-    }
+    gkyl_gauleg(-1, 1, ordinates1, weights1, num_quad);
+  }
+  if (num_quad_v <= gkyl_gauss_max) {
+    memcpy(ordinates1_v, gkyl_gauss_ordinates[num_quad_v], sizeof(double[num_quad_v]));
+    memcpy(weights1_v, gkyl_gauss_weights[num_quad_v], sizeof(double[num_quad_v]));
+  } 
+  else {
+    gkyl_gauleg(-1, 1, ordinates1_v, weights1_v, num_quad_v);
   }
 
   struct gkyl_range qrange = get_qrange(cdim, ndim, num_quad, num_quad_v, is_vdim_p2);
@@ -147,16 +113,8 @@ init_quad_values(int cdim, const struct gkyl_basis *basis,
   int tot_quad = qrange.volume;
 
   // create ordinates and weights for multi-D quadrature
-  struct gkyl_array *ordinates_ho = gkyl_array_new(GKYL_DOUBLE, ndim, tot_quad);
-  struct gkyl_array *weights_ho = gkyl_array_new(GKYL_DOUBLE, 1, tot_quad);
-  if (use_gpu) {
-    *ordinates = gkyl_array_cu_dev_new(GKYL_DOUBLE, ndim, tot_quad);
-    *weights = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, tot_quad);
-  } 
-  else {
-    *ordinates = gkyl_array_new(GKYL_DOUBLE, ndim, tot_quad);
-    *weights = gkyl_array_new(GKYL_DOUBLE, 1, tot_quad);
-  }
+  *ordinates = gkyl_array_new(GKYL_DOUBLE, ndim, tot_quad);
+  *weights = gkyl_array_new(GKYL_DOUBLE, 1, tot_quad);
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &qrange);
@@ -165,7 +123,7 @@ init_quad_values(int cdim, const struct gkyl_basis *basis,
     int node = gkyl_range_idx(&qrange, iter.idx);
     
     // set ordinates
-    double *ord = gkyl_array_fetch(ordinates_ho, node);
+    double *ord = gkyl_array_fetch(*ordinates, node);
     for (int i=0; i<cdim; ++i) {
       ord[i] = ordinates1[iter.idx[i]-qrange.lower[i]];
     }
@@ -175,7 +133,7 @@ init_quad_values(int cdim, const struct gkyl_basis *basis,
     }
     
     // set weights
-    double *wgt = gkyl_array_fetch(weights_ho, node);
+    double *wgt = gkyl_array_fetch(*weights, node);
     wgt[0] = 1.0;
     for (int i=0; i<cdim; ++i) {
       wgt[0] *= weights1[iter.idx[i]-qrange.lower[i]];
@@ -187,26 +145,10 @@ init_quad_values(int cdim, const struct gkyl_basis *basis,
   }
 
   // pre-compute basis functions at ordinates
-  struct gkyl_array *basis_at_ords_ho = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, tot_quad);
-  if (use_gpu) {
-    *basis_at_ords = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis->num_basis, tot_quad);
-  }
-  else {
-    *basis_at_ords = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, tot_quad);
-  }
-
+  *basis_at_ords = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, tot_quad);
   for (int n=0; n<tot_quad; ++n) {
-    basis->eval(gkyl_array_fetch(ordinates_ho, n), gkyl_array_fetch(basis_at_ords_ho, n));
+    basis->eval(gkyl_array_fetch(*ordinates, n), gkyl_array_fetch(*basis_at_ords, n));
   }
-
-  // copy host array to device array
-  gkyl_array_copy(*ordinates, ordinates_ho);
-  gkyl_array_copy(*weights, weights_ho);
-  gkyl_array_copy(*basis_at_ords, basis_at_ords_ho);
-
-  gkyl_array_release(ordinates_ho);
-  gkyl_array_release(weights_ho);
-  gkyl_array_release(basis_at_ords_ho);
 
   return tot_quad;
 }

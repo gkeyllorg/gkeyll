@@ -92,17 +92,11 @@ test_interp_modal_to_fv(int ndim, int num_cells_fv, const double fv_ref[NUM_CHEC
   // Initialize arrays for DG and FV data.
   struct gkyl_array *dg_data = mkarr(basis.num_basis, range_dg.volume);
   struct gkyl_array *fv_data = mkarr(1, range_fv.volume);
-  struct gkyl_array *fv_data_exact = mkarr(1, range_fv.volume);
 
   // Project initial condition onto DG grid.
   gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&grid_dg, &basis, 5, 1, proj_fn, &ctx);
   gkyl_proj_on_basis_advance(proj, 0.0, &range_dg, dg_data);
   gkyl_proj_on_basis_release(proj);
-
-  // Project initial condition onto finite volume grid for comparison.
-  gkyl_fv_proj *fv_proj = gkyl_fv_proj_new(&grid_fv, 2, 1, proj_fn, &ctx);
-  gkyl_fv_proj_advance(fv_proj, 0.0, &range_fv, fv_data_exact);
-  gkyl_fv_proj_release(fv_proj);
 
   // Interpolate modal DG data onto finite volume grid.
   struct gkyl_dg_fv_interpolate *interp = gkyl_dg_fv_interpolate_new(&basis, &grid_dg, &grid_fv);
@@ -135,17 +129,14 @@ test_interp_modal_to_fv(int ndim, int num_cells_fv, const double fv_ref[NUM_CHEC
     }
   }
 
-  // Write interpolated and exact FV data.
+  // Write interpolated FV data.
   char fname[256];
   snprintf(fname, sizeof(fname), "modal_to_fv_%dx_%d.gkyl", ndim, num_cells_fv);
   gkyl_grid_sub_array_write(&grid_fv, &range_fv, 0, fv_data, fname);
-  snprintf(fname, sizeof(fname), "modal_to_fv_exact_%dx_%d.gkyl", ndim, num_cells_fv);
-  gkyl_grid_sub_array_write(&grid_fv, &range_fv, 0, fv_data_exact, fname);
 
   gkyl_dg_fv_interpolate_release(interp);
   gkyl_array_release(dg_data);
   gkyl_array_release(fv_data);
-  gkyl_array_release(fv_data_exact);
 }
 
 void
@@ -183,17 +174,11 @@ test_interp_fv_to_modal(int ndim, int num_cells_fv, const double dg_ref[NUM_CHEC
   // Initialize arrays for FV and DG data.
   struct gkyl_array *fv_data = mkarr(1, range_fv.volume);
   struct gkyl_array *dg_data = mkarr(basis.num_basis, range_dg.volume);
-  struct gkyl_array *dg_data_exact = mkarr(basis.num_basis, range_dg.volume);
 
   // Project initial condition onto finite volume grid.
   gkyl_fv_proj *fv_proj = gkyl_fv_proj_new(&grid_fv, 2, 1, proj_fn, &ctx);
   gkyl_fv_proj_advance(fv_proj, 0.0, &range_fv, fv_data);
   gkyl_fv_proj_release(fv_proj);
-
-  // Project initial condition onto DG grid for comparison.
-  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&grid_dg, &basis, 5, 1, proj_fn, &ctx);
-  gkyl_proj_on_basis_advance(proj, 0.0, &range_dg, dg_data_exact);
-  gkyl_proj_on_basis_release(proj);
 
   // Interpolate finite volume data onto modal DG grid.
   struct gkyl_dg_fv_interpolate *interp = gkyl_dg_fv_interpolate_new(&basis, &grid_dg, &grid_fv);
@@ -214,7 +199,7 @@ test_interp_fv_to_modal(int ndim, int num_cells_fv, const double dg_ref[NUM_CHEC
     }
   }
 
-  // Write interpolated and exact DG data.
+  // Write interpolated DG data.
   struct gkyl_msgpack_map_elem io_meta[] = {
     {.key = "polyOrder", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = basis.poly_order},
     {.key = "basisType", .elem_type = GKYL_MP_STRING, .cval = basis.id}
@@ -224,15 +209,12 @@ test_interp_fv_to_modal(int ndim, int num_cells_fv, const double dg_ref[NUM_CHEC
   char fname[256];
   snprintf(fname, sizeof(fname), "fv_to_modal_%dx_%d.gkyl", ndim, num_cells_fv);
   gkyl_grid_sub_array_write(&grid_dg, &range_dg, mt, dg_data, fname);
-  snprintf(fname, sizeof(fname), "fv_to_modal_exact_%dx_%d.gkyl", ndim, num_cells_fv);
-  gkyl_grid_sub_array_write(&grid_dg, &range_dg, mt, dg_data_exact, fname);
 
   gkyl_msgpack_data_release(mt);
 
   gkyl_dg_fv_interpolate_release(interp);
   gkyl_array_release(fv_data);
   gkyl_array_release(dg_data);
-  gkyl_array_release(dg_data_exact);
 }
 
 // NOTE: Cell number is for the refined grid. Reference values are listed for
