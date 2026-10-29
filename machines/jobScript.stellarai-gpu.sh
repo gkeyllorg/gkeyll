@@ -30,8 +30,8 @@
 module unload anaconda3/2026.7 # Interferes with openmpi module.
 
 #.Restrict MPI transport layers to shared memory (cpus within a node),
-CUDA copy (gpus within a node) and self (ranks send messages to themselves).
-export UCX_TLS=sm,cuda_cpy,self
+#.CUDA copy (gpus within a node) and self (ranks send messages to themselves).
+export UCX_TLS=sm,cuda_copy,self
 
 #.Run the rt_gk_sheath_2x2v_p1 executable using 1 GPU along x (-c 1) and 2
 #.GPUs along the field line (-d 2). See './rt_gk_sheath_2x2v_p1 -h' for

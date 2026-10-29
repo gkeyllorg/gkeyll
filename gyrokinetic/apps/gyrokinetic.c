@@ -536,6 +536,17 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
     geometry_inp.world[i] = gk->geometry.world[i];
   }
 
+  // Pass periodicity to the geometry input to avoid asymmetry at periodic boundaries.
+  for (int d = 0; d < 3; d++) {
+    geometry_inp.geo_is_periodic[d] = false;
+  }
+
+  for (int d = 0; d < app->num_periodic_dir; d++) {
+    int dir = app->periodic_dirs[d];
+    int geo_dir = app->cdim == 3 ? dir : (app->cdim == 2 ? (dir == 0 ? 0 : 2) : 2);
+    geometry_inp.geo_is_periodic[geo_dir] = true;
+  }
+
   if (app->cdim < 3) {
     geometry_inp.geo_grid = gkyl_gk_geometry_augment_grid(app->grid, geometry_inp);
     switch (gk->basis_type) {
@@ -1517,12 +1528,21 @@ gyrokinetic_app_geometry_copy_and_write_surf(
   char fileNm[sz + 1]; // ensures no buffer overflow
   snprintf(fileNm, sizeof fileNm, fmt, app->name, dir, varNm);
 
+  char value_form[32];
+  snprintf(value_form, sizeof value_form, "modal_surf%d", dir);
+  struct gkyl_msgpack_map_elem io_meta_surf[app->io_meta_dg_len];
+  for (int i = 0; i < app->io_meta_dg_len; i++) {
+    io_meta_surf[i] = app->io_meta_dg[i];
+    if (strcmp(io_meta_surf[i].key, "value_form") == 0) {
+      io_meta_surf[i].cval = value_form;
+    }
+  }
   struct gkyl_msgpack_map_elem desc_elem[] = {
     {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = (char *)description}
   };
   int io_meta_len[] = {app->io_meta_dg_len, app->gk_geom->io_meta_basic_len, 1};
   const struct gkyl_msgpack_map_elem *io_meta[] = {
-    app->io_meta_dg, app->gk_geom->io_meta_basic, desc_elem
+    io_meta_surf, app->gk_geom->io_meta_basic, desc_elem
   };
   struct gkyl_msgpack_data *mt =
     gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
