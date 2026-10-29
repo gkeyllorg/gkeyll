@@ -4,8 +4,6 @@
 
 [gkeyll_gen_miller_eqdsk.py](gkeyll_gen_miller_eqdsk.py) is both an importable module and a command-line
 generator. It requires NumPy and SciPy. Matplotlib is optional, for `--plot`.
-The implementation plan is [MILLER_EQDSK_PLAN.md](MILLER_EQDSK_PLAN.md); all formulas and numerical
-methods are documented in [gkeyll_gen_miller_eqdsk.tex](gkeyll_gen_miller_eqdsk.tex).
 
 From the repository root:
 
@@ -18,11 +16,18 @@ python3 gyrokinetic/data/eqdsk/miller/gkeyll_gen_miller_eqdsk.py \
 The Python input defines `geometry={...}` and a scalar `q(R_omp)` function. All
 physical parameters belong in that file; the CLI never evaluates a function
 expression. `R_omp` is outboard midplane MAJOR radius in meters. Required geometry
-keys are `R_axis`, `B_axis` (toroidal field), and `R_lcfs` (outboard LCFS major radius).
-Defaults: `Z_axis=0`, `kappa=1`, `delta=0`, `a_shift=0`. Lengths are meters and fields
-tesla. The initial convention requires positive `B_axis` and positive finite q.
+keys are `Rmajor_axis`, `bmag_axis` (toroidal field), and `Rmajor_LCFS` (outboard LCFS major radius).
+Defaults: `Zvert_axis=0`, `kappa=1`, `delta=0`, `a_shift=0`. Lengths are meters and fields
+tesla. `bmag_axis` is the signed toroidal field: negative means negative cylindrical
+B_phi, positive means positive B_phi; zero and nonfinite values are rejected.
+The supplied `q(R_omp)` is a positive finite magnitude. Flux quadrature uses
+`abs(Rmajor_axis*bmag_axis)`, so reversing the field preserves outward-increasing psi,
+the poloidal field, and radial conversions. The GEQDSK central field, F profile,
+and q profile carry the toroidal sign; the input q and diagnostic q(R_omp) plot
+remain magnitudes. Existing positive-field inputs retain their interpretation;
+the supplied examples explicitly choose negative toroidal field.
 
-Optional `R_omp_bounds=(lower,upper)` requests coverage of complete flux surfaces
+Optional `Rmajor_omp_bounds=(lower,upper)` requests coverage of complete flux surfaces
 for a core annulus, SOL-only simulation, or LCFS-crossing simulation. These are
 NOT rectangular R bounds. The equilibrium always includes the axis and LCFS;
 q must be valid all the way from the axis through the physical guard surface.
@@ -34,7 +39,7 @@ grids may require `--guard-fraction 0.25`. The node counts must be odd, 5..999.
 
 The output includes `<output>.json`, with parameters, input provenance, flux
 values, physical coverage, a conversion table, and numerical residuals. The
-GEQDSK has constant `F=R_axis*B_axis` and zero pressure/current placeholders. It is
+GEQDSK has constant `F=Rmajor_axis*bmag_axis` and zero pressure/current placeholders. It is
 a synthetic magnetic geometry, not a Grad-Shafranov solution or a wall model.
 No limiter is written.
 
@@ -63,7 +68,7 @@ A minimal circular example is:
 ```python
 from gkeyll_gen_miller_eqdsk import (
   MillerGeometry, MillerEquilibrium, sample_eqdsk, write_eqdsk)
-geometry = MillerGeometry(R_axis=2, B_axis=1.5, R_lcfs=2.5)
+geometry = MillerGeometry(Rmajor_axis=2, bmag_axis=-1.5, Rmajor_LCFS=2.5)
 equilibrium = MillerEquilibrium(geometry, lambda R_omp: 2)
 data = sample_eqdsk(equilibrium)
 write_eqdsk("circle.geqdsk", equilibrium, data)

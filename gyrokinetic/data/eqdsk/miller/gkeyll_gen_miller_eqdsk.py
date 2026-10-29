@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Generate a synthetic Miller GEQDSK from a Python equilibrium input file.
 
-See README.md and gkeyll_gen_miller_eqdsk.tex in this directory. All lengths are
-meters, B_axis is the toroidal field in tesla, and psi is poloidal flux / (2*pi).
+See README.md and doc/notes/miller_eq/gkeyll_gen_miller_eqdsk.tex. All lengths are
+meters, bmag_axis is the signed toroidal field in tesla, and psi is poloidal flux / (2*pi).
 """
 
 import argparse
@@ -27,24 +27,24 @@ from scipy.spatial import cKDTree
 class MillerGeometry:
   """Describe a family of axisymmetric Miller flux surfaces and its toroidal field.
 
-  R_axis and Z_axis locate the magnetic axis [m]; B_axis is the toroidal field
-  there [T]. R_lcfs specifies the LCFS by its outboard midplane major radius [m].
+  Rmajor_axis and Zvert_axis locate the magnetic axis [m]; bmag_axis is the toroidal field
+  there [T], signed in the cylindrical toroidal direction. Rmajor_LCFS specifies the LCFS by its outboard midplane major radius [m].
   The dimensionless elongation kappa and triangularity delta are constant across
   surfaces. The dimensionless a_shift sets the radial displacement of each
-  surface center: R_center(r) = R_axis - a_shift*r**2/(2*R_axis).
+  surface center: R_center(r) = Rmajor_axis - a_shift*r**2/(2*Rmajor_axis).
 
   Surfaces are labeled by minor radius r [m] and poloidal angle theta
   [rad], with theta=0 at the outboard midplane. Methods evaluate R(r,theta),
   Z(r,theta), their derivatives, the Jacobian factor, and conversions between
-  r and outboard major radius. The toroidal field is B_phi=R_axis*B_axis/R.
+  r and outboard major radius. The toroidal field is B_phi=Rmajor_axis*bmag_axis/R.
   MillerEquilibrium combines this immutable geometry with a q profile to
   construct the poloidal flux and magnetic field.
   """
 
-  R_axis: float
-  B_axis: float
-  R_lcfs: float
-  Z_axis: float = 0.0
+  Rmajor_axis: float
+  bmag_axis: float
+  Rmajor_LCFS: float
+  Zvert_axis: float = 0.0
   kappa: float = 1.0
   delta: float = 0.0
   a_shift: float = 0.0
@@ -53,49 +53,49 @@ class MillerGeometry:
     """Validate geometry parameters and the increasing outboard LCFS branch."""
     if not all(np.isfinite(v) for v in asdict(self).values()):
       raise ValueError("all geometry parameters must be finite")
-    if self.R_axis <= 0 or self.B_axis <= 0 or self.kappa <= 0:
-      raise ValueError("R_axis, B_axis, and kappa must be positive")
-    if self.R_lcfs <= self.R_axis or abs(self.delta) >= 1:
-      raise ValueError("require R_lcfs > R_axis and abs(delta) < 1")
-    self.r_at_R_omp(self.R_lcfs)
+    if self.Rmajor_axis <= 0 or self.bmag_axis == 0 or self.kappa <= 0:
+      raise ValueError("Rmajor_axis and kappa must be positive; bmag_axis must be nonzero")
+    if self.Rmajor_LCFS <= self.Rmajor_axis or abs(self.delta) >= 1:
+      raise ValueError("require Rmajor_LCFS > Rmajor_axis and abs(delta) < 1")
+    self.r_at_R_omp(self.Rmajor_LCFS)
 
   @property
   def F(self):
     """Return the constant toroidal field function F = R*B_phi [T m]."""
-    return self.R_axis * self.B_axis
+    return self.Rmajor_axis * self.bmag_axis
 
   def R_omp_at_r(self, r):
     """Map minor radius r to outboard midplane major radius [m]."""
     r = np.asarray(r)
-    return self.R_axis - self.a_shift * r*r / (2*self.R_axis) + r
+    return self.Rmajor_axis - self.a_shift * r*r / (2*self.Rmajor_axis) + r
 
   def r_at_R_omp(self, R_omp):
     """Invert the increasing outboard branch, stably also at zero shift."""
-    offset = np.asarray(R_omp) - self.R_axis
-    disc = 1 - 2*self.a_shift*offset/self.R_axis
+    offset = np.asarray(R_omp) - self.Rmajor_axis
+    disc = 1 - 2*self.a_shift*offset/self.Rmajor_axis
     if np.any(~np.isfinite(offset)) or np.any(offset < 0) or np.any(disc <= 0):
-      raise ValueError("R_omp must lie on the increasing branch above R_axis")
+      raise ValueError("R_omp must lie on the increasing branch above Rmajor_axis")
     return 2*offset / (1 + np.sqrt(disc))
 
   def RZ_at_rtheta(self, r, theta):
     """Return cylindrical R,Z [m] at minor radius r and poloidal angle theta."""
     r, theta = np.asarray(r), np.asarray(theta)
     angle = theta + math.asin(self.delta)*np.sin(theta)
-    return (self.R_axis - self.a_shift*r*r/(2*self.R_axis) + r*np.cos(angle),
-            self.Z_axis + self.kappa*r*np.sin(theta))
+    return (self.Rmajor_axis - self.a_shift*r*r/(2*self.Rmajor_axis) + r*np.cos(angle),
+            self.Zvert_axis + self.kappa*r*np.sin(theta))
 
   def RZ_derivatives_at_rtheta(self, r, theta):
     """Return R_r, R_theta, Z_r, Z_theta; arrays broadcast normally."""
     r, theta = np.asarray(r), np.asarray(theta)
     angle = theta + math.asin(self.delta)*np.sin(theta)
-    return (-self.a_shift*r/self.R_axis + np.cos(angle),
+    return (-self.a_shift*r/self.Rmajor_axis + np.cos(angle),
             -r*(1 + math.asin(self.delta)*np.cos(theta))*np.sin(angle),
             self.kappa*np.sin(theta), self.kappa*r*np.cos(theta))
 
   def RZdet_over_r(self, r, theta):
     """(R_r Z_theta - R_theta Z_r)/r, including its regular axis limit."""
     angle = theta + math.asin(self.delta)*np.sin(theta)
-    return self.kappa*((np.cos(angle) - self.a_shift*r/self.R_axis)*np.cos(theta)
+    return self.kappa*((np.cos(angle) - self.a_shift*r/self.Rmajor_axis)*np.cos(theta)
                        + (1 + math.asin(self.delta)*np.cos(theta))
                        * np.sin(angle)*np.sin(theta))
 
@@ -109,7 +109,7 @@ def load_input(filename):
     q = namespace["q"]
     if not callable(q):
       raise ValueError("q must be callable as q(R_omp)")
-    bounds = namespace.get("R_omp_bounds")
+    bounds = namespace.get("Rmajor_omp_bounds")
     if bounds is not None:
       bounds = tuple(float(v) for v in bounds)
     source = {"path": str(path), "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
@@ -121,11 +121,11 @@ def load_input(filename):
 class MillerEquilibrium:
   """Physical flux table plus explicit exterior continuation.
 
-  q is a scalar callback q(R_omp). R_omp_bounds labels optional simulation
+  q is a scalar callback q(R_omp). Rmajor_omp_bounds labels optional simulation
   surfaces; the physical construction always includes the axis and LCFS.
   """
 
-  def __init__(self, geometry, q, R_omp_bounds=None, *, rtol=1e-10, guard_fraction=0.05):
+  def __init__(self, geometry, q, Rmajor_omp_bounds=None, *, rtol=1e-10, guard_fraction=0.05):
     """Validate inputs, choose the physical guard, and construct the radial flux table."""
     self.geometry, self.q = geometry, q
     if not callable(q):
@@ -135,18 +135,18 @@ class MillerEquilibrium:
     if not np.isfinite(guard_fraction) or guard_fraction <= 0:
       raise ValueError("guard_fraction must be finite and positive")
     self.rtol, self.guard_fraction = rtol, guard_fraction
-    self.a = float(geometry.r_at_R_omp(geometry.R_lcfs))
+    self.a = float(geometry.r_at_R_omp(geometry.Rmajor_LCFS))
     self.bounds = None
-    self.r_required = self.a
-    if R_omp_bounds is not None:
-      bounds = np.asarray(R_omp_bounds, dtype=float)
+    self.rminor_required = self.a
+    if Rmajor_omp_bounds is not None:
+      bounds = np.asarray(Rmajor_omp_bounds, dtype=float)
       if bounds.shape != (2,) or not np.all(np.isfinite(bounds)) or bounds[0] >= bounds[1]:
-        raise ValueError("R_omp_bounds must contain two finite increasing radii")
+        raise ValueError("Rmajor_omp_bounds must contain two finite increasing radii")
       r_bounds = geometry.r_at_R_omp(bounds)
       self.bounds = tuple(bounds)
-      self.r_required = max(self.a, float(r_bounds[1]))
-    self.r_guard = self.r_required*(1 + guard_fraction)
-    self.s_guard = self.r_guard**2
+      self.rminor_required = max(self.a, float(r_bounds[1]))
+    self.rminor_guard = self.rminor_required*(1 + guard_fraction)
+    self.s_guard = self.rminor_guard**2
     self._validate_surfaces()
     self._build_flux_table()
     self.psi_boundary = float(self.psi_at_r(self.a))
@@ -166,12 +166,12 @@ class MillerEquilibrium:
     """Check sampled surfaces for folds, positive R, and valid q through the guard."""
     g = self.geometry
     theta = np.linspace(0, 2*np.pi, 1025)
-    for radius in np.linspace(0, self.r_guard, 257):
+    for radius in np.linspace(0, self.rminor_guard, 257):
       R, _ = g.RZ_at_rtheta(radius, theta)
       det = g.RZdet_over_r(radius, theta)
       if np.min(R) <= 0 or np.min(det) <= 0:
         raise ValueError(f"surfaces cross R=0 or fold at minor radius r={radius:.16g}")
-      if 1-g.a_shift*radius/g.R_axis <= 0:
+      if 1-g.a_shift*radius/g.Rmajor_axis <= 0:
         raise ValueError("outboard midplane mapping turns before the guard surface")
       self.q_at_r(radius)
 
@@ -185,16 +185,16 @@ class MillerEquilibrium:
       sint, cost = math.sin(theta), math.cos(theta)
       angle = theta + triangularity*sint
       cosa, sina = math.cos(angle), math.sin(angle)
-      R = g.R_axis - g.a_shift*s/(2*g.R_axis) + radius*cosa
-      det = g.kappa*((cosa-g.a_shift*radius/g.R_axis)*cost
+      R = g.Rmajor_axis - g.a_shift*s/(2*g.Rmajor_axis) + radius*cosa
+      det = g.kappa*((cosa-g.a_shift*radius/g.Rmajor_axis)*cost
                     + (1+triangularity*cost)*sina*sint)
-      return det*g.R_axis/R  # Dimensionless; finite at the axis.
+      return det*g.Rmajor_axis/R  # Dimensionless; finite at the axis.
 
     integral, error = quad(integrand, 0, 2*math.pi, epsabs=self.rtol*0.05,
                            epsrel=self.rtol*0.05, limit=200)
     if error > self.rtol*max(1, abs(integral)):
       raise ValueError(f"poloidal quadrature did not converge at r={radius:.16g}")
-    value = g.F*integral/(4*math.pi*g.R_axis*self.q_at_r(radius))
+    value = abs(g.F)*integral/(4*math.pi*g.Rmajor_axis*self.q_at_r(radius))
     if not math.isfinite(value) or value <= 0:
       raise ValueError("flux derivative must be finite and positive")
     return value
@@ -253,7 +253,7 @@ class MillerEquilibrium:
   def fs_coords_at_R_omp(self, R_omp):
     """Return r, psi, normalized flux radius, and q for a physical R_omp surface."""
     radius = float(self.geometry.r_at_R_omp(R_omp))
-    if radius > self.r_guard:
+    if radius > self.rminor_guard:
       raise ValueError("R_omp exceeds the physical guard surface")
     flux = float(self.psi_at_r(radius))
     return {"R_omp": float(R_omp), "r": radius, "psi": flux,
@@ -264,7 +264,7 @@ class MillerEquilibrium:
     radius = np.hypot(u, v)
     ratio = np.divide(v, radius, out=np.zeros_like(radius), where=radius > 0)
     angle = math.asin(self.geometry.delta)*ratio
-    return (self.geometry.R_axis-self.geometry.a_shift*radius**2/(2*self.geometry.R_axis)
+    return (self.geometry.Rmajor_axis-self.geometry.a_shift*radius**2/(2*self.geometry.Rmajor_axis)
             + u*np.cos(angle)-v*np.sin(angle))
 
   def _dR_du(self, u, v):
@@ -274,7 +274,7 @@ class MillerEquilibrium:
     angle = math.asin(self.geometry.delta)*ratio
     angle_deriv = np.divide(-math.asin(self.geometry.delta)*v*u, radius**3,
                            out=np.zeros_like(radius), where=radius > 0)
-    return (np.cos(angle)-self.geometry.a_shift*u/self.geometry.R_axis
+    return (np.cos(angle)-self.geometry.a_shift*u/self.geometry.Rmajor_axis
             -(u*np.sin(angle)+v*np.cos(angle))*angle_deriv)
 
   def rtheta_at_RZ(self, R, Z):
@@ -282,8 +282,8 @@ class MillerEquilibrium:
     R, Z = np.broadcast_arrays(np.asarray(R, dtype=float), np.asarray(Z, dtype=float))
     if np.any(~np.isfinite(R)) or np.any(~np.isfinite(Z)) or np.any(R <= 0):
       raise ValueError("R,Z must be finite and R positive")
-    v = (Z-self.geometry.Z_axis)/self.geometry.kappa
-    bound = np.full(R.shape, self.r_guard)
+    v = (Z-self.geometry.Zvert_axis)/self.geometry.kappa
+    bound = np.full(R.shape, self.rminor_guard)
     for _ in range(12):
       needs = (self._R_uv(-bound, v) > R) | (self._R_uv(bound, v) < R)
       if not np.any(needs):
@@ -303,7 +303,7 @@ class MillerEquilibrium:
     radius, theta = np.hypot(u, v), np.arctan2(v, u)
     forward_R, forward_Z = self.geometry.RZ_at_rtheta(radius, theta)
     residual = np.hypot(forward_R-R, forward_Z-Z)
-    if np.any(residual > self.geometry.R_axis*1e-11):
+    if np.any(residual > self.geometry.Rmajor_axis*1e-11):
       index = np.unravel_index(np.argmax(residual), R.shape)
       raise ValueError(f"R–Z inverse failed at ({R[index]}, {Z[index]})")
     return radius, theta
@@ -317,28 +317,28 @@ class MillerEquilibrium:
     return factor*Rt, factor*Zt, self.geometry.F/R
 
 
-def sample_eqdsk(equilibrium, nr=257, nz=257, rz_bounds=None):
+def sample_eqdsk(equilibrium, nr=257, nz=257, RmajorZvert_bounds=None):
   """Sample psi on a rectangular mesh and validate the certified surfaces."""
   if any(not isinstance(n, (int, np.integer)) or n < 5 or n % 2 == 0 or n > 999 for n in (nr, nz)):
     raise ValueError("nr and nz must be odd integers between 5 and 999")
   eq, g = equilibrium, equilibrium.geometry
   theta = np.linspace(-np.pi, np.pi, 4097)
-  Rg, Zg = g.RZ_at_rtheta(eq.r_guard, theta)
-  if rz_bounds is None:
+  Rg, Zg = g.RZ_at_rtheta(eq.rminor_guard, theta)
+  if RmajorZvert_bounds is None:
     rpad, zpad = 0.02*np.ptp(Rg), 0.02*np.ptp(Zg)
-    rz_bounds = (float(Rg.min()-rpad), float(Rg.max()+rpad),
+    RmajorZvert_bounds = (float(Rg.min()-rpad), float(Rg.max()+rpad),
                  float(Zg.min()-zpad), float(Zg.max()+zpad))
-  bounds = np.asarray(rz_bounds, dtype=float)
+  bounds = np.asarray(RmajorZvert_bounds, dtype=float)
   if bounds.shape != (4,) or not np.all(np.isfinite(bounds)):
-    raise ValueError("rz_bounds must contain four finite values: RMIN RMAX ZMIN ZMAX")
+    raise ValueError("RmajorZvert_bounds must contain four finite values: RMIN RMAX ZMIN ZMAX")
   rmin, rmax, zmin, zmax = bounds
-  if not (0 < rmin < g.R_axis < rmax and zmin < g.Z_axis < zmax):
+  if not (0 < rmin < g.Rmajor_axis < rmax and zmin < g.Zvert_axis < zmax):
     raise ValueError("R–Z bounds must have RMIN>0 and contain the magnetic axis")
   Rgrid, Zgrid = np.linspace(rmin, rmax, nr), np.linspace(zmin, zmax, nz)
   spacing = np.array([(rmax-rmin)/(nr-1), (zmax-zmin)/(nz-1)])
   guard_tree = cKDTree(np.column_stack((Rg, Zg))/spacing)
   clearance = math.inf
-  for radius in (eq.a, eq.r_required):
+  for radius in (eq.a, eq.rminor_required):
     Rc, Zc = g.RZ_at_rtheta(radius, theta)
     distances, _ = guard_tree.query(np.column_stack((Rc, Zc))/spacing)
     edge = np.minimum.reduce(((Rc-rmin)/spacing[0], (rmax-Rc)/spacing[0],
@@ -353,10 +353,10 @@ def sample_eqdsk(equilibrium, nr=257, nz=257, rz_bounds=None):
   if not np.all(np.isfinite(psi)):
     raise ValueError("nonfinite flux on the R–Z mesh")
   flux_nodes = np.linspace(0, eq.psi_boundary, nr)
-  qpsi = np.array([eq.q_at_r(eq.r_at_psi(value)) for value in flux_nodes])
+  qpsi = np.sign(g.F)*np.array([eq.q_at_r(eq.r_at_psi(value)) for value in flux_nodes])
   boundary = np.column_stack(g.RZ_at_rtheta(eq.a, np.linspace(0, 2*np.pi, 257)))
   return {"R": Rgrid, "Z": Zgrid, "psi": psi, "qpsi": qpsi,
-          "boundary": boundary, "exterior": radius > eq.r_guard,
+          "boundary": boundary, "exterior": radius > eq.rminor_guard,
           "clearance_cells": clearance}
 
 
@@ -394,10 +394,10 @@ def write_eqdsk(filename, equilibrium, sampled):
   def write(stream):
     """Serialize the GEQDSK header, profiles, flux mesh, and LCFS into the stream."""
     stream.write(f"{'GKEYLL SYNTHETIC MILLER':48s}{0:4d}{nr:4d}{nz:4d}\n")
-    _write_values(stream, [R[-1]-R[0], Z[-1]-Z[0], g.R_axis, R[0], (Z[0]+Z[-1])/2])
-    _write_values(stream, [g.R_axis, g.Z_axis, 0, eq.psi_boundary, g.B_axis])
-    _write_values(stream, [0, 0, 0, g.R_axis, 0])
-    _write_values(stream, [g.Z_axis, 0, eq.psi_boundary, 0, 0])
+    _write_values(stream, [R[-1]-R[0], Z[-1]-Z[0], g.Rmajor_axis, R[0], (Z[0]+Z[-1])/2])
+    _write_values(stream, [g.Rmajor_axis, g.Zvert_axis, 0, eq.psi_boundary, g.bmag_axis])
+    _write_values(stream, [0, 0, 0, g.Rmajor_axis, 0])
+    _write_values(stream, [g.Zvert_axis, 0, eq.psi_boundary, 0, 0])
     for profile in (np.full(nr, g.F), np.zeros(nr), np.zeros(nr), np.zeros(nr)):
       _write_values(stream, profile)
     _write_values(stream, sampled["psi"])
@@ -411,21 +411,23 @@ def write_eqdsk(filename, equilibrium, sampled):
 def summary(equilibrium, sampled, source=None):
   """Build JSON metadata describing inputs, coverage, numerics, and radial conversions."""
   eq = equilibrium
-  table = [eq.fs_coords_at_R_omp(eq.geometry.R_omp_at_r(radius)) for radius in np.linspace(0, eq.r_guard, 129)]
+  table = [eq.fs_coords_at_R_omp(eq.geometry.R_omp_at_r(radius)) for radius in np.linspace(0, eq.rminor_guard, 129)]
   return {"generator": "gkeyll_gen_miller_eqdsk", "geometry": asdict(eq.geometry),
           "source": source, "psi_axis": 0.0, "psi_boundary": eq.psi_boundary,
-          "guard": {"r": eq.r_guard, "R_omp": float(eq.geometry.R_omp_at_r(eq.r_guard)),
+          "guard": {"r": eq.rminor_guard, "R_omp": float(eq.geometry.R_omp_at_r(eq.rminor_guard)),
                     "psi": eq.psi_guard},
-          "certified_outer_surface": eq.fs_coords_at_R_omp(eq.geometry.R_omp_at_r(eq.r_required)),
+          "certified_outer_surface": eq.fs_coords_at_R_omp(eq.geometry.R_omp_at_r(eq.rminor_required)),
           "requested_bounds": None if eq.bounds is None else [eq.fs_coords_at_R_omp(R) for R in eq.bounds],
           "numerics": {"nr": len(sampled["R"]), "nz": len(sampled["Z"]), "rtol": eq.rtol,
-                       "guard_fraction": eq.guard_fraction, "radial_nodes": len(eq.s_nodes),
+                       "guard_fraction": eq.guard_fraction, "num_nodes_radial": len(eq.s_nodes),
                        "radial_relative_error": eq.radial_error,
                        "clearance_cells": sampled["clearance_cells"]},
-          "rz_bounds": [float(sampled[k][i]) for k, i in (("R", 0), ("R", -1), ("Z", 0), ("Z", -1))],
+          "RmajorZvert_bounds": [float(sampled[k][i]) for k, i in (("R", 0), ("R", -1), ("Z", 0), ("Z", -1))],
           "exterior_nodes": int(np.count_nonzero(sampled["exterior"])),
           "conventions": {"psi": "poloidal flux / (2*pi), increasing outwards; axis=0",
                           "q_argument": "outboard midplane major radius [m]",
+                          "q": "positive input magnitude; signed GEQDSK q follows bmag_axis",
+                          "bmag_axis": "signed toroidal field at the magnetic axis [T]",
                           "exterior": "linear in r^2 beyond guard; not physical coverage",
                           "pressure_and_current": "zero placeholders; not a Grad-Shafranov solution",
                           "limiter": "not specified"},
@@ -444,7 +446,7 @@ def plot_eqdsk(filename, equilibrium, sampled):
   axes[0].contourf(sampled["R"], sampled["Z"], sampled["exterior"].astype(float),
                    levels=[0.5, 1.5], colors=["lightgray"], alpha=0.5)
   theta = np.linspace(0, 2*np.pi, 1025)
-  for radius, label, style in ((eq.a, "LCFS", "-"), (eq.r_guard, "guard", "--")):
+  for radius, label, style in ((eq.a, "LCFS", "-"), (eq.rminor_guard, "guard", "--")):
     axes[0].plot(*eq.geometry.RZ_at_rtheta(radius, theta), style, label=label)
   if eq.bounds:
     for index, R in enumerate(eq.bounds):
@@ -453,7 +455,7 @@ def plot_eqdsk(filename, equilibrium, sampled):
   axes[0].set(xlabel="R [m]", ylabel="Z [m]", aspect="equal")
   axes[0].legend(fontsize="small")
   fig.colorbar(contour, ax=axes[0], label=r"$\psi$ [Wb/rad]")
-  radius = np.linspace(0, eq.r_guard, 513)
+  radius = np.linspace(0, eq.rminor_guard, 513)
   axes[1].plot(eq.geometry.R_omp_at_r(radius), [eq.q_at_r(r) for r in radius])
   axes[1].set(xlabel="R_omp [m]", ylabel="q")
   axes[2].plot(radius, eq.psi_at_r(radius))
@@ -474,7 +476,7 @@ def main(argv=None):
     help="Z grid nodes; odd, 5..999 (default: %(default)s)")
   parser.add_argument("--rtol", type=float, default=1e-10,
     help="Relative tolerance for flux quadrature/interpolation (default: %(default)s)")
-  parser.add_argument("--rz-bounds", type=float, nargs=4, metavar=("RMIN", "RMAX", "ZMIN", "ZMAX"),
+  parser.add_argument("--rz-bounds", dest="RmajorZvert_bounds", type=float, nargs=4, metavar=("RMIN", "RMAX", "ZMIN", "ZMAX"),
     help="Rectangular R-Z bounds in meters (default: padded guard contour)")
   parser.add_argument("--guard-fraction", type=float, default=0.05,
     help="Fractional minor-radius margin beyond required surfaces (default: %(default)s)")
@@ -485,7 +487,7 @@ def main(argv=None):
   try:
     geometry, q, bounds, source = load_input(args.input)
     eq = MillerEquilibrium(geometry, q, bounds, rtol=args.rtol, guard_fraction=args.guard_fraction)
-    sampled = sample_eqdsk(eq, args.nr, args.nz, args.rz_bounds)
+    sampled = sample_eqdsk(eq, args.nr, args.nz, args.RmajorZvert_bounds)
     metadata = summary(eq, sampled, source)
     write_eqdsk(output, eq, sampled)
     _atomic_text(str(output)+".json", lambda stream: json.dump(metadata, stream, indent=2, allow_nan=False))
@@ -494,7 +496,7 @@ def main(argv=None):
     print(f"Wrote {output}; psi_axis=0, psi_boundary={eq.psi_boundary:.16g}")
     if eq.bounds:
       print("Requested psi bounds:", *(f"{eq.fs_coords_at_R_omp(R)['psi']:.16g}" for R in eq.bounds))
-    print(f"Physical guard: R_omp={geometry.R_omp_at_r(eq.r_guard):.16g}; "
+    print(f"Physical guard: R_omp={geometry.R_omp_at_r(eq.rminor_guard):.16g}; "
           f"radial interpolation error={eq.radial_error:.3g}")
     return 0
   except (ValueError, OSError, TypeError, ImportError) as exc:

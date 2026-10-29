@@ -219,18 +219,18 @@ gyrokinetic_prepare_miller(struct gkyl_gk *gk)
       )) {
     error = "Miller initialization supports single-block 2x/3x simulations";
   }
-  if (!finite_bounds || !(gk->lower[0] > inp.r_axis && gk->upper[0] > gk->lower[0])) {
-    error = "Miller radial bounds must be increasing outboard major radii above R_axis";
+  if (!finite_bounds || !(gk->lower[0] > inp.Rmajor_axis && gk->upper[0] > gk->lower[0])) {
+    error = "Miller radial bounds must be increasing outboard major radii above Rmajor_axis";
   }
-  if (inp.has_omp_bounds &&
-      (inp.omp_bounds[0] > gk->lower[0] || inp.omp_bounds[1] < gk->upper[0])) {
+  if (inp.has_Rmajor_omp_bounds &&
+      (inp.Rmajor_omp_bounds[0] > gk->lower[0] || inp.Rmajor_omp_bounds[1] < gk->upper[0])) {
     error = "Miller coverage bounds do not include the simulation";
   }
 
-  if (!inp.has_omp_bounds) {
-    inp.has_omp_bounds = true;
-    inp.omp_bounds[0] = gk->lower[0];
-    inp.omp_bounds[1] = gk->upper[0];
+  if (!inp.has_Rmajor_omp_bounds) {
+    inp.has_Rmajor_omp_bounds = true;
+    inp.Rmajor_omp_bounds[0] = gk->lower[0];
+    inp.Rmajor_omp_bounds[1] = gk->upper[0];
   }
   gkyl_gen_miller_eqdsk *generator = error ? NULL : gkyl_gen_miller_eqdsk_inew(&inp);
   failure = generator == NULL;
@@ -249,7 +249,7 @@ gyrokinetic_prepare_miller(struct gkyl_gk *gk)
   double psi_lower = gkyl_gen_miller_eqdsk_psi_at_R_omp(generator, gk->lower[0]);
   double psi_upper = gkyl_gen_miller_eqdsk_psi_at_R_omp(generator, gk->upper[0]);
 
-  bool crossing = gk->lower[0] < inp.r_lcfs && gk->upper[0] > inp.r_lcfs;
+  bool crossing = gk->lower[0] < inp.Rmajor_LCFS && gk->upper[0] > inp.Rmajor_LCFS;
 
   // Use the serialized boundary value, exactly as the EFIT reader will see it.
   char boundary_text[32];
@@ -304,13 +304,13 @@ gyrokinetic_prepare_miller(struct gkyl_gk *gk)
 
   struct gkyl_tok_geo_grid_inp tok = gk->geometry.tok_grid_info;
   tok.ftype = GKYL_GEOMETRY_TOKAMAK_IWL;
-  tok.rmin = info->rz_bounds[0];
-  tok.rmax = info->rz_bounds[1];
+  tok.rmin = info->RmajorZvert_bounds[0];
+  tok.rmax = info->RmajorZvert_bounds[1];
   tok.rleft = tok.rmin;
   tok.rright = tok.rmax;
-  tok.rclose = inp.r_lcfs;
-  tok.zmin = info->rz_bounds[2];
-  tok.zmax = info->rz_bounds[3];
+  tok.rclose = inp.Rmajor_LCFS;
+  tok.zmin = info->RmajorZvert_bounds[2];
+  tok.zmax = info->RmajorZvert_bounds[3];
 
   gk->lower[0] = psi_lower;
   gk->upper[0] = psi_upper;

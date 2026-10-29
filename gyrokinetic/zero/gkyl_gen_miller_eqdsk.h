@@ -5,24 +5,39 @@
 typedef struct gkyl_gen_miller_eqdsk gkyl_gen_miller_eqdsk;
 
 struct gkyl_gen_miller_eqdsk_inp {
-  double r_axis, z_axis, b_axis, r_lcfs; // SI units; r_lcfs is outboard major radius.
-  double kappa, delta, a_shift; // Zero kappa selects 1; other zeros are physical defaults.
-  double (*qprofile)(double r_omp, void *ctx); // Positive q, argument is major radius [m].
-  void *qctx;
-  bool has_omp_bounds;
-  double omp_bounds[2]; // Optional requested simulation surfaces, as major radii [m].
-  int nr, nz; // Odd R-Z node counts, default 257.
+  double Rmajor_axis, Zvert_axis; // Major radius and vertical position of magnetic axis.
+  double bmag_axis; // Signed toroidal field at the magnetic axis [T]; nonzero, sign sets B_phi.
+  double Rmajor_LCFS; // Major radius of LCFS at OMP.
+  double kappa; // Elongation (=0 sets kappa=1).
+  double delta; // Triangularity.
+  double a_shift; // Strength of Shafranov shift.
+  double (*qsafety)(double R_omp, void *ctx); // Safety factor (>0) as a function of major radius.
+  void *qsafety_ctx;
+  bool has_Rmajor_omp_bounds;
+  double Rmajor_omp_bounds[2]; // Optional requested simulation surfaces, as major radii [m].
+  int num_nodes_Rmajor; // Number of major-radius mesh nodes; odd, 5..999 (0 selects 257).
+  int num_nodes_Zvert; // Number of vertical mesh nodes; odd, 5..999 (0 selects 257).
   double rtol, guard_fraction; // Defaults 1e-10 and 0.05.
-  bool has_rz_bounds;
-  double rz_bounds[4]; // Rmin, Rmax, Zmin, Zmax [m].
+  bool has_RmajorZvert_bounds;
+  double RmajorZvert_bounds[4]; // Rmin, Rmax, Zmin, Zmax [m].
 };
 
 struct gkyl_gen_miller_eqdsk_info {
-  double psi_axis, psi_boundary, psi_guard;
-  double r_lcfs, r_required, r_guard; // Miller minor radii [m].
-  double rz_bounds[4];
-  double radial_error, clearance_cells;
-  int radial_nodes, nr, nz;
+  double psi_axis; // Poloidal flux divided by 2*pi at the magnetic axis [Wb/rad], fixed to zero.
+  double psi_boundary; // Poloidal flux divided by 2*pi at the LCFS [Wb/rad].
+  double psi_guard; // Poloidal flux divided by 2*pi at the outer physical guard [Wb/rad].
+  double rminor_LCFS; // Miller minor radius of the LCFS [m].
+  double rminor_required; // Larger of LCFS and outer requested Miller minor radii [m].
+  double rminor_guard; // Outer physical minor radius: rminor_required*(1+guard_fraction) [m].
+  double RmajorZvert_bounds[4]; // Resolved rectangular mesh bounds: Rmin, Rmax, Zmin, Zmax [m].
+  // Maximum midpoint interpolation error in g=dpsi/d(r^2), normalized by max(g,1e-8*max(g_nodes)).
+  double radial_error;
+  // Minimum sampled LCFS/outer-required contour distance to guard or box, in R-Z mesh spacings.
+  // Populated by advance; at least 3 after a successful advance.
+  double clearance_cells;
+  int num_nodes_radial; // Number of nodes in the adaptive s=r^2 table used to integrate poloidal flux.
+  int num_nodes_Rmajor; // Resolved number of major-radius nodes in the rectangular GEQDSK mesh.
+  int num_nodes_Zvert; // Resolved number of vertical nodes in the rectangular GEQDSK mesh.
 };
 
 /**
@@ -96,10 +111,10 @@ double gkyl_gen_miller_eqdsk_theta_at_theta_tok(const gkyl_gen_miller_eqdsk *up,
  * Evaluate flux at a physical outboard midplane major radius.
  *
  * @param up Generator.
- * @param r_omp Outboard midplane major radius in meters.
+ * @param R_omp Outboard midplane major radius in meters.
  * @return Poloidal flux divided by 2*pi [Wb/rad], or NaN outside physical coverage.
  */
-double gkyl_gen_miller_eqdsk_psi_at_R_omp(const gkyl_gen_miller_eqdsk *up, double r_omp);
+double gkyl_gen_miller_eqdsk_psi_at_R_omp(const gkyl_gen_miller_eqdsk *up, double R_omp);
 
 /**
  * Invert physical flux to outboard midplane major radius.

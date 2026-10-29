@@ -10,48 +10,87 @@
 #include <stdlib.h> // mkstemp(): create a uniquely named temporary file.
 #include <unistd.h> // unlink(): remove a file's directory entry.
 
+/**
+ * Return a constant positive safety-factor magnitude.
+ *
+ * @param R_omp Unused outboard major radius [m].
+ * @param ctx Unused context.
+ * @return Safety-factor magnitude.
+ */
 static double
-constant_q(double r_omp, void *ctx)
+constant_q(double R_omp, void *ctx)
 {
   return 2;
 }
 
+/**
+ * Evaluate the LTX safety-factor magnitude.
+ *
+ * @param R_omp Outboard major radius [m].
+ * @param ctx Unused context.
+ * @return Safety-factor magnitude.
+ */
 static double
-ltx_q(double r_omp, void *ctx)
+ltx_q(double R_omp, void *ctx)
 {
-  double radius = r_omp - 0.406051632, a = 0.61183 - 0.406051632;
+  double radius = R_omp - 0.406051632, a = 0.61183 - 0.406051632;
   return 4.3153848 * exp(0.5 * 2.6899871 * (radius * radius / (a * a) - 1));
 }
 
+/**
+ * Evaluate the DIII-D safety-factor magnitude.
+ *
+ * @param R_omp Outboard major radius [m].
+ * @param ctx Unused context.
+ * @return Safety-factor magnitude.
+ */
 static double
-d3d_q(double r_omp, void *ctx)
+d3d_q(double R_omp, void *ctx)
 {
-  return ((49.46395467479657 * r_omp - 260.79513158768754) * r_omp + 458.42618139184754) * r_omp -
+  return ((49.46395467479657 * R_omp - 260.79513158768754) * R_omp + 458.42618139184754) * R_omp -
          267.63441353752336;
 }
 
+/**
+ * Evaluate the TCV safety-factor magnitude.
+ *
+ * @param R_omp Outboard major radius [m].
+ * @param ctx Unused context.
+ * @return Safety-factor magnitude.
+ */
 static double
-tcv_q(double r_omp, void *ctx)
+tcv_q(double R_omp, void *ctx)
 {
-  return ((497.3420166252413 * r_omp - 1408.736172826569) * r_omp + 1331.4134861681464) * r_omp -
+  return ((497.3420166252413 * R_omp - 1408.736172826569) * R_omp + 1331.4134861681464) * R_omp -
          419.00692601227627;
 }
 
+/**
+ * Return a nonfinite safety factor to exercise validation.
+ *
+ * @param R_omp Unused outboard major radius [m].
+ * @param ctx Unused context.
+ * @return NaN.
+ */
 static double
-invalid_q(double r_omp, void *ctx)
+invalid_q(double R_omp, void *ctx)
 {
   // Parse at runtime so -ffast-math cannot fold a constant NaN return.
   return strtod("nan", NULL);
 }
 
+/**
+ * Check analytic circular flux, both field signs, and invalid inputs.
+ *
+ */
 static void
 test_circle(void)
 {
   struct gkyl_gen_miller_eqdsk_inp inp = {
-    .r_axis = 2,
-    .b_axis = 1.5,
-    .r_lcfs = 2.5,
-    .qprofile = constant_q,
+    .Rmajor_axis = 2,
+    .bmag_axis = 1.5,
+    .Rmajor_LCFS = 2.5,
+    .qsafety = constant_q,
   };
 
   gkyl_gen_miller_eqdsk *up = gkyl_gen_miller_eqdsk_inew(&inp);
@@ -60,7 +99,7 @@ test_circle(void)
   const struct gkyl_gen_miller_eqdsk_info *info = gkyl_gen_miller_eqdsk_get_info(up);
 
   for (int j = 0; j <= 100; ++j) {
-    double radius = info->r_guard * j / 100;
+    double radius = info->rminor_guard * j / 100;
     double exact = 1.5 * radius * radius / (2 + sqrt(4 - radius * radius));
     double flux = gkyl_gen_miller_eqdsk_psi_at_R_omp(up, 2 + radius);
     TEST_CHECK(fabs(flux - exact) < 1e-8 * info->psi_boundary);
@@ -71,18 +110,39 @@ test_circle(void)
 
   gkyl_gen_miller_eqdsk_release(up);
 
-  inp.qprofile = invalid_q;
+  inp.bmag_axis = -1.5;
+  up = gkyl_gen_miller_eqdsk_inew(&inp);
+  TEST_ASSERT(up != NULL);
+  double rminor = 0.3;
+  double exact = 1.5 * rminor * rminor / (2 + sqrt(4 - rminor * rminor));
+  TEST_CHECK(fabs(gkyl_gen_miller_eqdsk_psi_at_r(up, rminor) - exact) < 1e-10);
+  gkyl_gen_miller_eqdsk_release(up);
+  double invalid_fields[] = {0, strtod("nan", NULL), strtod("inf", NULL)};
+  for (int j = 0; j < 3; ++j) {
+    inp.bmag_axis = invalid_fields[j];
+    TEST_CHECK(gkyl_gen_miller_eqdsk_inew(&inp) == NULL);
+    TEST_MSG("Invalid bmag_axis case %d: %.17g", j, inp.bmag_axis);
+  }
+  inp.bmag_axis = 1.5;
+  inp.qsafety = invalid_q;
   TEST_CHECK(gkyl_gen_miller_eqdsk_inew(&inp) == NULL);
 
-  inp.qprofile = constant_q;
+  inp.qsafety = constant_q;
   inp.a_shift = 10;
   TEST_CHECK(gkyl_gen_miller_eqdsk_inew(&inp) == NULL);
 
   inp.a_shift = 0;
-  inp.nr = 64;
+  inp.num_nodes_Rmajor = 64;
   TEST_CHECK(gkyl_gen_miller_eqdsk_inew(&inp) == NULL);
 }
 
+/**
+ * Verify GEQDSK profiles and reconstructed numerical tokamak geometry.
+ *
+ * @param filename Generated GEQDSK path.
+ * @param inp Generator parameters.
+ * @param generator Generator supplying reference flux and coverage.
+ */
 static void
 check_reader(
   const char *filename, const struct gkyl_gen_miller_eqdsk_inp *inp,
@@ -97,29 +157,32 @@ check_reader(
   const struct gkyl_gen_miller_eqdsk_info *info = gkyl_gen_miller_eqdsk_get_info(generator);
 
   TEST_CHECK(fabs(efit->sibry / info->psi_boundary - 1) < 1e-8);
-  TEST_CHECK(fabs(efit->zmaxis - inp->z_axis) < 1e-9);
+  TEST_CHECK(fabs(efit->zmaxis - inp->Zvert_axis) < 1e-9);
 
   // The axis is a degenerate critical point. Check any reported X-points lie
   // outside the physical simulation annulus, rather than rejecting the axis.
   for (int j = 0; j < efit->num_xpts_cubic; ++j) {
     double point[2] = {efit->Rxpt_cubic[j], efit->Zxpt_cubic[j]}, value[3];
     efit->evf->eval_cubic_wgrad(0, point, value, efit->evf->ctx);
-    double lower = gkyl_gen_miller_eqdsk_psi_at_R_omp(generator, inp->omp_bounds[0]);
-    double upper = gkyl_gen_miller_eqdsk_psi_at_R_omp(generator, inp->omp_bounds[1]);
+    double lower = gkyl_gen_miller_eqdsk_psi_at_R_omp(generator, inp->Rmajor_omp_bounds[0]);
+    double upper = gkyl_gen_miller_eqdsk_psi_at_R_omp(generator, inp->Rmajor_omp_bounds[1]);
     TEST_CHECK(value[0] < lower || value[0] > upper);
   }
 
   double max_bp_error = 0, max_flux_error = 0, max_q_error = 0;
   for (int surface = 0; surface < 5; ++surface) {
-    double r_omp = inp->omp_bounds[0] + (inp->omp_bounds[1] - inp->omp_bounds[0]) * surface / 4;
-    double flux = gkyl_gen_miller_eqdsk_psi_at_R_omp(generator, r_omp);
-    double offset = r_omp - inp->r_axis;
-    double radius = 2 * offset / (1 + sqrt(1 - 2 * inp->a_shift * offset / inp->r_axis));
+    double R_omp = inp->Rmajor_omp_bounds[0] +
+                   (inp->Rmajor_omp_bounds[1] - inp->Rmajor_omp_bounds[0]) * surface / 4;
+    double flux = gkyl_gen_miller_eqdsk_psi_at_R_omp(generator, R_omp);
+    double offset = R_omp - inp->Rmajor_axis;
+    double radius = 2 * offset / (1 + sqrt(1 - 2 * inp->a_shift * offset / inp->Rmajor_axis));
     double h = radius * 1e-5;
-    double omp_lo =
-      inp->r_axis - inp->a_shift * (radius - h) * (radius - h) / (2 * inp->r_axis) + radius - h;
-    double omp_hi =
-      inp->r_axis - inp->a_shift * (radius + h) * (radius + h) / (2 * inp->r_axis) + radius + h;
+    double omp_lo = inp->Rmajor_axis -
+                    inp->a_shift * (radius - h) * (radius - h) / (2 * inp->Rmajor_axis) + radius -
+                    h;
+    double omp_hi = inp->Rmajor_axis -
+                    inp->a_shift * (radius + h) * (radius + h) / (2 * inp->Rmajor_axis) + radius +
+                    h;
     double dpsi = (gkyl_gen_miller_eqdsk_psi_at_R_omp(generator, omp_hi) -
                    gkyl_gen_miller_eqdsk_psi_at_R_omp(generator, omp_lo)) /
                   (2 * h);
@@ -129,16 +192,19 @@ check_reader(
       gkyl_gen_miller_eqdsk_RZ_at_rtheta(generator, radius, theta, rz);
       efit->evf->eval_cubic_wgrad(0, rz, value, efit->evf->ctx);
       double eta = asin(inp->delta), angle = theta + eta * sin(theta);
-      double Rr = cos(angle) - inp->a_shift * radius / inp->r_axis;
+      double Rr = cos(angle) - inp->a_shift * radius / inp->Rmajor_axis;
       double Rt = -radius * (1 + eta * cos(theta)) * sin(angle);
       double Zr = inp->kappa * sin(theta), Zt = inp->kappa * radius * cos(theta);
       double dl = hypot(Rt, Zt), bp = hypot(value[1], value[2]) / rz[0];
       double expected_bp = dpsi * dl / (rz[0] * (Rr * Zt - Rt * Zr));
       max_bp_error = fmax(max_bp_error, fabs(bp / expected_bp - 1));
       max_flux_error = fmax(max_flux_error, fabs(value[0] - flux) / info->psi_boundary);
-      q_integral += inp->r_axis * inp->b_axis * dl / (rz[0] * rz[0] * bp) / 1024;
+      q_integral += inp->Rmajor_axis * inp->bmag_axis * dl / (rz[0] * rz[0] * bp) / 1024;
     }
-    max_q_error = fmax(max_q_error, fabs(q_integral / inp->qprofile(r_omp, inp->qctx) - 1));
+    max_q_error = fmax(
+      max_q_error,
+      fabs(q_integral / copysign(inp->qsafety(R_omp, inp->qsafety_ctx), inp->bmag_axis) - 1)
+    );
   }
 
   TEST_CHECK(max_bp_error < 1e-3);
@@ -148,17 +214,27 @@ check_reader(
   TEST_CHECK(max_q_error < 1e-3);
   TEST_MSG("q error = %.9g", max_q_error);
 
+  TEST_CHECK(fabs(efit->bcentr - inp->bmag_axis) < 1e-8);
+  struct gkyl_range_iter fit;
+  gkyl_range_iter_init(&fit, &efit->fluxlocal);
+  while (gkyl_range_iter_next(&fit)) {
+    long loc = gkyl_range_idx(&efit->fluxlocal, fit.idx);
+    const double *F = gkyl_array_cfetch(efit->fpolflux, loc);
+    const double *q = gkyl_array_cfetch(efit->qflux, loc);
+    TEST_CHECK(fabs(F[0] / sqrt(2) - inp->Rmajor_axis * inp->bmag_axis) < 1e-8);
+    TEST_CHECK(q[0] * inp->bmag_axis > 0);
+  }
   gkyl_efit_release(efit);
 
   // Check roots of the actual quadratic and cubic EFIT reconstructions.
   struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_GEOMETRY_TOKAMAK_IWL,
-    .rleft = info->rz_bounds[0],
-    .rright = info->rz_bounds[1],
-    .rmin = info->rz_bounds[0],
-    .rmax = info->rz_bounds[1],
-    .zmin = info->rz_bounds[2],
-    .zmax = info->rz_bounds[3],
+    .rleft = info->RmajorZvert_bounds[0],
+    .rright = info->RmajorZvert_bounds[1],
+    .rmin = info->RmajorZvert_bounds[0],
+    .rmax = info->RmajorZvert_bounds[1],
+    .zmin = info->RmajorZvert_bounds[2],
+    .zmax = info->RmajorZvert_bounds[3],
   };
 
   for (int cubic = 0; cubic < 2; ++cubic) {
@@ -168,13 +244,13 @@ check_reader(
     geo->rmin = ginp.rmin;
     geo->rmax = ginp.rmax;
     double R[4], slope[4], dR[4], dZ[4];
-    int roots = gkyl_tok_geo_R_psiZ(geo, info->psi_boundary, inp->z_axis, 4, R, slope, dR, dZ);
+    int roots = gkyl_tok_geo_R_psiZ(geo, info->psi_boundary, inp->Zvert_axis, 4, R, slope, dR, dZ);
     TEST_CHECK(roots == 2);
     double error = 1e9;
     for (int j = 0; j < roots; ++j) {
-      error = fmin(error, fabs(R[j] - inp->r_lcfs));
+      error = fmin(error, fabs(R[j] - inp->Rmajor_LCFS));
     }
-    TEST_CHECK(error < 1e-4 * info->r_lcfs);
+    TEST_CHECK(error < 1e-4 * info->rminor_LCFS);
     gkyl_tok_geo_release(geo);
   }
 
@@ -206,6 +282,26 @@ check_reader(
   struct gk_geometry *gk_geo = gkyl_gk_geometry_tok_new(&geometry);
   TEST_CHECK(gkyl_gk_geometry_reduce_bmag(gk_geo, GKYL_MIN) > 0);
 
+  struct gkyl_range_iter nodes;
+  gkyl_range_iter_init(&nodes, &gk_geo->nrange_int);
+  while (gkyl_range_iter_next(&nodes)) {
+    long loc = gkyl_range_idx(&gk_geo->nrange_int, nodes.idx);
+    const double *position = gkyl_array_cfetch(gk_geo->geo_int.mc2p_nodal, loc);
+    const double *bhat = gkyl_array_cfetch(gk_geo->geo_int.bcart_nodal, loc);
+    const double *bmag = gkyl_array_cfetch(gk_geo->geo_int.bmag_nodal, loc);
+    const double *tangent = gkyl_array_cfetch(gk_geo->geo_int.dxdz_nodal, loc);
+    double phi = position[2], Rmajor = position[0];
+    double Bphi = bmag[0] * (-bhat[0] * sin(phi) + bhat[1] * cos(phi));
+    TEST_CHECK(fabs(Bphi * Rmajor / (inp->Rmajor_axis * inp->bmag_axis) - 1) < 1e-7);
+    double normal[3] = {
+      tangent[4] * tangent[8] - tangent[5] * tangent[7],
+      tangent[5] * tangent[6] - tangent[3] * tangent[8],
+      tangent[3] * tangent[7] - tangent[4] * tangent[6]
+    };
+    TEST_CHECK(tangent[0] * normal[0] + tangent[1] * normal[1] + tangent[2] * normal[2] > 0);
+    // The field follows increasing poloidal coordinate for either toroidal sign.
+    TEST_CHECK(bhat[2] * tangent[8] >= 0);
+  }
   gkyl_gk_geometry_release(gk_geo);
   gkyl_position_map_release(geometry.position_map);
 }
@@ -252,11 +348,11 @@ static void
 test_coordinates(void)
 {
   struct gkyl_gen_miller_eqdsk_inp inp = {
-    .r_axis = 2,
-    .b_axis = 1.5,
-    .r_lcfs = 2.5,
+    .Rmajor_axis = 2,
+    .bmag_axis = 1.5,
+    .Rmajor_LCFS = 2.5,
     .kappa = 1,
-    .qprofile = constant_q,
+    .qsafety = constant_q,
   };
   for (int shape = 0; shape < 2; ++shape) {
     if (shape) {
@@ -268,7 +364,7 @@ test_coordinates(void)
     TEST_ASSERT(up != NULL);
     const struct gkyl_gen_miller_eqdsk_info *info = gkyl_gen_miller_eqdsk_get_info(up);
     for (int j = 0; j <= 10; ++j) {
-      double radius = info->r_guard * j / 10;
+      double radius = info->rminor_guard * j / 10;
       double psi = gkyl_gen_miller_eqdsk_psi_at_r(up, radius);
       TEST_CHECK(fabs(gkyl_gen_miller_eqdsk_r_at_psi(up, psi) - radius) < 1e-9);
       double rz[2];
@@ -295,72 +391,80 @@ test_coordinates(void)
   }
 }
 
+/**
+ * Check both orientations for LTX, DIII-D, and TCV geometries.
+ *
+ */
 static void
 test_devices(void)
 {
   const char *names[] = {"ltx", "d3d", "tcv"};
   struct gkyl_gen_miller_eqdsk_inp inputs[] = {
     {
-      .r_axis = 0.406051632,
-      .b_axis = 0.240606108,
-      .r_lcfs = 0.61183,
+      .Rmajor_axis = 0.406051632,
+      .bmag_axis = 0.240606108,
+      .Rmajor_LCFS = 0.61183,
       .kappa = 1.3,
       .delta = 0.4,
-      .qprofile = ltx_q,
-      .has_omp_bounds = true,
-      .omp_bounds = {0.58, 0.7},
+      .qsafety = ltx_q,
+      .has_Rmajor_omp_bounds = true,
+      .Rmajor_omp_bounds = {0.58, 0.7},
     },
     {
-      .r_axis = 1.6,
-      .z_axis = 0.013055028,
-      .b_axis = 2 * 1.6486461 / 1.6,
-      .r_lcfs = 2.17,
+      .Rmajor_axis = 1.6,
+      .Zvert_axis = 0.013055028,
+      .bmag_axis = 2 * 1.6486461 / 1.6,
+      .Rmajor_LCFS = 2.17,
       .kappa = 1.35,
       .delta = 0.4,
-      .qprofile = d3d_q,
-      .has_omp_bounds = true,
-      .omp_bounds = {2.17 - 5 * 0.15 / 8, 2.17 + 3 * 0.15 / 8},
+      .qsafety = d3d_q,
+      .has_Rmajor_omp_bounds = true,
+      .Rmajor_omp_bounds = {2.17 - 5 * 0.15 / 8, 2.17 + 3 * 0.15 / 8},
     },
     {
-      .r_axis = 0.8867856264,
-      .z_axis = 0.1414361745,
-      .b_axis = 1.4,
-      .r_lcfs = 1.0870056099999,
+      .Rmajor_axis = 0.8867856264,
+      .Zvert_axis = 0.1414361745,
+      .bmag_axis = 1.4,
+      .Rmajor_LCFS = 1.0870056099999,
       .kappa = 1.4,
       .delta = -0.38,
       .a_shift = 0.5,
-      .qprofile = tcv_q,
-      .has_omp_bounds = true,
-      .omp_bounds = {1.0513586729299085, 1.1555930803275622},
+      .qsafety = tcv_q,
+      .has_Rmajor_omp_bounds = true,
+      .Rmajor_omp_bounds = {1.0513586729299085, 1.1555930803275622},
     }
   };
 
   // Independent Python values at the same tolerance and physical parameters.
   double expected_boundary[] = {0.003518612110703164, 0.28091394499783906, 0.03483576483233173};
-  for (int device = 0; device < 3; ++device) {
-    char filename[] = "/tmp/gkyl_miller_XXXXXX";
-    int descriptor = mkstemp(filename);
-    TEST_ASSERT(descriptor >= 0);
-    close(descriptor);
-    gkyl_gen_miller_eqdsk *up = gkyl_gen_miller_eqdsk_inew(&inputs[device]);
+  for (int orientation = 0; orientation < 2; ++orientation) {
+    for (int device = 0; device < 3; ++device) {
+      inputs[device].bmag_axis = (orientation ? -1 : 1) * fabs(inputs[device].bmag_axis);
+      char filename[] = "/tmp/gkyl_miller_XXXXXX";
+      int descriptor = mkstemp(filename);
+      TEST_ASSERT(descriptor >= 0);
+      close(descriptor);
+      gkyl_gen_miller_eqdsk *up = gkyl_gen_miller_eqdsk_inew(&inputs[device]);
 
-    TEST_ASSERT(up != NULL);
-    TEST_CHECK(
-      fabs(gkyl_gen_miller_eqdsk_get_info(up)->psi_boundary / expected_boundary[device] - 1) < 1e-8
-    );
-    TEST_ASSERT(gkyl_gen_miller_eqdsk_advance(up));
+      TEST_ASSERT(up != NULL);
+      TEST_CHECK(
+        fabs(gkyl_gen_miller_eqdsk_get_info(up)->psi_boundary / expected_boundary[device] - 1) <
+        1e-8
+      );
+      TEST_ASSERT(gkyl_gen_miller_eqdsk_advance(up));
 
-    TEST_ASSERT(gkyl_gen_miller_eqdsk_write(up, filename));
-    check_reader(filename, &inputs[device], up);
-    unlink(filename);
-    // Optional Python-generated files exercise the same native reader checks.
-    const char *references = getenv("GKYL_MILLER_REFERENCE_DIR");
-    if (references) {
-      char path[1024];
-      snprintf(path, sizeof path, "%s/miller_%s.geqdsk", references, names[device]);
-      check_reader(path, &inputs[device], up);
+      TEST_ASSERT(gkyl_gen_miller_eqdsk_write(up, filename));
+      check_reader(filename, &inputs[device], up);
+      unlink(filename);
+      // Optional Python-generated files exercise the same native reader checks.
+      const char *references = getenv("GKYL_MILLER_REFERENCE_DIR");
+      if (references && orientation) {
+        char path[1024];
+        snprintf(path, sizeof path, "%s/miller_%s.geqdsk", references, names[device]);
+        check_reader(path, &inputs[device], up);
+      }
+      gkyl_gen_miller_eqdsk_release(up);
     }
-    gkyl_gen_miller_eqdsk_release(up);
   }
 }
 

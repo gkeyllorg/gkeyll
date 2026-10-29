@@ -1,4 +1,5 @@
 """Run with python -m unittest discover -s gyrokinetic/data/eqdsk/miller -v."""
+from dataclasses import replace
 import contextlib
 import io
 import json
@@ -71,7 +72,7 @@ def reconstruction_errors(eq, sampled):
     errors["psi"] = max(errors["psi"], np.max(np.abs(spline.ev(Z, R)-eq.psi_at_r(radius)))/eq.psi_boundary)
     errors["B"] = max(errors["B"], np.max(np.abs(np.hypot(Bp, Bt)/B_ref-1)))
     errors["Bp"] = max(errors["Bp"], np.max(np.abs(Bp/Bp_ref-1)))
-    errors["q"] = max(errors["q"], abs(q_reconstructed/eq.q_at_r(radius)-1))
+    errors["q"] = max(errors["q"], abs(q_reconstructed/(np.sign(eq.geometry.F)*eq.q_at_r(radius))-1))
   return {key: float(value) for key, value in errors.items()}
 
 
@@ -89,16 +90,39 @@ class TestMiller(unittest.TestCase):
   def test_circular_flux_and_inverse(self):
     """Check circular constant-q flux and its inverse against the analytic solution."""
     eq = self.circle
-    for radius in np.linspace(0, eq.r_guard, 101):
+    for radius in np.linspace(0, eq.rminor_guard, 101):
       # Rationalized expression avoids cancellation near the axis.
       reference = eq.geometry.F/2*radius**2/(2+math.sqrt(4-radius**2))
       self.assertAlmostEqual(float(eq.psi_at_r(radius))/eq.psi_boundary,
                              reference/eq.psi_boundary, delta=1e-8)
-      self.assertAlmostEqual(eq.r_at_psi(eq.psi_at_r(radius))/eq.r_guard,
-                             radius/eq.r_guard, delta=1e-8)
+      self.assertAlmostEqual(eq.r_at_psi(eq.psi_at_r(radius))/eq.rminor_guard,
+                             radius/eq.rminor_guard, delta=1e-8)
     self.assertEqual(float(eq.dpsidr_at_r(0)), 0)
     with self.assertRaises(ValueError):
       eq.r_at_psi(eq.psi_guard*1.01)
+
+  def test_signed_toroidal_field(self):
+    """Changing toroidal orientation preserves flux and the poloidal field."""
+    positive = self.circle
+    negative = MillerEquilibrium(replace(positive.geometry, bmag_axis=-1.5),
+                                 positive.q, guard_fraction=0.25)
+    radius = np.linspace(0.01, positive.a, 17)
+    theta = np.linspace(-np.pi, np.pi, 17)
+    np.testing.assert_array_equal(positive.psi_at_r(radius), negative.psi_at_r(radius))
+    bp = positive.Bfield_at_rtheta(radius, theta)
+    bn = negative.Bfield_at_rtheta(radius, theta)
+    np.testing.assert_array_equal(bp[:2], bn[:2])
+    np.testing.assert_array_equal(bp[2], -bn[2])
+    for eq in (positive, negative):
+      sampled = sample_eqdsk(eq, nr=129, nz=129)
+      with tempfile.TemporaryDirectory() as directory:
+        path = Path(directory)/"signed.geqdsk"
+        write_eqdsk(path, eq, sampled)
+        header, profiles, psi, qpsi, _ = read_geqdsk(path)
+      self.assertEqual(header[9], eq.geometry.bmag_axis)
+      np.testing.assert_allclose(profiles[0], eq.geometry.F, rtol=1e-9)
+      np.testing.assert_allclose(qpsi, np.sign(eq.geometry.F)*2, rtol=1e-9)
+      self.assertGreater(header[8], header[7])
 
   def test_derivatives_and_coordinate_round_trips(self):
     """Check surface derivatives, coordinate inversions, and outward flux monotonicity."""
@@ -120,7 +144,7 @@ class TestMiller(unittest.TestCase):
       recovered, angle = eq.rtheta_at_RZ(R, Z)
       np.testing.assert_allclose(recovered, radius, rtol=1e-12)
       np.testing.assert_allclose(np.cos(angle), np.cos(theta), atol=1e-12)
-      radii = np.linspace(0, eq.r_guard, 101)
+      radii = np.linspace(0, eq.rminor_guard, 101)
       np.testing.assert_allclose(g.r_at_R_omp(g.R_omp_at_r(radii)), radii, atol=1e-14)
       psi = eq.psi_at_r(radii)
       self.assertTrue(np.all(np.diff(psi) > 0))
@@ -149,7 +173,7 @@ class TestMiller(unittest.TestCase):
     np.testing.assert_allclose(boundary, sampled["boundary"], atol=5e-10)
     np.testing.assert_allclose(profiles[0], eq.geometry.F, rtol=1e-9)
     self.assertTrue(all(np.all(profile == 0) for profile in profiles[1:]))
-    self.assertAlmostEqual(header[6], eq.geometry.Z_axis, places=9)
+    self.assertAlmostEqual(header[6], eq.geometry.Zvert_axis, places=9)
     self.assertAlmostEqual(header[8], eq.psi_boundary, places=9)
 
   def test_device_field_reconstruction(self):
@@ -179,7 +203,7 @@ class TestMiller(unittest.TestCase):
       sampled = sample_eqdsk(eq)
       metadata = summary(eq, sampled)
       self.assertEqual(metadata["requested_bounds"] is None, bounds is None)
-      self.assertGreater(eq.r_guard, eq.a)
+      self.assertGreater(eq.rminor_guard, eq.a)
       if bounds:
         converted = metadata["requested_bounds"]
         self.assertLess(converted[0]["psi"], converted[1]["psi"])
@@ -187,17 +211,17 @@ class TestMiller(unittest.TestCase):
   def test_explicit_bounds_and_exterior(self):
     """Check explicit R-Z bounds and radial derivative continuity at the guard."""
     eq = self.circle
-    data = sample_eqdsk(eq, rz_bounds=(1.3, 2.7, -0.7, 0.7))
+    data = sample_eqdsk(eq, RmajorZvert_bounds=(1.3, 2.7, -0.7, 0.7))
     self.assertTrue(np.any(data["exterior"]))
-    eps = eq.r_guard*1e-7
-    derivative_lo = float(eq.dpsidr_at_r(eq.r_guard-eps))
-    derivative_hi = float(eq.dpsidr_at_r(eq.r_guard+eps))
+    eps = eq.rminor_guard*1e-7
+    derivative_lo = float(eq.dpsidr_at_r(eq.rminor_guard-eps))
+    derivative_hi = float(eq.dpsidr_at_r(eq.rminor_guard+eps))
     self.assertAlmostEqual(derivative_lo/derivative_hi, 1, delta=1e-6)
 
   def test_invalid_inputs(self):
     """Verify rejection of invalid geometry, q profiles, coverage, and grid settings."""
-    for kwargs in (dict(delta=1), dict(kappa=0), dict(B_axis=-1), dict(a_shift=10)):
-      fields = dict(R_axis=2, B_axis=1, R_lcfs=2.5)
+    for kwargs in (dict(delta=1), dict(kappa=0), dict(bmag_axis=0), dict(bmag_axis=math.inf), dict(bmag_axis=math.nan), dict(a_shift=10)):
+      fields = dict(Rmajor_axis=2, bmag_axis=1, Rmajor_LCFS=2.5)
       fields.update(kwargs)
       with self.assertRaises(ValueError):
         MillerGeometry(**fields)
@@ -211,18 +235,18 @@ class TestMiller(unittest.TestCase):
     with self.assertRaises(ValueError):
       sample_eqdsk(self.circle, 64, 65)
     with self.assertRaises(ValueError):
-      sample_eqdsk(self.circle, rz_bounds=(1.9, 2.1, -0.1, 0.1))
+      sample_eqdsk(self.circle, RmajorZvert_bounds=(1.9, 2.1, -0.1, 0.1))
     eq = self.examples["ltx"]
     with self.assertRaisesRegex(ValueError, "q must"):
       MillerEquilibrium(eq.geometry,
-                        lambda R: 4.3153848/(1-2.6899871*((R-eq.geometry.R_axis)/eq.a-1)),
+                        lambda R: 4.3153848/(1-2.6899871*((R-eq.geometry.Rmajor_axis)/eq.a-1)),
                         eq.bounds)
 
   def test_cli_and_input_loading(self):
     """Check CLI generation, input provenance, and reporting of malformed inputs."""
     with tempfile.TemporaryDirectory() as directory:
       input_path = Path(directory)/"circle.py"
-      input_path.write_text("geometry=dict(R_axis=2.,B_axis=1.,R_lcfs=2.5)\n"
+      input_path.write_text("geometry=dict(Rmajor_axis=2.,bmag_axis=1.,Rmajor_LCFS=2.5)\n"
                             "def q(R_omp): return 2.\n")
       output = Path(directory)/"output.geqdsk"
       with contextlib.redirect_stdout(io.StringIO()):

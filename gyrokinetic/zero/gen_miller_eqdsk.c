@@ -32,7 +32,9 @@ gen_miller_finite(double value)
 {
   uint64_t bits;
   memcpy(&bits, &value, sizeof bits);
-  return (bits & UINT64_C(0x7ff0000000000000)) != UINT64_C(0x7ff0000000000000);
+  // Preserve the integer test when fast-math recognizes floating-point classifications.
+  volatile uint64_t exponent = bits & UINT64_C(0x7ff0000000000000);
+  return exponent != UINT64_C(0x7ff0000000000000);
 }
 
 /**
@@ -72,21 +74,22 @@ gen_miller_error(const char *message)
 static double
 gen_miller_R_omp_at_r(const gkyl_gen_miller_eqdsk *up, double radius)
 {
-  return up->inp.r_axis - up->inp.a_shift * radius * radius / (2 * up->inp.r_axis) + radius;
+  return up->inp.Rmajor_axis - up->inp.a_shift * radius * radius / (2 * up->inp.Rmajor_axis) +
+         radius;
 }
 
 /**
  * Invert the increasing outboard midplane map using a cancellation-resistant quadratic root.
  *
  * @param up Generator.
- * @param r_omp Outboard midplane major radius in meters.
+ * @param R_omp Outboard midplane major radius in meters.
  * @return Miller minor radius in meters, or NaN for an invalid radius or branch.
  */
 static double
-gen_miller_r_at_R_omp(const gkyl_gen_miller_eqdsk *up, double r_omp)
+gen_miller_r_at_R_omp(const gkyl_gen_miller_eqdsk *up, double R_omp)
 {
-  double offset = r_omp - up->inp.r_axis;
-  double disc = 1 - 2 * up->inp.a_shift * offset / up->inp.r_axis;
+  double offset = R_omp - up->inp.Rmajor_axis;
+  double disc = 1 - 2 * up->inp.a_shift * offset / up->inp.Rmajor_axis;
   if (!gen_miller_finite(offset) || offset < 0 || disc <= 0) {
     return gen_miller_nan();
   }
@@ -99,9 +102,9 @@ gkyl_gen_miller_eqdsk_RZ_at_rtheta(
   const gkyl_gen_miller_eqdsk *up, double radius, double theta, double rz[2]
 )
 {
-  rz[0] = up->inp.r_axis - up->inp.a_shift * radius * radius / (2 * up->inp.r_axis) +
+  rz[0] = up->inp.Rmajor_axis - up->inp.a_shift * radius * radius / (2 * up->inp.Rmajor_axis) +
           radius * cos(theta + up->eta * sin(theta));
-  rz[1] = up->inp.z_axis + up->inp.kappa * radius * sin(theta);
+  rz[1] = up->inp.Zvert_axis + up->inp.kappa * radius * sin(theta);
 }
 
 /**
@@ -116,7 +119,7 @@ static double
 gen_miller_RZdet_over_r(const gkyl_gen_miller_eqdsk *up, double radius, double theta)
 {
   double sint = sin(theta), cost = cos(theta), angle = theta + up->eta * sint;
-  return up->inp.kappa * ((cos(angle) - up->inp.a_shift * radius / up->inp.r_axis) * cost +
+  return up->inp.kappa * ((cos(angle) - up->inp.a_shift * radius / up->inp.Rmajor_axis) * cost +
                           (1 + up->eta * cost) * sin(angle) * sint);
 }
 
@@ -130,7 +133,7 @@ gen_miller_RZdet_over_r(const gkyl_gen_miller_eqdsk *up, double radius, double t
 static double
 gen_miller_q_at_r(const gkyl_gen_miller_eqdsk *up, double radius)
 {
-  return up->inp.qprofile(gen_miller_R_omp_at_r(up, radius), up->inp.qctx);
+  return up->inp.qsafety(gen_miller_R_omp_at_r(up, radius), up->inp.qsafety_ctx);
 }
 
 /**
@@ -159,11 +162,11 @@ gen_miller_dpsids_at_s(const gkyl_gen_miller_eqdsk *up, double s)
       if (rz[0] <= 0 || det <= 0) {
         return gen_miller_nan();
       }
-      sum += up->inp.r_axis * det / rz[0];
+      sum += up->inp.Rmajor_axis * det / rz[0];
     }
     double integral = sum * 2 * M_PI / count;
     if (count > 32 && fabs(integral - previous) <= up->inp.rtol * 0.05 * fmax(1, fabs(integral))) {
-      return up->fpol * integral / (4 * M_PI * up->inp.r_axis * q);
+      return fabs(up->fpol) * integral / (4 * M_PI * up->inp.Rmajor_axis * q);
     }
     previous = integral;
   }
@@ -203,7 +206,7 @@ gen_miller_endpoint_slope(double h0, double h1, double m0, double m1)
 static void
 gen_miller_slopes(gkyl_gen_miller_eqdsk *up)
 {
-  int count = up->info.radial_nodes;
+  int count = up->info.num_nodes_radial;
   for (int j = 1; j < count - 1; ++j) {
     double h0 = up->s[j] - up->s[j - 1], h1 = up->s[j + 1] - up->s[j];
     double m0 = (up->g[j] - up->g[j - 1]) / h0, m1 = (up->g[j + 1] - up->g[j]) / h1;
@@ -263,7 +266,7 @@ gen_miller_integral(const gkyl_gen_miller_eqdsk *up, int index, double x)
 static bool
 gen_miller_build_table(gkyl_gen_miller_eqdsk *up)
 {
-  up->info.radial_nodes = 65;
+  up->info.num_nodes_radial = 65;
 
   for (int j = 0; j < 65; ++j) {
     up->s[j] = up->s_guard * pow(j / 64.0, 4);
@@ -276,7 +279,7 @@ gen_miller_build_table(gkyl_gen_miller_eqdsk *up)
 
   for (int pass = 0; pass < 120; ++pass) {
     gen_miller_slopes(up);
-    int count = up->info.radial_nodes, next = 0;
+    int count = up->info.num_nodes_radial, next = 0;
     double gmax = 0, error = 0;
     for (int j = 0; j < count; ++j) {
       gmax = fmax(gmax, up->g[j]);
@@ -322,7 +325,7 @@ gen_miller_build_table(gkyl_gen_miller_eqdsk *up)
     memcpy(up->s, up->new_s, next * sizeof(double));
     memcpy(up->g, up->new_g, next * sizeof(double));
     memcpy(up->mid, up->new_mid, next * sizeof(double));
-    up->info.radial_nodes = next;
+    up->info.num_nodes_radial = next;
   }
   return false;
 }
@@ -337,7 +340,7 @@ gen_miller_build_table(gkyl_gen_miller_eqdsk *up)
 static double
 gen_miller_psi_at_s(const gkyl_gen_miller_eqdsk *up, double s)
 {
-  int lo = 0, hi = up->info.radial_nodes - 1;
+  int lo = 0, hi = up->info.num_nodes_radial - 1;
   if (s >= up->s_guard) {
     return up->info.psi_guard + up->g[hi] * (s - up->s_guard);
   }
@@ -358,16 +361,16 @@ double
 gkyl_gen_miller_eqdsk_psi_at_r(const gkyl_gen_miller_eqdsk *up, double radius)
 {
   if (!gen_miller_finite(radius) || radius < 0 ||
-      radius > up->info.r_guard * (1 + 4 * DBL_EPSILON)) {
+      radius > up->info.rminor_guard * (1 + 4 * DBL_EPSILON)) {
     return gen_miller_nan();
   }
   return gen_miller_psi_at_s(up, radius * radius);
 }
 
 double
-gkyl_gen_miller_eqdsk_psi_at_R_omp(const gkyl_gen_miller_eqdsk *up, double r_omp)
+gkyl_gen_miller_eqdsk_psi_at_R_omp(const gkyl_gen_miller_eqdsk *up, double R_omp)
 {
-  return gkyl_gen_miller_eqdsk_psi_at_r(up, gen_miller_r_at_R_omp(up, r_omp));
+  return gkyl_gen_miller_eqdsk_psi_at_r(up, gen_miller_r_at_R_omp(up, R_omp));
 }
 
 double
@@ -490,8 +493,8 @@ gkyl_gen_miller_eqdsk_release(gkyl_gen_miller_eqdsk *up)
 gkyl_gen_miller_eqdsk *
 gkyl_gen_miller_eqdsk_inew(const struct gkyl_gen_miller_eqdsk_inp *inp)
 {
-  if (!inp || !inp->qprofile) {
-    gen_miller_error("Miller geometry requires a qprofile callback");
+  if (!inp || !inp->qsafety) {
+    gen_miller_error("Miller geometry requires a qsafety callback");
     return 0;
   }
 
@@ -508,65 +511,68 @@ gkyl_gen_miller_eqdsk_inew(const struct gkyl_gen_miller_eqdsk_inp *inp)
   if (up->inp.guard_fraction == 0) {
     up->inp.guard_fraction = 0.05;
   }
-  if (up->inp.nr == 0) {
-    up->inp.nr = 257;
+  if (up->inp.num_nodes_Rmajor == 0) {
+    up->inp.num_nodes_Rmajor = 257;
   }
-  if (up->inp.nz == 0) {
-    up->inp.nz = 257;
+  if (up->inp.num_nodes_Zvert == 0) {
+    up->inp.num_nodes_Zvert = 257;
   }
 
   // Check inputs have finite and reasonable values.
-  double params[] = {inp->r_axis, inp->z_axis,  inp->b_axis,  inp->r_lcfs,           up->inp.kappa,
-                     inp->delta,  inp->a_shift, up->inp.rtol, up->inp.guard_fraction};
+  double params[] = {inp->Rmajor_axis, inp->Zvert_axis, inp->bmag_axis,
+                     inp->Rmajor_LCFS, up->inp.kappa,   inp->delta,
+                     inp->a_shift,     up->inp.rtol,    up->inp.guard_fraction};
   bool valid = true;
   for (int j = 0; j < sizeof params / sizeof params[0]; ++j) {
     valid = valid && gen_miller_finite(params[j]);
   }
-  if (!valid || inp->r_axis <= 0 || inp->b_axis <= 0 || inp->r_lcfs <= inp->r_axis ||
-      up->inp.kappa <= 0 || fabs(inp->delta) >= 1 || up->inp.rtol < 1e-13 || up->inp.rtol > 1e-3 ||
-      up->inp.guard_fraction <= 0 || up->inp.nr < 5 || up->inp.nz < 5 || up->inp.nr > 999 ||
-      up->inp.nz > 999 || up->inp.nr % 2 == 0 || up->inp.nz % 2 == 0) {
+  if (!valid || inp->Rmajor_axis <= 0 || inp->bmag_axis == 0 ||
+      inp->Rmajor_LCFS <= inp->Rmajor_axis || up->inp.kappa <= 0 || fabs(inp->delta) >= 1 ||
+      up->inp.rtol < 1e-13 || up->inp.rtol > 1e-3 || up->inp.guard_fraction <= 0 ||
+      up->inp.num_nodes_Rmajor < 5 || up->inp.num_nodes_Zvert < 5 ||
+      up->inp.num_nodes_Rmajor > 999 || up->inp.num_nodes_Zvert > 999 ||
+      up->inp.num_nodes_Rmajor % 2 == 0 || up->inp.num_nodes_Zvert % 2 == 0) {
     gen_miller_error("Invalid Miller parameters or odd R-Z node counts (5..999)");
     goto fail;
   }
 
   up->eta = asin(inp->delta);
-  up->fpol = inp->r_axis * inp->b_axis;
+  up->fpol = inp->Rmajor_axis * inp->bmag_axis;
   for (int j = 1; j < MILLER_CONTOUR_NODES; ++j) {
     double step = M_PI / (MILLER_CONTOUR_NODES - 1);
     up->arc[j] = up->arc[j - 1] + gen_miller_arc_interval(up, (j - 1) * step, j * step);
   }
-  up->info.nr = up->inp.nr;
-  up->info.nz = up->inp.nz;
-  up->info.r_lcfs = gen_miller_r_at_R_omp(up, inp->r_lcfs);
+  up->info.num_nodes_Rmajor = up->inp.num_nodes_Rmajor;
+  up->info.num_nodes_Zvert = up->inp.num_nodes_Zvert;
+  up->info.rminor_LCFS = gen_miller_r_at_R_omp(up, inp->Rmajor_LCFS);
 
-  if (!gen_miller_finite(up->info.r_lcfs)) {
+  if (!gen_miller_finite(up->info.rminor_LCFS)) {
     gen_miller_error("LCFS exceeds the increasing midplane branch");
     goto fail;
   }
-  up->info.r_required = up->info.r_lcfs;
+  up->info.rminor_required = up->info.rminor_LCFS;
 
-  if (inp->has_omp_bounds) {
-    double lower = gen_miller_r_at_R_omp(up, inp->omp_bounds[0]);
-    double upper = gen_miller_r_at_R_omp(up, inp->omp_bounds[1]);
+  if (inp->has_Rmajor_omp_bounds) {
+    double lower = gen_miller_r_at_R_omp(up, inp->Rmajor_omp_bounds[0]);
+    double upper = gen_miller_r_at_R_omp(up, inp->Rmajor_omp_bounds[1]);
     if (!gen_miller_finite(lower) || !gen_miller_finite(upper) || lower >= upper) {
       gen_miller_error("Invalid outboard midplane coverage bounds");
       goto fail;
     }
-    up->info.r_required = fmax(up->info.r_required, upper);
+    up->info.rminor_required = fmax(up->info.rminor_required, upper);
   }
 
-  up->info.r_guard = up->info.r_required * (1 + up->inp.guard_fraction);
-  up->s_guard = up->info.r_guard * up->info.r_guard;
+  up->info.rminor_guard = up->info.rminor_required * (1 + up->inp.guard_fraction);
+  up->s_guard = up->info.rminor_guard * up->info.rminor_guard;
 
-  if (!gen_miller_finite(up->s_guard) || up->info.r_guard <= 0) {
+  if (!gen_miller_finite(up->s_guard) || up->info.rminor_guard <= 0) {
     gen_miller_error("LCFS or guard exceeds the increasing midplane branch");
     goto fail;
   }
 
   for (int ir = 0; ir <= 256; ++ir) {
-    double radius = up->info.r_guard * ir / 256, q = gen_miller_q_at_r(up, radius);
-    if (!gen_miller_finite(q) || q <= 0 || 1 - inp->a_shift * radius / inp->r_axis <= 0) {
+    double radius = up->info.rminor_guard * ir / 256, q = gen_miller_q_at_r(up, radius);
+    if (!gen_miller_finite(q) || q <= 0 || 1 - inp->a_shift * radius / inp->Rmajor_axis <= 0) {
       gen_miller_error("Nonpositive/nonfinite q or folded midplane map before guard");
       goto fail;
     }
@@ -589,8 +595,9 @@ gkyl_gen_miller_eqdsk_inew(const struct gkyl_gen_miller_eqdsk_inp *inp)
   up->new_s = gkyl_malloc(bytes);
   up->new_g = gkyl_malloc(bytes);
   up->new_mid = gkyl_malloc(bytes);
-  up->psi_rz = gkyl_malloc((size_t)up->info.nr * up->info.nz * sizeof(double));
-  up->qpsi = gkyl_malloc(up->info.nr * sizeof(double));
+  up->psi_rz =
+    gkyl_malloc((size_t)up->info.num_nodes_Rmajor * up->info.num_nodes_Zvert * sizeof(double));
+  up->qpsi = gkyl_malloc(up->info.num_nodes_Rmajor * sizeof(double));
   up->guard = gkyl_malloc(2 * MILLER_CONTOUR_NODES * sizeof(double));
 
   if (!gen_miller_build_table(up)) {
@@ -598,13 +605,13 @@ gkyl_gen_miller_eqdsk_inew(const struct gkyl_gen_miller_eqdsk_inp *inp)
     goto fail;
   }
 
-  up->info.psi_boundary = gen_miller_psi_at_s(up, up->info.r_lcfs * up->info.r_lcfs);
+  up->info.psi_boundary = gen_miller_psi_at_s(up, up->info.rminor_LCFS * up->info.rminor_LCFS);
 
   double bounds[] = {DBL_MAX, -DBL_MAX, DBL_MAX, -DBL_MAX};
   for (int j = 0; j < MILLER_CONTOUR_NODES; ++j) {
     double *rz = up->guard + 2 * j;
     gkyl_gen_miller_eqdsk_RZ_at_rtheta(
-      up, up->info.r_guard, 2 * M_PI * j / (MILLER_CONTOUR_NODES - 1), rz
+      up, up->info.rminor_guard, 2 * M_PI * j / (MILLER_CONTOUR_NODES - 1), rz
     );
     bounds[0] = fmin(bounds[0], rz[0]);
     bounds[1] = fmax(bounds[1], rz[0]);
@@ -616,15 +623,18 @@ gkyl_gen_miller_eqdsk_inew(const struct gkyl_gen_miller_eqdsk_inp *inp)
   bounds[1] += rpad;
   bounds[2] -= zpad;
   bounds[3] += zpad;
-  memcpy(up->info.rz_bounds, inp->has_rz_bounds ? inp->rz_bounds : bounds, sizeof bounds);
+  memcpy(
+    up->info.RmajorZvert_bounds, inp->has_RmajorZvert_bounds ? inp->RmajorZvert_bounds : bounds,
+    sizeof bounds
+  );
 
   for (int j = 0; j < 4; ++j) {
-    valid = valid && gen_miller_finite(up->info.rz_bounds[j]);
+    valid = valid && gen_miller_finite(up->info.RmajorZvert_bounds[j]);
   }
 
-  const double *box = up->info.rz_bounds;
-  if (!valid || !(0 < box[0] && box[0] < inp->r_axis && inp->r_axis < box[1] &&
-                  box[2] < inp->z_axis && inp->z_axis < box[3])) {
+  const double *box = up->info.RmajorZvert_bounds;
+  if (!valid || !(0 < box[0] && box[0] < inp->Rmajor_axis && inp->Rmajor_axis < box[1] &&
+                  box[2] < inp->Zvert_axis && inp->Zvert_axis < box[3])) {
     gen_miller_error("R-Z bounds must contain axis and have Rmin>0");
     goto fail;
   }
@@ -641,15 +651,15 @@ fail:
  *
  * @param up Generator.
  * @param u Auxiliary coordinate r*cos(theta) in meters.
- * @param v Auxiliary coordinate r*sin(theta) = (Z-Z_axis)/kappa in meters.
- * @return Cylindrical major radius R in meters.
+ * @param v Auxiliary coordinate r*sin(theta) = (Z-Zvert_axis)/kappa in meters.
+ * @return Cylindrical major radius Rmajor in meters.
  */
 static double
 gen_miller_R_uv(const gkyl_gen_miller_eqdsk *up, double u, double v)
 {
   double radius = hypot(u, v), beta = radius > 0 ? up->eta * v / radius : 0;
-  return up->inp.r_axis - up->inp.a_shift * radius * radius / (2 * up->inp.r_axis) + u * cos(beta) -
-         v * sin(beta);
+  return up->inp.Rmajor_axis - up->inp.a_shift * radius * radius / (2 * up->inp.Rmajor_axis) +
+         u * cos(beta) - v * sin(beta);
 }
 
 /**
@@ -657,17 +667,17 @@ gen_miller_R_uv(const gkyl_gen_miller_eqdsk *up, double u, double v)
  * checking branch monotonicity and the forward-map residual.
  *
  * @param up Generator.
- * @param R Cylindrical major radius in meters.
- * @param Z Vertical coordinate in meters.
+ * @param Rmajor Cylindrical major radius in meters.
+ * @param Zvert Vertical coordinate in meters.
  * @return Miller minor radius in meters, or NaN if inversion fails.
  */
 static double
-gen_miller_r_at_RZ(const gkyl_gen_miller_eqdsk *up, double R, double Z)
+gen_miller_r_at_RZ(const gkyl_gen_miller_eqdsk *up, double Rmajor, double Zvert)
 {
-  double v = (Z - up->inp.z_axis) / up->inp.kappa, bound = up->info.r_guard;
+  double v = (Zvert - up->inp.Zvert_axis) / up->inp.kappa, bound = up->info.rminor_guard;
 
   int expansion = 0;
-  while (gen_miller_R_uv(up, -bound, v) > R || gen_miller_R_uv(up, bound, v) < R) {
+  while (gen_miller_R_uv(up, -bound, v) > Rmajor || gen_miller_R_uv(up, bound, v) < Rmajor) {
     if (++expansion > 12) {
       return gen_miller_nan();
     }
@@ -678,8 +688,8 @@ gen_miller_r_at_RZ(const gkyl_gen_miller_eqdsk *up, double R, double Z)
     double u = bound * (j / 32.0 - 1), radius = hypot(u, v);
     double beta = radius > 0 ? up->eta * v / radius : 0;
     double dbeta = radius > 0 ? -up->eta * v * u / (radius * radius * radius) : 0;
-    double derivative =
-      cos(beta) - up->inp.a_shift * u / up->inp.r_axis - (u * sin(beta) + v * cos(beta)) * dbeta;
+    double derivative = cos(beta) - up->inp.a_shift * u / up->inp.Rmajor_axis -
+                        (u * sin(beta) + v * cos(beta)) * dbeta;
     if (derivative <= 0) {
       return gen_miller_nan();
     }
@@ -688,14 +698,14 @@ gen_miller_r_at_RZ(const gkyl_gen_miller_eqdsk *up, double R, double Z)
   double lo = -bound, hi = bound;
   for (int iter = 0; iter < 50; ++iter) {
     double middle = (lo + hi) / 2;
-    if (gen_miller_R_uv(up, middle, v) < R) {
+    if (gen_miller_R_uv(up, middle, v) < Rmajor) {
       lo = middle;
     } else {
       hi = middle;
     }
   }
 
-  if (fabs(gen_miller_R_uv(up, (lo + hi) / 2, v) - R) > 1e-11 * up->inp.r_axis) {
+  if (fabs(gen_miller_R_uv(up, (lo + hi) / 2, v) - Rmajor) > 1e-11 * up->inp.Rmajor_axis) {
     return gen_miller_nan();
   }
   return hypot((lo + hi) / 2, v);
@@ -705,13 +715,13 @@ bool
 gkyl_gen_miller_eqdsk_advance(gkyl_gen_miller_eqdsk *up)
 {
   up->sampled = false;
-  const double *bounds = up->info.rz_bounds;
-  double dr = (bounds[1] - bounds[0]) / (up->info.nr - 1);
-  double dz = (bounds[3] - bounds[2]) / (up->info.nz - 1);
+  const double *bounds = up->info.RmajorZvert_bounds;
+  double dr = (bounds[1] - bounds[0]) / (up->info.num_nodes_Rmajor - 1);
+  double dz = (bounds[3] - bounds[2]) / (up->info.num_nodes_Zvert - 1);
   up->info.clearance_cells = DBL_MAX;
 
   for (int contour = 0; contour < 2; ++contour) {
-    double radius = contour == 0 ? up->info.r_lcfs : up->info.r_required;
+    double radius = contour == 0 ? up->info.rminor_LCFS : up->info.rminor_required;
     for (int j = 0; j < MILLER_CONTOUR_NODES; ++j) {
       double rz[2], distance = DBL_MAX;
       gkyl_gen_miller_eqdsk_RZ_at_rtheta(up, radius, 2 * M_PI * j / (MILLER_CONTOUR_NODES - 1), rz);
@@ -731,25 +741,27 @@ gkyl_gen_miller_eqdsk_advance(gkyl_gen_miller_eqdsk *up)
     return gen_miller_error("Need 3 cells of clearance: refine R-Z mesh or enlarge guard/bounds");
   }
 
-  for (int iz = 0; iz < up->info.nz; ++iz) {
-    for (int ir = 0; ir < up->info.nr; ++ir) {
-      double R = bounds[0] + ir * dr, Z = bounds[2] + iz * dz;
-      double radius = gen_miller_r_at_RZ(up, R, Z);
+  for (int iz = 0; iz < up->info.num_nodes_Zvert; ++iz) {
+    for (int ir = 0; ir < up->info.num_nodes_Rmajor; ++ir) {
+      double Rmajor = bounds[0] + ir * dr, Zvert = bounds[2] + iz * dz;
+      double radius = gen_miller_r_at_RZ(up, Rmajor, Zvert);
       if (!gen_miller_finite(radius)) {
-        fprintf(stderr, "Miller GEQDSK: inverse failed at R=%g Z=%g\n", R, Z);
+        fprintf(stderr, "Miller GEQDSK: inverse failed at R=%g Z=%g\n", Rmajor, Zvert);
         return false;
       }
-      up->psi_rz[(size_t)iz * up->info.nr + ir] = gen_miller_psi_at_s(up, radius * radius);
+      up->psi_rz[(size_t)iz * up->info.num_nodes_Rmajor + ir] =
+        gen_miller_psi_at_s(up, radius * radius);
     }
   }
 
-  for (int j = 0; j < up->info.nr; ++j) {
-    double psi = up->info.psi_boundary * j / (up->info.nr - 1);
-    double R = gkyl_gen_miller_eqdsk_R_omp_at_psi(up, psi);
-    up->qpsi[j] = up->inp.qprofile(R, up->inp.qctx);
+  for (int j = 0; j < up->info.num_nodes_Rmajor; ++j) {
+    double psi = up->info.psi_boundary * j / (up->info.num_nodes_Rmajor - 1);
+    double Rmajor = gkyl_gen_miller_eqdsk_R_omp_at_psi(up, psi);
+    up->qpsi[j] = up->inp.qsafety(Rmajor, up->inp.qsafety_ctx);
     if (!gen_miller_finite(up->qpsi[j]) || up->qpsi[j] <= 0) {
       return gen_miller_error("Invalid q at a GEQDSK flux node");
     }
+    up->qpsi[j] = copysign(up->qpsi[j], up->fpol);
   }
 
   up->sampled = true;
@@ -802,49 +814,55 @@ gkyl_gen_miller_eqdsk_write(const gkyl_gen_miller_eqdsk *up, const char *filenam
     unlink(temporary);
     return gen_miller_error("Cannot open Miller output stream");
   }
-  const double *bounds = up->info.rz_bounds;
+  const double *bounds = up->info.RmajorZvert_bounds;
   double header[] = {
     bounds[1] - bounds[0],
     bounds[3] - bounds[2],
-    up->inp.r_axis,
+    up->inp.Rmajor_axis,
     bounds[0],
     (bounds[2] + bounds[3]) / 2,
-    up->inp.r_axis,
-    up->inp.z_axis,
+    up->inp.Rmajor_axis,
+    up->inp.Zvert_axis,
     0,
     up->info.psi_boundary,
-    up->inp.b_axis,
+    up->inp.bmag_axis,
     0,
     0,
     0,
-    up->inp.r_axis,
+    up->inp.Rmajor_axis,
     0,
-    up->inp.z_axis,
+    up->inp.Zvert_axis,
     0,
     up->info.psi_boundary,
     0,
     0
   };
 
-  bool ok =
-    fprintf(stream, "%-48s%4d%4d%4d\n", "GKEYLL SYNTHETIC MILLER", 0, up->info.nr, up->info.nz) > 0;
+  bool ok = fprintf(
+              stream, "%-48s%4d%4d%4d\n", "GKEYLL SYNTHETIC MILLER", 0, up->info.num_nodes_Rmajor,
+              up->info.num_nodes_Zvert
+            ) > 0;
   ok = ok && gen_miller_write_values(stream, 20, header);
 
   double profile[999];
   for (int array = 0; array < 4; ++array) {
-    for (int j = 0; j < up->info.nr; ++j) {
+    for (int j = 0; j < up->info.num_nodes_Rmajor; ++j) {
       profile[j] = array == 0 ? up->fpol : 0;
     }
-    ok = ok && gen_miller_write_values(stream, up->info.nr, profile);
+    ok = ok && gen_miller_write_values(stream, up->info.num_nodes_Rmajor, profile);
   }
 
-  ok = ok && gen_miller_write_values(stream, (size_t)up->info.nr * up->info.nz, up->psi_rz);
-  ok = ok && gen_miller_write_values(stream, up->info.nr, up->qpsi);
+  ok = ok && gen_miller_write_values(
+               stream, (size_t)up->info.num_nodes_Rmajor * up->info.num_nodes_Zvert, up->psi_rz
+             );
+  ok = ok && gen_miller_write_values(stream, up->info.num_nodes_Rmajor, up->qpsi);
   ok = ok && fprintf(stream, "%5d%5d\n", 257, 0) > 0;
 
   double boundary[514];
   for (int j = 0; j < 257; ++j) {
-    gkyl_gen_miller_eqdsk_RZ_at_rtheta(up, up->info.r_lcfs, 2 * M_PI * j / 256, boundary + 2 * j);
+    gkyl_gen_miller_eqdsk_RZ_at_rtheta(
+      up, up->info.rminor_LCFS, 2 * M_PI * j / 256, boundary + 2 * j
+    );
   }
   ok = ok && gen_miller_write_values(stream, 514, boundary);
 

@@ -25,7 +25,8 @@
 struct gk_app_ctx {
   int cdim, vdim;
   // Geometry and magnetic field parameters
-  double a_shift, Z_axis, R_axis, R0, a_mid, x_inner, r0, B0, kappa, delta, q0, Cy, Bref, x_LCFS;
+  double a_shift, Zvert_axis, Rmajor_axis, R0, a_mid, x_inner, r0, B0, kappa, delta, q0, Cy, Bref,
+    x_LCFS;
   struct gkyl_gen_miller_eqdsk_inp miller;
   gkyl_gen_miller_eqdsk *equilibrium; // Flux table for profile callbacks; owned by main.
   // Plasma parameters
@@ -56,7 +57,7 @@ struct gk_app_ctx {
 };
 
 static double
-qprofile(double R, void *ctx)
+qsafety(double R, void *ctx)
 {
   // Evaluate the cubic fit to the TCV negative-triangularity q profile (discharge 65130).
   return ((497.3420166252413 * R - 1408.736172826569) * R + 1331.4134861681464) * R -
@@ -209,9 +210,9 @@ create_ctx(void)
 
   // Geometry and magnetic field.
   double a_shift = 0.5; // Parameter in Shafranov shift.
-  double Z_axis = 0.1414361745; // Magnetic axis height [m], passed explicitly to the generator.
-  double R_axis = 0.8867856264; // Magnetic axis major radius [m].
-  double B_axis = 1.4; // Magnetic field at the magnetic axis [T].
+  double Zvert_axis = 0.1414361745; // Magnetic axis height [m], passed explicitly to the generator.
+  double Rmajor_axis = 0.8867856264; // Magnetic axis major radius [m].
+  double bmag_axis = 1.4; // Magnetic field at the magnetic axis [T].
   double R_LCFSmid = 1.0870056099999; // Major radius of the LCFS at the outboard midplane [m].
   double x_inner = 0.04; // Radial extent inside LCFS
   double x_outer = 0.08; // Radial extent outside LCFS
@@ -223,12 +224,13 @@ create_ctx(void)
   // Shafranov shift, to ensure LCFS radial location.
   double a_mid =
     fabs(a_shift) < 1e-13 ?
-      R_LCFSmid - R_axis :
-      R_axis / a_shift -
-        sqrt(R_axis * (R_axis - 2 * a_shift * R_LCFSmid + 2 * a_shift * R_axis)) / a_shift;
+      R_LCFSmid - Rmajor_axis :
+      Rmajor_axis / a_shift -
+        sqrt(Rmajor_axis * (Rmajor_axis - 2 * a_shift * R_LCFSmid + 2 * a_shift * Rmajor_axis)) /
+          a_shift;
 
-  double r0 = R0 - R_axis; // Minor radius of the simulation box [m].
-  double B0 = B_axis * (R_axis / R0); // Magnetic field magnitude in the simulation box [T].
+  double r0 = R0 - Rmajor_axis; // Minor radius of the simulation box [m].
+  double B0 = bmag_axis * (Rmajor_axis / R0); // Magnetic field magnitude in the simulation box [T].
   double kappa = 1.4; // Elongation (=1 for no elongation).
   double delta = -0.38; // Triangularity (=0 for no triangularity).
 
@@ -252,7 +254,7 @@ create_ctx(void)
   double x_min = 0.;
   double x_max = Lx;
   double x_LCFS = R_LCFSmid - Rmid_min; // Radial location of the last closed flux surface.
-  double q0 = qprofile(R0, 0); // Safety factor in the center of domain.
+  double q0 = qsafety(R0, 0); // Safety factor in the center of domain.
   double Cy = r0 / q0; // Normalization in binormal coordinate.
 
   double Ly = 150 * rho_s; // Domain size along y.
@@ -330,8 +332,8 @@ create_ctx(void)
     .cdim = cdim,
     .vdim = vdim,
     .a_shift = a_shift,
-    .R_axis = R_axis,
-    .Z_axis = Z_axis,
+    .Rmajor_axis = Rmajor_axis,
+    .Zvert_axis = Zvert_axis,
     .R0 = R0,
     .a_mid = a_mid,
     .x_inner = x_inner,
@@ -399,18 +401,18 @@ create_ctx(void)
   // Use a fixed coverage envelope so both flux tables (here and in the app) agree.
   // R_omp includes the quadratic shift; Rmid_min/max above are nominal reference radii.
   double outer_r = a_mid + x_outer;
-  double outer_R = R_axis - a_shift * outer_r * outer_r / (2 * R_axis) + outer_r;
+  double outer_R = Rmajor_axis - a_shift * outer_r * outer_r / (2 * Rmajor_axis) + outer_r;
   ctx.miller = (struct gkyl_gen_miller_eqdsk_inp){
-    .r_axis = R_axis,
-    .z_axis = Z_axis,
-    .b_axis = B_axis,
-    .r_lcfs = R_LCFSmid,
+    .Rmajor_axis = Rmajor_axis,
+    .Zvert_axis = Zvert_axis,
+    .bmag_axis = -fabs(bmag_axis), // Match the analytic input's negative toroidal field.
+    .Rmajor_LCFS = R_LCFSmid,
     .kappa = kappa,
     .delta = delta,
     .a_shift = a_shift,
-    .qprofile = qprofile,
-    .has_omp_bounds = true,
-    .omp_bounds = {R_axis, outer_R},
+    .qsafety = qsafety,
+    .has_Rmajor_omp_bounds = true,
+    .Rmajor_omp_bounds = {Rmajor_axis, outer_R},
   };
   ctx.equilibrium = gkyl_gen_miller_eqdsk_inew(&ctx.miller);
   if (!ctx.equilibrium) {
