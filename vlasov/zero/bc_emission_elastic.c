@@ -71,7 +71,7 @@ gkyl_bc_emission_elastic_new(
     .grid = grid,
     .basis = basis,
     .qtype = GKYL_GAUSS_QUAD,
-    .num_quad = poly_order + 1,
+    .num_quad = gkyl_basis_proj_num_quad(basis),
     .num_ret_vals = 1,
     .eval = up->elastic_model->function,
     .ctx = up->elastic_model,

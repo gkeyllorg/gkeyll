@@ -7,11 +7,12 @@
 -- exp(omega^2 sin^2 theta / 2T), zero drift relative to the flow and temperature T must reproduce
 -- the companion's f = exp(-H/T), the LTE moments must return that drift and temperature, and the
 -- BGK target must leave the state stationary between reflecting walls at theta = pi/4 and 5 pi/8
--- for t = 2 (nu t = 20). Figures of merit (serendipity p1, 32 x 12 x 12 cells): the LTE projection
--- differs from the companion's directly projected f = exp(-H/T) by 0.20 of its peak
--- (the p1 Maxwellian is corrected to the requested moments) while its LTE moments return zero drift
--- and T = 1 to round-off; under implicit BGK at nu = 10 the density, temperature and mean p_phi
--- change by at most 9.3e-2, 6.7e-2 and 6.1e-3 over t = 2; mass and energy conserved to round-off.
+-- for t = 2 (nu t = 20). Figures of merit (serendipity p1, 32 x 12 x 12 cells): the cell averages
+-- of the LTE projection (frame 0) differ from the exact cell averages of f = n0 exp(-H/T) by up to
+-- 0.14 of its peak n0 exp(1/2) (the p1 Maxwellian is corrected to the requested moments) while its
+-- LTE moments return zero drift and T = 1 to round-off; under implicit BGK at nu = 10 the density
+-- (relative), temperature and LTE drift in p_phi change by at most 9.3e-2, 6.7e-2 and 6.1e-3 over t
+-- = 2; mass and energy conserved to round-off.
 local Vlasov = G0.Vlasov
 
 mass = 1.0 -- Neutral mass.

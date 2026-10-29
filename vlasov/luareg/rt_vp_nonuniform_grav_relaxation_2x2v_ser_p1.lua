@@ -11,13 +11,13 @@
 -- velocity mesh uses the same map so the high-velocity tail of the relaxed distribution is covered.
 -- Figures of merit (serendipity p1, 16^2 x 16^2 cells): the kinetic energy relative to its virial
 -- value goes from 0.526 (the p1 projection of the initial Maxwellian overestimates K by 5%) to
--- 1.009 +- 0.019 (mean over t = 10-20, final 0.988) and the final density is fit by rho0/(1 +
--- r^2/r0^2)^2 with rho0 = 2.29 and r0 = 2.01 (L2 residual 3.1%, versus 12% for a Gaussian; the
--- isothermal r0 from the final sigma^2 and rho0 is 1.87); the mass changes by +1.3% over the run
--- (the absorbing boundaries sweep out the signed, under-resolved tails of the distribution in the
--- large outer cells; the interior scheme is conservative to round-off, as the same run with
--- periodic boundaries shows) and the total energy (kinetic minus half the gravitational energy
--- file, int |grad phi_g|^2/alpha_g) by 4e-3.
+-- 1.024 +- 0.015 (mean and standard deviation over t = 10-20 of the integrated-moment time series,
+-- final 1.014) and the final density is fit by rho0/(1 + r^2/r0^2)^2 with rho0 = 2.27 and r0 = 1.97
+-- (least squares on the cell averages weighted by cell area; relative L2 residual 3.1%, versus 12%
+-- for a Gaussian; the isothermal r0 from the final sigma^2 = K/M and rho0 is 1.88); the mass
+-- changes by +1.3% over the run (the absorbing boundaries sweep out the signed, under-resolved
+-- tails of the distribution in the large outer cells) and the total energy (kinetic minus half the
+-- gravitational energy file, int |grad phi_g|^2/alpha_g) by 4e-3.
 
 local Vlasov = G0.Vlasov
 

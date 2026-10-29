@@ -579,12 +579,14 @@ gkyl_gk_geometry_cu_dev_new(struct gk_geometry *geo_host, struct gkyl_gk_geometr
   up->global_ext = geometry_inp->global_ext;
   up->grid = geometry_inp->grid;
   gk_geometry_set_nodal_ranges(up);
+  // Same surface basis as the host object (gkyl_gk_geometry_new): a 1D grid has 0D surfaces,
+  // represented by a 1D p=0 basis.
   if (up->grid.ndim > 1) {
     gkyl_cart_modal_serendip(&up->surf_basis, up->grid.ndim - 1, up->basis.poly_order);
-    up->num_surf_basis = up->surf_basis.num_basis;
   } else {
-    up->num_surf_basis = 1;
+    gkyl_cart_modal_serendip(&up->surf_basis, 1, 0);
   }
+  up->num_surf_basis = up->surf_basis.num_basis;
   up->geqdsk_sign_convention = geo_host->geqdsk_sign_convention;
   up->half_domain = geo_host->half_domain;
   up->has_LCFS = geo_host->has_LCFS;

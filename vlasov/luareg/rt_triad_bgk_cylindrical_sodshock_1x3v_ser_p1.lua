@@ -5,8 +5,9 @@
 -- NU the solution is the Euler one with gamma = 5/3. The reference is a quasi-1D finite-volume
 -- Euler solution with the metric determinant as area factor (reflecting walls), and the exact
 -- planar Riemann solution is quoted for contrast. Figures of merit (serendipity p1, 24 x 6 x 6 x 6
--- cells on cubic velocity maps): density L1 error 0.0409 against the quasi-1D reference; mass and
--- energy conserved to round-off.
+-- cells on cubic velocity maps), for the density n = M0 / r at t = 0.1: relative L1 error
+-- (int |n - n_ref| dr / int n_ref dr) 0.0414 against the quasi-1D reference; mass and energy
+-- conserved to round-off.
 local Vlasov = G0.Vlasov
 
 mass = 1.0 -- Neutral mass.

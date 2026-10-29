@@ -6,11 +6,11 @@
 // hybrid basis (p = 2 in velocity space) and must reproduce the 1x3v driver at the same radial
 // resolution. The reference is a quasi-1D finite-volume Euler solution with the metric determinant
 // as area factor (reflecting walls), and the exact planar Riemann solution bounds the early-time
-// profile. Figures of merit (tensor p1 hybrid, 16 x 1 x 6 x 6 x 6 cells, 99 steps): L1 density
-// error 0.0355 against the quasi-1D reference (0.0344 against the planar exact solution), shock at
-// r = 1.1719 (reference 1.1821), contact at 1.0469 (reference 1.0839); the density profile matches
-// the 1x3v flow on the same grid and basis to 1.6e-4 in relative L1; mass and energy conserved to
-// round-off.
+// profile. Figures of merit (tensor p1 hybrid, 16 x 1 x 6 x 6 x 6 cells): relative L1 density error
+// 0.0353 at the 32 radial nodal points (two per cell) against the quasi-1D reference (0.0343
+// against the planar exact solution), shock at r = 1.1719 (reference 1.1822) and contact at 1.0469
+// (reference 1.0836), each taken as the nodal point before the steepest density drop; mass and
+// energy conserved to round-off.
 
 #include <math.h>
 #include <stdio.h>

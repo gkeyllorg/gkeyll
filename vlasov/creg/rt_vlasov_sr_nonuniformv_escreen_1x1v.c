@@ -4,15 +4,17 @@
 // uniform electric field E0 = 50 while cold pairs (T = 0.1 mc^2) drifting at u = 5 are injected at
 // 0.5 per species per unit time. The injected pairs screen the field, which then oscillates at the
 // relativistic plasma frequency with an amplitude damped by the fresh pairs spun up at every zero
-// crossing. The momentum grid is linear (cell 0.4) near the origin and exponential out to p = 400
-// so the particles accelerated during screening (p ~ 2 sqrt(xi)/3 = 330, xi = E0^3/S = 2.5e5)
-// stay on the grid. Reference: a Lagrangian k = 0 solution of the same equations (scratch
-// kzero.py). Figures of merit (16 x 96 cells, 7214 steps): screening at t = 8.42 (reference 8.42,
-// cold-beam estimate (sqrt(n0^2 + S E0) - n0)/S = 8.2), peak field 20.2, 12.4 and 9.4 at
-// t = 12.2, 19.5 and 24.8 (reference 20.1, 12.1 and 9.1), envelope decay rate 0.0613 over the
-// first three peaks against 0.0639 for the reference and 0.0624 for the PIC fit of Tolman et al.
-// (a = 0.43 xi^-0.47 per t0 = mc/(e E0)); the rms field tracks the reference to 2.3% of E0
-// (0.6% in L1); the injected mass is exact.
+// crossing. The momentum grid is linear (cell 0.4) near the origin and exponential out to p = 412
+// so the particles accelerated during screening (p ~ 2 sqrt(xi)/3 = 330, xi = E0^3/S = 2.5e5) stay
+// on the grid. Reference: a Lagrangian k = 0 solution of the same equations (uniform plasma: every
+// particle's momentum shifts by q times the integral of E dt, so f is the initial state plus the
+// injected pairs, each shifted by that amount, and dE/dt = -J). Figures of merit (16 x 96 cells,
+// 7214 steps): with the field magnitude |E| = sqrt(W_E / Lx) from the field energy, screening at t
+// = 8.42 (reference 8.42, cold-beam estimate (sqrt(n0^2 + S E0) - n0)/S = 8.2), peak field 20.24,
+// 12.35 and 9.44 at t = 12.2, 19.5 and 24.8 (reference 20.24, 12.35 and 9.44), envelope decay rate
+// 0.0613 (least-squares fit of ln|E| over the first three peaks) against 0.0614 for the reference
+// and 0.0624 for the PIC fit of Tolman et al. (a = 0.43 xi^-0.47 per t0 = mc/(e E0)); |E| tracks
+// the reference to 3e-4 E0 over the run; the injected mass is exact (16.000 per species at t = 30).
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>

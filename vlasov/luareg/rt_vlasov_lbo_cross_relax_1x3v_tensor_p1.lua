@@ -1,13 +1,20 @@
 -- Cross-species relaxation of an electron-ion plasma under LBO collisions (Vlasov, 1x3v).
--- Homogeneous electrons (T = 1, drifting at half the ion thermal speed) and ions
--- (mass 100, T = 0.5, at rest) with constant collision frequencies nu_ee = nu_ei = 1, nu_ii = 0.1
--- and nu_ie = (m_e / m_i) nu_ei, so that the pair exchanges momentum and energy conservatively.
--- Both species start with T_perp / T_par = 1.3 (parallel along v_x). Run for 5 electron collision
--- times. Particle number, total momentum and total energy are conserved to 1e-8. The drift
--- difference decays at nu_ei (measured 1.01) and the temperature difference at 2
--- (nu_ei m_e + nu_ie m_i) / (m_e + m_i) = 0.0396 (measured 0.0396). The anisotropy decays at 2
--- (nu_ee + nu_ei) = 4 for the electrons and at 2 (nu_ii + nu_ie) = 0.22 for the ions
--- (measured 4.02 and 0.220).
+-- Homogeneous electrons (T = 1, drifting at half the ion thermal speed) and ions (mass 100, T =
+-- 0.5, at rest) with constant collision frequencies nu_ee = nu_ei = 1, nu_ii = 0.1 and nu_ie = (m_e
+-- / m_i) nu_ei, so that the pair exchanges momentum and energy conservatively. Both species start
+-- with T_perp / T_par = 1.3 (parallel along v_x). Run for 5 electron collision times. From the
+-- integrated moments (-imom) of each species, with u_s = M1_s / M0_s and T_s = m_s (<|v|^2> -
+-- |u_s|^2) / 3: over the run the particle number of each species changes by less than 2e-13
+-- (relative), the total energy by 5.4e-10 and the total momentum m_e M1_e + m_i M1_i by 1.8e-8. The
+-- momentum and energy drifts come from the 1.8e-8 relative difference between the projected
+-- electron and ion densities: with nu_ie fixed, the exchange is exactly conservative only for n_e =
+-- n_i. The drift difference u_e - u_i decays at nu_ei + nu_ie = 1.01 (measured 1.010, log-linear
+-- fit over 0 <= t <= 5) and the temperature difference T_e - T_i at 2 (nu_ei m_e + nu_ie m_i) /
+-- (m_e + m_i) = 0.0396 (measured 0.0396, fit over 2 <= t <= 5). From the M1 and M2ij moments of
+-- frames 0 and 1, with T_par = m (M2_xx / M0 - u_x^2) and T_perp = m (M2_yy + M2_zz) / (2 M0),
+-- T_perp - T_par at t_end is 0.332 of its initial value for the ions, against exp(-2 (nu_ii +
+-- nu_ie) t_end) = 0.333, and 4.0e-9 for the electrons, against exp(-2 (nu_ee + nu_ei) t_end) =
+-- 2.1e-9.
 local Vlasov = G0.Vlasov
 
 -- Physical constants (using normalized code units).

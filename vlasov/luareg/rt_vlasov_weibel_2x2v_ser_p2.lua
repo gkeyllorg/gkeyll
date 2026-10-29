@@ -2,8 +2,9 @@
 -- 2x2v: the oblique mode at 45 degrees (k0 = 1) is seeded through a density perturbation with the
 -- electric field from Gauss's law in the ratio E_y/E_x of the growing eigenmode. Ions are a
 -- neutralizing background.
--- Growth rate of the magnetic energy from linear theory: gamma = 0.1828 (measured 0.183 over
--- t = 30-60); the mode saturates at t = 75.
+-- Linear theory gives the growth rate gamma = 0.1828 of the field amplitude, so the magnetic energy
+-- W_B grows as exp(2 gamma t); a least-squares fit of ln W_B over t = 30-60 gives gamma = 0.183.
+-- The mode saturates at t = 75.5, the maximum of W_B (0.152).
 local Vlasov = G0.Vlasov
 
 -- Mathematical constants (dimensionless).

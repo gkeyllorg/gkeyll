@@ -1,15 +1,14 @@
 // Resistive drift-wave turbulence with the Hasegawa-Wakatani system (2x). Adiabaticity alpha and
 // density gradient kappa = 1 on a periodic 40 x 40 box seeded by a Gaussian density and potential
 // blob of width 2 (entry JE17 of A. Hakim's simulation journal, ammar-hakim.org/sj/je/je17). The
-// exact balances are dW/dt = Gamma_n and dE/dt = Gamma_n - Gamma_alpha with W = 1/2 int
-// (n - zeta)^2, E = 1/2 int (n^2 + |grad phi|^2), Gamma_n = -kappa int n d_y phi and Gamma_alpha =
-// alpha int (phi - n)^2. Figures of merit (serendipity p2, 40 x 40 cells, alpha = 1, 15757 steps):
-// the fluctuation kinetic energy int |grad phi|^2 grows from 3.1 to a saturated 7400-8400 after t =
-// 100 (7871 at t = 200) with a zonal share of 0.03-0.07 throughout; W grows from 7.85 to 2.3e4
-// against an integrated source int Gamma_n dt = 1.8e5, the balance being closed by the grid-scale
-// numerical enstrophy sink; E grows from 4.67 to 1.0e4 against int (Gamma_n - Gamma_alpha) dt =
-// 1.4e4. The time step is capped by the adiabatic response rate alpha (1 + k_min^2)/k_min^2 = 40.6
-// of the longest box mode.
+// exact balances are dW/dt = Gamma_n and dE/dt = Gamma_n - Gamma_alpha with W = 1/2 int (n -
+// zeta)^2, E = 1/2 int (n^2 + |grad phi|^2), Gamma_n = -kappa int n d_y phi and Gamma_alpha = alpha
+// int (phi - n)^2. Figures of merit (serendipity p2, 40 x 40 cells, alpha = 1), from the time
+// series of the fluctuation kinetic energy int |grad phi|^2: it starts at 3.14, grows as exp(0.155
+// t) over t = 10-30 (least-squares fit of its logarithm) and saturates, averaging 8.0e3 over t =
+// 100-200 (a turbulent statistic: CPU, GPU and MPI runs differ by a few percent). The time step is
+// capped by the adiabatic response rate alpha (1 + k_min^2)/k_min^2 = 41.5 of the longest box mode
+// (dt <= 1/41.5; 0.0224 at t = 0).
 
 #include <math.h>
 #include <stdio.h>

@@ -3,12 +3,13 @@
 // Hamiltonian is H = alpha sqrt(1 + g^ij p_i p_j) with the Schwarzschild lapse and spatial metric
 // for M = 1; the blob is released at the apoapsis r = 15 of the strongly relativistic bound orbit
 // with semi-latus rectum 7.5 and eccentricity 0.5 (angular momentum L = 3.64, periapsis 5), and its
-// centroid must follow the geodesic integrated from the same Hamiltonian for t = 30, during which
-// it falls to r ~ 8 and the Newtonian ellipse with the same L already lags noticeably. Figures of
-// merit (serendipity p2, 8 x 12 x 10 x 10 cells, 189 steps): at t = 30 the centroid is at
-// (r, theta) = (14.443, 2.678) against the geodesic (14.520, 2.694), i.e. within 0.08 in r and
-// 0.016 rad in theta, while a Newtonian orbit with the same angular momentum would be at
-// (14.768, 2.651); 2% of the mass is lost through the walls.
+// centroid must follow the geodesic integrated from the same Hamiltonian for t = 30. Over that time
+// the geodesic only begins its infall, from (r, theta) = (15, pi) to (14.520, 2.694), while a
+// Newtonian orbit with the same angular momentum would reach (14.768, 2.651). Figures of merit
+// (serendipity p2, 8 x 12 x 10 x 10 cells, 189 steps): at t = 30 the centroid of the density (mean
+// r and theta weighted by M0 dr dtheta, integrated exactly over the DG polynomials) is at (14.445,
+// 2.677), i.e. 0.075 inside the geodesic in r and 0.016 rad ahead of it in theta (further along the
+// orbit), against 0.32 in r for the Newtonian orbit; 2% of the mass is lost through the walls.
 
 #include <math.h>
 #include <stdio.h>

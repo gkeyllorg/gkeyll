@@ -7,7 +7,7 @@
 -- must reach (theta, phi) = (1.113, 3.167) at t = 0.3
 -- (thermal corrections are of order T t^2 = 1e-3); the drift in phi relative to the meridian is the
 -- Coriolis effect. Figures of merit (tensor p1, 10 x 20 x 11 x 8 cells): at t = 0.3 the centroid is
--- at (theta, phi) = (1.1080, 3.1712) against the exact (1.1129, 3.1673), errors -0.005 and +0.004
+-- at (theta, phi) = (1.0987, 3.1703) against the exact (1.1129, 3.1673), errors -0.014 and +0.003
 -- rad with cells of 0.039 and 0.105 rad; mass changes by -3e-2.
 local Vlasov = G0.Vlasov
 

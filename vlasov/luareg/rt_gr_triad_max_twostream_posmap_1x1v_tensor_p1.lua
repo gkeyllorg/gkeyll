@@ -8,7 +8,7 @@
 -- density.
 -- Figures of merit (tensor p1 (hybrid), 64 x 64 cells): the field energy grows at gamma = 0.0419
 -- over t = 110-220 and saturates at t = 254 with energy 1.70 at t = 265; electron number conserved
--- to 3e-13.
+-- to 4e-13.
 
 local Vlasov = G0.Vlasov
 

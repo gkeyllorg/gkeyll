@@ -4,10 +4,11 @@
 -- circular orbit (Boyer-Lindquist E and L converted to the Kerr-Schild covariant momenta, which
 -- have a radial component because g_tr is nonzero), so its density centroid must stay at r0 and
 -- advance in phi at the orbital frequency Omega = sqrt(M) / (r0^(3/2) + a sqrt(M)) over t = 25 M;
--- the Kerr and Schwarzschild frequencies differ by 3.5 percent. Figures of merit
--- (tensor p1, 12 x 24 x 6 x 6 cells): at t = 25 M the density centroid is at (r, phi) =
--- (8.023, 4.258) against the exact (8, 4.246), i.e. within 0.07 cells in r and 0.05 cells in phi;
--- mass changes by 5.8e-4.
+-- the Kerr and Schwarzschild frequencies differ by 3.5 percent. Figures of merit (tensor p1 hybrid,
+-- 12 x 24 x 6 x 6 cells): at t = 25 M the number-weighted density centroid (int x M0 dr dphi / int
+-- M0 dr dphi, cells 0.333 in r and 0.262 in phi) is at (r, phi) = (7.9840, 4.2509) against the
+-- exact (8, 4.2464) after Omega t = 1.105 rad, i.e. within 0.05 cells in r and 0.017 cells in phi;
+-- mass changes by +2.1e-4 through the absorbing walls.
 local Vlasov = G0.Vlasov
 
 mass = 1.0 -- Neutral mass.

@@ -4,7 +4,9 @@
 -- vanishing at both walls, at frequency 2.4303. It is advanced for two periods, after which the
 -- field must coincide with its initial state. A sinusoidal position map stretches the cells in r by
 -- 40% with the endpoints fixed. After two periods the field returns to its initial state to 1e-3 in
--- the relative L2 norm, with the energy conserved to 1e-3.
+-- the relative L2 norm. The field-energy time series sums the squared coordinate components of the
+-- fields without the metric, so it is not the conserved energy and swings by up to 70% within the
+-- run; after two periods it returns to its initial value to 1e-3.
 local Vlasov = G0.Vlasov
 
 pi = math.pi -- Pi.

@@ -6,15 +6,18 @@
 // dependent emission model of Bradshaw and Srinivasan (2024, PSST 33, 035008) with the copper
 // fits of Furman and Pivi (true secondaries with a Gaussian spectrum, elastic backscattering)
 // scaled to Te = 10 eV.
-// Figures of merit at steady state (serendipity p2, 16 x 24 cells, t = 4000/omega_pe): the flux-
-// weighted true-secondary yield is 0.188 and the total yield (emitted over incoming electron flux,
-// from the net electron wall flux) 0.59, below the Hobbs-Wesson critical yield 1 - 8.3 sqrt(me/mi)
-// = 0.81, so the sheath stays monotonic; the midplane-to-wall potential drop e*dphi/Te = 2.30
-// against 3.23 without emission, a reduction of 0.93 where the Hobbs-Wesson floating-potential
-// shift -ln(1 - delta) gives 0.89; ion wall flux / (n_mid c_s) = 0.72, ion speed at the wall / c_s
-// = 2.34; the net electron and ion wall fluxes balance to 1e-4. The emitted distribution and the
-// yield diagnostic (<species>_bc_up_yield.gkyl: yield and incoming flux) are written at every
-// frame.
+// Figures of merit at steady state, from frame 1 and the yield diagnostic (serendipity p2, 16 x 24
+// cells, t = 4000/omega_pe; Te0 = 1 is the source temperature, c_s = sqrt(Te0/mi), n_mid the ion
+// density at x = 0, wall values at x = Lx): the flux-weighted true-secondary yield is 0.188 and the
+// total yield, 1 - Gamma_e/Gamma_in with Gamma_e the net electron wall flux (M1) and Gamma_in the
+// incoming electron flux of the yield diagnostic, is 0.62, below the Hobbs-Wesson critical yield
+// 1 - 8.3 sqrt(me/mi) = 0.81, so the sheath stays monotonic (E_x > 0 everywhere); the
+// midplane-to-wall potential drop int E_x dx gives e*dphi/Te0 = 2.27, and the Hobbs-Wesson
+// floating-potential shift -ln(1 - delta) for this total yield is 0.96, so the drop without
+// emission would be about 3.23 (an estimate from this run, not a separate run); the ion wall flux /
+// (n_mid c_s) = 0.71 and the ion speed at the wall M1/M0 = 2.48 c_s; the net electron and ion wall
+// fluxes balance to 1e-4. The emitted distribution and the yield diagnostic
+// (<species>_bc_up_yield.gkyl: yield and incoming flux) are written at every frame.
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>

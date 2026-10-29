@@ -5,8 +5,8 @@
 // solution. Figures of merit (serendipity p2, 32 x 1 x 8 x 12 cells, 262 steps): L1 density error
 // 0.0109 against the quasi-1D reference (0.0135 against the planar exact solution), shock at r =
 // 1.1927 (reference 1.1934), contact at 1.0781 (reference 1.0756); mass and energy conserved to
-// round-off. The density profile matches the 1x2v run on the same grid to 8e-5
-// (relative L1 1.7e-5).
+// round-off. The density stays independent of theta to round-off: in frame 1 its variation across
+// the angular cell is below 2e-15 of the peak density.
 
 #include <math.h>
 #include <stdio.h>

@@ -5,9 +5,10 @@
 // have a radial component because g_tr is nonzero), so its density centroid must stay at r0 and
 // advance in phi at the orbital frequency Omega = sqrt(M) / (r0^(3/2) + a sqrt(M)) over t = 25 M;
 // the Kerr and Schwarzschild frequencies differ by 3.5 percent. Figures of merit (serendipity p2,
-// 12 x 24 x 6 x 6 cells, 145 steps): at t = 25 M the density centroid is at (r, phi) =
-// (7.964, 4.256) against the exact (8, 4.246), i.e. within 0.11 cells in r and 0.11 cells in phi
-// after Omega t = 1.105 rad; mass changes by 1.2e-3 through the absorbing walls.
+// 12 x 24 x 6 x 6 cells, 145 steps): at t = 25 M the number-weighted density centroid (int x M0 dr
+// dphi / int M0 dr dphi, cells 0.333 in r and 0.262 in phi) is at (r, phi) = (7.9902, 4.2502)
+// against the exact (8, 4.2464) after Omega t = 1.105 rad, i.e. within 0.03 cells in r and 0.015
+// cells in phi; mass changes by -1.2e-3 through the absorbing walls.
 
 #include <math.h>
 #include <stdio.h>

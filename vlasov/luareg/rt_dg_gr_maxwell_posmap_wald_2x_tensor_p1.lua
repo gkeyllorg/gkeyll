@@ -1,11 +1,12 @@
 -- Wald's stationary magnetosphere of a Schwarzschild black hole with the general-relativistic
 -- Maxwell solver (2x). Kerr-Schild (r, theta) geometry with M = 1; the uniform-at-infinity magnetic
--- field B_0 = 1 threading the hole is an exact stationary vacuum solution
--- (Komissarov 2004, Eq. 101 with a = 0), held at the radial boundaries by fixed-function conditions
--- with pole conditions at theta = 0 and pi. Advanced for five time units, the field must remain
--- stationary. A power-law position map concentrates the radial cells toward the horizon. Over five
--- time units the field changes by 7e-3 in the relative L2 norm, with the energy conserved to
--- 5e-5.
+-- field B_0 = 1 threading the hole is an exact stationary vacuum solution (Komissarov 2004, Eq. 101
+-- with a = 0), held at the radial boundaries by fixed-function conditions with pole conditions at
+-- theta = 0 and pi. Advanced for five time units, the field must remain stationary. A power-law
+-- position map concentrates the radial cells toward the horizon. Over five time units the field
+-- changes by 7e-3 in the relative L2 norm of the expansion coefficients of all its components
+-- (D_phi by 3e-2, B by 2e-4), and the field-energy time series stays constant to 5e-5 (in these
+-- curvilinear coordinates it is not the conserved energy, but the field is stationary).
 local Vlasov = G0.Vlasov
 
 pi = math.pi -- Pi.

@@ -4,12 +4,16 @@
 -- E_z = cos(omega t) is along z and the background magnetic field B_0 = 1 along x; omega = 0.5
 -- Omega_c with Omega_c = q B_0 / m the cyclotron frequency, the non-resonant case. The fields are
 -- external and the species does not feed back on them; the 3V setup mirrors the PKPM test of the
--- same name. Momenta are in units of mc and the temperature is 0.25 mc^2, so the bulk reaches gamma
--- ~ 1.5 and the relativistic cyclotron frequency Omega_c / gamma detunes the drive. The bulk
--- velocity follows the relativistic single-particle characteristics
--- (a quadrature over the initial Maxwell-Juttner) to 1% over the run: at t = 10, <v_y> = -0.540 and
--- <v_z> = 0.762 against -0.537 and 0.767. The temperature from the LTE moments rises from 0.25 to
--- 0.45 since the time-dependent drive is not a Lorentz boost.
+-- same name. Momenta are in units of mc and the temperature is 0.25 mc^2. The drive accelerates the
+-- bulk to relativistic speed, so the relativistic cyclotron frequency Omega_c / gamma detunes it:
+-- the bulk speed |<v>| = |M1| / M0 from the integrated moments peaks at 0.940 at t = 9.2 (1 /
+-- sqrt(1 - |<v>|^2) = 2.93), and the mean Lorentz factor (integrated energy over M0) rises from
+-- 1.47 to 5.00 at t = 9.4. The momentum box (+-8 mc in p_y and p_z) contains the distribution: at t
+-- = 10 the outermost p_y and p_z cells hold 4e-6 of the mass and the negative cell averages sum to
+-- 0.3% of it. <v> follows the relativistic single-particle characteristics (a quadrature over the
+-- initial Maxwell-Juttner) to 0.0013 c over the run: at t = 10, <v_y> = -0.537 and <v_z> = 0.768
+-- against -0.537 and 0.767. The LTE temperature (frame 1) rises from 0.25 to 0.448 since the
+-- time-dependent drive is not a Lorentz boost.
 local Vlasov = G0.Vlasov
 
 -- Mathematical constants (dimensionless).
@@ -31,12 +35,12 @@ B0 = 1.0 -- Reference magnetic field strength.
 -- Simulation parameters.
 Nx = 2 -- Cell count (configuration space: x-direction).
 Nvx = 8 -- Cell count (velocity space: vx-direction).
-Nvy = 16 -- Cell count (velocity space: vy-direction).
-Nvz = 16 -- Cell count (velocity space: vz-direction).
+Nvy = 32 -- Cell count (velocity space: vy-direction).
+Nvz = 32 -- Cell count (velocity space: vz-direction).
 Lx = 4.0 * pi -- Domain size (configuration space: x-direction).
 vx_max = 4.0 -- Domain boundary (velocity space: vx-direction).
-vy_max = 4.0 -- Domain boundary (velocity space: vy-direction).
-vz_max = 4.0 -- Domain boundary (velocity space: vz-direction).
+vy_max = 8.0 -- Domain boundary (velocity space: vy-direction).
+vz_max = 8.0 -- Domain boundary (velocity space: vz-direction).
 poly_order = 2 -- Polynomial order.
 basis_type = "serendipity" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.

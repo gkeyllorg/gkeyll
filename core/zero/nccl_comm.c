@@ -703,6 +703,15 @@ create_comm_from_ranks(
   return new_comm;
 }
 
+void
+gkyl_nccl_comm_set_device(MPI_Comm mpi_comm)
+{
+  int rank, num_devices;
+  MPI_Comm_rank(mpi_comm, &rank);
+  checkCuda(cudaGetDeviceCount(&num_devices));
+  checkCuda(cudaSetDevice(rank % num_devices));
+}
+
 struct gkyl_comm *
 nccl_comm_new(const struct gkyl_nccl_comm_inp *inp, const struct extra_nccl_comm_inp *extra_inp)
 {
@@ -721,11 +730,7 @@ nccl_comm_new(const struct gkyl_nccl_comm_inp *inp, const struct extra_nccl_comm
   MPI_Comm_size(nccl->mcomm, &nccl->size);
 
   if (inp->device_set == 0) {
-    int num_devices[1];
-    checkCuda(cudaGetDeviceCount(num_devices));
-
-    int local_rank = nccl->rank % num_devices[0];
-    checkCuda(cudaSetDevice(local_rank));
+    gkyl_nccl_comm_set_device(nccl->mcomm);
   }
 
   ncclUniqueId nId;

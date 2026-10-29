@@ -2,14 +2,15 @@
 -- an annulus in two configuration dimensions (r, theta) with a single periodic azimuthal cell, jump
 -- at r = 1 on 0.5 < r < 1.5 (2x2v). The states (n, T) = (1, 1) and (0.125, 0.8) are at rest on
 -- either side of the jump; with collision frequency NU the solution is the Euler one with gamma =
--- 2. The solution must stay azimuthally uniform and reproduce the 1x2v driver run at the same
--- radial resolution. The reference is a quasi-1D finite-volume Euler solution with the metric
--- determinant as area factor (reflecting walls), and the exact planar Riemann solution is quoted
--- for contrast. Figures of merit (serendipity p2, 32 x 1 x 12 x 12 cells, 214 steps): density L1
--- error 0.0110 against the quasi-1D reference; shock at 1.1927 (reference 1.1934), contact at
--- 1.0677 (reference 1.0756); the solution is azimuthally uniform to round-off and agrees with the
--- 1x2v driver at 32 radial cells to 5.4e-5 in density (relative L1 1.0e-5); mass and energy
--- conserved to round-off.
+-- 2. The solution must stay azimuthally uniform; it is the two-dimensional counterpart of the 1x2v
+-- driver at the same radial resolution. The reference is a quasi-1D finite-volume Euler solution
+-- with the metric determinant as area factor (reflecting walls), and the exact planar Riemann
+-- solution is quoted for contrast. Figures of merit (serendipity p2, 32 x 1 x 12 x 12 cells, 214
+-- steps), for the density n = M0 / r at t = 0.1: relative L1 error (int |n - n_ref| dr / int n_ref
+-- dr) 0.0114 against the quasi-1D reference (0.0138 against the planar exact solution); the density
+-- crosses the midpoint of the reference jump at r = 1.1940 across the shock and 1.0728 across the
+-- contact (reference 1.1931 and 1.0755); the theta-dependent coefficients of M0 vanish to
+-- round-off; mass and energy conserved to round-off.
 local Vlasov = G0.Vlasov
 
 mass = 1.0 -- Neutral mass.

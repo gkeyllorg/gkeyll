@@ -6,9 +6,10 @@
 -- and R. L. Dewar, Phys. Plasmas 14 (2007) 102312). The exact balances are dW/dt = Gamma_n and
 -- dE/dt = Gamma_n - Gamma_alpha with W = 1/2 int (n - zeta)^2, E = 1/2 int (n^2 + |grad phi|^2),
 -- Gamma_n = -kappa int n d_y phi and Gamma_alpha = alpha int (phi - n)^2. Figures of merit
--- (serendipity p1, 40 x 40 cells, alpha = 1, 10769 steps): at t = 200 the fluctuation kinetic
--- energy int |grad phi|^2 is 4891 with a zonal share of 0.92 (0.07 without the modification), W has
--- grown from 7.85 to 2413 and E from 4.43 to 3163.
+-- (serendipity p1, 40 x 40 cells, alpha = 1): in the time series the fluctuation kinetic energy int
+-- |grad phi|^2 starts at 2.96, grows as exp(0.128 t) over t = 10-30 (least-squares fit of its
+-- logarithm) and saturates, averaging 4.9e3 over t = 100-200; at t = 200 the zonal part of phi (its
+-- y-average) carries 0.91 of int |grad phi|^2, against 0.06 at t = 0.
 local Vlasov = G0.Vlasov
 local HasegawaWakatani = G0.Vlasov.Eq.HasegawaWakatani
 

@@ -20,7 +20,8 @@ incr_int_array(
 
 // KB - Number of cells in the positive and negative directions
 // is assumed to be the same symmetrically, half of the cells in that dimension. Need to
-// do this more rigorously.
+// do this more rigorously. The bounds of gkyl_sub_range_init are inclusive, so each half
+// range spans exactly n cells and excludes the first outgoing cell next to v = 0.
 void
 gkyl_bc_emission_flux_ranges(
   struct gkyl_range *flux_r, int dir, const struct gkyl_range *parent, const int *nghost,
@@ -36,7 +37,7 @@ gkyl_bc_emission_flux_ranges(
 
     int nneg = (up[dir] - lo[dir] + 1) / 2;
 
-    up[dir] = lo[dir] + nneg;
+    up[dir] = lo[dir] + nneg - 1;
     gkyl_sub_range_init(flux_r, parent, lo, up);
   } else {
     incr_int_array(ndim, 0, nghost, parent->lower, lo);
@@ -44,7 +45,7 @@ gkyl_bc_emission_flux_ranges(
 
     int npos = (up[dir] - lo[dir] + 1) / 2;
 
-    lo[dir] = up[dir] - npos;
+    lo[dir] = up[dir] - npos + 1;
     gkyl_sub_range_init(flux_r, parent, lo, up);
   }
 }
@@ -129,7 +130,7 @@ gkyl_bc_emission_spectrum_new(
     .grid = emit_grid,
     .basis = basis,
     .qtype = GKYL_GAUSS_QUAD,
-    .num_quad = poly_order + 1,
+    .num_quad = gkyl_basis_proj_num_quad(basis),
     .num_ret_vals = 1,
     .eval = up->spectrum_model->distribution,
     .ctx = up->spectrum_model,

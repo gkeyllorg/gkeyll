@@ -2,10 +2,11 @@
 // 0.3 + 2 sin^4 theta sin^4(3 phi / 2) at temperature 1 streams along great circles between
 // reflecting walls at theta = pi/4 and 3 pi/4 (periodic in phi); the reference density at t = 0.5
 // is the exact solution by characteristics, n(x, t) = int n_0(x_-t(x, v)) M(v) d^2v with the
-// great-circle transport of the velocity. Figures of merit
-// (serendipity p2, 8 x 16 x 8 x 8 cells, 213 steps): at t = 0.5 the density differs from the
-// characteristics solution by at most 0.0093 (L1 0.0029) while the pattern has decayed from the
-// range 0.3-2.26 to 0.66-1.06; mass and energy conserved to round-off.
+// great-circle transport of the velocity. Figures of merit (serendipity p2, 8 x 16 x 8 x 8 cells,
+// 213 steps): at t = 0.5 the density differs from the characteristics solution by 2.6e-3 in
+// relative L1 (int |n - n_exact| dA / int n_exact dA) and by at most 0.018 pointwise (at the cell
+// edges) while the pattern has decayed from the range 0.3-2.26 to 0.66-1.06; mass and energy
+// conserved to round-off.
 
 #include <math.h>
 #include <stdio.h>

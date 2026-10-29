@@ -52,7 +52,7 @@ vm_species_projection_init(
       .grid = &vms->grid,
       .basis = &vms->basis,
       .qtype = GKYL_GAUSS_QUAD,
-      .num_quad = vms->basis.poly_order + 1,
+      .num_quad = gkyl_basis_proj_num_quad(&vms->basis),
       .num_ret_vals = 1,
       .eval = inp.func,
       .ctx = inp.ctx_func,

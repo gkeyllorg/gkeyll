@@ -4,8 +4,9 @@
 // electric field follows from Gauss's law.
 // Kinetic linear theory: a purely growing mode with gamma = 0.2770 omega_pe (cold-beam limit
 // 0.308).
-// Figures of merit (serendipity p2, 64 x 32 cells): the field energy grows at gamma = 0.2778 over t
-// = 20-40 and saturates at t = 45.2 with energy 57.2 at t = 50; electron number conserved to 4e-13.
+// Figures of merit (serendipity p2, 64 x 32 cells): the field energy W_E grows as exp(2 gamma t)
+// with gamma = 0.2778 (least-squares fit of ln W_E over t = 20-40) and saturates at t = 45.2
+// (maximum of W_E) with W_E = 57.2 at t = 50; electron number conserved to 4e-13.
 
 #include <math.h>
 #include <stdio.h>

@@ -1,11 +1,14 @@
 // Acoustic oscillation of a pressure perturbation with the DG Euler solver (1x). A gas at rest with
 // density 1 and pressure 1 (gamma = 1.4) carries the pressure perturbation 0.01 sin(x) on a
-// periodic domain of length 2 pi. The perturbation splits into two sound waves and, after one
-// acoustic period 2 pi / c_s with c_s = sqrt(1.4), the state must return to its initial one up to
-// the 1e-4 nonlinear correction. Figures of merit (serendipity p2, 128 cells, 715 steps): after one
-// period the pressure differs from its initial profile by at most 4.6e-5 and the density by 3.3e-5,
-// both at the 1e-4 level of the second-order correction to the linear wave, the residual velocity
-// is below 1.2e-4, and mass and energy are conserved to 4e-14.
+// periodic domain of length 2 pi. The perturbation splits into two sound waves (and a stationary
+// entropy mode) and, after one acoustic period 2 pi / c_s with c_s = sqrt(1.4), the exact solution
+// returns to its initial state up to the nonlinear correction: 3.6e-6 in pressure, 2.6e-6 in
+// density and 1.14e-4 in velocity. Figures of merit (serendipity p2, 128 cells, 715 steps): after
+// one period the pressure differs from its initial profile by at most 4.6e-5 and the density by
+// 3.3e-5, near the extrema of sin(x), where the slope limiter clips the smooth profile; these
+// residuals are an order of magnitude above the nonlinear correction and nearly independent of the
+// polynomial order. The residual velocity, 1.14e-4, is the nonlinear correction, and mass and
+// energy are conserved to 4e-14.
 
 #include <math.h>
 #include <stdio.h>
@@ -197,15 +200,6 @@ main(int argc, char **argv)
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
 
-  // Fluid equations.
-  struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(ctx.gas_gamma, app_args.use_gpu);
-
-  struct gkyl_vlasov_fluid_species fluid = {
-    .equation = euler,
-    .init = evalEulerInit,
-    .ctx = &ctx,
-  };
-
   int nrank = 1; // Number of processors in simulation.
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi) {
@@ -249,6 +243,12 @@ main(int argc, char **argv)
 #else
   comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
 #endif
+
+  // Fluid equations. Created after the communicator: on GPUs under MPI the communicator
+  // selects this rank's device, where the equation's device copy must live.
+  struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(ctx.gas_gamma, app_args.use_gpu);
+
+  struct gkyl_vlasov_fluid_species fluid = {.equation = euler, .init = evalEulerInit, .ctx = &ctx};
 
   int my_rank;
   gkyl_comm_get_rank(comm, &my_rank);

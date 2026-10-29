@@ -12,12 +12,14 @@
 -- particles moving away from the star drifting at p = 2 and those bred by particles moving toward
 -- the star at p = -2, with T = 0.2 mc^2 and the rescaled densities smoothed by ten passes of the
 -- Gaussian filter; the cascade screens the gap into a sustained discharge. The momentum grid is
--- linear (cell 0.3) at the origin and exponential out to p = 200.
--- Figures of merit (tensor p2, 256 x 192 cells): the gap field above the atmosphere reaches -0.73,
--- -1.05 and -1.38 at t = 10, 15 and 20 (x = 6 to 9; field energy 1.51, 5.90 and 17.1), the cascade
--- starts at t = 29.8, 370 pairs per unit area are created by t = 60, when the discharge injects
--- 24.0 pairs per unit time with the electron density above the threshold at 1.83 and the gap field
--- at -2.29 (x = 10).
+-- linear (cell 0.34) at the origin and exponential out to p = 226. Figures of merit (tensor p2, 256
+-- x 192 cells): as the gap opens the field energy W_E (the integral of E^2 over x written by the
+-- field-energy diagnostic) reaches 1.51, 5.89 and 17.0 at t = 10, 15 and 20; the cascade starts
+-- when the electron pair-source rate (integrated source M0) first exceeds 1e-3 per unit time, at t
+-- = 29.8; 370 pairs per unit area (the time integral of that rate) are created by t = 60, when the
+-- discharge injects 24.0 pairs per unit time, the electron density above the threshold (p > 25
+-- after filtering, written as elc_source_M0_adapt) peaks at 1.83 and the gap field at x = 10 is
+-- -2.29.
 
 local Vlasov = G0.Vlasov
 

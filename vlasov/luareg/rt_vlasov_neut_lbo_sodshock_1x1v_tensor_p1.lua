@@ -5,8 +5,11 @@
 -- mean free paths.
 -- Exact solution at t = 0.1: shock at x = 0.727, contact at 0.561, post-shock density 0.171,
 -- velocity 0.609.
--- The kinetic shock position agrees within 1%, the plateaus within 5%; the density L1 error is
--- 0.013.
+-- Measured at t = 0.1 from the density n of frame 1: the shock and the contact, located where n
+-- crosses the midpoint of its exact jump, sit at x = 0.728 and 0.556; the mean of n over the middle
+-- half of each plateau (bounded by the exact wave positions) is 2.7% low on the rarefaction side
+-- (exact 0.649) and 1.9% high behind the shock (exact 0.171); the density L1 error
+-- int |n - n_exact| dx is 0.013.
 local Vlasov = G0.Vlasov
 
 -- Physical constants (using normalized code units).

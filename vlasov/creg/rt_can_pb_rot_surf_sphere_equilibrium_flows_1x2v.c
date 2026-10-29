@@ -7,11 +7,12 @@
 // exp(omega^2 sin^2 theta / 2T), zero drift relative to the flow and temperature T must reproduce
 // the companion's f = exp(-H/T), the LTE moments must return that drift and temperature, and the
 // BGK target must leave the state stationary between reflecting walls at theta = pi/4 and 5 pi/8
-// for t = 2 (nu t = 20). Figures of merit (serendipity p2, 32 x 12 x 12 cells, 2307 steps): the LTE
-// projection reproduces the companion's directly projected f = exp(-H/T) to 1.0e-4 of its peak and
-// its LTE moments return zero drift and T = 1 to round-off; under implicit BGK at nu = 10 the
-// density, temperature and mean p_phi change by at most 2.2e-4, 1.9e-4 and 7.2e-5 over t = 2; mass
-// and energy conserved to round-off.
+// for t = 2 (nu t = 20). Figures of merit (serendipity p2, 32 x 12 x 12 cells, 2307 steps): the
+// cell averages of the LTE projection (frame 0) agree with the exact cell averages of f = n0
+// exp(-H/T) to 4.2e-5 of its peak n0 exp(1/2), and its LTE moments return zero drift and T = 1 to
+// round-off; under implicit BGK at nu = 10 the density (relative), temperature and LTE drift in
+// p_phi change by at most 2.2e-4, 1.9e-4 and 7.2e-5 over t = 2; mass and energy conserved to
+// round-off.
 
 #include <math.h>
 #include <stdio.h>

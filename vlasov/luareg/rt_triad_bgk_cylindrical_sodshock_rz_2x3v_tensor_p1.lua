@@ -1,16 +1,17 @@
 -- Sod shock tube of a neutral gas with implicit BGK collisions through the triad Vlasov solver on a
 -- cylinder in (r, z) with a single periodic axial cell and the preset cylindrical geometry, jump at
--- r = 1 on 0.5 < r < 1.5, on cubic velocity maps (2x3v). The states (n, T) = (1, 1) and
--- (0.125, 0.8) are at rest on either side of the jump; with collision frequency NU the solution is
--- the Euler one with gamma = 5/3. The driver runs the tensor p = 1 hybrid basis
--- (p = 2 in velocity space), the configuration used for kinetic neutrals in the gyrokinetic solver,
--- and must reproduce the 1x3v driver. The reference is a quasi-1D finite-volume Euler solution with
--- the metric determinant as area factor (reflecting walls), and the exact planar Riemann solution
--- is quoted for contrast. Figures of merit (tensor p1 hybrid, 16 x 1 x 6 x 6 x 6 cells on cubic
--- velocity maps, 52 steps): density L1 error 0.0373 against the quasi-1D reference (0.0364 against
--- the planar exact solution); shock at 1.2031 (reference 1.1821) within one cell; cell-averaged
--- density within 0.027 (relative L1 0.012) of the serendipity p2 1x3v driver at 16 radial cells;
--- mass and energy conserved to round-off.
+-- r = 1 on 0.5 < r < 1.5, on cubic velocity maps (2x3v). The states (n, T) = (1, 1) and (0.125,
+-- 0.8) are at rest on either side of the jump; with collision frequency NU the solution is the
+-- Euler one with gamma = 5/3. The driver runs the tensor p = 1 hybrid basis (p = 2 in velocity
+-- space), the configuration used for kinetic neutrals in the gyrokinetic solver, and must reproduce
+-- the 1x3v driver. The reference is a quasi-1D finite-volume Euler solution with the metric
+-- determinant as area factor (reflecting walls), and the exact planar Riemann solution is quoted
+-- for contrast. Figures of merit (tensor p1 hybrid, 16 x 1 x 6 x 6 x 6 cells on cubic velocity
+-- maps), for the density n = M0 / r at t = 0.1: relative L1 error (int |n - n_ref| dr / int n_ref
+-- dr) 0.0363 against the quasi-1D reference (0.0361 against the planar exact solution); the density
+-- crosses the midpoint of the reference jump at r = 1.1896 across the shock and 1.0646 across the
+-- contact (reference 1.1821 and 1.0835), within a fifth and a third of a cell; mass and energy
+-- conserved to round-off.
 local Vlasov = G0.Vlasov
 
 mass = 1.0 -- Neutral mass.

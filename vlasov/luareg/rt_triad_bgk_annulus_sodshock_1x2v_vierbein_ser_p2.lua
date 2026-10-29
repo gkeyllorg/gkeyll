@@ -5,9 +5,12 @@
 -- with gamma = 2. The Lua variants give the same geometry through the vierbein, the preset annulus
 -- and a non-uniform radial mesh and must reproduce this driver. The reference is a quasi-1D
 -- finite-volume Euler solution with the metric determinant as area factor (reflecting walls), and
--- the exact planar Riemann solution is quoted for contrast. Figures of merit (serendipity p2,
--- vierbein geometry input): identical to the tangent-basis input to round-off (density L1 error
--- 0.0077 against the quasi-1D reference).
+-- the exact planar Riemann solution is quoted for contrast. Figures of merit (serendipity p2, 64 x
+-- 12 x 12 cells, vierbein geometry input, 340 steps), for the density n = M0 / r at t = 0.1:
+-- relative L1 error (int |n - n_ref| dr / int n_ref dr) 0.0090 against the quasi-1D reference
+-- (0.0116 against the planar exact solution); the density crosses the midpoint of the reference
+-- jump at r = 1.1935 across the shock and 1.0735 across the contact (reference 1.1931 and 1.0755);
+-- mass and energy conserved to round-off.
 local Vlasov = G0.Vlasov
 
 mass = 1.0 -- Neutral mass.

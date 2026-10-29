@@ -5,8 +5,8 @@
 -- square |x| < 1 / sqrt(2), |p| < 1, with the exact top-hat density n = 2 for |x| < 1 / sqrt(2) and
 -- zero outside, and no particle reaches the walls (all energies are below the rim, 1). Figures of
 -- merit (tensor p1, 32 x 32 cells): at t = T/8 = 0.5554 the density differs from the exact top hat
--- by 0.046 in relative L1 (edge smearing), the plateau averages 2.009 (exact 2) and the density
--- outside |x| > 0.8 stays below 1.1e-2; mass and energy conserved to 1e-4.
+-- by 0.045 in relative L1 (edge smearing), the plateau averages 2.001 (exact 2) and the density
+-- outside |x| > 0.8 stays below 8.3e-3; mass and energy change by 3e-5 and 1.2e-4.
 local Vlasov = G0.Vlasov
 
 mass = 1.0 -- Neutral mass.

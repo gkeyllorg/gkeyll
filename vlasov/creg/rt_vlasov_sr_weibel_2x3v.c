@@ -3,8 +3,10 @@
 // filamentation mode k = 0.5 along x seeded by a magnetic field perturbation, ions as a
 // neutralizing background) with a single periodic cell in y; the driver runs the tensor p = 1
 // hybrid basis (p = 2 in velocity space).
-// Growth rate of the magnetic energy from linear theory (lab-frame plasma frequency
-// sqrt(gamma_drift)): gamma = 0.525 (measured 0.529 over t = 5-15); the mode saturates at t = 27.
+// Linear theory (lab-frame plasma frequency sqrt(gamma_drift)) gives the growth rate gamma = 0.525
+// of the field amplitude, so the magnetic energy W_B grows as exp(2 gamma t); a least-squares fit
+// of ln W_B over t = 5-15 gives gamma = 0.529. W_B saturates at a first maximum of 7.62 at t = 21.6
+// and reaches its overall maximum, 12.5, at t = 26.7.
 
 #include <math.h>
 #include <stdio.h>

@@ -5,8 +5,9 @@
 // reflecting walls must match the exact free-streaming solution of the same initial state in the
 // plane (quadrature over the Maxwellian), which tests the inertial (Coriolis and centrifugal) terms
 // of the triad bracket. Figures of merit (serendipity p2, 24 x 6 x 6 x 6 cells on cubic velocity
-// maps, 130 steps): density within 0.014 (relative L1 0.0058) of the exact free-streaming solution
-// on |r - 1| < 0.4 at t = 0.1; mass and energy conserved to round-off.
+// maps, 130 steps): on |r - 1| < 0.4 at t = 0.1 the density n = M0 / r differs from the exact
+// free-streaming solution n_ex by at most 0.018 pointwise, with relative L1 error (int |n - n_ex|
+// dr / int n_ex dr) 0.0056; mass and energy conserved to round-off.
 
 #include <math.h>
 #include <stdio.h>

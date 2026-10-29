@@ -2131,6 +2131,9 @@ vm_parse_script_cli(struct gkyl_tool_args *acv)
 // Because the species anchors its input table, the objects live as long as the species.
 
 // Whether this run is on the GPU (the models need device copies when it is).
+// Under MPI the communicator, which picks each rank's device, is only created with
+// the app, after the script has built these objects. Select the device now so the
+// device copies do not all land on device 0.
 static bool
 vm_lw_use_gpu(lua_State *L)
 {
@@ -2139,6 +2142,19 @@ vm_lw_use_gpu(lua_State *L)
   bool use_gpu = cli.use_gpu;
   gkyl_tool_args_release(cli.rest);
   gkyl_tool_args_release(args);
+#ifdef GKYL_HAVE_NCCL
+  if (use_gpu) {
+    with_lua_global(L, "GKYL_MPI_COMM")
+    {
+      if (lua_islightuserdata(L, -1)) {
+        struct {
+          MPI_Comm comm;
+        } *lw_mpi_comm_world = lua_touserdata(L, -1);
+        gkyl_nccl_comm_set_device(lw_mpi_comm_world->comm);
+      }
+    }
+  }
+#endif
   return use_gpu;
 }
 

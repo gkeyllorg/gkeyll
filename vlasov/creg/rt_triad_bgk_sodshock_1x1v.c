@@ -1,12 +1,13 @@
 // Sod shock tube of a neutral gas with implicit BGK collisions through the triad Vlasov solver on a
 // Cartesian line with the identity triad (the solver must reduce to plain Vlasov) (1x1v). The
-// states (n, T) = (1, 1) and (0.125, 0.8) are at rest on either side of the jump; with collision
-// frequency NU the solution is the Euler one with gamma = 3. The reference is a quasi-1D
-// finite-volume Euler solution with the metric determinant as area factor (reflecting walls), and
-// the exact planar Riemann solution is quoted for contrast. Figures of merit (serendipity p2, 128 x
-// 32 cells, 510 steps): density L1 error 0.0051 against the quasi-1D reference (0.0063 against the
-// planar exact solution); shock at 0.7279 (exact 0.7276), contact at 0.5586 (exact 0.5611); mass
-// and energy conserved to round-off.
+// states (n, T) = (1, 1) and (0.125, 0.8) are at rest on either side of the jump at x = 0.5 on 0 <
+// x < 1; with collision frequency NU the solution is the Euler one with gamma = 3. On the Cartesian
+// line the metric determinant is 1 and the waves stay clear of the reflecting walls until t = 0.1,
+// so the reference is the exact planar Riemann solution. Figures of merit (serendipity p2, 128 x 32
+// cells, 510 steps), for the density at t = 0.1: relative L1 error (int |n - n_ex| dx / int n_ex
+// dx) 0.0064 against the exact solution; the density crosses the midpoint of the exact jump at x =
+// 0.7281 across the shock and 0.5597 across the contact (exact 0.7273 and 0.5609); mass and energy
+// conserved to round-off.
 
 #include <math.h>
 #include <stdio.h>

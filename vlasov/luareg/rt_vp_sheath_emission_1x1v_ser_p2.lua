@@ -6,15 +6,16 @@
 -- dependent emission model of Bradshaw and Srinivasan (2024, PSST 33, 035008) with the copper
 -- fits of Furman and Pivi (true secondaries with a Gaussian spectrum, elastic backscattering)
 -- scaled to Te = 10 eV.
--- Figures of merit at steady state (serendipity p2, 16 x 24 cells, t = 4000/omega_pe): the flux-
--- weighted true-secondary yield is 0.188 and the total yield (emitted over incoming electron flux,
--- from the net electron wall flux) 0.59, below the Hobbs-Wesson critical yield 1 - 8.3 sqrt(me/mi)
--- = 0.81, so the sheath stays monotonic; the midplane-to-wall potential drop e*dphi/Te = 2.30
--- against 3.23 without emission, a reduction of 0.93 where the Hobbs-Wesson floating-potential
--- shift -ln(1 - delta) gives 0.89; ion wall flux / (n_mid c_s) = 0.72, ion speed at the wall / c_s
--- = 2.34; the net electron and ion wall fluxes balance to 1e-4. The emitted distribution and the
--- yield diagnostic (<species>_bc_up_yield.gkyl: yield and incoming flux) are written at every
--- frame.
+-- Figures of merit at steady state (serendipity p2, 16 x 24 cells, t = 4000/omega_pe): the
+-- flux-weighted true-secondary yield (yield diagnostic at t_end) is 0.188 and the total yield
+-- (emitted over incoming electron flux, from the net electron wall flux and the incoming flux of
+-- the yield diagnostic) 0.62, below the Hobbs-Wesson critical yield 1 - 8.3 sqrt(me/mi) = 0.81, so
+-- the sheath stays monotonic; the midplane-to-wall potential drop e*dphi/Te = phi(0) - phi(Lx) is
+-- 2.27, and the Hobbs-Wesson floating-potential shift -ln(1 - delta) for this yield is 0.96; with
+-- wall-cell averages of the moments, ion wall flux / (n_mid c_s) = 0.72 (n_mid the first-cell
+-- average, c_s = sqrt(Te/m_i)), ion speed at the wall / c_s = 2.33, and the net electron and ion
+-- wall fluxes balance to 1e-4. The emitted distribution and the yield diagnostic
+-- (<species>_bc_up_yield.gkyl: yield and incoming flux) are written at every frame.
 
 local Vlasov = G0.Vlasov
 

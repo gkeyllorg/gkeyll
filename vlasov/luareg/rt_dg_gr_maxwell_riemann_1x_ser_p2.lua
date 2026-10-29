@@ -1,9 +1,11 @@
 -- One-dimensional Riemann problem for the general-relativistic Maxwell solver in flat space (1x).
 -- Komissarov's problem A (Electrodynamics of black hole magnetospheres, 2004, Appendix C): B_x = 1
--- and B_y = +B0 on the left, -B0 on the right, with no electric field. The exact solution splits
--- the jump into two fronts moving at the speed of light, with B_y = 0 and E_z = -B0 between them.
--- At t = 1 the fronts sit at x = -1.002 and +1.002 and the plateau E_z = -0.5000; the L1 error
--- against the exact solution is 0.003 with an 8% overshoot at the fronts.
+-- and B_y = +B0 on the left, -B0 on the right, with no electric field (B0 = 0.5, -1.5 < x < 1.5).
+-- The exact solution splits the jump into two fronts moving at the speed of light, with B_y = 0 and
+-- E_z = -B0 between them. Figures of merit (serendipity p2, 200 cells) at t = 1: E_z crosses -B0/2
+-- at x = -1.0005 and +1.0005 (exact fronts at -1 and +1) and averages -0.5000 on |x| < 0.5; the L1
+-- error of E_z against the exact solution, (1/3) int |E_z - E_z,exact| dx over the domain, is
+-- 0.0032; at the fronts B_y overshoots B0 by 7.8% and E_z overshoots -B0 by 4.8%.
 local Vlasov = G0.Vlasov
 
 epsilon0 = 1.0 -- Permittivity of free space.

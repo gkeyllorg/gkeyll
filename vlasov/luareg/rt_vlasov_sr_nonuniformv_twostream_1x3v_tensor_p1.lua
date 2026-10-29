@@ -7,9 +7,9 @@
 -- Kinetic linear theory for the 1D Maxwell-Juttner beams at k = 0.3: a purely growing mode with
 -- gamma = 0.1561 omega_pe, omega_pe = sqrt(n0 e^2 / (epsilon0 m)) = 1 with n0 the rest-frame
 -- density.
--- Figures of merit (tensor p1 (hybrid), 8 x 16 x 4 x 4 cells): the field energy grows at gamma =
--- 0.1456 over t = 30-60 and saturates at t = 76 with energy 2.31 at t = 80; electron number
--- conserved to 7e-15.
+-- Figures of merit (tensor p1 (hybrid), 8 x 16 x 4 x 4 cells): the field energy W_E grows as exp(2
+-- gamma t) with gamma = 0.1513 (least-squares fit of ln W_E over t = 30-60) and saturates at t =
+-- 75.8 (maximum of W_E, 2.86); W_E = 2.31 at t = 80; electron number conserved to 9e-15.
 
 local Vlasov = G0.Vlasov
 

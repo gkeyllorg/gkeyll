@@ -9,14 +9,14 @@
 // map in each direction clustering cells at the origin while the box edge sits at ~7.5 a
 // (effectively infinity, with absorbing species boundaries and phi_g = 0 Dirichlet boundaries); the
 // velocity mesh uses the same map so the high-velocity tail of the relaxed distribution is covered.
-// Figures of merit (tensor p1 (hybrid), 16^2 x 16^2 cells, about 4 minutes on one core): the
-// kinetic energy relative to its virial value goes from 0.500 to 0.996 +- 0.027 (mean over t =
-// 10-20, final 0.975) and the final density is fit by rho0/(1 + r^2/r0^2)^2 with rho0 = 2.45 and r0
-// = 1.94 (L2 residual 3.7%, versus 11% for a Gaussian; the isothermal r0 from the final sigma^2 and
-// rho0 is 1.78); the mass changes by +0.05% over the run (the absorbing boundaries sweep out the
-// signed, under-resolved tails of the distribution in the large outer cells; the interior scheme is
-// conservative to round-off, as the same run with periodic boundaries shows) and the total energy
-// (kinetic minus half the gravitational energy file, int |grad phi_g|^2/alpha_g) by 1e-3.
+// Figures of merit (tensor p1 (hybrid), 16^2 x 16^2 cells): the kinetic energy relative to its
+// virial value goes from 0.500 to 0.995 +- 0.027 (mean and standard deviation over t = 10-20 of the
+// integrated-moment time series, final 0.976) and the final density is fit by rho0/(1 + r^2/r0^2)^2
+// with rho0 = 2.43 and r0 = 1.91 (least squares on the cell averages weighted by cell area;
+// relative L2 residual 3.6%, versus 11% for a Gaussian; the isothermal r0 from the final sigma^2 =
+// K/M and rho0 is 1.79); the mass changes by +0.05% over the run (the absorbing boundaries sweep
+// out the signed, under-resolved tails of the distribution in the large outer cells) and the total
+// energy (kinetic minus half the gravitational energy file, int |grad phi_g|^2/alpha_g) by 1e-3.
 
 #include <math.h>
 #include <stdio.h>

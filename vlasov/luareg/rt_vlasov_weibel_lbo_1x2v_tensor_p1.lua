@@ -2,8 +2,10 @@
 -- 1x2v: the filamentation mode (k along x, beams along y) is seeded by a magnetic field
 -- perturbation. Ions are a neutralizing background.
 -- Weak LBO self-collisions act on the electrons.
--- Growth rate of the magnetic energy from linear theory (collisionless): gamma = 0.0985 (measured
--- 0.098-0.101 over t = 20-50); the mode saturates at t = 70.
+-- Linear growth rate of the field amplitude (collisionless theory): gamma = 0.0985 (measured 0.0971
+-- over t = 20-50 as half the slope of ln W_B, W_B the magnetic energy from the field-energy time
+-- series); W_B saturates at its first maximum, at t = 59.5, and reaches its largest value, 0.136,
+-- at t = 71.5.
 local Vlasov = G0.Vlasov
 
 -- Mathematical constants (dimensionless).

@@ -7,9 +7,9 @@
 // Kinetic linear theory for the 1D Maxwell-Juttner beams at k = 0.3: a purely growing mode with
 // gamma = 0.1561 omega_pe, omega_pe = sqrt(n0 e^2 / (epsilon0 m)) = 1 with n0 the rest-frame
 // density.
-// Figures of merit (serendipity p2, 8 x 16 x 4 x 4 cells): the field energy grows at gamma = 0.1483
-// over t = 30-60 and saturates at t = 76 with energy 2.72 at t = 80; electron number conserved to
-// 1e-14.
+// Figures of merit (serendipity p2, 8 x 16 x 4 x 4 cells): the field energy W_E grows as exp(2
+// gamma t) with gamma = 0.1529 (least-squares fit of ln W_E over t = 30-60) and saturates at t =
+// 75.9 (maximum of W_E, 3.42); W_E = 2.72 at t = 80; electron number conserved to 1e-14.
 
 #include <math.h>
 #include <stdio.h>

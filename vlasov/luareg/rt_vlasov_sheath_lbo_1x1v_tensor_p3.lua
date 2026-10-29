@@ -5,8 +5,12 @@
 -- fixed-temperature BGK version, nothing holds the upstream temperature, so the electrons cool as
 -- their tail escapes, equilibrate with the ions and the sheath is weaker. The position map clusters
 -- the cells at the wall.
--- Figures of merit at steady state (serendipity p2): midplane-to-wall potential drop
--- e*dphi/Te = 0.47, ion wall flux / (n_mid c_s) = 0.35, ion speed at the wall / c_s = 0.87.
+-- Figures of merit at steady state, from frame 1 (tensor p3; units of the source temperatures
+-- Te0 = Ti0 = 1 and c_s = sqrt((Te0 + Ti0)/mi), n_mid the ion density at x = 0, wall values at
+-- x = Lx): the midplane electrons and ions have cooled to Te = 0.33 Te0 and Ti = 0.34 Ti0; the
+-- midplane-to-wall potential drop int E_x dx gives e*dphi/Te0 = 0.47 (1.4 times the midplane Te);
+-- the ion wall flux (M1) / (n_mid c_s) = 0.35 and the ion speed at the wall M1/M0 = 0.87 c_s; the
+-- electron and ion wall fluxes balance to 3e-5.
 local Vlasov = G0.Vlasov
 
 -- Physical constants (using normalized code units).

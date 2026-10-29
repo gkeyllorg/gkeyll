@@ -1,9 +1,12 @@
-// Relaxation of a waterbag and of a bump-on-tail distribution under LBO self-collisions
-// (Vlasov, 1x1v). Two homogeneous species: a square (waterbag) distribution, |v_i| < 1 in every
-// velocity direction, and a Maxwellian of thermal speed 1/3 carrying a narrow bump at 3.5 thermal
-// speeds along v_x. Collision frequency 1, run for 5 collision times. Density, momentum and energy
-// are conserved to 1e-12. The LBO relaxes the Hermite modes at k nu: the heat flux decays at 3 nu
-// and the kurtosis at 4 nu (measured 3.00 and 4.00).
+// Relaxation of a waterbag and of a bump-on-tail distribution under LBO self-collisions (Vlasov,
+// 1x1v). Two homogeneous species: a square (waterbag) distribution, |v_i| < 1 in every velocity
+// direction, and a Maxwellian of thermal speed 1/3 carrying a narrow bump at 3.5 thermal speeds
+// along v_x. Collision frequency 1, run for 5 collision times. Density, momentum and energy are
+// conserved to 2e-12 (largest change of the integrated M0, M1 and M2 over the run, relative to M0,
+// M0 v_rms and M2). The LBO damps the k-th Hermite moment at k nu: at t_end (frame 1) the heat flux
+// q = (1/2) int (v - u)^3 f of the bump has fallen to 3.9e-7 of its initial value, against exp(-3
+// nu t_end) = 3.1e-7, and the excess kurtosis K - 3, with K = n int (v - u)^4 f / (int (v - u)^2
+// f)^2, is below 5e-6 of its initial value for both species (exp(-4 nu t_end) = 2.1e-9).
 
 #include <math.h>
 #include <stdio.h>

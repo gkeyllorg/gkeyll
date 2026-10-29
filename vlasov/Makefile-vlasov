@@ -219,8 +219,8 @@ check: unit unit-run ## Build (if needed) and run all unit tests
 define run-lua-units
 	root=$$PWD; \
 	for test in ${LUA_TESTS}; do \
-	  tname=$$(basename $$test); scratch=$$(mktemp -d); ln -s "$$root/${BUILD_DIR}" "$$scratch/build"; \
-	  if (cd "$$scratch" && ./build/gkeyll/gkeyll "$$root/vlasov/$$test" > "$$scratch/log.txt" 2>&1); then \
+	  tname=$$(basename $$test); scratch=$$(mktemp -d); ln -s "$$root/${BUILD_DIR}" "$$scratch/${BUILD_DIR}"; \
+	  if (cd "$$scratch" && ./${BUILD_DIR}/gkeyll/gkeyll "$$root/vlasov/$$test" > "$$scratch/log.txt" 2>&1); then \
 	    npass=$$((npass+1)); echo "PASS $$app: $$tname" >> "$$GKYL_TEST_LOG"; \
 	  else \
 	    nfail=$$((nfail+1)); echo "FAIL $$app: $$tname" >> "$$GKYL_TEST_LOG"; cat "$$scratch/log.txt"; \

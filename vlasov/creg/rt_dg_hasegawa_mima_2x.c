@@ -1,12 +1,12 @@
 // Drift-wave turbulence with the Hasegawa-Mima system (2x). A Gaussian potential blob of width 2 on
-// a periodic 40 x 40 box with background density gradient kappa = 1
-// (entry JE17 of A. Hakim's simulation journal, ammar-hakim.org/sj/je/je17); the evolved quantity
-// is zeta' = (grad^2 - 1) phi. The exact invariants are E = int (|grad phi|^2 + phi^2) and W = int
-// zeta'^2, and the zeta' centroid moves in y at exactly -kappa. Figures of merit
-// (serendipity p2, 128 x 128 cells, 700 steps): the zeta' centroid moves at -1.0000 kappa for t < 5
-// and at -0.992 kappa averaged over t < 10, int zeta' is conserved to 1e-15, and over the turbulent
-// run to t = 200 the energy E falls by 0.98% and the enstrophy W by 1.1% through grid-scale
-// dissipation.
+// a periodic 40 x 40 box with background density gradient kappa = 1 (entry JE17 of A. Hakim's
+// simulation journal, ammar-hakim.org/sj/je/je17); the evolved quantity is zeta' = (grad^2 - 1)
+// phi. The exact invariants are E = int (|grad phi|^2 + phi^2) and W = int zeta'^2, and the zeta'
+// centroid moves in y at exactly -kappa. Figures of merit (serendipity p2, 128 x 128 cells): int
+// zeta' is conserved to round-off (relative change below 5e-14 in the time series), and over the
+// turbulent run to t = 200 the energy E, computed from the phi frames at t = 0 and 200, falls by
+// 0.98% (the time-series component int |grad phi|^2 by 2.4%) and the enstrophy W by 1.1% through
+// grid-scale dissipation.
 
 #include <math.h>
 #include <stdio.h>

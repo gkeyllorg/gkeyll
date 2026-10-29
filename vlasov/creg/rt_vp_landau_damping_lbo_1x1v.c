@@ -6,7 +6,7 @@
 // 0.1533 omega_pe.
 // Figures of merit (serendipity p2, 32 x 32 cells): the field-energy peaks over t = 0.5-12 decay at
 // gamma = 0.1232 and recur at omega = 1.403; the field energy at t = 20 is 0.002 of its initial
-// value. The collisions slow the damping from the collisionless 0.155 measured on this grid.
+// value. The fitted rate is below the collisionless linear-theory rate 0.1533.
 
 #include <math.h>
 #include <stdio.h>

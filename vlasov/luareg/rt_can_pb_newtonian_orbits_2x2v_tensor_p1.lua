@@ -1,14 +1,13 @@
--- Ring of circular Kepler orbits in the Newtonian point-mass potential, H = p_r^2/2 +
--- p_theta^2/(2 r^2) - 1/r, through the canonical Poisson-bracket solver (2x2v, collisionless). The
--- ring f = exp(-(H - H_circ(L)) / T) exp(-(L - 1.05)^2 / 2 (0.04)^2) with T = 0.02
--- (circular-orbit radius L^2 = 1.1, radial width 0.2) is a smooth function of the integrals of
--- motion, hence an exact stationary state; its density profile must be unchanged after t = 2, a
--- quarter of the orbital period 2 pi r^(3/2) at the ring centre, with absorbing walls at r = 0.5
--- and 3 where the Boltzmann factor is below 2e-4. Figures of merit
--- (tensor p1, 20 x 2 x 10 x 8 cells): at t = 2 the azimuthally averaged density profile differs
--- from its initial projection by 3.8e-2 in relative L1 (4.7e-2 at the peak) and stays azimuthally
--- uniform to 1e-5; mass and energy change by 9e-5 and 5e-5
--- (absorption of the Boltzmann tail at the outer wall).
+-- Ring of circular Kepler orbits in the Newtonian point-mass potential, H = p_r^2/2 + p_theta^2/(2
+-- r^2) - 1/r, through the canonical Poisson-bracket solver (2x2v, collisionless). The ring f =
+-- exp(-(H - H_circ(L)) / T) exp(-(L - 1.05)^2 / 2 (0.04)^2) with T = 0.02 (circular-orbit radius
+-- L^2 = 1.1, radial width 0.2) is a smooth function of the integrals of motion, hence an exact
+-- stationary state; its density profile must be unchanged after t = 2, a quarter of the orbital
+-- period 2 pi r^(3/2) at the ring centre, with absorbing walls at r = 0.5 and 3 where the Boltzmann
+-- factor is below 2e-4. Figures of merit (tensor p1, 20 x 2 x 10 x 8 cells): at t = 2 the
+-- azimuthally averaged density profile differs from its initial projection by 3.8e-2 in relative L1
+-- (4.5e-2 at the peak) and stays azimuthally uniform to round-off; mass and energy change by 9e-5
+-- and 5e-5 (absorption of the Boltzmann tail at the outer wall).
 local Vlasov = G0.Vlasov
 
 mass = 1.0 -- Neutral mass.

@@ -12,11 +12,13 @@
 // terms): box modes 2-36 are electrostatically unstable, the fastest being mode 24 (k lambda_D =
 // 0.15) with gamma = 0.231 omega_pe (half the unscreened 0.473), so the electrostatic energy grows
 // at up to 2 gamma = 0.463.
-// Figures of merit (serendipity p2, 128 x 64 cells): the electrostatic energy grows at 0.448 over t
-// = 20-40 and peaks at 5.25e3 at t = 49.5; the gravitational energy peaks at 2.03e4 at t = 282;
-// electron and positron numbers conserved to 5e-13 and total energy (kinetic plus epsilon0/2 of the
-// electrostatic energy file, int |grad phi|^2 + mu_sq phi^2, minus half the gravitational energy
-// file, int |grad phi_g|^2/alpha_g) to 8e-6.
+// Figures of merit (serendipity p2, 128 x 64 cells; the noise comes from the C library's rand(),
+// whose sequence differs between platforms, and the ranges below cover the glibc and macOS
+// realizations): the electrostatic energy grows at 0.44-0.45 over t = 20-40 (fit of ln E) and peaks
+// at 5.2e3-5.4e3 near t = 50; the gravitational energy peaks near t = 280 at a strongly
+// realization-dependent 0.9e4-2.1e4; electron and positron numbers conserved to 5e-13 and total
+// energy (kinetic plus epsilon0/2 of the electrostatic energy file, int |grad phi|^2 + mu_sq phi^2,
+// minus half the gravitational energy file, int |grad phi_g|^2/alpha_g) to 1e-5.
 
 #include <math.h>
 #include <stdio.h>

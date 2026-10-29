@@ -3,10 +3,10 @@
 -- i.e. the field E = -sin(x) of the original Vlasov-Maxwell test, and the self-consistent potential
 -- of the plasma response (omega_p = 1, Debye length 1) is solved from Poisson's equation on top of
 -- it. Electrons bunch at the bottom of the well and partially screen it. Particle number is
--- conserved to round-off and the total energy (kinetic, external potential and self-
--- consistent field) to 1e-4. By t = 3 the density ranges from 0.65 to 1.37 and the self-consistent
--- potential reaches 0.37 of the external one. The run reproduces the Vlasov-Maxwell evolution of
--- the same initial field to 1e-4 in f, the two being equivalent in one-dimensional electrostatics.
+-- conserved to round-off and the total energy (kinetic, external potential q int n phi_ext from
+-- frames 0 and 1, and self-consistent field energy epsilon0/2 int |grad phi|^2) to 4e-8 relative.
+-- By t = 3 the density ranges from 0.64 to 1.37 and the peak-to-peak self-consistent potential
+-- reaches 0.37 of the external one.
 local Vlasov = G0.Vlasov
 
 -- Mathematical constants (dimensionless).

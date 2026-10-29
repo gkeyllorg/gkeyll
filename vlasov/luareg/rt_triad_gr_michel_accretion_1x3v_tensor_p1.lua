@@ -1,15 +1,17 @@
 -- Michel accretion of a Juttner gas onto a Schwarzschild black hole in ingoing Kerr-Schild
 -- coordinates through the GR triad Vlasov solver with implicit BGK collisions (1x3v, radial preset
 -- geometry with cubic velocity maps). The exact transonic Michel solution with sonic radius 8 M
--- (temperature 0.037 at r = 15 M rising to 0.15 inside the horizon, radial velocity -0.14 to -0.97)
--- is tabulated and projected as the initial state; the outer boundary holds the Michel state and
--- the inner boundary at r = 1.8 M, inside the horizon, absorbs the inflow. The accretion rate r^2 n
--- U^r computed from the rest-frame LTE moments must equal the exact -16 M^2 at every radius, and
--- the profile must stay stationary over the run. Figures of merit (tensor p1, 16 x 6 x 6 x 6 cells
--- on cubic velocity maps; values at the radial Gauss-Legendre nodes inside r = 12 M): accretion
--- rate -16.006 at t = 0 (exact -16) and -16.03 at t = 20 M; the density and temperature profiles
--- change by at most 3.3e-2 and 4.3e-2 (relative) and the drift (radial spatial four-velocity) by
--- 2.2e-2.
+-- (temperature 0.037 at r = 15 M rising to 0.15 at r = 1.8 M, inside the horizon; radial
+-- four-velocity U^r = dr/dtau from -0.14 at r = 15 M to -0.80 at r = 1.8 M) is tabulated and
+-- projected as the initial state; the outer boundary holds the Michel state and the inner boundary
+-- at r = 1.8 M, inside the horizon, absorbs the inflow. The accretion rate r^2 n U^r computed from
+-- the rest-frame LTE moments must equal the exact -16 M^2 at every radius, and the profile must
+-- stay stationary over the run. Figures of merit (tensor p1 hybrid, 16 x 6 x 6 x 6 cells on cubic
+-- velocity maps), sampled pointwise on 1.8 M < r < 12 M: the accretion rate r^2 n U^r averages
+-- -16.006 at t = 0 (exact -16; pointwise within 2.0e-3 of its average) and -16.03 at t = 20 M
+-- (within 2.7e-2); over the run the rest-frame density and temperature change by at most 4.0e-2 and
+-- 4.5e-2 (relative) and the radial drift (the tetrad spatial four-velocity relative to the normal
+-- observer) by 2.5e-2; mass changes by -2.1e-2 through the horizon boundary.
 local Vlasov = G0.Vlasov
 
 mass = 1.0 -- Neutral mass.

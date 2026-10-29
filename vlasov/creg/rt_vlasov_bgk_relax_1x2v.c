@@ -1,10 +1,15 @@
-// Relaxation of a waterbag and of a bump-on-tail distribution under BGK self-collisions
-// (Vlasov, 1x2v). Two homogeneous species: a square (waterbag) distribution, |v_i| < 1 in every
-// velocity direction, and a Maxwellian of thermal speed 1/3 carrying a narrow bump at 3.5 thermal
-// speeds along v_x. Collision frequency 1, run for 5 collision times. Density, momentum and energy
-// are conserved to round-off. Under BGK every non-Maxwellian moment decays at the collision
-// frequency: the heat flux, the kurtosis and the distance to the final state decay at measured
-// rates 1.01, 1.07 and 1.03.
+// Relaxation of a waterbag and of a bump-on-tail distribution under BGK self-collisions (Vlasov,
+// 1x2v). Two homogeneous species: a square (waterbag) distribution, |v_i| < 1 in every velocity
+// direction, and a Maxwellian of thermal speed 1/3 carrying a narrow bump at 3.5 thermal speeds
+// along v_x. Collision frequency 1, run for 5 collision times. Density, momentum and energy are
+// conserved to 5e-14 (largest change of the integrated M0, M1 and M2 over the run, relative to M0,
+// M0 v_rms and M2). With conserved moments the BGK target f_M is fixed, so f = f_M + (f_0 - f_M)
+// exp(-nu t) and every non-Maxwellian moment decays at the collision frequency: a least-squares fit
+// of A + B exp(-r t) + C exp(-2 r t), the form int f^2 then takes, to the L2 time series of each
+// species gives r = 1.000. At t_end (frame 1), with the kurtosis K = n int |v - u|^4 f / (int |v -
+// u|^2 f)^2 (2 for a Maxwellian) and the heat flux q_x = (1/2) int (v_x - u_x) |v - u|^2 f, the
+// excess kurtosis K - 2 has fallen to 6.74e-3 of its initial value for the waterbag and to 6.72e-3
+// for the bump, and q_x of the bump to 6.72e-3, against exp(-nu t_end) = 6.74e-3.
 
 #include <math.h>
 #include <stdio.h>

@@ -36,8 +36,9 @@ vm_fluid_species_euler_calc_integrated(
   double avals_fluid[6], avals_fluid_global[6];
   gkyl_array_clear(f->integ_mom, 0.0);
   vm_fluid_species_prim_vars(app, f, f->fluid);
-  // Euler and isothermal Euler integrated quantities: rho, rhoux, rhouy, rhouz, ke, ie
-  // where ke is the kinetic energy 1/2 rhou^2 and ie is the internal energy (for ideal Euler = p/(gas_gamma - 1))
+  // Euler and isothermal Euler integrated quantities: int rho, rhoux, rhouy, rhouz, rho u.u, p.
+  // Note rho u.u is twice the kinetic energy, and p is not the internal energy (for ideal Euler
+  // the internal energy is p/(gas_gamma - 1)).
   gkyl_dg_calc_fluid_integrated_vars(
     f->calc_fluid_vars, &app->local, f->fluid, f->u, f->p, f->integ_mom
   );
@@ -168,8 +169,9 @@ vm_fluid_species_euler_init(
     &app->grid, &app->basis, &app->local, f->equation, app->geom, &aux_inp, app->use_gpu
   );
 
-  // Euler and isothermal Euler integrated quantities: rho, rhoux, rhouy, rhouz, ke, ie
-  // where ke is the kinetic energy 1/2 rhou^2 and ie is the internal energy (for ideal Euler = p/(gas_gamma - 1))
+  // Euler and isothermal Euler integrated quantities: int rho, rhoux, rhouy, rhouz, rho u.u, p.
+  // Note rho u.u is twice the kinetic energy, and p is not the internal energy (for ideal Euler
+  // the internal energy is p/(gas_gamma - 1)).
   f->integ_mom = mkarr(app->use_gpu, 6, app->local_ext.volume);
   if (app->use_gpu) {
     f->red_integ_diag = gkyl_cu_malloc(sizeof(double[6]));
@@ -558,6 +560,19 @@ vm_fluid_species_can_pb_fluid_init(
       fmax(app->grid.upper[0] - app->grid.lower[0], app->grid.upper[1] - app->grid.lower[1]);
     double k_min_sq = pow(2.0 * M_PI / L_max, 2);
     f->can_pb_alpha_cfl_rate = alpha * (1.0 + k_min_sq) / k_min_sq;
+
+    // The modified system subtracts the zonal components (1/Ly int dy) of n and phi, which
+    // gkyl_dg_calc_canonical_pb_fluid_vars averages over the rank-local y range only, so a
+    // decomposition in y would silently subtract partial averages.
+    if (gkyl_wv_can_pb_hasegawa_wakatani_is_modified(f->equation)) {
+      for (int r = 0; r < app->decomp->ndecomp; ++r) {
+        if (gkyl_range_shape(&app->decomp->ranges[r], 1) != gkyl_range_shape(&app->global, 1)) {
+          gkyl_exit(
+            "vm_fluid_species: the modified Hasegawa-Wakatani system does not support a decomposition in y."
+          );
+        }
+      }
+    }
   }
 
   // Need to figure out size of alpha_surf and sgn_alpha_surf by finding size of surface basis set
@@ -584,7 +599,7 @@ vm_fluid_species_can_pb_fluid_init(
 
   // Initialize alpha_surf calculator and source functions for different canonical PB fluids.
   // NOTE: If solving the modified Hasegawa-Wakatani system which subtracts the zonal components
-  // of n and phi, the simulation *must not* have any decomposition in y.
+  // of n and phi, the simulation *must not* have any decomposition in y (checked above).
   f->calc_can_pb_fluid_vars = gkyl_dg_calc_canonical_pb_fluid_vars_new(
     &app->grid, &app->basis, &app->local, &app->local_ext, f->equation, app->use_gpu
   );

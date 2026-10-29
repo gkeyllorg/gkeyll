@@ -2,15 +2,18 @@
 -- coordinates through the GR triad Vlasov solver with implicit BGK collisions (2x3v, r-theta preset
 -- geometry with a single reflecting polar cell about the equator and cubic velocity maps). The
 -- exact transonic Michel solution with sonic radius 8 M (temperature 0.037 at r = 15 M rising to
--- 0.15 inside the horizon, radial velocity -0.14 to -0.97) is tabulated and projected as the
--- initial state; the outer boundary holds the Michel state and the inner boundary at r = 1.8 M,
--- inside the horizon, absorbs the inflow. The driver runs the tensor p = 1 hybrid basis on a
--- coarser grid and shorter run (t = 5 M) than the radial driver and must reproduce it at equal
--- resolution. The accretion rate r^2 n U^r computed from the rest-frame LTE moments must equal the
--- exact -16 M^2 at every radius, and the profile must stay stationary over the run. Figures of
--- merit (serendipity p1, 10 x 1 x 6 x 6 x 6 cells on cubic velocity maps): accretion rate -16.001
--- at t = 0 (exact -16) and -16.40 at t = 5 M; the density, temperature and drift profiles change by
--- at most 3.3e-2, 5.0e-2 and 3.4e-2 inside r = 12 M.
+-- 0.15 at r = 1.8 M, inside the horizon; radial four-velocity U^r = dr/dtau from -0.14 at r = 15 M
+-- to -0.80 at r = 1.8 M) is tabulated and projected as the initial state; the outer boundary holds
+-- the Michel state and the inner boundary at r = 1.8 M, inside the horizon, absorbs the inflow. The
+-- driver runs the tensor p = 1 hybrid basis on a coarser grid and shorter run (t = 5 M) than the
+-- radial driver and must reproduce it at equal resolution. The accretion rate r^2 n U^r computed
+-- from the rest-frame LTE moments must equal the exact -16 M^2 at every radius, and the profile
+-- must stay stationary over the run. Figures of merit (serendipity p1, 10 x 1 x 6 x 6 x 6 cells on
+-- cubic velocity maps), sampled pointwise on 1.8 M < r < 12 M: the accretion rate r^2 n U^r
+-- averages -16.001 at t = 0 (exact -16; pointwise within 4.6e-3 of its average) and -16.40 at t = 5
+-- M (within 1.5e-2); over the run the rest-frame density and temperature change by at most 4.7e-2
+-- and 8.5e-2 (relative) and the radial drift (the tetrad spatial four-velocity relative to the
+-- normal observer) by 4.1e-2; mass changes by -8.5e-3 through the horizon boundary.
 local Vlasov = G0.Vlasov
 
 mass = 1.0 -- Neutral mass.

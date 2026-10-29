@@ -1,13 +1,14 @@
-// Kelvin-Helmholtz instability with the DG Euler solver (2x). A dense stream
-// (density 2, velocity -0.5) between two lighter streams (density 1, velocity 0.5) at pressure 2.5
-// with gamma = 1.4, after Section 4 of M. Sementilli, R. Zangeneh and J. Chen, Fluids 9 (2024) 52,
-// on a periodic unit box; a deterministic multi-mode velocity perturbation of amplitude 0.01 seeds
-// the shear layers and the run follows the instability into its nonlinear roll-up. Figures of merit
-// (serendipity p1, 64 x 64 cells): the y-directed kinetic energy density grows from 5.4e-4 to a
-// peak of 0.117 at t = 5.4 and ends at 0.086 (the incompressible vortex-sheet rate of the m = 1
-// mode, k du sqrt(rho_in rho_out)/(rho_in + rho_out) = 2.96, sets the time scale; the multi-mode
-// seed has no single-mode linear phase to fit); kinetic energy 0.1886 -> 0.1564 is converted into
-// internal energy 6.2500 -> 6.2822 while mass, x-momentum and total energy are conserved to 6e-13.
+// Kelvin-Helmholtz instability with the DG Euler solver (2x). A dense stream (density 2, velocity
+// -0.5) between two lighter streams (density 1, velocity 0.5) at pressure 2.5 with gamma = 1.4,
+// after Section 4 of M. Sementilli, R. Zangeneh and J. Chen, Fluids 9 (2024) 52, on a periodic unit
+// box; a deterministic multi-mode velocity perturbation of amplitude 0.01 seeds the shear layers
+// and the run follows the instability into its nonlinear roll-up. Figures of merit (serendipity p1,
+// 64 x 64 cells): the box average of the y-directed kinetic energy density 1/2 rho u_y^2 grows from
+// 5.4e-4 at t = 0 to 0.086 at t = 10 (the incompressible vortex-sheet rate of the m = 1 mode, k du
+// sqrt(rho_in rho_out)/(rho_in + rho_out) = 2.96, sets the time scale; the multi-mode seed has no
+// single-mode linear phase to fit); in the time series the kinetic energy 1/2 int rho u.u falls
+// from 0.1886 to 0.1564 and is converted into internal energy int p/(gamma - 1), 6.2500 -> 6.2822,
+// while mass, x-momentum and total energy are conserved to 6e-13.
 
 #include <math.h>
 #include <stdio.h>
@@ -224,15 +225,6 @@ main(int argc, char **argv)
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
 
-  // Fluid equations.
-  struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(ctx.gas_gamma, app_args.use_gpu);
-
-  struct gkyl_vlasov_fluid_species fluid = {
-    .equation = euler,
-    .init = evalEulerInit,
-    .ctx = &ctx,
-  };
-
   int nrank = 1; // Number of processors in simulation.
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi) {
@@ -276,6 +268,12 @@ main(int argc, char **argv)
 #else
   comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
 #endif
+
+  // Fluid equations. Created after the communicator: on GPUs under MPI the communicator
+  // selects this rank's device, where the equation's device copy must live.
+  struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(ctx.gas_gamma, app_args.use_gpu);
+
+  struct gkyl_vlasov_fluid_species fluid = {.equation = euler, .init = evalEulerInit, .ctx = &ctx};
 
   int my_rank;
   gkyl_comm_get_rank(comm, &my_rank);

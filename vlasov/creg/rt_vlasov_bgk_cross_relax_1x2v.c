@@ -1,12 +1,16 @@
 // Cross-species relaxation of an electron-ion plasma under BGK collisions (Vlasov, 1x2v).
-// Homogeneous electrons (T = 1, drifting at half the ion thermal speed) and ions
-// (mass 100, T = 0.5, at rest) with constant collision frequencies nu_ee = nu_ei = 1, nu_ii = 0.1
-// and nu_ie = (m_e / m_i) nu_ei, so that the pair exchanges momentum and energy conservatively. Run
-// for 20 electron collision times. The BGK target of each species moves with the flow of its
-// partner, so the relative drift must stay below the ion thermal speed for the ion target
-// temperature to remain positive. Particle number, total momentum and total energy are conserved to
-// round-off. The drift difference decays at nu_ei (measured 1.00) and the temperature difference at
-// 2 (nu_ei m_e + nu_ie m_i) / (m_e + m_i) = 0.0396 (measured 0.0396), the same rates as the LBO.
+// Homogeneous electrons (T = 1, drifting at half the ion thermal speed) and ions (mass 100, T =
+// 0.5, at rest) with constant collision frequencies nu_ee = nu_ei = 1, nu_ii = 0.1 and nu_ie = (m_e
+// / m_i) nu_ei, so that the pair exchanges momentum and energy conservatively. Run for 20 electron
+// collision times. The BGK target of each species moves with the flow of its partner, so the
+// relative drift must stay below the ion thermal speed for the ion target temperature to remain
+// positive. From the integrated moments (-imom) of each species, with u_s = M1_s / M0_s and T_s =
+// m_s (<|v|^2> - |u_s|^2) / 2: over the run the particle number of each species and the total
+// energy m_e M2_e + m_i M2_i change by less than 1e-13 and the total momentum m_e M1_e + m_i M1_i
+// by less than 5e-13 (relative). The drift difference u_e - u_i decays at nu_ei + nu_ie = 1.01
+// (measured 1.010, log-linear fit over 0 <= t <= 5) and the temperature difference T_e - T_i at 2
+// (nu_ei m_e + nu_ie m_i) / (m_e + m_i) = 0.0396 (measured 0.0396, fit over 5 <= t <= 20), the same
+// rates as the LBO.
 
 #include <math.h>
 #include <stdio.h>

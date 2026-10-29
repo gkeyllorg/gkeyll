@@ -1,11 +1,11 @@
 -- Vortex waltz with the incompressible Euler equations (2x). Two Gaussian vortices of unit peak
--- vorticity and width 0.8, separated by 3 on a periodic 10 x 10 box
--- (entry JE13 of A. Hakim's simulation journal, ammar-hakim.org/sj/je/je13), co-rotate and merge.
--- The reference for the early rotation is the point-vortex period T = 2 pi^2 d^2 / Gamma = 88.4
--- with Gamma = pi w^2, and the energy int |grad phi|^2 is an exact invariant. Figures of merit
--- (serendipity p1, 64 x 64 cells): the vortices have merged by t = 100
--- (peak separation 3.0 -> 1.5); over the run the energy changes by -3.9e-6 and the enstrophy int
--- zeta^2 by -14% (upwind dissipation of the filaments).
+-- vorticity and width 0.8, separated by 3 on a periodic 10 x 10 box (entry JE13 of A. Hakim's
+-- simulation journal, ammar-hakim.org/sj/je/je13), co-rotate and merge. Point vortices of the same
+-- circulation Gamma = pi w^2 would co-rotate with the period T = 2 pi^2 d^2 / Gamma = 88.4 in an
+-- unbounded plane, and the energy int |grad phi|^2 is an exact invariant. Figures of merit
+-- (serendipity p1, 64 x 64 cells): at t = 100 the vortices have merged into one core whose two
+-- vorticity maxima are 0.66 apart (3.0 at t = 0); over the run the energy changes by -3.9e-6 and
+-- the enstrophy int zeta^2 by -14% (upwind dissipation of the filaments).
 local Vlasov = G0.Vlasov
 local IncompressEuler = G0.Vlasov.Eq.IncompressEuler
 

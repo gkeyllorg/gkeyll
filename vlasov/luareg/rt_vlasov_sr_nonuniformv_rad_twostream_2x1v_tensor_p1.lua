@@ -11,11 +11,14 @@
 -- of width 0.07) and continues quadratically to |p| = 32.
 -- Kinetic linear theory for the 1D Maxwell-Juttner pair beams: the fastest seeded mode is k = 1.0
 -- with gamma = 0.120 omega_pe (omega_pe = sqrt(n0 e^2 / (epsilon0 m)) = 1, n0 the rest-frame
--- density per species); k = 0.5 grows at 0.085 and k >= 2 is stable. The theory applies to the ky =
--- 0 modes; the total field energy also contains the oblique modes.
--- Figures of merit (tensor p1 (hybrid), 16 x 16 x 64 cells): the field energy grows at gamma =
--- 0.048 over t = 34-64 and saturates at t = 80; at t = 85 the electron momentum is 0.999 of its
--- initial value and the electron energy 1.04 (instability heating); number conserved to 4e-14.
+-- density per species); k = 0.5 grows at 0.085, k = 1.5 at 0.091 and k = 2 only at 0.0046 (the
+-- cutoff is k = 2.02), and k >= 2.5 is stable. The theory applies to the ky = 0 modes; the total
+-- field energy also contains the oblique modes. Figures of merit (tensor p1 (hybrid), 16 x 16 x 64
+-- cells): the total field energy W = W_E + W_B grows as exp(2 gamma t) with gamma = 0.071
+-- (least-squares fit of ln W over t = 34-52) and the linear phase ends at the first maximum of W,
+-- 0.0479 at t = 55.4; at t = 85 the integrated electron particle flux (M1) and energy (integral of
+-- gamma f) are 0.999 and 1.04 of their initial values (instability heating); number conserved to
+-- 4e-14.
 
 local Vlasov = G0.Vlasov
 

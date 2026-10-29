@@ -3,8 +3,9 @@
 -- electric field from Gauss's law in the ratio E_y/E_x of the growing eigenmode, as in the 2x2v
 -- input, with a passive third velocity dimension. Ions are a neutralizing background. Quadratic
 -- velocity maps cluster the cells at the origin of velocity space.
--- Growth rate of the magnetic energy from linear theory: gamma = 0.1828 (measured 0.173 over
--- t = 30-60, against 0.172 on the uniform velocity grid); the mode saturates at t = 80.
+-- Linear theory gives the growth rate gamma = 0.1828 of the field amplitude, so the magnetic energy
+-- W_B grows as exp(2 gamma t); a least-squares fit of ln W_B over t = 30-60 gives gamma = 0.173.
+-- W_B is still growing at t_end = 80, where it is 0.144.
 
 local Vlasov = G0.Vlasov
 

@@ -1,11 +1,12 @@
-// Sod-type shock tube with the DG Euler solver (1x). The states (rho, u, p) = (3, 0, 3) and
-// (1, 0, 1) with gamma = 1.4 meet at x = 0.75
-// (Section 2.6.2 of A. Hakim's 2006 thesis, High Resolution Wave Propagation Schemes for Two-
-// Fluid Plasma Simulations), producing a left rarefaction, a contact and a right shock; the
-// reference is the exact Riemann solution. Figures of merit (serendipity p2, 512 cells): L1 errors
-// of 0.0020 in density, 0.0008 in velocity and 0.0016 in pressure against the exact Riemann
-// solution; shock at x = 0.9001 (exact 0.8994), contact at x = 0.7965 (exact 0.7964), star-state
-// pressure 1.6934 and velocity 0.4641, both exact to four digits.
+// Sod-type shock tube with the DG Euler solver (1x). The states (rho, u, p) = (3, 0, 3) and (1, 0,
+// 1) with gamma = 1.4 meet at x = 0.75 (Section 2.6.2 of A. Hakim's 2006 thesis, High Resolution
+// Wave Propagation Schemes for Two-Fluid Plasma Simulations), producing a left rarefaction, a
+// contact and a right shock; the reference is the exact Riemann solution. Figures of merit
+// (serendipity p2, 512 cells) at t = 0.1: L1 errors (int |f - f_exact| dx over the unit domain) of
+// 0.0020 in density, 0.00076 in velocity and 0.0015 in pressure; the density crosses the midpoint
+// of the exact jump at x = 0.8997 across the shock (exact 0.8994) and 0.7964 across the contact
+// (exact 0.7964); the star-state pressure 1.6934 and velocity 0.4641, averaged between the
+// rarefaction tail and the shock, are exact to four digits.
 
 #include <math.h>
 #include <stdio.h>
@@ -195,17 +196,6 @@ main(int argc, char **argv)
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
 
-  // Fluid equations.
-  struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(ctx.gas_gamma, app_args.use_gpu);
-
-  struct gkyl_vlasov_fluid_species fluid = {
-    .equation = euler,
-    .init = evalEulerInit,
-    .ctx = &ctx,
-
-    .bcx = {GKYL_SPECIES_COPY, GKYL_SPECIES_COPY},
-  };
-
   int nrank = 1; // Number of processors in simulation.
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi) {
@@ -249,6 +239,18 @@ main(int argc, char **argv)
 #else
   comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
 #endif
+
+  // Fluid equations. Created after the communicator: on GPUs under MPI the communicator
+  // selects this rank's device, where the equation's device copy must live.
+  struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(ctx.gas_gamma, app_args.use_gpu);
+
+  struct gkyl_vlasov_fluid_species fluid = {
+    .equation = euler,
+    .init = evalEulerInit,
+    .ctx = &ctx,
+
+    .bcx = {GKYL_SPECIES_COPY, GKYL_SPECIES_COPY},
+  };
 
   int my_rank;
   gkyl_comm_get_rank(comm, &my_rank);

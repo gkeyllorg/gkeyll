@@ -1,13 +1,14 @@
--- Circular geodesic of a phase-space blob around a Kerr black hole with spin a = 0.8 M
--- (prograde orbit) in ingoing Kerr-Schild coordinates (equatorial r-phi preset geometry) through
--- the GR triad Vlasov solver (2x2v, collisionless). The blob starts at r0 = 8 M with the tetrad
--- momenta of the prograde circular orbit (Boyer-Lindquist E and L converted to the Kerr-Schild
--- covariant momenta, which have a radial component because g_tr is nonzero), so its density
--- centroid must stay at r0 and advance in phi at the orbital frequency Omega = sqrt(M) / (r0^(3/2)
--- + a sqrt(M)) over t = 25 M; the Kerr and Schwarzschild frequencies differ by 3.5 percent. Figures
--- of merit (tensor p1, 12 x 24 x 6 x 6 cells): at t = 25 M the density centroid is at (r, phi) =
--- (7.966, 4.225) against the exact (8, 4.209), i.e. within 0.10 cells in r and 0.06 cells in phi;
--- mass changes by 6.3e-4.
+-- Circular geodesic of a phase-space blob around a Kerr black hole with spin a = 0.8 M (prograde
+-- orbit) in ingoing Kerr-Schild coordinates (equatorial r-phi preset geometry) through the GR triad
+-- Vlasov solver (2x2v, collisionless). The blob starts at r0 = 8 M with the tetrad momenta of the
+-- prograde circular orbit (Boyer-Lindquist E and L converted to the Kerr-Schild covariant momenta,
+-- which have a radial component because g_tr is nonzero), so its density centroid must stay at r0
+-- and advance in phi at the orbital frequency Omega = sqrt(M) / (r0^(3/2) + a sqrt(M)) over t = 25
+-- M; the Kerr and Schwarzschild frequencies differ by 3.5 percent. Figures of merit (tensor p1
+-- hybrid, 12 x 24 x 6 x 6 cells): at t = 25 M the number-weighted density centroid (int x M0 dr
+-- dphi / int M0 dr dphi, cells 0.333 in r and 0.262 in phi) is at (r, phi) = (7.9983, 4.2108)
+-- against the exact (8, 4.2087) after Omega t = 1.067 rad, i.e. within 0.006 cells in r and 0.008
+-- cells in phi; mass changes by -6.3e-5 through the absorbing walls.
 local Vlasov = G0.Vlasov
 
 mass = 1.0 -- Neutral mass.

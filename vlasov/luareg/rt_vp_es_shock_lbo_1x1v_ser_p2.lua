@@ -3,9 +3,13 @@
 -- reflection and launches a shock back upstream. The inflow boundary at x = Lx holds the upstream
 -- Maxwellians fixed (reservoir). Ions slower than the shock potential are reflected ahead of it.
 -- Weak LBO self-collisions act on both species.
--- Figures of merit at t_end (serendipity p2): shock front at x = 58 lambda_D (speed 0.97 c_s),
--- downstream density 2.4 n0, potential jump across the front e*dphi/Te = 1.3-1.4, reflected ions
--- ahead of the front 0.25 n0 at 3.0 c_s.
+-- Figures of merit at t_end = 600/omega_pe (serendipity p2): the downstream ion density (mean over
+-- x = 10-40 lambda_D) is 2.4 n0 and the upstream one (mean over x = 67-117 lambda_D) 1.32 n0; the
+-- shock front, where n_i crosses halfway between them, is at x = 52 lambda_D, an average speed of
+-- 0.87 c_s from the wall; the potential drops by e*dphi/Te = 1.5 across the front (between the
+-- points where n_i has fallen 10% and 90% of the way from the downstream to the upstream density)
+-- and by 2.0 from the downstream plateau to the upstream region, which holds reflected ions (v >
+-- c_s) of density 0.29 n0 and mean velocity 2.9 c_s.
 
 local Vlasov = G0.Vlasov
 

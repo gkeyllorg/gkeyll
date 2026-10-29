@@ -2,8 +2,10 @@
 -- 1x2v: the filamentation mode (k along x, beams along y) is seeded by a magnetic field
 -- perturbation. Ions are a neutralizing background.
 -- Quadratic velocity maps cluster the cells at the origin of velocity space.
--- Growth rate of the magnetic energy from linear theory: gamma = 0.0985 (measured 0.098-0.101 over
--- t = 20-50); the mode saturates at t = 70.
+-- Linear theory gives the growth rate gamma = 0.0985 of the field amplitude, so the magnetic energy
+-- W_B grows as exp(2 gamma t); a least-squares fit of ln W_B over t = 20-50 gives gamma = 0.098.
+-- W_B saturates at a first maximum of 0.108 at t = 58.9 and reaches its overall maximum, 0.141, at
+-- t = 71.2.
 local Vlasov = G0.Vlasov
 
 -- Mathematical constants (dimensionless).

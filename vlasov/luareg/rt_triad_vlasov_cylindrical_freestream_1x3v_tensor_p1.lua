@@ -4,9 +4,10 @@
 -- without collisions the Maxwellians stream ballistically, and the density at t = 0.1 away from the
 -- reflecting walls must match the exact free-streaming solution of the same initial state in the
 -- plane (quadrature over the Maxwellian), which tests the inertial (Coriolis and centrifugal) terms
--- of the triad bracket. Figures of merit (tensor p1, 24 x 6 x 6 x 6 cells on cubic velocity maps):
--- density within 0.049 (relative L1 0.027) of the exact free-streaming solution on |r - 1| < 0.4 at
--- t = 0.1; mass and energy conserved to round-off.
+-- of the triad bracket. Figures of merit (tensor p1 hybrid, 24 x 6 x 6 x 6 cells on cubic velocity
+-- maps): on |r - 1| < 0.4 at t = 0.1 the density n = M0 / r differs from the exact free-streaming
+-- solution n_ex by at most 0.061 pointwise, with relative L1 error (int |n - n_ex| dr / int n_ex
+-- dr) 0.027; mass and energy conserved to round-off.
 local Vlasov = G0.Vlasov
 
 mass = 1.0 -- Neutral mass.

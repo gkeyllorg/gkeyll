@@ -9,10 +9,12 @@
 // drag is balanced by a mean inductive field and the beams' momentum is set by the instability.
 // Kinetic linear theory for the 1D Maxwell-Juttner pair beams: the fastest seeded mode is k = 1.0
 // with gamma = 0.120 omega_pe (omega_pe = sqrt(n0 e^2 / (epsilon0 m)) = 1, n0 the rest-frame
-// density per species); k = 0.5 grows at 0.085 and k >= 2 is stable.
-// Figures of merit (serendipity p2, 32 x 64 cells): the field energy grows at gamma = 0.130 over t
-// = 28-47 and saturates at t = 73; at t = 85 the electron momentum is 0.974 of its initial value
-// and the electron energy 1.27 (instability heating); number conserved to 7e-14.
+// density per species); k = 0.5 grows at 0.085, k = 1.5 at 0.091 and k = 2 only at 0.0046 (the
+// cutoff is k = 2.02), and k >= 2.5 is stable. Figures of merit (serendipity p2, 32 x 64 cells):
+// the field energy W_E grows as exp(2 gamma t) with gamma = 0.130 (least-squares fit of ln W_E over
+// t = 28-47) and saturates at t = 73.3 (maximum of W_E, 0.268); at t = 85 the integrated electron
+// particle flux (M1) and energy (integral of gamma f) are 0.974 and 1.27 of their initial values
+// (instability heating); number conserved to 7e-14.
 
 #include <math.h>
 #include <stdio.h>

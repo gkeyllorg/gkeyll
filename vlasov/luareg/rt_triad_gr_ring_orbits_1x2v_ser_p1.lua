@@ -8,9 +8,10 @@
 -- is an exact stationary state, the relativistic analogue of the Newtonian ring test; its density
 -- profile must be unchanged after t = 50 M, a quarter of the orbital period, with absorbing walls
 -- at r = 5 M and 15 M, beyond the pericentres and apocentres of the ring's eccentric edge orbits.
--- Figures of merit (serendipity p1, 25 x 16 x 36 cells): at t = 50 M the density profile differs
--- from its initial projection by 2.2e-2 in relative L1 (3.0e-2 at the peak); mass and energy change
--- by 6.9e-3 and 6.4e-3 at the absorbing walls.
+-- Figures of merit (serendipity p1, 25 x 16 x 36 cells): at t = 50 M the density n = M0 / sqrt(h),
+-- sqrt(h) = r sqrt(1 + 2M/r), differs from its initial projection by 2.3e-2 in relative L1 (int |n
+-- - n_0| dr / int n_0 dr) and by at most 3.8e-2 of the peak density (pointwise); mass and energy
+-- change by -6.9e-3 and -6.4e-3 at the absorbing walls.
 local Vlasov = G0.Vlasov
 
 mass = 1.0 -- Neutral mass.

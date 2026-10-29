@@ -4,8 +4,9 @@
 -- (n, T) = (1, 1) and (0.125, 0.8) are at rest on either side of the jump; with collision frequency
 -- NU the solution is the Euler one with gamma = 5/3. The reference is a quasi-1D finite-volume
 -- Euler solution with the metric determinant as area factor (reflecting walls), and the exact
--- planar Riemann solution is quoted for contrast. Figures of merit (tensor p1, 24 x 6 x 6 x 6 cells
--- on cubic velocity maps): density L1 error 0.0280 against the quasi-1D reference; mass and energy
+-- planar Riemann solution is quoted for contrast. Figures of merit (tensor p1 hybrid,
+-- 24 x 6 x 6 x 6 cells on cubic velocity maps), for the density n = M0 / r at t = 0.1: relative L1
+-- error (int |n - n_ref| dr / int n_ref dr) 0.0283 against the quasi-1D reference; mass and energy
 -- conserved to round-off.
 local Vlasov = G0.Vlasov
 

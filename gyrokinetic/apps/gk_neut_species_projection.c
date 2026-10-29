@@ -90,7 +90,7 @@ gk_neut_species_projection_kinetic_init(
       .grid = &s->grid,
       .basis = &s->basis,
       .qtype = GKYL_GAUSS_QUAD,
-      .num_quad = s->basis.poly_order + 1,
+      .num_quad = gkyl_basis_proj_num_quad(&s->basis),
       .num_ret_vals = 1,
       .eval = inp.func,
       .ctx = inp.ctx_func,

@@ -1,16 +1,18 @@
 // Michel accretion of a Juttner gas onto a Schwarzschild black hole in ingoing Kerr-Schild
 // coordinates through the GR triad Vlasov solver with implicit BGK collisions (1x3v, radial preset
 // geometry with cubic velocity maps). The exact transonic Michel solution with sonic radius 8 M
-// (temperature 0.037 at r = 15 M rising to 0.15 inside the horizon, radial velocity -0.14 to -0.97)
-// is tabulated and projected as the initial state; the outer boundary holds the Michel state and
-// the inner boundary at r = 1.8 M, inside the horizon, absorbs the inflow. The accretion rate r^2 n
-// U^r computed from the rest-frame LTE moments must equal the exact -16 M^2 at every radius, and
-// the profile must stay stationary over the run. Figures of merit (serendipity p2, 16 x 6 x 6 x 6
-// cells on cubic velocity maps, 332 steps): the accretion rate r^2 n U^r from the rest-frame LTE
-// moments is -16.007 at t = 0 (exact -16, constant in r to 3.4e-3) and -16.17 at t = 20 M
-// (constant to 2.8e-2); over the run the density, temperature and drift profiles change by at most
-// 1.7e-2, 2.0e-2 and 1.5e-2 inside r = 12 M; mass changes by -1.9e-2 through the horizon boundary
-// as the inner cells settle.
+// (temperature 0.037 at r = 15 M rising to 0.15 at r = 1.8 M, inside the horizon; radial
+// four-velocity U^r = dr/dtau from -0.14 at r = 15 M to -0.80 at r = 1.8 M) is tabulated and
+// projected as the initial state; the outer boundary holds the Michel state and the inner boundary
+// at r = 1.8 M, inside the horizon, absorbs the inflow. The accretion rate r^2 n U^r computed from
+// the rest-frame LTE moments must equal the exact -16 M^2 at every radius, and the profile must
+// stay stationary over the run. Figures of merit (serendipity p2, 16 x 6 x 6 x 6 cells on cubic
+// velocity maps, 332 steps), sampled pointwise on 1.8 M < r < 12 M: the accretion rate r^2 n U^r
+// from the rest-frame LTE moments averages -16.007 at t = 0 (exact -16; pointwise within 5.4e-3 of
+// its average) and -16.16 at t = 20 M (within 2.7e-2); over the run the rest-frame density and
+// temperature change by at most 2.3e-2 and 2.2e-2 (relative) and the radial drift (the tetrad
+// spatial four-velocity relative to the normal observer) by 1.5e-2; mass changes by -1.9e-2 through
+// the horizon boundary as the inner cells settle.
 
 #include <math.h>
 #include <stdio.h>
