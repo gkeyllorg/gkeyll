@@ -17,7 +17,11 @@
 //     -div(eps grad_perp phi) + K (phi - <phi>) = rho,
 //   with <phi> = int J phi dy dz / int J dy dz, is solved by the fem_poisson_perp_adiabatic
 //   updater (Woodbury identity), and the flux-surface average (FSA) and its extension are
-//   computed by flux_surf_avg.
+//   computed by flux_surf_avg. With Pade FLR effects the solve is for Phi_0 (phi = A Phi_0,
+//   A = 1 - rho^2*nabla_perp^2) and the response K (phi - <phi>) becomes
+//     [K - K_0 rho^2 nabla_perp^2] (Phi_0 - <Phi_0>),
+//   with K_0 the J-weighted average of K (see gk_field_adiabatic_k_avg), i.e. the updater's
+//   Laplacian term with factor K_0 rho^2/eps_pol.
 // Only adiabatic electrons are implemented in 2x/3x; methods specific to them are named
 // gk_field_adiab_elc_*.
 
@@ -27,8 +31,6 @@ gk_field_adiabatic_accumulate_rho_c_bg(gkyl_gyrokinetic_app *app, struct gk_fiel
 {
   gkyl_array_accumulate_range(field->rho_c, 1.0, field->gk_adiab.rho_bg, &app->local);
 }
-
-/** 1x: K is added to the weight of the parallel projection. **/
 
 // Integral of a conf-space array over the global domain.
 static double
@@ -56,16 +58,25 @@ gk_field_adiabatic_integral(struct gkyl_gyrokinetic_app *app, const struct gkyl_
   return integ_ho[0];
 }
 
+// J-weighted average of the adiabatic response coefficient K = sum_s q_s^2 n_s0/T_s over the
+// global domain (exact for uniform profiles).
+static double
+gk_field_adiabatic_k_avg(struct gkyl_gyrokinetic_app *app, const struct gk_field *gkf)
+{
+  return gk_field_adiabatic_integral(app, gkf->gk_adiab.kJ) /
+         gk_field_adiabatic_integral(app, app->gk_geom->geo_int.jacobgeo);
+}
+
+/** 1x: K is added to the weight of the parallel projection. **/
+
 static void
 gk_field_adiabatic_init_1x(gkyl_gyrokinetic_app *app, struct gk_field *gkf)
 {
   gkyl_array_accumulate(gkf->epsilon, 1.0, gkf->gk_adiab.kJ);
   gk_field_fem_parproj_new(app, gkf, gkf->epsilon);
 
-  // The 1x energy uses a scalar factor, the J-weighted average of q_s^2 n_s0/T_s
-  // (exact for uniform profiles).
-  gkf->es_energy_fac_1d += 0.5 * gk_field_adiabatic_integral(app, gkf->gk_adiab.kJ) /
-                           gk_field_adiabatic_integral(app, app->gk_geom->geo_int.jacobgeo);
+  // The 1x energy uses a scalar factor, the J-weighted average of K.
+  gkf->es_energy_fac_1d += 0.5 * gk_field_adiabatic_k_avg(app, gkf);
 }
 
 static void
@@ -126,6 +137,19 @@ gk_field_adiab_elc_init_2x3x(gkyl_gyrokinetic_app *app, struct gk_field *gkf)
   );
   ad->energy_red = app->use_gpu ? gkyl_cu_malloc(sizeof(double)) : gkyl_malloc(sizeof(double));
 
+  // Factor of the Laplacian term in the response with FLR effects, K_0 rho^2/eps_pol, with the
+  // constant K_0 the J-weighted average of K (from the t=0 moments of the adiabatic species).
+  double lap_fac = 0.0;
+  if (gkf->use_flr) {
+    double k_avg = gk_field_adiabatic_k_avg(app, gkf);
+    assert(k_avg > 0.0);
+    lap_fac = k_avg * gkf->flr_local_fac;
+    gkyl_gyrokinetic_app_cout(
+      app, stdout, "Adiabatic response FLR term: K_0 = %.6e, Laplacian factor = %.6e.\n", k_avg,
+      lap_fac
+    );
+  }
+
   // Field solver with the adiabatic response, smoothing every right-hand side along z.
   struct timespec wst = gkyl_wall_clock();
   ad->solver = gkyl_fem_poisson_perp_adiabatic_inew(&(struct gkyl_fem_poisson_perp_adiabatic_inp){
@@ -141,6 +165,7 @@ gk_field_adiab_elc_init_2x3x(gkyl_gyrokinetic_app *app, struct gk_field *gkf)
     .bias_line_list = gkf->info.bias_line_list,
     .epsilon = gkf->epsilon,
     .kJ = ad->kJ,
+    .lap_fac = lap_fac,
     .fem_parproj_op = gk_field_adiab_elc_fem_parproj_op,
     .fem_parproj_ctx = app,
     .use_gpu = app->use_gpu,
@@ -153,18 +178,18 @@ gk_field_adiab_elc_init_2x3x(gkyl_gyrokinetic_app *app, struct gk_field *gkf)
   );
 }
 
-// Solve the field equation with the adiabatic response, then smooth phi along z and apply the
-// FLR correction.
+// Solve the field equation with the adiabatic response, apply the FLR correction and smooth
+// phi along z.
 static void
 gk_field_adiab_elc_rhs_phi_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *field)
 {
-  // Solve -div(eps grad_perp phi) + K (phi - <phi>) = rho.
+  // Solve -div(eps grad_perp phi) + K (phi - <phi>) = rho (for Phi_0 with FLR effects).
   gkyl_fem_poisson_perp_adiabatic_advance(field->gk_adiab.solver, field->rho_c, field->phi_smooth);
+
+  field->invert_flr(app, field, field->phi_smooth);
 
   // Smooth the potential along z.
   field->fem_projection_par_phi_func(app, field, field->phi_smooth, field->phi_smooth);
-
-  field->invert_flr(app, field, field->phi_smooth);
 }
 
 // Compute out = phi - <phi>, with <phi> the flux-surface average of phi.
@@ -228,6 +253,9 @@ gk_field_adiabatic_new(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
   struct gk_field_adiabatic *ad = &gkf->gk_adiab;
 
   assert(gkf->gkfield_id == GKYL_GK_FIELD_ES);
+  // With FLR effects phi = A Phi_0 must be applied with the FEM operator (the local term
+  // assumes no adiabatic response).
+  assert(!gkf->use_flr || gkf->info.flr.use_fem_operator);
 
   ad->rho_bg = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   ad->kJ = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);

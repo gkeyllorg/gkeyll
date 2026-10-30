@@ -1,14 +1,15 @@
 /* Test the fem_poisson_perp_adiabatic updater, which solves the 2x/3x field equation with an
  * adiabatic response and a flux-surface average (FSA),
- *   -nabla_perp . (eps nabla_perp phi) + K (phi - <phi>) = rho,
- * with the Woodbury identity. Slab with J=1, eps=1, Dirichlet x, periodic y (3x) or z (2x),
- * and the manufactured solution
+ *   -nabla_perp . (eps nabla_perp phi) + [K - alpha nabla_perp . (eps nabla_perp)] (phi - <phi>) = rho,
+ * with the Woodbury identity (alpha = 0 without FLR effects). Slab with J=1, eps=1, Dirichlet
+ * x, periodic y (3x) or z (2x), and the manufactured solution
  *   phi = A(x) + B(x) cos(k s),  A = sin(pi x) + phi_lo + (phi_up - phi_lo) x,  B = sin(2 pi x),
  * with s = y (3x) or s = z (2x), so that <phi> = A and
- *   rho = pi^2 sin(pi x) + (4 pi^2 + kperp^2 + K) B cos(k s),
+ *   rho = pi^2 sin(pi x) + ((1+alpha) (4 pi^2 + kperp^2) + K) B cos(k s),
  * where kperp^2 = k^2 in 3x and 0 in 2x. Nonzero Dirichlet values phi_lo, phi_up exercise the
  * removal of the rhs = 0 solution from the zonal response. For contrast, a Boltzmann response
- * without the FSA (a plain Helmholtz solve) damps the zonal part to pi^2/(pi^2+K) sin(pi x).
+ * without the FSA (a plain Helmholtz solve, alpha = 0) damps the zonal part to
+ * pi^2/(pi^2+K) sin(pi x).
  */
 
 #include <acutest.h>
@@ -44,6 +45,7 @@ verbose(void)
 struct sol_ctx {
   int cdim;
   double K; // e^2 n0/Te.
+  double lap_fac; // Factor alpha of the Laplacian term in the response.
   double k; // Wavenumber of the non-zonal part.
   double phi_lo, phi_up; // Dirichlet values in x.
   bool damped; // Whether the zonal part is damped (Boltzmann response, no FSA).
@@ -75,8 +77,9 @@ eval_rho(double t, const double *xn, double *fout, void *ctx)
   struct sol_ctx *c = ctx;
   double x = xn[0], s = xn[1];
   double kperpSq = c->cdim == 3 ? c->k * c->k : 0.0;
-  fout[0] = M_PI * M_PI * sin(M_PI * x) +
-            (4.0 * M_PI * M_PI + kperpSq + c->K) * nonzonal_func(x) * cos(c->k * s);
+  fout[0] =
+    M_PI * M_PI * sin(M_PI * x) +
+    ((1.0 + c->lap_fac) * (4.0 * M_PI * M_PI + kperpSq) + c->K) * nonzonal_func(x) * cos(c->k * s);
 }
 
 static void
@@ -196,18 +199,20 @@ slab_release(struct slab *sl)
   gkyl_array_release(sl->kJ);
 }
 
-// Solve with the adiabatic response (use_fsa) or the Boltzmann response, and compute the L2
-// errors of phi and of its zonal part, and the L2 norm of the zonal part.
+// Solve with the adiabatic response (use_fsa, Laplacian term lap_fac) or the Boltzmann response
+// (lap_fac = 0), and compute the L2 errors of phi and of its zonal part, and the L2 norm of the
+// zonal part.
 static void
 solve_case(
-  int cdim, const int *cells, bool use_fsa, double phi_lo, double phi_up, bool use_gpu,
-  double *err_phi, double *err_zonal, double *norm_zonal
+  int cdim, const int *cells, bool use_fsa, double lap_fac, double phi_lo, double phi_up,
+  bool use_gpu, double *err_phi, double *err_zonal, double *norm_zonal
 )
 {
   int poly_order = 1;
   struct sol_ctx ctx = {
     .cdim = cdim,
     .K = 20.0,
+    .lap_fac = lap_fac,
     .k = cdim == 3 ? 2.0 * M_PI : 1.0,
     .phi_lo = phi_lo,
     .phi_up = phi_up,
@@ -257,6 +262,7 @@ solve_case(
         .bias_line_list = NULL,
         .epsilon = sl.eps,
         .kJ = sl.kJ,
+        .lap_fac = lap_fac,
         .use_gpu = use_gpu,
       });
     double cond = gkyl_fem_poisson_perp_adiabatic_cond(solver);
@@ -297,23 +303,25 @@ solve_case(
 
 // Check 2nd order convergence of phi and its zonal part with the FSA.
 static void
-check_adiabatic(int cdim, double phi_lo, double phi_up, bool use_gpu)
+check_adiabatic(int cdim, double lap_fac, double phi_lo, double phi_up, bool use_gpu)
 {
   int cells[3] = {16, 16, 2};
   int cells2[3] = {32, 32, 2};
   double err_phi[2], err_zonal[2], norm_zonal[2];
 
-  solve_case(cdim, cells, true, phi_lo, phi_up, use_gpu, &err_phi[0], &err_zonal[0], &norm_zonal[0]);
   solve_case(
-    cdim, cells2, true, phi_lo, phi_up, use_gpu, &err_phi[1], &err_zonal[1], &norm_zonal[1]
+    cdim, cells, true, lap_fac, phi_lo, phi_up, use_gpu, &err_phi[0], &err_zonal[0], &norm_zonal[0]
+  );
+  solve_case(
+    cdim, cells2, true, lap_fac, phi_lo, phi_up, use_gpu, &err_phi[1], &err_zonal[1], &norm_zonal[1]
   );
   double ratio_phi = err_phi[0] / err_phi[1], ratio_zonal = err_zonal[0] / err_zonal[1];
   if (verbose()) {
     printf(
-      "\nFSA (phi_lo=%g, phi_up=%g): phi err %.4e %.4e (ratio %.3f), zonal err %.4e %.4e (ratio "
-      "%.3f), zonal norm %.4e\n",
-      phi_lo, phi_up, err_phi[0], err_phi[1], ratio_phi, err_zonal[0], err_zonal[1], ratio_zonal,
-      norm_zonal[1]
+      "\nFSA (lap_fac=%g, phi_lo=%g, phi_up=%g): phi err %.4e %.4e (ratio %.3f), zonal err %.4e "
+      "%.4e (ratio %.3f), zonal norm %.4e\n",
+      lap_fac, phi_lo, phi_up, err_phi[0], err_phi[1], ratio_phi, err_zonal[0], err_zonal[1],
+      ratio_zonal, norm_zonal[1]
     );
   }
   TEST_CHECK(ratio_phi >= 3.5);
@@ -325,18 +333,23 @@ check_adiabatic(int cdim, double phi_lo, double phi_up, bool use_gpu)
 }
 
 static void
-test_adiabatic(int cdim, bool use_gpu)
+test_posson_perp_adiabatic(int cdim, bool use_gpu)
 {
-  // Adiabatic response, with homogeneous and nonzero Dirichlet values.
-  check_adiabatic(cdim, 0.0, 0.0, use_gpu);
-  check_adiabatic(cdim, 0.5, -0.3, use_gpu);
+  // Adiabatic response, with homogeneous and nonzero Dirichlet values, without and with the
+  // Laplacian term of FLR effects.
+  check_adiabatic(cdim, 0.0, 0.0, 0.0, use_gpu);
+  check_adiabatic(cdim, 0.0, 0.5, -0.3, use_gpu);
+  check_adiabatic(cdim, 0.6, 0.0, 0.0, use_gpu);
+  check_adiabatic(cdim, 0.6, 0.5, -0.3, use_gpu);
 
   // Without the FSA the zonal part is damped by pi^2/(pi^2+K).
   int cells[3] = {16, 16, 2};
   int cells2[3] = {32, 32, 2};
   double err_phi[2], err_zonal[2], norm_zonal[2];
-  solve_case(cdim, cells, false, 0.0, 0.0, use_gpu, &err_phi[0], &err_zonal[0], &norm_zonal[0]);
-  solve_case(cdim, cells2, false, 0.0, 0.0, use_gpu, &err_phi[1], &err_zonal[1], &norm_zonal[1]);
+  solve_case(cdim, cells, false, 0.0, 0.0, 0.0, use_gpu, &err_phi[0], &err_zonal[0], &norm_zonal[0]);
+  solve_case(
+    cdim, cells2, false, 0.0, 0.0, 0.0, use_gpu, &err_phi[1], &err_zonal[1], &norm_zonal[1]
+  );
   double ratio_zonal = err_zonal[0] / err_zonal[1];
   if (verbose()) {
     printf(
@@ -351,35 +364,35 @@ test_adiabatic(int cdim, bool use_gpu)
 }
 
 void
-test_2x_p1()
+test_posson_perp_adiabatic_2x_p1_ho()
 {
-  test_adiabatic(2, false);
+  test_posson_perp_adiabatic(2, false);
 }
 void
-test_3x_p1()
+test_posson_perp_adiabatic_3x_p1_ho()
 {
-  test_adiabatic(3, false);
+  test_posson_perp_adiabatic(3, false);
 }
 
 #ifdef GKYL_HAVE_CUDA
 void
-gpu_test_2x_p1()
+test_posson_perp_adiabatic_2x_p1_dev()
 {
-  test_adiabatic(2, true);
+  test_posson_perp_adiabatic(2, true);
 }
 void
-gpu_test_3x_p1()
+test_posson_perp_adiabatic_3x_p1_dev()
 {
-  test_adiabatic(3, true);
+  test_posson_perp_adiabatic(3, true);
 }
 #endif
 
 TEST_LIST = {
-  {"test_2x_p1", test_2x_p1},
-  {"test_3x_p1", test_3x_p1},
+  {"test_posson_perp_adiabatic_2x_p1_ho", test_posson_perp_adiabatic_2x_p1_ho},
+  {"test_posson_perp_adiabatic_3x_p1_ho", test_posson_perp_adiabatic_3x_p1_ho},
 #ifdef GKYL_HAVE_CUDA
-  {"gpu_test_2x_p1", gpu_test_2x_p1},
-  {"gpu_test_3x_p1", gpu_test_3x_p1},
+  {"test_posson_perp_adiabatic_2x_p1_dev", test_posson_perp_adiabatic_2x_p1_dev},
+  {"test_posson_perp_adiabatic_3x_p1_dev", test_posson_perp_adiabatic_3x_p1_dev},
 #endif
   {NULL, NULL}
 };

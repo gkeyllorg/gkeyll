@@ -784,6 +784,8 @@ main(int argc, char **argv)
 
     .collisionless = {.type = GKYL_GK_COLLISIONLESS_ES},
 
+    .flr = {.gyroradius = sqrt(ctx.Ti0 * ctx.mi) / (ctx.qi * ctx.B0)},
+
     .source_bgk =
       {
         .source_bgk_id = GKYL_SOURCE_BGK_STATIC,
@@ -844,6 +846,7 @@ main(int argc, char **argv)
 
   // field
   struct gkyl_gyrokinetic_field field = {
+    .flr = {.type = GKYL_GK_FLR_PADE, .use_fem_operator = true},
     .poisson_bcs =
       {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}}},

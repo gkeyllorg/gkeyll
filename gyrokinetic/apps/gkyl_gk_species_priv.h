@@ -29,6 +29,11 @@ void gk_species_gyroaverage_enabled(
   struct gkyl_array *field_gyroavg
 );
 
+void gk_species_gyroaverage_density_enabled(
+  gkyl_gyrokinetic_app *app, struct gk_species *species, struct gkyl_array *jac_dens_in,
+  struct gkyl_array *jac_dens_gyroavg
+);
+
 double gk_species_rhs_static(
   gkyl_gyrokinetic_app *app, struct gk_species *species, const struct gkyl_array *fin,
   struct gkyl_array *rhs, struct gkyl_array **bflux_moms

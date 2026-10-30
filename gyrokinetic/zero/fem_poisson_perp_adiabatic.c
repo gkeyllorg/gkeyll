@@ -82,6 +82,8 @@ gkyl_fem_poisson_perp_adiabatic_inew(const struct gkyl_fem_poisson_perp_adiabati
   up->local_x = *inp->local_x;
   up->fsa = inp->fsa;
   up->kJ = gkyl_array_acquire(inp->kJ);
+  up->lap_fac = inp->lap_fac;
+  up->lap_frac = inp->lap_fac / (1.0 + inp->lap_fac);
   up->fem_parproj_op = inp->fem_parproj_op ? inp->fem_parproj_op :
                                              fem_poisson_perp_adiabatic_fem_parproj_op_none;
   up->fem_parproj_ctx = inp->fem_parproj_ctx;
@@ -92,19 +94,24 @@ gkyl_fem_poisson_perp_adiabatic_inew(const struct gkyl_fem_poisson_perp_adiabati
   up->rhs_buff = mkarr(use_gpu, nb, vol);
   up->phi_rhs0 = mkarr(use_gpu, nb, vol);
   up->psi = mkarr(use_gpu, nb_x, inp->local_x_ext->volume);
+  up->psi_rhs0 = mkarr(use_gpu, nb_x, inp->local_x_ext->volume);
 
-  // Helmholtz solver for H = L + K. The solver subtracts kSq*phi, so kSq = -K; it keeps its
-  // own copy of kSq.
+  // Helmholtz solver for H = -(1+alpha) div(eps grad) + K. The solver subtracts kSq*phi, so
+  // kSq = -K; it acquires its weights.
+  struct gkyl_array *eps = mkarr(use_gpu, inp->epsilon->ncomp, inp->epsilon->size);
+  gkyl_array_set(eps, 1.0 + up->lap_fac, inp->epsilon);
   struct gkyl_array *kSq = mkarr(use_gpu, nb, vol);
   gkyl_array_set(kSq, -1.0, up->kJ);
   up->helmholtz = gkyl_fem_poisson_perp_new(
-    &up->local, inp->grid, up->basis, inp->bcs, inp->bias_line_list, inp->epsilon, kSq, use_gpu
+    &up->local, inp->grid, up->basis, inp->bcs, inp->bias_line_list, eps, kSq, use_gpu
   );
+  gkyl_array_release(eps);
   gkyl_array_release(kSq);
 
-  // Solution with zero rhs but Dirichlet BCs.
+  // Solution with zero rhs but Dirichlet BCs, and its flux-surface average.
   gkyl_array_clear(up->rhs_buff, 0.0);
   fem_poisson_perp_adiabatic_helmholtz_solve(up, up->rhs_buff, up->phi_rhs0);
+  gkyl_flux_surf_avg_advance(up->fsa, up->phi_rhs0, up->psi_rhs0);
 
   // Zonal system A = I - G, G = R H^{-1} K E. Column j of G is R H^{-1} K E e_j, so assembling
   // it requires m Helmholtz solves, one per zonal degree of freedom.
@@ -153,22 +160,26 @@ gkyl_fem_poisson_perp_adiabatic_advance(
   // Solve H phi1 = rho.
   fem_poisson_perp_adiabatic_helmholtz_solve(up, rho, phi);
 
-  // Flux-surface average <phi1> = R phi1 into psi.
+  // Zonal rhs <phi1> - beta <phi_rhs0> into psi.
   gkyl_flux_surf_avg_advance(up->fsa, phi, up->psi);
+  gkyl_array_accumulate_range(up->psi, -up->lap_frac, up->psi_rhs0, &up->local_x);
 
-  // Solve (I - G) psi = <phi1>, applying the precomputed (I - G)^{-1} to psi packed into an
+  // Solve (I - G) psi = rhs, applying the precomputed (I - G)^{-1} to psi packed into an
   // m-vector.
   gkyl_array_copy_to_buffer(up->zonal_rhs->data, up->psi, &up->local_x);
   gkyl_mat_mm_array(up->zonal_inv, up->zonal_rhs, up->zonal_sol);
   gkyl_array_copy_from_buffer(up->psi, up->zonal_sol->data, &up->local_x);
 
-  // Solve H phi2 = K E psi into phi_buff, removing the rhs = 0 solution.
+  // E psi into phi_buff, adding alpha E psi to phi.
   gkyl_flux_surf_avg_inflate(up->fsa, up->psi, up->phi_buff);
+  gkyl_array_accumulate_range(phi, up->lap_fac, up->phi_buff, &up->local);
+
+  // Solve H phi2 = K E psi into phi_buff, removing (1+beta) times the rhs = 0 solution.
   gkyl_dg_mul_op_range(&up->basis, 0, up->rhs_buff, 0, up->kJ, 0, up->phi_buff, &up->local);
   fem_poisson_perp_adiabatic_helmholtz_solve(up, up->rhs_buff, up->phi_buff);
-  gkyl_array_accumulate_range(up->phi_buff, -1.0, up->phi_rhs0, &up->local);
+  gkyl_array_accumulate_range(up->phi_buff, -(1.0 + up->lap_frac), up->phi_rhs0, &up->local);
 
-  // Combine phi1 and phi2, i.e. phi = phi1 + phi2.
+  // phi = phi1 + alpha E psi + phi2.
   gkyl_array_accumulate_range(phi, 1.0, up->phi_buff, &up->local);
 }
 
@@ -187,6 +198,7 @@ gkyl_fem_poisson_perp_adiabatic_release(struct gkyl_fem_poisson_perp_adiabatic *
   gkyl_array_release(up->rhs_buff);
   gkyl_array_release(up->phi_rhs0);
   gkyl_array_release(up->psi);
+  gkyl_array_release(up->psi_rhs0);
   gkyl_array_release(up->zonal_rhs);
   gkyl_array_release(up->zonal_sol);
   gkyl_mat_mm_array_mem_release(up->zonal_inv);

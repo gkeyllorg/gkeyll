@@ -84,9 +84,7 @@ gk_species_gyroaverage_disabled(
   struct gkyl_array *field_gyroavg
 )
 {
-  struct timespec wst = gkyl_wall_clock();
   // Don't perform gyroaveraging.
-  app->stat.species_gyroavg_tm += gkyl_time_diff_now_sec(wst);
 }
 
 void
@@ -95,9 +93,39 @@ gk_species_gyroaverage_enabled(
   struct gkyl_array *field_gyroavg
 )
 {
+  // Solve the gyroaveraging problem J*(1 - (rho_s^2/2) nabla_perp^2) phi_g = J*phi_in
+  // with phi_in as the boundary value, e.g. to get the potential used in the Hamiltonian.
   struct timespec wst = gkyl_wall_clock();
-  // Gyroaverage input field.
-  gkyl_deflated_fem_poisson_advance(species->flr_op, field_in, field_in, field_gyroavg);
+  gkyl_dg_mul_op_range(
+    &app->basis, 0, species->flr_buff, 0, app->gk_geom->geo_int.jacobgeo, 0, field_in, &app->local
+  );
+  gkyl_deflated_fem_poisson_advance(species->flr_op, species->flr_buff, field_in, field_gyroavg);
+  app->stat.species_gyroavg_tm += gkyl_time_diff_now_sec(wst);
+}
+
+void
+gk_species_gyroaverage_density_enabled(
+  gkyl_gyrokinetic_app *app, struct gk_species *species, struct gkyl_array *jac_dens_in,
+  struct gkyl_array *jac_dens_gyroavg
+)
+{
+  // Same as gk_species_gyroaverage_enabled but for a density that already
+  // carries the Jacobian (J*n), returning J*n_g.
+  struct timespec wst = gkyl_wall_clock();
+  // Smooth the density along z to get a consistent field for the deflated solve.
+  app->field->fem_projection_par_rho_func(app, app->field, jac_dens_in, species->flr_buff_dens);
+  // Boundary value n = (J*n)/J.
+  gkyl_dg_mul_op_range(
+    &app->basis, 0, species->flr_buff, 0, app->gk_geom->geo_int.jacobgeo_inv, 0,
+    species->flr_buff_dens, &app->local
+  );
+  gkyl_deflated_fem_poisson_advance(
+    species->flr_op, species->flr_buff_dens, species->flr_buff, jac_dens_gyroavg
+  );
+  gkyl_dg_mul_op_range(
+    &app->basis, 0, jac_dens_gyroavg, 0, app->gk_geom->geo_int.jacobgeo, 0, jac_dens_gyroavg,
+    &app->local
+  );
   app->stat.species_gyroavg_tm += gkyl_time_diff_now_sec(wst);
 }
 

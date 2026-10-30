@@ -1,5 +1,20 @@
 #include <gkyl_gk_species_priv.h>
 
+static void
+gk_species_kinetic_flr_smooth_coeff(
+  gkyl_gyrokinetic_app *app, struct gkyl_array *coeff, struct gkyl_array *tmp
+)
+{
+  // Smooth each component of an FLR operator coefficient along z, so the
+  // z-nodal deflated solver samples it consistently with the smoothed density.
+  int ncomp = coeff->ncomp / app->basis.num_basis;
+  for (int c = 0; c < ncomp; c++) {
+    gkyl_array_set_offset(tmp, 1.0, coeff, c * app->basis.num_basis);
+    app->field->fem_projection_par_rho_func(app, app->field, tmp, tmp);
+    gkyl_array_set_offset(coeff, 1.0, tmp, c * app->basis.num_basis);
+  }
+}
+
 static double
 gk_species_kinetic_omegaH_dt(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, const struct gkyl_array *fin
@@ -47,9 +62,6 @@ gk_species_kinetic_rhs_dynamic(
   struct gkyl_array *rhs, struct gkyl_array **bflux_moms
 )
 {
-  // Gyroaverage the potential if needed.
-  species->gyroaverage(app, species, app->field->phi_smooth, species->gyro_phi);
-
   gkyl_array_clear(species->cflrate, 0.0);
   gkyl_array_clear(rhs, 0.0);
 
@@ -58,7 +70,7 @@ gk_species_kinetic_rhs_dynamic(
 
   // Damping term.
   gk_species_damping_advance(
-    app, species, &species->damping, app->field->phi_smooth, fin, species->lte.f_lte, rhs,
+    app, species, &species->damping, species->gyro_phi, fin, species->lte.f_lte, rhs,
     species->cflrate
   );
 
@@ -91,7 +103,7 @@ gk_species_kinetic_rhs_dynamic(
 
   // Multiply CFL rate by the df/dt multiplier.
   gk_species_fdot_multiplier_advance_times_cfl(
-    app, species, &species->fdot_mult, app->field->phi_smooth, fin, species->cflrate
+    app, species, &species->fdot_mult, species->gyro_phi, fin, species->cflrate
   );
 
   // Reduce the CFL frequency and compute stable dt needed by this species.
@@ -167,8 +179,8 @@ gk_species_kinetic_apply_bc_dynamic(
         case GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING:
           gk_species_phi_wall_advance(app, &species->phi_wall_lo, tm);
           gkyl_bc_sheath_gyrokinetic_advance(
-            species->bc_sheath_lo, app->field->phi_smooth, species->phi_wall_lo.phi, NULL, NULL,
-            NULL, NULL, f, &app->local
+            species->bc_sheath_lo, species->gyro_phi, species->phi_wall_lo.phi, NULL, NULL, NULL,
+            NULL, f, &app->local
           );
           break;
         case GKYL_BC_GK_SPECIES_SHEATH_SURROGATE:
@@ -185,7 +197,7 @@ gk_species_kinetic_apply_bc_dynamic(
             2 * app->basis.num_basis, &app->local
           );
           gkyl_bc_sheath_gyrokinetic_advance(
-            species->bc_sheath_lo, app->field->phi_smooth, species->phi_wall_lo.phi,
+            species->bc_sheath_lo, species->gyro_phi, species->phi_wall_lo.phi,
             species->dens_sheath, species->temp_sheath, app->gk_geom->geo_int.bmag,
             app->gk_geom->geo_surf[d].bimpactangle, f, &app->local
           );
@@ -211,8 +223,8 @@ gk_species_kinetic_apply_bc_dynamic(
         case GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING:
           gk_species_phi_wall_advance(app, &species->phi_wall_up, tm);
           gkyl_bc_sheath_gyrokinetic_advance(
-            species->bc_sheath_up, app->field->phi_smooth, species->phi_wall_up.phi, NULL, NULL,
-            NULL, NULL, f, &app->local
+            species->bc_sheath_up, species->gyro_phi, species->phi_wall_up.phi, NULL, NULL, NULL,
+            NULL, f, &app->local
           );
           break;
         case GKYL_BC_GK_SPECIES_SHEATH_SURROGATE:
@@ -229,7 +241,7 @@ gk_species_kinetic_apply_bc_dynamic(
             2 * app->basis.num_basis, &app->local
           );
           gkyl_bc_sheath_gyrokinetic_advance(
-            species->bc_sheath_up, app->field->phi_smooth, species->phi_wall_up.phi,
+            species->bc_sheath_up, species->gyro_phi, species->phi_wall_up.phi,
             species->dens_sheath, species->temp_sheath, app->gk_geom->geo_int.bmag,
             app->gk_geom->geo_surf[d].bimpactangle, f, &app->local
           );
@@ -1170,73 +1182,66 @@ gk_species_kinetic_init(
   // Allocate cflrate (scalar array).
   gks->cflrate = mkarr(app->use_gpu, 1, gks->local_ext.volume);
 
+  // Gyroaveraged potential used in the Hamiltonian.
+  // Gyroaveraged if the field enables FLR effects and the species provides a
+  // reference gyroradius, rho_s = sqrt(Tperp*m_s)/(|q_s|*bmag) unless given directly.
+  gks->use_flr = app->field->info.flr.type != GKYL_GK_FLR_NONE &&
+                 (gks->info.flr.gyroradius > 0.0 || gks->info.flr.Tperp > 0.0);
+  gks->flr_rhoSq_ref = 0.0;
+  if (gks->use_flr) {
+    double gyroradius_bmag = gks->info.flr.bmag ? gks->info.flr.bmag : app->bmag_ref;
+    gks->flr_rhoSq_ref =
+      gks->info.flr.gyroradius > 0.0 ?
+        pow(gks->info.flr.gyroradius, 2.0) :
+        gks->info.flr.Tperp * gks->info.mass / pow(gks->info.charge * gyroradius_bmag, 2.0);
+  }
+
+  gks->gyro_phi = gks->use_flr ? mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume) :
+                                 gkyl_array_acquire(app->field->phi_smooth);
+
   // Allocate data for density (for charge density or upar calculation).
   gk_species_moment_init(app, gks, &gks->m0, GKYL_F_MOMENT_M0, false);
 
-  if (gks->info.flr.type) {
+  if (gks->use_flr) {
     // Create operator needed for FLR effects.
     assert(app->cdim > 1);
     // Pointer to function performing the gyroaverage.
     gks->gyroaverage = gk_species_gyroaverage_enabled;
-    // Gyroaveraged M0 and phi.
+    gks->gyroaverage_density = gk_species_gyroaverage_density_enabled;
     gks->m0_gyroavg = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    gks->gyro_phi = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    gks->flr_buff = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    gks->flr_buff_dens = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
 
-    double gyroradius_bmag = gks->info.flr.bmag ? gks->info.flr.bmag : app->bmag_ref;
-
-    double flr_weight =
-      gks->info.flr.Tperp * gks->info.mass / (pow(gks->info.charge * gyroradius_bmag, 2.0));
+    double flr_weight = gks->flr_rhoSq_ref;
     // Initialize the weight in the Laplacian operator.
     gks->flr_rhoSqD2 =
       mkarr(app->use_gpu, (2 * (app->cdim - 1) - 1) * app->basis.num_basis, app->local_ext.volume);
     gkyl_array_set_offset(
-      gks->flr_rhoSqD2, flr_weight, app->gk_geom->geo_int.gxxj, 0 * app->basis.num_basis
+      gks->flr_rhoSqD2, 0.5 * flr_weight, app->gk_geom->geo_int.gxxj, 0 * app->basis.num_basis
     );
     if (app->cdim > 2) {
       gkyl_array_set_offset(
-        gks->flr_rhoSqD2, flr_weight, app->gk_geom->geo_int.gxyj, 1 * app->basis.num_basis
+        gks->flr_rhoSqD2, 0.5 * flr_weight, app->gk_geom->geo_int.gxyj, 1 * app->basis.num_basis
       );
       gkyl_array_set_offset(
-        gks->flr_rhoSqD2, flr_weight, app->gk_geom->geo_int.gyyj, 2 * app->basis.num_basis
+        gks->flr_rhoSqD2, 0.5 * flr_weight, app->gk_geom->geo_int.gyyj, 2 * app->basis.num_basis
       );
     }
     // Initialize the factor multiplying the field in the FLR operator.
     gks->flr_kSq = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    gkyl_array_shiftc(gks->flr_kSq, -pow(sqrt(2.0), app->cdim), 0); // Sets kSq=-1.
+    gkyl_array_set(gks->flr_kSq, -1.0, app->gk_geom->geo_int.jacobgeo);
+    gk_species_kinetic_flr_smooth_coeff(app, gks->flr_rhoSqD2, gks->flr_buff_dens);
+    gk_species_kinetic_flr_smooth_coeff(app, gks->flr_kSq, gks->flr_buff_dens);
 
-    // Periodic along the periodic directions and Dirichlet otherwise, unless the field BCs say so.
-    struct gkyl_poisson_bc flr_bc = {};
+    // Gyroaverage BCs: the input field is its own boundary value at
+    // non-periodic boundaries.
+    struct gkyl_poisson_bc flr_bc = app->field->poisson_bcs;
     for (int d = 0; d < app->cdim - 1; d++) {
-      enum gkyl_poisson_bc_type bc_default =
-        gkyl_gyrokinetic_translate_poisson_bc_type(GKYL_BC_GK_FIELD_DIRICHLET_VARYING);
-      for (int i = 0; i < app->num_periodic_dir; i++) {
-        if (app->periodic_dirs[i] == d) {
-          bc_default = gkyl_gyrokinetic_translate_poisson_bc_type(GKYL_BC_GK_FIELD_PERIODIC);
-        }
+      if (flr_bc.lo_type[d] != GKYL_POISSON_PERIODIC) {
+        flr_bc.lo_type[d] = GKYL_POISSON_DIRICHLET_VARYING;
       }
-      flr_bc.lo_type[d] = bc_default;
-      flr_bc.up_type[d] = bc_default;
-
-      struct gkyl_gyrokinetic_bc *bc_lo =
-        gk_fetch_bc_with_dir_edge(app->field->info.poisson_bcs, 2 * app->cdim, d, GKYL_LOWER_EDGE);
-      if (bc_lo != 0) {
-        if (bc_lo->type == GKYL_BC_GK_FIELD_PERIODIC) {
-          flr_bc.lo_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(GKYL_BC_GK_FIELD_PERIODIC);
-        } else {
-          flr_bc.lo_type[d] =
-            gkyl_gyrokinetic_translate_poisson_bc_type(GKYL_BC_GK_FIELD_DIRICHLET_VARYING);
-        }
-      }
-
-      struct gkyl_gyrokinetic_bc *bc_up =
-        gk_fetch_bc_with_dir_edge(app->field->info.poisson_bcs, 2 * app->cdim, d, GKYL_UPPER_EDGE);
-      if (bc_up != 0) {
-        if (bc_up->type == GKYL_BC_GK_FIELD_PERIODIC) {
-          flr_bc.up_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(GKYL_BC_GK_FIELD_PERIODIC);
-        } else {
-          flr_bc.up_type[d] =
-            gkyl_gyrokinetic_translate_poisson_bc_type(GKYL_BC_GK_FIELD_DIRICHLET_VARYING);
-        }
+      if (flr_bc.up_type[d] != GKYL_POISSON_PERIODIC) {
+        flr_bc.up_type[d] = GKYL_POISSON_DIRICHLET_VARYING;
       }
     }
     // Deflated Poisson solve is performed on range assuming decomposition is *only* in z.
@@ -1246,8 +1251,8 @@ gk_species_kinetic_init(
     );
   } else {
     gks->gyroaverage = gk_species_gyroaverage_disabled;
+    gks->gyroaverage_density = gk_species_gyroaverage_disabled;
     gks->m0_gyroavg = gkyl_array_acquire(gks->m0.marr);
-    gks->gyro_phi = gkyl_array_acquire(app->field->phi_smooth);
   }
 
   // Initialize the collisionless solver.
@@ -1572,9 +1577,11 @@ gk_species_kinetic_release(const gkyl_gyrokinetic_app *app, const struct gk_spec
 
   gkyl_array_release(gks->m0_gyroavg);
   gkyl_array_release(gks->gyro_phi);
-  if (gks->info.flr.type) {
+  if (gks->use_flr) {
     gkyl_array_release(gks->flr_rhoSqD2);
     gkyl_array_release(gks->flr_kSq);
+    gkyl_array_release(gks->flr_buff);
+    gkyl_array_release(gks->flr_buff_dens);
     gkyl_deflated_fem_poisson_release(gks->flr_op);
   }
 
