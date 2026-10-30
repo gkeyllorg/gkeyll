@@ -686,7 +686,6 @@ main(int argc, char **argv)
         .ctx_temp = &ctx,
         .correct_all_moms = true,
       },
-    .flr = {.Tperp = ctx.Te0},
     .scaling = {.type = GKYL_GK_SPECIES_SCALING_ADIABATIC},
     .num_diag_moments = 1,
     .diag_moments = {GKYL_F_MOMENT_M0},

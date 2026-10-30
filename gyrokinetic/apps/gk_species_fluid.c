@@ -114,13 +114,11 @@ gk_species_fluid_release(const gkyl_gyrokinetic_app *app, const struct gk_specie
 void
 gk_species_fluid_init(struct gkyl_gk *inp, gkyl_gyrokinetic_app *app, struct gk_species *gks)
 {
-  // Fluid species currently have algebraic density closures, not transport equations (an
-  // adiabatic species uses flr.Tperp in the FLR term of its response).
-  bool is_adiabatic = gks->info.scaling.type == GKYL_GK_SPECIES_SCALING_ADIABATIC;
-  if (gks->info.collisionless.type || (gks->info.flr.Tperp > 0.0 && !is_adiabatic) ||
-      gks->info.flr.gyroradius > 0.0 || gks->info.source.source_id ||
-      gks->info.source_bgk.source_bgk_id || gks->info.radiation.radiation_id ||
-      gks->info.react.num_react || gks->info.react_neut.num_react || gks->info.positivity.type ||
+  // Fluid species currently have algebraic density closures, not transport equations.
+  if (gks->info.collisionless.type || gks->info.flr.Tperp > 0.0 || gks->info.flr.gyroradius > 0.0 ||
+      gks->info.source.source_id || gks->info.source_bgk.source_bgk_id ||
+      gks->info.radiation.radiation_id || gks->info.react.num_react ||
+      gks->info.react_neut.num_react || gks->info.positivity.type ||
       gks->info.positivity.quasineutrality_rescale || gks->info.damping.type ||
       gks->info.anomalous_diffusion.anomalous_diff_id ||
       gks->info.time_rate_multiplier.num_multipliers || gks->info.scale_with_polarization ||
