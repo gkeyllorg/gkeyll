@@ -101,8 +101,17 @@ gk_species_gyroaverage_enabled(
   app->stat.species_gyroavg_tm += gkyl_time_diff_now_sec(wst);
 }
 
-double
+void
 gk_species_rhs_static(
+  gkyl_gyrokinetic_app *app, struct gk_species *species, const struct gkyl_array *fin,
+  struct gkyl_array *rhs, struct gkyl_array **bflux_moms
+)
+{
+  // Do nothing.
+}
+
+double
+gk_species_get_cfl_static(
   gkyl_gyrokinetic_app *app, struct gk_species *species, const struct gkyl_array *fin,
   struct gkyl_array *rhs, struct gkyl_array **bflux_moms
 )
@@ -699,6 +708,9 @@ gk_species_init_static(
 
   // Set function pointers.
   gks->rhs_func = gk_species_rhs_static;
+  gks->rhs_em_complete_func = gk_species_rhs_static;
+  gks->bflux_update = gk_species_rhs_static;
+  gks->get_cfl = gk_species_get_cfl_static;
   gks->rhs_implicit_func = gk_species_rhs_implicit_static;
   gks->bc_func = gk_species_apply_bc_static;
   gks->release_func = gk_species_release_static;
@@ -777,13 +789,40 @@ gk_species_apply_ic_cross(gkyl_gyrokinetic_app *app, struct gk_species *gks_self
   gk_species_scaling_apply_ic_cross(app, gks_self, &gks_self->sca);
 }
 
-double
+void
 gk_species_rhs(
   gkyl_gyrokinetic_app *app, struct gk_species *species, const struct gkyl_array *fin,
   struct gkyl_array *rhs, struct gkyl_array **bflux_moms
 )
 {
-  return species->rhs_func(app, species, fin, rhs, bflux_moms);
+  species->rhs_func(app, species, fin, rhs, bflux_moms);
+}
+
+void
+gk_species_rhs_em_complete(
+  gkyl_gyrokinetic_app *app, struct gk_species *species, const struct gkyl_array *fin,
+  struct gkyl_array *rhs, struct gkyl_array **bflux_moms
+)
+{
+  species->rhs_em_complete_func(app, species, fin, rhs, bflux_moms);
+}
+
+void
+gk_species_update_bflux(
+  gkyl_gyrokinetic_app *app, struct gk_species *species, const struct gkyl_array *fin,
+  struct gkyl_array *rhs, struct gkyl_array **bflux_moms
+)
+{
+  species->bflux_update(app, species, fin, rhs, bflux_moms);
+}
+
+double
+gk_species_get_cfl(
+  gkyl_gyrokinetic_app *app, struct gk_species *species, const struct gkyl_array *fin,
+  struct gkyl_array *rhs, struct gkyl_array **bflux_moms
+)
+{
+  return species->get_cfl(app, species, fin, rhs, bflux_moms);
 }
 
 double

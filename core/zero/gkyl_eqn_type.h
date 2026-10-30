@@ -187,9 +187,6 @@ enum gkyl_gk_anomalous_diff_id {
 enum gkyl_gk_collisionless_type {
   GKYL_GK_COLLISIONLESS_NONE = 0, // Turns off collisionless terms.
   GKYL_GK_COLLISIONLESS_ES, // Electrostatic.
-  GKYL_GK_COLLISIONLESS_ES_NO_BY, // Electrostatic, w/o toroidal field (b_y=0).
-  GKYL_GK_COLLISIONLESS_EM_BPERP, // Electromagnetic with B_perp fluctuations.
-  GKYL_GK_COLLISIONLESS_EM_BPAR, // Electromagnetic with B_par fluctuations.
   GKYL_GK_COLLISIONLESS_EM, // Electromagnetic with B_perp and B_par fluctuations.
   GKYL_GK_COLLISIONLESS_NEUTRAL, // Neutral collisionless terms.
   GKYL_GK_COLLISIONLESS_PASSIVE // Passive advection (for dev/debug).

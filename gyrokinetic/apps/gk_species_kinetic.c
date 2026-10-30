@@ -14,26 +14,58 @@ gk_species_kinetic_omegaH_dt(
   //   - omegaH_gf = (cmag/(jacobgeo*B^_\parallel))*kpar_max /
   //                 min(sqrt(k_x^2*eps_xx+k_x*k_y*eps_xy+k_y^2*eps_yy+)).
   // and k_x,k_y,k_par are wavenumbers in computational space, and eps_ij is
-  // the polarization weight in our field equation.
+  // the polarization weight in our field equation. With EM fields omega_H is
+  // reduced by the inductive term (see gkyl_gyrokinetic_app_omegaH_init).
 
   if (!(app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN || app->field->has_adiabatic_species)) {
-    // Obtain the maximum density (using cell centers).
     gk_species_moment_calc(app, &gks->m0, gks->local, app->local, fin);
-    gkyl_array_reduce_range(gks->m0_max, gks->m0.marr, GKYL_MAX, &app->local);
-
-    double m0_max[1];
-    if (app->use_gpu) {
-      gkyl_cu_memcpy(m0_max, gks->m0_max, sizeof(double), GKYL_CU_MEMCPY_D2H);
-    } else {
-      m0_max[0] = gks->m0_max[0];
-    }
-    m0_max[0] *= 1.0 / pow(sqrt(2.0), app->cdim);
 
     double time_dilation_scale_const =
       gk_fdot_multiplier_get_time_dilation_scale_const(app, &gks->fdot_mult);
 
-    double omegaH = fabs(gks->info.charge) * sqrt(GKYL_MAX2(0.0, m0_max[0]) / gks->info.mass) *
-                    app->omegaH_gf * time_dilation_scale_const * gks->collisionless.scale_fac;
+    double omegaH;
+    if (app->omegaH_em) {
+      // Finite beta: evaluate, cell by cell,
+      //   omega_H^2 = (q_s^2/m_s)*jacobgeo*n_s * omegaH_gf^2 * A/(A + kSq),
+      // with A = k.w.k (w = jacobgeo*g^ij/mu0) and kSq = sum_s q_s^2*jacobgeo*n_s/m_s
+      // from the latest Ohm's law solve (zero before the first one, which gives
+      // the electrostatic bound).
+      double avg_fac = 1.0 / pow(sqrt(2.0), app->cdim);
+      struct gkyl_array *num = app->omegaH_num, *den = app->omegaH_den;
+      gkyl_array_clear(num, 0.0);
+      gkyl_array_set_offset_range(num, avg_fac, gks->m0.marr, 0, &app->local);
+      gkyl_array_scale_by_cell(num, app->omegaH_GA);
+      // dApartdtSlvr_kSq is stored as -sum_s q_s^2*jacobgeo*n_s/m_s.
+      gkyl_array_set(den, 1.0, app->omegaH_A);
+      gkyl_array_accumulate_offset_range(
+        den, -avg_fac, app->field->dApartdtSlvr_kSq, 0, &app->local
+      );
+      gkyl_array_divide_by_cell(num, den);
+      gkyl_array_reduce_range(app->omegaH_red, num, GKYL_MAX, &app->local);
+
+      double omegaH_sq[1];
+      if (app->use_gpu) {
+        gkyl_cu_memcpy(omegaH_sq, app->omegaH_red, sizeof(double), GKYL_CU_MEMCPY_D2H);
+      } else {
+        omegaH_sq[0] = app->omegaH_red[0];
+      }
+      omegaH = fabs(gks->info.charge) * sqrt(GKYL_MAX2(0.0, omegaH_sq[0]) / gks->info.mass) *
+               time_dilation_scale_const;
+    } else {
+      // Obtain the maximum density (using cell centers).
+      gkyl_array_reduce_range(gks->m0_max, gks->m0.marr, GKYL_MAX, &app->local);
+
+      double m0_max[1];
+      if (app->use_gpu) {
+        gkyl_cu_memcpy(m0_max, gks->m0_max, sizeof(double), GKYL_CU_MEMCPY_D2H);
+      } else {
+        m0_max[0] = gks->m0_max[0];
+      }
+      m0_max[0] *= 1.0 / pow(sqrt(2.0), app->cdim);
+
+      omegaH = fabs(gks->info.charge) * sqrt(GKYL_MAX2(0.0, m0_max[0]) / gks->info.mass) *
+               app->omegaH_gf * time_dilation_scale_const * gks->collisionless.scale_fac;
+    }
 
     return omegaH > 1e-20 ? app->cfl_omegaH / omegaH : DBL_MAX;
   } else {
@@ -41,7 +73,10 @@ gk_species_kinetic_omegaH_dt(
   }
 }
 
-static double
+// The RHS is built in several calls (see gyrokinetic_rhs): the configuration-space
+// surface fluxes and ES (+ Apar) volume terms, then, once dApar/dt is known from Ohm's law,
+// the EM terms, the boundary fluxes, and finally the stable time step.
+static void
 gk_species_kinetic_rhs_dynamic(
   gkyl_gyrokinetic_app *app, struct gk_species *species, const struct gkyl_array *fin,
   struct gkyl_array *rhs, struct gkyl_array **bflux_moms
@@ -82,13 +117,37 @@ gk_species_kinetic_rhs_dynamic(
 
   // BGK source.
   gk_species_source_bgk_rhs(app, species, &species->bgk_src, fin, rhs);
+}
 
+static void
+gk_species_kinetic_rhs_em_complete_dynamic(
+  gkyl_gyrokinetic_app *app, struct gk_species *species, const struct gkyl_array *fin,
+  struct gkyl_array *rhs, struct gkyl_array **bflux_moms
+)
+{
+  // Collisionless terms that need dApar/dt (vpar surface flux and Apardot volume term).
+  gk_species_collisionless_rhs_em_complete(app, species, &species->collisionless, fin, rhs);
+}
+
+static void
+gk_species_kinetic_update_bflux_dynamic(
+  gkyl_gyrokinetic_app *app, struct gk_species *species, const struct gkyl_array *fin,
+  struct gkyl_array *rhs, struct gkyl_array **bflux_moms
+)
+{
   // Compute and store (in the ghost cell of rhs and in an array in bflux) the boundary fluxes.
   gk_species_bflux_rhs(app, &species->bflux, fin, rhs);
 
   // Compute moments of the boundary fluxes.
   gk_species_bflux_calc_moms(app, &species->bflux, rhs, bflux_moms);
+}
 
+static double
+gk_species_kinetic_get_cfl_dynamic(
+  gkyl_gyrokinetic_app *app, struct gk_species *species, const struct gkyl_array *fin,
+  struct gkyl_array *rhs, struct gkyl_array **bflux_moms
+)
+{
   // Multiply CFL rate by the df/dt multiplier.
   gk_species_fdot_multiplier_advance_times_cfl(
     app, species, &species->fdot_mult, app->field->phi_smooth, fin, species->cflrate
@@ -670,6 +729,13 @@ gk_species_kinetic_init_dynamic(
 
   // Set function pointers.
   gks->rhs_func = gk_species_kinetic_rhs_dynamic;
+  if (gks->info.collisionless.type == GKYL_GK_COLLISIONLESS_EM) {
+    gks->rhs_em_complete_func = gk_species_kinetic_rhs_em_complete_dynamic;
+  } else {
+    gks->rhs_em_complete_func = gk_species_rhs_static;
+  }
+  gks->bflux_update = gk_species_kinetic_update_bflux_dynamic;
+  gks->get_cfl = gk_species_kinetic_get_cfl_dynamic;
   gks->rhs_implicit_func = gk_species_kinetic_rhs_implicit_dynamic;
   gks->bc_func = gk_species_kinetic_apply_bc_dynamic;
   gks->release_func = gk_species_kinetic_release_dynamic;
@@ -1172,14 +1238,17 @@ gk_species_kinetic_init(
 
   // Allocate data for density (for charge density or upar calculation).
   gk_species_moment_init(app, gks, &gks->m0, GKYL_F_MOMENT_M0, false);
+  // To compute current density for Ampere's law and current dot for Ohm's law.
+  gk_species_moment_init(app, gks, &gks->m1, GKYL_F_MOMENT_M1, false);
 
   if (gks->info.flr.type) {
     // Create operator needed for FLR effects.
     assert(app->cdim > 1);
     // Pointer to function performing the gyroaverage.
     gks->gyroaverage = gk_species_gyroaverage_enabled;
-    // Gyroaveraged M0 and phi.
+    // Gyroaveraged M0, M1 and phi.
     gks->m0_gyroavg = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    gks->m1_gyroavg = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     gks->gyro_phi = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
 
     double gyroradius_bmag = gks->info.flr.bmag ? gks->info.flr.bmag : app->bmag_ref;
@@ -1247,8 +1316,17 @@ gk_species_kinetic_init(
   } else {
     gks->gyroaverage = gk_species_gyroaverage_disabled;
     gks->m0_gyroavg = gkyl_array_acquire(gks->m0.marr);
+    gks->m1_gyroavg = gkyl_array_acquire(gks->m1.marr);
     gks->gyro_phi = gkyl_array_acquire(app->field->phi_smooth);
   }
+  // We do not have FLR effects for EM yet.
+  // Only EM uses A_parallel at the current RK stage (apar_curr only exists if EM).
+  if (gks->info.collisionless.type == GKYL_GK_COLLISIONLESS_EM) {
+    gks->gyro_apar = gkyl_array_acquire(app->field->apar_curr);
+  } else {
+    gks->gyro_apar = gkyl_array_acquire(app->field->apar);
+  }
+  gks->gyro_apardot = gkyl_array_acquire(app->field->apardot);
 
   // Initialize the collisionless solver.
   gks->collisionless = (struct gk_collisionless){};
@@ -1540,6 +1618,7 @@ gk_species_kinetic_release(const gkyl_gyrokinetic_app *app, const struct gk_spec
 
   // Release moment data.
   gk_species_moment_release(app, &gks->m0);
+  gk_species_moment_release(app, &gks->m1);
   for (int i = 0; i < gks->info.num_diag_moments; ++i) {
     gk_species_moment_release(app, &gks->moms[i]);
   }
@@ -1571,12 +1650,15 @@ gk_species_kinetic_release(const gkyl_gyrokinetic_app *app, const struct gk_spec
   gk_species_lte_release(app, &gks->lte);
 
   gkyl_array_release(gks->m0_gyroavg);
+  gkyl_array_release(gks->m1_gyroavg);
   gkyl_array_release(gks->gyro_phi);
   if (gks->info.flr.type) {
     gkyl_array_release(gks->flr_rhoSqD2);
     gkyl_array_release(gks->flr_kSq);
     gkyl_deflated_fem_poisson_release(gks->flr_op);
   }
+  gkyl_array_release(gks->gyro_apar);
+  gkyl_array_release(gks->gyro_apardot);
 
   gks->release_func(app, gks);
 }

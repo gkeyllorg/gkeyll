@@ -113,7 +113,8 @@ test_dg_gyrokinetic_ho()
   );
 
   struct gkyl_dg_eqn *eqn = gkyl_dg_gyrokinetic_new(
-    &confBasis, &basis, &confRange, &phaseRange, charge, mass, 0, gk_geom, gvm, false
+    &confBasis, &basis, &confRange, &phaseRange, charge, mass, GKYL_GK_COLLISIONLESS_EM, false,
+    false, gk_geom, gvm, false
   );
 
   TEST_CHECK(eqn->num_equations == 1);
