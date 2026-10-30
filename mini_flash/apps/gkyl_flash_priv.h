@@ -626,3 +626,10 @@ gkyl_flash_update_ssp_rk3(gkyl_flash_app *app, double dt);
  */
 struct gkyl_update_status
 gkyl_flash_update_ssp_rk2(gkyl_flash_app *app, double dt);
+
+// Percentage of num relative to den, or 0 if den is 0.
+static inline double
+ratio_to_percent(double num, double den)
+{
+  return den > 0.0 ? 100.0*num/den : 0.0;
+}

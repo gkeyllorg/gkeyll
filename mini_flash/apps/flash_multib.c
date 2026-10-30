@@ -8,6 +8,7 @@
 
 #include <assert.h>
 #include <stdarg.h>
+#include <stddef.h>
 
 // Compute total number of ranges specified by cuts.
 static inline int
@@ -535,6 +536,7 @@ gkyl_flash_multib_app_apply_bc(gkyl_flash_multib_app *app, double tcurr,
 void
 gkyl_flash_multib_app_apply_ic(gkyl_flash_multib_app *app, double t0)
 {
+  struct timespec wst = gkyl_wall_clock();
   app->tcurr = t0;
 
   // Apply initial conditions to kinetic and fluid species (if applicable)
@@ -558,6 +560,8 @@ gkyl_flash_multib_app_apply_ic(gkyl_flash_multib_app *app, double t0)
   }
 
   gkyl_flash_multib_app_apply_bc(app, t0, distf, fluid);
+
+  app->stat.init_tm += gkyl_time_diff_now_sec(wst);
 }
 
 double
@@ -575,7 +579,7 @@ gkyl_flash_multib_app_compute_dt_max(gkyl_flash_multib_app *app)
 }
 
 struct gkyl_update_status
-gkyl_flash_multib_kinetic_update(gkyl_flash_multib_app *app, double dt0)
+gkyl_flash_multib_app_kinetic_update(gkyl_flash_multib_app *app, double dt0)
 {
   app->stat.nup += 1;
 
@@ -590,6 +594,8 @@ gkyl_flash_multib_kinetic_update(gkyl_flash_multib_app *app, double dt0)
   double dt = fmin(dt0, gkyl_flash_multib_app_compute_dt_max(app));
 
   // Call forward Euler update on local blocks, storing maximum stable timesteps.
+  app->stat.nfeuler += 1;
+  struct timespec fe_wst = gkyl_wall_clock();
   double dt_local[2] = { DBL_MAX, DBL_MAX }; // [dt_actual, dt_suggested]
   for (int b=0; b<app->num_local_blocks; ++b) {
     struct gkyl_flash_app *sbapp = app->block_apps[b];
@@ -614,6 +620,7 @@ gkyl_flash_multib_kinetic_update(gkyl_flash_multib_app *app, double dt0)
   double dt_global[2];
   gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MIN, 2, dt_local, dt_global);
   status.dt_actual = dt_global[0];
+  app->stat.fwd_euler_tm += gkyl_time_diff_now_sec(fe_wst);
   status.dt_suggested = dt_global[1];
 
   app->tcurr += status.dt_actual;
@@ -637,7 +644,7 @@ gkyl_flash_multib_kinetic_update(gkyl_flash_multib_app *app, double dt0)
 }
 
 struct gkyl_update_status
-gkyl_flash_multib_update(gkyl_flash_multib_app *app, double dt0)
+gkyl_flash_multib_app_update(gkyl_flash_multib_app *app, double dt0)
 {
   app->stat.nup += 1;
 
@@ -693,6 +700,127 @@ gkyl_flash_multib_app_cout(const gkyl_flash_multib_app *app, FILE *fp, const cha
   va_start(argp, fmt);
   v_flash_multib_app_cout(app, fp, fmt, argp);
   va_end(argp);
+}
+
+// Offsets of the timings in struct gkyl_flash_stat. The first
+// NUM_MULTIB_STAT_TM are measured by the multi-block app itself; the rest are
+// accumulated by the block apps and summed over the blocks local to a rank.
+#define NUM_MULTIB_STAT_TM 3
+static const size_t flash_stat_tm_offsets[] = {
+  offsetof(struct gkyl_flash_stat, total_tm),
+  offsetof(struct gkyl_flash_stat, init_tm),
+  offsetof(struct gkyl_flash_stat, fwd_euler_tm),
+
+  offsetof(struct gkyl_flash_stat, init_species_tm),
+  offsetof(struct gkyl_flash_stat, init_fluid_species_tm),
+  offsetof(struct gkyl_flash_stat, init_field_tm),
+  offsetof(struct gkyl_flash_stat, field_vars_tm),
+  offsetof(struct gkyl_flash_stat, species_mom_tm),
+  offsetof(struct gkyl_flash_stat, species_coll_mom_tm),
+  offsetof(struct gkyl_flash_stat, coupling_tm),
+  offsetof(struct gkyl_flash_stat, species_rhs_tm),
+  offsetof(struct gkyl_flash_stat, species_coll_tm),
+  offsetof(struct gkyl_flash_stat, fluid_rhs_tm),
+  offsetof(struct gkyl_flash_stat, species_bc_tm),
+  offsetof(struct gkyl_flash_stat, fluid_species_bc_tm),
+  offsetof(struct gkyl_flash_stat, io_tm),
+};
+#define NUM_STAT_TM (sizeof(flash_stat_tm_offsets)/sizeof(flash_stat_tm_offsets[0]))
+
+// Every double in struct gkyl_flash_stat must be listed above.
+_Static_assert(sizeof(struct gkyl_flash_stat) ==
+  offsetof(struct gkyl_flash_stat, total_tm) + NUM_STAT_TM*sizeof(double),
+  "flash_stat_tm_offsets must list every timing in struct gkyl_flash_stat");
+
+static inline double*
+flash_stat_tm(struct gkyl_flash_stat *st, size_t offset)
+{
+  return (double *)((char *)st + offset);
+}
+
+struct gkyl_flash_multib_stat
+gkyl_flash_multib_app_stat(gkyl_flash_multib_app *app)
+{
+  // Statistics on this rank.
+  struct gkyl_flash_stat local = app->stat;
+  for (int k=NUM_MULTIB_STAT_TM; k<NUM_STAT_TM; ++k) {
+    double *tm = flash_stat_tm(&local, flash_stat_tm_offsets[k]);
+    *tm = 0.0;
+    for (int b=0; b<app->num_local_blocks; ++b)
+      *tm += *flash_stat_tm(&app->block_apps[b]->stat, flash_stat_tm_offsets[k]);
+  }
+
+  // Reduce timings over ranks.
+  double tm_local[NUM_STAT_TM], tm_max[NUM_STAT_TM], tm_sum[NUM_STAT_TM];
+  for (int k=0; k<NUM_STAT_TM; ++k)
+    tm_local[k] = *flash_stat_tm(&local, flash_stat_tm_offsets[k]);
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, NUM_STAT_TM, tm_local, tm_max);
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, NUM_STAT_TM, tm_local, tm_sum);
+
+  int num_ranks;
+  gkyl_comm_get_size(app->comm, &num_ranks);
+
+  // Counters are identical on all ranks.
+  struct gkyl_flash_multib_stat mst = {
+    .nup = local.nup,
+    .nfeuler = local.nfeuler,
+    .nfail = local.nfail,
+    .max = local,
+    .avg = local,
+  };
+  for (int k=0; k<NUM_STAT_TM; ++k) {
+    *flash_stat_tm(&mst.max, flash_stat_tm_offsets[k]) = tm_max[k];
+    *flash_stat_tm(&mst.avg, flash_stat_tm_offsets[k]) = tm_sum[k]/num_ranks;
+  }
+  return mst;
+}
+
+// Print one timing line as max / avg over ranks, with the average as a
+// percentage of ref_avg if ref_avg >= 0.
+static void
+multib_print_tm(const gkyl_flash_multib_app *app, FILE *fp, const char *label,
+  double max, double avg, double ref_avg)
+{
+  if (ref_avg < 0.0)
+    gkyl_flash_multib_app_cout(app, fp, "%-33s%.4e / %.4e sec.\n", label, max, avg);
+  else
+    gkyl_flash_multib_app_cout(app, fp, "%-33s%.4e / %.4e sec. / %6.2f %%\n", label, max, avg,
+      ratio_to_percent(avg, ref_avg));
+}
+
+void
+gkyl_flash_multib_app_print_timings(gkyl_flash_multib_app *app, FILE *fp)
+{
+  struct gkyl_flash_multib_stat mst = gkyl_flash_multib_app_stat(app);
+  const struct gkyl_flash_stat *mx = &mst.max, *av = &mst.avg;
+  double ref = av->fwd_euler_tm;
+
+  int num_ranks;
+  gkyl_comm_get_size(app->comm, &num_ranks);
+
+  gkyl_flash_multib_app_cout(app, fp, "Number of update calls: %d\n", mst.nup);
+  gkyl_flash_multib_app_cout(app, fp, "Number of forward Euler calls: %d\n", mst.nfeuler);
+  gkyl_flash_multib_app_cout(app, fp, "Number of failed RK stages: %d\n", mst.nfail);
+  // Column headers start above the max and avg values printed by multib_print_tm.
+  char header[64];
+  snprintf(header, sizeof(header), "Timing over %d ranks:", num_ranks);
+  gkyl_flash_multib_app_cout(app, fp, "%-33s%-13s%s\n", header, "Maximum", "Average");
+  multib_print_tm(app, fp, "  - Initial conditions:", mx->init_tm, av->init_tm, -1.0);
+  multib_print_tm(app, fp, "    * Kinetic species:", mx->init_species_tm, av->init_species_tm, -1.0);
+  multib_print_tm(app, fp, "    * Fluid species:", mx->init_fluid_species_tm, av->init_fluid_species_tm, -1.0);
+  multib_print_tm(app, fp, "    * Field:", mx->init_field_tm, av->init_field_tm, -1.0);
+  multib_print_tm(app, fp, "  - Updates:", mx->total_tm, av->total_tm, -1.0);
+  multib_print_tm(app, fp, "    * Forward Euler:", mx->fwd_euler_tm, av->fwd_euler_tm, av->total_tm);
+  multib_print_tm(app, fp, "      ^ Field variables:", mx->field_vars_tm, av->field_vars_tm, ref);
+  multib_print_tm(app, fp, "      ^ Kinetic moments:", mx->species_mom_tm, av->species_mom_tm, ref);
+  multib_print_tm(app, fp, "      ^ Collision moments:", mx->species_coll_mom_tm, av->species_coll_mom_tm, ref);
+  multib_print_tm(app, fp, "      ^ Kinetic-fluid coupling:", mx->coupling_tm, av->coupling_tm, ref);
+  multib_print_tm(app, fp, "      ^ Kinetic RHS:", mx->species_rhs_tm, av->species_rhs_tm, ref);
+  multib_print_tm(app, fp, "      ^ Collision RHS:", mx->species_coll_tm, av->species_coll_tm, ref);
+  multib_print_tm(app, fp, "      ^ Fluid update:", mx->fluid_rhs_tm, av->fluid_rhs_tm, ref);
+  multib_print_tm(app, fp, "      ^ Kinetic BCs:", mx->species_bc_tm, av->species_bc_tm, ref);
+  multib_print_tm(app, fp, "      ^ Fluid BCs:", mx->fluid_species_bc_tm, av->fluid_species_bc_tm, ref);
+  multib_print_tm(app, fp, "  - I/O:", mx->io_tm, av->io_tm, -1.0);
 }
 
 void

@@ -5,6 +5,18 @@
 
 typedef struct gkyl_flash_multib_app gkyl_flash_multib_app;
 
+// Simulation statistics for the multi-block app, reduced over all ranks. 
+// The gkyl_flash_stat members store the maximum and average over all ranks.
+// Note `init_tm` includes communication time because of an internal barrier.
+struct gkyl_flash_multib_stat {
+  int nup; // Number of update calls (identical on all ranks).
+  int nfeuler; // Number of forward Euler steps taken (identical on all ranks).
+  int nfail; // Number of failed SSP-RK stages due to a smaller dt (identical on all ranks).
+
+  struct gkyl_flash_stat max; // Maximum over ranks of each statistic.
+  struct gkyl_flash_stat avg; // Average over ranks of each statistic.
+};
+
 // Domain decomposition scheme. Either:
 // 1. Round-robin assignment of ranks to blocks
 // 2. Row-major ordered distribution
@@ -185,7 +197,7 @@ gkyl_flash_multib_app_compute_dt_max(gkyl_flash_multib_app *app);
  * @return struct gkyl_update_status
  */
 struct gkyl_update_status
-gkyl_flash_multib_kinetic_update(gkyl_flash_multib_app *app, double dt0);
+gkyl_flash_multib_kinetic_app_update(gkyl_flash_multib_app *app, double dt0);
 
 /**
  * Advance the hybrid system on every block by a single SSP-RK3 update.
@@ -198,7 +210,17 @@ gkyl_flash_multib_kinetic_update(gkyl_flash_multib_app *app, double dt0);
  * @return struct gkyl_update_status
  */
 struct gkyl_update_status
-gkyl_flash_multib_update(gkyl_flash_multib_app *app, double dt0);
+gkyl_flash_multib_app_update(gkyl_flash_multib_app *app, double dt0);
+
+/**
+ * Print timing statistics for multiblock app. Includes same statistics as
+ * single-block apps, both the maxima and averages over all ranks.
+ * 
+ * @param app 
+ * @param fp 
+ */
+void
+gkyl_flash_multib_app_print_timings(gkyl_flash_multib_app *app, FILE *fp);
 
 /**
  * Release memory for multiblock app object.

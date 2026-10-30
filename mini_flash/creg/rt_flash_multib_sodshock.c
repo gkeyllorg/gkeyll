@@ -328,7 +328,7 @@ int main(int argc, char **argv) {
 
   while ((tcurr < tend) && (step <= args.num_steps)) {
     gkyl_flash_multib_app_cout(app, stdout, "Taking time step %ld at t = %g ... ", step, tcurr);
-    struct gkyl_update_status status = gkyl_flash_multib_update(app, fmin(dt, tend - tcurr));
+    struct gkyl_update_status status = gkyl_flash_multib_app_update(app, fmin(dt, tend - tcurr));
     gkyl_flash_multib_app_cout(app, stdout, "dt = %g\n", status.dt_actual);
 
     tcurr += status.dt_actual;
@@ -343,7 +343,8 @@ int main(int argc, char **argv) {
   double runtime = gkyl_time_diff_now_sec(tm);
 
   gkyl_flash_multib_app_cout(app, stdout, "\n");
-  gkyl_flash_multib_app_cout(app, stdout, "Took %ld steps to final time %g.\n", step-1, tcurr);
+  gkyl_flash_multib_app_cout(app, stdout, "Took %ld steps to final time %g.\n\n", step-1, tcurr);
+  gkyl_flash_multib_app_print_timings(app, stdout);
   gkyl_flash_multib_app_cout(app, stdout, "Total time: %5.5f\n", runtime);
 
   gkyl_flash_multib_app_release(app);

@@ -28,6 +28,7 @@ flash_multib_forward_euler(struct gkyl_flash_multib_app *app, double tcurr, doub
   struct gkyl_update_status *st)
 {
   app->stat.nfeuler += 1;
+  struct timespec wst = gkyl_wall_clock();
 
   int ns = app->num_species;
 
@@ -111,6 +112,8 @@ flash_multib_forward_euler(struct gkyl_flash_multib_app *app, double tcurr, doub
 
   // Physical and inter-block boundary conditions.
   gkyl_flash_multib_app_apply_bc(app, tcurr+dta, fout, fluidout);
+
+  app->stat.fwd_euler_tm += gkyl_time_diff_now_sec(wst);
 }
 
 // Take a single time step with the 3-stage SSP-RK method with suggested

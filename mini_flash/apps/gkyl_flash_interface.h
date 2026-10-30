@@ -119,18 +119,3 @@ gkyl_flash_multib_app_get_fluid_conf_ext_range(gkyl_flash_multib_app *app, int b
 
 struct gkyl_range
 gkyl_flash_multib_app_get_fluid_conf_range(gkyl_flash_multib_app *app, int blockID);
-
-/**
- * Perform a forward Euler update for the kinetic equation.
- * Actual timestep may be smaller than but will never exceed input suggested dt.
- * 
- * 
- * @param app 
- * @param dt 
- * @return struct gkyl_update_status 
- */
-struct gkyl_update_status
-gkyl_flash_app_kinetic_update(gkyl_flash_app *app, double dt);
-
-void
-gkyl_flash_multib_app_kinetic_update(gkyl_flash_multib_app *app, double dt0);

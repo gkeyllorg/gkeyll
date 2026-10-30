@@ -6,7 +6,7 @@
 // Object type.
 typedef struct gkyl_flash_app gkyl_flash_app;
 
-// Structure containing statistics for mini-FLASH hybrid app run.
+// Simulation statistics for mini-FLASH hybrid simulation.
 struct gkyl_flash_stat {
   int nup; // Number of update calls.
   int nfeuler; // Number of forward Euler steps taken.

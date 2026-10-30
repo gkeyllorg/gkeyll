@@ -446,13 +446,6 @@ gkyl_flash_app_stat(gkyl_flash_app *app)
   return app->stat;
 }
 
-// Percentage of num relative to den, or 0 if den is 0.
-static double
-ratio_to_percent(double num, double den)
-{
-  return den > 0.0 ? 100.0*num/den : 0.0;
-}
-
 void
 gkyl_flash_app_print_timings(gkyl_flash_app *app, FILE *fp)
 {
