@@ -151,7 +151,7 @@ create_ctx(void)
   double t_end = 1.0e-7; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   double write_phase_freq =
-    0.2; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
+    1.0; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
   int int_diag_calc_num = num_frames * 100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
@@ -568,6 +568,8 @@ main(int argc, char **argv)
     .diag_moments =
       {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR,
        GKYL_F_MOMENT_M2PERP},
+    .num_balance_diags = 1,
+    .balance_diags = {GKYL_BALANCE_GK_PARTICLE},
   };
 
   // Ion species.
@@ -670,6 +672,8 @@ main(int argc, char **argv)
     .diag_moments =
       {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR,
        GKYL_F_MOMENT_M2PERP},
+    .num_balance_diags = 1,
+    .balance_diags = {GKYL_BALANCE_GK_PARTICLE},
   };
 
   struct gkyl_gyrokinetic_neut_species neut = {
@@ -725,6 +729,8 @@ main(int argc, char **argv)
 
     .num_periodic_dir = 0,
     .periodic_dirs = {},
+
+    .diagnostics = {.num_balance_diags = 1, .balance_diags = {GKYL_BALANCE_GK_PARTICLE}},
 
     .num_species = 2,
     .species = {elc, ion},

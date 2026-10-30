@@ -761,6 +761,8 @@ main(int argc, char **argv)
       },
 
     .time_rate_diagnostics = true,
+    .num_balance_diags = 1,
+    .balance_diags = {GKYL_BALANCE_GK_PARTICLE},
   };
 
   // ions
@@ -847,6 +849,8 @@ main(int argc, char **argv)
       },
 
     .time_rate_diagnostics = true,
+    .num_balance_diags = 1,
+    .balance_diags = {GKYL_BALANCE_GK_PARTICLE},
   };
 
   struct gkyl_poisson_bias_line target_corner_bcs[] = {
@@ -918,6 +922,8 @@ main(int argc, char **argv)
 
     .num_periodic_dir = 1,
     .periodic_dirs = {1},
+
+    .diagnostics = {.num_balance_diags = 1, .balance_diags = {GKYL_BALANCE_GK_PARTICLE}},
 
     .num_species = ctx.num_species,
     .species = {elc, ion},

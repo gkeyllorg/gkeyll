@@ -47,6 +47,9 @@ gk_species_kinetic_rhs_dynamic(
   struct gkyl_array *rhs, struct gkyl_array **bflux_moms
 )
 {
+  // New RK stage for the balance diagnostics.
+  gk_species_balance_rhs_begin(&species->bal);
+
   // Gyroaverage the potential if needed.
   species->gyroaverage(app, species, app->field->phi_smooth, species->gyro_phi);
 
@@ -337,6 +340,8 @@ gk_species_kinetic_release_dynamic(const gkyl_gyrokinetic_app *app, const struct
 
   gk_species_release_integrated_mom(app, gks);
 
+  gk_species_balance_release(app, &gks->bal);
+
   // Release L2 norm memory.
   gkyl_array_integrate_release(gks->integ_wfsq_op);
   gkyl_dynvec_release(gks->L2norm);
@@ -379,6 +384,9 @@ gk_species_kinetic_init_dynamic(
   }
 
   gk_species_init_integrated_mom(app, gks);
+
+  // Balance diagnostics (need the bfluxes, initialized earlier).
+  gk_species_balance_init(app, gks, &gks->bal);
 
   // Objects for L2 norm diagnostic.
   gks->integ_wfsq_op = gkyl_array_integrate_new(
@@ -1449,6 +1457,8 @@ gk_species_kinetic_init(
   if (adaptive_sources) {
     add_bflux_moms_inp.diag_moments[nmom_extra[0]++] = GKYL_F_MOMENT_M2;
   }
+  // The balance diagnostics may need to step moments of the boundary fluxes.
+  gk_species_balance_pre_init(app, gks, &gks->bal, &bflux_type, &add_bflux_moms_inp);
   // Introduce new moments into moms_inp if needed.
   gk_species_bflux_init(app, gks, &gks->bflux, bflux_type, add_bflux_moms_inp);
 

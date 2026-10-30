@@ -1248,6 +1248,55 @@ struct gk_positivity {
   );
 };
 
+// Balance of each conserved quantity in balance_diags, computed with its own
+// moments of f, of the source and of the stepped boundary-flux moments so that
+// no other diagnostic needs to be computed or written.
+struct gk_species_balance {
+  bool enabled; // =true if requested (by the species or the app) and the species is dynamic.
+  int num_diags; // Number of balance diagnostics.
+  enum gkyl_gyrokinetic_balance_diag diag_types[12]; // Balance diagnostics.
+  bool write[12]; // Whether each diagnostic is written (=true if requested by the species).
+  enum gkyl_distribution_moments mom_types[12]; // Moment balanced by each diagnostic.
+  struct gk_species_moment f_mom[12]; // Integrated moment of f.
+  struct gkyl_array *mom_old[12], *mom_new[12]; // Integrated moment of f_old/dt and f_new/dt.
+  bool has_source; // Whether the species has a source.
+  struct gk_species_moment src_mom[12]; // Integrated moment of a source term.
+  // Integrated moment of the BGK source terms in each RK stage (rhs evaluation),
+  // and combined over the stages of the last time step as f is.
+  struct gkyl_array *src_bgk_stage[12][3], *src_bgk[12];
+  int rk_stage; // RK stage of the current rhs evaluation.
+  int num_boundaries; // Number of boundaries with a boundary flux.
+  struct gkyl_array_integrate *integ_op; // Volume integral of a bflux moment.
+  struct gkyl_array *bflux_mom; // Moment of the bflux through one boundary.
+  double *red_local, *red_global; // Reduction buffers (on device if using GPUs).
+  double dt; // Last time step.
+  double mom[12]; // Last value of each balanced moment (for the sum over species).
+  int num_comp; // Number of components in each balance diagnostic.
+  gkyl_dynvec diag[12]; // Balance diagnostic of each quantity.
+  bool is_first_write[12]; // Whether each diagnostic is being written for the first time.
+  // Recipe computing each balance, chosen at runtime.
+  void (*calc_func[12])(
+    gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_species_balance *bal, int d,
+    double tm
+  );
+  // Methods chosen at runtime.
+  void (*rhs_begin_func)(struct gk_species_balance *bal);
+  void (*source_bgk_rhs_func)(
+    gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_species_balance *bal,
+    const struct gkyl_array *src_bgk_rhs
+  );
+};
+
+// Balance diagnostics of the app: sum over the species of each balance in
+// the app's balance_diags.
+struct gk_app_balance {
+  int num_diags; // Number of balance diagnostics.
+  enum gkyl_gyrokinetic_balance_diag diag_types[12]; // Balance diagnostics.
+  int num_comp; // Number of components in each balance diagnostic.
+  gkyl_dynvec diag[12]; // Balance diagnostic of each quantity.
+  bool is_first_write[12]; // Whether each diagnostic is being written for the first time.
+};
+
 // Projected material-wall potential associated with a species sheath BC.
 struct gk_species_wall_potential {
   struct gkyl_array *phi;
@@ -1318,6 +1367,8 @@ struct gk_species {
   struct gkyl_array *fdot_mom_old, *fdot_mom_new; // Moments of f_old and f_new.
   gkyl_dynvec fdot_integ_diag; // Integrated moments of Delta f=f_new - f_old..
   bool is_first_fdot_integ_write_call; // Whether dynvec is being written for the first time.
+
+  struct gk_species_balance bal; // Balance computations.
 
   struct gkyl_array_integrate *integ_wfsq_op; // Operator to integrate w*f^2.
   double *L2norm_local, *L2norm_global; // L2norm in local MPI process and across the communicator.
@@ -1880,6 +1931,8 @@ struct gkyl_gyrokinetic_app {
   gkyl_dynvec dts; // Record time step over time.
   bool is_first_dt_write_call; // Flag for integrated moments dynvec written first time.
 
+  struct gk_app_balance bal; // Balance diagnostics summed over species.
+
   bool is_multib; // Is this a block in a multiblock sim?
 };
 
@@ -2073,6 +2126,144 @@ void gk_species_moment_diag_jacobgeo_div(
 void gk_species_moment_release(
   const struct gkyl_gyrokinetic_app *app, const struct gk_species_moment *sm
 );
+
+/** gk_species_balance API */
+
+/**
+ * Collect the balance diagnostics requested by the species and by the app, and
+ * request the stepping of the boundary-flux moments they need. Must be called
+ * before the boundary fluxes are initialized.
+ *
+ * @param app Gyrokinetic app object.
+ * @param gks Species object.
+ * @param bal Balance diagnostic object.
+ * @param bflux_type Boundary flux type, raised to step the bflux moments if needed.
+ * @param add_bflux_moms_inp Additional bflux moments to step (balanced moments appended).
+ */
+void gk_species_balance_pre_init(
+  struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_species_balance *bal,
+  enum gkyl_species_bflux_type *bflux_type, struct gkyl_phase_diagnostics_inp *add_bflux_moms_inp
+);
+
+/**
+ * Allocate the balance diagnostics. Must be called after the species
+ * moments can be computed.
+ *
+ * @param app Gyrokinetic app object.
+ * @param gks Species object.
+ * @param bal Balance diagnostic object.
+ */
+void gk_species_balance_init(
+  struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_species_balance *bal
+);
+
+/**
+ * Store dt and the balanced moments of f/dt at the beginning (is_old=true) or
+ * end of a time step.
+ *
+ * @param app Gyrokinetic app object.
+ * @param gks Species object.
+ * @param bal Balance diagnostic object.
+ * @param dt Time step.
+ * @param is_old Whether this is the beginning of the time step.
+ */
+void gk_species_balance_step(
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_species_balance *bal, double dt,
+  bool is_old
+);
+
+/**
+ * Start a new RK stage (rhs evaluation) of the balances. Must be called before
+ * the BGK source terms of the stage are added to the rhs.
+ *
+ * @param bal Balance diagnostic object.
+ */
+void gk_species_balance_rhs_begin(struct gk_species_balance *bal);
+
+/**
+ * Add the balanced moments of a BGK source term added to the rhs in the
+ * current RK stage.
+ *
+ * @param app Gyrokinetic app object.
+ * @param gks Species object.
+ * @param bal Balance diagnostic object.
+ * @param src_bgk_rhs BGK source term added to the rhs.
+ */
+void gk_species_balance_source_bgk_rhs(
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_species_balance *bal,
+  const struct gkyl_array *src_bgk_rhs
+);
+
+/**
+ * Compute each balance over the last time step and append it to its
+ * diagnostic: [mom_dot, src_mom, bflux_tot_mom, mom_err, mom_err_norm].
+ *
+ * @param app Gyrokinetic app object.
+ * @param gks Species object.
+ * @param bal Balance diagnostic object.
+ * @param tm Current time.
+ */
+void gk_species_balance_calc(
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_species_balance *bal, double tm
+);
+
+/**
+ * Write the balances requested by the species to
+ * <name>-<species>_balance_<balance>.gkyl.
+ *
+ * @param app Gyrokinetic app object.
+ * @param gks Species object.
+ * @param bal Balance diagnostic object.
+ */
+void gk_species_balance_write(
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_species_balance *bal
+);
+
+/**
+ * Release the balance diagnostics.
+ *
+ * @param app Gyrokinetic app object.
+ * @param bal Balance diagnostic object.
+ */
+void gk_species_balance_release(
+  const struct gkyl_gyrokinetic_app *app, const struct gk_species_balance *bal
+);
+
+/** gk_app_balance API */
+
+/**
+ * Initialize the balance diagnostics summed over species. Must be called
+ * before the species are initialized.
+ *
+ * @param app Gyrokinetic app object.
+ * @param inp Diagnostics input of the app.
+ */
+void gk_app_balance_init(
+  struct gkyl_gyrokinetic_app *app, const struct gkyl_gyrokinetic_diagnostics *inp
+);
+
+/**
+ * Sum the balances of the dynamic species. Must be called after the species
+ * balances are computed.
+ *
+ * @param app Gyrokinetic app object.
+ * @param tm Current time.
+ */
+void gk_app_balance_calc(gkyl_gyrokinetic_app *app, double tm);
+
+/**
+ * Write the balances summed over species to <name>-balance_<balance>.gkyl.
+ *
+ * @param app Gyrokinetic app object.
+ */
+void gk_app_balance_write(gkyl_gyrokinetic_app *app);
+
+/**
+ * Release the balance diagnostics summed over species.
+ *
+ * @param app Gyrokinetic app object.
+ */
+void gk_app_balance_release(const struct gkyl_gyrokinetic_app *app);
 
 /** gk_positivity API */
 

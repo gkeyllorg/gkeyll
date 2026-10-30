@@ -39,6 +39,7 @@ void gkyl_register_gyrokinetic_position_map_types(lua_State *L);
  * @param L Lua state to use.
  */
 void gkyl_register_gyrokinetic_field_types(lua_State *L);
+void gkyl_register_gyrokinetic_balance_types(lua_State *L);
 
 /**
  * Add radiation type flags for gyrokinetic species initialization into Lua interpreter.
