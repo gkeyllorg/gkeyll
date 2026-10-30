@@ -20,7 +20,7 @@ gkbgk_moms_enabled(
   struct timespec wst = gkyl_wall_clock();
 
   // Compute Maxwellian moments (n, u_par, T/m).
-  gk_neut_species_moment_calc(&gkns->lte.moms, gkns->local, app->local, fin);
+  gk_neut_species_moment_calc(app, &gkns->lte.moms, gkns->local, app->local, fin);
   gkyl_dg_div_op_range(
     gkns->lte.moms.mem_geo, &app->basis, 0, gkns->lte.moms.marr, 0, gkns->lte.moms.marr, 0,
     app->gk_geom->geo_int.jacobgeo, &app->local

@@ -171,6 +171,9 @@ struct gkyl_gyrokinetic_source {
   struct gkyl_gyrokinetic_adapt_source adapt[GKYL_MAX_SOURCES]; // Adaptive source parameters
   // sources using projection routine
   struct gkyl_gyrokinetic_projection projection[GKYL_MAX_SOURCES];
+  // Sources whose shape is imported directly from a file (used only when
+  // source_id == GKYL_SOURCE_FROMFILE).
+  struct gkyl_gyrokinetic_ic_import source_import[GKYL_MAX_SOURCES];
 
   struct gkyl_phase_diagnostics_inp diagnostics;
 };
@@ -221,10 +224,8 @@ struct gkyl_gyrokinetic_bc {
   enum gkyl_edge_loc edge; // Which edge this BC is for.
   enum gkyl_gyrokinetic_bc_type type; // BC type flag.
   double value[3]; // Meaning depends on type.
-  void (*aux_profile)(
-    double t, const double *xn, double *fout,
-    void *ctx
-  ); // Auxiliary function (e.g. wall potential).
+  // Auxiliary profile. For a species sheath BC, this is the material-wall potential.
+  void (*aux_profile)(double t, const double *xn, double *fout, void *ctx);
   void *aux_ctx; // Context for aux_profile.
   struct gkyl_gyrokinetic_projection projection; // Projection object input (e.g. for FIXED_FUNC).
   struct gkyl_gyrokinetic_emission_inp emission;
@@ -332,7 +333,8 @@ enum gkyl_gk_species_scaling_type {
   GKYL_GK_SPECIES_SCALING_NONE = 0, // No scaling.
   GKYL_GK_SPECIES_SCALING_RECYCLING_IZ_BALANCE, // Balance between recycling and ionization.
   GKYL_GK_SPECIES_SCALING_FIXED_FRACTION, // Maintains fixed fraction relative to another species.
-  GKYL_GK_SPECIES_SCALING_BOLTZMANN // n_s = n_{s,sheath}*exp(-q_s*(phi-phi_sheath)/T_s).
+  GKYL_GK_SPECIES_SCALING_BOLTZMANN, // n_s = n_{s,sheath}*exp(-q_s*(phi-phi_sheath)/T_s).
+  GKYL_GK_SPECIES_SCALING_ADIABATIC // Adiabatic response for core simulations.
 };
 
 // Input parameters for scaling a species every time step.
@@ -384,19 +386,13 @@ struct gkyl_gyrokinetic_positivity {
   bool write_diagnostics; // Whether to output diagnostics.
 };
 
-enum gkyl_gyrokinetic_damping_type {
-  GKYL_GK_DAMPING_NONE = 0,
-  GKYL_GK_DAMPING_USER_INPUT,
-  GKYL_GK_DAMPING_LOSS_CONE
-};
+enum gkyl_gyrokinetic_damping_type { GKYL_GK_DAMPING_NONE = 0, GKYL_GK_DAMPING_USER_INPUT };
 
 struct gkyl_gyrokinetic_damping {
   // Add a damping term to the RHS of the gyrokinetic equation
   //   df/dt = - rate(z) * f
   // with the function rate(z) being:
-  //   - a function given by the user (type = GKYL_PROPORTIONAL_TERM_USER_INPUT).
-  //   - I_loss(z) * scale_factor * scale_profile(z), where I_loss(z) is =1 in the loss
-  //     cone and 0 in the confined region (type = GKYL_PROPORTIONAL_TERM_LOSS_CONE).
+  //   - a function given by the user (type = GKYL_GK_DAMPING_USER_INPUT).
   enum gkyl_gyrokinetic_damping_type type;
   void (*rate_profile)(double t, const double *xn, double *fout, void *ctx);
   void *rate_profile_ctx; // Context for rate_profile function.
@@ -407,7 +403,7 @@ struct gkyl_gyrokinetic_damping {
 enum gkyl_gyrokinetic_fdot_multiplier_type {
   GKYL_GK_FDOT_MULTIPLIER_NONE = 0, // No multiplier applied.
   GKYL_GK_FDOT_MULTIPLIER_USER_INPUT, // User-provided static profile M(z) via function pointer.
-  GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE, // M=1 in loss cone, M=0 in confined region.
+  GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE, // M=1 in confined region, M=0 in the loss cone.
   GKYL_GK_FDOT_MULTIPLIER_CONSTANT, // Dilates time by a fixed constant, time_dilation_scale_const.
   GKYL_GK_FDOT_MULTIPLIER_FIXED_DT, // dt floor from user-specified cfl_dt_min_value.
   GKYL_GK_FDOT_MULTIPLIER_FIXED_FACTOR_TIMES_OMEGA_MAX, // dt floor from user-specified factor times maximum characteristic frequency. Specify cfl_factor_times_omega_max.
@@ -453,9 +449,9 @@ struct gkyl_gyrokinetic_species {
   char name[128]; // Species name.
 
   double charge, mass; // Charge and mass.
-  int vdim; // Velocity-space dimensions.
+  int vdim; // Velocity-space dimensions; ignored for fluid species, which always assume 2.
   double lower[GKYL_MAX_VDIM], upper[GKYL_MAX_VDIM]; // Lower, upper bounds of velocity-space.
-  int cells[GKYL_MAX_VDIM]; // Velocity-space cells.
+  int cells[GKYL_MAX_VDIM]; // Velocity-space cells; cells[0]==0 selects fluid.
 
   struct gkyl_mapc2p_inp mapc2p;
 
@@ -582,8 +578,9 @@ struct gkyl_gyrokinetic_field {
   double polarization_bmag; // B factor in the polarization density.
   double kperpSq; // kperp^2 parameter for 1D field equations
 
-  // parameters for adiabatic electrons simulations
-  double electron_mass, electron_charge, electron_density, electron_temp;
+  // Parameters for Boltzmann electron simulations. Adiabatic species are
+  // instead set with GKYL_GK_SPECIES_SCALING_ADIABATIC in the species input.
+  double electron_mass, electron_charge, electron_temp;
 
   struct gkyl_gyrokinetic_bc poisson_bcs[2 * GKYL_MAX_CDIM];
 
@@ -600,18 +597,6 @@ struct gkyl_gyrokinetic_field {
   // Profile for the field at t=0.
   void (*init_field_profile)(double t, const double *xn, double *out, void *ctx);
   void *init_field_profile_ctx;
-
-  void *phi_wall_lo_ctx; // context for biased wall potential on lower wall
-  // pointer to biased wall potential on lower wall function
-  void (*phi_wall_lo)(double t, const double *xn, double *phi_wall_lo_out, void *ctx);
-  bool
-    phi_wall_lo_evolve; // set to true if biased wall potential on lower wall function is time dependent
-
-  void *phi_wall_up_ctx; // context for biased wall potential on upper wall
-  // pointer to biased wall potential on upper wall function
-  void (*phi_wall_up)(double t, const double *xn, double *phi_wall_up_out, void *ctx);
-  bool
-    phi_wall_up_evolve; // set to true if biased wall potential on upper wall function is time dependent
 
   struct gkyl_poisson_bias_line_list *bias_line_list; // Biased lines constraining the solution.
 };

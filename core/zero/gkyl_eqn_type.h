@@ -39,7 +39,6 @@ enum gkyl_gkfield_id {
   GKYL_GK_FIELD_ES = 0, // Electrostatic GK. This is default.
   GKYL_GK_FIELD_BOLTZMANN =
     1, // GK Boltzmann, isothermal electrons, phi = phi_sheath + (T_e/e)*ln(n_i/n_is).
-  GKYL_GK_FIELD_ADIABATIC = 2, // GK field with an adiabatic species.
   GKYL_GK_FIELD_EM = 4 // Electromagnetic GK.
 };
 
@@ -108,7 +107,8 @@ enum gkyl_source_id {
   GKYL_FUNC_SOURCE, // Function source.
   GKYL_PROJ_SOURCE, // Source given by projection object determined by gkyl_projection_id.
   GKYL_PROJ_ADAPT_DENSITY_SOURCE, // Projected source with time-dependent density scaling.
-  GKYL_BFLUX_SOURCE // Source which scales to boundary fluxes.
+  GKYL_BFLUX_SOURCE, // Source which scales to boundary fluxes.
+  GKYL_SOURCE_FROMFILE // Source shape imported directly from a file.
 };
 
 // Identifiers for specific bgk source object types.

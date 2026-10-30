@@ -3,16 +3,16 @@
 
 static void
 gk_neut_species_recycle_write_flux_enabled(
-  struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s, struct gk_recycle_wall *recyc,
+  struct gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gk_recycle_wall *recyc,
   double tm, int frame
 )
 {
   // Output boundary flux from ions and neutral ghost cells
 
   // Package metadata.
-  gkyl_msgpack_map_elem_set_double(s->io_meta_conf_len, s->io_meta_conf, "time", tm);
-  gkyl_msgpack_map_elem_set_uint(s->io_meta_conf_len, s->io_meta_conf, "frame", frame);
-  int io_meta_len[] = {s->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1};
+  gkyl_msgpack_map_elem_set_double(gkns->io_meta_conf_len, gkns->io_meta_conf, "time", tm);
+  gkyl_msgpack_map_elem_set_uint(gkns->io_meta_conf_len, gkns->io_meta_conf, "frame", frame);
+  int io_meta_len[] = {gkns->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1};
 
   const char *vars[] = {"x", "y", "z"};
   const char *edge[] = {"lower", "upper"};
@@ -54,7 +54,7 @@ gk_neut_species_recycle_write_flux_enabled(
       .cval = "Impacting boundary particle flux.",
     }};
     const struct gkyl_msgpack_map_elem *io_meta[] = {
-      s->io_meta_conf, app->gk_geom->io_meta_basic, desc0
+      gkns->io_meta_conf, app->gk_geom->io_meta_basic, desc0
     };
     struct gkyl_msgpack_data *mt0 =
       gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
@@ -84,9 +84,9 @@ gk_neut_species_recycle_write_flux_enabled(
   // surface fluxes, so compute them for this distribution first (cflrate is
   // scratch here; it is cleared at the start of every RHS evaluation).
   gkyl_dg_vlasov_conf_flux_surf_advance(
-    s->collisionless.calc_conf_flux, &app->local, &s->local, &s->local_ext,
-    s->conf_poisson_tensor_surf, s->hamil, recyc->f_diag, s->cflrate,
-    s->collisionless.conf_flux_surf
+    gkns->collisionless.calc_conf_flux, &app->local, &gkns->local, &gkns->local_ext,
+    gkns->conf_poisson_tensor_surf, gkns->hamil, recyc->f_diag, gkns->cflrate,
+    gkns->collisionless.conf_flux_surf
   );
   gkyl_boundary_flux_advance(recyc->f0_flux_slvr, recyc->f_diag, recyc->f_diag);
   gkyl_array_copy_range_to_range(
@@ -110,17 +110,18 @@ gk_neut_species_recycle_write_flux_enabled(
     {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Emitted boundary particle flux."}
   };
   const struct gkyl_msgpack_map_elem *io_meta[] = {
-    s->io_meta_conf, app->gk_geom->io_meta_basic, desc1
+    gkns->io_meta_conf, app->gk_geom->io_meta_basic, desc1
   };
   struct gkyl_msgpack_data *mt1 =
     gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
 
   const char *fmt = "%s-%s_recycling_%s%s_%s_flux_%d.gkyl";
   int sz =
-    gkyl_calc_strlen(fmt, app->name, s->info.name, vars[dir], edge[edi], s->info.name, frame);
+    gkyl_calc_strlen(fmt, app->name, gkns->info.name, vars[dir], edge[edi], gkns->info.name, frame);
   char fileNm[sz + 1]; // ensures no buffer overflow
   snprintf(
-    fileNm, sizeof fileNm, fmt, app->name, s->info.name, vars[dir], edge[edi], s->info.name, frame
+    fileNm, sizeof fileNm, fmt, app->name, gkns->info.name, vars[dir], edge[edi], gkns->info.name,
+    frame
   );
 
   gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt1, recyc->diag_out_ho, fileNm);
@@ -132,7 +133,7 @@ gk_neut_species_recycle_write_flux_enabled(
 
 static void
 gk_neut_species_recycle_write_flux_disabled(
-  struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s, struct gk_recycle_wall *recyc,
+  struct gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gk_recycle_wall *recyc,
   double tm, int frame
 )
 {
@@ -140,11 +141,11 @@ gk_neut_species_recycle_write_flux_disabled(
 
 void
 gk_neut_species_recycle_write_flux(
-  struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s, struct gk_recycle_wall *recyc,
+  struct gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gk_recycle_wall *recyc,
   double tm, int frame
 )
 {
-  recyc->write_flux_func(app, s, recyc, tm, frame);
+  recyc->write_flux_func(app, gkns, recyc, tm, frame);
 }
 
 struct gk_neut_recycling_maxwellian_params {
@@ -181,18 +182,18 @@ gk_neut_recycling_maxwellian_temp(
 void
 gk_neut_species_recycle_init(
   struct gkyl_gyrokinetic_app *app, struct gk_recycle_wall *recyc, int dir, enum gkyl_edge_loc edge,
-  struct gkyl_gyrokinetic_emission_inp *params, struct gk_neut_species *s, bool use_gpu
+  struct gkyl_gyrokinetic_emission_inp *params, struct gk_neut_species *gkns, bool use_gpu
 )
 {
   recyc->params = params;
   recyc->num_species = params->num_species;
   recyc->edge = edge;
   recyc->dir = dir;
-  recyc->write_diagnostics = edge == GKYL_LOWER_EDGE ? s->lower_bc[dir].write_diagnostics :
-                                                       s->upper_bc[dir].write_diagnostics;
+  recyc->write_diagnostics = edge == GKYL_LOWER_EDGE ? gkns->lower_bc[dir].write_diagnostics :
+                                                       gkns->upper_bc[dir].write_diagnostics;
 
   int cdim = app->cdim;
-  int ndim = app->cdim + s->info.vdim;
+  int ndim = app->cdim + gkns->info.vdim;
 
   int e = recyc->edge == GKYL_LOWER_EDGE ? 0 : 1;
 
@@ -200,33 +201,33 @@ gk_neut_species_recycle_init(
   int cells[GKYL_MAX_DIM];
   double lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
   for (int i = 0; i < ndim; ++i) {
-    cells[i] = s->grid.cells[i];
-    lower[i] = s->grid.lower[i];
-    upper[i] = s->grid.upper[i];
+    cells[i] = gkns->grid.cells[i];
+    lower[i] = gkns->grid.lower[i];
+    upper[i] = gkns->grid.upper[i];
   }
   cells[dir] = 1;
-  lower[dir] = e == 0 ? s->grid.lower[dir] - s->grid.dx[dir] : s->grid.upper[dir];
-  upper[dir] = e == 0 ? s->grid.lower[dir] : s->grid.upper[dir] + s->grid.dx[dir];
+  lower[dir] = e == 0 ? gkns->grid.lower[dir] - gkns->grid.dx[dir] : gkns->grid.upper[dir];
+  upper[dir] = e == 0 ? gkns->grid.lower[dir] : gkns->grid.upper[dir] + gkns->grid.dx[dir];
   gkyl_rect_grid_init(&recyc->emit_grid, ndim, lower, upper, cells);
 
-  recyc->emit_ghost_r = e == 0 ? &s->local_lower_ghost[dir] : &s->local_upper_ghost[dir];
-  recyc->emit_skin_r = e == 0 ? &s->local_lower_skin[dir] : &s->local_upper_skin[dir];
+  recyc->emit_ghost_r = e == 0 ? &gkns->local_lower_ghost[dir] : &gkns->local_upper_ghost[dir];
+  recyc->emit_skin_r = e == 0 ? &gkns->local_lower_skin[dir] : &gkns->local_upper_skin[dir];
   gkyl_range_init(&recyc->emit_buff_r, ndim, recyc->emit_ghost_r->lower, recyc->emit_ghost_r->upper);
   gkyl_range_init(
     &recyc->emit_cbuff_r, cdim, recyc->emit_ghost_r->lower, recyc->emit_ghost_r->upper
   );
 
   // Buffer for scaled Maxwellian in ghost.
-  recyc->bc_buffer = mkarr(app->use_gpu, s->basis.num_basis, recyc->emit_skin_r->volume);
+  recyc->bc_buffer = mkarr(app->use_gpu, gkns->basis.num_basis, recyc->emit_skin_r->volume);
   // Initialize fixed func bc object to project the unit Maxwellian in ghost
   struct gkyl_bc_basic *bc_basic_op = gkyl_bc_basic_new(
-    dir, edge, GKYL_BC_FIXED_FUNC, s->basis_on_dev, recyc->emit_skin_r, recyc->emit_ghost_r,
-    s->f->ncomp, app->cdim, app->use_gpu
+    dir, edge, GKYL_BC_FIXED_FUNC, gkns->basis_on_dev, recyc->emit_skin_r, recyc->emit_ghost_r,
+    gkns->f->ncomp, app->cdim, app->use_gpu
   );
   // Project unit Maxwellian.
   struct gk_neut_recycling_maxwellian_params neut_max_pars = {
-    .temp = e == 0 ? s->lower_bc[dir].emission.emission_temp :
-                     s->upper_bc[dir].emission.emission_temp,
+    .temp = e == 0 ? gkns->lower_bc[dir].emission.emission_temp :
+                     gkns->upper_bc[dir].emission.emission_temp,
   };
   struct gkyl_gyrokinetic_projection recyc_proj_inp = {
     .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
@@ -238,26 +239,28 @@ gk_neut_species_recycle_init(
     .temp = gk_neut_recycling_maxwellian_temp,
   };
   struct gk_proj proj_unit_maxwellian;
-  gk_neut_species_projection_init(app, s, recyc_proj_inp, &proj_unit_maxwellian);
-  // The ghost must be empty so the boundary flux below only has the skin's outflow.
-  gkyl_array_clear(s->f1, 0.0);
-  gk_neut_species_projection_calc(app, s, &proj_unit_maxwellian, s->f1, 0.0); // Temporarily use f1.
+  gk_neut_species_projection_init(app, gkns, recyc_proj_inp, &proj_unit_maxwellian);
+  // The ghost must be empty so the boundary flux below only has the skin'gkns outflow.
+  gkyl_array_clear(gkns->f1, 0.0);
+  gk_neut_species_projection_calc(
+    app, gkns, &proj_unit_maxwellian, gkns->f1, 0.0
+  ); // Temporarily use f1.
 
   // Calculate flux associated with unit Maxwellian projected in f0.
   int num_eqns = 0;
-  if (s->collisionless.collisionless_id == GKYL_GK_COLLISIONLESS_NEUTRAL) {
+  if (gkns->collisionless.collisionless_id == GKYL_GK_COLLISIONLESS_NEUTRAL) {
     num_eqns += 1; // Collisionless terms.
   }
 
   const struct gkyl_dg_eqn **eqns = gkyl_malloc(num_eqns * sizeof(struct gkyl_dg_eqn *));
 
   int eqc = 0;
-  if (s->collisionless.collisionless_id == GKYL_GK_COLLISIONLESS_NEUTRAL) {
-    eqns[eqc++] = gkyl_dg_eqn_acquire(s->collisionless.eqn_vlasov);
+  if (gkns->collisionless.collisionless_id == GKYL_GK_COLLISIONLESS_NEUTRAL) {
+    eqns[eqc++] = gkyl_dg_eqn_acquire(gkns->collisionless.eqn_vlasov);
   }
 
   recyc->f0_flux_slvr = gkyl_boundary_flux_new(
-    recyc->dir, recyc->edge, &s->grid, recyc->emit_skin_r, recyc->emit_ghost_r, num_eqns, eqns,
+    recyc->dir, recyc->edge, &gkns->grid, recyc->emit_skin_r, recyc->emit_ghost_r, num_eqns, eqns,
     app->use_gpu
   );
 
@@ -267,17 +270,19 @@ gk_neut_species_recycle_init(
 
   gkyl_free(eqns);
 
-  // The from-flux Vlasov equation's boundary term reads the stored conf-space
+  // The from-flux Vlasov equation'gkns boundary term reads the stored conf-space
   // surface fluxes, so compute them for the unit Maxwellian first (cflrate is
   // scratch here; it is cleared at the start of every RHS evaluation).
   gkyl_dg_vlasov_conf_flux_surf_advance(
-    s->collisionless.calc_conf_flux, &app->local, &s->local, &s->local_ext,
-    s->conf_poisson_tensor_surf, s->hamil, s->f1, s->cflrate, s->collisionless.conf_flux_surf
+    gkns->collisionless.calc_conf_flux, &app->local, &gkns->local, &gkns->local_ext,
+    gkns->conf_poisson_tensor_surf, gkns->hamil, gkns->f1, gkns->cflrate,
+    gkns->collisionless.conf_flux_surf
   );
-  gkyl_boundary_flux_advance(recyc->f0_flux_slvr, s->f1, s->f1);
-  recyc->unit_phase_flux_neut = mkarr(app->use_gpu, s->basis.num_basis, recyc->emit_buff_r.volume);
+  gkyl_boundary_flux_advance(recyc->f0_flux_slvr, gkns->f1, gkns->f1);
+  recyc->unit_phase_flux_neut =
+    mkarr(app->use_gpu, gkns->basis.num_basis, recyc->emit_buff_r.volume);
   gkyl_array_copy_range_to_range(
-    recyc->unit_phase_flux_neut, s->f1, &recyc->emit_buff_r, recyc->emit_ghost_r
+    recyc->unit_phase_flux_neut, gkns->f1, &recyc->emit_buff_r, recyc->emit_ghost_r
   );
 
   recyc->write_flux_func = gk_neut_species_recycle_write_flux_disabled;
@@ -285,8 +290,8 @@ gk_neut_species_recycle_init(
     recyc->write_flux_func = gk_neut_species_recycle_write_flux_enabled;
   }
 
-  gkyl_bc_basic_buffer_fixed_func(bc_basic_op, recyc->bc_buffer, s->f1);
-  gkyl_array_clear(s->f1, 0.0);
+  gkyl_bc_basic_buffer_fixed_func(bc_basic_op, recyc->bc_buffer, gkns->f1);
+  gkyl_array_clear(gkns->f1, 0.0);
 
   gkyl_bc_basic_release(bc_basic_op);
   gk_neut_species_projection_release(app, &proj_unit_maxwellian);
@@ -294,14 +299,14 @@ gk_neut_species_recycle_init(
 
 void
 gk_neut_species_recycle_cross_init(
-  struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s, struct gk_recycle_wall *recyc
+  struct gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gk_recycle_wall *recyc
 )
 {
   int cdim = app->cdim;
-  int vdim = s->info.vdim;
+  int vdim = gkns->info.vdim;
 
   // Define necessary grid, ranges, and array for calculating the desired Maxwellian for ghost.
-  recyc->f_emit = mkarr(app->use_gpu, s->basis.num_basis, recyc->emit_buff_r.volume);
+  recyc->f_emit = mkarr(app->use_gpu, gkns->basis.num_basis, recyc->emit_buff_r.volume);
 
   int ghost[GKYL_MAX_DIM]; // Number of ghost cells in each direction.
   for (int d = 0; d < cdim; ++d) {
@@ -315,13 +320,13 @@ gk_neut_species_recycle_cross_init(
 
   struct gkyl_mom_vlasov_inp inp_mom = {
     .conf_basis = &app->basis,
-    .phase_basis = &s->basis,
-    .vel_range = &s->local_vel,
-    .vel_map = s->vlasov_vel_map,
-    .hamil_range = &s->hamil_range,
-    .hamil = s->hamil,
-    .model_id = s->model_id,
-    .hamil_id = s->hamil_id,
+    .phase_basis = &gkns->basis,
+    .vel_range = &gkns->local_vel,
+    .vel_map = gkns->vlasov_vel_map,
+    .hamil_range = &gkns->hamil_range,
+    .hamil = gkns->hamil,
+    .model_id = gkns->model_id,
+    .hamil_id = gkns->hamil_id,
     .mom_type = GKYL_F_MOMENT_M0,
     .use_gpu = app->use_gpu,
   };
@@ -380,7 +385,7 @@ gk_neut_species_recycle_cross_init(
     recyc->m0_flux_gk[i] =
       mkarr(app->use_gpu, app->basis.num_basis, recyc->impact_cbuff_r[i].volume);
 
-    recyc->spectrum[i] = mkarr(app->use_gpu, s->basis.num_basis, recyc->emit_buff_r.volume);
+    recyc->spectrum[i] = mkarr(app->use_gpu, gkns->basis.num_basis, recyc->emit_buff_r.volume);
 
     recyc->m0op_gk[i] = gkyl_dg_updater_moment_gyrokinetic_new(
       &recyc->impact_grid[i], &app->basis, &gks->basis, &recyc->emit_cbuff_r, gks->info.mass,
@@ -396,7 +401,7 @@ gk_neut_species_recycle_cross_init(
 
   // For writing diagnostics, if needed.
   if (recyc->write_diagnostics) {
-    recyc->f_diag = mkarr(app->use_gpu, s->basis.num_basis, s->local_ext.volume);
+    recyc->f_diag = mkarr(app->use_gpu, gkns->basis.num_basis, gkns->local_ext.volume);
     recyc->emit_flux = mkarr(app->use_gpu, app->basis.num_basis, recyc->emit_cbuff_r.volume);
     recyc->diag_out = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     recyc->diag_out_ho = recyc->diag_out;
@@ -409,7 +414,7 @@ gk_neut_species_recycle_cross_init(
 void
 gk_neut_species_recycle_apply_bc(
   struct gkyl_gyrokinetic_app *app, const struct gk_recycle_wall *recyc,
-  const struct gk_neut_species *s, struct gkyl_array *fout
+  const struct gk_neut_species *gkns, struct gkyl_array *fout
 )
 {
   gkyl_array_clear(recyc->f_emit, 0.0); // Zero emitted distribution before beginning accumulate
@@ -439,7 +444,7 @@ gk_neut_species_recycle_apply_bc(
     );
 
     gkyl_dg_mul_conf_phase_op_accumulate_range(
-      &app->basis, &s->basis, recyc->f_emit, 1.0, recyc->m0_flux_gk[i], recyc->spectrum[i],
+      &app->basis, &gkns->basis, recyc->f_emit, 1.0, recyc->m0_flux_gk[i], recyc->spectrum[i],
       &recyc->impact_cbuff_r[i], &recyc->emit_buff_r
     );
   }

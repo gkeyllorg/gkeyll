@@ -329,8 +329,9 @@ SED_REPS_STR2=s,MAKEFILE_FOR_EXT_C_INP_PHONY_TAG,${MAKEFILE_FOR_EXT_C_INP_PHONY}
 everything: regression unit gkeyll ## Build everything, including unit, regression and gkeyll exectuable
 
 ## Core infrastructure targets
+# Set LIBRARY_TARGET=library to build without installing runtime data.
 core:  ## Build core infrastructure code
-	cd core && $(MAKE) -f Makefile-core
+	cd core && $(MAKE) -f Makefile-core ${LIBRARY_TARGET}
 
 core-unit: core ## Build core unit tests
 	cd core && $(MAKE) -f Makefile-core unit
@@ -357,7 +358,7 @@ core-valcheck: core ## Run valgrind on unit tests in core
 
 ## Moments infrastructure targets
 moments: core  ## Build moments infrastructure code
-	cd moments && $(MAKE) -f Makefile-moments
+	cd moments && $(MAKE) -f Makefile-moments ${LIBRARY_TARGET}
 
 moments-unit: moments core-unit ## Build moments unit tests
 	cd moments && $(MAKE) -f Makefile-moments unit
@@ -386,7 +387,7 @@ moments-valcheck: moments ## Run valgrind on unit tests in moments
 
 ## Vlasov infrastructure targets
 vlasov: moments  ## Build Vlasov infrastructure code
-	cd vlasov && $(MAKE) -f Makefile-vlasov
+	cd vlasov && $(MAKE) -f Makefile-vlasov ${LIBRARY_TARGET}
 
 vlasov-unit: vlasov moments-unit ## Build Vlasov unit tests
 	cd vlasov && $(MAKE) -f Makefile-vlasov unit
@@ -415,7 +416,7 @@ vlasov-valcheck: vlasov ## Run valgrind on unit tests in Vlasov
 
 ## Gyrokinetic infrastructure targets
 gyrokinetic: vlasov  ## Build Gyrokinetic infrastructure code
-	cd gyrokinetic && $(MAKE) -f Makefile-gyrokinetic
+	cd gyrokinetic && $(MAKE) -f Makefile-gyrokinetic ${LIBRARY_TARGET}
 
 gyrokinetic-unit: gyrokinetic vlasov-unit ## Build Gyrokinetic unit tests
 	cd gyrokinetic && $(MAKE) -f Makefile-gyrokinetic unit
@@ -441,7 +442,7 @@ gyrokinetic-valcheck: gyrokinetic ## Run valgrind on unit tests in Gyrokinetics
 
 ## PKPM infrastructure targets
 pkpm: gyrokinetic  ## Build PKPM infrastructure code
-	cd pkpm && $(MAKE) -f Makefile-pkpm
+	cd pkpm && $(MAKE) -f Makefile-pkpm ${LIBRARY_TARGET}
 
 pkpm-unit: pkpm gyrokinetic-unit ## Build PKPM unit tests
 	cd pkpm && $(MAKE) -f Makefile-pkpm unit

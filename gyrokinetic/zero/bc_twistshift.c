@@ -54,7 +54,13 @@ bc_twistshift_advance_ts_filtered(
 {
   up->prolong_func(up, fdo);
   gkyl_twistshift_dg_advance(up->ts, up->fprolong, up->fprolong);
+
+  // Filter only the part fluctuating along shift_dir, and add its average back.
+  gkyl_array_average_advance(up->shift_avg, up->fprolong, up->favg);
+  gkyl_array_accumulate_range(up->fprolong, -1.0, up->favg, &up->ghost_r);
   gkyl_dg_lowpass_filter_advance(up->filter, up->fprolong, up->filt_buff);
+  gkyl_array_accumulate_range(up->filt_buff, 1.0, up->favg, &up->ghost_r);
+
   gkyl_array_copy_range(up->fprolong, up->filt_buff, &up->ghost_r);
   up->coarsen_func(up, ftar);
 }
@@ -199,6 +205,25 @@ gkyl_bc_twistshift_inew(const struct gkyl_bc_twistshift_inp *inp)
     &up->ghost_r, inp->use_gpu
   );
 
+  // Average along shift_dir, kept in the basis and range of fprolong. The
+  // ghost plane must span the whole shift_dir domain.
+  assert(
+    up->ghost_r.upper[inp->shift_dir] - up->ghost_r.lower[inp->shift_dir] + 1 ==
+    inp->grid->cells[inp->shift_dir]
+  );
+  int avg_dim[GKYL_MAX_DIM] = {0};
+  avg_dim[inp->shift_dir] = 1;
+  up->shift_avg = gkyl_array_average_inew(&(struct gkyl_array_average_inp){
+    .grid = &up->ts_grid,
+    .basis = *inp->basis,
+    .vdim = ndim - inp->cdim,
+    .full_dim_out = true,
+    .local = &up->ghost_r,
+    .avg_dim = avg_dim,
+    .use_gpu = inp->use_gpu,
+  });
+  up->favg = mkarr(inp->use_gpu, inp->basis->num_basis, up->ts_ext_r.volume);
+
   if (up->upsample_factor > 1) {
     up->prolong = gkyl_dg_interpolate_new(
       inp->cdim, inp->basis, inp->grid, &up->ts_grid, &up->coarse_ghost_r, &up->ghost_r,
@@ -291,6 +316,8 @@ gkyl_bc_twistshift_release(struct gkyl_bc_twistshift *up)
     gkyl_dg_lowpass_filter_release(up->filter);
     gkyl_array_release(up->fprolong);
     gkyl_array_release(up->filt_buff);
+    gkyl_array_average_release(up->shift_avg);
+    gkyl_array_release(up->favg);
   }
   if (up->shift_dg_fine) {
     gkyl_array_release(up->shift_dg_fine);

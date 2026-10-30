@@ -1250,11 +1250,14 @@ local function executeBatch(items)
       local stripped = raw
          :gsub("\n?__START__:%d+\n?", "\n")
          :gsub("\n?__END__:%d+\n?",   "\n")
-      -- A missing __EXIT__ marker means the wrapper script itself was killed
-      -- (OOM killer, SIGKILL, ...): that is a crash, not a clean run.
       local exitCode = tonumber(stripped:match("__EXIT__:(%d+)%s*$"))
-      if exitCode == nil then exitCode = 137 end
       local runlog   = stripped:gsub("\n?__EXIT__:%d+%s*$", "")
+      if exitCode == nil then
+         -- The wrapper did not confirm completion.  Do not compare or save
+         -- partial output as a successful regression result.
+         exitCode = -1
+         runlog = runlog .. "\nERROR: missing __EXIT__ marker (run interrupted)\n"
+      end
       -- Guarantee a trailing newline so whatever runregression logs next
       -- (e.g. "... saving accepted results" or the first "Comparing" line)
       -- doesn't get glued onto the test's own last line of output.
@@ -1359,6 +1362,15 @@ end
 --   Pass looser values (e.g. 1e-7) for GPU-vs-accepted comparisons.
 -- File comparison uses the G0.Zero Lua-C API registered by
 -- gkyl_zero_lw_openlibs at startup (core/apps/zero_lw.c). 
+-- gkyl_array_diff / dynvecDiff report signed absolute-difference extrema of
+-- (accepted - run).  A run uniformly above its baseline can have a negative
+-- max_abs_diff, so compare the magnitudes of both extrema.
+local function diffMagnitudes(diff)
+   local absD = math.max(math.abs(diff.max_abs_diff or 0), math.abs(diff.min_abs_diff or 0))
+   local relD = math.max(math.abs(diff.max_rel_diff or 0), math.abs(diff.min_rel_diff or 0))
+   return absD, relD
+end
+
 local function compareFiles(f1, f2, absTol, relTol)
    absTol = absTol or 1e-12
    relTol = relTol or 1e-12
@@ -1385,16 +1397,6 @@ local function compareFiles(f1, f2, absTol, relTol)
          return false, string.format("type mismatch: %s vs %s", f1type, f2type)
       end
 
-      -- gkyl_array_diff / dynvecDiff report SIGNED extrema of (accepted - run):
-      -- max_*_diff is the largest positive difference and min_*_diff the most
-      -- negative one.  A run that is uniformly below its baseline therefore has a
-      -- tiny (or zero) max_abs_diff and would pass.  Use the magnitude of both.
-      local function diffMagnitudes(diff)
-         local absD = math.max(math.abs(diff.max_abs_diff or 0), math.abs(diff.min_abs_diff or 0))
-         local relD = math.max(math.abs(diff.max_rel_diff or 0), math.abs(diff.min_rel_diff or 0))
-         return absD, relD
-      end
-
       if f1type == "dynvector" then
          local diff = G0.Zero.dynvecDiff(f1, f2)
          if not diff.is_compatible then
@@ -1404,8 +1406,8 @@ local function compareFiles(f1, f2, absTol, relTol)
          -- Combined tolerance: fail only when BOTH absolute and relative
          -- thresholds are exceeded.  This avoids false failures for near-zero
          -- values (tiny abs but large rel%) and for large values (large abs but
-         -- tiny rel%).  When max_abs_diff is 0, the abs check is false so the
-         -- condition short-circuits (handles the 0/0 → DBL_MAX rel case).
+         -- tiny rel%).  A zero absolute difference passes even if the
+         -- relative difference is large.
          local absD, relD = diffMagnitudes(diff)
          if absD > absTol and relD > relTol then
             verboseLog(string.format(
@@ -1472,8 +1474,8 @@ local function compareFiles(f1, f2, absTol, relTol)
       -- (e.g. 1e-15 vs -1e-15 → rel=200%) but negligible absolute differences;
       -- large values can have large absolute differences but tiny relative
       -- differences.  Failing on either alone produces false positives.
-      -- When max_abs_diff is 0, the condition short-circuits safely (handles the
-      -- 0/0 → DBL_MAX rel case from gkyl_array_diff).
+      -- A zero absolute difference passes even if the relative difference is
+      -- large.
       local absD, relD = diffMagnitudes(diff)
       if absD > absTol and relD > relTol then
          verboseLog(string.format(

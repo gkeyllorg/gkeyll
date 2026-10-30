@@ -1,5 +1,41 @@
+#pragma once
+
+#include <gkyl_gauss_quad_data.h>
 #include <gkyl_gk_geometry.h>
 #include <gkyl_nodal_ops.h>
+#include <gkyl_range.h>
+#include <gkyl_rect_grid.h>
+
+/**
+ * Construct a node from its global cell index. Avoid accumulating quadrature
+ * increments from a rank-local origin: the same node must have the same value
+ * on either side of an MPI face. num_nodes is the number of Gauss nodes per
+ * cell, or the number of equal intervals per cell for corner/face nodes.
+ */
+static inline double
+gk_geometry_node_coord(
+  const struct gkyl_rect_grid *grid, const struct gkyl_range *local,
+  const struct gkyl_range *global, const struct gkyl_range *nrange, int dir, int node,
+  int num_nodes, bool quadrature
+)
+{
+  int global_node =
+    node - nrange->lower[dir] + num_nodes * (local->lower[dir] - global->lower[dir]);
+  double cell;
+  if (quadrature) {
+    cell = global_node / num_nodes +
+           0.5 * (1.0 + gkyl_gauss_ordinates[num_nodes][global_node % num_nodes]);
+  } else {
+    if (global_node == 0) {
+      return grid->lower[dir];
+    }
+    if (global_node == num_nodes * grid->cells[dir]) {
+      return grid->upper[dir];
+    }
+    cell = (double)global_node / num_nodes;
+  }
+  return grid->lower[dir] + cell * grid->dx[dir];
+}
 
 static inline void
 get_filename_from_path(const char *filepath, char *out_buffer, size_t out_size)
@@ -13,28 +49,6 @@ get_filename_from_path(const char *filepath, char *out_buffer, size_t out_size)
     strncpy(out_buffer, filename_start, out_size - 1);
     out_buffer[out_size - 1] = '\0';
   }
-}
-
-static double
-calc_running_coord(double coord_lo, int i, double dx)
-{
-  double dels[2] = {1.0 / sqrt(3), 1.0 - 1.0 / sqrt(3)};
-  double coord = coord_lo;
-  for (int j = 0; j < i; j++) {
-    coord += dels[j % 2] * dx;
-  }
-  return coord;
-}
-
-static double
-calc_running_surf_coord(double coord_lo, int i, double dx)
-{
-  double dels[3] = {(1.0 - 1.0 / sqrt(3)) / 2.0, 1.0 / sqrt(3), (1.0 - 1.0 / sqrt(3)) / 2.0};
-  double coord = coord_lo;
-  for (int j = 0; j < i; j++) {
-    coord += dels[j % 3] * dx;
-  }
-  return coord;
 }
 
 static void
@@ -216,7 +230,7 @@ gk_geometry_int_alloc_nodal(struct gk_geometry *gk_geom)
   gk_geom->geo_int.B3_nodal = gkyl_array_new(GKYL_DOUBLE, 1, gk_geom->nrange_int.volume);
   gk_geom->geo_int.dualcurlbhatoverB_nodal =
     gkyl_array_new(GKYL_DOUBLE, 3, gk_geom->nrange_int.volume);
-  gk_geom->geo_int.rtg33inv_nodal = gkyl_array_new(GKYL_DOUBLE, 1, gk_geom->nrange_int.volume);
+  gk_geom->geo_int.B3overB_nodal = gkyl_array_new(GKYL_DOUBLE, 1, gk_geom->nrange_int.volume);
   gk_geom->geo_int.bioverJB_nodal = gkyl_array_new(GKYL_DOUBLE, 3, gk_geom->nrange_int.volume);
 }
 
@@ -256,7 +270,7 @@ gk_geometry_int_alloc_expansions(struct gk_geometry *up)
     gkyl_array_new(GKYL_DOUBLE, 3 * up->basis.num_basis, up->local_ext.volume);
   up->geo_int.dualcurlbhatoverB =
     gkyl_array_new(GKYL_DOUBLE, 3 * up->basis.num_basis, up->local_ext.volume);
-  up->geo_int.rtg33inv = gkyl_array_new(GKYL_DOUBLE, 1 * up->basis.num_basis, up->local_ext.volume);
+  up->geo_int.B3overB = gkyl_array_new(GKYL_DOUBLE, 1 * up->basis.num_basis, up->local_ext.volume);
   up->geo_int.bioverJB = gkyl_array_new(GKYL_DOUBLE, 3 * up->basis.num_basis, up->local_ext.volume);
   up->geo_int.B3 = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
   up->geo_int.qprofile = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
@@ -286,7 +300,7 @@ gk_geometry_int_release_nodal(struct gk_geometry *gk_geom)
   gkyl_array_release(gk_geom->geo_int.bcart_nodal);
   gkyl_array_release(gk_geom->geo_int.B3_nodal);
   gkyl_array_release(gk_geom->geo_int.dualcurlbhatoverB_nodal);
-  gkyl_array_release(gk_geom->geo_int.rtg33inv_nodal);
+  gkyl_array_release(gk_geom->geo_int.B3overB_nodal);
   gkyl_array_release(gk_geom->geo_int.bioverJB_nodal);
 }
 

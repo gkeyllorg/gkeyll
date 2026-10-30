@@ -37,6 +37,9 @@ gkyl_gk_geometry_new(
   gk_geometry_set_nodal_ranges(up);
   up->has_dxdz_grad = false;
 
+  for (int d = 0; d < 3; d++) {
+    up->is_periodic[d] = geometry_inp->geo_is_periodic[d];
+  }
   up->has_LCFS = geometry_inp->has_LCFS;
   if (up->has_LCFS) {
     up->x_LCFS = geometry_inp->x_LCFS;
@@ -564,6 +567,9 @@ gkyl_gk_geometry_deflate(const struct gk_geometry *up_3d, struct gkyl_gk_geometr
 
   up->geqdsk_sign_convention = up_3d->geqdsk_sign_convention;
   up->half_domain = up_3d->half_domain;
+  for (int d = 0; d < 3; d++) {
+    up->is_periodic[d] = up_3d->is_periodic[d];
+  }
   up->has_LCFS = up_3d->has_LCFS;
   up->x_LCFS = up_3d->x_LCFS;
   up->idx_LCFS_lo = up_3d->idx_LCFS_lo;
@@ -680,7 +686,7 @@ gkyl_gk_geometry_deflate(const struct gk_geometry *up_3d, struct gkyl_gk_geometr
     up->geo_int.dualcurlbhatoverB, 3
   );
   gkyl_deflate_geo_advance(
-    deflator, &up_3d->local, &up->local, up_3d->geo_int.rtg33inv, up->geo_int.rtg33inv, 1
+    deflator, &up_3d->local, &up->local, up_3d->geo_int.B3overB, up->geo_int.B3overB, 1
   );
   gkyl_deflate_geo_advance(
     deflator, &up_3d->local, &up->local, up_3d->geo_int.bioverJB, up->geo_int.bioverJB, 3
@@ -988,7 +994,7 @@ gkyl_gk_geometry_free(const struct gkyl_ref_count *ref)
   gkyl_array_release(up->geo_int.eps2);
   gkyl_array_release(up->geo_int.dualcurlbhat);
   gkyl_array_release(up->geo_int.dualcurlbhatoverB);
-  gkyl_array_release(up->geo_int.rtg33inv);
+  gkyl_array_release(up->geo_int.B3overB);
   gkyl_array_release(up->geo_int.bioverJB);
   gkyl_array_release(up->geo_int.B3);
   gkyl_array_release(up->geo_int.qprofile);

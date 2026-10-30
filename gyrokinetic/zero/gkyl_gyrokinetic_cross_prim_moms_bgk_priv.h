@@ -80,3 +80,7 @@ void gkyl_gyrokinetic_cross_prim_moms_bgk_advance_cu(
   const struct gkyl_array *prim_moms_other, struct gkyl_array *prim_moms_cross
 );
 #endif
+
+gkyl_gyrokinetic_cross_prim_moms_bgk *gkyl_gyrokinetic_cross_prim_moms_bgk_cu_dev_new_with_vdim(
+  const struct gkyl_basis *conf_basis, int vdim
+);
