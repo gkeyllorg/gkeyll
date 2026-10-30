@@ -205,34 +205,15 @@ gyrokinetic_prepare_miller(struct gkyl_gk *gk)
 
   // Perform basic checks.
   const char *error = NULL;
-  // Remain valid under the app's -ffast-math build, including when explicit
-  // equilibrium coverage means these bounds are not validated by the updater.
-  uint64_t lower_bits, upper_bits;
-  memcpy(&lower_bits, &gk->lower[0], sizeof lower_bits);
-  memcpy(&upper_bits, &gk->upper[0], sizeof upper_bits);
-  bool finite_bounds = (lower_bits & UINT64_C(0x7ff0000000000000)) !=
-                         UINT64_C(0x7ff0000000000000) &&
-                       (upper_bits & UINT64_C(0x7ff0000000000000)) != UINT64_C(0x7ff0000000000000);
   if (gk->cdim < 2 || gk->cdim > 3 || gk->cells[0] <= 0 ||
       gkyl_msgpack_map_elem_get_uint(
         gk->metadata.num_attributes, gk->metadata.attributes, "is_multib"
       )) {
     error = "Miller initialization supports single-block 2x/3x simulations";
   }
-  if (!finite_bounds || !(gk->lower[0] > inp.Rmajor_axis && gk->upper[0] > gk->lower[0])) {
-    error = "Miller radial bounds must be increasing outboard major radii above Rmajor_axis";
-  }
-  if (inp.has_Rmajor_omp_bounds &&
-      (inp.Rmajor_omp_bounds[0] > gk->lower[0] || inp.Rmajor_omp_bounds[1] < gk->upper[0])) {
-    error = "Miller coverage bounds do not include the simulation";
-  }
-
-  if (!inp.has_Rmajor_omp_bounds) {
-    inp.has_Rmajor_omp_bounds = true;
-    inp.Rmajor_omp_bounds[0] = gk->lower[0];
-    inp.Rmajor_omp_bounds[1] = gk->upper[0];
-  }
-  gkyl_gen_miller_eqdsk *generator = error ? NULL : gkyl_gen_miller_eqdsk_inew(&inp);
+  double x_bounds[2] = {gk->lower[0], gk->upper[0]}, psi_bounds[2];
+  gkyl_gen_miller_eqdsk *generator =
+    error ? NULL : gkyl_gen_miller_eqdsk_inew_for_domain(&inp, x_bounds, psi_bounds);
   failure = generator == NULL;
 
   if (comm) {
@@ -246,15 +227,13 @@ gyrokinetic_prepare_miller(struct gkyl_gk *gk)
 
   const struct gkyl_gen_miller_eqdsk_info *info = gkyl_gen_miller_eqdsk_get_info(generator);
 
-  double psi_lower = gkyl_gen_miller_eqdsk_psi_at_R_omp(generator, gk->lower[0]);
-  double psi_upper = gkyl_gen_miller_eqdsk_psi_at_R_omp(generator, gk->upper[0]);
-
-  bool crossing = gk->lower[0] < inp.Rmajor_LCFS && gk->upper[0] > inp.Rmajor_LCFS;
+  double psi_lower = psi_bounds[0], psi_upper = psi_bounds[1];
 
   // Use the serialized boundary value, exactly as the EFIT reader will see it.
   char boundary_text[32];
   snprintf(boundary_text, sizeof boundary_text, "%.9E", info->psi_boundary);
   double psi_lcfs = strtod(boundary_text, 0);
+  bool crossing = psi_lower < psi_lcfs && psi_upper > psi_lcfs;
 
   if (crossing) {
     double boundary_cell = (psi_lcfs - psi_lower) / (psi_upper - psi_lower) * gk->cells[0];

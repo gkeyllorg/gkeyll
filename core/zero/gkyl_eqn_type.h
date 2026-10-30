@@ -152,7 +152,14 @@ enum gkyl_geometry_id {
   GKYL_GEOMETRY_MIRROR, // Mirror Geometry from Efit.
   GKYL_GEOMETRY_MAPC2P, // General geometry from user provided mapc2p.
   GKYL_GEOMETRY_MILLER, // Generate a Miller GEQDSK, then use tokamak geometry.
-  GKYL_GEOMETRY_FROMFILE, // Geometry from file.
+  GKYL_GEOMETRY_FROMFILE // Geometry from file.
+};
+
+// Representation of the radial domain endpoints supplied to geometry initialization.
+enum gkyl_gk_geometry_radial_coord {
+  GKYL_GK_GEOMETRY_RADIAL_COORD_PSI_POL = 0, // Poloidal flux divided by 2*pi [Wb/rad].
+  GKYL_GK_GEOMETRY_RADIAL_COORD_RHO_POL, // Normalized poloidal radius sqrt((psi-psi_axis)/(psi_LCFS-psi_axis)).
+  GKYL_GK_GEOMETRY_RADIAL_COORD_R_OMP // Outboard-midplane major radius [m].
 };
 
 // type of quadrature to use

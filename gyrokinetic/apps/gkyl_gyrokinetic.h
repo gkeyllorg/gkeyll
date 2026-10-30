@@ -257,16 +257,7 @@ struct gkyl_gyrokinetic_core_parallel_bcs {
 };
 
 struct gkyl_gyrokinetic_geometry {
-  // Optional function to return the gk_geometry pointer to the user,
-  // so they can use it or store it in their context.
-  void (*set_gk_geometry)(const struct gk_geometry *geo, void *ctx);
-  void *set_gk_geometry_ctx;
-
   enum gkyl_geometry_id geometry_id;
-  // For MILLER, lower[0]/upper[0] in gkyl_gk are outboard major radii [m].
-  // Initialization resolves these and geometry_id in place to psi and TOKAMAK.
-  // Profiles called by the solver subsequently receive the resolved tokamak coordinates.
-  struct gkyl_gen_miller_eqdsk_inp miller_grid_info;
   char geometry_path[128]; // Path to geometry files
 
   // Pointer to mapc2p function: xc are the computational space
@@ -287,12 +278,20 @@ struct gkyl_gyrokinetic_geometry {
   struct gkyl_gyrokinetic_core_parallel_bcs
     core_parallel_bcs; // BCs info in closed flux surface region.
 
-  struct gkyl_efit_inp efit_info; // Context with RZ data such as efit file for a tokamak or mirror.
   struct gkyl_tok_geo_grid_inp
     tok_grid_info; // Context for tokamak geometry with computational domain info.
   struct gkyl_mirror_geo_grid_inp
     mirror_grid_info; // Context for mirror geometry with computational domain info.
+  struct gkyl_gen_miller_eqdsk_inp miller_grid_info; // Context for Miller geometry.
+
   struct gkyl_position_map_inp position_map_info; // Position map object.
+
+  struct gkyl_efit_inp efit_info; // Context with RZ data such as efit file for a tokamak or mirror.
+
+  // Optional function to return the gk_geometry pointer to the user,
+  // so they can use it or store it in their context.
+  void (*set_gk_geometry)(const struct gk_geometry *geo, void *ctx);
+  void *set_gk_geometry_ctx;
 };
 
 // Parameters for species radiation.

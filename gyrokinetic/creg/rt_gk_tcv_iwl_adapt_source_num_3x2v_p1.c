@@ -403,6 +403,7 @@ create_ctx(void)
   double outer_r = a_mid + x_outer;
   double outer_R = Rmajor_axis - a_shift * outer_r * outer_r / (2 * Rmajor_axis) + outer_r;
   ctx.miller = (struct gkyl_gen_miller_eqdsk_inp){
+    .x_extent_type = GKYL_GK_GEOMETRY_RADIAL_COORD_R_OMP,
     .Rmajor_axis = Rmajor_axis,
     .Zvert_axis = Zvert_axis,
     .bmag_axis = -fabs(bmag_axis), // Match the analytic input's negative toroidal field.

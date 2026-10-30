@@ -1,4 +1,4 @@
-#include <gkyl_gen_miller_eqdsk.h>
+#include <gkyl_gen_miller_eqdsk_priv.h>
 #include <gkyl_alloc.h>
 #include <gkyl_math.h>
 
@@ -709,6 +709,172 @@ gkyl_gen_miller_eqdsk_inew(const struct gkyl_gen_miller_eqdsk_inp *inp)
 fail:
   gkyl_gen_miller_eqdsk_release(up);
   return 0;
+}
+
+/**
+ * Round a flux value exactly as it will be serialized in the GEQDSK header.
+ *
+ * @param psi Flux [Wb/rad].
+ * @return Flux rounded to ten significant decimal digits.
+ */
+static double
+gen_miller_serialized_flux(double psi)
+{
+  char text[32];
+  snprintf(text, sizeof text, "%.9E", psi);
+  return strtod(text, NULL);
+}
+
+bool
+gen_miller_flux_bounds(
+  enum gkyl_gk_geometry_radial_coord type, const double bounds[2], double psi_axis, double psi_lcfs,
+  double psi_bounds[2]
+)
+{
+  if (!bounds || !psi_bounds || !gen_miller_finite(psi_axis) || !gen_miller_finite(psi_lcfs) ||
+      !gen_miller_finite(bounds[0]) || !gen_miller_finite(bounds[1]) || bounds[0] >= bounds[1]) {
+    return false;
+  }
+  double span = psi_lcfs - psi_axis, values[2];
+  if (!gen_miller_finite(span) || span == 0) {
+    return false;
+  }
+  for (int j = 0; j < 2; ++j) {
+    if (type == GKYL_GK_GEOMETRY_RADIAL_COORD_RHO_POL) {
+      if (bounds[j] <= 0) {
+        return false;
+      }
+      values[j] = psi_axis + bounds[j] * bounds[j] * span;
+    } else if (type == GKYL_GK_GEOMETRY_RADIAL_COORD_PSI_POL) {
+      values[j] = bounds[j];
+    } else {
+      return false;
+    }
+    double normalized_flux = (values[j] - psi_axis) / span;
+    if (!gen_miller_finite(values[j]) || !gen_miller_finite(normalized_flux) ||
+        normalized_flux <= 0) {
+      return false;
+    }
+  }
+  if (values[0] == values[1]) {
+    return false;
+  }
+  psi_bounds[0] = fmin(values[0], values[1]);
+  psi_bounds[1] = fmax(values[0], values[1]);
+  return true;
+}
+
+/**
+ * Convert an outboard radius, matching the serialized LCFS for that exact surface.
+ *
+ * @param up Initialized generator.
+ * @param R_omp Outboard major radius [m].
+ * @return Flux [Wb/rad], or NaN outside physical coverage.
+ */
+static double
+gen_miller_domain_psi_at_R_omp(const gkyl_gen_miller_eqdsk *up, double R_omp)
+{
+  return R_omp == up->inp.Rmajor_LCFS ? gen_miller_serialized_flux(up->info.psi_boundary) :
+                                        gkyl_gen_miller_eqdsk_psi_at_R_omp(up, R_omp);
+}
+
+gkyl_gen_miller_eqdsk *
+gkyl_gen_miller_eqdsk_inew_for_domain(
+  const struct gkyl_gen_miller_eqdsk_inp *inp, const double x_bounds[2], double psi_bounds[2]
+)
+{
+  if (!inp || !x_bounds || !psi_bounds || !gen_miller_finite(x_bounds[0]) ||
+      !gen_miller_finite(x_bounds[1]) || x_bounds[0] >= x_bounds[1] ||
+      (inp->x_extent_type != GKYL_GK_GEOMETRY_RADIAL_COORD_PSI_POL &&
+       inp->x_extent_type != GKYL_GK_GEOMETRY_RADIAL_COORD_RHO_POL &&
+       inp->x_extent_type != GKYL_GK_GEOMETRY_RADIAL_COORD_R_OMP)) {
+    gen_miller_error("Invalid radial extent type or domain bounds");
+    return NULL;
+  }
+  struct gkyl_gen_miller_eqdsk_inp work = *inp;
+  bool outboard = inp->x_extent_type == GKYL_GK_GEOMETRY_RADIAL_COORD_R_OMP;
+  if (outboard) {
+    if (x_bounds[0] <= inp->Rmajor_axis ||
+        (inp->has_Rmajor_omp_bounds &&
+         (x_bounds[0] < inp->Rmajor_omp_bounds[0] || x_bounds[1] > inp->Rmajor_omp_bounds[1]))) {
+      gen_miller_error("Outboard domain must exclude the axis and lie within explicit coverage");
+      return NULL;
+    }
+    if (!work.has_Rmajor_omp_bounds) {
+      work.has_Rmajor_omp_bounds = true;
+      memcpy(work.Rmajor_omp_bounds, x_bounds, sizeof work.Rmajor_omp_bounds);
+    }
+  }
+  // Each trial uses the same validated constructor and physical flux quadrature.
+  // Advancing the required radius to the previous guard avoids overshooting the
+  // minimum guard needed for a target that is not yet bracketed.
+  for (int trial = 0; trial < 256; ++trial) {
+    gkyl_gen_miller_eqdsk *up = gkyl_gen_miller_eqdsk_inew(&work);
+    if (!up) {
+      return NULL;
+    }
+    double resolved[2];
+    if (outboard) {
+      resolved[0] = gen_miller_domain_psi_at_R_omp(up, x_bounds[0]);
+      resolved[1] = gen_miller_domain_psi_at_R_omp(up, x_bounds[1]);
+    } else if (!gen_miller_flux_bounds(
+                 inp->x_extent_type, x_bounds, gen_miller_serialized_flux(up->info.psi_axis),
+                 gen_miller_serialized_flux(up->info.psi_boundary), resolved
+               )) {
+      gen_miller_error("Flux domain must be finite, nonzero-width, and outside the axis");
+      gkyl_gen_miller_eqdsk_release(up);
+      return NULL;
+    }
+    if (!gen_miller_finite(resolved[0]) || !gen_miller_finite(resolved[1]) ||
+        resolved[0] >= resolved[1]) {
+      gen_miller_error("Could not resolve radial domain to finite increasing flux bounds");
+      gkyl_gen_miller_eqdsk_release(up);
+      return NULL;
+    }
+    if (outboard || inp->has_Rmajor_omp_bounds) {
+      double cover[2] = {
+        gen_miller_domain_psi_at_R_omp(up, work.Rmajor_omp_bounds[0]),
+        gen_miller_domain_psi_at_R_omp(up, work.Rmajor_omp_bounds[1])
+      };
+      double tol = 64 * DBL_EPSILON * fmax(fabs(cover[0]), fabs(cover[1]));
+      if (resolved[0] < fmin(cover[0], cover[1]) - tol ||
+          resolved[1] > fmax(cover[0], cover[1]) + tol) {
+        gen_miller_error("Explicit outboard coverage does not contain the simulation domain");
+        gkyl_gen_miller_eqdsk_release(up);
+        return NULL;
+      }
+      memcpy(psi_bounds, resolved, sizeof resolved);
+      return up;
+    }
+
+    double required_flux = gkyl_gen_miller_eqdsk_psi_at_r(up, up->info.rminor_required);
+    double tol = (2 * up->inp.rtol + 64 * DBL_EPSILON) * fabs(up->info.psi_boundary) +
+                 fabs(gen_miller_serialized_flux(up->info.psi_boundary) - up->info.psi_boundary);
+    if (resolved[1] <= required_flux + tol && resolved[1] <= up->info.psi_guard) {
+      memcpy(psi_bounds, resolved, sizeof resolved);
+      return up;
+    }
+    double next_required = up->info.rminor_guard;
+    if (resolved[1] <= up->info.psi_guard) {
+      next_required = gkyl_gen_miller_eqdsk_r_at_psi(up, resolved[1]);
+      // Allow for the flux-table tolerance when rebuilding on the final interval.
+      next_required *= 1 + 4 * up->inp.rtol;
+    }
+    double next_R_omp = gkyl_gen_miller_eqdsk_R_omp_at_rminor(&work, next_required);
+    bool progress = gen_miller_finite(next_R_omp) && next_required > up->info.rminor_required;
+    gkyl_gen_miller_eqdsk_release(up);
+    if (!progress) {
+      gen_miller_error("Cannot extend physical Miller coverage to the requested flux domain");
+      return NULL;
+    }
+    work.has_Rmajor_omp_bounds = true;
+    work.Rmajor_omp_bounds[0] = work.Rmajor_axis;
+    work.Rmajor_omp_bounds[1] = next_R_omp;
+  }
+  gen_miller_error(
+    "Radial coverage search exceeded 256 trials; supply explicit coverage or increase guard_fraction"
+  );
+  return NULL;
 }
 
 /**

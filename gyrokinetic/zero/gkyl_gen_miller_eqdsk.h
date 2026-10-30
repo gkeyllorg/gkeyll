@@ -1,10 +1,14 @@
 #pragma once
 
 #include <stdbool.h>
+#include <gkyl_eqn_type.h>
 
 typedef struct gkyl_gen_miller_eqdsk gkyl_gen_miller_eqdsk;
 
 struct gkyl_gen_miller_eqdsk_inp {
+  // Representation of application lower[0]/upper[0]; zero defaults to PSI_POL.
+  // Used by inew_for_domain; the standalone inew has no domain to interpret.
+  enum gkyl_gk_geometry_radial_coord x_extent_type;
   double Rmajor_axis, Zvert_axis; // Major radius and vertical position of magnetic axis.
   double bmag_axis; // Signed toroidal field at the magnetic axis [T]; nonzero, sign sets B_phi.
   double Rmajor_LCFS; // Major radius of LCFS at OMP.
@@ -47,6 +51,29 @@ struct gkyl_gen_miller_eqdsk_info {
  * @return New generator, or NULL on failure.
  */
 gkyl_gen_miller_eqdsk *gkyl_gen_miller_eqdsk_inew(const struct gkyl_gen_miller_eqdsk_inp *inp);
+
+/**
+ * Construct a Miller generator covering a simulation's radial domain and resolve
+ * its endpoints to poloidal flux. Automatically extends physical coverage when
+ * Rmajor_omp_bounds are omitted; explicit coverage must contain the domain.
+ * Constructs the radial flux table but does not sample or write the EQDSK.
+ *
+ * @param inp Non-NULL Miller parameters, including x_extent_type; not modified.
+ * The safety-factor callback context must outlive the returned generator.
+ * @param x_bounds Non-NULL array {lower[0], upper[0]} from the application domain:
+ * poloidal flux [Wb/rad] for PSI_POL, normalized poloidal radius [dimensionless]
+ * for RHO_POL, or outboard major radius [m] for R_OMP. These are simulation
+ * endpoints, not R-Z mesh bounds. Values must be finite, strictly increasing in
+ * the selected representation, and exclude the axis. Not modified or retained.
+ * @param psi_bounds Non-NULL output array {lower, upper} of computational flux
+ * bounds [Wb/rad], in increasing numerical order. For decreasing-outward flux,
+ * the lower flux bound is the outer surface. Valid only on success.
+ * @return New host generator owned by the caller (release with
+ * gkyl_gen_miller_eqdsk_release), or NULL on failure with a diagnostic to stderr.
+ */
+gkyl_gen_miller_eqdsk *gkyl_gen_miller_eqdsk_inew_for_domain(
+  const struct gkyl_gen_miller_eqdsk_inp *inp, const double x_bounds[2], double psi_bounds[2]
+);
 
 /**
  * Sample and validate the rectangular mesh, using storage allocated at construction.
