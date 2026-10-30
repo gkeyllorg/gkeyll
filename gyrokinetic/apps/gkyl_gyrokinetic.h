@@ -257,6 +257,11 @@ struct gkyl_gyrokinetic_core_parallel_bcs {
 };
 
 struct gkyl_gyrokinetic_geometry {
+  // Optional function to return the gk_geometry pointer to the user,
+  // so they can use it or store it in their context.
+  void (*set_gk_geometry)(const struct gk_geometry *geo, void *ctx);
+  void *set_gk_geometry_ctx;
+
   enum gkyl_geometry_id geometry_id;
   // For MILLER, lower[0]/upper[0] in gkyl_gk are outboard major radii [m].
   // Initialization resolves these and geometry_id in place to psi and TOKAMAK.

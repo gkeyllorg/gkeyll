@@ -1,5 +1,6 @@
 #include <gkyl_gen_miller_eqdsk.h>
 #include <gkyl_alloc.h>
+#include <gkyl_math.h>
 
 #include <float.h>
 #include <math.h>
@@ -64,37 +65,42 @@ gen_miller_error(const char *message)
   return false;
 }
 
-/**
- * Map Miller minor radius to outboard midplane major radius, including the quadratic shift.
- *
- * @param up Generator.
- * @param radius Miller minor radius in meters.
- * @return Outboard midplane major radius in meters.
- */
-static double
-gen_miller_R_omp_at_r(const gkyl_gen_miller_eqdsk *up, double radius)
+double
+gkyl_gen_miller_eqdsk_R_omp_at_rminor(const struct gkyl_gen_miller_eqdsk_inp *inp, double rminor)
 {
-  return up->inp.Rmajor_axis - up->inp.a_shift * radius * radius / (2 * up->inp.Rmajor_axis) +
-         radius;
-}
-
-/**
- * Invert the increasing outboard midplane map using a cancellation-resistant quadratic root.
- *
- * @param up Generator.
- * @param R_omp Outboard midplane major radius in meters.
- * @return Miller minor radius in meters, or NaN for an invalid radius or branch.
- */
-static double
-gen_miller_r_at_R_omp(const gkyl_gen_miller_eqdsk *up, double R_omp)
-{
-  double offset = R_omp - up->inp.Rmajor_axis;
-  double disc = 1 - 2 * up->inp.a_shift * offset / up->inp.Rmajor_axis;
-  if (!gen_miller_finite(offset) || offset < 0 || disc <= 0) {
+  if (!inp || !gen_miller_finite(rminor) || rminor < 0 || !gen_miller_finite(inp->Rmajor_axis) ||
+      inp->Rmajor_axis <= 0 || !gen_miller_finite(inp->a_shift)) {
     return gen_miller_nan();
   }
+  double derivative = 1 - inp->a_shift * rminor / inp->Rmajor_axis;
+  double R_omp =
+    inp->Rmajor_axis - inp->a_shift * rminor * rminor / (2 * inp->Rmajor_axis) + rminor;
+  if (!gen_miller_finite(derivative) || derivative <= 0 || !gen_miller_finite(R_omp) ||
+      R_omp <= 0) {
+    return gen_miller_nan();
+  }
+  return R_omp;
+}
 
-  return 2 * offset / (1 + sqrt(disc));
+double
+gkyl_gen_miller_eqdsk_rminor_at_R_omp(const struct gkyl_gen_miller_eqdsk_inp *inp, double R_omp)
+{
+  if (!inp || !gen_miller_finite(R_omp) || !gen_miller_finite(inp->Rmajor_axis) ||
+      inp->Rmajor_axis <= 0 || R_omp < inp->Rmajor_axis || !gen_miller_finite(inp->a_shift)) {
+    return gen_miller_nan();
+  }
+  double offset = R_omp - inp->Rmajor_axis;
+  double disc = 1 - 2 * inp->a_shift * offset / inp->Rmajor_axis;
+  if (!gen_miller_finite(disc) || disc <= 0) {
+    return gen_miller_nan();
+  }
+  // Rationalized root avoids cancellation for small shift or radius.
+  double rminor = 2 * offset / (1 + sqrt(disc));
+  double derivative = 1 - inp->a_shift * rminor / inp->Rmajor_axis;
+  if (!gen_miller_finite(rminor) || !gen_miller_finite(derivative) || derivative <= 0) {
+    return gen_miller_nan();
+  }
+  return rminor;
 }
 
 void
@@ -133,7 +139,8 @@ gen_miller_RZdet_over_r(const gkyl_gen_miller_eqdsk *up, double radius, double t
 static double
 gen_miller_q_at_r(const gkyl_gen_miller_eqdsk *up, double radius)
 {
-  return up->inp.qsafety(gen_miller_R_omp_at_r(up, radius), up->inp.qsafety_ctx);
+  double R_omp = gkyl_gen_miller_eqdsk_R_omp_at_rminor(&up->inp, radius);
+  return gen_miller_finite(R_omp) ? up->inp.qsafety(R_omp, up->inp.qsafety_ctx) : gen_miller_nan();
 }
 
 /**
@@ -370,7 +377,7 @@ gkyl_gen_miller_eqdsk_psi_at_r(const gkyl_gen_miller_eqdsk *up, double radius)
 double
 gkyl_gen_miller_eqdsk_psi_at_R_omp(const gkyl_gen_miller_eqdsk *up, double R_omp)
 {
-  return gkyl_gen_miller_eqdsk_psi_at_r(up, gen_miller_r_at_R_omp(up, R_omp));
+  return gkyl_gen_miller_eqdsk_psi_at_r(up, gkyl_gen_miller_eqdsk_rminor_at_R_omp(&up->inp, R_omp));
 }
 
 double
@@ -400,22 +407,79 @@ gkyl_gen_miller_eqdsk_r_at_psi(const gkyl_gen_miller_eqdsk *up, double psi)
 double
 gkyl_gen_miller_eqdsk_R_omp_at_psi(const gkyl_gen_miller_eqdsk *up, double psi)
 {
-  return gen_miller_R_omp_at_r(up, gkyl_gen_miller_eqdsk_r_at_psi(up, psi));
+  return gkyl_gen_miller_eqdsk_R_omp_at_rminor(&up->inp, gkyl_gen_miller_eqdsk_r_at_psi(up, psi));
 }
 
 /**
- * Evaluate poloidal arc length per unit minor radius and Miller angle.
+ * Evaluate the poloidal arc-length integrand normalized by minor radius.
  *
- * @param up Generator with constant elongation and triangularity.
  * @param theta Miller poloidal angle [rad].
- * @return sqrt(R_theta^2 + Z_theta^2)/r, including its axis limit.
+ * @param kappa Resolved elongation.
+ * @param eta Arcsine of triangularity [rad].
+ * @return Dimensionless sqrt(R_theta^2 + Z_theta^2)/r, including its axis limit.
  */
 static double
-gen_miller_arc_speed(const gkyl_gen_miller_eqdsk *up, double theta)
+gen_miller_arc_length_integrand(double theta, double kappa, double eta)
 {
   double cost = cos(theta);
-  double Rt = -(1 + up->eta * cost) * sin(theta + up->eta * sin(theta));
-  return hypot(Rt, up->inp.kappa * cost);
+  double Rt = -(1 + eta * cost) * sin(theta + eta * sin(theta));
+  return hypot(Rt, kappa * cost);
+}
+
+struct gen_miller_arc_ctx {
+  double kappa, eta, lower, width;
+};
+
+/**
+ * Rescale an arc interval to [0,1] so tiny endpoint exclusions remain resolved.
+ *
+ * @param unit_coord Unit-interval quadrature coordinate.
+ * @param ctx Arc shape and interval parameters.
+ * @return Normalized arc-length integrand at the mapped Miller angle.
+ */
+static double
+gen_miller_arc_integrand(double unit_coord, void *ctx)
+{
+  const struct gen_miller_arc_ctx *arc = ctx;
+  return gen_miller_arc_length_integrand(arc->lower + arc->width * unit_coord, arc->kappa, arc->eta);
+}
+
+double
+gkyl_gen_miller_eqdsk_theta_tok_at_theta(
+  const struct gkyl_gen_miller_eqdsk_inp *inp, double thetaMiller
+)
+{
+  if (!inp || !gen_miller_finite(thetaMiller) || fabs(thetaMiller) > M_PI ||
+      !gen_miller_finite(inp->kappa) || inp->kappa < 0 || !gen_miller_finite(inp->delta) ||
+      fabs(inp->delta) >= 1) {
+    return gen_miller_nan();
+  }
+  double kappa = inp->kappa == 0 ? 1 : inp->kappa;
+  if (thetaMiller == 0 || fabs(thetaMiller) == M_PI || (kappa == 1 && inp->delta == 0)) {
+    return thetaMiller;
+  }
+
+  struct gen_miller_arc_ctx arc = {kappa, asin(inp->delta), 0, M_PI};
+  struct gkyl_qr_res half = gkyl_dbl_exp(gen_miller_arc_integrand, &arc, 0, 1, 12, 1e-12);
+  if (half.status || !gen_miller_finite(half.res) || half.res <= 0) {
+    return gen_miller_nan();
+  }
+  double half_arc = M_PI * half.res, angle = fabs(thetaMiller);
+  bool complement = angle > M_PI / 2;
+  arc.lower = complement ? angle : 0;
+  arc.width = complement ? M_PI - angle : angle;
+  struct gkyl_qr_res part = gkyl_dbl_exp(gen_miller_arc_integrand, &arc, 0, 1, 12, 1e-12);
+  if (part.status || !gen_miller_finite(part.res) || part.res <= 0) {
+    return gen_miller_nan();
+  }
+  double theta_tok = M_PI * arc.width * (part.res / half_arc);
+  if (complement) {
+    theta_tok = M_PI - theta_tok;
+  }
+  if (!gen_miller_finite(theta_tok) || theta_tok < 0 || theta_tok > M_PI) {
+    return gen_miller_nan();
+  }
+  return copysign(theta_tok, thetaMiller);
 }
 
 /**
@@ -430,8 +494,9 @@ static double
 gen_miller_arc_interval(const gkyl_gen_miller_eqdsk *up, double lower, double upper)
 {
   return (upper - lower) / 6 *
-         (gen_miller_arc_speed(up, lower) + 4 * gen_miller_arc_speed(up, (lower + upper) / 2) +
-          gen_miller_arc_speed(up, upper));
+         (gen_miller_arc_length_integrand(lower, up->inp.kappa, up->eta) +
+          4 * gen_miller_arc_length_integrand((lower + upper) / 2, up->inp.kappa, up->eta) +
+          gen_miller_arc_length_integrand(upper, up->inp.kappa, up->eta));
 }
 
 double
@@ -458,7 +523,7 @@ gkyl_gen_miller_eqdsk_theta_at_theta_tok(const gkyl_gen_miller_eqdsk *up, double
   // Refine within the table interval; the Simpson error is O(step^5).
   for (int iter = 0; iter < 3; ++iter) {
     double residual = up->arc[lower] + gen_miller_arc_interval(up, angle_lo, theta) - target;
-    theta -= residual / gen_miller_arc_speed(up, theta);
+    theta -= residual / gen_miller_arc_length_integrand(theta, up->inp.kappa, up->eta);
     theta = fmax(angle_lo, fmin(upper * step, theta));
   }
   return copysign(theta, theta_tok);
@@ -544,7 +609,7 @@ gkyl_gen_miller_eqdsk_inew(const struct gkyl_gen_miller_eqdsk_inp *inp)
   }
   up->info.num_nodes_Rmajor = up->inp.num_nodes_Rmajor;
   up->info.num_nodes_Zvert = up->inp.num_nodes_Zvert;
-  up->info.rminor_LCFS = gen_miller_r_at_R_omp(up, inp->Rmajor_LCFS);
+  up->info.rminor_LCFS = gkyl_gen_miller_eqdsk_rminor_at_R_omp(&up->inp, inp->Rmajor_LCFS);
 
   if (!gen_miller_finite(up->info.rminor_LCFS)) {
     gen_miller_error("LCFS exceeds the increasing midplane branch");
@@ -553,8 +618,8 @@ gkyl_gen_miller_eqdsk_inew(const struct gkyl_gen_miller_eqdsk_inp *inp)
   up->info.rminor_required = up->info.rminor_LCFS;
 
   if (inp->has_Rmajor_omp_bounds) {
-    double lower = gen_miller_r_at_R_omp(up, inp->Rmajor_omp_bounds[0]);
-    double upper = gen_miller_r_at_R_omp(up, inp->Rmajor_omp_bounds[1]);
+    double lower = gkyl_gen_miller_eqdsk_rminor_at_R_omp(&up->inp, inp->Rmajor_omp_bounds[0]);
+    double upper = gkyl_gen_miller_eqdsk_rminor_at_R_omp(&up->inp, inp->Rmajor_omp_bounds[1]);
     if (!gen_miller_finite(lower) || !gen_miller_finite(upper) || lower >= upper) {
       gen_miller_error("Invalid outboard midplane coverage bounds");
       goto fail;

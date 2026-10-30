@@ -997,3 +997,315 @@ gkyl_gk_geometry_release(const struct gk_geometry *up)
 {
   gkyl_ref_count_dec(&up->ref_count);
 }
+
+/**
+ * Classify doubles without fast-math eliminating NaN/Inf checks.
+ *
+ * @param value Value to classify.
+ * @return Whether the value is finite.
+ */
+static bool
+gk_geometry_query_finite(double value)
+{
+  uint64_t bits;
+  memcpy(&bits, &value, sizeof bits);
+  volatile uint64_t exponent = bits & UINT64_C(0x7ff0000000000000);
+  return exponent != UINT64_C(0x7ff0000000000000);
+}
+
+/**
+ * Validate a host geometry query before accessing its arrays.
+ *
+ * @param geo Interior geometry; must not be NULL or device allocated.
+ * @param xc Computational coordinates.
+ * @param out Output buffer.
+ */
+static void
+gk_geometry_query_check(const struct gk_geometry *geo, const double *xc, double *out)
+{
+  if (!geo || !xc || !out) {
+    gkyl_exit(
+      "geo_int query: NULL geometry, coordinates, or output; register set_gk_geometry before using profiles."
+    );
+  }
+  if (gkyl_gk_geometry_is_cu_dev(geo)) {
+    gkyl_exit("geo_int query: host geometry required (use set_gk_geometry).");
+  }
+  if (geo->grid.ndim < 1 || geo->grid.ndim > 3 || geo->basis.ndim != geo->grid.ndim ||
+      !geo->basis.eval_expand) {
+    gkyl_exit("geo_int query: incompatible grid or basis.");
+  }
+}
+
+/**
+ * Evaluate modal components on the local interior domain, with upper-cell
+ * traces on internal faces and interior traces at local outer boundaries.
+ *
+ * @param geo Host geometry.
+ * @param xc Computational coordinates.
+ * @param field Modal array to evaluate.
+ * @param ncomp Number of components.
+ * @param out Output component values.
+ */
+static void
+gk_geometry_query_eval(
+  const struct gk_geometry *geo, const double *xc, const struct gkyl_array *field, int ncomp,
+  double *out
+)
+{
+  if (!field || gkyl_array_is_cu_dev(field) || field->ncomp != ncomp * geo->basis.num_basis) {
+    gkyl_exit("geo_int query: missing or incompatible host modal array.");
+  }
+  int idx[3];
+  double xref[3];
+  for (int dir = 0; dir < geo->grid.ndim; ++dir) {
+    double dx = geo->grid.dx[dir];
+    double lower = geo->grid.lower[dir] + (geo->local.lower[dir] - 1) * dx;
+    double upper = geo->grid.lower[dir] + geo->local.upper[dir] * dx;
+    if (!gk_geometry_query_finite(xc[dir]) || xc[dir] < lower || xc[dir] > upper) {
+      gkyl_exit("geo_int query: computational point outside local interior domain or nonfinite.");
+    }
+    double cell = (xc[dir] - geo->grid.lower[dir]) / dx;
+    // Snap roundoff at exact grid faces before selecting the upper trace.
+    double face = nearbyint(cell);
+    if (fabs(cell - face) <= 8 * DBL_EPSILON * fmax(1.0, fabs(cell))) {
+      cell = face;
+    }
+    idx[dir] = fmin(geo->local.upper[dir], fmax(geo->local.lower[dir], (int)floor(cell) + 1));
+    xref[dir] = 2 * (xc[dir] - (geo->grid.lower[dir] + (idx[dir] - 0.5) * dx)) / dx;
+  }
+  const double *coeff = gkyl_array_cfetch(field, gkyl_range_idx(&geo->local, idx));
+  for (int comp = 0; comp < ncomp; ++comp) {
+    out[comp] = geo->basis.eval_expand(xref, coeff + comp * geo->basis.num_basis);
+    if (!gk_geometry_query_finite(out[comp])) {
+      gkyl_exit("geo_int query: nonfinite interpolated value.");
+    }
+  }
+}
+
+void
+gkyl_gk_geometry_geo_int_bmag_at_comp_coord(
+  const struct gk_geometry *geo, const double *xc, double *out
+)
+{
+  gk_geometry_query_check(geo, xc, out);
+  gk_geometry_query_eval(geo, xc, geo->geo_int.bmag, 1, out);
+}
+
+void
+gkyl_gk_geometry_geo_int_bfieldcart_at_comp_coord(
+  const struct gk_geometry *geo, const double *xc, double *out
+)
+{
+  gk_geometry_query_check(geo, xc, out);
+  double bmag;
+  gk_geometry_query_eval(geo, xc, geo->geo_int.bmag, 1, &bmag);
+  gk_geometry_query_eval(geo, xc, geo->geo_int.bcart, 3, out);
+  for (int comp = 0; comp < 3; ++comp) {
+    out[comp] *= bmag;
+  }
+}
+
+void
+gkyl_gk_geometry_geo_int_comp2cyl_coords(
+  const struct gk_geometry *geo, const double *xc, double *out
+)
+{
+  gk_geometry_query_check(geo, xc, out);
+  double mapped[3];
+  gk_geometry_query_eval(geo, xc, geo->geo_int.mc2p, 3, mapped);
+  switch (geo->geometry_id) {
+    case GKYL_GEOMETRY_TOKAMAK:
+    case GKYL_GEOMETRY_MIRROR:
+      out[0] = mapped[0];
+      out[1] = mapped[2];
+      out[2] = mapped[1];
+      break;
+    case GKYL_GEOMETRY_MAPC2P:
+    case GKYL_GEOMETRY_NONE:
+      out[0] = hypot(mapped[0], mapped[1]);
+      out[1] = atan2(mapped[1], mapped[0]);
+      out[2] = mapped[2];
+      break;
+    default:
+      gkyl_exit("geo_int query: unsupported mapping; geometry must be resolved before evaluation.");
+  }
+  if (out[0] <= 0) {
+    gkyl_exit("geo_int query: cylindrical angle undefined at nonpositive major radius.");
+  }
+}
+
+void
+gkyl_gk_geometry_geo_int_bfieldcyl_at_comp_coord(
+  const struct gk_geometry *geo, const double *xc, double *out
+)
+{
+  gk_geometry_query_check(geo, xc, out);
+  double cyl[3], bcart[3];
+  gkyl_gk_geometry_geo_int_comp2cyl_coords(geo, xc, cyl);
+  gkyl_gk_geometry_geo_int_bfieldcart_at_comp_coord(geo, xc, bcart);
+  double cosphi = cos(cyl[1]), sinphi = sin(cyl[1]);
+  out[0] = cosphi * bcart[0] + sinphi * bcart[1];
+  out[1] = -sinphi * bcart[0] + cosphi * bcart[1];
+  out[2] = bcart[2];
+}
+
+void
+gkyl_gk_geometry_geo_int_bfieldtor_at_comp_coord(
+  const struct gk_geometry *geo, const double *xc, double *out
+)
+{
+  gk_geometry_query_check(geo, xc, out);
+  double bcyl[3];
+  gkyl_gk_geometry_geo_int_bfieldcyl_at_comp_coord(geo, xc, bcyl);
+  out[0] = bcyl[1];
+  out[1] = hypot(bcyl[0], bcyl[2]);
+}
+
+void
+gkyl_gk_geometry_geo_int_comp2tor_coords(
+  const struct gk_geometry *geo, const double *xc, double Rmajor_axis, double Zvert_axis,
+  double *out
+)
+{
+  gk_geometry_query_check(geo, xc, out);
+  if (!gk_geometry_query_finite(Rmajor_axis) || !gk_geometry_query_finite(Zvert_axis) ||
+      Rmajor_axis <= 0) {
+    gkyl_exit("geo_int query: invalid reference axis.");
+  }
+  double cyl[3];
+  gkyl_gk_geometry_geo_int_comp2cyl_coords(geo, xc, cyl);
+  double horizontal = cyl[0] - Rmajor_axis, vertical = cyl[2] - Zvert_axis;
+  out[0] = hypot(horizontal, vertical);
+  if (out[0] <= 16 * DBL_EPSILON * fmax(Rmajor_axis, fabs(Zvert_axis))) {
+    gkyl_exit("geo_int query: geometric poloidal angle undefined at reference axis.");
+  }
+  out[1] = atan2(vertical, horizontal);
+  out[2] = cyl[1];
+}
+
+/**
+ * Evaluate the Miller horizontal map at fixed v=r*sin(theta), checking its
+ * derivative dR/du, where u=r*cos(theta).
+ *
+ * @param miller Axis and shaping parameters.
+ * @param u Horizontal auxiliary-circle coordinate [m].
+ * @param v Vertical auxiliary-circle coordinate [m].
+ * @param derivative Output dR/du for checking the nonfolding branch.
+ * @return Cylindrical major radius [m].
+ */
+static double
+gk_geometry_query_miller_R(
+  const struct gkyl_gen_miller_eqdsk_inp *miller, double u, double v, double *derivative
+)
+{
+  double radius = hypot(u, v), eta = asin(miller->delta);
+  double beta = radius > 0 ? eta * v / radius : 0;
+  double dbeta = radius > 0 ? -eta * (v / radius) * (u / radius) / radius : 0;
+  *derivative =
+    cos(beta) - miller->a_shift * u / miller->Rmajor_axis - (u * sin(beta) + v * cos(beta)) * dbeta;
+  if (!gk_geometry_query_finite(*derivative)) {
+    gkyl_exit("geo_int query: nonfinite Miller map derivative.");
+  }
+  double Rmajor = miller->Rmajor_axis -
+                  miller->a_shift * radius * radius / (2 * miller->Rmajor_axis) + u * cos(beta) -
+                  v * sin(beta);
+  if (!gk_geometry_query_finite(Rmajor)) {
+    gkyl_exit("geo_int query: nonfinite Miller map.");
+  }
+  return Rmajor;
+}
+
+void
+gkyl_gk_geometry_geo_int_comp2miller_coords(
+  const struct gk_geometry *geo, const double *xc, const struct gkyl_gen_miller_eqdsk_inp *miller,
+  double *out
+)
+{
+  gk_geometry_query_check(geo, xc, out);
+  if (!miller) {
+    gkyl_exit("geo_int query: NULL Miller parameters.");
+  }
+  double params[] = {
+    miller->Rmajor_axis, miller->Zvert_axis, miller->kappa, miller->delta, miller->a_shift
+  };
+  for (int j = 0; j < 5; ++j) {
+    if (!gk_geometry_query_finite(params[j])) {
+      gkyl_exit("geo_int query: nonfinite Miller parameter.");
+    }
+  }
+  if (miller->Rmajor_axis <= 0 || miller->kappa < 0 || fabs(miller->delta) >= 1) {
+    gkyl_exit("geo_int query: invalid Miller axis or shaping parameters.");
+  }
+  double cyl[3];
+  gkyl_gk_geometry_geo_int_comp2cyl_coords(geo, xc, cyl);
+  double kappa = miller->kappa == 0 ? 1 : miller->kappa; // Match generator defaults.
+  double v = (cyl[2] - miller->Zvert_axis) / kappa;
+  double scale = hypot(cyl[0] - miller->Rmajor_axis, v);
+  if (scale <= 16 * DBL_EPSILON * fmax(miller->Rmajor_axis, fabs(miller->Zvert_axis))) {
+    gkyl_exit("geo_int query: Miller angle undefined at magnetic axis.");
+  }
+  // Concentric ellipses have an explicit inverse (including circular CBC).
+  if (miller->a_shift == 0 && miller->delta == 0) {
+    out[0] = scale;
+    out[1] = atan2(v, cyl[0] - miller->Rmajor_axis);
+    out[2] = cyl[1];
+    return;
+  }
+  double derivative;
+  double at_zero = gk_geometry_query_miller_R(miller, 0, v, &derivative);
+  if (derivative <= 0) {
+    gkyl_exit("geo_int query: folded Miller branch at inversion origin.");
+  }
+  double direction = at_zero < cyl[0] ? 1 : -1;
+  double previous = 0, endpoint = 0;
+  bool bracketed = at_zero == cyl[0];
+  // Stop at the first crossing, without sampling past the desired root into
+  // a possible fold.
+  for (int expansion = 0; expansion < 64 && !bracketed; ++expansion) {
+    double start = previous;
+    for (int sample = 1; sample <= 32; ++sample) {
+      endpoint = start + (direction * scale - start) * sample / 32.0;
+      double Rmajor = gk_geometry_query_miller_R(miller, endpoint, v, &derivative);
+      // A trial beyond a fold may still bracket a root on the valid side.
+      // Approach the fold from the last monotone sample before rejecting it.
+      for (int shrink = 0; derivative <= 0 && shrink < 64; ++shrink) {
+        endpoint = 0.5 * (previous + endpoint);
+        Rmajor = gk_geometry_query_miller_R(miller, endpoint, v, &derivative);
+      }
+      if (derivative <= 0 || endpoint == previous) {
+        gkyl_exit("geo_int query: Miller inverse outside the nonfolding branch.");
+      }
+      if ((Rmajor - cyl[0]) * direction >= 0) {
+        bracketed = true;
+        break;
+      }
+      previous = endpoint;
+    }
+    scale *= 1.5;
+  }
+  if (!bracketed) {
+    gkyl_exit("geo_int query: could not bracket Miller inverse.");
+  }
+  double lower = fmin(previous, endpoint), upper = fmax(previous, endpoint);
+  for (int iter = 0; iter < 60; ++iter) {
+    double middle = 0.5 * (lower + upper);
+    double Rmajor = gk_geometry_query_miller_R(miller, middle, v, &derivative);
+    if (derivative <= 0) {
+      gkyl_exit("geo_int query: folded Miller inverse bracket.");
+    }
+    if (Rmajor < cyl[0]) {
+      lower = middle;
+    } else {
+      upper = middle;
+    }
+  }
+  double u = 0.5 * (lower + upper);
+  if (fabs(gk_geometry_query_miller_R(miller, u, v, &derivative) - cyl[0]) >
+      1e-12 * miller->Rmajor_axis) {
+    gkyl_exit("geo_int query: Miller inverse residual exceeds tolerance.");
+  }
+  out[0] = hypot(u, v);
+  out[1] = atan2(v, u);
+  out[2] = cyl[1];
+}

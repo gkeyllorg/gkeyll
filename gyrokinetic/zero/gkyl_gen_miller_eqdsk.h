@@ -76,6 +76,37 @@ const struct gkyl_gen_miller_eqdsk_info *gkyl_gen_miller_eqdsk_get_info(
 );
 
 /**
+ * Map Miller minor radius to outboard major radius.
+ * Requires the outboard major radius to increase with Miller minor radius:
+ * dR_omp/drminor = 1 - a_shift*rminor/Rmajor_axis > 0.
+ * Uses the analytic quadratic shift without constructing a generator or flux table.
+ * This checks the outboard map, not the validity of the entire flux surface.
+ *
+ * @param inp Non-NULL parameters; only Rmajor_axis (>0) and a_shift are used.
+ * @param rminor Nonnegative Miller minor radius [m].
+ * @return Outboard major radius [m], or NaN for invalid inputs, dR_omp/drminor <= 0,
+ * or nonfinite arithmetic.
+ */
+double gkyl_gen_miller_eqdsk_R_omp_at_rminor(
+  const struct gkyl_gen_miller_eqdsk_inp *inp, double rminor
+);
+
+/**
+ * Returns the minor radius where the outboard major radius increases with minor
+ * radius; excludes points where dR_omp/dr=0.
+ * Uses a cancellation-resistant quadratic root and requires no generator or flux table.
+ * This checks the outboard branch, not the validity of the entire flux surface.
+ *
+ * @param inp Non-NULL parameters; only Rmajor_axis (>0) and a_shift are used.
+ * @param R_omp Outboard major radius [m], at or outside Rmajor_axis.
+ * @return Miller minor radius [m], or NaN for invalid inputs, a radius outside
+ * the increasing branch, or nonfinite arithmetic.
+ */
+double gkyl_gen_miller_eqdsk_rminor_at_R_omp(
+  const struct gkyl_gen_miller_eqdsk_inp *inp, double R_omp
+);
+
+/**
  * Evaluate flux at a Miller minor radius.
  *
  * @param up Generator.
@@ -92,6 +123,19 @@ double gkyl_gen_miller_eqdsk_psi_at_r(const gkyl_gen_miller_eqdsk *up, double ra
  * @return Miller minor radius [m], or NaN outside physical coverage.
  */
 double gkyl_gen_miller_eqdsk_r_at_psi(const gkyl_gen_miller_eqdsk *up, double psi);
+
+/**
+ * Convert Miller angle to the tokamak normalized poloidal arc coordinate without
+ * constructing a generator. Uses the analytic constant-shaping, full-contour
+ * convention: zero at the outboard midplane and +/-pi at the inboard midplane.
+ *
+ * @param inp Input parameters; only kappa and delta are used (kappa=0 sets kappa=1).
+ * @param thetaMiller Miller poloidal angle in [-pi,pi] [rad].
+ * @return Tokamak angle [rad], or NaN for invalid inputs or quadrature failure.
+ */
+double gkyl_gen_miller_eqdsk_theta_tok_at_theta(
+  const struct gkyl_gen_miller_eqdsk_inp *inp, double thetaMiller
+);
 
 /**
  * Convert normalized poloidal arc length to Miller poloidal angle.

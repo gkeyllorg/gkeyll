@@ -648,6 +648,9 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
   gkyl_gk_dg_geom_populate_vol(app->dg_geom, app->gk_dg_geom, app->gk_geom);
   gkyl_gk_dg_geom_populate_surf(app->dg_geom, app->gk_dg_geom, app->gk_geom);
 
+  // Retain the host geometry before a possible device replacement.
+  app->gk_geom_ho = gk->geometry.set_gk_geometry ? gkyl_gk_geometry_acquire(app->gk_geom) : NULL;
+
   // If we are on the gpu, copy from host.
   if (app->use_gpu) {
     struct gkyl_dg_geom *dg_geom_dev = gkyl_dg_geom_new_from_host(&dg_geom_inp, app->dg_geom, true);
@@ -931,6 +934,10 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
 
   // Write geometric quantities to file.
   gkyl_gyrokinetic_app_write_geometry(app, &geometry_inp);
+
+  if (gk->geometry.set_gk_geometry) {
+    gk->geometry.set_gk_geometry(app->gk_geom_ho, gk->geometry.set_gk_geometry_ctx);
+  }
 
   return app;
 }
@@ -4695,6 +4702,9 @@ gkyl_gyrokinetic_app_cout(const gkyl_gyrokinetic_app *app, FILE *fp, const char 
 void
 gkyl_gyrokinetic_app_release_geom(gkyl_gyrokinetic_app *app)
 {
+  if (app->gk_geom_ho) {
+    gkyl_gk_geometry_release(app->gk_geom_ho);
+  }
   gkyl_gk_geometry_release(app->gk_geom);
   gkyl_position_map_release(app->position_map);
   for (int dir = 0; dir < app->cdim; ++dir) {
@@ -4715,7 +4725,6 @@ gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app *app)
   gyrokinetic_post_positivity_quasineut_release(app);
 
   gkyl_array_release(app->jacobtot_inv_weak);
-  gkyl_gk_geometry_release(app->gk_geom);
   gkyl_dg_geom_release(app->dg_geom);
   gkyl_gk_dg_geom_release(app->gk_dg_geom);
 
@@ -4760,6 +4769,10 @@ gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app *app)
   gkyl_msgpack_map_elem_release(app->io_meta_basic_len, app->io_meta_basic);
   gkyl_msgpack_map_elem_release(app->io_meta_dg_len, app->io_meta_dg);
 
+  gkyl_gk_geometry_release(app->gk_geom);
+  if (app->gk_geom_ho) {
+    gkyl_gk_geometry_release(app->gk_geom_ho);
+  }
   gkyl_free(app);
 }
 

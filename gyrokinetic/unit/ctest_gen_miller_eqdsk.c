@@ -6,6 +6,8 @@
 #include <gkyl_position_map.h>
 #include <gkyl_tok_geo.h>
 #include <math.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdio.h>
 #include <stdlib.h> // mkstemp(): create a uniquely named temporary file.
 #include <unistd.h> // unlink(): remove a file's directory entry.
@@ -468,9 +470,175 @@ test_devices(void)
   }
 }
 
-TEST_LIST = {
-  {"miller_circle_and_invalid_inputs", test_circle},
-  {"miller_devices_and_reader", test_devices},
-  {"miller_coordinate_conversions", test_coordinates},
-  {NULL, NULL}
-};
+/**
+ * Check NaN bits even when the unit test is compiled with fast-math.
+ *
+ * @param value Return value to classify.
+ * @return Whether the value is an IEEE NaN.
+ */
+static bool
+miller_is_nan(double value)
+{
+  uint64_t bits;
+  memcpy(&bits, &value, sizeof bits);
+  volatile uint64_t exponent = bits & UINT64_C(0x7ff0000000000000);
+  volatile uint64_t mantissa = bits & UINT64_C(0x000fffffffffffff);
+  return exponent == UINT64_C(0x7ff0000000000000) && mantissa != 0;
+}
+
+/**
+ * Check the parameter-only forward angle map against independent arc quadrature
+ * and the existing generator inverse, including the small endpoint exclusion.
+ *
+ */
+static void
+test_forward_angle(void)
+{
+  struct gkyl_gen_miller_eqdsk_inp inp = {0};
+  for (int shift = -1; shift <= 1; ++shift) {
+    inp.a_shift = shift * 0.4;
+    for (int kappa_default = 0; kappa_default <= 1; ++kappa_default) {
+      inp.kappa = kappa_default;
+      for (int j = -16; j <= 16; ++j) {
+        double angle = M_PI * j / 16;
+        TEST_CHECK(gkyl_gen_miller_eqdsk_theta_tok_at_theta(&inp, angle) == angle);
+      }
+    }
+  }
+  for (int shape = 0; shape < 3; ++shape) {
+    inp = (struct gkyl_gen_miller_eqdsk_inp){
+      .Rmajor_axis = 2,
+      .Rmajor_LCFS = 2.6,
+      .bmag_axis = -1.5,
+      .qsafety = constant_q,
+      .kappa = 1.6,
+      .delta = (shape - 1) * 0.35,
+      .a_shift = 0.4,
+    };
+    gkyl_gen_miller_eqdsk *up = gkyl_gen_miller_eqdsk_inew(&inp);
+    TEST_ASSERT(up != NULL);
+    double half_arc = reference_arc(&inp, M_PI), previous = -4;
+    for (int j = -16; j <= 16; ++j) {
+      double angle = M_PI * j / 16;
+      double theta = gkyl_gen_miller_eqdsk_theta_tok_at_theta(&inp, angle);
+      double expected = copysign(M_PI * reference_arc(&inp, fabs(angle)) / half_arc, angle);
+      TEST_CHECK(!miller_is_nan(theta) && theta > previous);
+      TEST_CHECK(fabs(theta - expected) < 1e-10);
+      TEST_MSG("shape=%d angle=%.17g theta=%.17g reference=%.17g", shape, angle, theta, expected);
+      TEST_CHECK(fabs(gkyl_gen_miller_eqdsk_theta_at_theta_tok(up, theta) - angle) < 1e-10);
+      TEST_CHECK(theta == -gkyl_gen_miller_eqdsk_theta_tok_at_theta(&inp, -angle));
+      struct gkyl_gen_miller_eqdsk_inp other = inp;
+      other.a_shift = -0.4;
+      other.Zvert_axis = 0.2;
+      other.Rmajor_axis = 3;
+      TEST_CHECK(theta == gkyl_gen_miller_eqdsk_theta_tok_at_theta(&other, angle));
+      previous = theta;
+    }
+    TEST_CHECK(gkyl_gen_miller_eqdsk_theta_tok_at_theta(&inp, 0) == 0);
+    TEST_CHECK(gkyl_gen_miller_eqdsk_theta_tok_at_theta(&inp, M_PI) == M_PI);
+    TEST_CHECK(gkyl_gen_miller_eqdsk_theta_tok_at_theta(&inp, -M_PI) == -M_PI);
+    double angle = M_PI - 5e-11;
+    double theta = gkyl_gen_miller_eqdsk_theta_tok_at_theta(&inp, angle);
+    TEST_CHECK(theta < M_PI);
+    TEST_CHECK(fabs((M_PI - theta) / (M_PI - angle) - M_PI * inp.kappa / half_arc) < 2e-5);
+    TEST_CHECK(
+      fabs(
+        gkyl_gen_miller_eqdsk_theta_tok_at_theta(&inp, 1e-15) / 1e-15 - M_PI * inp.kappa / half_arc
+      ) < 1e-10
+    );
+    gkyl_gen_miller_eqdsk_release(up);
+  }
+  TEST_CHECK(miller_is_nan(gkyl_gen_miller_eqdsk_theta_tok_at_theta(NULL, 0)));
+  double invalid_angles[] = {-4, 4, strtod("nan", NULL), strtod("inf", NULL)};
+  for (int j = 0; j < 4; ++j) {
+    TEST_CHECK(miller_is_nan(gkyl_gen_miller_eqdsk_theta_tok_at_theta(&inp, invalid_angles[j])));
+  }
+  double invalid_kappa[] = {-1, strtod("nan", NULL), strtod("inf", NULL)};
+  for (int j = 0; j < 3; ++j) {
+    inp.kappa = invalid_kappa[j];
+    TEST_CHECK(miller_is_nan(gkyl_gen_miller_eqdsk_theta_tok_at_theta(&inp, 0.3)));
+  }
+  inp.kappa = 1;
+  double invalid_delta[] = {-1, 1, strtod("nan", NULL), strtod("inf", NULL)};
+  for (int j = 0; j < 4; ++j) {
+    inp.delta = invalid_delta[j];
+    TEST_CHECK(miller_is_nan(gkyl_gen_miller_eqdsk_theta_tok_at_theta(&inp, 0.3)));
+  }
+}
+
+/**
+ * Check parameter-only outboard maps, shared surface geometry, and invalid branches.
+ *
+ */
+static void
+test_outboard_maps(void)
+{
+  // These helpers need neither a field nor a safety-factor callback.
+  struct gkyl_gen_miller_eqdsk_inp inp = {.Rmajor_axis = 2};
+  double shifts[] = {-0.4, -1e-14, 0, 1e-14, 0.4};
+  for (int j = 0; j < 5; ++j) {
+    inp.a_shift = shifts[j];
+    TEST_CHECK(gkyl_gen_miller_eqdsk_R_omp_at_rminor(&inp, 0) == 2);
+    TEST_CHECK(gkyl_gen_miller_eqdsk_rminor_at_R_omp(&inp, 2) == 0);
+    for (int k = 1; k <= 20; ++k) {
+      double rminor = 0.03 * k;
+      double R_omp = gkyl_gen_miller_eqdsk_R_omp_at_rminor(&inp, rminor);
+      double expected = 2 + rminor - shifts[j] * rminor * rminor / 4;
+      TEST_CHECK(fabs(R_omp - expected) < 1e-14);
+      TEST_CHECK(fabs(gkyl_gen_miller_eqdsk_rminor_at_R_omp(&inp, R_omp) - rminor) < 1e-14);
+    }
+  }
+
+  inp.a_shift = 0.4;
+  inp.kappa = 1.5;
+  inp.delta = -0.3;
+  inp.bmag_axis = -1.5;
+  inp.qsafety = constant_q;
+  inp.Rmajor_LCFS = gkyl_gen_miller_eqdsk_R_omp_at_rminor(&inp, 0.5);
+  gkyl_gen_miller_eqdsk *up = gkyl_gen_miller_eqdsk_inew(&inp);
+  TEST_ASSERT(up != NULL);
+  TEST_CHECK(fabs(gkyl_gen_miller_eqdsk_get_info(up)->rminor_LCFS - 0.5) < 1e-14);
+  for (int k = 0; k <= 10; ++k) {
+    double rminor = 0.05 * k, rz[2];
+    gkyl_gen_miller_eqdsk_RZ_at_rtheta(up, rminor, 0, rz);
+    TEST_CHECK(fabs(gkyl_gen_miller_eqdsk_R_omp_at_rminor(&inp, rminor) - rz[0]) < 1e-14);
+  }
+  gkyl_gen_miller_eqdsk_release(up);
+
+  TEST_CHECK(miller_is_nan(gkyl_gen_miller_eqdsk_R_omp_at_rminor(NULL, 0.5)));
+  TEST_CHECK(miller_is_nan(gkyl_gen_miller_eqdsk_rminor_at_R_omp(NULL, 2.5)));
+  double bad_rminor[] = {-0.1, 5, 6, strtod("nan", NULL), strtod("inf", NULL)};
+  double bad_R_omp[] = {1.9, 4.5, 5, strtod("nan", NULL), strtod("inf", NULL)};
+  for (int j = 0; j < 5; ++j) {
+    TEST_CHECK(miller_is_nan(gkyl_gen_miller_eqdsk_R_omp_at_rminor(&inp, bad_rminor[j])));
+    TEST_CHECK(miller_is_nan(gkyl_gen_miller_eqdsk_rminor_at_R_omp(&inp, bad_R_omp[j])));
+  }
+  // Approach, but do not include, the increasing branch's turning point.
+  double rnear = 4.99;
+  double Rnear = gkyl_gen_miller_eqdsk_R_omp_at_rminor(&inp, rnear);
+  TEST_CHECK(fabs(gkyl_gen_miller_eqdsk_rminor_at_R_omp(&inp, Rnear) - rnear) < 1e-10);
+
+  double bad_axis[] = {0, -1, strtod("nan", NULL), strtod("inf", NULL)};
+  for (int j = 0; j < 4; ++j) {
+    inp.Rmajor_axis = bad_axis[j];
+    TEST_CHECK(miller_is_nan(gkyl_gen_miller_eqdsk_R_omp_at_rminor(&inp, 0.5)));
+    TEST_CHECK(miller_is_nan(gkyl_gen_miller_eqdsk_rminor_at_R_omp(&inp, 2.5)));
+  }
+  inp.Rmajor_axis = 2;
+  double bad_shift[] = {strtod("nan", NULL), strtod("inf", NULL)};
+  for (int j = 0; j < 2; ++j) {
+    inp.a_shift = bad_shift[j];
+    TEST_CHECK(miller_is_nan(gkyl_gen_miller_eqdsk_R_omp_at_rminor(&inp, 0.5)));
+    TEST_CHECK(miller_is_nan(gkyl_gen_miller_eqdsk_rminor_at_R_omp(&inp, 2.5)));
+  }
+  inp.a_shift = -1e308;
+  TEST_CHECK(miller_is_nan(gkyl_gen_miller_eqdsk_R_omp_at_rminor(&inp, 10)));
+  TEST_CHECK(miller_is_nan(gkyl_gen_miller_eqdsk_rminor_at_R_omp(&inp, 10)));
+}
+
+TEST_LIST = {{"miller_circle_and_invalid_inputs", test_circle},
+             {"miller_devices_and_reader", test_devices},
+             {"miller_coordinate_conversions", test_coordinates},
+             {"miller_forward_angle", test_forward_angle},
+             {"miller_outboard_maps", test_outboard_maps},
+             {NULL, NULL}};
