@@ -468,10 +468,10 @@ create_ctx(void)
     1.0 / (1.0 + q0 * q0 * (1.6 / sqrt(inv_asp_ratio) + 0.5 + 0.36 * sqrt(inv_asp_ratio)));
 
   // Grid parameters (accurate RH test with 32x32x24x12)
-  int Nx = 16;
-  int Nz = 8;
-  int Nvpar = 12;
-  int Nmu = 6;
+  int Nx = 8;
+  int Nz = 4;
+  int Nvpar = 6;
+  int Nmu = 4;
   int poly_order = 1;
   int psi_lut_nfact = 100 * (poly_order + 1); // Resolution factor for the psi lookup table.
 
@@ -652,6 +652,8 @@ main(int argc, char **argv)
     .boundary_flux_diagnostics =
       {.num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}},
     .time_rate_diagnostics = true,
+    .num_balance_diags = 1,
+    .balance_diags = {GKYL_BALANCE_GK_PARTICLE},
   };
 
   if (ctx.nu_star > 0.0) {
@@ -730,6 +732,8 @@ main(int argc, char **argv)
     .field = field,
 
     .parallelism = parallelism,
+
+    .diagnostics = {.num_balance_diags = 1, .balance_diags = {GKYL_BALANCE_GK_PARTICLE}},
   };
 
   // Set app output name from the executable name (argv[0]).
