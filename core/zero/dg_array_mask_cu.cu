@@ -328,6 +328,7 @@ gkyl_dg_array_mask_cu_dev_new(struct gkyl_dg_array_mask *mask_ho)
   struct gkyl_dg_array_mask *mask = (struct gkyl_dg_array_mask *)gkyl_malloc(sizeof(*mask));
 
   mask->type = mask_ho->type;
+  mask->default_value = mask_ho->default_value;
   mask->threshold = mask_ho->threshold;
   mask->frac_threshold = mask_ho->frac_threshold;
   mask->use_gpu = mask_ho->use_gpu;

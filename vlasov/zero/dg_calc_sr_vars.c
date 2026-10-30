@@ -12,13 +12,14 @@ gkyl_dg_calc_sr_vars *
 gkyl_dg_calc_sr_vars_new(
   const struct gkyl_rect_grid *phase_grid, const struct gkyl_rect_grid *vel_grid,
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *vel_basis,
-  const struct gkyl_range *mem_range, const struct gkyl_range *vel_range, bool use_gpu
+  const struct gkyl_range *mem_range, const struct gkyl_range *vel_range,
+  const struct gkyl_vlasov_velocity_map *vel_map, bool use_gpu
 )
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
     return gkyl_dg_calc_sr_vars_cu_dev_new(
-      phase_grid, vel_grid, conf_basis, vel_basis, mem_range, vel_range
+      phase_grid, vel_grid, conf_basis, vel_basis, mem_range, vel_range, vel_map
     );
   }
 #endif
@@ -37,10 +38,12 @@ gkyl_dg_calc_sr_vars_new(
   up->mem_range = *mem_range;
 
   int vdim = vel_basis->ndim;
-  int poly_order_v = vel_basis->poly_order;
-  enum gkyl_basis_type b_type_v = vel_basis->b_type;
-
-  up->sr_p_vars = choose_sr_p_vars_kern(b_type_v, vdim, poly_order_v);
+  up->use_vmap = vel_map && vel_map->is_mapped;
+  up->vmap = 0;
+  if (up->use_vmap) {
+    up->vmap = gkyl_array_acquire(vel_map->vmap);
+  }
+  up->sr_pressure = choose_sr_vars_pressure_kern(b_type, cdim, vdim, poly_order);
   up->sr_n_set = choose_sr_vars_n_set_kern(b_type, cdim, vdim, poly_order);
   up->sr_n_copy = choose_sr_vars_n_copy_kern(b_type, cdim, vdim, poly_order);
   up->sr_GammaV = choose_sr_vars_GammaV_kern(b_type, cdim, vdim, poly_order);
@@ -59,31 +62,6 @@ gkyl_dg_calc_sr_vars_new(
   up->on_dev = up; // self-reference on host
 
   return up;
-}
-
-void
-gkyl_calc_sr_vars_init_p_vars(
-  struct gkyl_dg_calc_sr_vars *up, struct gkyl_array *gamma, struct gkyl_array *gamma_inv
-)
-{
-#ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(gamma)) {
-    return gkyl_calc_sr_vars_init_p_vars_cu(up, gamma, gamma_inv);
-  }
-#endif
-
-  // Cell center array
-  double xc[GKYL_MAX_DIM];
-  struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, &up->vel_range);
-  while (gkyl_range_iter_next(&iter)) {
-    gkyl_rect_grid_cell_center(&up->vel_grid, iter.idx, xc);
-    long loc = gkyl_range_idx(&up->vel_range, iter.idx);
-
-    double *gamma_d = gkyl_array_fetch(gamma, loc);
-    double *gamma_inv_d = gkyl_array_fetch(gamma_inv, loc);
-    up->sr_p_vars(xc, up->vel_grid.dx, gamma_d, gamma_inv_d);
-  }
 }
 
 void
@@ -208,8 +186,8 @@ gkyl_dg_calc_sr_vars_pressure(
     double *sr_pressure_d = gkyl_array_fetch(sr_pressure, loc_conf);
 
     up->sr_pressure(
-      xc, up->phase_grid.dx, gamma_d, gamma_inv_d, u_i_d, u_i_sq_d, GammaV_d, GammaV_sq_d, f_d,
-      sr_pressure_d
+      xc, up->phase_grid.dx, up->use_vmap ? gkyl_array_cfetch(up->vmap, loc_vel) : 0, gamma_d,
+      gamma_inv_d, u_i_d, u_i_sq_d, GammaV_d, GammaV_sq_d, f_d, sr_pressure_d
     );
   }
 }
@@ -220,6 +198,10 @@ gkyl_dg_calc_sr_vars_release(gkyl_dg_calc_sr_vars *up)
   gkyl_nmat_release(up->As);
   gkyl_nmat_release(up->xs);
   gkyl_nmat_linsolve_lu_release(up->mem);
+
+  if (up->use_vmap) {
+    gkyl_array_release(up->vmap);
+  }
 
   if (GKYL_IS_CU_ALLOC(up->flags)) {
     gkyl_cu_free(up->on_dev);

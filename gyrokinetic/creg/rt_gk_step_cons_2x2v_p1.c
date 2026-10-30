@@ -41,6 +41,7 @@ struct gk_step_ctx {
   int Nz; // Cell count (configuration space: z-direction).
   int Nvpar; // Cell count (velocity space: parallel velocity direction).
   int Nmu; // Cell count (velocity space: magnetic moment direction).
+  int Nv_D0; // Cell count per direction of the neutral velocity space.
   int cells[GKYL_MAX_DIM]; // Number of cells in all directions.
   double lower_x, upper_x; // Limits of the domain along x.
   double Lx; // Domain size (configuration space: x-direction).
@@ -246,6 +247,7 @@ create_ctx(void)
   int Nz = 8;
   int Nvpar = 12;
   int Nmu = 8;
+  int Nv_D0 = 8; // Cell count per direction of the neutral velocity space.
 
   double t_end = 5e-8;
   double num_frames = 1;
@@ -292,6 +294,7 @@ create_ctx(void)
     .Nz = Nz,
     .Nvpar = Nvpar,
     .Nmu = Nmu,
+    .Nv_D0 = Nv_D0,
     .cells = {Nx, Nz, Nvpar, Nmu},
     .t_end = t_end,
     .num_frames = num_frames,
@@ -591,9 +594,9 @@ main(int argc, char **argv)
     .name = "D0",
     .mass = ctx.massIon,
     .vdim = ctx.vdim + 1,
-    .lower = {-ctx.vpar_max_D0, -ctx.vpar_max_D0 * 3.0, -ctx.vpar_max_D0 * 4.0},
-    .upper = {ctx.vpar_max_D0, ctx.vpar_max_D0 * 3.0, ctx.vpar_max_D0 * 4.0},
-    .cells = {cells_v[0], cells_v[0], cells_v[0]},
+    .lower = {-ctx.vpar_max_D0, -ctx.vpar_max_D0, -ctx.vpar_max_D0},
+    .upper = {ctx.vpar_max_D0, ctx.vpar_max_D0, ctx.vpar_max_D0},
+    .cells = {ctx.Nv_D0, ctx.Nv_D0, ctx.Nv_D0},
     .is_static = false,
 
     .projection =

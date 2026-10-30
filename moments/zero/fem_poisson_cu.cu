@@ -358,6 +358,10 @@ gkyl_fem_poisson_set_rhs_cu(
 
   // Set the corresponding entries to the biasing potential.
   up->bias_plane_src(up, rhsin);
+
+  if (up->pin_gauge) {
+    gkyl_cu_memset(rhs_cu, 0, sizeof(double)); // gauge equation phi_0 = 0 (see the matrix assembly).
+  }
 }
 
 void

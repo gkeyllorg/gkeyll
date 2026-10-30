@@ -534,8 +534,6 @@ struct gkyl_gyrokinetic_neut_species {
 
   bool is_static; // Set to true if neutral species does not change in time.
 
-  struct gkyl_gyrokinetic_positivity positivity; // Positivity enforcement options.
-
   struct gkyl_gyrokinetic_ic_import init_from_file;
 
   // Initial conditions using projection routine.

@@ -22,6 +22,7 @@ gkyl_mom_calc_new(const struct gkyl_rect_grid *grid, const struct gkyl_mom_type 
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);
   up->on_dev = up; // self-reference on host
+  up->use_gpu = use_gpu;
 
   return up;
 }
@@ -44,6 +45,13 @@ gkyl_mom_calc_advance(
   struct gkyl_array *GKYL_RESTRICT mout
 )
 {
+#ifdef GKYL_HAVE_CUDA
+  if (calc->use_gpu) {
+    gkyl_mom_calc_advance_cu(calc, phase_rng, conf_rng, fin, mout);
+    return;
+  }
+#endif
+
   double xc[GKYL_MAX_DIM];
   struct gkyl_range vel_rng;
   struct gkyl_range_iter conf_iter, vel_iter;
@@ -73,7 +81,7 @@ gkyl_mom_calc_advance(
 
       gkyl_mom_type_calc(
         calc->momt, xc, calc->grid.dx, pidx, gkyl_array_cfetch(fin, fidx),
-        gkyl_array_fetch(mout, midx), 0
+        gkyl_array_fetch(mout, midx), GKYL_VEL_EDGE_NONE
       );
     }
   }

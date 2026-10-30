@@ -1,3 +1,12 @@
+// Relativistic Weibel instability of two cold counter-streaming electron beams
+// (special-relativistic Vlasov-Maxwell, 1x3v): beams at +-0.9 c along y with the same drift and
+// temperature scale as the relativistic two-stream tests, filamentation mode k = 0.5 along x seeded
+// by a magnetic field perturbation. Ions are a neutralizing background.
+// Linear theory (lab-frame plasma frequency sqrt(gamma_drift)) gives the growth rate gamma = 0.525
+// of the field amplitude, so the magnetic energy W_B grows as exp(2 gamma t); a least-squares fit
+// of ln W_B over t = 5-15 gives gamma = 0.533. W_B saturates at a first maximum of 7.57 at t = 21.6
+// and reaches its overall maximum, 13.3, at t = 26.9.
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,30 +38,16 @@ struct weibel_sr_ctx {
   double mass_elc; // Electron mass.
   double charge_elc; // Electron charge.
 
-  double n_elc1; // First electron number density.
-  double n_elc2; // Second electron number density.
-  double ux_elc1; // First electron velocity (x-direction).
-  double ux_elc2; // Second electron velocity (x-direction).
-  double uy_elc1; // First electron velocity (y-direction).
-  double uy_elc2; // Second electron velocity (y-direction).
-  double uz_elc1; // First electron velocity (z-direction).
-  double uz_elc2; // Second electron velocity (z-direction).
-  double T_elc1; // First electron temperature (units of mc^2).
-  double T_elc2; // Second electron temperature (units of mc^2).
+  double n0; // Reference number density.
+  double uy_drift; // Drift velocity of the beams (y-direction, units of c).
+  double T_elc; // Electron temperature (units of mc^2).
 
   double alpha; // Applied perturbation amplitude.
   double kx; // Perturbed wave number (x-direction).
 
   // Derived physical quantities (using normalized code units).
-  double gamma_elc1; // First electron gamma factor.
-  double gamma_elc2; // Second electron gamma factor.
-
-  double ux_elc1_sr; // First electron relativistic velocity (x-direction).
-  double ux_elc2_sr; // Second electron relativistic velocity (x-direction).
-  double uy_elc1_sr; // First electron relativistic velocity (y-direction).
-  double uy_elc2_sr; // Second electron relativistic velocity (y-direction).
-  double uz_elc1_sr; // First electron relativistic velocity (z-direction).
-  double uz_elc2_sr; // Second electron relativistic velocity (z-direction).
+  double gamma_drift; // Lorentz factor of the beams.
+  double uy_drift_sr; // Relativistic drift velocity of the beams (y-direction).
 
   // Simulation parameters.
   int Nx; // Cell count (configuration space: x-direction).
@@ -87,48 +82,31 @@ create_ctx(void)
   double mass_elc = 1.0; // Electron mass.
   double charge_elc = -1.0; // Electron charge.
 
-  double n_elc1 = 0.5; // First electron number density.
-  double n_elc2 = 0.5; // Second electron number density.
-  double ux_elc1 = 0.0; // First electron velocity (x-direction).
-  double ux_elc2 = 0.0; // Second electron velocity (x-direction).
-  double uy_elc1 = 0.9; // First electron velocity (y-direction).
-  double uy_elc2 = -0.9; // Second electron velocity (y-direction).
-  double uz_elc1 = 0.0; // First electron velocity (z-direction).
-  double uz_elc2 = 0.0; // Second electron velocity (z-direction).
-  double T_elc1 = 0.04; // First electron temperature (units of mc^2).
-  double T_elc2 = 0.04; // Second electron temperature (units of mc^2).
+  double n0 = 1.0; // Reference number density.
+  double uy_drift = 0.9; // Drift velocity of the beams (y-direction, units of c).
+  double T_elc = 0.01; // Electron temperature (units of mc^2).
 
-  double alpha = 1.0e-3; // Applied perturbation amplitude.
-  double kx = 0.4; // Perturbed wave number (x-direction).
+  double alpha = 0.0001; // Applied perturbation amplitude.
+  double kx = 0.5; // Perturbed wave number (x-direction).
 
   // Derived physical quantities (using normalized code units).
-  double gamma_elc1 = 1.0 / sqrt(
-                              1.0 - (ux_elc1 * ux_elc1) - (uy_elc1 * uy_elc1) - (uz_elc1 * uz_elc1)
-                            ); // First electron gamma factor.
-  double gamma_elc2 = 1.0 / sqrt(
-                              1.0 - (ux_elc2 * ux_elc2) - (uy_elc2 * uy_elc2) - (uz_elc2 * uz_elc2)
-                            ); // Second electron gamma factor.
-
-  double ux_elc1_sr = gamma_elc1 * ux_elc1; // First electron relativistic velocity (x-direction).
-  double ux_elc2_sr = gamma_elc2 * ux_elc2; // Second electron relativistic velocity (x-direction).
-  double uy_elc1_sr = gamma_elc1 * uy_elc1; // First electron relativistic velocity (y-direction).
-  double uy_elc2_sr = gamma_elc2 * uy_elc2; // Second electron relativistic velocity (y-direction).
-  double uz_elc1_sr = gamma_elc1 * uz_elc1; // First electron relativistic velocity (z-direction).
-  double uz_elc2_sr = gamma_elc2 * uz_elc2; // Second electron relativistic velocity (z-direction).
+  double gamma_drift = 1.0 / sqrt(1.0 - (uy_drift * uy_drift)); // Lorentz factor of the beams.
+  double uy_drift_sr =
+    gamma_drift * uy_drift; // Relativistic drift velocity of the beams (y-direction).
 
   // Simulation parameters.
-  int Nx = 6; // Cell count (configuration space: x-direction).
-  int Nvx = 6; // Cell count (velocity space: vx-direction).
-  int Nvy = 6; // Cell count (velocity space: vy-direction).
-  int Nvz = 6; // Cell count (velocity space: vz-direction).
+  int Nx = 8; // Cell count (configuration space: x-direction).
+  int Nvx = 12; // Cell count (velocity space: vx-direction).
+  int Nvy = 12; // Cell count (velocity space: vy-direction).
+  int Nvz = 4; // Cell count (velocity space: vz-direction).
   double Lx = 2.0 * pi / kx; // Domain size (configuration space: x-direction).
-  double vx_max = 8.0; // Domain boundary (velocity space: vx-direction).
-  double vy_max = 8.0; // Domain boundary (velocity space: vy-direction).
-  double vz_max = 8.0; // Domain boundary (velocity space: vz-direction).
+  double vx_max = 6.0; // Domain boundary (velocity space: vx-direction).
+  double vy_max = 6.0; // Domain boundary (velocity space: vy-direction).
+  double vz_max = 1.0; // Domain boundary (velocity space: vz-direction).
   int poly_order = 2; // Polynomial order.
   double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 10.0; // Final simulation time.
+  double t_end = 30.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
@@ -143,26 +121,13 @@ create_ctx(void)
     .mu0 = mu0,
     .mass_elc = mass_elc,
     .charge_elc = charge_elc,
-    .n_elc1 = n_elc1,
-    .n_elc2 = n_elc2,
-    .ux_elc1 = ux_elc1,
-    .ux_elc2 = ux_elc2,
-    .uy_elc1 = uy_elc1,
-    .uy_elc2 = uy_elc2,
-    .uz_elc1 = uz_elc1,
-    .uz_elc2 = uz_elc2,
-    .T_elc1 = T_elc1,
-    .T_elc2 = T_elc2,
+    .n0 = n0,
+    .uy_drift = uy_drift,
+    .T_elc = T_elc,
     .alpha = alpha,
     .kx = kx,
-    .gamma_elc1 = gamma_elc1,
-    .gamma_elc2 = gamma_elc2,
-    .ux_elc1_sr = ux_elc1_sr,
-    .ux_elc2_sr = ux_elc2_sr,
-    .uy_elc1_sr = uy_elc1_sr,
-    .uy_elc2_sr = uy_elc2_sr,
-    .uz_elc1_sr = uz_elc1_sr,
-    .uz_elc2_sr = uz_elc2_sr,
+    .gamma_drift = gamma_drift,
+    .uy_drift_sr = uy_drift_sr,
     .Nx = Nx,
     .Nvx = Nvx,
     .Nvy = Nvy,
@@ -186,85 +151,51 @@ create_ctx(void)
 }
 
 void
-evalDensityLInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+evalDensityInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct weibel_sr_ctx *app = ctx;
-  double x = xn[0];
 
-  double alpha = app->alpha;
-  double kx = app->kx;
-  double n = app->n_elc1;
+  double n0 = app->n0;
 
-  // Set left-going distribution density.
-  fout[0] = n;
+  // Set beam number density.
+  fout[0] = 0.5 * n0;
 }
 
 void
-evalDensityRInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+evalTempInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct weibel_sr_ctx *app = ctx;
-  double x = xn[0];
 
-  double alpha = app->alpha;
-  double kx = app->kx;
-  double n = app->n_elc2;
+  double T_elc = app->T_elc;
 
-  // Set right-going distribution density.
-  fout[0] = n;
+  // Set isotropic temperature.
+  fout[0] = T_elc;
 }
 
 void
-evalTempLInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+evalVDrift1Init(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct weibel_sr_ctx *app = ctx;
 
-  double T = app->T_elc1;
+  double uy_drift_sr = app->uy_drift_sr;
 
-  // Set left-going distribution temperature.
-  fout[0] = T;
+  // Set relativistic drift velocity of the first beam.
+  fout[0] = 0.0;
+  fout[1] = uy_drift_sr;
+  fout[2] = 0.0;
 }
 
 void
-evalTempRInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+evalVDrift2Init(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct weibel_sr_ctx *app = ctx;
 
-  double T = app->T_elc2;
+  double uy_drift_sr = app->uy_drift_sr;
 
-  // Set right-going distribution temperature.
-  fout[0] = T;
-}
-
-void
-evalVDriftLInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
-{
-  struct weibel_sr_ctx *app = ctx;
-
-  double gamma = app->gamma_elc1;
-  double ux_elc = app->ux_elc1;
-  double uy_elc = app->uy_elc1;
-  double uz_elc = app->uz_elc1;
-
-  // Set left-going distribution drift (four-) velocity.
-  fout[0] = gamma * ux_elc;
-  fout[1] = gamma * uy_elc;
-  fout[2] = gamma * uz_elc;
-}
-
-void
-evalVDriftRInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
-{
-  struct weibel_sr_ctx *app = ctx;
-
-  double gamma = app->gamma_elc2;
-  double ux_elc = app->ux_elc2;
-  double uy_elc = app->uy_elc2;
-  double uz_elc = app->uz_elc2;
-
-  // Set right-going distribution drift (four-) velocity.
-  fout[0] = gamma * ux_elc;
-  fout[1] = gamma * uy_elc;
-  fout[2] = gamma * uz_elc;
+  // Set relativistic drift velocity of the second beam.
+  fout[0] = 0.0;
+  fout[1] = -uy_drift_sr;
+  fout[2] = 0.0;
 }
 
 void
@@ -276,18 +207,33 @@ evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fo
   double alpha = app->alpha;
   double kx = app->kx;
 
-  double B_z = alpha * sin(kx * x);
+  double Ex = 0.0; // Total electric field (x-direction).
+  double Ey = 0.0; // Total electric field (y-direction).
+  double Ez = 0.0; // Total electric field (z-direction).
+
+  double Bx = 0.0; // Total magnetic field (x-direction).
+  double By = 0.0; // Total magnetic field (y-direction).
+  double Bz = alpha * sin(kx * x); // Total magnetic field (z-direction).
 
   // Set electric field.
-  fout[0] = 0.0;
-  fout[1] = 0.0, fout[2] = 0.0;
+  fout[0] = Ex;
+  fout[1] = Ey, fout[2] = Ez;
   // Set magnetic field.
-  fout[3] = 0.0;
-  fout[4] = 0.0;
-  fout[5] = B_z;
+  fout[3] = Bx;
+  fout[4] = By;
+  fout[5] = Bz;
   // Set correction potentials.
   fout[6] = 0.0;
   fout[7] = 0.0;
+}
+
+// Snap a trigger whose next time exceeds t_end only by round-off back to t_end.
+static void
+snap_trigger_to_t_end(struct gkyl_tm_trigger *trig, double t_end)
+{
+  if (trig->tcurr > t_end && trig->tcurr <= t_end * (1.0 + 1.0e-10)) {
+    trig->tcurr = t_end;
+  }
 }
 
 void
@@ -303,8 +249,6 @@ write_data(struct gkyl_tm_trigger *iot, gkyl_vlasov_app *app, double t_curr, boo
     gkyl_vlasov_app_write_field_energy(app);
     gkyl_vlasov_app_write_integrated_mom(app);
     gkyl_vlasov_app_write_integrated_L2_f(app);
-
-    gkyl_vlasov_app_calc_mom(app);
     gkyl_vlasov_app_write_mom(app, t_curr, frame);
   }
 }
@@ -422,25 +366,22 @@ main(int argc, char **argv)
   }
 
   // Electrons.
-  struct gkyl_vlasov_species elc = {
-    .name = "elc",
+  struct gkyl_vlasov_kinetic_species elc = {
     .model_id = GKYL_MODEL_SR,
-    .charge = ctx.charge_elc,
-    .mass = ctx.mass_elc,
     .lower = {-ctx.vx_max, -ctx.vy_max, -ctx.vz_max},
     .upper = {ctx.vx_max, ctx.vy_max, ctx.vz_max},
     .cells = {NVX, NVY, NVZ},
 
     .num_init = 2,
-    // Two counter-streaming Maxwellians.
+    // Two counter-streaming Maxwell-Juttner distributions.
     .projection[0] =
       {
         .proj_id = GKYL_PROJ_VLASOV_LTE,
-        .density = evalDensityLInit,
+        .density = evalDensityInit,
         .ctx_density = &ctx,
-        .temp = evalTempLInit,
+        .temp = evalTempInit,
         .ctx_temp = &ctx,
-        .V_drift = evalVDriftLInit,
+        .V_drift = evalVDrift1Init,
         .ctx_V_drift = &ctx,
         .correct_all_moms = true,
         .use_last_converged = true,
@@ -448,25 +389,24 @@ main(int argc, char **argv)
     .projection[1] =
       {
         .proj_id = GKYL_PROJ_VLASOV_LTE,
-        .density = evalDensityRInit,
+        .density = evalDensityInit,
         .ctx_density = &ctx,
-        .temp = evalTempRInit,
+        .temp = evalTempInit,
         .ctx_temp = &ctx,
-        .V_drift = evalVDriftRInit,
+        .V_drift = evalVDrift2Init,
         .ctx_V_drift = &ctx,
         .correct_all_moms = true,
         .use_last_converged = true,
       },
 
-    .num_diag_moments = 2,
-    .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1},
+    .num_diag_moments = 3,
+    .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_LTE},
   };
 
   // Field.
   struct gkyl_vlasov_field field = {
     .epsilon0 = ctx.epsilon0,
     .mu0 = ctx.mu0,
-
     .elcErrorSpeedFactor = 0.0,
     .mgnErrorSpeedFactor = 0.0,
 
@@ -479,8 +419,8 @@ main(int argc, char **argv)
 
     .cdim = 1,
     .vdim = 3,
-    .lower = {-0.5 * ctx.Lx},
-    .upper = {0.5 * ctx.Lx},
+    .lower = {0.0},
+    .upper = {ctx.Lx},
     .cells = {NX},
 
     .poly_order = ctx.poly_order,
@@ -491,7 +431,13 @@ main(int argc, char **argv)
     .periodic_dirs = {0},
 
     .num_species = 1,
-    .species = {elc},
+    .species = {{
+      .name = "elc",
+      .charge = ctx.charge_elc,
+      .mass = ctx.mass_elc,
+      .type = GKYL_SPECIES_VLASOV,
+      .kinetic = elc,
+    }},
 
     .field = field,
 
@@ -563,7 +509,7 @@ main(int argc, char **argv)
   int num_frames = ctx.num_frames;
   struct gkyl_tm_trigger io_trig = {
     .dt = t_end / num_frames,
-    .tcurr = frame_curr * (t_end / num_frames),
+    .tcurr = gkyl_tm_trigger_anchor(t_end / num_frames, t_curr),
     .curr = frame_curr,
   };
 
@@ -571,6 +517,11 @@ main(int argc, char **argv)
 
   // Compute initial guess of maximum stable time-step.
   double dt = t_end - t_curr;
+
+  // The requested time-step is shortened near the end of the simulation so that
+  // the final step lands exactly on t_end.
+  bool is_dt_clipped = false; // Was the requested dt shortened below the stable dt?
+  bool is_last_step = true; // Does the requested dt reach t_end?
 
   // Initialize small time-step check.
   double dt_init = -1.0, dt_failure_tol = ctx.dt_failure_tol;
@@ -587,8 +538,37 @@ main(int argc, char **argv)
       break;
     }
 
-    t_curr += status.dt_actual;
+    // Only a step that took the full requested dt counts as shortened/final.
+    bool took_requested_dt = status.dt_actual == dt;
+    bool was_dt_clipped = is_dt_clipped && took_requested_dt;
+    if (is_last_step && took_requested_dt) {
+      // Avoid round-off leaving t_curr just short of t_end.
+      t_curr = t_end;
+      // Trigger times are accumulated sums and can exceed t_end by round-off.
+      // Snap them so the final frame and diagnostics are still produced.
+      snap_trigger_to_t_end(&fe_trig, t_end);
+      snap_trigger_to_t_end(&im_trig, t_end);
+      snap_trigger_to_t_end(&l2f_trig, t_end);
+      snap_trigger_to_t_end(&io_trig, t_end);
+    } else {
+      t_curr += status.dt_actual;
+    }
+
+    // Request the next time-step. If the remaining time fits in one stable step,
+    // take exactly the remaining time; if it fits in less than two, split it into
+    // two equal steps so the final step is never a sliver of the stable dt.
+    double t_left = t_end - t_curr;
     dt = status.dt_suggested;
+    is_dt_clipped = false;
+    is_last_step = false;
+    if (t_left <= dt) {
+      dt = t_left;
+      is_dt_clipped = true;
+      is_last_step = true;
+    } else if (t_left < 2.0 * dt) {
+      dt = 0.5 * t_left;
+      is_dt_clipped = true;
+    }
 
     calc_field_energy(&fe_trig, app, t_curr, false);
     calc_integrated_mom(&im_trig, app, t_curr, false);
@@ -597,7 +577,7 @@ main(int argc, char **argv)
 
     if (dt_init < 0.0) {
       dt_init = status.dt_actual;
-    } else if (status.dt_actual < dt_failure_tol * dt_init) {
+    } else if (!was_dt_clipped && status.dt_actual < dt_failure_tol * dt_init) {
       num_failures += 1;
 
       gkyl_vlasov_app_cout(app, stdout, "WARNING: Time-step dt = %g", status.dt_actual);
@@ -655,7 +635,9 @@ main(int argc, char **argv)
   gkyl_vlasov_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
   gkyl_vlasov_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);
-  gkyl_vlasov_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
+  double io_tm =
+    stat.field_io_tm + stat.species_io_tm + stat.field_diag_io_tm + stat.species_diag_io_tm;
+  gkyl_vlasov_app_cout(app, stdout, "IO time took %g secs \n", io_tm);
 
 freeresources:
   // Free resources after simulation completion.

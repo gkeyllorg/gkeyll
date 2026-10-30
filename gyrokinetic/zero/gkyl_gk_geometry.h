@@ -90,6 +90,7 @@ struct gk_geom_int {
   // Calculated with coord definition alpha = phi for tokamak geometry.
   struct gkyl_array
     *dxdz; // 9 components. Cartesian components of tangent Vectors stored in order e_1, e_2, e_3.
+  struct gkyl_array *dxdz_grad; // 27 components. Modal expansion of dxdz_grad_nodal (I/O).
   struct gkyl_array
     *dzdx; // 9 components. Cartesian components of dual vectors stored in order e^1, e^2, e^3.
   struct gkyl_array *dualmag; // 3 components. Norms of the dual vectors: sqrt(e^i.e^i).
@@ -149,6 +150,8 @@ struct gk_geom_int {
   // Calculated with coord definition alpha = phi for tokamak geometry
   struct gkyl_array *dxdz_nodal; // 9 components.
   // Cartesian components of tangent Vectors stored in order e_1, e_2, e_3
+  struct gkyl_array *dxdz_grad_nodal; // 27 components. d(e_i)/dz^j Cartesian, direction j
+  // slowest: [9 j + 3 i + c]. Filled for deflated (cdim<3) geometries only.
   struct gkyl_array *dzdx_nodal; // 9 components.
   // Cartesian components of dual vectors stroed in order e^1, e^2, e^3
   struct gkyl_array *dualmag_nodal; // 3 components
@@ -204,6 +207,9 @@ struct gk_geometry {
   // location of the LCFS. For numerical IWL, it may be stored
   // in the eqdsk.
   int idx_LCFS_lo; // Index of the cell that abuts the LCFS from below.
+
+  bool has_dxdz_grad; // Whether geo_int.dxdz_grad(_nodal) are filled: deflated (cdim<3)
+  // geometries built in-app, or read from files that carry them (runs with kinetic neutrals).
 
   // Functions defining the twistshift for parallel BCs.
   void (*lower_shift_func)(double t, const double *xn, double *fout, void *ctx);

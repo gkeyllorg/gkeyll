@@ -9,4 +9,5 @@ struct gkyl_mom_calc {
 
   uint32_t flags;
   struct gkyl_mom_calc *on_dev; // pointer to itself or device data
+  bool use_gpu; // Whether to run on the gpu.
 };

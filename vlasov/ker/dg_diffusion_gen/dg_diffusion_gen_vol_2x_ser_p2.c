@@ -18,5 +18,9 @@ dg_diffusion_gen_vol_2x_ser_p2(const double* w, const double* dx,
   const double* Dxy = &Dij[8];
   const double* Dyy = &Dij[16];
 
-  return Jxx*Dxx[0] + Jxy*Dxy[0] + Jyy*Dyy[0];
+  const double Dxx_av = 0.5*Dxx[0];
+  const double Dxy_av = 0.5*Dxy[0];
+  const double Dyy_av = 0.5*Dyy[0];
+
+  return 9.0*(Jxx*Dxx_av + Jxy*fabs(Dxy_av) + Jyy*Dyy_av);
 }

@@ -64,14 +64,14 @@ gkns_react_cross_moms_enabled(
         gks_ion->lte.moms.marr, 0, app->gk_geom->geo_int.jacobgeo, &app->local
       );
 
-      // Construct ion vector velocity upar b_i
-      // if cdim = 1, u0 = upar, if cdim = 2, u1 = upar, if cdim = 3, u2 = upar
+      // Construct ion vector velocity upar b_i in the neutral triad frame
+      // (e1, e2, bhat): upar is the bhat (third) component for any cdim.
       gkyl_array_clear(react->upar_ion[i], 0.0);
       gkyl_array_set_offset(
         react->u_i_dot_b_i[i], 1.0, gks_ion->lte.moms.marr, 1 * app->basis.num_basis
       );
       gkyl_array_set_offset(
-        react->upar_ion[i], 1.0, react->u_i_dot_b_i[i], (app->cdim - 1) * app->basis.num_basis
+        react->upar_ion[i], 1.0, react->u_i_dot_b_i[i], 2 * app->basis.num_basis
       );
       gkyl_array_clear(react->u_i_dot_b_i[i], 0.0);
 
@@ -94,14 +94,14 @@ gkns_react_cross_moms_enabled(
         gks_ion->lte.moms.marr, 0, app->gk_geom->geo_int.jacobgeo, &app->local
       );
 
-      // Construct ion vector velocity upar b_i
-      // if cdim = 1, u0 = upar, if cdim = 2, u1 = upar, if cdim = 3, u2 = upar
+      // Construct ion vector velocity upar b_i in the neutral triad frame
+      // (e1, e2, bhat): upar is the bhat (third) component for any cdim.
       gkyl_array_clear(react->upar_ion[i], 0.0);
       gkyl_array_set_offset(
         react->u_i_dot_b_i[i], 1.0, gks_ion->lte.moms.marr, 1 * app->basis.num_basis
       );
       gkyl_array_set_offset(
-        react->upar_ion[i], 1.0, react->u_i_dot_b_i[i], (app->cdim - 1) * app->basis.num_basis
+        react->upar_ion[i], 1.0, react->u_i_dot_b_i[i], 2 * app->basis.num_basis
       );
       gkyl_array_clear(react->u_i_dot_b_i[i], 0.0);
 

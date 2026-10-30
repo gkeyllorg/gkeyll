@@ -2,18 +2,20 @@
 //
 #include <acutest.h>
 #include <math.h>
-#include <gkyl_proj_on_basis.h>
-#include <gkyl_range.h>
-#include <gkyl_rect_decomp.h>
-#include <gkyl_rect_grid.h>
+
 #include <gkyl_array_rio.h>
 #include <gkyl_array_ops.h>
+#include <gkyl_dg_vlasov_calc_hamil.h>
 #include <gkyl_mom_calc_bcorr.h>
 #include <gkyl_mom_calc.h>
 #include <gkyl_mom_vlasov.h>
 #include <gkyl_prim_lbo_calc.h>
 #include <gkyl_prim_lbo_cross_calc.h>
 #include <gkyl_prim_lbo_type.h>
+#include <gkyl_proj_on_basis.h>
+#include <gkyl_range.h>
+#include <gkyl_rect_decomp.h>
+#include <gkyl_rect_grid.h>
 
 static inline double
 maxwellian1D(double n, double vx, double ux, double vth)
@@ -111,7 +113,8 @@ test_func(
 {
   int pdim = cdim + vdim;
   double lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM], confLower[GKYL_MAX_DIM], confUpper[GKYL_MAX_DIM];
-  int cells[GKYL_MAX_DIM], confCells[GKYL_MAX_DIM];
+  double velLower[GKYL_MAX_DIM], velUpper[GKYL_MAX_DIM];
+  int cells[GKYL_MAX_DIM], confCells[GKYL_MAX_DIM], velCells[GKYL_MAX_DIM];
 
   double v_bounds[2 * vdim];
 
@@ -129,6 +132,9 @@ test_func(
       upper[i] = 2.0;
       v_bounds[i - cdim] = lower[i];
       v_bounds[i - cdim + vdim] = upper[i];
+      velLower[i - cdim] = lower[i];
+      velUpper[i - cdim] = upper[i];
+      velCells[i - cdim] = cells[i];
     }
   }
 
@@ -137,10 +143,13 @@ test_func(
   gkyl_rect_grid_init(&grid, pdim, lower, upper, cells);
   struct gkyl_rect_grid confGrid;
   gkyl_rect_grid_init(&confGrid, cdim, confLower, confUpper, confCells);
+  struct gkyl_rect_grid vel_grid;
+  gkyl_rect_grid_init(&vel_grid, vdim, velLower, velUpper, velCells);
 
   // basis functions
-  struct gkyl_basis basis, confBasis;
+  struct gkyl_basis basis, confBasis, velBasis;
   gkyl_cart_modal_serendip(&basis, pdim, poly_order);
+  gkyl_cart_modal_serendip(&velBasis, vdim, poly_order);
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   int confGhost[] = {0};
@@ -148,6 +157,10 @@ test_func(
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
   struct skin_ghost_ranges confSkin_ghost; // conf-space skin/ghost
   skin_ghost_ranges_init(&confSkin_ghost, &confLocal_ext, confGhost);
+
+  int velGhost[] = {0, 0, 0};
+  struct gkyl_range velLocal, velLocal_ext;
+  gkyl_create_grid_ranges(&vel_grid, velGhost, &velLocal_ext, &velLocal);
 
   int ghost[GKYL_MAX_DIM];
   for (int i = 0; i < pdim; ++i) {
@@ -188,8 +201,31 @@ test_func(
   // project collision frequency on basis
   gkyl_proj_on_basis_advance(projNu, 0.0, &confLocal_ext, nu);
 
-  struct gkyl_mom_type *vm_moms_t =
-    gkyl_mom_vlasov_new(&confBasis, &basis, GKYL_F_MOMENT_M0M1M2, false);
+  // build hamil and gamma_inv
+  struct gkyl_array *hamil = mkarr(velBasis.num_basis, velLocal.volume);
+  struct gkyl_array *gamma_inv = mkarr(velBasis.num_basis, velLocal.volume);
+  // Identity velocity map: used to build the Hamiltonian and by the moment/LTE updaters.
+  struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = {0};
+  struct gkyl_vlasov_velocity_map *vel_map =
+    gkyl_vlasov_velocity_map_new(&vel_grid, &velLocal, &velBasis, inp_vmap, false, false);
+  gkyl_dg_vlasov_calc_hamil(
+    &vel_grid, &velBasis, &velLocal, GKYL_MODEL_DEFAULT, vel_map, hamil, gamma_inv, false
+  );
+
+  struct gkyl_mom_vlasov_inp inp_mom = {
+    .conf_basis = &confBasis,
+    .phase_basis = &basis,
+    .vel_range = &velLocal,
+    .hamil_range = &velLocal,
+    .hamil = hamil,
+    .model_id = GKYL_MODEL_DEFAULT,
+    .hamil_id = gkyl_hamil_id_from_model_id(GKYL_MODEL_DEFAULT),
+    .mom_type = GKYL_F_MOMENT_M0M1M2,
+    .use_gpu = false,
+    .vel_map = vel_map,
+  };
+
+  struct gkyl_mom_type *vm_moms_t = gkyl_mom_vlasov_inew(&inp_mom);
   gkyl_mom_calc *moms_calc = gkyl_mom_calc_new(&grid, vm_moms_t, false);
 
   // create moment arrays
@@ -254,6 +290,8 @@ test_func(
     double *uptr = gkyl_array_fetch(u, linc);
     for (unsigned int k = 0; k < confBasis.num_basis; ++k) {
       TEST_CHECK(gkyl_compare(u_check[k], uptr[k], 1e-12));
+      TEST_MSG("Expected: %.13e in cell (%d)", u_check[k], i);
+      TEST_MSG("Produced: %.13e", uptr[k]);
     }
   }
 
@@ -265,6 +303,8 @@ test_func(
     double *vthptr = gkyl_array_fetch(vth, linc);
     for (unsigned int k = 0; k < confBasis.num_basis; ++k) {
       TEST_CHECK(gkyl_compare(vth_check[k], vthptr[k], 1e-12));
+      TEST_MSG("Expected: %.13e in cell (%d)", vth_check[k], i);
+      TEST_MSG("Produced: %.13e", vthptr[k]);
     }
   }
 
@@ -295,6 +335,8 @@ test_func(
     double *uptr = gkyl_array_fetch(u_out, linc);
     for (unsigned int k = 0; k < confBasis.num_basis; ++k) {
       TEST_CHECK(gkyl_compare(ucross_check[k], uptr[k], 1e-12));
+      TEST_MSG("Expected: %.13e in cell (%d)", ucross_check[k], i);
+      TEST_MSG("Produced: %.13e", uptr[k]);
     }
   }
 
@@ -334,6 +376,7 @@ test_func(
   gkyl_array_release(prim_moms_out);
   gkyl_array_release(greene);
   gkyl_prim_lbo_cross_calc_release(crossprimcalc);
+  gkyl_vlasov_velocity_map_release(vel_map);
 }
 
 #ifdef GKYL_HAVE_CUDA
@@ -345,7 +388,8 @@ test_func_cu(
 {
   int pdim = cdim + vdim;
   double lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM], confLower[GKYL_MAX_DIM], confUpper[GKYL_MAX_DIM];
-  int cells[GKYL_MAX_DIM], confCells[GKYL_MAX_DIM];
+  double velLower[GKYL_MAX_DIM], velUpper[GKYL_MAX_DIM];
+  int cells[GKYL_MAX_DIM], confCells[GKYL_MAX_DIM], velCells[GKYL_MAX_DIM];
 
   double v_bounds[2 * vdim];
 
@@ -363,6 +407,9 @@ test_func_cu(
       upper[i] = 2.0;
       v_bounds[i - cdim] = lower[i];
       v_bounds[i - cdim + vdim] = upper[i];
+      velLower[i - cdim] = lower[i];
+      velUpper[i - cdim] = upper[i];
+      velCells[i - cdim] = cells[i];
     }
   }
 
@@ -371,10 +418,13 @@ test_func_cu(
   gkyl_rect_grid_init(&grid, pdim, lower, upper, cells);
   struct gkyl_rect_grid confGrid;
   gkyl_rect_grid_init(&confGrid, cdim, confLower, confUpper, confCells);
+  struct gkyl_rect_grid vel_grid;
+  gkyl_rect_grid_init(&vel_grid, vdim, velLower, velUpper, velCells);
 
   // basis functions
-  struct gkyl_basis basis, confBasis;
+  struct gkyl_basis basis, confBasis, velBasis;
   gkyl_cart_modal_serendip(&basis, pdim, poly_order);
+  gkyl_cart_modal_serendip(&velBasis, vdim, poly_order);
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   int confGhost[] = {0};
@@ -382,6 +432,10 @@ test_func_cu(
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
   struct skin_ghost_ranges confSkin_ghost; // conf-space skin/ghost
   skin_ghost_ranges_init(&confSkin_ghost, &confLocal_ext, confGhost);
+
+  int velGhost[] = {0, 0, 0};
+  struct gkyl_range velLocal, velLocal_ext;
+  gkyl_create_grid_ranges(&vel_grid, velGhost, &velLocal_ext, &velLocal);
 
   int ghost[GKYL_MAX_DIM];
   for (int i = 0; i < pdim; ++i) {
@@ -420,14 +474,38 @@ test_func_cu(
   // create collision frequency array
   struct gkyl_array *nu, *nu_cu;
   nu = mkarr(confBasis.num_basis, confLocal_ext.volume);
-  nu_cu = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  nu_cu = mkarr_cu(confBasis.num_basis, confLocal_ext.volume);
 
   // project collision frequency on basis
   gkyl_proj_on_basis_advance(projNu, 0.0, &confLocal_ext, nu);
   gkyl_array_copy(nu_cu, nu);
 
-  struct gkyl_mom_type *vm_moms_t =
-    gkyl_mom_vlasov_new(&confBasis, &basis, GKYL_F_MOMENT_M0M1M2, true);
+  // build hamil and gamma_inv (device-resident: the device Hamiltonian
+  // calculation dereferences the gkyl_array structs on the GPU)
+  struct gkyl_array *hamil = mkarr_cu(velBasis.num_basis, velLocal.volume);
+  struct gkyl_array *gamma_inv = mkarr_cu(velBasis.num_basis, velLocal.volume);
+  // Identity velocity map: used to build the Hamiltonian and by the moment/LTE updaters.
+  struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = {0};
+  struct gkyl_vlasov_velocity_map *vel_map =
+    gkyl_vlasov_velocity_map_new(&vel_grid, &velLocal, &velBasis, inp_vmap, false, true);
+  gkyl_dg_vlasov_calc_hamil(
+    &vel_grid, &velBasis, &velLocal, GKYL_MODEL_DEFAULT, vel_map, hamil, gamma_inv, true
+  );
+
+  struct gkyl_mom_vlasov_inp inp_mom = {
+    .conf_basis = &confBasis,
+    .phase_basis = &basis,
+    .vel_range = &velLocal,
+    .hamil_range = &velLocal,
+    .hamil = hamil,
+    .model_id = GKYL_MODEL_DEFAULT,
+    .hamil_id = gkyl_hamil_id_from_model_id(GKYL_MODEL_DEFAULT),
+    .mom_type = GKYL_F_MOMENT_M0M1M2,
+    .use_gpu = true,
+    .vel_map = vel_map,
+  };
+
+  struct gkyl_mom_type *vm_moms_t = gkyl_mom_vlasov_inew(&inp_mom);
   gkyl_mom_calc *moms_calc = gkyl_mom_calc_new(&grid, vm_moms_t, true);
 
   // create moment arrays
@@ -541,6 +619,9 @@ test_func_cu(
   }
 
   // release memory for objects
+  gkyl_array_release(hamil);
+  gkyl_vlasov_velocity_map_release(vel_map);
+  gkyl_array_release(gamma_inv);
   gkyl_array_release(moms_cu);
   gkyl_mom_calc_release(moms_calc);
   gkyl_mom_type_release(vm_moms_t);

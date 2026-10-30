@@ -1,59 +1,15 @@
 #include <gkyl_vlasov_kernels.h> 
-#include <gkyl_basis_tensor_2x_p1_surfx2_eval_quad.h> 
-#include <gkyl_basis_tensor_2x_p1_upwind_quad_to_modal.h> 
-GKYL_CU_DH double vlasov_surfvx_1x1v_tensor_p1(const double *w, const double *dxv, const double *field, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
+#include <gkyl_vlasov_surf_nod2mod_tables_1x1v_tensor_p1.h> 
+GKYL_CU_DH double vlasov_surfvx_1x1v_tensor_p1(const double *w, const double *dxv,
+  const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out) 
 { 
-  // w:         Cell-center coordinates.
-  // dxv[NDIM]: Cell spacing.
-  // field:     q/m*EM fields.
-  // fl/fc/fr:  Input Distribution function in left/center/right cells 
-  // out:       Output distribution function in center cell 
-  const double dv10 = 2/dxv[1]; 
-  const double dv1 = dxv[1], wv1 = w[1]; 
-  const double *E0 = &field[0]; 
-
-  double alpha[2] = {0.0}; 
-
-  alpha[0] = E0[0]; 
-  alpha[1] = E0[1]; 
-
-  double fUpwindQuad_l[2] = {0.0};
-  double fUpwindQuad_r[2] = {0.0};
-  double fUpwind_l[2] = {0.0};;
-  double fUpwind_r[2] = {0.0};
-  double Ghat_l[2] = {0.0}; 
-  double Ghat_r[2] = {0.0}; 
-
-  if (0.7071067811865475*alpha[0]-0.7071067811865475*alpha[1] > 0) { 
-    fUpwindQuad_l[0] = tensor_2x_p1_surfx2_eval_quad_node_0_r(fl); 
-    fUpwindQuad_r[0] = tensor_2x_p1_surfx2_eval_quad_node_0_r(fc); 
-  } else { 
-    fUpwindQuad_l[0] = tensor_2x_p1_surfx2_eval_quad_node_0_l(fc); 
-    fUpwindQuad_r[0] = tensor_2x_p1_surfx2_eval_quad_node_0_l(fr); 
+  double dv10 = 2.0/dxv[1]; 
+  for (int k = 0; k < 2; ++k) { 
+  const double g_l = flux_l[0 + k]; 
+  const double g_r = flux_r[0 + k]; 
+  for (int q = vst_1x1v_tensor_p1_prj_v0_out_off[k]; q < vst_1x1v_tensor_p1_prj_v0_out_off[k+1]; ++q) { 
+    out[vst_1x1v_tensor_p1_prj_v0_out_mode[q]] += dv10*(vst_1x1v_tensor_p1_prj_v0_out_cl[q]*g_l + vst_1x1v_tensor_p1_prj_v0_out_cr[q]*g_r); 
   } 
-  if (0.7071067811865475*(alpha[1]+alpha[0]) > 0) { 
-    fUpwindQuad_l[1] = tensor_2x_p1_surfx2_eval_quad_node_1_r(fl); 
-    fUpwindQuad_r[1] = tensor_2x_p1_surfx2_eval_quad_node_1_r(fc); 
-  } else { 
-    fUpwindQuad_l[1] = tensor_2x_p1_surfx2_eval_quad_node_1_l(fc); 
-    fUpwindQuad_r[1] = tensor_2x_p1_surfx2_eval_quad_node_1_l(fr); 
   } 
-
-  // Project tensor nodal quadrature basis back onto modal basis. 
-  tensor_2x_p1_upwind_quad_to_modal(fUpwindQuad_l, fUpwind_l); 
-  tensor_2x_p1_upwind_quad_to_modal(fUpwindQuad_r, fUpwind_r); 
-
-  Ghat_l[0] = 0.7071067811865475*alpha[1]*fUpwind_l[1]+0.7071067811865475*alpha[0]*fUpwind_l[0]; 
-  Ghat_l[1] = 0.7071067811865475*alpha[0]*fUpwind_l[1]+0.7071067811865475*fUpwind_l[0]*alpha[1]; 
-
-  Ghat_r[0] = 0.7071067811865475*alpha[1]*fUpwind_r[1]+0.7071067811865475*alpha[0]*fUpwind_r[0]; 
-  Ghat_r[1] = 0.7071067811865475*alpha[0]*fUpwind_r[1]+0.7071067811865475*fUpwind_r[0]*alpha[1]; 
-
-  out[0] += (0.7071067811865475*Ghat_l[0]-0.7071067811865475*Ghat_r[0])*dv10; 
-  out[1] += (0.7071067811865475*Ghat_l[1]-0.7071067811865475*Ghat_r[1])*dv10; 
-  out[2] += -1.224744871391589*(Ghat_r[0]+Ghat_l[0])*dv10; 
-  out[3] += -1.224744871391589*(Ghat_r[1]+Ghat_l[1])*dv10; 
-
-  return 0.;
-
+  return 0.0;
 } 

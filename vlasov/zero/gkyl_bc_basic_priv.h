@@ -273,6 +273,35 @@ maxwell_reservoir_bc(size_t nc, double *out, const double *inp, void *ctx)
   mc->basis->flip_odd_sign(dir, &inp[oloc], &out[oloc]);
 }
 
+// Maxwell's theta-Pole BC for spherical coordinates
+GKYL_CU_D static void
+maxwell_theta_pole_bc(size_t nc, double *out, const double *inp, void *ctx)
+{
+  struct dg_bc_ctx *mc = (struct dg_bc_ctx *)ctx;
+  int dir = mc->dir;
+  int nbasis = mc->basis->num_basis;
+
+  // This BC only works in the theta direction.
+  // r-theta-phi ordering is assumed for EM components in this code
+  assert(dir == 1);
+
+  // E^r  : even, E^\theta : odd, E^\phi : even
+  // flip_x_sign has an overall - sign, so flipped
+  mc->basis->flip_odd_sign(dir, &inp[nbasis * 0], &out[nbasis * 0]);
+  mc->basis->flip_even_sign(dir, &inp[nbasis * 1], &out[nbasis * 1]);
+  mc->basis->flip_odd_sign(dir, &inp[nbasis * 2], &out[nbasis * 2]);
+
+  // B^r  : even, B^\theta : odd, B^\phi : even
+  // flip_x_sign has an overall - sign, so flipped
+  mc->basis->flip_odd_sign(dir, &inp[nbasis * 3], &out[nbasis * 3]);
+  mc->basis->flip_even_sign(dir, &inp[nbasis * 4], &out[nbasis * 4]);
+  mc->basis->flip_odd_sign(dir, &inp[nbasis * 5], &out[nbasis * 5]);
+
+  // Correction potentials are scalars and remain continuous at the pole.
+  mc->basis->flip_odd_sign(dir, &inp[nbasis * 6], &out[nbasis * 6]);
+  mc->basis->flip_odd_sign(dir, &inp[nbasis * 7], &out[nbasis * 7]);
+}
+
 // Reflecting wall BCs for PKPM momentum
 GKYL_CU_D static void
 pkpm_mom_reflect_bc(size_t nc, double *out, const double *inp, void *ctx)

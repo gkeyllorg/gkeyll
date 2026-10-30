@@ -464,16 +464,21 @@ void
 bfield_func(double t, const double *GKYL_RESTRICT zc, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct sheath_ctx *app = ctx;
-  double x = zc[0];
+  double x = zc[0], z = zc[2];
 
   double B0 = app->B0;
   double R = app->R;
+  double R0 = app->R0;
+  double a0 = app->a0;
 
   // zc are computational coords.
-  // Set Cartesian components of magnetic field.
-  fout[0] = 0.0;
-  fout[1] = 0.0;
-  fout[2] = B0 * R / x;
+  // Toroidal field of magnitude B0 R/x along the field-aligned coordinate z of
+  // mapc2p (toroidal angle phi = z/(R0 + a0)), in Cartesian components.
+  double phi = z / (R0 + a0);
+  double Bmag = B0 * R / x;
+  fout[0] = -Bmag * sin(phi);
+  fout[1] = Bmag * cos(phi);
+  fout[2] = 0.0;
 }
 
 int

@@ -108,6 +108,14 @@ ifdef USING_NVCC
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
+# Register-capped bin_op family (see BINOP_MAX_REGS in the top-level Makefile): the
+# conf*phase multiply-accumulate kernels parallelized over components, which the
+# gkyl_dg_mul_conf_phase_op_accumulate_range kernel calls through a function pointer.
+# The shorter stem makes make prefer this rule over the bin_op/% rule above.
+../$(BUILD_DIR)/core/$(KERNELS_DIR)/bin_op/binop_cross_mul_accumulate_comp_par_%.c.o : $(KERNELS_DIR)/bin_op/binop_cross_mul_accumulate_comp_par_%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(NVCC_BINOP_FLAGS) $(INCS) -c $< -o $@
+
 ../$(BUILD_DIR)/core/$(KERNELS_DIR)/array_integrate/%.c.o : $(KERNELS_DIR)/array_integrate/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@

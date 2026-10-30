@@ -127,7 +127,8 @@ gkyl_dg_diffusion_vlasov_cu_dev_new(
     (struct dg_diffusion_vlasov *)gkyl_cu_malloc(sizeof(struct dg_diffusion_vlasov));
   gkyl_cu_memcpy(diffusion_cu, diffusion, sizeof(struct dg_diffusion_vlasov), GKYL_CU_MEMCPY_H2D);
   dg_diffusion_vlasov_set_cu_dev_ptrs<<<1, 1>>>(
-    diffusion_cu, cbasis->b_type, cdim, vdim, poly_order, diff_order, dirs_linidx
+    diffusion_cu, gkyl_basis_phase_kernel_type(cbasis, basis), cdim, vdim, poly_order, diff_order,
+    dirs_linidx
   );
 
   // set parent on_dev pointer

@@ -1,0 +1,86 @@
+#include <gkyl_vlasov_kernels.h> 
+GKYL_CU_DH void vlasov_hamil_vel_sparse_vol_1x3v_tensor_p1(const double *w, const double *dxv, const double *vmap,
+  const double *jacob_pos, const double *jacob_vel, const double *poisson_tensor_conf, const double *hamil,
+  const double *f,
+  const double *f_no_J, double* GKYL_RESTRICT out) 
+{ 
+  const double dx10 = 2.0/dxv[0]; 
+  const double dv10 = 2.0/dxv[1]; 
+  const double *jacob_vx = &jacob_vel[0]; 
+  double bdiv_vx[9]; 
+  bdiv_vx[0] = 0.2777777777777778/jacob_vx[2]+0.4444444444444444/jacob_vx[1]+0.2777777777777778/jacob_vx[0]; 
+  bdiv_vx[1] = 0.37267799624996495/jacob_vx[2]-0.37267799624996495/jacob_vx[0]; 
+  bdiv_vx[2] = 0.24845199749997662/jacob_vx[2]-0.49690399499995325/jacob_vx[1]+0.24845199749997662/jacob_vx[0]; 
+  bdiv_vx[3] = 0.37267799624996495/jacob_vx[2]-0.37267799624996495/jacob_vx[0]; 
+  bdiv_vx[4] = 0.5/jacob_vx[2]+0.5/jacob_vx[0]; 
+  bdiv_vx[5] = 0.3333333333333333/jacob_vx[2]-0.3333333333333333/jacob_vx[0]; 
+  bdiv_vx[6] = 0.24845199749997662/jacob_vx[2]-0.49690399499995325/jacob_vx[1]+0.24845199749997662/jacob_vx[0]; 
+  bdiv_vx[7] = 0.3333333333333333/jacob_vx[2]-0.3333333333333333/jacob_vx[0]; 
+  bdiv_vx[8] = 0.2222222222222222/jacob_vx[2]+0.5555555555555556/jacob_vx[1]+0.2222222222222222/jacob_vx[0]; 
+  double mb_vx[9]; 
+  mb_vx[0] = 1.369306393762915*bdiv_vx[3]*hamil[7]+0.6123724356957944*bdiv_vx[0]*hamil[1]; 
+  mb_vx[1] = 1.369306393762915*bdiv_vx[4]*hamil[7]+0.6123724356957944*bdiv_vx[1]*hamil[1]; 
+  mb_vx[2] = 1.369306393762915*bdiv_vx[5]*hamil[7]+0.6123724356957944*hamil[1]*bdiv_vx[2]; 
+  mb_vx[3] = 1.224744871391589*bdiv_vx[6]*hamil[7]+1.369306393762915*bdiv_vx[0]*hamil[7]+0.6123724356957944*hamil[1]*bdiv_vx[3]; 
+  mb_vx[4] = 1.224744871391589*bdiv_vx[7]*hamil[7]+1.369306393762915*bdiv_vx[1]*hamil[7]+0.6123724356957944*hamil[1]*bdiv_vx[4]; 
+  mb_vx[5] = 1.224744871391589*hamil[7]*bdiv_vx[8]+1.369306393762915*bdiv_vx[2]*hamil[7]+0.6123724356957944*hamil[1]*bdiv_vx[5]; 
+  mb_vx[6] = 1.224744871391589*bdiv_vx[3]*hamil[7]+0.6123724356957944*hamil[1]*bdiv_vx[6]; 
+  mb_vx[7] = 1.224744871391589*bdiv_vx[4]*hamil[7]+0.6123724356957944*hamil[1]*bdiv_vx[7]; 
+  mb_vx[8] = 0.6123724356957944*hamil[1]*bdiv_vx[8]+1.224744871391589*bdiv_vx[5]*hamil[7]; 
+  const double jacob_cx_inv = 1.0/jacob_pos[0]; 
+  double G_vx[27]; 
+  G_vx[0] = mb_vx[2]*f[11]*jacob_cx_inv+mb_vx[1]*f[2]*jacob_cx_inv+f[0]*mb_vx[0]*jacob_cx_inv; 
+  G_vx[1] = mb_vx[2]*f[22]*jacob_cx_inv+mb_vx[1]*f[9]*jacob_cx_inv+mb_vx[0]*f[4]*jacob_cx_inv; 
+  G_vx[2] = mb_vx[2]*f[38]*jacob_cx_inv+mb_vx[1]*f[25]*jacob_cx_inv+mb_vx[0]*f[13]*jacob_cx_inv; 
+  G_vx[3] = mb_vx[2]*f[19]*jacob_cx_inv+mb_vx[1]*f[7]*jacob_cx_inv+mb_vx[0]*f[3]*jacob_cx_inv; 
+  G_vx[4] = mb_vx[2]*f[31]*jacob_cx_inv+mb_vx[1]*f[17]*jacob_cx_inv+mb_vx[0]*f[10]*jacob_cx_inv; 
+  G_vx[5] = mb_vx[2]*f[46]*jacob_cx_inv+mb_vx[1]*f[36]*jacob_cx_inv+mb_vx[0]*f[26]*jacob_cx_inv; 
+  G_vx[6] = mb_vx[2]*f[37]*jacob_cx_inv+mb_vx[1]*f[21]*jacob_cx_inv+mb_vx[0]*f[12]*jacob_cx_inv; 
+  G_vx[7] = mb_vx[2]*f[44]*jacob_cx_inv+mb_vx[1]*f[33]*jacob_cx_inv+mb_vx[0]*f[23]*jacob_cx_inv; 
+  G_vx[8] = mb_vx[2]*f[52]*jacob_cx_inv+mb_vx[1]*f[48]*jacob_cx_inv+mb_vx[0]*f[39]*jacob_cx_inv; 
+  G_vx[9] = mb_vx[5]*f[11]*jacob_cx_inv+f[2]*mb_vx[4]*jacob_cx_inv+f[0]*mb_vx[3]*jacob_cx_inv; 
+  G_vx[10] = mb_vx[5]*f[22]*jacob_cx_inv+mb_vx[4]*f[9]*jacob_cx_inv+mb_vx[3]*f[4]*jacob_cx_inv; 
+  G_vx[11] = mb_vx[5]*f[38]*jacob_cx_inv+mb_vx[4]*f[25]*jacob_cx_inv+mb_vx[3]*f[13]*jacob_cx_inv; 
+  G_vx[12] = mb_vx[5]*f[19]*jacob_cx_inv+mb_vx[4]*f[7]*jacob_cx_inv+f[3]*mb_vx[3]*jacob_cx_inv; 
+  G_vx[13] = mb_vx[5]*f[31]*jacob_cx_inv+mb_vx[4]*f[17]*jacob_cx_inv+mb_vx[3]*f[10]*jacob_cx_inv; 
+  G_vx[14] = mb_vx[5]*f[46]*jacob_cx_inv+mb_vx[4]*f[36]*jacob_cx_inv+mb_vx[3]*f[26]*jacob_cx_inv; 
+  G_vx[15] = mb_vx[5]*f[37]*jacob_cx_inv+mb_vx[4]*f[21]*jacob_cx_inv+mb_vx[3]*f[12]*jacob_cx_inv; 
+  G_vx[16] = mb_vx[5]*f[44]*jacob_cx_inv+mb_vx[4]*f[33]*jacob_cx_inv+mb_vx[3]*f[23]*jacob_cx_inv; 
+  G_vx[17] = mb_vx[5]*f[52]*jacob_cx_inv+mb_vx[4]*f[48]*jacob_cx_inv+mb_vx[3]*f[39]*jacob_cx_inv; 
+  G_vx[18] = mb_vx[8]*f[11]*jacob_cx_inv+f[2]*mb_vx[7]*jacob_cx_inv+f[0]*mb_vx[6]*jacob_cx_inv; 
+  G_vx[19] = mb_vx[8]*f[22]*jacob_cx_inv+mb_vx[7]*f[9]*jacob_cx_inv+f[4]*mb_vx[6]*jacob_cx_inv; 
+  G_vx[20] = mb_vx[8]*f[38]*jacob_cx_inv+mb_vx[7]*f[25]*jacob_cx_inv+mb_vx[6]*f[13]*jacob_cx_inv; 
+  G_vx[21] = mb_vx[8]*f[19]*jacob_cx_inv+f[7]*mb_vx[7]*jacob_cx_inv+f[3]*mb_vx[6]*jacob_cx_inv; 
+  G_vx[22] = mb_vx[8]*f[31]*jacob_cx_inv+mb_vx[7]*f[17]*jacob_cx_inv+mb_vx[6]*f[10]*jacob_cx_inv; 
+  G_vx[23] = mb_vx[8]*f[46]*jacob_cx_inv+mb_vx[7]*f[36]*jacob_cx_inv+mb_vx[6]*f[26]*jacob_cx_inv; 
+  G_vx[24] = mb_vx[8]*f[37]*jacob_cx_inv+mb_vx[7]*f[21]*jacob_cx_inv+mb_vx[6]*f[12]*jacob_cx_inv; 
+  G_vx[25] = mb_vx[8]*f[44]*jacob_cx_inv+mb_vx[7]*f[33]*jacob_cx_inv+mb_vx[6]*f[23]*jacob_cx_inv; 
+  G_vx[26] = mb_vx[8]*f[52]*jacob_cx_inv+mb_vx[7]*f[48]*jacob_cx_inv+mb_vx[6]*f[39]*jacob_cx_inv; 
+  out[1] += 1.7320508075688772*G_vx[0]*dv10*dx10; 
+  out[5] += 1.7320508075688772*G_vx[9]*dv10*dx10; 
+  out[6] += 1.7320508075688772*G_vx[3]*dv10*dx10; 
+  out[8] += 1.7320508075688772*G_vx[1]*dv10*dx10; 
+  out[14] += 1.7320508075688772*G_vx[12]*dv10*dx10; 
+  out[15] += 1.7320508075688772*G_vx[10]*dv10*dx10; 
+  out[16] += 1.7320508075688772*G_vx[4]*dv10*dx10; 
+  out[18] += 1.7320508075688772*G_vx[18]*dv10*dx10; 
+  out[20] += 1.7320508075688772*G_vx[6]*dv10*dx10; 
+  out[24] += 1.7320508075688772*G_vx[2]*dv10*dx10; 
+  out[27] += 1.7320508075688772*G_vx[13]*dv10*dx10; 
+  out[28] += 1.7320508075688772*G_vx[21]*dv10*dx10; 
+  out[29] += 1.7320508075688772*G_vx[15]*dv10*dx10; 
+  out[30] += 1.7320508075688772*G_vx[19]*dv10*dx10; 
+  out[32] += 1.7320508075688772*G_vx[7]*dv10*dx10; 
+  out[34] += 1.7320508075688772*G_vx[11]*dv10*dx10; 
+  out[35] += 1.7320508075688772*G_vx[5]*dv10*dx10; 
+  out[40] += 1.7320508075688772*G_vx[22]*dv10*dx10; 
+  out[41] += 1.7320508075688772*G_vx[16]*dv10*dx10; 
+  out[42] += 1.7320508075688772*G_vx[14]*dv10*dx10; 
+  out[43] += 1.7320508075688772*G_vx[24]*dv10*dx10; 
+  out[45] += 1.7320508075688772*G_vx[20]*dv10*dx10; 
+  out[47] += 1.7320508075688772*G_vx[8]*dv10*dx10; 
+  out[49] += 1.7320508075688772*G_vx[25]*dv10*dx10; 
+  out[50] += 1.7320508075688772*G_vx[23]*dv10*dx10; 
+  out[51] += 1.7320508075688772*G_vx[17]*dv10*dx10; 
+  out[53] += 1.7320508075688772*G_vx[26]*dv10*dx10; 
+} 

@@ -7173,6 +7173,7 @@ struct gkyl_fem_poisson {
   bool ishelmholtz; // if solving Helmholtz equation (kSq is not zero/NULL).
 
   bool isdomperiodic; // =true if all directions are periodic.
+  bool pin_gauge; // fix phi's free constant (fully periodic, no Helmholtz term or bias plane).
   struct gkyl_array *rhs_cellavg;
   double *rhs_avg, mavgfac;
   double *rhs_avg_cu;

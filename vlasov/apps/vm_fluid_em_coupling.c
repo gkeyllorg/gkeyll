@@ -7,21 +7,35 @@
 #include <gkyl_util.h>
 #include <gkyl_vlasov_priv.h>
 
+bool
+vm_fluid_em_coupling_supported(const struct vm_fluid_species *f)
+{
+  // Euler only: isothermal Euler has the momentum layout the coupling expects
+  // but no fluid DG solver yet, and is rejected at fluid initialization.
+  return f->eqn_type == GKYL_EQN_EULER;
+}
+
 // initialize fluid-EM coupling object
 struct vm_fluid_em_coupling *
-vm_fluid_em_coupling_init(struct gkyl_vlasov_app *app)
+vm_fluid_em_coupling_new(struct gkyl_vlasov_app *app)
 {
   struct vm_fluid_em_coupling *fl_em = gkyl_malloc(sizeof(struct vm_fluid_em_coupling));
 
-  int num_fluid_species = app->num_fluid_species;
-  double qbym[GKYL_MAX_SPECIES] = {0.0};
-  for (int i = 0; i < num_fluid_species; ++i) {
-    struct vm_fluid_species *fs = &app->fluid_species[i];
-    qbym[i] = fs->info.charge / fs->info.mass;
+  // Gather the coupled (momentum-carrying) fluid species in declaration order.
+  int num_species = app->num_species;
+  fl_em->num_fluid = 0;
+  for (int i = 0; i < num_species; ++i) {
+    struct vlasov_species *sp = &app->species[i];
+    if (sp->fluid && vm_fluid_em_coupling_supported(sp->fluid)) {
+      fl_em->species[fl_em->num_fluid] = sp;
+      fl_em->qbym[fl_em->num_fluid] = sp->charge / sp->mass;
+      fl_em->num_fluid += 1;
+    }
   }
+
   // Initialize solver
   fl_em->slvr = gkyl_dg_calc_fluid_em_coupling_new(
-    &app->confBasis, &app->local, num_fluid_species, qbym, app->field->info.epsilon0, app->use_gpu
+    &app->basis, &app->local, fl_em->num_fluid, fl_em->qbym, app->field->info.epsilon0, app->use_gpu
   );
 
   return fl_em;
@@ -32,13 +46,13 @@ vm_fluid_em_coupling_update(
   struct gkyl_vlasov_app *app, struct vm_fluid_em_coupling *fl_em, double tcurr, double dt
 )
 {
-  int num_fluid_species = app->num_fluid_species;
+  int num_fluid = fl_em->num_fluid;
 
   struct gkyl_array *fluids[GKYL_MAX_SPECIES];
   const struct gkyl_array *app_accels[GKYL_MAX_SPECIES];
 
-  for (int i = 0; i < num_fluid_species; ++i) {
-    struct vm_fluid_species *fs = &app->fluid_species[i];
+  for (int i = 0; i < num_fluid; ++i) {
+    struct vm_fluid_species *fs = fl_em->species[i]->fluid;
     fluids[i] = fs->fluid;
 
     if (fs->eqn_type == GKYL_EQN_EULER) {
@@ -55,27 +69,26 @@ vm_fluid_em_coupling_update(
       vm_fluid_species_calc_app_accel(app, fs, tcurr);
     }
   }
-  // Compute external EM field or applied currents if present and time-dependent.
+  // Compute external EM field or applied currents if present and time-dependent
+  // (this object only exists when there are fluid species and a field).
   // Note: external EM field and applied currents use proj_on_basis
   // so does copy to GPU every call if app->use_gpu = true.
-  if (app->has_field) {
-    if (app->field->ext_em_evolve) {
-      vm_field_calc_ext_em(app, app->field, tcurr);
-    }
-    if (app->field->app_current_evolve) {
-      vm_field_calc_app_current(app, app->field, tcurr);
-    }
+  if (app->field->ext_em_evolve) {
+    vlasov_field_calc_ext_em(app, tcurr);
+  }
+  if (app->field->app_current_evolve) {
+    vlasov_field_calc_app_current(app, tcurr);
   }
 
   gkyl_dg_calc_fluid_em_coupling_advance(
     fl_em->slvr, dt, app_accels, app->field->ext_em, app->field->app_current, fluids, app->field->em
   );
 
-  for (int i = 0; i < num_fluid_species; ++i) {
-    struct vm_fluid_species *fs = &app->fluid_species[i];
+  for (int i = 0; i < num_fluid; ++i) {
+    struct vm_fluid_species *fs = fl_em->species[i]->fluid;
 
     // Compute the updated energy from the old and new kinetic energies
-    if (app->fluid_species[i].eqn_type == GKYL_EQN_EULER) {
+    if (fs->eqn_type == GKYL_EQN_EULER) {
       gkyl_dg_calc_fluid_vars_advance(
         fs->calc_fluid_vars, fluids[i], fs->cell_avg_prim, fs->u, fs->u_surf
       );
@@ -84,7 +97,7 @@ vm_fluid_em_coupling_update(
     }
     vm_fluid_species_apply_bc(app, fs, fluids[i]);
   }
-  vm_field_apply_bc(app, app->field, app->field->em);
+  vlasov_field_apply_bc(app, app->field->em);
 }
 
 void

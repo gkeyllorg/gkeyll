@@ -50,11 +50,18 @@ fem_poisson_bias_src_enabled(gkyl_fem_poisson *up, struct gkyl_array *rhsin)
 struct gkyl_fem_poisson *
 gkyl_fem_poisson_new(
   const struct gkyl_range *solve_range, const struct gkyl_rect_grid *grid,
-  const struct gkyl_basis basis, struct gkyl_poisson_bc *bcs,
+  const struct gkyl_basis basis_in, struct gkyl_poisson_bc *bcs,
   struct gkyl_poisson_bias_plane_list *bias_planes, struct gkyl_array *epsilon,
   struct gkyl_array *kSq, bool is_epsilon_const, bool use_gpu
 )
 {
+  // In 1x, and at p=1 in any dimension, the tensor and serendipity bases are
+  // identical, so the serendipity kernels are used for a tensor basis there.
+  struct gkyl_basis basis = basis_in;
+  if (basis.b_type == GKYL_BASIS_MODAL_TENSOR && (basis.ndim == 1 || basis.poly_order == 1)) {
+    gkyl_cart_modal_serendip(&basis, basis.ndim, basis.poly_order);
+  }
+
   struct gkyl_fem_poisson *up = gkyl_malloc(sizeof(struct gkyl_fem_poisson));
 
   up->kernels = gkyl_malloc(sizeof(struct gkyl_fem_poisson_kernels));
@@ -336,6 +343,32 @@ gkyl_fem_poisson_new(
     up->bias_plane_src = fem_poisson_bias_src_disabled;
   }
 
+  // A fully periodic (non-Helmholtz) problem is singular: the potential is only
+  // defined up to a constant. A direct factorization of the singular matrix is not
+  // reliable (an exactly zero pivot leaves the solve undone), so fix the gauge by
+  // replacing the equation of global node 0 with phi_0 = 0 (its right side is zeroed
+  // in set_rhs). The constant is removed again after the solve, so the returned
+  // zero-mean potential is unchanged. A bias plane already fixes the potential (the
+  // system is not singular), so a biased problem keeps its prescribed values.
+  up->pin_gauge = up->isdomperiodic && !(up->ishelmholtz) && up->num_bias_plane == 0;
+  if (up->pin_gauge) {
+    long ncol = 0;
+    long *cols = gkyl_malloc(sizeof(long) * gkyl_mat_triples_size(tri[0]));
+    struct gkyl_mat_triples_iter *it = gkyl_mat_triples_iter_new(tri[0]);
+    while (gkyl_mat_triples_iter_next(it)) {
+      struct gkyl_mtriple mt = gkyl_mat_triples_iter_at(it);
+      if (mt.row == 0) {
+        cols[ncol++] = mt.col;
+      }
+    }
+    gkyl_mat_triples_iter_release(it);
+    for (long k = 0; k < ncol; ++k) {
+      gkyl_mat_triples_insert(tri[0], 0, cols[k], 0.0);
+    }
+    gkyl_mat_triples_insert(tri[0], 0, 0, 1.0);
+    gkyl_free(cols);
+  }
+
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
     gkyl_culinsolver_amat_from_triples(up->prob_cu, tri);
@@ -354,6 +387,25 @@ gkyl_fem_poisson_new(
   return up;
 }
 
+// Subtract the volume average of the first DG field in arr from arr.
+static void
+fem_poisson_subtract_vol_avg(gkyl_fem_poisson *up, struct gkyl_array *arr)
+{
+  gkyl_array_clear(up->rhs_cellavg, 0.0);
+  gkyl_dg_calc_average_range(&up->basis, 0, up->rhs_cellavg, 0, arr, *up->solve_range);
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu) {
+    gkyl_array_reduce_range(up->rhs_avg_cu, up->rhs_cellavg, GKYL_SUM, up->solve_range);
+    gkyl_cu_memcpy(up->rhs_avg, up->rhs_avg_cu, sizeof(double), GKYL_CU_MEMCPY_D2H);
+  } else {
+    gkyl_array_reduce_range(up->rhs_avg, up->rhs_cellavg, GKYL_SUM, up->solve_range);
+  }
+#else
+  gkyl_array_reduce_range(up->rhs_avg, up->rhs_cellavg, GKYL_SUM, up->solve_range);
+#endif
+  gkyl_array_shiftc(arr, up->mavgfac * up->rhs_avg[0], 0);
+}
+
 void
 gkyl_fem_poisson_set_rhs(
   gkyl_fem_poisson *up, struct gkyl_array *rhsin, const struct gkyl_array *phibc
@@ -361,19 +413,7 @@ gkyl_fem_poisson_set_rhs(
 {
   if (up->isdomperiodic && !(up->ishelmholtz)) {
     // Subtract the volume averaged RHS from the RHS.
-    gkyl_array_clear(up->rhs_cellavg, 0.0);
-    gkyl_dg_calc_average_range(&up->basis, 0, up->rhs_cellavg, 0, rhsin, *up->solve_range);
-#ifdef GKYL_HAVE_CUDA
-    if (up->use_gpu) {
-      gkyl_array_reduce_range(up->rhs_avg_cu, up->rhs_cellavg, GKYL_SUM, up->solve_range);
-      gkyl_cu_memcpy(up->rhs_avg, up->rhs_avg_cu, sizeof(double), GKYL_CU_MEMCPY_D2H);
-    } else {
-      gkyl_array_reduce_range(up->rhs_avg, up->rhs_cellavg, GKYL_SUM, up->solve_range);
-    }
-#else
-    gkyl_array_reduce_range(up->rhs_avg, up->rhs_cellavg, GKYL_SUM, up->solve_range);
-#endif
-    gkyl_array_shiftc(rhsin, up->mavgfac * up->rhs_avg[0], 0);
+    fem_poisson_subtract_vol_avg(up, rhsin);
   }
 
 #ifdef GKYL_HAVE_CUDA
@@ -412,6 +452,9 @@ gkyl_fem_poisson_set_rhs(
     keri = idx_to_inloup_ker(up->ndim, up->num_cells, up->solve_iter.idx);
     up->kernels->srcker[keri](eps_p, up->dx, rhsin_p, up->bcvals, phibc_p, up->globalidx, brhs_p);
   }
+  if (up->pin_gauge) {
+    brhs_p[0] = 0.0; // gauge equation phi_0 = 0 (see the matrix assembly).
+  }
 
   // Set the corresponding entries to the biasing potential.
   up->bias_plane_src(up, rhsin);
@@ -426,6 +469,9 @@ gkyl_fem_poisson_solve(gkyl_fem_poisson *up, struct gkyl_array *phiout)
   if (up->use_gpu) {
     assert(gkyl_array_is_cu_dev(phiout));
     gkyl_fem_poisson_solve_cu(up, phiout);
+    if (up->pin_gauge) {
+      fem_poisson_subtract_vol_avg(up, phiout);
+    }
     return;
   }
 #endif
@@ -448,6 +494,13 @@ gkyl_fem_poisson_solve(gkyl_fem_poisson *up, struct gkyl_array *phiout)
     up->kernels->l2g[keri](up->num_cells, idx0, up->globalidx);
 
     up->kernels->solker(gkyl_superlu_get_rhs_ptr(up->prob, 0), up->globalidx, phiout_p);
+  }
+
+  // In a fully periodic (non-Helmholtz) problem the potential is only defined up
+  // to a constant, and the constant returned by the direct solve of the singular
+  // system is arbitrary. Fix the gauge by removing the volume average of phi.
+  if (up->pin_gauge) {
+    fem_poisson_subtract_vol_avg(up, phiout);
   }
 }
 

@@ -1,5 +1,4 @@
 #include <assert.h>
-#include <gkyl_mom_canonical_pb.h>
 #include <gkyl_gyrokinetic_priv.h>
 
 static void
@@ -81,12 +80,20 @@ gk_neut_species_recycle_write_flux_enabled(
   gkyl_array_copy_range_to_range(
     recyc->f_diag, recyc->f_emit, recyc->emit_skin_r, &recyc->emit_buff_r
   );
+  // The from-flux Vlasov equation's boundary term reads the stored conf-space
+  // surface fluxes, so compute them for this distribution first (cflrate is
+  // scratch here; it is cleared at the start of every RHS evaluation).
+  gkyl_dg_vlasov_conf_flux_surf_advance(
+    gkns->collisionless.calc_conf_flux, &app->local, &gkns->local, &gkns->local_ext,
+    gkns->conf_poisson_tensor_surf, gkns->hamil, recyc->f_diag, gkns->cflrate,
+    gkns->collisionless.conf_flux_surf
+  );
   gkyl_boundary_flux_advance(recyc->f0_flux_slvr, recyc->f_diag, recyc->f_diag);
   gkyl_array_copy_range_to_range(
     recyc->unit_phase_flux_neut, recyc->f_diag, &recyc->emit_buff_r, recyc->emit_ghost_r
   );
-  gkyl_dg_updater_moment_advance(
-    recyc->m0op_neut, &recyc->emit_normal_r, &recyc->emit_cbuff_r, recyc->unit_phase_flux_neut,
+  gkyl_mom_calc_advance(
+    recyc->m0op_neut, &recyc->emit_buff_r, &recyc->emit_cbuff_r, recyc->unit_phase_flux_neut,
     recyc->emit_flux
   );
   app->stat.neut_species_diag_calc_tm += gkyl_time_diff_now_sec(wst);
@@ -233,6 +240,8 @@ gk_neut_species_recycle_init(
   };
   struct gk_proj proj_unit_maxwellian;
   gk_neut_species_projection_init(app, gkns, recyc_proj_inp, &proj_unit_maxwellian);
+  // The ghost must be empty so the boundary flux below only has the skin'gkns outflow.
+  gkyl_array_clear(gkns->f1, 0.0);
   gk_neut_species_projection_calc(
     app, gkns, &proj_unit_maxwellian, gkns->f1, 0.0
   ); // Temporarily use f1.
@@ -247,7 +256,7 @@ gk_neut_species_recycle_init(
 
   int eqc = 0;
   if (gkns->collisionless.collisionless_id == GKYL_GK_COLLISIONLESS_NEUTRAL) {
-    eqns[eqc++] = gkyl_dg_updater_vlasov_acquire_eqn(gkns->collisionless.vlasov_slvr);
+    eqns[eqc++] = gkyl_dg_eqn_acquire(gkns->collisionless.eqn_vlasov);
   }
 
   recyc->f0_flux_slvr = gkyl_boundary_flux_new(
@@ -261,6 +270,14 @@ gk_neut_species_recycle_init(
 
   gkyl_free(eqns);
 
+  // The from-flux Vlasov equation'gkns boundary term reads the stored conf-space
+  // surface fluxes, so compute them for the unit Maxwellian first (cflrate is
+  // scratch here; it is cleared at the start of every RHS evaluation).
+  gkyl_dg_vlasov_conf_flux_surf_advance(
+    gkns->collisionless.calc_conf_flux, &app->local, &gkns->local, &gkns->local_ext,
+    gkns->conf_poisson_tensor_surf, gkns->hamil, gkns->f1, gkns->cflrate,
+    gkns->collisionless.conf_flux_surf
+  );
   gkyl_boundary_flux_advance(recyc->f0_flux_slvr, gkns->f1, gkns->f1);
   recyc->unit_phase_flux_neut =
     mkarr(app->use_gpu, gkns->basis.num_basis, recyc->emit_buff_r.volume);
@@ -299,21 +316,29 @@ gk_neut_species_recycle_cross_init(
     ghost[cdim + d] = 0;
   }
 
-  // Calculate the flux associated with unit-density Maxwellian.
-  gkyl_bc_emission_flux_ranges(
-    &recyc->emit_normal_r, recyc->dir + cdim, &recyc->emit_buff_r, ghost, recyc->edge
-  );
-
   recyc->unit_m0_flux_neut = mkarr(app->use_gpu, app->basis.num_basis, recyc->emit_cbuff_r.volume);
 
-  struct gkyl_mom_canonical_pb_auxfields can_pb_inp = {.hamil = gkns->hamil};
-  recyc->m0op_neut = gkyl_dg_updater_moment_new(
-    &recyc->emit_grid, &app->basis, &gkns->basis, &recyc->emit_cbuff_r, &gkns->local_vel,
-    &recyc->emit_buff_r, gkns->model_id, &can_pb_inp, GKYL_F_MOMENT_M0, false, app->use_gpu
-  );
+  struct gkyl_mom_vlasov_inp inp_mom = {
+    .conf_basis = &app->basis,
+    .phase_basis = &gkns->basis,
+    .vel_range = &gkns->local_vel,
+    .vel_map = gkns->vlasov_vel_map,
+    .hamil_range = &gkns->hamil_range,
+    .hamil = gkns->hamil,
+    .model_id = gkns->model_id,
+    .hamil_id = gkns->hamil_id,
+    .mom_type = GKYL_F_MOMENT_M0,
+    .use_gpu = app->use_gpu,
+  };
+  recyc->m0op_neut_type = gkyl_mom_vlasov_inew(&inp_mom);
+  recyc->m0op_neut = gkyl_mom_calc_new(&recyc->emit_grid, recyc->m0op_neut_type, app->use_gpu);
 
-  gkyl_dg_updater_moment_advance(
-    recyc->m0op_neut, &recyc->emit_normal_r, &recyc->emit_cbuff_r, recyc->unit_phase_flux_neut,
+  // Particle flux of the unit-density Maxwellian. The boundary flux was computed with
+  // an empty ghost and the nodal Lax flux is upwinded node by node, so it only holds
+  // velocities leaving the skin: integrate over all velocities (a half range in one
+  // velocity component is wrong when the boundary normal is not that triad axis).
+  gkyl_mom_calc_advance(
+    recyc->m0op_neut, &recyc->emit_buff_r, &recyc->emit_cbuff_r, recyc->unit_phase_flux_neut,
     recyc->unit_m0_flux_neut
   );
 
@@ -367,9 +392,10 @@ gk_neut_species_recycle_cross_init(
       gks->info.charge, gks->vel_map, app->gk_geom, 0, GKYL_F_MOMENT_M0, false, app->use_gpu
     );
 
-    // Create a phase-space range that only includes velocities towards the boundary.
+    // Create a phase-space range that only includes velocities towards the boundary
+    // (half of the vpar range; vpar is phase-space direction cdim).
     gkyl_bc_emission_flux_ranges(
-      &recyc->impact_normal_r[i], recyc->dir + cdim, &recyc->impact_buff_r[i], ghost, recyc->edge
+      &recyc->impact_normal_r[i], cdim, &recyc->impact_buff_r[i], ghost, recyc->edge
     );
   }
 
@@ -445,7 +471,8 @@ gk_neut_species_recycle_release(
   }
 
   gkyl_array_release(recyc->unit_m0_flux_neut);
-  gkyl_dg_updater_moment_release(recyc->m0op_neut);
+  gkyl_mom_type_release(recyc->m0op_neut_type);
+  gkyl_mom_calc_release(recyc->m0op_neut);
   gkyl_dg_bin_op_mem_release(recyc->mem_geo);
 
   for (int i = 0; i < recyc->num_species; ++i) {

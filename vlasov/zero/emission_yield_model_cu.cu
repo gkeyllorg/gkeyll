@@ -49,6 +49,8 @@ gkyl_emission_yield_furman_pivi_cu_dev_new(
   model->t4 = t4;
   model->s = s;
   model->yield.charge = charge;
+  // Host-callable yield function: the boundary-emission updater evaluates the yield on the host.
+  model->yield.function = gkyl_emission_yield_furman_pivi_yield;
 
   model->yield.flags = 0;
   GKYL_SET_CU_ALLOC(model->yield.flags);
@@ -82,6 +84,8 @@ gkyl_emission_yield_schou_cu_dev_new(
   model->a5 = a5;
   model->nw = nw;
   model->yield.charge = charge;
+  // Host-callable yield function: the boundary-emission updater evaluates the yield on the host.
+  model->yield.function = gkyl_emission_yield_schou_yield;
 
   model->yield.flags = 0;
   GKYL_SET_CU_ALLOC(model->yield.flags);
@@ -117,6 +121,8 @@ gkyl_emission_yield_schou_srim_cu_dev_new(
   model->gauss_E0 = gauss_E0;
   model->gauss_tau = gauss_tau;
   model->yield.charge = charge;
+  // Host-callable yield function: the boundary-emission updater evaluates the yield on the host.
+  model->yield.function = gkyl_emission_yield_schou_srim_yield;
 
   model->yield.flags = 0;
   GKYL_SET_CU_ALLOC(model->yield.flags);
@@ -141,6 +147,8 @@ gkyl_emission_yield_constant_cu_dev_new(double charge, double delta)
 
   model->delta = delta;
   model->yield.charge = charge;
+  // Host-callable yield function: the boundary-emission updater evaluates the yield on the host.
+  model->yield.function = gkyl_emission_yield_constant_yield;
 
   model->yield.flags = 0;
   GKYL_SET_CU_ALLOC(model->yield.flags);

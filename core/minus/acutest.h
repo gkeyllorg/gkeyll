@@ -266,6 +266,15 @@
  * TEST_FINI is to be used in the same way.
  */
 
+/* MPI test suites (gkyl specific)
+ *
+ * Test suites that need MPI (mctest_*.c) define TEST_MPI prior including this
+ * header. main() then initializes and finalizes MPI, as the -M option does, so
+ * they run with a plain "mpirun -np N <test>". Whenever MPI is initialized the
+ * tests run in-process (as with -E): MPI does not support forking after
+ * MPI_Init.
+ */
+
 
 /**********************
  *** Implementation ***
@@ -395,7 +404,11 @@ static int test_current_failures_ = 0;
 static int test_colorize_ = 0;
 static int test_timer_ = 0;
 static int test_gkyl_mem_check_ = 0; // gkyl specific flag
+#ifdef TEST_MPI
+static int test_gkyl_mpi_init_ = 1; // gkyl specific flag
+#else
 static int test_gkyl_mpi_init_ = 0; // gkyl specific flag
+#endif
 
 static int test_abort_has_jmp_buf_ = 0;
 static jmp_buf test_abort_jmp_buf_;
@@ -1434,7 +1447,7 @@ static const TEST_CMDLINE_OPTION_ test_cmdline_options_[] = {
     {  0,   "color",        'c', TEST_CMDLINE_OPTFLAG_OPTIONALARG_ },
     {  0,   "no-color",     'C', 0 },
     { 'm',  "mem-trace",    'm', 0 },
-    { 'M',  "mpi      ",    'M', 0 },
+    { 'M',  "mpi",          'M', 0 },
     { 'h',  "help",         'h', 0 },
     {  0,   "worker",       'w', TEST_CMDLINE_OPTFLAG_REQUIREDARG_ },  /* internal */
     { 'x',  "xml-output",   'x', TEST_CMDLINE_OPTFLAG_REQUIREDARG_ },
@@ -1665,6 +1678,8 @@ main(int argc, char** argv)
     if (test_gkyl_mpi_init_) {
 #ifdef GKYL_HAVE_MPI
       MPI_Init(&argc, &argv);
+      // Forking after MPI_Init is not supported: run the tests in-process.
+      test_no_exec_ = 1;
 #endif
     }
     

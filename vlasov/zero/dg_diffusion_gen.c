@@ -84,6 +84,19 @@ gkyl_dg_diffusion_gen_new(
       surf_zz_kernels = ser_surf_zz_kernels;
       break;
 
+    case GKYL_BASIS_MODAL_TENSOR:
+      vol_kernels = tensor_vol_kernels;
+      surf_xx_kernels = tensor_surf_xx_kernels;
+      surf_xy_kernels = tensor_surf_xy_kernels;
+      surf_xz_kernels = tensor_surf_xz_kernels;
+      surf_yx_kernels = tensor_surf_yx_kernels;
+      surf_yy_kernels = tensor_surf_yy_kernels;
+      surf_yz_kernels = tensor_surf_yz_kernels;
+      surf_zx_kernels = tensor_surf_zx_kernels;
+      surf_zy_kernels = tensor_surf_zy_kernels;
+      surf_zz_kernels = tensor_surf_zz_kernels;
+      break;
+
     default:
       assert(false);
       break;
@@ -110,8 +123,11 @@ gkyl_dg_diffusion_gen_new(
   }
 
   // ensure non-NULL pointers
+  assert(diffusion_gen->eqn.vol_term);
   for (int i = 0; i < cdim; ++i) {
-    assert(diffusion_gen->surf[i]);
+    for (int j = 0; j < cdim; ++j) {
+      assert(diffusion_gen->surf[i][j]);
+    }
   }
 
   diffusion_gen->auxfields.Dij = 0;

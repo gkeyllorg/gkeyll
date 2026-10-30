@@ -25,9 +25,23 @@ gkyl_bgk_collisions *gkyl_bgk_collisions_new(
 );
 
 /**
+ * Set nu to zero for all points where density or temperature cell averages are negative/zero.
+ * 
+ * @param up BGK collision frequency updater object.
+ * @param crange Config-space range.
+ * @param marr Array of moments (density, momentum, energy).
+ * @param nu_input Input collision frequency (nu).
+ * @param actual_nu Output collision frequency (nu), corrected to be zero where density or temperature are negative/zero.
+ */
+void gkyl_bgk_collisions_correct_nu(
+  const gkyl_bgk_collisions *up, const struct gkyl_range *crange, const struct gkyl_array *marr,
+  const struct gkyl_array *nu_input, struct gkyl_array *actual_nu
+);
+
+/**
  * Advance BGK operator (compute the BGK contribution to df/dt).
  *
- * @param up Spizer collision frequency updater object.
+ * @param up BGK collision frequency updater object.
  * @param crange Config-space range.
  * @param prange Phase-space range.
  * @param nu Sum of collision frequencies.

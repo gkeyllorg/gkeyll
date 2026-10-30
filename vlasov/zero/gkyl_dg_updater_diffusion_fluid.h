@@ -19,19 +19,16 @@ struct gkyl_dg_updater_diffusion_fluid_tm {
  *
  * @param grid Grid object.
  * @param basis Basis functions of the equation system.
- * @param is_diff_constant If diffusion coefficient constant or spatially constant.
  * @param num_equations Number of scalar fluid equations.
  * @param diff_in_dir Whether to apply diffusion in each direction.
  * @param diff_order Diffusion order.
- * @param diff_range Range object to index the diffusion coefficient.
  * @param is_zero_flux_dir True in directions with (lower and upper) zero flux BCs.
  * @param use_gpu Whether to run on host or device.
  * @return New diff updater object
  */
 struct gkyl_dg_updater_diffusion_fluid *gkyl_dg_updater_diffusion_fluid_new(
-  const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis, bool is_diff_const,
-  int num_equations, const bool *diff_in_dir, int diff_order, const struct gkyl_range *diff_range,
-  const bool *is_zero_flux_dir, bool use_gpu
+  const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis, int num_equations,
+  const bool *diff_in_dir, int diff_order, const bool *is_zero_flux_dir, bool use_gpu
 );
 
 /**

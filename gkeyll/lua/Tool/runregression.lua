@@ -1569,6 +1569,23 @@ local function check_action(test, runDir, testType, absTol, relTol)
       end
    end
 
+   -- Files the run produced that the baseline lacks mean the baseline is stale:
+   -- either it was created from a run that died after an early frame, or the
+   -- code now writes diagnostics it did not write at create time. Either way
+   -- the comparison is incomplete, so report them and fail.
+   if lfs.attributes(aDir) then
+      for fn in lfs.dir(runDir) do
+         local isGkyl  = (string.sub(fn, -5) == ".gkyl")
+         local inScope = isGkyl and (
+            testPrefix == nil or string.find(fn, "^" .. testPrefix) ~= nil)
+         if inScope and not lfs.attributes(aDir .. "/" .. fn) then
+            verboseLog(string.format("  EXTRA run file not in baseline: %s\n", fn))
+            table.insert(failedFiles, fn .. "  [EXTRA]")
+            passed = false
+         end
+      end
+   end
+
    -- count == 0 means either no accepted files exist (create not yet run) or the
    -- accepted directory itself is absent. Either way the check cannot pass.
    if count == 0 then passed = false end
@@ -1587,7 +1604,7 @@ local function check_action(test, runDir, testType, absTol, relTol)
          for _, ff in ipairs(failedFiles) do
             log(string.format("    %s\n", ff))
          end
-         log("  Legend: [DIFF] values exceed tolerance  [MISSING] file not produced by run\n")
+         log("  Legend: [DIFF] values exceed tolerance  [MISSING] file not produced by run  [EXTRA] run file absent from baseline\n")
          -- Build checkLog for DB storage so queryrdb --test N surfaces magnitudes.
          checkLog = "--- Comparison failures ---\n"
             .. table.concat(failedFiles, "\n")

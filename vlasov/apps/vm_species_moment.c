@@ -1,82 +1,76 @@
 #include <assert.h>
-#include <gkyl_mom_canonical_pb.h>
 #include <gkyl_vlasov_priv.h>
 
 // Initialize species moment object.
 void
 vm_species_moment_init(
-  struct gkyl_vlasov_app *app, struct vm_species *s, struct vm_species_moment *sm,
+  struct gkyl_vlasov_app *app, struct vm_species *vms, struct vm_species_moment *sm,
   enum gkyl_distribution_moments mom_type, bool is_integrated
 )
 {
   sm->is_integrated = is_integrated;
+  sm->is_vlasov_lte_moms = mom_type == GKYL_F_MOMENT_LTE;
+
+  sm->mom_hamil = gkyl_array_acquire(vms->mom_hamil);
+  sm->mom_hamil_range = &vms->mom_hamil_range;
 
   int num_mom;
-  sm->is_vlasov_lte_moms = mom_type == GKYL_F_MOMENT_LTE;
   if (sm->is_vlasov_lte_moms) {
     struct gkyl_vlasov_lte_moments_inp inp_mom = {
-      .phase_grid = &s->grid,
-      .vel_grid = &s->grid_vel,
-      .conf_basis = &app->confBasis,
-      .vel_basis = &app->velBasis,
-      .phase_basis = &app->basis,
+      .phase_grid = &vms->grid,
+      .vel_grid = &vms->grid_vel,
+      .conf_basis = &app->basis,
+      .vel_basis = &vms->basis_vel,
+      .phase_basis = &vms->basis,
       .conf_range = &app->local,
       .conf_range_ext = &app->local_ext,
-      .vel_range = &s->local_vel,
-      .phase_range = &s->local,
-      .gamma = s->gamma,
-      .gamma_inv = s->gamma_inv,
-      .h_ij = s->h_ij,
-      .h_ij_inv = s->h_ij_inv,
-      .det_h = s->det_h,
-      .hamil = s->hamil,
-      .model_id = s->model_id,
+      .vel_range = &vms->local_vel,
+      .phase_range = &vms->local,
+      .vel_map = vms->vel_map,
+      .hamil_range = sm->mom_hamil_range,
+      .hamil = sm->mom_hamil,
+      .model_id = vms->model_id,
+      .hamil_id = vms->mom_hamil_id,
+      .gamma_inv = vms->gamma_inv,
+      .h_ij = vms->h_ij,
+      .h_ij_inv = vms->h_ij_inv,
+      .det_h = vms->det_h,
+      .use_extended_hamil_def = vms->info.use_extended_hamil_def,
+      .effective_potential = vms->effective_potential,
       .use_gpu = app->use_gpu,
     };
     // Compute (n, V_drift, T/m)
     sm->vlasov_lte_moms = gkyl_vlasov_lte_moments_inew(&inp_mom);
     num_mom = app->vdim + 2;
+    sm->marr = mkarr(app->use_gpu, num_mom * app->basis.num_basis, app->local_ext.volume);
   } else {
-    if (s->model_id == GKYL_MODEL_SR) {
-      struct gkyl_mom_vlasov_sr_auxfields sr_inp = {.gamma = s->gamma};
-      sm->mcalc = gkyl_dg_updater_moment_new(
-        &s->grid, &app->confBasis, &app->basis, &app->local, &s->local_vel, &s->local, s->model_id,
-        &sr_inp, mom_type, is_integrated, app->use_gpu
-      );
-      num_mom = gkyl_dg_updater_moment_num_mom(sm->mcalc);
-    } else if ((s->model_id == GKYL_MODEL_CANONICAL_PB || s->model_id == GKYL_MODEL_CANONICAL_PB_GR
-               ) &&
-               (mom_type == GKYL_F_MOMENT_M1_FROM_H || mom_type == GKYL_F_MOMENT_ENERGY ||
-                (sm->is_integrated && mom_type == GKYL_F_MOMENT_M0M1M2))) {
-      struct gkyl_mom_canonical_pb_auxfields can_pb_inp = {.hamil = s->hamil};
-      sm->mcalc = gkyl_dg_updater_moment_new(
-        &s->grid, &app->confBasis, &app->basis, &app->local, &s->local_vel, &s->local, s->model_id,
-        &can_pb_inp, mom_type, is_integrated, app->use_gpu
-      );
-      num_mom = gkyl_dg_updater_moment_num_mom(sm->mcalc);
+    struct gkyl_mom_vlasov_inp inp_mom = {
+      .conf_basis = &app->basis,
+      .phase_basis = &vms->basis,
+      .vel_range = &vms->local_vel,
+      .vel_map = vms->vel_map,
+      .hamil_range = &vms->mom_hamil_range,
+      .hamil = vms->mom_hamil,
+      .model_id = vms->model_id,
+      .hamil_id = vms->mom_hamil_id,
+      .mom_type = mom_type,
+      .use_gpu = app->use_gpu,
+    };
+    if (is_integrated) {
+      sm->mom_type = gkyl_int_mom_vlasov_inew(&inp_mom);
+      num_mom = gkyl_mom_type_num_mom(sm->mom_type);
+      sm->marr = mkarr(app->use_gpu, num_mom, app->local_ext.volume);
     } else {
-      // No auxiliary fields for moments if not SR
-      sm->mcalc = gkyl_dg_updater_moment_new(
-        &s->grid, &app->confBasis, &app->basis, &app->local, &s->local_vel, &s->local, s->model_id,
-        0, mom_type, is_integrated, app->use_gpu
-      );
-      num_mom = gkyl_dg_updater_moment_num_mom(sm->mcalc);
+      sm->mom_type = gkyl_mom_vlasov_inew(&inp_mom);
+      num_mom = gkyl_mom_type_num_mom(sm->mom_type);
+      sm->marr = mkarr(app->use_gpu, num_mom * app->basis.num_basis, app->local_ext.volume);
     }
+    sm->mom_calc = gkyl_mom_calc_new(&vms->grid, sm->mom_type, app->use_gpu);
   }
 
-  if (is_integrated) {
-    sm->marr = mkarr(app->use_gpu, num_mom, app->local_ext.volume);
-    sm->marr_host = sm->marr;
-    if (app->use_gpu) {
-      sm->marr_host = mkarr(false, num_mom, app->local_ext.volume);
-    }
-  } else {
-    sm->marr = mkarr(app->use_gpu, num_mom * app->confBasis.num_basis, app->local_ext.volume);
-    sm->marr_host = sm->marr;
-    if (app->use_gpu) {
-      sm->marr_host = mkarr(false, num_mom * app->confBasis.num_basis, app->local_ext.volume);
-    }
-  }
+  // Host moment for  I/O.
+  sm->marr_host = app->use_gpu ? mkarr(false, sm->marr->ncomp, sm->marr->size) :
+                                 gkyl_array_acquire(sm->marr);
 }
 
 void
@@ -88,22 +82,38 @@ vm_species_moment_calc(
   if (sm->is_vlasov_lte_moms) {
     gkyl_vlasov_lte_moments_advance(sm->vlasov_lte_moms, &phase_rng, &conf_rng, fin, sm->marr);
   } else {
-    gkyl_dg_updater_moment_advance(sm->mcalc, &phase_rng, &conf_rng, fin, sm->marr);
+    gkyl_mom_calc_advance(sm->mom_calc, &phase_rng, &conf_rng, fin, sm->marr);
   }
+}
+
+void
+vm_species_moment_divide_Jx(
+  const struct gkyl_vlasov_app *app, const struct vm_species *s, const struct vm_species_moment *sm,
+  struct gkyl_array *mom
+)
+{
+  if (s->pos_map->is_identity) {
+    return;
+  }
+  // J_x is constant in each cell (C^0 linear map), so this is an exact per-cell division. In the LTE
+  // moments V_drift and T/m are velocity ratios in which J_x cancels.
+  int num_coeff_divide = sm->is_vlasov_lte_moms ? app->basis.num_basis : mom->ncomp;
+  gkyl_vlasov_position_map_divide_jacobpos_conf(s->pos_map, &app->local, num_coeff_divide, mom, mom);
 }
 
 // release memory for moment data object
 void
 vm_species_moment_release(const struct gkyl_vlasov_app *app, const struct vm_species_moment *sm)
 {
-  if (app->use_gpu) {
-    gkyl_array_release(sm->marr_host);
-  }
+  gkyl_array_release(sm->marr_host);
   gkyl_array_release(sm->marr);
+
+  gkyl_array_release(sm->mom_hamil);
 
   if (sm->is_vlasov_lte_moms) {
     gkyl_vlasov_lte_moments_release(sm->vlasov_lte_moms);
   } else {
-    gkyl_dg_updater_moment_release(sm->mcalc);
+    gkyl_mom_type_release(sm->mom_type);
+    gkyl_mom_calc_release(sm->mom_calc);
   }
 }

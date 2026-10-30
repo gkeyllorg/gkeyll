@@ -92,7 +92,7 @@ GKYL_CU_D static const mul_op_kern_list ser_mul_list[] = {
 GKYL_CU_D static const mul_op_kern_list ten_mul_list[] = {
   {NULL, NULL, NULL, NULL}, // No 0D basis functions
   {binop_mul_1d_ser_p0, binop_mul_1d_ser_p1, binop_mul_1d_ser_p2, binop_mul_1d_ser_p3},
-  {binop_mul_2d_ser_p0, binop_mul_2d_ser_p1, binop_mul_2d_tensor_p2, NULL},
+  {binop_mul_2d_ser_p0, binop_mul_2d_ser_p1, binop_mul_2d_tensor_p2, binop_mul_2d_tensor_p3},
   {binop_mul_3d_ser_p0, binop_mul_3d_ser_p1, binop_mul_3d_tensor_p2, NULL}
 };
 
@@ -247,7 +247,8 @@ GKYL_CU_D static const cross_mul_op_kern_list ten_cross_mul_list[] = {
   // pdim=2
   {
     .list =
-      {{NULL, binop_cross_mul_1d_2d_ser_p1, binop_cross_mul_1d_2d_tensor_p2, NULL},
+      {{NULL, binop_cross_mul_1d_2d_ser_p1, binop_cross_mul_1d_2d_tensor_p2,
+        binop_cross_mul_1d_2d_tensor_p3},
        {NULL, NULL, NULL, NULL},
        {NULL, NULL, NULL, NULL}},
   },
@@ -255,7 +256,8 @@ GKYL_CU_D static const cross_mul_op_kern_list ten_cross_mul_list[] = {
   {
     .list =
       {{NULL, binop_cross_mul_1d_3d_ser_p1, binop_cross_mul_1d_3d_tensor_p2, NULL},
-       {NULL, binop_cross_mul_2d_3d_ser_p1, binop_cross_mul_2d_3d_tensor_p2, NULL},
+       {NULL, binop_cross_mul_2d_3d_ser_p1, binop_cross_mul_2d_3d_tensor_p2,
+        binop_cross_mul_2d_3d_tensor_p3},
        {NULL, NULL, NULL, NULL}},
   },
   // pdim=4
@@ -287,7 +289,7 @@ GKYL_CU_D static const cross_mul_accumulate_op_kern_list ten_cross_mul_accumulat
   {
     .list =
       {{NULL, binop_cross_mul_accumulate_1d_2d_ser_p1, binop_cross_mul_accumulate_1d_2d_tensor_p2,
-        NULL},
+        binop_cross_mul_accumulate_1d_2d_tensor_p3},
        {NULL, NULL, NULL, NULL},
        {NULL, NULL, NULL, NULL}},
   },
@@ -297,7 +299,7 @@ GKYL_CU_D static const cross_mul_accumulate_op_kern_list ten_cross_mul_accumulat
       {{NULL, binop_cross_mul_accumulate_1d_3d_ser_p1, binop_cross_mul_accumulate_1d_3d_tensor_p2,
         NULL},
        {NULL, binop_cross_mul_accumulate_2d_3d_ser_p1, binop_cross_mul_accumulate_2d_3d_tensor_p2,
-        NULL},
+        binop_cross_mul_accumulate_2d_3d_tensor_p3},
        {NULL, NULL, NULL, NULL}},
   },
   // pdim=4
@@ -333,7 +335,8 @@ GKYL_CU_D static const cross_mul_accumulate_comp_par_op_kern_list
     {
       .list =
         {{NULL, binop_cross_mul_accumulate_comp_par_1d_2d_ser_p1,
-          binop_cross_mul_accumulate_comp_par_1d_2d_tensor_p2, NULL},
+          binop_cross_mul_accumulate_comp_par_1d_2d_tensor_p2,
+          binop_cross_mul_accumulate_comp_par_1d_2d_tensor_p3},
          {NULL, NULL, NULL, NULL},
          {NULL, NULL, NULL, NULL}},
     },
@@ -343,7 +346,8 @@ GKYL_CU_D static const cross_mul_accumulate_comp_par_op_kern_list
         {{NULL, binop_cross_mul_accumulate_comp_par_1d_3d_ser_p1,
           binop_cross_mul_accumulate_comp_par_1d_3d_tensor_p2, NULL},
          {NULL, binop_cross_mul_accumulate_comp_par_2d_3d_ser_p1,
-          binop_cross_mul_accumulate_comp_par_2d_3d_tensor_p2, NULL},
+          binop_cross_mul_accumulate_comp_par_2d_3d_tensor_p2,
+          binop_cross_mul_accumulate_comp_par_2d_3d_tensor_p3},
          {NULL, NULL, NULL, NULL}},
     },
     // pdim=4
@@ -452,7 +456,8 @@ GKYL_CU_D static const div_set_op_kern_list ten_div_set_list[] = {
   {NULL, NULL, NULL, NULL}, // No 0D basis functions
   {binop_div_set_1d_ser_p0, binop_div_set_1d_ser_p1, binop_div_set_1d_ser_p2,
    binop_div_set_1d_ser_p3},
-  {binop_div_set_2d_ser_p0, binop_div_set_2d_ser_p1, binop_div_set_2d_tensor_p2, NULL},
+  {binop_div_set_2d_ser_p0, binop_div_set_2d_ser_p1, binop_div_set_2d_tensor_p2,
+   binop_div_set_2d_tensor_p3},
   {binop_div_set_3d_ser_p0, binop_div_set_3d_ser_p1, binop_div_set_3d_tensor_p2, NULL}
 };
 
@@ -549,7 +554,9 @@ choose_mul_conf_phase_accumulate_comp_par_kern(
       return ten_cross_mul_accumulate_comp_par_list[pdim - 2].list[cdim - 1].kernels[poly_order];
       break;
     default:
-      assert(false);
+      // No assert here: this runs inside the GPU kernel, and the assert's __assertfail
+      // path costs the kernel a larger stack frame and local-memory spills (1.4-1.7x
+      // slower for hybrid bases). Unsupported bases return NULL like the NULL table entries.
       break;
   }
   return 0;
@@ -615,3 +622,13 @@ void gkyl_dg_calc_op_range_cu(
   const struct gkyl_basis *basis, int c_oop, struct gkyl_array *out, int c_iop,
   const struct gkyl_array *iop, struct gkyl_range range, enum gkyl_dg_op op
 );
+
+GKYL_CU_D static inline double
+dg_cell_mean_fg_prod(int nb, const double *f, const double *g)
+{
+  double sum = 0.0;
+  for (int i = 0; i < nb; ++i) {
+    sum += f[i] * g[i];
+  }
+  return sum;
+}

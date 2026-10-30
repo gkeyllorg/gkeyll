@@ -35,6 +35,7 @@ gkyl_gk_geometry_new(
   up->global_ext = geometry_inp->global_ext;
   up->grid = geometry_inp->grid;
   gk_geometry_set_nodal_ranges(up);
+  up->has_dxdz_grad = false;
 
   for (int d = 0; d < 3; d++) {
     up->is_periodic[d] = geometry_inp->geo_is_periodic[d];
@@ -207,6 +208,14 @@ gkyl_gk_geometry_populate_nodal(struct gk_geometry *gk_geom)
   gkyl_nodal_ops_m2n(
     n2m, &gk_geom->basis, &gk_geom->grid, &gk_geom->nrange_int, &gk_geom->local, 9,
     gk_geom->geo_int.dxdz_nodal, gk_geom->geo_int.dxdz, true
+  );
+  gkyl_nodal_ops_m2n(
+    n2m, &gk_geom->basis, &gk_geom->grid, &gk_geom->nrange_int, &gk_geom->local, 27,
+    gk_geom->geo_int.dxdz_grad_nodal, gk_geom->geo_int.dxdz_grad, true
+  );
+  gkyl_nodal_ops_m2n(
+    n2m, &gk_geom->basis, &gk_geom->grid, &gk_geom->nrange_int, &gk_geom->local, 3,
+    gk_geom->geo_int.bcart_nodal, gk_geom->geo_int.bcart, true
   );
   gkyl_nodal_ops_m2n(
     n2m, &gk_geom->basis, &gk_geom->grid, &gk_geom->nrange_int, &gk_geom->local, 9,
@@ -564,6 +573,7 @@ gkyl_gk_geometry_deflate(const struct gk_geometry *up_3d, struct gkyl_gk_geometr
   up->has_LCFS = up_3d->has_LCFS;
   up->x_LCFS = up_3d->x_LCFS;
   up->idx_LCFS_lo = up_3d->idx_LCFS_lo;
+  up->has_dxdz_grad = true;
 
   gk_geometry_corn_alloc_expansions(up);
   gk_geometry_corn_alloc_nodal(up);
@@ -698,6 +708,30 @@ gkyl_gk_geometry_deflate(const struct gk_geometry *up_3d, struct gkyl_gk_geometr
     deflator, &up_3d->nrange_int, &up->nrange_int, up_3d->geo_int.dxdz_nodal,
     up->geo_int.dxdz_nodal, 9
   );
+  gkyl_deflate_geo_advance_nodal(
+    deflator, &up_3d->nrange_int, &up->nrange_int, up_3d->geo_int.bcart_nodal,
+    up->geo_int.bcart_nodal, 3
+  );
+  // Gradients of the Cartesian tangents along all three coordinates: finite
+  // differences on the augmented 3D node grid (one cell of negligible extent
+  // along each removed coordinate), deflated like the tangents. For consumers
+  // that differentiate the geometry along the removed coordinates (e.g. the
+  // triad frame of kinetic neutrals), which the deflated grid cannot provide.
+  struct gkyl_array *dxdz_grad_nodal_3d = gkyl_array_new(GKYL_DOUBLE, 27, up_3d->nrange_int.volume);
+  gkyl_nodal_ops_grad_interior(
+    &up_3d->grid, &up_3d->nrange_int, 9, up_3d->geo_int.dxdz_nodal, dxdz_grad_nodal_3d
+  );
+  gkyl_deflate_geo_advance_nodal(
+    deflator, &up_3d->nrange_int, &up->nrange_int, dxdz_grad_nodal_3d, up->geo_int.dxdz_grad_nodal,
+    27
+  );
+  gkyl_array_release(dxdz_grad_nodal_3d);
+  struct gkyl_nodal_ops *n2m_grad = gkyl_nodal_ops_new(&up->basis, &up->grid, false);
+  gkyl_nodal_ops_n2m(
+    n2m_grad, &up->basis, &up->grid, &up->nrange_int, &up->local, 27, up->geo_int.dxdz_grad_nodal,
+    up->geo_int.dxdz_grad, true
+  );
+  gkyl_nodal_ops_release(n2m_grad);
   gkyl_deflate_geo_advance_nodal(
     deflator, &up_3d->nrange_int, &up->nrange_int, up_3d->geo_int.dzdx_nodal,
     up->geo_int.dzdx_nodal, 9
@@ -852,6 +886,16 @@ gkyl_gk_geometry_deflate(const struct gk_geometry *up_3d, struct gkyl_gk_geometr
         deflator_surf, &up_3d->nrange_surf[dir], &up->nrange_surf[count],
         up_3d->geo_surf[dir].bimpactangle_nodal, up->geo_surf[count].bimpactangle_nodal, 1
       );
+      // Cartesian tangents and field direction at the face nodes (3D order), for
+      // consumers that build frames on the faces (e.g. the kinetic-neutral triads).
+      gkyl_deflate_geo_surf_advance_nodal(
+        deflator_surf, &up_3d->nrange_surf[dir], &up->nrange_surf[count],
+        up_3d->geo_surf[dir].dxdz_nodal, up->geo_surf[count].dxdz_nodal, 9
+      );
+      gkyl_deflate_geo_surf_advance_nodal(
+        deflator_surf, &up_3d->nrange_surf[dir], &up->nrange_surf[count],
+        up_3d->geo_surf[dir].bcart_nodal, up->geo_surf[count].bcart_nodal, 3
+      );
       count += 1;
       gkyl_deflate_geo_surf_release(deflator_surf);
     }
@@ -932,6 +976,7 @@ gkyl_gk_geometry_free(const struct gkyl_ref_count *ref)
   gkyl_array_release(up->geo_int.jacobgeo_ghost);
   gkyl_array_release(up->geo_int.jacobgeo_inv);
   gkyl_array_release(up->geo_int.dxdz);
+  gkyl_array_release(up->geo_int.dxdz_grad);
   gkyl_array_release(up->geo_int.dzdx);
   gkyl_array_release(up->geo_int.dualmag);
   gkyl_array_release(up->geo_int.normals);

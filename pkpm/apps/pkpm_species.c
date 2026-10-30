@@ -284,8 +284,8 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
 
     bool is_zero_flux[GKYL_MAX_CDIM] = {false};
     s->diff_slvr = gkyl_dg_updater_diffusion_fluid_new(
-      &app->grid, &app->confBasis, true, num_eqn, NULL, s->info.diffusion.order, &app->local,
-      is_zero_flux, app->use_gpu
+      &app->grid, &app->confBasis, num_eqn, NULL, s->info.diffusion.order, is_zero_flux,
+      app->use_gpu
     );
   }
 

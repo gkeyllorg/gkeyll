@@ -344,10 +344,6 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app *app, doubl
               struct gk_species *gks = &sbapp->species[i];
               gk_species_positivity_apply(sbapp, gks, &gks->positivity, gks->fnew, gks->f);
             }
-            for (int i = 0; i < ns_neut; ++i) {
-              struct gk_neut_species *gkns = &sbapp->neut_species[i];
-              gk_neut_species_positivity_apply(sbapp, gkns, &gkns->positivity, gkns->fnew, gkns->f);
-            }
           }
 
           for (int b = 0; b < nblocks_local; ++b) {

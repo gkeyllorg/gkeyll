@@ -22,3 +22,53 @@
 pkpm/creg/rt_pkpm_alf_wave_p1   # Change num_frames
 pkpm/creg/rt_pkpm_neut_sodshock_p1   # Change num_frames
 pkpm/creg/rt_pkpm_ot_p1   # Change num_frames
+
+# kitp-hamil-vlasov: ground-up rewrite of the Vlasov solver (triads flux kernels, nonuniform
+# position/velocity maps, new Hamiltonian formulation). Every Vlasov C regression test was
+# redone with physics figures of merit documented in the test header; most tests were renamed
+# (candidate-only in CI). The tests below keep their main name and are compared, but their inputs
+# and solver both changed, so they establish new baselines rather than reproduce main.
+vlasov/creg/rt_dg_diffusion4_const_1x   # Vlasov rewrite; new resolution and figures of merit
+vlasov/creg/rt_dg_diffusion4_const_2x   # Vlasov rewrite; new resolution and figures of merit
+vlasov/creg/rt_dg_diffusion4_const_3x   # Vlasov rewrite; new resolution and figures of merit
+vlasov/creg/rt_dg_diffusion6_const_1x   # Vlasov rewrite; new resolution and figures of merit
+vlasov/creg/rt_dg_diffusion6_const_2x   # Vlasov rewrite; new resolution and figures of merit
+vlasov/creg/rt_dg_diffusion6_const_3x   # Vlasov rewrite; new resolution and figures of merit
+vlasov/creg/rt_dg_diffusion_const_1x   # Vlasov rewrite; new resolution and figures of merit
+vlasov/creg/rt_dg_diffusion_const_2x   # Vlasov rewrite; new resolution and figures of merit
+vlasov/creg/rt_dg_diffusion_const_3x   # Vlasov rewrite; new resolution and figures of merit
+vlasov/creg/rt_dg_diffusion_gen_2x   # Vlasov rewrite; anisotropic diffusion tensor, new figures of merit
+vlasov/creg/rt_dg_diffusion_gen_3x   # Vlasov rewrite; anisotropic diffusion tensor, new figures of merit
+vlasov/creg/rt_vlasov_es_shock_lbo_1x1v   # Vlasov rewrite; half-domain reflecting-wall setup, new figures of merit
+vlasov/creg/rt_vlasov_sr_twostream_1x1v   # Vlasov rewrite; linear-theory growth-rate figures of merit
+vlasov/creg/rt_vlasov_sr_twostream_1x3v   # Vlasov rewrite; linear-theory growth-rate figures of merit
+vlasov/creg/rt_vlasov_sr_weibel_1x3v   # Vlasov rewrite; linear-theory growth-rate figures of merit
+
+
+# kitp-hamil-vlasov: gyrokinetic kinetic neutrals moved from the canonical-PB Vlasov solver to
+# the triads Vlasov solver on the tensor p=1 hybrid basis (2^cdim*3^vdim functions instead of the
+# old serendipity hybrid), so neutral distribution and moment files change shape and value.
+gyrokinetic/creg/rt_gk_mdpx_cart_3x2v_p1   # kinetic neutrals (Ar0) on triads Vlasov solver
+gyrokinetic/creg/rt_gk_neut_recycle_1x3v_p1   # kinetic neutrals on triads Vlasov solver; neutral velocity cells 16 -> 12 for CI runtime
+gyrokinetic/creg/rt_gk_rad_low_Te_1x2v_p1   # kinetic neutrals on triads Vlasov solver
+gyrokinetic/creg/rt_gk_sheath_cons_1x2v_p1   # kinetic neutrals on triads Vlasov solver
+gyrokinetic/creg/rt_gk_sheath_cx_2x2v_p1   # kinetic neutrals on triads Vlasov solver; field made toroidal (parallel to e_3) as mapc2p requires
+gyrokinetic/creg/rt_gk_static_3x2v_p1   # kinetic neutrals (D0) on triads Vlasov solver
+gyrokinetic/creg/rt_gk_step_cons_2x2v_p1   # kinetic neutrals on triads Vlasov solver; isotropic neutral velocity grid, 12^3 -> 8^3 cells for CI runtime
+
+# kitp-hamil-vlasov: regenerated core basis kernels (serendipity sqrt/exp_sq and the 1x1v hybrid
+# surface-evaluation headers) carry their coefficients at full double precision, which moves
+# several constants by one ulp. The 1x pkpm tests differ from main at round-off only (absolute
+# 1e-14 to 1e-10 on order-one to 1e3 values); the CI tolerance of 1e-12 flags them.
+pkpm/creg/rt_pkpm_alf_soliton_1x_p2   # round-off from one-ulp kernel constants
+pkpm/creg/rt_pkpm_em_advect_resonant_p1   # round-off from one-ulp kernel constants
+pkpm/creg/rt_pkpm_es_shock_reflect_p2   # round-off from one-ulp kernel constants
+pkpm/creg/rt_pkpm_mom_beach_p2   # round-off from one-ulp kernel constants
+pkpm/creg/rt_pkpm_neut_sodshock_p2   # round-off from one-ulp kernel constants
+pkpm/creg/rt_pkpm_sheath_p1   # round-off from one-ulp kernel constants
+pkpm/creg/rt_pkpm_wall_p2   # round-off from one-ulp kernel constants
+
+# kitp-hamil-vlasov: the hybrid basis is now the tensor hybrid, whose 2x1v coefficient ordering
+# differs from the old serendipity hybrid. Distribution-function files of 2x pkpm tests hold the
+# same function with permuted coefficients; moments, fields and time series are identical to main.
+pkpm/creg/rt_pkpm_2d_travel_pulse_p1   # 2x1v hybrid coefficient ordering (distribution files only)

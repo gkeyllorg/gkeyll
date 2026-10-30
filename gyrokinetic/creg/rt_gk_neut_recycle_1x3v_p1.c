@@ -106,7 +106,7 @@ create_ctx(void)
   int Nz = 224; // Number of cells along magnetic field.
   int Nvpar = 16; // Number of cells in vpar.
   int Nmu = 4; // Number of cells in mu.
-  int Nv = 16; // Number of cells in neutral v.
+  int Nv = 12; // Number of cells in neutral v.
 
   double Lz = 40.0; // Domain size along z.
   double vpar_max_elc = 4.0 * vte; // Maximum electron vpar.

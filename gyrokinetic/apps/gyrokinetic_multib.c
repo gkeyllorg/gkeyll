@@ -93,6 +93,14 @@ singleb_app_new_geom(
   app_inp.geometry = bgi->geometry;
   int num_species = app_inp.num_species = mbinp->num_species;
   int num_neut_species = app_inp.num_neut_species = mbinp->num_neut_species;
+  // The geometry needs to know which neutral species are kinetic (velocity cells).
+  for (int i = 0; i < num_neut_species; ++i) {
+    const struct gkyl_gyrokinetic_multib_neut_species *nsp = &mbinp->neut_species[i];
+    app_inp.neut_species[i].vdim = nsp->vdim;
+    for (int v = 0; v < nsp->vdim; ++v) {
+      app_inp.neut_species[i].cells[v] = nsp->cells[v];
+    }
+  }
 
   app_inp.poly_order = mbinp->poly_order;
   app_inp.basis_type = mbinp->basis_type;

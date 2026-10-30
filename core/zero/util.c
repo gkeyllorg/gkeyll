@@ -47,6 +47,14 @@ gkyl_tm_trigger_check_and_bump(struct gkyl_tm_trigger *tmt, double tcurr)
   return status;
 }
 
+double
+gkyl_tm_trigger_anchor(double dt, double tstart)
+{
+  double k = floor(tstart / dt * (1.0 + 1.0e-10));
+  // Never anchor after tstart (round-off), so the trigger still fires at tstart.
+  return fmin(k * dt, tstart);
+}
+
 void
 gkyl_exit(const char *msg)
 {

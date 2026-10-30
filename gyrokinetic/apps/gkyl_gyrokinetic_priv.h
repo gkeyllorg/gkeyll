@@ -33,12 +33,9 @@
 #include <gkyl_dg_advection.h>
 #include <gkyl_dg_array_mask.h>
 #include <gkyl_dg_bin_ops.h>
-#include <gkyl_dg_calc_canonical_pb_vars.h>
-#include <gkyl_dg_calc_gk_neut_hamil.h>
 #include <gkyl_dg_calc_gk_rad_vars.h>
 #include <gkyl_gk_collisionless_flux.h>
 #include <gkyl_gk_collisionless_passive_flux.h>
-#include <gkyl_dg_canonical_pb.h>
 #include <gkyl_dg_cx.h>
 #include <gkyl_dg_gyrokinetic.h>
 #include <gkyl_dg_gyrokinetic_passive.h>
@@ -50,10 +47,15 @@
 #include <gkyl_dg_updater_gyrokinetic_passive.h>
 #include <gkyl_dg_updater_lbo_gyrokinetic.h>
 #include <gkyl_dg_updater_moment_gyrokinetic.h>
-#include <gkyl_dg_updater_moment.h>
 #include <gkyl_dg_updater_rad_gyrokinetic.h>
-#include <gkyl_dg_updater_vlasov.h>
 #include <gkyl_dg_vlasov.h>
+#include <gkyl_dg_vlasov_calc_hamil.h>
+#include <gkyl_dg_vlasov_conf_flux_surf.h>
+#include <gkyl_dg_vlasov_vel_flux_surf.h>
+#include <gkyl_mom_vlasov.h>
+#include <gkyl_mom_calc.h>
+#include <gkyl_vlasov_position_map.h>
+#include <gkyl_vlasov_triad_geom.h>
 #include <gkyl_dynvec.h>
 #include <gkyl_elem_type.h>
 #include <gkyl_eqn_type.h>
@@ -83,7 +85,6 @@
 #include <gkyl_mom_bcorr_lbo_gyrokinetic.h>
 #include <gkyl_mom_calc.h>
 #include <gkyl_mom_calc_bcorr.h>
-#include <gkyl_mom_canonical_pb.h>
 #include <gkyl_mom_gyrokinetic.h>
 #include <gkyl_null_pool.h>
 #include <gkyl_position_map.h>
@@ -103,10 +104,10 @@
 #include <gkyl_skin_surf_from_ghost.h>
 #include <gkyl_tok_geo.h>
 #include <gkyl_positivity_shift_gyrokinetic.h>
-#include <gkyl_positivity_shift_vlasov.h>
 #include <gkyl_vlasov_lte_correct.h>
 #include <gkyl_vlasov_lte_moments.h>
 #include <gkyl_vlasov_lte_proj_on_basis.h>
+#include <gkyl_vlasov_velocity_map.h>
 #include <gkyl_util.h>
 
 // Definitions of private structs and APIs attached to these objects
@@ -164,6 +165,10 @@ struct gk_species_moment {
         };
         struct {
           struct gkyl_dg_updater_moment *mcalc;
+        };
+        struct {
+          struct gkyl_mom_type *mom_type; // Vlasov (triad) moment type for neutrals.
+          struct gkyl_mom_calc *mom_calc; // Vlasov moment calculator for neutrals.
         };
       };
     };
@@ -337,18 +342,19 @@ struct gk_collisionless {
     };
     // Neutral (Vlasov) species ............................................ //
     struct {
-      struct gkyl_array *alpha_surf; // array for surface phase space flux (v^i = v . e^i)
-      struct gkyl_array
-        *sgn_alpha_surf; // array for the sign of the surface phase space flux at quadrature points
-      // utilized for numerical flux function
-      // F = alpha_surf/2 ( (f^+ + f^-) - sign_alpha_surf*(f^+ - f^-) )
-      struct gkyl_array
-        *const_sgn_alpha; // boolean array for if the surface phase space flux is single signed
-      // if true, numerical flux function inside kernels simplifies to
-      // F = alpha_surf*f^- (if sign_alpha_surf = 1),
-      // F = alpha_surf*f^+ (if sign_alpha_surf = -1)
+      int num_surf_conf_nodes; // Number of surface nodes at configuration-space surfaces.
+      int num_surf_vel_nodes; // Number of surface nodes at velocity-space surfaces.
 
-      gkyl_dg_updater_vlasov *vlasov_slvr; // Vlasov solver.
+      struct gkyl_array *conf_flux_surf; // Modal expansion of surface fluxes at conf-space surfaces.
+      struct gkyl_array
+        *vel_flux_surf; // Modal expansion of surface fluxes at velocity-space surfaces.
+      struct gkyl_dg_vlasov_conf_flux_surf
+        *calc_conf_flux; // Updater for computing surface fluxes (conf).
+      struct gkyl_dg_vlasov_vel_flux_surf
+        *calc_vel_flux; // Updater for computing surface fluxes (vel).
+
+      struct gkyl_dg_eqn *eqn_vlasov; // Vlasov (triad) equation object.
+      struct gkyl_hyper_dg *slvr_vlasov; // Vlasov solver.
     };
   };
   void (*rhs_func)(
@@ -696,7 +702,6 @@ struct gk_recycle_wall {
   struct gkyl_range *emit_skin_r; // Skin range of the emitting boundary (sub of local_ext).
   struct gkyl_range emit_buff_r; // Ghost range of the emitting boundary.
   struct gkyl_range emit_cbuff_r; // Conf-space ghost range of the emitting boundary.
-  struct gkyl_range emit_normal_r;
 
   struct gk_species *impact_species[GKYL_MAX_SPECIES]; // Pointers to impacting species
 
@@ -714,7 +719,8 @@ struct gk_recycle_wall {
 
   struct gkyl_array *unit_phase_flux_neut; // Unit-density neutral flux.
   struct gkyl_array *unit_m0_flux_neut; // MO moment of unit-density flux.
-  struct gkyl_dg_updater_moment *m0op_neut; // M0 moment solver for unit-density flux.
+  struct gkyl_mom_type *m0op_neut_type; // M0 moment type for unit-density flux.
+  struct gkyl_mom_calc *m0op_neut; // M0 moment solver for unit-density flux.
 
   struct gkyl_array *spectrum[GKYL_MAX_SPECIES]; // Unit-density Maxwellian is copied and scaled here.
   struct gkyl_range
@@ -1186,16 +1192,9 @@ struct gk_positivity {
 
   struct gkyl_array *fbuffer_ptr; // Pointer to an array were we store delta f.
   struct gkyl_array *delta_m0; // Number density of the positivity shift.
-  union {
-    struct {
-      struct gkyl_positivity_shift_gyrokinetic *shift_op_gk;
-      struct gkyl_array *delta_m0s_tot; // Density of total positivity shift (like-species).
-      struct gkyl_array *delta_m0r_tot; // Density of total positivity shift (other species).
-    };
-    struct {
-      struct gkyl_positivity_shift_vlasov *shift_op_vlasov;
-    };
-  };
+  struct gkyl_positivity_shift_gyrokinetic *shift_op_gk;
+  struct gkyl_array *delta_m0s_tot; // Density of total positivity shift (like-species).
+  struct gkyl_array *delta_m0r_tot; // Density of total positivity shift (other species).
 
   struct gk_species_moment moms; // Positivity shift diagnostic moments.
   struct gk_species_moment integ_moms; // Integrated moments.
@@ -1224,27 +1223,6 @@ struct gk_positivity {
   );
   void (*write_integrated_diags_func)(
     gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_positivity *pos
-  );
-  // Neutral species methods (MF 2025/10/29: to get rid of when we unify species types).
-  void (*apply_func_neut)(
-    gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gk_positivity *pos,
-    struct gkyl_array *fbuffer, struct gkyl_array *fout
-  );
-  void (*deltaf_moms_func_neut)(
-    gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gk_positivity *pos
-  );
-  void (*deltaf_integ_moms_func_neut)(
-    gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gk_positivity *pos
-  );
-  void (*write_diags_func_neut)(
-    gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gk_positivity *pos, double tm,
-    int frame
-  );
-  void (*calc_integrated_diags_func_neut)(
-    gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gk_positivity *pos, double tm
-  );
-  void (*write_integrated_diags_func_neut)(
-    gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gk_positivity *pos
   );
 };
 
@@ -1456,7 +1434,7 @@ struct gk_neut_species {
 
   bool is_fluid; // Whether this is a fluid species.
   enum gkyl_field_id field_id; // Type of Field equation (always GKYL_FIELD_NULL).
-  enum gkyl_model_id model_id; // Type of Vlasov equation (always GKYL_MODEL_CANONICAL_PB)
+  enum gkyl_model_id model_id; // Type of Vlasov equation (always GKYL_MODEL_TRIAD).
 
   struct gkyl_basis basis; // Species basis.
   struct gkyl_basis *basis_on_dev; // Species basis on device (or host if use_gpu=false).
@@ -1517,8 +1495,6 @@ struct gk_neut_species {
 
   struct gk_bgk_collisions bgk; // BGK collisions object.
 
-  struct gk_positivity positivity; // Positivity enforcing operator.
-
   struct gk_react react_neut; // Reaction object.
 
   // Boundary fluxes used for other solvers and diagnostics.
@@ -1531,10 +1507,23 @@ struct gk_neut_species {
       struct gkyl_range local_vel, local_ext_vel; // Local, local-ext velocity-space ranges.
 
       struct gkyl_velocity_map *vel_map; // Velocity mapping objects.
+      // Identity Vlasov velocity map, passed to the Vlasov moment/LTE updaters.
+      struct gkyl_vlasov_velocity_map *vlasov_vel_map;
+      // Identity Vlasov position map, required by the Vlasov flux updaters.
+      struct gkyl_vlasov_position_map *vlasov_pos_map;
 
       struct gkyl_array *g_ij, *gij; // Metric tensor and its conjugate.
-      struct gkyl_array *hamil; // Specified hamiltonian function for canonical poisson bracket
+      struct gkyl_basis basis_vel; // Velocity-space basis.
+      enum gkyl_hamil_id hamil_id; // Hamiltonian representation (velocity-space sparse for triads).
+      struct gkyl_range hamil_range; // Range the Hamiltonian is defined on (velocity space).
+      struct gkyl_array *hamil; // Hamiltonian H = v^2/2 on the velocity-space grid.
       struct gkyl_array *hamil_host; // Host side hamiltonian array for intial projection
+      // Poisson tensor of the GK geometry triads at the configuration-space
+      // Gauss-Legendre nodes: interior nodes (volume and velocity-surface updates)
+      // and face nodes (configuration-surface updates).
+      struct gkyl_array *conf_poisson_tensor; // [node][component] at the interior nodes.
+      struct gkyl_array *conf_poisson_tensor_surf; // [dir][face][face node][component].
+      struct gkyl_array *f_no_J; // Distribution function with the velocity Jacobian divided out.
       struct gk_species_moment m0; // Computes density.
 
       struct gkyl_array *bc_buffer; // Buffer for BCs (used by bc_basic)
@@ -1551,13 +1540,6 @@ struct gk_neut_species {
       struct gkyl_bc_basic *bc_up[GKYL_MAX_CDIM];
 
       struct gk_collisionless collisionless; // Collisionless terms.
-
-      // Updater that enforces positivity by shifting f.
-      struct gkyl_positivity_shift_vlasov *pos_shift_op;
-      struct gkyl_array *ps_delta_m0; // Number density of the positivity shift.
-      struct gk_species_moment ps_moms; // Positivity shift diagnostic moments.
-      gkyl_dynvec ps_integ_diag; // Integrated moments of the positivity shift.
-      bool is_first_ps_integ_write_call; // Flag first time writing ps_integ_diag.
     };
 
     // Fluid neutrals .............................................. //
@@ -1860,6 +1842,7 @@ struct gkyl_gyrokinetic_app {
 
   int num_neut_species; // Number of neutral species.
   struct gk_neut_species *neut_species; // Data for each neutral species.
+  bool has_kinetic_neut; // Whether any neutral species is kinetic (set with the geometry).
 
   // Enforce quasineutrality of sum_s delta f_s after enforcing positivity of charged species.
   bool post_positivity_quasineut;
@@ -2087,10 +2070,6 @@ void gk_species_positivity_init(
   struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_positivity *pos
 );
 
-void gk_neut_species_positivity_init(
-  struct gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gk_positivity *pos
-);
-
 /**
  * Determine how many species participate in the quasineutrality enforcement
  * after applying the positivity operator.
@@ -2113,11 +2092,6 @@ void gk_species_positivity_apply(
   struct gkyl_array *fbuffer, struct gkyl_array *fout
 );
 
-void gk_neut_species_positivity_apply(
-  gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gk_positivity *pos,
-  struct gkyl_array *fbuffer, struct gkyl_array *fout
-);
-
 /**
  * Write conf-space diagnostics of the positivity operator.
  *
@@ -2129,11 +2103,6 @@ void gk_neut_species_positivity_apply(
  */
 void gk_species_positivity_write_diags(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_positivity *pos, double tm, int frame
-);
-
-void gk_neut_species_positivity_write_diags(
-  gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gk_positivity *pos, double tm,
-  int frame
 );
 
 /**
@@ -2148,10 +2117,6 @@ void gk_species_positivity_calc_integrated_diags(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_positivity *pos, double tm
 );
 
-void gk_neut_species_positivity_calc_integrated_diags(
-  gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gk_positivity *pos, double tm
-);
-
 /**
  * Write integrated diagnostics of the positivity operator.
  *
@@ -2163,10 +2128,6 @@ void gk_species_positivity_write_integrated_diags(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_positivity *pos
 );
 
-void gk_neut_species_positivity_write_integrated_diags(
-  gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gk_positivity *pos
-);
-
 /**
  * Release species positivity operator.
  *
@@ -2174,10 +2135,6 @@ void gk_neut_species_positivity_write_integrated_diags(
  * @param pos Positivity object.
  */
 void gk_species_positivity_release(
-  const struct gkyl_gyrokinetic_app *app, const struct gk_positivity *pos
-);
-
-void gk_neut_species_positivity_release(
   const struct gkyl_gyrokinetic_app *app, const struct gk_positivity *pos
 );
 
@@ -2192,11 +2149,6 @@ void gk_neut_species_positivity_release(
  */
 void gk_species_positivity_reset(
   gkyl_gyrokinetic_app *app, double tm, struct gk_species *gks, struct gk_positivity *pos,
-  struct gkyl_gyrokinetic_positivity pos_inp
-);
-
-void gk_neut_species_positivity_reset(
-  gkyl_gyrokinetic_app *app, double tm, struct gk_neut_species *gkns, struct gk_positivity *pos,
   struct gkyl_gyrokinetic_positivity pos_inp
 );
 

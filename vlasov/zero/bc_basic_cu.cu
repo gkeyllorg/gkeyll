@@ -55,6 +55,11 @@ gkyl_bc_basic_create_set_cu_dev_ptrs(
       fout->func = maxwell_reservoir_bc;
       break;
 
+    // Maxwell's BC for theta pole in spherical coordiante
+    case GKYL_BC_MAXWELL_THETA_POLE:
+      fout->func = maxwell_theta_pole_bc;
+      break;
+
     // PKPM Reflecting wall for distribution function
     case GKYL_BC_PKPM_SPECIES_REFLECT:
       fout->func = pkpm_species_reflect_bc;

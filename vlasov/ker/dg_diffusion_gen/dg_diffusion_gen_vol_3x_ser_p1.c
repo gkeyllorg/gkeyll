@@ -24,5 +24,12 @@ dg_diffusion_gen_vol_3x_ser_p1(const double* w, const double* dx,
   const double* Dyz = &Dij[32];
   const double* Dzz = &Dij[40];
 
-  return Jxx*Dxx[0] + Jxy*Dxy[0] + Jxz*Dxz[0] + Jyy*Dyy[0] + Jyz*Dyz[0] + Jzz*Dzz[0];
+  const double Dxx_av = 0.3535533905932737*Dxx[0];
+  const double Dxy_av = 0.3535533905932737*Dxy[0];
+  const double Dxz_av = 0.3535533905932737*Dxz[0];
+  const double Dyy_av = 0.3535533905932737*Dyy[0];
+  const double Dyz_av = 0.3535533905932737*Dyz[0];
+  const double Dzz_av = 0.3535533905932737*Dzz[0];
+
+  return 4.0*(Jxx*Dxx_av + Jxy*fabs(Dxy_av) + Jxz*fabs(Dxz_av) + Jyy*Dyy_av + Jyz*fabs(Dyz_av) + Jzz*Dzz_av);
 }

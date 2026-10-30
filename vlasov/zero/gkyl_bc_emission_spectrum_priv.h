@@ -17,6 +17,8 @@ struct gkyl_bc_emission_spectrum {
   struct gkyl_rect_grid *grid;
   struct gkyl_emission_spectrum_model *spectrum_model;
   struct gkyl_emission_yield_model *yield_model;
+  proj_on_basis_c2p_t c2p_impact; // computational-to-physical map of the impacting phase space
+  void *c2p_impact_ctx;
   bool use_gpu;
 };
 
@@ -62,19 +64,6 @@ void gkyl_bc_emission_spectrum_advance_cu(
   struct gkyl_range *impact_cbuff_r, struct gkyl_range *emit_buff_r, struct gkyl_array *bflux,
   struct gkyl_array *f_emit, struct gkyl_array *yield, struct gkyl_array *spectrum,
   struct gkyl_array *weight, struct gkyl_array *flux, struct gkyl_array *k
-);
-
-/**
- * CUDA device function to set up function to calculate SEY
- *
- * @param up BC updater
- * @param grid Domain grid
- * @param gamma SE yield values on incoming ghost space
- * @param ghost_r Incoming ghost space range
- */
-void gkyl_bc_emission_spectrum_sey_calc_cu(
-  const struct gkyl_bc_emission_spectrum *up, struct gkyl_array *yield, struct gkyl_rect_grid *grid,
-  const struct gkyl_range *gamma_r
 );
 
 #endif

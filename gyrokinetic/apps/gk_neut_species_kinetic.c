@@ -207,6 +207,8 @@ gk_neut_species_kinetic_release(const gkyl_gyrokinetic_app *app, const struct gk
   }
 
   gkyl_velocity_map_release(gkns->vel_map);
+  gkyl_vlasov_velocity_map_release(gkns->vlasov_vel_map);
+  gkyl_vlasov_position_map_release(gkns->vlasov_pos_map);
 
   // Release moment data.
   gk_neut_species_moment_release(app, &gkns->m0);
@@ -216,8 +218,6 @@ gk_neut_species_kinetic_release(const gkyl_gyrokinetic_app *app, const struct gk
   gkyl_free(gkns->moms);
 
   gk_neut_species_bgk_release(app, &gkns->bgk);
-
-  gk_neut_species_positivity_release(app, &gkns->positivity);
 
   // Free boundary flux memory.
   gk_neut_species_bflux_release(app, gkns, &gkns->bflux);
@@ -233,6 +233,9 @@ gk_neut_species_kinetic_release(const gkyl_gyrokinetic_app *app, const struct gk
   if (app->use_gpu) {
     gkyl_array_release(gkns->hamil_host);
   }
+  gkyl_array_release(gkns->conf_poisson_tensor);
+  gkyl_array_release(gkns->conf_poisson_tensor_surf);
+  gkyl_array_release(gkns->f_no_J);
 
   gk_neut_species_collisionless_release(app, &gkns->collisionless);
 
@@ -292,6 +295,16 @@ gk_neut_species_kinetic_init_dynamic(
   gkns->bc_recycle_lo = (struct gk_recycle_wall){};
   gkns->bc_recycle_up = (struct gk_recycle_wall){};
   for (int d = 0; d < cdim; ++d) {
+    // Reflection flips velocity component d. In the triad frame (e1, e2, bhat) the
+    // velocity along z is component 2 for any cdim, so in 1x/2x it is not component d.
+    if (cdim < 3 && d == cdim - 1 &&
+        (gkns->lower_bc[d].type == GKYL_BC_GK_SPECIES_REFLECT ||
+         gkns->upper_bc[d].type == GKYL_BC_GK_SPECIES_REFLECT)) {
+      gkyl_exit(
+        "gk_neut_species: reflecting BCs along z are only supported for 3x kinetic neutrals (in 1x/2x the velocity along z is the third triad component, not the one the reflection flips)."
+      );
+    }
+
     // Copy BCs by default.
     if (gkns->lower_bc[d].type == GKYL_BC_GK_SPECIES_RECYCLE) {
       // Initialize recycling object.
@@ -629,10 +642,11 @@ gk_neut_species_kinetic_read_distf_from_file(
 
 void
 gk_neut_species_kinetic_file_import_init(
-  struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s, struct gkyl_gyrokinetic_ic_import inp
+  struct gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns,
+  struct gkyl_gyrokinetic_ic_import inp
 )
 {
-  gk_neut_species_kinetic_read_distf_from_file(app, s, inp, s->f);
+  gk_neut_species_kinetic_read_distf_from_file(app, gkns, inp, gkns->f);
 }
 
 static void
@@ -687,21 +701,22 @@ gk_neut_species_kinetic_init(
     ghost_vel[d] = 0; // no ghost-cells in velocity space
   }
 
-  // Basis is tensor for p=1 and ser for p>1
-  if (app->poly_order > 1) {
-    gkyl_cart_modal_serendip(&gkns->basis, pdim, app->poly_order);
-  } else if (app->poly_order == 1) {
-    gkyl_cart_modal_tensor(&gkns->basis, pdim, app->poly_order); // for canonical PB
+  // Tensor p=1 hybrid basis: p=1 in configuration space tensored with p=2 in
+  // velocity space. The p=2 velocity basis represents the quadratic H = v^2/2
+  // exactly; the pure p=1 basis cannot, and its sparse-Hamiltonian moment and
+  // energy diagnostics are wrong at the O(1) level.
+  assert(app->poly_order == 1); // Neutral species are p=1 only.
+  gkyl_cart_modal_hybrid(&gkns->basis, cdim, vdim);
+  if (cdim < 3 && !app->gk_geom->has_dxdz_grad) {
+    gkyl_exit(
+      "gk_neut_species: kinetic neutrals on a 1x/2x geometry need the tangent gradients (geo_int_dxdz_grad), which these geometry files do not carry. Regenerate them with this version from a run that includes kinetic neutrals."
+    );
   }
 
   if (app->use_gpu) {
     // Allocate device basis if we are using GPUs.
     gkns->basis_on_dev = gkyl_cu_malloc(sizeof(struct gkyl_basis));
-    if (app->poly_order > 1) {
-      gkyl_cart_modal_serendip_cu_dev(gkns->basis_on_dev, pdim, app->poly_order);
-    } else if (app->poly_order == 1) {
-      gkyl_cart_modal_tensor_cu_dev(gkns->basis_on_dev, pdim, app->poly_order); // for canonical PB
-    }
+    gkyl_cart_modal_hybrid_cu_dev(gkns->basis_on_dev, cdim, vdim);
   } else {
     gkns->basis_on_dev = &gkns->basis;
   }
@@ -723,8 +738,12 @@ gk_neut_species_kinetic_init(
   gkyl_range_ten_prod(&local, &app->local, &gkns->local_vel);
   gkyl_create_ranges(&local, ghost, &gkns->local_ext, &gkns->local);
 
-  // Model type is Canonical PB to handle curvilinear coordinates.
-  gkns->model_id = GKYL_MODEL_CANONICAL_PB;
+  // Model type is the triads (orthonormal-frame velocity) formulation to handle
+  // curvilinear coordinates, with the separable H = v^2/2 (sparse velocity-space
+  // Hamiltonian expansion). GK coordinates are too sheared/distorted for the
+  // canonical-momentum formulation at practical resolutions.
+  gkns->model_id = GKYL_MODEL_TRIAD;
+  gkns->hamil_id = GKYL_HAMIL_VEL_SPARSE;
   // Field type is null as this species doesn't interact with fields.
   gkns->field_id = GKYL_FIELD_NULL;
 
@@ -733,6 +752,22 @@ gk_neut_species_kinetic_init(
   gkns->vel_map = gkyl_velocity_map_new(
     gkns->info.mapc2p, gkns->grid, gkns->grid_vel, gkns->local, gkns->local_ext, gkns->local_vel,
     gkns->local_ext_vel, app->use_gpu
+  );
+
+  // Identity Vlasov velocity map: the Vlasov flux, moment and LTE updaters
+  // always evaluate the velocity coordinate from the stored map. The velocity
+  // basis is the p=2 tensor basis of the hybrid, which also selects the C^1
+  // cubic velocity map and the p=2 velocity representation of the Hamiltonian.
+  gkyl_cart_modal_tensor(&gkns->basis_vel, vdim, 2);
+  struct gkyl_vlasov_velocity_map_inp inp_vvmap[GKYL_MAX_CDIM] = {0};
+  gkns->vlasov_vel_map = gkyl_vlasov_velocity_map_new(
+    &gkns->grid_vel, &gkns->local_vel, &gkns->basis_vel, inp_vvmap, false, app->use_gpu
+  );
+
+  // Identity Vlasov position map, required by the Vlasov flux updaters.
+  struct gkyl_vlasov_position_map_inp inp_vpmap[GKYL_MAX_CDIM] = {0};
+  gkns->vlasov_pos_map = gkyl_vlasov_position_map_new(
+    &app->grid, &app->local, &app->local_ext, &app->basis, inp_vpmap, app->use_gpu
   );
 
   // Keep a copy of num_periodic_dir and periodic_dirs in species so we can
@@ -871,20 +906,75 @@ gk_neut_species_kinetic_init(
     gkns->g_ij = gkyl_array_acquire(app->gk_geom->geo_int.g_ij);
   }
 
-  // Allocate array for the Hamiltonian.
-  gkns->hamil = mkarr(app->use_gpu, gkns->basis.num_basis, gkns->local_ext.volume);
-
-  // Call updater to evaluate hamiltonian
-  struct gkyl_dg_calc_gk_neut_hamil *hamil_calc =
-    gkyl_dg_calc_gk_neut_hamil_new(&gkns->grid, &gkns->basis, app->cdim, app->use_gpu);
-  gkyl_dg_calc_gk_neut_hamil_calc(hamil_calc, &app->local, &gkns->local, gkns->gij, gkns->hamil);
-  gkyl_dg_calc_gk_neut_hamil_release(hamil_calc);
+  // Hamiltonian: in the orthonormal triad frame H = v^2/2, a function of
+  // velocity space only (sparse expansion), built exactly as for
+  // GKYL_MODEL_DEFAULT in the Vlasov app.
+  gkns->hamil_range = gkns->local_vel;
+  gkns->hamil = mkarr(app->use_gpu, gkns->basis_vel.num_basis, gkns->local_vel.volume);
+  // The inverse Hamiltonian output is only meaningful relativistically; the
+  // kernels write it unconditionally, so hand them a scratch array.
+  struct gkyl_array *hamil_inv_scratch =
+    mkarr(app->use_gpu, gkns->basis_vel.num_basis, gkns->local_vel.volume);
+  gkyl_dg_vlasov_calc_hamil(
+    &gkns->grid_vel, &gkns->basis_vel, &gkns->local_vel, GKYL_MODEL_DEFAULT, gkns->vlasov_vel_map,
+    gkns->hamil, hamil_inv_scratch, app->use_gpu
+  );
+  gkyl_array_release(hamil_inv_scratch);
 
   gkns->hamil_host = gkns->hamil;
   if (app->use_gpu) {
-    gkns->hamil_host = mkarr(false, gkns->basis.num_basis, gkns->local_ext.volume);
+    gkns->hamil_host = mkarr(false, gkns->basis_vel.num_basis, gkns->local_vel.volume);
     gkyl_array_copy(gkns->hamil_host, gkns->hamil);
   }
+
+  // Poisson tensor of the b-aligned triad, stored at the configuration-space
+  // Gauss-Legendre nodes (interior nodes and face nodes), built on the host from
+  // the GK geometry's nodal Cartesian tangents. On GPUs the geometry's nodal
+  // arrays live on the device, so take host copies first and copy the result back.
+  int num_nodes = 1 << cdim, num_face_nodes = 1 << (cdim - 1);
+  struct gkyl_array *pt_vol_host = mkarr(false, num_nodes * 18, app->local_ext.volume);
+  struct gkyl_array *pt_surf_host =
+    mkarr(false, cdim * 2 * num_face_nodes * 3, app->local_ext.volume);
+  struct gk_geometry *geom = app->gk_geom;
+  struct gkyl_array *dxdz_nodal_host = mkarr(false, 9, geom->nrange_int.volume);
+  struct gkyl_array *dxdz_grad_nodal_host = cdim < 3 ? mkarr(false, 27, geom->nrange_int.volume) :
+                                                       NULL;
+  struct gkyl_array *bcart_nodal_host = mkarr(false, 3, geom->nrange_int.volume);
+  struct gkyl_array *dxdz_surf_nodal_host[3] = {NULL};
+  gkyl_array_copy(dxdz_nodal_host, geom->geo_int.dxdz_nodal);
+  if (cdim < 3) {
+    gkyl_array_copy(dxdz_grad_nodal_host, geom->geo_int.dxdz_grad_nodal);
+  }
+  gkyl_array_copy(bcart_nodal_host, geom->geo_int.bcart_nodal);
+  for (int dir = 0; dir < cdim; ++dir) {
+    dxdz_surf_nodal_host[dir] = mkarr(false, 9, geom->nrange_surf[dir].volume);
+    gkyl_array_copy(dxdz_surf_nodal_host[dir], geom->geo_surf[dir].dxdz_nodal);
+  }
+  // Deflated geometry: Poisson-tensor coordinates are the grid directions followed
+  // by the removed ones, (x, z, y) in 2x and (z, x, y) in 1x.
+  int dir_map_2x[3] = {0, 2, 1}, dir_map_1x[3] = {2, 0, 1};
+  const int *dir_map = cdim == 3 ? NULL : (cdim == 2 ? dir_map_2x : dir_map_1x);
+  gkyl_vlasov_triad_geom_nodal_from_tangents(
+    &app->grid, &app->local, &app->local_ext, &app->global, app->comm, app->use_gpu,
+    &geom->nrange_int, dxdz_nodal_host, dxdz_grad_nodal_host, bcart_nodal_host, geom->nrange_surf,
+    dxdz_surf_nodal_host, dir_map, true, pt_vol_host, pt_surf_host
+  );
+  gkns->conf_poisson_tensor = mkarr(app->use_gpu, pt_vol_host->ncomp, app->local_ext.volume);
+  gkns->conf_poisson_tensor_surf = mkarr(app->use_gpu, pt_surf_host->ncomp, app->local_ext.volume);
+  gkyl_array_copy(gkns->conf_poisson_tensor, pt_vol_host);
+  gkyl_array_copy(gkns->conf_poisson_tensor_surf, pt_surf_host);
+  gkyl_array_release(pt_vol_host);
+  gkyl_array_release(pt_surf_host);
+  gkyl_array_release(dxdz_nodal_host);
+  gkyl_array_release(dxdz_grad_nodal_host);
+  gkyl_array_release(bcart_nodal_host);
+  for (int dir = 0; dir < cdim; ++dir) {
+    gkyl_array_release(dxdz_surf_nodal_host[dir]);
+  }
+
+  // Distribution function with the velocity-space Jacobian divided out,
+  // input to the velocity-space flux updater.
+  gkns->f_no_J = mkarr(app->use_gpu, gkns->basis.num_basis, gkns->local_ext.volume);
 
   // Initialize the collisionless solver.
   gkns->collisionless = (struct gk_collisionless){};
@@ -965,10 +1055,6 @@ gk_neut_species_kinetic_init(
   // Initialize elastic collisions.
   gkns->bgk = (struct gk_bgk_collisions){};
   gk_neut_species_bgk_init(app, gkns, &gkns->bgk);
-
-  // Initialize positivity enforcing operator.
-  gkns->positivity = (struct gk_positivity){};
-  gk_neut_species_positivity_init(app, gkns, &gkns->positivity);
 
   // Initialize the object that scales the species according to a balance
   // between recycling and reactions (meant for fluid neutrals for now).

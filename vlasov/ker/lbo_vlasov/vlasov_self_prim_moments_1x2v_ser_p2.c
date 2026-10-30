@@ -47,9 +47,9 @@ GKYL_CU_DH void vlasov_self_prim_moments_1x2v_ser_p2(struct gkyl_mat *A, struct 
     cEr[0] = boundary_corrections[6]; 
     cEr[1] = boundary_corrections[7]; 
     cEr[2] = boundary_corrections[8]; 
-    gkyl_mat_set(rhs,6,0,moms[9]); 
-    gkyl_mat_set(rhs,7,0,moms[10]); 
-    gkyl_mat_set(rhs,8,0,moms[11]); 
+    gkyl_mat_set(rhs,6,0,2.0*moms[9]); 
+    gkyl_mat_set(rhs,7,0,2.0*moms[10]); 
+    gkyl_mat_set(rhs,8,0,2.0*moms[11]); 
   } else { 
     m0r[0] = moms[0]; 
     m0r[1] = 0.0; 
@@ -75,7 +75,7 @@ GKYL_CU_DH void vlasov_self_prim_moments_1x2v_ser_p2(struct gkyl_mat *A, struct 
     cEr[0] = boundary_corrections[6]; 
     cEr[1] = 0.0; 
     cEr[2] = 0.0; 
-    gkyl_mat_set(rhs,6,0,moms[9]); 
+    gkyl_mat_set(rhs,6,0,2.0*moms[9]); 
     gkyl_mat_set(rhs,7,0,0.0); 
     gkyl_mat_set(rhs,8,0,0.0); 
   }

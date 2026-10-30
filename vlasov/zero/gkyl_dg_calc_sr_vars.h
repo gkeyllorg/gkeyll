@@ -4,6 +4,7 @@
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_basis.h>
+#include <gkyl_vlasov_velocity_map.h>
 
 // Object type
 typedef struct gkyl_dg_calc_sr_vars gkyl_dg_calc_sr_vars;
@@ -31,13 +32,15 @@ typedef struct gkyl_dg_calc_sr_vars gkyl_dg_calc_sr_vars;
  *                   for computing V_drift. Note range is stored so updater loops 
  *                   over consistent range solving linear systems since memory is pre-allocated.
  * @param vel_range  Momentum (four-velocity)-space
+ * @param vel_map    Velocity-space mapping object. NULL => uniform momentum (four-velocity)-space grid.
  * @param use_gpu bool to determine if on GPU
  * @return New updater pointer.
  */
 struct gkyl_dg_calc_sr_vars *gkyl_dg_calc_sr_vars_new(
   const struct gkyl_rect_grid *phase_grid, const struct gkyl_rect_grid *vel_grid,
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *vel_basis,
-  const struct gkyl_range *mem_range, const struct gkyl_range *vel_range, bool use_gpu
+  const struct gkyl_range *mem_range, const struct gkyl_range *vel_range,
+  const struct gkyl_vlasov_velocity_map *vel_map, bool use_gpu
 );
 
 /**
@@ -47,20 +50,8 @@ struct gkyl_dg_calc_sr_vars *gkyl_dg_calc_sr_vars_new(
 struct gkyl_dg_calc_sr_vars *gkyl_dg_calc_sr_vars_cu_dev_new(
   const struct gkyl_rect_grid *phase_grid, const struct gkyl_rect_grid *vel_grid,
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *vel_basis,
-  const struct gkyl_range *mem_range, const struct gkyl_range *vel_range
-);
-
-/**
- * Compute the momentum grid variables for special relativistic simulations
- * Uses special kernels which convert between a Gauss-Lobatto nodal basis and
- * our modal basis to insure continuity of the momentum (four-velocity)-grid variables.
- *
- * @param up        Updater for computing sr variables 
- * @param gamma     Output array of particle Lorentz boost factor, gamma = sqrt(1 + p^2) 
- * @param gamma_inv Output array of inverse particle Lorentz boost factor, 1/gamma = 1/sqrt(1 + p^2) 
- */
-void gkyl_calc_sr_vars_init_p_vars(
-  struct gkyl_dg_calc_sr_vars *up, struct gkyl_array *gamma, struct gkyl_array *gamma_inv
+  const struct gkyl_range *mem_range, const struct gkyl_range *vel_range,
+  const struct gkyl_vlasov_velocity_map *vel_map
 );
 
 /**
@@ -145,9 +136,7 @@ void gkyl_dg_calc_sr_vars_release(struct gkyl_dg_calc_sr_vars *up);
  * Host-side wrappers for sr vars operations on device
  */
 
-void gkyl_calc_sr_vars_init_p_vars_cu(
-  struct gkyl_dg_calc_sr_vars *up, struct gkyl_array *gamma, struct gkyl_array *gamma_inv
-);
+void gkyl_calc_sr_vars_init_p_vars_cu(struct gkyl_dg_calc_sr_vars *up, struct gkyl_array *gamma_inv);
 
 void gkyl_dg_calc_sr_vars_n_cu(
   struct gkyl_dg_calc_sr_vars *up, const struct gkyl_array *M0, const struct gkyl_array *M1i,

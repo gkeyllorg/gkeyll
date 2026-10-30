@@ -26,9 +26,9 @@ gkyl_mom_bcorr_lbo_vlasov_set_cu_dev_ptrs(
       mom_bcorr_lbo_vlasov_kernels = ser_mom_bcorr_lbo_vlasov_kernels;
       break;
 
-      // case GKYL_BASIS_MODAL_TENSOR:
-      //   mom_bcorr_lbo_vlasov_kernels = ten_mom_bcorr_lbo_vlasov_kernels;
-      //   break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      mom_bcorr_lbo_vlasov_kernels = ten_mom_bcorr_lbo_vlasov_kernels;
+      break;
 
     default:
       assert(false);
@@ -64,7 +64,7 @@ gkyl_mom_bcorr_lbo_vlasov_cu_dev_new(
 
   mom_bcorr->momt.flags = 0;
   GKYL_SET_CU_ALLOC(mom_bcorr->momt.flags);
-  mom_bcorr->momt.ref_count = gkyl_ref_count_init(gkyl_mom_free);
+  mom_bcorr->momt.ref_count = gkyl_ref_count_init(gkyl_mom_bcorr_vlasov);
 
   // copy struct to device
   struct mom_type_bcorr_lbo_vlasov *mom_bcorr_cu =
@@ -76,7 +76,8 @@ gkyl_mom_bcorr_lbo_vlasov_cu_dev_new(
   assert(cv_index[cdim].vdim[vdim] != -1);
 
   gkyl_mom_bcorr_lbo_vlasov_set_cu_dev_ptrs<<<1, 1>>>(
-    mom_bcorr_cu, cbasis->b_type, vdim, poly_order, cv_index[cdim].vdim[vdim]
+    mom_bcorr_cu, gkyl_basis_phase_kernel_type(cbasis, pbasis), vdim, poly_order,
+    cv_index[cdim].vdim[vdim]
   );
 
   mom_bcorr->momt.on_dev = &mom_bcorr_cu->momt;

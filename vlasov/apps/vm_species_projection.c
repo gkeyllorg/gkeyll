@@ -1,65 +1,137 @@
 #include <assert.h>
 #include <gkyl_vlasov_priv.h>
 
+// Phase-space c2p: map conf coords via the position map and velocity coords via
+// the velocity map (the DG maps the solver kernels assume). Used by the FUNC
+// initial-condition projection.
+void
+vm_proj_c2p_phase(const double *xcomp, double *xphys, void *ctx)
+{
+  struct vm_proj_c2p_ctx *c = ctx;
+  gkyl_vlasov_position_map_eval_mc2p(c->pos_map, xcomp, xphys);
+  gkyl_vlasov_velocity_map_eval_c2p(c->vel_map, &xcomp[c->cdim], &xphys[c->cdim]);
+}
+
+void
+vm_species_proj_conf_func(
+  struct gkyl_vlasov_app *app, struct vm_species *vms, evalf_t func, void *ctx,
+  struct gkyl_array *fout_ho
+)
+{
+  // Sample the function at physical coordinates, as the initial conditions and
+  // sources are, so that it means the same thing with and without a position map.
+  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
+    .grid = &app->grid,
+    .basis = &app->basis,
+    .qtype = GKYL_GAUSS_QUAD,
+    .num_quad = app->poly_order + 1,
+    .num_ret_vals = 1,
+    .eval = func,
+    .ctx = ctx,
+    .c2p_func = vm_pos_c2p,
+    .c2p_func_ctx = vms->pos_map,
+  });
+  gkyl_proj_on_basis_advance(proj, 0.0, &app->local, fout_ho);
+  gkyl_proj_on_basis_release(proj);
+}
+
 void
 vm_species_projection_init(
-  struct gkyl_vlasov_app *app, struct vm_species *s, struct gkyl_vlasov_projection inp,
+  struct gkyl_vlasov_app *app, struct vm_species *vms, struct gkyl_vlasov_projection inp,
   struct vm_proj *proj
 )
 {
   proj->proj_id = inp.proj_id;
-  proj->model_id = s->model_id;
+  proj->model_id = vms->model_id;
+  // Coordinate-map context for projecting on non-uniform meshes (identity maps
+  // make the c2p the identity, so this is transparent for uniform grids).
+  proj->c2p_ctx =
+    (struct vm_proj_c2p_ctx){.cdim = app->cdim, .pos_map = vms->pos_map, .vel_map = vms->vel_map};
   if (proj->proj_id == GKYL_PROJ_FUNC) {
     proj->proj_func = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
-      .grid = &s->grid,
+      .grid = &vms->grid,
+      .basis = &vms->basis,
+      .qtype = GKYL_GAUSS_QUAD,
+      .num_quad = gkyl_basis_proj_num_quad(&vms->basis),
+      .num_ret_vals = 1,
+      .eval = inp.func,
+      .ctx = inp.ctx_func,
+      // Sample the IC at physical phase-space coordinates on non-uniform meshes.
+      .c2p_func = vm_proj_c2p_phase,
+      .c2p_func_ctx = &proj->c2p_ctx,
+    });
+    if (app->use_gpu) {
+      proj->proj_host = mkarr(false, vms->basis.num_basis, vms->local_ext.volume);
+    }
+  } else if (proj->proj_id == GKYL_PROJ_VLASOV_LTE) {
+    int vdim = app->vdim;
+    proj->dens = mkarr(false, app->basis.num_basis, app->local_ext.volume);
+    proj->V_drift = mkarr(false, vdim * app->basis.num_basis, app->local_ext.volume);
+    proj->T_over_m = mkarr(false, app->basis.num_basis, app->local_ext.volume);
+    proj->vlasov_lte_moms_host =
+      mkarr(false, (vdim + 2) * app->basis.num_basis, app->local_ext.volume);
+
+    // Sample the LTE moments at physical configuration coordinates on
+    // non-uniform conf meshes (the conf c2p uses the position map).
+    proj->proj_dens = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
+      .grid = &app->grid,
       .basis = &app->basis,
       .qtype = GKYL_GAUSS_QUAD,
       .num_quad = app->basis.poly_order + 1,
       .num_ret_vals = 1,
-      .eval = inp.func,
-      .ctx = inp.ctx_func,
+      .eval = inp.density,
+      .ctx = inp.ctx_density,
+      .c2p_func = vm_pos_c2p,
+      .c2p_func_ctx = vms->pos_map,
     });
-    if (app->use_gpu) {
-      proj->proj_host = mkarr(false, app->basis.num_basis, s->local_ext.volume);
-    }
-  } else if (proj->proj_id == GKYL_PROJ_VLASOV_LTE) {
-    int vdim = app->vdim;
-    proj->dens = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
-    proj->V_drift = mkarr(false, vdim * app->confBasis.num_basis, app->local_ext.volume);
-    proj->T_over_m = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
-    proj->vlasov_lte_moms_host =
-      mkarr(false, (vdim + 2) * app->confBasis.num_basis, app->local_ext.volume);
-
-    proj->proj_dens = gkyl_proj_on_basis_new(
-      &app->grid, &app->confBasis, app->basis.poly_order + 1, 1, inp.density, inp.ctx_density
-    );
-    proj->proj_V_drift = gkyl_proj_on_basis_new(
-      &app->grid, &app->confBasis, app->basis.poly_order + 1, vdim, inp.V_drift, inp.ctx_V_drift
-    );
-    proj->proj_temp = gkyl_proj_on_basis_new(
-      &app->grid, &app->confBasis, app->basis.poly_order + 1, 1, inp.temp, inp.ctx_temp
-    );
+    proj->proj_V_drift = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
+      .grid = &app->grid,
+      .basis = &app->basis,
+      .qtype = GKYL_GAUSS_QUAD,
+      .num_quad = app->basis.poly_order + 1,
+      .num_ret_vals = vdim,
+      .eval = inp.V_drift,
+      .ctx = inp.ctx_V_drift,
+      .c2p_func = vm_pos_c2p,
+      .c2p_func_ctx = vms->pos_map,
+    });
+    proj->proj_temp = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
+      .grid = &app->grid,
+      .basis = &app->basis,
+      .qtype = GKYL_GAUSS_QUAD,
+      .num_quad = app->basis.poly_order + 1,
+      .num_ret_vals = 1,
+      .eval = inp.temp,
+      .ctx = inp.ctx_temp,
+      .c2p_func = vm_pos_c2p,
+      .c2p_func_ctx = vms->pos_map,
+    });
 
     proj->vlasov_lte_moms =
-      mkarr(app->use_gpu, (vdim + 2) * app->confBasis.num_basis, app->local_ext.volume);
+      mkarr(app->use_gpu, (vdim + 2) * app->basis.num_basis, app->local_ext.volume);
 
     struct gkyl_vlasov_lte_proj_on_basis_inp inp_proj = {
-      .phase_grid = &s->grid,
-      .vel_grid = &s->grid_vel,
-      .conf_basis = &app->confBasis,
-      .vel_basis = &app->velBasis,
-      .phase_basis = &app->basis,
+      .phase_grid = &vms->grid,
+      .vel_grid = &vms->grid_vel,
+      .conf_basis = &app->basis,
+      .vel_basis = &vms->basis_vel,
+      .phase_basis = &vms->basis,
       .conf_range = &app->local,
       .conf_range_ext = &app->local_ext,
-      .vel_range = &s->local_vel,
-      .phase_range = &s->local,
-      .gamma = s->gamma,
-      .gamma_inv = s->gamma_inv,
-      .h_ij = s->h_ij,
-      .h_ij_inv = s->h_ij_inv,
-      .det_h = s->det_h,
-      .hamil = s->hamil,
-      .model_id = s->model_id,
+      .vel_range = &vms->local_vel,
+      .phase_range = &vms->local,
+      .vel_map = vms->vel_map,
+      .hamil_range = &vms->mom_hamil_range,
+      .hamil = vms->mom_hamil,
+      .model_id = vms->model_id,
+      .hamil_id = vms->mom_hamil_id,
+      .gamma_inv = vms->gamma_inv,
+      .h_ij = vms->h_ij,
+      .h_ij_inv = vms->h_ij_inv,
+      .det_h = vms->det_h,
+      .use_extended_hamil_def = vms->info.use_extended_hamil_def,
+      .background_flows = vms->background_flows,
+      .effective_potential = vms->effective_potential,
       .use_gpu = app->use_gpu,
       .quad_type = inp.quad_type,
     };
@@ -74,22 +146,27 @@ vm_species_projection_init(
       bool use_last_converged = inp.use_last_converged;
 
       struct gkyl_vlasov_lte_correct_inp inp_corr = {
-        .phase_grid = &s->grid,
-        .vel_grid = &s->grid_vel,
-        .conf_basis = &app->confBasis,
-        .vel_basis = &app->velBasis,
-        .phase_basis = &app->basis,
+        .phase_grid = &vms->grid,
+        .vel_grid = &vms->grid_vel,
+        .conf_basis = &app->basis,
+        .vel_basis = &vms->basis_vel,
+        .phase_basis = &vms->basis,
         .conf_range = &app->local,
         .conf_range_ext = &app->local_ext,
-        .vel_range = &s->local_vel,
-        .phase_range = &s->local,
-        .gamma = s->gamma,
-        .gamma_inv = s->gamma_inv,
-        .h_ij = s->h_ij,
-        .h_ij_inv = s->h_ij_inv,
-        .det_h = s->det_h,
-        .hamil = s->hamil,
-        .model_id = s->model_id,
+        .vel_range = &vms->local_vel,
+        .phase_range = &vms->local,
+        .vel_map = vms->vel_map,
+        .hamil_range = &vms->mom_hamil_range,
+        .hamil = vms->mom_hamil,
+        .model_id = vms->model_id,
+        .hamil_id = vms->mom_hamil_id,
+        .gamma_inv = vms->gamma_inv,
+        .h_ij = vms->h_ij,
+        .h_ij_inv = vms->h_ij_inv,
+        .det_h = vms->det_h,
+        .use_extended_hamil_def = vms->info.use_extended_hamil_def,
+        .background_flows = vms->background_flows,
+        .effective_potential = vms->effective_potential,
         .use_gpu = app->use_gpu,
         .quad_type = inp.quad_type,
         .max_iter = max_iter,
@@ -103,31 +180,41 @@ vm_species_projection_init(
 
 void
 vm_species_projection_calc(
-  gkyl_vlasov_app *app, const struct vm_species *s, struct vm_proj *proj, struct gkyl_array *f,
+  gkyl_vlasov_app *app, const struct vm_species *vms, struct vm_proj *proj, struct gkyl_array *f,
   double tm
 )
 {
   if (proj->proj_id == GKYL_PROJ_FUNC) {
     if (app->use_gpu) {
-      gkyl_proj_on_basis_advance(proj->proj_func, tm, &s->local_ext, proj->proj_host);
+      gkyl_proj_on_basis_advance(proj->proj_func, tm, &vms->local_ext, proj->proj_host);
       gkyl_array_copy(f, proj->proj_host);
     } else {
-      gkyl_proj_on_basis_advance(proj->proj_func, tm, &s->local_ext, f);
+      gkyl_proj_on_basis_advance(proj->proj_func, tm, &vms->local_ext, f);
+    }
+
+    // The function is evaluated at physical velocities, so weight by the
+    // velocity-space Jacobian to obtain the J_v*f the DG update evolves (the LTE
+    // projection below produces J_v*f itself). The species' I/O scratch array
+    // holds the unweighted f (the rescale kernels do not alias their input and
+    // output).
+    if (!vms->vel_map->is_identity) {
+      gkyl_array_copy(vms->f_no_J, f);
+      gkyl_vlasov_velocity_map_rescale_jacobvel(
+        vms->vel_map, &app->basis, &vms->basis, &vms->local, vms->f_no_J, f
+      );
     }
   } else if (proj->proj_id == GKYL_PROJ_VLASOV_LTE) {
     int vdim = app->vdim;
     gkyl_proj_on_basis_advance(proj->proj_dens, tm, &app->local_ext, proj->dens);
     gkyl_proj_on_basis_advance(proj->proj_V_drift, tm, &app->local_ext, proj->V_drift);
     gkyl_proj_on_basis_advance(proj->proj_temp, tm, &app->local_ext, proj->T_over_m);
-    gkyl_array_scale(proj->T_over_m, 1.0 / s->info.mass);
+    gkyl_array_scale(proj->T_over_m, 1.0 / vms->mass);
 
     // Projection routines expect the LTE moments as a single array.
-    gkyl_array_set_offset(proj->vlasov_lte_moms_host, 1.0, proj->dens, 0 * app->confBasis.num_basis);
+    gkyl_array_set_offset(proj->vlasov_lte_moms_host, 1.0, proj->dens, 0 * app->basis.num_basis);
+    gkyl_array_set_offset(proj->vlasov_lte_moms_host, 1.0, proj->V_drift, 1 * app->basis.num_basis);
     gkyl_array_set_offset(
-      proj->vlasov_lte_moms_host, 1.0, proj->V_drift, 1 * app->confBasis.num_basis
-    );
-    gkyl_array_set_offset(
-      proj->vlasov_lte_moms_host, 1.0, proj->T_over_m, (vdim + 1) * app->confBasis.num_basis
+      proj->vlasov_lte_moms_host, 1.0, proj->T_over_m, (vdim + 1) * app->basis.num_basis
     );
 
     // Copy the contents into the array we will use (potentially on GPUs).
@@ -136,16 +223,25 @@ vm_species_projection_calc(
     // Project the LTE distribution function.
     // Projection routine also corrects the density of the projected distribution function.
     gkyl_vlasov_lte_proj_on_basis_advance(
-      proj->proj_lte, &s->local, &app->local, proj->vlasov_lte_moms, f
+      proj->proj_lte, &vms->local, &app->local, proj->vlasov_lte_moms, f
     );
 
     // Correct all the moments of the projected LTE distribution function.
     if (proj->correct_all_moms) {
       struct gkyl_vlasov_lte_correct_status status_corr = gkyl_vlasov_lte_correct_all_moments(
-        proj->corr_lte, f, proj->vlasov_lte_moms, &s->local, &app->local
+        proj->corr_lte, f, proj->vlasov_lte_moms, &vms->local, &app->local
       );
     }
   }
+
+  // Weight by the configuration-space (position-map) Jacobian so the stored
+  // distribution carries J_x*J_v*f. This must come AFTER the projection is
+  // complete: after gkyl_proj_on_basis for GKYL_PROJ_FUNC, and after the LTE
+  // projection *and* its moment correction for GKYL_PROJ_VLASOV_LTE (the
+  // correction matches moments of the J_v-weighted f to the target moments, so
+  // the J_x weight must not be present during the correction). For the identity
+  // map J_x=1 and this is a no-op.
+  gkyl_vlasov_position_map_rescale_jacobpos(vms->pos_map, &vms->basis, &vms->local, f, f);
 }
 
 void

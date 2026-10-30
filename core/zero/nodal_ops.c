@@ -1,5 +1,7 @@
 #include <gkyl_nodal_ops.h>
+#include <gkyl_util.h>
 #include <assert.h>
+#include <math.h>
 
 struct gkyl_nodal_ops *
 gkyl_nodal_ops_new(const struct gkyl_basis *cbasis, const struct gkyl_rect_grid *grid, bool use_gpu)
@@ -648,4 +650,93 @@ gkyl_nodal_ops_release(struct gkyl_nodal_ops *up)
 {
   gkyl_array_release(up->nodes);
   gkyl_free(up);
+}
+
+// Nonuniform-spacing finite-difference weights for d/dz at the middle node
+// (spacing hl to the left neighbor, hr to the right): second-order accurate.
+static inline double
+fd_central_nonuniform(double fm, double f0, double fp, double hl, double hr)
+{
+  return (hl * hl * fp - hr * hr * fm + (hr * hr - hl * hl) * f0) / (hl * hr * (hl + hr));
+}
+
+// Second-order one-sided difference at the first node of a line: nodes at
+// 0, h1, h1+h2 with values f0, f1, f2.
+static inline double
+fd_onesided(double f0, double f1, double f2, double h1, double h2)
+{
+  return -(2.0 * h1 + h2) / (h1 * (h1 + h2)) * f0 + (h1 + h2) / (h1 * h2) * f1 -
+         h1 / (h2 * (h1 + h2)) * f2;
+}
+
+void
+gkyl_nodal_ops_grad_interior(
+  const struct gkyl_rect_grid *grid, const struct gkyl_range *nrange, int num_comp,
+  const struct gkyl_array *fld, struct gkyl_array *grad
+)
+{
+  int ndim = grid->ndim;
+  assert(nrange->ndim == ndim);
+  assert(fld->ncomp == num_comp);
+  assert(grad->ncomp == num_comp * ndim);
+
+  double glpt = 1.0 / sqrt(3.0);
+  struct gkyl_range_iter niter;
+  gkyl_range_iter_init(&niter, nrange);
+  while (gkyl_range_iter_next(&niter)) {
+    long nl = gkyl_range_idx(nrange, niter.idx);
+    const double *f_0 = gkyl_array_cfetch(fld, nl);
+    double *g = gkyl_array_fetch(grad, nl);
+
+    for (int j = 0; j < ndim; ++j) {
+      double dx = grid->dx[j];
+      double gap_in = glpt * dx, gap_across = (1.0 - glpt) * dx;
+      int nj = niter.idx[j];
+      int par = (nj - nrange->lower[j]) & 1; // 0: lower GL node of its cell, 1: upper
+      // spacing to the left/right neighbor
+      double hl = par == 0 ? gap_across : gap_in;
+      double hr = par == 0 ? gap_in : gap_across;
+
+      int idx_n[GKYL_MAX_DIM];
+      gkyl_copy_int_arr(ndim, niter.idx, idx_n);
+
+      if (nj > nrange->lower[j] && nj < nrange->upper[j]) {
+        idx_n[j] = nj - 1;
+        const double *f_m = gkyl_array_cfetch(fld, gkyl_range_idx(nrange, idx_n));
+        idx_n[j] = nj + 1;
+        const double *f_p = gkyl_array_cfetch(fld, gkyl_range_idx(nrange, idx_n));
+        for (int c = 0; c < num_comp; ++c) {
+          g[j * num_comp + c] = fd_central_nonuniform(f_m[c], f_0[c], f_p[c], hl, hr);
+        }
+      } else if (nrange->upper[j] - nrange->lower[j] < 2) {
+        // Only two nodes along this direction (single cell): two-point difference.
+        int no = nj == nrange->lower[j] ? nj + 1 : nj - 1;
+        double sgn = nj == nrange->lower[j] ? 1.0 : -1.0;
+        idx_n[j] = no;
+        const double *f_o = gkyl_array_cfetch(fld, gkyl_range_idx(nrange, idx_n));
+        for (int c = 0; c < num_comp; ++c) {
+          g[j * num_comp + c] = sgn * (f_o[c] - f_0[c]) / gap_in;
+        }
+      } else if (nj == nrange->lower[j]) {
+        // One-sided at the lower end: this node is the lower GL node of the
+        // first cell, so the next gaps are g*dx then (1-g)*dx.
+        idx_n[j] = nj + 1;
+        const double *f_1 = gkyl_array_cfetch(fld, gkyl_range_idx(nrange, idx_n));
+        idx_n[j] = nj + 2;
+        const double *f_2 = gkyl_array_cfetch(fld, gkyl_range_idx(nrange, idx_n));
+        for (int c = 0; c < num_comp; ++c) {
+          g[j * num_comp + c] = fd_onesided(f_0[c], f_1[c], f_2[c], gap_in, gap_across);
+        }
+      } else {
+        // One-sided at the upper end (mirrored, sign flipped).
+        idx_n[j] = nj - 1;
+        const double *f_1 = gkyl_array_cfetch(fld, gkyl_range_idx(nrange, idx_n));
+        idx_n[j] = nj - 2;
+        const double *f_2 = gkyl_array_cfetch(fld, gkyl_range_idx(nrange, idx_n));
+        for (int c = 0; c < num_comp; ++c) {
+          g[j * num_comp + c] = -fd_onesided(f_0[c], f_1[c], f_2[c], gap_in, gap_across);
+        }
+      }
+    }
+  }
 }
