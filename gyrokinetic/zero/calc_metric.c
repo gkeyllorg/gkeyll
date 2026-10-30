@@ -1967,6 +1967,7 @@ gkyl_calc_metric_advance_surface(gkyl_calc_metric *up, int dir, struct gk_geomet
   enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
   enum { X_IDX, Y_IDX, Z_IDX }; // arrangement of cartesian coordinates
   // One-sided stencils are used at domain boundaries except in periodic directions.
+  // One-sided stencils are used at domain boundaries except in periodic directions.
   int cidx[3];
 
   for (int ia = gk_geom->nrange_surf[dir].lower[AL_IDX];
@@ -2021,8 +2022,8 @@ gkyl_calc_metric_advance_surface(gkyl_calc_metric *up, int dir, struct gk_geomet
             (3 * bhat_n[Y_IDX] - 4 * bhat_n[3 + Y_IDX] + bhat_n[9 + Y_IDX]) / gk_geom->dzc[0] / 2;
           dbhatdz[2][0] =
             (3 * bhat_n[Z_IDX] - 4 * bhat_n[3 + Z_IDX] + bhat_n[9 + Z_IDX]) / gk_geom->dzc[0] / 2;
-        } // Centered stencil for interior nodes and periodic boundaries.
-        else {
+        } else {
+          // Centered stencil for interior nodes and periodic boundaries.
           dxdz[0][0] = -(mc2p_n[3 + X_IDX] - mc2p_n[6 + X_IDX]) / 2 / gk_geom->dzc[0];
           dxdz[1][0] = -(mc2p_n[3 + Y_IDX] - mc2p_n[6 + Y_IDX]) / 2 / gk_geom->dzc[0];
           dxdz[2][0] = -(mc2p_n[3 + Z_IDX] - mc2p_n[6 + Z_IDX]) / 2 / gk_geom->dzc[0];
@@ -2064,8 +2065,8 @@ gkyl_calc_metric_advance_surface(gkyl_calc_metric *up, int dir, struct gk_geomet
             (3 * bhat_n[Y_IDX] - 4 * bhat_n[15 + Y_IDX] + bhat_n[21 + Y_IDX]) / gk_geom->dzc[1] / 2;
           dbhatdz[2][1] =
             (3 * bhat_n[Z_IDX] - 4 * bhat_n[15 + Z_IDX] + bhat_n[21 + Z_IDX]) / gk_geom->dzc[1] / 2;
-        } // Centered stencil for interior nodes and periodic boundaries.
-        else {
+        } else {
+          // Centered stencil for interior nodes and periodic boundaries.
           dxdz[0][1] = -(mc2p_n[15 + X_IDX] - mc2p_n[18 + X_IDX]) / 2 / gk_geom->dzc[1];
           dxdz[1][1] = -(mc2p_n[15 + Y_IDX] - mc2p_n[18 + Y_IDX]) / 2 / gk_geom->dzc[1];
           dxdz[2][1] = -(mc2p_n[15 + Z_IDX] - mc2p_n[18 + Z_IDX]) / 2 / gk_geom->dzc[1];
