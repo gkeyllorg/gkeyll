@@ -425,10 +425,6 @@ eval_canon_maxwellian_e(
   double dens = density_init(xb, ctx);
   double temp = temp_init_elc(xb, ctx);
 
-  double envelope =
-    exp(-pow(xb / (app->Lx / 4.0), 2)) * exp(-pow((theta - M_PI) / (M_PI / 4.0), 2));
-  dens = dens * envelope;
-
   double energy = 0.5 * m * pow(vpar, 2) + mu * Bmag(r, theta, ctx);
 
   fout[0] = maxellian(m, dens, temp, energy);
@@ -638,7 +634,7 @@ create_ctx(void)
   double mu_max_elc = 7 * Te0 / B0;
   double vpar_max_ion = 4. * vti;
   double mu_max_ion = 7 * Ti0 / B0;
-  double t_end = 0.001 * t_itg;
+  double t_end = 0.01 * t_itg;
   int num_frames = 1;
   double write_phase_freq = 1.0;
   int int_diag_calc_num = num_frames * 100;
@@ -968,7 +964,6 @@ main(int argc, char **argv)
         .restart_frame = app_args.restart_frame,
         .num_steps = app_args.num_steps,
       },
-    .print_verbosity = {.disable_timings = true, .enabled = true, .frequency = 0.01},
   };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);

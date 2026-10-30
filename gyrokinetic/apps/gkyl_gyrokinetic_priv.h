@@ -1260,7 +1260,11 @@ struct gk_species_balance {
   struct gk_species_moment f_mom[12]; // Integrated moment of f.
   struct gkyl_array *mom_old[12], *mom_new[12]; // Integrated moment of f_old/dt and f_new/dt.
   bool has_source; // Whether the species has a source.
-  struct gk_species_moment src_mom[12]; // Integrated moment of the source.
+  struct gk_species_moment src_mom[12]; // Integrated moment of a source term.
+  // Integrated moment of the BGK source terms in each RK stage (rhs evaluation),
+  // and combined over the stages of the last time step as f is.
+  struct gkyl_array *src_bgk_stage[12][3], *src_bgk[12];
+  int rk_stage; // RK stage of the current rhs evaluation.
   int num_boundaries; // Number of boundaries with a boundary flux.
   struct gkyl_array_integrate *integ_op; // Volume integral of a bflux moment.
   struct gkyl_array *bflux_mom; // Moment of the bflux through one boundary.
@@ -1274,6 +1278,12 @@ struct gk_species_balance {
   void (*calc_func[12])(
     gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_species_balance *bal, int d,
     double tm
+  );
+  // Methods chosen at runtime.
+  void (*rhs_begin_func)(struct gk_species_balance *bal);
+  void (*source_bgk_rhs_func)(
+    gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_species_balance *bal,
+    const struct gkyl_array *src_bgk_rhs
   );
 };
 
@@ -2160,6 +2170,28 @@ void gk_species_balance_init(
 void gk_species_balance_step(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_species_balance *bal, double dt,
   bool is_old
+);
+
+/**
+ * Start a new RK stage (rhs evaluation) of the balances. Must be called before
+ * the BGK source terms of the stage are added to the rhs.
+ *
+ * @param bal Balance diagnostic object.
+ */
+void gk_species_balance_rhs_begin(struct gk_species_balance *bal);
+
+/**
+ * Add the balanced moments of a BGK source term added to the rhs in the
+ * current RK stage.
+ *
+ * @param app Gyrokinetic app object.
+ * @param gks Species object.
+ * @param bal Balance diagnostic object.
+ * @param src_bgk_rhs BGK source term added to the rhs.
+ */
+void gk_species_balance_source_bgk_rhs(
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_species_balance *bal,
+  const struct gkyl_array *src_bgk_rhs
 );
 
 /**

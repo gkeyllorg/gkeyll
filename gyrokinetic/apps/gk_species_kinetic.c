@@ -47,6 +47,9 @@ gk_species_kinetic_rhs_dynamic(
   struct gkyl_array *rhs, struct gkyl_array **bflux_moms
 )
 {
+  // New RK stage for the balance diagnostics.
+  gk_species_balance_rhs_begin(&species->bal);
+
   // Gyroaverage the potential if needed.
   species->gyroaverage(app, species, app->field->phi_smooth, species->gyro_phi);
 
