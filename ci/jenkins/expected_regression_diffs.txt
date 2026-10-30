@@ -18,8 +18,3 @@
 #
 # Example:
 # gyrokinetic/rt_gk_ion_sound_1x2v_p1   # updated collision-operator normalization
-
-gyrokinetic/creg/rt_gk_cbc_adiabatic_3x2v_p1   # New test
-gyrokinetic/creg/rt_gk_rosenbluth_hinton_2x2v_p1   # New test
-gyrokinetic/creg/rt_gk_mirror_boltz_elc_1x2v_p1   # species scaling (Boltzmann elc) now applied at t=0: frame 0 and first RK stage use the scaled elc density
-gyrokinetic/creg/rt_gk_sheath_flr_2x2v_p1   # FLR Pade rework (DR #797): field-level FLR type, operator fixes, FLR field energy

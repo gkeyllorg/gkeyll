@@ -71,4 +71,7 @@ data/adas/*.npy
 install-deps/*.npy
 
 # Agent related stuff
-.entire/
+.entire/*
+!.entire/settings.json
+# Entire per-user/local configuration
+.entire/settings.local.json
