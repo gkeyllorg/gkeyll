@@ -485,6 +485,42 @@ gkyl_flash_app_print_timings(gkyl_flash_app *app, FILE *fp)
 }
 
 void
+gkyl_flash_app_set_init_dist_moms(gkyl_flash_app *app, const struct gkyl_array *init_dist_moms)
+{
+  for (int i=0; i<app->num_species; ++i)
+    flash_species_set_init_dist_moms(&app->species[i], init_dist_moms);
+}
+
+void
+flash_app_init_maxwellian_from_stored_moms(gkyl_flash_app *app)
+{
+  for (int i=0; i<app->num_species; ++i) {
+    struct flash_species *s = &app->species[i];
+    flash_species_calc_distf_from_moms(app, s, s->init_dist_moms);
+    flash_species_apply_bc(app, s, s->f);
+  }
+}
+
+void
+gkyl_flash_app_init_maxwellian_from_moms(gkyl_flash_app *app, const struct gkyl_array *init_dist_moms)
+{
+  gkyl_flash_app_set_init_dist_moms(app, init_dist_moms);
+  flash_app_init_maxwellian_from_stored_moms(app);
+}
+
+struct gkyl_range
+gkyl_flash_app_get_fluid_conf_ext_range(gkyl_flash_app *app)
+{
+  return app->local_fluid_ext;
+}
+
+struct gkyl_range
+gkyl_flash_app_get_fluid_conf_range(gkyl_flash_app *app)
+{
+  return app->local_fluid;
+}
+
+void
 gkyl_flash_app_release(gkyl_flash_app *app) 
 {
   for (int i=0; i<app->num_species; ++i) {

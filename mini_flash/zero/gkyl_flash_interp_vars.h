@@ -55,7 +55,7 @@ gkyl_flash_interp_vars_vel_to_dg(struct gkyl_flash_interp_vars *up,
   const struct gkyl_array *fv_fluid_vel_in, struct gkyl_array *dg_vel_out);
 
 /**
- * Interpolate initial condition arrays [n, ux, uy, uz, T/m] onto DG kinetic grid.
+ * Interpolate initial condition arrays [n, T/m] onto DG kinetic grid.
  * 
  * @param up 
  * @param range_kinetic 

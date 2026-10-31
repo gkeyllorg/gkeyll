@@ -151,10 +151,13 @@ void flash_species_init(struct gkyl_flash_inp *inp,
   s->calc_flash_coupling = gkyl_dg_calc_flash_coupling_new(&s->grid, &app->grid_kinetic, &app->confBasis);
   s->flash_coupling_fluxes = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_kinetic_ext.volume);
 
-  // Flag for initializing using input arrays rather than function
+  // Flag for initializing using input moment arrays [n, T/m], rather than function
   s->init_dist_from_arrays = s->info.init_dist_from_arrays;
   if (s->init_dist_from_arrays) {
-    s->init_dist_moms = mkarr(app->use_gpu, 5*app->confBasis.num_basis, app->local_kinetic_ext.volume);
+    s->init_dist_moms = mkarr(app->use_gpu, 2*app->confBasis.num_basis, app->local_kinetic_ext.volume);
+
+    if (s->info.init_dist_moms)
+      flash_species_set_init_dist_moms(s, s->info.init_dist_moms);
   }
 
   // Flag to skip initializing the distribution function.
@@ -284,8 +287,21 @@ void flash_species_init(struct gkyl_flash_inp *inp,
   }
 }
 
-// Compute initial distribution function as Maxwellian using input fluid moment data.
-// Moments are [n, ux, uy, uz, T/m].
+// Compute initial distribution function as Maxwellian using input moment data.
+// The input moment array must contain [n, T/m].
+void
+flash_species_set_init_dist_moms(struct flash_species *s, const struct gkyl_array *init_dist_moms)
+{
+  if (!s->init_dist_moms)
+    gkyl_exit("init_dist_moms can only be set for species created with init_dist_from_arrays = true.");
+
+  if ((init_dist_moms->ncomp != s->init_dist_moms->ncomp) ||
+      (init_dist_moms->size != s->init_dist_moms->size))
+    gkyl_exit("init_dist_moms must hold [n, T/m] DG coefficients on the extended kinetic configuration space range.");
+
+  gkyl_array_copy(s->init_dist_moms, init_dist_moms);
+}
+
 void
 flash_species_calc_distf_from_moms(gkyl_flash_app *app, struct flash_species *s, struct gkyl_array *init_dist_moms)
 {
@@ -311,15 +327,16 @@ flash_species_apply_ic(gkyl_flash_app *app, struct flash_species *s, double t0)
   // Return early if we aren't initializing the distribution function.
   if (s->skip_init_dist) return; 
 
-  // If user specified input moments to initialize distribution functions, use them.
-  // Otherwise, project from provided function.
+  // Maxwellian from input moments. If none were given in the input, the
+  // distribution function must be set later through the interface functions.
   if (s->init_dist_from_arrays) {
-    flash_species_calc_distf_from_moms(app, s, s->init_dist_moms);
+    if (s->info.init_dist_moms)
+      flash_species_calc_distf_from_moms(app, s, s->init_dist_moms);
     return;
   }
 
   int poly_order = app->basis.poly_order;
-  int num_quad = poly_order+1;
+  int num_quad = app->basis.b_type == GKYL_BASIS_MODAL_HYBRID ? poly_order+2 : poly_order+1;
 
   gkyl_proj_on_basis *proj_dist;
   proj_dist = gkyl_proj_on_basis_new(&s->grid, &app->basis, 
@@ -632,103 +649,6 @@ flash_species_calc_coupling_fluxes(struct gkyl_flash_app *app,
     species->flash_coupling_fluxes);
 
   app->stat.coupling_tm += gkyl_time_diff_now_sec(wst);
-}
-
-void
-flash_species_set_vel_space_extents(gkyl_flash_app *app, struct flash_species *s, double lower_vel[GKYL_MAX_VDIM], double upper_vel[GKYL_MAX_VDIM])
-{
-  int cdim = app->cdim;
-  int vdim = app->vdim;
-  int pdim = cdim+vdim;
-  double lower[GKYL_MAX_DIM];
-  double upper[GKYL_MAX_DIM];
-
-  int cells[GKYL_MAX_DIM], cells_vel[GKYL_MAX_DIM];
-  for (int d=0; d<cdim; ++d) {
-    cells[d] = s->grid.cells[d];
-    lower[d] = s->grid.lower[d];
-    upper[d] = s->grid.upper[d];
-  }
-  for (int d=cdim; d<pdim; ++d) {
-    cells[d] = s->grid.cells[d];
-    lower[d] = lower_vel[d-cdim];
-    upper[d] = upper_vel[d-cdim];
-
-    cells_vel[d-cdim] = s->grid_vel.cells[d-cdim];
-  }
-
-  for (int d=0; d<s->grid.ndim; ++d) cells[d] = s->grid.cells[d];
-  for (int d=0; d<s->grid_vel.ndim; ++d) cells_vel[d] = s->grid_vel.cells[d];
-
-  // Update extents of phase grid
-  gkyl_rect_grid_init(&s->grid, s->grid.ndim, lower, upper, cells);
-
-  // Update extents of velocity grid
-  gkyl_rect_grid_init(&s->grid_vel, s->grid_vel.ndim, lower_vel, upper_vel, cells_vel);
-
-  // printf("Set extents: %.8e\n", *(double *)(s->info.collisions.ctx+0x90));
-  // Re-initialize updaters?
-  // Updater to compute LBO collisions.
-  flash_species_lbo_release(&s->lbo);
-  flash_species_lbo_init(app, s, &s->lbo);
-
-  // Wave equation object for upwinding fluid equations
-  // We use the 10 moment system since PKPM model generates a full pressure tensor
-  // k0 = 0.0 and use_grad_closure = false because we do not need a closure 
-  // (the kinetic equations are the closure)
-  gkyl_wv_eqn_release(s->eqn_ten_mom);
-  s->eqn_ten_mom = gkyl_wv_ten_moment_new(0.0, false, false, 0, 0, app->use_gpu);
-
-  // Geometry object for ten moment equations.
-  gkyl_wave_geom_release(s->ten_mom_geom);
-  s->ten_mom_geom = gkyl_wave_geom_new(&app->grid_kinetic, &app->local_kinetic_ext, 0, 0, app->use_gpu);
-
-  // Updater to compute PKPM vars:
-  // pressure, primitive variables, and acceleration variables
-  // also stores kernels for computing source terms, integrated variables
-  double limiter_fac = 1.0/sqrt(3); // default 1/sqrt(3)
-  gkyl_dg_calc_pkpm_vars_release(s->calc_pkpm_vars_ext);
-  gkyl_dg_calc_pkpm_vars_release(s->calc_pkpm_vars);
-  s->calc_pkpm_vars_ext = gkyl_dg_calc_pkpm_vars_new(&app->grid_kinetic,
-    &app->confBasis, &app->local_kinetic_ext, s->eqn_ten_mom, s->ten_mom_geom, limiter_fac, app->use_gpu);
-  s->calc_pkpm_vars = gkyl_dg_calc_pkpm_vars_new(&app->grid_kinetic,
-    &app->confBasis, &app->local_kinetic, s->eqn_ten_mom, s->ten_mom_geom, limiter_fac, app->use_gpu);
-
-  // Updater to compute PKPM dist vars
-  // div(p_par b_hat) for self-consistent total pressure force and distribution function sources for
-  // Laguerre couplings and vperp characteristics 
-  gkyl_dg_calc_pkpm_dist_vars_release(s->calc_pkpm_dist_vars);
-  s->calc_pkpm_dist_vars = gkyl_dg_calc_pkpm_dist_vars_new(&s->grid, &app->confBasis, app->use_gpu);
-
-  // Updater to compute PKPM moments (rho, p_par, p_perp, M1) and diagnostics
-  gkyl_array_release(s->pkpm_moms);
-  gkyl_dg_updater_moment_pkpm_release(s->pkpm_mom_calc);
-  s->pkpm_moms = mkarr(app->use_gpu, 4*app->confBasis.num_basis, app->local_kinetic_ext.volume);
-  s->pkpm_mom_calc = gkyl_dg_updater_moment_pkpm_new(&s->grid, &app->confBasis, 
-    &app->basis, &app->local_kinetic, &s->local_vel, s->info.mass, false, app->use_gpu);
-
-  // Diagnostic moments (rho, M1, p_par, p_perp, q_par, q_perp, r_parpar, r_parperp)
-  gkyl_array_release(s->pkpm_moms_diag);
-  gkyl_dg_updater_moment_pkpm_release(s->pkpm_mom_calc_diag);
-  s->pkpm_moms_diag = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_kinetic_ext.volume);
-  s->pkpm_mom_calc_diag = gkyl_dg_updater_moment_pkpm_new(&s->grid, &app->confBasis, 
-    &app->basis, &app->local_kinetic, &s->local_vel, s->info.mass, true, app->use_gpu);
-
-  // Updater to compute flux contributions to Euler equations, [div(P)-grad(p), (P - pI) : grad(u), div(q)]
-  gkyl_dg_calc_flash_coupling_release(s->calc_flash_coupling);
-  s->calc_flash_coupling = gkyl_dg_calc_flash_coupling_new(&s->grid, &app->grid_kinetic, &app->confBasis);
-
-  // Updater for kinetic RHS.
-  gkyl_dg_updater_flash_release(s->updater);
-  bool is_zero_flux[GKYL_MAX_DIM] = {false};
-  struct gkyl_dg_vlasov_pkpm_auxfields aux = {
-    .bvar = app->field->bvar, .bvar_surf = app->field->bvar_surf, 
-    .pkpm_prim = s->pkpm_prim, .pkpm_prim_surf = s->pkpm_prim_surf, 
-    .max_b = app->field->max_b, .pkpm_lax = s->pkpm_lax, 
-    .div_b = app->field->div_b, .pkpm_accel_vars = s->pkpm_accel, 
-    .g_dist_source = s->g_dist_source};
-  s->updater = gkyl_dg_updater_flash_new(&app->grid_kinetic, &s->grid,
-    &app->confBasis, &app->basis, &app->local_kinetic, &s->local, is_zero_flux, &aux);
 }
 
 // Compute PKPM diagnostic moments.

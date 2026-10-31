@@ -27,95 +27,45 @@ gkyl_flash_multib_app_get_kinetic_fluxes(gkyl_flash_multib_app *app, int blockID
  * transformed kinetic equation.
  * 
  * @param app 
- * @param fluid_mom_in 
- */
-void
-gkyl_flash_app_set_fluid_vel(struct gkyl_flash_app *app, struct gkyl_array *fluid_mom_in);
-
-/**
- * @brief 
- * 
- * @param app 
- * @param blockID 
  * @param fluid_vel_in 
  */
 void
-gkyl_flash_multib_app_set_fluid_vel(gkyl_flash_multib_app *app, int blockID, struct gkyl_array *fluid_vel_in);
+gkyl_flash_app_set_fluid_vel_from_fv(struct gkyl_flash_app *app, struct gkyl_array *fluid_vel_in);
 
 /**
  * Used for coupling to an external fluid solver.
- * Set the initial conditions for the distribution function as a Maxwellian
- * with moments given by the input array [n, ux, uy, uz, T/m].
- * 
- * @param app 
- * @param init_dist_moms 
+ * Set the fluid velocity that defines the moving frame for the transformed
+ * kinetic equation on all local blocks, then sync it at inter-block
+ * boundaries. fluid_vel_in[b] is finite volume data [ux, uy, uz] for local
+ * block b (global block gkyl_flash_multib_app_local_block_id(app, b)).
+ * Collective: must be called once on all ranks.
+ *
+ * @param app Multiblock app object.
+ * @param fluid_vel_in Fluid velocity arrays, one per local block.
  */
 void
-gkyl_flash_app_set_init_dist_moms(gkyl_flash_app *app, struct gkyl_array *init_dist_moms);
+gkyl_flash_multib_app_set_fluid_vel_from_fv(gkyl_flash_multib_app *app, struct gkyl_array *fluid_vel_in[]);
 
 /**
- * Initialize the distribution function as a Maxwellian matching the moment array
- * of finite volume data [n, ux, uy, uz, T/m]. 
- * 
- * @param app 
- * @param init_dist_moms 
+ * Used for coupling to an external fluid solver.
+ * Store the moments [n, T/m] used to initialize the distribution function as a
+ * Maxwellian. The input is finite volume data on the fluid grid (2x the
+ * kinetic configuration-space resolution), interpolated onto the kinetic grid.
+ * The species must have been created with init_dist_from_arrays = true.
+ *
+ * @param app App object.
+ * @param init_dist_moms Finite volume moments [n, T/m].
  */
 void
-gkyl_flash_app_init_maxwellian_from_moms(gkyl_flash_app *app, struct gkyl_array *init_dist_moms);
+gkyl_flash_app_set_init_dist_moms_from_fv(gkyl_flash_app *app, struct gkyl_array *init_dist_moms);
 
 /**
- * Initialize the distribution function as a Maxwellian matching the moment array
- * of finite volume data [n, ux, uy, uz, T/m]. 
- * 
- * @param app 
- * @param init_dist_moms 
+ * Used for coupling to an external fluid solver.
+ * Initialize the distribution function as a Maxwellian matching finite volume
+ * moments [n, T/m] on the fluid grid, then apply boundary conditions.
+ *
+ * @param app App object.
+ * @param init_dist_moms Finite volume moments [n, T/m].
  */
 void
-gkyl_flash_multib_app_init_maxwellian_from_moms_block(gkyl_flash_multib_app *app, int blockID, struct gkyl_array *init_dist_moms);
-
-/**
- * Update velocity space extents for each species' internal phase space and velocity space grids to 
- * the input lower and upper extents.
- * 
- * @param app 
- * @param lower_vel 
- * @param upper_vel 
- */
-void 
-gkyl_flash_app_set_vel_space_extents(gkyl_flash_app *app, double lower_vel[GKYL_MAX_VDIM], double upper_vel[GKYL_MAX_VDIM]);
-
-/**
- * Update velocity space extents for each species' internal phase space and velocity space grids to 
- * the input lower and upper extents.
- * 
- * @param app 
- * @param lower_vel 
- * @param upper_vel 
- */
-void 
-gkyl_flash_multib_app_set_vel_space_extents(gkyl_flash_multib_app *app, int blockID, double lower_vel[GKYL_MAX_VDIM], double upper_vel[GKYL_MAX_VDIM]);
-
-
-/**
- * Return the configuration space range over the fluid grid.
- * 
- * @param app 
- * @return struct gkyl_range 
- */
-struct gkyl_range
-gkyl_flash_app_get_fluid_conf_ext_range(gkyl_flash_app *app);
-
-/**
- * Return the configuration space range over the fluid grid.
- * 
- * @param app 
- * @return struct gkyl_range 
- */
-struct gkyl_range
-gkyl_flash_app_get_fluid_conf_range(gkyl_flash_app *app);
-
-struct gkyl_range
-gkyl_flash_multib_app_get_fluid_conf_ext_range(gkyl_flash_multib_app *app, int blockID);
-
-struct gkyl_range
-gkyl_flash_multib_app_get_fluid_conf_range(gkyl_flash_multib_app *app, int blockID);
+gkyl_flash_app_init_maxwellian_from_moms_from_fv(gkyl_flash_app *app, struct gkyl_array *init_dist_moms);

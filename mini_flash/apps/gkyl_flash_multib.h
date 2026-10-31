@@ -34,10 +34,13 @@ struct gkyl_flash_multib_species_inp_per_block {
   // Fluid quantities initialization function.
   void (*init_fluid)(double t, const double *xn, double *fout, void *ctx);
 
-  bool init_dist_from_arrays; // Flag to initialize distribution function from input fluid moment arrays.
-  struct gkyl_array *init_dist_moms; // Input fluid moment arrays for initializing the distibution function with
-                                     // the `init_dist_from_arrays` flag. Moments should be ordered as:
-                                     // [rho, ux, uy, uz, temp].
+  bool init_dist_from_arrays; // Flag to initialize the distribution function as a Maxwellian from moment
+                              // arrays [n, T/m] instead of the init_dist function. The moments are either
+                              // given in init_dist_moms, or set after app creation with the interface
+                              // functions (gkyl_flash_multib_app_init_maxwellian_from_moms).
+  struct gkyl_array *init_dist_moms; // Optional DG moments [n, T/m] on the extended kinetic configuration-space
+                                     // range of this block (2*num_conf_basis components). Copied at app creation and
+                                     // projected onto a Maxwellian when initial conditions are applied.
 
   bool skip_init_dist; // Flag to skip initializing the distribution function.
 };
@@ -221,6 +224,62 @@ gkyl_flash_multib_app_update(gkyl_flash_multib_app *app, double dt0);
  */
 void
 gkyl_flash_multib_app_print_timings(gkyl_flash_multib_app *app, FILE *fp);
+
+/**
+ * Initialize the distribution functions on all local blocks as Maxwellians
+ * matching DG moments [n, T/m] on each block's extended kinetic
+ * configuration-space range, then apply physical and inter-block boundary
+ * conditions. Input init_dist_moms[b] holds the moments for local block b.
+ * Only needed if the moments were not given in the species input at app creation.
+ * Must be called once on all ranks.
+ *
+ * @param app Multiblock app object.
+ * @param init_dist_moms DG moment arrays, one per local block (copied).
+ */
+void
+gkyl_flash_multib_app_init_maxwellian_from_moms(gkyl_flash_multib_app *app,
+  struct gkyl_array *init_dist_moms[]);
+
+/**
+ * Return the extended configuration space range over the fluid grid of
+ * local block blockID.
+ *
+ * @param app Multiblock app object.
+ * @param blockID Local block index.
+ * @return Extended local fluid range.
+ */
+struct gkyl_range
+gkyl_flash_multib_app_get_fluid_conf_ext_range(gkyl_flash_multib_app *app, int blockID);
+
+/**
+ * Return the configuration space range over the fluid grid of local block
+ * blockID.
+ *
+ * @param app Multiblock app object.
+ * @param blockID Local block index.
+ * @return Local fluid range.
+ */
+struct gkyl_range
+gkyl_flash_multib_app_get_fluid_conf_range(gkyl_flash_multib_app *app, int blockID);
+
+/**
+ * Number of blocks handled by this rank.
+ *
+ * @param app Multiblock app object.
+ * @return Number of local blocks.
+ */
+int
+gkyl_flash_multib_app_num_local_blocks(const gkyl_flash_multib_app *app);
+
+/**
+ * Global block ID of local block b, for 0 <= b < number of local blocks.
+ *
+ * @param app Multiblock app object.
+ * @param b Local block index.
+ * @return Global block ID.
+ */
+int
+gkyl_flash_multib_app_local_block_id(const gkyl_flash_multib_app *app, int b);
 
 /**
  * Release memory for multiblock app object.

@@ -14,7 +14,7 @@
  * @param fluid_mom_in 
  */
 void
-gkyl_flash_app_set_fluid_vel(gkyl_flash_app *app, struct gkyl_array *fluid_vel_in)
+gkyl_flash_app_set_fluid_vel_from_fv(gkyl_flash_app *app, struct gkyl_array *fluid_vel_in)
 {
   // Each species uses the same bulk velocity
   for (int i=0; i<app->num_species; ++i) {
@@ -33,13 +33,17 @@ gkyl_flash_app_set_fluid_vel(gkyl_flash_app *app, struct gkyl_array *fluid_vel_i
 }
 
 void
-gkyl_flash_multib_app_set_fluid_vel(gkyl_flash_multib_app *app, int blockID, struct gkyl_array *fluid_vel_in)
+gkyl_flash_multib_app_set_fluid_vel_from_fv(gkyl_flash_multib_app *app, struct gkyl_array *fluid_vel_in[])
 {
-  gkyl_flash_app_set_fluid_vel(app->block_apps[blockID], fluid_vel_in);
+  for (int b=0; b<app->num_local_blocks; ++b)
+    gkyl_flash_app_set_fluid_vel_from_fv(app->block_apps[b], fluid_vel_in[b]);
+
+  // Sync momentum density across connected blocks once all blocks are set.
+  flash_multib_sync_fluid_rhou(app);
 }
 
 /**
- * Pass array of moments [n, ux, uy, uz, T/m] to the app to set initial conditions.
+ * Pass array of moments [n, T/m] to the app to set initial conditions.
  * The input array is finite volume data living on a grid with 2x the configuration space
  * resolution of the kinetic grid in the app.
  * 
@@ -48,73 +52,32 @@ gkyl_flash_multib_app_set_fluid_vel(gkyl_flash_multib_app *app, int blockID, str
  * @param init_dist_moms 
  */
 void
-gkyl_flash_app_set_init_dist_moms(gkyl_flash_app *app, struct gkyl_array *init_dist_moms)
+gkyl_flash_app_set_init_dist_moms_from_fv(gkyl_flash_app *app, struct gkyl_array *init_dist_moms)
 {
   for (int i=0; i<app->num_species; ++i) {
+    if (!app->species[i].init_dist_moms)
+      gkyl_exit("gkyl_flash_app_set_init_dist_moms: species must be created with init_dist_from_arrays = true.");
+
     gkyl_flash_interp_vars_init_dist_moms_to_dg(app->interp_vars,
       &app->local_kinetic_ext, &app->local_fluid_ext, init_dist_moms, app->species[i].init_dist_moms);
   }
 }
 
+
 /**
  * Initialize the distribution function as a Maxwellian matching the moment array
- * of finite volume data [n, ux, uy, uz, T/m]. 
+ * of finite volume data [n, T/m]. 
  * 
  * @param app 
  * @param init_dist_moms 
  */
 void
-gkyl_flash_app_init_maxwellian_from_moms(gkyl_flash_app *app, struct gkyl_array *init_dist_moms)
+gkyl_flash_app_init_maxwellian_from_moms_from_fv(gkyl_flash_app *app, struct gkyl_array *init_dist_moms)
 {
-  // Pass the moment array to the app internals
-  gkyl_flash_app_set_init_dist_moms(app, init_dist_moms);
-
-  // Initialize the distribution function
-  for (int i=0; i<app->num_species; ++i) {
-    flash_species_calc_distf_from_moms(app, &app->species[i], app->species[i].init_dist_moms);
-    
-    flash_species_apply_bc(app, &app->species[i], app->species[i].f);
-  }
+  gkyl_flash_app_set_init_dist_moms_from_fv(app, init_dist_moms);
+  flash_app_init_maxwellian_from_stored_moms(app);
 }
 
-/**
- * Initialize the distribution function of a single-block app
- * as a Maxwellian matching the moment array of finite volume data [n, ux, uy, uz, T/m].
- * 
- * @param app 
- * @param blockID
- * @param init_dist_moms 
- */
-void
-gkyl_flash_multib_app_init_maxwellian_from_moms_block(gkyl_flash_multib_app *app, int blockID, struct gkyl_array *init_dist_moms)
-{
-  struct gkyl_flash_app *sbapp = app->block_apps[blockID];
-
-  // Pass the moment array to the app internal
-  gkyl_flash_app_set_init_dist_moms(sbapp, init_dist_moms);
-
-  // Initialize the distribution function
-  for (int i=0; i<sbapp->num_species; ++i) {
-    flash_species_calc_distf_from_moms(sbapp, &sbapp->species[i], 
-      sbapp->species[i].init_dist_moms);
-  
-    flash_species_apply_bc(sbapp, &sbapp->species[i], sbapp->species[i].f);
-  }
-
-  // Apply boundary conditions
-  struct gkyl_array *distf[app->num_species * app->num_local_blocks];
-  struct gkyl_array *fluid[app->num_species * app->num_local_blocks];
-  for (int b=0; b<app->num_local_blocks; ++b) {
-    struct gkyl_flash_app *sbapp = app->block_apps[b];
-    int lin_idx = b*app->num_species;
-    for (int i=0; i<app->num_species; ++i) {
-      distf[lin_idx + i] = sbapp->species[i].f;
-      fluid[lin_idx + i] = sbapp->fluid_species[i].fluid;
-    }
-  }
-
-  gkyl_flash_multib_app_apply_bc(app, app->tcurr, distf, fluid);
-}
 
 void
 gkyl_flash_app_get_kinetic_fluxes(gkyl_flash_app *app, struct gkyl_array *coupling_fluxes)
@@ -153,43 +116,4 @@ void
 gkyl_flash_multib_app_get_kinetic_fluxes(gkyl_flash_multib_app *app, int blockID, struct gkyl_array *coupling_fluxes)
 {
   gkyl_flash_app_get_kinetic_fluxes(app->block_apps[blockID], coupling_fluxes);
-}
-
-void 
-gkyl_flash_app_set_vel_space_extents(gkyl_flash_app *app, double lower_vel[GKYL_MAX_VDIM], double upper_vel[GKYL_MAX_VDIM])
-{
-  for (int i=0; i<app->num_species; ++i) {
-    flash_species_set_vel_space_extents(app, &app->species[i], lower_vel, upper_vel);
-  }
-}
-
-void
-gkyl_flash_multib_app_set_vel_space_extents(gkyl_flash_multib_app *app, int blockID, double lower_vel[GKYL_MAX_VDIM], double upper_vel[GKYL_MAX_VDIM])
-{
-  gkyl_flash_app_set_vel_space_extents(app->block_apps[blockID], lower_vel, upper_vel);
-}
-
-
-struct gkyl_range
-gkyl_flash_app_get_fluid_conf_ext_range(gkyl_flash_app *app) 
-{
-  return app->local_fluid_ext;
-}
-
-struct gkyl_range
-gkyl_flash_app_get_fluid_conf_range(gkyl_flash_app *app) 
-{
-  return app->local_fluid;
-}
-
-struct gkyl_range
-gkyl_flash_multib_app_get_fluid_conf_ext_range(gkyl_flash_multib_app *app, int blockID) 
-{
-  return app->block_apps[blockID]->local_fluid_ext;
-}
-
-struct gkyl_range
-gkyl_flash_multib_app_get_fluid_conf_range(gkyl_flash_multib_app *app, int blockID) 
-{
-  return app->block_apps[blockID]->local_fluid;
 }

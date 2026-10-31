@@ -155,7 +155,7 @@ struct flash_species {
   bool init_dist_from_arrays; // Flag to initialize distribution function from input fluid moment arrays.
   struct gkyl_array *init_dist_moms; // Input fluid moment arrays for initializing the distibution function with
                                      // the `init_dist_from_arrays` flag. Moments should be ordered as:
-                                     // [rho, ux, uy, uz, temp].
+                                     // [n, T/m].
 
   bool skip_init_dist; // Flag to skip initializing the distribution function.
 };
@@ -383,7 +383,18 @@ flash_species_calc_coupling_fluxes(struct gkyl_flash_app *app,
 
 
 /**
- * Initialize a Maxwellian distribution using the given input moment array [n, ux, uy, uz, T/m]
+ * Copy DG moments [n, T/m] on the extended kinetic configuration space range
+ * into the species. The species must have been created
+ * with init_dist_from_arrays = true.
+ *
+ * @param s Species object.
+ * @param init_dist_moms Input DG moments.
+ */
+void
+flash_species_set_init_dist_moms(struct flash_species *s, const struct gkyl_array *init_dist_moms);
+
+/**
+ * Initialize a Maxwellian distribution using the given input moment array [n, T/m]
  * 
  * @param app 
  * @param s 
@@ -392,17 +403,6 @@ flash_species_calc_coupling_fluxes(struct gkyl_flash_app *app,
 void
 flash_species_calc_distf_from_moms(gkyl_flash_app *app, struct flash_species *s, 
   struct gkyl_array *init_dist_moms);
-
-/**
- * Adjust the velocity space extents of the input species' internal phase space grid.
- * 
- * @param s 
- * @param lower 
- * @param upper 
- */
-void
-flash_species_set_vel_space_extents(gkyl_flash_app *app, struct flash_species *s, 
-  double lower_vel[GKYL_MAX_VDIM], double upper_vel[GKYL_MAX_VDIM]);
 
 /**
  * Initialize LBO collisions object.
@@ -633,3 +633,12 @@ ratio_to_percent(double num, double den)
 {
   return den > 0.0 ? 100.0*num/den : 0.0;
 }
+
+/**
+ * Project the stored moments of every species onto a Maxwellian and apply the
+ * species boundary conditions.
+ *
+ * @param app App object.
+ */
+void
+flash_app_init_maxwellian_from_stored_moms(gkyl_flash_app *app);

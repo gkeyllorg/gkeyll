@@ -79,7 +79,7 @@ gkyl_flash_proj_pkpm_lte_on_basis_advance(gkyl_flash_proj_pkpm_lte_on_basis *up,
 
     const double *moms_d = gkyl_array_cfetch(moms, midx);
     const double *n_d = moms_d;
-    const double *T_over_m_d = &moms_d[num_conf_basis*(GKYL_MAX_VDIM+1)];
+    const double *T_over_m_d = &moms_d[num_conf_basis];
 
     // Evaluate n and T/m at the conf-space ordinates. (Note PKPM is in moving reference frame).
     for (int n=0; n<tot_conf_quad; ++n) {

@@ -86,14 +86,18 @@ gkyl_flash_singleb_app_new(const struct gkyl_flash_multib_inp *mbinp, int block_
     }
 
     // Fetch the initial conditions input for the current block.
+    // Without duplicate_ics, `mb_spec->blocks` holds one entry per global block.
     const struct gkyl_flash_multib_species_inp_per_block *spec_pb = &mb_spec->blocks[0];
     if (!mb_spec->duplicate_ics) {
-      for (int b=0; b<mbapp->num_local_blocks; ++b) {
+      spec_pb = 0;
+      for (int b=0; b<mbinp->num_blocks_global; ++b) {
         if (block_id == mb_spec->blocks[b].block_id) {
           spec_pb = &mb_spec->blocks[b];
           break;
         }
       }
+      if (!spec_pb)
+        gkyl_exit("Species initial conditions are missing for a block (no matching block_id).");
     }
 
     // Copy initial condition parameters into species input
@@ -142,14 +146,18 @@ gkyl_flash_singleb_app_new(const struct gkyl_flash_multib_inp *mbinp, int block_
   field_inp.limiter_fac = mb_field->limiter_fac;
 
   // Fetch field initial conditions for current block
+  // Without duplicate_ics, `mb_field->blocks` holds one entry per global block.
   struct gkyl_flash_multib_field_inp_per_block *field_pb = &mb_field->blocks[0];
   if (!mb_field->duplicate_ics) {
-    for (int b=0; b<mbapp->num_local_blocks; ++b) {
+    field_pb = 0;
+    for (int b=0; b<mbinp->num_blocks_global; ++b) {
       if (block_id == mb_field->blocks[b].block_id) {
         field_pb = &mb_field->blocks[b];
         break;
       }
     }
+    if (!field_pb)
+      gkyl_exit("Field initial conditions are missing for a block (no matching block_id).");
   }
   field_inp.ctx = field_pb->ctx;
   field_inp.init = field_pb->init;
@@ -821,6 +829,69 @@ gkyl_flash_multib_app_print_timings(gkyl_flash_multib_app *app, FILE *fp)
   multib_print_tm(app, fp, "      ^ Kinetic BCs:", mx->species_bc_tm, av->species_bc_tm, ref);
   multib_print_tm(app, fp, "      ^ Fluid BCs:", mx->fluid_species_bc_tm, av->fluid_species_bc_tm, ref);
   multib_print_tm(app, fp, "  - I/O:", mx->io_tm, av->io_tm, -1.0);
+}
+
+// Sync interpolated fluid momentum density at interblock boundaries.
+void
+flash_multib_sync_fluid_rhou(struct gkyl_flash_multib_app *app)
+{
+  for (int i=0; i<app->num_species; ++i) {
+    struct gkyl_array *rhou_blocks[app->num_local_blocks];
+    for (int b=0; b<app->num_local_blocks; ++b)
+      rhou_blocks[b] = app->block_apps[b]->species[i].fluid_rhou;
+
+    gkyl_multib_comm_conn_array_transfer(app->comm, app->num_local_blocks, app->local_blocks,
+      app->mbcc_sync_conf->send, app->mbcc_sync_conf->recv, rhou_blocks, rhou_blocks);
+  }
+}
+
+void
+gkyl_flash_multib_app_init_maxwellian_from_moms(gkyl_flash_multib_app *app,
+  struct gkyl_array *init_dist_moms[])
+{
+  int ns = app->num_species;
+  struct gkyl_array *distf[ns*app->num_local_blocks];
+  struct gkyl_array *fluid[ns*app->num_local_blocks];
+
+  for (int b=0; b<app->num_local_blocks; ++b) {
+    struct gkyl_flash_app *sbapp = app->block_apps[b];
+    gkyl_flash_app_set_init_dist_moms(sbapp, init_dist_moms[b]);
+
+    for (int i=0; i<ns; ++i) {
+      struct flash_species *s = &sbapp->species[i];
+      flash_species_calc_distf_from_moms(sbapp, s, s->init_dist_moms);
+      distf[b*ns+i] = s->f;
+      fluid[b*ns+i] = sbapp->fluid_species[i].fluid;
+    }
+  }
+
+  // Physical BCs on each block, then one inter-block sync across all ranks.
+  gkyl_flash_multib_app_apply_bc(app, app->tcurr, distf, fluid);
+}
+
+struct gkyl_range
+gkyl_flash_multib_app_get_fluid_conf_ext_range(gkyl_flash_multib_app *app, int blockID)
+{
+  return app->block_apps[blockID]->local_fluid_ext;
+}
+
+struct gkyl_range
+gkyl_flash_multib_app_get_fluid_conf_range(gkyl_flash_multib_app *app, int blockID)
+{
+  return app->block_apps[blockID]->local_fluid;
+}
+
+int
+gkyl_flash_multib_app_num_local_blocks(const gkyl_flash_multib_app *app)
+{
+  return app->num_local_blocks;
+}
+
+int
+gkyl_flash_multib_app_local_block_id(const gkyl_flash_multib_app *app, int b)
+{
+  assert((b >= 0) && (b < app->num_local_blocks));
+  return app->local_blocks[b];
 }
 
 void

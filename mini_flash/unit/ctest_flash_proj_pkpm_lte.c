@@ -18,7 +18,6 @@ mkarr(long nc, long size)
 struct flash_ctx {
   double mass;
   double n;
-  double ux, uy, uz;
   double temp;
 
   double L;
@@ -31,9 +30,6 @@ init_ctx()
 {
   double mass = 1.0;
   double n = 1.0;
-  double ux = 0.5;
-  double uy = 0.0;
-  double uz = 0.0;
   double temp = 3.0;
   double vth = sqrt(temp/mass);
   double vmax = 5.0*vth;
@@ -43,9 +39,6 @@ init_ctx()
   return (struct flash_ctx) {
     .mass = mass,
     .n = n,
-    .ux = ux,
-    .uy = uy,
-    .uz = uz,
     .temp = temp,
 
     .L = L,
@@ -58,10 +51,7 @@ void init_fluid(double t, const double *xn, double* restrict fout, void *ctx)
 {
   struct flash_ctx *app = ctx;
   fout[0] = app->n;
-  fout[1] = app->ux;
-  fout[2] = app->uy;
-  fout[3] = app->uz;
-  fout[4] = app->temp/app->mass;
+  fout[1] = app->temp/app->mass;
 }
 
 // Indices of the phase-space cells checked against reference values, all in
@@ -115,13 +105,13 @@ test_proj_lte(int cdim, int vdim, int NV, const double f_ref[NUM_CHECK_CELLS][MA
 
   // Initialize arrays
   struct gkyl_array *fluidin, *distf;
-  fluidin = mkarr(5*conf_basis.num_basis, conf_range_ext.volume);
+  fluidin = mkarr(2*conf_basis.num_basis, conf_range_ext.volume);
   distf = mkarr(2*phase_basis.num_basis, phase_range_ext.volume);
 
   // Project initial fluid moments
   int num_quad = poly_order+1;
   gkyl_proj_on_basis *proj_fluid = gkyl_proj_on_basis_new(&conf_grid,
-    &conf_basis,num_quad, 5, init_fluid, &ctx);
+    &conf_basis,num_quad, 2, init_fluid, &ctx);
   
   gkyl_proj_on_basis_advance(proj_fluid, 0.0, &conf_range, fluidin);
   gkyl_proj_on_basis_release(proj_fluid);

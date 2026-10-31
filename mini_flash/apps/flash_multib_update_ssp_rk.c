@@ -4,20 +4,6 @@
 // Arrays passed between the multib time-stepper routines hold one entry per
 // (local block, species) pair, indexed as b*num_species + i.
 
-// Sync interpolated fluid momentum density at interblock boundaries.
-static void
-flash_multib_sync_fluid_rhou(struct gkyl_flash_multib_app *app)
-{
-  for (int i=0; i<app->num_species; ++i) {
-    struct gkyl_array *rhou_blocks[app->num_local_blocks];
-    for (int b=0; b<app->num_local_blocks; ++b)
-      rhou_blocks[b] = app->block_apps[b]->species[i].fluid_rhou;
-
-    gkyl_multib_comm_conn_array_transfer(app->comm, app->num_local_blocks, app->local_blocks,
-      app->mbcc_sync_conf->send, app->mbcc_sync_conf->recv, rhou_blocks, rhou_blocks);
-  }
-}
-
 // Take a single forward Euler step of the hybrid Euler-PKPM system on all
 // blocks with suggested timestep dt0. The step taken is the same on every
 // block and rank, is never larger than dt0, and is stored in th status object.

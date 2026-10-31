@@ -57,7 +57,7 @@ gkyl_flash_interp_vars_vel_to_dg(struct gkyl_flash_interp_vars *up,
     range_kinetic, range_fluid, fv_fluid_vel_in, 0, dg_vel_out, 0, 3);
 }
 
-// Interpolate initial condition arrays [n, ux, uy, uz, T/m] onto kinetic grid.
+// Interpolate initial condition arrays [n, T/m] onto kinetic grid.
 void
 gkyl_flash_interp_vars_init_dist_moms_to_dg(struct gkyl_flash_interp_vars *up,
   struct gkyl_range *range_kinetic, struct gkyl_range *range_fluid,
@@ -65,7 +65,7 @@ gkyl_flash_interp_vars_init_dist_moms_to_dg(struct gkyl_flash_interp_vars *up,
 {
   // Interpolate moments onto DG grid.
   gkyl_dg_fv_interpolate_fv_to_modal_advance(up->interp,
-    range_kinetic, range_fluid, fv_moms_in, 0, dg_moms_out, 0, 5);
+    range_kinetic, range_fluid, fv_moms_in, 0, dg_moms_out, 0, 2);
 }
 
 void

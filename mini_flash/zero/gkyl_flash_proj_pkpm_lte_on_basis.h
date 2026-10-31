@@ -16,13 +16,35 @@ struct gkyl_flash_proj_pkpm_lte_on_basis_inp {
   enum gkyl_quad_type quad_type;
 };
 
+/**
+ * Initialize an updater to project a Maxwellian in the moving reference frame
+ * on basis with Gaussian quadrature.
+ * 
+ * @param inp 
+ * @return struct gkyl_flash_proj_pkpm_lte_on_basis* 
+ */
 struct gkyl_flash_proj_pkpm_lte_on_basis*
 gkyl_flash_proj_pkpm_lte_on_basis_new(struct gkyl_flash_proj_pkpm_lte_on_basis_inp *inp);
 
+/**
+ * Project a Maxwellian in the moving reference frame from input moments.
+ * The input `moms` array stores [n, T/m].
+ * 
+ * @param up 
+ * @param phase_range 
+ * @param conf_range 
+ * @param moms 
+ * @param f_lte 
+ */
 void
 gkyl_flash_proj_pkpm_lte_on_basis_advance(gkyl_flash_proj_pkpm_lte_on_basis *up,
   const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
   const struct gkyl_array *moms, struct gkyl_array *f_lte);
 
+/**
+ * Release memory allocated for updater. 
+ * 
+ * @param up 
+*/
 void
 gkyl_flash_proj_pkpm_lte_on_basis_release(gkyl_flash_proj_pkpm_lte_on_basis *up);

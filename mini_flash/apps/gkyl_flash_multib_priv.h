@@ -61,3 +61,12 @@ struct gkyl_flash_multib_app {
  */
 struct gkyl_update_status
 gkyl_flash_multib_update_ssp_rk3(struct gkyl_flash_multib_app *app, double dt0);
+
+/**
+ * Sync the interpolated fluid momentum density (species fluid_rhou) at
+ * inter-block boundaries. Must be called on all ranks.
+ *
+ * @param app Multiblock app object.
+ */
+void
+flash_multib_sync_fluid_rhou(struct gkyl_flash_multib_app *app);
