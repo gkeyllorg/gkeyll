@@ -104,7 +104,7 @@ create_ctx(void)
     .B0 = B0,
     .ux = ux,
     .uy = uy,
-    uz = uz,
+    .uz = uz,
     .f_amplitude = f_amplitude,
     .f_floor = f_floor,
     .Nx = Nx,

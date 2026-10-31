@@ -246,10 +246,144 @@ gk_geometry_mapc2p_advance_interior(
   gkyl_calc_metric_release(mcalc);
 }
 
+// Cartesian position of the point with computational coordinates (x, y, z).
+static void
+gk_geometry_mapc2p_eval(
+  evalf_t mapc2p_func, void *mapc2p_ctx, struct gkyl_position_map *position_map, double x, double y,
+  double z, double xp[3]
+)
+{
+  double xc[3] = {x, y, z}, xn[3];
+  for (int d = 0; d < 3; d++) {
+    position_map->maps[d](0.0, &xc[d], &xn[d], position_map->ctxs[d]);
+  }
+  mapc2p_func(0.0, xn, xp, mapc2p_ctx);
+}
+
+// Toroidal angle, about the Cartesian Z axis, of the point at (x, y, z).
+static double
+gk_geometry_mapc2p_toroidal_angle(
+  evalf_t mapc2p_func, void *mapc2p_ctx, struct gkyl_position_map *position_map, double x, double y,
+  double z
+)
+{
+  double xp[3];
+  gk_geometry_mapc2p_eval(mapc2p_func, mapc2p_ctx, position_map, x, y, z, xp);
+  return atan2(xp[1], xp[0]);
+}
+
+// Wrap val to [-period/2, period/2).
+static inline double
+gk_geometry_mapc2p_wrap(double val, double period)
+{
+  return val - period * floor(val / period + 0.5);
+}
+
+bool
+gkyl_gk_geometry_mapc2p_z_ends_match(const struct gkyl_gk_geometry_inp *geometry_inp)
+{
+  enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
+  const struct gkyl_rect_grid *grid = &geometry_inp->geo_grid;
+
+  // Compare R,Z at (x,y,z_lo) and (x,y,z_up) at the center of the first cell in x and y.
+  double x0 = grid->lower[PSI_IDX] + 0.5 * grid->dx[PSI_IDX];
+  double y0 = grid->lower[AL_IDX] + 0.5 * grid->dx[AL_IDX];
+  double xp_lo[3], xp_up[3];
+  gk_geometry_mapc2p_eval(
+    geometry_inp->mapc2p, geometry_inp->c2p_ctx, geometry_inp->position_map, x0, y0,
+    grid->lower[TH_IDX], xp_lo
+  );
+  gk_geometry_mapc2p_eval(
+    geometry_inp->mapc2p, geometry_inp->c2p_ctx, geometry_inp->position_map, x0, y0,
+    grid->upper[TH_IDX], xp_up
+  );
+  double R_lo = hypot(xp_lo[0], xp_lo[1]), R_up = hypot(xp_up[0], xp_up[1]);
+  return hypot(R_up - R_lo, xp_up[2] - xp_lo[2]) <= 1.0e-6 * hypot(R_lo, xp_lo[2]);
+}
+
+// Compute the shift in the toroidal angle between the lower and upper z boundaries by
+// following the field line from the lower to the upper boundary at a given (x,y) location.
+// The shift in the y direction is obtained by converting the toroidal shift into units of y
+// using the local dphi/dy at the lower boundary (should be continuous in y).
+static void
+gk_geometry_mapc2p_calc_deltats(
+  struct gk_geometry *up, struct gkyl_range *nrange, evalf_t mapc2p_func, void *mapc2p_ctx,
+  struct gkyl_position_map *position_map
+)
+{
+  enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
+  const int num_steps = 256; // Steps across the z domain used to follow phi.
+
+  double z_lo = up->grid.lower[TH_IDX], z_up = up->grid.upper[TH_IDX];
+  double dz_max = (z_up - z_lo) / num_steps;
+
+  // Node coordinates as in gk_geometry_mapc2p_advance_surface (dir = 2): Gauss nodes in x
+  // and y, cell faces in z.
+  int num_quad = up->basis.poly_order + 1;
+
+  int cidx[3] = {0};
+  for (int ia = nrange->lower[AL_IDX]; ia <= nrange->upper[AL_IDX]; ++ia) {
+    cidx[AL_IDX] = ia;
+    double y = gk_geometry_node_coord(
+      &up->grid, &up->local, &up->global, nrange, AL_IDX, ia, num_quad, true
+    );
+    for (int ip = nrange->lower[PSI_IDX]; ip <= nrange->upper[PSI_IDX]; ++ip) {
+      cidx[PSI_IDX] = ip;
+      double x = gk_geometry_node_coord(
+        &up->grid, &up->local, &up->global, nrange, PSI_IDX, ip, num_quad, true
+      );
+
+      // Toroidal angle per unit y (dphi/dy) using centered finite differences at the lower z boundary.
+      double hy = 0.1 * up->grid.dx[AL_IDX];
+      double dphidy =
+        gk_geometry_mapc2p_wrap(
+          gk_geometry_mapc2p_toroidal_angle(mapc2p_func, mapc2p_ctx, position_map, x, y + hy, z_lo) -
+            gk_geometry_mapc2p_toroidal_angle(
+              mapc2p_func, mapc2p_ctx, position_map, x, y - hy, z_lo
+            ),
+          2.0 * M_PI
+        ) /
+        (2.0 * hy);
+
+      // phi at z_lo, made continuous in y by removing the 2*pi jumps of atan2.
+      double phi_raw =
+        gk_geometry_mapc2p_toroidal_angle(mapc2p_func, mapc2p_ctx, position_map, x, y, z_lo);
+      double phi = dphidy * y + gk_geometry_mapc2p_wrap(phi_raw - dphidy * y, 2.0 * M_PI);
+
+      // Follow phi along the field line to each local z face. Evaluate mapc2p only inside
+      // [z_lo, z_up]: inputs may wrap theta at the ends of the domain, so a point a round-off
+      // above z_up could jump phi by a non-multiple of 2*pi.
+      double z = z_lo;
+      for (int it = nrange->lower[TH_IDX]; it <= nrange->upper[TH_IDX]; ++it) {
+        cidx[TH_IDX] = it;
+        // Face nodes; the last global face is exactly z_up (avoids the Lz == 2pi case).
+        double z_face =
+          gk_geometry_node_coord(&up->grid, &up->local, &up->global, nrange, TH_IDX, it, 1, false);
+        int num_sub = (int)ceil((z_face - z) / dz_max);
+        double z_start = z;
+        for (int k = 1; k <= num_sub; k++) {
+          z = k < num_sub ? z_start + k * (z_face - z_start) / num_sub : z_face;
+          double phi_new =
+            gk_geometry_mapc2p_toroidal_angle(mapc2p_func, mapc2p_ctx, position_map, x, y, z);
+          phi += gk_geometry_mapc2p_wrap(phi_new - phi_raw, 2.0 * M_PI);
+          phi_raw = phi_new;
+        }
+        z = z_face;
+
+        double *deltats_n = (double *)gkyl_array_fetch(
+          up->geo_surf[TH_IDX].deltats_nodal, gkyl_range_idx(nrange, cidx)
+        );
+        deltats_n[0] = phi / dphidy - y;
+      }
+    }
+  }
+}
+
 void
 gk_geometry_mapc2p_advance_surface(
   struct gk_geometry *up, int dir, struct gkyl_range *nrange, double dzc[3], evalf_t mapc2p_func,
-  void *mapc2p_ctx, evalf_t bfield_func, void *bfield_ctx, struct gkyl_position_map *position_map
+  void *mapc2p_ctx, evalf_t bfield_func, void *bfield_ctx, struct gkyl_position_map *position_map,
+  bool calc_deltats
 )
 {
   //Now project mapc2p and the FD array
@@ -414,6 +548,10 @@ gk_geometry_mapc2p_advance_surface(
     }
   }
 
+  if (calc_deltats) {
+    gk_geometry_mapc2p_calc_deltats(up, nrange, mapc2p_func, mapc2p_ctx, position_map);
+  }
+
   // Now calculate the metrics.
   struct gkyl_calc_metric *mcalc = gkyl_calc_metric_new(
     &up->basis, &up->grid, &up->global, &up->global_ext, &up->local, &up->local_ext, false, false
@@ -460,12 +598,6 @@ gk_geometry_mapc2p_init(struct gkyl_gk_geometry_inp *geometry_inp)
     }
   }
 
-  // Function pointers to twistshift function.
-  up->lower_shift_func = geometry_inp->lower_shift_func;
-  up->upper_shift_func = geometry_inp->upper_shift_func;
-  up->lower_shift_ctx = geometry_inp->lower_shift_ctx;
-  up->upper_shift_ctx = geometry_inp->upper_shift_ctx;
-
   gk_geometry_set_nodal_ranges(up);
 
   // Initialize surface basis abd allocate surface geo
@@ -496,11 +628,12 @@ gk_geometry_mapc2p_init(struct gkyl_gk_geometry_inp *geometry_inp)
     up, &up->nrange_int, up->dzc, geometry_inp->mapc2p, geometry_inp->c2p_ctx,
     geometry_inp->bfield_func, geometry_inp->bfield_ctx, geometry_inp->position_map
   );
-  // calculate mapc2p in cylindrical coords at surfaces
+  // calculate mapc2p in cartesian coords at surfaces
   for (int dir = 0; dir < up->grid.ndim; dir++) {
     gk_geometry_mapc2p_advance_surface(
       up, dir, &up->nrange_surf[dir], up->dzc, geometry_inp->mapc2p, geometry_inp->c2p_ctx,
-      geometry_inp->bfield_func, geometry_inp->bfield_ctx, geometry_inp->position_map
+      geometry_inp->bfield_func, geometry_inp->bfield_ctx, geometry_inp->position_map,
+      dir == 2 && geometry_inp->calc_deltats_mapc2p
     );
   }
 
