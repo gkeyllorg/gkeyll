@@ -4,15 +4,7 @@
 #include <gkyl_flash_multib_priv.h>
 #include <gkyl_flash_priv.h>
 
-/**
- * Pass array of fluid velocity [ux, uy, uz] to set the velocity of the moving
- * reference frame for the kinetic solver.
- * The input array is finite volume data living on a grid with 2x the configuration space
- * resolution of the kinetic grid in the app.
- * 
- * @param app 
- * @param fluid_mom_in 
- */
+
 void
 gkyl_flash_app_set_fluid_vel_from_fv(gkyl_flash_app *app, struct gkyl_array *fluid_vel_in)
 {
@@ -42,15 +34,6 @@ gkyl_flash_multib_app_set_fluid_vel_from_fv(gkyl_flash_multib_app *app, struct g
   flash_multib_sync_fluid_rhou(app);
 }
 
-/**
- * Pass array of moments [n, T/m] to the app to set initial conditions.
- * The input array is finite volume data living on a grid with 2x the configuration space
- * resolution of the kinetic grid in the app.
- * 
- * 
- * @param app 
- * @param init_dist_moms 
- */
 void
 gkyl_flash_app_set_init_dist_moms_from_fv(gkyl_flash_app *app, struct gkyl_array *init_dist_moms)
 {
@@ -63,14 +46,6 @@ gkyl_flash_app_set_init_dist_moms_from_fv(gkyl_flash_app *app, struct gkyl_array
   }
 }
 
-
-/**
- * Initialize the distribution function as a Maxwellian matching the moment array
- * of finite volume data [n, T/m]. 
- * 
- * @param app 
- * @param init_dist_moms 
- */
 void
 gkyl_flash_app_init_maxwellian_from_moms_from_fv(gkyl_flash_app *app, struct gkyl_array *init_dist_moms)
 {
@@ -78,9 +53,8 @@ gkyl_flash_app_init_maxwellian_from_moms_from_fv(gkyl_flash_app *app, struct gky
   flash_app_init_maxwellian_from_stored_moms(app);
 }
 
-
 void
-gkyl_flash_app_get_kinetic_fluxes(gkyl_flash_app *app, struct gkyl_array *coupling_fluxes)
+gkyl_flash_app_get_kinetic_fluxes_to_fv(gkyl_flash_app *app, struct gkyl_array *coupling_fluxes)
 {
   for (int i=0; i<app->num_species; ++i) {
     // Verify that array exists
@@ -113,7 +87,7 @@ gkyl_flash_app_get_kinetic_fluxes(gkyl_flash_app *app, struct gkyl_array *coupli
 }
 
 void
-gkyl_flash_multib_app_get_kinetic_fluxes(gkyl_flash_multib_app *app, int blockID, struct gkyl_array *coupling_fluxes)
+gkyl_flash_multib_app_get_kinetic_fluxes_to_fv(gkyl_flash_multib_app *app, int blockID, struct gkyl_array *coupling_fluxes)
 {
   gkyl_flash_app_get_kinetic_fluxes(app->block_apps[blockID], coupling_fluxes);
 }
