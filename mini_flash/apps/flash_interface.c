@@ -4,7 +4,6 @@
 #include <gkyl_flash_multib_priv.h>
 #include <gkyl_flash_priv.h>
 
-
 void
 gkyl_flash_app_set_fluid_vel_from_fv(gkyl_flash_app *app, struct gkyl_array *fluid_vel_in)
 {
@@ -89,5 +88,5 @@ gkyl_flash_app_get_kinetic_fluxes_to_fv(gkyl_flash_app *app, struct gkyl_array *
 void
 gkyl_flash_multib_app_get_kinetic_fluxes_to_fv(gkyl_flash_multib_app *app, int blockID, struct gkyl_array *coupling_fluxes)
 {
-  gkyl_flash_app_get_kinetic_fluxes(app->block_apps[blockID], coupling_fluxes);
+  gkyl_flash_app_get_kinetic_fluxes_to_fv(app->block_apps[blockID], coupling_fluxes);
 }
