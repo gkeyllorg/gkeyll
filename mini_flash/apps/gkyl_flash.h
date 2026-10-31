@@ -141,16 +141,6 @@ gkyl_flash_app*
 gkyl_flash_app_new(struct gkyl_flash_inp *inp);
 
 /**
- * Compute the maximum timestep for the kinetic update without actually 
- * computing the RHS of the kinetic equations.
- * 
- * @param app 
- * @return double 
- */
-double
-gkyl_flash_app_compute_dt_max(gkyl_flash_app *app);
-
-/**
  * Initialize species and field by projecting initial conditions on
  * basis functions.
  *
@@ -180,6 +170,52 @@ gkyl_flash_app_apply_ic_species(gkyl_flash_app* app, int sidx, double t0);
 */
 void 
 gkyl_flash_app_apply_ic_field(gkyl_flash_app* app, double t0);
+
+/**
+ * Store DG moments [n, T/m] on the extended kinetic configuration-space range
+ * used to initialize the distribution function as a Maxwellian. The species
+ * must have been created with init_dist_from_arrays = true.
+ *
+ * @param app App object.
+ * @param init_dist_moms DG moments [n, T/m] (copied).
+ */
+void
+gkyl_flash_app_set_init_dist_moms(gkyl_flash_app *app, const struct gkyl_array *init_dist_moms);
+
+/**
+ * Initialize the distribution function as a Maxwellian matching DG moments
+ * [n, T/m] on the extended kinetic configuration space range, then apply
+ * boundary conditions. Only needed if the moments were not given in the
+ * species input at app creation.
+ *
+ * @param app App object.
+ * @param init_dist_moms DG moments [n, T/m] (copied).
+ */
+void
+gkyl_flash_app_init_maxwellian_from_moms(gkyl_flash_app *app, const struct gkyl_array *init_dist_moms);
+
+/**
+ * Compute the maximum timestep for the kinetic update without actually 
+ * computing the RHS of the kinetic equations.
+ * 
+ * @param app 
+ * @return double 
+ */
+double
+gkyl_flash_app_compute_dt_max(gkyl_flash_app *app);
+
+/**
+ * Advance the mini-FLASH hybrid system by a single timestep with suggested
+ * interval dt. The actual dt used in the update may be smaller than the 
+ * suggested one but never larger, and is returned in the `gkyl_update_status`
+ * struct.  
+ * 
+ * @param app App object.
+ * @param dt Suggested timestep.
+ * @return struct gkyl_update_status 
+ */
+struct gkyl_update_status 
+gkyl_flash_update(gkyl_flash_app* app, double dt);
 
 /**
  * Write field and species data to file.
@@ -239,18 +275,22 @@ void
 gkyl_flash_app_cout(const gkyl_flash_app *app, FILE *fp, const char *fmt, ...);
 
 /**
- * Advance the mini-FLASH hybrid system by a single timestep with suggested
- * interval dt. The actual dt used in the update may be smaller than the 
- * suggested one but never larger, and is returned in the `gkyl_update_status`
- * struct.  
- * 
+ * Return the extended configuration space range over the fluid grid.
+ *
  * @param app App object.
- * @param dt Suggested timestep.
- * @return struct gkyl_update_status 
+ * @return Extended local fluid range.
  */
-struct gkyl_update_status 
-gkyl_flash_update(gkyl_flash_app* app, double dt);
+struct gkyl_range
+gkyl_flash_app_get_fluid_conf_ext_range(gkyl_flash_app *app);
 
+/**
+ * Return the configuration space range over the fluid grid.
+ *
+ * @param app App object.
+ * @return Local fluid range.
+ */
+struct gkyl_range
+gkyl_flash_app_get_fluid_conf_range(gkyl_flash_app *app);
 
 /**
  * Get struct containing simulations statistics.
@@ -269,47 +309,6 @@ gkyl_flash_app_stat(gkyl_flash_app *app);
  */
 void
 gkyl_flash_app_print_timings(gkyl_flash_app *app, FILE *fp);
-
-/**
- * Store DG moments [n, T/m] on the extended kinetic configuration-space range
- * used to initialize the distribution function as a Maxwellian. The species
- * must have been created with init_dist_from_arrays = true.
- *
- * @param app App object.
- * @param init_dist_moms DG moments [n, T/m] (copied).
- */
-void
-gkyl_flash_app_set_init_dist_moms(gkyl_flash_app *app, const struct gkyl_array *init_dist_moms);
-
-/**
- * Initialize the distribution function as a Maxwellian matching DG moments
- * [n, T/m] on the extended kinetic configuration-space range, then apply
- * boundary conditions. Only needed if the moments were not given in the
- * species input at app creation.
- *
- * @param app App object.
- * @param init_dist_moms DG moments [n, T/m] (copied).
- */
-void
-gkyl_flash_app_init_maxwellian_from_moms(gkyl_flash_app *app, const struct gkyl_array *init_dist_moms);
-
-/**
- * Return the extended configuration space range over the fluid grid.
- *
- * @param app App object.
- * @return Extended local fluid range.
- */
-struct gkyl_range
-gkyl_flash_app_get_fluid_conf_ext_range(gkyl_flash_app *app);
-
-/**
- * Return the configuration space range over the fluid grid.
- *
- * @param app App object.
- * @return Local fluid range.
- */
-struct gkyl_range
-gkyl_flash_app_get_fluid_conf_range(gkyl_flash_app *app);
 
 /**
  * Release memory for app and associated pointer members.

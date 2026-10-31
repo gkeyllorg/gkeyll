@@ -146,6 +146,42 @@ void
 gkyl_flash_multib_app_apply_ic(gkyl_flash_multib_app *app, double t0);
 
 /**
+ * Apply initial conditions to species sidx on all local blocks.
+ * Must be called on all ranks.
+ *
+ * @param app Multiblock app object.
+ * @param sidx Species index.
+ * @param t0 Time for initial conditions.
+ */
+void
+gkyl_flash_multib_app_apply_ic_species(gkyl_flash_multib_app *app, int sidx, double t0);
+
+/**
+ * Apply field initial conditions on all local blocks.
+ * Must be called on all ranks.
+ *
+ * @param app Multiblock app object.
+ * @param t0 Time for initial conditions.
+ */
+void
+gkyl_flash_multib_app_apply_ic_field(gkyl_flash_multib_app *app, double t0);
+
+/**
+ * Initialize the distribution functions on all local blocks as Maxwellians
+ * matching DG moments [n, T/m] on each block's extended kinetic
+ * configuration space range, then apply physical and inter-block boundary
+ * conditions. Input init_dist_moms[b] holds the moments for local block b.
+ * Only needed if the moments were not given in the species input at app creation.
+ * Must be called once on all ranks.
+ *
+ * @param app Multiblock app object.
+ * @param init_dist_moms DG moment arrays, one per local block (copied).
+ */
+void
+gkyl_flash_multib_app_init_maxwellian_from_moms(gkyl_flash_multib_app *app,
+  struct gkyl_array *init_dist_moms[]);
+
+/**
  * Apply boundary conditions to distribution function and fluid vars for each block.
  * 
  * @param app 
@@ -156,6 +192,41 @@ gkyl_flash_multib_app_apply_ic(gkyl_flash_multib_app *app, double t0);
 void
 gkyl_flash_multib_app_apply_bc(gkyl_flash_multib_app *app, double tcurr,
   struct gkyl_array *distf[], struct gkyl_array *fluid[]);
+
+/**
+ * Compute the maximum stable timestep over all blocks on all ranks.
+ *
+ * @param app
+ * @return double
+ */
+double
+gkyl_flash_multib_app_compute_dt_max(gkyl_flash_multib_app *app);
+
+/**
+ * Advance the hybrid system on every block by a single SSP-RK3 update.
+ * The actual dt may be smaller than the suggested timestep dt0 but never larger.
+ * The returned status struct contains the actual and suggested timesteps, which
+ * are the minimum over all blocks on all ranks.
+ *
+ * @param app
+ * @param dt0 Suggested timestep
+ * @return struct gkyl_update_status
+ */
+struct gkyl_update_status
+gkyl_flash_multib_app_update(gkyl_flash_multib_app *app, double dt0);
+
+/**
+ * Take a single forward Euler step of ONLY the kinetic equation on every block,
+ * using the global stable timestep (never larger than dt0). 
+ * The returned status struct contains the actual and suggested timesteps, which
+ * are the minimum over all blocks on all ranks.
+ *
+ * @param app
+ * @param dt0 Suggested timestep
+ * @return struct gkyl_update_status
+ */
+struct gkyl_update_status
+gkyl_flash_multib_app_kinetic_update(gkyl_flash_multib_app *app, double dt0);
 
 /**
  * Write out diagnostic files for each block of the multib app.
@@ -181,64 +252,23 @@ void
 gkyl_flash_multib_app_cout(const gkyl_flash_multib_app *app, FILE *fp, const char *fmt, ...);
 
 /**
- * Compute the maximum stable timestep over all blocks on all ranks.
- *
- * @param app
- * @return double
- */
-double
-gkyl_flash_multib_app_compute_dt_max(gkyl_flash_multib_app *app);
-
-/**
- * Take a single forward Euler step of ONLY the kinetic equation on every block,
- * using the global stable timestep (never larger than dt0). 
- * The returned status struct contains the actual and suggested timesteps, which
- * are the minimum over all blocks on all ranks.
- *
- * @param app
- * @param dt0 Suggested timestep
- * @return struct gkyl_update_status
- */
-struct gkyl_update_status
-gkyl_flash_multib_kinetic_app_update(gkyl_flash_multib_app *app, double dt0);
-
-/**
- * Advance the hybrid system on every block by a single SSP-RK3 update.
- * The actual dt may be smaller than the suggested timestep dt0 but never larger.
- * The returned status struct contains the actual and suggested timesteps, which
- * are the minimum over all blocks on all ranks.
- *
- * @param app
- * @param dt0 Suggested timestep
- * @return struct gkyl_update_status
- */
-struct gkyl_update_status
-gkyl_flash_multib_app_update(gkyl_flash_multib_app *app, double dt0);
-
-/**
- * Print timing statistics for multiblock app. Includes same statistics as
- * single-block apps, both the maxima and averages over all ranks.
- * 
- * @param app 
- * @param fp 
- */
-void
-gkyl_flash_multib_app_print_timings(gkyl_flash_multib_app *app, FILE *fp);
-
-/**
- * Initialize the distribution functions on all local blocks as Maxwellians
- * matching DG moments [n, T/m] on each block's extended kinetic
- * configuration-space range, then apply physical and inter-block boundary
- * conditions. Input init_dist_moms[b] holds the moments for local block b.
- * Only needed if the moments were not given in the species input at app creation.
- * Must be called once on all ranks.
+ * Number of blocks handled by this rank.
  *
  * @param app Multiblock app object.
- * @param init_dist_moms DG moment arrays, one per local block (copied).
+ * @return Number of local blocks.
  */
-void
-gkyl_flash_multib_app_init_maxwellian_from_moms(gkyl_flash_multib_app *app,
-  struct gkyl_array *init_dist_moms[]);
+int
+gkyl_flash_multib_app_num_local_blocks(const gkyl_flash_multib_app *app);
+
+/**
+ * Global block ID of local block b, for 0 <= b < number of local blocks.
+ *
+ * @param app Multiblock app object.
+ * @param b Local block index.
+ * @return Global block ID.
+ */
+int
+gkyl_flash_multib_app_local_block_id(const gkyl_flash_multib_app *app, int b);
 
 /**
  * Return the extended configuration space range over the fluid grid of
@@ -263,23 +293,25 @@ struct gkyl_range
 gkyl_flash_multib_app_get_fluid_conf_range(gkyl_flash_multib_app *app, int blockID);
 
 /**
- * Number of blocks handled by this rank.
+ * Compute simulation statistics reduced over all ranks: the maximum and
+ * average of each timing, where a rank's timings are summed over its local
+ * blocks. Must be called on all ranks.
  *
  * @param app Multiblock app object.
- * @return Number of local blocks.
+ * @return Reduced statistics.
  */
-int
-gkyl_flash_multib_app_num_local_blocks(const gkyl_flash_multib_app *app);
+struct gkyl_flash_multib_stat
+gkyl_flash_multib_app_stat(gkyl_flash_multib_app *app);
 
 /**
- * Global block ID of local block b, for 0 <= b < number of local blocks.
- *
- * @param app Multiblock app object.
- * @param b Local block index.
- * @return Global block ID.
+ * Print timing statistics for multiblock app. Includes same statistics as
+ * single-block apps, both the maxima and averages over all ranks.
+ * 
+ * @param app 
+ * @param fp 
  */
-int
-gkyl_flash_multib_app_local_block_id(const gkyl_flash_multib_app *app, int b);
+void
+gkyl_flash_multib_app_print_timings(gkyl_flash_multib_app *app, FILE *fp);
 
 /**
  * Release memory for multiblock app object.

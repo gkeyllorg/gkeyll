@@ -240,6 +240,13 @@ bc_copy(const struct gkyl_wv_eqn* eqn, double t, int nc, const double *skin,
     ghost[c] = skin[c];
 }
 
+// Percentage of num relative to den, or 0 if den is 0.
+static inline double
+ratio_to_percent(double num, double den)
+{
+  return den > 0.0 ? 100.0*num/den : 0.0;
+}
+
 /**
  * Initialize kinetic species object. 
  * 
@@ -252,17 +259,64 @@ flash_species_init(struct gkyl_flash_inp *inp,
   struct gkyl_flash_app *app, struct flash_species *spec);
 
 /**
- * Interpolate finite volume momentum density rho * u onto kinetic grid.
+ * Apply initial conditions to PKPM distribution functions.
+ * 
+ * @param app 
+ * @param t0 
+ */
+void
+flash_species_apply_ic(gkyl_flash_app *app, struct flash_species *s, double t0);
+
+/**
+ * Copy DG moments [n, T/m] on the extended kinetic configuration space range
+ * into the species. The species must have been created
+ * with init_dist_from_arrays = true.
+ *
+ * @param s Species object.
+ * @param init_dist_moms Input DG moments.
+ */
+void
+flash_species_set_init_dist_moms(struct flash_species *s, const struct gkyl_array *init_dist_moms);
+
+/**
+ * Initialize a Maxwellian distribution using the given input moment array [n, T/m]
+ * 
+ * @param app 
+ * @param s 
+ * @param init_dist_moms
+ */
+void
+flash_species_calc_distf_from_moms(gkyl_flash_app *app, struct flash_species *s, 
+  struct gkyl_array *init_dist_moms);
+
+/**
+ * Apply boundary conditions to distribution function and fluid variables.
  * 
  * @param app 
  * @param species 
- * @param fv_fluidin 
+ * @param f 
+ * @param fv_fluid 
  */
 void
-flash_species_interp_rhou_to_dg(struct gkyl_flash_app *app,
-  struct flash_species *species, const struct gkyl_array *fv_fluidin);
+flash_species_apply_bc(gkyl_flash_app *app, const struct flash_species *species, 
+  struct gkyl_array *f);
 
-// Compute pkpm moments, [rho, p_par, p_perp].
+/**
+ * Free memory allocated for species object and associated members.
+ * 
+ * @param app
+ * @param species 
+ */
+void
+flash_species_release(gkyl_flash_app *app, struct flash_species *species);
+
+/**
+ * Compute pkpm moments, [rho, p_par, p_perp].
+ * 
+ * @param app 
+ * @param species 
+ * @param fin 
+ */
 void
 flash_species_calc_pkpm_moms(gkyl_flash_app *app, struct flash_species *species,
   const struct gkyl_array *fin);
@@ -304,6 +358,30 @@ flash_species_calc_pkpm_diags(gkyl_flash_app *app, struct flash_species *species
   const struct gkyl_array *fin);
 
 /**
+ * Interpolate finite volume momentum density rho * u onto kinetic grid.
+ * 
+ * @param app 
+ * @param species 
+ * @param fv_fluidin 
+ */
+void
+flash_species_interp_rhou_to_dg(struct gkyl_flash_app *app,
+  struct flash_species *species, const struct gkyl_array *fv_fluidin);
+
+/**
+ * Evaluate PKPM pressure at cell boundaries and center for use in 
+ * computing contributions to Euler fluxes.
+ * 
+ * @param app  
+ * @param species 
+ * @param fin 
+ * @param pkpm_flux 
+ */
+void
+flash_species_calc_coupling_fluxes(struct gkyl_flash_app *app,
+  struct flash_species *species, const struct gkyl_array *fin);
+
+/**
  * Compute RHS of hybrid PKPM update, returning maximum stable timestep.
  * 
  * @param app 
@@ -337,72 +415,6 @@ flash_species_compute_dt(gkyl_flash_app *app, struct flash_species *s);
  */
 void
 flash_species_calc_L2(gkyl_flash_app *app, double tm, const struct flash_species *species);
-
-/**
- * Apply initial conditions to PKPM distribution functions.
- * 
- * @param app 
- * @param t0 
- */
-void
-flash_species_apply_ic(gkyl_flash_app *app, struct flash_species *s, double t0);
-
-/**
- * Free memory allocated for species object and associated members.
- * 
- * @param app
- * @param species 
- */
-void
-flash_species_release(gkyl_flash_app *app, struct flash_species *species);
-
-/**
- * Apply boundary conditions to distribution function and fluid variables.
- * 
- * @param app 
- * @param species 
- * @param f 
- * @param fv_fluid 
- */
-void
-flash_species_apply_bc(gkyl_flash_app *app, const struct flash_species *species, 
-  struct gkyl_array *f);
-
-/**
- * Evaluate PKPM pressure at cell boundaries and center for use in 
- * computing contributions to Euler fluxes.
- * 
- * @param app  
- * @param species 
- * @param fin 
- * @param pkpm_flux 
- */
-void
-flash_species_calc_coupling_fluxes(struct gkyl_flash_app *app,
-  struct flash_species *species, const struct gkyl_array *fin);
-
-
-/**
- * Copy DG moments [n, T/m] on the extended kinetic configuration space range
- * into the species. The species must have been created
- * with init_dist_from_arrays = true.
- *
- * @param s Species object.
- * @param init_dist_moms Input DG moments.
- */
-void
-flash_species_set_init_dist_moms(struct flash_species *s, const struct gkyl_array *init_dist_moms);
-
-/**
- * Initialize a Maxwellian distribution using the given input moment array [n, T/m]
- * 
- * @param app 
- * @param s 
- * @param init_dist_moms
- */
-void
-flash_species_calc_distf_from_moms(gkyl_flash_app *app, struct flash_species *s, 
-  struct gkyl_array *init_dist_moms);
 
 /**
  * Initialize LBO collisions object.
@@ -488,7 +500,7 @@ flash_fluid_species_apply_ic(gkyl_flash_app *app, struct flash_fluid_species *fs
 void
 flash_fluid_species_apply_bc(gkyl_flash_app *app, const struct flash_fluid_species *species, 
   struct gkyl_array *fluid);
-  
+
 /**
  * Advance fluid solution vector to next time step using wave propagation algorithm, 
  * and accumulate fluxes from kinetic closure.
@@ -526,6 +538,7 @@ flash_fluid_species_prim_vars(gkyl_flash_app *app,
  */
 void
 flash_fluid_species_release(struct flash_fluid_species *species);
+
 
 /**
  * Create a new field object for mini-FLASH app. 
@@ -566,6 +579,15 @@ flash_field_calc_bvar(gkyl_flash_app *app, struct flash_field *field, struct gky
  */
 void
 flash_field_release(struct flash_field *f);
+
+/**
+ * Project the stored moments of every species onto a Maxwellian and apply the
+ * species boundary conditions.
+ *
+ * @param app App object.
+ */
+void
+flash_app_init_maxwellian_from_stored_moms(gkyl_flash_app *app);
 
 /**
  * Take a single forward Euler timestep for the Euler-PKPM hybrid system.
@@ -614,31 +636,3 @@ flash_vlasov_forward_euler(gkyl_flash_app *app, double dt0,
  */
 struct gkyl_update_status
 gkyl_flash_update_ssp_rk3(gkyl_flash_app *app, double dt);
-
-/**
- * Advance hybrid system by a single timestep using two-stage RK method.
- * Timestep is never larger than the suggested timestep dt, but may be smaller.
- * The true dt used in the update is returned in the `gkyl_update_status` struct.
- * 
- * @param app 
- * @param dt 
- * @return struct gkyl_update_status 
- */
-struct gkyl_update_status
-gkyl_flash_update_ssp_rk2(gkyl_flash_app *app, double dt);
-
-// Percentage of num relative to den, or 0 if den is 0.
-static inline double
-ratio_to_percent(double num, double den)
-{
-  return den > 0.0 ? 100.0*num/den : 0.0;
-}
-
-/**
- * Project the stored moments of every species onto a Maxwellian and apply the
- * species boundary conditions.
- *
- * @param app App object.
- */
-void
-flash_app_init_maxwellian_from_stored_moms(gkyl_flash_app *app);
