@@ -1967,6 +1967,7 @@ gkyl_calc_metric_advance_surface(gkyl_calc_metric *up, int dir, struct gk_geomet
   enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
   enum { X_IDX, Y_IDX, Z_IDX }; // arrangement of cartesian coordinates
   // One-sided stencils are used at domain boundaries except in periodic directions.
+  // One-sided stencils are used at domain boundaries except in periodic directions.
   int cidx[3];
 
   for (int ia = gk_geom->nrange_surf[dir].lower[AL_IDX];

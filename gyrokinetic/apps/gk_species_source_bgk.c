@@ -53,6 +53,7 @@ gk_species_source_bgk_rhs_feq_enabled(
   );
   // Add to the rhs.
   gkyl_array_accumulate(rhs, 1.0, src->Jrate_df);
+  gk_species_balance_source_bgk_rhs(app, species, &species->bal, src->Jrate_df);
   // Compute integrated diagnostics if needed.
   src->update_integrated_diags_rhs_func(app, species, src, 0.0);
   // Reset Jrate_df to Jrate*feq.
@@ -115,6 +116,7 @@ gk_species_source_bgk_rhs_heating_enabled(
     src->implicit_step, src->dt_implicit, src->Jrate_df, species->cflrate
   );
   gkyl_array_accumulate(rhs, 1.0, src->Jrate_df);
+  gk_species_balance_source_bgk_rhs(app, species, &species->bal, src->Jrate_df);
 
   app->stat.species_source_bgk_tm += gkyl_time_diff_now_sec(wst);
 }
@@ -237,6 +239,7 @@ gk_species_source_bgk_rhs_external_enabled(
     src->implicit_step, src->dt_implicit, src->Jrate_df, species->cflrate
   );
   gkyl_array_accumulate(rhs, 1.0, src->Jrate_df);
+  gk_species_balance_source_bgk_rhs(app, species, &species->bal, src->Jrate_df);
 }
 
 static void

@@ -96,6 +96,7 @@ gyrokineticApp = Gyrokinetic.App.new {
   upper = { R + 0.5 * Lx, 0.5 * Ly, 0.5 * Lz },
   cells = { Nx, Ny, Nz },
   cflFrac = cfl_frac,
+  diagnostics = { balanceDiags = { G0.Balance.GKParticle } },
 
   --basis = basis_type,
   polyOrder = poly_order,
@@ -140,6 +141,7 @@ gyrokineticApp = Gyrokinetic.App.new {
 
   -- Electrons.
   elc = Gyrokinetic.Species.new {
+    balanceDiags = { G0.Balance.GKParticle },
     charge = charge_elc, mass = mass_elc,
     
     -- Velocity space grid.
@@ -316,6 +318,7 @@ gyrokineticApp = Gyrokinetic.App.new {
 
   -- Ions.
   ion = Gyrokinetic.Species.new {
+    balanceDiags = { G0.Balance.GKParticle },
     charge = charge_ion, mass = mass_ion,
     
     -- Velocity space grid.
@@ -440,6 +443,7 @@ gyrokineticApp = Gyrokinetic.App.new {
 
   -- Li1+ ions.
   Li1 = Gyrokinetic.Species.new {
+    balanceDiags = { G0.Balance.GKParticle },
     charge = charge_Li1, mass = mass_Li1,
     
     -- Velocity space grid.
@@ -586,6 +590,7 @@ gyrokineticApp = Gyrokinetic.App.new {
 
   -- Li2+ ions.
   Li2 = Gyrokinetic.Species.new {
+    balanceDiags = { G0.Balance.GKParticle },
     charge = charge_Li2, mass = mass_Li2,
     
     -- Velocity space grid.
