@@ -95,9 +95,9 @@ get_idx(int dir, double x, const struct gkyl_rect_grid *grid, const struct gkyl_
 // struct for solutions to roots
 struct RdRdZ_sol {
   int nsol;
-  double R[2], dRdZ[2];
-  double dR[2];
-  double dZ[2];
+  double R[4], dRdZ[4];
+  double dR[4];
+  double dZ[4];
 };
 
 // Compute roots R(psi,Z) and dR/dZ(psi,Z) in a p=1 DG cell
@@ -171,6 +171,8 @@ calc_RdR_p2_tensor(const double *psi, double psi0, double Z, double xc[2], doubl
                           23.2379000772445 * psi[7] * SQ(y) + 12.0 * psi[3] * y -
                           7.745966692414834 * psi[7] + 6.928203230275509 * psi[1]);
       sol.dRdZ[sidx] = -C / A * dx[0] / dx[1];
+      sol.dR[sidx] = -C * dx[0];
+      sol.dZ[sidx] = A * dx[1];
 
       sidx += 1;
     }
@@ -189,6 +191,8 @@ calc_RdR_p2_tensor(const double *psi, double psi0, double Z, double xc[2], doubl
                           23.2379000772445 * psi[7] * SQ(y) + 12.0 * psi[3] * y -
                           7.745966692414834 * psi[7] + 6.928203230275509 * psi[1]);
       sol.dRdZ[sidx] = -C / A * dx[0] / dx[1];
+      sol.dR[sidx] = -C * dx[0];
+      sol.dZ[sidx] = A * dx[1];
 
       sidx += 1;
     }
@@ -220,7 +224,7 @@ calc_RdR_p2_tensor_nrc(const double *psi, double psi0, double Z, double xc[2], d
     double r1, r2;
     double delta = sqrt(delta2);
     //// compute both roots
-    double qq = -0.5 * (bq + (bq / fabs(bq)) * delta);
+    double qq = -0.5 * (bq + copysign(delta, bq));
     r1 = qq / aq;
     r2 = cq / qq;
 
@@ -314,6 +318,8 @@ calc_RdR_p2_tensor_with_tolerance(
                           23.2379000772445 * psi[7] * SQ(y) + 12.0 * psi[3] * y -
                           7.745966692414834 * psi[7] + 6.928203230275509 * psi[1]);
       sol.dRdZ[sidx] = -C / A * dx[0] / dx[1];
+      sol.dR[sidx] = -C * dx[0];
+      sol.dZ[sidx] = A * dx[1];
 
       sidx += 1;
     }
@@ -321,7 +327,12 @@ calc_RdR_p2_tensor_with_tolerance(
   return sol;
 }
 
-// Compute roots R(psi,Z) and dR/dZ(psi,Z) in a p=2 DG cell with tensor basis if delta2 is negative but very small
+// Cubic root solver with a quadratic limit, shared by both cubic algorithms.
+static inline struct RdRdZ_sol calc_RdR_p3_hyperbolic(
+  const double *psi, double psi0, double Z, double xc[2], double dx[2]
+);
+
+// Compute contour roots and tangents in a cubic tensor cell.
 static inline struct RdRdZ_sol
 calc_RdR_p3(const double *psi, double psi0, double Z, double xc[2], double dx[2])
 {
@@ -351,6 +362,10 @@ calc_RdR_p3(const double *psi, double psi0, double Z, double xc[2], double dx[2]
                y -
              4.47213595499958 * psi[5] - 4.47213595499958 * psi[4] + 5.0 * psi[10] + 4.0 * psi[0]) -
     psi0;
+
+  if (fabs(coeffs[3]) < 1e-10) {
+    return calc_RdR_p3_hyperbolic(psi, psi0, Z, xc, dx);
+  }
 
   coeffs[0] = coeffs[0] / coeffs[3];
   coeffs[1] = coeffs[1] / coeffs[3];
@@ -441,7 +456,7 @@ calc_RdR_p3_hyperbolic(const double *psi, double psi0, double Z, double xc[2], d
   double B = coeffs[2] / 3.0;
   double C = coeffs[1];
   double D = coeffs[0];
-  if (A < 1e-10) { // We have a quadratic, use quadratic solve
+  if (fabs(A) < 1e-10) { // We have a quadratic, use quadratic solve
     double aq = coeffs[2];
     double bq = coeffs[1];
     double cq = coeffs[0];
@@ -450,7 +465,7 @@ calc_RdR_p3_hyperbolic(const double *psi, double psi0, double Z, double xc[2], d
       double r1, r2;
       double delta = sqrt(delta2);
       //// compute both roots
-      double qq = -0.5 * (bq + (bq / fabs(bq)) * delta);
+      double qq = -0.5 * (bq + copysign(delta, bq));
       r1 = qq / aq;
       r2 = cq / qq;
       int sidx = 0;
@@ -492,6 +507,8 @@ calc_RdR_p3_hyperbolic(const double *psi, double psi0, double Z, double xc[2], d
           3.3541019662496847e+00 * psi[5] * y + 1.1250000000000000e+01 * (x * x) * y * psi[10] +
           1.7184658856084400e+01 * x * (y * y) * psi[12] + 8.6602540378443860e-01 * psi[2];
         sol.dRdZ[sidx] = -dpsidy / dpsidx * dx[0] / dx[1];
+        sol.dR[sidx] = -dpsidy * dx[0];
+        sol.dZ[sidx] = dpsidx * dx[1];
         sidx += 1;
       }
       if ((-1 <= r2) && (r2 < 1)) {
@@ -532,6 +549,8 @@ calc_RdR_p3_hyperbolic(const double *psi, double psi0, double Z, double xc[2], d
           3.3541019662496847e+00 * psi[5] * y + 1.1250000000000000e+01 * (x * x) * y * psi[10] +
           1.7184658856084400e+01 * x * (y * y) * psi[12] + 8.6602540378443860e-01 * psi[2];
         sol.dRdZ[sidx] = -dpsidy / dpsidx * dx[0] / dx[1];
+        sol.dR[sidx] = -dpsidy * dx[0];
+        sol.dZ[sidx] = dpsidx * dx[1];
         sidx += 1;
       }
     }
@@ -627,7 +646,7 @@ R_psiZ(
   gkyl_range_iter_init(&riter, &rangeR);
 
   // loop over all R cells to find psi crossing
-  while (gkyl_range_iter_next(&riter) && sidx <= nmaxroots) {
+  while (gkyl_range_iter_next(&riter) && sidx < nmaxroots) {
     long loc = gkyl_range_idx(&rangeR, riter.idx);
     const double *psih = gkyl_array_cfetch(geo->psiRZ, loc);
 
@@ -638,7 +657,7 @@ R_psiZ(
     struct RdRdZ_sol sol = geo->calc_roots(psih, psi, Z, xc, dx);
 
     if (sol.nsol > 0) {
-      for (int s = 0; s < sol.nsol; ++s) {
+      for (int s = 0; s < sol.nsol && sidx < nmaxroots; ++s) {
         if ((sol.R[s] > geo->rmin) && (sol.R[s] < geo->rmax)) {
           R[sidx] = sol.R[s];
           dRdZ[sidx] = sol.dRdZ[s];
@@ -653,7 +672,7 @@ R_psiZ(
   // Try again if we didn't find any
   if (sidx == 0 && geo->inexact_roots) {
     gkyl_range_iter_init(&riter, &rangeR);
-    while (gkyl_range_iter_next(&riter) && sidx <= nmaxroots) {
+    while (gkyl_range_iter_next(&riter) && sidx < nmaxroots) {
       long loc = gkyl_range_idx(&rangeR, riter.idx);
       const double *psih = gkyl_array_cfetch(geo->psiRZ, loc);
 
@@ -664,7 +683,7 @@ R_psiZ(
       struct RdRdZ_sol sol = calc_RdR_p2_tensor_with_tolerance(psih, psi, Z, xc, dx);
 
       if (sol.nsol > 0) {
-        for (int s = 0; s < sol.nsol; ++s) {
+        for (int s = 0; s < sol.nsol && sidx < nmaxroots; ++s) {
           if ((sol.R[s] > geo->rmin) && (sol.R[s] < geo->rmax)) {
             R[sidx] = sol.R[s];
             dRdZ[sidx] = sol.dRdZ[s];
@@ -703,7 +722,7 @@ R_psiZ_cubic(
   gkyl_range_iter_init(&riter, &rangeR);
 
   // loop over all R cells to find psi crossing
-  while (gkyl_range_iter_next(&riter) && sidx <= nmaxroots) {
+  while (gkyl_range_iter_next(&riter) && sidx < nmaxroots) {
     long loc = gkyl_range_idx(&rangeR, riter.idx);
     const double *psih = gkyl_array_cfetch(geo->psiRZ_cubic, loc);
 
@@ -714,8 +733,9 @@ R_psiZ_cubic(
     struct RdRdZ_sol sol = geo->calc_roots(psih, psi, Z, xc, dx);
 
     if (sol.nsol > 0) {
-      for (int s = 0; s < sol.nsol; ++s) {
+      for (int s = 0; s < sol.nsol && sidx < nmaxroots; ++s) {
         if ((sol.R[s] > geo->rmin) && (sol.R[s] < geo->rmax)) {
+          R[sidx] = sol.R[s];
           dRdZ[sidx] = sol.dRdZ[s];
           dR[sidx] = sol.dR[s];
           dZ[sidx] = sol.dZ[s];

@@ -120,7 +120,8 @@ struct gk_geom_int {
   struct gkyl_array *B3overB; // 1 component. Signed b^3 = B^3/|B|; +1/sqrt(g_33) if B is along e_3.
   struct gkyl_array *bioverJB; // 3 components b_i/J/|B|.
   struct gkyl_array *B3; // 1 component. Signed e^3 \dot \vec{B}.
-  struct gkyl_array *qprofile; // 1 component. Flux surface averaged q profle q(psi).
+  struct gkyl_array
+    *qprofile; // Signed COCOS safety factor on closed surfaces; NaN on open lines. Diagnostic only.
 
   // Arrays below are just for computation of arrays above
   struct gkyl_array *bmag_nodal;
@@ -194,7 +195,7 @@ struct gk_geometry {
   struct gk_geom_int geo_int; // Volume geometry from interior nodes.
   struct gk_geom_surf geo_surf[3]; // Surface geometry.
 
-  int geqdsk_sign_convention; // 0 if psi increases away from magnetic axis.
+  int geqdsk_sign_convention; // Radial flux direction only, not COCOS: 0 if psi increases away from the axis.
   // 1 if psi increases toward magnetic axis.
 
   int half_domain; // For double null geometry. 0 for full domain 1 for lower half domain.

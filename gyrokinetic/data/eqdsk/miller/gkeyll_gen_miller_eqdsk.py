@@ -393,7 +393,7 @@ def write_eqdsk(filename, equilibrium, sampled):
 
   def write(stream):
     """Serialize the GEQDSK header, profiles, flux mesh, and LCFS into the stream."""
-    stream.write(f"{'GKEYLL SYNTHETIC MILLER':48s}{0:4d}{nr:4d}{nz:4d}\n")
+    stream.write(f"{'GKEYLL SYNTHETIC MILLER COCOS 3':48s}{0:4d}{nr:4d}{nz:4d}\n")
     _write_values(stream, [R[-1]-R[0], Z[-1]-Z[0], g.Rmajor_axis, R[0], (Z[0]+Z[-1])/2])
     _write_values(stream, [g.Rmajor_axis, g.Zvert_axis, 0, eq.psi_boundary, g.bmag_axis])
     _write_values(stream, [0, 0, 0, g.Rmajor_axis, 0])
@@ -424,7 +424,7 @@ def summary(equilibrium, sampled, source=None):
                        "clearance_cells": sampled["clearance_cells"]},
           "RmajorZvert_bounds": [float(sampled[k][i]) for k, i in (("R", 0), ("R", -1), ("Z", 0), ("Z", -1))],
           "exterior_nodes": int(np.count_nonzero(sampled["exterior"])),
-          "conventions": {"psi": "poloidal flux / (2*pi), increasing outwards; axis=0",
+          "conventions": {"equilibrium_cocos": 3, "psi": "poloidal flux / (2*pi), increasing outwards; axis=0",
                           "q_argument": "outboard midplane major radius [m]",
                           "q": "positive input magnitude; signed GEQDSK q follows bmag_axis",
                           "bmag_axis": "signed toroidal field at the magnetic axis [T]",

@@ -82,6 +82,8 @@ struct gkyl_tok_geo {
   const struct gkyl_array *fpolprimedg; // fpol'(psi) dg rep
   const struct gkyl_array *qdg; // q(psi) dg rep
 
+  double cocos_psi_factor; // sigma_RphiZ*sigma_Bp/(2*pi)^eBp.
+  int theta_orientation; // Reference contour traversal relative to B_p (+1 or -1).
   double sibry; // psi of separatrix as given by EFIT
   double psisep; // psi of separatrix as calculated from the DG psi(R,Z)
   double zmaxis; // z of magnetic axis

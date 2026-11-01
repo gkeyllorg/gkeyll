@@ -4217,6 +4217,35 @@ gkyl_gyrokinetic_app_read_geometry(
         gkyl_msgpack_map_elem_get_uint(elem_list_numeq_len, elem_list_numeq, "half_domain");
     }
 
+    if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK) {
+      struct gkyl_msgpack_map_elem convention[] = {
+        {.key = "equilibrium_cocos", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0},
+        {.key = "parallel_coordinate", .elem_type = GKYL_MP_STRING, .cval = NULL}
+      };
+      gkyl_msgpack_to_map_elem_list(
+        &(struct gkyl_msgpack_data){.meta = hdr.meta, .meta_sz = hdr.meta_size}, 2, convention
+      );
+      if (convention[0].uval != 0) {
+        struct gkyl_msgpack_map_elem theta_meta[] = {
+          {
+            .key = "equilibrium_cocos",
+            .elem_type = GKYL_MP_UNSIGNED_INT,
+            .uval = convention[0].uval,
+          },
+          {.key = "parallel_coordinate", .elem_type = GKYL_MP_STRING, .cval = convention[1].cval}
+        };
+        int lengths[] = {app->gk_geom->io_meta_basic_len, convention[1].cval ? 2 : 1};
+        const struct gkyl_msgpack_map_elem *lists[] = {app->gk_geom->io_meta_basic, theta_meta};
+        int new_len;
+        struct gkyl_msgpack_map_elem *metadata =
+          gkyl_msgpack_map_elem_union(2, lengths, lists, &new_len);
+        gkyl_msgpack_map_elem_release(app->gk_geom->io_meta_basic_len, app->gk_geom->io_meta_basic);
+        app->gk_geom->io_meta_basic = metadata;
+        app->gk_geom->io_meta_basic_len = new_len;
+      }
+      gkyl_free((void *)convention[1].cval);
+    }
+
     gkyl_grid_sub_array_header_release(&hdr);
   }
   cstr_drop(&fileNm);

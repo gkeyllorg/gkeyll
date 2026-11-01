@@ -1,3 +1,4 @@
+#include <gkyl_cocos.h>
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
 #include <gkyl_array.h>
@@ -123,6 +124,12 @@ gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
   char geqdsk_file_name[128];
   get_filename_from_path(geo->efit->filepath, geqdsk_file_name, sizeof(geqdsk_file_name));
   struct gkyl_msgpack_map_elem io_meta_basic[] = {
+    {
+      .key = "equilibrium_cocos",
+      .elem_type = GKYL_MP_UNSIGNED_INT,
+      .uval = gkyl_cocos_tokamak.index,
+    },
+    {.key = "parallel_coordinate", .elem_type = GKYL_MP_STRING, .cval = "field_aligned_theta"},
     {.key = "geometry_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geometry_id},
     {
       .key = "geqdsk_sign_convention",

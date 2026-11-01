@@ -725,6 +725,37 @@ test_tok_3x_p1_straight_cylinder_ho()
   gkyl_gk_geometry_release(gk_geom);
 }
 
+// Compare signed closed-surface q against the unwrapped toroidal advance of the map.
+static void
+tok_check_q_phase(const struct gk_geometry *geo)
+{
+  const struct gkyl_range *faces = &geo->nrange_surf[2];
+  int spsi = geo->geqdsk_sign_convention ? -1 : 1;
+  double max_error = 0;
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &geo->local);
+  while (gkyl_range_iter_next(&iter)) {
+    const double *coeff =
+      gkyl_array_cfetch(geo->geo_int.qprofile, gkyl_range_idx(&geo->local, iter.idx));
+    for (int node = 0; node < 2; ++node) {
+      int idx[] = {
+        faces->lower[0] + 2 * (iter.idx[0] - geo->local.lower[0]) + node, faces->lower[1],
+        faces->lower[2]
+      };
+      const double *lower =
+        gkyl_array_cfetch(geo->geo_surf[2].mc2p_nodal_fd, gkyl_range_idx(faces, idx));
+      idx[2] = faces->upper[2];
+      const double *upper =
+        gkyl_array_cfetch(geo->geo_surf[2].mc2p_nodal_fd, gkyl_range_idx(faces, idx));
+      double eta[] = {(2 * node - 1) / sqrt(3.0), 0, 0};
+      double q = geo->basis.eval_expand(eta, coeff);
+      max_error = fmax(max_error, fabs(q - spsi * (upper[2] - lower[2]) / (2 * M_PI)));
+    }
+  }
+  TEST_CHECK(max_error < 2e-4);
+  TEST_MSG("q versus full circuit error=%.9g", max_error);
+}
+
 void
 test_tok_asdex_qprofile_core_ho()
 {
@@ -782,7 +813,7 @@ test_tok_asdex_qprofile_core_ho()
   };
 
   struct gk_geometry *gk_geom = gkyl_gk_geometry_tok_new(&geometry_input);
-  // write_geometry(gk_geom, cgrid, clocal, "asdex_core");
+  tok_check_q_phase(gk_geom);
 
   //  // Create Nodal Range and Grid and Write Nodal Coordinates
   //  struct gkyl_range nrange;
@@ -860,6 +891,17 @@ test_tok_asdex_qprofile_sol_ho()
 
   struct gk_geometry *gk_geom = gkyl_gk_geometry_tok_new(&geometry_inp);
   write_geometry(gk_geom, cgrid, clocal, "asdex_sol");
+  struct gkyl_range_iter cells;
+  gkyl_range_iter_init(&cells, &gk_geom->local);
+  while (gkyl_range_iter_next(&cells)) {
+    const double *q =
+      gkyl_array_cfetch(gk_geom->geo_int.qprofile, gkyl_range_idx(&gk_geom->local, cells.idx));
+    uint64_t bits;
+    memcpy(&bits, q, sizeof bits);
+    // Bit classification is needed with the repository's fast-math build.
+    TEST_CHECK((bits & UINT64_C(0x7ff0000000000000)) == UINT64_C(0x7ff0000000000000));
+    TEST_CHECK((bits & UINT64_C(0x000fffffffffffff)) != 0);
+  }
   gkyl_gk_geometry_release(gk_geom);
   gkyl_position_map_release(pmap);
 }

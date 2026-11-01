@@ -41,6 +41,8 @@ The output includes `<output>.json`, with parameters, input provenance, flux
 values, physical coverage, a conversion table, and numerical residuals. The
 GEQDSK has constant `F=Rmajor_axis*bmag_axis` and zero pressure/current placeholders. It is
 a synthetic magnetic geometry, not a Grad-Shafranov solution or a wall model.
+The equilibrium follows COCOS 3: `B_R=-psi_Z/R`, `B_Z=psi_R/R`, and `B_phi=F/R`;
+psi is poloidal flux divided by `2*pi`. The header and JSON summary identify this convention.
 No limiter is written.
 
 Examples [miller_inp_d3d.py](miller_inp_d3d.py) and [miller_inp_tcv.py](miller_inp_tcv.py) provide

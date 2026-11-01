@@ -515,6 +515,13 @@ gkyl_calc_metric_advance_rz_interior(gkyl_calc_metric *up, struct gk_geometry *g
           gk_geom->geo_int.jacobgeo_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx)
         );
         double R = mc2p_n[R_IDX];
+        // Field-aligned theta and increasing computational psi give a positive
+        // signed determinant. An absolute value must not hide a reversed map.
+        double signed_jacobian = R * (dxdz[0][0] * dxdz[1][2] - dxdz[0][2] * dxdz[1][0]);
+        if (!(signed_jacobian > 0)) {
+          fprintf(stderr, "TOKAMAK: nonpositive coordinate Jacobian.\n");
+          abort();
+        }
         jFld_n[0] = sqrt(
           R * R *
           (dxdz[0][0] * dxdz[0][0] * dxdz[1][2] * dxdz[1][2] +
@@ -796,6 +803,13 @@ gkyl_calc_metric_advance_rz_surface(gkyl_calc_metric *up, int dir, struct gk_geo
           gk_geom->geo_surf[dir].jacobgeo_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx)
         );
         double R = mc2p_n[R_IDX];
+        // Field-aligned theta and increasing computational psi give a positive
+        // signed determinant. An absolute value must not hide a reversed map.
+        double signed_jacobian = R * (dxdz[0][0] * dxdz[1][2] - dxdz[0][2] * dxdz[1][0]);
+        if (!(signed_jacobian > 0)) {
+          fprintf(stderr, "TOKAMAK: nonpositive coordinate Jacobian.\n");
+          abort();
+        }
         jFld_n[0] = sqrt(
           R * R *
           (dxdz[0][0] * dxdz[0][0] * dxdz[1][2] * dxdz[1][2] +

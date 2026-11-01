@@ -1,3 +1,4 @@
+#include <gkyl_cocos.h>
 #include <gkyl_gen_miller_eqdsk_priv.h>
 #include <gkyl_alloc.h>
 #include <gkyl_math.h>
@@ -992,7 +993,9 @@ gkyl_gen_miller_eqdsk_advance(gkyl_gen_miller_eqdsk *up)
     if (!gen_miller_finite(up->qpsi[j]) || up->qpsi[j] <= 0) {
       return gen_miller_error("Invalid q at a GEQDSK flux node");
     }
-    up->qpsi[j] = copysign(up->qpsi[j], up->fpol);
+    // Positive outward flux and positive input |q|; COCOS reference theta is CCW.
+    up->qpsi[j] *= gkyl_cocos_tokamak.sigma_Bp_cocos *
+                   gkyl_cocos_tokamak.sigma_rhothetavarphi_cocos * copysign(1.0, up->fpol);
   }
 
   up->sampled = true;
@@ -1070,8 +1073,8 @@ gkyl_gen_miller_eqdsk_write(const gkyl_gen_miller_eqdsk *up, const char *filenam
   };
 
   bool ok = fprintf(
-              stream, "%-48s%4d%4d%4d\n", "GKEYLL SYNTHETIC MILLER", 0, up->info.num_nodes_Rmajor,
-              up->info.num_nodes_Zvert
+              stream, "%-48s%4d%4d%4d\n", "GKEYLL SYNTHETIC MILLER COCOS 3", 0,
+              up->info.num_nodes_Rmajor, up->info.num_nodes_Zvert
             ) > 0;
   ok = ok && gen_miller_write_values(stream, 20, header);
 
