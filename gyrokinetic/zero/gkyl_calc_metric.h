@@ -74,7 +74,7 @@ void gkyl_calc_metric_advance_interior(gkyl_calc_metric *up, struct gk_geometry 
  * @param up calc_metric updater object.
  * @param dir direction of surface
  * @param nrange nodal range.
- * @param mc2p_nodal_fd nodal array containing cylindrical coordinates at nodes and nearby nodes used for FD
+ * @param mc2p_nodal_fd nodal array containing cartesian coordinates at nodes and nearby nodes used for FD
  * @param bmag_nodal input nodal array containing B at nodes
  * @param dzc epsilons used for FD
  * @param jFld_nodal output field where jacobian nodal valued will be placed
