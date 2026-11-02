@@ -58,12 +58,6 @@ gkyl_gk_geometry_new(
     }
   }
 
-  // Function pointers to twistshift function.
-  up->lower_shift_func = geometry_inp->lower_shift_func;
-  up->upper_shift_func = geometry_inp->upper_shift_func;
-  up->lower_shift_ctx = geometry_inp->lower_shift_ctx;
-  up->upper_shift_ctx = geometry_inp->upper_shift_ctx;
-
   if (up->grid.ndim > 1) {
     gkyl_cart_modal_serendip(&up->surf_basis, up->grid.ndim - 1, up->basis.poly_order);
   } else {

@@ -19,6 +19,16 @@
 # Example:
 # gyrokinetic/rt_gk_ion_sound_1x2v_p1   # updated collision-operator normalization
 
-pkpm/creg/rt_pkpm_alf_wave_p1   # Change num_frames
-pkpm/creg/rt_pkpm_neut_sodshock_p1   # Change num_frames
-pkpm/creg/rt_pkpm_ot_p1   # Change num_frames
+gyrokinetic/creg/rt_gk_cbc_3x2v_p1   # Twist-shift shift computed from mapc2p, opposite sign to the removed input shift functions (sign fix); x-y FEM projection of phi in the field twist-shift ghost; more accurate dPsidr/alpha integrals.
+gyrokinetic/creg/rt_gk_cbc_adiabatic_3x2v_p1   # Test rewritten and simplified; twist-shift shift computed from mapc2p (sign fix); x-y FEM projection of phi in the field twist-shift ghost.
+gyrokinetic/creg/rt_gk_cbc_passive_3x2v_p1   # Twist-shift shift computed from mapc2p, opposite sign to the removed input shift functions (sign fix); more accurate dPsidr/alpha integrals.
+gyrokinetic/creg/rt_gk_d3d_iwl_3x2v_p1   # Twist-shift shift computed from mapc2p, opposite sign to the removed input shift functions (sign fix); x-y FEM projection of phi in the field twist-shift ghost.
+gyrokinetic/creg/rt_gk_tcv_core_3x2v_p1   # Twist-shift shift computed from mapc2p, opposite sign to the removed input shift functions (sign fix); x-y FEM projection of phi in the field twist-shift ghost.
+gyrokinetic/creg/rt_gk_tcv_iwl_adapt_source_3x2v_p1   # Twist-shift shift computed from mapc2p, opposite sign to the removed input shift functions (sign fix); x-y FEM projection of phi in the field twist-shift ghost.
+gyrokinetic/creg/rt_gk_solovev_out_3x2v_p1   # Only the twist-shift shift (sign fix) and deltats (now written before the twist-shift processing) diagnostics change.
+gyrokinetic/creg/rt_gk_asdex_solonly_3x2v_p1   # Only the twist-shift shift (sign fix) and deltats (now written before the twist-shift processing) diagnostics change.
+# The tests below are in the c_test_manifest ignore list, so CI does not run them.
+gyrokinetic/creg/rt_gk_ltx_iwl_num_miller_3x2v_p1   # Sign of the tokamak twist-shift shift fixed; x-y FEM projection of phi in the field twist-shift ghost.
+gyrokinetic/creg/rt_gk_multib_tcv_x21_3x2v_p1   # Sign of the tokamak twist-shift shift fixed (deltats subtraction).
+gyrokinetic/creg/rt_gk_multib_asdex_solonly_3x2v_p1   # Only the written twist-shift shift diagnostic changes (sign fix of the deltats subtraction).
+gyrokinetic/creg/rt_gk_multib_nstx_solonly_3x2v_p1   # Only the written twist-shift shift diagnostic changes (sign fix of the deltats subtraction).
