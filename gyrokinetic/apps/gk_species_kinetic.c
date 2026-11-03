@@ -5,35 +5,18 @@ gk_species_kinetic_omegaH_dt(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, const struct gkyl_array *fin
 )
 {
-  // Compute the time step under which the omega_H mode is stable, dt_omegaH =
-  // omegaH_CFL/omega_H.
-  // Each species computes its own omega_H as:
-  //   omega_H = q_e*sqrt(jacobgeo*n_{s0}/m_s) * omegaH_gf
-  // where
-  //   - n_{s0} is either a reference, average or max density.
-  //   - omegaH_gf = (cmag/(jacobgeo*B^_\parallel))*kpar_max /
-  //                 min(sqrt(k_x^2*eps_xx+k_x*k_y*eps_xy+k_y^2*eps_yy+)).
-  // and k_x,k_y,k_par are wavenumbers in computational space, and eps_ij is
-  // the polarization weight in our field equation.
-
+  // Evaluate Jn_s and the cached geometry factor G at the same quadrature
+  // points and cell centers before reducing: omega_Hs^2 = q_s^2/m_s max(Jn_s G^2).
+  // The final timestep reduction across species, ranks and blocks remains in the app.
   if (!(app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN || app->field->has_adiabatic_species)) {
-    // Obtain the maximum density (using cell centers).
     gk_species_moment_calc(app, &gks->m0, gks->local, app->local, fin);
-    gkyl_array_reduce_range(gks->m0_max, gks->m0.marr, GKYL_MAX, &app->local);
-
-    double m0_max[1];
-    if (app->use_gpu) {
-      gkyl_cu_memcpy(m0_max, gks->m0_max, sizeof(double), GKYL_CU_MEMCPY_D2H);
-    } else {
-      m0_max[0] = gks->m0_max[0];
-    }
-    m0_max[0] *= 1.0 / pow(sqrt(2.0), app->cdim);
+    double omegaH_max = gkyl_gyrokinetic_omega_h_advance(app->omegaH, gks->m0.marr);
 
     double time_dilation_scale_const =
       gk_fdot_multiplier_get_time_dilation_scale_const(app, &gks->fdot_mult);
 
-    double omegaH = fabs(gks->info.charge) * sqrt(GKYL_MAX2(0.0, m0_max[0]) / gks->info.mass) *
-                    app->omegaH_gf * time_dilation_scale_const * gks->collisionless.scale_fac;
+    double omegaH = fabs(gks->info.charge) * sqrt(omegaH_max / gks->info.mass) *
+                    time_dilation_scale_const * gks->collisionless.scale_fac;
 
     return omegaH > 1e-20 ? app->cfl_omegaH / omegaH : DBL_MAX;
   } else {
@@ -329,10 +312,8 @@ gk_species_kinetic_release_dynamic(const gkyl_gyrokinetic_app *app, const struct
 
   if (app->use_gpu) {
     gkyl_cu_free(gks->omega_cfl);
-    gkyl_cu_free(gks->m0_max);
   } else {
     gkyl_free(gks->omega_cfl);
-    gkyl_free(gks->m0_max);
   }
 
   gk_species_release_integrated_mom(app, gks);
@@ -372,10 +353,8 @@ gk_species_kinetic_init_dynamic(
 
   if (app->use_gpu) {
     gks->omega_cfl = gkyl_cu_malloc(sizeof(double));
-    gks->m0_max = gkyl_cu_malloc(app->basis.num_basis * sizeof(double));
   } else {
     gks->omega_cfl = gkyl_malloc(sizeof(double));
-    gks->m0_max = gkyl_malloc(app->basis.num_basis * sizeof(double));
   }
 
   gk_species_init_integrated_mom(app, gks);

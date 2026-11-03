@@ -870,17 +870,12 @@ gyrokinetic_calc_field_disabled(
 static void
 gkyl_gyrokinetic_app_omegaH_init(gkyl_gyrokinetic_app *app)
 {
-  // Compute the geometric and field-model dependent part of omega_H.
-  // Each species computes its own omega_H as:
-  //   omega_H = q_e*sqrt(n_{s0}/m_s) * omegaH_gf
-  // where
-  //   - n_{s0} is either a reference, average or max density.
-  //   - omegaH_gf = (cmag/(jacobgeo*B^_\parallel))*kpar_max /
-  //                 min(sqrt(k_x^2*eps_xx+k_x*k_y*eps_xy+k_y^2*eps_yy+)).
-  // and k_x,k_y,k_par are wavenumbers in computational space, and eps_ij is
-  // the polarization weight in our field equation.
-
-  app->omegaH_gf = 1.0 / DBL_MAX;
+  // Construct the modal geometry/polarization factor
+  // G = (cmag/(J B_parallel^*)) k_theta / sqrt(k_x^2 eps_xx + k_x k_y eps_xy + k_y^2 eps_yy).
+  // Cache G^2 at quadrature points and cell centers. At each RHS evaluation,
+  // combine it with Jn_s at those same locations before taking the maximum.
+  // The wavenumber prescription and polarization model are unchanged.
+  app->omegaH = NULL;
 
   if (!(app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN || app->field->has_adiabatic_species)) {
     // Compute parfac = (cmag/(jacobgeo*B^_\parallel))*kpar_max.
@@ -916,34 +911,13 @@ gkyl_gyrokinetic_app_omegaH_init(gkyl_gyrokinetic_app *app)
     gkyl_proj_powsqrt_on_basis_advance(proj_sqrt, &app->local, -1.0, perpfac, perpfac_inv);
     gkyl_proj_powsqrt_on_basis_release(proj_sqrt);
 
-    // Compute max(parfac*perpfac_inv) (using cell centers).
+    // Keep the spatial dependence until it can be combined with the evolving density.
     struct gkyl_array *omegaH_gf_grid =
       mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     gkyl_dg_mul_op_range(&app->basis, 0, omegaH_gf_grid, 0, parfac, 0, perpfac_inv, &app->local);
-    double *omegaH_gf_red;
-    if (app->use_gpu) {
-      omegaH_gf_red = gkyl_cu_malloc(app->basis.num_basis * sizeof(double));
-    } else {
-      omegaH_gf_red = gkyl_malloc(app->basis.num_basis * sizeof(double));
-    }
+    app->omegaH =
+      gkyl_gyrokinetic_omega_h_new(&app->basis, &app->local, omegaH_gf_grid, app->use_gpu);
 
-    gkyl_array_reduce_range(omegaH_gf_red, omegaH_gf_grid, GKYL_MAX, &app->local);
-
-    if (app->use_gpu) {
-      gkyl_cu_memcpy(&app->omegaH_gf, omegaH_gf_red, sizeof(double), GKYL_CU_MEMCPY_D2H);
-    } else {
-      app->omegaH_gf = omegaH_gf_red[0];
-    }
-    app->omegaH_gf *= 1.0 / pow(sqrt(2.0), app->cdim);
-
-    double omegaH_gf_local = app->omegaH_gf;
-    gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &omegaH_gf_local, &app->omegaH_gf);
-
-    if (app->use_gpu) {
-      gkyl_cu_free(omegaH_gf_red);
-    } else {
-      gkyl_free(omegaH_gf_red);
-    }
     gkyl_array_release(omegaH_gf_grid);
     gkyl_array_release(perpfac_inv);
     gkyl_array_release(perpfac);
@@ -4523,6 +4497,7 @@ void
 gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app *app)
 {
   gyrokinetic_post_positivity_quasineut_release(app);
+  gkyl_gyrokinetic_omega_h_release(app->omegaH);
 
   gkyl_array_release(app->jacobtot_inv_weak);
   gkyl_array_release(app->delta_ts_x_lo);
