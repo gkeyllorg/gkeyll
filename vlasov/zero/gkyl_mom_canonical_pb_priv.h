@@ -474,20 +474,6 @@ kernel_canonical_pb_MEnergy_2x3v_tensor_p1(
 }
 
 GKYL_CU_DH static void
-kernel_canonical_pb_MEnergy_3x3v_tensor_p1(
-  const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
-)
-{
-  struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
-  long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
-
-  return canonical_pb_MEnergy_3x3v_tensor_p1(
-    dx, (const double *)gkyl_array_cfetch(mom_can_pb->auxfields.hamil, pidx), f, out
-  );
-}
-
-GKYL_CU_DH static void
 kernel_canonical_pb_int_five_moments_1x1v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, void *param
@@ -613,20 +599,6 @@ kernel_canonical_pb_int_five_moments_2x3v_tensor_p1(
   );
 }
 
-GKYL_CU_DH static void
-kernel_canonical_pb_int_five_moments_3x3v_tensor_p1(
-  const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
-)
-{
-  struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
-  long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
-
-  return canonical_pb_int_five_moments_3x3v_tensor_p1(
-    dx, (const double *)gkyl_array_cfetch(mom_can_pb->auxfields.hamil, pidx), f, out
-  );
-}
-
 //
 // Tensor basis kernels
 //
@@ -645,7 +617,7 @@ GKYL_CU_D static const gkyl_canonical_pb_mom_kern_list tensor_menergy_kernels[] 
   }, // 3
   {NULL, kernel_canonical_pb_MEnergy_2x3v_tensor_p1, NULL}, // 4
   // 3x kernels
-  {NULL, kernel_canonical_pb_MEnergy_3x3v_tensor_p1, NULL} // 5
+  {NULL, NULL, NULL} // 5
 };
 
 // Integrated moment kernel list
@@ -662,7 +634,7 @@ GKYL_CU_D static const gkyl_canonical_pb_mom_kern_list tensor_int_five_moments_k
    kernel_canonical_pb_int_five_moments_2x2v_tensor_p2}, // 3
   {NULL, kernel_canonical_pb_int_five_moments_2x3v_tensor_p1, NULL}, // 4
   // 3x kernels
-  {NULL, kernel_canonical_pb_int_five_moments_3x3v_tensor_p1, NULL} // 5
+  {NULL, NULL, NULL} // 5
 };
 
 GKYL_CU_DH static void
@@ -953,20 +925,6 @@ kernel_canonical_pb_M1i_from_H_2x3v_tensor_p1(
   );
 }
 
-GKYL_CU_DH static void
-kernel_canonical_pb_M1i_from_H_3x3v_tensor_p1(
-  const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
-)
-{
-  struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
-  long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
-
-  return canonical_pb_M1i_from_H_3x3v_tensor_p1(
-    dx, (const double *)gkyl_array_cfetch(mom_can_pb->auxfields.hamil, pidx), f, out
-  );
-}
-
 //
 // Tensor basis kernels
 //
@@ -985,7 +943,7 @@ GKYL_CU_D static const gkyl_canonical_pb_mom_kern_list tensor_m1i_from_h_kernels
    kernel_canonical_pb_M1i_from_H_2x2v_tensor_p2}, // 3
   {NULL, kernel_canonical_pb_M1i_from_H_2x3v_tensor_p1, NULL}, // 4
   // 3x kernels
-  {NULL, kernel_canonical_pb_M1i_from_H_3x3v_tensor_p1, NULL} // 5
+  {NULL, NULL, NULL} // 5
 };
 
 /**

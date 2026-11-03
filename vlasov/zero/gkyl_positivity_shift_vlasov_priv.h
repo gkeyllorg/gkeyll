@@ -46,7 +46,7 @@ GKYL_CU_D static const pos_shift_vlasov_kern_list_shift pos_shift_vlasov_kern_li
    {positivity_shift_vlasov_shift_only_1x3v_tensor_p1, NULL, NULL},
    {positivity_shift_vlasov_shift_only_2x2v_tensor_p1, NULL, NULL},
    {positivity_shift_vlasov_shift_only_2x3v_tensor_p1, NULL, NULL},
-   {positivity_shift_vlasov_shift_only_3x3v_tensor_p1, NULL, NULL}};
+   {NULL, NULL, NULL}};
 
 GKYL_CU_D static const pos_shift_vlasov_kern_list_shift
   pos_shift_vlasov_kern_list_MRSlimiter_tensor[] = {
@@ -55,13 +55,13 @@ GKYL_CU_D static const pos_shift_vlasov_kern_list_shift
     {positivity_shift_vlasov_MRS_limiter_1x3v_tensor_p1, NULL, NULL},
     {positivity_shift_vlasov_MRS_limiter_2x2v_tensor_p1, NULL, NULL},
     {positivity_shift_vlasov_MRS_limiter_2x3v_tensor_p1, NULL, NULL},
-    {positivity_shift_vlasov_MRS_limiter_3x3v_tensor_p1, NULL, NULL}
+    {NULL, NULL, NULL}
 };
 
 GKYL_CU_D static const pos_shift_vlasov_kern_list_m0 pos_shift_vlasov_kern_list_m0_tensor[] = {
   {vlasov_M0_1x1v_tensor_p1, NULL, NULL}, {vlasov_M0_1x2v_tensor_p1, NULL, NULL},
   {vlasov_M0_1x3v_tensor_p1, NULL, NULL}, {vlasov_M0_2x2v_tensor_p1, NULL, NULL},
-  {vlasov_M0_2x3v_tensor_p1, NULL, NULL}, {vlasov_M0_3x3v_tensor_p1, NULL, NULL}
+  {vlasov_M0_2x3v_tensor_p1, NULL, NULL}, {NULL, NULL, NULL}
 };
 
 // The cv_index[cd].vdim[vd] is used to index the various list of

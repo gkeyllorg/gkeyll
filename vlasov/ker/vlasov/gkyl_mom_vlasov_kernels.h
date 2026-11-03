@@ -103,14 +103,6 @@ GKYL_CU_DH void vlasov_five_moments_2x3v_ser_p2(const double *w, const double *d
 GKYL_CU_DH void vlasov_int_five_moments_2x3v_ser_p2(const double *w, const double *dxv, const int *idx, const double *f, double* GKYL_RESTRICT out); 
 
 
-GKYL_CU_DH void vlasov_M0_3x3v_ser_p1(const double *w, const double *dxv, const int *idx, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void vlasov_M1i_3x3v_ser_p1(const double *w, const double *dxv, const int *idx, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void vlasov_M2_3x3v_ser_p1(const double *w, const double *dxv, const int *idx, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void vlasov_M2ij_3x3v_ser_p1(const double *w, const double *dxv, const int *idx, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void vlasov_M3i_3x3v_ser_p1(const double *w, const double *dxv, const int *idx, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void vlasov_M3ijk_3x3v_ser_p1(const double *w, const double *dxv, const int *idx, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void vlasov_five_moments_3x3v_ser_p1(const double *w, const double *dxv, const int *idx, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void vlasov_int_five_moments_3x3v_ser_p1(const double *w, const double *dxv, const int *idx, const double *f, double* GKYL_RESTRICT out); 
 
 
 GKYL_CU_DH void vlasov_M0_1x1v_tensor_p1(const double *w, const double *dxv, const int *idx, const double *f, double* GKYL_RESTRICT out); 
@@ -213,14 +205,6 @@ GKYL_CU_DH void vlasov_five_moments_2x3v_tensor_p2(const double *w, const double
 GKYL_CU_DH void vlasov_int_five_moments_2x3v_tensor_p2(const double *w, const double *dxv, const int *idx, const double *f, double* GKYL_RESTRICT out); 
 
 
-GKYL_CU_DH void vlasov_M0_3x3v_tensor_p1(const double *w, const double *dxv, const int *idx, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void vlasov_M1i_3x3v_tensor_p1(const double *w, const double *dxv, const int *idx, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void vlasov_M2_3x3v_tensor_p1(const double *w, const double *dxv, const int *idx, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void vlasov_M2ij_3x3v_tensor_p1(const double *w, const double *dxv, const int *idx, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void vlasov_M3i_3x3v_tensor_p1(const double *w, const double *dxv, const int *idx, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void vlasov_M3ijk_3x3v_tensor_p1(const double *w, const double *dxv, const int *idx, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void vlasov_five_moments_3x3v_tensor_p1(const double *w, const double *dxv, const int *idx, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void vlasov_int_five_moments_3x3v_tensor_p1(const double *w, const double *dxv, const int *idx, const double *f, double* GKYL_RESTRICT out); 
 
 
 EXTERN_C_END 

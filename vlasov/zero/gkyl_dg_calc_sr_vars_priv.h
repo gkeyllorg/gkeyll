@@ -109,7 +109,7 @@ GKYL_CU_D static const gkyl_dg_sr_vars_n_set_kern_list ser_sr_vars_n_set_kernels
   {NULL, sr_vars_n_set_2x2v_ser_p1, sr_vars_n_set_2x2v_ser_p2}, // 3
   {NULL, sr_vars_n_set_2x3v_ser_p1, sr_vars_n_set_2x3v_ser_p2}, // 4
   // 3x kernels
-  {NULL, sr_vars_n_set_3x3v_ser_p1, NULL} // 5
+  {NULL, NULL, NULL} // 5
 };
 
 // Copy solution for computing rest-frame density kernel list (Serendipity kernels).
@@ -122,7 +122,7 @@ GKYL_CU_D static const gkyl_dg_sr_vars_n_copy_kern_list ser_sr_vars_n_copy_kerne
   {NULL, sr_vars_n_copy_2x2v_ser_p1, sr_vars_n_copy_2x2v_ser_p2}, // 3
   {NULL, sr_vars_n_copy_2x3v_ser_p1, sr_vars_n_copy_2x3v_ser_p2}, // 4
   // 3x kernels
-  {NULL, sr_vars_n_copy_3x3v_ser_p1, NULL} // 5
+  {NULL, NULL, NULL} // 5
 };
 
 // Compute bulk four-velocity derived quantities kernel list (Serendipity kernels).
@@ -135,7 +135,7 @@ GKYL_CU_D static const gkyl_dg_sr_vars_GammaV_kern_list ser_sr_vars_GammaV_kerne
   {NULL, sr_vars_GammaV_2x2v_ser_p1, sr_vars_GammaV_2x2v_ser_p2}, // 3
   {NULL, sr_vars_GammaV_2x3v_ser_p1, sr_vars_GammaV_2x3v_ser_p2}, // 4
   // 3x kernels
-  {NULL, sr_vars_GammaV_3x3v_ser_p1, NULL} // 5
+  {NULL, NULL, NULL} // 5
 };
 
 // Compute rest-frame pressure kernel list (Serendipity kernels).
@@ -148,7 +148,7 @@ GKYL_CU_D static const gkyl_dg_sr_vars_pressure_kern_list ser_sr_vars_pressure_k
   {NULL, sr_vars_pressure_2x2v_ser_p1, sr_vars_pressure_2x2v_ser_p2}, // 3
   {NULL, sr_vars_pressure_2x3v_ser_p1, sr_vars_pressure_2x3v_ser_p2}, // 4
   // 3x kernels
-  {NULL, sr_vars_pressure_3x3v_ser_p1, NULL} // 5
+  {NULL, NULL, NULL} // 5
 };
 
 GKYL_CU_D static p_vars_t

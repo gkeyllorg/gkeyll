@@ -51,7 +51,7 @@ GKYL_CU_D static const gkyl_prim_lbo_vlasov_self_kern_list ser_self_prim_kernels
   {NULL, vlasov_self_prim_moments_2x2v_ser_p1, vlasov_self_prim_moments_2x2v_ser_p2}, // 3
   {NULL, vlasov_self_prim_moments_2x3v_ser_p1, vlasov_self_prim_moments_2x3v_ser_p2}, // 4
   // 3x kernels
-  {NULL, vlasov_self_prim_moments_3x3v_ser_p1, NULL} // 5
+  {NULL, NULL, NULL} // 5
 };
 
 // cross-primitive moment kernel list
@@ -64,7 +64,7 @@ GKYL_CU_D static const gkyl_prim_lbo_vlasov_cross_kern_list ser_cross_prim_kerne
   {NULL, vlasov_cross_prim_moments_2x2v_ser_p1, vlasov_cross_prim_moments_2x2v_ser_p2}, // 3
   {NULL, vlasov_cross_prim_moments_2x3v_ser_p1, vlasov_cross_prim_moments_2x3v_ser_p2}, // 4
   // 3x kernels
-  {NULL, vlasov_cross_prim_moments_3x3v_ser_p1, NULL} // 5
+  {NULL, NULL, NULL} // 5
 };
 
 struct prim_lbo_type_vlasov {

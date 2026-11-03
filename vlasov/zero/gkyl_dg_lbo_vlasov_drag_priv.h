@@ -286,27 +286,6 @@ kernel_lbo_vlasov_drag_vol_2x3v_ser_p2(
   }
 }
 
-GKYL_CU_DH static double
-kernel_lbo_vlasov_drag_vol_3x3v_ser_p1(
-  const struct gkyl_dg_eqn *eqn, const double *xc, const double *dx, const int *idx,
-  const double *qIn, double *GKYL_RESTRICT qRhsOut
-)
-{
-  struct dg_lbo_vlasov_drag *lbo_vlasov_drag = container_of(eqn, struct dg_lbo_vlasov_drag, eqn);
-  long cidx = gkyl_range_idx(&lbo_vlasov_drag->conf_range, idx);
-  const double *nuSum_p = (const double *)gkyl_array_cfetch(lbo_vlasov_drag->auxfields.nuSum, cidx);
-  const double *nuPrimMomsSum_p =
-    (const double *)gkyl_array_cfetch(lbo_vlasov_drag->auxfields.nuPrimMomsSum, cidx);
-  const double *nuUSum_p = nuPrimMomsSum_p;
-  const double *nuVtSqSum_p = &nuPrimMomsSum_p[lbo_vlasov_drag->vdim * lbo_vlasov_drag->num_cbasis];
-  bool noPrimMomCross = checkPrimMomCross(lbo_vlasov_drag, nuSum_p, nuUSum_p, nuVtSqSum_p);
-  if (noPrimMomCross) {
-    return lbo_vlasov_drag_vol_3x3v_ser_p1(xc, dx, nuSum_p, nuPrimMomsSum_p, qIn, qRhsOut);
-  } else {
-    return 0.;
-  }
-}
-
 // Volume kernel list
 GKYL_CU_D static const gkyl_dg_lbo_vlasov_drag_vol_kern_list ser_vol_kernels[] = {
   // 1x kernels
@@ -317,7 +296,7 @@ GKYL_CU_D static const gkyl_dg_lbo_vlasov_drag_vol_kern_list ser_vol_kernels[] =
   {NULL, kernel_lbo_vlasov_drag_vol_2x2v_ser_p1, kernel_lbo_vlasov_drag_vol_2x2v_ser_p2}, // 3
   {NULL, kernel_lbo_vlasov_drag_vol_2x3v_ser_p1, kernel_lbo_vlasov_drag_vol_2x3v_ser_p2}, // 4
   // 3x kernels
-  {NULL, kernel_lbo_vlasov_drag_vol_3x3v_ser_p1, NULL} // 5
+  {NULL, NULL, NULL} // 5
 };
 
 // Constant nu surface kernel list: vx-direction
@@ -330,7 +309,7 @@ GKYL_CU_D static const gkyl_dg_lbo_vlasov_drag_surf_kern_list ser_surf_vx_kernel
   {NULL, lbo_vlasov_drag_surfvx_2x2v_ser_p1, lbo_vlasov_drag_surfvx_2x2v_ser_p2}, // 3
   {NULL, lbo_vlasov_drag_surfvx_2x3v_ser_p1, lbo_vlasov_drag_surfvx_2x3v_ser_p2}, //
   // 3x kernels
-  {NULL, lbo_vlasov_drag_surfvx_3x3v_ser_p1, NULL} // 5
+  {NULL, NULL, NULL} // 5
 };
 
 // Constant nu surface kernel list: vy-direction
@@ -343,7 +322,7 @@ GKYL_CU_D static const gkyl_dg_lbo_vlasov_drag_surf_kern_list ser_surf_vy_kernel
   {NULL, lbo_vlasov_drag_surfvy_2x2v_ser_p1, lbo_vlasov_drag_surfvy_2x2v_ser_p2}, // 3
   {NULL, lbo_vlasov_drag_surfvy_2x3v_ser_p1, lbo_vlasov_drag_surfvy_2x3v_ser_p2}, // 4
   // 3x kernels
-  {NULL, lbo_vlasov_drag_surfvy_3x3v_ser_p1, NULL} // 5
+  {NULL, NULL, NULL} // 5
 };
 
 // Constant nu surface kernel list: vz-direction
@@ -356,7 +335,7 @@ GKYL_CU_D static const gkyl_dg_lbo_vlasov_drag_surf_kern_list ser_surf_vz_kernel
   {NULL, NULL, NULL}, // 3
   {NULL, lbo_vlasov_drag_surfvz_2x3v_ser_p1, lbo_vlasov_drag_surfvz_2x3v_ser_p2}, // 4
   // 3x kernels
-  {NULL, lbo_vlasov_drag_surfvz_3x3v_ser_p1, NULL} // 5
+  {NULL, NULL, NULL} // 5
 };
 
 // Constant nu boundary surface kernel (zero-flux BCs) list: vx-direction
@@ -375,7 +354,7 @@ GKYL_CU_D static const gkyl_dg_lbo_vlasov_drag_boundary_surf_kern_list
     {NULL, lbo_vlasov_drag_boundary_surfvx_2x3v_ser_p1, lbo_vlasov_drag_boundary_surfvx_2x3v_ser_p2
     }, // 4
     // 3x kernels
-    {NULL, lbo_vlasov_drag_boundary_surfvx_3x3v_ser_p1, NULL} // 5
+    {NULL, NULL, NULL} // 5
 };
 
 // Constant nu boundary surface kernel (zero-flux BCs) list: vy-direction
@@ -393,7 +372,7 @@ GKYL_CU_D static const gkyl_dg_lbo_vlasov_drag_boundary_surf_kern_list
     {NULL, lbo_vlasov_drag_boundary_surfvy_2x3v_ser_p1, lbo_vlasov_drag_boundary_surfvy_2x3v_ser_p2
     }, // 4
     // 3x kernels
-    {NULL, lbo_vlasov_drag_boundary_surfvy_3x3v_ser_p1, NULL} // 5
+    {NULL, NULL, NULL} // 5
 };
 
 // Constant nu boundary surface kernel (zero-flux BCs) list: vz-direction
@@ -409,7 +388,7 @@ GKYL_CU_D static const gkyl_dg_lbo_vlasov_drag_boundary_surf_kern_list
     {NULL, lbo_vlasov_drag_boundary_surfvz_2x3v_ser_p1, lbo_vlasov_drag_boundary_surfvz_2x3v_ser_p2
     }, // 4
     // 3x kernels
-    {NULL, lbo_vlasov_drag_boundary_surfvz_3x3v_ser_p1, NULL} // 5
+    {NULL, NULL, NULL} // 5
 };
 
 void gkyl_lbo_vlasov_drag_free(const struct gkyl_ref_count *ref);

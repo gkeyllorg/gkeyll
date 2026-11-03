@@ -249,7 +249,7 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_alpha_surf_kern_list
     {NULL, canonical_pb_alpha_surfx_2x2v_tensor_p1, canonical_pb_alpha_surfx_2x2v_tensor_p2}, // 3
     {NULL, canonical_pb_alpha_surfx_2x3v_tensor_p1, NULL}, // 4
     // 3x kernels
-    {NULL, canonical_pb_alpha_surfx_3x3v_tensor_p1, NULL} // 5
+    {NULL, NULL, NULL} // 5
 };
 
 // canonical_pb general geometry phase space flux alpha edge surface expansions in x (Tensor kernels)
@@ -267,7 +267,7 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_alpha_surf_kern_list
      canonical_pb_alpha_edge_surfx_2x2v_tensor_p2}, // 3
     {NULL, canonical_pb_alpha_edge_surfx_2x3v_tensor_p1, NULL}, // 4
     // 3x kernels
-    {NULL, canonical_pb_alpha_edge_surfx_3x3v_tensor_p1, NULL} // 5
+    {NULL, NULL, NULL} // 5
 };
 
 // canonical_pb general geometry phase space flux alpha surface expansions in y (Tensor kernels)
@@ -281,7 +281,7 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_alpha_surf_kern_list
     {NULL, canonical_pb_alpha_surfy_2x2v_tensor_p1, canonical_pb_alpha_surfy_2x2v_tensor_p2}, // 3
     {NULL, canonical_pb_alpha_surfy_2x3v_tensor_p1, NULL}, // 4
     // 3x kernels
-    {NULL, canonical_pb_alpha_surfy_3x3v_tensor_p1, NULL} // 5
+    {NULL, NULL, NULL} // 5
 };
 
 // canonical_pb general geometry phase space flux alpha edge surface expansions in y (Tensor kernels)
@@ -296,7 +296,7 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_alpha_surf_kern_list
      canonical_pb_alpha_edge_surfy_2x2v_tensor_p2}, // 3
     {NULL, canonical_pb_alpha_edge_surfy_2x3v_tensor_p1, NULL}, // 4
     // 3x kernels
-    {NULL, canonical_pb_alpha_edge_surfy_3x3v_tensor_p1, NULL} // 5
+    {NULL, NULL, NULL} // 5
 };
 
 // canonical_pb general geometry phase space flux alpha surface expansions in z (Tensor kernels)
@@ -310,7 +310,7 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_alpha_surf_kern_list
     {NULL, NULL, NULL}, // 3
     {NULL, NULL, NULL}, // 4
     // 3x kernels
-    {NULL, canonical_pb_alpha_surfz_3x3v_tensor_p1, NULL} // 5
+    {NULL, NULL, NULL} // 5
 };
 
 // canonical_pb general geometry phase space flux alpha edge surface expansions in z (tensor kernels)
@@ -324,7 +324,7 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_alpha_surf_kern_list
     {NULL, NULL, NULL}, // 3
     {NULL, NULL, NULL}, // 4
     // 3x kernels
-    {NULL, canonical_pb_alpha_edge_surfz_3x3v_tensor_p1, NULL} // 5
+    {NULL, NULL, NULL} // 5
 };
 
 //
@@ -341,7 +341,7 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_alpha_surf_kern_list
     {NULL, canonical_pb_alpha_surfvx_2x2v_tensor_p1, canonical_pb_alpha_surfvx_2x2v_tensor_p2}, // 3
     {NULL, canonical_pb_alpha_surfvx_2x3v_tensor_p1, NULL}, // 4
     // 3x kernels
-    {NULL, canonical_pb_alpha_surfvx_3x3v_tensor_p1, NULL} // 5
+    {NULL, NULL, NULL} // 5
 };
 
 // canonical_pb general geometry phase space flux alpha surface expansions in vy (Tensor kernels)
@@ -355,7 +355,7 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_alpha_surf_kern_list
     {NULL, canonical_pb_alpha_surfvy_2x2v_tensor_p1, canonical_pb_alpha_surfvy_2x2v_tensor_p2}, // 3
     {NULL, canonical_pb_alpha_surfvy_2x3v_tensor_p1, NULL}, // 4
     // 3x kernels
-    {NULL, canonical_pb_alpha_surfvy_3x3v_tensor_p1, NULL} // 5
+    {NULL, NULL, NULL} // 5
 };
 
 // canonical_pb general geometry phase space flux alpha surface expansions in vz (tensor kernels)
@@ -369,7 +369,7 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_alpha_surf_kern_list
     {NULL, NULL, NULL}, // 3
     {NULL, canonical_pb_alpha_surfvz_2x3v_tensor_p1, NULL}, // 4
     // 3x kernels
-    {NULL, canonical_pb_alpha_surfvz_3x3v_tensor_p1, NULL} // 5
+    {NULL, NULL, NULL} // 5
 };
 
 // canonical_pb contravaraint to covariant conversion (Tensor kernels)
@@ -388,7 +388,7 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_m1i_contra_to_cov_kern_list
      canonical_pb_vars_m1i_contra_to_cov_2x2v_tensor_p2}, // 3
     {NULL, canonical_pb_vars_m1i_contra_to_cov_2x3v_tensor_p1, NULL}, //4
     // 3x kernels
-    {NULL, canonical_pb_vars_m1i_contra_to_cov_3x3v_tensor_p1, NULL} // 5
+    {NULL, NULL, NULL} // 5
 };
 
 // canonical_pb Pressure (d*P*Jv = h^{ij}*M2_{ij} - n*h^{ij}*u_i*u_j) (Tensor kernels)
@@ -406,7 +406,7 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_pressure_kern_list
     }, // 3
     {NULL, canonical_pb_vars_pressure_2x3v_tensor_p1, NULL}, //4
     // 3x kernels
-    {NULL, canonical_pb_vars_pressure_3x3v_tensor_p1, NULL} // 5
+    {NULL, NULL, NULL} // 5
 };
 
 GKYL_CU_D static canonical_pb_alpha_surf_t

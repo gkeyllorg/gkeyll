@@ -79,8 +79,5 @@ GKYL_CU_DH void canonical_pb_M1i_from_H_2x3v_tensor_p1(const double *dxv, const 
 GKYL_CU_DH void canonical_pb_MEnergy_2x3v_tensor_p1(const double *dxv, const double *hamil, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void canonical_pb_int_five_moments_2x3v_tensor_p1(const double *dxv, const double *hamil, const double *f, double* GKYL_RESTRICT out); 
 
-GKYL_CU_DH void canonical_pb_M1i_from_H_3x3v_tensor_p1(const double *dxv, const double *hamil, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void canonical_pb_MEnergy_3x3v_tensor_p1(const double *dxv, const double *hamil, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void canonical_pb_int_five_moments_3x3v_tensor_p1(const double *dxv, const double *hamil, const double *f, double* GKYL_RESTRICT out); 
 
 EXTERN_C_END 

@@ -25,8 +25,6 @@ GKYL_CU_DH bool positivity_shift_vlasov_MRS_limiter_2x3v_tensor_p1(double ffloor
 
 GKYL_CU_DH bool positivity_shift_vlasov_conf_pos_check_3x_tensor_p1(const double *fld);
 
-GKYL_CU_DH bool positivity_shift_vlasov_shift_only_3x3v_tensor_p1(double ffloor, double *distf);
-GKYL_CU_DH bool positivity_shift_vlasov_MRS_limiter_3x3v_tensor_p1(double ffloor, double *distf);
 
 
 EXTERN_C_END

@@ -538,20 +538,6 @@ kernel_canonical_pb_vol_2x3v_tensor_p1(
   );
 }
 
-GKYL_CU_DH static double
-kernel_canonical_pb_vol_3x3v_tensor_p1(
-  const struct gkyl_dg_eqn *eqn, const double *xc, const double *dx, const int *idx,
-  const double *qIn, double *GKYL_RESTRICT qRhsOut
-)
-{
-  struct dg_canonical_pb *canonical_pb = container_of(eqn, struct dg_canonical_pb, eqn);
-  long pidx = gkyl_range_idx(&canonical_pb->phase_range, idx);
-
-  return canonical_pb_vol_3x3v_tensor_p1(
-    xc, dx, (const double *)gkyl_array_cfetch(canonical_pb->auxfields.hamil, pidx), qIn, qRhsOut
-  );
-}
-
 // Volume kernel list for relativistic streaming + EM
 GKYL_CU_D static const gkyl_dg_canonical_pb_vol_kern_list tensor_vol_kernels[] = {
   // 1x kernels
@@ -562,7 +548,7 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_vol_kern_list tensor_vol_kernels[] =
   {NULL, kernel_canonical_pb_vol_2x2v_tensor_p1, kernel_canonical_pb_vol_2x2v_tensor_p2}, // 3
   {NULL, kernel_canonical_pb_vol_2x3v_tensor_p1, NULL}, // 4
   // 3x kernels
-  {NULL, kernel_canonical_pb_vol_3x3v_tensor_p1, NULL} // 2
+  {NULL, NULL, NULL} // 2
 };
 
 //
@@ -579,7 +565,7 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_stream_surf_kern_list tensor_stream_
   {NULL, canonical_pb_surfx_2x2v_tensor_p1, canonical_pb_surfx_2x2v_tensor_p2}, // 3
   {NULL, canonical_pb_surfx_2x3v_tensor_p1, NULL}, // 4
   // 3x kernels
-  {NULL, canonical_pb_surfx_3x3v_tensor_p1, NULL} // 5
+  {NULL, NULL, NULL} // 5
 };
 
 // Streaming surface kernel list: y-direction
@@ -592,7 +578,7 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_stream_surf_kern_list tensor_stream_
   {NULL, canonical_pb_surfy_2x2v_tensor_p1, canonical_pb_surfy_2x2v_tensor_p2}, // 3
   {NULL, canonical_pb_surfy_2x3v_tensor_p1, NULL}, // 4
   // 3x kernels
-  {NULL, canonical_pb_surfy_3x3v_tensor_p1, NULL} // 2
+  {NULL, NULL, NULL} // 2
 };
 
 // Streaming surface kernel list: z-direction
@@ -605,7 +591,7 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_stream_surf_kern_list tensor_stream_
   {NULL, NULL, NULL}, // 3
   {NULL, NULL, NULL}, // 4
   // 3x kernels
-  {NULL, canonical_pb_surfz_3x3v_tensor_p1, NULL} // 5
+  {NULL, NULL, NULL} // 5
 };
 
 // Acceleration surface kernel list: vx-direction
@@ -618,7 +604,7 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_accel_surf_kern_list tensor_accel_su
   {NULL, canonical_pb_surfvx_2x2v_tensor_p1, canonical_pb_surfvx_2x2v_tensor_p2}, // 3
   {NULL, canonical_pb_surfvx_2x3v_tensor_p1, NULL}, // 4
   // 3x kernels
-  {NULL, canonical_pb_surfvx_3x3v_tensor_p1, NULL} // 5
+  {NULL, NULL, NULL} // 5
 };
 
 // Acceleration surface kernel list: vy-direction
@@ -631,7 +617,7 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_accel_surf_kern_list tensor_accel_su
   {NULL, canonical_pb_surfvy_2x2v_tensor_p1, canonical_pb_surfvy_2x2v_tensor_p2}, // 3
   {NULL, canonical_pb_surfvy_2x3v_tensor_p1, NULL}, // 4
   // 3x kernels
-  {NULL, canonical_pb_surfvy_3x3v_tensor_p1, NULL} // 5
+  {NULL, NULL, NULL} // 5
 };
 
 // Acceleration surface kernel list: vz-direction
@@ -644,7 +630,7 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_accel_surf_kern_list tensor_accel_su
   {NULL, NULL, NULL}, // 3
   {NULL, canonical_pb_surfvz_2x3v_tensor_p1, NULL}, // 4
   // 3x kernels
-  {NULL, canonical_pb_surfvz_3x3v_tensor_p1, NULL} // 5
+  {NULL, NULL, NULL} // 5
 };
 
 // Acceleration boundary surface kernel (zero-flux BCs) list: vx-direction
@@ -662,7 +648,7 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_accel_boundary_surf_kern_list
     }, // 3
     {NULL, canonical_pb_boundary_surfvx_2x3v_tensor_p1, NULL}, // 4
     // 3x kernels
-    {NULL, canonical_pb_boundary_surfvx_3x3v_tensor_p1, NULL} // 5
+    {NULL, NULL, NULL} // 5
 };
 
 // Acceleration boundary surface kernel (zero-flux BCs) list: vy-direction
@@ -679,7 +665,7 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_accel_boundary_surf_kern_list
     }, // 3
     {NULL, canonical_pb_boundary_surfvy_2x3v_tensor_p1, NULL}, // 4
     // 3x kernels
-    {NULL, canonical_pb_boundary_surfvy_3x3v_tensor_p1, NULL} // 5
+    {NULL, NULL, NULL} // 5
 };
 
 // Acceleration boundary surface kernel (zero-flux BCs) list: vz-direction
@@ -694,7 +680,7 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_accel_boundary_surf_kern_list
     {NULL, NULL, NULL}, // 3
     {NULL, canonical_pb_boundary_surfvz_2x3v_tensor_p1, NULL}, // 4
     // 3x kernels
-    {NULL, canonical_pb_boundary_surfvz_3x3v_tensor_p1, NULL} // 5
+    {NULL, NULL, NULL} // 5
 };
 
 // Stream boundary surface kernel (zero-flux BCs) list: x-direction
@@ -712,7 +698,7 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_stream_boundary_surf_kern_list
     }, // 3
     {NULL, canonical_pb_boundary_surfx_2x3v_tensor_p1, NULL}, // 4
     // 3x kernels
-    {NULL, canonical_pb_boundary_surfx_3x3v_tensor_p1, NULL} // 5
+    {NULL, NULL, NULL} // 5
 };
 
 // Stream boundary surface kernel (zero-flux BCs) list: y-direction
@@ -727,7 +713,7 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_stream_boundary_surf_kern_list
     }, // 3
     {NULL, canonical_pb_boundary_surfy_2x3v_tensor_p1, NULL}, // 4
     // 3x kernels
-    {NULL, canonical_pb_boundary_surfy_3x3v_tensor_p1, NULL} // 5
+    {NULL, NULL, NULL} // 5
 };
 
 // Stream boundary surface kernel (zero-flux BCs) list: z-direction
@@ -741,7 +727,7 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_stream_boundary_surf_kern_list
     {NULL, NULL, NULL}, // 3
     {NULL, NULL, NULL}, // 4
     // 3x kernels
-    {NULL, canonical_pb_boundary_surfz_3x3v_tensor_p1, NULL} // 5
+    {NULL, NULL, NULL} // 5
 };
 
 // "Choose Kernel" based on cdim, vdim and polyorder
