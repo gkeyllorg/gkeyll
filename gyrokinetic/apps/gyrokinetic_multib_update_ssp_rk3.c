@@ -17,7 +17,8 @@ gyrokinetic_multib_forward_euler(
   // the status object.
   app->stat.nfeuler += 1;
 
-  double dtmin = DBL_MAX;
+  // Reduce both the accepted step and the next-step suggestion across blocks.
+  double dtmin[2] = {DBL_MAX, DBL_MAX};
 
   // Compute the time rate of change of the distributions, df/dt.
   for (int b = 0; b < app->num_local_blocks; ++b) {
@@ -27,14 +28,16 @@ gyrokinetic_multib_forward_euler(
       app->singleb_apps[b], tcurr, dt, &fin[li_charged], &fout[li_charged], &bflux_out[li_charged],
       &fin_neut[li_neut], &fout_neut[li_neut], &bflux_out_neut[li_neut], st
     );
-    dtmin = fmin(dtmin, st->dt_actual);
+    dtmin[0] = fmin(dtmin[0], st->dt_actual);
+    dtmin[1] = fmin(dtmin[1], st->dt_suggested);
   }
 
   struct timespec wtm = gkyl_wall_clock();
-  // Compute minimum time-step across all processors.
-  double dtmin_local = dtmin, dtmin_global;
-  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MIN, 1, &dtmin_local, &dtmin_global);
-  st->dt_actual = dtmin_global;
+  // Keep the accepted step and next-step suggestion identical on all ranks.
+  double dtmin_global[2];
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MIN, 2, dtmin, dtmin_global);
+  st->dt_actual = dtmin_global[0];
+  st->dt_suggested = dtmin_global[1];
   app->stat.dfdt_dt_reduce_tm += gkyl_time_diff_now_sec(wtm);
 
   struct timespec wst = gkyl_wall_clock();
