@@ -4788,10 +4788,9 @@ gkyl_gyrokinetic_app_cout(const gkyl_gyrokinetic_app *app, FILE *fp, const char 
 void
 gkyl_gyrokinetic_app_release_geom(gkyl_gyrokinetic_app *app)
 {
-  bool has_delta_ts_x = app->cdim == 3 &&
-                        (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK ||
-                         (app->gk_geom->geometry_id == GKYL_GEOMETRY_MAPC2P &&
-                          (app->delta_ts_x_lo || app->delta_ts_x_up)));
+  bool has_delta_ts_x = app->cdim == 3 && (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK ||
+                                           (app->gk_geom->geometry_id == GKYL_GEOMETRY_MAPC2P &&
+                                            (app->delta_ts_x_lo || app->delta_ts_x_up)));
 
   gkyl_array_release(app->jacobtot_inv_weak);
   if (has_delta_ts_x) {
@@ -4873,7 +4872,6 @@ gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app *app)
   gkyl_msgpack_map_elem_release(app->io_meta_basic_len, app->io_meta_basic);
   gkyl_msgpack_map_elem_release(app->io_meta_dg_len, app->io_meta_dg);
 
-  gkyl_gk_geometry_release(app->gk_geom);
   if (app->gk_geom_ho) {
     gkyl_gk_geometry_release(app->gk_geom_ho);
   }
