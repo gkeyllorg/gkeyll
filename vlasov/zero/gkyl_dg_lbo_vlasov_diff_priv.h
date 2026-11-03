@@ -265,27 +265,6 @@ kernel_lbo_vlasov_diff_vol_2x3v_ser_p1(
   }
 }
 
-GKYL_CU_DH static double
-kernel_lbo_vlasov_diff_vol_2x3v_ser_p2(
-  const struct gkyl_dg_eqn *eqn, const double *xc, const double *dx, const int *idx,
-  const double *qIn, double *GKYL_RESTRICT qRhsOut
-)
-{
-  struct dg_lbo_vlasov_diff *lbo_vlasov_diff = container_of(eqn, struct dg_lbo_vlasov_diff, eqn);
-  long cidx = gkyl_range_idx(&lbo_vlasov_diff->conf_range, idx);
-  const double *nuSum_p = (const double *)gkyl_array_cfetch(lbo_vlasov_diff->auxfields.nuSum, cidx);
-  const double *nuPrimMomsSum_p =
-    (const double *)gkyl_array_cfetch(lbo_vlasov_diff->auxfields.nuPrimMomsSum, cidx);
-  const double *nuUSum_p = nuPrimMomsSum_p;
-  const double *nuVtSqSum_p = &nuPrimMomsSum_p[lbo_vlasov_diff->vdim * lbo_vlasov_diff->num_cbasis];
-  bool noPrimMomCross = checkPrimMomCross(lbo_vlasov_diff, nuSum_p, nuUSum_p, nuVtSqSum_p);
-  if (noPrimMomCross) {
-    return lbo_vlasov_diff_vol_2x3v_ser_p2(xc, dx, nuSum_p, nuPrimMomsSum_p, qIn, qRhsOut);
-  } else {
-    return 0.;
-  }
-}
-
 // Volume kernel list
 GKYL_CU_D static const gkyl_dg_lbo_vlasov_diff_vol_kern_list ser_vol_kernels[] = {
   // 1x kernels
@@ -294,7 +273,7 @@ GKYL_CU_D static const gkyl_dg_lbo_vlasov_diff_vol_kern_list ser_vol_kernels[] =
   {NULL, kernel_lbo_vlasov_diff_vol_1x3v_ser_p1, kernel_lbo_vlasov_diff_vol_1x3v_ser_p2}, // 2
   // 2x kernels
   {NULL, kernel_lbo_vlasov_diff_vol_2x2v_ser_p1, kernel_lbo_vlasov_diff_vol_2x2v_ser_p2}, // 3
-  {NULL, kernel_lbo_vlasov_diff_vol_2x3v_ser_p1, kernel_lbo_vlasov_diff_vol_2x3v_ser_p2}, // 4
+  {NULL, kernel_lbo_vlasov_diff_vol_2x3v_ser_p1, NULL}, // 4
   // 3x kernels
   {NULL, NULL, NULL} // 5
 };
@@ -307,7 +286,7 @@ GKYL_CU_D static const gkyl_dg_lbo_vlasov_diff_surf_kern_list ser_surf_vx_kernel
   {NULL, lbo_vlasov_diff_surfvx_1x3v_ser_p1, lbo_vlasov_diff_surfvx_1x3v_ser_p2}, // 2
   // 2x kernels
   {NULL, lbo_vlasov_diff_surfvx_2x2v_ser_p1, lbo_vlasov_diff_surfvx_2x2v_ser_p2}, // 3
-  {NULL, lbo_vlasov_diff_surfvx_2x3v_ser_p1, lbo_vlasov_diff_surfvx_2x3v_ser_p2}, //
+  {NULL, lbo_vlasov_diff_surfvx_2x3v_ser_p1, NULL}, //
   // 3x kernels
   {NULL, NULL, NULL} // 5
 };
@@ -320,7 +299,7 @@ GKYL_CU_D static const gkyl_dg_lbo_vlasov_diff_surf_kern_list ser_surf_vy_kernel
   {NULL, lbo_vlasov_diff_surfvy_1x3v_ser_p1, lbo_vlasov_diff_surfvy_1x3v_ser_p2}, // 2
   // 2x kernels
   {NULL, lbo_vlasov_diff_surfvy_2x2v_ser_p1, lbo_vlasov_diff_surfvy_2x2v_ser_p2}, // 3
-  {NULL, lbo_vlasov_diff_surfvy_2x3v_ser_p1, lbo_vlasov_diff_surfvy_2x3v_ser_p2}, // 4
+  {NULL, lbo_vlasov_diff_surfvy_2x3v_ser_p1, NULL}, // 4
   // 3x kernels
   {NULL, NULL, NULL} // 5
 };
@@ -333,7 +312,7 @@ GKYL_CU_D static const gkyl_dg_lbo_vlasov_diff_surf_kern_list ser_surf_vz_kernel
   {NULL, lbo_vlasov_diff_surfvz_1x3v_ser_p1, lbo_vlasov_diff_surfvz_1x3v_ser_p2}, // 2
   // 2x kernels
   {NULL, NULL, NULL}, // 3
-  {NULL, lbo_vlasov_diff_surfvz_2x3v_ser_p1, lbo_vlasov_diff_surfvz_2x3v_ser_p2}, // 4
+  {NULL, lbo_vlasov_diff_surfvz_2x3v_ser_p1, NULL}, // 4
   // 3x kernels
   {NULL, NULL, NULL} // 5
 };
@@ -351,8 +330,7 @@ GKYL_CU_D static const gkyl_dg_lbo_vlasov_diff_boundary_surf_kern_list
     // 2x kernels
     {NULL, lbo_vlasov_diff_boundary_surfvx_2x2v_ser_p1, lbo_vlasov_diff_boundary_surfvx_2x2v_ser_p2
     }, // 3
-    {NULL, lbo_vlasov_diff_boundary_surfvx_2x3v_ser_p1, lbo_vlasov_diff_boundary_surfvx_2x3v_ser_p2
-    }, // 4
+    {NULL, lbo_vlasov_diff_boundary_surfvx_2x3v_ser_p1, NULL}, // 4
     // 3x kernels
     {NULL, NULL, NULL} // 5
 };
@@ -369,8 +347,7 @@ GKYL_CU_D static const gkyl_dg_lbo_vlasov_diff_boundary_surf_kern_list
     // 2x kernels
     {NULL, lbo_vlasov_diff_boundary_surfvy_2x2v_ser_p1, lbo_vlasov_diff_boundary_surfvy_2x2v_ser_p2
     }, // 3
-    {NULL, lbo_vlasov_diff_boundary_surfvy_2x3v_ser_p1, lbo_vlasov_diff_boundary_surfvy_2x3v_ser_p2
-    }, // 4
+    {NULL, lbo_vlasov_diff_boundary_surfvy_2x3v_ser_p1, NULL}, // 4
     // 3x kernels
     {NULL, NULL, NULL} // 5
 };
@@ -385,8 +362,7 @@ GKYL_CU_D static const gkyl_dg_lbo_vlasov_diff_boundary_surf_kern_list
     }, // 2
     // 2x kernels
     {NULL, NULL, NULL}, // 3
-    {NULL, lbo_vlasov_diff_boundary_surfvz_2x3v_ser_p1, lbo_vlasov_diff_boundary_surfvz_2x3v_ser_p2
-    }, // 4
+    {NULL, lbo_vlasov_diff_boundary_surfvz_2x3v_ser_p1, NULL}, // 4
     // 3x kernels
     {NULL, NULL, NULL} // 5
 };

@@ -41,7 +41,7 @@ GKYL_CU_D static const gkyl_mom_bcorr_lbo_vlasov_kern_list ser_mom_bcorr_lbo_vla
   {NULL, mom_bcorr_lbo_vlasov_1x3v_ser_p1, mom_bcorr_lbo_vlasov_1x3v_ser_p2}, // 2
   // 2x kernels
   {NULL, mom_bcorr_lbo_vlasov_2x2v_ser_p1, mom_bcorr_lbo_vlasov_2x2v_ser_p2}, // 3
-  {NULL, mom_bcorr_lbo_vlasov_2x3v_ser_p1, mom_bcorr_lbo_vlasov_2x3v_ser_p2}, // 4
+  {NULL, mom_bcorr_lbo_vlasov_2x3v_ser_p1, NULL}, // 4
   // 3x kernels
   {NULL, NULL, NULL} // 5
 };

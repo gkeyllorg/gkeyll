@@ -75,13 +75,6 @@ GKYL_CU_DH void vlasov_sr_Ni_2x3v_ser_p1(const double *w, const double *dxv, con
 GKYL_CU_DH void vlasov_sr_Tij_2x3v_ser_p1(const double *w, const double *dxv, const int *idx, const double *gamma, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void vlasov_sr_int_five_moments_2x3v_ser_p1(const double *w, const double *dxv, const int *idx, const double *gamma, const double *f, double* GKYL_RESTRICT out); 
 
-GKYL_CU_DH void vlasov_sr_M0_2x3v_ser_p2(const double *w, const double *dxv, const int *idx, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void vlasov_sr_M1i_2x3v_ser_p2(const double *w, const double *dxv, const int *idx, const double *gamma, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void vlasov_sr_M2_2x3v_ser_p2(const double *w, const double *dxv, const int *idx, const double *gamma, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void vlasov_sr_M3i_2x3v_ser_p2(const double *w, const double *dxv, const int *idx, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void vlasov_sr_Ni_2x3v_ser_p2(const double *w, const double *dxv, const int *idx, const double *gamma, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void vlasov_sr_Tij_2x3v_ser_p2(const double *w, const double *dxv, const int *idx, const double *gamma, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void vlasov_sr_int_five_moments_2x3v_ser_p2(const double *w, const double *dxv, const int *idx, const double *gamma, const double *f, double* GKYL_RESTRICT out); 
 
 
 EXTERN_C_END 

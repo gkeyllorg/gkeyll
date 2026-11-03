@@ -74,7 +74,7 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_alpha_surf_kern_list
     {NULL, canonical_pb_alpha_surfx_1x3v_ser_p1, canonical_pb_alpha_surfx_1x3v_ser_p2}, // 2
     // 2x kernels
     {NULL, canonical_pb_alpha_surfx_2x2v_ser_p1, canonical_pb_alpha_surfx_2x2v_ser_p2}, // 3
-    {NULL, canonical_pb_alpha_surfx_2x3v_ser_p1, canonical_pb_alpha_surfx_2x3v_ser_p2}, // 4
+    {NULL, canonical_pb_alpha_surfx_2x3v_ser_p1, NULL}, // 4
     // 3x kernels
     {NULL, NULL, NULL} // 5
 };
@@ -92,8 +92,7 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_alpha_surf_kern_list
     // 2x kernels
     {NULL, canonical_pb_alpha_edge_surfx_2x2v_ser_p1, canonical_pb_alpha_edge_surfx_2x2v_ser_p2
     }, // 3
-    {NULL, canonical_pb_alpha_edge_surfx_2x3v_ser_p1, canonical_pb_alpha_edge_surfx_2x3v_ser_p2
-    }, // 4
+    {NULL, canonical_pb_alpha_edge_surfx_2x3v_ser_p1, NULL}, // 4
     // 3x kernels
     {NULL, NULL, NULL} // 5
 };
@@ -107,7 +106,7 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_alpha_surf_kern_list
     {NULL, NULL, NULL}, // 2
     // 2x kernels
     {NULL, canonical_pb_alpha_surfy_2x2v_ser_p1, canonical_pb_alpha_surfy_2x2v_ser_p2}, // 3
-    {NULL, canonical_pb_alpha_surfy_2x3v_ser_p1, canonical_pb_alpha_surfy_2x3v_ser_p2}, // 4
+    {NULL, canonical_pb_alpha_surfy_2x3v_ser_p1, NULL}, // 4
     // 3x kernels
     {NULL, NULL, NULL} // 5
 };
@@ -122,8 +121,7 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_alpha_surf_kern_list
     // 2x kernels
     {NULL, canonical_pb_alpha_edge_surfy_2x2v_ser_p1, canonical_pb_alpha_edge_surfy_2x2v_ser_p2
     }, // 3
-    {NULL, canonical_pb_alpha_edge_surfy_2x3v_ser_p1, canonical_pb_alpha_edge_surfy_2x3v_ser_p2
-    }, // 4
+    {NULL, canonical_pb_alpha_edge_surfy_2x3v_ser_p1, NULL}, // 4
     // 3x kernels
     {NULL, NULL, NULL} // 5
 };
@@ -168,7 +166,7 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_alpha_surf_kern_list
     {NULL, canonical_pb_alpha_surfvx_1x3v_ser_p1, canonical_pb_alpha_surfvx_1x3v_ser_p2}, // 2
     // 2x kernels
     {NULL, canonical_pb_alpha_surfvx_2x2v_ser_p1, canonical_pb_alpha_surfvx_2x2v_ser_p2}, // 3
-    {NULL, canonical_pb_alpha_surfvx_2x3v_ser_p1, canonical_pb_alpha_surfvx_2x3v_ser_p2}, // 4
+    {NULL, canonical_pb_alpha_surfvx_2x3v_ser_p1, NULL}, // 4
     // 3x kernels
     {NULL, NULL, NULL} // 5
 };
@@ -182,7 +180,7 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_alpha_surf_kern_list
     {NULL, canonical_pb_alpha_surfvy_1x3v_ser_p1, canonical_pb_alpha_surfvy_1x3v_ser_p2}, // 2
     // 2x kernels
     {NULL, canonical_pb_alpha_surfvy_2x2v_ser_p1, canonical_pb_alpha_surfvy_2x2v_ser_p2}, // 3
-    {NULL, canonical_pb_alpha_surfvy_2x3v_ser_p1, canonical_pb_alpha_surfvy_2x3v_ser_p2}, // 4
+    {NULL, canonical_pb_alpha_surfvy_2x3v_ser_p1, NULL}, // 4
     // 3x kernels
     {NULL, NULL, NULL} // 5
 };
@@ -196,7 +194,7 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_alpha_surf_kern_list
     {NULL, canonical_pb_alpha_surfvz_1x3v_ser_p1, canonical_pb_alpha_surfvz_1x3v_ser_p2}, // 2
     // 2x kernels
     {NULL, NULL, NULL}, // 3
-    {NULL, canonical_pb_alpha_surfvz_2x3v_ser_p1, canonical_pb_alpha_surfvz_2x3v_ser_p2}, // 4
+    {NULL, canonical_pb_alpha_surfvz_2x3v_ser_p1, NULL}, // 4
     // 3x kernels
     {NULL, NULL, NULL} // 5
 };
@@ -215,8 +213,7 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_m1i_contra_to_cov_kern_list
     // 2x kernels
     {NULL, canonical_pb_vars_m1i_contra_to_cov_2x2v_ser_p1,
      canonical_pb_vars_m1i_contra_to_cov_2x2v_ser_p2}, // 3
-    {NULL, canonical_pb_vars_m1i_contra_to_cov_2x3v_ser_p1,
-     canonical_pb_vars_m1i_contra_to_cov_2x3v_ser_p2}, // 4
+    {NULL, canonical_pb_vars_m1i_contra_to_cov_2x3v_ser_p1, NULL}, // 4
     // 3x kernels
     {NULL, NULL, NULL} // 5
 };
@@ -230,7 +227,7 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_pressure_kern_list ser_canonical_pb_
     {NULL, canonical_pb_vars_pressure_1x3v_ser_p1, canonical_pb_vars_pressure_1x3v_ser_p2}, // 2
     // 2x kernels
     {NULL, canonical_pb_vars_pressure_2x2v_ser_p1, canonical_pb_vars_pressure_2x2v_ser_p2}, // 3
-    {NULL, canonical_pb_vars_pressure_2x3v_ser_p1, canonical_pb_vars_pressure_2x3v_ser_p2}, // 4
+    {NULL, canonical_pb_vars_pressure_2x3v_ser_p1, NULL}, // 4
     // 3x kernels
     {NULL, NULL, NULL} // 5
 };

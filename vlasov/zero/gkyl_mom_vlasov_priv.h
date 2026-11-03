@@ -34,7 +34,7 @@ GKYL_CU_D static const gkyl_mom_kern_list ser_m0_kernels[] = {
   {NULL, vlasov_M0_1x3v_ser_p1, vlasov_M0_1x3v_ser_p2}, // 2
   // 2x kernels
   {NULL, vlasov_M0_2x2v_ser_p1, vlasov_M0_2x2v_ser_p2}, // 3
-  {NULL, vlasov_M0_2x3v_ser_p1, vlasov_M0_2x3v_ser_p2}, // 4
+  {NULL, vlasov_M0_2x3v_ser_p1, NULL}, // 4
   // 3x kernels
   {NULL, NULL, NULL} // 5
 };
@@ -47,7 +47,7 @@ GKYL_CU_D static const gkyl_mom_kern_list tensor_m0_kernels[] = {
   {NULL, vlasov_M0_1x3v_tensor_p1, vlasov_M0_1x3v_tensor_p2}, // 2
   // 2x kernels
   {NULL, vlasov_M0_2x2v_tensor_p1, vlasov_M0_2x2v_tensor_p2}, // 3
-  {NULL, vlasov_M0_2x3v_tensor_p1, vlasov_M0_2x3v_tensor_p2}, // 4
+  {NULL, vlasov_M0_2x3v_tensor_p1, NULL}, // 4
   // 3x kernels
   {NULL, NULL, NULL} // 5
 };
@@ -60,7 +60,7 @@ GKYL_CU_D static const gkyl_mom_kern_list ser_m1i_kernels[] = {
   {NULL, vlasov_M1i_1x3v_ser_p1, vlasov_M1i_1x3v_ser_p2}, // 2
   // 2x kernels
   {NULL, vlasov_M1i_2x2v_ser_p1, vlasov_M1i_2x2v_ser_p2}, // 3
-  {NULL, vlasov_M1i_2x3v_ser_p1, vlasov_M1i_2x3v_ser_p2}, // 4
+  {NULL, vlasov_M1i_2x3v_ser_p1, NULL}, // 4
   // 3x kernels
   {NULL, NULL, NULL} // 5
 };
@@ -73,7 +73,7 @@ GKYL_CU_D static const gkyl_mom_kern_list tensor_m1i_kernels[] = {
   {NULL, vlasov_M1i_1x3v_tensor_p1, vlasov_M1i_1x3v_tensor_p2}, // 2
   // 2x kernels
   {NULL, vlasov_M1i_2x2v_tensor_p1, vlasov_M1i_2x2v_tensor_p2}, // 3
-  {NULL, vlasov_M1i_2x3v_tensor_p1, vlasov_M1i_2x3v_tensor_p2}, // 4
+  {NULL, vlasov_M1i_2x3v_tensor_p1, NULL}, // 4
   // 3x kernels
   {NULL, NULL, NULL} // 5
 };
@@ -86,7 +86,7 @@ GKYL_CU_D static const gkyl_mom_kern_list ser_m2_kernels[] = {
   {NULL, vlasov_M2_1x3v_ser_p1, vlasov_M2_1x3v_ser_p2}, // 2
   // 2x kernels
   {NULL, vlasov_M2_2x2v_ser_p1, vlasov_M2_2x2v_ser_p2}, // 3
-  {NULL, vlasov_M2_2x3v_ser_p1, vlasov_M2_2x3v_ser_p2}, // 4
+  {NULL, vlasov_M2_2x3v_ser_p1, NULL}, // 4
   // 3x kernels
   {NULL, NULL, NULL} // 5
 };
@@ -99,7 +99,7 @@ GKYL_CU_D static const gkyl_mom_kern_list tensor_m2_kernels[] = {
   {NULL, vlasov_M2_1x3v_tensor_p1, vlasov_M2_1x3v_tensor_p2}, // 2
   // 2x kernels
   {NULL, vlasov_M2_2x2v_tensor_p1, vlasov_M2_2x2v_tensor_p2}, // 3
-  {NULL, vlasov_M2_2x3v_tensor_p1, vlasov_M2_2x3v_tensor_p2}, // 4
+  {NULL, vlasov_M2_2x3v_tensor_p1, NULL}, // 4
   // 3x kernels
   {NULL, NULL, NULL} // 5
 };
@@ -112,7 +112,7 @@ GKYL_CU_D static const gkyl_mom_kern_list ser_m2ij_kernels[] = {
   {NULL, vlasov_M2ij_1x3v_ser_p1, vlasov_M2ij_1x3v_ser_p2}, // 2
   // 2x kernels
   {NULL, vlasov_M2ij_2x2v_ser_p1, vlasov_M2ij_2x2v_ser_p2}, // 3
-  {NULL, vlasov_M2ij_2x3v_ser_p1, vlasov_M2ij_2x3v_ser_p2}, // 4
+  {NULL, vlasov_M2ij_2x3v_ser_p1, NULL}, // 4
   // 3x kernels
   {NULL, NULL, NULL} // 5
 };
@@ -125,7 +125,7 @@ GKYL_CU_D static const gkyl_mom_kern_list tensor_m2ij_kernels[] = {
   {NULL, vlasov_M2ij_1x3v_tensor_p1, vlasov_M2ij_1x3v_tensor_p2}, // 2
   // 2x kernels
   {NULL, vlasov_M2ij_2x2v_tensor_p1, vlasov_M2ij_2x2v_tensor_p2}, // 3
-  {NULL, vlasov_M2ij_2x3v_tensor_p1, vlasov_M2ij_2x3v_tensor_p2}, // 4
+  {NULL, vlasov_M2ij_2x3v_tensor_p1, NULL}, // 4
   // 3x kernels
   {NULL, NULL, NULL} // 5
 };
@@ -138,7 +138,7 @@ GKYL_CU_D static const gkyl_mom_kern_list ser_m3i_kernels[] = {
   {NULL, vlasov_M3i_1x3v_ser_p1, vlasov_M3i_1x3v_ser_p2}, // 2
   // 2x kernels
   {NULL, vlasov_M3i_2x2v_ser_p1, vlasov_M3i_2x2v_ser_p2}, // 3
-  {NULL, vlasov_M3i_2x3v_ser_p1, vlasov_M3i_2x3v_ser_p2}, // 4
+  {NULL, vlasov_M3i_2x3v_ser_p1, NULL}, // 4
   // 3x kernels
   {NULL, NULL, NULL} // 5
 };
@@ -151,7 +151,7 @@ GKYL_CU_D static const gkyl_mom_kern_list tensor_m3i_kernels[] = {
   {NULL, vlasov_M3i_1x3v_tensor_p1, vlasov_M3i_1x3v_tensor_p2}, // 2
   // 2x kernels
   {NULL, vlasov_M3i_2x2v_tensor_p1, vlasov_M3i_2x2v_tensor_p2}, // 3
-  {NULL, vlasov_M3i_2x3v_tensor_p1, vlasov_M3i_2x3v_tensor_p2}, // 4
+  {NULL, vlasov_M3i_2x3v_tensor_p1, NULL}, // 4
   // 3x kernels
   {NULL, NULL, NULL} // 5
 };
@@ -164,7 +164,7 @@ GKYL_CU_D static const gkyl_mom_kern_list ser_m3ijk_kernels[] = {
   {NULL, vlasov_M3ijk_1x3v_ser_p1, vlasov_M3ijk_1x3v_ser_p2}, // 2
   // 2x kernels
   {NULL, vlasov_M3ijk_2x2v_ser_p1, vlasov_M3ijk_2x2v_ser_p2}, // 3
-  {NULL, vlasov_M3ijk_2x3v_ser_p1, vlasov_M3ijk_2x3v_ser_p2}, // 4
+  {NULL, vlasov_M3ijk_2x3v_ser_p1, NULL}, // 4
   // 3x kernels
   {NULL, NULL, NULL} // 5
 };
@@ -177,7 +177,7 @@ GKYL_CU_D static const gkyl_mom_kern_list tensor_m3ijk_kernels[] = {
   {NULL, vlasov_M3ijk_1x3v_tensor_p1, vlasov_M3ijk_1x3v_tensor_p2}, // 2
   // 2x kernels
   {NULL, vlasov_M3ijk_2x2v_tensor_p1, vlasov_M3ijk_2x2v_tensor_p2}, // 3
-  {NULL, vlasov_M3ijk_2x3v_tensor_p1, vlasov_M3ijk_2x3v_tensor_p2}, // 4
+  {NULL, vlasov_M3ijk_2x3v_tensor_p1, NULL}, // 4
   // 3x kernels
   {NULL, NULL, NULL} // 5
 };
@@ -190,7 +190,7 @@ GKYL_CU_D static const gkyl_mom_kern_list ser_five_moments_kernels[] = {
   {NULL, vlasov_five_moments_1x3v_ser_p1, vlasov_five_moments_1x3v_ser_p2}, // 2
   // 2x kernels
   {NULL, vlasov_five_moments_2x2v_ser_p1, vlasov_five_moments_2x2v_ser_p2}, // 3
-  {NULL, vlasov_five_moments_2x3v_ser_p1, vlasov_five_moments_2x3v_ser_p2}, // 4
+  {NULL, vlasov_five_moments_2x3v_ser_p1, NULL}, // 4
   // 3x kernels
   {NULL, NULL, NULL} // 5
 };
@@ -203,7 +203,7 @@ GKYL_CU_D static const gkyl_mom_kern_list tensor_five_moments_kernels[] = {
   {NULL, vlasov_five_moments_1x3v_tensor_p1, vlasov_five_moments_1x3v_tensor_p2}, // 2
   // 2x kernels
   {NULL, vlasov_five_moments_2x2v_tensor_p1, vlasov_five_moments_2x2v_tensor_p2}, // 3
-  {NULL, vlasov_five_moments_2x3v_tensor_p1, vlasov_five_moments_2x3v_tensor_p2}, // 4
+  {NULL, vlasov_five_moments_2x3v_tensor_p1, NULL}, // 4
   // 3x kernels
   {NULL, NULL, NULL} // 5
 };
@@ -216,7 +216,7 @@ GKYL_CU_D static const gkyl_mom_kern_list ser_int_five_moments_kernels[] = {
   {NULL, vlasov_int_five_moments_1x3v_ser_p1, vlasov_int_five_moments_1x3v_ser_p2}, // 2
   // 2x kernels
   {NULL, vlasov_int_five_moments_2x2v_ser_p1, vlasov_int_five_moments_2x2v_ser_p2}, // 3
-  {NULL, vlasov_int_five_moments_2x3v_ser_p1, vlasov_int_five_moments_2x3v_ser_p2}, // 4
+  {NULL, vlasov_int_five_moments_2x3v_ser_p1, NULL}, // 4
   // 3x kernels
   {NULL, NULL, NULL} // 5
 };
@@ -229,7 +229,7 @@ GKYL_CU_D static const gkyl_mom_kern_list tensor_int_five_moments_kernels[] = {
   {NULL, vlasov_int_five_moments_1x3v_tensor_p1, vlasov_int_five_moments_1x3v_tensor_p2}, // 2
   // 2x kernels
   {NULL, vlasov_int_five_moments_2x2v_tensor_p1, vlasov_int_five_moments_2x2v_tensor_p2}, // 3
-  {NULL, vlasov_int_five_moments_2x3v_tensor_p1, vlasov_int_five_moments_2x3v_tensor_p2}, // 4
+  {NULL, vlasov_int_five_moments_2x3v_tensor_p1, NULL}, // 4
   // 3x kernels
   {NULL, NULL, NULL} // 5
 };

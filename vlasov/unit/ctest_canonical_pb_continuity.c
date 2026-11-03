@@ -1194,23 +1194,6 @@ test_2x3v(int poly_order, enum gkyl_basis_type b_type)
         w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local,
         sgn_alpha_surf_comp_not_used_local
       );
-    } else if (b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
-      int const_sgn_alpha_surf = canonical_pb_alpha_surfx_2x3v_ser_p2(
-        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local,
-        sgn_alpha_surf_comp_not_used_local
-      );
-      int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_2x3v_ser_p2(
-        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local,
-        sgn_alpha_surf_comp_not_used_local
-      );
-      const_sgn_alpha_surf = canonical_pb_alpha_surfy_2x3v_ser_p2(
-        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local,
-        sgn_alpha_surf_comp_not_used_local
-      );
-      const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfy_2x3v_ser_p2(
-        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local,
-        sgn_alpha_surf_comp_not_used_local
-      );
     } else if ((b_type == GKYL_BASIS_MODAL_TENSOR) && (poly_order == 1)) {
       int const_sgn_alpha_surf = canonical_pb_alpha_surfx_2x3v_tensor_p1(
         w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local,
@@ -1359,7 +1342,7 @@ test_canonical_pb_2x2v_p2_continuity_ser_ho()
 {
   test_2x2v(2, GKYL_BASIS_MODAL_SERENDIPITY);
 }
-// Check the 2x3v_p1/2 continuity
+// Check the 2x3v p1 continuity
 void
 test_canonical_pb_2x3v_p1_continuity_tensor_ho()
 {
@@ -1369,11 +1352,6 @@ void
 test_canonical_pb_2x3v_p1_continuity_ser_ho()
 {
   test_2x3v(1, GKYL_BASIS_MODAL_SERENDIPITY);
-}
-void
-test_canonical_pb_2x3v_p2_continuity_ser_ho()
-{
-  test_2x3v(2, GKYL_BASIS_MODAL_SERENDIPITY);
 }
 TEST_LIST = {
   {"test_canonical_pb_1x1v_p1_continuity_tensor_ho", test_canonical_pb_1x1v_p1_continuity_tensor_ho
@@ -1403,6 +1381,5 @@ TEST_LIST = {
   {"test_canonical_pb_2x3v_p1_continuity_tensor_ho", test_canonical_pb_2x3v_p1_continuity_tensor_ho
   },
   {"test_canonical_pb_2x3v_p1_continuity_ser_ho", test_canonical_pb_2x3v_p1_continuity_ser_ho},
-  {"test_canonical_pb_2x3v_p2_continuity_ser_ho", test_canonical_pb_2x3v_p2_continuity_ser_ho},
   {NULL, NULL}
 };

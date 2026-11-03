@@ -214,20 +214,6 @@ kernel_canonical_pb_vol_2x3v_ser_p1(
   );
 }
 
-GKYL_CU_DH static double
-kernel_canonical_pb_vol_2x3v_ser_p2(
-  const struct gkyl_dg_eqn *eqn, const double *xc, const double *dx, const int *idx,
-  const double *qIn, double *GKYL_RESTRICT qRhsOut
-)
-{
-  struct dg_canonical_pb *canonical_pb = container_of(eqn, struct dg_canonical_pb, eqn);
-  long pidx = gkyl_range_idx(&canonical_pb->phase_range, idx);
-
-  return canonical_pb_vol_2x3v_ser_p2(
-    xc, dx, (const double *)gkyl_array_cfetch(canonical_pb->auxfields.hamil, pidx), qIn, qRhsOut
-  );
-}
-
 // Volume kernel list
 GKYL_CU_D static const gkyl_dg_canonical_pb_vol_kern_list ser_vol_kernels[] = {
   // 1x kernels
@@ -236,7 +222,7 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_vol_kern_list ser_vol_kernels[] = {
   {NULL, kernel_canonical_pb_vol_1x3v_ser_p1, kernel_canonical_pb_vol_1x3v_ser_p2}, // 2
   // 2x kernels
   {NULL, kernel_canonical_pb_vol_2x2v_ser_p1, kernel_canonical_pb_vol_2x2v_ser_p2}, // 3
-  {NULL, kernel_canonical_pb_vol_2x3v_ser_p1, kernel_canonical_pb_vol_2x3v_ser_p2}, // 4
+  {NULL, kernel_canonical_pb_vol_2x3v_ser_p1, NULL}, // 4
   // 3x kernels
   {NULL, NULL, NULL} // 5
 };
@@ -253,7 +239,7 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_stream_surf_kern_list ser_stream_sur
   {NULL, canonical_pb_surfx_1x3v_ser_p1, canonical_pb_surfx_1x3v_ser_p2}, // 2
   // 2x kernels
   {NULL, canonical_pb_surfx_2x2v_ser_p1, canonical_pb_surfx_2x2v_ser_p2}, // 3
-  {NULL, canonical_pb_surfx_2x3v_ser_p1, canonical_pb_surfx_2x3v_ser_p2}, // 4
+  {NULL, canonical_pb_surfx_2x3v_ser_p1, NULL}, // 4
   // 3x kernels
   {NULL, NULL, NULL} // 5
 };
@@ -266,7 +252,7 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_stream_surf_kern_list ser_stream_sur
   {NULL, NULL, NULL}, // 2
   // 2x kernels
   {NULL, canonical_pb_surfy_2x2v_ser_p1, canonical_pb_surfy_2x2v_ser_p2}, // 3
-  {NULL, canonical_pb_surfy_2x3v_ser_p1, canonical_pb_surfy_2x3v_ser_p2}, // 4
+  {NULL, canonical_pb_surfy_2x3v_ser_p1, NULL}, // 4
   // 3x kernels
   {NULL, NULL, NULL} // 5
 };
@@ -292,7 +278,7 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_accel_surf_kern_list ser_accel_surf_
   {NULL, canonical_pb_surfvx_1x3v_ser_p1, canonical_pb_surfvx_1x3v_ser_p2}, // 2
   // 2x kernels
   {NULL, canonical_pb_surfvx_2x2v_ser_p1, canonical_pb_surfvx_2x2v_ser_p2}, // 3
-  {NULL, canonical_pb_surfvx_2x3v_ser_p1, canonical_pb_surfvx_2x3v_ser_p2}, // 4
+  {NULL, canonical_pb_surfvx_2x3v_ser_p1, NULL}, // 4
   // 3x kernels
   {NULL, NULL, NULL} // 5
 };
@@ -305,7 +291,7 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_accel_surf_kern_list ser_accel_surf_
   {NULL, canonical_pb_surfvy_1x3v_ser_p1, canonical_pb_surfvy_1x3v_ser_p2}, // 2
   // 2x kernels
   {NULL, canonical_pb_surfvy_2x2v_ser_p1, canonical_pb_surfvy_2x2v_ser_p2}, // 3
-  {NULL, canonical_pb_surfvy_2x3v_ser_p1, canonical_pb_surfvy_2x3v_ser_p2}, // 4
+  {NULL, canonical_pb_surfvy_2x3v_ser_p1, NULL}, // 4
   // 3x kernels
   {NULL, NULL, NULL} // 5
 };
@@ -318,7 +304,7 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_accel_surf_kern_list ser_accel_surf_
   {NULL, canonical_pb_surfvz_1x3v_ser_p1, canonical_pb_surfvz_1x3v_ser_p2}, // 2
   // 2x kernels
   {NULL, NULL, NULL}, // 3
-  {NULL, canonical_pb_surfvz_2x3v_ser_p1, canonical_pb_surfvz_2x3v_ser_p2}, // 4
+  {NULL, canonical_pb_surfvz_2x3v_ser_p1, NULL}, // 4
   // 3x kernels
   {NULL, NULL, NULL} // 5
 };
@@ -332,7 +318,7 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_accel_boundary_surf_kern_list
     {NULL, canonical_pb_boundary_surfvx_1x3v_ser_p1, canonical_pb_boundary_surfvx_1x3v_ser_p2}, // 2
     // 2x kernels
     {NULL, canonical_pb_boundary_surfvx_2x2v_ser_p1, canonical_pb_boundary_surfvx_2x2v_ser_p2}, // 3
-    {NULL, canonical_pb_boundary_surfvx_2x3v_ser_p1, canonical_pb_boundary_surfvx_2x3v_ser_p2}, // 4
+    {NULL, canonical_pb_boundary_surfvx_2x3v_ser_p1, NULL}, // 4
     // 3x kernels
     {NULL, NULL, NULL} // 5
 };
@@ -346,7 +332,7 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_accel_boundary_surf_kern_list
     {NULL, canonical_pb_boundary_surfvy_1x3v_ser_p1, canonical_pb_boundary_surfvy_1x3v_ser_p2}, // 2
     // 2x kernels
     {NULL, canonical_pb_boundary_surfvy_2x2v_ser_p1, canonical_pb_boundary_surfvy_2x2v_ser_p2}, // 3
-    {NULL, canonical_pb_boundary_surfvy_2x3v_ser_p1, canonical_pb_boundary_surfvy_2x3v_ser_p2}, // 4
+    {NULL, canonical_pb_boundary_surfvy_2x3v_ser_p1, NULL}, // 4
     // 3x kernels
     {NULL, NULL, NULL} // 5
 };
@@ -360,7 +346,7 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_accel_boundary_surf_kern_list
     {NULL, canonical_pb_boundary_surfvz_1x3v_ser_p1, canonical_pb_boundary_surfvz_1x3v_ser_p2}, // 2
     // 2x kernels
     {NULL, NULL, NULL}, // 3
-    {NULL, canonical_pb_boundary_surfvz_2x3v_ser_p1, canonical_pb_boundary_surfvz_2x3v_ser_p2}, // 4
+    {NULL, canonical_pb_boundary_surfvz_2x3v_ser_p1, NULL}, // 4
     // 3x kernels
     {NULL, NULL, NULL} // 5
 };
@@ -374,7 +360,7 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_stream_boundary_surf_kern_list
     {NULL, canonical_pb_boundary_surfx_1x3v_ser_p1, canonical_pb_boundary_surfx_1x3v_ser_p2}, // 2
     // 2x kernels
     {NULL, canonical_pb_boundary_surfx_2x2v_ser_p1, canonical_pb_boundary_surfx_2x2v_ser_p2}, // 3
-    {NULL, canonical_pb_boundary_surfx_2x3v_ser_p1, canonical_pb_boundary_surfx_2x3v_ser_p2}, // 4
+    {NULL, canonical_pb_boundary_surfx_2x3v_ser_p1, NULL}, // 4
     // 3x kernels
     {NULL, NULL, NULL} // 5
 };
@@ -388,7 +374,7 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_stream_boundary_surf_kern_list
     {NULL, NULL, NULL}, // 2
     // 2x kernels
     {NULL, canonical_pb_boundary_surfy_2x2v_ser_p1, canonical_pb_boundary_surfy_2x2v_ser_p2}, // 3
-    {NULL, canonical_pb_boundary_surfy_2x3v_ser_p1, canonical_pb_boundary_surfy_2x3v_ser_p2}, // 4
+    {NULL, canonical_pb_boundary_surfy_2x3v_ser_p1, NULL}, // 4
     // 3x kernels
     {NULL, NULL, NULL} // 5
 };

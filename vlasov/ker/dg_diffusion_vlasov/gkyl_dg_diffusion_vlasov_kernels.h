@@ -208,31 +208,7 @@ GKYL_CU_DH double dg_diffusion_vlasov_order6_boundary_surfy_2x2v_ser_p2_constcoe
 GKYL_CU_DH double dg_diffusion_vlasov_order6_surfy_2x2v_ser_p2_varcoeff(const double *w, const double *dx, const double *coeff, const double *ql, const double *qc, const double *qr, double* GKYL_RESTRICT out);
 GKYL_CU_DH double dg_diffusion_vlasov_order6_boundary_surfy_2x2v_ser_p2_varcoeff(const double *w, const double *dx, const double *coeff, int edge, const double *fSkin, const double *fEdge, double* GKYL_RESTRICT out);
 
-GKYL_CU_DH double dg_diffusion_vlasov_order2_surfx_2x3v_ser_p2_constcoeff(const double *w, const double *dx, const double *coeff, const double *ql, const double *qc, const double *qr, double* GKYL_RESTRICT out);
-GKYL_CU_DH double dg_diffusion_vlasov_order2_boundary_surfx_2x3v_ser_p2_constcoeff(const double *w, const double *dx, const double *coeff, int edge, const double *fSkin, const double *fEdge, double* GKYL_RESTRICT out);
-GKYL_CU_DH double dg_diffusion_vlasov_order2_surfx_2x3v_ser_p2_varcoeff(const double *w, const double *dx, const double *coeff, const double *ql, const double *qc, const double *qr, double* GKYL_RESTRICT out);
-GKYL_CU_DH double dg_diffusion_vlasov_order2_boundary_surfx_2x3v_ser_p2_varcoeff(const double *w, const double *dx, const double *coeff, int edge, const double *fSkin, const double *fEdge, double* GKYL_RESTRICT out);
-GKYL_CU_DH double dg_diffusion_vlasov_order4_surfx_2x3v_ser_p2_constcoeff(const double *w, const double *dx, const double *coeff, const double *ql, const double *qc, const double *qr, double* GKYL_RESTRICT out);
-GKYL_CU_DH double dg_diffusion_vlasov_order4_boundary_surfx_2x3v_ser_p2_constcoeff(const double *w, const double *dx, const double *coeff, int edge, const double *fSkin, const double *fEdge, double* GKYL_RESTRICT out);
-GKYL_CU_DH double dg_diffusion_vlasov_order4_surfx_2x3v_ser_p2_varcoeff(const double *w, const double *dx, const double *coeff, const double *ql, const double *qc, const double *qr, double* GKYL_RESTRICT out);
-GKYL_CU_DH double dg_diffusion_vlasov_order4_boundary_surfx_2x3v_ser_p2_varcoeff(const double *w, const double *dx, const double *coeff, int edge, const double *fSkin, const double *fEdge, double* GKYL_RESTRICT out);
-GKYL_CU_DH double dg_diffusion_vlasov_order6_surfx_2x3v_ser_p2_constcoeff(const double *w, const double *dx, const double *coeff, const double *ql, const double *qc, const double *qr, double* GKYL_RESTRICT out);
-GKYL_CU_DH double dg_diffusion_vlasov_order6_boundary_surfx_2x3v_ser_p2_constcoeff(const double *w, const double *dx, const double *coeff, int edge, const double *fSkin, const double *fEdge, double* GKYL_RESTRICT out);
-GKYL_CU_DH double dg_diffusion_vlasov_order6_surfx_2x3v_ser_p2_varcoeff(const double *w, const double *dx, const double *coeff, const double *ql, const double *qc, const double *qr, double* GKYL_RESTRICT out);
-GKYL_CU_DH double dg_diffusion_vlasov_order6_boundary_surfx_2x3v_ser_p2_varcoeff(const double *w, const double *dx, const double *coeff, int edge, const double *fSkin, const double *fEdge, double* GKYL_RESTRICT out);
 
-GKYL_CU_DH double dg_diffusion_vlasov_order2_surfy_2x3v_ser_p2_constcoeff(const double *w, const double *dx, const double *coeff, const double *ql, const double *qc, const double *qr, double* GKYL_RESTRICT out);
-GKYL_CU_DH double dg_diffusion_vlasov_order2_boundary_surfy_2x3v_ser_p2_constcoeff(const double *w, const double *dx, const double *coeff, int edge, const double *fSkin, const double *fEdge, double* GKYL_RESTRICT out);
-GKYL_CU_DH double dg_diffusion_vlasov_order2_surfy_2x3v_ser_p2_varcoeff(const double *w, const double *dx, const double *coeff, const double *ql, const double *qc, const double *qr, double* GKYL_RESTRICT out);
-GKYL_CU_DH double dg_diffusion_vlasov_order2_boundary_surfy_2x3v_ser_p2_varcoeff(const double *w, const double *dx, const double *coeff, int edge, const double *fSkin, const double *fEdge, double* GKYL_RESTRICT out);
-GKYL_CU_DH double dg_diffusion_vlasov_order4_surfy_2x3v_ser_p2_constcoeff(const double *w, const double *dx, const double *coeff, const double *ql, const double *qc, const double *qr, double* GKYL_RESTRICT out);
-GKYL_CU_DH double dg_diffusion_vlasov_order4_boundary_surfy_2x3v_ser_p2_constcoeff(const double *w, const double *dx, const double *coeff, int edge, const double *fSkin, const double *fEdge, double* GKYL_RESTRICT out);
-GKYL_CU_DH double dg_diffusion_vlasov_order4_surfy_2x3v_ser_p2_varcoeff(const double *w, const double *dx, const double *coeff, const double *ql, const double *qc, const double *qr, double* GKYL_RESTRICT out);
-GKYL_CU_DH double dg_diffusion_vlasov_order4_boundary_surfy_2x3v_ser_p2_varcoeff(const double *w, const double *dx, const double *coeff, int edge, const double *fSkin, const double *fEdge, double* GKYL_RESTRICT out);
-GKYL_CU_DH double dg_diffusion_vlasov_order6_surfy_2x3v_ser_p2_constcoeff(const double *w, const double *dx, const double *coeff, const double *ql, const double *qc, const double *qr, double* GKYL_RESTRICT out);
-GKYL_CU_DH double dg_diffusion_vlasov_order6_boundary_surfy_2x3v_ser_p2_constcoeff(const double *w, const double *dx, const double *coeff, int edge, const double *fSkin, const double *fEdge, double* GKYL_RESTRICT out);
-GKYL_CU_DH double dg_diffusion_vlasov_order6_surfy_2x3v_ser_p2_varcoeff(const double *w, const double *dx, const double *coeff, const double *ql, const double *qc, const double *qr, double* GKYL_RESTRICT out);
-GKYL_CU_DH double dg_diffusion_vlasov_order6_boundary_surfy_2x3v_ser_p2_varcoeff(const double *w, const double *dx, const double *coeff, int edge, const double *fSkin, const double *fEdge, double* GKYL_RESTRICT out);
 
 GKYL_CU_DH double dg_diffusion_vlasov_order2_vol_3x_ser_p2_constcoeff_diffdirsx(const double *w, const double *dx, const double *coeff, const double *q, double* GKYL_RESTRICT out);
 GKYL_CU_DH double dg_diffusion_vlasov_order2_vol_3x_ser_p2_constcoeff_diffdirsxy(const double *w, const double *dx, const double *coeff, const double *q, double* GKYL_RESTRICT out);

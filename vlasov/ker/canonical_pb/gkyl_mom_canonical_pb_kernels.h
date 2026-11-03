@@ -39,9 +39,6 @@ GKYL_CU_DH void canonical_pb_M1i_from_H_2x3v_ser_p1(const double *dxv, const dou
 GKYL_CU_DH void canonical_pb_MEnergy_2x3v_ser_p1(const double *dxv, const double *hamil, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void canonical_pb_int_five_moments_2x3v_ser_p1(const double *dxv, const double *hamil, const double *f, double* GKYL_RESTRICT out); 
 
-GKYL_CU_DH void canonical_pb_M1i_from_H_2x3v_ser_p2(const double *dxv, const double *hamil, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void canonical_pb_MEnergy_2x3v_ser_p2(const double *dxv, const double *hamil, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void canonical_pb_int_five_moments_2x3v_ser_p2(const double *dxv, const double *hamil, const double *f, double* GKYL_RESTRICT out); 
 
 GKYL_CU_DH void canonical_pb_M1i_from_H_1x1v_tensor_p1(const double *dxv, const double *hamil, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void canonical_pb_MEnergy_1x1v_tensor_p1(const double *dxv, const double *hamil, const double *f, double* GKYL_RESTRICT out); 
