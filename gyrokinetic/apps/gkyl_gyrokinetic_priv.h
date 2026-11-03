@@ -19,6 +19,7 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_array_reduce.h>
 #include <gkyl_array_dg_reduce.h>
+#include <gkyl_gyrokinetic_omega_h.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_bc_basic.h>
 #include <gkyl_bc_basic_gyrokinetic.h>
@@ -1447,7 +1448,6 @@ struct gk_species {
   double dt_omegaH; // Recorded at the end of the rhs evaluation.
   double dt_cfl_global_ho; // Global maximum Omega_CFL across all MPI processes.
   double *omega_cfl; // Maximum Omega_CFL in this MPI process.
-  double *m0_max; // Maximum number density in this MPI process.
 };
 
 // Neutral species data.
@@ -1844,7 +1844,7 @@ struct gkyl_gyrokinetic_app {
   struct gkyl_dg_geom *dg_geom;
   struct gkyl_gk_dg_geom *gk_dg_geom;
   struct gkyl_array *jacobtot_inv_weak; // 1/(J.B) computed via weak mul and div.
-  double omegaH_gf; // Geometry and field model dependent part of omega_H.
+  struct gkyl_gyrokinetic_omega_h *omegaH; // Local density/geometry frequency estimator.
   // Shift (for TS BC) as a function of x, and objects associated with it.
   struct gkyl_range delta_ts_x_rng;
   struct gkyl_basis delta_ts_x_basis;
