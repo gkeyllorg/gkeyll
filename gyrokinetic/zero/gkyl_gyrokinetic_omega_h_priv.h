@@ -5,7 +5,8 @@
 struct gkyl_gyrokinetic_omega_h {
   struct gkyl_range range;
   struct gkyl_array *basis_at_nodes; // Basis values, one sample per array element.
-  struct gkyl_array *weight_sq; // G^2 at each sample, one configuration cell per element.
+  // omegaH_geo_fac^2 at each sample, one configuration cell per element.
+  struct gkyl_array *omegaH_geo_fac_sq;
   double *max_dev; // Scalar device reduction result; NULL on CPU.
   bool use_gpu;
 };
@@ -14,13 +15,13 @@ struct gkyl_gyrokinetic_omega_h {
  * Evaluate the local product at each cached point and return its maximum.
  *
  * @param basis_at_nodes Basis evaluations, including the cell center.
- * @param weight_sq Cached G^2 at the evaluation points of this cell.
+ * @param omegaH_geo_fac_sq Cached omegaH_geo_fac^2 at the evaluation points of this cell.
  * @param density Modal Jn coefficients for this cell.
- * @return Nonnegative maximum sampled Jn*G^2 in this cell.
+ * @return Nonnegative maximum sampled Jn*omegaH_geo_fac^2 in this cell.
  */
 GKYL_CU_DH static inline double
 gyrokinetic_omega_h_cell_max(
-  const struct gkyl_array *basis_at_nodes, const double *weight_sq, const double *density
+  const struct gkyl_array *basis_at_nodes, const double *omegaH_geo_fac_sq, const double *density
 )
 {
   double max_value = 0.0;
@@ -30,7 +31,7 @@ gyrokinetic_omega_h_cell_max(
     for (size_t mode = 0; mode < basis_at_nodes->ncomp; ++mode) {
       density_nodal += density[mode] * basis_val[mode];
     }
-    max_value = fmax(max_value, fmax(0.0, density_nodal) * weight_sq[node]);
+    max_value = fmax(max_value, fmax(0.0, density_nodal) * omegaH_geo_fac_sq[node]);
   }
   return max_value;
 }

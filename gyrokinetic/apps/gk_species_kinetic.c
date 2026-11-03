@@ -5,8 +5,8 @@ gk_species_kinetic_omegaH_dt(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, const struct gkyl_array *fin
 )
 {
-  // Evaluate Jn_s and the cached geometry factor G at the same quadrature
-  // points and cell centers before reducing: omega_Hs^2 = q_s^2/m_s max(Jn_s G^2).
+  // Evaluate Jn_s and the cached omegaH_geo_fac at the same quadrature
+  // points and cell centers before reducing: omega_Hs^2 = q_s^2/m_s max(Jn_s omegaH_geo_fac^2).
   // The final timestep reduction across species, ranks and blocks remains in the app.
   if (!(app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN || app->field->has_adiabatic_species)) {
     gk_species_moment_calc(app, &gks->m0, gks->local, app->local, fin);

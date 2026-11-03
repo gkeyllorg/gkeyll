@@ -4,18 +4,18 @@ extern "C" {
 }
 
 /**
- * Reduce sampled Jn*G^2 across cells, with one nonnegative atomic maximum per block.
+ * Reduce sampled Jn*omegaH_geo_fac^2 across cells, with one nonnegative atomic maximum per block.
  *
  * @param range Interior range indexing both density and cached weights.
  * @param basis_at_nodes Device basis evaluations at all samples.
- * @param weight_sq Device cached G^2 values.
+ * @param omegaH_geo_fac_sq Device cached omegaH_geo_fac^2 values.
  * @param density Device modal Jn coefficients.
  * @param max_out Device scalar initialized to zero before this kernel is launched.
  */
 __global__ static void
 gyrokinetic_omega_h_max_kernel(
   struct gkyl_range range, const struct gkyl_array *basis_at_nodes,
-  const struct gkyl_array *weight_sq, const struct gkyl_array *density, double *max_out
+  const struct gkyl_array *omegaH_geo_fac_sq, const struct gkyl_array *density, double *max_out
 )
 {
   __shared__ double block_max[GKYL_DEFAULT_NUM_THREADS];
@@ -27,7 +27,7 @@ gyrokinetic_omega_h_max_kernel(
     long loc = gkyl_range_idx(&range, idx);
     max_value = fmax(
       max_value, gyrokinetic_omega_h_cell_max(
-                   basis_at_nodes, (const double *)gkyl_array_cfetch(weight_sq, loc),
+                   basis_at_nodes, (const double *)gkyl_array_cfetch(omegaH_geo_fac_sq, loc),
                    (const double *)gkyl_array_cfetch(density, loc)
                  )
     );
@@ -56,7 +56,8 @@ gkyl_gyrokinetic_omega_h_advance_cu(
     int nblocks =
       GKYL_MIN2(256, (up->range.volume + GKYL_DEFAULT_NUM_THREADS - 1) / GKYL_DEFAULT_NUM_THREADS);
     gyrokinetic_omega_h_max_kernel<<<nblocks, GKYL_DEFAULT_NUM_THREADS>>>(
-      up->range, up->basis_at_nodes->on_dev, up->weight_sq->on_dev, density->on_dev, up->max_dev
+      up->range, up->basis_at_nodes->on_dev, up->omegaH_geo_fac_sq->on_dev, density->on_dev,
+      up->max_dev
     );
   }
   double max_value;

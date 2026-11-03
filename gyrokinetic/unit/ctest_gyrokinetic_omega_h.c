@@ -5,7 +5,7 @@
 #include <gkyl_gyrokinetic_omega_h.h>
 
 /**
- * Evaluate analytic density and geometry fields representable in the tested basis.
+ * Evaluate analytic density and geometry-factor fields representable in the tested basis.
  *
  * @param kind Manufactured test case.
  * @param ndim Configuration dimension.
@@ -13,43 +13,43 @@
  * @param cell_tag First (1), last (2), or other (0) radial cell.
  * @param xc Coordinates in the reference cell.
  * @param density Output Jacobian-weighted density.
- * @param geometry Output geometry factor.
+ * @param omegaH_geo_fac Output geometry/polarization factor.
  */
 static void
 sample_fields(
   int kind, int ndim, int poly_order, int cell_tag, const double *xc, double *density,
-  double *geometry
+  double *omegaH_geo_fac
 )
 {
   *density = 9.0;
-  *geometry = 2.0;
+  *omegaH_geo_fac = 2.0;
   if (kind == 1) {
     *density = cell_tag == 1 ? 100.0 : 1.0;
-    *geometry = cell_tag == 1 ? 1.0 : 10.0;
+    *omegaH_geo_fac = cell_tag == 1 ? 1.0 : 10.0;
   } else if (kind == 2) {
     *density = 4.0;
-    *geometry = 2.0;
+    *omegaH_geo_fac = 2.0;
     for (int dir = 0; dir < ndim; ++dir) {
       *density += 0.2 * (dir + 1) * xc[dir];
-      *geometry += 0.1 * (dir + 1) * xc[dir];
+      *omegaH_geo_fac += 0.1 * (dir + 1) * xc[dir];
       if (poly_order == 2) {
         *density -= 0.1 * xc[dir] * xc[dir];
-        *geometry -= 0.2 * xc[dir] * xc[dir];
+        *omegaH_geo_fac -= 0.2 * xc[dir] * xc[dir];
       }
     }
   } else if (kind == 3) {
     // For p1 the product peaks at the center, above both Gauss-node values.
     *density = 1.0 + xc[0];
-    *geometry = 1.0 - 0.5 * xc[0];
+    *omegaH_geo_fac = 1.0 - 0.5 * xc[0];
   } else if (kind == 5) {
     *density = cell_tag == 2 ? 121.0 : 1.0;
-    *geometry = 1.0;
+    *omegaH_geo_fac = 1.0;
   } else if (kind == 6) {
     *density = 9.0;
-    *geometry = -2.0;
+    *omegaH_geo_fac = -2.0;
   } else if (kind == 4) {
     *density = -2.0;
-    *geometry = 3.0;
+    *omegaH_geo_fac = 3.0;
   }
 }
 
@@ -86,22 +86,23 @@ check_estimator(int ndim, int poly_order, bool tensor, bool use_gpu)
   gkyl_range_init(&local_ext, ndim, ext_lower, ext_upper);
   gkyl_sub_range_init(&local, &local_ext, lower, upper);
   struct gkyl_array *density = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
-  struct gkyl_array *geometry = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+  struct gkyl_array *omegaH_geo_fac =
+    gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
   struct gkyl_array *density_dev =
     use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume) :
               gkyl_array_acquire(density);
-  struct gkyl_array *geometry_dev =
+  struct gkyl_array *omegaH_geo_fac_dev =
     use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume) :
-              gkyl_array_acquire(geometry);
+              gkyl_array_acquire(omegaH_geo_fac);
   double *nodes = gkyl_malloc(ndim * basis.num_basis * sizeof(double));
   double *density_nodal = gkyl_malloc(basis.num_basis * sizeof(double));
-  double *geometry_nodal = gkyl_malloc(basis.num_basis * sizeof(double));
+  double *omegaH_geo_fac_nodal = gkyl_malloc(basis.num_basis * sizeof(double));
   basis.node_list(nodes);
 
   for (int kind = 0; kind < 7; ++kind) {
     // Large ghost coefficients must never enter the interior maximum.
     gkyl_array_clear(density, 1e8);
-    gkyl_array_clear(geometry, 1e8);
+    gkyl_array_clear(omegaH_geo_fac, 1e8);
     double expected = 0.0;
     struct gkyl_range_iter iter;
     gkyl_range_iter_init(&iter, &local);
@@ -111,17 +112,17 @@ check_estimator(int ndim, int poly_order, bool tensor, bool use_gpu)
       for (int node = 0; node < basis.num_basis; ++node) {
         sample_fields(
           kind, ndim, poly_order, cell_tag, &nodes[node * ndim], &density_nodal[node],
-          &geometry_nodal[node]
+          &omegaH_geo_fac_nodal[node]
         );
       }
       basis.nodal_to_modal(density_nodal, gkyl_array_fetch(density, loc));
-      basis.nodal_to_modal(geometry_nodal, gkyl_array_fetch(geometry, loc));
+      basis.nodal_to_modal(omegaH_geo_fac_nodal, gkyl_array_fetch(omegaH_geo_fac, loc));
       int num_quad = 1;
       for (int dir = 0; dir < ndim; ++dir) {
         num_quad *= poly_order + 1;
       }
       for (int node = 0; node <= num_quad; ++node) {
-        double xc[3] = {0.0}, density_ref, geometry_ref;
+        double xc[3] = {0.0}, density_ref, omegaH_geo_fac_ref;
         int ordinal = node;
         if (node < num_quad) {
           for (int dir = 0; dir < ndim; ++dir) {
@@ -129,14 +130,14 @@ check_estimator(int ndim, int poly_order, bool tensor, bool use_gpu)
             ordinal /= poly_order + 1;
           }
         }
-        sample_fields(kind, ndim, poly_order, cell_tag, xc, &density_ref, &geometry_ref);
-        expected = fmax(expected, fmax(0.0, density_ref) * geometry_ref * geometry_ref);
+        sample_fields(kind, ndim, poly_order, cell_tag, xc, &density_ref, &omegaH_geo_fac_ref);
+        expected = fmax(expected, fmax(0.0, density_ref) * omegaH_geo_fac_ref * omegaH_geo_fac_ref);
       }
     }
     gkyl_array_copy(density_dev, density);
-    gkyl_array_copy(geometry_dev, geometry);
+    gkyl_array_copy(omegaH_geo_fac_dev, omegaH_geo_fac);
     struct gkyl_gyrokinetic_omega_h *up =
-      gkyl_gyrokinetic_omega_h_new(&basis, &local, geometry_dev, use_gpu);
+      gkyl_gyrokinetic_omega_h_new(&basis, &local, omegaH_geo_fac_dev, use_gpu);
     double result = gkyl_gyrokinetic_omega_h_advance(up, density_dev);
     TEST_CHECK(gkyl_compare_double(result, expected, 2e-13));
     TEST_MSG(
@@ -168,7 +169,7 @@ check_estimator(int ndim, int poly_order, bool tensor, bool use_gpu)
       struct gkyl_range split;
       gkyl_sub_range_init(&split, &local_ext, split_lo, split_up);
       struct gkyl_gyrokinetic_omega_h *part_up =
-        gkyl_gyrokinetic_omega_h_new(&basis, &split, geometry_dev, use_gpu);
+        gkyl_gyrokinetic_omega_h_new(&basis, &split, omegaH_geo_fac_dev, use_gpu);
       split_max = fmax(split_max, gkyl_gyrokinetic_omega_h_advance(part_up, density_dev));
       gkyl_gyrokinetic_omega_h_release(part_up);
     }
@@ -187,17 +188,17 @@ check_estimator(int ndim, int poly_order, bool tensor, bool use_gpu)
   struct gkyl_range empty;
   gkyl_sub_range_init(&empty, &local_ext, lower, empty_upper);
   struct gkyl_gyrokinetic_omega_h *empty_up =
-    gkyl_gyrokinetic_omega_h_new(&basis, &empty, geometry_dev, use_gpu);
+    gkyl_gyrokinetic_omega_h_new(&basis, &empty, omegaH_geo_fac_dev, use_gpu);
   TEST_CHECK(gkyl_gyrokinetic_omega_h_advance(empty_up, density_dev) == 0.0);
   gkyl_gyrokinetic_omega_h_release(empty_up);
   gkyl_gyrokinetic_omega_h_release(NULL);
   gkyl_free(nodes);
   gkyl_free(density_nodal);
-  gkyl_free(geometry_nodal);
+  gkyl_free(omegaH_geo_fac_nodal);
   gkyl_array_release(density);
-  gkyl_array_release(geometry);
+  gkyl_array_release(omegaH_geo_fac);
   gkyl_array_release(density_dev);
-  gkyl_array_release(geometry_dev);
+  gkyl_array_release(omegaH_geo_fac_dev);
 }
 
 /**

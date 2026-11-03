@@ -6,18 +6,19 @@
 struct gkyl_gyrokinetic_omega_h *
 gkyl_gyrokinetic_omega_h_new(
   const struct gkyl_basis *basis, const struct gkyl_range *range,
-  const struct gkyl_array *geo_factor, bool use_gpu
+  const struct gkyl_array *omegaH_geo_fac, bool use_gpu
 )
 {
-  assert(basis->num_quad > 0 && geo_factor->ncomp == basis->num_basis);
-  assert(use_gpu == gkyl_array_is_cu_dev(geo_factor));
+  assert(basis->num_quad > 0 && omegaH_geo_fac->ncomp == basis->num_basis);
+  assert(use_gpu == gkyl_array_is_cu_dev(omegaH_geo_fac));
   struct gkyl_gyrokinetic_omega_h *up = gkyl_malloc(sizeof(*up));
   up->range = *range;
   up->use_gpu = use_gpu;
   up->max_dev = NULL;
   int num_samples = basis->num_quad + 1;
   struct gkyl_array *basis_at_nodes = gkyl_array_new(GKYL_DOUBLE, basis->num_basis, num_samples);
-  struct gkyl_array *weight_sq = gkyl_array_new(GKYL_DOUBLE, num_samples, geo_factor->size);
+  struct gkyl_array *omegaH_geo_fac_sq =
+    gkyl_array_new(GKYL_DOUBLE, num_samples, omegaH_geo_fac->size);
 
   // Evaluate each basis mode at the basis's quadrature nodes and at the center.
   double *unit_mode = gkyl_calloc(basis->num_basis, sizeof(double));
@@ -37,39 +38,40 @@ gkyl_gyrokinetic_omega_h_new(
   gkyl_free(nodal);
 
   // Initialization alone transfers the modal geometry to the host for caching.
-  struct gkyl_array *geo_ho = use_gpu ?
-                                gkyl_array_new(GKYL_DOUBLE, geo_factor->ncomp, geo_factor->size) :
-                                gkyl_array_acquire(geo_factor);
+  struct gkyl_array *omegaH_geo_fac_ho =
+    use_gpu ? gkyl_array_new(GKYL_DOUBLE, omegaH_geo_fac->ncomp, omegaH_geo_fac->size) :
+              gkyl_array_acquire(omegaH_geo_fac);
   if (use_gpu) {
-    gkyl_array_copy(geo_ho, geo_factor);
+    gkyl_array_copy(omegaH_geo_fac_ho, omegaH_geo_fac);
   }
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, range);
   while (gkyl_range_iter_next(&iter)) {
     long loc = gkyl_range_idx(range, iter.idx);
-    const double *geo = gkyl_array_cfetch(geo_ho, loc);
-    double *weight = gkyl_array_fetch(weight_sq, loc);
+    const double *omegaH_geo_fac_d = gkyl_array_cfetch(omegaH_geo_fac_ho, loc);
+    double *omegaH_geo_fac_sq_d = gkyl_array_fetch(omegaH_geo_fac_sq, loc);
     for (int node = 0; node < num_samples; ++node) {
       const double *basis_val = gkyl_array_cfetch(basis_at_nodes, node);
       double value = 0.0;
       for (int mode = 0; mode < basis->num_basis; ++mode) {
-        value += geo[mode] * basis_val[mode];
+        value += omegaH_geo_fac_d[mode] * basis_val[mode];
       }
-      weight[node] = value * value;
+      omegaH_geo_fac_sq_d[node] = value * value;
     }
   }
-  gkyl_array_release(geo_ho);
+  gkyl_array_release(omegaH_geo_fac_ho);
 
   up->basis_at_nodes = basis_at_nodes;
-  up->weight_sq = weight_sq;
+  up->omegaH_geo_fac_sq = omegaH_geo_fac_sq;
   if (use_gpu) {
     up->basis_at_nodes =
       gkyl_array_cu_dev_new(GKYL_DOUBLE, basis_at_nodes->ncomp, basis_at_nodes->size);
-    up->weight_sq = gkyl_array_cu_dev_new(GKYL_DOUBLE, weight_sq->ncomp, weight_sq->size);
+    up->omegaH_geo_fac_sq =
+      gkyl_array_cu_dev_new(GKYL_DOUBLE, omegaH_geo_fac_sq->ncomp, omegaH_geo_fac_sq->size);
     gkyl_array_copy(up->basis_at_nodes, basis_at_nodes);
-    gkyl_array_copy(up->weight_sq, weight_sq);
+    gkyl_array_copy(up->omegaH_geo_fac_sq, omegaH_geo_fac_sq);
     gkyl_array_release(basis_at_nodes);
-    gkyl_array_release(weight_sq);
+    gkyl_array_release(omegaH_geo_fac_sq);
     up->max_dev = gkyl_cu_malloc(sizeof(double));
   }
   return up;
@@ -81,7 +83,7 @@ gkyl_gyrokinetic_omega_h_advance(
 )
 {
   assert(density->ncomp == up->basis_at_nodes->ncomp);
-  assert(density->size == up->weight_sq->size);
+  assert(density->size == up->omegaH_geo_fac_sq->size);
   assert(up->use_gpu == gkyl_array_is_cu_dev(density));
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
@@ -94,10 +96,10 @@ gkyl_gyrokinetic_omega_h_advance(
   while (gkyl_range_iter_next(&iter)) {
     long loc = gkyl_range_idx(&up->range, iter.idx);
     max_value = fmax(
-      max_value,
-      gyrokinetic_omega_h_cell_max(
-        up->basis_at_nodes, gkyl_array_cfetch(up->weight_sq, loc), gkyl_array_cfetch(density, loc)
-      )
+      max_value, gyrokinetic_omega_h_cell_max(
+                   up->basis_at_nodes, gkyl_array_cfetch(up->omegaH_geo_fac_sq, loc),
+                   gkyl_array_cfetch(density, loc)
+                 )
     );
   }
   return max_value;
@@ -110,7 +112,7 @@ gkyl_gyrokinetic_omega_h_release(struct gkyl_gyrokinetic_omega_h *up)
     return;
   }
   gkyl_array_release(up->basis_at_nodes);
-  gkyl_array_release(up->weight_sq);
+  gkyl_array_release(up->omegaH_geo_fac_sq);
   if (up->use_gpu) {
     gkyl_cu_free(up->max_dev);
   }

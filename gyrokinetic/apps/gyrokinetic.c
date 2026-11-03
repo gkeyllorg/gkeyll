@@ -871,14 +871,15 @@ static void
 gkyl_gyrokinetic_app_omegaH_init(gkyl_gyrokinetic_app *app)
 {
   // Construct the modal geometry/polarization factor
-  // G = (cmag/(J B_parallel^*)) k_theta / sqrt(k_x^2 eps_xx + k_x k_y eps_xy + k_y^2 eps_yy).
-  // Cache G^2 at quadrature points and cell centers. At each RHS evaluation,
+  // omegaH_geo_fac = (cmag/(J B)) k_z_max
+  //   / sqrt(k_x^2 eps_xx + 2 k_x k_y eps_xy + k_y^2 eps_yy).
+  // Cache omegaH_geo_fac^2 at quadrature points and cell centers. At each RHS evaluation,
   // combine it with Jn_s at those same locations before taking the maximum.
   // The wavenumber prescription and polarization model are unchanged.
   app->omegaH = NULL;
 
   if (!(app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN || app->field->has_adiabatic_species)) {
-    // Compute parfac = (cmag/(jacobgeo*B^_\parallel))*kpar_max.
+    // Compute parfac = (cmag/(jacobgeo*B))*kpar_max.
     struct gkyl_array *parfac = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     gkyl_dg_mul_op_range(
       &app->basis, 0, parfac, 0, app->gk_geom->geo_int.cmag, 0, app->gk_geom->geo_int.jacobtot_inv,
@@ -887,7 +888,7 @@ gkyl_gyrokinetic_app_omegaH_init(gkyl_gyrokinetic_app *app)
     double kpar_max = M_PI * (app->poly_order + 1) / app->grid.dx[app->cdim - 1];
     gkyl_array_scale_range(parfac, kpar_max, &app->local);
 
-    // Compute perpfac_inv = 1/sqrt(k_x^2*eps_xx+k_x*k_y*eps_xy+k_y^2*eps_yy+)).
+    // Compute perpfac_inv = 1/sqrt(k_x^2*eps_xx + 2*k_x*k_y*eps_xy + k_y^2*eps_yy).
     struct gkyl_array *perpfac = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     struct gkyl_array *perpfac_inv =
       mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
@@ -900,7 +901,7 @@ gkyl_gyrokinetic_app_omegaH_init(gkyl_gyrokinetic_app *app)
     if (app->cdim > 2) {
       double ky_min = M_PI / (app->grid.upper[1] - app->grid.lower[1]);
       gkyl_array_accumulate_offset_range(
-        perpfac, kx_min * ky_min, app->field->epsilon, 1 * app->basis.num_basis, &app->local
+        perpfac, 2.0 * kx_min * ky_min, app->field->epsilon, 1 * app->basis.num_basis, &app->local
       );
       gkyl_array_accumulate_offset_range(
         perpfac, pow(ky_min, 2), app->field->epsilon, 2 * app->basis.num_basis, &app->local
@@ -912,13 +913,13 @@ gkyl_gyrokinetic_app_omegaH_init(gkyl_gyrokinetic_app *app)
     gkyl_proj_powsqrt_on_basis_release(proj_sqrt);
 
     // Keep the spatial dependence until it can be combined with the evolving density.
-    struct gkyl_array *omegaH_gf_grid =
+    struct gkyl_array *omegaH_geo_fac =
       mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    gkyl_dg_mul_op_range(&app->basis, 0, omegaH_gf_grid, 0, parfac, 0, perpfac_inv, &app->local);
+    gkyl_dg_mul_op_range(&app->basis, 0, omegaH_geo_fac, 0, parfac, 0, perpfac_inv, &app->local);
     app->omegaH =
-      gkyl_gyrokinetic_omega_h_new(&app->basis, &app->local, omegaH_gf_grid, app->use_gpu);
+      gkyl_gyrokinetic_omega_h_new(&app->basis, &app->local, omegaH_geo_fac, app->use_gpu);
 
-    gkyl_array_release(omegaH_gf_grid);
+    gkyl_array_release(omegaH_geo_fac);
     gkyl_array_release(perpfac_inv);
     gkyl_array_release(perpfac);
     gkyl_array_release(parfac);
