@@ -20,6 +20,7 @@ struct gkyl_gyrokinetic_multib_app {
 
   // geometry and topology of all blocks in simulation
   struct gkyl_gk_block_geom *gk_block_geom;
+  bool *tok_theta_reversed; // Physical block edges reversed to follow B_p.
   struct gkyl_block_topo *block_topo;
 
   double cfl_frac; // CFL fraction to use

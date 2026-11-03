@@ -1,6 +1,6 @@
 ---
 name: code_style
-description: Gkeyll's C/C++/CUDA code style is enforced by clang-format. Use when writing or editing any .c/.h/.cpp/.hpp/.cu/.cuh file, to know how to format it and which files must never be reformatted.
+description: Gkeyll's C/C++/CUDA code style is enforced by clang-format. Use when writing or editing any .c/.h/.cpp/.hpp/.cu/.cuh file, to know how to format it and which files must never be reformatted. Also use when writing or editing python scripts.
 user-invocable: true
 ---
 
@@ -53,3 +53,39 @@ write the list any way you like and run the script.
 - Every function *definition* has its return type on its own line, so
   `grep '^gkyl_foo('` finds the definition. Declarations keep the type on the same line.
 - `case` labels are indented one level inside `switch`.
+
+## Function documentation comments
+
+Use consistent multiline Doxygen comments for C/C++/CUDA function documentation,
+including every public function declaration in a header:
+
+- Put `/**` on its own line, followed by description lines beginning with ` *`.
+- After the general description, include a blank comment line containing only ` *`.
+- Add an `@param` entry for every argument, in declaration order, using its exact
+  name and a brief description. Describe output arguments, units, ownership,
+  lifetimes, and whether NULL is accepted when relevant.
+- Add an `@return` entry for non-void functions, including failure values when
+  applicable.
+- Put the closing ` */` on its own line. Do not use one-line function documentation
+  comments or put the general description on the opening `/**` line.
+
+Example:
+
+```c
+/**
+ * Advance the updater using the supplied input data.
+ *
+ * @param up Updater instance.
+ * @param input Input data.
+ * @return True on success, false on failure.
+ */
+```
+
+Check documentation coverage when editing functions; the formatter does not
+add missing descriptions or parameter entries.
+
+# Python style
+
+Use the following style rules to format Python.
+
+- Use 2-spaces instead of indents, 4-spaces, or 4-space indents.

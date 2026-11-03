@@ -261,6 +261,8 @@ calc_RdR_p2_tensor(const double *psi, double psi0, double Z, double xc[2], doubl
                           23.2379000772445 * psi[7] * SQ(y) + 12.0 * psi[3] * y -
                           7.745966692414834 * psi[7] + 6.928203230275509 * psi[1]);
       sol.dRdZ[sidx] = -C / A * dx[0] / dx[1];
+      sol.dR[sidx] = -C * dx[0];
+      sol.dZ[sidx] = A * dx[1];
 
       sidx += 1;
     }
@@ -279,6 +281,8 @@ calc_RdR_p2_tensor(const double *psi, double psi0, double Z, double xc[2], doubl
                           23.2379000772445 * psi[7] * SQ(y) + 12.0 * psi[3] * y -
                           7.745966692414834 * psi[7] + 6.928203230275509 * psi[1]);
       sol.dRdZ[sidx] = -C / A * dx[0] / dx[1];
+      sol.dR[sidx] = -C * dx[0];
+      sol.dZ[sidx] = A * dx[1];
 
       sidx += 1;
     }
@@ -310,7 +314,7 @@ calc_RdR_p2_tensor_nrc(const double *psi, double psi0, double Z, double xc[2], d
     double r1, r2;
     double delta = sqrt(delta2);
     //// compute both roots
-    double qq = -0.5 * (bq + (bq / fabs(bq)) * delta);
+    double qq = -0.5 * (bq + copysign(delta, bq));
     r1 = qq / aq;
     r2 = cq / qq;
 
@@ -404,6 +408,8 @@ calc_RdR_p2_tensor_with_tolerance(
                           23.2379000772445 * psi[7] * SQ(y) + 12.0 * psi[3] * y -
                           7.745966692414834 * psi[7] + 6.928203230275509 * psi[1]);
       sol.dRdZ[sidx] = -C / A * dx[0] / dx[1];
+      sol.dR[sidx] = -C * dx[0];
+      sol.dZ[sidx] = A * dx[1];
 
       sidx += 1;
     }
@@ -696,7 +702,7 @@ calc_RdR_p3_hyperbolic(const double *psi, double psi0, double Z, double xc[2], d
   double B = coeffs[2] / 3.0;
   double C = coeffs[1];
   double D = coeffs[0];
-  if (A < 1e-10) { // We have a quadratic, use quadratic solve
+  if (fabs(A) < 1e-10) { // We have a quadratic, use quadratic solve
     double aq = coeffs[2];
     double bq = coeffs[1];
     double cq = coeffs[0];
@@ -705,7 +711,7 @@ calc_RdR_p3_hyperbolic(const double *psi, double psi0, double Z, double xc[2], d
       double r1, r2;
       double delta = sqrt(delta2);
       //// compute both roots
-      double qq = -0.5 * (bq + (bq / fabs(bq)) * delta);
+      double qq = -0.5 * (bq + copysign(delta, bq));
       r1 = qq / aq;
       r2 = cq / qq;
       int sidx = 0;
@@ -747,6 +753,8 @@ calc_RdR_p3_hyperbolic(const double *psi, double psi0, double Z, double xc[2], d
           3.3541019662496847e+00 * psi[5] * y + 1.1250000000000000e+01 * (x * x) * y * psi[10] +
           1.7184658856084400e+01 * x * (y * y) * psi[12] + 8.6602540378443860e-01 * psi[2];
         sol.dRdZ[sidx] = -dpsidy / dpsidx * dx[0] / dx[1];
+        sol.dR[sidx] = -dpsidy * dx[0];
+        sol.dZ[sidx] = dpsidx * dx[1];
         sidx += 1;
       }
       if ((-1 <= r2) && (r2 < 1)) {
@@ -787,6 +795,8 @@ calc_RdR_p3_hyperbolic(const double *psi, double psi0, double Z, double xc[2], d
           3.3541019662496847e+00 * psi[5] * y + 1.1250000000000000e+01 * (x * x) * y * psi[10] +
           1.7184658856084400e+01 * x * (y * y) * psi[12] + 8.6602540378443860e-01 * psi[2];
         sol.dRdZ[sidx] = -dpsidy / dpsidx * dx[0] / dx[1];
+        sol.dR[sidx] = -dpsidy * dx[0];
+        sol.dZ[sidx] = dpsidx * dx[1];
         sidx += 1;
       }
     }

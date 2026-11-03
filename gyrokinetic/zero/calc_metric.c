@@ -842,6 +842,7 @@ gkyl_calc_metric_advance_rz_interior(gkyl_calc_metric *up, struct gk_geometry *g
   enum { R_IDX, Z_IDX, PHI_IDX }; // arrangement of cartesian coordinates
   int cidx[3];
   struct signed_jacobian_guard_state jac_guard = {
+    .expected_sign = 1, // COCOS 3: theta follows B_pol and dphi/dalpha = +1.
     .valid = true,
     .nonfatal = up->rz_jacobian_guard_nonfatal,
   };
@@ -891,7 +892,6 @@ gkyl_calc_metric_advance_rz_interior(gkyl_calc_metric *up, struct gk_geometry *g
         double J = signed_jacobian_rz(R, dxdz[0][0], dxdz[1][0], dxdz[0][2], dxdz[1][2]);
         signed_jacobian_guard_check(&jac_guard, J, true, "interior", -1, cidx);
         jFld_n[0] = fabs(J);
-        double alpha_sign = J < 0.0 ? -1.0 : 1.0;
 
         // Calculate dphi/dtheta based on the divergence free condition
         // on B: 1 = J*B/sqrt(g_33)
@@ -916,11 +916,11 @@ gkyl_calc_metric_advance_rz_interior(gkyl_calc_metric *up, struct gk_geometry *g
           gkyl_array_fetch(gk_geom->geo_int.g_ij_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
         gFld_n[0] =
           dxdz[0][0] * dxdz[0][0] + R * R * dxdz[2][0] * dxdz[2][0] + dxdz[1][0] * dxdz[1][0];
-        gFld_n[1] = alpha_sign * R * R * dxdz[2][0];
+        gFld_n[1] = R * R * dxdz[2][0];
         gFld_n[2] =
           dxdz[0][0] * dxdz[0][2] + R * R * dxdz[2][0] * dphidtheta + dxdz[1][0] * dxdz[1][2];
         gFld_n[3] = R * R;
-        gFld_n[4] = alpha_sign * R * R * dphidtheta;
+        gFld_n[4] = R * R * dphidtheta;
         gFld_n[5] =
           dxdz[0][2] * dxdz[0][2] + R * R * dphidtheta * dphidtheta + dxdz[1][2] * dxdz[1][2];
 
@@ -942,8 +942,8 @@ gkyl_calc_metric_advance_rz_interior(gkyl_calc_metric *up, struct gk_geometry *g
         tanvecFld_n[1] = dxdz[0][0] * sin(phi) + R * cos(phi) * dxdz[2][0];
         tanvecFld_n[2] = dxdz[1][0];
 
-        tanvecFld_n[3] = alpha_sign * (-R * sin(phi));
-        tanvecFld_n[4] = alpha_sign * (+R * cos(phi));
+        tanvecFld_n[3] = (-R * sin(phi));
+        tanvecFld_n[4] = (+R * cos(phi));
         tanvecFld_n[5] = 0.0;
 
         tanvecFld_n[6] = dxdz[0][2] * cos(phi) - R * sin(phi) * dphidtheta;
@@ -1211,7 +1211,6 @@ gkyl_calc_metric_advance_rz_surface(gkyl_calc_metric *up, int dir, struct gk_geo
 
         // Existing positive physical volume factor.
         jFld_n[0] = fabs(J);
-        double alpha_sign = J < 0.0 ? -1.0 : 1.0;
 
         // Calculate dphi/dtheta based on the divergence free condition
         // on B: 1 = J*B/sqrt(g_33)
@@ -1234,11 +1233,11 @@ gkyl_calc_metric_advance_rz_surface(gkyl_calc_metric *up, int dir, struct gk_geo
         );
         gFld_n[0] =
           dxdz[0][0] * dxdz[0][0] + R * R * dxdz[2][0] * dxdz[2][0] + dxdz[1][0] * dxdz[1][0];
-        gFld_n[1] = alpha_sign * R * R * dxdz[2][0];
+        gFld_n[1] = R * R * dxdz[2][0];
         gFld_n[2] =
           dxdz[0][0] * dxdz[0][2] + R * R * dxdz[2][0] * dphidtheta + dxdz[1][0] * dxdz[1][2];
         gFld_n[3] = R * R;
-        gFld_n[4] = alpha_sign * R * R * dphidtheta;
+        gFld_n[4] = R * R * dphidtheta;
         gFld_n[5] =
           dxdz[0][2] * dxdz[0][2] + R * R * dphidtheta * dphidtheta + dxdz[1][2] * dxdz[1][2];
 
@@ -1279,8 +1278,8 @@ gkyl_calc_metric_advance_rz_surface(gkyl_calc_metric *up, int dir, struct gk_geo
         tanvecFld_n[1] = dxdz[0][0] * sin(phi) + R * cos(phi) * dxdz[2][0];
         tanvecFld_n[2] = dxdz[1][0];
 
-        tanvecFld_n[3] = alpha_sign * (-R * sin(phi));
-        tanvecFld_n[4] = alpha_sign * (+R * cos(phi));
+        tanvecFld_n[3] = (-R * sin(phi));
+        tanvecFld_n[4] = (+R * cos(phi));
         tanvecFld_n[5] = 0.0;
 
         tanvecFld_n[6] = dxdz[0][2] * cos(phi) - R * sin(phi) * dphidtheta;

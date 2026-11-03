@@ -10,6 +10,7 @@
 #include <gkyl_tok_geo.h>
 #include <gkyl_mirror_grid_gen.h>
 #include <gkyl_position_map.h>
+#include <gkyl_gen_miller_eqdsk.h>
 
 typedef struct gk_geometry gk_geometry;
 
@@ -89,7 +90,7 @@ struct gk_geom_corn {
 };
 
 struct gk_geom_int {
-  struct gkyl_array *mc2p; // 3 components. Cartesian X, Y and Z,
+  struct gkyl_array *mc2p; // 3 components. TOKAMAK/MIRROR: (R,Z,phi); MAPC2P/NONE: (X,Y,Z).
   struct gkyl_array *bmag; // 1 component. B Magnitude of magnetic field.
   struct gkyl_array *
     g_ij; // 6 components. Metric coefficients g_{ij} Stored in order g_11, g12, g_13, g_22, g_23, g_33.
@@ -127,7 +128,8 @@ struct gk_geom_int {
   struct gkyl_array *B3overB; // 1 component. Signed b^3 = B^3/|B|; +1/sqrt(g_33) if B is along e_3.
   struct gkyl_array *bioverJB; // 3 components b_i/J/|B|.
   struct gkyl_array *B3; // 1 component. Signed e^3 \dot \vec{B}.
-  struct gkyl_array *qprofile; // 1 component. Flux surface averaged q profle q(psi).
+  struct gkyl_array
+    *qprofile; // Signed COCOS safety factor on closed surfaces; NaN on open lines. Diagnostic only.
 
   // Arrays below are just for computation of arrays above
   struct gkyl_array *bmag_nodal;
@@ -201,7 +203,7 @@ struct gk_geometry {
   struct gk_geom_int geo_int; // Volume geometry from interior nodes.
   struct gk_geom_surf geo_surf[3]; // Surface geometry.
 
-  int geqdsk_sign_convention; // 0 if psi increases away from magnetic axis.
+  int geqdsk_sign_convention; // Radial flux direction only, not COCOS: 0 if psi increases away from the axis.
   // 1 if psi increases toward magnetic axis.
 
   int half_domain; // For double null geometry. 0 for full domain 1 for lower half domain.
@@ -255,6 +257,7 @@ struct gkyl_gk_geometry_inp {
     tok_grid_info; // Context for tokamak geometry with computational domain info.
   struct gkyl_mirror_geo_grid_inp
     mirror_grid_info; // Context for mirror geometry with computational domain info.
+  struct gkyl_gen_miller_eqdsk_inp miller_grid_info; // Parameters for Miller geometry.
   struct gkyl_position_map *position_map; // Position map object.
   struct gkyl_comm *comm; // Communicator object.
 
@@ -433,3 +436,98 @@ void gkyl_gk_geometry_free(const struct gkyl_ref_count *ref);
  * @param up gk geometry object to release.
  */
 void gkyl_gk_geometry_release(const struct gk_geometry *up);
+
+/**
+ * Interior-geometry point queries use host arrays and actual configuration
+ * coordinates. They terminate with a diagnostic for invalid inputs or points
+ * outside the local interior domain. Internal faces use the upper-cell trace;
+ * local outer boundaries use the interior trace. No MPI communication occurs.
+ * Output buffers must not alias the input coordinates.
+ */
+
+/**
+ * Evaluate the stored magnetic-field magnitude [T].
+ *
+ * @param geo Non-NULL, borrowed host geometry (e.g. from set_gk_geometry).
+ * @param xc Computational coordinates within the local interior domain.
+ * @param out One magnetic-field magnitude [T].
+ */
+void gkyl_gk_geometry_geo_int_bmag_at_comp_coord(
+  const struct gk_geometry *geo, const double *xc, double *out
+);
+
+/**
+ * Return (B_X,B_Y,B_Z) [T] as interpolated bmag times interpolated bcart.
+ * No renormalization is applied: the norm need not equal interpolated bmag.
+ *
+ * @param geo Non-NULL, borrowed host geometry (e.g. from set_gk_geometry).
+ * @param xc Computational coordinates within the local interior domain.
+ * @param out Three Cartesian components (B_X,B_Y,B_Z) [T].
+ */
+void gkyl_gk_geometry_geo_int_bfieldcart_at_comp_coord(
+  const struct gk_geometry *geo, const double *xc, double *out
+);
+
+/**
+ * Return cylindrical field components (B_R,B_phi,B_Z) [T].
+ *
+ * @param geo Non-NULL, borrowed host geometry (e.g. from set_gk_geometry).
+ * @param xc Computational coordinates within the local interior domain.
+ * @param out Three cylindrical components (B_R,B_phi,B_Z) [T].
+ */
+void gkyl_gk_geometry_geo_int_bfieldcyl_at_comp_coord(
+  const struct gk_geometry *geo, const double *xc, double *out
+);
+
+/**
+ * Return signed B_phi and nonnegative B_pol=hypot(B_R,B_Z) [T].
+ *
+ * @param geo Non-NULL, borrowed host geometry (e.g. from set_gk_geometry).
+ * @param xc Computational coordinates within the local interior domain.
+ * @param out Two values (B_phi,B_pol) [T].
+ */
+void gkyl_gk_geometry_geo_int_bfieldtor_at_comp_coord(
+  const struct gk_geometry *geo, const double *xc, double *out
+);
+
+/**
+ * Return cylindrical position (R,phi,Z) [m,rad,m] from discrete mc2p.
+ * Stored cylindrical phi remains unwrapped; Cartesian maps use atan2.
+ *
+ * @param geo Non-NULL, borrowed host geometry (e.g. from set_gk_geometry).
+ * @param xc Computational coordinates within the local interior domain.
+ * @param out Three cylindrical coordinates (R,phi,Z) [m,rad,m].
+ */
+void gkyl_gk_geometry_geo_int_comp2cyl_coords(
+  const struct gk_geometry *geo, const double *xc, double *out
+);
+
+/**
+ * Return geometric (r,theta,phi) [m,rad,rad] about a fixed reference axis.
+ * Geometric r is distance to that axis, not a Miller flux-surface label.
+ *
+ * @param geo Non-NULL, borrowed host geometry (e.g. from set_gk_geometry).
+ * @param xc Computational coordinates within the local interior domain.
+ * @param Rmajor_axis Reference-axis major radius [m], positive.
+ * @param Zvert_axis Reference-axis vertical location [m].
+ * @param out Three geometric toroidal coordinates (r,theta,phi) [m,rad,rad].
+ */
+void gkyl_gk_geometry_geo_int_comp2tor_coords(
+  const struct gk_geometry *geo, const double *xc, double Rmajor_axis, double Zvert_axis,
+  double *out
+);
+
+/**
+ * Return Miller (r,theta,phi) [m,rad,rad] by inverting the shape map at
+ * discrete mc2p. Inferred r need not be constant on a discrete flux contour.
+ *
+ * @param geo Non-NULL, borrowed host geometry (e.g. from set_gk_geometry).
+ * @param xc Computational coordinates within the local interior domain.
+ * @param miller Non-NULL axis and shape parameters; kappa=0 selects 1, as in the generator.
+ * The field, safety factor, LCFS, and grid parameters are unused.
+ * @param out Three Miller coordinates (r,theta,phi) [m,rad,rad].
+ */
+void gkyl_gk_geometry_geo_int_comp2miller_coords(
+  const struct gk_geometry *geo, const double *xc, const struct gkyl_gen_miller_eqdsk_inp *miller,
+  double *out
+);

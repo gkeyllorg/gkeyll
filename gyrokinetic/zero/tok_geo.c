@@ -1,3 +1,4 @@
+#include <gkyl_cocos.h>
 #include <gkyl_alloc.h>
 #include <gkyl_array.h>
 #include <gkyl_array_rio.h>
@@ -1951,6 +1952,10 @@ tok_divertor_material_cap(
   const double p[2], const double q[2]
 )
 {
+  if (geo->theta_orientation < 0) {
+    theta_edge = 1 - theta_edge;
+  }
+
   struct tok_ext_topology top;
   if (!geo->extend_to_limiter || !geo->plate_spec ||
       !tok_ext_topology_from_ftype(inp->ftype, inp->half_domain, &top)) {
@@ -2033,6 +2038,10 @@ tok_wall_theta_end_on_declared_plate(
   const struct gkyl_tok_geo_grid_inp *inp, const struct gkyl_tok_geo *geo, int theta_edge
 )
 {
+  if (geo->theta_orientation < 0) {
+    theta_edge = 1 - theta_edge;
+  }
+
   struct tok_ext_topology top;
   if (!tok_ext_topology_from_ftype(inp->ftype, inp->half_domain, &top)) {
     return false;
@@ -2065,7 +2074,8 @@ tok_wall_block_pockets(
     if (!on_plate[end] || !tok_ext_topology_from_ftype(inp->ftype, inp->half_domain, &top)) {
       continue;
     }
-    const struct tok_ext_endpoint *ep = end ? &top.upper : &top.lower;
+    int reference_end = geo->theta_orientation > 0 ? end : 1 - end;
+    const struct tok_ext_endpoint *ep = reference_end ? &top.upper : &top.lower;
     plate_func plate = ep->plate_slot == TOK_EXT_PLATE_LOWER ? geo->plate_func_lower :
                                                                geo->plate_func_upper;
     int nn = 0;
@@ -8521,8 +8531,8 @@ tok_ordered_map_lookup(
     tr /= tmag;
     tz /= tmag;
   }
-  out->dr_dtheta = tr * speed_u / dtheta;
-  out->dz_dtheta = tz * speed_u / dtheta;
+  out->dr_dtheta = arc_ctx->geo->theta_orientation * tr * speed_u / dtheta;
+  out->dz_dtheta = arc_ctx->geo->theta_orientation * tz * speed_u / dtheta;
   double w = x - i;
   double path_phi =
     arc_ctx->map_trace_phi[i] + w * (arc_ctx->map_trace_phi[i + 1] - arc_ctx->map_trace_phi[i]);
@@ -8555,9 +8565,37 @@ tok_ordered_map_lookup(
   if (grad > 1e-14 && out->r > 0.0) {
     out->dphi_dtheta = fpol / (out->r * grad) * speed_u / dtheta;
   }
-  out->phi = alpha + path_phi - ref_phi;
+  out->phi = alpha + arc_ctx->geo->theta_orientation * (path_phi - ref_phi);
   return isfinite(out->r) && isfinite(out->z) && isfinite(out->phi) && isfinite(out->dr_dtheta) &&
          isfinite(out->dz_dtheta) && isfinite(out->dphi_dtheta);
+}
+
+// Check the selected legacy contour branch before using its field-aligned tangent.
+static void
+tok_verify_contour_orientation(struct gkyl_tok_geo_grid_inp *inp, struct arc_length_ctx *ctx)
+{
+  struct arc_length_ctx probe = *ctx;
+  double close, flo, fhi;
+  tok_set_ridders(inp, &probe, probe.psi, 0.371 * probe.arcL_tot, &close, &flo, &fhi);
+  struct gkyl_qr_res root = gkyl_ridders(
+    arc_length_func, &probe, probe.zmin, probe.zmax, flo, fhi, probe.geo->root_param.max_iter, 1e-10
+  );
+  double radius[4], slope[4], tangent_R[4], tangent_Z[4];
+  int count =
+    gkyl_tok_geo_R_psiZ(probe.geo, probe.psi, root.res, 4, radius, slope, tangent_R, tangent_Z);
+  if (!count) {
+    fprintf(stderr, "TOKAMAK: cannot determine contour orientation.\n");
+    abort();
+  }
+  double field_Z = choose_closest(close, radius, tangent_Z, count);
+  int reference_Z_sign = probe.right ? 1 : -1;
+  if (reference_Z_sign * probe.geo->theta_orientation * field_Z <= 0) {
+    fprintf(
+      stderr, "TOKAMAK: contour branch orientation disagrees with flux (block %d, psi=%g).\n",
+      inp->ftype, probe.psi
+    );
+    abort();
+  }
 }
 
 // Function to calculate phi given alpha
@@ -8569,10 +8607,8 @@ phi_func(double alpha_curr, double Z, void *ctx)
   double psi = actx->psi, rclose = actx->rclose, zmin = actx->zmin, arcL = actx->arcL,
          zmax = actx->zmax;
 
-  // Here we will abandon conventions about alpha and phi except for full core and full SN cases
-  // The convention for phi only affects b_x - it does not affect any quantities used in axisymmetric simulations
-  // I have not quite figured out full 3D yet. b_x presents a serious problem as of now. Akash Shukla 1/20/2024
-  // The idea for axisymmetry is that I am avoiding starting integrals at the x-point to minimize issues
+  // alpha labels a field line. Reference locations may differ between blocks;
+  // the oriented integral must nevertheless give B dot grad(alpha) = 0.
   double ival = 0;
   double phi_ref = 0.0;
   if (actx->ftype == GKYL_GEOMETRY_TOKAMAK_CORE) { // phi = alpha at outboard midplane
@@ -8755,105 +8791,48 @@ phi_func(double alpha_curr, double Z, void *ctx)
   double fpol = actx->geo->fbasis.eval_expand(&fx, coeffs);
   ival = ival * fpol;
 
-  //while(ival < -M_PI){
-  //  ival +=2*M_PI;
-  //}
-  //while(ival > M_PI){
-  //  ival -=2*M_PI;
-  //}
-  return alpha_curr + ival + phi_ref;
+  return alpha_curr + actx->geo->theta_orientation * ival + phi_ref;
 }
 
+// Signed COCOS q uses a counterclockwise full circuit, not computational theta.
 double
 qprofile_func(void *ctx)
 {
-  // Function to calculate the flux surface averaged q profile.
-
   struct arc_length_ctx *actx = ctx;
-  double *arc_memo = actx->arc_memo;
-  double psi = actx->psi, rclose = actx->rclose, zmin = actx->zmin, arcL = actx->arcL,
-         zmax = actx->zmax;
-  double rleft = actx->rleft, rright = actx->rright;
-
-  // Calculate q(psi) = -F(psi)/2pi * integral_zmin^zmax 1/Rgrad(psi).
-
-  double ival = 0;
-  double phi_ref = 0.0;
-  if (actx->ftype == GKYL_GEOMETRY_TOKAMAK_CORE) {
-    double ival1 = integrate_phi_along_psi_contour_memo(
-      actx->geo, psi, actx->zmin, actx->zmax, rright, false, false, arc_memo
-    );
-    double ival2 = -integrate_phi_along_psi_contour_memo(
-      actx->geo, psi, actx->zmin, actx->zmax, rleft, false, false, arc_memo
-    );
-    ival = ival1 + ival2;
+  const struct gkyl_tok_geo *geo = actx->geo;
+  bool closed =
+    actx->ftype == GKYL_GEOMETRY_TOKAMAK_CORE || actx->ftype == GKYL_GEOMETRY_TOKAMAK_CORE_L ||
+    actx->ftype == GKYL_GEOMETRY_TOKAMAK_CORE_R || actx->ftype == GKYL_GEOMETRY_TOKAMAK_IWL;
+  if (!closed || (actx->ftype == GKYL_GEOMETRY_TOKAMAK_IWL &&
+                  geo->theta_orientation * (actx->psi - geo->sibry) > 0)) {
+    return NAN;
+  }
+  if (geo->efit->num_xpts > 0 && actx->psi == geo->psisep) {
+    return NAN;
   }
 
-  if (actx->ftype == GKYL_GEOMETRY_TOKAMAK_IWL) {
-    double ival1 = integrate_phi_along_psi_contour_memo(
-      actx->geo, psi, actx->zmin, actx->zmax, rright, false, false, arc_memo
-    );
-    double ival2 = -integrate_phi_along_psi_contour_memo(
-      actx->geo, psi, actx->zmin, actx->zmax, rleft, false, false, arc_memo
-    );
-    ival = ival1 + ival2;
-  }
-
-  if (actx->ftype == GKYL_GEOMETRY_TOKAMAK_LSN_SOL) {
-    double ival1 = integrate_phi_along_psi_contour_memo(
-      actx->geo, psi, actx->zmin_right, actx->zmax, rright, false, false, arc_memo
-    );
-    double ival2 = -integrate_phi_along_psi_contour_memo(
-      actx->geo, psi, actx->zmin_left, actx->zmax, rleft, false, false, arc_memo
-    );
-    ival = ival1 + ival2;
-  }
-
-  if (actx->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT ||
-      actx->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_MID ||
-      actx->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_LO ||
-      actx->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_UP) {
-    ival = integrate_phi_along_psi_contour_memo(
-      actx->geo, psi, actx->zmin, actx->zmax, rclose, false, false, arc_memo
-    );
-  }
-
-  if (actx->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN ||
-      actx->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_MID ||
-      actx->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_LO ||
-      actx->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_UP) {
-    ival = -integrate_phi_along_psi_contour_memo(
-      actx->geo, psi, actx->zmin, actx->zmax, rclose, false, false, arc_memo
-    );
-  }
-
-  // Now multiply by fpol/2pi.
-  double R[4] = {0};
-  double dR[4] = {0};
-  double psi_fpol = psi;
-  if ((psi_fpol < actx->geo->fgrid.lower[0]) ||
-      (psi_fpol > actx->geo->fgrid.upper[0])) { // F = F(psi_sep) in the SOL.
-    psi_fpol = actx->geo->sibry;
+  // These positive integrals cover both halves of the complete closed contour,
+  // including when the simulation uses only one core block or a theta subinterval.
+  double integral = integrate_phi_along_psi_contour_memo(
+                      geo, actx->psi, actx->zmin, actx->zmax, actx->rright, false, false, NULL
+                    ) +
+                    integrate_phi_along_psi_contour_memo(
+                      geo, actx->psi, actx->zmin, actx->zmax, actx->rleft, false, false, NULL
+                    );
+  double psi_fpol = actx->psi;
+  if (psi_fpol < geo->fgrid.lower[0] || psi_fpol > geo->fgrid.upper[0]) {
+    psi_fpol = geo->sibry;
   }
   int idx = fmin(
-    actx->geo->frange.lower[0] +
-      (int)floor((psi_fpol - actx->geo->fgrid.lower[0]) / actx->geo->fgrid.dx[0]),
-    actx->geo->frange.upper[0]
+    geo->frange.lower[0] + (int)floor((psi_fpol - geo->fgrid.lower[0]) / geo->fgrid.dx[0]),
+    geo->frange.upper[0]
   );
-  long loc = gkyl_range_idx(&actx->geo->frange, &idx);
-  const double *coeffs = gkyl_array_cfetch(actx->geo->fpoldg, loc);
-  double fxc;
-  gkyl_rect_grid_cell_center(&actx->geo->fgrid, &idx, &fxc);
-  double fx = (psi_fpol - fxc) / (actx->geo->fgrid.dx[0] * 0.5);
-  double fpol = actx->geo->fbasis.eval_expand(&fx, coeffs);
-  double qout = -ival * fpol / M_PI;
-
-  // AS 1/15/25: The 3 lines below are a useful check to compare against q from efit.
-  //coeffs = gkyl_array_cfetch(actx->geo->qdg,loc);
-  //double q_efit = actx->geo->fbasis.eval_expand(&fx, coeffs);
-  // printf("psi_curr = %g, my q = %g, efit q = %g\n", psi_fpol, qout, q_efit);
-
-  return qout;
+  const double *coeffs = gkyl_array_cfetch(geo->fpoldg, gkyl_range_idx(&geo->frange, &idx));
+  double center;
+  gkyl_rect_grid_cell_center(&geo->fgrid, &idx, &center);
+  double eta = 2 * (psi_fpol - center) / geo->fgrid.dx[0];
+  double fpol = geo->fbasis.eval_expand(&eta, coeffs);
+  return geo->theta_orientation * fpol * integral / (2 * M_PI);
 }
 
 static double
@@ -8900,6 +8879,24 @@ dphidtheta_func(double Z, void *ctx)
   return integrand;
 }
 
+// Supply derivatives of the field-aligned contour map, including the position-map chain rule.
+static void
+tok_contour_derivatives(
+  double Zvert, double tangent_R, double tangent_Z, double dTheta_dtheta,
+  struct arc_length_ctx *ctx, double deriv[3]
+)
+{
+  double norm = hypot(tangent_R, tangent_Z);
+  assert(norm > 0 && dTheta_dtheta > 0);
+  double darc_dtheta = ctx->arc_interval_valid ? ctx->arc_darc_dtheta :
+                                                 (ctx->xpt_map_valid ? ctx->xpt_map_darc_dtheta :
+                                                                       ctx->arcL_tot / (2 * M_PI));
+  double scale = darc_dtheta * dTheta_dtheta;
+  deriv[0] = tangent_R / norm * scale;
+  deriv[1] = tangent_Z / norm * scale;
+  deriv[2] = dphidtheta_func(Zvert, ctx) * dTheta_dtheta;
+}
+
 static double
 bmag_func(double r_curr, double Z, void *ctx)
 {
@@ -8934,8 +8931,8 @@ bmag_func(double r_curr, double Z, void *ctx)
     double dpsidR = fout[1];
     double dpsidZ = fout[2];
 
-    Br = 1.0 / r_curr * dpsidZ;
-    Bz = -1.0 / r_curr * dpsidR;
+    Br = actx->geo->cocos_psi_factor * dpsidZ / r_curr;
+    Bz = -actx->geo->cocos_psi_factor * dpsidR / r_curr;
   } else {
     int rzidx[2];
     int idxtemp = actx->geo->rzlocal.lower[0] +
@@ -8967,8 +8964,8 @@ bmag_func(double r_curr, double Z, void *ctx)
                     0.8660254037844386 * psih[2];
     double dpsidR = dpsidx * 2.0 / actx->geo->rzgrid.dx[0];
     double dpsidZ = dpsidy * 2.0 / actx->geo->rzgrid.dx[1];
-    Br = 1.0 / r_curr * dpsidZ;
-    Bz = -1.0 / r_curr * dpsidR;
+    Br = actx->geo->cocos_psi_factor * dpsidZ / r_curr;
+    Bz = -actx->geo->cocos_psi_factor * dpsidR / r_curr;
   }
   bmag = sqrt(Br * Br + Bz * Bz + Bphi * Bphi);
   return bmag;
@@ -9001,7 +8998,9 @@ curlbhat_func(double psi, double r_curr, double Z, double phi, double *curlbhat,
   double Bphi = fpol / r_curr;
   // Third calculate fpolprime
   coeffs = gkyl_array_cfetch(actx->geo->fpolprimedg, loc);
-  double fpolprime = actx->geo->fbasis.eval_expand(&fx, coeffs);
+  double fpolprime = psi < actx->geo->fgrid.lower[0] || psi > actx->geo->fgrid.upper[0] ?
+                       0.0 :
+                       actx->geo->fbasis.eval_expand(&fx, coeffs);
 
   // Now calculate psi's various derivatives
   double Br = 0.0, Bz = 0.0, bmag = 0.0;
@@ -9063,14 +9062,14 @@ curlbhat_func(double psi, double r_curr, double Z, double phi, double *curlbhat,
     d2psidRdZ = d2psidxdy * (2.0 / actx->geo->rzgrid.dx[0]) * (2.0 / actx->geo->rzgrid.dx[1]);
   }
 
-  Br = 1.0 / r_curr * dpsidZ;
-  Bz = -1.0 / r_curr * dpsidR;
+  Br = actx->geo->cocos_psi_factor * dpsidZ / r_curr;
+  Bz = -actx->geo->cocos_psi_factor * dpsidR / r_curr;
   bmag = sqrt(Br * Br + Bz * Bz + Bphi * Bphi);
 
-  dBrdR = d2psidRdZ / r_curr - Br / r_curr;
-  dBrdZ = 1.0 / r_curr * d2psidZ2;
-  dBzdR = -d2psidR2 / r_curr - Bz / r_curr;
-  dBzdZ = -1.0 / r_curr * d2psidRdZ;
+  dBrdR = actx->geo->cocos_psi_factor * d2psidRdZ / r_curr - Br / r_curr;
+  dBrdZ = actx->geo->cocos_psi_factor * d2psidZ2 / r_curr;
+  dBzdR = -actx->geo->cocos_psi_factor * d2psidR2 / r_curr - Bz / r_curr;
+  dBzdZ = -actx->geo->cocos_psi_factor * d2psidRdZ / r_curr;
 
   double dFdR = fpolprime * dpsidR;
   double dFdZ = fpolprime * dpsidZ;
@@ -9301,6 +9300,10 @@ gkyl_tok_geo_new(const struct gkyl_efit_inp *inp, const struct gkyl_tok_geo_grid
   *geo = (struct gkyl_tok_geo){};
 
   geo->efit = gkyl_efit_new(inp);
+  const struct gkyl_cocos *cocos = &gkyl_cocos_tokamak;
+  geo->cocos_psi_factor =
+    cocos->sigma_RvarphiZ_cocos * cocos->sigma_Bp_cocos / pow(2 * M_PI, cocos->e_Bp_cocos);
+  geo->theta_orientation = geo->efit->sibry > geo->efit->simag ? 1 : -1;
 
   geo->plate_spec = ginp->plate_spec;
   geo->extend_to_limiter = ginp->extend_to_limiter;
@@ -9512,12 +9515,35 @@ tok_wall_enforced(const struct gkyl_tok_geo *geo, const struct gkyl_tok_geo_grid
   abort();
 }
 
+// The contour builders use a fixed reference traversal. COCOS 3 reverses
+// computational theta when psi decreases outward, without moving the block.
+static struct gkyl_tok_geo_grid_inp
+tok_reference_grid_inp(const struct gkyl_tok_geo_grid_inp *inp, const struct gkyl_tok_geo *geo)
+{
+  struct gkyl_tok_geo_grid_inp ref = *inp;
+  if (geo->theta_orientation < 0) {
+    ref.cgrid.lower[2] = -inp->cgrid.upper[2];
+    ref.cgrid.upper[2] = -inp->cgrid.lower[2];
+  }
+  return ref;
+}
+
+// Index of the same node in the contour builder's reference traversal.
+static int
+tok_reference_theta_idx(const struct gkyl_tok_geo *geo, const struct gkyl_range *range, int idx)
+{
+  return geo->theta_orientation > 0 ? idx : range->lower[2] + range->upper[2] - idx;
+}
+
 void
 gkyl_tok_geo_calc(
   struct gk_geometry *up, struct gkyl_range *nrange, struct gkyl_tok_geo *geo,
   struct gkyl_tok_geo_grid_inp *inp, struct gkyl_position_map *position_map
 )
 {
+  struct gkyl_tok_geo_grid_inp reference_inp = tok_reference_grid_inp(inp, geo);
+  inp = &reference_inp;
+
   // Vessel-outline policy for this block, decided once.
   const bool enforce_wall = tok_wall_enforced(geo, inp);
 
@@ -9609,6 +9635,7 @@ gkyl_tok_geo_calc(
         tok_find_endpoints(
           inp, geo, &arc_ctx, &pctx, psi_curr, alpha_curr, arc_memo, arc_memo_left, arc_memo_right
         );
+        tok_verify_contour_orientation(inp, &arc_ctx);
       }
 
       // At the beginning of each theta loop we need to reset things.
@@ -9631,7 +9658,7 @@ gkyl_tok_geo_calc(
         // Non-uniform theta
         double Theta_curr;
         position_map->maps[2](0.0, &theta_curr, &Theta_curr, position_map->ctxs[2]);
-        theta_curr = Theta_curr;
+        theta_curr = geo->theta_orientation * Theta_curr;
 
         struct tok_ordered_point ordered = {0.0};
         bool ordered_mapping =
@@ -9677,10 +9704,14 @@ gkyl_tok_geo_calc(
             // The two ladders this replaces were separate `if`s, NOT else-if, so
             // a one-cell-wide block matched both and the LOWER clause overwrote
             // the upper. Evaluate lower last to preserve that exactly.
-            const bool at_upper = it == nrange->upper[TH_IDX] &&
-                                  (up->local.upper[TH_IDX] == up->global.upper[TH_IDX]);
-            const bool at_lower = it == nrange->lower[TH_IDX] &&
-                                  (up->local.lower[TH_IDX] == up->global.lower[TH_IDX]);
+            const bool at_upper =
+              tok_reference_theta_idx(geo, nrange, it) == nrange->upper[TH_IDX] &&
+              (geo->theta_orientation > 0 ? up->local.upper[TH_IDX] == up->global.upper[TH_IDX] :
+                                            up->local.lower[TH_IDX] == up->global.lower[TH_IDX]);
+            const bool at_lower =
+              tok_reference_theta_idx(geo, nrange, it) == nrange->lower[TH_IDX] &&
+              (geo->theta_orientation > 0 ? up->local.lower[TH_IDX] == up->global.lower[TH_IDX] :
+                                            up->local.upper[TH_IDX] == up->global.upper[TH_IDX]);
             double z_pin = 0.0;
             if (at_upper && tok_xpt_sep_pin_z(inp, geo, true, &z_pin)) {
               z_curr = z_pin;
@@ -9696,15 +9727,22 @@ gkyl_tok_geo_calc(
 
           double fixed_root_ref = rclose;
           bool at_fixed_edge = tok_xpt_at_fixed_edge(
-            inp, &arc_ctx, it, nrange, up->local.lower[TH_IDX] == up->global.lower[TH_IDX],
-            up->local.upper[TH_IDX] == up->global.upper[TH_IDX], &z_curr, &fixed_root_ref
+            inp, &arc_ctx, tok_reference_theta_idx(geo, nrange, it), nrange,
+            (geo->theta_orientation > 0 ? up->local.lower[TH_IDX] == up->global.lower[TH_IDX] :
+                                          up->local.upper[TH_IDX] == up->global.upper[TH_IDX]),
+            (geo->theta_orientation > 0 ? up->local.upper[TH_IDX] == up->global.upper[TH_IDX] :
+                                          up->local.lower[TH_IDX] == up->global.lower[TH_IDX]),
+            &z_curr, &fixed_root_ref
           );
-          bool at_xpt_anchor = arc_ctx.xpt_anchor_valid &&
-                               tok_xpt_at_seam(
-                                 inp, it, nrange,
-                                 up->local.lower[TH_IDX] == up->global.lower[TH_IDX],
-                                 up->local.upper[TH_IDX] == up->global.upper[TH_IDX]
-                               );
+          bool at_xpt_anchor =
+            arc_ctx.xpt_anchor_valid &&
+            tok_xpt_at_seam(
+              inp, tok_reference_theta_idx(geo, nrange, it), nrange,
+              (geo->theta_orientation > 0 ? up->local.lower[TH_IDX] == up->global.lower[TH_IDX] :
+                                            up->local.upper[TH_IDX] == up->global.upper[TH_IDX]),
+              (geo->theta_orientation > 0 ? up->local.upper[TH_IDX] == up->global.upper[TH_IDX] :
+                                            up->local.lower[TH_IDX] == up->global.lower[TH_IDX])
+            );
           if (at_xpt_anchor) {
             z_curr = arc_ctx.xpt_anchor_z;
           }
@@ -9761,7 +9799,7 @@ gkyl_tok_geo_calc(
             if (tok_lsn_exact_phi(
                   geo, inp->ftype, psi_curr, arcL_curr / arc_ctx.arcL_tot, r_curr, z_curr, &lsn_phi
                 )) {
-              phi_curr = alpha_curr + lsn_phi;
+              phi_curr = alpha_curr + geo->theta_orientation * lsn_phi;
             }
           }
         }
@@ -9776,7 +9814,7 @@ gkyl_tok_geo_calc(
         mc2p_n[Z_IDX] = phi_curr;
         mc2nu_n[X_IDX] = psi_curr;
         mc2nu_n[Y_IDX] = alpha_curr;
-        mc2nu_n[Z_IDX] = theta_curr;
+        mc2nu_n[Z_IDX] = Theta_curr;
         bmag_n[0] = bmag_func(r_curr, z_curr, &arc_ctx);
       }
     }
@@ -10210,10 +10248,13 @@ gkyl_tok_geo_calc(
 // with lower > upper, so its cell width is negative; gkyl_position_map_slope takes a positive step and ordered bounds.
 static double
 tok_position_map_slope(
-  const struct gkyl_position_map *gpm, int ix_map, double x, double delta, double bound_a, double bound_b
+  const struct gkyl_position_map *gpm, int ix_map, double x, double delta, double bound_a,
+  double bound_b
 )
 {
-  return gkyl_position_map_slope(gpm, ix_map, x, fabs(delta), fmin(bound_a, bound_b), fmax(bound_a, bound_b));
+  return gkyl_position_map_slope(
+    gpm, ix_map, x, fabs(delta), fmin(bound_a, bound_b), fmax(bound_a, bound_b)
+  );
 }
 
 void
@@ -10222,6 +10263,9 @@ gkyl_tok_geo_calc_interior(
   struct gkyl_tok_geo_grid_inp *inp, struct gkyl_position_map *position_map
 )
 {
+  struct gkyl_tok_geo_grid_inp reference_inp = tok_reference_grid_inp(inp, geo);
+  inp = &reference_inp;
+
   // Vessel-outline policy for this block, decided once.
   const bool enforce_wall = tok_wall_enforced(geo, inp);
 
@@ -10330,12 +10374,15 @@ gkyl_tok_geo_calc_interior(
         // also set phi_right and arcL_right
         // For a single null case:
         // also set zmin_left and zmin_right
-        double qprofile = 0.0;
+        double qprofile = NAN;
         if (tok_xpt_ordered_placement(inp)) {
-          if (!inp->half_domain) {
+          if (inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE ||
+              inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE_L ||
+              inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE_R ||
+              inp->ftype == GKYL_GEOMETRY_TOKAMAK_IWL) {
             // The ordered map changes only the coordinate construction.  Use
             // the established contour setup, with the feature flags disabled
-            // on a local copy, to preserve the pre-feature q profile exactly.
+            // on a local copy, to evaluate q on the complete closed surface.
             struct gkyl_tok_geo_grid_inp legacy_inp = *inp;
             struct arc_length_ctx qctx = arc_ctx;
             legacy_inp.straight_xpt_ray = false;
@@ -10351,16 +10398,11 @@ gkyl_tok_geo_calc_interior(
           tok_find_endpoints(
             inp, geo, &arc_ctx, &pctx, psi_curr, alpha_curr, arc_memo, arc_memo_left, arc_memo_right
           );
+          tok_verify_contour_orientation(inp, &arc_ctx);
           qprofile = qprofile_func(&arc_ctx);
         }
 
-        // Calculate the q profile
-        // qhat = - F(psi) * s(psi) / (R * grad(psi))
-        // q = integral_0^2pi qhat dtheta
-        //   = F(psi)*s(psi) * integral 1/(R*grad(psi)) dl
-        //   = 1/s(psi) * integral (dphidtheta); dphidtheta = F(psi)/(R*grad(psi))
-        // The legacy half-domain block types return zero from qprofile_func;
-        // the full-domain branch above evaluates the unchanged legacy path.
+        // q is signed and defined on a complete closed surface; open contours use NaN.
 
         // at the beginning of each theta loop we need to reset things
         cidx[PSI_IDX] = ip;
@@ -10383,7 +10425,7 @@ gkyl_tok_geo_calc_interior(
           double dTheta_dtheta = tok_position_map_slope(
             position_map, 2, theta_curr, delta_theta, up->grid.lower[2], up->grid.upper[2]
           );
-          theta_curr = Theta_curr;
+          theta_curr = geo->theta_orientation * Theta_curr;
 
           struct tok_ordered_point ordered = {0.0};
           bool ordered_mapping =
@@ -10487,7 +10529,7 @@ gkyl_tok_geo_calc_interior(
                     geo, inp->ftype, psi_curr, arcL_curr / arc_ctx.arcL_tot, r_curr, z_curr,
                     &lsn_phi
                   )) {
-                phi_curr = alpha_curr + lsn_phi;
+                phi_curr = alpha_curr + geo->theta_orientation * lsn_phi;
               }
             }
           }
@@ -10517,13 +10559,7 @@ gkyl_tok_geo_calc_interior(
               ddtheta_n[1] = ordered.dz_dtheta * dTheta_dtheta;
               ddtheta_n[2] = ordered.dphi_dtheta * dTheta_dtheta;
             } else {
-              double darc_dtheta = arc_ctx.arc_interval_valid ?
-                                     arc_ctx.arc_darc_dtheta :
-                                     (arc_ctx.xpt_map_valid ? arc_ctx.xpt_map_darc_dtheta :
-                                                              arc_ctx.arcL_tot / (2.0 * M_PI));
-              ddtheta_n[0] = sin(atan2(dr_curr, dz_curr)) * darc_dtheta * dTheta_dtheta;
-              ddtheta_n[1] = cos(atan2(dr_curr, dz_curr)) * darc_dtheta * dTheta_dtheta;
-              ddtheta_n[2] = dphidtheta_func(z_curr, &arc_ctx) * dTheta_dtheta;
+              tok_contour_derivatives(z_curr, dr_curr, dz_curr, dTheta_dtheta, &arc_ctx, ddtheta_n);
             }
             ddpsi_n[0] = dPsi_dpsi;
             mc2p_n[lidx + X_IDX] = r_curr;
@@ -10699,6 +10735,9 @@ gkyl_tok_geo_calc_surface(
   struct gkyl_position_map *position_map
 )
 {
+  struct gkyl_tok_geo_grid_inp reference_inp = tok_reference_grid_inp(inp, geo);
+  inp = &reference_inp;
+
   // Vessel-outline policy for this block, decided once.
   const bool enforce_wall = tok_wall_enforced(geo, inp);
 
@@ -10838,6 +10877,7 @@ gkyl_tok_geo_calc_surface(
           tok_find_endpoints(
             inp, geo, &arc_ctx, &pctx, psi_curr, alpha_curr, arc_memo, arc_memo_left, arc_memo_right
           );
+          tok_verify_contour_orientation(inp, &arc_ctx);
         }
 
         // at the beginning of each theta loop we need to reset things
@@ -10862,7 +10902,7 @@ gkyl_tok_geo_calc_surface(
           double dTheta_dtheta = tok_position_map_slope(
             position_map, 2, theta_curr, delta_theta, up->grid.lower[2], up->grid.upper[2]
           );
-          theta_curr = Theta_curr;
+          theta_curr = geo->theta_orientation * Theta_curr;
 
           struct tok_ordered_point ordered = {0.0};
           bool ordered_mapping =
@@ -10916,15 +10956,22 @@ gkyl_tok_geo_calc_surface(
             bool at_fixed_edge =
               dir == TH_IDX &&
               tok_xpt_at_fixed_edge(
-                inp, &arc_ctx, it, nrange, up->local.lower[TH_IDX] == up->global.lower[TH_IDX],
-                up->local.upper[TH_IDX] == up->global.upper[TH_IDX], &z_curr, &fixed_root_ref
+                inp, &arc_ctx, tok_reference_theta_idx(geo, nrange, it), nrange,
+                (geo->theta_orientation > 0 ? up->local.lower[TH_IDX] == up->global.lower[TH_IDX] :
+                                              up->local.upper[TH_IDX] == up->global.upper[TH_IDX]),
+                (geo->theta_orientation > 0 ? up->local.upper[TH_IDX] == up->global.upper[TH_IDX] :
+                                              up->local.lower[TH_IDX] == up->global.lower[TH_IDX]),
+                &z_curr, &fixed_root_ref
               );
-            bool at_xpt_anchor = dir == TH_IDX && arc_ctx.xpt_anchor_valid &&
-                                 tok_xpt_at_seam(
-                                   inp, it, nrange,
-                                   up->local.lower[TH_IDX] == up->global.lower[TH_IDX],
-                                   up->local.upper[TH_IDX] == up->global.upper[TH_IDX]
-                                 );
+            bool at_xpt_anchor =
+              dir == TH_IDX && arc_ctx.xpt_anchor_valid &&
+              tok_xpt_at_seam(
+                inp, tok_reference_theta_idx(geo, nrange, it), nrange,
+                (geo->theta_orientation > 0 ? up->local.lower[TH_IDX] == up->global.lower[TH_IDX] :
+                                              up->local.upper[TH_IDX] == up->global.upper[TH_IDX]),
+                (geo->theta_orientation > 0 ? up->local.upper[TH_IDX] == up->global.upper[TH_IDX] :
+                                              up->local.lower[TH_IDX] == up->global.lower[TH_IDX])
+              );
             if (at_xpt_anchor) {
               z_curr = arc_ctx.xpt_anchor_z;
             }
@@ -10982,7 +11029,7 @@ gkyl_tok_geo_calc_surface(
                     geo, inp->ftype, psi_curr, arcL_curr / arc_ctx.arcL_tot, r_curr, z_curr,
                     &lsn_phi
                   )) {
-                phi_curr = alpha_curr + lsn_phi;
+                phi_curr = alpha_curr + geo->theta_orientation * lsn_phi;
               }
             }
           }
@@ -11052,13 +11099,7 @@ gkyl_tok_geo_calc_surface(
               ddtheta_n[1] = ordered.dz_dtheta * dTheta_dtheta;
               ddtheta_n[2] = ordered.dphi_dtheta * dTheta_dtheta;
             } else {
-              double darc_dtheta = arc_ctx.arc_interval_valid ?
-                                     arc_ctx.arc_darc_dtheta :
-                                     (arc_ctx.xpt_map_valid ? arc_ctx.xpt_map_darc_dtheta :
-                                                              arc_ctx.arcL_tot / (2.0 * M_PI));
-              ddtheta_n[0] = sin(atan2(dr_curr, dz_curr)) * darc_dtheta * dTheta_dtheta;
-              ddtheta_n[1] = cos(atan2(dr_curr, dz_curr)) * darc_dtheta * dTheta_dtheta;
-              ddtheta_n[2] = dphidtheta_func(z_curr, &arc_ctx) * dTheta_dtheta;
+              tok_contour_derivatives(z_curr, dr_curr, dz_curr, dTheta_dtheta, &arc_ctx, ddtheta_n);
             }
             ddpsi_n[0] = dPsi_dpsi;
             bmag_n[0] = bmag_func(r_curr, z_curr, &arc_ctx);
@@ -11265,6 +11306,11 @@ gkyl_tok_geo_set_extent(
 {
   tok_geo_set_extent(inp, geo, theta_lo, theta_up);
   tok_ext_set_extent_by_arc(inp, geo, theta_lo, theta_up);
+  if (geo->theta_orientation < 0) {
+    double lo = *theta_lo;
+    *theta_lo = -*theta_up;
+    *theta_up = -lo;
+  }
 }
 
 struct gkyl_tok_geo_stat

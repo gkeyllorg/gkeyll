@@ -10,6 +10,8 @@
 typedef struct gkyl_efit gkyl_efit;
 
 struct gkyl_efit_inp {
+  // TOKAMAK requires COCOS 3 input: psi is flux/(2*pi), with signed F and q.
+  // GEQDSK has no standardized COCOS identifier; no conversion is performed.
   // Inputs to get psiRZ and related inputs from efit
   char filepath[1024]; // filepath path to eqdsk file
   int rz_poly_order; // poly order for DG rep of psi, psi/R, and psi/R^2

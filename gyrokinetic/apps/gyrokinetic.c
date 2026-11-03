@@ -1,4 +1,5 @@
 #include <stdarg.h>
+#include <stdint.h>
 
 #include <gkyl_alloc.h>
 #include <gkyl_array_ops.h>
@@ -191,9 +192,143 @@ gyrokinetic_deflate_delta_ts(struct gkyl_gyrokinetic_app *app, struct gkyl_array
   gkyl_comm_array_bcast_host(app->comm, app->delta_ts_x_up, app->delta_ts_x_up, comm_size - 1);
 }
 
+// Resolve the generated equilibrium before constructing any configuration grid.
+// The caller's mutable input is normalized in place.
+static bool
+gyrokinetic_prepare_miller(struct gkyl_gk *gk)
+{
+  if (gk->geometry.geometry_id != GKYL_GEOMETRY_MILLER) {
+    return true;
+  }
+
+  struct gkyl_comm *comm = gk->parallelism.comm;
+  int rank = 0, failure = 0, global_failure = 0;
+  if (comm) {
+    gkyl_comm_get_rank(comm, &rank);
+  }
+
+  struct gkyl_gen_miller_eqdsk_inp inp = gk->geometry.miller_grid_info;
+
+  // Perform basic checks.
+  const char *error = NULL;
+  if (gk->cdim < 2 || gk->cdim > 3 || gk->cells[0] <= 0 ||
+      gkyl_msgpack_map_elem_get_uint(
+        gk->metadata.num_attributes, gk->metadata.attributes, "is_multib"
+      )) {
+    error = "Miller initialization supports single-block 2x/3x simulations";
+  }
+  double x_bounds[2] = {gk->lower[0], gk->upper[0]}, psi_bounds[2];
+  gkyl_gen_miller_eqdsk *generator =
+    error ? NULL : gkyl_gen_miller_eqdsk_inew_for_domain(&inp, x_bounds, psi_bounds);
+  failure = generator == NULL;
+
+  if (comm) {
+    gkyl_comm_allreduce_host(comm, GKYL_INT, GKYL_MAX, 1, &failure, &global_failure);
+  } else {
+    global_failure = failure;
+  }
+  if (global_failure) {
+    goto fail;
+  }
+
+  const struct gkyl_gen_miller_eqdsk_info *info = gkyl_gen_miller_eqdsk_get_info(generator);
+
+  double psi_lower = psi_bounds[0], psi_upper = psi_bounds[1];
+
+  // Use the serialized boundary value, exactly as the EFIT reader will see it.
+  char boundary_text[32];
+  snprintf(boundary_text, sizeof boundary_text, "%.9E", info->psi_boundary);
+  double psi_lcfs = strtod(boundary_text, 0);
+  bool crossing = psi_lower < psi_lcfs && psi_upper > psi_lcfs;
+
+  if (crossing) {
+    double boundary_cell = (psi_lcfs - psi_lower) / (psi_upper - psi_lower) * gk->cells[0];
+    // GEQDSK carries ten significant digits. Check alignment at that precision,
+    // then reject rather than move the user-requested surfaces.
+    if (fabs(boundary_cell - round(boundary_cell)) > 1e-8 || round(boundary_cell) < 1 ||
+        round(boundary_cell) >= gk->cells[0]) {
+      fprintf(
+        stderr,
+        "Miller initialization (rank %d): LCFS must be at a psi cell boundary: "
+        "index %.16g for psi bounds [%.16g, %.16g]\n",
+        rank, boundary_cell, psi_lower, psi_upper
+      );
+      failure = 1;
+    }
+  }
+
+  struct gkyl_efit_inp efit = gk->geometry.efit_info;
+  if (!efit.filepath[0]) {
+    snprintf(efit.filepath, sizeof efit.filepath, "%s-miller.geqdsk", gk->name);
+  }
+  if (rank == 0 && !failure) {
+    failure = !gkyl_gen_miller_eqdsk_advance(generator) ||
+              !gkyl_gen_miller_eqdsk_write(generator, efit.filepath);
+  }
+
+  if (comm) {
+    gkyl_comm_allreduce_host(comm, GKYL_INT, GKYL_MAX, 1, &failure, &global_failure);
+  } else {
+    global_failure = failure;
+  }
+  if (global_failure) {
+    goto fail;
+  }
+
+  if (comm) {
+    gkyl_comm_barrier(comm);
+  }
+
+  efit.reflect = false;
+  if (!efit.rz_poly_order) {
+    efit.rz_poly_order = 2;
+  }
+  if (!efit.flux_poly_order) {
+    efit.flux_poly_order = 1;
+  }
+
+  struct gkyl_tok_geo_grid_inp tok = gk->geometry.tok_grid_info;
+  tok.ftype = GKYL_GEOMETRY_TOKAMAK_IWL;
+  tok.rmin = info->RmajorZvert_bounds[0];
+  tok.rmax = info->RmajorZvert_bounds[1];
+  tok.rleft = tok.rmin;
+  tok.rright = tok.rmax;
+  tok.rclose = inp.Rmajor_LCFS;
+  tok.zmin = info->RmajorZvert_bounds[2];
+  tok.zmax = info->RmajorZvert_bounds[3];
+
+  gk->lower[0] = psi_lower;
+  gk->upper[0] = psi_upper;
+  gk->geometry.geometry_id = GKYL_GEOMETRY_TOKAMAK;
+  gk->geometry.efit_info = efit;
+  gk->geometry.tok_grid_info = tok;
+  gk->geometry.miller_grid_info = inp;
+  gk->geometry.has_LCFS = crossing;
+  // Existing range splitting uses near machine precision. Preserve its index
+  // while the geometric wall cutoff uses the serialized EFIT boundary.
+  gk->geometry.x_LCFS =
+    crossing ? psi_lower + round((psi_lcfs - psi_lower) / (psi_upper - psi_lower) * gk->cells[0]) *
+                             (psi_upper - psi_lower) / gk->cells[0] :
+               psi_lcfs;
+
+  gkyl_gen_miller_eqdsk_release(generator);
+
+  return true;
+
+fail:
+  if (error) {
+    fprintf(stderr, "Miller initialization (rank %d): %s\n", rank, error);
+  }
+  gkyl_gen_miller_eqdsk_release(generator);
+  return false;
+}
+
 static gkyl_gyrokinetic_app *
 gyrokinetic_app_new_geom_impl(struct gkyl_gk *gk, bool write_geometry)
 {
+  if (!gyrokinetic_prepare_miller(gk)) {
+    return 0;
+  }
   disable_denorm_float();
 
   assert(gk->num_species <= GKYL_MAX_SPECIES);
@@ -377,6 +512,7 @@ gyrokinetic_app_new_geom_impl(struct gkyl_gk *gk, bool write_geometry)
   // Initialize the input struct from user side input struct
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id = gk->geometry.geometry_id,
+    .miller_grid_info = gk->geometry.miller_grid_info,
     .c2p_ctx = gk->geometry.c2p_ctx,
     .mapc2p = gk->geometry.mapc2p,
     .bfield_ctx = gk->geometry.bfield_ctx,
@@ -475,6 +611,10 @@ gyrokinetic_app_new_geom_impl(struct gkyl_gk *gk, bool write_geometry)
 
   struct gk_geometry *gk_geom_3d;
   switch (geometry_inp.geometry_id) {
+    case GKYL_GEOMETRY_MILLER:
+      // geometry_id should've been set to tokamak by gyrokinetic_prepare_miller.
+      assert(false);
+      abort();
     case GKYL_GEOMETRY_FROMFILE:
       gk_geom_3d = gkyl_gk_geometry_new(app->gk_geom, &geometry_inp, false);
       break;
@@ -542,6 +682,9 @@ gyrokinetic_app_new_geom_impl(struct gkyl_gk *gk, bool write_geometry)
 
   gkyl_gk_dg_geom_populate_vol(app->dg_geom, app->gk_dg_geom, app->gk_geom);
   gkyl_gk_dg_geom_populate_surf(app->dg_geom, app->gk_dg_geom, app->gk_geom);
+
+  // Retain the host geometry before a possible device replacement.
+  app->gk_geom_ho = gk->geometry.set_gk_geometry ? gkyl_gk_geometry_acquire(app->gk_geom) : NULL;
 
   // If we are on the gpu, copy from host.
   if (app->use_gpu) {
@@ -841,6 +984,10 @@ gyrokinetic_app_new_geom_impl(struct gkyl_gk *gk, bool write_geometry)
 
   if (write_geometry) {
     gkyl_gyrokinetic_app_write_geometry(app, &geometry_inp);
+  }
+
+  if (gk->geometry.set_gk_geometry) {
+    gk->geometry.set_gk_geometry(app->gk_geom_ho, gk->geometry.set_gk_geometry_ctx);
   }
 
   return app;
@@ -1174,6 +1321,9 @@ gkyl_gyrokinetic_app *
 gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
 {
   gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new_geom(gk);
+  if (!app) {
+    return 0;
+  }
   gkyl_gyrokinetic_app_new_solver(gk, app);
 
   return app;
@@ -4171,6 +4321,35 @@ gkyl_gyrokinetic_app_read_geometry(
         gkyl_msgpack_map_elem_get_uint(elem_list_numeq_len, elem_list_numeq, "half_domain");
     }
 
+    if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK) {
+      struct gkyl_msgpack_map_elem convention[] = {
+        {.key = "equilibrium_cocos", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0},
+        {.key = "parallel_coordinate", .elem_type = GKYL_MP_STRING, .cval = NULL}
+      };
+      gkyl_msgpack_to_map_elem_list(
+        &(struct gkyl_msgpack_data){.meta = hdr.meta, .meta_sz = hdr.meta_size}, 2, convention
+      );
+      if (convention[0].uval != 0) {
+        struct gkyl_msgpack_map_elem theta_meta[] = {
+          {
+            .key = "equilibrium_cocos",
+            .elem_type = GKYL_MP_UNSIGNED_INT,
+            .uval = convention[0].uval,
+          },
+          {.key = "parallel_coordinate", .elem_type = GKYL_MP_STRING, .cval = convention[1].cval}
+        };
+        int lengths[] = {app->gk_geom->io_meta_basic_len, convention[1].cval ? 2 : 1};
+        const struct gkyl_msgpack_map_elem *lists[] = {app->gk_geom->io_meta_basic, theta_meta};
+        int new_len;
+        struct gkyl_msgpack_map_elem *metadata =
+          gkyl_msgpack_map_elem_union(2, lengths, lists, &new_len);
+        gkyl_msgpack_map_elem_release(app->gk_geom->io_meta_basic_len, app->gk_geom->io_meta_basic);
+        app->gk_geom->io_meta_basic = metadata;
+        app->gk_geom->io_meta_basic_len = new_len;
+      }
+      gkyl_free((void *)convention[1].cval);
+    }
+
     gkyl_grid_sub_array_header_release(&hdr);
   }
   cstr_drop(&fileNm);
@@ -4624,6 +4803,9 @@ gkyl_gyrokinetic_app_release_geom(gkyl_gyrokinetic_app *app)
     }
   }
 
+  if (app->gk_geom_ho) {
+    gkyl_gk_geometry_release(app->gk_geom_ho);
+  }
   gkyl_gk_geometry_release(app->gk_geom);
   gkyl_dg_geom_release(app->dg_geom);
   gkyl_gk_dg_geom_release(app->gk_dg_geom);
@@ -4691,6 +4873,10 @@ gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app *app)
   gkyl_msgpack_map_elem_release(app->io_meta_basic_len, app->io_meta_basic);
   gkyl_msgpack_map_elem_release(app->io_meta_dg_len, app->io_meta_dg);
 
+  gkyl_gk_geometry_release(app->gk_geom);
+  if (app->gk_geom_ho) {
+    gkyl_gk_geometry_release(app->gk_geom_ho);
+  }
   gkyl_free(app);
 }
 
