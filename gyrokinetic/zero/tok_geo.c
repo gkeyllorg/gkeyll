@@ -11258,6 +11258,60 @@ tok_ext_set_extent_by_arc(
                         inp->arc_frac_hi > inp->arc_frac_lo;
 }
 
+double
+gkyl_tok_geo_separatrix_arc(const struct gkyl_tok_geo_grid_inp *inp, struct gkyl_tok_geo *geo)
+{
+  struct tok_ext_topology top;
+  if (!tok_ext_construction(inp) ||
+      !tok_ext_topology_from_ftype(inp->ftype, inp->half_domain, &top)) {
+    return -1.0;
+  }
+  // the geometry state tok_geo_set_extent sets before any block is traced
+  struct gkyl_tok_geo_grid_inp tmp = *inp;
+  double lo = 0.0, up = 0.0;
+  tok_geo_set_extent(&tmp, geo, &lo, &up);
+  int nzcells = geo->use_cubics ? geo->rzgrid_cubic.cells[1] : geo->rzgrid.cells[1];
+  struct arc_length_ctx actx = {
+    .geo = geo,
+    .sep_trace_capacity = tok_sep_trace_capacity(inp, nzcells),
+    .ftype = inp->ftype,
+    .zmaxis = geo->zmaxis,
+  };
+  if (top.closed) {
+    // one block round the closed surface: its whole separatrix row, X point to X point
+    double xr = 0.0, xz = 0.0;
+    if (!tok_ext_xpoint_rz(geo, top.lower.xpoint, &xr, &xz)) {
+      return -1.0;
+    }
+    const int cap = actx.sep_trace_capacity, n = tok_reference_trace_nodes(inp, cap);
+    double *buf = gkyl_malloc(sizeof(double[3 * (size_t)cap]));
+    bool param = false;
+    struct tok_leaves lv = {0};
+    double arc = -1.0;
+    if (tok_ext_route_trace(
+          inp, geo, &top, top.route, geo->psisep, true, n, xr, xz, xr, xz, buf, buf + cap,
+          buf + 2 * cap, &param
+        ) &&
+        tok_trace_leaves(geo, geo->psisep, buf, buf + cap, n, &lv) && lv.n > 1) {
+      arc = lv.arc[lv.n - 1];
+    }
+    if (lv.cap) {
+      gkyl_free(lv.r);
+      gkyl_free(lv.z);
+      gkyl_free(lv.arc);
+    }
+    gkyl_free(buf);
+    return arc;
+  }
+  struct tok_ext_chain ch;
+  struct tok_ext_chain_row row;
+  if (!tok_ext_build_chain(inp->ftype, inp->half_domain, &ch) ||
+      !tok_ext_chain_row_build(inp, &actx, &ch, geo->psisep, true, false, &row)) {
+    return -1.0;
+  }
+  return row.s[ch.self + 1] - row.s[ch.self];
+}
+
 void
 gkyl_tok_geo_set_extent(
   struct gkyl_tok_geo_grid_inp *inp, struct gkyl_tok_geo *geo, double *theta_lo, double *theta_up

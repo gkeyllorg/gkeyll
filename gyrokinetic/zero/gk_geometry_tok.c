@@ -785,3 +785,14 @@ gkyl_gk_geometry_tok_set_grid_extents(
   gkyl_tok_geo_set_extent(grid_info, geo, theta_lo, theta_up);
   gkyl_tok_geo_release(geo);
 }
+
+double
+gkyl_gk_geometry_tok_separatrix_arc(
+  struct gkyl_efit_inp efit_info, const struct gkyl_tok_geo_grid_inp *grid_info
+)
+{
+  struct gkyl_tok_geo *geo = gkyl_tok_geo_new(&efit_info, grid_info);
+  double arc = gkyl_tok_geo_separatrix_arc(grid_info, geo);
+  gkyl_tok_geo_release(geo);
+  return arc;
+}

@@ -475,6 +475,21 @@ void gkyl_tok_geo_set_extent(
 );
 
 /**
+ * True arc length of the separatrix across a block's theta extent: the
+ * block's share of its theta chain's separatrix row, measured as the X-point
+ * cut measures it. For blocks on the extended construction (straight_xpt_ray)
+ * only.
+ *
+ * @param inp grid input
+ * @param geo tokamak geometry object
+ * @return the arc length [m]; negative for a block not on the extended
+ *   construction, or whose separatrix row cannot be traced
+ */
+double gkyl_tok_geo_separatrix_arc(
+  const struct gkyl_tok_geo_grid_inp *inp, struct gkyl_tok_geo *geo
+);
+
+/**
  * Return cumulative statistics from geometry computations
  *
  * @param geo Geometry object
