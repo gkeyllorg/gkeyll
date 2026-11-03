@@ -1500,7 +1500,8 @@ tok_geo_finite(double value)
 {
   uint64_t bits;
   memcpy(&bits, &value, sizeof bits);
-  return (bits & UINT64_C(0x7ff0000000000000)) != UINT64_C(0x7ff0000000000000);
+  volatile uint64_t exponent = bits & UINT64_C(0x7ff0000000000000);
+  return exponent != UINT64_C(0x7ff0000000000000);
 }
 
 // Contains the entire represented quadratic (or linear) boundary curve.
