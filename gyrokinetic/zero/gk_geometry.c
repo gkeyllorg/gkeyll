@@ -815,6 +815,11 @@ gkyl_gk_geometry_deflate(const struct gk_geometry *up_3d, struct gkyl_gk_geometr
         deflator_surf, &up_3d->nrange_surf[dir], &up->nrange_surf[count],
         up_3d->geo_surf[dir].bmag_nodal, up->geo_surf[count].bmag_nodal, 1
       );
+      // MAPC2P and MIRROR populate the surface positions directly.
+      gkyl_deflate_geo_surf_advance_nodal(
+        deflator_surf, &up_3d->nrange_surf[dir], &up->nrange_surf[count],
+        up_3d->geo_surf[dir].mc2p_nodal, up->geo_surf[count].mc2p_nodal, 3
+      );
       // Tokamak surface positions are stored in the base triplet of the
       // finite-difference array.  Preserve the full array so diagnostics can
       // read the surface position without relying on mc2p_nodal, which the

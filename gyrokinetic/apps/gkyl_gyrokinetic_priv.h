@@ -1839,6 +1839,8 @@ struct gkyl_gyrokinetic_app {
 
   struct gk_geometry *gk_geom;
   struct gk_geometry *gk_geom_ho; // Retained host geometry for input callbacks, or NULL.
+  unsigned
+    geo_surf_nodal_loaded[GKYL_MAX_CDIM]; // Mask of optional surface diagnostics read from file.
   struct gkyl_dg_geom *dg_geom;
   struct gkyl_gk_dg_geom *gk_dg_geom;
   struct gkyl_array *jacobtot_inv_weak; // 1/(J.B) computed via weak mul and div.

@@ -1,6 +1,7 @@
 #include <gkyl_efit.h>
 #include <gkyl_gk_block_geom.h>
 #include <gkyl_array_rio_priv.h>
+#include <gkyl_array_rio.h>
 #include <gkyl_dg_basis_ops.h>
 #include <gkyl_elem_type_priv.h>
 #include <gkyl_efit.h>
@@ -313,6 +314,7 @@ singleb_app_new_solver(
     }
     species_inp.projection = sp_pb->projection;
     species_inp.source = sp_pb->source;
+    species_inp.source_bgk = sp_pb->source_bgk;
     species_inp.polarization_density = sp_pb->polarization_density;
 
     // By default, skip BCs altogether.
@@ -464,7 +466,7 @@ singleb_app_new_solver(
       field_inp.poisson_bcs[2 * d + i].edge = i == 0 ? GKYL_LOWER_EDGE : GKYL_UPPER_EDGE;
       field_inp.poisson_bcs[2 * d + i].type = GKYL_BC_GK_FIELD_DIRICHLET;
       for (int k = 0; k < 3; ++k) {
-        field_inp.poisson_bcs[i].value[k] = -1.0e3;
+        field_inp.poisson_bcs[2 * d + i].value[k] = -1.0e3;
       }
     }
   }
@@ -1729,6 +1731,47 @@ and the maximum number of cuts in a block is %d\n\n",
   return mbapp;
 }
 
+// A complete multiblock geometry cache includes the final one-dimensional TS
+// shifts written by gyrokinetic_app_write_ts_shift. Surface deltats has already
+// been modified by interface differencing when the solver writes its geometry;
+// differencing it again on reload changes the boundary condition.
+static void
+singleb_app_read_ts_shift(struct gkyl_gyrokinetic_app *app, const char *path)
+{
+  if (app->cdim != 3 || !app->delta_ts_x_lo || app->core_parallel_bcs.lower_shift_func) {
+    return;
+  }
+  int rank;
+  gkyl_comm_get_rank(app->comm, &rank);
+  struct gkyl_array *shifts[] = {app->delta_ts_x_lo, app->delta_ts_x_up};
+  const char *edges[] = {"lower", "upper"};
+  for (int edge = 0; edge < 2; ++edge) {
+    if (rank == 0) {
+      cstr filename = cstr_from_fmt("%s%s-bc_z%s_twistshift.gkyl", path, app->name, edges[edge]);
+      struct gkyl_rect_grid grid;
+      struct gkyl_array_header_info header;
+      enum gkyl_array_rio_status status =
+        gkyl_grid_sub_array_header_read(&grid, &header, filename.str);
+      if (status != GKYL_ARRAY_RIO_SUCCESS) {
+        fprintf(stderr, "Multiblock FROMFILE requires the saved TS shift: %s\n", filename.str);
+        gkyl_exit("Unable to read the saved multiblock TS shift.");
+      }
+      bool compatible = gkyl_rect_grid_cmp(&app->delta_ts_x_grid, &grid) &&
+                        header.etype == GKYL_DOUBLE && header.esznc == shifts[edge]->esznc;
+      gkyl_grid_sub_array_header_release(&header);
+      if (!compatible) {
+        gkyl_exit("Saved multiblock TS shift has an incompatible grid or basis size.");
+      }
+      status = gkyl_grid_sub_array_read(&grid, &app->delta_ts_x_rng, shifts[edge], filename.str);
+      if (status != GKYL_ARRAY_RIO_SUCCESS) {
+        gkyl_exit("Unable to read the saved multiblock TS shift data.");
+      }
+      cstr_drop(&filename);
+    }
+    gkyl_comm_array_bcast_host(app->comm, shifts[edge], shifts[edge], 0);
+  }
+}
+
 static gkyl_gyrokinetic_multib_app *
 gyrokinetic_multib_app_new_impl(const struct gkyl_gyrokinetic_multib *mbinp)
 {
@@ -2077,6 +2120,14 @@ and the maximum number of cuts in a block is %d\n\n",
 
       // Write the twistshift shift.
       gyrokinetic_app_write_ts_shift(sbapp);
+    }
+  }
+
+  if (cdim == 3 && bgi0->geometry.geometry_id == GKYL_GEOMETRY_FROMFILE) {
+    for (int b = 0; b < mbapp->num_local_blocks; ++b) {
+      const struct gkyl_gk_block_geom_info *geom =
+        gkyl_gk_block_geom_get_block(mbapp->gk_block_geom, mbapp->local_blocks[b]);
+      singleb_app_read_ts_shift(mbapp->singleb_apps[b], geom->geometry.geometry_path);
     }
   }
 

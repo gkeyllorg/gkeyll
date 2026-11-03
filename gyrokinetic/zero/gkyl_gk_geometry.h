@@ -33,9 +33,10 @@ struct gk_geom_surf {
   struct gkyl_array *deltats; // 1 component. Function of psi-alpha.
 
   // Arrays below are just for computation of arrays above
-  struct gkyl_array
-    *mc2p_nodal_fd; // 3 components. Cartesian X,Y, and Z at surf quad nodes and nodes epsilon away.
-  struct gkyl_array *mc2p_nodal; // 3 components. Cartesian X,Y, and Z at surf quad nodes.
+  struct gkyl_array *
+    mc2p_nodal_fd; // 39 components (13 tuples). Cartesian (X,Y,Z) for MAPC2P; cylindrical (R,Z,phi) for TOKAMAK/MIRROR at surface quadrature and FD nodes.
+  struct gkyl_array *
+    mc2p_nodal; // 3 components. Cartesian (X,Y,Z) for MAPC2P; cylindrical (R,Z,phi) for TOKAMAK/MIRROR at surface quadrature nodes.
   struct gkyl_array *bmag_nodal; // 1 component. B Magnitude of magnetic field.
   struct gkyl_array *curlbhat_nodal; // Cartesian components of curl(bhat).
   struct gkyl_array *normcurlbhat_nodal; // 1 component, n^m \dot curl(bhat).
@@ -72,7 +73,8 @@ struct gk_geom_surf {
 };
 
 struct gk_geom_corn {
-  struct gkyl_array *mc2p; // 3 components. Cartesian X,Y, and Z.
+  struct gkyl_array
+    *mc2p; // 3 components. Cartesian (X,Y,Z) for MAPC2P; cylindrical (R,Z,phi) for TOKAMAK/MIRROR.
   struct gkyl_array
     *mc2p_deflated; // cdim components. Component removed (Z in 1x, R,Z in 2x, R,Z,phi in 3x).
   struct gkyl_array *
@@ -83,7 +85,8 @@ struct gk_geom_corn {
   struct gkyl_array *bmag_inv; // 1 component. 1/bmag.
 
   // Arrays below are just for computation of arrays above.
-  struct gkyl_array *mc2p_nodal; // 3 components. Cartesian X,Y, and Z.
+  struct gkyl_array *
+    mc2p_nodal; // 3 components. Cartesian (X,Y,Z) for MAPC2P; cylindrical (R,Z,phi) for TOKAMAK/MIRROR.
   struct gkyl_array *
     mc2nu_pos_nodal; // 3 components. Uniform computational space to non-uniform computational space mapping
   struct gkyl_array *bmag_nodal; // 1 components. Magnitude of Magnetic Field.
@@ -135,9 +138,13 @@ struct gk_geom_int {
   struct gkyl_array *bmag_nodal;
   struct gkyl_array *ddtheta_nodal;
   struct gkyl_array *ddpsi_nodal; // dPsi/dpsi at interior quad nodes
-  struct gkyl_array *mc2p_nodal; // 3 components. Cartesian X,Y, and Z
-  struct gkyl_array *mc2p_nodal_fd; // 39 components. Cartesian X,Y, and Z at nodes and FD nodes.
-  /* Array containing cartesian coordinates at nodes and nearby nodes (epsilon and 2 epsilon away) used for FD
+  struct gkyl_array *
+    mc2p_nodal; // 3 components. Cartesian (X,Y,Z) for MAPC2P; cylindrical (R,Z,phi) for TOKAMAK/MIRROR.
+  struct gkyl_array *
+    mc2p_nodal_fd; // 39 components. Cartesian (X,Y,Z) for MAPC2P; cylindrical (R,Z,phi) for TOKAMAK/MIRROR at nodes and FD nodes.
+  /* Array containing physical coordinates at nodes and nearby FD nodes.
+  *    Tuples are Cartesian (X,Y,Z) for MAPC2P and cylindrical (R,Z,phi) for
+  *    TOKAMAK/MIRROR. The X,Y,Z labels below denote the three tuple entries.
   *    At each array location 39 values are stored.
   *    The arrangement is as follows: X_c, Y_c, Z_c, 
   *    X_L1, Y_L1, Z_L1, X_R1, Y_R1, Z_R1,

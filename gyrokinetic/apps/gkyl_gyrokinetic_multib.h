@@ -16,6 +16,8 @@ struct gkyl_gyrokinetic_multib_species_pb {
 
   // Source to include.
   struct gkyl_gyrokinetic_source source;
+  // BGK relaxation source, including block-specific buffer regions.
+  struct gkyl_gyrokinetic_source_bgk source_bgk;
 };
 
 // Species input
@@ -114,6 +116,7 @@ struct gkyl_gyrokinetic_multib_field_pb {
 
 // Field input
 struct gkyl_gyrokinetic_multib_field {
+  bool ts_field_dg; // Keep TS potential ghosts discontinuous in x-y (default false).
   enum gkyl_gkfield_id gkfield_id;
   double kperpSq; // kperp^2 parameter for 1D field equations
 

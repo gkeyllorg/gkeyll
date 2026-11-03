@@ -803,6 +803,35 @@ test_mapc2p_partitions(void)
   TEST_MSG("partition error %.17g", error);
   TEST_CHECK(slope_error < 2e-10);
   TEST_MSG("axial tangent error %.17g", slope_error);
+  // Surface positions must also survive the 3D-to-2D geometry deflation
+  // used by MAPC2P and MIRROR apps, not just their metric fields.
+  struct gkyl_gk_geometry_inp slab_inp = {.geometry_id = GKYL_GEOMETRY_MAPC2P};
+  gkyl_rect_grid_init(
+    &slab_inp.grid, 2, (double[]){grid.lower[0], grid.lower[2]},
+    (double[]){grid.upper[0], grid.upper[2]}, (int[]){grid.cells[0], grid.cells[2]}
+  );
+  gkyl_cart_modal_serendip(&slab_inp.basis, 2, 1);
+  gkyl_create_grid_ranges(&slab_inp.grid, (int[]){1, 1}, &slab_inp.local_ext, &slab_inp.local);
+  struct gk_geometry *slab = gkyl_gk_geometry_deflate(full, &slab_inp);
+  for (int dir = 0; dir < 2; ++dir) {
+    int source_dir = dir == 0 ? 0 : 2;
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init(&iter, &slab->nrange_surf[dir]);
+    while (gkyl_range_iter_next(&iter)) {
+      const double *value = gkyl_array_cfetch(
+        slab->geo_surf[dir].mc2p_nodal, gkyl_range_idx(&slab->nrange_surf[dir], iter.idx)
+      );
+      const double *expected = gkyl_array_cfetch(
+        full->geo_surf[source_dir].mc2p_nodal,
+        gkyl_range_idx(&full->nrange_surf[source_dir], (int[]){iter.idx[0], 1, iter.idx[1]})
+      );
+      for (int component = 0; component < 3; ++component) {
+        TEST_CHECK(value[component] == expected[component]);
+      }
+    }
+  }
+  gkyl_gk_geometry_release(slab);
+
   gkyl_gk_geometry_release(full);
   gkyl_position_map_release(pmap);
 }

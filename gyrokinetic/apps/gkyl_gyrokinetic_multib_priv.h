@@ -122,6 +122,7 @@ struct gk_multib_field {
   struct gkyl_array **rho_c_multib_perp;
   struct gkyl_array **epsilon_multib_perp; // Multib polarization weight.
   struct gkyl_fem_poisson_perp **fem_poisson; // Perpendicular Poisson solver.
+  struct gk_multib_field_ts *ts; // Parallel ghost communication and potential projection.
 
   // Functions to advance MB field
   // Pointer to function to calculate the potential.
@@ -130,6 +131,65 @@ struct gk_multib_field {
     struct gkyl_array **bflux[]
   );
 };
+
+/**
+ * Initialize 3D field boundary resources, owned by mbf.
+ * @param inp Multiblock inputs.
+ * @param app Multiblock app with initialized child solvers and topology.
+ * @param mbf Multiblock field receiving the resources.
+ */
+void gk_multib_field_ts_new(
+  const struct gkyl_gyrokinetic_multib *inp, struct gkyl_gyrokinetic_multib_app *app,
+  struct gk_multib_field *mbf
+);
+/**
+ * Gather interiors and synchronized ghosts into block-global arrays.
+ * @param app Multiblock app.
+ * @param mbf Multiblock field with initialized boundary resources.
+ * @param local Local arrays after multiblock ghost synchronization.
+ * @param global Output arrays in each block's global extended layout.
+ */
+void gk_multib_field_ts_gather(
+  struct gkyl_gyrokinetic_multib_app *app, struct gk_multib_field *mbf, struct gkyl_array **local,
+  struct gkyl_array **global
+);
+/**
+ * Apply twist-shift or physical boundary fills to a block-global array.
+ * @param app Multiblock app.
+ * @param mbf Multiblock field.
+ * @param bI Local block index.
+ * @param global Block-global array with synchronized ghost donors.
+ */
+void gk_multib_field_ts_fill(
+  struct gkyl_gyrokinetic_multib_app *app, struct gk_multib_field *mbf, int bI,
+  struct gkyl_array *global
+);
+/**
+ * Project TS potential ghost faces across connected radial blocks.
+ * @param app Multiblock app.
+ * @param mbf Multiblock field.
+ * @param global Block-global potentials after parallel boundary fills.
+ */
+void gk_multib_field_ts_project(
+  struct gkyl_gyrokinetic_multib_app *app, struct gk_multib_field *mbf, struct gkyl_array **global
+);
+/**
+ * Smooth potential with physical constraints, or density without potential biases.
+ * @param mbf Multiblock field.
+ * @param bI Local block index.
+ * @param global Block-global input and parallel ghost boundary data.
+ * @param smooth Output in the block-global extended layout.
+ * @param is_potential Whether to impose potential bias constraints.
+ */
+void gk_multib_field_ts_smooth(
+  struct gk_multib_field *mbf, int bI, struct gkyl_array *global, struct gkyl_array *smooth,
+  bool is_potential
+);
+/**
+ * Release 3D field boundary resources.
+ * @param mbf Multiblock field owning the resources.
+ */
+void gk_multib_field_ts_release(struct gk_multib_field *mbf);
 
 /** Time stepping API */
 

@@ -205,6 +205,8 @@ struct gkyl_gyrokinetic_source_bgk {
   void *rate_profile_ctx;
   void (*feq_shape)(double t, const double *xn, double *fout, void *ctx); // F_eq(x,y,z,vpar,mu).
   void *feq_shape_ctx;
+  // Static equilibrium projection, used when feq_shape is NULL.
+  struct gkyl_gyrokinetic_projection equilibrium;
   void (*temp_shape)(double t, const double *xn, double *fout, void *ctx); // s_Q(x,y,z).
   void *temp_shape_ctx;
   double power; // Desired heating power (sets T_Q(t)).
@@ -825,6 +827,16 @@ gkyl_gyrokinetic_app *gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk);
 void gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app *app, double t0);
 
 /**
+ * Write surface nodal geometry using global node indices across MPI ranks.
+ *
+ * @param app Gyrokinetic app.
+ * @param inp Geometry input and cache path.
+ */
+void gkyl_gyrokinetic_app_geo_surf_nodes_write(
+  gkyl_gyrokinetic_app *app, const struct gkyl_gk_geometry_inp *inp
+);
+
+/**
  * Write geometry file.
  *
  * @param app App object.
@@ -1427,6 +1439,16 @@ void gkyl_gyrokinetic_app_save_dt(gkyl_gyrokinetic_app *app, double tm, double d
  * @param app App object.
  */
 void gkyl_gyrokinetic_app_write_dt(gkyl_gyrokinetic_app *app);
+
+/**
+ * Read optional saved surface nodal geometry using global node indices across MPI ranks.
+ *
+ * @param app Gyrokinetic app.
+ * @param inp Geometry input and cache path.
+ */
+void gkyl_gyrokinetic_app_geo_surf_nodes_read(
+  gkyl_gyrokinetic_app *app, const struct gkyl_gk_geometry_inp *inp
+);
 
 /**
  * Read geometry file.

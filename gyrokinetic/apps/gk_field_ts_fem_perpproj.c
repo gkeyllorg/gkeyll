@@ -24,8 +24,9 @@ struct gk_field_ts_fem_perpproj {
 static bool
 gk_field_ts_fem_perpproj_requested(const gkyl_gyrokinetic_app *app, const struct gk_field *field)
 {
-  return !app->core_parallel_bcs.ts_field_dg && (field->bc_par_phi == GKYL_BC_GK_FIELD_TWISTSHIFT ||
-                                                 (app->cdim == 3 && app->gk_geom->has_LCFS));
+  return !app->is_multib && !app->core_parallel_bcs.ts_field_dg &&
+         (field->bc_par_phi == GKYL_BC_GK_FIELD_TWISTSHIFT ||
+          (app->cdim == 3 && app->gk_geom->has_LCFS));
 }
 
 static void

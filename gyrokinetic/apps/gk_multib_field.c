@@ -492,6 +492,11 @@ gk_multib_field_new_perp_solve(
       }
     }
 
+    for (int d = 0; d < mbinp->num_periodic_dir; ++d) {
+      int dir_periodic = mbinp->periodic_dirs[d];
+      bcs.lo_type[dir_periodic] = bcs.up_type[dir_periodic] = GKYL_POISSON_PERIODIC;
+    }
+
     mbf->fem_poisson[bI] = gkyl_fem_poisson_perp_new(
       mbf->multib_perp_ranges[bI], &sbapp->grid, sbapp->basis, &bcs, mbf->info.bias_line_list,
       mbf->epsilon_multib_perp[bI], NULL, mbapp->use_gpu
@@ -652,45 +657,20 @@ gk_multib_field_2x_rhs(
 void
 gk_multib_field_twistshift_and_smooth(
   gkyl_gyrokinetic_multib_app *mbapp, struct gk_multib_field *mbf, struct gkyl_array **arr_local,
-  struct gkyl_array **arr_global_dg, struct gkyl_array **arr_global_smooth
+  struct gkyl_array **arr_global_dg, struct gkyl_array **arr_global_smooth, bool is_potential
 )
 {
-  // There are three arrays:
-  // 1) The local one (field->rho_c = rho_c_local[bI])
-  // 2) The global non-smooth one (field->rho_c_global_dg) needs an mb equivalent
-  // 3) The global smooth one
-  // Now apply TS in place on rho for each block
-  int par_dir = mbf->cdim - 1; // Parallel direction index.
-  for (int bI = 0; bI < mbapp->num_local_blocks; bI++) {
+  gk_multib_field_ts_gather(mbapp, mbf, arr_local, arr_global_dg);
+  for (int bI = 0; bI < mbapp->num_local_blocks; ++bI) {
+    gk_multib_field_ts_fill(mbapp, mbf, bI, arr_global_dg[bI]);
+  }
+  if (is_potential) {
+    gk_multib_field_ts_project(mbapp, mbf, arr_global_dg);
+  }
+  for (int bI = 0; bI < mbapp->num_local_blocks; ++bI) {
     struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
     struct gk_field *field = sbapp->field;
-    gkyl_comm_array_allgather(
-      sbapp->comm, &sbapp->local, &sbapp->global, arr_local[bI], arr_global_dg[bI]
-    );
-
-    // Apply TS BC in the lower parallel boundary, and
-    // fill upper parallel boundary ghost with skin boundary value.
-    if (mbf->num_blocks_below[bI] > 0) {
-      gkyl_bc_twistshift_advance(field->bc_ts_lo, arr_global_dg[bI], arr_global_dg[bI]);
-    } else {
-      gkyl_bc_basic_gyrokinetic_advance(
-        field->gfss_bc_op_core_lo, field->bc_buffer, arr_global_dg[bI]
-      );
-    }
-
-    // Apply TS BC in the upper parallel boundary, and
-    // fill lower parallel boundary ghost with skin boundary value.
-    if (mbf->num_blocks_above[bI] > 0) {
-      gkyl_bc_twistshift_advance(field->bc_ts_up, arr_global_dg[bI], arr_global_dg[bI]);
-    } else {
-      gkyl_bc_basic_gyrokinetic_advance(
-        field->gfss_bc_op_core_up, field->bc_buffer, arr_global_dg[bI]
-      );
-    }
-
-    // Smooth the the DG array.
-    gkyl_fem_parproj_set_rhs(field->fem_parproj_phi_core, arr_global_dg[bI], arr_global_dg[bI]);
-    gkyl_fem_parproj_solve(field->fem_parproj_phi_core, arr_global_smooth[bI]);
+    gk_multib_field_ts_smooth(mbf, bI, arr_global_dg[bI], arr_global_smooth[bI], is_potential);
 
     // Copy global, continuous FEM array to a local array.
     gkyl_array_copy_range_to_range(
@@ -734,7 +714,7 @@ gk_multib_field_3x_rhs(
 
   // Now apply TS in place on rho for each block
   gk_multib_field_twistshift_and_smooth(
-    mbapp, mbf, mbf->rho_c_local, mbf->rho_c_global_dg, mbf->rho_c_global_smooth
+    mbapp, mbf, mbf->rho_c_local, mbf->rho_c_global_dg, mbf->rho_c_global_smooth, false
   );
   // Done applying TS now we need to solve the field
 
@@ -774,7 +754,7 @@ gk_multib_field_3x_rhs(
 
   // Now apply TS in place on phi for each block
   gk_multib_field_twistshift_and_smooth(
-    mbapp, mbf, mbf->phi_local, mbf->rho_c_global_dg, mbf->phi_global_smooth
+    mbapp, mbf, mbf->phi_local, mbf->rho_c_global_dg, mbf->phi_global_smooth, true
   );
   // Done with TS and smooth of phi
 }
@@ -826,6 +806,8 @@ gk_multib_field_new(
     );
   }
 
+  gk_multib_field_ts_new(mbinp, mbapp, mbf);
+
   if (mbf->cdim == 1) {
     mbf->rhs_func = gk_multib_field_1x_rhs;
   }
@@ -853,6 +835,7 @@ gk_multib_field_rhs(
 void
 gk_multib_field_release(struct gk_multib_field *mbf)
 {
+  gk_multib_field_ts_release(mbf);
   for (int bI = 0; bI < mbf->num_local_blocks; bI++) {
     gkyl_array_release(mbf->phi_local[bI]);
     gkyl_array_release(mbf->rho_c_local[bI]);

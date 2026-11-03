@@ -188,6 +188,7 @@ create_asdex_lsn_gk_block_geom(void *ctx)
   int Ntheta_sol = params->Ntheta_sol;
   int Ny = params->Ny;
 
+  // Regenerate with TOKAMAK after changing geometry settings; FROMFILE reuses the saved grid.
   // Block 0: outer private flux (PF) region.
   gkyl_gk_block_geom_set_block(
     bgeom, 0,
@@ -204,6 +205,9 @@ create_asdex_lsn_gk_block_geom(void *ctx)
           .tok_grid_info =
             (struct gkyl_tok_geo_grid_inp){
               .ftype = GKYL_GEOMETRY_TOKAMAK_PF_LO_R,
+              // Use the same X-point seam placement as the 2D TCV input.
+              .straight_xpt_ray = true,
+              .relaxed_xpt_seam = true,
               .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
               .rmin = 0.618,
               .rmax = 1.14,
@@ -227,9 +231,9 @@ create_asdex_lsn_gk_block_geom(void *ctx)
         },
 
       .connections[0] =
-        {// x-direction.
-         {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // Physical boundary.
-         {.bid = 1, .dir = 0, .edge = GKYL_LOWER_POSITIVE}
+        {// The shared flux surface is SOL upper x to core/PF lower x.
+         {.bid = 1, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
+         {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}
         },
       .connections[1] =
         {// y-direction.
@@ -284,10 +288,9 @@ create_asdex_lsn_gk_block_geom(void *ctx)
         },
 
       .connections[0] =
-        {
-          // x-direction.
-          {.bid = 0, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
-          {.bid = 1, .dir = 0, .edge = GKYL_PHYSICAL} // Physical boundary.
+        {// The shared flux surface is SOL upper x to core/PF lower x.
+         {.bid = 1, .dir = 0, .edge = GKYL_PHYSICAL},
+         {.bid = 0, .dir = 0, .edge = GKYL_LOWER_POSITIVE}
         },
       .connections[1] =
         {// y-direction.
@@ -342,10 +345,9 @@ create_asdex_lsn_gk_block_geom(void *ctx)
         },
 
       .connections[0] =
-        {
-          // x-direction.
-          {.bid = 5, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
-          {.bid = 2, .dir = 0, .edge = GKYL_PHYSICAL} // Physical boundary.
+        {// The shared flux surface is SOL upper x to core/PF lower x.
+         {.bid = 2, .dir = 0, .edge = GKYL_PHYSICAL},
+         {.bid = 5, .dir = 0, .edge = GKYL_LOWER_POSITIVE}
         },
       .connections[1] =
         {// y-direction.
@@ -400,10 +402,9 @@ create_asdex_lsn_gk_block_geom(void *ctx)
         },
 
       .connections[0] =
-        {
-          // x-direction.
-          {.bid = 4, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
-          {.bid = 3, .dir = 0, .edge = GKYL_PHYSICAL} // Physical boundary.
+        {// The shared flux surface is SOL upper x to core/PF lower x.
+         {.bid = 3, .dir = 0, .edge = GKYL_PHYSICAL},
+         {.bid = 4, .dir = 0, .edge = GKYL_LOWER_POSITIVE}
         },
       .connections[1] =
         {// y-direction.
@@ -435,6 +436,9 @@ create_asdex_lsn_gk_block_geom(void *ctx)
           .tok_grid_info =
             (struct gkyl_tok_geo_grid_inp){
               .ftype = GKYL_GEOMETRY_TOKAMAK_PF_LO_L,
+              // Use the same X-point seam placement as the 2D TCV input.
+              .straight_xpt_ray = true,
+              .relaxed_xpt_seam = true,
               .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
               .rmin = 0.618,
               .rmax = 1.14,
@@ -458,9 +462,9 @@ create_asdex_lsn_gk_block_geom(void *ctx)
         },
 
       .connections[0] =
-        {// x-direction.
-         {.bid = 4, .dir = 0, .edge = GKYL_PHYSICAL}, // Physical boundary.
-         {.bid = 3, .dir = 0, .edge = GKYL_LOWER_POSITIVE}
+        {// The shared flux surface is SOL upper x to core/PF lower x.
+         {.bid = 3, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
+         {.bid = 4, .dir = 0, .edge = GKYL_PHYSICAL}
         },
       .connections[1] =
         {// y-direction.
@@ -491,6 +495,9 @@ create_asdex_lsn_gk_block_geom(void *ctx)
           .tok_grid_info =
             (struct gkyl_tok_geo_grid_inp){
               .ftype = GKYL_GEOMETRY_TOKAMAK_CORE,
+              // Use the same X-point seam placement as the 2D TCV input.
+              .straight_xpt_ray = true,
+              .relaxed_xpt_seam = true,
               .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
               .rmin = 0.618,
               .rmax = 1.14,
@@ -510,9 +517,9 @@ create_asdex_lsn_gk_block_geom(void *ctx)
         },
 
       .connections[0] =
-        {// x-direction.
-         {.bid = 5, .dir = 0, .edge = GKYL_PHYSICAL}, // Physical boundary.
-         {.bid = 2, .dir = 0, .edge = GKYL_LOWER_POSITIVE}
+        {// The shared flux surface is SOL upper x to core/PF lower x.
+         {.bid = 2, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
+         {.bid = 5, .dir = 0, .edge = GKYL_PHYSICAL}
         },
       .connections[1] =
         {// y-direction.
@@ -1315,12 +1322,14 @@ main(int argc, char **argv)
     .blocks = field_blocks,
     .duplicate_across_blocks = true,
 
-    .num_physical_bcs = ctx.num_blocks,
+    .num_physical_bcs = sizeof(field_phys_bcs) / sizeof(field_phys_bcs[0]),
     .bcs = field_phys_bcs,
   };
 
   struct gkyl_gyrokinetic_multib *app_inp = gkyl_calloc(1, sizeof(struct gkyl_gyrokinetic_multib));
   app_inp->cdim = ctx.cdim;
+  app_inp->num_periodic_dir = 1;
+  app_inp->periodic_dirs[0] = 1;
   app_inp->poly_order = 1;
   app_inp->basis_type = app_args.basis_type;
   app_inp->use_gpu = app_args.use_gpu;
