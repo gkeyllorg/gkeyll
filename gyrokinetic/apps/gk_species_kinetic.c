@@ -1,12 +1,12 @@
 #include <gkyl_gk_species_priv.h>
 
-static double
-gk_species_kinetic_omegaH_dt(
+double
+gk_species_omegaH_frequency(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, const struct gkyl_array *fin
 )
 {
-  // Compute the time step under which the omega_H mode is stable, dt_omegaH =
-  // omegaH_CFL/omega_H.
+  // Compute omega_H without a CFL factor; the time-step constraint uses
+  // dt_omegaH = omegaH_CFL/omega_H.
   // Each species computes its own omega_H as:
   //   omega_H = q_e*sqrt(jacobgeo*n_{s0}/m_s) * omegaH_gf
   // where
@@ -35,10 +35,19 @@ gk_species_kinetic_omegaH_dt(
     double omegaH = fabs(gks->info.charge) * sqrt(GKYL_MAX2(0.0, m0_max[0]) / gks->info.mass) *
                     app->omegaH_gf * time_dilation_scale_const * gks->collisionless.scale_fac;
 
-    return omegaH > 1e-20 ? app->cfl_omegaH / omegaH : DBL_MAX;
+    return omegaH;
   } else {
-    return DBL_MAX;
+    return 0.0;
   }
+}
+
+static double
+gk_species_kinetic_omegaH_dt(
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, const struct gkyl_array *fin
+)
+{
+  double omegaH = gk_species_omegaH_frequency(app, gks, fin);
+  return omegaH > 1e-20 ? app->cfl_omegaH / omegaH : DBL_MAX;
 }
 
 static double
@@ -337,6 +346,10 @@ gk_species_kinetic_release_dynamic(const gkyl_gyrokinetic_app *app, const struct
 
   gk_species_release_integrated_mom(app, gks);
 
+  if (gks->info.frequency_diagnostics) {
+    gk_species_frequencies_release(app, gks);
+  }
+
   // Release L2 norm memory.
   gkyl_array_integrate_release(gks->integ_wfsq_op);
   gkyl_dynvec_release(gks->L2norm);
@@ -379,6 +392,10 @@ gk_species_kinetic_init_dynamic(
   }
 
   gk_species_init_integrated_mom(app, gks);
+
+  if (gks->info.frequency_diagnostics) {
+    gk_species_frequencies_init(app, gks);
+  }
 
   // Objects for L2 norm diagnostic.
   gks->integ_wfsq_op = gkyl_array_integrate_new(
