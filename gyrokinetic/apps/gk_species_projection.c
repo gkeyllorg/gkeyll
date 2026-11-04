@@ -397,6 +397,50 @@ gk_species_projection_zero(double tm, const double *xn, double *out, void *ctx)
 }
 
 /**
+ * Initialize optional moment correction for a kinetic Maxwellian projection.
+ *
+ * @param app Gyrokinetic app object.
+ * @param gks Species object.
+ * @param inp Projection inputs.
+ * @param proj Projection object to initialize.
+ */
+static void
+init_maxwellian_correction(
+  struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gkyl_gyrokinetic_projection inp,
+  struct gk_proj *proj
+)
+{
+  proj->correct_all_moms = false;
+  if (inp.correct_all_moms) {
+    proj->correct_all_moms = true;
+
+    int max_iter = inp.max_iter > 0 ? inp.max_iter : 100;
+    double iter_eps = inp.iter_eps > 0 ? inp.iter_eps : 1e-12;
+    bool use_last_converged = inp.use_last_converged;
+
+    // Maxwellian correction updater
+    struct gkyl_gk_maxwellian_correct_inp inp_corr = {
+      .phase_grid = &gks->grid,
+      .conf_basis = &app->basis,
+      .phase_basis = &gks->basis,
+      .conf_range = &app->local,
+      .conf_range_ext = &app->local_ext,
+      .vel_range = &gks->local_vel,
+      .gk_geom = app->gk_geom,
+      .vel_map = gks->vel_map,
+      .mass = gks->info.mass,
+      .bimaxwellian = proj->proj_id == GKYL_PROJ_BIMAXWELLIAN,
+      .divide_jacobgeo = false, // final Jacobian multiplication will be handled in advance
+      .max_iter = max_iter,
+      .eps = iter_eps,
+      .use_last_converged = use_last_converged,
+      .use_gpu = app->use_gpu,
+    };
+    proj->corr_max = gkyl_gk_maxwellian_correct_inew(&inp_corr);
+  }
+}
+
+/**
  * Initialize primitive-moment imports or projections and kinetic or fluid conversion data.
  *
  * @param app Gyrokinetic app object.
@@ -513,34 +557,7 @@ init_maxwellian_bimaxwellian(
   };
   proj->proj_max = gkyl_gk_maxwellian_proj_on_basis_inew(&inp_proj);
 
-  proj->correct_all_moms = false;
-  if (inp.correct_all_moms) {
-    proj->correct_all_moms = true;
-
-    int max_iter = inp.max_iter > 0 ? inp.max_iter : 100;
-    double iter_eps = inp.iter_eps > 0 ? inp.iter_eps : 1e-12;
-    bool use_last_converged = inp.use_last_converged;
-
-    // Maxwellian correction updater
-    struct gkyl_gk_maxwellian_correct_inp inp_corr = {
-      .phase_grid = &gks->grid,
-      .conf_basis = &app->basis,
-      .phase_basis = &gks->basis,
-      .conf_range = &app->local,
-      .conf_range_ext = &app->local_ext,
-      .vel_range = &gks->local_vel,
-      .gk_geom = app->gk_geom,
-      .vel_map = gks->vel_map,
-      .mass = gks->info.mass,
-      .bimaxwellian = bimaxwellian,
-      .divide_jacobgeo = false, // final Jacobian multiplication will be handled in advance
-      .max_iter = max_iter,
-      .eps = iter_eps,
-      .use_last_converged = use_last_converged,
-      .use_gpu = app->use_gpu,
-    };
-    proj->corr_max = gkyl_gk_maxwellian_correct_inew(&inp_corr);
-  }
+  init_maxwellian_correction(app, gks, inp, proj);
 }
 
 /**
@@ -634,7 +651,7 @@ init_maxwellian_gaussian(
   // Scale the shape configuration function
   gkyl_array_scale(proj->gaussian_profile, 1.0 / red_integral_ho[0]);
   // We can now build the moments of the projection.
-  proj->prim_moms = mkarr(app->use_gpu, 4 * app->basis.num_basis, app->local_ext.volume);
+  proj->prim_moms = mkarr(app->use_gpu, 3 * app->basis.num_basis, app->local_ext.volume);
   // Density
   gkyl_array_set_offset(
     proj->prim_moms, inp.total_num_particles + inp.f_floor, proj->gaussian_profile,
@@ -651,8 +668,7 @@ init_maxwellian_gaussian(
   temp = temp > inp.temp_max ? inp.temp_max : temp; // saturate to max temperature.
   double dg_norm = pow(sqrt(2.0), app->cdim);
   gkyl_array_shiftc(proj->prim_moms, dg_norm * temp / gks->info.mass, 2 * app->basis.num_basis);
-  // Moment correction
-  proj->correct_all_moms = inp.correct_all_moms;
+  init_maxwellian_correction(app, gks, inp, proj);
 }
 
 /**
@@ -728,13 +744,12 @@ gk_species_projection_release_impl(
         gkyl_proj_on_basis_release(proj->proj_tempperp);
       }
     }
-
-    if (proj->correct_all_moms) {
-      gkyl_gk_maxwellian_correct_release(proj->corr_max);
-    }
   } else if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_GAUSSIAN) {
     gkyl_array_release(proj->gaussian_profile);
     gkyl_array_release(proj->prim_moms);
+  }
+  if (proj->correct_all_moms) {
+    gkyl_gk_maxwellian_correct_release(proj->corr_max);
   }
 }
 

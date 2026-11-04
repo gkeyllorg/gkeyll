@@ -321,6 +321,11 @@ gk_species_source_calc(
   if (src->source_id && src->source_id != GKYL_SOURCE_FROMFILE) {
     gkyl_array_clear(src->source, 0.0);
     for (int k = 0; k < gks->info.source.num_sources; k++) {
+      // Skip zero-rate adaptive source, to avoid div by 0 when correcting moments.
+      if (k < src->num_adapt_sources && src->adapt[k].particle_src_curr == 0.0 &&
+          gks->info.source.projection[k].f_floor == 0.0) {
+        continue;
+      }
       gk_species_projection_calc(app, gks, &src->proj_source[k], f_buffer, tm);
       gkyl_array_accumulate(src->source, 1., f_buffer);
     }
