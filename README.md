@@ -7,8 +7,7 @@ general relativity, and high-energy astrophysics. The name is pronounced as in t
 members of the `Gkeyll` Team. The core of `Gkeyll` is written in C, featuring a
 lightweight, modular design and minimal external dependencies, plus an additional Lua
 scripting layer (for specifying simulation input parameters), with trace quantities of C++
-for GPU support. `Gkeyll` is developed and maintained at the Princeton Plasma Physics
-Laboratory (PPPL) and is copyrighted 2020-2025 by Ammar Hakim and the `Gkeyll` Team.
+for GPU support. `Gkeyll` copyrighted 2020-2026 by Ammar Hakim and the `Gkeyll` Team.
 
 **NOTE**: Though the framework is called `Gkeyll`, the abbreviation `gkyl` is used
 commonly within the code itself.
