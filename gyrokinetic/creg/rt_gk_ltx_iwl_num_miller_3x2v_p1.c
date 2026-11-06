@@ -240,7 +240,7 @@ create_ctx(void)
   double Ti_src = 40 * eV;
 
   // Grid parameters
-  int Nx = 4;
+  int Nx = 16;
   int Nz = 32;
   int Ny = 2;
   int Nvpar = 6;

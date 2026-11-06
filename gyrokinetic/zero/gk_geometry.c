@@ -883,7 +883,10 @@ gkyl_gk_geometry_write_efit(
     {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = efit->rzbasis.poly_order},
     {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = efit->rzbasis.id},
     {.key = "geqdsk_file", .elem_type = GKYL_MP_STRING, .cval = geqdsk_file_name},
-    {.key = "psisep", .elem_type = GKYL_MP_DOUBLE, .dval = efit->psisep},
+    {.key = "geometry_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = geometry_inp->geometry_id},
+    {.key = "tokamak_geo_type",
+     .elem_type = GKYL_MP_UNSIGNED_INT,
+     .uval = geometry_inp->tok_grid_info.ftype},
     {.key = "sibry", .elem_type = GKYL_MP_DOUBLE, .dval = efit->sibry},
     {.key = "simag", .elem_type = GKYL_MP_DOUBLE, .dval = efit->simag},
     {.key = "bcentr", .elem_type = GKYL_MP_DOUBLE, .dval = efit->bcentr},
@@ -896,9 +899,17 @@ gkyl_gk_geometry_write_efit(
     {.key = "zmid", .elem_type = GKYL_MP_DOUBLE, .dval = efit->zmid},
     {.key = "zdim", .elem_type = GKYL_MP_DOUBLE, .dval = efit->zdim}
   };
+  const bool limited = geometry_inp->tok_grid_info.ftype == GKYL_GEOMETRY_TOKAMAK_IWL;
+  struct gkyl_msgpack_map_elem boundary_flux =
+    limited ? (struct gkyl_msgpack_map_elem
+              ){.key = "psi_lcfs", .elem_type = GKYL_MP_DOUBLE, .dval = efit->sibry} :
+              (struct gkyl_msgpack_map_elem
+              ){.key = "psi_sep", .elem_type = GKYL_MP_DOUBLE, .dval = efit->psisep};
   int io_meta_basic_rz_len = sizeof(io_meta_basic_rz) / sizeof(io_meta_basic_rz[0]);
-  int io_meta_basic_len[] = {io_meta_basic_basic_len, io_meta_basic_rz_len};
-  const struct gkyl_msgpack_map_elem *io_meta_basic[] = {io_meta_basic_basic, io_meta_basic_rz};
+  int io_meta_basic_len[] = {io_meta_basic_basic_len, io_meta_basic_rz_len, 1};
+  const struct gkyl_msgpack_map_elem *io_meta_basic[] = {
+    io_meta_basic_basic, io_meta_basic_rz, &boundary_flux
+  };
   struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(
     sizeof(io_meta_basic_len) / sizeof(int), io_meta_basic_len, io_meta_basic
   );

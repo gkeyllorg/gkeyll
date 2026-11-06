@@ -131,6 +131,7 @@ gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
     },
     {.key = "parallel_coordinate", .elem_type = GKYL_MP_STRING, .cval = "field_aligned_theta"},
     {.key = "geometry_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geometry_id},
+    {.key = "tokamak_geo_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = ginp.ftype},
     {
       .key = "geqdsk_sign_convention",
       .elem_type = GKYL_MP_UNSIGNED_INT,
