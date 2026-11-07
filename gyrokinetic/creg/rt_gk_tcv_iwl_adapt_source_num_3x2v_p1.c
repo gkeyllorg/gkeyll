@@ -31,7 +31,7 @@ struct gk_app_ctx {
   gkyl_gen_miller_eqdsk *equilibrium; // Flux table for profile callbacks; owned by main.
   // Plasma parameters
   int num_species;
-  double me, qe, mi, qi, n0, Te0, Ti0;
+  double me, qe, mi, qi, n0, Te0, Ti0, rho_s;
   // Collision parameters
   double nuFrac, nuElc, nuIon;
   // Source parameters
@@ -343,6 +343,7 @@ create_ctx(void)
     .delta = delta,
     .q0 = q0,
     .Cy = Cy,
+    .rho_s = rho_s,
     .Lx = Lx,
     .Ly = Ly,
     .Lz = Lz,
@@ -796,6 +797,12 @@ main(int argc, char **argv)
     .use_gpu = app_args.use_gpu,
   };
 
+  // Binormal angle alpha uses y = Cy*alpha; rho_s is the reference sound gyroradius.
+  struct gkyl_msgpack_map_elem additional_metadata[] = {
+    {.key = "Cy", .elem_type = GKYL_MP_DOUBLE, .dval = ctx.Cy},
+    {.key = "rho_s", .elem_type = GKYL_MP_DOUBLE, .dval = ctx.rho_s},
+  };
+
   // GK app
   struct gkyl_gk app_inp = {
 
@@ -820,6 +827,12 @@ main(int argc, char **argv)
     .field = field,
 
     .parallelism = parallelism,
+
+    .metadata =
+      {
+        .num_attributes = sizeof(additional_metadata) / sizeof(additional_metadata[0]),
+        .attributes = additional_metadata,
+      },
   };
 
   // Set app output name from the executable name (argv[0]).
