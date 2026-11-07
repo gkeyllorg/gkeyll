@@ -212,12 +212,10 @@ tok_check_q(const struct tok_field_ctx *ctx, const struct gk_geometry *geo)
       double psi = center[0] + eta[0] * geo->grid.dx[0] / 2;
       double expected = tok_reference_q(ctx, psi);
       double actual = geo->basis.eval_expand(eta, modal);
-      if (ctx->psi_sign * psi > 0.125) {
-        TEST_CHECK(!tok_is_finite(actual));
-      } else {
-        TEST_CHECK(tok_is_finite(actual));
-        error = fmax(error, fabs(actual - expected));
-      }
+      // Without a limiter cut the full IWL connection covers the whole contour,
+      // including outside the nominal LCFS of this analytic equilibrium.
+      TEST_CHECK(tok_is_finite(actual));
+      error = fmax(error, fabs(actual - expected));
     }
   }
   TEST_CHECK(error < 1e-3);
@@ -435,7 +433,99 @@ test_tok_cubic_quadratic_limit(void)
   }
 }
 
+// Compare core q with EQDSK and check finite, identical full-connection SOL
+// profiles for the unsplit contour and each of its three block types.
+static void
+test_tok_qprofile_branches(void)
+{
+  struct gkyl_efit_inp einp = {
+    .filepath = "gyrokinetic/data/eqdsk/asdex.geqdsk",
+    .rz_poly_order = 2,
+    .flux_poly_order = 1,
+  };
+
+  struct gkyl_tok_geo_grid_inp inp = {
+    .ftype = GKYL_GEOMETRY_TOKAMAK_CORE,
+    .rmin = 0,
+    .rmax = 5,
+    .rclose = 2.5,
+    .rright = 2.5,
+    .rleft = 0.7,
+    .zmin = -1.3,
+    .zmax = 1.0,
+    .zmin_left = -1.2,
+    .zmin_right = -1.0,
+  };
+  struct gkyl_tok_geo *geo = gkyl_tok_geo_new(&einp, &inp);
+
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, 1, 1);
+
+  double lower[] = {0.01}, upper[] = {0.08};
+  int cells[] = {4};
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, 1, lower, upper, cells);
+
+  struct gkyl_array *profile = gkyl_array_new(GKYL_DOUBLE, 2, cells[0]);
+  struct gkyl_array *split = gkyl_array_new(GKYL_DOUBLE, 2, cells[0]);
+
+  gkyl_tok_geo_calc_qprofile(geo, &inp, &grid, &basis, profile);
+
+  double max_error = 0;
+  for (int cell = 0; cell < cells[0]; ++cell) {
+    for (int side = -1; side <= 1; side += 2) {
+      double eta = side / sqrt(3.0);
+      double psi = grid.lower[0] + (cell + 0.5 * (1 + eta)) * grid.dx[0];
+      int idx = geo->frange.lower[0] + (int)((psi - geo->fgrid.lower[0]) / geo->fgrid.dx[0]);
+
+      double center;
+      gkyl_rect_grid_cell_center(&geo->fgrid, &idx, &center);
+
+      double efeta = 2 * (psi - center) / geo->fgrid.dx[0];
+      double expected = geo->fbasis.eval_expand(
+        &efeta, gkyl_array_cfetch(geo->qdg, gkyl_range_idx(&geo->frange, &idx))
+      );
+
+      double actual = basis.eval_expand(&eta, gkyl_array_cfetch(profile, cell));
+      TEST_CHECK(tok_is_finite(actual));
+      max_error = fmax(max_error, fabs(actual / expected - 1));
+    }
+  }
+  TEST_CHECK(max_error < 0.02);
+  TEST_MSG("core q relative error against EQDSK = %.9g", max_error);
+
+  // A cell face lies at the separatrix, while the Gauss nodes remain in the SOL.
+  lower[0] = geo->psisep;
+  upper[0] = lower[0] + 0.01;
+  gkyl_rect_grid_init(&grid, 1, lower, upper, cells);
+
+  inp.ftype = GKYL_GEOMETRY_TOKAMAK_LSN_SOL;
+  gkyl_tok_geo_calc_qprofile(geo, &inp, &grid, &basis, profile);
+
+  enum gkyl_tok_geo_type types[] = {
+    GKYL_GEOMETRY_TOKAMAK_LSN_SOL_LO, GKYL_GEOMETRY_TOKAMAK_LSN_SOL_MID,
+    GKYL_GEOMETRY_TOKAMAK_LSN_SOL_UP
+  };
+  for (int part = 0; part < 3; ++part) {
+    inp.ftype = types[part];
+    gkyl_tok_geo_calc_qprofile(geo, &inp, &grid, &basis, split);
+    for (int cell = 0; cell < cells[0]; ++cell) {
+      const double *full = gkyl_array_cfetch(profile, cell);
+      const double *piece = gkyl_array_cfetch(split, cell);
+      for (int mode = 0; mode < 2; ++mode) {
+        TEST_CHECK(tok_is_finite(piece[mode]));
+        TEST_CHECK(fabs(piece[mode] - full[mode]) < 1e-12);
+      }
+    }
+  }
+
+  gkyl_array_release(split);
+  gkyl_array_release(profile);
+  gkyl_tok_geo_release(geo);
+}
+
 TEST_LIST = {
+  {"tok_qprofile_branches", test_tok_qprofile_branches},
   {"tok_cubic_quadratic_limit", test_tok_cubic_quadratic_limit},
   {"tok_curl_quadratic", test_tok_curl_quadratic},
   {"tok_curl_cubic", test_tok_curl_cubic},

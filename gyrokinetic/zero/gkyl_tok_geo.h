@@ -188,6 +188,37 @@ struct gkyl_tok_geo *gkyl_tok_geo_new(
 );
 
 /**
+ * Project a full-contour q profile at Gauss-Legendre nodes on a 1D physical-psi grid.
+ * Closed contours give signed COCOS q; open contours give full-connection winding.
+ * Split blocks on the same branch use the same complete contour.
+ *
+ * @param geo Tokamak equilibrium (host).
+ * @param inp Branch and plate specification.
+ * @param grid One-dimensional physical-psi grid, without a position map.
+ * @param basis One-dimensional modal basis.
+ * @param qprofile Output array of grid->cells[0] cells, without ghosts.
+ */
+void gkyl_tok_geo_calc_qprofile(
+  struct gkyl_tok_geo *geo, const struct gkyl_tok_geo_grid_inp *inp,
+  const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis, struct gkyl_array *qprofile
+);
+
+/**
+ * Calculate Cy=(R_omp(psi_ref)-R_axis)/q(psi_ref), sampling the projected q profile.
+ *
+ * @param geo Tokamak equilibrium (host).
+ * @param inp Branch and plate specification.
+ * @param grid One-dimensional physical-psi grid.
+ * @param poly_order Polynomial order of the q profile.
+ * @param psi_ref Reference flux, within grid bounds.
+ * @return Reference binormal scale in meters (nonfinite if no OMP root or q is zero).
+ */
+double gkyl_tok_geo_calc_Cy(
+  struct gkyl_tok_geo *geo, const struct gkyl_tok_geo_grid_inp *inp,
+  const struct gkyl_rect_grid *grid, int poly_order, double psi_ref
+);
+
+/**
  * Get R(psi,Z) for a specified psi and Z value. Multiple values may
  * be returned (or none). The R(psi,Z) and dR/dZ are stored in the R
  * and dR arrays which be allocated by the caller.

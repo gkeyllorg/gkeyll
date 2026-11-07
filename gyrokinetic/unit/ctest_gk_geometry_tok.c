@@ -891,17 +891,8 @@ test_tok_asdex_qprofile_sol_ho()
 
   struct gk_geometry *gk_geom = gkyl_gk_geometry_tok_new(&geometry_inp);
   write_geometry(gk_geom, cgrid, clocal, "asdex_sol");
-  struct gkyl_range_iter cells;
-  gkyl_range_iter_init(&cells, &gk_geom->local);
-  while (gkyl_range_iter_next(&cells)) {
-    const double *q =
-      gkyl_array_cfetch(gk_geom->geo_int.qprofile, gkyl_range_idx(&gk_geom->local, cells.idx));
-    uint64_t bits;
-    memcpy(&bits, q, sizeof bits);
-    // Bit classification is needed with the repository's fast-math build.
-    TEST_CHECK((bits & UINT64_C(0x7ff0000000000000)) == UINT64_C(0x7ff0000000000000));
-    TEST_CHECK((bits & UINT64_C(0x000fffffffffffff)) != 0);
-  }
+  // q is the signed toroidal advance over the complete plate-to-plate path.
+  tok_check_q_phase(gk_geom);
   gkyl_gk_geometry_release(gk_geom);
   gkyl_position_map_release(pmap);
 }

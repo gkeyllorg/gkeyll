@@ -120,8 +120,8 @@ struct gk_geom_int {
   struct gkyl_array *B3overB; // 1 component. Signed b^3 = B^3/|B|; +1/sqrt(g_33) if B is along e_3.
   struct gkyl_array *bioverJB; // 3 components b_i/J/|B|.
   struct gkyl_array *B3; // 1 component. Signed e^3 \dot \vec{B}.
-  struct gkyl_array
-    *qprofile; // Signed COCOS safety factor on closed surfaces; NaN on open lines. Diagnostic only.
+  struct gkyl_array *
+    qprofile; // Signed COCOS q on closed surfaces; full-connection winding on open lines. Diagnostic only.
 
   // Arrays below are just for computation of arrays above
   struct gkyl_array *bmag_nodal;

@@ -8,6 +8,7 @@
 #include <gkyl_comm_io.h>
 #include <gkyl_dflt.h>
 #include <gkyl_dynvec.h>
+#include <gkyl_gauss_quad_data.h>
 #include <gkyl_null_comm.h>
 #include <gkyl_nodal_ops.h>
 #include <gkyl_translate_dim.h>
@@ -1564,6 +1565,64 @@ gyrokinetic_app_geometry_copy_and_write(
   gkyl_msgpack_data_release(mt);
 }
 
+// q is constant in the transverse directions. Rank zero owns the entire radial
+// grid because gyrokinetic MPI decomposition is restricted to the parallel axis.
+static void
+gyrokinetic_app_write_qsafety(gkyl_gyrokinetic_app *app, const struct gkyl_array *q_host)
+{
+  if (app->gk_geom->geometry_id != GKYL_GEOMETRY_TOKAMAK) {
+    return;
+  }
+  int rank;
+  gkyl_comm_get_rank(app->comm, &rank);
+  if (rank != 0) {
+    return;
+  }
+
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, 1, app->grid.lower, app->grid.upper, app->grid.cells);
+  struct gkyl_range range;
+  gkyl_range_init_from_shape(&range, 1, grid.cells);
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, 1, app->basis.poly_order);
+  struct gkyl_array *profile = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, range.volume);
+  gkyl_array_clear(profile, 0.0);
+  int nquad = basis.poly_order + 1;
+  int idx[GKYL_MAX_CDIM];
+  for (int d = 0; d < app->cdim; ++d) {
+    idx[d] = app->local.lower[d];
+  }
+  for (int cell = 0; cell < grid.cells[0]; ++cell) {
+    idx[0] = app->local.lower[0] + cell;
+    const double *coeff = gkyl_array_cfetch(q_host, gkyl_range_idx(&app->local, idx));
+    double *out = gkyl_array_fetch(profile, cell);
+    for (int node = 0; node < nquad; ++node) {
+      double eta[GKYL_MAX_CDIM] = {gkyl_gauss_ordinates[nquad][node]};
+      double qval = app->basis.eval_expand(eta, coeff), values[basis.num_basis];
+      basis.eval(eta, values);
+      for (int k = 0; k < basis.num_basis; ++k) {
+        out[k] += gkyl_gauss_weights[nquad][node] * qval * values[k];
+      }
+    }
+  }
+  struct gkyl_msgpack_map_elem extra[] = {
+    {.key = "Description",
+     .elem_type = GKYL_MP_STRING,
+     .cval = "Signed safety factor on closed contours; full-connection winding on open contours."},
+    {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = basis.id},
+  };
+  int lengths[] = {app->io_meta_dg_len, app->gk_geom->io_meta_basic_len, 2};
+  const struct gkyl_msgpack_map_elem *lists[] = {
+    app->io_meta_dg, app->gk_geom->io_meta_basic, extra
+  };
+  struct gkyl_msgpack_data *meta = gkyl_msgpack_create_union(3, lengths, lists);
+  cstr name = cstr_from_fmt("%s-qsafety.gkyl", app->name);
+  gkyl_grid_sub_array_write(&grid, &range, meta, profile, name.str);
+  cstr_drop(&name);
+  gkyl_msgpack_data_release(meta);
+  gkyl_array_release(profile);
+}
+
 static void
 gyrokinetic_app_geometry_copy_and_write_surf(
   gkyl_gyrokinetic_app *app, struct gkyl_array *arr, struct gkyl_array *arr_host,
@@ -1821,6 +1880,7 @@ gkyl_gyrokinetic_app_write_geometry(
   gyrokinetic_app_geometry_copy_and_write(
     app, app->gk_geom->geo_int.qprofile, arr_ho1, "geo_int_qprofile", "Safety factor."
   );
+  gyrokinetic_app_write_qsafety(app, arr_ho1);
   gyrokinetic_app_geometry_copy_and_write(
     app, app->gk_geom->geo_int.B3overB, arr_ho1, "geo_int_B3overB",
     "Reciprocal square root of the zz covariant metric component."

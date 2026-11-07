@@ -40,6 +40,7 @@ struct gk_tcv_ctx {
   double psi_max_core, psi_min_sol, psi_max_pf; // Psi extents.
   double Lx_core; // Box size in y.
   double Ly; // Box size in y.
+  double Cy, rho_s; // Binormal and ion-sound-gyroradius reference lengths.
   double y_min, y_max; // Limits in y.
 
   // Grid.
@@ -883,6 +884,8 @@ create_ctx(void)
     .psi_max_pf = psi_max_pf,
     .Lx_core = Lx_core,
     .Ly = Ly,
+    .Cy = r0 / q0,
+    .rho_s = rho_s,
     .y_min = y_min,
     .y_max = y_max,
     .lambda_src = lambda_src,
@@ -1313,6 +1316,10 @@ main(int argc, char **argv)
     .bcs = field_phys_bcs,
   };
 
+  struct gkyl_msgpack_map_elem additional_metadata[] = {
+    {.key = "Cy", .elem_type = GKYL_MP_DOUBLE, .dval = ctx.Cy},
+    {.key = "rho_s", .elem_type = GKYL_MP_DOUBLE, .dval = ctx.rho_s},
+  };
   struct gkyl_gyrokinetic_multib *app_inp = gkyl_calloc(1, sizeof(struct gkyl_gyrokinetic_multib));
   app_inp->cdim = ctx.cdim;
   app_inp->poly_order = 1;
@@ -1325,6 +1332,10 @@ main(int argc, char **argv)
   app_inp->species[1] = ion;
   app_inp->field = field;
   app_inp->comm = comm;
+  app_inp->metadata = (struct gkyl_gyrokinetic_metadata_inp){
+    .num_attributes = sizeof(additional_metadata) / sizeof(additional_metadata[0]),
+    .attributes = additional_metadata,
+  };
 
   // Set app output name from the executable name (argv[0]).
   snprintf(app_inp->name, sizeof(app_inp->name), "%s", app_args.app_name);
