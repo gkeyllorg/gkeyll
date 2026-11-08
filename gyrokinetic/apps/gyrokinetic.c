@@ -18,6 +18,29 @@
 
 #include <mpack.h>
 
+struct gkyl_msgpack_map_elem *
+gyrokinetic_app_input_metadata(
+  int num_defaults, const struct gkyl_msgpack_map_elem *defaults,
+  const struct gkyl_gyrokinetic_metadata_inp *input, int *num_metadata
+)
+{
+  const char *keys[input->num_attributes > 0 ? input->num_attributes : 1];
+  for (int i = 0; i < input->num_attributes; ++i) {
+    keys[i] = input->attributes[i].key;
+    if (strcmp(keys[i], "input_metadata_keys") == 0) {
+      gkyl_exit("input_metadata_keys is reserved for Gkeyll metadata provenance.");
+    }
+  }
+  struct gkyl_msgpack_map_elem origin = {
+    .key = "input_metadata_keys",
+    .elem_type = GKYL_MP_STRING_ARRAY,
+    .sarray = {.size = input->num_attributes, .data = keys},
+  };
+  int lengths[] = {num_defaults, input->num_attributes, 1};
+  const struct gkyl_msgpack_map_elem *lists[] = {defaults, input->attributes, &origin};
+  return gkyl_msgpack_map_elem_union(3, lengths, lists, num_metadata);
+}
+
 void
 gyrokinetic_cuts_check(
   struct gkyl_gyrokinetic_app *app, struct gkyl_comm *comm, const int *cuts, FILE *iostream
@@ -718,15 +741,9 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
       {.key = "changeset", .elem_type = GKYL_MP_STRING, .cval = (char *)build_id},
       {.key = "builddate", .elem_type = GKYL_MP_STRING, .cval = (char *)build_date}
     };
-    const struct gkyl_msgpack_map_elem *io_meta_basic_union[] = {
-      io_meta_basic_default, gk->metadata.attributes
-    };
-    int io_meta_basic_union_len[] = {
-      sizeof(io_meta_basic_default) / sizeof(io_meta_basic_default[0]), gk->metadata.num_attributes
-    };
-    app->io_meta_basic = gkyl_msgpack_map_elem_union(
-      sizeof(io_meta_basic_union) / sizeof(io_meta_basic_union[0]), io_meta_basic_union_len,
-      io_meta_basic_union, &app->io_meta_basic_len
+    app->io_meta_basic = gyrokinetic_app_input_metadata(
+      sizeof(io_meta_basic_default) / sizeof(io_meta_basic_default[0]), io_meta_basic_default,
+      &gk->metadata, &app->io_meta_basic_len
     );
   }
 

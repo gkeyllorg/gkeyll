@@ -484,7 +484,8 @@ enum gkyl_msgpack_elem_type {
   GKYL_MP_UNSIGNED_INT,
   GKYL_MP_FLOAT,
   GKYL_MP_DOUBLE,
-  GKYL_MP_STRING
+  GKYL_MP_STRING,
+  GKYL_MP_STRING_ARRAY
 };
 
 // Entry type into msgpack map.
@@ -499,6 +500,10 @@ struct gkyl_msgpack_map_elem {
     float fval;
     double dval;
     const char *cval; // null terminated string managed by caller
+    struct {
+      size_t size;
+      const char *const *data; // Array of null-terminated strings managed by caller.
+    } sarray;
   };
 };
 
@@ -660,6 +665,13 @@ void gkyl_msgpack_map_elem_release_string(
 void gkyl_msgpack_map_elem_release(int nvals, struct gkyl_msgpack_map_elem *elist_in);
 
 /**
+ * Release an owned string or string-array value, leaving its key and element intact.
+ * Use for values populated by gkyl_msgpack_to_map_elem_list in a caller-owned list.
+ * @param elem Element whose allocated value is to be released.
+ */
+void gkyl_msgpack_map_elem_release_value(struct gkyl_msgpack_map_elem *elem);
+
+/**
  * Create a new msgpack data from list of map elements.
  *
  * @param nvals Number of values in the elist array
@@ -690,8 +702,8 @@ struct gkyl_msgpack_data *gkyl_msgpack_clone(struct gkyl_msgpack_data *mdata_in)
 
 /**
  * Read a MessagePack for the elements in an element list.
- * NOTE: if one of the elements read is a string, its memory must be
- * freed when done using it (e.g. with gkyl_msgpack_map_elem_release_string);
+ * Allocated string and string-array values must be freed when done using them
+ * with gkyl_msgpack_map_elem_release_value. Keys and the list remain caller-owned.
  * 
  * @param mpack_in MessagePack to read.
  * @param nvals Number of values in element list elist.

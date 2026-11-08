@@ -166,7 +166,113 @@ test_constants()
   TEST_CHECK(gkyl_compare_double(GKYL_E, M_E, 1e-14));
 }
 
+void
+test_msgpack_string_array()
+{
+  char first[] = "Cy";
+  const char *keys[] = {first, "", "rho_s"};
+  struct gkyl_msgpack_map_elem input = {
+    .key = "keys",
+    .elem_type = GKYL_MP_STRING_ARRAY,
+    .sarray = {.size = 3, .data = keys},
+  };
+
+  struct gkyl_msgpack_map_elem *copy = gkyl_msgpack_map_elem_clone(1, &input);
+  first[0] = 'X';
+  keys[1] = "changed";
+  TEST_CHECK(strcmp(copy[0].sarray.data[0], "Cy") == 0);
+  TEST_CHECK(strcmp(copy[0].sarray.data[1], "") == 0);
+
+  int lengths[] = {1, 0}, count;
+  const struct gkyl_msgpack_map_elem *lists[] = {copy, NULL};
+  struct gkyl_msgpack_map_elem *merged = gkyl_msgpack_map_elem_union(2, lengths, lists, &count);
+  TEST_CHECK(count == 1);
+  gkyl_msgpack_map_elem_release(1, copy);
+  TEST_CHECK(merged[0].sarray.size == 3);
+  TEST_CHECK(strcmp(merged[0].sarray.data[0], "Cy") == 0);
+  TEST_CHECK(strcmp(merged[0].sarray.data[2], "rho_s") == 0);
+
+  // Independent MessagePack encoding: {"keys": ["Cy", "", "rho_s"]}.
+  const unsigned char expected[] = {0x81, 0xa4, 'k',  'e', 'y', 's', 0x93, 0xa2, 'C',
+                                    'y',  0xa0, 0xa5, 'r', 'h', 'o', '_',  's'};
+  struct gkyl_msgpack_data *packed = gkyl_msgpack_create(count, merged);
+  TEST_ASSERT(packed != NULL);
+  TEST_CHECK(packed->meta_sz == sizeof expected);
+  TEST_CHECK(memcmp(packed->meta, expected, sizeof expected) == 0);
+  gkyl_msgpack_data_release(packed);
+
+  lists[0] = merged;
+  packed = gkyl_msgpack_create_union(2, lengths, lists);
+  TEST_ASSERT(packed != NULL);
+  TEST_CHECK(packed->meta_sz == sizeof expected);
+  TEST_CHECK(memcmp(packed->meta, expected, sizeof expected) == 0);
+  gkyl_msgpack_data_release(packed);
+  gkyl_msgpack_map_elem_release(count, merged);
+
+  struct gkyl_msgpack_data reference = {.meta = (char *)expected, .meta_sz = sizeof expected};
+  struct gkyl_msgpack_map_elem decoded = {.key = "keys", .elem_type = GKYL_MP_STRING_ARRAY};
+  gkyl_msgpack_to_map_elem_list(&reference, 1, &decoded);
+  TEST_CHECK(decoded.sarray.size == 3);
+  TEST_CHECK(strcmp(decoded.sarray.data[0], "Cy") == 0);
+  TEST_CHECK(strcmp(decoded.sarray.data[1], "") == 0);
+  TEST_CHECK(strcmp(decoded.sarray.data[2], "rho_s") == 0);
+  gkyl_msgpack_map_elem_release_value(&decoded);
+  TEST_CHECK(decoded.sarray.size == 0 && decoded.sarray.data == NULL);
+
+  const unsigned char empty[] = {0x81, 0xa4, 'k', 'e', 'y', 's', 0x90};
+  input.sarray.size = 0;
+  input.sarray.data = NULL;
+  copy = gkyl_msgpack_map_elem_clone(1, &input);
+  packed = gkyl_msgpack_create(1, copy);
+  TEST_ASSERT(packed != NULL);
+  TEST_CHECK(packed->meta_sz == sizeof empty);
+  TEST_CHECK(memcmp(packed->meta, empty, sizeof empty) == 0);
+
+  gkyl_msgpack_to_map_elem_list(packed, 1, &decoded);
+  TEST_CHECK(decoded.sarray.size == 0);
+  gkyl_msgpack_map_elem_release_value(&decoded);
+  gkyl_msgpack_data_release(packed);
+  gkyl_msgpack_map_elem_release(1, copy);
+}
+
+void
+test_msgpack_scalar_copy()
+{
+  struct gkyl_msgpack_map_elem input[] = {
+    {.key = "bool", .elem_type = GKYL_MP_BOOL, .bval = true},
+    {.key = "int", .elem_type = GKYL_MP_INT, .ival = -3},
+    {.key = "uint", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 7},
+    {.key = "float", .elem_type = GKYL_MP_FLOAT, .fval = 1.25f},
+    {.key = "double", .elem_type = GKYL_MP_DOUBLE, .dval = -2.5},
+    {.key = "string", .elem_type = GKYL_MP_STRING, .cval = "input"}
+  };
+  int count = sizeof input / sizeof input[0];
+  struct gkyl_msgpack_map_elem *copy = gkyl_msgpack_map_elem_clone(count, input);
+
+  int lengths[] = {count}, merged_count;
+  const struct gkyl_msgpack_map_elem *lists[] = {copy};
+  struct gkyl_msgpack_map_elem *merged =
+    gkyl_msgpack_map_elem_union(1, lengths, lists, &merged_count);
+  gkyl_msgpack_map_elem_release(count, copy);
+
+  TEST_CHECK(merged_count == count);
+  TEST_CHECK(merged[0].bval == true);
+  TEST_CHECK(merged[1].ival == -3);
+  TEST_CHECK(merged[2].uval == 7);
+  TEST_CHECK(merged[3].fval == 1.25f);
+  TEST_CHECK(merged[4].dval == -2.5);
+  TEST_CHECK(strcmp(merged[5].cval, "input") == 0);
+  for (int i = 0; i < count; ++i) {
+    TEST_CHECK(strcmp(merged[i].key, input[i].key) == 0);
+    TEST_CHECK(merged[i].elem_type == input[i].elem_type);
+  }
+
+  gkyl_msgpack_map_elem_release(merged_count, merged);
+}
+
 TEST_LIST = {
+  {"msgpack_string_array", test_msgpack_string_array},
+  {"msgpack_scalar_copy", test_msgpack_scalar_copy},
   {"compare_double", test_compare_double},
   {"compare_float", test_compare_float},
   {"copy_int_arr", test_copy_int_arr},

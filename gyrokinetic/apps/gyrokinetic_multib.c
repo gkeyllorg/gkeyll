@@ -675,15 +675,8 @@ and the maximum number of cuts in a block is %d\n\n",
     {.key = "is_multib", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 1},
     {.key = "topo_file", .elem_type = GKYL_MP_STRING, .cval = fileNm_btopo}
   };
-  const struct gkyl_msgpack_map_elem *io_meta_union[] = {
-    io_meta_default, mbinp->metadata.attributes
-  };
-  int io_meta_union_len[] = {
-    sizeof(io_meta_default) / sizeof(io_meta_default[0]), mbinp->metadata.num_attributes
-  };
-
-  mbapp->io_meta_basic = gkyl_msgpack_map_elem_union(
-    sizeof(io_meta_union) / sizeof(io_meta_union[0]), io_meta_union_len, io_meta_union,
+  mbapp->io_meta_basic = gyrokinetic_app_input_metadata(
+    sizeof(io_meta_default) / sizeof(io_meta_default[0]), io_meta_default, &mbinp->metadata,
     &mbapp->io_meta_basic_len
   );
 

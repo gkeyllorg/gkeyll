@@ -629,7 +629,8 @@ struct gkyl_gyrokinetic_eirene {
   char coupling_species[GKYL_MAX_SPECIES][128]; // Names of species to couple
 };
 
-// Additional metadata users can provide.
+// Additional metadata users can provide. Output files automatically include the
+// original key names in input_metadata_keys, which is reserved for application use.
 struct gkyl_gyrokinetic_metadata_inp {
   struct gkyl_msgpack_map_elem *attributes; // List of metadata elements to add to output files.
   int num_attributes; // Number of attributes.

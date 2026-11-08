@@ -1888,6 +1888,19 @@ struct gkyl_gyrokinetic_app {
   bool is_multib; // Is this a block in a multiblock sim?
 };
 
+/**
+ * Merge application defaults and input metadata, recording the original input keys.
+ * @param num_defaults Number of application defaults.
+ * @param defaults Application metadata entries.
+ * @param input Metadata supplied by the input file, before application defaults are merged.
+ * @param num_metadata On return, number of entries in the owned result.
+ * @return Owned metadata list. Free with gkyl_msgpack_map_elem_release.
+ */
+struct gkyl_msgpack_map_elem *gyrokinetic_app_input_metadata(
+  int num_defaults, const struct gkyl_msgpack_map_elem *defaults,
+  const struct gkyl_gyrokinetic_metadata_inp *input, int *num_metadata
+);
+
 /** gkyl_gyrokinetic_app private API */
 
 static inline struct gkyl_gyrokinetic_bc *

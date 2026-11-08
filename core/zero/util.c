@@ -256,55 +256,32 @@ gkyl_msgpack_map_elem_has_key(int nvals, const struct gkyl_msgpack_map_elem *eli
   return has_key;
 }
 
+static void
+msgpack_map_elem_copy(struct gkyl_msgpack_map_elem *out, const struct gkyl_msgpack_map_elem *in)
+{
+  *out = *in;
+  out->key = gkyl_malloc(strlen(in->key) + 1);
+  strcpy((char *)out->key, in->key);
+  if (in->elem_type == GKYL_MP_STRING) {
+    out->cval = gkyl_malloc(strlen(in->cval) + 1);
+    strcpy((char *)out->cval, in->cval);
+  } else if (in->elem_type == GKYL_MP_STRING_ARRAY) {
+    const char **data = in->sarray.size ? gkyl_malloc(in->sarray.size * sizeof(*data)) : NULL;
+    for (size_t i = 0; i < in->sarray.size; ++i) {
+      data[i] = gkyl_malloc(strlen(in->sarray.data[i]) + 1);
+      strcpy((char *)data[i], in->sarray.data[i]);
+    }
+    out->sarray.data = data;
+  }
+}
+
 struct gkyl_msgpack_map_elem *
 gkyl_msgpack_map_elem_clone(int nvals, const struct gkyl_msgpack_map_elem *elist_in)
 {
-  struct gkyl_msgpack_map_elem *elist_out =
-    gkyl_malloc(nvals * sizeof(struct gkyl_msgpack_map_elem));
-
+  struct gkyl_msgpack_map_elem *elist_out = gkyl_malloc(nvals * sizeof(*elist_out));
   for (int i = 0; i < nvals; ++i) {
-    // Copy key name.
-    size_t key_len = strlen(elist_in[i].key) + 1;
-    elist_out[i].key = gkyl_malloc(key_len);
-    strcpy(elist_out[i].key, elist_in[i].key);
-
-    // Copy type.
-    elist_out[i].elem_type = elist_in[i].elem_type;
-
-    // Copy value.
-    switch (elist_in[i].elem_type) {
-      case GKYL_MP_BOOL:
-        elist_out[i].bval = elist_in[i].bval;
-        break;
-
-      case GKYL_MP_UNSIGNED_INT:
-        elist_out[i].uval = elist_in[i].uval;
-        break;
-
-      case GKYL_MP_INT:
-        elist_out[i].ival = elist_in[i].ival;
-        break;
-
-      case GKYL_MP_FLOAT:
-        elist_out[i].fval = elist_in[i].fval;
-        break;
-
-      case GKYL_MP_DOUBLE:
-        elist_out[i].dval = elist_in[i].dval;
-        break;
-
-      case GKYL_MP_STRING:
-        key_len = strlen(elist_in[i].cval) + 1;
-        elist_out[i].cval = gkyl_malloc(key_len);
-        strcpy(elist_out[i].cval, elist_in[i].cval);
-        break;
-
-      default:
-        assert(false); // NYI.
-        break;
-    }
+    msgpack_map_elem_copy(&elist_out[i], &elist_in[i]);
   }
-
   return elist_out;
 }
 
@@ -331,47 +308,7 @@ gkyl_msgpack_map_elem_union(
     const struct gkyl_msgpack_map_elem *elist_curr = elist_union[j];
 
     for (int i = 0; i < nvals_curr; ++i) {
-      // Copy key name.
-      size_t slen = strlen(elist_curr[i].key) + 1;
-      elist_out[eidx].key = gkyl_malloc(slen);
-      strcpy(elist_out[eidx].key, elist_curr[i].key);
-
-      // Copy type.
-      elist_out[eidx].elem_type = elist_curr[i].elem_type;
-
-      // Copy value.
-      switch (elist_curr[i].elem_type) {
-        case GKYL_MP_BOOL:
-          elist_out[eidx].bval = elist_curr[i].bval;
-          break;
-
-        case GKYL_MP_UNSIGNED_INT:
-          elist_out[eidx].uval = elist_curr[i].uval;
-          break;
-
-        case GKYL_MP_INT:
-          elist_out[eidx].ival = elist_curr[i].ival;
-          break;
-
-        case GKYL_MP_FLOAT:
-          elist_out[eidx].fval = elist_curr[i].fval;
-          break;
-
-        case GKYL_MP_DOUBLE:
-          elist_out[eidx].dval = elist_curr[i].dval;
-          break;
-
-        case GKYL_MP_STRING:
-          slen = strlen(elist_curr[i].cval) + 1;
-          elist_out[eidx].cval = gkyl_malloc(slen);
-          strcpy(elist_out[eidx].cval, elist_curr[i].cval);
-          break;
-
-        default:
-          assert(false); // NYI.
-          break;
-      }
-
+      msgpack_map_elem_copy(&elist_out[eidx], &elist_curr[i]);
       eidx++;
     }
   }
@@ -456,17 +393,74 @@ gkyl_msgpack_map_elem_release_string(int nvals, struct gkyl_msgpack_map_elem *el
 }
 
 void
+gkyl_msgpack_map_elem_release_value(struct gkyl_msgpack_map_elem *elem)
+{
+  if (elem->elem_type == GKYL_MP_STRING) {
+    gkyl_free((void *)elem->cval);
+    elem->cval = NULL;
+  } else if (elem->elem_type == GKYL_MP_STRING_ARRAY) {
+    for (size_t i = 0; i < elem->sarray.size; ++i) {
+      gkyl_free((void *)elem->sarray.data[i]);
+    }
+    gkyl_free((void *)elem->sarray.data);
+    elem->sarray.data = NULL;
+    elem->sarray.size = 0;
+  }
+}
+
+void
 gkyl_msgpack_map_elem_release(int nvals, struct gkyl_msgpack_map_elem *elist_in)
 {
   for (int i = 0; i < nvals; ++i) {
     gkyl_free(elist_in[i].key);
 
-    if (elist_in[i].elem_type == GKYL_MP_STRING) {
-      gkyl_free(elist_in[i].cval);
-    }
+    gkyl_msgpack_map_elem_release_value(&elist_in[i]);
   }
 
   gkyl_free(elist_in);
+}
+
+static void
+msgpack_write_map_elem(mpack_writer_t *writer, const struct gkyl_msgpack_map_elem *elem)
+{
+  mpack_write_cstr(writer, elem->key);
+  switch (elem->elem_type) {
+    case GKYL_MP_BOOL:
+      mpack_write_bool(writer, elem->bval);
+      break;
+
+    case GKYL_MP_UNSIGNED_INT:
+      mpack_write_u64(writer, elem->uval);
+      break;
+
+    case GKYL_MP_INT:
+      mpack_write_i64(writer, elem->ival);
+      break;
+
+    case GKYL_MP_FLOAT:
+      mpack_write_float(writer, elem->fval);
+      break;
+
+    case GKYL_MP_DOUBLE:
+      mpack_write_double(writer, elem->dval);
+      break;
+
+    case GKYL_MP_STRING:
+      mpack_write_cstr(writer, elem->cval);
+      break;
+
+    case GKYL_MP_STRING_ARRAY:
+      mpack_start_array(writer, elem->sarray.size);
+      for (size_t i = 0; i < elem->sarray.size; ++i) {
+        mpack_write_cstr(writer, elem->sarray.data[i]);
+      }
+      mpack_finish_array(writer);
+      break;
+
+    default:
+      assert(false); // NYI.
+      break;
+  }
 }
 
 struct gkyl_msgpack_data *
@@ -481,37 +475,7 @@ gkyl_msgpack_create(int nvals, const struct gkyl_msgpack_map_elem *elist)
 
   mpack_build_map(&writer);
   for (int i = 0; i < nvals; ++i) {
-    mpack_write_cstr(&writer, elist[i].key);
-
-    switch (elist[i].elem_type) {
-      case GKYL_MP_BOOL:
-        mpack_write_bool(&writer, elist[i].bval);
-        break;
-
-      case GKYL_MP_UNSIGNED_INT:
-        mpack_write_u64(&writer, elist[i].uval);
-        break;
-
-      case GKYL_MP_INT:
-        mpack_write_i64(&writer, elist[i].ival);
-        break;
-
-      case GKYL_MP_FLOAT:
-        mpack_write_float(&writer, elist[i].fval);
-        break;
-
-      case GKYL_MP_DOUBLE:
-        mpack_write_double(&writer, elist[i].dval);
-        break;
-
-      case GKYL_MP_STRING:
-        mpack_write_cstr(&writer, elist[i].cval);
-        break;
-
-      default:
-        assert(false); // NYI.
-        break;
-    }
+    msgpack_write_map_elem(&writer, &elist[i]);
   }
 
   mpack_complete_map(&writer);
@@ -546,37 +510,7 @@ gkyl_msgpack_create_union(
     const struct gkyl_msgpack_map_elem *elist = elist_union[j];
 
     for (int i = 0; i < nvals; ++i) {
-      mpack_write_cstr(&writer, elist[i].key);
-
-      switch (elist[i].elem_type) {
-        case GKYL_MP_BOOL:
-          mpack_write_bool(&writer, elist[i].bval);
-          break;
-
-        case GKYL_MP_UNSIGNED_INT:
-          mpack_write_u64(&writer, elist[i].uval);
-          break;
-
-        case GKYL_MP_INT:
-          mpack_write_i64(&writer, elist[i].ival);
-          break;
-
-        case GKYL_MP_FLOAT:
-          mpack_write_float(&writer, elist[i].fval);
-          break;
-
-        case GKYL_MP_DOUBLE:
-          mpack_write_double(&writer, elist[i].dval);
-          break;
-
-        case GKYL_MP_STRING:
-          mpack_write_cstr(&writer, elist[i].cval);
-          break;
-
-        default:
-          assert(false); // NYI.
-          break;
-      }
+      msgpack_write_map_elem(&writer, &elist[i]);
     }
   }
 
@@ -730,6 +664,18 @@ gkyl_msgpack_to_map_elem_list(
       case GKYL_MP_STRING:
         elist[i].cval = mpack_node_cstr_alloc(node, mpack_node_strlen(node) + 1);
         break;
+
+      case GKYL_MP_STRING_ARRAY: {
+        size_t size = mpack_node_array_length(node);
+        const char **data = size ? gkyl_malloc(size * sizeof(*data)) : NULL;
+        for (size_t j = 0; j < size; ++j) {
+          mpack_node_t entry = mpack_node_array_at(node, j);
+          data[j] = mpack_node_cstr_alloc(entry, mpack_node_strlen(entry) + 1);
+        }
+        elist[i].sarray.size = size;
+        elist[i].sarray.data = data;
+        break;
+      }
 
       default:
         assert(false); // NYI.
