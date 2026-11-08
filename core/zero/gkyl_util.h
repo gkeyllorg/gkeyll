@@ -634,22 +634,25 @@ unsigned int gkyl_msgpack_map_elem_get_uint(
 );
 
 /**
- * Fetch the pointer to the string value of an element in an element list.
+ * Fetch a borrowed, read-only pointer to a string value.
  *
- * @param nvals number of elements in elist_in.
- * @param elist_in List of elements.
- * @param key Name of the element to update.
- * @return Pointer to string value of the specified element.
+ * @param nvals Number of elements in elist.
+ * @param elist List of elements, not modified.
+ * @param key Name of the element to fetch.
+ * @return Borrowed string pointer, valid until its value is replaced or released;
+ * NULL if the key is absent or its value has been released. Do not free it directly.
  */
-char *gkyl_msgpack_map_elem_get_string(
-  int nvals, struct gkyl_msgpack_map_elem *elist, const char *key
+const char *gkyl_msgpack_map_elem_get_string(
+  int nvals, const struct gkyl_msgpack_map_elem *elist, const char *key
 );
 
 /**
- * Free the memory allocated to store a string in an element of the given list.
+ * Release an owned string value and set its pointer to NULL.
+ * The key and list are not released. Use only for allocated values, such as
+ * those populated by gkyl_msgpack_to_map_elem_list or a cloned metadata list.
  *
- * @param nvals number of elements in elist_in.
- * @param elist_in List of elements.
+ * @param nvals Number of elements in elist.
+ * @param elist List of elements.
  * @param key Name of the element whose string value to release.
  */
 void gkyl_msgpack_map_elem_release_string(
@@ -657,10 +660,12 @@ void gkyl_msgpack_map_elem_release_string(
 );
 
 /**
- * Release list of MessagePack map elements.
+ * Release a metadata list, including its owned keys and allocated values.
+ * Use for lists returned by gkyl_msgpack_map_elem_clone or gkyl_msgpack_map_elem_union,
+ * not caller-owned lists with borrowed keys or values.
  *
- * @param nvals number of elements in elist_in.
- * @param elist_in List of elements to put in MessagePack.
+ * @param nvals Number of elements in elist_in.
+ * @param elist_in Owned list of elements to release.
  */
 void gkyl_msgpack_map_elem_release(int nvals, struct gkyl_msgpack_map_elem *elist_in);
 

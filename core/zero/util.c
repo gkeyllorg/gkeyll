@@ -368,8 +368,10 @@ gkyl_msgpack_map_elem_get_uint(int nvals, struct gkyl_msgpack_map_elem *elist, c
   return 0;
 }
 
-char *
-gkyl_msgpack_map_elem_get_string(int nvals, struct gkyl_msgpack_map_elem *elist, const char *key)
+const char *
+gkyl_msgpack_map_elem_get_string(
+  int nvals, const struct gkyl_msgpack_map_elem *elist, const char *key
+)
 {
   for (int i = 0; i < nvals; ++i) {
     if (strcmp(key, elist[i].key) == 0) {
@@ -386,7 +388,7 @@ gkyl_msgpack_map_elem_release_string(int nvals, struct gkyl_msgpack_map_elem *el
   for (int i = 0; i < nvals; ++i) {
     if (strcmp(key, elist[i].key) == 0) {
       assert(elist[i].elem_type == GKYL_MP_STRING);
-      MPACK_FREE(elist[i].cval);
+      gkyl_msgpack_map_elem_release_value(&elist[i]);
       break;
     }
   }
@@ -412,7 +414,7 @@ void
 gkyl_msgpack_map_elem_release(int nvals, struct gkyl_msgpack_map_elem *elist_in)
 {
   for (int i = 0; i < nvals; ++i) {
-    gkyl_free(elist_in[i].key);
+    gkyl_free((void *)elist_in[i].key);
 
     gkyl_msgpack_map_elem_release_value(&elist_in[i]);
   }

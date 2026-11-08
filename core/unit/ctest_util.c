@@ -238,7 +238,7 @@ test_msgpack_string_array()
 void
 test_msgpack_scalar_copy()
 {
-  struct gkyl_msgpack_map_elem input[] = {
+  const struct gkyl_msgpack_map_elem input[] = {
     {.key = "bool", .elem_type = GKYL_MP_BOOL, .bval = true},
     {.key = "int", .elem_type = GKYL_MP_INT, .ival = -3},
     {.key = "uint", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 7},
@@ -247,6 +247,8 @@ test_msgpack_scalar_copy()
     {.key = "string", .elem_type = GKYL_MP_STRING, .cval = "input"}
   };
   int count = sizeof input / sizeof input[0];
+  TEST_CHECK(strcmp(gkyl_msgpack_map_elem_get_string(count, input, "string"), "input") == 0);
+  TEST_CHECK(gkyl_msgpack_map_elem_get_string(count, input, "missing") == NULL);
   struct gkyl_msgpack_map_elem *copy = gkyl_msgpack_map_elem_clone(count, input);
 
   int lengths[] = {count}, merged_count;
@@ -267,6 +269,21 @@ test_msgpack_scalar_copy()
     TEST_CHECK(merged[i].elem_type == input[i].elem_type);
   }
 
+  // Decoded values own their storage, while this stack list borrows its key.
+  struct gkyl_msgpack_data *packed = gkyl_msgpack_create(merged_count, merged);
+  TEST_ASSERT(packed != NULL);
+  struct gkyl_msgpack_map_elem decoded = {.key = "string", .elem_type = GKYL_MP_STRING};
+  gkyl_msgpack_to_map_elem_list(packed, 1, &decoded);
+  TEST_CHECK(strcmp(gkyl_msgpack_map_elem_get_string(1, &decoded, "string"), "input") == 0);
+  gkyl_msgpack_map_elem_release_string(1, &decoded, "string");
+  TEST_CHECK(decoded.cval == NULL);
+  TEST_CHECK(strcmp(decoded.key, "string") == 0);
+  gkyl_msgpack_map_elem_release_value(&decoded);
+  gkyl_msgpack_data_release(packed);
+
+  // Releasing a cloned string first must also leave full-list release safe.
+  gkyl_msgpack_map_elem_release_string(merged_count, merged, "string");
+  TEST_CHECK(gkyl_msgpack_map_elem_get_string(merged_count, merged, "string") == NULL);
   gkyl_msgpack_map_elem_release(merged_count, merged);
 }
 
