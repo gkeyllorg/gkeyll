@@ -1606,10 +1606,12 @@ gyrokinetic_app_write_qsafety(gkyl_gyrokinetic_app *app, const struct gkyl_array
     }
   }
   struct gkyl_msgpack_map_elem extra[] = {
-    {.key = "Description",
-     .elem_type = GKYL_MP_STRING,
-     .cval = "Signed safety factor on closed contours; full-connection winding on open contours."},
-    {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = basis.id},
+    {
+      .key = "Description",
+      .elem_type = GKYL_MP_STRING,
+      .cval = "Signed safety factor on closed contours; full-connection winding on open contours.",
+    },
+    {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = basis.id}
   };
   int lengths[] = {app->io_meta_dg_len, app->gk_geom->io_meta_basic_len, 2};
   const struct gkyl_msgpack_map_elem *lists[] = {
@@ -1755,7 +1757,18 @@ gkyl_gyrokinetic_app_write_geometry(
   gkyl_comm_get_rank(app->comm, &rank);
   if (rank == 0 && geometry_inp->geometry_id == GKYL_GEOMETRY_TOKAMAK) {
     if ((!app->is_multib) || (app->is_multib && gyrokinetic_str_ends_in_b0(app->name))) {
-      gkyl_gk_geometry_write_efit(geometry_inp, app->io_meta_basic, app->io_meta_basic_len);
+      // All blocks share the simulation's discrete equilibrium file.
+      int name_len = strlen(app->name);
+      if (app->is_multib && gyrokinetic_str_ends_in_bnum(app->name)) {
+        name_len = strrchr(app->name, '_') - app->name;
+      }
+      const char *fmt = "%.*s-psi.gkyl";
+      int sz = gkyl_calc_strlen(fmt, name_len, app->name);
+      char file_name[sz + 1];
+      snprintf(file_name, sizeof file_name, fmt, name_len, app->name);
+      gkyl_gk_geometry_write_efit(
+        geometry_inp, app->io_meta_basic, app->io_meta_basic_len, file_name
+      );
     }
   }
 

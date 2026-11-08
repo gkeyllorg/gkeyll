@@ -393,14 +393,15 @@ struct gk_geometry *gkyl_gk_geometry_deflate(
 void gkyl_gk_geometry_populate_nodal(struct gk_geometry *gk_geom);
 
 /**
- * Write psi(R,Z)
-* @param geometry_inp Geometry input struct.
-* @param io_meta_basic_basic basic metadata
-* @param io_meta_basic_basic_len length of basic metadata
+ * Write psi(R,Z).
+ * @param geometry_inp Geometry input struct.
+ * @param io_meta_basic_basic Basic metadata.
+ * @param io_meta_basic_basic_len Length of basic metadata.
+ * @param file_name Output filename.
  */
 void gkyl_gk_geometry_write_efit(
   struct gkyl_gk_geometry_inp *geometry_inp, struct gkyl_msgpack_map_elem *io_meta_basic_basic,
-  int io_meta_basic_basic_len
+  int io_meta_basic_basic_len, const char *file_name
 );
 
 /**

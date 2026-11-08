@@ -866,14 +866,10 @@ gkyl_gk_geometry_deflate(const struct gk_geometry *up_3d, struct gkyl_gk_geometr
 void
 gkyl_gk_geometry_write_efit(
   struct gkyl_gk_geometry_inp *geometry_inp, struct gkyl_msgpack_map_elem *io_meta_basic_basic,
-  int io_meta_basic_basic_len
+  int io_meta_basic_basic_len, const char *file_name
 )
 {
   struct gkyl_efit *efit = gkyl_efit_new(&geometry_inp->efit_info);
-  const char *fmt = "%s-psi.gkyl";
-  int sz = gkyl_calc_strlen(fmt, efit->name);
-  char fileNm[sz + 1];
-  snprintf(fileNm, sizeof fileNm, fmt, efit->name);
 
   // Set extra metadata
   char geqdsk_file_name[128];
@@ -884,9 +880,11 @@ gkyl_gk_geometry_write_efit(
     {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = efit->rzbasis.id},
     {.key = "geqdsk_file", .elem_type = GKYL_MP_STRING, .cval = geqdsk_file_name},
     {.key = "geometry_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = geometry_inp->geometry_id},
-    {.key = "tokamak_geo_type",
-     .elem_type = GKYL_MP_UNSIGNED_INT,
-     .uval = geometry_inp->tok_grid_info.ftype},
+    {
+      .key = "tokamak_geo_type",
+      .elem_type = GKYL_MP_UNSIGNED_INT,
+      .uval = geometry_inp->tok_grid_info.ftype,
+    },
     {.key = "sibry", .elem_type = GKYL_MP_DOUBLE, .dval = efit->sibry},
     {.key = "simag", .elem_type = GKYL_MP_DOUBLE, .dval = efit->simag},
     {.key = "bcentr", .elem_type = GKYL_MP_DOUBLE, .dval = efit->bcentr},
@@ -900,20 +898,45 @@ gkyl_gk_geometry_write_efit(
     {.key = "zdim", .elem_type = GKYL_MP_DOUBLE, .dval = efit->zdim}
   };
   const bool limited = geometry_inp->tok_grid_info.ftype == GKYL_GEOMETRY_TOKAMAK_IWL;
-  struct gkyl_msgpack_map_elem boundary_flux =
-    limited ? (struct gkyl_msgpack_map_elem
-              ){.key = "psi_lcfs", .elem_type = GKYL_MP_DOUBLE, .dval = efit->sibry} :
-              (struct gkyl_msgpack_map_elem
-              ){.key = "psi_sep", .elem_type = GKYL_MP_DOUBLE, .dval = efit->psisep};
+  struct gkyl_msgpack_map_elem boundary_flux = limited ?
+                                                 (struct gkyl_msgpack_map_elem){
+                                                   .key = "psi_lcfs",
+                                                   .elem_type = GKYL_MP_DOUBLE,
+                                                   .dval = efit->sibry,
+                                                 } :
+                                                 (struct gkyl_msgpack_map_elem){
+                                                   .key = "psi_sep",
+                                                   .elem_type = GKYL_MP_DOUBLE,
+                                                   .dval = efit->psisep,
+                                                 };
+  const struct gkyl_gen_miller_eqdsk_inp *miller = &geometry_inp->miller_grid_info;
+  struct gkyl_msgpack_map_elem miller_meta[] = {
+    {.key = "geometry_generator", .elem_type = GKYL_MP_STRING, .cval = "miller"},
+    {.key = "miller_R_axis", .elem_type = GKYL_MP_DOUBLE, .dval = miller->Rmajor_axis},
+    {.key = "miller_Z_axis", .elem_type = GKYL_MP_DOUBLE, .dval = miller->Zvert_axis},
+    {.key = "miller_B_axis", .elem_type = GKYL_MP_DOUBLE, .dval = miller->bmag_axis},
+    {.key = "miller_R_lcfs", .elem_type = GKYL_MP_DOUBLE, .dval = miller->Rmajor_LCFS},
+    {.key = "miller_kappa", .elem_type = GKYL_MP_DOUBLE, .dval = miller->kappa ? miller->kappa : 1},
+    {.key = "miller_delta", .elem_type = GKYL_MP_DOUBLE, .dval = miller->delta},
+    {.key = "miller_a_shift", .elem_type = GKYL_MP_DOUBLE, .dval = miller->a_shift},
+    {.key = "miller_psi_boundary", .elem_type = GKYL_MP_DOUBLE, .dval = efit->sibry},
+    {
+      .key = "miller_R_omp_lower",
+      .elem_type = GKYL_MP_DOUBLE,
+      .dval = miller->Rmajor_omp_bounds[0],
+    },
+    {.key = "miller_R_omp_upper", .elem_type = GKYL_MP_DOUBLE, .dval = miller->Rmajor_omp_bounds[1]}
+  };
+  int miller_meta_len = miller->qsafety ? sizeof(miller_meta) / sizeof(miller_meta[0]) : 0;
   int io_meta_basic_rz_len = sizeof(io_meta_basic_rz) / sizeof(io_meta_basic_rz[0]);
-  int io_meta_basic_len[] = {io_meta_basic_basic_len, io_meta_basic_rz_len, 1};
+  int io_meta_basic_len[] = {io_meta_basic_basic_len, io_meta_basic_rz_len, 1, miller_meta_len};
   const struct gkyl_msgpack_map_elem *io_meta_basic[] = {
-    io_meta_basic_basic, io_meta_basic_rz, &boundary_flux
+    io_meta_basic_basic, io_meta_basic_rz, &boundary_flux, miller_meta
   };
   struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(
     sizeof(io_meta_basic_len) / sizeof(int), io_meta_basic_len, io_meta_basic
   );
-  gkyl_grid_sub_array_write(&efit->rzgrid, &efit->rzlocal, mt, efit->psizr, fileNm);
+  gkyl_grid_sub_array_write(&efit->rzgrid, &efit->rzlocal, mt, efit->psizr, file_name);
 
   gkyl_msgpack_data_release(mt);
 }
