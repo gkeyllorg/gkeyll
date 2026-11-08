@@ -253,6 +253,10 @@ gyrokinetic_prepare_miller(struct gkyl_gk *gk)
         gk->metadata.num_attributes, gk->metadata.attributes, "is_multib"
       )) {
     error = "Miller initialization supports single-block 2x/3x simulations";
+  } else if (gk->geometry.efit_info.eqdsk_cocos_index != 0 &&
+             gk->geometry.efit_info.eqdsk_cocos_index != 3) {
+    error = "GKYL_GEOMETRY_MILLER generates COCOS 3 equilibria; "
+            "eqdsk_cocos_index must be 0 (default) or 3";
   }
   double x_bounds[2] = {gk->lower[0], gk->upper[0]}, psi_bounds[2];
   gkyl_gen_miller_eqdsk *generator =
@@ -295,6 +299,7 @@ gyrokinetic_prepare_miller(struct gkyl_gk *gk)
   }
 
   struct gkyl_efit_inp efit = gk->geometry.efit_info;
+  efit.eqdsk_cocos_index = 3;
   if (!efit.filepath[0]) {
     snprintf(efit.filepath, sizeof efit.filepath, "%s-miller.geqdsk", gk->name);
   }
@@ -4878,7 +4883,6 @@ gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app *app)
   gkyl_msgpack_map_elem_release(app->io_meta_basic_len, app->io_meta_basic);
   gkyl_msgpack_map_elem_release(app->io_meta_dg_len, app->io_meta_dg);
 
-  gkyl_gk_geometry_release(app->gk_geom);
   if (app->gk_geom_ho) {
     gkyl_gk_geometry_release(app->gk_geom_ho);
   }
