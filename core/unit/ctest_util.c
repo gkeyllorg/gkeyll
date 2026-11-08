@@ -3,6 +3,8 @@
 #include <gkyl_util.h>
 #include <gkyl_const.h>
 #include <math.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 void
 test_compare_double()
@@ -287,7 +289,115 @@ test_msgpack_scalar_copy()
   gkyl_msgpack_map_elem_release(merged_count, merged);
 }
 
+// An error must terminate the child, not the test runner, and identify the key.
+static void
+check_duplicate_metadata(int method, bool within_group, bool different_value)
+{
+  int errors[2];
+  TEST_ASSERT(pipe(errors) == 0);
+  fflush(NULL);
+  pid_t child = fork();
+  TEST_ASSERT(child >= 0);
+  if (child == 0) {
+    close(errors[0]);
+    if (dup2(errors[1], STDERR_FILENO) < 0) {
+      _exit(2);
+    }
+    close(errors[1]);
+    struct gkyl_msgpack_map_elem entries[] = {
+      {.key = "duplicate", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 1},
+      {.key = "duplicate", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 1}
+    };
+    if (different_value) {
+      entries[1].elem_type = GKYL_MP_STRING;
+      entries[1].cval = "different";
+    }
+    int lengths[] = {within_group ? 2 : 1, within_group ? 0 : 1}, count;
+    const struct gkyl_msgpack_map_elem *lists[] = {entries, entries + 1};
+    if (method == 0) {
+      gkyl_msgpack_map_elem_union(2, lengths, lists, &count);
+    } else if (method == 1) {
+      gkyl_msgpack_create_union(2, lengths, lists);
+    } else {
+      gkyl_msgpack_create(2, entries);
+    }
+    _exit(0);
+  }
+  close(errors[1]);
+  FILE *stream = fdopen(errors[0], "r");
+  TEST_ASSERT(stream != NULL);
+  char message[128] = {0};
+  TEST_CHECK(fgets(message, sizeof message, stream) != NULL);
+  fclose(stream);
+  int status;
+  TEST_ASSERT(waitpid(child, &status, 0) == child);
+  TEST_CHECK(WIFEXITED(status) && WEXITSTATUS(status) == EXIT_FAILURE);
+  TEST_CHECK(strcmp(message, "Error: Duplicate metadata key \"duplicate\".\n") == 0);
+}
+
+void
+test_msgpack_unique_keys()
+{
+  for (int method = 0; method < 3; ++method) {
+    for (int different = 0; different < 2; ++different) {
+      check_duplicate_metadata(method, true, different);
+      if (method < 2) {
+        check_duplicate_metadata(method, false, different);
+      }
+    }
+  }
+
+  // Keys are case-sensitive. Empty groups do not disturb order or encoding.
+  struct gkyl_msgpack_map_elem entries[] = {
+    {.key = "key", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 1},
+    {.key = "Key", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 2}
+  };
+  int lengths[] = {1, 0, 1}, count;
+  const struct gkyl_msgpack_map_elem *lists[] = {entries, NULL, entries + 1};
+  struct gkyl_msgpack_map_elem *merged = gkyl_msgpack_map_elem_union(3, lengths, lists, &count);
+  TEST_CHECK(count == 2);
+  TEST_CHECK(strcmp(merged[0].key, "key") == 0);
+  TEST_CHECK(strcmp(merged[1].key, "Key") == 0);
+  const unsigned char expected[] = {0x82, 0xa3, 'k', 'e', 'y', 1, 0xa3, 'K', 'e', 'y', 2};
+  struct gkyl_msgpack_data *packed[] = {
+    gkyl_msgpack_create(count, merged), gkyl_msgpack_create_union(3, lengths, lists)
+  };
+  for (int i = 0; i < 2; ++i) {
+    TEST_ASSERT(packed[i] != NULL);
+    TEST_CHECK(packed[i]->meta_sz == sizeof expected);
+    TEST_CHECK(memcmp(packed[i]->meta, expected, sizeof expected) == 0);
+    gkyl_msgpack_data_release(packed[i]);
+  }
+  gkyl_msgpack_map_elem_release(count, merged);
+  struct gkyl_msgpack_data *empty = gkyl_msgpack_create(0, NULL);
+  TEST_ASSERT(empty != NULL);
+  TEST_CHECK(empty->meta_sz == 1 && (unsigned char)empty->meta[0] == 0x80);
+  gkyl_msgpack_data_release(empty);
+}
+
+void
+test_msgpack_set_string()
+{
+  const struct gkyl_msgpack_map_elem input = {
+    .key = "basis_type",
+    .elem_type = GKYL_MP_STRING,
+    .cval = "old basis",
+  };
+  struct gkyl_msgpack_map_elem *owned = gkyl_msgpack_map_elem_clone(1, &input);
+  gkyl_msgpack_map_elem_set_string(1, owned, "basis_type", owned[0].cval + 4);
+  TEST_CHECK(strcmp(owned[0].cval, "basis") == 0);
+  TEST_CHECK(strcmp(input.cval, "old basis") == 0);
+  gkyl_msgpack_map_elem_set_string(1, owned, "basis_type", "tensor");
+  TEST_CHECK(strcmp(owned[0].cval, "tensor") == 0);
+  TEST_CHECK(strcmp(owned[0].key, "basis_type") == 0);
+  gkyl_msgpack_map_elem_set_string(1, owned, "missing", "ignored");
+  TEST_CHECK(strcmp(owned[0].cval, "tensor") == 0);
+  gkyl_msgpack_map_elem_release(1, owned);
+}
+
 TEST_LIST = {
+  {"msgpack_unique_keys", test_msgpack_unique_keys},
+  {"msgpack_set_string", test_msgpack_set_string},
   {"msgpack_string_array", test_msgpack_string_array},
   {"msgpack_scalar_copy", test_msgpack_scalar_copy},
   {"compare_double", test_compare_double},

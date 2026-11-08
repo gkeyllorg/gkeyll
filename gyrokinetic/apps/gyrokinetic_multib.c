@@ -181,7 +181,7 @@ singleb_app_new_geom(
   app_inp.metadata.num_attributes = mbapp->io_meta_basic_len;
   app_inp.metadata.attributes = mbapp->io_meta_basic;
 
-  return gkyl_gyrokinetic_app_new_geom(&app_inp);
+  return gyrokinetic_app_new_geom(&app_inp, true);
 }
 
 // Construct single-block App solver for given block ID.
@@ -470,6 +470,33 @@ singleb_app_new_solver(
   gkyl_gyrokinetic_app_new_solver(&app_inp, app);
 }
 
+// Both public construction paths pass the same validated metadata to child blocks.
+static void
+multib_init_io(
+  const struct gkyl_gyrokinetic_multib *mbinp, struct gkyl_gyrokinetic_multib_app *mbapp
+)
+{
+  // Create multiblock metadata to pass to each block, and combine with user's metadata.
+  const char *fmt_btopo = "%s-block_topo.gkyl";
+  int sz = gkyl_calc_strlen(fmt_btopo, mbapp->name);
+  char fileNm_btopo[sz + 1]; // ensures no buffer overflow
+  snprintf(fileNm_btopo, sizeof fileNm_btopo, fmt_btopo, mbapp->name);
+
+  // Basic metadata for I/O (including metadata optional from user).
+  const char *build_id = GIT_COMMIT_ID;
+  const char *build_date = GKYL_BUILD_DATE;
+  struct gkyl_msgpack_map_elem io_meta_default[] = {
+    {.key = "changeset", .elem_type = GKYL_MP_STRING, .cval = (char *)build_id},
+    {.key = "builddate", .elem_type = GKYL_MP_STRING, .cval = (char *)build_date},
+    {.key = "is_multib", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 1},
+    {.key = "topo_file", .elem_type = GKYL_MP_STRING, .cval = fileNm_btopo}
+  };
+  mbapp->io_meta_basic = gyrokinetic_app_input_metadata(
+    sizeof(io_meta_default) / sizeof(io_meta_default[0]), io_meta_default, &mbinp->metadata,
+    &mbapp->io_meta_basic_len
+  );
+}
+
 gkyl_gyrokinetic_multib_app *
 gkyl_gyrokinetic_multib_app_new_geom(const struct gkyl_gyrokinetic_multib *mbinp)
 {
@@ -493,6 +520,8 @@ and the maximum number of cuts in a block is %d\n\n",
   strcpy(mbapp->name, mbinp->name);
   mbapp->comm = gkyl_comm_acquire(mbinp->comm);
   mbapp->use_gpu = mbinp->use_gpu;
+
+  multib_init_io(mbinp, mbapp);
 
   multib_tok_orient_blocks(mbinp->gk_block_geom, mbapp);
 
@@ -608,6 +637,8 @@ and the maximum number of cuts in a block is %d\n\n",
   mbapp->comm = gkyl_comm_acquire(mbinp->comm);
   mbapp->use_gpu = mbinp->use_gpu;
 
+  multib_init_io(mbinp, mbapp);
+
   multib_tok_orient_blocks(mbinp->gk_block_geom, mbapp);
 
   int cdim = gkyl_gk_block_geom_ndim(mbapp->gk_block_geom);
@@ -659,26 +690,6 @@ and the maximum number of cuts in a block is %d\n\n",
   }
 
   mbapp->num_local_blocks = num_local_blocks;
-
-  // Create multiblock metadata to pass to each block, and combine with user's metadata.
-  const char *fmt_btopo = "%s-block_topo.gkyl";
-  int sz = gkyl_calc_strlen(fmt_btopo, mbapp->name);
-  char fileNm_btopo[sz + 1]; // ensures no buffer overflow
-  snprintf(fileNm_btopo, sizeof fileNm_btopo, fmt_btopo, mbapp->name);
-
-  // Basic metadata for I/O (including metadata optional from user).
-  const char *build_id = GIT_COMMIT_ID;
-  const char *build_date = GKYL_BUILD_DATE;
-  struct gkyl_msgpack_map_elem io_meta_default[] = {
-    {.key = "changeset", .elem_type = GKYL_MP_STRING, .cval = (char *)build_id},
-    {.key = "builddate", .elem_type = GKYL_MP_STRING, .cval = (char *)build_date},
-    {.key = "is_multib", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 1},
-    {.key = "topo_file", .elem_type = GKYL_MP_STRING, .cval = fileNm_btopo}
-  };
-  mbapp->io_meta_basic = gyrokinetic_app_input_metadata(
-    sizeof(io_meta_default) / sizeof(io_meta_default[0]), io_meta_default, &mbinp->metadata,
-    &mbapp->io_meta_basic_len
-  );
 
   // Write the block topo file.
   gkyl_gyrokinetic_multib_app_write_topo(mbapp);

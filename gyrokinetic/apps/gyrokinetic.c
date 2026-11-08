@@ -18,18 +18,31 @@
 
 #include <mpack.h>
 
+// These keys select internal app behavior or describe provenance, not user data.
+static void
+gyrokinetic_check_input_metadata(const struct gkyl_gyrokinetic_metadata_inp *input)
+{
+  for (int i = 0; i < input->num_attributes; ++i) {
+    const char *key = input->attributes[i].key;
+    if (strcmp(key, "is_multib") == 0 || strcmp(key, "input_metadata_keys") == 0) {
+      int size = gkyl_calc_strlen("Input metadata key \"%s\" is reserved by Gkeyll.", key) + 1;
+      char message[size];
+      snprintf(message, size, "Input metadata key \"%s\" is reserved by Gkeyll.", key);
+      gkyl_exit(message);
+    }
+  }
+}
+
 struct gkyl_msgpack_map_elem *
 gyrokinetic_app_input_metadata(
   int num_defaults, const struct gkyl_msgpack_map_elem *defaults,
   const struct gkyl_gyrokinetic_metadata_inp *input, int *num_metadata
 )
 {
+  gyrokinetic_check_input_metadata(input);
   const char *keys[input->num_attributes > 0 ? input->num_attributes : 1];
   for (int i = 0; i < input->num_attributes; ++i) {
     keys[i] = input->attributes[i].key;
-    if (strcmp(keys[i], "input_metadata_keys") == 0) {
-      gkyl_exit("input_metadata_keys is reserved for Gkeyll metadata provenance.");
-    }
   }
   struct gkyl_msgpack_map_elem origin = {
     .key = "input_metadata_keys",
@@ -348,8 +361,11 @@ fail:
 }
 
 gkyl_gyrokinetic_app *
-gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
+gyrokinetic_app_new_geom(struct gkyl_gk *gk, bool is_multib)
 {
+  if (!is_multib) {
+    gyrokinetic_check_input_metadata(&gk->metadata);
+  }
   if (!gyrokinetic_prepare_miller(gk)) {
     return 0;
   }
@@ -359,10 +375,8 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
 
   gkyl_gyrokinetic_app *app = gkyl_malloc(sizeof(gkyl_gyrokinetic_app));
 
-  // Check if this is a multiblock sim from metadata.
-  app->is_multib = gkyl_msgpack_map_elem_get_uint(
-    gk->metadata.num_attributes, gk->metadata.attributes, "is_multib"
-  );
+  // Only the private multiblock construction path supplies this flag.
+  app->is_multib = is_multib;
 
   int cdim = app->cdim = gk->cdim;
   int poly_order = app->poly_order = gk->poly_order;
@@ -1008,6 +1022,12 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
   return app;
 }
 
+gkyl_gyrokinetic_app *
+gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
+{
+  return gyrokinetic_app_new_geom(gk, false);
+}
+
 static void
 gyrokinetic_calc_field_enabled(
   gkyl_gyrokinetic_app *app, double tcurr, const struct gkyl_array *fin[],
@@ -1622,19 +1642,18 @@ gyrokinetic_app_write_qsafety(gkyl_gyrokinetic_app *app, const struct gkyl_array
       }
     }
   }
-  struct gkyl_msgpack_map_elem extra[] = {
-    {
-      .key = "Description",
-      .elem_type = GKYL_MP_STRING,
-      .cval = "Signed safety factor on closed contours; full-connection winding on open contours.",
-    },
-    {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = basis.id}
-  };
-  int lengths[] = {app->io_meta_dg_len, app->gk_geom->io_meta_basic_len, 2};
-  const struct gkyl_msgpack_map_elem *lists[] = {
-    app->io_meta_dg, app->gk_geom->io_meta_basic, extra
-  };
+  struct gkyl_msgpack_map_elem extra[] = {{
+    .key = "Description",
+    .elem_type = GKYL_MP_STRING,
+    .cval = "Signed safety factor on closed contours; full-connection winding on open contours.",
+  }};
+  struct gkyl_msgpack_map_elem *profile_meta =
+    gkyl_msgpack_map_elem_clone(app->io_meta_dg_len, app->io_meta_dg);
+  gkyl_msgpack_map_elem_set_string(app->io_meta_dg_len, profile_meta, "basis_type", basis.id);
+  int lengths[] = {app->io_meta_dg_len, app->gk_geom->io_meta_basic_len, 1};
+  const struct gkyl_msgpack_map_elem *lists[] = {profile_meta, app->gk_geom->io_meta_basic, extra};
   struct gkyl_msgpack_data *meta = gkyl_msgpack_create_union(3, lengths, lists);
+  gkyl_msgpack_map_elem_release(app->io_meta_dg_len, profile_meta);
   cstr name = cstr_from_fmt("%s-qsafety.gkyl", app->name);
   gkyl_grid_sub_array_write(&grid, &range, meta, profile, name.str);
   cstr_drop(&name);
@@ -4324,7 +4343,29 @@ gkyl_gyrokinetic_app_read_geometry(
           },
           {.key = "parallel_coordinate", .elem_type = GKYL_MP_STRING, .cval = convention[1].cval}
         };
-        int lengths[] = {app->gk_geom->io_meta_basic_len, convention[1].cval ? 2 : 1};
+        // Existing geometry owns its strings. Replace those values explicitly;
+        // only new keys may be appended by a metadata union.
+        int num_missing = 0;
+        for (int i = 0; i < (convention[1].cval ? 2 : 1); ++i) {
+          if (gkyl_msgpack_map_elem_has_key(
+                app->gk_geom->io_meta_basic_len, app->gk_geom->io_meta_basic, theta_meta[i].key
+              )) {
+            if (i == 0) {
+              gkyl_msgpack_map_elem_set_uint(
+                app->gk_geom->io_meta_basic_len, app->gk_geom->io_meta_basic, theta_meta[i].key,
+                theta_meta[i].uval
+              );
+            } else {
+              gkyl_msgpack_map_elem_set_string(
+                app->gk_geom->io_meta_basic_len, app->gk_geom->io_meta_basic, theta_meta[i].key,
+                theta_meta[i].cval
+              );
+            }
+          } else {
+            theta_meta[num_missing++] = theta_meta[i];
+          }
+        }
+        int lengths[] = {app->gk_geom->io_meta_basic_len, num_missing};
         const struct gkyl_msgpack_map_elem *lists[] = {app->gk_geom->io_meta_basic, theta_meta};
         int new_len;
         struct gkyl_msgpack_map_elem *metadata =

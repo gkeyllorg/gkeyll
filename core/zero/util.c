@@ -285,12 +285,38 @@ gkyl_msgpack_map_elem_clone(int nvals, const struct gkyl_msgpack_map_elem *elist
   return elist_out;
 }
 
+// Check all keys, including repeats within a single list, before copying or packing.
+static void
+msgpack_check_unique_keys(
+  int num_lists, const int *lengths, const struct gkyl_msgpack_map_elem *const *lists
+)
+{
+  for (int group = 0; group < num_lists; ++group) {
+    for (int elem = 0; elem < lengths[group]; ++elem) {
+      const char *key = lists[group][elem].key;
+      for (int prev_group = 0; prev_group <= group; ++prev_group) {
+        int end = prev_group == group ? elem : lengths[prev_group];
+        for (int prev_elem = 0; prev_elem < end; ++prev_elem) {
+          if (strcmp(key, lists[prev_group][prev_elem].key) == 0) {
+            int size = gkyl_calc_strlen("Duplicate metadata key \"%s\".", key) + 1;
+            char message[size];
+            snprintf(message, size, "Duplicate metadata key \"%s\".", key);
+            gkyl_exit(message);
+          }
+        }
+      }
+    }
+  }
+}
+
 struct gkyl_msgpack_map_elem *
 gkyl_msgpack_map_elem_union(
   int numlist_union, int *nvals_union, const struct gkyl_msgpack_map_elem **elist_union,
   int *elist_out_len
 )
 {
+  msgpack_check_unique_keys(numlist_union, nvals_union, elist_union);
+
   int nvals_tot = 0; // Total number of elements.
   for (int j = 0; j < numlist_union; ++j) {
     nvals_tot += nvals_union[j];
@@ -339,6 +365,24 @@ gkyl_msgpack_map_elem_set_uint(
     if (strcmp(key, elist[i].key) == 0) {
       assert(elist[i].elem_type == GKYL_MP_UNSIGNED_INT);
       elist[i].uval = value;
+      break;
+    }
+  }
+}
+
+void
+gkyl_msgpack_map_elem_set_string(
+  int nvals, struct gkyl_msgpack_map_elem *elist, const char *key, const char *value
+)
+{
+  for (int i = 0; i < nvals; ++i) {
+    if (strcmp(key, elist[i].key) == 0) {
+      assert(elist[i].elem_type == GKYL_MP_STRING);
+      // Copy first: value may refer to the current string, or a substring of it.
+      char *replacement = gkyl_malloc(strlen(value) + 1);
+      strcpy(replacement, value);
+      gkyl_msgpack_map_elem_release_value(&elist[i]);
+      elist[i].cval = replacement;
       break;
     }
   }
@@ -468,6 +512,7 @@ msgpack_write_map_elem(mpack_writer_t *writer, const struct gkyl_msgpack_map_ele
 struct gkyl_msgpack_data *
 gkyl_msgpack_create(int nvals, const struct gkyl_msgpack_map_elem *elist)
 {
+  msgpack_check_unique_keys(1, &nvals, &elist);
   struct gkyl_msgpack_data *mdata = gkyl_malloc(sizeof *mdata);
   mdata->meta_sz = 0;
   mdata->meta = 0;
@@ -498,6 +543,7 @@ gkyl_msgpack_create_union(
   int numlist_union, int *nvals_union, const struct gkyl_msgpack_map_elem **elist_union
 )
 {
+  msgpack_check_unique_keys(numlist_union, nvals_union, elist_union);
   struct gkyl_msgpack_data *mdata = gkyl_malloc(sizeof *mdata);
   mdata->meta_sz = 0;
   mdata->meta = 0;

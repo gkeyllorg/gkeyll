@@ -572,7 +572,8 @@ struct gkyl_msgpack_map_elem *gkyl_msgpack_map_elem_clone(
 
 /**
  * Allocate a new list of MessagePack map elements out of the union of one or
- * more map elem lists.
+ * more map elem lists. Duplicate keys within or across lists cause a fatal error.
+ * Keys are compared case-sensitively, regardless of their values.
  *
  * @param numlist_union Number of lists.
  * @param nvals_union Number of values in the elist array, one for each list.
@@ -607,6 +608,20 @@ void gkyl_msgpack_map_elem_set_double(
  */
 void gkyl_msgpack_map_elem_set_uint(
   int nvals, struct gkyl_msgpack_map_elem *elist, const char *key, unsigned int value
+);
+
+/**
+ * Replace an owned string value with an allocated copy of value.
+ * Use only with owned values, such as those in a cloned metadata list.
+ * The key is unchanged; an absent key is left absent, as with the numeric setters.
+ *
+ * @param nvals Number of elements in elist.
+ * @param elist List containing owned string values.
+ * @param key Name of the string element to update.
+ * @param value Non-NULL replacement string, which may alias the old value.
+ */
+void gkyl_msgpack_map_elem_set_string(
+  int nvals, struct gkyl_msgpack_map_elem *elist, const char *key, const char *value
 );
 
 /**
@@ -678,6 +693,7 @@ void gkyl_msgpack_map_elem_release_value(struct gkyl_msgpack_map_elem *elem);
 
 /**
  * Create a new msgpack data from list of map elements.
+ * Duplicate keys cause a fatal error, even when their values match.
  *
  * @param nvals Number of values in the elist array
  * @param elist List of elements to insert into map
@@ -687,6 +703,8 @@ struct gkyl_msgpack_data *gkyl_msgpack_create(int nvals, const struct gkyl_msgpa
 
 /**
  * Create a new msgpack data from union of a numlist lists of map elements.
+ * Duplicate keys within or across lists cause a fatal error, even when values match.
+ * Keys are compared case-sensitively.
  *
  * @param numlist_union Number of lists.
  * @param nvals_union Number of values in the elist array, one for each list.

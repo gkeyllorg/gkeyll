@@ -630,7 +630,9 @@ struct gkyl_gyrokinetic_eirene {
 };
 
 // Additional metadata users can provide. Output files automatically include the
-// original key names in input_metadata_keys, which is reserved for application use.
+// original key names in input_metadata_keys. Duplicate keys, including collisions
+// with Gkeyll metadata, are rejected when lists are combined or serialized.
+// input_metadata_keys and is_multib are reserved for internal application use.
 struct gkyl_gyrokinetic_metadata_inp {
   struct gkyl_msgpack_map_elem *attributes; // List of metadata elements to add to output files.
   int num_attributes; // Number of attributes.

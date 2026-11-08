@@ -1890,6 +1890,7 @@ struct gkyl_gyrokinetic_app {
 
 /**
  * Merge application defaults and input metadata, recording the original input keys.
+ * 
  * @param num_defaults Number of application defaults.
  * @param defaults Application metadata entries.
  * @param input Metadata supplied by the input file, before application defaults are merged.
@@ -1900,6 +1901,15 @@ struct gkyl_msgpack_map_elem *gyrokinetic_app_input_metadata(
   int num_defaults, const struct gkyl_msgpack_map_elem *defaults,
   const struct gkyl_gyrokinetic_metadata_inp *input, int *num_metadata
 );
+
+/**
+ * Construct geometry with an explicit internal multiblock status.
+ * 
+ * @param gk Input, with already-merged metadata for a multiblock child.
+ * @param is_multib True only for a child created by the multiblock app.
+ * @return App with initialized geometry.
+ */
+gkyl_gyrokinetic_app *gyrokinetic_app_new_geom(struct gkyl_gk *gk, bool is_multib);
 
 /** gkyl_gyrokinetic_app private API */
 
