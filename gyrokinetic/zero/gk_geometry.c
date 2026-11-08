@@ -879,6 +879,11 @@ gkyl_gk_geometry_write_efit(
     {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = efit->rzbasis.poly_order},
     {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = efit->rzbasis.id},
     {.key = "geqdsk_file", .elem_type = GKYL_MP_STRING, .cval = geqdsk_file_name},
+    {
+      .key = "eqdsk_cocos_index",
+      .elem_type = GKYL_MP_UNSIGNED_INT,
+      .uval = efit->eqdsk_cocos_index,
+    },
     {.key = "geometry_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = geometry_inp->geometry_id},
     {
       .key = "tokamak_geo_type",
