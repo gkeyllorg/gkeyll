@@ -34,7 +34,7 @@ gkyl_dg_calc_pkpm_vars_new(
   up->jacob_pos = pos_map->jacob_pos;
 
   for (int d = 0; d < cdim; ++d) {
-    up->pkpm_grad_u[d] = choose_pkpm_grad_u_kern(b_type, cdim, poly_order, d);
+    up->pkpm_in_cell_grad[d] = choose_pkpm_in_cell_grad_kern(b_type, cdim, poly_order, d);
   }
   up->pkpm_closure = choose_pkpm_closure_kern(b_type, cdim, poly_order);
   up->pkpm_prim = choose_pkpm_prim_kern(b_type, cdim, poly_order);
@@ -342,14 +342,14 @@ gkyl_dg_calc_pkpm_vars_diag(
 }
 
 void
-gkyl_dg_calc_pkpm_vars_grad_u(
+gkyl_dg_calc_pkpm_vars_in_cell_grad(
   struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
-  const struct gkyl_array *u, struct gkyl_array *grad_u
+  const struct gkyl_array *blend, const struct gkyl_array *q, struct gkyl_array *grad
 )
 {
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(grad_u)) {
-    return gkyl_dg_calc_pkpm_vars_grad_u_cu(up, conf_range, u, grad_u);
+  if (gkyl_array_is_cu_dev(grad)) {
+    return gkyl_dg_calc_pkpm_vars_in_cell_grad_cu(up, conf_range, blend, q, grad);
   }
 #endif
   int cdim = up->cdim;
@@ -358,17 +358,21 @@ gkyl_dg_calc_pkpm_vars_grad_u(
   gkyl_range_iter_init(&iter, conf_range);
   while (gkyl_range_iter_next(&iter)) {
     long loc = gkyl_range_idx(conf_range, iter.idx);
-    const double *u_c = gkyl_array_cfetch(u, loc);
-    double *gu = gkyl_array_fetch(grad_u, loc);
+    const double *q_c = gkyl_array_cfetch(q, loc);
+    const double *blend_c = gkyl_array_cfetch(blend, loc);
+    double *gd = gkyl_array_fetch(grad, loc);
     for (int d = 0; d < cdim; ++d) {
-      assert(up->pkpm_grad_u[d]);
+      assert(up->pkpm_in_cell_grad[d]);
       gkyl_copy_int_arr(cdim, iter.idx, idx_l);
       gkyl_copy_int_arr(cdim, iter.idx, idx_r);
       idx_l[d] = idx_l[d] - 1;
       idx_r[d] = idx_r[d] + 1;
-      up->pkpm_grad_u[d](
-        up->conf_grid.dx, gkyl_array_cfetch(up->jacob_pos, loc), gkyl_array_cfetch(u, gkyl_range_idx(conf_range, idx_l)), u_c,
-        gkyl_array_cfetch(u, gkyl_range_idx(conf_range, idx_r)), gu
+      long loc_r = gkyl_range_idx(conf_range, idx_r);
+      const double *blend_r = gkyl_array_cfetch(blend, loc_r);
+      up->pkpm_in_cell_grad[d](
+        up->conf_grid.dx, gkyl_array_cfetch(up->jacob_pos, loc), blend_c[d], blend_r[d],
+        gkyl_array_cfetch(q, gkyl_range_idx(conf_range, idx_l)), q_c, gkyl_array_cfetch(q, loc_r),
+        gd
       );
     }
   }

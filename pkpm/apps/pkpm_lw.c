@@ -838,6 +838,7 @@ pkpm_app_new(lua_State *L)
 
   pkpm.use_explicit_source = glua_tbl_get_bool(L, "useExplicitSource", false);
   pkpm.fluid_positivity_eps = glua_tbl_get_number(L, "fluidPositivityEps", 0.0);
+  pkpm.num_face_nodes = glua_tbl_get_integer(L, "numFaceNodes", 0);
 
   pkpm.basis_type = get_basis_type(glua_tbl_get_string(L, "basis", "serendipity"));
 

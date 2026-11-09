@@ -10,9 +10,9 @@
 // The fluid-field coupling is advanced explicitly within the SSP-RK3 step.
 // Kinetic linear theory at k = 2 pi: gamma = 0.1976 omega_pe, omega_r = 0.1425 omega_pe (cold-beam
 // maximum 0.235).
-// Figures of merit (16 x 64 cells): the field energy grows at gamma = 0.1881 over t = 20-65
-// (Vlasov, serendipity p2 on the same grid: 0.1950). It saturates near t = 72 at about a quarter of
-// the Vlasov peak (1.6e-3 at t = 72.3 against 7.0e-3 at t = 72.1) and is 1.4e-3 at t = 80 (Vlasov
+// Figures of merit (16 x 64 cells): the field energy grows at gamma = 0.1896 over t = 20-65
+// (Vlasov, serendipity p2 on the same grid: 0.1950). It saturates near t = 71 at about 40% of the
+// Vlasov peak (2.9e-3 at t = 71.2 against 7.0e-3 at t = 72.1) and is 1.3e-3 at t = 80 (Vlasov
 // 1.1e-3). Electron and ion number are conserved to 1e-12.
 
 #include <math.h>

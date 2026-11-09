@@ -81,7 +81,7 @@ GKYL_CU_DH void pkpm_harm_build_2x_ser_p1(double qbym, const double *bvar, const
   // bvar:      Magnetic field unit vector [bx, by, bz]. 
   // grad_b:    Weak gradient of b, [d_i bx, d_i by, d_i bz] per direction i. 
   // u:         Flow velocity [ux, uy, uz]. 
-  // grad_u:    Weak gradient of u, [d_i ux, d_i uy, d_i uz] per direction i. 
+  // grad_u:    Gradient of u of the sources (in-cell, plus the blended face lift), [d_i ux, d_i uy, d_i uz] per direction i. 
   // xi:        Thermal speed [xi, xi^2, p] (the first expansion is used). 
   // grad_xi:   Weak gradient of [xi, 0, 0] (the first expansion of each direction is used). 
   // grad_ln_n: grad(ln n), cdim expansions. 

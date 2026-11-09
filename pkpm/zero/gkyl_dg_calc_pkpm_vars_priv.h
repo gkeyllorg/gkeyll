@@ -11,14 +11,14 @@
 #include <gkyl_util.h>
 #include <assert.h>
 
-typedef void (*pkpm_grad_u_t)(
-  const double *dxv, const double *jacob_pos, const double *u_l, const double *u_c, const double *u_r,
-  double *GKYL_RESTRICT grad_u
+typedef void (*pkpm_in_cell_grad_t)(
+  const double *dxv, const double *jacob_pos, double blend_lo, double blend_up, const double *q_l,
+  const double *q_c, const double *q_r, double *GKYL_RESTRICT grad
 );
 
 typedef struct {
-  pkpm_grad_u_t kernels[3];
-} gkyl_dg_pkpm_grad_u_kern_list;
+  pkpm_in_cell_grad_t kernels[3];
+} gkyl_dg_pkpm_in_cell_grad_kern_list;
 
 typedef void (*pkpm_diag_t)(
   const double *dxv, const double *vlasov_pkpm_moms, const double *euler_pkpm, const double *bvar,
@@ -55,7 +55,7 @@ struct gkyl_dg_calc_pkpm_vars {
   const struct gkyl_vlasov_position_map *pos_map; // Position map (acquired; host pointer, 0 on the device copy)
   const struct gkyl_array *jacob_pos; // Per-direction Jacobians (borrowed from pos_map; device pointer on device)
 
-  pkpm_grad_u_t pkpm_grad_u[3]; // weak (surface-averaged) gradient of a 3-vector in each direction
+  pkpm_in_cell_grad_t pkpm_in_cell_grad[3]; // in-cell gradient of a 3-vector in each direction
   pkpm_closure_t pkpm_closure; // closures c_0, a_P/xi and c from the moments of the stage-A rhs, with the velocity edges
   pkpm_prim_t pkpm_prim; // nodal flow and thermal speed [xi, xi^2, p] of the fluid state
   pkpm_int_t pkpm_int; // cell integrals of the diagnostics of the [rho, M, E] state
@@ -82,18 +82,19 @@ GKYL_CU_D static const pkpm_diag_t ser_pkpm_diag_kernels[] = {
   pkpm_vars_diag_3x_ser_p1,
 };
 
-// Weak gradient of a 3-vector (p=1 serendipity only; indexed [cdim-1].kernels[dir])
-GKYL_CU_D static const gkyl_dg_pkpm_grad_u_kern_list ser_pkpm_grad_u_kernels[] = {
-  {pkpm_vars_grad_u_x_1x_ser_p1, NULL, NULL}, // 0
-  {pkpm_vars_grad_u_x_2x_ser_p1, pkpm_vars_grad_u_y_2x_ser_p1, NULL}, // 1
-  {pkpm_vars_grad_u_x_3x_ser_p1, pkpm_vars_grad_u_y_3x_ser_p1, pkpm_vars_grad_u_z_3x_ser_p1}, // 2
+// In-cell gradient of a 3-vector (p=1 serendipity only; indexed [cdim-1].kernels[dir])
+GKYL_CU_D static const gkyl_dg_pkpm_in_cell_grad_kern_list ser_pkpm_in_cell_grad_kernels[] = {
+  {pkpm_vars_in_cell_grad_x_1x_ser_p1, NULL, NULL}, // 0
+  {pkpm_vars_in_cell_grad_x_2x_ser_p1, pkpm_vars_in_cell_grad_y_2x_ser_p1, NULL}, // 1
+  {pkpm_vars_in_cell_grad_x_3x_ser_p1, pkpm_vars_in_cell_grad_y_3x_ser_p1,
+   pkpm_vars_in_cell_grad_z_3x_ser_p1} // 2
 };
 
-GKYL_CU_D static pkpm_grad_u_t
-choose_pkpm_grad_u_kern(enum gkyl_basis_type b_type, int cdim, int poly_order, int dir)
+GKYL_CU_D static pkpm_in_cell_grad_t
+choose_pkpm_in_cell_grad_kern(enum gkyl_basis_type b_type, int cdim, int poly_order, int dir)
 {
   if (poly_order == 1 && b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
-    return ser_pkpm_grad_u_kernels[cdim - 1].kernels[dir];
+    return ser_pkpm_in_cell_grad_kernels[cdim - 1].kernels[dir];
   }
   return 0;
 }

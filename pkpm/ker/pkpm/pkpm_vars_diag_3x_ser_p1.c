@@ -9,7 +9,7 @@ GKYL_CU_DH void pkpm_vars_diag_3x_ser_p1(const double *dxv, const double *vlasov
   // bvar:             Magnetic field unit vector [bx, by, bz]. 
   // grad_b:           Weak gradient of b, [d_i bx, d_i by, d_i bz] per direction i. 
   // u:                Flow velocity [ux, uy, uz]. 
-  // grad_u:           Weak gradient of u, [d_i ux, d_i uy, d_i uz] per direction i. 
+  // grad_u:           Gradient of u of the sources (in-cell, plus the blended face lift), [d_i ux, d_i uy, d_i uz] per direction i. 
   // theta:            T_perp/T = M0(G). 
   // alpha_0:          Pressure force a_P/xi closing the first moment. 
   // xi:               Thermal speed [xi, xi^2]. 

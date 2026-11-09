@@ -24,6 +24,19 @@
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 
+// The weak gradient: the in-cell gradient with the whole jump of every face lifted into the cell.
+static void
+weak_grad(
+  struct gkyl_dg_calc_pkpm_vars *vars, const struct gkyl_range *range, const struct gkyl_array *q,
+  struct gkyl_array *grad
+)
+{
+  struct gkyl_array *blend = gkyl_array_new(GKYL_DOUBLE, 3, grad->size);
+  gkyl_array_clear(blend, 1.0);
+  gkyl_dg_calc_pkpm_vars_in_cell_grad(vars, range, blend, q, grad);
+  gkyl_array_release(blend);
+}
+
 static struct gkyl_array *
 mkarr(long nc, long size)
 {
@@ -95,7 +108,7 @@ test_quotients(int cdim)
   gkyl_array_clear(rho3, 0.0);
   gkyl_array_set_offset(rho3, 1.0, fluid, 0);
   gkyl_array_clear(grad_rho, 0.0);
-  gkyl_dg_calc_pkpm_vars_grad_u(up, &local, rho3, grad_rho);
+  weak_grad(up, &local, rho3, grad_rho);
   num_null = gkyl_dg_calc_pkpm_vars_grad_ln_n(up, &local, fluid, grad_rho, gln);
   TEST_CHECK(num_null == 0);
 

@@ -74,7 +74,7 @@ int gkyl_dg_pkpm_harm_vol_num_wnode(const struct gkyl_dg_pkpm_harm_vol *up);
  * @param bvar Magnetic field unit vector [bx, by, bz].
  * @param grad_b Weak gradient of b, [d_i bx, d_i by, d_i bz] per direction i.
  * @param u Flow velocity [ux, uy, uz].
- * @param grad_u Weak gradient of u.
+ * @param grad_u Gradient of u of the sources (in-cell plus the blended face lift).
  * @param xi Thermal speed [xi, xi^2, p] (the first expansion is used).
  * @param grad_xi Weak gradient of [xi, 0, 0].
  * @param grad_ln_n grad(ln n), cdim expansions.

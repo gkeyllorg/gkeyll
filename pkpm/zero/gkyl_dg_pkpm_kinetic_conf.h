@@ -13,8 +13,8 @@ struct gkyl_dg_pkpm_kinetic_conf_auxfields {
   const struct gkyl_array *bvar; // Magnetic field unit vector [bx, by, bz].
   const struct gkyl_array *u; // Flow velocity [ux, uy, uz].
   const struct gkyl_array *xi; // Thermal speed [xi, xi^2, p] (gkyl_dg_calc_pkpm_vars_prim).
-  const struct gkyl_array
-    *conf_flux_surf; // Modal expansion of the fluxes on the configuration-space faces.
+  const struct gkyl_array *
+    conf_flux_surf; // Modal fluxes the two sides of each configuration-space face receive, stored on the face's owning cell as [dir][side][block][mode].
 };
 
 // Input packaged as a struct

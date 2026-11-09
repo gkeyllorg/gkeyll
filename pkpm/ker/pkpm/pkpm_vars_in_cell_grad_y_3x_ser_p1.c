@@ -1,0 +1,48 @@
+#include <gkyl_pkpm_vars_kernels.h> 
+GKYL_CU_DH void pkpm_vars_in_cell_grad_y_3x_ser_p1(const double *dxv, const double *jacob_pos, double blend_lo, double blend_up,
+  const double *q_l, const double *q_c, const double *q_r, double* GKYL_RESTRICT grad) 
+{ 
+  // dxv[NDIM]: Cell spacing (computational). 
+  // jacob_pos: Position-map Jacobian per configuration direction (cdim blocks of 2 equal entries). 
+  // blend_lo/up: Weight of the label-paired flux in the lower/upper face of direction y. 
+  // q_l/q_c/q_r: Three-component field in the left/current/right cell in direction y. 
+  // grad:      Output gradient, block of direction y: [d_y qx, d_y qy, d_y qz]. 
+  const double dx1 = 2.0/(dxv[1]*jacob_pos[2]); 
+  const double *qx_l = &q_l[0]; 
+  const double *qx_c = &q_c[0]; 
+  const double *qx_r = &q_r[0]; 
+  double *grad_qx = &grad[24]; 
+  const double *qy_l = &q_l[8]; 
+  const double *qy_c = &q_c[8]; 
+  const double *qy_r = &q_r[8]; 
+  double *grad_qy = &grad[32]; 
+  const double *qz_l = &q_l[16]; 
+  const double *qz_c = &q_c[16]; 
+  const double *qz_r = &q_r[16]; 
+  double *grad_qz = &grad[40]; 
+ 
+  grad_qx[0] = -(0.4330127018922193*qx_r[2]*blend_up*dx1)-0.4330127018922193*qx_c[2]*blend_up*dx1+0.25*qx_r[0]*blend_up*dx1-0.25*qx_c[0]*blend_up*dx1-0.4330127018922193*qx_l[2]*blend_lo*dx1-0.4330127018922193*qx_c[2]*blend_lo*dx1-0.25*qx_l[0]*blend_lo*dx1+0.25*qx_c[0]*blend_lo*dx1+1.7320508075688772*qx_c[2]*dx1; 
+  grad_qx[1] = -(0.4330127018922193*qx_r[4]*blend_up*dx1)-0.4330127018922193*qx_c[4]*blend_up*dx1+0.25*qx_r[1]*blend_up*dx1-0.25*qx_c[1]*blend_up*dx1-0.4330127018922193*qx_l[4]*blend_lo*dx1-0.4330127018922193*qx_c[4]*blend_lo*dx1-0.25*qx_l[1]*blend_lo*dx1+0.25*qx_c[1]*blend_lo*dx1+1.7320508075688772*qx_c[4]*dx1; 
+  grad_qx[2] = -(0.75*qx_r[2]*blend_up*dx1)-0.75*qx_c[2]*blend_up*dx1+0.4330127018922193*qx_r[0]*blend_up*dx1-0.4330127018922193*qx_c[0]*blend_up*dx1+0.75*qx_l[2]*blend_lo*dx1+0.75*qx_c[2]*blend_lo*dx1+0.4330127018922193*qx_l[0]*blend_lo*dx1-0.4330127018922193*qx_c[0]*blend_lo*dx1; 
+  grad_qx[3] = -(0.4330127018922193*qx_r[6]*blend_up*dx1)-0.4330127018922193*qx_c[6]*blend_up*dx1+0.25*qx_r[3]*blend_up*dx1-0.25*qx_c[3]*blend_up*dx1-0.4330127018922193*qx_l[6]*blend_lo*dx1-0.4330127018922193*qx_c[6]*blend_lo*dx1-0.25*qx_l[3]*blend_lo*dx1+0.25*qx_c[3]*blend_lo*dx1+1.7320508075688772*qx_c[6]*dx1; 
+  grad_qx[4] = -(0.75*qx_r[4]*blend_up*dx1)-0.75*qx_c[4]*blend_up*dx1+0.4330127018922193*qx_r[1]*blend_up*dx1-0.4330127018922193*qx_c[1]*blend_up*dx1+0.75*qx_l[4]*blend_lo*dx1+0.75*qx_c[4]*blend_lo*dx1+0.4330127018922193*qx_l[1]*blend_lo*dx1-0.4330127018922193*qx_c[1]*blend_lo*dx1; 
+  grad_qx[5] = -(0.4330127018922193*qx_r[7]*blend_up*dx1)-0.4330127018922193*qx_c[7]*blend_up*dx1+0.25*qx_r[5]*blend_up*dx1-0.25*qx_c[5]*blend_up*dx1-0.4330127018922193*qx_l[7]*blend_lo*dx1-0.4330127018922193*qx_c[7]*blend_lo*dx1-0.25*qx_l[5]*blend_lo*dx1+0.25*qx_c[5]*blend_lo*dx1+1.7320508075688772*qx_c[7]*dx1; 
+  grad_qx[6] = -(0.75*qx_r[6]*blend_up*dx1)-0.75*qx_c[6]*blend_up*dx1+0.4330127018922193*qx_r[3]*blend_up*dx1-0.4330127018922193*qx_c[3]*blend_up*dx1+0.75*qx_l[6]*blend_lo*dx1+0.75*qx_c[6]*blend_lo*dx1+0.4330127018922193*qx_l[3]*blend_lo*dx1-0.4330127018922193*qx_c[3]*blend_lo*dx1; 
+  grad_qx[7] = -(0.75*qx_r[7]*blend_up*dx1)-0.75*qx_c[7]*blend_up*dx1+0.4330127018922193*qx_r[5]*blend_up*dx1-0.4330127018922193*qx_c[5]*blend_up*dx1+0.75*qx_l[7]*blend_lo*dx1+0.75*qx_c[7]*blend_lo*dx1+0.4330127018922193*qx_l[5]*blend_lo*dx1-0.4330127018922193*qx_c[5]*blend_lo*dx1; 
+  grad_qy[0] = -(0.4330127018922193*qy_r[2]*blend_up*dx1)-0.4330127018922193*qy_c[2]*blend_up*dx1+0.25*qy_r[0]*blend_up*dx1-0.25*qy_c[0]*blend_up*dx1-0.4330127018922193*qy_l[2]*blend_lo*dx1-0.4330127018922193*qy_c[2]*blend_lo*dx1-0.25*qy_l[0]*blend_lo*dx1+0.25*qy_c[0]*blend_lo*dx1+1.7320508075688772*qy_c[2]*dx1; 
+  grad_qy[1] = -(0.4330127018922193*qy_r[4]*blend_up*dx1)-0.4330127018922193*qy_c[4]*blend_up*dx1+0.25*qy_r[1]*blend_up*dx1-0.25*qy_c[1]*blend_up*dx1-0.4330127018922193*qy_l[4]*blend_lo*dx1-0.4330127018922193*qy_c[4]*blend_lo*dx1-0.25*qy_l[1]*blend_lo*dx1+0.25*qy_c[1]*blend_lo*dx1+1.7320508075688772*qy_c[4]*dx1; 
+  grad_qy[2] = -(0.75*qy_r[2]*blend_up*dx1)-0.75*qy_c[2]*blend_up*dx1+0.4330127018922193*qy_r[0]*blend_up*dx1-0.4330127018922193*qy_c[0]*blend_up*dx1+0.75*qy_l[2]*blend_lo*dx1+0.75*qy_c[2]*blend_lo*dx1+0.4330127018922193*qy_l[0]*blend_lo*dx1-0.4330127018922193*qy_c[0]*blend_lo*dx1; 
+  grad_qy[3] = -(0.4330127018922193*qy_r[6]*blend_up*dx1)-0.4330127018922193*qy_c[6]*blend_up*dx1+0.25*qy_r[3]*blend_up*dx1-0.25*qy_c[3]*blend_up*dx1-0.4330127018922193*qy_l[6]*blend_lo*dx1-0.4330127018922193*qy_c[6]*blend_lo*dx1-0.25*qy_l[3]*blend_lo*dx1+0.25*qy_c[3]*blend_lo*dx1+1.7320508075688772*qy_c[6]*dx1; 
+  grad_qy[4] = -(0.75*qy_r[4]*blend_up*dx1)-0.75*qy_c[4]*blend_up*dx1+0.4330127018922193*qy_r[1]*blend_up*dx1-0.4330127018922193*qy_c[1]*blend_up*dx1+0.75*qy_l[4]*blend_lo*dx1+0.75*qy_c[4]*blend_lo*dx1+0.4330127018922193*qy_l[1]*blend_lo*dx1-0.4330127018922193*qy_c[1]*blend_lo*dx1; 
+  grad_qy[5] = -(0.4330127018922193*qy_r[7]*blend_up*dx1)-0.4330127018922193*qy_c[7]*blend_up*dx1+0.25*qy_r[5]*blend_up*dx1-0.25*qy_c[5]*blend_up*dx1-0.4330127018922193*qy_l[7]*blend_lo*dx1-0.4330127018922193*qy_c[7]*blend_lo*dx1-0.25*qy_l[5]*blend_lo*dx1+0.25*qy_c[5]*blend_lo*dx1+1.7320508075688772*qy_c[7]*dx1; 
+  grad_qy[6] = -(0.75*qy_r[6]*blend_up*dx1)-0.75*qy_c[6]*blend_up*dx1+0.4330127018922193*qy_r[3]*blend_up*dx1-0.4330127018922193*qy_c[3]*blend_up*dx1+0.75*qy_l[6]*blend_lo*dx1+0.75*qy_c[6]*blend_lo*dx1+0.4330127018922193*qy_l[3]*blend_lo*dx1-0.4330127018922193*qy_c[3]*blend_lo*dx1; 
+  grad_qy[7] = -(0.75*qy_r[7]*blend_up*dx1)-0.75*qy_c[7]*blend_up*dx1+0.4330127018922193*qy_r[5]*blend_up*dx1-0.4330127018922193*qy_c[5]*blend_up*dx1+0.75*qy_l[7]*blend_lo*dx1+0.75*qy_c[7]*blend_lo*dx1+0.4330127018922193*qy_l[5]*blend_lo*dx1-0.4330127018922193*qy_c[5]*blend_lo*dx1; 
+  grad_qz[0] = -(0.4330127018922193*qz_r[2]*blend_up*dx1)-0.4330127018922193*qz_c[2]*blend_up*dx1+0.25*qz_r[0]*blend_up*dx1-0.25*qz_c[0]*blend_up*dx1-0.4330127018922193*qz_l[2]*blend_lo*dx1-0.4330127018922193*qz_c[2]*blend_lo*dx1-0.25*qz_l[0]*blend_lo*dx1+0.25*qz_c[0]*blend_lo*dx1+1.7320508075688772*qz_c[2]*dx1; 
+  grad_qz[1] = -(0.4330127018922193*qz_r[4]*blend_up*dx1)-0.4330127018922193*qz_c[4]*blend_up*dx1+0.25*qz_r[1]*blend_up*dx1-0.25*qz_c[1]*blend_up*dx1-0.4330127018922193*qz_l[4]*blend_lo*dx1-0.4330127018922193*qz_c[4]*blend_lo*dx1-0.25*qz_l[1]*blend_lo*dx1+0.25*qz_c[1]*blend_lo*dx1+1.7320508075688772*qz_c[4]*dx1; 
+  grad_qz[2] = -(0.75*qz_r[2]*blend_up*dx1)-0.75*qz_c[2]*blend_up*dx1+0.4330127018922193*qz_r[0]*blend_up*dx1-0.4330127018922193*qz_c[0]*blend_up*dx1+0.75*qz_l[2]*blend_lo*dx1+0.75*qz_c[2]*blend_lo*dx1+0.4330127018922193*qz_l[0]*blend_lo*dx1-0.4330127018922193*qz_c[0]*blend_lo*dx1; 
+  grad_qz[3] = -(0.4330127018922193*qz_r[6]*blend_up*dx1)-0.4330127018922193*qz_c[6]*blend_up*dx1+0.25*qz_r[3]*blend_up*dx1-0.25*qz_c[3]*blend_up*dx1-0.4330127018922193*qz_l[6]*blend_lo*dx1-0.4330127018922193*qz_c[6]*blend_lo*dx1-0.25*qz_l[3]*blend_lo*dx1+0.25*qz_c[3]*blend_lo*dx1+1.7320508075688772*qz_c[6]*dx1; 
+  grad_qz[4] = -(0.75*qz_r[4]*blend_up*dx1)-0.75*qz_c[4]*blend_up*dx1+0.4330127018922193*qz_r[1]*blend_up*dx1-0.4330127018922193*qz_c[1]*blend_up*dx1+0.75*qz_l[4]*blend_lo*dx1+0.75*qz_c[4]*blend_lo*dx1+0.4330127018922193*qz_l[1]*blend_lo*dx1-0.4330127018922193*qz_c[1]*blend_lo*dx1; 
+  grad_qz[5] = -(0.4330127018922193*qz_r[7]*blend_up*dx1)-0.4330127018922193*qz_c[7]*blend_up*dx1+0.25*qz_r[5]*blend_up*dx1-0.25*qz_c[5]*blend_up*dx1-0.4330127018922193*qz_l[7]*blend_lo*dx1-0.4330127018922193*qz_c[7]*blend_lo*dx1-0.25*qz_l[5]*blend_lo*dx1+0.25*qz_c[5]*blend_lo*dx1+1.7320508075688772*qz_c[7]*dx1; 
+  grad_qz[6] = -(0.75*qz_r[6]*blend_up*dx1)-0.75*qz_c[6]*blend_up*dx1+0.4330127018922193*qz_r[3]*blend_up*dx1-0.4330127018922193*qz_c[3]*blend_up*dx1+0.75*qz_l[6]*blend_lo*dx1+0.75*qz_c[6]*blend_lo*dx1+0.4330127018922193*qz_l[3]*blend_lo*dx1-0.4330127018922193*qz_c[3]*blend_lo*dx1; 
+  grad_qz[7] = -(0.75*qz_r[7]*blend_up*dx1)-0.75*qz_c[7]*blend_up*dx1+0.4330127018922193*qz_r[5]*blend_up*dx1-0.4330127018922193*qz_c[5]*blend_up*dx1+0.75*qz_l[7]*blend_lo*dx1+0.75*qz_c[7]*blend_lo*dx1+0.4330127018922193*qz_l[5]*blend_lo*dx1-0.4330127018922193*qz_c[5]*blend_lo*dx1; 
+} 

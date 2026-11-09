@@ -385,12 +385,12 @@ gkyl_dg_calc_pkpm_vars_diag_cu(
   );
 }
 
-// One thread per interior cell: the weak gradient of u in every direction from the
+// One thread per interior cell: the gradient of the field in every direction from the
 // cell and its two neighbors.
 __global__ void
-gkyl_dg_calc_pkpm_vars_grad_u_cu_kernel(
-  struct gkyl_dg_calc_pkpm_vars *up, struct gkyl_range conf_range, const struct gkyl_array *u,
-  struct gkyl_array *grad_u
+gkyl_dg_calc_pkpm_vars_in_cell_grad_cu_kernel(
+  struct gkyl_dg_calc_pkpm_vars *up, struct gkyl_range conf_range, const struct gkyl_array *blend,
+  const struct gkyl_array *q, struct gkyl_array *grad
 )
 {
   int cdim = up->cdim;
@@ -399,30 +399,33 @@ gkyl_dg_calc_pkpm_vars_grad_u_cu_kernel(
        linc1 += gridDim.x * blockDim.x) {
     gkyl_sub_range_inv_idx(&conf_range, linc1, idx);
     long loc = gkyl_range_idx(&conf_range, idx);
-    const double *u_c = (const double *)gkyl_array_cfetch(u, loc);
-    double *gu = (double *)gkyl_array_fetch(grad_u, loc);
+    const double *q_c = (const double *)gkyl_array_cfetch(q, loc);
+    const double *blend_c = (const double *)gkyl_array_cfetch(blend, loc);
+    double *gd = (double *)gkyl_array_fetch(grad, loc);
     for (int d = 0; d < cdim; ++d) {
       gkyl_copy_int_arr(cdim, idx, idx_l);
       gkyl_copy_int_arr(cdim, idx, idx_r);
       idx_l[d] = idx_l[d] - 1;
       idx_r[d] = idx_r[d] + 1;
-      up->pkpm_grad_u[d](
-        up->conf_grid.dx, (const double *)gkyl_array_cfetch(up->jacob_pos, loc),
-        (const double *)gkyl_array_cfetch(u, gkyl_range_idx(&conf_range, idx_l)),
-        u_c, (const double *)gkyl_array_cfetch(u, gkyl_range_idx(&conf_range, idx_r)), gu
+      long loc_r = gkyl_range_idx(&conf_range, idx_r);
+      const double *blend_r = (const double *)gkyl_array_cfetch(blend, loc_r);
+      up->pkpm_in_cell_grad[d](
+        up->conf_grid.dx, (const double *)gkyl_array_cfetch(up->jacob_pos, loc), blend_c[d],
+        blend_r[d], (const double *)gkyl_array_cfetch(q, gkyl_range_idx(&conf_range, idx_l)), q_c,
+        (const double *)gkyl_array_cfetch(q, loc_r), gd
       );
     }
   }
 }
 
 void
-gkyl_dg_calc_pkpm_vars_grad_u_cu(
+gkyl_dg_calc_pkpm_vars_in_cell_grad_cu(
   struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
-  const struct gkyl_array *u, struct gkyl_array *grad_u
+  const struct gkyl_array *blend, const struct gkyl_array *q, struct gkyl_array *grad
 )
 {
-  gkyl_dg_calc_pkpm_vars_grad_u_cu_kernel<<<conf_range->nblocks, conf_range->nthreads>>>(
-    up->on_dev, *conf_range, u->on_dev, grad_u->on_dev
+  gkyl_dg_calc_pkpm_vars_in_cell_grad_cu_kernel<<<conf_range->nblocks, conf_range->nthreads>>>(
+    up->on_dev, *conf_range, blend->on_dev, q->on_dev, grad->on_dev
   );
 }
 
@@ -476,7 +479,7 @@ dg_calc_pkpm_vars_set_cu_dev_ptrs(
   up->pkpm_u_set = choose_pkpm_u_set_kern(b_type, cdim, poly_order);
   up->pkpm_u_copy = choose_pkpm_u_copy_kern(b_type, cdim, poly_order);
   for (int d = 0; d < cdim; ++d) {
-    up->pkpm_grad_u[d] = choose_pkpm_grad_u_kern(b_type, cdim, poly_order, d);
+    up->pkpm_in_cell_grad[d] = choose_pkpm_in_cell_grad_kern(b_type, cdim, poly_order, d);
   }
   up->pkpm_closure = choose_pkpm_closure_kern(b_type, cdim, poly_order);
   up->pkpm_prim = choose_pkpm_prim_kern(b_type, cdim, poly_order);

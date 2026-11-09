@@ -36,6 +36,36 @@
 #include <gkyl_util.h>
 #include <gkyl_vlasov_position_map.h>
 
+// The flux both sides of every face receive, from the single-valued label-paired flux:
+// [dir][mode] -> [dir][side][mode], in place.
+static void
+expand_two_sided(struct gkyl_array *flux, int cdim, int nflux)
+{
+  for (long i = 0; i < flux->size; ++i) {
+    double *f = gkyl_array_fetch(flux, i);
+    for (int d = cdim - 1; d >= 0; --d) {
+      for (int m = nflux - 1; m >= 0; --m) {
+        double val = f[d * nflux + m];
+        f[2 * d * nflux + m] = val;
+        f[(2 * d + 1) * nflux + m] = val;
+      }
+    }
+  }
+}
+
+// The weak gradient: the in-cell gradient with the whole jump of every face lifted into the cell.
+static void
+weak_grad(
+  struct gkyl_dg_calc_pkpm_vars *vars, const struct gkyl_range *range, const struct gkyl_array *q,
+  struct gkyl_array *grad
+)
+{
+  struct gkyl_array *blend = gkyl_array_new(GKYL_DOUBLE, 3, grad->size);
+  gkyl_array_clear(blend, 1.0);
+  gkyl_dg_calc_pkpm_vars_in_cell_grad(vars, range, blend, q, grad);
+  gkyl_array_release(blend);
+}
+
 static struct gkyl_array *
 mkarr(long nc, long size)
 {
@@ -349,11 +379,11 @@ setup(struct sim *s, int cdim, enum map_kind kind)
   gkyl_dg_calc_pkpm_bvar_advance(s->calc_b, &s->clocal_ext, s->em, s->bvar);
   gkyl_dg_calc_pkpm_bvar_grad(s->calc_b, &s->clocal, s->bvar, s->grad_b);
   s->vars = gkyl_dg_calc_pkpm_vars_new(&s->cgrid, &s->cbasis, s->pos_map, false);
-  gkyl_dg_calc_pkpm_vars_grad_u(s->vars, &s->clocal, s->u, s->grad_u);
-  gkyl_dg_calc_pkpm_vars_grad_u(s->vars, &s->clocal, s->xi, s->grad_xi);
+  weak_grad(s->vars, &s->clocal, s->u, s->grad_u);
+  weak_grad(s->vars, &s->clocal, s->xi, s->grad_xi);
   gkyl_array_set_offset(s->rho, 1.0, s->fluid_phys, 0);
   gkyl_array_set_offset(s->rho3, 1.0, s->rho, 0);
-  gkyl_dg_calc_pkpm_vars_grad_u(s->vars, &s->clocal, s->rho3, s->grad_rho);
+  weak_grad(s->vars, &s->clocal, s->rho3, s->grad_rho);
   int null_rho = gkyl_dg_calc_pkpm_vars_grad_ln_n(s->vars, &s->clocal, s->rho, s->grad_rho, s->grad_ln_n);
   TEST_CHECK(null_rho == 0);
 
@@ -378,7 +408,7 @@ advance(struct sim *s)
   };
   s->kin_flux_up = gkyl_dg_pkpm_conf_flux_surf_inew(&kin_inp);
   int nkc = gkyl_dg_pkpm_conf_flux_surf_num_surf_basis(s->kin_flux_up);
-  s->kin_flux = mkarr(8 * cdim * nkc, pvol);
+  s->kin_flux = mkarr(2 * 8 * cdim * nkc, pvol);
   s->face_coef = mkarr(gkyl_dg_pkpm_conf_flux_surf_face_coef_ncomp(s->kin_flux_up), cvol);
   gkyl_dg_pkpm_conf_flux_surf_face_coef(s->kin_flux_up, &s->clocal, s->bvar, s->u, s->xi, s->theta, s->face_coef);
   s->kin_cfl = mkarr(1, pvol);
@@ -389,6 +419,7 @@ advance(struct sim *s)
   gkyl_dg_pkpm_conf_flux_surf_advance(
     s->kin_flux_up, &s->clocal, &s->plocal, &s->plocal_ext, s->face_coef, s->f, s->kin_cfl, s->kin_flux
   );
+  expand_two_sided(s->kin_flux, cdim, 8 * nkc);
   struct gkyl_dg_pkpm_kinetic_conf_inp kin_eqn_inp = {
     .conf_basis = &s->cbasis,
     .phase_basis = &s->pbasis,

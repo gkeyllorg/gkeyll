@@ -307,6 +307,8 @@ gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm)
 
   // PKPM system *always* has a field to define the local magnetic field direction
   app->fluid_positivity_eps = pkpm->fluid_positivity_eps > 0.0 ? pkpm->fluid_positivity_eps : 1.0e-2;
+  app->num_face_nodes = pkpm->num_face_nodes > 0 ? pkpm->num_face_nodes : 5;
+  assert(app->num_face_nodes >= 3);
 
   app->field = pkpm_field_new(pkpm, app);
 

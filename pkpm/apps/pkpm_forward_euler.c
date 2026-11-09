@@ -63,13 +63,14 @@ pkpm_forward_euler(
     }
   }
 
-  // Fluid face fluxes of the stage for every species, with the absorbing walls' fluxes
-  // from the kinetic upwind flux and the particle loss rates they imply; then the rates of
+  // Configuration-space face fluxes of the stage for every species (kinetic, fluid and their
+  // rates) and the particle loss rates they imply through absorbing walls; then the rates of
   // the boundary-flux sources (which read another species' losses).
   for (int i = 0; i < app->num_species; ++i) {
     struct timespec tm = gkyl_wall_clock();
+    gkyl_array_clear(app->species[i].cflrate_f, 0.0);
     gkyl_array_clear(app->species[i].cflrate_fluid, 0.0);
-    pkpm_species_fluid_flux(app, &app->species[i], fin[i], fluidin[i]);
+    pkpm_species_face_flux(app, &app->species[i], fin[i]);
     pkpm_species_calc_bflux(app, &app->species[i]);
     app->species[i].fluid_tm += gkyl_time_diff_now_sec(tm);
   }

@@ -7,7 +7,7 @@
 -- nu) and the pulse, a temperature perturbation at constant pressure, decays as exp(-chi k^2 t),
 -- k^2 = pi^2; the measured decay beyond it is the numerical diffusion of the scheme.
 -- Figures of merit (16 x 16 cells): at t = 2 the pulse is back at its starting position (phase
--- error below 1e-4 rad) with amplitude 0.939, against exp(-chi k^2 t) = 0.936 for chi = T/(3 m nu)
+-- error 1.3e-4 rad) with amplitude 0.939, against exp(-chi k^2 t) = 0.936 for chi = T/(3 m nu)
 -- (0.944 at 0.88 chi k^2). The PKPM conduction along b converges to 0.88 chi k^2 (Nx 16-64, Nv
 -- 16/32, cfl 1/0.5), against 0.998 chi k^2 from exact linear 3V BGK theory, so the measured decay
 -- combines that deficit with the numerical diffusion of the scheme at this resolution. Particle

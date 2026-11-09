@@ -20,6 +20,25 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
 
+// The flux both sides of every face receive, from the single-valued label-paired flux:
+// [dir][mode] -> [dir][side][mode].
+static struct gkyl_array *
+two_sided_copy(const struct gkyl_array *flux, int cdim, int nflux)
+{
+  struct gkyl_array *sides = gkyl_array_new(GKYL_DOUBLE, 2 * cdim * nflux, flux->size);
+  for (long i = 0; i < flux->size; ++i) {
+    const double *f = gkyl_array_cfetch(flux, i);
+    double *g = gkyl_array_fetch(sides, i);
+    for (int d = 0; d < cdim; ++d) {
+      for (int m = 0; m < nflux; ++m) {
+        g[2 * d * nflux + m] = f[d * nflux + m];
+        g[(2 * d + 1) * nflux + m] = f[d * nflux + m];
+      }
+    }
+  }
+  return sides;
+}
+
 static struct gkyl_array *
 mkarr(long nc, long size)
 {
@@ -439,19 +458,17 @@ test_scatter(int cdim)
   setup(&s, cdim);
   int np = s.pbasis.num_basis;
 
+  // the surface term reads the flux each side of a face receives
+  struct gkyl_array *flux_sides = two_sided_copy(s.flux, cdim, 8 * s.pbasis.num_basis / 2);
+
   struct gkyl_dg_pkpm_kinetic_conf_inp inp = {
     .conf_basis = &s.cbasis,
     .phase_basis = &s.pbasis,
     .conf_range = &s.clocal,
     .phase_range = &s.plocal,
-    .auxfields =
-      {
-        .bvar = s.bvar,
-        .u = s.u,
-        .xi = s.xi,
-        .conf_flux_surf = s.flux,
-      },
-    .pos_map = s.pos_map, .use_gpu = false,
+    .auxfields = {.bvar = s.bvar, .u = s.u, .xi = s.xi, .conf_flux_surf = flux_sides},
+    .pos_map = s.pos_map,
+    .use_gpu = false,
   };
   struct gkyl_dg_eqn *eqn = gkyl_dg_pkpm_kinetic_conf_inew(&inp);
   int up_dirs[GKYL_MAX_DIM] = {0, 1, 2}, zero_flux[2 * GKYL_MAX_DIM] = {0};
@@ -479,6 +496,7 @@ test_scatter(int cdim)
   }
 
   gkyl_array_release(rhs);
+  gkyl_array_release(flux_sides);
   gkyl_hyper_dg_release(slvr);
   gkyl_dg_eqn_release(eqn);
   teardown(&s);
@@ -504,15 +522,17 @@ test_scatter_ref(int cdim)
   }
   TEST_CHECK(sbasis.num_basis == nk);
 
+  // the surface term reads the flux each side of a face receives
+  struct gkyl_array *flux_sides = two_sided_copy(s.flux, cdim, 8 * s.pbasis.num_basis / 2);
+
   struct gkyl_dg_pkpm_kinetic_conf_inp inp = {
     .conf_basis = &s.cbasis,
     .phase_basis = &s.pbasis,
     .conf_range = &s.clocal,
     .phase_range = &s.plocal,
-    .auxfields =
-      {.bvar = s.bvar, .u = s.u, .xi = s.xi,
-        .conf_flux_surf = s.flux},
-    .pos_map = s.pos_map, .use_gpu = false,
+    .auxfields = {.bvar = s.bvar, .u = s.u, .xi = s.xi, .conf_flux_surf = flux_sides},
+    .pos_map = s.pos_map,
+    .use_gpu = false,
   };
   struct gkyl_dg_eqn *eqn = gkyl_dg_pkpm_kinetic_conf_inew(&inp);
   int up_dirs[GKYL_MAX_DIM] = {0, 1, 2}, zero_flux[2 * GKYL_MAX_DIM] = {0};
@@ -612,6 +632,7 @@ test_scatter_ref(int cdim)
   TEST_MSG("cdim=%d: stage-A rhs vs reference: max error %g (max rhs %g)", cdim, max_err, max_rhs);
 
   gkyl_array_release(rhs);
+  gkyl_array_release(flux_sides);
   gkyl_hyper_dg_release(slvr);
   gkyl_dg_eqn_release(eqn);
   teardown(&s);

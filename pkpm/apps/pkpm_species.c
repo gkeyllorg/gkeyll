@@ -246,21 +246,21 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
     s->pkpm_pos_io_host = mkarr(false, PKPM_POS_NUM_COUNT * nc, app->local_ext.volume);
   }
 
-  // Surface-flux updaters and stored modal fluxes (each cell owns its lower faces).
-  struct gkyl_dg_pkpm_conf_flux_surf_inp conf_flux_inp = {
+  // The configuration-space face flux updater and the stored modal fluxes (each cell owns its
+  // lower faces, and stores the flux each of the two sides of the face receives).
+  struct gkyl_dg_pkpm_remap_flux_surf_inp face_flux_inp = {
     .phase_grid = &s->grid,
     .conf_basis = &app->confBasis,
     .phase_basis = &app->basis,
     .pos_map = app->pos_map,
+    .num_face_nodes = app->num_face_nodes,
     .use_gpu = app->use_gpu,
   };
-  s->calc_conf_flux = gkyl_dg_pkpm_conf_flux_surf_inew(&conf_flux_inp);
-  int nkc = gkyl_dg_pkpm_conf_flux_surf_num_surf_basis(s->calc_conf_flux);
-  s->conf_flux_surf = mkarr(app->use_gpu, 8 * cdim * nkc, s->local_ext.volume);
-  s->face_coef = mkarr(
-    app->use_gpu, gkyl_dg_pkpm_conf_flux_surf_face_coef_ncomp(s->calc_conf_flux),
-    app->local_ext.volume
-  );
+  s->calc_face_flux = gkyl_dg_pkpm_remap_flux_surf_inew(&face_flux_inp);
+  int nkc = gkyl_dg_pkpm_remap_flux_surf_num_surf_basis(s->calc_face_flux);
+  s->conf_flux_surf = mkarr(app->use_gpu, 2 * 8 * cdim * nkc, s->local_ext.volume);
+  s->flux_blend = mkarr(app->use_gpu, cdim, app->local_ext.volume);
+  gkyl_array_clear(s->flux_blend, 0.0);
 
   struct gkyl_dg_pkpm_vel_flux_surf_inp vel_flux_inp = {
     .phase_grid = &s->grid,
@@ -272,15 +272,7 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   int nkv = gkyl_dg_pkpm_vel_flux_surf_num_surf_basis(s->calc_vel_flux);
   s->vel_flux_surf = mkarr(app->use_gpu, PKPM_DIST_NUM_BLOCKS * nkv, s->local_ext.volume);
 
-  struct gkyl_dg_pkpm_fluid_flux_surf_inp fluid_flux_inp = {
-    .conf_grid = &app->grid,
-    .conf_basis = &app->confBasis,
-    .phase_grid = &s->grid,
-    .pos_map = app->pos_map,
-    .use_gpu = app->use_gpu,
-  };
-  s->calc_fluid_flux = gkyl_dg_pkpm_fluid_flux_surf_inew(&fluid_flux_inp);
-  int nkf = gkyl_dg_pkpm_fluid_flux_surf_num_surf_basis(s->calc_fluid_flux);
+  int nkf = gkyl_dg_pkpm_remap_flux_surf_num_surf_basis_fluid(s->calc_face_flux);
   s->fluid_flux_surf = mkarr(app->use_gpu, 5 * cdim * nkf, app->local_ext.volume);
   s->fluid_flux_surf_host = app->use_gpu ? mkarr(false, 5 * cdim * nkf, app->local_ext.volume) : 0;
 
@@ -524,7 +516,7 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   // zero ghost state would be a huge gradient of xi, n and u that drives spurious forces in
   // the wall cell; a copied one halves the wall-cell gradients). The fluid fluxes through
   // the wall are the moments of the kinetic flux against the zero ghost distributions
-  // (pkpm_species_fluid_flux), not the fluid flux of the ghost state.
+  // (pkpm_species_face_flux), not the fluid flux of the ghost state.
   s->bc_is_absorb = false;
   for (int d = 0; d < cdim; ++d) {
     s->bc_lo_reflect[d] = 0;
@@ -788,26 +780,6 @@ pkpm_species_calc_pkpm_vars(
   gkyl_vlasov_position_map_divide_jacobpos_conf(
     app->pos_map, &app->local_ext, nc, species->pkpm_theta, species->pkpm_theta
   );
-  // Weak gradient of u for the kinetic sources (bb:grad u); needs u in the ghost cells
-  // (at absorbing boundaries that of the mirrored fluid state).
-  gkyl_dg_calc_pkpm_vars_grad_u(
-    species->calc_pkpm_vars, &app->local, species->pkpm_u, species->pkpm_grad_u
-  );
-  // grad(ln n) for the density-gradient source: weak gradient of [rho, 0, 0] divided by rho.
-  gkyl_array_set_offset(species->pkpm_rho3, 1.0, species->pkpm_rho, 0);
-  gkyl_dg_calc_pkpm_vars_grad_u(
-    species->calc_pkpm_vars, &app->local, species->pkpm_rho3, species->pkpm_grad_rho
-  );
-  species->num_null_rho += gkyl_dg_calc_pkpm_vars_grad_ln_n(
-    species->calc_pkpm_vars, &app->local, species->pkpm_rho, species->pkpm_grad_rho,
-    species->pkpm_grad_ln_n
-  );
-  // Weak gradient of xi for the forces -w^2 b.grad xi and -2 w b.grad xi G (the second
-  // block of pkpm_xi3 receives xi^2 and is never read).
-  gkyl_array_set_offset(species->pkpm_xi3, 1.0, species->pkpm_xi, 0);
-  gkyl_dg_calc_pkpm_vars_grad_u(
-    species->calc_pkpm_vars, &app->local, species->pkpm_xi3, species->pkpm_grad_xi
-  );
   // The face fluxes average u, xi and theta across every face. At absorbing walls u and xi of
   // the mirrored fluid ghost are the mirror image of the skin values already; theta, the
   // zeroth moment of the empty ghost G, is replaced by the mirror image of the skin cell, so
@@ -827,12 +799,6 @@ pkpm_species_calc_pkpm_vars(
     }
     gkyl_comm_array_sync(app->comm, &app->local, &app->local_ext, species->pkpm_theta);
   }
-  // The coefficients of the configuration-space flux, once per configuration face: the kinetic
-  // flux of every velocity cell and the fluid flux read them.
-  gkyl_dg_pkpm_conf_flux_surf_face_coef(
-    species->calc_conf_flux, &app->local, app->field->bvar, species->pkpm_u, species->pkpm_xi,
-    species->pkpm_theta, species->face_coef
-  );
 
   app->stat.species_pkpm_vars_tm += gkyl_time_diff_now_sec(tm);
 }
@@ -856,22 +822,46 @@ pkpm_species_apply_positivity(
   app->stat.species_pkpm_vars_tm += gkyl_time_diff_now_sec(tm);
 }
 
-// Face fluxes of the fluid system [rho, M, E] of the stage: the moments of the kinetic
-// configuration-space flux of the stage distributions (physical traces of rho, u, xi, b
-// on both sides), so the fluid and the distributions see one discrete transport. The
-// walls need no special case: an absorbing ghost (F = 0, fluid and theta mirrored) gives the
-// interior side's contribution with the interior wall coefficients, and a reflecting ghost
-// cancels the mass and energy fluxes.
+// Configuration-space face fluxes of the stage: the kinetic flux each side of a face receives,
+// the fluid flux, as moments of the same face flux, and both rates. The walls need no special
+// case: an absorbing ghost (F = 0, fluid and theta mirrored) gives the interior side's
+// contribution with the interior wall coefficients, and a reflecting ghost cancels the mass and
+// energy fluxes.
+//
+// The face maps the jumps of the frame exactly, so its gradients in the volume terms are in-cell
+// except for the share of each jump the label-paired flux leaves unmapped: they follow the flux.
 void
-pkpm_species_fluid_flux(
-  gkyl_pkpm_app *app, struct pkpm_species *species, const struct gkyl_array *fin,
-  const struct gkyl_array *fluidin
+pkpm_species_face_flux(
+  gkyl_pkpm_app *app, struct pkpm_species *species, const struct gkyl_array *fin
 )
 {
-  gkyl_dg_pkpm_fluid_flux_surf_advance(
-    species->calc_fluid_flux, &app->local, &app->local_ext, &species->local, &species->local_ext,
-    app->field->bvar, species->pkpm_u, species->pkpm_xi, species->face_coef, species->fluid_no_J,
-    fin, species->cflrate_fluid, species->fluid_flux_surf
+  gkyl_dg_pkpm_remap_flux_surf_advance(
+    species->calc_face_flux, &app->local, &app->local_ext, &species->local, &species->local_ext,
+    app->field->bvar, species->fluid_no_J, species->pkpm_u, species->pkpm_xi, species->pkpm_theta,
+    fin, species->conf_flux_surf, species->fluid_flux_surf, species->cflrate_f,
+    species->cflrate_fluid, species->flux_blend
+  );
+  // The gradient of u for the kinetic sources (bb:grad u); needs u in the ghost cells (at
+  // absorbing boundaries that of the mirrored fluid state).
+  gkyl_dg_calc_pkpm_vars_in_cell_grad(
+    species->calc_pkpm_vars, &app->local, species->flux_blend, species->pkpm_u, species->pkpm_grad_u
+  );
+  // grad(ln n) for the density-gradient source: the gradient of [rho, 0, 0] divided by rho.
+  gkyl_array_set_offset(species->pkpm_rho3, 1.0, species->pkpm_rho, 0);
+  gkyl_dg_calc_pkpm_vars_in_cell_grad(
+    species->calc_pkpm_vars, &app->local, species->flux_blend, species->pkpm_rho3,
+    species->pkpm_grad_rho
+  );
+  species->num_null_rho += gkyl_dg_calc_pkpm_vars_grad_ln_n(
+    species->calc_pkpm_vars, &app->local, species->pkpm_rho, species->pkpm_grad_rho,
+    species->pkpm_grad_ln_n
+  );
+  // The gradient of xi for the forces -w^2 b.grad xi and -2 w b.grad xi G (the second block of
+  // pkpm_xi3 receives xi^2 and is never read).
+  gkyl_array_set_offset(species->pkpm_xi3, 1.0, species->pkpm_xi, 0);
+  gkyl_dg_calc_pkpm_vars_in_cell_grad(
+    species->calc_pkpm_vars, &app->local, species->flux_blend, species->pkpm_xi3,
+    species->pkpm_grad_xi
   );
 }
 
@@ -886,10 +876,6 @@ pkpm_species_kinetic_conf_pass(
 )
 {
   gkyl_array_clear(rhs, 0.0);
-  gkyl_dg_pkpm_conf_flux_surf_advance(
-    species->calc_conf_flux, &app->local, &species->local, &species->local_ext, species->face_coef,
-    fin, species->cflrate_f, species->conf_flux_surf
-  );
   gkyl_hyper_dg_advance(species->slvr_kinetic_conf, &species->local, fin, species->cflrate_f, rhs);
   // the known first-harmonic w fluxes and sources of the eight blocks (modal, exact)
   gkyl_dg_pkpm_harm_vol_coef(
@@ -1009,7 +995,7 @@ pkpm_species_calc_diag_vars(
   pkpm_species_calc_pkpm_vars(app, species, fin, fluidin);
   gkyl_array_clear(species->cflrate_f, 0.0);
   gkyl_array_clear(species->cflrate_fluid, 0.0);
-  pkpm_species_fluid_flux(app, species, fin, fluidin);
+  pkpm_species_face_flux(app, species, fin);
   // fnew is free scratch between time steps.
   pkpm_species_kinetic_conf_pass(app, species, fin, species->fnew);
   pkpm_species_kinetic_closure(app, species, fin, species->fnew);
@@ -1024,7 +1010,6 @@ pkpm_species_rhs(
   struct gkyl_array *rhs_fluid
 )
 {
-  gkyl_array_clear(species->cflrate_f, 0.0);
   gkyl_array_clear(rhs_fluid, 0.0);
 
   // The fluid face fluxes of the stage (and the wall losses) were computed for every
@@ -1350,7 +1335,7 @@ pkpm_species_release(const gkyl_pkpm_app *app, const struct pkpm_species *s)
   gkyl_array_release(s->pkpm_rhs_moms);
   gkyl_array_release(s->pkpm_p_ij);
   gkyl_array_release(s->conf_flux_surf);
-  gkyl_array_release(s->face_coef);
+  gkyl_array_release(s->flux_blend);
   gkyl_array_release(s->vel_flux_surf);
   gkyl_array_release(s->fluid_flux_surf);
   gkyl_array_release(s->pkpm_rho);
@@ -1372,7 +1357,7 @@ pkpm_species_release(const gkyl_pkpm_app *app, const struct pkpm_species *s)
     gkyl_array_release(s->pkpm_pos_io_host);
   }
   gkyl_dg_calc_pkpm_vars_release(s->calc_pkpm_vars);
-  gkyl_dg_pkpm_conf_flux_surf_release(s->calc_conf_flux);
+  gkyl_dg_pkpm_remap_flux_surf_release(s->calc_face_flux);
   gkyl_dg_pkpm_vel_flux_surf_release(s->calc_vel_flux);
   gkyl_dg_pkpm_harm_vol_release(s->harm_vol);
   gkyl_array_release(s->harm_coef);
@@ -1382,7 +1367,6 @@ pkpm_species_release(const gkyl_pkpm_app *app, const struct pkpm_species *s)
   gkyl_array_release(s->harm_exp_nu);
   gkyl_array_release(s->harm_exp_act);
   gkyl_array_release(s->harm_exp_col);
-  gkyl_dg_pkpm_fluid_flux_surf_release(s->calc_fluid_flux);
   gkyl_hyper_dg_release(s->slvr_kinetic_conf);
   gkyl_hyper_dg_release(s->slvr_kinetic_vel);
   gkyl_hyper_dg_release(s->slvr_fluid);

@@ -6,6 +6,7 @@
 EXTERN_C_BEG 
 
 GKYL_CU_DH void pkpm_vars_grad_u_x_1x_ser_p1(const double *dxv, const double *jacob_pos, const double *u_l, const double *u_c, const double *u_r, double* GKYL_RESTRICT grad_u); 
+GKYL_CU_DH void pkpm_vars_in_cell_grad_x_1x_ser_p1(const double *dxv, const double *jacob_pos, double blend_lo, double blend_up, const double *q_l, const double *q_c, const double *q_r, double* GKYL_RESTRICT grad); 
 GKYL_CU_DH double pkpm_mom_diffusion_order2_x_1x_ser_p1(const double *dxv, double D, const double *jac_l, const double *jac_c,
   const double *jac_r, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double pkpm_mom_diffusion_order4_x_1x_ser_p1(const double *dxv, double D, const double *jac_l, const double *jac_c,
@@ -27,6 +28,8 @@ GKYL_CU_DH void pkpm_vars_diag_1x_ser_p1(const double *dxv, const double *vlasov
 
 GKYL_CU_DH void pkpm_vars_grad_u_x_2x_ser_p1(const double *dxv, const double *jacob_pos, const double *u_l, const double *u_c, const double *u_r, double* GKYL_RESTRICT grad_u); 
 GKYL_CU_DH void pkpm_vars_grad_u_y_2x_ser_p1(const double *dxv, const double *jacob_pos, const double *u_l, const double *u_c, const double *u_r, double* GKYL_RESTRICT grad_u); 
+GKYL_CU_DH void pkpm_vars_in_cell_grad_x_2x_ser_p1(const double *dxv, const double *jacob_pos, double blend_lo, double blend_up, const double *q_l, const double *q_c, const double *q_r, double* GKYL_RESTRICT grad); 
+GKYL_CU_DH void pkpm_vars_in_cell_grad_y_2x_ser_p1(const double *dxv, const double *jacob_pos, double blend_lo, double blend_up, const double *q_l, const double *q_c, const double *q_r, double* GKYL_RESTRICT grad); 
 GKYL_CU_DH double pkpm_mom_diffusion_order2_x_2x_ser_p1(const double *dxv, double D, const double *jac_l, const double *jac_c,
   const double *jac_r, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double pkpm_mom_diffusion_order2_y_2x_ser_p1(const double *dxv, double D, const double *jac_l, const double *jac_c,
@@ -53,6 +56,9 @@ GKYL_CU_DH void pkpm_vars_diag_2x_ser_p1(const double *dxv, const double *vlasov
 GKYL_CU_DH void pkpm_vars_grad_u_x_3x_ser_p1(const double *dxv, const double *jacob_pos, const double *u_l, const double *u_c, const double *u_r, double* GKYL_RESTRICT grad_u); 
 GKYL_CU_DH void pkpm_vars_grad_u_y_3x_ser_p1(const double *dxv, const double *jacob_pos, const double *u_l, const double *u_c, const double *u_r, double* GKYL_RESTRICT grad_u); 
 GKYL_CU_DH void pkpm_vars_grad_u_z_3x_ser_p1(const double *dxv, const double *jacob_pos, const double *u_l, const double *u_c, const double *u_r, double* GKYL_RESTRICT grad_u); 
+GKYL_CU_DH void pkpm_vars_in_cell_grad_x_3x_ser_p1(const double *dxv, const double *jacob_pos, double blend_lo, double blend_up, const double *q_l, const double *q_c, const double *q_r, double* GKYL_RESTRICT grad); 
+GKYL_CU_DH void pkpm_vars_in_cell_grad_y_3x_ser_p1(const double *dxv, const double *jacob_pos, double blend_lo, double blend_up, const double *q_l, const double *q_c, const double *q_r, double* GKYL_RESTRICT grad); 
+GKYL_CU_DH void pkpm_vars_in_cell_grad_z_3x_ser_p1(const double *dxv, const double *jacob_pos, double blend_lo, double blend_up, const double *q_l, const double *q_c, const double *q_r, double* GKYL_RESTRICT grad); 
 GKYL_CU_DH double pkpm_mom_diffusion_order2_x_3x_ser_p1(const double *dxv, double D, const double *jac_l, const double *jac_c,
   const double *jac_r, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double pkpm_mom_diffusion_order2_y_3x_ser_p1(const double *dxv, double D, const double *jac_l, const double *jac_c,

@@ -36,21 +36,29 @@ struct gkyl_dg_calc_pkpm_vars *gkyl_dg_calc_pkpm_vars_cu_dev_new(
 );
 
 /**
- * Compute the weak (surface-averaged) gradient of the flow velocity, the p=1 expansions
- * of d_i u_j for every configuration direction i and component j, stored per cell as
- * [direction][component][mode] (cdim * 3 * num_basis entries). The gradient uses the
- * average of the two traces at each face, so it needs u in the neighbors of every cell
- * of conf_range (the ghost cells). It is the gradient the kinetic sources bb:grad(u)
- * and div(u) are formed from. p=1 serendipity only.
+ * Compute the in-cell gradient of a three-component frame variable (u, or [rho, 0, 0] and [xi, ...]),
+ * with the share blend of each face jump lifted into the volume: the p=1 expansions of d_i q_j for
+ * every configuration direction i and component j, stored per cell as [direction][component][mode]
+ * (cdim * 3 * num_basis entries).
+ *
+ * The remap face flux maps the frame jumps exactly, so its share (1 - blend) of a jump belongs to
+ * the face. The label-paired flux does not, so its share is lifted into the volume:
+ *   <psi_k, d_i q_j> = dx1 [psi_k(+1) qhat_up - psi_k(-1) qhat_lo - <d_xi psi_k, q>],
+ *   qhat_up = q(+1) + blend_up/2 [q]_up,  qhat_lo = q(-1) - blend_lo/2 [q]_lo,
+ * which is the plain in-cell gradient at blend = 0 and the weak (surface-averaged) gradient at
+ * blend = 1. It needs q in the neighbors of every cell of conf_range (the ghost cells). It is the
+ * gradient the kinetic sources are formed from. p=1 serendipity only.
  *
  * @param up         Updater for computing pkpm variables
  * @param conf_range Configuration space range (interior cells)
- * @param u          Input flow velocity [ux, uy, uz], defined on the extended range
- * @param grad_u     Output weak gradient of u
+ * @param blend      Input weight of the label-paired flux of each lower face per direction
+ *                   (gkyl_dg_pkpm_remap_flux_surf_advance), including the upper ghost-owned faces
+ * @param q          Input three-component field, defined on the extended range
+ * @param grad       Output gradient
  */
-void gkyl_dg_calc_pkpm_vars_grad_u(
+void gkyl_dg_calc_pkpm_vars_in_cell_grad(
   struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
-  const struct gkyl_array *u, struct gkyl_array *grad_u
+  const struct gkyl_array *blend, const struct gkyl_array *q, struct gkyl_array *grad
 );
 
 /**
@@ -187,7 +195,7 @@ double gkyl_dg_calc_pkpm_vars_closure_cond_min(const struct gkyl_dg_calc_pkpm_va
 /**
  * Compute grad(ln n) = grad(rho)/rho, the configuration-space factor of the source
  * -v_par b.grad(ln n) of the factored kinetic equations, by the nodal quotient of the
- * weak gradient of rho (computed with gkyl_dg_calc_pkpm_vars_grad_u on the array
+ * weak gradient of rho (computed with gkyl_dg_calc_pkpm_vars_in_cell_grad on the array
  * [rho, 0, 0]) at the 2^cdim Gauss-Legendre nodes. At a node where rho <= 0 the quotient is
  * set to zero; the number of such nodes is returned. p=1 serendipity only.
  *
@@ -267,7 +275,7 @@ int gkyl_dg_calc_pkpm_vars_normalize_dist(
  * @param bvar             Input magnetic field unit vector [bx, by, bz]
  * @param grad_b           Input weak gradient of b (gkyl_dg_calc_pkpm_bvar_grad)
  * @param u                Input flow velocity [ux, uy, uz]
- * @param grad_u           Input weak gradient of u (gkyl_dg_calc_pkpm_vars_grad_u)
+ * @param grad_u           Input gradient of u (gkyl_dg_calc_pkpm_vars_in_cell_grad)
  * @param theta            Input T_perp/m
  * @param a_P              Input pressure force
  * @param fluid_io         Output conserved fluid variables (10 components)
@@ -368,9 +376,9 @@ void gkyl_dg_calc_pkpm_vars_diag_cu(
   struct gkyl_array *pkpm_vars_io
 );
 
-void gkyl_dg_calc_pkpm_vars_grad_u_cu(
+void gkyl_dg_calc_pkpm_vars_in_cell_grad_cu(
   struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
-  const struct gkyl_array *u, struct gkyl_array *grad_u
+  const struct gkyl_array *blend, const struct gkyl_array *q, struct gkyl_array *grad
 );
 
 void gkyl_dg_calc_pkpm_integrated_vars_cu(

@@ -200,6 +200,7 @@ struct gkyl_pkpm {
   // scaled for the density, for the internal energy, for the thermal speed, cells with an
   // inadmissible average, limiter applications], summed over ranks).
   double fluid_positivity_eps; // Relative floor (0 => default 1e-2).
+  int num_face_nodes; // Gauss-Legendre nodes per transverse direction of a configuration face (0 => default 5, at least 3).
 
   struct gkyl_app_parallelism_inp parallelism; // Parallelism-related inputs.
 };

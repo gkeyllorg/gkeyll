@@ -27,6 +27,7 @@
 #include <gkyl_dg_pkpm_conf_flux_surf.h>
 #include <gkyl_dg_pkpm_fluid.h>
 #include <gkyl_dg_pkpm_fluid_flux_surf.h>
+#include <gkyl_dg_pkpm_remap_flux_surf.h>
 #include <gkyl_dg_pkpm_kinetic_conf.h>
 #include <gkyl_dg_pkpm_kinetic_vel.h>
 #include <gkyl_dg_pkpm_harm_exp.h>
@@ -259,19 +260,24 @@ struct pkpm_species {
   struct gkyl_array *pkpm_cmoms_host; // host copy for output
 
   // Refactored (p=1) PKPM update variables.
-  struct gkyl_array *pkpm_u; // flow velocity [ux, uy, uz], nodal quotient M/rho (the weak division at p=1)
-  struct gkyl_array *pkpm_grad_u; // weak (surface-averaged) gradient of u, cdim x 3 expansions
+  struct gkyl_array
+    *pkpm_u; // flow velocity [ux, uy, uz], nodal quotient M/rho (the weak division at p=1)
+  struct gkyl_array *
+    pkpm_grad_u; // gradient of u for the sources: in-cell plus the blended face lift, cdim x 3 expansions
   struct gkyl_array *pkpm_theta; // T_perp/T = M0(G)
-  struct gkyl_array *pkpm_xi; // thermal speed and scalar pressure [xi, xi^2, p] of the fluid state (nodal)
-  struct gkyl_array *pkpm_xi3; // copy of pkpm_xi for the weak-gradient kernels (only the first block is used)
-  struct gkyl_array *pkpm_grad_xi; // weak gradient of [xi, ...] (pkpm_vars_grad_u layout; blocks (d, 0) hold d_d xi)
+  struct gkyl_array
+    *pkpm_xi; // thermal speed and scalar pressure [xi, xi^2, p] of the fluid state (nodal)
+  struct gkyl_array
+    *pkpm_xi3; // copy of pkpm_xi for the weak-gradient kernels (only the first block is used)
+  struct gkyl_array
+    *pkpm_grad_xi; // gradient of [xi, ...] (pkpm_grad_u layout; blocks (d, 0) hold d_d xi)
   struct gkyl_array *pkpm_scratch; // one-expansion scratch for weak products
   struct gkyl_array *fluid_no_J; // PHYSICAL fluid state [rho, M, E] of the stage (position-map Jacobian divided out)
   struct gkyl_array *pkpm_moms_no_J; // physical coupling moments (diagnostics)
   struct gkyl_array *pkpm_rho; // physical mass density (leading block of fluid_no_J)
   struct gkyl_array *pkpm_rho3; // [rho, 0, 0] for the weak-gradient kernels
   struct gkyl_array *pkpm_mom3; // momentum block of the fluid array (scratch for the 3-component consumers)
-  struct gkyl_array *pkpm_grad_rho; // weak gradient of [rho, 0, 0] (scratch)
+  struct gkyl_array *pkpm_grad_rho; // gradient of [rho, 0, 0] (scratch)
   struct gkyl_array *pkpm_grad_ln_n; // grad(ln n), cdim expansions
   struct gkyl_array *pkpm_c_0; // normalization closure of the factored update
   struct gkyl_array *pkpm_alpha_0; // pressure force a_P/xi closing the first w moment
@@ -279,8 +285,9 @@ struct pkpm_species {
   struct gkyl_array *pkpm_a_perp; // perpendicular force closing int M0_perp dw [x, y, z]
   struct gkyl_array *pkpm_rhs_moms; // moments of the configuration-pass right-hand side (separate scratch)
   struct gkyl_array *pkpm_p_ij; // p=1 projection of the pressure tensor (limiter scratch only)
-  struct gkyl_array *conf_flux_surf; // stored modal configuration-space kinetic fluxes
-  struct gkyl_array *face_coef; // face coefficients of the configuration-space flux (once per face)
+  struct gkyl_array
+    *conf_flux_surf; // stored modal configuration-space kinetic fluxes, [dir][side][block][mode]
+  struct gkyl_array *flux_blend; // weight of the label-paired flux of each lower face, [dir]
   struct gkyl_array *vel_flux_surf; // stored modal v_par kinetic fluxes
   struct gkyl_dg_pkpm_harm_vol *harm_vol; // modal volume integrals of the first-harmonic terms (stage A)
   struct gkyl_array *harm_coef; // stored operator of the stage (gkyl_pkpm_harm_ops.h)
@@ -295,9 +302,9 @@ struct pkpm_species {
     integ_pkpm_mom; // integrated PKPM variables [rho, rho ux, rho uy, rho uz, rho ux^2, rho uy^2, rho uz^2, p_par, p_perp]
 
   struct gkyl_dg_calc_pkpm_vars *calc_pkpm_vars; // Updater for the configuration-space variables
-  struct gkyl_dg_pkpm_conf_flux_surf *calc_conf_flux; // configuration-space HLL flux updater
+  struct gkyl_dg_pkpm_remap_flux_surf
+    *calc_face_flux; // configuration-space face flux updater (kinetic and fluid)
   struct gkyl_dg_pkpm_vel_flux_surf *calc_vel_flux; // v_par flux updater
-  struct gkyl_dg_pkpm_fluid_flux_surf *calc_fluid_flux; // momentum flux updater
   struct gkyl_dg_eqn *eqn_kinetic_conf; // configuration pass (stage A) equation object
   struct gkyl_dg_eqn *eqn_kinetic_vel; // velocity pass (stage B) equation object
   struct gkyl_dg_eqn *eqn_fluid; // momentum equation object
@@ -529,6 +536,7 @@ struct gkyl_pkpm_app {
 
   bool use_explicit_source; // Boolean to turn on explicit fluid-EM coupling
   double fluid_positivity_eps; // Relative floor of the vertex positivity limiter (always applied)
+  int num_face_nodes; // Transverse Gauss-Legendre nodes of a configuration face, per direction
   struct pkpm_fluid_em_coupling *pkpm_em; // fluid-EM coupling data
   // pointer to function that takes a single-step of simulation
   struct gkyl_update_status (*update_func)(gkyl_pkpm_app *app, double dt0);
@@ -773,12 +781,12 @@ void pkpm_species_calc_pkpm_vars(
 );
 
 /**
- * Fluid face fluxes of the stage (HLL on the stored nodal states; the absorbing walls'
- * fluxes from the kinetic upwind flux of the skin cells).
+ * Configuration-space face fluxes of the stage, the kinetic and the fluid flux and both rates in
+ * one pass (the species' rates must be cleared by the caller), then the frame gradients of the
+ * volume terms, which need the blend of the faces.
  */
-void pkpm_species_fluid_flux(
-  gkyl_pkpm_app *app, struct pkpm_species *species, const struct gkyl_array *fin,
-  const struct gkyl_array *fluidin
+void pkpm_species_face_flux(
+  gkyl_pkpm_app *app, struct pkpm_species *species, const struct gkyl_array *fin
 );
 
 /** Particle loss rates through the absorbing walls from the stored fluxes (into species->bflux). */

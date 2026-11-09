@@ -63,9 +63,9 @@ pkpm_harm_dot(const double *a, const double *b)
  * @param xi Thermal speed at the point.
  * @param theta T_perp/T at the point.
  * @param dtb d_t B/|B| at the point.
- * @param gu Weak gradient of u at the point, gu[d*3 + j] = d_d u_j.
+ * @param gu Gradient of u at the point, gu[d*3 + j] = d_d u_j.
  * @param gb Weak gradient of b at the point, gb[d*3 + j] = d_d b_j.
- * @param gxi Weak gradient of xi at the point, gxi[d] = d_d xi.
+ * @param gxi Gradient of xi at the point, gxi[d] = d_d xi.
  * @param gln grad ln n at the point (cdim values), or 0 when the caller needs no ell_xi.
  * @param qbym Charge to mass ratio of the species.
  * @param B Magnetic field at the point, or 0 when the caller needs no gyration.
@@ -520,6 +520,91 @@ pkpm_harm_conf_flux(
     phi_l[k] = A_l * X_l[k] + w_l * T_l[k];
     phi_r[k] = A_r * X_r[k] + w_r * T_r[k];
   }
+}
+
+// Speed bounds of the flux of pkpm_harm_conf_flux at one face node and w, for the time step.
+GKYL_CU_DH static inline void
+pkpm_harm_conf_bounds(double w, const double *fc, int nn, double *sb)
+{
+  double a = fc[PKPM_FC_A0 * nn] + fc[PKPM_FC_A1 * nn] * w, c = fc[PKPM_FC_C * nn];
+  double vn_l = fc[PKPM_FC_UL * nn] + fc[PKPM_FC_SL * nn] * w, c_l = fc[PKPM_FC_CL * nn];
+  double vn_r = fc[PKPM_FC_UR * nn] + fc[PKPM_FC_SR * nn] * w, c_r = fc[PKPM_FC_CR * nn];
+  sb[0] = fmin(fmin(vn_l - c_l, vn_r - c_r), fmin(a - c, 0.0));
+  sb[1] = fmax(fmax(vn_l + c_l, vn_r + c_r), fmax(a + c, 0.0));
+}
+
+// The map of one side of a face to the face frame and back (gkyl_dg_pkpm_remap_flux_surf).
+struct pkpm_harm_face_map {
+  double r, K, c_par, c_perp[3]; // to the face frame: w_s = r wbar + c_par
+  double r_inv, K_inv, c_perp_inv[3]; // from the face frame to this side
+};
+
+/**
+ * Map of one side of a face to the face frame with averaged rho, u and xi and field direction
+ * bbar (physical_jump_flux.tex, section "The exact remap"): r = xibar/xi_s,
+ * c = (ubar - u_s)/xi_s split along bbar, K = rho_s xibar/(rhobar xi_s). Needs rho_s, xi_s > 0.
+ */
+GKYL_CU_DH static inline void
+pkpm_harm_face_map(
+  double rho_s, const double *u_s, double xi_s, double rho_bar, const double *u_bar, double xi_bar,
+  const double *b_bar, struct pkpm_harm_face_map *map
+)
+{
+  double c_fwd[3], c_bck[3];
+  for (int k = 0; k < 3; ++k) {
+    c_fwd[k] = (u_bar[k] - u_s[k]) / xi_s;
+    c_bck[k] = (u_s[k] - u_bar[k]) / xi_bar;
+  }
+  map->r = xi_bar / xi_s;
+  map->K = rho_s * xi_bar / (rho_bar * xi_s);
+  map->r_inv = 1.0 / map->r;
+  map->K_inv = 1.0 / map->K;
+  map->c_par = c_fwd[0] * b_bar[0] + c_fwd[1] * b_bar[1] + c_fwd[2] * b_bar[2];
+  double c_par_bck = c_bck[0] * b_bar[0] + c_bck[1] * b_bar[1] + c_bck[2] * b_bar[2];
+  for (int k = 0; k < 3; ++k) {
+    map->c_perp[k] = c_fwd[k] - map->c_par * b_bar[k];
+    map->c_perp_inv[k] = c_bck[k] - c_par_bck * b_bar[k];
+  }
+}
+
+/**
+ * Exact change of frame of the eight blocks X = [F, G, M0_perp, N_perp] at the source label to
+ * the blocks Y at the target label (physical_jump_flux.tex, eq. frame-change). The factors do not
+ * depend on w, and the map is linear, so it also applies to Legendre coefficients in w.
+ */
+GKYL_CU_DH static inline void
+pkpm_harm_frame_change(const double *X, double K, double r, const double *c, double *Y)
+{
+  const double F = X[0], G = X[1], *M = &X[2], *N = &X[5];
+  double cM = c[0] * M[0] + c[1] * M[1] + c[2] * M[2];
+  double cc = c[0] * c[0] + c[1] * c[1] + c[2] * c[2];
+  Y[0] = K * F;
+  Y[1] = K / (r * r) * (G - cM + 0.5 * cc * F);
+  for (int k = 0; k < 3; ++k) {
+    Y[2 + k] = K / r * (M[k] - c[k] * F);
+    Y[5 + k] = K / (r * r * r) * (N[k] - 2.0 * G * c[k] + c[k] * cM + 0.5 * cc * M[k] - 0.5 * cc * F * c[k]);
+  }
+}
+
+/**
+ * Fluid flux [F_rho, F_x, F_y, F_z, F_E] from the moments mom = [I_0, I_1, I_2, I_G, I_M (3)] of
+ * the flux of the blocks in a frame with density rho, flow u, thermal speed xi and field
+ * direction b: the moment map of the normalized distribution to the lab-frame fluid flux.
+ */
+GKYL_CU_DH static inline void
+pkpm_harm_fluid_moment_map(
+  const double *mom, double rho, const double *u, double xi, const double *b, double *flux
+)
+{
+  double I0 = mom[0], I1 = mom[1], I2 = mom[2], J0 = mom[3];
+  const double *IM = &mom[4];
+  double bu = b[0] * u[0] + b[1] * u[1] + b[2] * u[2], uu = u[0] * u[0] + u[1] * u[1] + u[2] * u[2];
+  double uIM = u[0] * IM[0] + u[1] * IM[1] + u[2] * IM[2];
+  flux[0] = rho * I0;
+  for (int k = 0; k < 3; ++k) {
+    flux[1 + k] = rho * (u[k] * I0 + xi * b[k] * I1) + rho * xi * IM[k];
+  }
+  flux[4] = 0.5 * rho * (uu * I0 + 2.0 * xi * bu * I1 + xi * xi * I2) + rho * xi * xi * J0 + rho * xi * uIM;
 }
 
 // ---- The w flux at a node (gkyl_pkpm_harm_slots.h): nv holds the raw w-flux coefficients at the

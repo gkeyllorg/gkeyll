@@ -8,7 +8,7 @@
 -- The fluid-field coupling is integrated implicitly, split from the explicit SSP-RK3 step.
 -- Collisionless linear theory at k lambda_D = 0.5 (Vlasov; the parallel kinetics of PKPM are exact
 -- for this wave): omega = 1.4157 omega_pe, damping rate gamma = 0.1533 omega_pe.
--- Figures of merit (32 x 32 cells): the field-energy peaks over t = 0.5-12 decay at gamma = 0.1441
+-- Figures of merit (32 x 32 cells): the field-energy peaks over t = 0.5-12 decay at gamma = 0.1440
 -- and recur at omega = 1.388; the field energy at t = 20 is 0.00057 of its initial value (Vlasov
 -- 1x3v, serendipity p2: 0.1453, 1.388, 0.00059). The PKPM collisions, like the 3V Vlasov ones, also
 -- relax the perpendicular temperature, which the 1x1v operator cannot (0.123 there).

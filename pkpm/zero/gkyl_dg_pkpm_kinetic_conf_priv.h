@@ -116,12 +116,14 @@ surf(
 {
   struct dg_pkpm_kinetic_conf *pkpm = container_of(eqn, struct dg_pkpm_kinetic_conf, eqn);
   if (dir < pkpm->cdim) {
-    int off = dir * 8 * pkpm->num_surf_basis;
+    // Face-owned storage, [dir][side][block][mode]: this cell receives side 1 of its lower face and
+    // side 0 of its upper face, which the upper neighbor owns.
+    int off = 2 * dir * 8 * pkpm->num_surf_basis, side1 = 8 * pkpm->num_surf_basis;
     long pidxC = gkyl_range_idx(&pkpm->phase_range, idxC);
     long pidxR = gkyl_range_idx(&pkpm->phase_range, idxR);
     const double *flux_l = (const double *)gkyl_array_cfetch(pkpm->auxfields.conf_flux_surf, pidxC);
     const double *flux_r = (const double *)gkyl_array_cfetch(pkpm->auxfields.conf_flux_surf, pidxR);
-    return pkpm->stream_surf[dir](xcC, dxC, &flux_l[off], &flux_r[off], qRhsOut);
+    return pkpm->stream_surf[dir](xcC, dxC, &flux_l[off + side1], &flux_r[off], qRhsOut);
   }
   return 0.0;
 }

@@ -36,6 +36,36 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
 
+// The weak gradient: the in-cell gradient with the whole jump of every face lifted into the cell.
+static void
+weak_grad(
+  struct gkyl_dg_calc_pkpm_vars *vars, const struct gkyl_range *range, const struct gkyl_array *q,
+  struct gkyl_array *grad
+)
+{
+  struct gkyl_array *blend = gkyl_array_new(GKYL_DOUBLE, 3, grad->size);
+  gkyl_array_clear(blend, 1.0);
+  gkyl_dg_calc_pkpm_vars_in_cell_grad(vars, range, blend, q, grad);
+  gkyl_array_release(blend);
+}
+
+// The flux both sides of every face receive, from the single-valued label-paired flux:
+// [dir][mode] -> [dir][side][mode], in place.
+static void
+expand_two_sided(struct gkyl_array *flux, int cdim, int nflux)
+{
+  for (long i = 0; i < flux->size; ++i) {
+    double *f = gkyl_array_fetch(flux, i);
+    for (int d = cdim - 1; d >= 0; --d) {
+      for (int m = nflux - 1; m >= 0; --m) {
+        double val = f[d * nflux + m];
+        f[2 * d * nflux + m] = val;
+        f[(2 * d + 1) * nflux + m] = val;
+      }
+    }
+  }
+}
+
 struct wave_ctx {
   double u0, alpha, vt;
   double b_theta, b_perp; // static field: B = (sin theta, -cos theta, -b_perp cos(pi x))
@@ -269,7 +299,7 @@ sim_init(struct sim *s, const struct run_opts *o)
     .phase_grid = &s->pgrid, .conf_basis = &s->cbasis, .phase_basis = &s->pbasis, .pos_map = s->pos_map, .use_gpu = false};
   s->calc_cflux = gkyl_dg_pkpm_conf_flux_surf_inew(&cinp);
   s->nkc = gkyl_dg_pkpm_conf_flux_surf_num_surf_basis(s->calc_cflux);
-  s->cflux = mkarr(8 * s->nkc, pvol);
+  s->cflux = mkarr(2 * 8 * s->nkc, pvol);
   s->face_coef = mkarr(gkyl_dg_pkpm_conf_flux_surf_face_coef_ncomp(s->calc_cflux), s->clocal_ext.volume);
   struct gkyl_dg_pkpm_kinetic_conf_inp ainp = {
     .conf_basis = &s->cbasis,
@@ -430,11 +460,11 @@ sim_rhs(
   gkyl_dg_calc_pkpm_vars_transverse(s->vars, &s->clocal_ext, &s->plocal_ext_conf, s->bvar, f);
   sim_moms(s, f, M, &s->plocal_ext_conf, &s->clocal_ext);
   gkyl_array_set_offset(s->theta, 1.0, s->nmoms, 2 * nc);
-  gkyl_dg_calc_pkpm_vars_grad_u(s->vars, &s->clocal, s->u, s->grad_u);
+  weak_grad(s->vars, &s->clocal, s->u, s->grad_u);
   gkyl_array_set_offset(s->rho3, 1.0, s->rho, 0);
-  gkyl_dg_calc_pkpm_vars_grad_u(s->vars, &s->clocal, s->rho3, s->grad_rho);
+  weak_grad(s->vars, &s->clocal, s->rho3, s->grad_rho);
   gkyl_dg_calc_pkpm_vars_grad_ln_n(s->vars, &s->clocal, s->rho, s->grad_rho, s->grad_ln_n);
-  gkyl_dg_calc_pkpm_vars_grad_u(s->vars, &s->clocal, s->xi, s->grad_xi);
+  weak_grad(s->vars, &s->clocal, s->xi, s->grad_xi);
   gkyl_dg_pkpm_conf_flux_surf_face_coef(s->calc_cflux, &s->clocal, s->bvar, s->u, s->xi, s->theta, s->face_coef);
 
   gkyl_array_clear(s->cflrate_f, 0.0);
@@ -453,6 +483,7 @@ sim_rhs(
     gkyl_dg_pkpm_conf_flux_surf_advance(
       s->calc_cflux, &s->clocal, &s->plocal, &s->plocal_ext, s->face_coef, f, s->cflrate_f, s->cflux
     );
+    expand_two_sided(s->cflux, 1, 8 * s->nkc);
     gkyl_hyper_dg_advance(s->slvr_a, &s->plocal, f, s->cflrate_f, rhs_f);
     gkyl_dg_pkpm_harm_vol_coef(s->harm, &s->clocal, s->bvar, s->grad_b, s->u, s->grad_u, s->xi, s->grad_xi,
       s->grad_ln_n, s->theta, s->dtb, s->em, s->hcoef, s->hwn);
@@ -886,6 +917,7 @@ steady_gradient_residual(int Nx, int Nv, double alpha, bool verbose)
     gkyl_array_clear(s.cflux, 0.0);
     gkyl_dg_pkpm_conf_flux_surf_face_coef(s.calc_cflux, &s.clocal, s.bvar, s.u, s.xi, s.theta, s.face_coef);
     gkyl_dg_pkpm_conf_flux_surf_advance(s.calc_cflux, &s.clocal, &s.plocal, &s.plocal_ext, s.face_coef, f, s.cflrate_f, s.cflux);
+    expand_two_sided(s.cflux, 1, 8 * s.nkc);
     gkyl_hyper_dg_advance(s.slvr_a, &s.plocal, f, s.cflrate_f, rhsA);
     struct gkyl_range_iter it;
     gkyl_range_iter_init(&it, &s.plocal);

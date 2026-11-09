@@ -31,6 +31,36 @@
 #include <gkyl_wv_eqn.h>
 #include <gkyl_wv_ten_moment.h>
 
+// The weak gradient: the in-cell gradient with the whole jump of every face lifted into the cell.
+static void
+weak_grad(
+  struct gkyl_dg_calc_pkpm_vars *vars, const struct gkyl_range *range, const struct gkyl_array *q,
+  struct gkyl_array *grad
+)
+{
+  struct gkyl_array *blend = gkyl_array_new(GKYL_DOUBLE, 3, grad->size);
+  gkyl_array_clear(blend, 1.0);
+  gkyl_dg_calc_pkpm_vars_in_cell_grad(vars, range, blend, q, grad);
+  gkyl_array_release(blend);
+}
+
+// The flux both sides of every face receive, from the single-valued label-paired flux:
+// [dir][mode] -> [dir][side][mode], in place.
+static void
+expand_two_sided(struct gkyl_array *flux, int cdim, int nflux)
+{
+  for (long i = 0; i < flux->size; ++i) {
+    double *f = gkyl_array_fetch(flux, i);
+    for (int d = cdim - 1; d >= 0; --d) {
+      for (int m = nflux - 1; m >= 0; --m) {
+        double val = f[d * nflux + m];
+        f[2 * d * nflux + m] = val;
+        f[(2 * d + 1) * nflux + m] = val;
+      }
+    }
+  }
+}
+
 static struct gkyl_array *
 mkarr(long nc, long size)
 {
@@ -202,8 +232,8 @@ compute_grad_u(struct test_setup *s)
   gkyl_array_clear(s->grad_xi, 0.0);
   struct gkyl_dg_calc_pkpm_vars *vars =
     gkyl_dg_calc_pkpm_vars_new(&s->cgrid, &s->cbasis, s->pos_map, false);
-  gkyl_dg_calc_pkpm_vars_grad_u(vars, &s->clocal, s->u, s->grad_u);
-  gkyl_dg_calc_pkpm_vars_grad_u(vars, &s->clocal, s->xi, s->grad_xi);
+  weak_grad(vars, &s->clocal, s->u, s->grad_u);
+  weak_grad(vars, &s->clocal, s->xi, s->grad_xi);
   gkyl_dg_calc_pkpm_vars_release(vars);
 }
 
@@ -637,7 +667,7 @@ test_closure(int cdim)
   };
   struct gkyl_dg_pkpm_conf_flux_surf *calc_flux = gkyl_dg_pkpm_conf_flux_surf_inew(&finp);
   int nk = gkyl_dg_pkpm_conf_flux_surf_num_surf_basis(calc_flux);
-  struct gkyl_array *flux = mkarr(8 * cdim * nk, s.plocal_ext.volume);
+  struct gkyl_array *flux = mkarr(2 * 8 * cdim * nk, s.plocal_ext.volume);
   struct gkyl_array *cflrate = mkarr(1, s.plocal_ext.volume);
   gkyl_array_clear(flux, 0.0);
   gkyl_array_clear(cflrate, 0.0);
@@ -646,6 +676,7 @@ test_closure(int cdim)
   gkyl_dg_pkpm_conf_flux_surf_advance(
     calc_flux, &s.clocal, &s.plocal, &s.plocal_ext, face_coef, s.f, cflrate, flux
   );
+  expand_two_sided(flux, cdim, 8 * nk);
 
   struct gkyl_dg_eqn *eqn = make_eqn(&s, flux);
   int up_dirs[GKYL_MAX_DIM] = {0, 1, 2}, zero_flux[2 * GKYL_MAX_DIM] = {0};
