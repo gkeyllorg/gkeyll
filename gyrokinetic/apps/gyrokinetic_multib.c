@@ -1230,9 +1230,15 @@ gkyl_gyrokinetic_multib_app_read_from_frame(gkyl_gyrokinetic_multib_app *app, in
     gyrokinetic_multib_calc_field_and_apply_bc(app, rstat.stime, distf, bflux, distf_neut);
   }
 
-  struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[0];
-  sbapp->field->is_first_energy_write_call = false; // Append to existing diagnostic.
-  //
+  for (int b = 0; b < app->num_local_blocks; ++b) {
+    // Append to existing diagnostics.
+    struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[b];
+    sbapp->field->is_first_energy_write_call = false;
+    sbapp->field->is_first_energy_dot_write_call = false;
+    for (int d = 0; d < sbapp->bal.num_diags; ++d) {
+      sbapp->bal.is_first_write[d] = false;
+    }
+  }
   app->is_first_dt_write_call = false;
 
   return rstat;

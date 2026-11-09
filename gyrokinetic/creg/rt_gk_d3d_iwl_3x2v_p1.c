@@ -757,8 +757,8 @@ main(int argc, char **argv)
     .num_integrated_diag_moments = 1,
     .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
     .time_rate_diagnostics = true,
-    .num_balance_diags = 1,
-    .balance_diags = {GKYL_BALANCE_GK_PARTICLE},
+    .num_balance_diags = 2,
+    .balance_diags = {GKYL_BALANCE_GK_PARTICLE, GKYL_BALANCE_GK_ENERGY},
 
     .boundary_flux_diagnostics =
       {
@@ -849,8 +849,8 @@ main(int argc, char **argv)
     .num_integrated_diag_moments = 1,
     .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
     .time_rate_diagnostics = true,
-    .num_balance_diags = 1,
-    .balance_diags = {GKYL_BALANCE_GK_PARTICLE},
+    .num_balance_diags = 2,
+    .balance_diags = {GKYL_BALANCE_GK_PARTICLE, GKYL_BALANCE_GK_ENERGY},
 
     .boundary_flux_diagnostics =
       {
@@ -919,7 +919,8 @@ main(int argc, char **argv)
     .num_periodic_dir = 1,
     .periodic_dirs = {1},
 
-    .diagnostics = {.num_balance_diags = 1, .balance_diags = {GKYL_BALANCE_GK_PARTICLE}},
+    .diagnostics =
+      {.num_balance_diags = 2, .balance_diags = {GKYL_BALANCE_GK_PARTICLE, GKYL_BALANCE_GK_ENERGY}},
 
     .num_species = 2,
     .species = {elc, ion},

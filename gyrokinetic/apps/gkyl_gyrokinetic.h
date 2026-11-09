@@ -90,11 +90,12 @@ struct gkyl_gyrokinetic_projection {
 // Balance diagnostics: time rate of change of a conserved quantity vs its
 // sources and boundary fluxes.
 enum gkyl_gyrokinetic_balance_diag {
-  GKYL_BALANCE_GK_PARTICLE = 0 // Particle balance.
+  GKYL_BALANCE_GK_PARTICLE = 0, // Particle balance.
+  GKYL_BALANCE_GK_ENERGY // Energy balance (Hamiltonian moment; the app adds the field energy).
 };
 
 // File-name strings corresponding to the enum options above.
-static const char *gkyl_gyrokinetic_balance_diag_strs[] = {"particle"};
+static const char *gkyl_gyrokinetic_balance_diag_strs[] = {"particle", "energy"};
 
 // Diagnostics of the whole app (summed over species).
 struct gkyl_gyrokinetic_diagnostics {

@@ -390,8 +390,8 @@ main(int argc, char **argv)
     .num_integrated_diag_moments = 1,
     .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
     .time_rate_diagnostics = true,
-    .num_balance_diags = 1,
-    .balance_diags = {GKYL_BALANCE_GK_PARTICLE},
+    .num_balance_diags = 2,
+    .balance_diags = {GKYL_BALANCE_GK_PARTICLE, GKYL_BALANCE_GK_ENERGY},
   };
 
   // 2nd Electron species.
@@ -453,8 +453,8 @@ main(int argc, char **argv)
     .num_integrated_diag_moments = 1,
     .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
     .time_rate_diagnostics = true,
-    .num_balance_diags = 1,
-    .balance_diags = {GKYL_BALANCE_GK_PARTICLE},
+    .num_balance_diags = 2,
+    .balance_diags = {GKYL_BALANCE_GK_PARTICLE, GKYL_BALANCE_GK_ENERGY},
   };
 
   // Ion species.
@@ -511,8 +511,8 @@ main(int argc, char **argv)
     .num_integrated_diag_moments = 1,
     .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
     .time_rate_diagnostics = true,
-    .num_balance_diags = 1,
-    .balance_diags = {GKYL_BALANCE_GK_PARTICLE},
+    .num_balance_diags = 2,
+    .balance_diags = {GKYL_BALANCE_GK_PARTICLE, GKYL_BALANCE_GK_ENERGY},
   };
 
   // D0
@@ -643,7 +643,8 @@ main(int argc, char **argv)
     .num_periodic_dir = 1,
     .periodic_dirs = {0},
 
-    .diagnostics = {.num_balance_diags = 1, .balance_diags = {GKYL_BALANCE_GK_PARTICLE}},
+    .diagnostics =
+      {.num_balance_diags = 2, .balance_diags = {GKYL_BALANCE_GK_PARTICLE, GKYL_BALANCE_GK_ENERGY}},
 
     .num_species = 3,
     .species = {elc, elc2, ion},

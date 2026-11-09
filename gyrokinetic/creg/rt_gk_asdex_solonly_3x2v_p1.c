@@ -517,8 +517,8 @@ main(int argc, char **argv)
       },
 
     .time_rate_diagnostics = true,
-    .num_balance_diags = 1,
-    .balance_diags = {GKYL_BALANCE_GK_PARTICLE},
+    .num_balance_diags = 2,
+    .balance_diags = {GKYL_BALANCE_GK_PARTICLE, GKYL_BALANCE_GK_ENERGY},
   };
 
   // Ion core source:
@@ -647,8 +647,8 @@ main(int argc, char **argv)
       },
 
     .time_rate_diagnostics = true,
-    .num_balance_diags = 1,
-    .balance_diags = {GKYL_BALANCE_GK_PARTICLE},
+    .num_balance_diags = 2,
+    .balance_diags = {GKYL_BALANCE_GK_PARTICLE, GKYL_BALANCE_GK_ENERGY},
   };
 
   // field
@@ -698,7 +698,8 @@ main(int argc, char **argv)
     .num_periodic_dir = 1,
     .periodic_dirs = {1},
 
-    .diagnostics = {.num_balance_diags = 1, .balance_diags = {GKYL_BALANCE_GK_PARTICLE}},
+    .diagnostics =
+      {.num_balance_diags = 2, .balance_diags = {GKYL_BALANCE_GK_PARTICLE, GKYL_BALANCE_GK_ENERGY}},
 
     .num_species = ctx.num_species,
     .species = {elc, ion},

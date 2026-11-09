@@ -51,7 +51,7 @@ gyrokineticApp = Gyrokinetic.App.new {
   upper = { Lz },
   cells = { Nz },
   cflFrac = cfl_frac,
-  diagnostics = { balanceDiags = { G0.Balance.GKParticle } },
+  diagnostics = { balanceDiags = { G0.Balance.GKParticle, G0.Balance.GKEnergy } },
 
   basis = basis_type,
   polyOrder = poly_order,
@@ -86,7 +86,7 @@ gyrokineticApp = Gyrokinetic.App.new {
 
     -- Top hat species.
   square = Gyrokinetic.Species.new {
-    balanceDiags = { G0.Balance.GKParticle },
+    balanceDiags = { G0.Balance.GKParticle, G0.Balance.GKEnergy },
     charge = charge, mass = mass,
     
     -- Velocity space grid.
@@ -134,7 +134,7 @@ gyrokineticApp = Gyrokinetic.App.new {
 
   -- Bump species.
   bump = Gyrokinetic.Species.new {
-    balanceDiags = { G0.Balance.GKParticle },
+    balanceDiags = { G0.Balance.GKParticle, G0.Balance.GKEnergy },
     charge = charge, mass = mass,
     
     -- Velocity space grid.

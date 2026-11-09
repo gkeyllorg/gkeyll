@@ -154,8 +154,8 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app *app, doubl
             gk_species_balance_step(sbapp, gks, &gks->bal, dt, true);
           }
 
-          // Compute field energy divided by dt for energy balance diagnostics.
-          gk_field_calc_energy_dt(sbapp, sbapp->field, dt, sbapp->field->em_energy_red_old);
+          // Store the field energies divided by dt for the energy rate and balance diagnostics.
+          gk_field_calc_energy_dt(sbapp, sbapp->field, dt, true);
         }
 
         // Compute the fields and apply BCs.
@@ -381,8 +381,8 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app *app, doubl
               gk_species_balance_step(sbapp, gks, &gks->bal, dt, false);
             }
 
-            // Compute field energy divided by dt for energy balance diagnostics.
-            gk_field_calc_energy_dt(sbapp, sbapp->field, dt, sbapp->field->em_energy_red_new);
+            // Store the field energies divided by dt for the energy rate and balance diagnostics.
+            gk_field_calc_energy_dt(sbapp, sbapp->field, dt, false);
           }
 
           state = RK_COMPLETE;

@@ -174,10 +174,8 @@ gkyl_register_gyrokinetic_field_types(lua_State *L)
 }
 
 // Balance diagnostics.
-static const struct gkyl_str_int_pair gk_balance_type[] = {
-  {"GKParticle", GKYL_BALANCE_GK_PARTICLE},
-  {0, 0}
-};
+static const struct gkyl_str_int_pair gk_balance_type[] =
+  {{"GKParticle", GKYL_BALANCE_GK_PARTICLE}, {"GKEnergy", GKYL_BALANCE_GK_ENERGY}, {0, 0}};
 
 void
 gkyl_register_gyrokinetic_balance_types(lua_State *L)

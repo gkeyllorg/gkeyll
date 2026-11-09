@@ -1257,6 +1257,7 @@ struct gk_species_balance {
   enum gkyl_gyrokinetic_balance_diag diag_types[12]; // Balance diagnostics.
   bool write[12]; // Whether each diagnostic is written (=true if requested by the species).
   enum gkyl_distribution_moments mom_types[12]; // Moment balanced by each diagnostic.
+  int mom_comp[12]; // Component of the moment balanced by each diagnostic.
   struct gk_species_moment f_mom[12]; // Integrated moment of f.
   struct gkyl_array *mom_old[12], *mom_new[12]; // Integrated moment of f_old/dt and f_new/dt.
   bool has_source; // Whether the species has a source.
@@ -1266,19 +1267,14 @@ struct gk_species_balance {
   struct gkyl_array *src_bgk_stage[12][3], *src_bgk[12];
   int rk_stage; // RK stage of the current rhs evaluation.
   int num_boundaries; // Number of boundaries with a boundary flux.
-  struct gkyl_array_integrate *integ_op; // Volume integral of a bflux moment.
-  struct gkyl_array *bflux_mom; // Moment of the bflux through one boundary.
+  struct gkyl_array_integrate *integ_op[12]; // Volume integral of a bflux moment.
+  struct gkyl_array *bflux_mom[12]; // Moment of the bflux through one boundary.
   double *red_local, *red_global; // Reduction buffers (on device if using GPUs).
   double dt; // Last time step.
   double mom[12]; // Last value of each balanced moment (for the sum over species).
   int num_comp; // Number of components in each balance diagnostic.
   gkyl_dynvec diag[12]; // Balance diagnostic of each quantity.
   bool is_first_write[12]; // Whether each diagnostic is being written for the first time.
-  // Recipe computing each balance, chosen at runtime.
-  void (*calc_func[12])(
-    gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_species_balance *bal, int d,
-    double tm
-  );
   // Methods chosen at runtime.
   void (*rhs_begin_func)(struct gk_species_balance *bal);
   void (*source_bgk_rhs_func)(
@@ -1288,11 +1284,14 @@ struct gk_species_balance {
 };
 
 // Balance diagnostics of the app: sum over the species of each balance in
-// the app's balance_diags.
+// the app's balance_diags, whose terms the species and the field compute
+// (see gyrokinetic.c). The energy balance is that of the conserved energy
+// sum_s int H f - E_field + int rho_bg phi, with rho_bg the background
+// charge density of the adiabatic species.
 struct gk_app_balance {
   int num_diags; // Number of balance diagnostics.
   enum gkyl_gyrokinetic_balance_diag diag_types[12]; // Balance diagnostics.
-  int num_comp; // Number of components in each balance diagnostic.
+  int num_comp[12]; // Number of components in each balance diagnostic.
   gkyl_dynvec diag[12]; // Balance diagnostic of each quantity.
   bool is_first_write[12]; // Whether each diagnostic is being written for the first time.
 };
@@ -1685,6 +1684,10 @@ struct gk_field_adiabatic {
 
   struct gkyl_array_integrate *calc_energy; // Computes int K (phi-<phi>)^2.
   double *energy_red; // Memory for the energy reduction.
+
+  // Background-charge energy int rho_bg phi, for the energy balance of the app.
+  struct gkyl_array *rho_bg_phi; // rho_bg*phi.
+  struct gkyl_array_integrate *calc_bg_energy; // Computes int rho_bg phi.
 };
 
 struct gk_field {
@@ -1765,14 +1768,18 @@ struct gk_field {
   gkyl_dynvec integ_energy; // integrated energy components
   bool is_first_energy_write_call; // flag for energy dynvec written first time
 
-  double *em_energy_red_old,
-    *em_energy_red_new; // memory for use in GPU reduction of old EM energy.
+  // Energies/dt at the beginning (old) and end (new) of a time step, for the
+  // energy rate diagnostic and the energy balance of the app.
+  bool energy_balance; // Whether the app computes the energy balance.
+  double *em_energy_red_old, *em_energy_red_new; // memory for use in GPU reduction of EM energy.
+  double *bg_energy_red, *bg_energy_red_old,
+    *bg_energy_red_new; // memory for use in GPU reduction of the background-charge energy.
   gkyl_dynvec integ_energy_dot; // d/dt of integrated energy components.
   bool is_first_energy_dot_write_call; // flag for d(energy)/dt dynvec written first time
 
-  // Pointer to function that computes the time rate of change of the energy.
+  // Pointer to function that stores the energies/dt at the beginning or end of a time step.
   void (*calc_energy_dt_func)(
-    gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, double *energy_reduced
+    gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, bool is_old
   );
 
   // Objects used in IWL simulations and TS BCs.
@@ -1814,6 +1821,10 @@ struct gk_field {
   void (*accumulate_rhoc_bg_func)(gkyl_gyrokinetic_app *app, struct gk_field *field);
   // Pointer to function that adds the adiabatic species energy, factor*(1/2) int K (phi-<phi>)^2.
   void (*energy_adiab_func)(
+    gkyl_gyrokinetic_app *app, const struct gk_field *field, double factor, double *out
+  );
+  // Pointer to function that computes the background-charge energy, factor*int rho_bg phi.
+  void (*energy_bg_func)(
     gkyl_gyrokinetic_app *app, const struct gk_field *field, double factor, double *out
   );
   // Pointer to function that frees memory.
@@ -2200,7 +2211,7 @@ void gk_species_balance_source_bgk_rhs(
 
 /**
  * Compute each balance over the last time step and append it to its
- * diagnostic: [mom_dot, src_mom, bflux_tot_mom, mom_err, mom_err_norm].
+ * diagnostic: [mom_err, mom_err_norm, mom_dot, src_mom, bflux_tot_mom].
  *
  * @param app Gyrokinetic app object.
  * @param gks Species object.
@@ -2232,42 +2243,6 @@ void gk_species_balance_write(
 void gk_species_balance_release(
   const struct gkyl_gyrokinetic_app *app, const struct gk_species_balance *bal
 );
-
-/** gk_app_balance API */
-
-/**
- * Initialize the balance diagnostics summed over species. Must be called
- * before the species are initialized.
- *
- * @param app Gyrokinetic app object.
- * @param inp Diagnostics input of the app.
- */
-void gk_app_balance_init(
-  struct gkyl_gyrokinetic_app *app, const struct gkyl_gyrokinetic_diagnostics *inp
-);
-
-/**
- * Sum the balances of the dynamic species. Must be called after the species
- * balances are computed.
- *
- * @param app Gyrokinetic app object.
- * @param tm Current time.
- */
-void gk_app_balance_calc(gkyl_gyrokinetic_app *app, double tm);
-
-/**
- * Write the balances summed over species to <name>-balance_<balance>.gkyl.
- *
- * @param app Gyrokinetic app object.
- */
-void gk_app_balance_write(gkyl_gyrokinetic_app *app);
-
-/**
- * Release the balance diagnostics summed over species.
- *
- * @param app Gyrokinetic app object.
- */
-void gk_app_balance_release(const struct gkyl_gyrokinetic_app *app);
 
 /** gk_positivity API */
 
@@ -5161,15 +5136,32 @@ void gk_field_project_init(struct gkyl_gyrokinetic_app *app);
 void gk_field_calc_energy(gkyl_gyrokinetic_app *app, double tm, const struct gk_field *field);
 
 /**
- * Compute field energy divided by dt for energy balance diagnostics.
+ * Store the field and background-charge energies divided by dt at the beginning
+ * (is_old=true) or end of a time step, for the energy rate and balance diagnostics.
  *
  * @param app gyrokinetic app object.
  * @param field Pointer to field.
  * @param dt Time step.
- * @param energy_reduced Integrated field energy (single element double array).
+ * @param is_old Whether this is the beginning of the time step.
  */
 void gk_field_calc_energy_dt(
-  gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, double *energy_reduced
+  gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, bool is_old
+);
+
+/**
+ * Field terms of the energy balance: the field energy and the background-charge
+ * energy int rho_bg phi, and their rates of change over the last time step.
+ *
+ * @param app gyrokinetic app object.
+ * @param field Pointer to field.
+ * @param energy Field energy.
+ * @param energy_dot Rate of change of the field energy.
+ * @param bg_energy Background-charge energy.
+ * @param bg_energy_dot Rate of change of the background-charge energy.
+ */
+void gk_field_calc_energy_balance(
+  gkyl_gyrokinetic_app *app, const struct gk_field *field, double *energy, double *energy_dot,
+  double *bg_energy, double *bg_energy_dot
 );
 
 /**
