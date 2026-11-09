@@ -45,7 +45,6 @@ gk_field_fem_projection_par_rho_ts_2x(
   struct gkyl_array *arr_fem
 )
 {
-
   // Gather the DG array into a global (in z) array.
   gkyl_comm_array_allgather(app->comm, &app->local, &app->global, arr_dg, field->rho_c_global_dg);
 
@@ -90,7 +89,6 @@ gk_field_fem_projection_par_phi_ts_3x(
   struct gkyl_array *arr_fem
 )
 {
-
   // Gather the DG array into a global (in z) array.
   gkyl_comm_array_allgather(app->comm, &app->local, &app->global, arr_dg, field->rho_c_global_dg);
 
@@ -101,11 +99,8 @@ gk_field_fem_projection_par_phi_ts_3x(
     field, field->rho_c_global_dg, &app->global_lower_ghost[par_dir],
     &app->global_upper_skin[par_dir]
   );
-  gkyl_bc_twistshift_advance(field->bc_ts_lo, field->rho_c_global_dg, field->rho_c_global_dg);
-  // Fill upper parallel boundary ghost with skin boundary value.
-  gkyl_bc_basic_gyrokinetic_advance(
-    field->gfss_bc_op_core_up, field->bc_buffer, field->rho_c_global_dg
-  );
+  // Make the shifted potential in the lower ghost continuous in x-y.
+  gk_field_ts_fem_perpproj_advance(app, field, field->rho_c_global_dg);
 
   // Smooth the the DG array.
   gkyl_fem_parproj_set_rhs(
@@ -187,6 +182,8 @@ gk_field_fem_projection_par_phi_iwl_3x(
     field, field->rho_c_global_dg, &app->global_lower_ghost_par_core,
     &app->global_upper_skin_par_core
   );
+  // Make the shifted potential in the core lower ghost continuous in x-y.
+  gk_field_ts_fem_perpproj_advance(app, field, field->rho_c_global_dg);
 
   // Smooth the the DG array.
   gkyl_fem_parproj_set_rhs(
@@ -433,11 +430,12 @@ gk_field_2x3x_add_TS_updaters(
       .filter_half_width = app->core_parallel_bcs.ts_filter_half_width,
       .filter_cutoff_wavelength = app->core_parallel_bcs.ts_filter_cutoff_wavelength,
     };
-    if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK) {
-      T_LU_lo.shift_dg = app->delta_ts_x_lo;
+    // User shift functions are projected on the (possibly upsampled) twist-shift grid.
+    if (app->core_parallel_bcs.lower_shift_func) {
+      T_LU_lo.shift_func = app->core_parallel_bcs.lower_shift_func;
+      T_LU_lo.shift_func_ctx = app->core_parallel_bcs.lower_shift_ctx;
     } else {
-      T_LU_lo.shift_func = app->gk_geom->lower_shift_func;
-      T_LU_lo.shift_func_ctx = app->gk_geom->lower_shift_ctx;
+      T_LU_lo.shift_dg = app->delta_ts_x_lo;
     }
     gkf->bc_ts_lo = gkyl_bc_twistshift_inew(&T_LU_lo);
 
@@ -457,11 +455,12 @@ gk_field_2x3x_add_TS_updaters(
       .filter_half_width = app->core_parallel_bcs.ts_filter_half_width,
       .filter_cutoff_wavelength = app->core_parallel_bcs.ts_filter_cutoff_wavelength,
     };
-    if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK) {
-      T_UL_up.shift_dg = app->delta_ts_x_up;
+    // User shift functions are projected on the (possibly upsampled) twist-shift grid.
+    if (app->core_parallel_bcs.upper_shift_func) {
+      T_UL_up.shift_func = app->core_parallel_bcs.upper_shift_func;
+      T_UL_up.shift_func_ctx = app->core_parallel_bcs.upper_shift_ctx;
     } else {
-      T_UL_up.shift_func = app->gk_geom->upper_shift_func;
-      T_UL_up.shift_func_ctx = app->gk_geom->upper_shift_ctx;
+      T_UL_up.shift_dg = app->delta_ts_x_up;
     }
     gkf->bc_ts_up = gkyl_bc_twistshift_inew(&T_UL_up);
 
@@ -543,11 +542,12 @@ gk_field_2x3x_add_IWL_updaters(
       .filter_half_width = app->core_parallel_bcs.ts_filter_half_width,
       .filter_cutoff_wavelength = app->core_parallel_bcs.ts_filter_cutoff_wavelength,
     };
-    if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK) {
-      T_LU_lo.shift_dg = app->delta_ts_x_lo;
+    // User shift functions are projected on the (possibly upsampled) twist-shift grid.
+    if (app->core_parallel_bcs.lower_shift_func) {
+      T_LU_lo.shift_func = app->core_parallel_bcs.lower_shift_func;
+      T_LU_lo.shift_func_ctx = app->core_parallel_bcs.lower_shift_ctx;
     } else {
-      T_LU_lo.shift_func = app->gk_geom->lower_shift_func;
-      T_LU_lo.shift_func_ctx = app->gk_geom->lower_shift_ctx;
+      T_LU_lo.shift_dg = app->delta_ts_x_lo;
     }
     gkf->bc_ts_lo = gkyl_bc_twistshift_inew(&T_LU_lo);
 
@@ -687,6 +687,9 @@ gk_field_em_zonal_component_none(
 static void
 gk_field_fem_release_2x3x(const gkyl_gyrokinetic_app *app, struct gk_field *gkf)
 {
+  // Release perpendicular smoother.
+  gk_field_ts_fem_perpproj_release(gkf);
+
   gkyl_array_release(gkf->rho_c);
   gkyl_array_release(gkf->rho_c_global_dg);
   gkyl_array_release(gkf->rho_c_global_smooth);
@@ -986,7 +989,8 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
     }
     // FEM solver for Ampere equation (solved at IC only).
     gkf->fem_apar_solver = gkyl_fem_poisson_perp_new(
-      &app->local, &app->grid, app->basis, &gkf->ampere_bcs, 0, gkf->lapWeightAmpere, NULL, app->use_gpu
+      &app->local, &app->grid, app->basis, &gkf->ampere_bcs, 0, gkf->lapWeightAmpere, NULL,
+      app->use_gpu
     );
     // FEM solver for Ohm's law (evolves d(Apart)/dt).
     gkf->fem_apardot_solver = gkyl_fem_poisson_perp_new(
@@ -1079,6 +1083,8 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
     }
   }
 
+  gk_field_ts_fem_perpproj_check_input(app, gkf);
+
   if (app->gk_geom->has_LCFS) {
     // Updaters to enforce twist-and-shift and sheath BCs.
     gk_field_2x3x_add_IWL_updaters(app, gkf, &poisson_bcs);
@@ -1086,6 +1092,9 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
     // Updaters to enforce twist-and-shift BCs.
     gk_field_2x3x_add_TS_updaters(app, gkf, &poisson_bcs);
   }
+
+  // Initialize perpendicular smoother.
+  gk_field_ts_fem_perpproj_new(app, gkf);
 
   if (gkf->is_em) {
     // FEM smoother for Apar.
@@ -1098,7 +1107,8 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
         gkf->fem_projection_par_apar_func = gk_field_fem_projection_par_apar_iwl_3x;
       }
       gkf->fem_apar_parproj = gkyl_fem_parproj_new(
-        &app->global_core, &app->grid, &app->basis, gkf->fem_parproj_ampere_bc, 0, 0, 0, app->use_gpu
+        &app->global_core, &app->grid, &app->basis, gkf->fem_parproj_ampere_bc, 0, 0, 0,
+        app->use_gpu
       );
       gkf->fem_apar_parproj_sol = gkyl_fem_parproj_new(
         &app->global_sol, &app->grid, &app->basis, GKYL_FEM_PARPROJ_NONE, 0, 0, 0, app->use_gpu
