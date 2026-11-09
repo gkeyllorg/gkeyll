@@ -441,12 +441,16 @@ member on the line below the `{` and the closing `}` on its own line:
   });
 ```
 
+An array of designated initializers follows the same rule, so it never collapses
+into `{{`.
+
 It does this by stripping every trailing comma before a closing `}`, running
-clang-format, adding a trailing comma to each designated list that didn't fit,
-and running clang-format again (a trailing comma is clang-format's signal for
-one-per-line). So the result doesn't depend on whether you typed a trailing
-comma; the script decides. Don't run bare `clang-format -i` on Gkeyll sources,
-since it will pack those lists back; use `ci/format.py FILE...` or the hook.
+clang-format, adding a trailing comma to each designated list or array of them
+that didn't fit, and running clang-format again until nothing is left to expand
+(a trailing comma is clang-format's signal for one-per-line). So the result
+doesn't depend on whether you typed a trailing comma; the script decides. Don't
+run bare `clang-format -i` on Gkeyll sources, since it will pack those lists
+back; use `ci/format.py FILE...` or the hook.
 
 Since the repo's history includes a single large reformatting commit, run:
 
