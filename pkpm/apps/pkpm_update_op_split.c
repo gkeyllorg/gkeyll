@@ -62,21 +62,24 @@ pkpm_op_split_sync(gkyl_pkpm_app *app)
     gkyl_array_copy(app->op_split_fluid[i], app->species[i].fluid);
   }
   gkyl_array_copy(app->op_split_em, app->field->em);
-  // the positivity limiter of the source step is not part of the evolution: keep its counts
-  long pos_count[GKYL_MAX_SPECIES][4];
+  // the positivity limiter of the source step is not part of the evolution: keep it out of both
+  // records (the statistics of the dynvec and the per-cell counts of the frames)
+  long pos_count[GKYL_MAX_SPECIES][PKPM_POS_NUM_STAT];
   for (int i = 0; i < app->num_species; ++i) {
-    for (int c = 0; c < 4; ++c) {
+    for (int c = 0; c < PKPM_POS_NUM_STAT; ++c) {
       pos_count[i][c] = app->species[i].pos_count_since[c];
     }
+    gkyl_array_copy(app->op_split_pos_count[i], app->species[i].pkpm_pos_count);
   }
   // tcurr is the end of the last transport step; the sources stand at its midpoint (applied fields
   // at the midpoint of the half step, as in the inverse step of a restart)
   double dt_half = 0.5 * app->op_split_dt_prev;
   pkpm_fluid_em_coupling_update(app, app->pkpm_em, app->tcurr - 0.5 * dt_half, dt_half);
   for (int i = 0; i < app->num_species; ++i) {
-    for (int c = 0; c < 4; ++c) {
+    for (int c = 0; c < PKPM_POS_NUM_STAT; ++c) {
       app->species[i].pos_count_since[c] = pos_count[i][c];
     }
+    gkyl_array_copy(app->species[i].pkpm_pos_count, app->op_split_pos_count[i]);
   }
   app->op_split_synced = true;
 }

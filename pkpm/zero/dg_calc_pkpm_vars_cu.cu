@@ -226,8 +226,8 @@ gkyl_dg_calc_pkpm_vars_positivity_cu_kernel(
     int flag = up->pkpm_fluid_positivity(eps, (double *)gkyl_array_fetch(fluid, loc));
     double *cnt = (double *)gkyl_array_fetch(count, loc);
     if (flag < 0) {
-      cnt[2] += 1.0;
-      atomicAdd(&num_pos[2], 1);
+      cnt[3] += 1.0;
+      atomicAdd(&num_pos[3], 1);
     }
     if (flag > 0 && (flag & 1)) {
       cnt[0] += 1.0;
@@ -237,24 +237,30 @@ gkyl_dg_calc_pkpm_vars_positivity_cu_kernel(
       cnt[1] += 1.0;
       atomicAdd(&num_pos[1], 1);
     }
+    if (flag > 0 && (flag & 4)) {
+      cnt[2] += 1.0;
+      atomicAdd(&num_pos[2], 1);
+    }
   }
 }
 // Host-side wrapper for the fluid positivity limiter
 void
 gkyl_dg_calc_pkpm_vars_positivity_cu(
   struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, double eps,
-  struct gkyl_array *fluid, struct gkyl_array *count, int *num_rho, int *num_e, int *num_avg
+  struct gkyl_array *fluid, struct gkyl_array *count, int *num_rho, int *num_e, int *num_xi,
+  int *num_avg
 )
 {
-  gkyl_cu_memset(up->num_pos_dev, 0, sizeof(int[3]));
+  gkyl_cu_memset(up->num_pos_dev, 0, sizeof(int[4]));
   gkyl_dg_calc_pkpm_vars_positivity_cu_kernel<<<conf_range->nblocks, conf_range->nthreads>>>(
     up->on_dev, *conf_range, eps, fluid->on_dev, count->on_dev, up->num_pos_dev
   );
-  int num_pos[3] = {0, 0, 0};
-  gkyl_cu_memcpy(num_pos, up->num_pos_dev, sizeof(int[3]), GKYL_CU_MEMCPY_D2H);
+  int num_pos[4] = {0, 0, 0, 0};
+  gkyl_cu_memcpy(num_pos, up->num_pos_dev, sizeof(int[4]), GKYL_CU_MEMCPY_D2H);
   *num_rho = num_pos[0];
   *num_e = num_pos[1];
-  *num_avg = num_pos[2];
+  *num_xi = num_pos[2];
+  *num_avg = num_pos[3];
 }
 
 __global__ void
@@ -507,7 +513,7 @@ gkyl_dg_calc_pkpm_vars_cu_dev_new(
   up->num_null_rho_dev = (int *)gkyl_cu_malloc(sizeof(int));
   up->closure_cond_min = 1.0;
   up->closure_cond_min_dev = (unsigned long long *)gkyl_cu_malloc(sizeof(unsigned long long));
-  up->num_pos_dev = (int *)gkyl_cu_malloc(sizeof(int[3]));
+  up->num_pos_dev = (int *)gkyl_cu_malloc(sizeof(int[4]));
 
   up->flags = 0;
   GKYL_SET_CU_ALLOC(up->flags);

@@ -194,6 +194,15 @@ enum pkpm_dist_block {
   PKPM_DIST_NUM_BLOCKS = 8,
 };
 
+// Records of the fluid positivity limiter (gkyl_dg_calc_pkpm_vars_positivity): the per-cell
+// count [cells scaled for the density, for the internal energy, for the thermal speed,
+// inadmissible averages], and the statistics per integrated-moment interval, which append the
+// number of limiter applications.
+enum pkpm_positivity_record {
+  PKPM_POS_NUM_COUNT = 4,
+  PKPM_POS_NUM_STAT = 5,
+};
+
 // species data
 struct pkpm_species {
   struct gkyl_pkpm_species info; // data for species
@@ -301,9 +310,9 @@ struct pkpm_species {
   long num_null_closure; // accumulated count of closure nodes nulled (M0 <= 0 or a non-positive determinant)
   double closure_cond_min; // smallest det/det0 of the closure solves over the run
   bool closure_null_warned; // the velocity-extent warning was printed
-  struct gkyl_array *pkpm_pos_count; // per-cell record of the positivity limiter [rho, e, avg] (cumulative)
+  struct gkyl_array *pkpm_pos_count; // per-cell record of the positivity limiter [rho, e, xi, avg] (cumulative)
   struct gkyl_array *pkpm_pos_io, *pkpm_pos_io_host; // the record as cell averages of a p=1 field for IO
-  long pos_count_since[4]; // limiter counts [rho, e, avg, applications] since the last integrated-moment call
+  long pos_count_since[PKPM_POS_NUM_STAT]; // limiter counts [rho, e, xi, avg, applications] since the last integrated-moment call
   gkyl_dynvec pos_stat; // the counts per integrated-moment interval, summed over ranks
   bool is_first_pos_stat_write_call; // flag for the positivity statistics dynvec written first time
 
@@ -478,6 +487,8 @@ struct gkyl_pkpm_app {
   bool op_split_synced; // the fluid and field hold the synchronized state
   struct gkyl_array *op_split_fluid[GKYL_MAX_SPECIES]; // staggered fluid states while synchronized
   struct gkyl_array *op_split_em; // staggered field while synchronized
+  // per-cell limiter record held across the synchronizing source step
+  struct gkyl_array *op_split_pos_count[GKYL_MAX_SPECIES];
   int num_periodic_dir; // number of periodic directions
   int periodic_dirs[3]; // list of periodic directions
 
@@ -517,8 +528,7 @@ struct gkyl_pkpm_app {
   struct pkpm_species *species; // data for each species
 
   bool use_explicit_source; // Boolean to turn on explicit fluid-EM coupling
-  bool fluid_positivity; // Apply the vertex positivity limiter to the fluid state
-  double fluid_positivity_eps; // Relative floor of the limiter
+  double fluid_positivity_eps; // Relative floor of the vertex positivity limiter (always applied)
   struct pkpm_fluid_em_coupling *pkpm_em; // fluid-EM coupling data
   // pointer to function that takes a single-step of simulation
   struct gkyl_update_status (*update_func)(gkyl_pkpm_app *app, double dt0);

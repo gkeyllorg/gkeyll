@@ -236,14 +236,14 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
     s->fluid_io_host = mkarr(false, 11 * nc, app->local_ext.volume);
     s->pkpm_vars_io_host = mkarr(false, 10 * nc, app->local_ext.volume);
   }
-  // Record of the positivity limiter: per cell [density scalings, energy scalings,
-  // inadmissible averages] accumulated over the run, and its p=1 image for IO.
-  s->pkpm_pos_count = mkarr(app->use_gpu, 3, app->local_ext.volume);
+  // Record of the positivity limiter: per cell [density scalings, energy scalings, thermal
+  // speed scalings, inadmissible averages] accumulated over the run, and its p=1 image for IO.
+  s->pkpm_pos_count = mkarr(app->use_gpu, PKPM_POS_NUM_COUNT, app->local_ext.volume);
   gkyl_array_clear(s->pkpm_pos_count, 0.0);
-  s->pkpm_pos_io = mkarr(app->use_gpu, 3 * nc, app->local_ext.volume);
+  s->pkpm_pos_io = mkarr(app->use_gpu, PKPM_POS_NUM_COUNT * nc, app->local_ext.volume);
   s->pkpm_pos_io_host = s->pkpm_pos_io;
   if (app->use_gpu) {
-    s->pkpm_pos_io_host = mkarr(false, 3 * nc, app->local_ext.volume);
+    s->pkpm_pos_io_host = mkarr(false, PKPM_POS_NUM_COUNT * nc, app->local_ext.volume);
   }
 
   // Surface-flux updaters and stored modal fluxes (each cell owns its lower faces).
@@ -389,14 +389,14 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   // allocate dynamic-vector to store all-reduced integrated moments and F_0^2
   s->integ_L2_f = gkyl_dynvec_new(GKYL_DOUBLE, 1);
   s->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, 9);
-  s->pos_stat = gkyl_dynvec_new(GKYL_DOUBLE, 4);
+  s->pos_stat = gkyl_dynvec_new(GKYL_DOUBLE, PKPM_POS_NUM_STAT);
   s->bflux_diag = gkyl_dynvec_new(GKYL_DOUBLE, 2 * cdim);
   s->is_first_bflux_write_call = true;
   for (int i = 0; i < 2 * GKYL_MAX_CDIM; ++i) {
     s->bflux[i] = 0.0;
   }
   s->is_first_pos_stat_write_call = true;
-  for (int c = 0; c < 4; ++c) {
+  for (int c = 0; c < PKPM_POS_NUM_STAT; ++c) {
     s->pos_count_since[c] = 0;
   }
   s->is_first_integ_L2_write_call = true;
@@ -842,19 +842,17 @@ pkpm_species_apply_positivity(
   gkyl_pkpm_app *app, struct pkpm_species *species, struct gkyl_array *fluid
 )
 {
-  if (!app->fluid_positivity) {
-    return;
-  }
   struct timespec tm = gkyl_wall_clock();
-  int num_rho = 0, num_e = 0, num_avg = 0;
+  int num_rho = 0, num_e = 0, num_xi = 0, num_avg = 0;
   gkyl_dg_calc_pkpm_vars_positivity(
     species->calc_pkpm_vars, &app->local, app->fluid_positivity_eps, fluid, species->pkpm_pos_count,
-    &num_rho, &num_e, &num_avg
+    &num_rho, &num_e, &num_xi, &num_avg
   );
   species->pos_count_since[0] += num_rho;
   species->pos_count_since[1] += num_e;
-  species->pos_count_since[2] += num_avg;
-  species->pos_count_since[3] += 1;
+  species->pos_count_since[2] += num_xi;
+  species->pos_count_since[3] += num_avg;
+  species->pos_count_since[4] += 1;
   app->stat.species_pkpm_vars_tm += gkyl_time_diff_now_sec(tm);
 }
 

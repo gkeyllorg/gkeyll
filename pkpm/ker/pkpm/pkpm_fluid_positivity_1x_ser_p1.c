@@ -4,8 +4,9 @@ GKYL_CU_DH int pkpm_fluid_positivity_1x_ser_p1(double eps, double* GKYL_RESTRICT
 { 
   // eps:   Relative floor: the vertex density and internal energy are kept above eps times the cell values. 
   // fluid: In/out fluid state [rho, rho ux, rho uy, rho uz, E]; the slopes are scaled toward the cell averages. 
-  // Returns 0 (untouched), 1 (density slopes scaled), 2 (all slopes scaled for the internal energy), 
-  // 3 (both) or -1 (inadmissible cell average: nothing done). 
+  // Returns -1 (inadmissible cell average: nothing done), or the sum of 1 (density slopes scaled), 
+  // 2 (all slopes scaled for the internal energy) and 4 (all slopes scaled for the thermal speed at the 
+  // vertices), 0 when untouched. 
   double *rho = &fluid[0]; 
   double *Mx = &fluid[2]; 
   double *My = &fluid[4]; 
@@ -82,6 +83,49 @@ GKYL_CU_DH int pkpm_fluid_positivity_1x_ser_p1(double eps, double* GKYL_RESTRICT
     for (int i = 1; i < 2; ++i) Mz[i] *= theta; 
     for (int i = 1; i < 2; ++i) E[i] *= theta; 
     flag |= 2; 
+  } 
+ 
+  // (3) Thermal speed: scale all slopes so that the p=1 interpolant of xi = sqrt(2 e/(3 rho)) from the 
+  // 2 Gauss-Legendre nodes (pkpm_vars_prim) is >= eps xi(q_avg) at every vertex. Bisection on the scaling t. 
+  const double xi_min = eps*sqrt(2.0*e_avg/(3.0*rho_avg)); 
+  // Deviations of the state from the cell averages at the nodes (the slopes after steps 1-2). 
+  double dq_n[5][2]; 
+  dq_n[0][0] = (-0.7071067811865475)*rho[1]; 
+  dq_n[0][1] = (0.7071067811865475)*rho[1]; 
+  dq_n[1][0] = (-0.7071067811865475)*Mx[1]; 
+  dq_n[1][1] = (0.7071067811865475)*Mx[1]; 
+  dq_n[2][0] = (-0.7071067811865475)*My[1]; 
+  dq_n[2][1] = (0.7071067811865475)*My[1]; 
+  dq_n[3][0] = (-0.7071067811865475)*Mz[1]; 
+  dq_n[3][1] = (0.7071067811865475)*Mz[1]; 
+  dq_n[4][0] = (-0.7071067811865475)*E[1]; 
+  dq_n[4][1] = (0.7071067811865475)*E[1]; 
+  double lo = 0.0, hi = 1.0; 
+  int scale = 0; 
+  for (int it = 0; it <= 40; ++it) { 
+    const double t = it == 0 ? 1.0 : 0.5*(lo + hi); 
+    double xi_n[2]; 
+    for (int n = 0; n < 2; ++n) { 
+      const double r = rho_avg + t*dq_n[0][n], mx = Mx_avg + t*dq_n[1][n], my = My_avg + t*dq_n[2][n]; 
+      const double mz = Mz_avg + t*dq_n[3][n], en = E_avg + t*dq_n[4][n]; 
+      xi_n[n] = sqrt(fmax((2.0*en - (mx*mx + my*my + mz*mz)/r)/(3.0*r), 0.0)); 
+    } 
+    double g = (1.3660254037844386)*xi_n[0] + (-0.3660254037844386)*xi_n[1]; 
+    g = fmin(g, (-0.3660254037844386)*xi_n[0] + (1.3660254037844386)*xi_n[1]); 
+    if (it == 0) { 
+      if (g >= xi_min) break; 
+      scale = 1; 
+      continue; 
+    } 
+    if (g >= xi_min) lo = t; else hi = t; 
+  } 
+  if (scale) { 
+    for (int i = 1; i < 2; ++i) rho[i] *= lo; 
+    for (int i = 1; i < 2; ++i) Mx[i] *= lo; 
+    for (int i = 1; i < 2; ++i) My[i] *= lo; 
+    for (int i = 1; i < 2; ++i) Mz[i] *= lo; 
+    for (int i = 1; i < 2; ++i) E[i] *= lo; 
+    flag |= 4; 
   } 
   return flag; 
 } 
