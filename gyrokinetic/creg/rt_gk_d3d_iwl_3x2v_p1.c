@@ -472,40 +472,6 @@ bfield_func(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
   fout[2] = B_z;
 }
 
-void
-bc_shift_func_lo(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
-{
-  double x = xc[0];
-
-  struct gk_app_ctx *app = ctx;
-  double a_mid = app->a_mid;
-  double x_inner = app->x_inner;
-  double Cy = app->Cy;
-  double z_min = app->z_min;
-  double z_max = app->z_max;
-
-  double r = r_x(x, a_mid, x_inner);
-
-  fout[0] = Cy * (alpha(r, z_min, 0.0, ctx) - alpha(r, z_max, 0.0, ctx));
-}
-
-void
-bc_shift_func_up(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
-{
-  double x = xc[0];
-
-  struct gk_app_ctx *app = ctx;
-  double a_mid = app->a_mid;
-  double x_inner = app->x_inner;
-  double Cy = app->Cy;
-  double z_min = app->z_min;
-  double z_max = app->z_max;
-
-  double r = r_x(x, a_mid, x_inner);
-
-  fout[0] = -Cy * (alpha(r, z_min, 0.0, ctx) - alpha(r, z_max, 0.0, ctx));
-}
-
 struct gk_app_ctx
 create_ctx(void)
 {
@@ -944,13 +910,6 @@ main(int argc, char **argv)
         .bfield_ctx = &ctx,
         .has_LCFS = true,
         .x_LCFS = ctx.x_LCFS, // Location of last closed flux surface.
-        .core_parallel_bcs =
-          {
-            .lower_shift_func = bc_shift_func_lo,
-            .upper_shift_func = bc_shift_func_up,
-            .lower_shift_ctx = &ctx,
-            .upper_shift_ctx = &ctx,
-          },
       },
 
     .num_periodic_dir = 1,

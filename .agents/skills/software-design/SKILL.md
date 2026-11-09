@@ -31,6 +31,15 @@ There may also be some additional auxiliary private or public functions.
   of the module, and call that method inside the time loop.
 - Function signatures in header files should contain a brief comment describing
   what the function does, and a description of each argument following existing styles.
+  Public header comments for each function should have the Gkeyll style like
+  ```bash
+  /**
+   * <comment>
+   * 
+   * @param <argument name> <argument description>.
+   * @return <output description, optional>.
+   */
+  ```
 - Comments should follow standard English grammar rules, and culminate with a period (.).
 - Methods to initialize an updater in zero/ which take all arguments inside a
   single input struct should have a name with the suffix _inew (instead of _new).

@@ -497,11 +497,11 @@ gk_neut_species_kinetic_read_distf_from_file(
 
   // Donor basis.
   struct gkyl_basis basis_do;
-  // Basis is tensor for p=1 and ser for p>1
+  // Basis is hybrid for p=1 and ser for p>1
   if (poly_order > 1) {
     gkyl_cart_modal_serendip(&basis_do, pdim_do, poly_order);
   } else if (poly_order == 1) {
-    gkyl_cart_modal_tensor(&basis_do, pdim_do, poly_order); // for canonical PB
+    gkyl_cart_modal_hybrid(&basis_do, cdim_do, vdim_do);
   }
 
   // Donor global range.
@@ -615,7 +615,7 @@ gk_neut_species_kinetic_read_distf_from_file(
     struct gkyl_array *xfac = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     struct gkyl_array *xfac_ho = app->use_gpu ?
                                    mkarr(false, app->basis.num_basis, app->local_ext.volume) :
-                                   gkyl_array_acquire(xfac_ho);
+                                   gkyl_array_acquire(xfac);
     gkyl_proj_on_basis_advance(proj_conf_scale, 0.0, &app->local, xfac_ho);
     gkyl_array_copy(xfac, xfac_ho);
     gkyl_dg_mul_conf_phase_op_range(
