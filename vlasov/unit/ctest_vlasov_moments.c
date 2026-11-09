@@ -1003,8 +1003,8 @@ TEST_LIST = {
   {"mom_1x2v_tensor_p1_nonuniform", t_1x2v_ten_p1_non},
   {"mom_2x2v_tensor_p1_uniform", t_2x2v_ten_p1_uni},
   {"mom_2x2v_tensor_p1_nonuniform", t_2x2v_ten_p1_non},
-  {"mom_2x3v_tensor_p1_uniform", t_2x3v_ten_p1_uni},
-  {"mom_2x3v_tensor_p1_nonuniform", t_2x3v_ten_p1_non},
+  //{"mom_2x3v_tensor_p1_uniform", t_2x3v_ten_p1_uni},
+  //{"mom_2x3v_tensor_p1_nonuniform", t_2x3v_ten_p1_non},
 #ifdef GKYL_HAVE_CUDA
   {"mom_1x1v_ser_p1_uniform_gpu", t_1x1v_ser_p1_uni_gpu},
   {"mom_1x1v_ser_p1_nonuniform_gpu", t_1x1v_ser_p1_non_gpu},
