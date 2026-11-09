@@ -265,19 +265,22 @@ create_gk_block_geom(void *ctx)
         },
 
       .connections[0] =
-        {// x-direction.
-         {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL},
-         {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}
+        {
+          // x-direction.
+          {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL},
+          {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL},
         },
       .connections[1] =
-        {// y-direction.
-         {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL},
-         {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}
+        {
+          // y-direction.
+          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL},
+          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL},
         },
       .connections[2] =
-        {// z-direction.
-         {.bid = 0, .dir = 2, .edge = GKYL_PHYSICAL},
-         {.bid = 1, .dir = 2, .edge = GKYL_LOWER_POSITIVE}
+        {
+          // z-direction.
+          {.bid = 0, .dir = 2, .edge = GKYL_PHYSICAL},
+          {.bid = 1, .dir = 2, .edge = GKYL_LOWER_POSITIVE},
         },
     }
   );
@@ -311,19 +314,22 @@ create_gk_block_geom(void *ctx)
         },
 
       .connections[0] =
-        {// x-direction.
-         {.bid = 1, .dir = 0, .edge = GKYL_PHYSICAL},
-         {.bid = 1, .dir = 0, .edge = GKYL_PHYSICAL}
+        {
+          // x-direction.
+          {.bid = 1, .dir = 0, .edge = GKYL_PHYSICAL},
+          {.bid = 1, .dir = 0, .edge = GKYL_PHYSICAL},
         },
       .connections[1] =
-        {// y-direction.
-         {.bid = 1, .dir = 1, .edge = GKYL_PHYSICAL},
-         {.bid = 1, .dir = 1, .edge = GKYL_PHYSICAL}
+        {
+          // y-direction.
+          {.bid = 1, .dir = 1, .edge = GKYL_PHYSICAL},
+          {.bid = 1, .dir = 1, .edge = GKYL_PHYSICAL},
         },
       .connections[2] =
-        {// z-direction.
-         {.bid = 0, .dir = 2, .edge = GKYL_UPPER_POSITIVE},
-         {.bid = 2, .dir = 2, .edge = GKYL_LOWER_POSITIVE}
+        {
+          // z-direction.
+          {.bid = 0, .dir = 2, .edge = GKYL_UPPER_POSITIVE},
+          {.bid = 2, .dir = 2, .edge = GKYL_LOWER_POSITIVE},
         },
     }
   );
@@ -357,19 +363,22 @@ create_gk_block_geom(void *ctx)
         },
 
       .connections[0] =
-        {// x-direction.
-         {.bid = 2, .dir = 0, .edge = GKYL_PHYSICAL},
-         {.bid = 2, .dir = 0, .edge = GKYL_PHYSICAL}
+        {
+          // x-direction.
+          {.bid = 2, .dir = 0, .edge = GKYL_PHYSICAL},
+          {.bid = 2, .dir = 0, .edge = GKYL_PHYSICAL},
         },
       .connections[1] =
-        {// x-direction.
-         {.bid = 2, .dir = 1, .edge = GKYL_PHYSICAL},
-         {.bid = 2, .dir = 1, .edge = GKYL_PHYSICAL}
+        {
+          // x-direction.
+          {.bid = 2, .dir = 1, .edge = GKYL_PHYSICAL},
+          {.bid = 2, .dir = 1, .edge = GKYL_PHYSICAL},
         },
       .connections[2] =
-        {// z-direction.
-         {.bid = 1, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
-         {.bid = 2, .dir = 1, .edge = GKYL_PHYSICAL}
+        {
+          // z-direction.
+          {.bid = 1, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
+          {.bid = 2, .dir = 1, .edge = GKYL_PHYSICAL},
         },
     }
   );
@@ -728,7 +737,7 @@ main(int argc, char **argv)
     // block 2 BCs
     {.bidx = 2, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
     {.bidx = 2, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-    {.bidx = 2, .dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}
+    {.bidx = 2, .dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
   };
 
   struct gkyl_gyrokinetic_multib_species elc = {
@@ -904,7 +913,7 @@ main(int argc, char **argv)
     // block 2 BCs
     {.bidx = 2, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
     {.bidx = 2, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-    {.bidx = 2, .dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}
+    {.bidx = 2, .dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
   };
 
   struct gkyl_gyrokinetic_multib_species ion = {
@@ -953,51 +962,52 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_multib_field_pb field_blocks[1];
   field_blocks[0] = (struct gkyl_gyrokinetic_multib_field_pb){.polarization_bmag = 2.18};
 
-  struct gkyl_gyrokinetic_bc field_phys_bcs[] = {// block 0 BCs
-                                                 {
-                                                   .bidx = 0,
-                                                   .dir = 0,
-                                                   .edge = GKYL_LOWER_EDGE,
-                                                   .type = GKYL_BC_GK_FIELD_DIRICHLET,
-                                                   .value = {0.0},
-                                                 },
-                                                 {
-                                                   .bidx = 0,
-                                                   .dir = 0,
-                                                   .edge = GKYL_UPPER_EDGE,
-                                                   .type = GKYL_BC_GK_FIELD_DIRICHLET,
-                                                   .value = {0.0},
-                                                 },
-                                                 // block 1 BCs
-                                                 {
-                                                   .bidx = 1,
-                                                   .dir = 0,
-                                                   .edge = GKYL_LOWER_EDGE,
-                                                   .type = GKYL_BC_GK_FIELD_DIRICHLET,
-                                                   .value = {0.0},
-                                                 },
-                                                 {
-                                                   .bidx = 1,
-                                                   .dir = 0,
-                                                   .edge = GKYL_UPPER_EDGE,
-                                                   .type = GKYL_BC_GK_FIELD_DIRICHLET,
-                                                   .value = {0.0},
-                                                 },
-                                                 // block 2 BCs
-                                                 {
-                                                   .bidx = 2,
-                                                   .dir = 0,
-                                                   .edge = GKYL_LOWER_EDGE,
-                                                   .type = GKYL_BC_GK_FIELD_DIRICHLET,
-                                                   .value = {0.0},
-                                                 },
-                                                 {
-                                                   .bidx = 2,
-                                                   .dir = 0,
-                                                   .edge = GKYL_UPPER_EDGE,
-                                                   .type = GKYL_BC_GK_FIELD_DIRICHLET,
-                                                   .value = {0.0},
-                                                 }
+  struct gkyl_gyrokinetic_bc field_phys_bcs[] = {
+    // block 0 BCs
+    {
+      .bidx = 0,
+      .dir = 0,
+      .edge = GKYL_LOWER_EDGE,
+      .type = GKYL_BC_GK_FIELD_DIRICHLET,
+      .value = {0.0},
+    },
+    {
+      .bidx = 0,
+      .dir = 0,
+      .edge = GKYL_UPPER_EDGE,
+      .type = GKYL_BC_GK_FIELD_DIRICHLET,
+      .value = {0.0},
+    },
+    // block 1 BCs
+    {
+      .bidx = 1,
+      .dir = 0,
+      .edge = GKYL_LOWER_EDGE,
+      .type = GKYL_BC_GK_FIELD_DIRICHLET,
+      .value = {0.0},
+    },
+    {
+      .bidx = 1,
+      .dir = 0,
+      .edge = GKYL_UPPER_EDGE,
+      .type = GKYL_BC_GK_FIELD_DIRICHLET,
+      .value = {0.0},
+    },
+    // block 2 BCs
+    {
+      .bidx = 2,
+      .dir = 0,
+      .edge = GKYL_LOWER_EDGE,
+      .type = GKYL_BC_GK_FIELD_DIRICHLET,
+      .value = {0.0},
+    },
+    {
+      .bidx = 2,
+      .dir = 0,
+      .edge = GKYL_UPPER_EDGE,
+      .type = GKYL_BC_GK_FIELD_DIRICHLET,
+      .value = {0.0},
+    },
   };
 
   struct gkyl_gyrokinetic_multib_field field = {

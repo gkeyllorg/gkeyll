@@ -369,10 +369,7 @@ main(int argc, char **argv)
     .upper = {1.0},
     .cells = {NVX},
 
-    .mapc2p_vel =
-      {
-        {.mapc2p_vel_func = mapc2p_vx, .mapc2p_vel_ctx = &ctx},
-      },
+    .mapc2p_vel = {{.mapc2p_vel_func = mapc2p_vx, .mapc2p_vel_ctx = &ctx}},
 
     .num_init = 1,
     .projection[0] =
@@ -387,20 +384,10 @@ main(int argc, char **argv)
         .correct_all_moms = true,
         .use_last_converged = true,
       },
-    .collisions =
-      {
-        .collision_id = GKYL_BGK_COLLISIONS,
-        .self_nu = evalNu,
-        .self_nu_ctx = &ctx,
-      },
+    .collisions = {.collision_id = GKYL_BGK_COLLISIONS, .self_nu = evalNu, .self_nu_ctx = &ctx},
 
     .correct =
-      {
-        .correct_all_moms = true,
-        .iter_eps = 1.0e-12,
-        .max_iter = 100,
-        .use_last_converged = true,
-      },
+      {.correct_all_moms = true, .iter_eps = 1.0e-12, .max_iter = 100, .use_last_converged = true},
 
     .num_diag_moments = 3,
     .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_LTE},
@@ -424,13 +411,16 @@ main(int argc, char **argv)
     .periodic_dirs = {},
 
     .num_species = 1,
-    .species = {{
-      .name = "neut",
-      .charge = ctx.charge_neut,
-      .mass = ctx.mass_neut,
-      .type = GKYL_SPECIES_VLASOV,
-      .kinetic = neut,
-    }},
+    .species =
+      {
+        {
+          .name = "neut",
+          .charge = ctx.charge_neut,
+          .mass = ctx.mass_neut,
+          .type = GKYL_SPECIES_VLASOV,
+          .kinetic = neut,
+        },
+      },
 
     .skip_field = true,
 

@@ -385,13 +385,16 @@ main(int argc, char **argv)
     .periodic_dirs = {},
 
     .num_species = 1,
-    .species = {{
-      .name = "dm",
-      .charge = ctx.charge_dm,
-      .mass = ctx.mass_dm,
-      .type = GKYL_SPECIES_VLASOV,
-      .kinetic = dm,
-    }},
+    .species =
+      {
+        {
+          .name = "dm",
+          .charge = ctx.charge_dm,
+          .mass = ctx.mass_dm,
+          .type = GKYL_SPECIES_VLASOV,
+          .kinetic = dm,
+        },
+      },
 
     .field = field,
 

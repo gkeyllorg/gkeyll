@@ -405,12 +405,7 @@ main(int argc, char **argv)
       },
 
     .correct =
-      {
-        .correct_all_moms = true,
-        .iter_eps = 1.0e-12,
-        .max_iter = 100,
-        .use_last_converged = true,
-      },
+      {.correct_all_moms = true, .iter_eps = 1.0e-12, .max_iter = 100, .use_last_converged = true},
 
     .num_diag_moments = 4,
     .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_LTE},
@@ -448,12 +443,7 @@ main(int argc, char **argv)
       },
 
     .correct =
-      {
-        .correct_all_moms = true,
-        .iter_eps = 1.0e-12,
-        .max_iter = 100,
-        .use_last_converged = true,
-      },
+      {.correct_all_moms = true, .iter_eps = 1.0e-12, .max_iter = 100, .use_last_converged = true},
 
     .num_diag_moments = 4,
     .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_LTE},

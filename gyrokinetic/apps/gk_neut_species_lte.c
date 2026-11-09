@@ -105,11 +105,13 @@ gk_neut_species_lte_kinetic_write_max_corr_status(
 
       if (gkns->lte.is_first_corr_status_write_call) {
         // Write to a new file (this ensure previous output is removed).
-        struct gkyl_msgpack_map_elem io_meta_phi[] = {{
-          .key = "Description",
-          .elem_type = GKYL_MP_STRING,
-          .cval = "Statistics on Maxwellian correction.",
-        }};
+        struct gkyl_msgpack_map_elem io_meta_phi[] = {
+          {
+            .key = "Description",
+            .elem_type = GKYL_MP_STRING,
+            .cval = "Statistics on Maxwellian correction.",
+          },
+        };
         int io_meta_len[] = {gkns->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
         const struct gkyl_msgpack_map_elem *io_meta[] = {
           gkns->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi

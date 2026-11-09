@@ -48,11 +48,13 @@ gk_neut_species_recycle_write_flux_enabled(
       gkyl_array_copy(recyc->diag_out_ho, recyc->diag_out);
     }
 
-    struct gkyl_msgpack_map_elem desc0[] = {{
-      .key = "Description",
-      .elem_type = GKYL_MP_STRING,
-      .cval = "Impacting boundary particle flux.",
-    }};
+    struct gkyl_msgpack_map_elem desc0[] = {
+      {
+        .key = "Description",
+        .elem_type = GKYL_MP_STRING,
+        .cval = "Impacting boundary particle flux.",
+      },
+    };
     const struct gkyl_msgpack_map_elem *io_meta[] = {
       gkns->io_meta_conf, app->gk_geom->io_meta_basic, desc0
     };
@@ -107,7 +109,7 @@ gk_neut_species_recycle_write_flux_enabled(
   }
 
   struct gkyl_msgpack_map_elem desc1[] = {
-    {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Emitted boundary particle flux."}
+    {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Emitted boundary particle flux."},
   };
   const struct gkyl_msgpack_map_elem *io_meta[] = {
     gkns->io_meta_conf, app->gk_geom->io_meta_basic, desc1

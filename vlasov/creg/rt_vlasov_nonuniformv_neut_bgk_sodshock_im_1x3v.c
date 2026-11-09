@@ -432,12 +432,7 @@ main(int argc, char **argv)
       },
 
     .correct =
-      {
-        .correct_all_moms = true,
-        .iter_eps = 1.0e-12,
-        .max_iter = 100,
-        .use_last_converged = true,
-      },
+      {.correct_all_moms = true, .iter_eps = 1.0e-12, .max_iter = 100, .use_last_converged = true},
 
     .num_diag_moments = 3,
     .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_LTE},
@@ -460,13 +455,16 @@ main(int argc, char **argv)
     .periodic_dirs = {},
 
     .num_species = 1,
-    .species = {{
-      .name = "neut",
-      .charge = ctx.charge_neut,
-      .mass = ctx.mass_neut,
-      .type = GKYL_SPECIES_VLASOV,
-      .kinetic = neut,
-    }},
+    .species =
+      {
+        {
+          .name = "neut",
+          .charge = ctx.charge_neut,
+          .mass = ctx.mass_neut,
+          .type = GKYL_SPECIES_VLASOV,
+          .kinetic = neut,
+        },
+      },
 
     .skip_field = true,
 

@@ -318,12 +318,7 @@ main(int argc, char **argv)
 
     .num_init = 1,
     .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalSquareInit, .ctx_func = &ctx},
-    .collisions =
-      {
-        .collision_id = GKYL_LBO_COLLISIONS,
-        .self_nu = evalNu,
-        .self_nu_ctx = &ctx,
-      },
+    .collisions = {.collision_id = GKYL_LBO_COLLISIONS, .self_nu = evalNu, .self_nu_ctx = &ctx},
 
     .num_diag_moments = 3,
     .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2},
@@ -338,12 +333,7 @@ main(int argc, char **argv)
 
     .num_init = 1,
     .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalBumpInit, .ctx_func = &ctx},
-    .collisions =
-      {
-        .collision_id = GKYL_LBO_COLLISIONS,
-        .self_nu = evalNu,
-        .self_nu_ctx = &ctx,
-      },
+    .collisions = {.collision_id = GKYL_LBO_COLLISIONS, .self_nu = evalNu, .self_nu_ctx = &ctx},
 
     .num_diag_moments = 3,
     .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2},

@@ -529,43 +529,46 @@ GKYL_CU_D static const gkyl_hamil_alpha_quad_kern_list
 };
 
 // Phase-space Hamiltonian of the GR triads (nodal Poisson-tensor storage).
-GKYL_CU_D static const gkyl_hamil_alpha_quad_kern_list tensor_triad_hamil_phase_alpha_quad_x_kernels[] = {
-  // 1x kernels
-  {NULL, triad_nodal_hamil_phase_alpha_quad_x_1x1v_tensor_p1_shared, NULL, NULL}, // 0
-  {NULL, triad_nodal_hamil_phase_alpha_quad_x_1x2v_tensor_p1_shared, NULL, NULL}, // 1
-  {NULL, triad_nodal_hamil_phase_alpha_quad_x_1x3v_tensor_p1_shared, NULL, NULL}, // 2
-  // 2x kernels
-  {NULL, NULL, NULL, NULL}, // 3
-  {NULL, triad_nodal_hamil_phase_alpha_quad_x_2x2v_tensor_p1_shared, NULL, NULL}, // 4
-  {NULL, triad_nodal_hamil_phase_alpha_quad_x_2x3v_tensor_p1_shared, NULL, NULL}, // 5
-  // 3x kernels
-  {NULL, triad_nodal_hamil_phase_alpha_quad_x_3x3v_tensor_p1_shared, NULL, NULL} // 6
+GKYL_CU_D static const gkyl_hamil_alpha_quad_kern_list
+  tensor_triad_hamil_phase_alpha_quad_x_kernels[] = {
+    // 1x kernels
+    {NULL, triad_nodal_hamil_phase_alpha_quad_x_1x1v_tensor_p1_shared, NULL, NULL}, // 0
+    {NULL, triad_nodal_hamil_phase_alpha_quad_x_1x2v_tensor_p1_shared, NULL, NULL}, // 1
+    {NULL, triad_nodal_hamil_phase_alpha_quad_x_1x3v_tensor_p1_shared, NULL, NULL}, // 2
+    // 2x kernels
+    {NULL, NULL, NULL, NULL}, // 3
+    {NULL, triad_nodal_hamil_phase_alpha_quad_x_2x2v_tensor_p1_shared, NULL, NULL}, // 4
+    {NULL, triad_nodal_hamil_phase_alpha_quad_x_2x3v_tensor_p1_shared, NULL, NULL}, // 5
+    // 3x kernels
+    {NULL, triad_nodal_hamil_phase_alpha_quad_x_3x3v_tensor_p1_shared, NULL, NULL} // 6
 };
 
-GKYL_CU_D static const gkyl_hamil_alpha_quad_kern_list tensor_triad_hamil_phase_alpha_quad_y_kernels[] = {
-  // 1x kernels
-  {NULL, NULL, NULL, NULL}, // 0
-  {NULL, NULL, NULL, NULL}, // 1
-  {NULL, NULL, NULL, NULL}, // 2
-  // 2x kernels
-  {NULL, NULL, NULL, NULL}, // 3
-  {NULL, triad_nodal_hamil_phase_alpha_quad_y_2x2v_tensor_p1_shared, NULL, NULL}, // 4
-  {NULL, triad_nodal_hamil_phase_alpha_quad_y_2x3v_tensor_p1_shared, NULL, NULL}, // 5
-  // 3x kernels
-  {NULL, triad_nodal_hamil_phase_alpha_quad_y_3x3v_tensor_p1_shared, NULL, NULL} // 6
+GKYL_CU_D static const gkyl_hamil_alpha_quad_kern_list
+  tensor_triad_hamil_phase_alpha_quad_y_kernels[] = {
+    // 1x kernels
+    {NULL, NULL, NULL, NULL}, // 0
+    {NULL, NULL, NULL, NULL}, // 1
+    {NULL, NULL, NULL, NULL}, // 2
+    // 2x kernels
+    {NULL, NULL, NULL, NULL}, // 3
+    {NULL, triad_nodal_hamil_phase_alpha_quad_y_2x2v_tensor_p1_shared, NULL, NULL}, // 4
+    {NULL, triad_nodal_hamil_phase_alpha_quad_y_2x3v_tensor_p1_shared, NULL, NULL}, // 5
+    // 3x kernels
+    {NULL, triad_nodal_hamil_phase_alpha_quad_y_3x3v_tensor_p1_shared, NULL, NULL} // 6
 };
 
-GKYL_CU_D static const gkyl_hamil_alpha_quad_kern_list tensor_triad_hamil_phase_alpha_quad_z_kernels[] = {
-  // 1x kernels
-  {NULL, NULL, NULL, NULL}, // 0
-  {NULL, NULL, NULL, NULL}, // 1
-  {NULL, NULL, NULL, NULL}, // 2
-  // 2x kernels
-  {NULL, NULL, NULL, NULL}, // 3
-  {NULL, NULL, NULL, NULL}, // 4
-  {NULL, NULL, NULL, NULL}, // 5
-  // 3x kernels
-  {NULL, triad_nodal_hamil_phase_alpha_quad_z_3x3v_tensor_p1_shared, NULL, NULL} // 6
+GKYL_CU_D static const gkyl_hamil_alpha_quad_kern_list
+  tensor_triad_hamil_phase_alpha_quad_z_kernels[] = {
+    // 1x kernels
+    {NULL, NULL, NULL, NULL}, // 0
+    {NULL, NULL, NULL, NULL}, // 1
+    {NULL, NULL, NULL, NULL}, // 2
+    // 2x kernels
+    {NULL, NULL, NULL, NULL}, // 3
+    {NULL, NULL, NULL, NULL}, // 4
+    {NULL, NULL, NULL, NULL}, // 5
+    // 3x kernels
+    {NULL, triad_nodal_hamil_phase_alpha_quad_z_3x3v_tensor_p1_shared, NULL, NULL} // 6
 };
 
 GKYL_CU_D static const gkyl_hamil_alpha_quad_kern_list

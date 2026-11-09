@@ -469,20 +469,22 @@ main(int argc, char **argv)
 
     .num_species = 2,
     .species =
-      {{
-         .name = "elc",
-         .charge = ctx.charge_elc,
-         .mass = ctx.mass_elc,
-         .type = GKYL_SPECIES_VLASOV,
-         .kinetic = elc,
-       },
-       {
-         .name = "pos",
-         .charge = ctx.charge_pos,
-         .mass = ctx.mass_pos,
-         .type = GKYL_SPECIES_VLASOV,
-         .kinetic = pos,
-       }},
+      {
+        {
+          .name = "elc",
+          .charge = ctx.charge_elc,
+          .mass = ctx.mass_elc,
+          .type = GKYL_SPECIES_VLASOV,
+          .kinetic = elc,
+        },
+        {
+          .name = "pos",
+          .charge = ctx.charge_pos,
+          .mass = ctx.mass_pos,
+          .type = GKYL_SPECIES_VLASOV,
+          .kinetic = pos,
+        },
+      },
 
     .field = field,
 

@@ -84,7 +84,7 @@ gkyl_gk_geometry_new(
         .elem_type = GKYL_MP_UNSIGNED_INT,
         .uval = up->geqdsk_sign_convention,
       },
-      {.key = "half_domain", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->half_domain}
+      {.key = "half_domain", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->half_domain},
     };
     up->io_meta_basic_len = sizeof(io_meta_basic) / sizeof(io_meta_basic[0]);
     up->io_meta_basic = gkyl_msgpack_map_elem_clone(up->io_meta_basic_len, io_meta_basic);
@@ -95,13 +95,13 @@ gkyl_gk_geometry_new(
         .key = "geqdsk_sign_convention",
         .elem_type = GKYL_MP_UNSIGNED_INT,
         .uval = up->geqdsk_sign_convention,
-      }
+      },
     };
     up->io_meta_basic_len = sizeof(io_meta_basic) / sizeof(io_meta_basic[0]);
     up->io_meta_basic = gkyl_msgpack_map_elem_clone(up->io_meta_basic_len, io_meta_basic);
   } else {
     struct gkyl_msgpack_map_elem io_meta_basic[] = {
-      {.key = "geometry_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geometry_id}
+      {.key = "geometry_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geometry_id},
     };
     up->io_meta_basic_len = sizeof(io_meta_basic) / sizeof(io_meta_basic[0]);
     up->io_meta_basic = gkyl_msgpack_map_elem_clone(up->io_meta_basic_len, io_meta_basic);
@@ -133,11 +133,13 @@ gkyl_gk_geometry_reset_io_meta(struct gk_geometry *up)
       );
     } else {
       // Element list doesn't have this key. Create a new list with it.
-      struct gkyl_msgpack_map_elem io_meta_basic_new[] = {{
-        .key = "geqdsk_sign_convention",
-        .elem_type = GKYL_MP_UNSIGNED_INT,
-        .uval = up->geqdsk_sign_convention,
-      }};
+      struct gkyl_msgpack_map_elem io_meta_basic_new[] = {
+        {
+          .key = "geqdsk_sign_convention",
+          .elem_type = GKYL_MP_UNSIGNED_INT,
+          .uval = up->geqdsk_sign_convention,
+        },
+      };
       int io_meta_basic_new_len = sizeof(io_meta_basic_new) / sizeof(io_meta_basic_new[0]);
 
       struct gkyl_msgpack_map_elem *io_meta_basic_buffer =
@@ -167,7 +169,7 @@ gkyl_gk_geometry_reset_io_meta(struct gk_geometry *up)
     } else {
       // Element list doesn't have this key. Create a new list with it.
       struct gkyl_msgpack_map_elem io_meta_basic_new[] = {
-        {.key = "half_domain", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->half_domain}
+        {.key = "half_domain", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->half_domain},
       };
       int io_meta_basic_new_len = sizeof(io_meta_basic_new) / sizeof(io_meta_basic_new[0]);
 
@@ -938,7 +940,7 @@ gkyl_gk_geometry_write_efit(
     {.key = "rdim", .elem_type = GKYL_MP_DOUBLE, .dval = efit->rdim},
     {.key = "zmaxis", .elem_type = GKYL_MP_DOUBLE, .dval = efit->zmaxis},
     {.key = "zmid", .elem_type = GKYL_MP_DOUBLE, .dval = efit->zmid},
-    {.key = "zdim", .elem_type = GKYL_MP_DOUBLE, .dval = efit->zdim}
+    {.key = "zdim", .elem_type = GKYL_MP_DOUBLE, .dval = efit->zdim},
   };
   int io_meta_basic_rz_len = sizeof(io_meta_basic_rz) / sizeof(io_meta_basic_rz[0]);
   int io_meta_basic_len[] = {io_meta_basic_basic_len, io_meta_basic_rz_len};

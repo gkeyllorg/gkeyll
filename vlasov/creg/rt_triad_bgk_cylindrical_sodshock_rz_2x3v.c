@@ -340,9 +340,11 @@ main(int argc, char **argv)
     .cells = {NVR, NVZ, NVTHETA},
 
     .mapc2p_vel =
-      {{.mapc2p_vel_func = mapc2p_vel_dir, .mapc2p_vel_ctx = &vmap_ctx_vr},
-       {.mapc2p_vel_func = mapc2p_vel_dir, .mapc2p_vel_ctx = &vmap_ctx_vz},
-       {.mapc2p_vel_func = mapc2p_vel_dir, .mapc2p_vel_ctx = &vmap_ctx_vtheta}},
+      {
+        {.mapc2p_vel_func = mapc2p_vel_dir, .mapc2p_vel_ctx = &vmap_ctx_vr},
+        {.mapc2p_vel_func = mapc2p_vel_dir, .mapc2p_vel_ctx = &vmap_ctx_vz},
+        {.mapc2p_vel_func = mapc2p_vel_dir, .mapc2p_vel_ctx = &vmap_ctx_vtheta},
+      },
 
     .num_init = 1,
     .projection[0] =
@@ -403,13 +405,16 @@ main(int argc, char **argv)
     .periodic_dirs = {1},
 
     .num_species = 1,
-    .species = {{
-      .name = "neut",
-      .charge = ctx.charge,
-      .mass = ctx.mass,
-      .type = GKYL_SPECIES_VLASOV,
-      .kinetic = neut,
-    }},
+    .species =
+      {
+        {
+          .name = "neut",
+          .charge = ctx.charge,
+          .mass = ctx.mass,
+          .type = GKYL_SPECIES_VLASOV,
+          .kinetic = neut,
+        },
+      },
 
     .skip_field = true,
 

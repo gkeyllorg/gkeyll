@@ -44,7 +44,7 @@ GKYL_CU_D static const modal_to_quad_kernel_dim_list ser_modal_to_quad_kernel_di
         ser_3x_p1_surfx3_eval_quad_node_2_l, ser_3x_p1_surfx3_eval_quad_node_3_l},
        {ser_3x_p1_surfx3_eval_quad_node_0_r, ser_3x_p1_surfx3_eval_quad_node_1_r,
         ser_3x_p1_surfx3_eval_quad_node_2_r, ser_3x_p1_surfx3_eval_quad_node_3_r}},
-  }
+  },
 };
 
 struct bc_block_tensor {

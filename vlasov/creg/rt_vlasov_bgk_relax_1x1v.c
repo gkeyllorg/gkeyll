@@ -321,20 +321,10 @@ main(int argc, char **argv)
 
     .num_init = 1,
     .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalSquareInit, .ctx_func = &ctx},
-    .collisions =
-      {
-        .collision_id = GKYL_BGK_COLLISIONS,
-        .self_nu = evalNu,
-        .self_nu_ctx = &ctx,
-      },
+    .collisions = {.collision_id = GKYL_BGK_COLLISIONS, .self_nu = evalNu, .self_nu_ctx = &ctx},
 
     .correct =
-      {
-        .correct_all_moms = true,
-        .iter_eps = 1.0e-12,
-        .max_iter = 100,
-        .use_last_converged = true,
-      },
+      {.correct_all_moms = true, .iter_eps = 1.0e-12, .max_iter = 100, .use_last_converged = true},
 
     .num_diag_moments = 3,
     .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2},
@@ -349,20 +339,10 @@ main(int argc, char **argv)
 
     .num_init = 1,
     .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalBumpInit, .ctx_func = &ctx},
-    .collisions =
-      {
-        .collision_id = GKYL_BGK_COLLISIONS,
-        .self_nu = evalNu,
-        .self_nu_ctx = &ctx,
-      },
+    .collisions = {.collision_id = GKYL_BGK_COLLISIONS, .self_nu = evalNu, .self_nu_ctx = &ctx},
 
     .correct =
-      {
-        .correct_all_moms = true,
-        .iter_eps = 1.0e-12,
-        .max_iter = 100,
-        .use_last_converged = true,
-      },
+      {.correct_all_moms = true, .iter_eps = 1.0e-12, .max_iter = 100, .use_last_converged = true},
 
     .num_diag_moments = 3,
     .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2},

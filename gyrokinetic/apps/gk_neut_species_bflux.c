@@ -559,11 +559,13 @@ gk_neut_species_bflux_write_integrated_mom_enabled(
 
         struct timespec wtm = gkyl_wall_clock();
         if (bflux->is_first_intmom_write_call[b]) {
-          struct gkyl_msgpack_map_elem io_meta_phi[] = {{
-            .key = "Description",
-            .elem_type = GKYL_MP_STRING,
-            .cval = "Volume integrated moments of the boundary flux.",
-          }};
+          struct gkyl_msgpack_map_elem io_meta_phi[] = {
+            {
+              .key = "Description",
+              .elem_type = GKYL_MP_STRING,
+              .cval = "Volume integrated moments of the boundary flux.",
+            },
+          };
           int io_meta_len[] = {gkns->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
           const struct gkyl_msgpack_map_elem *io_meta[] = {
             gkns->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi
@@ -615,11 +617,13 @@ gk_neut_species_bflux_write_mom_enabled(
   // Package metadata.
   gkyl_msgpack_map_elem_set_double(gkns->io_meta_conf_len, gkns->io_meta_conf, "time", tm);
   gkyl_msgpack_map_elem_set_uint(gkns->io_meta_conf_len, gkns->io_meta_conf, "frame", frame);
-  struct gkyl_msgpack_map_elem desc[] = {{
-    .key = "Description",
-    .elem_type = GKYL_MP_STRING,
-    .cval = "Velocity-space moment of the boundary flux.",
-  }};
+  struct gkyl_msgpack_map_elem desc[] = {
+    {
+      .key = "Description",
+      .elem_type = GKYL_MP_STRING,
+      .cval = "Velocity-space moment of the boundary flux.",
+    },
+  };
   int io_meta_len[] = {gkns->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1};
   const struct gkyl_msgpack_map_elem *io_meta[] = {
     gkns->io_meta_conf, app->gk_geom->io_meta_basic, desc

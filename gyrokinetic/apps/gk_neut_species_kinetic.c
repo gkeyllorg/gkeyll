@@ -477,7 +477,7 @@ gk_neut_species_kinetic_read_distf_from_file(
     // Read basis info from header, check its consistency.
     struct gkyl_msgpack_map_elem elem_list[] = {
       {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0},
-      {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = 0}
+      {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = 0},
     };
     int elem_list_len = sizeof(elem_list) / sizeof(elem_list[0]);
     gkyl_msgpack_to_map_elem_list(
@@ -812,7 +812,7 @@ gk_neut_species_kinetic_init(
   struct gkyl_msgpack_map_elem io_meta_sprop[] = {
     {.key = "mass", .elem_type = GKYL_MP_DOUBLE, .dval = gkns->info.mass},
     {.key = "charge", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0},
-    {.key = "vdim", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = gkns->info.vdim}
+    {.key = "vdim", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = gkns->info.vdim},
   };
 
   // Metadata for integrated quantities.
@@ -831,7 +831,7 @@ gk_neut_species_kinetic_init(
     {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = app->basis.poly_order},
     {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = app->basis.id},
     {.key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0},
-    {.key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0}
+    {.key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0},
   };
   const struct gkyl_msgpack_map_elem *io_meta_conf_union[] = {
     app->io_meta_basic, io_meta_sprop, io_meta_conf
@@ -851,7 +851,7 @@ gk_neut_species_kinetic_init(
     {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = gkns->basis.poly_order},
     {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = gkns->basis.id},
     {.key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0},
-    {.key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0}
+    {.key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0},
   };
   const struct gkyl_msgpack_map_elem *io_meta_phase_union[] = {
     app->io_meta_basic, io_meta_sprop, io_meta_phase

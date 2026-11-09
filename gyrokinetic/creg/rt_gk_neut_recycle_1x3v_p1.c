@@ -458,43 +458,47 @@ main(int argc, char **argv)
       {
         .num_react = 2,
         .react_type =
-          {{
-             .react_id = GKYL_REACT_IZ,
-             .type_self = GKYL_SELF_DONOR,
-             .ion_id = GKYL_ION_H,
-             .elc_nm = "elc",
-             .ion_nm = "ion",
-             .donor_nm = "neut",
-             .charge_state = 0,
-             .ion_mass = ctx.mass_ion,
-             .elc_mass = ctx.mass_elc,
-           },
-           {
-             .react_id = GKYL_REACT_CX,
-             .type_self = GKYL_SELF_PARTNER,
-             .ion_id = GKYL_ION_H,
-             .ion_nm = "ion",
-             .partner_nm = "neut",
-             .ion_mass = ctx.mass_ion,
-             .partner_mass = ctx.mass_ion,
-           }},
+          {
+            {
+              .react_id = GKYL_REACT_IZ,
+              .type_self = GKYL_SELF_DONOR,
+              .ion_id = GKYL_ION_H,
+              .elc_nm = "elc",
+              .ion_nm = "ion",
+              .donor_nm = "neut",
+              .charge_state = 0,
+              .ion_mass = ctx.mass_ion,
+              .elc_mass = ctx.mass_elc,
+            },
+            {
+              .react_id = GKYL_REACT_CX,
+              .type_self = GKYL_SELF_PARTNER,
+              .ion_id = GKYL_ION_H,
+              .ion_nm = "ion",
+              .partner_nm = "neut",
+              .ion_mass = ctx.mass_ion,
+              .partner_mass = ctx.mass_ion,
+            },
+          },
       },
 
     .bcs =
-      {{
-         .dir = 0,
-         .edge = GKYL_LOWER_EDGE,
-         .type = GKYL_BC_GK_SPECIES_RECYCLE,
-         .emission = neut_bc,
-         .write_diagnostics = true,
-       },
-       {
-         .dir = 0,
-         .edge = GKYL_UPPER_EDGE,
-         .type = GKYL_BC_GK_SPECIES_RECYCLE,
-         .emission = neut_bc,
-         .write_diagnostics = true,
-       }},
+      {
+        {
+          .dir = 0,
+          .edge = GKYL_LOWER_EDGE,
+          .type = GKYL_BC_GK_SPECIES_RECYCLE,
+          .emission = neut_bc,
+          .write_diagnostics = true,
+        },
+        {
+          .dir = 0,
+          .edge = GKYL_UPPER_EDGE,
+          .type = GKYL_BC_GK_SPECIES_RECYCLE,
+          .emission = neut_bc,
+          .write_diagnostics = true,
+        },
+      },
 
     .num_diag_moments = 3,
     .diag_moments = {GKYL_F_MOMENT_M1_FROM_H, GKYL_F_MOMENT_ENERGY, GKYL_F_MOMENT_LTE},

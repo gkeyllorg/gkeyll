@@ -342,8 +342,10 @@ main(int argc, char **argv)
     .cells = {NVX, NVX},
 
     .mapc2p_vel =
-      {{.mapc2p_vel_func = mapc2p_vel_vx, .mapc2p_vel_ctx = &ctx},
-       {.mapc2p_vel_func = mapc2p_vel_vx, .mapc2p_vel_ctx = &ctx}},
+      {
+        {.mapc2p_vel_func = mapc2p_vel_vx, .mapc2p_vel_ctx = &ctx},
+        {.mapc2p_vel_func = mapc2p_vel_vx, .mapc2p_vel_ctx = &ctx},
+      },
 
     .num_init = 1,
     .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalDmInit, .ctx_func = &ctx},
@@ -381,8 +383,10 @@ main(int argc, char **argv)
     .cells = {NX, NX},
 
     .mapc2p_pos =
-      {{.mapc2p_pos_func = mapc2p_pos_x, .mapc2p_pos_ctx = &ctx},
-       {.mapc2p_pos_func = mapc2p_pos_x, .mapc2p_pos_ctx = &ctx}},
+      {
+        {.mapc2p_pos_func = mapc2p_pos_x, .mapc2p_pos_ctx = &ctx},
+        {.mapc2p_pos_func = mapc2p_pos_x, .mapc2p_pos_ctx = &ctx},
+      },
 
     // Tensor p=1 is the hybrid basis: p=1 in configuration space, p=2 in velocity
     // space, which resolves the velocity tails of the relaxing distribution.
@@ -394,13 +398,16 @@ main(int argc, char **argv)
     .periodic_dirs = {},
 
     .num_species = 1,
-    .species = {{
-      .name = "dm",
-      .charge = ctx.charge_dm,
-      .mass = ctx.mass_dm,
-      .type = GKYL_SPECIES_VLASOV,
-      .kinetic = dm,
-    }},
+    .species =
+      {
+        {
+          .name = "dm",
+          .charge = ctx.charge_dm,
+          .mass = ctx.mass_dm,
+          .type = GKYL_SPECIES_VLASOV,
+          .kinetic = dm,
+        },
+      },
 
     .field = field,
 

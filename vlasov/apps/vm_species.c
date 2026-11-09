@@ -15,7 +15,8 @@
 // Configuration-space Poisson tensor of the triads from the geometry inputs.
 static void
 vm_species_triad_poisson_tensor(
-  struct gkyl_vlasov_app *app, struct vm_species *vms, struct gkyl_vlasov_triad_geom_inp inp_triad_geom
+  struct gkyl_vlasov_app *app, struct vm_species *vms,
+  struct gkyl_vlasov_triad_geom_inp inp_triad_geom
 )
 {
   int cdim = app->cdim, vdim = app->vdim;

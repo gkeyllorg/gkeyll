@@ -617,7 +617,7 @@ and the maximum number of cuts in a block is %d\n\n",
     {.key = "changeset", .elem_type = GKYL_MP_STRING, .cval = (char *)build_id},
     {.key = "builddate", .elem_type = GKYL_MP_STRING, .cval = (char *)build_date},
     {.key = "is_multib", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 1},
-    {.key = "topo_file", .elem_type = GKYL_MP_STRING, .cval = fileNm_btopo}
+    {.key = "topo_file", .elem_type = GKYL_MP_STRING, .cval = fileNm_btopo},
   };
   const struct gkyl_msgpack_map_elem *io_meta_union[] = {
     io_meta_default, mbinp->metadata.attributes
@@ -2215,7 +2215,7 @@ gkyl_gyrokinetic_multib_app_write_dt(gkyl_gyrokinetic_multib_app *app)
     struct timespec wtm = gkyl_wall_clock();
     if (app->is_first_dt_write_call) {
       struct gkyl_msgpack_map_elem io_meta_phi[] = {
-        {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Time step size."}
+        {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Time step size."},
       };
       int io_meta_len[] = {app->io_meta_basic_len, 1};
       const struct gkyl_msgpack_map_elem *io_meta[] = {app->io_meta_basic, io_meta_phi};

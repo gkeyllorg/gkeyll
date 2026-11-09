@@ -77,8 +77,8 @@ GKYL_CU_D static const gkyl_vlasov_cross_prim_moms_bgk_kern_list
      vlasov_cross_prim_moms_bgk_2x1v_tensor_p3}, // 0
     {NULL, vlasov_cross_prim_moms_bgk_2x2v_ser_p1, vlasov_cross_prim_moms_bgk_2x2v_tensor_p2, NULL
     }, // 3
-    {NULL, vlasov_cross_prim_moms_bgk_2x3v_ser_p1, GKYL_TEN_2X3V_P2(vlasov_cross_prim_moms_bgk_2x3v_tensor_p2), NULL
-    }, // 4
+    {NULL, vlasov_cross_prim_moms_bgk_2x3v_ser_p1,
+     GKYL_TEN_2X3V_P2(vlasov_cross_prim_moms_bgk_2x3v_tensor_p2), NULL}, // 4
     // 3x kernels
     {NULL, vlasov_cross_prim_moms_bgk_3x3v_ser_p1, NULL, NULL} // 5
 };

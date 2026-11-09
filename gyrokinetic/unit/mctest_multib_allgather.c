@@ -85,13 +85,13 @@ create_L_domain_block_geom(int **cuts)
         {
           // x-direction connections
           {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
-          {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL} // physical boundary
+          {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
         },
       .connections[1] =
         {
           // y-direction connections
           {.bid = 1, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
-          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL} // physical boundary
+          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}, // physical boundary
         },
     }
   );
@@ -107,14 +107,16 @@ create_L_domain_block_geom(int **cuts)
       .cuts = {cuts1[0], cuts1[1]},
 
       .connections[0] =
-        {// x-direction connections
-         {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
-         {.bid = 2, .dir = 0, .edge = GKYL_LOWER_POSITIVE}
+        {
+          // x-direction connections
+          {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
+          {.bid = 2, .dir = 0, .edge = GKYL_LOWER_POSITIVE},
         },
       .connections[1] =
-        {// y-direction connections
-         {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}, // physical boundary
-         {.bid = 0, .dir = 1, .edge = GKYL_LOWER_POSITIVE}
+        {
+          // y-direction connections
+          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}, // physical boundary
+          {.bid = 0, .dir = 1, .edge = GKYL_LOWER_POSITIVE},
         },
     }
   );
@@ -133,13 +135,13 @@ create_L_domain_block_geom(int **cuts)
         {
           // x-direction connections
           {.bid = 1, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
-          {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL} // physical boundary
+          {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
         },
       .connections[1] =
         {
           // y-direction connections
           {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}, // physical boundary
-          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL} // physical boundary
+          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}, // physical boundary
         },
     }
   );
@@ -182,12 +184,13 @@ create_SOL_domain_block_geom(int **cuts)
         {
           // x-direction connections
           {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
-          {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL} // physical boundary
+          {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
         },
       .connections[1] =
-        {// y-direction connections
-         {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL},
-         {.bid = 1, .dir = 1, .edge = GKYL_LOWER_POSITIVE}
+        {
+          // y-direction connections
+          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL},
+          {.bid = 1, .dir = 1, .edge = GKYL_LOWER_POSITIVE},
         },
     }
   );
@@ -203,14 +206,16 @@ create_SOL_domain_block_geom(int **cuts)
       .cuts = {cuts1[0], cuts1[1]},
 
       .connections[0] =
-        {// x-direction connections
-         {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL},
-         {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}
+        {
+          // x-direction connections
+          {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL},
+          {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL},
         },
       .connections[1] =
-        {// y-direction connections
-         {.bid = 0, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
-         {.bid = 2, .dir = 1, .edge = GKYL_LOWER_POSITIVE}
+        {
+          // y-direction connections
+          {.bid = 0, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
+          {.bid = 2, .dir = 1, .edge = GKYL_LOWER_POSITIVE},
         },
     }
   );
@@ -226,14 +231,16 @@ create_SOL_domain_block_geom(int **cuts)
       .cuts = {cuts2[0], cuts2[1]},
 
       .connections[0] =
-        {// x-direction connections
-         {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL},
-         {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}
+        {
+          // x-direction connections
+          {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL},
+          {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL},
         },
       .connections[1] =
-        {// y-direction connections
-         {.bid = 1, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
-         {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}
+        {
+          // y-direction connections
+          {.bid = 1, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
+          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL},
         },
     }
   );
@@ -515,7 +522,7 @@ test_L_domain_send_connections_dir0_cuts2_ho()
   struct gkyl_comm_conn conn_1[] = {
     {.block_id = 1, .rank = 0}, // from 0th cut
     {.block_id = 2, .rank = 0}, // from 0th cut
-    {.block_id = 2, .rank = 0} // from 0th cut
+    {.block_id = 2, .rank = 0}, // from 0th cut
   };
   gkyl_range_init(&conn_1[0].range, 2, (int[]){1, 1}, (int[]){300, 300});
   gkyl_range_init(&conn_1[1].range, 2, (int[]){1, 1}, (int[]){300, 300});
@@ -527,7 +534,7 @@ test_L_domain_send_connections_dir0_cuts2_ho()
     {.block_id = 2, .rank = 0}, // from 0th cut
     {.block_id = 1, .rank = 0}, // from 1st cut
     {.block_id = 2, .rank = 0}, // from 1st cut
-    {.block_id = 2, .rank = 0} // from 1st cut
+    {.block_id = 2, .rank = 0}, // from 1st cut
   };
   gkyl_range_init(&conn_2[0].range, 2, (int[]){301, 1}, (int[]){450, 300});
   gkyl_range_init(&conn_2[1].range, 2, (int[]){301, 1}, (int[]){450, 300});
@@ -668,7 +675,7 @@ test_L_domain_send_connections_dir0_cuts2_par_ho()
   struct gkyl_comm_conn conn_1[] = {
     {.block_id = 1, .rank = 1}, // from 0th cut
     {.block_id = 2, .rank = 0}, // from 0th cut to 0th cut
-    {.block_id = 2, .rank = 1} // from 0th cut to 1st cut
+    {.block_id = 2, .rank = 1}, // from 0th cut to 1st cut
   };
   gkyl_range_init(&conn_1[0].range, 2, (int[]){1, 1}, (int[]){300, 300});
   gkyl_range_init(&conn_1[1].range, 2, (int[]){1, 1}, (int[]){300, 300});
@@ -680,7 +687,7 @@ test_L_domain_send_connections_dir0_cuts2_par_ho()
     {.block_id = 2, .rank = 1}, // from 0th cut to 1st cut
     {.block_id = 1, .rank = 1}, // from 1st cut to 0th cut
     {.block_id = 2, .rank = 0}, // from 1st cut to 0th cut
-    {.block_id = 2, .rank = 1} // from 1st cut to 1st cut
+    {.block_id = 2, .rank = 1}, // from 1st cut to 1st cut
   };
   gkyl_range_init(&conn_2[0].range, 2, (int[]){301, 1}, (int[]){450, 300});
   gkyl_range_init(&conn_2[1].range, 2, (int[]){301, 1}, (int[]){450, 300});
@@ -820,7 +827,7 @@ test_L_domain_recv_connections_dir0_cuts2_par_ho()
   struct gkyl_comm_conn conn_1[] = {
     {.block_id = 1, .rank = 1}, // into 0th from 0th cut
     {.block_id = 2, .rank = 0}, // into 0th cut from 0th cut
-    {.block_id = 2, .rank = 1} // into 0th cut from 1st cut
+    {.block_id = 2, .rank = 1}, // into 0th cut from 1st cut
   };
   gkyl_range_init(&conn_1[0].range, 2, (int[]){1, 1}, (int[]){300, 300});
   gkyl_range_init(&conn_1[1].range, 2, (int[]){301, 1}, (int[]){450, 300});
@@ -832,7 +839,7 @@ test_L_domain_recv_connections_dir0_cuts2_par_ho()
     {.block_id = 2, .rank = 1}, // into 0th cut from 1st cut
     {.block_id = 1, .rank = 1}, // into 1st cut from 0th cut
     {.block_id = 2, .rank = 0}, // into 1st cut from 0th cut
-    {.block_id = 2, .rank = 1} // into 1st cut from 1st cut
+    {.block_id = 2, .rank = 1}, // into 1st cut from 1st cut
   };
   gkyl_range_init(&conn_2[0].range, 2, (int[]){1, 1}, (int[]){300, 300});
   gkyl_range_init(&conn_2[1].range, 2, (int[]){301, 1}, (int[]){450, 300});

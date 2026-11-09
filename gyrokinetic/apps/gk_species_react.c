@@ -405,7 +405,7 @@ gks_react_write_enabled(
       );
 
       struct gkyl_msgpack_map_elem desc[] = {
-        {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Ionization reaction rate."}
+        {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Ionization reaction rate."},
       };
       const struct gkyl_msgpack_map_elem *io_meta[] = {
         gks->io_meta_conf, app->gk_geom->io_meta_basic, desc
@@ -429,7 +429,7 @@ gks_react_write_enabled(
       );
 
       struct gkyl_msgpack_map_elem desc[] = {
-        {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Recombination reaction rate."}
+        {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Recombination reaction rate."},
       };
       const struct gkyl_msgpack_map_elem *io_meta[] = {
         gks->io_meta_conf, app->gk_geom->io_meta_basic, desc
@@ -450,11 +450,13 @@ gks_react_write_enabled(
         frame
       );
 
-      struct gkyl_msgpack_map_elem desc[] = {{
-        .key = "Description",
-        .elem_type = GKYL_MP_STRING,
-        .cval = "Charge exchange reaction rate.",
-      }};
+      struct gkyl_msgpack_map_elem desc[] = {
+        {
+          .key = "Description",
+          .elem_type = GKYL_MP_STRING,
+          .cval = "Charge exchange reaction rate.",
+        },
+      };
       const struct gkyl_msgpack_map_elem *io_meta[] = {
         gks->io_meta_conf, app->gk_geom->io_meta_basic, desc
       };

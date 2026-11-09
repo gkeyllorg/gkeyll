@@ -138,7 +138,7 @@ GKYL_CU_D static const cross_mul_op_kern_list ser_cross_mul_list[] = {
       {{NULL, NULL, NULL, NULL},
        {NULL, NULL, NULL, NULL},
        {NULL, binop_cross_mul_3d_6d_ser_p1, NULL, NULL}},
-  }
+  },
 };
 
 // Serendipity conf*phase multiplication with accumulation to output kernels
@@ -185,7 +185,7 @@ GKYL_CU_D static const cross_mul_accumulate_op_kern_list ser_cross_mul_accumulat
       {{NULL, NULL, NULL, NULL},
        {NULL, NULL, NULL, NULL},
        {NULL, binop_cross_mul_accumulate_3d_6d_ser_p1, NULL, NULL}},
-  }
+  },
 };
 
 // Serendipity conf*phase multiplication with accumulation to output kernels and parallelization over components
@@ -239,7 +239,7 @@ GKYL_CU_D static const cross_mul_accumulate_comp_par_op_kern_list
         {{NULL, NULL, NULL, NULL},
          {NULL, NULL, NULL, NULL},
          {NULL, binop_cross_mul_accumulate_comp_par_3d_6d_ser_p1, NULL, NULL}},
-    }
+    },
 };
 
 // Tensor conf*phase multiplication kernels
@@ -280,7 +280,7 @@ GKYL_CU_D static const cross_mul_op_kern_list ten_cross_mul_list[] = {
       {{NULL, NULL, NULL, NULL},
        {NULL, NULL, NULL, NULL},
        {NULL, binop_cross_mul_3d_6d_ser_p1, NULL, NULL}},
-  }
+  },
 };
 
 // Tensor conf*phase multiplication with accumulation to output kernels
@@ -325,7 +325,7 @@ GKYL_CU_D static const cross_mul_accumulate_op_kern_list ten_cross_mul_accumulat
       {{NULL, NULL, NULL, NULL},
        {NULL, NULL, NULL, NULL},
        {NULL, binop_cross_mul_accumulate_3d_6d_ser_p1, NULL, NULL}},
-  }
+  },
 };
 
 // Tensor conf*phase multiplication with accumulation to output kernels and parallelization over components
@@ -373,7 +373,7 @@ GKYL_CU_D static const cross_mul_accumulate_comp_par_op_kern_list
         {{NULL, NULL, NULL, NULL},
          {NULL, NULL, NULL, NULL},
          {NULL, binop_cross_mul_accumulate_comp_par_3d_6d_ser_p1, NULL, NULL}},
-    }
+    },
 };
 
 // Hybrid basis conf*phase multiplication kernels

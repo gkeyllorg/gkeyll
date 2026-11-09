@@ -1377,7 +1377,8 @@ GKYL_CU_D static const gkyl_dg_divide_Jv_kern_list tensor_divide_Jv_kernels[] = 
   {NULL, vlasov_divide_Jv_2x1v_tensor_p1, vlasov_divide_Jv_2x1v_tensor_p2,
    vlasov_divide_Jv_2x1v_tensor_p3}, // 3
   {NULL, vlasov_divide_Jv_2x2v_tensor_p1, vlasov_divide_Jv_2x2v_tensor_p2, NULL}, // 4
-  {NULL, vlasov_divide_Jv_2x3v_tensor_p1, GKYL_TEN_2X3V_P2(vlasov_divide_Jv_2x3v_tensor_p2), NULL}, // 5
+  {NULL, vlasov_divide_Jv_2x3v_tensor_p1, GKYL_TEN_2X3V_P2(vlasov_divide_Jv_2x3v_tensor_p2), NULL
+  }, // 5
   // 3x kernels
   {NULL, vlasov_divide_Jv_3x3v_tensor_p1, NULL, NULL} // 6
 };
@@ -1410,7 +1411,8 @@ GKYL_CU_D static const gkyl_dg_rescale_Jv_kern_list tensor_rescale_Jv_kernels[] 
   {NULL, vlasov_rescale_Jv_2x1v_tensor_p1, vlasov_rescale_Jv_2x1v_tensor_p2,
    vlasov_rescale_Jv_2x1v_tensor_p3}, // 3
   {NULL, vlasov_rescale_Jv_2x2v_tensor_p1, vlasov_rescale_Jv_2x2v_tensor_p2, NULL}, // 4
-  {NULL, vlasov_rescale_Jv_2x3v_tensor_p1, GKYL_TEN_2X3V_P2(vlasov_rescale_Jv_2x3v_tensor_p2), NULL}, // 5
+  {NULL, vlasov_rescale_Jv_2x3v_tensor_p1, GKYL_TEN_2X3V_P2(vlasov_rescale_Jv_2x3v_tensor_p2), NULL
+  }, // 5
   // 3x kernels
   {NULL, vlasov_rescale_Jv_3x3v_tensor_p1, NULL, NULL} // 6
 };

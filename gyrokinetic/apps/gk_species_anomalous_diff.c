@@ -56,7 +56,7 @@ gk_anomalous_diff_write_conf_array(
   gkyl_msgpack_map_elem_set_double(gks->io_meta_conf_len, gks->io_meta_conf, "time", stime);
   gkyl_msgpack_map_elem_set_uint(gks->io_meta_conf_len, gks->io_meta_conf, "frame", frame);
   struct gkyl_msgpack_map_elem desc[] = {
-    {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = description}
+    {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = description},
   };
   int io_meta_len[] = {gks->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1};
   const struct gkyl_msgpack_map_elem *io_meta[] = {

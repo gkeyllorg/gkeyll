@@ -279,7 +279,7 @@ gk_neut_species_fluid_init(
     {.key = "mass", .elem_type = GKYL_MP_DOUBLE, .dval = gkns->info.mass},
     {.key = "charge", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0},
     {.key = "gas_gamma", .elem_type = GKYL_MP_DOUBLE, .dval = gkns->info.gas_gamma},
-    {.key = "vdim", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = gkns->info.vdim}
+    {.key = "vdim", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = gkns->info.vdim},
   };
 
   // Metadata for integrated quantities.
@@ -298,7 +298,7 @@ gk_neut_species_fluid_init(
     {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = app->basis.poly_order},
     {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = app->basis.id},
     {.key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0},
-    {.key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0}
+    {.key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0},
   };
   const struct gkyl_msgpack_map_elem *io_meta_conf_union[] = {
     app->io_meta_basic, io_meta_sprop, io_meta_conf

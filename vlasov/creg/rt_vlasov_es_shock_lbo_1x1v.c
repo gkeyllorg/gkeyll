@@ -435,12 +435,7 @@ main(int argc, char **argv)
         .ctx_V_drift = &ctx,
         .correct_all_moms = true,
       },
-    .collisions =
-      {
-        .collision_id = GKYL_LBO_COLLISIONS,
-        .self_nu = evalElcNu,
-        .self_nu_ctx = &ctx,
-      },
+    .collisions = {.collision_id = GKYL_LBO_COLLISIONS, .self_nu = evalElcNu, .self_nu_ctx = &ctx},
 
     .bcx = {.lower = {.type = GKYL_SPECIES_REFLECT}, .upper = {.type = GKYL_SPECIES_FIXED_FUNC}},
 
@@ -466,12 +461,7 @@ main(int argc, char **argv)
         .ctx_V_drift = &ctx,
         .correct_all_moms = true,
       },
-    .collisions =
-      {
-        .collision_id = GKYL_LBO_COLLISIONS,
-        .self_nu = evalIonNu,
-        .self_nu_ctx = &ctx,
-      },
+    .collisions = {.collision_id = GKYL_LBO_COLLISIONS, .self_nu = evalIonNu, .self_nu_ctx = &ctx},
 
     .bcx = {.lower = {.type = GKYL_SPECIES_REFLECT}, .upper = {.type = GKYL_SPECIES_FIXED_FUNC}},
 
@@ -510,20 +500,22 @@ main(int argc, char **argv)
 
     .num_species = 2,
     .species =
-      {{
-         .name = "elc",
-         .charge = ctx.charge_elc,
-         .mass = ctx.mass_elc,
-         .type = GKYL_SPECIES_VLASOV,
-         .kinetic = elc,
-       },
-       {
-         .name = "ion",
-         .charge = ctx.charge_ion,
-         .mass = ctx.mass_ion,
-         .type = GKYL_SPECIES_VLASOV,
-         .kinetic = ion,
-       }},
+      {
+        {
+          .name = "elc",
+          .charge = ctx.charge_elc,
+          .mass = ctx.mass_elc,
+          .type = GKYL_SPECIES_VLASOV,
+          .kinetic = elc,
+        },
+        {
+          .name = "ion",
+          .charge = ctx.charge_ion,
+          .mass = ctx.mass_ion,
+          .type = GKYL_SPECIES_VLASOV,
+          .kinetic = ion,
+        },
+      },
 
     .field = field,
 

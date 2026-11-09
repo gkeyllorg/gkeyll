@@ -61,8 +61,8 @@ GKYL_CU_D static const gkyl_gr_maxwell_current_deposition_kern_list
     }, // 2
     {NULL, gr_maxwell_current_dep_2x_2v_tensor_p1, gr_maxwell_current_dep_2x_2v_tensor_p2, NULL
     }, // 3
-    {NULL, gr_maxwell_current_dep_2x_3v_tensor_p1, GKYL_TEN_2X3V_P2(gr_maxwell_current_dep_2x_3v_tensor_p2), NULL
-    }, // 4
+    {NULL, gr_maxwell_current_dep_2x_3v_tensor_p1,
+     GKYL_TEN_2X3V_P2(gr_maxwell_current_dep_2x_3v_tensor_p2), NULL}, // 4
     {NULL, gr_maxwell_current_dep_3x_3v_tensor_p1, gr_maxwell_current_dep_3x_3v_tensor_p2, NULL
     } // 5
 };

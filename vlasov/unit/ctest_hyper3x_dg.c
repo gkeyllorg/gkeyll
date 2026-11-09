@@ -129,7 +129,8 @@ test_vlasov_3x3v_p1_(bool use_gpu)
     gkyl_dg_vlasov_vel_flux_surf_inew(&inp_vel_flux);
   // Modal surface fluxes: one surface basis expansion per velocity direction.
   struct gkyl_array *vel_flux_surf = mkarr1(
-    use_gpu, vdim * gkyl_dg_vlasov_vel_flux_surf_num_surf_basis(calc_vel_flux), phaseRange_ext.volume
+    use_gpu, vdim * gkyl_dg_vlasov_vel_flux_surf_num_surf_basis(calc_vel_flux),
+    phaseRange_ext.volume
   );
 
   struct gkyl_dg_vlasov_inp inp_eqn = {

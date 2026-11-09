@@ -134,7 +134,7 @@ static const double michel_r[MICHEL_NPTS] = {
   9.000000,  9.200000,  9.400000,  9.600000,  9.800000,  10.000000, 10.200000, 10.400000, 10.600000,
   10.800000, 11.000000, 11.200000, 11.400000, 11.600000, 11.800000, 12.000000, 12.200000, 12.400000,
   12.600000, 12.800000, 13.000000, 13.200000, 13.400000, 13.600000, 13.800000, 14.000000, 14.200000,
-  14.400000, 14.600000, 14.800000, 15.000000,
+  14.400000, 14.600000, 14.800000, 15.000000
 };
 static const double michel_n[MICHEL_NPTS] = {
   6.164246e+00, 5.373017e+00, 4.749860e+00, 4.247912e+00, 3.835976e+00, 3.492549e+00, 3.202359e+00,
@@ -146,7 +146,7 @@ static const double michel_n[MICHEL_NPTS] = {
   7.678381e-01, 7.521704e-01, 7.371672e-01, 7.227883e-01, 7.089963e-01, 6.957572e-01, 6.830390e-01,
   6.708124e-01, 6.590503e-01, 6.477272e-01, 6.368197e-01, 6.263058e-01, 6.161653e-01, 6.063789e-01,
   5.969291e-01, 5.877990e-01, 5.789732e-01, 5.704371e-01, 5.621770e-01, 5.541801e-01, 5.464342e-01,
-  5.389280e-01, 5.316509e-01, 5.245928e-01, 5.177441e-01,
+  5.389280e-01, 5.316509e-01, 5.245928e-01, 5.177441e-01
 };
 static const double michel_T[MICHEL_NPTS] = {
   1.512292e-01, 1.409009e-01, 1.321331e-01, 1.245834e-01, 1.180048e-01, 1.122143e-01, 1.070730e-01,
@@ -158,7 +158,7 @@ static const double michel_T[MICHEL_NPTS] = {
   4.722454e-02, 4.664308e-02, 4.608112e-02, 4.553766e-02, 4.501179e-02, 4.450264e-02, 4.400940e-02,
   4.353134e-02, 4.306774e-02, 4.261795e-02, 4.218134e-02, 4.175733e-02, 4.134537e-02, 4.094494e-02,
   4.055556e-02, 4.017677e-02, 3.980813e-02, 3.944923e-02, 3.909968e-02, 3.875912e-02, 3.842720e-02,
-  3.810358e-02, 3.778796e-02, 3.748003e-02, 3.717951e-02,
+  3.810358e-02, 3.778796e-02, 3.748003e-02, 3.717951e-02
 };
 static const double michel_u[MICHEL_NPTS] = {
   -5.141481e-02, -5.150117e-02, -5.133975e-02, -5.099059e-02, -5.049884e-02, -4.989886e-02,
@@ -172,7 +172,7 @@ static const double michel_u[MICHEL_NPTS] = {
   -1.994460e-02, -1.948371e-02, -1.903188e-02, -1.858890e-02, -1.815457e-02, -1.772866e-02,
   -1.731098e-02, -1.690134e-02, -1.649953e-02, -1.610537e-02, -1.571868e-02, -1.533928e-02,
   -1.496700e-02, -1.460167e-02, -1.424313e-02, -1.389122e-02, -1.354578e-02, -1.320666e-02,
-  -1.287373e-02,
+  -1.287373e-02
 };
 
 // Linear interpolation of a tabulated profile in r.
@@ -397,9 +397,11 @@ main(int argc, char **argv)
     .cells = {NVR, NVTHETA, NVPHI},
 
     .mapc2p_vel =
-      {{.mapc2p_vel_func = mapc2p_vel_dir, .mapc2p_vel_ctx = &vmap_ctx_vr},
-       {.mapc2p_vel_func = mapc2p_vel_dir, .mapc2p_vel_ctx = &vmap_ctx_vtheta},
-       {.mapc2p_vel_func = mapc2p_vel_dir, .mapc2p_vel_ctx = &vmap_ctx_vphi}},
+      {
+        {.mapc2p_vel_func = mapc2p_vel_dir, .mapc2p_vel_ctx = &vmap_ctx_vr},
+        {.mapc2p_vel_func = mapc2p_vel_dir, .mapc2p_vel_ctx = &vmap_ctx_vtheta},
+        {.mapc2p_vel_func = mapc2p_vel_dir, .mapc2p_vel_ctx = &vmap_ctx_vphi},
+      },
 
     .num_init = 1,
     .projection[0] =
@@ -460,13 +462,16 @@ main(int argc, char **argv)
     .periodic_dirs = {},
 
     .num_species = 1,
-    .species = {{
-      .name = "neut",
-      .charge = ctx.charge,
-      .mass = ctx.mass,
-      .type = GKYL_SPECIES_VLASOV,
-      .kinetic = neut,
-    }},
+    .species =
+      {
+        {
+          .name = "neut",
+          .charge = ctx.charge,
+          .mass = ctx.mass,
+          .type = GKYL_SPECIES_VLASOV,
+          .kinetic = neut,
+        },
+      },
 
     .skip_field = true,
 

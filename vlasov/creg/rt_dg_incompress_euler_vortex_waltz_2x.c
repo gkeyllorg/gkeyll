@@ -198,11 +198,7 @@ main(int argc, char **argv)
   // Fluid equations.
   struct gkyl_wv_eqn *eqn = gkyl_wv_can_pb_incompress_euler_new();
 
-  struct gkyl_vlasov_fluid_species fluid = {
-    .equation = eqn,
-    .init = evalInit,
-    .ctx = &ctx,
-  };
+  struct gkyl_vlasov_fluid_species fluid = {.equation = eqn, .init = evalInit, .ctx = &ctx};
 
   int nrank = 1; // Number of processors in simulation.
 #ifdef GKYL_HAVE_MPI
