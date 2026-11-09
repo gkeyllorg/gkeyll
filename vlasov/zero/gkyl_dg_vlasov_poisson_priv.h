@@ -105,7 +105,7 @@ GKYL_CU_D static const gkyl_dg_vlasov_poisson_stream_surf_kern_list
     {NULL, vlasov_poisson_surfx_1x3v_ser_p1, vlasov_poisson_surfx_1x3v_ser_p2}, // 2
     // 2x kernels
     {NULL, vlasov_poisson_surfx_2x2v_ser_p1, vlasov_poisson_surfx_2x2v_ser_p2}, // 3
-    {NULL, vlasov_poisson_surfx_2x3v_ser_p1, vlasov_poisson_surfx_2x3v_ser_p2}, // 4
+    {NULL, vlasov_poisson_surfx_2x3v_ser_p1, NULL}, // 4
     // 3x kernels
     {NULL, NULL, NULL} // 5
 };
@@ -119,7 +119,7 @@ GKYL_CU_D static const gkyl_dg_vlasov_poisson_stream_surf_kern_list
     {NULL, NULL, NULL}, // 2
     // 2x kernels
     {NULL, vlasov_poisson_surfy_2x2v_ser_p1, vlasov_poisson_surfy_2x2v_ser_p2}, // 3
-    {NULL, vlasov_poisson_surfy_2x3v_ser_p1, vlasov_poisson_surfy_2x3v_ser_p2}, // 4
+    {NULL, vlasov_poisson_surfy_2x3v_ser_p1, NULL}, // 4
     // 3x kernels
     {NULL, NULL, NULL} // 5
 };
@@ -151,8 +151,7 @@ GKYL_CU_D static const gkyl_dg_vlasov_poisson_stream_boundary_surf_kern_list
     // 2x kernels
     {NULL, vlasov_poisson_boundary_surfx_2x2v_ser_p1, vlasov_poisson_boundary_surfx_2x2v_ser_p2
     }, // 3
-    {NULL, vlasov_poisson_boundary_surfx_2x3v_ser_p1, vlasov_poisson_boundary_surfx_2x3v_ser_p2
-    }, // 4
+    {NULL, vlasov_poisson_boundary_surfx_2x3v_ser_p1, NULL}, // 4
     // 3x kernels
     {NULL, NULL, NULL} // 5
 };
@@ -167,8 +166,7 @@ GKYL_CU_D static const gkyl_dg_vlasov_poisson_stream_boundary_surf_kern_list
     // 2x kernels
     {NULL, vlasov_poisson_boundary_surfy_2x2v_ser_p1, vlasov_poisson_boundary_surfy_2x2v_ser_p2
     }, // 3
-    {NULL, vlasov_poisson_boundary_surfy_2x3v_ser_p1, vlasov_poisson_boundary_surfy_2x3v_ser_p2
-    }, // 4
+    {NULL, vlasov_poisson_boundary_surfy_2x3v_ser_p1, NULL}, // 4
     // 3x kernels
     {NULL, NULL, NULL} // 5
 };
@@ -318,20 +316,6 @@ kernel_vlasov_poisson_vol_2x3v_ser_p1(
   );
 }
 
-GKYL_CU_DH static double
-kernel_vlasov_poisson_vol_2x3v_ser_p2(
-  const struct gkyl_dg_eqn *eqn, const double *xc, const double *dx, const int *idx,
-  const double *qIn, double *GKYL_RESTRICT qRhsOut
-)
-{
-  struct dg_vlasov_poisson *vlasov = container_of(eqn, struct dg_vlasov_poisson, eqn);
-
-  long cidx = gkyl_range_idx(&vlasov->conf_range, idx);
-  return vlasov_poisson_vol_2x3v_ser_p2(
-    xc, dx, (const double *)gkyl_array_cfetch(vlasov->auxfields.potentials, cidx), 0, qIn, qRhsOut
-  );
-}
-
 // Volume kernel list, phi only
 GKYL_CU_D static const gkyl_dg_vlasov_poisson_vol_kern_list ser_poisson_vol_kernels[] = {
   // 1x kernels
@@ -340,7 +324,7 @@ GKYL_CU_D static const gkyl_dg_vlasov_poisson_vol_kern_list ser_poisson_vol_kern
   {NULL, kernel_vlasov_poisson_vol_1x3v_ser_p1, kernel_vlasov_poisson_vol_1x3v_ser_p2}, // 2
   // 2x kernels
   {NULL, kernel_vlasov_poisson_vol_2x2v_ser_p1, kernel_vlasov_poisson_vol_2x2v_ser_p2}, // 3
-  {NULL, kernel_vlasov_poisson_vol_2x3v_ser_p1, kernel_vlasov_poisson_vol_2x3v_ser_p2}, // 4
+  {NULL, kernel_vlasov_poisson_vol_2x3v_ser_p1, NULL}, // 4
   // 3x kernels
   {NULL, NULL, NULL} // 5
 };
@@ -354,7 +338,7 @@ GKYL_CU_D static const gkyl_dg_vlasov_poisson_accel_surf_kern_list
     {NULL, vlasov_poisson_surfvx_1x3v_ser_p1, vlasov_poisson_surfvx_1x3v_ser_p2}, // 2
     // 2x kernels
     {NULL, vlasov_poisson_surfvx_2x2v_ser_p1, vlasov_poisson_surfvx_2x2v_ser_p2}, // 3
-    {NULL, vlasov_poisson_surfvx_2x3v_ser_p1, vlasov_poisson_surfvx_2x3v_ser_p2}, // 4
+    {NULL, vlasov_poisson_surfvx_2x3v_ser_p1, NULL}, // 4
     // 3x kernels
     {NULL, NULL, NULL} // 5
 };
@@ -368,7 +352,7 @@ GKYL_CU_D static const gkyl_dg_vlasov_poisson_accel_surf_kern_list
     {NULL, kernel_vlasov_poisson_zero_accel_surf, kernel_vlasov_poisson_zero_accel_surf}, // 2
     // 2x kernels
     {NULL, vlasov_poisson_surfvy_2x2v_ser_p1, vlasov_poisson_surfvy_2x2v_ser_p2}, // 3
-    {NULL, vlasov_poisson_surfvy_2x3v_ser_p1, vlasov_poisson_surfvy_2x3v_ser_p2}, // 4
+    {NULL, vlasov_poisson_surfvy_2x3v_ser_p1, NULL}, // 4
     // 3x kernels
     {NULL, NULL, NULL} // 5
 };
@@ -400,8 +384,7 @@ GKYL_CU_D static const gkyl_dg_vlasov_poisson_accel_boundary_surf_kern_list
     // 2x kernels
     {NULL, vlasov_poisson_boundary_surfvx_2x2v_ser_p1, vlasov_poisson_boundary_surfvx_2x2v_ser_p2
     }, // 3
-    {NULL, vlasov_poisson_boundary_surfvx_2x3v_ser_p1, vlasov_poisson_boundary_surfvx_2x3v_ser_p2
-    }, // 4
+    {NULL, vlasov_poisson_boundary_surfvx_2x3v_ser_p1, NULL}, // 4
     // 3x kernels
     {NULL, NULL, NULL} // 5
 };
@@ -418,8 +401,7 @@ GKYL_CU_D static const gkyl_dg_vlasov_poisson_accel_boundary_surf_kern_list
     // 2x kernels
     {NULL, vlasov_poisson_boundary_surfvy_2x2v_ser_p1, vlasov_poisson_boundary_surfvy_2x2v_ser_p2
     }, // 3
-    {NULL, vlasov_poisson_boundary_surfvy_2x3v_ser_p1, vlasov_poisson_boundary_surfvy_2x3v_ser_p2
-    }, // 4
+    {NULL, vlasov_poisson_boundary_surfvy_2x3v_ser_p1, NULL}, // 4
     // 3x kernels
     {NULL, NULL, NULL} // 5
 };
@@ -571,20 +553,6 @@ kernel_vlasov_poisson_ext_phiA_vol_2x3v_ser_p1(
   );
 }
 
-GKYL_CU_DH static double
-kernel_vlasov_poisson_ext_phiA_vol_2x3v_ser_p2(
-  const struct gkyl_dg_eqn *eqn, const double *xc, const double *dx, const int *idx,
-  const double *qIn, double *GKYL_RESTRICT qRhsOut
-)
-{
-  struct dg_vlasov_poisson *vlasov = container_of(eqn, struct dg_vlasov_poisson, eqn);
-
-  long cidx = gkyl_range_idx(&vlasov->conf_range, idx);
-  return vlasov_poisson_ext_phiA_vol_2x3v_ser_p2(
-    xc, dx, (const double *)gkyl_array_cfetch(vlasov->auxfields.potentials, cidx), 0, qIn, qRhsOut
-  );
-}
-
 // Volume kernel list (with external phi and A).
 GKYL_CU_D static const gkyl_dg_vlasov_poisson_vol_kern_list ser_poisson_ext_phiA_vol_kernels[] = {
   // 1x kernels
@@ -597,8 +565,7 @@ GKYL_CU_D static const gkyl_dg_vlasov_poisson_vol_kern_list ser_poisson_ext_phiA
   // 2x kernels
   {NULL, kernel_vlasov_poisson_ext_phiA_vol_2x2v_ser_p1,
    kernel_vlasov_poisson_ext_phiA_vol_2x2v_ser_p2}, // 3
-  {NULL, kernel_vlasov_poisson_ext_phiA_vol_2x3v_ser_p1,
-   kernel_vlasov_poisson_ext_phiA_vol_2x3v_ser_p2}, // 4
+  {NULL, kernel_vlasov_poisson_ext_phiA_vol_2x3v_ser_p1, NULL}, // 4
   // 3x kernels
   {NULL, NULL, NULL} // 5
 };
@@ -616,8 +583,7 @@ GKYL_CU_D static const gkyl_dg_vlasov_poisson_accel_surf_kern_list
     // 2x kernels
     {NULL, vlasov_poisson_ext_phiA_surfvx_2x2v_ser_p1, vlasov_poisson_ext_phiA_surfvx_2x2v_ser_p2
     }, // 3
-    {NULL, vlasov_poisson_ext_phiA_surfvx_2x3v_ser_p1, vlasov_poisson_ext_phiA_surfvx_2x3v_ser_p2
-    }, // 4
+    {NULL, vlasov_poisson_ext_phiA_surfvx_2x3v_ser_p1, NULL}, // 4
     // 3x kernels
     {NULL, NULL, NULL} // 5
 };
@@ -634,8 +600,7 @@ GKYL_CU_D static const gkyl_dg_vlasov_poisson_accel_surf_kern_list
     // 2x kernels
     {NULL, vlasov_poisson_ext_phiA_surfvy_2x2v_ser_p1, vlasov_poisson_ext_phiA_surfvy_2x2v_ser_p2
     }, // 3
-    {NULL, vlasov_poisson_ext_phiA_surfvy_2x3v_ser_p1, vlasov_poisson_ext_phiA_surfvy_2x3v_ser_p2
-    }, // 4
+    {NULL, vlasov_poisson_ext_phiA_surfvy_2x3v_ser_p1, NULL}, // 4
     // 3x kernels
     {NULL, NULL, NULL} // 5
 };
@@ -650,8 +615,7 @@ GKYL_CU_D static const gkyl_dg_vlasov_poisson_accel_surf_kern_list
     }, // 2
     // 2x kernels
     {NULL, NULL, NULL}, // 3
-    {NULL, vlasov_poisson_ext_phiA_surfvz_2x3v_ser_p1, vlasov_poisson_ext_phiA_surfvz_2x3v_ser_p2
-    }, // 4
+    {NULL, vlasov_poisson_ext_phiA_surfvz_2x3v_ser_p1, NULL}, // 4
     // 3x kernels
     {NULL, NULL, NULL} // 5
 };
@@ -669,8 +633,7 @@ GKYL_CU_D static const gkyl_dg_vlasov_poisson_accel_boundary_surf_kern_list
     // 2x kernels
     {NULL, vlasov_poisson_ext_phiA_boundary_surfvx_2x2v_ser_p1,
      vlasov_poisson_ext_phiA_boundary_surfvx_2x2v_ser_p2}, // 3
-    {NULL, vlasov_poisson_ext_phiA_boundary_surfvx_2x3v_ser_p1,
-     vlasov_poisson_ext_phiA_boundary_surfvx_2x3v_ser_p2}, // 4
+    {NULL, vlasov_poisson_ext_phiA_boundary_surfvx_2x3v_ser_p1, NULL}, // 4
     // 3x kernels
     {NULL, NULL, NULL} // 5
 };
@@ -687,8 +650,7 @@ GKYL_CU_D static const gkyl_dg_vlasov_poisson_accel_boundary_surf_kern_list
     // 2x kernels
     {NULL, vlasov_poisson_ext_phiA_boundary_surfvy_2x2v_ser_p1,
      vlasov_poisson_ext_phiA_boundary_surfvy_2x2v_ser_p2}, // 3
-    {NULL, vlasov_poisson_ext_phiA_boundary_surfvy_2x3v_ser_p1,
-     vlasov_poisson_ext_phiA_boundary_surfvy_2x3v_ser_p2}, // 4
+    {NULL, vlasov_poisson_ext_phiA_boundary_surfvy_2x3v_ser_p1, NULL}, // 4
     // 3x kernels
     {NULL, NULL, NULL} // 5
 };
@@ -702,8 +664,7 @@ GKYL_CU_D static const gkyl_dg_vlasov_poisson_accel_boundary_surf_kern_list
      vlasov_poisson_ext_phiA_boundary_surfvz_1x3v_ser_p2}, // 2
     // 2x kernels
     {NULL, NULL, NULL}, // 3
-    {NULL, vlasov_poisson_ext_phiA_boundary_surfvz_2x3v_ser_p1,
-     vlasov_poisson_ext_phiA_boundary_surfvz_2x3v_ser_p2}, // 4
+    {NULL, vlasov_poisson_ext_phiA_boundary_surfvz_2x3v_ser_p1, NULL}, // 4
     // 3x kernels
     {NULL, NULL, NULL} // 5
 };
@@ -848,21 +809,6 @@ kernel_vlasov_poisson_ext_EB_vol_2x3v_ser_p1(
   );
 }
 
-GKYL_CU_DH static double
-kernel_vlasov_poisson_ext_EB_vol_2x3v_ser_p2(
-  const struct gkyl_dg_eqn *eqn, const double *xc, const double *dx, const int *idx,
-  const double *qIn, double *GKYL_RESTRICT qRhsOut
-)
-{
-  struct dg_vlasov_poisson *vlasov = container_of(eqn, struct dg_vlasov_poisson, eqn);
-
-  long cidx = gkyl_range_idx(&vlasov->conf_range, idx);
-  return vlasov_poisson_ext_EB_vol_2x3v_ser_p2(
-    xc, dx, (const double *)gkyl_array_cfetch(vlasov->auxfields.potentials, cidx),
-    (const double *)gkyl_array_cfetch(vlasov->auxfields.fields_ext, cidx), qIn, qRhsOut
-  );
-}
-
 // Volume kernel list (with external E and B).
 GKYL_CU_D static const gkyl_dg_vlasov_poisson_vol_kern_list ser_poisson_ext_EB_vol_kernels[] = {
   // 1x kernels
@@ -875,8 +821,7 @@ GKYL_CU_D static const gkyl_dg_vlasov_poisson_vol_kern_list ser_poisson_ext_EB_v
   // 2x kernels
   {NULL, kernel_vlasov_poisson_ext_EB_vol_2x2v_ser_p1, kernel_vlasov_poisson_ext_EB_vol_2x2v_ser_p2
   }, // 3
-  {NULL, kernel_vlasov_poisson_ext_EB_vol_2x3v_ser_p1, kernel_vlasov_poisson_ext_EB_vol_2x3v_ser_p2
-  }, // 4
+  {NULL, kernel_vlasov_poisson_ext_EB_vol_2x3v_ser_p1, NULL}, // 4
   // 3x kernels
   {NULL, NULL, NULL} // 5
 };
@@ -890,7 +835,7 @@ GKYL_CU_D static const gkyl_dg_vlasov_poisson_accel_surf_kern_list
     {NULL, vlasov_poisson_ext_EB_surfvx_1x3v_ser_p1, vlasov_poisson_ext_EB_surfvx_1x3v_ser_p2}, // 2
     // 2x kernels
     {NULL, vlasov_poisson_ext_EB_surfvx_2x2v_ser_p1, vlasov_poisson_ext_EB_surfvx_2x2v_ser_p2}, // 3
-    {NULL, vlasov_poisson_ext_EB_surfvx_2x3v_ser_p1, vlasov_poisson_ext_EB_surfvx_2x3v_ser_p2}, // 4
+    {NULL, vlasov_poisson_ext_EB_surfvx_2x3v_ser_p1, NULL}, // 4
     // 3x kernels
     {NULL, NULL, NULL} // 5
 };
@@ -904,7 +849,7 @@ GKYL_CU_D static const gkyl_dg_vlasov_poisson_accel_surf_kern_list
     {NULL, vlasov_poisson_ext_EB_surfvy_1x3v_ser_p1, vlasov_poisson_ext_EB_surfvy_1x3v_ser_p2}, // 2
     // 2x kernels
     {NULL, vlasov_poisson_ext_EB_surfvy_2x2v_ser_p1, vlasov_poisson_ext_EB_surfvy_2x2v_ser_p2}, // 3
-    {NULL, vlasov_poisson_ext_EB_surfvy_2x3v_ser_p1, vlasov_poisson_ext_EB_surfvy_2x3v_ser_p2}, // 4
+    {NULL, vlasov_poisson_ext_EB_surfvy_2x3v_ser_p1, NULL}, // 4
     // 3x kernels
     {NULL, NULL, NULL} // 5
 };
@@ -918,7 +863,7 @@ GKYL_CU_D static const gkyl_dg_vlasov_poisson_accel_surf_kern_list
     {NULL, vlasov_poisson_ext_EB_surfvz_1x3v_ser_p1, vlasov_poisson_ext_EB_surfvz_1x3v_ser_p2}, // 2
     // 2x kernels
     {NULL, NULL, NULL}, // 3
-    {NULL, vlasov_poisson_ext_EB_surfvz_2x3v_ser_p1, vlasov_poisson_ext_EB_surfvz_2x3v_ser_p2}, // 4
+    {NULL, vlasov_poisson_ext_EB_surfvz_2x3v_ser_p1, NULL}, // 4
     // 3x kernels
     {NULL, NULL, NULL} // 5
 };
@@ -936,8 +881,7 @@ GKYL_CU_D static const gkyl_dg_vlasov_poisson_accel_boundary_surf_kern_list
     // 2x kernels
     {NULL, vlasov_poisson_ext_EB_boundary_surfvx_2x2v_ser_p1,
      vlasov_poisson_ext_EB_boundary_surfvx_2x2v_ser_p2}, // 3
-    {NULL, vlasov_poisson_ext_EB_boundary_surfvx_2x3v_ser_p1,
-     vlasov_poisson_ext_EB_boundary_surfvx_2x3v_ser_p2}, // 4
+    {NULL, vlasov_poisson_ext_EB_boundary_surfvx_2x3v_ser_p1, NULL}, // 4
     // 3x kernels
     {NULL, NULL, NULL} // 5
 };
@@ -954,8 +898,7 @@ GKYL_CU_D static const gkyl_dg_vlasov_poisson_accel_boundary_surf_kern_list
     // 2x kernels
     {NULL, vlasov_poisson_ext_EB_boundary_surfvy_2x2v_ser_p1,
      vlasov_poisson_ext_EB_boundary_surfvy_2x2v_ser_p2}, // 3
-    {NULL, vlasov_poisson_ext_EB_boundary_surfvy_2x3v_ser_p1,
-     vlasov_poisson_ext_EB_boundary_surfvy_2x3v_ser_p2}, // 4
+    {NULL, vlasov_poisson_ext_EB_boundary_surfvy_2x3v_ser_p1, NULL}, // 4
     // 3x kernels
     {NULL, NULL, NULL} // 5
 };
@@ -969,8 +912,7 @@ GKYL_CU_D static const gkyl_dg_vlasov_poisson_accel_boundary_surf_kern_list
      vlasov_poisson_ext_EB_boundary_surfvz_1x3v_ser_p2}, // 2
     // 2x kernels
     {NULL, NULL, NULL}, // 3
-    {NULL, vlasov_poisson_ext_EB_boundary_surfvz_2x3v_ser_p1,
-     vlasov_poisson_ext_EB_boundary_surfvz_2x3v_ser_p2}, // 4
+    {NULL, vlasov_poisson_ext_EB_boundary_surfvz_2x3v_ser_p1, NULL}, // 4
     // 3x kernels
     {NULL, NULL, NULL} // 5
 };
