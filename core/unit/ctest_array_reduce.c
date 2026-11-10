@@ -110,6 +110,65 @@ test_sum_reduce_range_ho()
 // CUDA specific tests
 #ifdef GKYL_HAVE_CUDA
 
+// Exercise many blocks, a partial block, and extrema far from the
+// last block. Compare every component with the CPU, including a ghosted range.
+void
+test_array_reduce_multiblock_dev()
+{
+  const int ncomp = 5, ncells = 65539;
+  struct gkyl_range parent, interior;
+  gkyl_range_init(&parent, 1, (int[]){0}, (int[]){ncells - 1});
+  gkyl_sub_range_init(&interior, &parent, (int[]){1}, (int[]){ncells - 2});
+  struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, ncomp, ncells);
+  struct gkyl_array *arr_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, ncomp, ncells);
+  double *result_cu = gkyl_cu_malloc(ncomp * sizeof(double));
+  enum gkyl_array_op ops[] = {GKYL_MIN, GKYL_MAX, GKYL_SUM};
+
+  for (int sign = -1; sign <= 1; sign += 2) {
+    for (int i = 0; i < ncells; ++i) {
+      double *vals = gkyl_array_fetch(arr, i);
+      for (int c = 0; c < ncomp; ++c) {
+        vals[c] = sign * (10 + c + i % 17);
+        if (i == 1 + c) {
+          vals[c] = sign * (1000000 + c);
+        }
+        if (i == 0 || i == ncells - 1) {
+          vals[c] = sign * (2000000 + c);
+        }
+      }
+    }
+    gkyl_array_copy(arr_cu, arr);
+    for (int ranged = 0; ranged < 2; ++ranged) {
+      for (int op = 0; op < 3; ++op) {
+        double expected[ncomp], actual[ncomp];
+        if (ranged) {
+          gkyl_array_reduce_range(expected, arr, ops[op], &interior);
+        } else {
+          gkyl_array_reduce(expected, arr, ops[op]);
+        }
+        for (int repeat = 0; repeat < 4; ++repeat) {
+          if (ranged) {
+            gkyl_array_reduce_range(result_cu, arr_cu, ops[op], &interior);
+          } else {
+            gkyl_array_reduce(result_cu, arr_cu, ops[op]);
+          }
+          gkyl_cu_memcpy(actual, result_cu, sizeof(actual), GKYL_CU_MEMCPY_D2H);
+          for (int c = 0; c < ncomp; ++c) {
+            TEST_CHECK(actual[c] == expected[c]);
+            TEST_MSG(
+              "sign=%d ranged=%d op=%d repeat=%d component=%d expected=%.17g actual=%.17g", sign,
+              ranged, ops[op], repeat, c, expected[c], actual[c]
+            );
+          }
+        }
+      }
+    }
+  }
+  gkyl_cu_free(result_cu);
+  gkyl_array_release(arr_cu);
+  gkyl_array_release(arr);
+}
+
 void
 test_array_reduce_max_dev()
 {
@@ -386,6 +445,7 @@ TEST_LIST = {
   {"array_reduce_range_ho", test_reduce_range_ho},
   {"array_reduce_sum_range_ho", test_sum_reduce_range_ho},
 #ifdef GKYL_HAVE_CUDA
+  {"array_reduce_multiblock_dev", test_array_reduce_multiblock_dev},
   {"array_reduce_max_dev", test_array_reduce_max_dev},
   {"array_reduce_max_big_dev", test_array_reduce_max_big_dev},
   {"array_reduce_range_1d_max_dev", test_array_reduce_range_1d_max_dev},
