@@ -368,8 +368,7 @@ main(int argc, char **argv)
     .init_fluid = evalFluidInit,
     .ctx_fluid = &ctx,
 
-    .collisions =
-      {.collision_id = GKYL_BGK_COLLISIONS, .self_nu = evalNu, .ctx = &ctx, .is_explicit = true},
+    .collisions = {.collision_id = GKYL_BGK_COLLISIONS, .self_nu = evalNu, .ctx = &ctx},
   };
 
   // Species seeded with the heat-flux-like first harmonic.
@@ -388,8 +387,7 @@ main(int argc, char **argv)
     .init_fluid = evalFluidInit,
     .ctx_fluid = &ctx,
 
-    .collisions =
-      {.collision_id = GKYL_BGK_COLLISIONS, .self_nu = evalNu, .ctx = &ctx, .is_explicit = true},
+    .collisions = {.collision_id = GKYL_BGK_COLLISIONS, .self_nu = evalNu, .ctx = &ctx},
   };
 
   // Field.

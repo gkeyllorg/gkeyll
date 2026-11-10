@@ -5,14 +5,13 @@
 // In the Euler limit the pulse returns unchanged to its starting position. With collisions at nu =
 // 100 the heat flux relaxes at nu, so the gas conducts heat with thermal diffusivity chi = T/(m nu)
 // and the pulse, a temperature perturbation at constant pressure, decays as exp(-chi k^2 t), k^2 =
-// pi^2; the measured decay beyond it is the numerical diffusion of the scheme. The BGK term is part
-// of the explicit SSP-RK3 update.
+// pi^2. The BGK relaxation takes one backward-Euler step after each SSP-RK3 step. Within a step the
+// heat flux grows from its relaxed value, so the split conducts with chi (1 + nu dt/2).
 // Figures of merit (16 x 16 cells): at t = 2 the pulse is back at its starting position (phase
-// error below 1e-4 rad) with amplitude 0.836, against exp(-chi k^2 t) = 0.821 for chi = T/(m nu)
-// (0.841 at 0.88 chi k^2). The PKPM conduction along b converges to 0.88 chi k^2 (Nx 16-64, Nv
-// 16/32, cfl 1/0.5), against 0.998 chi k^2 from exact linear 3V BGK theory, so the measured decay
-// combines that deficit with the numerical diffusion of the scheme at this resolution. Particle
-// number is conserved to 1e-13.
+// error below 1e-4 rad) with amplitude 0.817, against exp(-chi k^2 t) = 0.821. At nu dt = 0.26 the
+// decay rate is 1.130 times that of rt_pkpm_travel_pulse_bgk_1x (amplitude 0.836), against
+// 1 + nu dt/2 = 1.129 (1.065 and 1.033 at cfl 1/2 and 1/4). Particle number is conserved to 1e-13
+// and the constraints to round-off.
 
 #include <math.h>
 #include <stdio.h>
@@ -350,7 +349,7 @@ main(int argc, char **argv)
     .ctx_fluid = &ctx,
 
     .collisions =
-      {.collision_id = GKYL_BGK_COLLISIONS, .self_nu = evalNu, .ctx = &ctx, .is_explicit = true},
+      {.collision_id = GKYL_BGK_COLLISIONS, .self_nu = evalNu, .ctx = &ctx, .is_implicit = true},
   };
 
   // Field.

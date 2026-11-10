@@ -30,9 +30,9 @@ struct gkyl_pkpm_collisions {
   // instead of the local one (the fluid energy then relaxes at the rate nu as well).
   bool fixed_temp_relax;
 
-  // BGK collisions: take the explicit update (with its CFL limit) instead of one backward-Euler
-  // step after each time step. Fixed-temperature and GPU runs are always explicit.
-  bool is_explicit;
+  // BGK collisions: one backward-Euler step after each time step instead of the explicit update
+  // (with its CFL limit). Fixed-temperature and GPU runs are always explicit.
+  bool is_implicit;
 };
 
 // Parameters for a species source: an LTE profile [density, isotropic temperature, drift]

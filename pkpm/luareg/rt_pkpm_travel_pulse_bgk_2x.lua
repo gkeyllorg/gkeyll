@@ -6,14 +6,11 @@
 -- In the Euler limit the pulse returns unchanged to its starting position. With collisions at nu =
 -- 100 the heat flux relaxes at nu, so the gas conducts heat with thermal diffusivity chi = T/(m nu)
 -- and the pulse, a temperature perturbation at constant pressure, decays as exp(-chi k^2 t), k^2 =
--- 2 pi^2. The BGK relaxation takes one backward-Euler step after each SSP-RK3 step, so the split
--- conducts with chi (1 + nu dt/2), as in rt_pkpm_travel_pulse_bgk_1x.
--- Figures of merit (16 x 16 x 8 cells): at t = 2 the mode with k along b has amplitude 0.631 and
--- the mode with k across b 0.620, against exp(-chi k^2 t) = 0.674 for chi = T/(m nu). BGK relaxes
+-- 2 pi^2; the measured decay beyond it is the numerical diffusion of the scheme.
+-- Figures of merit (16 x 16 x 8 cells): at t = 2 the mode with k along b has amplitude 0.651 and
+-- the mode with k across b 0.642, against exp(-chi k^2 t) = 0.674 for chi = T/(m nu). BGK relaxes
 -- the first harmonic toward its gyrotropic target at nu, so the gas conducts heat across b as along
--- it. At nu dt = 0.155 the decay rates are 1.076 and 1.079 times those of the explicit update
--- (amplitudes 0.651 and 0.642), against 1 + nu dt/2 = 1.077. Phase errors are below 5e-4 rad;
--- particle number is conserved to 1e-13 and the constraints to round-off.
+-- it. Phase errors are below 5e-4 rad; particle number is conserved to 1e-13.
 
 local PKPM = G0.PKPM
 

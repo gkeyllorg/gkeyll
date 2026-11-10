@@ -120,7 +120,7 @@ pkpm_species_bgk_init_nodal(
   }
 
   bgk->up_bgk = gkyl_pkpm_bgk_collisions_new(&app->confBasis, &app->basis, false);
-  bgk->is_implicit = !s->info.collisions.is_explicit;
+  bgk->is_implicit = s->info.collisions.is_implicit;
   if (bgk->is_implicit) {
     bgk->shape = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
     bgk->kinetic_rhs = pkpm_species_bgk_kinetic_rhs_none;

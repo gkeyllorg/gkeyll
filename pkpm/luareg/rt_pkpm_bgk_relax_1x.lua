@@ -112,7 +112,6 @@ pkpmApp = PKPM.App.new {
 
     collisions = {
       collisionID = G0.Collisions.BGK,
-      useExplicitCollisionScheme = true,
 
       selfNu = function (t, xn)
         return nu
@@ -156,7 +155,6 @@ pkpmApp = PKPM.App.new {
 
     collisions = {
       collisionID = G0.Collisions.BGK,
-      useExplicitCollisionScheme = true,
 
       selfNu = function (t, xn)
         return nu

@@ -1,18 +1,20 @@
--- Advection of an entropy (contact) wave by a collisional neutral gas with BGK collisions with the
--- PKPM system of equations (1x, normalized parallel velocity w = v_par/xi). A density pulse n = 1 +
--- 0.2 sin(pi x) in a uniform flow u = 1 at uniform pressure p = 1 crosses a periodic box of length
--- 2 once (t = 2), along the magnetic field.
--- In the Euler limit the pulse returns unchanged to its starting position. With collisions at nu =
--- 100 the heat flux relaxes at nu, so the gas conducts heat with thermal diffusivity chi = T/(m nu)
--- and the pulse, a temperature perturbation at constant pressure, decays as exp(-chi k^2 t), k^2 =
--- pi^2; the measured decay beyond it is the numerical diffusion of the scheme. The BGK term is part
--- of the explicit SSP-RK3 update.
--- Figures of merit (16 x 16 cells): at t = 2 the pulse is back at its starting position (phase
--- error below 1e-4 rad) with amplitude 0.836, against exp(-chi k^2 t) = 0.821 for chi = T/(m nu)
--- (0.841 at 0.88 chi k^2). The PKPM conduction along b converges to 0.88 chi k^2 (Nx 16-64, Nv
--- 16/32, cfl 1/0.5), against 0.998 chi k^2 from exact linear 3V BGK theory, so the measured decay
--- combines that deficit with the numerical diffusion of the scheme at this resolution. Particle
--- number is conserved to 1e-13.
+-- Sod shock tube for a neutral gas with BGK collisions with the PKPM system of equations (1x,
+-- normalized parallel velocity w = v_par/xi), the counterpart of
+-- vlasov/creg/rt_vlasov_nonuniformv_neut_bgk_sodshock_im_1x3v.c
+-- Density 1 and pressure 1 on the left, density 1/8 and pressure 1/10 on the right, at rest. The
+-- collision frequency puts the mean free path at 1/310 of a cell, so the solution follows the Euler
+-- Sod solution of a gas with three degrees of freedom (PKPM carries the perpendicular temperature),
+-- adiabatic index 5/3. A static magnetic field along x sets the field direction.
+-- The BGK relaxation takes one backward-Euler step after each SSP-RK3 step of the collisionless
+-- terms, so the transport alone sets the time step (nu dt = 2).
+-- Exact solution at t = 0.1: shock at x = 0.684, contact at 0.584, post-shock density 0.230,
+-- velocity 0.841.
+-- Figures of merit (32 x 16 cells): the shock at 0.686 and the contact at 0.580 lie within 0.15
+-- cells of the Euler positions; the post-shock plateau, three cells wide, has density 0.231 (0.7%
+-- high) and velocity 0.860 (2% high, from the cell behind the shock); the density L1 error is
+-- 0.0096 (Vlasov 1x3v, serendipity p2 with 6^3 mapped velocity cells: 0.006). The explicit update
+-- at the same nu, with three times the steps, agrees to 1.5e-3 in the fluid; nu = 1e5 and 1e6
+-- (nu dt = 190) move the figures of merit by less than 0.001. The constraints hold to round-off.
 
 local PKPM = G0.PKPM
 
@@ -22,27 +24,28 @@ pi = math.pi
 -- Physical constants (using normalized code units).
 epsilon0 = 1.0 -- Permittivity of free space.
 mu0 = 1.0 -- Permeability of free space.
-mass = 1.0 -- Neutral mass.
-charge = 0.0 -- Neutral charge.
+mass_neut = 1.0 -- Neutral mass.
+charge_neut = 0.0 -- Neutral charge.
 
-n0 = 1.0 -- Reference number density.
-alpha = 0.2 -- Perturbation amplitude.
-u0 = 1.0 -- Reference fluid velocity (each direction).
-pr0 = 1.0 -- Reference pressure.
-nu = 100.0 -- Collision frequency.
+nl = 1.0 -- Left number density.
+Tl = 1.0 -- Left temperature.
+nr = 0.125 -- Right number density.
+Tr = 0.8 -- Right temperature.
+nu = 10000.0 -- Collision frequency.
+vt = math.sqrt(Tl / mass_neut) -- Thermal velocity (left).
 B0 = 1.0 -- Magnetic field along x (sets the field direction b).
 
 -- Simulation parameters.
-Nx = 16 -- Cell count (configuration space: x-direction).
+Nx = 32 -- Cell count (configuration space: x-direction).
 Nvx = 16 -- Cell count (velocity space: normalized parallel velocity w).
-Lx = 2.0 -- Domain size (configuration space: x-direction).
-vx_max = 6.0 -- Domain boundary (velocity space: w = v_par/xi).
+Lx = 1.0 -- Domain size (configuration space: x-direction).
+vx_max = 8.0 -- Domain boundary (velocity space: w = v_par/xi).
 poly_order = 1 -- Polynomial order.
 basis_type = "serendipity" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
 cfl_frac = 1.0 -- CFL coefficient.
 
-t_end = 2.0 -- Final simulation time.
+t_end = 0.1 -- Final simulation time.
 num_frames = 1 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.
@@ -72,11 +75,11 @@ pkpmApp = PKPM.App.new {
   decompCuts = { 1 }, -- Cuts in each coordinate direction (x-direction only).
 
   -- Boundary conditions for configuration space.
-  periodicDirs = { 1 }, -- Periodic directions (x-direction only).
+  periodicDirs = { }, -- Periodic directions (none).
 
   -- Neutrals.
   neut = PKPM.Species.new {
-    charge = charge, mass = mass,
+    charge = charge_neut, mass = mass_neut,
 
     -- Velocity space grid.
     lower = { -vx_max },
@@ -95,16 +98,24 @@ pkpmApp = PKPM.App.new {
     initFluid = function (t, xn)
       local x = xn[1]
 
-      local n = n0 + alpha * math.sin(pi * x) -- Number density.
-      local rho = mass * n -- Mass density.
-      local E = 0.5 * rho * u0 * u0 + 1.5 * pr0 -- Total energy density (uniform pressure).
+      local n = 0.0
+      local T = 0.0
+      if x < 0.5 * Lx then
+        n = nl -- Left number density.
+        T = Tl -- Left temperature.
+      else
+        n = nr -- Right number density.
+        T = Tr -- Right temperature.
+      end
+      local rho = mass_neut * n -- Mass density.
+      local E = 1.5 * n * T -- Total energy density (at rest).
 
-      return rho, rho * u0, 0.0, 0.0, E
+      return rho, 0.0, 0.0, 0.0, E
     end,
 
     collisions = {
       collisionID = G0.Collisions.BGK,
-      useExplicitCollisionScheme = true,
+      useImplicitCollisionScheme = true,
 
       selfNu = function (t, xn)
         return nu
