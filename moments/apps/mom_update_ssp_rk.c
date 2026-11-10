@@ -1,4 +1,18 @@
+#include <math.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include <gkyl_moment_priv.h>
+#include <gkyl_gr_einstein_excision_priv.h>
+
+
+static void
+ssp_fill_excised_state(int meqn, double *q)
+{
+  for (int m = 0; m < meqn; m++) {
+    q[m] = 0.0;
+  }
+}
 
 // Remap a vacuum-Einstein state vector into the metric slots of a GR-Euler fluid state vector. 
 void
@@ -12,7 +26,7 @@ sync_fluid_metric_from_einstein(const double *qe, double *qf, double excision_th
   if (!is_conformal) {
     for (int n = 0; n < 9; n++) qf[9 + n] = qe[n]; // gamma_ij
     for (int n = 0; n < 9; n++) qf[18 + n] = qe[10 + n]; // K_ij
-    if (lapse < excision_threshold) { // excision flag (lapse-based)
+    if (gkyl_gr_einstein_is_excised(excision_threshold, qe, 64)) {
       qf[27] = -1.0;
     }
     else {
@@ -26,13 +40,18 @@ sync_fluid_metric_from_einstein(const double *qe, double *qf, double excision_th
 
   // The conformal system stores chi = psi^-2 and tilde(gamma)_ij = psi^-4 gamma_ij => gamma_ij = chi^-2 tilde(gamma)_ij
   double chi = qe[64];
-  if (lapse < excision_threshold || chi <= 0.0) {
+  if (gkyl_gr_einstein_is_excised(excision_threshold, qe, 77)) {
     for (int n = 0; n < 9; n++) qf[9 + n] = 0.0;
     for (int n = 0; n < 9; n++) qf[18 + n] = 0.0;
     qf[27] = -1.0;
     for (int n = 0; n < 3; n++) qf[28 + n] = 0.0;
     for (int n = 0; n < 9; n++) qf[31 + n] = 0.0;
     for (int n = 0; n < 27; n++) qf[40 + n] = 0.0;
+    return;
+  }
+  if (!gkyl_gr_conformal_scalars_valid(qe)) {
+    for (int n = 0; n < 9; ++n) qf[9+n] = NAN;
+    qf[27] = 1.0; // Invalid LIVE geometry must be rejected, not marked excised.
     return;
   }
 
@@ -131,10 +150,16 @@ apply_vacuum_einstein_excision_in_step(gkyl_moment_app* app, const struct moment
     long loc = gkyl_range_idx(&app->local_ext, iter.idx);
     double *q = gkyl_array_fetch(f, loc);
 
-    if (q[9] < excision_threshold) {
-      for (int m = 0; m < sp->num_equations; m++) {
-        q[m] = 0.0;
-      }
+    bool in_excision = false;
+    if (sp->has_vacuum_einstein_conformal) {
+      in_excision = gkyl_gr_einstein_is_excised(excision_threshold, q, 77);
+    }
+    else {
+      in_excision = gkyl_gr_einstein_is_excised(excision_threshold, q, 64);
+    }
+
+    if (in_excision) {
+      ssp_fill_excised_state(sp->num_equations, q);
     }
   }
 }
@@ -188,6 +213,10 @@ forward_euler(gkyl_moment_app* app, double tcurr, double dt,
       1.0, fin[i], &app->local);
     apply_vacuum_einstein_excision_in_step(app, &app->species[i], fout[i]);
     moment_species_apply_bc(app, tcurr + dta, &app->species[i], fout[i]);
+    if (app->species[i].has_vacuum_einstein_conformal) {
+      moment_species_conformal_derivatives_advance(app, &app->species[i], fin[i], fout[i], tcurr+dta);
+      moment_species_apply_bc(app, tcurr + dta, &app->species[i], fout[i]);
+    }
   }
   if (app->has_field) {
     // complete update of field (even when field is static, it is
@@ -199,10 +228,9 @@ forward_euler(gkyl_moment_app* app, double tcurr, double dt,
   }
 }
 
-// internal function that takes a single time-step using a single-step
-// Strang-split scheme
+// Three-stage, third-order SSP-RK, also used as a subflow of the mixed step.
 struct gkyl_update_status
-moment_update_ssp_rk3(gkyl_moment_app* app, double dt0)
+moment_update_ssp_rk3_at(gkyl_moment_app* app, double tcurr, double dt0)
 {
   const struct gkyl_array *fin[app->num_species];
   struct gkyl_array *fout[app->num_species];
@@ -211,7 +239,7 @@ moment_update_ssp_rk3(gkyl_moment_app* app, double dt0)
   // time-stepper state
   enum { RK_STAGE_1, RK_STAGE_2, RK_STAGE_3, RK_COMPLETE } state = RK_STAGE_1;
 
-  double tcurr = app->tcurr, dt = dt0;
+  double dt = dt0;
   while (state != RK_COMPLETE) {
     switch (state) {
       case RK_STAGE_1:
@@ -318,4 +346,10 @@ moment_update_ssp_rk3(gkyl_moment_app* app, double dt0)
   }
   
   return st;
+}
+
+struct gkyl_update_status
+moment_update_ssp_rk3(gkyl_moment_app* app, double dt0)
+{
+  return moment_update_ssp_rk3_at(app, app->tcurr, dt0);
 }

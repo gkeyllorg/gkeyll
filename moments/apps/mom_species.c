@@ -1,8 +1,154 @@
+#include <math.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include <gkyl_moment_priv.h>
+#include <gkyl_gr_einstein_excision_priv.h>
 #include <gkyl_util.h>
 #include <gkyl_wv_euler.h>
+#include <gkyl_wv_gr_euler.h>
 #include <gkyl_wv_gr_euler_priv.h>
 #include <gkyl_sources_explicit_priv.h>
+
+static bool
+conformal_state_in_excision_for_species(double excision_threshold, const double *q)
+{
+  return gkyl_gr_einstein_is_excised(excision_threshold, q, 77);
+}
+
+
+static void
+conformal_excision_fill_for_species(int meqn, double *q)
+{
+  for (int m = 0; m < meqn; ++m) {
+    q[m] = 0.0;
+  }
+}
+
+static bool
+moment_species_conformal_excision_cleanup(gkyl_moment_app *app,
+  const struct moment_species *sp, struct gkyl_array *f)
+{
+  if (!sp->has_vacuum_einstein_conformal) {
+    return false;
+  }
+
+  double excision_threshold = sp->vacuum_einstein_conformal_excision_threshold;
+  if (!(excision_threshold > 0.0)) {
+    return false;
+  }
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &app->local);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&app->local_ext, iter.idx);
+    double *q = gkyl_array_fetch(f, loc);
+    if (conformal_state_in_excision_for_species(excision_threshold, q)) {
+      conformal_excision_fill_for_species(sp->num_equations, q);
+    }
+  }
+  return true;
+}
+
+
+static void
+conformal_gradient_increment(double threshold,
+  const double *old, const double *next, double delta[3])
+{
+  bool live = !conformal_state_in_excision_for_species(threshold, old)
+    && !conformal_state_in_excision_for_species(threshold, next);
+  for (int j = 0; j < 3; ++j)
+    delta[j] = live ? next[65+j]-old[65+j] : 0.0;
+}
+
+void
+moment_species_conformal_hessian_advance(const gkyl_moment_app *app,
+  const struct moment_species *sp, const struct gkyl_array *fin, struct gkyl_array *fout)
+{
+  if (!sp->has_vacuum_einstein_conformal) return;
+  assert(fin != fout);
+  double threshold = sp->vacuum_einstein_conformal_excision_threshold;
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &app->local);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&app->local_ext, iter.idx);
+    const double *old = gkyl_array_cfetch(fin, loc);
+    double *next = gkyl_array_fetch(fout, loc);
+    if (conformal_state_in_excision_for_species(threshold, next)
+        || conformal_state_in_excision_for_species(threshold, old)) {
+      for (int m = 68; m < 77; ++m) next[m] = 0.0;
+      continue;
+    }
+
+    double derivative[3][3] = {{0.0}};
+    for (int d = 0; d < app->ndim; ++d) {
+      int lo[GKYL_MAX_DIM], hi[GKYL_MAX_DIM];
+      gkyl_copy_int_arr(app->ndim, iter.idx, lo);
+      gkyl_copy_int_arr(app->ndim, iter.idx, hi);
+      lo[d]--; hi[d]++;
+      long lm = gkyl_range_idx(&app->local_ext, lo);
+      long lp = gkyl_range_idx(&app->local_ext, hi);
+      double dm[3], dp[3];
+      conformal_gradient_increment(threshold,
+        gkyl_array_cfetch(fin, lm), gkyl_array_cfetch(fout, lm), dm);
+      conformal_gradient_increment(threshold,
+        gkyl_array_cfetch(fin, lp), gkyl_array_cfetch(fout, lp), dp);
+      for (int j = 0; j < 3; ++j)
+        derivative[d][j] = (dp[j]-dm[j])/(2.0*app->grid.dx[d]);
+    }
+    // H_t = partial_(i P_j),t. The centered derivative is a shared-face
+    // difference: the integrated i-face flux is -average(delta P_j),
+    // symmetrized in i,j. On live stencils this preserves the initial
+    // H-sym(D_h P), not P-D_h chi. It is not a projection H <- derivative(P).
+    // Replace the provisional H transport; adding it would count that update
+    // twice. The difference uses Cartesian grid spacings. Excision is a sink.
+    for (int i = 0; i < 3; ++i)
+      for (int j = 0; j < 3; ++j)
+        next[68+3*i+j] = old[68+3*i+j]+0.5*(derivative[i][j]+derivative[j][i]);
+  }
+}
+
+// Differentiate the completed scalar increment, preserving the initial P-D_h chi.
+void
+moment_species_conformal_derivatives_advance(gkyl_moment_app *app, const struct moment_species *sp,
+  const struct gkyl_array *old, struct gkyl_array *next, double time)
+{
+  if (!sp->has_vacuum_einstein_conformal) return;
+  assert(old != next);
+  double threshold = sp->vacuum_einstein_conformal_excision_threshold;
+  struct gkyl_range_iter it;
+  gkyl_range_iter_init(&it, &app->local);
+  while (gkyl_range_iter_next(&it)) {
+    long loc = gkyl_range_idx(&app->local_ext, it.idx);
+    const double *a = gkyl_array_cfetch(old, loc);
+    double *b = gkyl_array_fetch(next, loc);
+    bool live = !conformal_state_in_excision_for_species(threshold, a)
+      && !conformal_state_in_excision_for_species(threshold, b);
+    for (int d=0; d<3; ++d) {
+      double increment = 0;
+      if (live && d < app->ndim) {
+        int lo[GKYL_MAX_DIM], hi[GKYL_MAX_DIM];
+        gkyl_copy_int_arr(app->ndim, it.idx, lo);
+        gkyl_copy_int_arr(app->ndim, it.idx, hi);
+        --lo[d]; ++hi[d];
+        double dc[2] = {0};
+        const int *indices[2] = {lo, hi};
+        for (int side=0; side<2; ++side) {
+          long l = gkyl_range_idx(&app->local_ext, indices[side]);
+          const double *qa = gkyl_array_cfetch(old, l), *qb = gkyl_array_cfetch(next, l);
+          if (!conformal_state_in_excision_for_species(threshold, qa)
+              && !conformal_state_in_excision_for_species(threshold, qb))
+            dc[side] = qb[64]-qa[64];
+        }
+        increment = (dc[1]-dc[0])/(2*app->grid.dx[d]);
+      }
+      b[65+d] = live ? a[65+d]+increment : 0;
+    }
+  }
+  moment_species_apply_bc(app, time, sp, next);
+  moment_species_conformal_hessian_advance(app, sp, old, next);
+  moment_species_apply_bc(app, time, sp, next);
+}
 
 // initialize species
 void
@@ -10,6 +156,8 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
   struct gkyl_moment_app *app, struct moment_species *sp)
 {
   sp->ndim = mom->ndim;
+  sp->gamma_driver_reference = NULL;
+  sp->spacetime_equilibrium = sp->spacetime_equilibrium_source = NULL;
   strcpy(sp->name, mom_sp->name);
   sp->charge = mom_sp->charge;
   sp->mass = mom_sp->mass;
@@ -106,6 +254,8 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
     sp->has_gr_euler = true;
 
     sp->gr_euler_gas_gamma = mom_sp->gr_euler_gas_gamma;
+    // The mixed scheme always applies the atmosphere floor in the primitive recovery (fluxes and sources only).
+    if (mom->scheme_type == GKYL_MOMENT_MIXED) gkyl_wv_gr_euler_set_atmosphere_floor(true);
   }
 
   // No metric coupling partner until forward_euler wires it up each RK stage.
@@ -622,30 +772,56 @@ moment_species_max_dt(const gkyl_moment_app *app, const struct moment_species *s
 
 // update solution: initial solution is in sp->f[0] and updated
 // solution in sp->f[ndim]
-struct gkyl_update_status
-moment_species_update(gkyl_moment_app *app,
-  struct moment_species *sp, double tcurr, double dt)
+static struct gkyl_update_status
+moment_species_update_split(gkyl_moment_app *app,
+  struct moment_species *sp, double tcurr, double dt, bool symmetric)
 {
   int ndim = sp->ndim;
   double dt_suggested = DBL_MAX;
   double max_speed = 0.0;
   struct gkyl_wave_prop_status stat;
 
-  for (int d=0; d<ndim; ++d) {
-    stat = gkyl_wave_prop_advance(sp->slvr[d], tcurr, dt, &app->local, sp->embed_mask, sp->f[d], sp->f[d+1]);
+  if (moment_species_conformal_excision_cleanup(app, sp, sp->f[0])) {
+    moment_species_apply_bc(app, tcurr, sp, sp->f[0]);
+  }
+
+  int nsweep = symmetric ? 2*ndim-1 : ndim;
+  struct gkyl_array *input = sp->f[0];
+  for (int sweep=0; sweep<nsweep; ++sweep) {
+    int d = sweep < ndim ? sweep : 2*ndim-2-sweep;
+    double fraction = symmetric && d != ndim-1 ? 0.5 : 1.0;
+    double h = fraction*dt;
+    double ts = tcurr + (symmetric && sweep >= ndim ? 0.5*dt : 0.0);
+    // Keep f[0] intact: callers use it for rollback and WB subtraction.
+    struct gkyl_array *output = symmetric
+      ? (input == sp->f[1] ? sp->f[ndim] : sp->f[1]) : sp->f[d+1];
+    if (symmetric)
+      moment_species_apply_bc(app, ts, sp, input);
+    stat = gkyl_wave_prop_advance_equilibrium(sp->slvr[d], ts, h, &app->local,
+      sp->embed_mask, input, output, sp->spacetime_equilibrium);
 
     double my_max_speed = stat.max_speed;
     max_speed = max_speed > my_max_speed ? max_speed : my_max_speed;
 
-    if (!stat.success)
+    if (!stat.success) {
       return (struct gkyl_update_status) {
         .success = false,
-        .dt_suggested = stat.dt_suggested
+        .dt_actual = 0.0,
+        .dt_suggested = stat.dt_suggested/fraction
       };
+    }
     
-    dt_suggested = fmin(dt_suggested, stat.dt_suggested);
-    moment_species_apply_bc(app, tcurr, sp, sp->f[d+1]);
+    dt_suggested = fmin(dt_suggested, stat.dt_suggested/fraction);
+    moment_species_conformal_excision_cleanup(app, sp, output);
+    moment_species_apply_bc(app, symmetric ? ts+h : tcurr, sp, output);
+    if (sp->has_vacuum_einstein_conformal) {
+      moment_species_conformal_derivatives_advance(app, sp, input, output, symmetric ? ts+h : tcurr);
+      moment_species_apply_bc(app, symmetric ? ts+h : tcurr, sp, output);
+    }
+    input = output;
   }
+  if (symmetric && input != sp->f[ndim])
+    gkyl_array_copy_range(sp->f[ndim], input, &app->local_ext);
 
   for (int d=0; d<ndim; ++d) {
     struct gkyl_wv_eqn *eqn = sp->equation;
@@ -660,17 +836,36 @@ moment_species_update(gkyl_moment_app *app,
 
   return (struct gkyl_update_status) {
     .success = true,
+    .dt_actual = dt,
     .dt_suggested = dt_suggested
   };
+}
+
+struct gkyl_update_status
+moment_species_update(gkyl_moment_app *app,
+  struct moment_species *sp, double tcurr, double dt)
+{
+  return moment_species_update_split(app, sp, tcurr, dt, false);
+}
+
+struct gkyl_update_status
+moment_species_update_symmetric(gkyl_moment_app *app,
+  struct moment_species *sp, double tcurr, double dt)
+{
+  return moment_species_update_split(app, sp, tcurr, dt, true);
 }
 
 // Add the fluid matter source to the vacuum-Einstein RHS (method-of-lines form of the standard ADM matter coupling)
 // (Non-static: also reused by the mixed scheme in mom_update_mixed.c; declared in gkyl_moment_priv.h.)
 void
-add_einstein_matter_source(const double *qe, const double *qf, double gas_gamma, double excision_threshold, bool is_conformal, double *rhs)
+add_einstein_matter_source(const double *qe, const double *qf, double gas_gamma, double excision_threshold,
+  bool is_conformal, enum gkyl_spacetime_evolution evolution, double *rhs)
 {
   double lapse = qe[9];
-  if (lapse < excision_threshold) {
+  if (is_conformal && conformal_state_in_excision_for_species(excision_threshold, qe)) {
+    return; // vacuum-Einstein cell is excised: no matter source.
+  }
+  if (!is_conformal && lapse < excision_threshold) {
     return; // vacuum-Einstein cell is excised: no matter source.
   }
   if (qf[27] < pow(10.0, -8.0)) {
@@ -683,7 +878,7 @@ add_einstein_matter_source(const double *qe, const double *qf, double gas_gamma,
   if (is_conformal) {
     // conformal Einstein state stores chi = psi^-2 and tilde(gamma)_ij = psi^-4 gamma_ij => gamma_ij = chi^-2 tilde(gamma)_ij
     double chi = qe[64];
-    if (chi <= 0.0) {
+    if (!(isfinite(chi) && chi > 0.0)) {
       return;
     }
     metric_scale = 1.0 / (chi * chi);
@@ -764,9 +959,14 @@ add_einstein_matter_source(const double *qe, const double *qf, double gas_gamma,
 
   // For conformal, the factors are already present in gamma_ij and therefore in T_ij and T above => no change here
   // dK_ij/dt += -8*pi*alpha*(T_ij - 1/2 gamma_ij T) (standard ADM K_ij matter source)
+  // Bona et al. (1997), Eq. (23): n*alpha*gamma_ij/4 * 2*alpha^2*G^{00}.
+  // G^{00}=8*pi*T^{00}, E=alpha^2*T^{00}; use the PHYSICAL spatial metric.
+  double constraint_matter = evolution == GKYL_EINSTEIN_EVOLUTION
+    ? 4.0 * M_PI * lapse * lapse * lapse * T[0][0] : 0.0;
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
       rhs[10 + (3 * i) + j] += -8.0 * M_PI * lapse * (T_lower[i][j] - (0.5 * spatial_metric[i][j] * T_trace));
+      rhs[10 + (3 * i) + j] += constraint_matter * spatial_metric[i][j];
     }
   }
 
@@ -864,13 +1064,16 @@ moment_species_rhs(gkyl_moment_app *app, struct moment_species *species,
       // Fluid -> spacetime matter coupling (standard Bona-Masso vacuum-Einstein and conformal share physical lapse, shift, K_ij, and the covariant momentum projection; the conformal branch reconstructs gamma_ij
       if (species->coupling_partner_fin) {
         const double *q_fluid = gkyl_array_cfetch(species->coupling_partner_fin, loc);
-        add_einstein_matter_source(q, q_fluid, matter_gas_gamma, matter_excision_threshold, is_conformal, rhs_c);
+        enum gkyl_spacetime_evolution evolution = is_conformal
+          ? species->vacuum_einstein_conformal_spacetime_evolution : species->vacuum_einstein_spacetime_evolution;
+        add_einstein_matter_source(q, q_fluid, matter_gas_gamma, matter_excision_threshold, is_conformal, evolution, rhs_c);
       }
     }
   }
 
   double omegaCfl[1];
   gkyl_array_reduce_range(omegaCfl, species->cflrate, GKYL_MAX, &(app->local));
+
 
   app->stat.species_rhs_tm += gkyl_time_diff_now_sec(tm);
   
@@ -881,6 +1084,9 @@ moment_species_rhs(gkyl_moment_app *app, struct moment_species *species,
 void
 moment_species_release(const struct moment_species *sp)
 {
+  if (sp->gamma_driver_reference) gkyl_array_release(sp->gamma_driver_reference);
+  if (sp->spacetime_equilibrium) gkyl_array_release(sp->spacetime_equilibrium);
+  if (sp->spacetime_equilibrium_source) gkyl_array_release(sp->spacetime_equilibrium_source);
   gkyl_wv_eqn_release(sp->equation);
   
   for (int d=0; d<sp->ndim; ++d) {

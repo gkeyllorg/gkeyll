@@ -161,7 +161,6 @@ test_vacuum_einstein_conformal_basic_minkowski()
           conformal_aux_vect[i] -= conformal_spatial_metric_der_raised1[s][s][i];
         }
 
-        conformal_aux_vect[i] -= 4.0 * conformal_fact_der[i];
       }
 
       double conformal_aux_vect_raised[3];
@@ -275,6 +274,10 @@ test_vacuum_einstein_conformal_basic_minkowski()
         }
       }
 
+      // Dynamic-chi product rule: D_t = (1/2) partial(gtilde_t).
+      double chi_log_rate = conformal_lapse*q[64]*q[64]*conformal_extrinsic_curvature_trace/3.0;
+      for (int r=0; r<3; ++r)
+        chi_log_rate += conformal_shift[r]*q[65+r]/q[64] - (2.0/3.0)*conformal_shift_der[r][r];
       double conformal_spatial_metric_der_flux[3][3][3][3];
       for (int d = 0; d < 3; d++) {
         for (int i = 0; i < 3; i++) {
@@ -291,6 +294,7 @@ test_vacuum_einstein_conformal_basic_minkowski()
             conformal_spatial_metric_der_flux[d][d][i][j] += conformal_lapse * (conformal_extrinsic_curvature[i][j] /
               (conformal_fact * conformal_fact * conformal_fact * conformal_fact));
             conformal_spatial_metric_der_flux[d][d][i][j] -= conformal_lapse * symmetrized_conformal_shift[i][j];
+            conformal_spatial_metric_der_flux[d][d][i][j] -= chi_log_rate * conformal_spatial_metric[i][j];
           }
         }
       }
@@ -316,6 +320,7 @@ test_vacuum_einstein_conformal_basic_minkowski()
           conformal_aux_vect_flux[d][i] -= 4.0 * conformal_shift[d] * conformal_fact_der[i];
           conformal_aux_vect_flux[d][i] += conformal_shift_der_switched[d][i];
           conformal_aux_vect_flux[d][i] -= conformal_shift_der[i][d];
+          if (i == d) conformal_aux_vect_flux[d][i] -= 2.0 * chi_log_rate;
         }
       }
 
@@ -595,7 +600,6 @@ test_vacuum_einstein_conformal_basic_schwarzschild()
           conformal_aux_vect[i] -= conformal_spatial_metric_der_raised1[s][s][i];
         }
 
-        conformal_aux_vect[i] -= 4.0 * conformal_fact_der[i];
       }
 
       double conformal_aux_vect_raised[3];
@@ -710,6 +714,9 @@ test_vacuum_einstein_conformal_basic_schwarzschild()
           }
         }
 
+        double chi_log_rate = conformal_lapse*q[64]*q[64]*conformal_extrinsic_curvature_trace/3.0;
+        for (int r=0; r<3; ++r)
+          chi_log_rate += conformal_shift[r]*q[65+r]/q[64] - (2.0/3.0)*conformal_shift_der[r][r];
         double conformal_spatial_metric_der_flux[3][3][3][3];
         for (int d = 0; d < 3; d++) {
           for (int i = 0; i < 3; i++) {
@@ -726,6 +733,7 @@ test_vacuum_einstein_conformal_basic_schwarzschild()
               conformal_spatial_metric_der_flux[d][d][i][j] += conformal_lapse * (conformal_extrinsic_curvature[i][j] /
                 (conformal_fact * conformal_fact * conformal_fact * conformal_fact));
               conformal_spatial_metric_der_flux[d][d][i][j] -= conformal_lapse * symmetrized_conformal_shift[i][j];
+              conformal_spatial_metric_der_flux[d][d][i][j] -= chi_log_rate * conformal_spatial_metric[i][j];
             }
           }
         }
@@ -751,6 +759,7 @@ test_vacuum_einstein_conformal_basic_schwarzschild()
             conformal_aux_vect_flux[d][i] -= 4.0 * conformal_shift[d] * conformal_fact_der[i];
             conformal_aux_vect_flux[d][i] += conformal_shift_der_switched[d][i];
             conformal_aux_vect_flux[d][i] -= conformal_shift_der[i][d];
+            if (i == d) conformal_aux_vect_flux[d][i] -= 2.0 * chi_log_rate;
           }
         }
 
@@ -1086,8 +1095,6 @@ test_vacuum_einstein_conformal_waves_schwarzschild()
           conformal_aux_vect_r[i] -= conformal_spatial_metric_der_raised1_r[s][s][i];
         }
 
-        conformal_aux_vect_l[i] -= 4.0 * conformal_fact_der_l[i];
-        conformal_aux_vect_r[i] -= 4.0 * conformal_fact_der_r[i];
       }
 
       double conformal_aux_vect_raised_l[3];
@@ -1525,8 +1532,6 @@ test_vacuum_einstein_conformal_waves_kerr()
           conformal_aux_vect_r[i] -= conformal_spatial_metric_der_raised1_r[s][s][i];
         }
 
-        conformal_aux_vect_l[i] -= 4.0 * conformal_fact_der_l[i];
-        conformal_aux_vect_r[i] -= 4.0 * conformal_fact_der_r[i];
       }
 
       double conformal_aux_vect_raised_l[3];

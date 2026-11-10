@@ -676,10 +676,10 @@ rot_to_local(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* ta
   shiftder_v3[1] = (shiftder_r1[2] * tau1[0]) + (shiftder_r2[2] * tau1[1]) + (shiftder_r3[2] * tau1[2]);
   shiftder_v3[2] = (shiftder_r1[2] * tau2[0]) + (shiftder_r2[2] * tau2[1]) + (shiftder_r3[2] * tau2[2]);
 
-  // Rotate shift vector derivative to local coordinate frame.
-  qlocal[55] = shiftder_v1[0]; qlocal[56] = shiftder_v1[1]; qlocal[57] = shiftder_v1[2];
-  qlocal[58] = shiftder_v2[0]; qlocal[59] = shiftder_v2[1]; qlocal[60] = shiftder_v2[2];
-  qlocal[61] = shiftder_v3[0]; qlocal[62] = shiftder_v3[1]; qlocal[63] = shiftder_v3[2];
+  // v1/v2/v3 are columns of R B R^T; B_i^j is not symmetric.
+  qlocal[55] = shiftder_v1[0]; qlocal[56] = shiftder_v2[0]; qlocal[57] = shiftder_v3[0];
+  qlocal[58] = shiftder_v1[1]; qlocal[59] = shiftder_v2[1]; qlocal[60] = shiftder_v3[1];
+  qlocal[61] = shiftder_v1[2]; qlocal[62] = shiftder_v2[2]; qlocal[63] = shiftder_v3[2];
 }
 
 static inline void
@@ -913,10 +913,10 @@ rot_to_global(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* t
   shiftder_v3[1] = (shiftder_r1[2] * norm[1]) + (shiftder_r2[2] * tau1[1]) + (shiftder_r3[2] * tau2[1]);
   shiftder_v3[2] = (shiftder_r1[2] * norm[2]) + (shiftder_r2[2] * tau1[2]) + (shiftder_r3[2] * tau2[2]);
 
-  // Rotate shift vector derivative back to global coordinate frame.
-  qglobal[55] = shiftder_v1[0]; qglobal[56] = shiftder_v1[1]; qglobal[57] = shiftder_v1[2];
-  qglobal[58] = shiftder_v2[0]; qglobal[59] = shiftder_v2[1]; qglobal[60] = shiftder_v2[2];
-  qglobal[61] = shiftder_v3[0]; qglobal[62] = shiftder_v3[1]; qglobal[63] = shiftder_v3[2];
+  // v1/v2/v3 are columns of R^T B R; retain derivative/vector index order.
+  qglobal[55] = shiftder_v1[0]; qglobal[56] = shiftder_v2[0]; qglobal[57] = shiftder_v3[0];
+  qglobal[58] = shiftder_v1[1]; qglobal[59] = shiftder_v2[1]; qglobal[60] = shiftder_v3[1];
+  qglobal[61] = shiftder_v1[2]; qglobal[62] = shiftder_v2[2]; qglobal[63] = shiftder_v3[2];
 }
 
 static double

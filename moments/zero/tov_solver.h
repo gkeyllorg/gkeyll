@@ -48,6 +48,11 @@ struct gkyl_tov* gkyl_tov_new(double K, double Gamma, double rho_c, double dr);
  */
 bool gkyl_tov_eval_bl(const struct gkyl_tov *tov, double r, struct tov_eval_bl *out);
 
+/** Evaluate m' and m'' from the TOV equations and polytropic EOS, not by
+ * differentiating the piecewise-linear radial table. */
+bool gkyl_tov_eval_mass_derivs(const struct gkyl_tov *tov, double r,
+    double *dm, double *d2m);
+
 /**
  * Evaluate fluid variables at position (x,y,z) relative to star center.
  * r = sqrt(x^2+y^2+z^2) is the areal radius shared between Schwarzschild and CKS.

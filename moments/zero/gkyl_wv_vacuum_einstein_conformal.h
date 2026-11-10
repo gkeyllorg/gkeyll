@@ -10,6 +10,9 @@ enum gkyl_wv_vacuum_einstein_conformal_rp {
 };
 
 // Input context, packaged as a struct.
+// Chi derivatives require the app's grid-wide completion of scalar increments,
+// including differentiated scalar sources; point-local callbacks alone do not
+// advance the complete chi/P/H system.
 struct gkyl_wv_vacuum_einstein_conformal_inp {
   double excision_threshold; // Excision threshold (lapse).
   enum gkyl_spacetime_slicing spacetime_slicing; // Spacetime slicing condition.
@@ -40,6 +43,17 @@ gkyl_wv_vacuum_einstein_conformal_new(double excision_threshold, enum gkyl_space
 */
 struct gkyl_wv_eqn*
 gkyl_wv_vacuum_einstein_conformal_inew(const struct gkyl_wv_vacuum_einstein_conformal_inp* inp);
+
+/**
+ * High-order Q-wave correction in face-local coordinates. Waves must already
+ * be limited; speeds are normal coordinate speeds, and dtdx includes the face
+ * length/cell capacity. Returns a zero correction (first-order fallback) if
+ * either endpoint or the half-step predictor is not a live admissible state.
+ */
+void
+gkyl_wv_vacuum_einstein_conformal_qflux(const struct gkyl_wv_eqn* eqn,
+  double dtdx, const double* ql, const double* qr, const double* waves,
+  const double* speeds, double* correction);
 
 /**
 * Get excision threshold.

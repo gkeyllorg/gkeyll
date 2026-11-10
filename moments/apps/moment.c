@@ -91,7 +91,16 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
     app->update_func = moment_update_mixed;
 
   int ghost[3] = { 2, 2, 2 }; // 2 ghost-cells for wave
-  if (mom->scheme_type != GKYL_MOMENT_WAVE_PROP)
+  bool needs_mol_ghosts = mom->scheme_type == GKYL_MOMENT_MP
+    || mom->scheme_type == GKYL_MOMENT_KEP;
+  if (mom->scheme_type == GKYL_MOMENT_MIXED) {
+    for (int i=0; i<mom->num_species; ++i) {
+      needs_mol_ghosts = needs_mol_ghosts
+        || mom->species[i].scheme_type == GKYL_MOMENT_MP
+        || mom->species[i].scheme_type == GKYL_MOMENT_KEP;
+    }
+  }
+  if (needs_mol_ghosts)
     for (int d=0; d<3; ++d) ghost[d] = 3; // 3 for MP scheme and KEP
 
   for (int d=0; d<3; ++d) app->nghost[d] = ghost[d];
@@ -160,9 +169,9 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
 
   double cfl_frac = mom->cfl_frac == 0 ? 0.95 : mom->cfl_frac;
   app->cfl = 1.0*cfl_frac;
-  if (app->scheme_type == GKYL_MOMENT_MP || app->scheme_type == GKYL_MOMENT_MIXED)
+  if (needs_mol_ghosts)
     app->cfl = 0.4*cfl_frac; // this should be 1/(1+alpha) = 0.2 but is set to a larger value
-                             // (MIXED shares one dt across both sectors, so use the MP fluid's CFL)
+                             // for MP/KEP stages; mixed apps only use it when a MOL species is present.
 
   app->num_periodic_dir = mom->num_periodic_dir;
   for (int d=0; d<ndim; ++d)
@@ -301,6 +310,10 @@ gkyl_moment_app_apply_ic_species(gkyl_moment_app* app, int sidx, double t0)
 {
   assert(sidx < app->num_species);
 
+  if (app->species[sidx].gamma_driver_reference) {
+    gkyl_array_release(app->species[sidx].gamma_driver_reference);
+    app->species[sidx].gamma_driver_reference = NULL;
+  }
   app->tcurr = t0;
   int num_quad = app->species[sidx].scheme_type == GKYL_MOMENT_MP ? 4 : 2;
   gkyl_fv_proj *proj = gkyl_fv_proj_new(&app->grid, num_quad, app->species[sidx].num_equations,
@@ -795,6 +808,17 @@ struct gkyl_app_restart_status
 gkyl_moment_app_from_file_species(gkyl_moment_app *app, int sidx,
   const char *fname)
 {
+  // Field files do not yet persist the integrated driver's activation reference.
+  const char *experimental = getenv("GKYL_EXPERIMENTAL");
+  if (experimental && strcmp(experimental, "0") != 0 && strcmp(experimental, "false") != 0
+      && strcmp(experimental, "False") != 0 && strcmp(experimental, "off") != 0
+      && strcmp(experimental, "OFF") != 0 && getenv("GKYL_GAMMA_DRIVER")
+      && (app->species[sidx].has_vacuum_einstein
+        || app->species[sidx].has_vacuum_einstein_conformal)) {
+    gkyl_moment_app_cout(app, stderr,
+      "Gamma-driver restart requires persisted gauge state; start a fresh run.\n");
+    return (struct gkyl_app_restart_status) { .io_status = GKYL_ARRAY_RIO_DATA_MISMATCH };
+  }
   struct gkyl_app_restart_status rstat = header_from_file(app, fname);
   
   if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
@@ -844,9 +868,11 @@ gkyl_moment_app_read_from_frame(gkyl_moment_app *app, int frame)
   struct gkyl_app_restart_status rstat;
 
   rstat = gkyl_moment_app_from_frame_field(app, frame);
+  if (rstat.io_status != GKYL_ARRAY_RIO_SUCCESS) return rstat;
 
   for (int i = 0; i < app->num_species; i++) {
     rstat = gkyl_moment_app_from_frame_species(app, i, frame);
+    if (rstat.io_status != GKYL_ARRAY_RIO_SUCCESS) return rstat;
   }
 
   return rstat;
@@ -902,4 +928,3 @@ gkyl_moment_app_release(gkyl_moment_app* app)
 
   gkyl_free(app);
 }
-

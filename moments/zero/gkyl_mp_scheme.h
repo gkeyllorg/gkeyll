@@ -21,6 +21,11 @@ enum gkyl_mp_recon {
 // Object type for updater
 typedef struct gkyl_mp_scheme gkyl_mp_scheme;
 
+// Construct an admissible GR-Euler anchor in the supplied metric. Preserves D
+// and tau when E>D has a positive margin; otherwise uses a pressureless floor.
+void gkyl_mp_scheme_gr_euler_pcp_safe_anchor(const double qa[5],
+  const double spatial_metric[9], double q0[5]);
+
 // Parameters for constructor
 struct gkyl_mp_scheme_inp {
   const struct gkyl_rect_grid *grid; // grid on which to solve equations
@@ -92,7 +97,11 @@ void gkyl_mp_scheme_release(gkyl_mp_scheme* mp);
 bool gkyl_mp_scheme_gr_metric_is_spd(const double g[9]);
 
 /**
- * SPD face-metric limiter: symmetrize g_face and, if not SPD, blend toward the symmetrized SPD cell anchor
- * g_cell so g_face becomes symmetric + SPD (no-op if g_face is already SPD).
+ * SPD face-metric limiter: symmetrize g_face and, if not SPD, fall back to the
+ * symmetrized SPD cell anchor g_cell (no-op for an already symmetric SPD face).
  */
 void gkyl_mp_scheme_gr_spd_face_limiter(double g_face[9], const double g_cell[9]);
+
+/** Largest forward-cone PCP blend toward a valid anchor; zero for invalid input. */
+double gkyl_mp_scheme_gr_euler_pcp_theta(const double anchor[5], const double delta[5],
+  const double g_face[9]);

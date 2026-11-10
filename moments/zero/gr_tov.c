@@ -136,11 +136,23 @@ tov_spacetime_metric_tensor(const struct gkyl_gr_spacetime* spacetime, const dou
   double lapse_function;
   tov_lapse_function(spacetime, t, x, y, z, &lapse_function);
 
-  // ADM line element with beta^i = 0: g_00 = -alpha^2, g_0i = 0, g_ij = gamma_ij.
-  (*spacetime_metric_tensor)[0][0] = -(lapse_function * lapse_function);
+  double* shift_vector = gkyl_malloc(sizeof(double[3]));
+  tov_shift_vector(spacetime, t, x, y, z, &shift_vector);
+
+  double shift_cov[3] = { 0.0, 0.0, 0.0 };
+  double shift_sq = 0.0;
   for (int i = 0; i < 3; i++) {
-    (*spacetime_metric_tensor)[0][i + 1] = 0.0;
-    (*spacetime_metric_tensor)[i + 1][0] = 0.0;
+    for (int j = 0; j < 3; j++) {
+      shift_cov[i] += spatial_metric[i][j] * shift_vector[j];
+    }
+    shift_sq += shift_cov[i] * shift_vector[i];
+  }
+
+  // ADM line element: g_00 = -alpha^2 + beta_i beta^i, g_0i = beta_i, g_ij = gamma_ij.
+  (*spacetime_metric_tensor)[0][0] = -(lapse_function * lapse_function) + shift_sq;
+  for (int i = 0; i < 3; i++) {
+    (*spacetime_metric_tensor)[0][i + 1] = shift_cov[i];
+    (*spacetime_metric_tensor)[i + 1][0] = shift_cov[i];
 
     for (int j = 0; j < 3; j++) {
       (*spacetime_metric_tensor)[i + 1][j + 1] = spatial_metric[i][j];
@@ -151,6 +163,7 @@ tov_spacetime_metric_tensor(const struct gkyl_gr_spacetime* spacetime, const dou
     gkyl_free(spatial_metric[i]);
   }
   gkyl_free(spatial_metric);
+  gkyl_free(shift_vector);
 }
 
 static void
@@ -305,7 +318,46 @@ static void
 tov_spatial_metric_tensor_der(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
   const double dx, const double dy, const double dz, double**** spatial_metric_tensor_der)
 {
-  gkyl_gr_spatial_metric_tensor_diff(spacetime, t, x, y, z, dx, dy, dz, spatial_metric_tensor_der);
+  const struct gr_tov *gr_tov = container_of(spacetime, struct gr_tov, spacetime);
+
+  double r, A, alpha, n[3];
+  tov_geometry(spacetime, x, y, z, &r, &A, &alpha, n);
+  if (r <= 1.0e-12) {
+    for (int k = 0; k < 3; k++)
+      for (int i = 0; i < 3; i++)
+        for (int j = 0; j < 3; j++)
+          (*spatial_metric_tensor_der)[k][i][j] = 0.0;
+    return;
+  }
+
+  struct tov_eval_bl bl = { 0 };
+  gkyl_tov_eval_bl(gr_tov->tov, r, &bl);
+
+  double comp = 1.0 - (1.0 / A);
+  if (comp > 1.0 - 1.0e-12) {
+    comp = 1.0 - 1.0e-12;
+  }
+  double m_prime = 4.0 * M_PI * r * r * bl.e;
+  double comp_prime = (2.0 * m_prime / r) - (2.0 * bl.m / (r * r));
+
+  double f = comp;
+  double f_prime = comp_prime;
+  if (!gr_tov->use_kerr_schild) {
+    double one_minus_comp = 1.0 - comp;
+    f = comp / one_minus_comp;
+    f_prime = comp_prime / (one_minus_comp * one_minus_comp);
+  }
+
+  for (int k = 0; k < 3; k++) {
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        double dik = (i == k) ? 1.0 : 0.0;
+        double djk = (j == k) ? 1.0 : 0.0;
+        double dninj = ((dik - n[i] * n[k]) * n[j] + n[i] * (djk - n[j] * n[k])) / r;
+        (*spatial_metric_tensor_der)[k][i][j] = f_prime * n[k] * n[i] * n[j] + f * dninj;
+      }
+    }
+  }
 }
 
 static void
@@ -319,14 +371,96 @@ static void
 tov_lapse_function_der(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
   const double dx, const double dy, const double dz, double** lapse_function_der)
 {
-  gkyl_gr_lapse_function_diff(spacetime, t, x, y, z, dx, dy, dz, lapse_function_der);
+  const struct gr_tov *gr_tov = container_of(spacetime, struct gr_tov, spacetime);
+
+  double r, A, alpha_bl, n[3];
+  tov_geometry(spacetime, x, y, z, &r, &A, &alpha_bl, n);
+  if (r <= 1.0e-12) {
+    for (int i = 0; i < 3; i++) {
+      (*lapse_function_der)[i] = 0.0;
+    }
+    return;
+  }
+
+  struct tov_eval_bl bl = { 0 };
+  gkyl_tov_eval_bl(gr_tov->tov, r, &bl);
+
+  double comp = 1.0 - (1.0 / A);
+  if (comp > 1.0 - 1.0e-12) {
+    comp = 1.0 - 1.0e-12;
+  }
+  double m_prime = 4.0 * M_PI * r * r * bl.e;
+  double comp_prime = (2.0 * m_prime / r) - (2.0 * bl.m / (r * r));
+  double phi_prime = 0.0;
+  if (r * (r - 2.0 * bl.m) > 0.0) {
+    phi_prime = (bl.m + 4.0 * M_PI * r * r * r * bl.P) / (r * (r - 2.0 * bl.m));
+  }
+
+  double lapse = alpha_bl;
+  double log_lapse_prime = phi_prime;
+  if (gr_tov->use_kerr_schild) {
+    lapse = alpha_bl / sqrt((1.0 - comp) * (1.0 + comp));
+    log_lapse_prime += (comp * comp_prime) / ((1.0 - comp) * (1.0 + comp));
+  }
+
+  for (int i = 0; i < 3; i++) {
+    (*lapse_function_der)[i] = lapse * log_lapse_prime * n[i];
+  }
 }
 
 static void
 tov_shift_vector_der(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
   const double dx, const double dy, const double dz, double*** shift_vector_der)
 {
-  gkyl_gr_shift_vector_diff(spacetime, t, x, y, z, dx, dy, dz, shift_vector_der);
+  const struct gr_tov *gr_tov = container_of(spacetime, struct gr_tov, spacetime);
+
+  if (!gr_tov->use_kerr_schild) {
+    for (int j = 0; j < 3; j++)
+      for (int i = 0; i < 3; i++)
+        (*shift_vector_der)[j][i] = 0.0;
+    return;
+  }
+
+  double r, A, alpha_bl, n[3];
+  tov_geometry(spacetime, x, y, z, &r, &A, &alpha_bl, n);
+  if (r <= 1.0e-12) {
+    for (int j = 0; j < 3; j++)
+      for (int i = 0; i < 3; i++)
+        (*shift_vector_der)[j][i] = 0.0;
+    return;
+  }
+
+  struct tov_eval_bl bl = { 0 };
+  gkyl_tov_eval_bl(gr_tov->tov, r, &bl);
+
+  double comp = 1.0 - (1.0 / A);
+  if (comp <= 1.0e-14) {
+    for (int j = 0; j < 3; j++)
+      for (int i = 0; i < 3; i++)
+        (*shift_vector_der)[j][i] = 0.0;
+    return;
+  }
+  if (comp > 1.0 - 1.0e-12) {
+    comp = 1.0 - 1.0e-12;
+  }
+
+  double m_prime = 4.0 * M_PI * r * r * bl.e;
+  double comp_prime = (2.0 * m_prime / r) - (2.0 * bl.m / (r * r));
+  double phi_prime = 0.0;
+  if (r * (r - 2.0 * bl.m) > 0.0) {
+    phi_prime = (bl.m + 4.0 * M_PI * r * r * r * bl.P) / (r * (r - 2.0 * bl.m));
+  }
+
+  double beta_rad = alpha_bl * comp / ((1.0 + comp) * sqrt(1.0 - comp));
+  double beta_rad_prime = beta_rad *
+    (phi_prime + (comp_prime / comp) - (comp_prime / (1.0 + comp)) + (0.5 * comp_prime / (1.0 - comp)));
+
+  for (int j = 0; j < 3; j++) {
+    for (int i = 0; i < 3; i++) {
+      double dij = (i == j) ? 1.0 : 0.0;
+      (*shift_vector_der)[j][i] = beta_rad_prime * n[j] * n[i] + beta_rad * (dij - n[i] * n[j]) / r;
+    }
+  }
 }
 
 static void
@@ -415,51 +549,55 @@ tov_extrinsic_curvature_tensor(const struct gkyl_gr_spacetime* spacetime, const 
     return;
   }
 
-  // Kerr-Schild: stationary slicing (d_t gamma_ij = 0) but beta^i != 0, so K_ij = (1 / (2 alpha)) * Lie_beta gamma_ij = (1 / (2 alpha)) * [ beta^k d_k gamma_ij + gamma_kj d_i beta^k + gamma_ik d_j beta^k ].
-  // The Lie-derivative is computed from the same FD as everywhere else, so K_ij is consistent with the FD metric and shift derivatives.
-  double lapse;
-  tov_lapse_function(spacetime, t, x, y, z, &lapse);
-
-  double *shift = gkyl_malloc(sizeof(double[3]));
-  tov_shift_vector(spacetime, t, x, y, z, &shift);
-
-  double **spatial_metric = gkyl_malloc(sizeof(double*[3]));
-  for (int i = 0; i < 3; i++) spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
-  tov_spatial_metric_tensor(spacetime, t, x, y, z, &spatial_metric);
-
-  double **shift_der = gkyl_malloc(sizeof(double*[3])); // shift_der[i][k] = d_i beta^k
-  for (int i = 0; i < 3; i++) shift_der[i] = gkyl_malloc(sizeof(double[3]));
-  tov_shift_vector_der(spacetime, t, x, y, z, dx, dy, dz, &shift_der);
-
-  double ***spatial_metric_der = gkyl_malloc(sizeof(double**[3])); // [k][i][j] = d_k gamma_ij
-  for (int i = 0; i < 3; i++) {
-    spatial_metric_der[i] = gkyl_malloc(sizeof(double*[3]));
-    for (int j = 0; j < 3; j++) spatial_metric_der[i][j] = gkyl_malloc(sizeof(double[3]));
+  // Kerr-Schild: stationary radial slicing with beta^r != 0. Use the analytic
+  // spherical expression for K_ij instead of differentiating the Cartesian
+  // n_i n_j representation with a tiny finite-difference step.
+  double r, A, alpha_bl, n[3];
+  tov_geometry(spacetime, x, y, z, &r, &A, &alpha_bl, n);
+  if (r <= 1.0e-12) {
+    for (int i = 0; i < 3; i++)
+      for (int j = 0; j < 3; j++)
+        (*extrinsic_curvature_tensor)[i][j] = 0.0;
+    return;
   }
-  tov_spatial_metric_tensor_der(spacetime, t, x, y, z, dx, dy, dz, &spatial_metric_der);
+
+  struct tov_eval_bl bl = { 0 };
+  gkyl_tov_eval_bl(gr_tov->tov, r, &bl);
+
+  double comp = 1.0 - (1.0 / A);
+  if (comp <= 1.0e-14) {
+    for (int i = 0; i < 3; i++)
+      for (int j = 0; j < 3; j++)
+        (*extrinsic_curvature_tensor)[i][j] = 0.0;
+    return;
+  }
+  if (comp > 1.0 - 1.0e-12) {
+    comp = 1.0 - 1.0e-12;
+  }
+
+  double m_prime = 4.0 * M_PI * r * r * bl.e;
+  double comp_prime = (2.0 * m_prime / r) - (2.0 * bl.m / (r * r));
+  double phi_prime = 0.0;
+  if (r * (r - 2.0 * bl.m) > 0.0) {
+    phi_prime = (bl.m + 4.0 * M_PI * r * r * r * bl.P) / (r * (r - 2.0 * bl.m));
+  }
+
+  double lapse = alpha_bl / sqrt((1.0 - comp) * (1.0 + comp));
+  double beta_rad = alpha_bl * comp / ((1.0 + comp) * sqrt(1.0 - comp));
+  double beta_rad_prime = beta_rad *
+    (phi_prime + (comp_prime / comp) - (comp_prime / (1.0 + comp)) + (0.5 * comp_prime / (1.0 - comp)));
+
+  double B_rad = 1.0 + comp;
+  double B_rad_prime = comp_prime;
+  double K_rr = ((beta_rad * B_rad_prime) + (2.0 * B_rad * beta_rad_prime)) / (2.0 * lapse);
+  double K_tan = beta_rad / (lapse * r);
 
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
-      double lie = 0.0;
-      for (int k = 0; k < 3; k++) {
-        lie += shift[k] * spatial_metric_der[k][i][j];
-        lie += spatial_metric[k][j] * shift_der[i][k];
-        lie += spatial_metric[i][k] * shift_der[j][k];
-      }
-      (*extrinsic_curvature_tensor)[i][j] = lie / (2.0 * lapse);
+      double delta = (i == j) ? 1.0 : 0.0;
+      (*extrinsic_curvature_tensor)[i][j] = K_tan * (delta - n[i] * n[j]) + K_rr * n[i] * n[j];
     }
   }
-
-  gkyl_free(shift);
-  for (int i = 0; i < 3; i++) {
-    gkyl_free(spatial_metric[i]);
-    gkyl_free(shift_der[i]);
-    for (int j = 0; j < 3; j++) gkyl_free(spatial_metric_der[i][j]);
-    gkyl_free(spatial_metric_der[i]);
-  }
-  gkyl_free(spatial_metric);
-  gkyl_free(shift_der);
-  gkyl_free(spatial_metric_der);
 }
 
 static void
@@ -483,31 +621,84 @@ tov_bssn_conformal_factor(const struct gkyl_gr_spacetime* spacetime, const doubl
 }
 
 static void
+tov_conformal_derivatives(const struct gkyl_gr_spacetime* spacetime,
+  double x, double y, double z, bool bssn, double gradient[3], double hessian[3][3])
+{
+  const struct gr_tov *gr_tov = container_of(spacetime, struct gr_tov, spacetime);
+  double r, A, alpha, n[3];
+  tov_geometry(spacetime, x, y, z, &r, &A, &alpha, n);
+  struct tov_eval_bl bl = {0};
+  gkyl_tov_eval_bl(gr_tov->tov, r, &bl);
+  double first = 0.0, second, first_over_r;
+  if (r <= 1.0e-12) {
+    // m = 4*pi*e_c*r^3/3 gives the regular Cartesian Hessian at the center.
+    second = (bssn ? -8.0 : 4.0)*M_PI*bl.e/9.0;
+    first_over_r = second;
+  }
+  else {
+    double mp, mpp;
+    if (!gkyl_tov_eval_mass_derivs(gr_tov->tov, r, &mp, &mpp)) {
+      for (int i=0; i<3; ++i) {
+        gradient[i] = NAN;
+        for (int j=0; j<3; ++j) hessian[i][j] = NAN;
+      }
+      return;
+    }
+    double c = 1.0 - 1.0/A;
+    double cp = 2.0*mp/r - 2.0*bl.m/(r*r);
+    double cpp = 2.0*mpp/r - 4.0*mp/(r*r) + 4.0*bl.m/(r*r*r);
+    // KS: det(gamma)=1+c. Areal: det(gamma)=1/(1-c).
+    double sign = gr_tov->use_kerr_schild ? 1.0 : -1.0;
+    double exponent = sign*(bssn ? -1.0/6.0 : 1.0/12.0);
+    double f = 1.0 + sign*c, fp = sign*cp, fpp = sign*cpp;
+    double factor = exponent*pow(f, exponent-1.0);
+    first = factor*fp;
+    second = factor*(fpp + (exponent-1.0)*fp*fp/f);
+    first_over_r = first/r;
+  }
+  for (int i=0; i<3; ++i) {
+    gradient[i] = first*n[i];
+    for (int j=0; j<3; ++j)
+      hessian[i][j] = (second-first_over_r)*n[i]*n[j] + (i==j ? first_over_r : 0.0);
+  }
+}
+
+static void
 tov_conformal_factor_der(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
   const double dx, const double dy, const double dz, double** conformal_factor_der)
 {
-  gkyl_gr_conformal_factor_diff(spacetime, t, x, y, z, dx, dy, dz, conformal_factor_der);
+  double gradient[3], hessian[3][3];
+  tov_conformal_derivatives(spacetime, x, y, z, false, gradient, hessian);
+  for (int i=0; i<3; ++i) (*conformal_factor_der)[i] = gradient[i];
 }
 
 static void
 tov_bssn_conformal_factor_der(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
   const double dx, const double dy, const double dz, double** bssn_conformal_factor_der)
 {
-  gkyl_gr_bssn_conformal_factor_diff(spacetime, t, x, y, z, dx, dy, dz, bssn_conformal_factor_der);
+  double gradient[3], hessian[3][3];
+  tov_conformal_derivatives(spacetime, x, y, z, true, gradient, hessian);
+  for (int i=0; i<3; ++i) (*bssn_conformal_factor_der)[i] = gradient[i];
 }
 
 static void
 tov_conformal_factor_der2(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
   const double dx, const double dy, const double dz, double*** conformal_factor_der2)
 {
-  gkyl_gr_conformal_factor_diff2(spacetime, t, x, y, z, dx, dy, dz, conformal_factor_der2);
+  double gradient[3], hessian[3][3];
+  tov_conformal_derivatives(spacetime, x, y, z, false, gradient, hessian);
+  for (int i=0; i<3; ++i) for (int j=0; j<3; ++j)
+    (*conformal_factor_der2)[i][j] = hessian[i][j];
 }
 
 static void
 tov_bssn_conformal_factor_der2(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
   const double dx, const double dy, const double dz, double*** bssn_conformal_factor_der2)
 {
-  gkyl_gr_bssn_conformal_factor_diff2(spacetime, t, x, y, z, dx, dy, dz, bssn_conformal_factor_der2);
+  double gradient[3], hessian[3][3];
+  tov_conformal_derivatives(spacetime, x, y, z, true, gradient, hessian);
+  for (int i=0; i<3; ++i) for (int j=0; j<3; ++j)
+    (*bssn_conformal_factor_der2)[i][j] = hessian[i][j];
 }
 
 static void

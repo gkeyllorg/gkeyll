@@ -1,13 +1,19 @@
 #include <stdlib.h>
+#include <float.h>
+#include <math.h>
 
 #include <gkyl_alloc.h>
 #include <gkyl_array_ops.h>
+#include <gkyl_gr_einstein_excision_priv.h>
 #include <gkyl_fv_proj.h>
 #include <gkyl_sources_explicit_priv.h>
 #include <gkyl_moment_em_coupling_priv.h>
 #include <gkyl_mat.h>
 #include <gkyl_wv_gr_euler_priv.h>
 #include <gkyl_wv_vacuum_einstein_priv.h>
+
+static void
+explicit_fill_excised_state(int meqn, double *q);
 
 void
 explicit_nT_source_update_euler(const double mass, const double dt, double* fluid_old, double* fluid_new, const double* nT_sources)
@@ -2319,9 +2325,7 @@ explicit_vacuum_einstein_source_update_euler(const gkyl_moment_em_coupling* mom_
     fluid_new[51] += dt * aux_vect_source[2];
 
     if (fluid_new[9] < excision_threshold) {
-      for (int i = 0; i < 64; i++) {
-        fluid_new[i] = 0.0;
-      }
+      explicit_fill_excised_state(64, fluid_new);
     }
   }
   else {
@@ -2366,11 +2370,36 @@ explicit_vacuum_einstein_source_update(const gkyl_moment_em_coupling* mom_em, do
   }
 }
 
+static bool
+explicit_conformal_in_excision_region(double excision_threshold, const double q[77])
+{
+  return gkyl_gr_einstein_is_excised(excision_threshold, q, 77);
+}
+
+
+static void
+explicit_fill_excised_state(int meqn, double *q)
+{
+  for (int m = 0; m < meqn; ++m) {
+    q[m] = 0.0;
+  }
+}
+
 void
 explicit_vacuum_einstein_conformal_source_update_euler(const gkyl_moment_em_coupling* mom_em, const double excision_threshold,
   const enum gkyl_spacetime_slicing spacetime_slicing, const enum gkyl_spacetime_evolution spacetime_evolution, double t_curr, const double dt,
   double* fluid_old, double* fluid_new)
 {
+  if (explicit_conformal_in_excision_region(excision_threshold, fluid_old)) {
+    explicit_fill_excised_state(77, fluid_new);
+    return;
+  }
+  if (!gkyl_gr_conformal_scalars_valid(fluid_old)) {
+    // Leave the invalid scalars visible to the caller's rejection/rollback.
+    for (int m = 0; m < 77; ++m) fluid_new[m] = fluid_old[m];
+    return;
+  }
+
   double bssn_conformal_fact = fluid_old[64];
   double conformal_fact = 1.0 / sqrt(bssn_conformal_fact);
 
@@ -2439,7 +2468,7 @@ explicit_vacuum_einstein_conformal_source_update_euler(const gkyl_moment_em_coup
   conformal_shift_vect_der[2][0] = fluid_old[61]; conformal_shift_vect_der[2][1] = fluid_old[62]; conformal_shift_vect_der[2][2] = fluid_old[63];
 
   bool in_excision_region = false;
-  if (conformal_lapse < excision_threshold) {
+  if (explicit_conformal_in_excision_region(excision_threshold, fluid_old)) {
     in_excision_region = true;
   }
 
@@ -2705,11 +2734,19 @@ explicit_vacuum_einstein_conformal_source_update_euler(const gkyl_moment_em_coup
       }
     }
 
+    double chi_log_rate = conformal_lapse * bssn_conformal_fact * bssn_conformal_fact
+      * conformal_extrinsic_curvature_trace / 3.0;
+    for (int r = 0; r < 3; r++) {
+      chi_log_rate -= (2.0 / 3.0) * conformal_shift_vect_der[r][r];
+      chi_log_rate += conformal_shift_vect[r] * bssn_conformal_fact_der[r] / bssn_conformal_fact;
+    }
+
     double conformal_spatial_metric_source[3][3];
     for (int i = 0; i < 3; i++) {
       for (int j = 0; j < 3; j++) {
         conformal_spatial_metric_source[i][j] = -2.0 * conformal_lapse * (conformal_extrinsic_curvature[i][j] / (conformal_fact * conformal_fact * conformal_fact * conformal_fact));
         conformal_spatial_metric_source[i][j] += 2.0 * conformal_lapse * conformal_symmetrized_shift[i][j];
+        conformal_spatial_metric_source[i][j] += 2.0 * chi_log_rate * conformal_spatial_metric[i][j];
 
         for (int r = 0; r < 3; r++) {
           conformal_spatial_metric_source[i][j] += 2.0 * conformal_shift_vect[r] * conformal_spatial_metric_der[r][i][j];
@@ -2797,13 +2834,14 @@ explicit_vacuum_einstein_conformal_source_update_euler(const gkyl_moment_em_coup
         conformal_extrinsic_curvature_source[i][j] -= ((0.25 * evolution_func * conformal_lapse * conformal_spatial_metric[i][j]) *
           (conformal_extrinsic_curvature_trace * conformal_extrinsic_curvature_trace)) / (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
 
-        conformal_extrinsic_curvature_source[i][j] -= Y_tensor[i][j];
-        conformal_extrinsic_curvature_source[i][j] += 2.0 * conformal_lapse_der[i] * conformal_fact_der[j];
-        conformal_extrinsic_curvature_source[i][j] += 2.0 * conformal_lapse_der[j] * conformal_fact_der[i];
+        // These curvature and A-phi terms share the alpha factor of the K equation.
+        conformal_extrinsic_curvature_source[i][j] -= conformal_lapse * Y_tensor[i][j];
+        conformal_extrinsic_curvature_source[i][j] += 2.0 * conformal_lapse * conformal_lapse_der[i] * conformal_fact_der[j];
+        conformal_extrinsic_curvature_source[i][j] += 2.0 * conformal_lapse * conformal_lapse_der[j] * conformal_fact_der[i];
         
         for (int k = 0; k < 3; k++) {
-          conformal_extrinsic_curvature_source[i][j] += conformal_spatial_metric[i][j] * (evolution_func - 1.0) * Y_tensor_mixed[k][k];
-          conformal_extrinsic_curvature_source[i][j] -= 2.0 * conformal_spatial_metric[i][j] * conformal_lapse_der_raised[k] * conformal_fact_der[k];
+          conformal_extrinsic_curvature_source[i][j] += conformal_lapse * conformal_spatial_metric[i][j] * (evolution_func - 1.0) * Y_tensor_mixed[k][k];
+          conformal_extrinsic_curvature_source[i][j] -= 2.0 * conformal_lapse * conformal_spatial_metric[i][j] * conformal_lapse_der_raised[k] * conformal_fact_der[k];
         }
       }
     }
@@ -2832,13 +2870,14 @@ explicit_vacuum_einstein_conformal_source_update_euler(const gkyl_moment_em_coup
           conformal_aux_vect_source[i] += (2.0 * conformal_lapse * conformal_extrinsic_curvature_mixed[i][r] * conformal_spatial_metric_der_raised3[s][r][s]) /
             (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
 
-          conformal_aux_vect_source[i] -= (6.0 * conformal_lapse * conformal_fact_der[r] * conformal_extrinsic_curvature_mixed[s][r]) /
-            (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
+        }
 
-          if (s == r) {
-            conformal_aux_vect_source[i] += (2.0 * conformal_lapse * conformal_fact_der[r] * conformal_extrinsic_curvature_trace) /
-              (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
-          }
+        // Vphysical_i = Vtilde_i + 4 phi_i, with phi_i = partial_i(log psi).
+        conformal_aux_vect_source[i] -= (6.0 * conformal_lapse * conformal_fact_der[r] * conformal_extrinsic_curvature_mixed[i][r]) /
+          (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
+        if (i == r) {
+          conformal_aux_vect_source[i] += (2.0 * conformal_lapse * conformal_fact_der[i] * conformal_extrinsic_curvature_trace) /
+            (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
         }
 
         conformal_aux_vect_source[i] += 2.0 * conformal_shift_vect_der[i][r] * conformal_aux_vect[r];
@@ -2857,8 +2896,9 @@ explicit_vacuum_einstein_conformal_source_update_euler(const gkyl_moment_em_coup
           }
         }
 
-        conformal_aux_vect_source[i] += 4.0 * conformal_shift_vect_der[i][r] * conformal_fact_der[r];
-        conformal_aux_vect_source[i] -= 4.0 * conformal_shift_vect_der_trace * conformal_fact_der[i];
+        conformal_aux_vect_source[i] += 8.0 * conformal_shift_vect_der[i][r] * conformal_fact_der[r];
+        if (i == r)
+          conformal_aux_vect_source[i] -= 8.0 * conformal_shift_vect_der_trace * conformal_fact_der[i];
       }
     }
 
@@ -2879,14 +2919,21 @@ explicit_vacuum_einstein_conformal_source_update_euler(const gkyl_moment_em_coup
     fluid_new[16] += dt * conformal_extrinsic_curvature_source[2][0]; fluid_new[17] += dt * conformal_extrinsic_curvature_source[2][1]; fluid_new[18] +=
       dt * conformal_extrinsic_curvature_source[2][2];
 
+
     fluid_new[49] += dt * conformal_aux_vect_source[0];
     fluid_new[50] += dt * conformal_aux_vect_source[1];
     fluid_new[51] += dt * conformal_aux_vect_source[2];
 
-    if (fluid_new[9] < excision_threshold) {
-      for (int i = 0; i < 77; i++) {
-        fluid_new[i] = 0.0;
-      }
+    double chi_source = conformal_lapse * conformal_extrinsic_curvature_trace
+      * bssn_conformal_fact * bssn_conformal_fact * bssn_conformal_fact / 3.0
+      - (8.0 / 3.0) * conformal_shift_vect_der_trace * bssn_conformal_fact;
+    fluid_new[64] += dt * chi_source;
+    // The app differentiates this chi increment to advance P/H before the
+    // next source stage. Their source contribution needs neighboring cells
+    // and cannot be supplied by this point-local function alone.
+
+    if (explicit_conformal_in_excision_region(excision_threshold, fluid_new)) {
+      explicit_fill_excised_state(77, fluid_new);
     }
   }
   else {
@@ -2927,6 +2974,9 @@ explicit_vacuum_einstein_conformal_source_update(const gkyl_moment_em_coupling* 
     explicit_vacuum_einstein_conformal_source_update_euler(mom_em, excision_threshold, spacetime_slicing, spacetime_evolution, t_curr + (0.5 * dt), dt, f_stage2, f_new);
     for (int j = 0; j < 77; j++) {
       f[j] = ((1.0 / 3.0) * f_old[j]) + ((2.0 / 3.0) * f_new[j]);
+    }
+    if (explicit_conformal_in_excision_region(excision_threshold, f)) {
+      explicit_fill_excised_state(77, f);
     }
   }
 }

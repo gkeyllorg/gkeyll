@@ -1,5 +1,6 @@
 #include <float.h>
 #include <math.h>
+#include <assert.h>
 #include <time.h>
 
 #include <gkyl_alloc.h>
@@ -10,6 +11,7 @@
 #include <gkyl_util.h>
 #include <gkyl_wave_geom.h>
 #include <gkyl_wave_prop.h>
+#include <gkyl_wv_vacuum_einstein_conformal.h>
 
 #include <gkyl_level_set.h>
 
@@ -238,12 +240,15 @@ limit_waves(const gkyl_wave_prop *wv, int mwaves,
   int lower, int upper, struct gkyl_array *waves, const struct gkyl_array *speed)
 {
   int meqn = wv->equation->num_equations;
+  // Chi's Hessian enters the curvature source, not transport. Its separately
+  // advanced slots must not set the limiter for the transported variables.
+  int mnorm = wv->equation->type == GKYL_EQN_VACUUM_EINSTEIN_CONFORMAL ? 68 : meqn;
 
   for (int mw=0; mw<mwaves; ++mw) {
     const double *wl = gkyl_array_cfetch(waves, gkyl_ridx(*slice_range, lower-1));
     const double *wr = gkyl_array_cfetch(waves, gkyl_ridx(*slice_range, lower));
 
-    double dotr = wave_dot_prod(meqn, &wl[mw*meqn], &wr[mw*meqn]);
+    double dotr = wave_dot_prod(mnorm, &wl[mw*meqn], &wr[mw*meqn]);
 
     for (int i=lower; i<=upper; ++i) {
       double dotl = dotr;
@@ -251,8 +256,8 @@ limit_waves(const gkyl_wave_prop *wv, int mwaves,
       double * GKYL_RESTRICT wi = gkyl_array_fetch(waves, gkyl_ridx(*slice_range, i));
       const double * GKYL_RESTRICT wi1 = gkyl_array_cfetch(waves, gkyl_ridx(*slice_range, i+1));
       
-      double wnorm2 = wave_dot_prod(meqn, &wi[mw*meqn], &wi[mw*meqn]);
-      dotr = wave_dot_prod(meqn, &wi[mw*meqn], &wi1[mw*meqn]);
+      double wnorm2 = wave_dot_prod(mnorm, &wi[mw*meqn], &wi[mw*meqn]);
+      dotr = wave_dot_prod(mnorm, &wi[mw*meqn], &wi1[mw*meqn]);
 
       if (wnorm2 > 0) {
         const double *s = gkyl_array_cfetch(speed, gkyl_ridx(*slice_range, i));
@@ -270,6 +275,17 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
   double tm, double dt, const struct gkyl_range *update_range,
   struct gkyl_array *phi, const struct gkyl_array *qin, struct gkyl_array *qout)
 {
+  return gkyl_wave_prop_advance_equilibrium(wv, tm, dt, update_range, phi, qin, qout, NULL);
+}
+
+struct gkyl_wave_prop_status
+gkyl_wave_prop_advance_equilibrium(gkyl_wave_prop *wv,
+  double tm, double dt, const struct gkyl_range *update_range,
+  struct gkyl_array *phi, const struct gkyl_array *qin, struct gkyl_array *qout,
+  const struct gkyl_array *qeq)
+{
+  assert(!qeq || (wv->equation->type == GKYL_EQN_VACUUM_EINSTEIN_CONFORMAL
+    && wv->equation->num_waves == 2 && wv->split_type == GKYL_WAVE_QWAVE));
   wv->n_calls += 1;
   
   int ndim = update_range->ndim;
@@ -375,6 +391,29 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
 
             double my_max_speed = gkyl_wv_eqn_waves(wv->equation, ftype, delta,
               ql_local, qr_local, phil[0], phir[0], waves_local, s);
+            if (qeq) {
+              double el[meqn], er[meqn], de[meqn], df[meqn];
+              gkyl_wv_eqn_rotate_to_local(wv->equation, cg->tau1[dir], cg->tau2[dir], cg->norm[dir],
+                gkyl_array_cfetch(qeq, lidx), el);
+              gkyl_wv_eqn_rotate_to_local(wv->equation, cg->tau1[dir], cg->tau2[dir], cg->norm[dir],
+                gkyl_array_cfetch(qeq, ridx), er);
+              gkyl_wv_eqn_flux_jump(wv->equation, el, er, de);
+              gkyl_wv_eqn_flux_jump(wv->equation, ql_local, qr_local, df);
+              // Use the LIVE speed basis for both jumps. Then sum(W)=delta(q-e)
+              // and sum(s W)=delta(F(q)-F(e)), before and after fallback.
+              if (!(isfinite(s[1]-s[0]) && s[1]>s[0]
+                  && ql_local[9]>0 && qr_local[9]>0)) {
+                is_cfl_violated = 1.0;
+                cfla = fmax(cfla, 2*cfl);
+                goto outsideloop; // Preserve the collective failure/rollback path.
+              }
+              for (int m=0; m<meqn; ++m) {
+                double dq = (qr_local[m]-er[m])-(ql_local[m]-el[m]);
+                double dg = df[m]-de[m];
+                waves_local[m] = (s[1]*dq-dg)/(s[1]-s[0]);
+                waves_local[meqn+m] = (dg-s[0]*dq)/(s[1]-s[0]);
+              }
+            }
             max_speed = max_speed > my_max_speed ? max_speed : my_max_speed;
             
             double lenr = cg->lenr[dir];
@@ -466,8 +505,28 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
             double kappar = cg->kappa;
 
             if (wv->split_type == GKYL_WAVE_QWAVE) {
-              for (int mw=0; mw<mwaves; ++mw)
-                calc_second_order_qflux(meqn, dtdx/(0.5*(kappal+kappar)), s[mw], &waves[mw*meqn], flux2);
+              if (wv->equation->type == GKYL_EQN_VACUUM_EINSTEIN_CONFORMAL) {
+                idxl[dir] = i-1;
+                const double *ql = gkyl_array_cfetch(qin, gkyl_range_idx(update_range, idxl));
+                idxl[dir] = i;
+                const double *qr = gkyl_array_cfetch(qin, gkyl_range_idx(update_range, idxl));
+                gkyl_wv_eqn_rotate_to_local(wv->equation, cg->tau1[dir], cg->tau2[dir], cg->norm[dir], ql, ql_local);
+                gkyl_wv_eqn_rotate_to_local(wv->equation, cg->tau1[dir], cg->tau2[dir], cg->norm[dir], qr, qr_local);
+                double speeds[mwaves], correction[meqn];
+                for (int mw=0; mw<mwaves; ++mw) {
+                  speeds[mw] = s[mw]/cg->lenr[dir];
+                  gkyl_wv_eqn_rotate_to_local(wv->equation, cg->tau1[dir], cg->tau2[dir], cg->norm[dir],
+                    &waves[mw*meqn], &waves_local[mw*meqn]);
+                }
+                gkyl_wv_vacuum_einstein_conformal_qflux(wv->equation,
+                  dtdx*cg->lenr[dir]/(0.5*(kappal+kappar)), ql_local, qr_local, waves_local, speeds, correction);
+                gkyl_wv_eqn_rotate_to_global(wv->equation, cg->tau1[dir], cg->tau2[dir], cg->norm[dir], correction, flux2);
+                for (int m=0; m<meqn; ++m) flux2[m] *= cg->lenr[dir];
+              }
+              else {
+                for (int mw=0; mw<mwaves; ++mw)
+                  calc_second_order_qflux(meqn, dtdx/(0.5*(kappal+kappar)), s[mw], &waves[mw*meqn], flux2);
+              }
             }
             else {
               for (int mw=0; mw<mwaves; ++mw)

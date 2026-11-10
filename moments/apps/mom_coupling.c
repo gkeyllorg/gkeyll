@@ -178,7 +178,9 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
   src_inp.has_vacuum_einstein_conformal_sources = false;
   for (int i = 0; i < app->num_species; i++) {
     if (app->species[i].has_vacuum_einstein_conformal) {
-      src_inp.has_vacuum_einstein_conformal_sources = true;
+      // This source now needs grid-wide stages for the chi derivatives.
+      // It is integrated below, not again by the point-local source solver.
+      src_inp.has_vacuum_einstein_conformal_sources = false;
 
       src_inp.vacuum_einstein_conformal_excision_threshold = app->species[i].vacuum_einstein_conformal_excision_threshold;
       src_inp.vacuum_einstein_conformal_spacetime_slicing = app->species[i].vacuum_einstein_conformal_spacetime_slicing;
@@ -374,6 +376,9 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
   }
 
   for (int i=0; i<app->num_species; ++i) {
+    if (app->species[i].has_vacuum_einstein_conformal)
+      moment_spacetime_source_advance(app, &app->species[i], fluids[i], NULL,
+        0.0, tcurr, dt, NULL);
     moment_species_apply_bc(app, tcurr, &app->species[i], fluids[i]);
   }
   if (app->has_field) {

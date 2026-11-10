@@ -4,6 +4,7 @@
 
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
+#include <gkyl_mp_scheme.h>
 #include <gkyl_wv_gr_euler.h>
 #include <gkyl_wv_gr_euler_priv.h>
 
@@ -11,92 +12,27 @@
 // one set of floors per process; if two GR-Euler species ever need different floors, thread them through prim_vars per equation
 static double gr_euler_rho_floor = 1.0e-8;;
 static double gr_euler_p_floor = 1.0e-8;;
+// Atmosphere floor in the primitive recovery (gkyl_wv_gr_euler_set_atmosphere_floor). The mixed app turns it on
+// for its GR-Euler species; other schemes keep the per-variable floor below.
+static bool gr_euler_atm_floor = false;
 
-// Optional hybrid (polytropic + thermal) EOS parameters (Janka-Zwerger / Ott-Dimmelmeier). Default off => the single
-// gamma-law path is used and is bit-identical. K2, eps_off are derived for continuity at rho_nuc.
-static bool gr_euler_eos_hybrid = false;
-static double gr_euler_hyb_g1 = 1.3, gr_euler_hyb_g2 = 2.5, gr_euler_hyb_gth = 1.5;
-static double gr_euler_hyb_rho_nuc = 1.0, gr_euler_hyb_K1 = 1.0;
-static double gr_euler_hyb_K2 = 1.0, gr_euler_hyb_eps_off = 0.0; // derived in inew
-
-// Cold (polytropic) pressure, density-based piecewise: subnuclear gamma1 / supranuclear gamma2 stiffening.
-static inline double
-gr_euler_hyb_p_cold(double rho)
+void
+gkyl_wv_gr_euler_set_atmosphere_floor(bool on)
 {
-  if (rho < gr_euler_hyb_rho_nuc) return gr_euler_hyb_K1 * pow(rho, gr_euler_hyb_g1);
-  return gr_euler_hyb_K2 * pow(rho, gr_euler_hyb_g2);
+  gr_euler_atm_floor = on;
 }
 
-// Cold specific internal energy (continuous at rho_nuc via eps_off).
-static inline double
-gr_euler_hyb_eps_cold(double rho)
+bool
+gkyl_wv_gr_euler_atmosphere_floor(void)
 {
-  if (rho < gr_euler_hyb_rho_nuc)
-    return gr_euler_hyb_K1 * pow(rho, gr_euler_hyb_g1 - 1.0) / (gr_euler_hyb_g1 - 1.0);
-  return gr_euler_hyb_K2 * pow(rho, gr_euler_hyb_g2 - 1.0) / (gr_euler_hyb_g2 - 1.0) + gr_euler_hyb_eps_off;
+  return gr_euler_atm_floor;
 }
+#define GR_EULER_BLEND_FACTOR 1.0e5  // Low-density/surface switch for HLL/Lax blending.
 
-// Total hybrid pressure from (rho, eps): cold + thermal (shock-heating), eps_th = eps - eps_cold >= 0.
-static inline double
-gr_euler_hyb_pressure(double rho, double eps)
-{
-  double eps_th = eps - gr_euler_hyb_eps_cold(rho);
-  if (eps_th < 0.0) eps_th = 0.0;
-  return gr_euler_hyb_p_cold(rho) + (gr_euler_hyb_gth - 1.0) * rho * eps_th;
-}
-
-// Specific enthalpy h = 1 + eps + p/rho from (rho, p): recover eps_th = (p - p_cold)/((gth-1) rho).
-static inline double
-gr_euler_hyb_enthalpy(double rho, double p)
-{
-  double eps_th = (p - gr_euler_hyb_p_cold(rho)) / ((gr_euler_hyb_gth - 1.0) * rho);
-  if (eps_th < 0.0) eps_th = 0.0;
-  return 1.0 + gr_euler_hyb_eps_cold(rho) + eps_th + (p / rho);
-}
-
-// Relativistic sound speed squared c_s^2 = (dp/drho|eps + (p/rho^2) dp/deps|rho) / h from (rho, p).
-static inline double
-gr_euler_hyb_cs2(double rho, double p)
-{
-  double pc = gr_euler_hyb_p_cold(rho);
-  double gi;
-  if (rho < gr_euler_hyb_rho_nuc) {
-    gi = gr_euler_hyb_g1;
-  }
-  else {
-    gi = gr_euler_hyb_g2;
-  }
-  double eps_th = (p - pc) / ((gr_euler_hyb_gth - 1.0) * rho);
-  if (eps_th < 0.0) eps_th = 0.0;
-  double h = gr_euler_hyb_enthalpy(rho, p);
-  // dp/drho|eps = gi*pc/rho + (gth-1)*eps_th - (gth-1)*pc/rho ; dp/deps|rho = (gth-1)*rho
-  double chi = (gi * pc / rho) + (gr_euler_hyb_gth - 1.0) * eps_th - (gr_euler_hyb_gth - 1.0) * (pc / rho);
-  double cs2 = (chi + (gr_euler_hyb_gth - 1.0) * (p / rho)) / h;
-  if (cs2 < 0.0) cs2 = 0.0;
-  if (cs2 > 1.0) cs2 = 1.0;
-  return cs2;
-}
-
-// C2P residual for the hybrid EOS: given conserved (D, S2=|S|^2, T=tau+D) and a pressure guess p, recover rho, W, h, eps and return P_hybrid(rho,eps) - p. Standard Font 1D pressure recovery. vsq<1 is guaranteed for p > sqrt(S2)-T
-static inline double
-gr_euler_hyb_c2p_residual(double D, double S2, double T, double p, double *rho_out, double *W_out)
-{
-  double vsq = S2 / ((T + p) * (T + p));
-  if (vsq > 1.0 - 1.0e-12) vsq = 1.0 - 1.0e-12;
-  double W = 1.0 / sqrt(1.0 - vsq);
-  double rho = D / W;
-  double h = (T + p) / (D * W);
-  double eps = h - 1.0 - (p / rho);
-  if (rho_out) *rho_out = rho;
-  if (W_out) *W_out = W;
-  return gr_euler_hyb_pressure(rho, eps) - p;
-}
-
-// Specific enthalpy h = 1 + eps + p/rho from (rho, p), EOS-consistent (hybrid or gamma-law).
+// Specific enthalpy h = 1 + eps + p/rho from (rho, p), gamma-law EOS.
 double
 gkyl_gr_euler_specific_enthalpy(double gas_gamma, double rho, double p)
 {
-  if (gr_euler_eos_hybrid) return gr_euler_hyb_enthalpy(rho, p);
   return 1.0 + ((p / rho) * (gas_gamma / (gas_gamma - 1.0)));
 }
 
@@ -153,6 +89,17 @@ gkyl_gr_euler_wb_disabled(const struct gkyl_wv_eqn *eqn)
   return gr_euler->disable_well_balanced;
 }
 
+// Runtime toggle of the frozen-equilibrium well-balancing (used by the mid-run dynamical-collapse
+// trigger to switch WB off at the instant the star is depleted). All WB gate sites read this field
+// each step, so flipping it takes effect on the next step.
+void
+gkyl_gr_euler_set_wb_disabled(const struct gkyl_wv_eqn *eqn, bool disabled)
+{
+  struct wv_gr_euler *gr_euler = container_of(eqn, struct wv_gr_euler, eqn);
+  gr_euler->disable_well_balanced = disabled;
+}
+
+
 void
 gkyl_gr_euler_flux(double gas_gamma, const double q[71], double flux[71])
 {
@@ -197,13 +144,7 @@ gkyl_gr_euler_flux(double gas_gamma, const double q[71], double flux[71])
       W = 1.0 / sqrt(pow(10.0, -8.0));
     }
 
-    double h;
-    if (gr_euler_eos_hybrid) {
-      h = gr_euler_hyb_enthalpy(rho, p);
-    }
-    else {
-      h = 1.0 + ((p / rho) * (gas_gamma / (gas_gamma - 1.0)));
-    }
+    double h = 1.0 + ((p / rho) * (gas_gamma / (gas_gamma - 1.0)));
 
     double cov_vel[3] = { 0.0 };
     for (int i = 0; i < 3; i++) {
@@ -229,9 +170,54 @@ gkyl_gr_euler_flux(double gas_gamma, const double q[71], double flux[71])
   }
 }
 
-void
-gkyl_gr_euler_prim_vars(double gas_gamma, const double q[71], double v[71])
+// [BARO] Barotropic fallback in the primitive recovery (private diagnostic library, 2026-11-06; AUDIT_FLUID_STATE_WRITES,
+// "BH formation and hold run", amendment). GKYL_C2P_BARO_K=K' > 0 enables it: where the gamma-law recovery has no valid
+// root (the atmosphere-floor test below fails: rho or p at/below the floor trigger, v^2 >= 1 or non-finite) and D > 0,
+// rho and v^i are recovered from D and S_i on the adiabat p = K' rho^Gamma instead (the "Font fix" fallback, cf.
+// IllinoisGRMHD): h(D/W) sqrt(W^2 - 1) = |S|/D has a unique root W in [1, sqrt(1 + |S|^2/D^2)] for every D > 0 (the
+// left side increases from 0). Used only where that density is above the atmosphere band (100 rho_floor, the
+// validator's band); below it the static atmosphere applies as before. Read-only on q: the stored D, S_i and tau are
+// never written. Unset: the production recovery, bit for bit.
+static double
+gr_euler_baro_k(void)
 {
+  static double k = -1.0;
+  if (k < 0.0) {
+    const char *e = getenv("GKYL_C2P_BARO_K");
+    k = e ? atof(e) : 0.0;
+    if (!(k > 0.0)) k = 0.0;
+  }
+  return k;
+}
+
+static bool
+gr_euler_baro_recover(double gas_gamma, double K, double D, double S2, double *rho, double *p, double *Q)
+{
+  if (!(D > 0.0) || !isfinite(D) || !(S2 >= 0.0) || !isfinite(S2)) return false;
+  double s = sqrt(S2) / D, lo = 1.0, hi = sqrt(1.0 + s * s);
+  double c = gas_gamma / (gas_gamma - 1.0) * K;
+  for (int it = 0; it < 200 && hi - lo > 1.0e-15 * hi; it++) {
+    double W = 0.5 * (lo + hi);
+    double f = (1.0 + c * pow(D / W, gas_gamma - 1.0)) * sqrt(W * W - 1.0) - s;
+    if (f > 0.0) hi = W; else lo = W;
+  }
+  double W = 0.5 * (lo + hi);
+  *rho = D / W;
+  *p = K * pow(*rho, gas_gamma);
+  *Q = (*rho) * (1.0 + c * pow(*rho, gas_gamma - 1.0)) * W * W; // rho h W^2
+  return isfinite(*rho) && isfinite(*p) && isfinite(*Q) && *Q > 0.0;
+}
+
+// [BARO] recovery outcome per cell (gr_euler_prim_vars_impl's last argument).
+#define GR_EULER_C2P_ROOT 0  // Gamma-law root (or no recovery: excision region, no atmosphere floor)
+#define GR_EULER_C2P_BARO 1  // no valid Gamma-law root; barotropic fallback, live density above 100 rho_atm
+#define GR_EULER_C2P_ATM 2   // no valid Gamma-law root; static atmosphere, live barotropic density <= 100 rho_atm
+#define GR_EULER_C2P_FLOOR 3 // no valid Gamma-law root; static atmosphere otherwise (fallback off or failed)
+
+static void
+gr_euler_prim_vars_impl(double gas_gamma, const double q[71], double v[71], int *outcome)
+{
+  if (outcome) *outcome = GR_EULER_C2P_ROOT;
   double lapse = q[5];
   double shift_x = q[6];
   double shift_y = q[7];
@@ -298,53 +284,6 @@ gkyl_gr_euler_prim_vars(double gas_gamma, const double q[71], double v[71])
       for (int sj = 0; sj < 3; sj++)
         S2 += inv_spatial_metric[si][sj] * mom_cov[si] * mom_cov[sj];
 
-    // HYBRID EOS branch: iterative (bisection) pressure recovery, since the piecewise cold + thermal EOS
-    // has no closed-form C2P. f(p) = P_hybrid(rho(p),eps(p)) - p is bracketed in [p_lo, p_hi] and bisected.
-    if (gr_euler_eos_hybrid) {
-      double T = Etot + D; // = rho h W^2 - p
-      // Lower bracket: p must keep vsq = S2/(T+p)^2 < 1, i.e. p > sqrt(S2) - T. Also >= p_floor.
-      double p_lo = fmax(gr_euler_p_floor, sqrt(S2) - T + 1.0e-12);
-      double rho_r, W_r;
-      double f_lo = gr_euler_hyb_c2p_residual(D, S2, T, p_lo, &rho_r, &W_r);
-      // Grow an upper bracket until the residual changes sign (f decreases in p).
-      double p_hi = fmax(p_lo * 2.0, p_lo + 1.0e-6);
-      double f_hi = gr_euler_hyb_c2p_residual(D, S2, T, p_hi, &rho_r, &W_r);
-      int grow = 0;
-      while (f_lo * f_hi > 0.0 && grow < 200) {
-        p_hi *= 2.0;
-        f_hi = gr_euler_hyb_c2p_residual(D, S2, T, p_hi, &rho_r, &W_r);
-        grow++;
-      }
-      double p = p_lo;
-      if (f_lo * f_hi <= 0.0) {
-        for (int it = 0; it < 100; it++) {
-          double p_mid = 0.5 * (p_lo + p_hi);
-          double f_mid = gr_euler_hyb_c2p_residual(D, S2, T, p_mid, &rho_r, &W_r);
-          if (f_lo * f_mid <= 0.0) { p_hi = p_mid; }
-          else { p_lo = p_mid; f_lo = f_mid; }
-          p = p_mid;
-          if ((p_hi - p_lo) < 1.0e-12 * fmax(1.0, p_mid)) break;
-        }
-      }
-      double vsq = S2 / ((T + p) * (T + p));
-      if (vsq > 1.0 - 1.0e-12) vsq = 1.0 - 1.0e-12;
-      double W = 1.0 / sqrt(1.0 - vsq);
-      double h = (T + p) / (D * W);
-
-      double Q = T + p;
-      v[0] = D / W;
-      v[1] = 0.0;
-      v[2] = 0.0;
-      v[3] = 0.0;
-      for (int i = 0; i < 3; i++) {
-        for (int j = 0; j < 3; j++) {
-          v[1 + i] += inv_spatial_metric[i][j] * mom_cov[j] / Q;
-        }
-      }
-      v[4] = p;
-      goto hybrid_recovered; // skip the gamma-law quartic; land at the shared floor/atmosphere handling
-    }
-
     // C2P normalisation. T2 = (Etot + D)^2 - S2 = (rho h W^2)^2 - S2 scales like D^2, so it must be guarded relative to (Etot + D)^2, never against an absolute constant.
     static int c2p_legacy = -1;
     if (getenv("GKYL_C2P_LEGACY_GUARD") != NULL) {
@@ -385,14 +324,11 @@ gkyl_gr_euler_prim_vars(double gas_gamma, const double q[71], double v[71])
       double poly_der = alpha1 + (2.0 * alpha2 * guess) + (4.0 * alpha4 * (guess * guess * guess)) - (3.0 * eta * alpha4 * (guess * guess));
 
       double guess_new = guess - (poly / poly_der);
-
-      if (fabs(guess - guess_new) < pow(10.0, -8.0)) {
-        iter = 100;
-      }
-      else {
-        iter += 1;
-        guess = guess_new;
-      }
+      double change = fabs(guess - guess_new);
+      // Keep the converged Newton iterate, not the previous approximation.
+      guess = guess_new;
+      if (change < pow(10.0, -8.0)) break;
+      iter += 1;
     }
 
     double W = 0.5 * C0 * guess * (1.0 + sqrt(1.0 + (4.0 * ((gas_gamma - 1.0) / gas_gamma) * ((1.0 - (C * guess)) / ((C0 * C0) * (guess * guess))))));
@@ -409,15 +345,10 @@ gkyl_gr_euler_prim_vars(double gas_gamma, const double q[71], double v[71])
         v[1 + i] += inv_spatial_metric[i][j] * mom_cov[j] / Q;
       }
     }
-
-    hybrid_recovered: ; // hybrid EOS branch jumps here with v[0-4] already set
-
-    // Conservative atmosphere reset (read-only on q => conservation-safe; the flux the cell reports changes but
-    // the update still telescopes). GKYL_ATM_RESET=1: if the recovered primitive state is below the floor
-    // or non-physical (rho/p<=floor, superluminal, or non-finite), reset to a static atmosphere (rho_atm, p_atm, v=0). 
-    static int atm_reset = -1;
-    if (atm_reset < 0) atm_reset = (getenv("GKYL_ATM_RESET") != NULL) ? 1 : 0;
-    if (atm_reset) {
+    // Atmosphere floor (read-only on q, so conservation is exact: the flux and source the cell reports change, the
+    // update still telescopes). If the recovered primitive state is below the floor or non-physical (rho/p <= floor,
+    // superluminal, or non-finite), the fluxes and sources see a static atmosphere (rho_atm, p_atm, v = 0).
+    if (gr_euler_atm_floor) {
       static double atm_tol = -1.0;
       if (atm_tol < 0.0) {
         const char *tol_env = getenv("GKYL_ATM_TOL");
@@ -436,9 +367,25 @@ gkyl_gr_euler_prim_vars(double gas_gamma, const double q[71], double v[71])
         for (int j = 0; j < 3; j++)
           vsq_chk += spatial_metric[i][j] * v[1 + i] * v[1 + j];
       if (!(v[0] > rho_trigger) || !(v[4] > p_trigger) || !(vsq_chk < 1.0) || !isfinite(vsq_chk)) {
-        v[0] = gr_euler_rho_floor;
-        v[4] = gr_euler_p_floor;
-        v[1] = 0.0; v[2] = 0.0; v[3] = 0.0;
+        double baro_K = gr_euler_baro_k(), baro_rho = 0.0, baro_p = 0.0, baro_Q = 0.0;
+        bool baro_ok = baro_K > 0.0 && gr_euler_baro_recover(gas_gamma, baro_K, D, S2, &baro_rho, &baro_p, &baro_Q);
+        if (baro_ok && baro_rho > 100.0 * gr_euler_rho_floor) {
+          v[0] = baro_rho;
+          v[4] = baro_p;
+          for (int i = 0; i < 3; i++) {
+            v[1 + i] = 0.0;
+            for (int j = 0; j < 3; j++) {
+              v[1 + i] += inv_spatial_metric[i][j] * mom_cov[j] / baro_Q;
+            }
+          }
+          if (outcome) *outcome = GR_EULER_C2P_BARO;
+        }
+        else {
+          v[0] = gr_euler_rho_floor;
+          v[4] = gr_euler_p_floor;
+          v[1] = 0.0; v[2] = 0.0; v[3] = 0.0;
+          if (outcome) *outcome = baro_ok ? GR_EULER_C2P_ATM : GR_EULER_C2P_FLOOR;
+        }
       }
     }
     else {
@@ -501,6 +448,40 @@ gkyl_gr_euler_prim_vars(double gas_gamma, const double q[71], double v[71])
     
     v[27] = -1.0;
   }
+}
+
+void
+gkyl_gr_euler_prim_vars(double gas_gamma, const double q[71], double v[71])
+{
+  gr_euler_prim_vars_impl(gas_gamma, q, v, NULL);
+}
+
+static int
+gr_euler_c2p_outcome(double gas_gamma, const double q[71])
+{
+  double v[71];
+  int outcome = GR_EULER_C2P_ROOT;
+  gr_euler_prim_vars_impl(gas_gamma, q, v, &outcome);
+  return outcome;
+}
+
+// [BARO] true iff GKYL_C2P_BARO_K is set and q's recovery takes the barotropic fallback (the route-1 [BARO] cell count).
+bool
+gkyl_gr_euler_c2p_baro_used(double gas_gamma, const double q[71])
+{
+  if (!(gr_euler_baro_k() > 0.0)) return false;
+  return gr_euler_c2p_outcome(gas_gamma, q) == GR_EULER_C2P_BARO;
+}
+
+// [BARO] true iff GKYL_C2P_BARO_K is set, q has no valid Gamma-law root, and the barotropic branch gives the cell a
+// state: the fallback (live density above 100 rho_atm) or the static atmosphere (live density at or below). The
+// route-1 step check and FOFC's test call this, so their atmosphere definition is the recovery's own.
+bool
+gkyl_gr_euler_c2p_baro_handled(double gas_gamma, const double q[71])
+{
+  if (!(gr_euler_baro_k() > 0.0)) return false;
+  int outcome = gr_euler_c2p_outcome(gas_gamma, q);
+  return outcome == GR_EULER_C2P_BARO || outcome == GR_EULER_C2P_ATM;
 }
 
 void 
@@ -570,13 +551,7 @@ gkyl_gr_euler_stress_energy_tensor(double gas_gamma, const double q[71], double 
       W = 1.0 / sqrt(pow(10.0, -8.0));
     }
 
-    double h;
-    if (gr_euler_eos_hybrid) {
-      h = gr_euler_hyb_enthalpy(rho, p);
-    }
-    else {
-      h = 1.0 + ((p / rho) * (gas_gamma / (gas_gamma - 1.0)));
-    }
+    double h = 1.0 + ((p / rho) * (gas_gamma / (gas_gamma - 1.0)));
 
     double spacetime_vel[4];
     spacetime_vel[0] = W / lapse;
@@ -647,15 +622,9 @@ gkyl_gr_euler_max_abs_speed(double gas_gamma, const double q[71])
 
   gkyl_gr_euler_inv_spatial_metric(q, &inv_spatial_metric);
 
-  double c_s;
-  if (gr_euler_eos_hybrid) {
-    c_s = sqrt(gr_euler_hyb_cs2(rho, p));
-  }
-  else {
-    double num = (gas_gamma * p) / rho;
-    double den = 1.0 + ((p / rho) * (gas_gamma) / (gas_gamma - 1.0));
-    c_s = sqrt(num / den);
-  }
+  double num = (gas_gamma * p) / rho;
+  double den = 1.0 + ((p / rho) * (gas_gamma) / (gas_gamma - 1.0));
+  double c_s = sqrt(num / den);
 
   bool in_excision_region = false;
   if (v[27] < pow(10.0, -8.0)) {
@@ -756,7 +725,7 @@ static inline void
 cons_to_riem(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* qin, double* wout)
 {
   // TODO: This should use a proper L matrix.
-  for (int i = 0; i < 71; i++) {
+  for (int i = 0; i < eqn->num_equations; i++) {
     wout[i] = qin[i];
   }
 }
@@ -765,7 +734,7 @@ static inline void
 riem_to_cons(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* win, double* qout)
 {
   // TODO: This should use a proper L matrix.
-  for (int i = 0; i < 71; i++) {
+  for (int i = 0; i < eqn->num_equations; i++) {
     qout[i] = win[i];
   }
 }
@@ -773,7 +742,7 @@ riem_to_cons(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* 
 static void
 gr_euler_wall(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx)
 {
-  for (int i = 0; i < 71; i++) {
+  for (int i = 0; i < eqn->num_equations; i++) {
     ghost[i] = skin[i];
   }
 
@@ -783,15 +752,12 @@ gr_euler_wall(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* ski
 static void
 gr_euler_no_slip(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx)
 {
-  for (int i = 1; i < 4; i++) {
-    ghost[i] = -skin[i];
+  for (int i = 0; i < eqn->num_equations; i++) {
+    ghost[i] = skin[i];
   }
 
-  ghost[0] = skin[0];
-  ghost[4] = skin[4];
-
-  for (int i = 5; i < 71; i++) {
-    ghost[i] = skin[i];
+  for (int i = 1; i < 4; i++) {
+    ghost[i] = -skin[i];
   }
 }
 
@@ -1456,12 +1422,13 @@ wave_roe(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
   double a4 = delta[2] - ((k * v2) / energy);
   double a5 = delta[3] - ((k * v3) / energy);
 
-  for (int i = 0; i < 71 * 3; i++) {
+  int neq = eqn->num_equations;
+  for (int i = 0; i < neq * 3; i++) {
     waves[i] = 0;
   }
 
   double *wv;
-  wv = &waves[0 * 71];
+  wv = &waves[0 * neq];
   wv[0] = a1 * c_minus;
   wv[1] = a1 * (v1 - ((sqrt(s_sq) * v0) / y));
   wv[2] = a1 * v2;
@@ -1469,7 +1436,7 @@ wave_roe(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
   wv[4] = a1 * (v0 - ((sqrt(s_sq) * v1) / y));
   s[0] = (((1.0 - (gas_gamma * v4)) * v0 * v1) - (sqrt(s_sq) * y)) / (((1.0 - (gas_gamma * v4)) * v0 * v0) + s_sq);
 
-  wv = &waves[1 * 71];
+  wv = &waves[1 * neq];
   wv[0] = (a3 * (c_minus + (s_sq / (gas_gamma - 1.0)))) - (a4 * c_plus * v2) - (a5 * c_plus * v3);
   wv[1] = a3 * v1;
   wv[2] = (a3 * v2) + a4;
@@ -1477,7 +1444,7 @@ wave_roe(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
   wv[4] = a3 * v0;
   s[1] = v1 / v0;
 
-  wv = &waves[2 * 71];
+  wv = &waves[2 * neq];
   wv[0] = a2 * c_minus;
   wv[1] = a2 * (v1 + ((sqrt(s_sq) * v0) / y));
   wv[2] = a2 * v2;
@@ -1491,9 +1458,10 @@ wave_roe(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
 static void
 qfluct_roe(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, const double* waves, const double* s, double* amdq, double* apdq)
 {
-  const double* w0 = &waves[0 * 71];
-  const double* w1 = &waves[1 * 71];
-  const double* w2 = &waves[2 * 71];
+  int neq = eqn->num_equations;
+  const double* w0 = &waves[0 * neq];
+  const double* w1 = &waves[1 * neq];
+  const double* w2 = &waves[2 * neq];
 
   double s0m = fmin(0.0, s[0]), s1m = fmin(0.0, s[1]), s2m = fmin(0.0, s[2]);
   double s0p = fmax(0.0, s[0]), s1p = fmax(0.0, s[1]), s2p = fmax(0.0, s[2]);
@@ -1502,7 +1470,7 @@ qfluct_roe(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, co
     amdq[i] = (s0m * w0[i]) + (s1m * w1[i]) + (s2m * w2[i]);
     apdq[i] = (s0p * w0[i]) + (s1p * w1[i]) + (s2p * w2[i]);
   }
-  for (int i = 5; i < 71; i++) {
+  for (int i = 5; i < neq; i++) {
     amdq[i] = 0.0;
     apdq[i] = 0.0;
   }
@@ -1637,15 +1605,8 @@ wave_hll(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
     curved_spacetime_r = true;
   }
 
-  double c_sl, c_sr;
-  if (gr_euler_eos_hybrid) {
-    c_sl = sqrt(gr_euler_hyb_cs2(rho_l, p_l));
-    c_sr = sqrt(gr_euler_hyb_cs2(rho_r, p_r));
-  }
-  else {
-    c_sl = sqrt(((gas_gamma * p_l) / rho_l) / (1.0 + ((p_l / rho_l) * (gas_gamma) / (gas_gamma - 1.0))));
-    c_sr = sqrt(((gas_gamma * p_r) / rho_r) / (1.0 + ((p_r / rho_r) * (gas_gamma) / (gas_gamma - 1.0))));
-  }
+  double c_sl = sqrt(((gas_gamma * p_l) / rho_l) / (1.0 + ((p_l / rho_l) * (gas_gamma) / (gas_gamma - 1.0))));
+  double c_sr = sqrt(((gas_gamma * p_r) / rho_r) / (1.0 + ((p_r / rho_r) * (gas_gamma) / (gas_gamma - 1.0))));
 
   double vx_avg = 0.5 * (vx_l + vx_r);
   double cs_avg = 0.5 * (c_sl + c_sr);
@@ -1840,7 +1801,6 @@ qfluct_hll_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const d
 
 // HLL/Lax: HLL in the bulk, Lax near the atmosphere/surface. 
 // Both wave constructions keep amdq+apdq=df (the qfluct is identical), so the blend is strictly flux- and fluctuation-conservative. 
-#define GR_EULER_BLEND_FACTOR 1.0e5  // Lax where rho < FACTOR * rho_atm (here ~1e-2 * rho_c)
 static double
 wave_hll_lax(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, const double* qr, double* waves, double* s)
 {
@@ -1917,30 +1877,39 @@ flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, dou
 static bool
 check_inv(const struct gkyl_wv_eqn* eqn, const double* q)
 {
-  // A valid subluminal fluid state: D > 0 and (D + tau)^2 - gamma^{ij} S_i S_j > 0; sqrt(det) > 0 cancels in the sign test, so we can use the densitized slots directly.
+  // The forward Valencia cone also requires E=D+tau>0; squaring alone
+  // admits its unphysical negative-energy branch.
+  // sqrt(det) > 0 cancels in the sign test, so the densitized slots can be used directly.
+  if (!isfinite(q[27])) return false;
   if (q[27] < pow(10.0, -8.0)) {
     return true; // excised cell: not an evolved fluid cell, nothing to check
   }
+  for (int m=0; m<eqn->num_equations; ++m)
+    if (!isfinite(q[m])) return false;
   double DE = q[0] + q[4]; // sqrt(gamma) (D + tau)
+  if (!(isfinite(DE) && DE > 0.0 && q[0] > 0.0 && q[5] > 0.0))
+    return false;
+  if (!gkyl_mp_scheme_gr_metric_is_spd(&q[9])) return false;
   double spatial_metric[3][3];
   spatial_metric[0][0] = q[9];  spatial_metric[0][1] = q[10]; spatial_metric[0][2] = q[11];
   spatial_metric[1][0] = q[12]; spatial_metric[1][1] = q[13]; spatial_metric[1][2] = q[14];
   spatial_metric[2][0] = q[15]; spatial_metric[2][1] = q[16]; spatial_metric[2][2] = q[17];
   double spatial_det = gr_euler_spatial_metric_det(spatial_metric);
+  if (!(isfinite(spatial_det) && spatial_det > 0.0)) {
+    return false;
+  }
   double inv_spatial_metric[3][3];
   gr_euler_spatial_metric_inv(spatial_metric, spatial_det, inv_spatial_metric);
 
+  // Scaling keeps the cone test finite for large, otherwise valid states.
+  double scale = fmax(DE, fmax(q[0], fmax(fabs(q[1]), fmax(fabs(q[2]), fabs(q[3])))));
+  double D = q[0]/scale, E = DE/scale;
+  double S[3] = {q[1]/scale, q[2]/scale, q[3]/scale};
   double S2 = 0.0;
   for (int si = 0; si < 3; si++)
     for (int sj = 0; sj < 3; sj++)
-      S2 += inv_spatial_metric[si][sj] * q[1 + si] * q[1 + sj];
-  if (q[0] <= 0.0) {
-    return false; // D <= 0
-  }
-  if (((DE * DE) - S2) <= 0.0) {
-    return false; // (D + tau)^2 - |S|^2 <= 0  -> no subluminal recovery exists
-  }
-  return true;
+      S2 += inv_spatial_metric[si][sj] * S[si] * S[sj];
+  return isfinite(S2) && S2 >= 0.0 && (E * E) - (D * D) - S2 > 0.0;
 }
 
 static double
@@ -2042,13 +2011,7 @@ gr_euler_raw_source(double gas_gamma, const double* qin, double* sout)
       W = 1.0 / sqrt(1.0 - pow(10.0, -8.0));
     }
 
-    double h;
-    if (gr_euler_eos_hybrid) {
-      h = gr_euler_hyb_enthalpy(rho, p);
-    }
-    else {
-      h = 1.0 + ((p / rho) * (gas_gamma / (gas_gamma - 1.0)));
-    }
+    double h = 1.0 + ((p / rho) * (gas_gamma / (gas_gamma - 1.0)));
     
     double cov_vel[3] = { 0.0 };
     for (int i = 0; i < 3; i++) {
@@ -2123,6 +2086,9 @@ gr_euler_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout)
       sout[i] -= sout_eq[i];
     }
   }
+  for (int i = 71; i < eqn->num_equations; i++) {
+    sout[i] = 0.0;
+  }
 }
 
 void
@@ -2161,6 +2127,7 @@ gkyl_wv_gr_euler_inew(const struct gkyl_wv_gr_euler_inp* inp)
 
   gr_euler->eqn.type = GKYL_EQN_GR_EULER;
   if (inp->tov_eq != NULL) {
+    // Well-balancing state: physical+metric (0..70) + frozen conserved equilibrium D_eq/Etot_eq/S_eq (71..75).
     gr_euler->eqn.num_equations = 76;
   }
   else {
@@ -2176,28 +2143,10 @@ gkyl_wv_gr_euler_inew(const struct gkyl_wv_gr_euler_inp* inp)
 
   gr_euler->disable_well_balanced = inp->disable_well_balanced;
 
-  gr_euler->eos_hybrid = inp->eos_hybrid;
-  gr_euler->eos_gamma1 = inp->eos_gamma1;
-  gr_euler->eos_gamma2 = inp->eos_gamma2;
-  gr_euler->eos_gamma_th = inp->eos_gamma_th;
-  gr_euler->eos_rho_nuc = inp->eos_rho_nuc;
-  gr_euler->eos_K1 = inp->eos_K1;
-
-  if (inp->eos_hybrid) {
-    gr_euler_eos_hybrid = true;
-    gr_euler_hyb_g1 = inp->eos_gamma1;
-    gr_euler_hyb_g2 = inp->eos_gamma2;
-    gr_euler_hyb_gth = inp->eos_gamma_th;
-    gr_euler_hyb_rho_nuc = inp->eos_rho_nuc;
-    gr_euler_hyb_K1 = inp->eos_K1;
-    gr_euler_hyb_K2 = gr_euler_hyb_K1 * pow(gr_euler_hyb_rho_nuc, gr_euler_hyb_g1 - gr_euler_hyb_g2);
-    gr_euler_hyb_eps_off = ((gr_euler_hyb_g2 - gr_euler_hyb_g1) /
-      ((gr_euler_hyb_g1 - 1.0) * (gr_euler_hyb_g2 - 1.0))) * gr_euler_hyb_K1 *
-      pow(gr_euler_hyb_rho_nuc, gr_euler_hyb_g1 - 1.0);
-  }
-
   if (inp->rho_atm > 0.0) gr_euler_rho_floor = inp->rho_atm;
   if (inp->p_atm > 0.0) gr_euler_p_floor = inp->p_atm;
+  gr_euler->rho_atm = gr_euler_rho_floor;
+  gr_euler->p_atm = gr_euler_p_floor;
 
   if (inp->rp_type == WV_GR_EULER_RP_LAX) {
     gr_euler->eqn.num_waves = 2;

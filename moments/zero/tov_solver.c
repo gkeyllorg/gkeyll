@@ -82,9 +82,9 @@ static inline double eos_rho_from_pressure(double K, double Gamma, double P)
 static void tov_rhs(double r, const double y[3], double f[3], double K, double Gamma)
 {
     double m_enc = y[0]; // mass enclosed
-    double P = y[1]; 
+    double P = fmax(y[1], 0.0);
 
-    if (P <= 0.0 || r <= 0.0) {
+    if (r <= 0.0) {
         f[0] = f[1] = f[2] = 0.0;
         return;
     }
@@ -99,6 +99,8 @@ static void tov_rhs(double r, const double y[3], double f[3], double K, double G
     
     f[0] = 4.0 * M_PI * r * r * e; // dm/dr RHS
     f[1] = -(e + P) * (m_enc + 4.0 * M_PI * r * r * r * P) / (r * (r - 2.0 * m_enc)); // dP/dr RHS
+    // An RK stage can cross the surface. Vacuum has dm/dr=dP/dr=0,
+    // but Phi must still follow the exterior Schwarzschild derivative.
     f[2] = (m_enc + 4.0 * M_PI * r * r * r * P) / (r * (r - 2.0 * m_enc)); // dPhi/dr 
 
 }
@@ -162,6 +164,26 @@ static double interp(const struct gkyl_tov *tov, const double *val, double r)
     else t = 0.0;
 
     return (1.0 - t) * val[lo] + t * val[hi];
+}
+
+bool
+gkyl_tov_eval_mass_derivs(const struct gkyl_tov *tov, double r,
+    double *dm, double *d2m)
+{
+    struct tov_eval_bl bl;
+    if (!gkyl_tov_eval_bl(tov, r, &bl) || !dm || !d2m) return false;
+    double e_prime = 0.0;
+    if (r > 0.0 && bl.rho > 0.0 && bl.P > 0.0) {
+        double denom = r * (r - 2.0 * bl.m);
+        if (denom <= 0.0) return false;
+        double p_prime = -(bl.e + bl.P) *
+            (bl.m + 4.0 * M_PI * r*r*r * bl.P) / denom;
+        double dp_drho = tov->Gamma * tov->K * pow(bl.rho, tov->Gamma - 1.0);
+        e_prime = p_prime * (1.0/dp_drho + 1.0/(tov->Gamma - 1.0));
+    }
+    *dm = 4.0 * M_PI * r*r * bl.e;
+    *d2m = 8.0 * M_PI * r * bl.e + 4.0 * M_PI * r*r * e_prime;
+    return true;
 }
 
 // eval TOV in BL coords at arbitrary radius
@@ -270,8 +292,8 @@ struct gkyl_tov * gkyl_tov_new(double K, double Gamma, double rho_c, double dr)
     double r_n = dr;
     double y[3];
     y[0] = (4.0 / 3.0) * M_PI * e_c * r_n * r_n * r_n; //m 
-    y[1] = P_c - (2.0 * M_PI / 3.0) * (e_c + P_c) * (e_c / 3.0 + P_c) * r_n * r_n; //P
-    y[2] = (2.0 * M_PI / 3.0) * (e_c / 3.0 + P_c) * r_n * r_n; //Phi
+    y[1] = P_c - 2.0 * M_PI * (e_c + P_c) * (e_c / 3.0 + P_c) * r_n * r_n; //P
+    y[2] = 2.0 * M_PI * (e_c / 3.0 + P_c) * r_n * r_n; //Phi
 
     if (y[1] <= 0.0) {
             y[1] = 0.0;

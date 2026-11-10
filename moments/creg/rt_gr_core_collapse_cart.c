@@ -1,14 +1,9 @@
 // Core-collapse-to-(proto-)NS driver: a TOV star (GR-Euler fluid, MP + frozen-discrete WB) coupled to a vacuum-Einstein (Bona-Masso, 
 // wave-propagation) spacetime through the per-species mixed scheme, coupled each step (same coupling as rt_gr_tov_mixed_cart.c).
 //
-// Two collapse triggers (default env = static star, WB on, bit-static):
-//  (1) K-DROP (gamma-law): soften the core pressure p -> (1-delta) p for r < R_core, WB off, KS+1+log.
-//        GKYL_WB_OFF=1 GKYL_KDROP=0.5 GKYL_KDROP_SMOOTH=1 GKYL_USE_KERR_SCHILD=1 GKYL_PCP=1 GKYL_ATM_RESET=1
-//  (2) HYBRID EOS (realistic iron core, Ott/Janka-Zwerger): build the IC COLD at the reduced subnuclear cold
-//        pressure (p=K1 rho^g1, the pressure-reduction trigger); the density-based EOS stiffens at rho_nuc
-//        (g1<4/3 -> g2=2.5) with a thermal part (g_th) -> collapse crosses rho_nuc, stiffens, bounces.
-//        GKYL_EOS_HYBRID=1 GKYL_GAMMA_INI=1.3333 GKYL_K_POLY=0.464 GKYL_RHO_C=1.62e-8 GKYL_EOS_K1=0.120
-//        GKYL_EOS_RHO_NUC=3.24e-4 GKYL_WB_OFF=1 GKYL_USE_KERR_SCHILD=1 GKYL_PCP=1 GKYL_ATM_RESET=1
+// Gamma-law pressure-depletion example (default: no depletion, WB on).
+// K-DROP: soften the core pressure p -> (1-delta) p for r < R_core, WB off, KS+1+log.
+//        GKYL_WB_OFF=1 GKYL_KDROP=0.5 GKYL_KDROP_SMOOTH=1 GKYL_USE_KERR_SCHILD=1 GKYL_PCP=1
 
 
 #include <float.h>
@@ -57,12 +52,6 @@ struct gr_tov_coupled_ctx
   double kdrop_delta; // Core pressure-softening fraction (p -> (1-delta) p for r < R_core).
   bool kdrop_smooth; // Use a smooth raised-cosine K-drop taper (else a sharp top-hat).
 
-  // Hybrid (polytropic + thermal) EOS for the realistic iron-core collapse (Ott/Janka-Zwerger). When
-  // eos_hybrid is set, the IC is built COLD with the reduced subnuclear cold pressure p = K1 rho^g1 (the
-  // paper's pressure-reduction trigger: K1 < K_ini so the core is under-pressured -> collapses), on the
-  // rho(r) profile of the Gamma_ini TOV star. Evolution then uses the density-based hybrid EOS.
-  bool eos_hybrid;
-  double eos_g1, eos_g2, eos_gth, eos_rho_nuc, eos_K1;
 
   enum gkyl_spacetime_gauge spacetime_gauge; // Fluid-side gauge tag (GR Euler eqn).
   int reinit_freq;
@@ -101,36 +90,18 @@ create_ctx(void)
   const char *rho_c_env = getenv("GKYL_RHO_C");
   if (rho_c_env) rho_c = atof(rho_c_env);
 
-  // Hybrid-EOS params (read here so the IC can build the reduced cold pressure). Defaults = Ott/Janka-Zwerger
-  // iron-core values in code units (rho_nuc = 2e14 g/cc = 3.24e-4; K1 = 0.120 = the cgs-consistent reduced
-  // subnuclear constant for gamma1=1.30). See rt setup notes.
-  bool eos_hybrid = (getenv("GKYL_EOS_HYBRID") != NULL);
-  double eos_g1 = 1.30, eos_g2 = 2.5, eos_gth = 1.5, eos_rho_nuc = 3.24e-4, eos_K1 = 0.120;
-  const char *ev;
-  if ((ev = getenv("GKYL_EOS_G1"))) eos_g1 = atof(ev);
-  if ((ev = getenv("GKYL_EOS_G2"))) eos_g2 = atof(ev);
-  if ((ev = getenv("GKYL_EOS_GTH"))) eos_gth = atof(ev);
-  if ((ev = getenv("GKYL_EOS_RHO_NUC"))) eos_rho_nuc = atof(ev);
-  if ((ev = getenv("GKYL_EOS_K1"))) eos_K1 = atof(ev);
 
   double dr_tov = 0.01;
   const char *dr_env = getenv("GKYL_DR_TOV");
-  if (dr_env) dr_tov = atof(dr_env); // use a bigger step for the huge iron-core star (R ~ 1000)
+  if (dr_env) dr_tov = atof(dr_env);
 
-  // End time (GKYL_T_END). The realistic iron-core free-fall is ~8000 code units (~40 ms), so the default
-  // toy t_end=20 must be raised for the hybrid collapse.
+  // End time.
   double t_end = 20.0;
   const char *te_env = getenv("GKYL_T_END");
   if (te_env) t_end = atof(te_env);
 
   double rho_atm = 1e-7 * rho_c;
-  double p_atm;
-  if (eos_hybrid) {
-    p_atm = eos_K1 * pow(rho_atm, eos_g1);
-  }
-  else {
-    p_atm = K_poly * pow(rho_atm, gas_gamma);
-  }
+  double p_atm = K_poly * pow(rho_atm, gas_gamma);
 
   struct gkyl_tov *tov = gkyl_tov_new(K_poly, gas_gamma, rho_c, dr_tov);
   double M_star = gkyl_tov_star_mass(tov);
@@ -153,8 +124,6 @@ create_ctx(void)
   printf("Compactness (2M_star / R_star) = %e \n", 2.0 * M_star / R_star);
   printf("R_core = %e (%.2f R_star) \n", R_core, rcore_frac);
   printf("IC EOS: gamma_ini=%g K_ini=%g rho_c=%g \n", gas_gamma, K_poly, rho_c);
-  if (eos_hybrid) printf("Hybrid EOS: g1=%g g2=%g gth=%g rho_nuc=%g K1=%g (IC built COLD at reduced p=K1 rho^g1)\n",
-    eos_g1, eos_g2, eos_gth, eos_rho_nuc, eos_K1);
   printf("K-drop delta = %e (core pressure softening, smooth=%d) \n", kdrop_delta, (int) kdrop_smooth);
 
   // Gauge selection (env): GKYL_USE_KERR_SCHILD=1 -> Kerr-Schild geometry (horizon-penetrating, for collapse); default is the areal (static Schwarzschild-like) gauge.
@@ -196,12 +165,6 @@ create_ctx(void)
     .R_core = R_core,
     .kdrop_delta = kdrop_delta,
     .kdrop_smooth = kdrop_smooth,
-    .eos_hybrid = eos_hybrid,
-    .eos_g1 = eos_g1,
-    .eos_g2 = eos_g2,
-    .eos_gth = eos_gth,
-    .eos_rho_nuc = eos_rho_nuc,
-    .eos_K1 = eos_K1,
     .spacetime_gauge = GKYL_STATIC_GAUGE,
     .reinit_freq = 100,
     .excision_threshold = 0.3,
@@ -237,18 +200,9 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   gkyl_tov_eval_bl(app->tov, r, &bl);
 
   double p = fmax(bl.P, app->p_atm);
-  double rho = pow(p / app->K_poly, 1.0 / gas_gamma); // density from the Gamma_ini TOV profile
+  double rho = pow(p / app->K_poly, 1.0 / gas_gamma);
   double gamma_h = gas_gamma; // enthalpy index used to build the conserved energy
 
-  // HYBRID IC (realistic iron core): keep the Gamma_ini TOV DENSITY profile rho(r), but build the fluid
-  // COLD at the REDUCED subnuclear cold pressure p = K1 rho^g1 (K1 < K_ini => under-pressured => collapse;
-  // eps_th = 0). Since below rho_nuc the cold enthalpy equals the gamma-law enthalpy with index g1, we just
-  // set gamma_h = g1 and p to the reduced cold value; the existing conserved-state build stays consistent.
-  if (app->eos_hybrid) {
-    rho = fmax(rho, app->rho_atm);
-    p = fmax(app->eos_K1 * pow(rho, app->eos_g1), app->p_atm);
-    gamma_h = app->eos_g1;
-  }
 
   // Core-localized K-drop: soften the pressure ONLY in the core (r < R_core), leaving the envelope in
   // hydrostatic equilibrium. The density profile is unchanged; the pressure that supports the core is
@@ -258,7 +212,7 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   //    converging compression wave -> off-center ring).
   //  - Smooth raised-cosine taper (GKYL_KDROP_SMOOTH=1): local drop = delta at r=0, tapering to 0 at
   //    R_core (C1-continuous with the envelope, no boundary shock -> a more central loss of support).
-  if (!app->eos_hybrid && app->kdrop_delta > 0.0 && r < app->R_core) {
+  if (app->kdrop_delta > 0.0 && r < app->R_core) {
     double local_delta = app->kdrop_delta;
     if (app->kdrop_smooth) {
       local_delta = app->kdrop_delta * 0.5 * (1.0 + cos(M_PI * r / app->R_core));
@@ -633,12 +587,6 @@ main(int argc, char **argv)
     .use_gpu = app_args.use_gpu,
     .tov_eq = ctx.tov,
     .disable_well_balanced = wb_off,
-    .eos_hybrid = ctx.eos_hybrid,
-    .eos_gamma1 = ctx.eos_g1,
-    .eos_gamma2 = ctx.eos_g2,
-    .eos_gamma_th = ctx.eos_gth,
-    .eos_rho_nuc = ctx.eos_rho_nuc,
-    .eos_K1 = ctx.eos_K1,
     .p_atm = ctx.p_atm,
     .rho_atm = ctx.rho_atm,
   });
@@ -758,7 +706,7 @@ main(int argc, char **argv)
       gkyl_array_copy(app->species[0].fcurr, snap_fluid);
       gkyl_array_copy(app->species[1].fcurr, snap_einstein);
       dt = status.dt_suggested;
-      gkyl_moment_app_cout(app, stdout, " [SPD guard] rejected, retry dt = %g ...", dt);
+      gkyl_moment_app_cout(app, stdout, " [admissibility guard] rejected, retry dt = %g ...", dt);
       status = gkyl_moment_update(app, dt);
       spd_retry++;
     }

@@ -57,6 +57,9 @@ enum {
 // Species data
 struct moment_species {
   int ndim;
+  // Integrated Gamma-driver reference at activation: Gamma[3], beta[3].
+  struct gkyl_array *gamma_driver_reference;
+  struct gkyl_array *spacetime_equilibrium, *spacetime_equilibrium_source;
   char name[128]; // species name
   double charge, mass;
 
@@ -440,12 +443,21 @@ struct gkyl_update_status moment_species_update(gkyl_moment_app *app,
   struct moment_species *sp,
   double tcurr, double dt);
 
+// Symmetric directional composition; input f[0], output f[ndim].
+struct gkyl_update_status moment_species_update_symmetric(gkyl_moment_app *app,
+  struct moment_species *sp, double tcurr, double dt);
+
 // Compute RHS of moment equations
 double moment_species_rhs(gkyl_moment_app *app, struct moment_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 // Free memory allocated by species
 void moment_species_release(const struct moment_species *sp);
+
+// Capture a stationary coupled reference before a trigger. Currently scoped
+// to regular-centre TOV without excision, using conformal mixed WP evolution.
+bool moment_spacetime_set_equilibrium(gkyl_moment_app *app, struct moment_species *sp,
+  const struct gkyl_array *fluid, double gas_gamma);
 
 /** moment_field API */
 
@@ -505,6 +517,27 @@ void moment_coupling_release(const struct gkyl_moment_app *app,
 
 /** Top-level app API */
 
+// Cartesian-grid Hessian completion from a completed stage's P increment.
+// Both states must have valid P ghosts and be distinct; fout's provisional H
+// is replaced, not incremented. On live stencils this preserves H-sym(D_h P),
+// not H-D_h D_h chi unless P=D_h chi also holds. No primary state is changed.
+void moment_species_conformal_hessian_advance(const gkyl_moment_app *app,
+  const struct moment_species *sp, const struct gkyl_array *fin, struct gkyl_array *fout);
+
+// Complete P and H from the same scalar stage increment, using shared-face
+// differences. Requires distinct old/new states with valid chi/P ghosts.
+// Preserves initial derivative residuals on live Cartesian stencils; it does
+// not project away initialization error. Source stages must use this as well.
+void moment_species_conformal_derivatives_advance(gkyl_moment_app *app,
+  const struct moment_species *sp, const struct gkyl_array *fin,
+  struct gkyl_array *fout, double tcurr);
+
+// Grid-wide spacetime source stages; optional frozen matter and WB reference.
+// Shared by standalone WP and mixed updates so grad(S_chi) is counted once.
+void moment_spacetime_source_advance(gkyl_moment_app *app, struct moment_species *sp,
+  struct gkyl_array *f, const struct gkyl_array *fluid, double gas_gamma,
+  double tcurr, double dt, const struct gkyl_array *wb_source);
+
 // Take a single time-step using a single-step time-stepper
 struct gkyl_update_status moment_update_one_step(gkyl_moment_app *app,
   double dt0);
@@ -512,6 +545,10 @@ struct gkyl_update_status moment_update_one_step(gkyl_moment_app *app,
 // Take a single time-step using a SSP-RK3 stepper
 struct gkyl_update_status moment_update_ssp_rk3(gkyl_moment_app *app,
   double dt0);
+
+// Same RK method, with an explicit subflow start time; does not advance app->tcurr.
+struct gkyl_update_status moment_update_ssp_rk3_at(gkyl_moment_app *app,
+  double tcurr, double dt0);
 
 // Take a single time-step using the per-species mixed scheme (spacetime -> wave_prop, fluid -> MP, coupled each step). Used when app->scheme_type == GKYL_MOMENT_MIXED.
 struct gkyl_update_status moment_update_mixed(gkyl_moment_app *app,
@@ -522,9 +559,10 @@ struct gkyl_update_status moment_update_mixed(gkyl_moment_app *app,
 void sync_fluid_metric_from_einstein(const double *qe, double *qf, double excision_threshold,
   bool is_conformal);
 
-// Add the fluid matter source to the vacuum-Einstein RHS (method-of-lines form of the standard ADM matter coupling): dK_ij += -8*pi*alpha*(T_ij - 1/2 gamma_ij T), dV_k += +8*pi*alpha*T^0_k (from mom_species.c)
+// ADM matter source, plus the matching 4*pi*alpha*gamma_ij*E term for
+// Einstein (n=1) reduction; V_k receives 8*pi*alpha^2*T^0_k in either reduction.
 void add_einstein_matter_source(const double *qe, const double *qf, double gas_gamma,
-  double excision_threshold, bool is_conformal, double *rhs);
+  double excision_threshold, bool is_conformal, enum gkyl_spacetime_evolution evolution, double *rhs);
 
 /**
  * Create new array meta header from input struct. Free returned

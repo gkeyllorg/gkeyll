@@ -7,11 +7,20 @@
 #include <gkyl_gr_minkowski.h>
 #include <gkyl_gr_blackhole.h>
 
+static void
+lower_velocity(double **metric, const double v[3], double cov[3])
+{
+  for (int i=0; i<3; ++i) {
+    cov[i] = 0;
+    for (int j=0; j<3; ++j) cov[i] += metric[i][j]*v[j];
+  }
+}
+
 void
 test_gr_euler_spd_limiter() // Regression tests for the SPD face-metric limiter (hyperbolicity guard)
 {
   // Three cases to catch:
-  // (a) A NON-SPD reconstructed face (asymmetric + a negative eigenvalue) is repaired to symmetric + SPD, blending toward an SPD cell anchor.
+  // (a) A NON-SPD reconstructed face falls back to the symmetric SPD cell anchor.
   double g_cell[9] = { 1.0, 0.0, 0.0,  0.0, 1.0, 0.0,  0.0, 0.0, 1.0 }; // identity: SPD
   double g_face[9] = { -0.5, 0.3, 0.0,  0.1, 1.0, 0.0,  0.0, 0.0, 1.0 }; // g00<0 and asymmetric => not SPD
   TEST_CHECK(!gkyl_mp_scheme_gr_metric_is_spd(g_face));
@@ -103,14 +112,16 @@ test_gr_euler_basic_minkowski()
         }
       }
 
+      double cov_vel[3];
+      lower_velocity(spatial_metric, vel, cov_vel);
       double W = 1.0 / sqrt(1.0 - v_sq);
       double h = 1.0 + ((p / rho) * (gas_gamma / (gas_gamma - 1.0)));
 
       double q[71];
       q[0] = sqrt(spatial_det) * rho * W;
-      q[1] = sqrt(spatial_det) * rho * h * (W * W) * u;
-      q[2] = sqrt(spatial_det) * rho * h * (W * W) * v;
-      q[3] = sqrt(spatial_det) * rho * h * (W * W) * w;
+      q[1] = sqrt(spatial_det) * rho * h * (W * W) * cov_vel[0];
+      q[2] = sqrt(spatial_det) * rho * h * (W * W) * cov_vel[1];
+      q[3] = sqrt(spatial_det) * rho * h * (W * W) * cov_vel[2];
       q[4] = sqrt(spatial_det) * ((rho * h * (W * W)) - p - (rho * W));
 
       q[5] = lapse;
@@ -157,19 +168,19 @@ test_gr_euler_basic_minkowski()
 
       double fluxes[3][5] = {
         { (lapse * sqrt(spatial_det)) * (rho * W * (vel[0] - (shift[0] / lapse))),
-          (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (vel[0] * (vel[0] - (shift[0] / lapse))) + p),
-          (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (vel[1] * (vel[0] - (shift[0] / lapse)))),
-          (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (vel[2] * (vel[0] - (shift[0] / lapse)))),
+          (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (cov_vel[0] * (vel[0] - (shift[0] / lapse))) + p),
+          (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (cov_vel[1] * (vel[0] - (shift[0] / lapse)))),
+          (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (cov_vel[2] * (vel[0] - (shift[0] / lapse)))),
           (lapse * sqrt(spatial_det)) * (((rho * h * (W * W)) - p - (rho * W)) * (vel[0] - (shift[0] / lapse)) + (p * vel[0])) },
         { (lapse * sqrt(spatial_det)) * (rho * W * (vel[1] - (shift[1] / lapse))),
-          (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (vel[0] * (vel[1] - (shift[1] / lapse)))),
-          (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (vel[1] * (vel[1] - (shift[1] / lapse))) + p),
-          (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (vel[2] * (vel[1] - (shift[1] / lapse)))),
+          (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (cov_vel[0] * (vel[1] - (shift[1] / lapse)))),
+          (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (cov_vel[1] * (vel[1] - (shift[1] / lapse))) + p),
+          (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (cov_vel[2] * (vel[1] - (shift[1] / lapse)))),
           (lapse * sqrt(spatial_det)) * (((rho * h * (W * W)) - p - (rho * W)) * (vel[1] - (shift[1] / lapse)) + (p * vel[1])) },
         { (lapse * sqrt(spatial_det)) * (rho * W * (vel[2] - (shift[2] / lapse))),
-          (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (vel[0] * (vel[2] - (shift[2] / lapse)))),
-          (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (vel[1] * (vel[2] - (shift[2] / lapse)))),
-          (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (vel[2] * (vel[2] - (shift[2] / lapse))) + p),
+          (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (cov_vel[0] * (vel[2] - (shift[2] / lapse)))),
+          (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (cov_vel[1] * (vel[2] - (shift[2] / lapse)))),
+          (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (cov_vel[2] * (vel[2] - (shift[2] / lapse))) + p),
           (lapse * sqrt(spatial_det)) * (((rho * h * (W * W)) - p - (rho * W)) * (vel[2] - (shift[2] / lapse)) + (p * vel[2])) },
       };
 
@@ -312,15 +323,17 @@ test_gr_euler_basic_schwarzschild()
         }
       }
 
+      double cov_vel[3];
+      lower_velocity(spatial_metric, vel, cov_vel);
       double W = 1.0 / sqrt(1.0 - v_sq);
       double h = 1.0 + ((p / rho) * (gas_gamma / (gas_gamma - 1.0)));
 
       if (!in_excision_region) {
         double q[71];
         q[0] = sqrt(spatial_det) * rho * W;
-        q[1] = sqrt(spatial_det) * rho * h * (W * W) * u;
-        q[2] = sqrt(spatial_det) * rho * h * (W * W) * v;
-        q[3] = sqrt(spatial_det) * rho * h * (W * W) * w;
+        q[1] = sqrt(spatial_det) * rho * h * (W * W) * cov_vel[0];
+        q[2] = sqrt(spatial_det) * rho * h * (W * W) * cov_vel[1];
+        q[3] = sqrt(spatial_det) * rho * h * (W * W) * cov_vel[2];
         q[4] = sqrt(spatial_det) * ((rho * h * (W * W)) - p - (rho * W));
 
         q[5] = lapse;
@@ -359,27 +372,27 @@ test_gr_euler_basic_schwarzschild()
         double prims[71];
         gkyl_gr_euler_prim_vars(gas_gamma, q, prims);
         
-        TEST_CHECK( gkyl_compare(prims[0], rho, 1e-1) );
-        TEST_CHECK( gkyl_compare(prims[1], u, 1e-1) );
-        TEST_CHECK( gkyl_compare(prims[2], v, 1e-1) );
-        TEST_CHECK( gkyl_compare(prims[3], w, 1e-1) );
-        TEST_CHECK( gkyl_compare(prims[4], p, 1e-1) );
+        TEST_CHECK( gkyl_compare(prims[0], rho, 1e-7) );
+        TEST_CHECK( gkyl_compare(prims[1], u, 1e-7) );
+        TEST_CHECK( gkyl_compare(prims[2], v, 1e-7) );
+        TEST_CHECK( gkyl_compare(prims[3], w, 1e-7) );
+        TEST_CHECK( gkyl_compare(prims[4], p, 1e-7) );
 
         double fluxes[3][5] = {
           { (lapse * sqrt(spatial_det)) * (rho * W * (vel[0] - (shift[0] / lapse))),
-            (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (vel[0] * (vel[0] - (shift[0] / lapse))) + p),
-            (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (vel[1] * (vel[0] - (shift[0] / lapse)))),
-            (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (vel[2] * (vel[0] - (shift[0] / lapse)))),
+            (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (cov_vel[0] * (vel[0] - (shift[0] / lapse))) + p),
+            (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (cov_vel[1] * (vel[0] - (shift[0] / lapse)))),
+            (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (cov_vel[2] * (vel[0] - (shift[0] / lapse)))),
             (lapse * sqrt(spatial_det)) * (((rho * h * (W * W)) - p - (rho * W)) * (vel[0] - (shift[0] / lapse)) + (p * vel[0])) },
           { (lapse * sqrt(spatial_det)) * (rho * W * (vel[1] - (shift[1] / lapse))),
-            (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (vel[0] * (vel[1] - (shift[1] / lapse)))),
-            (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (vel[1] * (vel[1] - (shift[1] / lapse))) + p),
-            (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (vel[2] * (vel[1] - (shift[1] / lapse)))),
+            (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (cov_vel[0] * (vel[1] - (shift[1] / lapse)))),
+            (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (cov_vel[1] * (vel[1] - (shift[1] / lapse))) + p),
+            (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (cov_vel[2] * (vel[1] - (shift[1] / lapse)))),
             (lapse * sqrt(spatial_det)) * (((rho * h * (W * W)) - p - (rho * W)) * (vel[1] - (shift[1] / lapse)) + (p * vel[1])) },
           { (lapse * sqrt(spatial_det)) * (rho * W * (vel[2] - (shift[2] / lapse))),
-            (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (vel[0] * (vel[2] - (shift[2] / lapse)))),
-            (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (vel[1] * (vel[2] - (shift[2] / lapse)))),
-            (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (vel[2] * (vel[2] - (shift[2] / lapse))) + p),
+            (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (cov_vel[0] * (vel[2] - (shift[2] / lapse)))),
+            (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (cov_vel[1] * (vel[2] - (shift[2] / lapse)))),
+            (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (cov_vel[2] * (vel[2] - (shift[2] / lapse))) + p),
             (lapse * sqrt(spatial_det)) * (((rho * h * (W * W)) - p - (rho * W)) * (vel[2] - (shift[2] / lapse)) + (p * vel[2])) },
         };
 
@@ -408,7 +421,7 @@ test_gr_euler_basic_schwarzschild()
           gr_euler->rotate_to_global_func(gr_euler, tau1[d], tau2[d], norm[d], flux_local, flux);
 
           for (int i = 0; i < 5; i++) {
-            TEST_CHECK( gkyl_compare(flux[i], fluxes[d][i], 1e-1) );
+            TEST_CHECK( gkyl_compare(flux[i], fluxes[d][i], 1e-7) );
           }
         }
 
@@ -523,15 +536,17 @@ test_gr_euler_basic_kerr()
         }
       }
 
+      double cov_vel[3];
+      lower_velocity(spatial_metric, vel, cov_vel);
       double W = 1.0 / sqrt(1.0 - v_sq);
       double h = 1.0 + ((p / rho) * (gas_gamma / (gas_gamma - 1.0)));
 
       if (!in_excision_region) {
         double q[71];
         q[0] = sqrt(spatial_det) * rho * W;
-        q[1] = sqrt(spatial_det) * rho * h * (W * W) * u;
-        q[2] = sqrt(spatial_det) * rho * h * (W * W) * v;
-        q[3] = sqrt(spatial_det) * rho * h * (W * W) * w;
+        q[1] = sqrt(spatial_det) * rho * h * (W * W) * cov_vel[0];
+        q[2] = sqrt(spatial_det) * rho * h * (W * W) * cov_vel[1];
+        q[3] = sqrt(spatial_det) * rho * h * (W * W) * cov_vel[2];
         q[4] = sqrt(spatial_det) * ((rho * h * (W * W)) - p - (rho * W));
 
         q[5] = lapse;
@@ -570,27 +585,27 @@ test_gr_euler_basic_kerr()
         double prims[71];
         gkyl_gr_euler_prim_vars(gas_gamma, q, prims);
         
-        TEST_CHECK( gkyl_compare(prims[0], rho, 1e-1) );
-        TEST_CHECK( gkyl_compare(prims[1], u, 1e-1) );
-        TEST_CHECK( gkyl_compare(prims[2], v, 1e-1) );
-        TEST_CHECK( gkyl_compare(prims[3], w, 1e-1) );
-        TEST_CHECK( gkyl_compare(prims[4], p, 1e-1) );
+        TEST_CHECK( gkyl_compare(prims[0], rho, 1e-7) );
+        TEST_CHECK( gkyl_compare(prims[1], u, 1e-7) );
+        TEST_CHECK( gkyl_compare(prims[2], v, 1e-7) );
+        TEST_CHECK( gkyl_compare(prims[3], w, 1e-7) );
+        TEST_CHECK( gkyl_compare(prims[4], p, 1e-7) );
 
         double fluxes[3][5] = {
           { (lapse * sqrt(spatial_det)) * (rho * W * (vel[0] - (shift[0] / lapse))),
-            (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (vel[0] * (vel[0] - (shift[0] / lapse))) + p),
-            (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (vel[1] * (vel[0] - (shift[0] / lapse)))),
-            (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (vel[2] * (vel[0] - (shift[0] / lapse)))),
+            (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (cov_vel[0] * (vel[0] - (shift[0] / lapse))) + p),
+            (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (cov_vel[1] * (vel[0] - (shift[0] / lapse)))),
+            (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (cov_vel[2] * (vel[0] - (shift[0] / lapse)))),
             (lapse * sqrt(spatial_det)) * (((rho * h * (W * W)) - p - (rho * W)) * (vel[0] - (shift[0] / lapse)) + (p * vel[0])) },
           { (lapse * sqrt(spatial_det)) * (rho * W * (vel[1] - (shift[1] / lapse))),
-            (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (vel[0] * (vel[1] - (shift[1] / lapse)))),
-            (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (vel[1] * (vel[1] - (shift[1] / lapse))) + p),
-            (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (vel[2] * (vel[1] - (shift[1] / lapse)))),
+            (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (cov_vel[0] * (vel[1] - (shift[1] / lapse)))),
+            (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (cov_vel[1] * (vel[1] - (shift[1] / lapse))) + p),
+            (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (cov_vel[2] * (vel[1] - (shift[1] / lapse)))),
             (lapse * sqrt(spatial_det)) * (((rho * h * (W * W)) - p - (rho * W)) * (vel[1] - (shift[1] / lapse)) + (p * vel[1])) },
           { (lapse * sqrt(spatial_det)) * (rho * W * (vel[2] - (shift[2] / lapse))),
-            (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (vel[0] * (vel[2] - (shift[2] / lapse)))),
-            (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (vel[1] * (vel[2] - (shift[2] / lapse)))),
-            (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (vel[2] * (vel[2] - (shift[2] / lapse))) + p),
+            (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (cov_vel[0] * (vel[2] - (shift[2] / lapse)))),
+            (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (cov_vel[1] * (vel[2] - (shift[2] / lapse)))),
+            (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (cov_vel[2] * (vel[2] - (shift[2] / lapse))) + p),
             (lapse * sqrt(spatial_det)) * (((rho * h * (W * W)) - p - (rho * W)) * (vel[2] - (shift[2] / lapse)) + (p * vel[2])) },
         };
 
@@ -619,7 +634,7 @@ test_gr_euler_basic_kerr()
           gr_euler->rotate_to_global_func(gr_euler, tau1[d], tau2[d], norm[d], flux_local, flux);
 
           for (int i = 0; i < 5; i++) {
-            TEST_CHECK( gkyl_compare(flux[i], fluxes[d][i], 1e-1) );
+            TEST_CHECK( gkyl_compare(flux[i], fluxes[d][i], 1e-7) );
           }
         }
         
@@ -750,6 +765,9 @@ test_gr_euler_waves_minkowski()
         }
       }
 
+      double cov_vel_l[3], cov_vel_r[3];
+      lower_velocity(spatial_metric_l, vel_l, cov_vel_l);
+      lower_velocity(spatial_metric_r, vel_r, cov_vel_r);
       double W_l = 1.0 / sqrt(1.0 - v_sq_l);
       double W_r = 1.0 / sqrt(1.0 - v_sq_r);
       double h_l = 1.0 + ((p_l / rho_l) * (gas_gamma / (gas_gamma - 1.0)));
@@ -757,9 +775,9 @@ test_gr_euler_waves_minkowski()
 
       double ql[71], qr[71];
       ql[0] = sqrt(spatial_det_l) * rho_l * W_l;
-      ql[1] = sqrt(spatial_det_l) * rho_l * h_l * (W_l * W_l) * u_l;
-      ql[2] = sqrt(spatial_det_l) * rho_l * h_l * (W_l * W_l) * v_l;
-      ql[3] = sqrt(spatial_det_l) * rho_l * h_l * (W_l * W_l) * w_l;
+      ql[1] = sqrt(spatial_det_l) * rho_l * h_l * (W_l * W_l) * cov_vel_l[0];
+      ql[2] = sqrt(spatial_det_l) * rho_l * h_l * (W_l * W_l) * cov_vel_l[1];
+      ql[3] = sqrt(spatial_det_l) * rho_l * h_l * (W_l * W_l) * cov_vel_l[2];
       ql[4] = sqrt(spatial_det_l) * ((rho_l * h_l * (W_l * W_l)) - p_l - (rho_l * W_l));
 
       ql[5] = lapse_l;
@@ -796,9 +814,9 @@ test_gr_euler_waves_minkowski()
       ql[68] = x - 0.5; ql[69] = y; ql[70] = 0.0;
 
       qr[0] = sqrt(spatial_det_r) * rho_r * W_r;
-      qr[1] = sqrt(spatial_det_r) * rho_r * h_r * (W_r * W_r) * u_r;
-      qr[2] = sqrt(spatial_det_r) * rho_r * h_r * (W_r * W_r) * v_r;
-      qr[3] = sqrt(spatial_det_r) * rho_r * h_r * (W_r * W_r) * w_r;
+      qr[1] = sqrt(spatial_det_r) * rho_r * h_r * (W_r * W_r) * cov_vel_r[0];
+      qr[2] = sqrt(spatial_det_r) * rho_r * h_r * (W_r * W_r) * cov_vel_r[1];
+      qr[3] = sqrt(spatial_det_r) * rho_r * h_r * (W_r * W_r) * cov_vel_r[2];
       qr[4] = sqrt(spatial_det_r) * ((rho_r * h_r * (W_r * W_r)) - p_r - (rho_r * W_r));
 
       qr[5] = lapse_r;
@@ -853,7 +871,7 @@ test_gr_euler_waves_minkowski()
       };
 
       for (int d = 0; d < 3; d++) {
-        double speeds[3], waves[3 * 71], waves_local[3 * 71];
+        double speeds[2], waves_local[2 * 71];
 
         double ql_local[71], qr_local[71];
         gkyl_wv_eqn_rotate_to_local(gr_euler, tau1[d], tau2[d], norm[d], ql, ql_local);
@@ -868,10 +886,6 @@ test_gr_euler_waves_minkowski()
 
         double apdq_local[71], amdq_local[71];
         gkyl_wv_eqn_qfluct(gr_euler, GKYL_WV_LOW_ORDER_FLUX, ql_local, qr_local, 1.0, 1.0, waves_local, speeds, amdq_local, apdq_local);
-
-        for (int i = 0; i < 3; i++) {
-          gkyl_wv_eqn_rotate_to_global(gr_euler, tau1[d], tau2[d], norm[d], &waves_local[i * 71], &waves[i * 71]);
-        }
 
         double apdq[71], amdq[71];
         gkyl_wv_eqn_rotate_to_global(gr_euler, tau1[d], tau2[d], norm[d], apdq_local, apdq);
@@ -1013,6 +1027,9 @@ test_gr_euler_waves_schwarzschild()
         }
       }
 
+      double cov_vel_l[3], cov_vel_r[3];
+      lower_velocity(spatial_metric_l, vel_l, cov_vel_l);
+      lower_velocity(spatial_metric_r, vel_r, cov_vel_r);
       double W_l = 1.0 / sqrt(1.0 - v_sq_l);
       double W_r = 1.0 / sqrt(1.0 - v_sq_r);
       double h_l = 1.0 + ((p_l / rho_l) * (gas_gamma / (gas_gamma - 1.0)));
@@ -1021,9 +1038,9 @@ test_gr_euler_waves_schwarzschild()
       if (!in_excision_region_l && !in_excision_region_r) {
         double ql[71], qr[71];
         ql[0] = sqrt(spatial_det_l) * rho_l * W_l;
-        ql[1] = sqrt(spatial_det_l) * rho_l * h_l * (W_l * W_l) * u_l;
-        ql[2] = sqrt(spatial_det_l) * rho_l * h_l * (W_l * W_l) * v_l;
-        ql[3] = sqrt(spatial_det_l) * rho_l * h_l * (W_l * W_l) * w_l;
+        ql[1] = sqrt(spatial_det_l) * rho_l * h_l * (W_l * W_l) * cov_vel_l[0];
+        ql[2] = sqrt(spatial_det_l) * rho_l * h_l * (W_l * W_l) * cov_vel_l[1];
+        ql[3] = sqrt(spatial_det_l) * rho_l * h_l * (W_l * W_l) * cov_vel_l[2];
         ql[4] = sqrt(spatial_det_l) * ((rho_l * h_l * (W_l * W_l)) - p_l - (rho_l * W_l));
 
         ql[5] = lapse_l;
@@ -1060,9 +1077,9 @@ test_gr_euler_waves_schwarzschild()
         ql[68] = x - 0.5; ql[69] = y; ql[70] = 0.0;
 
         qr[0] = sqrt(spatial_det_r) * rho_r * W_r;
-        qr[1] = sqrt(spatial_det_r) * rho_r * h_r * (W_r * W_r) * u_r;
-        qr[2] = sqrt(spatial_det_r) * rho_r * h_r * (W_r * W_r) * v_r;
-        qr[3] = sqrt(spatial_det_r) * rho_r * h_r * (W_r * W_r) * w_r;
+        qr[1] = sqrt(spatial_det_r) * rho_r * h_r * (W_r * W_r) * cov_vel_r[0];
+        qr[2] = sqrt(spatial_det_r) * rho_r * h_r * (W_r * W_r) * cov_vel_r[1];
+        qr[3] = sqrt(spatial_det_r) * rho_r * h_r * (W_r * W_r) * cov_vel_r[2];
         qr[4] = sqrt(spatial_det_r) * ((rho_r * h_r * (W_r * W_r)) - p_r - (rho_r * W_r));
 
         qr[5] = lapse_r;
@@ -1117,7 +1134,7 @@ test_gr_euler_waves_schwarzschild()
         };
 
         for (int d = 0; d < 3; d++) {
-          double speeds[3], waves[3 * 71], waves_local[3 * 71];
+          double speeds[2], waves_local[2 * 71];
 
           double ql_local[71], qr_local[71];
           gkyl_wv_eqn_rotate_to_local(gr_euler, tau1[d], tau2[d], norm[d], ql, ql_local);
@@ -1133,9 +1150,6 @@ test_gr_euler_waves_schwarzschild()
           double apdq_local[71], amdq_local[71];
           gkyl_wv_eqn_qfluct(gr_euler, GKYL_WV_LOW_ORDER_FLUX, ql_local, qr_local, 1.0, 1.0, waves_local, speeds, amdq_local, apdq_local);
 
-          for (int i = 0; i < 3; i++) {
-            gkyl_wv_eqn_rotate_to_global(gr_euler, tau1[d], tau2[d], norm[d], &waves_local[i * 71], &waves[i * 71]);
-          }
 
           double apdq[71], amdq[71];
           gkyl_wv_eqn_rotate_to_global(gr_euler, tau1[d], tau2[d], norm[d], apdq_local, apdq);
@@ -1278,6 +1292,9 @@ test_gr_euler_waves_kerr()
         }
       }
 
+      double cov_vel_l[3], cov_vel_r[3];
+      lower_velocity(spatial_metric_l, vel_l, cov_vel_l);
+      lower_velocity(spatial_metric_r, vel_r, cov_vel_r);
       double W_l = 1.0 / sqrt(1.0 - v_sq_l);
       double W_r = 1.0 / sqrt(1.0 - v_sq_r);
       double h_l = 1.0 + ((p_l / rho_l) * (gas_gamma / (gas_gamma - 1.0)));
@@ -1286,9 +1303,9 @@ test_gr_euler_waves_kerr()
       if (!in_excision_region_l && !in_excision_region_r) {
         double ql[71], qr[71];
         ql[0] = sqrt(spatial_det_l) * rho_l * W_l;
-        ql[1] = sqrt(spatial_det_l) * rho_l * h_l * (W_l * W_l) * u_l;
-        ql[2] = sqrt(spatial_det_l) * rho_l * h_l * (W_l * W_l) * v_l;
-        ql[3] = sqrt(spatial_det_l) * rho_l * h_l * (W_l * W_l) * w_l;
+        ql[1] = sqrt(spatial_det_l) * rho_l * h_l * (W_l * W_l) * cov_vel_l[0];
+        ql[2] = sqrt(spatial_det_l) * rho_l * h_l * (W_l * W_l) * cov_vel_l[1];
+        ql[3] = sqrt(spatial_det_l) * rho_l * h_l * (W_l * W_l) * cov_vel_l[2];
         ql[4] = sqrt(spatial_det_l) * ((rho_l * h_l * (W_l * W_l)) - p_l - (rho_l * W_l));
 
         ql[5] = lapse_l;
@@ -1325,9 +1342,9 @@ test_gr_euler_waves_kerr()
         ql[68] = x - 0.5; ql[69] = y; ql[70] = 0.0;
 
         qr[0] = sqrt(spatial_det_r) * rho_r * W_r;
-        qr[1] = sqrt(spatial_det_r) * rho_r * h_r * (W_r * W_r) * u_r;
-        qr[2] = sqrt(spatial_det_r) * rho_r * h_r * (W_r * W_r) * v_r;
-        qr[3] = sqrt(spatial_det_r) * rho_r * h_r * (W_r * W_r) * w_r;
+        qr[1] = sqrt(spatial_det_r) * rho_r * h_r * (W_r * W_r) * cov_vel_r[0];
+        qr[2] = sqrt(spatial_det_r) * rho_r * h_r * (W_r * W_r) * cov_vel_r[1];
+        qr[3] = sqrt(spatial_det_r) * rho_r * h_r * (W_r * W_r) * cov_vel_r[2];
         qr[4] = sqrt(spatial_det_r) * ((rho_r * h_r * (W_r * W_r)) - p_r - (rho_r * W_r));
 
         qr[5] = lapse_r;
@@ -1382,7 +1399,7 @@ test_gr_euler_waves_kerr()
         };
 
         for (int d = 0; d < 3; d++) {
-          double speeds[3], waves[3 * 71], waves_local[3 * 71];
+          double speeds[2], waves_local[2 * 71];
 
           double ql_local[71], qr_local[71];
           gkyl_wv_eqn_rotate_to_local(gr_euler, tau1[d], tau2[d], norm[d], ql, ql_local);
@@ -1398,9 +1415,6 @@ test_gr_euler_waves_kerr()
           double apdq_local[71], amdq_local[71];
           gkyl_wv_eqn_qfluct(gr_euler, GKYL_WV_LOW_ORDER_FLUX, ql_local, qr_local, 1.0, 1.0, waves_local, speeds, amdq_local, apdq_local);
 
-          for (int i = 0; i < 3; i++) {
-            gkyl_wv_eqn_rotate_to_global(gr_euler, tau1[d], tau2[d], norm[d], &waves_local[i * 71], &waves[i * 71]);
-          }
 
           double apdq[71], amdq[71];
           gkyl_wv_eqn_rotate_to_global(gr_euler, tau1[d], tau2[d], norm[d], apdq_local, apdq);

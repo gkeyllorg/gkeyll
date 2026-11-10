@@ -27,9 +27,7 @@ struct wv_gr_euler {
 
   bool disable_well_balanced; // tov_eq set but WB subtraction switched off everywhere (collapse stage).
 
-  // Optional hybrid (polytropic + thermal) EOS for core collapse. Default off => single gamma-law.
-  bool eos_hybrid;
-  double eos_gamma1, eos_gamma2, eos_gamma_th, eos_rho_nuc, eos_K1;
+  double rho_atm, p_atm; // Atmosphere floors used by primitive recovery.
 };
 
 /**
@@ -60,7 +58,14 @@ bool
 gkyl_gr_euler_wb_disabled(const struct gkyl_wv_eqn *eqn);
 
 /**
-* Specific enthalpy h = 1 + eps + p/rho from (rho, p), EOS-consistent (hybrid or gamma-law). Reduces to the gamma-law enthalpy when the hybrid EOS is off.
+* Runtime toggle of the frozen-equilibrium well-balancing (mid-run dynamical-collapse trigger).
+*/
+void
+gkyl_gr_euler_set_wb_disabled(const struct gkyl_wv_eqn *eqn, bool disabled);
+
+
+/**
+* Specific enthalpy h = 1 + eps + p/rho from (rho, p) for the gamma-law EOS.
 */
 double
 gkyl_gr_euler_specific_enthalpy(double gas_gamma, double rho, double p);

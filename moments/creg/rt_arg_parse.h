@@ -94,7 +94,7 @@ parse_app_args(int argc, char **argv)
   args.basis_type = GKYL_BASIS_MODAL_SERENDIPITY;
 
   int c;
-  while ((c = getopt(argc, argv, "+hj:gmMt:s:i:b:x:y:z:u:v:w:r:c:d:e:o:")) != -1) {
+  while ((c = getopt(argc, argv, "+hj:lgmMt:s:i:b:x:y:z:u:v:w:r:c:d:e:o:")) != -1) {
     switch (c)
     {
       case 'h':

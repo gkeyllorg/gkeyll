@@ -86,6 +86,14 @@ struct gkyl_wave_prop_status gkyl_wave_prop_advance(gkyl_wave_prop *wv,
   double tm, double dt, const struct gkyl_range *update_range,
   struct gkyl_array *phi, const struct gkyl_array *qin, struct gkyl_array *qout);
 
+// Conservative perturbation transport for the two-wave conformal system.
+// qeq is a fixed, caller-owned stationary reference, including valid ghosts.
+// Sources must separately use S(q)-S(qeq) at each integration stage.
+struct gkyl_wave_prop_status gkyl_wave_prop_advance_equilibrium(gkyl_wave_prop *wv,
+  double tm, double dt, const struct gkyl_range *update_range,
+  struct gkyl_array *phi, const struct gkyl_array *qin, struct gkyl_array *qout,
+  const struct gkyl_array *qeq);
+
 /**
  * Compute an estimate of maximum stable time-step for given input
  * state 'qin'

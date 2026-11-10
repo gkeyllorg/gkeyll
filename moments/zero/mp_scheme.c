@@ -8,6 +8,7 @@
 #include <gkyl_util.h>
 #include <gkyl_wv_vacuum_einstein.h>
 #include <gkyl_wv_vacuum_einstein_conformal.h>
+#include <gkyl_wv_gr_euler.h>
 #include <gkyl_wv_gr_euler_priv.h>
 #include <gkyl_wave_geom.h>
 
@@ -34,6 +35,8 @@ struct gkyl_mp_scheme {
   struct gkyl_wave_geom *geom; // geometry object
 
   recovery_fn_t recovery_fn; // function to do recovery
+
+  const struct gkyl_array *lo_mask; // optional per-cell mask (NULL = off): a face with a marked neighbour is first order
 };
 
 // Each of the recovery methods below take 6 cells, three to the left
@@ -150,12 +153,16 @@ minmod_2(double x, double y)
 
 // Physical-constraint-preserving (PCP / Wu-Tang) limiter for GR-Euler. 
 // gr_euler_pcp_theta(anchor, w) returns the largest theta in [0,1] such that anchor + theta*w stays in the admissible set
-// {D>0, (D+tau)^2-|S|^2>0} (convex, contains any admissible anchor). Applied to the reconstruction only (single-valued flux => conservation untouched). 
+// {D>0, E=D+tau>0, E^2-D^2-|S|^2>0}. Applied to reconstruction only (one shared flux).
 // For a static equilibrium the deviation w -> 0 so theta=1 and the WB is untouched; during collapse, anchoring at the (admissible) cell average keeps the
 // face states admissible => admissibility-preserving updates (Wu & Tang 2015/2017).
 static inline double
 gr_euler_smallest_pos_root(double A, double B, double Cz)
 {
+  double scale = fmax(fabs(A), fmax(fabs(B), fabs(Cz)));
+  if (!isfinite(scale)) return 0.0;
+  if (scale == 0.0) return 2.0;
+  A /= scale; B /= scale; Cz /= scale;
   if (fabs(A) < 1.0e-300) {
     if (B < 0.0) return -Cz / B; // single root, positive since Cz >= 0
     return 2.0; // increasing/flat from Cz >= 0: never crosses for t > 0
@@ -163,8 +170,9 @@ gr_euler_smallest_pos_root(double A, double B, double Cz)
   double disc = (B * B) - (4.0 * A * Cz);
   if (disc < 0.0) return 2.0; // no real root: same sign as the value at t=0 (>= 0)
   double sq = sqrt(disc);
-  double r1 = (-B - sq) / (2.0 * A);
-  double r2 = (-B + sq) / (2.0 * A);
+  double q = -0.5 * (B + copysign(sq, B));
+  double r1 = q / A;
+  double r2 = q != 0.0 ? Cz / q : 0.0;
   double lo = fmin(r1, r2), hi = fmax(r1, r2);
   if (lo > 0.0) return lo;
   if (hi > 0.0) return hi;
@@ -214,15 +222,10 @@ gr_euler_metric_is_spd(const double spatial_metric[9])
   return (m1 > eps * scale) && (m2 > eps * scale * scale) && (m3 > eps * scale * scale * scale);
 }
 
-// SPD face-metric limiter (metric analog of the fluid PCP): symmetrize the reconstructed face metric
-// spatial_metric_face and, if it is not SPD, blend it toward the SPD cell-average anchor spatial_metric_cell (the SPD cone is convex,
-// so a largest theta in [0,1] keeps spatial_metric(theta)=spatial_metric_cell+theta(spatial_metric_face-spatial_metric_cell) SPD; bisection finds it). 
-// No-op when spatial_metric_face is already SPD => linearity-preserving (exact when the unlimited linear metric is SPD).
-// Conservation-safe: the metric slots are zero-flux for the fluid and both states feed one shared face flux.
-// If the cell anchor is also not SPD the face limiter cannot repair it locally - but that case is caught
-// upstream by the cell-average SPD hyperbolicity guard in mom_update_mixed.c (which rejects the step and
-// retries with a smaller dt before the fluid reconstruction ever runs), so it is not normally reached here;
-// this branch just leaves the face symmetrized as a safe fallback.
+// An invalid reconstructed metric falls back to its positive cell anchor.
+// Maximizing a blend up to the SPD boundary creates an almost singular metric
+// and unbounded coordinate wave speeds. Admissible faces remain unchanged;
+// both reconstructed states still feed one shared conservative fluid flux.
 static inline void
 gr_euler_spd_face_limiter(double spatial_metric_face[9], const double spatial_metric_cell[9])
 {
@@ -232,8 +235,7 @@ gr_euler_spd_face_limiter(double spatial_metric_face[9], const double spatial_me
   s = 0.5 * (spatial_metric_face[5] + spatial_metric_face[7]); spatial_metric_face[5] = s; spatial_metric_face[7] = s; // (1,2)/(2,1)
   if (gr_euler_metric_is_spd(spatial_metric_face)) return;  // already SPD: no-op (linearity-preserving)
 
-  // Use a symmetrized cell anchor gc for the SPD test, the bisection, and the final blend -- so fallback
-  // limiting toward the anchor never reintroduces cell-metric asymmetry into the face state.
+  // Do not reintroduce cell-metric asymmetry in the fallback.
   double gc[9];
   for (int m = 0; m < 9; m++) gc[m] = spatial_metric_cell[m];
   gc[1] = gc[3] = 0.5 * (spatial_metric_cell[1] + spatial_metric_cell[3]);
@@ -241,15 +243,64 @@ gr_euler_spd_face_limiter(double spatial_metric_face[9], const double spatial_me
   gc[5] = gc[7] = 0.5 * (spatial_metric_cell[5] + spatial_metric_cell[7]);
   if (!gr_euler_metric_is_spd(gc)) return; // anchor not SPD: caught upstream by the cell-average guard
 
-  double lo = 0.0, hi = 1.0;
-  for (int it = 0; it < 50; it++) {
-    double mid = 0.5 * (lo + hi);
-    double gm[9];
-    for (int m = 0; m < 9; m++) gm[m] = gc[m] + (mid * (spatial_metric_face[m] - gc[m]));
-    if (gr_euler_metric_is_spd(gm)) lo = mid; else hi = mid;
+  for (int m = 0; m < 9; m++) spatial_metric_face[m] = gc[m];
+}
+
+static inline double
+gr_euler_surface_u1_factor(void)
+{
+  static double factor = -1.0;
+  if (factor < 0.0) {
+    factor = 1.0e5;
+    const char *env = getenv("GKYL_GR_EULER_SURFACE_U1_FACTOR");
+    if (env != NULL) {
+      factor = atof(env);
+      if (factor < 0.0) factor = 0.0;
+    }
   }
-  double th = (1.0 - 1.0e-12) * lo;
-  for (int m = 0; m < 9; m++) spatial_metric_face[m] = gc[m] + (th * (spatial_metric_face[m] - gc[m]));
+  return factor;
+}
+
+static inline bool
+gr_euler_low_density_cell(const struct gkyl_wv_eqn *eqn, int meqn, const double *q)
+{
+  if (q[27] < pow(10.0, -8.0)) return true;
+
+  const struct wv_gr_euler *gr_euler = container_of(eqn, struct wv_gr_euler, eqn);
+  double rho_atm = gr_euler->rho_atm;
+  double factor = gr_euler_surface_u1_factor();
+  if (!(rho_atm > 0.0) || !(factor > 0.0)) return false;
+
+  double spatial_metric[9] = {
+    q[9],  q[10], q[11],
+    q[12], q[13], q[14],
+    q[15], q[16], q[17],
+  };
+  double det = (spatial_metric[0] * ((spatial_metric[4] * spatial_metric[8]) - (spatial_metric[5] * spatial_metric[7]))) -
+    (spatial_metric[1] * ((spatial_metric[3] * spatial_metric[8]) - (spatial_metric[5] * spatial_metric[6]))) +
+    (spatial_metric[2] * ((spatial_metric[3] * spatial_metric[7]) - (spatial_metric[4] * spatial_metric[6])));
+  if (!(isfinite(det) && det > 0.0)) return true;
+
+  double cutoff = factor * rho_atm;
+  double sqrt_det = sqrt(det);
+  double rho_live = q[0] / sqrt_det;
+  if (isfinite(rho_live) && rho_live <= cutoff) return true;
+  if (meqn > 71 && isfinite(q[71]) && q[71] >= 0.0) {
+    double rho_ref = q[71] / sqrt_det;
+    if (rho_ref <= cutoff) return true;
+  }
+  return false;
+}
+
+static inline bool
+gr_euler_surface_u1_stencil(const struct gkyl_wv_eqn *eqn, int meqn, const double *qavg[6])
+{
+  if (!gkyl_wv_gr_euler_atmosphere_floor() || getenv("GKYL_GR_EULER_SURFACE_U1_OFF") != NULL) return false;
+  if (!gkyl_gr_euler_wb_disabled(eqn)) return false;
+
+  for (int k = 0; k < 6; ++k)
+    if (gr_euler_low_density_cell(eqn, meqn, qavg[k])) return true;
+  return false;
 }
 
 bool
@@ -264,46 +315,58 @@ gkyl_mp_scheme_gr_spd_face_limiter(double spatial_metric_face[9], const double s
   gr_euler_spd_face_limiter(spatial_metric_face, spatial_metric_cell);
 }
 
-static inline double
-gr_euler_pcp_theta(const double qe[5], const double w[5], const double spatial_metric[9])
+double
+gkyl_mp_scheme_gr_euler_pcp_theta(const double qe[5], const double w[5], const double spatial_metric[9])
 {
   const double frac = 1.0e-4; // keep the face D and cone at >= frac of the equilibrium's own margin.
+  if (!gr_euler_metric_is_spd(spatial_metric)) return 0.0;
+  for (int m=0; m<5; ++m)
+    if (!isfinite(qe[m]) || !isfinite(w[m])) return 0.0;
 
-  double a = qe[0] + qe[4];                                       // E_eq = D_eq + tau_eq
-  double b = w[0] + w[4];                                         // dE
+  double D0 = qe[0];
+  double E0 = qe[0] + qe[4];                                      // E_eq = D_eq + tau_eq
+  double dD = w[0];
+  double dE = w[0] + w[4];
   double qeS[3] = { qe[1], qe[2], qe[3] };
   double wS[3]  = { w[1], w[2], w[3] };
   double Seq2 = gr_euler_mom_dot(spatial_metric, qeS, qeS);
-  double C = (a * a) - Seq2;                                      // g(0) = equilibrium cone (> 0)
-  double Dmin = frac * qe[0];
+  double C = (E0 * E0) - (D0 * D0) - Seq2;                        // g(0) = equilibrium pressure-positive cone (> 0)
+  if (!(isfinite(D0) && isfinite(E0) && isfinite(Seq2) && isfinite(C)) ||
+      !(D0 > 0.0) || !(E0 > 0.0) || !(C > 0.0)) {
+    return 0.0;
+  }
+  double Dmin = frac * D0;
   double gmin = frac * C;
 
   // Unlimited (theta = 1) face state.
-  double D1 = qe[0] + w[0];
-  double E1 = a + b;
+  double D1 = D0 + dD;
+  double E1 = E0 + dE;
   double s1[3] = { qe[1] + w[1], qe[2] + w[2], qe[3] + w[3] };
   double S1sq = gr_euler_mom_dot(spatial_metric, s1, s1);
-  double g1 = (E1 * E1) - S1sq;
-  if (D1 >= Dmin && g1 >= gmin) {
+  double g1 = (E1 * E1) - (D1 * D1) - S1sq;
+  if (!(isfinite(D1) && isfinite(E1) && isfinite(g1))) return 0.0;
+  if (isfinite(E1) && isfinite(g1) && E1 > 0.0 && D1 >= Dmin && g1 >= gmin) {
     return 1.0; // already admissible with margin: no limiting.
   }
 
   double theta = 1.0;
 
   // D(theta) = qe[0] + theta*w[0] >= Dmin (only binds when the deviation lowers D).
-  if (w[0] < 0.0) {
-    double thD = (Dmin - qe[0]) / w[0];
+  if (dD < 0.0) {
+    double thD = (Dmin - D0) / dD;
     if (thD < theta) theta = thD;
   }
 
   // g(theta) = A theta^2 + B theta + C >= gmin. value at theta=0 is C >= gmin (since gmin = frac*C).
   if (theta > 0.0) {
     double sth[3] = { qe[1] + theta * w[1], qe[2] + theta * w[2], qe[3] + theta * w[3] };
-    double Eth = a + theta * b;
+    double Dth = D0 + theta * dD;
+    double Eth = E0 + theta * dE;
     double Sth2 = gr_euler_mom_dot(spatial_metric, sth, sth);
-    if ((Eth * Eth) - Sth2 < gmin) {
-      double A = (b * b) - gr_euler_mom_dot(spatial_metric, wS, wS);
-      double B = 2.0 * ((a * b) - gr_euler_mom_dot(spatial_metric, qeS, wS));
+    if (Eth <= 0.0 || (Eth * Eth) - (Dth * Dth) - Sth2 < gmin) {
+      double A = (dE * dE) - (dD * dD) - gr_euler_mom_dot(spatial_metric, wS, wS);
+      double B = 2.0 * ((E0 * dE) - (D0 * dD) - gr_euler_mom_dot(spatial_metric, qeS, wS));
+      if (!(isfinite(A) && isfinite(B))) return 0.0;
       double thg = gr_euler_smallest_pos_root(A, B, C - gmin);
       if (thg < theta) theta = thg;
     }
@@ -316,21 +379,34 @@ gr_euler_pcp_theta(const double qe[5], const double w[5], const double spatial_m
 
 // PCP anchor: the theta-sweep limits toward the cell average qa, but admissibility is measured with the
 // reconstructed face metric spatial_metric, so the anchor itself must be admissible under it (cone
-// C = E0^2 - gamma^{ij} S_i S_j > 0) - otherwise the theta=0 endpoint is already invalid and the PCP proof fails.
+// C = E0^2 - D0^2 - gamma^{ij} S_i S_j > 0) - otherwise the theta=0 endpoint is already invalid and the PCP proof fails.
 // Build a safe anchor q0 that preserves D0 and E0=D0+tau0 and reduces only the momentum by lambda so
-// E0^2 - gamma^{ij} S0_i S0_j >= cone_floor > 0. No-op where the anchor is already admissible (smooth regions).
+// E0^2 - D0^2 - gamma^{ij} S0_i S0_j >= cone_floor > 0. No-op where the anchor is already admissible (smooth regions).
 // Conservation-safe: only the states fed to the single shared face flux change.
-static inline void
-gr_euler_pcp_safe_anchor(const double qa[5], const double spatial_metric[9], double q0[5])
+void
+gkyl_mp_scheme_gr_euler_pcp_safe_anchor(const double qa[5], const double spatial_metric[9], double q0[5])
 {
   for (int m = 0; m < 5; m++) q0[m] = qa[m];
+  double D0 = q0[0];
   double E0 = q0[0] + q0[4];
-  if (E0 <= 0.0) return; // degenerate energy: nothing to preserve (excised/vacuum handled elsewhere)
+  if (!(D0 > 0.0) || !(E0 > 0.0)) return; // degenerate energy: nothing to preserve (excised/vacuum handled elsewhere)
   double S0[3] = { q0[1], q0[2], q0[3] };
   double S02 = gr_euler_mom_dot(spatial_metric, S0, S0);
-  double cone_floor = 1.0e-12 * (E0 * E0); // tiny positive cone margin (relative, scale-free)
-  if (S02 > (E0 * E0) - cone_floor) {
-    double lam = sqrt(((E0 * E0) - cone_floor) / S02);
+  double pressure_margin = (E0 * E0) - (D0 * D0);
+  double cone_floor = 1.0e-12 * fmax(E0 * E0, D0 * D0); // tiny positive cone margin (relative, scale-free)
+  if (!(isfinite(S02) && isfinite(pressure_margin) && isfinite(cone_floor))) return;
+  if (pressure_margin <= cone_floor) {
+    // Face-only fallback for an almost pressureless/roundoff anchor: make the endpoint strictly
+    // admissible without changing the cell average.
+    q0[1] = 0.0;
+    q0[2] = 0.0;
+    q0[3] = 0.0;
+    double E_safe = sqrt((D0 * D0) + cone_floor);
+    q0[4] = E_safe - D0;
+    return;
+  }
+  if (S02 > pressure_margin - cone_floor) {
+    double lam = sqrt((pressure_margin - cone_floor) / S02);
     if (lam < 1.0) { q0[1] *= lam; q0[2] *= lam; q0[3] *= lam; } // reduce momentum only; D0, E0 preserved
   }
 }
@@ -426,6 +502,7 @@ gkyl_mp_scheme_new(const struct gkyl_mp_scheme_inp *mpinp)
 
   mp->mp_recon = mpinp->mp_recon;
   mp->skip_mp_limiter = mpinp->skip_mp_limiter;
+  mp->lo_mask = NULL;
   
   mp->cfl = mpinp->cfl;
   
@@ -470,7 +547,6 @@ gkyl_mp_scheme_advance(gkyl_mp_scheme *mp,
   double apdq_local[meqn], amdq_local[meqn];
   double qlocal_r[meqn], qlocal_l[meqn];
   double delta[meqn], waves[meqn*mwaves], speeds[mwaves];
-
   // labels for three cells to left, three cells to right of edge:
   enum { I3M, I2M, IM, IP, I2P, I3P };
 
@@ -525,7 +601,13 @@ gkyl_mp_scheme_advance(gkyl_mp_scheme *mp,
 
       bool use_first_order_excision_buffer = vacuum_einstein_excision_in_stencil(
         mp->equation, qavg);
-      if (use_first_order_excision_buffer) {
+      // First-order flux correction (Lemaster & Stone 2009): a face with a marked neighbour is reconstructed
+      // piecewise constant. One face, shared by both cells, so the flux cancellation is preserved.
+      bool lo_face = mp->lo_mask
+        && (((const double *) gkyl_array_cfetch(mp->lo_mask, loc+offsets[IM]))[0] > 0.0
+          || ((const double *) gkyl_array_cfetch(mp->lo_mask, loc+offsets[IP]))[0] > 0.0);
+      bool gr_euler_76 = mp->equation->type == GKYL_EQN_GR_EULER && meqn == 76;
+      if (use_first_order_excision_buffer || (lo_face && !gr_euler_76)) {
         // This face is shared by the cells on both sides => replacing its reconstruction once preserves the flux cancellation
         u1_recovery(meqn, qavg[I3M], qavg[I2M], qavg[IM],
           qavg[IP], qavg[I2P], qavg[I3P], qr_l, qr_r);
@@ -555,8 +637,18 @@ gkyl_mp_scheme_advance(gkyl_mp_scheme *mp,
           for (int m = 0; m < meqn; ++m) weq[k][m] = qa[k][m] - qeq[k][m];
         }
         double wl[meqn], wr[meqn];
-        mp->recovery_fn(meqn, weq[0], weq[1], weq[2], weq[3], weq[4], weq[5], wl, wr);
-        if (!mp->skip_mp_limiter) {
+        bool use_surface_u1 = lo_face || gr_euler_surface_u1_stencil(mp->equation, meqn, qavg);
+        if (use_surface_u1) {
+          // Stellar collapse uses an artificial atmosphere. Near the surface the
+          // high-order MP polynomial can overshoot the Valencia cone even with
+          // admissible face limiting, so use the standard finite-volume fallback:
+          // piecewise-constant reconstruction only on low-density surface stencils.
+          u1_recovery(meqn, weq[0], weq[1], weq[2], weq[3], weq[4], weq[5], wl, wr);
+        }
+        else {
+          mp->recovery_fn(meqn, weq[0], weq[1], weq[2], weq[3], weq[4], weq[5], wl, wr);
+        }
+        if (!use_surface_u1 && !mp->skip_mp_limiter) {
           for (int m = 0; m < meqn; ++m) {
             wr[m] = mp_limiter(wr[m], weq[5][m], weq[4][m], weq[3][m], weq[2][m], weq[1][m]);
             wl[m] = mp_limiter(wl[m], weq[0][m], weq[1][m], weq[2][m], weq[3][m], weq[4][m]);
@@ -572,24 +664,46 @@ gkyl_mp_scheme_advance(gkyl_mp_scheme *mp,
         // SPD face-metric limiter (metric analog of the fluid PCP), applied BEFORE the fluid PCP/C2P so
         // they see a valid SPD face metric. No-op where the reconstructed metric is already SPD (smooth
         // regions => bit-identical, linearity-preserving); only repairs a non-SPD reconstructed face metric
-        // by blending toward the SPD cell-average anchor. Metric slots are zero-flux for the fluid.
+        // by falling back to the SPD cell-average anchor. Metric slots are zero-flux for the fluid.
         gr_euler_spd_face_limiter(&qr_l[9], &qa[2][9]); // left face state, anchor = IM cell average
         gr_euler_spd_face_limiter(&qr_r[9], &qa[3][9]); // right face state, anchor = IP cell average
 
-        // PCP (Wu-Tang) admissibility limiter: scale each reconstructed face toward its own (admissible) cell average so the face states stay in {D>0, (D+tau)^2-|S|^2>0}, making the updates
+        // PCP (Wu-Tang) admissibility limiter: scale each reconstructed face toward its own (admissible) cell average so the face states stay in {D>0, (D+tau)^2-D^2-|S|^2>0}, making the updates
         // admissibility-preserving (Wu & Tang 2015/2017). Applied whether or not the WB is active. At a static equilibrium the deviation ~0 so theta=1 => WB reconstruction untouched.
         static int pcp_on = -1;
         if (pcp_on < 0) pcp_on = (getenv("GKYL_PCP") != NULL) ? 1 : 0;
         if (pcp_on) {
           // Anchor at a face-metric-admissible state (safe anchor) so the theta=0 endpoint is valid (strict PCP).
           double q0l[5], q0r[5];
-          gr_euler_pcp_safe_anchor(qa[2], &qr_l[9], q0l); // qa[2] = qavg[IM]
-          gr_euler_pcp_safe_anchor(qa[3], &qr_r[9], q0r); // qa[3] = qavg[IP]
+          if (wb) {
+            // Limit deviations about an admissible face equilibrium, not about
+            // different neighboring cell averages. Carry that SAME equilibrium
+            // into the flux subtraction, so w=0 remains an exact fixed point.
+            double edge_eq[5];
+            for (int m=0; m<5; ++m) edge_eq[m]=0.5*(qeq[2][m]+qeq[3][m]);
+            gkyl_mp_scheme_gr_euler_pcp_safe_anchor(edge_eq,&qr_l[9],q0l);
+            gkyl_mp_scheme_gr_euler_pcp_safe_anchor(edge_eq,&qr_r[9],q0r);
+            for (int m=0; m<5; ++m) {
+              qr_l[m]=q0l[m]+wl[m]; qr_r[m]=q0r[m]+wr[m];
+            }
+            qr_l[71]=q0l[0]; qr_l[72]=q0l[4];
+            qr_r[71]=q0r[0]; qr_r[72]=q0r[4];
+            for (int i=0; i<3; ++i) {
+              qr_l[73+i]=q0l[1+i]; qr_r[73+i]=q0r[1+i];
+            }
+          }
+          else {
+            gkyl_mp_scheme_gr_euler_pcp_safe_anchor(qa[2], &qr_l[9], q0l);
+            gkyl_mp_scheme_gr_euler_pcp_safe_anchor(qa[3], &qr_r[9], q0r);
+          }
           double devl[5], devr[5];
           for (int m = 0; m < 5; ++m) { devl[m] = qr_l[m] - q0l[m]; devr[m] = qr_r[m] - q0r[m]; }
-          double thl = gr_euler_pcp_theta(q0l, devl, &qr_l[9]);
-          double thr = gr_euler_pcp_theta(q0r, devr, &qr_r[9]);
-          for (int m = 0; m < 5; ++m) { qr_l[m] = q0l[m] + (thl * devl[m]); qr_r[m] = q0r[m] + (thr * devr[m]); }
+          double thl = gkyl_mp_scheme_gr_euler_pcp_theta(q0l, devl, &qr_l[9]);
+          double thr = gkyl_mp_scheme_gr_euler_pcp_theta(q0r, devr, &qr_r[9]);
+          for (int m = 0; m < 5; ++m) {
+            qr_l[m] = thl == 0.0 ? q0l[m] : q0l[m] + thl * devl[m];
+            qr_r[m] = thr == 0.0 ? q0r[m] : q0r[m] + thr * devr[m];
+          }
         }
       }
       else {
@@ -674,7 +788,6 @@ gkyl_mp_scheme_max_dt(const gkyl_mp_scheme *mp, const struct gkyl_range *update_
   const struct gkyl_array *qin)
 {
   double max_dt = DBL_MAX;
-  
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, update_range);
   while (gkyl_range_iter_next(&iter)) {
@@ -690,6 +803,7 @@ gkyl_mp_scheme_max_dt(const gkyl_mp_scheme *mp, const struct gkyl_range *update_
     
   }
 
+
   return max_dt;  
 }
 
@@ -700,4 +814,12 @@ gkyl_mp_scheme_release(gkyl_mp_scheme* mp)
   gkyl_wave_geom_release(mp->geom);
   
   gkyl_free(mp);
+}
+
+// Optional per-cell mask for first-order flux correction; NULL (the default) switches it off. The mask has the layout
+// of the advanced array (one component, > 0 = marked) and must outlive its use.
+void
+gkyl_mp_scheme_set_lo_mask(gkyl_mp_scheme *mp, const struct gkyl_array *mask)
+{
+  mp->lo_mask = mask;
 }

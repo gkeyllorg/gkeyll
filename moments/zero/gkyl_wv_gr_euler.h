@@ -32,19 +32,6 @@ struct gkyl_wv_gr_euler_inp {
   // When tov_eq is set, disable_well_balanced switches OFF the frozen-equilibrium subtraction in all three WB sites together (reconstruction, flux jump, MoL source) => plain GR-Euler (for the collapse)
   bool disable_well_balanced;
 
-  // Optional HYBRID (polytropic + thermal) EOS for core collapse (Janka-Zwerger / Ott-Dimmelmeier). When
-  // eos_hybrid is set, the pressure is p = p_cold(rho) + (gamma_th-1) rho eps_th, with a density-based
-  // piecewise-polytropic cold part: p_cold = K1 rho^gamma1 for rho < rho_nuc (subnuclear), K2 rho^gamma2
-  // above (supranuclear stiffening, K2 matched for continuity), and eps_th = eps - eps_cold (>= 0) the
-  // thermal/shock-heating part. Collapse is triggered by choosing gamma1 < the IC polytrope index. This
-  // replaces the single gamma-law C2P/sound-speed with an iterative recovery. Default off => single
-  // gamma-law.
-  bool eos_hybrid;
-  double eos_gamma1; // subnuclear adiabatic index (< 4/3 triggers collapse)
-  double eos_gamma2; // supranuclear adiabatic index (stiffening, ~2.5)
-  double eos_gamma_th; // thermal index (~1.5)
-  double eos_rho_nuc; // nuclear-density stiffening threshold (code units)
-  double eos_K1; // subnuclear polytropic constant (K2 derived for continuity at rho_nuc)
 };
 
 /**
@@ -104,3 +91,19 @@ gkyl_wv_gr_euler_reinit_freq(const struct gkyl_wv_eqn* eqn);
 */
 struct gkyl_gr_spacetime*
 gkyl_wv_gr_euler_spacetime(const struct gkyl_wv_eqn* eqn);
+
+/**
+* Turn the atmosphere floor of the primitive recovery on or off (all GR-Euler objects of the process). When on, a
+* recovered state below the floor, superluminal or non-finite is replaced by a static atmosphere (rho_atm, p_atm,
+* v = 0) in the fluxes and sources; the stored conserved state is never written. The mixed app turns it on.
+*
+* @param on True to apply the atmosphere floor.
+*/
+void
+gkyl_wv_gr_euler_set_atmosphere_floor(bool on);
+
+/**
+* @return True if the atmosphere floor of the primitive recovery is on.
+*/
+bool
+gkyl_wv_gr_euler_atmosphere_floor(void);
