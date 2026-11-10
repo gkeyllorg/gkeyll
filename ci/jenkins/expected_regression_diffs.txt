@@ -23,10 +23,12 @@ gyrokinetic/creg/rt_gk_em_alfven_1x2v_p1
 gyrokinetic/creg/rt_gk_em_alfven_2x2v_p1
 gyrokinetic/creg/rt_gk_em_alfven_3x2v_p1
 gyrokinetic/creg/rt_gk_em_asdex_2x2v_p1
+gyrokinetic/creg/rt_gk_em_cbc_3x2v_p1
 gyrokinetic/creg/rt_gk_em_helical_2x2v_p1
 gyrokinetic/creg/rt_gk_em_helical_3x2v_p1
 gyrokinetic/creg/rt_gk_em_helical_sol_3x2v_p1
 gyrokinetic/creg/rt_gk_em_kbm_3x2v_p1
+gyrokinetic/creg/rt_gk_em_tcv_iwl_adapt_source_3x2v_p1
 #
 # ES tests with round-off-level drift (inputs unchanged). Cause: the ES surface
 # flux terms are now split across several alpha_quad += statements (with zero

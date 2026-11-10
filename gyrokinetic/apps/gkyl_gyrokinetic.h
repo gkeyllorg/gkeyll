@@ -246,7 +246,8 @@ struct gkyl_gyrokinetic_core_parallel_bcs {
   ); // Upper twist-shift function.
   void *lower_shift_ctx; // Context for lower twist-shift function.
   void *upper_shift_ctx; // Context for upper twist-shift function.
-  bool ts_field_dg; // Keep the shifted potential ghost field discontinuous in x-y (default false).
+  bool
+    ts_field_dg; // Keep the shifted phi (and Apar) ghost field discontinuous in x-y (default false).
   int ts_upsample_factor; // Twist-shift supersampling factor (default 4), set to -1 to disable filter.
   int ts_filter_half_width; // Twist-shift filter stencil half-width in cells of the simulation grid (default 1), set to -1 to disable filter.
   double

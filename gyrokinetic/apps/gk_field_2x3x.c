@@ -236,6 +236,8 @@ gk_field_fem_projection_par_apar_ts_3x(
     field, field->rho_c_global_dg, &app->global_lower_ghost[par_dir],
     &app->global_upper_skin[par_dir]
   );
+  // Make the shifted Apar in the lower ghost continuous in x-y.
+  gk_field_ts_fem_perpproj_apar_advance(app, field, field->rho_c_global_dg);
 
   // Smooth the the DG array.
   gkyl_fem_parproj_set_rhs(field->fem_apar_parproj, field->rho_c_global_dg, field->rho_c_global_dg);
@@ -285,6 +287,8 @@ gk_field_fem_projection_par_apar_iwl_3x(
     field, field->rho_c_global_dg, &app->global_lower_ghost_par_core,
     &app->global_upper_skin_par_core
   );
+  // Make the shifted Apar in the core lower ghost continuous in x-y.
+  gk_field_ts_fem_perpproj_apar_advance(app, field, field->rho_c_global_dg);
 
   // Smooth the the DG array.
   gkyl_fem_parproj_set_rhs(field->fem_apar_parproj, field->rho_c_global_dg, field->rho_c_global_dg);
