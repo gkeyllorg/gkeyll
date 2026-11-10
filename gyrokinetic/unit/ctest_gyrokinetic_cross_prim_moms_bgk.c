@@ -509,10 +509,10 @@ test_1x2v(int poly_order, bool use_gpu)
       primMomsCross_e[1 * confBasis.num_basis] / sqrt(2)
     );
     TEST_CHECK(
-      gkyl_compare(5.273760673326e+12, primMomsCross_e[2 * confBasis.num_basis] / sqrt(2), 1e-12)
+      gkyl_compare(5.273732149974e+12, primMomsCross_e[2 * confBasis.num_basis] / sqrt(2), 1e-12)
     );
     TEST_MSG(
-      "k:%d | Expected: %.12e | Got: %.12e \n", k, 5.27373215e12,
+      "k:%d | Expected: %.12e | Got: %.12e \n", k, 5.273732149974e12,
       primMomsCross_e[2 * confBasis.num_basis] / sqrt(2)
     );
     TEST_CHECK(gkyl_compare(1.0e19, primMomsCross_i[0 * confBasis.num_basis] / sqrt(2), 1e-12));
@@ -528,10 +528,10 @@ test_1x2v(int poly_order, bool use_gpu)
       primMomsCross_i[1 * confBasis.num_basis] / sqrt(2)
     );
     TEST_CHECK(
-      gkyl_compare(2.862629920293e+09, primMomsCross_i[2 * confBasis.num_basis] / sqrt(2), 1e-12)
+      gkyl_compare(2.834106568320e+09, primMomsCross_i[2 * confBasis.num_basis] / sqrt(2), 1e-12)
     );
     TEST_MSG(
-      "k:%d | Expected: %.12e | Got: %.12e \n", k, 2.86262992e9,
+      "k:%d | Expected: %.12e | Got: %.12e \n", k, 2.834106568320e9,
       primMomsCross_i[2 * confBasis.num_basis] / sqrt(2)
     );
   } // The hard coded numbers are expected values. The basis is looked up in maxima with: load("basis-precalc/basisSer1x"); polyOrder:1$ basis:basisC[polyOrder];

@@ -1,6 +1,6 @@
 -- Relaxation of a waterbag and of a bump-on-tail distribution under BGK self-collisions with the
 -- PKPM system of equations (1x, normalized parallel velocity w = v_par/xi), the counterpart of
--- vlasov/creg/rt_vlasov_bgk_relax_1x1v.c.
+-- vlasov/creg/rt_vlasov_bgk_relax_1x3v.c.
 -- Two homogeneous neutral species carry the parallel distributions of that test: a waterbag,
 -- |v_par| < 1, and a Maxwellian of thermal speed 1/3 carrying a narrow bump at 3.5 thermal speeds.
 -- Both are Maxwellian in the perpendicular directions with T_perp = T_par, so the collisions keep
@@ -9,7 +9,7 @@
 -- for 5 collision times.
 -- Density, momentum and energy are conserved to round-off. Under BGK every non-Maxwellian moment
 -- decays at the collision frequency: the heat flux and the kurtosis decay at rate 1.000 (Vlasov
--- 1x1v: 1.00).
+-- 1x3v, on a coarser grid: 1.05 and 1.23).
 
 local PKPM = G0.PKPM
 
@@ -112,6 +112,7 @@ pkpmApp = PKPM.App.new {
 
     collisions = {
       collisionID = G0.Collisions.BGK,
+      useExplicitCollisionScheme = true,
 
       selfNu = function (t, xn)
         return nu
@@ -155,6 +156,7 @@ pkpmApp = PKPM.App.new {
 
     collisions = {
       collisionID = G0.Collisions.BGK,
+      useExplicitCollisionScheme = true,
 
       selfNu = function (t, xn)
         return nu

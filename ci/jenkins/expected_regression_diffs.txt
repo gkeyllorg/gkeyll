@@ -25,6 +25,8 @@ gyrokinetic/creg/rt_gk_bgk_asdex_2x2v_p1   # change to coulomb log
 gyrokinetic/creg/rt_gk_bgk_cross_relax_1x2v_p1   # change to coulomb log
 gyrokinetic/creg/rt_gk_bgk_im_asdex_2x2v_p1   # change to coulomb log
 gyrokinetic/creg/rt_gk_bgk_im_cross_relax_1x2v_p1   # change to coulomb log
+gyrokinetic/creg/rt_gk_bgk_relax_1x2v_p1   # cross-BGK target temperature fix
+gyrokinetic/creg/rt_gk_multib_asdex_solonly_3x2v_p1   # cross-BGK target temperature fix
 gyrokinetic/creg/rt_gk_cbc_3x2v_p1 # Fixed I/O
 gyrokinetic/creg/rt_gk_d3d_iwl_2x2v_p1   # change to coulomb log
 gyrokinetic/creg/rt_gk_d3d_iwl_3x2v_p1   # change to coulomb log

@@ -51,6 +51,9 @@
 #include <gkyl_prim_lbo_cross_calc.h>
 #include <gkyl_prim_lbo_type.h>
 #include <gkyl_prim_lbo_pkpm.h>
+#include <gkyl_pkpm_bgk_collisions.h>
+#include <gkyl_pkpm_coll_nu.h>
+#include <gkyl_pkpm_lte.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
@@ -133,7 +136,26 @@ struct pkpm_bgk_eval_ctx {
   const struct gkyl_array *xi; // [xi, xi^2, p] of the stage (host)
 };
 
+struct pkpm_species;
+struct pkpm_bgk_collisions;
+
+// Accumulate the kinetic BGK term of a species onto rhs.
+typedef void (*pkpm_bgk_kinetic_rhs_t)(
+  gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_bgk_collisions *bgk,
+  const struct gkyl_array *fin, struct gkyl_array *rhs
+);
+
 struct pkpm_bgk_collisions {
+  // The operator at the configuration-space nodes.
+  bool use_nodal; // false for a fixed-temperature target and for GPU runs
+  bool is_implicit; // backward Euler after each SSP-RK3 step (nodal only)
+  struct gkyl_array *rate; // relaxation rate at the nodes
+  struct gkyl_array *shape; // implicit shape factor S at the nodes
+  struct gkyl_array *f_lte; // corrected unit Maxwellian in w, 3 modes per velocity cell
+  gkyl_pkpm_bgk_collisions *up_bgk; // updater
+  pkpm_bgk_kinetic_rhs_t kinetic_rhs; // the nodal or modal kinetic term
+
+  // The modal form of the operator.
   struct gkyl_array *nu; // collision frequency
   bool fixed_temp_relax;
   struct gkyl_array *fixed_vtsq, *fixed_vtsq_host; // xi_0^2 of the initial state
@@ -589,6 +611,10 @@ void pkpm_op_split_unsync(gkyl_pkpm_app *app);
 // Take a fully explicit single time-step using a SSP RK3 (including explicit fluid-EM coupling)
 struct gkyl_update_status pkpm_update_explicit_ssp_rk3(gkyl_pkpm_app *app, double dt0);
 
+// The SSP-RK3 step followed by one backward-Euler step of the implicit collisions over the step
+// RK3 took (the transport step T of both update paths).
+struct gkyl_update_status pkpm_update_ssp_rk3_implicit_coll(gkyl_pkpm_app *app, double dt0);
+
 /** gkyl_pkpm_app private API */
 
 /**
@@ -866,6 +892,10 @@ void pkpm_species_bgk_kinetic_rhs(
 void pkpm_species_bgk_fluid_rhs(
   gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_bgk_collisions *bgk,
   struct gkyl_array *rhs
+);
+// One backward-Euler step of the BGK operator over dt on the species distribution (interior only).
+void pkpm_species_bgk_implicit_advance(
+  gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_bgk_collisions *bgk, double dt
 );
 void pkpm_species_bgk_release(const gkyl_pkpm_app *app, const struct pkpm_bgk_collisions *bgk);
 

@@ -78,6 +78,7 @@ struct pkpm_species_lw {
   int num_cross_collisions; // Number of species that we cross-collide with.
   char collide_with[GKYL_MAX_SPECIES][128]; // Names of species that we cross-collide with.
   bool fixed_temp_relax; // BGK: relax to a Maxwellian at the initial temperature?
+  bool is_explicit; // BGK: explicit update instead of backward Euler?
 
   enum gkyl_source_id source_id; // Source type.
   double source_length; // Boundary-flux source: the length the density profile integrates to.
@@ -209,11 +210,13 @@ pkpm_species_lw_new(lua_State *L)
   char collide_with[GKYL_MAX_SPECIES][128];
 
   bool fixed_temp_relax = false;
+  bool is_explicit = false;
 
   with_lua_tbl_tbl(L, "collisions")
   {
     collision_id = glua_tbl_get_integer(L, "collisionID", 0);
     fixed_temp_relax = glua_tbl_get_bool(L, "fixedTempRelax", false);
+    is_explicit = glua_tbl_get_bool(L, "useExplicitCollisionScheme", false);
 
     if (glua_tbl_get_func(L, "selfNu")) {
       self_nu_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
@@ -323,6 +326,7 @@ pkpm_species_lw_new(lua_State *L)
     strcpy(pkpm_s_lw->collide_with[i], collide_with[i]);
   }
   pkpm_s_lw->fixed_temp_relax = fixed_temp_relax;
+  pkpm_s_lw->is_explicit = is_explicit;
 
   pkpm_s_lw->source_id = source_id;
   pkpm_s_lw->source_length = source_length;
@@ -942,6 +946,7 @@ pkpm_app_new(lua_State *L)
       strcpy(pkpm.species[s].collisions.collide_with[i], app_lw->collide_with[s][i]);
     }
     pkpm.species[s].collisions.fixed_temp_relax = species[s]->fixed_temp_relax;
+    pkpm.species[s].collisions.is_explicit = species[s]->is_explicit;
 
     if (species[s]->source_id != GKYL_NO_SOURCE) {
       pkpm.species[s].source.source_id = species[s]->source_id;

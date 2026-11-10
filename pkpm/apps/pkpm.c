@@ -346,7 +346,7 @@ gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm)
   if (app->use_explicit_source) {
     // If momentum-EM field coupling is explicit,
     // we use a pure explicit SSP RK3 method.
-    app->update_func = pkpm_update_explicit_ssp_rk3;
+    app->update_func = pkpm_update_ssp_rk3_implicit_coll;
   } else {
     // By default: we perform a first-order operator split
     // to implicitly treat the momentum-EM field coupling.

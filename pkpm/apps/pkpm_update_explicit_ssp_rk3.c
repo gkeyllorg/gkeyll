@@ -54,8 +54,8 @@ pkpm_update_explicit_ssp_rk3(gkyl_pkpm_app *app, double dt0)
             fluidout[i] = app->species[i].fluidnew;
           }
           pkpm_forward_euler(
-            app, 2, tcurr + dt, dt, fin, fluidin, app->field->em1, fout, fluidout, app->field->emnew,
-            &st
+            app, 2, tcurr + dt, dt, fin, fluidin, app->field->em1, fout, fluidout,
+            app->field->emnew, &st
           );
           // Limit the EM solution if desired (done after update as post-hoc fix)
           pkpm_field_limiter(app, app->field, app->field->emnew);
@@ -154,6 +154,22 @@ pkpm_update_explicit_ssp_rk3(gkyl_pkpm_app *app, double dt0)
 
       case RK_COMPLETE: // can't happen: suppresses warning
         break;
+    }
+  }
+
+  return st;
+}
+
+struct gkyl_update_status
+pkpm_update_ssp_rk3_implicit_coll(gkyl_pkpm_app *app, double dt0)
+{
+  struct gkyl_update_status st = pkpm_update_explicit_ssp_rk3(app, dt0);
+
+  for (int i = 0; i < app->num_species; ++i) {
+    struct pkpm_species *s = &app->species[i];
+    if (s->collision_id == GKYL_BGK_COLLISIONS && s->bgk.is_implicit) {
+      pkpm_species_bgk_implicit_advance(app, s, &s->bgk, st.dt_actual);
+      pkpm_species_apply_bc(app, s, s->f);
     }
   }
 

@@ -1,17 +1,20 @@
 -- Sod shock tube for a neutral gas with BGK collisions with the PKPM system of equations (1x,
 -- normalized parallel velocity w = v_par/xi), the counterpart of
--- vlasov/creg/rt_vlasov_nonuniformv_neut_bgk_sodshock_1x3v.c
+-- vlasov/creg/rt_vlasov_nonuniformv_neut_bgk_sodshock_im_1x3v.c
 -- Density 1 and pressure 1 on the left, density 1/8 and pressure 1/10 on the right, at rest. The
--- collision frequency puts the mean free path at 1/3 of a cell, so the solution follows the Euler
+-- collision frequency puts the mean free path at 1/310 of a cell, so the solution follows the Euler
 -- Sod solution of a gas with three degrees of freedom (PKPM carries the perpendicular temperature),
--- adiabatic index 5/3, with the discontinuities smoothed over a few mean free paths. A static
--- magnetic field along x sets the field direction.
+-- adiabatic index 5/3. A static magnetic field along x sets the field direction.
+-- The BGK relaxation takes one backward-Euler step after each SSP-RK3 step of the collisionless
+-- terms, so the transport alone sets the time step (nu dt = 2).
 -- Exact solution at t = 0.1: shock at x = 0.684, contact at 0.584, post-shock density 0.230,
 -- velocity 0.841.
--- Figures of merit (32 x 16 cells): the shock at 0.678 and the contact at 0.571 lie within half a
--- cell of the Euler positions; the post-shock plateau, three cells wide, has density 0.241 (5%
--- high) and velocity 0.846; the density L1 error is 0.020 (Vlasov 1x3v, serendipity p2 with 6^3
--- mapped velocity cells: 0.02).
+-- Figures of merit (32 x 16 cells): the shock at 0.686 and the contact at 0.580 lie within 0.15
+-- cells of the Euler positions; the post-shock plateau, three cells wide, has density 0.231 (0.7%
+-- high) and velocity 0.860 (2% high, from the cell behind the shock); the density L1 error is
+-- 0.0096 (Vlasov 1x3v, serendipity p2 with 6^3 mapped velocity cells: 0.006). The explicit update
+-- at the same nu, with three times the steps, agrees to 1.5e-3 in the fluid; nu = 1e5 and 1e6
+-- (nu dt = 190) move the figures of merit by less than 0.001. The constraints hold to round-off.
 
 local PKPM = G0.PKPM
 
@@ -28,7 +31,7 @@ nl = 1.0 -- Left number density.
 Tl = 1.0 -- Left temperature.
 nr = 0.125 -- Right number density.
 Tr = 0.8 -- Right temperature.
-nu = 100.0 -- Collision frequency.
+nu = 10000.0 -- Collision frequency.
 vt = math.sqrt(Tl / mass_neut) -- Thermal velocity (left).
 B0 = 1.0 -- Magnetic field along x (sets the field direction b).
 
