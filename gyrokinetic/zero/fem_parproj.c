@@ -274,18 +274,10 @@ gkyl_fem_parproj_new(
     }
   }
 
-#ifdef GKYL_HAVE_CUDA
-  if (up->use_gpu) {
-    up->prob_cu =
-      gkyl_culinsolver_prob_new(prob_range.volume, up->numnodes_global, up->numnodes_global, nrhs);
-  } else {
+  if (!up->use_gpu) {
     up->prob =
       gkyl_superlu_prob_new(prob_range.volume, up->numnodes_global, up->numnodes_global, nrhs);
   }
-#else
-  up->prob =
-    gkyl_superlu_prob_new(prob_range.volume, up->numnodes_global, up->numnodes_global, nrhs);
-#endif
 
   // Assign non-zero elements in A.
   struct gkyl_mat_triples **tri =
@@ -389,7 +381,7 @@ gkyl_fem_parproj_new(
   }
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
-    gkyl_culinsolver_amat_from_triples(up->prob_cu, tri);
+    fem_parproj_set_lhs_cu(up, tri, prob_range.volume, nrhs, has_weight_lhs);
   }
 #endif
 
@@ -521,7 +513,14 @@ gkyl_fem_parproj_release(struct gkyl_fem_parproj *up)
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
     gkyl_cu_free(up->kernels);
-    gkyl_culinsolver_prob_release(up->prob_cu);
+    if (up->prob_cu) {
+      gkyl_culinsolver_prob_release(up->prob_cu);
+    } else {
+      gkyl_cu_free(up->lhs_inv_cu);
+      gkyl_cu_free(up->lhs_inv_idx_cu);
+      gkyl_cu_free(up->rhs_cu);
+      gkyl_cu_free(up->sol_cu);
+    }
     if (up->num_bias_line > 0) {
       gkyl_cu_free(up->bias_lines);
     }
