@@ -1,4 +1,5 @@
 #include <acutest.h>
+
 #include <gkyl_gen_miller_eqdsk_priv.h>
 #include <gkyl_dg_basis_ops.h>
 #include <gkyl_efit.h>
@@ -11,6 +12,19 @@
 #include <stdio.h>
 #include <stdlib.h> // mkstemp(): create a uniquely named temporary file.
 #include <unistd.h> // unlink(): remove a file's directory entry.
+
+static void
+miller_shape_constant(double t, const double *xc, double *GKYL_RESTRICT out, void *ctx)
+{
+  out[0] = *(const double *)ctx;
+}
+static struct gen_miller_shape
+gen_miller_test_shape(const struct gkyl_gen_miller_eqdsk_inp *inp)
+{
+  struct gen_miller_shape shape;
+  gen_miller_resolve_shape(inp, &shape);
+  return shape;
+}
 
 /**
  * Return a constant positive safety-factor magnitude.
@@ -130,10 +144,12 @@ test_circle(void)
   TEST_CHECK(gkyl_gen_miller_eqdsk_inew(&inp) == NULL);
 
   inp.qsafety = constant_q;
-  inp.a_shift = 10;
+  inp.a_shift = miller_shape_constant;
+  inp.a_shift_ctx = &(double){10};
   TEST_CHECK(gkyl_gen_miller_eqdsk_inew(&inp) == NULL);
 
-  inp.a_shift = 0;
+  inp.a_shift = miller_shape_constant;
+  inp.a_shift_ctx = &(double){0};
   inp.num_nodes_Rmajor = 64;
   TEST_CHECK(gkyl_gen_miller_eqdsk_inew(&inp) == NULL);
 }
@@ -177,14 +193,18 @@ check_reader(
                    (inp->Rmajor_omp_bounds[1] - inp->Rmajor_omp_bounds[0]) * surface / 4;
     double flux = gkyl_gen_miller_eqdsk_psi_at_R_omp(generator, R_omp);
     double offset = R_omp - inp->Rmajor_axis;
-    double radius = 2 * offset / (1 + sqrt(1 - 2 * inp->a_shift * offset / inp->Rmajor_axis));
+    double radius =
+      2 * offset /
+      (1 + sqrt(1 - 2 * gen_miller_test_shape(inp).a_shift * offset / inp->Rmajor_axis));
     double h = radius * 1e-5;
-    double omp_lo = inp->Rmajor_axis -
-                    inp->a_shift * (radius - h) * (radius - h) / (2 * inp->Rmajor_axis) + radius -
-                    h;
-    double omp_hi = inp->Rmajor_axis -
-                    inp->a_shift * (radius + h) * (radius + h) / (2 * inp->Rmajor_axis) + radius +
-                    h;
+    double omp_lo =
+      inp->Rmajor_axis -
+      gen_miller_test_shape(inp).a_shift * (radius - h) * (radius - h) / (2 * inp->Rmajor_axis) +
+      radius - h;
+    double omp_hi =
+      inp->Rmajor_axis -
+      gen_miller_test_shape(inp).a_shift * (radius + h) * (radius + h) / (2 * inp->Rmajor_axis) +
+      radius + h;
     double dpsi = (gkyl_gen_miller_eqdsk_psi_at_R_omp(generator, omp_hi) -
                    gkyl_gen_miller_eqdsk_psi_at_R_omp(generator, omp_lo)) /
                   (2 * h);
@@ -193,10 +213,11 @@ check_reader(
       double theta = 2 * M_PI * j / 1024, rz[2], value[3];
       gkyl_gen_miller_eqdsk_RZ_at_rtheta(generator, radius, theta, rz);
       efit->evf->eval_cubic_wgrad(0, rz, value, efit->evf->ctx);
-      double eta = asin(inp->delta), angle = theta + eta * sin(theta);
-      double Rr = cos(angle) - inp->a_shift * radius / inp->Rmajor_axis;
+      double eta = asin(gen_miller_test_shape(inp).delta), angle = theta + eta * sin(theta);
+      double Rr = cos(angle) - gen_miller_test_shape(inp).a_shift * radius / inp->Rmajor_axis;
       double Rt = -radius * (1 + eta * cos(theta)) * sin(angle);
-      double Zr = inp->kappa * sin(theta), Zt = inp->kappa * radius * cos(theta);
+      double Zr = gen_miller_test_shape(inp).kappa * sin(theta),
+             Zt = gen_miller_test_shape(inp).kappa * radius * cos(theta);
       double dl = hypot(Rt, Zt), bp = hypot(value[1], value[2]) / rz[0];
       double expected_bp = dpsi * dl / (rz[0] * (Rr * Zt - Rt * Zr));
       max_bp_error = fmax(max_bp_error, fabs(bp / expected_bp - 1));
@@ -319,9 +340,9 @@ static double
 reference_arc_speed(double theta, void *ctx)
 {
   const struct gkyl_gen_miller_eqdsk_inp *inp = ctx;
-  double eta = asin(inp->delta);
+  double eta = asin(gen_miller_test_shape(inp).delta);
   double Rt = -(1 + eta * cos(theta)) * sin(theta + eta * sin(theta));
-  return sqrt(Rt * Rt + pow(inp->kappa * cos(theta), 2));
+  return sqrt(Rt * Rt + pow(gen_miller_test_shape(inp).kappa * cos(theta), 2));
 }
 
 /**
@@ -353,14 +374,18 @@ test_coordinates(void)
     .Rmajor_axis = 2,
     .bmag_axis = 1.5,
     .Rmajor_LCFS = 2.5,
-    .kappa = 1,
+    .kappa = miller_shape_constant,
+    .kappa_ctx = &(double){1},
     .qsafety = constant_q,
   };
   for (int shape = 0; shape < 2; ++shape) {
     if (shape) {
-      inp.kappa = 1.4;
-      inp.delta = -0.38;
-      inp.a_shift = 0.5;
+      inp.kappa = miller_shape_constant;
+      inp.kappa_ctx = &(double){1.4};
+      inp.delta = miller_shape_constant;
+      inp.delta_ctx = &(double){-0.38};
+      inp.a_shift = miller_shape_constant;
+      inp.a_shift_ctx = &(double){0.5};
     }
     gkyl_gen_miller_eqdsk *up = gkyl_gen_miller_eqdsk_inew(&inp);
     TEST_ASSERT(up != NULL);
@@ -406,8 +431,10 @@ test_devices(void)
       .Rmajor_axis = 0.406051632,
       .bmag_axis = 0.240606108,
       .Rmajor_LCFS = 0.61183,
-      .kappa = 1.3,
-      .delta = 0.4,
+      .kappa = miller_shape_constant,
+      .kappa_ctx = &(double){1.3},
+      .delta = miller_shape_constant,
+      .delta_ctx = &(double){0.4},
       .qsafety = ltx_q,
       .has_Rmajor_omp_bounds = true,
       .Rmajor_omp_bounds = {0.58, 0.7},
@@ -417,8 +444,10 @@ test_devices(void)
       .Zvert_axis = 0.013055028,
       .bmag_axis = 2 * 1.6486461 / 1.6,
       .Rmajor_LCFS = 2.17,
-      .kappa = 1.35,
-      .delta = 0.4,
+      .kappa = miller_shape_constant,
+      .kappa_ctx = &(double){1.35},
+      .delta = miller_shape_constant,
+      .delta_ctx = &(double){0.4},
       .qsafety = d3d_q,
       .has_Rmajor_omp_bounds = true,
       .Rmajor_omp_bounds = {2.17 - 5 * 0.15 / 8, 2.17 + 3 * 0.15 / 8},
@@ -428,9 +457,12 @@ test_devices(void)
       .Zvert_axis = 0.1414361745,
       .bmag_axis = 1.4,
       .Rmajor_LCFS = 1.0870056099999,
-      .kappa = 1.4,
-      .delta = -0.38,
-      .a_shift = 0.5,
+      .kappa = miller_shape_constant,
+      .kappa_ctx = &(double){1.4},
+      .delta = miller_shape_constant,
+      .delta_ctx = &(double){-0.38},
+      .a_shift = miller_shape_constant,
+      .a_shift_ctx = &(double){0.5},
       .qsafety = tcv_q,
       .has_Rmajor_omp_bounds = true,
       .Rmajor_omp_bounds = {1.0513586729299085, 1.1555930803275622},
@@ -496,9 +528,11 @@ test_forward_angle(void)
 {
   struct gkyl_gen_miller_eqdsk_inp inp = {0};
   for (int shift = -1; shift <= 1; ++shift) {
-    inp.a_shift = shift * 0.4;
+    inp.a_shift = miller_shape_constant;
+    inp.a_shift_ctx = &(double){shift * 0.4};
     for (int kappa_default = 0; kappa_default <= 1; ++kappa_default) {
-      inp.kappa = kappa_default;
+      inp.kappa = kappa_default ? miller_shape_constant : NULL;
+      inp.kappa_ctx = &(double){1};
       for (int j = -16; j <= 16; ++j) {
         double angle = M_PI * j / 16;
         TEST_CHECK(gkyl_gen_miller_eqdsk_theta_tok_at_theta(&inp, angle) == angle);
@@ -511,9 +545,12 @@ test_forward_angle(void)
       .Rmajor_LCFS = 2.6,
       .bmag_axis = -1.5,
       .qsafety = constant_q,
-      .kappa = 1.6,
-      .delta = (shape - 1) * 0.35,
-      .a_shift = 0.4,
+      .kappa = miller_shape_constant,
+      .kappa_ctx = &(double){1.6},
+      .delta = miller_shape_constant,
+      .delta_ctx = &(double){(shape - 1) * 0.35},
+      .a_shift = miller_shape_constant,
+      .a_shift_ctx = &(double){0.4},
     };
     gkyl_gen_miller_eqdsk *up = gkyl_gen_miller_eqdsk_inew(&inp);
     TEST_ASSERT(up != NULL);
@@ -528,7 +565,8 @@ test_forward_angle(void)
       TEST_CHECK(fabs(gkyl_gen_miller_eqdsk_theta_at_theta_tok(up, theta) - angle) < 1e-10);
       TEST_CHECK(theta == -gkyl_gen_miller_eqdsk_theta_tok_at_theta(&inp, -angle));
       struct gkyl_gen_miller_eqdsk_inp other = inp;
-      other.a_shift = -0.4;
+      other.a_shift = miller_shape_constant;
+      other.a_shift_ctx = &(double){-0.4};
       other.Zvert_axis = 0.2;
       other.Rmajor_axis = 3;
       TEST_CHECK(theta == gkyl_gen_miller_eqdsk_theta_tok_at_theta(&other, angle));
@@ -540,10 +578,14 @@ test_forward_angle(void)
     double angle = M_PI - 5e-11;
     double theta = gkyl_gen_miller_eqdsk_theta_tok_at_theta(&inp, angle);
     TEST_CHECK(theta < M_PI);
-    TEST_CHECK(fabs((M_PI - theta) / (M_PI - angle) - M_PI * inp.kappa / half_arc) < 2e-5);
+    TEST_CHECK(
+      fabs((M_PI - theta) / (M_PI - angle) - M_PI * gen_miller_test_shape(&inp).kappa / half_arc) <
+      2e-5
+    );
     TEST_CHECK(
       fabs(
-        gkyl_gen_miller_eqdsk_theta_tok_at_theta(&inp, 1e-15) / 1e-15 - M_PI * inp.kappa / half_arc
+        gkyl_gen_miller_eqdsk_theta_tok_at_theta(&inp, 1e-15) / 1e-15 -
+        M_PI * gen_miller_test_shape(&inp).kappa / half_arc
       ) < 1e-10
     );
     gkyl_gen_miller_eqdsk_release(up);
@@ -555,13 +597,16 @@ test_forward_angle(void)
   }
   double invalid_kappa[] = {-1, strtod("nan", NULL), strtod("inf", NULL)};
   for (int j = 0; j < 3; ++j) {
-    inp.kappa = invalid_kappa[j];
+    inp.kappa = miller_shape_constant;
+    inp.kappa_ctx = &(double){invalid_kappa[j]};
     TEST_CHECK(miller_is_nan(gkyl_gen_miller_eqdsk_theta_tok_at_theta(&inp, 0.3)));
   }
-  inp.kappa = 1;
+  inp.kappa = miller_shape_constant;
+  inp.kappa_ctx = &(double){1};
   double invalid_delta[] = {-1, 1, strtod("nan", NULL), strtod("inf", NULL)};
   for (int j = 0; j < 4; ++j) {
-    inp.delta = invalid_delta[j];
+    inp.delta = miller_shape_constant;
+    inp.delta_ctx = &(double){invalid_delta[j]};
     TEST_CHECK(miller_is_nan(gkyl_gen_miller_eqdsk_theta_tok_at_theta(&inp, 0.3)));
   }
 }
@@ -577,7 +622,8 @@ test_outboard_maps(void)
   struct gkyl_gen_miller_eqdsk_inp inp = {.Rmajor_axis = 2};
   double shifts[] = {-0.4, -1e-14, 0, 1e-14, 0.4};
   for (int j = 0; j < 5; ++j) {
-    inp.a_shift = shifts[j];
+    inp.a_shift = miller_shape_constant;
+    inp.a_shift_ctx = &(double){shifts[j]};
     TEST_CHECK(gkyl_gen_miller_eqdsk_R_omp_at_rminor(&inp, 0) == 2);
     TEST_CHECK(gkyl_gen_miller_eqdsk_rminor_at_R_omp(&inp, 2) == 0);
     for (int k = 1; k <= 20; ++k) {
@@ -589,9 +635,12 @@ test_outboard_maps(void)
     }
   }
 
-  inp.a_shift = 0.4;
-  inp.kappa = 1.5;
-  inp.delta = -0.3;
+  inp.a_shift = miller_shape_constant;
+  inp.a_shift_ctx = &(double){0.4};
+  inp.kappa = miller_shape_constant;
+  inp.kappa_ctx = &(double){1.5};
+  inp.delta = miller_shape_constant;
+  inp.delta_ctx = &(double){-0.3};
   inp.bmag_axis = -1.5;
   inp.qsafety = constant_q;
   inp.Rmajor_LCFS = gkyl_gen_miller_eqdsk_R_omp_at_rminor(&inp, 0.5);
@@ -627,11 +676,13 @@ test_outboard_maps(void)
   inp.Rmajor_axis = 2;
   double bad_shift[] = {strtod("nan", NULL), strtod("inf", NULL)};
   for (int j = 0; j < 2; ++j) {
-    inp.a_shift = bad_shift[j];
+    inp.a_shift = miller_shape_constant;
+    inp.a_shift_ctx = &(double){bad_shift[j]};
     TEST_CHECK(miller_is_nan(gkyl_gen_miller_eqdsk_R_omp_at_rminor(&inp, 0.5)));
     TEST_CHECK(miller_is_nan(gkyl_gen_miller_eqdsk_rminor_at_R_omp(&inp, 2.5)));
   }
-  inp.a_shift = -1e308;
+  inp.a_shift = miller_shape_constant;
+  inp.a_shift_ctx = &(double){-1e308};
   TEST_CHECK(miller_is_nan(gkyl_gen_miller_eqdsk_R_omp_at_rminor(&inp, 10)));
   TEST_CHECK(miller_is_nan(gkyl_gen_miller_eqdsk_rminor_at_R_omp(&inp, 10)));
 }
@@ -684,9 +735,12 @@ test_domain_extents(void)
       struct gkyl_gen_miller_eqdsk_inp inp = {
         .Rmajor_axis = 2,
         .bmag_axis = shape ? -1.5 : 1.5,
-        .kappa = shape ? 1.4 : 1,
-        .delta = shape ? -0.3 : 0,
-        .a_shift = shape ? 0.3 : 0,
+        .kappa = miller_shape_constant,
+        .kappa_ctx = &(double){shape ? 1.4 : 1},
+        .delta = miller_shape_constant,
+        .delta_ctx = &(double){shape ? -0.3 : 0},
+        .a_shift = miller_shape_constant,
+        .a_shift_ctx = &(double){shape ? 0.3 : 0},
         .qsafety = constant_q,
         .guard_fraction = 0.1,
         .rtol = 1e-9,

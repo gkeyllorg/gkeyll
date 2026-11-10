@@ -1,5 +1,7 @@
 #include <acutest.h>
+
 #include <gkyl_gk_geometry.h>
+#include <gkyl_gen_miller_eqdsk_priv.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_array_ops.h>
 #include <math.h>
@@ -7,6 +9,19 @@
 #include <string.h>
 #include <sys/wait.h>
 #include <unistd.h>
+
+static void
+miller_shape_constant(double t, const double *xc, double *GKYL_RESTRICT out, void *ctx)
+{
+  out[0] = *(const double *)ctx;
+}
+static struct gen_miller_shape
+gen_miller_test_shape(const struct gkyl_gen_miller_eqdsk_inp *inp)
+{
+  struct gen_miller_shape shape;
+  gen_miller_resolve_shape(inp, &shape);
+  return shape;
+}
 
 struct query_ctx {
   int ndim, order, field;
@@ -157,15 +172,23 @@ test_coordinate_queries(void)
 {
   struct gk_geometry geo = query_geometry(2, 1);
   double xc[] = {0.3, 0.8}, out[3];
-  struct gkyl_gen_miller_eqdsk_inp miller = {.Rmajor_axis = 2, .Zvert_axis = 0.2, .kappa = 1};
+  struct gkyl_gen_miller_eqdsk_inp miller = {
+    .Rmajor_axis = 2,
+    .Zvert_axis = 0.2,
+    .kappa = miller_shape_constant,
+    .kappa_ctx = &(double){1},
+  };
   for (int shape = 0; shape < 3; ++shape) {
-    miller.kappa = shape ? 1.5 : 0; // Zero selects the generator default.
-    miller.delta = shape ? 0.35 : 0;
-    miller.a_shift = shape == 2 ? 0.4 : 0;
+    miller.kappa = shape ? miller_shape_constant : NULL;
+    miller.kappa_ctx = &(double){1.5}; // NULL selects the generator default.
+    miller.delta = miller_shape_constant;
+    miller.delta_ctx = &(double){shape ? 0.35 : 0};
+    miller.a_shift = miller_shape_constant;
+    miller.a_shift_ctx = &(double){shape == 2 ? 0.4 : 0};
     for (int angle = -15; angle <= 15; ++angle) {
       double radius = 0.4, theta = angle * 0.2, phi = -0.6;
-      double Rmajor = 2 - miller.a_shift * radius * radius / 4 +
-                      radius * cos(theta + asin(miller.delta) * sin(theta));
+      double Rmajor = 2 - gen_miller_test_shape(&miller).a_shift * radius * radius / 4 +
+                      radius * cos(theta + asin(gen_miller_test_shape(&miller).delta) * sin(theta));
       double Zvert = 0.2 + (shape ? 1.5 : 1) * radius * sin(theta);
       for (int cartesian = 0; cartesian < 2; ++cartesian) {
         geo.geometry_id = cartesian ? GKYL_GEOMETRY_MAPC2P : GKYL_GEOMETRY_TOKAMAK;
@@ -196,7 +219,13 @@ test_coordinate_queries(void)
   // A valid root near the shift-induced fold must not be rejected because
   // the initial bracketing step overshoots the fold.
   geo.geometry_id = GKYL_GEOMETRY_TOKAMAK;
-  miller = (struct gkyl_gen_miller_eqdsk_inp){.Rmajor_axis = 2, .kappa = 1, .a_shift = 2};
+  miller = (struct gkyl_gen_miller_eqdsk_inp){
+    .Rmajor_axis = 2,
+    .kappa = miller_shape_constant,
+    .kappa_ctx = &(double){1},
+    .a_shift = miller_shape_constant,
+    .a_shift_ctx = &(double){2},
+  };
   double radius = 0.9999;
   query_constant(&geo, geo.geo_int.mc2p, (double[]){2 + radius - 0.5 * radius * radius, 0, 0});
   gkyl_gk_geometry_geo_int_comp2miller_coords(&geo, xc, &miller, out);
@@ -243,7 +272,11 @@ test_query_failures(void)
       dup2(pipefd[1], STDERR_FILENO);
       close(pipefd[1]);
       double xc[] = {0.3}, out[3];
-      struct gkyl_gen_miller_eqdsk_inp miller = {.Rmajor_axis = 2, .kappa = 1};
+      struct gkyl_gen_miller_eqdsk_inp miller = {
+        .Rmajor_axis = 2,
+        .kappa = miller_shape_constant,
+        .kappa_ctx = &(double){1},
+      };
       switch (scenario) {
         case 0:
           gkyl_gk_geometry_geo_int_bmag_at_comp_coord(NULL, xc, out);
@@ -265,12 +298,14 @@ test_query_failures(void)
           gkyl_gk_geometry_geo_int_comp2tor_coords(&geo, xc, 2, 0, out);
           break;
         case 5:
-          miller.kappa = -1;
+          miller.kappa = miller_shape_constant;
+          miller.kappa_ctx = &(double){-1};
           gkyl_gk_geometry_geo_int_comp2miller_coords(&geo, xc, &miller, out);
           break;
         case 6:
           query_constant(&geo, geo.geo_int.mc2p, (double[]){10, 0, 0});
-          miller.a_shift = 2;
+          miller.a_shift = miller_shape_constant;
+          miller.a_shift_ctx = &(double){2};
           gkyl_gk_geometry_geo_int_comp2miller_coords(&geo, xc, &miller, out);
           break;
         case 7:

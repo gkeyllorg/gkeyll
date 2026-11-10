@@ -2,6 +2,15 @@
 
 #include <gkyl_gen_miller_eqdsk.h>
 
+struct gen_miller_shape {
+  double kappa, delta, a_shift;
+};
+
+/** Resolve constant shaping callbacks and defaults; false for nonfinite values. */
+bool gen_miller_resolve_shape(
+  const struct gkyl_gen_miller_eqdsk_inp *inp, struct gen_miller_shape *shape
+);
+
 /**
  * Resolve flux or normalized-radius endpoints for either EQDSK flux orientation.
  * Uses signed flux differences; the axis and zero-width domains are excluded.

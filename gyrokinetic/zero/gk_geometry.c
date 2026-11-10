@@ -8,6 +8,7 @@
 #include <gkyl_basis.h>
 #include <gkyl_deflate_geo.h>
 #include <gkyl_gk_geometry.h>
+#include <gkyl_gen_miller_eqdsk_priv.h>
 #include <gkyl_gk_geometry_priv.h>
 #include <gkyl_nodal_ops.h>
 #include <gkyl_alloc_flags_priv.h>
@@ -915,15 +916,19 @@ gkyl_gk_geometry_write_efit(
                                                    .dval = efit->psisep,
                                                  };
   const struct gkyl_gen_miller_eqdsk_inp *miller = &geometry_inp->miller_grid_info;
+  struct gen_miller_shape shape = {0};
+  if (miller->qsafety && !gen_miller_resolve_shape(miller, &shape)) {
+    gkyl_exit("Invalid Miller shaping callbacks.");
+  }
   struct gkyl_msgpack_map_elem miller_meta[] = {
     {.key = "geometry_generator", .elem_type = GKYL_MP_STRING, .cval = "miller"},
     {.key = "miller_R_axis", .elem_type = GKYL_MP_DOUBLE, .dval = miller->Rmajor_axis},
     {.key = "miller_Z_axis", .elem_type = GKYL_MP_DOUBLE, .dval = miller->Zvert_axis},
     {.key = "miller_B_axis", .elem_type = GKYL_MP_DOUBLE, .dval = miller->bmag_axis},
     {.key = "miller_R_lcfs", .elem_type = GKYL_MP_DOUBLE, .dval = miller->Rmajor_LCFS},
-    {.key = "miller_kappa", .elem_type = GKYL_MP_DOUBLE, .dval = miller->kappa ? miller->kappa : 1},
-    {.key = "miller_delta", .elem_type = GKYL_MP_DOUBLE, .dval = miller->delta},
-    {.key = "miller_a_shift", .elem_type = GKYL_MP_DOUBLE, .dval = miller->a_shift},
+    {.key = "miller_kappa", .elem_type = GKYL_MP_DOUBLE, .dval = shape.kappa},
+    {.key = "miller_delta", .elem_type = GKYL_MP_DOUBLE, .dval = shape.delta},
+    {.key = "miller_a_shift", .elem_type = GKYL_MP_DOUBLE, .dval = shape.a_shift},
     {.key = "miller_psi_boundary", .elem_type = GKYL_MP_DOUBLE, .dval = efit->sibry},
     {
       .key = "miller_R_omp_lower",
@@ -1229,19 +1234,20 @@ gkyl_gk_geometry_geo_int_comp2tor_coords(
  */
 static double
 gk_geometry_query_miller_R(
-  const struct gkyl_gen_miller_eqdsk_inp *miller, double u, double v, double *derivative
+  const struct gkyl_gen_miller_eqdsk_inp *miller, const struct gen_miller_shape *shape, double u,
+  double v, double *derivative
 )
 {
-  double radius = hypot(u, v), eta = asin(miller->delta);
+  double radius = hypot(u, v), eta = asin(shape->delta);
   double beta = radius > 0 ? eta * v / radius : 0;
   double dbeta = radius > 0 ? -eta * (v / radius) * (u / radius) / radius : 0;
   *derivative =
-    cos(beta) - miller->a_shift * u / miller->Rmajor_axis - (u * sin(beta) + v * cos(beta)) * dbeta;
+    cos(beta) - shape->a_shift * u / miller->Rmajor_axis - (u * sin(beta) + v * cos(beta)) * dbeta;
   if (!gk_geometry_query_finite(*derivative)) {
     gkyl_exit("geo_int query: nonfinite Miller map derivative.");
   }
   double Rmajor = miller->Rmajor_axis -
-                  miller->a_shift * radius * radius / (2 * miller->Rmajor_axis) + u * cos(beta) -
+                  shape->a_shift * radius * radius / (2 * miller->Rmajor_axis) + u * cos(beta) -
                   v * sin(beta);
   if (!gk_geometry_query_finite(Rmajor)) {
     gkyl_exit("geo_int query: nonfinite Miller map.");
@@ -1259,34 +1265,38 @@ gkyl_gk_geometry_geo_int_comp2miller_coords(
   if (!miller) {
     gkyl_exit("geo_int query: NULL Miller parameters.");
   }
+  struct gen_miller_shape shape;
+  if (!gen_miller_resolve_shape(miller, &shape)) {
+    gkyl_exit("geo_int query: invalid Miller shaping callbacks.");
+  }
   double params[] = {
-    miller->Rmajor_axis, miller->Zvert_axis, miller->kappa, miller->delta, miller->a_shift
+    miller->Rmajor_axis, miller->Zvert_axis, shape.kappa, shape.delta, shape.a_shift
   };
   for (int j = 0; j < 5; ++j) {
     if (!gk_geometry_query_finite(params[j])) {
       gkyl_exit("geo_int query: nonfinite Miller parameter.");
     }
   }
-  if (miller->Rmajor_axis <= 0 || miller->kappa < 0 || fabs(miller->delta) >= 1) {
+  if (miller->Rmajor_axis <= 0 || shape.kappa <= 0 || fabs(shape.delta) >= 1) {
     gkyl_exit("geo_int query: invalid Miller axis or shaping parameters.");
   }
   double cyl[3];
   gkyl_gk_geometry_geo_int_comp2cyl_coords(geo, xc, cyl);
-  double kappa = miller->kappa == 0 ? 1 : miller->kappa; // Match generator defaults.
+  double kappa = shape.kappa;
   double v = (cyl[2] - miller->Zvert_axis) / kappa;
   double scale = hypot(cyl[0] - miller->Rmajor_axis, v);
   if (scale <= 16 * DBL_EPSILON * fmax(miller->Rmajor_axis, fabs(miller->Zvert_axis))) {
     gkyl_exit("geo_int query: Miller angle undefined at magnetic axis.");
   }
   // Concentric ellipses have an explicit inverse (including circular CBC).
-  if (miller->a_shift == 0 && miller->delta == 0) {
+  if (shape.a_shift == 0 && shape.delta == 0) {
     out[0] = scale;
     out[1] = atan2(v, cyl[0] - miller->Rmajor_axis);
     out[2] = cyl[1];
     return;
   }
   double derivative;
-  double at_zero = gk_geometry_query_miller_R(miller, 0, v, &derivative);
+  double at_zero = gk_geometry_query_miller_R(miller, &shape, 0, v, &derivative);
   if (derivative <= 0) {
     gkyl_exit("geo_int query: folded Miller branch at inversion origin.");
   }
@@ -1299,12 +1309,12 @@ gkyl_gk_geometry_geo_int_comp2miller_coords(
     double start = previous;
     for (int sample = 1; sample <= 32; ++sample) {
       endpoint = start + (direction * scale - start) * sample / 32.0;
-      double Rmajor = gk_geometry_query_miller_R(miller, endpoint, v, &derivative);
+      double Rmajor = gk_geometry_query_miller_R(miller, &shape, endpoint, v, &derivative);
       // A trial beyond a fold may still bracket a root on the valid side.
       // Approach the fold from the last monotone sample before rejecting it.
       for (int shrink = 0; derivative <= 0 && shrink < 64; ++shrink) {
         endpoint = 0.5 * (previous + endpoint);
-        Rmajor = gk_geometry_query_miller_R(miller, endpoint, v, &derivative);
+        Rmajor = gk_geometry_query_miller_R(miller, &shape, endpoint, v, &derivative);
       }
       if (derivative <= 0 || endpoint == previous) {
         gkyl_exit("geo_int query: Miller inverse outside the nonfolding branch.");
@@ -1323,7 +1333,7 @@ gkyl_gk_geometry_geo_int_comp2miller_coords(
   double lower = fmin(previous, endpoint), upper = fmax(previous, endpoint);
   for (int iter = 0; iter < 60; ++iter) {
     double middle = 0.5 * (lower + upper);
-    double Rmajor = gk_geometry_query_miller_R(miller, middle, v, &derivative);
+    double Rmajor = gk_geometry_query_miller_R(miller, &shape, middle, v, &derivative);
     if (derivative <= 0) {
       gkyl_exit("geo_int query: folded Miller inverse bracket.");
     }
@@ -1334,7 +1344,7 @@ gkyl_gk_geometry_geo_int_comp2miller_coords(
     }
   }
   double u = 0.5 * (lower + upper);
-  if (fabs(gk_geometry_query_miller_R(miller, u, v, &derivative) - cyl[0]) >
+  if (fabs(gk_geometry_query_miller_R(miller, &shape, u, v, &derivative) - cyl[0]) >
       1e-12 * miller->Rmajor_axis) {
     gkyl_exit("geo_int query: Miller inverse residual exceeds tolerance.");
   }

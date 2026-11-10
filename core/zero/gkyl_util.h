@@ -276,6 +276,14 @@ int gkyl_compare_float(float a, float b, float eps);
 int gkyl_compare_double(double a, double b, double eps);
 
 /**
+ * Round a double as if written to an E16.9 field and read back.
+ *
+ * @param value Value to round.
+ * @return Value after the decimal text round trip.
+ */
+double gkyl_round_to_e16_9(double value);
+
+/**
  * Copy (small) int arrays.
  *
  * @param n Number of elements to copy

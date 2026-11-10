@@ -23,6 +23,14 @@ test_compare_double()
 }
 
 void
+test_round_to_e16_9()
+{
+  TEST_CHECK(gkyl_round_to_e16_9(0.03483576483233173) == 0.03483576483);
+  TEST_CHECK(gkyl_round_to_e16_9(-1.23456789056) == -1.234567891);
+  TEST_CHECK(gkyl_round_to_e16_9(0.0) == 0.0);
+}
+
+void
 test_compare_float()
 {
   TEST_CHECK(gkyl_compare_float(1.0f, 1.0f, 1e-6f));
@@ -401,6 +409,7 @@ TEST_LIST = {
   {"msgpack_string_array", test_msgpack_string_array},
   {"msgpack_scalar_copy", test_msgpack_scalar_copy},
   {"compare_double", test_compare_double},
+  {"round_to_e16_9", test_round_to_e16_9},
   {"compare_float", test_compare_float},
   {"copy_int_arr", test_copy_int_arr},
   {"copy_long_arr", test_copy_long_arr},

@@ -2,6 +2,7 @@
 
 #include <stdbool.h>
 #include <gkyl_eqn_type.h>
+#include <gkyl_util.h>
 
 typedef struct gkyl_gen_miller_eqdsk gkyl_gen_miller_eqdsk;
 
@@ -12,9 +13,17 @@ struct gkyl_gen_miller_eqdsk_inp {
   double Rmajor_axis, Zvert_axis; // Major radius and vertical position of magnetic axis.
   double bmag_axis; // Signed toroidal field at the magnetic axis [T]; nonzero, sign sets B_phi.
   double Rmajor_LCFS; // Major radius of LCFS at OMP.
-  double kappa; // Elongation (=0 sets kappa=1).
-  double delta; // Triangularity.
-  double a_shift; // Strength of Shafranov shift.
+  // Shaping functions presently called with: t=0, xc[0]=0 (Miller minor radius
+  // [m]). If the functions return NULL, they select kappa=1, delta=0, or a_shift=0.
+  // Elongation.
+  void (*kappa)(double t, const double *xc, double *GKYL_RESTRICT out, void *ctx);
+  void *kappa_ctx;
+  // Triangularity.
+  void (*delta)(double t, const double *xc, double *GKYL_RESTRICT out, void *ctx);
+  void *delta_ctx;
+  // Shafranov shift amplitude.
+  void (*a_shift)(double t, const double *xc, double *GKYL_RESTRICT out, void *ctx);
+  void *a_shift_ctx;
   double (*qsafety)(double R_omp, void *ctx); // Safety factor (>0) as a function of major radius.
   void *qsafety_ctx;
   bool has_Rmajor_omp_bounds;
@@ -47,7 +56,8 @@ struct gkyl_gen_miller_eqdsk_info {
 /**
  * Construct the host generator and radial flux table; report failures to stderr.
  *
- * @param inp Physical and numerical inputs; callback context must outlive the generator.
+ * @param inp Physical and numerical inputs; shaping callbacks are sampled at construction.
+ * The qsafety context must outlive the generator.
  * @return New generator, or NULL on failure.
  */
 gkyl_gen_miller_eqdsk *gkyl_gen_miller_eqdsk_inew(const struct gkyl_gen_miller_eqdsk_inp *inp);
@@ -59,7 +69,9 @@ gkyl_gen_miller_eqdsk *gkyl_gen_miller_eqdsk_inew(const struct gkyl_gen_miller_e
  * Constructs the radial flux table but does not sample or write the EQDSK.
  *
  * @param inp Non-NULL Miller parameters, including x_extent_type; not modified.
- * The safety-factor callback context must outlive the returned generator.
+ * Shaping callbacks are evaluated while constructing the generator; their
+ * contexts must remain valid until construction returns. The safety-factor
+ * callback context must outlive the returned generator.
  * @param x_bounds Non-NULL array {lower[0], upper[0]} from the application domain:
  * poloidal flux [Wb/rad] for PSI_POL, normalized poloidal radius [dimensionless]
  * for RHO_POL, or outboard major radius [m] for R_OMP. These are simulation
@@ -109,7 +121,7 @@ const struct gkyl_gen_miller_eqdsk_info *gkyl_gen_miller_eqdsk_get_info(
  * Uses the analytic quadratic shift without constructing a generator or flux table.
  * This checks the outboard map, not the validity of the entire flux surface.
  *
- * @param inp Non-NULL parameters; only Rmajor_axis (>0) and a_shift are used.
+ * @param inp Non-NULL parameters; Rmajor_axis and the shaping callbacks are read.
  * @param rminor Nonnegative Miller minor radius [m].
  * @return Outboard major radius [m], or NaN for invalid inputs, dR_omp/drminor <= 0,
  * or nonfinite arithmetic.
@@ -124,7 +136,7 @@ double gkyl_gen_miller_eqdsk_R_omp_at_rminor(
  * Uses a cancellation-resistant quadratic root and requires no generator or flux table.
  * This checks the outboard branch, not the validity of the entire flux surface.
  *
- * @param inp Non-NULL parameters; only Rmajor_axis (>0) and a_shift are used.
+ * @param inp Non-NULL parameters; Rmajor_axis and the shaping callbacks are read.
  * @param R_omp Outboard major radius [m], at or outside Rmajor_axis.
  * @return Miller minor radius [m], or NaN for invalid inputs, a radius outside
  * the increasing branch, or nonfinite arithmetic.
@@ -156,7 +168,7 @@ double gkyl_gen_miller_eqdsk_r_at_psi(const gkyl_gen_miller_eqdsk *up, double ps
  * constructing a generator. Uses the analytic constant-shaping, full-contour
  * convention: zero at the outboard midplane and +/-pi at the inboard midplane.
  *
- * @param inp Input parameters; only kappa and delta are used (kappa=0 sets kappa=1).
+ * @param inp Input parameters; shaping callbacks are read (NULL kappa selects 1).
  * @param thetaMiller Miller poloidal angle in [-pi,pi] [rad].
  * @return Tokamak angle [rad], or NaN for invalid inputs or quadrature failure.
  */

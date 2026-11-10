@@ -99,6 +99,14 @@ gkyl_compare_double(double a, double b, double eps)
   return diff / fmin(absa + absb, DBL_MAX) < eps;
 }
 
+double
+gkyl_round_to_e16_9(double value)
+{
+  char text[32];
+  snprintf(text, sizeof text, "%.9E", value);
+  return strtod(text, NULL);
+}
+
 struct timespec
 gkyl_wall_clock(void)
 {

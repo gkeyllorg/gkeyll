@@ -1,4 +1,5 @@
 #include <math.h>
+
 #include <stdio.h>
 #include <time.h>
 
@@ -27,7 +28,7 @@ struct gk_app_ctx {
   // Geometry and magnetic field parameters
   double a_shift, Zvert_axis, Rmajor_axis, R0, a_mid, x_inner, r0, B0, kappa, delta, q0, Cy, Bref,
     x_LCFS;
-  struct gkyl_gen_miller_eqdsk_inp miller;
+  double bmag_axis, Rmajor_LCFS, x_outer;
   gkyl_gen_miller_eqdsk *equilibrium; // Flux table for profile callbacks; owned by main.
   // Plasma parameters
   int num_species;
@@ -55,6 +56,24 @@ struct gk_app_ctx {
   int num_frames, int_diag_calc_num, num_failures_max;
   double dt_failure_tol;
 };
+
+static void
+miller_kappa(double t, const double *xc, double *GKYL_RESTRICT out, void *ctx)
+{
+  out[0] = ((const struct gk_app_ctx *)ctx)->kappa;
+}
+
+static void
+miller_delta(double t, const double *xc, double *GKYL_RESTRICT out, void *ctx)
+{
+  out[0] = ((const struct gk_app_ctx *)ctx)->delta;
+}
+
+static void
+miller_a_shift(double t, const double *xc, double *GKYL_RESTRICT out, void *ctx)
+{
+  out[0] = ((const struct gk_app_ctx *)ctx)->a_shift;
+}
 
 static double
 qsafety(double R, void *ctx)
@@ -332,6 +351,9 @@ create_ctx(void)
     .cdim = cdim,
     .vdim = vdim,
     .a_shift = a_shift,
+    .bmag_axis = bmag_axis,
+    .Rmajor_LCFS = R_LCFSmid,
+    .x_outer = x_outer,
     .Rmajor_axis = Rmajor_axis,
     .Zvert_axis = Zvert_axis,
     .R0 = R0,
@@ -399,45 +421,6 @@ create_ctx(void)
     .dt_failure_tol = dt_failure_tol,
     .num_failures_max = num_failures_max,
   };
-  // Use a fixed coverage envelope so both flux tables (here and in the app) agree.
-  // R_omp includes the quadratic shift; Rmid_min/max above are nominal reference radii.
-  double outer_r = a_mid + x_outer;
-  double outer_R = Rmajor_axis - a_shift * outer_r * outer_r / (2 * Rmajor_axis) + outer_r;
-  ctx.miller = (struct gkyl_gen_miller_eqdsk_inp){
-    .x_extent_type = GKYL_GK_GEOMETRY_RADIAL_COORD_R_OMP,
-    .Rmajor_axis = Rmajor_axis,
-    .Zvert_axis = Zvert_axis,
-    .bmag_axis = -fabs(bmag_axis), // Match the analytic input's negative toroidal field.
-    .Rmajor_LCFS = R_LCFSmid,
-    .kappa = kappa,
-    .delta = delta,
-    .a_shift = a_shift,
-    .qsafety = qsafety,
-    .has_Rmajor_omp_bounds = true,
-    .Rmajor_omp_bounds = {Rmajor_axis, outer_R},
-  };
-  ctx.equilibrium = gkyl_gen_miller_eqdsk_inew(&ctx.miller);
-  if (!ctx.equilibrium) {
-    return ctx;
-  }
-
-  // Match the LCFS value written with E16.9 precision in the generated GEQDSK.
-  char boundary_text[32];
-  snprintf(
-    boundary_text, sizeof boundary_text, "%.9E",
-    gkyl_gen_miller_eqdsk_get_info(ctx.equilibrium)->psi_boundary
-  );
-  ctx.x_LCFS = strtod(boundary_text, 0); // Bias-line coordinates must be psi, not R_omp.
-  double psi_upper = psi_at_x(&ctx, x_max);
-  double psi_lower = (ctx.x_LCFS - 0.4 * psi_upper) / 0.6;
-  ctx.x_min = gkyl_gen_miller_eqdsk_R_omp_at_psi(ctx.equilibrium, psi_lower);
-  ctx.x_max = outer_R; // Miller app inputs use R_omp; the app converts them to psi.
-
-  // Numerical tokamak y is alpha [rad], whereas the analytic input used y = Cy*alpha [m].
-  // Power normalization above already uses this same toroidal fraction.
-  ctx.Ly /= Cy;
-  ctx.y_min /= Cy;
-  ctx.y_max /= Cy;
   return ctx;
 }
 
@@ -457,7 +440,47 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct gk_app_ctx ctx = create_ctx(); // context for init functions
+  struct gk_app_ctx ctx =
+    create_ctx(); // Context for initialization functions and Miller callbacks.
+
+  // R_omp includes the quadratic shift; use the same fixed coverage for both flux tables.
+  double outer_r = ctx.a_mid + ctx.x_outer;
+  double outer_R =
+    ctx.Rmajor_axis - ctx.a_shift * outer_r * outer_r / (2 * ctx.Rmajor_axis) + outer_r;
+  struct gkyl_gyrokinetic_geometry geometry = {
+    .geometry_id = GKYL_GEOMETRY_MILLER,
+    .miller_grid_info =
+      {
+        .x_extent_type = GKYL_GK_GEOMETRY_RADIAL_COORD_R_OMP,
+        .Rmajor_axis = ctx.Rmajor_axis,
+        .Zvert_axis = ctx.Zvert_axis,
+        .bmag_axis = -fabs(ctx.bmag_axis), // Match the analytic input's negative toroidal field.
+        .Rmajor_LCFS = ctx.Rmajor_LCFS,
+        .kappa = miller_kappa,
+        .kappa_ctx = &ctx,
+        .delta = miller_delta,
+        .delta_ctx = &ctx,
+        .a_shift = miller_a_shift,
+        .a_shift_ctx = &ctx,
+        .qsafety = qsafety,
+        .has_Rmajor_omp_bounds = true,
+        .Rmajor_omp_bounds = {ctx.Rmajor_axis, outer_R},
+      },
+  };
+  ctx.equilibrium = gkyl_gen_miller_eqdsk_inew(&geometry.miller_grid_info);
+  if (ctx.equilibrium) {
+    // Match the LCFS value written with E16.9 precision in the generated GEQDSK.
+    ctx.x_LCFS = gkyl_round_to_e16_9(gkyl_gen_miller_eqdsk_get_info(ctx.equilibrium)->psi_boundary);
+    double psi_upper = psi_at_x(&ctx, ctx.x_max);
+    double psi_lower = (ctx.x_LCFS - 0.4 * psi_upper) / 0.6;
+    ctx.x_min = gkyl_gen_miller_eqdsk_R_omp_at_psi(ctx.equilibrium, psi_lower);
+    ctx.x_max = outer_R; // Miller app inputs use R_omp; the app converts them to psi.
+
+    // Numerical tokamak y is alpha [rad], rather than the original y = Cy*alpha [m].
+    ctx.Ly /= ctx.Cy;
+    ctx.y_min /= ctx.Cy;
+    ctx.y_max /= ctx.Cy;
+  }
 
   int cells_x[ctx.cdim], cells_v[ctx.vdim];
   for (int d = 0; d < ctx.cdim; d++) {
@@ -785,10 +808,6 @@ main(int argc, char **argv)
 
   // The app writes <app-name>-miller.geqdsk and initializes numerical tokamak geometry.
   // It also derives the LCFS split and core twist shifts from that equilibrium.
-  struct gkyl_gyrokinetic_geometry geometry = {
-    .geometry_id = GKYL_GEOMETRY_MILLER,
-    .miller_grid_info = ctx.miller,
-  };
 
   // Parallelism
   struct gkyl_app_parallelism_inp parallelism = {
@@ -800,7 +819,7 @@ main(int argc, char **argv)
   // Binormal angle alpha uses y = Cy*alpha; rho_s is the reference sound gyroradius.
   struct gkyl_msgpack_map_elem additional_metadata[] = {
     {.key = "Cy", .elem_type = GKYL_MP_DOUBLE, .dval = ctx.Cy},
-    {.key = "rho_s", .elem_type = GKYL_MP_DOUBLE, .dval = ctx.rho_s},
+    {.key = "rho_s", .elem_type = GKYL_MP_DOUBLE, .dval = ctx.rho_s}
   };
 
   // GK app
