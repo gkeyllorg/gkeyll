@@ -207,21 +207,21 @@ dPsidr(double r, double theta, void *ctx)
 }
 
 double
-compute_alpha_integral(double r, double twrap, void *ctx)
+compute_alpha_integral(double r, double theta, void *ctx)
 {
   struct gk_app_ctx *app = ctx;
   struct integrand_ctx tmp_ctx = {.app_ctx = app, .r = r};
   struct gkyl_qr_res integral;
 
-  if (twrap == 0.0) {
+  if (theta == 0.0) {
     return 0.0;
   }
 
-  if (0. < twrap) {
-    integral = gkyl_dbl_exp(integrand_JoRsq, &tmp_ctx, 0., twrap, 7, 1e-10);
+  if (0. < theta) {
+    integral = gkyl_dbl_exp(integrand_JoRsq, &tmp_ctx, 0., theta, 7, 1e-10);
     return integral.res;
   } else {
-    integral = gkyl_dbl_exp(integrand_JoRsq, &tmp_ctx, twrap, 0., 7, 1e-10);
+    integral = gkyl_dbl_exp(integrand_JoRsq, &tmp_ctx, theta, 0., 7, 1e-10);
     return -integral.res;
   }
 }
@@ -229,16 +229,7 @@ compute_alpha_integral(double r, double twrap, void *ctx)
 double
 alpha(double r, double theta, double phi, void *ctx)
 {
-  struct gk_app_ctx *app = ctx;
-  double twrap = theta;
-  while (twrap < -M_PI) {
-    twrap = twrap + 2. * M_PI;
-  }
-  while (M_PI < twrap) {
-    twrap = twrap - 2. * M_PI;
-  }
-
-  double integral_val = compute_alpha_integral(r, twrap, ctx);
+  double integral_val = compute_alpha_integral(r, theta, ctx);
 
   double R = R_rtheta(r, theta, ctx);
   double Bt = Bphi(R, ctx);
@@ -476,10 +467,10 @@ create_ctx(void)
     1.0 / (1.0 + q0 * q0 * (1.6 / sqrt(inv_asp_ratio) + 0.5 + 0.36 * sqrt(inv_asp_ratio)));
 
   // Grid parameters (accurate RH test with 32x32x24x12)
-  int Nx = 16;
-  int Nz = 8;
-  int Nvpar = 12;
-  int Nmu = 6;
+  int Nx = 32 / 4;
+  int Nz = 32 / 4;
+  int Nvpar = 24 / 4;
+  int Nmu = 12 / 4;
   int poly_order = 1;
   int psi_lut_nfact = 100 * (poly_order + 1); // Resolution factor for the psi lookup table.
 
@@ -489,9 +480,9 @@ create_ctx(void)
   // Optional ion-ion LBO collisions, nu_star = nu_ii q R_axis/(eps^{3/2} v_ti) with v_ti = sqrt(Ti/mi).
   double nu_star = 0.0;
   double nu_ion = nu_star * pow(inv_asp_ratio, 1.5) * vti / (q0 * R_axis);
-  double t_end = 20.0 * t_gam;
-  int num_frames = 100;
-  double write_phase_freq = 0.1;
+  double t_end = 20.0 * t_gam / 4;
+  int num_frames = 1;
+  double write_phase_freq = 1.0;
   int int_diag_calc_num = num_frames * 100;
   double dt_failure_tol = 1.0e-3; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
@@ -758,7 +749,7 @@ main(int argc, char **argv)
         .restart_frame = app_args.restart_frame,
         .num_steps = app_args.num_steps,
       },
-    .print_verbosity = {.enabled = true, .frequency = 0.01},
+    .print_verbosity = {.enabled = false, .frequency = 0.01},
   };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);
