@@ -139,10 +139,24 @@ gk_field_calc_energy_dt_active(
 }
 
 static void
+gk_field_calc_apar_energy_dt_active(
+  gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, double *energy_reduced
+)
+{
+  struct timespec wst = gkyl_wall_clock();
+  gkyl_array_integrate_advance(
+    field->calc_em_energy, field->apar, 1.0 / dt, field->apar_energy_fac, &app->local, &app->local,
+    energy_reduced
+  );
+  app->stat.phidot_tm += gkyl_time_diff_now_sec(wst);
+}
+
+static void
 gk_field_calc_energy_dt_none(
   gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, double *energy_reduced
 )
 {
+  // Do nothing.
 }
 
 static void
@@ -211,11 +225,155 @@ gk_field_calc_energy_enabled(
 
     gkyl_dynvec_append(field->integ_energy_dot, tm, energy_dot_global);
   }
+
+  if (field->is_em) {
+    // Calculate Aparallel energy.
+    gkyl_array_integrate_advance(
+      field->calc_em_energy, field->apar, 1.0, field->apar_energy_fac, &app->local, &app->local,
+      field->em_energy_red
+    );
+
+    gkyl_comm_allreduce(
+      app->comm, GKYL_DOUBLE, GKYL_SUM, 1, field->em_energy_red, field->em_energy_red_global
+    );
+
+    double energy_global[1] = {0.0};
+    if (app->use_gpu) {
+      gkyl_cu_memcpy(
+        energy_global, field->em_energy_red_global, sizeof(double[1]), GKYL_CU_MEMCPY_D2H
+      );
+    } else {
+      energy_global[0] = field->em_energy_red_global[0];
+    }
+
+    if (app->cdim == 1) {
+      energy_global[0] *= field->apar_energy_fac_1d;
+    }
+
+    gkyl_dynvec_append(field->integ_apar_energy, tm, energy_global);
+
+    // Calculate d(Aparallel)/dt energy.
+    gkyl_array_integrate_advance(
+      field->calc_em_energy, field->apardot, 1.0, field->apar_energy_fac, &app->local, &app->local,
+      field->em_energy_red
+    );
+
+    gkyl_comm_allreduce(
+      app->comm, GKYL_DOUBLE, GKYL_SUM, 1, field->em_energy_red, field->em_energy_red_global
+    );
+
+    double energy_dot_global[1] = {0.0};
+    if (app->use_gpu) {
+      gkyl_cu_memcpy(
+        energy_dot_global, field->em_energy_red_global, sizeof(double[1]), GKYL_CU_MEMCPY_D2H
+      );
+    } else {
+      energy_dot_global[0] = field->em_energy_red_global[0];
+    }
+
+    // if (app->cdim == 1)
+    //   energy_dot_global[0] *= field->apar_energy_fac_1d;
+
+    gkyl_dynvec_append(field->integ_apardot_energy, tm, energy_dot_global);
+
+    if (field->info.time_rate_diagnostics) {
+      gkyl_comm_allreduce(
+        app->comm, GKYL_DOUBLE, GKYL_SUM, 1, field->apar_energy_red_old, field->em_energy_red_global
+      );
+      double energy_dot_global_old[1] = {0.0};
+      if (app->use_gpu) {
+        gkyl_cu_memcpy(
+          energy_dot_global_old, field->em_energy_red_global, sizeof(double[1]), GKYL_CU_MEMCPY_D2H
+        );
+      } else {
+        energy_dot_global_old[0] = field->em_energy_red_global[0];
+      }
+      if (app->cdim == 1) {
+        energy_dot_global_old[0] *= field->apar_energy_fac_1d;
+      }
+
+      gkyl_comm_allreduce(
+        app->comm, GKYL_DOUBLE, GKYL_SUM, 1, field->apar_energy_red_new, field->em_energy_red_global
+      );
+      double energy_dot_global_new[1] = {0.0};
+      if (app->use_gpu) {
+        gkyl_cu_memcpy(
+          energy_dot_global_new, field->em_energy_red_global, sizeof(double[1]), GKYL_CU_MEMCPY_D2H
+        );
+      } else {
+        energy_dot_global_new[0] = field->em_energy_red_global[0];
+      }
+      if (app->cdim == 1) {
+        energy_dot_global_new[0] *= field->apar_energy_fac_1d;
+      }
+
+      double energy_dot_global[1] = {0.0};
+      energy_dot_global[0] = energy_dot_global_new[0] - energy_dot_global_old[0];
+
+      gkyl_dynvec_append(field->integ_apar_energy_dot, tm, energy_dot_global);
+    }
+  }
 }
 
 static void
 gk_field_calc_energy_disabled(
   struct gkyl_gyrokinetic_app *app, const struct gk_field *field, double tm
+)
+{
+  // Do nothing.
+}
+
+static void
+gk_field_combine_enabled(
+  struct gkyl_array *out, double c1, const struct gkyl_array *arr1, double c2,
+  const struct gkyl_array *arr2, const struct gkyl_range *rng
+)
+{
+  gkyl_array_accumulate_range(gkyl_array_set_range(out, c1, arr1, rng), c2, arr2, rng);
+}
+
+static void
+gk_field_combine_disabled(
+  struct gkyl_array *out, double c1, const struct gkyl_array *arr1, double c2,
+  const struct gkyl_array *arr2, const struct gkyl_range *rng
+)
+{
+  // Do nothing.
+}
+
+static void
+gk_field_step_apar_enabled(
+  gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *out, double dt,
+  const struct gkyl_array *inp
+)
+{
+  // Apar^{n+1} = Apar^{n} + dt*dApar/dt
+  gkyl_array_accumulate(gkyl_array_scale(out, dt), 1.0, inp);
+
+  // Smooth Apar along z.
+  field->fem_projection_par_apar_func(app, field, out, out);
+}
+
+static void
+gk_field_step_apar_disabled(
+  gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *out, double dt,
+  const struct gkyl_array *inp
+)
+{
+  // Do nothing.
+}
+
+static void
+gk_field_copy_range_enabled(
+  struct gkyl_array *out, const struct gkyl_array *inp, const struct gkyl_range *range
+)
+{
+  gkyl_array_copy_range(out, inp, range);
+}
+
+static void
+gk_field_copy_range_disabled(
+  struct gkyl_array *out, const struct gkyl_array *inp, const struct gkyl_range *range
 )
 {
   // Do nothing.
@@ -238,6 +396,22 @@ gk_field_time_rate_diags_new(struct gkyl_gyrokinetic_app *app, struct gk_field *
   }
   gkf->integ_energy_dot = gkyl_dynvec_new(GKYL_DOUBLE, 1);
   gkf->is_first_energy_dot_write_call = true;
+  if (gkf->is_em) {
+    gkf->calc_apar_energy_dt_func = gk_field_calc_apar_energy_dt_active;
+    if (app->use_gpu) {
+      gkf->apar_energy_red_new = gkyl_cu_malloc(sizeof(double[1]));
+      gkf->apar_energy_red_old = gkyl_cu_malloc(sizeof(double[1]));
+      gkyl_cu_memset(gkf->apar_energy_red_new, 0, sizeof(double[1]));
+      gkyl_cu_memset(gkf->apar_energy_red_old, 0, sizeof(double[1]));
+    } else {
+      gkf->apar_energy_red_new = gkyl_malloc(sizeof(double[1]));
+      gkf->apar_energy_red_old = gkyl_malloc(sizeof(double[1]));
+      memset(gkf->apar_energy_red_new, 0, sizeof(double[1]));
+      memset(gkf->apar_energy_red_old, 0, sizeof(double[1]));
+    }
+    gkf->integ_apar_energy_dot = gkyl_dynvec_new(GKYL_DOUBLE, 1);
+  }
+  gkf->is_first_apar_energy_dot_write_call = true;
 }
 
 static void
@@ -257,6 +431,7 @@ gk_field_energy_new(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
 
   gkf->calc_energy_func = gk_field_calc_energy_enabled;
   gkf->calc_energy_dt_func = gk_field_calc_energy_dt_none;
+  gkf->calc_apar_energy_dt_func = gk_field_calc_energy_dt_none;
 
   if (gkf->info.time_rate_diagnostics) {
     gk_field_time_rate_diags_new(app, gkf);
@@ -266,6 +441,14 @@ gk_field_energy_new(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
   gkf->es_energy_fac =
     mkarr(app->use_gpu, (2 * (app->cdim / 3) + 1) * app->basis.num_basis, app->local_ext.volume);
   gkf->es_energy_fac_1d = 0.0;
+
+  if (gkf->is_em) {
+    gkf->integ_apar_energy = gkyl_dynvec_new(GKYL_DOUBLE, 1);
+    gkf->integ_apardot_energy = gkyl_dynvec_new(GKYL_DOUBLE, 1);
+    gkf->apar_energy_fac =
+      mkarr(app->use_gpu, (2 * (app->cdim / 3) + 1) * app->basis.num_basis, app->local_ext.volume);
+    gkf->apar_energy_fac_1d = 0;
+  }
 }
 
 static void
@@ -280,6 +463,16 @@ gk_field_time_rate_diags_release(const struct gkyl_gyrokinetic_app *app, struct 
     gkyl_free(gkf->em_energy_red_old);
   }
   gkyl_dynvec_release(gkf->integ_energy_dot);
+  if (gkf->is_em) {
+    if (app->use_gpu) {
+      gkyl_cu_free(gkf->apar_energy_red_new);
+      gkyl_cu_free(gkf->apar_energy_red_old);
+    } else {
+      gkyl_free(gkf->apar_energy_red_new);
+      gkyl_free(gkf->apar_energy_red_old);
+    }
+    gkyl_dynvec_release(gkf->integ_apar_energy_dot);
+  }
 }
 
 static void
@@ -300,6 +493,12 @@ gk_field_energy_release(const struct gkyl_gyrokinetic_app *app, struct gk_field 
   }
 
   gkyl_array_release(gkf->es_energy_fac);
+
+  if (gkf->is_em) {
+    gkyl_dynvec_release(gkf->integ_apar_energy);
+    gkyl_dynvec_release(gkf->integ_apardot_energy);
+    gkyl_array_release(gkf->apar_energy_fac);
+  }
 }
 
 static void
@@ -323,6 +522,24 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   gkf->info = gk->field;
 
   gkf->gkfield_id = gkf->info.gkfield_id ? gkf->info.gkfield_id : GKYL_GK_FIELD_ES;
+
+  gkf->is_em = gkf->info.gkfield_id == GKYL_GK_FIELD_EM;
+  // Ensure that if any species is electromagnetic, the field is electromagnetic.
+  for (int i = 0; i < app->num_species; ++i) {
+    struct gk_species *s = &app->species[i];
+    gkf->is_em = gkf->is_em || (s->info.collisionless.type == GKYL_GK_COLLISIONLESS_EM);
+  }
+  if (gkf->is_em) {
+    assert(gkf->info.mu0 > 0.0);
+    gkf->step_apar = gk_field_step_apar_enabled;
+    gkf->em_combine_func = gk_field_combine_enabled;
+    gkf->em_copy_func = gk_field_copy_range_enabled;
+  } else {
+    gkf->step_apar = gk_field_step_apar_disabled;
+    gkf->em_combine_func = gk_field_combine_disabled;
+    gkf->em_copy_func = gk_field_copy_range_disabled;
+  }
+  gkf->calc_init_apar = gkf->info.calc_init_apar;
 
   gkf->calc_init_field = !gkf->info.zero_init_field;
   gkf->update_field = !gkf->info.is_static;
@@ -415,6 +632,55 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
 }
 
 void
+gk_field_em_rhs(
+  gkyl_gyrokinetic_app *app, struct gk_field *field, const struct gkyl_array *f_in[],
+  struct gkyl_array *rhs_in[]
+)
+{
+  // Compute Apardot through Ohm's law.
+  struct timespec wst = gkyl_wall_clock();
+  field->em_rhs_func(app, field, f_in, rhs_in);
+  app->stat.field_tm += gkyl_time_diff_now_sec(wst);
+}
+
+void
+gk_field_calc_apar_ic(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *out)
+{
+  struct timespec wst = gkyl_wall_clock();
+  field->ampere_solve(app, field, out);
+  app->stat.field_apar_solve_tm += gkyl_time_diff_now_sec(wst);
+}
+
+void
+gk_field_step_apar(
+  gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *out, double a,
+  const struct gkyl_array *inp
+)
+{
+  struct timespec wst = gkyl_wall_clock();
+  field->step_apar(app, field, out, a, inp);
+  app->stat.field_apar_solve_tm += gkyl_time_diff_now_sec(wst);
+}
+
+void
+gk_field_em_combine(
+  struct gk_field *field, struct gkyl_array *out, double c1, const struct gkyl_array *arr1,
+  double c2, const struct gkyl_array *arr2, const struct gkyl_range *rng
+)
+{
+  field->em_combine_func(out, c1, arr1, c2, arr2, rng);
+}
+
+void
+gk_field_em_copy_range(
+  struct gk_field *field, struct gkyl_array *out, const struct gkyl_array *inp,
+  const struct gkyl_range *range
+)
+{
+  field->em_copy_func(out, inp, range);
+}
+
+void
 gk_field_calc_energy(gkyl_gyrokinetic_app *app, double tm, const struct gk_field *field)
 {
   struct timespec wst = gkyl_wall_clock();
@@ -429,6 +695,15 @@ gk_field_calc_energy_dt(
 {
   field->calc_energy_dt_func(app, field, dt, energy_reduced);
 }
+
+void
+gk_field_calc_apar_energy_dt(
+  gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, double *energy_reduced
+)
+{
+  field->calc_apar_energy_dt_func(app, field, dt, energy_reduced);
+}
+
 
 void
 gk_field_accumulate_rho_c_poisson(
@@ -457,6 +732,57 @@ gk_field_accumulate_rho_c(
   }
   field->accumulate_rhoc_bg_func(app, field);
   app->stat.field_phi_rhs_tm += gkyl_time_diff_now_sec(wst);
+}
+
+void
+gk_field_accumulate_current_dens(
+  gkyl_gyrokinetic_app *app, struct gk_field *field, const struct gkyl_array *fin[]
+)
+{
+  struct timespec wst = gkyl_wall_clock();
+  gkyl_array_clear(field->currentDens, 0.0);
+  for (int i = 0; i < app->num_species; ++i) {
+    struct gk_species *s = &app->species[i];
+    gk_species_moment_calc(app, &s->m1, s->local, app->local, fin[i]);
+    s->gyroaverage(app, s, s->m1.marr, s->m1_gyroavg);
+    gkyl_array_accumulate_range(field->currentDens, s->info.charge, s->m1_gyroavg, &app->local);
+  }
+  app->stat.field_apar_rhs_tm += gkyl_time_diff_now_sec(wst);
+}
+
+void
+gk_field_accumulate_current_dens_dot(
+  gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *rhs_in[]
+)
+{
+  struct timespec wst = gkyl_wall_clock();
+  gkyl_array_clear(field->currentDensdot, 0.0);
+  for (int i = 0; i < app->num_species; ++i) {
+    struct gk_species *s = &app->species[i];
+    gk_species_moment_calc(app, &s->m1, s->local, app->local, rhs_in[i]);
+    s->gyroaverage(app, s, s->m1.marr, s->m1_gyroavg);
+    gkyl_array_accumulate_range(field->currentDensdot, s->info.charge, s->m1_gyroavg, &app->local);
+  }
+  app->stat.field_apar_rhs_tm += gkyl_time_diff_now_sec(wst);
+}
+
+void
+gk_field_accumulate_ohms_kSq(
+  gkyl_gyrokinetic_app *app, struct gk_field *field, const struct gkyl_array *fin[]
+)
+{
+  struct timespec wst = gkyl_wall_clock();
+  gkyl_array_clear(field->dApartdtSlvr_kSq, 0.0);
+  for (int i = 0; i < app->num_species; ++i) {
+    struct gk_species *s = &app->species[i];
+    gk_species_moment_calc(app, &s->m0, s->local, app->local, fin[i]);
+    // Gyroaverage the density if needed.
+    s->gyroaverage(app, s, s->m0.marr, s->m0_gyroavg);
+    // Use m0 to update also update the kSq matrix for the Ohm's law solver.
+    double fac = -s->info.charge * s->info.charge / s->info.mass;
+    gkyl_array_accumulate_range(field->dApartdtSlvr_kSq, fac, s->m0_gyroavg, &app->local);
+  }
+  app->stat.field_apar_rhs_tm += gkyl_time_diff_now_sec(wst);
 }
 
 void

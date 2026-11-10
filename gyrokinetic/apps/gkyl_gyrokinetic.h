@@ -99,6 +99,7 @@ struct gkyl_phase_diagnostics_inp {
 // Parameters for collisionless terms.
 struct gkyl_gyrokinetic_collisionless {
   enum gkyl_gk_collisionless_type type; // Type of collisionless terms.
+  bool no_by; // Whether to neglect the toroidal field (b_y=0)
   bool write_diagnostics; // Whether to output diagnostics.
   double scale_factor; // Factor multiplying collisionless terms (should be > 0).
   // Passive advection speeds in x, y, z (for GKYL_GK_COLLISIONLESS_PASSIVE).
@@ -245,7 +246,8 @@ struct gkyl_gyrokinetic_core_parallel_bcs {
   ); // Upper twist-shift function.
   void *lower_shift_ctx; // Context for lower twist-shift function.
   void *upper_shift_ctx; // Context for upper twist-shift function.
-  bool ts_field_dg; // Keep the shifted potential ghost field discontinuous in x-y (default false).
+  bool
+    ts_field_dg; // Keep the shifted phi (and Apar) ghost field discontinuous in x-y (default false).
   int ts_upsample_factor; // Twist-shift supersampling factor (default 4), set to -1 to disable filter.
   int ts_filter_half_width; // Twist-shift filter stencil half-width in cells of the simulation grid (default 1), set to -1 to disable filter.
   double
@@ -578,6 +580,8 @@ struct gkyl_gyrokinetic_field {
   enum gkyl_gkfield_id gkfield_id;
   bool is_static; // =true field does not change in time.
   bool zero_init_field; // =true doesn't compute the initial field.
+  bool
+    calc_init_apar; // Whether to calculate the initial Apar from the initial condition of the distribution function.
 
   double polarization_bmag; // B factor in the polarization density.
   double kperpSq; // kperp^2 parameter for 1D field equations
@@ -587,6 +591,12 @@ struct gkyl_gyrokinetic_field {
   double electron_mass, electron_charge, electron_temp;
 
   struct gkyl_gyrokinetic_bc poisson_bcs[2 * GKYL_MAX_CDIM];
+
+  // parameters for EMGK
+  struct gkyl_gyrokinetic_bc ampere_bcs[2 * GKYL_MAX_CDIM];
+  double mu0; // Magnetic permeability of free space.
+  bool remove_em_zonal; // Whether to remove zonal component.
+  bool is_apar_static; // =true Apar at initial time is used for all time steps.
 
   bool time_rate_diagnostics; // Writes the time rate of change of field energy.
 
@@ -634,7 +644,8 @@ struct gkyl_gk {
   struct gkyl_gyrokinetic_geometry geometry; // Geometry input struct.
 
   double cfl_frac; // CFL fraction to use (default 1.0).
-  double cfl_frac_omegaH; // CFL fraction used for the omega_H dt (default 1.0).
+  double cfl_frac_omegaH; // CFL fraction used for the omega_H dt (default 1.7).
+  bool omegaH_es_only; // Use the electrostatic omega_H dt bound also when solving EM fields.
 
   int num_periodic_dir; // Number of periodic directions.
   int periodic_dirs[3]; // List of periodic directions.
@@ -716,6 +727,8 @@ struct gkyl_gyrokinetic_stat {
   double field_tm; // Time to compute fields.
   double field_phi_rhs_tm; // Time spent on poisson eqn RHS.
   double field_phi_solve_tm; // Time spent to solve poisson eqn.
+  double field_apar_rhs_tm; // Time spent on parallel Ampere eqn RHS.
+  double field_apar_solve_tm; // Time spent to solve parallel Ampere eqn.
 
   double bc_tm; // Time to compute BCs.
   double species_bc_tm; // Time to compute species BCs.
