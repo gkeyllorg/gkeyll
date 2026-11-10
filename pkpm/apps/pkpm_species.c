@@ -170,10 +170,10 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   s->pkpm_moms_no_J = mkarr(app->use_gpu, 10 * nc, app->local_ext.volume);
   s->fluid_no_J = mkarr(app->use_gpu, 5 * nc, app->local_ext.volume);
   gkyl_array_clear(s->pkpm_moms, 0.0);
-  s->pkpm_cmoms = mkarr(app->use_gpu, 3 * nc, app->local_ext.volume);
+  s->pkpm_cmoms = mkarr(app->use_gpu, 6 * nc, app->local_ext.volume);
   s->pkpm_cmoms_host = s->pkpm_cmoms;
   if (app->use_gpu) {
-    s->pkpm_cmoms_host = mkarr(false, 3 * nc, app->local_ext.volume);
+    s->pkpm_cmoms_host = mkarr(false, 6 * nc, app->local_ext.volume);
   }
 
   // Refactored update variables (p=1 configuration space only).
@@ -629,6 +629,26 @@ pkpm_species_apply_ic(gkyl_pkpm_app *app, struct pkpm_species *species, double t
   gkyl_array_clear(species->f_host, 0.0);
   gkyl_proj_on_basis_advance(proj_dist, t0, &species->local_ext_conf, species->f_host);
   gkyl_proj_on_basis_release(proj_dist);
+  if (species->info.init_harm) {
+    // The optional first-harmonic blocks [M0_perp, N_perp].
+    struct gkyl_array *harm_host = mkarr(
+      false, (PKPM_DIST_NUM_BLOCKS - PKPM_DIST_M0) * app->basis.num_basis, species->f_host->size
+    );
+    gkyl_proj_on_basis *proj_harm = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
+      .grid = &species->grid,
+      .basis = &app->basis,
+      .num_quad = 8,
+      .num_ret_vals = PKPM_DIST_NUM_BLOCKS - PKPM_DIST_M0,
+      .eval = species->info.init_harm,
+      .ctx = species->info.ctx_harm,
+      .c2p_func = pkpm_pos_c2p,
+      .c2p_func_ctx = app->pos_map,
+    });
+    gkyl_proj_on_basis_advance(proj_harm, t0, &species->local_ext_conf, harm_host);
+    gkyl_proj_on_basis_release(proj_harm);
+    gkyl_array_set_offset(species->f_host, 1.0, harm_host, PKPM_DIST_M0 * app->basis.num_basis);
+    gkyl_array_release(harm_host);
+  }
   gkyl_proj_on_basis_advance(proj_fluid, t0, &app->local_ext, species->fluid_host);
   gkyl_proj_on_basis_release(proj_fluid);
 

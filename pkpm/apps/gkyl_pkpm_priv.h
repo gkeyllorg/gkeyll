@@ -112,7 +112,8 @@ struct pkpm_source {
   struct pkpm_species *source_species;
   double scale; // rate factor of the stage (1 for a projected source)
   struct gkyl_array *prof_host; // [n_s, T_s, u_s] (host)
-  struct gkyl_array *fluid_src, *fluid_src_host; // J [rho, M, E] of the profile; physical copy for IO
+  struct gkyl_array *fluid_src,
+    *fluid_src_host; // J [rho, M, E] of the profile; physical copy for IO
   struct gkyl_array *f_src, *f_src_host; // J [S_F, S_G] of the stage
   struct gkyl_array *n_src; // m n_s (physical)
   struct gkyl_array *n_ratio; // m n_s / rho
@@ -192,17 +193,14 @@ enum pkpm_dist_block {
   PKPM_DIST_G = 1,
   PKPM_DIST_M0 = 2, // first of the three Cartesian components of M0_perp
   PKPM_DIST_N = 5, // first of the three Cartesian components of N_perp
-  PKPM_DIST_NUM_BLOCKS = 8,
+  PKPM_DIST_NUM_BLOCKS = 8
 };
 
 // Records of the fluid positivity limiter (gkyl_dg_calc_pkpm_vars_positivity): the per-cell
 // count [cells scaled for the density, for the internal energy, for the thermal speed,
 // inadmissible averages], and the statistics per integrated-moment interval, which append the
 // number of limiter applications.
-enum pkpm_positivity_record {
-  PKPM_POS_NUM_COUNT = 4,
-  PKPM_POS_NUM_STAT = 5,
-};
+enum pkpm_positivity_record { PKPM_POS_NUM_COUNT = 4, PKPM_POS_NUM_STAT = 5 };
 
 // species data
 struct pkpm_species {
@@ -210,8 +208,10 @@ struct pkpm_species {
 
   struct gkyl_job_pool *job_pool; // Job pool
   struct gkyl_rect_grid grid;
-  struct gkyl_range local, local_ext; // local, local-ext phase-space ranges (local_ext has one velocity ghost cell above w_max)
-  struct gkyl_range local_ext_conf; // local range extended in configuration space only (moments, distribution BCs, sync)
+  struct gkyl_range local,
+    local_ext; // local, local-ext phase-space ranges (local_ext has one velocity ghost cell above w_max)
+  struct gkyl_range
+    local_ext_conf; // local range extended in configuration space only (moments, distribution BCs, sync)
   struct gkyl_range global, global_ext; // global, global-ext conf-space ranges
 
   struct gkyl_comm *comm; // communicator object for phase-space arrays
@@ -220,9 +220,12 @@ struct pkpm_species {
   struct gkyl_rect_grid grid_vel; // velocity space grid
   struct gkyl_range local_vel, local_ext_vel; // local, local-ext velocity-space ranges
 
-  struct gkyl_array *f, *f1, *fnew; // normalized distributions [F, G, M0_perp, N_perp] on the w = v_par/xi grid
-  struct gkyl_array *blk_in, *blk_out; // one-block (F or G) scratch for configuration x phase products
-  struct gkyl_array *f_no_J; // physical distributions (position-map Jacobian divided out; output and L2)
+  struct gkyl_array *f, *f1,
+    *fnew; // normalized distributions [F, G, M0_perp, N_perp] on the w = v_par/xi grid
+  struct gkyl_array *blk_in,
+    *blk_out; // one-block (F or G) scratch for configuration x phase products
+  struct gkyl_array
+    *f_no_J; // physical distributions (position-map Jacobian divided out; output and L2)
   struct gkyl_array *f_no_J_host; // host copy of f_no_J for I/O
   struct gkyl_array *fluid, *fluid1, *fluidnew; // fluid state [rho, rho ux, rho uy, rho uz, E]
 
@@ -254,9 +257,12 @@ struct pkpm_species {
     // for the momentum equations and Ampere's Law
 
   struct pkpm_species_moment pkpm_moms_diag; // for computing pkpm moments diagnostics
-  struct pkpm_species_moment pkpm_nmoms; // raw moments [M0, M2, M0_G, M1, M3, M1_G] of the normalized [F, G] (mass 1)
-  struct gkyl_array *pkpm_moms; // kinetic coupling moments [p_par, p_perp, q_par, q_perp, s (3), r (3)] = [p M2, p M0_G, p xi M3, p xi M1_G, p m1, p xi (m2/2 + n0)]
-  struct gkyl_array *pkpm_cmoms; // the constraints [M0(F), M1(F), (M2(F) + 2 M0(G))/3], [1, 0, 1] when the closures hold
+  struct pkpm_species_moment
+    pkpm_nmoms; // raw moments [M0, M2, M0_G, M1, M3, M1_G] of the normalized [F, G] (mass 1)
+  struct gkyl_array *
+    pkpm_moms; // kinetic coupling moments [p_par, p_perp, q_par, q_perp, s (3), r (3)] = [p M2, p M0_G, p xi M3, p xi M1_G, p m1, p xi (m2/2 + n0)]
+  struct gkyl_array *
+    pkpm_cmoms; // the constraints [M0(F), M1(F), (M2(F) + 2 M0(G))/3, int M0_perp dw (x, y, z)], [1, 0, 1, 0, 0, 0] when the closures hold
   struct gkyl_array *pkpm_cmoms_host; // host copy for output
 
   // Refactored (p=1) PKPM update variables.
@@ -272,27 +278,32 @@ struct pkpm_species {
   struct gkyl_array
     *pkpm_grad_xi; // gradient of [xi, ...] (pkpm_grad_u layout; blocks (d, 0) hold d_d xi)
   struct gkyl_array *pkpm_scratch; // one-expansion scratch for weak products
-  struct gkyl_array *fluid_no_J; // PHYSICAL fluid state [rho, M, E] of the stage (position-map Jacobian divided out)
+  struct gkyl_array *
+    fluid_no_J; // PHYSICAL fluid state [rho, M, E] of the stage (position-map Jacobian divided out)
   struct gkyl_array *pkpm_moms_no_J; // physical coupling moments (diagnostics)
   struct gkyl_array *pkpm_rho; // physical mass density (leading block of fluid_no_J)
   struct gkyl_array *pkpm_rho3; // [rho, 0, 0] for the weak-gradient kernels
-  struct gkyl_array *pkpm_mom3; // momentum block of the fluid array (scratch for the 3-component consumers)
+  struct gkyl_array
+    *pkpm_mom3; // momentum block of the fluid array (scratch for the 3-component consumers)
   struct gkyl_array *pkpm_grad_rho; // gradient of [rho, 0, 0] (scratch)
   struct gkyl_array *pkpm_grad_ln_n; // grad(ln n), cdim expansions
   struct gkyl_array *pkpm_c_0; // normalization closure of the factored update
   struct gkyl_array *pkpm_alpha_0; // pressure force a_P/xi closing the first w moment
   struct gkyl_array *pkpm_c_h; // heating rate closing the scalar second moment M2(F) + 2 M0(G)
   struct gkyl_array *pkpm_a_perp; // perpendicular force closing int M0_perp dw [x, y, z]
-  struct gkyl_array *pkpm_rhs_moms; // moments of the configuration-pass right-hand side (separate scratch)
+  struct gkyl_array
+    *pkpm_rhs_moms; // moments of the configuration-pass right-hand side (separate scratch)
   struct gkyl_array *pkpm_p_ij; // p=1 projection of the pressure tensor (limiter scratch only)
   struct gkyl_array
     *conf_flux_surf; // stored modal configuration-space kinetic fluxes, [dir][side][block][mode]
   struct gkyl_array *flux_blend; // weight of the label-paired flux of each lower face, [dir]
   struct gkyl_array *vel_flux_surf; // stored modal v_par kinetic fluxes
-  struct gkyl_dg_pkpm_harm_vol *harm_vol; // modal volume integrals of the first-harmonic terms (stage A)
+  struct gkyl_dg_pkpm_harm_vol
+    *harm_vol; // modal volume integrals of the first-harmonic terms (stage A)
   struct gkyl_array *harm_coef; // stored operator of the stage (gkyl_pkpm_harm_ops.h)
   struct gkyl_array *harm_wnode; // raw w-flux values of the stage at the w-face nodes
-  struct gkyl_dg_pkpm_harm_exp *harm_exp; // gyrophase-mixing integrating factor of the first harmonic (plan 17.44)
+  struct gkyl_dg_pkpm_harm_exp
+    *harm_exp; // gyrophase-mixing integrating factor of the first harmonic (plan 17.44)
   struct gkyl_array *harm_exp_coef; // its field (q/m) B frozen at the start of the step
   struct gkyl_array *harm_exp_nu; // gyrophase-mixing rate at the phase nodes, frozen per step
   struct gkyl_array *harm_exp_act; // configuration cells with a damped node (momentum restoration)
@@ -314,15 +325,18 @@ struct pkpm_species {
   double kinetic_tm; // time spent in the kinetic right-hand side
   double fluid_tm; // time spent in the momentum right-hand side
   long num_null_rho; // accumulated count of nodes with an inadmissible density in the closure
-  long num_null_closure; // accumulated count of closure nodes nulled (M0 <= 0 or a non-positive determinant)
+  long
+    num_null_closure; // accumulated count of closure nodes nulled (M0 <= 0 or a non-positive determinant)
   double closure_cond_min; // smallest det/det0 of the closure solves over the run
   bool closure_null_warned; // the velocity-extent warning was printed
-  struct gkyl_array *pkpm_pos_count; // per-cell record of the positivity limiter [rho, e, xi, avg] (cumulative)
-  struct gkyl_array *pkpm_pos_io, *pkpm_pos_io_host; // the record as cell averages of a p=1 field for IO
-  long pos_count_since[PKPM_POS_NUM_STAT]; // limiter counts [rho, e, xi, avg, applications] since the last integrated-moment call
+  struct gkyl_array
+    *pkpm_pos_count; // per-cell record of the positivity limiter [rho, e, xi, avg] (cumulative)
+  struct gkyl_array *pkpm_pos_io,
+    *pkpm_pos_io_host; // the record as cell averages of a p=1 field for IO
+  long pos_count_since
+    [PKPM_POS_NUM_STAT]; // limiter counts [rho, e, xi, avg, applications] since the last integrated-moment call
   gkyl_dynvec pos_stat; // the counts per integrated-moment interval, summed over ranks
   bool is_first_pos_stat_write_call; // flag for the positivity statistics dynvec written first time
-
 
   // Pointers for io for PKPM fluid variables, handled by kinetic species because of fluid-kinetic coupling.
   // For PKPM we construct the 10 moment conserved variables for ease of analysis
@@ -373,7 +387,9 @@ struct pkpm_species {
   struct pkpm_bgk_collisions bgk; // BGK collisions object
 
   struct pkpm_source src; // source object
-  double bflux[2 * GKYL_MAX_CDIM]; // particle loss rate through the absorbing walls [lower, upper] per direction (stage)
+  double bflux
+    [2 *
+     GKYL_MAX_CDIM]; // particle loss rate through the absorbing walls [lower, upper] per direction (stage)
   gkyl_dynvec bflux_diag; // the loss rates on the cadence of the integrated moments
   bool is_first_bflux_write_call;
   struct gkyl_array *fluid_flux_surf_host; // host mirror of the stored fluid fluxes (GPU only)
@@ -416,8 +432,10 @@ struct pkpm_field {
   bool app_current_evolve; // flag to indicate applied current is time dependent
   struct gkyl_array *app_current; // applied current
   struct gkyl_array *app_current_host; // host copy for use in IO and projecting
-  struct gkyl_array *app_current_no_J; // physical applied current (the implicit coupling); app_current carries J
-  struct gkyl_array *em_no_J; // physical E, B of the stage (the evolved em carries the position-map Jacobian)
+  struct gkyl_array
+    *app_current_no_J; // physical applied current (the implicit coupling); app_current carries J
+  struct gkyl_array
+    *em_no_J; // physical E, B of the stage (the evolved em carries the position-map Jacobian)
   struct gkyl_array *em_no_J_host; // host copy of em_no_J for I/O
   struct gkyl_vlasov_position_map *pos_map; // acquired reference to the app's position map
   gkyl_proj_on_basis *app_current_proj; // projector for applied current
@@ -433,8 +451,10 @@ struct pkpm_field {
   // right-hand side of the transport step is that of RK stage 1 with its E rows zeroed.
   struct gkyl_array *rhs_split; // field right-hand side of the transport step (stage 1, E rows zero)
   double omega_cfl_split; // its time-step rate
-  struct gkyl_array *curl_rhs, *curl_rhs_no_J; // field right-hand side at a source half step (E rows: c^2 curl B)
-  struct gkyl_array *curl_current; // applied current - eps0 c^2 curl B (physical), for the implicit solve
+  struct gkyl_array *curl_rhs,
+    *curl_rhs_no_J; // field right-hand side at a source half step (E rows: c^2 curl B)
+  struct gkyl_array
+    *curl_current; // applied current - eps0 c^2 curl B (physical), for the implicit solve
 
   struct gkyl_array *bvar; // magnetic field unit vector b = B/|B| [bx, by, bz] (p=1)
   struct gkyl_array *grad_b; // weak (surface-averaged) gradient of b, cdim x 3 expansions
@@ -520,8 +540,8 @@ struct gkyl_pkpm_app {
 
   struct gkyl_wave_geom
     *geom; // geometry needed for species and field solvers (*only* p=1 right now JJ: 05/03/24)
-  struct gkyl_vlasov_position_map
-    *pos_map; // configuration-space position map (always created; identity by default); shared by the field and species
+  struct gkyl_vlasov_position_map *
+    pos_map; // configuration-space position map (always created; identity by default); shared by the field and species
 
   // pointers to basis on device (these point to host structs if not
   // on GPU)
@@ -794,7 +814,9 @@ void pkpm_species_calc_bflux(gkyl_pkpm_app *app, struct pkpm_species *s);
 
 // Source object: see gkyl_pkpm_source in gkyl_pkpm.h.
 void pkpm_species_source_init(gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_source *src);
-void pkpm_species_source_calc_rate(gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_source *src);
+void pkpm_species_source_calc_rate(
+  gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_source *src
+);
 void pkpm_species_source_kinetic_rhs(
   gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_source *src, const struct gkyl_array *fin,
   struct gkyl_array *rhs
@@ -809,19 +831,26 @@ void pkpm_species_source_release(const gkyl_pkpm_app *app, const struct pkpm_sou
 
 // BGK collisions: nu (f_target - f) with the normalized Maxwellian target, optionally at
 // the initial temperature (then the fluid energy relaxes at the same rate).
-void pkpm_species_bgk_init(gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_bgk_collisions *bgk);
-void pkpm_species_bgk_set_fixed_temp(gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_bgk_collisions *bgk);
+void pkpm_species_bgk_init(
+  gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_bgk_collisions *bgk
+);
+void pkpm_species_bgk_set_fixed_temp(
+  gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_bgk_collisions *bgk
+);
 // Project M0_perp and N_perp of the distributions f onto the plane perpendicular to the current b
 // at the Gauss-Legendre nodes of b, in place, over the extended ranges (plan 17.11).
-void pkpm_species_project_transverse(gkyl_pkpm_app *app, struct pkpm_species *species, struct gkyl_array *f);
+void pkpm_species_project_transverse(
+  gkyl_pkpm_app *app, struct pkpm_species *species, struct gkyl_array *f
+);
 // Gyrophase-mixing integrating factor of the first-harmonic blocks (plan 17.44, 17.24), after the
 // forward Euler accumulate of stage s (fout = fin + h rhs; the gyration is explicit in rhs). At
 // s = 1 it freezes the mixing of the step (the field and the rate at the phase nodes). At damped
 // nodes it writes the first-harmonic blocks of fout as the value whose SSP-RK3 combination with the
 // state at the start of the step is the integrating-factor stage, and restores int M0_perp dw = 0
 // where the mixing acted.
-void pkpm_species_harm_exp_advance(gkyl_pkpm_app *app, struct pkpm_species *species, int stage, double h,
-  struct gkyl_array *fout);
+void pkpm_species_harm_exp_advance(
+  gkyl_pkpm_app *app, struct pkpm_species *species, int stage, double h, struct gkyl_array *fout
+);
 
 // out += a conf * phase for every block of a phase array (the bin-op kernels act on one
 // block of num_basis components); phase may hold fewer blocks than out (e.g. [F, G] only).
@@ -835,7 +864,8 @@ void pkpm_species_bgk_kinetic_rhs(
   const struct gkyl_array *fin, struct gkyl_array *rhs
 );
 void pkpm_species_bgk_fluid_rhs(
-  gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_bgk_collisions *bgk, struct gkyl_array *rhs
+  gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_bgk_collisions *bgk,
+  struct gkyl_array *rhs
 );
 void pkpm_species_bgk_release(const gkyl_pkpm_app *app, const struct pkpm_bgk_collisions *bgk);
 
@@ -1047,7 +1077,8 @@ void pkpm_field_explicit_accumulate_current(
  * @return Maximum stable time-step
  */
 double pkpm_field_rhs(
-  gkyl_pkpm_app *app, struct pkpm_field *field, int stage, const struct gkyl_array *em, struct gkyl_array *rhs
+  gkyl_pkpm_app *app, struct pkpm_field *field, int stage, const struct gkyl_array *em,
+  struct gkyl_array *rhs
 );
 
 /**

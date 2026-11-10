@@ -102,12 +102,13 @@ void gkyl_dg_calc_pkpm_vars_in_cell_grad(
  * @return Number of nodes where the closures are undefined
  */
 int gkyl_dg_calc_pkpm_vars_closure(
-  struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
-  const struct gkyl_rect_grid *phase_grid, const struct gkyl_array *norm_moms, const struct gkyl_array *rhs_moms,
+  struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
+  const struct gkyl_range *phase_range, const struct gkyl_rect_grid *phase_grid,
+  const struct gkyl_array *norm_moms, const struct gkyl_array *rhs_moms,
   const struct gkyl_array *bvar, const struct gkyl_array *wnode, const struct gkyl_array *theta,
-  const struct gkyl_array *fin,
-  struct gkyl_array *c_0, struct gkyl_array *alpha_0, struct gkyl_array *c_h, struct gkyl_array *a_perp,
-  struct gkyl_array *vel_flux_surf, struct gkyl_array *cflrate
+  const struct gkyl_array *fin, struct gkyl_array *c_0, struct gkyl_array *alpha_0,
+  struct gkyl_array *c_h, struct gkyl_array *a_perp, struct gkyl_array *vel_flux_surf,
+  struct gkyl_array *cflrate
 );
 
 /**
@@ -149,15 +150,16 @@ void gkyl_dg_calc_pkpm_vars_int(
 );
 
 /**
- * The three constraints of the normalized distributions, [M0(F), M1(F), (M2(F) + 2 M0(G))/3],
- * from the raw normalized moments [M0, M2, M0_G, M1, M3, M1_G]: they are [1, 0, 1] in every
- * mode of every cell when the closures hold.
+ * The constraints of the normalized distributions, [M0(F), M1(F), (M2(F) + 2 M0(G))/3,
+ * int M0_perp dw (x, y, z)], from the raw normalized moments [M0, M2, M0_G, M1, M3, M1_G,
+ * int M0_perp dw (x, y, z), ...]: they are [1, 0, 1, 0, 0, 0] in every mode of every cell when
+ * the closures hold.
  *
  * @param up          Updater (unused; kept for symmetry)
  * @param conf_range  Configuration space range
  * @param num_basis   Number of configuration basis functions
- * @param norm_moms   Input normalized moments (6 expansions per cell)
- * @param constraints Output constraints (3 expansions per cell)
+ * @param norm_moms   Input normalized moments (at least 9 expansions per cell)
+ * @param constraints Output constraints (6 expansions per cell)
  */
 void gkyl_dg_calc_pkpm_vars_constraints(
   struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, int num_basis,
@@ -333,12 +335,13 @@ void gkyl_dg_calc_pkpm_vars_release(struct gkyl_dg_calc_pkpm_vars *up);
  */
 
 int gkyl_dg_calc_pkpm_vars_closure_cu(
-  struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
-  const struct gkyl_rect_grid *phase_grid, const struct gkyl_array *norm_moms, const struct gkyl_array *rhs_moms,
+  struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
+  const struct gkyl_range *phase_range, const struct gkyl_rect_grid *phase_grid,
+  const struct gkyl_array *norm_moms, const struct gkyl_array *rhs_moms,
   const struct gkyl_array *bvar, const struct gkyl_array *wnode, const struct gkyl_array *theta,
-  const struct gkyl_array *fin,
-  struct gkyl_array *c_0, struct gkyl_array *alpha_0, struct gkyl_array *c_h, struct gkyl_array *a_perp,
-  struct gkyl_array *vel_flux_surf, struct gkyl_array *cflrate
+  const struct gkyl_array *fin, struct gkyl_array *c_0, struct gkyl_array *alpha_0,
+  struct gkyl_array *c_h, struct gkyl_array *a_perp, struct gkyl_array *vel_flux_surf,
+  struct gkyl_array *cflrate
 );
 void gkyl_dg_calc_pkpm_vars_transverse_cu(
   struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
@@ -391,4 +394,3 @@ void gkyl_dg_calc_pkpm_vars_source_cu(
   struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
   const struct gkyl_array *qmem, const struct gkyl_array *fluid, struct gkyl_array *rhs
 );
-

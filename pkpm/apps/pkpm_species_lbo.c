@@ -20,10 +20,16 @@ pkpm_species_lbo_init(
 
   lbo->num_cross_collisions = s->info.collisions.num_cross_collisions;
 
-  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(
-    &app->grid, &app->confBasis, app->poly_order + 1, 1, s->info.collisions.self_nu,
-    s->info.collisions.ctx
-  );
+  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
+    .grid = &app->grid,
+    .basis = &app->confBasis,
+    .num_quad = app->poly_order + 1,
+    .num_ret_vals = 1,
+    .eval = s->info.collisions.self_nu,
+    .ctx = s->info.collisions.ctx,
+    .c2p_func = pkpm_pos_c2p,
+    .c2p_func_ctx = app->pos_map,
+  });
   gkyl_proj_on_basis_advance(proj, 0.0, &app->local, self_nu);
   gkyl_proj_on_basis_release(proj);
   gkyl_array_copy(lbo->self_nu, self_nu);
@@ -187,10 +193,12 @@ pkpm_species_lbo_moms(
       );
       // physical thermal speed squared for the Spitzer frequency: xi^2 times the normalized one
       gkyl_dg_mul_op_range(
-        &app->confBasis, 0, species->pkpm_scratch, app->vdim, lbo->prim_moms, 1, species->pkpm_xi, &app->local
+        &app->confBasis, 0, species->pkpm_scratch, app->vdim, lbo->prim_moms, 1, species->pkpm_xi,
+        &app->local
       );
       gkyl_array_set_offset_range(
-        lbo->maxwellian_moms, 1.0, species->pkpm_scratch, (1 + app->vdim) * app->confBasis.num_basis, &app->local
+        lbo->maxwellian_moms, 1.0, species->pkpm_scratch,
+        (1 + app->vdim) * app->confBasis.num_basis, &app->local
       );
       gkyl_spitzer_coll_freq_advance_normnu(
         lbo->spitzer_calc, &app->local, lbo->maxwellian_moms, 0., lbo->maxwellian_moms, 0., 1.0,
@@ -212,10 +220,12 @@ pkpm_species_lbo_moms(
       );
       // physical thermal speed squared for the Spitzer frequency: xi^2 times the normalized one
       gkyl_dg_mul_op_range(
-        &app->confBasis, 0, species->pkpm_scratch, app->vdim, lbo->prim_moms, 1, species->pkpm_xi, &app->local
+        &app->confBasis, 0, species->pkpm_scratch, app->vdim, lbo->prim_moms, 1, species->pkpm_xi,
+        &app->local
       );
       gkyl_array_set_offset_range(
-        lbo->maxwellian_moms, 1.0, species->pkpm_scratch, (1 + app->vdim) * app->confBasis.num_basis, &app->local
+        lbo->maxwellian_moms, 1.0, species->pkpm_scratch,
+        (1 + app->vdim) * app->confBasis.num_basis, &app->local
       );
       gkyl_spitzer_coll_freq_advance_normnu(
         lbo->spitzer_calc, &app->local, lbo->maxwellian_moms, 0., lbo->maxwellian_moms, 0.0, 1.0,

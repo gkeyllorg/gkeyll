@@ -53,6 +53,10 @@ struct pkpm_species_lw {
   struct lua_func_ctx
     dist_init_func_ref; // Lua registry reference to distribution initialization function.
 
+  bool has_harm_init_func; // Is there a first-harmonic initialization function?
+  struct lua_func_ctx
+    harm_init_func_ref; // Lua registry reference to first-harmonic initialization function.
+
   bool has_fluid_init_func; // Is there a fluid initialization function?
   struct lua_func_ctx fluid_init_func_ref; // Lua registry reference to fluid initialization function.
 
@@ -154,12 +158,20 @@ pkpm_species_lw_new(lua_State *L)
   bool has_dist_init_func = false;
   int dist_init_func_ref = LUA_NOREF;
 
+  bool has_harm_init_func = false;
+  int harm_init_func_ref = LUA_NOREF;
+
   bool has_fluid_init_func = false;
   int fluid_init_func_ref = LUA_NOREF;
 
   if (glua_tbl_get_func(L, "initDist")) {
     dist_init_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
     has_dist_init_func = true;
+  }
+
+  if (glua_tbl_get_func(L, "initHarm")) {
+    harm_init_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    has_harm_init_func = true;
   }
 
   if (glua_tbl_get_func(L, "initFluid")) {
@@ -268,6 +280,14 @@ pkpm_species_lw_new(lua_State *L)
     .func_ref = dist_init_func_ref,
     .ndim = 0, // This will be set later.
     .nret = 2,
+    .L = L,
+  };
+
+  pkpm_s_lw->has_harm_init_func = has_harm_init_func;
+  pkpm_s_lw->harm_init_func_ref = (struct lua_func_ctx){
+    .func_ref = harm_init_func_ref,
+    .ndim = 0, // This will be set later.
+    .nret = 6,
     .L = L,
   };
 
@@ -480,6 +500,8 @@ struct pkpm_app_lw {
   struct lua_func_ctx
     dist_init_func_ctx[GKYL_MAX_SPECIES]; // Context for distribution initialization function.
   struct lua_func_ctx
+    harm_init_func_ctx[GKYL_MAX_SPECIES]; // Context for first-harmonic initialization function.
+  struct lua_func_ctx
     fluid_init_func_ctx[GKYL_MAX_SPECIES]; // Context for fluid initialization function.
   struct lua_func_ctx
     applied_acceleration_func_ctx[GKYL_MAX_SPECIES]; // Context for applied acceleration function.
@@ -547,6 +569,10 @@ get_species_inp(lua_State *L, int cdim, struct pkpm_species_lw *species[GKYL_MAX
       if (pkpm_s->magic == PKPM_SPECIES_DEFAULT) {
         if (pkpm_s->has_dist_init_func) {
           pkpm_s->dist_init_func_ref.ndim = cdim + pkpm_s->vdim;
+        }
+
+        if (pkpm_s->has_harm_init_func) {
+          pkpm_s->harm_init_func_ref.ndim = cdim + pkpm_s->vdim;
         }
 
         if (pkpm_s->has_fluid_init_func) {
@@ -874,6 +900,11 @@ pkpm_app_new(lua_State *L)
     if (species[s]->has_dist_init_func) {
       pkpm.species[s].init_dist = gkyl_lw_eval_cb;
       pkpm.species[s].ctx_dist = &app_lw->dist_init_func_ctx[s];
+    }
+    app_lw->harm_init_func_ctx[s] = species[s]->harm_init_func_ref;
+    if (species[s]->has_harm_init_func) {
+      pkpm.species[s].init_harm = gkyl_lw_eval_cb;
+      pkpm.species[s].ctx_harm = &app_lw->harm_init_func_ctx[s];
     }
     if (species[s]->has_fluid_init_func) {
       pkpm.species[s].init_fluid = gkyl_lw_eval_cb;

@@ -60,19 +60,20 @@ gkyl_dg_calc_pkpm_vars_new(
 
 int
 gkyl_dg_calc_pkpm_vars_closure(
-  struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
-  const struct gkyl_rect_grid *phase_grid, const struct gkyl_array *norm_moms, const struct gkyl_array *rhs_moms,
+  struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
+  const struct gkyl_range *phase_range, const struct gkyl_rect_grid *phase_grid,
+  const struct gkyl_array *norm_moms, const struct gkyl_array *rhs_moms,
   const struct gkyl_array *bvar, const struct gkyl_array *wnode, const struct gkyl_array *theta,
-  const struct gkyl_array *fin,
-  struct gkyl_array *c_0, struct gkyl_array *alpha_0, struct gkyl_array *c_h, struct gkyl_array *a_perp,
-  struct gkyl_array *vel_flux_surf, struct gkyl_array *cflrate
+  const struct gkyl_array *fin, struct gkyl_array *c_0, struct gkyl_array *alpha_0,
+  struct gkyl_array *c_h, struct gkyl_array *a_perp, struct gkyl_array *vel_flux_surf,
+  struct gkyl_array *cflrate
 )
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(alpha_0)) {
     return gkyl_dg_calc_pkpm_vars_closure_cu(
-      up, conf_range, phase_range, phase_grid, norm_moms, rhs_moms, bvar, wnode, theta, fin, c_0, alpha_0, c_h,
-      a_perp, vel_flux_surf, cflrate
+      up, conf_range, phase_range, phase_grid, norm_moms, rhs_moms, bvar, wnode, theta, fin, c_0,
+      alpha_0, c_h, a_perp, vel_flux_surf, cflrate
     );
   }
 #endif
@@ -92,16 +93,16 @@ gkyl_dg_calc_pkpm_vars_closure(
     long plo = gkyl_range_idx(phase_range, idx);
     idx[cdim] = phase_range->upper[cdim];
     long pup = gkyl_range_idx(phase_range, idx);
-    idx[cdim] = phase_range->upper[cdim] + 1; // velocity ghost cell: its slot is the upper edge face
+    idx[cdim] =
+      phase_range->upper[cdim] + 1; // velocity ghost cell: its slot is the upper edge face
     long pgh = gkyl_range_idx(phase_range, idx);
     num_null += up->pkpm_closure(
       w_lo, w_up, dv, gkyl_array_cfetch(norm_moms, loc), gkyl_array_cfetch(rhs_moms, loc),
       gkyl_array_cfetch(bvar, loc), gkyl_array_cfetch(wnode, loc), gkyl_array_cfetch(theta, loc),
-      gkyl_array_cfetch(alpha_0, loc),
-      gkyl_array_cfetch(c_h, loc), gkyl_array_cfetch(fin, plo), gkyl_array_cfetch(fin, pup),
-      gkyl_array_fetch(c_0, loc), gkyl_array_fetch(alpha_0, loc), gkyl_array_fetch(c_h, loc),
-      gkyl_array_fetch(a_perp, loc), gkyl_array_fetch(vel_flux_surf, plo), gkyl_array_fetch(vel_flux_surf, pgh),
-      cfl, cond
+      gkyl_array_cfetch(alpha_0, loc), gkyl_array_cfetch(c_h, loc), gkyl_array_cfetch(fin, plo),
+      gkyl_array_cfetch(fin, pup), gkyl_array_fetch(c_0, loc), gkyl_array_fetch(alpha_0, loc),
+      gkyl_array_fetch(c_h, loc), gkyl_array_fetch(a_perp, loc),
+      gkyl_array_fetch(vel_flux_surf, plo), gkyl_array_fetch(vel_flux_surf, pgh), cfl, cond
     );
     cond_min = fmin(cond_min, cond[0]);
     // the column rate of the velocity-space terms, the same in every cell of the column
@@ -133,7 +134,9 @@ gkyl_dg_calc_pkpm_vars_prim(
   gkyl_range_iter_init(&iter, conf_range);
   while (gkyl_range_iter_next(&iter)) {
     long loc = gkyl_range_idx(conf_range, iter.idx);
-    num_null += up->pkpm_prim(gkyl_array_cfetch(fluid, loc), gkyl_array_fetch(u, loc), gkyl_array_fetch(xi, loc));
+    num_null += up->pkpm_prim(
+      gkyl_array_cfetch(fluid, loc), gkyl_array_fetch(u, loc), gkyl_array_fetch(xi, loc)
+    );
   }
   return num_null;
 }
@@ -156,8 +159,8 @@ gkyl_dg_calc_pkpm_vars_int(
   while (gkyl_range_iter_next(&iter)) {
     long loc = gkyl_range_idx(conf_range, iter.idx);
     up->pkpm_int(
-      gkyl_array_cfetch(fluid, loc), gkyl_array_cfetch(vlasov_pkpm_moms, loc), gkyl_array_cfetch(u, loc),
-      gkyl_array_fetch(int_pkpm_vars, loc)
+      gkyl_array_cfetch(fluid, loc), gkyl_array_cfetch(vlasov_pkpm_moms, loc),
+      gkyl_array_cfetch(u, loc), gkyl_array_fetch(int_pkpm_vars, loc)
     );
   }
 }
@@ -181,6 +184,9 @@ gkyl_dg_calc_pkpm_vars_constraints(
       c[k] = m[k];
       c[num_basis + k] = m[3 * num_basis + k];
       c[2 * num_basis + k] = (m[num_basis + k] + 2.0 * m[2 * num_basis + k]) / 3.0;
+      for (int a = 0; a < 3; ++a) {
+        c[(3 + a) * num_basis + k] = m[(6 + a) * num_basis + k];
+      }
     }
   }
 }
@@ -209,7 +215,8 @@ gkyl_dg_calc_pkpm_vars_grad_ln_n(
   while (gkyl_range_iter_next(&iter)) {
     long loc = gkyl_range_idx(conf_range, iter.idx);
     num_null += up->pkpm_grad_ln_n(
-      gkyl_array_cfetch(rho, loc), gkyl_array_cfetch(grad_rho, loc), gkyl_array_fetch(grad_ln_n, loc)
+      gkyl_array_cfetch(rho, loc), gkyl_array_cfetch(grad_rho, loc),
+      gkyl_array_fetch(grad_ln_n, loc)
     );
   }
   return num_null;
@@ -321,8 +328,8 @@ gkyl_dg_calc_pkpm_vars_diag(
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(fluid_io)) {
     return gkyl_dg_calc_pkpm_vars_diag_cu(
-      up, conf_range, vlasov_pkpm_moms, euler_pkpm, bvar, grad_b, u, grad_u, theta, alpha_0, xi, c_h,
-      fluid_io, pkpm_vars_io
+      up, conf_range, vlasov_pkpm_moms, euler_pkpm, bvar, grad_b, u, grad_u, theta, alpha_0, xi,
+      c_h, fluid_io, pkpm_vars_io
     );
   }
 #endif
@@ -332,10 +339,11 @@ gkyl_dg_calc_pkpm_vars_diag(
   while (gkyl_range_iter_next(&iter)) {
     long loc = gkyl_range_idx(conf_range, iter.idx);
     up->pkpm_diag(
-      up->conf_grid.dx, gkyl_array_cfetch(vlasov_pkpm_moms, loc), gkyl_array_cfetch(euler_pkpm, loc),
-      gkyl_array_cfetch(bvar, loc), gkyl_array_cfetch(grad_b, loc), gkyl_array_cfetch(u, loc),
-      gkyl_array_cfetch(grad_u, loc), gkyl_array_cfetch(theta, loc), gkyl_array_cfetch(alpha_0, loc),
-      gkyl_array_cfetch(xi, loc), gkyl_array_cfetch(c_h, loc), gkyl_array_fetch(fluid_io, loc),
+      up->conf_grid.dx, gkyl_array_cfetch(vlasov_pkpm_moms, loc),
+      gkyl_array_cfetch(euler_pkpm, loc), gkyl_array_cfetch(bvar, loc),
+      gkyl_array_cfetch(grad_b, loc), gkyl_array_cfetch(u, loc), gkyl_array_cfetch(grad_u, loc),
+      gkyl_array_cfetch(theta, loc), gkyl_array_cfetch(alpha_0, loc), gkyl_array_cfetch(xi, loc),
+      gkyl_array_cfetch(c_h, loc), gkyl_array_fetch(fluid_io, loc),
       gkyl_array_fetch(pkpm_vars_io, loc)
     );
   }
@@ -394,7 +402,9 @@ gkyl_dg_calc_pkpm_vars_source(
   gkyl_range_iter_init(&iter, conf_range);
   while (gkyl_range_iter_next(&iter)) {
     long loc = gkyl_range_idx(conf_range, iter.idx);
-    up->pkpm_source(gkyl_array_cfetch(qmem, loc), gkyl_array_cfetch(fluid, loc), gkyl_array_fetch(rhs, loc));
+    up->pkpm_source(
+      gkyl_array_cfetch(qmem, loc), gkyl_array_cfetch(fluid, loc), gkyl_array_fetch(rhs, loc)
+    );
   }
 }
 

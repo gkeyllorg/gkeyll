@@ -128,15 +128,15 @@ GKYL_CU_DH void vlasov_cross_prim_moms_bgk_2x3v_ser_p2(const double delta_sr, co
   dTemp[5] = vdimPhys * (m_r*vtsq_r[5]-m_s*vtsq_s[5]); 
   dTemp[6] = vdimPhys * (m_r*vtsq_r[6]-m_s*vtsq_s[6]); 
   dTemp[7] = vdimPhys * (m_r*vtsq_r[7]-m_s*vtsq_s[7]); 
-  const double dUSq_fac = (m_r-0.25*deltaTbetap1*mSum/vdimPhys);
-  vtsq_sr[0] = vtsq_s[0] + deltaTbetap1/(vdimPhys*mSum)*(dTemp[0]+dUSq_fac*dUSq[0]); 
-  vtsq_sr[1] = vtsq_s[1] + deltaTbetap1/(vdimPhys*mSum)*(dTemp[1]+dUSq_fac*dUSq[1]); 
-  vtsq_sr[2] = vtsq_s[2] + deltaTbetap1/(vdimPhys*mSum)*(dTemp[2]+dUSq_fac*dUSq[2]); 
-  vtsq_sr[3] = vtsq_s[3] + deltaTbetap1/(vdimPhys*mSum)*(dTemp[3]+dUSq_fac*dUSq[3]); 
-  vtsq_sr[4] = vtsq_s[4] + deltaTbetap1/(vdimPhys*mSum)*(dTemp[4]+dUSq_fac*dUSq[4]); 
-  vtsq_sr[5] = vtsq_s[5] + deltaTbetap1/(vdimPhys*mSum)*(dTemp[5]+dUSq_fac*dUSq[5]); 
-  vtsq_sr[6] = vtsq_s[6] + deltaTbetap1/(vdimPhys*mSum)*(dTemp[6]+dUSq_fac*dUSq[6]); 
-  vtsq_sr[7] = vtsq_s[7] + deltaTbetap1/(vdimPhys*mSum)*(dTemp[7]+dUSq_fac*dUSq[7]); 
+  const double dUSq_fac = (m_r-0.25*deltaTbetap1*mSum);
+  vtsq_sr[0] = vtsq_s[0] + deltaTbetap1/(vdimPhys*mSum)*(dTemp[0]+dUSq_fac*dUSq_sum[0]); 
+  vtsq_sr[1] = vtsq_s[1] + deltaTbetap1/(vdimPhys*mSum)*(dTemp[1]+dUSq_fac*dUSq_sum[1]); 
+  vtsq_sr[2] = vtsq_s[2] + deltaTbetap1/(vdimPhys*mSum)*(dTemp[2]+dUSq_fac*dUSq_sum[2]); 
+  vtsq_sr[3] = vtsq_s[3] + deltaTbetap1/(vdimPhys*mSum)*(dTemp[3]+dUSq_fac*dUSq_sum[3]); 
+  vtsq_sr[4] = vtsq_s[4] + deltaTbetap1/(vdimPhys*mSum)*(dTemp[4]+dUSq_fac*dUSq_sum[4]); 
+  vtsq_sr[5] = vtsq_s[5] + deltaTbetap1/(vdimPhys*mSum)*(dTemp[5]+dUSq_fac*dUSq_sum[5]); 
+  vtsq_sr[6] = vtsq_s[6] + deltaTbetap1/(vdimPhys*mSum)*(dTemp[6]+dUSq_fac*dUSq_sum[6]); 
+  vtsq_sr[7] = vtsq_s[7] + deltaTbetap1/(vdimPhys*mSum)*(dTemp[7]+dUSq_fac*dUSq_sum[7]); 
  
   // If vtsq_sr is negative at a corner, turn off collisions.
   bool negative_cross_temp = false; 

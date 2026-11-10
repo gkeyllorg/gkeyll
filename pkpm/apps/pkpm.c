@@ -306,7 +306,8 @@ gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm)
     gkyl_wave_geom_new(&app->grid, &app->local_ext, app->mapc2p, app->c2p_ctx, app->use_gpu);
 
   // PKPM system *always* has a field to define the local magnetic field direction
-  app->fluid_positivity_eps = pkpm->fluid_positivity_eps > 0.0 ? pkpm->fluid_positivity_eps : 1.0e-2;
+  app->fluid_positivity_eps = pkpm->fluid_positivity_eps > 0.0 ? pkpm->fluid_positivity_eps :
+                                                                 1.0e-2;
   app->num_face_nodes = pkpm->num_face_nodes > 0 ? pkpm->num_face_nodes : 5;
   assert(app->num_face_nodes >= 3);
 
@@ -355,7 +356,8 @@ gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm)
     app->op_split_dt_suggested = 0.0;
     app->op_split_synced = false;
     for (int i = 0; i < app->num_species; ++i) {
-      app->op_split_fluid[i] = mkarr(app->use_gpu, app->species[i].fluid->ncomp, app->species[i].fluid->size);
+      app->op_split_fluid[i] =
+        mkarr(app->use_gpu, app->species[i].fluid->ncomp, app->species[i].fluid->size);
       app->op_split_pos_count[i] = mkarr(
         app->use_gpu, app->species[i].pkpm_pos_count->ncomp, app->species[i].pkpm_pos_count->size
       );
@@ -437,8 +439,11 @@ gkyl_pkpm_app_apply_ic_species(gkyl_pkpm_app *app, int sidx, double t0)
   pkpm_fluid_species_apply_bc(app, &app->species[sidx], app->species[sidx].fluid);
 
   // BGK collisions at a fixed temperature relax to the initial one.
-  if (app->species[sidx].collision_id == GKYL_BGK_COLLISIONS && app->species[sidx].bgk.fixed_temp_relax) {
-    pkpm_species_calc_pkpm_vars(app, &app->species[sidx], app->species[sidx].f, app->species[sidx].fluid);
+  if (app->species[sidx].collision_id == GKYL_BGK_COLLISIONS &&
+      app->species[sidx].bgk.fixed_temp_relax) {
+    pkpm_species_calc_pkpm_vars(
+      app, &app->species[sidx], app->species[sidx].f, app->species[sidx].fluid
+    );
     pkpm_species_bgk_set_fixed_temp(app, &app->species[sidx], &app->species[sidx].bgk);
   }
   pkpm_species_source_write(app, &app->species[sidx], &app->species[sidx].src, t0, 0);
@@ -680,8 +685,8 @@ gkyl_pkpm_app_write_mom(gkyl_pkpm_app *app, int sidx, double tm, int frame)
   gkyl_comm_array_write(
     app->comm, &app->grid, &app->local, mt, s->pkpm_vars_io_host, fileNm_pkpm_vars
   );
-  // The constraints [M0(F), M1(F), (M2(F) + 2 M0(G))/3] of the normalized distributions,
-  // [1, 0, 1] in every mode when the closures hold.
+  // The constraints [M0(F), M1(F), (M2(F) + 2 M0(G))/3, int M0_perp dw (x, y, z)] of the normalized
+  // distributions, [1, 0, 1, 0, 0, 0] in every mode when the closures hold.
   const char *fmt_cons = "%s-%s_pkpm_constraints_%d.gkyl";
   int sz_cons = gkyl_calc_strlen(fmt_cons, app->name, s->info.name, frame);
   char fileNm_cons[sz_cons + 1];
@@ -755,7 +760,9 @@ gkyl_pkpm_app_write_integrated_mom(gkyl_pkpm_app *app)
       // positivity limiter statistics on the same cadence as the integrated moments
       int sz_pos = gkyl_calc_strlen(fmt, app->name, app->species[i].info.name, "positivity-stat");
       char fileNm_pos[sz_pos + 1];
-      snprintf(fileNm_pos, sizeof fileNm_pos, fmt, app->name, app->species[i].info.name, "positivity-stat");
+      snprintf(
+        fileNm_pos, sizeof fileNm_pos, fmt, app->name, app->species[i].info.name, "positivity-stat"
+      );
       if (app->species[i].is_first_pos_stat_write_call) {
         gkyl_dynvec_write(app->species[i].pos_stat, fileNm_pos);
         app->species[i].is_first_pos_stat_write_call = false;
@@ -1413,7 +1420,8 @@ gkyl_pkpm_app_stat_write(gkyl_pkpm_app *app)
 
   for (int i = 0; i < app->num_species; ++i) {
     struct pkpm_species *s = &app->species[i];
-    double null_loc = (double)s->num_null_closure, null_glob = 0.0, cond_loc = s->closure_cond_min, cond_glob = 1.0;
+    double null_loc = (double)s->num_null_closure, null_glob = 0.0, cond_loc = s->closure_cond_min,
+           cond_glob = 1.0;
     gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, &null_loc, &null_glob);
     gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MIN, 1, &cond_loc, &cond_glob);
     gkyl_pkpm_app_cout(app, fp, " %s_closure_null_nodes : %ld,\n", s->info.name, (long)null_glob);
@@ -1470,7 +1478,10 @@ meta_from_file(const char *fname)
     struct gkyl_rect_grid grid;
     struct gkyl_array_header_info hdr;
     if (gkyl_grid_sub_array_header_read_fp(&grid, &hdr, fp) == GKYL_ARRAY_RIO_SUCCESS) {
-      meta = pkpm_meta_from_mpack(&(struct gkyl_msgpack_data){.meta = hdr.meta, .meta_sz = hdr.meta_size});
+      meta = pkpm_meta_from_mpack(&(struct gkyl_msgpack_data){
+        .meta = hdr.meta,
+        .meta_sz = hdr.meta_size,
+      });
       gkyl_grid_sub_array_header_release(&hdr);
     }
   }
@@ -1489,7 +1500,9 @@ gkyl_pkpm_app_from_file_field(gkyl_pkpm_app *app, const char *fname)
       gkyl_array_copy(app->field->em, app->field->em_host);
     }
     // The file holds the physical E, B; the evolved field carries the Jacobian.
-    gkyl_vlasov_position_map_rescale_jacobpos_conf(app->pos_map, &app->local, app->field->em, app->field->em);
+    gkyl_vlasov_position_map_rescale_jacobpos_conf(
+      app->pos_map, &app->local, app->field->em, app->field->em
+    );
     if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
       pkpm_field_apply_bc(app, app->field, app->field->em);
       // b of the restart field, over the extended range (the species reflecting walls read

@@ -48,7 +48,9 @@ struct gkyl_pkpm_source {
   void *ctx_density, *ctx_temp, *ctx_V_drift; // contexts
   void (*density)(double t, const double *xn, double *fout, void *ctx); // number density
   void (*temp)(double t, const double *xn, double *fout, void *ctx); // isotropic temperature
-  void (*V_drift)(double t, const double *xn, double *fout, void *ctx); // drift velocity (3 components); optional
+  void (*V_drift)(
+    double t, const double *xn, double *fout, void *ctx
+  ); // drift velocity (3 components); optional
 };
 
 // Parameters of the momentum diffusion of a species (also on a position map)
@@ -78,6 +80,11 @@ struct gkyl_pkpm_species {
   // partner (M0(G) = T_perp/T) with M2(F) + 2 M0(G) = 3; e.g. a bi-Maxwellian is
   // F = exp(-w^2/(2 r))/sqrt(2 pi r), G = (T_perp/T) F with r = T_par/T, T = (T_par + 2 T_perp)/3.
   void (*init_dist)(double t, const double *xn, double *fout, void *ctx);
+  void *ctx_harm; // context for the first-harmonic initial condition
+  // pointer to the initialization function of the first-harmonic blocks
+  // [M0_perp (x, y, z), N_perp (x, y, z)] (optional; zero if not given). They must be perpendicular
+  // to b, and int M0_perp dw must vanish.
+  void (*init_harm)(double t, const double *xn, double *fout, void *ctx);
   // pointer to the initialization function of the fluid state
   // [rho, rho ux, rho uy, rho uz, E], E = rho |u|^2/2 + 3 p/2 = rho |u|^2/2 + (p_par + 2 p_perp)/2
   void (*init_fluid)(double t, const double *xn, double *fout, void *ctx);
