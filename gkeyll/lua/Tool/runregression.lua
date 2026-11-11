@@ -1281,7 +1281,7 @@ executeBatch = function(items, jobCount, onComplete, logStarts)
       end
       cf:write(string.format("printf 'START %d %%s\\n' \"$firstWorker\"\n", idx))
       cf:write(string.format(
-         "(sh %s > %s 2>&1 || :; printf 'DONE %d\\n'; printf '%%s\\n' $workers >&3) &\n",
+         "(sh %s > %s 2>&1 || :; printf '%%s\\n' $workers >&3; printf 'DONE %d\\n') &\n",
          shellQuote(itemScript), shellQuote(outFile), idx))
    end
    for worker = 1, jobCount do cf:write("read -r token <&3\n") end
@@ -2100,7 +2100,7 @@ local function run_action(args, name)
       local mode = GPU_BUILD and GPU_LAYERS[test.layer] and "gpu" or nil
       local prep = parallel and prepareParallelCRun(test, timeoutSecs, true, mode == "gpu")
          or prepareCRun(test, timeoutSecs, mode, true)
-      if compilation then
+      if compilation and not prep.compileFailed then
          prep.compileLog, prep.compileSecs = compilation.compileLog, compilation.compileSecs
       end
       return prep
