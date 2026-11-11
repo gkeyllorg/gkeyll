@@ -430,6 +430,7 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   if (s->collision_id == GKYL_LBO_COLLISIONS) {
     pkpm_species_lbo_init(app, s, &s->lbo);
   }
+  pkpm_species_source_bgk_init(app, s, &s->src_bgk);
 
   // momentum diffusion, if present, on the position map (orders 2 and 4)
   s->has_diffusion = false;
@@ -1042,8 +1043,10 @@ pkpm_species_rhs(
   // Sources and collisions enter before the closures, which keep the constraints exact
   // against them (the fluid carries the density and energy changes). The self-species LBO
   // conserves the constraints on its own (boundary corrections, zero-flux w edges); it sits
-  // here so that a cross-species energy exchange reaches the thermal-speed closure.
+  // here so that a cross-species energy exchange reaches the thermal-speed closure. The
+  // temperature source also adds its energy relaxation to rhs_fluid.
   pkpm_species_source_kinetic_rhs(app, species, &species->src, fin, rhs_f);
+  pkpm_species_source_bgk_rhs(app, species, &species->src_bgk, fin, fluidin, rhs_f, rhs_fluid);
   if (species->collision_id == GKYL_BGK_COLLISIONS) {
     pkpm_species_bgk_kinetic_rhs(app, species, &species->bgk, fin, rhs_f);
   }
@@ -1064,9 +1067,6 @@ pkpm_species_rhs(
     species->slvr_fluid, &app->local, fluidin, species->cflrate_fluid, rhs_fluid
   );
   pkpm_species_source_fluid_rhs(app, species, &species->src, rhs_fluid);
-  if (species->collision_id == GKYL_BGK_COLLISIONS) {
-    pkpm_species_bgk_fluid_rhs(app, species, &species->bgk, rhs_fluid);
-  }
   species->fluid_tm += gkyl_time_diff_now_sec(tm);
 
   if (species->has_diffusion) {
@@ -1403,6 +1403,7 @@ pkpm_species_release(const gkyl_pkpm_app *app, const struct pkpm_species *s)
     gkyl_array_release(s->fluid_flux_surf_host);
   }
   pkpm_species_source_release(app, &s->src);
+  pkpm_species_source_bgk_release(app, &s->src_bgk);
 
   gkyl_array_release(s->app_accel);
   if (s->has_app_accel) {

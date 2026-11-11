@@ -339,12 +339,11 @@ gkyl_dg_calc_pkpm_vars_diag(
   while (gkyl_range_iter_next(&iter)) {
     long loc = gkyl_range_idx(conf_range, iter.idx);
     up->pkpm_diag(
-      up->conf_grid.dx, gkyl_array_cfetch(vlasov_pkpm_moms, loc),
-      gkyl_array_cfetch(euler_pkpm, loc), gkyl_array_cfetch(bvar, loc),
-      gkyl_array_cfetch(grad_b, loc), gkyl_array_cfetch(u, loc), gkyl_array_cfetch(grad_u, loc),
-      gkyl_array_cfetch(theta, loc), gkyl_array_cfetch(alpha_0, loc), gkyl_array_cfetch(xi, loc),
-      gkyl_array_cfetch(c_h, loc), gkyl_array_fetch(fluid_io, loc),
-      gkyl_array_fetch(pkpm_vars_io, loc)
+      gkyl_array_cfetch(vlasov_pkpm_moms, loc), gkyl_array_cfetch(euler_pkpm, loc),
+      gkyl_array_cfetch(bvar, loc), gkyl_array_cfetch(grad_b, loc), gkyl_array_cfetch(u, loc),
+      gkyl_array_cfetch(grad_u, loc), gkyl_array_cfetch(theta, loc),
+      gkyl_array_cfetch(alpha_0, loc), gkyl_array_cfetch(xi, loc), gkyl_array_cfetch(c_h, loc),
+      gkyl_array_fetch(fluid_io, loc), gkyl_array_fetch(pkpm_vars_io, loc)
     );
   }
 }

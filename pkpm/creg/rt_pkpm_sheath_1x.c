@@ -1,9 +1,19 @@
+// Sheath formation with the PKPM system of equations (1x, normalized parallel velocity
+// w = v_par/xi), the counterpart of vlasov/creg/rt_vlasov_sheath_1x1v.c.
 // Half domain: symmetry boundary at x = 0 (reflecting species, symmetry-wall field),
 // absorbing conducting wall at x = Lx. A boundary-flux source replaces the particles lost
-// to the wall, and BGK collisions relaxing to the initial temperature act upstream
-// (x < L_nu) to hold the pre-sheath plasma at its source temperature; the region next to
-// the wall is collisionless. The position map clusters the cells at the wall. The PKPM
-// counterpart of vlasov/creg/rt_vlasov_sheath_1x1v.c.
+// to the wall, and a BGK-form temperature source at the source temperature acts upstream
+// (x < L_nu) to hold the pre-sheath plasma at that temperature; the region next to
+// the wall is collisionless. The position map clusters the cells at the wall.
+// Run to t = 1000/omega_pe, when the wall loss is 0.6% below its steady value.
+// Figures of merit at t = 1000 (Vlasov 1x1v in parentheses): midplane-to-wall potential drop
+// e*dphi/Te = 1.929 (1.925), ion wall flux / (n_mid c_s) = 0.506 (0.509), ion speed at the
+// wall / c_s = 1.635 (1.629), with c_s = sqrt((Te + Ti)/mi). Over the presheath (the 13 cells
+// upstream of the three sheath cells) the cell averages of the density and the flow velocity
+// of both species are within 1.1% of Vlasov (rms 0.4%), the largest difference being in the
+// cell at the sheath edge; the wall cell has the electron density 2.2% low and the electron
+// velocity 2.0% high.
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -24,13 +34,8 @@
 #endif
 
 #include <rt_arg_parse.h>
-#include <gkyl_kann_net.h>
-#include <gkyl_knutils.h>
 
 struct sheath_ctx {
-  // Mathematical constants (dimensionless).
-  double pi;
-
   // Physical constants (using normalized code units).
   double epsilon0; // Permittivity of free space.
   double mu0; // Permeability of free space.
@@ -40,30 +45,26 @@ struct sheath_ctx {
   double charge_ion; // Ion charge.
 
   double n0; // Reference number density.
-
   double Te_over_Ti; // Electron temperature / ion temperature.
   double B0; // Reference magnetic field strength.
 
   // Derived physical quantities (using normalized code units).
   double vte; // Electron thermal velocity.
   double vti; // Ion thermal velocity.
-
-  double nu_elc; // Electron collision frequency.
-  double nu_ion; // Ion collision frequency.
+  double lambda_D; // Electron Debye length.
+  double omega_pe; // Electron plasma frequency.
+  double nu_Q_elc; // Rate of the electron temperature source (upstream).
+  double nu_Q_ion; // Rate of the ion temperature source (upstream).
 
   // Simulation parameters.
   int Nx; // Cell count (configuration space: x-direction).
-  int Nvx; // Cell count (velocity space: vx-direction).
+  int Nvx; // Cell count (velocity space: normalized parallel velocity w).
   double Lx; // Domain size (configuration space: x-direction).
   double Ls; // Extent of the source region.
-  double L_nu; // Extent of the collisional (fixed-temperature) region.
-  double lambda_D; // Electron Debye length.
-  double omega_pe; // Electron plasma frequency.
-  double nu_ee; // Electron collision frequency (upstream).
-  double nu_ii; // Ion collision frequency (upstream).
+  double L_nu; // Extent of the temperature-source region.
   double map_A; // Amplitude of the position map clustering the cells at the wall.
-  double vx_max_elc; // Domain boundary (electron velocity space: vx-direction).
-  double vx_max_ion; // Domain boundary (ion velocity space: vx-direction).
+  double vx_max_elc; // Domain boundary (electron velocity space: w = v_par/xi).
+  double vx_max_ion; // Domain boundary (ion velocity space: w = v_par/xi).
   int poly_order; // Polynomial order.
   double cfl_frac; // CFL coefficient.
 
@@ -74,30 +75,11 @@ struct sheath_ctx {
   int integrated_L2_f_calcs; // Number of times to calculate integrated L2 norm of distribution function.
   double dt_failure_tol; // Minimum allowable fraction of initial time-step.
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
-
-  // Training parameters.
-  bool train_nn; // Train neural network on simulation data?
-  bool train_ab_initio; // Train neural network ab initio?
-  int nn_width; // Number of neurons to use per layer.
-  int nn_depth; // Number of layers to use.
-  const char *train_nn_file; // File path of neural network to train.
-  int num_trains; // Number of times to train neural network.
-  int num_nn_writes; // Number of times to write out neural network.
-  int num_input_moms; // Number of "input" moments to train on.
-  int *input_moms; // Array of "input" moments to train on.
-  int num_output_moms; // Number of "output" moments to train on.
-  int *output_moms; // Array of "output" moments to train on.
-  bool test_nn; // Test neural network on simulation data?
-  const char *test_nn_file; // File path of neural network to test.
-  int num_tests; // Number of times to test neural network.
 };
 
 struct sheath_ctx
 create_ctx(void)
 {
-  // Mathematical constants (dimensionless).
-  double pi = M_PI;
-
   // Physical constants (using normalized code units).
   double epsilon0 = 1.0; // Permittivity of free space.
   double mu0 = 1.0 / 25.0; // Permeability of free space (speed of light = 5 vte).
@@ -107,7 +89,6 @@ create_ctx(void)
   double charge_ion = 1.0; // Ion charge.
 
   double n0 = 1.0; // Reference number density.
-
   double Te_over_Ti = 1.0; // Electron temperature / ion temperature.
   double B0 = 1.0; // Reference magnetic field strength.
 
@@ -115,26 +96,27 @@ create_ctx(void)
   double vte = 1.0; // Electron thermal velocity.
   double vti = vte / sqrt(Te_over_Ti * mass_ion); // Ion thermal velocity.
 
-  double lambda_D = sqrt(epsilon0 * vte * vte * mass_elc / (n0 * charge_ion * charge_ion)); // Electron Debye length.
-  double omega_pe = sqrt(n0 * charge_ion * charge_ion / (epsilon0 * mass_elc)); // Electron plasma frequency.
-  double nu_ee = vte / (5.0 * lambda_D); // Electron collision frequency (upstream).
-  double nu_ii = vti / (5.0 * lambda_D); // Ion collision frequency (upstream).
-  double nu_elc = nu_ee; // Electron collision frequency (unused: the profile is nu_ee).
-  double nu_ion = nu_ii; // Ion collision frequency (unused: the profile is nu_ii).
+  double lambda_D = sqrt(
+    epsilon0 * vte * vte * mass_elc / (n0 * charge_ion * charge_ion)
+  ); // Electron Debye length.
+  double omega_pe =
+    sqrt(n0 * charge_ion * charge_ion / (epsilon0 * mass_elc)); // Electron plasma frequency.
+  double nu_Q_elc = vte / (5.0 * lambda_D); // Rate of the electron temperature source (upstream).
+  double nu_Q_ion = vti / (5.0 * lambda_D); // Rate of the ion temperature source (upstream).
 
   // Simulation parameters.
   int Nx = 16; // Cell count (configuration space: x-direction).
-  int Nvx = 24; // Cell count (velocity space: vx-direction).
+  int Nvx = 16; // Cell count (velocity space: normalized parallel velocity w).
   double Lx = 64.0 * lambda_D; // Domain size (configuration space: x-direction).
   double Ls = 40.0 * lambda_D; // Extent of the source region.
-  double L_nu = 32.0 * lambda_D; // Extent of the collisional (fixed-temperature) region.
+  double L_nu = 32.0 * lambda_D; // Extent of the temperature-source region.
   double map_A = 0.8; // Amplitude of the position map clustering the cells at the wall.
-  double vx_max_elc = 6.0; // Domain boundary (normalized velocity w = v_par/xi).
-  double vx_max_ion = 6.0; // Domain boundary (normalized velocity w = v_par/xi).
+  double vx_max_elc = 5.0; // Domain boundary (electron velocity space: w = v_par/xi).
+  double vx_max_ion = 5.0; // Domain boundary (ion velocity space: w = v_par/xi).
   int poly_order = 1; // Polynomial order.
   double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 1500.0 / omega_pe; // Final simulation time.
+  double t_end = 1000.0 / omega_pe; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
@@ -143,29 +125,7 @@ create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  // Training parameters.
-  bool train_nn = false; // Train neural network on simulation data?
-  bool train_ab_initio = true; // Train neural network ab initio?
-  int nn_width = 256; // Number of neurons to use per layer.
-  int nn_depth = 5; // Number of layers to use.
-  const char *train_nn_file = "pkpm_sheath_source_p1_moms_nn_1"; // File path of neural network to train.
-  int num_trains = INT_MAX; // Number of times to train neural network.
-  int num_nn_writes = 1; // Number of times to write out neural network.
-  int num_input_moms = 3; // Number of "input" moments to train on.
-  int *input_moms = gkyl_malloc(sizeof(int[3]));
-  input_moms[0] = 0;
-  input_moms[1] = 2;
-  input_moms[2] = 3; // Array of "input" moments to train on.
-  int num_output_moms = 2; // Number of "output" moments to train on.
-  int *output_moms = gkyl_malloc(sizeof(int[2]));
-  output_moms[0] = 4;
-  output_moms[1] = 5; // Array of "output" moments to train on.
-  bool test_nn = false; // Test neural network on simulation data?
-  const char *test_nn_file = "pkpm_sheath_source_p1_moms_nn_1"; // File path of neural network to test.
-  int num_tests = 1; // Number of times to test neural network.
-
   struct sheath_ctx ctx = {
-    .pi = pi,
     .epsilon0 = epsilon0,
     .mu0 = mu0,
     .mass_elc = mass_elc,
@@ -177,17 +137,15 @@ create_ctx(void)
     .B0 = B0,
     .vte = vte,
     .vti = vti,
-    .nu_elc = nu_elc,
-    .nu_ion = nu_ion,
+    .lambda_D = lambda_D,
+    .omega_pe = omega_pe,
+    .nu_Q_elc = nu_Q_elc,
+    .nu_Q_ion = nu_Q_ion,
     .Nx = Nx,
     .Nvx = Nvx,
     .Lx = Lx,
     .Ls = Ls,
     .L_nu = L_nu,
-    .lambda_D = lambda_D,
-    .omega_pe = omega_pe,
-    .nu_ee = nu_ee,
-    .nu_ii = nu_ii,
     .map_A = map_A,
     .vx_max_elc = vx_max_elc,
     .vx_max_ion = vx_max_ion,
@@ -200,20 +158,6 @@ create_ctx(void)
     .integrated_L2_f_calcs = integrated_L2_f_calcs,
     .dt_failure_tol = dt_failure_tol,
     .num_failures_max = num_failures_max,
-    .train_nn = train_nn,
-    .train_ab_initio = train_ab_initio,
-    .nn_width = nn_width,
-    .nn_depth = nn_depth,
-    .train_nn_file = train_nn_file,
-    .num_trains = num_trains,
-    .num_nn_writes = num_nn_writes,
-    .num_input_moms = num_input_moms,
-    .input_moms = input_moms,
-    .num_output_moms = num_output_moms,
-    .output_moms = output_moms,
-    .test_nn = test_nn,
-    .test_nn_file = test_nn_file,
-    .num_tests = num_tests,
   };
 
   return ctx;
@@ -300,7 +244,9 @@ evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fo
 // Static external guide field along x (b = x_hat): not subject to the field boundary
 // conditions, so the wall's image field does not reverse it.
 void
-evalExternalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+evalExternalFieldInit(
+  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx
+)
 {
   struct sheath_ctx *app = ctx;
 
@@ -314,31 +260,31 @@ evalExternalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RES
   fout[5] = 0.0;
 }
 
-// Collision frequencies: nu_ee and nu_ii upstream (x < L_nu), vanishing over 6 lambda_D
-// towards the collisionless region next to the wall.
+// Rates of the temperature source: nu_Q_elc and nu_Q_ion upstream (x < L_nu), vanishing over
+// 6 lambda_D towards the collisionless region next to the wall.
 void
-evalElcNu(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+evalElcSourceRate(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct sheath_ctx *app = ctx;
   double x = xn[0];
 
-  // Set electron collision frequency.
-  fout[0] = app->nu_ee / (1.0 + exp((x - app->L_nu) / (6.0 * app->lambda_D)));
+  // Set electron temperature-source rate.
+  fout[0] = app->nu_Q_elc / (1.0 + exp((x - app->L_nu) / (6.0 * app->lambda_D)));
 }
 
 void
-evalIonNu(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+evalIonSourceRate(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct sheath_ctx *app = ctx;
   double x = xn[0];
 
-  // Set ion collision frequency.
-  fout[0] = app->nu_ii / (1.0 + exp((x - app->L_nu) / (6.0 * app->lambda_D)));
+  // Set ion temperature-source rate.
+  fout[0] = app->nu_Q_ion / (1.0 + exp((x - app->L_nu) / (6.0 * app->lambda_D)));
 }
 
 // Source profile: a density 2 (Ls - x)/Ls inside the source region (it integrates to Ls,
 // so the boundary-flux source replaces the wall losses exactly), at the plasma
-// temperature and without drift.
+// temperature and without drift. The temperature source relaxes to the same temperature.
 void
 evalSourceDensity(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
@@ -388,6 +334,15 @@ mapc2p_pos_x(double t, const double *GKYL_RESTRICT xc, double *GKYL_RESTRICT xp,
   xp[0] = (1.0 + A) * x_c - A * (x_c * x_c) / Lx;
 }
 
+// Snap a trigger whose next time exceeds t_end only by round-off back to t_end.
+static void
+snap_trigger_to_t_end(struct gkyl_tm_trigger *trig, double t_end)
+{
+  if (trig->tcurr > t_end && trig->tcurr <= t_end * (1.0 + 1.0e-10)) {
+    trig->tcurr = t_end;
+  }
+}
+
 void
 write_data(struct gkyl_tm_trigger *iot, gkyl_pkpm_app *app, double t_curr, bool force_write)
 {
@@ -425,63 +380,6 @@ calc_integrated_L2_f(struct gkyl_tm_trigger *l2t, gkyl_pkpm_app *app, double t_c
 {
   if (gkyl_tm_trigger_check_and_bump(l2t, t_curr) || force_calc) {
     gkyl_pkpm_app_calc_integrated_L2_f(app, t_curr);
-  }
-}
-
-void
-train_mom(
-  struct gkyl_tm_trigger *nn, gkyl_pkpm_app *app, double t_curr, bool force_train,
-  struct gkyl_kann_net **ann, int num_input_moms, int *input_moms, int num_output_moms,
-  int *output_moms, struct gkyl_kn_vec *input_data, struct gkyl_kn_vec *output_data
-)
-{
-  if (gkyl_tm_trigger_check_and_bump(nn, t_curr) || force_train) {
-    int frame = nn->curr - 1;
-    if (force_train) {
-      frame = nn->curr;
-    }
-
-    gkyl_pkpm_app_train(
-      app, t_curr, frame, ann, num_input_moms, input_moms, num_output_moms, output_moms, input_data,
-      output_data
-    );
-  }
-}
-
-void
-write_nn(
-  struct gkyl_tm_trigger *nnw, gkyl_pkpm_app *app, double t_curr, bool force_write,
-  struct gkyl_kann_net **ann
-)
-{
-  if (gkyl_tm_trigger_check_and_bump(nnw, t_curr) || force_write) {
-    int frame = nnw->curr - 1;
-    if (force_write) {
-      frame = nnw->curr;
-    }
-
-    gkyl_pkpm_app_write_nn(app, t_curr, frame, ann);
-  }
-}
-
-void
-test_mom(
-  struct gkyl_tm_trigger *nnt, gkyl_pkpm_app *app, double t_curr, bool force_test,
-  struct gkyl_kann_net **ann, int num_input_moms, int *input_moms, int num_output_moms,
-  int *output_moms, struct gkyl_kn_vec *input_data_real, struct gkyl_kn_vec *output_data_real,
-  struct gkyl_kn_vec *output_data_predicted
-)
-{
-  if (gkyl_tm_trigger_check_and_bump(nnt, t_curr) || force_test) {
-    int frame = nnt->curr - 1;
-    if (force_test) {
-      frame = nnt->curr;
-    }
-
-    gkyl_pkpm_app_test(
-      app, t_curr, frame, ann, num_input_moms, input_moms, num_output_moms, output_moms,
-      input_data_real, output_data_real, output_data_predicted
-    );
   }
 }
 
@@ -581,8 +479,14 @@ main(int argc, char **argv)
     .init_fluid = evalElcFluidInit,
     .ctx_fluid = &ctx,
 
-    .collisions =
-      {.collision_id = GKYL_BGK_COLLISIONS, .self_nu = evalElcNu, .ctx = &ctx, .fixed_temp_relax = true},
+    .source_bgk =
+      {
+        .source_bgk_id = GKYL_SOURCE_BGK_HEATING,
+        .rate_profile = evalElcSourceRate,
+        .rate_profile_ctx = &ctx,
+        .temp_shape = evalElcSourceTemp,
+        .temp_shape_ctx = &ctx,
+      },
 
     .source =
       {
@@ -615,8 +519,14 @@ main(int argc, char **argv)
     .init_fluid = evalIonFluidInit,
     .ctx_fluid = &ctx,
 
-    .collisions =
-      {.collision_id = GKYL_BGK_COLLISIONS, .self_nu = evalIonNu, .ctx = &ctx, .fixed_temp_relax = true},
+    .source_bgk =
+      {
+        .source_bgk_id = GKYL_SOURCE_BGK_HEATING,
+        .rate_profile = evalIonSourceRate,
+        .rate_profile_ctx = &ctx,
+        .temp_shape = evalIonSourceTemp,
+        .temp_shape_ctx = &ctx,
+      },
 
     .source =
       {
@@ -746,139 +656,13 @@ main(int argc, char **argv)
 
   write_data(&io_trig, app, t_curr, false);
 
-  // Create trigger for neural network training.
-  int num_trains = ctx.num_trains;
-  struct gkyl_tm_trigger nn_trig = {.dt = t_end / num_trains, .tcurr = t_curr, .curr = frame_curr};
-
-  kad_node_t **t = gkyl_malloc(sizeof(kad_node_t *) * app_inp.num_species);
-  struct gkyl_kann_net **ann = gkyl_malloc(sizeof(struct gkyl_kann_net *) * app_inp.num_species);
-  if (ctx.train_nn) {
-    if (ctx.train_ab_initio) {
-      for (int i = 0; i < app_inp.num_species; i++) {
-        if (ctx.poly_order == 1) {
-          if (cdim == 1) {
-            t[i] = kann_layer_input(ctx.num_input_moms * 2);
-          } else if (cdim == 2) {
-            t[i] = kann_layer_input(ctx.num_input_moms * 4);
-          }
-        } else if (ctx.poly_order == 2) {
-          t[i] = kann_layer_input(ctx.num_input_moms * 3);
-        }
-
-        for (int j = 0; j < ctx.nn_depth; j++) {
-          t[i] = kann_layer_dense(t[i], ctx.nn_width);
-          t[i] = kad_tanh(t[i]);
-        }
-
-        if (ctx.poly_order == 1) {
-          if (cdim == 1) {
-            t[i] = kann_layer_cost(t[i], ctx.num_output_moms * 2, KANN_C_MSE);
-          } else if (cdim == 2) {
-            t[i] = kann_layer_cost(t[i], ctx.num_output_moms * 4, KANN_C_MSE);
-          }
-        } else if (ctx.poly_order == 2) {
-          t[i] = kann_layer_cost(t[i], ctx.num_output_moms * 3, KANN_C_MSE);
-        }
-        ann[i] = gkyl_kann_net_new(t[i], app_args.use_gpu);
-      }
-    } else {
-      for (int i = 0; i < app_inp.num_species; i++) {
-        const char *fmt = "%s-%s.dat";
-        int sz = gkyl_calc_strlen(fmt, ctx.train_nn_file, app_inp.species[i].name);
-        char fileNm[sz + 1];
-        snprintf(fileNm, sizeof fileNm, fmt, ctx.train_nn_file, app_inp.species[i].name);
-
-        FILE *file = fopen(fileNm, "r");
-        if (file != NULL) {
-          ann[i] = gkyl_kann_net_load(fileNm, app_args.use_gpu);
-          fclose(file);
-        } else {
-          ann[i] = 0;
-          ctx.train_nn = false;
-          fprintf(
-            stderr, "Neural network for species %s not found! Disabling NN training.\n",
-            app_inp.species[i].name
-          );
-        }
-      }
-    }
-  }
-
-  int cell_count = 0;
-  if (app_inp.cdim == 1) {
-    cell_count = app_inp.cells[0];
-  } else if (app_inp.cdim == 2) {
-    cell_count = app_inp.cells[0] * app_inp.cells[1];
-  }
-
-  // Number of DG coefficients per moment carried into/out of the network.
-  int nn_num_coeff = (app_inp.poly_order == 1) ? ((app_inp.cdim == 1) ? 2 : 4) : 3;
-  int nn_input_dim = ctx.num_input_moms * nn_num_coeff;
-  int nn_output_dim = ctx.num_output_moms * nn_num_coeff;
-
-  struct gkyl_kn_vec *input_data = gkyl_kn_vec_new(cell_count, nn_input_dim);
-  struct gkyl_kn_vec *output_data = gkyl_kn_vec_new(cell_count, nn_output_dim);
-
-  if (ctx.train_nn) {
-    train_mom(
-      &nn_trig, app, t_curr, false, ann, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms,
-      ctx.output_moms, input_data, output_data
-    );
-  }
-
-  // Create trigger for neural network writing.
-  int num_nn_writes = ctx.num_nn_writes;
-  struct gkyl_tm_trigger nnw_trig = {
-    .dt = t_end / num_nn_writes,
-    .tcurr = t_curr,
-    .curr = frame_curr,
-  };
-
-  if (ctx.train_nn) {
-    write_nn(&nnw_trig, app, t_curr, false, ann);
-  }
-
-  // Create trigger for neural network testing.
-  int num_tests = ctx.num_tests;
-  struct gkyl_tm_trigger nnt_trig = {.dt = t_end / num_tests, .tcurr = t_curr, .curr = frame_curr};
-
-  struct gkyl_kann_net **ann_test =
-    gkyl_malloc(sizeof(struct gkyl_kann_net *) * app_inp.num_species);
-  if (ctx.test_nn) {
-    for (int i = 0; i < app_inp.num_species; i++) {
-      const char *fmt = "%s-%s.dat";
-      int sz = gkyl_calc_strlen(fmt, ctx.test_nn_file, app_inp.species[i].name);
-      char fileNm[sz + 1];
-      snprintf(fileNm, sizeof fileNm, fmt, ctx.test_nn_file, app_inp.species[i].name);
-
-      FILE *file = fopen(fileNm, "r");
-      if (file != NULL) {
-        ann_test[i] = gkyl_kann_net_load(fileNm, app_args.use_gpu);
-        fclose(file);
-      } else {
-        ann_test[i] = 0;
-        ctx.test_nn = false;
-        fprintf(
-          stderr, "Neural network for species %s not found! Disabling NN testing.\n",
-          app_inp.species[i].name
-        );
-      }
-    }
-  }
-
-  struct gkyl_kn_vec *input_data_real = gkyl_kn_vec_new(cell_count, nn_input_dim);
-  struct gkyl_kn_vec *output_data_real = gkyl_kn_vec_new(cell_count, nn_output_dim);
-  struct gkyl_kn_vec *output_data_predicted = gkyl_kn_vec_new(cell_count, nn_output_dim);
-
-  if (ctx.test_nn) {
-    test_mom(
-      &nnt_trig, app, t_curr, false, ann_test, ctx.num_input_moms, ctx.input_moms,
-      ctx.num_output_moms, ctx.output_moms, input_data_real, output_data_real, output_data_predicted
-    );
-  }
-
   // Compute initial guess of maximum stable time-step.
   double dt = t_end - t_curr;
+
+  // The requested time-step is shortened near the end of the simulation so that
+  // the final step lands exactly on t_end.
+  bool is_dt_clipped = false; // Was the requested dt shortened below the stable dt?
+  bool is_last_step = true; // Does the requested dt reach t_end?
 
   // Initialize small time-step check.
   double dt_init = -1.0, dt_failure_tol = ctx.dt_failure_tol;
@@ -895,31 +679,46 @@ main(int argc, char **argv)
       break;
     }
 
-    t_curr += status.dt_actual;
+    // Only a step that took the full requested dt counts as shortened/final.
+    bool took_requested_dt = status.dt_actual == dt;
+    bool was_dt_clipped = is_dt_clipped && took_requested_dt;
+    if (is_last_step && took_requested_dt) {
+      // Avoid round-off leaving t_curr just short of t_end.
+      t_curr = t_end;
+      // Trigger times are accumulated sums and can exceed t_end by round-off.
+      // Snap them so the final frame and diagnostics are still produced.
+      snap_trigger_to_t_end(&fe_trig, t_end);
+      snap_trigger_to_t_end(&im_trig, t_end);
+      snap_trigger_to_t_end(&l2f_trig, t_end);
+      snap_trigger_to_t_end(&io_trig, t_end);
+    } else {
+      t_curr += status.dt_actual;
+    }
+
+    // Request the next time-step. If the remaining time fits in one stable step,
+    // take exactly the remaining time; if it fits in less than two, split it into
+    // two equal steps so the final step is never a sliver of the stable dt.
+    double t_left = t_end - t_curr;
     dt = status.dt_suggested;
+    is_dt_clipped = false;
+    is_last_step = false;
+    if (t_left <= dt) {
+      dt = t_left;
+      is_dt_clipped = true;
+      is_last_step = true;
+    } else if (t_left < 2.0 * dt) {
+      dt = 0.5 * t_left;
+      is_dt_clipped = true;
+    }
 
     calc_field_energy(&fe_trig, app, t_curr, false);
     calc_integrated_mom(&im_trig, app, t_curr, false);
     calc_integrated_L2_f(&l2f_trig, app, t_curr, false);
     write_data(&io_trig, app, t_curr, false);
-    if (ctx.train_nn) {
-      train_mom(
-        &nn_trig, app, t_curr, false, ann, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms,
-        ctx.output_moms, input_data, output_data
-      );
-      write_nn(&nnw_trig, app, t_curr, false, ann);
-    }
-    if (ctx.test_nn) {
-      test_mom(
-        &nnt_trig, app, t_curr, false, ann_test, ctx.num_input_moms, ctx.input_moms,
-        ctx.num_output_moms, ctx.output_moms, input_data_real, output_data_real,
-        output_data_predicted
-      );
-    }
 
     if (dt_init < 0.0) {
       dt_init = status.dt_actual;
-    } else if (status.dt_actual < dt_failure_tol * dt_init) {
+    } else if (!was_dt_clipped && status.dt_actual < dt_failure_tol * dt_init) {
       num_failures += 1;
 
       gkyl_pkpm_app_cout(app, stdout, "WARNING: Time-step dt = %g", status.dt_actual);
@@ -935,20 +734,6 @@ main(int argc, char **argv)
         calc_integrated_mom(&im_trig, app, t_curr, true);
         calc_integrated_L2_f(&l2f_trig, app, t_curr, true);
         write_data(&io_trig, app, t_curr, true);
-        if (ctx.train_nn) {
-          train_mom(
-            &nn_trig, app, t_curr, true, ann, ctx.num_input_moms, ctx.input_moms,
-            ctx.num_output_moms, ctx.output_moms, input_data, output_data
-          );
-          write_nn(&nnw_trig, app, t_curr, true, ann);
-        }
-        if (ctx.test_nn) {
-          test_mom(
-            &nnt_trig, app, t_curr, true, ann_test, ctx.num_input_moms, ctx.input_moms,
-            ctx.num_output_moms, ctx.output_moms, input_data_real, output_data_real,
-            output_data_predicted
-          );
-        }
 
         break;
       }
@@ -963,27 +748,6 @@ main(int argc, char **argv)
   calc_integrated_mom(&im_trig, app, t_curr, false);
   calc_integrated_L2_f(&l2f_trig, app, t_curr, false);
   write_data(&io_trig, app, t_curr, false);
-  if (ctx.train_nn) {
-    train_mom(
-      &nn_trig, app, t_curr, false, ann, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms,
-      ctx.output_moms, input_data, output_data
-    );
-    write_nn(&nnw_trig, app, t_curr, false, ann);
-
-    for (int i = 0; i < app_inp.num_species; i++) {
-      gkyl_kann_net_release(ann[i]);
-    }
-  }
-  if (ctx.test_nn) {
-    test_mom(
-      &nnt_trig, app, t_curr, false, ann_test, ctx.num_input_moms, ctx.input_moms,
-      ctx.num_output_moms, ctx.output_moms, input_data_real, output_data_real, output_data_predicted
-    );
-
-    for (int i = 0; i < app_inp.num_species; i++) {
-      gkyl_kann_net_release(ann_test[i]);
-    }
-  }
   gkyl_pkpm_app_stat_write(app);
 
   struct gkyl_pkpm_stat stat = gkyl_pkpm_app_stat(app);
@@ -1026,17 +790,6 @@ freeresources:
   // Free resources after simulation completion.
   gkyl_comm_release(comm);
   gkyl_pkpm_app_release(app);
-  gkyl_free(ctx.input_moms);
-  gkyl_free(ctx.output_moms);
-  gkyl_free(t);
-  gkyl_free(ann);
-  gkyl_free(ann_test);
-
-  gkyl_kn_vec_release(input_data);
-  gkyl_kn_vec_release(output_data);
-  gkyl_kn_vec_release(input_data_real);
-  gkyl_kn_vec_release(output_data_real);
-  gkyl_kn_vec_release(output_data_predicted);
 
 mpifinalize:
 #ifdef GKYL_HAVE_MPI

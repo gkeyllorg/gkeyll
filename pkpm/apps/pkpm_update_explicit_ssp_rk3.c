@@ -165,10 +165,20 @@ pkpm_update_ssp_rk3_implicit_coll(gkyl_pkpm_app *app, double dt0)
 {
   struct gkyl_update_status st = pkpm_update_explicit_ssp_rk3(app, dt0);
 
+  // The implicit operators act at the nodes on the same target, so they commute. The
+  // temperature source changes the energy at the nodes, so the vertex limiter follows it.
   for (int i = 0; i < app->num_species; ++i) {
     struct pkpm_species *s = &app->species[i];
-    if (s->collision_id == GKYL_BGK_COLLISIONS && s->bgk.is_implicit) {
+    bool is_implicit_bgk = s->collision_id == GKYL_BGK_COLLISIONS && s->bgk.is_implicit;
+    if (is_implicit_bgk) {
       pkpm_species_bgk_implicit_advance(app, s, &s->bgk, st.dt_actual);
+    }
+    if (s->src_bgk.is_implicit) {
+      pkpm_species_source_bgk_implicit_advance(app, s, &s->src_bgk, st.dt_actual);
+      pkpm_species_apply_positivity(app, s, s->fluid);
+      pkpm_fluid_species_apply_bc(app, s, s->fluid);
+    }
+    if (is_implicit_bgk || s->src_bgk.is_implicit) {
       pkpm_species_apply_bc(app, s, s->f);
     }
   }

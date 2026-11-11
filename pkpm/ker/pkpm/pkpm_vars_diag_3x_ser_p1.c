@@ -1,9 +1,8 @@
 #include <gkyl_pkpm_vars_kernels.h> 
-GKYL_CU_DH void pkpm_vars_diag_3x_ser_p1(const double *dxv, const double *vlasov_pkpm_moms, const double *euler_pkpm,
+GKYL_CU_DH void pkpm_vars_diag_3x_ser_p1(const double *vlasov_pkpm_moms, const double *euler_pkpm,
   const double *bvar, const double *grad_b, const double *u, const double *grad_u, const double *theta, const double *alpha_0,
   const double *xi, const double *c_h, double* GKYL_RESTRICT fluid_io, double* GKYL_RESTRICT pkpm_vars_io) 
 { 
-  // dxv[NDIM]:        Cell spacing. 
   // vlasov_pkpm_moms: Kinetic coupling moments [p_par, p_perp, q_par, q_perp]. 
   // euler_pkpm:       Fluid state [rho, rho ux, rho uy, rho uz, E]. 
   // bvar:             Magnetic field unit vector [bx, by, bz]. 
@@ -16,9 +15,6 @@ GKYL_CU_DH void pkpm_vars_diag_3x_ser_p1(const double *dxv, const double *vlasov
   // c_h:              Heating rate closing the scalar second moment. 
   // fluid_io:         Output [rho, M_i, P_ij + M_i u_j, E] (11 components). 
   // pkpm_vars_io:     Output [u_x, u_y, u_z, T_perp/m, a_P, div b, bb:grad u, T_perp/m div b, xi, c] (10 components). 
-  const double dx10 = 2.0/dxv[0]; 
-  const double dx11 = 2.0/dxv[1]; 
-  const double dx12 = 2.0/dxv[2]; 
   const double *rho = &euler_pkpm[0]; 
   const double *ppar = &vlasov_pkpm_moms[0]; 
   const double *pperp = &vlasov_pkpm_moms[8]; 

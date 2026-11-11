@@ -54,6 +54,7 @@
 #include <gkyl_pkpm_bgk_collisions.h>
 #include <gkyl_pkpm_coll_nu.h>
 #include <gkyl_pkpm_lte.h>
+#include <gkyl_pkpm_temp_source.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
@@ -94,9 +95,8 @@ struct pkpm_species_moment {
 // forward declare species struct
 struct pkpm_species;
 
-// Context of the host-side projections of the source and BGK target distributions: the
-// p=1 configuration fields are evaluated at the computational coordinates of the
-// phase-space quadrature points.
+// Context of the host-side projection of the source distributions: the p=1 configuration
+// fields are evaluated at the computational coordinates of the phase-space quadrature points.
 struct pkpm_source_eval_ctx {
   int cdim;
   double mass;
@@ -126,17 +126,6 @@ struct pkpm_source {
   struct pkpm_source_eval_ctx eval_ctx;
 };
 
-struct pkpm_bgk_eval_ctx {
-  int cdim;
-  const struct gkyl_rect_grid *conf_grid;
-  const struct gkyl_basis *conf_basis;
-  const struct gkyl_range *local_ext;
-  bool fixed_temp_relax;
-  const struct gkyl_array *fixed_vtsq; // xi_0^2 (host)
-  const struct gkyl_array *xi; // [xi, xi^2, p] of the stage (host)
-};
-
-struct pkpm_species;
 struct pkpm_bgk_collisions;
 
 // Accumulate the kinetic BGK term of a species onto rhs.
@@ -147,7 +136,7 @@ typedef void (*pkpm_bgk_kinetic_rhs_t)(
 
 struct pkpm_bgk_collisions {
   // The operator at the configuration-space nodes.
-  bool use_nodal; // false for a fixed-temperature target and for GPU runs
+  bool use_nodal; // false for GPU runs
   bool is_implicit; // backward Euler after each SSP-RK3 step (nodal only)
   struct gkyl_array *rate; // relaxation rate at the nodes
   struct gkyl_array *shape; // implicit shape factor S at the nodes
@@ -155,15 +144,31 @@ struct pkpm_bgk_collisions {
   gkyl_pkpm_bgk_collisions *up_bgk; // updater
   pkpm_bgk_kinetic_rhs_t kinetic_rhs; // the nodal or modal kinetic term
 
-  // The modal form of the operator.
+  // The modal form of the operator (GPU runs).
   struct gkyl_array *nu; // collision frequency
-  bool fixed_temp_relax;
-  struct gkyl_array *fixed_vtsq, *fixed_vtsq_host; // xi_0^2 of the initial state
-  struct gkyl_array *xi_host; // host mirror (GPU only)
-  struct gkyl_array *f_target, *f_target_host; // J [F_t, G_t] of the stage
-  struct gkyl_array *E_target, *scratch, *uu; // fluid energy relaxation scratch
-  gkyl_proj_on_basis *proj_target;
-  struct pkpm_bgk_eval_ctx eval_ctx;
+  struct gkyl_array *f_target; // J [F_t, G_t]
+};
+
+struct pkpm_source_bgk;
+
+// Accumulate the temperature source of a species onto the kinetic and fluid right-hand sides.
+typedef void (*pkpm_source_bgk_rhs_t)(
+  gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_source_bgk *src,
+  const struct gkyl_array *fin, const struct gkyl_array *fluidin, struct gkyl_array *rhs_f,
+  struct gkyl_array *rhs_fluid
+);
+
+// BGK-form temperature source at the configuration-space nodes.
+struct pkpm_source_bgk {
+  enum gkyl_source_bgk_id source_bgk_id; // type of source
+  bool is_implicit; // backward Euler after each SSP-RK3 step
+  struct gkyl_array *rate; // source rate nu_Q at the nodes
+  struct gkyl_array *vtsq; // source temperature over the mass, T_Q/m, at the nodes
+  struct gkyl_array *shape; // rate (explicit) or shape factor (implicit) of the distributions
+  struct gkyl_array *f_lte; // corrected unit Maxwellian in w, 3 modes per velocity cell
+  gkyl_pkpm_temp_source *up_temp; // thermal-energy relaxation of the fluid state
+  gkyl_pkpm_bgk_collisions *up_bgk; // relaxation of the distributions
+  pkpm_source_bgk_rhs_t rhs; // the explicit terms, or nothing
 };
 
 struct pkpm_lbo_collisions {
@@ -409,6 +414,7 @@ struct pkpm_species {
   struct pkpm_bgk_collisions bgk; // BGK collisions object
 
   struct pkpm_source src; // source object
+  struct pkpm_source_bgk src_bgk; // temperature source object
   double bflux
     [2 *
      GKYL_MAX_CDIM]; // particle loss rate through the absorbing walls [lower, upper] per direction (stage)
@@ -855,14 +861,38 @@ void pkpm_species_source_write(
 );
 void pkpm_species_source_release(const gkyl_pkpm_app *app, const struct pkpm_source *src);
 
-// BGK collisions: nu (f_target - f) with the normalized Maxwellian target, optionally at
-// the initial temperature (then the fluid energy relaxes at the same rate).
+// Project a configuration-space profile at the physical coordinates of the position map and
+// scale it. Returns a new host array on the extended range: the values at the 2^cdim interior
+// Gauss-Legendre nodes if is_nodal is set, the p=1 expansion otherwise.
+struct gkyl_array *pkpm_species_coll_profile_new(
+  gkyl_pkpm_app *app, void (*eval)(double t, const double *xn, double *fout, void *ctx), void *ctx,
+  double scale, bool is_nodal
+);
+// The target of the BGK-form operators: a new host array with the unit Maxwellian in w on the
+// velocity grid of the species (3 modes per cell), its discrete moments corrected to [1, 0, 1].
+struct gkyl_array *pkpm_species_bgk_target_new(gkyl_pkpm_app *app, struct pkpm_species *s);
+
+// BGK collisions: nu (f_target - f) with the normalized unit Maxwellian target. They conserve
+// the density, momentum and energy, so they never touch the fluid.
 void pkpm_species_bgk_init(
   gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_bgk_collisions *bgk
 );
-void pkpm_species_bgk_set_fixed_temp(
-  gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_bgk_collisions *bgk
+
+// Temperature source (pkpm_species_source_bgk.c). The explicit form enters the right-hand
+// sides before the closures; the implicit form is one backward-Euler step over dt on the
+// distributions and the fluid state of the species (interior only).
+void pkpm_species_source_bgk_init(
+  gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_source_bgk *src
 );
+void pkpm_species_source_bgk_rhs(
+  gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_source_bgk *src,
+  const struct gkyl_array *fin, const struct gkyl_array *fluidin, struct gkyl_array *rhs_f,
+  struct gkyl_array *rhs_fluid
+);
+void pkpm_species_source_bgk_implicit_advance(
+  gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_source_bgk *src, double dt
+);
+void pkpm_species_source_bgk_release(const gkyl_pkpm_app *app, const struct pkpm_source_bgk *src);
 // Project M0_perp and N_perp of the distributions f onto the plane perpendicular to the current b
 // at the Gauss-Legendre nodes of b, in place, over the extended ranges (plan 17.11).
 void pkpm_species_project_transverse(
@@ -888,10 +918,6 @@ void pkpm_species_accumulate_conf_phase(
 void pkpm_species_bgk_kinetic_rhs(
   gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_bgk_collisions *bgk,
   const struct gkyl_array *fin, struct gkyl_array *rhs
-);
-void pkpm_species_bgk_fluid_rhs(
-  gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_bgk_collisions *bgk,
-  struct gkyl_array *rhs
 );
 // One backward-Euler step of the BGK operator over dt on the species distribution (interior only).
 void pkpm_species_bgk_implicit_advance(

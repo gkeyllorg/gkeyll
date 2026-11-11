@@ -26,12 +26,32 @@ struct gkyl_pkpm_collisions {
   int num_cross_collisions; // number of species to cross-collide with
   char collide_with[GKYL_MAX_SPECIES][128]; // names of species to cross collide with
 
-  // BGK collisions: relax to a Maxwellian at the INITIAL temperature of the species
-  // instead of the local one (the fluid energy then relaxes at the rate nu as well).
-  bool fixed_temp_relax;
-
   // BGK collisions: one backward-Euler step after each time step instead of the explicit update
-  // (with its CFL limit). Fixed-temperature and GPU runs are always explicit.
+  // (with its CFL limit). Not available on the GPU.
+  bool is_implicit;
+};
+
+// Parameters for a BGK-form temperature source of a species,
+//   S = nu_Q(x) (f_M(n, u, T_Q(x)) - f),
+// the form of the gyrokinetic GKYL_SOURCE_BGK_HEATING with a prescribed temperature T_Q. It
+// conserves the density and the flow and relaxes the temperature, d_t T = nu_Q (T_Q - T). In
+// the normalized variables the fluid thermal energy relaxes to (3/2) n T_Q at the rate nu_Q
+// and the distributions relax to the unit Maxwellian at the rate nu_Q T_Q/T, which relaxes
+// every pressure component at the rate nu_Q of the source. Terms of order (T_Q/T - 1) times
+// the departure of the distributions from a Maxwellian are dropped: moments of degree three
+// decay at nu_Q T_Q/T instead of nu_Q (3 T_Q/T - 1)/2. It is independent of `collisions`.
+struct gkyl_pkpm_source_bgk {
+  enum gkyl_source_bgk_id source_bgk_id; // GKYL_NO_SOURCE_BGK (default) or GKYL_SOURCE_BGK_HEATING
+
+  void *rate_profile_ctx; // context for the rate function
+  // pointer to the source rate nu_Q(x)
+  void (*rate_profile)(double t, const double *xn, double *fout, void *ctx);
+  void *temp_shape_ctx; // context for the temperature function
+  // pointer to the source temperature T_Q(x)
+  void (*temp_shape)(double t, const double *xn, double *fout, void *ctx);
+
+  // One backward-Euler step after each time step instead of the explicit update (whose time
+  // step is limited by nu_Q and by nu_Q T_Q/T).
   bool is_implicit;
 };
 
@@ -98,6 +118,9 @@ struct gkyl_pkpm_species {
 
   // source to include
   struct gkyl_pkpm_source source;
+
+  // temperature source to include
+  struct gkyl_pkpm_source_bgk source_bgk;
 
   // diffusion coupling to include for momentum
   struct gkyl_pkpm_fluid_diffusion diffusion;

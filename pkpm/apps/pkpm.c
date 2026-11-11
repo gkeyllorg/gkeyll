@@ -438,14 +438,6 @@ gkyl_pkpm_app_apply_ic_species(gkyl_pkpm_app *app, int sidx, double t0)
   pkpm_species_apply_bc(app, &app->species[sidx], app->species[sidx].f);
   pkpm_fluid_species_apply_bc(app, &app->species[sidx], app->species[sidx].fluid);
 
-  // BGK collisions at a fixed temperature relax to the initial one.
-  if (app->species[sidx].collision_id == GKYL_BGK_COLLISIONS &&
-      app->species[sidx].bgk.fixed_temp_relax) {
-    pkpm_species_calc_pkpm_vars(
-      app, &app->species[sidx], app->species[sidx].f, app->species[sidx].fluid
-    );
-    pkpm_species_bgk_set_fixed_temp(app, &app->species[sidx], &app->species[sidx].bgk);
-  }
   pkpm_species_source_write(app, &app->species[sidx], &app->species[sidx].src, t0, 0);
 }
 

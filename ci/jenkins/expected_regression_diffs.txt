@@ -121,19 +121,8 @@ gyrokinetic/creg/rt_gk_sheath_1x2v_p1_cons   # kinetic neutrals on triads Vlasov
 gyrokinetic/creg/rt_gk_sheath_cx_2x2v_p1   # kinetic neutrals on triads Vlasov solver; field made toroidal (parallel to e_3) as mapc2p requires
 gyrokinetic/creg/rt_gk_step_2x2v_p1_cons   # kinetic neutrals on triads Vlasov solver; isotropic neutral velocity grid, 12^3 -> 8^3 cells for CI runtime
 
-# kitp-hamil-vlasov: regenerated core basis kernels (serendipity sqrt/exp_sq and the 1x1v hybrid
-# surface-evaluation headers) carry their coefficients at full double precision, which moves
-# several constants by one ulp. The 1x pkpm tests differ from main at round-off only (absolute
-# 1e-14 to 1e-10 on order-one to 1e3 values); the CI tolerance of 1e-12 flags them.
-pkpm/creg/rt_pkpm_alf_soliton_1x_p2   # round-off from one-ulp kernel constants
-pkpm/creg/rt_pkpm_em_advect_resonant_p1   # round-off from one-ulp kernel constants
-pkpm/creg/rt_pkpm_es_shock_reflect_p2   # round-off from one-ulp kernel constants
-pkpm/creg/rt_pkpm_mom_beach_p2   # round-off from one-ulp kernel constants
-pkpm/creg/rt_pkpm_neut_sodshock_p2   # round-off from one-ulp kernel constants
-pkpm/creg/rt_pkpm_sheath_p1   # round-off from one-ulp kernel constants
-pkpm/creg/rt_pkpm_wall_p2   # round-off from one-ulp kernel constants
-
-# kitp-hamil-vlasov: the hybrid basis is now the tensor hybrid, whose 2x1v coefficient ordering
-# differs from the old serendipity hybrid. Distribution-function files of 2x pkpm tests hold the
-# same function with permuted coefficients; moments, fields and time series are identical to main.
-pkpm/creg/rt_pkpm_2d_travel_pulse_p1   # 2x1v hybrid coefficient ordering (distribution files only)
+# kitp-hamil-vlasov: the PKPM solver is a new baseline set (energy-constrained p=1 form, first
+# gyroangle harmonic, blended remap flux) and its regression suite was rewritten under new test
+# names, which CI runs as candidate-only. rt_pkpm_wall_p1 is the only test that keeps its name
+# on main and is not skipped by the manifest, so it is the only one compared.
+pkpm/creg/rt_pkpm_wall_p1   # new PKPM formulation and configuration-space flux

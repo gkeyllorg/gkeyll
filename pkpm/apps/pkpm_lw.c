@@ -77,8 +77,12 @@ struct pkpm_species_lw {
 
   int num_cross_collisions; // Number of species that we cross-collide with.
   char collide_with[GKYL_MAX_SPECIES][128]; // Names of species that we cross-collide with.
-  bool fixed_temp_relax; // BGK: relax to a Maxwellian at the initial temperature?
   bool is_implicit; // BGK: backward Euler instead of the explicit update?
+
+  bool has_source_bgk; // Is there a temperature source?
+  bool source_bgk_is_implicit; // Temperature source: backward Euler instead of the explicit update?
+  struct lua_func_ctx source_bgk_rate_func_ref; // Lua registry reference to the source rate.
+  struct lua_func_ctx source_bgk_temp_func_ref; // Lua registry reference to the source temperature.
 
   enum gkyl_source_id source_id; // Source type.
   double source_length; // Boundary-flux source: the length the density profile integrates to.
@@ -209,13 +213,11 @@ pkpm_species_lw_new(lua_State *L)
   int num_cross_collisions = 0;
   char collide_with[GKYL_MAX_SPECIES][128];
 
-  bool fixed_temp_relax = false;
   bool is_implicit = false;
 
   with_lua_tbl_tbl(L, "collisions")
   {
     collision_id = glua_tbl_get_integer(L, "collisionID", 0);
-    fixed_temp_relax = glua_tbl_get_bool(L, "fixedTempRelax", false);
     is_implicit = glua_tbl_get_bool(L, "useImplicitCollisionScheme", false);
 
     if (glua_tbl_get_func(L, "selfNu")) {
@@ -230,6 +232,22 @@ pkpm_species_lw_new(lua_State *L)
         const char *collide_with_char = glua_tbl_iget_string(L, i + 1, "");
         strcpy(collide_with[i], collide_with_char);
       }
+    }
+  }
+
+  // Temperature source nu_Q (f_M(n, u, T_Q) - f): the rate nu_Q and the temperature T_Q.
+  bool has_source_bgk = false, source_bgk_is_implicit = false;
+  int source_bgk_rate_func_ref = LUA_NOREF, source_bgk_temp_func_ref = LUA_NOREF;
+
+  with_lua_tbl_tbl(L, "sourceBGK")
+  {
+    has_source_bgk = true;
+    source_bgk_is_implicit = glua_tbl_get_bool(L, "useImplicitScheme", false);
+    if (glua_tbl_get_func(L, "rateProfile")) {
+      source_bgk_rate_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    }
+    if (glua_tbl_get_func(L, "tempShape")) {
+      source_bgk_temp_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
     }
   }
 
@@ -325,8 +343,14 @@ pkpm_species_lw_new(lua_State *L)
   for (int i = 0; i < num_cross_collisions; i++) {
     strcpy(pkpm_s_lw->collide_with[i], collide_with[i]);
   }
-  pkpm_s_lw->fixed_temp_relax = fixed_temp_relax;
   pkpm_s_lw->is_implicit = is_implicit;
+
+  pkpm_s_lw->has_source_bgk = has_source_bgk;
+  pkpm_s_lw->source_bgk_is_implicit = source_bgk_is_implicit;
+  pkpm_s_lw->source_bgk_rate_func_ref =
+    (struct lua_func_ctx){.func_ref = source_bgk_rate_func_ref, .ndim = 0, .nret = 1, .L = L};
+  pkpm_s_lw->source_bgk_temp_func_ref =
+    (struct lua_func_ctx){.func_ref = source_bgk_temp_func_ref, .ndim = 0, .nret = 1, .L = L};
 
   pkpm_s_lw->source_id = source_id;
   pkpm_s_lw->source_length = source_length;
@@ -519,6 +543,11 @@ struct pkpm_app_lw {
   char collide_with[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES]
                    [128]; // Names of species that we cross-collide with.
 
+  struct lua_func_ctx
+    source_bgk_rate_func_ctx[GKYL_MAX_SPECIES]; // Context for temperature-source rate.
+  struct lua_func_ctx
+    source_bgk_temp_func_ctx[GKYL_MAX_SPECIES]; // Context for temperature-source temperature.
+
   struct lua_func_ctx source_density_func_ctx[GKYL_MAX_SPECIES]; // Context for source density.
   struct lua_func_ctx source_temp_func_ctx[GKYL_MAX_SPECIES]; // Context for source temperature.
   struct lua_func_ctx source_drift_func_ctx[GKYL_MAX_SPECIES]; // Context for source drift velocity.
@@ -590,6 +619,9 @@ get_species_inp(lua_State *L, int cdim, struct pkpm_species_lw *species[GKYL_MAX
         if (pkpm_s->has_self_nu_func) {
           pkpm_s->self_nu_func_ref.ndim = cdim;
         }
+
+        pkpm_s->source_bgk_rate_func_ref.ndim = cdim;
+        pkpm_s->source_bgk_temp_func_ref.ndim = cdim;
 
         pkpm_s->source_density_func_ref.ndim = cdim;
         pkpm_s->source_temp_func_ref.ndim = cdim;
@@ -945,8 +977,20 @@ pkpm_app_new(lua_State *L)
     for (int i = 0; i < app_lw->num_cross_collisions[s]; i++) {
       strcpy(pkpm.species[s].collisions.collide_with[i], app_lw->collide_with[s][i]);
     }
-    pkpm.species[s].collisions.fixed_temp_relax = species[s]->fixed_temp_relax;
     pkpm.species[s].collisions.is_implicit = species[s]->is_implicit;
+
+    if (species[s]->has_source_bgk) {
+      app_lw->source_bgk_rate_func_ctx[s] = species[s]->source_bgk_rate_func_ref;
+      app_lw->source_bgk_temp_func_ctx[s] = species[s]->source_bgk_temp_func_ref;
+      pkpm.species[s].source_bgk = (struct gkyl_pkpm_source_bgk){
+        .source_bgk_id = GKYL_SOURCE_BGK_HEATING,
+        .rate_profile = gkyl_lw_eval_cb,
+        .rate_profile_ctx = &app_lw->source_bgk_rate_func_ctx[s],
+        .temp_shape = gkyl_lw_eval_cb,
+        .temp_shape_ctx = &app_lw->source_bgk_temp_func_ctx[s],
+        .is_implicit = species[s]->source_bgk_is_implicit,
+      };
+    }
 
     if (species[s]->source_id != GKYL_NO_SOURCE) {
       pkpm.species[s].source.source_id = species[s]->source_id;

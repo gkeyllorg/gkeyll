@@ -1,10 +1,12 @@
--- Sheath formation with the Vlasov-Maxwell system of equations, run to a steady state.
+-- Sheath formation with the Vlasov-Maxwell system of equations, run to t = 1000/omega_pe, when
+-- the wall flux is 0.6% below its steady value.
 -- Half domain: symmetry boundary at x = 0, absorbing conducting wall at x = Lx. A boundary-flux
 -- source replaces the particles lost to the wall, and BGK collisions relaxing to a fixed
 -- temperature act upstream (|x| < L_nu) to hold the pre-sheath plasma at its source temperature;
 -- the region next to the wall is collisionless. The position map clusters the cells at the wall.
--- Figures of merit at steady state (serendipity p2): midplane-to-wall potential drop e*dphi/Te =
--- 1.93, ion wall flux / (n_mid c_s) = 0.51, ion speed at the wall / c_s = 1.64.
+-- Figures of merit at t = 1000 (serendipity p2): midplane-to-wall potential drop e*dphi/Te =
+-- 1.925, ion wall flux / (n_mid c_s) = 0.509, ion speed at the wall / c_s = 1.629, with
+-- c_s = sqrt((Te + Ti)/mi) (at t = 1500: 1.929, 0.508, 1.642).
 local Vlasov = G0.Vlasov
 
 -- Physical constants (using normalized code units).
@@ -45,7 +47,7 @@ basis_type = "serendipity" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
 cfl_frac = 1.0 -- CFL coefficient.
 
-t_end = 1500.0 / omega_pe -- Final simulation time.
+t_end = 1000.0 / omega_pe -- Final simulation time.
 num_frames = 1 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.

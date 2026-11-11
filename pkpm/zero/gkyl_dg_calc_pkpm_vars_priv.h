@@ -21,22 +21,24 @@ typedef struct {
 } gkyl_dg_pkpm_in_cell_grad_kern_list;
 
 typedef void (*pkpm_diag_t)(
-  const double *dxv, const double *vlasov_pkpm_moms, const double *euler_pkpm, const double *bvar,
+  const double *vlasov_pkpm_moms, const double *euler_pkpm, const double *bvar,
   const double *grad_b, const double *u, const double *grad_u, const double *theta,
   const double *alpha_0, const double *xi, const double *c_h, double *GKYL_RESTRICT fluid_io,
   double *GKYL_RESTRICT pkpm_vars_io
 );
 
 typedef int (*pkpm_closure_t)(
-  double w_lo, double w_up, double dv, const double *norm_moms, const double *rhs_moms, const double *bvar,
-  const double *wn, const double *theta, const double *alpha_0_prev, const double *c_h_prev,
-  const double *f_lo, const double *f_up, double *GKYL_RESTRICT c_0, double *GKYL_RESTRICT alpha_0,
-  double *GKYL_RESTRICT c_h, double *GKYL_RESTRICT a_perp, double *GKYL_RESTRICT flux_lo,
-  double *GKYL_RESTRICT flux_up, double *GKYL_RESTRICT cfl, double *GKYL_RESTRICT cond
+  double w_lo, double w_up, double dv, const double *norm_moms, const double *rhs_moms,
+  const double *bvar, const double *wn, const double *theta, const double *alpha_0_prev,
+  const double *c_h_prev, const double *f_lo, const double *f_up, double *GKYL_RESTRICT c_0,
+  double *GKYL_RESTRICT alpha_0, double *GKYL_RESTRICT c_h, double *GKYL_RESTRICT a_perp,
+  double *GKYL_RESTRICT flux_lo, double *GKYL_RESTRICT flux_up, double *GKYL_RESTRICT cfl,
+  double *GKYL_RESTRICT cond
 );
 typedef int (*pkpm_prim_t)(const double *fluid, double *GKYL_RESTRICT u, double *GKYL_RESTRICT xi);
 typedef void (*pkpm_int_t)(
-  const double *fluid, const double *vlasov_pkpm_moms, const double *u, double *GKYL_RESTRICT int_pkpm_vars
+  const double *fluid, const double *vlasov_pkpm_moms, const double *u,
+  double *GKYL_RESTRICT int_pkpm_vars
 );
 
 typedef int (*pkpm_fluid_positivity_t)(double eps, double *GKYL_RESTRICT fluid);
@@ -52,11 +54,14 @@ struct gkyl_dg_calc_pkpm_vars {
   struct gkyl_rect_grid conf_grid; // Configuration space grid for cell spacing and cell center
   int cdim; // Configuration space dimensionality
   int poly_order; // polynomial order (p=1 serendipity only)
-  const struct gkyl_vlasov_position_map *pos_map; // Position map (acquired; host pointer, 0 on the device copy)
-  const struct gkyl_array *jacob_pos; // Per-direction Jacobians (borrowed from pos_map; device pointer on device)
+  const struct gkyl_vlasov_position_map
+    *pos_map; // Position map (acquired; host pointer, 0 on the device copy)
+  const struct gkyl_array
+    *jacob_pos; // Per-direction Jacobians (borrowed from pos_map; device pointer on device)
 
   pkpm_in_cell_grad_t pkpm_in_cell_grad[3]; // in-cell gradient of a 3-vector in each direction
-  pkpm_closure_t pkpm_closure; // closures c_0, a_P/xi and c from the moments of the stage-A rhs, with the velocity edges
+  pkpm_closure_t
+    pkpm_closure; // closures c_0, a_P/xi and c from the moments of the stage-A rhs, with the velocity edges
   pkpm_prim_t pkpm_prim; // nodal flow and thermal speed [xi, xi^2, p] of the fluid state
   pkpm_int_t pkpm_int; // cell integrals of the diagnostics of the [rho, M, E] state
   pkpm_grad_ln_n_t pkpm_grad_ln_n; // grad(ln n) by nodal quotient of the weak gradient of rho
@@ -75,11 +80,8 @@ struct gkyl_dg_calc_pkpm_vars {
   struct gkyl_dg_calc_pkpm_vars *on_dev; // pointer to itself or device data
 };
 
-
 GKYL_CU_D static const pkpm_diag_t ser_pkpm_diag_kernels[] = {
-  pkpm_vars_diag_1x_ser_p1,
-  pkpm_vars_diag_2x_ser_p1,
-  pkpm_vars_diag_3x_ser_p1,
+  pkpm_vars_diag_1x_ser_p1, pkpm_vars_diag_2x_ser_p1, pkpm_vars_diag_3x_ser_p1
 };
 
 // In-cell gradient of a 3-vector (p=1 serendipity only; indexed [cdim-1].kernels[dir])
@@ -110,12 +112,9 @@ choose_pkpm_diag_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
 
 // Closures of the factored, normalized update: c_0, a_P/xi and the heating rate c (p=1 serendipity)
 GKYL_CU_D static const pkpm_closure_t ser_pkpm_closure_kernels[] = {
-  pkpm_vars_closure_1x_ser_p1,
-  pkpm_vars_closure_2x_ser_p1,
-  pkpm_vars_closure_3x_ser_p1,
+  pkpm_vars_closure_1x_ser_p1, pkpm_vars_closure_2x_ser_p1, pkpm_vars_closure_3x_ser_p1
 };
-GKYL_CU_D
-static pkpm_closure_t
+GKYL_CU_D static pkpm_closure_t
 choose_pkpm_closure_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   if (poly_order == 1 && b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
@@ -125,12 +124,9 @@ choose_pkpm_closure_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
 }
 // Nodal thermal speed [xi, xi^2] of the fluid state (p=1 serendipity)
 GKYL_CU_D static const pkpm_prim_t ser_pkpm_prim_kernels[] = {
-  pkpm_vars_prim_1x_ser_p1,
-  pkpm_vars_prim_2x_ser_p1,
-  pkpm_vars_prim_3x_ser_p1,
+  pkpm_vars_prim_1x_ser_p1, pkpm_vars_prim_2x_ser_p1, pkpm_vars_prim_3x_ser_p1
 };
-GKYL_CU_D
-static pkpm_prim_t
+GKYL_CU_D static pkpm_prim_t
 choose_pkpm_prim_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   if (poly_order == 1 && b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
@@ -139,12 +135,9 @@ choose_pkpm_prim_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
   return 0;
 }
 GKYL_CU_D static const pkpm_int_t ser_pkpm_int_kernels[] = {
-  pkpm_vars_int_1x_ser_p1,
-  pkpm_vars_int_2x_ser_p1,
-  pkpm_vars_int_3x_ser_p1,
+  pkpm_vars_int_1x_ser_p1, pkpm_vars_int_2x_ser_p1, pkpm_vars_int_3x_ser_p1
 };
-GKYL_CU_D
-static pkpm_int_t
+GKYL_CU_D static pkpm_int_t
 choose_pkpm_int_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   if (poly_order == 1 && b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
@@ -154,12 +147,9 @@ choose_pkpm_int_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
 }
 // grad(ln n) from the weak gradient of rho over the cell average (p=1 serendipity)
 GKYL_CU_D static const pkpm_fluid_positivity_t ser_pkpm_fluid_positivity_kernels[] = {
-  pkpm_fluid_positivity_1x_ser_p1,
-  pkpm_fluid_positivity_2x_ser_p1,
-  pkpm_fluid_positivity_3x_ser_p1,
+  pkpm_fluid_positivity_1x_ser_p1, pkpm_fluid_positivity_2x_ser_p1, pkpm_fluid_positivity_3x_ser_p1
 };
-GKYL_CU_D
-static pkpm_fluid_positivity_t
+GKYL_CU_D static pkpm_fluid_positivity_t
 choose_pkpm_fluid_positivity_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   if (poly_order == 1 && b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
@@ -169,12 +159,9 @@ choose_pkpm_fluid_positivity_kern(enum gkyl_basis_type b_type, int cdim, int pol
 }
 
 GKYL_CU_D static const pkpm_grad_ln_n_t ser_pkpm_grad_ln_n_kernels[] = {
-  pkpm_vars_grad_ln_n_1x_ser_p1,
-  pkpm_vars_grad_ln_n_2x_ser_p1,
-  pkpm_vars_grad_ln_n_3x_ser_p1,
+  pkpm_vars_grad_ln_n_1x_ser_p1, pkpm_vars_grad_ln_n_2x_ser_p1, pkpm_vars_grad_ln_n_3x_ser_p1
 };
-GKYL_CU_D
-static pkpm_grad_ln_n_t
+GKYL_CU_D static pkpm_grad_ln_n_t
 choose_pkpm_grad_ln_n_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   if (poly_order == 1 && b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
@@ -184,12 +171,9 @@ choose_pkpm_grad_ln_n_kern(enum gkyl_basis_type b_type, int cdim, int poly_order
 }
 // Nodal constraint enforcement of the initial normalized distributions (p=1 serendipity)
 GKYL_CU_D static const pkpm_normalize_t ser_pkpm_normalize_kernels[] = {
-  pkpm_dist_normalize_1x1v_ser_p1,
-  pkpm_dist_normalize_2x1v_ser_p1,
-  pkpm_dist_normalize_3x1v_ser_p1,
+  pkpm_dist_normalize_1x1v_ser_p1, pkpm_dist_normalize_2x1v_ser_p1, pkpm_dist_normalize_3x1v_ser_p1
 };
-GKYL_CU_D
-static pkpm_normalize_t
+GKYL_CU_D static pkpm_normalize_t
 choose_pkpm_normalize_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   if (poly_order == 1 && b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
@@ -199,12 +183,10 @@ choose_pkpm_normalize_kern(enum gkyl_basis_type b_type, int cdim, int poly_order
 }
 // Transversality projection of the first-harmonic blocks (p=1 serendipity)
 GKYL_CU_D static const pkpm_transverse_t ser_pkpm_transverse_kernels[] = {
-  pkpm_dist_transverse_1x1v_ser_p1,
-  pkpm_dist_transverse_2x1v_ser_p1,
-  pkpm_dist_transverse_3x1v_ser_p1,
+  pkpm_dist_transverse_1x1v_ser_p1, pkpm_dist_transverse_2x1v_ser_p1,
+  pkpm_dist_transverse_3x1v_ser_p1
 };
-GKYL_CU_D
-static pkpm_transverse_t
+GKYL_CU_D static pkpm_transverse_t
 choose_pkpm_transverse_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   if (poly_order == 1 && b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
@@ -214,12 +196,9 @@ choose_pkpm_transverse_kern(enum gkyl_basis_type b_type, int cdim, int poly_orde
 }
 // Explicit electromagnetic source of [rho, M, E] (p=1 serendipity)
 GKYL_CU_D static const pkpm_source_t ser_pkpm_source_kernels[] = {
-  pkpm_vars_source_1x_ser_p1,
-  pkpm_vars_source_2x_ser_p1,
-  pkpm_vars_source_3x_ser_p1,
+  pkpm_vars_source_1x_ser_p1, pkpm_vars_source_2x_ser_p1, pkpm_vars_source_3x_ser_p1
 };
-GKYL_CU_D
-static pkpm_source_t
+GKYL_CU_D static pkpm_source_t
 choose_pkpm_source_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   if (poly_order == 1 && b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
