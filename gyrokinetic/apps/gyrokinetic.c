@@ -12,6 +12,7 @@
 #include <gkyl_null_comm.h>
 #include <gkyl_nodal_ops.h>
 #include <gkyl_translate_dim.h>
+#include <gkyl_util.h>
 
 #include <gkyl_gyrokinetic_priv.h>
 #include <gkyl_app_priv.h>
@@ -260,8 +261,12 @@ gyrokinetic_prepare_miller(struct gkyl_gk *gk)
   } else if (inp.input_coord_limits_type[1] == GKYL_GK_GEOMETRY_COORD_BINORMAL_LENGTH &&
              gk->cdim != 3) {
     error = "Miller binormal length bounds require a 3x simulation";
+  } else if (inp.input_coord_limits_type[2] == GKYL_GK_GEOMETRY_COORD_PARALLEL_THETA_MILLER &&
+             gk->cdim != 3) {
+    error = "Miller theta bounds require a 3x simulation";
   } else if (inp.input_coord_limits_type[2] != GKYL_GK_GEOMETRY_COORD_UNSPECIFIED &&
-             inp.input_coord_limits_type[2] != GKYL_GK_GEOMETRY_COORD_PARALLEL_THETA) {
+             inp.input_coord_limits_type[2] != GKYL_GK_GEOMETRY_COORD_PARALLEL_THETA &&
+             inp.input_coord_limits_type[2] != GKYL_GK_GEOMETRY_COORD_PARALLEL_THETA_MILLER) {
     error = "invalid Miller parallel coordinate type";
   }
   double x_bounds[2] = {gk->lower[0], gk->upper[0]}, psi_bounds[2];
@@ -292,6 +297,17 @@ gyrokinetic_prepare_miller(struct gkyl_gk *gk)
              inp.input_coord_limits_type[1] != GKYL_GK_GEOMETRY_COORD_BINORMAL_ALPHA) {
     error = "invalid Miller binormal extent type";
     failure = 1;
+  }
+
+  double theta_bounds[2];
+  if (inp.input_coord_limits_type[2] == GKYL_GK_GEOMETRY_COORD_PARALLEL_THETA_MILLER) {
+    theta_bounds[0] = gkyl_gen_miller_eqdsk_theta_tok_at_theta(&inp, gk->lower[2]);
+    theta_bounds[1] = gkyl_gen_miller_eqdsk_theta_tok_at_theta(&inp, gk->upper[2]);
+    if (!gkyl_is_dfinite(theta_bounds[0]) || !gkyl_is_dfinite(theta_bounds[1]) ||
+        theta_bounds[0] >= theta_bounds[1]) {
+      error = "invalid Miller theta bounds or failed parallel coordinate conversion";
+      failure = 1;
+    }
   }
 
   // Use the serialized boundary value, exactly as the EFIT reader will see it.
@@ -371,6 +387,10 @@ gyrokinetic_prepare_miller(struct gkyl_gk *gk)
   if (inp.input_coord_limits_type[1] == GKYL_GK_GEOMETRY_COORD_BINORMAL_LENGTH) {
     gk->lower[1] = binormal.alpha_bounds[0];
     gk->upper[1] = binormal.alpha_bounds[1];
+  }
+  if (inp.input_coord_limits_type[2] == GKYL_GK_GEOMETRY_COORD_PARALLEL_THETA_MILLER) {
+    gk->lower[2] = theta_bounds[0];
+    gk->upper[2] = theta_bounds[1];
   }
   gk->geometry.geometry_id = GKYL_GEOMETRY_TOKAMAK;
   gk->geometry.efit_info = efit;

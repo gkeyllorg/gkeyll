@@ -8,7 +8,8 @@ typedef struct gkyl_gen_miller_eqdsk gkyl_gen_miller_eqdsk;
 
 struct gkyl_gen_miller_eqdsk_inp {
   // Representation of lower/upper in (radial, binormal, parallel) directions.
-  // Zero uses the computational coordinates (psi, alpha, theta).
+  // Zero uses the computational coordinates (psi, alpha, normalized poloidal arc theta).
+  // PARALLEL_THETA_MILLER converts 3x third-direction bounds from Miller angle [rad].
   enum gkyl_gk_geometry_coord_type input_coord_limits_type[3];
   double Rmajor_axis, Zvert_axis; // Major radius and vertical position of magnetic axis.
   double bmag_axis; // Signed toroidal field at the magnetic axis [T]; nonzero, sign sets B_phi.

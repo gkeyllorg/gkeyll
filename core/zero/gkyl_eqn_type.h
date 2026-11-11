@@ -155,7 +155,7 @@ enum gkyl_geometry_id {
   GKYL_GEOMETRY_FROMFILE // Geometry from file.
 };
 
-// Representation of the radial domain endpoints supplied to geometry initialization.
+// Representation of configuration-domain endpoints supplied to geometry initialization.
 enum gkyl_gk_geometry_coord_type {
   GKYL_GK_GEOMETRY_COORD_UNSPECIFIED = 0, // Use the computational coordinate for this direction.
   GKYL_GK_GEOMETRY_COORD_RADIAL_PSI_POL, // Poloidal flux divided by 2*pi [Wb/rad].
@@ -163,7 +163,8 @@ enum gkyl_gk_geometry_coord_type {
   GKYL_GK_GEOMETRY_COORD_RADIAL_R_OMP, // Outboard-midplane major radius [m].
   GKYL_GK_GEOMETRY_COORD_BINORMAL_ALPHA, // Field-line label angle [rad].
   GKYL_GK_GEOMETRY_COORD_BINORMAL_LENGTH, // Binormal length [m].
-  GKYL_GK_GEOMETRY_COORD_PARALLEL_THETA // Normalized poloidal arc coordinate [rad].
+  GKYL_GK_GEOMETRY_COORD_PARALLEL_THETA, // Normalized poloidal arc coordinate [rad].
+  GKYL_GK_GEOMETRY_COORD_PARALLEL_THETA_MILLER // Miller poloidal angle [rad].
 };
 
 // type of quadrature to use
