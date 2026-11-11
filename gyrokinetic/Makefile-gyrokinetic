@@ -72,10 +72,16 @@ all: $(LLIB) $(SLLIB) ## Build all targets
 	cp ./data/adas/radiation_fit_parameters.txt ${INSTALL_PREFIX}/${PROJ_NAME}/share/adas
 .DEFAULT_GOAL := all
 
+# Wall validation must reject NaN and infinity, including in its inline helpers.
+# Preserve the other fast-math options and limit this override to these sources.
+WALL_CHECK_SRCS := zero/tok_geo.c zero/tok_geo_utils.c apps/gyrokinetic_multib.c \
+  unit/ctest_rho_wall_adjust.c unit/ctest_tok_geo_wall.c unit/ctest_tok_geo_wall_target.c
+WALL_CHECK_CFLAGS = $(if $(filter $<,$(WALL_CHECK_SRCS)),-fno-finite-math-only)
+
 # c -> o files
 ../$(BUILD_DIR)/gyrokinetic/%.c.o: %.c
 	$(MKDIR_P) $(dir $@)
-	$(CC) -c $(CFLAGS) $(ARCH_FLAGS) $(INCS) $< -o $@
+	$(CC) -c $(CFLAGS) $(ARCH_FLAGS) $(WALL_CHECK_CFLAGS) $(INCS) $< -o $@
 
 # Build commands for CUDA source                                                                                                                                                     
 ../$(BUILD_DIR)/gyrokinetic/%.cu.o: %.cu
@@ -85,7 +91,7 @@ all: $(LLIB) $(SLLIB) ## Build all targets
 # Unit tests
 $(UNITS): ../${BUILD_DIR}/gyrokinetic/unit/%: unit/%.c $(LLIB) $(SLLIB)
 	$(MKDIR_P) ../${BUILD_DIR}/gyrokinetic/unit
-	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCS) ${EXEC_LIB_DIRS} ${EXEC_LIBS}
+	${CC} ${CFLAGS} $(WALL_CHECK_CFLAGS) ${LDFLAGS} -o $@ $< -I. $(INCS) ${EXEC_LIB_DIRS} ${EXEC_LIBS}
 
 # MPI unit tests
 $(MPI_UNITS): ../${BUILD_DIR}/gyrokinetic/unit/%: unit/%.c $(LLIB) $(SLLIB)
