@@ -3,6 +3,8 @@
 #include <gkyl_util.h>
 #include <gkyl_const.h>
 #include <math.h>
+#include <stdint.h>
+#include <string.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -28,6 +30,20 @@ test_round_to_e16_9()
   TEST_CHECK(gkyl_round_to_e16_9(0.03483576483233173) == 0.03483576483);
   TEST_CHECK(gkyl_round_to_e16_9(-1.23456789056) == -1.234567891);
   TEST_CHECK(gkyl_round_to_e16_9(0.0) == 0.0);
+}
+
+void
+test_is_dfinite()
+{
+  const uint64_t patterns[] = {UINT64_C(0x0000000000000000), UINT64_C(0x8000000000000000),
+                               UINT64_C(0x0000000000000001), UINT64_C(0x7fefffffffffffff),
+                               UINT64_C(0x7ff0000000000000), UINT64_C(0xfff0000000000000),
+                               UINT64_C(0x7ff8000000000000), UINT64_C(0x7ff0000000000001)};
+  for (int i = 0; i < 8; ++i) {
+    double value;
+    memcpy(&value, &patterns[i], sizeof value);
+    TEST_CHECK(gkyl_is_dfinite(value) == (i < 4));
+  }
 }
 
 void
@@ -410,6 +426,7 @@ TEST_LIST = {
   {"msgpack_scalar_copy", test_msgpack_scalar_copy},
   {"compare_double", test_compare_double},
   {"round_to_e16_9", test_round_to_e16_9},
+  {"is_dfinite", test_is_dfinite},
   {"compare_float", test_compare_float},
   {"copy_int_arr", test_copy_int_arr},
   {"copy_long_arr", test_copy_long_arr},

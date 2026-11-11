@@ -3,31 +3,15 @@
 #include <gkyl_gk_geometry_priv.h>
 #include <gkyl_position_map.h>
 #include <gkyl_tok_geo_priv.h>
+#include <gkyl_util.h>
 #include <math.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
 
 struct tok_field_ctx {
   double psi_sign, tor_sign, shear;
 };
-
-/**
- * Check finiteness without relying on floating-point predicates disabled by fast-math.
- *
- * @param value Floating-point value to classify.
- * @return Whether the value is finite.
- */
-static bool
-tok_is_finite(double value)
-{
-  uint64_t bits;
-  memcpy(&bits, &value, sizeof bits);
-  volatile uint64_t exponent = bits & UINT64_C(0x7ff0000000000000);
-  return exponent != UINT64_C(0x7ff0000000000000);
-}
 
 /**
  * Write nested analytic flux surfaces and a linear F profile, constant in the SOL.
@@ -135,9 +119,9 @@ tok_check_field(
     const double *actual_b = gkyl_array_cfetch(bhat, loc);
     const double *actual_curl = gkyl_array_cfetch(curl, loc);
     for (int comp = 0; comp < 3; ++comp) {
-      TEST_ASSERT(tok_is_finite(rzphi[comp]));
-      TEST_ASSERT(tok_is_finite(actual_b[comp]));
-      TEST_ASSERT(tok_is_finite(actual_curl[comp]));
+      TEST_ASSERT(gkyl_is_dfinite(rzphi[comp]));
+      TEST_ASSERT(gkyl_is_dfinite(actual_b[comp]));
+      TEST_ASSERT(gkyl_is_dfinite(actual_curl[comp]));
     }
     TEST_ASSERT(rzphi[0] > 0);
     double xyz[] = {rzphi[0] * cos(rzphi[2]), rzphi[0] * sin(rzphi[2]), rzphi[1]};
@@ -214,7 +198,7 @@ tok_check_q(const struct tok_field_ctx *ctx, const struct gk_geometry *geo)
       double actual = geo->basis.eval_expand(eta, modal);
       // Without a limiter cut the full IWL connection covers the whole contour,
       // including outside the nominal LCFS of this analytic equilibrium.
-      TEST_CHECK(tok_is_finite(actual));
+      TEST_CHECK(gkyl_is_dfinite(actual));
       error = fmax(error, fabs(actual - expected));
     }
   }
@@ -487,7 +471,7 @@ test_tok_qprofile_branches(void)
       );
 
       double actual = basis.eval_expand(&eta, gkyl_array_cfetch(profile, cell));
-      TEST_CHECK(tok_is_finite(actual));
+      TEST_CHECK(gkyl_is_dfinite(actual));
       max_error = fmax(max_error, fabs(actual / expected - 1));
     }
   }
@@ -513,7 +497,7 @@ test_tok_qprofile_branches(void)
       const double *full = gkyl_array_cfetch(profile, cell);
       const double *piece = gkyl_array_cfetch(split, cell);
       for (int mode = 0; mode < 2; ++mode) {
-        TEST_CHECK(tok_is_finite(piece[mode]));
+        TEST_CHECK(gkyl_is_dfinite(piece[mode]));
         TEST_CHECK(fabs(piece[mode] - full[mode]) < 1e-12);
       }
     }

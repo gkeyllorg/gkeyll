@@ -276,6 +276,14 @@ int gkyl_compare_float(float a, float b, float eps);
 int gkyl_compare_double(double a, double b, double eps);
 
 /**
+ * Classify a double by its IEEE binary64 bits, including in fast-math builds.
+ *
+ * @param value Value to classify.
+ * @return True for a finite value; false for NaN or infinity.
+ */
+bool gkyl_is_dfinite(double value);
+
+/**
  * Round a double as if written to an E16.9 field and read back.
  *
  * @param value Value to round.

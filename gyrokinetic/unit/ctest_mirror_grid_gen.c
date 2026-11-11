@@ -1,6 +1,5 @@
 #include <acutest.h>
 #include <math.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -16,6 +15,7 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_position_map.h>
+#include <gkyl_util.h>
 
 static inline double
 SQ(double x)
@@ -396,13 +396,11 @@ mirror_map_deriv(double t, const double *xn, double *out, void *ctx)
   out[0] = map->scale + 2.0 * map->curvature * xn[0];
 }
 
-// Inspect bits: isfinite() can be optimized away in the normal -ffast-math build.
+// Use the fast-math-safe finite-value check.
 static void
 mirror_check_close(double actual, double expected, double tol, const char *name)
 {
-  uint64_t bits;
-  memcpy(&bits, &actual, sizeof bits);
-  TEST_CHECK((bits & UINT64_C(0x7ff0000000000000)) != UINT64_C(0x7ff0000000000000));
+  TEST_CHECK(gkyl_is_dfinite(actual));
   TEST_CHECK(fabs(actual - expected) <= tol * (1.0 + fabs(expected)));
   TEST_MSG("%s: got %.17g, expected %.17g (tolerance %.3g)", name, actual, expected, tol);
 }

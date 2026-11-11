@@ -9,6 +9,7 @@
 #include <gkyl_deflate_geo.h>
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gen_miller_eqdsk_priv.h>
+#include <gkyl_util.h>
 #include <gkyl_gk_geometry_priv.h>
 #include <gkyl_nodal_ops.h>
 #include <gkyl_alloc_flags_priv.h>
@@ -1037,21 +1038,6 @@ gkyl_gk_geometry_release(const struct gk_geometry *up)
 }
 
 /**
- * Classify doubles without fast-math eliminating NaN/Inf checks.
- *
- * @param value Value to classify.
- * @return Whether the value is finite.
- */
-static bool
-gk_geometry_query_finite(double value)
-{
-  uint64_t bits;
-  memcpy(&bits, &value, sizeof bits);
-  volatile uint64_t exponent = bits & UINT64_C(0x7ff0000000000000);
-  return exponent != UINT64_C(0x7ff0000000000000);
-}
-
-/**
  * Validate a host geometry query before accessing its arrays.
  *
  * @param geo Interior geometry; must not be NULL or device allocated.
@@ -1100,7 +1086,7 @@ gk_geometry_query_eval(
     double dx = geo->grid.dx[dir];
     double lower = geo->grid.lower[dir] + (geo->local.lower[dir] - 1) * dx;
     double upper = geo->grid.lower[dir] + geo->local.upper[dir] * dx;
-    if (!gk_geometry_query_finite(xc[dir]) || xc[dir] < lower || xc[dir] > upper) {
+    if (!gkyl_is_dfinite(xc[dir]) || xc[dir] < lower || xc[dir] > upper) {
       gkyl_exit("geo_int query: computational point outside local interior domain or nonfinite.");
     }
     double cell = (xc[dir] - geo->grid.lower[dir]) / dx;
@@ -1115,7 +1101,7 @@ gk_geometry_query_eval(
   const double *coeff = gkyl_array_cfetch(field, gkyl_range_idx(&geo->local, idx));
   for (int comp = 0; comp < ncomp; ++comp) {
     out[comp] = geo->basis.eval_expand(xref, coeff + comp * geo->basis.num_basis);
-    if (!gk_geometry_query_finite(out[comp])) {
+    if (!gkyl_is_dfinite(out[comp])) {
       gkyl_exit("geo_int query: nonfinite interpolated value.");
     }
   }
@@ -1207,8 +1193,7 @@ gkyl_gk_geometry_geo_int_comp2tor_coords(
 )
 {
   gk_geometry_query_check(geo, xc, out);
-  if (!gk_geometry_query_finite(Rmajor_axis) || !gk_geometry_query_finite(Zvert_axis) ||
-      Rmajor_axis <= 0) {
+  if (!gkyl_is_dfinite(Rmajor_axis) || !gkyl_is_dfinite(Zvert_axis) || Rmajor_axis <= 0) {
     gkyl_exit("geo_int query: invalid reference axis.");
   }
   double cyl[3];
@@ -1240,7 +1225,7 @@ gkyl_gk_geometry_geo_int_comp2miller_coords(
     miller->Rmajor_axis, miller->Zvert_axis, shape.kappa, shape.delta, shape.a_shift
   };
   for (int j = 0; j < 5; ++j) {
-    if (!gk_geometry_query_finite(params[j])) {
+    if (!gkyl_is_dfinite(params[j])) {
       gkyl_exit("geo_int query: nonfinite Miller parameter.");
     }
   }
