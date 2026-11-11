@@ -105,6 +105,28 @@ Connection refused` errors. On first start, read
 account, and install Pipeline, Git, Credentials Binding, Git client, and
 GitHub plugins.
 
+### If the remote port is already in use
+
+Perlmutter login nodes are shared. Another user's controller may already own
+remote port `8080`; changing only the laptop port does not resolve that
+conflict. The launcher now reports an occupied port instead of treating that
+controller as your own. On the login node where your controller will run,
+choose a free port:
+
+```sh
+ss -ltn | grep ':18080'  # no output means this port is available
+export JENKINS_PORT=18080
+./ci/jenkins/gkeyll-ci.sh perlmutter_gpu start
+```
+
+Keep `JENKINS_PORT` set in later login sessions that use the CI client. In the
+SSH tunnel above, replace the final `8080` with `18080`, retain the recorded
+controller-node hostname, and choose any free laptop port. In **Manage Jenkins
+→ System → Global properties → Environment variables**, set
+`CI_JENKINS_LOCAL_URL` to `http://127.0.0.1:18080`. This is separate from
+**Jenkins Location → Jenkins URL**. The Pipeline's cache cleanup uses the
+former to query this controller; otherwise it defaults to remote port `8080`.
+
 ## Set up Jenkins
 
 ### Create a Jenkins API token for the launcher

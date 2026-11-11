@@ -91,6 +91,34 @@ Open `http://127.0.0.1:8083`. The first `8083` is the local browser port; the
 final `8080` is the remote Jenkins port and normally remains unchanged. Choose
 another unused local port if necessary.
 
+### If the remote port is already in use
+
+The login node is shared. Another user's controller may already own remote port
+`8080`; changing only the laptop port does not resolve that conflict. The
+launcher now reports an occupied port instead of treating that controller as
+your own. On the login node where your controller will run, choose a free port:
+
+```sh
+ss -ltn | grep ':18080'  # no output means this port is available
+export JENKINS_PORT=18080
+./ci/jenkins/gkeyll-ci.sh stellar_cpu start
+```
+
+Keep `JENKINS_PORT` set in later login sessions that use the CI client. Forward
+to the same login node and the chosen remote port, using any free laptop port:
+
+```sh
+ssh -N -o ExitOnForwardFailure=yes \
+  -L 127.0.0.1:8084:127.0.0.1:18080 <NetID>@stellar-intel.princeton.edu
+```
+
+Open `http://127.0.0.1:8084`. Replace the hostname with the output of
+`hostname -f` from the login node running your controller. In **Manage Jenkins
+→ System → Global properties → Environment variables**, set
+`CI_JENKINS_LOCAL_URL` to `http://127.0.0.1:18080`. This is separate from
+**Jenkins Location → Jenkins URL**. The Pipeline's cache cleanup uses the
+former to query this controller; otherwise it defaults to remote port `8080`.
+
 On Jenkins' first start, obtain the unlock password on Stellar:
 
 ```sh

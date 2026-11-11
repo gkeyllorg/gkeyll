@@ -169,6 +169,9 @@ start_controller() {
     if controller_running; then
         echo "Jenkins tmux session already exists: $JENKINS_SESSION"
     else
+        if ss -ltnH "( sport = :$JENKINS_PORT )" | grep . > /dev/null; then
+            die "Port $JENKINS_PORT is already in use on this login node. Set JENKINS_PORT to an unused port before starting Jenkins."
+        fi
         tmux new-session -d -s "$JENKINS_SESSION" "$SCRIPT_PATH" __controller
         echo "Started Jenkins in tmux session: $JENKINS_SESSION"
     fi
