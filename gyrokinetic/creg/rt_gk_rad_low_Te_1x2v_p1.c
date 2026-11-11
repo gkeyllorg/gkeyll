@@ -433,7 +433,8 @@ main(int argc, char **argv)
         .collide_with = {"ion", "test_sp_1", "test_sp_2", "test_sp_3", "test_sp_4"},
         .atomic_Z = {1, 3, 3, 3, 3},
         .charge_state = {0, 0, 0, 0, 0},
-        .num_of_densities = {1, 1, 3, 8, 15},
+        // The bundled neutral lithium data contains 14 density fits.
+        .num_of_densities = {1, 1, 3, 8, 14},
         .reference_ne = ctx.n0,
         .min_ne = ctx.n0 * 1.01,
         .max_ne = ctx.n0 * 10000,

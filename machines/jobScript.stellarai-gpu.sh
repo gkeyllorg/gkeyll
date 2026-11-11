@@ -3,10 +3,11 @@
 #.Declare a name for this job, preferably with 16 or fewer characters.
 #SBATCH -J <Job Name>
 
-#.Request the queue. See stellar docs online.
-#SBATCH --qos pppl-short
+#.Request the GPU partition and QoS. See StellarAI docs online.
+#SBATCH --partition=gpu
+#SBATCH --qos gpu-short
 
-#.Number of nodes to request (Stellar has 96 cores and 2 GPUs per node).
+#.Number of nodes to request (StellarAI has 96 cores and 8 GPUs per GPU node).
 #SBATCH -N 1
 
 #.Total number of cores/tasks/MPI processes.
@@ -15,7 +16,7 @@
 #.Request wall time
 #SBATCH -t 00:30:00
 
-#.Specify GPUs per node (stellar-amd has 2):
+#.Specify GPUs per node (StellarAI has 8 available):
 #SBATCH --gres=gpu:2
 
 #.Mail is sent to you when the job starts and when it terminates or aborts.

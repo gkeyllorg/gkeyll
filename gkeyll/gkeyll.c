@@ -369,6 +369,7 @@ int
 main(int argc, char **argv)
 {
   struct app_args *app_args = parse_app_args(argc, argv);
+  int status = 0;
 
   // Regression tests launch their own MPI collectives. Initializing MPI in
   // this parent process causes its OpenMPI/PMIx environment to be inherited
@@ -563,14 +564,14 @@ main(int argc, char **argv)
 
     char *str = gkyl_malloc(len + 1);
     snprintf(str, len + 1, fmt, app_args->exec_path, app_args->exec_path, app_args->exec_path);
-    glua_run_lua(L, str, strlen(str), 0);
+    status = glua_run_lua(L, str, strlen(str), stderr);
 
     gkyl_free(str);
   } while (0);
 
   // run Lua code (if it exists) before running input file
-  if (app_args->echunk) {
-    glua_run_lua(L, app_args->echunk, strlen(app_args->echunk), 0);
+  if (status == 0 && app_args->echunk) {
+    status = glua_run_lua(L, app_args->echunk, strlen(app_args->echunk), stderr);
   }
 
   int rank = 0;
@@ -580,7 +581,7 @@ main(int argc, char **argv)
   }
 #endif
 
-  if (app_args->num_opt_args > 0) {
+  if (status == 0 && app_args->num_opt_args > 0) {
     bool something_run = false;
 
     const char *inp_name = app_args->opt_args[0];
@@ -603,7 +604,7 @@ main(int argc, char **argv)
 
       int64_t sz = 0;
       char *buff = gkyl_load_file(inp_name, &sz);
-      glua_run_lua(L, buff, sz, stderr);
+      status = glua_run_lua(L, buff, sz, stderr);
       gkyl_free(buff);
       something_run = true;
     } else {
@@ -617,7 +618,7 @@ main(int argc, char **argv)
 
         int64_t sz = 0;
         char *buff = gkyl_load_file(tool_name, &sz);
-        glua_run_lua(L, buff, sz, stderr);
+        status = glua_run_lua(L, buff, sz, stderr);
         gkyl_free(buff);
 
         gkyl_free(tool_name);
@@ -626,6 +627,7 @@ main(int argc, char **argv)
     }
     if (!something_run) {
       fprintf(stderr, "No Lua code was run!\n");
+      status = 1;
     }
   }
 
@@ -638,6 +640,7 @@ main(int argc, char **argv)
 #endif
 
   release_opt_args(app_args);
+  return status;
 }
 
 #else

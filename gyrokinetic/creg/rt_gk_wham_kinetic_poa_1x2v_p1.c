@@ -317,9 +317,9 @@ create_ctx(void)
   int num_cycles = 2; // Number of OAP+FDP cycles to run.
 
   // Frame counts for each phase type (specified independently)
-  int num_frames_oap = 1; // Frames per OAP phase
-  int num_frames_fdp = 1; // Frames per FDP phase
-  int num_frames_fdp_extra = 2 * num_frames_fdp; // Frames for the extra FDP phase
+  int num_frames_oap = 0; // Frames per OAP phase
+  int num_frames_fdp = 0; // Frames per FDP phase
+  int num_frames_fdp_extra = 1; // Frames for the extra FDP phase
 
   // Whether to evolve the field.
   bool is_static_field_oap = true;
@@ -368,7 +368,7 @@ create_ctx(void)
   poa_phases[num_phases - 1].is_positivity_enabled = is_positivity_enabled_fdp;
 
   double write_phase_freq =
-    0.5; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
+    1.0; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
   double int_diag_calc_freq =
     5; // Frequency of calculating integrated diagnostics (as a factor of num_frames).
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -495,10 +495,9 @@ reset_io_triggers(
   double t_end = tfs->t_end;
   int frame_curr = tfs->frame_curr;
   int num_frames = tfs->num_frames;
-  int num_int_diag_calc = ctx->int_diag_calc_freq * num_frames;
 
-  // Prevent division by zero when frame_curr equals num_frames
-  int frames_remaining = num_frames - frame_curr;
+  // Keep triggers well-defined for phases with no output frames.
+  int frames_remaining = GKYL_MAX2(1, num_frames - frame_curr);
   double time_remaining = t_end - t_curr;
 
   trig_write_conf->dt = time_remaining / frames_remaining;
@@ -509,8 +508,7 @@ reset_io_triggers(
   trig_write_phase->tcurr = t_curr;
   trig_write_phase->curr = frame_curr;
 
-  int diag_frames =
-    GKYL_MAX2(frames_remaining, (num_int_diag_calc / num_frames) * frames_remaining);
+  int diag_frames = GKYL_MAX2(frames_remaining, ctx->int_diag_calc_freq * frames_remaining);
   trig_calc_intdiag->dt = time_remaining / diag_frames;
   trig_calc_intdiag->tcurr = t_curr;
   trig_calc_intdiag->curr = frame_curr;
@@ -533,6 +531,11 @@ run_phase(
 
   // Reset I/O triggers:
   reset_io_triggers(ctx, tfs, trig_write_conf, trig_write_phase, trig_calc_intdiag);
+  // Frame 0 is written before the phase loop; schedule only subsequent frames.
+  trig_write_conf->tcurr += trig_write_conf->dt;
+  trig_write_conf->curr += 1;
+  trig_write_phase->tcurr += trig_write_phase->dt;
+  trig_write_phase->curr += 1;
 
   // Reset simulation parameters and function pointers.
   struct gkyl_gyrokinetic_collisionless collisionless_inp = {
@@ -589,7 +592,9 @@ run_phase(
     dt = status.dt_suggested;
 
     calc_integrated_diagnostics(trig_calc_intdiag, app, t_curr, t_curr >= t_end, status.dt_actual);
-    write_data(trig_write_conf, trig_write_phase, app, t_curr, t_curr >= t_end);
+    if (pparams->num_frames > 0) {
+      write_data(trig_write_conf, trig_write_phase, app, t_curr, t_curr >= t_end);
+    }
 
     if (dt_init < 0.0) {
       dt_init = status.dt_actual;

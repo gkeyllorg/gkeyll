@@ -265,8 +265,7 @@ gkyl_msgpack_map_elem_clone(int nvals, const struct gkyl_msgpack_map_elem *elist
   for (int i = 0; i < nvals; ++i) {
     // Copy key name.
     size_t key_len = strlen(elist_in[i].key) + 1;
-    elist_out[i].key = gkyl_malloc(key_len);
-    strcpy(elist_out[i].key, elist_in[i].key);
+    elist_out[i].key = strcpy(gkyl_malloc(key_len), elist_in[i].key);
 
     // Copy type.
     elist_out[i].elem_type = elist_in[i].elem_type;
@@ -295,8 +294,7 @@ gkyl_msgpack_map_elem_clone(int nvals, const struct gkyl_msgpack_map_elem *elist
 
       case GKYL_MP_STRING:
         key_len = strlen(elist_in[i].cval) + 1;
-        elist_out[i].cval = gkyl_malloc(key_len);
-        strcpy(elist_out[i].cval, elist_in[i].cval);
+        elist_out[i].cval = strcpy(gkyl_malloc(key_len), elist_in[i].cval);
         break;
 
       default:
@@ -333,8 +331,7 @@ gkyl_msgpack_map_elem_union(
     for (int i = 0; i < nvals_curr; ++i) {
       // Copy key name.
       size_t slen = strlen(elist_curr[i].key) + 1;
-      elist_out[eidx].key = gkyl_malloc(slen);
-      strcpy(elist_out[eidx].key, elist_curr[i].key);
+      elist_out[eidx].key = strcpy(gkyl_malloc(slen), elist_curr[i].key);
 
       // Copy type.
       elist_out[eidx].elem_type = elist_curr[i].elem_type;
@@ -363,8 +360,7 @@ gkyl_msgpack_map_elem_union(
 
         case GKYL_MP_STRING:
           slen = strlen(elist_curr[i].cval) + 1;
-          elist_out[eidx].cval = gkyl_malloc(slen);
-          strcpy(elist_out[eidx].cval, elist_curr[i].cval);
+          elist_out[eidx].cval = strcpy(gkyl_malloc(slen), elist_curr[i].cval);
           break;
 
         default:
@@ -431,7 +427,7 @@ gkyl_msgpack_map_elem_get_uint(int nvals, struct gkyl_msgpack_map_elem *elist, c
   return 0;
 }
 
-char *
+const char *
 gkyl_msgpack_map_elem_get_string(int nvals, struct gkyl_msgpack_map_elem *elist, const char *key)
 {
   for (int i = 0; i < nvals; ++i) {
@@ -449,7 +445,8 @@ gkyl_msgpack_map_elem_release_string(int nvals, struct gkyl_msgpack_map_elem *el
   for (int i = 0; i < nvals; ++i) {
     if (strcmp(key, elist[i].key) == 0) {
       assert(elist[i].elem_type == GKYL_MP_STRING);
-      MPACK_FREE(elist[i].cval);
+      // Only strings allocated by the MessagePack reader may be released here.
+      MPACK_FREE((void *)elist[i].cval);
       break;
     }
   }
@@ -459,10 +456,11 @@ void
 gkyl_msgpack_map_elem_release(int nvals, struct gkyl_msgpack_map_elem *elist_in)
 {
   for (int i = 0; i < nvals; ++i) {
-    gkyl_free(elist_in[i].key);
+    // Clone and union own these allocations; the public fields are read-only.
+    gkyl_free((void *)elist_in[i].key);
 
     if (elist_in[i].elem_type == GKYL_MP_STRING) {
-      gkyl_free(elist_in[i].cval);
+      gkyl_free((void *)elist_in[i].cval);
     }
   }
 
