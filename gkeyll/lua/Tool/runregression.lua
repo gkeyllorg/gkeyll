@@ -2615,7 +2615,9 @@ c_conf:option("-m --mpiexec",
    "Full path to MPI launcher used by --parallel.")
    :target("config_mpiexec")
 c_conf:option("--mpi-args",
-   "Optional MPI-launcher arguments used by --parallel (for example Slurm GPU binding).")
+   "MPI-launcher arguments used by --parallel.\n"
+   .. "For concurrent tests: Open MPI --bind-to none allows OS scheduling;\n"
+   .. "Slurm --exact limits each step to its requested resources.")
    :target("config_mpi_args")
 c_conf:option("--results-subdir",
    "Optional subdirectory below gkeyll-results for an independent regression suite.")
@@ -2669,6 +2671,7 @@ c_run:flag("-e --execute-only",
    .. "Requires --c-only and a prior 'run -c compile' in the same results tree.")
 c_run:option("-t --timeout",
    "Per-test timeout in seconds (0 = unlimited).\n"
+   .. "Includes MPI launcher startup and Slurm step waits, but not worker-slot waits.\n"
    .. "Timed-out tests are added to ignoretests.lua automatically.")
    :convert(tonumber)
    :default(0)
@@ -2683,7 +2686,8 @@ c_run:option("--gpu-parallel-tol", "Tolerance for GPU-parallel-vs-accepted (defa
 c_run:option("-j --jobs",
    "Concurrent compilation/execution workers (0 = available CPU count, 1 = serial).\n"
    .. "MPI tests reserve one worker per rank; tests larger than the budget run alone.\n"
-   .. "GPU jobs share the available devices; the MPI launcher controls placement.")
+   .. "Workers do not reserve cores; the MPI launcher controls CPU/GPU placement.\n"
+   .. "Budgets are per invocation. Use 1 to serialize tests at their full MPI rank count.")
    :convert(tonumber)
    :default(1)
 
