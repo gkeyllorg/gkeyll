@@ -231,6 +231,18 @@ double gkyl_gen_miller_eqdsk_psi_at_R_omp(const gkyl_gen_miller_eqdsk *up, doubl
 double gkyl_gen_miller_eqdsk_R_omp_at_psi(const gkyl_gen_miller_eqdsk *up, double psi);
 
 /**
+ * Evaluate the total magnetic-field magnitude of the Miller equilibrium.
+ *
+ * @param up Generator with a constructed radial flux table.
+ * @param Rmajor Cylindrical major radius [m].
+ * @param Zvert Cylindrical vertical coordinate [m].
+ * @return Total magnetic-field magnitude [T], or NaN outside physical coverage.
+ */
+double gkyl_gen_miller_eqdsk_bmag_at_RZ(
+  const gkyl_gen_miller_eqdsk *up, double Rmajor, double Zvert
+);
+
+/**
  * Evaluate the Miller surface at minor radius r and poloidal angle theta.
  *
  * @param up Generator.

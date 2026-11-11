@@ -644,9 +644,24 @@ test_outboard_maps(void)
   inp.bmag_axis = -1.5;
   inp.qsafety = constant_q;
   inp.Rmajor_LCFS = gkyl_gen_miller_eqdsk_R_omp_at_rminor(&inp, 0.5);
+
   gkyl_gen_miller_eqdsk *up = gkyl_gen_miller_eqdsk_inew(&inp);
   TEST_ASSERT(up != NULL);
+
   TEST_CHECK(fabs(gkyl_gen_miller_eqdsk_get_info(up)->rminor_LCFS - 0.5) < 1e-14);
+  TEST_CHECK(fabs(gkyl_gen_miller_eqdsk_bmag_at_RZ(up, 2, 0) - 1.5) < 1e-12);
+
+  double outboard_R = gkyl_gen_miller_eqdsk_R_omp_at_rminor(&inp, 0.3);
+  double outboard_B = gkyl_gen_miller_eqdsk_bmag_at_RZ(up, outboard_R, 0);
+  TEST_CHECK(outboard_B > fabs(inp.Rmajor_axis * inp.bmag_axis / outboard_R));
+
+  double off_midplane[2];
+  gkyl_gen_miller_eqdsk_RZ_at_rtheta(up, 0.3, 0.7, off_midplane);
+
+  TEST_CHECK(gkyl_gen_miller_eqdsk_bmag_at_RZ(up, off_midplane[0], off_midplane[1]) > 0);
+  TEST_CHECK(miller_is_nan(gkyl_gen_miller_eqdsk_bmag_at_RZ(up, -1, 0)));
+  TEST_CHECK(miller_is_nan(gkyl_gen_miller_eqdsk_bmag_at_RZ(up, 10, 0)));
+
   for (int k = 0; k <= 10; ++k) {
     double rminor = 0.05 * k, rz[2];
     gkyl_gen_miller_eqdsk_RZ_at_rtheta(up, rminor, 0, rz);
@@ -662,6 +677,7 @@ test_outboard_maps(void)
     TEST_CHECK(miller_is_nan(gkyl_gen_miller_eqdsk_R_omp_at_rminor(&inp, bad_rminor[j])));
     TEST_CHECK(miller_is_nan(gkyl_gen_miller_eqdsk_rminor_at_R_omp(&inp, bad_R_omp[j])));
   }
+
   // Approach, but do not include, the increasing branch's turning point.
   double rnear = 4.99;
   double Rnear = gkyl_gen_miller_eqdsk_R_omp_at_rminor(&inp, rnear);
@@ -673,6 +689,7 @@ test_outboard_maps(void)
     TEST_CHECK(miller_is_nan(gkyl_gen_miller_eqdsk_R_omp_at_rminor(&inp, 0.5)));
     TEST_CHECK(miller_is_nan(gkyl_gen_miller_eqdsk_rminor_at_R_omp(&inp, 2.5)));
   }
+
   inp.Rmajor_axis = 2;
   double bad_shift[] = {strtod("nan", NULL), strtod("inf", NULL)};
   for (int j = 0; j < 2; ++j) {
@@ -681,6 +698,7 @@ test_outboard_maps(void)
     TEST_CHECK(miller_is_nan(gkyl_gen_miller_eqdsk_R_omp_at_rminor(&inp, 0.5)));
     TEST_CHECK(miller_is_nan(gkyl_gen_miller_eqdsk_rminor_at_R_omp(&inp, 2.5)));
   }
+
   inp.a_shift = miller_shape_constant;
   inp.a_shift_ctx = &(double){-1e308};
   TEST_CHECK(miller_is_nan(gkyl_gen_miller_eqdsk_R_omp_at_rminor(&inp, 10)));

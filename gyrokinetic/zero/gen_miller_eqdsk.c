@@ -990,10 +990,11 @@ gen_miller_R_uv(const gkyl_gen_miller_eqdsk *up, double u, double v)
  * @param up Generator.
  * @param Rmajor Cylindrical major radius in meters.
  * @param Zvert Vertical coordinate in meters.
+ * @param u_out Optional auxiliary horizontal coordinate [m].
  * @return Miller minor radius in meters, or NaN if inversion fails.
  */
 static double
-gen_miller_r_at_RZ(const gkyl_gen_miller_eqdsk *up, double Rmajor, double Zvert)
+gen_miller_r_at_RZ(const gkyl_gen_miller_eqdsk *up, double Rmajor, double Zvert, double *u_out)
 {
   double v = (Zvert - up->inp.Zvert_axis) / up->shape.kappa, bound = up->info.rminor_guard;
 
@@ -1029,7 +1030,75 @@ gen_miller_r_at_RZ(const gkyl_gen_miller_eqdsk *up, double Rmajor, double Zvert)
   if (fabs(gen_miller_R_uv(up, (lo + hi) / 2, v) - Rmajor) > 1e-11 * up->inp.Rmajor_axis) {
     return gen_miller_nan();
   }
-  return hypot((lo + hi) / 2, v);
+  double u = (lo + hi) / 2;
+  if (u_out) {
+    *u_out = u;
+  }
+  return hypot(u, v);
+}
+
+/**
+ * Interpolate dpsi/d(r^2) using the same Hermite profile integrated for flux.
+ *
+ * @param up Generator with a constructed radial table.
+ * @param s Squared Miller minor radius [m^2] within the guard.
+ * @return Flux derivative [Wb/(rad m^2)].
+ */
+static double
+gen_miller_g_at_s(const gkyl_gen_miller_eqdsk *up, double s)
+{
+  int lo = 0, hi = up->info.num_nodes_radial - 1;
+  while (hi - lo > 1) {
+    int middle = (lo + hi) / 2;
+    if (up->s[middle] <= s) {
+      lo = middle;
+    } else {
+      hi = middle;
+    }
+  }
+  double h = up->s[lo + 1] - up->s[lo], t = (s - up->s[lo]) / h;
+  double left = up->g[lo], right = up->g[lo + 1];
+  double dl = up->slope[lo] * h, dr = up->slope[lo + 1] * h;
+  double a2 = 3 * (right - left) - 2 * dl - dr;
+  double a3 = 2 * (left - right) + dl + dr;
+  return left + t * (dl + t * (a2 + t * a3));
+}
+
+double
+gkyl_gen_miller_eqdsk_bmag_at_RZ(const gkyl_gen_miller_eqdsk *up, double Rmajor, double Zvert)
+{
+  // Sanity checks.
+  if (!up || !gen_miller_finite(Rmajor) || !gen_miller_finite(Zvert) || Rmajor <= 0) {
+    return gen_miller_nan();
+  }
+  double u, radius = gen_miller_r_at_RZ(up, Rmajor, Zvert, &u);
+  if (!gen_miller_finite(radius) || radius > up->info.rminor_guard) {
+    return gen_miller_nan();
+  }
+
+  // Give toroidal field if at the axis.
+  double Bphi = up->fpol / Rmajor;
+  if (radius == 0) {
+    return fabs(Bphi);
+  }
+
+  double v = (Zvert - up->inp.Zvert_axis) / up->shape.kappa;
+  double beta = up->eta * v / radius;
+  double common = u * sin(beta) + v * cos(beta);
+  double beta_u = -up->eta * v * u / (radius * radius * radius);
+  double beta_v = up->eta * u * u / (radius * radius * radius);
+  double R_u = cos(beta) - up->shape.a_shift * u / up->inp.Rmajor_axis - common * beta_u;
+  double R_v = -sin(beta) - up->shape.a_shift * v / up->inp.Rmajor_axis - common * beta_v;
+
+  if (!gen_miller_finite(R_u) || R_u <= 0 || !gen_miller_finite(R_v)) {
+    return gen_miller_nan();
+  }
+
+  double g = gen_miller_g_at_s(up, radius * radius);
+  double dpsi_dR = g * 2 * u / R_u;
+  double dpsi_dZ = g * (2 * v - 2 * u * R_v / R_u) / up->shape.kappa;
+  double bmag = hypot(hypot(dpsi_dR, dpsi_dZ) / Rmajor, Bphi);
+  return gen_miller_finite(bmag) ? bmag : gen_miller_nan();
 }
 
 bool
@@ -1065,7 +1134,7 @@ gkyl_gen_miller_eqdsk_advance(gkyl_gen_miller_eqdsk *up)
   for (int iz = 0; iz < up->info.num_nodes_Zvert; ++iz) {
     for (int ir = 0; ir < up->info.num_nodes_Rmajor; ++ir) {
       double Rmajor = bounds[0] + ir * dr, Zvert = bounds[2] + iz * dz;
-      double radius = gen_miller_r_at_RZ(up, Rmajor, Zvert);
+      double radius = gen_miller_r_at_RZ(up, Rmajor, Zvert, NULL);
       if (!gen_miller_finite(radius)) {
         fprintf(stderr, "Miller GEQDSK: inverse failed at R=%g Z=%g\n", Rmajor, Zvert);
         return false;

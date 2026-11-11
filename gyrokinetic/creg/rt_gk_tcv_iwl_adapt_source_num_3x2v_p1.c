@@ -285,7 +285,12 @@ create_ctx(struct gk_app_ctx *out)
   }
 
   rminor_LCFS = gkyl_gen_miller_eqdsk_get_info(out->equilibrium)->rminor_LCFS;
-  double B0 = fabs(out->miller.bmag_axis) * Rmajor_axis / R0;
+  double B0 = gkyl_gen_miller_eqdsk_bmag_at_RZ(out->equilibrium, R0, Zvert_axis);
+  if (!isfinite(B0) || B0 <= 0) {
+    gkyl_gen_miller_eqdsk_release(out->equilibrium);
+    out->equilibrium = NULL;
+    return false;
+  }
 
   // Plasma parameters. Chosen based on the value of a cubic sline
   // between the last TS data inside the LCFS and the probe data in
