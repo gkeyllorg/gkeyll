@@ -7,9 +7,9 @@
 typedef struct gkyl_gen_miller_eqdsk gkyl_gen_miller_eqdsk;
 
 struct gkyl_gen_miller_eqdsk_inp {
-  // Representation of application lower[0]/upper[0]; zero defaults to PSI_POL.
-  // Used by inew_for_domain; the standalone inew has no domain to interpret.
-  enum gkyl_gk_geometry_radial_coord x_extent_type;
+  // Representation of lower/upper in (radial, binormal, parallel) directions.
+  // Zero uses the computational coordinates (psi, alpha, theta).
+  enum gkyl_gk_geometry_coord_type input_coord_limits_type[3];
   double Rmajor_axis, Zvert_axis; // Major radius and vertical position of magnetic axis.
   double bmag_axis; // Signed toroidal field at the magnetic axis [T]; nonzero, sign sets B_phi.
   double Rmajor_LCFS; // Major radius of LCFS at OMP.
@@ -53,6 +53,28 @@ struct gkyl_gen_miller_eqdsk_info {
   int num_nodes_Zvert; // Resolved number of vertical nodes in the rectangular GEQDSK mesh.
 };
 
+struct gkyl_gen_miller_eqdsk_binormal_extent {
+  double r0, q0, Cy; // Reference minor radius [m], safety factor, and y/alpha scale [m].
+  int n_tor; // Integer number of toroidal wedges in a full 2*pi*Cy circumference.
+  double Ly; // Quantized binormal width [m].
+  double alpha_bounds[2]; // Grid bounds in field-line label angle [rad].
+};
+
+/**
+ * Compute alpha extents from binormal length bounds for a Miller radial domain,
+ * enforcing quantization of the toroidal wedge number n_tor.
+ *
+ * @param up Generator covering the radial domain.
+ * @param psi_bounds Final increasing poloidal-flux bounds [Wb/rad].
+ * @param y_bounds Requested increasing binormal-length bounds [m].
+ * @param out Resolved scale, toroidal wedge number, quantized width, and alpha bounds.
+ * @return True on success; false for invalid inputs or an invalid toroidal wedge number.
+ */
+bool gkyl_gen_miller_eqdsk_set_binormal_extents(
+  const gkyl_gen_miller_eqdsk *up, const double psi_bounds[2], const double y_bounds[2],
+  struct gkyl_gen_miller_eqdsk_binormal_extent *out
+);
+
 /**
  * Construct the host generator and radial flux table; report failures to stderr.
  *
@@ -68,7 +90,7 @@ gkyl_gen_miller_eqdsk *gkyl_gen_miller_eqdsk_inew(const struct gkyl_gen_miller_e
  * Rmajor_omp_bounds are omitted; explicit coverage must contain the domain.
  * Constructs the radial flux table but does not sample or write the EQDSK.
  *
- * @param inp Non-NULL Miller parameters, including x_extent_type; not modified.
+ * @param inp Non-NULL Miller parameters, including input_coord_limits_type[0]; not modified.
  * Shaping callbacks are evaluated while constructing the generator; their
  * contexts must remain valid until construction returns. The safety-factor
  * callback context must outlive the returned generator.

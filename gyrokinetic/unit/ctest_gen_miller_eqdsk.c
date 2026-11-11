@@ -695,19 +695,19 @@ static void
 test_flux_extent_conversion(void)
 {
   double rho[2] = {0.5, 1.2}, psi[2];
-  TEST_CHECK(gen_miller_flux_bounds(GKYL_GK_GEOMETRY_RADIAL_COORD_RHO_POL, rho, 3, 7, psi));
+  TEST_CHECK(gen_miller_flux_bounds(GKYL_GK_GEOMETRY_COORD_RADIAL_RHO_POL, rho, 3, 7, psi));
   TEST_CHECK(fabs(psi[0] - 4) < 1e-14 && fabs(psi[1] - 8.76) < 1e-14);
-  TEST_CHECK(gen_miller_flux_bounds(GKYL_GK_GEOMETRY_RADIAL_COORD_RHO_POL, rho, 3, -1, psi));
+  TEST_CHECK(gen_miller_flux_bounds(GKYL_GK_GEOMETRY_COORD_RADIAL_RHO_POL, rho, 3, -1, psi));
   TEST_CHECK(fabs(psi[0] + 2.76) < 1e-14 && fabs(psi[1] - 2) < 1e-14);
   double flux[2] = {-2.76, 2};
-  TEST_CHECK(gen_miller_flux_bounds(GKYL_GK_GEOMETRY_RADIAL_COORD_PSI_POL, flux, 3, -1, psi));
+  TEST_CHECK(gen_miller_flux_bounds(GKYL_GK_GEOMETRY_COORD_RADIAL_PSI_POL, flux, 3, -1, psi));
   TEST_CHECK(psi[0] == flux[0] && psi[1] == flux[1]);
   rho[1] = 1;
-  TEST_CHECK(gen_miller_flux_bounds(GKYL_GK_GEOMETRY_RADIAL_COORD_RHO_POL, rho, 3, -1, psi));
+  TEST_CHECK(gen_miller_flux_bounds(GKYL_GK_GEOMETRY_COORD_RADIAL_RHO_POL, rho, 3, -1, psi));
   TEST_CHECK(psi[0] == -1);
-  TEST_CHECK(!gen_miller_flux_bounds(GKYL_GK_GEOMETRY_RADIAL_COORD_RHO_POL, rho, 3, 3, psi));
+  TEST_CHECK(!gen_miller_flux_bounds(GKYL_GK_GEOMETRY_COORD_RADIAL_RHO_POL, rho, 3, 3, psi));
   flux[1] = 3.1; // Wrong side of the axis for decreasing-outward flux.
-  TEST_CHECK(!gen_miller_flux_bounds(GKYL_GK_GEOMETRY_RADIAL_COORD_PSI_POL, flux, 3, -1, psi));
+  TEST_CHECK(!gen_miller_flux_bounds(GKYL_GK_GEOMETRY_COORD_RADIAL_PSI_POL, flux, 3, -1, psi));
   double invalid[][2] = {
     {0, 1},
     {-1, 1},
@@ -718,7 +718,7 @@ test_flux_extent_conversion(void)
     {strtod("nan", NULL), 1}
   };
   for (int j = 0; j < sizeof invalid / sizeof invalid[0]; ++j) {
-    TEST_CHECK(!gen_miller_flux_bounds(GKYL_GK_GEOMETRY_RADIAL_COORD_RHO_POL, invalid[j], 3, 7, psi)
+    TEST_CHECK(!gen_miller_flux_bounds(GKYL_GK_GEOMETRY_COORD_RADIAL_RHO_POL, invalid[j], 3, 7, psi)
     );
   }
 }
@@ -764,7 +764,11 @@ test_domain_extents(void)
       }
       gkyl_gen_miller_eqdsk_release(reference);
       for (int rep = 0; rep < 3; ++rep) {
-        inp.x_extent_type = rep;
+        inp.input_coord_limits_type[0] = (enum gkyl_gk_geometry_coord_type[]){
+          GKYL_GK_GEOMETRY_COORD_UNSPECIFIED,
+          GKYL_GK_GEOMETRY_COORD_RADIAL_RHO_POL,
+          GKYL_GK_GEOMETRY_COORD_RADIAL_R_OMP,
+        }[rep];
         inp.has_Rmajor_omp_bounds = false; // Exercise automatic coverage.
         const double *bounds = rep == 0 ? expected : rep == 1 ? rho : inp.Rmajor_omp_bounds;
         double snapshot[2] = {bounds[0], bounds[1]}, resolved[2];
@@ -805,7 +809,7 @@ test_domain_invalid(void)
     .bmag_axis = 1.5,
     .Rmajor_LCFS = 2.5,
     .qsafety = constant_q,
-    .x_extent_type = GKYL_GK_GEOMETRY_RADIAL_COORD_RHO_POL,
+    .input_coord_limits_type = {GKYL_GK_GEOMETRY_COORD_RADIAL_RHO_POL},
     .has_Rmajor_omp_bounds = true,
     .Rmajor_omp_bounds = {2.1, 2.5},
   };
@@ -849,19 +853,58 @@ test_domain_invalid(void)
   TEST_CHECK(gkyl_gen_miller_eqdsk_inew_for_domain(NULL, bounds, resolved) == NULL);
   TEST_CHECK(gkyl_gen_miller_eqdsk_inew_for_domain(&inp, NULL, resolved) == NULL);
   TEST_CHECK(gkyl_gen_miller_eqdsk_inew_for_domain(&inp, bounds, NULL) == NULL);
-  inp.x_extent_type = 100;
+  inp.input_coord_limits_type[0] = 100;
   TEST_CHECK(gkyl_gen_miller_eqdsk_inew_for_domain(&inp, bounds, resolved) == NULL);
-  inp.x_extent_type = GKYL_GK_GEOMETRY_RADIAL_COORD_R_OMP;
+  inp.input_coord_limits_type[0] = GKYL_GK_GEOMETRY_COORD_RADIAL_R_OMP;
   bounds[0] = 2;
   bounds[1] = 2.4;
   TEST_CHECK(gkyl_gen_miller_eqdsk_inew_for_domain(&inp, bounds, resolved) == NULL);
-  inp.x_extent_type = GKYL_GK_GEOMETRY_RADIAL_COORD_PSI_POL;
+  inp.input_coord_limits_type[0] = GKYL_GK_GEOMETRY_COORD_RADIAL_PSI_POL;
   bounds[0] = -0.1;
   bounds[1] = 0.1;
   TEST_CHECK(gkyl_gen_miller_eqdsk_inew_for_domain(&inp, bounds, resolved) == NULL);
 }
 
+static void
+test_binormal_extent(void)
+{
+  struct gkyl_gen_miller_eqdsk_inp inp = {
+    .Rmajor_axis = 2,
+    .bmag_axis = 1.5,
+    .Rmajor_LCFS = 2.5,
+    .qsafety = constant_q,
+  };
+
+  gkyl_gen_miller_eqdsk *up = gkyl_gen_miller_eqdsk_inew(&inp);
+  TEST_ASSERT(up != NULL);
+
+  double psi_bounds[2] = {
+    gkyl_gen_miller_eqdsk_psi_at_r(up, 0.2), gkyl_gen_miller_eqdsk_psi_at_r(up, 0.4)
+  };
+
+  double y_bounds[2] = {0.02, 0.12};
+
+  struct gkyl_gen_miller_eqdsk_binormal_extent out;
+
+  TEST_ASSERT(gkyl_gen_miller_eqdsk_set_binormal_extents(up, psi_bounds, y_bounds, &out));
+  TEST_CHECK(fabs(out.r0 - 0.3) < 1e-12);
+  TEST_CHECK(fabs(out.q0 - 2) < 1e-12);
+  TEST_CHECK(fabs(out.Cy - 0.15) < 1e-12);
+  TEST_CHECK(out.n_tor == 9);
+  TEST_CHECK(fabs(2 * M_PI * out.Cy / out.Ly - out.n_tor) < 1e-12);
+  TEST_CHECK(fabs(0.5 * (out.alpha_bounds[0] + out.alpha_bounds[1]) * out.Cy - 0.07) < 1e-12);
+
+  y_bounds[1] = 10;
+  TEST_CHECK(!gkyl_gen_miller_eqdsk_set_binormal_extents(up, psi_bounds, y_bounds, &out));
+
+  y_bounds[1] = y_bounds[0];
+  TEST_CHECK(!gkyl_gen_miller_eqdsk_set_binormal_extents(up, psi_bounds, y_bounds, &out));
+
+  gkyl_gen_miller_eqdsk_release(up);
+}
+
 TEST_LIST = {
+  {"miller_binormal_extent", test_binormal_extent},
   {"miller_flux_extent_conversion", test_flux_extent_conversion},
   {"miller_domain_extents", test_domain_extents},
   {"miller_domain_invalid", test_domain_invalid},

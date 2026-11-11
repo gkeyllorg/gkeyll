@@ -4,6 +4,7 @@
 #include <gkyl_math.h>
 
 #include <float.h>
+#include <limits.h>
 #include <math.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -443,6 +444,57 @@ gkyl_gen_miller_eqdsk_R_omp_at_psi(const gkyl_gen_miller_eqdsk *up, double psi)
   return gkyl_gen_miller_eqdsk_R_omp_at_rminor(&up->inp, gkyl_gen_miller_eqdsk_r_at_psi(up, psi));
 }
 
+bool
+gkyl_gen_miller_eqdsk_set_binormal_extents(
+  const gkyl_gen_miller_eqdsk *up, const double psi_bounds[2], const double y_bounds[2],
+  struct gkyl_gen_miller_eqdsk_binormal_extent *out
+)
+{
+  if (!up || !psi_bounds || !y_bounds || !out || !gen_miller_finite(psi_bounds[0]) ||
+      !gen_miller_finite(psi_bounds[1]) || psi_bounds[0] >= psi_bounds[1] ||
+      !gen_miller_finite(y_bounds[0]) || !gen_miller_finite(y_bounds[1]) ||
+      y_bounds[0] >= y_bounds[1]) {
+    return false;
+  }
+
+  double rlo = gkyl_gen_miller_eqdsk_r_at_psi(up, psi_bounds[0]);
+  double rhi = gkyl_gen_miller_eqdsk_r_at_psi(up, psi_bounds[1]);
+  double r0 = 0.5 * (rlo + rhi);
+
+  double R0 = gkyl_gen_miller_eqdsk_R_omp_at_rminor(&up->inp, r0);
+
+  double q0 = gen_miller_finite(R0) ? up->inp.qsafety(R0, up->inp.qsafety_ctx) : gen_miller_nan();
+
+  double Cy = r0 / q0;
+
+  double requested_Ly = y_bounds[1] - y_bounds[0];
+  double modes = round(2 * M_PI * Cy / requested_Ly);
+  if (!gen_miller_finite(r0) || r0 <= 0 || !gen_miller_finite(q0) || q0 <= 0 ||
+      !gen_miller_finite(Cy) || Cy <= 0 || !gen_miller_finite(requested_Ly) || requested_Ly <= 0 ||
+      !gen_miller_finite(modes) || modes < 1 || modes > INT_MAX) {
+    return false;
+  }
+  int n_tor = (int)modes;
+
+  double Ly = 2 * M_PI * Cy / n_tor;
+  double center = 0.5 * y_bounds[0] + 0.5 * y_bounds[1];
+  double lower = (center - 0.5 * Ly) / Cy, upper = (center + 0.5 * Ly) / Cy;
+  if (!gen_miller_finite(Ly) || !gen_miller_finite(lower) || !gen_miller_finite(upper) ||
+      lower >= upper) {
+    return false;
+  }
+
+  *out = (struct gkyl_gen_miller_eqdsk_binormal_extent){
+    .r0 = r0,
+    .q0 = q0,
+    .Cy = Cy,
+    .n_tor = n_tor,
+    .Ly = Ly,
+    .alpha_bounds = {lower, upper},
+  };
+  return true;
+}
+
 /**
  * Evaluate the poloidal arc-length integrand normalized by minor radius.
  *
@@ -762,7 +814,7 @@ gen_miller_serialized_flux(double psi)
 
 bool
 gen_miller_flux_bounds(
-  enum gkyl_gk_geometry_radial_coord type, const double bounds[2], double psi_axis, double psi_lcfs,
+  enum gkyl_gk_geometry_coord_type type, const double bounds[2], double psi_axis, double psi_lcfs,
   double psi_bounds[2]
 )
 {
@@ -775,12 +827,13 @@ gen_miller_flux_bounds(
     return false;
   }
   for (int j = 0; j < 2; ++j) {
-    if (type == GKYL_GK_GEOMETRY_RADIAL_COORD_RHO_POL) {
+    if (type == GKYL_GK_GEOMETRY_COORD_RADIAL_RHO_POL) {
       if (bounds[j] <= 0) {
         return false;
       }
       values[j] = psi_axis + bounds[j] * bounds[j] * span;
-    } else if (type == GKYL_GK_GEOMETRY_RADIAL_COORD_PSI_POL) {
+    } else if (type == GKYL_GK_GEOMETRY_COORD_UNSPECIFIED ||
+               type == GKYL_GK_GEOMETRY_COORD_RADIAL_PSI_POL) {
       values[j] = bounds[j];
     } else {
       return false;
@@ -820,14 +873,15 @@ gkyl_gen_miller_eqdsk_inew_for_domain(
 {
   if (!inp || !x_bounds || !psi_bounds || !gen_miller_finite(x_bounds[0]) ||
       !gen_miller_finite(x_bounds[1]) || x_bounds[0] >= x_bounds[1] ||
-      (inp->x_extent_type != GKYL_GK_GEOMETRY_RADIAL_COORD_PSI_POL &&
-       inp->x_extent_type != GKYL_GK_GEOMETRY_RADIAL_COORD_RHO_POL &&
-       inp->x_extent_type != GKYL_GK_GEOMETRY_RADIAL_COORD_R_OMP)) {
+      (inp->input_coord_limits_type[0] != GKYL_GK_GEOMETRY_COORD_UNSPECIFIED &&
+       inp->input_coord_limits_type[0] != GKYL_GK_GEOMETRY_COORD_RADIAL_PSI_POL &&
+       inp->input_coord_limits_type[0] != GKYL_GK_GEOMETRY_COORD_RADIAL_RHO_POL &&
+       inp->input_coord_limits_type[0] != GKYL_GK_GEOMETRY_COORD_RADIAL_R_OMP)) {
     gen_miller_error("Invalid radial extent type or domain bounds");
     return NULL;
   }
   struct gkyl_gen_miller_eqdsk_inp work = *inp;
-  bool outboard = inp->x_extent_type == GKYL_GK_GEOMETRY_RADIAL_COORD_R_OMP;
+  bool outboard = inp->input_coord_limits_type[0] == GKYL_GK_GEOMETRY_COORD_RADIAL_R_OMP;
   if (outboard) {
     if (x_bounds[0] <= inp->Rmajor_axis ||
         (inp->has_Rmajor_omp_bounds &&
@@ -853,7 +907,8 @@ gkyl_gen_miller_eqdsk_inew_for_domain(
       resolved[0] = gen_miller_domain_psi_at_R_omp(up, x_bounds[0]);
       resolved[1] = gen_miller_domain_psi_at_R_omp(up, x_bounds[1]);
     } else if (!gen_miller_flux_bounds(
-                 inp->x_extent_type, x_bounds, gen_miller_serialized_flux(up->info.psi_axis),
+                 inp->input_coord_limits_type[0], x_bounds,
+                 gen_miller_serialized_flux(up->info.psi_axis),
                  gen_miller_serialized_flux(up->info.psi_boundary), resolved
                )) {
       gen_miller_error("Flux domain must be finite, nonzero-width, and outside the axis");

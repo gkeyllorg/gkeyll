@@ -23,6 +23,6 @@ bool gen_miller_resolve_shape(
  * @return True on success, false for invalid or unrepresentable bounds.
  */
 bool gen_miller_flux_bounds(
-  enum gkyl_gk_geometry_radial_coord type, const double bounds[2], double psi_axis, double psi_lcfs,
+  enum gkyl_gk_geometry_coord_type type, const double bounds[2], double psi_axis, double psi_lcfs,
   double psi_bounds[2]
 );

@@ -431,14 +431,6 @@ void gkyl_gk_geometry_free(const struct gkyl_ref_count *ref);
 void gkyl_gk_geometry_release(const struct gk_geometry *up);
 
 /**
- * Interior-geometry point queries use host arrays and actual configuration
- * coordinates. They terminate with a diagnostic for invalid inputs or points
- * outside the local interior domain. Internal faces use the upper-cell trace;
- * local outer boundaries use the interior trace. No MPI communication occurs.
- * Output buffers must not alias the input coordinates.
- */
-
-/**
  * Evaluate the stored magnetic-field magnitude [T].
  *
  * @param geo Non-NULL, borrowed host geometry (e.g. from set_gk_geometry).

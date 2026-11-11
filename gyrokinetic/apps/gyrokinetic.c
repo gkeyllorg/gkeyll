@@ -257,6 +257,12 @@ gyrokinetic_prepare_miller(struct gkyl_gk *gk)
              gk->geometry.efit_info.eqdsk_cocos_index != 3) {
     error = "GKYL_GEOMETRY_MILLER generates COCOS 3 equilibria; "
             "eqdsk_cocos_index must be 0 (default) or 3";
+  } else if (inp.input_coord_limits_type[1] == GKYL_GK_GEOMETRY_COORD_BINORMAL_LENGTH &&
+             gk->cdim != 3) {
+    error = "Miller binormal length bounds require a 3x simulation";
+  } else if (inp.input_coord_limits_type[2] != GKYL_GK_GEOMETRY_COORD_UNSPECIFIED &&
+             inp.input_coord_limits_type[2] != GKYL_GK_GEOMETRY_COORD_PARALLEL_THETA) {
+    error = "invalid Miller parallel coordinate type";
   }
   double x_bounds[2] = {gk->lower[0], gk->upper[0]}, psi_bounds[2];
   gkyl_gen_miller_eqdsk *generator =
@@ -275,6 +281,18 @@ gyrokinetic_prepare_miller(struct gkyl_gk *gk)
   const struct gkyl_gen_miller_eqdsk_info *info = gkyl_gen_miller_eqdsk_get_info(generator);
 
   double psi_lower = psi_bounds[0], psi_upper = psi_bounds[1];
+  struct gkyl_gen_miller_eqdsk_binormal_extent binormal;
+  if (inp.input_coord_limits_type[1] == GKYL_GK_GEOMETRY_COORD_BINORMAL_LENGTH) {
+    double y_bounds[2] = {gk->lower[1], gk->upper[1]};
+    if (!gkyl_gen_miller_eqdsk_set_binormal_extents(generator, psi_bounds, y_bounds, &binormal)) {
+      error = "invalid Miller binormal length bounds or reference scale";
+      failure = 1;
+    }
+  } else if (inp.input_coord_limits_type[1] != GKYL_GK_GEOMETRY_COORD_UNSPECIFIED &&
+             inp.input_coord_limits_type[1] != GKYL_GK_GEOMETRY_COORD_BINORMAL_ALPHA) {
+    error = "invalid Miller binormal extent type";
+    failure = 1;
+  }
 
   // Use the serialized boundary value, exactly as the EFIT reader will see it.
   char boundary_text[32];
@@ -296,6 +314,15 @@ gyrokinetic_prepare_miller(struct gkyl_gk *gk)
       );
       failure = 1;
     }
+  }
+
+  if (comm) {
+    gkyl_comm_allreduce_host(comm, GKYL_INT, GKYL_MAX, 1, &failure, &global_failure);
+  } else {
+    global_failure = failure;
+  }
+  if (global_failure) {
+    goto fail;
   }
 
   struct gkyl_efit_inp efit = gk->geometry.efit_info;
@@ -341,6 +368,10 @@ gyrokinetic_prepare_miller(struct gkyl_gk *gk)
 
   gk->lower[0] = psi_lower;
   gk->upper[0] = psi_upper;
+  if (inp.input_coord_limits_type[1] == GKYL_GK_GEOMETRY_COORD_BINORMAL_LENGTH) {
+    gk->lower[1] = binormal.alpha_bounds[0];
+    gk->upper[1] = binormal.alpha_bounds[1];
+  }
   gk->geometry.geometry_id = GKYL_GEOMETRY_TOKAMAK;
   gk->geometry.efit_info = efit;
   gk->geometry.tok_grid_info = tok;
