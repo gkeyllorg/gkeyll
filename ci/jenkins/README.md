@@ -74,12 +74,6 @@ A test requiring more ranks than the budget runs alone. The default remains
 `--jobs 1`; `--jobs 0` detects the available CPU count. GPU jobs share available
 devices, with placement controlled by the MPI launcher.
 
-The scheduling tests exercise small shell and make jobs without simulations:
-
-```sh
-LUAJIT=/path/to/luajit python3 -m unittest -v ci.jenkins.tests.test_regression_scheduling
-```
-
 ### CI client
 
 The script `gkeyll-ci.sh` provides a CLI to run, query and terminate CI. See
