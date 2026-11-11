@@ -78,6 +78,7 @@ gk_field_fem_projection_par_phi_ts_3x(
     &app->global_upper_skin[par_dir]
   );
   gkyl_bc_twistshift_advance(field->bc_ts_lo, field->rho_c_global_dg, field->rho_c_global_dg);
+  gk_field_ts_fem_perpproj_advance(app, field, field->rho_c_global_dg);
   // Fill upper parallel boundary ghost with skin boundary value.
   gkyl_bc_basic_gyrokinetic_advance(
     field->gfss_bc_op_core_up, field->bc_buffer, field->rho_c_global_dg
@@ -165,6 +166,7 @@ gk_field_fem_projection_par_phi_iwl_3x(
     &app->global_upper_skin_par_core
   );
   gkyl_bc_twistshift_advance(field->bc_ts_lo, field->rho_c_global_dg, field->rho_c_global_dg);
+  gk_field_ts_fem_perpproj_advance(app, field, field->rho_c_global_dg);
   gkyl_bc_basic_gyrokinetic_advance(
     field->gfss_bc_op_core_up, field->bc_buffer, field->rho_c_global_dg
   );
@@ -315,11 +317,12 @@ gk_field_2x3x_add_TS_updaters(
       .filter_half_width = app->core_parallel_bcs.ts_filter_half_width,
       .filter_cutoff_wavelength = app->core_parallel_bcs.ts_filter_cutoff_wavelength,
     };
-    if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK) {
-      T_LU_lo.shift_dg = app->delta_ts_x_lo;
+    // User shift functions are projected on the (possibly upsampled) twist-shift grid.
+    if (app->core_parallel_bcs.lower_shift_func) {
+      T_LU_lo.shift_func = app->core_parallel_bcs.lower_shift_func;
+      T_LU_lo.shift_func_ctx = app->core_parallel_bcs.lower_shift_ctx;
     } else {
-      T_LU_lo.shift_func = app->gk_geom->lower_shift_func;
-      T_LU_lo.shift_func_ctx = app->gk_geom->lower_shift_ctx;
+      T_LU_lo.shift_dg = app->delta_ts_x_lo;
     }
     gkf->bc_ts_lo = gkyl_bc_twistshift_inew(&T_LU_lo);
 
@@ -339,11 +342,12 @@ gk_field_2x3x_add_TS_updaters(
       .filter_half_width = app->core_parallel_bcs.ts_filter_half_width,
       .filter_cutoff_wavelength = app->core_parallel_bcs.ts_filter_cutoff_wavelength,
     };
-    if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK) {
-      T_UL_up.shift_dg = app->delta_ts_x_up;
+    // User shift functions are projected on the (possibly upsampled) twist-shift grid.
+    if (app->core_parallel_bcs.upper_shift_func) {
+      T_UL_up.shift_func = app->core_parallel_bcs.upper_shift_func;
+      T_UL_up.shift_func_ctx = app->core_parallel_bcs.upper_shift_ctx;
     } else {
-      T_UL_up.shift_func = app->gk_geom->upper_shift_func;
-      T_UL_up.shift_func_ctx = app->gk_geom->upper_shift_ctx;
+      T_UL_up.shift_dg = app->delta_ts_x_up;
     }
     gkf->bc_ts_up = gkyl_bc_twistshift_inew(&T_UL_up);
 
@@ -425,11 +429,12 @@ gk_field_2x3x_add_IWL_updaters(
       .filter_half_width = app->core_parallel_bcs.ts_filter_half_width,
       .filter_cutoff_wavelength = app->core_parallel_bcs.ts_filter_cutoff_wavelength,
     };
-    if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK) {
-      T_LU_lo.shift_dg = app->delta_ts_x_lo;
+    // User shift functions are projected on the (possibly upsampled) twist-shift grid.
+    if (app->core_parallel_bcs.lower_shift_func) {
+      T_LU_lo.shift_func = app->core_parallel_bcs.lower_shift_func;
+      T_LU_lo.shift_func_ctx = app->core_parallel_bcs.lower_shift_ctx;
     } else {
-      T_LU_lo.shift_func = app->gk_geom->lower_shift_func;
-      T_LU_lo.shift_func_ctx = app->gk_geom->lower_shift_ctx;
+      T_LU_lo.shift_dg = app->delta_ts_x_lo;
     }
     gkf->bc_ts_lo = gkyl_bc_twistshift_inew(&T_LU_lo);
 
@@ -486,6 +491,9 @@ gk_field_rhs_poisson_perp_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field
 static void
 gk_field_fem_release_2x3x(const gkyl_gyrokinetic_app *app, struct gk_field *gkf)
 {
+  // Release perpendicular smoother.
+  gk_field_ts_fem_perpproj_release(gkf);
+
   gkyl_array_release(gkf->rho_c);
   gkyl_array_release(gkf->rho_c_global_dg);
   gkyl_array_release(gkf->rho_c_global_smooth);
@@ -725,6 +733,8 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
     }
   }
 
+  gk_field_ts_fem_perpproj_check_input(app, gkf);
+
   if (app->gk_geom->has_LCFS) {
     // Updaters to enforce twist-and-shift and sheath BCs.
     gk_field_2x3x_add_IWL_updaters(app, gkf, &poisson_bcs);
@@ -732,6 +742,9 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
     // Updaters to enforce twist-and-shift BCs.
     gk_field_2x3x_add_TS_updaters(app, gkf, &poisson_bcs);
   }
+
+  // Initialize perpendicular smoother.
+  gk_field_ts_fem_perpproj_new(app, gkf);
 
   // Set the pointer to the function that computes phi.
   gkf->rhs_phi_func = gk_field_rhs_poisson_perp_2x3x;

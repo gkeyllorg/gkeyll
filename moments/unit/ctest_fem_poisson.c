@@ -5559,7 +5559,164 @@ test_poisson_2x_p2_dirichletx_periodicy_bias_dev()
 }
 #endif
 
+// Independently assemble a Q1 mass matrix with periodic y and Dirichlet x.
+// This also checks the sign and modal normalization of kSq in a pure projection.
+static void
+test_fem_mass_projection(bool use_gpu)
+{
+  enum { NX = 3, NY = 4, NN = (NX + 1) * NY };
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, 2, (double[]){-0.2, -0.5}, (double[]){1.3, 0.5}, (int[]){NX, NY});
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, 2, 1);
+  struct gkyl_range ext, local;
+  gkyl_create_grid_ranges(&grid, (int[]){1, 1}, &ext, &local);
+  struct gkyl_array *input = gkyl_array_new(GKYL_DOUBLE, 4, ext.volume);
+  struct gkyl_array *result = gkyl_array_new(GKYL_DOUBLE, 4, ext.volume);
+  struct gkyl_array *first = gkyl_array_new(GKYL_DOUBLE, 4, ext.volume);
+  struct gkyl_array *rhs = use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, 4, ext.volume) :
+                                     gkyl_array_new(GKYL_DOUBLE, 4, ext.volume);
+  struct gkyl_array *out = use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, 4, ext.volume) :
+                                     gkyl_array_new(GKYL_DOUBLE, 4, ext.volume);
+  struct gkyl_array *epsilon = use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, 4, ext.volume) :
+                                         gkyl_array_new(GKYL_DOUBLE, 4, ext.volume);
+  struct gkyl_array *ksq = use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, 4, ext.volume) :
+                                     gkyl_array_new(GKYL_DOUBLE, 4, ext.volume);
+  gkyl_array_clear(epsilon, 0.0);
+  gkyl_array_clear(ksq, 0.0);
+  gkyl_array_shiftc(ksq, -2.0, 0);
+  double nodes[8];
+  basis.node_list(nodes);
+  for (int scenario = 0; scenario < 4; scenario++) {
+    double lower = scenario >= 2 ? 1.25 : 0.0;
+    double upper = scenario == 2 ? -0.75 : lower;
+    struct gkyl_poisson_bc bcs = {
+      .lo_type = {GKYL_POISSON_DIRICHLET, GKYL_POISSON_PERIODIC},
+      .up_type = {GKYL_POISSON_DIRICHLET, GKYL_POISSON_PERIODIC},
+    };
+    bcs.lo_value[0].v[0] = lower;
+    bcs.up_value[0].v[0] = upper;
+    double matrix[NN][NN] = {0}, load[NN] = {0};
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init(&iter, &local);
+    while (gkyl_range_iter_next(&iter)) {
+      int ix = iter.idx[0] - 1, iy = iter.idx[1] - 1, vertex[4];
+      double *coeff = gkyl_array_fetch(input, gkyl_range_idx(&local, iter.idx));
+      double nodal[4];
+      for (int n = 0; n < 4; n++) {
+        int vx = ix + (nodes[2 * n] > 0), vy = (iy + (nodes[2 * n + 1] > 0)) % NY;
+        vertex[n] = vx + (NX + 1) * vy;
+        nodal[n] = scenario == 3 ? lower : sin(M_PI * vx / NX) * cos(2 * M_PI * vy / NY);
+        coeff[n] = sin(0.7 * (1 + ix + 3 * iy) * (n + 1));
+      }
+      if (scenario == 1 || scenario == 3) {
+        basis.nodal_to_modal(nodal, coeff);
+      }
+      for (int qx = -1; qx <= 1; qx += 2) {
+        for (int qy = -1; qy <= 1; qy += 2) {
+          double point[2] = {qx / sqrt(3.0), qy / sqrt(3.0)}, shape[4];
+          double val = basis.eval_expand(point, coeff);
+          double weight = grid.dx[0] * grid.dx[1] / 4;
+          for (int n = 0; n < 4; n++) {
+            shape[n] = (1 + nodes[2 * n] * point[0]) * (1 + nodes[2 * n + 1] * point[1]) / 4;
+          }
+          for (int n = 0; n < 4; n++) {
+            load[vertex[n]] += weight * shape[n] * val;
+            for (int m = 0; m < 4; m++) {
+              matrix[vertex[n]][vertex[m]] += weight * shape[n] * shape[m];
+            }
+          }
+        }
+      }
+    }
+    for (int iy = 0; iy < NY; iy++) {
+      for (int edge = 0; edge < 2; edge++) {
+        int row = edge * NX + (NX + 1) * iy;
+        for (int col = 0; col < NN; col++) {
+          matrix[row][col] = row == col;
+        }
+        load[row] = edge ? upper : lower;
+      }
+    }
+    // Small dense reference solve, independent of the generated FEM stencils.
+    for (int pivot = 0; pivot < NN; pivot++) {
+      TEST_ASSERT(fabs(matrix[pivot][pivot]) > 1e-14);
+      for (int row = pivot + 1; row < NN; row++) {
+        double factor = matrix[row][pivot] / matrix[pivot][pivot];
+        for (int col = pivot; col < NN; col++) {
+          matrix[row][col] -= factor * matrix[pivot][col];
+        }
+        load[row] -= factor * load[pivot];
+      }
+    }
+    for (int row = NN - 1; row >= 0; row--) {
+      for (int col = row + 1; col < NN; col++) {
+        load[row] -= matrix[row][col] * load[col];
+      }
+      load[row] /= matrix[row][row];
+    }
+    struct gkyl_fem_poisson *proj =
+      gkyl_fem_poisson_new(&local, &grid, basis, &bcs, NULL, epsilon, ksq, true, use_gpu);
+    gkyl_array_copy(rhs, input);
+    for (int pass = 0; pass < 2; pass++) {
+      gkyl_fem_poisson_set_rhs(proj, rhs, NULL);
+      gkyl_fem_poisson_solve(proj, out);
+      gkyl_array_copy(result, out);
+      double max_error = 0.0, scale = 1.0;
+      gkyl_range_iter_init(&iter, &local);
+      while (gkyl_range_iter_next(&iter)) {
+        long loc = gkyl_range_idx(&local, iter.idx);
+        const double *coeff = gkyl_array_cfetch(result, loc);
+        for (int n = 0; n < 4; n++) {
+          int vx = iter.idx[0] - 1 + (nodes[2 * n] > 0);
+          int vy = (iter.idx[1] - 1 + (nodes[2 * n + 1] > 0)) % NY;
+          double expected = load[vx + (NX + 1) * vy];
+          max_error = fmax(max_error, fabs(basis.eval_expand(&nodes[2 * n], coeff) - expected));
+          scale = fmax(scale, fabs(expected));
+        }
+        const double *ref = gkyl_array_cfetch(pass ? first : input, loc);
+        if (pass || scenario == 1 || scenario == 3) {
+          for (int n = 0; n < 4; n++) {
+            max_error = fmax(max_error, fabs(coeff[n] - ref[n]));
+          }
+        }
+      }
+      TEST_CHECK(max_error / scale < 1e-11);
+      TEST_MSG(
+        "scenario=%d pass=%d gpu=%d relative error=%.3e", scenario, pass, use_gpu, max_error / scale
+      );
+      gkyl_array_copy(first, result);
+      gkyl_array_copy(rhs, out);
+    }
+    gkyl_fem_poisson_release(proj);
+  }
+  gkyl_array_release(input);
+  gkyl_array_release(result);
+  gkyl_array_release(first);
+  gkyl_array_release(rhs);
+  gkyl_array_release(out);
+  gkyl_array_release(epsilon);
+  gkyl_array_release(ksq);
+}
+
+static void
+test_fem_mass_projection_ho(void)
+{
+  test_fem_mass_projection(false);
+}
+#ifdef GKYL_HAVE_CUDA
+static void
+test_fem_mass_projection_dev(void)
+{
+  test_fem_mass_projection(true);
+}
+#endif
+
 TEST_LIST = {
+  {"test_fem_mass_projection_ho", test_fem_mass_projection_ho},
+#ifdef GKYL_HAVE_CUDA
+  {"test_fem_mass_projection_dev", test_fem_mass_projection_dev},
+#endif
   // 1x tests
   {"test_poisson_1x_p1_periodicx_ho", test_poisson_1x_p1_periodicx_ho},
   {"test_poisson_1x_p1_dirichletx_ho", test_poisson_1x_p1_dirichletx_ho},
