@@ -1638,8 +1638,8 @@ gyrokinetic_app_geometry_copy_and_write(
   gkyl_msgpack_data_release(mt);
 }
 
-// q is constant in the transverse directions. Rank zero owns the entire radial
-// grid because gyrokinetic MPI decomposition is restricted to the parallel axis.
+// q is constant in the binormal and parallel directions. Rank zero owns the entire radial
+// grid because gyrokinetic only parallelizes along z.
 static void
 gyrokinetic_app_write_qsafety(gkyl_gyrokinetic_app *app, const struct gkyl_array *q_host)
 {
