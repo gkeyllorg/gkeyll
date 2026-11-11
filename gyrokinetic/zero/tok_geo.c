@@ -188,8 +188,9 @@ arc_length_func(double Z, void *ctx)
   return ival;
 }
 
-// Verify traversal against the local flux gradient on a regular branch. This
-// includes private-flux contours: a global outward-flux flag alone is not a
+// Once contour's end points and branch (i.e. left or right branch of psi) are
+// chosen, this function verifies traversal against the local flux gradient on a regular branch.
+// This includes private-flux contours: a global outward-flux flag alone is not a
 // sufficient check of their selected branch. The probe does not alter the map context.
 static void
 tok_verify_contour_orientation(struct gkyl_tok_geo_grid_inp *inp, struct arc_length_ctx *ctx)

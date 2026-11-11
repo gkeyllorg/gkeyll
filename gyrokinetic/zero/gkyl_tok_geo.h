@@ -219,16 +219,18 @@ double gkyl_tok_geo_calc_Cy(
 );
 
 /**
- * Get R(psi,Z) for a specified psi and Z value. Multiple values may
- * be returned (or none). The R(psi,Z) and dR/dZ are stored in the R
- * and dR arrays which be allocated by the caller.
+ * Get R(psi,Z) for specified psi and Z. Multiple roots may be returned,
+ * or none. The caller must allocate all output arrays for nmaxroots entries.
  *
- * @param geo Geometry object
- * @param psi Psi value
- * @param Z Z value
- * @param nmaxroots Maximum number of roots
- * @param R on output, R(psi,Z)
- * @param dR on output, dR/dZ
+ * @param geo Geometry object.
+ * @param psi Poloidal flux value.
+ * @param Z Vertical coordinate.
+ * @param nmaxroots Maximum number of roots to return.
+ * @param R Output radii of the roots.
+ * @param dRdZ Output dR/dZ along each contour branch.
+ * @param dR Output radial component of an unnormalized contour tangent.
+ * @param dZ Output vertical component of an unnormalized contour tangent.
+ * @return Number of roots returned, or zero if none are found.
  */
 int gkyl_tok_geo_R_psiZ(
   const struct gkyl_tok_geo *geo, double psi, double Z, int nmaxroots, double *R, double *dRdZ,
