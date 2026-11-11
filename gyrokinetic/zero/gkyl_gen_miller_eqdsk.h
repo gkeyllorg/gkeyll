@@ -236,7 +236,8 @@ double gkyl_gen_miller_eqdsk_R_omp_at_psi(const gkyl_gen_miller_eqdsk *up, doubl
  * @param up Generator with a constructed radial flux table.
  * @param Rmajor Cylindrical major radius [m].
  * @param Zvert Cylindrical vertical coordinate [m].
- * @return Total magnetic-field magnitude [T], or NaN outside physical coverage.
+ * @return Finite total magnetic-field magnitude [T]. Exits for invalid coordinates, failed
+ * inversion, or a nonfinite field.
  */
 double gkyl_gen_miller_eqdsk_bmag_at_RZ(
   const gkyl_gen_miller_eqdsk *up, double Rmajor, double Zvert

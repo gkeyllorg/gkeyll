@@ -1222,39 +1222,6 @@ gkyl_gk_geometry_geo_int_comp2tor_coords(
   out[2] = cyl[1];
 }
 
-/**
- * Evaluate the Miller horizontal map at fixed v=r*sin(theta), checking its
- * derivative dR/du, where u=r*cos(theta).
- *
- * @param miller Axis and shaping parameters.
- * @param u Horizontal auxiliary-circle coordinate [m].
- * @param v Vertical auxiliary-circle coordinate [m].
- * @param derivative Output dR/du for checking the nonfolding branch.
- * @return Cylindrical major radius [m].
- */
-static double
-gk_geometry_query_miller_R(
-  const struct gkyl_gen_miller_eqdsk_inp *miller, const struct gen_miller_shape *shape, double u,
-  double v, double *derivative
-)
-{
-  double radius = hypot(u, v), eta = asin(shape->delta);
-  double beta = radius > 0 ? eta * v / radius : 0;
-  double dbeta = radius > 0 ? -eta * (v / radius) * (u / radius) / radius : 0;
-  *derivative =
-    cos(beta) - shape->a_shift * u / miller->Rmajor_axis - (u * sin(beta) + v * cos(beta)) * dbeta;
-  if (!gk_geometry_query_finite(*derivative)) {
-    gkyl_exit("geo_int query: nonfinite Miller map derivative.");
-  }
-  double Rmajor = miller->Rmajor_axis -
-                  shape->a_shift * radius * radius / (2 * miller->Rmajor_axis) + u * cos(beta) -
-                  v * sin(beta);
-  if (!gk_geometry_query_finite(Rmajor)) {
-    gkyl_exit("geo_int query: nonfinite Miller map.");
-  }
-  return Rmajor;
-}
-
 void
 gkyl_gk_geometry_geo_int_comp2miller_coords(
   const struct gk_geometry *geo, const double *xc, const struct gkyl_gen_miller_eqdsk_inp *miller,
@@ -1283,6 +1250,7 @@ gkyl_gk_geometry_geo_int_comp2miller_coords(
   double cyl[3];
   gkyl_gk_geometry_geo_int_comp2cyl_coords(geo, xc, cyl);
   double kappa = shape.kappa;
+  double eta = asin(shape.delta);
   double v = (cyl[2] - miller->Zvert_axis) / kappa;
   double scale = hypot(cyl[0] - miller->Rmajor_axis, v);
   if (scale <= 16 * DBL_EPSILON * fmax(miller->Rmajor_axis, fabs(miller->Zvert_axis))) {
@@ -1296,7 +1264,7 @@ gkyl_gk_geometry_geo_int_comp2miller_coords(
     return;
   }
   double derivative;
-  double at_zero = gk_geometry_query_miller_R(miller, &shape, 0, v, &derivative);
+  double at_zero = gen_miller_R_uv(miller, &shape, eta, 0, v, &derivative);
   if (derivative <= 0) {
     gkyl_exit("geo_int query: folded Miller branch at inversion origin.");
   }
@@ -1309,12 +1277,12 @@ gkyl_gk_geometry_geo_int_comp2miller_coords(
     double start = previous;
     for (int sample = 1; sample <= 32; ++sample) {
       endpoint = start + (direction * scale - start) * sample / 32.0;
-      double Rmajor = gk_geometry_query_miller_R(miller, &shape, endpoint, v, &derivative);
+      double Rmajor = gen_miller_R_uv(miller, &shape, eta, endpoint, v, &derivative);
       // A trial beyond a fold may still bracket a root on the valid side.
       // Approach the fold from the last monotone sample before rejecting it.
       for (int shrink = 0; derivative <= 0 && shrink < 64; ++shrink) {
         endpoint = 0.5 * (previous + endpoint);
-        Rmajor = gk_geometry_query_miller_R(miller, &shape, endpoint, v, &derivative);
+        Rmajor = gen_miller_R_uv(miller, &shape, eta, endpoint, v, &derivative);
       }
       if (derivative <= 0 || endpoint == previous) {
         gkyl_exit("geo_int query: Miller inverse outside the nonfolding branch.");
@@ -1333,7 +1301,7 @@ gkyl_gk_geometry_geo_int_comp2miller_coords(
   double lower = fmin(previous, endpoint), upper = fmax(previous, endpoint);
   for (int iter = 0; iter < 60; ++iter) {
     double middle = 0.5 * (lower + upper);
-    double Rmajor = gk_geometry_query_miller_R(miller, &shape, middle, v, &derivative);
+    double Rmajor = gen_miller_R_uv(miller, &shape, eta, middle, v, &derivative);
     if (derivative <= 0) {
       gkyl_exit("geo_int query: folded Miller inverse bracket.");
     }
@@ -1344,7 +1312,7 @@ gkyl_gk_geometry_geo_int_comp2miller_coords(
     }
   }
   double u = 0.5 * (lower + upper);
-  if (fabs(gk_geometry_query_miller_R(miller, &shape, u, v, &derivative) - cyl[0]) >
+  if (fabs(gen_miller_R_uv(miller, &shape, eta, u, v, &derivative) - cyl[0]) >
       1e-12 * miller->Rmajor_axis) {
     gkyl_exit("geo_int query: Miller inverse residual exceeds tolerance.");
   }

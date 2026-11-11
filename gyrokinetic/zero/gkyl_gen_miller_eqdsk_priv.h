@@ -6,6 +6,22 @@ struct gen_miller_shape {
   double kappa, delta, a_shift;
 };
 
+/**
+ * Evaluate the Miller major-radius map in auxiliary coordinates.
+ *
+ * @param inp Miller geometry input.
+ * @param shape Resolved shaping parameters.
+ * @param eta Arcsine of the resolved triangularity.
+ * @param u Auxiliary horizontal coordinate r*cos(theta) [m].
+ * @param v Auxiliary vertical coordinate r*sin(theta) [m].
+ * @param derivative Optional output for dR/du.
+ * @return Finite cylindrical major radius [m]. Exits if the map or derivative is nonfinite.
+ */
+double gen_miller_R_uv(
+  const struct gkyl_gen_miller_eqdsk_inp *inp, const struct gen_miller_shape *shape, double eta,
+  double u, double v, double *derivative
+);
+
 /** Resolve constant shaping callbacks and defaults; false for nonfinite values. */
 bool gen_miller_resolve_shape(
   const struct gkyl_gen_miller_eqdsk_inp *inp, struct gen_miller_shape *shape

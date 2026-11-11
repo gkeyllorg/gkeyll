@@ -11,6 +11,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h> // mkstemp(): create a uniquely named temporary file.
+#include <sys/wait.h>
 #include <unistd.h> // unlink(): remove a file's directory entry.
 
 static void
@@ -659,8 +660,27 @@ test_outboard_maps(void)
   gkyl_gen_miller_eqdsk_RZ_at_rtheta(up, 0.3, 0.7, off_midplane);
 
   TEST_CHECK(gkyl_gen_miller_eqdsk_bmag_at_RZ(up, off_midplane[0], off_midplane[1]) > 0);
-  TEST_CHECK(miller_is_nan(gkyl_gen_miller_eqdsk_bmag_at_RZ(up, -1, 0)));
-  TEST_CHECK(miller_is_nan(gkyl_gen_miller_eqdsk_bmag_at_RZ(up, 10, 0)));
+  for (int j = 0; j < 4; ++j) {
+    fflush(NULL);
+    pid_t pid = fork();
+    TEST_ASSERT(pid >= 0);
+    if (pid == 0) {
+      if (j < 2) {
+        gkyl_gen_miller_eqdsk_bmag_at_RZ(up, j == 0 ? -1 : 10, 0);
+      } else {
+        struct gen_miller_shape shape = gen_miller_test_shape(&inp);
+        if (j == 3) {
+          shape.a_shift = 1e308;
+        }
+        double derivative;
+        gen_miller_R_uv(&inp, &shape, asin(shape.delta), 1e308, 0, j == 2 ? 0 : &derivative);
+      }
+      _exit(0);
+    }
+    int status;
+    TEST_ASSERT(waitpid(pid, &status, 0) == pid);
+    TEST_CHECK(WIFEXITED(status) && WEXITSTATUS(status) == EXIT_FAILURE);
+  }
 
   for (int k = 0; k <= 10; ++k) {
     double rminor = 0.05 * k, rz[2];

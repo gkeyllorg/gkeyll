@@ -2,6 +2,7 @@
 #include <gkyl_gen_miller_eqdsk_priv.h>
 #include <gkyl_alloc.h>
 #include <gkyl_math.h>
+#include <gkyl_util.h>
 
 #include <float.h>
 #include <limits.h>
@@ -970,17 +971,36 @@ gkyl_gen_miller_eqdsk_inew_for_domain(
 /**
  * Evaluate the Miller major-radius map in auxiliary coordinates u and v.
  *
- * @param up Generator.
+ * @param inp Miller geometry input.
+ * @param shape Resolved shaping parameters.
+ * @param eta Arcsine of the resolved triangularity.
  * @param u Auxiliary coordinate r*cos(theta) in meters.
  * @param v Auxiliary coordinate r*sin(theta) = (Z-Zvert_axis)/kappa in meters.
- * @return Cylindrical major radius Rmajor in meters.
+ * @param derivative Optional output for dR/du.
+ * @return Finite cylindrical major radius Rmajor in meters.
  */
-static double
-gen_miller_R_uv(const gkyl_gen_miller_eqdsk *up, double u, double v)
+double
+gen_miller_R_uv(
+  const struct gkyl_gen_miller_eqdsk_inp *inp, const struct gen_miller_shape *shape, double eta,
+  double u, double v, double *derivative
+)
 {
-  double radius = hypot(u, v), beta = radius > 0 ? up->eta * v / radius : 0;
-  return up->inp.Rmajor_axis - up->shape.a_shift * radius * radius / (2 * up->inp.Rmajor_axis) +
-         u * cos(beta) - v * sin(beta);
+  double radius = hypot(u, v);
+  double beta = radius > 0 ? eta * v / radius : 0;
+  if (derivative) {
+    double dbeta = radius > 0 ? -eta * (v / radius) * (u / radius) / radius : 0;
+    *derivative =
+      cos(beta) - shape->a_shift * u / inp->Rmajor_axis - (u * sin(beta) + v * cos(beta)) * dbeta;
+    if (!gen_miller_finite(*derivative)) {
+      gkyl_exit("Miller map: nonfinite derivative.");
+    }
+  }
+  double Rmajor = inp->Rmajor_axis - shape->a_shift * radius * radius / (2 * inp->Rmajor_axis) +
+                  u * cos(beta) - v * sin(beta);
+  if (!gen_miller_finite(Rmajor)) {
+    gkyl_exit("Miller map: nonfinite major radius.");
+  }
+  return Rmajor;
 }
 
 /**
@@ -997,22 +1017,29 @@ static double
 gen_miller_r_at_RZ(const gkyl_gen_miller_eqdsk *up, double Rmajor, double Zvert, double *u_out)
 {
   double v = (Zvert - up->inp.Zvert_axis) / up->shape.kappa, bound = up->info.rminor_guard;
+  if (!gen_miller_finite(v)) {
+    return gen_miller_nan();
+  }
 
-  int expansion = 0;
-  while (gen_miller_R_uv(up, -bound, v) > Rmajor || gen_miller_R_uv(up, bound, v) < Rmajor) {
-    if (++expansion > 12) {
+  for (int expansion = 0;; ++expansion) {
+    double left = gen_miller_R_uv(&up->inp, &up->shape, up->eta, -bound, v, 0);
+    double right = gen_miller_R_uv(&up->inp, &up->shape, up->eta, bound, v, 0);
+    if (!gen_miller_finite(left) || !gen_miller_finite(right)) {
+      return gen_miller_nan();
+    }
+    if (left <= Rmajor && right >= Rmajor) {
+      break;
+    }
+    if (expansion == 12) {
       return gen_miller_nan();
     }
     bound *= 1.5;
   }
 
   for (int j = 0; j <= 64; ++j) {
-    double u = bound * (j / 32.0 - 1), radius = hypot(u, v);
-    double beta = radius > 0 ? up->eta * v / radius : 0;
-    double dbeta = radius > 0 ? -up->eta * v * u / (radius * radius * radius) : 0;
-    double derivative = cos(beta) - up->shape.a_shift * u / up->inp.Rmajor_axis -
-                        (u * sin(beta) + v * cos(beta)) * dbeta;
-    if (derivative <= 0) {
+    double u = bound * (j / 32.0 - 1), derivative;
+    double mapped_R = gen_miller_R_uv(&up->inp, &up->shape, up->eta, u, v, &derivative);
+    if (!gen_miller_finite(mapped_R) || !gen_miller_finite(derivative) || derivative <= 0) {
       return gen_miller_nan();
     }
   }
@@ -1020,14 +1047,19 @@ gen_miller_r_at_RZ(const gkyl_gen_miller_eqdsk *up, double Rmajor, double Zvert,
   double lo = -bound, hi = bound;
   for (int iter = 0; iter < 50; ++iter) {
     double middle = (lo + hi) / 2;
-    if (gen_miller_R_uv(up, middle, v) < Rmajor) {
+    double mapped_R = gen_miller_R_uv(&up->inp, &up->shape, up->eta, middle, v, 0);
+    if (!gen_miller_finite(mapped_R)) {
+      return gen_miller_nan();
+    }
+    if (mapped_R < Rmajor) {
       lo = middle;
     } else {
       hi = middle;
     }
   }
 
-  if (fabs(gen_miller_R_uv(up, (lo + hi) / 2, v) - Rmajor) > 1e-11 * up->inp.Rmajor_axis) {
+  double mapped_R = gen_miller_R_uv(&up->inp, &up->shape, up->eta, (lo + hi) / 2, v, 0);
+  if (!gen_miller_finite(mapped_R) || fabs(mapped_R - Rmajor) > 1e-11 * up->inp.Rmajor_axis) {
     return gen_miller_nan();
   }
   double u = (lo + hi) / 2;
@@ -1069,16 +1101,19 @@ gkyl_gen_miller_eqdsk_bmag_at_RZ(const gkyl_gen_miller_eqdsk *up, double Rmajor,
 {
   // Sanity checks.
   if (!up || !gen_miller_finite(Rmajor) || !gen_miller_finite(Zvert) || Rmajor <= 0) {
-    return gen_miller_nan();
+    gkyl_exit("Miller magnetic field: invalid query coordinates or equilibrium.");
   }
   double u, radius = gen_miller_r_at_RZ(up, Rmajor, Zvert, &u);
   if (!gen_miller_finite(radius) || radius > up->info.rminor_guard) {
-    return gen_miller_nan();
+    gkyl_exit("Miller magnetic field: query outside physical coverage or inverse failed.");
   }
 
   // Give toroidal field if at the axis.
   double Bphi = up->fpol / Rmajor;
   if (radius == 0) {
+    if (!gen_miller_finite(Bphi)) {
+      gkyl_exit("Miller magnetic field: nonfinite magnitude.");
+    }
     return fabs(Bphi);
   }
 
@@ -1091,14 +1126,17 @@ gkyl_gen_miller_eqdsk_bmag_at_RZ(const gkyl_gen_miller_eqdsk *up, double Rmajor,
   double R_v = -sin(beta) - up->shape.a_shift * v / up->inp.Rmajor_axis - common * beta_v;
 
   if (!gen_miller_finite(R_u) || R_u <= 0 || !gen_miller_finite(R_v)) {
-    return gen_miller_nan();
+    gkyl_exit("Miller magnetic field: invalid map derivatives.");
   }
 
   double g = gen_miller_g_at_s(up, radius * radius);
   double dpsi_dR = g * 2 * u / R_u;
   double dpsi_dZ = g * (2 * v - 2 * u * R_v / R_u) / up->shape.kappa;
   double bmag = hypot(hypot(dpsi_dR, dpsi_dZ) / Rmajor, Bphi);
-  return gen_miller_finite(bmag) ? bmag : gen_miller_nan();
+  if (!gen_miller_finite(bmag)) {
+    gkyl_exit("Miller magnetic field: nonfinite magnitude.");
+  }
+  return bmag;
 }
 
 bool
