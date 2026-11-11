@@ -15,6 +15,7 @@ typedef struct gk_geometry gk_geometry;
 
 struct gk_geom_surf {
   struct gkyl_array *jacobgeo; // 1 component. Configuration space jacobian J.
+  struct gkyl_array *jacobgeo_signed; // 1 component. Signed J_RZ; diagnostic only.
   struct gkyl_array *
     jacobgeo_ratio; // 1 component. Ratio of jacobgeo from neigboring blocks (valid only at the boundary, stored in ghost cell).
   struct gkyl_array *bmag; // 1 component. B Magnitude of magnetic field.
@@ -37,7 +38,14 @@ struct gk_geom_surf {
   struct gkyl_array *bmag_nodal; // 1 component. B Magnitude of magnetic field.
   struct gkyl_array *curlbhat_nodal; // Cartesian components of curl(bhat).
   struct gkyl_array *normcurlbhat_nodal; // 1 component, n^m \dot curl(bhat).
-  struct gkyl_array *jacobgeo_nodal; // 1 component. Configuration space jacobian J.
+
+  // Surface-node R-Z mapping Jacobians.
+  // jacobgeo_nodal stores the positive magnitude used by physical
+  // volume and metric quantities.
+  // jacobgeo_signed_nodal preserves the mapping orientation for diagnostics.
+  struct gkyl_array *jacobgeo_nodal; // 1 component. |J_RZ|.
+  struct gkyl_array *jacobgeo_signed_nodal; // 1 component. Signed J_RZ.
+
   struct gkyl_array
     *b_i_nodal; // 3 components. Covariant components of magnetic field unit vector b_1, b_2, b_3.
   struct gkyl_array *b_i_nodal_fd; // 3 components. b_i at surf quad nodes and nodes epsilon away.

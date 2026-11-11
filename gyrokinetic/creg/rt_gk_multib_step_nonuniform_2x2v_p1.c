@@ -14,7 +14,13 @@
 #include <gkyl_mpi_comm.h>
 #endif
 
-// Outer plates for angle of 3.05 degrees
+// Outer plates at 2.312 degrees. p1 is held fixed, so p0's Z sets the plate
+// ANGLE and not merely its placement: Z=-8.538 is 2.312 deg, Z=-8.600 is
+// 11.822 deg. All STEP drivers declare -8.538; the stretch factor changes
+// length only and is left as each file had it.
+//
+// Historical note: this comment used to read "angle of 3.05 degrees" over a
+// declaration computing 2.312. 3.05 deg would be Z=-8.542737.
 void
 shaped_pfunc_lower_outer(double s, double *RZ)
 {
@@ -106,7 +112,7 @@ create_gk_block_geom(void)
   };
 
   struct gkyl_efit *efit = gkyl_efit_new(&efit_inp);
-  double psisep = efit->psisep;
+  double psisep = efit->psisep_cubic; // the flux of the representation traced on (C1, 2026-10-05)
   gkyl_efit_release(efit);
   // psisep = 1.5093065418975686; //This is the value
   double dsep = 0.000;
@@ -175,6 +181,17 @@ create_gk_block_geom(void)
           .tok_grid_info =
             (struct gkyl_tok_geo_grid_inp){
               .ftype = GKYL_GEOMETRY_TOKAMAK_PF_LO_R,
+              .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
+              // step.geqdsk carries a single limiter vertex (limitr=1), which reads as
+              // limiter_status=2: a degenerate outline that cannot bound a region. The
+              // wall policy rejects an unusable outline that is not acknowledged, so this
+              // declaration is required for STEP to build. It is checked, not trusted:
+              // if a usable outline ever appears in this EQDSK the declaration is refused
+              // as contradictory, and every block reports TOK_GEO_WALL_NOT_ENFORCED.
+              .straight_xpt_ray = true,
+              .relaxed_xpt_seam = true,
+              .relaxed_xpt_seam_optimize = false,
+              .relaxed_xpt_seam_delta_s_bound = 0.005,
               .rright = rright_out,
               .rleft = 0.0,
               .rmin = 1.7,
@@ -223,13 +240,17 @@ create_gk_block_geom(void)
           .tok_grid_info =
             (struct gkyl_tok_geo_grid_inp){
               .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_LO,
+              .straight_xpt_ray = true,
+              .relaxed_xpt_seam = true,
+              .relaxed_xpt_seam_optimize = false,
+              .relaxed_xpt_seam_delta_s_bound = 0.005,
               .rclose = 6.2, // Closest R to region of interest
               .rright = rright_out, // Closest R to outboard SOL
               .rleft = 0.0, // closest R to inboard SOL
               .rmin = 0.7, // smallest R in machine
               .rmax = 6.2, // largest R in machine
               .use_cubics =
-                false, // Whether to use cubic representation of psi(R,Z) for field line tracing
+                true, // Whether to use cubic representation of psi(R,Z) for field line tracing
               .zmin = -zouter,
               .zmax = zouter,
               .plate_spec = true,
@@ -273,13 +294,17 @@ create_gk_block_geom(void)
           .tok_grid_info =
             (struct gkyl_tok_geo_grid_inp){
               .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_MID,
+              .straight_xpt_ray = true,
+              .relaxed_xpt_seam = true,
+              .relaxed_xpt_seam_optimize = false,
+              .relaxed_xpt_seam_delta_s_bound = 0.005,
               .rclose = 6.2, // Closest R to region of interest
               .rright = rright_out, // Closest R to outboard SOL
               .rleft = 0.0, // closest R to inboard SOL
               .rmin = 0.7, // smallest R in machine
               .rmax = 6.2, // largest R in machine
               .use_cubics =
-                false, // Whether to use cubic representation of psi(R,Z) for field line tracing
+                true, // Whether to use cubic representation of psi(R,Z) for field line tracing
               .zmin = -zouter,
               .zmax = zouter,
               .plate_spec = true,
@@ -323,13 +348,17 @@ create_gk_block_geom(void)
           .tok_grid_info =
             (struct gkyl_tok_geo_grid_inp){
               .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_UP,
+              .straight_xpt_ray = true,
+              .relaxed_xpt_seam = true,
+              .relaxed_xpt_seam_optimize = false,
+              .relaxed_xpt_seam_delta_s_bound = 0.005,
               .rclose = 6.2, // Closest R to region of interest
               .rright = rright_out, // Closest R to outboard SOL
               .rleft = 0.0, // closest R to inboard SOL
               .rmin = 0.7, // smallest R in machine
               .rmax = 6.2, // largest R in machine
               .use_cubics =
-                false, // Whether to use cubic representation of psi(R,Z) for field line tracing
+                true, // Whether to use cubic representation of psi(R,Z) for field line tracing
               .zmin = -zouter,
               .zmax = zouter,
               .plate_spec = true,
@@ -373,6 +402,11 @@ create_gk_block_geom(void)
           .tok_grid_info =
             (struct gkyl_tok_geo_grid_inp){
               .ftype = GKYL_GEOMETRY_TOKAMAK_PF_UP_R,
+              .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
+              .straight_xpt_ray = true,
+              .relaxed_xpt_seam = true,
+              .relaxed_xpt_seam_optimize = false,
+              .relaxed_xpt_seam_delta_s_bound = 0.005,
               .rright = rright_out,
               .rleft = 0.0,
               .rmin = 1.7,
@@ -422,6 +456,11 @@ create_gk_block_geom(void)
           .tok_grid_info =
             (struct gkyl_tok_geo_grid_inp){
               .ftype = GKYL_GEOMETRY_TOKAMAK_PF_UP_L,
+              .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
+              .straight_xpt_ray = true,
+              .relaxed_xpt_seam = true,
+              .relaxed_xpt_seam_optimize = false,
+              .relaxed_xpt_seam_delta_s_bound = 0.005,
               .rright = rright_out,
               .rleft = 0.0,
               .rmin = 1.7,
@@ -470,6 +509,11 @@ create_gk_block_geom(void)
           .tok_grid_info =
             (struct gkyl_tok_geo_grid_inp){
               .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_UP,
+              .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
+              .straight_xpt_ray = true,
+              .relaxed_xpt_seam = true,
+              .relaxed_xpt_seam_optimize = false,
+              .relaxed_xpt_seam_delta_s_bound = 0.005,
               .rleft = 2.0,
               .rright = rright_out,
               .rmin = 0.0,
@@ -517,6 +561,11 @@ create_gk_block_geom(void)
           .tok_grid_info =
             (struct gkyl_tok_geo_grid_inp){
               .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_MID,
+              .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
+              .straight_xpt_ray = true,
+              .relaxed_xpt_seam = true,
+              .relaxed_xpt_seam_optimize = false,
+              .relaxed_xpt_seam_delta_s_bound = 0.005,
               .rleft = 2.0,
               .rright = rright_out,
               .rmin = 0.0,
@@ -564,6 +613,11 @@ create_gk_block_geom(void)
           .tok_grid_info =
             (struct gkyl_tok_geo_grid_inp){
               .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_LO,
+              .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
+              .straight_xpt_ray = true,
+              .relaxed_xpt_seam = true,
+              .relaxed_xpt_seam_optimize = false,
+              .relaxed_xpt_seam_delta_s_bound = 0.005,
               .rleft = 2.0,
               .rright = rright_out,
               .rmin = 0.0,
@@ -611,6 +665,11 @@ create_gk_block_geom(void)
           .tok_grid_info =
             (struct gkyl_tok_geo_grid_inp){
               .ftype = GKYL_GEOMETRY_TOKAMAK_PF_LO_L,
+              .use_cubics = true, // bicubic (C1) psi for tracing, every block (2026-10-05)
+              .straight_xpt_ray = true,
+              .relaxed_xpt_seam = true,
+              .relaxed_xpt_seam_optimize = false,
+              .relaxed_xpt_seam_delta_s_bound = 0.005,
               .rright = rright_out,
               .rleft = 0.0,
               .rmin = 1.7,
@@ -660,13 +719,17 @@ create_gk_block_geom(void)
           .tok_grid_info =
             (struct gkyl_tok_geo_grid_inp){
               .ftype = GKYL_GEOMETRY_TOKAMAK_CORE_R,
+              .straight_xpt_ray = true,
+              .relaxed_xpt_seam = true,
+              .relaxed_xpt_seam_optimize = false,
+              .relaxed_xpt_seam_delta_s_bound = 0.005,
               .rclose = 6.2, // Closest R to region of interest
               .rright = rright_out, // Closest R to outboard SOL
               .rleft = 2.0, // closest R to inboard SOL
               .rmin = 1.58, // smallest R in machine
               .rmax = 6.2, // largest R in machine
               .use_cubics =
-                false, // Whether to use cubic representation of psi(R,Z) for field line tracing
+                true, // Whether to use cubic representation of psi(R,Z) for field line tracing
             },
           .position_map_info =
             {
@@ -706,13 +769,17 @@ create_gk_block_geom(void)
           .tok_grid_info =
             (struct gkyl_tok_geo_grid_inp){
               .ftype = GKYL_GEOMETRY_TOKAMAK_CORE_L,
+              .straight_xpt_ray = true,
+              .relaxed_xpt_seam = true,
+              .relaxed_xpt_seam_optimize = false,
+              .relaxed_xpt_seam_delta_s_bound = 0.005,
               .rclose = 0.0, // Closest R to region of interest
               .rright = rright_out, // Closest R to outboard SOL
               .rleft = 2.0, // closest R to inboard SOL
               .rmin = 1.58, // smallest R in machine
               .rmax = 6.2, // largest R in machine
               .use_cubics =
-                false, // Whether to use cubic representation of psi(R,Z) for field line tracing
+                true, // Whether to use cubic representation of psi(R,Z) for field line tracing
             },
           .position_map_info =
             {
@@ -2075,6 +2142,7 @@ main(int argc, char **argv)
   app_inp->cfl_frac = 1.0;
   app_inp->gk_block_geom = bgeom;
   app_inp->num_species = 2;
+  app_inp->num_neut_species = 0;
   app_inp->species[0] = elc;
   app_inp->species[1] = ion;
   app_inp->field = field;

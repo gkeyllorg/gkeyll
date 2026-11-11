@@ -18,4 +18,10 @@ struct gkyl_calc_metric {
   struct gkyl_range global_ext;
   struct gkyl_range local;
   struct gkyl_range local_ext;
+  // Orientation learned from the block's interior R-Z mapping and reused on
+  // physical radial surfaces, where a one-sided stencil is less reliable.
+  int rz_expected_jacobian_sign;
+  bool rz_jacobian_valid;
+  bool rz_jacobian_guard_nonfatal;
+  bool is_verbose; // Report metric-identity residuals inside tolerance too.
 };
