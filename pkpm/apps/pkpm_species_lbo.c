@@ -1,46 +1,157 @@
 #include <assert.h>
 #include <gkyl_pkpm_priv.h>
 
-void
-pkpm_species_lbo_init(
+// Boundary corrections, primitive moments and collision frequency as p=1 expansions (GPU runs).
+static void
+pkpm_species_lbo_moms_modal(
+  gkyl_pkpm_app *app, const struct pkpm_species *species, struct pkpm_lbo_collisions *lbo,
+  const struct gkyl_array *fin
+)
+{
+  gkyl_array_set_range(lbo->m0, 1.0, species->pkpm_rho, &app->local);
+
+  // construct boundary corrections
+  gkyl_mom_calc_bcorr_advance(
+    lbo->bcorr_calc, &species->local, &app->local, fin, lbo->boundary_corrections
+  );
+
+  // Compute primitive moments of the normalized distributions.
+  gkyl_prim_lbo_calc_advance(
+    lbo->coll_pcalc, &app->local, species->pkpm_nmoms.marr, lbo->boundary_corrections, lbo->self_nu,
+    lbo->prim_moms
+  );
+
+  // PKPM moments already computed before this, so just fetch results
+  if (lbo->normNu) {
+    gkyl_array_clear(lbo->norm_nu, 0.0);
+    gkyl_array_clear(lbo->self_nu, 0.0);
+    // Get density information (and scale out mass factor in PKPM moments)
+    gkyl_array_set_range(
+      lbo->maxwellian_moms, 1.0 / species->info.mass, species->pkpm_rho, &app->local
+    );
+    gkyl_array_set_offset_range(
+      lbo->maxwellian_moms, 1.0, lbo->prim_moms, app->confBasis.num_basis, &app->local
+    );
+    // physical thermal speed squared for the Spitzer frequency: xi^2 times the normalized one
+    gkyl_dg_mul_op_range(
+      &app->confBasis, 0, species->pkpm_scratch, app->vdim, lbo->prim_moms, 1, species->pkpm_xi,
+      &app->local
+    );
+    gkyl_array_set_offset_range(
+      lbo->maxwellian_moms, 1.0, species->pkpm_scratch, (1 + app->vdim) * app->confBasis.num_basis,
+      &app->local
+    );
+    gkyl_spitzer_coll_freq_advance_normnu(
+      lbo->spitzer_calc, &app->local, lbo->maxwellian_moms, 0., lbo->maxwellian_moms, 0., 1.0,
+      lbo->norm_nu
+    );
+    gkyl_dg_mul_op(&app->confBasis, 0, lbo->self_nu, 0, lbo->nu_init, 0, lbo->norm_nu);
+  }
+  for (int d = 0; d < app->vdim; d++) {
+    gkyl_dg_mul_op(&app->confBasis, d, lbo->nu_prim_moms, d, lbo->prim_moms, 0, lbo->self_nu);
+  }
+  gkyl_dg_mul_op(
+    &app->confBasis, app->vdim, lbo->nu_prim_moms, app->vdim, lbo->prim_moms, 0, lbo->self_nu
+  );
+}
+
+// Primitive moments at the nodes with the collision frequency of the input.
+static void
+pkpm_species_lbo_moms_nodal(
+  gkyl_pkpm_app *app, const struct pkpm_species *species, struct pkpm_lbo_collisions *lbo,
+  const struct gkyl_array *fin
+)
+{
+  gkyl_pkpm_lbo_moms_advance(
+    lbo->up_moms, &app->local, &species->local, species->pkpm_nmoms.marr, species->f_nodal,
+    lbo->prim_moms
+  );
+}
+
+// Primitive moments at the nodes with the Spitzer scaling of the collision frequency,
+// nu_ref n / (2 vtsq)^(3/2) with the physical vtsq = xi^2 times the normalized one.
+static void
+pkpm_species_lbo_moms_nodal_spitzer(
+  gkyl_pkpm_app *app, const struct pkpm_species *species, struct pkpm_lbo_collisions *lbo,
+  const struct gkyl_array *fin
+)
+{
+  gkyl_pkpm_lbo_moms_advance(
+    lbo->up_moms, &app->local, &species->local, species->pkpm_nmoms.marr, species->f_nodal,
+    lbo->prim_moms
+  );
+
+  int num_nodes = app->confBasis.num_basis;
+  gkyl_dg_conf_nodal_conf_to_nodal(app->conf_nodal, &app->local, species->pkpm_rho, lbo->n_nodal);
+  gkyl_array_scale_range(lbo->n_nodal, 1.0 / species->info.mass, &app->local);
+  gkyl_dg_conf_nodal_conf_to_nodal(app->conf_nodal, &app->local, species->pkpm_xi, lbo->xi_nodal);
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &app->local);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&app->local, iter.idx);
+    const double *xi_sq = (const double *)gkyl_array_cfetch(lbo->xi_nodal, loc) + num_nodes;
+    const double *vtsq_norm = (const double *)gkyl_array_cfetch(lbo->prim_moms, loc) + num_nodes;
+    double *vtsq = gkyl_array_fetch(lbo->vtsq_nodal, loc);
+    for (int q = 0; q < num_nodes; ++q) {
+      vtsq[q] = xi_sq[q] * vtsq_norm[q];
+    }
+  }
+  gkyl_pkpm_coll_nu_advance(
+    lbo->up_nu, &app->local, lbo->nu_ref, lbo->n_nodal, lbo->vtsq_nodal, lbo->vtsq_nodal, lbo->nu
+  );
+}
+
+// The operator at the nodes, accumulated onto the nodal right-hand side of the species.
+static void
+pkpm_species_lbo_kinetic_rhs_nodal(
+  gkyl_pkpm_app *app, const struct pkpm_species *species, struct pkpm_lbo_collisions *lbo,
+  const struct gkyl_array *fin, struct gkyl_array *rhs
+)
+{
+  gkyl_dg_updater_lbo_pkpm_nodal_advance(
+    lbo->up_coll, &species->local, species->f_nodal, species->cflrate_f, species->rhs_nodal
+  );
+}
+
+// The Galerkin drag and diffusion updaters (GPU runs).
+static void
+pkpm_species_lbo_kinetic_rhs_modal(
+  gkyl_pkpm_app *app, const struct pkpm_species *species, struct pkpm_lbo_collisions *lbo,
+  const struct gkyl_array *fin, struct gkyl_array *rhs
+)
+{
+  gkyl_dg_updater_lbo_pkpm_advance(lbo->coll_slvr, &species->local, fin, species->cflrate_f, rhs);
+}
+
+// The expansion-based operator (GPU runs): the collision frequency, the boundary corrections,
+// the Galerkin solve for the primitive moments and the drag and diffusion updaters.
+static void
+pkpm_species_lbo_init_modal(
   struct gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_lbo_collisions *lbo
 )
 {
-  int cdim = app->cdim, vdim = app->vdim;
+  int vdim = app->vdim;
   double v_bounds[2 * GKYL_MAX_DIM];
   for (int d = 0; d < vdim; ++d) {
     v_bounds[d] = s->info.lower[d];
     v_bounds[d + vdim] = s->info.upper[d];
   }
 
-  // allocate nu and initialize it
+  // The kernels of the operator read the expansions of nu and of nu [u, vtsq].
   lbo->nu_sum = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+  lbo->nu_prim_moms =
+    mkarr(app->use_gpu, (vdim + 1) * app->confBasis.num_basis, app->local_ext.volume);
+
+  // allocate nu and initialize it
   lbo->self_nu = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-  struct gkyl_array *self_nu = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
-
-  lbo->num_cross_collisions = s->info.collisions.num_cross_collisions;
-
-  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
-    .grid = &app->grid,
-    .basis = &app->confBasis,
-    .num_quad = app->poly_order + 1,
-    .num_ret_vals = 1,
-    .eval = s->info.collisions.self_nu,
-    .ctx = s->info.collisions.ctx,
-    .c2p_func = pkpm_pos_c2p,
-    .c2p_func_ctx = app->pos_map,
-  });
-  gkyl_proj_on_basis_advance(proj, 0.0, &app->local, self_nu);
-  gkyl_proj_on_basis_release(proj);
+  struct gkyl_array *self_nu = pkpm_species_coll_profile_new(
+    app, s->info.collisions.self_nu, s->info.collisions.ctx, 1.0, false
+  );
   gkyl_array_copy(lbo->self_nu, self_nu);
   gkyl_array_copy(lbo->nu_sum, self_nu);
-  // The configuration pass of the kinetic update reads the collisionality sum.
   gkyl_array_release(self_nu);
 
-  lbo->spitzer_calc = 0;
-  lbo->normNu = false;
-  if (s->info.collisions.normNu) {
-    lbo->normNu = true;
+  if (lbo->normNu) {
     double nuFrac = s->info.collisions.nuFrac ? s->info.collisions.nuFrac : 1.0;
     double eps0 = app->field->info.epsilon0 ? app->field->info.epsilon0 : 1.0;
     double hbar = s->info.collisions.hbar ? s->info.collisions.hbar : 1.0;
@@ -58,13 +169,7 @@ pkpm_species_lbo_init(
     lbo->maxwellian_moms =
       mkarr(app->use_gpu, (vdim + 2) * app->confBasis.num_basis, app->local_ext.volume);
   }
-  // Allocate needed arrays (boundary corrections, primitive moments, and nu*primitive moments)
   lbo->boundary_corrections =
-    mkarr(app->use_gpu, (vdim + 1) * app->confBasis.num_basis, app->local_ext.volume);
-
-  lbo->prim_moms =
-    mkarr(app->use_gpu, (vdim + 1) * app->confBasis.num_basis, app->local_ext.volume);
-  lbo->nu_prim_moms =
     mkarr(app->use_gpu, (vdim + 1) * app->confBasis.num_basis, app->local_ext.volume);
   lbo->m0 = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
 
@@ -79,6 +184,7 @@ pkpm_species_lbo_init(
   // primitive moment calculators
   lbo->coll_pcalc =
     gkyl_prim_lbo_pkpm_calc_new(&s->grid, &app->confBasis, &app->basis, &app->local, app->use_gpu);
+  lbo->calc_moms = pkpm_species_lbo_moms_modal;
 
   // LBO updater
   struct gkyl_dg_lbo_pkpm_drag_auxfields drag_inp = {
@@ -92,6 +198,65 @@ pkpm_species_lbo_init(
   lbo->coll_slvr = gkyl_dg_updater_lbo_pkpm_new(
     &s->grid, &app->confBasis, &app->basis, &app->local, &drag_inp, &diff_inp, app->use_gpu
   );
+  lbo->kinetic_rhs = pkpm_species_lbo_kinetic_rhs_modal;
+}
+
+// The operator at the configuration-space nodes: the collision frequency (the profile of the
+// input, scaled by nuFrac, or its Spitzer scaling), the updater for the primitive moments and the
+// updater for the operator.
+static void
+pkpm_species_lbo_init_nodal(
+  struct gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_lbo_collisions *lbo
+)
+{
+  int num_nodes = app->confBasis.num_basis;
+  double nu_frac = s->info.collisions.nuFrac > 0.0 ? s->info.collisions.nuFrac : 1.0;
+  lbo->nu_ref = pkpm_species_coll_profile_new(
+    app, s->info.collisions.self_nu, s->info.collisions.ctx, nu_frac, true
+  );
+  lbo->nu = mkarr(false, num_nodes, app->local_ext.volume);
+  gkyl_array_copy(lbo->nu, lbo->nu_ref);
+  lbo->up_nu = gkyl_pkpm_coll_nu_new(&app->confBasis, lbo->normNu, 0.0, false);
+
+  double vel_bounds[2] = {s->info.lower[0], s->info.upper[0]};
+  lbo->up_moms = gkyl_pkpm_lbo_moms_new(&app->confBasis, &app->basis, vel_bounds, false);
+  struct gkyl_dg_lbo_pkpm_nodal_auxfields nodal_inp = {.nu = lbo->nu, .prim_moms = lbo->prim_moms};
+  lbo->up_coll = gkyl_dg_updater_lbo_pkpm_nodal_new(
+    &s->grid, &app->confBasis, &app->basis, &app->local, &nodal_inp, false
+  );
+  lbo->kinetic_rhs = pkpm_species_lbo_kinetic_rhs_nodal;
+
+  if (lbo->normNu) {
+    lbo->n_nodal = mkarr(false, num_nodes, app->local_ext.volume);
+    lbo->xi_nodal = mkarr(false, s->pkpm_xi->ncomp, app->local_ext.volume);
+    lbo->vtsq_nodal = mkarr(false, num_nodes, app->local_ext.volume);
+    lbo->calc_moms = pkpm_species_lbo_moms_nodal_spitzer;
+  } else {
+    lbo->calc_moms = pkpm_species_lbo_moms_nodal;
+  }
+}
+
+void
+pkpm_species_lbo_init(
+  struct gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_lbo_collisions *lbo
+)
+{
+  int vdim = app->vdim;
+  lbo->num_cross_collisions = s->info.collisions.num_cross_collisions;
+  lbo->normNu = s->info.collisions.normNu;
+  lbo->spitzer_calc = 0;
+
+  // Primitive moments [u, vtsq]: node values, or expansions on GPU runs.
+  lbo->prim_moms =
+    mkarr(app->use_gpu, (vdim + 1) * app->confBasis.num_basis, app->local_ext.volume);
+
+  // GPU runs take the expansion-based moments.
+  lbo->use_nodal = !app->use_gpu;
+  if (lbo->use_nodal) {
+    pkpm_species_lbo_init_nodal(app, s, lbo);
+  } else {
+    pkpm_species_lbo_init_modal(app, s, lbo);
+  }
 }
 
 void
@@ -157,7 +322,6 @@ pkpm_species_lbo_cross_init(
   lbo->betaGreenep1 = 1.0;
 }
 
-// computes moments, boundary corrections, and primitive moments
 void
 pkpm_species_lbo_moms(
   gkyl_pkpm_app *app, const struct pkpm_species *species, struct pkpm_lbo_collisions *lbo,
@@ -165,82 +329,7 @@ pkpm_species_lbo_moms(
 )
 {
   struct timespec wst = gkyl_wall_clock();
-
-  gkyl_array_set_range(lbo->m0, 1.0, species->pkpm_rho, &app->local);
-
-  // construct boundary corrections
-  gkyl_mom_calc_bcorr_advance(
-    lbo->bcorr_calc, &species->local, &app->local, fin, lbo->boundary_corrections
-  );
-
-  // Compute primitive moments of the normalized distributions.
-  gkyl_prim_lbo_calc_advance(
-    lbo->coll_pcalc, &app->local, species->pkpm_nmoms.marr, lbo->boundary_corrections, lbo->self_nu,
-    lbo->prim_moms
-  );
-
-  if (app->use_gpu) {
-    // PKPM moments already computed before this, so just fetch results
-    if (lbo->normNu) {
-      gkyl_array_clear(lbo->norm_nu, 0.0);
-      gkyl_array_clear(lbo->self_nu, 0.0);
-      // Get density information (and scale out mass factor in PKPM moments)
-      gkyl_array_set_range(
-        lbo->maxwellian_moms, 1.0 / species->info.mass, species->pkpm_rho, &app->local
-      );
-      gkyl_array_set_offset_range(
-        lbo->maxwellian_moms, 1.0, lbo->prim_moms, app->confBasis.num_basis, &app->local
-      );
-      // physical thermal speed squared for the Spitzer frequency: xi^2 times the normalized one
-      gkyl_dg_mul_op_range(
-        &app->confBasis, 0, species->pkpm_scratch, app->vdim, lbo->prim_moms, 1, species->pkpm_xi,
-        &app->local
-      );
-      gkyl_array_set_offset_range(
-        lbo->maxwellian_moms, 1.0, species->pkpm_scratch,
-        (1 + app->vdim) * app->confBasis.num_basis, &app->local
-      );
-      gkyl_spitzer_coll_freq_advance_normnu(
-        lbo->spitzer_calc, &app->local, lbo->maxwellian_moms, 0., lbo->maxwellian_moms, 0., 1.0,
-        lbo->norm_nu
-      );
-      gkyl_dg_mul_op(&app->confBasis, 0, lbo->self_nu, 0, lbo->nu_init, 0, lbo->norm_nu);
-    }
-  } else {
-    // PKPM moments already computed before this, so just fetch results
-    if (lbo->normNu) {
-      gkyl_array_clear(lbo->norm_nu, 0.0);
-      gkyl_array_clear(lbo->self_nu, 0.0);
-      // Get density information (and scale out mass factor in PKPM moments)
-      gkyl_array_set_range(
-        lbo->maxwellian_moms, 1.0 / species->info.mass, species->pkpm_rho, &app->local
-      );
-      gkyl_array_set_offset_range(
-        lbo->maxwellian_moms, 1.0, lbo->prim_moms, app->confBasis.num_basis, &app->local
-      );
-      // physical thermal speed squared for the Spitzer frequency: xi^2 times the normalized one
-      gkyl_dg_mul_op_range(
-        &app->confBasis, 0, species->pkpm_scratch, app->vdim, lbo->prim_moms, 1, species->pkpm_xi,
-        &app->local
-      );
-      gkyl_array_set_offset_range(
-        lbo->maxwellian_moms, 1.0, species->pkpm_scratch,
-        (1 + app->vdim) * app->confBasis.num_basis, &app->local
-      );
-      gkyl_spitzer_coll_freq_advance_normnu(
-        lbo->spitzer_calc, &app->local, lbo->maxwellian_moms, 0., lbo->maxwellian_moms, 0.0, 1.0,
-        lbo->norm_nu
-      );
-      gkyl_dg_mul_op(&app->confBasis, 0, lbo->self_nu, 0, lbo->nu_init, 0, lbo->norm_nu);
-    }
-  }
-  for (int d = 0; d < app->vdim; d++) {
-    gkyl_dg_mul_op(&app->confBasis, d, lbo->nu_prim_moms, d, lbo->prim_moms, 0, lbo->self_nu);
-  }
-  gkyl_dg_mul_op(
-    &app->confBasis, app->vdim, lbo->nu_prim_moms, app->vdim, lbo->prim_moms, 0, lbo->self_nu
-  );
-
+  lbo->calc_moms(app, species, lbo, fin);
   app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);
 }
 
@@ -306,7 +395,7 @@ pkpm_species_lbo_rhs(
   struct timespec wst = gkyl_wall_clock();
 
   // accumulate update due to collisions onto rhs
-  gkyl_dg_updater_lbo_pkpm_advance(lbo->coll_slvr, &species->local, fin, species->cflrate_f, rhs);
+  lbo->kinetic_rhs(app, species, lbo, fin, rhs);
 
   app->stat.species_coll_tm += gkyl_time_diff_now_sec(wst);
 }
@@ -314,21 +403,34 @@ pkpm_species_lbo_rhs(
 void
 pkpm_species_lbo_release(const struct gkyl_pkpm_app *app, const struct pkpm_lbo_collisions *lbo)
 {
-  gkyl_array_release(lbo->boundary_corrections);
   gkyl_array_release(lbo->prim_moms);
-  gkyl_array_release(lbo->self_nu);
-  gkyl_array_release(lbo->nu_sum);
-  gkyl_array_release(lbo->nu_prim_moms);
-  gkyl_array_release(lbo->m0);
 
-  gkyl_mom_calc_bcorr_release(lbo->bcorr_calc);
-  gkyl_prim_lbo_calc_release(lbo->coll_pcalc);
-
-  if (lbo->normNu) {
-    gkyl_array_release(lbo->norm_nu);
-    gkyl_array_release(lbo->nu_init);
-    gkyl_spitzer_coll_freq_release(lbo->spitzer_calc);
-    gkyl_array_release(lbo->maxwellian_moms);
+  if (lbo->use_nodal) {
+    gkyl_array_release(lbo->nu_ref);
+    gkyl_array_release(lbo->nu);
+    gkyl_pkpm_coll_nu_release(lbo->up_nu);
+    gkyl_pkpm_lbo_moms_release(lbo->up_moms);
+    gkyl_dg_updater_lbo_pkpm_nodal_release(lbo->up_coll);
+    if (lbo->normNu) {
+      gkyl_array_release(lbo->n_nodal);
+      gkyl_array_release(lbo->xi_nodal);
+      gkyl_array_release(lbo->vtsq_nodal);
+    }
+  } else {
+    gkyl_array_release(lbo->nu_sum);
+    gkyl_array_release(lbo->nu_prim_moms);
+    gkyl_dg_updater_lbo_pkpm_release(lbo->coll_slvr);
+    gkyl_array_release(lbo->boundary_corrections);
+    gkyl_array_release(lbo->self_nu);
+    gkyl_array_release(lbo->m0);
+    gkyl_mom_calc_bcorr_release(lbo->bcorr_calc);
+    gkyl_prim_lbo_calc_release(lbo->coll_pcalc);
+    if (lbo->normNu) {
+      gkyl_array_release(lbo->norm_nu);
+      gkyl_array_release(lbo->nu_init);
+      gkyl_spitzer_coll_freq_release(lbo->spitzer_calc);
+      gkyl_array_release(lbo->maxwellian_moms);
+    }
   }
 
   if (lbo->num_cross_collisions) {
@@ -348,5 +450,4 @@ pkpm_species_lbo_release(const struct gkyl_pkpm_app *app, const struct pkpm_lbo_
     }
     gkyl_prim_lbo_cross_calc_release(lbo->cross_calc);
   }
-  gkyl_dg_updater_lbo_pkpm_release(lbo->coll_slvr);
 }

@@ -56,28 +56,8 @@ gkyl_pkpm_coll_nu_new(
   struct gkyl_pkpm_coll_nu *up = gkyl_malloc(sizeof(*up));
   up->num_nodes = conf_basis->num_basis;
   up->vtsq_min = vtsq_min;
-  up->conf_to_nodal = pkpm_coll_nu_conf_to_nodal_list[conf_basis->ndim - 1];
   up->advance = spitzer ? pkpm_coll_nu_advance_spitzer : pkpm_coll_nu_advance_ref;
   return up;
-}
-
-void
-gkyl_pkpm_coll_nu_to_nodal(
-  const struct gkyl_pkpm_coll_nu *up, const struct gkyl_range *range,
-  const struct gkyl_array *modal, struct gkyl_array *nodal
-)
-{
-  int num_comp = modal->ncomp / up->num_nodes;
-  struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, range);
-  while (gkyl_range_iter_next(&iter)) {
-    long loc = gkyl_range_idx(range, iter.idx);
-    const double *modal_d = gkyl_array_cfetch(modal, loc);
-    double *nodal_d = gkyl_array_fetch(nodal, loc);
-    for (int c = 0; c < num_comp; ++c) {
-      up->conf_to_nodal(&modal_d[c * up->num_nodes], &nodal_d[c * up->num_nodes]);
-    }
-  }
 }
 
 void

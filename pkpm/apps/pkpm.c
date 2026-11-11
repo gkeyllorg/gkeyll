@@ -255,6 +255,11 @@ gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm)
   app->pos_map = gkyl_vlasov_position_map_new(
     &app->grid, &app->local, &app->local_ext, &app->confBasis, inp_pmap, app->use_gpu
   );
+  // Conversions to the configuration-nodal, velocity-modal form of the node-based operators.
+  app->conf_nodal = 0;
+  if (!app->use_gpu) {
+    app->conf_nodal = gkyl_dg_conf_nodal_new(&app->confBasis, &app->basis, false);
+  }
   // Finalize the ghost cells of the map: the constructor filled them with the adjacent skin
   // values (a copy, valid at physical boundaries); periodic and inter-rank ghosts get the
   // wrapped/neighbor values.
@@ -1683,6 +1688,9 @@ gkyl_pkpm_app_release(gkyl_pkpm_app *app)
 
   gkyl_wave_geom_release(app->geom);
   gkyl_vlasov_position_map_release(app->pos_map);
+  if (app->conf_nodal) {
+    gkyl_dg_conf_nodal_release(app->conf_nodal);
+  }
 
   if (app->use_gpu) {
     gkyl_cu_free(app->basis_on_dev.basis);

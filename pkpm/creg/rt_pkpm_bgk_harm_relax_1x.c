@@ -378,7 +378,7 @@ main(int argc, char **argv)
     .mass = ctx.mass,
     .lower = {-ctx.vx_max},
     .upper = {ctx.vx_max},
-    .cells = {ctx.Nvx},
+    .cells = {NVX},
 
     .init_dist = evalDistInit,
     .init_harm = evalHeatHarmInit,

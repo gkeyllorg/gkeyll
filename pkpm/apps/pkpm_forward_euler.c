@@ -49,6 +49,9 @@ pkpm_forward_euler(
     // Compute parallel-kinetic-perpendicular moment (pkpm) variables:
     // the moments [rho, p_par, p_perp, M1], the flow velocity and T_perp/m.
     pkpm_species_calc_pkpm_vars(app, &app->species[i], fin[i], fluidin[i]);
+    // The distributions of the stage at the configuration-space nodes, for the collision
+    // operators and the temperature source.
+    pkpm_species_nodal_dist(app, &app->species[i], fin[i]);
     // compute necessary moments and boundary corrections for collisions
     if (app->species[i].collision_id == GKYL_LBO_COLLISIONS) {
       pkpm_species_lbo_moms(app, &app->species[i], &app->species[i].lbo, fin[i]);

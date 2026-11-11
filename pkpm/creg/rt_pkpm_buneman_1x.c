@@ -427,7 +427,7 @@ main(int argc, char **argv)
     .mass = ctx.mass_ion,
     .lower = {-ctx.vx_max_ion},
     .upper = {ctx.vx_max_ion},
-    .cells = {ctx.Nvx},
+    .cells = {NVX},
 
     .init_dist = evalIonDistInit,
     .ctx_dist = &ctx,

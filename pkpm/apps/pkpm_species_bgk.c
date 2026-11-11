@@ -26,9 +26,7 @@ pkpm_species_coll_profile_new(
   }
 
   struct gkyl_array *nodal = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
-  gkyl_pkpm_coll_nu *nu_calc = gkyl_pkpm_coll_nu_new(&app->confBasis, false, 0.0, false);
-  gkyl_pkpm_coll_nu_to_nodal(nu_calc, &app->local_ext, modal, nodal);
-  gkyl_pkpm_coll_nu_release(nu_calc);
+  gkyl_dg_conf_nodal_conf_to_nodal(app->conf_nodal, &app->local_ext, modal, nodal);
   gkyl_array_release(modal);
   return nodal;
 }
@@ -67,7 +65,8 @@ eval_bgk_target(double t, const double *xn, double *restrict fout, void *ctx)
   fout[1] = F;
 }
 
-// nu (f_target - f) at the nodes: all blocks relax to the corrected unit Maxwellian.
+// nu (f_target - f) at the nodes, accumulated onto the nodal right-hand side of the species: all
+// blocks relax to the corrected unit Maxwellian.
 static void
 pkpm_species_bgk_kinetic_rhs_nodal(
   gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_bgk_collisions *bgk,
@@ -76,7 +75,7 @@ pkpm_species_bgk_kinetic_rhs_nodal(
 {
   gkyl_pkpm_bgk_collisions_advance(
     bgk->up_bgk, &app->local, &s->local_vel, &s->local, bgk->rate, app->pos_map->jacob_pos_gauss,
-    bgk->f_lte, fin, rhs, s->cflrate_f
+    bgk->f_lte, s->f_nodal, s->rhs_nodal, s->cflrate_f
   );
 }
 
@@ -206,10 +205,12 @@ pkpm_species_bgk_implicit_advance(
       shape_d[q] = 1.0 / (1.0 + rate_d[q] * dt);
     }
   }
+  pkpm_species_nodal_dist(app, s, s->f);
   gkyl_pkpm_bgk_collisions_implicit_advance(
     bgk->up_bgk, &app->local, &s->local_vel, &s->local, bgk->shape, app->pos_map->jacob_pos_gauss,
-    bgk->f_lte, s->f
+    bgk->f_lte, s->f_nodal, s->rhs_nodal
   );
+  pkpm_species_nodal_accumulate(app, s, s->f);
   app->stat.species_coll_tm += gkyl_time_diff_now_sec(tm);
 }
 

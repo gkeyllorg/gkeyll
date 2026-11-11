@@ -1,7 +1,7 @@
 // Private header: not for direct use
 #pragma once
 
-#include <gkyl_pkpm_coll_nodal.h>
+#include <gkyl_dg_conf_nodal_kernels.h>
 
 #define PKPM_TEMP_SOURCE_MAX_NODES 8
 #define PKPM_TEMP_SOURCE_NUM_FLUID 5 // blocks of the fluid state [rho, M (3), E]
@@ -10,11 +10,13 @@
 typedef void (*pkpm_temp_source_conf_map_t)(const double *in, double *GKYL_RESTRICT out);
 
 GKYL_CU_D static const pkpm_temp_source_conf_map_t pkpm_temp_source_conf_to_nodal_list[] = {
-  pkpm_coll_conf_to_nodal_1x, pkpm_coll_conf_to_nodal_2x, pkpm_coll_conf_to_nodal_3x
+  dg_conf_nodal_conf_to_nodal_1x_ser_p1, dg_conf_nodal_conf_to_nodal_2x_ser_p1,
+  dg_conf_nodal_conf_to_nodal_3x_ser_p1
 };
 
 GKYL_CU_D static const pkpm_temp_source_conf_map_t pkpm_temp_source_nodal_to_conf_list[] = {
-  pkpm_coll_nodal_to_conf_1x, pkpm_coll_nodal_to_conf_2x, pkpm_coll_nodal_to_conf_3x
+  dg_conf_nodal_conf_to_modal_1x_ser_p1, dg_conf_nodal_conf_to_modal_2x_ser_p1,
+  dg_conf_nodal_conf_to_modal_3x_ser_p1
 };
 
 struct gkyl_pkpm_temp_source {

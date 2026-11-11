@@ -11,23 +11,13 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_basis.h>
 #include <gkyl_dg_bin_ops.h>
+#include <gkyl_dg_conf_nodal.h>
 #include <gkyl_pkpm_bgk_collisions.h>
-#include <gkyl_pkpm_coll_nodal.h>
 #include <gkyl_range.h>
 #include <gkyl_util.h>
 
 #define NB 8
 #define NV 3
-
-typedef void (*map_t)(const double *in, double *GKYL_RESTRICT out);
-
-static const map_t nodal_to_conf[] = {
-  pkpm_coll_nodal_to_conf_1x, pkpm_coll_nodal_to_conf_2x, pkpm_coll_nodal_to_conf_3x
-};
-static const map_t nodal_to_phase[] = {
-  pkpm_coll_nodal_to_phase_accumulate_1x1v, pkpm_coll_nodal_to_phase_accumulate_2x1v,
-  pkpm_coll_nodal_to_phase_accumulate_3x1v
-};
 
 static double
 rnd(void)
@@ -55,15 +45,25 @@ test_bgk(int cdim, bool implicit)
 
   struct gkyl_array *rate = gkyl_array_new(GKYL_DOUBLE, nc, crange.volume);
   struct gkyl_array *nu_modal = gkyl_array_new(GKYL_DOUBLE, nc, crange.volume);
+  struct gkyl_array *factor = gkyl_array_new(GKYL_DOUBLE, nc, crange.volume);
   struct gkyl_array *jacob = gkyl_array_new(GKYL_DOUBLE, nc, crange.volume);
   struct gkyl_array *f_lte = gkyl_array_new(GKYL_DOUBLE, NV, vrange.volume);
   struct gkyl_array *fin = gkyl_array_new(GKYL_DOUBLE, NB * np, prange.volume);
   struct gkyl_array *rhs = gkyl_array_new(GKYL_DOUBLE, NB * np, prange.volume);
+  struct gkyl_array *fnodal = gkyl_array_new(GKYL_DOUBLE, NB * np, prange.volume);
+  struct gkyl_array *rhs_nodal = gkyl_array_new(GKYL_DOUBLE, NB * np, prange.volume);
+  struct gkyl_array *target_nodal = gkyl_array_new(GKYL_DOUBLE, NB * np, prange.volume);
+  struct gkyl_array *target = gkyl_array_new(GKYL_DOUBLE, NB * np, prange.volume);
   struct gkyl_array *cfl = gkyl_array_new(GKYL_DOUBLE, 1, prange.volume);
   struct gkyl_array *block = gkyl_array_new(GKYL_DOUBLE, np, prange.volume);
   struct gkyl_array *prod = gkyl_array_new(GKYL_DOUBLE, np, prange.volume);
   gkyl_array_clear(rhs, 0.0);
+  gkyl_array_clear(rhs_nodal, 0.0);
+  gkyl_array_clear(target_nodal, 0.0);
+  gkyl_array_clear(target, 0.0);
   gkyl_array_clear(cfl, 0.0);
+
+  struct gkyl_dg_conf_nodal *conf_nodal = gkyl_dg_conf_nodal_new(&cbasis, &pbasis, false);
 
   double J = 1.7;
   struct gkyl_range_iter iter;
@@ -71,15 +71,15 @@ test_bgk(int cdim, bool implicit)
   while (gkyl_range_iter_next(&iter)) {
     long loc = gkyl_range_idx(&crange, iter.idx);
     double *r = gkyl_array_fetch(rate, loc);
-    double fac[8];
+    double *fac = gkyl_array_fetch(factor, loc);
     for (int q = 0; q < nc; ++q) {
       r[q] = implicit ? 0.5 * (1.0 + rnd()) : 1.0 + 0.5 * fabs(rnd());
       fac[q] = implicit ? 1.0 - r[q] : r[q];
     }
-    nodal_to_conf[cdim - 1](fac, gkyl_array_fetch(nu_modal, loc));
     double *j = gkyl_array_fetch(jacob, loc);
     j[0] = J;
   }
+  gkyl_dg_conf_nodal_conf_to_modal(conf_nodal, &crange, factor, nu_modal);
   gkyl_range_iter_init(&iter, &vrange);
   while (gkyl_range_iter_next(&iter)) {
     double *d = gkyl_array_fetch(f_lte, gkyl_range_idx(&vrange, iter.idx));
@@ -95,43 +95,46 @@ test_bgk(int cdim, bool implicit)
     }
   }
 
+  // Convert, accumulate the increment at the nodes, convert back.
   struct gkyl_pkpm_bgk_collisions *up = gkyl_pkpm_bgk_collisions_new(&cbasis, &pbasis, false);
+  gkyl_dg_conf_nodal_phase_to_nodal(conf_nodal, &prange, fin, fnodal);
   if (implicit) {
-    // rhs holds the increment of the in-place step
-    struct gkyl_array *fnew = gkyl_array_new(GKYL_DOUBLE, NB * np, prange.volume);
-    gkyl_array_copy(fnew, fin);
     gkyl_pkpm_bgk_collisions_implicit_advance(
-      up, &crange, &vrange, &prange, rate, jacob, f_lte, fnew
+      up, &crange, &vrange, &prange, rate, jacob, f_lte, fnodal, rhs_nodal
     );
-    gkyl_array_set(rhs, 1.0, fnew);
-    gkyl_array_accumulate(rhs, -1.0, fin);
-    gkyl_array_release(fnew);
   } else {
     gkyl_pkpm_bgk_collisions_advance(
-      up, &crange, &vrange, &prange, rate, jacob, f_lte, fin, rhs, cfl
+      up, &crange, &vrange, &prange, rate, jacob, f_lte, fnodal, rhs_nodal, cfl
     );
   }
+  gkyl_dg_conf_nodal_phase_to_modal_accumulate(conf_nodal, &prange, rhs_nodal, rhs);
+
+  // The modal target [J f_t, J f_t, 0, ...], uniform in configuration space.
+  gkyl_range_iter_init(&iter, &prange);
+  while (gkyl_range_iter_next(&iter)) {
+    long ploc = gkyl_range_idx(&prange, iter.idx);
+    const double *ft = gkyl_array_cfetch(f_lte, gkyl_range_idx(&vrange, &iter.idx[cdim]));
+    double *tn = gkyl_array_fetch(target_nodal, ploc);
+    for (int b = 0; b < 2; ++b) {
+      for (int q = 0; q < nc; ++q) {
+        for (int j = 0; j < NV; ++j) {
+          tn[b * np + q * NV + j] = J * ft[j];
+        }
+      }
+    }
+  }
+  gkyl_dg_conf_nodal_phase_to_modal_accumulate(conf_nodal, &prange, target_nodal, target);
 
   // The reference: block by block, the Galerkin product of nu (or 1 - S) and (J f_t - f).
   for (int b = 0; b < NB; ++b) {
     gkyl_range_iter_init(&iter, &prange);
     while (gkyl_range_iter_next(&iter)) {
       long ploc = gkyl_range_idx(&prange, iter.idx);
-      long vloc = gkyl_range_idx(&vrange, &iter.idx[cdim]);
-      const double *ft = gkyl_array_cfetch(f_lte, vloc);
-      double g[NB * 8 * NV] = {0.0}, target[NB * 24] = {0.0};
-      if (b < 2) {
-        for (int q = 0; q < nc; ++q) {
-          for (int j = 0; j < NV; ++j) {
-            g[(q * NB + b) * NV + j] = J * ft[j];
-          }
-        }
-        nodal_to_phase[cdim - 1](g, target);
-      }
+      const double *td = gkyl_array_cfetch(target, ploc);
       const double *fd = gkyl_array_cfetch(fin, ploc);
       double *bd = gkyl_array_fetch(block, ploc);
       for (int k = 0; k < np; ++k) {
-        bd[k] = target[b * np + k] - fd[b * np + k];
+        bd[k] = td[b * np + k] - fd[b * np + k];
       }
     }
     gkyl_dg_mul_conf_phase_op_range(&cbasis, &pbasis, prod, nu_modal, block, &crange, &prange);
@@ -158,6 +161,12 @@ test_bgk(int cdim, bool implicit)
   }
 
   gkyl_pkpm_bgk_collisions_release(up);
+  gkyl_dg_conf_nodal_release(conf_nodal);
+  gkyl_array_release(factor);
+  gkyl_array_release(fnodal);
+  gkyl_array_release(rhs_nodal);
+  gkyl_array_release(target_nodal);
+  gkyl_array_release(target);
   gkyl_array_release(rate);
   gkyl_array_release(nu_modal);
   gkyl_array_release(jacob);

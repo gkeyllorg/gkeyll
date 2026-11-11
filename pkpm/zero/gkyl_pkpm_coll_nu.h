@@ -23,19 +23,6 @@ struct gkyl_pkpm_coll_nu *gkyl_pkpm_coll_nu_new(
 );
 
 /**
- * Convert p=1 expansions to their values at the nodes (any number of components).
- *
- * @param up Updater.
- * @param range Configuration-space range.
- * @param modal Input expansions.
- * @param nodal Output node values.
- */
-void gkyl_pkpm_coll_nu_to_nodal(
-  const struct gkyl_pkpm_coll_nu *up, const struct gkyl_range *range,
-  const struct gkyl_array *modal, struct gkyl_array *nodal
-);
-
-/**
  * Compute the collision frequency at the nodes. All arrays hold node values. The result is zero
  * at nodes where n_other is not positive. n_other, vtsq_self and vtsq_other are not read unless
  * the updater was created with spitzer = true.

@@ -432,6 +432,15 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   }
   pkpm_species_source_bgk_init(app, s, &s->src_bgk);
 
+  // Operators at the configuration-space nodes share the nodal copy of the distributions.
+  s->has_nodal_ops = !app->use_gpu && (s->collision_id == GKYL_BGK_COLLISIONS ||
+                                       s->collision_id == GKYL_LBO_COLLISIONS ||
+                                       s->src_bgk.source_bgk_id != GKYL_NO_SOURCE_BGK);
+  if (s->has_nodal_ops) {
+    s->f_nodal = mkarr(false, s->f->ncomp, s->local_ext.volume);
+    s->rhs_nodal = mkarr(false, s->f->ncomp, s->local_ext.volume);
+  }
+
   // momentum diffusion, if present, on the position map (orders 2 and 4)
   s->has_diffusion = false;
   if (s->info.diffusion.D) {
@@ -1053,6 +1062,8 @@ pkpm_species_rhs(
   if (species->collision_id == GKYL_LBO_COLLISIONS) {
     pkpm_species_lbo_rhs(app, species, &species->lbo, fin, rhs_f);
   }
+  // The operators at the nodes accumulated into the nodal right-hand side.
+  pkpm_species_nodal_accumulate(app, species, rhs_f);
   pkpm_species_kinetic_closure(app, species, fin, rhs_f);
   gkyl_dg_pkpm_vel_flux_surf_advance(
     species->calc_vel_flux, &app->local, &species->local, species->harm_wnode, species->pkpm_theta,
@@ -1272,10 +1283,38 @@ pkpm_species_calc_L2(gkyl_pkpm_app *app, double tm, const struct pkpm_species *s
 }
 
 void
+pkpm_species_nodal_dist(
+  gkyl_pkpm_app *app, const struct pkpm_species *species, const struct gkyl_array *fin
+)
+{
+  if (species->has_nodal_ops) {
+    struct timespec tm = gkyl_wall_clock();
+    gkyl_dg_conf_nodal_phase_to_nodal(app->conf_nodal, &species->local, fin, species->f_nodal);
+    gkyl_array_clear_range(species->rhs_nodal, 0.0, &species->local);
+    app->stat.species_coll_tm += gkyl_time_diff_now_sec(tm);
+  }
+}
+
+void
+pkpm_species_nodal_accumulate(
+  gkyl_pkpm_app *app, const struct pkpm_species *species, struct gkyl_array *out
+)
+{
+  if (species->has_nodal_ops) {
+    struct timespec tm = gkyl_wall_clock();
+    gkyl_dg_conf_nodal_phase_to_modal_accumulate(
+      app->conf_nodal, &species->local, species->rhs_nodal, out
+    );
+    app->stat.species_coll_tm += gkyl_time_diff_now_sec(tm);
+  }
+}
+
+void
 pkpm_species_coll_tm(gkyl_pkpm_app *app)
 {
   for (int i = 0; i < app->num_species; ++i) {
-    if (app->species[i].collision_id == GKYL_LBO_COLLISIONS) {
+    // The nodal operator has one sweep: its time is in the total collision time only.
+    if (app->species[i].collision_id == GKYL_LBO_COLLISIONS && !app->species[i].lbo.use_nodal) {
       struct gkyl_dg_updater_lbo_pkpm_tm tm =
         gkyl_dg_updater_lbo_pkpm_get_tm(app->species[i].lbo.coll_slvr);
       app->stat.species_lbo_coll_diff_tm[i] = tm.diff_tm;
@@ -1304,6 +1343,10 @@ pkpm_species_release(const gkyl_pkpm_app *app, const struct pkpm_species *s)
   gkyl_array_release(s->f_no_J);
   gkyl_array_release(s->f1);
   gkyl_array_release(s->fnew);
+  if (s->has_nodal_ops) {
+    gkyl_array_release(s->f_nodal);
+    gkyl_array_release(s->rhs_nodal);
+  }
   gkyl_array_release(s->blk_in);
   gkyl_array_release(s->blk_out);
   gkyl_array_release(s->fluid);

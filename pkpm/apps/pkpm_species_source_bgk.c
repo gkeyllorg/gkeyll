@@ -8,7 +8,7 @@
 // receive nothing from it.
 
 // Explicit update: the energy relaxation onto the fluid right-hand side and the relaxation of
-// the distributions onto the kinetic one, each with its CFL rate.
+// the distributions onto the nodal right-hand side of the species, each with its CFL rate.
 static void
 pkpm_species_source_bgk_rhs_explicit(
   gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_source_bgk *src,
@@ -22,7 +22,7 @@ pkpm_species_source_bgk_rhs_explicit(
   );
   gkyl_pkpm_bgk_collisions_advance(
     src->up_bgk, &app->local, &s->local_vel, &s->local, src->shape, app->pos_map->jacob_pos_gauss,
-    src->f_lte, fin, rhs_f, s->cflrate_f
+    src->f_lte, s->f_nodal, s->rhs_nodal, s->cflrate_f
   );
 }
 
@@ -93,10 +93,12 @@ pkpm_species_source_bgk_implicit_advance(
   gkyl_pkpm_temp_source_implicit_advance(
     src->up_temp, &app->local, dt, src->rate, src->vtsq, s->fluid, src->shape
   );
+  pkpm_species_nodal_dist(app, s, s->f);
   gkyl_pkpm_bgk_collisions_implicit_advance(
     src->up_bgk, &app->local, &s->local_vel, &s->local, src->shape, app->pos_map->jacob_pos_gauss,
-    src->f_lte, s->f
+    src->f_lte, s->f_nodal, s->rhs_nodal
   );
+  pkpm_species_nodal_accumulate(app, s, s->f);
   app->stat.species_coll_tm += gkyl_time_diff_now_sec(tm);
 }
 

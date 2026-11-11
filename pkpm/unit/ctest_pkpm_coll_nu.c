@@ -21,46 +21,6 @@ fill(struct gkyl_array *arr, const struct gkyl_range *range, double a, double b)
   }
 }
 
-// The node values of an expansion are those of the expansion evaluated at the nodes.
-static void
-test_to_nodal(int cdim)
-{
-  struct gkyl_basis cbasis;
-  gkyl_cart_modal_serendip(&cbasis, cdim, 1);
-  int nc = cbasis.num_basis, num_comp = 2;
-  int lower[GKYL_MAX_CDIM] = {1, 1, 1}, upper[GKYL_MAX_CDIM] = {2, 1, 1};
-  struct gkyl_range range;
-  gkyl_range_init(&range, cdim, lower, upper);
-
-  struct gkyl_array *modal = gkyl_array_new(GKYL_DOUBLE, num_comp * nc, range.volume);
-  struct gkyl_array *nodal = gkyl_array_new(GKYL_DOUBLE, num_comp * nc, range.volume);
-  fill(modal, &range, 1.3, 0.17);
-
-  struct gkyl_pkpm_coll_nu *up = gkyl_pkpm_coll_nu_new(&cbasis, false, 0.0, false);
-  gkyl_pkpm_coll_nu_to_nodal(up, &range, modal, nodal);
-
-  double gx = 1.0 / sqrt(3.0);
-  struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, &range);
-  while (gkyl_range_iter_next(&iter)) {
-    long loc = gkyl_range_idx(&range, iter.idx);
-    const double *m = gkyl_array_cfetch(modal, loc), *n = gkyl_array_cfetch(nodal, loc);
-    for (int c = 0; c < num_comp; ++c) {
-      for (int q = 0; q < nc; ++q) {
-        double x[3];
-        for (int d = 0; d < cdim; ++d) {
-          x[d] = ((q >> d) & 1) ? gx : -gx;
-        }
-        TEST_CHECK(gkyl_compare_double(n[c * nc + q], cbasis.eval_expand(x, &m[c * nc]), 1e-14));
-      }
-    }
-  }
-
-  gkyl_pkpm_coll_nu_release(up);
-  gkyl_array_release(modal);
-  gkyl_array_release(nodal);
-}
-
 // Reference frequency, Spitzer scaling, the floor and non-positive densities.
 static void
 test_advance(int cdim)
@@ -113,24 +73,6 @@ test_advance(int cdim)
 }
 
 void
-test_to_nodal_1x()
-{
-  test_to_nodal(1);
-}
-
-void
-test_to_nodal_2x()
-{
-  test_to_nodal(2);
-}
-
-void
-test_to_nodal_3x()
-{
-  test_to_nodal(3);
-}
-
-void
 test_advance_1x()
 {
   test_advance(1);
@@ -142,6 +84,4 @@ test_advance_3x()
   test_advance(3);
 }
 
-TEST_LIST = {{"to_nodal_1x", test_to_nodal_1x}, {"to_nodal_2x", test_to_nodal_2x},
-             {"to_nodal_3x", test_to_nodal_3x}, {"advance_1x", test_advance_1x},
-             {"advance_3x", test_advance_3x},   {NULL, NULL}};
+TEST_LIST = {{"advance_1x", test_advance_1x}, {"advance_3x", test_advance_3x}, {NULL, NULL}};

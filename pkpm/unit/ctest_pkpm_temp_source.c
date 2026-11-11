@@ -10,7 +10,7 @@
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_basis.h>
-#include <gkyl_pkpm_coll_nodal.h>
+#include <gkyl_dg_conf_nodal_kernels.h>
 #include <gkyl_pkpm_temp_source.h>
 #include <gkyl_range.h>
 #include <gkyl_util.h>
@@ -21,10 +21,12 @@
 typedef void (*map_t)(const double *in, double *GKYL_RESTRICT out);
 
 static const map_t nodal_to_conf[] = {
-  pkpm_coll_nodal_to_conf_1x, pkpm_coll_nodal_to_conf_2x, pkpm_coll_nodal_to_conf_3x
+  dg_conf_nodal_conf_to_modal_1x_ser_p1, dg_conf_nodal_conf_to_modal_2x_ser_p1,
+  dg_conf_nodal_conf_to_modal_3x_ser_p1
 };
 static const map_t conf_to_nodal[] = {
-  pkpm_coll_conf_to_nodal_1x, pkpm_coll_conf_to_nodal_2x, pkpm_coll_conf_to_nodal_3x
+  dg_conf_nodal_conf_to_nodal_1x_ser_p1, dg_conf_nodal_conf_to_nodal_2x_ser_p1,
+  dg_conf_nodal_conf_to_nodal_3x_ser_p1
 };
 
 static double
@@ -215,11 +217,11 @@ test_inadmissible(bool implicit)
   // node 1: eps = E - mom^2/(2 rho) = 0.3 - 0.5 = -0.2
   double energy[2] = {1.0, 0.3};
   double *fluid_d = gkyl_array_fetch(fluid, 0);
-  pkpm_coll_nodal_to_conf_1x(rho, &fluid_d[0]);
-  pkpm_coll_nodal_to_conf_1x(mom, &fluid_d[nc]);
-  pkpm_coll_nodal_to_conf_1x(zero, &fluid_d[2 * nc]);
-  pkpm_coll_nodal_to_conf_1x(zero, &fluid_d[3 * nc]);
-  pkpm_coll_nodal_to_conf_1x(energy, &fluid_d[4 * nc]);
+  dg_conf_nodal_conf_to_modal_1x_ser_p1(rho, &fluid_d[0]);
+  dg_conf_nodal_conf_to_modal_1x_ser_p1(mom, &fluid_d[nc]);
+  dg_conf_nodal_conf_to_modal_1x_ser_p1(zero, &fluid_d[2 * nc]);
+  dg_conf_nodal_conf_to_modal_1x_ser_p1(zero, &fluid_d[3 * nc]);
+  dg_conf_nodal_conf_to_modal_1x_ser_p1(energy, &fluid_d[4 * nc]);
   double *rate_d = gkyl_array_fetch(rate, 0), *vtsq_d = gkyl_array_fetch(vtsq, 0);
   for (int q = 0; q < nc; ++q) {
     rate_d[q] = nu;
@@ -233,7 +235,7 @@ test_inadmissible(bool implicit)
   if (implicit) {
     gkyl_pkpm_temp_source_implicit_advance(up, &crange, dt, rate, vtsq, fluid, shape);
     double energy_new[2];
-    pkpm_coll_conf_to_nodal_1x(&fluid_d[4 * nc], energy_new);
+    dg_conf_nodal_conf_to_nodal_1x_ser_p1(&fluid_d[4 * nc], energy_new);
     incr[0] = energy_new[0] - energy[0];
     incr[1] = energy_new[1] - energy[1];
     // no density: nothing happens to the energy; both nodes take the shape factor of T_Q = T
@@ -244,7 +246,9 @@ test_inadmissible(bool implicit)
     TEST_CHECK(gkyl_compare_double(shape_d[1], 1.0 / (1.0 + nu * dt), 1.0e-14));
   } else {
     gkyl_pkpm_temp_source_advance(up, &crange, rate, vtsq, fluid, rhs, cfl, shape);
-    pkpm_coll_conf_to_nodal_1x(&((const double *)gkyl_array_cfetch(rhs, 0))[4 * nc], incr);
+    dg_conf_nodal_conf_to_nodal_1x_ser_p1(
+      &((const double *)gkyl_array_cfetch(rhs, 0))[4 * nc], incr
+    );
     TEST_CHECK(fabs(incr[0]) < 1.0e-15);
     TEST_CHECK(gkyl_compare_double(incr[1], nu * (eps_target - eps), 1.0e-13));
     TEST_CHECK(gkyl_compare_double(shape_d[0], nu, 1.0e-14));

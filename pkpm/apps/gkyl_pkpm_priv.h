@@ -53,6 +53,9 @@
 #include <gkyl_prim_lbo_pkpm.h>
 #include <gkyl_pkpm_bgk_collisions.h>
 #include <gkyl_pkpm_coll_nu.h>
+#include <gkyl_dg_conf_nodal.h>
+#include <gkyl_dg_updater_lbo_pkpm_nodal.h>
+#include <gkyl_pkpm_lbo_moms.h>
 #include <gkyl_pkpm_lte.h>
 #include <gkyl_pkpm_temp_source.h>
 #include <gkyl_proj_on_basis.h>
@@ -171,10 +174,38 @@ struct pkpm_source_bgk {
   pkpm_source_bgk_rhs_t rhs; // the explicit terms, or nothing
 };
 
+struct pkpm_lbo_collisions;
+
+// Compute the primitive moments and the collision frequency of the self LBO of a species.
+typedef void (*pkpm_lbo_moms_t)(
+  gkyl_pkpm_app *app, const struct pkpm_species *species, struct pkpm_lbo_collisions *lbo,
+  const struct gkyl_array *fin
+);
+
+// Accumulate the self LBO of a species onto rhs.
+typedef void (*pkpm_lbo_kinetic_rhs_t)(
+  gkyl_pkpm_app *app, const struct pkpm_species *species, struct pkpm_lbo_collisions *lbo,
+  const struct gkyl_array *fin, struct gkyl_array *rhs
+);
+
 struct pkpm_lbo_collisions {
+  // The operator at the configuration-space nodes.
+  bool use_nodal; // false for GPU runs
+  struct gkyl_array *nu_ref; // reference collision frequency at the nodes
+  struct gkyl_array *nu; // collision frequency at the nodes
+  struct gkyl_array *n_nodal; // number density at the nodes (Spitzer)
+  struct gkyl_array *xi_nodal; // [xi, xi^2, p] at the nodes (Spitzer)
+  struct gkyl_array *vtsq_nodal; // physical thermal speed squared at the nodes (Spitzer)
+  gkyl_pkpm_coll_nu *up_nu; // collision frequency at the nodes
+  gkyl_pkpm_lbo_moms *up_moms; // primitive moments at the nodes
+  gkyl_dg_updater_lbo_pkpm_nodal *up_coll; // the operator at the nodes
+  pkpm_lbo_moms_t calc_moms; // the nodal (constant or Spitzer frequency) or modal moments
+  pkpm_lbo_kinetic_rhs_t kinetic_rhs; // the nodal or modal operator
+
   struct gkyl_array *boundary_corrections; // LBO boundary corrections
   struct gkyl_mom_calc_bcorr *bcorr_calc; // LBO boundary corrections calculator
-  struct gkyl_array *nu_sum, *prim_moms, *nu_prim_moms; // LBO primitive moments
+  struct gkyl_array *nu_sum, *nu_prim_moms; // expansions of nu and nu [u, vtsq] (GPU runs)
+  struct gkyl_array *prim_moms; // [u, vtsq]: node values, or expansions on GPU runs
   bool normNu; // Boolean to determine if using Spitzer value
   struct gkyl_array
     *norm_nu; // Array for normalization factor computed from Spitzer updater n/sqrt(2 vt^2)^3
@@ -257,6 +288,12 @@ struct pkpm_species {
   struct gkyl_array *fluid, *fluid1, *fluidnew; // fluid state [rho, rho ux, rho uy, rho uz, E]
 
   struct gkyl_array *cflrate_f; // CFL rate in each cell for distribution function update
+  // Operators that act in the velocity alone at each configuration-space node (collisions, the
+  // temperature source) share one conversion of the distributions per stage and one conversion
+  // of their summed increments back.
+  bool has_nodal_ops; // true if the species has such operators (CPU runs)
+  struct gkyl_array *f_nodal; // distributions in the configuration-nodal, velocity-modal form
+  struct gkyl_array *rhs_nodal; // increments of the nodal operators, in the same form
   struct gkyl_array *cflrate_fluid; // CFL rate in each cell for momentum update
 
   struct gkyl_array *bc_buffer_dist; // buffer for BCs for distribution functions (used by bc_basic)
@@ -570,6 +607,8 @@ struct gkyl_pkpm_app {
     *geom; // geometry needed for species and field solvers (*only* p=1 right now JJ: 05/03/24)
   struct gkyl_vlasov_position_map *
     pos_map; // configuration-space position map (always created; identity by default); shared by the field and species
+  struct gkyl_dg_conf_nodal
+    *conf_nodal; // conversions to and from the configuration-nodal, velocity-modal form (CPU runs)
 
   // pointers to basis on device (these point to host structs if not
   // on GPU)
@@ -817,6 +856,30 @@ void pkpm_species_calc_app_accel(gkyl_pkpm_app *app, struct pkpm_species *specie
  * @param fin Input distribution function
  * @param fluidin Input fluid species array (size: num_fluid_species)
  */
+/**
+ * Convert the distributions of the stage to the configuration-nodal, velocity-modal form and
+ * clear the increments of the nodal operators (species with such operators only).
+ *
+ * @param app PKPM app object
+ * @param species Pointer to species
+ * @param fin Input distribution functions
+ */
+void pkpm_species_nodal_dist(
+  gkyl_pkpm_app *app, const struct pkpm_species *species, const struct gkyl_array *fin
+);
+
+/**
+ * Accumulate the increments of the nodal operators onto modal distributions (species with
+ * such operators only).
+ *
+ * @param app PKPM app object
+ * @param species Pointer to species
+ * @param out Modal distributions to increment
+ */
+void pkpm_species_nodal_accumulate(
+  gkyl_pkpm_app *app, const struct pkpm_species *species, struct gkyl_array *out
+);
+
 /**
  * Computational-to-physical coordinate transform of the position map, for projecting
  * initial conditions and sources on a non-uniform configuration grid.

@@ -17,9 +17,29 @@ gkyl_pkpm_bgk_collisions_new(
   struct gkyl_pkpm_bgk_collisions *up = gkyl_malloc(sizeof(*up));
   up->cdim = conf_basis->ndim;
   up->num_nodes = conf_basis->num_basis;
-  up->phase_to_nodal = pkpm_bgk_phase_to_nodal_list[up->cdim - 1];
-  up->nodal_to_phase = pkpm_bgk_nodal_to_phase_list[up->cdim - 1];
+  up->num_phase_basis = phase_basis->num_basis;
   return up;
+}
+
+// Accumulate factor_q (target - f_q) onto the increment of one phase-space cell: F and G relax
+// to the Maxwellian jacob f_lte, the first-harmonic blocks to zero.
+static inline void
+pkpm_bgk_collisions_relax(
+  const struct gkyl_pkpm_bgk_collisions *up, const double *factor, double jacob,
+  const double *f_lte, const double *fnodal, double *incr
+)
+{
+  for (int b = 0; b < PKPM_BGK_NUM_BLOCKS; ++b) {
+    const double *fnodal_b = &fnodal[b * up->num_phase_basis];
+    double *incr_b = &incr[b * up->num_phase_basis];
+    double target_fac = b < 2 ? jacob : 0.0;
+    for (int q = 0; q < up->num_nodes; ++q) {
+      for (int j = 0; j < PKPM_BGK_NUM_MODES; ++j) {
+        int k = q * PKPM_BGK_NUM_MODES + j;
+        incr_b[k] += factor[q] * (target_fac * f_lte[j] - fnodal_b[k]);
+      }
+    }
+  }
 }
 
 void
@@ -27,12 +47,9 @@ gkyl_pkpm_bgk_collisions_advance(
   const struct gkyl_pkpm_bgk_collisions *up, const struct gkyl_range *conf_range,
   const struct gkyl_range *vel_range, const struct gkyl_range *phase_range,
   const struct gkyl_array *rate, const struct gkyl_array *jacob, const struct gkyl_array *f_lte,
-  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array *cflrate
+  const struct gkyl_array *fnodal, struct gkyl_array *rhs_nodal, struct gkyl_array *cflrate
 )
 {
-  enum { NUM_NODAL = PKPM_BGK_MAX_NODES * PKPM_BGK_NUM_BLOCKS * PKPM_BGK_NUM_MODES };
-  double g[NUM_NODAL], incr[NUM_NODAL];
-
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, phase_range);
   while (gkyl_range_iter_next(&iter)) {
@@ -42,25 +59,15 @@ gkyl_pkpm_bgk_collisions_advance(
 
     const double *rate_d = gkyl_array_cfetch(rate, cloc);
     const double *jacob_d = gkyl_array_cfetch(jacob, cloc);
-    const double *f_lte_d = gkyl_array_cfetch(f_lte, vloc);
-
-    up->phase_to_nodal(gkyl_array_cfetch(fin, ploc), g);
+    pkpm_bgk_collisions_relax(
+      up, rate_d, jacob_d[0], gkyl_array_cfetch(f_lte, vloc), gkyl_array_cfetch(fnodal, ploc),
+      gkyl_array_fetch(rhs_nodal, ploc)
+    );
 
     double rate_max = 0.0;
-    int k = 0;
     for (int q = 0; q < up->num_nodes; ++q) {
       rate_max = fmax(rate_max, rate_d[q]);
-      for (int b = 0; b < PKPM_BGK_NUM_BLOCKS; ++b) {
-        for (int j = 0; j < PKPM_BGK_NUM_MODES; ++j) {
-          // F and G relax to the Maxwellian, the first-harmonic blocks to zero.
-          double target = b < 2 ? jacob_d[0] * f_lte_d[j] : 0.0;
-          incr[k] = rate_d[q] * (target - g[k]);
-          k += 1;
-        }
-      }
     }
-
-    up->nodal_to_phase(incr, gkyl_array_fetch(rhs, ploc));
     double *cflrate_d = gkyl_array_fetch(cflrate, ploc);
     cflrate_d[0] += rate_max;
   }
@@ -71,12 +78,9 @@ gkyl_pkpm_bgk_collisions_implicit_advance(
   const struct gkyl_pkpm_bgk_collisions *up, const struct gkyl_range *conf_range,
   const struct gkyl_range *vel_range, const struct gkyl_range *phase_range,
   const struct gkyl_array *shape, const struct gkyl_array *jacob, const struct gkyl_array *f_lte,
-  struct gkyl_array *f
+  const struct gkyl_array *fnodal, struct gkyl_array *incr_nodal
 )
 {
-  enum { NUM_NODAL = PKPM_BGK_MAX_NODES * PKPM_BGK_NUM_BLOCKS * PKPM_BGK_NUM_MODES };
-  double g[NUM_NODAL], incr[NUM_NODAL];
-
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, phase_range);
   while (gkyl_range_iter_next(&iter)) {
@@ -86,24 +90,14 @@ gkyl_pkpm_bgk_collisions_implicit_advance(
 
     const double *shape_d = gkyl_array_cfetch(shape, cloc);
     const double *jacob_d = gkyl_array_cfetch(jacob, cloc);
-    const double *f_lte_d = gkyl_array_cfetch(f_lte, vloc);
-    double *f_d = gkyl_array_fetch(f, ploc);
-
-    up->phase_to_nodal(f_d, g);
-
-    int k = 0;
+    double relax[PKPM_BGK_MAX_NODES];
     for (int q = 0; q < up->num_nodes; ++q) {
-      double relax = 1.0 - shape_d[q];
-      for (int b = 0; b < PKPM_BGK_NUM_BLOCKS; ++b) {
-        for (int j = 0; j < PKPM_BGK_NUM_MODES; ++j) {
-          double target = b < 2 ? jacob_d[0] * f_lte_d[j] : 0.0;
-          incr[k] = relax * (target - g[k]);
-          k += 1;
-        }
-      }
+      relax[q] = 1.0 - shape_d[q];
     }
-
-    up->nodal_to_phase(incr, f_d);
+    pkpm_bgk_collisions_relax(
+      up, relax, jacob_d[0], gkyl_array_cfetch(f_lte, vloc), gkyl_array_cfetch(fnodal, ploc),
+      gkyl_array_fetch(incr_nodal, ploc)
+    );
   }
 }
 
