@@ -78,17 +78,17 @@ eval_bgk_target(double t, const double *xn, double *restrict fout, void *ctx)
   fout[1] = F;
 }
 
-// nu (f_target - f) at the nodes, accumulated onto the nodal right-hand side of the species: all
-// blocks relax to the corrected unit Maxwellian.
+// nu (f_target - f) accumulated onto the right-hand side, with the collision frequency at the
+// nodes: all blocks relax to the corrected unit Maxwellian.
 static void
-pkpm_species_bgk_kinetic_rhs_nodal(
+pkpm_species_bgk_kinetic_rhs_explicit(
   gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_bgk_collisions *bgk,
   const struct gkyl_array *fin, struct gkyl_array *rhs
 )
 {
   gkyl_pkpm_bgk_collisions_advance(
     bgk->up_bgk, &app->local, &s->local_vel, &s->local, bgk->rate, app->pos_map->jacob_pos_gauss,
-    bgk->f_lte, s->f_nodal, s->rhs_nodal, s->cflrate_f
+    bgk->f_lte, fin, rhs, s->cflrate_f
   );
 }
 
@@ -168,7 +168,7 @@ pkpm_species_bgk_init_nodal(
     bgk->calc_shape = s->info.collisions.num_cross_collisions ? pkpm_species_bgk_shape_cross :
                                                                 pkpm_species_bgk_shape_self;
   } else {
-    bgk->kinetic_rhs = pkpm_species_bgk_kinetic_rhs_nodal;
+    bgk->kinetic_rhs = pkpm_species_bgk_kinetic_rhs_explicit;
   }
 }
 

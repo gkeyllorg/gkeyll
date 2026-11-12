@@ -22,7 +22,7 @@ pkpm_species_source_bgk_rhs_explicit(
   );
   gkyl_pkpm_bgk_collisions_advance(
     src->up_bgk, &app->local, &s->local_vel, &s->local, src->shape, app->pos_map->jacob_pos_gauss,
-    src->f_lte, s->f_nodal, s->rhs_nodal, s->cflrate_f
+    src->f_lte, fin, rhs_f, s->cflrate_f
   );
 }
 

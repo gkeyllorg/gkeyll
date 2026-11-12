@@ -1,7 +1,7 @@
-// Tests for the nodal PKPM BGK operator: the explicit term must equal the Galerkin product of the
-// collision frequency and (J f_t - f) block by block, relax only F and G toward the target, keep
-// int M0_perp dw = 0, and add the largest node rate to the CFL rate. The implicit step must change
-// f by the Galerkin product of (1 - S) and (J f_t - f).
+// Tests for the PKPM BGK operator with its rate at the nodes: the explicit term must equal the
+// Galerkin product of the collision frequency and (J f_t - f) block by block, relax only F and G
+// toward the target, keep int M0_perp dw = 0, and add the largest node rate to the CFL rate. The
+// implicit step must change f by the Galerkin product of (1 - S) and (J f_t - f).
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
@@ -50,15 +50,12 @@ test_bgk(int cdim, bool implicit)
   struct gkyl_array *f_lte = gkyl_array_new(GKYL_DOUBLE, NV, vrange.volume);
   struct gkyl_array *fin = gkyl_array_new(GKYL_DOUBLE, NB * np, prange.volume);
   struct gkyl_array *rhs = gkyl_array_new(GKYL_DOUBLE, NB * np, prange.volume);
-  struct gkyl_array *fnodal = gkyl_array_new(GKYL_DOUBLE, NB * np, prange.volume);
-  struct gkyl_array *rhs_nodal = gkyl_array_new(GKYL_DOUBLE, NB * np, prange.volume);
   struct gkyl_array *target_nodal = gkyl_array_new(GKYL_DOUBLE, NB * np, prange.volume);
   struct gkyl_array *target = gkyl_array_new(GKYL_DOUBLE, NB * np, prange.volume);
   struct gkyl_array *cfl = gkyl_array_new(GKYL_DOUBLE, 1, prange.volume);
   struct gkyl_array *block = gkyl_array_new(GKYL_DOUBLE, np, prange.volume);
   struct gkyl_array *prod = gkyl_array_new(GKYL_DOUBLE, np, prange.volume);
   gkyl_array_clear(rhs, 0.0);
-  gkyl_array_clear(rhs_nodal, 0.0);
   gkyl_array_clear(target_nodal, 0.0);
   gkyl_array_clear(target, 0.0);
   gkyl_array_clear(cfl, 0.0);
@@ -95,9 +92,7 @@ test_bgk(int cdim, bool implicit)
     }
   }
 
-  // Explicit: convert, accumulate the increment at the nodes, convert back.
   struct gkyl_pkpm_bgk_collisions *up = gkyl_pkpm_bgk_collisions_new(&cbasis, &pbasis, false);
-  gkyl_dg_conf_nodal_phase_to_nodal(conf_nodal, &prange, fin, fnodal);
   if (implicit) {
     // in place on the expansions: the change of f is the right-hand side
     gkyl_array_copy(rhs, fin);
@@ -107,9 +102,8 @@ test_bgk(int cdim, bool implicit)
     gkyl_array_accumulate(rhs, -1.0, fin);
   } else {
     gkyl_pkpm_bgk_collisions_advance(
-      up, &crange, &vrange, &prange, rate, jacob, f_lte, fnodal, rhs_nodal, cfl
+      up, &crange, &vrange, &prange, rate, jacob, f_lte, fin, rhs, cfl
     );
-    gkyl_dg_conf_nodal_phase_to_modal_accumulate(conf_nodal, &prange, rhs_nodal, rhs);
   }
 
   // The modal target [J f_t, J f_t, 0, ...], uniform in configuration space.
@@ -166,8 +160,6 @@ test_bgk(int cdim, bool implicit)
   gkyl_pkpm_bgk_collisions_release(up);
   gkyl_dg_conf_nodal_release(conf_nodal);
   gkyl_array_release(factor);
-  gkyl_array_release(fnodal);
-  gkyl_array_release(rhs_nodal);
   gkyl_array_release(target_nodal);
   gkyl_array_release(target);
   gkyl_array_release(rate);

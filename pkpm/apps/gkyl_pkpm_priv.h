@@ -215,7 +215,8 @@ typedef void (*pkpm_source_bgk_rhs_t)(
   struct gkyl_array *rhs_fluid
 );
 
-// BGK-form temperature source at the configuration-space nodes.
+// BGK-form temperature source, with its rate and energy relaxation at the configuration-space
+// nodes.
 struct pkpm_source_bgk {
   enum gkyl_source_bgk_id source_bgk_id; // type of source
   bool is_implicit; // backward Euler in each SSP-RK3 stage
@@ -311,9 +312,9 @@ struct pkpm_species {
   // Operators that act in the velocity alone at each configuration-space node (collisions, the
   // temperature source) share one conversion of the distributions per stage and one conversion
   // of their summed increments back.
-  bool has_nodal_ops; // true if the species has such operators (CPU runs)
+  bool has_nodal_ops; // true if the species has an operator at the nodes: the LBO (CPU runs)
   struct gkyl_array *f_nodal; // distributions in the configuration-nodal, velocity-modal form
-  struct gkyl_array *rhs_nodal; // increments of the nodal operators, in the same form
+  struct gkyl_array *rhs_nodal; // increment of the nodal operator, in the same form
   struct gkyl_array *cflrate_fluid; // CFL rate in each cell for momentum update
 
   struct gkyl_array *bc_buffer_dist; // buffer for BCs for distribution functions (used by bc_basic)
