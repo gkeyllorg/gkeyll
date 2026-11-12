@@ -295,7 +295,7 @@ test_msgpack_scalar_copy()
     {.key = "uint", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 7},
     {.key = "float", .elem_type = GKYL_MP_FLOAT, .fval = 1.25f},
     {.key = "double", .elem_type = GKYL_MP_DOUBLE, .dval = -2.5},
-    {.key = "string", .elem_type = GKYL_MP_STRING, .cval = "input"}
+    {.key = "string", .elem_type = GKYL_MP_STRING, .cval = "input"},
   };
   int count = sizeof input / sizeof input[0];
   TEST_CHECK(strcmp(gkyl_msgpack_map_elem_get_string(count, input, "string"), "input") == 0);
@@ -355,7 +355,7 @@ check_duplicate_metadata(int method, bool within_group, bool different_value)
     close(errors[1]);
     struct gkyl_msgpack_map_elem entries[] = {
       {.key = "duplicate", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 1},
-      {.key = "duplicate", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 1}
+      {.key = "duplicate", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 1},
     };
     if (different_value) {
       entries[1].elem_type = GKYL_MP_STRING;
@@ -399,7 +399,7 @@ test_msgpack_unique_keys()
   // Keys are case-sensitive. Empty groups do not disturb order or encoding.
   struct gkyl_msgpack_map_elem entries[] = {
     {.key = "key", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 1},
-    {.key = "Key", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 2}
+    {.key = "Key", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 2},
   };
   int lengths[] = {1, 0, 1}, count;
   const struct gkyl_msgpack_map_elem *lists[] = {entries, NULL, entries + 1};

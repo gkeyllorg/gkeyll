@@ -1022,7 +1022,7 @@ main(int argc, char **argv)
 
   struct gkyl_msgpack_map_elem additional_metadata[] = {
     {.key = "Cy", .elem_type = GKYL_MP_DOUBLE, .dval = ctx.Cy},
-    {.key = "rho_s", .elem_type = GKYL_MP_DOUBLE, .dval = ctx.rho_s}
+    {.key = "rho_s", .elem_type = GKYL_MP_DOUBLE, .dval = ctx.rho_s},
   };
   struct gkyl_gyrokinetic_multib *app_inp = gkyl_calloc(1, sizeof(struct gkyl_gyrokinetic_multib));
   app_inp->cdim = ctx.cdim;

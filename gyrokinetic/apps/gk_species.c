@@ -359,21 +359,20 @@ gk_species_write_cfl_enabled(gkyl_gyrokinetic_app *app, struct gk_species *gks, 
   // The 0th frame is often wrong for this diagnostic because cflrate is computed AFTER
   // the first time step
   struct timespec wst = gkyl_wall_clock();
-  // DG metadata for cflrate.
+  // Metadata for the nodal, p0 CFL frequency.
   struct gkyl_msgpack_map_elem mpe_cfl[] = {
     {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0},
     {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = "serendipity"},
     {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = "CFL frequency."},
     {.key = "value_form", .elem_type = GKYL_MP_STRING, .cval = "nodal"},
+    {.key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = tm},
+    {.key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = frame},
   };
   int mpe_cfl_len = sizeof(mpe_cfl) / sizeof(mpe_cfl[0]);
-  // Update app basic metada with time/frame.
-  gkyl_msgpack_map_elem_set_double(gks->io_meta_phase_len, gks->io_meta_phase, "time", tm);
-  gkyl_msgpack_map_elem_set_uint(gks->io_meta_phase_len, gks->io_meta_phase, "frame", frame);
   // Unionize metadata.
-  int io_meta_len[] = {gks->io_meta_phase_len, mpe_cfl_len, app->gk_geom->io_meta_basic_len};
+  int io_meta_len[] = {gks->io_meta_basic_len, mpe_cfl_len, app->gk_geom->io_meta_basic_len};
   const struct gkyl_msgpack_map_elem *io_meta[] = {
-    gks->io_meta_phase, mpe_cfl, app->gk_geom->io_meta_basic
+    gks->io_meta_basic, mpe_cfl, app->gk_geom->io_meta_basic
   };
   struct gkyl_msgpack_data *mt =
     gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);

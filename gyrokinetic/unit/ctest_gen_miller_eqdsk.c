@@ -467,7 +467,7 @@ test_devices(void)
       .qsafety = tcv_q,
       .has_Rmajor_omp_bounds = true,
       .Rmajor_omp_bounds = {1.0513586729299085, 1.1555930803275622},
-    }
+    },
   };
 
   // Independent Python values at the same tolerance and physical parameters.

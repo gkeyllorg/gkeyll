@@ -764,20 +764,22 @@ main(int argc, char **argv)
     // radial magnetic drift (zero-flux and copy BCs build up boundary
     // layers).
     .bcs =
-      {{
-         .dir = 0,
-         .edge = GKYL_LOWER_EDGE,
-         .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
-         .projection = ion_bc,
-       },
-       {
-         .dir = 0,
-         .edge = GKYL_UPPER_EDGE,
-         .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
-         .projection = ion_bc,
-       },
-       {.dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_TWISTSHIFT},
-       {.dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_TWISTSHIFT}},
+      {
+        {
+          .dir = 0,
+          .edge = GKYL_LOWER_EDGE,
+          .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
+          .projection = ion_bc,
+        },
+        {
+          .dir = 0,
+          .edge = GKYL_UPPER_EDGE,
+          .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
+          .projection = ion_bc,
+        },
+        {.dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_TWISTSHIFT},
+        {.dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_TWISTSHIFT},
+      },
 
     // Krook buffers at the radial boundaries.
     .source_bgk =
@@ -832,8 +834,10 @@ main(int argc, char **argv)
     .gkfield_id = GKYL_GK_FIELD_ES,
     .polarization_bmag = ctx.bmag_axis,
     .poisson_bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}}},
+      {
+        {.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
+        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
+      },
     .time_rate_diagnostics = true,
   };
 
@@ -860,7 +864,7 @@ main(int argc, char **argv)
     {.key = "rminor_LCFS", .elem_type = GKYL_MP_DOUBLE, .dval = ctx.rminor_LCFS},
     {.key = "Te0", .elem_type = GKYL_MP_DOUBLE, .dval = ctx.Te0},
     {.key = "c_s", .elem_type = GKYL_MP_DOUBLE, .dval = ctx.c_s},
-    {.key = "rho_s", .elem_type = GKYL_MP_DOUBLE, .dval = ctx.rho_s}
+    {.key = "rho_s", .elem_type = GKYL_MP_DOUBLE, .dval = ctx.rho_s},
   };
 
   // GK app
