@@ -485,28 +485,30 @@ main(int argc, char **argv)
       {
         .num_react = 2,
         .react_type =
-          {{
-             .react_id = GKYL_REACT_IZ,
-             .type_self = GKYL_SELF_ELC,
-             .ion_id = GKYL_ION_H,
-             .elc_nm = "elc",
-             .ion_nm = "ion", // ion is always the higher charge state
-             .donor_nm = "D0", // interacts with elc to give up charge
-             .charge_state = 0, // corresponds to lower charge state (donor)
-             .ion_mass = ctx.mass_ion,
-             .elc_mass = ctx.mass_elc,
-           },
-           {
-             .react_id = GKYL_REACT_RECOMB,
-             .type_self = GKYL_SELF_ELC,
-             .ion_id = GKYL_ION_H,
-             .elc_nm = "elc",
-             .ion_nm = "ion",
-             .recvr_nm = "D0",
-             .charge_state = 0,
-             .ion_mass = ctx.mass_ion,
-             .elc_mass = ctx.mass_elc,
-           }},
+          {
+            {
+              .react_id = GKYL_REACT_IZ,
+              .type_self = GKYL_SELF_ELC,
+              .ion_id = GKYL_ION_H,
+              .elc_nm = "elc",
+              .ion_nm = "ion", // ion is always the higher charge state
+              .donor_nm = "D0", // interacts with elc to give up charge
+              .charge_state = 0, // corresponds to lower charge state (donor)
+              .ion_mass = ctx.mass_ion,
+              .elc_mass = ctx.mass_elc,
+            },
+            {
+              .react_id = GKYL_REACT_RECOMB,
+              .type_self = GKYL_SELF_ELC,
+              .ion_id = GKYL_ION_H,
+              .elc_nm = "elc",
+              .ion_nm = "ion",
+              .recvr_nm = "D0",
+              .charge_state = 0,
+              .ion_mass = ctx.mass_ion,
+              .elc_mass = ctx.mass_elc,
+            },
+          },
       },
 
     .num_diag_moments = 7,
@@ -574,38 +576,40 @@ main(int argc, char **argv)
       {
         .num_react = 3,
         .react_type =
-          {{
-             .react_id = GKYL_REACT_CX,
-             .type_self = GKYL_SELF_ION,
-             .ion_id = GKYL_ION_D,
-             .elc_nm = "elc",
-             .ion_nm = "ion",
-             .partner_nm = "D0",
-             .ion_mass = ctx.mass_ion,
-             .partner_mass = ctx.mass_ion,
-           },
-           {
-             .react_id = GKYL_REACT_IZ,
-             .type_self = GKYL_SELF_ION,
-             .ion_id = GKYL_ION_H,
-             .elc_nm = "elc",
-             .ion_nm = "ion", // ion is always the higher charge state
-             .donor_nm = "D0", // interacts with elc to give up charge
-             .charge_state = 0, // corresponds to lower charge state (donor)
-             .ion_mass = ctx.mass_ion,
-             .elc_mass = ctx.mass_elc,
-           },
-           {
-             .react_id = GKYL_REACT_RECOMB,
-             .type_self = GKYL_SELF_ION,
-             .ion_id = GKYL_ION_H,
-             .elc_nm = "elc",
-             .ion_nm = "ion",
-             .recvr_nm = "D0",
-             .charge_state = 0,
-             .ion_mass = ctx.mass_ion,
-             .elc_mass = ctx.mass_elc,
-           }},
+          {
+            {
+              .react_id = GKYL_REACT_CX,
+              .type_self = GKYL_SELF_ION,
+              .ion_id = GKYL_ION_D,
+              .elc_nm = "elc",
+              .ion_nm = "ion",
+              .partner_nm = "D0",
+              .ion_mass = ctx.mass_ion,
+              .partner_mass = ctx.mass_ion,
+            },
+            {
+              .react_id = GKYL_REACT_IZ,
+              .type_self = GKYL_SELF_ION,
+              .ion_id = GKYL_ION_H,
+              .elc_nm = "elc",
+              .ion_nm = "ion", // ion is always the higher charge state
+              .donor_nm = "D0", // interacts with elc to give up charge
+              .charge_state = 0, // corresponds to lower charge state (donor)
+              .ion_mass = ctx.mass_ion,
+              .elc_mass = ctx.mass_elc,
+            },
+            {
+              .react_id = GKYL_REACT_RECOMB,
+              .type_self = GKYL_SELF_ION,
+              .ion_id = GKYL_ION_H,
+              .elc_nm = "elc",
+              .ion_nm = "ion",
+              .recvr_nm = "D0",
+              .charge_state = 0,
+              .ion_mass = ctx.mass_ion,
+              .elc_mass = ctx.mass_elc,
+            },
+          },
       },
 
     .num_diag_moments = 7,
@@ -643,38 +647,40 @@ main(int argc, char **argv)
       {
         .num_react = 3,
         .react_type =
-          {{
-             .react_id = GKYL_REACT_CX,
-             .type_self = GKYL_SELF_PARTNER,
-             .ion_id = GKYL_ION_D,
-             .elc_nm = "elc",
-             .ion_nm = "ion",
-             .partner_nm = "D0",
-             .ion_mass = ctx.mass_ion,
-             .partner_mass = ctx.mass_ion,
-           },
-           {
-             .react_id = GKYL_REACT_IZ,
-             .type_self = GKYL_SELF_DONOR,
-             .ion_id = GKYL_ION_H,
-             .elc_nm = "elc",
-             .ion_nm = "ion", // ion is always the higher charge state
-             .donor_nm = "D0", // interacts with elc to give up charge
-             .charge_state = 0, // corresponds to lower charge state (donor)
-             .ion_mass = ctx.mass_ion,
-             .elc_mass = ctx.mass_elc,
-           },
-           {
-             .react_id = GKYL_REACT_RECOMB,
-             .type_self = GKYL_SELF_RECVR,
-             .ion_id = GKYL_ION_H,
-             .elc_nm = "elc",
-             .ion_nm = "ion",
-             .recvr_nm = "D0",
-             .charge_state = 0,
-             .ion_mass = ctx.mass_ion,
-             .elc_mass = ctx.mass_elc,
-           }},
+          {
+            {
+              .react_id = GKYL_REACT_CX,
+              .type_self = GKYL_SELF_PARTNER,
+              .ion_id = GKYL_ION_D,
+              .elc_nm = "elc",
+              .ion_nm = "ion",
+              .partner_nm = "D0",
+              .ion_mass = ctx.mass_ion,
+              .partner_mass = ctx.mass_ion,
+            },
+            {
+              .react_id = GKYL_REACT_IZ,
+              .type_self = GKYL_SELF_DONOR,
+              .ion_id = GKYL_ION_H,
+              .elc_nm = "elc",
+              .ion_nm = "ion", // ion is always the higher charge state
+              .donor_nm = "D0", // interacts with elc to give up charge
+              .charge_state = 0, // corresponds to lower charge state (donor)
+              .ion_mass = ctx.mass_ion,
+              .elc_mass = ctx.mass_elc,
+            },
+            {
+              .react_id = GKYL_REACT_RECOMB,
+              .type_self = GKYL_SELF_RECVR,
+              .ion_id = GKYL_ION_H,
+              .elc_nm = "elc",
+              .ion_nm = "ion",
+              .recvr_nm = "D0",
+              .charge_state = 0,
+              .ion_mass = ctx.mass_ion,
+              .elc_mass = ctx.mass_elc,
+            },
+          },
       },
 
     .num_diag_moments = 3,
@@ -686,10 +692,12 @@ main(int argc, char **argv)
   // Field.
   struct gkyl_gyrokinetic_field field = {
     .poisson_bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
-       {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_PERIODIC},
-       {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_PERIODIC}},
+      {
+        {.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
+        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
+        {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_PERIODIC},
+        {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_PERIODIC},
+      },
   };
 
   // GK app.

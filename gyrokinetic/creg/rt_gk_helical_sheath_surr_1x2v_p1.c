@@ -472,23 +472,27 @@ main(int argc, char **argv)
         .projection[0] = proj_srcCORE_e,
         .adapt[0] = adapt_srcCORE_e,
         .diagnostics =
-          {.num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}
+          {
+            .num_integrated_diag_moments = 1,
+            .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
           },
       },
 
     .bcs =
-      {{
-         .dir = 0,
-         .edge = GKYL_LOWER_EDGE,
-         .type = GKYL_BC_GK_SPECIES_SHEATH_SURROGATE,
-         .aux_str = "gyrokinetic/data/nn_model/nn_model_sheath_bc_conv_MPE.kann",
-       },
-       {
-         .dir = 0,
-         .edge = GKYL_UPPER_EDGE,
-         .type = GKYL_BC_GK_SPECIES_SHEATH_SURROGATE,
-         .aux_str = "gyrokinetic/data/nn_model/nn_model_sheath_bc_conv_MPE.kann",
-       }},
+      {
+        {
+          .dir = 0,
+          .edge = GKYL_LOWER_EDGE,
+          .type = GKYL_BC_GK_SPECIES_SHEATH_SURROGATE,
+          .aux_str = "gyrokinetic/data/nn_model/nn_model_sheath_bc_conv_MPE.kann",
+        },
+        {
+          .dir = 0,
+          .edge = GKYL_UPPER_EDGE,
+          .type = GKYL_BC_GK_SPECIES_SHEATH_SURROGATE,
+          .aux_str = "gyrokinetic/data/nn_model/nn_model_sheath_bc_conv_MPE.kann",
+        },
+      },
 
     .num_diag_moments = 9,
     .diag_moments =
@@ -559,13 +563,17 @@ main(int argc, char **argv)
         .projection[0] = proj_srcCORE_i,
         .adapt[0] = adapt_srcCORE_i,
         .diagnostics =
-          {.num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}
+          {
+            .num_integrated_diag_moments = 1,
+            .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
           },
       },
 
     .bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}},
+      {
+        {.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+      },
 
     .num_diag_moments = 9,
     .diag_moments =

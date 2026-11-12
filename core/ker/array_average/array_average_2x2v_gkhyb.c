@@ -300,8 +300,8 @@ GKYL_CU_DH void gkyl_array_average_2x2v_gkhyb_p1_avgmu(const double subvol, cons
   atomicAdd(&out[4], 0.3535533905932737*win[0]*fin[5]*subvol); 
   atomicAdd(&out[5], 0.3535533905932737*win[0]*fin[6]*subvol); 
   atomicAdd(&out[6], 0.3535533905932737*win[0]*fin[7]*subvol); 
-  atomicAdd(&out[7], 0.3535533905932737*win[0]*fin[11]*subvol); 
-  atomicAdd(&out[8], 0.3535533905932737*win[0]*fin[16]*subvol); 
+  atomicAdd(&out[7], 0.3535533905932737*win[0]*fin[16]*subvol); 
+  atomicAdd(&out[8], 0.3535533905932737*win[0]*fin[11]*subvol); 
   atomicAdd(&out[9], 0.3535533905932737*win[0]*fin[17]*subvol); 
   atomicAdd(&out[10], 0.3535533905932737*win[0]*fin[18]*subvol); 
   atomicAdd(&out[11], 0.3535533905932737*win[0]*fin[20]*subvol); 
@@ -313,8 +313,8 @@ GKYL_CU_DH void gkyl_array_average_2x2v_gkhyb_p1_avgmu(const double subvol, cons
   out[4] += 0.3535533905932737*win[0]*fin[5]*subvol; 
   out[5] += 0.3535533905932737*win[0]*fin[6]*subvol; 
   out[6] += 0.3535533905932737*win[0]*fin[7]*subvol; 
-  out[7] += 0.3535533905932737*win[0]*fin[11]*subvol; 
-  out[8] += 0.3535533905932737*win[0]*fin[16]*subvol; 
+  out[7] += 0.3535533905932737*win[0]*fin[16]*subvol; 
+  out[8] += 0.3535533905932737*win[0]*fin[11]*subvol; 
   out[9] += 0.3535533905932737*win[0]*fin[17]*subvol; 
   out[10] += 0.3535533905932737*win[0]*fin[18]*subvol; 
   out[11] += 0.3535533905932737*win[0]*fin[20]*subvol; 

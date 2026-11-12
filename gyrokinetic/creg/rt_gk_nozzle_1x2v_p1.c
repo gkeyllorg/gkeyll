@@ -246,8 +246,10 @@ main(int argc, char **argv)
     .collisions = {.collision_id = GKYL_LBO_COLLISIONS, .self_nu = eval_nu_ion, .self_nu_ctx = &ctx},
 
     .bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_REFLECT},
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_REFLECT}},
+      {
+        {.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_REFLECT},
+        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_REFLECT},
+      },
 
     .num_diag_moments = 6,
     .diag_moments =

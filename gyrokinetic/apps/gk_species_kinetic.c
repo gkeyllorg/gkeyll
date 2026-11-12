@@ -774,7 +774,7 @@ gk_species_kinetic_read_distf_from_file(
     // Read basis info from header, check its consistency.
     struct gkyl_msgpack_map_elem elem_list[] = {
       {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0},
-      {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = 0}
+      {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = 0},
     };
     int elem_list_len = sizeof(elem_list) / sizeof(elem_list[0]);
     gkyl_msgpack_to_map_elem_list(

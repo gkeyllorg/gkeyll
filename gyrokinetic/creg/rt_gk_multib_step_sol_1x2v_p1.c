@@ -116,9 +116,10 @@ create_gk_block_geom(void)
         },
 
       .connections[0] =
-        {// z-direction connections
-         {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
-         {.bid = 1, .dir = 0, .edge = GKYL_LOWER_POSITIVE}
+        {
+          // z-direction connections
+          {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
+          {.bid = 1, .dir = 0, .edge = GKYL_LOWER_POSITIVE},
         },
     }
   );
@@ -152,9 +153,10 @@ create_gk_block_geom(void)
         },
 
       .connections[0] =
-        {// z-direction connections
-         {.bid = 0, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
-         {.bid = 2, .dir = 0, .edge = GKYL_LOWER_POSITIVE}
+        {
+          // z-direction connections
+          {.bid = 0, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
+          {.bid = 2, .dir = 0, .edge = GKYL_LOWER_POSITIVE},
         },
     }
   );
@@ -191,7 +193,7 @@ create_gk_block_geom(void)
         {
           // z-direction connections
           {.bid = 1, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
-          {.bid = 2, .dir = 0, .edge = GKYL_PHYSICAL} // physical boundary
+          {.bid = 2, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
         },
     }
   );
@@ -481,7 +483,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_bc elc_phys_bcs[] = {
     // block 0 BCs
     {.bidx = 0, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
-    {.bidx = 2, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}
+    {.bidx = 2, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
   };
 
   struct gkyl_gyrokinetic_multib_species elc = {
@@ -560,7 +562,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_bc ion_phys_bcs[] = {
     // block 0 BCs
     {.bidx = 0, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
-    {.bidx = 2, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}
+    {.bidx = 2, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
   };
 
   struct gkyl_gyrokinetic_multib_species ion = {

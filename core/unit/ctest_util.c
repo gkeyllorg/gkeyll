@@ -133,6 +133,31 @@ test_tm_trigger()
 }
 
 void
+test_tm_trigger_anchor()
+{
+  TEST_CHECK(gkyl_tm_trigger_anchor(1.0, 0.0) == 0.0);
+  TEST_CHECK(gkyl_tm_trigger_anchor(1.0, 2.5) == 2.0);
+  // Restart from a frame written one step after its nominal time 24 (dt = 3):
+  // unchanged cadence, finer cadence, and a cadence whose grid misses 24.
+  TEST_CHECK(gkyl_compare_double(gkyl_tm_trigger_anchor(3.0, 24.0067), 24.0, 1e-14));
+  TEST_CHECK(gkyl_compare_double(gkyl_tm_trigger_anchor(0.02, 24.0067), 24.0, 1e-14));
+  TEST_CHECK(
+    gkyl_compare_double(gkyl_tm_trigger_anchor(26.0 / 28.0, 24.0067), 25.0 * 26.0 / 28.0, 1e-14)
+  );
+  // Round-off below a grid point counts as on it, but the anchor never exceeds tstart.
+  double tstart = 3.0 * (1.0 - 1.0e-15);
+  TEST_CHECK(gkyl_tm_trigger_anchor(1.0, tstart) == tstart);
+
+  // Restarted trigger rewrites the restart frame (8), then fires on the new grid.
+  struct gkyl_tm_trigger tmt = {.dt = 0.1, .tcurr = gkyl_tm_trigger_anchor(0.1, 24.0067), .curr = 8};
+  TEST_CHECK(gkyl_tm_trigger_check_and_bump(&tmt, 24.0067) == 1);
+  TEST_CHECK(tmt.curr == 9);
+  TEST_CHECK(gkyl_tm_trigger_check_and_bump(&tmt, 24.05) == 0);
+  TEST_CHECK(gkyl_tm_trigger_check_and_bump(&tmt, 24.1001) == 1);
+  TEST_CHECK(tmt.curr == 10);
+}
+
+void
 test_search_str_int_pair()
 {
   struct gkyl_str_int_pair pairs[] = {{"one", 1}, {"two", 2}, {"three", 3}, {0, 0}};
@@ -177,6 +202,7 @@ TEST_LIST = {
   {"sgn_macro", test_sgn_macro},
   {"minmax_macros", test_minmax_macros},
   {"tm_trigger", test_tm_trigger},
+  {"tm_trigger_anchor", test_tm_trigger_anchor},
   {"search_str_int_pair", test_search_str_int_pair},
   {"constants", test_constants},
   {NULL, NULL}

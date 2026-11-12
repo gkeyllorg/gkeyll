@@ -344,14 +344,14 @@ write_out_fields(
 
   struct gkyl_msgpack_map_elem io_meta[] = {
     {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = basis->poly_order},
-    {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = basis->id}
+    {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = basis->id},
   };
   int io_meta_len = sizeof(io_meta) / sizeof(io_meta[0]);
   struct gkyl_msgpack_data *mt = gkyl_msgpack_create(io_meta_len, io_meta);
 
   struct gkyl_msgpack_map_elem io_meta_conf[] = {
     {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = basis_conf.poly_order},
-    {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = basis_conf.id}
+    {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = basis_conf.id},
   };
   int io_meta_conf_len = sizeof(io_meta_conf) / sizeof(io_meta_conf[0]);
   struct gkyl_msgpack_data *mt_conf = gkyl_msgpack_create(io_meta_conf_len, io_meta_conf);

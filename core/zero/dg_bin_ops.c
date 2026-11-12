@@ -587,3 +587,34 @@ gkyl_dg_calc_l2_range(
 {
   gkyl_dg_calc_op_range(basis, c_oop, out, c_iop, iop, range, GKYL_DG_OP_MEAN_L2);
 }
+
+void
+gkyl_dg_calc_prod_op_range(
+  struct gkyl_basis basis, int c_oop, struct gkyl_array *out, int c_f, const struct gkyl_array *f,
+  int c_g, const struct gkyl_array *g, struct gkyl_range range
+)
+{
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(out)) {
+    return gkyl_dg_calc_prod_op_range_cu(basis, c_oop, out, c_f, f, c_g, g, range);
+  }
+#endif
+
+  int num_basis = basis.num_basis;
+  int ndim = basis.ndim;
+  double fact = pow(2, ndim);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &range);
+
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&range, iter.idx);
+
+    const double *f_d = gkyl_array_cfetch(f, loc);
+    const double *g_d = gkyl_array_cfetch(g, loc);
+    double *out_d = gkyl_array_fetch(out, loc);
+
+    out_d[c_oop] =
+      dg_cell_mean_fg_prod(num_basis, f_d + c_f * num_basis, g_d + c_g * num_basis) / fact;
+  }
+}
