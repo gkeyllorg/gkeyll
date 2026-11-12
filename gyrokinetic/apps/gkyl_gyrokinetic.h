@@ -109,7 +109,6 @@ struct gkyl_phase_diagnostics_inp {
   int num_integrated_diag_moments; // Number of integrated diagnostic moments.
   enum gkyl_distribution_moments
     integrated_diag_moments[12]; // List of integrated diagnostic moments.
-  bool time_integrated; // Whether to use time integrated diags.
 };
 
 // Parameters for collisionless terms.

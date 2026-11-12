@@ -761,7 +761,6 @@ main(int argc, char **argv)
         .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
         .num_integrated_diag_moments = 1,
         .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-        //      .time_integrated = true,
       },
 
     .mapc2p = {.mapping = mapc2p_vel_elc, .ctx = &ctx},
@@ -880,7 +879,6 @@ main(int argc, char **argv)
         .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
         .num_integrated_diag_moments = 1,
         .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-        //      .time_integrated = true,
       },
 
     .mapc2p = {.mapping = mapc2p_vel_ion, .ctx = &ctx},

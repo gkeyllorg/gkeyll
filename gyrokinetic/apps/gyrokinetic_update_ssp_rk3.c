@@ -253,7 +253,6 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app *app, double dt0)
             gk_species_copy_range(gks, gks->f, gks->f1, &gks->local_ext);
             // Step boundary fluxes.
             gk_species_bflux_set(app, &gks->bflux, gks->bflux.f, 2.0 / 3.0, gks->bflux.fnew);
-            gk_species_bflux_calc_voltime_integrated_mom(app, gks, &gks->bflux, tcurr);
           }
 
           for (int i = 0; i < app->num_neut_species; ++i) {
@@ -264,7 +263,6 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app *app, double dt0)
             gk_neut_species_copy_range(gkns, gkns->f, gkns->f1, &gkns->local_ext);
             // Step boundary fluxes.
             gk_neut_species_bflux_set(app, &gkns->bflux, gkns->bflux.f, 2.0 / 3.0, gkns->bflux.fnew);
-            gk_neut_species_bflux_calc_voltime_integrated_mom(app, gkns, &gkns->bflux, tcurr);
           }
           app->stat.time_stepper_arithmetic_tm += gkyl_time_diff_now_sec(wst);
 

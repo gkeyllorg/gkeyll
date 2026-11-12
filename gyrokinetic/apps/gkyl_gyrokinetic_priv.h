@@ -625,7 +625,6 @@ struct gk_boundary_fluxes {
   struct gkyl_array_integrate **integ_op; // Operator that integrates over volume.
   double *int_moms_local, *int_moms_global; // Integrated moments in this time step.
   gkyl_dynvec *intmom; // Integrated moments of the boundary fluxes.
-  double **intmom_cumm_buff; // Cummulative (in time) integrated moments of the boundary fluxes.
   bool is_first_intmom_write_call[2 * GKYL_MAX_CDIM]; // Flag 1st writing of blux_intmom.
   // Function pointers to various methods.
   void (*bflux_rhs_func)(
@@ -670,9 +669,6 @@ struct gk_boundary_fluxes {
   void (*bflux_copy_func)(
     gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux, struct gkyl_array **fout,
     struct gkyl_array **fin
-  );
-  void (*bflux_calc_voltime_int_mom_func)(
-    gkyl_gyrokinetic_app *app, void *species, struct gk_boundary_fluxes *bflux, double tm
   );
   void (*bflux_calc_integrated_mom_func)(
     gkyl_gyrokinetic_app *app, void *species, struct gk_boundary_fluxes *bflux, double tm
@@ -3104,18 +3100,6 @@ void gk_species_bflux_calc_integrated_mom(
 );
 
 /**
- * Calculate the time integrated, integrated moments
- * of the diagnostic boundary fluxes.
- *
- * @param app Gyrokinetic app object
- * @param species Species object.
- * @param tm Current simulation time.
- */
-void gk_species_bflux_calc_voltime_integrated_mom(
-  gkyl_gyrokinetic_app *app, void *species, struct gk_boundary_fluxes *bflux, double tm
-);
-
-/**
  * Write the integrated moments of the diagnostic boundary fluxes.
  *
  * @param app Gyrokinetic app object.
@@ -3163,18 +3147,6 @@ void gk_species_bflux_release(
 void gk_neut_species_bflux_init(
   struct gkyl_gyrokinetic_app *app, void *species, struct gk_boundary_fluxes *bflux,
   enum gkyl_species_bflux_type bflux_type, struct gkyl_phase_diagnostics_inp add_moms_inp
-);
-
-/**
- * In case time-integrated volume-integrated boundary flux diagnostics are
- * requested, read the final volume-time integrated diagnostics from the previous simulation.
- *
- * @param app Gyrokinetic app object.
- * @param spec_in Species object. 
- * @param bflux Species boundary flux object.
- */
-void gk_neut_species_bflux_read_voltime_integrated_mom(
-  gkyl_gyrokinetic_app *app, void *species, struct gk_boundary_fluxes *bflux
 );
 
 /**
@@ -3355,18 +3327,6 @@ void gk_neut_species_bflux_copy(
  * @param tm Current simulation time.
  */
 void gk_neut_species_bflux_calc_integrated_mom(
-  gkyl_gyrokinetic_app *app, void *species, struct gk_boundary_fluxes *bflux, double tm
-);
-
-/**
- * Calculate the time integrated, integrated moments
- * of the diagnostic boundary fluxes.
- *
- * @param app Gyrokinetic app object
- * @param species Species object.
- * @param tm Current simulation time.
- */
-void gk_neut_species_bflux_calc_voltime_integrated_mom(
   gkyl_gyrokinetic_app *app, void *species, struct gk_boundary_fluxes *bflux, double tm
 );
 

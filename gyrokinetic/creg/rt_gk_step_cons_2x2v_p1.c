@@ -398,7 +398,6 @@ main(int argc, char **argv)
                GKYL_F_MOMENT_M2PERP},
             .num_integrated_diag_moments = 1,
             .integrated_diag_moments = {GKYL_F_MOMENT_M0M1M2PARM2PERP},
-            //        .time_integrated = true,
           },
       },
 
@@ -462,7 +461,6 @@ main(int argc, char **argv)
       {
         .num_integrated_diag_moments = 1,
         .integrated_diag_moments = {GKYL_F_MOMENT_M0M1M2PARM2PERP},
-        //      .time_integrated = true,
       },
   };
 
@@ -522,7 +520,6 @@ main(int argc, char **argv)
                GKYL_F_MOMENT_M2PERP},
             .num_integrated_diag_moments = 1,
             .integrated_diag_moments = {GKYL_F_MOMENT_M0M1M2PARM2PERP},
-            //        .time_integrated = true,
           },
       },
 
@@ -597,7 +594,6 @@ main(int argc, char **argv)
         .num_diag_moments = 0,
         .num_integrated_diag_moments = 1,
         .integrated_diag_moments = {GKYL_F_MOMENT_M0M1M2PARM2PERP},
-        //      .time_integrated = true,
       },
   };
 

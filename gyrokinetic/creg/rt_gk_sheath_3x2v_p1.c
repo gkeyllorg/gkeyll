@@ -613,7 +613,6 @@ main(int argc, char **argv)
             .diag_moments = {GKYL_F_MOMENT_M0M1M2PARM2PERP},
             .num_integrated_diag_moments = 1,
             .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-            //        .time_integrated = true,
           },
       },
 
@@ -641,7 +640,6 @@ main(int argc, char **argv)
         .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
         .num_integrated_diag_moments = 1,
         .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-        //      .time_integrated = true,
       },
   };
 
@@ -699,7 +697,6 @@ main(int argc, char **argv)
             .diag_moments = {GKYL_F_MOMENT_M0M1M2PARM2PERP},
             .num_integrated_diag_moments = 1,
             .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-            //        .time_integrated = true,
           },
       },
 
@@ -725,7 +722,6 @@ main(int argc, char **argv)
         .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
         .num_integrated_diag_moments = 1,
         .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-        //      .time_integrated = true,
       },
   };
 
