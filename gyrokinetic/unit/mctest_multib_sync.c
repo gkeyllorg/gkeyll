@@ -1,3 +1,4 @@
+#define TEST_MPI // initialize MPI in the acutest main()
 #include <acutest.h>
 
 #include <assert.h>
@@ -75,13 +76,13 @@ create_L_domain_block_geom(int **cuts)
         {
           // x-direction connections
           {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
-          {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL} // physical boundary
+          {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
         },
       .connections[1] =
         {
           // y-direction connections
           {.bid = 1, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
-          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL} // physical boundary
+          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}, // physical boundary
         },
     }
   );
@@ -97,14 +98,16 @@ create_L_domain_block_geom(int **cuts)
       .cuts = {cuts1[0], cuts1[1]},
 
       .connections[0] =
-        {// x-direction connections
-         {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
-         {.bid = 2, .dir = 0, .edge = GKYL_LOWER_POSITIVE}
+        {
+          // x-direction connections
+          {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
+          {.bid = 2, .dir = 0, .edge = GKYL_LOWER_POSITIVE},
         },
       .connections[1] =
-        {// y-direction connections
-         {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}, // physical boundary
-         {.bid = 0, .dir = 1, .edge = GKYL_LOWER_POSITIVE}
+        {
+          // y-direction connections
+          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}, // physical boundary
+          {.bid = 0, .dir = 1, .edge = GKYL_LOWER_POSITIVE},
         },
     }
   );
@@ -123,13 +126,13 @@ create_L_domain_block_geom(int **cuts)
         {
           // x-direction connections
           {.bid = 1, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
-          {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL} // physical boundary
+          {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
         },
       .connections[1] =
         {
           // y-direction connections
           {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}, // physical boundary
-          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL} // physical boundary
+          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}, // physical boundary
         },
     }
   );
@@ -172,12 +175,13 @@ create_cyclic_domain_block_geom(int **cuts)
         {
           // x-direction connections
           {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
-          {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL} // physical boundary
+          {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
         },
       .connections[1] =
-        {// y-direction connections
-         {.bid = 1, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
-         {.bid = 1, .dir = 1, .edge = GKYL_LOWER_POSITIVE}
+        {
+          // y-direction connections
+          {.bid = 1, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
+          {.bid = 1, .dir = 1, .edge = GKYL_LOWER_POSITIVE},
         },
     }
   );
@@ -193,14 +197,16 @@ create_cyclic_domain_block_geom(int **cuts)
       .cuts = {cuts1[0], cuts1[1]},
 
       .connections[0] =
-        {// x-direction connections
-         {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL},
-         {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}
+        {
+          // x-direction connections
+          {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL},
+          {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL},
         },
       .connections[1] =
-        {// y-direction connections
-         {.bid = 0, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
-         {.bid = 0, .dir = 1, .edge = GKYL_LOWER_POSITIVE}
+        {
+          // y-direction connections
+          {.bid = 0, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
+          {.bid = 0, .dir = 1, .edge = GKYL_LOWER_POSITIVE},
         },
     }
   );

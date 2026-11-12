@@ -33,49 +33,55 @@ GKYL_CU_D static const array_average_p_kern_list gkyl_array_average_ker_list_ser
   // 1x
   {
     .list =
-      {{.ops = {{gkyl_array_average_1x_ser_p1_avgx, gkyl_array_average_1x_ser_p1_avgx_fulldim}}},
-       {.ops = {{gkyl_array_average_1x_ser_p2_avgx, gkyl_array_average_1x_ser_p2_avgx_fulldim}}}},
+      {
+        {.ops = {{gkyl_array_average_1x_ser_p1_avgx, gkyl_array_average_1x_ser_p1_avgx_fulldim}}},
+        {.ops = {{gkyl_array_average_1x_ser_p2_avgx, gkyl_array_average_1x_ser_p2_avgx_fulldim}}},
+      },
   },
   // 2x
   {
     .list =
-      {{
-         .ops =
-           {{gkyl_array_average_2x_ser_p1_avgx, gkyl_array_average_2x_ser_p1_avgx_fulldim},
-            {gkyl_array_average_2x_ser_p1_avgy, gkyl_array_average_2x_ser_p1_avgy_fulldim},
-            {gkyl_array_average_2x_ser_p1_avgxy, gkyl_array_average_2x_ser_p1_avgxy_fulldim}},
-       },
-       {
-         .ops =
-           {{gkyl_array_average_2x_ser_p2_avgx, gkyl_array_average_2x_ser_p2_avgx_fulldim},
-            {gkyl_array_average_2x_ser_p2_avgy, gkyl_array_average_2x_ser_p2_avgy_fulldim},
-            {gkyl_array_average_2x_ser_p2_avgxy, gkyl_array_average_2x_ser_p2_avgxy_fulldim}},
-       }},
+      {
+        {
+          .ops =
+            {{gkyl_array_average_2x_ser_p1_avgx, gkyl_array_average_2x_ser_p1_avgx_fulldim},
+             {gkyl_array_average_2x_ser_p1_avgy, gkyl_array_average_2x_ser_p1_avgy_fulldim},
+             {gkyl_array_average_2x_ser_p1_avgxy, gkyl_array_average_2x_ser_p1_avgxy_fulldim}},
+        },
+        {
+          .ops =
+            {{gkyl_array_average_2x_ser_p2_avgx, gkyl_array_average_2x_ser_p2_avgx_fulldim},
+             {gkyl_array_average_2x_ser_p2_avgy, gkyl_array_average_2x_ser_p2_avgy_fulldim},
+             {gkyl_array_average_2x_ser_p2_avgxy, gkyl_array_average_2x_ser_p2_avgxy_fulldim}},
+        },
+      },
   },
   // 3x
   {
     .list =
-      {{
-         .ops =
-           {{gkyl_array_average_3x_ser_p1_avgx, gkyl_array_average_3x_ser_p1_avgx_fulldim},
-            {gkyl_array_average_3x_ser_p1_avgy, gkyl_array_average_3x_ser_p1_avgy_fulldim},
-            {gkyl_array_average_3x_ser_p1_avgxy, gkyl_array_average_3x_ser_p1_avgxy_fulldim},
-            {gkyl_array_average_3x_ser_p1_avgz, gkyl_array_average_3x_ser_p1_avgz_fulldim},
-            {gkyl_array_average_3x_ser_p1_avgxz, gkyl_array_average_3x_ser_p1_avgxz_fulldim},
-            {gkyl_array_average_3x_ser_p1_avgyz, gkyl_array_average_3x_ser_p1_avgyz_fulldim},
-            {gkyl_array_average_3x_ser_p1_avgxyz, gkyl_array_average_3x_ser_p1_avgxyz_fulldim}},
-       },
-       {
-         .ops =
-           {{gkyl_array_average_3x_ser_p2_avgx, gkyl_array_average_3x_ser_p2_avgx_fulldim},
-            {gkyl_array_average_3x_ser_p2_avgy, gkyl_array_average_3x_ser_p2_avgy_fulldim},
-            {gkyl_array_average_3x_ser_p2_avgxy, gkyl_array_average_3x_ser_p2_avgxy_fulldim},
-            {gkyl_array_average_3x_ser_p2_avgz, gkyl_array_average_3x_ser_p2_avgz_fulldim},
-            {gkyl_array_average_3x_ser_p2_avgxz, gkyl_array_average_3x_ser_p2_avgxz_fulldim},
-            {gkyl_array_average_3x_ser_p2_avgyz, gkyl_array_average_3x_ser_p2_avgyz_fulldim},
-            {gkyl_array_average_3x_ser_p2_avgxyz, gkyl_array_average_3x_ser_p2_avgxyz_fulldim}},
-       }},
-  }
+      {
+        {
+          .ops =
+            {{gkyl_array_average_3x_ser_p1_avgx, gkyl_array_average_3x_ser_p1_avgx_fulldim},
+             {gkyl_array_average_3x_ser_p1_avgy, gkyl_array_average_3x_ser_p1_avgy_fulldim},
+             {gkyl_array_average_3x_ser_p1_avgxy, gkyl_array_average_3x_ser_p1_avgxy_fulldim},
+             {gkyl_array_average_3x_ser_p1_avgz, gkyl_array_average_3x_ser_p1_avgz_fulldim},
+             {gkyl_array_average_3x_ser_p1_avgxz, gkyl_array_average_3x_ser_p1_avgxz_fulldim},
+             {gkyl_array_average_3x_ser_p1_avgyz, gkyl_array_average_3x_ser_p1_avgyz_fulldim},
+             {gkyl_array_average_3x_ser_p1_avgxyz, gkyl_array_average_3x_ser_p1_avgxyz_fulldim}},
+        },
+        {
+          .ops =
+            {{gkyl_array_average_3x_ser_p2_avgx, gkyl_array_average_3x_ser_p2_avgx_fulldim},
+             {gkyl_array_average_3x_ser_p2_avgy, gkyl_array_average_3x_ser_p2_avgy_fulldim},
+             {gkyl_array_average_3x_ser_p2_avgxy, gkyl_array_average_3x_ser_p2_avgxy_fulldim},
+             {gkyl_array_average_3x_ser_p2_avgz, gkyl_array_average_3x_ser_p2_avgz_fulldim},
+             {gkyl_array_average_3x_ser_p2_avgxz, gkyl_array_average_3x_ser_p2_avgxz_fulldim},
+             {gkyl_array_average_3x_ser_p2_avgyz, gkyl_array_average_3x_ser_p2_avgyz_fulldim},
+             {gkyl_array_average_3x_ser_p2_avgxyz, gkyl_array_average_3x_ser_p2_avgxyz_fulldim}},
+        },
+      },
+  },
 };
 
 // Gyrokinetic hybrid (p=1) kernels, indexed [ndim-2].ops[op-1].
@@ -178,7 +184,7 @@ GKYL_CU_D static const array_average_op_kern_list gkyl_array_average_ker_list_gk
         gkyl_array_average_3x2v_gkhyb_p1_avgyzvparmu_fulldim},
        {gkyl_array_average_3x2v_gkhyb_p1_avgxyzvparmu,
         gkyl_array_average_3x2v_gkhyb_p1_avgxyzvparmu_fulldim}},
-  }
+  },
 };
 
 // Vlasov hybrid (p=1) kernels, indexed [cdim-1].vdim[vdim-1].ops[op-1].
@@ -186,83 +192,91 @@ GKYL_CU_D static const array_average_v_kern_list gkyl_array_average_ker_list_hyb
   // 1x
   {
     .vdim =
-      {// 1x1v
-       {
-         .ops =
-           {{gkyl_array_average_1x1v_hyb_p1_avgx, gkyl_array_average_1x1v_hyb_p1_avgx_fulldim},
-            {gkyl_array_average_1x1v_hyb_p1_avgvx, gkyl_array_average_1x1v_hyb_p1_avgvx_fulldim},
-            {gkyl_array_average_1x1v_hyb_p1_avgxvx, gkyl_array_average_1x1v_hyb_p1_avgxvx_fulldim}},
-       },
-       // 1x2v
-       {
-         .ops =
-           {{gkyl_array_average_1x2v_hyb_p1_avgx, gkyl_array_average_1x2v_hyb_p1_avgx_fulldim},
-            {gkyl_array_average_1x2v_hyb_p1_avgvx, gkyl_array_average_1x2v_hyb_p1_avgvx_fulldim},
-            {gkyl_array_average_1x2v_hyb_p1_avgxvx, gkyl_array_average_1x2v_hyb_p1_avgxvx_fulldim},
-            {gkyl_array_average_1x2v_hyb_p1_avgvy, gkyl_array_average_1x2v_hyb_p1_avgvy_fulldim},
-            {gkyl_array_average_1x2v_hyb_p1_avgxvy, gkyl_array_average_1x2v_hyb_p1_avgxvy_fulldim},
-            {gkyl_array_average_1x2v_hyb_p1_avgvxvy, gkyl_array_average_1x2v_hyb_p1_avgvxvy_fulldim},
-            {gkyl_array_average_1x2v_hyb_p1_avgxvxvy,
-             gkyl_array_average_1x2v_hyb_p1_avgxvxvy_fulldim}},
-       },
-       // 1x3v
-       {
-         .ops =
-           {{gkyl_array_average_1x3v_hyb_p1_avgx, gkyl_array_average_1x3v_hyb_p1_avgx_fulldim},
-            {gkyl_array_average_1x3v_hyb_p1_avgvx, gkyl_array_average_1x3v_hyb_p1_avgvx_fulldim},
-            {gkyl_array_average_1x3v_hyb_p1_avgxvx, gkyl_array_average_1x3v_hyb_p1_avgxvx_fulldim},
-            {gkyl_array_average_1x3v_hyb_p1_avgvy, gkyl_array_average_1x3v_hyb_p1_avgvy_fulldim},
-            {gkyl_array_average_1x3v_hyb_p1_avgxvy, gkyl_array_average_1x3v_hyb_p1_avgxvy_fulldim},
-            {gkyl_array_average_1x3v_hyb_p1_avgvxvy, gkyl_array_average_1x3v_hyb_p1_avgvxvy_fulldim},
-            {gkyl_array_average_1x3v_hyb_p1_avgxvxvy,
-             gkyl_array_average_1x3v_hyb_p1_avgxvxvy_fulldim},
-            {gkyl_array_average_1x3v_hyb_p1_avgvz, gkyl_array_average_1x3v_hyb_p1_avgvz_fulldim},
-            {gkyl_array_average_1x3v_hyb_p1_avgxvz, gkyl_array_average_1x3v_hyb_p1_avgxvz_fulldim},
-            {gkyl_array_average_1x3v_hyb_p1_avgvxvz, gkyl_array_average_1x3v_hyb_p1_avgvxvz_fulldim},
-            {gkyl_array_average_1x3v_hyb_p1_avgxvxvz,
-             gkyl_array_average_1x3v_hyb_p1_avgxvxvz_fulldim},
-            {gkyl_array_average_1x3v_hyb_p1_avgvyvz, gkyl_array_average_1x3v_hyb_p1_avgvyvz_fulldim},
-            {gkyl_array_average_1x3v_hyb_p1_avgxvyvz,
-             gkyl_array_average_1x3v_hyb_p1_avgxvyvz_fulldim},
-            {gkyl_array_average_1x3v_hyb_p1_avgvxvyvz,
-             gkyl_array_average_1x3v_hyb_p1_avgvxvyvz_fulldim},
-            {gkyl_array_average_1x3v_hyb_p1_avgxvxvyvz,
-             gkyl_array_average_1x3v_hyb_p1_avgxvxvyvz_fulldim}},
-       }
+      {
+        // 1x1v
+        {
+          .ops =
+            {{gkyl_array_average_1x1v_hyb_p1_avgx, gkyl_array_average_1x1v_hyb_p1_avgx_fulldim},
+             {gkyl_array_average_1x1v_hyb_p1_avgvx, gkyl_array_average_1x1v_hyb_p1_avgvx_fulldim},
+             {gkyl_array_average_1x1v_hyb_p1_avgxvx, gkyl_array_average_1x1v_hyb_p1_avgxvx_fulldim}},
+        },
+        // 1x2v
+        {
+          .ops =
+            {{gkyl_array_average_1x2v_hyb_p1_avgx, gkyl_array_average_1x2v_hyb_p1_avgx_fulldim},
+             {gkyl_array_average_1x2v_hyb_p1_avgvx, gkyl_array_average_1x2v_hyb_p1_avgvx_fulldim},
+             {gkyl_array_average_1x2v_hyb_p1_avgxvx, gkyl_array_average_1x2v_hyb_p1_avgxvx_fulldim},
+             {gkyl_array_average_1x2v_hyb_p1_avgvy, gkyl_array_average_1x2v_hyb_p1_avgvy_fulldim},
+             {gkyl_array_average_1x2v_hyb_p1_avgxvy, gkyl_array_average_1x2v_hyb_p1_avgxvy_fulldim},
+             {gkyl_array_average_1x2v_hyb_p1_avgvxvy, gkyl_array_average_1x2v_hyb_p1_avgvxvy_fulldim
+             },
+             {gkyl_array_average_1x2v_hyb_p1_avgxvxvy,
+              gkyl_array_average_1x2v_hyb_p1_avgxvxvy_fulldim}},
+        },
+        // 1x3v
+        {
+          .ops =
+            {{gkyl_array_average_1x3v_hyb_p1_avgx, gkyl_array_average_1x3v_hyb_p1_avgx_fulldim},
+             {gkyl_array_average_1x3v_hyb_p1_avgvx, gkyl_array_average_1x3v_hyb_p1_avgvx_fulldim},
+             {gkyl_array_average_1x3v_hyb_p1_avgxvx, gkyl_array_average_1x3v_hyb_p1_avgxvx_fulldim},
+             {gkyl_array_average_1x3v_hyb_p1_avgvy, gkyl_array_average_1x3v_hyb_p1_avgvy_fulldim},
+             {gkyl_array_average_1x3v_hyb_p1_avgxvy, gkyl_array_average_1x3v_hyb_p1_avgxvy_fulldim},
+             {gkyl_array_average_1x3v_hyb_p1_avgvxvy, gkyl_array_average_1x3v_hyb_p1_avgvxvy_fulldim
+             },
+             {gkyl_array_average_1x3v_hyb_p1_avgxvxvy,
+              gkyl_array_average_1x3v_hyb_p1_avgxvxvy_fulldim},
+             {gkyl_array_average_1x3v_hyb_p1_avgvz, gkyl_array_average_1x3v_hyb_p1_avgvz_fulldim},
+             {gkyl_array_average_1x3v_hyb_p1_avgxvz, gkyl_array_average_1x3v_hyb_p1_avgxvz_fulldim},
+             {gkyl_array_average_1x3v_hyb_p1_avgvxvz, gkyl_array_average_1x3v_hyb_p1_avgvxvz_fulldim
+             },
+             {gkyl_array_average_1x3v_hyb_p1_avgxvxvz,
+              gkyl_array_average_1x3v_hyb_p1_avgxvxvz_fulldim},
+             {gkyl_array_average_1x3v_hyb_p1_avgvyvz, gkyl_array_average_1x3v_hyb_p1_avgvyvz_fulldim
+             },
+             {gkyl_array_average_1x3v_hyb_p1_avgxvyvz,
+              gkyl_array_average_1x3v_hyb_p1_avgxvyvz_fulldim},
+             {gkyl_array_average_1x3v_hyb_p1_avgvxvyvz,
+              gkyl_array_average_1x3v_hyb_p1_avgvxvyvz_fulldim},
+             {gkyl_array_average_1x3v_hyb_p1_avgxvxvyvz,
+              gkyl_array_average_1x3v_hyb_p1_avgxvxvyvz_fulldim}},
+        },
       },
   },
   // 2x
   {
     .vdim =
-      {// 2x1v (none)
-       {.ops = {{NULL, NULL}}},
-       // 2x2v
-       {
-         .ops =
-           {{gkyl_array_average_2x2v_hyb_p1_avgx, gkyl_array_average_2x2v_hyb_p1_avgx_fulldim},
-            {gkyl_array_average_2x2v_hyb_p1_avgy, gkyl_array_average_2x2v_hyb_p1_avgy_fulldim},
-            {gkyl_array_average_2x2v_hyb_p1_avgxy, gkyl_array_average_2x2v_hyb_p1_avgxy_fulldim},
-            {gkyl_array_average_2x2v_hyb_p1_avgvx, gkyl_array_average_2x2v_hyb_p1_avgvx_fulldim},
-            {gkyl_array_average_2x2v_hyb_p1_avgxvx, gkyl_array_average_2x2v_hyb_p1_avgxvx_fulldim},
-            {gkyl_array_average_2x2v_hyb_p1_avgyvx, gkyl_array_average_2x2v_hyb_p1_avgyvx_fulldim},
-            {gkyl_array_average_2x2v_hyb_p1_avgxyvx, gkyl_array_average_2x2v_hyb_p1_avgxyvx_fulldim},
-            {gkyl_array_average_2x2v_hyb_p1_avgvy, gkyl_array_average_2x2v_hyb_p1_avgvy_fulldim},
-            {gkyl_array_average_2x2v_hyb_p1_avgxvy, gkyl_array_average_2x2v_hyb_p1_avgxvy_fulldim},
-            {gkyl_array_average_2x2v_hyb_p1_avgyvy, gkyl_array_average_2x2v_hyb_p1_avgyvy_fulldim},
-            {gkyl_array_average_2x2v_hyb_p1_avgxyvy, gkyl_array_average_2x2v_hyb_p1_avgxyvy_fulldim},
-            {gkyl_array_average_2x2v_hyb_p1_avgvxvy, gkyl_array_average_2x2v_hyb_p1_avgvxvy_fulldim},
-            {gkyl_array_average_2x2v_hyb_p1_avgxvxvy,
-             gkyl_array_average_2x2v_hyb_p1_avgxvxvy_fulldim},
-            {gkyl_array_average_2x2v_hyb_p1_avgyvxvy,
-             gkyl_array_average_2x2v_hyb_p1_avgyvxvy_fulldim},
-            {gkyl_array_average_2x2v_hyb_p1_avgxyvxvy,
-             gkyl_array_average_2x2v_hyb_p1_avgxyvxvy_fulldim}},
-       },
-       // 2x3v
-       {
-         .ops =
-           {
-             {gkyl_array_average_2x3v_hyb_p1_avgx, gkyl_array_average_2x3v_hyb_p1_avgx_fulldim},
+      {
+        // 2x1v (none)
+        {.ops = {{NULL, NULL}}},
+        // 2x2v
+        {
+          .ops =
+            {{gkyl_array_average_2x2v_hyb_p1_avgx, gkyl_array_average_2x2v_hyb_p1_avgx_fulldim},
+             {gkyl_array_average_2x2v_hyb_p1_avgy, gkyl_array_average_2x2v_hyb_p1_avgy_fulldim},
+             {gkyl_array_average_2x2v_hyb_p1_avgxy, gkyl_array_average_2x2v_hyb_p1_avgxy_fulldim},
+             {gkyl_array_average_2x2v_hyb_p1_avgvx, gkyl_array_average_2x2v_hyb_p1_avgvx_fulldim},
+             {gkyl_array_average_2x2v_hyb_p1_avgxvx, gkyl_array_average_2x2v_hyb_p1_avgxvx_fulldim},
+             {gkyl_array_average_2x2v_hyb_p1_avgyvx, gkyl_array_average_2x2v_hyb_p1_avgyvx_fulldim},
+             {gkyl_array_average_2x2v_hyb_p1_avgxyvx, gkyl_array_average_2x2v_hyb_p1_avgxyvx_fulldim
+             },
+             {gkyl_array_average_2x2v_hyb_p1_avgvy, gkyl_array_average_2x2v_hyb_p1_avgvy_fulldim},
+             {gkyl_array_average_2x2v_hyb_p1_avgxvy, gkyl_array_average_2x2v_hyb_p1_avgxvy_fulldim},
+             {gkyl_array_average_2x2v_hyb_p1_avgyvy, gkyl_array_average_2x2v_hyb_p1_avgyvy_fulldim},
+             {gkyl_array_average_2x2v_hyb_p1_avgxyvy, gkyl_array_average_2x2v_hyb_p1_avgxyvy_fulldim
+             },
+             {gkyl_array_average_2x2v_hyb_p1_avgvxvy, gkyl_array_average_2x2v_hyb_p1_avgvxvy_fulldim
+             },
+             {gkyl_array_average_2x2v_hyb_p1_avgxvxvy,
+              gkyl_array_average_2x2v_hyb_p1_avgxvxvy_fulldim},
+             {gkyl_array_average_2x2v_hyb_p1_avgyvxvy,
+              gkyl_array_average_2x2v_hyb_p1_avgyvxvy_fulldim},
+             {gkyl_array_average_2x2v_hyb_p1_avgxyvxvy,
+              gkyl_array_average_2x2v_hyb_p1_avgxyvxvy_fulldim}},
+        },
+        // 2x3v
+        {
+          .ops =
+            {{gkyl_array_average_2x3v_hyb_p1_avgx, gkyl_array_average_2x3v_hyb_p1_avgx_fulldim},
              {gkyl_array_average_2x3v_hyb_p1_avgy, gkyl_array_average_2x3v_hyb_p1_avgy_fulldim},
              {gkyl_array_average_2x3v_hyb_p1_avgxy, gkyl_array_average_2x3v_hyb_p1_avgxy_fulldim},
              {gkyl_array_average_2x3v_hyb_p1_avgvx, gkyl_array_average_2x3v_hyb_p1_avgvx_fulldim},
@@ -311,202 +325,222 @@ GKYL_CU_D static const array_average_v_kern_list gkyl_array_average_ker_list_hyb
              {gkyl_array_average_2x3v_hyb_p1_avgyvxvyvz,
               gkyl_array_average_2x3v_hyb_p1_avgyvxvyvz_fulldim},
              {gkyl_array_average_2x3v_hyb_p1_avgxyvxvyvz,
-              gkyl_array_average_2x3v_hyb_p1_avgxyvxvyvz_fulldim}
-           },
-       }
+              gkyl_array_average_2x3v_hyb_p1_avgxyvxvyvz_fulldim}},
+        },
       },
   },
   // 3x
   {
     .vdim =
-      {// 3x1v (none)
-       {.ops = {{NULL, NULL}}},
-       // 3x2v (none)
-       {.ops = {{NULL, NULL}}},
-       // 3x3v
-       {
-         .ops =
-           {{gkyl_array_average_3x3v_hyb_p1_avgx, gkyl_array_average_3x3v_hyb_p1_avgx_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgy, gkyl_array_average_3x3v_hyb_p1_avgy_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgxy, gkyl_array_average_3x3v_hyb_p1_avgxy_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgz, gkyl_array_average_3x3v_hyb_p1_avgz_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgxz, gkyl_array_average_3x3v_hyb_p1_avgxz_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgyz, gkyl_array_average_3x3v_hyb_p1_avgyz_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgxyz, gkyl_array_average_3x3v_hyb_p1_avgxyz_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgvx, gkyl_array_average_3x3v_hyb_p1_avgvx_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgxvx, gkyl_array_average_3x3v_hyb_p1_avgxvx_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgyvx, gkyl_array_average_3x3v_hyb_p1_avgyvx_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgxyvx, gkyl_array_average_3x3v_hyb_p1_avgxyvx_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgzvx, gkyl_array_average_3x3v_hyb_p1_avgzvx_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgxzvx, gkyl_array_average_3x3v_hyb_p1_avgxzvx_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgyzvx, gkyl_array_average_3x3v_hyb_p1_avgyzvx_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgxyzvx,
-             gkyl_array_average_3x3v_hyb_p1_avgxyzvx_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgvy, gkyl_array_average_3x3v_hyb_p1_avgvy_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgxvy, gkyl_array_average_3x3v_hyb_p1_avgxvy_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgyvy, gkyl_array_average_3x3v_hyb_p1_avgyvy_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgxyvy, gkyl_array_average_3x3v_hyb_p1_avgxyvy_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgzvy, gkyl_array_average_3x3v_hyb_p1_avgzvy_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgxzvy, gkyl_array_average_3x3v_hyb_p1_avgxzvy_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgyzvy, gkyl_array_average_3x3v_hyb_p1_avgyzvy_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgxyzvy,
-             gkyl_array_average_3x3v_hyb_p1_avgxyzvy_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgvxvy, gkyl_array_average_3x3v_hyb_p1_avgvxvy_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgxvxvy,
-             gkyl_array_average_3x3v_hyb_p1_avgxvxvy_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgyvxvy,
-             gkyl_array_average_3x3v_hyb_p1_avgyvxvy_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgxyvxvy,
-             gkyl_array_average_3x3v_hyb_p1_avgxyvxvy_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgzvxvy,
-             gkyl_array_average_3x3v_hyb_p1_avgzvxvy_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgxzvxvy,
-             gkyl_array_average_3x3v_hyb_p1_avgxzvxvy_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgyzvxvy,
-             gkyl_array_average_3x3v_hyb_p1_avgyzvxvy_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgxyzvxvy,
-             gkyl_array_average_3x3v_hyb_p1_avgxyzvxvy_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgvz, gkyl_array_average_3x3v_hyb_p1_avgvz_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgxvz, gkyl_array_average_3x3v_hyb_p1_avgxvz_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgyvz, gkyl_array_average_3x3v_hyb_p1_avgyvz_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgxyvz, gkyl_array_average_3x3v_hyb_p1_avgxyvz_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgzvz, gkyl_array_average_3x3v_hyb_p1_avgzvz_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgxzvz, gkyl_array_average_3x3v_hyb_p1_avgxzvz_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgyzvz, gkyl_array_average_3x3v_hyb_p1_avgyzvz_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgxyzvz,
-             gkyl_array_average_3x3v_hyb_p1_avgxyzvz_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgvxvz, gkyl_array_average_3x3v_hyb_p1_avgvxvz_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgxvxvz,
-             gkyl_array_average_3x3v_hyb_p1_avgxvxvz_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgyvxvz,
-             gkyl_array_average_3x3v_hyb_p1_avgyvxvz_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgxyvxvz,
-             gkyl_array_average_3x3v_hyb_p1_avgxyvxvz_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgzvxvz,
-             gkyl_array_average_3x3v_hyb_p1_avgzvxvz_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgxzvxvz,
-             gkyl_array_average_3x3v_hyb_p1_avgxzvxvz_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgyzvxvz,
-             gkyl_array_average_3x3v_hyb_p1_avgyzvxvz_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgxyzvxvz,
-             gkyl_array_average_3x3v_hyb_p1_avgxyzvxvz_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgvyvz, gkyl_array_average_3x3v_hyb_p1_avgvyvz_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgxvyvz,
-             gkyl_array_average_3x3v_hyb_p1_avgxvyvz_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgyvyvz,
-             gkyl_array_average_3x3v_hyb_p1_avgyvyvz_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgxyvyvz,
-             gkyl_array_average_3x3v_hyb_p1_avgxyvyvz_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgzvyvz,
-             gkyl_array_average_3x3v_hyb_p1_avgzvyvz_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgxzvyvz,
-             gkyl_array_average_3x3v_hyb_p1_avgxzvyvz_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgyzvyvz,
-             gkyl_array_average_3x3v_hyb_p1_avgyzvyvz_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgxyzvyvz,
-             gkyl_array_average_3x3v_hyb_p1_avgxyzvyvz_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgvxvyvz,
-             gkyl_array_average_3x3v_hyb_p1_avgvxvyvz_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgxvxvyvz,
-             gkyl_array_average_3x3v_hyb_p1_avgxvxvyvz_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgyvxvyvz,
-             gkyl_array_average_3x3v_hyb_p1_avgyvxvyvz_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgxyvxvyvz,
-             gkyl_array_average_3x3v_hyb_p1_avgxyvxvyvz_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgzvxvyvz,
-             gkyl_array_average_3x3v_hyb_p1_avgzvxvyvz_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgxzvxvyvz,
-             gkyl_array_average_3x3v_hyb_p1_avgxzvxvyvz_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgyzvxvyvz,
-             gkyl_array_average_3x3v_hyb_p1_avgyzvxvyvz_fulldim},
-            {gkyl_array_average_3x3v_hyb_p1_avgxyzvxvyvz,
-             gkyl_array_average_3x3v_hyb_p1_avgxyzvxvyvz_fulldim}},
-       }
+      {
+        // 3x1v (none)
+        {.ops = {{NULL, NULL}}},
+        // 3x2v (none)
+        {.ops = {{NULL, NULL}}},
+        // 3x3v
+        {
+          .ops =
+            {{gkyl_array_average_3x3v_hyb_p1_avgx, gkyl_array_average_3x3v_hyb_p1_avgx_fulldim},
+             {gkyl_array_average_3x3v_hyb_p1_avgy, gkyl_array_average_3x3v_hyb_p1_avgy_fulldim},
+             {gkyl_array_average_3x3v_hyb_p1_avgxy, gkyl_array_average_3x3v_hyb_p1_avgxy_fulldim},
+             {gkyl_array_average_3x3v_hyb_p1_avgz, gkyl_array_average_3x3v_hyb_p1_avgz_fulldim},
+             {gkyl_array_average_3x3v_hyb_p1_avgxz, gkyl_array_average_3x3v_hyb_p1_avgxz_fulldim},
+             {gkyl_array_average_3x3v_hyb_p1_avgyz, gkyl_array_average_3x3v_hyb_p1_avgyz_fulldim},
+             {gkyl_array_average_3x3v_hyb_p1_avgxyz, gkyl_array_average_3x3v_hyb_p1_avgxyz_fulldim},
+             {gkyl_array_average_3x3v_hyb_p1_avgvx, gkyl_array_average_3x3v_hyb_p1_avgvx_fulldim},
+             {gkyl_array_average_3x3v_hyb_p1_avgxvx, gkyl_array_average_3x3v_hyb_p1_avgxvx_fulldim},
+             {gkyl_array_average_3x3v_hyb_p1_avgyvx, gkyl_array_average_3x3v_hyb_p1_avgyvx_fulldim},
+             {gkyl_array_average_3x3v_hyb_p1_avgxyvx, gkyl_array_average_3x3v_hyb_p1_avgxyvx_fulldim
+             },
+             {gkyl_array_average_3x3v_hyb_p1_avgzvx, gkyl_array_average_3x3v_hyb_p1_avgzvx_fulldim},
+             {gkyl_array_average_3x3v_hyb_p1_avgxzvx, gkyl_array_average_3x3v_hyb_p1_avgxzvx_fulldim
+             },
+             {gkyl_array_average_3x3v_hyb_p1_avgyzvx, gkyl_array_average_3x3v_hyb_p1_avgyzvx_fulldim
+             },
+             {gkyl_array_average_3x3v_hyb_p1_avgxyzvx,
+              gkyl_array_average_3x3v_hyb_p1_avgxyzvx_fulldim},
+             {gkyl_array_average_3x3v_hyb_p1_avgvy, gkyl_array_average_3x3v_hyb_p1_avgvy_fulldim},
+             {gkyl_array_average_3x3v_hyb_p1_avgxvy, gkyl_array_average_3x3v_hyb_p1_avgxvy_fulldim},
+             {gkyl_array_average_3x3v_hyb_p1_avgyvy, gkyl_array_average_3x3v_hyb_p1_avgyvy_fulldim},
+             {gkyl_array_average_3x3v_hyb_p1_avgxyvy, gkyl_array_average_3x3v_hyb_p1_avgxyvy_fulldim
+             },
+             {gkyl_array_average_3x3v_hyb_p1_avgzvy, gkyl_array_average_3x3v_hyb_p1_avgzvy_fulldim},
+             {gkyl_array_average_3x3v_hyb_p1_avgxzvy, gkyl_array_average_3x3v_hyb_p1_avgxzvy_fulldim
+             },
+             {gkyl_array_average_3x3v_hyb_p1_avgyzvy, gkyl_array_average_3x3v_hyb_p1_avgyzvy_fulldim
+             },
+             {gkyl_array_average_3x3v_hyb_p1_avgxyzvy,
+              gkyl_array_average_3x3v_hyb_p1_avgxyzvy_fulldim},
+             {gkyl_array_average_3x3v_hyb_p1_avgvxvy, gkyl_array_average_3x3v_hyb_p1_avgvxvy_fulldim
+             },
+             {gkyl_array_average_3x3v_hyb_p1_avgxvxvy,
+              gkyl_array_average_3x3v_hyb_p1_avgxvxvy_fulldim},
+             {gkyl_array_average_3x3v_hyb_p1_avgyvxvy,
+              gkyl_array_average_3x3v_hyb_p1_avgyvxvy_fulldim},
+             {gkyl_array_average_3x3v_hyb_p1_avgxyvxvy,
+              gkyl_array_average_3x3v_hyb_p1_avgxyvxvy_fulldim},
+             {gkyl_array_average_3x3v_hyb_p1_avgzvxvy,
+              gkyl_array_average_3x3v_hyb_p1_avgzvxvy_fulldim},
+             {gkyl_array_average_3x3v_hyb_p1_avgxzvxvy,
+              gkyl_array_average_3x3v_hyb_p1_avgxzvxvy_fulldim},
+             {gkyl_array_average_3x3v_hyb_p1_avgyzvxvy,
+              gkyl_array_average_3x3v_hyb_p1_avgyzvxvy_fulldim},
+             {gkyl_array_average_3x3v_hyb_p1_avgxyzvxvy,
+              gkyl_array_average_3x3v_hyb_p1_avgxyzvxvy_fulldim},
+             {gkyl_array_average_3x3v_hyb_p1_avgvz, gkyl_array_average_3x3v_hyb_p1_avgvz_fulldim},
+             {gkyl_array_average_3x3v_hyb_p1_avgxvz, gkyl_array_average_3x3v_hyb_p1_avgxvz_fulldim},
+             {gkyl_array_average_3x3v_hyb_p1_avgyvz, gkyl_array_average_3x3v_hyb_p1_avgyvz_fulldim},
+             {gkyl_array_average_3x3v_hyb_p1_avgxyvz, gkyl_array_average_3x3v_hyb_p1_avgxyvz_fulldim
+             },
+             {gkyl_array_average_3x3v_hyb_p1_avgzvz, gkyl_array_average_3x3v_hyb_p1_avgzvz_fulldim},
+             {gkyl_array_average_3x3v_hyb_p1_avgxzvz, gkyl_array_average_3x3v_hyb_p1_avgxzvz_fulldim
+             },
+             {gkyl_array_average_3x3v_hyb_p1_avgyzvz, gkyl_array_average_3x3v_hyb_p1_avgyzvz_fulldim
+             },
+             {gkyl_array_average_3x3v_hyb_p1_avgxyzvz,
+              gkyl_array_average_3x3v_hyb_p1_avgxyzvz_fulldim},
+             {gkyl_array_average_3x3v_hyb_p1_avgvxvz, gkyl_array_average_3x3v_hyb_p1_avgvxvz_fulldim
+             },
+             {gkyl_array_average_3x3v_hyb_p1_avgxvxvz,
+              gkyl_array_average_3x3v_hyb_p1_avgxvxvz_fulldim},
+             {gkyl_array_average_3x3v_hyb_p1_avgyvxvz,
+              gkyl_array_average_3x3v_hyb_p1_avgyvxvz_fulldim},
+             {gkyl_array_average_3x3v_hyb_p1_avgxyvxvz,
+              gkyl_array_average_3x3v_hyb_p1_avgxyvxvz_fulldim},
+             {gkyl_array_average_3x3v_hyb_p1_avgzvxvz,
+              gkyl_array_average_3x3v_hyb_p1_avgzvxvz_fulldim},
+             {gkyl_array_average_3x3v_hyb_p1_avgxzvxvz,
+              gkyl_array_average_3x3v_hyb_p1_avgxzvxvz_fulldim},
+             {gkyl_array_average_3x3v_hyb_p1_avgyzvxvz,
+              gkyl_array_average_3x3v_hyb_p1_avgyzvxvz_fulldim},
+             {gkyl_array_average_3x3v_hyb_p1_avgxyzvxvz,
+              gkyl_array_average_3x3v_hyb_p1_avgxyzvxvz_fulldim},
+             {gkyl_array_average_3x3v_hyb_p1_avgvyvz, gkyl_array_average_3x3v_hyb_p1_avgvyvz_fulldim
+             },
+             {gkyl_array_average_3x3v_hyb_p1_avgxvyvz,
+              gkyl_array_average_3x3v_hyb_p1_avgxvyvz_fulldim},
+             {gkyl_array_average_3x3v_hyb_p1_avgyvyvz,
+              gkyl_array_average_3x3v_hyb_p1_avgyvyvz_fulldim},
+             {gkyl_array_average_3x3v_hyb_p1_avgxyvyvz,
+              gkyl_array_average_3x3v_hyb_p1_avgxyvyvz_fulldim},
+             {gkyl_array_average_3x3v_hyb_p1_avgzvyvz,
+              gkyl_array_average_3x3v_hyb_p1_avgzvyvz_fulldim},
+             {gkyl_array_average_3x3v_hyb_p1_avgxzvyvz,
+              gkyl_array_average_3x3v_hyb_p1_avgxzvyvz_fulldim},
+             {gkyl_array_average_3x3v_hyb_p1_avgyzvyvz,
+              gkyl_array_average_3x3v_hyb_p1_avgyzvyvz_fulldim},
+             {gkyl_array_average_3x3v_hyb_p1_avgxyzvyvz,
+              gkyl_array_average_3x3v_hyb_p1_avgxyzvyvz_fulldim},
+             {gkyl_array_average_3x3v_hyb_p1_avgvxvyvz,
+              gkyl_array_average_3x3v_hyb_p1_avgvxvyvz_fulldim},
+             {gkyl_array_average_3x3v_hyb_p1_avgxvxvyvz,
+              gkyl_array_average_3x3v_hyb_p1_avgxvxvyvz_fulldim},
+             {gkyl_array_average_3x3v_hyb_p1_avgyvxvyvz,
+              gkyl_array_average_3x3v_hyb_p1_avgyvxvyvz_fulldim},
+             {gkyl_array_average_3x3v_hyb_p1_avgxyvxvyvz,
+              gkyl_array_average_3x3v_hyb_p1_avgxyvxvyvz_fulldim},
+             {gkyl_array_average_3x3v_hyb_p1_avgzvxvyvz,
+              gkyl_array_average_3x3v_hyb_p1_avgzvxvyvz_fulldim},
+             {gkyl_array_average_3x3v_hyb_p1_avgxzvxvyvz,
+              gkyl_array_average_3x3v_hyb_p1_avgxzvxvyvz_fulldim},
+             {gkyl_array_average_3x3v_hyb_p1_avgyzvxvyvz,
+              gkyl_array_average_3x3v_hyb_p1_avgyzvxvyvz_fulldim},
+             {gkyl_array_average_3x3v_hyb_p1_avgxyzvxvyvz,
+              gkyl_array_average_3x3v_hyb_p1_avgxyzvxvyvz_fulldim}},
+        },
       },
-  }
+  },
 };
 // Phase-space serendipity (p=2) kernels, indexed [cdim-1].vdim[vdim-1].ops[op-1].
 GKYL_CU_D static const array_average_v_kern_list gkyl_array_average_ker_list_ser_phase[] = {
   // 1x
   {
     .vdim =
-      {// 1x1v
-       {
-         .ops =
-           {{gkyl_array_average_1x1v_ser_p2_avgx, gkyl_array_average_1x1v_ser_p2_avgx_fulldim},
-            {gkyl_array_average_1x1v_ser_p2_avgvx, gkyl_array_average_1x1v_ser_p2_avgvx_fulldim},
-            {gkyl_array_average_1x1v_ser_p2_avgxvx, gkyl_array_average_1x1v_ser_p2_avgxvx_fulldim}},
-       },
-       // 1x2v
-       {
-         .ops =
-           {{gkyl_array_average_1x2v_ser_p2_avgx, gkyl_array_average_1x2v_ser_p2_avgx_fulldim},
-            {gkyl_array_average_1x2v_ser_p2_avgvx, gkyl_array_average_1x2v_ser_p2_avgvx_fulldim},
-            {gkyl_array_average_1x2v_ser_p2_avgxvx, gkyl_array_average_1x2v_ser_p2_avgxvx_fulldim},
-            {gkyl_array_average_1x2v_ser_p2_avgvy, gkyl_array_average_1x2v_ser_p2_avgvy_fulldim},
-            {gkyl_array_average_1x2v_ser_p2_avgxvy, gkyl_array_average_1x2v_ser_p2_avgxvy_fulldim},
-            {gkyl_array_average_1x2v_ser_p2_avgvxvy, gkyl_array_average_1x2v_ser_p2_avgvxvy_fulldim},
-            {gkyl_array_average_1x2v_ser_p2_avgxvxvy,
-             gkyl_array_average_1x2v_ser_p2_avgxvxvy_fulldim}},
-       },
-       // 1x3v
-       {
-         .ops =
-           {{gkyl_array_average_1x3v_ser_p2_avgx, gkyl_array_average_1x3v_ser_p2_avgx_fulldim},
-            {gkyl_array_average_1x3v_ser_p2_avgvx, gkyl_array_average_1x3v_ser_p2_avgvx_fulldim},
-            {gkyl_array_average_1x3v_ser_p2_avgxvx, gkyl_array_average_1x3v_ser_p2_avgxvx_fulldim},
-            {gkyl_array_average_1x3v_ser_p2_avgvy, gkyl_array_average_1x3v_ser_p2_avgvy_fulldim},
-            {gkyl_array_average_1x3v_ser_p2_avgxvy, gkyl_array_average_1x3v_ser_p2_avgxvy_fulldim},
-            {gkyl_array_average_1x3v_ser_p2_avgvxvy, gkyl_array_average_1x3v_ser_p2_avgvxvy_fulldim},
-            {gkyl_array_average_1x3v_ser_p2_avgxvxvy,
-             gkyl_array_average_1x3v_ser_p2_avgxvxvy_fulldim},
-            {gkyl_array_average_1x3v_ser_p2_avgvz, gkyl_array_average_1x3v_ser_p2_avgvz_fulldim},
-            {gkyl_array_average_1x3v_ser_p2_avgxvz, gkyl_array_average_1x3v_ser_p2_avgxvz_fulldim},
-            {gkyl_array_average_1x3v_ser_p2_avgvxvz, gkyl_array_average_1x3v_ser_p2_avgvxvz_fulldim},
-            {gkyl_array_average_1x3v_ser_p2_avgxvxvz,
-             gkyl_array_average_1x3v_ser_p2_avgxvxvz_fulldim},
-            {gkyl_array_average_1x3v_ser_p2_avgvyvz, gkyl_array_average_1x3v_ser_p2_avgvyvz_fulldim},
-            {gkyl_array_average_1x3v_ser_p2_avgxvyvz,
-             gkyl_array_average_1x3v_ser_p2_avgxvyvz_fulldim},
-            {gkyl_array_average_1x3v_ser_p2_avgvxvyvz,
-             gkyl_array_average_1x3v_ser_p2_avgvxvyvz_fulldim},
-            {gkyl_array_average_1x3v_ser_p2_avgxvxvyvz,
-             gkyl_array_average_1x3v_ser_p2_avgxvxvyvz_fulldim}},
-       }
+      {
+        // 1x1v
+        {
+          .ops =
+            {{gkyl_array_average_1x1v_ser_p2_avgx, gkyl_array_average_1x1v_ser_p2_avgx_fulldim},
+             {gkyl_array_average_1x1v_ser_p2_avgvx, gkyl_array_average_1x1v_ser_p2_avgvx_fulldim},
+             {gkyl_array_average_1x1v_ser_p2_avgxvx, gkyl_array_average_1x1v_ser_p2_avgxvx_fulldim}},
+        },
+        // 1x2v
+        {
+          .ops =
+            {{gkyl_array_average_1x2v_ser_p2_avgx, gkyl_array_average_1x2v_ser_p2_avgx_fulldim},
+             {gkyl_array_average_1x2v_ser_p2_avgvx, gkyl_array_average_1x2v_ser_p2_avgvx_fulldim},
+             {gkyl_array_average_1x2v_ser_p2_avgxvx, gkyl_array_average_1x2v_ser_p2_avgxvx_fulldim},
+             {gkyl_array_average_1x2v_ser_p2_avgvy, gkyl_array_average_1x2v_ser_p2_avgvy_fulldim},
+             {gkyl_array_average_1x2v_ser_p2_avgxvy, gkyl_array_average_1x2v_ser_p2_avgxvy_fulldim},
+             {gkyl_array_average_1x2v_ser_p2_avgvxvy, gkyl_array_average_1x2v_ser_p2_avgvxvy_fulldim
+             },
+             {gkyl_array_average_1x2v_ser_p2_avgxvxvy,
+              gkyl_array_average_1x2v_ser_p2_avgxvxvy_fulldim}},
+        },
+        // 1x3v
+        {
+          .ops =
+            {{gkyl_array_average_1x3v_ser_p2_avgx, gkyl_array_average_1x3v_ser_p2_avgx_fulldim},
+             {gkyl_array_average_1x3v_ser_p2_avgvx, gkyl_array_average_1x3v_ser_p2_avgvx_fulldim},
+             {gkyl_array_average_1x3v_ser_p2_avgxvx, gkyl_array_average_1x3v_ser_p2_avgxvx_fulldim},
+             {gkyl_array_average_1x3v_ser_p2_avgvy, gkyl_array_average_1x3v_ser_p2_avgvy_fulldim},
+             {gkyl_array_average_1x3v_ser_p2_avgxvy, gkyl_array_average_1x3v_ser_p2_avgxvy_fulldim},
+             {gkyl_array_average_1x3v_ser_p2_avgvxvy, gkyl_array_average_1x3v_ser_p2_avgvxvy_fulldim
+             },
+             {gkyl_array_average_1x3v_ser_p2_avgxvxvy,
+              gkyl_array_average_1x3v_ser_p2_avgxvxvy_fulldim},
+             {gkyl_array_average_1x3v_ser_p2_avgvz, gkyl_array_average_1x3v_ser_p2_avgvz_fulldim},
+             {gkyl_array_average_1x3v_ser_p2_avgxvz, gkyl_array_average_1x3v_ser_p2_avgxvz_fulldim},
+             {gkyl_array_average_1x3v_ser_p2_avgvxvz, gkyl_array_average_1x3v_ser_p2_avgvxvz_fulldim
+             },
+             {gkyl_array_average_1x3v_ser_p2_avgxvxvz,
+              gkyl_array_average_1x3v_ser_p2_avgxvxvz_fulldim},
+             {gkyl_array_average_1x3v_ser_p2_avgvyvz, gkyl_array_average_1x3v_ser_p2_avgvyvz_fulldim
+             },
+             {gkyl_array_average_1x3v_ser_p2_avgxvyvz,
+              gkyl_array_average_1x3v_ser_p2_avgxvyvz_fulldim},
+             {gkyl_array_average_1x3v_ser_p2_avgvxvyvz,
+              gkyl_array_average_1x3v_ser_p2_avgvxvyvz_fulldim},
+             {gkyl_array_average_1x3v_ser_p2_avgxvxvyvz,
+              gkyl_array_average_1x3v_ser_p2_avgxvxvyvz_fulldim}},
+        },
       },
   },
   // 2x
   {
     .vdim =
-      {// 2x1v (none)
-       {.ops = {{NULL, NULL}}},
-       // 2x2v
-       {
-         .ops =
-           {{gkyl_array_average_2x2v_ser_p2_avgx, gkyl_array_average_2x2v_ser_p2_avgx_fulldim},
-            {gkyl_array_average_2x2v_ser_p2_avgy, gkyl_array_average_2x2v_ser_p2_avgy_fulldim},
-            {gkyl_array_average_2x2v_ser_p2_avgxy, gkyl_array_average_2x2v_ser_p2_avgxy_fulldim},
-            {gkyl_array_average_2x2v_ser_p2_avgvx, gkyl_array_average_2x2v_ser_p2_avgvx_fulldim},
-            {gkyl_array_average_2x2v_ser_p2_avgxvx, gkyl_array_average_2x2v_ser_p2_avgxvx_fulldim},
-            {gkyl_array_average_2x2v_ser_p2_avgyvx, gkyl_array_average_2x2v_ser_p2_avgyvx_fulldim},
-            {gkyl_array_average_2x2v_ser_p2_avgxyvx, gkyl_array_average_2x2v_ser_p2_avgxyvx_fulldim},
-            {gkyl_array_average_2x2v_ser_p2_avgvy, gkyl_array_average_2x2v_ser_p2_avgvy_fulldim},
-            {gkyl_array_average_2x2v_ser_p2_avgxvy, gkyl_array_average_2x2v_ser_p2_avgxvy_fulldim},
-            {gkyl_array_average_2x2v_ser_p2_avgyvy, gkyl_array_average_2x2v_ser_p2_avgyvy_fulldim},
-            {gkyl_array_average_2x2v_ser_p2_avgxyvy, gkyl_array_average_2x2v_ser_p2_avgxyvy_fulldim},
-            {gkyl_array_average_2x2v_ser_p2_avgvxvy, gkyl_array_average_2x2v_ser_p2_avgvxvy_fulldim},
-            {gkyl_array_average_2x2v_ser_p2_avgxvxvy,
-             gkyl_array_average_2x2v_ser_p2_avgxvxvy_fulldim},
-            {gkyl_array_average_2x2v_ser_p2_avgyvxvy,
-             gkyl_array_average_2x2v_ser_p2_avgyvxvy_fulldim},
-            {gkyl_array_average_2x2v_ser_p2_avgxyvxvy,
-             gkyl_array_average_2x2v_ser_p2_avgxyvxvy_fulldim}},
-       },
-       // 2x3v
-       {
-         .ops =
-           {
-             {gkyl_array_average_2x3v_ser_p2_avgx, gkyl_array_average_2x3v_ser_p2_avgx_fulldim},
+      {
+        // 2x1v (none)
+        {.ops = {{NULL, NULL}}},
+        // 2x2v
+        {
+          .ops =
+            {{gkyl_array_average_2x2v_ser_p2_avgx, gkyl_array_average_2x2v_ser_p2_avgx_fulldim},
+             {gkyl_array_average_2x2v_ser_p2_avgy, gkyl_array_average_2x2v_ser_p2_avgy_fulldim},
+             {gkyl_array_average_2x2v_ser_p2_avgxy, gkyl_array_average_2x2v_ser_p2_avgxy_fulldim},
+             {gkyl_array_average_2x2v_ser_p2_avgvx, gkyl_array_average_2x2v_ser_p2_avgvx_fulldim},
+             {gkyl_array_average_2x2v_ser_p2_avgxvx, gkyl_array_average_2x2v_ser_p2_avgxvx_fulldim},
+             {gkyl_array_average_2x2v_ser_p2_avgyvx, gkyl_array_average_2x2v_ser_p2_avgyvx_fulldim},
+             {gkyl_array_average_2x2v_ser_p2_avgxyvx, gkyl_array_average_2x2v_ser_p2_avgxyvx_fulldim
+             },
+             {gkyl_array_average_2x2v_ser_p2_avgvy, gkyl_array_average_2x2v_ser_p2_avgvy_fulldim},
+             {gkyl_array_average_2x2v_ser_p2_avgxvy, gkyl_array_average_2x2v_ser_p2_avgxvy_fulldim},
+             {gkyl_array_average_2x2v_ser_p2_avgyvy, gkyl_array_average_2x2v_ser_p2_avgyvy_fulldim},
+             {gkyl_array_average_2x2v_ser_p2_avgxyvy, gkyl_array_average_2x2v_ser_p2_avgxyvy_fulldim
+             },
+             {gkyl_array_average_2x2v_ser_p2_avgvxvy, gkyl_array_average_2x2v_ser_p2_avgvxvy_fulldim
+             },
+             {gkyl_array_average_2x2v_ser_p2_avgxvxvy,
+              gkyl_array_average_2x2v_ser_p2_avgxvxvy_fulldim},
+             {gkyl_array_average_2x2v_ser_p2_avgyvxvy,
+              gkyl_array_average_2x2v_ser_p2_avgyvxvy_fulldim},
+             {gkyl_array_average_2x2v_ser_p2_avgxyvxvy,
+              gkyl_array_average_2x2v_ser_p2_avgxyvxvy_fulldim}},
+        },
+        // 2x3v
+        {
+          .ops =
+            {{gkyl_array_average_2x3v_ser_p2_avgx, gkyl_array_average_2x3v_ser_p2_avgx_fulldim},
              {gkyl_array_average_2x3v_ser_p2_avgy, gkyl_array_average_2x3v_ser_p2_avgy_fulldim},
              {gkyl_array_average_2x3v_ser_p2_avgxy, gkyl_array_average_2x3v_ser_p2_avgxy_fulldim},
              {gkyl_array_average_2x3v_ser_p2_avgvx, gkyl_array_average_2x3v_ser_p2_avgvx_fulldim},
@@ -555,11 +589,10 @@ GKYL_CU_D static const array_average_v_kern_list gkyl_array_average_ker_list_ser
              {gkyl_array_average_2x3v_ser_p2_avgyvxvyvz,
               gkyl_array_average_2x3v_ser_p2_avgyvxvyvz_fulldim},
              {gkyl_array_average_2x3v_ser_p2_avgxyvxvyvz,
-              gkyl_array_average_2x3v_ser_p2_avgxyvxvyvz_fulldim}
-           },
-       }
+              gkyl_array_average_2x3v_ser_p2_avgxyvxvyvz_fulldim}},
+        },
       },
-  }
+  },
 };
 
 // Primary struct in this updater.

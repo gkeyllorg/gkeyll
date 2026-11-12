@@ -13,7 +13,7 @@ ser_2x_p1_sqrt(const double *A, double *ASqrt)
   } else { 
   AOrd[0] = sqrt(temp); 
   } 
-  temp = (-0.5*A[3])+0.5*A[2]-0.5*A[1]+0.5*A[0]; 
+  temp = -(0.5*A[3])+0.5*A[2]-0.5*A[1]+0.5*A[0]; 
   if (temp < 0.0) { 
   AOrd[1] = 0.0; 
   } else { 

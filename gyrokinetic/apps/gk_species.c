@@ -258,14 +258,15 @@ gk_species_write_vcutsq(
   // Package metadata (time/frame + DG basis info).
   gkyl_msgpack_map_elem_set_double(app->io_meta_dg_len, app->io_meta_dg, "time", tm);
   gkyl_msgpack_map_elem_set_uint(app->io_meta_dg_len, app->io_meta_dg, "frame", frame);
-  struct gkyl_msgpack_map_elem *vcutsq_meta =
-    gkyl_msgpack_map_elem_clone(app->io_meta_dg_len, app->io_meta_dg);
-  gkyl_msgpack_map_elem_set_string(app->io_meta_dg_len, vcutsq_meta, "basis_type", "serendipity");
-  struct gkyl_msgpack_map_elem mpe_vcutsq[] = {{
-    .key = "Description",
-    .elem_type = GKYL_MP_STRING,
-    .cval = "Square of the velocity cutoff used in the gyrokinetic sheath BC.",
-  }};
+  struct gkyl_msgpack_map_elem mpe_vcutsq[] = {
+    {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = app->basis.poly_order},
+    {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = "serendipity"},
+    {
+      .key = "Description",
+      .elem_type = GKYL_MP_STRING,
+      .cval = "Square of the velocity cutoff used in the gyrokinetic sheath BC.",
+    },
+  };
   int mpe_vcutsq_len = sizeof(mpe_vcutsq) / sizeof(mpe_vcutsq[0]);
   int io_meta_len[] = {app->io_meta_dg_len, mpe_vcutsq_len};
   const struct gkyl_msgpack_map_elem *io_meta[] = {vcutsq_meta, mpe_vcutsq};
@@ -302,7 +303,7 @@ gk_species_write_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *gks, doub
       .cval = gks->is_fluid ? "Fluid moments: J*rho, J*Mpar, J*E, J*pperp/B." :
                               "Distribution function times Jacobians.",
     },
-    {.key = "is_fluid", .elem_type = GKYL_MP_BOOL, .bval = gks->is_fluid}
+    {.key = "is_fluid", .elem_type = GKYL_MP_BOOL, .bval = gks->is_fluid},
   };
   int io_meta_f_len = sizeof(io_meta_f) / sizeof(io_meta_f[0]);
   int io_meta_len[] = {gks->io_meta_phase_len, app->gk_geom->io_meta_basic_len, io_meta_f_len};
@@ -361,7 +362,7 @@ gk_species_write_cfl_enabled(gkyl_gyrokinetic_app *app, struct gk_species *gks, 
     {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0},
     {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = "serendipity"},
     {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = "CFL frequency."},
-    {.key = "value_form", .elem_type = GKYL_MP_STRING, .cval = "nodal"}
+    {.key = "value_form", .elem_type = GKYL_MP_STRING, .cval = "nodal"},
   };
   int mpe_cfl_len = sizeof(mpe_cfl) / sizeof(mpe_cfl[0]);
   // Update app basic metada with time/frame.
@@ -417,11 +418,13 @@ gk_species_write_mom_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *gks, 
       gkyl_array_copy(gks->moms[m].marr_host, gks->moms[m].marr);
     }
 
-    struct gkyl_msgpack_map_elem io_meta_mom[] = {{
-      .key = "Description",
-      .elem_type = GKYL_MP_STRING,
-      .cval = (char *)gkyl_distribution_moments_descriptions[gks->info.diag_moments[m]],
-    }};
+    struct gkyl_msgpack_map_elem io_meta_mom[] = {
+      {
+        .key = "Description",
+        .elem_type = GKYL_MP_STRING,
+        .cval = (char *)gkyl_distribution_moments_descriptions[gks->info.diag_moments[m]],
+      },
+    };
     int io_meta_len[] = {gks->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1};
     const struct gkyl_msgpack_map_elem *io_meta[] = {
       gks->io_meta_conf, app->gk_geom->io_meta_basic, io_meta_mom
@@ -551,7 +554,7 @@ gk_species_write_integrated_mom_dynamic(gkyl_gyrokinetic_app *app, struct gk_spe
 
     if (gks->is_first_integ_write_call) {
       struct gkyl_msgpack_map_elem io_meta_phi[] = {
-        {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Volume integrated moments."}
+        {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Volume integrated moments."},
       };
       int io_meta_len[] = {gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
       const struct gkyl_msgpack_map_elem *io_meta[] = {
@@ -579,11 +582,13 @@ gk_species_write_integrated_mom_dynamic(gkyl_gyrokinetic_app *app, struct gk_spe
       snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, "integrated_moms");
 
       if (gks->is_first_fdot_integ_write_call) {
-        struct gkyl_msgpack_map_elem io_meta_phi[] = {{
-          .key = "Description",
-          .elem_type = GKYL_MP_STRING,
-          .cval = "Volume integrated moments of time rate of change.",
-        }};
+        struct gkyl_msgpack_map_elem io_meta_phi[] = {
+          {
+            .key = "Description",
+            .elem_type = GKYL_MP_STRING,
+            .cval = "Volume integrated moments of time rate of change.",
+          },
+        };
         int io_meta_len[] = {gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
         const struct gkyl_msgpack_map_elem *io_meta[] = {
           gks->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi
@@ -656,7 +661,7 @@ gk_species_write_L2norm_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *gk
 
     if (gks->is_first_L2norm_write_call) {
       struct gkyl_msgpack_map_elem io_meta_phi[] = {
-        {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = "L2 norm of the distribution."}
+        {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = "L2 norm of the distribution."},
       };
       int io_meta_len[] = {gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
       const struct gkyl_msgpack_map_elem *io_meta[] = {
@@ -888,7 +893,7 @@ gk_species_init_io(struct gkyl_gyrokinetic_app *app, struct gk_species *gks)
   struct gkyl_msgpack_map_elem io_meta_sprop[] = {
     {.key = "mass", .elem_type = GKYL_MP_DOUBLE, .dval = gks->info.mass},
     {.key = "charge", .elem_type = GKYL_MP_DOUBLE, .dval = gks->info.charge},
-    {.key = "vdim", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = gks->info.vdim}
+    {.key = "vdim", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = gks->info.vdim},
   };
 
   // Metadata for integrated quantities.
@@ -907,7 +912,7 @@ gk_species_init_io(struct gkyl_gyrokinetic_app *app, struct gk_species *gks)
     {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = app->basis.poly_order},
     {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = app->basis.id},
     {.key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0},
-    {.key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0}
+    {.key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0},
   };
   const struct gkyl_msgpack_map_elem *io_meta_conf_union[] = {
     app->io_meta_basic, io_meta_sprop, io_meta_conf
@@ -927,7 +932,7 @@ gk_species_init_io(struct gkyl_gyrokinetic_app *app, struct gk_species *gks)
     {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = gks->basis.poly_order},
     {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = gks->basis.id},
     {.key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0},
-    {.key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0}
+    {.key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0},
   };
   const struct gkyl_msgpack_map_elem *io_meta_phase_union[] = {
     app->io_meta_basic, io_meta_sprop, io_meta_phase

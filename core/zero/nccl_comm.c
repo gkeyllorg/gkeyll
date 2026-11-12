@@ -280,14 +280,23 @@ array_allgather(
   // copy data to local buffer
   gkyl_array_copy_to_buffer(gkyl_mem_buff_data(nccl->allgather_buff_local.buff), array_local, local);
 
-  size_t nelem = array_local->esznc * nccl->decomp->ranges[rank].volume;
-  // gather data into global buffer
-  ncclResult_t status = ncclAllGather(
-    gkyl_mem_buff_data(nccl->allgather_buff_local.buff),
-    gkyl_mem_buff_data(nccl->allgather_buff_global.buff), nelem, ncclChar, nccl->ncomm,
-    nccl->custream
-  );
-  wait_for_nccl_collective(nccl, status);
+  // Gather data into the global buffer. Ranks may own different numbers of cells
+  // (uneven decomposition) and ncclAllGather needs equal counts, so each rank
+  // broadcasts its own volume into its slot, stored in rank order as the copy
+  // to the global array below expects.
+  checkNCCL(ncclGroupStart());
+  size_t displ = 0;
+  for (int r = 0; r < nccl->decomp->ndecomp; ++r) {
+    size_t nelem_r = array_local->esznc * nccl->decomp->ranges[r].volume;
+    checkNCCL(ncclBroadcast(
+      gkyl_mem_buff_data(nccl->allgather_buff_local.buff),
+      gkyl_mem_buff_data(nccl->allgather_buff_global.buff) + displ, nelem_r, ncclChar, r,
+      nccl->ncomm, nccl->custream
+    ));
+    displ += nelem_r;
+  }
+  checkNCCL(ncclGroupEnd());
+  checkCuda(cudaStreamSynchronize(nccl->custream));
 
   // copy data to global array
   int idx = 0;
@@ -694,6 +703,15 @@ create_comm_from_ranks(
   return new_comm;
 }
 
+void
+gkyl_nccl_comm_set_device(MPI_Comm mpi_comm)
+{
+  int rank, num_devices;
+  MPI_Comm_rank(mpi_comm, &rank);
+  checkCuda(cudaGetDeviceCount(&num_devices));
+  checkCuda(cudaSetDevice(rank % num_devices));
+}
+
 struct gkyl_comm *
 nccl_comm_new(const struct gkyl_nccl_comm_inp *inp, const struct extra_nccl_comm_inp *extra_inp)
 {
@@ -712,11 +730,7 @@ nccl_comm_new(const struct gkyl_nccl_comm_inp *inp, const struct extra_nccl_comm
   MPI_Comm_size(nccl->mcomm, &nccl->size);
 
   if (inp->device_set == 0) {
-    int num_devices[1];
-    checkCuda(cudaGetDeviceCount(num_devices));
-
-    int local_rank = nccl->rank % num_devices[0];
-    checkCuda(cudaSetDevice(local_rank));
+    gkyl_nccl_comm_set_device(nccl->mcomm);
   }
 
   ncclUniqueId nId;

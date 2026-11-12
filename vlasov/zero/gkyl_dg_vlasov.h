@@ -6,72 +6,66 @@
 #include <gkyl_eqn_type.h>
 #include <gkyl_dg_eqn.h>
 #include <gkyl_range.h>
+#include <gkyl_vlasov_velocity_map.h>
+#include <gkyl_vlasov_position_map.h>
 
-// Struct containing the pointers to auxiliary fields.
-struct gkyl_dg_vlasov_auxfields {
+// Input packaged as a struct
+struct gkyl_dg_vlasov_inp {
+  const struct gkyl_basis *conf_basis; // Configuration-space basis functions.
+  const struct gkyl_basis *phase_basis; // Phase-space basis functions.
+  const struct gkyl_range *
+    hamil_range; // Range for indexing Hamiltonian (either velocity-space range or full phase-space range).
+  const struct gkyl_range *
+    conf_range; // Configuration-space range for use in indexing forces (EM fields, potentials, etc.).
+  const struct gkyl_range *phase_range; // Range for indexing velocity-space flux.
+  double
+    skip_cell_thresh; // Phase-space density threshold for skipping cells in the Vlasov equation; by default no cells are skipped.
+  enum gkyl_model_id
+    model_id; // enum to determine what type of Vlasov model (e.g., non-relativistic vs. relativistic).
+  enum gkyl_hamil_id
+    hamil_id; // enum for the Hamiltonian representation (sparse/dense velocity-space or phase-space expansion).
+  bool has_E; // bool to determine whether we have electric fields (used for external forces too).
+  bool
+    has_phi; // bool to determine whether we have potentials (either electrostatic or gravitational).
+  bool has_B; // bool to determine whether we have magnetic fields.
+  bool has_rad; // bool to determine whether we have radiation drag forces.
+  const struct gkyl_vlasov_velocity_map
+    *vel_map; // Velocity-space mapping object. Required: it also provides
+  // the velocity-space range used to index per-velocity-cell
+  // quantities (Jacobian, radiation drag).
+  const struct gkyl_vlasov_position_map
+    *pos_map; // Configuration-space mapping object. Required: provides the
+  // (per-conf-cell constant) position-map Jacobian used to
+  // transform the streaming term to mapped coordinates.
   const struct gkyl_array
-    *field; // q/m*(E_tot,B_tot) for Maxwell's, q/m*(phi_tot,A_ext) for Poisson's
+    *poisson_tensor_conf; // Configuration space poisson tensor used for nc poisson brackets.
   const struct gkyl_array
-    *cot_vec; // cotangent vectors (e^i) used in volume term if general geometry enabled
-  const struct gkyl_array *alpha_surf; // Pointer to surface expansion of phase space flux alpha
-    // used in general geometry for v^i = v . e^i at the surface.
-  const struct gkyl_array *sgn_alpha_surf; // Pointer to sign(alpha_surf) at quadrature points.
+    *hamil; // Hamiltonian utilized to compute advection in configuration and velocity space.
+  const struct gkyl_array *
+    qmem; // q/m*(E,B) electromagnetic fields (including external electromagnetic fields and forces).
+  const struct gkyl_array *pot_tot; // (q/m*(phi + phi_ext) + phi_g, q/m*A_ext) total potentials.
+  const struct gkyl_array *rad; // Radiation drag forces, F_rad(v).
   const struct gkyl_array
-    *const_sgn_alpha; // Pointer to integer array for if sign(alpha_surf) is single-signed.
+    *conf_flux_surf; // Modal expansion of fluxes at configuration space surfaces.
+  const struct gkyl_array *vel_flux_surf; // Modal expansion of fluxes at velocity space surfaces.
+  const struct gkyl_array *
+    f_no_J; // Distribution function without velocity-space Jacobian. Used by magnetic field updates.
+  bool use_lo; // bool to determine if using high-order kernels for non-canonical Hamiltonian models.
+  bool use_gpu; // bool to determine if on GPU.
 };
 
 /**
- * Create a new Vlasov equation object.
+ * Create a new Vlasov equation object. 
  *
- * @param cbasis Configuration space basis functions
- * @param pbasis Phase-space basis functions
- * @param conf_range Configuration space range for use in indexing EM field
- * @param phase_range Phase space range for indexing geometry quantities (alpha_geo)
- * @param model_id enum to determine what type of Vlasov model (Cartesian vs. general geometry)
- * @param field_id enum to determine what type of EM fields (Vlasov-Maxwell vs. Vlasov-Poisson vs. neutrals)
- * @param use_gpu bool to determine if on GPU
+ * @param inp Input parameters defined in gkyl_dg_vlasov_inp struct.
  * @return Pointer to Vlasov equation object
  */
-struct gkyl_dg_eqn *gkyl_dg_vlasov_new(
-  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
-  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
-  enum gkyl_model_id model_id, enum gkyl_field_id field_id, bool use_gpu
-);
+struct gkyl_dg_eqn *gkyl_dg_vlasov_inew(const struct gkyl_dg_vlasov_inp *inp);
 
 /**
  * Create a new Vlasov equation object that lives on NV-GPU
  *
- * @param cbasis Configuration space basis functions
- * @param pbasis Phase-space basis functions
- * @param conf_range Configuration space range for use in indexing EM field
- * @param phase_range Phase space range for indexing geometry quantities (alpha_geo)
- * @param model_id enum to determine what type of Vlasov model (Cartesian vs. general geometry)
- * @param field_id enum to determine what type of EM fields (Vlasov-Maxwell vs. Vlasov-Poisson vs. neutrals)
- * @return Pointer to Vlasov equation object
+ * @param inp Input parameters defined in gkyl_dg_vlasov_inp struct.
+ * @return Pointer to Vlasov equation object on device. 
  */
-struct gkyl_dg_eqn *gkyl_dg_vlasov_cu_dev_new(
-  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
-  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
-  enum gkyl_model_id model_id, enum gkyl_field_id field_id
-);
-
-/**
- * Set the auxiliary fields (e.g. q/m*EM) needed in updating the force terms.
- * 
- * @param eqn Equation pointer.
- * @param auxfields Pointer to struct of aux fields.
- */
-void gkyl_vlasov_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_auxfields auxin);
-
-#ifdef GKYL_HAVE_CUDA
-/**
- * CUDA device function to set auxiliary fields (e.g. q/m*EM) needed in updating the force terms.
- * 
- * @param eqn Equation pointer.
- * @param auxfields Pointer to struct of aux fields.
- */
-void gkyl_vlasov_set_auxfields_cu(
-  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_auxfields auxin
-);
-
-#endif
+struct gkyl_dg_eqn *gkyl_dg_vlasov_cu_dev_inew(const struct gkyl_dg_vlasov_inp *inp);
