@@ -28,9 +28,9 @@ gk_species_balance_calc_diag(
   double tm
 )
 {
-  double row[bal->num_comp];
+  double bal_vals[bal->num_comp];
   for (int k = 0; k < bal->num_comp; k++) {
-    row[k] = 0.0;
+    bal_vals[k] = 0.0;
   }
   int comp = bal->mom_comp[d];
 
@@ -346,7 +346,7 @@ gk_species_balance_write(
             .key = "Columns",
             .elem_type = GKYL_MP_STRING,
             .cval = "mom_err, mom_err_norm, mom_dot, src_mom, bflux_tot_mom",
-          }
+          },
         };
         int io_meta_len[] = {gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 2};
         const struct gkyl_msgpack_map_elem *io_meta[] = {
