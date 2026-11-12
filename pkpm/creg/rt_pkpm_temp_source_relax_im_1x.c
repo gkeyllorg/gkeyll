@@ -5,11 +5,16 @@
 // Two homogeneous neutral species start as drifting bi-Maxwellians at T = 1 with T_par/T = 1.4 and
 // T_perp/T = 0.8. The source of the first has T_Q = 10 (heating, T_Q/T = 10 initially) and that of
 // the second T_Q = 0.1 (cooling). A static magnetic field along x sets the field direction. Source
-// rate 100, with nu_Q dt between 1.6 and 4.8 (the explicit update would need nu_Q dt below 0.1).
+// rate 100, with nu_Q dt between 1.5 and 1.7 (the explicit update would need nu_Q dt below 0.1).
+// The source takes one backward-Euler step in each SSP-RK3 stage, over the time weight of the
+// stage, so with z = nu_Q dt a step multiplies a relaxing quantity by
+// R(z) = [1/3 + (2/3) (3/4 + (1/4)/(1 + z))/(1 + z/4)]/(1 + 2 z/3) (0.335 at z = 1.74).
 // Density and momentum are conserved to round-off and the constraints stay at [1, 0, 1]. Each step
-// divides T - T_Q and the pressure anisotropy p_par - p_perp by 1 + nu_Q dt, to the round-off of
-// those differences, and the temperature stays between T_0 and T_Q: 8.4436 and 0.25564 after the
-// first step (nu_Q dt = 4.782).
+// multiplies T - T_Q by R(z) to 1e-9, and the temperature stays between T_0 and T_Q: 6.9882 and
+// 0.40118 after the first step. The pressure anisotropy p_par - p_perp decays to round-off in 20
+// steps. Its step factor is R(z) once the temperature is near T_Q; while the temperature changes
+// by a large factor in a step it is not (0.83 in the first step of the heated species), because the
+// stages combine distributions normalized by different temperatures.
 
 #include <math.h>
 #include <stdio.h>

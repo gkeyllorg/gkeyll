@@ -37,8 +37,8 @@ struct gkyl_pkpm_collisions {
   void (*cross_nu[GKYL_MAX_SPECIES])(double t, const double *xn, double *fout, void *ctx);
   void *cross_nu_ctx[GKYL_MAX_SPECIES]; // contexts for the cross-collision functions
 
-  // BGK collisions: one backward-Euler step after each time step instead of the explicit update
-  // (with its CFL limit). Not available on the GPU.
+  // BGK collisions: one backward-Euler step in each SSP-RK3 stage, over the time weight of the
+  // stage, instead of the explicit update (with its CFL limit). Not available on the GPU.
   bool is_implicit;
 };
 
@@ -61,8 +61,8 @@ struct gkyl_pkpm_source_bgk {
   // pointer to the source temperature T_Q(x)
   void (*temp_shape)(double t, const double *xn, double *fout, void *ctx);
 
-  // One backward-Euler step after each time step instead of the explicit update (whose time
-  // step is limited by nu_Q and by nu_Q T_Q/T).
+  // One backward-Euler step in each SSP-RK3 stage, over the time weight of the stage, instead of
+  // the explicit update (whose time step is limited by nu_Q and by nu_Q T_Q/T).
   bool is_implicit;
 };
 

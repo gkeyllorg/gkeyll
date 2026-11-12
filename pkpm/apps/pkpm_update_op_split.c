@@ -38,7 +38,7 @@ pkpm_update_op_split(gkyl_pkpm_app *app, double dt0)
     pkpm_fluid_em_coupling_update(app, app->pkpm_em, app->tcurr - 0.5 * dt_prev + 0.5 * tau, tau);
   }
 
-  struct gkyl_update_status st = pkpm_update_ssp_rk3_implicit_coll(app, dt0);
+  struct gkyl_update_status st = pkpm_update_explicit_ssp_rk3(app, dt0);
 
   // the actual midpoint differs from the planned one when the step changed
   double rem = 0.5 * (st.dt_actual - dt_plan);

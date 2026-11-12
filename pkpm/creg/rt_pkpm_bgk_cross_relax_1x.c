@@ -5,13 +5,13 @@
 // speed) and ions (mass 100, T = 0.5, at rest) with constant collision frequencies nu_ee = nu_ei = 1,
 // nu_ii = 0.1 and nu_ie = (m_e / m_i) nu_ei, so that m_e n_e nu_ei = m_i n_i nu_ie. Both species
 // start with T_perp / T_par = 1.3. Run for 5 electron collision times.
-// The pair exchanges momentum and energy through the fluid states, in one backward-Euler step after
-// each time step, as in rt_pkpm_lbo_cross_relax_1x.c, and the distributions relax to the unit
+// The pair exchanges momentum and energy through the fluid states, in one backward-Euler step in
+// each SSP-RK3 stage, as in rt_pkpm_lbo_cross_relax_1x.c, and the distributions relax to the unit
 // Maxwellian: no target temperature is formed, so the relative drift is not limited by the ion
 // thermal speed as it is for the Vlasov target.
-// Particle number is conserved exactly and the total momentum and total energy to 3e-14; the
-// constraints hold to 1e-14. Each step divides the drift difference by 1 + (nu_ei + nu_ie) dt, with
-// (nu_ei + nu_ie) dt up to 0.049, so its fitted decay rate is 0.9864 against nu_ei + nu_ie = 1.0100.
+// Particle number is conserved exactly and the total momentum and total energy to 4e-14; the
+// constraints hold to 1e-14. The exchange is first order in time: with (nu_ei + nu_ie) dt up to
+// 0.049 the fitted decay rate of the drift difference is 0.9903 against nu_ei + nu_ie = 1.0100.
 // The temperature difference decays at 2 (nu_ei m_e + nu_ie m_i) / (m_e + m_i) = 0.0396 (measured
 // 0.0395). The pressure anisotropy decays at nu_ee + nu_ei = 2 for the electrons and at
 // nu_ii + nu_ie = 0.11 for the ions (measured 2.0001 and 0.1100), half the LBO rates. Vlasov 1x3v

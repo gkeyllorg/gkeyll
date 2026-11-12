@@ -86,19 +86,18 @@ pkpm_species_source_bgk_rhs(
 // Both updates are convex combinations at the nodes.
 void
 pkpm_species_source_bgk_implicit_advance(
-  gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_source_bgk *src, double dt
+  gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_source_bgk *src, double dt,
+  struct gkyl_array *f, struct gkyl_array *fluid
 )
 {
   struct timespec tm = gkyl_wall_clock();
   gkyl_pkpm_temp_source_implicit_advance(
-    src->up_temp, &app->local, dt, src->rate, src->vtsq, s->fluid, src->shape
+    src->up_temp, &app->local, dt, src->rate, src->vtsq, fluid, src->shape
   );
-  pkpm_species_nodal_dist(app, s, s->f);
   gkyl_pkpm_bgk_collisions_implicit_advance(
     src->up_bgk, &app->local, &s->local_vel, &s->local, src->shape, app->pos_map->jacob_pos_gauss,
-    src->f_lte, s->f_nodal, s->rhs_nodal
+    src->f_lte, f
   );
-  pkpm_species_nodal_accumulate(app, s, s->f);
   app->stat.species_coll_tm += gkyl_time_diff_now_sec(tm);
 }
 

@@ -44,10 +44,11 @@ void gkyl_pkpm_bgk_collisions_advance(
 );
 
 /**
- * Accumulate the increment of one backward-Euler step, (1 - S_q) (J f_t - f_q) at each node,
- * with the shape factor S_q in [0, 1] (S_q = 1/(1 + nu_q dt) for self-collisions): added to the
- * distribution it gives f_q <- S_q f_q + (1 - S_q) J f_t. F and G relax to the target, the
- * first-harmonic blocks to zero.
+ * Implicit relaxation of the distributions, in place: f <- S f + (1 - S) J f_target, with the
+ * shape factor S given at the nodes (S = 1/(1 + nu dt) for a backward-Euler step), F and G
+ * relaxing to the Maxwellian and the first-harmonic blocks to zero. It is the weak product of the
+ * expansion of S with each block of f; at p=1 that equals the product at the nodes, so no nodal
+ * copy of f is needed.
  *
  * @param up Updater.
  * @param conf_range Configuration-space range.
@@ -56,14 +57,13 @@ void gkyl_pkpm_bgk_collisions_advance(
  * @param shape Shape factor S at the nodes.
  * @param jacob Position-map Jacobian (first component, constant in a cell).
  * @param f_lte Target: 3 coefficients per velocity cell.
- * @param fnodal Distribution in the nodal form (8 blocks).
- * @param incr_nodal Increment in the nodal form to accumulate onto (8 blocks).
+ * @param f Distributions (8 blocks of expansions), updated in place.
  */
 void gkyl_pkpm_bgk_collisions_implicit_advance(
   const struct gkyl_pkpm_bgk_collisions *up, const struct gkyl_range *conf_range,
   const struct gkyl_range *vel_range, const struct gkyl_range *phase_range,
   const struct gkyl_array *shape, const struct gkyl_array *jacob, const struct gkyl_array *f_lte,
-  const struct gkyl_array *fnodal, struct gkyl_array *incr_nodal
+  struct gkyl_array *f
 );
 
 /**

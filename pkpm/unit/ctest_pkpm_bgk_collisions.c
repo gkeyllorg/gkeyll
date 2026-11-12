@@ -95,19 +95,22 @@ test_bgk(int cdim, bool implicit)
     }
   }
 
-  // Convert, accumulate the increment at the nodes, convert back.
+  // Explicit: convert, accumulate the increment at the nodes, convert back.
   struct gkyl_pkpm_bgk_collisions *up = gkyl_pkpm_bgk_collisions_new(&cbasis, &pbasis, false);
   gkyl_dg_conf_nodal_phase_to_nodal(conf_nodal, &prange, fin, fnodal);
   if (implicit) {
+    // in place on the expansions: the change of f is the right-hand side
+    gkyl_array_copy(rhs, fin);
     gkyl_pkpm_bgk_collisions_implicit_advance(
-      up, &crange, &vrange, &prange, rate, jacob, f_lte, fnodal, rhs_nodal
+      up, &crange, &vrange, &prange, rate, jacob, f_lte, rhs
     );
+    gkyl_array_accumulate(rhs, -1.0, fin);
   } else {
     gkyl_pkpm_bgk_collisions_advance(
       up, &crange, &vrange, &prange, rate, jacob, f_lte, fnodal, rhs_nodal, cfl
     );
+    gkyl_dg_conf_nodal_phase_to_modal_accumulate(conf_nodal, &prange, rhs_nodal, rhs);
   }
-  gkyl_dg_conf_nodal_phase_to_modal_accumulate(conf_nodal, &prange, rhs_nodal, rhs);
 
   // The modal target [J f_t, J f_t, 0, ...], uniform in configuration space.
   gkyl_range_iter_init(&iter, &prange);

@@ -3,17 +3,18 @@
 // Half domain: symmetry boundary at x = 0 (reflecting species, symmetry-wall field),
 // absorbing conducting wall at x = Lx. A boundary-flux source replaces the particles lost
 // to the wall. LBO self-collisions act upstream (x < L_nu) and electron-ion collisions use Spitzer
-// frequencies computed from the local moments. Unlike rt_pkpm_sheath_1x.c, nothing holds the
+// frequencies computed from the local moments (their momentum and energy exchange takes one
+// backward-Euler step in each SSP-RK3 stage). Unlike rt_pkpm_sheath_1x.c, nothing holds the
 // upstream temperature, so the electrons cool as their tail escapes and the sheath is weaker.
 // The position map clusters the cells at the wall.
 // Run to t = 1000/omega_pe; the potential drop still falls by 1.5% over the next 200/omega_pe.
 // PKPM has three velocity degrees of freedom, so the 1x1v figures of the Vlasov test do not apply:
 // the reference is a Vlasov 1x3v run of the same setup, in parentheses. Figures of merit at
-// t = 1000: midplane-to-wall potential drop e*dphi/Te = 1.018 (1.021), ion wall flux / (n_mid c_s)
+// t = 1000: midplane-to-wall potential drop e*dphi/Te = 1.019 (1.021), ion wall flux / (n_mid c_s)
 // = 0.428 (0.434), ion speed at the wall / c_s = 1.258 (1.252), with Te the source temperature and
 // c_s = sqrt((Te + Ti)/mi). Over the presheath (the 13 cells upstream of the three sheath cells)
-// the cell averages are within 0.5% of that run in the density, 1.7% in the ion flow velocity,
-// 2.3% in the ion temperature and 5.0% in the electron temperature (rms 0.3%, 1.4%, 1.7% and
+// the cell averages are within 0.5% of that run in the density, 1.8% in the ion flow velocity,
+// 2.4% in the ion temperature and 5.1% in the electron temperature (rms 0.3%, 1.4%, 1.7% and
 // 2.9%), the largest differences being at the sheath edge.
 
 #include <math.h>

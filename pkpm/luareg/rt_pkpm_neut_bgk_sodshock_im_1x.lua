@@ -5,16 +5,17 @@
 -- collision frequency puts the mean free path at 1/310 of a cell, so the solution follows the Euler
 -- Sod solution of a gas with three degrees of freedom (PKPM carries the perpendicular temperature),
 -- adiabatic index 5/3. A static magnetic field along x sets the field direction.
--- The BGK relaxation takes one backward-Euler step after each SSP-RK3 step of the collisionless
--- terms, so the transport alone sets the time step (nu dt = 2).
+-- The BGK relaxation takes one backward-Euler step in each SSP-RK3 stage, over the time weight of
+-- the stage, so the transport alone sets the time step (nu dt = 2).
 -- Exact solution at t = 0.1: shock at x = 0.684, contact at 0.584, post-shock density 0.230,
 -- velocity 0.841.
--- Figures of merit (32 x 16 cells): the shock at 0.686 and the contact at 0.580 lie within 0.15
--- cells of the Euler positions; the post-shock plateau, three cells wide, has density 0.231 (0.7%
--- high) and velocity 0.860 (2% high, from the cell behind the shock); the density L1 error is
--- 0.0096 (Vlasov 1x3v, serendipity p2 with 6^3 mapped velocity cells: 0.006). The explicit update
--- at the same nu, with three times the steps, agrees to 1.5e-3 in the fluid; nu = 1e5 and 1e6
--- (nu dt = 190) move the figures of merit by less than 0.001. The constraints hold to round-off.
+-- Figures of merit (32 x 16 cells): the shock at 0.686 and the contact at 0.581 (where the cell
+-- averages of the density cross the middle of each jump) lie within 0.1 cells of the Euler
+-- positions; over the three cells between them the density averages 0.230 and the velocity 0.829,
+-- with 0.871 (3.6% high) in the cell behind the shock; the L1 error of the cell averages of the
+-- density is 0.0064. The explicit update at the same nu, with three times the steps, agrees to
+-- 1e-5 in the fluid; nu = 1e5 and 1e6 (nu dt = 190) move the figures of merit by less than 0.001.
+-- The constraints hold to round-off.
 
 local PKPM = G0.PKPM
 

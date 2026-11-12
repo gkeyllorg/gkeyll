@@ -5,13 +5,15 @@
 // In the Euler limit the pulse returns unchanged to its starting position. With collisions at nu =
 // 100 the heat flux relaxes at nu, so the gas conducts heat with thermal diffusivity chi = T/(m nu)
 // and the pulse, a temperature perturbation at constant pressure, decays as exp(-chi k^2 t), k^2 =
-// pi^2. The BGK relaxation takes one backward-Euler step after each SSP-RK3 step. Within a step the
-// heat flux grows from its relaxed value, so the split conducts with chi (1 + nu dt/2).
+// pi^2. The BGK relaxation takes one backward-Euler step in each SSP-RK3 stage, over the time weight
+// of the stage. Every stage has the relaxed heat flux as its fixed point, so the conduction does not
+// depend on the time step.
 // Figures of merit (16 x 16 cells): at t = 2 the pulse is back at its starting position (phase
-// error below 1e-4 rad) with amplitude 0.817, against exp(-chi k^2 t) = 0.821. At nu dt = 0.26 the
-// decay rate is 1.130 times that of rt_pkpm_travel_pulse_bgk_1x (amplitude 0.836), against
-// 1 + nu dt/2 = 1.129 (1.065 and 1.033 at cfl 1/2 and 1/4). Particle number is conserved to 1e-13
-// and the constraints to round-off.
+// error below 2e-3 rad) with amplitude 0.836, against exp(-chi k^2 t) = 0.821. At nu dt = 0.26 the
+// decay rate is 0.9996 times that of rt_pkpm_travel_pulse_bgk_1x (amplitude 0.836). At nu = 1e3 and
+// 1e6 (nu dt = 2.6 and 2600) the decay rates 0.0110 and 0.0022 are the same at cfl 1 and 1/2; the
+// second is the diffusion of the grid alone. Particle number is conserved to 1e-13 and the
+// constraints to round-off.
 
 #include <math.h>
 #include <stdio.h>

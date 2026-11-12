@@ -432,10 +432,13 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   }
   pkpm_species_source_bgk_init(app, s, &s->src_bgk);
 
-  // Operators at the configuration-space nodes share the nodal copy of the distributions.
-  s->has_nodal_ops = !app->use_gpu && (s->collision_id == GKYL_BGK_COLLISIONS ||
-                                       s->collision_id == GKYL_LBO_COLLISIONS ||
-                                       s->src_bgk.source_bgk_id != GKYL_NO_SOURCE_BGK);
+  // The explicit operators at the configuration-space nodes share the nodal copy of the
+  // distributions. The implicit ones are weak products in place and need none.
+  bool has_explicit_bgk = s->collision_id == GKYL_BGK_COLLISIONS && !s->bgk.is_implicit;
+  bool has_explicit_source = s->src_bgk.source_bgk_id != GKYL_NO_SOURCE_BGK &&
+                             !s->src_bgk.is_implicit;
+  s->has_nodal_ops = !app->use_gpu && (has_explicit_bgk || has_explicit_source ||
+                                       s->collision_id == GKYL_LBO_COLLISIONS);
   if (s->has_nodal_ops) {
     s->f_nodal = mkarr(false, s->f->ncomp, s->local_ext.volume);
     s->rhs_nodal = mkarr(false, s->f->ncomp, s->local_ext.volume);

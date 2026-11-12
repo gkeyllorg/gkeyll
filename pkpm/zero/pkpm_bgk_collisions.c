@@ -18,6 +18,9 @@ gkyl_pkpm_bgk_collisions_new(
   up->cdim = conf_basis->ndim;
   up->num_nodes = conf_basis->num_basis;
   up->num_phase_basis = phase_basis->num_basis;
+  up->conf_to_modal = pkpm_bgk_conf_to_modal_list[up->cdim - 1];
+  up->phase_to_modal = pkpm_bgk_phase_to_modal_list[up->cdim - 1];
+  up->conf_phase_mul = pkpm_bgk_conf_phase_mul_list[up->cdim - 1];
   return up;
 }
 
@@ -78,9 +81,11 @@ gkyl_pkpm_bgk_collisions_implicit_advance(
   const struct gkyl_pkpm_bgk_collisions *up, const struct gkyl_range *conf_range,
   const struct gkyl_range *vel_range, const struct gkyl_range *phase_range,
   const struct gkyl_array *shape, const struct gkyl_array *jacob, const struct gkyl_array *f_lte,
-  const struct gkyl_array *fnodal, struct gkyl_array *incr_nodal
+  struct gkyl_array *f
 )
 {
+  int num_nodes = up->num_nodes, num_phase_basis = up->num_phase_basis;
+
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, phase_range);
   while (gkyl_range_iter_next(&iter)) {
@@ -90,14 +95,33 @@ gkyl_pkpm_bgk_collisions_implicit_advance(
 
     const double *shape_d = gkyl_array_cfetch(shape, cloc);
     const double *jacob_d = gkyl_array_cfetch(jacob, cloc);
-    double relax[PKPM_BGK_MAX_NODES];
-    for (int q = 0; q < up->num_nodes; ++q) {
-      relax[q] = 1.0 - shape_d[q];
+    const double *f_lte_d = gkyl_array_cfetch(f_lte, vloc);
+    double *f_d = gkyl_array_fetch(f, ploc);
+
+    // expansions of S and of (1 - S) J f_t (a p=1 weak product equals the product at the nodes)
+    double shape_modal[PKPM_BGK_MAX_NODES];
+    up->conf_to_modal(shape_d, shape_modal);
+    double target_nodal[PKPM_BGK_MAX_PHASE_BASIS], target[PKPM_BGK_MAX_PHASE_BASIS];
+    for (int q = 0; q < num_nodes; ++q) {
+      for (int j = 0; j < PKPM_BGK_NUM_MODES; ++j) {
+        target_nodal[q * PKPM_BGK_NUM_MODES + j] = (1.0 - shape_d[q]) * jacob_d[0] * f_lte_d[j];
+      }
     }
-    pkpm_bgk_collisions_relax(
-      up, relax, jacob_d[0], gkyl_array_cfetch(f_lte, vloc), gkyl_array_cfetch(fnodal, ploc),
-      gkyl_array_fetch(incr_nodal, ploc)
-    );
+    for (int k = 0; k < num_phase_basis; ++k) {
+      target[k] = 0.0;
+    }
+    up->phase_to_modal(target_nodal, target);
+
+    // F and G relax to the Maxwellian, the first-harmonic blocks to zero
+    for (int b = 0; b < PKPM_BGK_NUM_BLOCKS; ++b) {
+      double *f_b = &f_d[b * num_phase_basis];
+      double prod[PKPM_BGK_MAX_PHASE_BASIS];
+      up->conf_phase_mul(shape_modal, f_b, prod);
+      double target_fac = b < 2 ? 1.0 : 0.0;
+      for (int k = 0; k < num_phase_basis; ++k) {
+        f_b[k] = prod[k] + target_fac * target[k];
+      }
+    }
   }
 }
 

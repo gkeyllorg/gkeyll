@@ -163,18 +163,19 @@ struct pkpm_coll_cross {
   gkyl_pkpm_coll_nu *up_cross_nu; // cross frequencies: given, or computed
   gkyl_pkpm_coll_cross *up; // kinetic rate and exchange coefficient with a partner
   pkpm_coll_cross_prim_t calc_prim; // node values and self frequency of the stage
-  pkpm_coll_cross_prim_t calc_step_prim; // node values and self frequency after the step
+  pkpm_coll_cross_prim_t calc_step_prim; // node values and self frequency of the implicit stage
   pkpm_coll_cross_moms_t calc_moms; // rate of the kinetic operator of the stage
 };
 
 // Momentum and energy exchange of the species that have partners: one backward-Euler step over
-// all of them after each SSP-RK3 step.
+// all of them in each SSP-RK3 stage.
 struct pkpm_coll_exchange {
   int num_species; // number of species with partners
   struct pkpm_species *species[GKYL_MAX_SPECIES]; // those species
   struct gkyl_pkpm_coll_cross_species inp[GKYL_MAX_SPECIES]; // their data in the exchange
   gkyl_pkpm_coll_cross *up; // the backward-Euler step
-  void (*exchange)(gkyl_pkpm_app *app, double dt); // the step, or nothing without such species
+  // the step on the given fluid states, or nothing without such species
+  void (*exchange)(gkyl_pkpm_app *app, double dt, struct gkyl_array *fluid[]);
 };
 
 // Accumulate the kinetic BGK term of a species onto rhs.
@@ -191,7 +192,7 @@ typedef void (*pkpm_bgk_shape_t)(
 struct pkpm_bgk_collisions {
   // The operator at the configuration-space nodes.
   bool use_nodal; // false for GPU runs
-  bool is_implicit; // backward Euler after each SSP-RK3 step (nodal only)
+  bool is_implicit; // backward Euler in each SSP-RK3 stage (nodal only)
   struct gkyl_array *rate_self; // self-collision frequency at the nodes (given or computed)
   struct gkyl_array *rate; // relaxation rate at the nodes (rate_self itself without partners)
   struct gkyl_array *shape; // implicit shape factor S at the nodes
@@ -217,7 +218,7 @@ typedef void (*pkpm_source_bgk_rhs_t)(
 // BGK-form temperature source at the configuration-space nodes.
 struct pkpm_source_bgk {
   enum gkyl_source_bgk_id source_bgk_id; // type of source
-  bool is_implicit; // backward Euler after each SSP-RK3 step
+  bool is_implicit; // backward Euler in each SSP-RK3 stage
   struct gkyl_array *rate; // source rate nu_Q at the nodes
   struct gkyl_array *vtsq; // source temperature over the mass, T_Q/m, at the nodes
   struct gkyl_array *shape; // rate (explicit) or shape factor (implicit) of the distributions
@@ -679,7 +680,6 @@ struct gkyl_update_status pkpm_update_explicit_ssp_rk3(gkyl_pkpm_app *app, doubl
 
 // The SSP-RK3 step followed by one backward-Euler step of the implicit collisions over the step
 // RK3 took (the transport step T of both update paths).
-struct gkyl_update_status pkpm_update_ssp_rk3_implicit_coll(gkyl_pkpm_app *app, double dt0);
 
 /** gkyl_pkpm_app private API */
 
@@ -960,10 +960,10 @@ void pkpm_species_coll_cross_prim(
 // pkpm_species_coll_cross_prim (and the LBO moments) of every species.
 void pkpm_species_coll_cross_moms(gkyl_pkpm_app *app, struct pkpm_species *s);
 // One backward-Euler step over dt of the momentum and energy exchange of every species with its
-// partners, on their fluid states (with the vertex limiter and the fluid boundary conditions),
-// from the state after the SSP-RK3 step. It also forms the node values and frequencies the
-// implicit BGK steps read, so it comes before them.
-void pkpm_coll_cross_advance(gkyl_pkpm_app *app, double dt);
+// partners, on the given fluid states (one per species of the app; with the vertex limiter and
+// the fluid boundary conditions). It also forms the node values and frequencies the implicit BGK
+// steps read, so it comes before them.
+void pkpm_coll_cross_advance(gkyl_pkpm_app *app, double dt, struct gkyl_array *fluid[]);
 // Shape factor of the implicit BGK step of a species with partners, after pkpm_coll_cross_advance.
 void pkpm_species_coll_cross_shape(
   gkyl_pkpm_app *app, struct pkpm_species *s, double dt, struct gkyl_array *shape
@@ -972,8 +972,8 @@ void pkpm_coll_cross_release(const gkyl_pkpm_app *app);
 void pkpm_species_coll_cross_release(const gkyl_pkpm_app *app, const struct pkpm_coll_cross *cross);
 
 // Temperature source (pkpm_species_source_bgk.c). The explicit form enters the right-hand
-// sides before the closures; the implicit form is one backward-Euler step over dt on the
-// distributions and the fluid state of the species (interior only).
+// sides before the closures; the implicit form is one backward-Euler step over dt on a
+// distribution and a fluid state of the species (interior only).
 void pkpm_species_source_bgk_init(
   gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_source_bgk *src
 );
@@ -983,7 +983,8 @@ void pkpm_species_source_bgk_rhs(
   struct gkyl_array *rhs_fluid
 );
 void pkpm_species_source_bgk_implicit_advance(
-  gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_source_bgk *src, double dt
+  gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_source_bgk *src, double dt,
+  struct gkyl_array *f, struct gkyl_array *fluid
 );
 void pkpm_species_source_bgk_release(const gkyl_pkpm_app *app, const struct pkpm_source_bgk *src);
 // Project M0_perp and N_perp of the distributions f onto the plane perpendicular to the current b
@@ -1012,10 +1013,16 @@ void pkpm_species_bgk_kinetic_rhs(
   gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_bgk_collisions *bgk,
   const struct gkyl_array *fin, struct gkyl_array *rhs
 );
-// One backward-Euler step of the BGK operator over dt on the species distribution (interior only).
+// One backward-Euler step of the BGK operator over dt on a distribution of the species (interior
+// only).
 void pkpm_species_bgk_implicit_advance(
-  gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_bgk_collisions *bgk, double dt
+  gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_bgk_collisions *bgk, double dt,
+  struct gkyl_array *f
 );
+// Implicit collisions and sources of a Runge-Kutta stage (stage = 1, 2, 3), after its
+// forward-Euler step and combination: one backward-Euler step over the time weight of the stage
+// on the stage states f1 and fluid1 of the species (pkpm_coll_stage.c).
+void pkpm_coll_stage_advance(gkyl_pkpm_app *app, int stage, double dt);
 void pkpm_species_bgk_release(const gkyl_pkpm_app *app, const struct pkpm_bgk_collisions *bgk);
 
 // Output metadata helpers (pkpm.c).

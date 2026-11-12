@@ -5,11 +5,11 @@
 // speed) and ions (mass 100, T = 0.5, at rest) with constant collision frequencies nu_ee = nu_ei = 1,
 // nu_ii = 0.1 and nu_ie = (m_e / m_i) nu_ei, so that m_e n_e nu_ei = m_i n_i nu_ie. Both species
 // start with T_perp / T_par = 1.3. Run for 5 electron collision times.
-// The pair exchanges momentum and energy through the fluid states, in one backward-Euler step after
-// each time step; the distributions take the self operator at a rate that includes the partner.
+// The pair exchanges momentum and energy through the fluid states, in one backward-Euler step in
+// each SSP-RK3 stage; the distributions take the self operator at a rate that includes the partner.
 // Particle number is conserved exactly and the total momentum and total energy to 1e-12; the
-// constraints hold to 4e-13. The drift difference decays at nu_ei + nu_ie = 1.0100 (measured 1.0094:
-// each step divides it by 1 + (nu_ei + nu_ie) dt, with (nu_ei + nu_ie) dt = 1.1e-3) and the
+// constraints hold to 4e-13. The drift difference decays at nu_ei + nu_ie = 1.0100 (measured 1.0095:
+// the exchange is first order in time, with (nu_ei + nu_ie) dt = 1.1e-3) and the
 // temperature difference at 2 (nu_ei m_e + nu_ie m_i) / (m_e + m_i) = 0.0396 (measured 0.0395). The
 // pressure anisotropy decays at 2 (nu_ee + nu_ei) = 4 for the electrons and at 2 (nu_ii + nu_ie) =
 // 0.22 for the ions (measured 4.0000 and 0.2200). Vlasov 1x3v measures 1.01, 0.0396, 4.02 and 0.220.

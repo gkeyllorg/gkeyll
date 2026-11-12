@@ -133,7 +133,7 @@ pkpm_species_bgk_shape_self(
 }
 
 // Backward Euler with partners: S_q = min(1, (T_q / T_q') / (1 + (nu_q + sum_r nu_sr_q) dt)) with
-// the temperatures before and after the exchange of the step, so that every pressure component
+// the temperatures before and after the exchange of the stage, so that every pressure component
 // takes the backward-Euler step at the total frequency.
 static void
 pkpm_species_bgk_shape_cross(
@@ -152,7 +152,7 @@ pkpm_species_bgk_init_nodal(
 {
   bgk->rate_self = pkpm_species_coll_self_nu_new(app, s, nu_frac);
   // Without partners the self frequency is the rate of the operator. With partners the rate is
-  // rebuilt from it every stage (explicit) or step (implicit).
+  // rebuilt from it every stage.
   if (s->info.collisions.num_cross_collisions) {
     bgk->rate = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
     gkyl_array_copy(bgk->rate, bgk->rate_self);
@@ -243,17 +243,16 @@ pkpm_species_bgk_kinetic_rhs(
 // to zero as nu dt grows.
 void
 pkpm_species_bgk_implicit_advance(
-  gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_bgk_collisions *bgk, double dt
+  gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_bgk_collisions *bgk, double dt,
+  struct gkyl_array *f
 )
 {
   struct timespec tm = gkyl_wall_clock();
   bgk->calc_shape(app, s, bgk, dt);
-  pkpm_species_nodal_dist(app, s, s->f);
   gkyl_pkpm_bgk_collisions_implicit_advance(
     bgk->up_bgk, &app->local, &s->local_vel, &s->local, bgk->shape, app->pos_map->jacob_pos_gauss,
-    bgk->f_lte, s->f_nodal, s->rhs_nodal
+    bgk->f_lte, f
   );
-  pkpm_species_nodal_accumulate(app, s, s->f);
   app->stat.species_coll_tm += gkyl_time_diff_now_sec(tm);
 }
 

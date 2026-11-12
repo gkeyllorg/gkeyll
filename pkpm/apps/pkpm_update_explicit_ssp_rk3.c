@@ -37,6 +37,7 @@ pkpm_update_explicit_ssp_rk3(gkyl_pkpm_app *app, double dt0)
           pkpm_field_limiter(app, app->field, app->field->emnew);
 
           dt = st.dt_actual;
+          pkpm_coll_stage_advance(app, 1, dt);
           state = RK_STAGE_2;
 
           app->stat.rk3_tm += gkyl_time_diff_now_sec(rk3_s1_tm);
@@ -86,6 +87,7 @@ pkpm_update_explicit_ssp_rk3(gkyl_pkpm_app *app, double dt0)
               app->field->em1, 3.0 / 4.0, app->field->em, 1.0 / 4.0, app->field->emnew,
               &app->local_ext
             );
+            pkpm_coll_stage_advance(app, 2, dt);
 
             state = RK_STAGE_3;
           }
@@ -128,14 +130,17 @@ pkpm_update_explicit_ssp_rk3(gkyl_pkpm_app *app, double dt0)
                 app->species[i].f1, 1.0 / 3.0, app->species[i].f, 2.0 / 3.0, app->species[i].fnew,
                 &app->species[i].local_ext
               );
-              gkyl_array_copy_range(
-                app->species[i].f, app->species[i].f1, &app->species[i].local_ext
-              );
             }
             for (int i = 0; i < ns; ++i) {
               array_combine(
                 app->species[i].fluid1, 1.0 / 3.0, app->species[i].fluid, 2.0 / 3.0,
                 app->species[i].fluidnew, &app->local_ext
+              );
+            }
+            pkpm_coll_stage_advance(app, 3, dt);
+            for (int i = 0; i < ns; ++i) {
+              gkyl_array_copy_range(
+                app->species[i].f, app->species[i].f1, &app->species[i].local_ext
               );
               gkyl_array_copy_range(app->species[i].fluid, app->species[i].fluid1, &app->local_ext);
             }
@@ -154,36 +159,6 @@ pkpm_update_explicit_ssp_rk3(gkyl_pkpm_app *app, double dt0)
 
       case RK_COMPLETE: // can't happen: suppresses warning
         break;
-    }
-  }
-
-  return st;
-}
-
-struct gkyl_update_status
-pkpm_update_ssp_rk3_implicit_coll(gkyl_pkpm_app *app, double dt0)
-{
-  struct gkyl_update_status st = pkpm_update_explicit_ssp_rk3(app, dt0);
-
-  // Momentum and energy exchange of the species that collide with each other, for every
-  // collision operator.
-  pkpm_coll_cross_advance(app, st.dt_actual);
-
-  // The implicit operators act at the nodes on the same target, so they commute. The
-  // temperature source changes the energy at the nodes, so the vertex limiter follows it.
-  for (int i = 0; i < app->num_species; ++i) {
-    struct pkpm_species *s = &app->species[i];
-    bool is_implicit_bgk = s->collision_id == GKYL_BGK_COLLISIONS && s->bgk.is_implicit;
-    if (is_implicit_bgk) {
-      pkpm_species_bgk_implicit_advance(app, s, &s->bgk, st.dt_actual);
-    }
-    if (s->src_bgk.is_implicit) {
-      pkpm_species_source_bgk_implicit_advance(app, s, &s->src_bgk, st.dt_actual);
-      pkpm_species_apply_positivity(app, s, s->fluid);
-      pkpm_fluid_species_apply_bc(app, s, s->fluid);
-    }
-    if (is_implicit_bgk || s->src_bgk.is_implicit) {
-      pkpm_species_apply_bc(app, s, s->f);
     }
   }
 

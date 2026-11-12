@@ -6,13 +6,16 @@
 // nu_ee = nu_ei = 50, nu_ii = 5 and nu_ie = (m_e / m_i) nu_ei. Both species start with
 // T_perp / T_par = 1.3. Run for 50 electron collision times in 18 steps, with (nu_ee + nu_ei) dt
 // between 5.2 and 5.8.
-// Particle number is conserved exactly and the total momentum and total energy to 5e-15; the
-// constraints hold to 7e-16. Each step divides the drift difference by 1 + (nu_ei + nu_ie) dt and
-// the pressure anisotropy of each species by 1 + (nu_ss + nu_sr) dt, to the round-off of those
-// differences. It divides the temperature difference by
-// 1 + 2 (nu_ei m_e + nu_ie m_i) / (m_e + m_i) dt up to the frictional heating, 7e-4 in the first
-// step and 12 times less in each step after it. The temperatures end at 0.78844 (electrons) and
-// 0.71197 (ions). The same holds with the drift across the magnetic field.
+// The exchange of the pair and the relaxation of the distributions take one backward-Euler step in
+// each SSP-RK3 stage, over the time weight of the stage, so with z = nu dt a step multiplies a
+// relaxing quantity by R(z) = [1/3 + (2/3) (3/4 + (1/4)/(1 + z))/(1 + z/4)]/(1 + 2 z/3).
+// Particle number is conserved exactly and the total momentum and total energy to 7e-15; the
+// constraints hold to 1e-15. Each step multiplies the drift difference by R((nu_ei + nu_ie) dt) to
+// the round-off of that difference, the temperature difference by
+// R(2 (nu_ei m_e + nu_ie m_i) / (m_e + m_i) dt) to 8e-4 (the frictional heating) and the pressure
+// anisotropy of each species by R((nu_ss + nu_sr) dt) to 5e-3 (the stages combine distributions
+// normalized by different temperatures). The temperatures end at 0.78782 (electrons) and 0.71260
+// (ions). The same holds with the drift across the magnetic field.
 
 #include <math.h>
 #include <stdio.h>

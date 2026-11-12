@@ -14,8 +14,8 @@
 // The kinetic operator of each species, the self operator in the normalized variables, takes a
 // rate that includes its partners; it is part of the LBO or BGK update of the species. The
 // momentum and energy exchange enters the fluid states: one backward-Euler step over all species
-// after each SSP-RK3 step, which conserves the momentum and energy of the species at every node
-// and does not depend on the operators or on their time integration.
+// in each SSP-RK3 stage (pkpm_coll_stage.c), which conserves the momentum and energy of the
+// species at every node and does not depend on the operators or on their time integration.
 
 // Operations of a species that needs none.
 static void
@@ -193,8 +193,9 @@ pkpm_species_coll_cross_init(gkyl_pkpm_app *app, struct pkpm_species *s)
   pkpm_coll_cross_prim_t calc_prim = has_self_nu ? pkpm_species_coll_cross_prim_self_nu :
                                                    pkpm_species_coll_cross_prim_nodal;
 
-  // The exchange reads the node values after each step. The kinetic operator reads them (and
-  // the self frequency) in the stages, or after the step if it is implicit.
+  // The exchange reads the node values of the stage state after its forward-Euler step. The
+  // kinetic operator reads them (and the self frequency) before that step if it is explicit, with
+  // the exchange if it is implicit.
   bool is_implicit = is_bgk && coll->is_implicit;
   bool has_partners = cross->num_cross_collisions > 0;
   if (is_implicit) {
@@ -208,20 +209,13 @@ pkpm_species_coll_cross_init(gkyl_pkpm_app *app, struct pkpm_species *s)
   }
 }
 
-// No species has partners.
+// Exchange coefficient of every pair, and the total frequency of each species (self plus
+// partners; read by the implicit BGK step, rebuilt in the next stage otherwise), from the node
+// values of the species.
 static void
-pkpm_coll_cross_exchange_none(gkyl_pkpm_app *app, double dt)
-{
-}
-
-// Backward-Euler step of the exchange over the species with partners.
-static void
-pkpm_coll_cross_exchange_nodal(gkyl_pkpm_app *app, double dt)
+pkpm_coll_cross_pair_coefs(gkyl_pkpm_app *app)
 {
   struct pkpm_coll_exchange *exch = &app->coll_exchange;
-
-  // Exchange coefficient of every pair, and the total frequency of each species (self plus
-  // partners; read by the implicit BGK step, rebuilt in the next stage otherwise).
   for (int e = 0; e < exch->num_species; ++e) {
     struct pkpm_species *s = exch->species[e];
     struct pkpm_coll_cross *cross = &s->cross;
@@ -236,7 +230,23 @@ pkpm_coll_cross_exchange_nodal(gkyl_pkpm_app *app, double dt)
       gkyl_array_accumulate_range(cross->nu_kin, 1.0, cross->nu_self, &app->local);
     }
   }
+}
 
+// No species has partners.
+static void
+pkpm_coll_cross_exchange_none(gkyl_pkpm_app *app, double dt, struct gkyl_array *fluid[])
+{
+}
+
+// Backward-Euler step of the exchange over the species with partners, on the given fluid states.
+static void
+pkpm_coll_cross_exchange_nodal(gkyl_pkpm_app *app, double dt, struct gkyl_array *fluid[])
+{
+  struct pkpm_coll_exchange *exch = &app->coll_exchange;
+  pkpm_coll_cross_pair_coefs(app);
+  for (int e = 0; e < exch->num_species; ++e) {
+    exch->inp[e].fluid = fluid[exch->species[e] - app->species];
+  }
   gkyl_pkpm_coll_cross_advance(
     exch->up, &app->local, dt, app->pos_map->jacob_pos_gauss, exch->num_species, exch->inp
   );
@@ -245,8 +255,8 @@ pkpm_coll_cross_exchange_nodal(gkyl_pkpm_app *app, double dt)
   // limiter and the fluid boundary conditions follow it.
   for (int e = 0; e < exch->num_species; ++e) {
     struct pkpm_species *s = exch->species[e];
-    pkpm_species_apply_positivity(app, s, s->fluid);
-    pkpm_fluid_species_apply_bc(app, s, s->fluid);
+    pkpm_species_apply_positivity(app, s, exch->inp[e].fluid);
+    pkpm_fluid_species_apply_bc(app, s, exch->inp[e].fluid);
   }
 }
 
@@ -300,17 +310,24 @@ pkpm_species_coll_cross_moms(gkyl_pkpm_app *app, struct pkpm_species *s)
   app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);
 }
 
-void
-pkpm_coll_cross_advance(gkyl_pkpm_app *app, double dt)
+// Node values of the given fluid states (and the computed self frequencies of the implicit
+// operators), of every species.
+static void
+pkpm_coll_cross_step_prim(gkyl_pkpm_app *app, struct gkyl_array *fluid[])
 {
-  struct timespec wst = gkyl_wall_clock();
-  // Node values of the state after the SSP-RK3 step (and the computed self frequencies of the
-  // implicit operators), of every species before any exchange.
   for (int i = 0; i < app->num_species; ++i) {
     struct pkpm_species *s = &app->species[i];
-    s->cross.calc_step_prim(app, s, s->fluid);
+    s->cross.calc_step_prim(app, s, fluid[i]);
   }
-  app->coll_exchange.exchange(app, dt);
+}
+
+void
+pkpm_coll_cross_advance(gkyl_pkpm_app *app, double dt, struct gkyl_array *fluid[])
+{
+  struct timespec wst = gkyl_wall_clock();
+  // node values of every species before any exchange
+  pkpm_coll_cross_step_prim(app, fluid);
+  app->coll_exchange.exchange(app, dt, fluid);
   app->stat.species_coll_tm += gkyl_time_diff_now_sec(wst);
 }
 
