@@ -31,6 +31,19 @@ pkpm_species_coll_profile_new(
   return nodal;
 }
 
+// Node values of zero stand in for a self-collision frequency that is computed every stage.
+struct gkyl_array *
+pkpm_species_coll_self_nu_new(gkyl_pkpm_app *app, const struct pkpm_species *s, double nu_frac)
+{
+  const struct gkyl_pkpm_collisions *coll = &s->info.collisions;
+  if (coll->self_nu) {
+    return pkpm_species_coll_profile_new(app, coll->self_nu, coll->ctx, nu_frac, true);
+  }
+  struct gkyl_array *nu = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
+  gkyl_array_clear(nu, 0.0);
+  return nu;
+}
+
 struct gkyl_array *
 pkpm_species_bgk_target_new(gkyl_pkpm_app *app, struct pkpm_species *s)
 {
@@ -100,6 +113,36 @@ pkpm_species_bgk_kinetic_rhs_modal(
   pkpm_species_accumulate_conf_phase(app, s, rhs, -1.0, bgk->nu, fin);
 }
 
+// Backward Euler for self-collisions, S_q = 1/(1 + nu_q dt): n, u and the energy are unchanged.
+static void
+pkpm_species_bgk_shape_self(
+  gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_bgk_collisions *bgk, double dt
+)
+{
+  int num_nodes = app->confBasis.num_basis;
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &app->local);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&app->local, iter.idx);
+    const double *rate_d = gkyl_array_cfetch(bgk->rate_self, loc);
+    double *shape_d = gkyl_array_fetch(bgk->shape, loc);
+    for (int q = 0; q < num_nodes; ++q) {
+      shape_d[q] = 1.0 / (1.0 + rate_d[q] * dt);
+    }
+  }
+}
+
+// Backward Euler with partners: S_q = min(1, (T_q / T_q') / (1 + (nu_q + sum_r nu_sr_q) dt)) with
+// the temperatures before and after the exchange of the step, so that every pressure component
+// takes the backward-Euler step at the total frequency.
+static void
+pkpm_species_bgk_shape_cross(
+  gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_bgk_collisions *bgk, double dt
+)
+{
+  pkpm_species_coll_cross_shape(app, s, dt, bgk->shape);
+}
+
 // The collision frequency at the nodes and the single velocity-space target of the operator:
 // the unit Maxwellian in w, with its discrete moments corrected to [1, 0, 1].
 static void
@@ -107,15 +150,23 @@ pkpm_species_bgk_init_nodal(
   gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_bgk_collisions *bgk, double nu_frac
 )
 {
-  bgk->rate = pkpm_species_coll_profile_new(
-    app, s->info.collisions.self_nu, s->info.collisions.ctx, nu_frac, true
-  );
+  bgk->rate_self = pkpm_species_coll_self_nu_new(app, s, nu_frac);
+  // Without partners the self frequency is the rate of the operator. With partners the rate is
+  // rebuilt from it every stage (explicit) or step (implicit).
+  if (s->info.collisions.num_cross_collisions) {
+    bgk->rate = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
+    gkyl_array_copy(bgk->rate, bgk->rate_self);
+  } else {
+    bgk->rate = gkyl_array_acquire(bgk->rate_self);
+  }
   bgk->f_lte = pkpm_species_bgk_target_new(app, s);
   bgk->up_bgk = gkyl_pkpm_bgk_collisions_new(&app->confBasis, &app->basis, false);
   bgk->is_implicit = s->info.collisions.is_implicit;
   if (bgk->is_implicit) {
     bgk->shape = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
     bgk->kinetic_rhs = pkpm_species_bgk_kinetic_rhs_none;
+    bgk->calc_shape = s->info.collisions.num_cross_collisions ? pkpm_species_bgk_shape_cross :
+                                                                pkpm_species_bgk_shape_self;
   } else {
     bgk->kinetic_rhs = pkpm_species_bgk_kinetic_rhs_nodal;
   }
@@ -128,6 +179,8 @@ pkpm_species_bgk_init_modal(
   gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_bgk_collisions *bgk, double nu_frac
 )
 {
+  // The computed frequency is not available in this form.
+  assert(s->info.collisions.self_nu);
   struct gkyl_array *nu_host = pkpm_species_coll_profile_new(
     app, s->info.collisions.self_nu, s->info.collisions.ctx, nu_frac, false
   );
@@ -185,26 +238,16 @@ pkpm_species_bgk_kinetic_rhs(
   app->stat.species_coll_tm += gkyl_time_diff_now_sec(tm);
 }
 
-// Backward Euler for self-collisions, S_q = 1/(1 + nu_q dt): n, u and the energy are unchanged,
-// and the step is a convex combination of the state and the target, so it keeps the constraints of
-// the state and takes F, G to the target and the first harmonic to zero as nu dt grows.
+// Backward Euler of the operator: the step is a convex combination of the state and the target,
+// so it keeps the constraints of the state and takes F, G to the target and the first harmonic
+// to zero as nu dt grows.
 void
 pkpm_species_bgk_implicit_advance(
   gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_bgk_collisions *bgk, double dt
 )
 {
   struct timespec tm = gkyl_wall_clock();
-  int nc = app->confBasis.num_basis;
-  struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, &app->local);
-  while (gkyl_range_iter_next(&iter)) {
-    long loc = gkyl_range_idx(&app->local, iter.idx);
-    const double *rate_d = gkyl_array_cfetch(bgk->rate, loc);
-    double *shape_d = gkyl_array_fetch(bgk->shape, loc);
-    for (int q = 0; q < nc; ++q) {
-      shape_d[q] = 1.0 / (1.0 + rate_d[q] * dt);
-    }
-  }
+  bgk->calc_shape(app, s, bgk, dt);
   pkpm_species_nodal_dist(app, s, s->f);
   gkyl_pkpm_bgk_collisions_implicit_advance(
     bgk->up_bgk, &app->local, &s->local_vel, &s->local, bgk->shape, app->pos_map->jacob_pos_gauss,
@@ -221,6 +264,7 @@ pkpm_species_bgk_release(const gkyl_pkpm_app *app, const struct pkpm_bgk_collisi
     if (bgk->is_implicit) {
       gkyl_array_release(bgk->shape);
     }
+    gkyl_array_release(bgk->rate_self);
     gkyl_array_release(bgk->rate);
     gkyl_array_release(bgk->f_lte);
     gkyl_pkpm_bgk_collisions_release(bgk->up_bgk);

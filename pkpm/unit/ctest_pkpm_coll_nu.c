@@ -33,17 +33,16 @@ test_advance(int cdim)
   gkyl_range_init(&range, cdim, lower, upper);
 
   struct gkyl_array *ref = gkyl_array_new(GKYL_DOUBLE, nc, range.volume);
-  struct gkyl_array *n = gkyl_array_new(GKYL_DOUBLE, nc, range.volume);
-  struct gkyl_array *vs = gkyl_array_new(GKYL_DOUBLE, nc, range.volume);
-  struct gkyl_array *vr = gkyl_array_new(GKYL_DOUBLE, nc, range.volume);
+  // node fields [n, u (3), vtsq] of the species and of its partner
+  struct gkyl_array *prim_s = gkyl_array_new(GKYL_DOUBLE, 5 * nc, range.volume);
+  struct gkyl_array *prim_r = gkyl_array_new(GKYL_DOUBLE, 5 * nc, range.volume);
   struct gkyl_array *nu = gkyl_array_new(GKYL_DOUBLE, nc, range.volume);
   fill(ref, &range, 2.0, 0.1);
-  fill(n, &range, 1.5, 0.2);
-  fill(vs, &range, 0.7, 0.05);
-  fill(vr, &range, 0.3, 0.02);
+  fill(prim_s, &range, 0.5, 0.01);
+  fill(prim_r, &range, 1.5, 0.02);
 
   struct gkyl_pkpm_coll_nu *up_ref = gkyl_pkpm_coll_nu_new(&cbasis, false, 0.0, false);
-  gkyl_pkpm_coll_nu_advance(up_ref, &range, ref, n, vs, vr, nu);
+  gkyl_pkpm_coll_nu_advance(up_ref, &range, ref, prim_s, prim_r, nu);
   long loc = gkyl_range_idx(&range, lower);
   const double *nu_d = gkyl_array_cfetch(nu, loc), *ref_d = gkyl_array_cfetch(ref, loc);
   for (int q = 0; q < nc; ++q) {
@@ -52,10 +51,11 @@ test_advance(int cdim)
 
   double vtsq_min = 0.75;
   struct gkyl_pkpm_coll_nu *up_sp = gkyl_pkpm_coll_nu_new(&cbasis, true, vtsq_min, false);
-  double *n_w = gkyl_array_fetch(n, loc);
+  double *n_w = gkyl_array_fetch(prim_r, loc);
   n_w[nc - 1] = -1.0; // a node with a negative density has no collisions
-  gkyl_pkpm_coll_nu_advance(up_sp, &range, ref, n, vs, vr, nu);
-  const double *vs_d = gkyl_array_cfetch(vs, loc), *vr_d = gkyl_array_cfetch(vr, loc);
+  gkyl_pkpm_coll_nu_advance(up_sp, &range, ref, prim_s, prim_r, nu);
+  const double *vs_d = (const double *)gkyl_array_cfetch(prim_s, loc) + 4 * nc;
+  const double *vr_d = (const double *)gkyl_array_cfetch(prim_r, loc) + 4 * nc;
   for (int q = 0; q < nc; ++q) {
     double vsum = fmax(vs_d[q], vtsq_min) + fmax(vr_d[q], vtsq_min);
     double expected = q == nc - 1 ? 0.0 : ref_d[q] * n_w[q] / pow(vsum, 1.5);
@@ -66,9 +66,8 @@ test_advance(int cdim)
   gkyl_pkpm_coll_nu_release(up_ref);
   gkyl_pkpm_coll_nu_release(up_sp);
   gkyl_array_release(ref);
-  gkyl_array_release(n);
-  gkyl_array_release(vs);
-  gkyl_array_release(vr);
+  gkyl_array_release(prim_s);
+  gkyl_array_release(prim_r);
   gkyl_array_release(nu);
 }
 

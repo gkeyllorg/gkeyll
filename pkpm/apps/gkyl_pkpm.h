@@ -15,16 +15,27 @@ struct gkyl_pkpm_collisions {
   enum gkyl_collision_id collision_id; // type of collisions (see gkyl_eqn_type.h)
 
   void *ctx; // context for collision function
-  // function for computing self-collision frequency
+  // Function for the self-collision frequency. Without it the frequency is the Spitzer one
+  // computed from the local moments (see cross_nu).
   void (*self_nu)(double t, const double *xn, double *fout, void *ctx);
 
-  // inputs for Spitzer collisionality
-  bool normNu; // Set to true if you want to rescale collision frequency
-  double nuFrac; // Parameter for rescaling collision frequency from SI values
-  double hbar; // Planck's constant/2 pi
+  double nuFrac; // Rescales collision frequencies (default = 1)
+  // Reference parameters of the Coulomb logarithm of the computed collision frequencies. Unset
+  // entries default to 1, i.e. normalized units.
+  double den_ref; // Reference density
+  double temp_ref; // Reference temperature
+  double hbar, eps0; // Planck's constant/2 pi, vacuum permittivity
 
   int num_cross_collisions; // number of species to cross-collide with
   char collide_with[GKYL_MAX_SPECIES][128]; // names of species to cross collide with
+  // Functions for the cross-collision frequencies, one per species in collide_with. A species
+  // gives all of them or none, and so must its partners. With none, the frequencies are the
+  // Spitzer ones computed from the local moments of the pair,
+  //   nu_sr = nuFrac alpha_E (m_s + m_r) / (2 m_s) n_r / (vtsq_s + vtsq_r)^(3/2),
+  // with the constant part alpha_E of Morse's energy-exchange coefficient at the reference
+  // parameters (nu_ss = nuFrac alpha_E n_s / (2 vtsq_s)^(3/2) for the self frequency).
+  void (*cross_nu[GKYL_MAX_SPECIES])(double t, const double *xn, double *fout, void *ctx);
+  void *cross_nu_ctx[GKYL_MAX_SPECIES]; // contexts for the cross-collision functions
 
   // BGK collisions: one backward-Euler step after each time step instead of the explicit update
   // (with its CFL limit). Not available on the GPU.

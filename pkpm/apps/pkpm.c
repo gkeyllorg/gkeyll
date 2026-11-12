@@ -340,11 +340,9 @@ gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm)
   // as need pointers to colliding species' collision objects
   // allocated in the previous step
   for (int i = 0; i < ns; ++i) {
-    if (app->species[i].collision_id == GKYL_LBO_COLLISIONS &&
-        app->species[i].lbo.num_cross_collisions) {
-      pkpm_species_lbo_cross_init(app, &app->species[i], &app->species[i].lbo);
-    }
+    pkpm_species_coll_cross_init(app, &app->species[i]);
   }
+  pkpm_coll_cross_init(app);
 
   // Set the appropriate update function for taking a single time step
   app->use_explicit_source = pkpm->use_explicit_source;
@@ -1674,6 +1672,7 @@ gkyl_pkpm_app_release(gkyl_pkpm_app *app)
   }
 
   pkpm_field_release(app, app->field);
+  pkpm_coll_cross_release(app);
   if (!app->use_explicit_source) {
     pkpm_fluid_em_coupling_release(app, app->pkpm_em);
     for (int i = 0; i < app->num_species; ++i) {

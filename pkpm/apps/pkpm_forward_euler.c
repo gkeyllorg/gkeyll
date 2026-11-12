@@ -56,14 +56,13 @@ pkpm_forward_euler(
     if (app->species[i].collision_id == GKYL_LBO_COLLISIONS) {
       pkpm_species_lbo_moms(app, &app->species[i], &app->species[i].lbo, fin[i]);
     }
+    // node values of the fluid state for the computed frequencies and cross-species collisions
+    pkpm_species_coll_cross_prim(app, &app->species[i], fluidin[i]);
   }
   for (int i = 0; i < app->num_species; ++i) {
-    // compute necessary moments for cross-species collisions
-    // needs to be done after self-collisions moments, so separate loop over species
-    if (app->species[i].collision_id == GKYL_LBO_COLLISIONS &&
-        app->species[i].lbo.num_cross_collisions) {
-      pkpm_species_lbo_cross_moms(app, &app->species[i], &app->species[i].lbo, fin[i]);
-    }
+    // rate of the kinetic operator with the partner species: needs the node values (and the
+    // self-collision frequencies) of every species, so separate loop over species
+    pkpm_species_coll_cross_moms(app, &app->species[i]);
   }
 
   // Configuration-space face fluxes of the stage for every species (kinetic, fluid and their

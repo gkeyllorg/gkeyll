@@ -55,6 +55,7 @@
 #include <gkyl_pkpm_coll_nu.h>
 #include <gkyl_dg_conf_nodal.h>
 #include <gkyl_dg_updater_lbo_pkpm_nodal.h>
+#include <gkyl_pkpm_coll_cross.h>
 #include <gkyl_pkpm_lbo_moms.h>
 #include <gkyl_pkpm_lte.h>
 #include <gkyl_pkpm_temp_source.h>
@@ -129,7 +130,52 @@ struct pkpm_source {
   struct pkpm_source_eval_ctx eval_ctx;
 };
 
+struct pkpm_species;
 struct pkpm_bgk_collisions;
+
+// Compute the node values [n, u (3), vtsq] of a species from a fluid state (with the Jacobian).
+typedef void (*pkpm_coll_cross_prim_t)(
+  gkyl_pkpm_app *app, struct pkpm_species *s, const struct gkyl_array *fluid
+);
+
+// Compute the rate of the kinetic operator of a species with its partners at the nodes.
+typedef void (*pkpm_coll_cross_moms_t)(gkyl_pkpm_app *app, struct pkpm_species *s);
+
+// Collision frequencies and cross-species collisions of a species (LBO or BGK) at the
+// configuration-space nodes (CPU runs): the self-collision frequency when it is computed from
+// the local moments, and for each partner the rate it adds to the kinetic operator of the
+// species and the coefficient of the momentum and energy exchange (struct pkpm_coll_exchange).
+struct pkpm_coll_cross {
+  bool is_active; // the species computes its self frequency or has partners
+  int num_cross_collisions; // number of species we cross-collide with
+  struct pkpm_species *collide_with[GKYL_MAX_SPECIES]; // pointers to cross-species we collide with
+  int other_idx[GKYL_MAX_SPECIES]; // position of this species in each partner's collide_with
+  struct gkyl_array *prim_fluid; // [n, u (3), vtsq] of the species at the nodes
+  struct gkyl_array *self_nu_ref; // constant of the computed self frequency
+  struct gkyl_array *nu_ref[GKYL_MAX_SPECIES]; // reference cross frequencies at the nodes
+  struct gkyl_array *nu_self; // frequency of this species on the current partner
+  struct gkyl_array *nu_other; // frequency of the current partner on this species
+  struct gkyl_array *coef[GKYL_MAX_SPECIES]; // exchange coefficient with each partner at the nodes
+  struct gkyl_array *temp_ratio; // temperature before the exchange over that after it
+  struct gkyl_array *nu_kin_self; // rate of the kinetic operator from self collisions
+  struct gkyl_array *nu_kin; // rate of the kinetic operator (self plus partners)
+  gkyl_pkpm_coll_nu *up_self_nu; // computed self frequency
+  gkyl_pkpm_coll_nu *up_cross_nu; // cross frequencies: given, or computed
+  gkyl_pkpm_coll_cross *up; // kinetic rate and exchange coefficient with a partner
+  pkpm_coll_cross_prim_t calc_prim; // node values and self frequency of the stage
+  pkpm_coll_cross_prim_t calc_step_prim; // node values and self frequency after the step
+  pkpm_coll_cross_moms_t calc_moms; // rate of the kinetic operator of the stage
+};
+
+// Momentum and energy exchange of the species that have partners: one backward-Euler step over
+// all of them after each SSP-RK3 step.
+struct pkpm_coll_exchange {
+  int num_species; // number of species with partners
+  struct pkpm_species *species[GKYL_MAX_SPECIES]; // those species
+  struct gkyl_pkpm_coll_cross_species inp[GKYL_MAX_SPECIES]; // their data in the exchange
+  gkyl_pkpm_coll_cross *up; // the backward-Euler step
+  void (*exchange)(gkyl_pkpm_app *app, double dt); // the step, or nothing without such species
+};
 
 // Accumulate the kinetic BGK term of a species onto rhs.
 typedef void (*pkpm_bgk_kinetic_rhs_t)(
@@ -137,12 +183,19 @@ typedef void (*pkpm_bgk_kinetic_rhs_t)(
   const struct gkyl_array *fin, struct gkyl_array *rhs
 );
 
+// Compute the shape factor of the implicit BGK step of a species.
+typedef void (*pkpm_bgk_shape_t)(
+  gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_bgk_collisions *bgk, double dt
+);
+
 struct pkpm_bgk_collisions {
   // The operator at the configuration-space nodes.
   bool use_nodal; // false for GPU runs
   bool is_implicit; // backward Euler after each SSP-RK3 step (nodal only)
-  struct gkyl_array *rate; // relaxation rate at the nodes
+  struct gkyl_array *rate_self; // self-collision frequency at the nodes (given or computed)
+  struct gkyl_array *rate; // relaxation rate at the nodes (rate_self itself without partners)
   struct gkyl_array *shape; // implicit shape factor S at the nodes
+  pkpm_bgk_shape_t calc_shape; // shape factor of the implicit step (self, or with a partner)
   struct gkyl_array *f_lte; // corrected unit Maxwellian in w, 3 modes per velocity cell
   gkyl_pkpm_bgk_collisions *up_bgk; // updater
   pkpm_bgk_kinetic_rhs_t kinetic_rhs; // the nodal or modal kinetic term
@@ -176,7 +229,7 @@ struct pkpm_source_bgk {
 
 struct pkpm_lbo_collisions;
 
-// Compute the primitive moments and the collision frequency of the self LBO of a species.
+// Compute the primitive moments of the self LBO of a species.
 typedef void (*pkpm_lbo_moms_t)(
   gkyl_pkpm_app *app, const struct pkpm_species *species, struct pkpm_lbo_collisions *lbo,
   const struct gkyl_array *fin
@@ -191,12 +244,7 @@ typedef void (*pkpm_lbo_kinetic_rhs_t)(
 struct pkpm_lbo_collisions {
   // The operator at the configuration-space nodes.
   bool use_nodal; // false for GPU runs
-  struct gkyl_array *nu_ref; // reference collision frequency at the nodes
-  struct gkyl_array *nu; // collision frequency at the nodes
-  struct gkyl_array *n_nodal; // number density at the nodes (Spitzer)
-  struct gkyl_array *xi_nodal; // [xi, xi^2, p] at the nodes (Spitzer)
-  struct gkyl_array *vtsq_nodal; // physical thermal speed squared at the nodes (Spitzer)
-  gkyl_pkpm_coll_nu *up_nu; // collision frequency at the nodes
+  struct gkyl_array *nu; // collision frequency of the operator at the nodes
   gkyl_pkpm_lbo_moms *up_moms; // primitive moments at the nodes
   gkyl_dg_updater_lbo_pkpm_nodal *up_coll; // the operator at the nodes
   pkpm_lbo_moms_t calc_moms; // the nodal (constant or Spitzer frequency) or modal moments
@@ -206,40 +254,11 @@ struct pkpm_lbo_collisions {
   struct gkyl_mom_calc_bcorr *bcorr_calc; // LBO boundary corrections calculator
   struct gkyl_array *nu_sum, *nu_prim_moms; // expansions of nu and nu [u, vtsq] (GPU runs)
   struct gkyl_array *prim_moms; // [u, vtsq]: node values, or expansions on GPU runs
-  bool normNu; // Boolean to determine if using Spitzer value
-  struct gkyl_array
-    *norm_nu; // Array for normalization factor computed from Spitzer updater n/sqrt(2 vt^2)^3
-  struct gkyl_array *nu_init; // Array for initial collisionality when using Spitzer updater
-  struct gkyl_spitzer_coll_freq
-    *spitzer_calc; // Updater for Spitzer collisionality if computing Spitzer value
-  struct gkyl_array *maxwellian_moms; // Maxwellian moments n, t, v_t^2.
+  struct gkyl_array *self_nu; // expansion of the self-collision frequency (GPU runs)
 
-  double betaGreenep1; // value of Greene's factor beta + 1
-  double other_m[GKYL_MAX_SPECIES]; // masses of species being collided with
-  struct gkyl_array
-    *other_prim_moms[GKYL_MAX_SPECIES]; // self-primitive moments of species being collided with
-  struct gkyl_array *cross_prim_moms[GKYL_MAX_SPECIES]; // LBO cross-primitive moments
-  struct gkyl_array *cross_nu[GKYL_MAX_SPECIES]; // LBO cross-species collision frequencies
-  struct gkyl_array *other_nu[GKYL_MAX_SPECIES];
-  struct gkyl_array
-    *cross_nu_prim_moms; // weak multiplication of collision frequency and primitive moments
-
-  struct gkyl_array *self_nu, *self_nu_prim_moms; // LBO self-primitive moments
-
-  struct pkpm_species_moment
-    moms; // moments needed in LBO (single array includes Zeroth, First, and Second moment)
-  struct gkyl_array *m0;
-  struct gkyl_array *self_mnu_m0[GKYL_MAX_SPECIES], *self_mnu[GKYL_MAX_SPECIES];
-  struct gkyl_array *other_mnu_m0[GKYL_MAX_SPECIES], *other_mnu[GKYL_MAX_SPECIES];
-  struct gkyl_array *greene_num[GKYL_MAX_SPECIES], *greene_den[GKYL_MAX_SPECIES];
-  gkyl_dg_bin_op_mem *greene_factor_mem; // memory needed in computing Greene factor
-  struct gkyl_array *greene_factor[GKYL_MAX_SPECIES];
-
-  int num_cross_collisions; // number of species we cross-collide with
-  struct pkpm_species *collide_with[GKYL_MAX_SPECIES]; // pointers to cross-species we collide with
+  struct gkyl_array *nu_self; // self-collision frequency at the nodes (given or computed)
 
   gkyl_prim_lbo_calc *coll_pcalc; // LBO primitive moment calculator
-  gkyl_prim_lbo_cross_calc *cross_calc; // LBO cross-primitive moment calculator
   gkyl_dg_updater_collisions *coll_slvr; // collision solver
 };
 
@@ -449,6 +468,7 @@ struct pkpm_species {
   enum gkyl_collision_id collision_id; // type of collisions
   struct pkpm_lbo_collisions lbo; // collisions object
   struct pkpm_bgk_collisions bgk; // BGK collisions object
+  struct pkpm_coll_cross cross; // cross-species collisions (LBO or BGK)
 
   struct pkpm_source src; // source object
   struct pkpm_source_bgk src_bgk; // temperature source object
@@ -625,6 +645,7 @@ struct gkyl_pkpm_app {
   double fluid_positivity_eps; // Relative floor of the vertex positivity limiter (always applied)
   int num_face_nodes; // Transverse Gauss-Legendre nodes of a configuration face, per direction
   struct pkpm_fluid_em_coupling *pkpm_em; // fluid-EM coupling data
+  struct pkpm_coll_exchange coll_exchange; // cross-species momentum and energy exchange
   // pointer to function that takes a single-step of simulation
   struct gkyl_update_status (*update_func)(gkyl_pkpm_app *app, double dt0);
 
@@ -753,17 +774,6 @@ void pkpm_species_lbo_init(
 );
 
 /**
- * Initialize species LBO cross-collisions object.
- *
- * @param app PKPM app object
- * @param s Species object 
- * @param lbo Species LBO object
- */
-void pkpm_species_lbo_cross_init(
-  struct gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_lbo_collisions *lbo
-);
-
-/**
  * Compute necessary moments and boundary
  * corrections for LBO collisions
  *
@@ -773,21 +783,6 @@ void pkpm_species_lbo_cross_init(
  * @param fin Input distribution function
  */
 void pkpm_species_lbo_moms(
-  gkyl_pkpm_app *app, const struct pkpm_species *species, struct pkpm_lbo_collisions *lbo,
-  const struct gkyl_array *fin
-);
-
-/**
- * Compute necessary moments for cross-species LBO collisions
- *
- * @param app PKPM app object
- * @param species Pointer to species
- * @param lbo Pointer to LBO
- * @param fin Input distribution function
- * @param collides_with_fluid Boolean for if kinetic species collides with a fluid species
- * @param fluidin Input fluid array (size: num_fluid_species)
- */
-void pkpm_species_lbo_cross_moms(
   gkyl_pkpm_app *app, const struct pkpm_species *species, struct pkpm_lbo_collisions *lbo,
   const struct gkyl_array *fin
 );
@@ -931,15 +926,50 @@ struct gkyl_array *pkpm_species_coll_profile_new(
   gkyl_pkpm_app *app, void (*eval)(double t, const double *xn, double *fout, void *ctx), void *ctx,
   double scale, bool is_nodal
 );
+// The self-collision frequency of the input at the nodes, scaled by nu_frac: a new host array on
+// the extended range. Without an input function it is zero and the species' collision-frequency
+// object (pkpm_species_coll_cross.c) fills it every stage.
+struct gkyl_array *pkpm_species_coll_self_nu_new(
+  gkyl_pkpm_app *app, const struct pkpm_species *s, double nu_frac
+);
 // The target of the BGK-form operators: a new host array with the unit Maxwellian in w on the
 // velocity grid of the species (3 modes per cell), its discrete moments corrected to [1, 0, 1].
 struct gkyl_array *pkpm_species_bgk_target_new(gkyl_pkpm_app *app, struct pkpm_species *s);
 
-// BGK collisions: nu (f_target - f) with the normalized unit Maxwellian target. They conserve
-// the density, momentum and energy, so they never touch the fluid.
+// BGK collisions: nu (f_target - f) with the normalized unit Maxwellian target. Self collisions
+// conserve the density, momentum and energy, so they never touch the fluid.
 void pkpm_species_bgk_init(
   gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_bgk_collisions *bgk
 );
+
+// Computed collision frequencies and cross-species collisions (pkpm_species_coll_cross.c), for
+// LBO and BGK alike.
+// Initialize them for a species; call for every species, after the collision objects of all
+// species exist. A species with a given self frequency and no partners gets operations that do
+// nothing.
+void pkpm_species_coll_cross_init(gkyl_pkpm_app *app, struct pkpm_species *s);
+// Initialize the exchange of the species that have partners; call after
+// pkpm_species_coll_cross_init of every species.
+void pkpm_coll_cross_init(gkyl_pkpm_app *app);
+// Node values [n, u (3), vtsq] of the species from the fluid state of the stage, and its
+// self-collision frequency when it is computed.
+void pkpm_species_coll_cross_prim(
+  gkyl_pkpm_app *app, struct pkpm_species *s, const struct gkyl_array *fluidin
+);
+// The rate of the kinetic operator of the stage with every partner at the nodes. Call after
+// pkpm_species_coll_cross_prim (and the LBO moments) of every species.
+void pkpm_species_coll_cross_moms(gkyl_pkpm_app *app, struct pkpm_species *s);
+// One backward-Euler step over dt of the momentum and energy exchange of every species with its
+// partners, on their fluid states (with the vertex limiter and the fluid boundary conditions),
+// from the state after the SSP-RK3 step. It also forms the node values and frequencies the
+// implicit BGK steps read, so it comes before them.
+void pkpm_coll_cross_advance(gkyl_pkpm_app *app, double dt);
+// Shape factor of the implicit BGK step of a species with partners, after pkpm_coll_cross_advance.
+void pkpm_species_coll_cross_shape(
+  gkyl_pkpm_app *app, struct pkpm_species *s, double dt, struct gkyl_array *shape
+);
+void pkpm_coll_cross_release(const gkyl_pkpm_app *app);
+void pkpm_species_coll_cross_release(const gkyl_pkpm_app *app, const struct pkpm_coll_cross *cross);
 
 // Temperature source (pkpm_species_source_bgk.c). The explicit form enters the right-hand
 // sides before the closures; the implicit form is one backward-Euler step over dt on the

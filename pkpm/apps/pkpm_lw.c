@@ -77,6 +77,13 @@ struct pkpm_species_lw {
 
   int num_cross_collisions; // Number of species that we cross-collide with.
   char collide_with[GKYL_MAX_SPECIES][128]; // Names of species that we cross-collide with.
+  double nu_frac; // Rescales collision frequencies (default = 1).
+  double den_ref; // Reference density.
+  double temp_ref; // Reference temperature.
+  double hbar, eps0; // Planck's constant/2 pi, vacuum permittivity.
+  bool has_cross_nu_func[GKYL_MAX_SPECIES]; // Are there cross-collision frequency functions?
+  struct lua_func_ctx cross_nu_func_ref
+    [GKYL_MAX_SPECIES]; // Lua registry references to cross-collision frequency functions.
   bool is_implicit; // BGK: backward Euler instead of the explicit update?
 
   bool has_source_bgk; // Is there a temperature source?
@@ -212,6 +219,9 @@ pkpm_species_lw_new(lua_State *L)
 
   int num_cross_collisions = 0;
   char collide_with[GKYL_MAX_SPECIES][128];
+  bool has_cross_nu_func[GKYL_MAX_SPECIES];
+  int cross_nu_func_ref[GKYL_MAX_SPECIES];
+  double nu_frac = 1.0, den_ref = 0.0, temp_ref = 0.0, hbar = 0.0, eps0 = 0.0;
 
   bool is_implicit = false;
 
@@ -219,6 +229,12 @@ pkpm_species_lw_new(lua_State *L)
   {
     collision_id = glua_tbl_get_integer(L, "collisionID", 0);
     is_implicit = glua_tbl_get_bool(L, "useImplicitCollisionScheme", false);
+    nu_frac = glua_tbl_get_number(L, "nuFrac", 1.0);
+    // Parameters used to compute Coulomb logarithm.
+    den_ref = glua_tbl_get_number(L, "n0", 1.0);
+    temp_ref = glua_tbl_get_number(L, "T0", 1.0);
+    hbar = glua_tbl_get_number(L, "hbar", 1.0);
+    eps0 = glua_tbl_get_number(L, "epsilon0", 1.0);
 
     if (glua_tbl_get_func(L, "selfNu")) {
       self_nu_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
@@ -231,6 +247,21 @@ pkpm_species_lw_new(lua_State *L)
       for (int i = 0; i < num_cross_collisions; i++) {
         const char *collide_with_char = glua_tbl_iget_string(L, i + 1, "");
         strcpy(collide_with[i], collide_with_char);
+        has_cross_nu_func[i] = false;
+        cross_nu_func_ref[i] = LUA_NOREF;
+      }
+    }
+    // Cross-collision frequencies, one table per entry of collideWith.
+    with_lua_tbl_tbl(L, "collideWithCrossNu")
+    {
+      for (int i = 0; i < num_cross_collisions; i++) {
+        if (glua_tbl_iget_tbl(L, i + 1)) {
+          if (glua_tbl_get_func(L, "crossNu")) {
+            cross_nu_func_ref[i] = luaL_ref(L, LUA_REGISTRYINDEX);
+            has_cross_nu_func[i] = true;
+          }
+        }
+        lua_pop(L, 1);
       }
     }
   }
@@ -339,9 +370,17 @@ pkpm_species_lw_new(lua_State *L)
   pkpm_s_lw->self_nu_func_ref =
     (struct lua_func_ctx){.func_ref = self_nu_func_ref, .ndim = 0, .nret = 1, .L = L};
 
+  pkpm_s_lw->nu_frac = nu_frac;
+  pkpm_s_lw->den_ref = den_ref;
+  pkpm_s_lw->temp_ref = temp_ref;
+  pkpm_s_lw->hbar = hbar;
+  pkpm_s_lw->eps0 = eps0;
   pkpm_s_lw->num_cross_collisions = num_cross_collisions;
   for (int i = 0; i < num_cross_collisions; i++) {
     strcpy(pkpm_s_lw->collide_with[i], collide_with[i]);
+    pkpm_s_lw->has_cross_nu_func[i] = has_cross_nu_func[i];
+    pkpm_s_lw->cross_nu_func_ref[i] =
+      (struct lua_func_ctx){.func_ref = cross_nu_func_ref[i], .ndim = 0, .nret = 1, .L = L};
   }
   pkpm_s_lw->is_implicit = is_implicit;
 
@@ -542,6 +581,9 @@ struct pkpm_app_lw {
   int num_cross_collisions[GKYL_MAX_SPECIES]; // Number of species that we cross-collide with.
   char collide_with[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES]
                    [128]; // Names of species that we cross-collide with.
+  struct lua_func_ctx
+    cross_nu_func_ctx[GKYL_MAX_SPECIES]
+                     [GKYL_MAX_SPECIES]; // Contexts for cross-collision frequency functions.
 
   struct lua_func_ctx
     source_bgk_rate_func_ctx[GKYL_MAX_SPECIES]; // Context for temperature-source rate.
@@ -618,6 +660,10 @@ get_species_inp(lua_State *L, int cdim, struct pkpm_species_lw *species[GKYL_MAX
 
         if (pkpm_s->has_self_nu_func) {
           pkpm_s->self_nu_func_ref.ndim = cdim;
+        }
+
+        for (int i = 0; i < pkpm_s->num_cross_collisions; i++) {
+          pkpm_s->cross_nu_func_ref[i].ndim = cdim;
         }
 
         pkpm_s->source_bgk_rate_func_ref.ndim = cdim;
@@ -976,8 +1022,18 @@ pkpm_app_new(lua_State *L)
     pkpm.species[s].collisions.num_cross_collisions = app_lw->num_cross_collisions[s];
     for (int i = 0; i < app_lw->num_cross_collisions[s]; i++) {
       strcpy(pkpm.species[s].collisions.collide_with[i], app_lw->collide_with[s][i]);
+      app_lw->cross_nu_func_ctx[s][i] = species[s]->cross_nu_func_ref[i];
+      if (species[s]->has_cross_nu_func[i]) {
+        pkpm.species[s].collisions.cross_nu[i] = gkyl_lw_eval_cb;
+        pkpm.species[s].collisions.cross_nu_ctx[i] = &app_lw->cross_nu_func_ctx[s][i];
+      }
     }
     pkpm.species[s].collisions.is_implicit = species[s]->is_implicit;
+    pkpm.species[s].collisions.nuFrac = species[s]->nu_frac;
+    pkpm.species[s].collisions.den_ref = species[s]->den_ref;
+    pkpm.species[s].collisions.temp_ref = species[s]->temp_ref;
+    pkpm.species[s].collisions.hbar = species[s]->hbar;
+    pkpm.species[s].collisions.eps0 = species[s]->eps0;
 
     if (species[s]->has_source_bgk) {
       app_lw->source_bgk_rate_func_ctx[s] = species[s]->source_bgk_rate_func_ref;

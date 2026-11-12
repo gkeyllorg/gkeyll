@@ -9,8 +9,8 @@
 static void
 pkpm_coll_nu_advance_ref(
   const struct gkyl_pkpm_coll_nu *up, const struct gkyl_range *range,
-  const struct gkyl_array *nu_ref, const struct gkyl_array *n_other,
-  const struct gkyl_array *vtsq_self, const struct gkyl_array *vtsq_other, struct gkyl_array *nu
+  const struct gkyl_array *nu_ref, const struct gkyl_array *prim_self,
+  const struct gkyl_array *prim_other, struct gkyl_array *nu
 )
 {
   struct gkyl_range_iter iter;
@@ -24,8 +24,8 @@ pkpm_coll_nu_advance_ref(
 static void
 pkpm_coll_nu_advance_spitzer(
   const struct gkyl_pkpm_coll_nu *up, const struct gkyl_range *range,
-  const struct gkyl_array *nu_ref, const struct gkyl_array *n_other,
-  const struct gkyl_array *vtsq_self, const struct gkyl_array *vtsq_other, struct gkyl_array *nu
+  const struct gkyl_array *nu_ref, const struct gkyl_array *prim_self,
+  const struct gkyl_array *prim_other, struct gkyl_array *nu
 )
 {
   struct gkyl_range_iter iter;
@@ -33,9 +33,11 @@ pkpm_coll_nu_advance_spitzer(
   while (gkyl_range_iter_next(&iter)) {
     long loc = gkyl_range_idx(range, iter.idx);
     const double *ref_d = gkyl_array_cfetch(nu_ref, loc);
-    const double *n_d = gkyl_array_cfetch(n_other, loc);
-    const double *vs_d = gkyl_array_cfetch(vtsq_self, loc);
-    const double *vr_d = gkyl_array_cfetch(vtsq_other, loc);
+    const double *n_d = gkyl_array_cfetch(prim_other, loc);
+    const double *vs_d =
+      (const double *)gkyl_array_cfetch(prim_self, loc) + PKPM_COLL_NU_VTSQ * up->num_nodes;
+    const double *vr_d =
+      (const double *)gkyl_array_cfetch(prim_other, loc) + PKPM_COLL_NU_VTSQ * up->num_nodes;
     double *nu_d = gkyl_array_fetch(nu, loc);
     for (int q = 0; q < up->num_nodes; ++q) {
       double vtsq_sum = fmax(vs_d[q], up->vtsq_min) + fmax(vr_d[q], up->vtsq_min);
@@ -63,11 +65,11 @@ gkyl_pkpm_coll_nu_new(
 void
 gkyl_pkpm_coll_nu_advance(
   const struct gkyl_pkpm_coll_nu *up, const struct gkyl_range *range,
-  const struct gkyl_array *nu_ref, const struct gkyl_array *n_other,
-  const struct gkyl_array *vtsq_self, const struct gkyl_array *vtsq_other, struct gkyl_array *nu
+  const struct gkyl_array *nu_ref, const struct gkyl_array *prim_self,
+  const struct gkyl_array *prim_other, struct gkyl_array *nu
 )
 {
-  up->advance(up, range, nu_ref, n_other, vtsq_self, vtsq_other, nu);
+  up->advance(up, range, nu_ref, prim_self, prim_other, nu);
 }
 
 void

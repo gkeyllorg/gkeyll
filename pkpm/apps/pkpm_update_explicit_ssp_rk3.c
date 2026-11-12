@@ -165,6 +165,10 @@ pkpm_update_ssp_rk3_implicit_coll(gkyl_pkpm_app *app, double dt0)
 {
   struct gkyl_update_status st = pkpm_update_explicit_ssp_rk3(app, dt0);
 
+  // Momentum and energy exchange of the species that collide with each other, for every
+  // collision operator.
+  pkpm_coll_cross_advance(app, st.dt_actual);
+
   // The implicit operators act at the nodes on the same target, so they commute. The
   // temperature source changes the energy at the nodes, so the vertex limiter follows it.
   for (int i = 0; i < app->num_species; ++i) {

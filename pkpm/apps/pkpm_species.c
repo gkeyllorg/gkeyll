@@ -1447,6 +1447,7 @@ pkpm_species_release(const gkyl_pkpm_app *app, const struct pkpm_species *s)
   }
   pkpm_species_source_release(app, &s->src);
   pkpm_species_source_bgk_release(app, &s->src_bgk);
+  pkpm_species_coll_cross_release(app, &s->cross);
 
   gkyl_array_release(s->app_accel);
   if (s->has_app_accel) {
