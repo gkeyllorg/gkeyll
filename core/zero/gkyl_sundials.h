@@ -19,6 +19,7 @@ enum gkyl_sundials_rk_method {
   GKYL_SUNDIALS_METHOD_LSRK_SSP_10_4 = 1 << 3, // Optimal 4th order 10-stage SSP RK method.
   GKYL_SUNDIALS_METHOD_LSRK_RKC_2    = 1 << 4, // 2nd order Runge-Kutta-Chebyshev (RKC).
   GKYL_SUNDIALS_METHOD_LSRK_RKL_2    = 1 << 5, // 2nd order Runge-Kutta-Legendre (RKL).
+  GKYL_SUNDIALS_METHOD_MRI_EXTSTS    = 1 << 6, // MRI extended STS (combine with RKC_2 or RKL_2; default RKL_2).
 };
 
 // Operator splitting method, see
@@ -42,7 +43,7 @@ struct gkyl_sundials_app_ctx {
   void *fdot_args_ptr; // Arguments to df/dt calculation.
   void *arkode_mem_ssprk; // Memory for ARKODE SSP-RK stepper.
   void *arkode_mem_sts; // Memory for ARKODE STS stepper.
-  void *arkode_mem_opsplit; // Memory for ARKODE operator split stepper.
+  void *arkode_mem_outer; // Memory for the outermost ARKODE stepper (e.g. operator split).
   // Function that computes weight for the error norm.
   int (*error_wgt_func)(void *app_gen, const struct gkyl_array *xarr, struct gkyl_array *wgt, struct gkyl_range *local_range);
   // Function that computes df/dt for all operators, or for SSP-RK or STS operators separately.
@@ -62,6 +63,8 @@ struct gkyl_sundials_app_ctx {
   void (*pre_process_rk_stage_sts_func)(void *app_gen, double tcurr, double dt, void *fdot_args_gen, int stage_idx, int num_stages);
   void (*post_process_rk_stage_sts_func)(void* app_gen, double tcurr, double dt, void *fdot_args, int stage_idx, int num_stages);
   void (*post_process_step_sts_func)(void *app_gen, double tcurr, double dt, void *fdot_args_gen);
+  // Operations performed at the end of an ExtSTS outer stage.
+  void (*post_process_stage_extsts_func)(void* app_gen, double tcurr, double dt, void *fdot_args, int stage_idx, int num_stages);
   // Function that reduces a local dt across MPI processes.
   double (*reduce_dt_func)(void *app_gen, double t_curr, double dt_local);
   // Objects below are private.
@@ -78,6 +81,8 @@ struct gkyl_sundials_stepper_inp {
   unsigned int max_num_stages; // Maximum number of stages, for methods with adaptive number of stages (default: 200).
   enum gkyl_sundials_rk_method rk_method; // Time stepping method (default: GKYL_SUNDIALS_METHOD_RK_SSP_3_3).
   enum gkyl_sundials_opsplit_method opsplit_method; // Operator split type (default: GKYL_SUNDIALS_OPSPLIT_METHOD_LIE_TROTTER_1_1_2)
+  int mri_coupling; // ARKODE_MRITableID of the outer ExtSTS method (default: 0 = SUNDIALS default).
+  bool fixed_step; // Fixed time step set by the CFL limit of the SSP-RK terms, instead of adaptive steps (default: false; the operator split always uses fixed steps; not available for STS-only methods).
   struct gkyl_sundials_nvec *gsnv; // Input NVECTOR.
   double t_curr; // Current simulation time.
   struct gkyl_sundials_app_ctx *app_ctx; // Context with app-specific data and functions.
