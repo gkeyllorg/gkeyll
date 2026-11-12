@@ -2010,7 +2010,7 @@ gkyl_gyrokinetic_app_write_field_energy(gkyl_gyrokinetic_app *app)
     }
     gkyl_dynvec_clear(app->field->integ_energy);
 
-    if (app->field->info.time_rate_diagnostics) {
+    if (app->field->time_rate_diags) {
       // Write out the time rate of change of the field energy.
       const char *fmt1 = "%s-field_energy_dot.gkyl";
       int sz1 = gkyl_calc_strlen(fmt1, app->name);
@@ -2277,11 +2277,11 @@ gkyl_gyrokinetic_app_calc_balance(gkyl_gyrokinetic_app *app, double tm)
         }
       }
       mom_tot += sbal->mom[sd];
-      dt = sbal->dt;
+      dt = app->species[i].fdot_dt;
     }
     if (dt > 0.0) {
-      if (app->bal.diag_types[d] == GKYL_BALANCE_GK_ENERGY) {
-        // The conserved energy is sum_s int H f - E_field + int rho_bg phi.
+      if (app->bal.diag_types[d] == GKYL_BALANCE_GK_ENERGY && app->field->update_field) {
+        // Field terms of the energy balance.
         double energy, field_dot, bg_energy, bg_dot;
         gk_field_calc_energy_balance(app, app->field, tm, &energy, &field_dot, &bg_energy, &bg_dot);
         bal_vals[0] +=
@@ -4474,7 +4474,7 @@ gkyl_gyrokinetic_app_from_frame_species(gkyl_gyrokinetic_app *app, int sidx, int
   for (int b = 0; b < gk_s->bflux.num_boundaries; ++b) {
     gk_s->bflux.is_first_intmom_write_call[b] = false;
   }
-  if (gk_s->info.time_rate_diagnostics) {
+  if (gk_s->time_rate_diags) {
     gk_s->is_first_fdot_integ_write_call = false;
   }
   if (gk_s->positivity.type) {
@@ -4483,6 +4483,8 @@ gkyl_gyrokinetic_app_from_frame_species(gkyl_gyrokinetic_app *app, int sidx, int
   if (gk_s->rad.radiation_id == GKYL_GK_RADIATION) {
     gk_s->rad.is_first_integ_write_call = false;
   }
+  gk_s->bgk_src.is_first_integ_write_call = false;
+  gk_s->bgk_src.is_first_diag_dynvec_write_call = false;
   if (gk_s->src.source_id) {
     gk_s->src.is_first_integ_write_call = false;
   }

@@ -151,43 +151,32 @@ gk_species_source_calc_integrated_mom_enabled(
 {
   struct timespec wst = gkyl_wall_clock();
 
-  double tm_prev = gkyl_dynvec_getlast_tm(gks->src.integ_diag);
+  struct gk_source *src = &gks->src;
 
-  int num_mom = gks->src.integ_moms.num_mom;
+  int num_mom = src->integ_num_comp;
   double avals_global[num_mom];
 
-  gk_species_moment_calc(app, &gks->src.integ_moms, gks->local, app->local, gks->src.source);
-  app->stat.n_mom += 1;
-
   // Reduce to compute sum over whole domain, append to diagnostics
-  gkyl_array_reduce_range(gks->src.red_integ_diag, gks->src.integ_moms.marr, GKYL_SUM, &app->local);
+  for (int m = 0; m < src->num_integ_moms; m++) {
+    gk_species_moment_calc(app, &src->integ_moms[m], gks->local, app->local, src->source);
+    gkyl_array_reduce_range(
+      src->red_integ_diag + src->integ_mom_offset[m], src->integ_moms[m].marr, GKYL_SUM, &app->local
+    );
+  }
+  app->stat.n_mom += 1;
   gkyl_comm_allreduce(
-    app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, gks->src.red_integ_diag,
-    gks->src.red_integ_diag_global
+    app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, src->red_integ_diag, src->red_integ_diag_global
   );
   if (app->use_gpu) {
     gkyl_cu_memcpy(
-      avals_global, gks->src.red_integ_diag_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H
+      avals_global, src->red_integ_diag_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H
     );
   } else {
-    memcpy(avals_global, gks->src.red_integ_diag_global, sizeof(double[num_mom]));
+    memcpy(avals_global, src->red_integ_diag_global, sizeof(double[num_mom]));
   }
-
-  if (gks->info.source.diagnostics.time_integrated) {
-    // This assumes time-independent sources. For time dependent ones
-    // step the source contributions in RK3 like we do for boundary fluxes.
-    double avals_global_prev[num_mom];
-    for (int k = 0; k < num_mom; k++) {
-      avals_global_prev[k] = 0.0;
-    }
-    gkyl_dynvec_getlast(gks->src.integ_diag, avals_global_prev);
-
-    double tau = tm - tm_prev;
-    for (int k = 0; k < num_mom; k++) {
-      avals_global[k] = avals_global_prev[k] + tau * avals_global[k];
-    }
+  for (int m = 0; m < src->num_integ_moms; m++) {
+    gkyl_dynvec_append(src->integ_diag[m], tm, &avals_global[src->integ_mom_offset[m]]);
   }
-  gkyl_dynvec_append(gks->src.integ_diag, tm, avals_global);
 
   if (gks->src.num_adapt_sources > 0) {
     // Adaptive sources diagnostic.
@@ -216,40 +205,13 @@ gk_species_source_write_integrated_mom_enabled(gkyl_gyrokinetic_app *app, struct
 {
   struct timespec wst = gkyl_wall_clock();
 
+  gk_species_write_integrated_diags(
+    app, gks, "source_", "Volume integrated moments of the source.", gks->src.num_integ_moms,
+    gks->src.integ_mom_types, gks->src.integ_diag, &gks->src.is_first_integ_write_call
+  );
+
   int rank;
   gkyl_comm_get_rank(app->comm, &rank);
-  if (rank == 0) {
-    // Write out integrated diagnostic moments.
-    const char *fmt = "%s-%s_source_%s.gkyl";
-
-    int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, "integrated_moms");
-    char fileNm[sz + 1]; // Ensures no buffer overflow.
-    snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, "integrated_moms");
-
-    if (gks->src.is_first_integ_write_call) {
-      struct gkyl_msgpack_map_elem io_meta_phi[] = {
-        {
-          .key = "Description",
-          .elem_type = GKYL_MP_STRING,
-          .cval = "Volume integrated moments of the source.",
-        },
-      };
-      int io_meta_len[] = {gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
-      const struct gkyl_msgpack_map_elem *io_meta[] = {
-        gks->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi
-      };
-      struct gkyl_msgpack_data *mt =
-        gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
-
-      gkyl_dynvec_write_wmeta(gks->src.integ_diag, fileNm, mt);
-      gks->src.is_first_integ_write_call = false;
-      gkyl_msgpack_data_release(mt);
-    } else {
-      gkyl_dynvec_awrite(gks->src.integ_diag, fileNm);
-    }
-  }
-  gkyl_dynvec_clear(gks->src.integ_diag);
-  app->stat.n_diag_io += 1;
 
   if (gks->src.num_adapt_sources > 0) {
     if (rank == 0) {
@@ -531,17 +493,30 @@ gk_species_source_init(
       );
     }
 
-    // Allocate data and updaters for integrated moments.
+    // Integrated moments requested (M0M1M2PARM2PERP by default if the source
+    // evolves), and those the balance diagnostics need.
     src->num_diag_int_mom = gks->info.source.diagnostics.num_integrated_diag_moments;
-    assert(src->num_diag_int_mom < 2); // 1 int moment allowed now.
-    if (src->evolve || src->num_diag_int_mom > 0) {
-      gk_species_moment_init(
-        app, gks, &src->integ_moms,
-        src->num_diag_int_mom == 0 ? GKYL_F_MOMENT_M0M1M2PARM2PERP :
-                                     gks->info.source.diagnostics.integrated_diag_moments[0],
-        true
-      );
-      int num_mom = src->integ_moms.num_mom;
+    src->num_integ_moms = src->num_diag_int_mom;
+    for (int m = 0; m < src->num_integ_moms; m++) {
+      src->integ_mom_types[m] = gks->info.source.diagnostics.integrated_diag_moments[m];
+    }
+    if (src->evolve && src->num_integ_moms == 0) {
+      src->integ_mom_types[src->num_integ_moms++] = GKYL_F_MOMENT_M0M1M2PARM2PERP;
+    }
+    gk_species_balance_add_int_moms(
+      &gks->bal, GK_SPECIES_BALANCE_SRC, &src->num_integ_moms, src->integ_mom_types
+    );
+    if (src->num_integ_moms > 0) {
+      // Allocate data and updaters for integrated moments, stored one after the
+      // other in the reduction buffers.
+      src->integ_moms = gkyl_malloc(sizeof(struct gk_species_moment[src->num_integ_moms]));
+      src->integ_num_comp = 0;
+      for (int m = 0; m < src->num_integ_moms; m++) {
+        gk_species_moment_init(app, gks, &src->integ_moms[m], src->integ_mom_types[m], true);
+        src->integ_mom_offset[m] = src->integ_num_comp;
+        src->integ_num_comp += src->integ_moms[m].num_mom;
+      }
+      int num_mom = src->integ_num_comp;
       if (app->use_gpu) {
         src->red_integ_diag = gkyl_cu_malloc(sizeof(double[num_mom]));
         src->red_integ_diag_global = gkyl_cu_malloc(sizeof(double[num_mom]));
@@ -549,28 +524,24 @@ gk_species_source_init(
         src->red_integ_diag = gkyl_malloc(sizeof(double[num_mom]));
         src->red_integ_diag_global = gkyl_malloc(sizeof(double[num_mom]));
       }
-      // Allocate dynamic-vector to store all-reduced integrated moments.
-      src->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, num_mom);
+      // Allocate a dynamic-vector for each integrated moment.
+      src->integ_diag = gkyl_malloc(sizeof(gkyl_dynvec[src->num_integ_moms]));
+      for (int m = 0; m < src->num_integ_moms; m++) {
+        src->integ_diag[m] = gkyl_dynvec_new(GKYL_DOUBLE, src->integ_moms[m].num_mom);
+      }
       src->is_first_integ_write_call = true;
+
+      src->calc_integrated_mom_func = gk_species_source_calc_integrated_mom_enabled;
+      src->write_integrated_mom_func = gk_species_source_write_integrated_mom_enabled;
     }
 
     // Set function pointers chosen at runtime.
     if (src->evolve) {
       src->write_func = gk_species_source_write_enabled;
       src->write_mom_func = gk_species_source_write_mom_enabled;
-      src->calc_integrated_mom_func = gk_species_source_calc_integrated_mom_enabled;
-      src->write_integrated_mom_func = gk_species_source_write_integrated_mom_enabled;
     } else {
       src->write_func = gk_species_source_write_init_only;
       src->write_mom_func = gk_species_source_write_mom_init_only;
-      if (src->num_diag_int_mom > 0) {
-        // User requested integrated diagnostics.
-        src->calc_integrated_mom_func = gk_species_source_calc_integrated_mom_enabled;
-        src->write_integrated_mom_func = gk_species_source_write_integrated_mom_enabled;
-      } else {
-        src->calc_integrated_mom_func = gk_species_source_calc_integrated_mom_disabled;
-        src->write_integrated_mom_func = gk_species_source_write_integrated_mom_disabled;
-      }
     }
 
     // Set up the adaptive source.
@@ -741,8 +712,11 @@ gk_species_source_release(const struct gkyl_gyrokinetic_app *app, const struct g
     }
     gkyl_free(src->moms);
 
-    if (src->evolve || src->num_diag_int_mom > 0) {
-      gk_species_moment_release(app, &src->integ_moms);
+    if (src->num_integ_moms > 0) {
+      for (int m = 0; m < src->num_integ_moms; m++) {
+        gk_species_moment_release(app, &src->integ_moms[m]);
+      }
+      gkyl_free(src->integ_moms);
       if (app->use_gpu) {
         gkyl_cu_free(src->red_integ_diag);
         gkyl_cu_free(src->red_integ_diag_global);
@@ -750,7 +724,10 @@ gk_species_source_release(const struct gkyl_gyrokinetic_app *app, const struct g
         gkyl_free(src->red_integ_diag);
         gkyl_free(src->red_integ_diag_global);
       }
-      gkyl_dynvec_release(src->integ_diag);
+      for (int m = 0; m < src->num_integ_moms; m++) {
+        gkyl_dynvec_release(src->integ_diag[m]);
+      }
+      gkyl_free(src->integ_diag);
     }
     if (src->num_adapt_sources > 0) {
       if (src->num_diag_int_mom > 0) {

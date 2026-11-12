@@ -503,11 +503,8 @@ gk_neut_species_bflux_write_integrated_mom_enabled(
         app->stat.n_diag_io += 1;
 
         gkyl_dynvec_clear(bflux->intmom[b * num_diag_int_mom + m]);
-
-        if (bflux->is_first_intmom_write_call[b]) {
-          bflux->is_first_intmom_write_call[b] = false;
-        }
       }
+      bflux->is_first_intmom_write_call[b] = false;
     }
   }
   app->stat.neut_species_diag_io_tm += gkyl_time_diff_now_sec(wtm);
@@ -863,13 +860,7 @@ gk_neut_species_bflux_init(
     bflux->allocated_diags = true;
 
     // Set methods for time-stepping boundary fluxes needed for diagnostics.
-    if (gkns->info.boundary_flux_diagnostics.time_integrated) {
-      bflux->bflux_calc_integrated_mom_func = gk_neut_species_bflux_append_integrated_mom;
-      bflux->bflux_calc_voltime_int_mom_func =
-        gk_neut_species_bflux_calc_voltime_integrated_mom_enabled;
-    } else {
-      bflux->bflux_calc_integrated_mom_func = gk_neut_species_bflux_calc_integrated_mom_enabled;
-    }
+    bflux->bflux_calc_integrated_mom_func = gk_neut_species_bflux_calc_integrated_mom_enabled;
     bflux->bflux_write_integrated_mom_func = gk_neut_species_bflux_write_integrated_mom_enabled;
     bflux->bflux_write_mom_func = gk_neut_species_bflux_write_mom_enabled;
 

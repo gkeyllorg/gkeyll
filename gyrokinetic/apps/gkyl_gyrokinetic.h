@@ -88,10 +88,15 @@ struct gkyl_gyrokinetic_projection {
 };
 
 // Balance diagnostics: time rate of change of a conserved quantity vs its
-// sources and boundary fluxes.
+// sources and boundary fluxes. The particle balance is that of the number of
+// particles, sum_s int f. The energy balance is that of the energy
+// sum_s int H f - E_field + int rho_bg phi, with E_field the field energy and
+// rho_bg the background charge density of the adiabatic species (both absent
+// with a static field). The energy balance of a single species omits the field
+// terms, so its error is the energy the species exchanges with the field.
 enum gkyl_gyrokinetic_balance_diag {
   GKYL_BALANCE_GK_PARTICLE = 0, // Particle balance.
-  GKYL_BALANCE_GK_ENERGY // Energy balance (Hamiltonian moment; the app adds the field energy).
+  GKYL_BALANCE_GK_ENERGY // Energy balance.
 };
 
 // File-name strings corresponding to the enum options above.
@@ -189,7 +194,6 @@ struct gkyl_gyrokinetic_source {
   // Sources whose shape is imported directly from a file (used only when
   // source_id == GKYL_SOURCE_FROMFILE).
   struct gkyl_gyrokinetic_ic_import source_import[GKYL_MAX_SOURCES];
-
   struct gkyl_phase_diagnostics_inp diagnostics;
 };
 
@@ -223,6 +227,7 @@ struct gkyl_gyrokinetic_source_bgk {
   // n_s = max(n_s, damping factor*n)
   // to prevent driving n negative
   bool write_diagnostics; // Whether to output diagnostics.
+  struct gkyl_phase_diagnostics_inp diagnostics;
 };
 
 // Emitting BCs inputs.
@@ -1009,8 +1014,7 @@ void gkyl_gyrokinetic_app_calc_species_balance(gkyl_gyrokinetic_app *app, int si
 void gkyl_gyrokinetic_app_write_species_balance(gkyl_gyrokinetic_app *app, int sidx);
 
 /**
- * Compute the balance diagnostics summed over species. Must be called after
- * the species balances are computed.
+ * Compute the balance diagnostics including all species and fields.
  *
  * @param app App object.
  * @param tm Time at which integrated diagnostics are to be computed

@@ -227,7 +227,7 @@ gk_field_calc_energy_enabled(
   double energy_global[1] = {gk_field_em_energy_reduce(app, field, field->em_energy_red)};
   gkyl_dynvec_append(field->integ_energy, tm, energy_global);
 
-  if (field->info.time_rate_diagnostics) {
+  if (field->time_rate_diags) {
     double energy_dot_global[1] = {
       gk_field_em_energy_reduce(app, field, field->em_energy_red_new) -
       gk_field_em_energy_reduce(app, field, field->em_energy_red_old)
@@ -255,10 +255,8 @@ gk_field_energy_dt_new(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
   gkf->bg_energy_red = gk_field_energy_red_new(app->use_gpu);
   gkf->bg_energy_red_old = gk_field_energy_red_new(app->use_gpu);
   gkf->bg_energy_red_new = gk_field_energy_red_new(app->use_gpu);
-  if (gkf->info.time_rate_diagnostics) {
-    gkf->integ_energy_dot = gkyl_dynvec_new(GKYL_DOUBLE, 1);
-    gkf->is_first_energy_dot_write_call = true;
-  }
+  gkf->integ_energy_dot = gkyl_dynvec_new(GKYL_DOUBLE, 1);
+  gkf->is_first_energy_dot_write_call = true;
 }
 
 static void
@@ -275,12 +273,14 @@ gk_field_energy_new(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
   gkf->calc_energy_dt_func = gk_field_calc_energy_dt_none;
   gkf->energy_bg_func = gk_field_energy_bg_none;
 
-  // The energy balance of the app needs the energy rates and the background-charge energy.
+  // The energy balance of the app needs the energy rate diagnostic and the
+  // background-charge energy.
   gkf->energy_balance = false;
   for (int d = 0; d < app->bal.num_diags; d++) {
     gkf->energy_balance = gkf->energy_balance || app->bal.diag_types[d] == GKYL_BALANCE_GK_ENERGY;
   }
-  if (gkf->info.time_rate_diagnostics || gkf->energy_balance) {
+  gkf->time_rate_diags = gkf->info.time_rate_diagnostics || gkf->energy_balance;
+  if (gkf->time_rate_diags) {
     gk_field_energy_dt_new(app, gkf);
   }
 
@@ -299,9 +299,7 @@ gk_field_energy_dt_release(const struct gkyl_gyrokinetic_app *app, struct gk_fie
   gk_field_energy_red_release(app->use_gpu, gkf->bg_energy_red);
   gk_field_energy_red_release(app->use_gpu, gkf->bg_energy_red_old);
   gk_field_energy_red_release(app->use_gpu, gkf->bg_energy_red_new);
-  if (gkf->info.time_rate_diagnostics) {
-    gkyl_dynvec_release(gkf->integ_energy_dot);
-  }
+  gkyl_dynvec_release(gkf->integ_energy_dot);
 }
 
 static void
@@ -311,7 +309,7 @@ gk_field_energy_release(const struct gkyl_gyrokinetic_app *app, struct gk_field 
   gk_field_energy_red_release(app->use_gpu, gkf->em_energy_red);
   gk_field_energy_red_release(app->use_gpu, gkf->em_energy_red_global);
 
-  if (gkf->info.time_rate_diagnostics || gkf->energy_balance) {
+  if (gkf->time_rate_diags) {
     gk_field_energy_dt_release(app, gkf);
   }
 
@@ -448,16 +446,20 @@ gk_field_calc_energy_dt(
 
 void
 gk_field_calc_energy_balance(
-  gkyl_gyrokinetic_app *app, const struct gk_field *field, double *energy, double *energy_dot,
-  double *bg_energy, double *bg_energy_dot
+  gkyl_gyrokinetic_app *app, const struct gk_field *field, double tm, double *energy,
+  double *energy_dot, double *bg_energy, double *bg_energy_dot
 )
 {
-  // Energies now, and their rates of change from the energies/dt stored by
-  // gk_field_calc_energy_dt at the beginning and end of the last time step.
-  gk_field_calc_energy_local(app, field, 1.0, field->em_energy_red);
-  *energy = gk_field_em_energy_reduce(app, field, field->em_energy_red);
-  *energy_dot = gk_field_em_energy_reduce(app, field, field->em_energy_red_new) -
-                gk_field_em_energy_reduce(app, field, field->em_energy_red_old);
+  // Field energy and its rate of change from the field energy diagnostics,
+  // which must be computed at tm first.
+  bool has_energy = gkyl_dynvec_getlast(field->integ_energy, energy) &&
+                    gkyl_dynvec_getlast(field->integ_energy_dot, energy_dot);
+  assert(
+    has_energy && gkyl_dynvec_getlast_tm(field->integ_energy) == tm &&
+    gkyl_dynvec_getlast_tm(field->integ_energy_dot) == tm
+  );
+  // Background-charge energy now, and its rate of change from the energies/dt
+  // stored by gk_field_calc_energy_dt at the beginning and end of the last time step.
   field->energy_bg_func(app, field, 1.0, field->bg_energy_red);
   *bg_energy = gk_field_energy_reduce(app, field, field->bg_energy_red);
   *bg_energy_dot = gk_field_energy_reduce(app, field, field->bg_energy_red_new) -
