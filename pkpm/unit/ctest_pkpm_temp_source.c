@@ -98,6 +98,7 @@ test_temp_source(int cdim, bool implicit)
   struct gkyl_array *rhs = gkyl_array_new(GKYL_DOUBLE, NUM_FLUID * nc, crange.volume);
   struct gkyl_array *cfl = gkyl_array_new(GKYL_DOUBLE, 1, crange.volume);
   struct gkyl_array *shape = gkyl_array_new(GKYL_DOUBLE, nc, crange.volume);
+  struct gkyl_array *temp_ratio = gkyl_array_new(GKYL_DOUBLE, nc, crange.volume);
   struct cell_nodal *cells = gkyl_malloc(sizeof(struct cell_nodal[crange.volume]));
   double cfl0 = 0.3, dt = 0.7;
   gkyl_array_clear(rhs, 0.0);
@@ -120,7 +121,7 @@ test_temp_source(int cdim, bool implicit)
 
   struct gkyl_pkpm_temp_source *up = gkyl_pkpm_temp_source_new(&cbasis, false);
   if (implicit) {
-    gkyl_pkpm_temp_source_implicit_advance(up, &crange, dt, rate, vtsq, fluid, shape);
+    gkyl_pkpm_temp_source_implicit_advance(up, &crange, dt, rate, vtsq, fluid, shape, temp_ratio);
   } else {
     gkyl_pkpm_temp_source_advance(up, &crange, rate, vtsq, fluid, rhs, cfl, shape);
   }
@@ -132,6 +133,7 @@ test_temp_source(int cdim, bool implicit)
     const double *fluid_d = gkyl_array_cfetch(fluid, loc),
                  *fluid0_d = gkyl_array_cfetch(fluid0, loc);
     const double *shape_d = gkyl_array_cfetch(shape, loc);
+    const double *temp_ratio_d = gkyl_array_cfetch(temp_ratio, loc);
 
     if (implicit) {
       // density and momentum unchanged
@@ -152,6 +154,8 @@ test_temp_source(int cdim, bool implicit)
         TEST_CHECK(
           gkyl_compare_double(shape_d[q] * eps_new[q] / cell->eps[q], 1.0 / (1.0 + nu_dt), 1.0e-13)
         );
+        // the energy before the step over that after it
+        TEST_CHECK(gkyl_compare_double(temp_ratio_d[q], cell->eps[q] / eps_new[q], 1.0e-13));
       }
     } else {
       // the state is not modified, and only the energy has a right-hand side
@@ -191,6 +195,7 @@ test_temp_source(int cdim, bool implicit)
   gkyl_array_release(rhs);
   gkyl_array_release(cfl);
   gkyl_array_release(shape);
+  gkyl_array_release(temp_ratio);
 }
 
 // One 1x cell with a nonpositive density at node 0 and a nonpositive thermal energy at node 1.
@@ -209,6 +214,7 @@ test_inadmissible(bool implicit)
   struct gkyl_array *rhs = gkyl_array_new(GKYL_DOUBLE, NUM_FLUID * nc, crange.volume);
   struct gkyl_array *cfl = gkyl_array_new(GKYL_DOUBLE, 1, crange.volume);
   struct gkyl_array *shape = gkyl_array_new(GKYL_DOUBLE, nc, crange.volume);
+  struct gkyl_array *temp_ratio = gkyl_array_new(GKYL_DOUBLE, nc, crange.volume);
   gkyl_array_clear(rhs, 0.0);
   gkyl_array_clear(cfl, 0.0);
 
@@ -233,7 +239,7 @@ test_inadmissible(bool implicit)
   const double *shape_d = gkyl_array_cfetch(shape, 0);
   double eps_target = 1.5 * rho[1] * vtsq_q, eps = -0.2;
   if (implicit) {
-    gkyl_pkpm_temp_source_implicit_advance(up, &crange, dt, rate, vtsq, fluid, shape);
+    gkyl_pkpm_temp_source_implicit_advance(up, &crange, dt, rate, vtsq, fluid, shape, temp_ratio);
     double energy_new[2];
     dg_conf_nodal_conf_to_nodal_1x_ser_p1(&fluid_d[4 * nc], energy_new);
     incr[0] = energy_new[0] - energy[0];
@@ -244,6 +250,9 @@ test_inadmissible(bool implicit)
     );
     TEST_CHECK(gkyl_compare_double(shape_d[0], 1.0 / (1.0 + nu * dt), 1.0e-14));
     TEST_CHECK(gkyl_compare_double(shape_d[1], 1.0 / (1.0 + nu * dt), 1.0e-14));
+    // and no temperature ratio is formed from an inadmissible energy
+    const double *temp_ratio_d = gkyl_array_cfetch(temp_ratio, 0);
+    TEST_CHECK(temp_ratio_d[0] == 1.0 && temp_ratio_d[1] == 1.0);
   } else {
     gkyl_pkpm_temp_source_advance(up, &crange, rate, vtsq, fluid, rhs, cfl, shape);
     dg_conf_nodal_conf_to_nodal_1x_ser_p1(
@@ -262,6 +271,7 @@ test_inadmissible(bool implicit)
   gkyl_array_release(rhs);
   gkyl_array_release(cfl);
   gkyl_array_release(shape);
+  gkyl_array_release(temp_ratio);
 }
 
 void

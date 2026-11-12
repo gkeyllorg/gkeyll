@@ -62,11 +62,13 @@ void gkyl_pkpm_temp_source_advance(
  * @param vtsq Source temperature over the mass, T_Q/m, at the nodes.
  * @param fluid Fluid state [rho, M (3), E] (p=1 expansions), updated in place.
  * @param shape Output shape factor S at the nodes.
+ * @param temp_ratio Output: thermal energy (temperature) before the step over that after it, at
+ *   the nodes.
  */
 void gkyl_pkpm_temp_source_implicit_advance(
   const struct gkyl_pkpm_temp_source *up, const struct gkyl_range *conf_range, double dt,
   const struct gkyl_array *rate, const struct gkyl_array *vtsq, struct gkyl_array *fluid,
-  struct gkyl_array *shape
+  struct gkyl_array *shape, struct gkyl_array *temp_ratio
 );
 
 /**

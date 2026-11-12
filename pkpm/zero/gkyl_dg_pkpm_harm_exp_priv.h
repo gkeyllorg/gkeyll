@@ -131,12 +131,27 @@ pkpm_hx_coef_cell(const struct gkyl_dg_pkpm_harm_exp *up, const double *em, doub
 // Stage s of one phase cell (see gkyl_dg_pkpm_harm_exp_advance). At stage 1 (f0 the stage state) it
 // first sets the mixing rate nu of every node, and act to 1 when a node of the cell is damped (act may
 // be shared by the cells of a column: every writer writes 1). A cell without a damped node is not
+// Index, in the node ordering of gkyl_dg_conf_nodal (first direction fastest), of configuration
+// node q of the transforms here (last direction fastest).
+GKYL_CU_DH static inline int
+pkpm_hx_conf_nodal_idx(int cdim, int q)
+{
+  int idx = 0;
+  for (int d = 0; d < cdim; ++d) {
+    idx |= ((q >> d) & 1) << (cdim - 1 - d);
+  }
+  return idx;
+}
+
 // touched; at a damped node, with Y = out, X_1 = e^(hL) Y, X_2 = 3 (e^(hL/2) - 1) M + e^(-hL/2) Y and
-// X_3 = (e^(hL) - 1) M / 2 + e^(hL/2) Y.
+// X_3 = (e^(hL) - 1) M / 2 + e^(hL/2) Y. The factors 3 and 1/2 are the ratios c_M / c_Y of the
+// weights of the combination; with lam (node values at the configuration nodes in the ordering of
+// gkyl_dg_conf_nodal, or 0) the combination has the weights w_M / w_Y = c_M / (c_Y lam), and the
+// factors are divided by lam.
 GKYL_CU_DH static inline void
 pkpm_hx_advance_cell(
   const struct gkyl_dg_pkpm_harm_exp *up, int stage, double h, const double *coef, const double *f0,
-  double *nu, double *act, double *out
+  const double *lam, double *nu, double *act, double *out
 )
 {
   double Mn[24 * 6];
@@ -184,8 +199,9 @@ pkpm_hx_advance_cell(
         const double *m = &Mn[6 * p + 3 * v];
         double mf[3];
         pkpm_hx_damp(oh, dm, m, mf);
+        double cm_node = lam ? cm / lam[pkpm_hx_conf_nodal_idx(up->cdim, p / 3)] : cm;
         for (int i = 0; i < 3; ++i) {
-          x[i] += cm * (mf[i] - m[i]);
+          x[i] += cm_node * (mf[i] - m[i]);
         }
       }
       for (int i = 0; i < 3; ++i) {

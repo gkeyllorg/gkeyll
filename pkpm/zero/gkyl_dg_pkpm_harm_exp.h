@@ -95,6 +95,11 @@ void gkyl_dg_pkpm_harm_exp_coef(
  * configuration cells with a damped node (act is not cleared here). Without mixing (mix <= 0) nothing
  * is done. F and G of out are not touched.
  *
+ * The factors 3 and 1/2 of M are the ratios c_M / c_Y of the weights of the combinations. If the
+ * driver combines with the weights of gkyl_pkpm_stage_weights instead, w_M / w_Y = c_M / (c_Y lam),
+ * pass lam: the factors are divided by it, and the weighted combination of M and X_s is the
+ * integrating-factor stage with those weights. Not available on the device.
+ *
  * @param up Updater.
  * @param stage Stage (1, 2 or 3).
  * @param h Time step.
@@ -102,6 +107,8 @@ void gkyl_dg_pkpm_harm_exp_coef(
  * @param phase_range Phase-space range.
  * @param coef Frozen coefficients.
  * @param f0 State M at the start of the step (eight blocks).
+ * @param lam Temperature factor of the stage weights at the configuration nodes (ordered as in
+ *   gkyl_dg_conf_nodal), or 0 for the SSP-RK3 weights.
  * @param nu Mixing rate at the phase nodes (written at stage 1).
  * @param act Configuration-space flag of damped columns (set at stage 1).
  * @param out Forward Euler output of the stage (eight blocks; blocks 2-7 replaced at damped nodes).
@@ -109,7 +116,7 @@ void gkyl_dg_pkpm_harm_exp_coef(
 void gkyl_dg_pkpm_harm_exp_advance(
   const struct gkyl_dg_pkpm_harm_exp *up, int stage, double h, const struct gkyl_range *conf_range,
   const struct gkyl_range *phase_range, const struct gkyl_array *coef, const struct gkyl_array *f0,
-  struct gkyl_array *nu, struct gkyl_array *act, struct gkyl_array *out
+  const struct gkyl_array *lam, struct gkyl_array *nu, struct gkyl_array *act, struct gkyl_array *out
 );
 
 /**

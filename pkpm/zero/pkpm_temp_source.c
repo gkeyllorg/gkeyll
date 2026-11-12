@@ -92,7 +92,7 @@ void
 gkyl_pkpm_temp_source_implicit_advance(
   const struct gkyl_pkpm_temp_source *up, const struct gkyl_range *conf_range, double dt,
   const struct gkyl_array *rate, const struct gkyl_array *vtsq, struct gkyl_array *fluid,
-  struct gkyl_array *shape
+  struct gkyl_array *shape, struct gkyl_array *temp_ratio
 )
 {
   int num_nodes = up->num_nodes;
@@ -106,6 +106,7 @@ gkyl_pkpm_temp_source_implicit_advance(
     const double *rate_d = gkyl_array_cfetch(rate, loc);
     double *fluid_d = gkyl_array_fetch(fluid, loc);
     double *shape_d = gkyl_array_fetch(shape, loc);
+    double *temp_ratio_d = gkyl_array_fetch(temp_ratio, loc);
 
     pkpm_temp_source_nodal_state(up, fluid_d, gkyl_array_cfetch(vtsq, loc), &state);
 
@@ -114,6 +115,8 @@ gkyl_pkpm_temp_source_implicit_advance(
       shape_d[q] = 1.0 / (1.0 + nu_dt * state.ratio[q]);
       incr[q] =
         state.has_density[q] ? nu_dt * (state.eps_target[q] - state.eps[q]) / (1.0 + nu_dt) : 0.0;
+      // energy before the step over that after it (the density does not change)
+      temp_ratio_d[q] = state.eps[q] > 0.0 ? state.eps[q] / (state.eps[q] + incr[q]) : 1.0;
     }
 
     up->nodal_to_conf(incr, incr_modal);

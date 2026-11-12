@@ -56,6 +56,7 @@
 #include <gkyl_dg_conf_nodal.h>
 #include <gkyl_dg_updater_lbo_pkpm_nodal.h>
 #include <gkyl_pkpm_coll_cross.h>
+#include <gkyl_pkpm_stage_weights.h>
 #include <gkyl_pkpm_lbo_moms.h>
 #include <gkyl_pkpm_lte.h>
 #include <gkyl_pkpm_temp_source.h>
@@ -223,6 +224,7 @@ struct pkpm_source_bgk {
   struct gkyl_array *rate; // source rate nu_Q at the nodes
   struct gkyl_array *vtsq; // source temperature over the mass, T_Q/m, at the nodes
   struct gkyl_array *shape; // rate (explicit) or shape factor (implicit) of the distributions
+  struct gkyl_array *temp_ratio; // temperature before the implicit step over that after it
   struct gkyl_array *f_lte; // corrected unit Maxwellian in w, 3 modes per velocity cell
   gkyl_pkpm_temp_source *up_temp; // thermal-energy relaxation of the fluid state
   gkyl_pkpm_bgk_collisions *up_bgk; // relaxation of the distributions
@@ -471,6 +473,12 @@ struct pkpm_species {
   struct pkpm_lbo_collisions lbo; // collisions object
   struct pkpm_bgk_collisions bgk; // BGK collisions object
   struct pkpm_coll_cross cross; // cross-species collisions (LBO or BGK)
+  // Stage combination of a species whose implicit kinetic relaxation carries a temperature change
+  // (implicit BGK with partners, implicit temperature source): the stages combine the
+  // distributions with weights that are linear in the physical second moments.
+  bool has_stage_weights;
+  struct gkyl_array *stage_lam; // temperature factor of the implicit steps of this step, at the nodes
+  gkyl_pkpm_stage_weights *up_stage_weights; // the weighted combination
 
   struct pkpm_source src; // source object
   struct pkpm_source_bgk src_bgk; // temperature source object

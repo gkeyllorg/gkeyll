@@ -10,6 +10,7 @@
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_basis.h>
+#include <gkyl_pkpm_stage_weights.h>
 #include <gkyl_dg_pkpm_harm_exp.h>
 #include <gkyl_dg_pkpm_harm_exp_priv.h>
 #include <gkyl_range.h>
@@ -116,7 +117,7 @@ hx_step(struct hx_cell *c, double h, bool use_mix, double *f)
       out[k] = fin[k] + h * rhs[k];
     }
     if (use_mix) {
-      gkyl_dg_pkpm_harm_exp_advance(c->up, s, h, &c->crange, &c->prange, c->coef, fa, c->nu, c->act, oa);
+      gkyl_dg_pkpm_harm_exp_advance(c->up, s, h, &c->crange, &c->prange, c->coef, fa, 0, c->nu, c->act, oa);
     }
     for (int k = 0; k < n; ++k) {
       fin[k] = s == 1 ? out[k] : (s == 2 ? 0.75 * f[k] + 0.25 * out[k] : f[k] / 3.0 + 2.0 / 3.0 * out[k]);
@@ -371,7 +372,7 @@ hx_col_stage(struct hx_col *c, int stage, double h, struct gkyl_array *fin, stru
   hx_col_rhs(c, fin, c->rhs);
   gkyl_array_set(fout, 1.0, fin);
   gkyl_array_accumulate(fout, h, c->rhs);
-  gkyl_dg_pkpm_harm_exp_advance(c->up, stage, h, &c->crange, &c->prange, c->coef, c->f, c->nu, c->act, fout);
+  gkyl_dg_pkpm_harm_exp_advance(c->up, stage, h, &c->crange, &c->prange, c->coef, c->f, 0, c->nu, c->act, fout);
   gkyl_dg_pkpm_harm_exp_restore(c->up, &c->crange, &c->prange, c->act, c->col, fout);
 }
 
@@ -513,6 +514,101 @@ test_mix_inactive(void)
   hx_col_release(&b);
 }
 
+// Stage weights: when the driver combines the state M at the start of the step and the stage value
+// with w_M M + w_Y X, w_Y = c_Y lam / (c_M + c_Y lam) at each configuration node, the stage value
+// built with lam makes that combination the integrating-factor stage with the same weights,
+// w_M e^(.) M + w_Y e^(.) Y. e^(.) M and e^(.) Y are taken from two calls with the SSP-RK3 weights
+// (Y = 0 gives c_M / c_Y (e^(.) M - M)). The combination is also formed with
+// gkyl_pkpm_stage_weights, which must use the same configuration nodes.
+static void
+test_stage_weights(int cdim)
+{
+  double h = 0.1;
+  struct hx_cell c = hx_cell_new(cdim, 2.0, 5.0);
+  int n = 8 * c.np;
+  struct gkyl_basis pbasis;
+  gkyl_cart_modal_hybrid(&pbasis, cdim, 1);
+  struct gkyl_pkpm_stage_weights *sw = gkyl_pkpm_stage_weights_new(&c.cbasis, &pbasis, false);
+  struct gkyl_array *fa = gkyl_array_new(GKYL_DOUBLE, n, 1), *ya = gkyl_array_new(GKYL_DOUBLE, n, 1);
+  struct gkyl_array *xa = gkyl_array_new(GKYL_DOUBLE, n, 1), *za = gkyl_array_new(GKYL_DOUBLE, n, 1);
+  struct gkyl_array *la = gkyl_array_new(GKYL_DOUBLE, n, 1), *ca = gkyl_array_new(GKYL_DOUBLE, n, 1);
+  struct gkyl_array *lam = gkyl_array_new(GKYL_DOUBLE, c.nc, 1), *lam_c = gkyl_array_new(GKYL_DOUBLE, c.nc, 1);
+  double *m = gkyl_array_fetch(fa, 0), *y = gkyl_array_fetch(ya, 0), rhs[8 * 24];
+  hx_init_nodal(&c, 1.5, m);
+  hx_rhs(&c, m, rhs);
+  // a temperature factor that differs at every configuration node (heating and cooling)
+  double *lam_d = gkyl_array_fetch(lam, 0);
+  for (int q = 0; q < c.nc; ++q) {
+    lam_d[q] = q % 2 ? 0.4 + 0.1 * q : 3.0 + 2.0 * q;
+  }
+  // the rates of the step (stage 1)
+  gkyl_dg_pkpm_harm_exp_coef(c.up, &c.crange, c.em, c.coef);
+  gkyl_array_clear(c.act, 0.0);
+  gkyl_array_copy(xa, fa);
+  gkyl_dg_pkpm_harm_exp_advance(c.up, 1, h, &c.crange, &c.prange, c.coef, fa, 0, c.nu, c.act, xa);
+
+  for (int stage = 2; stage <= 3; ++stage) {
+    double coef_fe = stage == 2 ? 0.25 : 2.0 / 3.0, coef_old = 1.0 - coef_fe;
+    for (int k = 0; k < n; ++k) {
+      y[k] = m[k] + (0.3 + 0.2 * stage) * h * rhs[k];
+    }
+    // SSP-RK3 weights: X = c_M/c_Y (e M - M) + e Y, and with Y = 0 the first term alone
+    gkyl_array_copy(xa, ya);
+    gkyl_dg_pkpm_harm_exp_advance(c.up, stage, h, &c.crange, &c.prange, c.coef, fa, 0, c.nu, c.act, xa);
+    gkyl_array_clear(za, 0.0);
+    gkyl_dg_pkpm_harm_exp_advance(c.up, stage, h, &c.crange, &c.prange, c.coef, fa, 0, c.nu, c.act, za);
+    // the stage value for the weighted combination
+    gkyl_array_copy(la, ya);
+    gkyl_dg_pkpm_harm_exp_advance(c.up, stage, h, &c.crange, &c.prange, c.coef, fa, lam, c.nu, c.act, la);
+    // the weighted combination of the driver from the plain one
+    gkyl_array_set(ca, coef_old, fa);
+    gkyl_array_accumulate(ca, coef_fe, la);
+    gkyl_array_copy(lam_c, lam);
+    gkyl_pkpm_stage_weights_advance(sw, &c.crange, &c.prange, coef_fe, fa, la, lam_c, ca);
+
+    double Mn[24 * 6], Xn[24 * 6], Zn[24 * 6], Ln[24 * 6], Cn[24 * 6], err = 0.0, err_comb = 0.0, vmax = 0.0;
+    pkpm_hx_to_nodes(cdim, m, Mn);
+    pkpm_hx_to_nodes(cdim, gkyl_array_cfetch(xa, 0), Xn);
+    pkpm_hx_to_nodes(cdim, gkyl_array_cfetch(za, 0), Zn);
+    pkpm_hx_to_nodes(cdim, gkyl_array_cfetch(la, 0), Ln);
+    pkpm_hx_to_nodes(cdim, gkyl_array_cfetch(ca, 0), Cn);
+    for (int p = 0; p < c.np; ++p) {
+      double lam_q = lam_d[pkpm_hx_conf_nodal_idx(cdim, p / 3)];
+      double w_fe = coef_fe * lam_q / (coef_old + coef_fe * lam_q), w_old = 1.0 - w_fe;
+      for (int k = 0; k < 6; ++k) {
+        double em = Mn[6 * p + k] + Zn[6 * p + k] * coef_fe / coef_old; // e M
+        double ey = Xn[6 * p + k] - Zn[6 * p + k]; // e Y
+        double ref = w_old * em + w_fe * ey;
+        err = fmax(err, fabs(w_old * Mn[6 * p + k] + w_fe * Ln[6 * p + k] - ref));
+        err_comb = fmax(err_comb, fabs(Cn[6 * p + k] - ref));
+        vmax = fmax(vmax, fabs(Mn[6 * p + k]));
+      }
+    }
+    TEST_CHECK(err < 1e-13 * vmax);
+    TEST_MSG("cdim %d, stage %d: stage value error %g (max |M| %g)", cdim, stage, err, vmax);
+    TEST_CHECK(err_comb < 1e-13 * vmax);
+    TEST_MSG("cdim %d, stage %d: combination error %g (max |M| %g)", cdim, stage, err_comb, vmax);
+    const double *lam_c_d = gkyl_array_cfetch(lam_c, 0);
+    for (int q = 0; q < c.nc; ++q) {
+      TEST_CHECK(gkyl_compare_double(lam_c_d[q], coef_old + coef_fe * lam_d[q], 1e-15));
+    }
+  }
+  gkyl_pkpm_stage_weights_release(sw);
+  gkyl_array_release(fa);
+  gkyl_array_release(ya);
+  gkyl_array_release(xa);
+  gkyl_array_release(za);
+  gkyl_array_release(la);
+  gkyl_array_release(ca);
+  gkyl_array_release(lam);
+  gkyl_array_release(lam_c);
+  hx_cell_release(&c);
+}
+
+static void test_stage_weights_1x(void) { test_stage_weights(1); }
+static void test_stage_weights_2x(void) { test_stage_weights(2); }
+static void test_stage_weights_3x(void) { test_stage_weights(3); }
+
 TEST_LIST = {
   {"test_transforms_1x", test_transforms_1x},
   {"test_transforms_2x", test_transforms_2x},
@@ -525,5 +621,8 @@ TEST_LIST = {
   {"test_mix_relax", test_mix_relax},
   {"test_mix_stiff", test_mix_stiff},
   {"test_mix_inactive", test_mix_inactive},
+  {"test_stage_weights_1x", test_stage_weights_1x},
+  {"test_stage_weights_2x", test_stage_weights_2x},
+  {"test_stage_weights_3x", test_stage_weights_3x},
   {NULL, NULL},
 };

@@ -9,12 +9,12 @@
 -- The source takes one backward-Euler step in each SSP-RK3 stage, over the time weight of the
 -- stage, so with z = nu_Q dt a step multiplies a relaxing quantity by
 -- R(z) = [1/3 + (2/3) (3/4 + (1/4)/(1 + z))/(1 + z/4)]/(1 + 2 z/3) (0.335 at z = 1.74).
+-- The stages combine the distributions with weights that follow the temperature change of the
+-- implicit steps, so the combination is linear in the pressure components although the temperature
+-- changes seven-fold in the first step of the heated species.
 -- Density and momentum are conserved to round-off and the constraints stay at [1, 0, 1]. Each step
--- multiplies T - T_Q by R(z) to 1e-9, and the temperature stays between T_0 and T_Q: 6.9882 and
--- 0.40118 after the first step. The pressure anisotropy p_par - p_perp decays to round-off in 20
--- steps. Its step factor is R(z) once the temperature is near T_Q; while the temperature changes
--- by a large factor in a step it is not (0.83 in the first step of the heated species), because the
--- stages combine distributions normalized by different temperatures.
+-- multiplies T - T_Q by R(z) to 1e-9 and the pressure anisotropy p_par - p_perp by R(z) to 1e-6, and
+-- the temperature stays between T_0 and T_Q: 6.9882 and 0.40118 after the first step.
 
 local PKPM = G0.PKPM
 

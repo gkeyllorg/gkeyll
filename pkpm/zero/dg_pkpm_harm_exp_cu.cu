@@ -50,7 +50,7 @@ gkyl_dg_pkpm_harm_exp_advance_cu_kernel(
     long ploc = gkyl_range_idx(&phase_range, idx);
     // act is shared by the cells of a column; every writer writes 1
     pkpm_hx_advance_cell(up, stage, h, (const double *)gkyl_array_cfetch(coef, cloc),
-      (const double *)gkyl_array_cfetch(f0, ploc), (double *)gkyl_array_fetch(nu, ploc),
+      (const double *)gkyl_array_cfetch(f0, ploc), 0, (double *)gkyl_array_fetch(nu, ploc),
       (double *)gkyl_array_fetch(act, cloc), (double *)gkyl_array_fetch(out, ploc));
   }
 }

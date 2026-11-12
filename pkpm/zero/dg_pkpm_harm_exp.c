@@ -80,7 +80,7 @@ void
 gkyl_dg_pkpm_harm_exp_advance(
   const struct gkyl_dg_pkpm_harm_exp *up, int stage, double h, const struct gkyl_range *conf_range,
   const struct gkyl_range *phase_range, const struct gkyl_array *coef, const struct gkyl_array *f0,
-  struct gkyl_array *nu, struct gkyl_array *act, struct gkyl_array *out
+  const struct gkyl_array *lam, struct gkyl_array *nu, struct gkyl_array *act, struct gkyl_array *out
 )
 {
   if (up->mix <= 0.0) {
@@ -88,6 +88,8 @@ gkyl_dg_pkpm_harm_exp_advance(
   }
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(out)) {
+    // the weighted combination is not available on the device
+    assert(!lam);
     gkyl_dg_pkpm_harm_exp_advance_cu(up, stage, h, conf_range, phase_range, coef, f0, nu, act, out);
     return;
   }
@@ -98,7 +100,8 @@ gkyl_dg_pkpm_harm_exp_advance(
     long cloc = gkyl_range_idx(conf_range, iter.idx);
     long ploc = gkyl_range_idx(phase_range, iter.idx);
     pkpm_hx_advance_cell(up, stage, h, gkyl_array_cfetch(coef, cloc), gkyl_array_cfetch(f0, ploc),
-      gkyl_array_fetch(nu, ploc), gkyl_array_fetch(act, cloc), gkyl_array_fetch(out, ploc));
+      lam ? gkyl_array_cfetch(lam, cloc) : 0, gkyl_array_fetch(nu, ploc),
+      gkyl_array_fetch(act, cloc), gkyl_array_fetch(out, ploc));
   }
 }
 

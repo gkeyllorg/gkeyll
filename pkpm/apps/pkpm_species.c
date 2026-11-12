@@ -432,6 +432,19 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   }
   pkpm_species_source_bgk_init(app, s, &s->src_bgk);
 
+  // An implicit kinetic relaxation that carries a temperature change (the shape factor of
+  // implicit BGK with partners, or of the implicit temperature source) needs the weighted stage
+  // combination.
+  bool has_implicit_cross = s->collision_id == GKYL_BGK_COLLISIONS &&
+                            s->info.collisions.is_implicit &&
+                            s->info.collisions.num_cross_collisions > 0;
+  s->has_stage_weights = !app->use_gpu && (has_implicit_cross || s->src_bgk.is_implicit);
+  if (s->has_stage_weights) {
+    s->stage_lam = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
+    gkyl_array_clear(s->stage_lam, 1.0);
+    s->up_stage_weights = gkyl_pkpm_stage_weights_new(&app->confBasis, &app->basis, false);
+  }
+
   // The LBO acts at the configuration-space nodes on a nodal copy of the distributions. The BGK
   // operator and the temperature source are weak products and need none.
   s->has_nodal_ops = !app->use_gpu && s->collision_id == GKYL_LBO_COLLISIONS;
@@ -961,9 +974,12 @@ pkpm_species_harm_exp_advance(
     );
     gkyl_array_clear(species->harm_exp_act, 0.0);
   }
+  // With stage weights the combination of the driver is weighted (pkpm_coll_stage.c), and the
+  // stage value is built for those weights.
   gkyl_dg_pkpm_harm_exp_advance(
     species->harm_exp, stage, h, &app->local, &species->local, species->harm_exp_coef, species->f,
-    species->harm_exp_nu, species->harm_exp_act, fout
+    species->has_stage_weights ? species->stage_lam : 0, species->harm_exp_nu,
+    species->harm_exp_act, fout
   );
   gkyl_dg_pkpm_harm_exp_restore(
     species->harm_exp, &app->local, &species->local, species->harm_exp_act, species->harm_exp_col,
@@ -1447,6 +1463,10 @@ pkpm_species_release(const gkyl_pkpm_app *app, const struct pkpm_species *s)
   pkpm_species_source_release(app, &s->src);
   pkpm_species_source_bgk_release(app, &s->src_bgk);
   pkpm_species_coll_cross_release(app, &s->cross);
+  if (s->has_stage_weights) {
+    gkyl_array_release(s->stage_lam);
+    gkyl_pkpm_stage_weights_release(s->up_stage_weights);
+  }
 
   gkyl_array_release(s->app_accel);
   if (s->has_app_accel) {

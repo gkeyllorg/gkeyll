@@ -57,6 +57,7 @@ pkpm_species_source_bgk_init(gkyl_pkpm_app *app, struct pkpm_species *s, struct 
     app, info->temp_shape, info->temp_shape_ctx, 1.0 / s->info.mass, true
   );
   src->shape = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
+  src->temp_ratio = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
   src->f_lte = pkpm_species_bgk_target_new(app, s);
   src->up_temp = gkyl_pkpm_temp_source_new(&app->confBasis, false);
   src->up_bgk = gkyl_pkpm_bgk_collisions_new(&app->confBasis, &app->basis, false);
@@ -92,7 +93,7 @@ pkpm_species_source_bgk_implicit_advance(
 {
   struct timespec tm = gkyl_wall_clock();
   gkyl_pkpm_temp_source_implicit_advance(
-    src->up_temp, &app->local, dt, src->rate, src->vtsq, fluid, src->shape
+    src->up_temp, &app->local, dt, src->rate, src->vtsq, fluid, src->shape, src->temp_ratio
   );
   gkyl_pkpm_bgk_collisions_implicit_advance(
     src->up_bgk, &app->local, &s->local_vel, &s->local, src->shape, app->pos_map->jacob_pos_gauss,
@@ -110,6 +111,7 @@ pkpm_species_source_bgk_release(const gkyl_pkpm_app *app, const struct pkpm_sour
   gkyl_array_release(src->rate);
   gkyl_array_release(src->vtsq);
   gkyl_array_release(src->shape);
+  gkyl_array_release(src->temp_ratio);
   gkyl_array_release(src->f_lte);
   gkyl_pkpm_temp_source_release(src->up_temp);
   gkyl_pkpm_bgk_collisions_release(src->up_bgk);
