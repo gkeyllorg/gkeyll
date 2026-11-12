@@ -1,6 +1,9 @@
 #include <acutest.h>
 
 #include <gkyl_gk_geometry.h>
+#include <gkyl_gk_geometry_mapc2p.h>
+#include <gkyl_nodal_ops.h>
+#include <gkyl_rect_decomp.h>
 #include <gkyl_gen_miller_eqdsk_priv.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_array_ops.h>
@@ -332,10 +335,187 @@ test_query_failures(void)
   query_release(&geo);
 }
 
+// A helical cylindrical map with independently known tangents and derivatives.
+static void
+world_map(double t, const double *xc, double *out, void *ctx)
+{
+  double phi = xc[1] + xc[2];
+  out[0] = xc[0] * cos(phi);
+  out[1] = xc[0] * sin(phi);
+  out[2] = xc[2];
+}
+
+static void
+world_field(double t, const double *xc, double *out, void *ctx)
+{
+  double phi = xc[1] + xc[2];
+  out[0] = -xc[0] * sin(phi);
+  out[1] = xc[0] * cos(phi);
+  out[2] = 1.0;
+}
+
+/**
+ * Check 1D/2D world-slice tangents and derivatives against an analytic helix,
+ * independence from the auxiliary grid width, and consistency after modal reconstruction.
+ */
+static void
+test_world_slice(void)
+{
+  for (int ndim = 1; ndim <= 2; ++ndim) {
+    for (int wide = 0; wide < 2; ++wide) {
+      struct gkyl_gk_geometry_inp inp = {
+        .geometry_id = GKYL_GEOMETRY_MAPC2P,
+        .mapc2p = world_map,
+        .bfield_func = world_field,
+      };
+
+      double lower[] = {1.8, -0.4}, upper[] = {2.2, 0.4};
+      int cells[] = {2, 4}, ghost[] = {1, 1, 1};
+
+      gkyl_rect_grid_init(&inp.grid, ndim, &lower[2 - ndim], &upper[2 - ndim], &cells[2 - ndim]);
+      gkyl_cart_modal_serendip(&inp.basis, ndim, 1);
+      gkyl_create_grid_ranges(&inp.grid, ghost, &inp.local_ext, &inp.local);
+
+      inp.global = inp.local;
+      inp.global_ext = inp.local_ext;
+      inp.world[0] = ndim == 1 ? 2.0 : 0.3;
+      inp.world[1] = 0.3;
+      inp.geo_grid = gkyl_gk_geometry_augment_grid(inp.grid, inp);
+
+      // Deliberately vary the artificial width; the world slice and its
+      // derivative sampling must not depend on this choice.
+      double lo3[3], hi3[3];
+      for (int d = 0; d < 3; ++d) {
+        lo3[d] = inp.geo_grid.lower[d];
+        hi3[d] = inp.geo_grid.upper[d];
+      }
+      lo3[1] = 0.3 - (wide ? 0.1 : 0.01);
+      hi3[1] = 0.3 + (wide ? 0.1 : 0.01);
+      gkyl_rect_grid_init(&inp.geo_grid, 3, lo3, hi3, inp.geo_grid.cells);
+      gkyl_cart_modal_serendip(&inp.geo_basis, 3, 1);
+      gkyl_create_grid_ranges(&inp.geo_grid, ghost, &inp.geo_local_ext, &inp.geo_local);
+
+      inp.geo_global = inp.geo_local;
+      inp.geo_global_ext = inp.geo_local_ext;
+      inp.position_map = gkyl_position_map_null_new();
+      struct gk_geometry *full = gkyl_gk_geometry_mapc2p_new(&inp);
+      struct gk_geometry *geo = gkyl_gk_geometry_deflate(full, &inp);
+
+      TEST_CHECK(inp.position_map->constB_ctx->psi_min == inp.geo_grid.lower[0]);
+      TEST_CHECK(inp.position_map->constB_ctx->psi_max == inp.geo_grid.upper[0]);
+      TEST_CHECK(inp.position_map->constB_ctx->alpha_min == inp.geo_grid.lower[1]);
+      TEST_CHECK(inp.position_map->constB_ctx->alpha_max == inp.geo_grid.upper[1]);
+
+      struct gkyl_array *saved = gkyl_array_new(GKYL_DOUBLE, 9, geo->nrange_int.volume);
+      gkyl_array_copy(saved, geo->geo_int.dxdz_nodal);
+
+      struct gkyl_range_iter iter;
+      gkyl_range_iter_init(&iter, &geo->nrange_int);
+      while (gkyl_range_iter_next(&iter)) {
+        long loc = gkyl_range_idx(&geo->nrange_int, iter.idx);
+
+        double eta = ((iter.idx[ndim - 1] & 1) ? 1.0 : -1.0) / sqrt(3.0);
+        double z = -0.4 + ((iter.idx[ndim - 1] / 2) + 0.5 * (1.0 + eta)) * inp.grid.dx[ndim - 1];
+        double radius = 2.0;
+        if (ndim == 2) {
+          radius =
+            1.8 + (iter.idx[0] / 2 + 0.5 * (1.0 + ((iter.idx[0] & 1) ? 1.0 : -1.0) / sqrt(3.0))) *
+                    inp.grid.dx[0];
+        }
+
+        double phi = 0.3 + z;
+        const double *tan = gkyl_array_cfetch(saved, loc);
+        const double *bcart = gkyl_array_cfetch(geo->geo_int.bcart_nodal, loc);
+        const double *grad = gkyl_array_cfetch(geo->geo_int.dxdz_grad_nodal, loc);
+
+        double expected[] = {cos(phi),           sin(phi),          0,
+                             -radius * sin(phi), radius * cos(phi), 0,
+                             -radius * sin(phi), radius * cos(phi), 1};
+        double dalpha[] = {-sin(phi),          cos(phi),           0,
+                           -radius * cos(phi), -radius * sin(phi), 0,
+                           -radius * cos(phi), -radius * sin(phi), 0};
+        double dr[] = {0, 0, 0, -sin(phi), cos(phi), 0, -sin(phi), cos(phi), 0};
+
+        for (int k = 0; k < 9; ++k) {
+          TEST_CHECK(fabs(tan[k] - expected[k]) < 2e-6);
+          if (ndim == 1) {
+            TEST_CHECK(fabs(grad[k] - dr[k]) < 2e-4);
+          }
+          TEST_CHECK(fabs(grad[9 + k] - dalpha[k]) < 2e-4);
+          TEST_MSG(
+            "ndim=%d width=%d component=%d derivative error=%g", ndim, wide, k,
+            grad[9 + k] - dalpha[k]
+          );
+        }
+
+        double norm = sqrt(tan[6] * tan[6] + tan[7] * tan[7] + tan[8] * tan[8]);
+        for (int k = 0; k < 3; ++k) {
+          TEST_CHECK(fabs(bcart[k] - tan[6 + k] / norm) < 1e-10);
+        }
+      }
+
+      // This is the same modal-to-nodal reconstruction used after file reads.
+      gkyl_gk_geometry_populate_nodal(geo);
+      gkyl_range_iter_init(&iter, &geo->nrange_int);
+      while (gkyl_range_iter_next(&iter)) {
+        long loc = gkyl_range_idx(&geo->nrange_int, iter.idx);
+        const double *before = gkyl_array_cfetch(saved, loc);
+        const double *after = gkyl_array_cfetch(geo->geo_int.dxdz_nodal, loc);
+        const double *bcart = gkyl_array_cfetch(geo->geo_int.bcart_nodal, loc);
+        double norm = sqrt(after[6] * after[6] + after[7] * after[7] + after[8] * after[8]);
+        for (int k = 0; k < 9; ++k) {
+          TEST_CHECK(fabs(before[k] - after[k]) < 1e-12);
+        }
+        for (int k = 0; k < 3; ++k) {
+          TEST_CHECK(fabs(bcart[k] - after[6 + k] / norm) < 1e-10);
+        }
+      }
+
+      gkyl_array_release(saved);
+      gkyl_gk_geometry_release(geo);
+      gkyl_gk_geometry_release(full);
+      gkyl_position_map_release(inp.position_map);
+    }
+  }
+}
+
+/**
+ * Check that repeated metadata resets preserve the list size and values after
+ * adding tokamak entries, and that the resulting owned list can be released.
+ */
+static void
+test_metadata_growth(void)
+{
+  struct gkyl_gk_geometry_inp inp = {.geometry_id = GKYL_GEOMETRY_MAPC2P};
+
+  gkyl_rect_grid_init(&inp.grid, 1, (double[]){0}, (double[]){1}, (int[]){1});
+  gkyl_cart_modal_serendip(&inp.basis, 1, 1);
+  gkyl_create_grid_ranges(&inp.grid, (int[]){1}, &inp.local_ext, &inp.local);
+
+  inp.global = inp.local;
+  inp.global_ext = inp.local_ext;
+  struct gk_geometry *geo = gkyl_gk_geometry_new(NULL, &inp, false);
+
+  geo->geometry_id = GKYL_GEOMETRY_TOKAMAK;
+  geo->geqdsk_sign_convention = 1;
+  geo->half_domain = 1;
+
+  gkyl_gk_geometry_reset_io_meta(geo);
+  TEST_CHECK(geo->io_meta_basic_len == 3);
+
+  gkyl_gk_geometry_reset_io_meta(geo);
+  TEST_CHECK(geo->io_meta_basic_len == 3);
+  TEST_CHECK(gkyl_msgpack_map_elem_get_uint(3, geo->io_meta_basic, "half_domain") == 1);
+
+  gkyl_gk_geometry_release(geo);
+}
+
 TEST_LIST = {
-  {"modal_queries", test_modal_queries},
-  {"coordinate_queries", test_coordinate_queries},
-  {"query_traces", test_query_traces},
-  {"query_failures", test_query_failures},
+  {"gk_geo_world_slice", test_world_slice},
+  {"gk_geo_metadata_growth", test_metadata_growth},
+  {"gk_geo_modal_queries", test_modal_queries},
+  {"gk_geo_coordinate_queries", test_coordinate_queries},
+  {"gk_geo_query_traces", test_query_traces},
+  {"gk_geo_query_failures", test_query_failures},
   {NULL, NULL}
 };

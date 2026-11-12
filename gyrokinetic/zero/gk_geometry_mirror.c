@@ -12,10 +12,11 @@
 #include <gkyl_nodal_ops.h>
 
 struct gk_geometry *
-gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp)
+gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp, bool optimize_map)
 {
   struct gk_geometry *up = gkyl_malloc(sizeof(struct gk_geometry));
   up->has_dxdz_grad = false;
+  up->world_dim = geometry_inp->grid.ndim;
   up->geometry_id = geometry_inp->geometry_id;
   up->basis = geometry_inp->geo_basis;
   up->local = geometry_inp->geo_local;
@@ -59,12 +60,15 @@ gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp)
     assert(false);
   }
 
-  gkyl_position_map_optimize(geometry_inp->position_map, up->grid, up->global);
+  if (optimize_map) {
+    gkyl_position_map_optimize(geometry_inp->position_map, up->grid, up->global);
+  }
 
   // Create mirror geometry for corners.
   struct gkyl_mirror_grid_gen *mirror_grid_corn =
     gkyl_mirror_grid_gen_inew(&(struct gkyl_mirror_grid_gen_inp){
       .comp_grid = &up->grid,
+      .world_dim = up->world_dim,
       .nrange = up->nrange_corn,
       .local = up->local,
       .global = up->global,
@@ -89,6 +93,7 @@ gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp)
   struct gkyl_mirror_grid_gen *mirror_grid_int =
     gkyl_mirror_grid_gen_int_inew(&(struct gkyl_mirror_grid_gen_inp){
       .comp_grid = &up->grid,
+      .world_dim = up->world_dim,
       .nrange = up->nrange_int,
       .local = up->local,
       .global = up->global,
@@ -114,6 +119,7 @@ gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp)
   for (int dir = 0; dir < up->grid.ndim; dir++) {
     mirror_grid_surf[dir] = gkyl_mirror_grid_gen_surf_inew(&(struct gkyl_mirror_grid_gen_inp){
       .comp_grid = &up->grid,
+      .world_dim = up->world_dim,
       .nrange = up->nrange_surf[dir],
       .local = up->local,
       .global = up->global,
@@ -203,7 +209,7 @@ gkyl_gk_geometry_mirror_new(struct gkyl_gk_geometry_inp *geometry_inp)
   struct gk_geometry *gk_geom;
 
   // First construct the uniform 3d geometry
-  gk_geom_3d = gk_geometry_mirror_init(geometry_inp);
+  gk_geom_3d = gk_geometry_mirror_init(geometry_inp, true);
   if (geometry_inp->position_map->id == GKYL_PMAP_CONSTANT_DB_POLYNOMIAL ||
       geometry_inp->position_map->id == GKYL_PMAP_CONSTANT_DB_NUMERIC) {
     // The array mc2nu is computed using the uniform geometry, so we need to deflate it
@@ -222,7 +228,7 @@ gkyl_gk_geometry_mirror_new(struct gkyl_gk_geometry_inp *geometry_inp)
     gkyl_gk_geometry_release(gk_geom); // release 3d geometry
 
     // Construct the non-uniform grid
-    gk_geom_3d = gk_geometry_mirror_init(geometry_inp);
+    gk_geom_3d = gk_geometry_mirror_init(geometry_inp, true);
   }
   return gk_geom_3d;
 }

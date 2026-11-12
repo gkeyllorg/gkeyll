@@ -99,6 +99,49 @@ gkyl_deflate_geo_advance(
   }
 }
 
+// Evaluate at the center of the removed quadrature coordinates. With p=1
+// this is the average of the two Gauss nodes; p=2 has a node at the center.
+static void
+deflate_geo_nodal_center(
+  const int *rem_dirs, const struct gkyl_range *nrange, const struct gkyl_range *deflated_nrange,
+  const struct gkyl_array *field, struct gkyl_array *deflated_field, int ncomp
+)
+{
+  int samples = 1;
+  for (int d = 0; d < 3; ++d) {
+    if (rem_dirs[d]) {
+      int count = gkyl_range_shape(nrange, d);
+      assert(count == 2 || count == 3);
+      if (count == 2) {
+        samples *= 2;
+      }
+    }
+  }
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, deflated_nrange);
+  while (gkyl_range_iter_next(&iter)) {
+    double *out = gkyl_array_fetch(deflated_field, gkyl_range_idx(deflated_nrange, iter.idx));
+    for (int c = 0; c < ncomp; ++c) {
+      out[c] = 0.0;
+    }
+    for (int sample = 0; sample < samples; ++sample) {
+      int idx[3], bit = 0, kept = 0;
+      for (int d = 0; d < 3; ++d) {
+        if (rem_dirs[d]) {
+          idx[d] =
+            nrange->lower[d] + (gkyl_range_shape(nrange, d) == 3 ? 1 : ((sample >> bit++) & 1));
+        } else {
+          idx[d] = iter.idx[kept++];
+        }
+      }
+      const double *in = gkyl_array_cfetch(field, gkyl_range_idx(nrange, idx));
+      for (int c = 0; c < ncomp; ++c) {
+        out[c] += in[c] / samples;
+      }
+    }
+  }
+}
+
 void
 gkyl_deflate_geo_advance_nodal(
   const gkyl_deflate_geo *up, const struct gkyl_range *nrange,
@@ -106,44 +149,7 @@ gkyl_deflate_geo_advance_nodal(
   struct gkyl_array *deflated_field, int ncomp
 )
 {
-  // Inflated nodal range will always be 3 long in other directions
-  // Use middle node (1) to populate deflated fields
-
-  int loc_dir[3] = {0.};
-
-  for (int i = 0; i < 3; i++) {
-    loc_dir[i] = 1;
-    if (up->rem_dirs[i] == 1) {
-      loc_dir[i] = 1;
-    }
-  }
-
-  int do_idx[3];
-  for (int i = 0; i < 3; i++) {
-    do_idx[i] = loc_dir[i];
-  }
-
-  struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, deflated_nrange);
-
-  while (gkyl_range_iter_next(&iter)) {
-    int count = 0;
-    for (int i = 0; i < 3; i++) {
-      if (up->rem_dirs[i] == 0) {
-        do_idx[i] = iter.idx[count];
-        count += 1;
-      }
-    }
-
-    long loc = gkyl_range_idx(nrange, do_idx);
-    const double *fld = gkyl_array_cfetch(field, loc);
-
-    long loc_deflated = gkyl_range_idx(deflated_nrange, iter.idx);
-    double *fld_deflated = gkyl_array_fetch(deflated_field, loc_deflated);
-    for (int c = 0; c < ncomp; c++) {
-      fld_deflated[c] = fld[c];
-    }
-  }
+  deflate_geo_nodal_center(up->rem_dirs, nrange, deflated_nrange, field, deflated_field, ncomp);
 }
 
 void
@@ -200,44 +206,7 @@ gkyl_deflate_geo_surf_advance_nodal(
   struct gkyl_array *deflated_field, int ncomp
 )
 {
-  // Inflated grid will always be 1 long in other directions
-  // So deflate reange to the cell at index 1 in the ignored directions (z or x and y). 1 and not 0 because it is a local range
-
-  int loc_dir[3] = {0.};
-
-  for (int i = 0; i < 3; i++) {
-    loc_dir[i] = 1;
-    if (up->rem_dirs[i] == 1) {
-      loc_dir[i] = 1;
-    }
-  }
-
-  int do_idx[3];
-  for (int i = 0; i < 3; i++) {
-    do_idx[i] = loc_dir[i];
-  }
-
-  struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, deflated_nrange);
-
-  while (gkyl_range_iter_next(&iter)) {
-    int count = 0;
-    for (int i = 0; i < 3; i++) {
-      if (up->rem_dirs[i] == 0) {
-        do_idx[i] = iter.idx[count];
-        count += 1;
-      }
-    }
-
-    long loc = gkyl_range_idx(nrange, do_idx);
-    const double *fld = gkyl_array_cfetch(field, loc);
-
-    long loc_deflated = gkyl_range_idx(deflated_nrange, iter.idx);
-    double *fld_deflated = gkyl_array_fetch(deflated_field, loc_deflated);
-    for (int c = 0; c < ncomp; c++) {
-      fld_deflated[c] = fld[c];
-    }
-  }
+  deflate_geo_nodal_center(up->rem_dirs, nrange, deflated_nrange, field, deflated_field, ncomp);
 }
 
 void

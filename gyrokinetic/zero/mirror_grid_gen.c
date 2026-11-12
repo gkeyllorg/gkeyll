@@ -144,8 +144,9 @@ mggen_new(const struct gkyl_mirror_grid_gen_inp *inp, int kind)
   struct psirz_ctx pctx = {.evcub = evcub};
   bool status = true;
   for (int iz = inp->nrange.lower[NZ]; iz <= inp->nrange.upper[NZ]; ++iz) {
-    double zcomp = gk_geometry_node_coord(
-      &comp_grid, &inp->local, &inp->global, &inp->nrange, NZ, iz, num_nodes[NZ], quad[NZ]
+    double zcomp = gk_geometry_node_coord_world(
+      inp->world_dim, &comp_grid, &inp->local, &inp->global, &inp->nrange, NZ, iz, num_nodes[NZ],
+      quad[NZ]
     );
     double zcurr;
     pmap->maps[NZ](0.0, &zcomp, &zcurr, pmap->ctxs[NZ]);
@@ -160,16 +161,22 @@ mggen_new(const struct gkyl_mirror_grid_gen_inp *inp, int kind)
     pctx.Z = zcurr;
 
     for (int ipsi = inp->nrange.lower[NPSI]; ipsi <= inp->nrange.upper[NPSI]; ++ipsi) {
-      double psic = gk_geometry_node_coord(
-        &comp_grid, &inp->local, &inp->global, &inp->nrange, NPSI, ipsi, num_nodes[NPSI], quad[NPSI]
+      double psic = gk_geometry_node_coord_world(
+        inp->world_dim, &comp_grid, &inp->local, &inp->global, &inp->nrange, NPSI, ipsi,
+        num_nodes[NPSI], quad[NPSI]
       );
+      if (sqrt_psi && inp->world_dim == 1) {
+        // Restrict at the requested psi, before the sqrt coordinate transform.
+        psic = sqrt(0.5 * (inp->comp_grid->lower[NPSI] + inp->comp_grid->upper[NPSI]));
+      }
       double psi_map;
       pmap->maps[NPSI](0.0, &psic, &psi_map, pmap->ctxs[NPSI]);
       double dPsi_dpsi = gkyl_position_map_slope(
         pmap, NPSI, psic, comp_grid.dx[NPSI], comp_grid.lower[NPSI], comp_grid.upper[NPSI]
       );
       double psi_curr = sqrt_psi ? psi_map * psi_map : psi_map;
-      bool on_axis = inp->include_axis && !quad[NPSI] && ipsi == inp->nrange.lower[NPSI] &&
+      bool on_axis = inp->world_dim != 1 && inp->include_axis && !quad[NPSI] &&
+                     ipsi == inp->nrange.lower[NPSI] &&
                      inp->local.lower[NPSI] == inp->global.lower[NPSI];
       double radius = 0.0;
       if (on_axis) {
@@ -199,8 +206,9 @@ mggen_new(const struct gkyl_mirror_grid_gen_inp *inp, int kind)
       }
 
       for (int ia = inp->nrange.lower[NAL]; ia <= inp->nrange.upper[NAL]; ++ia) {
-        double alpha_comp = gk_geometry_node_coord(
-          &comp_grid, &inp->local, &inp->global, &inp->nrange, NAL, ia, num_nodes[NAL], quad[NAL]
+        double alpha_comp = gk_geometry_node_coord_world(
+          inp->world_dim, &comp_grid, &inp->local, &inp->global, &inp->nrange, NAL, ia,
+          num_nodes[NAL], quad[NAL]
         );
         double alpha_curr;
         pmap->maps[NAL](0.0, &alpha_comp, &alpha_curr, pmap->ctxs[NAL]);

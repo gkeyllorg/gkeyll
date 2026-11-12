@@ -15,6 +15,7 @@
 typedef struct gk_geometry gk_geometry;
 
 struct gk_geom_surf {
+  struct gkyl_array *dxdz; // 9 components. Cartesian tangents e_1, e_2, e_3 in the surface basis.
   struct gkyl_array *jacobgeo; // 1 component. Configuration space jacobian J.
   struct gkyl_array *
     jacobgeo_ratio; // 1 component. Ratio of jacobgeo from neigboring blocks (valid only at the boundary, stored in ghost cell).
@@ -174,6 +175,7 @@ struct gk_geom_int {
 };
 
 struct gk_geometry {
+  int world_dim; // Active configuration dimensions; 0 or 3 samples the full 3D grid.
   enum gkyl_geometry_id geometry_id;
 
   // Objects for mapc2p and finite differences array.

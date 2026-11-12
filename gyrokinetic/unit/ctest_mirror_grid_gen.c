@@ -187,7 +187,7 @@ test_mirror_grid_gen_wham_with_axis_sqrt_psi_ho(void)
 }
 
 static void
-test_quad_geom(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord)
+test_quad_geom(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord, int world_dim)
 {
   double clower[] = {1.0e-3, 0.0, -0.75};
   double cupper[] = {0.5, 2 * M_PI, 0.75};
@@ -230,6 +230,7 @@ test_quad_geom(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_
 
   // create mirror geometry
   struct gkyl_mirror_grid_gen *geom = gkyl_mirror_grid_gen_inew(&(struct gkyl_mirror_grid_gen_inp){
+    .world_dim = world_dim,
     .comp_grid = &comp_grid,
     .nrange = node_range,
     .local = range,
@@ -263,6 +264,17 @@ test_quad_geom(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_
     const double *rz = gkyl_array_cfetch(geom->nodes_rza, loc);
 
     double r = rz[0], z = rz[1];
+    if (world_dim == 1) {
+      // The radial root solve uses a 1e-10 tolerance.
+      TEST_CHECK(fabs(0.5 * r * r * (z * z + 1.0) - 0.5 * (clower[0] + cupper[0])) < 1e-10);
+      TEST_MSG(
+        "coord=%d R=%g Z=%g psi error=%.17g", fl_coord, r, z,
+        0.5 * r * r * (z * z + 1.0) - 0.5 * (clower[0] + cupper[0])
+      );
+    }
+    if (world_dim == 1 || world_dim == 2) {
+      TEST_CHECK(fabs(rz[2] - M_PI) < 1e-12);
+    }
 
     const struct gkyl_mirror_grid_gen_geom *g = gkyl_array_cfetch(geom->nodes_geom, loc);
 
@@ -354,25 +366,25 @@ test_quad_geom(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_
 static void
 test_mirror_grid_gen_quad_geom_no_axis_psi_ho(void)
 {
-  test_quad_geom(false, GKYL_GEOMETRY_MIRROR_GRID_GEN_PSI_CART_Z);
+  test_quad_geom(false, GKYL_GEOMETRY_MIRROR_GRID_GEN_PSI_CART_Z, 0);
 }
 
 static void
 test_mirror_grid_gen_quad_geom_with_axis_psi_ho(void)
 {
-  test_quad_geom(true, GKYL_GEOMETRY_MIRROR_GRID_GEN_PSI_CART_Z);
+  test_quad_geom(true, GKYL_GEOMETRY_MIRROR_GRID_GEN_PSI_CART_Z, 0);
 }
 
 static void
 test_mirror_grid_gen_quad_geom_no_axis_sqrt_psi_ho(void)
 {
-  test_quad_geom(false, GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z);
+  test_quad_geom(false, GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z, 0);
 }
 
 static void
 test_mirror_grid_gen_quad_geom_with_axis_sqrt_psi_ho(void)
 {
-  test_quad_geom(true, GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z);
+  test_quad_geom(true, GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z, 0);
 }
 
 struct mirror_map_ctx {
@@ -1094,7 +1106,17 @@ test_mirror_nonuniform_axis(void)
   );
 }
 
+static void
+test_mirror_world_slice(void)
+{
+  for (int ndim = 1; ndim <= 2; ++ndim) {
+    test_quad_geom(false, GKYL_GEOMETRY_MIRROR_GRID_GEN_PSI_CART_Z, ndim);
+    test_quad_geom(false, GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z, ndim);
+  }
+}
+
 TEST_LIST = {
+  {"mirror_world_slice", test_mirror_world_slice},
   {"mirror_all_maps", test_mirror_all_maps},
   {"mirror_nonuniform_axis", test_mirror_nonuniform_axis},
   {"mirror_identity", test_mirror_identity},

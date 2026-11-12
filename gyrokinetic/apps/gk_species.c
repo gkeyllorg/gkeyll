@@ -258,9 +258,11 @@ gk_species_write_vcutsq(
   // Package metadata (time/frame + DG basis info).
   gkyl_msgpack_map_elem_set_double(app->io_meta_dg_len, app->io_meta_dg, "time", tm);
   gkyl_msgpack_map_elem_set_uint(app->io_meta_dg_len, app->io_meta_dg, "frame", frame);
+  int vcutsq_meta_len = app->io_meta_dg_len;
+  struct gkyl_msgpack_map_elem *vcutsq_meta =
+    gkyl_msgpack_map_elem_clone(vcutsq_meta_len, app->io_meta_dg);
+  gkyl_msgpack_map_elem_set_string(vcutsq_meta_len, vcutsq_meta, "basis_type", "serendipity");
   struct gkyl_msgpack_map_elem mpe_vcutsq[] = {
-    {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = app->basis.poly_order},
-    {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = "serendipity"},
     {
       .key = "Description",
       .elem_type = GKYL_MP_STRING,
@@ -280,7 +282,7 @@ gk_species_write_vcutsq(
 
   gkyl_bc_sheath_gyrokinetic_write_vcutsq(bc_sheath, mt, fileNm);
 
-  gkyl_msgpack_map_elem_release(app->io_meta_dg_len, vcutsq_meta);
+  gkyl_msgpack_map_elem_release(vcutsq_meta_len, vcutsq_meta);
 
   gkyl_msgpack_data_release(mt);
   app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wst);

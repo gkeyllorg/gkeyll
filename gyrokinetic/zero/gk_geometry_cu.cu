@@ -121,9 +121,9 @@ gk_geometry_set_surf_cu_kernel(
   struct gk_geometry *gk_geom, int dir, struct gkyl_array *bmag, struct gkyl_array *jacobgeo,
   struct gkyl_array *jacobgeo_ratio, struct gkyl_array *b_i, struct gkyl_array *cmag,
   struct gkyl_array *jacobtot_inv, struct gkyl_array *B3, struct gkyl_array *normcurlbhat,
-  struct gkyl_array *normals, struct gkyl_array *lenr, struct gkyl_array *bimpactangle,
-  struct gkyl_array *deltats, struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal,
-  struct gkyl_array *bmag_nodal, struct gkyl_array *curlbhat_nodal,
+  struct gkyl_array *dxdz, struct gkyl_array *normals, struct gkyl_array *lenr,
+  struct gkyl_array *bimpactangle, struct gkyl_array *deltats, struct gkyl_array *mc2p_nodal_fd,
+  struct gkyl_array *mc2p_nodal, struct gkyl_array *bmag_nodal, struct gkyl_array *curlbhat_nodal,
   struct gkyl_array *normcurlbhat_nodal, struct gkyl_array *ddtheta_nodal,
   struct gkyl_array *ddpsi_nodal, struct gkyl_array *jacobgeo_nodal, struct gkyl_array *b_i_nodal,
   struct gkyl_array *b_i_nodal_fd, struct gkyl_array *cmag_nodal,
@@ -143,6 +143,7 @@ gk_geometry_set_surf_cu_kernel(
   gk_geom->geo_surf[dir].jacobtot_inv = jacobtot_inv;
   gk_geom->geo_surf[dir].B3 = B3;
   gk_geom->geo_surf[dir].normcurlbhat = normcurlbhat;
+  gk_geom->geo_surf[dir].dxdz = dxdz;
   gk_geom->geo_surf[dir].normals = normals;
   gk_geom->geo_surf[dir].lenr = lenr;
   gk_geom->geo_surf[dir].bimpactangle = bimpactangle;
@@ -218,9 +219,9 @@ gkyl_geometry_set_surf_cu(struct gk_geometry *gk_geom, struct gk_geom_surf *geo_
     gk_geom, dir, geo_surf->bmag->on_dev, geo_surf->jacobgeo->on_dev,
     geo_surf->jacobgeo_ratio->on_dev, geo_surf->b_i->on_dev, geo_surf->cmag->on_dev,
     geo_surf->jacobtot_inv->on_dev, geo_surf->B3->on_dev, geo_surf->normcurlbhat->on_dev,
-    geo_surf->normals->on_dev, geo_surf->lenr->on_dev, geo_surf->bimpactangle->on_dev,
-    geo_surf->deltats->on_dev, geo_surf->mc2p_nodal_fd->on_dev, geo_surf->mc2p_nodal->on_dev,
-    geo_surf->bmag_nodal->on_dev, geo_surf->curlbhat_nodal->on_dev,
+    geo_surf->dxdz->on_dev, geo_surf->normals->on_dev, geo_surf->lenr->on_dev,
+    geo_surf->bimpactangle->on_dev, geo_surf->deltats->on_dev, geo_surf->mc2p_nodal_fd->on_dev,
+    geo_surf->mc2p_nodal->on_dev, geo_surf->bmag_nodal->on_dev, geo_surf->curlbhat_nodal->on_dev,
     geo_surf->normcurlbhat_nodal->on_dev, geo_surf->ddtheta_nodal->on_dev,
     geo_surf->ddpsi_nodal->on_dev, geo_surf->jacobgeo_nodal->on_dev, geo_surf->b_i_nodal->on_dev,
     geo_surf->b_i_nodal_fd->on_dev, geo_surf->cmag_nodal->on_dev,
@@ -471,6 +472,9 @@ gk_geometry_surf_cu_dev_alloc(struct gk_geom_surf up_surf_host)
     up_surf_host.normcurlbhat->type, up_surf_host.normcurlbhat->ncomp,
     up_surf_host.normcurlbhat->size
   );
+  up_surf_dev->dxdz = gkyl_array_cu_dev_new(
+    up_surf_host.dxdz->type, up_surf_host.dxdz->ncomp, up_surf_host.dxdz->size
+  );
   up_surf_dev->normals = gkyl_array_cu_dev_new(
     up_surf_host.normals->type, up_surf_host.normals->ncomp, up_surf_host.normals->size
   );
@@ -571,6 +575,7 @@ gkyl_gk_geometry_cu_dev_new(struct gk_geometry *geo_host, struct gkyl_gk_geometr
 {
   struct gk_geometry *up = (struct gk_geometry *)gkyl_malloc(sizeof(struct gk_geometry));
 
+  up->world_dim = geometry_inp->grid.ndim;
   up->geometry_id = geometry_inp->geometry_id;
   up->basis = geometry_inp->basis;
   up->local = geometry_inp->local;
@@ -697,6 +702,7 @@ gkyl_gk_geometry_cu_dev_new(struct gk_geometry *geo_host, struct gkyl_gk_geometr
     gkyl_array_copy(geo_surf_dev[dir]->jacobtot_inv, geo_host->geo_surf[dir].jacobtot_inv);
     gkyl_array_copy(geo_surf_dev[dir]->B3, geo_host->geo_surf[dir].B3);
     gkyl_array_copy(geo_surf_dev[dir]->normcurlbhat, geo_host->geo_surf[dir].normcurlbhat);
+    gkyl_array_copy(geo_surf_dev[dir]->dxdz, geo_host->geo_surf[dir].dxdz);
     gkyl_array_copy(geo_surf_dev[dir]->normals, geo_host->geo_surf[dir].normals);
     gkyl_array_copy(geo_surf_dev[dir]->lenr, geo_host->geo_surf[dir].lenr);
     gkyl_array_copy(geo_surf_dev[dir]->bimpactangle, geo_host->geo_surf[dir].bimpactangle);
@@ -828,6 +834,7 @@ gkyl_gk_geometry_cu_dev_new(struct gk_geometry *geo_host, struct gkyl_gk_geometr
     up->geo_surf[dir].jacobtot_inv = geo_surf_dev[dir]->jacobtot_inv;
     up->geo_surf[dir].B3 = geo_surf_dev[dir]->B3;
     up->geo_surf[dir].normcurlbhat = geo_surf_dev[dir]->normcurlbhat;
+    up->geo_surf[dir].dxdz = geo_surf_dev[dir]->dxdz;
     up->geo_surf[dir].normals = geo_surf_dev[dir]->normals;
     up->geo_surf[dir].lenr = geo_surf_dev[dir]->lenr;
     up->geo_surf[dir].bimpactangle = geo_surf_dev[dir]->bimpactangle;

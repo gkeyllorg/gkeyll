@@ -29,6 +29,7 @@ gkyl_gk_geometry_new(
 #endif
 
   struct gk_geometry *up = gkyl_malloc(sizeof(struct gk_geometry));
+  up->world_dim = geometry_inp->grid.ndim;
   up->geometry_id = geometry_inp->geometry_id;
   up->basis = geometry_inp->basis;
   up->local = geometry_inp->local;
@@ -273,6 +274,10 @@ gkyl_gk_geometry_populate_nodal(struct gk_geometry *gk_geom)
     gkyl_nodal_ops_m2n_surface(
       n2m, &gk_geom->surf_basis, &gk_geom->grid, &gk_geom->nrange_surf[dir], &local_ext_in_dir, 1,
       up_surf.normcurlbhat_nodal, up_surf.normcurlbhat, dir
+    );
+    gkyl_nodal_ops_m2n_surface(
+      n2m, &gk_geom->surf_basis, &gk_geom->grid, &gk_geom->nrange_surf[dir], &local_ext_in_dir, 9,
+      up_surf.dxdz_nodal, up_surf.dxdz, dir
     );
     gkyl_nodal_ops_m2n_surface(
       n2m, &gk_geom->surf_basis, &gk_geom->grid, &gk_geom->nrange_surf[dir], &local_ext_in_dir, 9,
@@ -545,15 +550,68 @@ gkyl_gk_geometry_init_nodal_grid(
   gkyl_rect_grid_init(ngrid, nrange->ndim, lower, upper, cells);
 }
 
+// Evaluate tangents on a separate, symmetric stencil about the world slice.
+// Its width controls differentiation, independently of the augmented grid.
+static struct gk_geometry *
+gk_geometry_derivative_samples(const struct gkyl_gk_geometry_inp *inp)
+{
+  struct gkyl_gk_geometry_inp sample = *inp;
+  double lower[3], upper[3];
+  for (int d = 0; d < 3; ++d) {
+    lower[d] = inp->geo_grid.lower[d];
+    upper[d] = inp->geo_grid.upper[d];
+    if ((inp->grid.ndim == 1 && d < 2) || (inp->grid.ndim == 2 && d == 1)) {
+      double center = lower[d] + 0.5 * (upper[d] - lower[d]);
+      bool sqrt_psi = d == 0 && inp->geometry_id == GKYL_GEOMETRY_MIRROR &&
+                      inp->mirror_grid_info.fl_coord ==
+                        GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z;
+      if (sqrt_psi) {
+        center = sqrt(center);
+      }
+      // Tangents themselves involve finite differences: a fourth-root epsilon
+      // step balances their roundoff against the centered stencil's O(h^2) error.
+      double scale = d == 0 && center != 0.0 ? fabs(center) : fmax(1.0, fabs(center));
+      double half_width = pow(DBL_EPSILON, 0.25) * scale;
+      lower[d] = center - half_width;
+      upper[d] = center + half_width;
+      if (sqrt_psi) {
+        // The mirror provider accepts psi bounds but samples in sqrt(psi).
+        lower[d] *= lower[d];
+        upper[d] *= upper[d];
+      }
+    }
+  }
+  gkyl_rect_grid_init(&sample.geo_grid, 3, lower, upper, inp->geo_grid.cells);
+  sample.grid = sample.geo_grid; // Sample all three directions rather than the world slice.
+  if (inp->grid.ndim == 1) {
+    sample.mirror_grid_info.include_axis = false;
+  }
+  switch (sample.geometry_id) {
+    case GKYL_GEOMETRY_TOKAMAK:
+      return gk_geometry_tok_init(&sample, false);
+    case GKYL_GEOMETRY_MIRROR:
+      return gk_geometry_mirror_init(&sample, false);
+    case GKYL_GEOMETRY_MAPC2P:
+    case GKYL_GEOMETRY_NONE:
+      return gk_geometry_mapc2p_init(&sample, false);
+    default:
+      gkyl_exit("Unsupported geometry provider for tangent derivatives.");
+  }
+  return NULL;
+}
+
 struct gk_geometry *
 gkyl_gk_geometry_deflate(const struct gk_geometry *up_3d, struct gkyl_gk_geometry_inp *geometry_inp)
 {
   struct gk_geometry *up = gkyl_malloc(sizeof(struct gk_geometry));
+  up->world_dim = geometry_inp->grid.ndim;
   up->geometry_id = geometry_inp->geometry_id;
   up->basis = geometry_inp->basis;
   up->local = geometry_inp->local;
   up->local_ext = geometry_inp->local_ext;
   up->grid = geometry_inp->grid;
+  up->global = geometry_inp->global;
+  up->global_ext = geometry_inp->global_ext;
   gk_geometry_set_nodal_ranges(up);
 
   if (up->grid.ndim > 1) {
@@ -710,19 +768,26 @@ gkyl_gk_geometry_deflate(const struct gk_geometry *up_3d, struct gkyl_gk_geometr
     deflator, &up_3d->nrange_int, &up->nrange_int, up_3d->geo_int.bcart_nodal,
     up->geo_int.bcart_nodal, 3
   );
-  // Gradients of the Cartesian tangents along all three coordinates: finite
-  // differences on the augmented 3D node grid (one cell of negligible extent
-  // along each removed coordinate), deflated like the tangents. For consumers
-  // that differentiate the geometry along the removed coordinates (e.g. the
-  // triad frame of kinetic neutrals), which the deflated grid cannot provide.
-  struct gkyl_array *dxdz_grad_nodal_3d = gkyl_array_new(GKYL_DOUBLE, 27, up_3d->nrange_int.volume);
+  // The geometry above is evaluated directly on the world slice. Sample a
+  // separate symmetric grid for the missing derivatives, then restrict at its
+  // center (not at either Gauss node).
+  struct gk_geometry *samples = gk_geometry_derivative_samples(geometry_inp);
+  struct gkyl_array *dxdz_grad_nodal_3d =
+    gkyl_array_new(GKYL_DOUBLE, 27, samples->nrange_int.volume);
+  struct gkyl_rect_grid derivative_grid = samples->grid;
+  if (geometry_inp->geometry_id == GKYL_GEOMETRY_MIRROR &&
+      geometry_inp->mirror_grid_info.fl_coord == GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z) {
+    derivative_grid.dx[0] =
+      (sqrt(samples->grid.upper[0]) - sqrt(samples->grid.lower[0])) / samples->grid.cells[0];
+  }
   gkyl_nodal_ops_grad_interior(
-    &up_3d->grid, &up_3d->nrange_int, 9, up_3d->geo_int.dxdz_nodal, dxdz_grad_nodal_3d
+    &derivative_grid, &samples->nrange_int, 9, samples->geo_int.dxdz_nodal, dxdz_grad_nodal_3d
   );
   gkyl_deflate_geo_advance_nodal(
-    deflator, &up_3d->nrange_int, &up->nrange_int, dxdz_grad_nodal_3d, up->geo_int.dxdz_grad_nodal,
-    27
+    deflator, &samples->nrange_int, &up->nrange_int, dxdz_grad_nodal_3d,
+    up->geo_int.dxdz_grad_nodal, 27
   );
+  gkyl_gk_geometry_release(samples);
   gkyl_array_release(dxdz_grad_nodal_3d);
   struct gkyl_nodal_ops *n2m_grad = gkyl_nodal_ops_new(&up->basis, &up->grid, false);
   gkyl_nodal_ops_n2m(
@@ -830,6 +895,10 @@ gkyl_gk_geometry_deflate(const struct gk_geometry *up_3d, struct gkyl_gk_geometr
       gkyl_deflate_geo_surf_advance(
         deflator_surf, &local_ext_in_dir_3d, &local_ext_in_dir, up_3d->geo_surf[dir].normcurlbhat,
         up->geo_surf[count].normcurlbhat, 1
+      );
+      gkyl_deflate_geo_surf_advance(
+        deflator_surf, &local_ext_in_dir_3d, &local_ext_in_dir, up_3d->geo_surf[dir].dxdz,
+        up->geo_surf[count].dxdz, 9
       );
       gkyl_deflate_geo_surf_advance(
         deflator_surf, &local_ext_in_dir_3d, &local_ext_in_dir, up_3d->geo_surf[dir].normals,
@@ -982,7 +1051,11 @@ gkyl_gk_geometry_write_efit(
       .elem_type = GKYL_MP_DOUBLE,
       .dval = miller->Rmajor_omp_bounds[0],
     },
-    {.key = "miller_R_omp_upper", .elem_type = GKYL_MP_DOUBLE, .dval = miller->Rmajor_omp_bounds[1]}
+    {
+      .key = "miller_R_omp_upper",
+      .elem_type = GKYL_MP_DOUBLE,
+      .dval = miller->Rmajor_omp_bounds[1],
+    },
   };
   int miller_meta_len = miller->qsafety ? sizeof(miller_meta) / sizeof(miller_meta[0]) : 0;
   int io_meta_basic_rz_len = sizeof(io_meta_basic_rz) / sizeof(io_meta_basic_rz[0]);
@@ -1049,6 +1122,7 @@ gkyl_gk_geometry_free(const struct gkyl_ref_count *ref)
     gkyl_array_release(up->geo_surf[dir].jacobtot_inv);
     gkyl_array_release(up->geo_surf[dir].B3);
     gkyl_array_release(up->geo_surf[dir].normcurlbhat);
+    gkyl_array_release(up->geo_surf[dir].dxdz);
     gkyl_array_release(up->geo_surf[dir].normals);
     gkyl_array_release(up->geo_surf[dir].lenr);
     gkyl_array_release(up->geo_surf[dir].deltats);

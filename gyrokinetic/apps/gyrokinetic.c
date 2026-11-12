@@ -1704,11 +1704,13 @@ gyrokinetic_app_write_qsafety(gkyl_gyrokinetic_app *app, const struct gkyl_array
       }
     }
   }
-  struct gkyl_msgpack_map_elem extra[] = {{
-    .key = "Description",
-    .elem_type = GKYL_MP_STRING,
-    .cval = "Signed safety factor on closed contours; full-connection winding on open contours.",
-  }};
+  struct gkyl_msgpack_map_elem extra[] = {
+    {
+      .key = "Description",
+      .elem_type = GKYL_MP_STRING,
+      .cval = "Signed safety factor on closed contours; full-connection winding on open contours.",
+    },
+  };
   struct gkyl_msgpack_map_elem *profile_meta =
     gkyl_msgpack_map_elem_clone(app->io_meta_dg_len, app->io_meta_dg);
   gkyl_msgpack_map_elem_set_string(app->io_meta_dg_len, profile_meta, "basis_type", basis.id);
@@ -2037,6 +2039,12 @@ gkyl_gyrokinetic_app_write_geometry(
   struct gkyl_array *arr_surf_ho18 =
     mkarr(false, 18 * app->gk_geom->num_surf_basis, app->local_ext.volume);
   for (int dir = 0; dir < app->cdim; dir++) {
+    if (app->has_kinetic_neut) {
+      gyrokinetic_app_geometry_copy_and_write_surf(
+        app, app->gk_geom->geo_surf[dir].dxdz, arr_surf_ho9, arr_surf_ho18, "dxdz", dir,
+        "Cartesian tangent vectors at faces."
+      );
+    }
     gyrokinetic_app_geometry_copy_and_write_surf(
       app, app->gk_geom->geo_surf[dir].jacobgeo, arr_surf_ho1, arr_surf_ho2, "jacobgeo", dir,
       "Conf-space Jacobian."
@@ -4377,7 +4385,7 @@ gkyl_gyrokinetic_app_read_geometry(
     if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK) {
       struct gkyl_msgpack_map_elem convention[] = {
         {.key = "equilibrium_cocos", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0},
-        {.key = "parallel_coordinate", .elem_type = GKYL_MP_STRING, .cval = NULL}
+        {.key = "parallel_coordinate", .elem_type = GKYL_MP_STRING, .cval = NULL},
       };
       gkyl_msgpack_to_map_elem_list(
         &(struct gkyl_msgpack_data){.meta = hdr.meta, .meta_sz = hdr.meta_size}, 2, convention
@@ -4389,7 +4397,7 @@ gkyl_gyrokinetic_app_read_geometry(
             .elem_type = GKYL_MP_UNSIGNED_INT,
             .uval = convention[0].uval,
           },
-          {.key = "parallel_coordinate", .elem_type = GKYL_MP_STRING, .cval = convention[1].cval}
+          {.key = "parallel_coordinate", .elem_type = GKYL_MP_STRING, .cval = convention[1].cval},
         };
         // Existing geometry owns its strings. Replace those values explicitly;
         // only new keys may be appended by a metadata union.
@@ -4559,6 +4567,12 @@ gkyl_gyrokinetic_app_read_geometry(
   struct gkyl_array *arr_surf_ho18 =
     mkarr(false, 18 * app->gk_geom->num_surf_basis, app->local_ext.volume);
   for (int dir = 0; dir < app->cdim; dir++) {
+    if (app->has_kinetic_neut) {
+      gyrokinetic_app_geometry_read_and_copy_surf(
+        app, app->gk_geom->geo_surf[dir].dxdz, arr_surf_ho9, arr_surf_ho18,
+        geometry_inp->geometry_path, "dxdz", dir
+      );
+    }
     gyrokinetic_app_geometry_read_and_copy_surf(
       app, app->gk_geom->geo_surf[dir].jacobgeo, arr_surf_ho1, arr_surf_ho2,
       geometry_inp->geometry_path, "jacobgeo", dir

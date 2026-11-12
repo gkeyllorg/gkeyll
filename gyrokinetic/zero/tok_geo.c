@@ -973,13 +973,14 @@ gkyl_tok_geo_calc(
   int cidx[3] = {0};
   for (int ia = nrange->lower[AL_IDX]; ia < nrange->lower[AL_IDX] + 1; ++ia) {
     cidx[AL_IDX] = ia;
-    double alpha_curr = gk_geometry_node_coord(
-      &up->grid, &up->local, &up->global, nrange, 1, ia, up->basis.poly_order, false
+    double alpha_curr = gk_geometry_node_coord_world(
+      up->world_dim, &up->grid, &up->local, &up->global, nrange, 1, ia, up->basis.poly_order, false
     );
 
     for (int ip = nrange->lower[PSI_IDX]; ip <= nrange->upper[PSI_IDX]; ++ip) {
-      double psi_curr = gk_geometry_node_coord(
-        &up->grid, &up->local, &up->global, nrange, 0, ip, up->basis.poly_order, false
+      double psi_curr = gk_geometry_node_coord_world(
+        up->world_dim, &up->grid, &up->local, &up->global, nrange, 0, ip, up->basis.poly_order,
+        false
       );
 
       // Non-uniform psi. Finite differences are calculated in calc_metric.c
@@ -1009,8 +1010,9 @@ gkyl_tok_geo_calc(
       for (int it = nrange->lower[TH_IDX]; it <= nrange->upper[TH_IDX]; ++it) {
         int it_delta = 0;
 
-        double theta_curr = gk_geometry_node_coord(
-          &up->grid, &up->local, &up->global, nrange, 2, it, up->basis.poly_order, false
+        double theta_curr = gk_geometry_node_coord_world(
+          up->world_dim, &up->grid, &up->local, &up->global, nrange, 2, it, up->basis.poly_order,
+          false
         );
 
         // Calculate derivatives using finite difference for ddtheta,
@@ -1166,12 +1168,12 @@ gkyl_tok_geo_calc(
   // Populate other alpha indices by using axisymmetry
   for (int ia = nrange->lower[AL_IDX] + 1; ia <= nrange->upper[AL_IDX]; ++ia) {
     cidx[AL_IDX] = ia;
-    double alpha_curr = gk_geometry_node_coord(
-      &up->grid, &up->local, &up->global, nrange, 1, ia, up->basis.poly_order, false
+    double alpha_curr = gk_geometry_node_coord_world(
+      up->world_dim, &up->grid, &up->local, &up->global, nrange, 1, ia, up->basis.poly_order, false
     );
-    double alpha_donor = gk_geometry_node_coord(
-      &up->grid, &up->local, &up->global, nrange, 1, nrange->lower[AL_IDX], up->basis.poly_order,
-      false
+    double alpha_donor = gk_geometry_node_coord_world(
+      up->world_dim, &up->grid, &up->local, &up->global, nrange, 1, nrange->lower[AL_IDX],
+      up->basis.poly_order, false
     );
     double alpha_diff = alpha_curr - alpha_donor;
     for (int ip = nrange->lower[PSI_IDX]; ip <= nrange->upper[PSI_IDX]; ++ip) {
@@ -1290,18 +1292,19 @@ gkyl_tok_geo_calc_interior(
   int cidx[3] = {0};
   for (int ia = nrange->lower[AL_IDX]; ia < nrange->lower[AL_IDX] + 1; ++ia) {
     cidx[AL_IDX] = ia;
-    double alpha_curr = gk_geometry_node_coord(
-      &up->grid, &up->local, &up->global, nrange, 1, ia, up->basis.poly_order + 1, true
+    double alpha_curr = gk_geometry_node_coord_world(
+      up->world_dim, &up->grid, &up->local, &up->global, nrange, 1, ia, up->basis.poly_order + 1,
+      true
     );
 
     for (int ip = nrange->lower[PSI_IDX]; ip <= nrange->upper[PSI_IDX]; ++ip) {
       int ip_delta_max = 3;
       for (int ip_delta = 0; ip_delta < ip_delta_max; ip_delta++) {
-        double psi_curr =
-          gk_geometry_node_coord(
-            &up->grid, &up->local, &up->global, nrange, 0, ip, up->basis.poly_order + 1, true
-          ) +
-          modifiers[ip_delta] * delta_psi;
+        double psi_curr = gk_geometry_node_coord_world(
+                            up->world_dim, &up->grid, &up->local, &up->global, nrange, 0, ip,
+                            up->basis.poly_order + 1, true
+                          ) +
+                          modifiers[ip_delta] * delta_psi;
 
         // Non-uniform psi. Finite differences are calculated in calc_metric.c
         double Psi_curr;
@@ -1334,8 +1337,9 @@ gkyl_tok_geo_calc_interior(
         double ridders_min, ridders_max;
 
         for (int it = nrange->lower[TH_IDX]; it <= nrange->upper[TH_IDX]; ++it) {
-          double theta_curr = gk_geometry_node_coord(
-            &up->grid, &up->local, &up->global, nrange, 2, it, up->basis.poly_order + 1, true
+          double theta_curr = gk_geometry_node_coord_world(
+            up->world_dim, &up->grid, &up->local, &up->global, nrange, 2, it,
+            up->basis.poly_order + 1, true
           );
 
           // Calculate derivatives using finite difference for ddtheta,
@@ -1428,11 +1432,12 @@ gkyl_tok_geo_calc_interior(
   // Populate other alpha indices by using axisymmetry
   for (int ia = nrange->lower[AL_IDX] + 1; ia <= nrange->upper[AL_IDX]; ++ia) {
     cidx[AL_IDX] = ia;
-    double alpha_curr = gk_geometry_node_coord(
-      &up->grid, &up->local, &up->global, nrange, 1, ia, up->basis.poly_order + 1, true
+    double alpha_curr = gk_geometry_node_coord_world(
+      up->world_dim, &up->grid, &up->local, &up->global, nrange, 1, ia, up->basis.poly_order + 1,
+      true
     );
-    double alpha_donor = gk_geometry_node_coord(
-      &up->grid, &up->local, &up->global, nrange, 1, nrange->lower[AL_IDX],
+    double alpha_donor = gk_geometry_node_coord_world(
+      up->world_dim, &up->grid, &up->local, &up->global, nrange, 1, nrange->lower[AL_IDX],
       up->basis.poly_order + 1, true
     );
     double alpha_diff = alpha_curr - alpha_donor;
@@ -1440,11 +1445,11 @@ gkyl_tok_geo_calc_interior(
       cidx[PSI_IDX] = ip;
       int ip_delta_max = 3;
       for (int ip_delta = 0; ip_delta < ip_delta_max; ip_delta++) {
-        double psi_comp =
-          gk_geometry_node_coord(
-            &up->grid, &up->local, &up->global, nrange, 0, ip, up->basis.poly_order + 1, true
-          ) +
-          modifiers[ip_delta] * delta_psi;
+        double psi_comp = gk_geometry_node_coord_world(
+                            up->world_dim, &up->grid, &up->local, &up->global, nrange, 0, ip,
+                            up->basis.poly_order + 1, true
+                          ) +
+                          modifiers[ip_delta] * delta_psi;
         double psi_curr;
         position_map->maps[0](0.0, &psi_comp, &psi_curr, position_map->ctxs[0]);
         for (int it = nrange->lower[TH_IDX]; it <= nrange->upper[TH_IDX]; ++it) {
@@ -1586,9 +1591,9 @@ gkyl_tok_geo_calc_surface(
   int cidx[3] = {0};
   for (int ia = nrange->lower[AL_IDX]; ia < nrange->lower[AL_IDX] + 1; ++ia) {
     cidx[AL_IDX] = ia;
-    double alpha_curr = gk_geometry_node_coord(
-      &up->grid, &up->local, &up->global, nrange, 1, ia, dir == 1 ? 1 : up->basis.poly_order + 1,
-      dir != 1
+    double alpha_curr = gk_geometry_node_coord_world(
+      up->world_dim, &up->grid, &up->local, &up->global, nrange, 1, ia,
+      dir == 1 ? 1 : up->basis.poly_order + 1, dir != 1
     );
 
     for (int ip = nrange->lower[PSI_IDX]; ip <= nrange->upper[PSI_IDX]; ++ip) {
@@ -1610,8 +1615,8 @@ gkyl_tok_geo_calc_surface(
           }
         }
 
-        double psi_curr = gk_geometry_node_coord(
-          &up->grid, &up->local, &up->global, nrange, 0, ip,
+        double psi_curr = gk_geometry_node_coord_world(
+          up->world_dim, &up->grid, &up->local, &up->global, nrange, 0, ip,
           dir == 0 ? 1 : up->basis.poly_order + 1, dir != 0
         );
         psi_curr += modifiers[ip_delta] * delta_psi;
@@ -1643,8 +1648,8 @@ gkyl_tok_geo_calc_surface(
         double ridders_min, ridders_max;
 
         for (int it = nrange->lower[TH_IDX]; it <= nrange->upper[TH_IDX]; ++it) {
-          double theta_curr = gk_geometry_node_coord(
-            &up->grid, &up->local, &up->global, nrange, 2, it,
+          double theta_curr = gk_geometry_node_coord_world(
+            up->world_dim, &up->grid, &up->local, &up->global, nrange, 2, it,
             dir == 2 ? 1 : up->basis.poly_order + 1, dir != 2
           );
 
@@ -1749,12 +1754,12 @@ gkyl_tok_geo_calc_surface(
   // Populate other alpha indices by using axisymmetry
   for (int ia = nrange->lower[AL_IDX] + 1; ia <= nrange->upper[AL_IDX]; ++ia) {
     cidx[AL_IDX] = ia;
-    double alpha_curr = gk_geometry_node_coord(
-      &up->grid, &up->local, &up->global, nrange, 1, ia, dir == 1 ? 1 : up->basis.poly_order + 1,
-      dir != 1
+    double alpha_curr = gk_geometry_node_coord_world(
+      up->world_dim, &up->grid, &up->local, &up->global, nrange, 1, ia,
+      dir == 1 ? 1 : up->basis.poly_order + 1, dir != 1
     );
-    double alpha_donor = gk_geometry_node_coord(
-      &up->grid, &up->local, &up->global, nrange, 1, nrange->lower[AL_IDX],
+    double alpha_donor = gk_geometry_node_coord_world(
+      up->world_dim, &up->grid, &up->local, &up->global, nrange, 1, nrange->lower[AL_IDX],
       dir == 1 ? 1 : up->basis.poly_order + 1, dir != 1
     );
     double alpha_diff = alpha_curr - alpha_donor;
@@ -1778,8 +1783,8 @@ gkyl_tok_geo_calc_surface(
             continue;
           }
         }
-        double psi_comp = gk_geometry_node_coord(
-          &up->grid, &up->local, &up->global, nrange, 0, ip,
+        double psi_comp = gk_geometry_node_coord_world(
+          up->world_dim, &up->grid, &up->local, &up->global, nrange, 0, ip,
           dir == 0 ? 1 : up->basis.poly_order + 1, dir != 0
         );
         psi_comp += modifiers[ip_delta] * delta_psi;

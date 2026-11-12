@@ -497,7 +497,7 @@ multib_init_io(
     {.key = "changeset", .elem_type = GKYL_MP_STRING, .cval = (char *)build_id},
     {.key = "builddate", .elem_type = GKYL_MP_STRING, .cval = (char *)build_date},
     {.key = "is_multib", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 1},
-    {.key = "topo_file", .elem_type = GKYL_MP_STRING, .cval = fileNm_btopo}
+    {.key = "topo_file", .elem_type = GKYL_MP_STRING, .cval = fileNm_btopo},
   };
   mbapp->io_meta_basic = gyrokinetic_app_input_metadata(
     sizeof(io_meta_default) / sizeof(io_meta_default[0]), io_meta_default, &mbinp->metadata,
@@ -698,33 +698,6 @@ and the maximum number of cuts in a block is %d\n\n",
   }
 
   mbapp->num_local_blocks = num_local_blocks;
-
-  // Create multiblock metadata to pass to each block, and combine with user's metadata.
-  const char *fmt_btopo = "%s-block_topo.gkyl";
-  int sz = gkyl_calc_strlen(fmt_btopo, mbapp->name);
-  char fileNm_btopo[sz + 1]; // ensures no buffer overflow
-  snprintf(fileNm_btopo, sizeof fileNm_btopo, fmt_btopo, mbapp->name);
-
-  // Basic metadata for I/O (including metadata optional from user).
-  const char *build_id = GIT_COMMIT_ID;
-  const char *build_date = GKYL_BUILD_DATE;
-  struct gkyl_msgpack_map_elem io_meta_default[] = {
-    {.key = "changeset", .elem_type = GKYL_MP_STRING, .cval = (char *)build_id},
-    {.key = "builddate", .elem_type = GKYL_MP_STRING, .cval = (char *)build_date},
-    {.key = "is_multib", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 1},
-    {.key = "topo_file", .elem_type = GKYL_MP_STRING, .cval = fileNm_btopo},
-  };
-  const struct gkyl_msgpack_map_elem *io_meta_union[] = {
-    io_meta_default, mbinp->metadata.attributes
-  };
-  int io_meta_union_len[] = {
-    sizeof(io_meta_default) / sizeof(io_meta_default[0]), mbinp->metadata.num_attributes
-  };
-
-  mbapp->io_meta_basic = gkyl_msgpack_map_elem_union(
-    sizeof(io_meta_union) / sizeof(io_meta_union[0]), io_meta_union_len, io_meta_union,
-    &mbapp->io_meta_basic_len
-  );
 
   // Write the block topo file.
   gkyl_gyrokinetic_multib_app_write_topo(mbapp);

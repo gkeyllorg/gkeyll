@@ -30,15 +30,16 @@ gk_geometry_mapc2p_advance(
   int cidx[3] = {0};
   for (int ia = nrange->lower[AL_IDX]; ia <= nrange->upper[AL_IDX]; ++ia) {
     cidx[AL_IDX] = ia;
-    double alpha_curr = gk_geometry_node_coord(
-      &up->grid, &up->local, &up->global, nrange, 1, ia, up->basis.poly_order, false
+    double alpha_curr = gk_geometry_node_coord_world(
+      up->world_dim, &up->grid, &up->local, &up->global, nrange, 1, ia, up->basis.poly_order, false
     );
     double alpha_curr_mapped;
     position_map->maps[1](0.0, &alpha_curr, &alpha_curr_mapped, position_map->ctxs[1]);
     alpha_curr = alpha_curr_mapped;
     for (int ip = nrange->lower[PSI_IDX]; ip <= nrange->upper[PSI_IDX]; ++ip) {
-      double psi_curr = gk_geometry_node_coord(
-        &up->grid, &up->local, &up->global, nrange, 0, ip, up->basis.poly_order, false
+      double psi_curr = gk_geometry_node_coord_world(
+        up->world_dim, &up->grid, &up->local, &up->global, nrange, 0, ip, up->basis.poly_order,
+        false
       );
       double psi_curr_mapped;
       position_map->maps[0](0.0, &psi_curr, &psi_curr_mapped, position_map->ctxs[0]);
@@ -46,8 +47,9 @@ gk_geometry_mapc2p_advance(
       cidx[PSI_IDX] = ip;
       // set node coordinates
       for (int it = nrange->lower[TH_IDX]; it <= nrange->upper[TH_IDX]; ++it) {
-        double theta_curr = gk_geometry_node_coord(
-          &up->grid, &up->local, &up->global, nrange, 2, it, up->basis.poly_order, false
+        double theta_curr = gk_geometry_node_coord_world(
+          up->world_dim, &up->grid, &up->local, &up->global, nrange, 2, it, up->basis.poly_order,
+          false
         );
         double theta_curr_mapped;
         position_map->maps[2](0.0, &theta_curr, &theta_curr_mapped, position_map->ctxs[2]);
@@ -122,11 +124,11 @@ gk_geometry_mapc2p_advance_interior(
   for (int ia = nrange->lower[AL_IDX]; ia <= nrange->upper[AL_IDX]; ++ia) {
     cidx[AL_IDX] = ia;
     for (int ia_delta = 0; ia_delta < 3; ia_delta++) { // interior stencil
-      double alpha_curr =
-        gk_geometry_node_coord(
-          &up->grid, &up->local, &up->global, nrange, 1, ia, up->basis.poly_order + 1, true
-        ) +
-        modifiers[ia_delta] * delta_alpha;
+      double alpha_curr = gk_geometry_node_coord_world(
+                            up->world_dim, &up->grid, &up->local, &up->global, nrange, 1, ia,
+                            up->basis.poly_order + 1, true
+                          ) +
+                          modifiers[ia_delta] * delta_alpha;
       double alpha_curr_mapped;
       position_map->maps[1](0.0, &alpha_curr, &alpha_curr_mapped, position_map->ctxs[1]);
       alpha_curr = alpha_curr_mapped;
@@ -137,11 +139,11 @@ gk_geometry_mapc2p_advance_interior(
           ip_delta_max = 1;
         }
         for (int ip_delta = 0; ip_delta < ip_delta_max; ip_delta++) {
-          double psi_curr =
-            gk_geometry_node_coord(
-              &up->grid, &up->local, &up->global, nrange, 0, ip, up->basis.poly_order + 1, true
-            ) +
-            modifiers[ip_delta] * delta_psi;
+          double psi_curr = gk_geometry_node_coord_world(
+                              up->world_dim, &up->grid, &up->local, &up->global, nrange, 0, ip,
+                              up->basis.poly_order + 1, true
+                            ) +
+                            modifiers[ip_delta] * delta_psi;
           double psi_curr_mapped;
           position_map->maps[0](0.0, &psi_curr, &psi_curr_mapped, position_map->ctxs[0]);
           psi_curr = psi_curr_mapped;
@@ -153,11 +155,11 @@ gk_geometry_mapc2p_advance_interior(
               it_delta_max = 1;
             }
             for (int it_delta = 0; it_delta < it_delta_max; it_delta++) {
-              double theta_curr =
-                gk_geometry_node_coord(
-                  &up->grid, &up->local, &up->global, nrange, 2, it, up->basis.poly_order + 1, true
-                ) +
-                modifiers[it_delta] * delta_theta;
+              double theta_curr = gk_geometry_node_coord_world(
+                                    up->world_dim, &up->grid, &up->local, &up->global, nrange, 2,
+                                    it, up->basis.poly_order + 1, true
+                                  ) +
+                                  modifiers[it_delta] * delta_theta;
               double theta_curr_mapped;
               position_map->maps[2](0.0, &theta_curr, &theta_curr_mapped, position_map->ctxs[2]);
               theta_curr = theta_curr_mapped;
@@ -324,13 +326,13 @@ gk_geometry_mapc2p_calc_deltats(
   int cidx[3] = {0};
   for (int ia = nrange->lower[AL_IDX]; ia <= nrange->upper[AL_IDX]; ++ia) {
     cidx[AL_IDX] = ia;
-    double y = gk_geometry_node_coord(
-      &up->grid, &up->local, &up->global, nrange, AL_IDX, ia, num_quad, true
+    double y = gk_geometry_node_coord_world(
+      up->world_dim, &up->grid, &up->local, &up->global, nrange, AL_IDX, ia, num_quad, true
     );
     for (int ip = nrange->lower[PSI_IDX]; ip <= nrange->upper[PSI_IDX]; ++ip) {
       cidx[PSI_IDX] = ip;
-      double x = gk_geometry_node_coord(
-        &up->grid, &up->local, &up->global, nrange, PSI_IDX, ip, num_quad, true
+      double x = gk_geometry_node_coord_world(
+        up->world_dim, &up->grid, &up->local, &up->global, nrange, PSI_IDX, ip, num_quad, true
       );
 
       // Toroidal angle per unit y (dphi/dy) using centered finite differences at the lower z boundary.
@@ -357,8 +359,9 @@ gk_geometry_mapc2p_calc_deltats(
       for (int it = nrange->lower[TH_IDX]; it <= nrange->upper[TH_IDX]; ++it) {
         cidx[TH_IDX] = it;
         // Face nodes; the last global face is exactly z_up (avoids the Lz == 2pi case).
-        double z_face =
-          gk_geometry_node_coord(&up->grid, &up->local, &up->global, nrange, TH_IDX, it, 1, false);
+        double z_face = gk_geometry_node_coord_world(
+          up->world_dim, &up->grid, &up->local, &up->global, nrange, TH_IDX, it, 1, false
+        );
         int num_sub = (int)ceil((z_face - z) / dz_max);
         double z_start = z;
         for (int k = 1; k <= num_sub; k++) {
@@ -421,9 +424,9 @@ gk_geometry_mapc2p_advance_surface(
           continue; //dont do two away
         }
       }
-      double alpha_curr = gk_geometry_node_coord(
-        &up->grid, &up->local, &up->global, nrange, 1, ia, dir == 1 ? 1 : up->basis.poly_order + 1,
-        dir != 1
+      double alpha_curr = gk_geometry_node_coord_world(
+        up->world_dim, &up->grid, &up->local, &up->global, nrange, 1, ia,
+        dir == 1 ? 1 : up->basis.poly_order + 1, dir != 1
       );
       alpha_curr += modifiers[ia_delta] * delta_alpha;
       double alpha_curr_mapped;
@@ -453,8 +456,8 @@ gk_geometry_mapc2p_advance_surface(
               continue; // Don't do two away.
             }
           }
-          double psi_curr = gk_geometry_node_coord(
-            &up->grid, &up->local, &up->global, nrange, 0, ip,
+          double psi_curr = gk_geometry_node_coord_world(
+            up->world_dim, &up->grid, &up->local, &up->global, nrange, 0, ip,
             dir == 0 ? 1 : up->basis.poly_order + 1, dir != 0
           );
           psi_curr += modifiers[ip_delta] * delta_psi;
@@ -486,8 +489,8 @@ gk_geometry_mapc2p_advance_surface(
                   continue; // Don't do two away.
                 }
               }
-              double theta_curr = gk_geometry_node_coord(
-                &up->grid, &up->local, &up->global, nrange, 2, it,
+              double theta_curr = gk_geometry_node_coord_world(
+                up->world_dim, &up->grid, &up->local, &up->global, nrange, 2, it,
                 dir == 2 ? 1 : up->basis.poly_order + 1, dir != 2
               );
               theta_curr += modifiers[it_delta] * delta_theta;
@@ -562,10 +565,11 @@ gk_geometry_mapc2p_advance_surface(
 }
 
 struct gk_geometry *
-gk_geometry_mapc2p_init(struct gkyl_gk_geometry_inp *geometry_inp)
+gk_geometry_mapc2p_init(struct gkyl_gk_geometry_inp *geometry_inp, bool optimize_map)
 {
   struct gk_geometry *up = gkyl_malloc(sizeof(struct gk_geometry));
   up->has_dxdz_grad = false;
+  up->world_dim = geometry_inp->grid.ndim;
   up->geometry_id = geometry_inp->geometry_id;
   up->basis = geometry_inp->geo_basis;
   up->local = geometry_inp->geo_local;
@@ -615,7 +619,9 @@ gk_geometry_mapc2p_init(struct gkyl_gk_geometry_inp *geometry_inp)
     gk_geometry_surf_alloc_expansions(up, dir);
   }
 
-  gkyl_position_map_optimize(geometry_inp->position_map, up->grid, up->global);
+  if (optimize_map) {
+    gkyl_position_map_optimize(geometry_inp->position_map, up->grid, up->global);
+  }
 
   // calculate mapc2p in cartesian coords at corner nodes for
   // getting cell coordinates (used only for plotting)
@@ -660,7 +666,7 @@ gkyl_gk_geometry_mapc2p_new(struct gkyl_gk_geometry_inp *geometry_inp)
   struct gk_geometry *gk_geom;
 
   // First construct the uniform 3d geometry
-  gk_geom_3d = gk_geometry_mapc2p_init(geometry_inp);
+  gk_geom_3d = gk_geometry_mapc2p_init(geometry_inp, true);
   if (geometry_inp->position_map->id == GKYL_PMAP_CONSTANT_DB_POLYNOMIAL ||
       geometry_inp->position_map->id == GKYL_PMAP_CONSTANT_DB_NUMERIC) {
     // The array mc2nu is computed using the uniform geometry, so we need to deflate it
@@ -679,7 +685,7 @@ gkyl_gk_geometry_mapc2p_new(struct gkyl_gk_geometry_inp *geometry_inp)
     gkyl_gk_geometry_release(gk_geom); // release 3d geometry
 
     // Construct the non-uniform grid
-    gk_geom_3d = gk_geometry_mapc2p_init(geometry_inp);
+    gk_geom_3d = gk_geometry_mapc2p_init(geometry_inp, true);
   }
   return gk_geom_3d;
 }

@@ -20,9 +20,10 @@
 #include <assert.h>
 
 struct gk_geometry *
-gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
+gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp, bool optimize_map)
 {
   struct gk_geometry *up = gkyl_calloc(1, sizeof(struct gk_geometry));
+  up->world_dim = geometry_inp->grid.ndim;
   up->geometry_id = geometry_inp->geometry_id;
   up->basis = geometry_inp->geo_basis;
   up->local = geometry_inp->geo_local;
@@ -77,7 +78,9 @@ gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
     gk_geometry_surf_alloc_expansions(up, dir);
   }
 
-  gkyl_position_map_optimize(geometry_inp->position_map, up->grid, up->global);
+  if (optimize_map) {
+    gkyl_position_map_optimize(geometry_inp->position_map, up->grid, up->global);
+  }
 
   // Calculate bmag and mapc2p in cylindrical coords at corner nodes for
   // getting cell coordinates (used only for plotting).
@@ -150,7 +153,7 @@ gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
 
   if (geometry_inp->miller_grid_info.qsafety) {
     struct gkyl_msgpack_map_elem miller_meta[] = {
-      {.key = "geometry_generator", .elem_type = GKYL_MP_STRING, .cval = "miller"}
+      {.key = "geometry_generator", .elem_type = GKYL_MP_STRING, .cval = "miller"},
     };
     const struct gkyl_msgpack_map_elem *lists[] = {up->io_meta_basic, miller_meta};
     int lengths[] = {up->io_meta_basic_len, sizeof miller_meta / sizeof miller_meta[0]};
@@ -237,7 +240,7 @@ gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geometry_inp)
   } else if (geometry_inp->position_map->id == GKYL_PMAP_CONSTANT_DB_POLYNOMIAL ||
              geometry_inp->position_map->id == GKYL_PMAP_CONSTANT_DB_NUMERIC) {
     // First construct the uniform 3d geometry
-    gk_geom_3d = gk_geometry_tok_init(geometry_inp);
+    gk_geom_3d = gk_geometry_tok_init(geometry_inp, true);
     // The array mc2nu is computed using the uniform geometry, so we need to deflate it
     // Must deflate the 3D uniform geometry in order for the allgather to work
     if (geometry_inp->grid.ndim < 3) {
@@ -254,7 +257,7 @@ gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geometry_inp)
     gkyl_gk_geometry_release(gk_geom); // release 3d geometry
   }
   // Construct the non-uniform grid
-  gk_geom_3d = gk_geometry_tok_init(geometry_inp);
+  gk_geom_3d = gk_geometry_tok_init(geometry_inp, true);
   return gk_geom_3d;
 }
 
