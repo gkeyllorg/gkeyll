@@ -53,7 +53,7 @@ gyrokinetic_multib_forward_euler(
     }
     for (int i = 0; i < app->num_neut_species; ++i) {
       struct gk_neut_species *gkns = &sbapp->neut_species[i];
-      gk_neut_species_step_f(gkns, fout_neut[li_charged + i], dta, fin_neut[li_charged + i]);
+      gk_neut_species_step_f(gkns, fout_neut[li_neut + i], dta, fin_neut[li_neut + i]);
       gk_neut_species_bflux_step_f(
         sbapp, &gkns->bflux, bflux_out_neut[li_neut + i], 1.0, bflux_in_neut[li_neut + i]
       );
