@@ -15,6 +15,7 @@ struct gk_geometry *
 gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp)
 {
   struct gk_geometry *up = gkyl_malloc(sizeof(struct gk_geometry));
+  up->has_dxdz_grad = false;
   up->geometry_id = geometry_inp->geometry_id;
   up->basis = geometry_inp->geo_basis;
   up->local = geometry_inp->geo_local;
@@ -175,7 +176,7 @@ gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp)
       .key = "geqdsk_sign_convention",
       .elem_type = GKYL_MP_UNSIGNED_INT,
       .uval = up->geqdsk_sign_convention,
-    }
+    },
   };
   up->io_meta_basic_len = sizeof(io_meta_basic) / sizeof(io_meta_basic[0]);
   up->io_meta_basic = gkyl_msgpack_map_elem_clone(up->io_meta_basic_len, io_meta_basic);

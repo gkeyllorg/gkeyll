@@ -32,7 +32,7 @@ write_geometry(
 )
 {
   const char *fmt = "%s-%s.gkyl";
-  int sz = gkyl_calc_strlen(fmt, name, "jacobtot_inv");
+  int sz = gkyl_calc_strlen(fmt, name, "bmag_inv_corn"); // longest suffix written below
   char fileNm[sz + 1]; // ensure no buffer overflow
 
   sprintf(fileNm, fmt, name, "mapc2p");

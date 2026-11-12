@@ -47,6 +47,13 @@ __global__ void static dg_advection_set_cu_dev_ptrs(
       surf_z_kernels = ser_surf_z_kernels;
       break;
 
+    case GKYL_BASIS_MODAL_TENSOR:
+      vol_kernels = tensor_vol_kernels;
+      surf_x_kernels = tensor_surf_x_kernels;
+      surf_y_kernels = tensor_surf_y_kernels;
+      surf_z_kernels = tensor_surf_z_kernels;
+      break;
+
     default:
       assert(false);
       break;

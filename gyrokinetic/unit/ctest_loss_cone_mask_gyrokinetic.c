@@ -502,7 +502,7 @@ run_constant_boundary_cases(bool use_gpu)
       .phi_wall_up = 0.0,
       .lower_orbit = GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_WALL,
       .upper_orbit = GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_WALL,
-    }
+    },
   };
 
   double lower[] = {-1.0, -4.0, 0.0};

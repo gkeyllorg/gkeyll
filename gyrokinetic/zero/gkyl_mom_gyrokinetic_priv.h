@@ -40,7 +40,7 @@ typedef struct {
 GKYL_CU_DH static void
 kernel_gyrokinetic_M0_1x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -61,7 +61,7 @@ kernel_gyrokinetic_M0_1x1v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_M0_1x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -82,7 +82,7 @@ kernel_gyrokinetic_M0_1x1v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_M0_1x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -103,7 +103,7 @@ kernel_gyrokinetic_M0_1x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_M0_1x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -124,7 +124,7 @@ kernel_gyrokinetic_M0_1x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_M0_2x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -145,7 +145,7 @@ kernel_gyrokinetic_M0_2x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_M0_2x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -166,7 +166,7 @@ kernel_gyrokinetic_M0_2x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_M0_3x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -187,7 +187,7 @@ kernel_gyrokinetic_M0_3x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_M1_1x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -208,7 +208,7 @@ kernel_gyrokinetic_M1_1x1v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_M1_1x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -229,7 +229,7 @@ kernel_gyrokinetic_M1_1x1v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_M1_1x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -250,7 +250,7 @@ kernel_gyrokinetic_M1_1x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_M1_1x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -271,7 +271,7 @@ kernel_gyrokinetic_M1_1x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_M1_2x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -292,7 +292,7 @@ kernel_gyrokinetic_M1_2x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_M1_2x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -313,7 +313,7 @@ kernel_gyrokinetic_M1_2x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_M1_3x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -334,7 +334,7 @@ kernel_gyrokinetic_M1_3x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_M2_1x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -355,7 +355,7 @@ kernel_gyrokinetic_M2_1x1v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_M2_1x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -376,7 +376,7 @@ kernel_gyrokinetic_M2_1x1v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_M2_1x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -397,7 +397,7 @@ kernel_gyrokinetic_M2_1x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_M2_1x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -418,7 +418,7 @@ kernel_gyrokinetic_M2_1x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_M2_2x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -439,7 +439,7 @@ kernel_gyrokinetic_M2_2x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_M2_2x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -460,7 +460,7 @@ kernel_gyrokinetic_M2_2x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_M2_3x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -481,7 +481,7 @@ kernel_gyrokinetic_M2_3x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_M2_par_1x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -502,7 +502,7 @@ kernel_gyrokinetic_M2_par_1x1v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_M2_par_1x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -523,7 +523,7 @@ kernel_gyrokinetic_M2_par_1x1v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_M2_par_1x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -544,7 +544,7 @@ kernel_gyrokinetic_M2_par_1x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_M2_par_1x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -565,7 +565,7 @@ kernel_gyrokinetic_M2_par_1x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_M2_par_2x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -586,7 +586,7 @@ kernel_gyrokinetic_M2_par_2x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_M2_par_2x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -607,7 +607,7 @@ kernel_gyrokinetic_M2_par_2x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_M2_par_3x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -628,7 +628,7 @@ kernel_gyrokinetic_M2_par_3x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_M2_perp_1x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -649,7 +649,7 @@ kernel_gyrokinetic_M2_perp_1x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_M2_perp_1x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -670,7 +670,7 @@ kernel_gyrokinetic_M2_perp_1x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_M2_perp_2x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -691,7 +691,7 @@ kernel_gyrokinetic_M2_perp_2x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_M2_perp_2x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -712,7 +712,7 @@ kernel_gyrokinetic_M2_perp_2x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_M2_perp_3x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -733,7 +733,7 @@ kernel_gyrokinetic_M2_perp_3x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_M3_par_1x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -754,7 +754,7 @@ kernel_gyrokinetic_M3_par_1x1v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_M3_par_1x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -775,7 +775,7 @@ kernel_gyrokinetic_M3_par_1x1v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_M3_par_1x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -796,7 +796,7 @@ kernel_gyrokinetic_M3_par_1x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_M3_par_1x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -817,7 +817,7 @@ kernel_gyrokinetic_M3_par_1x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_M3_par_2x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -838,7 +838,7 @@ kernel_gyrokinetic_M3_par_2x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_M3_par_2x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -859,7 +859,7 @@ kernel_gyrokinetic_M3_par_2x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_M3_par_3x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -880,7 +880,7 @@ kernel_gyrokinetic_M3_par_3x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_M3_perp_1x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -901,7 +901,7 @@ kernel_gyrokinetic_M3_perp_1x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_M3_perp_1x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -922,7 +922,7 @@ kernel_gyrokinetic_M3_perp_1x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_M3_perp_2x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -943,7 +943,7 @@ kernel_gyrokinetic_M3_perp_2x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_M3_perp_2x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -964,7 +964,7 @@ kernel_gyrokinetic_M3_perp_2x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_M3_perp_3x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -985,7 +985,7 @@ kernel_gyrokinetic_M3_perp_3x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_three_moments_1x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -1006,7 +1006,7 @@ kernel_gyrokinetic_three_moments_1x1v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_three_moments_1x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -1027,7 +1027,7 @@ kernel_gyrokinetic_three_moments_1x1v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_three_moments_1x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -1048,7 +1048,7 @@ kernel_gyrokinetic_three_moments_1x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_three_moments_1x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -1069,7 +1069,7 @@ kernel_gyrokinetic_three_moments_1x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_three_moments_2x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -1090,7 +1090,7 @@ kernel_gyrokinetic_three_moments_2x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_three_moments_2x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -1111,7 +1111,7 @@ kernel_gyrokinetic_three_moments_2x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_three_moments_3x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -1132,7 +1132,7 @@ kernel_gyrokinetic_three_moments_3x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_four_moments_1x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -1153,7 +1153,7 @@ kernel_gyrokinetic_four_moments_1x1v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_four_moments_1x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -1174,7 +1174,7 @@ kernel_gyrokinetic_four_moments_1x1v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_four_moments_1x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -1195,7 +1195,7 @@ kernel_gyrokinetic_four_moments_1x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_four_moments_1x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -1216,7 +1216,7 @@ kernel_gyrokinetic_four_moments_1x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_four_moments_2x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -1237,7 +1237,7 @@ kernel_gyrokinetic_four_moments_2x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_four_moments_2x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -1258,7 +1258,7 @@ kernel_gyrokinetic_four_moments_2x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_four_moments_3x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -1279,7 +1279,7 @@ kernel_gyrokinetic_four_moments_3x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_hamiltonian_moments_1x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -1301,7 +1301,7 @@ kernel_gyrokinetic_hamiltonian_moments_1x1v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_hamiltonian_moments_1x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -1323,7 +1323,7 @@ kernel_gyrokinetic_hamiltonian_moments_1x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_hamiltonian_moments_2x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -1345,7 +1345,7 @@ kernel_gyrokinetic_hamiltonian_moments_2x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_hamiltonian_moments_3x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -1367,7 +1367,7 @@ kernel_gyrokinetic_hamiltonian_moments_3x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_hamiltonian_moments_1x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -1389,7 +1389,7 @@ kernel_gyrokinetic_hamiltonian_moments_1x1v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_hamiltonian_moments_1x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -1411,7 +1411,7 @@ kernel_gyrokinetic_hamiltonian_moments_1x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_hamiltonian_moments_2x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -1433,7 +1433,7 @@ kernel_gyrokinetic_hamiltonian_moments_2x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_M0_1x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -1454,7 +1454,7 @@ kernel_gyrokinetic_int_M0_1x1v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_M0_1x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -1475,7 +1475,7 @@ kernel_gyrokinetic_int_M0_1x1v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_M0_1x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -1496,7 +1496,7 @@ kernel_gyrokinetic_int_M0_1x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_M0_1x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -1517,7 +1517,7 @@ kernel_gyrokinetic_int_M0_1x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_M0_2x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -1538,7 +1538,7 @@ kernel_gyrokinetic_int_M0_2x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_M0_2x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -1559,7 +1559,7 @@ kernel_gyrokinetic_int_M0_2x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_M0_3x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -1580,7 +1580,7 @@ kernel_gyrokinetic_int_M0_3x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_M1_1x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -1601,7 +1601,7 @@ kernel_gyrokinetic_int_M1_1x1v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_M1_1x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -1622,7 +1622,7 @@ kernel_gyrokinetic_int_M1_1x1v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_M1_1x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -1643,7 +1643,7 @@ kernel_gyrokinetic_int_M1_1x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_M1_1x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -1664,7 +1664,7 @@ kernel_gyrokinetic_int_M1_1x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_M1_2x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -1685,7 +1685,7 @@ kernel_gyrokinetic_int_M1_2x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_M1_2x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -1706,7 +1706,7 @@ kernel_gyrokinetic_int_M1_2x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_M1_3x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -1727,7 +1727,7 @@ kernel_gyrokinetic_int_M1_3x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_M2_par_1x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -1748,7 +1748,7 @@ kernel_gyrokinetic_int_M2_par_1x1v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_M2_par_1x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -1769,7 +1769,7 @@ kernel_gyrokinetic_int_M2_par_1x1v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_M2_par_1x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -1790,7 +1790,7 @@ kernel_gyrokinetic_int_M2_par_1x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_M2_par_1x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -1811,7 +1811,7 @@ kernel_gyrokinetic_int_M2_par_1x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_M2_par_2x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -1832,7 +1832,7 @@ kernel_gyrokinetic_int_M2_par_2x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_M2_par_2x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -1853,7 +1853,7 @@ kernel_gyrokinetic_int_M2_par_2x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_M2_par_3x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -1874,7 +1874,7 @@ kernel_gyrokinetic_int_M2_par_3x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_M2_perp_1x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -1895,7 +1895,7 @@ kernel_gyrokinetic_int_M2_perp_1x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_M2_perp_1x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -1916,7 +1916,7 @@ kernel_gyrokinetic_int_M2_perp_1x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_M2_perp_2x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -1937,7 +1937,7 @@ kernel_gyrokinetic_int_M2_perp_2x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_M2_perp_2x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -1958,7 +1958,7 @@ kernel_gyrokinetic_int_M2_perp_2x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_M2_perp_3x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -1979,7 +1979,7 @@ kernel_gyrokinetic_int_M2_perp_3x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_M2_1x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -2000,7 +2000,7 @@ kernel_gyrokinetic_int_M2_1x1v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_M2_1x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -2021,7 +2021,7 @@ kernel_gyrokinetic_int_M2_1x1v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_M2_1x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -2042,7 +2042,7 @@ kernel_gyrokinetic_int_M2_1x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_M2_1x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -2063,7 +2063,7 @@ kernel_gyrokinetic_int_M2_1x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_M2_2x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -2084,7 +2084,7 @@ kernel_gyrokinetic_int_M2_2x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_M2_2x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -2105,7 +2105,7 @@ kernel_gyrokinetic_int_M2_2x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_M2_3x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -2126,7 +2126,7 @@ kernel_gyrokinetic_int_M2_3x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_M3_par_1x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -2147,7 +2147,7 @@ kernel_gyrokinetic_int_M3_par_1x1v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_M3_par_1x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -2168,7 +2168,7 @@ kernel_gyrokinetic_int_M3_par_1x1v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_M3_par_1x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -2189,7 +2189,7 @@ kernel_gyrokinetic_int_M3_par_1x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_M3_par_1x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -2210,7 +2210,7 @@ kernel_gyrokinetic_int_M3_par_1x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_M3_par_2x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -2231,7 +2231,7 @@ kernel_gyrokinetic_int_M3_par_2x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_M3_par_2x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -2252,7 +2252,7 @@ kernel_gyrokinetic_int_M3_par_2x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_M3_par_3x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -2273,7 +2273,7 @@ kernel_gyrokinetic_int_M3_par_3x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_M3_perp_1x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -2294,7 +2294,7 @@ kernel_gyrokinetic_int_M3_perp_1x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_M3_perp_1x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -2315,7 +2315,7 @@ kernel_gyrokinetic_int_M3_perp_1x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_M3_perp_2x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -2336,7 +2336,7 @@ kernel_gyrokinetic_int_M3_perp_2x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_M3_perp_2x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -2357,7 +2357,7 @@ kernel_gyrokinetic_int_M3_perp_2x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_M3_perp_3x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -2378,7 +2378,7 @@ kernel_gyrokinetic_int_M3_perp_3x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_three_moments_1x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -2399,7 +2399,7 @@ kernel_gyrokinetic_int_three_moments_1x1v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_three_moments_1x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -2420,7 +2420,7 @@ kernel_gyrokinetic_int_three_moments_1x1v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_three_moments_1x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -2441,7 +2441,7 @@ kernel_gyrokinetic_int_three_moments_1x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_three_moments_1x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -2462,7 +2462,7 @@ kernel_gyrokinetic_int_three_moments_1x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_three_moments_2x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -2483,7 +2483,7 @@ kernel_gyrokinetic_int_three_moments_2x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_three_moments_2x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -2504,7 +2504,7 @@ kernel_gyrokinetic_int_three_moments_2x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_three_moments_3x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -2525,7 +2525,7 @@ kernel_gyrokinetic_int_three_moments_3x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_four_moments_1x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -2546,7 +2546,7 @@ kernel_gyrokinetic_int_four_moments_1x1v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_four_moments_1x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -2567,7 +2567,7 @@ kernel_gyrokinetic_int_four_moments_1x1v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_four_moments_1x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -2588,7 +2588,7 @@ kernel_gyrokinetic_int_four_moments_1x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_four_moments_1x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -2609,7 +2609,7 @@ kernel_gyrokinetic_int_four_moments_1x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_four_moments_2x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -2630,7 +2630,7 @@ kernel_gyrokinetic_int_four_moments_2x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_four_moments_2x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -2651,7 +2651,7 @@ kernel_gyrokinetic_int_four_moments_2x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_four_moments_3x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -2672,7 +2672,7 @@ kernel_gyrokinetic_int_four_moments_3x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_hamiltonian_moments_1x1v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -2694,7 +2694,7 @@ kernel_gyrokinetic_int_hamiltonian_moments_1x1v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_hamiltonian_moments_1x1v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -2716,7 +2716,7 @@ kernel_gyrokinetic_int_hamiltonian_moments_1x1v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_hamiltonian_moments_1x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -2738,7 +2738,7 @@ kernel_gyrokinetic_int_hamiltonian_moments_1x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_hamiltonian_moments_1x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -2760,7 +2760,7 @@ kernel_gyrokinetic_int_hamiltonian_moments_1x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_hamiltonian_moments_2x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -2782,7 +2782,7 @@ kernel_gyrokinetic_int_hamiltonian_moments_2x2v_ser_p1(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_hamiltonian_moments_2x2v_ser_p2(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);
@@ -2804,7 +2804,7 @@ kernel_gyrokinetic_int_hamiltonian_moments_2x2v_ser_p2(
 GKYL_CU_DH static void
 kernel_gyrokinetic_int_hamiltonian_moments_3x2v_ser_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_gyrokinetic *mom_gk = container_of(momt, struct mom_type_gyrokinetic, momt);

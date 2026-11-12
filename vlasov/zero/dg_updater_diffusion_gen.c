@@ -55,16 +55,10 @@ gkyl_dg_updater_diffusion_gen_advance(
   gkyl_diffusion_gen_set_auxfields(
     up->dgeqn, (struct gkyl_dg_diffusion_gen_auxfields){.Dij = coeff}
   );
-#ifdef GKYL_HAVE_CUDA
-  //    if (up->use_gpu)
-  //      // hyper_dg_gen_stencil NOT YET IMPLEMENTED ON DEVICE
-  //      gkyl_hyper_dg_gen_stencil_advance_cu(up->hyperdg, update_rng, fIn, cflrate, rhs);
-  //    else
-  //      gkyl_hyper_dg_gen_stencil_advance(up->hyperdg, update_rng, fIn, cflrate, rhs);
-  assert(false);
-#else
+  // The general-stencil hyper DG advance is not implemented on the device, so a
+  // GPU build can only run this updater on the host.
+  assert(!up->use_gpu);
   gkyl_hyper_dg_gen_stencil_advance(up->hyperdg, update_rng, fIn, cflrate, rhs);
-#endif
   up->diffusion_tm += gkyl_time_diff_now_sec(wst);
 }
 

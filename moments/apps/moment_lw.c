@@ -5989,7 +5989,7 @@ mom_app_run(lua_State *L)
   // Triggers for IO and logging.
   struct gkyl_tm_trigger io_trig = {
     .dt = t_end / num_frames,
-    .tcurr = frame_curr * (t_end / num_frames),
+    .tcurr = gkyl_tm_trigger_anchor(t_end / num_frames, t_curr),
     .curr = frame_curr,
   };
   struct gkyl_tm_trigger fe_trig = {

@@ -852,18 +852,24 @@ create_patch_topo()
 
   ptopo->conn[0] = (struct gkyl_block_connections){
     .connections[0] =
-      {{.bid = 1, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
-       {.bid = 2, .dir = 0, .edge = GKYL_LOWER_POSITIVE}},
+      {
+        {.bid = 1, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
+        {.bid = 2, .dir = 0, .edge = GKYL_LOWER_POSITIVE},
+      },
   };
   ptopo->conn[1] = (struct gkyl_block_connections){
     .connections[0] =
-      {{.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL},
-       {.bid = 0, .dir = 0, .edge = GKYL_LOWER_POSITIVE}},
+      {
+        {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL},
+        {.bid = 0, .dir = 0, .edge = GKYL_LOWER_POSITIVE},
+      },
   };
   ptopo->conn[2] = (struct gkyl_block_connections){
     .connections[0] =
-      {{.bid = 0, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
-       {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}},
+      {
+        {.bid = 0, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
+        {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL},
+      },
   };
 
   return ptopo;
@@ -876,28 +882,38 @@ create_nested_patch_topo()
 
   ptopo->conn[0] = (struct gkyl_block_connections){
     .connections[0] =
-      {{.bid = 1, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
-       {.bid = 2, .dir = 0, .edge = GKYL_LOWER_POSITIVE}},
+      {
+        {.bid = 1, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
+        {.bid = 2, .dir = 0, .edge = GKYL_LOWER_POSITIVE},
+      },
   };
   ptopo->conn[1] = (struct gkyl_block_connections){
     .connections[0] =
-      {{.bid = 3, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
-       {.bid = 0, .dir = 0, .edge = GKYL_LOWER_POSITIVE}},
+      {
+        {.bid = 3, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
+        {.bid = 0, .dir = 0, .edge = GKYL_LOWER_POSITIVE},
+      },
   };
   ptopo->conn[2] = (struct gkyl_block_connections){
     .connections[0] =
-      {{.bid = 0, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
-       {.bid = 4, .dir = 0, .edge = GKYL_LOWER_POSITIVE}},
+      {
+        {.bid = 0, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
+        {.bid = 4, .dir = 0, .edge = GKYL_LOWER_POSITIVE},
+      },
   };
   ptopo->conn[3] = (struct gkyl_block_connections){
     .connections[0] =
-      {{.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL},
-       {.bid = 1, .dir = 0, .edge = GKYL_LOWER_POSITIVE}},
+      {
+        {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL},
+        {.bid = 1, .dir = 0, .edge = GKYL_LOWER_POSITIVE},
+      },
   };
   ptopo->conn[4] = (struct gkyl_block_connections){
     .connections[0] =
-      {{.bid = 2, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
-       {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}},
+      {
+        {.bid = 2, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
+        {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL},
+      },
   };
 
   return ptopo;

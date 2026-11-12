@@ -711,124 +711,129 @@ ker_dg_diffusion_vlasov_order6_vol_3x_ser_p2_constcoeff_diffdirsxyz(
 }
 
 // Volume kernel list.
-GKYL_CU_D static const gkyl_dg_diffusion_vlasov_vol_kern_list
-  ser_vol_kernels_constcoeff[] =
-    {
-      // 1x
+GKYL_CU_D static const gkyl_dg_diffusion_vlasov_vol_kern_list ser_vol_kernels_constcoeff[] = {
+  // 1x
+  {
+    .list =
       {
-        .list =
-          {// 2nd order diffusion.
-           {
-             .list =
-               {{ker_dg_diffusion_vlasov_order2_vol_1x_ser_p1_constcoeff_diffdirsx, NULL, NULL,
-                 NULL, NULL, NULL, NULL},
-                {ker_dg_diffusion_vlasov_order2_vol_1x_ser_p2_constcoeff_diffdirsx, NULL, NULL,
-                 NULL, NULL, NULL, NULL}},
-           },
-           // 4th order diffusion.
-           {
-             .list =
-               {{ker_dg_diffusion_vlasov_order4_vol_1x_ser_p1_constcoeff_diffdirsx, NULL, NULL,
-                 NULL, NULL, NULL, NULL},
-                {ker_dg_diffusion_vlasov_order4_vol_1x_ser_p2_constcoeff_diffdirsx, NULL, NULL,
-                 NULL, NULL, NULL, NULL}},
-           },
-           // 6th order diffusion.
-           {
-             .list =
-               {{NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-                {ker_dg_diffusion_vlasov_order6_vol_1x_ser_p2_constcoeff_diffdirsx, NULL, NULL,
-                 NULL, NULL, NULL, NULL}},
-           }
-          },
+        // 2nd order diffusion.
+        {
+          .list =
+            {{ker_dg_diffusion_vlasov_order2_vol_1x_ser_p1_constcoeff_diffdirsx, NULL, NULL, NULL,
+              NULL, NULL, NULL},
+             {ker_dg_diffusion_vlasov_order2_vol_1x_ser_p2_constcoeff_diffdirsx, NULL, NULL, NULL,
+              NULL, NULL, NULL}},
+        },
+        // 4th order diffusion.
+        {
+          .list =
+            {{ker_dg_diffusion_vlasov_order4_vol_1x_ser_p1_constcoeff_diffdirsx, NULL, NULL, NULL,
+              NULL, NULL, NULL},
+             {ker_dg_diffusion_vlasov_order4_vol_1x_ser_p2_constcoeff_diffdirsx, NULL, NULL, NULL,
+              NULL, NULL, NULL}},
+        },
+        // 6th order diffusion.
+        {
+          .list =
+            {{NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+             {ker_dg_diffusion_vlasov_order6_vol_1x_ser_p2_constcoeff_diffdirsx, NULL, NULL, NULL,
+              NULL, NULL, NULL}},
+        },
       },
-      // 2x
+  },
+  // 2x
+  {
+    .list =
       {
-        .list =
-          {// 2nd order diffusion.
-           {
-             .list =
-               {{ker_dg_diffusion_vlasov_order2_vol_2x_ser_p1_constcoeff_diffdirsx,
-                 ker_dg_diffusion_vlasov_order2_vol_2x_ser_p1_constcoeff_diffdirsy,
-                 ker_dg_diffusion_vlasov_order2_vol_2x_ser_p1_constcoeff_diffdirsxy, NULL, NULL,
-                 NULL, NULL},
-                {ker_dg_diffusion_vlasov_order2_vol_2x_ser_p2_constcoeff_diffdirsx,
-                 ker_dg_diffusion_vlasov_order2_vol_2x_ser_p2_constcoeff_diffdirsy,
-                 ker_dg_diffusion_vlasov_order2_vol_2x_ser_p2_constcoeff_diffdirsxy, NULL, NULL,
-                 NULL, NULL}},
-           },
-           // 4th order diffusion.
-           {
-             .list =
-               {{ker_dg_diffusion_vlasov_order4_vol_2x_ser_p1_constcoeff_diffdirsx, ker_dg_diffusion_vlasov_order4_vol_2x_ser_p1_constcoeff_diffdirsy, ker_dg_diffusion_vlasov_order4_vol_2x_ser_p1_constcoeff_diffdirsxy, NULL, NULL, NULL, NULL}, {ker_dg_diffusion_vlasov_order4_vol_2x_ser_p2_constcoeff_diffdirsx, ker_dg_diffusion_vlasov_order4_vol_2x_ser_p2_constcoeff_diffdirsy, ker_dg_diffusion_vlasov_order4_vol_2x_ser_p2_constcoeff_diffdirsxy, NULL, NULL, NULL, NULL}},
-           },
-           // 6th order diffusion.
-           {
-             .list =
-               {
-                 {NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-                 {ker_dg_diffusion_vlasov_order6_vol_2x_ser_p2_constcoeff_diffdirsx,
-                  ker_dg_diffusion_vlasov_order6_vol_2x_ser_p2_constcoeff_diffdirsy,
-                  ker_dg_diffusion_vlasov_order6_vol_2x_ser_p2_constcoeff_diffdirsxy,
-                  NULL, NULL, NULL, NULL}
-               },
-           }
-          },
+        // 2nd order diffusion.
+        {
+          .list =
+            {{ker_dg_diffusion_vlasov_order2_vol_2x_ser_p1_constcoeff_diffdirsx,
+              ker_dg_diffusion_vlasov_order2_vol_2x_ser_p1_constcoeff_diffdirsy,
+              ker_dg_diffusion_vlasov_order2_vol_2x_ser_p1_constcoeff_diffdirsxy, NULL, NULL, NULL,
+              NULL},
+             {ker_dg_diffusion_vlasov_order2_vol_2x_ser_p2_constcoeff_diffdirsx,
+              ker_dg_diffusion_vlasov_order2_vol_2x_ser_p2_constcoeff_diffdirsy,
+              ker_dg_diffusion_vlasov_order2_vol_2x_ser_p2_constcoeff_diffdirsxy, NULL, NULL, NULL,
+              NULL}},
+        },
+        // 4th order diffusion.
+        {
+          .list =
+            {{ker_dg_diffusion_vlasov_order4_vol_2x_ser_p1_constcoeff_diffdirsx,
+              ker_dg_diffusion_vlasov_order4_vol_2x_ser_p1_constcoeff_diffdirsy,
+              ker_dg_diffusion_vlasov_order4_vol_2x_ser_p1_constcoeff_diffdirsxy, NULL, NULL, NULL,
+              NULL},
+             {ker_dg_diffusion_vlasov_order4_vol_2x_ser_p2_constcoeff_diffdirsx,
+              ker_dg_diffusion_vlasov_order4_vol_2x_ser_p2_constcoeff_diffdirsy,
+              ker_dg_diffusion_vlasov_order4_vol_2x_ser_p2_constcoeff_diffdirsxy, NULL, NULL, NULL,
+              NULL}},
+        },
+        // 6th order diffusion.
+        {
+          .list =
+            {{NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+             {ker_dg_diffusion_vlasov_order6_vol_2x_ser_p2_constcoeff_diffdirsx,
+              ker_dg_diffusion_vlasov_order6_vol_2x_ser_p2_constcoeff_diffdirsy,
+              ker_dg_diffusion_vlasov_order6_vol_2x_ser_p2_constcoeff_diffdirsxy, NULL, NULL, NULL,
+              NULL}},
+        },
       },
-      // 3x
+  },
+  // 3x
+  {
+    .list =
       {
-        .list =
-          {
-            // 2nd order diffusion.
-            {
-              .list =
-                {{ker_dg_diffusion_vlasov_order2_vol_3x_ser_p1_constcoeff_diffdirsx,
-                  ker_dg_diffusion_vlasov_order2_vol_3x_ser_p1_constcoeff_diffdirsy,
-                  ker_dg_diffusion_vlasov_order2_vol_3x_ser_p1_constcoeff_diffdirsxy,
-                  ker_dg_diffusion_vlasov_order2_vol_3x_ser_p1_constcoeff_diffdirsz,
-                  ker_dg_diffusion_vlasov_order2_vol_3x_ser_p1_constcoeff_diffdirsxz,
-                  ker_dg_diffusion_vlasov_order2_vol_3x_ser_p1_constcoeff_diffdirsyz,
-                  ker_dg_diffusion_vlasov_order2_vol_3x_ser_p1_constcoeff_diffdirsxyz},
-                 {ker_dg_diffusion_vlasov_order2_vol_3x_ser_p2_constcoeff_diffdirsx,
-                  ker_dg_diffusion_vlasov_order2_vol_3x_ser_p2_constcoeff_diffdirsy,
-                  ker_dg_diffusion_vlasov_order2_vol_3x_ser_p2_constcoeff_diffdirsxy,
-                  ker_dg_diffusion_vlasov_order2_vol_3x_ser_p2_constcoeff_diffdirsz,
-                  ker_dg_diffusion_vlasov_order2_vol_3x_ser_p2_constcoeff_diffdirsxz,
-                  ker_dg_diffusion_vlasov_order2_vol_3x_ser_p2_constcoeff_diffdirsyz,
-                  ker_dg_diffusion_vlasov_order2_vol_3x_ser_p2_constcoeff_diffdirsxyz}},
-            },
-            // 4th order diffusion.
-            {
-              .list =
-                {{ker_dg_diffusion_vlasov_order4_vol_3x_ser_p1_constcoeff_diffdirsx,
-                  ker_dg_diffusion_vlasov_order4_vol_3x_ser_p1_constcoeff_diffdirsy,
-                  ker_dg_diffusion_vlasov_order4_vol_3x_ser_p1_constcoeff_diffdirsxy,
-                  ker_dg_diffusion_vlasov_order4_vol_3x_ser_p1_constcoeff_diffdirsz,
-                  ker_dg_diffusion_vlasov_order4_vol_3x_ser_p1_constcoeff_diffdirsxz,
-                  ker_dg_diffusion_vlasov_order4_vol_3x_ser_p1_constcoeff_diffdirsyz,
-                  ker_dg_diffusion_vlasov_order4_vol_3x_ser_p1_constcoeff_diffdirsxyz},
-                 {ker_dg_diffusion_vlasov_order4_vol_3x_ser_p2_constcoeff_diffdirsx,
-                  ker_dg_diffusion_vlasov_order4_vol_3x_ser_p2_constcoeff_diffdirsy,
-                  ker_dg_diffusion_vlasov_order4_vol_3x_ser_p2_constcoeff_diffdirsxy,
-                  ker_dg_diffusion_vlasov_order4_vol_3x_ser_p2_constcoeff_diffdirsz,
-                  ker_dg_diffusion_vlasov_order4_vol_3x_ser_p2_constcoeff_diffdirsxz,
-                  ker_dg_diffusion_vlasov_order4_vol_3x_ser_p2_constcoeff_diffdirsyz,
-                  ker_dg_diffusion_vlasov_order4_vol_3x_ser_p2_constcoeff_diffdirsxyz}},
-            },
-            // 6th order diffusion.
-            {
-              .list =
-                {{NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-                 {ker_dg_diffusion_vlasov_order6_vol_3x_ser_p2_constcoeff_diffdirsx,
-                  ker_dg_diffusion_vlasov_order6_vol_3x_ser_p2_constcoeff_diffdirsy,
-                  ker_dg_diffusion_vlasov_order6_vol_3x_ser_p2_constcoeff_diffdirsxy,
-                  ker_dg_diffusion_vlasov_order6_vol_3x_ser_p2_constcoeff_diffdirsz,
-                  ker_dg_diffusion_vlasov_order6_vol_3x_ser_p2_constcoeff_diffdirsxz,
-                  ker_dg_diffusion_vlasov_order6_vol_3x_ser_p2_constcoeff_diffdirsyz,
-                  ker_dg_diffusion_vlasov_order6_vol_3x_ser_p2_constcoeff_diffdirsxyz}},
-            }
-          },
-      }
+        // 2nd order diffusion.
+        {
+          .list =
+            {{ker_dg_diffusion_vlasov_order2_vol_3x_ser_p1_constcoeff_diffdirsx,
+              ker_dg_diffusion_vlasov_order2_vol_3x_ser_p1_constcoeff_diffdirsy,
+              ker_dg_diffusion_vlasov_order2_vol_3x_ser_p1_constcoeff_diffdirsxy,
+              ker_dg_diffusion_vlasov_order2_vol_3x_ser_p1_constcoeff_diffdirsz,
+              ker_dg_diffusion_vlasov_order2_vol_3x_ser_p1_constcoeff_diffdirsxz,
+              ker_dg_diffusion_vlasov_order2_vol_3x_ser_p1_constcoeff_diffdirsyz,
+              ker_dg_diffusion_vlasov_order2_vol_3x_ser_p1_constcoeff_diffdirsxyz},
+             {ker_dg_diffusion_vlasov_order2_vol_3x_ser_p2_constcoeff_diffdirsx,
+              ker_dg_diffusion_vlasov_order2_vol_3x_ser_p2_constcoeff_diffdirsy,
+              ker_dg_diffusion_vlasov_order2_vol_3x_ser_p2_constcoeff_diffdirsxy,
+              ker_dg_diffusion_vlasov_order2_vol_3x_ser_p2_constcoeff_diffdirsz,
+              ker_dg_diffusion_vlasov_order2_vol_3x_ser_p2_constcoeff_diffdirsxz,
+              ker_dg_diffusion_vlasov_order2_vol_3x_ser_p2_constcoeff_diffdirsyz,
+              ker_dg_diffusion_vlasov_order2_vol_3x_ser_p2_constcoeff_diffdirsxyz}},
+        },
+        // 4th order diffusion.
+        {
+          .list =
+            {{ker_dg_diffusion_vlasov_order4_vol_3x_ser_p1_constcoeff_diffdirsx,
+              ker_dg_diffusion_vlasov_order4_vol_3x_ser_p1_constcoeff_diffdirsy,
+              ker_dg_diffusion_vlasov_order4_vol_3x_ser_p1_constcoeff_diffdirsxy,
+              ker_dg_diffusion_vlasov_order4_vol_3x_ser_p1_constcoeff_diffdirsz,
+              ker_dg_diffusion_vlasov_order4_vol_3x_ser_p1_constcoeff_diffdirsxz,
+              ker_dg_diffusion_vlasov_order4_vol_3x_ser_p1_constcoeff_diffdirsyz,
+              ker_dg_diffusion_vlasov_order4_vol_3x_ser_p1_constcoeff_diffdirsxyz},
+             {ker_dg_diffusion_vlasov_order4_vol_3x_ser_p2_constcoeff_diffdirsx,
+              ker_dg_diffusion_vlasov_order4_vol_3x_ser_p2_constcoeff_diffdirsy,
+              ker_dg_diffusion_vlasov_order4_vol_3x_ser_p2_constcoeff_diffdirsxy,
+              ker_dg_diffusion_vlasov_order4_vol_3x_ser_p2_constcoeff_diffdirsz,
+              ker_dg_diffusion_vlasov_order4_vol_3x_ser_p2_constcoeff_diffdirsxz,
+              ker_dg_diffusion_vlasov_order4_vol_3x_ser_p2_constcoeff_diffdirsyz,
+              ker_dg_diffusion_vlasov_order4_vol_3x_ser_p2_constcoeff_diffdirsxyz}},
+        },
+        // 6th order diffusion.
+        {
+          .list =
+            {{NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+             {ker_dg_diffusion_vlasov_order6_vol_3x_ser_p2_constcoeff_diffdirsx,
+              ker_dg_diffusion_vlasov_order6_vol_3x_ser_p2_constcoeff_diffdirsy,
+              ker_dg_diffusion_vlasov_order6_vol_3x_ser_p2_constcoeff_diffdirsxy,
+              ker_dg_diffusion_vlasov_order6_vol_3x_ser_p2_constcoeff_diffdirsz,
+              ker_dg_diffusion_vlasov_order6_vol_3x_ser_p2_constcoeff_diffdirsxz,
+              ker_dg_diffusion_vlasov_order6_vol_3x_ser_p2_constcoeff_diffdirsyz,
+              ker_dg_diffusion_vlasov_order6_vol_3x_ser_p2_constcoeff_diffdirsxyz}},
+        },
+      },
+  },
 };
 
 // Surface kernel list: x-direction
@@ -875,7 +880,7 @@ GKYL_CU_D static const gkyl_dg_diffusion_vlasov_surf_kern_list ser_vlasov_surfx_
        {NULL, dg_diffusion_vlasov_order6_surfx_2x3v_ser_p2_constcoeff},
        //      { NULL, dg_diffusion_vlasov_order6_surfx_3x3v_ser_p2_constcoeff },},
        {NULL, NULL}},
-  }
+  },
 };
 // Surface kernel list: y-direction
 GKYL_CU_D static const gkyl_dg_diffusion_vlasov_surf_kern_list ser_vlasov_surfy_kernels_constcoeff[] = {
@@ -915,7 +920,7 @@ GKYL_CU_D static const gkyl_dg_diffusion_vlasov_surf_kern_list ser_vlasov_surfy_
        {NULL, dg_diffusion_vlasov_order6_surfy_2x3v_ser_p2_constcoeff},
        //      { NULL, dg_diffusion_vlasov_order6_surfy_3x3v_ser_p2_constcoeff },},
        {NULL, NULL}},
-  }
+  },
 };
 // Surface kernel list: z-direction
 GKYL_CU_D static const gkyl_dg_diffusion_vlasov_surf_kern_list ser_vlasov_surfz_kernels_constcoeff[] = {
@@ -951,7 +956,7 @@ GKYL_CU_D static const gkyl_dg_diffusion_vlasov_surf_kern_list ser_vlasov_surfz_
        {NULL, NULL},
        //      { NULL, dg_diffusion_vlasov_order6_surfz_3x3v_ser_p2_constcoeff },},
        {NULL, NULL}},
-  }
+  },
 };
 
 // Boundary surface kernel list: x-direction
@@ -999,7 +1004,7 @@ GKYL_CU_D static const gkyl_dg_diffusion_vlasov_boundary_surf_kern_list
          {NULL, dg_diffusion_vlasov_order6_boundary_surfx_2x3v_ser_p2_constcoeff},
          //      { NULL, dg_diffusion_vlasov_order6_boundary_surfx_3x3v_ser_p2_constcoeff },},
          {NULL, NULL}},
-    }
+    },
 };
 // Boundary surface kernel list: y-direction
 GKYL_CU_D static const gkyl_dg_diffusion_vlasov_boundary_surf_kern_list
@@ -1040,7 +1045,7 @@ GKYL_CU_D static const gkyl_dg_diffusion_vlasov_boundary_surf_kern_list
          {NULL, dg_diffusion_vlasov_order6_boundary_surfy_2x3v_ser_p2_constcoeff},
          //      { NULL, dg_diffusion_vlasov_order6_boundary_surfy_3x3v_ser_p2_constcoeff },},
          {NULL, NULL}},
-    }
+    },
 };
 // Boundary surface kernel list: z-direction
 GKYL_CU_D static const gkyl_dg_diffusion_vlasov_boundary_surf_kern_list
@@ -1077,7 +1082,7 @@ GKYL_CU_D static const gkyl_dg_diffusion_vlasov_boundary_surf_kern_list
          {NULL, NULL},
          //      { NULL, dg_diffusion_vlasov_order6_boundary_surfz_3x3v_ser_p2_constcoeff },},
          {NULL, NULL}},
-    }
+    },
 };
 
 // ............... Inhomogeneous (spatially varying) diffusion coefficient ............... //
@@ -1336,51 +1341,53 @@ GKYL_CU_D static const gkyl_dg_diffusion_vlasov_vol_kern_list ser_vol_kernels_va
   // 1x
   {
     .list =
-      {// 2nd order diffusion.
-       {
-         .list =
-           {{ker_dg_diffusion_vlasov_order2_vol_1x_ser_p1_varcoeff_diffdirsx, NULL, NULL, NULL,
-             NULL, NULL, NULL},
-            {ker_dg_diffusion_vlasov_order2_vol_1x_ser_p2_varcoeff_diffdirsx, NULL, NULL, NULL,
-             NULL, NULL, NULL}},
-       },
-       // 4th order diffusion.
-       {
-         .list =
-           {{NULL, NULL, NULL, NULL, NULL, NULL, NULL}, {NULL, NULL, NULL, NULL, NULL, NULL, NULL}},
-       },
-       // 6th order diffusion.
-       {
-         .list =
-           {{NULL, NULL, NULL, NULL, NULL, NULL, NULL}, {NULL, NULL, NULL, NULL, NULL, NULL, NULL}},
-       }
+      {
+        // 2nd order diffusion.
+        {
+          .list =
+            {{ker_dg_diffusion_vlasov_order2_vol_1x_ser_p1_varcoeff_diffdirsx, NULL, NULL, NULL,
+              NULL, NULL, NULL},
+             {ker_dg_diffusion_vlasov_order2_vol_1x_ser_p2_varcoeff_diffdirsx, NULL, NULL, NULL,
+              NULL, NULL, NULL}},
+        },
+        // 4th order diffusion.
+        {
+          .list =
+            {{NULL, NULL, NULL, NULL, NULL, NULL, NULL}, {NULL, NULL, NULL, NULL, NULL, NULL, NULL}},
+        },
+        // 6th order diffusion.
+        {
+          .list =
+            {{NULL, NULL, NULL, NULL, NULL, NULL, NULL}, {NULL, NULL, NULL, NULL, NULL, NULL, NULL}},
+        },
       },
   },
   // 2x
   {
     .list =
-      {// 2nd order diffusion.
-       {
-         .list =
-           {{ker_dg_diffusion_vlasov_order2_vol_2x_ser_p1_varcoeff_diffdirsx,
-             ker_dg_diffusion_vlasov_order2_vol_2x_ser_p1_varcoeff_diffdirsy,
-             ker_dg_diffusion_vlasov_order2_vol_2x_ser_p1_varcoeff_diffdirsxy, NULL, NULL, NULL,
-             NULL},
-            {ker_dg_diffusion_vlasov_order2_vol_2x_ser_p2_varcoeff_diffdirsx,
-             ker_dg_diffusion_vlasov_order2_vol_2x_ser_p2_varcoeff_diffdirsy,
-             ker_dg_diffusion_vlasov_order2_vol_2x_ser_p2_varcoeff_diffdirsxy, NULL, NULL, NULL,
-             NULL}},
-       },
-       // 4th order diffusion.
-       {
-         .list =
-           {{NULL, NULL, NULL, NULL, NULL, NULL, NULL}, {NULL, NULL, NULL, NULL, NULL, NULL, NULL}},
-       },
-       // 6th order diffusion.
-       {
-         .list =
-           {{NULL, NULL, NULL, NULL, NULL, NULL, NULL}, {NULL, NULL, NULL, NULL, NULL, NULL, NULL}},
-       }
+      {
+        // 2nd order diffusion.
+        {
+          .list =
+            {{ker_dg_diffusion_vlasov_order2_vol_2x_ser_p1_varcoeff_diffdirsx,
+              ker_dg_diffusion_vlasov_order2_vol_2x_ser_p1_varcoeff_diffdirsy,
+              ker_dg_diffusion_vlasov_order2_vol_2x_ser_p1_varcoeff_diffdirsxy, NULL, NULL, NULL,
+              NULL},
+             {ker_dg_diffusion_vlasov_order2_vol_2x_ser_p2_varcoeff_diffdirsx,
+              ker_dg_diffusion_vlasov_order2_vol_2x_ser_p2_varcoeff_diffdirsy,
+              ker_dg_diffusion_vlasov_order2_vol_2x_ser_p2_varcoeff_diffdirsxy, NULL, NULL, NULL,
+              NULL}},
+        },
+        // 4th order diffusion.
+        {
+          .list =
+            {{NULL, NULL, NULL, NULL, NULL, NULL, NULL}, {NULL, NULL, NULL, NULL, NULL, NULL, NULL}},
+        },
+        // 6th order diffusion.
+        {
+          .list =
+            {{NULL, NULL, NULL, NULL, NULL, NULL, NULL}, {NULL, NULL, NULL, NULL, NULL, NULL, NULL}},
+        },
       },
   },
   // 3x
@@ -1414,9 +1421,9 @@ GKYL_CU_D static const gkyl_dg_diffusion_vlasov_vol_kern_list ser_vol_kernels_va
         {
           .list =
             {{NULL, NULL, NULL, NULL, NULL, NULL, NULL}, {NULL, NULL, NULL, NULL, NULL, NULL, NULL}},
-        }
+        },
       },
-  }
+  },
 };
 
 // Surface kernel list: x-direction
@@ -1440,7 +1447,7 @@ GKYL_CU_D static const gkyl_dg_diffusion_vlasov_surf_kern_list ser_vlasov_surfx_
   // 4th order diffusion.
   {.list = {{NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}}},
   // 6th order diffusion.
-  {.list = {{NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}}}
+  {.list = {{NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}}},
 };
 // Surface kernel list: y-direction
 GKYL_CU_D static const gkyl_dg_diffusion_vlasov_surf_kern_list ser_vlasov_surfy_kernels_varcoeff[] = {
@@ -1460,7 +1467,7 @@ GKYL_CU_D static const gkyl_dg_diffusion_vlasov_surf_kern_list ser_vlasov_surfy_
   // 4th order diffusion.
   {.list = {{NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}}},
   // 6th order diffusion.
-  {.list = {{NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}}}
+  {.list = {{NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}}},
 };
 // Surface kernel list: z-direction
 GKYL_CU_D static const gkyl_dg_diffusion_vlasov_surf_kern_list ser_vlasov_surfz_kernels_varcoeff[] = {
@@ -1478,7 +1485,7 @@ GKYL_CU_D static const gkyl_dg_diffusion_vlasov_surf_kern_list ser_vlasov_surfz_
   // 4th order diffusion.
   {.list = {{NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}}},
   // 6th order diffusion.
-  {.list = {{NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}}}
+  {.list = {{NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}}},
 };
 
 // Boundary surface kernel list: x-direction
@@ -1503,7 +1510,7 @@ GKYL_CU_D static const gkyl_dg_diffusion_vlasov_boundary_surf_kern_list
     // 4th order diffusion.
     {.list = {{NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}}},
     // 6th order diffusion.
-    {.list = {{NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}}}
+    {.list = {{NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}}},
 };
 // Boundary surface kernel list: y-direction
 GKYL_CU_D static const gkyl_dg_diffusion_vlasov_boundary_surf_kern_list
@@ -1524,7 +1531,7 @@ GKYL_CU_D static const gkyl_dg_diffusion_vlasov_boundary_surf_kern_list
     // 4th order diffusion.
     {.list = {{NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}}},
     // 6th order diffusion.
-    {.list = {{NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}}}
+    {.list = {{NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}}},
 };
 // Boundary surface kernel list: z-direction
 GKYL_CU_D static const gkyl_dg_diffusion_vlasov_boundary_surf_kern_list
@@ -1543,7 +1550,7 @@ GKYL_CU_D static const gkyl_dg_diffusion_vlasov_boundary_surf_kern_list
     // 4th order diffusion.
     {.list = {{NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}}},
     // 6th order diffusion.
-    {.list = {{NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}}}
+    {.list = {{NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}, {NULL, NULL}}},
 };
 
 #define SURFKERIDX(cdim, vdim) cdim - 1 + vdim - 1 + GKYL_MIN2(1, cdim - 1)

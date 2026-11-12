@@ -46,7 +46,7 @@ gk_species_fdot_multiplier_write_enabled(
       .cval = "Function multiplying the distribution time derivative.",
     },
     {.key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = tm},
-    {.key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = frame}
+    {.key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = frame},
   };
   int mpe_mult_len = sizeof(mpe_mult) / sizeof(mpe_mult[0]);
   // Package metadata.

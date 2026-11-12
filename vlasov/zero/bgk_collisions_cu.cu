@@ -10,6 +10,45 @@ extern "C" {
 }
 
 __global__ void
+gkyl_bgk_collisions_correct_nu_cu_kernel(
+  unsigned vdim, unsigned cnum_basis, struct gkyl_range crange, struct gkyl_array *marr,
+  struct gkyl_array *nu_input, struct gkyl_array *nu_actual
+)
+{
+  int cidx[GKYL_MAX_DIM];
+  int nc = cnum_basis;
+  int num_comp = vdim + 2; // (n, V_drift, T/m)
+  int T_idx = num_comp - 1; // T/m is always the last component
+
+  for (unsigned long linc1 = threadIdx.x + blockIdx.x * blockDim.x; linc1 < crange.volume;
+       linc1 += gridDim.x * blockDim.x) {
+    // inverse index from linc1 to idx
+    // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}
+    // since update_range is a subrange
+    gkyl_sub_range_inv_idx(&crange, linc1, cidx);
+
+    // convert back to a linear index on the super-range
+    // linc will have jumps in it to jump over ghost cells
+    long cloc = gkyl_range_idx(&crange, cidx);
+
+    const double *marr_d = (const double *)gkyl_array_cfetch(marr, cloc);
+    const double m0_d = marr_d[0 * nc];
+    const double mT_d = marr_d[T_idx * nc];
+    const double *nu_input_d = (const double *)gkyl_array_cfetch(nu_input, cloc);
+    double *actual_nu_d = (double *)gkyl_array_fetch(nu_actual, cloc);
+
+    // Either set nu to zero or copy input nu to actual_nu
+    for (int i = 0; i < nc; ++i) {
+      if (m0_d <= 0.0 || mT_d <= 0.0) {
+        actual_nu_d[i] = 0.0;
+      } else {
+        actual_nu_d[i] = nu_input_d[i];
+      }
+    }
+  }
+}
+
+__global__ void
 gkyl_bgk_collisions_advance_cu_kernel(
   unsigned cdim, unsigned vdim, unsigned poly_order, unsigned pnum_basis,
   enum gkyl_basis_type b_type, double cellav_fac, struct gkyl_range crange,
@@ -46,7 +85,7 @@ gkyl_bgk_collisions_advance_cu_kernel(
       array_acc1(pnum_basis, out_d, 1.0 / (1.0 + nu_d[0] * cellav_fac * dt), nufM_d);
 
       // Calculate and add -nu*f.
-      double incr[160]; // mul_op assigns, but need increment, so use a buffer.
+      double incr[216]; // mul_op assigns, but need increment, so use a buffer.
       mul_op(nu_d, fin_d, incr);
       array_acc1(pnum_basis, out_d, -1.0 / (1.0 + nu_d[0] * cellav_fac * dt), incr);
 
@@ -56,7 +95,7 @@ gkyl_bgk_collisions_advance_cu_kernel(
       array_acc1(pnum_basis, out_d, 1., nufM_d);
 
       // Calculate -nu*f.
-      double incr[160]; // mul_op assigns, but need increment, so use a buffer.
+      double incr[216]; // mul_op assigns, but need increment, so use a buffer.
       mul_op(nu_d, fin_d, incr);
       array_acc1(pnum_basis, out_d, -1., incr);
 
@@ -65,6 +104,19 @@ gkyl_bgk_collisions_advance_cu_kernel(
       cflfreq_d[0] += nu_d[0] * cellav_fac;
     }
   }
+}
+
+void
+gkyl_bgk_collisions_correct_nu_cu(
+  const gkyl_bgk_collisions *up, const struct gkyl_range *crange, const struct gkyl_array *marr,
+  const struct gkyl_array *nu_input, struct gkyl_array *actual_nu
+)
+{
+  int nblocks = crange->nblocks;
+  int nthreads = crange->nthreads;
+  gkyl_bgk_collisions_correct_nu_cu_kernel<<<nblocks, nthreads>>>(
+    up->vdim, up->cnum_basis, *crange, marr->on_dev, nu_input->on_dev, actual_nu->on_dev
+  );
 }
 
 void

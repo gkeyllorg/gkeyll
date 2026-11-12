@@ -218,6 +218,7 @@ gk_geometry_int_alloc_nodal(struct gk_geometry *gk_geom)
   gk_geom->geo_int.g_ij_nodal = gkyl_array_new(GKYL_DOUBLE, 6, gk_geom->nrange_int.volume);
   gk_geom->geo_int.g_ij_neut_nodal = gkyl_array_new(GKYL_DOUBLE, 6, gk_geom->nrange_int.volume);
   gk_geom->geo_int.dxdz_nodal = gkyl_array_new(GKYL_DOUBLE, 9, gk_geom->nrange_int.volume);
+  gk_geom->geo_int.dxdz_grad_nodal = gkyl_array_new(GKYL_DOUBLE, 27, gk_geom->nrange_int.volume);
   gk_geom->geo_int.dzdx_nodal = gkyl_array_new(GKYL_DOUBLE, 9, gk_geom->nrange_int.volume);
   gk_geom->geo_int.dualmag_nodal = gkyl_array_new(GKYL_DOUBLE, 3, gk_geom->nrange_int.volume);
   gk_geom->geo_int.normals_nodal = gkyl_array_new(GKYL_DOUBLE, 9, gk_geom->nrange_int.volume);
@@ -244,6 +245,8 @@ gk_geometry_int_alloc_expansions(struct gk_geometry *up)
   up->geo_int.g_ij_neut =
     gkyl_array_new(GKYL_DOUBLE, 6 * up->basis.num_basis, up->local_ext.volume);
   up->geo_int.dxdz = gkyl_array_new(GKYL_DOUBLE, 9 * up->basis.num_basis, up->local_ext.volume);
+  up->geo_int.dxdz_grad =
+    gkyl_array_new(GKYL_DOUBLE, 27 * up->basis.num_basis, up->local_ext.volume);
   up->geo_int.dzdx = gkyl_array_new(GKYL_DOUBLE, 9 * up->basis.num_basis, up->local_ext.volume);
   up->geo_int.dualmag = gkyl_array_new(GKYL_DOUBLE, 3 * up->basis.num_basis, up->local_ext.volume);
   up->geo_int.normals = gkyl_array_new(GKYL_DOUBLE, 9 * up->basis.num_basis, up->local_ext.volume);
@@ -287,6 +290,7 @@ gk_geometry_int_release_nodal(struct gk_geometry *gk_geom)
   gkyl_array_release(gk_geom->geo_int.g_ij_nodal);
   gkyl_array_release(gk_geom->geo_int.g_ij_neut_nodal);
   gkyl_array_release(gk_geom->geo_int.dxdz_nodal);
+  gkyl_array_release(gk_geom->geo_int.dxdz_grad_nodal);
   gkyl_array_release(gk_geom->geo_int.dzdx_nodal);
   gkyl_array_release(gk_geom->geo_int.dualmag_nodal);
   gkyl_array_release(gk_geom->geo_int.normals_nodal);

@@ -23,36 +23,40 @@ typedef struct {
 GKYL_CU_D static const edged_skin_surf_from_ghost_kern_list ser_skin_surf_from_ghost_list[] = {
   {
     .edgedlist =
-      {{.dirlist = {{skin_surf_from_ghost_lowerx_1x_ser_p1, NULL}, {NULL, NULL}, {NULL, NULL}}},
-       {
-         .dirlist =
-           {{skin_surf_from_ghost_lowerx_2x_ser_p1, NULL},
-            {skin_surf_from_ghost_lowery_2x_ser_p1, NULL},
-            {NULL, NULL}},
-       },
-       {
-         .dirlist =
-           {{skin_surf_from_ghost_lowerx_3x_ser_p1, NULL},
-            {skin_surf_from_ghost_lowery_3x_ser_p1, NULL},
-            {skin_surf_from_ghost_lowerz_3x_ser_p1, NULL}},
-       }},
+      {
+        {.dirlist = {{skin_surf_from_ghost_lowerx_1x_ser_p1, NULL}, {NULL, NULL}, {NULL, NULL}}},
+        {
+          .dirlist =
+            {{skin_surf_from_ghost_lowerx_2x_ser_p1, NULL},
+             {skin_surf_from_ghost_lowery_2x_ser_p1, NULL},
+             {NULL, NULL}},
+        },
+        {
+          .dirlist =
+            {{skin_surf_from_ghost_lowerx_3x_ser_p1, NULL},
+             {skin_surf_from_ghost_lowery_3x_ser_p1, NULL},
+             {skin_surf_from_ghost_lowerz_3x_ser_p1, NULL}},
+        },
+      },
   },
   {
     .edgedlist =
-      {{.dirlist = {{skin_surf_from_ghost_upperx_1x_ser_p1, NULL}, {NULL, NULL}, {NULL, NULL}}},
-       {
-         .dirlist =
-           {{skin_surf_from_ghost_upperx_2x_ser_p1, NULL},
-            {skin_surf_from_ghost_uppery_2x_ser_p1, NULL},
-            {NULL, NULL}},
-       },
-       {
-         .dirlist =
-           {{skin_surf_from_ghost_upperx_3x_ser_p1, NULL},
-            {skin_surf_from_ghost_uppery_3x_ser_p1, NULL},
-            {skin_surf_from_ghost_upperz_3x_ser_p1, NULL}},
-       }},
-  }
+      {
+        {.dirlist = {{skin_surf_from_ghost_upperx_1x_ser_p1, NULL}, {NULL, NULL}, {NULL, NULL}}},
+        {
+          .dirlist =
+            {{skin_surf_from_ghost_upperx_2x_ser_p1, NULL},
+             {skin_surf_from_ghost_uppery_2x_ser_p1, NULL},
+             {NULL, NULL}},
+        },
+        {
+          .dirlist =
+            {{skin_surf_from_ghost_upperx_3x_ser_p1, NULL},
+             {skin_surf_from_ghost_uppery_3x_ser_p1, NULL},
+             {skin_surf_from_ghost_upperz_3x_ser_p1, NULL}},
+        },
+      },
+  },
 };
 
 struct gkyl_skin_surf_from_ghost_kernels {

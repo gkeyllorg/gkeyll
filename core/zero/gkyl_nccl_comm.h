@@ -28,4 +28,14 @@ struct gkyl_nccl_comm_inp {
  */
 struct gkyl_comm *gkyl_nccl_comm_new(const struct gkyl_nccl_comm_inp *inp);
 
+/**
+ * Select the CUDA device of the calling rank: its rank in mpi_comm modulo the
+ * number of devices. gkyl_nccl_comm_new makes the same choice unless
+ * device_set is true. Call this before creating device objects that are built
+ * before the communicator, so that they live on the communicator's device.
+ *
+ * @param mpi_comm MPI communicator whose rank selects the device
+ */
+void gkyl_nccl_comm_set_device(MPI_Comm mpi_comm);
+
 #endif

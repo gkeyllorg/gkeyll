@@ -9,7 +9,7 @@
 #include <gkyl_util.h>
 
 void
-mom_free(const struct gkyl_ref_count *ref)
+gkyl_mom_bcorr_vlasov(const struct gkyl_ref_count *ref)
 {
   struct gkyl_mom_type *momt = container_of(ref, struct gkyl_mom_type, ref_count);
   if (GKYL_IS_CU_ALLOC(momt->flags)) {
@@ -28,6 +28,16 @@ gkyl_mom_bcorr_lbo_vlasov_new(
 
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
+    // Kernel availability is checked on the host so unsupported bases fail
+    // with an assert here rather than a NULL device function pointer.
+    int cdim_h = cbasis->ndim, vdim_h = pbasis->ndim - cdim_h, po_h = cbasis->poly_order;
+    assert(cv_index[cdim_h].vdim[vdim_h] != -1);
+    assert(
+      NULL != ((gkyl_basis_phase_kernel_type(cbasis, pbasis) == GKYL_BASIS_MODAL_TENSOR) ?
+                 ten_mom_bcorr_lbo_vlasov_kernels :
+                 ser_mom_bcorr_lbo_vlasov_kernels)[cv_index[cdim_h].vdim[vdim_h]]
+                .kernels[po_h]
+    );
     return gkyl_mom_bcorr_lbo_vlasov_cu_dev_new(cbasis, pbasis, vBoundary);
   }
 #endif
@@ -50,14 +60,14 @@ gkyl_mom_bcorr_lbo_vlasov_new(
   // choose kernel tables based on basis-function type
   const gkyl_mom_bcorr_lbo_vlasov_kern_list *mom_bcorr_lbo_vlasov_kernels;
 
-  switch (cbasis->b_type) {
+  switch (gkyl_basis_phase_kernel_type(cbasis, pbasis)) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       mom_bcorr_lbo_vlasov_kernels = ser_mom_bcorr_lbo_vlasov_kernels;
       break;
 
-      /* case GKYL_BASIS_MODAL_TENSOR: */
-      /*   mom_bcorr_lbo_vlasov_kernels = ten_mom_bcorr_lbo_vlasov_kernels; */
-      /*   break; */
+    case GKYL_BASIS_MODAL_TENSOR:
+      mom_bcorr_lbo_vlasov_kernels = ten_mom_bcorr_lbo_vlasov_kernels;
+      break;
 
     default:
       assert(false);
@@ -71,7 +81,7 @@ gkyl_mom_bcorr_lbo_vlasov_new(
 
   mom_bcorr->momt.flags = 0;
   GKYL_CLEAR_CU_ALLOC(mom_bcorr->momt.flags);
-  mom_bcorr->momt.ref_count = gkyl_ref_count_init(mom_free);
+  mom_bcorr->momt.ref_count = gkyl_ref_count_init(gkyl_mom_bcorr_vlasov);
 
   mom_bcorr->momt.on_dev = &mom_bcorr->momt;
 
