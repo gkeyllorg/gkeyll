@@ -218,30 +218,26 @@ int gkyl_dg_calc_pkpm_vars_grad_ln_n(
  * p=1 serendipity basis whose extreme values over a cell are its 2^cdim vertex values):
  * in every cell the density slopes are scaled so that the vertex density stays above
  * eps times the cell average, then all slopes are scaled jointly so that the vertex
- * internal energy E - |M|^2/(2 rho) stays above eps times that of the cell average, then
- * all slopes are scaled jointly (bisection) so that the thermal speed xi of
- * gkyl_dg_calc_pkpm_vars_prim (formed at the Gauss-Legendre nodes, interpolated to p=1)
- * stays above eps times that of the cell average at every vertex, hence on every face.
+ * internal energy E - |M|^2/(2 rho) stays above eps times that of the cell average. The
+ * state is then admissible at the vertices, hence by convexity at the Gauss-Legendre nodes,
+ * where the thermal speed is formed (gkyl_dg_calc_pkpm_vars_prim).
  * The cell averages are untouched. A cell whose average is itself inadmissible is left as is.
- * The per-cell record `count` (4 components: density scalings, energy scalings, thermal
- * speed scalings, inadmissible averages) is incremented where the limiter acted, and the
- * numbers of cells of each kind in this call are returned through num_rho, num_e, num_xi
- * and num_avg.
+ * The per-cell record `count` (3 components: density scalings, energy scalings,
+ * inadmissible averages) is incremented where the limiter acted, and the numbers of cells
+ * of each kind in this call are returned through num_rho, num_e and num_avg.
  *
  * @param up         Updater for computing pkpm variables
  * @param conf_range Configuration space range
- * @param eps        Relative floor of the vertex density, internal energy and thermal speed
+ * @param eps        Relative floor of the vertex density and internal energy
  * @param fluid      In/out fluid state [rho, rho ux, rho uy, rho uz, E]
- * @param count      In/out per-cell record of the limiter actions (4 components)
+ * @param count      In/out per-cell record of the limiter actions (3 components)
  * @param num_rho    Output: cells whose density slopes were scaled in this call
  * @param num_e      Output: cells whose slopes were scaled for the internal energy
- * @param num_xi     Output: cells whose slopes were scaled for the thermal speed
  * @param num_avg    Output: cells with an inadmissible average (left as is)
  */
 void gkyl_dg_calc_pkpm_vars_positivity(
   struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, double eps,
-  struct gkyl_array *fluid, struct gkyl_array *count, int *num_rho, int *num_e, int *num_xi,
-  int *num_avg
+  struct gkyl_array *fluid, struct gkyl_array *count, int *num_rho, int *num_e, int *num_avg
 );
 
 /**
@@ -362,8 +358,7 @@ int gkyl_dg_calc_pkpm_vars_grad_ln_n_cu(
 );
 void gkyl_dg_calc_pkpm_vars_positivity_cu(
   struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, double eps,
-  struct gkyl_array *fluid, struct gkyl_array *count, int *num_rho, int *num_e, int *num_xi,
-  int *num_avg
+  struct gkyl_array *fluid, struct gkyl_array *count, int *num_rho, int *num_e, int *num_avg
 );
 int gkyl_dg_calc_pkpm_vars_normalize_dist_cu(
   struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,

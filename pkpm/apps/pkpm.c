@@ -474,8 +474,7 @@ gkyl_pkpm_app_calc_integrated_mom(gkyl_pkpm_app *app, double tm)
     gkyl_dynvec_append(s->bflux_diag, tm, s->bflux);
 
     // Positivity limiter statistics since the previous call: [cells scaled for the
-    // density, for the internal energy, for the thermal speed, cells with an inadmissible
-    // average, applications].
+    // density, for the internal energy, cells with an inadmissible average, applications].
     double pos[PKPM_POS_NUM_STAT], pos_global[PKPM_POS_NUM_STAT];
     for (int c = 0; c < PKPM_POS_NUM_STAT; ++c) {
       pos[c] = s->pos_count_since[c];
@@ -688,8 +687,7 @@ gkyl_pkpm_app_write_mom(gkyl_pkpm_app *app, int sidx, double tm, int frame)
   snprintf(fileNm_cons, sizeof fileNm_cons, fmt_cons, app->name, s->info.name, frame);
   gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, s->pkpm_cmoms_host, fileNm_cons);
   // The cumulative record of the positivity limiter as the cell averages of a p=1 field:
-  // [cells scaled for the density, for the internal energy, for the thermal speed,
-  // inadmissible averages].
+  // [cells scaled for the density, for the internal energy, inadmissible averages].
   const char *fmt_pos = "%s-%s_pkpm_positivity_%d.gkyl";
   int sz_pos = gkyl_calc_strlen(fmt_pos, app->name, s->info.name, frame);
   char fileNm_pos[sz_pos + 1];
@@ -1489,6 +1487,11 @@ gkyl_pkpm_app_from_file_field(gkyl_pkpm_app *app, const char *fname)
   struct gkyl_app_restart_status rstat = header_from_file(app, fname);
 
   if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
+    // Seed the field from the initial conditions before the read overwrites the interior:
+    // the cells no boundary condition fills (the corners of the extended range) then hold
+    // what they hold in the uninterrupted run.
+    pkpm_field_apply_ic(app, app->field, 0.0);
+
     rstat.io_status =
       gkyl_comm_array_read(app->comm, &app->grid, &app->local, app->field->em_host, fname);
     if (app->use_gpu) {
@@ -1498,12 +1501,6 @@ gkyl_pkpm_app_from_file_field(gkyl_pkpm_app *app, const char *fname)
     gkyl_vlasov_position_map_rescale_jacobpos_conf(
       app->pos_map, &app->local, app->field->em, app->field->em
     );
-    if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
-      pkpm_field_apply_bc(app, app->field, app->field->em);
-      // b of the restart field, over the extended range (the species reflecting walls read
-      // it in the ghost cells)
-      pkpm_field_calc_bvar(app, app->field, app->field->em);
-    }
   }
 
   // Compute external EM field and applied current if present
@@ -1512,6 +1509,13 @@ gkyl_pkpm_app_from_file_field(gkyl_pkpm_app *app, const char *fname)
   // since they are not read-in as part of restarts.
   pkpm_field_calc_ext_em(app, app->field, rstat.stime);
   pkpm_field_calc_app_current(app, app->field, rstat.stime);
+
+  if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
+    pkpm_field_apply_bc(app, app->field, app->field->em);
+    // b of the restart field (which includes the external field, so after it), over the
+    // extended range (the species reflecting walls read it in the ghost cells)
+    pkpm_field_calc_bvar(app, app->field, app->field->em);
+  }
 
   return rstat;
 }
@@ -1593,12 +1597,50 @@ gkyl_pkpm_app_from_frame_species(gkyl_pkpm_app *app, int sidx, int frame)
 {
   struct pkpm_species *s = &app->species[sidx];
 
+  // Seed the species from the initial conditions before the read overwrites the interior:
+  // this fills the buffers of the fixed-function boundary conditions and the cells no
+  // boundary condition fills (the corners of the extended range).
+  pkpm_species_apply_ic(app, s, 0.0);
+
   cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, s->info.name, frame);
   struct gkyl_app_restart_status rstat = gkyl_pkpm_app_from_file_species(app, sidx, fileNm.str);
 
   cstr fileNm_fluid = cstr_from_fmt("%s-%s_pkpm_fluid_%d.gkyl", app->name, s->info.name, frame);
   struct gkyl_app_restart_status rstat_fluid =
     gkyl_pkpm_app_from_file_fluid_species(app, sidx, fileNm_fluid.str);
+
+  // The cumulative record of the positivity limiter continues from the frame's (a frame
+  // without the file restarts the record).
+  cstr fileNm_pos = cstr_from_fmt("%s-%s_pkpm_positivity_%d.gkyl", app->name, s->info.name, frame);
+  struct gkyl_app_restart_status rstat_pos = header_from_file(app, fileNm_pos.str);
+  if (rstat_pos.io_status == GKYL_ARRAY_RIO_SUCCESS) {
+    rstat_pos.io_status =
+      gkyl_comm_array_read(app->comm, &app->grid, &app->local, s->pkpm_pos_io_host, fileNm_pos.str);
+  }
+  if (rstat_pos.io_status == GKYL_ARRAY_RIO_SUCCESS) {
+    int nc = app->confBasis.num_basis;
+    struct gkyl_array *count_host = s->pkpm_pos_count;
+    if (app->use_gpu) {
+      count_host = mkarr(false, PKPM_POS_NUM_COUNT, app->local_ext.volume);
+      gkyl_array_clear(count_host, 0.0);
+    }
+    double c0 = sqrt(pow(2.0, app->cdim)); // constant-mode coefficient of a unit cell average
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init(&iter, &app->local);
+    while (gkyl_range_iter_next(&iter)) {
+      long loc = gkyl_range_idx(&app->local_ext, iter.idx);
+      const double *io = gkyl_array_cfetch(s->pkpm_pos_io_host, loc);
+      double *cnt = gkyl_array_fetch(count_host, loc);
+      for (int c = 0; c < PKPM_POS_NUM_COUNT; ++c) {
+        cnt[c] = io[c * nc] / c0;
+      }
+    }
+    if (app->use_gpu) {
+      gkyl_array_copy(s->pkpm_pos_count, count_host);
+      gkyl_array_release(count_host);
+    }
+  }
+  cstr_drop(&fileNm_pos);
 
   app->species[sidx].is_first_integ_write_call = false; // append to existing diagnostic
   app->species[sidx].is_first_integ_L2_write_call = false; // append to existing diagnostic
@@ -1633,7 +1675,22 @@ gkyl_pkpm_app_read_from_frame(gkyl_pkpm_app *app, int frame)
     app->op_split_dt_suggested = meta.dt_suggested;
     if (meta.dt_prev > 0.0) {
       double dt_half = 0.5 * meta.dt_prev;
+      // the positivity limiter of this step is not part of the evolution: keep it out of the
+      // records, as the synchronization step does
+      long pos_count[GKYL_MAX_SPECIES][PKPM_POS_NUM_STAT];
+      for (int i = 0; i < app->num_species; ++i) {
+        for (int c = 0; c < PKPM_POS_NUM_STAT; ++c) {
+          pos_count[i][c] = app->species[i].pos_count_since[c];
+        }
+        gkyl_array_copy(app->op_split_pos_count[i], app->species[i].pkpm_pos_count);
+      }
       pkpm_fluid_em_coupling_update(app, app->pkpm_em, app->tcurr - 0.5 * dt_half, -dt_half);
+      for (int i = 0; i < app->num_species; ++i) {
+        for (int c = 0; c < PKPM_POS_NUM_STAT; ++c) {
+          app->species[i].pos_count_since[c] = pos_count[i][c];
+        }
+        gkyl_array_copy(app->species[i].pkpm_pos_count, app->op_split_pos_count[i]);
+      }
     }
   }
 

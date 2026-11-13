@@ -95,6 +95,7 @@ struct gkyl_dg_pkpm_remap_flux_surf {
   double *psi; // Transverse modes at the nodes, [node][mode].
   double *wpsi; // Node weight times the transverse modes, [node][mode].
   double *conf_trace[3]; // Conf basis at the face nodes per direction, [side][node][basis].
+  double *conf_node; // Conf basis at the Gauss-Legendre nodes of a cell, [node][basis].
   double *vel_edges; // Edges of the velocity grid.
 
   // Workspace for one face.
@@ -266,6 +267,67 @@ pkpm_remap_flux_blend(const struct pkpm_remap_flux_share *share)
     }
   }
   return fmax(momentum, energy);
+}
+
+// Thermal speed at one face of a node line of a cell, from the values of the thermal speed and the
+// density at the line's two Gauss-Legendre nodes (lower, upper); sign is +1 for the upper face and
+// -1 for the lower. tau = 1/xi^2 is extrapolated linearly to the face: exact where the pressure is
+// uniform and the density linear. On the face beyond the hotter node the result is limited to the
+// ratio of the pressure and density traces (p = rho xi^2 at the nodes, both linear along the line),
+// and never below the hot node's own value. A line with a non-positive node value keeps its linear
+// extrapolation.
+GKYL_CU_DH static inline double
+pkpm_remap_flux_xi_line(double xi_lo, double xi_up, double rho_lo, double rho_up, double sign)
+{
+  const double half_sqrt3 = 0.8660254037844386;
+  if (!(xi_lo > 0.0 && xi_up > 0.0)) {
+    return 0.5 * (xi_lo + xi_up) + sign * half_sqrt3 * (xi_up - xi_lo);
+  }
+  double tau_lo = 1.0 / (xi_lo * xi_lo), tau_up = 1.0 / (xi_up * xi_up);
+  double tau_face = 0.5 * (tau_lo + tau_up) + sign * half_sqrt3 * (tau_up - tau_lo);
+  double sign_hot = tau_lo < tau_up ? -1.0 : 1.0;
+  if (sign == sign_hot) {
+    double tau_hot = fmin(tau_lo, tau_up);
+    double pres_lo = rho_lo / tau_lo, pres_up = rho_up / tau_up;
+    double pres_face = 0.5 * (pres_lo + pres_up) + sign * half_sqrt3 * (pres_up - pres_lo);
+    double rho_face = 0.5 * (rho_lo + rho_up) + sign * half_sqrt3 * (rho_up - rho_lo);
+    double tau_min = (pres_face > 0.0 && rho_face > 0.0) ? fmin(tau_hot, rho_face / pres_face) :
+                                                           tau_hot;
+    tau_face = fmax(tau_face, tau_min);
+  }
+  return 1.0 / sqrt(tau_face);
+}
+
+// Thermal speed of a cell on one of its faces in direction dir (sign +1: upper, -1: lower), as the
+// p=1 expansion xi_face whose trace on that face interpolates the face values of the cell's node
+// lines along dir (pkpm_remap_flux_xi_line) across the face.
+GKYL_CU_DH static inline void
+pkpm_remap_flux_xi_face(
+  const struct gkyl_dg_pkpm_remap_flux_surf *up, int dir, double sign, const double *fluid,
+  const double *xi, double *xi_face
+)
+{
+  int nc = up->num_conf_basis, num_cell_nodes = 1 << up->cdim;
+  double node_xi[8], node_rho[8], line[8];
+  for (int q = 0; q < num_cell_nodes; ++q) {
+    node_xi[q] = pkpm_remap_flux_trace_at(nc, &up->conf_node[q * nc], xi);
+    node_rho[q] = pkpm_remap_flux_trace_at(nc, &up->conf_node[q * nc], fluid);
+  }
+  for (int q = 0; q < num_cell_nodes; ++q) {
+    int q_up = q | (1 << dir);
+    if (q_up != q) {
+      line[q] =
+        pkpm_remap_flux_xi_line(node_xi[q], node_xi[q_up], node_rho[q], node_rho[q_up], sign);
+      line[q_up] = line[q];
+    }
+  }
+  // the 2-point Gauss-Legendre rule (unit weights) is exact for the p=1 projection
+  for (int m = 0; m < nc; ++m) {
+    xi_face[m] = 0.0;
+    for (int q = 0; q < num_cell_nodes; ++q) {
+      xi_face[m] += up->conf_node[q * nc + m] * line[q];
+    }
+  }
 }
 
 // Fill the frame of one transverse node of a face; returns whether both sides admit the frame map.

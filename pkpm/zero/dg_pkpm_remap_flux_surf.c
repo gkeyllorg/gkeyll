@@ -94,6 +94,17 @@ gkyl_dg_pkpm_remap_flux_surf_inew(const struct gkyl_dg_pkpm_remap_flux_surf_inp 
     }
   }
 
+  // The Gauss-Legendre nodes of a cell; bit d of the node index selects the upper node of direction d.
+  int num_cell_nodes = 1 << cdim;
+  up->conf_node = gkyl_malloc(num_cell_nodes * nc * sizeof(double));
+  for (int q = 0; q < num_cell_nodes; ++q) {
+    double z[GKYL_MAX_CDIM];
+    for (int d = 0; d < cdim; ++d) {
+      z[d] = ((q >> d) & 1 ? 1.0 : -1.0) / sqrt(3.0);
+    }
+    inp->conf_basis->eval(z, &up->conf_node[q * nc]);
+  }
+
   int nflux = 8 * up->num_surf_basis;
   up->column = gkyl_malloc(2 * nv * sizeof(long));
   up->block_traces = gkyl_malloc(2 * nv * nflux * sizeof(double));
@@ -159,12 +170,19 @@ remap_flux_face(
     );
   }
 
-  // 2. The traces of the frame and the face coefficients of every node.
+  // 2. The traces of the frame and the face coefficients of every node. The thermal speed of each
+  // side on this face comes from 1/xi^2 along the node lines of its cell.
+  double xi_face[2][8];
+  const double *xi_face_s[2] = {xi_face[0], xi_face[1]};
+  for (int s = 0; s < 2; ++s) {
+    pkpm_remap_flux_xi_face(up, dir, s == 0 ? 1.0 : -1.0, fluid_s[s], xi_s[s], xi_face[s]);
+  }
   int admissible = 1;
   for (int i = 0; i < nn; ++i) {
-    admissible =
-      pkpm_remap_flux_node_traces(up, dir, i, bvar_s, fluid_s, u_s, xi_s, theta_s, &up->nodes[i]) &&
-      admissible;
+    admissible = pkpm_remap_flux_node_traces(
+                   up, dir, i, bvar_s, fluid_s, u_s, xi_face_s, theta_s, &up->nodes[i]
+                 ) &&
+                 admissible;
   }
 
   // 3. The rates of the owner cell, from the speed bounds of every node and velocity node.
@@ -309,6 +327,7 @@ gkyl_dg_pkpm_remap_flux_surf_release(struct gkyl_dg_pkpm_remap_flux_surf *up)
   for (int d = 0; d < up->cdim; ++d) {
     gkyl_free(up->conf_trace[d]);
   }
+  gkyl_free(up->conf_node);
   gkyl_free(up->column);
   gkyl_free(up->block_traces);
   gkyl_free(up->face_flux);

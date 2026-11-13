@@ -46,8 +46,8 @@ mkarr(long nc, long size)
 // Identity configuration-space position map (the updaters always take one).
 static struct gkyl_vlasov_position_map *
 identity_pos_map(
-  const struct gkyl_rect_grid *cgrid, const struct gkyl_range *clocal, const struct gkyl_range *clocal_ext,
-  const struct gkyl_basis *cbasis
+  const struct gkyl_rect_grid *cgrid, const struct gkyl_range *clocal,
+  const struct gkyl_range *clocal_ext, const struct gkyl_basis *cbasis
 )
 {
   struct gkyl_vlasov_position_map_inp inp[GKYL_MAX_CDIM] = {0};
@@ -97,7 +97,8 @@ test_quotients(int cdim)
 
   struct gkyl_array *fluid = mkarr(5 * nb, local_ext.volume), *u = mkarr(3 * nb, local_ext.volume);
   struct gkyl_array *xi = mkarr(3 * nb, local_ext.volume), *rho3 = mkarr(3 * nb, local_ext.volume);
-  struct gkyl_array *grad_rho = mkarr(cdim * 3 * nb, local_ext.volume), *gln = mkarr(cdim * nb, local_ext.volume);
+  struct gkyl_array *grad_rho = mkarr(cdim * 3 * nb, local_ext.volume),
+                    *gln = mkarr(cdim * nb, local_ext.volume);
   struct gkyl_array *prod = mkarr(nb, local_ext.volume);
   gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&grid, &cbasis, 4, 5, eval_quot_fluid, &cdim);
   gkyl_proj_on_basis_advance(proj, 0.0, &local_ext, fluid);
@@ -118,22 +119,21 @@ test_quotients(int cdim)
     // rho (block 0 of the fluid) times u_i or grad(ln n)_d, projected onto p=1
     if (i < 3) {
       gkyl_dg_mul_op_range(&cbasis, 0, prod, 0, fluid, i, u, &local);
-    }
-    else {
+    } else {
       gkyl_dg_mul_op_range(&cbasis, 0, prod, 0, fluid, i - 3, gln, &local);
     }
     gkyl_range_iter_init(&iter, &local);
     while (gkyl_range_iter_next(&iter)) {
       long loc = gkyl_range_idx(&local, iter.idx);
       const double *pr = gkyl_array_cfetch(prod, loc);
-      const double *num = i < 3 ? (const double *)gkyl_array_cfetch(fluid, loc) + (1 + i) * nb :
-        (const double *)gkyl_array_cfetch(grad_rho, loc) + (i - 3) * 3 * nb;
+      const double *num = i < 3 ?
+                            (const double *)gkyl_array_cfetch(fluid, loc) + (1 + i) * nb :
+                            (const double *)gkyl_array_cfetch(grad_rho, loc) + (i - 3) * 3 * nb;
       for (int k = 0; k < nb; ++k) {
         if (i < 3) {
           err_u = fmax(err_u, fabs(pr[k] - num[k]));
           max_m = fmax(max_m, fabs(num[k]));
-        }
-        else {
+        } else {
           err_g = fmax(err_g, fabs(pr[k] - num[k]));
           max_g = fmax(max_g, fabs(num[k]));
         }
@@ -156,9 +156,21 @@ test_quotients(int cdim)
   gkyl_vlasov_position_map_release(pm);
 }
 
-void test_quotients_1x() { test_quotients(1); }
-void test_quotients_2x() { test_quotients(2); }
-void test_quotients_3x() { test_quotients(3); }
+void
+test_quotients_1x()
+{
+  test_quotients(1);
+}
+void
+test_quotients_2x()
+{
+  test_quotients(2);
+}
+void
+test_quotients_3x()
+{
+  test_quotients(3);
+}
 
 void
 test_source_1x_p1()
@@ -180,9 +192,7 @@ test_source_1x_p1()
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
   struct gkyl_vlasov_position_map *pm = identity_pos_map(&grid, &local, &local_ext, &cbasis);
 
-
-  struct gkyl_dg_calc_pkpm_vars *up =
-    gkyl_dg_calc_pkpm_vars_new(&grid, &cbasis, pm, false);
+  struct gkyl_dg_calc_pkpm_vars *up = gkyl_dg_calc_pkpm_vars_new(&grid, &cbasis, pm, false);
 
   // qmem = q/m*[Ex,Ey,Ez,Bx,By,Bz,phi,psi] (8 blocks).
   struct gkyl_array *qmem = mkarr(8 * nb, local_ext.volume);
@@ -275,7 +285,7 @@ test_positivity(int cdim)
   struct gkyl_vlasov_position_map *pm = identity_pos_map(&grid, &local, &local_ext, &cbasis);
   struct gkyl_dg_calc_pkpm_vars *vars = gkyl_dg_calc_pkpm_vars_new(&grid, &cbasis, pm, false);
 
-  struct gkyl_array *fluid = mkarr(5 * nb, local_ext.volume), *count = mkarr(4, local_ext.volume);
+  struct gkyl_array *fluid = mkarr(5 * nb, local_ext.volume), *count = mkarr(3, local_ext.volume);
   gkyl_array_clear(fluid, 0.0);
   gkyl_array_clear(count, 0.0);
   double c0 = sqrt(pow(2.0, cdim)); // constant-mode coefficient of a unit cell average
@@ -316,11 +326,10 @@ test_positivity(int cdim)
       avg_before[i - 1][c] = f[c * nb];
     }
   }
-  int num_rho = -1, num_e = -1, num_xi = -1, num_avg = -1;
-  gkyl_dg_calc_pkpm_vars_positivity(vars, &local, eps, fluid, count, &num_rho, &num_e, &num_xi, &num_avg);
+  int num_rho = -1, num_e = -1, num_avg = -1;
+  gkyl_dg_calc_pkpm_vars_positivity(vars, &local, eps, fluid, count, &num_rho, &num_e, &num_avg);
   TEST_CHECK(num_rho == 1);
   TEST_CHECK(num_e == 2); // the steep-density cell also needs the energy scaling after step 1
-  TEST_CHECK(num_xi == 0); // states varying along x only: steps 1-2 already bound xi (test_positivity_xi)
   TEST_CHECK(num_avg == 1);
 
   for (int i = 1; i <= 4; ++i) {
@@ -331,12 +340,11 @@ test_positivity(int cdim)
     for (int c = 0; c < 5; ++c) {
       TEST_CHECK(f[c * nb] == avg_before[i - 1][c]);
     }
-    TEST_CHECK(cnt[2] == 0.0); // no thermal-speed scaling
     if (i == 4) {
-      TEST_CHECK(cnt[3] == 1.0 && cnt[0] == 0.0 && cnt[1] == 0.0);
+      TEST_CHECK(cnt[2] == 1.0 && cnt[0] == 0.0 && cnt[1] == 0.0);
       continue;
     }
-    TEST_CHECK(cnt[3] == 0.0);
+    TEST_CHECK(cnt[2] == 0.0);
     double rho_v[8], M_v[3][8], E_v[8];
     vertex_values(&cbasis, &f[0], rho_v);
     for (int d = 0; d < 3; ++d) {
@@ -347,7 +355,9 @@ test_positivity(int cdim)
     double rho_avg = f[0] / c0, e_avg = f[4 * nb] / c0 - 0.5 * pow(f[nb] / c0, 2) / rho_avg;
     double rho_min = 1.0, e_min = 1.0;
     for (int k = 0; k < nv; ++k) {
-      double e_v = E_v[k] - 0.5 * (M_v[0][k] * M_v[0][k] + M_v[1][k] * M_v[1][k] + M_v[2][k] * M_v[2][k]) / rho_v[k];
+      double e_v =
+        E_v[k] -
+        0.5 * (M_v[0][k] * M_v[0][k] + M_v[1][k] * M_v[1][k] + M_v[2][k] * M_v[2][k]) / rho_v[k];
       rho_min = fmin(rho_min, rho_v[k] / rho_avg);
       e_min = fmin(e_min, e_v / e_avg);
     }
@@ -374,125 +384,23 @@ test_positivity(int cdim)
   gkyl_vlasov_position_map_release(pm);
 }
 
-void test_positivity_1x() { test_positivity(1); }
-void test_positivity_2x() { test_positivity(2); }
-void test_positivity_3x() { test_positivity(3); }
-
-// Worst states found by an adversarial search (agent-scratch/gen/positivity/xi_bound_adv.py) for the vertex
-// extrapolation of xi after steps 1-2 of the limiter: q(x) = q_avg + sum_s c_s prod_{d in s} x_d with
-// q_avg = [rho, M, E] = [1, 0, 0, 0, 1]. In 1x the extrapolation stays at 1.2% of xi(q_avg) (above eps = 1e-2):
-// steps 1-2 alone bound it. In 2x it reaches -0.18 xi(q_avg), and the 3x state is the same without z dependence.
-static void
-eval_xi_worst(int cdim, const double *x, double *q)
+void
+test_positivity_1x()
 {
-  const double avg[5] = {1.0, 0.0, 0.0, 0.0, 1.0};
-  const double c1[5] = {1.9, 0.0, 0.0, 0.0, -0.99}; // 1x: c_x
-  const double c2[3][5] = {
-    {-0.645, -0.293, 0.076, 0.177, 0.053}, // c_x
-    {-0.657, -0.278, -0.112, -0.034, 0.142}, // c_y
-    {0.978, -0.141, -0.149, 0.066, -0.781}, // c_xy
-  };
-  for (int c = 0; c < 5; ++c) {
-    q[c] = avg[c] + (cdim == 1 ? c1[c] * x[0] : c2[0][c] * x[0] + c2[1][c] * x[1] + c2[2][c] * x[0] * x[1]);
-  }
+  test_positivity(1);
+}
+void
+test_positivity_2x()
+{
+  test_positivity(2);
+}
+void
+test_positivity_3x()
+{
+  test_positivity(3);
 }
 
-// The thermal-speed step of the limiter: in every dimension the p=1 thermal speed of
-// gkyl_dg_calc_pkpm_vars_prim on the limited state is >= eps xi(q_avg) at every vertex (so on every face, where
-// the configuration-space flux reads it), with the cell averages preserved. In 1x the step does not act (steps
-// 1-2 bound xi); in 2x and 3x it acts and puts the smallest vertex value on the floor.
-static void
-test_positivity_xi(int cdim)
-{
-  double lower[3] = {-1.0, -1.0, -1.0}, upper[3] = {1.0, 1.0, 1.0};
-  int cells[3] = {1, 1, 1}, ghost[3] = {1, 1, 1};
-  struct gkyl_rect_grid grid;
-  gkyl_rect_grid_init(&grid, cdim, lower, upper, cells);
-  struct gkyl_basis cbasis;
-  gkyl_cart_modal_serendip(&cbasis, cdim, 1);
-  int nb = cbasis.num_basis, nv = 1 << cdim;
-  struct gkyl_range local, local_ext;
-  gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
-  struct gkyl_vlasov_position_map *pm = identity_pos_map(&grid, &local, &local_ext, &cbasis);
-  struct gkyl_dg_calc_pkpm_vars *vars = gkyl_dg_calc_pkpm_vars_new(&grid, &cbasis, pm, false);
-  struct gkyl_array *fluid = mkarr(5 * nb, local_ext.volume), *count = mkarr(4, local_ext.volume);
-  struct gkyl_array *u = mkarr(3 * nb, local_ext.volume), *xi = mkarr(3 * nb, local_ext.volume);
-  gkyl_array_clear(fluid, 0.0);
-  gkyl_array_clear(count, 0.0);
-
-  // Project the multilinear state exactly with the 2-point Gauss-Legendre rule (unit weights).
-  int idx[3] = {1, 1, 1};
-  long loc = gkyl_range_idx(&local_ext, idx);
-  double *f = gkyl_array_fetch(fluid, loc);
-  for (int n = 0; n < nv; ++n) {
-    double z[3], q[5], phi[8];
-    for (int d = 0; d < cdim; ++d) {
-      z[d] = ((n >> d) & 1 ? 1.0 : -1.0) / sqrt(3.0);
-    }
-    eval_xi_worst(cdim, z, q);
-    cbasis.eval(z, phi);
-    for (int c = 0; c < 5; ++c) {
-      for (int k = 0; k < nb; ++k) {
-        f[c * nb + k] += q[c] * phi[k];
-      }
-    }
-  }
-  double avg_before[5];
-  for (int c = 0; c < 5; ++c) {
-    avg_before[c] = f[c * nb];
-  }
-
-  double eps = 1.0e-2;
-  int num_rho = -1, num_e = -1, num_xi = -1, num_avg = -1;
-  gkyl_dg_calc_pkpm_vars_positivity(vars, &local, eps, fluid, count, &num_rho, &num_e, &num_xi, &num_avg);
-  TEST_CHECK(num_avg == 0);
-  TEST_CHECK(num_xi == (cdim == 1 ? 0 : 1));
-  TEST_MSG("cdim=%d: num_rho %d, num_e %d, num_xi %d", cdim, num_rho, num_e, num_xi);
-  for (int c = 0; c < 5; ++c) {
-    TEST_CHECK(f[c * nb] == avg_before[c]); // averages preserved
-  }
-
-  int num_null = gkyl_dg_calc_pkpm_vars_prim(vars, &local, fluid, u, xi);
-  TEST_CHECK(num_null == 0);
-  const double *xi_c = gkyl_array_cfetch(xi, loc);
-  double xv[8], c0 = sqrt(pow(2.0, cdim));
-  vertex_values(&cbasis, xi_c, xv);
-  // xi of the cell average: q_avg = [1, 0, 0, 0, 1], e_avg = 1
-  double xi_avg = sqrt(2.0 / 3.0), xi_vmin = xv[0];
-  for (int k = 1; k < nv; ++k) {
-    xi_vmin = fmin(xi_vmin, xv[k]);
-  }
-  TEST_CHECK(xi_vmin >= eps * xi_avg * (1.0 - 1e-10));
-  if (cdim > 1) {
-    TEST_CHECK(gkyl_compare(xi_vmin / xi_avg, eps, 1e-8)); // scaled to the floor (bisection)
-  } else {
-    TEST_CHECK(xi_vmin / xi_avg > eps); // above the floor without step 3 (about 1.2% of xi_avg)
-  }
-  TEST_MSG("cdim=%d: smallest vertex xi / xi_avg = %.10g (floor %g); rho avg %g", cdim, xi_vmin / xi_avg, eps,
-    f[0] / c0);
-
-  gkyl_array_release(xi);
-  gkyl_array_release(u);
-  gkyl_array_release(count);
-  gkyl_array_release(fluid);
-  gkyl_dg_calc_pkpm_vars_release(vars);
-  gkyl_vlasov_position_map_release(pm);
-}
-
-void test_positivity_xi_1x() { test_positivity_xi(1); }
-void test_positivity_xi_2x() { test_positivity_xi(2); }
-void test_positivity_xi_3x() { test_positivity_xi(3); }
-
-TEST_LIST = {
-  {"test_positivity_1x", test_positivity_1x},
-  {"test_positivity_2x", test_positivity_2x},
-  {"test_positivity_3x", test_positivity_3x},
-  {"test_positivity_xi_1x", test_positivity_xi_1x},
-  {"test_positivity_xi_2x", test_positivity_xi_2x},
-  {"test_positivity_xi_3x", test_positivity_xi_3x},
-  {"test_quotients_1x", test_quotients_1x},
-  {"test_quotients_2x", test_quotients_2x},
-  {"test_quotients_3x", test_quotients_3x},
-  {"source_1x_p1", test_source_1x_p1},
-  {NULL, NULL}
-};
+TEST_LIST = {{"test_positivity_1x", test_positivity_1x}, {"test_positivity_2x", test_positivity_2x},
+             {"test_positivity_3x", test_positivity_3x}, {"test_quotients_1x", test_quotients_1x},
+             {"test_quotients_2x", test_quotients_2x},   {"test_quotients_3x", test_quotients_3x},
+             {"source_1x_p1", test_source_1x_p1},        {NULL, NULL}};

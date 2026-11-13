@@ -74,7 +74,7 @@ struct gkyl_dg_calc_pkpm_vars {
   int *num_null_rho_dev; // device counter for num_null_rho (0 on host)
   double closure_cond_min; // smallest det/det0 of the closure solves of the last call (host copy)
   unsigned long long *closure_cond_min_dev; // device minimum (bit pattern of the positive double)
-  int *num_pos_dev; // device counters [rho, e, xi, avg] of the positivity limiter (0 on host)
+  int *num_pos_dev; // device counters [rho, e, avg] of the positivity limiter (0 on host)
 
   uint32_t flags;
   struct gkyl_dg_calc_pkpm_vars *on_dev; // pointer to itself or device data

@@ -235,15 +235,14 @@ struct gkyl_pkpm {
 
   // Vertex positivity limiter of the fluid state [rho, M, E] (Zhang-Shu scaling of the
   // slopes toward the cell averages, always applied, after every forward-Euler stage, the
-  // implicit coupling and the initial condition): the vertex density, the vertex internal
-  // energy and the vertex thermal speed xi (the p=1 interpolant of its Gauss-Legendre node
-  // values) are kept above fluid_positivity_eps times the cell values (default 1e-2). The
-  // configuration-space flux reads rho and xi on the faces. The cells it acts on are
-  // recorded in <name>-<species>_pkpm_positivity_<frame>.gkyl (cumulative counts per cell:
-  // [density, internal energy, thermal speed, inadmissible average]) and the counts per
-  // integrated-moment interval in the dynvec <name>-<species>-positivity-stat.gkyl ([cells
-  // scaled for the density, for the internal energy, for the thermal speed, cells with an
-  // inadmissible average, limiter applications], summed over ranks).
+  // implicit coupling and the initial condition): the vertex density and the vertex internal
+  // energy are kept above fluid_positivity_eps times the cell values (default 1e-2), so the
+  // thermal speed is real at the Gauss-Legendre nodes. The cells it acts on are recorded in
+  // <name>-<species>_pkpm_positivity_<frame>.gkyl (cumulative counts per cell: [density,
+  // internal energy, inadmissible average]) and the counts per integrated-moment interval
+  // in the dynvec <name>-<species>-positivity-stat.gkyl ([cells scaled for the density, for
+  // the internal energy, cells with an inadmissible average, limiter applications], summed
+  // over ranks).
   double fluid_positivity_eps; // Relative floor (0 => default 1e-2).
   int num_face_nodes; // Gauss-Legendre nodes per transverse direction of a configuration face (0 => default 5, at least 3).
 

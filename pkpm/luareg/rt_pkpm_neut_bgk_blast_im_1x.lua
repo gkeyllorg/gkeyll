@@ -1,0 +1,153 @@
+-- Interacting blast waves (Woodward & Colella 1984) for a neutral gas with BGK collisions with
+-- the PKPM system of equations (1x, normalized parallel velocity w = v_par/xi). Density 1 at rest
+-- between reflecting walls at x = 0 and 1; pressure 1000 left of x = 0.1, 0.01 between 0.1 and
+-- 0.9, and 100 right of 0.9. The two blast waves collide
+-- near x = 0.7. The collision frequency puts the mean free path at 1/400 of a cell in the hot
+-- gas (adiabatic index 5/3). A static magnetic field along x sets the field direction.
+-- The BGK relaxation takes one backward-Euler step in each SSP-RK3 stage (nu dt = 3).
+-- Figures of merit (160 x 16 cells) at t = 0.038, against a second-order finite-volume Euler
+-- solution (MUSCL, HLLE) on 6400 cells averaged over the cells of this grid: the L1 errors of the
+-- cell averages are 5.1% (density), 0.5% (velocity) and 2.0% (pressure); the density peaks at
+-- 4.19 at x = 0.797 (reference 4.15 at 0.784) and has its minimum at 0.184 (0.186); the pressure
+-- peaks at 331 at x = 0.616 (319 at 0.616) and the velocity at 13.15 at x = 0.891 (13.17 at
+-- 0.897). Mass and energy are conserved to 1e-11 (the walls exchange momentum).
+
+local PKPM = G0.PKPM
+
+-- Mathematical constants (dimensionless).
+pi = math.pi
+
+-- Physical constants (using normalized code units).
+epsilon0 = 1.0 -- Permittivity of free space.
+mu0 = 1.0 -- Permeability of free space.
+mass_neut = 1.0 -- Neutral mass.
+charge_neut = 0.0 -- Neutral charge.
+
+rho_l = 1.0 -- Left mass density.
+u_l = 0.0 -- Left velocity.
+p_l = 1000.0 -- Left pressure.
+rho_m = 1.0 -- Middle mass density.
+u_m = 0.0 -- Middle velocity.
+p_m = 0.01 -- Middle pressure.
+rho_r = 1.0 -- Right mass density.
+u_r = 0.0 -- Right velocity.
+p_r = 100.0 -- Right pressure.
+x_lm = 0.1 -- Interface of the left and middle states.
+x_mr = 0.9 -- Interface of the middle and right states.
+nu = 2.0e6 -- Collision frequency.
+B0 = 1.0 -- Magnetic field along x (sets the field direction b).
+
+-- Simulation parameters.
+Nx = 160 -- Cell count (configuration space: x-direction).
+Nvx = 16 -- Cell count (velocity space: normalized parallel velocity w).
+Lx = 1.0 -- Domain size (configuration space: x-direction).
+vx_max = 8.0 -- Domain boundary (velocity space: w = v_par/xi).
+poly_order = 1 -- Polynomial order.
+basis_type = "serendipity" -- Basis function set.
+time_stepper = "rk3" -- Time integrator.
+cfl_frac = 1.0 -- CFL coefficient.
+
+t_end = 0.038 -- Final simulation time.
+num_frames = 1 -- Number of output frames.
+field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
+integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.
+integrated_L2_f_calcs = GKYL_MAX_INT -- Number of times to calculate integrated L2 norm of distribution function.
+dt_failure_tol = 1.0e-4 -- Minimum allowable fraction of initial time-step.
+num_failures_max = 20 -- Maximum allowable number of consecutive small time-steps.
+
+pkpmApp = PKPM.App.new {
+
+  tEnd = t_end,
+  nFrame = num_frames,
+  fieldEnergyCalcs = field_energy_calcs,
+  integratedL2fCalcs = integrated_L2_f_calcs,
+  integratedMomentCalcs = integrated_mom_calcs,
+  dtFailureTol = dt_failure_tol,
+  numFailuresMax = num_failures_max,
+  lower = { 0.0 },
+  upper = { Lx },
+  cells = { Nx },
+  cflFrac = cfl_frac,
+
+  basis = basis_type,
+  polyOrder = poly_order,
+  timeStepper = time_stepper,
+
+  -- Decomposition for configuration space.
+  decompCuts = { 1 }, -- Cuts in each coordinate direction (x-direction only).
+
+  -- Boundary conditions for configuration space.
+  periodicDirs = { }, -- Periodic directions (none).
+
+  -- Neutrals.
+  neut = PKPM.Species.new {
+    charge = charge_neut, mass = mass_neut,
+
+    -- Velocity space grid.
+    lower = { -vx_max },
+    upper = { vx_max },
+    cells = { Nvx },
+
+    -- Initial conditions.
+    initDist = function (t, xn)
+      local w = xn[2]
+
+      local F = math.exp(-0.5 * w * w) / math.sqrt(2.0 * pi) -- Normalized Maxwellian in w = v_par/xi.
+
+      return F, F
+    end,
+
+    initFluid = function (t, xn)
+      local x = xn[1]
+
+      local rho = 0.0
+      local vel = 0.0
+      local pres = 0.0
+      if x < x_lm then
+        rho = rho_l -- Mass density (left).
+        vel = u_l -- Velocity (left).
+        pres = p_l -- Pressure (left).
+      elseif x < x_mr then
+        rho = rho_m -- Mass density (middle).
+        vel = u_m -- Velocity (middle).
+        pres = p_m -- Pressure (middle).
+      else
+        rho = rho_r -- Mass density (right).
+        vel = u_r -- Velocity (right).
+        pres = p_r -- Pressure (right).
+      end
+      local E = 0.5 * rho * vel * vel + 1.5 * pres -- Total energy density.
+
+      return rho, rho * vel, 0.0, 0.0, E
+    end,
+
+    collisions = {
+      collisionID = G0.Collisions.BGK,
+      useImplicitCollisionScheme = true,
+
+      selfNu = function (t, xn)
+        return nu
+      end
+    },
+
+    bcx = { G0.SpeciesBc.bcReflect, G0.SpeciesBc.bcReflect }, -- Reflecting walls (x-direction).
+
+    evolve = true -- Evolve species?
+  },
+
+  -- Field.
+  field = PKPM.Field.new {
+    epsilon0 = epsilon0, mu0 = mu0,
+
+    -- Initial conditions function.
+    init = function (t, xn)
+      return 0.0, 0.0, 0.0, B0, 0.0, 0.0, 0.0, 0.0
+    end,
+
+    evolve = false, -- Evolve field?
+    elcErrorSpeedFactor = 0.0,
+    mgnErrorSpeedFactor = 0.0
+  }
+}
+
+pkpmApp:run()

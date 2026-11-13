@@ -278,10 +278,10 @@ enum pkpm_dist_block {
 };
 
 // Records of the fluid positivity limiter (gkyl_dg_calc_pkpm_vars_positivity): the per-cell
-// count [cells scaled for the density, for the internal energy, for the thermal speed,
-// inadmissible averages], and the statistics per integrated-moment interval, which append the
-// number of limiter applications.
-enum pkpm_positivity_record { PKPM_POS_NUM_COUNT = 4, PKPM_POS_NUM_STAT = 5 };
+// count [cells scaled for the density, for the internal energy, inadmissible averages], and
+// the statistics per integrated-moment interval, which append the number of limiter
+// applications.
+enum pkpm_positivity_record { PKPM_POS_NUM_COUNT = 3, PKPM_POS_NUM_STAT = 4 };
 
 // species data
 struct pkpm_species {
@@ -417,11 +417,11 @@ struct pkpm_species {
   double closure_cond_min; // smallest det/det0 of the closure solves over the run
   bool closure_null_warned; // the velocity-extent warning was printed
   struct gkyl_array
-    *pkpm_pos_count; // per-cell record of the positivity limiter [rho, e, xi, avg] (cumulative)
+    *pkpm_pos_count; // per-cell record of the positivity limiter [rho, e, avg] (cumulative)
   struct gkyl_array *pkpm_pos_io,
     *pkpm_pos_io_host; // the record as cell averages of a p=1 field for IO
   long pos_count_since
-    [PKPM_POS_NUM_STAT]; // limiter counts [rho, e, xi, avg, applications] since the last integrated-moment call
+    [PKPM_POS_NUM_STAT]; // limiter counts [rho, e, avg, applications] since the last integrated-moment call
   gkyl_dynvec pos_stat; // the counts per integrated-moment interval, summed over ranks
   bool is_first_pos_stat_write_call; // flag for the positivity statistics dynvec written first time
 

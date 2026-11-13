@@ -778,6 +778,78 @@ test_axis_all(void)
   test_axis(2);
 }
 
+static void
+eval_maxwellian_fg(double t, const double *xn, double *fout, void *ctx)
+{
+  int vdir = *(int *)ctx;
+  double w = xn[vdir];
+  for (int c = 0; c < 8; ++c) {
+    fout[c] = 0.0;
+  }
+  fout[0] = fout[1] = exp(-0.5 * w * w) / sqrt(2.0 * M_PI);
+}
+
+// 8. A gas at rest with uniform pressure and a density that is linear across the cells (1x): the
+// thermal speed at the Gauss-Legendre nodes is sqrt(p/rho), and the face value from 1/xi^2 along
+// the node line is sqrt(p/rho_face) on both sides of every face. So no mass or energy crosses a
+// face and the momentum flux, the pressure, is the same on every face.
+void
+test_uniform_pressure(void)
+{
+  struct test_setup s;
+  setup(&s, 1, 16, 8.0);
+  const double pres = 0.7, rho_mid = 1.0, rho_slope = 0.45, node = 1.0 / sqrt(3.0);
+  double u[3] = {0.0, 0.0, 0.0}, b[3] = {1.0, 0.0, 0.0}, xc[1];
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &s.clocal_ext);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&s.clocal_ext, iter.idx);
+    gkyl_rect_grid_cell_center(&s.cgrid, iter.idx, xc);
+    double rho_cell = rho_mid + rho_slope * xc[0], rho_half = 0.5 * rho_slope * s.cgrid.dx[0];
+    set_frame(&s, loc, rho_cell, u, 1.0, b, 1.0);
+    double *fl = gkyl_array_fetch(s.fluid, loc), *xl = gkyl_array_fetch(s.xi, loc);
+    // modes [1/sqrt(2), sqrt(3/2) x]: a function with node values (lo, up) at x = -+1/sqrt(3)
+    // has the coefficients ((up + lo)/sqrt(2), (up - lo)/sqrt(2))
+    fl[1] = rho_half * sqrt(2.0 / 3.0);
+    fl[4 * s.nc] = 1.5 * pres * sqrt(2.0);
+    double xi_lo = sqrt(pres / (rho_cell - node * rho_half));
+    double xi_up = sqrt(pres / (rho_cell + node * rho_half));
+    xl[0] = (xi_up + xi_lo) / sqrt(2.0);
+    xl[1] = (xi_up - xi_lo) / sqrt(2.0);
+    xl[s.nc] = (xi_up * xi_up + xi_lo * xi_lo) / sqrt(2.0);
+    xl[s.nc + 1] = (xi_up * xi_up - xi_lo * xi_lo) / sqrt(2.0);
+    xl[2 * s.nc] = pres * sqrt(2.0);
+  }
+  int vdir = s.cdim;
+  gkyl_proj_on_basis *proj =
+    gkyl_proj_on_basis_new(&s.pgrid, &s.pbasis, 4, 8, eval_maxwellian_fg, &vdir);
+  gkyl_proj_on_basis_advance(proj, 0.0, &s.plocal_ext, s.f);
+  gkyl_proj_on_basis_release(proj);
+  advance(&s);
+
+  double mom_ref = 0.0, max_mass = 0.0, max_energy = 0.0, max_dev = 0.0;
+  int idx[1];
+  for (idx[0] = s.clocal.lower[0]; idx[0] <= s.clocal.upper[0] + 1; ++idx[0]) {
+    const double *ff = gkyl_array_cfetch(s.fluid_flux, gkyl_range_idx(&s.clocal_ext, idx));
+    if (idx[0] == s.clocal.lower[0]) {
+      mom_ref = ff[1 * s.na];
+    }
+    max_mass = fmax(max_mass, fabs(ff[0]));
+    max_energy = fmax(max_energy, fabs(ff[4 * s.na]));
+    max_dev = fmax(max_dev, fabs(ff[1 * s.na] - mom_ref));
+  }
+  // the momentum flux is the pressure (the second moment of the projected Maxwellian is 1 to 1e-5)
+  TEST_CHECK(fabs(mom_ref / pres - 1.0) < 1e-4);
+  TEST_CHECK(max_dev < 1e-13 * fabs(mom_ref));
+  TEST_CHECK(max_mass < 1e-13 * fabs(mom_ref));
+  TEST_CHECK(max_energy < 1e-13 * fabs(mom_ref));
+  TEST_MSG(
+    "momentum flux %.15g (p = %g), deviation %g, mass flux %g, energy flux %g", mom_ref, pres,
+    max_dev, max_mass, max_energy
+  );
+  teardown(&s);
+}
+
 TEST_LIST = {
   {"test_identity_1x", test_identity_1x},
   {"test_identity_2x", test_identity_2x},
@@ -788,5 +860,6 @@ TEST_LIST = {
   {"test_reflecting_wall", test_reflecting_wall},
   {"test_disjoint_beams", test_disjoint_beams},
   {"test_axis_all", test_axis_all},
+  {"test_uniform_pressure", test_uniform_pressure},
   {NULL, NULL}
 };

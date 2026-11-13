@@ -225,19 +225,18 @@ gkyl_dg_calc_pkpm_vars_grad_ln_n(
 void
 gkyl_dg_calc_pkpm_vars_positivity(
   struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, double eps,
-  struct gkyl_array *fluid, struct gkyl_array *count, int *num_rho, int *num_e, int *num_xi,
-  int *num_avg
+  struct gkyl_array *fluid, struct gkyl_array *count, int *num_rho, int *num_e, int *num_avg
 )
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(fluid)) {
     return gkyl_dg_calc_pkpm_vars_positivity_cu(
-      up, conf_range, eps, fluid, count, num_rho, num_e, num_xi, num_avg
+      up, conf_range, eps, fluid, count, num_rho, num_e, num_avg
     );
   }
 #endif
   assert(up->pkpm_fluid_positivity);
-  int nrho = 0, ne = 0, nxi = 0, navg = 0;
+  int nrho = 0, ne = 0, navg = 0;
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, conf_range);
   while (gkyl_range_iter_next(&iter)) {
@@ -245,7 +244,7 @@ gkyl_dg_calc_pkpm_vars_positivity(
     int flag = up->pkpm_fluid_positivity(eps, gkyl_array_fetch(fluid, loc));
     double *cnt = gkyl_array_fetch(count, loc);
     if (flag < 0) {
-      cnt[3] += 1.0;
+      cnt[2] += 1.0;
       navg += 1;
     }
     if (flag > 0 && (flag & 1)) {
@@ -256,14 +255,9 @@ gkyl_dg_calc_pkpm_vars_positivity(
       cnt[1] += 1.0;
       ne += 1;
     }
-    if (flag > 0 && (flag & 4)) {
-      cnt[2] += 1.0;
-      nxi += 1;
-    }
   }
   *num_rho = nrho;
   *num_e = ne;
-  *num_xi = nxi;
   *num_avg = navg;
 }
 

@@ -236,8 +236,8 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
     s->fluid_io_host = mkarr(false, 11 * nc, app->local_ext.volume);
     s->pkpm_vars_io_host = mkarr(false, 10 * nc, app->local_ext.volume);
   }
-  // Record of the positivity limiter: per cell [density scalings, energy scalings, thermal
-  // speed scalings, inadmissible averages] accumulated over the run, and its p=1 image for IO.
+  // Record of the positivity limiter: per cell [density scalings, energy scalings,
+  // inadmissible averages] accumulated over the run, and its p=1 image for IO.
   s->pkpm_pos_count = mkarr(app->use_gpu, PKPM_POS_NUM_COUNT, app->local_ext.volume);
   gkyl_array_clear(s->pkpm_pos_count, 0.0);
   s->pkpm_pos_io = mkarr(app->use_gpu, PKPM_POS_NUM_COUNT * nc, app->local_ext.volume);
@@ -851,16 +851,15 @@ pkpm_species_apply_positivity(
 )
 {
   struct timespec tm = gkyl_wall_clock();
-  int num_rho = 0, num_e = 0, num_xi = 0, num_avg = 0;
+  int num_rho = 0, num_e = 0, num_avg = 0;
   gkyl_dg_calc_pkpm_vars_positivity(
     species->calc_pkpm_vars, &app->local, app->fluid_positivity_eps, fluid, species->pkpm_pos_count,
-    &num_rho, &num_e, &num_xi, &num_avg
+    &num_rho, &num_e, &num_avg
   );
   species->pos_count_since[0] += num_rho;
   species->pos_count_since[1] += num_e;
-  species->pos_count_since[2] += num_xi;
-  species->pos_count_since[3] += num_avg;
-  species->pos_count_since[4] += 1;
+  species->pos_count_since[2] += num_avg;
+  species->pos_count_since[3] += 1;
   app->stat.species_pkpm_vars_tm += gkyl_time_diff_now_sec(tm);
 }
 
