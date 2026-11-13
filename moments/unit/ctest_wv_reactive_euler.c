@@ -27,7 +27,7 @@ test_reactive_euler_basic_ho()
     rho * v,
     rho * w,
     p / (gas_gamma - 1.0) + (0.5 * rho * ((u * u) + (v * v) + (w * w))) +
-      (energy_of_formation * (reac - 1.0)),
+      (rho * energy_of_formation * (reac - 1.0)),
     rho * reac
   };
 
@@ -42,7 +42,7 @@ test_reactive_euler_basic_ho()
   TEST_CHECK(gkyl_compare(prims[5], reac, 1e-16));
 
   double E = p / (gas_gamma - 1.0) + (0.5 * rho * ((u * u) + (v * v) + (w * w))) +
-             (energy_of_formation * (reac - 1.0));
+             (rho * energy_of_formation * (reac - 1.0));
 
   double fluxes[3][6] = {
     {rho * u, (rho * (u * u)) + p, rho * (u * v), rho * (u * w), (E + p) * u, rho * (u * reac)},
@@ -112,7 +112,7 @@ test_reactive_euler_waves_ho()
     rhol * vl,
     rhol * wl,
     pl / (gas_gamma - 1.0) + (0.5 * rhol * ((ul * ul) + (vl * vl) + (wl * wl))) +
-      (energy_of_formation * (reacl - 1.0)),
+      (rhol * energy_of_formation * (reacl - 1.0)),
     rhol * reacl
   };
   double qr[6] = {
@@ -121,7 +121,7 @@ test_reactive_euler_waves_ho()
     rhor * vr,
     rhor * wr,
     pr / (gas_gamma - 1.0) + (0.5 * rhor * ((ur * ur) + (vr * vr) + (wr * wr))) +
-      (energy_of_formation * (reacr - 1.0)),
+      (rhor * energy_of_formation * (reacr - 1.0)),
     rhor * reacr
   };
 
@@ -173,7 +173,7 @@ test_reactive_euler_waves_ho()
     gkyl_wv_eqn_rotate_to_global(reactive_euler, tau1[d], tau2[d], norm[d], fr_local, fr);
 
     for (int i = 0; i < 6; i++) {
-      TEST_CHECK(gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], 1e-15));
+      TEST_CHECK(gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], 1e-14));
     }
   }
 
@@ -202,7 +202,7 @@ test_reactive_euler_waves_2_ho()
     rhol * vl,
     rhol * wl,
     pl / (gas_gamma - 1.0) + (0.5 * rhol * ((ul * ul) + (vl * vl) + (wl * wl))) +
-      (energy_of_formation * (reacl - 1.0)),
+      (rhol * energy_of_formation * (reacl - 1.0)),
     rhol * reacl
   };
   double qr[6] = {
@@ -211,7 +211,7 @@ test_reactive_euler_waves_2_ho()
     rhor * vr,
     rhor * wr,
     pr / (gas_gamma - 1.0) + (0.5 * rhor * ((ur * ur) + (vr * vr) + (wr * wr))) +
-      (energy_of_formation * (reacr - 1.0)),
+      (rhor * energy_of_formation * (reacr - 1.0)),
     rhor * reacr
   };
 

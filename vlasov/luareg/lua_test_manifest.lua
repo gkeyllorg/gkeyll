@@ -1,34 +1,25 @@
 -- Tests skipped by the Lua regression suite.
 -- Remove an entry manually to re-enable the test.
--- gpu: Lua tests whose GPU variant timed out (CPU variant still runs).
+-- gpu: Lua tests whose GPU variant does not run (CPU variant still runs). The general
+-- diffusion tests are listed because the general-stencil hyper DG advance is not
+-- implemented on the device (the updater asserts there), not because of a timeout.
 return {
    ignore = {
       tests = {
-         "rt_can_pb_bgk_surf_cylindrical_sodshock_im_3x3v_p1",
-         "rt_can_pb_ex_bgk_surf_flat_sq_ic",
-         "rt_can_pb_bgk_surf_annulus_sodshock_im_2x2v_p2",
-         "rt_can_pb_bgk_surf_sphere_sodshock_im_1x2v_p2",
-         "rt_can_pb_bgk_surf_cylindrical_sodshock_im_1x3v_p2",
-         "rt_can_pb_bgk_surf_sphere_sodshock_im_2x2v_p2",
-         "rt_can_pb_bgk_surf_sphere_sodshock_im_2x2v_p1",
-         "rt_can_pb_bgk_surf_toroidal_sodshock_im_3x3v_p1",
-         "rt_can_pb_neut_bgk_sodshock_im_1x2v_p2",
-         "rt_can_pb_bgk_surf_annulus_sodshock_im_1x2v_p2",
-         "rt_vp_sheath_Bext_1x2v_p2",
-         "rt_vlasov_es_shock_lbo_1x3v",
-         "rt_vlasov_neut_lbo_sodshock_1x3v_p2",
-         "rt_vlasov_weibel_2x2v_p2",
-         "rt_vlasov_sheath_bgk_1x1v_p2",
-         "rt_can_pb_bgk_surf_toroidal_sodshock_im_2x3v_p2",
-         "rt_can_pb_bgk_surf_annulus_sodshock_im_2x2v_p1",
-         "rt_vlasov_lbo_cross_1x2v_p2",
       },
       gpu = {
+         "rt_dg_diffusion_gen_2x_ser_p1",
+         "rt_dg_diffusion_gen_2x_ser_p2",
+         "rt_dg_diffusion_gen_2x_ser_p3",
+         "rt_dg_diffusion_gen_2x_tensor_p2",
+         "rt_dg_diffusion_gen_2x_tensor_p3",
+         "rt_dg_diffusion_gen_3x_ser_p1",
+         "rt_dg_diffusion_gen_3x_ser_p2",
       },
    },
    moat = {
-      "rt_vlasov_landau_damping_1x1v_p2", "rt_vlasov_twostream_p2",
-      "rt_vlasov_es_shock", "rt_vlasov_bgk_relax_1x1v_p2",
+      "rt_vlasov_landau_damping_1x1v_ser_p2", "rt_vlasov_twostream_1x1v_ser_p2",
+      "rt_vlasov_es_shock_1x1v_ser_p2", "rt_vlasov_bgk_relax_1x1v_ser_p2",
    },
    parallel = {},
 }

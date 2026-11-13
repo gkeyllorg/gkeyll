@@ -191,7 +191,7 @@ intdPsidr(double r, void *ctx)
   struct gk_app_ctx *app = ctx;
   struct integrand_ctx tmp_ctx = {.app_ctx = app, .r = r};
   struct gkyl_qr_res integral;
-  integral = gkyl_dbl_exp(integrand_JoRsq, &tmp_ctx, 0., 2. * M_PI, 7, 1e-10);
+  integral = gkyl_dbl_exp(integrand_JoRsq, &tmp_ctx, 0., 2. * M_PI, 10, 1e-14);
   return integral.res;
 }
 
@@ -240,10 +240,10 @@ compute_alpha_integral(double r, double twrap, void *ctx)
   }
 
   if (0. < twrap) {
-    integral = gkyl_dbl_exp(integrand_JoRsq, &tmp_ctx, 0., twrap, 7, 1e-10);
+    integral = gkyl_dbl_exp(integrand_JoRsq, &tmp_ctx, 0., twrap, 10, 1e-14);
     return integral.res;
   } else {
-    integral = gkyl_dbl_exp(integrand_JoRsq, &tmp_ctx, twrap, 0., 7, 1e-10);
+    integral = gkyl_dbl_exp(integrand_JoRsq, &tmp_ctx, twrap, 0., 10, 1e-14);
     return -integral.res;
   }
 }
@@ -300,36 +300,6 @@ bfield_func(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
   fout[0] = B_r * cos(phi) + Bt * sin(phi);
   fout[1] = B_r * sin(phi) - Bt * cos(phi);
   fout[2] = B_z;
-}
-
-void
-bc_shift_func_lo(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
-{
-  double x = xc[0];
-  struct gk_app_ctx *app = ctx;
-
-  double Cy = app->Cy;
-  double z_min = app->z_min;
-  double z_max = app->z_max;
-
-  double r = r_x(x, app->r0);
-
-  fout[0] = Cy * (alpha(r, z_min, 0.0, ctx) - alpha(r, z_max, 0.0, ctx));
-}
-
-void
-bc_shift_func_up(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
-{
-  double x = xc[0];
-  struct gk_app_ctx *app = ctx;
-
-  double Cy = app->Cy;
-  double z_min = app->z_min;
-  double z_max = app->z_max;
-
-  double r = r_x(x, app->r0);
-
-  fout[0] = -Cy * (alpha(r, z_min, 0.0, ctx) - alpha(r, z_max, 0.0, ctx));
 }
 
 double
@@ -840,20 +810,22 @@ main(int argc, char **argv)
       },
 
     .bcs =
-      {{
-         .dir = 0,
-         .edge = GKYL_LOWER_EDGE,
-         .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
-         .projection = elc_bc,
-       },
-       {
-         .dir = 0,
-         .edge = GKYL_UPPER_EDGE,
-         .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
-         .projection = elc_bc,
-       },
-       {.dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_TWISTSHIFT},
-       {.dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_TWISTSHIFT}},
+      {
+        {
+          .dir = 0,
+          .edge = GKYL_LOWER_EDGE,
+          .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
+          .projection = elc_bc,
+        },
+        {
+          .dir = 0,
+          .edge = GKYL_UPPER_EDGE,
+          .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
+          .projection = elc_bc,
+        },
+        {.dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_TWISTSHIFT},
+        {.dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_TWISTSHIFT},
+      },
     .num_diag_moments = 9,
     .diag_moments =
       {GKYL_F_MOMENT_HAMILTONIAN, GKYL_F_MOMENT_BIMAXWELLIAN, GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1,
@@ -900,20 +872,22 @@ main(int argc, char **argv)
       },
 
     .bcs =
-      {{
-         .dir = 0,
-         .edge = GKYL_LOWER_EDGE,
-         .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
-         .projection = ion_bc,
-       },
-       {
-         .dir = 0,
-         .edge = GKYL_UPPER_EDGE,
-         .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
-         .projection = ion_bc,
-       },
-       {.dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_TWISTSHIFT},
-       {.dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_TWISTSHIFT}},
+      {
+        {
+          .dir = 0,
+          .edge = GKYL_LOWER_EDGE,
+          .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
+          .projection = ion_bc,
+        },
+        {
+          .dir = 0,
+          .edge = GKYL_UPPER_EDGE,
+          .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
+          .projection = ion_bc,
+        },
+        {.dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_TWISTSHIFT},
+        {.dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_TWISTSHIFT},
+      },
     .num_diag_moments = 9,
     .diag_moments =
       {GKYL_F_MOMENT_HAMILTONIAN, GKYL_F_MOMENT_BIMAXWELLIAN, GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1,
@@ -930,8 +904,10 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_field field = {
     .gkfield_id = GKYL_GK_FIELD_ES,
     .poisson_bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}}},
+      {
+        {.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
+        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
+      },
     .time_rate_diagnostics = true,
   };
 
@@ -943,13 +919,6 @@ main(int argc, char **argv)
     .c2p_ctx = &ctx,
     .bfield_func = bfield_func, // magnetic field magnitude
     .bfield_ctx = &ctx,
-    .core_parallel_bcs =
-      {
-        .lower_shift_func = bc_shift_func_lo,
-        .upper_shift_func = bc_shift_func_up,
-        .lower_shift_ctx = &ctx,
-        .upper_shift_ctx = &ctx,
-      },
   };
 
   // Parallelism

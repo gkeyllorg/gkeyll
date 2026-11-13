@@ -1830,6 +1830,15 @@ gkyl_calc_metric_advance_interior(gkyl_calc_metric *up, struct gk_geometry *gk_g
         };
         check_parallel(bhat_vec, e_3_norm, up->exit_at_checks);
 
+        // Store the Cartesian components of bhat at the nodes (this provider
+        // otherwise only computes the modal bcart via advance_bcart).
+        double *bcartFld_n = gkyl_array_fetch(
+          gk_geom->geo_int.bcart_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx)
+        );
+        bcartFld_n[0] = bhat_vec[0];
+        bcartFld_n[1] = bhat_vec[1];
+        bcartFld_n[2] = bhat_vec[2];
+
         double norm1 = sqrt(
           dualFld_n[0] * dualFld_n[0] + dualFld_n[1] * dualFld_n[1] + dualFld_n[2] * dualFld_n[2]
         );

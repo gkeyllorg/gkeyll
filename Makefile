@@ -15,7 +15,7 @@ KERNELS_DIR := ker
 
 ARCH_FLAGS ?= -march=native
 CUDA_ARCH ?= 70
-CFLAGS ?= -O3 -g -ffast-math -fPIC -MMD -MP -DGIT_COMMIT_ID=\"$(GIT_TIP)\" -DGKYL_BUILD_DATE=\"$(BUILD_DATE_STR)\" -DGKYL_GIT_CHANGESET=\"$(GIT_TIP)\"
+CFLAGS ?= -O3 -g $(FP_FLAGS) -fPIC -MMD -MP -DGIT_COMMIT_ID=\"$(GIT_TIP)\" -DGKYL_BUILD_DATE=\"$(BUILD_DATE_STR)\" -DGKYL_GIT_CHANGESET=\"$(GIT_TIP)\"
 LDFLAGS = 
 PREFIX ?= ${HOME}/gkylsoft
 
@@ -26,7 +26,29 @@ HAVE_APP_FLAGS = -DGKYL_HAVE_PKPM -DGKYL_HAVE_GYROKINETIC -DGKYL_HAVE_VLASOV -DG
 
 # Include config.mak and alltargets.mak files (if they exists) to overide defaults above
 -include config.mak
+
+# Floating-point model. The default build allows value-changing optimizations
+# (fast math). A strict build (USE_STRICT_FP=1 in config.mak, set by
+# ./configure --strict-fp=yes) keeps IEEE evaluation order and disables FMA
+# contraction, so that results are reproducible across compilers and between
+# CPU and GPU builds.
+ifeq (${USE_STRICT_FP}, 1)
+	FP_FLAGS = -std=gnu11 -ffp-contract=off
+	NVCC_FP_FLAGS = --fmad=false -ffp-contract=off
+else
+	FP_FLAGS = -ffast-math
+	NVCC_FP_FLAGS = --use_fast_math -ffast-math
+endif
 -include alltargets.mak
+
+# Optional tensor p=2 kernel set in 2x3v (velocity-space Hamiltonian Vlasov,
+# moments, LBO; no phase-space Hamiltonian or triads). Off by default: set the
+# knob in config.mak (see ./configure --help). The corresponding kernel tables
+# get NULL rows when the set is not built, and the apps refuse such
+# configurations with a message pointing here.
+BUILD_VLASOV_TEN_2X3V_P2 ?=
+# (the -D flag for this knob is added to CFLAGS below, after the compiler
+# specific CFLAGS are set, since the nvcc branch reassigns CFLAGS)
 
 # Default lapack include and libraries: we prefer linking to static library
 LAPACK_INC_DIR ?= $(PREFIX)/OpenBLAS/include/
@@ -80,7 +102,7 @@ CUDA_LIBS =
 SQL_CFLAGS ?= -fPIC -Wno-implicit-int-float-conversion
 ifneq (,$(filter $(CC),nvcc nvc))
 	USING_NVCC = yes
-	CFLAGS = -O3 -g --forward-unknown-to-host-compiler --use_fast_math -ffast-math -MMD -MP -fPIC -DGIT_COMMIT_ID=\"$(GIT_TIP)\" -DGKYL_BUILD_DATE=\"$(BUILD_DATE_STR)\" -DGKYL_GIT_CHANGESET=\"$(GIT_TIP)\"
+	CFLAGS = -O3 -g --forward-unknown-to-host-compiler $(NVCC_FP_FLAGS) -MMD -MP -fPIC -DGIT_COMMIT_ID=\"$(GIT_TIP)\" -DGKYL_BUILD_DATE=\"$(BUILD_DATE_STR)\" -DGKYL_GIT_CHANGESET=\"$(GIT_TIP)\"
 	NVCC_FLAGS = -x cu -dc -arch=sm_${CUDA_ARCH} -rdc=true --compiler-options="-fPIC" -Xptxas --disable-optimizer-constants
 	LDFLAGS += -arch=sm_${CUDA_ARCH} -rdc=true
 	ifdef CUDAMATH_LIB_DIR
@@ -92,11 +114,45 @@ ifneq (,$(filter $(CC),nvcc nvc))
 	SQL_CFLAGS = --forward-unknown-to-host-compiler -fPIC
 endif
 
+# Per-kernel-family register caps (GPU builds only). The moment and flux advance
+# kernels dispatch through function pointers, so nvlink sizes them for the largest
+# kernel of the family they can call and, uncapped, they land at ~206-255 registers:
+# one resident 256-thread block per SM. Capping the whole family at a register-cliff
+# value (128 -> 2 blocks/SM, 64 -> 4 blocks/SM) trades a few spills for occupancy,
+# which these latency-bound kernels need. nvlink requires every function a capped
+# kernel can reach (for an indirect call: every address-taken function with the same
+# PTX prototype, see momf_t in core/zero/gkyl_mom_type.h) to fit the cap, so a cap
+# covers a whole family: MOM_MAX_REGS applies to the moment and LBO boundary-correction
+# kernels, wrappers and advance kernels of the vlasov, gyrokinetic and pkpm solvers;
+# FLUX_MAX_REGS to the vlasov flux kernels (ker/flux_vlasov/) and the
+# dg_vlasov_{vel,conf}_flux_surf advance kernels; BINOP_MAX_REGS to the bin_op
+# conf*phase multiply-accumulate kernels parallelized over components (the largest,
+# 3x1v ser p3, otherwise sets every basis to 156 registers). The hyper_dg
+# volume/surface kernels are dense straight-line code and are left alone. Set
+# MOM_MAX_REGS=, FLUX_MAX_REGS= or BINOP_MAX_REGS= (empty) in config.mak or on the make
+# command line to disable a cap.
+MOM_MAX_REGS ?= 64
+FLUX_MAX_REGS ?= 128
+BINOP_MAX_REGS ?= 64
+NVCC_MOM_FLAGS =
+NVCC_FLUX_FLAGS =
+NVCC_BINOP_FLAGS =
+ifdef USING_NVCC
+	NVCC_MOM_FLAGS = $(if $(MOM_MAX_REGS),-maxrregcount=$(MOM_MAX_REGS))
+	NVCC_FLUX_FLAGS = $(if $(FLUX_MAX_REGS),-maxrregcount=$(FLUX_MAX_REGS))
+	NVCC_BINOP_FLAGS = $(if $(BINOP_MAX_REGS),-maxrregcount=$(BINOP_MAX_REGS))
+endif
+
 CFLAGS += ${HAVE_APP_FLAGS}
 
 # Directory for storing shared data, like ADAS reaction rates and radiation fits
 GKYL_SHARE_DIR ?= "${INSTALL_PREFIX}/${PROJ_NAME}/share"
 CFLAGS += -DGKYL_SHARE_DIR=\"$(GKYL_SHARE_DIR)\"
+
+# Optional heavy kernel set define (knob resolved above)
+ifeq ($(BUILD_VLASOV_TEN_2X3V_P2),1)
+	CFLAGS += -DGKYL_BUILD_VLASOV_TEN_2X3V_P2
+endif
 
 # MPI paths and flags
 USING_MPI =
@@ -199,7 +255,7 @@ MKDIR_P ?= mkdir -p
 
 export CC CFLAGS ARCH_FLAGS CUDA_ARCH LDFLAGS BUILD_DIR KERNELS_DIR
 export PREFIX INSTALL_PREFIX PROJ_NAME UNAME
-export USING_NVCC NVCC_FLAGS CUDA_LIBS SQL_CFLAGS CUDAMATH_LIBDIR
+export USING_NVCC NVCC_FLAGS NVCC_MOM_FLAGS NVCC_FLUX_FLAGS NVCC_BINOP_FLAGS CUDA_LIBS SQL_CFLAGS CUDAMATH_LIBDIR
 export USING_MPI MPI_INC_DIR MPI_LIB_DIR MPI_LIBS MPI_RPATH
 export USING_NCCL NCCL_INC_DIR NCCL_LIB_DIR NCCL_LIBS
 export USING_CUDSS CUDSS_INC_DIR CUDSS_LIB_DIR CUDSS_LIBS CUDSS_RPATH
@@ -211,6 +267,7 @@ export FIN_APP_LIB_DIR FIN_APP_LIB HAVE_APP_FLAGS
 export MKDIR_P GKYL_SHARE_DIR BUILD_APP
 export GKEYLL_SHARE_INSTALL_PREFIX SED_REPS_STR1 SED_REPS_STR2 MAKEFILE_FOR_EXT_C_INP_PHONY
 export CONF_MPI_INC_DIR CONF_MPI_LIB_DIR
+export BUILD_VLASOV_TEN_2X3V_P2
 export CONF_NCCL_INC_DIR CONF_NCCL_LIB_DIR
 export CONF_CUDSS_INC_DIR CONF_CUDSS_LIB_DIR
 export CONF_LUA_INC_DIR CONF_LUA_LIB_DIR CONF_LUA_LIB
@@ -351,6 +408,9 @@ vlasov-check: vlasov ## (Re)build and run unit tests in Vlasov
 vlasov-unit-run: ## Run Vlasov unit tests
 	cd vlasov && $(MAKE) -f Makefile-vlasov unit-run
 
+vlasov-lua-unit-run: ## Run Vlasov Lua unit tests (unit/lua/ltest_*.lua)
+	cd vlasov && $(MAKE) -f Makefile-vlasov lua-unit-run
+
 vlasov-valcheck: vlasov ## Run valgrind on unit tests in Vlasov
 	cd vlasov && $(MAKE) -f Makefile-vlasov valcheck
 
@@ -449,6 +509,28 @@ unit-run: ## Run all unit tests without (re)building them
 	  grep '^FAIL ' "$$GKYL_TEST_LOG" | sed 's/^FAIL /  /'; \
 	fi; \
 	[ $$keep -eq 1 ] || rm -f "$$GKYL_TEST_LOG"; \
+	[ $$nfail -eq 0 ]
+
+# Run the MPI unit tests (mctest_*) on each rank count in MPI_UNIT_NP; tests
+# written for another rank count return without checking anything. Set MPIEXEC
+# for the local launcher, e.g. MPIEXEC=srun or MPIEXEC="mpirun --oversubscribe".
+MPIEXEC ?= mpirun
+MPI_UNIT_NP ?= 1 2 4
+mpi-unit-run: ## Run MPI unit tests on 1, 2 and 4 ranks without (re)building them
+	@if [ "${USE_MPI}" != "1" ]; then echo "Not built with MPI: no MPI unit tests to run."; exit 0; fi; \
+	log=$$(mktemp); npass=0; nfail=0; \
+	for unit in $(filter-out %.d %.dSYM,$(wildcard ${BUILD_DIR}/*/unit/mctest_*)); do \
+	  for np in ${MPI_UNIT_NP}; do \
+	    if ${MPIEXEC} -np $$np $$unit > "$$log" 2>&1; then \
+	      npass=$$((npass+1)); echo "PASS (np=$$np): $$unit"; \
+	    else \
+	      nfail=$$((nfail+1)); echo "FAIL (np=$$np): $$unit"; cat "$$log"; \
+	    fi; \
+	  done; \
+	done; \
+	rm -f "$$log"; \
+	echo "==================== gkeyll MPI unit test summary ===================="; \
+	echo "Passed: $$npass   Failed: $$nfail"; \
 	[ $$nfail -eq 0 ]
 
 # From: https://www.client9.com/self-documenting-makefiles/

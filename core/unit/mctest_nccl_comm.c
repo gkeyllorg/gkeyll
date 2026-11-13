@@ -1,3 +1,4 @@
+#define TEST_MPI // initialize MPI in the acutest main()
 #include <acutest.h>
 
 #ifdef GKYL_HAVE_NCCL

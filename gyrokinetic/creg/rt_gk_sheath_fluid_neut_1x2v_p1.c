@@ -668,33 +668,37 @@ main(int argc, char **argv)
       {
         .num_react = 2,
         .react_type =
-          {{
-             .react_id = GKYL_REACT_IZ,
-             .type_self = GKYL_SELF_ELC,
-             .ion_id = GKYL_ION_H,
-             .elc_nm = "elc",
-             .ion_nm = "ion",
-             .donor_nm = "D0",
-             .charge_state = 0,
-             .ion_mass = ctx.mass_ion,
-             .elc_mass = ctx.mass_elc,
-           },
-           {
-             .react_id = GKYL_REACT_RECOMB,
-             .type_self = GKYL_SELF_ELC,
-             .ion_id = GKYL_ION_H,
-             .elc_nm = "elc",
-             .ion_nm = "ion",
-             .recvr_nm = "D0",
-             .charge_state = 0,
-             .ion_mass = ctx.mass_ion,
-             .elc_mass = ctx.mass_elc,
-           }},
+          {
+            {
+              .react_id = GKYL_REACT_IZ,
+              .type_self = GKYL_SELF_ELC,
+              .ion_id = GKYL_ION_H,
+              .elc_nm = "elc",
+              .ion_nm = "ion",
+              .donor_nm = "D0",
+              .charge_state = 0,
+              .ion_mass = ctx.mass_ion,
+              .elc_mass = ctx.mass_elc,
+            },
+            {
+              .react_id = GKYL_REACT_RECOMB,
+              .type_self = GKYL_SELF_ELC,
+              .ion_id = GKYL_ION_H,
+              .elc_nm = "elc",
+              .ion_nm = "ion",
+              .recvr_nm = "D0",
+              .charge_state = 0,
+              .ion_mass = ctx.mass_ion,
+              .elc_mass = ctx.mass_elc,
+            },
+          },
       },
 
     .bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}},
+      {
+        {.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+      },
 
     .num_diag_moments = 6,
     .diag_moments =
@@ -777,43 +781,47 @@ main(int argc, char **argv)
       {
         .num_react = 3,
         .react_type =
-          {{
-             .react_id = GKYL_REACT_IZ,
-             .type_self = GKYL_SELF_ION,
-             .ion_id = GKYL_ION_H,
-             .elc_nm = "elc",
-             .ion_nm = "ion",
-             .donor_nm = "D0",
-             .charge_state = 0,
-             .ion_mass = ctx.mass_ion,
-             .elc_mass = ctx.mass_elc,
-           },
-           {
-             .react_id = GKYL_REACT_RECOMB,
-             .type_self = GKYL_SELF_ION,
-             .ion_id = GKYL_ION_H,
-             .elc_nm = "elc",
-             .ion_nm = "ion",
-             .recvr_nm = "D0",
-             .charge_state = 0,
-             .ion_mass = ctx.mass_ion,
-             .elc_mass = ctx.mass_elc,
-           },
-           {
-             .react_id = GKYL_REACT_CX,
-             .type_self = GKYL_SELF_ION,
-             .ion_id = GKYL_ION_H,
-             .ion_nm = "ion",
-             .partner_nm = "D0",
-             .ion_mass = ctx.mass_ion,
-             .partner_mass = ctx.mass_ion,
-           }},
+          {
+            {
+              .react_id = GKYL_REACT_IZ,
+              .type_self = GKYL_SELF_ION,
+              .ion_id = GKYL_ION_H,
+              .elc_nm = "elc",
+              .ion_nm = "ion",
+              .donor_nm = "D0",
+              .charge_state = 0,
+              .ion_mass = ctx.mass_ion,
+              .elc_mass = ctx.mass_elc,
+            },
+            {
+              .react_id = GKYL_REACT_RECOMB,
+              .type_self = GKYL_SELF_ION,
+              .ion_id = GKYL_ION_H,
+              .elc_nm = "elc",
+              .ion_nm = "ion",
+              .recvr_nm = "D0",
+              .charge_state = 0,
+              .ion_mass = ctx.mass_ion,
+              .elc_mass = ctx.mass_elc,
+            },
+            {
+              .react_id = GKYL_REACT_CX,
+              .type_self = GKYL_SELF_ION,
+              .ion_id = GKYL_ION_H,
+              .ion_nm = "ion",
+              .partner_nm = "D0",
+              .ion_mass = ctx.mass_ion,
+              .partner_mass = ctx.mass_ion,
+            },
+          },
         .write_diagnostics = true,
       },
 
     .bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}},
+      {
+        {.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+      },
 
     .num_diag_moments = 4,
     .diag_moments =
@@ -876,7 +884,7 @@ main(int argc, char **argv)
   struct gkyl_msgpack_map_elem additional_metadata[] = {
     {.key = "run_ID", .elem_type = GKYL_MP_STRING, .cval = "gkfn0"},
     {.key = "k_perp", .elem_type = GKYL_MP_DOUBLE, .dval = ctx.k_perp},
-    {.key = "int_diag_calc_num", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = ctx.int_diag_calc_num}
+    {.key = "int_diag_calc_num", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = ctx.int_diag_calc_num},
   };
 
   // Gyrokinetic app.

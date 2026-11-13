@@ -250,13 +250,15 @@ main(int argc, char **argv)
     .collisions = {.collision_id = GKYL_LBO_COLLISIONS, .self_nu = eval_nu_ion, .self_nu_ctx = &ctx},
 
     .bcs =
-      {{
-         .dir = 0,
-         .edge = GKYL_LOWER_EDGE,
-         .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
-         .projection = proj_init,
-       },
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB}},
+      {
+        {
+          .dir = 0,
+          .edge = GKYL_LOWER_EDGE,
+          .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
+          .projection = proj_init,
+        },
+        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+      },
 
     .num_diag_moments = 6,
     .diag_moments =

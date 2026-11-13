@@ -90,6 +90,7 @@ struct gk_geom_int {
   // Calculated with coord definition alpha = phi for tokamak geometry.
   struct gkyl_array
     *dxdz; // 9 components. Cartesian components of tangent Vectors stored in order e_1, e_2, e_3.
+  struct gkyl_array *dxdz_grad; // 27 components. Modal expansion of dxdz_grad_nodal (I/O).
   struct gkyl_array
     *dzdx; // 9 components. Cartesian components of dual vectors stored in order e^1, e^2, e^3.
   struct gkyl_array *dualmag; // 3 components. Norms of the dual vectors: sqrt(e^i.e^i).
@@ -149,6 +150,8 @@ struct gk_geom_int {
   // Calculated with coord definition alpha = phi for tokamak geometry
   struct gkyl_array *dxdz_nodal; // 9 components.
   // Cartesian components of tangent Vectors stored in order e_1, e_2, e_3
+  struct gkyl_array *dxdz_grad_nodal; // 27 components. d(e_i)/dz^j Cartesian, direction j
+  // slowest: [9 j + 3 i + c]. Filled for deflated (cdim<3) geometries only.
   struct gkyl_array *dzdx_nodal; // 9 components.
   // Cartesian components of dual vectors stroed in order e^1, e^2, e^3
   struct gkyl_array *dualmag_nodal; // 3 components
@@ -205,11 +208,8 @@ struct gk_geometry {
   // in the eqdsk.
   int idx_LCFS_lo; // Index of the cell that abuts the LCFS from below.
 
-  // Functions defining the twistshift for parallel BCs.
-  void (*lower_shift_func)(double t, const double *xn, double *fout, void *ctx);
-  void (*upper_shift_func)(double t, const double *xn, double *fout, void *ctx);
-  void *lower_shift_ctx; // Context for lower_shift_func.
-  void *upper_shift_ctx; // Context for upper_shift_func.
+  bool has_dxdz_grad; // Whether geo_int.dxdz_grad(_nodal) are filled: deflated (cdim<3)
+  // geometries built in-app, or read from files that carry them (runs with kinetic neutrals).
 
   struct gkyl_msgpack_map_elem *io_meta_basic; // Metadata for I/O.
   int io_meta_basic_len; // Number of elements in io_meta_basic.
@@ -245,11 +245,8 @@ struct gkyl_gk_geometry_inp {
   // Pointer to bfield function.
   void (*bfield_func)(double t, const double *xc, double *xp, void *ctx);
 
-  // Functions defining the twistshift for parallel BCs.
-  void (*lower_shift_func)(double t, const double *xn, double *fout, void *ctx);
-  void (*upper_shift_func)(double t, const double *xn, double *fout, void *ctx);
-  void *lower_shift_ctx; // Context for lower_shift_func.
-  void *upper_shift_ctx; // Context for upper_shift_func.
+  // Compute deltats (used to get the twist-shift shift) from mapc2p.
+  bool calc_deltats_mapc2p;
 
   struct gkyl_efit_inp efit_info; // Context with RZ data such as efit file for a tokamak or mirror.
   struct gkyl_tok_geo_grid_inp

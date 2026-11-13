@@ -81,12 +81,8 @@ static const struct gkyl_str_int_pair gk_field_type[] = {
 };
 
 // Gyrokinetic radiation type -> enum map.
-static const struct gkyl_str_int_pair gk_radiation_type[] = {
-  {"None", GKYL_NO_RADIATION},
-  {"GKRadiation", GKYL_GK_RADIATION},
-  {"VMComptonRadiation", GKYL_VM_COMPTON_RADIATION},
-  {0, 0}
-};
+static const struct gkyl_str_int_pair gk_radiation_type[] =
+  {{"None", GKYL_NO_RADIATION}, {"GKRadiation", GKYL_GK_RADIATION}, {0, 0}};
 
 // Gyrokinetic radiation Te model type -> enum map.
 static const struct gkyl_str_int_pair gk_radiation_te_type[] = {
@@ -1711,6 +1707,11 @@ gk_app_new(lua_State *L)
   {
     gk.geometry.geometry_id = glua_tbl_get_integer(L, "geometryID", 0);
 
+    with_lua_tbl_tbl(L, "coreParallelBcs")
+    {
+      gk.geometry.core_parallel_bcs.ts_field_dg = glua_tbl_get_bool(L, "tsFieldDg", false);
+    }
+
     with_lua_tbl_tbl(L, "world")
     {
       for (int d = 0; d < 3 - cdim; d++) {
@@ -2534,7 +2535,7 @@ gk_app_run(lua_State *L)
   // Triggers for IO and logging.
   struct gkyl_tm_trigger io_trig = {
     .dt = t_end / num_frames,
-    .tcurr = frame_curr * (t_end / num_frames),
+    .tcurr = gkyl_tm_trigger_anchor(t_end / num_frames, t_curr),
     .curr = frame_curr,
   };
   struct gkyl_tm_trigger fe_trig = {

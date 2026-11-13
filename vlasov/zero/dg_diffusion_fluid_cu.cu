@@ -47,19 +47,23 @@ __global__ void static dg_diffusion_fluid_set_cu_dev_ptrs(
 
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      vol_kernels = diffusion->const_coeff ? ser_vol_kernels_constcoeff : ser_vol_kernels_varcoeff;
-      surfx_kernels = diffusion->const_coeff ? ser_surfx_kernels_constcoeff :
-                                               ser_surfx_kernels_varcoeff;
-      surfy_kernels = diffusion->const_coeff ? ser_surfy_kernels_constcoeff :
-                                               ser_surfy_kernels_varcoeff;
-      surfz_kernels = diffusion->const_coeff ? ser_surfz_kernels_constcoeff :
-                                               ser_surfz_kernels_varcoeff;
-      boundary_surfx_kernels = diffusion->const_coeff ? ser_boundary_surfx_kernels_constcoeff :
-                                                        ser_boundary_surfx_kernels_varcoeff;
-      boundary_surfy_kernels = diffusion->const_coeff ? ser_boundary_surfy_kernels_constcoeff :
-                                                        ser_boundary_surfy_kernels_varcoeff;
-      boundary_surfz_kernels = diffusion->const_coeff ? ser_boundary_surfz_kernels_constcoeff :
-                                                        ser_boundary_surfz_kernels_varcoeff;
+      vol_kernels = ser_vol_kernels_constcoeff;
+      surfx_kernels = ser_surfx_kernels_constcoeff;
+      surfy_kernels = ser_surfy_kernels_constcoeff;
+      surfz_kernels = ser_surfz_kernels_constcoeff;
+      boundary_surfx_kernels = ser_boundary_surfx_kernels_constcoeff;
+      boundary_surfy_kernels = ser_boundary_surfy_kernels_constcoeff;
+      boundary_surfz_kernels = ser_boundary_surfz_kernels_constcoeff;
+      break;
+
+    case GKYL_BASIS_MODAL_TENSOR:
+      vol_kernels = tensor_vol_kernels_constcoeff;
+      surfx_kernels = tensor_surfx_kernels_constcoeff;
+      surfy_kernels = tensor_surfy_kernels_constcoeff;
+      surfz_kernels = tensor_surfz_kernels_constcoeff;
+      boundary_surfx_kernels = tensor_boundary_surfx_kernels_constcoeff;
+      boundary_surfy_kernels = tensor_boundary_surfy_kernels_constcoeff;
+      boundary_surfz_kernels = tensor_boundary_surfz_kernels_constcoeff;
       break;
 
     default:
@@ -92,8 +96,7 @@ __global__ void static dg_diffusion_fluid_set_cu_dev_ptrs(
 
 struct gkyl_dg_eqn *
 gkyl_dg_diffusion_fluid_cu_dev_new(
-  const struct gkyl_basis *basis, bool is_diff_const, int num_equations, const bool *diff_in_dir,
-  int diff_order, const struct gkyl_range *diff_range
+  const struct gkyl_basis *basis, int num_equations, const bool *diff_in_dir, int diff_order
 )
 {
   struct dg_diffusion_fluid *diffusion =
@@ -103,15 +106,12 @@ gkyl_dg_diffusion_fluid_cu_dev_new(
   int poly_order = basis->poly_order;
 
   diffusion->num_equations = num_equations;
-  diffusion->const_coeff = is_diff_const;
   diffusion->num_basis = basis->num_basis;
   for (int d = 0; d < cdim; d++) {
     diffusion->diff_in_dir[d] = diff_in_dir[d];
   }
 
   int dirs_linidx = diffdirs_linidx(diff_in_dir, cdim);
-
-  diffusion->diff_range = *diff_range;
 
   diffusion->eqn.flags = 0;
   GKYL_SET_CU_ALLOC(diffusion->eqn.flags);

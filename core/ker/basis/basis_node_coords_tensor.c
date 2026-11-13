@@ -25,6 +25,44 @@ node_coords_2d_tensor_p2(double *node_coords)
 
 GKYL_CU_DH
 void
+node_coords_2d_tensor_p3(double *node_coords)
+{
+  node_coords[0] = -1;
+  node_coords[1] = -1;
+  node_coords[2] = -0.4472135954999579;
+  node_coords[3] = -1;
+  node_coords[4] = 0.4472135954999579;
+  node_coords[5] = -1;
+  node_coords[6] = 1;
+  node_coords[7] = -1;
+  node_coords[8] = -1;
+  node_coords[9] = -0.4472135954999579;
+  node_coords[10] = -0.4472135954999579;
+  node_coords[11] = -0.4472135954999579;
+  node_coords[12] = 0.4472135954999579;
+  node_coords[13] = -0.4472135954999579;  
+  node_coords[14] = 1;
+  node_coords[15] = -0.4472135954999579;
+  node_coords[16] = -1;
+  node_coords[17] = 0.4472135954999579;
+  node_coords[18] = -0.4472135954999579;
+  node_coords[19] = 0.4472135954999579;
+  node_coords[20] = 0.4472135954999579;
+  node_coords[21] = 0.4472135954999579;  
+  node_coords[22] = 1;
+  node_coords[23] = 0.4472135954999579;
+  node_coords[24] = -1;
+  node_coords[25] = 1;
+  node_coords[26] = -0.4472135954999579;
+  node_coords[27] = 1;
+  node_coords[28] = 0.4472135954999579;
+  node_coords[29] = 1;
+  node_coords[30] = 1;
+  node_coords[31] = 1;
+}
+
+GKYL_CU_DH
+void
 node_coords_3d_tensor_p2(double *node_coords)
 {
   node_coords[0] = -1;

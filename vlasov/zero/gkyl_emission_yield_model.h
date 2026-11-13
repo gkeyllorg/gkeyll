@@ -148,7 +148,7 @@ gkyl_emission_yield_constant_free(const struct gkyl_ref_count *ref)
 }
 
 // Furman-Pivi SEY calculation */
-GKYL_CU_D static void
+GKYL_CU_DH static void
 gkyl_emission_yield_furman_pivi_yield(
   double *out, struct gkyl_emission_yield_model *yield, double xc[GKYL_MAX_DIM]
 )
@@ -182,7 +182,7 @@ gkyl_emission_yield_furman_pivi_yield(
 }
 
 // Schou SEY calculation
-GKYL_CU_D static void
+GKYL_CU_DH static void
 gkyl_emission_yield_schou_yield(
   double *out, struct gkyl_emission_yield_model *yield, double xc[GKYL_MAX_DIM]
 )
@@ -221,7 +221,7 @@ gkyl_emission_yield_schou_yield(
 }
 
 // Schou SEY calculation w/ SRIM
-GKYL_CU_D static void
+GKYL_CU_DH static void
 gkyl_emission_yield_schou_srim_yield(
   double *out, struct gkyl_emission_yield_model *yield, double xc[GKYL_MAX_DIM]
 )
@@ -262,7 +262,7 @@ gkyl_emission_yield_schou_srim_yield(
 }
 
 // Fixed constant SEY
-GKYL_CU_D static void
+GKYL_CU_DH static void
 gkyl_emission_yield_constant_yield(
   double *out, struct gkyl_emission_yield_model *yield, double xc[GKYL_MAX_DIM]
 )

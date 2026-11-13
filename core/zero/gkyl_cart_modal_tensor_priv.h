@@ -10,7 +10,7 @@ GKYL_CU_D static struct {
   {NULL, NULL, NULL, NULL}, // No 0D basis functions
   {eval_1d_ser_p0, eval_1d_ser_p1, eval_1d_ser_p2, eval_1d_ser_p3},
   {eval_2d_ser_p0, eval_2d_ser_p1, eval_2d_tensor_p2, eval_2d_tensor_p3},
-  {eval_3d_ser_p0, eval_3d_ser_p1, eval_3d_tensor_p2, NULL},
+  {eval_3d_ser_p0, eval_3d_ser_p1, eval_3d_tensor_p2, eval_3d_tensor_p3},
   {eval_4d_ser_p0, eval_4d_ser_p1, eval_4d_tensor_p2, NULL},
   {eval_5d_ser_p0, eval_5d_ser_p1, eval_5d_tensor_p2, NULL},
   {eval_6d_ser_p0, eval_6d_ser_p1, NULL, NULL}
@@ -80,8 +80,9 @@ GKYL_CU_D static struct {
   void (*nl[4])(double *node_list);
 } nl_list[] = {
   {NULL, NULL, NULL, NULL}, // No 0D basis functions
-  {node_coords_1d_ser_p0, node_coords_1d_ser_p1, node_coords_1d_ser_p2, NULL},
-  {node_coords_2d_ser_p0, node_coords_2d_ser_p1, node_coords_2d_tensor_p2, NULL},
+  {node_coords_1d_ser_p0, node_coords_1d_ser_p1, node_coords_1d_ser_p2, node_coords_1d_ser_p3},
+  {node_coords_2d_ser_p0, node_coords_2d_ser_p1, node_coords_2d_tensor_p2, node_coords_2d_tensor_p3
+  },
   {node_coords_3d_ser_p0, node_coords_3d_ser_p1, node_coords_3d_tensor_p2, NULL},
   {node_coords_4d_ser_p0, node_coords_4d_ser_p1, node_coords_4d_tensor_p2, NULL},
   {node_coords_5d_ser_p0, node_coords_5d_ser_p1, node_coords_5d_tensor_p2, NULL},
@@ -93,8 +94,8 @@ GKYL_CU_D static struct {
   void (*n2m[4])(const double *fnodal, double *fmodal);
 } n2m_list[] = {
   {NULL, NULL, NULL, NULL}, // No 0D basis functions
-  {NULL, nodal_to_modal_1d_ser_p1, nodal_to_modal_1d_ser_p2, NULL},
-  {NULL, nodal_to_modal_2d_ser_p1, nodal_to_modal_2d_tensor_p2, NULL},
+  {NULL, nodal_to_modal_1d_ser_p1, nodal_to_modal_1d_ser_p2, nodal_to_modal_1d_ser_p3},
+  {NULL, nodal_to_modal_2d_ser_p1, nodal_to_modal_2d_tensor_p2, nodal_to_modal_2d_tensor_p3},
   {NULL, nodal_to_modal_3d_ser_p1, nodal_to_modal_3d_tensor_p2, NULL},
   {NULL, nodal_to_modal_4d_ser_p1, nodal_to_modal_4d_tensor_p2, NULL},
   {NULL, nodal_to_modal_5d_ser_p1, NULL, NULL}, // TODO

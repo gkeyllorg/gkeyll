@@ -140,6 +140,11 @@ test_2x2v(int poly_order)
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
   gkyl_cart_modal_serendip(&velBasis, vdim, poly_order);
 
+  // Identity velocity map, passed to the LTE updaters.
+  struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = {0};
+  struct gkyl_vlasov_velocity_map *vel_map =
+    gkyl_vlasov_velocity_map_new(&vel_grid, &velLocal, &velBasis, inp_vmap, false, false);
+
   int confGhost[] = {1, 1};
   struct gkyl_range confLocal, confLocal_ext;
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
@@ -218,7 +223,11 @@ test_2x2v(int poly_order)
     .h_ij_inv = h_ij_inv,
     .det_h = det_h,
     .hamil = hamil,
+    .hamil_range = &local,
     .model_id = GKYL_MODEL_CANONICAL_PB,
+    .hamil_id = gkyl_hamil_id_from_model_id(GKYL_MODEL_CANONICAL_PB),
+    .vel_map = vel_map,
+    .use_extended_hamil_def = false,
     .use_gpu = false,
   };
   gkyl_vlasov_lte_proj_on_basis *proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_lte);
@@ -240,7 +249,11 @@ test_2x2v(int poly_order)
     .h_ij_inv = h_ij_inv,
     .det_h = det_h,
     .hamil = hamil,
+    .hamil_range = &local,
     .model_id = GKYL_MODEL_CANONICAL_PB,
+    .hamil_id = gkyl_hamil_id_from_model_id(GKYL_MODEL_CANONICAL_PB),
+    .vel_map = vel_map,
+    .use_extended_hamil_def = false,
     .use_gpu = false,
     .max_iter = 100,
     .eps = 1e-12,
@@ -266,7 +279,11 @@ test_2x2v(int poly_order)
     .h_ij_inv = h_ij_inv,
     .det_h = det_h,
     .hamil = hamil,
+    .hamil_range = &local,
     .model_id = GKYL_MODEL_CANONICAL_PB,
+    .hamil_id = gkyl_hamil_id_from_model_id(GKYL_MODEL_CANONICAL_PB),
+    .vel_map = vel_map,
+    .use_extended_hamil_def = false,
     .use_gpu = false,
   };
   gkyl_vlasov_lte_moments *lte_moms = gkyl_vlasov_lte_moments_inew(&inp_mom);
@@ -348,6 +365,7 @@ test_2x2v(int poly_order)
   gkyl_array_release(h_ij_inv);
   gkyl_array_release(det_h);
   gkyl_array_release(hamil);
+  gkyl_vlasov_velocity_map_release(vel_map);
   gkyl_vlasov_lte_moments_release(lte_moms);
   gkyl_vlasov_lte_proj_on_basis_release(proj_lte);
   gkyl_proj_on_basis_release(proj_m0);
