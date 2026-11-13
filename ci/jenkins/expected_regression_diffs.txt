@@ -38,3 +38,146 @@ gyrokinetic/creg/rt_gk_bgk_im_asdex_2x2v_p1 # change in geo
 gyrokinetic/creg/rt_gk_multib_step_2x2v_p1 # change in geo
 gyrokinetic/creg/rt_gk_cbc_3x2v_p1 # change in geo
 gyrokinetic/creg/rt_gk_multib_step_sol_1x2v_p1 # change in geo
+gyrokinetic/creg/rt_gk_helical_adapt_src_sheath_surr_3x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_sheath_nonuniformv_3x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_mirror_boltz_elc_damped_1x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_multib_slab_2x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_helical_adapt_src_sheath_surr_2x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_leaky_bag_boltz_sheath_nux_edge_1x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_sheath_nonuniformv_2x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_mirror_boltz_elc_poa_2x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_tcv_iwl_adapt_source_2x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_sheath_flr_2x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_wham_2xIC_3x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_bgk_relax_bimaxwellian_1x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_ltx_boltz_elc_1x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_rosenbluth_hinton_2x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_sheath_cx_2x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_ion_sound_1x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_mdpx_cart_3x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_sheath_fluid_neut_1x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_mirror_tandem_boltz_elc_poa_1x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_rad_1x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_ion_sound_nonuniformv_1x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_helical_2x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_cbc_2x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_static_3x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_leaky_bag_nux_edge_1x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_wham_nonuniformx_1x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_bgk_im_cross_relax_1x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_sheath_cons_1x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_lbo_cross_relax_1x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_sheath_1x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_multib_sheath_1x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_wham_1x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_sheath_source_import_1x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_helical_sheath_surr_1x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_ltx_1x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_lapd_cyl_nonuniformr_3x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_rad_nonuniformv_1x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_sheath_nonuniformx_1x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_sheath_ic_import_1x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_lapd_cyl_3x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_sheath_bgk_1x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_wham_1xIC_2x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_sheath_heat_source_2x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_wham_boltz_elc_2x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_slab_2x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_mirror_boltz_elc_poa_1x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_passive_2x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_lbo_relax_bimaxwellian_nonuniformv_1x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_wham_nonuniformx_2x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_neut_recycle_1x3v_p1	# change in geo
+gyrokinetic/creg/rt_gk_wham_static_field_1x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_lapd_cart_3x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_bgk_cross_relax_1x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_mirror_kinetic_elc_poa_1x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_sheath_nonuniformx_2x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_mirror_boltz_elc_1x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_sheath_2x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_nozzle_half_1x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_sheath_3x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_mirror_kinetic_elc_1x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_tcv_iwl_sheath_surr_1x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_sheath_nonuniformx_3x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_d3d_iwl_2x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_wham_2x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_wham_boltz_elc_poa_1x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_rad_low_Te_1x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_sheath_nonuniformv_1x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_wham_kinetic_poa_1x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_ar_react_nonuniformv_1x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_helical_sheath_surr_2x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_nozzle_1x2v_p1	# change in geo
+gyrokinetic/creg/rt_gk_bgk_relax_bimaxwellian_nonuniformv_1x2v_p1	# change in geo
+vlasov/creg/rt_can_pb_bgk_surf_annulus_sodshock_im_1x2v   # change t_end
+vlasov/creg/rt_can_pb_bgk_surf_annulus_sodshock_im_2x2v   # change t_end
+vlasov/creg/rt_can_pb_bgk_surf_cylindrical_sodshock_im_1x3v   # change t_end
+vlasov/creg/rt_can_pb_bgk_surf_cylindrical_sodshock_im_2x3v   # change t_end
+vlasov/creg/rt_can_pb_bgk_surf_sphere_sodshock_im_1x2v   # change t_end
+vlasov/creg/rt_can_pb_distorted_mesh_sodshock_im_2x2v   # change t_end
+vlasov/creg/rt_can_pb_free_streaming_surf_sphere_2x2v   # change t_end
+vlasov/creg/rt_can_pb_newtonian_orbits_2x2v   # change t_end
+vlasov/creg/rt_can_pb_rot_surf_sphere_coriolis_2x2v   # change t_end
+vlasov/creg/rt_can_pb_rot_surf_sphere_equilibrium_1x2v   # change t_end
+vlasov/creg/rt_can_pb_rot_surf_sphere_equilibrium_flows_1x2v   # change t_end
+vlasov/creg/rt_dg_diffusion6_const_3x   # change t_end
+vlasov/creg/rt_dg_euler_kh_2x   # change t_end
+vlasov/creg/rt_dg_gr_maxwell_cylindrical_wg_2x   # change t_end
+vlasov/creg/rt_dg_gr_maxwell_plane_wave_3x   # change t_end
+vlasov/creg/rt_dg_gr_maxwell_posmap_cylindrical_wg_2x   # change t_end
+vlasov/creg/rt_dg_gr_maxwell_posmap_wald_2x   # change t_end
+vlasov/creg/rt_dg_gr_maxwell_wald_2x   # change t_end
+vlasov/creg/rt_dg_gr_maxwell_wald_kerr_2x   # change t_end
+vlasov/creg/rt_dg_hasegawa_mima_2x   # change t_end
+vlasov/creg/rt_dg_hasegawa_wakatani_2x   # change t_end
+vlasov/creg/rt_dg_incompress_euler_double_shear_2x   # change t_end
+vlasov/creg/rt_dg_incompress_euler_vortex_waltz_2x   # change t_end
+vlasov/creg/rt_dg_modified_hasegawa_wakatani_2x   # change t_end
+vlasov/creg/rt_gr_can_pb_schwarzschild_bh_geodesics_2x2v   # change t_end
+vlasov/creg/rt_gr_triad_max_twostream_1x1v   # change t_end
+vlasov/creg/rt_gr_triad_max_twostream_posmap_1x1v   # change t_end
+vlasov/creg/rt_gr_triad_max_weibel_1x2v   # change t_end
+vlasov/creg/rt_triad_bgk_annulus_equilibrium_1x2v   # change t_end
+vlasov/creg/rt_triad_bgk_annulus_sodshock_1x2v   # change t_end
+vlasov/creg/rt_triad_bgk_annulus_sodshock_2x2v   # change t_end
+vlasov/creg/rt_triad_bgk_cylindrical_sodshock_1x3v   # change t_end
+vlasov/creg/rt_triad_bgk_cylindrical_sodshock_rz_2x3v   # change t_end
+vlasov/creg/rt_triad_gr_geodesic_kerr_2x2v   # change t_end
+vlasov/creg/rt_triad_gr_geodesic_schwarzschild_2x2v   # change t_end
+vlasov/creg/rt_triad_gr_michel_accretion_1x3v   # change t_end
+vlasov/creg/rt_triad_gr_michel_accretion_rtheta_2x3v   # change t_end
+vlasov/creg/rt_triad_gr_ring_orbits_1x2v   # change t_end
+vlasov/creg/rt_vlasov_es_shock_1x1v   # change t_end
+vlasov/creg/rt_vlasov_es_shock_lbo_1x1v   # change t_end
+vlasov/creg/rt_vlasov_lbo_cross_relax_1x2v   # change t_end
+vlasov/creg/rt_vlasov_lbo_cross_relax_1x3v   # change t_end
+vlasov/creg/rt_vlasov_lbo_relax_1x3v   # change t_end
+vlasov/creg/rt_vlasov_neut_lbo_sodshock_1x2v   # change t_end
+vlasov/creg/rt_vlasov_nonuniformv_neut_bgk_sodshock_1x2v   # change t_end
+vlasov/creg/rt_vlasov_nonuniformv_neut_bgk_sodshock_1x3v   # change t_end
+vlasov/creg/rt_vlasov_nonuniformv_neut_bgk_sodshock_im_1x3v   # change t_end
+vlasov/creg/rt_vlasov_sheath_1x1v   # change t_end
+vlasov/creg/rt_vlasov_sheath_emission_1x1v   # change t_end
+vlasov/creg/rt_vlasov_sheath_lbo_1x1v   # change t_end
+vlasov/creg/rt_vlasov_sr_em_advect_1x3v   # change t_end
+vlasov/creg/rt_vlasov_sr_nonuniformv_neut_bgk_sodshock_1x2v   # change t_end
+vlasov/creg/rt_vlasov_sr_nonuniformv_neut_bgk_sodshock_1x3v   # change t_end
+vlasov/creg/rt_vlasov_sr_nonuniformv_pulsar_discharge_1x1v   # change t_end
+vlasov/creg/rt_vlasov_sr_nonuniformv_rad_twostream_2x1v   # change t_end
+vlasov/creg/rt_vlasov_sr_nonuniformv_twostream_1x1v   # change t_end
+vlasov/creg/rt_vlasov_sr_nonuniformv_weibel_1x2v   # change t_end
+vlasov/creg/rt_vlasov_sr_nonuniformv_weibel_1x3v   # change t_end
+vlasov/creg/rt_vlasov_sr_rad_twostream_2x1v   # change t_end
+vlasov/creg/rt_vlasov_sr_weibel_1x3v   # change t_end
+vlasov/creg/rt_vlasov_sr_weibel_2x3v   # change t_end
+vlasov/creg/rt_vlasov_weibel_2x3v   # change t_end
+vlasov/creg/rt_vlasov_weibel_lbo_2x3v   # change t_end
+vlasov/creg/rt_vp_dark_plasma_two_stream_1x1v   # change t_end
+vlasov/creg/rt_vp_dark_plasma_two_stream_screened_1x1v   # change t_end
+vlasov/creg/rt_vp_es_shock_1x1v   # change t_end
+vlasov/creg/rt_vp_es_shock_lbo_1x1v   # change t_end
+vlasov/creg/rt_vp_nonuniform_grav_relaxation_2x2v   # change t_end
+vlasov/creg/rt_vp_sheath_1x1v   # change t_end
+vlasov/creg/rt_vp_sheath_emission_1x1v   # change t_end
+vlasov/creg/rt_vp_sheath_lbo_1x1v   # change t_end
