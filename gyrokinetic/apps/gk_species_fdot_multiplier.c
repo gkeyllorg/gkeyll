@@ -143,6 +143,18 @@ gk_species_fdot_multiplier_advance_mult(
   gkyl_array_scale_by_cell(combined_multiplier, fdmul->buffer);
 }
 
+// Compute the initial multiplier, then reuse its buffer on all subsequent evaluations.
+static void
+gk_species_fdot_multiplier_advance_once(
+  gkyl_gyrokinetic_app *app, const struct gk_species *gks, struct gk_fdot_multiplier_comp *fdmul,
+  const struct gkyl_array *phi, const struct gkyl_array *f, const struct gkyl_array *cflrate,
+  struct gkyl_array *combined_multiplier
+)
+{
+  fdmul->advance_once_func(app, gks, fdmul, phi, f, cflrate, combined_multiplier);
+  fdmul->advance_func = gk_species_fdot_multiplier_advance_mult;
+}
+
 // Advance: apply constant scale to combined_multiplier.
 static void
 gk_species_fdot_multiplier_advance_const(
@@ -486,6 +498,13 @@ gk_species_fdot_multiplier_init_comp(
         fdmul->cfl_mask = gkyl_dg_array_mask_new(cfl_mask_inp);
       }
     }
+
+    // These types are already static; all other active types compute into buffer.
+    if (fdot_mult_inp->is_static && fdmul->type != GKYL_GK_FDOT_MULTIPLIER_USER_INPUT &&
+        fdmul->type != GKYL_GK_FDOT_MULTIPLIER_CONSTANT) {
+      fdmul->advance_once_func = fdmul->advance_func;
+      fdmul->advance_func = gk_species_fdot_multiplier_advance_once;
+    }
   }
 }
 
@@ -643,5 +662,7 @@ gk_species_fdot_multiplier_reset(
 
   gks->info.time_rate_multiplier = fdot_mult_inp;
 
+  // Rearm static components so the next fresh CFL evaluation recomputes their
+  // buffers before the combined multiplier is applied to the RHS.
   gk_species_fdot_multiplier_init(app, gks, fdot_mult);
 }

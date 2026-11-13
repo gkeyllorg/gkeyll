@@ -89,6 +89,9 @@ gk_species_kinetic_rhs_dynamic(
   // Compute moments of the boundary fluxes.
   gk_species_bflux_calc_moms(app, &species->bflux, rhs, bflux_moms);
 
+  // Compute the current omega_H constraint before a multiplier can freeze it.
+  species->dt_omegaH = gk_species_kinetic_omegaH_dt(app, species, fin);
+
   // Multiply CFL rate by the df/dt multiplier.
   gk_species_fdot_multiplier_advance_times_cfl(
     app, species, &species->fdot_mult, app->field->phi_smooth, fin, species->cflrate
@@ -109,7 +112,6 @@ gk_species_kinetic_rhs_dynamic(
   double dt_out = app->cfl / omega_cfl_ho[0];
 
   // Apply omega_H constraint on dt.
-  species->dt_omegaH = gk_species_kinetic_omegaH_dt(app, species, fin);
   dt_out = fmin(dt_out, species->dt_omegaH);
 
   species->dt_cfl_global_ho = dt_out;
