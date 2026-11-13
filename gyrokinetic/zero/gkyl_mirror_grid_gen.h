@@ -40,6 +40,7 @@ enum gkyl_mirror_grid_gen_field_line_coord {
 
 // input struct to construct the mirror geometry
 struct gkyl_mirror_grid_gen_inp {
+  int world_dim; // Active configuration dimensions; 0 or 3 samples all directions.
   const struct gkyl_rect_grid *comp_grid; // Computational space grid (psi, phi, z)
   const struct gkyl_range nrange; // Nodal range
   const struct gkyl_range local; // local range

@@ -9,35 +9,39 @@
 typedef struct gkyl_deflate_geo gkyl_deflate_geo;
 
 /**
- * Create new updater to compute deflated go 
+ * Create an updater that restricts 3D geometry fields to a 1D or 2D grid
+ * at the cell centers of the removed directions. Each removed direction
+ * must contain one cell. Basis and grid objects must outlive the updater.
  *
- * @param cbasis Basis object (configuration space).
- * @param deflated_cbasis Basis object (configuration space) with one less dimension
- * @param grid configuration space grid
- * @param defated_grid configuration space grid with onne less dimension
- * @param rem_dirs array of directions to remove. 0 to keep, 1 to remove
- * @param use_gpu boolean indicating whether to use the GPU.
- * @return New updater pointer.
+ * @param cbasis Input 3D volume basis.
+ * @param deflated_cbasis Output volume basis in the retained coordinates.
+ * @param grid Input 3D configuration-space grid.
+ * @param deflated_grid Output grid with the removed directions omitted.
+ * @param rem_dirs Three-element array: 0 to retain a direction, 1 to remove it; copied.
+ * @param use_gpu Reserved; currently unused.
+ * @return New updater; release with gkyl_deflate_geo_release.
  */
-
 gkyl_deflate_geo *gkyl_deflate_geo_new(
   const struct gkyl_basis *cbasis, const struct gkyl_basis *deflated_cbasis,
   const struct gkyl_rect_grid *grid, const struct gkyl_rect_grid *deflated_grid,
   const int *rem_dirs, bool use_gpu
 );
-/**
- * Create new updater to compute the deflated surface geo
- *
- * @param cbasis Basis object (configuration space).
- * @param deflated_num_basis number of basis elements in deflated basis
- * @param grid configuration space grid
- * @param defated_grid configuration space grid with onne less dimension
- * @param rem_dirs array of directions to remove. 0 to keep, 1 to remove
- * @param dir direction of surface
- * @param use_gpu boolean indicating whether to use the GPU.
- * @return New updater pointer.
- */
 
+/**
+ * Create an updater that restricts geometry fields on 3D cell faces to
+ * faces of a 1D or 2D grid, at the cell centers of the removed directions.
+ * Each removed direction must contain one cell. Basis and grid objects
+ * must outlive the updater.
+ *
+ * @param cbasis Input face basis.
+ * @param deflated_num_basis Number of basis functions on an output face.
+ * @param grid Input 3D configuration-space grid.
+ * @param deflated_grid Output grid with the removed directions omitted.
+ * @param rem_dirs Three-element array: 0 to retain a direction, 1 to remove it; copied.
+ * @param dir Face-normal direction in the output grid.
+ * @param use_gpu Reserved; currently unused.
+ * @return New updater; release with gkyl_deflate_geo_surf_release.
+ */
 struct gkyl_deflate_geo_surf *gkyl_deflate_geo_surf_new(
   const struct gkyl_basis *cbasis, int deflated_num_basis, const struct gkyl_rect_grid *grid,
   const struct gkyl_rect_grid *deflated_grid, const int *rem_dirs, int dir, bool use_gpu
@@ -53,7 +57,6 @@ struct gkyl_deflate_geo_surf *gkyl_deflate_geo_surf_new(
  * @param deflated_field 2d field on output
  * @param ncomp number of components
  */
-
 void gkyl_deflate_geo_advance(
   const gkyl_deflate_geo *up, const struct gkyl_range *range,
   const struct gkyl_range *deflated_range, const struct gkyl_array *field,
@@ -61,7 +64,9 @@ void gkyl_deflate_geo_advance(
 );
 
 /**
- * Advance deflate_geo on nodal quantities
+ * Restrict nodal quantities to the center of each removed coordinate.
+ * Removed directions must contain one cell: two Gauss nodes are averaged,
+ * while a three-node direction uses its center node.
  *
  * @param up deflate_geo updater object.
  * @param range Config-space range.
@@ -70,7 +75,6 @@ void gkyl_deflate_geo_advance(
  * @param deflated_field 2d field on output
  * @param ncomp number of components
  */
-
 void gkyl_deflate_geo_advance_nodal(
   const gkyl_deflate_geo *up, const struct gkyl_range *range,
   const struct gkyl_range *deflated_range, const struct gkyl_array *field,
@@ -94,11 +98,13 @@ void gkyl_deflate_geo_surf_advance(
 );
 
 /**
- * Advance deflate_geo_surf on nodal quantities
+ * Restrict surface nodal quantities to the center of each removed coordinate.
+ * Removed directions must contain one cell: two Gauss nodes are averaged,
+ * while a three-node direction uses its center node.
  *
  * @param up deflate_geo updater object.
- * @param nrange Config-space range.
- * @param deflated_nrange range with one dimension removed
+ * @param range Config-space nodal range.
+ * @param deflated_range Nodal range with removed directions omitted.
  * @param field 3d field
  * @param deflated_field 2d field on output
  * @param ncomp number of components

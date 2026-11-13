@@ -82,6 +82,8 @@ struct gkyl_tok_geo {
   const struct gkyl_array *fpolprimedg; // fpol'(psi) dg rep
   const struct gkyl_array *qdg; // q(psi) dg rep
 
+  double cocos_psi_factor; // sigma_RphiZ*sigma_Bp/(2*pi)^eBp.
+  int theta_orientation; // Reference contour traversal relative to B_p (+1 or -1).
   double sibry; // psi of separatrix as given by EFIT
   double psisep; // psi of separatrix as calculated from the DG psi(R,Z)
   double zmaxis; // z of magnetic axis
@@ -186,16 +188,49 @@ struct gkyl_tok_geo *gkyl_tok_geo_new(
 );
 
 /**
- * Get R(psi,Z) for a specified psi and Z value. Multiple values may
- * be returned (or none). The R(psi,Z) and dR/dZ are stored in the R
- * and dR arrays which be allocated by the caller.
+ * Project a full-contour q profile at Gauss-Legendre nodes on a 1D physical-psi grid.
+ * Closed contours give signed COCOS q; open contours give full-connection winding.
+ * Split blocks on the same branch use the same complete contour.
  *
- * @param geo Geometry object
- * @param psi Psi value
- * @param Z Z value
- * @param nmaxroots Maximum number of roots
- * @param R on output, R(psi,Z)
- * @param dR on output, dR/dZ
+ * @param geo Tokamak equilibrium (host).
+ * @param inp Branch and plate specification.
+ * @param grid One-dimensional physical-psi grid, without a position map.
+ * @param basis One-dimensional modal basis.
+ * @param qprofile Output array of grid->cells[0] cells, without ghosts.
+ */
+void gkyl_tok_geo_calc_qprofile(
+  struct gkyl_tok_geo *geo, const struct gkyl_tok_geo_grid_inp *inp,
+  const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis, struct gkyl_array *qprofile
+);
+
+/**
+ * Calculate Cy=(R_omp(psi_ref)-R_axis)/q(psi_ref), sampling the projected q profile.
+ *
+ * @param geo Tokamak equilibrium (host).
+ * @param inp Branch and plate specification.
+ * @param grid One-dimensional physical-psi grid.
+ * @param poly_order Polynomial order of the q profile.
+ * @param psi_ref Reference flux, within grid bounds.
+ * @return Reference binormal scale in meters (nonfinite if no OMP root or q is zero).
+ */
+double gkyl_tok_geo_calc_Cy(
+  struct gkyl_tok_geo *geo, const struct gkyl_tok_geo_grid_inp *inp,
+  const struct gkyl_rect_grid *grid, int poly_order, double psi_ref
+);
+
+/**
+ * Get R(psi,Z) for specified psi and Z. Multiple roots may be returned,
+ * or none. The caller must allocate all output arrays for nmaxroots entries.
+ *
+ * @param geo Geometry object.
+ * @param psi Poloidal flux value.
+ * @param Z Vertical coordinate.
+ * @param nmaxroots Maximum number of roots to return.
+ * @param R Output radii of the roots.
+ * @param dRdZ Output dR/dZ along each contour branch.
+ * @param dR Output radial component of an unnormalized contour tangent.
+ * @param dZ Output vertical component of an unnormalized contour tangent.
+ * @return Number of roots returned, or zero if none are found.
  */
 int gkyl_tok_geo_R_psiZ(
   const struct gkyl_tok_geo *geo, double psi, double Z, int nmaxroots, double *R, double *dRdZ,

@@ -447,11 +447,12 @@ create_ctx(void)
 
   // Grid parameters (reduced resolution for the regression test, minimal recommended values in comments)
   int Nx =
-    15; // (24) The LCFS is positionned at 1/3 of the domain -> the resolution must be divisible by 3.
-  int Ny = 8; // (16)
-  int Nz = 8; // (12)
-  int Nvpar = 4; // (12)
-  int Nmu = 4; // (8)
+    24 /
+    4; // The LCFS is positionned at 1/3 of the domain -> the resolution must be divisible by 3.
+  int Ny = 16 / 4;
+  int Nz = 12 / 3;
+  int Nvpar = 12 / 3;
+  int Nmu = 8 / 4;
   int poly_order = 1;
   // Velocity box dimensions
   double vpar_max_elc = 5. * vte;

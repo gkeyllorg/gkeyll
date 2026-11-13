@@ -515,6 +515,13 @@ gkyl_calc_metric_advance_rz_interior(gkyl_calc_metric *up, struct gk_geometry *g
           gk_geom->geo_int.jacobgeo_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx)
         );
         double R = mc2p_n[R_IDX];
+        // Field-aligned theta and increasing computational psi give a positive
+        // signed determinant. An absolute value must not hide a reversed map.
+        double signed_jacobian = R * (dxdz[0][0] * dxdz[1][2] - dxdz[0][2] * dxdz[1][0]);
+        if (!(signed_jacobian > 0)) {
+          fprintf(stderr, "TOKAMAK: nonpositive coordinate Jacobian.\n");
+          abort();
+        }
         jFld_n[0] = sqrt(
           R * R *
           (dxdz[0][0] * dxdz[0][0] * dxdz[1][2] * dxdz[1][2] +
@@ -796,6 +803,13 @@ gkyl_calc_metric_advance_rz_surface(gkyl_calc_metric *up, int dir, struct gk_geo
           gk_geom->geo_surf[dir].jacobgeo_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx)
         );
         double R = mc2p_n[R_IDX];
+        // Field-aligned theta and increasing computational psi give a positive
+        // signed determinant. An absolute value must not hide a reversed map.
+        double signed_jacobian = R * (dxdz[0][0] * dxdz[1][2] - dxdz[0][2] * dxdz[1][0]);
+        if (!(signed_jacobian > 0)) {
+          fprintf(stderr, "TOKAMAK: nonpositive coordinate Jacobian.\n");
+          abort();
+        }
         jFld_n[0] = sqrt(
           R * R *
           (dxdz[0][0] * dxdz[0][0] * dxdz[1][2] * dxdz[1][2] +
@@ -1830,14 +1844,15 @@ gkyl_calc_metric_advance_interior(gkyl_calc_metric *up, struct gk_geometry *gk_g
         };
         check_parallel(bhat_vec, e_3_norm, up->exit_at_checks);
 
-        // Store the Cartesian components of bhat at the nodes (this provider
-        // otherwise only computes the modal bcart via advance_bcart).
+        // Match the discrete field-aligned direction used by the metric-only
+        // derived geometry and modal bcart. The check above compares it with
+        // the independent input field, allowing for finite-difference error.
         double *bcartFld_n = gkyl_array_fetch(
           gk_geom->geo_int.bcart_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx)
         );
-        bcartFld_n[0] = bhat_vec[0];
-        bcartFld_n[1] = bhat_vec[1];
-        bcartFld_n[2] = bhat_vec[2];
+        bcartFld_n[0] = e_3_norm[0];
+        bcartFld_n[1] = e_3_norm[1];
+        bcartFld_n[2] = e_3_norm[2];
 
         double norm1 = sqrt(
           dualFld_n[0] * dualFld_n[0] + dualFld_n[1] * dualFld_n[1] + dualFld_n[2] * dualFld_n[2]

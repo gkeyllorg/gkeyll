@@ -1,0 +1,264 @@
+#pragma once
+
+#include <stdbool.h>
+#include <gkyl_eqn_type.h>
+#include <gkyl_util.h>
+
+typedef struct gkyl_gen_miller_eqdsk gkyl_gen_miller_eqdsk;
+
+struct gkyl_gen_miller_eqdsk_inp {
+  // Representation of lower/upper in (radial, binormal, parallel) directions.
+  // Zero uses the computational coordinates (psi, alpha, normalized poloidal arc theta).
+  // PARALLEL_THETA_MILLER converts 3x third-direction bounds from Miller angle [rad].
+  enum gkyl_gk_geometry_coord_type input_coord_limits_type[3];
+  double Rmajor_axis, Zvert_axis; // Major radius and vertical position of magnetic axis.
+  double bmag_axis; // Signed toroidal field at the magnetic axis [T]; nonzero, sign sets B_phi.
+  double Rmajor_LCFS; // Major radius of LCFS at OMP.
+  // Shaping functions presently called with: t=0, xc[0]=0 (Miller minor radius
+  // [m]). If the functions return NULL, they select kappa=1, delta=0, or a_shift=0.
+  // Elongation.
+  void (*kappa)(double t, const double *xc, double *GKYL_RESTRICT out, void *ctx);
+  void *kappa_ctx;
+  // Triangularity.
+  void (*delta)(double t, const double *xc, double *GKYL_RESTRICT out, void *ctx);
+  void *delta_ctx;
+  // Shafranov shift amplitude.
+  void (*a_shift)(double t, const double *xc, double *GKYL_RESTRICT out, void *ctx);
+  void *a_shift_ctx;
+  double (*qsafety)(double R_omp, void *ctx); // Safety factor (>0) as a function of major radius.
+  void *qsafety_ctx;
+  bool has_Rmajor_omp_bounds;
+  double Rmajor_omp_bounds[2]; // Optional requested simulation surfaces, as major radii [m].
+  int num_nodes_Rmajor; // Number of major-radius mesh nodes; odd, 5..999 (0 selects 257).
+  int num_nodes_Zvert; // Number of vertical mesh nodes; odd, 5..999 (0 selects 257).
+  double rtol, guard_fraction; // Defaults 1e-10 and 0.05.
+  bool has_RmajorZvert_bounds;
+  double RmajorZvert_bounds[4]; // Rmin, Rmax, Zmin, Zmax [m].
+};
+
+struct gkyl_gen_miller_eqdsk_info {
+  double psi_axis; // Poloidal flux divided by 2*pi at the magnetic axis [Wb/rad], fixed to zero.
+  double psi_boundary; // Poloidal flux divided by 2*pi at the LCFS [Wb/rad].
+  double psi_guard; // Poloidal flux divided by 2*pi at the outer physical guard [Wb/rad].
+  double rminor_LCFS; // Miller minor radius of the LCFS [m].
+  double rminor_required; // Larger of LCFS and outer requested Miller minor radii [m].
+  double rminor_guard; // Outer physical minor radius: rminor_required*(1+guard_fraction) [m].
+  double RmajorZvert_bounds[4]; // Resolved rectangular mesh bounds: Rmin, Rmax, Zmin, Zmax [m].
+  // Maximum midpoint interpolation error in g=dpsi/d(r^2), normalized by max(g,1e-8*max(g_nodes)).
+  double radial_error;
+  // Minimum sampled LCFS/outer-required contour distance to guard or box, in R-Z mesh spacings.
+  // Populated by advance; at least 3 after a successful advance.
+  double clearance_cells;
+  int num_nodes_radial; // Number of nodes in the adaptive s=r^2 table used to integrate poloidal flux.
+  int num_nodes_Rmajor; // Resolved number of major-radius nodes in the rectangular GEQDSK mesh.
+  int num_nodes_Zvert; // Resolved number of vertical nodes in the rectangular GEQDSK mesh.
+};
+
+struct gkyl_gen_miller_eqdsk_binormal_extent {
+  double r0, q0, Cy; // Reference minor radius [m], safety factor, and y/alpha scale [m].
+  int n_tor; // Integer number of toroidal wedges in a full 2*pi*Cy circumference.
+  double Ly; // Quantized binormal width [m].
+  double alpha_bounds[2]; // Grid bounds in field-line label angle [rad].
+};
+
+/**
+ * Compute alpha extents from binormal length bounds for a Miller radial domain,
+ * enforcing quantization of the toroidal wedge number n_tor.
+ *
+ * @param up Generator covering the radial domain.
+ * @param psi_bounds Final increasing poloidal-flux bounds [Wb/rad].
+ * @param y_bounds Requested increasing binormal-length bounds [m].
+ * @param out Resolved scale, toroidal wedge number, quantized width, and alpha bounds.
+ * @return True on success; false for invalid inputs or an invalid toroidal wedge number.
+ */
+bool gkyl_gen_miller_eqdsk_set_binormal_extents(
+  const gkyl_gen_miller_eqdsk *up, const double psi_bounds[2], const double y_bounds[2],
+  struct gkyl_gen_miller_eqdsk_binormal_extent *out
+);
+
+/**
+ * Construct the host generator and radial flux table; report failures to stderr.
+ *
+ * @param inp Physical and numerical inputs; shaping callbacks are sampled at construction.
+ * The qsafety context must outlive the generator.
+ * @return New generator, or NULL on failure.
+ */
+gkyl_gen_miller_eqdsk *gkyl_gen_miller_eqdsk_inew(const struct gkyl_gen_miller_eqdsk_inp *inp);
+
+/**
+ * Construct a Miller generator covering a simulation's radial domain and resolve
+ * its endpoints to poloidal flux. Automatically extends physical coverage when
+ * Rmajor_omp_bounds are omitted; explicit coverage must contain the domain.
+ * Constructs the radial flux table but does not sample or write the EQDSK.
+ *
+ * @param inp Non-NULL Miller parameters, including input_coord_limits_type[0]; not modified.
+ * Shaping callbacks are evaluated while constructing the generator; their
+ * contexts must remain valid until construction returns. The safety-factor
+ * callback context must outlive the returned generator.
+ * @param x_bounds Non-NULL array {lower[0], upper[0]} from the application domain:
+ * poloidal flux [Wb/rad] for PSI_POL, normalized poloidal radius [dimensionless]
+ * for RHO_POL, or outboard major radius [m] for R_OMP. These are simulation
+ * endpoints, not R-Z mesh bounds. Values must be finite, strictly increasing in
+ * the selected representation, and exclude the axis. Not modified or retained.
+ * @param psi_bounds Non-NULL output array {lower, upper} of computational flux
+ * bounds [Wb/rad], in increasing numerical order. For decreasing-outward flux,
+ * the lower flux bound is the outer surface. Valid only on success.
+ * @return New host generator owned by the caller (release with
+ * gkyl_gen_miller_eqdsk_release), or NULL on failure with a diagnostic to stderr.
+ */
+gkyl_gen_miller_eqdsk *gkyl_gen_miller_eqdsk_inew_for_domain(
+  const struct gkyl_gen_miller_eqdsk_inp *inp, const double x_bounds[2], double psi_bounds[2]
+);
+
+/**
+ * Sample and validate the rectangular mesh, using storage allocated at construction.
+ *
+ * @param up Generator.
+ * @return True on success, false on failure with a diagnostic on stderr.
+ */
+bool gkyl_gen_miller_eqdsk_advance(gkyl_gen_miller_eqdsk *up);
+
+/**
+ * Write a previously sampled GEQDSK atomically in its destination directory.
+ *
+ * @param up Generator after a successful advance.
+ * @param filename Destination path.
+ * @return True on success, false on failure with a diagnostic on stderr.
+ */
+bool gkyl_gen_miller_eqdsk_write(const gkyl_gen_miller_eqdsk *up, const char *filename);
+
+/**
+ * Get generator metadata.
+ *
+ * @param up Generator.
+ * @return Pointer to metadata owned by up; valid until up is released.
+ */
+const struct gkyl_gen_miller_eqdsk_info *gkyl_gen_miller_eqdsk_get_info(
+  const gkyl_gen_miller_eqdsk *up
+);
+
+/**
+ * Map Miller minor radius to outboard major radius.
+ * Requires the outboard major radius to increase with Miller minor radius:
+ * dR_omp/drminor = 1 - a_shift*rminor/Rmajor_axis > 0.
+ * Uses the analytic quadratic shift without constructing a generator or flux table.
+ * This checks the outboard map, not the validity of the entire flux surface.
+ *
+ * @param inp Non-NULL parameters; Rmajor_axis and the shaping callbacks are read.
+ * @param rminor Nonnegative Miller minor radius [m].
+ * @return Outboard major radius [m], or NaN for invalid inputs, dR_omp/drminor <= 0,
+ * or nonfinite arithmetic.
+ */
+double gkyl_gen_miller_eqdsk_R_omp_at_rminor(
+  const struct gkyl_gen_miller_eqdsk_inp *inp, double rminor
+);
+
+/**
+ * Returns the minor radius where the outboard major radius increases with minor
+ * radius; excludes points where dR_omp/dr=0.
+ * Uses a cancellation-resistant quadratic root and requires no generator or flux table.
+ * This checks the outboard branch, not the validity of the entire flux surface.
+ *
+ * @param inp Non-NULL parameters; Rmajor_axis and the shaping callbacks are read.
+ * @param R_omp Outboard major radius [m], at or outside Rmajor_axis.
+ * @return Miller minor radius [m], or NaN for invalid inputs, a radius outside
+ * the increasing branch, or nonfinite arithmetic.
+ */
+double gkyl_gen_miller_eqdsk_rminor_at_R_omp(
+  const struct gkyl_gen_miller_eqdsk_inp *inp, double R_omp
+);
+
+/**
+ * Evaluate flux at a Miller minor radius.
+ *
+ * @param up Generator.
+ * @param radius Miller minor radius [m].
+ * @return Poloidal flux divided by 2*pi [Wb/rad], or NaN outside physical coverage.
+ */
+double gkyl_gen_miller_eqdsk_psi_at_r(const gkyl_gen_miller_eqdsk *up, double radius);
+
+/**
+ * Invert poloidal flux to Miller minor radius.
+ *
+ * @param up Generator.
+ * @param psi Poloidal flux divided by 2*pi [Wb/rad].
+ * @return Miller minor radius [m], or NaN outside physical coverage.
+ */
+double gkyl_gen_miller_eqdsk_r_at_psi(const gkyl_gen_miller_eqdsk *up, double psi);
+
+/**
+ * Convert Miller angle to the tokamak normalized poloidal arc coordinate without
+ * constructing a generator. Uses the analytic constant-shaping, full-contour
+ * convention: zero at the outboard midplane and +/-pi at the inboard midplane.
+ *
+ * @param inp Input parameters; shaping callbacks are read (NULL kappa selects 1).
+ * @param thetaMiller Miller poloidal angle in [-pi,pi] [rad].
+ * @return Tokamak angle [rad], or NaN for invalid inputs or quadrature failure.
+ */
+double gkyl_gen_miller_eqdsk_theta_tok_at_theta(
+  const struct gkyl_gen_miller_eqdsk_inp *inp, double thetaMiller
+);
+
+/**
+ * Convert normalized poloidal arc length to Miller poloidal angle.
+ * This uses the default IWL full-contour convention: zero at the outboard midplane,
+ * +/-pi at the inboard midplane, including SOL contours cut at the inboard midplane.
+ * Custom plates, position maps, and other tokamak block conventions are excluded.
+ * The conversion uses the analytic Miller contour, so numerical GEQDSK interpolation
+ * introduces a small discrepancy when comparing with the tokamak geometry.
+ *
+ * @param up Generator with constant shaping parameters.
+ * @param theta_tok Tokamak normalized poloidal arc coordinate in [-pi, pi].
+ * @return Miller angle [rad], or NaN outside the stated interval.
+ */
+double gkyl_gen_miller_eqdsk_theta_at_theta_tok(const gkyl_gen_miller_eqdsk *up, double theta_tok);
+
+/**
+ * Evaluate flux at a physical outboard midplane major radius.
+ *
+ * @param up Generator.
+ * @param R_omp Outboard midplane major radius in meters.
+ * @return Poloidal flux divided by 2*pi [Wb/rad], or NaN outside physical coverage.
+ */
+double gkyl_gen_miller_eqdsk_psi_at_R_omp(const gkyl_gen_miller_eqdsk *up, double R_omp);
+
+/**
+ * Invert physical flux to outboard midplane major radius.
+ *
+ * @param up Generator.
+ * @param psi Poloidal flux divided by 2*pi [Wb/rad].
+ * @return Outboard midplane major radius in meters, or NaN outside physical coverage.
+ */
+double gkyl_gen_miller_eqdsk_R_omp_at_psi(const gkyl_gen_miller_eqdsk *up, double psi);
+
+/**
+ * Evaluate the total magnetic-field magnitude of the Miller equilibrium.
+ *
+ * @param up Generator with a constructed radial flux table.
+ * @param Rmajor Cylindrical major radius [m].
+ * @param Zvert Cylindrical vertical coordinate [m].
+ * @return Finite total magnetic-field magnitude [T]. Exits for invalid coordinates, failed
+ * inversion, or a nonfinite field.
+ */
+double gkyl_gen_miller_eqdsk_bmag_at_RZ(
+  const gkyl_gen_miller_eqdsk *up, double Rmajor, double Zvert
+);
+
+/**
+ * Evaluate the Miller surface at minor radius r and poloidal angle theta.
+ *
+ * @param up Generator.
+ * @param r Miller minor radius in meters.
+ * @param theta Poloidal angle in radians; zero is the outboard midplane.
+ * @param rz Output array containing cylindrical R,Z coordinates in meters.
+ */
+void gkyl_gen_miller_eqdsk_RZ_at_rtheta(
+  const gkyl_gen_miller_eqdsk *up, double r, double theta, double rz[2]
+);
+
+/**
+ * Release a generator and all its host storage.
+ *
+ * @param up Generator to release, or NULL.
+ */
+void gkyl_gen_miller_eqdsk_release(gkyl_gen_miller_eqdsk *up);

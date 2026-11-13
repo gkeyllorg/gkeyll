@@ -1820,6 +1820,7 @@ struct gkyl_gyrokinetic_app {
   struct gkyl_basis *basis_on_dev;
 
   struct gk_geometry *gk_geom;
+  struct gk_geometry *gk_geom_ho; // Retained host geometry for input callbacks, or NULL.
   struct gkyl_dg_geom *dg_geom;
   struct gkyl_gk_dg_geom *gk_dg_geom;
   struct gkyl_array *jacobtot_inv_weak; // 1/(J.B) computed via weak mul and div.
@@ -1869,6 +1870,29 @@ struct gkyl_gyrokinetic_app {
 
   bool is_multib; // Is this a block in a multiblock sim?
 };
+
+/**
+ * Merge application defaults and input metadata, recording the original input keys.
+ * 
+ * @param num_defaults Number of application defaults.
+ * @param defaults Application metadata entries.
+ * @param input Metadata supplied by the input file, before application defaults are merged.
+ * @param num_metadata On return, number of entries in the owned result.
+ * @return Owned metadata list. Free with gkyl_msgpack_map_elem_release.
+ */
+struct gkyl_msgpack_map_elem *gyrokinetic_app_input_metadata(
+  int num_defaults, const struct gkyl_msgpack_map_elem *defaults,
+  const struct gkyl_gyrokinetic_metadata_inp *input, int *num_metadata
+);
+
+/**
+ * Construct geometry with an explicit internal multiblock status.
+ * 
+ * @param gk Input, with already-merged metadata for a multiblock child.
+ * @param is_multib True only for a child created by the multiblock app.
+ * @return App with initialized geometry.
+ */
+gkyl_gyrokinetic_app *gyrokinetic_app_new_geom(struct gkyl_gk *gk, bool is_multib);
 
 /** gkyl_gyrokinetic_app private API */
 

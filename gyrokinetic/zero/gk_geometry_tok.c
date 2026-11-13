@@ -1,3 +1,4 @@
+#include <gkyl_cocos.h>
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
 #include <gkyl_array.h>
@@ -19,9 +20,10 @@
 #include <assert.h>
 
 struct gk_geometry *
-gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
+gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp, bool optimize_map)
 {
   struct gk_geometry *up = gkyl_calloc(1, sizeof(struct gk_geometry));
+  up->world_dim = geometry_inp->grid.ndim;
   up->geometry_id = geometry_inp->geometry_id;
   up->basis = geometry_inp->geo_basis;
   up->local = geometry_inp->geo_local;
@@ -76,7 +78,9 @@ gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
     gk_geometry_surf_alloc_expansions(up, dir);
   }
 
-  gkyl_position_map_optimize(geometry_inp->position_map, up->grid, up->global);
+  if (optimize_map) {
+    gkyl_position_map_optimize(geometry_inp->position_map, up->grid, up->global);
+  }
 
   // Calculate bmag and mapc2p in cylindrical coords at corner nodes for
   // getting cell coordinates (used only for plotting).
@@ -123,17 +127,41 @@ gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
   char geqdsk_file_name[128];
   get_filename_from_path(geo->efit->filepath, geqdsk_file_name, sizeof(geqdsk_file_name));
   struct gkyl_msgpack_map_elem io_meta_basic[] = {
+    {
+      .key = "equilibrium_cocos",
+      .elem_type = GKYL_MP_UNSIGNED_INT,
+      .uval = gkyl_cocos_tokamak.index,
+    },
+    {.key = "parallel_coordinate", .elem_type = GKYL_MP_STRING, .cval = "field_aligned_theta"},
     {.key = "geometry_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geometry_id},
+    {.key = "tokamak_geo_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = ginp.ftype},
     {
       .key = "geqdsk_sign_convention",
       .elem_type = GKYL_MP_UNSIGNED_INT,
       .uval = up->geqdsk_sign_convention,
     },
     {.key = "geqdsk_file", .elem_type = GKYL_MP_STRING, .cval = geqdsk_file_name},
+    {
+      .key = "eqdsk_cocos_index",
+      .elem_type = GKYL_MP_UNSIGNED_INT,
+      .uval = geo->efit->eqdsk_cocos_index,
+    },
     {.key = "half_domain", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->half_domain},
   };
   up->io_meta_basic_len = sizeof(io_meta_basic) / sizeof(io_meta_basic[0]);
   up->io_meta_basic = gkyl_msgpack_map_elem_clone(up->io_meta_basic_len, io_meta_basic);
+
+  if (geometry_inp->miller_grid_info.qsafety) {
+    struct gkyl_msgpack_map_elem miller_meta[] = {
+      {.key = "geometry_generator", .elem_type = GKYL_MP_STRING, .cval = "miller"},
+    };
+    const struct gkyl_msgpack_map_elem *lists[] = {up->io_meta_basic, miller_meta};
+    int lengths[] = {up->io_meta_basic_len, sizeof miller_meta / sizeof miller_meta[0]};
+    struct gkyl_msgpack_map_elem *merged =
+      gkyl_msgpack_map_elem_union(2, lengths, lists, &up->io_meta_basic_len);
+    gkyl_msgpack_map_elem_release(lengths[0], up->io_meta_basic);
+    up->io_meta_basic = merged;
+  }
 
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);
@@ -212,7 +240,7 @@ gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geometry_inp)
   } else if (geometry_inp->position_map->id == GKYL_PMAP_CONSTANT_DB_POLYNOMIAL ||
              geometry_inp->position_map->id == GKYL_PMAP_CONSTANT_DB_NUMERIC) {
     // First construct the uniform 3d geometry
-    gk_geom_3d = gk_geometry_tok_init(geometry_inp);
+    gk_geom_3d = gk_geometry_tok_init(geometry_inp, true);
     // The array mc2nu is computed using the uniform geometry, so we need to deflate it
     // Must deflate the 3D uniform geometry in order for the allgather to work
     if (geometry_inp->grid.ndim < 3) {
@@ -229,7 +257,7 @@ gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geometry_inp)
     gkyl_gk_geometry_release(gk_geom); // release 3d geometry
   }
   // Construct the non-uniform grid
-  gk_geom_3d = gk_geometry_tok_init(geometry_inp);
+  gk_geom_3d = gk_geometry_tok_init(geometry_inp, true);
   return gk_geom_3d;
 }
 

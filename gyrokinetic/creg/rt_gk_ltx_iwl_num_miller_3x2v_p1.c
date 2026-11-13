@@ -1,3 +1,4 @@
+#include <gkyl_tok_geo.h>
 #include <math.h>
 #include <stdio.h>
 #include <time.h>
@@ -34,6 +35,7 @@ struct gk_app_ctx {
   double n0;
   double Te0;
   double Ti0;
+  double rho_s; // Reference ion-sound gyroradius [m].
 
   // Collisions.
   double nuFrac;
@@ -240,11 +242,11 @@ create_ctx(void)
   double Ti_src = 40 * eV;
 
   // Grid parameters
-  int Nx = 4;
-  int Nz = 32;
+  int Nx = 12;
   int Ny = 2;
-  int Nvpar = 6;
-  int Nmu = 4;
+  int Nz = 4;
+  int Nvpar = 4;
+  int Nmu = 2;
   int poly_order = 1;
 
   double vpar_max_elc = 4. * vte;
@@ -265,6 +267,7 @@ create_ctx(void)
     .vdim = vdim,
     .Lz = Lz,
     .Ly = Ly,
+    .rho_s = rho_s,
     .z_min = -Lz / 2.,
     .z_max = Lz / 2.,
     .psi_min = psi_min,
@@ -508,7 +511,19 @@ main(int argc, char **argv)
     .plate_spec = false,
   };
 
+  // The radial midpoint is the LCFS; sample the first SOL cell center.
+  struct gkyl_rect_grid qgrid;
+  gkyl_rect_grid_init(&qgrid, 1, &ctx.psi_min, &ctx.psi_max, cells_x);
+  double psi_ref = ctx.psi_LCFS + 0.5 * qgrid.dx[0];
+  struct gkyl_tok_geo *qgeo = gkyl_tok_geo_new(&efit_inp, &grid_inp);
+  double Cy = gkyl_tok_geo_calc_Cy(qgeo, &grid_inp, &qgrid, ctx.poly_order, psi_ref);
+  gkyl_tok_geo_release(qgeo);
+
   // GK app
+  struct gkyl_msgpack_map_elem additional_metadata[] = {
+    {.key = "Cy", .elem_type = GKYL_MP_DOUBLE, .dval = Cy},
+    {.key = "rho_s", .elem_type = GKYL_MP_DOUBLE, .dval = ctx.rho_s},
+  };
   struct gkyl_gk app_inp = {
     .cdim = ctx.cdim,
     .lower = {ctx.psi_min, -ctx.Ly / 2.0, ctx.z_min},
@@ -533,6 +548,11 @@ main(int argc, char **argv)
     .num_species = 2,
     .species = {elc, ion},
     .field = field,
+    .metadata =
+      {
+        .num_attributes = sizeof(additional_metadata) / sizeof(additional_metadata[0]),
+        .attributes = additional_metadata,
+      },
 
     .parallelism =
       {

@@ -10,8 +10,11 @@
 typedef struct gkyl_efit gkyl_efit;
 
 struct gkyl_efit_inp {
+  // Source COCOS index: 0 defaults to 3; accepts 1, 2, 3, 7, 11, and 17.
+  // GEQDSK has no standardized COCOS identifier, so the caller supplies it.
   // Inputs to get psiRZ and related inputs from efit
   char filepath[1024]; // filepath path to eqdsk file
+  int eqdsk_cocos_index;
   int rz_poly_order; // poly order for DG rep of psi, psi/R, and psi/R^2
   int flux_poly_order; // poly order to use for DG rep of F(psi)
   bool reflect; // whether to reflect across R axis to preserve symmetry
@@ -20,6 +23,7 @@ struct gkyl_efit_inp {
 
 struct gkyl_efit {
   const char *filepath;
+  int eqdsk_cocos_index; // Source convention; projected data uses COCOS 3.
   char name[1024]; // name (filepath stripped of full path and extension)
   int nr, nz;
   double rdim, zdim, rcentr, rleft, zmid, rmaxis, zmaxis, simag, sibry, bcentr, current, xdum;

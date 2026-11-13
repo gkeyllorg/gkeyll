@@ -3732,7 +3732,111 @@ test_twistshift_dg_3x2v_fig11_dev()
 }
 #endif
 
+// Piecewise DG shifts need one-sided endpoint traces, and a highly sheared cell
+// must find every donor even when it crosses more than ten binormal cells.
+static void
+twistshift_dg_discontinuous_shift(bool strong_shear)
+{
+  for (int ndim = 3; ndim <= 5; ndim += 2) {
+    for (int edge = 0; edge < 2; ++edge) {
+      struct gkyl_rect_grid grid;
+      double lower[] = {-0.024, -0.5, -1.0, -2.0, 0.0};
+      double upper[] = {0.016, 0.5, 1.0, 2.0, 1.0};
+      int cells[] = {4, 30, 2, 2, 2}, nghost[] = {1, 1, 1, 0, 0};
+      gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
+      struct gkyl_basis basis;
+      if (ndim == 3) {
+        gkyl_cart_modal_serendip(&basis, ndim, 1);
+      } else {
+        gkyl_cart_modal_gkhybrid(&basis, 3, 2);
+      }
+      struct gkyl_range local, ext, update, ghost;
+      gkyl_create_grid_ranges(&grid, nghost, &ext, &local);
+      int lo[] = {1, 1, 0, 1, 1}, hi[] = {4, 30, 3, 2, 2};
+      gkyl_sub_range_init(&update, &ext, lo, hi);
+      lo[2] = hi[2] = edge == 0 ? 0 : 3;
+      gkyl_sub_range_init(&ghost, &ext, lo, hi);
+
+      struct gkyl_array *shift = gkyl_array_new(GKYL_DOUBLE, 2, cells[0]);
+      double means[] = {0.35, 0.55, -0.45, 1.30};
+      double variations[] = {0.80, -0.65, 0.60, -0.80};
+      for (int ix = 0; ix < cells[0]; ++ix) {
+        double *coeff = gkyl_array_fetch(shift, ix);
+        coeff[0] = sqrt(2.0) * means[ix];
+        coeff[1] = (strong_shear ? 1.0 : 0.05) * variations[ix] / sqrt(6.0);
+      }
+      struct gkyl_twistshift_dg *ts = gkyl_twistshift_dg_inew(&(struct gkyl_twistshift_dg_inp){
+        .bc_dir = 2,
+        .shift_dir = 1,
+        .shear_dir = 0,
+        .edge = edge,
+        .cdim = 3,
+        .bcdir_ext_update_r = &update,
+        .num_ghost = nghost,
+        .basis = &basis,
+        .grid = &grid,
+        .shift_dg = shift,
+      });
+      struct gkyl_array *field = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, ext.volume);
+      for (int constant = 0; constant < 2; ++constant) {
+        double mass_before = 0.0, norm_before = 0.0;
+        struct gkyl_range_iter iter;
+        gkyl_range_iter_init(&iter, &ghost);
+        while (gkyl_range_iter_next(&iter)) {
+          long loc = gkyl_range_idx(&ghost, iter.idx);
+          double *coeff = gkyl_array_fetch(field, loc);
+          for (int k = 0; k < basis.num_basis; ++k) {
+            coeff[k] = constant ? (k == 0 ? pow(sqrt(2.0), ndim) : 0.0) :
+                                  sin(0.31 * iter.idx[0] + 0.71 * iter.idx[1] + 0.19 * k);
+            norm_before += coeff[k] * coeff[k];
+          }
+          mass_before += coeff[0];
+        }
+        gkyl_twistshift_dg_advance(ts, field, field);
+        double mass_after = 0.0, norm_after = 0.0, constant_error = 0.0;
+        gkyl_range_iter_init(&iter, &ghost);
+        while (gkyl_range_iter_next(&iter)) {
+          const double *coeff = gkyl_array_cfetch(field, gkyl_range_idx(&ghost, iter.idx));
+          mass_after += coeff[0];
+          for (int k = 0; k < basis.num_basis; ++k) {
+            TEST_CHECK(isfinite(coeff[k]));
+            norm_after += coeff[k] * coeff[k];
+            constant_error =
+              fmax(constant_error, fabs(coeff[k] - (k == 0 ? pow(sqrt(2.0), ndim) : 0.0)));
+          }
+        }
+        TEST_CHECK(fabs(mass_after - mass_before) < 1e-10 * fmax(1.0, fabs(mass_before)));
+        TEST_CHECK(norm_after <= (1.0 + 1e-10) * norm_before);
+        if (constant) {
+          TEST_CHECK(constant_error < 1e-10);
+          TEST_MSG(
+            "ndim=%d edge=%d strong_shear=%d constant error %.16e", ndim, edge, strong_shear,
+            constant_error
+          );
+        }
+      }
+      gkyl_array_release(field);
+      gkyl_array_release(shift);
+      gkyl_twistshift_dg_release(ts);
+    }
+  }
+}
+
+void
+test_twistshift_dg_discontinuous_shift_ho(void)
+{
+  twistshift_dg_discontinuous_shift(false);
+}
+
+void
+test_twistshift_dg_many_donors_ho(void)
+{
+  twistshift_dg_discontinuous_shift(true);
+}
+
 TEST_LIST = {
+  {"test_twistshift_dg_discontinuous_shift_ho", test_twistshift_dg_discontinuous_shift_ho},
+  {"test_twistshift_dg_many_donors_ho", test_twistshift_dg_many_donors_ho},
   {"test_twistshift_dg_3x_fig6_ho", test_twistshift_dg_3x_fig6_ho},
   {"test_twistshift_dg_3x_fig11_ho", test_twistshift_dg_3x_fig11_ho},
   {"test_twistshift_dg_3x_fig14_ho", test_twistshift_dg_3x_fig14_ho},

@@ -258,9 +258,11 @@ gk_species_write_vcutsq(
   // Package metadata (time/frame + DG basis info).
   gkyl_msgpack_map_elem_set_double(app->io_meta_dg_len, app->io_meta_dg, "time", tm);
   gkyl_msgpack_map_elem_set_uint(app->io_meta_dg_len, app->io_meta_dg, "frame", frame);
+  int vcutsq_meta_len = app->io_meta_dg_len;
+  struct gkyl_msgpack_map_elem *vcutsq_meta =
+    gkyl_msgpack_map_elem_clone(vcutsq_meta_len, app->io_meta_dg);
+  gkyl_msgpack_map_elem_set_string(vcutsq_meta_len, vcutsq_meta, "basis_type", "serendipity");
   struct gkyl_msgpack_map_elem mpe_vcutsq[] = {
-    {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = app->basis.poly_order},
-    {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = "serendipity"},
     {
       .key = "Description",
       .elem_type = GKYL_MP_STRING,
@@ -269,7 +271,7 @@ gk_species_write_vcutsq(
   };
   int mpe_vcutsq_len = sizeof(mpe_vcutsq) / sizeof(mpe_vcutsq[0]);
   int io_meta_len[] = {app->io_meta_dg_len, mpe_vcutsq_len};
-  const struct gkyl_msgpack_map_elem *io_meta[] = {app->io_meta_dg, mpe_vcutsq};
+  const struct gkyl_msgpack_map_elem *io_meta[] = {vcutsq_meta, mpe_vcutsq};
   struct gkyl_msgpack_data *mt =
     gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
 
@@ -279,6 +281,8 @@ gk_species_write_vcutsq(
   snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, dir_str, edge_str, frame);
 
   gkyl_bc_sheath_gyrokinetic_write_vcutsq(bc_sheath, mt, fileNm);
+
+  gkyl_msgpack_map_elem_release(vcutsq_meta_len, vcutsq_meta);
 
   gkyl_msgpack_data_release(mt);
   app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wst);
@@ -355,21 +359,20 @@ gk_species_write_cfl_enabled(gkyl_gyrokinetic_app *app, struct gk_species *gks, 
   // The 0th frame is often wrong for this diagnostic because cflrate is computed AFTER
   // the first time step
   struct timespec wst = gkyl_wall_clock();
-  // DG metadata for cflrate.
+  // Metadata for the nodal, p0 CFL frequency.
   struct gkyl_msgpack_map_elem mpe_cfl[] = {
     {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0},
     {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = "serendipity"},
     {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = "CFL frequency."},
     {.key = "value_form", .elem_type = GKYL_MP_STRING, .cval = "nodal"},
+    {.key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = tm},
+    {.key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = frame},
   };
   int mpe_cfl_len = sizeof(mpe_cfl) / sizeof(mpe_cfl[0]);
-  // Update app basic metada with time/frame.
-  gkyl_msgpack_map_elem_set_double(gks->io_meta_phase_len, gks->io_meta_phase, "time", tm);
-  gkyl_msgpack_map_elem_set_uint(gks->io_meta_phase_len, gks->io_meta_phase, "frame", frame);
   // Unionize metadata.
-  int io_meta_len[] = {gks->io_meta_phase_len, mpe_cfl_len, app->gk_geom->io_meta_basic_len};
+  int io_meta_len[] = {gks->io_meta_basic_len, mpe_cfl_len, app->gk_geom->io_meta_basic_len};
   const struct gkyl_msgpack_map_elem *io_meta[] = {
-    gks->io_meta_phase, mpe_cfl, app->gk_geom->io_meta_basic
+    gks->io_meta_basic, mpe_cfl, app->gk_geom->io_meta_basic
   };
   struct gkyl_msgpack_data *mt =
     gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
