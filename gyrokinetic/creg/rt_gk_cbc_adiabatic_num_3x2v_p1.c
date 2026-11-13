@@ -587,7 +587,7 @@ create_ctx(struct gk_app_ctx *ctx)
   double nu_krook = nu_krook_norm / t_unit;
 
   double t_end = 10. * t_unit;
-  int num_frames = 100;
+  int num_frames = 1;
   double write_phase_freq = 0.5; // f every 2 frames for restarts across 12 h jobs.
   int int_diag_calc_num = num_frames * 100;
   double dt_failure_tol = 1.0e-3; // Minimum allowable fraction of initial time-step.
