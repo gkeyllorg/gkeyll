@@ -494,6 +494,72 @@ test_1d(int poly_order, bool use_gpu)
 }
 
 void
+test_inv_p0(bool use_gpu)
+{
+  // The inverse of a piecewise-constant (p=0) field, and its product with the field.
+  for (int ndim = 1; ndim < 4; ndim++) {
+    double lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
+    int cells[GKYL_MAX_DIM];
+    for (int d = 0; d < ndim; d++) {
+      lower[d] = 0.0;
+      upper[d] = 1.0;
+      cells[d] = 2;
+    }
+    struct gkyl_rect_grid grid;
+    gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
+
+    struct gkyl_basis basis;
+    gkyl_cart_modal_serendip(&basis, ndim, 0);
+
+    int nghost[GKYL_MAX_DIM] = {0};
+    struct gkyl_range local, local_ext;
+    gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
+
+    struct gkyl_array *ffld_ho = gkyl_array_new(GKYL_DOUBLE, 1, local.volume);
+    struct gkyl_array *ffld_inv_ho = gkyl_array_new(GKYL_DOUBLE, 1, local.volume);
+    struct gkyl_array *fprod_ho = gkyl_array_new(GKYL_DOUBLE, 1, local.volume);
+    struct gkyl_array *ffld = ffld_ho, *ffld_inv = ffld_inv_ho, *fprod = fprod_ho;
+    if (use_gpu) {
+      ffld = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, local.volume);
+      ffld_inv = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, local.volume);
+      fprod = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, local.volume);
+    }
+
+    // A different positive value in each cell.
+    for (size_t i = 0; i < local.volume; ++i) {
+      double *A = gkyl_array_fetch(ffld_ho, i);
+      A[0] = 1.5 + 0.5 * i;
+    }
+    gkyl_array_copy(ffld, ffld_ho);
+
+    gkyl_dg_inv_op_range(&basis, 0, ffld_inv, 0, ffld, &local);
+    gkyl_dg_mul_op_range(&basis, 0, fprod, 0, ffld, 0, ffld_inv, &local);
+    gkyl_array_copy(ffld_inv_ho, ffld_inv);
+    gkyl_array_copy(fprod_ho, fprod);
+
+    // The basis function is 1/sqrt(2)^ndim, so 1/A has coefficient 2^ndim/A[0]
+    // and the expansion of 1 has coefficient sqrt(2)^ndim.
+    for (size_t i = 0; i < local.volume; ++i) {
+      const double *A = gkyl_array_cfetch(ffld_ho, i);
+      const double *A_inv = gkyl_array_cfetch(ffld_inv_ho, i);
+      const double *prod = gkyl_array_cfetch(fprod_ho, i);
+      TEST_CHECK(gkyl_compare(A_inv[0], pow(2.0, ndim) / A[0], 1e-14));
+      TEST_CHECK(gkyl_compare(prod[0], pow(sqrt(2.0), ndim), 1e-14));
+      TEST_MSG("ndim=%d: inverse %.16e, product %.16e", ndim, A_inv[0], prod[0]);
+    }
+
+    gkyl_array_release(ffld_ho);
+    gkyl_array_release(ffld_inv_ho);
+    gkyl_array_release(fprod_ho);
+    if (use_gpu) {
+      gkyl_array_release(ffld);
+      gkyl_array_release(ffld_inv);
+      gkyl_array_release(fprod);
+    }
+  }
+}
+
+void
 test_inv_1d(int poly_order, bool use_gpu)
 {
   double lower[] = {0.0}, upper[] = {1.0};
@@ -2981,6 +3047,12 @@ test_bin_ops_inv_1d_p1_ho()
 }
 
 void
+test_bin_ops_inv_p0_ho()
+{
+  test_inv_p0(false);
+}
+
+void
 test_bin_ops_2d_p1_ho()
 {
   test_2d(1, false);
@@ -3321,6 +3393,12 @@ test_bin_ops_inv_1d_p1_dev()
 }
 
 void
+test_bin_ops_inv_p0_dev()
+{
+  test_inv_p0(true);
+}
+
+void
 test_bin_ops_2d_p1_dev()
 {
   test_2d(1, true);
@@ -3491,6 +3569,7 @@ test_bin_ops_conf_phase_accumulate_subtract_p2_dev()
 TEST_LIST = {
   {"test_bin_ops_1d_p1_ho", test_bin_ops_1d_p1_ho},
   {"test_bin_ops_inv_1d_p1_ho", test_bin_ops_inv_1d_p1_ho},
+  {"test_bin_ops_inv_p0_ho", test_bin_ops_inv_p0_ho},
   {"test_bin_ops_1d_p2_ho", test_bin_ops_1d_p2_ho},
   {"test_bin_ops_1d_p3_ho", test_bin_ops_1d_p3_ho},
   {"test_bin_ops_2d_p1_ho", test_bin_ops_2d_p1_ho},
@@ -3509,6 +3588,7 @@ TEST_LIST = {
 #ifdef GKYL_HAVE_CUDA
   {"test_bin_ops_1d_p1_dev", test_bin_ops_1d_p1_dev},
   {"test_bin_ops_inv_1d_p1_dev", test_bin_ops_inv_1d_p1_dev},
+  {"test_bin_ops_inv_p0_dev", test_bin_ops_inv_p0_dev},
   {"test_bin_ops_1d_p2_dev", test_bin_ops_1d_p2_dev},
   {"test_bin_ops_1d_p3_dev", test_bin_ops_1d_p3_dev},
   {"test_bin_ops_2d_p1_dev", test_bin_ops_2d_p1_dev},
