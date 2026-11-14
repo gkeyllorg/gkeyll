@@ -7,11 +7,11 @@
 -- 100 the heat flux relaxes at 3 nu, so the gas conducts heat with thermal diffusivity chi = T/(m 3
 -- nu) and the pulse, a temperature perturbation at constant pressure, decays as exp(-chi k^2 t),
 -- k^2 = 2 pi^2; the measured decay beyond it is the numerical diffusion of the scheme.
--- Figures of merit (16 x 16 x 8 cells): at t = 2 the mode with k along b has amplitude 0.861 and
--- the mode with k across b 0.860, against exp(-chi k^2 t) = 0.877 for chi = T/(3 m nu). The LBO
+-- Figures of merit (12 x 12 x 8 cells): at t = 2 the mode with k along b has amplitude 0.852 and
+-- the mode with k across b 0.850, against exp(-chi k^2 t) = 0.877 for chi = T/(3 m nu). The LBO
 -- relaxes the first harmonic (M0_perp at nu, N_perp at 3 nu), so the perpendicular heat flux
 -- relaxes at 3 nu like the parallel one and the gas conducts heat across b as along it. Phase
--- errors are below 5e-4 rad; particle number is conserved to 1e-12.
+-- errors are below 3e-3 rad; particle number is conserved to 1e-12.
 
 local PKPM = G0.PKPM
 
@@ -32,8 +32,8 @@ nu = 100.0 -- Collision frequency.
 B0 = 1.0 / math.sqrt(2.0) -- Magnetic field along each of x and y (sets the field direction b).
 
 -- Simulation parameters.
-Nx = 16 -- Cell count (configuration space: x-direction).
-Ny = 16 -- Cell count (configuration space: y-direction).
+Nx = 12 -- Cell count (configuration space: x-direction).
+Ny = 12 -- Cell count (configuration space: y-direction).
 Nvx = 8 -- Cell count (velocity space: normalized parallel velocity w).
 Lx = 2.0 -- Domain size (configuration space: x-direction).
 Ly = 2.0 -- Domain size (configuration space: y-direction).

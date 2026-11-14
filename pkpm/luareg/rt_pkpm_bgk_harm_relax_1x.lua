@@ -3,13 +3,16 @@
 -- vlasov/creg/rt_vlasov_bgk_harm_relax_1x3v.c.
 -- Two homogeneous neutral species start from a unit Maxwellian, F = G = M(w), with a small first
 -- gyroangle harmonic about a static magnetic field along x. Species drift carries M0_y = a w M and
--- N_y = 2 M0_y, the reduced moments of f = f_M (1 + a v_par v_y). Species heat carries only
--- N_y = 2 a M, the reduced moments of f = f_M (1 + a v_y (v_perp^2/2 - 2)), a perpendicular heat
--- flux with no perpendicular drift. Collision frequency 1, run for 5 collision times.
--- int M0_perp dw = 0 holds to 2e-17 and the other constraints to 1e-14. BGK relaxes the first
--- harmonic at the collision frequency: int w M0_y dw, int w N_y dw and int N_y dw all decay at rate
--- 1.00001 (Vlasov 1x3v: the off-diagonal pressure at 1.00003 and the perpendicular heat flux at
--- 1.00007).
+-- N_y = 2 M0_y, the reduced moments of f = f_M (1 + a v_par v_y). Species heat carries only N_y = 2
+-- a M, the reduced moments of f = f_M (1 + a v_y (v_perp^2/2 - 2)), a perpendicular heat flux with
+-- no perpendicular drift. Collision frequency 1, run for 5 collision times.
+-- The harmonic moments are w integrals of the M0_perp and N_perp blocks of the distribution frames
+-- (no moment output carries them); the 10 frames sample the decay at their step times. int M0_perp
+-- dw = 0 holds to 2e-17 and the other constraints to 1e-14. BGK relaxes the first harmonic at the
+-- collision frequency: int w M0_y dw, int w N_y dw and int N_y dw all decay at rate 1.00001, fitted
+-- over the frames, and each stays within 2e-7 (relative) of one exponential down to 0.0067 of its
+-- initial value (Vlasov 1x3v: the off-diagonal pressure at 1.00003 and the perpendicular heat flux
+-- at 1.00007).
 local PKPM = G0.PKPM
 
 -- Mathematical constants (dimensionless).
@@ -39,7 +42,7 @@ time_stepper = "rk3" -- Time integrator.
 cfl_frac = 1.0 -- CFL coefficient.
 
 t_end = 5.0 -- Final simulation time.
-num_frames = 1 -- Number of output frames.
+num_frames = 10 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.
 integrated_L2_f_calcs = GKYL_MAX_INT -- Number of times to calculate integrated L2 norm of distribution function.

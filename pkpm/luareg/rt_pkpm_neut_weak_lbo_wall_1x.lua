@@ -1,7 +1,7 @@
 -- Gas flowing between reflecting walls for a neutral gas with LBO collisions with the PKPM system
 -- of equations (1x, normalized parallel velocity w = v_par/xi).
 -- Density 1 and pressure 1/4 moving at velocity 1 (Mach 1.55) between reflecting walls at x = 0
--- and 1, to t = 0.3 (the states of rt_pkpm_wall_p1). A shock leaves the wall the gas runs into and
+-- and 1, to t = 0.3. A shock leaves the wall the gas runs into and
 -- a rarefaction the wall it leaves. A static magnetic field along x sets the field direction.
 -- Weak collisions: the collision frequency nu = 0.5 makes the domain one mean free path long (the
 -- thermal speed sqrt(p/rho) of the hottest gas is 0.5). The collisions are advanced explicitly.

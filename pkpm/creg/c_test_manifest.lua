@@ -4,16 +4,8 @@
 return {
    ignore = {
       tests = {
-         "rt_pkpm_alf_wave_p1",
-         "rt_pkpm_alf_wave_explicit_1x_p1",
-         "rt_pkpm_alf_wave_1x_p1",
-         "rt_pkpm_ot_p1",
-         "rt_pkpm_gem_pmap_p1",
-         "rt_pkpm_ff_gem_pmap_p1",
       },
       gpu = {
-         "rt_pkpm_alf_wave_explicit_1x_p1",
-         "rt_pkpm_alf_wave_1x_p1",
       },
    },
    moat = {

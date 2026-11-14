@@ -1,3 +1,18 @@
+// Magnetic reconnection of a Harris sheet with a guide field (the GEM reconnection challenge setup)
+// with the PKPM system of equations (2x, normalized parallel velocity w = v_par/xi) and LBO
+// collisions.
+// Electrons and ions (mass ratio 25, v_te/c = 1/4, Ti/Te = 5, electron beta 1/6 in the in-plane
+// field B0, guide field B0, background density 0.2 n0) in a sheet of half-width 0.5 d_i, perturbed
+// by the flux function psi0 cos(2 pi x/Lx) cos(pi y/Ly) with psi0 = 0.1 B0 d_i, on a domain 8 pi
+// d_i by 4 pi d_i, periodic in x, with conducting walls that reflect the species in y. Position
+// maps cluster the cells at the X point (x cells from 0.15 to 1.85 of the uniform size) and at the
+// sheet (y cells from 0.3 to 1.7). Run to t = 22/Omega_ci.
+// Figures of merit (12 x 12 x 8 cells), with the reconnected flux psi = (1/2) int |B_y(x, y = 0)|
+// dx and the rate d psi/dt between frames: psi = 0.200 B0 d_i initially and 1.177 at t =
+// 22/Omega_ci. The rate is 0.02 to 0.03 B0 vA from 7 to 15/Omega_ci, rises from 15/Omega_ci on
+// (onset), peaks at 0.148 B0 vA between 19 and 20/Omega_ci and is 0.113 between 21 and 22/Omega_ci.
+// The onset time depends on the mesh at this resolution.
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,10 +33,8 @@
 #endif
 
 #include <rt_arg_parse.h>
-#include <gkyl_kann_net.h>
-#include <gkyl_knutils.h>
 
-struct ot_ctx {
+struct gem_ctx {
   // Mathematical constants (dimensionless).
   double pi;
 
@@ -34,21 +47,26 @@ struct ot_ctx {
   double charge_ion; // Ion charge.
 
   double n0; // Reference number density.
-  double vAe; // Electron Alfven velocity.
-  double beta; // Plasma beta.
+  double nb_over_n0; // Background number density / reference number density.
+  double vte_over_c; // Electron thermal velocity sqrt(Te/me) / speed of light.
+  double beta_elc; // Electron plasma beta (in-plane field).
+  double Te_over_Ti; // Electron temperature / ion temperature.
+  double guide; // Guide field / in-plane field.
 
   // Derived physical quantities (using normalized code units).
-  double B0; // Reference magnetic field strength.
-  double vAi; // Ion Alfven velocity.
+  double B0; // Asymptotic in-plane magnetic field strength.
+  double Bg; // Guide magnetic field strength.
 
-  double vte; // Electron thermal velocity.
-  double vti; // Ion thermal velocity.
+  double Te; // Electron temperature.
+  double Ti; // Ion temperature.
+  double vte; // Electron thermal velocity sqrt(Te/me).
+  double vti; // Ion thermal velocity sqrt(Ti/mi).
 
-  double omega_ci; // Ion cyclotron frequency.
-  double d_i; // Ion sound inertial length.
+  double omega_ci; // Ion cyclotron frequency (in-plane field).
+  double d_i; // Ion inertial length.
 
-  double delta_B0; // Reference magnetic field strength perturbation.
-  double delta_u0; // Reference fluid velocity perturbation.
+  double w0; // Current sheet width.
+  double psi0; // Flux function perturbation amplitude.
 
   double nu_elc; // Electron collision frequency.
   double nu_ion; // Ion collision frequency.
@@ -56,11 +74,13 @@ struct ot_ctx {
   // Simulation parameters.
   int Nx; // Cell count (configuration space: x-direction).
   int Ny; // Cell count (configuration space: y-direction).
-  int Nvx; // Cell count (velocity space: vx-direction).
+  int Nvx; // Cell count (velocity space: normalized parallel velocity w).
   double Lx; // Domain size (configuration space: x-direction).
   double Ly; // Domain size (configuration space: y-direction).
-  double vx_max_elc; // Domain boundary (electron velocity space: vx-direction).
-  double vx_max_ion; // Domain boundary (ion velocity space: vx-direction).
+  double map_amp_x; // Amplitude of the position map clustering the cells at the X point.
+  double map_amp_y; // Amplitude of the position map clustering the cells at the current sheet.
+  double vx_max_elc; // Domain boundary (electron velocity space: w = v_par/xi).
+  double vx_max_ion; // Domain boundary (ion velocity space: w = v_par/xi).
   int poly_order; // Polynomial order.
   double cfl_frac; // CFL coefficient.
 
@@ -71,25 +91,9 @@ struct ot_ctx {
   int integrated_L2_f_calcs; // Number of times to calculate integrated L2 norm of distribution function.
   double dt_failure_tol; // Minimum allowable fraction of initial time-step.
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
-
-  // Training parameters.
-  bool train_nn; // Train neural network on simulation data?
-  bool train_ab_initio; // Train neural network ab initio?
-  int nn_width; // Number of neurons to use per layer.
-  int nn_depth; // Number of layers to use.
-  const char *train_nn_file; // File path of neural network to train.
-  int num_trains; // Number of times to train neural network.
-  int num_nn_writes; // Number of times to write out neural network.
-  int num_input_moms; // Number of "input" moments to train on.
-  int *input_moms; // Array of "input" moments to train on.
-  int num_output_moms; // Number of "output" moments to train on.
-  int *output_moms; // Array of "output" moments to train on.
-  bool test_nn; // Test neural network on simulation data?
-  const char *test_nn_file; // File path of neural network to test.
-  int num_tests; // Number of times to test neural network.
 };
 
-struct ot_ctx
+struct gem_ctx
 create_ctx(void)
 {
   // Mathematical constants (dimensionless).
@@ -104,38 +108,49 @@ create_ctx(void)
   double charge_ion = 1.0; // Ion charge.
 
   double n0 = 1.0; // Reference number density.
-  double vAe = 0.5; // Electron Alfven velocity.
-  double beta = 0.08; // Plasma beta.
+  double nb_over_n0 = 0.2; // Background number density / reference number density.
+  double vte_over_c = 1.0 / 4.0; // Electron thermal velocity sqrt(Te/me) / speed of light.
+  double beta_elc = 1.0 / 6.0; // Electron plasma beta (in-plane field).
+  double Te_over_Ti = 0.2; // Electron temperature / ion temperature.
+  double guide = 1.0; // Guide field / in-plane field.
 
   // Derived physical quantities (using normalized code units).
-  double B0 = vAe * sqrt(mu0 * n0 * mass_elc); // Reference magnetic field strength.
-  double vAi = vAe / sqrt(mass_ion); // Ion Alfven velocity.
+  double light_speed = 1.0 / sqrt(epsilon0 * mu0); // Speed of light.
+  double Te =
+    mass_elc * (vte_over_c * light_speed) * (vte_over_c * light_speed); // Electron temperature.
+  double Ti = Te / Te_over_Ti; // Ion temperature.
+  double vte = sqrt(Te / mass_elc); // Electron thermal velocity.
+  double vti = sqrt(Ti / mass_ion); // Ion thermal velocity.
+  double B0 = sqrt(2.0 * mu0 * n0 * Te / beta_elc); // Asymptotic in-plane magnetic field strength.
+  double Bg = guide * B0; // Guide magnetic field strength.
 
-  double vte = vAe * sqrt(beta / 2.0); // Electron thermal velocity.
-  double vti = vte / sqrt(mass_ion); // Ion thermal velocity.
+  double omega_ci = charge_ion * B0 / mass_ion; // Ion cyclotron frequency (in-plane field).
+  double omega_pi =
+    sqrt(n0 * charge_ion * charge_ion / (epsilon0 * mass_ion)); // Ion plasma frequency.
+  double d_i = light_speed / omega_pi; // Ion inertial length.
 
-  double omega_ci = charge_ion * B0 / mass_ion; // Ion cyclotron frequency.
-  double d_i = vAi / omega_ci; // Ion sound inertial length.
-
-  double delta_B0 = 0.2 * B0; // Reference magnetic field strength perturbation.
-  double delta_u0 = 0.2 * vAi; // Reference fluid velocity perturbation.
+  double w0 = 0.5 * d_i; // Current sheet width.
+  double psi0 = 0.1 * B0 * d_i; // Flux function perturbation amplitude.
 
   double nu_elc = 0.01 * omega_ci; // Electron collision frequency.
   double nu_ion = 0.01 * omega_ci / sqrt(mass_ion); // Ion collision frequency.
 
   // Simulation parameters.
-  int Nx = 8; // Cell count (configuration space: x-direction).
-  int Ny = 16; // Cell count (configuration space: y-direction).
-  int Nvx = 16; // Cell count (velocity space: vx-direction).
-  double Lx = 20.48 * d_i; // Domain size (configuration space: x-direction).
-  double Ly = 20.48 * d_i; // Domain size (configuration space: y-direction).
-  double vx_max_elc = 6.0; // Domain boundary (normalized velocity w = v_par/xi).
-  double vx_max_ion = 6.0; // Domain boundary (normalized velocity w = v_par/xi).
+  int Nx = 12; // Cell count (configuration space: x-direction).
+  int Ny = 12; // Cell count (configuration space: y-direction).
+  int Nvx = 8; // Cell count (velocity space: normalized parallel velocity w).
+  double Lx = 8.0 * pi * d_i; // Domain size (configuration space: x-direction).
+  double Ly = 4.0 * pi * d_i; // Domain size (configuration space: y-direction).
+  double map_amp_x = 0.85; // Amplitude of the position map clustering the cells at the X point.
+  double map_amp_y =
+    0.7; // Amplitude of the position map clustering the cells at the current sheet.
+  double vx_max_elc = 6.0; // Domain boundary (electron velocity space: w = v_par/xi).
+  double vx_max_ion = 6.0; // Domain boundary (ion velocity space: w = v_par/xi).
   int poly_order = 1; // Polynomial order.
   double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 75.0 / omega_ci; // Final simulation time.
-  int num_frames = 15; // Number of output frames.
+  double t_end = 22.0 / omega_ci; // Final simulation time.
+  int num_frames = 22; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
   int integrated_L2_f_calcs =
@@ -143,29 +158,7 @@ create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  // Training parameters.
-  bool train_nn = false; // Train neural network on simulation data?
-  bool train_ab_initio = true; // Train neural network ab initio?
-  int nn_width = 256; // Number of neurons to use per layer.
-  int nn_depth = 5; // Number of layers to use.
-  const char *train_nn_file = "pkpm_ot_p1_moms_nn_1"; // File path of neural network to train.
-  int num_trains = INT_MAX; // Number of times to train neural network.
-  int num_nn_writes =
-    15; // Number of times to write out neural network (periodic checkpoints during the long run).
-  int num_input_moms = 3; // Number of "input" moments to train on.
-  int *input_moms = gkyl_malloc(sizeof(int[3]));
-  input_moms[0] = 0;
-  input_moms[1] = 2;
-  input_moms[2] = 3; // Array of "input" moments to train on.
-  int num_output_moms = 2; // Number of "output" moments to train on.
-  int *output_moms = gkyl_malloc(sizeof(int[2]));
-  output_moms[0] = 4;
-  output_moms[1] = 5; // Array of "output" moments to train on.
-  bool test_nn = true; // Test neural network on simulation data?
-  const char *test_nn_file = "rt_pkpm_ot_p1_moms_nn_15"; // File path of neural network to test.
-  int num_tests = 15; // Number of times to test neural network.
-
-  struct ot_ctx ctx = {
+  struct gem_ctx ctx = {
     .pi = pi,
     .epsilon0 = epsilon0,
     .mu0 = mu0,
@@ -174,16 +167,21 @@ create_ctx(void)
     .mass_ion = mass_ion,
     .charge_ion = charge_ion,
     .n0 = n0,
-    .vAe = vAe,
-    .beta = beta,
+    .nb_over_n0 = nb_over_n0,
+    .vte_over_c = vte_over_c,
+    .beta_elc = beta_elc,
+    .Te_over_Ti = Te_over_Ti,
+    .guide = guide,
     .B0 = B0,
-    .vAi = vAi,
+    .Bg = Bg,
+    .Te = Te,
+    .Ti = Ti,
     .vte = vte,
     .vti = vti,
     .omega_ci = omega_ci,
     .d_i = d_i,
-    .delta_B0 = delta_B0,
-    .delta_u0 = delta_u0,
+    .w0 = w0,
+    .psi0 = psi0,
     .nu_elc = nu_elc,
     .nu_ion = nu_ion,
     .Nx = Nx,
@@ -191,6 +189,8 @@ create_ctx(void)
     .Nvx = Nvx,
     .Lx = Lx,
     .Ly = Ly,
+    .map_amp_x = map_amp_x,
+    .map_amp_y = map_amp_y,
     .vx_max_elc = vx_max_elc,
     .vx_max_ion = vx_max_ion,
     .poly_order = poly_order,
@@ -202,23 +202,44 @@ create_ctx(void)
     .integrated_L2_f_calcs = integrated_L2_f_calcs,
     .dt_failure_tol = dt_failure_tol,
     .num_failures_max = num_failures_max,
-    .train_nn = train_nn,
-    .train_ab_initio = train_ab_initio,
-    .nn_width = nn_width,
-    .nn_depth = nn_depth,
-    .train_nn_file = train_nn_file,
-    .num_trains = num_trains,
-    .num_nn_writes = num_nn_writes,
-    .num_input_moms = num_input_moms,
-    .input_moms = input_moms,
-    .num_output_moms = num_output_moms,
-    .output_moms = output_moms,
-    .test_nn = test_nn,
-    .test_nn_file = test_nn_file,
-    .num_tests = num_tests,
   };
 
   return ctx;
+}
+
+static inline double
+sech2(double x)
+{
+  return 1.0 / (cosh(x) * cosh(x));
+}
+
+// Harris sheet with image sheets at y = -/+ Ly (periodicity of the in-plane field), the
+// number density of pressure balance with uniform temperatures, and the out-of-plane
+// current of the sheet and of the flux perturbation psi0 cos(2 pi x/Lx) cos(pi y/Ly).
+static double
+harris_bx(const struct gem_ctx *app, double y)
+{
+  double B0 = app->B0, w0 = app->w0, Ly = app->Ly;
+  return -B0 * (tanh(y / w0) - tanh((y + Ly) / w0) - tanh((y - Ly) / w0));
+}
+
+static double
+harris_n(const struct gem_ctx *app, double y)
+{
+  double B0 = app->B0, mu0 = app->mu0, n0 = app->n0, nb_over_n0 = app->nb_over_n0;
+  double T = app->Te + app->Ti;
+  double bx = harris_bx(app, y);
+  return 0.5 * (B0 * B0 - bx * bx) / (mu0 * T) + nb_over_n0 * n0;
+}
+
+static double
+total_jz(const struct gem_ctx *app, double x, double y)
+{
+  double pi = app->pi, B0 = app->B0, w0 = app->w0, mu0 = app->mu0, psi0 = app->psi0;
+  double Lx = app->Lx, Ly = app->Ly;
+  double kx = 2.0 * pi / Lx, ky = pi / Ly;
+  return (B0 / (w0 * mu0)) * (sech2(y / w0) - sech2((y + Ly) / w0) - sech2((y - Ly) / w0)) -
+         (psi0 / mu0) * (kx * kx + ky * ky) * cos(kx * x) * cos(ky * y);
 }
 
 void
@@ -239,37 +260,26 @@ evalElcDistInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT 
 void
 evalElcFluidInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
-  struct ot_ctx *app = ctx;
+  struct gem_ctx *app = ctx;
   double x = xn[0], y = xn[1];
 
-  double pi = app->pi;
-  double mu0 = app->mu0;
   double mass_elc = app->mass_elc;
-  double charge_ion = app->charge_ion;
-  double n0 = app->n0;
+  double charge_elc = app->charge_elc;
   double vte = app->vte;
+  double Te_frac = app->Te / (app->Te + app->Ti); // Electron share of the current.
 
-  double delta_B0 = app->delta_B0;
-  double delta_u0 = app->delta_u0;
+  double n = harris_n(app, y); // Electron number density.
+  double Jz = total_jz(app, x, y); // Out-of-plane current density.
 
-  double Lx = app->Lx;
-  double Ly = app->Ly;
+  double mom_x = 0.0; // Electron total momentum density (x-direction).
+  double mom_y = 0.0; // Electron total momentum density (y-direction).
+  double mom_z =
+    mass_elc * Jz * Te_frac / charge_elc; // Electron total momentum density (z-direction).
 
-  double Jz = (delta_B0 * (4.0 * pi / Lx) * cos(4.0 * pi * x / Lx) +
-               delta_B0 * (2.0 * pi / Ly) * cos(2.0 * pi * y / Ly)) /
-              mu0;
-
-  double vx_drift = -delta_u0 * sin(2.0 * pi * y / Ly); // Electron drift velocity (x-direction).
-  double vy_drift = delta_u0 * sin(2.0 * pi * x / Lx); // Electron drift velocity (y-direction).
-  double vz_drift = -Jz / charge_ion; // Electron drift velocity (z-direction).
-
-  double mom_x = mass_elc * n0 * vx_drift; // Electron total momentum density (x-direction).
-  double mom_y = mass_elc * n0 * vy_drift; // Electron total momentum density (y-direction).
-  double mom_z = mass_elc * n0 * vz_drift; // Electron total momentum density (z-direction).
-
-  double rho = mass_elc * n0; // Electron mass density.
+  double rho = mass_elc * n; // Electron mass density.
   double vtsq = vte * vte; // Electron T/m.
-  double E = 0.5 * (mom_x * mom_x + mom_y * mom_y + mom_z * mom_z) / rho + 1.5 * rho * vtsq; // Electron total energy density.
+  double E = 0.5 * (mom_x * mom_x + mom_y * mom_y + mom_z * mom_z) / rho +
+             1.5 * rho * vtsq; // Electron total energy density.
 
   // Set Electron fluid state [rho, rho ux, rho uy, rho uz, E].
   fout[0] = rho;
@@ -297,30 +307,25 @@ evalIonDistInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT 
 void
 evalIonFluidInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
-  struct ot_ctx *app = ctx;
+  struct gem_ctx *app = ctx;
   double x = xn[0], y = xn[1];
 
-  double pi = app->pi;
   double mass_ion = app->mass_ion;
-  double n0 = app->n0;
+  double charge_ion = app->charge_ion;
   double vti = app->vti;
+  double Ti_frac = app->Ti / (app->Te + app->Ti); // Ion share of the current.
 
-  double delta_u0 = app->delta_u0;
+  double n = harris_n(app, y); // Ion number density.
+  double Jz = total_jz(app, x, y); // Out-of-plane current density.
 
-  double Lx = app->Lx;
-  double Ly = app->Ly;
+  double mom_x = 0.0; // Ion total momentum density (x-direction).
+  double mom_y = 0.0; // Ion total momentum density (y-direction).
+  double mom_z = mass_ion * Jz * Ti_frac / charge_ion; // Ion total momentum density (z-direction).
 
-  double vx_drift = -delta_u0 * sin(2.0 * pi * y / Ly); // Ion drift velocity (x-direction).
-  double vy_drift = delta_u0 * sin(2.0 * pi * x / Lx); // Ion drift velocity (y-direction).
-  double vz_drift = 0.0; // Ion drift velocity (z-direction).
-
-  double mom_x = mass_ion * n0 * vx_drift; // Ion total momentum density (x-direction).
-  double mom_y = mass_ion * n0 * vy_drift; // Ion total momentum density (y-direction).
-  double mom_z = mass_ion * n0 * vz_drift; // Ion total momentum density (z-direction).
-
-  double rho = mass_ion * n0; // Ion mass density.
+  double rho = mass_ion * n; // Ion mass density.
   double vtsq = vti * vti; // Ion T/m.
-  double E = 0.5 * (mom_x * mom_x + mom_y * mom_y + mom_z * mom_z) / rho + 1.5 * rho * vtsq; // Ion total energy density.
+  double E = 0.5 * (mom_x * mom_x + mom_y * mom_y + mom_z * mom_z) / rho +
+             1.5 * rho * vtsq; // Ion total energy density.
 
   // Set Ion fluid state [rho, rho ux, rho uy, rho uz, E].
   fout[0] = rho;
@@ -333,40 +338,24 @@ evalIonFluidInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT
 void
 evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
-  struct ot_ctx *app = ctx;
+  struct gem_ctx *app = ctx;
   double x = xn[0], y = xn[1];
 
   double pi = app->pi;
-  double mu0 = app->mu0;
-  double mass_elc = app->mass_elc;
-  double charge_ion = app->charge_ion;
-
-  double B0 = app->B0;
-  double delta_B0 = app->delta_B0;
-  double delta_u0 = app->delta_u0;
-
+  double psi0 = app->psi0;
   double Lx = app->Lx;
   double Ly = app->Ly;
+  double kx = 2.0 * pi / Lx, ky = pi / Ly;
 
-  double Jz = (delta_B0 * (4.0 * pi / Lx) * cos(4.0 * pi * x / Lx) +
-               delta_B0 * (2.0 * pi / Ly) * cos(2.0 * pi * y / Ly)) /
-              mu0;
-
-  double Bx = -delta_B0 * sin(2.0 * pi * y / Ly); // Total magnetic field (x-direction).
-  double By = delta_B0 * sin(4.0 * pi * x / Lx); // Total magnetic field (y-direction).
-  double Bz = B0; // Total magnetic field (z-direction).
-
-  double vx_drift = -delta_u0 * sin(2.0 * pi * y / Ly); // Electron drift velocity (x-direction).
-  double vy_drift = delta_u0 * sin(2.0 * pi * x / Lx); // Electron drift velocity (y-direction).
-  double vz_drift = -Jz / charge_ion; // Electron drift velocity (z-direction).
-
-  double Ex = -((vy_drift * Bz) - (vz_drift * By)); // Total electric field (x-direction).
-  double Ey = -((vz_drift * Bx) - (vx_drift * Bz)); // Total electric field (y-direction).
-  double Ez = -((vx_drift * By) - (vy_drift * Bx)); // Total electric field (z-direction).
+  double Bx = harris_bx(app, y) +
+              psi0 * ky * cos(kx * x) * sin(ky * y); // Total magnetic field (x-direction).
+  double By = -psi0 * kx * sin(kx * x) * cos(ky * y); // Total magnetic field (y-direction).
+  double Bz = app->Bg; // Total magnetic field (z-direction).
 
   // Set electric field.
-  fout[0] = Ex;
-  fout[1] = Ey, fout[2] = Ez;
+  fout[0] = 0.0;
+  fout[1] = 0.0;
+  fout[2] = 0.0;
   // Set magnetic field.
   fout[3] = Bx;
   fout[4] = By;
@@ -379,7 +368,7 @@ evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fo
 void
 evalElcNu(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
-  struct ot_ctx *app = ctx;
+  struct gem_ctx *app = ctx;
 
   double nu_elc = app->nu_elc;
 
@@ -390,12 +379,46 @@ evalElcNu(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, 
 void
 evalIonNu(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
-  struct ot_ctx *app = ctx;
+  struct gem_ctx *app = ctx;
 
   double nu_ion = app->nu_ion;
 
   // Set ion collision frequency.
   fout[0] = nu_ion;
+}
+
+// Position map clustering the cells at the X point: x(eta) = eta - a (Lx/2 pi) sin(2 pi eta/Lx),
+// which fixes the end points and has the Jacobian dx/deta = 1 - a cos(2 pi eta/Lx), 1 - a at the
+// X point and 1 + a at the periodic boundary.
+void
+mapc2p_pos_x(double t, const double *GKYL_RESTRICT xc, double *GKYL_RESTRICT xp, void *ctx)
+{
+  struct gem_ctx *app = ctx;
+  double Lx = app->Lx, a = app->map_amp_x, pi = app->pi;
+  double eta = xc[0];
+
+  xp[0] = eta - a * (Lx / (2.0 * pi)) * sin(2.0 * pi * eta / Lx);
+}
+
+// Position map clustering the cells at the current sheet: y(eta) = eta - a (Ly/2 pi) sin(2 pi
+// eta/Ly), with the Jacobian 1 - a at the sheet and 1 + a at the walls.
+void
+mapc2p_pos_y(double t, const double *GKYL_RESTRICT xc, double *GKYL_RESTRICT xp, void *ctx)
+{
+  struct gem_ctx *app = ctx;
+  double Ly = app->Ly, a = app->map_amp_y, pi = app->pi;
+  double eta = xc[0];
+
+  xp[0] = eta - a * (Ly / (2.0 * pi)) * sin(2.0 * pi * eta / Ly);
+}
+
+// Snap a trigger whose next time exceeds t_end only by round-off back to t_end.
+static void
+snap_trigger_to_t_end(struct gkyl_tm_trigger *trig, double t_end)
+{
+  if (trig->tcurr > t_end && trig->tcurr <= t_end * (1.0 + 1.0e-10)) {
+    trig->tcurr = t_end;
+  }
 }
 
 void
@@ -438,63 +461,6 @@ calc_integrated_L2_f(struct gkyl_tm_trigger *l2t, gkyl_pkpm_app *app, double t_c
   }
 }
 
-void
-train_mom(
-  struct gkyl_tm_trigger *nn, gkyl_pkpm_app *app, double t_curr, bool force_train,
-  struct gkyl_kann_net **ann, int num_input_moms, int *input_moms, int num_output_moms,
-  int *output_moms, struct gkyl_kn_vec *input_data, struct gkyl_kn_vec *output_data
-)
-{
-  if (gkyl_tm_trigger_check_and_bump(nn, t_curr) || force_train) {
-    int frame = nn->curr - 1;
-    if (force_train) {
-      frame = nn->curr;
-    }
-
-    gkyl_pkpm_app_train(
-      app, t_curr, frame, ann, num_input_moms, input_moms, num_output_moms, output_moms, input_data,
-      output_data
-    );
-  }
-}
-
-void
-write_nn(
-  struct gkyl_tm_trigger *nnw, gkyl_pkpm_app *app, double t_curr, bool force_write,
-  struct gkyl_kann_net **ann
-)
-{
-  if (gkyl_tm_trigger_check_and_bump(nnw, t_curr) || force_write) {
-    int frame = nnw->curr - 1;
-    if (force_write) {
-      frame = nnw->curr;
-    }
-
-    gkyl_pkpm_app_write_nn(app, t_curr, frame, ann);
-  }
-}
-
-void
-test_mom(
-  struct gkyl_tm_trigger *nnt, gkyl_pkpm_app *app, double t_curr, bool force_test,
-  struct gkyl_kann_net **ann, int num_input_moms, int *input_moms, int num_output_moms,
-  int *output_moms, struct gkyl_kn_vec *input_data_real, struct gkyl_kn_vec *output_data_real,
-  struct gkyl_kn_vec *output_data_predicted
-)
-{
-  if (gkyl_tm_trigger_check_and_bump(nnt, t_curr) || force_test) {
-    int frame = nnt->curr - 1;
-    if (force_test) {
-      frame = nnt->curr;
-    }
-
-    gkyl_pkpm_app_test(
-      app, t_curr, frame, ann, num_input_moms, input_moms, num_output_moms, output_moms,
-      input_data_real, output_data_real, output_data_predicted
-    );
-  }
-}
-
 int
 main(int argc, char **argv)
 {
@@ -511,7 +477,7 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct ot_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct gem_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
@@ -594,7 +560,7 @@ main(int argc, char **argv)
 
     .collisions = {.collision_id = GKYL_LBO_COLLISIONS, .self_nu = evalElcNu, .ctx = &ctx},
 
-    .diffusion = {.D = 1.0e-4, .order = 4},
+    .bcy = {GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT},
   };
 
   // Ions.
@@ -613,7 +579,7 @@ main(int argc, char **argv)
 
     .collisions = {.collision_id = GKYL_LBO_COLLISIONS, .self_nu = evalIonNu, .ctx = &ctx},
 
-    .diffusion = {.D = 1.0e-4, .order = 4},
+    .bcy = {GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT},
   };
 
   // Field.
@@ -625,6 +591,8 @@ main(int argc, char **argv)
 
     .init = evalFieldInit,
     .ctx = &ctx,
+
+    .bcy = {GKYL_FIELD_PEC_WALL, GKYL_FIELD_PEC_WALL},
   };
 
   // PKPM app.
@@ -632,18 +600,18 @@ main(int argc, char **argv)
 
     .cdim = 2,
     .vdim = 1,
-    .lower = {0.0, 0.0},
-    .upper = {ctx.Lx, ctx.Ly},
+    .lower = {-0.5 * ctx.Lx, -0.5 * ctx.Ly},
+    .upper = {0.5 * ctx.Lx, 0.5 * ctx.Ly},
     .cells = {NX, NY},
+    .mapc2p_pos[0] = {.mapc2p_pos_func = mapc2p_pos_x, .mapc2p_pos_ctx = &ctx},
+    .mapc2p_pos[1] = {.mapc2p_pos_func = mapc2p_pos_y, .mapc2p_pos_ctx = &ctx},
 
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
     .cfl_frac = ctx.cfl_frac,
 
-    .use_explicit_source = false,
-
-    .num_periodic_dir = 2,
-    .periodic_dirs = {0, 1},
+    .num_periodic_dir = 1,
+    .periodic_dirs = {0},
 
     .num_species = 2,
     .species = {elc, ion},
@@ -653,7 +621,6 @@ main(int argc, char **argv)
     .parallelism =
       {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0], app_args.cuts[1]}, .comm = comm},
   };
-
   // Create app object.
   // Set app output name from the executable name (argv[0]).
   snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
@@ -725,139 +692,13 @@ main(int argc, char **argv)
 
   write_data(&io_trig, app, t_curr, false);
 
-  // Create trigger for neural network training.
-  int num_trains = ctx.num_trains;
-  struct gkyl_tm_trigger nn_trig = {.dt = t_end / num_trains, .tcurr = t_curr, .curr = frame_curr};
-
-  kad_node_t **t = gkyl_malloc(sizeof(kad_node_t *) * app_inp.num_species);
-  struct gkyl_kann_net **ann = gkyl_malloc(sizeof(struct gkyl_kann_net *) * app_inp.num_species);
-  if (ctx.train_nn) {
-    if (ctx.train_ab_initio) {
-      for (int i = 0; i < app_inp.num_species; i++) {
-        if (ctx.poly_order == 1) {
-          if (cdim == 1) {
-            t[i] = kann_layer_input(ctx.num_input_moms * 2);
-          } else if (cdim == 2) {
-            t[i] = kann_layer_input(ctx.num_input_moms * 4);
-          }
-        } else if (ctx.poly_order == 2) {
-          t[i] = kann_layer_input(ctx.num_input_moms * 3);
-        }
-
-        for (int j = 0; j < ctx.nn_depth; j++) {
-          t[i] = kann_layer_dense(t[i], ctx.nn_width);
-          t[i] = kad_tanh(t[i]);
-        }
-
-        if (ctx.poly_order == 1) {
-          if (cdim == 1) {
-            t[i] = kann_layer_cost(t[i], ctx.num_output_moms * 2, KANN_C_MSE);
-          } else if (cdim == 2) {
-            t[i] = kann_layer_cost(t[i], ctx.num_output_moms * 4, KANN_C_MSE);
-          }
-        } else if (ctx.poly_order == 2) {
-          t[i] = kann_layer_cost(t[i], ctx.num_output_moms * 3, KANN_C_MSE);
-        }
-        ann[i] = gkyl_kann_net_new(t[i], app_args.use_gpu);
-      }
-    } else {
-      for (int i = 0; i < app_inp.num_species; i++) {
-        const char *fmt = "%s-%s.dat";
-        int sz = gkyl_calc_strlen(fmt, ctx.train_nn_file, app_inp.species[i].name);
-        char fileNm[sz + 1];
-        snprintf(fileNm, sizeof fileNm, fmt, ctx.train_nn_file, app_inp.species[i].name);
-
-        FILE *file = fopen(fileNm, "r");
-        if (file != NULL) {
-          ann[i] = gkyl_kann_net_load(fileNm, app_args.use_gpu);
-          fclose(file);
-        } else {
-          ann[i] = 0;
-          ctx.train_nn = false;
-          fprintf(
-            stderr, "Neural network for species %s not found! Disabling NN training.\n",
-            app_inp.species[i].name
-          );
-        }
-      }
-    }
-  }
-
-  int cell_count = 0;
-  if (app_inp.cdim == 1) {
-    cell_count = app_inp.cells[0];
-  } else if (app_inp.cdim == 2) {
-    cell_count = app_inp.cells[0] * app_inp.cells[1];
-  }
-
-  // Number of DG coefficients per moment carried into/out of the network.
-  int nn_num_coeff = (app_inp.poly_order == 1) ? ((app_inp.cdim == 1) ? 2 : 4) : 3;
-  int nn_input_dim = ctx.num_input_moms * nn_num_coeff;
-  int nn_output_dim = ctx.num_output_moms * nn_num_coeff;
-
-  struct gkyl_kn_vec *input_data = gkyl_kn_vec_new(cell_count, nn_input_dim);
-  struct gkyl_kn_vec *output_data = gkyl_kn_vec_new(cell_count, nn_output_dim);
-
-  if (ctx.train_nn) {
-    train_mom(
-      &nn_trig, app, t_curr, false, ann, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms,
-      ctx.output_moms, input_data, output_data
-    );
-  }
-
-  // Create trigger for neural network writing.
-  int num_nn_writes = ctx.num_nn_writes;
-  struct gkyl_tm_trigger nnw_trig = {
-    .dt = t_end / num_nn_writes,
-    .tcurr = t_curr,
-    .curr = frame_curr,
-  };
-
-  if (ctx.train_nn) {
-    write_nn(&nnw_trig, app, t_curr, false, ann);
-  }
-
-  // Create trigger for neural network testing.
-  int num_tests = ctx.num_tests;
-  struct gkyl_tm_trigger nnt_trig = {.dt = t_end / num_tests, .tcurr = t_curr, .curr = frame_curr};
-
-  struct gkyl_kann_net **ann_test =
-    gkyl_malloc(sizeof(struct gkyl_kann_net *) * app_inp.num_species);
-  if (ctx.test_nn) {
-    for (int i = 0; i < app_inp.num_species; i++) {
-      const char *fmt = "%s-%s.dat";
-      int sz = gkyl_calc_strlen(fmt, ctx.test_nn_file, app_inp.species[i].name);
-      char fileNm[sz + 1];
-      snprintf(fileNm, sizeof fileNm, fmt, ctx.test_nn_file, app_inp.species[i].name);
-
-      FILE *file = fopen(fileNm, "r");
-      if (file != NULL) {
-        ann_test[i] = gkyl_kann_net_load(fileNm, app_args.use_gpu);
-        fclose(file);
-      } else {
-        ann_test[i] = 0;
-        ctx.test_nn = false;
-        fprintf(
-          stderr, "Neural network for species %s not found! Disabling NN testing.\n",
-          app_inp.species[i].name
-        );
-      }
-    }
-  }
-
-  struct gkyl_kn_vec *input_data_real = gkyl_kn_vec_new(cell_count, nn_input_dim);
-  struct gkyl_kn_vec *output_data_real = gkyl_kn_vec_new(cell_count, nn_output_dim);
-  struct gkyl_kn_vec *output_data_predicted = gkyl_kn_vec_new(cell_count, nn_output_dim);
-
-  if (ctx.test_nn) {
-    test_mom(
-      &nnt_trig, app, t_curr, false, ann_test, ctx.num_input_moms, ctx.input_moms,
-      ctx.num_output_moms, ctx.output_moms, input_data_real, output_data_real, output_data_predicted
-    );
-  }
-
   // Compute initial guess of maximum stable time-step.
   double dt = t_end - t_curr;
+
+  // The requested time-step is shortened near the end of the simulation so that
+  // the final step lands exactly on t_end.
+  bool is_dt_clipped = false; // Was the requested dt shortened below the stable dt?
+  bool is_last_step = true; // Does the requested dt reach t_end?
 
   // Initialize small time-step check.
   double dt_init = -1.0, dt_failure_tol = ctx.dt_failure_tol;
@@ -874,31 +715,46 @@ main(int argc, char **argv)
       break;
     }
 
-    t_curr += status.dt_actual;
+    // Only a step that took the full requested dt counts as shortened/final.
+    bool took_requested_dt = status.dt_actual == dt;
+    bool was_dt_clipped = is_dt_clipped && took_requested_dt;
+    if (is_last_step && took_requested_dt) {
+      // Avoid round-off leaving t_curr just short of t_end.
+      t_curr = t_end;
+      // Trigger times are accumulated sums and can exceed t_end by round-off.
+      // Snap them so the final frame and diagnostics are still produced.
+      snap_trigger_to_t_end(&fe_trig, t_end);
+      snap_trigger_to_t_end(&im_trig, t_end);
+      snap_trigger_to_t_end(&l2f_trig, t_end);
+      snap_trigger_to_t_end(&io_trig, t_end);
+    } else {
+      t_curr += status.dt_actual;
+    }
+
+    // Request the next time-step. If the remaining time fits in one stable step,
+    // take exactly the remaining time; if it fits in less than two, split it into
+    // two equal steps so the final step is never a sliver of the stable dt.
+    double t_left = t_end - t_curr;
     dt = status.dt_suggested;
+    is_dt_clipped = false;
+    is_last_step = false;
+    if (t_left <= dt) {
+      dt = t_left;
+      is_dt_clipped = true;
+      is_last_step = true;
+    } else if (t_left < 2.0 * dt) {
+      dt = 0.5 * t_left;
+      is_dt_clipped = true;
+    }
 
     calc_field_energy(&fe_trig, app, t_curr, false);
     calc_integrated_mom(&im_trig, app, t_curr, false);
     calc_integrated_L2_f(&l2f_trig, app, t_curr, false);
     write_data(&io_trig, app, t_curr, false);
-    if (ctx.train_nn) {
-      train_mom(
-        &nn_trig, app, t_curr, false, ann, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms,
-        ctx.output_moms, input_data, output_data
-      );
-      write_nn(&nnw_trig, app, t_curr, false, ann);
-    }
-    if (ctx.test_nn) {
-      test_mom(
-        &nnt_trig, app, t_curr, false, ann_test, ctx.num_input_moms, ctx.input_moms,
-        ctx.num_output_moms, ctx.output_moms, input_data_real, output_data_real,
-        output_data_predicted
-      );
-    }
 
     if (dt_init < 0.0) {
       dt_init = status.dt_actual;
-    } else if (status.dt_actual < dt_failure_tol * dt_init) {
+    } else if (!was_dt_clipped && status.dt_actual < dt_failure_tol * dt_init) {
       num_failures += 1;
 
       gkyl_pkpm_app_cout(app, stdout, "WARNING: Time-step dt = %g", status.dt_actual);
@@ -914,20 +770,6 @@ main(int argc, char **argv)
         calc_integrated_mom(&im_trig, app, t_curr, true);
         calc_integrated_L2_f(&l2f_trig, app, t_curr, true);
         write_data(&io_trig, app, t_curr, true);
-        if (ctx.train_nn) {
-          train_mom(
-            &nn_trig, app, t_curr, true, ann, ctx.num_input_moms, ctx.input_moms,
-            ctx.num_output_moms, ctx.output_moms, input_data, output_data
-          );
-          write_nn(&nnw_trig, app, t_curr, true, ann);
-        }
-        if (ctx.test_nn) {
-          test_mom(
-            &nnt_trig, app, t_curr, true, ann_test, ctx.num_input_moms, ctx.input_moms,
-            ctx.num_output_moms, ctx.output_moms, input_data_real, output_data_real,
-            output_data_predicted
-          );
-        }
 
         break;
       }
@@ -942,27 +784,6 @@ main(int argc, char **argv)
   calc_integrated_mom(&im_trig, app, t_curr, false);
   calc_integrated_L2_f(&l2f_trig, app, t_curr, false);
   write_data(&io_trig, app, t_curr, false);
-  if (ctx.train_nn) {
-    train_mom(
-      &nn_trig, app, t_curr, false, ann, ctx.num_input_moms, ctx.input_moms, ctx.num_output_moms,
-      ctx.output_moms, input_data, output_data
-    );
-    write_nn(&nnw_trig, app, t_curr, false, ann);
-
-    for (int i = 0; i < app_inp.num_species; i++) {
-      gkyl_kann_net_release(ann[i]);
-    }
-  }
-  if (ctx.test_nn) {
-    test_mom(
-      &nnt_trig, app, t_curr, false, ann_test, ctx.num_input_moms, ctx.input_moms,
-      ctx.num_output_moms, ctx.output_moms, input_data_real, output_data_real, output_data_predicted
-    );
-
-    for (int i = 0; i < app_inp.num_species; i++) {
-      gkyl_kann_net_release(ann_test[i]);
-    }
-  }
   gkyl_pkpm_app_stat_write(app);
 
   struct gkyl_pkpm_stat stat = gkyl_pkpm_app_stat(app);
@@ -1005,17 +826,6 @@ freeresources:
   // Free resources after simulation completion.
   gkyl_comm_release(comm);
   gkyl_pkpm_app_release(app);
-  gkyl_free(ctx.input_moms);
-  gkyl_free(ctx.output_moms);
-  gkyl_free(t);
-  gkyl_free(ann);
-  gkyl_free(ann_test);
-
-  gkyl_kn_vec_release(input_data);
-  gkyl_kn_vec_release(output_data);
-  gkyl_kn_vec_release(input_data_real);
-  gkyl_kn_vec_release(output_data_real);
-  gkyl_kn_vec_release(output_data_predicted);
 
 mpifinalize:
 #ifdef GKYL_HAVE_MPI

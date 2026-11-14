@@ -4,9 +4,6 @@
 return {
    ignore = {
       tests = {
-         "rt_pkpm_alf_wave_1x_p1",
-         "rt_pkpm_ot_p1",
-         "rt_pkpm_alf_wave_explicit_1x_p1",
       },
       gpu = {
       },

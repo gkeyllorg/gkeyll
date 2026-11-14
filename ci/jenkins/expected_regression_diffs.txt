@@ -123,6 +123,4 @@ gyrokinetic/creg/rt_gk_step_2x2v_p1_cons   # kinetic neutrals on triads Vlasov s
 
 # kitp-hamil-vlasov: the PKPM solver is a new baseline set (energy-constrained p=1 form, first
 # gyroangle harmonic, blended remap flux) and its regression suite was rewritten under new test
-# names, which CI runs as candidate-only. rt_pkpm_wall_p1 is the only test that keeps its name
-# on main and is not skipped by the manifest, so it is the only one compared.
-pkpm/creg/rt_pkpm_wall_p1   # new PKPM formulation and configuration-space flux
+# names, which CI runs as candidate-only. No PKPM test keeps its name on main, so none is compared.

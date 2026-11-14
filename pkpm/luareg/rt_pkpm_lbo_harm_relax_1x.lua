@@ -3,14 +3,17 @@
 -- vlasov/creg/rt_vlasov_lbo_harm_relax_1x3v.c.
 -- Two homogeneous neutral species start from a unit Maxwellian, F = G = M(w), with a small first
 -- gyroangle harmonic about a static magnetic field along x. Species drift carries M0_y = a w M and
--- N_y = 2 M0_y, the reduced moments of f = f_M (1 + a v_par v_y). Species heat carries only
--- N_y = 2 a M, the reduced moments of f = f_M (1 + a v_y (v_perp^2/2 - 2)), a perpendicular heat
--- flux with no perpendicular drift. Collision frequency 1, run for 2 collision times.
--- int M0_perp dw = 0 holds to 2e-17 and the other constraints to 4e-14. The LBO relaxes the Hermite
--- mode k (in w) of M0_perp at (k + 1) nu and that of N_perp - 2 M0_perp at (k + 3) nu: int w M0_y dw
--- and int w N_y dw (k = 1, with N_y = 2 M0_y) decay at rate 2.00000, and int N_y dw (k = 0, with
--- M0_y = 0) at 3.00000 (Vlasov 1x3v: the off-diagonal pressure at 2.00000 and the perpendicular heat
--- flux at 3.00006).
+-- N_y = 2 M0_y, the reduced moments of f = f_M (1 + a v_par v_y). Species heat carries only N_y = 2
+-- a M, the reduced moments of f = f_M (1 + a v_y (v_perp^2/2 - 2)), a perpendicular heat flux with
+-- no perpendicular drift. Collision frequency 1, run for 2 collision times.
+-- The harmonic moments are w integrals of the M0_perp and N_perp blocks of the distribution frames
+-- (no moment output carries them); the 10 frames sample the decay at their step times. int M0_perp
+-- dw = 0 holds to 2e-17 and the other constraints to 4e-14. The LBO relaxes the Hermite mode k (in
+-- w) of M0_perp at (k + 1) nu and that of N_perp - 2 M0_perp at (k + 3) nu: int w M0_y dw and int w
+-- N_y dw (k = 1, with N_y = 2 M0_y) decay at rate 2.00000, and int N_y dw (k = 0, with M0_y = 0) at
+-- 3.00000, fitted over the frames; each stays within 1e-9 (relative) of one exponential, down to
+-- 0.018 and 0.0025 of its initial value (Vlasov 1x3v: the off-diagonal pressure at 2.00000 and the
+-- perpendicular heat flux at 3.00006).
 local PKPM = G0.PKPM
 
 -- Mathematical constants (dimensionless).
@@ -40,7 +43,7 @@ time_stepper = "rk3" -- Time integrator.
 cfl_frac = 1.0 -- CFL coefficient.
 
 t_end = 2.0 -- Final simulation time.
-num_frames = 1 -- Number of output frames.
+num_frames = 10 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.
 integrated_L2_f_calcs = GKYL_MAX_INT -- Number of times to calculate integrated L2 norm of distribution function.
