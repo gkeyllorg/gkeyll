@@ -43,39 +43,39 @@ typedef struct {
 GKYL_CU_D static const gkyl_dg_fpo_diff_coeff_diag_stencil_list
   ser_fpo_diff_coeff_diag_vx_kernels[] = {
     {{{NULL, NULL, NULL},
-      {fpo_diff_coeff_diag_1x3v_vx_ser_p1_invx, fpo_diff_coeff_diag_1x3v_vx_ser_p1_lovx,
-       fpo_diff_coeff_diag_1x3v_vx_ser_p1_upvx},
+      {fpo_diff_coeff_diag_1x3v_vx_tensor_p1_invx, fpo_diff_coeff_diag_1x3v_vx_tensor_p1_lovx,
+       fpo_diff_coeff_diag_1x3v_vx_tensor_p1_upvx},
       {fpo_diff_coeff_diag_1x3v_vx_ser_p2_invx, fpo_diff_coeff_diag_1x3v_vx_ser_p2_lovx,
        fpo_diff_coeff_diag_1x3v_vx_ser_p2_upvx}}},
     {{{NULL, NULL, NULL},
-      {fpo_diff_coeff_diag_2x3v_vx_ser_p1_invx, fpo_diff_coeff_diag_2x3v_vx_ser_p1_lovx,
-       fpo_diff_coeff_diag_2x3v_vx_ser_p1_upvx},
+      {fpo_diff_coeff_diag_2x3v_vx_tensor_p1_invx, fpo_diff_coeff_diag_2x3v_vx_tensor_p1_lovx,
+       fpo_diff_coeff_diag_2x3v_vx_tensor_p1_upvx},
       {NULL, NULL, NULL}}}
 };
 
 GKYL_CU_D static const gkyl_dg_fpo_diff_coeff_diag_stencil_list
   ser_fpo_diff_coeff_diag_vy_kernels[] = {
     {{{NULL, NULL, NULL},
-      {fpo_diff_coeff_diag_1x3v_vy_ser_p1_invy, fpo_diff_coeff_diag_1x3v_vy_ser_p1_lovy,
-       fpo_diff_coeff_diag_1x3v_vy_ser_p1_upvy},
+      {fpo_diff_coeff_diag_1x3v_vy_tensor_p1_invy, fpo_diff_coeff_diag_1x3v_vy_tensor_p1_lovy,
+       fpo_diff_coeff_diag_1x3v_vy_tensor_p1_upvy},
       {fpo_diff_coeff_diag_1x3v_vy_ser_p2_invy, fpo_diff_coeff_diag_1x3v_vy_ser_p2_lovy,
        fpo_diff_coeff_diag_1x3v_vy_ser_p2_upvy}}},
     {{{NULL, NULL, NULL},
-      {fpo_diff_coeff_diag_2x3v_vy_ser_p1_invy, fpo_diff_coeff_diag_2x3v_vy_ser_p1_lovy,
-       fpo_diff_coeff_diag_2x3v_vy_ser_p1_upvy},
+      {fpo_diff_coeff_diag_2x3v_vy_tensor_p1_invy, fpo_diff_coeff_diag_2x3v_vy_tensor_p1_lovy,
+       fpo_diff_coeff_diag_2x3v_vy_tensor_p1_upvy},
       {NULL, NULL, NULL}}}
 };
 
 GKYL_CU_D static const gkyl_dg_fpo_diff_coeff_diag_stencil_list
   ser_fpo_diff_coeff_diag_vz_kernels[] = {
     {{{NULL, NULL, NULL},
-      {fpo_diff_coeff_diag_1x3v_vz_ser_p1_invz, fpo_diff_coeff_diag_1x3v_vz_ser_p1_lovz,
-       fpo_diff_coeff_diag_1x3v_vz_ser_p1_upvz},
+      {fpo_diff_coeff_diag_1x3v_vz_tensor_p1_invz, fpo_diff_coeff_diag_1x3v_vz_tensor_p1_lovz,
+       fpo_diff_coeff_diag_1x3v_vz_tensor_p1_upvz},
       {fpo_diff_coeff_diag_1x3v_vz_ser_p2_invz, fpo_diff_coeff_diag_1x3v_vz_ser_p2_lovz,
        fpo_diff_coeff_diag_1x3v_vz_ser_p2_upvz}}},
     {{{NULL, NULL, NULL},
-      {fpo_diff_coeff_diag_2x3v_vz_ser_p1_invz, fpo_diff_coeff_diag_2x3v_vz_ser_p1_lovz,
-       fpo_diff_coeff_diag_2x3v_vz_ser_p1_upvz},
+      {fpo_diff_coeff_diag_2x3v_vz_tensor_p1_invz, fpo_diff_coeff_diag_2x3v_vz_tensor_p1_lovz,
+       fpo_diff_coeff_diag_2x3v_vz_tensor_p1_upvz},
       {NULL, NULL, NULL}}}
 };
 
@@ -84,15 +84,15 @@ GKYL_CU_D static const gkyl_dg_fpo_diff_coeff_cross_stencil_list
   ser_fpo_diff_coeff_cross_vxvy_kernels[] = {
     {{// 1x3v
       {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-      {fpo_diff_coeff_cross_1x3v_vxvy_ser_p1_invx_invy,
-       fpo_diff_coeff_cross_1x3v_vxvy_ser_p1_lovx_invy,
-       fpo_diff_coeff_cross_1x3v_vxvy_ser_p1_upvx_invy,
-       fpo_diff_coeff_cross_1x3v_vxvy_ser_p1_invx_lovy,
-       fpo_diff_coeff_cross_1x3v_vxvy_ser_p1_invx_upvy,
-       fpo_diff_coeff_cross_1x3v_vxvy_ser_p1_lovx_lovy,
-       fpo_diff_coeff_cross_1x3v_vxvy_ser_p1_lovx_upvy,
-       fpo_diff_coeff_cross_1x3v_vxvy_ser_p1_upvx_lovy,
-       fpo_diff_coeff_cross_1x3v_vxvy_ser_p1_upvx_upvy},
+      {fpo_diff_coeff_cross_1x3v_vxvy_tensor_p1_invx_invy,
+       fpo_diff_coeff_cross_1x3v_vxvy_tensor_p1_lovx_invy,
+       fpo_diff_coeff_cross_1x3v_vxvy_tensor_p1_upvx_invy,
+       fpo_diff_coeff_cross_1x3v_vxvy_tensor_p1_invx_lovy,
+       fpo_diff_coeff_cross_1x3v_vxvy_tensor_p1_invx_upvy,
+       fpo_diff_coeff_cross_1x3v_vxvy_tensor_p1_lovx_lovy,
+       fpo_diff_coeff_cross_1x3v_vxvy_tensor_p1_lovx_upvy,
+       fpo_diff_coeff_cross_1x3v_vxvy_tensor_p1_upvx_lovy,
+       fpo_diff_coeff_cross_1x3v_vxvy_tensor_p1_upvx_upvy},
       {fpo_diff_coeff_cross_1x3v_vxvy_ser_p2_invx_invy,
        fpo_diff_coeff_cross_1x3v_vxvy_ser_p2_lovx_invy,
        fpo_diff_coeff_cross_1x3v_vxvy_ser_p2_upvx_invy,
@@ -105,15 +105,15 @@ GKYL_CU_D static const gkyl_dg_fpo_diff_coeff_cross_stencil_list
     }},
     {{// 2x3v
       {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-      {fpo_diff_coeff_cross_2x3v_vxvy_ser_p1_invx_invy,
-       fpo_diff_coeff_cross_2x3v_vxvy_ser_p1_lovx_invy,
-       fpo_diff_coeff_cross_2x3v_vxvy_ser_p1_upvx_invy,
-       fpo_diff_coeff_cross_2x3v_vxvy_ser_p1_invx_lovy,
-       fpo_diff_coeff_cross_2x3v_vxvy_ser_p1_invx_upvy,
-       fpo_diff_coeff_cross_2x3v_vxvy_ser_p1_lovx_lovy,
-       fpo_diff_coeff_cross_2x3v_vxvy_ser_p1_lovx_upvy,
-       fpo_diff_coeff_cross_2x3v_vxvy_ser_p1_upvx_lovy,
-       fpo_diff_coeff_cross_2x3v_vxvy_ser_p1_upvx_upvy},
+      {fpo_diff_coeff_cross_2x3v_vxvy_tensor_p1_invx_invy,
+       fpo_diff_coeff_cross_2x3v_vxvy_tensor_p1_lovx_invy,
+       fpo_diff_coeff_cross_2x3v_vxvy_tensor_p1_upvx_invy,
+       fpo_diff_coeff_cross_2x3v_vxvy_tensor_p1_invx_lovy,
+       fpo_diff_coeff_cross_2x3v_vxvy_tensor_p1_invx_upvy,
+       fpo_diff_coeff_cross_2x3v_vxvy_tensor_p1_lovx_lovy,
+       fpo_diff_coeff_cross_2x3v_vxvy_tensor_p1_lovx_upvy,
+       fpo_diff_coeff_cross_2x3v_vxvy_tensor_p1_upvx_lovy,
+       fpo_diff_coeff_cross_2x3v_vxvy_tensor_p1_upvx_upvy},
       {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}
     }}
 };
@@ -122,15 +122,15 @@ GKYL_CU_D static const gkyl_dg_fpo_diff_coeff_cross_stencil_list
   ser_fpo_diff_coeff_cross_vxvz_kernels[] = {
     {{// 1x3v
       {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-      {fpo_diff_coeff_cross_1x3v_vxvz_ser_p1_invx_invz,
-       fpo_diff_coeff_cross_1x3v_vxvz_ser_p1_lovx_invz,
-       fpo_diff_coeff_cross_1x3v_vxvz_ser_p1_upvx_invz,
-       fpo_diff_coeff_cross_1x3v_vxvz_ser_p1_invx_lovz,
-       fpo_diff_coeff_cross_1x3v_vxvz_ser_p1_invx_upvz,
-       fpo_diff_coeff_cross_1x3v_vxvz_ser_p1_lovx_lovz,
-       fpo_diff_coeff_cross_1x3v_vxvz_ser_p1_lovx_upvz,
-       fpo_diff_coeff_cross_1x3v_vxvz_ser_p1_upvx_lovz,
-       fpo_diff_coeff_cross_1x3v_vxvz_ser_p1_upvx_upvz},
+      {fpo_diff_coeff_cross_1x3v_vxvz_tensor_p1_invx_invz,
+       fpo_diff_coeff_cross_1x3v_vxvz_tensor_p1_lovx_invz,
+       fpo_diff_coeff_cross_1x3v_vxvz_tensor_p1_upvx_invz,
+       fpo_diff_coeff_cross_1x3v_vxvz_tensor_p1_invx_lovz,
+       fpo_diff_coeff_cross_1x3v_vxvz_tensor_p1_invx_upvz,
+       fpo_diff_coeff_cross_1x3v_vxvz_tensor_p1_lovx_lovz,
+       fpo_diff_coeff_cross_1x3v_vxvz_tensor_p1_lovx_upvz,
+       fpo_diff_coeff_cross_1x3v_vxvz_tensor_p1_upvx_lovz,
+       fpo_diff_coeff_cross_1x3v_vxvz_tensor_p1_upvx_upvz},
       {fpo_diff_coeff_cross_1x3v_vxvz_ser_p2_invx_invz,
        fpo_diff_coeff_cross_1x3v_vxvz_ser_p2_lovx_invz,
        fpo_diff_coeff_cross_1x3v_vxvz_ser_p2_upvx_invz,
@@ -143,15 +143,15 @@ GKYL_CU_D static const gkyl_dg_fpo_diff_coeff_cross_stencil_list
     }},
     {{// 2x3v
       {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-      {fpo_diff_coeff_cross_2x3v_vxvz_ser_p1_invx_invz,
-       fpo_diff_coeff_cross_2x3v_vxvz_ser_p1_lovx_invz,
-       fpo_diff_coeff_cross_2x3v_vxvz_ser_p1_upvx_invz,
-       fpo_diff_coeff_cross_2x3v_vxvz_ser_p1_invx_lovz,
-       fpo_diff_coeff_cross_2x3v_vxvz_ser_p1_invx_upvz,
-       fpo_diff_coeff_cross_2x3v_vxvz_ser_p1_lovx_lovz,
-       fpo_diff_coeff_cross_2x3v_vxvz_ser_p1_lovx_upvz,
-       fpo_diff_coeff_cross_2x3v_vxvz_ser_p1_upvx_lovz,
-       fpo_diff_coeff_cross_2x3v_vxvz_ser_p1_upvx_upvz},
+      {fpo_diff_coeff_cross_2x3v_vxvz_tensor_p1_invx_invz,
+       fpo_diff_coeff_cross_2x3v_vxvz_tensor_p1_lovx_invz,
+       fpo_diff_coeff_cross_2x3v_vxvz_tensor_p1_upvx_invz,
+       fpo_diff_coeff_cross_2x3v_vxvz_tensor_p1_invx_lovz,
+       fpo_diff_coeff_cross_2x3v_vxvz_tensor_p1_invx_upvz,
+       fpo_diff_coeff_cross_2x3v_vxvz_tensor_p1_lovx_lovz,
+       fpo_diff_coeff_cross_2x3v_vxvz_tensor_p1_lovx_upvz,
+       fpo_diff_coeff_cross_2x3v_vxvz_tensor_p1_upvx_lovz,
+       fpo_diff_coeff_cross_2x3v_vxvz_tensor_p1_upvx_upvz},
       {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}
     }}
 };
@@ -160,15 +160,15 @@ GKYL_CU_D static const gkyl_dg_fpo_diff_coeff_cross_stencil_list
   ser_fpo_diff_coeff_cross_vyvx_kernels[] = {
     {{// 1x3v
       {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-      {fpo_diff_coeff_cross_1x3v_vyvx_ser_p1_invy_invx,
-       fpo_diff_coeff_cross_1x3v_vyvx_ser_p1_invy_lovx,
-       fpo_diff_coeff_cross_1x3v_vyvx_ser_p1_invy_upvx,
-       fpo_diff_coeff_cross_1x3v_vyvx_ser_p1_lovy_invx,
-       fpo_diff_coeff_cross_1x3v_vyvx_ser_p1_upvy_invx,
-       fpo_diff_coeff_cross_1x3v_vyvx_ser_p1_lovy_lovx,
-       fpo_diff_coeff_cross_1x3v_vyvx_ser_p1_upvy_lovx,
-       fpo_diff_coeff_cross_1x3v_vyvx_ser_p1_lovy_upvx,
-       fpo_diff_coeff_cross_1x3v_vyvx_ser_p1_upvy_upvx},
+      {fpo_diff_coeff_cross_1x3v_vyvx_tensor_p1_invy_invx,
+       fpo_diff_coeff_cross_1x3v_vyvx_tensor_p1_invy_lovx,
+       fpo_diff_coeff_cross_1x3v_vyvx_tensor_p1_invy_upvx,
+       fpo_diff_coeff_cross_1x3v_vyvx_tensor_p1_lovy_invx,
+       fpo_diff_coeff_cross_1x3v_vyvx_tensor_p1_upvy_invx,
+       fpo_diff_coeff_cross_1x3v_vyvx_tensor_p1_lovy_lovx,
+       fpo_diff_coeff_cross_1x3v_vyvx_tensor_p1_upvy_lovx,
+       fpo_diff_coeff_cross_1x3v_vyvx_tensor_p1_lovy_upvx,
+       fpo_diff_coeff_cross_1x3v_vyvx_tensor_p1_upvy_upvx},
       {fpo_diff_coeff_cross_1x3v_vyvx_ser_p2_invy_invx,
        fpo_diff_coeff_cross_1x3v_vyvx_ser_p2_invy_lovx,
        fpo_diff_coeff_cross_1x3v_vyvx_ser_p2_invy_upvx,
@@ -181,15 +181,15 @@ GKYL_CU_D static const gkyl_dg_fpo_diff_coeff_cross_stencil_list
     }},
     {{// 2x3v
       {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-      {fpo_diff_coeff_cross_2x3v_vyvx_ser_p1_invy_invx,
-       fpo_diff_coeff_cross_2x3v_vyvx_ser_p1_invy_lovx,
-       fpo_diff_coeff_cross_2x3v_vyvx_ser_p1_invy_upvx,
-       fpo_diff_coeff_cross_2x3v_vyvx_ser_p1_lovy_invx,
-       fpo_diff_coeff_cross_2x3v_vyvx_ser_p1_upvy_invx,
-       fpo_diff_coeff_cross_2x3v_vyvx_ser_p1_lovy_lovx,
-       fpo_diff_coeff_cross_2x3v_vyvx_ser_p1_upvy_lovx,
-       fpo_diff_coeff_cross_2x3v_vyvx_ser_p1_lovy_upvx,
-       fpo_diff_coeff_cross_2x3v_vyvx_ser_p1_upvy_upvx},
+      {fpo_diff_coeff_cross_2x3v_vyvx_tensor_p1_invy_invx,
+       fpo_diff_coeff_cross_2x3v_vyvx_tensor_p1_invy_lovx,
+       fpo_diff_coeff_cross_2x3v_vyvx_tensor_p1_invy_upvx,
+       fpo_diff_coeff_cross_2x3v_vyvx_tensor_p1_lovy_invx,
+       fpo_diff_coeff_cross_2x3v_vyvx_tensor_p1_upvy_invx,
+       fpo_diff_coeff_cross_2x3v_vyvx_tensor_p1_lovy_lovx,
+       fpo_diff_coeff_cross_2x3v_vyvx_tensor_p1_upvy_lovx,
+       fpo_diff_coeff_cross_2x3v_vyvx_tensor_p1_lovy_upvx,
+       fpo_diff_coeff_cross_2x3v_vyvx_tensor_p1_upvy_upvx},
       {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}
     }}
 };
@@ -198,15 +198,15 @@ GKYL_CU_D static const gkyl_dg_fpo_diff_coeff_cross_stencil_list
   ser_fpo_diff_coeff_cross_vyvz_kernels[] = {
     {{// 1x3v
       {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-      {fpo_diff_coeff_cross_1x3v_vyvz_ser_p1_invy_invz,
-       fpo_diff_coeff_cross_1x3v_vyvz_ser_p1_lovy_invz,
-       fpo_diff_coeff_cross_1x3v_vyvz_ser_p1_upvy_invz,
-       fpo_diff_coeff_cross_1x3v_vyvz_ser_p1_invy_lovz,
-       fpo_diff_coeff_cross_1x3v_vyvz_ser_p1_invy_upvz,
-       fpo_diff_coeff_cross_1x3v_vyvz_ser_p1_lovy_lovz,
-       fpo_diff_coeff_cross_1x3v_vyvz_ser_p1_lovy_upvz,
-       fpo_diff_coeff_cross_1x3v_vyvz_ser_p1_upvy_lovz,
-       fpo_diff_coeff_cross_1x3v_vyvz_ser_p1_upvy_upvz},
+      {fpo_diff_coeff_cross_1x3v_vyvz_tensor_p1_invy_invz,
+       fpo_diff_coeff_cross_1x3v_vyvz_tensor_p1_lovy_invz,
+       fpo_diff_coeff_cross_1x3v_vyvz_tensor_p1_upvy_invz,
+       fpo_diff_coeff_cross_1x3v_vyvz_tensor_p1_invy_lovz,
+       fpo_diff_coeff_cross_1x3v_vyvz_tensor_p1_invy_upvz,
+       fpo_diff_coeff_cross_1x3v_vyvz_tensor_p1_lovy_lovz,
+       fpo_diff_coeff_cross_1x3v_vyvz_tensor_p1_lovy_upvz,
+       fpo_diff_coeff_cross_1x3v_vyvz_tensor_p1_upvy_lovz,
+       fpo_diff_coeff_cross_1x3v_vyvz_tensor_p1_upvy_upvz},
       {fpo_diff_coeff_cross_1x3v_vyvz_ser_p2_invy_invz,
        fpo_diff_coeff_cross_1x3v_vyvz_ser_p2_lovy_invz,
        fpo_diff_coeff_cross_1x3v_vyvz_ser_p2_upvy_invz,
@@ -219,15 +219,15 @@ GKYL_CU_D static const gkyl_dg_fpo_diff_coeff_cross_stencil_list
     }},
     {{// 2x3v
       {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-      {fpo_diff_coeff_cross_2x3v_vyvz_ser_p1_invy_invz,
-       fpo_diff_coeff_cross_2x3v_vyvz_ser_p1_lovy_invz,
-       fpo_diff_coeff_cross_2x3v_vyvz_ser_p1_upvy_invz,
-       fpo_diff_coeff_cross_2x3v_vyvz_ser_p1_invy_lovz,
-       fpo_diff_coeff_cross_2x3v_vyvz_ser_p1_invy_upvz,
-       fpo_diff_coeff_cross_2x3v_vyvz_ser_p1_lovy_lovz,
-       fpo_diff_coeff_cross_2x3v_vyvz_ser_p1_lovy_upvz,
-       fpo_diff_coeff_cross_2x3v_vyvz_ser_p1_upvy_lovz,
-       fpo_diff_coeff_cross_2x3v_vyvz_ser_p1_upvy_upvz},
+      {fpo_diff_coeff_cross_2x3v_vyvz_tensor_p1_invy_invz,
+       fpo_diff_coeff_cross_2x3v_vyvz_tensor_p1_lovy_invz,
+       fpo_diff_coeff_cross_2x3v_vyvz_tensor_p1_upvy_invz,
+       fpo_diff_coeff_cross_2x3v_vyvz_tensor_p1_invy_lovz,
+       fpo_diff_coeff_cross_2x3v_vyvz_tensor_p1_invy_upvz,
+       fpo_diff_coeff_cross_2x3v_vyvz_tensor_p1_lovy_lovz,
+       fpo_diff_coeff_cross_2x3v_vyvz_tensor_p1_lovy_upvz,
+       fpo_diff_coeff_cross_2x3v_vyvz_tensor_p1_upvy_lovz,
+       fpo_diff_coeff_cross_2x3v_vyvz_tensor_p1_upvy_upvz},
       {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}
     }}
 };
@@ -236,15 +236,15 @@ GKYL_CU_D static const gkyl_dg_fpo_diff_coeff_cross_stencil_list
   ser_fpo_diff_coeff_cross_vzvx_kernels[] = {
     {{// 1x3v
       {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-      {fpo_diff_coeff_cross_1x3v_vzvx_ser_p1_invz_invx,
-       fpo_diff_coeff_cross_1x3v_vzvx_ser_p1_invz_lovx,
-       fpo_diff_coeff_cross_1x3v_vzvx_ser_p1_invz_upvx,
-       fpo_diff_coeff_cross_1x3v_vzvx_ser_p1_lovz_invx,
-       fpo_diff_coeff_cross_1x3v_vzvx_ser_p1_upvz_invx,
-       fpo_diff_coeff_cross_1x3v_vzvx_ser_p1_lovz_lovx,
-       fpo_diff_coeff_cross_1x3v_vzvx_ser_p1_upvz_lovx,
-       fpo_diff_coeff_cross_1x3v_vzvx_ser_p1_lovz_upvx,
-       fpo_diff_coeff_cross_1x3v_vzvx_ser_p1_upvz_upvx},
+      {fpo_diff_coeff_cross_1x3v_vzvx_tensor_p1_invz_invx,
+       fpo_diff_coeff_cross_1x3v_vzvx_tensor_p1_invz_lovx,
+       fpo_diff_coeff_cross_1x3v_vzvx_tensor_p1_invz_upvx,
+       fpo_diff_coeff_cross_1x3v_vzvx_tensor_p1_lovz_invx,
+       fpo_diff_coeff_cross_1x3v_vzvx_tensor_p1_upvz_invx,
+       fpo_diff_coeff_cross_1x3v_vzvx_tensor_p1_lovz_lovx,
+       fpo_diff_coeff_cross_1x3v_vzvx_tensor_p1_upvz_lovx,
+       fpo_diff_coeff_cross_1x3v_vzvx_tensor_p1_lovz_upvx,
+       fpo_diff_coeff_cross_1x3v_vzvx_tensor_p1_upvz_upvx},
       {fpo_diff_coeff_cross_1x3v_vzvx_ser_p2_invz_invx,
        fpo_diff_coeff_cross_1x3v_vzvx_ser_p2_invz_lovx,
        fpo_diff_coeff_cross_1x3v_vzvx_ser_p2_invz_upvx,
@@ -257,15 +257,15 @@ GKYL_CU_D static const gkyl_dg_fpo_diff_coeff_cross_stencil_list
     }},
     {{// 2x3v
       {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-      {fpo_diff_coeff_cross_2x3v_vzvx_ser_p1_invz_invx,
-       fpo_diff_coeff_cross_2x3v_vzvx_ser_p1_invz_lovx,
-       fpo_diff_coeff_cross_2x3v_vzvx_ser_p1_invz_upvx,
-       fpo_diff_coeff_cross_2x3v_vzvx_ser_p1_lovz_invx,
-       fpo_diff_coeff_cross_2x3v_vzvx_ser_p1_upvz_invx,
-       fpo_diff_coeff_cross_2x3v_vzvx_ser_p1_lovz_lovx,
-       fpo_diff_coeff_cross_2x3v_vzvx_ser_p1_upvz_lovx,
-       fpo_diff_coeff_cross_2x3v_vzvx_ser_p1_lovz_upvx,
-       fpo_diff_coeff_cross_2x3v_vzvx_ser_p1_upvz_upvx},
+      {fpo_diff_coeff_cross_2x3v_vzvx_tensor_p1_invz_invx,
+       fpo_diff_coeff_cross_2x3v_vzvx_tensor_p1_invz_lovx,
+       fpo_diff_coeff_cross_2x3v_vzvx_tensor_p1_invz_upvx,
+       fpo_diff_coeff_cross_2x3v_vzvx_tensor_p1_lovz_invx,
+       fpo_diff_coeff_cross_2x3v_vzvx_tensor_p1_upvz_invx,
+       fpo_diff_coeff_cross_2x3v_vzvx_tensor_p1_lovz_lovx,
+       fpo_diff_coeff_cross_2x3v_vzvx_tensor_p1_upvz_lovx,
+       fpo_diff_coeff_cross_2x3v_vzvx_tensor_p1_lovz_upvx,
+       fpo_diff_coeff_cross_2x3v_vzvx_tensor_p1_upvz_upvx},
       {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}
     }}
 };
@@ -274,15 +274,15 @@ GKYL_CU_D static const gkyl_dg_fpo_diff_coeff_cross_stencil_list
   ser_fpo_diff_coeff_cross_vzvy_kernels[] = {
     {{// 1x3v
       {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-      {fpo_diff_coeff_cross_1x3v_vzvy_ser_p1_invz_invy,
-       fpo_diff_coeff_cross_1x3v_vzvy_ser_p1_invz_lovy,
-       fpo_diff_coeff_cross_1x3v_vzvy_ser_p1_invz_upvy,
-       fpo_diff_coeff_cross_1x3v_vzvy_ser_p1_lovz_invy,
-       fpo_diff_coeff_cross_1x3v_vzvy_ser_p1_upvz_invy,
-       fpo_diff_coeff_cross_1x3v_vzvy_ser_p1_lovz_lovy,
-       fpo_diff_coeff_cross_1x3v_vzvy_ser_p1_upvz_lovy,
-       fpo_diff_coeff_cross_1x3v_vzvy_ser_p1_lovz_upvy,
-       fpo_diff_coeff_cross_1x3v_vzvy_ser_p1_upvz_upvy},
+      {fpo_diff_coeff_cross_1x3v_vzvy_tensor_p1_invz_invy,
+       fpo_diff_coeff_cross_1x3v_vzvy_tensor_p1_invz_lovy,
+       fpo_diff_coeff_cross_1x3v_vzvy_tensor_p1_invz_upvy,
+       fpo_diff_coeff_cross_1x3v_vzvy_tensor_p1_lovz_invy,
+       fpo_diff_coeff_cross_1x3v_vzvy_tensor_p1_upvz_invy,
+       fpo_diff_coeff_cross_1x3v_vzvy_tensor_p1_lovz_lovy,
+       fpo_diff_coeff_cross_1x3v_vzvy_tensor_p1_upvz_lovy,
+       fpo_diff_coeff_cross_1x3v_vzvy_tensor_p1_lovz_upvy,
+       fpo_diff_coeff_cross_1x3v_vzvy_tensor_p1_upvz_upvy},
       {fpo_diff_coeff_cross_1x3v_vzvy_ser_p2_invz_invy,
        fpo_diff_coeff_cross_1x3v_vzvy_ser_p2_invz_lovy,
        fpo_diff_coeff_cross_1x3v_vzvy_ser_p2_invz_upvy,
@@ -295,30 +295,30 @@ GKYL_CU_D static const gkyl_dg_fpo_diff_coeff_cross_stencil_list
     }},
     {{// 2x3v
       {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-      {fpo_diff_coeff_cross_2x3v_vzvy_ser_p1_invz_invy,
-       fpo_diff_coeff_cross_2x3v_vzvy_ser_p1_invz_lovy,
-       fpo_diff_coeff_cross_2x3v_vzvy_ser_p1_invz_upvy,
-       fpo_diff_coeff_cross_2x3v_vzvy_ser_p1_lovz_invy,
-       fpo_diff_coeff_cross_2x3v_vzvy_ser_p1_upvz_invy,
-       fpo_diff_coeff_cross_2x3v_vzvy_ser_p1_lovz_lovy,
-       fpo_diff_coeff_cross_2x3v_vzvy_ser_p1_upvz_lovy,
-       fpo_diff_coeff_cross_2x3v_vzvy_ser_p1_lovz_upvy,
-       fpo_diff_coeff_cross_2x3v_vzvy_ser_p1_upvz_upvy},
+      {fpo_diff_coeff_cross_2x3v_vzvy_tensor_p1_invz_invy,
+       fpo_diff_coeff_cross_2x3v_vzvy_tensor_p1_invz_lovy,
+       fpo_diff_coeff_cross_2x3v_vzvy_tensor_p1_invz_upvy,
+       fpo_diff_coeff_cross_2x3v_vzvy_tensor_p1_lovz_invy,
+       fpo_diff_coeff_cross_2x3v_vzvy_tensor_p1_upvz_invy,
+       fpo_diff_coeff_cross_2x3v_vzvy_tensor_p1_lovz_lovy,
+       fpo_diff_coeff_cross_2x3v_vzvy_tensor_p1_upvz_lovy,
+       fpo_diff_coeff_cross_2x3v_vzvy_tensor_p1_lovz_upvy,
+       fpo_diff_coeff_cross_2x3v_vzvy_tensor_p1_upvz_upvy},
       {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}
     }}
 };
 // diffusion coefficient surface projection kernel lists
 GKYL_CU_D static const gkyl_dg_fpo_diff_coeff_surf_kern_list ser_fpo_diff_coeff_surf_vx_kernels[] =
-  {{{NULL, fpo_diff_coeff_surf_1x3v_vx_ser_p1, fpo_diff_coeff_surf_1x3v_vx_ser_p2}},
-   {{NULL, fpo_diff_coeff_surf_2x3v_vx_ser_p1, NULL}}};
+  {{{NULL, fpo_diff_coeff_surf_1x3v_vx_tensor_p1, fpo_diff_coeff_surf_1x3v_vx_ser_p2}},
+   {{NULL, fpo_diff_coeff_surf_2x3v_vx_tensor_p1, NULL}}};
 
 GKYL_CU_D static const gkyl_dg_fpo_diff_coeff_surf_kern_list ser_fpo_diff_coeff_surf_vy_kernels[] =
-  {{{NULL, fpo_diff_coeff_surf_1x3v_vy_ser_p1, fpo_diff_coeff_surf_1x3v_vy_ser_p2}},
-   {{NULL, fpo_diff_coeff_surf_2x3v_vy_ser_p1, NULL}}};
+  {{{NULL, fpo_diff_coeff_surf_1x3v_vy_tensor_p1, fpo_diff_coeff_surf_1x3v_vy_ser_p2}},
+   {{NULL, fpo_diff_coeff_surf_2x3v_vy_tensor_p1, NULL}}};
 
 GKYL_CU_D static const gkyl_dg_fpo_diff_coeff_surf_kern_list ser_fpo_diff_coeff_surf_vz_kernels[] =
-  {{{NULL, fpo_diff_coeff_surf_1x3v_vz_ser_p1, fpo_diff_coeff_surf_1x3v_vz_ser_p2}},
-   {{NULL, fpo_diff_coeff_surf_2x3v_vz_ser_p1, NULL}}};
+  {{{NULL, fpo_diff_coeff_surf_1x3v_vz_tensor_p1, fpo_diff_coeff_surf_1x3v_vz_ser_p2}},
+   {{NULL, fpo_diff_coeff_surf_2x3v_vz_tensor_p1, NULL}}};
 
 GKYL_CU_D static fpo_diff_coeff_cross_t
 choose_ser_fpo_diff_coeff_cross_recovery_kern(

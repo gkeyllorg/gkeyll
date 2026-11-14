@@ -181,16 +181,25 @@ vm_species_fpo_init(
       gkyl_exit("vm_species_fpo: the FPO needs self_nu (the prefactor Gamma of the operator).");
     }
 
-    // Basis for the expansions on velocity-space surfaces.
+    // Basis for the expansions on velocity-space surfaces, and number of surface
+    // quadrature nodes (for the sign of the drag coefficient). The FPO supports the p=2
+    // Serendipity basis and the p=1 tensor basis, the hybrid basis with p=1 in
+    // configuration space and p=2 in velocity space.
     struct gkyl_basis surf_basis;
-    if (vms->basis.b_type == GKYL_BASIS_MODAL_SERENDIPITY && app->poly_order == 2) {
+    int num_surf_quad_nodes = 0;
+    if (vms->basis.b_type == GKYL_BASIS_MODAL_SERENDIPITY && app->poly_order == 2 && cdim == 1) {
       gkyl_cart_modal_serendip(&surf_basis, pdim - 1, app->poly_order);
+      num_surf_quad_nodes = pow(app->poly_order + 1, pdim - 1);
+    } else if (vms->basis.b_type == GKYL_BASIS_MODAL_HYBRID && cdim <= 2) {
+      gkyl_cart_modal_hybrid(&surf_basis, cdim, vdim - 1);
+      num_surf_quad_nodes = pow(2, cdim) * pow(3, vdim - 1);
     } else {
-      gkyl_exit("vm_species_fpo: the FPO only supports the p=2 Serendipity basis.");
+      gkyl_exit(
+        "vm_species_fpo: the FPO supports the p=2 Serendipity basis (1x3v) and the p=1 tensor "
+        "basis (1x3v and 2x3v)."
+      );
     }
     int num_surf_basis = surf_basis.num_basis;
-    // Number of surface quadrature nodes, for the sign of the drag coefficient.
-    int num_surf_quad_nodes = pow(app->poly_order + 1, pdim - 1);
 
     // Project the prefactor of the operator, Gamma = (q^2/(eps0 m))^2 log(Lambda)/(4 pi),
     // which the user provides through self_nu.

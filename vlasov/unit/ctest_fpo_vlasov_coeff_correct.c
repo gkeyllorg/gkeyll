@@ -1,10 +1,13 @@
 // Tests for the Vlasov FPO routines to compute moments and boundary corrections
 // and resulting corrections to drag and diffusion coefficients.
 //
-// Included are tests for p=1 hybrid and p=2 serendipity.
-// As shown in Rodman 2025 PhD Thesis, the p=2 computation enforces
-// conservation of momentum and energy, so this result is taken as the
-// "correct" result for the hybrid basis.
+// Included are tests for the p=1 tensor hybrid basis (p=1 in configuration space, p=2 in
+// velocity space) and the p=2 Serendipity basis. The reference values are regression values:
+// those of p=2 were generated on Stellar, those of p=1 with the CPU build that first adopted
+// the tensor hybrid kernels (after checking conservation with the regression tests). The
+// energy boundary corrections of the bump tests, and the coefficient corrections that depend
+// on them, were regenerated with a CPU build for both bases after correcting the upper
+// velocity bounds given to the boundary correction updater (they were set to the lower bounds).
 
 #include <acutest.h>
 #include <gkyl_alloc.h>
@@ -76,7 +79,11 @@ fpo_test_moms_init(
   }
   gkyl_rect_grid_init(&tm->vel_grid, vdim, lower, upper, cells);
   gkyl_create_grid_ranges(&tm->vel_grid, ghost, &tm->vel_range_ext, &tm->vel_range);
-  gkyl_cart_modal_serendip(&tm->vel_basis, vdim, phase_basis->poly_order);
+  if (phase_basis->b_type == GKYL_BASIS_MODAL_HYBRID) {
+    gkyl_cart_modal_tensor(&tm->vel_basis, vdim, 2);
+  } else {
+    gkyl_cart_modal_serendip(&tm->vel_basis, vdim, phase_basis->poly_order);
+  }
 
   tm->hamil = mkarr(tm->vel_basis.num_basis, tm->vel_range.volume, use_gpu);
   tm->hamil_inv = mkarr(tm->vel_basis.num_basis, tm->vel_range.volume, use_gpu);
@@ -240,9 +247,16 @@ test_1x3v_square(int poly_order, int NV, bool use_gpu)
   // initialize basis
   struct gkyl_basis phase_basis, conf_basis, surf_basis;
 
-  gkyl_cart_modal_serendip(&phase_basis, pdim, poly_order);
-  gkyl_cart_modal_serendip(&conf_basis, cdim, poly_order);
-  gkyl_cart_modal_serendip(&surf_basis, pdim - 1, poly_order);
+  if (poly_order == 1) {
+    // p=1 is the tensor hybrid basis: p=1 in configuration space, p=2 in velocity space.
+    gkyl_cart_modal_hybrid(&phase_basis, cdim, vdim);
+    gkyl_cart_modal_tensor(&conf_basis, cdim, poly_order);
+    gkyl_cart_modal_hybrid(&surf_basis, cdim, vdim - 1);
+  } else {
+    gkyl_cart_modal_serendip(&phase_basis, pdim, poly_order);
+    gkyl_cart_modal_serendip(&conf_basis, cdim, poly_order);
+    gkyl_cart_modal_serendip(&surf_basis, pdim - 1, poly_order);
+  }
 
   int num_quad = poly_order + 2;
   gkyl_proj_on_basis *proj_distf_square =
@@ -287,7 +301,7 @@ test_1x3v_square(int poly_order, int NV, bool use_gpu)
   double v_bounds[2 * GKYL_MAX_DIM];
   for (int d = 0; d < vdim; ++d) {
     v_bounds[d] = -L;
-    v_bounds[d + vdim] = -L;
+    v_bounds[d + vdim] = L;
   }
   struct gkyl_mom_calc_bcorr *bcorr_calc = gkyl_mom_calc_bcorr_fpo_vlasov_new(
     &phase_grid, &conf_basis, &phase_basis, &phase_range, v_bounds, diff_coeff, use_gpu
@@ -352,14 +366,14 @@ test_1x3v_square(int poly_order, int NV, bool use_gpu)
   }
 
   if ((poly_order == 1) && (NV == 4)) {
-    TEST_CHECK(gkyl_compare_double(fpo_moms_c[0], 2.8421709430e-14, 1e-10));
-    TEST_CHECK(gkyl_compare_double(fpo_moms_c[1], 1.9919077569e-15, 1e-10));
-    TEST_CHECK(gkyl_compare_double(fpo_moms_c[2], 2.1316282073e-14, 1e-10));
-    TEST_CHECK(gkyl_compare_double(fpo_moms_c[3], 1.0361524557e-15, 1e-10));
+    TEST_CHECK(gkyl_compare_double(fpo_moms_c[0], 3.9079850467e-14, 1e-10));
+    TEST_CHECK(gkyl_compare_double(fpo_moms_c[1], 6.4651657510e-16, 1e-10));
+    TEST_CHECK(gkyl_compare_double(fpo_moms_c[2], 7.1054273576e-15, 1e-10));
+    TEST_CHECK(gkyl_compare_double(fpo_moms_c[3], 1.3564427193e-15, 1e-10));
     TEST_CHECK(gkyl_compare_double(fpo_moms_c[4], 0.0000000000e+00, 1e-10));
-    TEST_CHECK(gkyl_compare_double(fpo_moms_c[5], -8.6053253606e-16, 1e-10));
-    TEST_CHECK(gkyl_compare_double(fpo_moms_c[6], 7.5424723327e+02, 1e-10));
-    TEST_CHECK(gkyl_compare_double(fpo_moms_c[7], -1.0515868383e-14, 1e-10));
+    TEST_CHECK(gkyl_compare_double(fpo_moms_c[5], -5.9045901882e-16, 1e-10));
+    TEST_CHECK(gkyl_compare_double(fpo_moms_c[6], 8.4475690126e+02, 1e-10));
+    TEST_CHECK(gkyl_compare_double(fpo_moms_c[7], -1.0272395136e-14, 1e-10));
     TEST_CHECK(gkyl_compare_double(bcorr_c[0], 0.0000000000e+00, 1e-10));
     TEST_CHECK(gkyl_compare_double(bcorr_c[1], 0.0000000000e+00, 1e-10));
     TEST_CHECK(gkyl_compare_double(bcorr_c[2], 0.0000000000e+00, 1e-10));
@@ -376,25 +390,25 @@ test_1x3v_square(int poly_order, int NV, bool use_gpu)
     TEST_CHECK(gkyl_compare_double(bcorr_c[13], 0.0000000000e+00, 1e-10));
     TEST_CHECK(gkyl_compare_double(bcorr_c[14], 0.0000000000e+00, 1e-10));
     TEST_CHECK(gkyl_compare_double(bcorr_c[15], 0.0000000000e+00, 1e-10));
-    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[0], -8.8817841970e-16, 1e-10));
-    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[1], -6.2247117404e-17, 1e-10));
-    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[2], -6.6613381478e-16, 1e-10));
-    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[3], -3.2379764239e-17, 1e-10));
-    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[4], 1.9844966563e-34, 1e-10));
-    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[5], 2.6891641752e-17, 1e-10));
-    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[6], -7.8567420132e+00, 1e-10));
-    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[7], 5.1560651283e-17, 1e-10));
+    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[0], -1.2212453271e-15, 1e-10));
+    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[1], -2.0203642972e-17, 1e-10));
+    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[2], -2.2204460493e-16, 1e-10));
+    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[3], -4.2388834978e-17, 1e-10));
+    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[4], 1.3616730332e-34, 1e-10));
+    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[5], 1.8451844338e-17, 1e-10));
+    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[6], -8.7995510548e+00, 1e-10));
+    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[7], 4.2066914300e-17, 1e-10));
   }
 
   if ((poly_order == 1) && (NV == 8)) {
     TEST_CHECK(gkyl_compare_double(fpo_moms_c[0], -2.0428103653e-14, 1e-10));
-    TEST_CHECK(gkyl_compare_double(fpo_moms_c[1], -4.3478795219e-15, 1e-10));
-    TEST_CHECK(gkyl_compare_double(fpo_moms_c[2], 3.5527136788e-15, 1e-10));
-    TEST_CHECK(gkyl_compare_double(fpo_moms_c[3], -5.0633927005e-15, 1e-10));
-    TEST_CHECK(gkyl_compare_double(fpo_moms_c[4], 8.8817841970e-16, 1e-10));
-    TEST_CHECK(gkyl_compare_double(fpo_moms_c[5], -3.4525448362e-15, 1e-10));
-    TEST_CHECK(gkyl_compare_double(fpo_moms_c[6], 8.2212948426e+02, 1e-10));
-    TEST_CHECK(gkyl_compare_double(fpo_moms_c[7], -7.6594836702e-15, 1e-10));
+    TEST_CHECK(gkyl_compare_double(fpo_moms_c[1], -3.6213625561e-15, 1e-10));
+    TEST_CHECK(gkyl_compare_double(fpo_moms_c[2], 1.1546319456e-14, 1e-10));
+    TEST_CHECK(gkyl_compare_double(fpo_moms_c[3], -1.9084651579e-15, 1e-10));
+    TEST_CHECK(gkyl_compare_double(fpo_moms_c[4], 3.5527136788e-15, 1e-10));
+    TEST_CHECK(gkyl_compare_double(fpo_moms_c[5], -3.9018151609e-16, 1e-10));
+    TEST_CHECK(gkyl_compare_double(fpo_moms_c[6], 8.4475690126e+02, 1e-10));
+    TEST_CHECK(gkyl_compare_double(fpo_moms_c[7], -7.8034380868e-16, 1e-10));
     TEST_CHECK(gkyl_compare_double(bcorr_c[0], 0.0000000000e+00, 1e-10));
     TEST_CHECK(gkyl_compare_double(bcorr_c[1], 0.0000000000e+00, 1e-10));
     TEST_CHECK(gkyl_compare_double(bcorr_c[2], 0.0000000000e+00, 1e-10));
@@ -412,13 +426,13 @@ test_1x3v_square(int poly_order, int NV, bool use_gpu)
     TEST_CHECK(gkyl_compare_double(bcorr_c[14], 0.0000000000e+00, 1e-10));
     TEST_CHECK(gkyl_compare_double(bcorr_c[15], 0.0000000000e+00, 1e-10));
     TEST_CHECK(gkyl_compare_double(coeff_corrs_c[0], 6.3837823916e-16, 1e-10));
-    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[1], 1.3587123506e-16, 1e-10));
-    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[2], -1.1102230246e-16, 1e-10));
-    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[3], 1.5823102189e-16, 1e-10));
-    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[4], -2.7755575616e-17, 1e-10));
-    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[5], 1.0789202613e-16, 1e-10));
-    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[6], -8.5638487944e+00, 1e-10));
-    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[7], 1.6588475860e-17, 1e-10));
+    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[1], 1.1316757988e-16, 1e-10));
+    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[2], -3.6082248300e-16, 1e-10));
+    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[3], 5.9639536183e-17, 1e-10));
+    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[4], -1.1102230246e-16, 1e-10));
+    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[5], 1.2193172378e-17, 1e-10));
+    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[6], -8.7995510548e+00, 1e-10));
+    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[7], -5.6808620362e-17, 1e-10));
   }
 
   if ((poly_order == 2) && (NV == 4)) {
@@ -553,9 +567,16 @@ test_1x3v_bump(int poly_order, int NV, bool use_gpu)
   // initialize basis
   struct gkyl_basis phase_basis, conf_basis, surf_basis;
 
-  gkyl_cart_modal_serendip(&phase_basis, pdim, poly_order);
-  gkyl_cart_modal_serendip(&conf_basis, cdim, poly_order);
-  gkyl_cart_modal_serendip(&surf_basis, pdim - 1, poly_order);
+  if (poly_order == 1) {
+    // p=1 is the tensor hybrid basis: p=1 in configuration space, p=2 in velocity space.
+    gkyl_cart_modal_hybrid(&phase_basis, cdim, vdim);
+    gkyl_cart_modal_tensor(&conf_basis, cdim, poly_order);
+    gkyl_cart_modal_hybrid(&surf_basis, cdim, vdim - 1);
+  } else {
+    gkyl_cart_modal_serendip(&phase_basis, pdim, poly_order);
+    gkyl_cart_modal_serendip(&conf_basis, cdim, poly_order);
+    gkyl_cart_modal_serendip(&surf_basis, pdim - 1, poly_order);
+  }
 
   int num_quad = poly_order + 2;
   gkyl_proj_on_basis *proj_distf_bump =
@@ -600,7 +621,7 @@ test_1x3v_bump(int poly_order, int NV, bool use_gpu)
   double v_bounds[2 * GKYL_MAX_DIM];
   for (int d = 0; d < vdim; ++d) {
     v_bounds[d] = -L;
-    v_bounds[d + vdim] = -L;
+    v_bounds[d + vdim] = L;
   }
   struct gkyl_mom_calc_bcorr *bcorr_calc = gkyl_mom_calc_bcorr_fpo_vlasov_new(
     &phase_grid, &conf_basis, &phase_basis, &phase_range, v_bounds, diff_coeff, use_gpu
@@ -665,73 +686,73 @@ test_1x3v_bump(int poly_order, int NV, bool use_gpu)
   }
 
   if ((poly_order == 1) && (NV == 4)) {
-    TEST_CHECK(gkyl_compare_double(fpo_moms_c[0], 1.1176082568e-01, 1e-10));
-    TEST_CHECK(gkyl_compare_double(fpo_moms_c[1], -3.2040844934e-16, 1e-10));
-    TEST_CHECK(gkyl_compare_double(fpo_moms_c[2], 9.4108748572e-16, 1e-10));
-    TEST_CHECK(gkyl_compare_double(fpo_moms_c[3], 2.6033758658e-16, 1e-10));
-    TEST_CHECK(gkyl_compare_double(fpo_moms_c[4], 2.6020852140e-18, 1e-10));
-    TEST_CHECK(gkyl_compare_double(fpo_moms_c[5], 4.4811268787e-17, 1e-10));
-    TEST_CHECK(gkyl_compare_double(fpo_moms_c[6], 2.0529922609e+01, 1e-10));
-    TEST_CHECK(gkyl_compare_double(fpo_moms_c[7], -5.1691319351e-16, 1e-10));
-    TEST_CHECK(gkyl_compare_double(bcorr_c[0], 8.0716726476e-03, 1e-10));
-    TEST_CHECK(gkyl_compare_double(bcorr_c[1], 5.4016554182e-18, 1e-10));
-    TEST_CHECK(gkyl_compare_double(bcorr_c[2], 2.8528069664e-18, 1e-10));
-    TEST_CHECK(gkyl_compare_double(bcorr_c[3], 3.0706526675e-18, 1e-10));
-    TEST_CHECK(gkyl_compare_double(bcorr_c[4], -3.1035287187e-18, 1e-10));
-    TEST_CHECK(gkyl_compare_double(bcorr_c[5], 1.2264291798e-18, 1e-10));
-    TEST_CHECK(gkyl_compare_double(bcorr_c[6], -3.2286690590e-02, 1e-10));
-    TEST_CHECK(gkyl_compare_double(bcorr_c[7], -3.8794949062e-17, 1e-10));
-    TEST_CHECK(gkyl_compare_double(bcorr_c[8], 1.2727055669e-01, 1e-10));
-    TEST_CHECK(gkyl_compare_double(bcorr_c[9], 1.4581989058e-16, 1e-10));
-    TEST_CHECK(gkyl_compare_double(bcorr_c[10], 8.2819493451e-17, 1e-10));
-    TEST_CHECK(gkyl_compare_double(bcorr_c[11], 7.7057824695e-17, 1e-10));
-    TEST_CHECK(gkyl_compare_double(bcorr_c[12], 5.5063917835e-17, 1e-10));
-    TEST_CHECK(gkyl_compare_double(bcorr_c[13], 1.1040832381e-17, 1e-10));
-    TEST_CHECK(gkyl_compare_double(bcorr_c[14], -9.7549059286e-01, 1e-10));
-    TEST_CHECK(gkyl_compare_double(bcorr_c[15], -8.9733795918e-16, 1e-10));
-    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[0], -2.4692492062e-02, 1e-10));
-    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[1], 4.3645535983e-16, 1e-10));
-    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[2], -8.6714557454e-16, 1e-10));
-    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[3], -1.9740596199e-16, 1e-10));
-    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[4], 6.7558826319e-17, 1e-10));
-    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[5], -3.9655873472e-17, 1e-10));
-    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[6], -7.0705797339e+00, 1e-10));
-    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[7], -3.0865658754e-17, 1e-10));
+    TEST_CHECK(gkyl_compare_double(fpo_moms_c[0], 1.1791515235e-01, 1e-10));
+    TEST_CHECK(gkyl_compare_double(fpo_moms_c[1], -2.2051457391e-16, 1e-10));
+    TEST_CHECK(gkyl_compare_double(fpo_moms_c[2], 8.4546085410e-16, 1e-10));
+    TEST_CHECK(gkyl_compare_double(fpo_moms_c[3], 1.6229760761e-16, 1e-10));
+    TEST_CHECK(gkyl_compare_double(fpo_moms_c[4], -9.3891908137e-17, 1e-10));
+    TEST_CHECK(gkyl_compare_double(fpo_moms_c[5], 1.1734758077e-16, 1e-10));
+    TEST_CHECK(gkyl_compare_double(fpo_moms_c[6], 2.0494508020e+01, 1e-10));
+    TEST_CHECK(gkyl_compare_double(fpo_moms_c[7], -1.1314797668e-15, 1e-10));
+    TEST_CHECK(gkyl_compare_double(bcorr_c[0], 9.6637375780e-03, 1e-10));
+    TEST_CHECK(gkyl_compare_double(bcorr_c[1], -2.4250250528e-18, 1e-10));
+    TEST_CHECK(gkyl_compare_double(bcorr_c[2], 2.2632720351e-18, 1e-10));
+    TEST_CHECK(gkyl_compare_double(bcorr_c[3], 2.2560327305e-18, 1e-10));
+    TEST_CHECK(gkyl_compare_double(bcorr_c[4], 2.2022856629e-19, 1e-10));
+    TEST_CHECK(gkyl_compare_double(bcorr_c[5], 3.3651310126e-19, 1e-10));
+    TEST_CHECK(gkyl_compare_double(bcorr_c[6], 1.7138908839e-01, 1e-10));
+    TEST_CHECK(gkyl_compare_double(bcorr_c[7], -6.7008311594e-19, 1e-10));
+    TEST_CHECK(gkyl_compare_double(bcorr_c[8], 1.6135052317e-01, 1e-10));
+    TEST_CHECK(gkyl_compare_double(bcorr_c[9], -5.8732794233e-17, 1e-10));
+    TEST_CHECK(gkyl_compare_double(bcorr_c[10], 5.5402731014e-17, 1e-10));
+    TEST_CHECK(gkyl_compare_double(bcorr_c[11], 3.0562771597e-17, 1e-10));
+    TEST_CHECK(gkyl_compare_double(bcorr_c[12], -1.7780915629e-17, 1e-10));
+    TEST_CHECK(gkyl_compare_double(bcorr_c[13], -5.1105779546e-18, 1e-10));
+    TEST_CHECK(gkyl_compare_double(bcorr_c[14], 3.0624441269e+00, 1e-10));
+    TEST_CHECK(gkyl_compare_double(bcorr_c[15], 1.9020439616e-16, 1e-10));
+    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[0], 2.3093235528e-03, 1e-10));
+    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[1], 1.7515169410e-16, 1e-10));
+    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[2], -7.9603892455e-16, 1e-10));
+    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[3], -1.4174423659e-16, 1e-10));
+    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[4], 7.4584750752e-17, 1e-10));
+    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[5], -1.2331661761e-16, 1e-10));
+    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[6], -6.0163813831e+00, 1e-10));
+    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[7], 4.0478582324e-16, 1e-10));
   }
 
   if ((poly_order == 1) && (NV == 8)) {
-    TEST_CHECK(gkyl_compare_double(fpo_moms_c[0], 1.1442657996e-01, 1e-10));
-    TEST_CHECK(gkyl_compare_double(fpo_moms_c[1], 2.5642265864e-17, 1e-10));
-    TEST_CHECK(gkyl_compare_double(fpo_moms_c[2], 1.5666721392e-17, 1e-10));
-    TEST_CHECK(gkyl_compare_double(fpo_moms_c[3], -6.9945533700e-17, 1e-10));
-    TEST_CHECK(gkyl_compare_double(fpo_moms_c[4], -1.6032639626e-17, 1e-10));
-    TEST_CHECK(gkyl_compare_double(fpo_moms_c[5], -6.5251993915e-17, 1e-10));
-    TEST_CHECK(gkyl_compare_double(fpo_moms_c[6], 2.0434307818e+01, 1e-10));
-    TEST_CHECK(gkyl_compare_double(fpo_moms_c[7], 6.8669677532e-17, 1e-10));
-    TEST_CHECK(gkyl_compare_double(bcorr_c[0], 9.2895217299e-03, 1e-10));
-    TEST_CHECK(gkyl_compare_double(bcorr_c[1], -5.2888124503e-19, 1e-10));
-    TEST_CHECK(gkyl_compare_double(bcorr_c[2], -5.5353603103e-19, 1e-10));
-    TEST_CHECK(gkyl_compare_double(bcorr_c[3], 6.6439114953e-20, 1e-10));
-    TEST_CHECK(gkyl_compare_double(bcorr_c[4], -7.2590723580e-19, 1e-10));
-    TEST_CHECK(gkyl_compare_double(bcorr_c[5], 4.7713078789e-20, 1e-10));
-    TEST_CHECK(gkyl_compare_double(bcorr_c[6], -3.7158086920e-02, 1e-10));
-    TEST_CHECK(gkyl_compare_double(bcorr_c[7], 1.6589162051e-18, 1e-10));
-    TEST_CHECK(gkyl_compare_double(bcorr_c[8], 1.5290115501e-01, 1e-10));
-    TEST_CHECK(gkyl_compare_double(bcorr_c[9], -1.1774855031e-18, 1e-10));
-    TEST_CHECK(gkyl_compare_double(bcorr_c[10], 2.4733362060e-18, 1e-10));
-    TEST_CHECK(gkyl_compare_double(bcorr_c[11], 3.0970016228e-18, 1e-10));
-    TEST_CHECK(gkyl_compare_double(bcorr_c[12], 2.4733362060e-18, 1e-10));
-    TEST_CHECK(gkyl_compare_double(bcorr_c[13], 3.0352862958e-19, 1e-10));
-    TEST_CHECK(gkyl_compare_double(bcorr_c[14], -5.2148267350e-01, 1e-10));
-    TEST_CHECK(gkyl_compare_double(bcorr_c[15], -1.2814567031e-17, 1e-10));
-    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[0], -6.6464423797e-03, 1e-10));
-    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[1], -2.4644981739e-17, 1e-10));
-    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[2], -1.0428069876e-17, 1e-10));
-    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[3], 7.2207936984e-17, 1e-10));
-    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[4], 2.1880516673e-17, 1e-10));
-    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[5], 6.4864002898e-17, 1e-10));
-    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[6], -6.8762791995e+00, 1e-10));
-    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[7], -7.9471729274e-17, 1e-10));
+    TEST_CHECK(gkyl_compare_double(fpo_moms_c[0], 1.1610542468e-01, 1e-10));
+    TEST_CHECK(gkyl_compare_double(fpo_moms_c[1], 1.6168758246e-16, 1e-10));
+    TEST_CHECK(gkyl_compare_double(fpo_moms_c[2], -2.0873602326e-16, 1e-10));
+    TEST_CHECK(gkyl_compare_double(fpo_moms_c[3], -6.2709164510e-18, 1e-10));
+    TEST_CHECK(gkyl_compare_double(fpo_moms_c[4], -1.1890987327e-16, 1e-10));
+    TEST_CHECK(gkyl_compare_double(fpo_moms_c[5], 3.4231539280e-17, 1e-10));
+    TEST_CHECK(gkyl_compare_double(fpo_moms_c[6], 2.0442234527e+01, 1e-10));
+    TEST_CHECK(gkyl_compare_double(fpo_moms_c[7], 2.5829209294e-17, 1e-10));
+    TEST_CHECK(gkyl_compare_double(bcorr_c[0], 1.0336666910e-02, 1e-10));
+    TEST_CHECK(gkyl_compare_double(bcorr_c[1], -9.6296026857e-19, 1e-10));
+    TEST_CHECK(gkyl_compare_double(bcorr_c[2], 1.8126505071e-19, 1e-10));
+    TEST_CHECK(gkyl_compare_double(bcorr_c[3], 2.7912168714e-19, 1e-10));
+    TEST_CHECK(gkyl_compare_double(bcorr_c[4], -4.3622196784e-20, 1e-10));
+    TEST_CHECK(gkyl_compare_double(bcorr_c[5], 1.3724039117e-19, 1e-10));
+    TEST_CHECK(gkyl_compare_double(bcorr_c[6], 5.5150718490e-02, 1e-10));
+    TEST_CHECK(gkyl_compare_double(bcorr_c[7], 2.1863927610e-18, 1e-10));
+    TEST_CHECK(gkyl_compare_double(bcorr_c[8], 1.7172613954e-01, 1e-10));
+    TEST_CHECK(gkyl_compare_double(bcorr_c[9], -1.4051844703e-17, 1e-10));
+    TEST_CHECK(gkyl_compare_double(bcorr_c[10], -1.1451885447e-18, 1e-10));
+    TEST_CHECK(gkyl_compare_double(bcorr_c[11], 4.4614987849e-18, 1e-10));
+    TEST_CHECK(gkyl_compare_double(bcorr_c[12], -2.3920210430e-18, 1e-10));
+    TEST_CHECK(gkyl_compare_double(bcorr_c[13], 1.7068533809e-18, 1e-10));
+    TEST_CHECK(gkyl_compare_double(bcorr_c[14], 1.0009841486e+00, 1e-10));
+    TEST_CHECK(gkyl_compare_double(bcorr_c[15], 3.2786821285e-17, 1e-10));
+    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[0], 7.9162200171e-03, 1e-10));
+    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[1], -1.7023697821e-16, 1e-10));
+    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[2], 2.0525496613e-16, 1e-10));
+    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[3], 9.3087033744e-18, 1e-10));
+    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[4], 1.1590889755e-16, 1e-10));
+    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[5], -3.2958785618e-17, 1e-10));
+    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[6], -6.5190290172e+00, 1e-10));
+    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[7], -5.9422194769e-17, 1e-10));
   }
 
   if ((poly_order == 2) && (NV == 4)) {
@@ -752,14 +773,14 @@ test_1x3v_bump(int poly_order, int NV, bool use_gpu)
     TEST_CHECK(gkyl_compare_double(bcorr_c[6], 3.9437854024e-18, 1e-10));
     TEST_CHECK(gkyl_compare_double(bcorr_c[7], 1.0419175869e-18, 1e-10));
     TEST_CHECK(gkyl_compare_double(bcorr_c[8], -7.2134147934e-19, 1e-10));
-    TEST_CHECK(gkyl_compare_double(bcorr_c[9], -3.8875043712e-02, 1e-10));
+    TEST_CHECK(gkyl_compare_double(bcorr_c[9], 1.9884276654e-01, 1e-10));
     TEST_CHECK(gkyl_compare_double(bcorr_c[10], 8.2788993820e-18, 1e-10));
     TEST_CHECK(gkyl_compare_double(bcorr_c[11], 1.8473779258e-17, 1e-10));
     TEST_CHECK(gkyl_compare_double(bcorr_c[12], 1.6228429244e-01, 1e-10));
     TEST_CHECK(gkyl_compare_double(bcorr_c[13], 1.3764516147e-16, 1e-10));
     TEST_CHECK(gkyl_compare_double(bcorr_c[14], -8.5130270446e-17, 1e-10));
     TEST_CHECK(gkyl_compare_double(bcorr_c[15], -9.1181402706e-17, 1e-10));
-    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[0], -1.2348316748e-03, 1e-10));
+    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[0], 5.0693737855e-03, 1e-10));
     TEST_CHECK(gkyl_compare_double(coeff_corrs_c[1], 3.3139414810e-16, 1e-10));
     TEST_CHECK(gkyl_compare_double(coeff_corrs_c[2], -1.1473213591e-16, 1e-10));
     TEST_CHECK(gkyl_compare_double(coeff_corrs_c[3], 1.0264285073e-15, 1e-10));
@@ -787,14 +808,14 @@ test_1x3v_bump(int poly_order, int NV, bool use_gpu)
     TEST_CHECK(gkyl_compare_double(bcorr_c[6], 3.7269449679e-20, 1e-10));
     TEST_CHECK(gkyl_compare_double(bcorr_c[7], -9.5682677541e-20, 1e-10));
     TEST_CHECK(gkyl_compare_double(bcorr_c[8], 1.7471425182e-20, 1e-10));
-    TEST_CHECK(gkyl_compare_double(bcorr_c[9], -3.9888185020e-02, 1e-10));
+    TEST_CHECK(gkyl_compare_double(bcorr_c[9], 5.4683720399e-02, 1e-10));
     TEST_CHECK(gkyl_compare_double(bcorr_c[10], -8.7789158807e-18, 1e-10));
     TEST_CHECK(gkyl_compare_double(bcorr_c[11], 3.4116279122e-18, 1e-10));
     TEST_CHECK(gkyl_compare_double(bcorr_c[12], 1.6589403275e-01, 1e-10));
     TEST_CHECK(gkyl_compare_double(bcorr_c[13], 8.5636755422e-17, 1e-10));
     TEST_CHECK(gkyl_compare_double(bcorr_c[14], -1.9309248406e-17, 1e-10));
     TEST_CHECK(gkyl_compare_double(bcorr_c[15], -6.2612675461e-18, 1e-10));
-    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[0], 2.4172048298e-03, 1e-10));
+    TEST_CHECK(gkyl_compare_double(coeff_corrs_c[0], 4.8906611506e-03, 1e-10));
     TEST_CHECK(gkyl_compare_double(coeff_corrs_c[1], 4.9019585586e-16, 1e-10));
     TEST_CHECK(gkyl_compare_double(coeff_corrs_c[2], -5.5783373589e-17, 1e-10));
     TEST_CHECK(gkyl_compare_double(coeff_corrs_c[3], 7.2244614701e-17, 1e-10));
@@ -912,15 +933,20 @@ test_1x3v_bump_p2_8_cu()
 }
 
 TEST_LIST = {
-  // The p=1 cases are not run: they exercise p=1 basis combinations of the fpo-john branch
-  // that the merged code does not support (p=1 in the Vlasov solver is the tensor hybrid
-  // basis). They return with the tensor hybrid kernels.
+  {"test_1x3v_square_p1_4", test_1x3v_square_p1_4},
+  {"test_1x3v_square_p1_8", test_1x3v_square_p1_8},
+  {"test_1x3v_bump_p1_4", test_1x3v_bump_p1_4},
+  {"test_1x3v_bump_p1_8", test_1x3v_bump_p1_8},
   {"test_1x3v_square_p2_4", test_1x3v_square_p2_4},
   {"test_1x3v_square_p2_8", test_1x3v_square_p2_8},
   {"test_1x3v_bump_p2_4", test_1x3v_bump_p2_4},
   {"test_1x3v_bump_p2_8", test_1x3v_bump_p2_8},
 
 #ifdef GKYL_HAVE_CUDA
+  {"test_1x3v_square_p1_4_cu", test_1x3v_square_p1_4_cu},
+  {"test_1x3v_square_p1_8_cu", test_1x3v_square_p1_8_cu},
+  {"test_1x3v_bump_p1_4_cu", test_1x3v_bump_p1_4_cu},
+  {"test_1x3v_bump_p1_8_cu", test_1x3v_bump_p1_8_cu},
   {"test_1x3v_square_p2_4_cu", test_1x3v_square_p2_4_cu},
   {"test_1x3v_square_p2_8_cu", test_1x3v_square_p2_8_cu},
   {"test_1x3v_bump_p2_4_cu", test_1x3v_bump_p2_4_cu},

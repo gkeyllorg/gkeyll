@@ -44,6 +44,9 @@ set_cu_ptrs(
   const gkyl_mom_fpo_vlasov_kern_list *mom_fpo_vlasov_kernels;
 
   switch (b_type) {
+    // The p=1 kernels are those of the tensor hybrid basis, whose configuration-space
+    // basis is the p=1 tensor basis.
+    case GKYL_BASIS_MODAL_TENSOR:
     case GKYL_BASIS_MODAL_SERENDIPITY:
       mom_fpo_vlasov_kernels = ser_mom_fpo_vlasov_kernels;
       break;

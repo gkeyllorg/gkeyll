@@ -36,15 +36,15 @@ typedef struct {
 GKYL_CU_D static const gkyl_dg_fpo_drag_coeff_stencil_list ser_fpo_drag_coeff_vx_kernels[] = {
   {{// 1x3v
     {NULL, NULL, NULL},
-    {fpo_drag_coeff_1x3v_vx_ser_p1_invx, fpo_drag_coeff_1x3v_vx_ser_p1_lovx,
-     fpo_drag_coeff_1x3v_vx_ser_p1_upvx},
+    {fpo_drag_coeff_1x3v_vx_tensor_p1_invx, fpo_drag_coeff_1x3v_vx_tensor_p1_lovx,
+     fpo_drag_coeff_1x3v_vx_tensor_p1_upvx},
     {fpo_drag_coeff_1x3v_vx_ser_p2_invx, fpo_drag_coeff_1x3v_vx_ser_p2_lovx,
      fpo_drag_coeff_1x3v_vx_ser_p2_upvx}
   }},
   {{// 2x3v
     {NULL, NULL, NULL},
-    {fpo_drag_coeff_2x3v_vx_ser_p1_invx, fpo_drag_coeff_2x3v_vx_ser_p1_lovx,
-     fpo_drag_coeff_2x3v_vx_ser_p1_upvx},
+    {fpo_drag_coeff_2x3v_vx_tensor_p1_invx, fpo_drag_coeff_2x3v_vx_tensor_p1_lovx,
+     fpo_drag_coeff_2x3v_vx_tensor_p1_upvx},
     {NULL, NULL, NULL}
   }}
 };
@@ -52,15 +52,15 @@ GKYL_CU_D static const gkyl_dg_fpo_drag_coeff_stencil_list ser_fpo_drag_coeff_vx
 GKYL_CU_D static const gkyl_dg_fpo_drag_coeff_stencil_list ser_fpo_drag_coeff_vy_kernels[] = {
   {{// 1x3v
     {NULL, NULL, NULL},
-    {fpo_drag_coeff_1x3v_vy_ser_p1_invy, fpo_drag_coeff_1x3v_vy_ser_p1_lovy,
-     fpo_drag_coeff_1x3v_vy_ser_p1_upvy},
+    {fpo_drag_coeff_1x3v_vy_tensor_p1_invy, fpo_drag_coeff_1x3v_vy_tensor_p1_lovy,
+     fpo_drag_coeff_1x3v_vy_tensor_p1_upvy},
     {fpo_drag_coeff_1x3v_vy_ser_p2_invy, fpo_drag_coeff_1x3v_vy_ser_p2_lovy,
      fpo_drag_coeff_1x3v_vy_ser_p2_upvy}
   }},
   {{// 2x3v
     {NULL, NULL, NULL},
-    {fpo_drag_coeff_2x3v_vy_ser_p1_invy, fpo_drag_coeff_2x3v_vy_ser_p1_lovy,
-     fpo_drag_coeff_2x3v_vy_ser_p1_upvy},
+    {fpo_drag_coeff_2x3v_vy_tensor_p1_invy, fpo_drag_coeff_2x3v_vy_tensor_p1_lovy,
+     fpo_drag_coeff_2x3v_vy_tensor_p1_upvy},
     {NULL, NULL, NULL}
   }}
 };
@@ -68,15 +68,15 @@ GKYL_CU_D static const gkyl_dg_fpo_drag_coeff_stencil_list ser_fpo_drag_coeff_vy
 GKYL_CU_D static const gkyl_dg_fpo_drag_coeff_stencil_list ser_fpo_drag_coeff_vz_kernels[] = {
   {{// 1x3v
     {NULL, NULL, NULL},
-    {fpo_drag_coeff_1x3v_vz_ser_p1_invz, fpo_drag_coeff_1x3v_vz_ser_p1_lovz,
-     fpo_drag_coeff_1x3v_vz_ser_p1_upvz},
+    {fpo_drag_coeff_1x3v_vz_tensor_p1_invz, fpo_drag_coeff_1x3v_vz_tensor_p1_lovz,
+     fpo_drag_coeff_1x3v_vz_tensor_p1_upvz},
     {fpo_drag_coeff_1x3v_vz_ser_p2_invz, fpo_drag_coeff_1x3v_vz_ser_p2_lovz,
      fpo_drag_coeff_1x3v_vz_ser_p2_upvz}
   }},
   {{// 2x3v
     {NULL, NULL, NULL},
-    {fpo_drag_coeff_2x3v_vz_ser_p1_invz, fpo_drag_coeff_2x3v_vz_ser_p1_lovz,
-     fpo_drag_coeff_2x3v_vz_ser_p1_upvz},
+    {fpo_drag_coeff_2x3v_vz_tensor_p1_invz, fpo_drag_coeff_2x3v_vz_tensor_p1_lovz,
+     fpo_drag_coeff_2x3v_vz_tensor_p1_upvz},
     {NULL, NULL, NULL}
   }}
 };
@@ -85,45 +85,45 @@ GKYL_CU_D static const gkyl_dg_fpo_drag_coeff_stencil_list ser_fpo_drag_coeff_vz
 GKYL_CU_D static const gkyl_dg_fpo_sgn_drag_coeff_stencil_list ser_fpo_sgn_drag_coeff_vx_kernels[] =
   {{{// 1x3v
      {NULL, NULL, NULL},
-     {fpo_sgn_drag_coeff_1x3v_vx_ser_p1_invx, fpo_sgn_drag_coeff_1x3v_vx_ser_p1_lovx,
-      fpo_sgn_drag_coeff_1x3v_vx_ser_p1_upvx},
+     {fpo_sgn_drag_coeff_1x3v_vx_tensor_p1_invx, fpo_sgn_drag_coeff_1x3v_vx_tensor_p1_lovx,
+      fpo_sgn_drag_coeff_1x3v_vx_tensor_p1_upvx},
      {fpo_sgn_drag_coeff_1x3v_vx_ser_p2_invx, fpo_sgn_drag_coeff_1x3v_vx_ser_p2_lovx,
       fpo_sgn_drag_coeff_1x3v_vx_ser_p2_upvx}
    }},
    {{// 2x3v
      {NULL, NULL, NULL},
-     {fpo_sgn_drag_coeff_2x3v_vx_ser_p1_invx, fpo_sgn_drag_coeff_2x3v_vx_ser_p1_lovx,
-      fpo_sgn_drag_coeff_2x3v_vx_ser_p1_upvx},
+     {fpo_sgn_drag_coeff_2x3v_vx_tensor_p1_invx, fpo_sgn_drag_coeff_2x3v_vx_tensor_p1_lovx,
+      fpo_sgn_drag_coeff_2x3v_vx_tensor_p1_upvx},
      {NULL, NULL, NULL}
    }}};
 
 GKYL_CU_D static const gkyl_dg_fpo_sgn_drag_coeff_stencil_list ser_fpo_sgn_drag_coeff_vy_kernels[] =
   {{{// 1x3v
      {NULL, NULL, NULL},
-     {fpo_sgn_drag_coeff_1x3v_vy_ser_p1_invy, fpo_sgn_drag_coeff_1x3v_vy_ser_p1_lovy,
-      fpo_sgn_drag_coeff_1x3v_vy_ser_p1_upvy},
+     {fpo_sgn_drag_coeff_1x3v_vy_tensor_p1_invy, fpo_sgn_drag_coeff_1x3v_vy_tensor_p1_lovy,
+      fpo_sgn_drag_coeff_1x3v_vy_tensor_p1_upvy},
      {fpo_sgn_drag_coeff_1x3v_vy_ser_p2_invy, fpo_sgn_drag_coeff_1x3v_vy_ser_p2_lovy,
       fpo_sgn_drag_coeff_1x3v_vy_ser_p2_upvy}
    }},
    {{// 2x3v
      {NULL, NULL, NULL},
-     {fpo_sgn_drag_coeff_2x3v_vy_ser_p1_invy, fpo_sgn_drag_coeff_2x3v_vy_ser_p1_lovy,
-      fpo_sgn_drag_coeff_2x3v_vy_ser_p1_upvy},
+     {fpo_sgn_drag_coeff_2x3v_vy_tensor_p1_invy, fpo_sgn_drag_coeff_2x3v_vy_tensor_p1_lovy,
+      fpo_sgn_drag_coeff_2x3v_vy_tensor_p1_upvy},
      {NULL, NULL, NULL}
    }}};
 
 GKYL_CU_D static const gkyl_dg_fpo_sgn_drag_coeff_stencil_list ser_fpo_sgn_drag_coeff_vz_kernels[] =
   {{{// 1x3v
      {NULL, NULL, NULL},
-     {fpo_sgn_drag_coeff_1x3v_vz_ser_p1_invz, fpo_sgn_drag_coeff_1x3v_vz_ser_p1_lovz,
-      fpo_sgn_drag_coeff_1x3v_vz_ser_p1_upvz},
+     {fpo_sgn_drag_coeff_1x3v_vz_tensor_p1_invz, fpo_sgn_drag_coeff_1x3v_vz_tensor_p1_lovz,
+      fpo_sgn_drag_coeff_1x3v_vz_tensor_p1_upvz},
      {fpo_sgn_drag_coeff_1x3v_vz_ser_p2_invz, fpo_sgn_drag_coeff_1x3v_vz_ser_p2_lovz,
       fpo_sgn_drag_coeff_1x3v_vz_ser_p2_upvz}
    }},
    {{// 2x3v
      {NULL, NULL, NULL},
-     {fpo_sgn_drag_coeff_2x3v_vz_ser_p1_invz, fpo_sgn_drag_coeff_2x3v_vz_ser_p1_lovz,
-      fpo_sgn_drag_coeff_2x3v_vz_ser_p1_upvz},
+     {fpo_sgn_drag_coeff_2x3v_vz_tensor_p1_invz, fpo_sgn_drag_coeff_2x3v_vz_tensor_p1_lovz,
+      fpo_sgn_drag_coeff_2x3v_vz_tensor_p1_upvz},
      {NULL, NULL, NULL}
    }}};
 

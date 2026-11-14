@@ -44,7 +44,7 @@ set_phase_idx(
 }
 
 GKYL_CU_DH static void
-kernel_mom_bcorr_fpo_vlasov_1x3v_ser_p1(
+kernel_mom_bcorr_fpo_vlasov_1x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, enum gkyl_vel_edge edge
 )
@@ -71,7 +71,7 @@ kernel_mom_bcorr_fpo_vlasov_1x3v_ser_p1(
 
   long linc = gkyl_range_idx(&mom_fpo_vlasov->phase_range, fidx);
 
-  return mom_bcorr_fpo_vlasov_1x3v_ser_p1(
+  return mom_bcorr_fpo_vlasov_1x3v_tensor_p1(
     w, fidx, edge, mom_fpo_vlasov->vBoundary, dx,
     (const double *)gkyl_array_cfetch(mom_fpo_vlasov->auxfields.D, linc), f, out
   );
@@ -112,7 +112,7 @@ kernel_mom_bcorr_fpo_vlasov_1x3v_ser_p2(
 }
 
 GKYL_CU_DH static void
-kernel_mom_bcorr_fpo_vlasov_2x3v_ser_p1(
+kernel_mom_bcorr_fpo_vlasov_2x3v_tensor_p1(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
   const double *f, double *out, enum gkyl_vel_edge edge
 )
@@ -139,7 +139,7 @@ kernel_mom_bcorr_fpo_vlasov_2x3v_ser_p1(
 
   long linc = gkyl_range_idx(&mom_fpo_vlasov->phase_range, fidx);
 
-  return mom_bcorr_fpo_vlasov_2x3v_ser_p1(
+  return mom_bcorr_fpo_vlasov_2x3v_tensor_p1(
     w, fidx, edge, mom_fpo_vlasov->vBoundary, dx,
     (const double *)gkyl_array_cfetch(mom_fpo_vlasov->auxfields.D, linc), f, out
   );
@@ -152,9 +152,9 @@ kernel_mom_bcorr_fpo_vlasov_2x3v_ser_p1(
 // FPO boundary corrections
 GKYL_CU_D static const gkyl_mom_bcorr_fpo_vlasov_kern_list ser_mom_bcorr_fpo_vlasov_kernels[] = {
   // 1x kernels
-  {NULL, kernel_mom_bcorr_fpo_vlasov_1x3v_ser_p1, kernel_mom_bcorr_fpo_vlasov_1x3v_ser_p2}, // 0
+  {NULL, kernel_mom_bcorr_fpo_vlasov_1x3v_tensor_p1, kernel_mom_bcorr_fpo_vlasov_1x3v_ser_p2}, // 0
   // 2x kernels
-  {NULL, kernel_mom_bcorr_fpo_vlasov_2x3v_ser_p1, NULL}, // 1
+  {NULL, kernel_mom_bcorr_fpo_vlasov_2x3v_tensor_p1, NULL}, // 1
   // 3x kernels
   {NULL, NULL, NULL} // 2
 };

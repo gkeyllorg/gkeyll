@@ -92,8 +92,9 @@ test_1x3v(int poly_order, int NV, bool use_gpu)
   struct gkyl_basis phase_basis, conf_basis, surf_basis;
 
   if (poly_order == 1) {
+    // p=1 is the tensor hybrid basis: p=1 in configuration space, p=2 in velocity space.
     gkyl_cart_modal_hybrid(&phase_basis, cdim, vdim);
-    gkyl_cart_modal_serendip(&conf_basis, cdim, poly_order);
+    gkyl_cart_modal_tensor(&conf_basis, cdim, poly_order);
     gkyl_cart_modal_hybrid(&surf_basis, cdim, vdim - 1);
   } else {
     gkyl_cart_modal_serendip(&phase_basis, pdim, poly_order);
@@ -220,115 +221,115 @@ test_1x3v(int poly_order, int NV, bool use_gpu)
   }
 
   if ((poly_order == 1) && (NV == 4)) {
-    TEST_CHECK(gkyl_compare_double(drag_corner[0], 1.095810549941239e-01, 1e-10));
-    TEST_CHECK(gkyl_compare_double(drag_corner[1], 3.205126618773783e-17, 1e-10));
-    TEST_CHECK(gkyl_compare_double(drag_corner[2], 1.291777266167920e-03, 1e-10));
-    TEST_CHECK(gkyl_compare_double(drag_corner[3], 2.128078547005070e-02, 1e-10));
-    TEST_CHECK(gkyl_compare_double(drag_corner[4], 2.128078547005071e-02, 1e-10));
-    TEST_CHECK(gkyl_compare_double(drag_corner[40], 9.170164857944510e-18, 1e-10));
-    TEST_CHECK(gkyl_compare_double(drag_corner[41], 3.430295873452594e-03, 1e-10));
-    TEST_CHECK(gkyl_compare_double(drag_corner[42], 3.430295873452620e-03, 1e-10));
-    TEST_CHECK(gkyl_compare_double(drag_corner[43], -3.765842952865709e-20, 1e-10));
-    TEST_CHECK(gkyl_compare_double(drag_corner[44], -1.483052099668268e-17, 1e-10));
+    TEST_CHECK(gkyl_compare_double(drag_corner[0], 1.0957802248e-01, 1e-10));
+    TEST_CHECK(gkyl_compare_double(drag_corner[1], -4.9415567867e-17, 1e-10));
+    TEST_CHECK(gkyl_compare_double(drag_corner[2], 6.2671381068e-04, 1e-10));
+    TEST_CHECK(gkyl_compare_double(drag_corner[3], 2.1289992907e-02, 1e-10));
+    TEST_CHECK(gkyl_compare_double(drag_corner[4], 2.1289992907e-02, 1e-10));
+    TEST_CHECK(gkyl_compare_double(drag_corner[40], -2.5274433594e-18, 1e-10));
+    TEST_CHECK(gkyl_compare_double(drag_corner[41], -6.5106217797e-18, 1e-10));
+    TEST_CHECK(gkyl_compare_double(drag_corner[42], -2.1733654521e-18, 1e-10));
+    TEST_CHECK(gkyl_compare_double(drag_corner[43], -2.1535061821e-17, 1e-10));
+    TEST_CHECK(gkyl_compare_double(drag_corner[44], 5.4078567739e-05, 1e-10));
 
-    TEST_CHECK(gkyl_compare_double(drag_int[0], 5.589867293333062e-01, 1e-10));
-    TEST_CHECK(gkyl_compare_double(drag_int[1], -2.434578549940055e-17, 1e-10));
-    TEST_CHECK(gkyl_compare_double(drag_int[2], -2.027334696226242e-01, 1e-10));
-    TEST_CHECK(gkyl_compare_double(drag_int[3], 1.717802364118285e-01, 1e-10));
-    TEST_CHECK(gkyl_compare_double(drag_int[4], 1.717802364118284e-01, 1e-10));
-    TEST_CHECK(gkyl_compare_double(drag_int[40], 9.772415295923033e-17, 1e-10));
-    TEST_CHECK(gkyl_compare_double(drag_int[41], -4.897207895242592e-02, 1e-10));
-    TEST_CHECK(gkyl_compare_double(drag_int[42], -4.897207895242603e-02, 1e-10));
-    TEST_CHECK(gkyl_compare_double(drag_int[43], 4.755413366258080e-18, 1e-10));
-    TEST_CHECK(gkyl_compare_double(drag_int[44], -7.715657365993068e-17, 1e-10));
+    TEST_CHECK(gkyl_compare_double(drag_int[0], 5.9970334621e-01, 1e-10));
+    TEST_CHECK(gkyl_compare_double(drag_int[1], -3.4835699528e-17, 1e-10));
+    TEST_CHECK(gkyl_compare_double(drag_int[2], -1.7386662731e-01, 1e-10));
+    TEST_CHECK(gkyl_compare_double(drag_int[3], 1.8927389074e-01, 1e-10));
+    TEST_CHECK(gkyl_compare_double(drag_int[4], 1.8927389074e-01, 1e-10));
+    TEST_CHECK(gkyl_compare_double(drag_int[40], -2.7806857173e-17, 1e-10));
+    TEST_CHECK(gkyl_compare_double(drag_int[41], -1.0373791980e-17, 1e-10));
+    TEST_CHECK(gkyl_compare_double(drag_int[42], -6.1880002881e-18, 1e-10));
+    TEST_CHECK(gkyl_compare_double(drag_int[43], 6.2008886577e-19, 1e-10));
+    TEST_CHECK(gkyl_compare_double(drag_int[44], 5.6049908838e-05, 1e-10));
 
-    TEST_CHECK(gkyl_compare_double(diff_corner[0], 4.120975908741576e-01, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_corner[1], -1.137122451630595e-15, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_corner[2], 7.340459879874717e-02, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_corner[3], 2.222970184442925e-03, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_corner[4], 2.222970184443600e-03, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_corner[40], -2.047790999881201e-15, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_corner[41], -2.090831320126769e-01, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_corner[42], -4.776559689856714e-03, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_corner[43], -4.043991203671599e-19, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_corner[44], 6.207560694888050e-15, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_corner[80], -9.944586881076160e-01, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_corner[81], -9.005295992832373e-17, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_corner[82], -7.250224296787010e-02, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_corner[83], -2.678663480529459e-18, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_corner[84], -1.513939892248499e+01, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_corner[0], 4.1009998893e-01, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_corner[1], 8.5718139186e-16, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_corner[2], 7.5275719022e-02, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_corner[3], 2.7322422345e-03, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_corner[4], 2.7322422345e-03, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_corner[40], -1.8271977312e-16, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_corner[41], -3.2156216911e-16, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_corner[42], -6.3742957636e-16, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_corner[43], -1.0314396180e-16, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_corner[44], 9.6804526908e-05, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_corner[80], -6.9332740679e-04, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_corner[81], 8.1005109601e-16, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_corner[82], -6.1891790027e-15, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_corner[83], -1.9759325823e-15, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_corner[84], 1.2465676662e-18, 1e-10));
 
-    TEST_CHECK(gkyl_compare_double(diff_int[0], 1.135872411701010e+00, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_int[1], 1.659082095120647e-15, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_int[2], 2.878797851226875e-01, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_int[3], 7.734827163939741e-02, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_int[4], 7.734827163939756e-02, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_int[40], -2.378821585637638e-17, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_int[41], -3.476630083841225e-02, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_int[42], 1.322778488360775e-02, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_int[43], 1.553181111410086e-17, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_int[44], 9.626679327034385e-17, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_int[80], -1.727813622524498e-01, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_int[81], 5.078554630010185e-17, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_int[82], -3.612235595014155e-02, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_int[83], 7.535656947811480e-02, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_int[84], 7.535656947811629e-02, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_int[0], 1.1361360918e+00, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_int[1], 2.6118467600e-15, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_int[2], 3.2279185522e-01, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_int[3], 7.7070123529e-02, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_int[4], 7.7070123529e-02, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_int[40], -1.3684099487e-16, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_int[41], 1.5441006644e-16, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_int[42], -9.4337127140e-17, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_int[43], 2.7825987072e-16, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_int[44], 1.1400909128e-04, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_int[80], -1.8500866926e-03, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_int[81], 1.8955640785e-16, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_int[82], 2.6236734572e-16, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_int[83], 1.0337485959e-16, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_int[84], -4.5232032317e-17, 1e-10));
   }
 
   if ((poly_order == 1) && (NV == 8)) {
-    TEST_CHECK(gkyl_compare_double(drag_corner[0], 8.043905013326492e-02, 1e-10));
-    TEST_CHECK(gkyl_compare_double(drag_corner[1], 6.681547111886805e-17, 1e-10));
-    TEST_CHECK(gkyl_compare_double(drag_corner[2], 8.673212305987487e-05, 1e-10));
-    TEST_CHECK(gkyl_compare_double(drag_corner[3], 6.644772099423301e-03, 1e-10));
-    TEST_CHECK(gkyl_compare_double(drag_corner[4], 6.644772099423183e-03, 1e-10));
-    TEST_CHECK(gkyl_compare_double(drag_corner[40], 2.277673900964550e-16, 1e-10));
-    TEST_CHECK(gkyl_compare_double(drag_corner[41], 3.818437061040478e-04, 1e-10));
-    TEST_CHECK(gkyl_compare_double(drag_corner[42], 3.818437061040592e-04, 1e-10));
-    TEST_CHECK(gkyl_compare_double(drag_corner[43], -2.371305356609339e-18, 1e-10));
-    TEST_CHECK(gkyl_compare_double(drag_corner[44], -1.154591778315290e-17, 1e-10));
+    TEST_CHECK(gkyl_compare_double(drag_corner[0], 8.0437908204e-02, 1e-10));
+    TEST_CHECK(gkyl_compare_double(drag_corner[1], 1.6494310649e-16, 1e-10));
+    TEST_CHECK(gkyl_compare_double(drag_corner[2], 3.4791321315e-05, 1e-10));
+    TEST_CHECK(gkyl_compare_double(drag_corner[3], 6.6446451202e-03, 1e-10));
+    TEST_CHECK(gkyl_compare_double(drag_corner[4], 6.6446451202e-03, 1e-10));
+    TEST_CHECK(gkyl_compare_double(drag_corner[40], -3.1505816345e-18, 1e-10));
+    TEST_CHECK(gkyl_compare_double(drag_corner[41], 1.7127799509e-18, 1e-10));
+    TEST_CHECK(gkyl_compare_double(drag_corner[42], -3.1539068265e-18, 1e-10));
+    TEST_CHECK(gkyl_compare_double(drag_corner[43], 3.4832020723e-17, 1e-10));
+    TEST_CHECK(gkyl_compare_double(drag_corner[44], 4.8921997222e-07, 1e-10));
 
-    TEST_CHECK(gkyl_compare_double(drag_int[0], 1.576946382639403e-01, 1e-10));
-    TEST_CHECK(gkyl_compare_double(drag_int[1], 1.188953625845061e-16, 1e-10));
-    TEST_CHECK(gkyl_compare_double(drag_int[2], 4.222664891606000e-04, 1e-10));
-    TEST_CHECK(gkyl_compare_double(drag_int[3], 1.827984138348965e-02, 1e-10));
-    TEST_CHECK(gkyl_compare_double(drag_int[4], 1.827984138348969e-02, 1e-10));
-    TEST_CHECK(gkyl_compare_double(drag_int[40], 1.987964507289627e-16, 1e-10));
-    TEST_CHECK(gkyl_compare_double(drag_int[41], 1.503942173455321e-03, 1e-10));
-    TEST_CHECK(gkyl_compare_double(drag_int[42], 1.503942173455303e-03, 1e-10));
-    TEST_CHECK(gkyl_compare_double(drag_int[43], 2.318481142034989e-18, 1e-10));
-    TEST_CHECK(gkyl_compare_double(drag_int[44], -2.447807854816279e-17, 1e-10));
+    TEST_CHECK(gkyl_compare_double(drag_int[0], 1.5767743298e-01, 1e-10));
+    TEST_CHECK(gkyl_compare_double(drag_int[1], 1.3173841120e-16, 1e-10));
+    TEST_CHECK(gkyl_compare_double(drag_int[2], 1.7245670964e-04, 1e-10));
+    TEST_CHECK(gkyl_compare_double(drag_int[3], 1.8263418950e-02, 1e-10));
+    TEST_CHECK(gkyl_compare_double(drag_int[4], 1.8263418950e-02, 1e-10));
+    TEST_CHECK(gkyl_compare_double(drag_int[40], 9.0319273399e-18, 1e-10));
+    TEST_CHECK(gkyl_compare_double(drag_int[41], -4.6590896088e-18, 1e-10));
+    TEST_CHECK(gkyl_compare_double(drag_int[42], 8.3731123776e-18, 1e-10));
+    TEST_CHECK(gkyl_compare_double(drag_int[43], -1.7310625109e-17, 1e-10));
+    TEST_CHECK(gkyl_compare_double(drag_int[44], 5.1679262922e-06, 1e-10));
 
-    TEST_CHECK(gkyl_compare_double(diff_corner[0], 3.516528166972110e-01, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_corner[1], -2.318032268066364e-14, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_corner[2], 2.836292195981955e-02, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_corner[3], 4.846105694239989e-04, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_corner[4], 4.846105694117408e-04, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_corner[40], -4.281822206175624e-15, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_corner[41], -1.764471261950191e-01, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_corner[42], -8.002400532628467e-04, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_corner[43], 3.626211965492922e-18, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_corner[44], 3.577987552196691e-14, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_corner[80], -1.898860262321515e+00, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_corner[81], 5.104876636973145e-16, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_corner[82], -5.489989370352569e-02, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_corner[83], 7.144390588480572e-18, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_corner[84], -6.871942084952025e+01, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_corner[0], 3.5183645246e-01, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_corner[1], 8.6129172451e-15, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_corner[2], 2.8049423283e-02, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_corner[3], 5.6189623384e-04, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_corner[4], 5.6189623385e-04, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_corner[40], 5.7739416586e-16, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_corner[41], 6.8560736815e-16, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_corner[42], 4.9965168395e-17, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_corner[43], 2.2994597736e-16, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_corner[44], 1.1523233322e-06, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_corner[80], -5.4094739355e-05, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_corner[81], 1.7612760239e-15, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_corner[82], -1.1817749284e-14, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_corner[83], 1.1837281187e-14, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_corner[84], 2.2845315175e-17, 1e-10));
 
-    TEST_CHECK(gkyl_compare_double(diff_int[0], 4.927660658955392e-01, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_int[1], -8.150070069849288e-15, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_int[2], 5.247247455043080e-02, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_int[3], 2.218332498851510e-03, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_int[4], 2.218332498850941e-03, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_int[40], -7.188539336773149e-15, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_int[41], -1.731377364147767e-03, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_int[42], -1.470196559616578e-03, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_int[43], -2.541601967508565e-16, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_int[44], 9.873332258532541e-16, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_int[80], -2.178427086536855e-01, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_int[81], -1.134058624282138e-16, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_int[82], -2.307290827116994e-02, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_int[83], 1.691234261035588e-03, 1e-10));
-    TEST_CHECK(gkyl_compare_double(diff_int[84], 1.691234261029457e-03, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_int[0], 4.9271652157e-01, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_int[1], -1.3150363908e-14, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_int[2], 5.2728454299e-02, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_int[3], 2.2095876647e-03, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_int[4], 2.2095876647e-03, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_int[40], 1.4651386003e-15, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_int[41], -8.4127363233e-17, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_int[42], -1.8993865843e-16, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_int[43], -6.0384558258e-16, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_int[44], 7.7354501762e-06, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_int[80], -1.6365418417e-04, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_int[81], -5.3378517424e-16, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_int[82], -9.4709407825e-15, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_int[83], 3.6437216418e-15, 1e-10));
+    TEST_CHECK(gkyl_compare_double(diff_int[84], 1.8168112347e-16, 1e-10));
   }
 
   if ((poly_order == 2) && (NV == 4)) {
@@ -506,12 +507,13 @@ test_1x3v_p2_8_cu()
 }
 
 TEST_LIST = {
-  // The p=1 cases are not run: they exercise p=1 basis combinations of the fpo-john branch
-  // that the merged code does not support (p=1 in the Vlasov solver is the tensor hybrid
-  // basis). They return with the tensor hybrid kernels.
+  {"test_1x3v_p1_4", test_1x3v_p1_4},
+  {"test_1x3v_p1_8", test_1x3v_p1_8},
   {"test_1x3v_p2_4", test_1x3v_p2_4},
   {"test_1x3v_p2_8", test_1x3v_p2_8},
 #ifdef GKYL_HAVE_CUDA
+  {"test_1x3v_p1_4_cu", test_1x3v_p1_4_cu},
+  {"test_1x3v_p1_8_cu", test_1x3v_p1_8_cu},
   {"test_1x3v_p2_4_cu", test_1x3v_p2_4_cu},
   {"test_1x3v_p2_8_cu", test_1x3v_p2_8_cu},
 #endif

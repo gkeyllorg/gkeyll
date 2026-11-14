@@ -129,7 +129,7 @@ gkyl_dg_fpo_vlasov_diff_new(
   // ensure non-NULL pointers
   for (int i = 0; i < vdim; ++i) {
     for (int j = 0; j < vdim; ++j) {
-      assert(&fpo_vlasov_diff->surf[i][j]);
+      assert(fpo_vlasov_diff->surf[i][j].kernels[0]);
     }
   }
 

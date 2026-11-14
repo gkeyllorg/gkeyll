@@ -74,6 +74,9 @@ gkyl_mom_bcorr_fpo_vlasov_new(
   const gkyl_mom_bcorr_fpo_vlasov_kern_list *mom_bcorr_fpo_vlasov_kernels;
 
   switch (cbasis->b_type) {
+    // The p=1 kernels are those of the tensor hybrid basis, whose configuration-space
+    // basis is the p=1 tensor basis.
+    case GKYL_BASIS_MODAL_TENSOR:
     case GKYL_BASIS_MODAL_SERENDIPITY:
       mom_bcorr_fpo_vlasov_kernels = ser_mom_bcorr_fpo_vlasov_kernels;
       break;

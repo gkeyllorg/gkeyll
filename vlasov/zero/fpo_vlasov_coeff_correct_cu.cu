@@ -98,6 +98,9 @@ gkyl_fpo_coeff_correct_set_cu_dev_ptrs(
   const gkyl_fpo_coeff_correct_accum_kern_list *accum_kern_list;
 
   switch (b_type) {
+    // The p=1 kernels are those of the tensor hybrid basis, whose configuration-space
+    // basis is the p=1 tensor basis.
+    case GKYL_BASIS_MODAL_TENSOR:
     case GKYL_BASIS_MODAL_SERENDIPITY:
       mat_set_kern_list = ser_fpo_coeff_correct_mat_set_kernels;
       accum_kern_list = ser_fpo_coeff_correct_accum_kernels;
