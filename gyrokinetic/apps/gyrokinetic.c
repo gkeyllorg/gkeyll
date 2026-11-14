@@ -1304,10 +1304,10 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app *app, double t0)
         // Compute the collisionless flux so we can compute the initial boundary flux.
         gk_species_collisionless_flux(app, gks, &gks->collisionless, distf[i]);
 
-        // Compute and store (in the ghost cell of out) the boundary fluxes.
-        gk_species_bflux_rhs(app, &gks->bflux, distf[i], distf[i]);
+        // Compute and store (in the ghost cell of f1) the boundary fluxes.
+        gk_species_bflux_rhs(app, &gks->bflux, distf[i], gks->f1);
         // Compute moments of the boundary fluxes.
-        gk_species_bflux_calc_moms(app, &gks->bflux, distf[i], bflux[i]);
+        gk_species_bflux_calc_moms(app, &gks->bflux, gks->f1, bflux[i]);
       }
     }
 
@@ -1331,17 +1331,23 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app *app, double t0)
     struct gk_species *gks = &app->species[i];
     // Scale the adiabatic species to set its density.
     gk_species_scaling_apply(app, gks, &gks->sca, gks->f, bflux);
-    // Compute the phase-space advection speeds and boundary fluxes as t=0
-    // diagnostics and emission BCs may need them.
-    gk_species_collisionless_flux(app, gks, &gks->collisionless, distf[i]);
-    gk_species_bflux_rhs(app, &gks->bflux, gks->f, gks->f);
-    gk_species_bflux_calc_moms(app, &gks->bflux, gks->f, bflux[i]);
   }
 
   // Apply boundary conditions.
   for (int i = 0; i < app->num_species; ++i) {
     gk_species_apply_bc(app, &app->species[i], t0, distf[i]);
   }
+
+  // Compute the boundary fluxes (in the ghost cell of f1) as t=0 diagnostics
+  // and recycling BCs need them. The surface fluxes use the ghost cells of f.
+  for (int i = 0; i < app->num_species; ++i) {
+    struct gk_species *gks = &app->species[i];
+    gks->gyroaverage(app, gks, app->field->phi_smooth, gks->gyro_phi);
+    gk_species_collisionless_flux(app, gks, &gks->collisionless, distf[i]);
+    gk_species_bflux_rhs(app, &gks->bflux, distf[i], gks->f1);
+    gk_species_bflux_calc_moms(app, &gks->bflux, gks->f1, bflux[i]);
+  }
+
   for (int i = 0; i < app->num_neut_species; ++i) {
     if (!app->neut_species[i].info.is_static) {
       gk_neut_species_apply_bc(app, &app->neut_species[i], distf_neut[i]);
@@ -4578,10 +4584,10 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
           // Compute the collisionless flux so we can compute the initial boundary flux.
           gk_species_collisionless_flux(app, gks, &gks->collisionless, distf[i]);
 
-          // Compute and store (in the ghost cell of of out) the boundary fluxes.
-          gk_species_bflux_rhs(app, &gks->bflux, distf[i], distf[i]);
+          // Compute and store (in the ghost cell of f1) the boundary fluxes.
+          gk_species_bflux_rhs(app, &gks->bflux, distf[i], gks->f1);
           // Compute moments of the boundary fluxes.
-          gk_species_bflux_calc_moms(app, &gks->bflux, distf[i], bflux[i]);
+          gk_species_bflux_calc_moms(app, &gks->bflux, gks->f1, bflux[i]);
         }
       }
 
@@ -4594,23 +4600,21 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
       gkyl_gyrokinetic_app_from_frame_field(app, 0);
     }
 
-    // Compute boundary fluxes, for recycling and diagnostics and adapt the source.
-    for (int i = 0; i < app->num_species; ++i) {
-      struct gk_species *gks = &app->species[i];
-
-      // Compute the collisionless flux so we can compute the initial boundary flux.
-      gk_species_collisionless_flux(app, gks, &gks->collisionless, distf[i]);
-
-      // Compute and store (in the ghost cell of of out) the boundary fluxes.
-      gk_species_bflux_rhs(app, &gks->bflux, distf[i], distf[i]);
-      // Compute moments of the boundary fluxes.
-      gk_species_bflux_calc_moms(app, &gks->bflux, distf[i], bflux[i]);
-    }
-
     // Apply boundary conditions.
     for (int i = 0; i < app->num_species; ++i) {
       gk_species_apply_bc(app, &app->species[i], rstat.stime, distf[i]);
     }
+
+    // Compute boundary fluxes (in the ghost cell of f1), for recycling and diagnostics
+    // and adapt the source. The surface fluxes use the ghost cells of f.
+    for (int i = 0; i < app->num_species; ++i) {
+      struct gk_species *gks = &app->species[i];
+      gks->gyroaverage(app, gks, app->field->phi_smooth, gks->gyro_phi);
+      gk_species_collisionless_flux(app, gks, &gks->collisionless, distf[i]);
+      gk_species_bflux_rhs(app, &gks->bflux, distf[i], gks->f1);
+      gk_species_bflux_calc_moms(app, &gks->bflux, gks->f1, bflux[i]);
+    }
+
     for (int i = 0; i < app->num_neut_species; ++i) {
       gk_neut_species_apply_bc(app, &app->neut_species[i], distf_neut[i]);
     }
