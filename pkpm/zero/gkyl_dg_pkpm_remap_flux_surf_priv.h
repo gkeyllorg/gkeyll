@@ -6,6 +6,7 @@
 
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
+#include <gkyl_dg_conf_nodal_priv.h>
 #include <gkyl_pkpm_harm_coeffs.h>
 #include <gkyl_pkpm_layout.h>
 #include <gkyl_pkpm_remap_flux_kernels.h>
@@ -49,6 +50,12 @@ GKYL_CU_D static const gkyl_dg_pkpm_remap_flux_store_kern_list ser_pkpm_remap_fl
      pkpm_remap_flux_store_z_3x1v_ser_p1} // 2
 };
 
+// Gauss-Legendre points per supermesh interval: exact, the flux being at most cubic there.
+#define PKPM_REMAP_FLUX_VEL_QUAD 3
+// Face-frame moments of the flux: M0, M1, M2 of F, M0 of G and M0 of M0_perp (3), the input of
+// pkpm_harm_fluid_moment_map.
+#define PKPM_REMAP_FLUX_NUM_MOMS 7
+
 // Traces of the frame at one transverse node of a face, and the map of one side to the face frame.
 struct pkpm_remap_flux_side {
   double rho, u[3], xi, b[3], theta; // traces at the node
@@ -70,8 +77,10 @@ struct pkpm_remap_flux_node {
 struct pkpm_remap_flux_cell {
   int k; // velocity cell of the side (-1: outside its grid)
   double w_center, dw; // center and width of the cell
-  double Y[3][8]; // block traces in the face frame, X = Y0 + Y1 eta + Y2 (3 eta^2 - 1)
-  double P[3][8]; // accumulated Legendre projection of the face flux onto the cell, face frame
+  // block traces in the face frame, X = Y0 + Y1 eta + Y2 (3 eta^2 - 1)
+  double Y[PKPM_NUM_VEL_MODES][PKPM_DIST_NUM_BLOCKS];
+  // accumulated Legendre projection of the face flux onto the cell, face frame
+  double P[PKPM_NUM_VEL_MODES][PKPM_DIST_NUM_BLOCKS];
 };
 
 // The sum over a face of the flux weighted for the shares, per receiving side.
@@ -97,9 +106,20 @@ struct gkyl_dg_pkpm_remap_flux_surf {
   double *psi; // Transverse modes at the nodes, [node][mode].
   double *wpsi; // Node weight times the transverse modes, [node][mode].
   double *conf_trace[3]; // Conf basis at the face nodes per direction, [side][node][basis].
-  double *conf_node; // Conf basis at the Gauss-Legendre nodes of a cell, [node][basis].
-  int *line_upper; // Upper node of the line through a node along a direction, [dir][node].
   double *vel_edges; // Edges of the velocity grid.
+
+  // Gauss-Legendre rule of a velocity interval and the velocity modes of the basis: mode m is
+  // vel_norm[m] times the m-th of [1, eta, 3 eta^2 - 1].
+  double vel_ordinates[PKPM_REMAP_FLUX_VEL_QUAD]; // Ordinates on [-1, 1].
+  double vel_weights[PKPM_REMAP_FLUX_VEL_QUAD]; // Weights.
+  double vel_modes[PKPM_REMAP_FLUX_VEL_QUAD][PKPM_NUM_VEL_MODES]; // Modes at the ordinates.
+  double vel_norm[PKPM_NUM_VEL_MODES]; // Normalization of each mode.
+
+  // Gauss-Legendre nodes of a cell (those of gkyl_dg_conf_nodal).
+  dg_conf_nodal_kern_t conf_to_nodal; // Expansion to node values.
+  dg_conf_nodal_kern_t conf_to_modal; // Node values to expansion.
+  int *line_upper; // Upper node of the line through a node along a direction, [dir][node].
+  double node_to_face; // Half the distance between the nodes of a line over that to a face.
 
   // Workspace for one face.
   long *column; // Phase index of each velocity cell, [side][cell].
@@ -108,25 +128,6 @@ struct gkyl_dg_pkpm_remap_flux_surf {
   struct gkyl_supermesh_1d_interval *mesh; // Supermesh of one node.
   struct pkpm_remap_flux_node *nodes; // Frame of every node.
 };
-
-// 3-point Gauss-Legendre on [-1, 1]: exact on every supermesh interval, the flux being at most cubic.
-GKYL_CU_D static const double pkpm_remap_flux_gn3[3] = {
-  -0.7745966692414834, 0.0, 0.7745966692414834
-};
-GKYL_CU_D static const double pkpm_remap_flux_gw3[3] = {
-  0.5555555555555556, 0.8888888888888888, 0.5555555555555556
-};
-// Orthonormal Legendre modes at those nodes, [node][mode].
-GKYL_CU_D static const double pkpm_remap_flux_leg3[3][3] = {
-  {0.7071067811865475, -0.9486832980505138, 0.6324555320336759},
-  {0.7071067811865475, 0.0, -0.7905694150420949},
-  {0.7071067811865475, 0.9486832980505138, 0.6324555320336759}
-};
-
-// Coefficients of the quadratic A + B eta + C (3 eta^2 - 1) per orthonormal Legendre mode.
-#define PKPM_REMAP_FLUX_LEG0 0.7071067811865475
-#define PKPM_REMAP_FLUX_LEG1 1.224744871391589
-#define PKPM_REMAP_FLUX_LEG2 0.7905694150420949
 
 // Value at the node of a p=1 field from its modal coefficients.
 GKYL_CU_DH static inline double
@@ -148,22 +149,22 @@ pkpm_remap_flux_cell_enter(
 )
 {
   int nv = up->num_vel_cells, nt = up->num_surf_basis, na = up->num_trans_modes;
-  const double *G = &up->block_traces[(side * nv + k) * 8 * nt];
-  double X[3][8];
-  for (int c = 0; c < 8; ++c) {
-    double q[3] = {0.0, 0.0, 0.0};
+  const double *G = &up->block_traces[(side * nv + k) * PKPM_DIST_NUM_BLOCKS * nt];
+  double X[PKPM_NUM_VEL_MODES][PKPM_DIST_NUM_BLOCKS];
+  for (int c = 0; c < PKPM_DIST_NUM_BLOCKS; ++c) {
+    double q[PKPM_NUM_VEL_MODES] = {0.0};
     for (int a = 0; a < na; ++a) {
-      for (int m = 0; m < 3; ++m) {
-        q[m] += psi[a] * G[c * nt + a * 3 + m];
+      for (int m = 0; m < PKPM_NUM_VEL_MODES; ++m) {
+        q[m] += psi[a] * G[c * nt + a * PKPM_NUM_VEL_MODES + m];
       }
     }
-    X[0][c] = PKPM_REMAP_FLUX_LEG0 * q[0];
-    X[1][c] = PKPM_REMAP_FLUX_LEG1 * q[1];
-    X[2][c] = PKPM_REMAP_FLUX_LEG2 * q[2];
+    for (int m = 0; m < PKPM_NUM_VEL_MODES; ++m) {
+      X[m][c] = up->vel_norm[m] * q[m];
+    }
   }
-  for (int m = 0; m < 3; ++m) {
+  for (int m = 0; m < PKPM_NUM_VEL_MODES; ++m) {
     pkpm_harm_frame_change(X[m], sd->map.K, sd->map.r, sd->map.c_perp, cell->Y[m]);
-    for (int c = 0; c < 8; ++c) {
+    for (int c = 0; c < PKPM_DIST_NUM_BLOCKS; ++c) {
       cell->P[m][c] = 0.0;
     }
   }
@@ -180,8 +181,8 @@ pkpm_remap_flux_cell_leave(
   const struct pkpm_remap_flux_side *sd, const struct pkpm_remap_flux_cell *cell, double *flux
 )
 {
-  double Z[3][8];
-  for (int m = 0; m < 3; ++m) {
+  double Z[PKPM_NUM_VEL_MODES][PKPM_DIST_NUM_BLOCKS];
+  for (int m = 0; m < PKPM_NUM_VEL_MODES; ++m) {
     pkpm_harm_frame_change(cell->P[m], sd->map.K_inv, sd->map.r_inv, sd->map.c_perp_inv, Z[m]);
   }
   up->store[dir](wpsi, &Z[0][0], flux);
@@ -191,48 +192,51 @@ pkpm_remap_flux_cell_leave(
 // the flux projected per side, the face-frame moments and the shares accumulated.
 GKYL_CU_DH static inline void
 pkpm_remap_flux_point(
-  int dir, double wb, double om, const struct pkpm_remap_flux_node *nd,
-  struct pkpm_remap_flux_cell *cells, double *mom, struct pkpm_remap_flux_share *share
+  const struct gkyl_dg_pkpm_remap_flux_surf *up, int dir, double wb, double om,
+  const struct pkpm_remap_flux_node *nd, struct pkpm_remap_flux_cell *cells, double *mom,
+  struct pkpm_remap_flux_share *share
 )
 {
-  double X[2][8], eta[2], w_side[2];
+  double X[2][PKPM_DIST_NUM_BLOCKS], eta[2], w_side[2];
   for (int s = 0; s < 2; ++s) {
     const struct pkpm_remap_flux_cell *cell = &cells[s];
     w_side[s] = nd->side[s].map.r * wb + nd->side[s].map.c_par;
     if (cell->k < 0) {
-      for (int c = 0; c < 8; ++c) {
+      for (int c = 0; c < PKPM_DIST_NUM_BLOCKS; ++c) {
         X[s][c] = 0.0;
       }
       continue;
     }
     eta[s] = 2.0 * (w_side[s] - cell->w_center) / cell->dw;
     double e2 = 3.0 * eta[s] * eta[s] - 1.0;
-    for (int c = 0; c < 8; ++c) {
+    for (int c = 0; c < PKPM_DIST_NUM_BLOCKS; ++c) {
       X[s][c] = cell->Y[0][c] + cell->Y[1][c] * eta[s] + cell->Y[2][c] * e2;
     }
   }
-  double phi_l[8], phi_r[8], bounds[2], flux[8];
+  double phi_l[PKPM_DIST_NUM_BLOCKS], phi_r[PKPM_DIST_NUM_BLOCKS], bounds[2],
+    flux[PKPM_DIST_NUM_BLOCKS];
   pkpm_harm_conf_flux(dir, X[0], X[1], wb, nd->fc, 1, phi_l, phi_r, bounds);
-  for (int c = 0; c < 8; ++c) {
+  for (int c = 0; c < PKPM_DIST_NUM_BLOCKS; ++c) {
     flux[c] = phi_l[c] + phi_r[c];
   }
 
-  mom[0] += om * flux[0];
-  mom[1] += om * wb * flux[0];
-  mom[2] += om * wb * wb * flux[0];
-  mom[3] += om * flux[1];
+  mom[0] += om * flux[PKPM_DIST_F];
+  mom[1] += om * wb * flux[PKPM_DIST_F];
+  mom[2] += om * wb * wb * flux[PKPM_DIST_F];
+  mom[3] += om * flux[PKPM_DIST_G];
   for (int k = 0; k < 3; ++k) {
-    mom[4 + k] += om * flux[2 + k];
+    mom[4 + k] += om * flux[PKPM_DIST_M0 + k];
   }
 
-  double mass = om * fabs(flux[0]);
+  double mass = om * fabs(flux[PKPM_DIST_F]);
   for (int s = 0; s < 2; ++s) {
     const struct pkpm_remap_flux_side *sd = &nd->side[s];
     struct pkpm_remap_flux_cell *cell = &cells[s];
     const double *ci = sd->map.c_perp_inv;
-    double cM = ci[0] * flux[2] + ci[1] * flux[3] + ci[2] * flux[4];
-    double y_f = sd->map.K_inv * flux[0];
-    double y_g = sd->energy_g * (flux[1] - cM + 0.5 * sd->cc_inv * flux[0]);
+    const double *flux_m0 = &flux[PKPM_DIST_M0];
+    double cM = ci[0] * flux_m0[0] + ci[1] * flux_m0[1] + ci[2] * flux_m0[2];
+    double y_f = sd->map.K_inv * flux[PKPM_DIST_F];
+    double y_g = sd->energy_g * (flux[PKPM_DIST_G] - cM + 0.5 * sd->cc_inv * flux[PKPM_DIST_F]);
     double w2 = w_side[s] * w_side[s];
     double momentum = mass * fabs(w_side[s]);
     double energy = om * (fabs(y_f) * w2 + 2.0 * fabs(y_g));
@@ -245,11 +249,11 @@ pkpm_remap_flux_point(
     }
     double wt = om * sd->map.r * 2.0 / cell->dw;
     double e = eta[s];
-    double leg[3] = {
-      PKPM_REMAP_FLUX_LEG0, PKPM_REMAP_FLUX_LEG1 * e, PKPM_REMAP_FLUX_LEG2 * (3.0 * e * e - 1.0)
+    double leg[PKPM_NUM_VEL_MODES] = {
+      up->vel_norm[0], up->vel_norm[1] * e, up->vel_norm[2] * (3.0 * e * e - 1.0)
     };
-    for (int m = 0; m < 3; ++m) {
-      for (int c = 0; c < 8; ++c) {
+    for (int m = 0; m < PKPM_NUM_VEL_MODES; ++m) {
+      for (int c = 0; c < PKPM_DIST_NUM_BLOCKS; ++c) {
         cell->P[m][c] += wt * leg[m] * flux[c];
       }
     }
@@ -274,26 +278,30 @@ pkpm_remap_flux_blend(const struct pkpm_remap_flux_share *share)
 
 // Thermal speed at one face of a node line of a cell, from the values of the thermal speed and the
 // density at the line's two Gauss-Legendre nodes (lower, upper); sign is +1 for the upper face and
-// -1 for the lower. tau = 1/xi^2 is extrapolated linearly to the face: exact where the pressure is
+// -1 for the lower, and node_to_face is half the distance between the nodes over the distance
+// from their midpoint to the face. tau = 1/xi^2 is extrapolated linearly to the face: exact where the pressure is
 // uniform and the density linear. On the face beyond the hotter node the result is limited to the
 // ratio of the pressure and density traces (p = rho xi^2 at the nodes, both linear along the line),
 // and never below the hot node's own value. A line with a non-positive node value keeps its linear
 // extrapolation.
 GKYL_CU_DH static inline double
-pkpm_remap_flux_xi_line(double xi_lo, double xi_up, double rho_lo, double rho_up, double sign)
+pkpm_remap_flux_xi_line(
+  double xi_lo, double xi_up, double rho_lo, double rho_up, double sign, double node_to_face
+)
 {
-  const double half_sqrt3 = 0.8660254037844386;
+  // slope factor of the linear extrapolation from the two nodes to the face
+  double slope = sign * node_to_face;
   if (!(xi_lo > 0.0 && xi_up > 0.0)) {
-    return 0.5 * (xi_lo + xi_up) + sign * half_sqrt3 * (xi_up - xi_lo);
+    return 0.5 * (xi_lo + xi_up) + slope * (xi_up - xi_lo);
   }
   double tau_lo = 1.0 / (xi_lo * xi_lo), tau_up = 1.0 / (xi_up * xi_up);
-  double tau_face = 0.5 * (tau_lo + tau_up) + sign * half_sqrt3 * (tau_up - tau_lo);
+  double tau_face = 0.5 * (tau_lo + tau_up) + slope * (tau_up - tau_lo);
   double sign_hot = tau_lo < tau_up ? -1.0 : 1.0;
   if (sign == sign_hot) {
     double tau_hot = fmin(tau_lo, tau_up);
     double pres_lo = rho_lo / tau_lo, pres_up = rho_up / tau_up;
-    double pres_face = 0.5 * (pres_lo + pres_up) + sign * half_sqrt3 * (pres_up - pres_lo);
-    double rho_face = 0.5 * (rho_lo + rho_up) + sign * half_sqrt3 * (rho_up - rho_lo);
+    double pres_face = 0.5 * (pres_lo + pres_up) + slope * (pres_up - pres_lo);
+    double rho_face = 0.5 * (rho_lo + rho_up) + slope * (rho_up - rho_lo);
     double tau_min = (pres_face > 0.0 && rho_face > 0.0) ? fmin(tau_hot, rho_face / pres_face) :
                                                            tau_hot;
     tau_face = fmax(tau_face, tau_min);
@@ -310,28 +318,21 @@ pkpm_remap_flux_xi_face(
   const double *xi, double *xi_face
 )
 {
-  int nc = up->num_conf_basis, num_cell_nodes = up->num_cell_nodes;
+  int num_cell_nodes = up->num_cell_nodes;
   const int *line_upper = &up->line_upper[dir * num_cell_nodes];
   double node_xi[PKPM_MAX_CONF_BASIS], node_rho[PKPM_MAX_CONF_BASIS], line[PKPM_MAX_CONF_BASIS];
-  for (int q = 0; q < num_cell_nodes; ++q) {
-    node_xi[q] = pkpm_remap_flux_trace_at(nc, &up->conf_node[q * nc], xi);
-    node_rho[q] = pkpm_remap_flux_trace_at(nc, &up->conf_node[q * nc], fluid);
-  }
+  up->conf_to_nodal(xi, node_xi);
+  up->conf_to_nodal(&fluid[PKPM_FLUID_RHO * up->num_conf_basis], node_rho);
   for (int q = 0; q < num_cell_nodes; ++q) {
     int q_up = line_upper[q];
     if (q_up != q) {
-      line[q] =
-        pkpm_remap_flux_xi_line(node_xi[q], node_xi[q_up], node_rho[q], node_rho[q_up], sign);
+      line[q] = pkpm_remap_flux_xi_line(
+        node_xi[q], node_xi[q_up], node_rho[q], node_rho[q_up], sign, up->node_to_face
+      );
       line[q_up] = line[q];
     }
   }
-  // the 2-point Gauss-Legendre rule (unit weights) is exact for the p=1 projection
-  for (int m = 0; m < nc; ++m) {
-    xi_face[m] = 0.0;
-    for (int q = 0; q < num_cell_nodes; ++q) {
-      xi_face[m] += up->conf_node[q * nc + m] * line[q];
-    }
-  }
+  up->conf_to_modal(line, xi_face);
 }
 
 // Fill the frame of one transverse node of a face; returns whether both sides admit the frame map.
@@ -424,7 +425,7 @@ pkpm_remap_flux_node_sweep(
     nv + 1, up->vel_edges, nd->side[0].map.r, nd->side[0].map.c_par, nv + 1, up->vel_edges,
     nd->side[1].map.r, nd->side[1].map.c_par, nd->num_kinks, nd->kinks, tol, up->mesh
   );
-  for (int m = 0; m < 7; ++m) {
+  for (int m = 0; m < PKPM_REMAP_FLUX_NUM_MOMS; ++m) {
     mom[m] = 0.0;
   }
   struct pkpm_remap_flux_cell cells[2];
@@ -448,10 +449,9 @@ pkpm_remap_flux_node_sweep(
       }
     }
     double mid = 0.5 * (iv->lo + iv->up), half = 0.5 * (iv->up - iv->lo);
-    for (int g = 0; g < 3; ++g) {
+    for (int g = 0; g < PKPM_REMAP_FLUX_VEL_QUAD; ++g) {
       pkpm_remap_flux_point(
-        dir, mid + half * pkpm_remap_flux_gn3[g], half * pkpm_remap_flux_gw3[g], nd, cells, mom,
-        share
+        up, dir, mid + half * up->vel_ordinates[g], half * up->vel_weights[g], nd, cells, mom, share
       );
     }
   }
@@ -479,58 +479,58 @@ pkpm_remap_flux_node_label(
   for (int a = 0; a < na; ++a) {
     blend_wpsi[a] = blend * up->wpsi[node * na + a];
   }
-  double moms[2][7];
+  double moms[2][PKPM_REMAP_FLUX_NUM_MOMS];
   for (int s = 0; s < 2; ++s) {
-    for (int m = 0; m < 7; ++m) {
+    for (int m = 0; m < PKPM_REMAP_FLUX_NUM_MOMS; ++m) {
       moms[s][m] = 0.0;
     }
   }
   for (int k = 0; k < nv; ++k) {
     double dw = up->vel_edges[k + 1] - up->vel_edges[k];
     double w_center = 0.5 * (up->vel_edges[k + 1] + up->vel_edges[k]);
-    double q[2][8][3];
+    double q[2][PKPM_DIST_NUM_BLOCKS][PKPM_NUM_VEL_MODES];
     for (int s = 0; s < 2; ++s) {
-      const double *G = &up->block_traces[(s * nv + k) * 8 * nt];
-      for (int c = 0; c < 8; ++c) {
-        for (int m = 0; m < 3; ++m) {
+      const double *G = &up->block_traces[(s * nv + k) * PKPM_DIST_NUM_BLOCKS * nt];
+      for (int c = 0; c < PKPM_DIST_NUM_BLOCKS; ++c) {
+        for (int m = 0; m < PKPM_NUM_VEL_MODES; ++m) {
           q[s][c][m] = 0.0;
           for (int a = 0; a < na; ++a) {
-            q[s][c][m] += psi[a] * G[c * nt + a * 3 + m];
+            q[s][c][m] += psi[a] * G[c * nt + a * PKPM_NUM_VEL_MODES + m];
           }
         }
       }
     }
-    double proj[3][8];
-    for (int m = 0; m < 3; ++m) {
-      for (int c = 0; c < 8; ++c) {
+    double proj[PKPM_NUM_VEL_MODES][PKPM_DIST_NUM_BLOCKS];
+    for (int m = 0; m < PKPM_NUM_VEL_MODES; ++m) {
+      for (int c = 0; c < PKPM_DIST_NUM_BLOCKS; ++c) {
         proj[m][c] = 0.0;
       }
     }
-    for (int j = 0; j < 3; ++j) {
-      const double *leg = pkpm_remap_flux_leg3[j];
-      double wq = w_center + 0.5 * pkpm_remap_flux_gn3[j] * dw;
-      double X[2][8];
+    for (int j = 0; j < PKPM_REMAP_FLUX_VEL_QUAD; ++j) {
+      const double *leg = up->vel_modes[j];
+      double wq = w_center + 0.5 * up->vel_ordinates[j] * dw;
+      double X[2][PKPM_DIST_NUM_BLOCKS];
       for (int s = 0; s < 2; ++s) {
-        for (int c = 0; c < 8; ++c) {
+        for (int c = 0; c < PKPM_DIST_NUM_BLOCKS; ++c) {
           X[s][c] = q[s][c][0] * leg[0] + q[s][c][1] * leg[1] + q[s][c][2] * leg[2];
         }
       }
-      double phi_l[8], phi_r[8], bounds[2];
+      double phi_l[PKPM_DIST_NUM_BLOCKS], phi_r[PKPM_DIST_NUM_BLOCKS], bounds[2];
       pkpm_harm_conf_flux(dir, X[0], X[1], wq, nd->fc, 1, phi_l, phi_r, bounds);
-      for (int m = 0; m < 3; ++m) {
-        for (int c = 0; c < 8; ++c) {
-          proj[m][c] += pkpm_remap_flux_gw3[j] * leg[m] * (phi_l[c] + phi_r[c]);
+      for (int m = 0; m < PKPM_NUM_VEL_MODES; ++m) {
+        for (int c = 0; c < PKPM_DIST_NUM_BLOCKS; ++c) {
+          proj[m][c] += up->vel_weights[j] * leg[m] * (phi_l[c] + phi_r[c]);
         }
       }
-      double wgt = 0.5 * pkpm_remap_flux_gw3[j] * dw;
+      double wgt = 0.5 * up->vel_weights[j] * dw;
       const double *phi[2] = {phi_l, phi_r};
       for (int s = 0; s < 2; ++s) {
-        moms[s][0] += wgt * phi[s][0];
-        moms[s][1] += wgt * wq * phi[s][0];
-        moms[s][2] += wgt * wq * wq * phi[s][0];
-        moms[s][3] += wgt * phi[s][1];
+        moms[s][0] += wgt * phi[s][PKPM_DIST_F];
+        moms[s][1] += wgt * wq * phi[s][PKPM_DIST_F];
+        moms[s][2] += wgt * wq * wq * phi[s][PKPM_DIST_F];
+        moms[s][3] += wgt * phi[s][PKPM_DIST_G];
         for (int a = 0; a < 3; ++a) {
-          moms[s][4 + a] += wgt * phi[s][2 + a];
+          moms[s][4 + a] += wgt * phi[s][PKPM_DIST_M0 + a];
         }
       }
     }
@@ -538,14 +538,14 @@ pkpm_remap_flux_node_label(
       up->store[dir](blend_wpsi, &proj[0][0], &flux_out[(s * nv + k) * nflux]);
     }
   }
-  for (int m = 0; m < 5; ++m) {
+  for (int m = 0; m < PKPM_FLUID_NUM_COMP; ++m) {
     fluid_flux[m] = 0.0;
   }
   for (int s = 0; s < 2; ++s) {
     const struct pkpm_remap_flux_side *sd = &nd->side[s];
-    double side_flux[5];
+    double side_flux[PKPM_FLUID_NUM_COMP];
     pkpm_harm_fluid_moment_map(moms[s], sd->rho, sd->u, sd->xi, sd->b, side_flux);
-    for (int m = 0; m < 5; ++m) {
+    for (int m = 0; m < PKPM_FLUID_NUM_COMP; ++m) {
       fluid_flux[m] += side_flux[m];
     }
   }

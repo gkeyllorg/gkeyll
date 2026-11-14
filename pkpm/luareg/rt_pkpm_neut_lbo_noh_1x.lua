@@ -8,7 +8,7 @@
 -- about the transport step; rt_pkpm_neut_bgk_noh_1x has the same collision frequency and grid.
 -- Figures of merit (64 x 16 cells) at t = 1, with nu dt = 0.0069 on average: the L1 differences of
 -- the cell averages from the Euler solution (adiabatic index 5/3) are 0.62% (density), 3%
--- (velocity) and 0.78% (pressure), and the density between 1 and 4.061.
+-- (velocity) and 0.78% (pressure), and the density between 1 and 4.06.
 
 local PKPM = G0.PKPM
 

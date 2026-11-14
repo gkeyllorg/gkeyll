@@ -24,8 +24,12 @@ struct gkyl_dg_pkpm_remap_flux_surf_inp {
 /**
  * Create a new updater computing the configuration-space face fluxes of PKPM: the kinetic flux of
  * the eight blocks [F, G, M0_perp, N_perp], the fluid flux [F_rho, F_x, F_y, F_z, F_E] and the
- * time-step rates of both, in one pass (physical_jump_flux.tex, section "The exact remap";
- * PKPM_REMAP_FLUX_PLAN.md).
+ * time-step rates of both, in one pass.
+ *
+ * The distributions are normalized by the fluid state of their own cell (density rho, flow u,
+ * thermal speed xi, and the field direction b), with the velocity coordinate w measured from u in
+ * units of xi. Two cells that share a face therefore hold their distributions in different
+ * frames, and the same label w is a different physical velocity on the two sides.
  *
  * At every transverse Gauss node of a face, rho, u, xi and b are averaged across the face and the
  * two sides' blocks are mapped exactly to that face frame, on the supermesh of both sides' mapped

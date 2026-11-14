@@ -9,7 +9,7 @@
 -- explicitly.
 -- Figures of merit (100 x 16 cells) at t = 0.012, with nu dt = 0.000063 on average: the L1
 -- differences of the cell averages from the Euler solution (adiabatic index 5/3) are 39%
--- (density), 74% (velocity) and 20% (pressure), and the density between 0.6613 and 1.404.
+-- (density), 74% (velocity) and 20% (pressure), and the density between 0.6612 and 1.404.
 
 local PKPM = G0.PKPM
 

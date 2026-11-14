@@ -10,7 +10,7 @@
 // frequency and grid.
 // Figures of merit (100 x 16 cells) at t = 0.012, with nu dt = 0.0072 on average: the L1
 // differences of the cell averages from the Euler solution (adiabatic index 5/3) are 5.2%
-// (density), 5.2% (velocity) and 1.6% (pressure), and the density between 0.6111 and 4.073.
+// (density), 5.2% (velocity) and 1.6% (pressure), and the density between 0.6111 and 4.072.
 
 #include <math.h>
 #include <stdio.h>

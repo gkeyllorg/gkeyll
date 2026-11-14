@@ -1,5 +1,6 @@
 #pragma once
 
+#include <assert.h>
 #include <math.h>
 
 #include <gkyl_util.h>
@@ -54,6 +55,7 @@ gkyl_supermesh_1d_merge(
   struct gkyl_supermesh_1d_interval *intervals
 )
 {
+  assert(r_l > 0.0 && r_r > 0.0);
   const double past_end = 1e300; // finite sentinel (no infinities under -ffast-math)
   int next_l = 1, next_r = 1, next_k = 0, count = 0;
   double x_l = (edges_l[0] - c_l) / r_l, x_r = (edges_r[0] - c_r) / r_r;
