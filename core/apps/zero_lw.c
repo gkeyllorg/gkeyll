@@ -26,17 +26,18 @@ gkyl_tool_args_new(lua_State *L)
 {
   struct gkyl_tool_args *args = gkyl_malloc(sizeof(*args));
 
-  with_lua_global(L, "GKYL_COMMANDS") {
+  with_lua_global(L, "GKYL_COMMANDS")
+  {
     args->argc = glua_objlen(L);
     args->argv = 0;
 
     if (args->argc > 0) {
-      args->argv = gkyl_malloc(args->argc*sizeof(char*));
-    
-      for (int i = 1; i <= glua_objlen(L); ++i)  {
+      args->argv = gkyl_malloc(args->argc * sizeof(char *));
+
+      for (int i = 1; i <= glua_objlen(L); ++i) {
         const char *av = glua_tbl_iget_string(L, i, "x");
-        args->argv[i-1] = gkyl_malloc(1+strlen(av));
-        strcpy(args->argv[i-1], av);
+        args->argv[i - 1] = gkyl_malloc(1 + strlen(av));
+        strcpy(args->argv[i - 1], av);
       }
     }
   }
@@ -45,10 +46,11 @@ gkyl_tool_args_new(lua_State *L)
 }
 
 void
-gkyl_tool_args_release(struct gkyl_tool_args* args)
+gkyl_tool_args_release(struct gkyl_tool_args *args)
 {
-  for (int i=0; i<args->argc; ++i)
+  for (int i = 0; i < args->argc; ++i) {
     gkyl_free(args->argv[i]);
+  }
   gkyl_free(args->argv);
   gkyl_free(args);
 }
@@ -70,31 +72,35 @@ static int
 rect_decomp_lw_new(lua_State *L)
 {
   struct rect_decomp_lw *rd_lw = gkyl_malloc(sizeof(*rd_lw));
-  
+
   int ndim = 1;
-  int cells[GKYL_MAX_DIM] = { 0 }, cuts[GKYL_MAX_DIM] = { 1 };
-  
-  with_lua_tbl_tbl(L, "cells") {
+  int cells[GKYL_MAX_DIM] = {0}, cuts[GKYL_MAX_DIM] = {1};
+
+  with_lua_tbl_tbl(L, "cells")
+  {
     ndim = glua_objlen(L);
-    for (int d=0; d<ndim; ++d)
-      cells[d] = glua_tbl_iget_integer(L, d+1, 0);
+    for (int d = 0; d < ndim; ++d) {
+      cells[d] = glua_tbl_iget_integer(L, d + 1, 0);
+    }
   }
 
-  with_lua_tbl_tbl(L, "cuts") {
-    for (int d=0; d<ndim; ++d)
-      cuts[d] = glua_tbl_iget_integer(L, d+1, 0);
+  with_lua_tbl_tbl(L, "cuts")
+  {
+    for (int d = 0; d < ndim; ++d) {
+      cuts[d] = glua_tbl_iget_integer(L, d + 1, 0);
+    }
   }
 
   rd_lw->decomp = gkyl_rect_decomp_new_from_cuts_and_cells(ndim, cuts, cells);
-  
+
   // create Lua userdata ...
-  struct rect_decomp_lw **l_rd_lw = lua_newuserdata(L, sizeof(struct rect_decomp_lw*));
+  struct rect_decomp_lw **l_rd_lw = lua_newuserdata(L, sizeof(struct rect_decomp_lw *));
   *l_rd_lw = rd_lw; // ... point it to the rect decomp pointer
 
   // set metatable
   luaL_getmetatable(L, RECT_DECOMP_METATABLE_NM);
-  lua_setmetatable(L, -2);  
-  
+  lua_setmetatable(L, -2);
+
   return 1;
 }
 
@@ -107,20 +113,15 @@ rect_decomp_lw_gc(lua_State *L)
 
   gkyl_rect_decomp_release(rd_lw->decomp);
   gkyl_free(*l_rd_lw);
-  
+
   return 0;
 }
 
 // rect_decomp constructor
-static struct luaL_Reg rect_decomp_ctor[] = {
-  { "new",  rect_decomp_lw_new },
-  { 0, 0 }
-};
+static struct luaL_Reg rect_decomp_ctor[] = {{"new", rect_decomp_lw_new}, {0, 0}};
 
 // rect_decomp methods
-static struct luaL_Reg rect_decomp_funcs[] = {
-  {0, 0}
-};
+static struct luaL_Reg rect_decomp_funcs[] = {{0, 0}};
 
 static void
 rect_decomp_openlibs(lua_State *L)
@@ -135,9 +136,9 @@ rect_decomp_openlibs(lua_State *L)
     lua_pushvalue(L, -1);
     lua_setfield(L, -2, "__index");
     luaL_register(L, NULL, rect_decomp_funcs);
-    
+
     luaL_register(L, "G0.Zero.RectDecomp", rect_decomp_ctor);
-    
+
   } while (0);
 }
 
@@ -161,9 +162,7 @@ rect_grid_lw_gc(lua_State *L)
   return 0;
 }
 
-static struct luaL_Reg rect_grid_funcs[] = {
-  { 0, 0 }
-};
+static struct luaL_Reg rect_grid_funcs[] = {{0, 0}};
 
 static void
 rect_grid_openlibs(lua_State *L)
@@ -198,9 +197,7 @@ array_lw_gc(lua_State *L)
   return 0;
 }
 
-static struct luaL_Reg array_funcs[] = {
-  { 0, 0 }
-};
+static struct luaL_Reg array_funcs[] = {{0, 0}};
 
 static void
 array_openlibs(lua_State *L)
@@ -234,9 +231,7 @@ range_lw_gc(lua_State *L)
   return 0;
 }
 
-static struct luaL_Reg range_funcs[] = {
-  { 0, 0 }
-};
+static struct luaL_Reg range_funcs[] = {{0, 0}};
 
 static void
 range_openlibs(lua_State *L)
@@ -294,19 +289,20 @@ gkyl_file_type_lw(lua_State *L)
   //   4 = block-topology, 5 = multi-block-meta
   // names[] is indexed directly by ftype so names[0] is a placeholder.
   static const char *names[] = {
-    NULL,                // [0] — not a valid file type
-    "field",             // [1] — GKYL_FIELD_DATA_FILE
-    "dynvector",         // [2] — GKYL_DYNVEC_DATA_FILE
+    NULL, // [0] — not a valid file type
+    "field", // [1] — GKYL_FIELD_DATA_FILE
+    "dynvector", // [2] — GKYL_DYNVEC_DATA_FILE
     "multi-range-field", // [3] — GKYL_MULTI_RANGE_DATA_FILE
-    "block-topology",    // [4] — GKYL_BLOCK_TOPO_DATA_FILE
-    "multi-block-meta"   // [5] — GKYL_MULTI_BLOCK_DATA_FILE
+    "block-topology", // [4] — GKYL_BLOCK_TOPO_DATA_FILE
+    "multi-block-meta" // [5] — GKYL_MULTI_BLOCK_DATA_FILE
   };
   int nnames = (int)(sizeof(names) / sizeof(names[0]));
 
-  if (ftype <= 0 || ftype >= nnames || names[ftype] == NULL)
+  if (ftype <= 0 || ftype >= nnames || names[ftype] == NULL) {
     lua_pushstring(L, "not-gkyl");
-  else
+  } else {
     lua_pushstring(L, names[ftype]);
+  }
 
   return 1;
 }
@@ -360,9 +356,9 @@ create_grid_ranges_lw(lua_State *L)
   luaL_checktype(L, 2, LUA_TTABLE);
 
   int ndim = (*l_g)->grid.ndim;
-  int nghost[GKYL_MAX_DIM] = { 0 };
+  int nghost[GKYL_MAX_DIM] = {0};
   for (int d = 0; d < ndim; ++d) {
-    lua_rawgeti(L, 2, d+1);
+    lua_rawgeti(L, 2, d + 1);
     nghost[d] = (int)lua_tointeger(L, -1);
     lua_pop(L, 1);
   }
@@ -384,10 +380,9 @@ array_diff_lw(lua_State *L)
 {
   struct array_lw **l_a1 = luaL_checkudata(L, 1, ARRAY_METATABLE_NM);
   struct array_lw **l_a2 = luaL_checkudata(L, 2, ARRAY_METATABLE_NM);
-  struct range_lw **l_r  = luaL_checkudata(L, 3, RANGE_METATABLE_NM);
+  struct range_lw **l_r = luaL_checkudata(L, 3, RANGE_METATABLE_NM);
 
-  struct gkyl_array_diff diff = gkyl_array_diff(
-    (*l_a1)->arr, (*l_a2)->arr, &(*l_r)->range);
+  struct gkyl_array_diff diff = gkyl_array_diff((*l_a1)->arr, (*l_a2)->arr, &(*l_r)->range);
 
   lua_newtable(L);
 
@@ -415,13 +410,20 @@ static int
 dynvec_incompat(lua_State *L)
 {
   lua_newtable(L);
-  lua_pushboolean(L, 0); lua_setfield(L, -2, "is_compatible");
-  lua_pushnumber(L, 0);  lua_setfield(L, -2, "max_abs_diff");
-  lua_pushnumber(L, 0);  lua_setfield(L, -2, "min_abs_diff");
-  lua_pushnumber(L, 0);  lua_setfield(L, -2, "max_rel_diff");
-  lua_pushnumber(L, 0);  lua_setfield(L, -2, "min_rel_diff");
-  lua_pushnumber(L, 0);  lua_setfield(L, -2, "tm_max_abs_diff");
-  lua_pushnumber(L, 0);  lua_setfield(L, -2, "tm_min_abs_diff");
+  lua_pushboolean(L, 0);
+  lua_setfield(L, -2, "is_compatible");
+  lua_pushnumber(L, 0);
+  lua_setfield(L, -2, "max_abs_diff");
+  lua_pushnumber(L, 0);
+  lua_setfield(L, -2, "min_abs_diff");
+  lua_pushnumber(L, 0);
+  lua_setfield(L, -2, "max_rel_diff");
+  lua_pushnumber(L, 0);
+  lua_setfield(L, -2, "min_rel_diff");
+  lua_pushnumber(L, 0);
+  lua_setfield(L, -2, "tm_max_abs_diff");
+  lua_pushnumber(L, 0);
+  lua_setfield(L, -2, "tm_min_abs_diff");
   return 1;
 }
 
@@ -442,13 +444,19 @@ dynvec_diff_lw(lua_State *L)
   struct gkyl_dynvec_etype_ncomp enc2 = gkyl_dynvec_read_ncomp(f2);
 
   // ncomp == 0 means the file couldn't be read or has an invalid header.
-  if (enc1.ncomp == 0 || enc2.ncomp == 0) return dynvec_incompat(L);
+  if (enc1.ncomp == 0 || enc2.ncomp == 0) {
+    return dynvec_incompat(L);
+  }
 
   // gkyl_array_diff only handles GKYL_DOUBLE safely.
-  if (enc1.type != GKYL_DOUBLE || enc2.type != GKYL_DOUBLE) return dynvec_incompat(L);
+  if (enc1.type != GKYL_DOUBLE || enc2.type != GKYL_DOUBLE) {
+    return dynvec_incompat(L);
+  }
 
   // Number of components must match.
-  if (enc1.ncomp != enc2.ncomp) return dynvec_incompat(L);
+  if (enc1.ncomp != enc2.ncomp) {
+    return dynvec_incompat(L);
+  }
 
   // Read full dynvecs.
   gkyl_dynvec dv1 = gkyl_dynvec_new(enc1.type, enc1.ncomp);
@@ -483,19 +491,26 @@ dynvec_diff_lw(lua_State *L)
     gkyl_dynvec_release(dv1);
     gkyl_dynvec_release(dv2);
     lua_newtable(L);
-    lua_pushboolean(L, 1);  lua_setfield(L, -2, "is_compatible");
-    lua_pushnumber(L, 0.0); lua_setfield(L, -2, "max_abs_diff");
-    lua_pushnumber(L, 0.0); lua_setfield(L, -2, "min_abs_diff");
-    lua_pushnumber(L, 0.0); lua_setfield(L, -2, "max_rel_diff");
-    lua_pushnumber(L, 0.0); lua_setfield(L, -2, "min_rel_diff");
-    lua_pushnumber(L, 0.0); lua_setfield(L, -2, "tm_max_abs_diff");
-    lua_pushnumber(L, 0.0); lua_setfield(L, -2, "tm_min_abs_diff");
+    lua_pushboolean(L, 1);
+    lua_setfield(L, -2, "is_compatible");
+    lua_pushnumber(L, 0.0);
+    lua_setfield(L, -2, "max_abs_diff");
+    lua_pushnumber(L, 0.0);
+    lua_setfield(L, -2, "min_abs_diff");
+    lua_pushnumber(L, 0.0);
+    lua_setfield(L, -2, "max_rel_diff");
+    lua_pushnumber(L, 0.0);
+    lua_setfield(L, -2, "min_rel_diff");
+    lua_pushnumber(L, 0.0);
+    lua_setfield(L, -2, "tm_max_abs_diff");
+    lua_pushnumber(L, 0.0);
+    lua_setfield(L, -2, "tm_min_abs_diff");
     return 1;
   }
 
   // Allocate flat arrays for timestamps (ncomp=1) and data (ncomp=enc1.ncomp).
-  struct gkyl_array *tm1 = gkyl_array_new(GKYL_DOUBLE, 1,          nsteps);
-  struct gkyl_array *tm2 = gkyl_array_new(GKYL_DOUBLE, 1,          nsteps);
+  struct gkyl_array *tm1 = gkyl_array_new(GKYL_DOUBLE, 1, nsteps);
+  struct gkyl_array *tm2 = gkyl_array_new(GKYL_DOUBLE, 1, nsteps);
   struct gkyl_array *da1 = gkyl_array_new(GKYL_DOUBLE, enc1.ncomp, nsteps);
   struct gkyl_array *da2 = gkyl_array_new(GKYL_DOUBLE, enc2.ncomp, nsteps);
 
@@ -507,7 +522,7 @@ dynvec_diff_lw(lua_State *L)
 
   // Build a 1-D range [0, nsteps-1] for gkyl_array_diff.
   struct gkyl_range rng;
-  int shape[1] = { (int)nsteps };
+  int shape[1] = {(int)nsteps};
   gkyl_range_init_from_shape(&rng, 1, shape);
 
   struct gkyl_array_diff ddiff = gkyl_array_diff(da1, da2, &rng);
@@ -561,8 +576,12 @@ block_topo_cmp_lw(lua_State *L)
   struct gkyl_block_topo *bt2 = gkyl_block_topo_read(f2, &st2);
 
   if (!bt1 || !bt2) {
-    if (bt1) gkyl_block_topo_release(bt1);
-    if (bt2) gkyl_block_topo_release(bt2);
+    if (bt1) {
+      gkyl_block_topo_release(bt1);
+    }
+    if (bt2) {
+      gkyl_block_topo_release(bt2);
+    }
     lua_pushboolean(L, 0);
     return 1;
   }
@@ -570,15 +589,16 @@ block_topo_cmp_lw(lua_State *L)
   bool equal = (bt1->ndim == bt2->ndim) && (bt1->num_blocks == bt2->num_blocks);
 
   if (equal) {
-    int ndim      = bt1->ndim;
-    int nblocks   = bt1->num_blocks;
+    int ndim = bt1->ndim;
+    int nblocks = bt1->num_blocks;
     for (int b = 0; b < nblocks && equal; ++b) {
       for (int d = 0; d < ndim && equal; ++d) {
         for (int e = 0; e < 2 && equal; ++e) {
           struct gkyl_target_edge *c1 = &bt1->conn[b].connections[d][e];
           struct gkyl_target_edge *c2 = &bt2->conn[b].connections[d][e];
-          if (c1->bid != c2->bid || c1->dir != c2->dir || c1->edge != c2->edge)
+          if (c1->bid != c2->bid || c1->dir != c2->dir || c1->edge != c2->edge) {
             equal = false;
+          }
         }
       }
     }
@@ -593,14 +613,10 @@ block_topo_cmp_lw(lua_State *L)
 
 // Module-level functions registered under G0.Zero
 static struct luaL_Reg zero_array_funcs[] = {
-  { "gkylFileType",       gkyl_file_type_lw       },
-  { "arrayNewFromFile",   array_new_from_file_lw  },
-  { "rectGridCmp",        rect_grid_cmp_lw        },
-  { "createGridRanges",   create_grid_ranges_lw   },
-  { "arrayDiff",          array_diff_lw           },
-  { "dynvecDiff",         dynvec_diff_lw          },
-  { "blockTopoCmp",       block_topo_cmp_lw       },
-  { 0, 0 }
+  {"gkylFileType", gkyl_file_type_lw}, {"arrayNewFromFile", array_new_from_file_lw},
+  {"rectGridCmp", rect_grid_cmp_lw},   {"createGridRanges", create_grid_ranges_lw},
+  {"arrayDiff", array_diff_lw},        {"dynvecDiff", dynvec_diff_lw},
+  {"blockTopoCmp", block_topo_cmp_lw}, {0, 0}
 };
 
 void

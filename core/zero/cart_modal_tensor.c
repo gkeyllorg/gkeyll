@@ -9,12 +9,12 @@
 void
 gkyl_cart_modal_tensor(struct gkyl_basis *basis, int ndim, int poly_order)
 {
-  assert(ndim>0 && ndim<=6);
+  assert(ndim > 0 && ndim <= 6);
   assert(ev_list[ndim].ev[poly_order]);
-  
+
   basis->ndim = ndim;
   basis->poly_order = poly_order;
-  basis->num_basis = pow(poly_order+1, ndim);
+  basis->num_basis = pow(poly_order + 1, ndim);
   basis->num_quad = num_quad_list[ndim].count[poly_order];
   strcpy(basis->id, "tensor");
   basis->b_type = GKYL_BASIS_MODAL_TENSOR;

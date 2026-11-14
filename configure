@@ -26,6 +26,11 @@ USE_CUDSS=
 USE_LUA=
 USE_MPI=
 USE_NCCL=
+USE_LAPACK_LITE=
+USE_STRICT_FP=
+
+# Optional heavy kernel set (see --build-vlasov-ten-2x3v-p2 below)
+BUILD_VLASOV_TEN_2X3V_P2=
 
 CONF_LUA_LIB=luajit-5.1
 
@@ -62,6 +67,16 @@ CUDA_ARCH                  CUDA architecture flag to specify compute capability.
 --use-nccl                 [no] Build NCCL-dependent code
 --use-cudss                [no] Build CUDSS-dependent code
 --use-lua                  [no] Build Lua dependent code
+--use-lapack-lite          [no] Build LAPACK-lite (lower efficiency that OpenBLAS)
+                           Cannot be combined with --lapack-* options or
+                           LAPACK_INC_DIR/LAPACK_LIB_DIR/LAPACK_LIB_NAME overrides.
+--strict-fp                [no] Strict floating point: no fast math and no FMA
+                           contraction, for reproducible results (slower).
+--build-vlasov-ten-2x3v-p2 [no] Build the 2x3v tensor p=2 Vlasov kernels
+                           (velocity-space Hamiltonians: moments, velocity-map
+                           Jacobians, sparse/dense H, E/phi/B/radiation forces,
+                           LBO, BGK). No phase-space Hamiltonian or triads.
+                           Adds ~30 MB of kernels.
 --app                      [all] What app to build? One of
 			   core, moments, vlasov, gyrokinetic, pkpm, all
 
@@ -156,6 +171,14 @@ do
       [ -n "$value" ] || die "Missing value in flag $key."
       APP="$value"
       ;;
+   --use-lapack-lite)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      USE_LAPACK_LITE="$value"
+      ;;
+   --strict-fp)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      USE_STRICT_FP="$value"
+      ;;       
    --lapack-inc)
       [ -n "$value" ] || die "Missing value in flag $key."
       LAPACK_INC_DIR="$value"
@@ -220,6 +243,10 @@ do
       [ -n "$value" ] || die "Missing value in flag $key."
       USE_LUA="$value"
       ;;       
+   --build-vlasov-ten-2x3v-p2)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      BUILD_VLASOV_TEN_2X3V_P2="$value"
+      ;;
    --lua-inc)
       [ -n "$value" ] || die "Missing value in flag $key."
       CONF_LUA_INC_DIR="$value"
@@ -265,6 +292,32 @@ then
     USE_LUA=1
 else
     USE_LUA=
+fi
+
+if [ "$USE_STRICT_FP" = "yes" ] || [ "$USE_STRICT_FP" = "1" ]
+then
+    USE_STRICT_FP=1
+else
+    USE_STRICT_FP=
+fi
+
+if [ "$USE_LAPACK_LITE" = "yes" ] || [ "$USE_LAPACK_LITE" = "1" ]
+then
+    # Check explicit settings before filling in the default OpenBLAS paths.
+    if [ "${LAPACK_INC_DIR+x}" = x ] || [ "${LAPACK_LIB_DIR+x}" = x ] || [ "${LAPACK_LIB_NAME+x}" = x ]
+    then
+        die "Error: LAPACK-lite cannot be combined with external LAPACK settings (--lapack-inc, --lapack-lib, --lapack-lib-name, or the corresponding LAPACK_* environment variables). Choose one LAPACK implementation."
+    fi
+    USE_LAPACK_LITE=1
+else
+    USE_LAPACK_LITE=
+fi
+
+if [ "$BUILD_VLASOV_TEN_2X3V_P2" = "yes" ]
+then
+    BUILD_VLASOV_TEN_2X3V_P2=1
+else
+    BUILD_VLASOV_TEN_2X3V_P2=
 fi
 
 echo "Building APP " $APP
@@ -314,6 +367,13 @@ fi
 : "${LAPACK_INC_DIR:=$PREFIX/OpenBLAS/include/}"
 : "${LAPACK_LIB_DIR=$PREFIX/OpenBLAS/lib/}"
 : "${LAPACK_LIB_NAME=openblas}"
+
+if [ "$USE_LAPACK_LITE" = 1 ]
+then
+LAPACK_INC_DIR=.
+LAPACK_LIB_DIR=.
+LAPACK_LIB_NAME=m
+fi
 
 # MPI specific paths and flags
 : "${CONF_MPI_INC_DIR=$PREFIX/openmpi/include/}"
@@ -365,6 +425,9 @@ USE_MPI=$USE_MPI
 CONF_MPI_INC_DIR=$CONF_MPI_INC_DIR
 CONF_MPI_LIB_DIR=$CONF_MPI_LIB_DIR
 
+USE_LAPACK_LITE=$USE_LAPACK_LITE
+USE_STRICT_FP=$USE_STRICT_FP
+
 USE_NCCL=$USE_NCCL
 CONF_NCCL_INC_DIR=$CONF_NCCL_INC_DIR
 CONF_NCCL_LIB_DIR=$CONF_NCCL_LIB_DIR
@@ -374,6 +437,9 @@ CONF_CUDSS_INC_DIR=$CONF_CUDSS_INC_DIR
 CONF_CUDSS_LIB_DIR=$CONF_CUDSS_LIB_DIR
 
 USE_LUA=$USE_LUA
+
+# Optional heavy kernel set
+BUILD_VLASOV_TEN_2X3V_P2=$BUILD_VLASOV_TEN_2X3V_P2
 CONF_LUA_INC_DIR=$CONF_LUA_INC_DIR
 CONF_LUA_LIB_DIR=$CONF_LUA_LIB_DIR
 CONF_LUA_LIB=$CONF_LUA_LIB

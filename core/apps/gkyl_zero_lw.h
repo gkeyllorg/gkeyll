@@ -25,7 +25,7 @@ struct gkyl_tool_args *gkyl_tool_args_new(lua_State *L);
  *
  * @param args Argument struct to free
  */
-void gkyl_tool_args_release(struct gkyl_tool_args* args);
+void gkyl_tool_args_release(struct gkyl_tool_args *args);
 
 /**
  * Load the zero-level Lua interface into the Lua interpreter.

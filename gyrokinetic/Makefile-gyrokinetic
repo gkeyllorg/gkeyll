@@ -24,6 +24,13 @@ endif
 OBJS := $(SRCS:%=../$(BUILD_DIR)/gyrokinetic/%.o)
 DEPS := $(OBJS:.o=.d)
 
+# Compile flags come from config.mak (feature and kernel-set knobs), so a
+# configuration change rebuilds the code that was compiled with the old flags:
+# the zero/apps layers, unit tests and regression binaries. Generated kernels
+# do not depend on those flags and are left alone (a full kernel rebuild is
+# tens of minutes under nvcc).
+$(filter-out ../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/%,$(OBJS)) $(UNITS) $(REGS): $(wildcard ../config.mak)
+
 UNITS := $(patsubst %.c,../${BUILD_DIR}/gyrokinetic/%,$(wildcard unit/ctest_*.c))
 MPI_UNITS := $(patsubst %.c,../${BUILD_DIR}/gyrokinetic/%,$(wildcard unit/mctest_*.c))
 LUA_UNITS := $(patsubst %.c,../${BUILD_DIR}/gyrokinetic/%,$(wildcard unit/lctest_*.c))
@@ -47,7 +54,7 @@ CORE_LIB_DIR := -L../${BUILD_DIR}/core
 CORE_LIB := -lg0core
 
 EXEC_LIB_DIRS = -L${LAPACK_LIB_DIR} -L${SUPERLU_LIB_DIR} -L${MPI_LIB_DIR} -L${NCCL_LIB_DIR} -L${CUDSS_LIB_DIR} -L${LUA_LIB_DIR}
-EXEC_EXT_LIBS = ${LAPACK_LIBS} ${SUPERLU_LIBS} ${CUDA_LIBS} ${MPI_RPATH} ${MPI_LIBS} ${NCCL_LIBS} ${CUDSS_RPATH} ${CUDSS_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl
+EXEC_EXT_LIBS = ${SUPERLU_LIBS} ${LAPACK_LIBS} ${CUDA_LIBS} ${MPI_RPATH} ${MPI_LIBS} ${NCCL_LIBS} ${CUDSS_RPATH} ${CUDSS_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl
 EXEC_LIBS = -L../${BUILD_DIR}/gyrokinetic ${LLIB} ${SLLIB} ${EXEC_EXT_LIBS}
 
 LDFLAGS += -Wl,-rpath,./${BUILD_DIR}/core
@@ -62,6 +69,9 @@ LDFLAGS += -Wl,-rpath,../${BUILD_DIR}/gyrokinetic
 
 unit: ${LLIB} ${SLLIB} $(UNITS) ${MPI_UNITS} ## Build unit tests
 regression: ${LLIB} ${SLLIB} ${REGS} creg/rt_arg_parse.h ## Build regression tests
+
+.PHONY: library
+library: $(LLIB) $(SLLIB) ## Build only the shared library, without installing data
 
 .PHONY: all
 all: $(LLIB) $(SLLIB) ## Build all targets
@@ -119,6 +129,10 @@ ifdef USING_NVCC
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
+../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/fem_proj/%.c.o : $(KERNELS_DIR)/fem_proj/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
+
 ../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/fem_parproj/%.c.o : $(KERNELS_DIR)/fem_parproj/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
@@ -131,15 +145,33 @@ ifdef USING_NVCC
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
+# Moment family: register-capped with MOM_MAX_REGS (see the top-level Makefile). The
+# mom_bcorr_% rule has a shorter stem than the lbo_gyrokinetic/%.c.o rule below.
 ../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/gyrokinetic_mom/%.c.o : $(KERNELS_DIR)/gyrokinetic_mom/%.c
 	$(MKDIR_P) $(dir $@)
-	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(NVCC_MOM_FLAGS) $(INCS) -c $< -o $@
+
+../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/lbo_gyrokinetic/mom_bcorr_%.c.o : $(KERNELS_DIR)/lbo_gyrokinetic/mom_bcorr_%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(NVCC_MOM_FLAGS) $(INCS) -c $< -o $@
+
+../$(BUILD_DIR)/gyrokinetic/zero/mom_gyrokinetic_cu.cu.o ../$(BUILD_DIR)/gyrokinetic/zero/mom_bcorr_lbo_gyrokinetic_cu.cu.o : ../$(BUILD_DIR)/gyrokinetic/zero/%.cu.o : zero/%.cu
+	$(MKDIR_P) $(dir $@)
+	$(CC) -c $(CFLAGS) $(NVCC_FLAGS) $(NVCC_MOM_FLAGS) $(INCS) $< -o $@
 
 ../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/dg_gyrokinetic/%.c.o : $(KERNELS_DIR)/dg_gyrokinetic/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
 ../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/gk_collisionless_flux/%.c.o : $(KERNELS_DIR)/gk_collisionless_flux/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
+
+../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/dg_gyrokinetic_passive/%.c.o : $(KERNELS_DIR)/dg_gyrokinetic_passive/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
+
+../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/gk_collisionless_passive_flux/%.c.o : $(KERNELS_DIR)/gk_collisionless_passive_flux/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
@@ -175,7 +207,7 @@ ifdef USING_NVCC
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
-../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/twistshift/%.c.o : $(KERNELS_DIR)/twistshift/%.c
+../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/twistshift_dg/%.c.o : $(KERNELS_DIR)/twistshift_dg/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
@@ -190,19 +222,41 @@ $(LLIB): $(OBJS) ../$(BUILD_DIR)/vlasov/libg0vlasov.so
 
 ifeq ($(UNAME),Linux)
 ifdef USING_NVCC
-	$(CC) -shared -o $@ ${CORE_LINK_OBJS} ${MOMENTS_LINK_OBJS} ${VLASOV_LINK_OBJS} ${GYROKINETIC_LINK_OBJS} ${GYROKINETIC_LINK_CU_OBJS}  -Xlinker=-soname -Xlinker=libg0gyrokinetic.so -L${LAPACK_LIB_DIR} -L${SUPERLU_LIB_DIR} -L${MPI_LIB_DIR} -L${NCCL_LIB_DIR} -L${CUDSS_LIB_DIR} -L${LUA_LIB_DIR} ${LAPACK_LIBS} ${SUPERLU_LIBS} ${CUDA_LIBS} ${MPI_RPATH} ${MPI_LIBS} ${NCCL_LIBS} ${CUDSS_RPATH} ${CUDSS_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl -arch=sm_${CUDA_ARCH} -rdc=true --compiler-options="-fPIC"
+	$(CC) -shared -o $@ ${CORE_LINK_OBJS} ${MOMENTS_LINK_OBJS} ${VLASOV_LINK_OBJS} ${GYROKINETIC_LINK_OBJS} ${GYROKINETIC_LINK_CU_OBJS}  -Xlinker=-soname -Xlinker=libg0gyrokinetic.so -L${LAPACK_LIB_DIR} -L${SUPERLU_LIB_DIR} -L${MPI_LIB_DIR} -L${NCCL_LIB_DIR} -L${CUDSS_LIB_DIR} -L${LUA_LIB_DIR} ${SUPERLU_LIBS} ${LAPACK_LIBS} ${CUDA_LIBS} ${MPI_RPATH} ${MPI_LIBS} ${NCCL_LIBS} ${CUDSS_RPATH} ${CUDSS_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl -arch=sm_${CUDA_ARCH} -rdc=true --compiler-options="-fPIC"
 else
 ## Darwin
-	$(CC) -shared -o $@ ${CORE_LINK_OBJS} ${MOMENTS_LINK_OBJS} ${VLASOV_LINK_OBJS} ${GYROKINETIC_LINK_OBJS} -Wl,-soname,libg0gyrokinetic.so -L${LAPACK_LIB_DIR} -L${SUPERLU_LIB_DIR} -L${MPI_LIB_DIR} -L${NCCL_LIB_DIR} -L${CUDSS_LIB_DIR} -L${LUA_LIB_DIR} ${LAPACK_LIBS} ${SUPERLU_LIBS} ${CUDA_LIBS} ${MPI_RPATH} ${MPI_LIBS} ${NCCL_LIBS} ${CUDSS_RPATH} ${CUDSS_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl
+	$(CC) -shared -o $@ ${CORE_LINK_OBJS} ${MOMENTS_LINK_OBJS} ${VLASOV_LINK_OBJS} ${GYROKINETIC_LINK_OBJS} -Wl,-soname,libg0gyrokinetic.so -L${LAPACK_LIB_DIR} -L${SUPERLU_LIB_DIR} -L${MPI_LIB_DIR} -L${NCCL_LIB_DIR} -L${CUDSS_LIB_DIR} -L${LUA_LIB_DIR} ${SUPERLU_LIBS} ${LAPACK_LIBS} ${CUDA_LIBS} ${MPI_RPATH} ${MPI_LIBS} ${NCCL_LIBS} ${CUDSS_RPATH} ${CUDSS_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl
 endif
 else
-	$(CC) -shared -o $@ ${CORE_LINK_OBJS} ${MOMENTS_LINK_OBJS} ${VLASOV_LINK_OBJS} ${GYROKINETIC_LINK_OBJS} -Wl,-install_name,@rpath/libg0gyrokinetic.so -L${LAPACK_LIB_DIR} -L${SUPERLU_LIB_DIR} -L${MPI_LIB_DIR} -L${NCCL_LIB_DIR} -L${CUDSS_LIB_DIR} -L${LUA_LIB_DIR} ${LAPACK_LIBS} ${SUPERLU_LIBS} ${CUDA_LIBS} ${MPI_RPATH} ${MPI_LIBS} ${CUDSS_RPATH} ${CUDSS_LIBS} ${NCCL_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl
+	$(CC) -shared -o $@ ${CORE_LINK_OBJS} ${MOMENTS_LINK_OBJS} ${VLASOV_LINK_OBJS} ${GYROKINETIC_LINK_OBJS} -Wl,-install_name,@rpath/libg0gyrokinetic.so -L${LAPACK_LIB_DIR} -L${SUPERLU_LIB_DIR} -L${MPI_LIB_DIR} -L${NCCL_LIB_DIR} -L${CUDSS_LIB_DIR} -L${LUA_LIB_DIR} ${SUPERLU_LIBS} ${LAPACK_LIBS} ${CUDA_LIBS} ${MPI_RPATH} ${MPI_LIBS} ${CUDSS_RPATH} ${CUDSS_LIBS} ${NCCL_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl
 endif
 
 .PHONY: check valcheck
 # Run all unit tests
-check: unit ## Build (if needed) and run all unit tests
-	$(foreach unit,${UNITS},echo $(unit); cd ../; ./gyrokinetic/$(unit) -E; cd gyrokinetic;)
+check: unit unit-run ## Build (if needed) and run all unit tests
+
+# Run all unit tests without (re)building them
+unit-run: ## Run unit tests without (re)building them
+	@cd ..; app=gyrokinetic; own_log=0; \
+	if [ -z "$$GKYL_TEST_LOG" ]; then GKYL_TEST_LOG=$$(mktemp); own_log=1; fi; \
+	npass=0; nfail=0; \
+	for unit in ${UNITS}; do \
+	  tname=$$(basename $$unit); \
+	  if ./$$app/$$unit -E; then \
+	    npass=$$((npass+1)); echo "PASS $$app: $$tname" >> "$$GKYL_TEST_LOG"; \
+	  else \
+	    nfail=$$((nfail+1)); echo "FAIL $$app: $$tname" >> "$$GKYL_TEST_LOG"; \
+	  fi; \
+	done; \
+	if [ $$own_log -eq 1 ]; then \
+	  echo "==================== $$app test summary ===================="; \
+	  echo "Passed: $$npass   Failed: $$nfail"; \
+	  if [ $$nfail -gt 0 ]; then \
+	    echo "Failed tests:"; grep '^FAIL ' "$$GKYL_TEST_LOG" | sed 's/^FAIL /  /'; rm -f "$$GKYL_TEST_LOG"; exit 1; \
+	  else \
+	    echo "All $$app unit tests passed."; rm -f "$$GKYL_TEST_LOG"; \
+	  fi; \
+	fi
 
 valcheck: unit ## Run valgrind on unit test
 	cd ../ && $(foreach unit,$(UNITS),valgrind --leak-check=full ./$(patsubst ../%,%,$(unit)) -E 2>./$(patsubst ../%,%,$(unit))_val_err 1>/dev/null;)

@@ -1,7 +1,7 @@
 #include <gkyl_dg_gyrokinetic_kernels.h> 
 GKYL_CU_DH double dg_gyrokinetic_vol_1x2v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *vmapSq,
     const double q_, const double m_, const double *bmag, const double *phi,
-    const double *dualcurlbhatoverB, const double *rtg33inv, const double *bioverJB,
+    const double *dualcurlbhatoverB, const double *B3overB, const double *bioverJB,
     const double *fin, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]: cell-center.
@@ -44,10 +44,10 @@ GKYL_CU_DH double dg_gyrokinetic_vol_1x2v_ser_p1(const double *w, const double *
   hamil2[1] = hamil[8]*hamil[8]; 
 
   double alphax[12] = {0.}; 
-  alphax[0] = (rdx2*((2.5*dualcurlbhatoverB_z[0]*hamil2[1])/vmap2+(0.5*dualcurlbhatoverB_z[0]*hamil2[0])/vmap2))/(m_*q_)+(rtg33inv[0]*vmap[1]*hamil[2]*rdx2)/(m_*vmap2); 
-  alphax[1] = (rdx2*((2.5*dualcurlbhatoverB_z[1]*hamil2[1])/vmap2+(0.5*hamil2[0]*dualcurlbhatoverB_z[1])/vmap2))/(m_*q_)+(rtg33inv[1]*vmap[1]*hamil[2]*rdx2)/(m_*vmap2); 
-  alphax[2] = (2.23606797749979*dualcurlbhatoverB_z[0]*hamil[2]*hamil[8]*rdx2)/(m_*q_*vmap2)+(2.23606797749979*rtg33inv[0]*vmap[1]*hamil[8]*rdx2)/(m_*vmap2); 
-  alphax[4] = (2.23606797749979*dualcurlbhatoverB_z[1]*hamil[2]*hamil[8]*rdx2)/(m_*q_*vmap2)+(2.23606797749979*rtg33inv[1]*vmap[1]*hamil[8]*rdx2)/(m_*vmap2); 
+  alphax[0] = (rdx2*((2.5*dualcurlbhatoverB_z[0]*hamil2[1])/vmap2+(0.5*dualcurlbhatoverB_z[0]*hamil2[0])/vmap2))/(m_*q_)+(B3overB[0]*vmap[1]*hamil[2]*rdx2)/(m_*vmap2); 
+  alphax[1] = (rdx2*((2.5*dualcurlbhatoverB_z[1]*hamil2[1])/vmap2+(0.5*hamil2[0]*dualcurlbhatoverB_z[1])/vmap2))/(m_*q_)+(B3overB[1]*vmap[1]*hamil[2]*rdx2)/(m_*vmap2); 
+  alphax[2] = (2.23606797749979*dualcurlbhatoverB_z[0]*hamil[2]*hamil[8]*rdx2)/(m_*q_*vmap2)+(2.23606797749979*B3overB[0]*vmap[1]*hamil[8]*rdx2)/(m_*vmap2); 
+  alphax[4] = (2.23606797749979*dualcurlbhatoverB_z[1]*hamil[2]*hamil[8]*rdx2)/(m_*q_*vmap2)+(2.23606797749979*B3overB[1]*vmap[1]*hamil[8]*rdx2)/(m_*vmap2); 
   alphax[8] = (2.23606797749979*dualcurlbhatoverB_z[0]*hamil2[1]*rdx2)/(m_*q_*vmap2); 
   alphax[9] = (2.2360679774997902*dualcurlbhatoverB_z[1]*hamil2[1]*rdx2)/(m_*q_*vmap2); 
 
@@ -60,12 +60,12 @@ GKYL_CU_DH double dg_gyrokinetic_vol_1x2v_ser_p1(const double *w, const double *
   out[11] += (0.39123039821797573*alphax[9]+0.6123724356957944*alphax[1])*fin[11]+0.39123039821797573*alphax[8]*fin[10]+0.6123724356957944*(alphax[0]*fin[10]+fin[5]*alphax[9]+fin[3]*alphax[8])+0.5477225575051661*(alphax[4]*fin[7]+alphax[2]*fin[6]); 
 
   double alphavpar[12] = {0.}; 
-  alphavpar[0] = -((0.5*dualcurlbhatoverB_z[0]*hamil[1]*hamil[2]*rdx2)/(m_*q_*vmap2))-(1.0*rtg33inv[0]*hamil[1]*vmap[1]*rdx2)/(m_*vmap2); 
-  alphavpar[1] = -((0.5*dualcurlbhatoverB_z[1]*hamil[1]*hamil[2]*rdx2)/(m_*q_*vmap2))-(1.0*hamil[1]*rtg33inv[1]*vmap[1]*rdx2)/(m_*vmap2); 
+  alphavpar[0] = -((0.5*dualcurlbhatoverB_z[0]*hamil[1]*hamil[2]*rdx2)/(m_*q_*vmap2))-(1.0*B3overB[0]*hamil[1]*vmap[1]*rdx2)/(m_*vmap2); 
+  alphavpar[1] = -((0.5*dualcurlbhatoverB_z[1]*hamil[1]*hamil[2]*rdx2)/(m_*q_*vmap2))-(1.0*hamil[1]*B3overB[1]*vmap[1]*rdx2)/(m_*vmap2); 
   alphavpar[2] = -((1.118033988749895*dualcurlbhatoverB_z[0]*hamil[1]*hamil[8]*rdx2)/(m_*q_*vmap2)); 
-  alphavpar[3] = -((0.5*dualcurlbhatoverB_z[0]*hamil[2]*hamil[5]*rdx2)/(m_*q_*vmap2))-(1.0*rtg33inv[0]*vmap[1]*hamil[5]*rdx2)/(m_*vmap2); 
+  alphavpar[3] = -((0.5*dualcurlbhatoverB_z[0]*hamil[2]*hamil[5]*rdx2)/(m_*q_*vmap2))-(1.0*B3overB[0]*vmap[1]*hamil[5]*rdx2)/(m_*vmap2); 
   alphavpar[4] = -((1.118033988749895*dualcurlbhatoverB_z[1]*hamil[1]*hamil[8]*rdx2)/(m_*q_*vmap2)); 
-  alphavpar[5] = -((0.5*dualcurlbhatoverB_z[1]*hamil[2]*hamil[5]*rdx2)/(m_*q_*vmap2))-(1.0*rtg33inv[1]*vmap[1]*hamil[5]*rdx2)/(m_*vmap2); 
+  alphavpar[5] = -((0.5*dualcurlbhatoverB_z[1]*hamil[2]*hamil[5]*rdx2)/(m_*q_*vmap2))-(1.0*B3overB[1]*vmap[1]*hamil[5]*rdx2)/(m_*vmap2); 
   alphavpar[6] = -((1.118033988749895*dualcurlbhatoverB_z[0]*hamil[5]*hamil[8]*rdx2)/(m_*q_*vmap2)); 
   alphavpar[7] = -((1.118033988749895*dualcurlbhatoverB_z[1]*hamil[5]*hamil[8]*rdx2)/(m_*q_*vmap2)); 
 

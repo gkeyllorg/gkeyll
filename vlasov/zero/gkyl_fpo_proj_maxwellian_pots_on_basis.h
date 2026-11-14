@@ -19,11 +19,11 @@ typedef struct gkyl_proj_maxwellian_pots_on_basis gkyl_proj_maxwellian_pots_on_b
  * @param num_quad Number of quadrature nodes
  * @return New updater pointer
 */
-struct gkyl_proj_maxwellian_pots_on_basis* 
-gkyl_proj_maxwellian_pots_on_basis_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
-  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis,
-  int num_quad, bool use_gpu);
+struct gkyl_proj_maxwellian_pots_on_basis *gkyl_proj_maxwellian_pots_on_basis_new(
+  const struct gkyl_rect_grid *grid, const struct gkyl_range *conf_range,
+  const struct gkyl_range *phase_range, const struct gkyl_basis *conf_basis,
+  const struct gkyl_basis *phase_basis, int num_quad, bool use_gpu
+);
 
 /**
  * Compute the Rosenbluth potentials from the analytic solution for the equivalent
@@ -43,14 +43,13 @@ gkyl_proj_maxwellian_pots_on_basis_new(const struct gkyl_rect_grid *grid,
  * @param fpo_dgdv_surf First derivative of potential G surface expansion output array
  * @param fpo_d2gdv2_surf Second derivative of potential G surface expansion output array
 */
-void 
-gkyl_proj_maxwellian_pots_on_basis_advance(const gkyl_proj_maxwellian_pots_on_basis *up,
-  const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
-  const struct gkyl_array* prim_moms,
-  struct gkyl_array *fpo_h, struct gkyl_array *fpo_g,
-  struct gkyl_array *fpo_h_surf, struct gkyl_array *fpo_g_surf,
+void gkyl_proj_maxwellian_pots_on_basis_advance(
+  const gkyl_proj_maxwellian_pots_on_basis *up, const struct gkyl_range *phase_range,
+  const struct gkyl_range *conf_range, const struct gkyl_array *prim_moms, struct gkyl_array *fpo_h,
+  struct gkyl_array *fpo_g, struct gkyl_array *fpo_h_surf, struct gkyl_array *fpo_g_surf,
   struct gkyl_array *fpo_dhdv_surf, struct gkyl_array *fpo_dgdv_surf,
-  struct gkyl_array *fpo_d2gdv2_surf);
+  struct gkyl_array *fpo_d2gdv2_surf
+);
 
 /**
  * Compute the drag coefficient a_i = dh/dv_i and diffusion tensor D_ij = d^2g/dv_i dv_j 
@@ -63,11 +62,11 @@ gkyl_proj_maxwellian_pots_on_basis_advance(const gkyl_proj_maxwellian_pots_on_ba
  * @param fpo_dhdv First derivatives of potential H output array
  * @param fpo_d2gdv2 Second derivatives of potential G output array
 */
-void 
-gkyl_proj_maxwellian_pots_deriv_on_basis_advance(const gkyl_proj_maxwellian_pots_on_basis *up,
-  const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
-  const struct gkyl_array *prim_moms,
-  struct gkyl_array *fpo_dhdv, struct gkyl_array *fpo_d2gdv2);
+void gkyl_proj_maxwellian_pots_deriv_on_basis_advance(
+  const gkyl_proj_maxwellian_pots_on_basis *up, const struct gkyl_range *phase_range,
+  const struct gkyl_range *conf_range, const struct gkyl_array *prim_moms,
+  struct gkyl_array *fpo_dhdv, struct gkyl_array *fpo_d2gdv2
+);
 
 /**
  * Delete updater.
@@ -76,8 +75,8 @@ gkyl_proj_maxwellian_pots_deriv_on_basis_advance(const gkyl_proj_maxwellian_pots
 */
 void gkyl_proj_maxwellian_pots_on_basis_release(gkyl_proj_maxwellian_pots_on_basis *up);
 
-struct gkyl_proj_maxwellian_pots_on_basis*
-gkyl_proj_maxwellian_pots_on_basis_cu_ho_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
-  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis,
-  int num_quad);
+struct gkyl_proj_maxwellian_pots_on_basis *gkyl_proj_maxwellian_pots_on_basis_cu_ho_new(
+  const struct gkyl_rect_grid *grid, const struct gkyl_range *conf_range,
+  const struct gkyl_range *phase_range, const struct gkyl_basis *conf_basis,
+  const struct gkyl_basis *phase_basis, int num_quad
+);

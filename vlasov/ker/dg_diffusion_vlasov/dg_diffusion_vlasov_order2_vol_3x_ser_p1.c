@@ -113,7 +113,7 @@ GKYL_CU_DH double dg_diffusion_vlasov_order2_vol_3x_ser_p1_varcoeff_diffx(const 
   // out: Incremented output
 
   const double rdx2 = 2.0/dx[0]; 
-  return 1.414213562373095*coeff[0]*pow(rdx2, 2.0); 
+  return 1.4142135623730951*coeff[0]*pow(rdx2, 2.0); 
 }
 
 GKYL_CU_DH double dg_diffusion_vlasov_order2_vol_3x_ser_p1_varcoeff_diffy(const double *w, const double *dx, const double *coeff, const double *q, double* GKYL_RESTRICT out) 
@@ -125,7 +125,7 @@ GKYL_CU_DH double dg_diffusion_vlasov_order2_vol_3x_ser_p1_varcoeff_diffy(const 
   // out: Incremented output
 
   const double rdx2 = 2.0/dx[1]; 
-  return 1.414213562373095*coeff[8]*pow(rdx2, 2.0); 
+  return 1.4142135623730951*coeff[8]*pow(rdx2, 2.0); 
 }
 
 GKYL_CU_DH double dg_diffusion_vlasov_order2_vol_3x_ser_p1_varcoeff_diffz(const double *w, const double *dx, const double *coeff, const double *q, double* GKYL_RESTRICT out) 
@@ -137,7 +137,7 @@ GKYL_CU_DH double dg_diffusion_vlasov_order2_vol_3x_ser_p1_varcoeff_diffz(const 
   // out: Incremented output
 
   const double rdx2 = 2.0/dx[2]; 
-  return 1.414213562373095*coeff[16]*pow(rdx2, 2.0); 
+  return 1.4142135623730951*coeff[16]*pow(rdx2, 2.0); 
 }
 
 GKYL_CU_DH double dg_diffusion_vlasov_order2_vol_3x_ser_p1_varcoeff_diffdirsx(const double *w, const double *dx, const double *coeff, const double *q, double* GKYL_RESTRICT out) 

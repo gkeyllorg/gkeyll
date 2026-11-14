@@ -22,7 +22,7 @@ null_pool_wait(const struct gkyl_job_pool *jp)
 {
 }
 
-struct gkyl_job_pool*
+struct gkyl_job_pool *
 gkyl_null_pool_new(int nthreads)
 {
   struct gkyl_job_pool *np = gkyl_malloc(sizeof(struct gkyl_job_pool));
@@ -30,9 +30,9 @@ gkyl_null_pool_new(int nthreads)
   np->pool_size = nthreads;
   np->add_work = null_pool_add_work;
   np->wait = null_pool_wait;
-  
+
   // set reference counter
   np->ref_count = gkyl_ref_count_init(null_pool_free);
-    
+
   return np;
 }

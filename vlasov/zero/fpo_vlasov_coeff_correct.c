@@ -4,9 +4,11 @@
 #include <gkyl_fpo_vlasov_coeff_correct.h>
 #include <gkyl_fpo_vlasov_coeff_correct_priv.h>
 
-gkyl_fpo_coeff_correct*
-gkyl_fpo_coeff_correct_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_basis *conf_basis, const struct gkyl_range *conf_range, bool use_gpu)
+gkyl_fpo_coeff_correct *
+gkyl_fpo_coeff_correct_new(
+  const struct gkyl_rect_grid *grid, const struct gkyl_basis *conf_basis,
+  const struct gkyl_range *conf_range, bool use_gpu
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
@@ -14,12 +16,12 @@ gkyl_fpo_coeff_correct_new(const struct gkyl_rect_grid *grid,
   }
 #endif
 
-  struct gkyl_fpo_coeff_correct *up = gkyl_malloc(sizeof(struct gkyl_fpo_coeff_correct)); 
+  struct gkyl_fpo_coeff_correct *up = gkyl_malloc(sizeof(struct gkyl_fpo_coeff_correct));
 
   int cdim = conf_basis->ndim;
   int poly_order = conf_basis->poly_order;
   int vdim = 3;
-  
+
   up->grid = grid;
   up->conf_basis = conf_basis;
   up->num_conf_basis = conf_basis->num_basis;
@@ -54,18 +56,22 @@ gkyl_fpo_coeff_correct_new(const struct gkyl_rect_grid *grid,
   return up;
 }
 
-void gkyl_fpo_coeff_correct_advance(gkyl_fpo_coeff_correct *up,
-  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
-  const struct gkyl_array *fpo_moms, const struct gkyl_array *boundary_corrections,
-  const struct gkyl_array *moms, struct gkyl_array *drag_diff_coeff_corrs,
-  struct gkyl_array *drag_coeff, struct gkyl_array *drag_coeff_surf,
-  struct gkyl_array *diff_coeff, struct gkyl_array *diff_coeff_surf, bool use_gpu)
+void
+gkyl_fpo_coeff_correct_advance(
+  gkyl_fpo_coeff_correct *up, const struct gkyl_range *conf_range,
+  const struct gkyl_range *phase_range, const struct gkyl_array *fpo_moms,
+  const struct gkyl_array *boundary_corrections, const struct gkyl_array *moms,
+  struct gkyl_array *drag_diff_coeff_corrs, struct gkyl_array *drag_coeff,
+  struct gkyl_array *drag_coeff_surf, struct gkyl_array *diff_coeff,
+  struct gkyl_array *diff_coeff_surf, bool use_gpu
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
-    return gkyl_fpo_coeff_correct_advance_cu(up, conf_range, phase_range, 
-      fpo_moms, boundary_corrections, moms, drag_diff_coeff_corrs, 
-      drag_coeff, drag_coeff_surf, diff_coeff, diff_coeff_surf);
+    return gkyl_fpo_coeff_correct_advance_cu(
+      up, conf_range, phase_range, fpo_moms, boundary_corrections, moms, drag_diff_coeff_corrs,
+      drag_coeff, drag_coeff_surf, diff_coeff, diff_coeff_surf
+    );
   }
 #endif
 
@@ -75,7 +81,7 @@ void gkyl_fpo_coeff_correct_advance(gkyl_fpo_coeff_correct *up,
   // allocate memory for use in kernels
   int nc = up->num_conf_basis;
   int vdim = 3;
-  int N = nc*(vdim + 1);
+  int N = nc * (vdim + 1);
 
   // Initialize matrices if this is the first call to advance
   if (up->is_first) {
@@ -98,7 +104,7 @@ void gkyl_fpo_coeff_correct_advance(gkyl_fpo_coeff_correct *up,
 
     const double *fpo_moms_d = gkyl_array_cfetch(fpo_moms, linc);
     const double *boundary_corrections_d = gkyl_array_cfetch(boundary_corrections, linc);
-    const double *moms_d = gkyl_array_cfetch(moms, linc); 
+    const double *moms_d = gkyl_array_cfetch(moms, linc);
 
     // Set matrix elements
     up->mat_set_kernel(&lhs, &rhs, fpo_moms_d, boundary_corrections_d, moms_d);
@@ -111,8 +117,10 @@ void gkyl_fpo_coeff_correct_advance(gkyl_fpo_coeff_correct *up,
 
   // Loop over configuration space cells, retrieve solutions,
   // and accumulate corrections onto drag/diffusion coefficients
-  int rem_dir[GKYL_MAX_DIM] = { 0 };
-  for (int d=0; d<conf_range->ndim; ++d) rem_dir[d] = 1;
+  int rem_dir[GKYL_MAX_DIM] = {0};
+  for (int d = 0; d < conf_range->ndim; ++d) {
+    rem_dir[d] = 1;
+  }
 
   gkyl_range_iter_init(&conf_iter, conf_range);
   count = 0;
@@ -121,7 +129,7 @@ void gkyl_fpo_coeff_correct_advance(gkyl_fpo_coeff_correct *up,
 
     const struct gkyl_mat out = gkyl_nmat_get(up->xs, count);
     double *drag_diff_coeff_corrs_d = gkyl_array_fetch(drag_diff_coeff_corrs, linc);
-    for (size_t i=0; i<N; ++i) {
+    for (size_t i = 0; i < N; ++i) {
       drag_diff_coeff_corrs_d[i] = gkyl_mat_get(&out, i, 0);
     }
     count += 1;
@@ -131,7 +139,7 @@ void gkyl_fpo_coeff_correct_advance(gkyl_fpo_coeff_correct *up,
     gkyl_range_iter_no_split_init(&vel_iter, &vel_rng);
     while (gkyl_range_iter_next(&vel_iter)) {
       long linp = gkyl_range_idx(&vel_rng, vel_iter.idx);
-      
+
       const double *drag_diff_coeff_corrs_d = gkyl_array_cfetch(drag_diff_coeff_corrs, linc);
       double *drag_coeff_d = gkyl_array_fetch(drag_coeff, linp);
       double *drag_coeff_surf_d = gkyl_array_fetch(drag_coeff_surf, linp);
@@ -139,22 +147,28 @@ void gkyl_fpo_coeff_correct_advance(gkyl_fpo_coeff_correct *up,
       double *diff_coeff_surf_d = gkyl_array_fetch(diff_coeff_surf, linp);
 
       // Call to kernels to accumulate corrections
-      up->accum_kernel(drag_diff_coeff_corrs_d, drag_coeff_d, drag_coeff_surf_d, 
-        diff_coeff_d, diff_coeff_surf_d); 
+      up->accum_kernel(
+        drag_diff_coeff_corrs_d, drag_coeff_d, drag_coeff_surf_d, diff_coeff_d, diff_coeff_surf_d
+      );
     }
   }
 }
 
-void gkyl_fpo_vlasov_coeff_correct_release(gkyl_fpo_coeff_correct *up)
+void
+gkyl_fpo_vlasov_coeff_correct_release(gkyl_fpo_coeff_correct *up)
 {
-  if (up->As)
+  if (up->As) {
     gkyl_nmat_release(up->As);
-  if (up->xs)
+  }
+  if (up->xs) {
     gkyl_nmat_release(up->xs);
-  if (up->mem)
+  }
+  if (up->mem) {
     gkyl_nmat_linsolve_lu_release(up->mem);
+  }
 
-  if (GKYL_IS_CU_ALLOC(up->flags))
+  if (GKYL_IS_CU_ALLOC(up->flags)) {
     gkyl_cu_free(up->on_dev);
+  }
   gkyl_free(up);
 }

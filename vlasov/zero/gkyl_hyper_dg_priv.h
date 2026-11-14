@@ -1,6 +1,9 @@
 #pragma once
 
+#include <math.h>
+
 #include <gkyl_dg_eqn.h>
+#include <gkyl_hyper_dg.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
 
@@ -11,7 +14,7 @@ struct gkyl_hyper_dg {
   int num_up_dirs; // number of update directions
   int update_dirs[GKYL_MAX_DIM]; // directions to update
   // zero_flux_flags[d] == 1 means zero-flux BC in 'd'
-  int zero_flux_flags[2*GKYL_MAX_DIM];
+  int zero_flux_flags[2 * GKYL_MAX_DIM];
   int update_vol_term; // should we update volume term?
   const struct gkyl_dg_eqn *equation; // equation object
 
@@ -20,16 +23,22 @@ struct gkyl_hyper_dg {
   bool use_gpu; // Whether to run on the gpu.
 };
 
-GKYL_CU_DH
-static int 
-idx_to_inloup_ker(int dim, const int *idx, const int *dirs, const int *num_cells) {
+// Index of the kernel for a cell in the interior or at a lower/upper edge of the domain
+// in the dim (1 or 2) stencil directions dirs. Kernel lists are ordered as
+//   dim=1: [interior, lower, upper],
+//   dim=2: [interior, lower d0, upper d0, lower d1, upper d1, lower d0 & lower d1,
+//           lower d0 & upper d1, upper d0 & lower d1, upper d0 & upper d1],
+// with d0=dirs[0], d1=dirs[1]. Assumes the domain spans indices 1 to num_cells[d].
+GKYL_CU_DH static int
+hyper_dg_idx_to_inloup_ker(int dim, const int *idx, const int *dirs, const int *num_cells)
+{
   int iout = 0;
 
-  for (int d=0; d<dim; ++d) {
+  for (int d = 0; d < dim; ++d) {
     if (idx[dirs[d]] == 1) {
-      iout = 2*iout+(int)(pow(3,d)+0.5);
+      iout = 2 * iout + (int)(pow(3, d) + 0.5);
     } else if (idx[dirs[d]] == num_cells[dirs[d]]) {
-      iout = 2*iout+(int)(pow(3,d)+0.5)+1;
+      iout = 2 * iout + (int)(pow(3, d) + 0.5) + 1;
     }
   }
   return iout;
@@ -48,10 +57,11 @@ idx_to_inloup_ker(int dim, const int *idx, const int *dirs, const int *num_cells
  * @param zero_flux_flags[2*GKYL_MAX_DIM] Flags to indicate if boundary has zero-flux BCs
  * @param update_vol_term Set to 0 to skip volume update
  */
-gkyl_hyper_dg* gkyl_hyper_dg_cu_dev_new(const struct gkyl_rect_grid *grid_cu,
-  const struct gkyl_basis *basis, const struct gkyl_dg_eqn *equation_cu,
-  int num_up_dirs, int update_dirs[GKYL_MAX_DIM], int zero_flux_flags[2*GKYL_MAX_DIM],
-  int update_vol_term);
+gkyl_hyper_dg *gkyl_hyper_dg_cu_dev_new(
+  const struct gkyl_rect_grid *grid_cu, const struct gkyl_basis *basis,
+  const struct gkyl_dg_eqn *equation_cu, int num_up_dirs, int update_dirs[GKYL_MAX_DIM],
+  int zero_flux_flags[2 * GKYL_MAX_DIM], int update_vol_term
+);
 
 /**
  * Compute RHS of DG update on the device. The update_rng MUST be a sub-range of the
@@ -65,9 +75,11 @@ gkyl_hyper_dg* gkyl_hyper_dg_cu_dev_new(const struct gkyl_rect_grid *grid_cu,
  * @param cflrate CFL scalar rate (frequency) array (units of 1/[T])
  * @param rhs RHS output
  */
-void gkyl_hyper_dg_advance_cu(gkyl_hyper_dg* up, const struct gkyl_range *update_range,
-  const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT cflrate,
-  struct gkyl_array* GKYL_RESTRICT rhs);
+void gkyl_hyper_dg_advance_cu(
+  gkyl_hyper_dg *up, const struct gkyl_range *update_range,
+  const struct gkyl_array *GKYL_RESTRICT fIn, struct gkyl_array *GKYL_RESTRICT cflrate,
+  struct gkyl_array *GKYL_RESTRICT rhs
+);
 
 /**
  * Compute RHS of DG generic stencil update on device.
@@ -84,9 +96,11 @@ void gkyl_hyper_dg_advance_cu(gkyl_hyper_dg* up, const struct gkyl_range *update
  * @param cflrate CFL scalar rate (frequency) array (units of 1/[T])
  * @param rhs RHS output
  */
-void gkyl_hyper_dg_gen_stencil_advance_cu(gkyl_hyper_dg* hdg, long offsets[36], const struct gkyl_range *update_rng,
-  const struct gkyl_array *fIn, struct gkyl_array *cflrate, 
-  struct gkyl_array *rhs);
+void gkyl_hyper_dg_gen_stencil_advance_cu(
+  gkyl_hyper_dg *hdg, long offsets[GKYL_HYPER_DG_GEN_NUM_OFFSETS],
+  const struct gkyl_range *update_rng, const struct gkyl_array *fIn, struct gkyl_array *cflrate,
+  struct gkyl_array *rhs
+);
 
 /**
  * Set if volume term should be computed or not.
@@ -94,7 +108,6 @@ void gkyl_hyper_dg_gen_stencil_advance_cu(gkyl_hyper_dg* hdg, long offsets[36], 
  * @param up Hyper DG updater object
  * @param update_vol_term Set to 1 to update vol term, 0 otherwise
  */
-void
-gkyl_hyper_dg_set_update_vol_cu(gkyl_hyper_dg *up, int update_vol_term);
+void gkyl_hyper_dg_set_update_vol_cu(gkyl_hyper_dg *up, int update_vol_term);
 
 #endif

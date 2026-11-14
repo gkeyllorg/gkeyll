@@ -9,39 +9,40 @@
 struct gkyl_dg_eqn;
 
 // Function pointer type for volume kernel
-typedef double (*vol_termf_t)(const struct gkyl_dg_eqn *eqn, 
-  const double*  xc, const double*  dx, const int*  idx,
-  const double* qIn, double* GKYL_RESTRICT qRhsOut);
+typedef double (*vol_termf_t)(
+  const struct gkyl_dg_eqn *eqn, const double *xc, const double *dx, const int *idx,
+  const double *qIn, double *GKYL_RESTRICT qRhsOut
+);
 
 // Function pointer type for surface kernel
-typedef double (*surf_termf_t)(const struct gkyl_dg_eqn *eqn, 
-  int dir,
-  const double*  xcL, const double*  xcC, const double*  xcR, 
-  const double*  dxL, const double* dxC, const double* dxR,
-  const int*  idxL, const int*  idxC, const int*  idxR,
-  const double* qInL, const double*  qInC, const double*  qInR, double* GKYL_RESTRICT qRhsOut);
+typedef double (*surf_termf_t)(
+  const struct gkyl_dg_eqn *eqn, int dir, const double *xcL, const double *xcC, const double *xcR,
+  const double *dxL, const double *dxC, const double *dxR, const int *idxL, const int *idxC,
+  const int *idxR, const double *qInL, const double *qInC, const double *qInR,
+  double *GKYL_RESTRICT qRhsOut
+);
 
 // Function pointer type for boundary surface kernel
-typedef double (*boundary_surf_termf_t)(const struct gkyl_dg_eqn *eqn,
-  int dir,
-  const double*  xcEdge, const double*  xcSkin,
-  const double*  dxEdge, const double* dxSkin,
-  const int* idxEdge, const int* idxSkin, const int edge,
-  const double* qInEdge, const double* qInSkin, double* GKYL_RESTRICT qRhsOut);
+typedef double (*boundary_surf_termf_t)(
+  const struct gkyl_dg_eqn *eqn, int dir, const double *xcEdge, const double *xcSkin,
+  const double *dxEdge, const double *dxSkin, const int *idxEdge, const int *idxSkin,
+  const int edge, const double *qInEdge, const double *qInSkin, double *GKYL_RESTRICT qRhsOut
+);
 
-// Function pointer type for generic stencil kernel
-// Similar to surface kernel, but size of input arrays unspecified
-// Could be 9 (for a generic 2D stencil) or 27 (for a generic 3D stencil)
-// Hard code to 27 for 3D for GPU compatibility
+// Generic stencil function pointer type, for terms of second-order operators with
+// mixed partial derivatives. The term for directions (dir1,dir2) gets the 3 cells along
+// dir1 if dir1=dir2, or the 9 cells in the (dir1,dir2) plane otherwise, ordered as in
+// gkyl_hyper_dg_gen_stencil_offsets (unused entries of idx and qIn are undefined).
+// Takes the index of the cell being updated (idxc) and the indices of the stencil cells
+// (idx) so auxiliary variables can be fetched for neighbors or just the cell being
+// updated, and the index keri of the kernel for the cell's location in the domain
+// (interior, edge or corner; see gkyl_hyper_dg_gen_stencil_advance).
 // NOTE: ASSUMES UNIFORM GRIDS FOR NOW
-// NOTE: Takes the index of the cell being updated (idxc) and array of indices
-//       (idx) so we can fetch auxiliary variables easily for neighbors or just
-//       the cell being updated. Need size of integer array (sz_dim)
-typedef double (*gen_termf_t)(const struct gkyl_dg_eqn *eqn,
-  int dir1, int dir2,
-  const double* xc, const double* dxc, const int* idxc,
-  int keri, const int idx[9][GKYL_MAX_DIM], const double* qIn[9], 
-  double* GKYL_RESTRICT qRhsOut);
+typedef double (*gen_termf_t)(
+  const struct gkyl_dg_eqn *eqn, int dir1, int dir2, const double *xc, const double *dxc,
+  const int *idxc, int keri, const int idx[9][GKYL_MAX_DIM], const double *qIn[9],
+  double *GKYL_RESTRICT qRhsOut
+);
 
 struct gkyl_dg_eqn {
   int num_equations; // Number of equations in system.
@@ -49,12 +50,10 @@ struct gkyl_dg_eqn {
   surf_termf_t surf_term; // Surface term kernel.
   boundary_surf_termf_t boundary_surf_term; // Boundary surface term kernel.
   boundary_surf_termf_t boundary_diag_term; // Boundary diagnotic kernel.
-  gen_termf_t gen_surf_term; // Generic stencil kernel with input variable size unspecified.
-  gen_termf_t gen_boundary_surf_term; // Generic stencil kernel with input variable size unspecified
-                                      // for boundary surface updates.
+  gen_termf_t gen_surf_term; // Generic stencil kernel (interior and boundary cells).
   uint32_t flags;
   struct gkyl_ref_count ref_count; // Reference count.
-  struct  gkyl_dg_eqn *on_dev; // Pointer to itself or device data.
+  struct gkyl_dg_eqn *on_dev; // Pointer to itself or device data.
 };
 
 // context for use in BCs
@@ -78,7 +77,7 @@ bool gkyl_dg_eqn_is_cu_dev(const struct gkyl_dg_eqn *eqn);
  *
  * @param eqn Equation object.
  */
-struct gkyl_dg_eqn* gkyl_dg_eqn_acquire(const struct gkyl_dg_eqn* eqn);
+struct gkyl_dg_eqn *gkyl_dg_eqn_acquire(const struct gkyl_dg_eqn *eqn);
 
 /**
  * Compute the volume term in a DG discretization.
@@ -91,11 +90,11 @@ struct gkyl_dg_eqn* gkyl_dg_eqn_acquire(const struct gkyl_dg_eqn* eqn);
  * @param qRhsOut Output RHS for use in an explicit time-stepping scheme
  * @return cfl frequency *if volume term is computing stable time step* (otherwise returns 0.0)
  */
-GKYL_CU_DH
-static inline double
-gkyl_dg_eqn_vol_update(const struct gkyl_dg_eqn *eqn, 
-  const double* xc, const double* dx, const int* idx,
-  const double* qIn, double* GKYL_RESTRICT qRhsOut)
+GKYL_CU_DH static inline double
+gkyl_dg_eqn_vol_update(
+  const struct gkyl_dg_eqn *eqn, const double *xc, const double *dx, const int *idx,
+  const double *qIn, double *GKYL_RESTRICT qRhsOut
+)
 {
   return eqn->vol_term(eqn, xc, dx, idx, qIn, qRhsOut);
 }
@@ -120,20 +119,17 @@ gkyl_dg_eqn_vol_update(const struct gkyl_dg_eqn *eqn,
  * @param qRhsOut Output RHS for use in an explicit time-stepping scheme in center cell (the cell being updated)
  * @return cfl frequency *if surface term is computing stable time step* (otherwise returns 0.0)
  */
-GKYL_CU_DH
-static inline double
-gkyl_dg_eqn_surf_update(const struct gkyl_dg_eqn *eqn, 
-  int dir,
-  const double*  xcL, const double*  xcC, const double*  xcR, 
-  const double*  dxL, const double* dxC, const double* dxR,
-  const int*  idxL, const int*  idxC, const int*  idxR,
-  const double* qInL, const double*  qInC, const double*  qInR, double* GKYL_RESTRICT qRhsOut)
+GKYL_CU_DH static inline double
+gkyl_dg_eqn_surf_update(
+  const struct gkyl_dg_eqn *eqn, int dir, const double *xcL, const double *xcC, const double *xcR,
+  const double *dxL, const double *dxC, const double *dxR, const int *idxL, const int *idxC,
+  const int *idxR, const double *qInL, const double *qInC, const double *qInR,
+  double *GKYL_RESTRICT qRhsOut
+)
 {
-  return eqn->surf_term(eqn, dir, 
-    xcL, xcC, xcR, 
-    dxL, dxC, dxR, 
-    idxL, idxC, idxR, 
-    qInL, qInC, qInR, qRhsOut);
+  return eqn->surf_term(
+    eqn, dir, xcL, xcC, xcR, dxL, dxC, dxR, idxL, idxC, idxR, qInL, qInC, qInR, qRhsOut
+  );
 }
 
 /**
@@ -153,20 +149,16 @@ gkyl_dg_eqn_surf_update(const struct gkyl_dg_eqn *eqn,
  * @param qRhsOut Output RHS for use in an explicit time-stepping scheme in skin cell (the cell being updated)
  * @return cfl frequency *if boundary surface term is computing stable time step* (otherwise returns 0.0)
  */
-GKYL_CU_DH
-static inline double
-gkyl_dg_eqn_boundary_surf_update(const struct gkyl_dg_eqn *eqn,
-  int dir,
-  const double*  xcEdge, const double*  xcSkin,
-  const double*  dxEdge, const double* dxSkin,
-  const int* idxEdge, const int* idxSkin, const int edge,
-  const double* qInEdge, const double* qInSkin, double* GKYL_RESTRICT qRhsOut)
+GKYL_CU_DH static inline double
+gkyl_dg_eqn_boundary_surf_update(
+  const struct gkyl_dg_eqn *eqn, int dir, const double *xcEdge, const double *xcSkin,
+  const double *dxEdge, const double *dxSkin, const int *idxEdge, const int *idxSkin,
+  const int edge, const double *qInEdge, const double *qInSkin, double *GKYL_RESTRICT qRhsOut
+)
 {
-  return eqn->boundary_surf_term(eqn, dir, 
-    xcEdge, xcSkin, 
-    dxEdge, dxSkin, 
-    idxEdge, idxSkin, edge, 
-    qInEdge, qInSkin, qRhsOut);
+  return eqn->boundary_surf_term(
+    eqn, dir, xcEdge, xcSkin, dxEdge, dxSkin, idxEdge, idxSkin, edge, qInEdge, qInSkin, qRhsOut
+  );
 }
 
 /**
@@ -187,20 +179,16 @@ gkyl_dg_eqn_boundary_surf_update(const struct gkyl_dg_eqn *eqn,
  * @param qRhsOut Output RHS for use in an explicit time-stepping scheme in skin cell (the cell being updated)
  * @return cfl frequency *if boundary surface term is computing stable time step* (otherwise returns 0.0)
  */
-GKYL_CU_DH
-static inline double
-gkyl_dg_eqn_boundary_diag_update(const struct gkyl_dg_eqn *eqn,
-  int dir,
-  const double*  xcEdge, const double*  xcSkin,
-  const double*  dxEdge, const double* dxSkin,
-  const int* idxEdge, const int* idxSkin, const int edge,
-  const double* qInEdge, const double* qInSkin, double* GKYL_RESTRICT qRhsOut)
+GKYL_CU_DH static inline double
+gkyl_dg_eqn_boundary_diag_update(
+  const struct gkyl_dg_eqn *eqn, int dir, const double *xcEdge, const double *xcSkin,
+  const double *dxEdge, const double *dxSkin, const int *idxEdge, const int *idxSkin,
+  const int edge, const double *qInEdge, const double *qInSkin, double *GKYL_RESTRICT qRhsOut
+)
 {
-  return eqn->boundary_diag_term(eqn, dir, 
-    xcEdge, xcSkin, 
-    dxEdge, dxSkin, 
-    idxEdge, idxSkin, edge, 
-    qInEdge, qInSkin, qRhsOut);
+  return eqn->boundary_diag_term(
+    eqn, dir, xcEdge, xcSkin, dxEdge, dxSkin, idxEdge, idxSkin, edge, qInEdge, qInSkin, qRhsOut
+  );
 }
 
 /**

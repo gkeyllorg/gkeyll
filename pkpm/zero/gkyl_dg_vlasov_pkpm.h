@@ -8,7 +8,7 @@
 #include <gkyl_range.h>
 
 // Struct containing the pointers to auxiliary fields.
-struct gkyl_dg_vlasov_pkpm_auxfields { 
+struct gkyl_dg_vlasov_pkpm_auxfields {
   const struct gkyl_array *bvar;
   const struct gkyl_array *bvar_surf;
   const struct gkyl_array *pkpm_prim;
@@ -30,11 +30,15 @@ struct gkyl_dg_vlasov_pkpm_auxfields {
  * @param use_gpu bool to determine if on GPU
  * @return Pointer to Vlasov equation object for parallel-kinetic-perpendicular-moment (pkpm) model.
  */
-struct gkyl_dg_eqn* gkyl_dg_vlasov_pkpm_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const struct gkyl_range* conf_range, const struct gkyl_range* phase_range, bool use_gpu);
+struct gkyl_dg_eqn *gkyl_dg_vlasov_pkpm_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, bool use_gpu
+);
 
-struct gkyl_dg_eqn* gkyl_dg_vlasov_pkpm_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const struct gkyl_range* conf_range, const struct gkyl_range* phase_range);
+struct gkyl_dg_eqn *gkyl_dg_vlasov_pkpm_cu_dev_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range
+);
 
 /**
  * Set the auxiliary fields 
@@ -44,7 +48,9 @@ struct gkyl_dg_eqn* gkyl_dg_vlasov_pkpm_cu_dev_new(const struct gkyl_basis* cbas
  * @param eqn Equation pointer.
  * @param auxfields Pointer to struct of aux fields.
  */
-void gkyl_vlasov_pkpm_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_pkpm_auxfields auxin);
+void gkyl_vlasov_pkpm_set_auxfields(
+  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_pkpm_auxfields auxin
+);
 
 #ifdef GKYL_HAVE_CUDA
 /**
@@ -55,7 +61,8 @@ void gkyl_vlasov_pkpm_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_d
  * @param eqn Equation pointer.
  * @param auxfields Pointer to struct of aux fields.
  */
-void gkyl_vlasov_pkpm_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_pkpm_auxfields auxin);
-
+void gkyl_vlasov_pkpm_set_auxfields_cu(
+  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_pkpm_auxfields auxin
+);
 
 #endif

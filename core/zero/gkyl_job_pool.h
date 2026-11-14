@@ -5,7 +5,7 @@
 // forward declare for use in function pointers
 struct gkyl_job_pool;
 
-// Function pointer sig for function that does the actual work 
+// Function pointer sig for function that does the actual work
 typedef void (*jp_work_func)(void *ctx);
 
 // Function sig that adds work to the pool
@@ -19,7 +19,7 @@ struct gkyl_job_pool {
   jp_add_work add_work; // function to add work to pool
   jp_wait wait; // function to wait for jobs to finish
 
-  struct gkyl_ref_count ref_count; // reference count  
+  struct gkyl_ref_count ref_count; // reference count
 };
 
 /**
@@ -45,11 +45,11 @@ void gkyl_job_pool_wait(const struct gkyl_job_pool *jp);
  *
  * @param jp Job-pool object.
  */
-struct gkyl_job_pool* gkyl_job_pool_acquire(const struct gkyl_job_pool *jp);
+struct gkyl_job_pool *gkyl_job_pool_acquire(const struct gkyl_job_pool *jp);
 
 /**
  * Delete job-pool object
  *
  * @param jp Object to delete.
  */
-void gkyl_job_pool_release(const struct gkyl_job_pool* jp);
+void gkyl_job_pool_release(const struct gkyl_job_pool *jp);

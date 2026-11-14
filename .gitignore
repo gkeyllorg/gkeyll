@@ -17,7 +17,7 @@ build-*/*
 .waf*
 .lock-waf*
 waf_tools/*.pyc
-waf_tools/__pycache__/
+__pycache__/
 gkylzero-dist*
 *.json
 TAGS
@@ -69,3 +69,9 @@ gyrokinetic/data/adas/*.npy
 # Adas data files
 data/adas/*.npy
 install-deps/*.npy
+
+# Agent related stuff
+.entire/*
+!.entire/settings.json
+# Entire per-user/local configuration
+.entire/settings.local.json

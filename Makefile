@@ -15,7 +15,7 @@ KERNELS_DIR := ker
 
 ARCH_FLAGS ?= -march=native
 CUDA_ARCH ?= 70
-CFLAGS ?= -O3 -g -ffast-math -fPIC -MMD -MP -DGIT_COMMIT_ID=\"$(GIT_TIP)\" -DGKYL_BUILD_DATE=\"$(BUILD_DATE_STR)\" -DGKYL_GIT_CHANGESET=\"$(GIT_TIP)\"
+CFLAGS ?= -O3 -g $(FP_FLAGS) -fPIC -MMD -MP -DGIT_COMMIT_ID=\"$(GIT_TIP)\" -DGKYL_BUILD_DATE=\"$(BUILD_DATE_STR)\" -DGKYL_GIT_CHANGESET=\"$(GIT_TIP)\"
 LDFLAGS = 
 PREFIX ?= ${HOME}/gkylsoft
 
@@ -26,7 +26,29 @@ HAVE_APP_FLAGS = -DGKYL_HAVE_PKPM -DGKYL_HAVE_GYROKINETIC -DGKYL_HAVE_VLASOV -DG
 
 # Include config.mak and alltargets.mak files (if they exists) to overide defaults above
 -include config.mak
+
+# Floating-point model. The default build allows value-changing optimizations
+# (fast math). A strict build (USE_STRICT_FP=1 in config.mak, set by
+# ./configure --strict-fp=yes) keeps IEEE evaluation order and disables FMA
+# contraction, so that results are reproducible across compilers and between
+# CPU and GPU builds.
+ifeq (${USE_STRICT_FP}, 1)
+	FP_FLAGS = -std=gnu11 -ffp-contract=off
+	NVCC_FP_FLAGS = --fmad=false -ffp-contract=off
+else
+	FP_FLAGS = -ffast-math
+	NVCC_FP_FLAGS = --use_fast_math -ffast-math
+endif
 -include alltargets.mak
+
+# Optional tensor p=2 kernel set in 2x3v (velocity-space Hamiltonian Vlasov,
+# moments, LBO; no phase-space Hamiltonian or triads). Off by default: set the
+# knob in config.mak (see ./configure --help). The corresponding kernel tables
+# get NULL rows when the set is not built, and the apps refuse such
+# configurations with a message pointing here.
+BUILD_VLASOV_TEN_2X3V_P2 ?=
+# (the -D flag for this knob is added to CFLAGS below, after the compiler
+# specific CFLAGS are set, since the nvcc branch reassigns CFLAGS)
 
 # Default lapack include and libraries: we prefer linking to static library
 LAPACK_INC_DIR ?= $(PREFIX)/OpenBLAS/include/
@@ -80,7 +102,7 @@ CUDA_LIBS =
 SQL_CFLAGS ?= -fPIC -Wno-implicit-int-float-conversion
 ifneq (,$(filter $(CC),nvcc nvc))
 	USING_NVCC = yes
-	CFLAGS = -O3 -g --forward-unknown-to-host-compiler --use_fast_math -ffast-math -MMD -MP -fPIC -DGIT_COMMIT_ID=\"$(GIT_TIP)\" -DGKYL_BUILD_DATE=\"$(BUILD_DATE_STR)\" -DGKYL_GIT_CHANGESET=\"$(GIT_TIP)\"
+	CFLAGS = -O3 -g --forward-unknown-to-host-compiler $(NVCC_FP_FLAGS) -MMD -MP -fPIC -DGIT_COMMIT_ID=\"$(GIT_TIP)\" -DGKYL_BUILD_DATE=\"$(BUILD_DATE_STR)\" -DGKYL_GIT_CHANGESET=\"$(GIT_TIP)\"
 	NVCC_FLAGS = -x cu -dc -arch=sm_${CUDA_ARCH} -rdc=true --compiler-options="-fPIC" -Xptxas --disable-optimizer-constants
 	LDFLAGS += -arch=sm_${CUDA_ARCH} -rdc=true
 	ifdef CUDAMATH_LIB_DIR
@@ -92,11 +114,45 @@ ifneq (,$(filter $(CC),nvcc nvc))
 	SQL_CFLAGS = --forward-unknown-to-host-compiler -fPIC
 endif
 
+# Per-kernel-family register caps (GPU builds only). The moment and flux advance
+# kernels dispatch through function pointers, so nvlink sizes them for the largest
+# kernel of the family they can call and, uncapped, they land at ~206-255 registers:
+# one resident 256-thread block per SM. Capping the whole family at a register-cliff
+# value (128 -> 2 blocks/SM, 64 -> 4 blocks/SM) trades a few spills for occupancy,
+# which these latency-bound kernels need. nvlink requires every function a capped
+# kernel can reach (for an indirect call: every address-taken function with the same
+# PTX prototype, see momf_t in core/zero/gkyl_mom_type.h) to fit the cap, so a cap
+# covers a whole family: MOM_MAX_REGS applies to the moment and LBO boundary-correction
+# kernels, wrappers and advance kernels of the vlasov, gyrokinetic and pkpm solvers;
+# FLUX_MAX_REGS to the vlasov flux kernels (ker/flux_vlasov/) and the
+# dg_vlasov_{vel,conf}_flux_surf advance kernels; BINOP_MAX_REGS to the bin_op
+# conf*phase multiply-accumulate kernels parallelized over components (the largest,
+# 3x1v ser p3, otherwise sets every basis to 156 registers). The hyper_dg
+# volume/surface kernels are dense straight-line code and are left alone. Set
+# MOM_MAX_REGS=, FLUX_MAX_REGS= or BINOP_MAX_REGS= (empty) in config.mak or on the make
+# command line to disable a cap.
+MOM_MAX_REGS ?= 64
+FLUX_MAX_REGS ?= 128
+BINOP_MAX_REGS ?= 64
+NVCC_MOM_FLAGS =
+NVCC_FLUX_FLAGS =
+NVCC_BINOP_FLAGS =
+ifdef USING_NVCC
+	NVCC_MOM_FLAGS = $(if $(MOM_MAX_REGS),-maxrregcount=$(MOM_MAX_REGS))
+	NVCC_FLUX_FLAGS = $(if $(FLUX_MAX_REGS),-maxrregcount=$(FLUX_MAX_REGS))
+	NVCC_BINOP_FLAGS = $(if $(BINOP_MAX_REGS),-maxrregcount=$(BINOP_MAX_REGS))
+endif
+
 CFLAGS += ${HAVE_APP_FLAGS}
 
 # Directory for storing shared data, like ADAS reaction rates and radiation fits
 GKYL_SHARE_DIR ?= "${INSTALL_PREFIX}/${PROJ_NAME}/share"
 CFLAGS += -DGKYL_SHARE_DIR=\"$(GKYL_SHARE_DIR)\"
+
+# Optional heavy kernel set define (knob resolved above)
+ifeq ($(BUILD_VLASOV_TEN_2X3V_P2),1)
+	CFLAGS += -DGKYL_BUILD_VLASOV_TEN_2X3V_P2
+endif
 
 # MPI paths and flags
 USING_MPI =
@@ -170,6 +226,12 @@ endif
 	CFLAGS += -DGKYL_HAVE_LUA
 endif
 
+USING_LAPACK_LITE = 
+ifeq (${USE_LAPACK_LITE}, 1)
+	USING_LAPACK_LITE = yes
+	CFLAGS += -DGKYL_HAVE_LAPACK_LITE
+endif
+
 # Build directory
 ifdef USING_NVCC
 	BUILD_DIR = cuda-build
@@ -193,17 +255,19 @@ MKDIR_P ?= mkdir -p
 
 export CC CFLAGS ARCH_FLAGS CUDA_ARCH LDFLAGS BUILD_DIR KERNELS_DIR
 export PREFIX INSTALL_PREFIX PROJ_NAME UNAME
-export USING_NVCC NVCC_FLAGS CUDA_LIBS SQL_CFLAGS CUDAMATH_LIBDIR
+export USING_NVCC NVCC_FLAGS NVCC_MOM_FLAGS NVCC_FLUX_FLAGS NVCC_BINOP_FLAGS CUDA_LIBS SQL_CFLAGS CUDAMATH_LIBDIR
 export USING_MPI MPI_INC_DIR MPI_LIB_DIR MPI_LIBS MPI_RPATH
 export USING_NCCL NCCL_INC_DIR NCCL_LIB_DIR NCCL_LIBS
 export USING_CUDSS CUDSS_INC_DIR CUDSS_LIB_DIR CUDSS_LIBS CUDSS_RPATH
 export USING_LUA LUA_INC_DIR LUA_LIB_DIR LUA_LIBS LUA_RPATH
+export USING_LAPACK_LITE
 export LAPACK_INC_DIR LAPACK_LIB_DIR LAPACK_LIBS LAPACK_LIB_NAME
 export SUPERLU_INC_DIR SUPERLU_LIB_DIR SUPERLU_LIBS SUPERLU_LIB_NAME
 export FIN_APP_LIB_DIR FIN_APP_LIB HAVE_APP_FLAGS
 export MKDIR_P GKYL_SHARE_DIR BUILD_APP
 export GKEYLL_SHARE_INSTALL_PREFIX SED_REPS_STR1 SED_REPS_STR2 MAKEFILE_FOR_EXT_C_INP_PHONY
 export CONF_MPI_INC_DIR CONF_MPI_LIB_DIR
+export BUILD_VLASOV_TEN_2X3V_P2
 export CONF_NCCL_INC_DIR CONF_NCCL_LIB_DIR
 export CONF_CUDSS_INC_DIR CONF_CUDSS_LIB_DIR
 export CONF_LUA_INC_DIR CONF_LUA_LIB_DIR CONF_LUA_LIB
@@ -265,13 +329,14 @@ SED_REPS_STR2=s,MAKEFILE_FOR_EXT_C_INP_PHONY_TAG,${MAKEFILE_FOR_EXT_C_INP_PHONY}
 everything: regression unit gkeyll ## Build everything, including unit, regression and gkeyll exectuable
 
 ## Core infrastructure targets
+# Set LIBRARY_TARGET=library to build without installing runtime data.
 core:  ## Build core infrastructure code
-	cd core && $(MAKE) -f Makefile-core
+	cd core && $(MAKE) -f Makefile-core ${LIBRARY_TARGET}
 
-core-unit: ## Build core unit tests
+core-unit: core ## Build core unit tests
 	cd core && $(MAKE) -f Makefile-core unit
 
-core-regression: ## Build core regression tests
+core-regression: core ## Build core regression tests
 	cd core && $(MAKE) -f Makefile-core regression
 
 core-install: ## Install core infrastructure code
@@ -282,15 +347,18 @@ core-install: ## Install core infrastructure code
 core-clean: ## Clean core infrastructure code
 	cd core && $(MAKE) -f Makefile-core clean
 
-core-check: core ## Run unit tests in core
+core-check: core ## (Re)build and run unit tests in core
 	cd core && $(MAKE) -f Makefile-core check
+
+core-unit-run: ## Run core unit tests
+	cd core && $(MAKE) -f Makefile-core unit-run
 
 core-valcheck: core ## Run valgrind on unit tests in core
 	cd core && $(MAKE) -f Makefile-core valcheck
 
 ## Moments infrastructure targets
 moments: core  ## Build moments infrastructure code
-	cd moments && $(MAKE) -f Makefile-moments
+	cd moments && $(MAKE) -f Makefile-moments ${LIBRARY_TARGET}
 
 moments-unit: moments core-unit ## Build moments unit tests
 	cd moments && $(MAKE) -f Makefile-moments unit
@@ -308,15 +376,18 @@ moments-install: core-install ## Install moments infrastructure code
 moments-clean: ## Clean moments infrastructure code
 	cd moments && $(MAKE) -f Makefile-moments clean
 
-moments-check: moments ## Run unit tests in moments
+moments-check: moments ## (Re)build and run unit tests in moments
 	cd moments && $(MAKE) -f Makefile-moments check
+
+moments-unit-run: ## Run moments unit tests
+	cd moments && $(MAKE) -f Makefile-moments unit-run
 
 moments-valcheck: moments ## Run valgrind on unit tests in moments
 	cd moments && $(MAKE) -f Makefile-moments valcheck
 
 ## Vlasov infrastructure targets
 vlasov: moments  ## Build Vlasov infrastructure code
-	cd vlasov && $(MAKE) -f Makefile-vlasov
+	cd vlasov && $(MAKE) -f Makefile-vlasov ${LIBRARY_TARGET}
 
 vlasov-unit: vlasov moments-unit ## Build Vlasov unit tests
 	cd vlasov && $(MAKE) -f Makefile-vlasov unit
@@ -331,15 +402,21 @@ vlasov-install: moments-install ## Install Vlasov infrastructure code
 vlasov-clean: ## Clean Vlasov infrastructure code
 	cd vlasov && $(MAKE) -f Makefile-vlasov clean
 
-vlasov-check: vlasov ## Run unit tests in Vlasov
+vlasov-check: vlasov ## (Re)build and run unit tests in Vlasov
 	cd vlasov && $(MAKE) -f Makefile-vlasov check
+
+vlasov-unit-run: ## Run Vlasov unit tests
+	cd vlasov && $(MAKE) -f Makefile-vlasov unit-run
+
+vlasov-lua-unit-run: ## Run Vlasov Lua unit tests (unit/lua/ltest_*.lua)
+	cd vlasov && $(MAKE) -f Makefile-vlasov lua-unit-run
 
 vlasov-valcheck: vlasov ## Run valgrind on unit tests in Vlasov
 	cd vlasov && $(MAKE) -f Makefile-vlasov valcheck
 
 ## Gyrokinetic infrastructure targets
 gyrokinetic: vlasov  ## Build Gyrokinetic infrastructure code
-	cd gyrokinetic && $(MAKE) -f Makefile-gyrokinetic
+	cd gyrokinetic && $(MAKE) -f Makefile-gyrokinetic ${LIBRARY_TARGET}
 
 gyrokinetic-unit: gyrokinetic vlasov-unit ## Build Gyrokinetic unit tests
 	cd gyrokinetic && $(MAKE) -f Makefile-gyrokinetic unit
@@ -354,15 +431,18 @@ gyrokinetic-install: vlasov-install ## Install Gyrokinetic infrastructure code
 gyrokinetic-clean: ## Clean Gyrokinetic infrastructure code
 	cd gyrokinetic && $(MAKE) -f Makefile-gyrokinetic clean
 
-gyrokinetic-check: gyrokinetic ## Run unit tests in Gyrokinetics
+gyrokinetic-check: gyrokinetic ## (Re)build and run unit tests in Gyrokinetics
 	cd gyrokinetic && $(MAKE) -f Makefile-gyrokinetic check
+
+gyrokinetic-unit-run: ## Run Gyrokinetic unit tests
+	cd gyrokinetic && $(MAKE) -f Makefile-gyrokinetic unit-run
 
 gyrokinetic-valcheck: gyrokinetic ## Run valgrind on unit tests in Gyrokinetics
 	cd gyrokinetic && $(MAKE) -f Makefile-gyrokinetic valcheck
 
 ## PKPM infrastructure targets
 pkpm: gyrokinetic  ## Build PKPM infrastructure code
-	cd pkpm && $(MAKE) -f Makefile-pkpm
+	cd pkpm && $(MAKE) -f Makefile-pkpm ${LIBRARY_TARGET}
 
 pkpm-unit: pkpm gyrokinetic-unit ## Build PKPM unit tests
 	cd pkpm && $(MAKE) -f Makefile-pkpm unit
@@ -377,8 +457,11 @@ pkpm-install: gyrokinetic-install ## Install PKPM infrastructure code
 pkpm-clean: ## Clean PKPM infrastructure code
 	cd pkpm && $(MAKE) -f Makefile-pkpm clean
 
-pkpm-check: pkpm ## Run unit tests in PKPM
+pkpm-check: pkpm ## (Re)build and run unit tests in PKPM
 	cd pkpm && $(MAKE) -f Makefile-pkpm check
+
+pkpm-unit-run: ## Run PKPM unit tests
+	cd pkpm && $(MAKE) -f Makefile-pkpm unit-run
 
 pkpm-valcheck: pkpm ## Run valgrind on unit tests in PKPM
 	cd pkpm && $(MAKE) -f Makefile-pkpm valcheck
@@ -387,12 +470,12 @@ pkpm-valcheck: pkpm ## Run valgrind on unit tests in PKPM
 gkeyll: ${BUILD_APP} ## Build Gkeyll executable
 	cd gkeyll && ${MAKE} -f Makefile-gkeyll gkeyll
 
-gkeyll-install: ${BUILD_APP}-install gkeyll ## Install Gkeyll executable
+gkeyll-install: ${BUILD_APP}-install ## Install Gkeyll executable
 	cd gkeyll && ${MAKE} -f Makefile-gkeyll install
 
 ## Targets to build things all parts of the code
 
-# build all unit tests 
+# build all unit tests
 unit: pkpm-unit gyrokinetic-unit vlasov-unit moments-unit core-unit ## Build all unit tests
 
 # build all regression tests 
@@ -403,7 +486,52 @@ clean:
 	rm -rf ${BUILD_DIR}
 
 # Check everything
-check: core-check moments-check vlasov-check gyrokinetic-check pkpm-check ## Run all unit tests
+check: ## Build (if needed) and run all unit tests
+	$(MAKE) unit
+	$(MAKE) unit-run
+
+# Run all unit tests
+# Set GKYL_UNIT_RESULTS=<file> to keep the per-test "PASS <app>: <test>" /
+# "FAIL <app>: <test>" lines (used by CI to report results per layer).
+unit-run: ## Run all unit tests without (re)building them
+	@if [ -n "$$GKYL_UNIT_RESULTS" ]; then export GKYL_TEST_LOG="$$GKYL_UNIT_RESULTS"; keep=1; \
+	else export GKYL_TEST_LOG=$$(mktemp); keep=0; fi; : > "$$GKYL_TEST_LOG"; \
+	for app in core moments vlasov gyrokinetic pkpm; do \
+	  $(MAKE) -C $$app -f Makefile-$$app unit-run; \
+	done; \
+	npass=$$(grep -c '^PASS ' "$$GKYL_TEST_LOG"); \
+	nfail=$$(grep -c '^FAIL ' "$$GKYL_TEST_LOG"); \
+	ntot=$$((npass+nfail)); \
+	echo "==================== gkeyll unit test summary ===================="; \
+	echo "Total: $$ntot   Passed: $$npass   Failed: $$nfail"; \
+	if [ $$nfail -gt 0 ]; then \
+	  echo "Failed tests:"; \
+	  grep '^FAIL ' "$$GKYL_TEST_LOG" | sed 's/^FAIL /  /'; \
+	fi; \
+	[ $$keep -eq 1 ] || rm -f "$$GKYL_TEST_LOG"; \
+	[ $$nfail -eq 0 ]
+
+# Run the MPI unit tests (mctest_*) on each rank count in MPI_UNIT_NP; tests
+# written for another rank count return without checking anything. Set MPIEXEC
+# for the local launcher, e.g. MPIEXEC=srun or MPIEXEC="mpirun --oversubscribe".
+MPIEXEC ?= mpirun
+MPI_UNIT_NP ?= 1 2 4
+mpi-unit-run: ## Run MPI unit tests on 1, 2 and 4 ranks without (re)building them
+	@if [ "${USE_MPI}" != "1" ]; then echo "Not built with MPI: no MPI unit tests to run."; exit 0; fi; \
+	log=$$(mktemp); npass=0; nfail=0; \
+	for unit in $(filter-out %.d %.dSYM,$(wildcard ${BUILD_DIR}/*/unit/mctest_*)); do \
+	  for np in ${MPI_UNIT_NP}; do \
+	    if ${MPIEXEC} -np $$np $$unit > "$$log" 2>&1; then \
+	      npass=$$((npass+1)); echo "PASS (np=$$np): $$unit"; \
+	    else \
+	      nfail=$$((nfail+1)); echo "FAIL (np=$$np): $$unit"; cat "$$log"; \
+	    fi; \
+	  done; \
+	done; \
+	rm -f "$$log"; \
+	echo "==================== gkeyll MPI unit test summary ===================="; \
+	echo "Passed: $$npass   Failed: $$nfail"; \
+	[ $$nfail -eq 0 ]
 
 # From: https://www.client9.com/self-documenting-makefiles/
 .PHONY: help

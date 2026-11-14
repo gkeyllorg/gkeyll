@@ -9,21 +9,23 @@
 #include <gkyl_util.h>
 
 // "Choose Kernel" based on cdim and polyorder
-#define CK(lst,cdim,poly_order) lst[cdim-1].kernels[poly_order]
+#define CK(lst, cdim, poly_order) lst[cdim - 1].kernels[poly_order]
 
 void
 gkyl_mom_fpo_vlasov_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_mom_type *momt = container_of(ref, struct gkyl_mom_type, ref_count);
   struct mom_type_fpo_vlasov *fpo_momt = container_of(momt, struct mom_type_fpo_vlasov, momt);
-  if (GKYL_IS_CU_ALLOC(momt->flags))
+  if (GKYL_IS_CU_ALLOC(momt->flags)) {
     gkyl_cu_free(momt->on_dev);
-  gkyl_free(momt);
+  }
   gkyl_free(fpo_momt);
 }
 
 void
-gkyl_mom_fpo_vlasov_set_auxfields(const struct gkyl_mom_type *momt, struct gkyl_mom_fpo_vlasov_auxfields auxin)
+gkyl_mom_fpo_vlasov_set_auxfields(
+  const struct gkyl_mom_type *momt, struct gkyl_mom_fpo_vlasov_auxfields auxin
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_mom_type_is_cu_dev(momt)) {
@@ -37,17 +39,19 @@ gkyl_mom_fpo_vlasov_set_auxfields(const struct gkyl_mom_type *momt, struct gkyl_
   mom_fpo_vlasov->auxfields.D = auxin.D;
 }
 
-struct gkyl_mom_type*
-gkyl_mom_fpo_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const struct gkyl_range* phase_range, bool use_gpu)
+struct gkyl_mom_type *
+gkyl_mom_fpo_vlasov_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
+  const struct gkyl_range *phase_range, bool use_gpu
+)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
 #ifdef GKYL_HAVE_CUDA
-  if(use_gpu) {
+  if (use_gpu) {
     return gkyl_mom_fpo_vlasov_cu_dev_new(cbasis, pbasis, phase_range);
-  } 
-#endif    
+  }
+#endif
   struct mom_type_fpo_vlasov *mom_fpo_vlasov = gkyl_malloc(sizeof(struct mom_type_fpo_vlasov));
   int cdim = cbasis->ndim, pdim = pbasis->ndim;
   int poly_order = cbasis->poly_order;
@@ -68,7 +72,7 @@ gkyl_mom_fpo_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis
 
     default:
       assert(false);
-      break;    
+      break;
   }
 
   mom_fpo_vlasov->momt.kernel = CK(mom_fpo_vlasov_kernels, cdim, poly_order);
@@ -78,21 +82,23 @@ gkyl_mom_fpo_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis
 
   mom_fpo_vlasov->auxfields.a = 0;
   mom_fpo_vlasov->auxfields.D = 0;
-    
+
   mom_fpo_vlasov->momt.flags = 0;
   GKYL_CLEAR_CU_ALLOC(mom_fpo_vlasov->momt.flags);
   mom_fpo_vlasov->momt.ref_count = gkyl_ref_count_init(gkyl_mom_fpo_vlasov_free);
-  
+
   mom_fpo_vlasov->momt.on_dev = &mom_fpo_vlasov->momt; // on host, self-reference
-    
+
   return &mom_fpo_vlasov->momt;
 }
 
 #ifndef GKYL_HAVE_CUDA
 
-struct gkyl_mom_type*
-gkyl_mom_fpo_vlasov_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const struct gkyl_range* phase_range)
+struct gkyl_mom_type *
+gkyl_mom_fpo_vlasov_cu_dev_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
+  const struct gkyl_range *phase_range
+)
 {
   assert(false);
   return 0;

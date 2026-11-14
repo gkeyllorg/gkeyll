@@ -8,8 +8,7 @@
 #include <gkyl_gr_minkowski.h>
 #include <gkyl_alloc.h>
 
-struct amr_gr_perturbed_density_ctx
-{
+struct amr_gr_perturbed_density_ctx {
   // Physical constants (using normalized code units).
   double gas_gamma; // Adiabatic index.
 
@@ -96,10 +95,11 @@ create_ctx(void)
 }
 
 void
-evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalGREulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0];
-  struct amr_gr_perturbed_density_ctx new_ctx = create_ctx(); // Context for initialization functions.
+  struct amr_gr_perturbed_density_ctx new_ctx =
+    create_ctx(); // Context for initialization functions.
   struct amr_gr_perturbed_density_ctx *app = &new_ctx;
 
   double gas_gamma = app->gas_gamma;
@@ -122,8 +122,7 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
     rho = rhol; // Fluid mass density (left).
     u = ul; // Fluid velocity (left).
     p = pl; // Fluid pressure (left).
-  }
-  else {
+  } else {
     rho = rhor + 0.3 * sin(50.0 * x); // Fluid mass density (right).
     u = ur; // Fluid velocity (right).
     p = pr; // Fluid pressure (right).
@@ -133,12 +132,12 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   double *shift = gkyl_malloc(sizeof(double[3]));
   bool in_excision_region;
 
-  double **spatial_metric = gkyl_malloc(sizeof(double*[3]));
+  double **spatial_metric = gkyl_malloc(sizeof(double *[3]));
   for (int i = 0; i < 3; i++) {
     spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
   }
 
-  double **inv_spatial_metric = gkyl_malloc(sizeof(double*[3]));
+  double **inv_spatial_metric = gkyl_malloc(sizeof(double *[3]));
   for (int i = 0; i < 3; i++) {
     inv_spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
   }
@@ -147,13 +146,15 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   spacetime->lapse_function_func(spacetime, 0.0, x, 0.0, 0.0, &lapse);
   spacetime->shift_vector_func(spacetime, 0.0, x, 0.0, 0.0, &shift);
   spacetime->excision_region_func(spacetime, 0.0, x, 0.0, 0.0, &in_excision_region);
-  
+
   spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, 0.0, 0.0, &spatial_metric);
   spacetime->spatial_inv_metric_tensor_func(spacetime, 0.0, x, 0.0, 0.0, &inv_spatial_metric);
 
   double *vel = gkyl_malloc(sizeof(double[3]));
   double v_sq = 0.0;
-  vel[0] = u; vel[1] = 0.0; vel[2] = 0.0;
+  vel[0] = u;
+  vel[1] = 0.0;
+  vel[2] = 0.0;
 
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
@@ -182,17 +183,31 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   // Set lapse gauge variable.
   fout[6] = lapse;
   // Set shift gauge variables.
-  fout[7] = shift[0]; fout[8] = shift[1]; fout[9] = shift[2];
+  fout[7] = shift[0];
+  fout[8] = shift[1];
+  fout[9] = shift[2];
 
   // Set spatial metric tensor.
-  fout[10] = spatial_metric[0][0]; fout[11] = spatial_metric[0][1]; fout[12] = spatial_metric[0][2];
-  fout[13] = spatial_metric[1][0]; fout[14] = spatial_metric[1][1]; fout[15] = spatial_metric[1][2];
-  fout[16] = spatial_metric[2][0]; fout[17] = spatial_metric[2][1]; fout[18] = spatial_metric[2][2];
+  fout[10] = spatial_metric[0][0];
+  fout[11] = spatial_metric[0][1];
+  fout[12] = spatial_metric[0][2];
+  fout[13] = spatial_metric[1][0];
+  fout[14] = spatial_metric[1][1];
+  fout[15] = spatial_metric[1][2];
+  fout[16] = spatial_metric[2][0];
+  fout[17] = spatial_metric[2][1];
+  fout[18] = spatial_metric[2][2];
 
   // Set inverse spatial metric tensor.
-  fout[19] = inv_spatial_metric[0][0]; fout[20] = inv_spatial_metric[0][1]; fout[21] = inv_spatial_metric[0][2];
-  fout[22] = inv_spatial_metric[1][0]; fout[23] = inv_spatial_metric[1][1]; fout[24] = inv_spatial_metric[1][2];
-  fout[25] = inv_spatial_metric[2][0]; fout[26] = inv_spatial_metric[2][1]; fout[27] = inv_spatial_metric[2][2];
+  fout[19] = inv_spatial_metric[0][0];
+  fout[20] = inv_spatial_metric[0][1];
+  fout[21] = inv_spatial_metric[0][2];
+  fout[22] = inv_spatial_metric[1][0];
+  fout[23] = inv_spatial_metric[1][1];
+  fout[24] = inv_spatial_metric[1][2];
+  fout[25] = inv_spatial_metric[2][0];
+  fout[26] = inv_spatial_metric[2][1];
+  fout[27] = inv_spatial_metric[2][2];
 
   // Set excision boundary conditions.
   if (in_excision_region) {
@@ -201,8 +216,7 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
     }
 
     fout[28] = -1.0;
-  }
-  else {
+  } else {
     fout[28] = 1.0;
   }
 
@@ -217,7 +231,8 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   gkyl_free(vel);
 }
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
   struct amr_gr_perturbed_density_ctx ctx = create_ctx(); // Context for initialization functions.
 

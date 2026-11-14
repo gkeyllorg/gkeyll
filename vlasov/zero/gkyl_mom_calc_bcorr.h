@@ -18,9 +18,9 @@ typedef struct gkyl_mom_calc_bcorr gkyl_mom_calc_bcorr;
  * @param momt Moment type object for boundary correction
  * @param use_gpu bool to determine if on GPU
  */
-struct gkyl_mom_calc_bcorr* 
-gkyl_mom_calc_bcorr_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_mom_type *momt, bool use_gpu);
+struct gkyl_mom_calc_bcorr *gkyl_mom_calc_bcorr_new(
+  const struct gkyl_rect_grid *grid, const struct gkyl_mom_type *momt, bool use_gpu
+);
 
 /**
  * Compute boundary correction moments.
@@ -31,36 +31,51 @@ gkyl_mom_calc_bcorr_new(const struct gkyl_rect_grid *grid,
  * @param fIn Input to updater
  * @param out Output
  */
-void gkyl_mom_calc_bcorr_advance(const struct gkyl_mom_calc_bcorr *bcorr,
-  const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng,
-  const struct gkyl_array *GKYL_RESTRICT fIn, struct gkyl_array *GKYL_RESTRICT out);
-  
+void gkyl_mom_calc_bcorr_advance(
+  const struct gkyl_mom_calc_bcorr *bcorr, const struct gkyl_range *phase_rng,
+  const struct gkyl_range *conf_rng, const struct gkyl_array *GKYL_RESTRICT fIn,
+  struct gkyl_array *GKYL_RESTRICT out
+);
+
 /**
  * Delete updater.
  *
  * @param bcorr Updater to delete.
  */
-void gkyl_mom_calc_bcorr_release(struct gkyl_mom_calc_bcorr* up);
+void gkyl_mom_calc_bcorr_release(struct gkyl_mom_calc_bcorr *up);
 
 // "derived" class constructors
-struct gkyl_mom_calc_bcorr*
-gkyl_mom_calc_bcorr_lbo_vlasov_new(const struct gkyl_rect_grid *grid, 
-  const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const double* vBoundary, bool use_gpu);
+struct gkyl_mom_calc_bcorr *gkyl_mom_calc_bcorr_lbo_vlasov_new(
+  const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis,
+  const struct gkyl_basis *pbasis, const double *vBoundary, bool use_gpu
+);
 
-struct gkyl_mom_calc_bcorr*
-gkyl_mom_calc_bcorr_lbo_pkpm_new(const struct gkyl_rect_grid *grid, 
-  const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const double* vBoundary, double mass, bool use_gpu);
+struct gkyl_mom_calc_bcorr *gkyl_mom_calc_bcorr_lbo_pkpm_new(
+  const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis,
+  const struct gkyl_basis *pbasis, const double *vBoundary, double mass, bool use_gpu
+);
 
-struct gkyl_mom_calc_bcorr*
-gkyl_mom_calc_bcorr_lbo_gyrokinetic_new(const struct gkyl_rect_grid *grid, 
-  const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  double mass, const struct gkyl_velocity_map *vel_map,
-  bool use_gpu);
+struct gkyl_mom_calc_bcorr *gkyl_mom_calc_bcorr_lbo_gyrokinetic_new(
+  const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis,
+  const struct gkyl_basis *pbasis, double mass, const struct gkyl_velocity_map *vel_map,
+  bool use_gpu
+);
 
-struct gkyl_mom_calc_bcorr*
-gkyl_mom_calc_bcorr_fpo_vlasov_new(const struct gkyl_rect_grid *grid, 
-  const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const struct gkyl_range* phase_range,
-  const double* vBoundary, const struct gkyl_array* diff_coeff, bool use_gpu);
+/**
+ * Create new updater to compute the boundary corrections of the Fokker-Planck
+ * operator (FPO) needed to conserve momentum and energy.
+ *
+ * @param grid Grid object
+ * @param cbasis Configuration-space basis
+ * @param pbasis Phase-space basis
+ * @param phase_range Phase-space range
+ * @param vBoundary Values at the edges of velocity space.
+ * @param diff_coeff Diffusion tensor.
+ * @param use_gpu Whether to run on the GPU.
+ * @return New updater pointer.
+ */
+struct gkyl_mom_calc_bcorr *gkyl_mom_calc_bcorr_fpo_vlasov_new(
+  const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis,
+  const struct gkyl_basis *pbasis, const struct gkyl_range *phase_range, const double *vBoundary,
+  const struct gkyl_array *diff_coeff, bool use_gpu
+);

@@ -17,25 +17,30 @@ struct gkyl_bc_emission_spectrum {
   struct gkyl_rect_grid *grid;
   struct gkyl_emission_spectrum_model *spectrum_model;
   struct gkyl_emission_yield_model *yield_model;
+  proj_on_basis_c2p_t c2p_impact; // computational-to-physical map of the impacting phase space
+  void *c2p_impact_ctx;
   bool use_gpu;
 };
 
 // Function to calculate the weighted mean of the SE yield
-GKYL_CU_D
-static void
-bc_weighted_delta(const double *inp, int cdim, int dir, enum gkyl_edge_loc edge, double xc[GKYL_MAX_DIM], const double *gain, double *weight)
+GKYL_CU_D static void
+bc_weighted_delta(
+  const double *inp, int cdim, int dir, enum gkyl_edge_loc edge, double xc[GKYL_MAX_DIM],
+  const double *gain, double *weight
+)
 {
-  if ((edge == GKYL_LOWER_EDGE && xc[cdim+dir] < 0) || (edge == GKYL_UPPER_EDGE && xc[cdim+dir] > 0)) {
-    weight[0] += inp[0]*gain[0];
+  if ((edge == GKYL_LOWER_EDGE && xc[cdim + dir] < 0) ||
+      (edge == GKYL_UPPER_EDGE && xc[cdim + dir] > 0)) {
+    weight[0] += inp[0] * gain[0];
     weight[1] += inp[0];
   }
 }
 
 #ifdef GKYL_HAVE_CUDA
 
-void
-gkyl_bc_emission_spectrum_set_extern_params_cu(const struct gkyl_bc_emission_spectrum *up,
-  int cdim, int vdim, double mass_in, double mass_out);
+void gkyl_bc_emission_spectrum_set_extern_params_cu(
+  const struct gkyl_bc_emission_spectrum *up, int cdim, int vdim, double mass_in, double mass_out
+);
 
 /**
  * CUDA device function to set up function to apply boundary conditions.
@@ -54,23 +59,11 @@ gkyl_bc_emission_spectrum_set_extern_params_cu(const struct gkyl_bc_emission_spe
  * @param conf_r Configuration space range
  * @param buff_r Buffer array range
  */
-void
-gkyl_bc_emission_spectrum_advance_cu(const struct gkyl_bc_emission_spectrum *up,
-  struct gkyl_range *impact_buff_r, struct gkyl_range *impact_cbuff_r,
-  struct gkyl_range *emit_buff_r, struct gkyl_array *bflux, struct gkyl_array *f_emit,
-  struct gkyl_array *yield, struct gkyl_array *spectrum, struct gkyl_array *weight,
-  struct gkyl_array *flux, struct gkyl_array *k);
-
-/**
- * CUDA device function to set up function to calculate SEY
- *
- * @param up BC updater
- * @param grid Domain grid
- * @param gamma SE yield values on incoming ghost space
- * @param ghost_r Incoming ghost space range
- */
-void
-gkyl_bc_emission_spectrum_sey_calc_cu(const struct gkyl_bc_emission_spectrum *up,
-  struct gkyl_array *yield, struct gkyl_rect_grid *grid, const struct gkyl_range *gamma_r);
+void gkyl_bc_emission_spectrum_advance_cu(
+  const struct gkyl_bc_emission_spectrum *up, struct gkyl_range *impact_buff_r,
+  struct gkyl_range *impact_cbuff_r, struct gkyl_range *emit_buff_r, struct gkyl_array *bflux,
+  struct gkyl_array *f_emit, struct gkyl_array *yield, struct gkyl_array *spectrum,
+  struct gkyl_array *weight, struct gkyl_array *flux, struct gkyl_array *k
+);
 
 #endif

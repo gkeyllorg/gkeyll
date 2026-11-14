@@ -38,7 +38,7 @@ CORE_LIB_DIR := -L../${BUILD_DIR}/core
 CORE_LIB := -lg0core
 
 EXEC_LIB_DIRS = -L${LAPACK_LIB_DIR} -L${SUPERLU_LIB_DIR} -L${MPI_LIB_DIR} -L${NCCL_LIB_DIR} -L${CUDSS_LIB_DIR} -L${LUA_LIB_DIR}
-EXEC_EXT_LIBS = ${LAPACK_LIBS} ${SUPERLU_LIBS} ${CUDA_LIBS} ${MPI_RPATH} ${MPI_LIBS} ${NCCL_LIBS} ${CUDSS_RPATH} ${CUDSS_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl
+EXEC_EXT_LIBS = ${SUPERLU_LIBS} ${LAPACK_LIBS} ${CUDA_LIBS} ${MPI_RPATH} ${MPI_LIBS} ${NCCL_LIBS} ${CUDSS_RPATH} ${CUDSS_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl
 EXEC_LIBS = -L../${BUILD_DIR}/pkpm ${LLIB} ${SLLIB} ${EXEC_EXT_LIBS}
 
 LDFLAGS += -Wl,-rpath,./${BUILD_DIR}/core
@@ -55,6 +55,9 @@ LDFLAGS += -Wl,-rpath,../${BUILD_DIR}/pkpm
 
 unit: ${LLIB} ${SLLIB} $(UNITS) ${MPI_UNITS} ## Build unit tests
 regression: ${LLIB} ${SLLIB} ${REGS} creg/rt_arg_parse.h ## Build regression tests
+
+.PHONY: library
+library: $(LLIB) $(SLLIB) ## Build only the shared library, without installing data
 
 .PHONY: all
 all: $(LLIB) $(SLLIB) ## Build all targets
@@ -89,6 +92,16 @@ ifdef USING_NVCC
 ../$(BUILD_DIR)/pkpm/$(KERNELS_DIR)/pkpm/%.c.o : $(KERNELS_DIR)/pkpm/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
+
+# Moment family (mom_pkpm_*, mom_bcorr_lbo_pkpm_*): register-capped with MOM_MAX_REGS
+# (see the top-level Makefile). Shorter stem than the pkpm/%.c.o rule above.
+../$(BUILD_DIR)/pkpm/$(KERNELS_DIR)/pkpm/mom_%.c.o : $(KERNELS_DIR)/pkpm/mom_%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(NVCC_MOM_FLAGS) $(INCS) -c $< -o $@
+
+../$(BUILD_DIR)/pkpm/zero/mom_pkpm_cu.cu.o ../$(BUILD_DIR)/pkpm/zero/mom_bcorr_lbo_pkpm_cu.cu.o : ../$(BUILD_DIR)/pkpm/zero/%.cu.o : zero/%.cu
+	$(MKDIR_P) $(dir $@)
+	$(CC) -c $(CFLAGS) $(NVCC_FLAGS) $(NVCC_MOM_FLAGS) $(INCS) $< -o $@
 endif
 
 # build lib
@@ -97,19 +110,41 @@ $(LLIB): $(OBJS) ../$(BUILD_DIR)/gyrokinetic/libg0gyrokinetic.so
 
 ifeq ($(UNAME),Linux)
 ifdef USING_NVCC
-	$(CC) -shared -o $@ ${CORE_LINK_OBJS} ${MOMENTS_LINK_OBJS} ${VLASOV_LINK_OBJS} ${GYROKINETIC_LINK_OBJS} ${PKPM_LINK_OBJS} ${PKPM_LINK_CU_OBJS} -Xlinker=-soname -Xlinker=libg0pkpm.so -L${LAPACK_LIB_DIR} -L${SUPERLU_LIB_DIR} -L${MPI_LIB_DIR} -L${NCCL_LIB_DIR} -L${CUDSS_LIB_DIR} -L${LUA_LIB_DIR} ${LAPACK_LIBS} ${SUPERLU_LIBS} ${CUDA_LIBS} ${MPI_RPATH} ${MPI_LIBS} ${NCCL_LIBS} ${CUDSS_RPATH} ${CUDSS_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl -arch=sm_${CUDA_ARCH} -rdc=true --compiler-options="-fPIC"
+	$(CC) -shared -o $@ ${CORE_LINK_OBJS} ${MOMENTS_LINK_OBJS} ${VLASOV_LINK_OBJS} ${GYROKINETIC_LINK_OBJS} ${PKPM_LINK_OBJS} ${PKPM_LINK_CU_OBJS} -Xlinker=-soname -Xlinker=libg0pkpm.so -L${LAPACK_LIB_DIR} -L${SUPERLU_LIB_DIR} -L${MPI_LIB_DIR} -L${NCCL_LIB_DIR} -L${CUDSS_LIB_DIR} -L${LUA_LIB_DIR} ${SUPERLU_LIBS} ${LAPACK_LIBS} ${CUDA_LIBS} ${MPI_RPATH} ${MPI_LIBS} ${NCCL_LIBS} ${CUDSS_RPATH} ${CUDSS_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl -arch=sm_${CUDA_ARCH} -rdc=true --compiler-options="-fPIC"
 else
 ## Darwin
-	$(CC) -shared -o $@ ${CORE_LINK_OBJS} ${MOMENTS_LINK_OBJS} ${VLASOV_LINK_OBJS} ${GYROKINETIC_LINK_OBJS} ${PKPM_LINK_OBJS}  -Wl,-soname,libg0pkpm.so -L${LAPACK_LIB_DIR} -L${SUPERLU_LIB_DIR} -L${MPI_LIB_DIR} -L${NCCL_LIB_DIR} -L${CUDSS_LIB_DIR} -L${LUA_LIB_DIR} ${LAPACK_LIBS} ${SUPERLU_LIBS} ${CUDA_LIBS} ${MPI_RPATH} ${MPI_LIBS} ${NCCL_LIBS} ${CUDSS_RPATH} ${CUDSS_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl
+	$(CC) -shared -o $@ ${CORE_LINK_OBJS} ${MOMENTS_LINK_OBJS} ${VLASOV_LINK_OBJS} ${GYROKINETIC_LINK_OBJS} ${PKPM_LINK_OBJS}  -Wl,-soname,libg0pkpm.so -L${LAPACK_LIB_DIR} -L${SUPERLU_LIB_DIR} -L${MPI_LIB_DIR} -L${NCCL_LIB_DIR} -L${CUDSS_LIB_DIR} -L${LUA_LIB_DIR} ${SUPERLU_LIBS} ${LAPACK_LIBS} ${CUDA_LIBS} ${MPI_RPATH} ${MPI_LIBS} ${NCCL_LIBS} ${CUDSS_RPATH} ${CUDSS_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl
 endif
 else
-	$(CC) -shared -o $@ ${CORE_LINK_OBJS} ${MOMENTS_LINK_OBJS} ${VLASOV_LINK_OBJS} ${GYROKINETIC_LINK_OBJS} ${PKPM_LINK_OBJS} -Wl,-install_name,@rpath/libg0pkpm.so -L${LAPACK_LIB_DIR} -L${SUPERLU_LIB_DIR} -L${MPI_LIB_DIR} -L${NCCL_LIB_DIR} -L${CUDSS_LIB_DIR} -L${LUA_LIB_DIR} ${LAPACK_LIBS} ${SUPERLU_LIBS} ${CUDA_LIBS} ${MPI_RPATH} ${MPI_LIBS} ${NCCL_LIBS} ${CUDSS_RPATH} ${CUDSS_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl
+	$(CC) -shared -o $@ ${CORE_LINK_OBJS} ${MOMENTS_LINK_OBJS} ${VLASOV_LINK_OBJS} ${GYROKINETIC_LINK_OBJS} ${PKPM_LINK_OBJS} -Wl,-install_name,@rpath/libg0pkpm.so -L${LAPACK_LIB_DIR} -L${SUPERLU_LIB_DIR} -L${MPI_LIB_DIR} -L${NCCL_LIB_DIR} -L${CUDSS_LIB_DIR} -L${LUA_LIB_DIR} ${SUPERLU_LIBS} ${LAPACK_LIBS} ${CUDA_LIBS} ${MPI_RPATH} ${MPI_LIBS} ${NCCL_LIBS} ${CUDSS_RPATH} ${CUDSS_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl
 endif
 
 .PHONY: check valcheck
 # Run all unit tests
-check: unit ## Build (if needed) and run all unit tests
-	$(foreach unit,${UNITS},echo $(unit); cd ../; ./pkpm/$(unit) -E; cd pkpm;)
+check: unit unit-run ## Build (if needed) and run all unit tests
+
+# Run all unit tests without (re)building them
+unit-run: ## Run unit tests without (re)building them
+	@cd ..; app=pkpm; own_log=0; \
+	if [ -z "$$GKYL_TEST_LOG" ]; then GKYL_TEST_LOG=$$(mktemp); own_log=1; fi; \
+	npass=0; nfail=0; \
+	for unit in ${UNITS}; do \
+	  tname=$$(basename $$unit); \
+	  if ./$$app/$$unit -E; then \
+	    npass=$$((npass+1)); echo "PASS $$app: $$tname" >> "$$GKYL_TEST_LOG"; \
+	  else \
+	    nfail=$$((nfail+1)); echo "FAIL $$app: $$tname" >> "$$GKYL_TEST_LOG"; \
+	  fi; \
+	done; \
+	if [ $$own_log -eq 1 ]; then \
+	  echo "==================== $$app test summary ===================="; \
+	  echo "Passed: $$npass   Failed: $$nfail"; \
+	  if [ $$nfail -gt 0 ]; then \
+	    echo "Failed tests:"; grep '^FAIL ' "$$GKYL_TEST_LOG" | sed 's/^FAIL /  /'; rm -f "$$GKYL_TEST_LOG"; exit 1; \
+	  else \
+	    echo "All $$app unit tests passed."; rm -f "$$GKYL_TEST_LOG"; \
+	  fi; \
+	fi
 
 valcheck: unit ## Run valgrind on unit test
 	$(foreach unit,$(UNITS),valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --show-error-list=yes $(unit) --exec=never 2>$(unit)_val_err 1>/dev/null;)

@@ -32,12 +32,12 @@ thread_pool_wait(const struct gkyl_job_pool *jp)
   thpool_wait(th->thpool);
 }
 
-struct gkyl_job_pool*
+struct gkyl_job_pool *
 gkyl_thread_pool_new(int nthreads)
 {
   struct jp_thread_pool *th = gkyl_malloc(sizeof(struct jp_thread_pool));
   // initialize the actual pool object
-  th->thpool = thpool_init(nthreads);  
+  th->thpool = thpool_init(nthreads);
 
   th->jp.pool_size = nthreads;
   th->jp.add_work = thread_pool_add_work;
@@ -45,6 +45,6 @@ gkyl_thread_pool_new(int nthreads)
 
   // set reference counter
   th->jp.ref_count = gkyl_ref_count_init(thread_pool_free);
-    
+
   return &th->jp;
 }

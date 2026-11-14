@@ -7,9 +7,11 @@
 #include <gkyl_fpo_vlasov_coeff_recovery_priv.h>
 #include <gkyl_util.h>
 
-gkyl_fpo_vlasov_coeff_recovery* 
-gkyl_fpo_vlasov_coeff_recovery_new(const struct gkyl_rect_grid *grid,
-    const struct gkyl_basis *phase_basis, const struct gkyl_range *phase_range, long offsets[36], bool use_gpu)
+gkyl_fpo_vlasov_coeff_recovery *
+gkyl_fpo_vlasov_coeff_recovery_new(
+  const struct gkyl_rect_grid *grid, const struct gkyl_basis *phase_basis,
+  const struct gkyl_range *phase_range, long offsets[GKYL_HYPER_DG_GEN_NUM_OFFSETS], bool use_gpu
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
@@ -31,55 +33,41 @@ gkyl_fpo_vlasov_coeff_recovery_new(const struct gkyl_rect_grid *grid,
   up->pdim = pdim;
   up->poly_order = poly_order;
 
-  // Create array of 36 relative offsets.
-  // 3-cell stencil in each velocity direction, (vx, vy, vz)
-  // 9-cell stencil in some pairs of velocity directions (vxvy, vxvz, vyvz)
-  int idxc[GKYL_MAX_DIM] = {0};
-
-  // This inherently assumes / relies on there being at least 3 cells in each velocity space direction,
-  // which is reasonable I think?
-  for (int i=cdim; i<pdim; ++i) idxc[i] = 2;
-
-  long offsets_arr[36] = {0};
-  for (int d1=0; d1<vdim; ++d1) {
-    int dir1 = d1 + cdim;
-    int num_update_dir = 1;
-    int update_dir[] = {dir1};
-    create_offsets(num_update_dir, update_dir, phase_range, idxc, &offsets_arr[d1*3]);
-
-    for (int d2=d1+1; d2<vdim; ++d2) {
-      int dir2 = d2 + cdim;
-      int num_update_dir = 2;
-      int update_dir[] = {dir1, dir2};
-      create_offsets(num_update_dir, update_dir, phase_range, idxc, 
-        &offsets_arr[(d1+d2)*9]);
-    }
+  // Relative offsets of the 3-cell stencil in each velocity direction (vx, vy, vz) and
+  // of the 9-cell stencil in each pair of velocity directions (vxvy, vxvz, vyvz). These
+  // are the stencils of the generic stencil hyper DG update, which the FPO diffusion
+  // term shares with the drag and diffusion coefficient recovery.
+  int vel_dirs[GKYL_MAX_DIM] = {0};
+  for (int d = 0; d < vdim; ++d) {
+    vel_dirs[d] = cdim + d;
   }
-  gkyl_copy_long_arr(36, offsets_arr, up->offsets);
-  gkyl_copy_long_arr(36, offsets_arr, offsets);
+  long offsets_arr[GKYL_HYPER_DG_GEN_NUM_OFFSETS] = {0};
+  gkyl_hyper_dg_gen_stencil_offsets(vdim, vel_dirs, phase_range, offsets_arr);
+  gkyl_copy_long_arr(GKYL_HYPER_DG_GEN_NUM_OFFSETS, offsets_arr, up->offsets);
+  gkyl_copy_long_arr(GKYL_HYPER_DG_GEN_NUM_OFFSETS, offsets_arr, offsets);
 
   // Set pointers to kernels
-  for (int d1=0; d1<vdim; ++d1) {
-    up->diff_coeff_surf_recovery[d1] = 
+  for (int d1 = 0; d1 < vdim; ++d1) {
+    up->diff_coeff_surf_recovery[d1] =
       choose_ser_fpo_diff_coeff_surf_recovery_kern(d1, cdim, poly_order);
 
     // 3-cell stencil pointers
-    for (int i=0; i<3; ++i) {
-      up->drag_coeff_recovery_stencil[d1][i] = 
-       choose_ser_fpo_drag_coeff_recovery_kern(d1, cdim, poly_order, i);
+    for (int i = 0; i < 3; ++i) {
+      up->drag_coeff_recovery_stencil[d1][i] =
+        choose_ser_fpo_drag_coeff_recovery_kern(d1, cdim, poly_order, i);
 
-      up->sgn_drag_coeff_stencil[d1][i] = 
-       choose_ser_fpo_sgn_drag_coeff_recovery_kern(d1, cdim, poly_order, i);
+      up->sgn_drag_coeff_stencil[d1][i] =
+        choose_ser_fpo_sgn_drag_coeff_recovery_kern(d1, cdim, poly_order, i);
 
-      up->diff_coeff_diag_recovery_stencil[d1][i] = 
+      up->diff_coeff_diag_recovery_stencil[d1][i] =
         choose_ser_fpo_diff_coeff_diag_recovery_kern(d1, cdim, poly_order, i);
     }
 
-    for (int d2=0; d2<vdim; ++d2) {
+    for (int d2 = 0; d2 < vdim; ++d2) {
       if (d1 != d2) {
         // 9-cell stencil pointers
-        for (int idx=0; idx<9; ++idx) {
-          up->diff_coeff_cross_recovery_stencil[d1][d2][idx] = 
+        for (int idx = 0; idx < 9; ++idx) {
+          up->diff_coeff_cross_recovery_stencil[d1][d2][idx] =
             choose_ser_fpo_diff_coeff_cross_recovery_kern(d1, d2, cdim, poly_order, idx);
         }
       }
@@ -94,9 +82,11 @@ gkyl_fpo_vlasov_coeff_recovery_new(const struct gkyl_rect_grid *grid,
   return up;
 }
 
-void gkyl_fpo_vlasov_coeff_recovery_release(struct gkyl_fpo_vlasov_coeff_recovery *up)
+void
+gkyl_fpo_vlasov_coeff_recovery_release(struct gkyl_fpo_vlasov_coeff_recovery *up)
 {
-  if (GKYL_IS_CU_ALLOC(up->flags))
+  if (GKYL_IS_CU_ALLOC(up->flags)) {
     gkyl_cu_free(up->on_dev);
+  }
   gkyl_free(up);
 }

@@ -6,8 +6,7 @@
 
 #include <gkyl_amr_core.h>
 
-struct amr_euler_cart_axi_sodshock_ctx
-{
+struct amr_euler_cart_axi_sodshock_ctx {
   // Mathematical constants (dimensionless).
   double pi;
 
@@ -102,10 +101,11 @@ create_ctx(void)
 }
 
 void
-evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalEulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
-  struct amr_euler_cart_axi_sodshock_ctx new_ctx = create_ctx(); // Context for initialization functions.
+  struct amr_euler_cart_axi_sodshock_ctx new_ctx =
+    create_ctx(); // Context for initialization functions.
   struct amr_euler_cart_axi_sodshock_ctx *app = &new_ctx;
 
   double gas_gamma = app->gas_gamma;
@@ -130,24 +130,27 @@ evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
     rho = rhol; // Fluid mass density (left/inner).
     u = ul; // Fluid velocity (left/inner).
     p = pl; // Fluid pressure (left/inner).
-  }
-  else {
+  } else {
     rho = rhor; // Fluid mass density (right/outer).
     u = ur; // Fluid velocity (right/outer).
     p = pr; // Fluid pressure (right/outer).
   }
-  
+
   // Set fluid mass density.
   fout[0] = rho;
   // Set fluid momentum density.
-  fout[1] = rho * u; fout[2] = 0.0; fout[3] = 0.0;
+  fout[1] = rho * u;
+  fout[2] = 0.0;
+  fout[3] = 0.0;
   // Set fluid total energy density.
   fout[4] = p / (gas_gamma - 1.0) + 0.5 * rho * u * u;
 }
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
-  struct amr_euler_cart_axi_sodshock_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct amr_euler_cart_axi_sodshock_ctx ctx =
+    create_ctx(); // Context for initialization functions.
 
   struct euler2d_single_init init = {
     .base_Nx = ctx.Nx,

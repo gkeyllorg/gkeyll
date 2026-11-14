@@ -10,7 +10,7 @@ struct euler1d_single_init {
 
   double coarse_x1;
   double coarse_x2;
-  
+
   double refined_x1;
   double refined_x2;
 
@@ -35,7 +35,7 @@ struct euler1d_single_init {
 * @param argv Array of command line arguments passed to the function.
 * @param init Initialization data for the 1D Euler equations.
 */
-void euler1d_run_single(int argc, char **argv, struct euler1d_single_init* init);
+void euler1d_run_single(int argc, char **argv, struct euler1d_single_init *init);
 
 // Initialization data for a 1D simulation using the general relativistic Euler equations, run with static, patch-structured mesh refinement with a single refinement patch.
 struct gr_euler1d_single_init {
@@ -44,7 +44,7 @@ struct gr_euler1d_single_init {
 
   double coarse_x1;
   double coarse_x2;
-  
+
   double refined_x1;
   double refined_x2;
 
@@ -70,7 +70,7 @@ struct gr_euler1d_single_init {
 * @param argv Array of command line arguments passed to the function.
 * @param init Initialization data for the 1D general relativistic Euler equations.
 */
-void gr_euler1d_run_single(int argc, char **argv, struct gr_euler1d_single_init* init);
+void gr_euler1d_run_single(int argc, char **argv, struct gr_euler1d_single_init *init);
 
 // Initialization data for a 1D simulation using the Euler mixture equations, run with static, patch-structured mesh refinement with a single refinement patch.
 struct euler_mixture1d_single_init {
@@ -79,7 +79,7 @@ struct euler_mixture1d_single_init {
 
   double coarse_x1;
   double coarse_x2;
-  
+
   double refined_x1;
   double refined_x2;
 
@@ -105,7 +105,7 @@ struct euler_mixture1d_single_init {
 * @param argv Array of command line arguments passed to the function.
 * @param init Initialization data for the 1D Euler mixture equations.
 */
-void euler_mixture1d_run_single(int argc, char **argv, struct euler_mixture1d_single_init* init);
+void euler_mixture1d_run_single(int argc, char **argv, struct euler_mixture1d_single_init *init);
 
 // Initialization data for a 1D simulation using the Euler equations, run with static, patch-structured mesh refinement with a doubly-nested refinement patch.
 struct euler1d_double_init {
@@ -118,7 +118,7 @@ struct euler1d_double_init {
 
   double intermediate_x1;
   double intermediate_x2;
-  
+
   double refined_x1;
   double refined_x2;
 
@@ -143,7 +143,7 @@ struct euler1d_double_init {
 * @param argv Array of command line arguments passed to the function.
 * @param init Initialization data for the 1D Euler equations.
 */
-void euler1d_run_double(int argc, char **argv, struct euler1d_double_init* init);
+void euler1d_run_double(int argc, char **argv, struct euler1d_double_init *init);
 
 // Initialization data for a 1D simulation using the general relativistic Euler equations, run with static, patch-structured mesh refinement with a doubly-nested refinement patch.
 struct gr_euler1d_double_init {
@@ -156,7 +156,7 @@ struct gr_euler1d_double_init {
 
   double intermediate_x1;
   double intermediate_x2;
-  
+
   double refined_x1;
   double refined_x2;
 
@@ -182,7 +182,7 @@ struct gr_euler1d_double_init {
 * @param argv Array of command line arguments passed to the function.
 * @param init Initialization data for the 1D general relativistic Euler equations.
 */
-void gr_euler1d_run_double(int argc, char **argv, struct gr_euler1d_double_init* init);
+void gr_euler1d_run_double(int argc, char **argv, struct gr_euler1d_double_init *init);
 
 // Initialization data for a 1D simulation using the Euler mixture equations, run with static, patch-structured mesh refinement with a doubly-nested refinement patch.
 struct euler_mixture1d_double_init {
@@ -195,7 +195,7 @@ struct euler_mixture1d_double_init {
 
   double intermediate_x1;
   double intermediate_x2;
-  
+
   double refined_x1;
   double refined_x2;
 
@@ -221,7 +221,7 @@ struct euler_mixture1d_double_init {
 * @param argv Array of command line arguments passed to the function.
 * @param init Initialization data for the 1D Euler mixture equations.
 */
-void euler_mixture1d_run_double(int argc, char **argv, struct euler_mixture1d_double_init* init);
+void euler_mixture1d_run_double(int argc, char **argv, struct euler_mixture1d_double_init *init);
 
 // Initialization data for a 2D simulation using the Euler equations, run with static, block-structured mesh refinement with a single refinement patch.
 struct euler2d_single_init {
@@ -266,7 +266,7 @@ struct euler2d_single_init {
 * @param argv Array of command line arguments passed to the function.
 * @param init Initialization data for the 2D Euler equations.
 */
-void euler2d_run_single(int argc, char **argv, struct euler2d_single_init* init);
+void euler2d_run_single(int argc, char **argv, struct euler2d_single_init *init);
 
 // Initialization data for a 2D simulation using the general relativistic Euler equations, run with static, block-structured mesh refinement with a single refinement patch.
 struct gr_euler2d_single_init {
@@ -312,7 +312,7 @@ struct gr_euler2d_single_init {
 * @param argv Array of command line arguments passed to the function.
 * @param init Initialization data for the 2D general relativistic Euler equations.
 */
-void gr_euler2d_run_single(int argc, char **argv, struct gr_euler2d_single_init* init);
+void gr_euler2d_run_single(int argc, char **argv, struct gr_euler2d_single_init *init);
 
 // Initialization data for a 2D simulation using the Euler mixture equations, run with static, block-structured mesh refinement with a single refinement patch.
 struct euler_mixture2d_single_init {
@@ -332,11 +332,11 @@ struct euler_mixture2d_single_init {
 
   evalf_t eval;
   int num_species;
-  double* gas_gamma_s;
+  double *gas_gamma_s;
 
   bool copy_x;
   bool copy_y;
-  
+
   bool wall_x;
   bool wall_y;
 
@@ -358,7 +358,7 @@ struct euler_mixture2d_single_init {
 * @param argv Array of command line arguments passed to the function.
 * @param init Initialization data for the 2D Euler mixture equations.
 */
-void euler_mixture2d_run_single(int argc, char **argv, struct euler_mixture2d_single_init* init);
+void euler_mixture2d_run_single(int argc, char **argv, struct euler_mixture2d_single_init *init);
 
 // Initialization data for a 2D simulation using the Euler equations, run with static, block-structured mesh refinement with a doubly-nested refinement patch.
 struct euler2d_double_init {
@@ -409,7 +409,7 @@ struct euler2d_double_init {
 * @param argv Array of command line arguments passed to the function.
 * @param init Initialization data for the 2D Euler equations.
 */
-void euler2d_run_double(int argc, char **argv, struct euler2d_double_init* init);
+void euler2d_run_double(int argc, char **argv, struct euler2d_double_init *init);
 
 // Initialization data for a 2D simulation using the general relativistic Euler equations, run with static, block-structured mesh refinement with a doubly-nested refinement patch.
 struct gr_euler2d_double_init {
@@ -461,7 +461,7 @@ struct gr_euler2d_double_init {
 * @param argv Array of command line arguments passed to the function.
 * @param init Initialization data for the 2D general relativistic Euler equations.
 */
-void gr_euler2d_run_double(int argc, char **argv, struct gr_euler2d_double_init* init);
+void gr_euler2d_run_double(int argc, char **argv, struct gr_euler2d_double_init *init);
 
 // Initialization data for a 2D simulation using the Euler mixture equations, run with static, block-structured mesh refinement with a doubly-nested refinement patch.
 struct euler_mixture2d_double_init {
@@ -487,7 +487,7 @@ struct euler_mixture2d_double_init {
 
   evalf_t eval;
   int num_species;
-  double* gas_gamma_s;
+  double *gas_gamma_s;
 
   bool copy_x;
   bool copy_y;
@@ -513,7 +513,7 @@ struct euler_mixture2d_double_init {
 * @param argv Array of command line arguments passed to the function.
 * @param init Initialization data for the 2D Euler mixture equations.
 */
-void euler_mixture2d_run_double(int argc, char **argv, struct euler_mixture2d_double_init* init);
+void euler_mixture2d_run_double(int argc, char **argv, struct euler_mixture2d_double_init *init);
 
 // Initialization data for a 1D simulation using the coupled five-moment equations, run with static, patch-structured mesh refinement with a single refinement patch.
 struct five_moment_1d_single_init {
@@ -562,7 +562,7 @@ struct five_moment_1d_single_init {
 * @param argv Array of command line arguments passed to the function.
 * @param init Initialization data for the 1D coupled five-moment equations.
 */
-void five_moment_1d_run_single(int argc, char **argv, struct five_moment_1d_single_init* init);
+void five_moment_1d_run_single(int argc, char **argv, struct five_moment_1d_single_init *init);
 
 // Initialization data for a 1D simulation using the coupled ten-moment equations, run with static, patch-structured mesh refinement with a single refinement patch.
 struct ten_moment_1d_single_init {
@@ -610,7 +610,7 @@ struct ten_moment_1d_single_init {
 * @param argv Array of command line arguments passed to the function.
 * @param init Initialization data for the 1D coupled ten-moment equations.
 */
-void ten_moment_1d_run_single(int argc, char **argv, struct ten_moment_1d_single_init* init);
+void ten_moment_1d_run_single(int argc, char **argv, struct ten_moment_1d_single_init *init);
 
 // Initialization data for a 1D simulation using the coupled five-moment equations, run with static, patch-structured mesh refinement with a doubly-nested refinement patch.
 struct five_moment_1d_double_init {
@@ -663,7 +663,7 @@ struct five_moment_1d_double_init {
 * @param argv Array of command line arguments passed to the function.
 * @param init Initialization data for the 1D coupled five-moment equations.
 */
-void five_moment_1d_run_double(int argc, char **argv, struct five_moment_1d_double_init* init);
+void five_moment_1d_run_double(int argc, char **argv, struct five_moment_1d_double_init *init);
 
 // Initialization data for a 2D simulation using the coupled five-moment equations, run with static, block-structured mesh refinement with a single refinement patch.
 struct five_moment_2d_single_init {
@@ -723,7 +723,7 @@ struct five_moment_2d_single_init {
 * @param argv Array of command line arguments passed to the function.
 * @param init Initialization data for the 2D coupled five-moment equations.
 */
-void five_moment_2d_run_single(int argc, char **argv, struct five_moment_2d_single_init* init);
+void five_moment_2d_run_single(int argc, char **argv, struct five_moment_2d_single_init *init);
 
 // Initialization data for a 2D simulation using the coupled five-moment equations, run with static, block-structured mesh refinement with a single refinement patch.
 struct ten_moment_2d_single_init {
@@ -782,7 +782,7 @@ struct ten_moment_2d_single_init {
 * @param argv Array of command line arguments passed to the function.
 * @param init Initialization data for the 2D coupled ten-moment equations.
 */
-void ten_moment_2d_run_single(int argc, char **argv, struct ten_moment_2d_single_init* init);
+void ten_moment_2d_run_single(int argc, char **argv, struct ten_moment_2d_single_init *init);
 
 // Initialization data for a 2D simulation using the coupled five-moment equations, run with static, block-structured mesh refinement with a doubly-nested refinement patch.
 struct five_moment_2d_double_init {
@@ -848,7 +848,7 @@ struct five_moment_2d_double_init {
 * @param argv Array of command line arguments passed to the function.
 * @param init Initialization data for the 2D coupled five-moment equations.
 */
-void five_moment_2d_run_double(int argc, char **argv, struct five_moment_2d_double_init* init);
+void five_moment_2d_run_double(int argc, char **argv, struct five_moment_2d_double_init *init);
 
 // Initialization data for a 2D simulation using the coupled ten-moment equations, run with static, block-structured mesh refinement with a doubly-nested refinement patch.
 struct ten_moment_2d_double_init {
@@ -914,4 +914,4 @@ struct ten_moment_2d_double_init {
 * @param argv Array of command line arguments passed to the function.
 * @param init Initialization data for the 2D coupled ten-moment equations.
 */
-void ten_moment_2d_run_double(int argc, char **argv, struct ten_moment_2d_double_init* init);
+void ten_moment_2d_run_double(int argc, char **argv, struct ten_moment_2d_double_init *init);

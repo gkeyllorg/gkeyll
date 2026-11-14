@@ -5,7 +5,7 @@
 // Type of Riemann-solver to use:
 enum gkyl_wv_reactive_euler_rp {
   WV_REACTIVE_EULER_RP_LAX = 0, // Default (Lax fluxes).
-  WV_REACTIVE_EULER_RP_ROE,
+  WV_REACTIVE_EULER_RP_ROE
 };
 
 // Input context, packaged as a struct.
@@ -31,9 +31,10 @@ struct gkyl_wv_reactive_euler_inp {
 * @param use_gpu Whether the wave equation object is on the host (false) or the device (true).
 * @return Pointer to the reactive Euler equations object.
 */
-struct gkyl_wv_eqn*
-gkyl_wv_reactive_euler_new(double gas_gamma, double specific_heat_capacity, double energy_of_formation, double ignition_temperature,
-  double reaction_rate, bool use_gpu);
+struct gkyl_wv_eqn *gkyl_wv_reactive_euler_new(
+  double gas_gamma, double specific_heat_capacity, double energy_of_formation,
+  double ignition_temperature, double reaction_rate, bool use_gpu
+);
 
 /**
 * Create a new reactive Euler equations object, from an input context struct.
@@ -41,8 +42,7 @@ gkyl_wv_reactive_euler_new(double gas_gamma, double specific_heat_capacity, doub
 * @param inp Input context struct.
 * @return Pointer to the reactive Euler equations object.
 */
-struct gkyl_wv_eqn*
-gkyl_wv_reactive_euler_inew(const struct gkyl_wv_reactive_euler_inp* inp);
+struct gkyl_wv_eqn *gkyl_wv_reactive_euler_inew(const struct gkyl_wv_reactive_euler_inp *inp);
 
 /**
 * Get adiabatic index.
@@ -50,8 +50,7 @@ gkyl_wv_reactive_euler_inew(const struct gkyl_wv_reactive_euler_inp* inp);
 * @param wv Reactive Euler equations object.
 * @return Adiabatic index.
 */
-double
-gkyl_wv_reactive_euler_gas_gamma(const struct gkyl_wv_eqn* wv);
+double gkyl_wv_reactive_euler_gas_gamma(const struct gkyl_wv_eqn *wv);
 
 /**
 * Get specific heat capacity.
@@ -59,8 +58,7 @@ gkyl_wv_reactive_euler_gas_gamma(const struct gkyl_wv_eqn* wv);
 * @param wv Reactive Euler equations object.
 * @return Specific heat capacity.
 */
-double
-gkyl_wv_reactive_euler_specific_heat_capacity(const struct gkyl_wv_eqn* wv);
+double gkyl_wv_reactive_euler_specific_heat_capacity(const struct gkyl_wv_eqn *wv);
 
 /**
 * Get energy of formation.
@@ -68,8 +66,7 @@ gkyl_wv_reactive_euler_specific_heat_capacity(const struct gkyl_wv_eqn* wv);
 * @param wv Reactive Euler equations object.
 * @return Energy of formation.
 */
-double
-gkyl_wv_reactive_euler_energy_of_formation(const struct gkyl_wv_eqn* wv);
+double gkyl_wv_reactive_euler_energy_of_formation(const struct gkyl_wv_eqn *wv);
 
 /**
 * Get ignition temperature.
@@ -77,8 +74,7 @@ gkyl_wv_reactive_euler_energy_of_formation(const struct gkyl_wv_eqn* wv);
 * @param wv Reactive Euler equations object.
 * @return Ignition temperature.
 */
-double
-gkyl_wv_reactive_euler_ignition_temperature(const struct gkyl_wv_eqn* wv);
+double gkyl_wv_reactive_euler_ignition_temperature(const struct gkyl_wv_eqn *wv);
 
 /**
 * Get reaction rate.
@@ -86,5 +82,4 @@ gkyl_wv_reactive_euler_ignition_temperature(const struct gkyl_wv_eqn* wv);
 * @param wv Reactive Euler equations object.
 * @return Reaction rate.
 */
-double
-gkyl_wv_reactive_euler_reaction_rate(const struct gkyl_wv_eqn* wv);
+double gkyl_wv_reactive_euler_reaction_rate(const struct gkyl_wv_eqn *wv);

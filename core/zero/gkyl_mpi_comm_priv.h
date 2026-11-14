@@ -44,8 +44,10 @@ struct mpi_comm {
   struct comm_buff_stat send[MAX_RECV_NEIGH]; // info for send data
 
   // buffers for for allgather
-  struct comm_buff_stat allgather_buff_local; 
-  struct comm_buff_stat allgather_buff_global; 
+  struct comm_buff_stat allgather_buff_local;
+  struct comm_buff_stat allgather_buff_global;
+  // Bytes each rank contributes to an allgather and where they land in the
+  // gathered buffer (the decomposition need not split the cells evenly).
+  int *allgather_counts;
+  int *allgather_displs;
 };
-
-

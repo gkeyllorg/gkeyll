@@ -6,8 +6,7 @@
 
 #include <gkyl_amr_core.h>
 
-struct amr_euler_sodshock_ctx
-{
+struct amr_euler_sodshock_ctx {
   // Physical constants (using normalized code units).
   double gas_gamma; // Adiabatic index.
 
@@ -81,7 +80,7 @@ create_ctx(void)
 }
 
 void
-evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalEulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0];
   struct amr_euler_sodshock_ctx new_ctx = create_ctx(); // Context for initialization functions.
@@ -105,22 +104,24 @@ evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
     rho = rhol; // Fluid mass density (left).
     u = ul; // Fluid velocity (left).
     p = pl; // Fluid pressure (left).
-  }
-  else {
+  } else {
     rho = rhor; // Fluid mass density (right).
     u = ur; // Fluid velocity (right).
     p = pr; // Fluid pressure (right).
   }
-  
+
   // Set fluid mass density.
   fout[0] = rho;
   // Set fluid momentum density.
-  fout[1] = rho * u; fout[2] = 0.0; fout[3] = 0.0;
+  fout[1] = rho * u;
+  fout[2] = 0.0;
+  fout[3] = 0.0;
   // Set fluid total energy density.
   fout[4] = p / (gas_gamma - 1.0) + 0.5 * rho * u * u;
 }
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
   struct amr_euler_sodshock_ctx ctx = create_ctx(); // Context for initialization functions.
 

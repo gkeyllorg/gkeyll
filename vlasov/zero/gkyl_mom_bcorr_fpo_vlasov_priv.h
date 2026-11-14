@@ -24,26 +24,33 @@ typedef struct {
 } gkyl_mom_bcorr_fpo_vlasov_kern_list;
 
 // Fill pdim phase index given edge information and idx array of remaining directions
-GKYL_CU_DH
-static void
-set_phase_idx(enum gkyl_vel_edge edge, const struct gkyl_range *phase_range, int cdim, int pdim, const int *idx, int fidx[GKYL_MAX_DIM])
+GKYL_CU_DH static void
+set_phase_idx(
+  enum gkyl_vel_edge edge, const struct gkyl_range *phase_range, int cdim, int pdim, const int *idx,
+  int fidx[GKYL_MAX_DIM]
+)
 {
   int vdim = pdim - cdim;
-  int vel_idx = cdim+edge%vdim;
+  int vel_idx = cdim + edge % vdim;
   int cell = edge < vdim ? 1 : phase_range->upper[vel_idx];
 
-  for (int i=0; i<(vel_idx); ++i) fidx[i] = idx[i];
+  for (int i = 0; i < (vel_idx); ++i) {
+    fidx[i] = idx[i];
+  }
   fidx[vel_idx] = cell;
-  for (int i=vel_idx+1; i<pdim; ++i) fidx[i] = idx[i-1];
+  for (int i = vel_idx + 1; i < pdim; ++i) {
+    fidx[i] = idx[i - 1];
+  }
 }
 
-GKYL_CU_DH
-static void
-kernel_mom_bcorr_fpo_vlasov_1x3v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
-  const int *idx, const double *f, double* out, void *param)
+GKYL_CU_DH static void
+kernel_mom_bcorr_fpo_vlasov_1x3v_ser_p1(
+  const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
+  const double *f, double *out, enum gkyl_vel_edge edge
+)
 {
-  struct mom_type_bcorr_fpo_vlasov *mom_fpo_vlasov = container_of(momt, struct mom_type_bcorr_fpo_vlasov, momt);
-  enum gkyl_vel_edge edge = *(enum gkyl_vel_edge *)param;
+  struct mom_type_bcorr_fpo_vlasov *mom_fpo_vlasov =
+    container_of(momt, struct mom_type_bcorr_fpo_vlasov, momt);
 
   int fidx[GKYL_MAX_DIM];
   double w[GKYL_MAX_DIM];
@@ -54,24 +61,30 @@ kernel_mom_bcorr_fpo_vlasov_1x3v_ser_p1(const struct gkyl_mom_type *momt, const 
   gkyl_copy_int_arr(GKYL_MAX_DIM, idx, fidx);
 
   int vdim = 3;
-  int vel_idx = edge%vdim;
-  for (int i=0; i<cdim+vel_idx; ++i) w[i] = xc[i];
-  for (int i=cdim+vel_idx; i<pdim-1; ++i) w[i] = xc[i+1];
+  int vel_idx = edge % vdim;
+  for (int i = 0; i < cdim + vel_idx; ++i) {
+    w[i] = xc[i];
+  }
+  for (int i = cdim + vel_idx; i < pdim - 1; ++i) {
+    w[i] = xc[i + 1];
+  }
 
   long linc = gkyl_range_idx(&mom_fpo_vlasov->phase_range, fidx);
 
-  return mom_bcorr_fpo_vlasov_1x3v_ser_p1(w, fidx, edge, mom_fpo_vlasov->vBoundary, dx,
-    (const double*) gkyl_array_cfetch(mom_fpo_vlasov->auxfields.D, linc), 
-    f, out);
+  return mom_bcorr_fpo_vlasov_1x3v_ser_p1(
+    w, fidx, edge, mom_fpo_vlasov->vBoundary, dx,
+    (const double *)gkyl_array_cfetch(mom_fpo_vlasov->auxfields.D, linc), f, out
+  );
 }
 
-GKYL_CU_DH
-static void
-kernel_mom_bcorr_fpo_vlasov_1x3v_ser_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
-  const int *idx, const double *f, double* out, void *param)
+GKYL_CU_DH static void
+kernel_mom_bcorr_fpo_vlasov_1x3v_ser_p2(
+  const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
+  const double *f, double *out, enum gkyl_vel_edge edge
+)
 {
-  struct mom_type_bcorr_fpo_vlasov *mom_fpo_vlasov = container_of(momt, struct mom_type_bcorr_fpo_vlasov, momt);
-  enum gkyl_vel_edge edge = *(enum gkyl_vel_edge *)param;
+  struct mom_type_bcorr_fpo_vlasov *mom_fpo_vlasov =
+    container_of(momt, struct mom_type_bcorr_fpo_vlasov, momt);
 
   int fidx[GKYL_MAX_DIM];
   double w[GKYL_MAX_DIM];
@@ -82,24 +95,30 @@ kernel_mom_bcorr_fpo_vlasov_1x3v_ser_p2(const struct gkyl_mom_type *momt, const 
   gkyl_copy_int_arr(GKYL_MAX_DIM, idx, fidx);
 
   int vdim = 3;
-  int vel_idx = edge%vdim;
-  for (int i=0; i<cdim+vel_idx; ++i) w[i] = xc[i];
-  for (int i=cdim+vel_idx; i<pdim-1; ++i) w[i] = xc[i+1];
+  int vel_idx = edge % vdim;
+  for (int i = 0; i < cdim + vel_idx; ++i) {
+    w[i] = xc[i];
+  }
+  for (int i = cdim + vel_idx; i < pdim - 1; ++i) {
+    w[i] = xc[i + 1];
+  }
 
   long linc = gkyl_range_idx(&mom_fpo_vlasov->phase_range, fidx);
 
-  return mom_bcorr_fpo_vlasov_1x3v_ser_p2(w, fidx, edge, mom_fpo_vlasov->vBoundary, dx,
-    (const double*) gkyl_array_cfetch(mom_fpo_vlasov->auxfields.D, linc), 
-    f, out);
+  return mom_bcorr_fpo_vlasov_1x3v_ser_p2(
+    w, fidx, edge, mom_fpo_vlasov->vBoundary, dx,
+    (const double *)gkyl_array_cfetch(mom_fpo_vlasov->auxfields.D, linc), f, out
+  );
 }
 
-GKYL_CU_DH
-static void
-kernel_mom_bcorr_fpo_vlasov_2x3v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
-  const int *idx, const double *f, double* out, void *param)
+GKYL_CU_DH static void
+kernel_mom_bcorr_fpo_vlasov_2x3v_ser_p1(
+  const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
+  const double *f, double *out, enum gkyl_vel_edge edge
+)
 {
-  struct mom_type_bcorr_fpo_vlasov *mom_fpo_vlasov = container_of(momt, struct mom_type_bcorr_fpo_vlasov, momt);
-  enum gkyl_vel_edge edge = *(enum gkyl_vel_edge *)param;
+  struct mom_type_bcorr_fpo_vlasov *mom_fpo_vlasov =
+    container_of(momt, struct mom_type_bcorr_fpo_vlasov, momt);
 
   int fidx[GKYL_MAX_DIM];
   double w[GKYL_MAX_DIM];
@@ -110,15 +129,20 @@ kernel_mom_bcorr_fpo_vlasov_2x3v_ser_p1(const struct gkyl_mom_type *momt, const 
   gkyl_copy_int_arr(GKYL_MAX_DIM, idx, fidx);
 
   int vdim = 3;
-  int vel_idx = edge%vdim;
-  for (int i=0; i<cdim+vel_idx; ++i) w[i] = xc[i];
-  for (int i=cdim+vel_idx; i<pdim-1; ++i) w[i] = xc[i+1];
+  int vel_idx = edge % vdim;
+  for (int i = 0; i < cdim + vel_idx; ++i) {
+    w[i] = xc[i];
+  }
+  for (int i = cdim + vel_idx; i < pdim - 1; ++i) {
+    w[i] = xc[i + 1];
+  }
 
   long linc = gkyl_range_idx(&mom_fpo_vlasov->phase_range, fidx);
 
-  return mom_bcorr_fpo_vlasov_2x3v_ser_p1(w, fidx, edge, mom_fpo_vlasov->vBoundary, dx,
-    (const double*) gkyl_array_cfetch(mom_fpo_vlasov->auxfields.D, linc), 
-    f, out);
+  return mom_bcorr_fpo_vlasov_2x3v_ser_p1(
+    w, fidx, edge, mom_fpo_vlasov->vBoundary, dx,
+    (const double *)gkyl_array_cfetch(mom_fpo_vlasov->auxfields.D, linc), f, out
+  );
 }
 
 //
@@ -126,14 +150,13 @@ kernel_mom_bcorr_fpo_vlasov_2x3v_ser_p1(const struct gkyl_mom_type *momt, const 
 //
 
 // FPO boundary corrections
-GKYL_CU_D
-static const gkyl_mom_bcorr_fpo_vlasov_kern_list ser_mom_bcorr_fpo_vlasov_kernels[] = {
+GKYL_CU_D static const gkyl_mom_bcorr_fpo_vlasov_kern_list ser_mom_bcorr_fpo_vlasov_kernels[] = {
   // 1x kernels
-  { NULL, kernel_mom_bcorr_fpo_vlasov_1x3v_ser_p1, kernel_mom_bcorr_fpo_vlasov_1x3v_ser_p2 }, // 0
+  {NULL, kernel_mom_bcorr_fpo_vlasov_1x3v_ser_p1, kernel_mom_bcorr_fpo_vlasov_1x3v_ser_p2}, // 0
   // 2x kernels
-  { NULL, kernel_mom_bcorr_fpo_vlasov_2x3v_ser_p1, NULL }, // 1
+  {NULL, kernel_mom_bcorr_fpo_vlasov_2x3v_ser_p1, NULL}, // 1
   // 3x kernels
-  { NULL, NULL, NULL }, // 2
+  {NULL, NULL, NULL} // 2
 };
 
 /**

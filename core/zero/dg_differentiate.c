@@ -7,8 +7,10 @@
 #include <gkyl_util.h>
 
 void
-gkyl_dg_differentiate_op_local(const struct gkyl_basis *basis, int dir, int diff_order,
-  double dx, int c_oop, struct gkyl_array *out, int c_iop, const struct gkyl_array *inp)
+gkyl_dg_differentiate_op_local(
+  const struct gkyl_basis *basis, int dir, int diff_order, double dx, int c_oop,
+  struct gkyl_array *out, int c_iop, const struct gkyl_array *inp
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(out)) {
@@ -35,21 +37,24 @@ gkyl_dg_differentiate_op_local(const struct gkyl_basis *basis, int dir, int diff
   }
   assert(diff_op);
 
-  for (size_t i=0; i<out->size; ++i) {
+  for (size_t i = 0; i < out->size; ++i) {
     const double *inp_d = gkyl_array_cfetch(inp, i);
     double *out_d = gkyl_array_fetch(out, i);
-    diff_op(dx, inp_d+c_iop*num_basis, out_d+c_oop*num_basis);
+    diff_op(dx, inp_d + c_iop * num_basis, out_d + c_oop * num_basis);
   }
 }
 
 void
-gkyl_dg_differentiate_op_local_range(const struct gkyl_basis *basis, int dir, int diff_order,
-  double dx, int c_oop, struct gkyl_array *out, int c_iop, const struct gkyl_array *inp,
-  const struct gkyl_range *range)
+gkyl_dg_differentiate_op_local_range(
+  const struct gkyl_basis *basis, int dir, int diff_order, double dx, int c_oop,
+  struct gkyl_array *out, int c_iop, const struct gkyl_array *inp, const struct gkyl_range *range
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(out)) {
-    return gkyl_dg_differentiate_op_local_range_cu(basis, dir, diff_order, dx, c_oop, out, c_iop, inp, range);
+    return gkyl_dg_differentiate_op_local_range_cu(
+      basis, dir, diff_order, dx, c_oop, out, c_iop, inp, range
+    );
   }
 #endif
   int num_basis = basis->num_basis;
@@ -79,6 +84,6 @@ gkyl_dg_differentiate_op_local_range(const struct gkyl_basis *basis, int dir, in
     long loc = gkyl_range_idx(range, iter.idx);
     const double *inp_d = gkyl_array_cfetch(inp, loc);
     double *out_d = gkyl_array_fetch(out, loc);
-    diff_op(dx, inp_d+c_iop*num_basis, out_d+c_oop*num_basis);
+    diff_op(dx, inp_d + c_iop * num_basis, out_d + c_oop * num_basis);
   }
 }

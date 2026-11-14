@@ -1,0 +1,4 @@
+This marker allows the team-workstation centralized multibranch Pipeline to
+discover this revision. Its contents are not executed; Jenkins loads CI logic
+only from the separate trusted main checkout described in
+ci/jenkins/README.team_workstation.md.

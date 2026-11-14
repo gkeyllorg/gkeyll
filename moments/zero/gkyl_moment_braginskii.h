@@ -9,8 +9,7 @@
 #include <gkyl_util.h>
 
 // Identifiers for different Braginskii types
-enum gkyl_braginskii_type
-{
+enum gkyl_braginskii_type {
   NONE = 0,
   GKYL_BRAG_MAG = 1 << 0,
   GKYL_BRAG_VISC = 1 << 1,
@@ -33,7 +32,8 @@ struct gkyl_moment_braginskii_inp {
   int nfluids; // number of fluids
   struct gkyl_moment_braginskii_data param[GKYL_MAX_SPECIES]; // species data
   double epsilon0; // permittivity of free space
-  double coll_fac; // constant multiplicative factor for collision time to increase or decrease collisionality
+  double
+    coll_fac; // constant multiplicative factor for collision time to increase or decrease collisionality
 };
 
 // Object type
@@ -46,7 +46,7 @@ typedef struct gkyl_moment_braginskii gkyl_moment_braginskii;
  *
  * @param inp Input parameters to updater
  */
-gkyl_moment_braginskii* gkyl_moment_braginskii_new(struct gkyl_moment_braginskii_inp inp);
+gkyl_moment_braginskii *gkyl_moment_braginskii_new(struct gkyl_moment_braginskii_inp inp);
 
 /**
  * Compute RHS contribution from Braginskii transport terms in the
@@ -65,11 +65,12 @@ gkyl_moment_braginskii* gkyl_moment_braginskii_new(struct gkyl_moment_braginskii
  * @param rhs RHS output (NOTE: Returns RHS output of all nfluids)
  */
 
-void gkyl_moment_braginskii_advance(const gkyl_moment_braginskii *bes,   
-  struct gkyl_range brag_vars_range, struct gkyl_range update_range,
-  struct gkyl_array *fluid[GKYL_MAX_SPECIES], const struct gkyl_array *em_tot,
-  struct gkyl_array *cflrate[GKYL_MAX_SPECIES], 
-  struct gkyl_array *brag_vars[GKYL_MAX_SPECIES], struct gkyl_array *rhs[GKYL_MAX_SPECIES]);
+void gkyl_moment_braginskii_advance(
+  const gkyl_moment_braginskii *bes, struct gkyl_range brag_vars_range,
+  struct gkyl_range update_range, struct gkyl_array *fluid[GKYL_MAX_SPECIES],
+  const struct gkyl_array *em_tot, struct gkyl_array *cflrate[GKYL_MAX_SPECIES],
+  struct gkyl_array *brag_vars[GKYL_MAX_SPECIES], struct gkyl_array *rhs[GKYL_MAX_SPECIES]
+);
 
 /**
  * Delete updater.

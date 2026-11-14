@@ -9,19 +9,22 @@
 #include <gkyl_util.h>
 
 // "Choose Kernel" based on cdim and polyorder
-#define CK(lst,cdim,poly_order) lst[cdim-1].kernels[poly_order]
+#define CK(lst, cdim, poly_order) lst[cdim - 1].kernels[poly_order]
 
 void
 gkyl_mom_bcorr_fpo_vlasov_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_mom_type *momt = container_of(ref, struct gkyl_mom_type, ref_count);
-  if (GKYL_IS_CU_ALLOC(momt->flags))
+  if (GKYL_IS_CU_ALLOC(momt->flags)) {
     gkyl_cu_free(momt->on_dev);
+  }
   gkyl_free(momt);
 }
 
 void
-gkyl_mom_bcorr_fpo_vlasov_set_auxfields(const struct gkyl_mom_type *momt, struct gkyl_mom_bcorr_fpo_vlasov_auxfields auxin)
+gkyl_mom_bcorr_fpo_vlasov_set_auxfields(
+  const struct gkyl_mom_type *momt, struct gkyl_mom_bcorr_fpo_vlasov_auxfields auxin
+)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_mom_type_is_cu_dev(momt)) {
@@ -29,23 +32,27 @@ gkyl_mom_bcorr_fpo_vlasov_set_auxfields(const struct gkyl_mom_type *momt, struct
   }
 #endif
 
-  struct mom_type_bcorr_fpo_vlasov *mom_bcorr = container_of(momt, struct mom_type_bcorr_fpo_vlasov, momt);
+  struct mom_type_bcorr_fpo_vlasov *mom_bcorr =
+    container_of(momt, struct mom_type_bcorr_fpo_vlasov, momt);
   mom_bcorr->auxfields.D = auxin.D;
 }
 
-struct gkyl_mom_type*
-gkyl_mom_bcorr_fpo_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const struct gkyl_range* phase_range, const double* vBoundary, bool use_gpu)
+struct gkyl_mom_type *
+gkyl_mom_bcorr_fpo_vlasov_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
+  const struct gkyl_range *phase_range, const double *vBoundary, bool use_gpu
+)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
 #ifdef GKYL_HAVE_CUDA
-  if(use_gpu) {
+  if (use_gpu) {
     return gkyl_mom_bcorr_fpo_vlasov_cu_dev_new(cbasis, pbasis, phase_range, vBoundary);
-  } 
-#endif  
-  struct mom_type_bcorr_fpo_vlasov *mom_bcorr = gkyl_malloc(sizeof(struct mom_type_bcorr_fpo_vlasov));
-  int cdim = cbasis->ndim, pdim = pbasis->ndim, vdim = pdim-cdim;
+  }
+#endif
+  struct mom_type_bcorr_fpo_vlasov *mom_bcorr =
+    gkyl_malloc(sizeof(struct mom_type_bcorr_fpo_vlasov));
+  int cdim = cbasis->ndim, pdim = pbasis->ndim, vdim = pdim - cdim;
   int poly_order = cbasis->poly_order;
 
   mom_bcorr->momt.cdim = cdim;
@@ -73,13 +80,14 @@ gkyl_mom_bcorr_fpo_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl
 
     default:
       assert(false);
-      break;    
+      break;
   }
 
   mom_bcorr->momt.kernel = CK(mom_bcorr_fpo_vlasov_kernels, cdim, poly_order);
-  mom_bcorr->momt.num_mom = 8; // 8 component field (2 sets of 3 momentum corrections, 2 sets of energy corrections)
-                               // One set of corrections is identical to the LBO, the other involves integrations of
-                               // the diffusion tensor at the edge of velocity space.
+  mom_bcorr->momt.num_mom =
+    8; // 8 component field (2 sets of 3 momentum corrections, 2 sets of energy corrections)
+  // One set of corrections is identical to the LBO, the other involves integrations of
+  // the diffusion tensor at the edge of velocity space.
 
   mom_bcorr->phase_range = *phase_range;
 
@@ -90,16 +98,17 @@ gkyl_mom_bcorr_fpo_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl
   mom_bcorr->momt.ref_count = gkyl_ref_count_init(gkyl_mom_bcorr_fpo_vlasov_free);
 
   mom_bcorr->momt.on_dev = &mom_bcorr->momt;
- 
+
   return &mom_bcorr->momt;
 }
 
 #ifndef GKYL_HAVE_CUDA
 
-struct gkyl_mom_type*
-gkyl_mom_bcorr_fpo_vlasov_cu_dev_new(const struct gkyl_basis* cbasis, 
-  const struct gkyl_basis* pbasis, const struct gkyl_range* phase_range, 
-  const double* vBoundary)
+struct gkyl_mom_type *
+gkyl_mom_bcorr_fpo_vlasov_cu_dev_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
+  const struct gkyl_range *phase_range, const double *vBoundary
+)
 {
   assert(false);
 }

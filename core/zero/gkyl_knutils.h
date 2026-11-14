@@ -27,7 +27,7 @@ struct gkyl_kn_vec {
  * @param N Length of each vector
  * @return New kn_vec
  */
-struct gkyl_kn_vec* gkyl_kn_vec_new(int nvec, int N);
+struct gkyl_kn_vec *gkyl_kn_vec_new(int nvec, int N);
 
 /**
  * Create a new device kn_vec. The data member lives on GPU.
@@ -37,7 +37,7 @@ struct gkyl_kn_vec* gkyl_kn_vec_new(int nvec, int N);
  * @param N Length of each vector
  * @return New device kn_vec
  */
-struct gkyl_kn_vec* gkyl_kn_vec_cu_dev_new(int nvec, int N);
+struct gkyl_kn_vec *gkyl_kn_vec_cu_dev_new(int nvec, int N);
 
 /**
  * Copy data between kn_vecs. Direction (H2D, D2H, D2D, H2H) is
@@ -47,8 +47,7 @@ struct gkyl_kn_vec* gkyl_kn_vec_cu_dev_new(int nvec, int N);
  * @param src Source kn_vec
  * @return dest
  */
-struct gkyl_kn_vec* gkyl_kn_vec_copy(struct gkyl_kn_vec *dest,
-  const struct gkyl_kn_vec *src);
+struct gkyl_kn_vec *gkyl_kn_vec_copy(struct gkyl_kn_vec *dest, const struct gkyl_kn_vec *src);
 
 /**
  * Check if a kn_vec has device data.
@@ -64,7 +63,7 @@ bool gkyl_kn_vec_is_cu_dev(const struct gkyl_kn_vec *vec);
  * @param vec Vector to which reference is needed
  * @return Pointer to acquired array
  */
-struct gkyl_kn_vec* gkyl_kn_vec_acquire(const struct gkyl_kn_vec* vec);
+struct gkyl_kn_vec *gkyl_kn_vec_acquire(const struct gkyl_kn_vec *vec);
 
 /**
  * Release kn_vec.

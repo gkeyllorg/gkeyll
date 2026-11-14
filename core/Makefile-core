@@ -1,14 +1,19 @@
 # -*- makefile-gmake -*-
 
 SRC_DIRS := minus $(KERNELS_DIR) zero apps
+
 UNIT_DIRS := unit
 
 PREFIX ?= ${HOME}/gkylsoft
 
-
 LLIB := ../$(BUILD_DIR)/core/libg0core.so
 SLLIB := 
 SRCS := $(shell find $(SRC_DIRS) -name *.c)
+# 'find minus' recurses into minus/lapack_lite; only build the bundled
+# LAPACK-lite when it was selected at configure time (USE_LAPACK_LITE=1).
+ifndef USING_LAPACK_LITE
+	SRCS := $(filter-out minus/lapack_lite/%,$(SRCS))
+endif
 ifdef USING_NVCC
 	SRCS += $(shell find $(SRC_DIRS) -name *.cu)
 	SRCS += $(shell find $(UNIT_DIRS) -name *.cu)
@@ -35,11 +40,15 @@ REGS := $(patsubst %.c,../${BUILD_DIR}/core/%,$(wildcard creg/rt_*.c))
 
 KERN_INC_DIRS = $(shell find $(KERNELS_DIR) -type d)
 KERN_INCLUDES = $(addprefix -I,$(KERN_INC_DIRS))
-EXT_INCS := -I${MPI_INC_DIR} -I${NCCL_INC_DIR} -I${CUDSS_INC_DIR} -I${LUA_INC_DIR} -I${LAPACK_INC_DIR} -I${SUPERLU_INC_DIR}
-INCS := ${EXT_INCS} -Iminus -Iminus/STC/include -Izero -Iapps $(KERN_INCLUDES) -Ilua/Comm -Ilua/Tool
+EXT_INCS := -I${MPI_INC_DIR} -I${NCCL_INC_DIR} -I${CUDSS_INC_DIR} -I${LUA_INC_DIR} -I${LAPACK_INC_DIR} 
+LAPACK_LITE_INCS :=
+ifdef USING_LAPACK_LITE
+	LAPACK_LITE_INCS := -Iminus/lapack_lite
+endif
+INCS := ${EXT_INCS} -Iminus ${LAPACK_LITE_INCS} -Iminus/STC/include -Izero -Iapps $(KERN_INCLUDES) -Ilua/Comm -Ilua/Tool
 
-EXEC_LIB_DIRS = -L${LAPACK_LIB_DIR} -L${SUPERLU_LIB_DIR} -L${MPI_LIB_DIR} -L${NCCL_LIB_DIR} -L${CUDSS_LIB_DIR} -L${LUA_LIB_DIR}
-EXEC_EXT_LIBS = ${LAPACK_LIBS} ${SUPERLU_LIBS} ${CUDA_LIBS} ${MPI_RPATH} ${MPI_LIBS} ${NCCL_LIBS} ${CUDSS_RPATH} ${CUDSS_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl
+EXEC_LIB_DIRS = -L${LAPACK_LIB_DIR} -L${MPI_LIB_DIR} -L${NCCL_LIB_DIR} -L${CUDSS_LIB_DIR} -L${LUA_LIB_DIR}
+EXEC_EXT_LIBS = ${LAPACK_LIBS} ${CUDA_LIBS} ${MPI_RPATH} ${MPI_LIBS} ${NCCL_LIBS} ${CUDSS_RPATH} ${CUDSS_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl
 EXEC_LIBS = -L../${BUILD_DIR}/core ${LLIB} ${SLLIB} ${EXEC_EXT_LIBS}
 
 LDFLAGS += -Wl,-rpath,./${BUILD_DIR}/core
@@ -47,6 +56,9 @@ LDFLAGS += -Wl,-rpath,../${BUILD_DIR}/core
 
 unit: ${LLIB} ${SLLIB} $(UNITS) ${MPI_UNITS} ${LUA_UNITS} ## Build unit tests
 regression: ${LLIB} ${SLLIB} ${REGS} ## Build regression tests
+
+.PHONY: library
+library: $(LLIB) $(SLLIB) ## Build only the shared library, without installing data
 
 .PHONY: all
 all: $(LLIB) ## Build all targets
@@ -96,6 +108,14 @@ ifdef USING_NVCC
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
+# Register-capped bin_op family (see BINOP_MAX_REGS in the top-level Makefile): the
+# conf*phase multiply-accumulate kernels parallelized over components, which the
+# gkyl_dg_mul_conf_phase_op_accumulate_range kernel calls through a function pointer.
+# The shorter stem makes make prefer this rule over the bin_op/% rule above.
+../$(BUILD_DIR)/core/$(KERNELS_DIR)/bin_op/binop_cross_mul_accumulate_comp_par_%.c.o : $(KERNELS_DIR)/bin_op/binop_cross_mul_accumulate_comp_par_%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(NVCC_BINOP_FLAGS) $(INCS) -c $< -o $@
+
 ../$(BUILD_DIR)/core/$(KERNELS_DIR)/array_integrate/%.c.o : $(KERNELS_DIR)/array_integrate/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
@@ -130,19 +150,41 @@ $(LLIB): $(OBJS)
 
 ifeq ($(UNAME),Linux)
 ifdef USING_NVCC
-	$(CC) -shared -o $@ ${CORE_LINK_OBJS} ${CORE_LINK_CU_OBJS}  -Xlinker=-soname -Xlinker=libg0core.so -L${LAPACK_LIB_DIR} -L${SUPERLU_LIB_DIR} -L${MPI_LIB_DIR} -L${NCCL_LIB_DIR} -L${CUDSS_LIB_DIR} -L${LUA_LIB_DIR} ${SUPERLU_LIBS} ${LAPACK_LIBS} ${CUDA_LIBS} ${MPI_RPATH} ${MPI_LIBS} ${NCCL_LIBS} ${CUDSS_RPATH} ${CUDSS_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl -arch=sm_${CUDA_ARCH} -rdc=true --compiler-options="-fPIC"
+	$(CC) -shared -o $@ ${CORE_LINK_OBJS} ${CORE_LINK_CU_OBJS}  -Xlinker=-soname -Xlinker=libg0core.so -L${LAPACK_LIB_DIR}  -L${MPI_LIB_DIR} -L${NCCL_LIB_DIR} -L${CUDSS_LIB_DIR} -L${LUA_LIB_DIR} ${LAPACK_LIBS} ${CUDA_LIBS} ${MPI_RPATH} ${MPI_LIBS} ${NCCL_LIBS} ${CUDSS_RPATH} ${CUDSS_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl -arch=sm_${CUDA_ARCH} -rdc=true --compiler-options="-fPIC"
 else
-	$(CC) -shared -o $@ ${CORE_LINK_OBJS} -Wl,-soname,libg0core.so -L${LAPACK_LIB_DIR} -L${SUPERLU_LIB_DIR} -L${MPI_LIB_DIR} -L${NCCL_LIB_DIR} -L${CUDSS_LIB_DIR} -L${LUA_LIB_DIR} ${SUPERLU_LIBS} ${LAPACK_LIBS} ${MPI_RPATH} ${CUDA_LIBS} ${MPI_LIBS} ${NCCL_LIBS} ${CUDSS_RPATH} ${CUDSS_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl
+	$(CC) -shared -o $@ ${CORE_LINK_OBJS} -Wl,-soname,libg0core.so -L${LAPACK_LIB_DIR}  -L${MPI_LIB_DIR} -L${NCCL_LIB_DIR} -L${CUDSS_LIB_DIR} -L${LUA_LIB_DIR} ${LAPACK_LIBS} ${MPI_RPATH} ${CUDA_LIBS} ${MPI_LIBS} ${NCCL_LIBS} ${CUDSS_RPATH} ${CUDSS_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl
 endif
 else
 ## Darwin
-	$(CC) -shared -o $@ ${CORE_LINK_OBJS} -Wl,-install_name,@rpath/libg0core.so -L${LAPACK_LIB_DIR} -L${SUPERLU_LIB_DIR} -L${MPI_LIB_DIR} -L${NCCL_LIB_DIR} -L${CUDSS_LIB_DIR} -L${LUA_LIB_DIR} ${SUPERLU_LIBS} ${LAPACK_LIBS} ${CUDA_LIBS} ${MPI_RPATH} ${MPI_LIBS} ${NCCL_LIBS} ${CUDSS_RPATH} ${CUDSS_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl
+	$(CC) -shared -o $@ ${CORE_LINK_OBJS} -Wl,-install_name,@rpath/libg0core.so -L${LAPACK_LIB_DIR} -L${MPI_LIB_DIR} -L${NCCL_LIB_DIR} -L${CUDSS_LIB_DIR} -L${LUA_LIB_DIR} ${LAPACK_LIBS} ${CUDA_LIBS} ${MPI_RPATH} ${MPI_LIBS} ${NCCL_LIBS} ${CUDSS_RPATH} ${CUDSS_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl
 endif
 
 .PHONY: check valcheck
 # Run all unit tests
-check: unit ## Build (if needed) and run all unit tests
-	$(foreach unit,${UNITS},echo $(unit); cd ../; ./core/$(unit) -E; cd core;)
+check: unit unit-run ## Build (if needed) and run all unit tests
+
+# Run all unit tests without (re)building them
+unit-run: ## Run unit tests without (re)building them
+	@cd ..; app=core; own_log=0; \
+	if [ -z "$$GKYL_TEST_LOG" ]; then GKYL_TEST_LOG=$$(mktemp); own_log=1; fi; \
+	npass=0; nfail=0; \
+	for unit in ${UNITS}; do \
+	  tname=$$(basename $$unit); \
+	  if ./$$app/$$unit -E; then \
+	    npass=$$((npass+1)); echo "PASS $$app: $$tname" >> "$$GKYL_TEST_LOG"; \
+	  else \
+	    nfail=$$((nfail+1)); echo "FAIL $$app: $$tname" >> "$$GKYL_TEST_LOG"; \
+	  fi; \
+	done; \
+	if [ $$own_log -eq 1 ]; then \
+	  echo "==================== $$app test summary ===================="; \
+	  echo "Passed: $$npass   Failed: $$nfail"; \
+	  if [ $$nfail -gt 0 ]; then \
+	    echo "Failed tests:"; grep '^FAIL ' "$$GKYL_TEST_LOG" | sed 's/^FAIL /  /'; rm -f "$$GKYL_TEST_LOG"; exit 1; \
+	  else \
+	    echo "All $$app unit tests passed."; rm -f "$$GKYL_TEST_LOG"; \
+	  fi; \
+	fi
 
 valcheck: unit ## Run valgrind on unit test
 	cd ../ && $(foreach unit,$(UNITS),valgrind --leak-check=full ./$(patsubst ../%,%,$(unit)) -E 2>./$(patsubst ../%,%,$(unit))_val_err 1>/dev/null;)

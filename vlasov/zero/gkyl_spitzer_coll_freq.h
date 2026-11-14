@@ -20,8 +20,10 @@ typedef struct gkyl_spitzer_coll_freq gkyl_spitzer_coll_freq;
  * @param hbar Planck's constant divided by 2*pi.
  * @return New updater pointer.
  */
-gkyl_spitzer_coll_freq* gkyl_spitzer_coll_freq_new(const struct gkyl_basis *basis,
-  int num_quad, double nufrac, double eps0, double hbar, bool use_gpu);
+gkyl_spitzer_coll_freq *gkyl_spitzer_coll_freq_new(
+  const struct gkyl_basis *basis, int num_quad, double nufrac, double eps0, double hbar,
+  bool use_gpu
+);
 
 /**
  * Scale the normalized collision frequency, normNu, by
@@ -36,10 +38,11 @@ gkyl_spitzer_coll_freq* gkyl_spitzer_coll_freq_new(const struct gkyl_basis *basi
  * @param normNu Normalized collision frequency to scale.
  * @param nuOut Output collision frequency.
  */
-void gkyl_spitzer_coll_freq_advance_normnu(const gkyl_spitzer_coll_freq *up,
-  const struct gkyl_range *range, const struct gkyl_array *momsSelf, double vtSqMinSelf,
-  const struct gkyl_array *momsOther, double vtSqMinOther,
-  double normNu, struct gkyl_array *nuOut);
+void gkyl_spitzer_coll_freq_advance_normnu(
+  const gkyl_spitzer_coll_freq *up, const struct gkyl_range *range,
+  const struct gkyl_array *momsSelf, double vtSqMinSelf, const struct gkyl_array *momsOther,
+  double vtSqMinOther, double normNu, struct gkyl_array *nuOut
+);
 
 /**
  * Compute the Spitzer collision frequency from scratch. Coulomb Logarithm
@@ -58,19 +61,18 @@ void gkyl_spitzer_coll_freq_advance_normnu(const gkyl_spitzer_coll_freq *up,
  * @param vtSqMinOther Minimum vtSq of the other species supported by the grid.
  * @param nuOut Output collision frequency.
  */
-void gkyl_spitzer_coll_freq_advance(const gkyl_spitzer_coll_freq *up,
-  const struct gkyl_range *range, const struct gkyl_array *bmag,
-  double qSelf, double mSelf, const struct gkyl_array *momsSelf, double vtSqMinSelf,
-  double qOther, double mOther, const struct gkyl_array *momsOther, double vtSqMinOther,
-  struct gkyl_array *nuOut);
+void gkyl_spitzer_coll_freq_advance(
+  const gkyl_spitzer_coll_freq *up, const struct gkyl_range *range, const struct gkyl_array *bmag,
+  double qSelf, double mSelf, const struct gkyl_array *momsSelf, double vtSqMinSelf, double qOther,
+  double mOther, const struct gkyl_array *momsOther, double vtSqMinOther, struct gkyl_array *nuOut
+);
 
 /**
  * Delete updater.
  *
  * @param pob Updater to delete.
  */
-void gkyl_spitzer_coll_freq_release(gkyl_spitzer_coll_freq* up);
-
+void gkyl_spitzer_coll_freq_release(gkyl_spitzer_coll_freq *up);
 
 /**
  *
@@ -92,10 +94,11 @@ void gkyl_spitzer_coll_freq_release(gkyl_spitzer_coll_freq* up);
  * @param bmag Magnetic field amplitude.
  * @param eps0 Permittivity of vacuum.
  * @param hbar Planck's constant divided by 2*pi.
- * @param eV Elementary charge.
  */
-double gkyl_calc_Morse_alpha_E_const(double ns, double nr, double ms, double mr, double qs, double qr,
-  double Ts, double Tr, double bmag, double eps0, double hbar, double eV);
+double gkyl_calc_Morse_alpha_E_const(
+  double ns, double nr, double ms, double mr, double qs, double qr, double Ts, double Tr,
+  double bmag, double eps0, double hbar
+);
 
 /**
  * Calculate alpha_E from Morse Phys. Fluids 6, 10 (1963)
@@ -112,8 +115,18 @@ double gkyl_calc_Morse_alpha_E_const(double ns, double nr, double ms, double mr,
  * @param bmag Magnetic field amplitude.
  * @param eps0 Permittivity of vacuum.
  * @param hbar Planck's constant divided by 2*pi.
- * @param eV Elementary charge.
  */
-double gkyl_calc_Morse_alpha_E(double ns, double nr, double ms, double mr, double qs, double qr,
-  double Ts, double Tr, double bmag, double eps0, double hbar, double eV);
+double gkyl_calc_Morse_alpha_E(
+  double ns, double nr, double ms, double mr, double qs, double qr, double Ts, double Tr,
+  double bmag, double eps0, double hbar
+);
 
+/**
+ * Species-ordered Coulomb logarithm; temperatures are energies (T/m = v_t^2).
+ * This is the native one-sided expression. Collision frequencies use the
+ * average of the s,r and r,s expressions. All parameters use consistent units.
+ */
+double gkyl_spitzer_coll_freq_calc_coulomb_log(
+  double ns, double nr, double ms, double mr, double Ts, double Tr, double qs, double qr,
+  double bmag, double eps0, double hbar
+);
