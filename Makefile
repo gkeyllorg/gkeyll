@@ -122,7 +122,7 @@ endif
 # which these latency-bound kernels need. nvlink requires every function a capped
 # kernel can reach (for an indirect call: every address-taken function with the same
 # PTX prototype, see momf_t in core/zero/gkyl_mom_type.h) to fit the cap, so a cap
-# covers a whole family: MOM_MAX_REGS applies to the moment and LBO boundary-correction
+# covers a whole family: MOM_MAX_REGS applies to the moment and LBO/FPO boundary-correction
 # kernels, wrappers and advance kernels of the vlasov, gyrokinetic and pkpm solvers;
 # FLUX_MAX_REGS to the vlasov flux kernels (ker/flux_vlasov/) and the
 # dg_vlasov_{vel,conf}_flux_surf advance kernels; BINOP_MAX_REGS to the bin_op

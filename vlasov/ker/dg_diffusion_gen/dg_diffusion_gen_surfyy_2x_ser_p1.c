@@ -14,9 +14,9 @@ dg_diffusion_gen_surfyy_2x_ser_p1(const double* w, const double* dx,
 
   const double* Dyy = &Dij[8];
 
-  const double* qcl = q[3];
-  const double* qcc = q[4];
-  const double* qcu = q[5];
+  const double* qcl = q[0];
+  const double* qcc = q[1];
+  const double* qcu = q[2];
 
   out[0] += Jyy*((-0.46875*Dyy[3]*qcu[3])-0.270632938682637*Dyy[1]*qcu[3]-0.46875*Dyy[3]*qcl[3]+0.270632938682637*Dyy[1]*qcl[3]-0.9375*Dyy[3]*qcc[3]+0.4871392896287466*qcu[1]*Dyy[3]-0.4871392896287466*qcl[1]*Dyy[3]-0.46875*Dyy[2]*qcu[2]-0.270632938682637*Dyy[0]*qcu[2]-0.46875*Dyy[2]*qcl[2]+0.270632938682637*Dyy[0]*qcl[2]-0.9375*Dyy[2]*qcc[2]+0.4871392896287466*qcu[0]*Dyy[2]-0.4871392896287466*qcl[0]*Dyy[2]+0.28125*Dyy[1]*qcu[1]+0.28125*Dyy[1]*qcl[1]-0.5625*Dyy[1]*qcc[1]+0.28125*Dyy[0]*qcu[0]+0.28125*Dyy[0]*qcl[0]-0.5625*Dyy[0]*qcc[0]);
   out[1] += Jyy*((-0.46875*Dyy[2]*qcu[3])-0.270632938682637*Dyy[0]*qcu[3]-0.46875*Dyy[2]*qcl[3]+0.270632938682637*Dyy[0]*qcl[3]-0.9375*Dyy[2]*qcc[3]-0.46875*qcu[2]*Dyy[3]-0.46875*qcl[2]*Dyy[3]-0.9375*qcc[2]*Dyy[3]+0.4871392896287466*qcu[0]*Dyy[3]-0.4871392896287466*qcl[0]*Dyy[3]-0.270632938682637*Dyy[1]*qcu[2]+0.270632938682637*Dyy[1]*qcl[2]+0.4871392896287466*qcu[1]*Dyy[2]-0.4871392896287466*qcl[1]*Dyy[2]+0.28125*Dyy[0]*qcu[1]+0.28125*Dyy[0]*qcl[1]-0.5625*Dyy[0]*qcc[1]+0.28125*qcu[0]*Dyy[1]+0.28125*qcl[0]*Dyy[1]-0.5625*qcc[0]*Dyy[1]);

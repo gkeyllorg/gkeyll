@@ -38,6 +38,9 @@
 #include <gkyl_dg_updater_fluid.h>
 #include <gkyl_dg_updater_diffusion_fluid.h>
 #include <gkyl_dg_updater_diffusion_gen.h>
+#include <gkyl_dg_fpo_vlasov_diff_coeff.h>
+#include <gkyl_dg_fpo_vlasov_drag_coeff.h>
+#include <gkyl_dg_updater_fpo_vlasov.h>
 #include <gkyl_dg_updater_lbo_vlasov.h>
 #include <gkyl_dg_vlasov.h>
 #include <gkyl_dg_vlasov_calc_hamil.h>
@@ -51,7 +54,12 @@
 #include <gkyl_fem_poisson.h>
 #include <gkyl_ghost_surf_calc.h>
 #include <gkyl_hyper_dg.h>
+#include <gkyl_fpo_proj_maxwellian_pots_on_basis.h>
+#include <gkyl_fpo_vlasov_coeff_correct.h>
+#include <gkyl_fpo_vlasov_coeff_recovery.h>
+#include <gkyl_hyper_dg.h>
 #include <gkyl_mom_bcorr_lbo_vlasov.h>
+#include <gkyl_mom_fpo_vlasov.h>
 #include <gkyl_mom_calc.h>
 #include <gkyl_mom_calc_bcorr.h>
 #include <gkyl_mom_vlasov.h>
@@ -406,6 +414,61 @@ struct vm_bgk_collisions {
   void (*write_mom_func)(gkyl_vlasov_app *app, struct vm_species *vms, double tm, int frame);
 };
 
+// Rosenbluth/Fokker-Planck operator (FPO) for self collisions, with the Rosenbluth
+// potentials of a Maxwellian with the density, drift velocity and temperature of the
+// species (J. Rodman et al., J. Comput. Phys. 2026).
+struct vm_fpo_collisions {
+  enum gkyl_collision_id collision_id; // Type of collisions.
+  bool write_coll_diagnostics; // Whether to write diagnostics out.
+
+  struct gkyl_array *gamma; // Prefactor of the operator, (q^2/(eps0 m))^2 log(Lambda)/(4 pi).
+
+  struct gkyl_array *h, *g; // Rosenbluth potentials.
+  struct gkyl_array *h_host, *g_host; // Host arrays for I/O.
+  // Potentials and their derivatives at the edges of velocity space, used as boundary
+  // conditions: dH/dv and d^2G/dv^2 normal to the edge, dG/dv in the two directions
+  // transverse to it.
+  struct gkyl_array *h_surf, *g_surf;
+  struct gkyl_array *dhdv_surf, *dgdv_surf, *d2gdv2_surf;
+  gkyl_proj_maxwellian_pots_on_basis *pot_slvr; // Projects the potentials of a Maxwellian.
+
+  struct vm_species_moment moms; // Moments needed in the FPO (M0, M1, M2).
+
+  struct gkyl_array *drag_coeff, *diff_coeff; // Drag coefficient and diffusion tensor.
+  struct gkyl_array *drag_coeff_host, *diff_coeff_host; // Host arrays for I/O.
+  // Surface expansions of the drag coefficient and diffusion tensor at the lower cell
+  // boundary.
+  struct gkyl_array *drag_coeff_surf, *diff_coeff_surf;
+  // Sign of the drag coefficient at the lower cell boundary, and whether it is
+  // constant along that boundary.
+  struct gkyl_array *sgn_drag_coeff_surf, *const_sgn_drag_coeff_surf;
+  gkyl_fpo_vlasov_coeff_recovery *coeff_recovery; // Computes drag and diffusion coefficients.
+
+  // Momentum and energy conservation corrections.
+  struct gkyl_array *fpo_moms; // Volume moments in the conservation constraints.
+  struct gkyl_array *boundary_corrections; // Boundary moments in the conservation constraints.
+  struct gkyl_array *drag_diff_coeff_corrs; // Corrections to drag and diffusion coefficients.
+  struct gkyl_mom_calc *fpo_mom_calc; // Volume moments calculator.
+  struct gkyl_mom_calc_bcorr *bcorr_calc; // Boundary moments calculator.
+  gkyl_fpo_coeff_correct *coeff_correct_calc; // Solves for and applies the corrections.
+
+  gkyl_dg_updater_collisions *coll_slvr; // Collision solver.
+  // Relative offsets of the 3- and 9-cell velocity-space stencils of the generic
+  // stencil update.
+  long offsets[GKYL_HYPER_DG_GEN_NUM_OFFSETS];
+
+  // Pointers to methods chosen at runtime.
+  void (*moms_func)(
+    gkyl_vlasov_app *app, const struct vm_species *vms, struct vm_fpo_collisions *fpo,
+    const struct gkyl_array *fin
+  );
+  void (*rhs_func)(
+    gkyl_vlasov_app *app, const struct vm_species *vms, struct vm_fpo_collisions *fpo,
+    const struct gkyl_array *fin, struct gkyl_array *rhs
+  );
+  void (*write_mom_func)(gkyl_vlasov_app *app, struct vm_species *vms, double tm, int frame);
+};
+
 struct vm_boundary_fluxes {
   struct gkyl_rect_grid boundary_grid[2 * GKYL_MAX_CDIM];
   struct gkyl_array *flux_arr[2 * GKYL_MAX_CDIM];
@@ -657,6 +720,7 @@ struct vm_species {
 
   struct vm_lbo_collisions lbo; // LBO collisions object
   struct vm_bgk_collisions bgk; // BGK collisions object
+  struct vm_fpo_collisions fpo; // FPO collisions object
 
   bool calc_bflux; // are we computing boundary fluxes?
   struct vm_boundary_fluxes bflux; // boundary flux object
@@ -1815,6 +1879,67 @@ void vm_species_bgk_write_mom(
  * @param bgk Species BGK object to release
  */
 void vm_species_bgk_release(const struct gkyl_vlasov_app *app, const struct vm_bgk_collisions *bgk);
+
+/** vm_species_fpo API */
+
+/**
+ * Initialize species FPO collisions object.
+ *
+ * @param app Vlasov app object
+ * @param s Species object
+ * @param fpo Species FPO object
+ */
+void vm_species_fpo_init(
+  struct gkyl_vlasov_app *app, struct vm_species *s, struct vm_fpo_collisions *fpo
+);
+
+/**
+ * Compute the drag coefficient and diffusion tensor of the FPO, including the
+ * corrections for momentum and energy conservation.
+ *
+ * @param app Vlasov app object
+ * @param species Pointer to species
+ * @param fpo Pointer to FPO
+ * @param fin Input distribution function
+ */
+void vm_species_fpo_moms(
+  gkyl_vlasov_app *app, const struct vm_species *species, struct vm_fpo_collisions *fpo,
+  const struct gkyl_array *fin
+);
+
+/**
+ * Compute RHS from FPO collisions
+ *
+ * @param app Vlasov app object
+ * @param species Pointer to species
+ * @param fpo Pointer to FPO
+ * @param fin Input distribution function
+ * @param rhs On output, the RHS from FPO
+ */
+void vm_species_fpo_rhs(
+  gkyl_vlasov_app *app, const struct vm_species *species, struct vm_fpo_collisions *fpo,
+  const struct gkyl_array *fin, struct gkyl_array *rhs
+);
+
+/**
+ * Write the Rosenbluth potentials, drag coefficient and diffusion tensor of the FPO.
+ *
+ * @param app Vlasov app object.
+ * @param species Pointer to species.
+ * @param tm Simulation time.
+ * @param frame Simulation output frame.
+ */
+void vm_species_fpo_write_mom(
+  gkyl_vlasov_app *app, struct vm_species *species, double tm, int frame
+);
+
+/**
+ * Release species FPO object.
+ *
+ * @param app Vlasov app object
+ * @param fpo Species FPO object to release
+ */
+void vm_species_fpo_release(const struct gkyl_vlasov_app *app, const struct vm_fpo_collisions *fpo);
 
 /** vm_species_boundary_fluxes API */
 

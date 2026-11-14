@@ -164,12 +164,14 @@ ifdef USING_NVCC
 
 # Register-capped kernel families (see MOM_MAX_REGS/FLUX_MAX_REGS in the top-level
 # Makefile). The moment family is everything reachable from the moment advance kernels
-# through the momf_t pointer: the moment and LBO boundary-correction kernels, their
+# through the momf_t pointer: the moment and LBO/FPO boundary-correction kernels, their
 # wrappers and the advance kernels themselves. (Any other translation unit that
 # includes gkyl_mom_*_priv.h would instantiate the wrappers uncapped and break the
 # link, so those headers must only be included by the moment sources.) The
-# mom_bcorr_% rule has a shorter stem than the lbo_vlasov/%.c.o rule below, so make
-# prefers it for those files.
+# lbo_vlasov/mom_bcorr_% and fpo/mom_% rules have a shorter stem than the
+# lbo_vlasov/%.c.o and fpo/%.c.o rules, so make prefers them for those files.
+# (fpo/mom_% also matches the small FPO coeff_correct kernels, which are not in the
+# family; the cap costs them nothing.)
 ../$(BUILD_DIR)/vlasov/$(KERNELS_DIR)/mom_vlasov/%.c.o : $(KERNELS_DIR)/mom_vlasov/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(NVCC_MOM_FLAGS) $(INCS) -c $< -o $@
@@ -178,7 +180,11 @@ ifdef USING_NVCC
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(NVCC_MOM_FLAGS) $(INCS) -c $< -o $@
 
-../$(BUILD_DIR)/vlasov/zero/mom_calc_cu.cu.o ../$(BUILD_DIR)/vlasov/zero/mom_calc_bcorr_cu.cu.o ../$(BUILD_DIR)/vlasov/zero/mom_vlasov_cu.cu.o ../$(BUILD_DIR)/vlasov/zero/mom_bcorr_lbo_vlasov_cu.cu.o : ../$(BUILD_DIR)/vlasov/zero/%.cu.o : zero/%.cu
+../$(BUILD_DIR)/vlasov/$(KERNELS_DIR)/fpo/mom_%.c.o : $(KERNELS_DIR)/fpo/mom_%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(NVCC_MOM_FLAGS) $(INCS) -c $< -o $@
+
+../$(BUILD_DIR)/vlasov/zero/mom_calc_cu.cu.o ../$(BUILD_DIR)/vlasov/zero/mom_calc_bcorr_cu.cu.o ../$(BUILD_DIR)/vlasov/zero/mom_vlasov_cu.cu.o ../$(BUILD_DIR)/vlasov/zero/mom_bcorr_lbo_vlasov_cu.cu.o ../$(BUILD_DIR)/vlasov/zero/mom_fpo_vlasov_cu.cu.o ../$(BUILD_DIR)/vlasov/zero/mom_bcorr_fpo_vlasov_cu.cu.o : ../$(BUILD_DIR)/vlasov/zero/%.cu.o : zero/%.cu
 	$(MKDIR_P) $(dir $@)
 	$(CC) -c $(CFLAGS) $(NVCC_FLAGS) $(NVCC_MOM_FLAGS) $(INCS) $< -o $@
 

@@ -60,3 +60,22 @@ struct gkyl_mom_calc_bcorr *gkyl_mom_calc_bcorr_lbo_gyrokinetic_new(
   const struct gkyl_basis *pbasis, double mass, const struct gkyl_velocity_map *vel_map,
   bool use_gpu
 );
+
+/**
+ * Create new updater to compute the boundary corrections of the Fokker-Planck
+ * operator (FPO) needed to conserve momentum and energy.
+ *
+ * @param grid Grid object
+ * @param cbasis Configuration-space basis
+ * @param pbasis Phase-space basis
+ * @param phase_range Phase-space range
+ * @param vBoundary Values at the edges of velocity space.
+ * @param diff_coeff Diffusion tensor.
+ * @param use_gpu Whether to run on the GPU.
+ * @return New updater pointer.
+ */
+struct gkyl_mom_calc_bcorr *gkyl_mom_calc_bcorr_fpo_vlasov_new(
+  const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis,
+  const struct gkyl_basis *pbasis, const struct gkyl_range *phase_range, const double *vBoundary,
+  const struct gkyl_array *diff_coeff, bool use_gpu
+);

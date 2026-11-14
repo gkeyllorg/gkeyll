@@ -1,6 +1,9 @@
 #pragma once
 
+#include <math.h>
+
 #include <gkyl_dg_eqn.h>
+#include <gkyl_hyper_dg.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
 
@@ -19,6 +22,27 @@ struct gkyl_hyper_dg {
   struct gkyl_hyper_dg *on_dev; // pointer to itself or device data
   bool use_gpu; // Whether to run on the gpu.
 };
+
+// Index of the kernel for a cell in the interior or at a lower/upper edge of the domain
+// in the dim (1 or 2) stencil directions dirs. Kernel lists are ordered as
+//   dim=1: [interior, lower, upper],
+//   dim=2: [interior, lower d0, upper d0, lower d1, upper d1, lower d0 & lower d1,
+//           lower d0 & upper d1, upper d0 & lower d1, upper d0 & upper d1],
+// with d0=dirs[0], d1=dirs[1]. Assumes the domain spans indices 1 to num_cells[d].
+GKYL_CU_DH static int
+hyper_dg_idx_to_inloup_ker(int dim, const int *idx, const int *dirs, const int *num_cells)
+{
+  int iout = 0;
+
+  for (int d = 0; d < dim; ++d) {
+    if (idx[dirs[d]] == 1) {
+      iout = 2 * iout + (int)(pow(3, d) + 0.5);
+    } else if (idx[dirs[d]] == num_cells[dirs[d]]) {
+      iout = 2 * iout + (int)(pow(3, d) + 0.5) + 1;
+    }
+  }
+  return iout;
+}
 
 #ifdef GKYL_HAVE_CUDA
 
@@ -55,6 +79,27 @@ void gkyl_hyper_dg_advance_cu(
   gkyl_hyper_dg *up, const struct gkyl_range *update_range,
   const struct gkyl_array *GKYL_RESTRICT fIn, struct gkyl_array *GKYL_RESTRICT cflrate,
   struct gkyl_array *GKYL_RESTRICT rhs
+);
+
+/**
+ * Compute RHS of DG generic stencil update on device (see
+ * gkyl_hyper_dg_gen_stencil_advance): each term of the second-order operator is updated
+ * with its own 3-cell (diagonal) or 9-cell (cross term) stencil.
+ * The update_rng MUST be a sub-range of the range on which the array is defined.
+ * That is, it must be either the same range as the array range, or one created using the
+ * gkyl_sub_range_init method.
+ *
+ * @param hdg Hyper DG generic stencil updater object
+ * @param offsets Relative offsets of the stencils (see gkyl_hyper_dg_gen_stencil_offsets).
+ * @param update_rng Range on which to compute.
+ * @param fIn Input to updater
+ * @param cflrate CFL scalar rate (frequency) array (units of 1/[T])
+ * @param rhs RHS output
+ */
+void gkyl_hyper_dg_gen_stencil_advance_cu(
+  gkyl_hyper_dg *hdg, long offsets[GKYL_HYPER_DG_GEN_NUM_OFFSETS],
+  const struct gkyl_range *update_rng, const struct gkyl_array *fIn, struct gkyl_array *cflrate,
+  struct gkyl_array *rhs
 );
 
 /**

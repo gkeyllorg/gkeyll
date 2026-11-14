@@ -104,7 +104,6 @@ gkyl_dg_diffusion_gen_new(
 
   diffusion_gen->eqn.num_equations = 1;
   diffusion_gen->eqn.gen_surf_term = surf;
-  diffusion_gen->eqn.gen_boundary_surf_term = surf;
 
   diffusion_gen->eqn.vol_term = CK(vol_kernels, cdim, poly_order);
 

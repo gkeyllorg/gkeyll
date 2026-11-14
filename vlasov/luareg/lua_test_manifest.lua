@@ -1,8 +1,10 @@
 -- Tests skipped by the Lua regression suite.
 -- Remove an entry manually to re-enable the test.
 -- gpu: Lua tests whose GPU variant does not run (CPU variant still runs). The general
--- diffusion tests are listed because the general-stencil hyper DG advance is not
--- implemented on the device (the updater asserts there), not because of a timeout.
+-- diffusion tests are listed because Lua inputs run on a GPU with the NCCL communicator,
+-- which does not sync the corner ghost cells at periodic boundaries that the cross terms of
+-- the diffusion tensor need (the app exits with an error), not because of a timeout. Their
+-- C counterparts (rt_dg_diffusion_gen_2x, rt_dg_diffusion_gen_3x) do run on a GPU.
 return {
    ignore = {
       tests = {

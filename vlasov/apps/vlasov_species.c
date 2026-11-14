@@ -32,6 +32,7 @@ kinetic_calc_self_moms(gkyl_vlasov_app *app, struct vlasov_species *sp, const st
 {
   vm_species_lbo_moms(app, sp->kinetic, &sp->kinetic->lbo, fin);
   vm_species_bgk_moms(app, sp->kinetic, &sp->kinetic->bgk, fin);
+  vm_species_fpo_moms(app, sp->kinetic, &sp->kinetic->fpo, fin);
 }
 
 static void
