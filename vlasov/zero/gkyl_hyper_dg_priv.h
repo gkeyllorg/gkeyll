@@ -82,15 +82,15 @@ void gkyl_hyper_dg_advance_cu(
 );
 
 /**
- * Compute RHS of DG generic stencil update on device.
- * In this case, generic stencil means all neighbor values are accessed and stored
- * in memory (i.e., in 2D, 9 cells are stored to update the center cell and in 3D
- * 27 cells are stored to update the center cell)
- * The update_rng MUST be a sub-range of the range on which the array is defined. 
+ * Compute RHS of DG generic stencil update on device (see
+ * gkyl_hyper_dg_gen_stencil_advance): each term of the second-order operator is updated
+ * with its own 3-cell (diagonal) or 9-cell (cross term) stencil.
+ * The update_rng MUST be a sub-range of the range on which the array is defined.
  * That is, it must be either the same range as the array range, or one created using the
  * gkyl_sub_range_init method.
  *
- * @param up Hyper DG generic stencil updater object
+ * @param hdg Hyper DG generic stencil updater object
+ * @param offsets Relative offsets of the stencils (see gkyl_hyper_dg_gen_stencil_offsets).
  * @param update_rng Range on which to compute.
  * @param fIn Input to updater
  * @param cflrate CFL scalar rate (frequency) array (units of 1/[T])

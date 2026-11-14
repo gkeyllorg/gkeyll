@@ -110,9 +110,14 @@ gkyl_hyper_dg_advance_cu(
   );
 }
 
+// Relative offsets of the generic stencils, passed to the device kernel by value.
+struct hyper_dg_gen_offsets {
+  long idx[GKYL_HYPER_DG_GEN_NUM_OFFSETS];
+};
+
 __global__ static void
 gkyl_hyper_dg_gen_stencil_advance_cu_kernel(
-  gkyl_hyper_dg *hdg, long offsets[GKYL_HYPER_DG_GEN_NUM_OFFSETS], struct gkyl_range update_range,
+  gkyl_hyper_dg *hdg, struct hyper_dg_gen_offsets offsets, struct gkyl_range update_range,
   const struct gkyl_array *GKYL_RESTRICT fIn, struct gkyl_array *GKYL_RESTRICT cflrate,
   struct gkyl_array *GKYL_RESTRICT rhs
 )
@@ -164,7 +169,7 @@ gkyl_hyper_dg_gen_stencil_advance_cu_kernel(
 
         // Index into relative offsets and kernel list
         long offsets_arr[9] = {0};
-        gkyl_copy_long_arr(num_stencil, &offsets[offsets_idx], offsets_arr);
+        gkyl_copy_long_arr(num_stencil, &offsets.idx[offsets_idx], offsets_arr);
         int keri = hyper_dg_idx_to_inloup_ker(num_up_dirs, idxc, update_dirs, update_range.upper);
 
         // Get pointers to all neighbor values
@@ -197,16 +202,14 @@ gkyl_hyper_dg_gen_stencil_advance_cu(
   int nblocks = update_range->nblocks;
   int nthreads = update_range->nthreads;
 
-  long *offsets_cu = (long *)gkyl_cu_malloc(GKYL_HYPER_DG_GEN_NUM_OFFSETS * sizeof(long));
-  gkyl_cu_memcpy(
-    offsets_cu, offsets, GKYL_HYPER_DG_GEN_NUM_OFFSETS * sizeof(long), GKYL_CU_MEMCPY_H2D
-  );
+  // The offsets are few enough to pass by value: no device allocation is needed and the
+  // launch stays asynchronous.
+  struct hyper_dg_gen_offsets offsets_cu;
+  gkyl_copy_long_arr(GKYL_HYPER_DG_GEN_NUM_OFFSETS, offsets, offsets_cu.idx);
 
   gkyl_hyper_dg_gen_stencil_advance_cu_kernel<<<nblocks, nthreads>>>(
     hdg->on_dev, offsets_cu, *update_range, fIn->on_dev, cflrate->on_dev, rhs->on_dev
   );
-
-  gkyl_cu_free(offsets_cu);
 }
 
 void

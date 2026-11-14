@@ -1,16 +1,11 @@
 -- Tests skipped by the C regression suite.
 -- Remove an entry manually to re-enable the test.
--- gpu: C tests whose GPU variant does not run (CPU variant still runs). The general
--- diffusion tests are listed because the device path of the general-stencil hyper DG advance
--- (shared with the Fokker-Planck operator) has not been verified for them on a GPU yet, not
--- because of a timeout.
+-- gpu: C tests whose GPU variant does not run (CPU variant still runs).
 return {
    ignore = {
       tests = {
       },
       gpu = {
-         "rt_dg_diffusion_gen_3x",
-         "rt_dg_diffusion_gen_2x",
       },
    },
    moat = {
