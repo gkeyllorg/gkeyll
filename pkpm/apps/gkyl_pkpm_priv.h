@@ -24,10 +24,8 @@
 #include <gkyl_dg_calc_pkpm_bvar.h>
 #include <gkyl_dg_calc_pkpm_vars.h>
 #include <gkyl_vlasov_position_map.h>
-#include <gkyl_dg_pkpm_conf_flux_surf.h>
 #include <gkyl_dg_pkpm_fluid.h>
 #include <gkyl_pkpm_layout.h>
-#include <gkyl_dg_pkpm_fluid_flux_surf.h>
 #include <gkyl_dg_pkpm_remap_flux_surf.h>
 #include <gkyl_dg_pkpm_kinetic_conf.h>
 #include <gkyl_dg_pkpm_kinetic_vel.h>

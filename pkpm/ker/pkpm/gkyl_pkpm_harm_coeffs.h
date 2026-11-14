@@ -4,8 +4,8 @@
 // configuration space: the single definition of C, t, f_perp, R_B1, L_perp, R_E1, the coupling
 // part of the w flux and its speed bounds, and the configuration-space face flux, shared by the
 // code that needs them at its own evaluation points (w surface-flux kernel pkpm_vel_flux_vpar_*,
-// closure kernel pkpm_vars_closure_*, the rate estimate of gkyl_dg_pkpm_harm_vol, configuration
-// face-flux kernels pkpm_conf_flux_* and pkpm_fluid_flux_accum_*). Equations normalized-F/G/M/N
+// closure kernel pkpm_vars_closure_*, the rate estimate of gkyl_dg_pkpm_harm_vol, the
+// configuration face flux of gkyl_dg_pkpm_remap_flux_surf). Equations normalized-F/G/M/N
 // of First_Fourier_Harmonic_Notes/normalized_first_harmonic.tex; plan sections 17.11 and 17.14.
 //
 // The distributions are the eight blocks [F, G, M0_perp (x, y, z), N_perp (x, y, z)]. The inputs
