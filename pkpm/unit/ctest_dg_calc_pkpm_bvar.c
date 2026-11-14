@@ -10,6 +10,7 @@
 #include <gkyl_dg_calc_em_vars.h>
 #include <gkyl_dg_calc_pkpm_bvar.h>
 #include <gkyl_dg_calc_pkpm_vars.h>
+#include <gkyl_gauss_quad_data.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
@@ -68,14 +69,18 @@ eval_moms(double t, const double *xn, double *restrict fout, void *ctx)
 static int
 gl2_nodes(int cdim, double nodes[8][3])
 {
-  double g = 1.0 / sqrt(3.0);
-  int nn = 1 << cdim;
-  for (int n = 0; n < nn; ++n) {
+  int node_lower[3] = {0, 0, 0}, node_upper[3] = {1, 1, 1};
+  struct gkyl_range node_range;
+  gkyl_range_init(&node_range, cdim, node_lower, node_upper);
+  struct gkyl_range_iter node_iter;
+  gkyl_range_iter_init(&node_iter, &node_range);
+  while (gkyl_range_iter_next(&node_iter)) {
+    long n = gkyl_range_idx(&node_range, node_iter.idx);
     for (int d = 0; d < cdim; ++d) {
-      nodes[n][d] = ((n >> d) & 1) ? g : -g;
+      nodes[n][d] = gkyl_gauss_ordinates_2[node_iter.idx[d]];
     }
   }
-  return nn;
+  return node_range.volume;
 }
 
 static void

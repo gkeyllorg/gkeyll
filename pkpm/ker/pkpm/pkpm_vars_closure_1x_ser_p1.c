@@ -1,8 +1,8 @@
 #include <gkyl_pkpm_vars_kernels.h> 
 #include <gkyl_pkpm_harm_coeffs.h> 
 
-// The p=1 field f (gkyl basis) at the 5 Gauss-Legendre nodes (5 per direction, direction 0 
-// fastest), direction by direction. 
+// The p=1 field f (gkyl basis) at the 5 Gauss-Legendre nodes (5 per direction, row-major: the 
+// last direction fastest), direction by direction. 
 GKYL_CU_DH static inline void pkpm_vars_closure_1x_ser_p1_p1(const double *f, double* GKYL_RESTRICT fn) 
 { 
   fn[0] = 0.7071067811865475*f[0]-1.1098391188717989*f[1]; 

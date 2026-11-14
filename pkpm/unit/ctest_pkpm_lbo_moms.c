@@ -70,10 +70,15 @@ test_moms(int cdim)
 
   // Expansion of each logical coordinate of a cell (2-point Gauss-Legendre is exact for it).
   double coord_modal[GKYL_MAX_CDIM * 8] = {0.0};
-  for (int corner = 0; corner < nc; ++corner) {
+  int node_lower[GKYL_MAX_CDIM] = {0, 0, 0}, node_upper[GKYL_MAX_CDIM] = {1, 1, 1};
+  struct gkyl_range node_range;
+  gkyl_range_init(&node_range, cdim, node_lower, node_upper);
+  struct gkyl_range_iter node_iter;
+  gkyl_range_iter_init(&node_iter, &node_range);
+  while (gkyl_range_iter_next(&node_iter)) {
     double z[GKYL_MAX_CDIM], basis[8];
     for (int d = 0; d < cdim; ++d) {
-      z[d] = gkyl_gauss_ordinates_2[(corner >> d) & 1];
+      z[d] = gkyl_gauss_ordinates_2[node_iter.idx[d]];
     }
     cbasis.eval(z, basis);
     for (int d = 0; d < cdim; ++d) {

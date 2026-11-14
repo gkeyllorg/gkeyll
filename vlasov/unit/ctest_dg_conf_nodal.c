@@ -5,12 +5,15 @@
 #include <stdlib.h>
 
 #include <acutest.h>
+#include <gkyl_alloc.h>
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_basis.h>
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_conf_nodal.h>
+#include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
+#include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
 
 #define NUM_BLOCKS 3 // expansions per cell
@@ -31,11 +34,37 @@ rnd(void)
 }
 
 static void
-node_coord(int cdim, int q, double *x)
+eval_zero(double t, const double *xn, double *fout, void *ctx)
 {
+  fout[0] = 0.0;
+}
+
+// Coordinates [node][cdim] of the nodes: the ordinates of the projection updater with two points
+// per direction, node for node, so the conversions order their nodes as the quadrature does.
+static double *
+quad_nodes(const struct gkyl_basis *cbasis)
+{
+  int cdim = cbasis->ndim, cells[GKYL_MAX_DIM];
+  double grid_lower[GKYL_MAX_DIM], grid_upper[GKYL_MAX_DIM];
   for (int d = 0; d < cdim; ++d) {
-    x[d] = ((q >> d) & 1) ? 1.0 / sqrt(3.0) : -1.0 / sqrt(3.0);
+    grid_lower[d] = -1.0;
+    grid_upper[d] = 1.0;
+    cells[d] = 1;
   }
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, cdim, grid_lower, grid_upper, cells);
+  struct gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&grid, cbasis, 2, 1, eval_zero, 0);
+  int num_nodes = gkyl_proj_on_basis_get_tot_quad(proj);
+  TEST_CHECK(num_nodes == cbasis->num_basis);
+  double *nodes = gkyl_malloc(num_nodes * cdim * sizeof(double));
+  for (int q = 0; q < num_nodes; ++q) {
+    const double *ord = gkyl_proj_on_basis_fetch_ordinate(proj, q);
+    for (int d = 0; d < cdim; ++d) {
+      nodes[q * cdim + d] = ord[d];
+    }
+  }
+  gkyl_proj_on_basis_release(proj);
+  return nodes;
 }
 
 static void
@@ -74,6 +103,7 @@ test_conf(int cdim)
     gkyl_dg_mul_op_range(&cbasis, b, fg, b, fmodal, b, gmodal, &crange);
   }
 
+  double *nodes = quad_nodes(&cbasis);
   struct gkyl_dg_conf_nodal *up = gkyl_dg_conf_nodal_new(&cbasis, 0, false);
   gkyl_dg_conf_nodal_conf_to_nodal(up, &crange, fmodal, fnodal);
   gkyl_dg_conf_nodal_conf_to_nodal(up, &crange, gmodal, gnodal);
@@ -91,8 +121,7 @@ test_conf(int cdim)
     const double *back_d = gkyl_array_cfetch(back, loc);
     for (int b = 0; b < NUM_BLOCKS; ++b) {
       for (int q = 0; q < nc; ++q) {
-        double x[3];
-        node_coord(cdim, q, x);
+        const double *x = &nodes[q * cdim];
         // node values of the expansion, and the weak product as the product of node values
         TEST_CHECK(close_to(fnodal_d[b * nc + q], cbasis.eval_expand(x, &fmodal_d[b * nc]), 1e-14));
         TEST_CHECK(
@@ -106,6 +135,7 @@ test_conf(int cdim)
   }
 
   gkyl_dg_conf_nodal_release(up);
+  gkyl_free(nodes);
   gkyl_array_release(fmodal);
   gkyl_array_release(gmodal);
   gkyl_array_release(fg);
@@ -139,6 +169,7 @@ test_phase(int cdim)
   fill_random(fmodal);
   gkyl_array_clear(back, 0.0);
 
+  double *nodes = quad_nodes(&cbasis);
   struct gkyl_dg_conf_nodal *up = gkyl_dg_conf_nodal_new(&cbasis, &pbasis, false);
   gkyl_dg_conf_nodal_phase_to_nodal(up, &prange, fmodal, fnodal);
   gkyl_dg_conf_nodal_phase_to_modal_accumulate(up, &prange, fnodal, back);
@@ -158,7 +189,9 @@ test_phase(int cdim)
       for (int q = 0; q < nc; ++q) {
         // the velocity modes of the expansion at node q
         double eta[4], vel_modes[NUM_VMODES] = {0.0};
-        node_coord(cdim, q, eta);
+        for (int d = 0; d < cdim; ++d) {
+          eta[d] = nodes[q * cdim + d];
+        }
         for (int m = 0; m < 3; ++m) {
           double vel_basis[NUM_VMODES];
           eta[cdim] = gv[m];
@@ -179,6 +212,7 @@ test_phase(int cdim)
   }
 
   gkyl_dg_conf_nodal_release(up);
+  gkyl_free(nodes);
   gkyl_array_release(fmodal);
   gkyl_array_release(fnodal);
   gkyl_array_release(back);

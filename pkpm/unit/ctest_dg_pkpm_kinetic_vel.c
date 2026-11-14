@@ -20,6 +20,7 @@
 #include <gkyl_dg_pkpm_kinetic_vel.h>
 #include <gkyl_dg_pkpm_vel_flux_surf.h>
 #include <gkyl_dg_updater_moment_pkpm.h>
+#include <gkyl_gauss_quad_data.h>
 #include <gkyl_hyper_dg.h>
 #include <gkyl_pkpm_harm_coeffs.h>
 #include <gkyl_proj_on_basis.h>
@@ -479,17 +480,16 @@ reference_vel_face(
   // the column bound of the w-flux speeds (absolute coefficients at the larger |w| edge, plan 17.27)
   double wm = fmax(fabs(s->pgrid.lower[cdim]), fabs(s->pgrid.upper[cdim]));
   *ratio = 0.0;
-  int nnodes = 1;
-  for (int d = 0; d < cdim; ++d) {
-    nnodes *= 5;
-  }
-  for (int n = 0; n < nnodes; ++n) {
+  int node_lower[3] = {0, 0, 0}, node_upper[3] = {4, 4, 4};
+  struct gkyl_range node_range;
+  gkyl_range_init(&node_range, cdim, node_lower, node_upper);
+  struct gkyl_range_iter node_iter;
+  gkyl_range_iter_init(&node_iter, &node_range);
+  while (gkyl_range_iter_next(&node_iter)) {
     double zs[4], zl[4], zr[4], w = 1.0;
-    int m = n;
-    for (int d = cdim - 1; d >= 0; --d) {
-      zs[d] = gl5_x[m % 5];
-      w *= gl5_w[m % 5];
-      m /= 5;
+    for (int d = 0; d < cdim; ++d) {
+      zs[d] = gl5_x[node_iter.idx[d]];
+      w *= gl5_w[node_iter.idx[d]];
     }
     for (int d = 0; d < cdim; ++d) {
       zl[d] = zr[d] = zs[d];
@@ -521,27 +521,29 @@ reference_vel_face(
 }
 
 // The raw w-flux values the build writes (gkyl_dg_pkpm_harm_vol_coef) at the 5^cdim w-face nodes
-// (node i0 + 5 i1 + 25 i2) are the pointwise definitions of gkyl_pkpm_harm_coeffs.h (node_values)
-// at those points.
+// (row-major, the order of gkyl_range) are the pointwise definitions of gkyl_pkpm_harm_coeffs.h
+// (node_values) at those points.
 static void
 test_build_nodes(int cdim)
 {
   struct test_setup s;
   setup(&s, cdim);
-  int nn = 1;
-  for (int d = 0; d < cdim; ++d) {
-    nn *= 5;
-  }
+  int node_lower[3] = {0, 0, 0}, node_upper[3] = {4, 4, 4};
+  struct gkyl_range node_range;
+  gkyl_range_init(&node_range, cdim, node_lower, node_upper);
   double max_err = 0.0, max_ref = 0.0;
   struct gkyl_range_iter it;
   gkyl_range_iter_init(&it, &s.clocal);
   while (gkyl_range_iter_next(&it)) {
     long cidx = gkyl_range_idx(&s.clocal_ext, it.idx);
     const double *wn = gkyl_array_cfetch(s.hwn, cidx);
-    for (int n = 0; n < nn; ++n) {
+    struct gkyl_range_iter node_it;
+    gkyl_range_iter_init(&node_it, &node_range);
+    while (gkyl_range_iter_next(&node_it)) {
+      long n = gkyl_range_idx(&node_range, node_it.idx);
       double z[3], nv[PKPM_HS_NODE_NV];
-      for (int d = 0, q = n; d < cdim; ++d, q /= 5) {
-        z[d] = gl5_x[q % 5];
+      for (int d = 0; d < cdim; ++d) {
+        z[d] = gl5_x[node_it.idx[d]];
       }
       node_values(&s, cidx, z, s.alpha_0, s.c_h, nv);
       for (int sl = 0; sl < PKPM_HS_W_END; ++sl) {
@@ -909,13 +911,18 @@ test_vel_vol(int cdim)
 static double
 perp_moment_max(struct test_setup *s, long cidx, const struct gkyl_array *mom)
 {
-  int cdim = s->cdim, nc = s->cbasis.num_basis, nnodes = 1 << cdim;
+  int cdim = s->cdim, nc = s->cbasis.num_basis;
   const double *m = gkyl_array_cfetch(mom, cidx), *b = gkyl_array_cfetch(s->bvar, cidx);
   double mx = 0.0;
-  for (int n = 0; n < nnodes; ++n) {
+  int node_lower[3] = {0, 0, 0}, node_upper[3] = {1, 1, 1};
+  struct gkyl_range node_range;
+  gkyl_range_init(&node_range, cdim, node_lower, node_upper);
+  struct gkyl_range_iter node_iter;
+  gkyl_range_iter_init(&node_iter, &node_range);
+  while (gkyl_range_iter_next(&node_iter)) {
     double z[3], bq[3], mq[3], mp[3];
     for (int d = 0; d < cdim; ++d) {
-      z[d] = ((n >> (cdim - 1 - d)) & 1) ? 1.0 / sqrt(3.0) : -1.0 / sqrt(3.0);
+      z[d] = gkyl_gauss_ordinates_2[node_iter.idx[d]];
     }
     for (int a = 0; a < 3; ++a) {
       bq[a] = s->cbasis.eval_expand(z, &b[a * nc]);
@@ -1305,7 +1312,10 @@ test_transverse(int cdim)
 {
   struct test_setup s;
   setup(&s, cdim);
-  int nc = s.cbasis.num_basis, np = s.pbasis.num_basis, nnodes = 1 << cdim;
+  int nc = s.cbasis.num_basis, np = s.pbasis.num_basis;
+  int node_lower[3] = {0, 0, 0}, node_upper[3] = {1, 1, 1};
+  struct gkyl_range node_range;
+  gkyl_range_init(&node_range, cdim, node_lower, node_upper);
   // a fresh, non-transverse state
   gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&s.pgrid, &s.pbasis, 8, 8, eval_f, &cdim);
   gkyl_proj_on_basis_advance(proj, 0.0, &s.plocal_ext_conf, s.f);
@@ -1332,11 +1342,13 @@ test_transverse(int cdim)
       max_idem = fmax(max_idem, fabs(fc[k] - fb[k]));
       max_val = fmax(max_val, fabs(fb[k]));
     }
-    for (int n = 0; n < nnodes; ++n) {
+    struct gkyl_range_iter node_iter;
+    gkyl_range_iter_init(&node_iter, &node_range);
+    while (gkyl_range_iter_next(&node_iter)) {
       for (int j = 0; j < 5; ++j) {
         double z[4], bq[3];
         for (int d = 0; d < cdim; ++d) {
-          z[d] = ((n >> (cdim - 1 - d)) & 1) ? 1.0 / sqrt(3.0) : -1.0 / sqrt(3.0);
+          z[d] = gkyl_gauss_ordinates_2[node_iter.idx[d]];
         }
         z[cdim] = -1.0 + 0.5 * j;
         for (int a = 0; a < 3; ++a) {

@@ -9,6 +9,7 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_basis.h>
 #include <gkyl_dg_pkpm_remap_flux_surf.h>
+#include <gkyl_gauss_quad_data.h>
 #include <gkyl_pkpm_harm_coeffs.h>
 #include <gkyl_pkpm_remap_flux_kernels.h>
 #include <gkyl_proj_on_basis.h>
@@ -324,10 +325,15 @@ project_cell(const struct test_setup *s, const int *idx, wfunc_t fn, void *ctx, 
   for (int k = 0; k < 8 * np; ++k) {
     f[k] = 0.0;
   }
-  for (int corner = 0; corner < (1 << cdim); ++corner) {
+  int node_lower[3] = {0, 0, 0}, node_upper[3] = {1, 1, 1};
+  struct gkyl_range node_range;
+  gkyl_range_init(&node_range, cdim, node_lower, node_upper);
+  struct gkyl_range_iter node_iter;
+  gkyl_range_iter_init(&node_iter, &node_range);
+  while (gkyl_range_iter_next(&node_iter)) {
     double z[4];
     for (int d = 0; d < cdim; ++d) {
-      z[d] = (corner >> d) & 1 ? 0.5773502691896258 : -0.5773502691896258;
+      z[d] = gkyl_gauss_ordinates_2[node_iter.idx[d]];
     }
     for (int j = 0; j < 3; ++j) {
       z[cdim] = gn[j];

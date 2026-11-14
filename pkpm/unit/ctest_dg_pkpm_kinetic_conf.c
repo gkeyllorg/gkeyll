@@ -20,6 +20,7 @@
 #include <gkyl_dg_pkpm_harm_vol_priv.h>
 #include <gkyl_dg_pkpm_kinetic_conf.h>
 #include <gkyl_dg_updater_moment_pkpm.h>
+#include <gkyl_gauss_quad_data.h>
 #include <gkyl_hyper_dg.h>
 #include <gkyl_pkpm_harm_coeffs.h>
 #include <gkyl_proj_on_basis.h>
@@ -831,19 +832,20 @@ test_closure(int cdim)
   // Perpendicular rows at the closure nodes (where b is a unit vector): M0 a_perp + I_perp rho_M = 0,
   // rho_M = int rhs_A(M0_perp) dw.
   double max_res_p = 0.0, max_rho_p = 0.0;
-  int nnodes = 1;
-  for (int d = 0; d < cdim; ++d) {
-    nnodes *= 2;
-  }
+  int node_lower[3] = {0, 0, 0}, node_upper[3] = {1, 1, 1};
+  struct gkyl_range node_range;
+  gkyl_range_init(&node_range, cdim, node_lower, node_upper);
   gkyl_range_iter_init(&citer, &s.clocal);
   while (gkyl_range_iter_next(&citer)) {
     long cidx = gkyl_range_idx(&s.clocal_ext, citer.idx);
     const double *m = gkyl_array_cfetch(moms, cidx), *rm = gkyl_array_cfetch(rhs_moms, cidx);
     const double *ap = gkyl_array_cfetch(a_perp, cidx), *b = gkyl_array_cfetch(s.bvar, cidx);
-    for (int n = 0; n < nnodes; ++n) {
+    struct gkyl_range_iter node_iter;
+    gkyl_range_iter_init(&node_iter, &node_range);
+    while (gkyl_range_iter_next(&node_iter)) {
       double z[3];
       for (int d = 0; d < cdim; ++d) {
-        z[d] = ((n >> (cdim - 1 - d)) & 1) ? 1.0 / sqrt(3.0) : -1.0 / sqrt(3.0);
+        z[d] = gkyl_gauss_ordinates_2[node_iter.idx[d]];
       }
       double bq[3], rho[3], rho_p[3];
       for (int a = 0; a < 3; ++a) {

@@ -573,7 +573,7 @@ test_stage_weights(int cdim)
     pkpm_hx_to_nodes(cdim, gkyl_array_cfetch(la, 0), Ln);
     pkpm_hx_to_nodes(cdim, gkyl_array_cfetch(ca, 0), Cn);
     for (int p = 0; p < c.np; ++p) {
-      double lam_q = lam_d[pkpm_hx_conf_nodal_idx(cdim, p / 3)];
+      double lam_q = lam_d[p / 3];
       double w_fe = coef_fe * lam_q / (coef_old + coef_fe * lam_q), w_old = 1.0 - w_fe;
       for (int k = 0; k < 6; ++k) {
         double em = Mn[6 * p + k] + Zn[6 * p + k] * coef_fe / coef_old; // e M

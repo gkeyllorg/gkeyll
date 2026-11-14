@@ -2,7 +2,7 @@
 
 // Generated (gkylcas/vlasov/conf_nodal/conf-nodal.mac): conversions between modal expansions and 
 // the configuration-nodal, velocity-modal form. The nodes are the 2^cdim interior Gauss-Legendre 
-// points of a p=1 configuration-space cell, node q having bit d set when x_d > 0. 
+// points of a p=1 configuration-space cell in row-major order (the last direction fastest). 
 #include <gkyl_util.h> 
 
 EXTERN_C_BEG 

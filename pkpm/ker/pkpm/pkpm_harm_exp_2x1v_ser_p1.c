@@ -301,24 +301,6 @@ GKYL_CU_DH void pkpm_harm_exp_to_modal_2x1v_ser_p1(const double *fn, double* GKY
   f[95] = 0.5*t[11]-0.5*t[8]-0.5*t[5]+0.5*t[2]; 
 } 
 
-GKYL_CU_DH void pkpm_harm_exp_conf_nodes_2x_ser_p1(const double *em, double* GKYL_RESTRICT Bn) 
-{ 
-  // em: Electromagnetic field of the cell [Ex, Ey, Ez, Bx, By, Bz, ...]. 
-  // Bn: Magnetic field at the 4 configuration nodes, Bn[node*3 + comp]. 
-  Bn[0] = 0.5*em[15]-0.5*em[14]-0.5*em[13]+0.5*em[12]; 
-  Bn[1] = 0.5*em[19]-0.5*em[18]-0.5*em[17]+0.5*em[16]; 
-  Bn[2] = 0.5*em[23]-0.5*em[22]-0.5*em[21]+0.5*em[20]; 
-  Bn[3] = -(0.5*em[15])+0.5*em[14]-0.5*em[13]+0.5*em[12]; 
-  Bn[4] = -(0.5*em[19])+0.5*em[18]-0.5*em[17]+0.5*em[16]; 
-  Bn[5] = -(0.5*em[23])+0.5*em[22]-0.5*em[21]+0.5*em[20]; 
-  Bn[6] = -(0.5*em[15])-0.5*em[14]+0.5*em[13]+0.5*em[12]; 
-  Bn[7] = -(0.5*em[19])-0.5*em[18]+0.5*em[17]+0.5*em[16]; 
-  Bn[8] = -(0.5*em[23])-0.5*em[22]+0.5*em[21]+0.5*em[20]; 
-  Bn[9] = 0.5*em[15]+0.5*em[14]+0.5*em[13]+0.5*em[12]; 
-  Bn[10] = 0.5*em[19]+0.5*em[18]+0.5*em[17]+0.5*em[16]; 
-  Bn[11] = 0.5*em[23]+0.5*em[22]+0.5*em[21]+0.5*em[20]; 
-} 
-
 GKYL_CU_DH void pkpm_harm_exp_fg_to_nodes_2x1v_ser_p1(const double *f, double* GKYL_RESTRICT fgn) 
 { 
   // f:   Distributions [F, G, M0_perp, N_perp] of the cell (blocks 0-1 are read). 

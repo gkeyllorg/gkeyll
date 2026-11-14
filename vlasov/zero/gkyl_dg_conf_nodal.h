@@ -12,13 +12,18 @@ typedef struct gkyl_dg_conf_nodal gkyl_dg_conf_nodal;
  * configuration space and modal in velocity space, for operators that act in velocity space
  * alone at each configuration-space node (collisions).
  *
- * The configuration basis is p=1 and the nodes are its 2^cdim interior Gauss-Legendre points,
- * node q having bit d set when x_d > 0. A configuration-space expansion becomes its 2^cdim node
- * values. A phase-space expansion, in a basis that is the tensor product of the configuration
- * basis and a velocity basis of NV functions (the hybrid basis), becomes fnodal[q*NV + j]: the
- * velocity mode j at node q, so each node holds a contiguous velocity-space expansion. Nodal
- * arrays have the same number of components as the modal ones, and arrays with several
- * expansions per cell (blocks) are converted block by block.
+ * The configuration basis is p=1 and the nodes are its 2^cdim interior Gauss-Legendre points
+ * x_d = -+1/sqrt(3), in the row-major order of gkyl_range (the last direction fastest): node
+ * q = sum_d i_d 2^(cdim-1-d), with i_d = 0 (1) at the lower (upper) ordinate of direction d.
+ * This is the order of the quadrature nodes of the projection updaters and of the nodes of every
+ * kernel and updater that stores values per configuration node.
+ *
+ * A configuration-space expansion becomes its 2^cdim node values. A phase-space expansion, in a
+ * basis that is the tensor product of the configuration basis and a velocity basis of NV
+ * functions (the hybrid basis), becomes fnodal[q*NV + j]: the velocity mode j at node q, so each
+ * node holds a contiguous velocity-space expansion. Nodal arrays have the same number of
+ * components as the modal ones, and arrays with several expansions per cell (blocks) are
+ * converted block by block.
  *
  * At p=1 the weak product (or division) of configuration-space expansions has the pointwise
  * product (or quotient) of their node values, so operators with configuration-dependent

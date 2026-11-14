@@ -1,7 +1,7 @@
 #include <gkyl_pkpm_kinetic_kernels.h> 
 
-// The p=1 field f (gkyl basis) at the 5 Gauss-Legendre nodes (5 per direction, direction 0 
-// fastest), direction by direction. 
+// The p=1 field f (gkyl basis) at the 5 Gauss-Legendre nodes (5 per direction, row-major: the 
+// last direction fastest), direction by direction. 
 GKYL_CU_DH static inline void pkpm_harm_build_1x_ser_p1_nodes(const double *f, double* GKYL_RESTRICT fn) 
 { 
   fn[0] = 0.7071067811865475*f[0]-1.1098391188717989*f[1]; 
@@ -37,7 +37,7 @@ GKYL_CU_DH void pkpm_harm_build_1x_ser_p1(double qbym, const double *bvar, const
   // em:        Electromagnetic field (B for the gyration). 
   // ho:        Output stored operator (gkyl_pkpm_harm_ops.h): 162 entries of 3 modes, exact 
   //            projections by 5-point Gauss-Legendre quadrature per direction (coefficient degree <= 7). 
-  // wn:        Output raw w-flux values at the 5 w-face nodes [node][PKPM_HS_W_END] (node i0 + 5 i1 + 25 i2). 
+  // wn:        Output raw w-flux values at the 5 w-face nodes [node][PKPM_HS_W_END] (row-major nodes). 
  
   // the p=1 fields at the nodes 
   double b0_n[5]; 

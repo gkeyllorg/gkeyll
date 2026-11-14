@@ -94,15 +94,33 @@ gkyl_dg_pkpm_remap_flux_surf_inew(const struct gkyl_dg_pkpm_remap_flux_surf_inp 
     }
   }
 
-  // The Gauss-Legendre nodes of a cell; bit d of the node index selects the upper node of direction d.
-  int num_cell_nodes = 1 << cdim;
-  up->conf_node = gkyl_malloc(num_cell_nodes * nc * sizeof(double));
-  for (int q = 0; q < num_cell_nodes; ++q) {
+  // The Gauss-Legendre nodes of a cell in row-major order (the nodes of gkyl_dg_conf_nodal), and
+  // for every direction the upper node of the line through each node along it.
+  int node_lower[GKYL_MAX_CDIM], node_upper[GKYL_MAX_CDIM];
+  for (int d = 0; d < cdim; ++d) {
+    node_lower[d] = 0;
+    node_upper[d] = 1;
+  }
+  struct gkyl_range node_range;
+  gkyl_range_init(&node_range, cdim, node_lower, node_upper);
+  up->num_cell_nodes = node_range.volume;
+  up->conf_node = gkyl_malloc(up->num_cell_nodes * nc * sizeof(double));
+  up->line_upper = gkyl_malloc(cdim * up->num_cell_nodes * sizeof(int));
+  struct gkyl_range_iter node_iter;
+  gkyl_range_iter_init(&node_iter, &node_range);
+  while (gkyl_range_iter_next(&node_iter)) {
+    long q = gkyl_range_idx(&node_range, node_iter.idx);
     double z[GKYL_MAX_CDIM];
     for (int d = 0; d < cdim; ++d) {
-      z[d] = ((q >> d) & 1 ? 1.0 : -1.0) / sqrt(3.0);
+      z[d] = (node_iter.idx[d] == 1 ? 1.0 : -1.0) / sqrt(3.0);
     }
     inp->conf_basis->eval(z, &up->conf_node[q * nc]);
+    for (int d = 0; d < cdim; ++d) {
+      int idx_up[GKYL_MAX_CDIM];
+      gkyl_copy_int_arr(cdim, node_iter.idx, idx_up);
+      idx_up[d] = 1;
+      up->line_upper[d * up->num_cell_nodes + q] = gkyl_range_idx(&node_range, idx_up);
+    }
   }
 
   int nflux = 8 * up->num_surf_basis;
@@ -328,6 +346,7 @@ gkyl_dg_pkpm_remap_flux_surf_release(struct gkyl_dg_pkpm_remap_flux_surf *up)
     gkyl_free(up->conf_trace[d]);
   }
   gkyl_free(up->conf_node);
+  gkyl_free(up->line_upper);
   gkyl_free(up->column);
   gkyl_free(up->block_traces);
   gkyl_free(up->face_flux);

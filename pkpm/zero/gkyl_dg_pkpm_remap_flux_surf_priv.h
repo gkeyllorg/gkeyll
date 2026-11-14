@@ -7,6 +7,7 @@
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
 #include <gkyl_pkpm_harm_coeffs.h>
+#include <gkyl_pkpm_layout.h>
 #include <gkyl_pkpm_remap_flux_kernels.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
@@ -87,6 +88,7 @@ struct gkyl_dg_pkpm_remap_flux_surf {
   int num_surf_basis; // Surface modes per block, direction and side of the kinetic flux.
   int num_trans_modes; // Transverse modes of a face, the surface modes of the fluid flux.
   int num_nodes; // Transverse nodes of a face.
+  int num_cell_nodes; // Gauss-Legendre nodes of a cell.
   const struct gkyl_vlasov_position_map *pos_map; // Position map (acquired).
   const struct gkyl_array *jacob_pos; // Per-direction Jacobians (borrowed from pos_map).
   pkpm_remap_flux_trace_t trace[3]; // Block traces in each direction.
@@ -96,6 +98,7 @@ struct gkyl_dg_pkpm_remap_flux_surf {
   double *wpsi; // Node weight times the transverse modes, [node][mode].
   double *conf_trace[3]; // Conf basis at the face nodes per direction, [side][node][basis].
   double *conf_node; // Conf basis at the Gauss-Legendre nodes of a cell, [node][basis].
+  int *line_upper; // Upper node of the line through a node along a direction, [dir][node].
   double *vel_edges; // Edges of the velocity grid.
 
   // Workspace for one face.
@@ -307,14 +310,15 @@ pkpm_remap_flux_xi_face(
   const double *xi, double *xi_face
 )
 {
-  int nc = up->num_conf_basis, num_cell_nodes = 1 << up->cdim;
-  double node_xi[8], node_rho[8], line[8];
+  int nc = up->num_conf_basis, num_cell_nodes = up->num_cell_nodes;
+  const int *line_upper = &up->line_upper[dir * num_cell_nodes];
+  double node_xi[PKPM_MAX_CONF_BASIS], node_rho[PKPM_MAX_CONF_BASIS], line[PKPM_MAX_CONF_BASIS];
   for (int q = 0; q < num_cell_nodes; ++q) {
     node_xi[q] = pkpm_remap_flux_trace_at(nc, &up->conf_node[q * nc], xi);
     node_rho[q] = pkpm_remap_flux_trace_at(nc, &up->conf_node[q * nc], fluid);
   }
   for (int q = 0; q < num_cell_nodes; ++q) {
-    int q_up = q | (1 << dir);
+    int q_up = line_upper[q];
     if (q_up != q) {
       line[q] =
         pkpm_remap_flux_xi_line(node_xi[q], node_xi[q_up], node_rho[q], node_rho[q_up], sign);

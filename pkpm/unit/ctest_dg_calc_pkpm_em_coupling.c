@@ -20,6 +20,7 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_basis.h>
 #include <gkyl_dg_calc_pkpm_em_coupling.h>
+#include <gkyl_gauss_quad_data.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
@@ -255,7 +256,6 @@ static const double gl4_x[4] = {-0.8611363115940526, -0.3399810435848563, 0.3399
   0.8611363115940526};
 static const double gl4_w[4] = {0.3478548451374538, 0.6521451548625461, 0.6521451548625461,
   0.3478548451374538};
-static const double gl2_x[2] = {-0.5773502691896258, 0.5773502691896258};
 
 static void
 test_varying(int cdim)
@@ -366,13 +366,15 @@ test_varying(int cdim)
     }
     // Energy at the 2-point nodes: sum_s (|M_new|^2 - |M_old|^2)/(2 rho) + eps0 (|E_new|^2 - |E_old|^2)/2
     // = dt sum_s Mbar.(qbym E_ext + a) - dt Ebar.J_app   (work of the external terms only)
-    int nn = 1 << cdim;
-    for (int n = 0; n < nn; ++n) {
+    int node_lower[3] = {0, 0, 0}, node_upper[3] = {1, 1, 1};
+    struct gkyl_range node_range;
+    gkyl_range_init(&node_range, cdim, node_lower, node_upper);
+    struct gkyl_range_iter node_iter;
+    gkyl_range_iter_init(&node_iter, &node_range);
+    while (gkyl_range_iter_next(&node_iter)) {
       double z[3];
-      int m = n;
-      for (int d = cdim - 1; d >= 0; --d) {
-        z[d] = gl2_x[m % 2];
-        m /= 2;
+      for (int d = 0; d < cdim; ++d) {
+        z[d] = gkyl_gauss_ordinates_2[node_iter.idx[d]];
       }
       double de = 0.0, work = 0.0;
       for (int c = 0; c < 3; ++c) {

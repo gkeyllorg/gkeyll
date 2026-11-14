@@ -255,13 +255,18 @@ test_source_1x_p1()
 static void
 vertex_values(const struct gkyl_basis *b, const double *c, double *v)
 {
-  int cdim = b->ndim, nv = 1 << cdim;
-  for (int k = 0; k < nv; ++k) {
+  int cdim = b->ndim;
+  int vert_lower[3] = {0, 0, 0}, vert_upper[3] = {1, 1, 1};
+  struct gkyl_range vert_range;
+  gkyl_range_init(&vert_range, cdim, vert_lower, vert_upper);
+  struct gkyl_range_iter vert_iter;
+  gkyl_range_iter_init(&vert_iter, &vert_range);
+  while (gkyl_range_iter_next(&vert_iter)) {
     double z[3];
     for (int d = 0; d < cdim; ++d) {
-      z[d] = (k >> d) & 1 ? 1.0 : -1.0;
+      z[d] = vert_iter.idx[d] == 1 ? 1.0 : -1.0;
     }
-    v[k] = b->eval_expand(z, c);
+    v[gkyl_range_idx(&vert_range, vert_iter.idx)] = b->eval_expand(z, c);
   }
 }
 
