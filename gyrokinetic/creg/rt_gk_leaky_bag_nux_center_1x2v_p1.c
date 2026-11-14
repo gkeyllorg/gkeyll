@@ -123,7 +123,7 @@ compareToAnalytics(const struct gkyl_gk *app_inp, void *ctx)
 {
   struct boundary_ctx *app = ctx;
   char filename[256];
-  sprintf(filename, "%s-ion_integrated_moms.gkyl", app_inp->name);
+  sprintf(filename, "%s-ion_integrated_HamiltonianMoments.gkyl", app_inp->name);
 
   struct gkyl_dynvec_etype_ncomp enc = {};
   enc = gkyl_dynvec_read_ncomp(filename);
