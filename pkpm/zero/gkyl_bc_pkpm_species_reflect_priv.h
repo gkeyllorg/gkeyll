@@ -4,6 +4,7 @@
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
 #include <gkyl_bc_pkpm_species_reflect.h>
+#include <gkyl_pkpm_layout.h>
 #include <gkyl_range.h>
 #include <gkyl_util.h>
 
@@ -70,7 +71,7 @@ bc_pkpm_species_reflect_cell(
     if (flip_w) {
       up->basis->flip_odd_sign(up->cdim, &out[loc], &out[loc]);
     }
-    if (k >= 2 && (k - 2) % 3 == up->dir) {
+    if (k >= PKPM_DIST_M0 && (k - PKPM_DIST_M0) % 3 == up->dir) {
       for (int m = 0; m < np; ++m) {
         out[loc + m] = -out[loc + m];
       }

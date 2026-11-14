@@ -20,9 +20,8 @@
 #include <gkyl_dg_calc_pkpm_bvar.h>
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_calc_pkpm_vars.h>
-#include <gkyl_dg_pkpm_conf_flux_surf.h>
+#include <gkyl_dg_pkpm_remap_flux_surf.h>
 #include <gkyl_dg_pkpm_fluid.h>
-#include <gkyl_dg_pkpm_fluid_flux_surf.h>
 #include <gkyl_dg_pkpm_harm_vol.h>
 #include <gkyl_dg_pkpm_kinetic_conf.h>
 #include <gkyl_pkpm_kinetic_kernels.h>
@@ -47,23 +46,6 @@ weak_grad(
   gkyl_array_clear(blend, 1.0);
   gkyl_dg_calc_pkpm_vars_in_cell_grad(vars, range, blend, q, grad);
   gkyl_array_release(blend);
-}
-
-// The flux both sides of every face receive, from the single-valued label-paired flux:
-// [dir][mode] -> [dir][side][mode], in place.
-static void
-expand_two_sided(struct gkyl_array *flux, int cdim, int nflux)
-{
-  for (long i = 0; i < flux->size; ++i) {
-    double *f = gkyl_array_fetch(flux, i);
-    for (int d = cdim - 1; d >= 0; --d) {
-      for (int m = nflux - 1; m >= 0; --m) {
-        double val = f[d * nflux + m];
-        f[2 * d * nflux + m] = val;
-        f[(2 * d + 1) * nflux + m] = val;
-      }
-    }
-  }
 }
 
 struct wave_ctx {
@@ -165,13 +147,12 @@ struct sim {
   struct gkyl_array *a_perp, *em, *dtb; // perpendicular force closure, static field, d_t B/|B| = 0
   struct gkyl_array *xi, *grad_xi, *scratch;
   struct gkyl_array *nmoms, *moms, *rhs_moms, *rho, *rho3, *grad_rho, *grad_ln_n;
-  struct gkyl_array *cflux, *vflux, *fflux, *cflrate_f, *cflrate_m, *face_coef;
+  struct gkyl_array *cflux, *vflux, *fflux, *cflrate_f, *cflrate_m, *blend;
   struct gkyl_dg_calc_pkpm_bvar *calc_b;
   struct gkyl_dg_calc_pkpm_vars *vars;
   struct gkyl_dg_updater_moment *mcalc;
-  struct gkyl_dg_pkpm_conf_flux_surf *calc_cflux;
+  struct gkyl_dg_pkpm_remap_flux_surf *calc_flux; // face fluxes of the blocks and of the fluid
   struct gkyl_dg_pkpm_vel_flux_surf *calc_vflux;
-  struct gkyl_dg_pkpm_fluid_flux_surf *calc_fflux;
   struct gkyl_dg_pkpm_harm_vol *harm;
   struct gkyl_array *hcoef; // stored first-harmonic operator of the stage
   struct gkyl_array *hwn; // raw w-flux values of the stage at the w-face nodes
@@ -295,12 +276,19 @@ sim_init(struct sim *s, const struct run_opts *o)
     &s->pgrid, &s->cbasis, &s->pbasis, &s->clocal_ext, &s->vlocal, 1.0, false, false
   );
 
-  struct gkyl_dg_pkpm_conf_flux_surf_inp cinp = {
-    .phase_grid = &s->pgrid, .conf_basis = &s->cbasis, .phase_basis = &s->pbasis, .pos_map = s->pos_map, .use_gpu = false};
-  s->calc_cflux = gkyl_dg_pkpm_conf_flux_surf_inew(&cinp);
-  s->nkc = gkyl_dg_pkpm_conf_flux_surf_num_surf_basis(s->calc_cflux);
+  struct gkyl_dg_pkpm_remap_flux_surf_inp cinp = {
+    .phase_grid = &s->pgrid,
+    .conf_basis = &s->cbasis,
+    .phase_basis = &s->pbasis,
+    .pos_map = s->pos_map,
+    .num_face_nodes = 3,
+    .use_gpu = false,
+  };
+  s->calc_flux = gkyl_dg_pkpm_remap_flux_surf_inew(&cinp);
+  s->nkc = gkyl_dg_pkpm_remap_flux_surf_num_surf_basis(s->calc_flux);
+  s->nkf = gkyl_dg_pkpm_remap_flux_surf_num_surf_basis_fluid(s->calc_flux);
   s->cflux = mkarr(2 * 8 * s->nkc, pvol);
-  s->face_coef = mkarr(gkyl_dg_pkpm_conf_flux_surf_face_coef_ncomp(s->calc_cflux), s->clocal_ext.volume);
+  s->blend = mkarr(1, s->clocal_ext.volume);
   struct gkyl_dg_pkpm_kinetic_conf_inp ainp = {
     .conf_basis = &s->cbasis,
     .phase_basis = &s->pbasis,
@@ -345,14 +333,6 @@ sim_init(struct sim *s, const struct run_opts *o)
   zero_flux_b[1] = 1; // no ghost cell below w = -w_max; the upper edge is a regular face against the ghost cell
   s->slvr_b = gkyl_hyper_dg_new(&s->pgrid, &s->pbasis, s->eqn_b, 1, up_dirs_b, zero_flux_b, 1, false);
 
-  struct gkyl_dg_pkpm_fluid_flux_surf_inp finp = {
-    .conf_grid = &s->cgrid,
-    .conf_basis = &s->cbasis,
-    .phase_grid = &s->pgrid,
-    .pos_map = s->pos_map, .use_gpu = false,
-  };
-  s->calc_fflux = gkyl_dg_pkpm_fluid_flux_surf_inew(&finp);
-  s->nkf = gkyl_dg_pkpm_fluid_flux_surf_num_surf_basis(s->calc_fflux);
   s->fflux = mkarr(5 * s->nkf, cvol);
   struct gkyl_dg_pkpm_fluid_inp minp = {
     .conf_basis = &s->cbasis,
@@ -372,7 +352,6 @@ sim_release(struct sim *s)
   gkyl_hyper_dg_release(s->slvr_m);
   gkyl_dg_eqn_release(s->eqn_m);
   gkyl_array_release(s->fflux);
-  gkyl_dg_pkpm_fluid_flux_surf_release(s->calc_fflux);
   gkyl_hyper_dg_release(s->slvr_b);
   gkyl_dg_eqn_release(s->eqn_b);
   gkyl_array_release(s->vflux);
@@ -383,8 +362,8 @@ sim_release(struct sim *s)
   gkyl_array_release(s->hcoef);
   gkyl_array_release(s->hwn);
   gkyl_array_release(s->cflux);
-  gkyl_array_release(s->face_coef);
-  gkyl_dg_pkpm_conf_flux_surf_release(s->calc_cflux);
+  gkyl_array_release(s->blend);
+  gkyl_dg_pkpm_remap_flux_surf_release(s->calc_flux);
   gkyl_dg_updater_moment_pkpm_release(s->mcalc);
   gkyl_dg_calc_pkpm_vars_release(s->vars);
   gkyl_dg_calc_pkpm_bvar_release(s->calc_b);
@@ -465,25 +444,24 @@ sim_rhs(
   weak_grad(s->vars, &s->clocal, s->rho3, s->grad_rho);
   gkyl_dg_calc_pkpm_vars_grad_ln_n(s->vars, &s->clocal, s->rho, s->grad_rho, s->grad_ln_n);
   weak_grad(s->vars, &s->clocal, s->xi, s->grad_xi);
-  gkyl_dg_pkpm_conf_flux_surf_face_coef(s->calc_cflux, &s->clocal, s->bvar, s->u, s->xi, s->theta, s->face_coef);
 
   gkyl_array_clear(s->cflrate_f, 0.0);
   gkyl_array_clear(s->cflrate_m, 0.0);
   gkyl_array_clear(rhs_f, 0.0);
   gkyl_array_clear(rhs_M, 0.0);
 
-  // Fluid face fluxes [F_rho, F_x, F_y, F_z, F_E] of the stage.
+  // Face fluxes of the stage: the eight blocks and the fluid [F_rho, F_x, F_y, F_z, F_E].
   gkyl_array_clear(s->fflux, 0.0);
-  gkyl_dg_pkpm_fluid_flux_surf_advance(
-    s->calc_fflux, &s->clocal, &s->clocal_ext, &s->plocal, &s->plocal_ext, s->bvar, s->u, s->xi, s->face_coef,
-    M, f, s->cflrate_m, s->fflux
+  gkyl_array_clear(s->cflux, 0.0);
+  gkyl_array_clear(s->blend, 0.0);
+  gkyl_dg_pkpm_remap_flux_surf_advance(
+    s->calc_flux, &s->clocal, &s->clocal_ext, &s->plocal, &s->plocal_ext, s->bvar, M, s->u, s->xi,
+    s->theta, f, s->cflux, s->fflux, s->cflrate_f, s->cflrate_m, s->blend
   );
+  if (o->freeze_kinetic) {
+    gkyl_array_clear(s->cflrate_f, 0.0); // the kinetic equation is not advanced
+  }
   if (!o->freeze_kinetic) {
-    gkyl_array_clear(s->cflux, 0.0);
-    gkyl_dg_pkpm_conf_flux_surf_advance(
-      s->calc_cflux, &s->clocal, &s->plocal, &s->plocal_ext, s->face_coef, f, s->cflrate_f, s->cflux
-    );
-    expand_two_sided(s->cflux, 1, 8 * s->nkc);
     gkyl_hyper_dg_advance(s->slvr_a, &s->plocal, f, s->cflrate_f, rhs_f);
     gkyl_dg_pkpm_harm_vol_coef(s->harm, &s->clocal, s->bvar, s->grad_b, s->u, s->grad_u, s->xi, s->grad_xi,
       s->grad_ln_n, s->theta, s->dtb, s->em, s->hcoef, s->hwn);
@@ -915,9 +893,13 @@ steady_gradient_residual(int Nx, int Nv, double alpha, bool verbose)
     gkyl_array_clear(rhsA, 0.0);
     gkyl_array_clear(s.cflrate_f, 0.0);
     gkyl_array_clear(s.cflux, 0.0);
-    gkyl_dg_pkpm_conf_flux_surf_face_coef(s.calc_cflux, &s.clocal, s.bvar, s.u, s.xi, s.theta, s.face_coef);
-    gkyl_dg_pkpm_conf_flux_surf_advance(s.calc_cflux, &s.clocal, &s.plocal, &s.plocal_ext, s.face_coef, f, s.cflrate_f, s.cflux);
-    expand_two_sided(s.cflux, 1, 8 * s.nkc);
+    gkyl_array_clear(s.fflux, 0.0);
+    gkyl_array_clear(s.cflrate_m, 0.0);
+    gkyl_array_clear(s.blend, 0.0);
+    gkyl_dg_pkpm_remap_flux_surf_advance(
+      s.calc_flux, &s.clocal, &s.clocal_ext, &s.plocal, &s.plocal_ext, s.bvar, M, s.u, s.xi,
+      s.theta, f, s.cflux, s.fflux, s.cflrate_f, s.cflrate_m, s.blend
+    );
     gkyl_hyper_dg_advance(s.slvr_a, &s.plocal, f, s.cflrate_f, rhsA);
     struct gkyl_range_iter it;
     gkyl_range_iter_init(&it, &s.plocal);
@@ -996,23 +978,23 @@ test_steady_gradient()
   bool verbose = test_verbose_level_ > 2;
   // The residual of the exact steady state is truncation error only. The closure force
   // alpha_0 = xi grad(ln n) cancels the density-gradient source up to the error of the w
-  // discretization, so the residual is grad(ln n)(x) E(w) with E = O(dv^2): the cell-average
-  // residual converges with dv^2, the slope residual is the in-cell slope of grad(ln n)
-  // (O(dx)) times E, and the unconstrained third moment is small at every resolution.
-  struct steady_res r16 = steady_gradient_residual(16, 16, 0.6, verbose);
-  struct steady_res r32 = steady_gradient_residual(16, 32, 0.6, verbose);
-  struct steady_res r64 = steady_gradient_residual(16, 64, 0.6, verbose);
-  TEST_CHECK(r16.avg / r32.avg > 3.0 && r32.avg / r64.avg > 3.0);
-  TEST_MSG("average residual vs Nv: %g %g %g", r16.avg, r32.avg, r64.avg);
-  TEST_CHECK(r64.avg < 5e-3);
-  TEST_CHECK(r16.slope / r32.slope > 3.0 && r32.slope / r64.slope > 3.0);
-  TEST_MSG("slope residual vs Nv: %g %g %g", r16.slope, r32.slope, r64.slope);
-  struct steady_res x8 = steady_gradient_residual(8, 32, 0.6, verbose);
-  struct steady_res x32 = steady_gradient_residual(32, 32, 0.6, verbose);
-  TEST_CHECK(x8.slope / r32.slope > 1.7 && r32.slope / x32.slope > 1.7);
-  TEST_MSG("slope residual vs Nx: %g %g %g", x8.slope, r32.slope, x32.slope);
-  TEST_CHECK(r32.m3_total < 1e-4 && x32.m3_total < 1e-4);
-  TEST_MSG("third moment of the total right-hand side: %g %g", r32.m3_total, x32.m3_total);
+  // discretization, E(w) = O(dv^2). The face flux pairs the two sides of a face at equal velocity
+  // in the face frame, so the jump of the density across a face adds an error of the x
+  // discretization. The cell-average residual converges with dv^2 where x is resolved, the
+  // slope residual converges with dx^2, and the unconstrained third moment is small at every
+  // resolution.
+  struct steady_res v16 = steady_gradient_residual(64, 16, 0.6, verbose);
+  struct steady_res v32 = steady_gradient_residual(64, 32, 0.6, verbose);
+  struct steady_res v64 = steady_gradient_residual(64, 64, 0.6, verbose);
+  TEST_CHECK(v16.avg / v32.avg > 3.0 && v32.avg / v64.avg > 3.0);
+  TEST_MSG("average residual vs Nv (Nx = 64): %g %g %g", v16.avg, v32.avg, v64.avg);
+  TEST_CHECK(v64.avg < 5e-3);
+  struct steady_res x16 = steady_gradient_residual(16, 64, 0.6, verbose);
+  struct steady_res x32 = steady_gradient_residual(32, 64, 0.6, verbose);
+  TEST_CHECK(x16.slope / x32.slope > 3.0 && x32.slope / v64.slope > 3.0);
+  TEST_MSG("slope residual vs Nx (Nv = 64): %g %g %g", x16.slope, x32.slope, v64.slope);
+  TEST_CHECK(x32.m3_total < 1e-4 && v64.m3_total < 1e-4);
+  TEST_MSG("third moment of the total right-hand side: %g %g", x32.m3_total, v64.m3_total);
 }
 
 TEST_LIST = {

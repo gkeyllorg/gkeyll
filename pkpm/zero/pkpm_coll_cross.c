@@ -34,19 +34,20 @@ gkyl_pkpm_coll_cross_prim(
     const double *fluid_d = gkyl_array_cfetch(fluid, loc);
     double *prim_d = gkyl_array_fetch(prim, loc);
 
-    double fluid_n[PKPM_COLL_CROSS_NUM_FLUID][PKPM_COLL_CROSS_MAX_NODES];
-    for (int c = 0; c < PKPM_COLL_CROSS_NUM_FLUID; ++c) {
+    double fluid_n[PKPM_FLUID_NUM_COMP][PKPM_MAX_CONF_BASIS];
+    for (int c = 0; c < PKPM_FLUID_NUM_COMP; ++c) {
       up->conf_to_nodal(&fluid_d[c * num_nodes], fluid_n[c]);
     }
     for (int q = 0; q < num_nodes; ++q) {
-      double rho = fluid_n[0][q], mom_sq = 0.0;
+      double rho = fluid_n[PKPM_FLUID_RHO][q], mom_sq = 0.0;
       prim_d[q] = rho / (jacob_d[0] * mass);
       for (int k = 0; k < 3; ++k) {
-        prim_d[(1 + k) * num_nodes + q] = fluid_n[1 + k][q] / rho;
-        mom_sq += fluid_n[1 + k][q] * fluid_n[1 + k][q];
+        prim_d[(PKPM_PRIM_U + k) * num_nodes + q] = fluid_n[PKPM_FLUID_MOM + k][q] / rho;
+        mom_sq += fluid_n[PKPM_FLUID_MOM + k][q] * fluid_n[PKPM_FLUID_MOM + k][q];
       }
       // thermal energy (3/2) rho vtsq = E - |M|^2 / (2 rho)
-      prim_d[4 * num_nodes + q] = (2.0 * fluid_n[4][q] - mom_sq / rho) / (3.0 * rho);
+      prim_d[PKPM_PRIM_VTSQ * num_nodes + q] =
+        (2.0 * fluid_n[PKPM_FLUID_ENERGY][q] - mom_sq / rho) / (3.0 * rho);
     }
   }
 }
@@ -107,10 +108,12 @@ gkyl_pkpm_coll_cross_kinetic_rate(
 
       double du_sq = 0.0;
       for (int k = 0; k < 3; ++k) {
-        double du = other_d[(1 + k) * num_nodes + q] - self_d[(1 + k) * num_nodes + q];
+        double du =
+          other_d[(PKPM_PRIM_U + k) * num_nodes + q] - self_d[(PKPM_PRIM_U + k) * num_nodes + q];
         du_sq += du * du;
       }
-      double vtsq_self = self_d[4 * num_nodes + q], vtsq_other = other_d[4 * num_nodes + q];
+      double vtsq_self = self_d[PKPM_PRIM_VTSQ * num_nodes + q];
+      double vtsq_other = other_d[PKPM_PRIM_VTSQ * num_nodes + q];
       // vtsq_sr - vtsq_s = f_s [(T_r - T_s) + m_r |du|^2 / 3] / (m_s + m_r)
       double dvtsq =
         (mass_other * vtsq_other - mass_self * vtsq_self + mass_other * du_sq / 3.0) / mass_sum;
@@ -152,7 +155,7 @@ gkyl_pkpm_coll_cross_advance(
     const double *jacob_d = gkyl_array_cfetch(jacob, loc);
 
     // increments of [M (3), E] of every species at the nodes
-    double incr[GKYL_MAX_SPECIES][PKPM_COLL_CROSS_NUM_INCR][PKPM_COLL_CROSS_MAX_NODES];
+    double incr[GKYL_MAX_SPECIES][PKPM_COLL_CROSS_NUM_INCR][PKPM_MAX_CONF_BASIS];
     for (int q = 0; q < num_nodes; ++q) {
       double mom_mat[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES];
       double temp_mat[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES];
@@ -165,9 +168,9 @@ gkyl_pkpm_coll_cross_advance(
         const double *prim_d = gkyl_array_cfetch(species[s].prim, loc);
         dens[s] = prim_d[q];
         rho[s] = species[s].mass * dens[s];
-        temp[s] = species[s].mass * prim_d[4 * num_nodes + q];
+        temp[s] = species[s].mass * prim_d[PKPM_PRIM_VTSQ * num_nodes + q];
         for (int k = 0; k < 3; ++k) {
-          flow[k][s] = prim_d[(1 + k) * num_nodes + q];
+          flow[k][s] = prim_d[(PKPM_PRIM_U + k) * num_nodes + q];
           flow_new[k][s] = rho[s] * flow[k][s];
         }
         for (int r = 0; r < num_species; ++r) {
@@ -222,7 +225,8 @@ gkyl_pkpm_coll_cross_advance(
 
       for (int s = 0; s < num_species; ++s) {
         double *temp_ratio_d = gkyl_array_fetch(species[s].temp_ratio, loc);
-        incr[s][3][q] = jacob_d[0] * (kin_incr[s] + 1.5 * dens[s] * (temp_new[s] - temp[s]));
+        incr[s][PKPM_FLUID_ENERGY - PKPM_FLUID_MOM][q] =
+          jacob_d[0] * (kin_incr[s] + 1.5 * dens[s] * (temp_new[s] - temp[s]));
         temp_ratio_d[q] = temp[s] / temp_new[s];
       }
     }
@@ -230,10 +234,10 @@ gkyl_pkpm_coll_cross_advance(
     for (int s = 0; s < num_species; ++s) {
       double *fluid_d = gkyl_array_fetch(species[s].fluid, loc);
       for (int c = 0; c < PKPM_COLL_CROSS_NUM_INCR; ++c) {
-        double incr_modal[PKPM_COLL_CROSS_MAX_NODES];
+        double incr_modal[PKPM_MAX_CONF_BASIS];
         up->nodal_to_conf(incr[s][c], incr_modal);
         for (int i = 0; i < num_nodes; ++i) {
-          fluid_d[(1 + c) * num_nodes + i] += incr_modal[i];
+          fluid_d[(PKPM_FLUID_MOM + c) * num_nodes + i] += incr_modal[i];
         }
       }
     }

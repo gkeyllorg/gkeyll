@@ -35,9 +35,9 @@ pkpm_coll_nu_advance_spitzer(
     const double *ref_d = gkyl_array_cfetch(nu_ref, loc);
     const double *n_d = gkyl_array_cfetch(prim_other, loc);
     const double *vs_d =
-      (const double *)gkyl_array_cfetch(prim_self, loc) + PKPM_COLL_NU_VTSQ * up->num_nodes;
+      (const double *)gkyl_array_cfetch(prim_self, loc) + PKPM_PRIM_VTSQ * up->num_nodes;
     const double *vr_d =
-      (const double *)gkyl_array_cfetch(prim_other, loc) + PKPM_COLL_NU_VTSQ * up->num_nodes;
+      (const double *)gkyl_array_cfetch(prim_other, loc) + PKPM_PRIM_VTSQ * up->num_nodes;
     double *nu_d = gkyl_array_fetch(nu, loc);
     for (int q = 0; q < up->num_nodes; ++q) {
       double vtsq_sum = fmax(vs_d[q], up->vtsq_min) + fmax(vr_d[q], up->vtsq_min);

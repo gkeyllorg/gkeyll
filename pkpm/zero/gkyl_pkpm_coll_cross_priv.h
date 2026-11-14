@@ -2,12 +2,11 @@
 #pragma once
 
 #include <gkyl_dg_conf_nodal_kernels.h>
+#include <gkyl_pkpm_layout.h>
 #include <gkyl_util.h>
 
-#define PKPM_COLL_CROSS_MAX_NODES 8
-#define PKPM_COLL_CROSS_NUM_FLUID 5 // blocks of the fluid state [rho, M (3), E]
-#define PKPM_COLL_CROSS_NUM_PRIM 5 // node fields [n, u (3), vtsq]
-#define PKPM_COLL_CROSS_NUM_INCR 4 // blocks of the fluid state the exchange changes, [M (3), E]
+// components of the fluid state the exchange changes, [M (3), E]
+#define PKPM_COLL_CROSS_NUM_INCR (PKPM_FLUID_NUM_COMP - PKPM_FLUID_MOM)
 
 typedef void (*pkpm_coll_cross_conf_map_t)(const double *in, double *GKYL_RESTRICT out);
 

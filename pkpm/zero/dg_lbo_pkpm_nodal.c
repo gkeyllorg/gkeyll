@@ -44,7 +44,7 @@ gkyl_dg_lbo_pkpm_nodal_new(
   lbo->stride = pbasis->num_basis;
   lbo->vMaxSq = pgrid->upper[cdim] * pgrid->upper[cdim];
 
-  lbo->eqn.num_equations = DG_LBO_PKPM_NODAL_NUM_BLOCKS;
+  lbo->eqn.num_equations = PKPM_DIST_NUM_BLOCKS;
   lbo->eqn.vol_term = vol;
   lbo->eqn.surf_term = surf;
   lbo->eqn.boundary_surf_term = boundary_surf;

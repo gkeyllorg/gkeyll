@@ -7,10 +7,10 @@
 
 // Thermal state of one cell at the nodes.
 struct pkpm_temp_source_nodal {
-  double eps[PKPM_TEMP_SOURCE_MAX_NODES]; // thermal energy E - |M|^2/(2 rho)
-  double eps_target[PKPM_TEMP_SOURCE_MAX_NODES]; // its target (3/2) rho vtsq_Q
-  double ratio[PKPM_TEMP_SOURCE_MAX_NODES]; // eps_target/eps (1 at an inadmissible node)
-  bool has_density[PKPM_TEMP_SOURCE_MAX_NODES]; // whether the density is positive
+  double eps[PKPM_MAX_CONF_BASIS]; // thermal energy E - |M|^2/(2 rho)
+  double eps_target[PKPM_MAX_CONF_BASIS]; // its target (3/2) rho vtsq_Q
+  double ratio[PKPM_MAX_CONF_BASIS]; // eps_target/eps (1 at an inadmissible node)
+  bool has_density[PKPM_MAX_CONF_BASIS]; // whether the density is positive
 };
 
 static void
@@ -20,17 +20,19 @@ pkpm_temp_source_nodal_state(
 )
 {
   int num_nodes = up->num_nodes;
-  double fluid_n[PKPM_TEMP_SOURCE_NUM_FLUID][PKPM_TEMP_SOURCE_MAX_NODES];
-  for (int c = 0; c < PKPM_TEMP_SOURCE_NUM_FLUID; ++c) {
+  double fluid_n[PKPM_FLUID_NUM_COMP][PKPM_MAX_CONF_BASIS];
+  for (int c = 0; c < PKPM_FLUID_NUM_COMP; ++c) {
     up->conf_to_nodal(&fluid_d[c * num_nodes], fluid_n[c]);
   }
   for (int q = 0; q < num_nodes; ++q) {
-    double rho = fluid_n[0][q];
-    double mom_sq =
-      fluid_n[1][q] * fluid_n[1][q] + fluid_n[2][q] * fluid_n[2][q] + fluid_n[3][q] * fluid_n[3][q];
+    double rho = fluid_n[PKPM_FLUID_RHO][q];
+    const double mom[3] = {
+      fluid_n[PKPM_FLUID_MOM][q], fluid_n[PKPM_FLUID_MOM + 1][q], fluid_n[PKPM_FLUID_MOM + 2][q]
+    };
+    double mom_sq = mom[0] * mom[0] + mom[1] * mom[1] + mom[2] * mom[2];
     state->has_density[q] = rho > 0.0;
-    state->eps[q] =
-      state->has_density[q] ? fluid_n[PKPM_TEMP_SOURCE_ENERGY][q] - 0.5 * mom_sq / rho : 0.0;
+    state->eps[q] = state->has_density[q] ? fluid_n[PKPM_FLUID_ENERGY][q] - 0.5 * mom_sq / rho :
+                                            0.0;
     state->eps_target[q] = 1.5 * rho * vtsq_d[q];
     state->ratio[q] = state->eps[q] > 0.0 ? state->eps_target[q] / state->eps[q] : 1.0;
   }
@@ -58,7 +60,7 @@ gkyl_pkpm_temp_source_advance(
 {
   int num_nodes = up->num_nodes;
   struct pkpm_temp_source_nodal state;
-  double incr[PKPM_TEMP_SOURCE_MAX_NODES], incr_modal[PKPM_TEMP_SOURCE_MAX_NODES];
+  double incr[PKPM_MAX_CONF_BASIS], incr_modal[PKPM_MAX_CONF_BASIS];
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, conf_range);
@@ -79,7 +81,7 @@ gkyl_pkpm_temp_source_advance(
     }
 
     up->nodal_to_conf(incr, incr_modal);
-    double *rhs_energy = (double *)gkyl_array_fetch(rhs, loc) + PKPM_TEMP_SOURCE_ENERGY * num_nodes;
+    double *rhs_energy = (double *)gkyl_array_fetch(rhs, loc) + PKPM_FLUID_ENERGY * num_nodes;
     for (int k = 0; k < num_nodes; ++k) {
       rhs_energy[k] += incr_modal[k];
     }
@@ -97,7 +99,7 @@ gkyl_pkpm_temp_source_implicit_advance(
 {
   int num_nodes = up->num_nodes;
   struct pkpm_temp_source_nodal state;
-  double incr[PKPM_TEMP_SOURCE_MAX_NODES], incr_modal[PKPM_TEMP_SOURCE_MAX_NODES];
+  double incr[PKPM_MAX_CONF_BASIS], incr_modal[PKPM_MAX_CONF_BASIS];
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, conf_range);
@@ -120,7 +122,7 @@ gkyl_pkpm_temp_source_implicit_advance(
     }
 
     up->nodal_to_conf(incr, incr_modal);
-    double *energy = fluid_d + PKPM_TEMP_SOURCE_ENERGY * num_nodes;
+    double *energy = fluid_d + PKPM_FLUID_ENERGY * num_nodes;
     for (int k = 0; k < num_nodes; ++k) {
       energy[k] += incr_modal[k];
     }

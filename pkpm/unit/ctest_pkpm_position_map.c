@@ -22,9 +22,8 @@
 #include <gkyl_basis.h>
 #include <gkyl_dg_calc_pkpm_bvar.h>
 #include <gkyl_dg_calc_pkpm_vars.h>
-#include <gkyl_dg_pkpm_conf_flux_surf.h>
+#include <gkyl_dg_pkpm_remap_flux_surf.h>
 #include <gkyl_dg_pkpm_fluid.h>
-#include <gkyl_dg_pkpm_fluid_flux_surf.h>
 #include <gkyl_dg_pkpm_harm_vol.h>
 #include <gkyl_dg_pkpm_kinetic_conf.h>
 #include <gkyl_evalf_def.h>
@@ -35,23 +34,6 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
 #include <gkyl_vlasov_position_map.h>
-
-// The flux both sides of every face receive, from the single-valued label-paired flux:
-// [dir][mode] -> [dir][side][mode], in place.
-static void
-expand_two_sided(struct gkyl_array *flux, int cdim, int nflux)
-{
-  for (long i = 0; i < flux->size; ++i) {
-    double *f = gkyl_array_fetch(flux, i);
-    for (int d = cdim - 1; d >= 0; --d) {
-      for (int m = nflux - 1; m >= 0; --m) {
-        double val = f[d * nflux + m];
-        f[2 * d * nflux + m] = val;
-        f[(2 * d + 1) * nflux + m] = val;
-      }
-    }
-  }
-}
 
 // The weak gradient: the in-cell gradient with the whole jump of every face lifted into the cell.
 static void
@@ -213,9 +195,8 @@ struct sim {
   struct gkyl_array *fluid_phys, *fluid, *cmoms, *f;
   struct gkyl_dg_calc_pkpm_bvar *calc_b;
   struct gkyl_dg_calc_pkpm_vars *vars;
-  struct gkyl_dg_pkpm_conf_flux_surf *kin_flux_up;
-  struct gkyl_dg_pkpm_fluid_flux_surf *fl_flux_up;
-  struct gkyl_array *kin_flux, *kin_cfl, *kin_rhs, *fl_flux, *fl_cfl, *fl_rhs, *face_coef;
+  struct gkyl_dg_pkpm_remap_flux_surf *flux_up;
+  struct gkyl_array *kin_flux, *kin_cfl, *kin_rhs, *fl_flux, *fl_cfl, *fl_rhs, *blend;
 };
 
 // Phase-space ranges with the app's layout: conf ghost cells and one velocity ghost cell
@@ -399,27 +380,37 @@ advance(struct sim *s)
   long cvol = s->clocal_ext.volume, pvol = s->plocal_ext.volume;
   int cghost[3] = {1, 1, 1};
 
-  struct gkyl_dg_pkpm_conf_flux_surf_inp kin_inp = {
+  // Face fluxes of the eight blocks and of the fluid, which take the physical fluid state and the
+  // weighted distribution.
+  struct gkyl_dg_pkpm_remap_flux_surf_inp flux_inp = {
     .phase_grid = &s->pgrid,
     .conf_basis = &s->cbasis,
     .phase_basis = &s->pbasis,
     .pos_map = s->pos_map,
+    .num_face_nodes = 3,
     .use_gpu = false,
   };
-  s->kin_flux_up = gkyl_dg_pkpm_conf_flux_surf_inew(&kin_inp);
-  int nkc = gkyl_dg_pkpm_conf_flux_surf_num_surf_basis(s->kin_flux_up);
+  s->flux_up = gkyl_dg_pkpm_remap_flux_surf_inew(&flux_inp);
+  int nkc = gkyl_dg_pkpm_remap_flux_surf_num_surf_basis(s->flux_up);
+  int nkf = gkyl_dg_pkpm_remap_flux_surf_num_surf_basis_fluid(s->flux_up);
   s->kin_flux = mkarr(2 * 8 * cdim * nkc, pvol);
-  s->face_coef = mkarr(gkyl_dg_pkpm_conf_flux_surf_face_coef_ncomp(s->kin_flux_up), cvol);
-  gkyl_dg_pkpm_conf_flux_surf_face_coef(s->kin_flux_up, &s->clocal, s->bvar, s->u, s->xi, s->theta, s->face_coef);
   s->kin_cfl = mkarr(1, pvol);
   s->kin_rhs = mkarr(8 * np, pvol);
+  s->fl_flux = mkarr(5 * cdim * nkf, cvol);
+  s->fl_cfl = mkarr(1, cvol);
+  s->fl_rhs = mkarr(5 * nc, cvol);
+  s->blend = mkarr(cdim, cvol);
   gkyl_array_clear(s->kin_flux, 0.0);
   gkyl_array_clear(s->kin_cfl, 0.0);
   gkyl_array_clear(s->kin_rhs, 0.0);
-  gkyl_dg_pkpm_conf_flux_surf_advance(
-    s->kin_flux_up, &s->clocal, &s->plocal, &s->plocal_ext, s->face_coef, s->f, s->kin_cfl, s->kin_flux
+  gkyl_array_clear(s->fl_flux, 0.0);
+  gkyl_array_clear(s->fl_cfl, 0.0);
+  gkyl_array_clear(s->fl_rhs, 0.0);
+  gkyl_array_clear(s->blend, 0.0);
+  gkyl_dg_pkpm_remap_flux_surf_advance(
+    s->flux_up, &s->clocal, &s->clocal_ext, &s->plocal, &s->plocal_ext, s->bvar, s->fluid_phys,
+    s->u, s->xi, s->theta, s->f, s->kin_flux, s->fl_flux, s->kin_cfl, s->fl_cfl, s->blend
   );
-  expand_two_sided(s->kin_flux, cdim, 8 * nkc);
   struct gkyl_dg_pkpm_kinetic_conf_inp kin_eqn_inp = {
     .conf_basis = &s->cbasis,
     .phase_basis = &s->pbasis,
@@ -456,27 +447,7 @@ advance(struct sim *s)
   }
   gkyl_dg_pkpm_harm_vol_release(harm);
 
-  // Fluid: the kinetic-moment fluxes take the physical fluid state and the weighted
-  // distribution.
-  struct gkyl_dg_pkpm_fluid_flux_surf_inp fl_inp = {
-    .conf_grid = &s->cgrid,
-    .conf_basis = &s->cbasis,
-    .phase_grid = &s->pgrid,
-    .pos_map = s->pos_map,
-    .use_gpu = false,
-  };
-  s->fl_flux_up = gkyl_dg_pkpm_fluid_flux_surf_inew(&fl_inp);
-  int nkf = gkyl_dg_pkpm_fluid_flux_surf_num_surf_basis(s->fl_flux_up);
-  s->fl_flux = mkarr(5 * cdim * nkf, cvol);
-  s->fl_cfl = mkarr(1, cvol);
-  s->fl_rhs = mkarr(5 * nc, cvol);
-  gkyl_array_clear(s->fl_flux, 0.0);
-  gkyl_array_clear(s->fl_cfl, 0.0);
-  gkyl_array_clear(s->fl_rhs, 0.0);
-  gkyl_dg_pkpm_fluid_flux_surf_advance(
-    s->fl_flux_up, &s->clocal, &s->clocal_ext, &s->plocal, &s->plocal_ext, s->bvar, s->u, s->xi, s->face_coef,
-    s->fluid_phys, s->f, s->fl_cfl, s->fl_flux
-  );
+  // Fluid.
   struct gkyl_dg_pkpm_fluid_inp fl_eqn_inp = {
     .conf_basis = &s->cbasis,
     .conf_range = &s->clocal,
@@ -494,14 +465,13 @@ advance(struct sim *s)
 static void
 teardown(struct sim *s)
 {
-  gkyl_dg_pkpm_fluid_flux_surf_release(s->fl_flux_up);
-  gkyl_dg_pkpm_conf_flux_surf_release(s->kin_flux_up);
+  gkyl_dg_pkpm_remap_flux_surf_release(s->flux_up);
   gkyl_dg_calc_pkpm_vars_release(s->vars);
   gkyl_dg_calc_pkpm_bvar_release(s->calc_b);
   gkyl_vlasov_position_map_release(s->pos_map);
   struct gkyl_array *arrs[] = {s->em, s->dtb, s->bvar, s->grad_b, s->u, s->grad_u, s->xi, s->grad_xi, s->rho, s->rho3,
     s->grad_rho, s->grad_ln_n, s->theta, s->fluid_phys, s->fluid, s->cmoms, s->f, s->kin_flux, s->kin_cfl,
-    s->kin_rhs, s->fl_flux, s->fl_cfl, s->fl_rhs, s->face_coef};
+    s->kin_rhs, s->fl_flux, s->fl_cfl, s->fl_rhs, s->blend};
   for (int i = 0; i < sizeof(arrs) / sizeof(arrs[0]); ++i) {
     gkyl_array_release(arrs[i]);
   }
@@ -637,6 +607,21 @@ sum_rhs(const struct gkyl_array *rhs, const struct gkyl_range *range, const stru
   }
 }
 
+// Set every component of a configuration-space array to a constant on the extended range.
+static void
+set_uniform(struct sim *s, struct gkyl_array *arr, int ncomp, const double *vals)
+{
+  int nc = s->cbasis.num_basis;
+  double c0 = pow(sqrt(2.0), s->cdim);
+  gkyl_array_clear(arr, 0.0);
+  for (long i = 0; i < arr->size; ++i) {
+    double *d = gkyl_array_fetch(arr, i);
+    for (int c = 0; c < ncomp; ++c) {
+      d[c * nc] = c0 * vals[c];
+    }
+  }
+}
+
 static void
 test_sine(int cdim)
 {
@@ -664,18 +649,37 @@ test_sine(int cdim)
   TEST_CHECK(jmax > 1.5 * jmin);
   TEST_MSG("cdim=%d: J in [%g, %g]", cdim, jmin, jmax);
 
+  // The fluid flux is single-valued on a face, so the fluid state is conserved.
   double sum, mag;
-  sum_rhs(s.kin_rhs, &s.plocal, &s.plocal_ext, 0, &sum, &mag);
-  TEST_CHECK(mag > 0.0);
-  TEST_CHECK(fabs(sum) < 1e-12 * mag);
-  TEST_MSG("cdim=%d F: sum %g, |sum| %g", cdim, sum, mag);
   for (int c = 0; c < 5; ++c) {
     sum_rhs(s.fl_rhs, &s.clocal, &s.clocal_ext, c * nc, &sum, &mag);
     TEST_CHECK(mag > 0.0);
     TEST_CHECK(fabs(sum) < 1e-12 * mag);
     TEST_MSG("cdim=%d fluid component %d: sum %g, |sum| %g", cdim, c, sum, mag);
   }
+  teardown(&s);
 
+  // The kinetic flux is the flux each side receives in its own frame (rho, u, xi), so the sum of
+  // the normalized F is conserved only where the two sides of every face share a frame: a uniform
+  // frame, with F still varying in space.
+  setup(&s, cdim, MAP_SINE);
+  gkyl_array_clear(s.grad_b, 0.0);
+  gkyl_array_clear(s.grad_u, 0.0);
+  gkyl_array_clear(s.grad_xi, 0.0);
+  gkyl_array_clear(s.grad_ln_n, 0.0);
+  gkyl_array_clear(s.theta, 0.0);
+  const double b0[3] = {0.6, 0.64, 0.48}, u0[3] = {0.3, -0.2, 0.1};
+  const double xi0[3] = {1.1, 1.1 * 1.1, 0.9 * 1.3 * 1.1 * 1.1};
+  const double fluid0[5] = {1.3, 1.3 * u0[0], 1.3 * u0[1], 1.3 * u0[2], 2.0};
+  set_uniform(&s, s.bvar, 3, b0);
+  set_uniform(&s, s.u, 3, u0);
+  set_uniform(&s, s.xi, 3, xi0);
+  set_uniform(&s, s.fluid_phys, 5, fluid0);
+  advance(&s);
+  sum_rhs(s.kin_rhs, &s.plocal, &s.plocal_ext, 0, &sum, &mag);
+  TEST_CHECK(mag > 0.0);
+  TEST_CHECK(fabs(sum) < 1e-12 * mag);
+  TEST_MSG("cdim=%d F: sum %g, |sum| %g", cdim, sum, mag);
   teardown(&s);
 }
 

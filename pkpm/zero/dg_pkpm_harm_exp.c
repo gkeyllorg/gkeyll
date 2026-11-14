@@ -11,10 +11,12 @@
 static void
 dg_pkpm_harm_exp_setup(struct gkyl_dg_pkpm_harm_exp *up, const struct gkyl_dg_pkpm_harm_exp_inp *inp)
 {
-  assert(inp->conf_basis->poly_order == 1 && inp->conf_basis->b_type == GKYL_BASIS_MODAL_SERENDIPITY);
+  assert(
+    inp->conf_basis->poly_order == 1 && inp->conf_basis->b_type == GKYL_BASIS_MODAL_SERENDIPITY
+  );
   up->cdim = inp->conf_basis->ndim;
   up->num_conf_nodes = 1 << up->cdim;
-  up->num_phase_nodes = 3 * up->num_conf_nodes;
+  up->num_phase_nodes = PKPM_NUM_VEL_MODES * up->num_conf_nodes;
   up->qbym = inp->qbym;
   up->mix = inp->mix > 0.0 ? inp->mix : 0.0;
   up->half_dw = 0.5 * inp->phase_grid->dx[up->cdim];
@@ -80,7 +82,8 @@ void
 gkyl_dg_pkpm_harm_exp_advance(
   const struct gkyl_dg_pkpm_harm_exp *up, int stage, double h, const struct gkyl_range *conf_range,
   const struct gkyl_range *phase_range, const struct gkyl_array *coef, const struct gkyl_array *f0,
-  const struct gkyl_array *lam, struct gkyl_array *nu, struct gkyl_array *act, struct gkyl_array *out
+  const struct gkyl_array *lam, struct gkyl_array *nu, struct gkyl_array *act,
+  struct gkyl_array *out
 )
 {
   if (up->mix <= 0.0) {
@@ -99,9 +102,11 @@ gkyl_dg_pkpm_harm_exp_advance(
   while (gkyl_range_iter_next(&iter)) {
     long cloc = gkyl_range_idx(conf_range, iter.idx);
     long ploc = gkyl_range_idx(phase_range, iter.idx);
-    pkpm_hx_advance_cell(up, stage, h, gkyl_array_cfetch(coef, cloc), gkyl_array_cfetch(f0, ploc),
+    pkpm_hx_advance_cell(
+      up, stage, h, gkyl_array_cfetch(coef, cloc), gkyl_array_cfetch(f0, ploc),
       lam ? gkyl_array_cfetch(lam, cloc) : 0, gkyl_array_fetch(nu, ploc),
-      gkyl_array_fetch(act, cloc), gkyl_array_fetch(out, ploc));
+      gkyl_array_fetch(act, cloc), gkyl_array_fetch(out, ploc)
+    );
   }
 }
 
@@ -151,8 +156,9 @@ gkyl_dg_pkpm_harm_exp_restore(
     if (*(const double *)gkyl_array_cfetch(act, cloc) == 0.0) {
       continue;
     }
-    pkpm_hx_restore_cell(up, gkyl_array_cfetch(col, cloc),
-      gkyl_array_fetch(out, gkyl_range_idx(phase_range, iter.idx)));
+    pkpm_hx_restore_cell(
+      up, gkyl_array_cfetch(col, cloc), gkyl_array_fetch(out, gkyl_range_idx(phase_range, iter.idx))
+    );
   }
 }
 

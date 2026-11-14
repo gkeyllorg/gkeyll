@@ -57,7 +57,7 @@ gkyl_dg_pkpm_fluid_inew(const struct gkyl_dg_pkpm_fluid_inp *inp)
   pkpm->cdim = cdim;
   pkpm->num_surf_basis = inp->conf_basis->num_basis / 2;
 
-  pkpm->eqn.num_equations = 5;
+  pkpm->eqn.num_equations = PKPM_FLUID_NUM_COMP;
   pkpm->eqn.vol_term = vol;
   pkpm->eqn.surf_term = surf;
   pkpm->eqn.boundary_surf_term = boundary_surf;

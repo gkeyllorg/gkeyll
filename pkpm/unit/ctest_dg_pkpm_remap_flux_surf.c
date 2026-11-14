@@ -8,7 +8,6 @@
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_basis.h>
-#include <gkyl_dg_pkpm_conf_flux_surf.h>
 #include <gkyl_dg_pkpm_remap_flux_surf.h>
 #include <gkyl_pkpm_harm_coeffs.h>
 #include <gkyl_pkpm_remap_flux_kernels.h>
@@ -189,64 +188,107 @@ advance(struct test_setup *s)
   );
 }
 
+// The orthonormal Legendre coefficients of a stored 1x flux of one block.
+static void
+stored_to_legendre_1x(const double *stored, double *coef)
+{
+  double gamma[3];
+  for (int m = 0; m < 3; ++m) {
+    double proj[24] = {0.0}, flux[24] = {0.0}, wpsi[1] = {1.0};
+    proj[m * 8] = 1.0;
+    pkpm_remap_flux_store_x_1x1v_ser_p1(wpsi, proj, flux);
+    gamma[m] = flux[m];
+  }
+  for (int m = 0; m < 3; ++m) {
+    coef[m] = stored[m] / gamma[m];
+  }
+}
+
 // 1. Identity frames with b along the normal and |u_n| > w_max xi, so that no kink falls in the
-// grid: both sides' fluxes equal the label-paired flux of the configuration-flux updater.
+// grid and the HLL flux is the flux function of the upwind side: both sides of a face receive the
+// same flux, with no blending. In 1x that flux is checked against the projection of
+//   (u_n + xi w) [F, G, M0_perp, N_perp] + xi [M0_n, N_n, 0, 0]
+// of the upwind cell's trace on the Legendre modes of each velocity cell.
 static void
 test_identity_vs_label(int cdim, int dir)
 {
   struct test_setup s;
   setup(&s, cdim, 8, 6.0);
-  double u[3] = {0.0, 0.0, 0.0}, b[3] = {0.0, 0.0, 0.0};
+  double u[3] = {0.0, 0.0, 0.0}, b[3] = {0.0, 0.0, 0.0}, xi = 1.0;
   u[dir] = 8.0;
   b[dir] = 1.0;
-  set_uniform_frame(&s, 1.3, u, 1.0, b, 1.0);
+  set_uniform_frame(&s, 1.3, u, xi, b, 1.0);
   randomize_f(&s);
   advance(&s);
 
-  struct gkyl_dg_pkpm_conf_flux_surf_inp finp = {
-    .phase_grid = &s.pgrid,
-    .conf_basis = &s.cbasis,
-    .phase_basis = &s.pbasis,
-    .pos_map = s.pos_map,
-    .use_gpu = false,
+  // 4-point Gauss-Legendre rule (the flux is cubic in w) and the orthonormal Legendre modes
+  static const double gn[4] = {
+    -0.8611363115940526, -0.3399810435848563, 0.3399810435848563, 0.8611363115940526
   };
-  struct gkyl_dg_pkpm_conf_flux_surf *head = gkyl_dg_pkpm_conf_flux_surf_inew(&finp);
-  struct gkyl_array *hflux = mkarr(8 * cdim * s.nk, s.plocal_ext.volume);
-  struct gkyl_array *hcfl = mkarr(1, s.plocal_ext.volume);
-  struct gkyl_array *fc =
-    mkarr(gkyl_dg_pkpm_conf_flux_surf_face_coef_ncomp(head), s.clocal_ext.volume);
-  gkyl_array_clear(hcfl, 0.0);
-  gkyl_dg_pkpm_conf_flux_surf_face_coef(head, &s.clocal, s.bvar, s.u, s.xi, s.theta, fc);
-  gkyl_dg_pkpm_conf_flux_surf_advance(
-    head, &s.clocal, &s.plocal, &s.plocal_ext, fc, s.f, hcfl, hflux
-  );
+  static const double gw[4] = {
+    0.3478548451374538, 0.6521451548625461, 0.6521451548625461, 0.3478548451374538
+  };
 
-  double max_err = 0.0, max_val = 0.0, max_blend = 0.0;
+  double max_err = 0.0, max_val = 0.0, max_blend = 0.0, max_ref_err = 0.0;
   int nflux = 8 * s.nk;
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &s.plocal);
   while (gkyl_range_iter_next(&iter)) {
     long loc = gkyl_range_idx(&s.plocal, iter.idx);
-    const double *fr = gkyl_array_cfetch(s.flux, loc), *fh = gkyl_array_cfetch(hflux, loc);
+    const double *fr = gkyl_array_cfetch(s.flux, loc);
     for (int m = 0; m < nflux; ++m) {
-      double h = fh[dir * nflux + m];
-      max_err = fmax(max_err, fabs(fr[2 * dir * nflux + m] - h));
-      max_err = fmax(max_err, fabs(fr[(2 * dir + 1) * nflux + m] - h));
-      max_val = fmax(max_val, fabs(h));
+      double lower = fr[2 * dir * nflux + m], upper = fr[(2 * dir + 1) * nflux + m];
+      max_err = fmax(max_err, fabs(lower - upper));
+      max_val = fmax(max_val, fabs(lower));
     }
     long cloc = gkyl_range_idx(&s.clocal, iter.idx);
     max_blend = fmax(max_blend, ((const double *)gkyl_array_cfetch(s.blend, cloc))[dir]);
+
+    if (cdim == 1) {
+      // upwind cell of the lower face of this cell, and its trace on that face
+      int up_idx[2] = {iter.idx[0] - 1, iter.idx[1]};
+      const double *fu = gkyl_array_cfetch(s.f, gkyl_range_idx(&s.plocal_ext, up_idx));
+      double xc[2], dw = s.pgrid.dx[1], ref[8][3] = {{0.0}};
+      gkyl_rect_grid_cell_center(&s.pgrid, iter.idx, xc);
+      for (int q = 0; q < 4; ++q) {
+        double z[2] = {1.0, gn[q]}, X[8], J[8];
+        for (int c = 0; c < 8; ++c) {
+          X[c] = s.pbasis.eval_expand(z, &fu[c * s.np]);
+        }
+        double V = u[0] + xi * (xc[1] + 0.5 * dw * gn[q]);
+        for (int c = 0; c < 8; ++c) {
+          J[c] = V * X[c];
+        }
+        J[0] += xi * X[2];
+        J[1] += xi * X[5];
+        double leg[3] = {
+          sqrt(0.5), sqrt(1.5) * gn[q], sqrt(0.625) * (3.0 * gn[q] * gn[q] - 1.0)
+        };
+        for (int c = 0; c < 8; ++c) {
+          for (int m = 0; m < 3; ++m) {
+            ref[c][m] += gw[q] * J[c] * leg[m];
+          }
+        }
+      }
+      for (int c = 0; c < 8; ++c) {
+        double coef[3];
+        stored_to_legendre_1x(&fr[c * s.nk], coef);
+        for (int m = 0; m < 3; ++m) {
+          max_ref_err = fmax(max_ref_err, fabs(coef[m] - ref[c][m]));
+        }
+      }
+    }
   }
   TEST_CHECK(max_val > 0.0);
   TEST_CHECK(max_err < 1e-13 * max_val);
-  TEST_MSG("cdim %d dir %d: max err %g of %g", cdim, dir, max_err, max_val);
+  TEST_MSG("cdim %d dir %d: max difference of the two sides %g of %g", cdim, dir, max_err, max_val);
   TEST_CHECK(max_blend == 0.0);
   TEST_MSG("blend %g", max_blend);
+  if (cdim == 1) {
+    TEST_CHECK(max_ref_err < 1e-13 * max_val);
+    TEST_MSG("max difference from the upwind flux function %g of %g", max_ref_err, max_val);
+  }
 
-  gkyl_dg_pkpm_conf_flux_surf_release(head);
-  gkyl_array_release(hflux);
-  gkyl_array_release(hcfl);
-  gkyl_array_release(fc);
   teardown(&s);
 }
 
@@ -401,22 +443,6 @@ test_steady_shift(void)
   // a jump of u by two velocity cells: both sides' labels shift by one cell at the face
   struct phys_frame frames[2] = {{1.0, 0.0, 1.0}, {2.0, 2.0, 1.0}};
   test_steady_state_all(frames);
-}
-
-// The orthonormal Legendre coefficients of a stored 1x flux of one block.
-static void
-stored_to_legendre_1x(const double *stored, double *coef)
-{
-  double gamma[3];
-  for (int m = 0; m < 3; ++m) {
-    double proj[24] = {0.0}, flux[24] = {0.0}, wpsi[1] = {1.0};
-    proj[m * 8] = 1.0;
-    pkpm_remap_flux_store_x_1x1v_ser_p1(wpsi, proj, flux);
-    gamma[m] = flux[m];
-  }
-  for (int m = 0; m < 3; ++m) {
-    coef[m] = stored[m] / gamma[m];
-  }
 }
 
 // 4. With no flux outside either grid, each side's kinetic flux has the moments of the fluid flux

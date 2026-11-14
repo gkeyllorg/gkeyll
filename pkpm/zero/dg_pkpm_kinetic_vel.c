@@ -7,6 +7,7 @@
 #include <gkyl_dg_eqn.h>
 #include <gkyl_dg_pkpm_kinetic_vel.h>
 #include <gkyl_dg_pkpm_kinetic_vel_priv.h>
+#include <gkyl_pkpm_layout.h>
 #include <gkyl_util.h>
 
 void
@@ -57,7 +58,7 @@ gkyl_dg_pkpm_kinetic_vel_inew(const struct gkyl_dg_pkpm_kinetic_vel_inp *inp)
   pkpm->cdim = cdim;
   pkpm->pdim = pdim;
 
-  pkpm->eqn.num_equations = 8;
+  pkpm->eqn.num_equations = PKPM_DIST_NUM_BLOCKS;
   pkpm->eqn.vol_term = vol;
   pkpm->eqn.surf_term = surf;
   pkpm->eqn.boundary_surf_term = boundary_surf;

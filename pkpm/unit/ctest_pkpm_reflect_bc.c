@@ -18,8 +18,7 @@
 #include <gkyl_basis.h>
 #include <gkyl_bc_basic.h>
 #include <gkyl_bc_pkpm_species_reflect.h>
-#include <gkyl_dg_pkpm_conf_flux_surf.h>
-#include <gkyl_dg_pkpm_fluid_flux_surf.h>
+#include <gkyl_dg_pkpm_remap_flux_surf.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
@@ -294,38 +293,38 @@ pkpm_reflect_wall_flux(double angle, int image, bool absorb, double *out)
     gkyl_bc_pkpm_species_reflect_release(bc);
   }
 
-  struct gkyl_dg_pkpm_fluid_flux_surf *up =
-    gkyl_dg_pkpm_fluid_flux_surf_inew(&(struct gkyl_dg_pkpm_fluid_flux_surf_inp){
-      .conf_grid = &cgrid,
-      .conf_basis = &cbasis,
-      .phase_grid = &pgrid,
-      .pos_map = pm,
-      .use_gpu = false,
-    });
-  struct gkyl_array *flux = mkarr(5, clocal_ext.volume), *cfl = mkarr(1, clocal_ext.volume);
-  struct gkyl_dg_pkpm_conf_flux_surf *cf_up =
-    gkyl_dg_pkpm_conf_flux_surf_inew(&(struct gkyl_dg_pkpm_conf_flux_surf_inp){
+  struct gkyl_dg_pkpm_remap_flux_surf *up =
+    gkyl_dg_pkpm_remap_flux_surf_inew(&(struct gkyl_dg_pkpm_remap_flux_surf_inp){
       .phase_grid = &pgrid,
       .conf_basis = &cbasis,
       .phase_basis = &pbasis,
       .pos_map = pm,
+      .num_face_nodes = 3,
       .use_gpu = false,
     });
-  struct gkyl_array *face_coef = mkarr(gkyl_dg_pkpm_conf_flux_surf_face_coef_ncomp(cf_up), clocal_ext.volume);
-  gkyl_dg_pkpm_conf_flux_surf_face_coef(cf_up, &clocal, bvar, uarr, xiarr, theta, face_coef);
-  gkyl_dg_pkpm_fluid_flux_surf_advance(
-    up, &clocal, &clocal_ext, &plocal, &plocal_ext, bvar, uarr, xiarr, face_coef, fluid, f, cfl, flux
+  int nk = gkyl_dg_pkpm_remap_flux_surf_num_surf_basis(up);
+  struct gkyl_array *flux = mkarr(5, clocal_ext.volume), *cfl = mkarr(1, clocal_ext.volume);
+  // the kinetic flux, the kinetic rate and the blend weight are computed alongside (not checked)
+  struct gkyl_array *kin_flux = mkarr(2 * NUM_BLOCKS * nk, plocal_ext.volume);
+  struct gkyl_array *kin_cfl = mkarr(1, plocal_ext.volume), *blend = mkarr(1, clocal_ext.volume);
+  gkyl_array_clear(flux, 0.0);
+  gkyl_array_clear(cfl, 0.0);
+  gkyl_array_clear(kin_flux, 0.0);
+  gkyl_array_clear(kin_cfl, 0.0);
+  gkyl_array_clear(blend, 0.0);
+  gkyl_dg_pkpm_remap_flux_surf_advance(
+    up, &clocal, &clocal_ext, &plocal, &plocal_ext, bvar, fluid, uarr, xiarr, theta, f, kin_flux,
+    flux, kin_cfl, cfl, blend
   );
   int gidx[1] = {clocal.upper[0] + 1};
   const double *fl = gkyl_array_cfetch(flux, gkyl_range_idx(&clocal_ext, gidx));
   for (int c = 0; c < 5; ++c) {
     out[c] = fl[c];
   }
-  gkyl_dg_pkpm_fluid_flux_surf_release(up);
-  gkyl_dg_pkpm_conf_flux_surf_release(cf_up);
+  gkyl_dg_pkpm_remap_flux_surf_release(up);
   gkyl_vlasov_position_map_release(pm);
-  struct gkyl_array *arrs[] = {fluid, uarr, bvar, xiarr, theta, f, flux, cfl, face_coef};
-  for (int i = 0; i < 9; ++i) {
+  struct gkyl_array *arrs[] = {fluid, uarr, bvar, xiarr, theta, f, flux, cfl, kin_flux, kin_cfl, blend};
+  for (int i = 0; i < 11; ++i) {
     gkyl_array_release(arrs[i]);
   }
 }

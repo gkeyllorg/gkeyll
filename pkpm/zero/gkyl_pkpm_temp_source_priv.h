@@ -2,10 +2,7 @@
 #pragma once
 
 #include <gkyl_dg_conf_nodal_kernels.h>
-
-#define PKPM_TEMP_SOURCE_MAX_NODES 8
-#define PKPM_TEMP_SOURCE_NUM_FLUID 5 // blocks of the fluid state [rho, M (3), E]
-#define PKPM_TEMP_SOURCE_ENERGY 4 // block of the energy
+#include <gkyl_pkpm_layout.h>
 
 typedef void (*pkpm_temp_source_conf_map_t)(const double *in, double *GKYL_RESTRICT out);
 

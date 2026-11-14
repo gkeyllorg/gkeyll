@@ -3,8 +3,7 @@
 
 #include <gkyl_binop_cross_mul_hyb.h>
 #include <gkyl_dg_conf_nodal_kernels.h>
-
-#define PKPM_STAGE_WEIGHTS_MAX_NODES 8
+#include <gkyl_pkpm_layout.h>
 
 // Node values of a configuration field to its expansion.
 typedef void (*pkpm_stage_weights_conv_t)(const double *in, double *GKYL_RESTRICT out);

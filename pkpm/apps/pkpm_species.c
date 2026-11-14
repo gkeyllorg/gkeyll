@@ -104,7 +104,7 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   gkyl_sub_range_init(&s->local_ext_conf, &s->local_ext, lower_conf, upper_conf);
 
   // allocate distribution function arrays: the normalized distributions
-  // [F, G, M0_perp (x, y, z), N_perp (x, y, z)] (enum pkpm_dist_block)
+  // [F, G, M0_perp (x, y, z), N_perp (x, y, z)] (enum gkyl_pkpm_dist_block)
   int nc_dist = PKPM_DIST_NUM_BLOCKS * app->basis.num_basis;
   s->f = mkarr(app->use_gpu, nc_dist, s->local_ext.volume);
   s->f1 = mkarr(app->use_gpu, nc_dist, s->local_ext.volume);

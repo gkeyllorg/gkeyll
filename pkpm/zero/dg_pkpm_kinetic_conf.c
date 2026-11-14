@@ -16,7 +16,8 @@ gkyl_dg_pkpm_kinetic_conf_free(const struct gkyl_ref_count *ref)
 
   if (gkyl_dg_eqn_is_cu_dev(base)) {
     // free inner on_dev object
-    struct dg_pkpm_kinetic_conf *pkpm = container_of(base->on_dev, struct dg_pkpm_kinetic_conf, eqn);
+    struct dg_pkpm_kinetic_conf *pkpm =
+      container_of(base->on_dev, struct dg_pkpm_kinetic_conf, eqn);
     gkyl_cu_free(pkpm);
   }
 
@@ -59,13 +60,12 @@ gkyl_dg_pkpm_kinetic_conf_inew(const struct gkyl_dg_pkpm_kinetic_conf_inp *inp)
   pkpm->pdim = pdim;
   pkpm->num_surf_basis = inp->phase_basis->num_basis / 2;
 
-  pkpm->eqn.num_equations = 8;
+  pkpm->eqn.num_equations = PKPM_DIST_NUM_BLOCKS;
   pkpm->eqn.vol_term = vol;
   pkpm->eqn.surf_term = surf;
   pkpm->eqn.boundary_surf_term = boundary_surf;
 
-  pkpm->vol_kern =
-    choose_pkpm_kinetic_conf_vol_kern(inp->conf_basis->b_type, cdim, poly_order);
+  pkpm->vol_kern = choose_pkpm_kinetic_conf_vol_kern(inp->conf_basis->b_type, cdim, poly_order);
   for (int d = 0; d < cdim; ++d) {
     pkpm->stream_surf[d] =
       choose_pkpm_stream_surf_kern(inp->conf_basis->b_type, cdim, poly_order, d);

@@ -3,11 +3,9 @@
 
 #include <gkyl_binop_cross_mul_hyb.h>
 #include <gkyl_dg_conf_nodal_kernels.h>
+#include <gkyl_pkpm_layout.h>
 
-#define PKPM_BGK_NUM_BLOCKS 8
-#define PKPM_BGK_NUM_MODES 3
-#define PKPM_BGK_MAX_NODES 8
-#define PKPM_BGK_MAX_PHASE_BASIS (PKPM_BGK_NUM_MODES * PKPM_BGK_MAX_NODES)
+#define PKPM_BGK_MAX_PHASE_BASIS (PKPM_NUM_VEL_MODES * PKPM_MAX_CONF_BASIS)
 
 // A conversion between node values and an expansion (configuration field, or one block of a
 // phase-space cell).

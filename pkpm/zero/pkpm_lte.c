@@ -7,8 +7,7 @@
 #include <gkyl_basis.h>
 #include <gkyl_gauss_quad_data.h>
 #include <gkyl_pkpm_lte.h>
-
-#define PKPM_LTE_NUM_MODES 3
+#include <gkyl_pkpm_layout.h>
 
 struct gkyl_pkpm_lte {
   struct gkyl_rect_grid vel_grid;
@@ -17,14 +16,14 @@ struct gkyl_pkpm_lte {
   double eps;
   int max_iter;
   double ordinates[gkyl_gauss_max], weights[gkyl_gauss_max];
-  double basis_at_ords[gkyl_gauss_max][PKPM_LTE_NUM_MODES];
+  double basis_at_ords[gkyl_gauss_max][PKPM_NUM_VEL_MODES];
 };
 
 struct gkyl_pkpm_lte *
 gkyl_pkpm_lte_inew(const struct gkyl_pkpm_lte_inp *inp)
 {
   assert(inp->vel_grid->ndim == 1);
-  assert(inp->num_quad >= PKPM_LTE_NUM_MODES && inp->num_quad <= gkyl_gauss_max);
+  assert(inp->num_quad >= PKPM_NUM_VEL_MODES && inp->num_quad <= gkyl_gauss_max);
 
   struct gkyl_pkpm_lte *up = gkyl_malloc(sizeof(*up));
   up->vel_grid = *inp->vel_grid;
@@ -55,13 +54,13 @@ gkyl_pkpm_lte_proj(const struct gkyl_pkpm_lte *up, const double *moms, struct gk
     double wc;
     gkyl_rect_grid_cell_center(&up->vel_grid, iter.idx, &wc);
     double *f_d = gkyl_array_fetch(f_lte, gkyl_range_idx(&up->vel_range, iter.idx));
-    for (int j = 0; j < PKPM_LTE_NUM_MODES; ++j) {
+    for (int j = 0; j < PKPM_NUM_VEL_MODES; ++j) {
       f_d[j] = 0.0;
     }
     for (int q = 0; q < up->num_quad; ++q) {
       double dw = wc + half_dw * up->ordinates[q] - u;
       double f_q = fac * exp(-0.5 * dw * dw / vtsq);
-      for (int j = 0; j < PKPM_LTE_NUM_MODES; ++j) {
+      for (int j = 0; j < PKPM_NUM_VEL_MODES; ++j) {
         f_d[j] += up->weights[q] * up->basis_at_ords[q][j] * f_q;
       }
     }

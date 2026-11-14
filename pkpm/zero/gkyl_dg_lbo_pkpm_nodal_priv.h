@@ -5,8 +5,7 @@
 #include <math.h>
 
 #include <gkyl_lbo_pkpm_nodal_kernels.h>
-
-#define DG_LBO_PKPM_NODAL_NUM_BLOCKS 8
+#include <gkyl_pkpm_layout.h>
 
 // Types for the kernels in the velocity alone at one configuration-space node
 typedef void (*lbo_pkpm_nodal_vol_t)(

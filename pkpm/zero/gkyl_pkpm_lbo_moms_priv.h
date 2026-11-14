@@ -3,10 +3,10 @@
 
 #include <gkyl_array.h>
 #include <gkyl_dg_conf_nodal_kernels.h>
+#include <gkyl_pkpm_layout.h>
 #include <gkyl_range.h>
 
 // Largest number of nodes per configuration cell (3x).
-#define PKPM_LBO_MOMS_MAX_NODES 8
 
 typedef void (*pkpm_lbo_moms_conf_t)(const double *in, double *GKYL_RESTRICT out);
 

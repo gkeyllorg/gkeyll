@@ -1,7 +1,7 @@
 // Tests of the momentum solve of the refactored PKPM solver: the exact modal volume kernel (with
 // the first-harmonic stress and heat flux) against quadrature, and the face flux
-// (dg_pkpm_fluid_flux_surf, the moment map of the eight-block kinetic HLL flux) against an
-// independent reference at interior faces, an absorbing wall and a reflecting wall.
+// (the fluid flux of dg_pkpm_remap_flux_surf, the moments of the eight-block kinetic HLL flux)
+// against an independent reference at interior faces, an absorbing wall and a reflecting wall.
 #include <math.h>
 
 #include <acutest.h>
@@ -12,8 +12,7 @@
 #include <gkyl_dg_calc_pkpm_bvar.h>
 #include <gkyl_dg_calc_pkpm_vars.h>
 #include <gkyl_dg_pkpm_fluid.h>
-#include <gkyl_dg_pkpm_conf_flux_surf.h>
-#include <gkyl_dg_pkpm_fluid_flux_surf.h>
+#include <gkyl_dg_pkpm_remap_flux_surf.h>
 #include <gkyl_hyper_dg.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
@@ -525,12 +524,13 @@ ref_kinetic_flux(int d, const struct ref_side *sl, const struct ref_side *sr, do
   }
 }
 
-// Fluid fluxes as moments of the kinetic flux of the eight blocks (pkpm-fluid-flux-kinetic.mac,
-// plan 17.14) for a uniform isotropic state (Maxwellian F = G, theta = 1, no first harmonic) against
-// the independent reference above: (a) interior faces, where the HLL flux reduces to the exact flux
-// function, so that the fluid flux is the ideal one (isotropic pressure, its work); (b) an absorbing
-// wall (ghost F = 0, theta copied); (c) a reflecting wall (mirrored ghost), where the mass, energy and
-// tangential momentum fluxes cancel exactly. The flow and the field angle put the kinks of the HLL
+// Fluid fluxes as moments of the kinetic flux of the eight blocks for a uniform isotropic state
+// (Maxwellian F = G, theta = 1, no first harmonic): (a) interior faces, where the HLL flux reduces
+// to the exact flux function, so that the fluid flux is the ideal one (isotropic pressure, its
+// work), and (b) an absorbing wall (ghost F = 0, theta copied), both against the independent
+// reference above (the two sides share one frame there, so pairing them at equal w is exact);
+// (c) a reflecting wall (mirrored ghost), where the mass, energy and tangential momentum fluxes
+// cancel exactly and the normal momentum flux has a closed form. The flow and the field angle put the kinks of the HLL
 // weights (V = 0, V = +-c) on velocity cell edges, so the kernels' Gauss-Legendre integration of the
 // projected Maxwellian is exact and the reference differs from them by the projection error only.
 static void
@@ -591,17 +591,27 @@ test_kinetic_flux(int cdim)
   gkyl_proj_on_basis_advance(proj, 0.0, &plocal_ext, f);
   gkyl_proj_on_basis_release(proj);
 
-  struct gkyl_dg_pkpm_fluid_flux_surf_inp inp = {
-    .conf_grid = &cgrid, .conf_basis = &cbasis, .phase_grid = &pgrid, .pos_map = pm, .use_gpu = false};
-  struct gkyl_dg_pkpm_fluid_flux_surf *up = gkyl_dg_pkpm_fluid_flux_surf_inew(&inp);
-  int ns = gkyl_dg_pkpm_fluid_flux_surf_num_surf_basis(up);
+  struct gkyl_dg_pkpm_remap_flux_surf_inp inp = {
+    .phase_grid = &pgrid,
+    .conf_basis = &cbasis,
+    .phase_basis = &pbasis,
+    .pos_map = pm,
+    .num_face_nodes = 3,
+    .use_gpu = false,
+  };
+  struct gkyl_dg_pkpm_remap_flux_surf *up = gkyl_dg_pkpm_remap_flux_surf_inew(&inp);
+  int ns = gkyl_dg_pkpm_remap_flux_surf_num_surf_basis_fluid(up);
   TEST_CHECK(ns == nc / 2);
   struct gkyl_array *flux = mkarr(5 * cdim * ns, clocal_ext.volume);
-  // the face coefficients of the kinetic flux (recomputed whenever the ghost state changes)
-  struct gkyl_dg_pkpm_conf_flux_surf *cf_up = gkyl_dg_pkpm_conf_flux_surf_inew(&(struct gkyl_dg_pkpm_conf_flux_surf_inp){
-    .phase_grid = &pgrid, .conf_basis = &cbasis, .phase_basis = &pbasis, .pos_map = pm, .use_gpu = false});
-  struct gkyl_array *face_coef = mkarr(gkyl_dg_pkpm_conf_flux_surf_face_coef_ncomp(cf_up), clocal_ext.volume);
+  // the kinetic flux, the kinetic rate and the blend weight are computed alongside (not checked)
+  int nk = gkyl_dg_pkpm_remap_flux_surf_num_surf_basis(up);
+  struct gkyl_array *kin_flux = mkarr(2 * 8 * cdim * nk, plocal_ext.volume);
+  struct gkyl_array *kin_cfl = mkarr(1, plocal_ext.volume);
+  struct gkyl_array *blend = mkarr(cdim, clocal_ext.volume);
   struct gkyl_array *cfl = mkarr(1, clocal_ext.volume);
+  gkyl_array_clear(kin_flux, 0.0);
+  gkyl_array_clear(kin_cfl, 0.0);
+  gkyl_array_clear(blend, 0.0);
   gkyl_array_clear(cfl, 0.0);
   // modal coefficient of a constant on the surface basis: sqrt(2)^(cdim-1)
   double c0 = pow(sqrt(2.0), cdim - 1);
@@ -618,8 +628,10 @@ test_kinetic_flux(int cdim)
 
   // (a) uniform interior faces in every direction: the exact flux, P = rho xi^2 I
   gkyl_array_clear(flux, 0.0);
-  gkyl_dg_pkpm_conf_flux_surf_face_coef(cf_up, &clocal, bvar, u, xi, theta, face_coef);
-  gkyl_dg_pkpm_fluid_flux_surf_advance(up, &clocal, &clocal_ext, &plocal, &plocal_ext, bvar, u, xi, face_coef, fluid, f, cfl, flux);
+  gkyl_dg_pkpm_remap_flux_surf_advance(
+    up, &clocal, &clocal_ext, &plocal, &plocal_ext, bvar, fluid, u, xi, theta, f, kin_flux, flux,
+    kin_cfl, cfl, blend
+  );
   {
     struct gkyl_range_iter iter;
     gkyl_range_iter_init(&iter, &clocal);
@@ -654,8 +666,10 @@ test_kinetic_flux(int cdim)
     gkyl_array_clear_range(f, 0.0, &ghost_r);
   }
   gkyl_array_clear(flux, 0.0);
-  gkyl_dg_pkpm_conf_flux_surf_face_coef(cf_up, &clocal, bvar, u, xi, theta, face_coef);
-  gkyl_dg_pkpm_fluid_flux_surf_advance(up, &clocal, &clocal_ext, &plocal, &plocal_ext, bvar, u, xi, face_coef, fluid, f, cfl, flux);
+  gkyl_dg_pkpm_remap_flux_surf_advance(
+    up, &clocal, &clocal_ext, &plocal, &plocal_ext, bvar, fluid, u, xi, theta, f, kin_flux, flux,
+    kin_cfl, cfl, blend
+  );
   struct ref_side empty = in;
   empty.full = false;
   for (int e = 0; e < 2; ++e) {
@@ -718,23 +732,34 @@ test_kinetic_flux(int cdim)
     }
   }
   gkyl_array_clear(flux, 0.0);
-  gkyl_dg_pkpm_conf_flux_surf_face_coef(cf_up, &clocal, bvar, u, xi, theta, face_coef);
-  gkyl_dg_pkpm_fluid_flux_surf_advance(up, &clocal, &clocal_ext, &plocal, &plocal_ext, bvar, u, xi, face_coef, fluid, f, cfl, flux);
-  struct ref_side mirror = in;
-  mirror.u[dir] = -in.u[dir];
-  if (cdim > 1) {
-    mirror.b[dir] = -in.b[dir];
+  gkyl_dg_pkpm_remap_flux_surf_advance(
+    up, &clocal, &clocal_ext, &plocal, &plocal_ext, bvar, fluid, u, xi, theta, f, kin_flux, flux,
+    kin_cfl, cfl, blend
+  );
+  // Normal momentum flux of the wall. The face frame is at rest along the normal, and the two
+  // sides are paired at equal velocity in it.
+  // 1x (b along the normal): the HLL weights reduce to upwinding, so the flux is that of the gas
+  // and its image, twice the momentum flux of the particles moving towards the wall.
+  // 2x, 3x (the face-averaged b is tangential): nothing streams through the face; the drifts
+  // -/+ u_n across b enter the face frame as first harmonics -/+ (u_n/xi) F and as the
+  // perpendicular energy u_n^2/2, so the flux is the pressure rho (xi^2 + u_n^2/2) and the HLL
+  // dissipation rho c u_n of the jump, c = xi sqrt(2 + sqrt 2).
+  double un = ctx.u[dir], ref_mn[2];
+  if (cdim == 1) {
+    double toward_lower = (un * un + ctx.xi * ctx.xi) * 0.5 * erfc(un / (sqrt(2.0) * ctx.xi)) -
+      ctx.xi * un * exp(-0.5 * un * un / (ctx.xi * ctx.xi)) / sqrt(2.0 * M_PI);
+    ref_mn[0] = 2.0 * ctx.rho * toward_lower;
+    ref_mn[1] = 2.0 * ctx.rho * (un * un + ctx.xi * ctx.xi - toward_lower);
+  } else {
+    double pres = ctx.rho * (ctx.xi * ctx.xi + 0.5 * un * un);
+    double diss = ctx.rho * ctx.xi * sqrt(2.0 + sqrt(2.0)) * un;
+    ref_mn[0] = pres - diss;
+    ref_mn[1] = pres + diss;
   }
   for (int e = 0; e < 2; ++e) {
     enum gkyl_edge_loc edge = e == 0 ? GKYL_LOWER_EDGE : GKYL_UPPER_EDGE;
     struct gkyl_range skin, ghost_r;
     gkyl_skin_ghost_ranges(&skin, &ghost_r, dir, edge, &clocal_ext, ghost);
-    double ref[5];
-    if (e == 0) {
-      ref_kinetic_flux(dir, &mirror, &in, wmax, ref);
-    } else {
-      ref_kinetic_flux(dir, &in, &mirror, wmax, ref);
-    }
     struct gkyl_range_iter iter;
     gkyl_range_iter_init(&iter, &skin);
     while (gkyl_range_iter_next(&iter)) {
@@ -748,8 +773,8 @@ test_kinetic_flux(int cdim)
       TEST_CHECK(fabs(got_rho) < 1e-12 * scale);
       TEST_CHECK(fabs(got_e) < 1e-12 * scale);
       TEST_MSG("cdim=%d reflect edge=%d: mass flux %g energy flux %g", cdim, e, got_rho, got_e);
-      TEST_CHECK(gkyl_compare(got_mn, ref[1 + dir], 1e-4 * scale));
-      TEST_MSG("cdim=%d reflect edge=%d: normal momentum flux %g expected %g", cdim, e, got_mn, ref[1 + dir]);
+      TEST_CHECK(gkyl_compare(got_mn, ref_mn[e], 1e-4 * scale));
+      TEST_MSG("cdim=%d reflect edge=%d: normal momentum flux %g expected %g", cdim, e, got_mn, ref_mn[e]);
       for (int i = 0; i < 3; ++i) {
         if (i != dir) {
           TEST_CHECK(fabs(fl[dir * 5 * ns + (1 + i) * ns]) < 1e-12 * scale);
@@ -761,9 +786,10 @@ test_kinetic_flux(int cdim)
 
   gkyl_array_release(cfl);
   gkyl_array_release(flux);
-  gkyl_array_release(face_coef);
-  gkyl_dg_pkpm_conf_flux_surf_release(cf_up);
-  gkyl_dg_pkpm_fluid_flux_surf_release(up);
+  gkyl_array_release(kin_flux);
+  gkyl_array_release(kin_cfl);
+  gkyl_array_release(blend);
+  gkyl_dg_pkpm_remap_flux_surf_release(up);
   gkyl_vlasov_position_map_release(pm);
   gkyl_array_release(f);
   gkyl_array_release(theta);

@@ -26,6 +26,7 @@
 #include <gkyl_vlasov_position_map.h>
 #include <gkyl_dg_pkpm_conf_flux_surf.h>
 #include <gkyl_dg_pkpm_fluid.h>
+#include <gkyl_pkpm_layout.h>
 #include <gkyl_dg_pkpm_fluid_flux_surf.h>
 #include <gkyl_dg_pkpm_remap_flux_surf.h>
 #include <gkyl_dg_pkpm_kinetic_conf.h>
@@ -264,17 +265,6 @@ struct pkpm_lbo_collisions {
 
   gkyl_prim_lbo_calc *coll_pcalc; // LBO primitive moment calculator
   gkyl_dg_updater_collisions *coll_slvr; // collision solver
-};
-
-// Blocks of the evolved normalized distributions, one phase-space expansion each:
-// [F, G, M0_perp (x, y, z), N_perp (x, y, z)]. M0_perp and N_perp are the first gyroangle
-// harmonic as Cartesian vectors perpendicular to b (normalized_first_harmonic.tex).
-enum pkpm_dist_block {
-  PKPM_DIST_F = 0,
-  PKPM_DIST_G = 1,
-  PKPM_DIST_M0 = 2, // first of the three Cartesian components of M0_perp
-  PKPM_DIST_N = 5, // first of the three Cartesian components of N_perp
-  PKPM_DIST_NUM_BLOCKS = 8
 };
 
 // Records of the fluid positivity limiter (gkyl_dg_calc_pkpm_vars_positivity): the per-cell

@@ -10,7 +10,7 @@ static inline void
 pkpm_lbo_moms_edge_values(int num_nodes, double sign, const double *fnodal, double *edge)
 {
   for (int q = 0; q < num_nodes; ++q) {
-    const double *mode = &fnodal[q * 3];
+    const double *mode = &fnodal[q * PKPM_NUM_VEL_MODES];
     edge[q] = 0.7071067811865475 * mode[0] + sign * 1.224744871391589 * mode[1] +
               1.5811388300841898 * mode[2];
   }
@@ -26,7 +26,7 @@ gkyl_pkpm_lbo_moms_new(
   assert(conf_basis->b_type == GKYL_BASIS_MODAL_SERENDIPITY && conf_basis->poly_order == 1);
   assert(phase_basis->b_type == GKYL_BASIS_MODAL_HYBRID);
   assert(phase_basis->ndim == conf_basis->ndim + 1);
-  assert(phase_basis->num_basis == 3 * conf_basis->num_basis);
+  assert(phase_basis->num_basis == PKPM_NUM_VEL_MODES * conf_basis->num_basis);
 
   struct gkyl_pkpm_lbo_moms *up = gkyl_malloc(sizeof(*up));
   up->cdim = conf_basis->ndim;
@@ -56,15 +56,15 @@ gkyl_pkpm_lbo_moms_advance(
     double *prim_d = gkyl_array_fetch(prim_moms, loc);
 
     // [M0, M2, M0_G, M1] at the nodes
-    double m0[PKPM_LBO_MOMS_MAX_NODES], m2[PKPM_LBO_MOMS_MAX_NODES];
-    double m0_g[PKPM_LBO_MOMS_MAX_NODES], m1[PKPM_LBO_MOMS_MAX_NODES];
+    double m0[PKPM_MAX_CONF_BASIS], m2[PKPM_MAX_CONF_BASIS];
+    double m0_g[PKPM_MAX_CONF_BASIS], m1[PKPM_MAX_CONF_BASIS];
     up->conf_to_nodal(&moms_d[0], m0);
     up->conf_to_nodal(&moms_d[num_nodes], m2);
     up->conf_to_nodal(&moms_d[2 * num_nodes], m0_g);
     up->conf_to_nodal(&moms_d[3 * num_nodes], m1);
 
     // F at the two edges of the velocity grid at the nodes
-    double f_lower[PKPM_LBO_MOMS_MAX_NODES], f_upper[PKPM_LBO_MOMS_MAX_NODES];
+    double f_lower[PKPM_MAX_CONF_BASIS], f_upper[PKPM_MAX_CONF_BASIS];
     for (int d = 0; d < cdim; ++d) {
       pidx[d] = iter.idx[d];
     }

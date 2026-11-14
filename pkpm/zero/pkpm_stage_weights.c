@@ -11,7 +11,7 @@ gkyl_pkpm_stage_weights_new(
 {
   assert(!use_gpu);
   assert(conf_basis->b_type == GKYL_BASIS_MODAL_SERENDIPITY && conf_basis->poly_order == 1);
-  assert(phase_basis->num_basis == 3 * conf_basis->num_basis);
+  assert(phase_basis->num_basis == PKPM_NUM_VEL_MODES * conf_basis->num_basis);
 
   struct gkyl_pkpm_stage_weights *up = gkyl_malloc(sizeof(*up));
   up->num_nodes = conf_basis->num_basis;
@@ -42,7 +42,7 @@ gkyl_pkpm_stage_weights_advance(
     double *f_d = gkyl_array_fetch(f, ploc);
 
     // w_Y - c_Y at the nodes, as an expansion
-    double dweight[PKPM_STAGE_WEIGHTS_MAX_NODES], dweight_modal[PKPM_STAGE_WEIGHTS_MAX_NODES];
+    double dweight[PKPM_MAX_CONF_BASIS], dweight_modal[PKPM_MAX_CONF_BASIS];
     for (int q = 0; q < num_nodes; ++q) {
       dweight[q] = coef_fe * lam_d[q] / (coef_old + coef_fe * lam_d[q]) - coef_fe;
     }

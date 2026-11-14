@@ -5,6 +5,7 @@
 
 #include <gkyl_dg_pkpm_harm_exp.h>
 #include <gkyl_pkpm_kinetic_kernels.h>
+#include <gkyl_pkpm_layout.h>
 #include <gkyl_util.h>
 
 // Coefficients of one configuration node: (q/m) B_n, whose magnitude sets the mixing rate and whose
@@ -13,6 +14,9 @@ enum {
   PKPM_HX_OM = 0, // (q/m) B_n (3)
   PKPM_HX_NC = 3 // per configuration node
 };
+
+// Largest number of phase-space nodes of a configuration cell (w nodes per configuration node).
+#define PKPM_HX_MAX_NODES (PKPM_NUM_VEL_MODES * PKPM_MAX_CONF_BASIS)
 
 struct gkyl_dg_pkpm_harm_exp {
   int cdim; // Configuration-space dimensions.
@@ -75,9 +79,15 @@ GKYL_CU_DH static inline void
 pkpm_hx_to_nodes(int cdim, const double *f, double *fn)
 {
   switch (cdim) {
-    case 1: pkpm_harm_exp_to_nodes_1x1v_ser_p1(f, fn); break;
-    case 2: pkpm_harm_exp_to_nodes_2x1v_ser_p1(f, fn); break;
-    case 3: pkpm_harm_exp_to_nodes_3x1v_ser_p1(f, fn); break;
+    case 1:
+      pkpm_harm_exp_to_nodes_1x1v_ser_p1(f, fn);
+      break;
+    case 2:
+      pkpm_harm_exp_to_nodes_2x1v_ser_p1(f, fn);
+      break;
+    case 3:
+      pkpm_harm_exp_to_nodes_3x1v_ser_p1(f, fn);
+      break;
   }
 }
 
@@ -85,9 +95,15 @@ GKYL_CU_DH static inline void
 pkpm_hx_to_modal(int cdim, const double *fn, double *f)
 {
   switch (cdim) {
-    case 1: pkpm_harm_exp_to_modal_1x1v_ser_p1(fn, f); break;
-    case 2: pkpm_harm_exp_to_modal_2x1v_ser_p1(fn, f); break;
-    case 3: pkpm_harm_exp_to_modal_3x1v_ser_p1(fn, f); break;
+    case 1:
+      pkpm_harm_exp_to_modal_1x1v_ser_p1(fn, f);
+      break;
+    case 2:
+      pkpm_harm_exp_to_modal_2x1v_ser_p1(fn, f);
+      break;
+    case 3:
+      pkpm_harm_exp_to_modal_3x1v_ser_p1(fn, f);
+      break;
   }
 }
 
@@ -95,9 +111,15 @@ GKYL_CU_DH static inline void
 pkpm_hx_fg_to_nodes(int cdim, const double *f, double *fgn)
 {
   switch (cdim) {
-    case 1: pkpm_harm_exp_fg_to_nodes_1x1v_ser_p1(f, fgn); break;
-    case 2: pkpm_harm_exp_fg_to_nodes_2x1v_ser_p1(f, fgn); break;
-    case 3: pkpm_harm_exp_fg_to_nodes_3x1v_ser_p1(f, fgn); break;
+    case 1:
+      pkpm_harm_exp_fg_to_nodes_1x1v_ser_p1(f, fgn);
+      break;
+    case 2:
+      pkpm_harm_exp_fg_to_nodes_2x1v_ser_p1(f, fgn);
+      break;
+    case 3:
+      pkpm_harm_exp_fg_to_nodes_3x1v_ser_p1(f, fgn);
+      break;
   }
 }
 
@@ -105,9 +127,15 @@ GKYL_CU_DH static inline void
 pkpm_hx_wint(int cdim, const double *f, double *wi)
 {
   switch (cdim) {
-    case 1: pkpm_harm_exp_wint_1x1v_ser_p1(f, wi); break;
-    case 2: pkpm_harm_exp_wint_2x1v_ser_p1(f, wi); break;
-    case 3: pkpm_harm_exp_wint_3x1v_ser_p1(f, wi); break;
+    case 1:
+      pkpm_harm_exp_wint_1x1v_ser_p1(f, wi);
+      break;
+    case 2:
+      pkpm_harm_exp_wint_2x1v_ser_p1(f, wi);
+      break;
+    case 3:
+      pkpm_harm_exp_wint_3x1v_ser_p1(f, wi);
+      break;
   }
 }
 
@@ -115,11 +143,17 @@ pkpm_hx_wint(int cdim, const double *f, double *wi)
 GKYL_CU_DH static inline void
 pkpm_hx_coef_cell(const struct gkyl_dg_pkpm_harm_exp *up, const double *em, double *coef)
 {
-  double Bn[8 * 3];
+  double Bn[PKPM_MAX_CONF_BASIS * 3];
   switch (up->cdim) {
-    case 1: pkpm_harm_exp_conf_nodes_1x_ser_p1(em, Bn); break;
-    case 2: pkpm_harm_exp_conf_nodes_2x_ser_p1(em, Bn); break;
-    case 3: pkpm_harm_exp_conf_nodes_3x_ser_p1(em, Bn); break;
+    case 1:
+      pkpm_harm_exp_conf_nodes_1x_ser_p1(em, Bn);
+      break;
+    case 2:
+      pkpm_harm_exp_conf_nodes_2x_ser_p1(em, Bn);
+      break;
+    case 3:
+      pkpm_harm_exp_conf_nodes_3x_ser_p1(em, Bn);
+      break;
   }
   for (int n = 0; n < up->num_conf_nodes; ++n) {
     for (int a = 0; a < 3; ++a) {
@@ -154,14 +188,14 @@ pkpm_hx_advance_cell(
   const double *lam, double *nu, double *act, double *out
 )
 {
-  double Mn[24 * 6];
+  double Mn[PKPM_HX_MAX_NODES * 6];
   if (stage == 1) {
     pkpm_hx_to_nodes(up->cdim, f0, Mn);
-    double fgn[24 * 2];
+    double fgn[PKPM_HX_MAX_NODES * 2];
     pkpm_hx_fg_to_nodes(up->cdim, f0, fgn);
     for (int p = 0; p < up->num_phase_nodes; ++p) {
       double oh[3];
-      double mag = pkpm_hx_axis(&coef[(p / 3) * PKPM_HX_NC + PKPM_HX_OM], oh);
+      double mag = pkpm_hx_axis(&coef[(p / PKPM_NUM_VEL_MODES) * PKPM_HX_NC + PKPM_HX_OM], oh);
       nu[p] = pkpm_hx_rate(up->mix, mag, h, fgn[2 * p], fgn[2 * p + 1], &Mn[6 * p], &Mn[6 * p + 3]);
       if (nu[p] > 0.0) {
         act[0] = 1.0;
@@ -182,14 +216,14 @@ pkpm_hx_advance_cell(
   double sy = stage == 1 ? 1.0 : (stage == 2 ? -0.5 : 0.5);
   double sm = stage == 2 ? 0.5 : 1.0;
   double cm = stage == 2 ? 3.0 : 0.5;
-  double Yn[24 * 6];
+  double Yn[PKPM_HX_MAX_NODES * 6];
   pkpm_hx_to_nodes(up->cdim, out, Yn);
   for (int p = 0; p < up->num_phase_nodes; ++p) {
     if (nu[p] <= 0.0) {
       continue;
     }
     double oh[3];
-    pkpm_hx_axis(&coef[(p / 3) * PKPM_HX_NC + PKPM_HX_OM], oh);
+    pkpm_hx_axis(&coef[(p / PKPM_NUM_VEL_MODES) * PKPM_HX_NC + PKPM_HX_OM], oh);
     double dy = exp(-sy * h * nu[p]), dm = exp(-sm * h * nu[p]);
     for (int v = 0; v < 2; ++v) {
       double *y = &Yn[6 * p + 3 * v];
@@ -199,7 +233,8 @@ pkpm_hx_advance_cell(
         const double *m = &Mn[6 * p + 3 * v];
         double mf[3];
         pkpm_hx_damp(oh, dm, m, mf);
-        double cm_node = lam ? cm / lam[pkpm_hx_conf_nodal_idx(up->cdim, p / 3)] : cm;
+        double cm_node = lam ? cm / lam[pkpm_hx_conf_nodal_idx(up->cdim, p / PKPM_NUM_VEL_MODES)] :
+                               cm;
         for (int i = 0; i < 3; ++i) {
           x[i] += cm_node * (mf[i] - m[i]);
         }
@@ -217,7 +252,7 @@ pkpm_hx_advance_cell(
 GKYL_CU_DH static inline void
 pkpm_hx_col_add(const struct gkyl_dg_pkpm_harm_exp *up, const double *f, double *col)
 {
-  double wi[8 * 4];
+  double wi[PKPM_MAX_CONF_BASIS * 4];
   pkpm_hx_wint(up->cdim, f, wi);
   for (int i = 0; i < 4 * up->num_conf_nodes; ++i) {
     col[i] += up->half_dw * wi[i];
@@ -229,11 +264,11 @@ pkpm_hx_col_add(const struct gkyl_dg_pkpm_harm_exp *up, const double *f, double 
 GKYL_CU_DH static inline void
 pkpm_hx_restore_cell(const struct gkyl_dg_pkpm_harm_exp *up, const double *col, double *out)
 {
-  double Xn[24 * 6], fgn[24 * 2];
+  double Xn[PKPM_HX_MAX_NODES * 6], fgn[PKPM_HX_MAX_NODES * 2];
   pkpm_hx_to_nodes(up->cdim, out, Xn);
   pkpm_hx_fg_to_nodes(up->cdim, out, fgn);
   for (int p = 0; p < up->num_phase_nodes; ++p) {
-    const double *cn = &col[(p / 3) * 4];
+    const double *cn = &col[(p / PKPM_NUM_VEL_MODES) * 4];
     if (cn[0] <= 0.0) {
       continue;
     }
