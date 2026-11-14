@@ -1326,15 +1326,8 @@ pkpm_species_nodal_accumulate(
 void
 pkpm_species_coll_tm(gkyl_pkpm_app *app)
 {
-  for (int i = 0; i < app->num_species; ++i) {
-    // The nodal operator has one sweep: its time is in the total collision time only.
-    if (app->species[i].collision_id == GKYL_LBO_COLLISIONS && !app->species[i].lbo.use_nodal) {
-      struct gkyl_dg_updater_lbo_pkpm_tm tm =
-        gkyl_dg_updater_lbo_pkpm_get_tm(app->species[i].lbo.coll_slvr);
-      app->stat.species_lbo_coll_diff_tm[i] = tm.diff_tm;
-      app->stat.species_lbo_coll_drag_tm[i] = tm.drag_tm;
-    }
-  }
+  // The LBO at the nodes has one sweep for drag and diffusion: its time is in the total
+  // collision time only.
 }
 
 void

@@ -1,6 +1,10 @@
-// The primitive moments of the PKPM LBO at the configuration-space nodes against the Galerkin
-// solve (boundary-correction and primitive-moment calculators): at p=1 the node values of the
-// Galerkin solution are the solutions of the 2x2 systems at the nodes.
+// The primitive moments [u, vtsq] of the PKPM LBO at the configuration-space nodes: at every node
+// they satisfy
+//   M0 u - cM vtsq = M1,
+//   M1 u + (3 M0 - cE) vtsq = M2 + 2 M0_G,
+// with cM = F(w_max) - F(w_min) and cE = w_max F(w_max) - w_min F(w_min). The coefficients are
+// evaluated here from the modal expansions at the node, whose position in the cell is read off the
+// nodal form of the coordinates.
 #include <math.h>
 #include <stdlib.h>
 
@@ -8,13 +12,9 @@
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_basis.h>
-#include <gkyl_dg_bin_ops.h>
-#include <gkyl_mom_bcorr_lbo_pkpm.h>
-#include <gkyl_mom_calc_bcorr.h>
 #include <gkyl_dg_conf_nodal.h>
+#include <gkyl_gauss_quad_data.h>
 #include <gkyl_pkpm_lbo_moms.h>
-#include <gkyl_prim_lbo_calc.h>
-#include <gkyl_prim_lbo_pkpm.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
@@ -64,20 +64,32 @@ test_moms(int cdim)
   struct gkyl_array *moms = gkyl_array_new(GKYL_DOUBLE, NM * nc, crange.volume);
   struct gkyl_array *fin = gkyl_array_new(GKYL_DOUBLE, NB * np, prange.volume);
   struct gkyl_array *fnodal = gkyl_array_new(GKYL_DOUBLE, NB * np, prange.volume);
-  struct gkyl_array *prim_ref_nodal = gkyl_array_new(GKYL_DOUBLE, 2 * nc, crange.volume);
-  struct gkyl_array *nu_modal = gkyl_array_new(GKYL_DOUBLE, nc, crange.volume);
-  struct gkyl_array *bcorr = gkyl_array_new(GKYL_DOUBLE, 2 * nc, crange.volume);
-  struct gkyl_array *prim_ref = gkyl_array_new(GKYL_DOUBLE, 2 * nc, crange.volume);
   struct gkyl_array *prim = gkyl_array_new(GKYL_DOUBLE, 2 * nc, crange.volume);
+  struct gkyl_array *coord = gkyl_array_new(GKYL_DOUBLE, cdim * nc, crange.volume);
+  struct gkyl_array *coord_nodal = gkyl_array_new(GKYL_DOUBLE, cdim * nc, crange.volume);
 
-  // Moments near [1, 1, 1, 0] with slopes that keep every corner value positive, a frequency
-  // near 2, and distributions small at the velocity edges.
+  // Expansion of each logical coordinate of a cell (2-point Gauss-Legendre is exact for it).
+  double coord_modal[GKYL_MAX_CDIM * 8] = {0.0};
+  for (int corner = 0; corner < nc; ++corner) {
+    double z[GKYL_MAX_CDIM], basis[8];
+    for (int d = 0; d < cdim; ++d) {
+      z[d] = gkyl_gauss_ordinates_2[(corner >> d) & 1];
+    }
+    cbasis.eval(z, basis);
+    for (int d = 0; d < cdim; ++d) {
+      for (int k = 0; k < nc; ++k) {
+        coord_modal[d * nc + k] += z[d] * basis[k];
+      }
+    }
+  }
+
+  // Moments near [1, 1, 1, 0] with slopes that keep every corner value positive, and
+  // distributions small at the velocity edges.
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &crange);
   while (gkyl_range_iter_next(&iter)) {
     long loc = gkyl_range_idx(&crange, iter.idx);
     double *moms_d = gkyl_array_fetch(moms, loc);
-    double *nu_d = gkyl_array_fetch(nu_modal, loc);
     for (int i = 0; i < nc; ++i) {
       double slope = 0.1 * rnd();
       moms_d[i] = (i == 0 ? mean : 0.0) + slope; // M0
@@ -86,7 +98,10 @@ test_moms(int cdim)
       moms_d[3 * nc + i] = 0.2 * rnd(); // M1
       moms_d[4 * nc + i] = rnd(); // M3 (not read)
       moms_d[5 * nc + i] = rnd(); // M1_G (not read)
-      nu_d[i] = (i == 0 ? 2.0 * mean : 0.0) + 0.3 * rnd();
+    }
+    double *coord_d = gkyl_array_fetch(coord, loc);
+    for (int i = 0; i < cdim * nc; ++i) {
+      coord_d[i] = coord_modal[i];
     }
   }
   gkyl_range_iter_init(&iter, &prange);
@@ -97,45 +112,61 @@ test_moms(int cdim)
     }
   }
 
-  // Galerkin reference
-  struct gkyl_mom_calc_bcorr *bcorr_calc =
-    gkyl_mom_calc_bcorr_lbo_pkpm_new(&grid, &cbasis, &pbasis, vel_bounds, 1.0, false);
-  struct gkyl_prim_lbo_calc *prim_calc =
-    gkyl_prim_lbo_pkpm_calc_new(&grid, &cbasis, &pbasis, &crange, false);
-  gkyl_mom_calc_bcorr_advance(bcorr_calc, &prange, &crange, fin, bcorr);
-  gkyl_prim_lbo_calc_advance(prim_calc, &crange, moms, bcorr, nu_modal, prim_ref);
-
   struct gkyl_pkpm_lbo_moms *up = gkyl_pkpm_lbo_moms_new(&cbasis, &pbasis, vel_bounds, false);
   struct gkyl_dg_conf_nodal *conf_nodal = gkyl_dg_conf_nodal_new(&cbasis, &pbasis, false);
   gkyl_dg_conf_nodal_phase_to_nodal(conf_nodal, &prange, fin, fnodal);
   gkyl_pkpm_lbo_moms_advance(up, &crange, &prange, moms, fnodal, prim);
-  gkyl_dg_conf_nodal_conf_to_nodal(conf_nodal, &crange, prim_ref, prim_ref_nodal);
+  gkyl_dg_conf_nodal_conf_to_nodal(conf_nodal, &crange, coord, coord_nodal);
 
-  double err_prim = 0.0;
+  double err_res = 0.0, max_corr = 0.0;
   gkyl_range_iter_init(&iter, &crange);
   while (gkyl_range_iter_next(&iter)) {
     long loc = gkyl_range_idx(&crange, iter.idx);
-    const double *ref_nodal = gkyl_array_cfetch(prim_ref_nodal, loc);
+    const double *moms_d = gkyl_array_cfetch(moms, loc);
     const double *prim_d = gkyl_array_cfetch(prim, loc);
-    for (int i = 0; i < 2 * nc; ++i) {
-      err_prim = fmax(err_prim, fabs(prim_d[i] - ref_nodal[i]));
+    const double *coord_d = gkyl_array_cfetch(coord_nodal, loc);
+    // F in the lowest and the highest velocity cell of this configuration cell
+    int pidx[GKYL_MAX_DIM];
+    for (int d = 0; d < cdim; ++d) {
+      pidx[d] = iter.idx[d];
+    }
+    pidx[cdim] = prange.lower[cdim];
+    const double *f_lo = gkyl_array_cfetch(fin, gkyl_range_idx(&prange, pidx));
+    pidx[cdim] = prange.upper[cdim];
+    const double *f_up = gkyl_array_cfetch(fin, gkyl_range_idx(&prange, pidx));
+    for (int q = 0; q < nc; ++q) {
+      double z[GKYL_MAX_DIM];
+      for (int d = 0; d < cdim; ++d) {
+        z[d] = coord_d[d * nc + q];
+      }
+      double m0 = cbasis.eval_expand(z, &moms_d[0]), m2 = cbasis.eval_expand(z, &moms_d[nc]);
+      double m0_g = cbasis.eval_expand(z, &moms_d[2 * nc]);
+      double m1 = cbasis.eval_expand(z, &moms_d[3 * nc]);
+      z[cdim] = -1.0;
+      double edge_lo = pbasis.eval_expand(z, f_lo);
+      z[cdim] = 1.0;
+      double edge_up = pbasis.eval_expand(z, f_up);
+      double corr_m = edge_up - edge_lo;
+      double corr_e = vel_bounds[1] * edge_up - vel_bounds[0] * edge_lo;
+      double u = prim_d[q], vtsq = prim_d[nc + q];
+      err_res = fmax(err_res, fabs(m0 * u - corr_m * vtsq - m1));
+      err_res = fmax(err_res, fabs(m1 * u + (3.0 * m0 - corr_e) * vtsq - (m2 + 2.0 * m0_g)));
+      max_corr = fmax(max_corr, fmax(fabs(corr_m), fabs(corr_e)));
     }
   }
-  TEST_CHECK(err_prim < 1.0e-13);
-  TEST_MSG("primitive moments differ from the Galerkin solve by %g", err_prim);
+  TEST_CHECK(max_corr > 1.0e-3);
+  TEST_MSG("largest correction for the velocity extent %g", max_corr);
+  TEST_CHECK(err_res < 1.0e-13);
+  TEST_MSG("residual of the node systems %g", err_res);
 
   gkyl_pkpm_lbo_moms_release(up);
   gkyl_dg_conf_nodal_release(conf_nodal);
   gkyl_array_release(fnodal);
-  gkyl_array_release(prim_ref_nodal);
-  gkyl_mom_calc_bcorr_release(bcorr_calc);
-  gkyl_prim_lbo_calc_release(prim_calc);
   gkyl_array_release(moms);
   gkyl_array_release(fin);
-  gkyl_array_release(nu_modal);
-  gkyl_array_release(bcorr);
-  gkyl_array_release(prim_ref);
   gkyl_array_release(prim);
+  gkyl_array_release(coord);
+  gkyl_array_release(coord_nodal);
 }
 
 static void

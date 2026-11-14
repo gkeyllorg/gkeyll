@@ -18,6 +18,7 @@
 #include <gkyl_array_rio.h>
 #include <gkyl_bc_basic.h>
 #include <gkyl_bc_pkpm_species_reflect.h>
+#include <gkyl_comm_io.h>
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_calc_em_vars.h>
 #include <gkyl_dg_calc_pkpm_em_coupling.h>
@@ -34,22 +35,17 @@
 #include <gkyl_dg_pkpm_vel_flux_surf.h>
 #include <gkyl_dg_maxwell.h>
 #include <gkyl_dg_pkpm_mom_diffusion.h>
-#include <gkyl_dg_updater_lbo_pkpm.h>
 #include <gkyl_dg_updater_moment_pkpm.h>
 #include <gkyl_dynvec.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_eval_on_nodes.h>
 #include <gkyl_ghost_surf_calc.h>
 #include <gkyl_hyper_dg.h>
-#include <gkyl_mom_bcorr_lbo_pkpm.h>
 #include <gkyl_mom_calc.h>
-#include <gkyl_mom_calc_bcorr.h>
 #include <gkyl_mom_pkpm.h>
 #include <gkyl_null_pool.h>
-#include <gkyl_prim_lbo_calc.h>
 #include <gkyl_prim_lbo_cross_calc.h>
 #include <gkyl_prim_lbo_type.h>
-#include <gkyl_prim_lbo_pkpm.h>
 #include <gkyl_pkpm_bgk_collisions.h>
 #include <gkyl_pkpm_coll_nu.h>
 #include <gkyl_dg_conf_nodal.h>
@@ -246,23 +242,14 @@ typedef void (*pkpm_lbo_kinetic_rhs_t)(
 
 struct pkpm_lbo_collisions {
   // The operator at the configuration-space nodes.
-  bool use_nodal; // false for GPU runs
   struct gkyl_array *nu; // collision frequency of the operator at the nodes
   gkyl_pkpm_lbo_moms *up_moms; // primitive moments at the nodes
   gkyl_dg_updater_lbo_pkpm_nodal *up_coll; // the operator at the nodes
-  pkpm_lbo_moms_t calc_moms; // the nodal (constant or Spitzer frequency) or modal moments
-  pkpm_lbo_kinetic_rhs_t kinetic_rhs; // the nodal or modal operator
+  pkpm_lbo_moms_t calc_moms; // the moments (constant or Spitzer frequency)
+  pkpm_lbo_kinetic_rhs_t kinetic_rhs; // the operator
 
-  struct gkyl_array *boundary_corrections; // LBO boundary corrections
-  struct gkyl_mom_calc_bcorr *bcorr_calc; // LBO boundary corrections calculator
-  struct gkyl_array *nu_sum, *nu_prim_moms; // expansions of nu and nu [u, vtsq] (GPU runs)
-  struct gkyl_array *prim_moms; // [u, vtsq]: node values, or expansions on GPU runs
-  struct gkyl_array *self_nu; // expansion of the self-collision frequency (GPU runs)
-
+  struct gkyl_array *prim_moms; // [u, vtsq] at the nodes
   struct gkyl_array *nu_self; // self-collision frequency at the nodes (given or computed)
-
-  gkyl_prim_lbo_calc *coll_pcalc; // LBO primitive moment calculator
-  gkyl_dg_updater_collisions *coll_slvr; // collision solver
 };
 
 // Records of the fluid positivity limiter (gkyl_dg_calc_pkpm_vars_positivity): the per-cell

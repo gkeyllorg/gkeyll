@@ -50,11 +50,6 @@ struct gkyl_mom_calc_bcorr *gkyl_mom_calc_bcorr_lbo_vlasov_new(
   const struct gkyl_basis *pbasis, const double *vBoundary, bool use_gpu
 );
 
-struct gkyl_mom_calc_bcorr *gkyl_mom_calc_bcorr_lbo_pkpm_new(
-  const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis,
-  const struct gkyl_basis *pbasis, const double *vBoundary, double mass, bool use_gpu
-);
-
 struct gkyl_mom_calc_bcorr *gkyl_mom_calc_bcorr_lbo_gyrokinetic_new(
   const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis,
   const struct gkyl_basis *pbasis, double mass, const struct gkyl_velocity_map *vel_map,

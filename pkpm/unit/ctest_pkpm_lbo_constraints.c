@@ -1,7 +1,7 @@
 // The collision operator of the thermal-velocity normalized PKPM solver as a
-// self-contained update: the conservative LBO on [F, G] (drag and diffusion of F with the
-// boundary corrections, the G source 2 nu vth^2 F - 2 nu G folded into the drag kernel)
-// with primitive moments from the raw normalized moments (mass 1) must preserve the
+// self-contained update: the conservative LBO in the configuration-nodal form (drag and
+// diffusion of every block, the G source 2 nu vth^2 F - 2 nu G, the first-harmonic couplings)
+// with the primitive moments of gkyl_pkpm_lbo_moms at the nodes must preserve the
 // three constraints M0(F) = 1, M1(F) = 0 and M2(F) + 2 M0(G) = 3 of any normalized state
 // to round-off, i.e. the moments [M0, M1, M2 + 2 M0_G] of its right-hand side vanish
 // cell by cell. The state here is anisotropic and non-Maxwellian with a varying
@@ -15,12 +15,10 @@
 #include <gkyl_array_reduce.h>
 #include <gkyl_basis.h>
 #include <gkyl_dg_bin_ops.h>
-#include <gkyl_dg_lbo_pkpm_diff.h>
-#include <gkyl_dg_lbo_pkpm_drag.h>
-#include <gkyl_dg_updater_lbo_pkpm.h>
+#include <gkyl_dg_conf_nodal.h>
+#include <gkyl_dg_updater_lbo_pkpm_nodal.h>
 #include <gkyl_dg_updater_moment_pkpm.h>
-#include <gkyl_mom_calc_bcorr.h>
-#include <gkyl_prim_lbo_calc.h>
+#include <gkyl_pkpm_lbo_moms.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
@@ -86,7 +84,6 @@ test_lbo_constraints(int cdim, double nu_amp)
   gkyl_create_grid_ranges(&pgrid, ghost, &plocal_ext, &plocal);
   gkyl_create_grid_ranges(&vgrid, &ghost[cdim], &vlocal_ext, &vlocal);
   int nc = cbasis.num_basis, np = pbasis.num_basis;
-  int vdim = 1;
 
   // eight blocks [F, G, M0_perp, N_perp]; the LBO acts on [F, G] (the first harmonic is zero here)
   struct gkyl_array *f = mkarr(8 * np, plocal_ext.volume), *rhs = mkarr(8 * np, plocal_ext.volume);
@@ -95,9 +92,12 @@ test_lbo_constraints(int cdim, double nu_amp)
   struct gkyl_array *nu = mkarr(nc, clocal_ext.volume);
   struct gkyl_array *nmoms = mkarr(18 * nc, clocal_ext.volume),
                     *rhs_moms = mkarr(18 * nc, clocal_ext.volume);
-  struct gkyl_array *bcorr = mkarr((vdim + 1) * nc, clocal_ext.volume);
-  struct gkyl_array *prim = mkarr((vdim + 1) * nc, clocal_ext.volume);
-  struct gkyl_array *nu_prim = mkarr((vdim + 1) * nc, clocal_ext.volume);
+  // the configuration-nodal form of the distributions, of the right-hand side and of nu, and the
+  // primitive moments [u_par, vth^2] at the nodes
+  struct gkyl_array *fnodal = mkarr(8 * np, plocal_ext.volume);
+  struct gkyl_array *rhs_nodal = mkarr(8 * np, plocal_ext.volume);
+  struct gkyl_array *nu_nodal = mkarr(nc, clocal_ext.volume);
+  struct gkyl_array *prim = mkarr(2 * nc, clocal_ext.volume);
 
   gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&pgrid, &pbasis, 8, 2, eval_f, &ctx);
   gkyl_proj_on_basis_advance(proj, 0.0, &plocal_ext, f);
@@ -106,32 +106,28 @@ test_lbo_constraints(int cdim, double nu_amp)
   gkyl_proj_on_basis_advance(proj, 0.0, &clocal_ext, nu);
   gkyl_proj_on_basis_release(proj);
 
-  // Raw normalized moments [M0, M2, M0_G, M1, M3, M1_G, mu] (mass 1), the boundary
-  // corrections, the primitive moments [u_par, vth^2] and nu times them.
+  // Raw normalized moments [M0, M2, M0_G, M1, M3, M1_G, mu] (mass 1) and the primitive moments
+  // [u_par, vth^2] at the nodes.
   struct gkyl_dg_updater_moment *mcalc = gkyl_dg_updater_moment_pkpm_new(
     &pgrid, &cbasis, &pbasis, &clocal_ext, &vlocal, 1.0, false, false
   );
   gkyl_array_clear(nmoms, 0.0);
   gkyl_dg_updater_moment_pkpm_advance(mcalc, &plocal, &clocal, f, nmoms);
   double v_bounds[2] = {-wmax, wmax};
-  struct gkyl_mom_calc_bcorr *bcorr_calc =
-    gkyl_mom_calc_bcorr_lbo_pkpm_new(&pgrid, &cbasis, &pbasis, v_bounds, 1.0, false);
-  gkyl_array_clear(bcorr, 0.0);
-  gkyl_mom_calc_bcorr_advance(bcorr_calc, &plocal, &clocal, f, bcorr);
-  struct gkyl_prim_lbo_calc *pcalc =
-    gkyl_prim_lbo_pkpm_calc_new(&pgrid, &cbasis, &pbasis, &clocal, false);
-  gkyl_prim_lbo_calc_advance(pcalc, &clocal, nmoms, bcorr, nu, prim);
-  for (int d = 0; d < vdim + 1; ++d) {
-    gkyl_dg_mul_op(&cbasis, d, nu_prim, d, prim, 0, nu);
-  }
+  struct gkyl_dg_conf_nodal *conf_nodal = gkyl_dg_conf_nodal_new(&cbasis, &pbasis, false);
+  gkyl_dg_conf_nodal_phase_to_nodal(conf_nodal, &plocal, f, fnodal);
+  gkyl_dg_conf_nodal_conf_to_nodal(conf_nodal, &clocal, nu, nu_nodal);
+  struct gkyl_pkpm_lbo_moms *pcalc = gkyl_pkpm_lbo_moms_new(&cbasis, &pbasis, v_bounds, false);
+  gkyl_pkpm_lbo_moms_advance(pcalc, &clocal, &plocal, nmoms, fnodal, prim);
 
-  struct gkyl_dg_lbo_pkpm_drag_auxfields drag_inp = {.nuSum = nu, .nuPrimMomsSum = nu_prim};
-  struct gkyl_dg_lbo_pkpm_diff_auxfields diff_inp = {.nuSum = nu, .nuPrimMomsSum = nu_prim};
-  struct gkyl_dg_updater_collisions *lbo =
-    gkyl_dg_updater_lbo_pkpm_new(&pgrid, &cbasis, &pbasis, &clocal, &drag_inp, &diff_inp, false);
+  struct gkyl_dg_lbo_pkpm_nodal_auxfields lbo_inp = {.nu = nu_nodal, .prim_moms = prim};
+  struct gkyl_dg_updater_lbo_pkpm_nodal *lbo =
+    gkyl_dg_updater_lbo_pkpm_nodal_new(&pgrid, &cbasis, &pbasis, &clocal, &lbo_inp, false);
   gkyl_array_clear(rhs, 0.0);
+  gkyl_array_clear(rhs_nodal, 0.0);
   gkyl_array_clear(cflrate, 0.0);
-  gkyl_dg_updater_lbo_pkpm_advance(lbo, &plocal, f, cflrate, rhs);
+  gkyl_dg_updater_lbo_pkpm_nodal_advance(lbo, &plocal, fnodal, cflrate, rhs_nodal);
+  gkyl_dg_conf_nodal_phase_to_modal_accumulate(conf_nodal, &plocal, rhs_nodal, rhs);
 
   gkyl_array_clear(rhs_moms, 0.0);
   gkyl_dg_updater_moment_pkpm_advance(mcalc, &plocal, &clocal, rhs, rhs_moms);
@@ -159,13 +155,14 @@ test_lbo_constraints(int cdim, double nu_amp)
     err, scale
   );
 
-  gkyl_dg_updater_lbo_pkpm_release(lbo);
-  gkyl_prim_lbo_calc_release(pcalc);
-  gkyl_mom_calc_bcorr_release(bcorr_calc);
+  gkyl_dg_updater_lbo_pkpm_nodal_release(lbo);
+  gkyl_pkpm_lbo_moms_release(pcalc);
+  gkyl_dg_conf_nodal_release(conf_nodal);
   gkyl_dg_updater_moment_pkpm_release(mcalc);
-  gkyl_array_release(nu_prim);
   gkyl_array_release(prim);
-  gkyl_array_release(bcorr);
+  gkyl_array_release(nu_nodal);
+  gkyl_array_release(rhs_nodal);
+  gkyl_array_release(fnodal);
   gkyl_array_release(rhs_moms);
   gkyl_array_release(nmoms);
   gkyl_array_release(nu);
@@ -222,16 +219,18 @@ test_lbo_first_harmonic(int cdim, double nu_amp)
   gkyl_create_grid_ranges(&pgrid, ghost, &plocal_ext, &plocal);
   gkyl_create_grid_ranges(&vgrid, &ghost[cdim], &vlocal_ext, &vlocal);
   int nc = cbasis.num_basis, np = pbasis.num_basis;
-  int vdim = 1;
 
   struct gkyl_array *f = mkarr(8 * np, plocal_ext.volume), *rhs = mkarr(8 * np, plocal_ext.volume);
   struct gkyl_array *cflrate = mkarr(1, plocal_ext.volume);
   struct gkyl_array *nu = mkarr(nc, clocal_ext.volume);
   struct gkyl_array *nmoms = mkarr(18 * nc, clocal_ext.volume),
                     *rhs_moms = mkarr(18 * nc, clocal_ext.volume);
-  struct gkyl_array *bcorr = mkarr((vdim + 1) * nc, clocal_ext.volume);
-  struct gkyl_array *prim = mkarr((vdim + 1) * nc, clocal_ext.volume);
-  struct gkyl_array *nu_prim = mkarr((vdim + 1) * nc, clocal_ext.volume);
+  // the configuration-nodal form of the distributions, of the right-hand side and of nu, and the
+  // primitive moments [u_par, vth^2] at the nodes
+  struct gkyl_array *fnodal = mkarr(8 * np, plocal_ext.volume);
+  struct gkyl_array *rhs_nodal = mkarr(8 * np, plocal_ext.volume);
+  struct gkyl_array *nu_nodal = mkarr(nc, clocal_ext.volume);
+  struct gkyl_array *prim = mkarr(2 * nc, clocal_ext.volume);
   // nu times the moments of the state: [int w M0 (3), int N (3), q_perp (3)]
   struct gkyl_array *nu_moms = mkarr(9 * nc, clocal_ext.volume),
                     *moms = mkarr(9 * nc, clocal_ext.volume);
@@ -249,24 +248,20 @@ test_lbo_first_harmonic(int cdim, double nu_amp)
   gkyl_array_clear(nmoms, 0.0);
   gkyl_dg_updater_moment_pkpm_advance(mcalc, &plocal, &clocal, f, nmoms);
   double v_bounds[2] = {-wmax, wmax};
-  struct gkyl_mom_calc_bcorr *bcorr_calc =
-    gkyl_mom_calc_bcorr_lbo_pkpm_new(&pgrid, &cbasis, &pbasis, v_bounds, 1.0, false);
-  gkyl_array_clear(bcorr, 0.0);
-  gkyl_mom_calc_bcorr_advance(bcorr_calc, &plocal, &clocal, f, bcorr);
-  struct gkyl_prim_lbo_calc *pcalc =
-    gkyl_prim_lbo_pkpm_calc_new(&pgrid, &cbasis, &pbasis, &clocal, false);
-  gkyl_prim_lbo_calc_advance(pcalc, &clocal, nmoms, bcorr, nu, prim);
-  for (int d = 0; d < vdim + 1; ++d) {
-    gkyl_dg_mul_op(&cbasis, d, nu_prim, d, prim, 0, nu);
-  }
+  struct gkyl_dg_conf_nodal *conf_nodal = gkyl_dg_conf_nodal_new(&cbasis, &pbasis, false);
+  gkyl_dg_conf_nodal_phase_to_nodal(conf_nodal, &plocal, f, fnodal);
+  gkyl_dg_conf_nodal_conf_to_nodal(conf_nodal, &clocal, nu, nu_nodal);
+  struct gkyl_pkpm_lbo_moms *pcalc = gkyl_pkpm_lbo_moms_new(&cbasis, &pbasis, v_bounds, false);
+  gkyl_pkpm_lbo_moms_advance(pcalc, &clocal, &plocal, nmoms, fnodal, prim);
 
-  struct gkyl_dg_lbo_pkpm_drag_auxfields drag_inp = {.nuSum = nu, .nuPrimMomsSum = nu_prim};
-  struct gkyl_dg_lbo_pkpm_diff_auxfields diff_inp = {.nuSum = nu, .nuPrimMomsSum = nu_prim};
-  struct gkyl_dg_updater_collisions *lbo =
-    gkyl_dg_updater_lbo_pkpm_new(&pgrid, &cbasis, &pbasis, &clocal, &drag_inp, &diff_inp, false);
+  struct gkyl_dg_lbo_pkpm_nodal_auxfields lbo_inp = {.nu = nu_nodal, .prim_moms = prim};
+  struct gkyl_dg_updater_lbo_pkpm_nodal *lbo =
+    gkyl_dg_updater_lbo_pkpm_nodal_new(&pgrid, &cbasis, &pbasis, &clocal, &lbo_inp, false);
   gkyl_array_clear(rhs, 0.0);
+  gkyl_array_clear(rhs_nodal, 0.0);
   gkyl_array_clear(cflrate, 0.0);
-  gkyl_dg_updater_lbo_pkpm_advance(lbo, &plocal, f, cflrate, rhs);
+  gkyl_dg_updater_lbo_pkpm_nodal_advance(lbo, &plocal, fnodal, cflrate, rhs_nodal);
+  gkyl_dg_conf_nodal_phase_to_modal_accumulate(conf_nodal, &plocal, rhs_nodal, rhs);
   gkyl_array_clear(rhs_moms, 0.0);
   gkyl_dg_updater_moment_pkpm_advance(mcalc, &plocal, &clocal, rhs, rhs_moms);
 
@@ -318,15 +313,16 @@ test_lbo_first_harmonic(int cdim, double nu_amp)
   TEST_CHECK(err_q < 1e-12 * scale);
   TEST_MSG("cdim=%d nu_amp=%g: d/dt q_perp + 3 nu q_perp = %g", cdim, nu_amp, err_q);
 
-  gkyl_dg_updater_lbo_pkpm_release(lbo);
-  gkyl_prim_lbo_calc_release(pcalc);
-  gkyl_mom_calc_bcorr_release(bcorr_calc);
+  gkyl_dg_updater_lbo_pkpm_nodal_release(lbo);
+  gkyl_pkpm_lbo_moms_release(pcalc);
+  gkyl_dg_conf_nodal_release(conf_nodal);
   gkyl_dg_updater_moment_pkpm_release(mcalc);
   gkyl_array_release(moms);
   gkyl_array_release(nu_moms);
-  gkyl_array_release(nu_prim);
   gkyl_array_release(prim);
-  gkyl_array_release(bcorr);
+  gkyl_array_release(nu_nodal);
+  gkyl_array_release(rhs_nodal);
+  gkyl_array_release(fnodal);
   gkyl_array_release(rhs_moms);
   gkyl_array_release(nmoms);
   gkyl_array_release(nu);

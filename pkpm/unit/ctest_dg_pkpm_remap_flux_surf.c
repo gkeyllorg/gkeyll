@@ -261,9 +261,7 @@ test_identity_vs_label(int cdim, int dir)
         }
         J[0] += xi * X[2];
         J[1] += xi * X[5];
-        double leg[3] = {
-          sqrt(0.5), sqrt(1.5) * gn[q], sqrt(0.625) * (3.0 * gn[q] * gn[q] - 1.0)
-        };
+        double leg[3] = {sqrt(0.5), sqrt(1.5) * gn[q], sqrt(0.625) * (3.0 * gn[q] * gn[q] - 1.0)};
         for (int c = 0; c < 8; ++c) {
           for (int m = 0; m < 3; ++m) {
             ref[c][m] += gw[q] * J[c] * leg[m];
