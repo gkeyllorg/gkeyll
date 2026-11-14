@@ -337,6 +337,8 @@ gk_species_kinetic_release_dynamic(const gkyl_gyrokinetic_app *app, const struct
 
   gk_species_release_integrated_mom(app, gks);
 
+  gk_species_balance_release(app, &gks->bal);
+
   // Release L2 norm memory.
   gkyl_array_integrate_release(gks->integ_wfsq_op);
   gkyl_dynvec_release(gks->L2norm);
@@ -379,6 +381,8 @@ gk_species_kinetic_init_dynamic(
   }
 
   gk_species_init_integrated_mom(app, gks);
+
+  gk_species_balance_init(app, gks, &gks->bal);
 
   // Objects for L2 norm diagnostic.
   gks->integ_wfsq_op = gkyl_array_integrate_new(
@@ -692,7 +696,7 @@ gk_species_kinetic_init_dynamic(
   gks->write_integrated_mom_func = gk_species_write_integrated_mom_dynamic;
   gks->calc_L2norm_func = gk_species_calc_L2norm_dynamic;
   gks->write_L2norm_func = gk_species_write_L2norm_dynamic;
-  if (gks->info.time_rate_diagnostics) {
+  if (gks->time_rate_diags) {
     gks->calc_int_mom_dt_func = gk_species_calc_int_mom_dt_enabled;
   } else {
     gks->calc_int_mom_dt_func = gk_species_calc_int_mom_dt_disabled;
@@ -1453,6 +1457,8 @@ gk_species_kinetic_init(
   if (adaptive_sources) {
     add_bflux_moms_inp.diag_moments[nmom_extra[0]++] = GKYL_F_MOMENT_M2;
   }
+  // The balance diagnostics may turn on integrated diagnostics of the boundary fluxes.
+  gk_species_balance_pre_init(app, gks, &gks->bal, &bflux_type, &add_bflux_moms_inp);
   // Introduce new moments into moms_inp if needed.
   gk_species_bflux_init(app, gks, &gks->bflux, bflux_type, add_bflux_moms_inp);
 

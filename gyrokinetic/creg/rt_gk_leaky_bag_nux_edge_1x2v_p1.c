@@ -83,7 +83,7 @@ create_ctx(void)
   double t_end = 3; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   double write_phase_freq =
-    0.2; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
+    1.0; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
   int int_diag_calc_num = num_frames * 100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
@@ -123,7 +123,7 @@ compareToAnalytics(const struct gkyl_gk *app_inp, void *ctx)
 {
   struct boundary_ctx *app = ctx;
   char filename[256];
-  sprintf(filename, "%s-ion_integrated_moms.gkyl", app_inp->name);
+  sprintf(filename, "%s-ion_integrated_HamiltonianMoments.gkyl", app_inp->name);
 
   struct gkyl_dynvec_etype_ncomp enc = {};
   enc = gkyl_dynvec_read_ncomp(filename);
@@ -335,6 +335,8 @@ main(int argc, char **argv)
     .num_integrated_diag_moments = 1,
     .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
     .time_rate_diagnostics = true,
+    .num_balance_diags = 2,
+    .balance_diags = {GKYL_BALANCE_GK_PARTICLE, GKYL_BALANCE_GK_ENERGY},
 
     .boundary_flux_diagnostics =
       {.num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}},
@@ -371,6 +373,9 @@ main(int argc, char **argv)
 
     .num_periodic_dir = 0,
     .periodic_dirs = {},
+
+    .diagnostics =
+      {.num_balance_diags = 2, .balance_diags = {GKYL_BALANCE_GK_PARTICLE, GKYL_BALANCE_GK_ENERGY}},
 
     .num_species = 1,
     .species = {ion},

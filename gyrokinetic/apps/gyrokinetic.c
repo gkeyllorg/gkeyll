@@ -1046,6 +1046,17 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
     app->neut_species[i].info = gk->neut_species[i];
   }
 
+  // Balance diagnostics summed over species, whose terms the species and the field compute.
+  app->bal = (struct gk_app_balance){};
+  app->bal.num_diags = gk->diagnostics.num_balance_diags;
+  for (int d = 0; d < app->bal.num_diags; d++) {
+    app->bal.diag_types[d] = gk->diagnostics.balance_diags[d];
+    // Species components, and field_dot and bg_dot for the energy.
+    app->bal.num_comp[d] = app->bal.diag_types[d] == GKYL_BALANCE_GK_ENERGY ? 7 : 5;
+    app->bal.diag[d] = gkyl_dynvec_new(GKYL_DOUBLE, app->bal.num_comp[d]);
+    app->bal.is_first_write[d] = true;
+  }
+
   app->field = gk_field_new(gk, app); // Initialize field, even if we are  skipping field updates.
 
   // Choose the function that updates the fields in time.
@@ -1293,10 +1304,10 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app *app, double t0)
         // Compute the collisionless flux so we can compute the initial boundary flux.
         gk_species_collisionless_flux(app, gks, &gks->collisionless, distf[i]);
 
-        // Compute and store (in the ghost cell of out) the boundary fluxes.
-        gk_species_bflux_rhs(app, &gks->bflux, distf[i], distf[i]);
+        // Compute and store (in the ghost cell of f1) the boundary fluxes.
+        gk_species_bflux_rhs(app, &gks->bflux, distf[i], gks->f1);
         // Compute moments of the boundary fluxes.
-        gk_species_bflux_calc_moms(app, &gks->bflux, distf[i], bflux[i]);
+        gk_species_bflux_calc_moms(app, &gks->bflux, gks->f1, bflux[i]);
       }
     }
 
@@ -1320,17 +1331,23 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app *app, double t0)
     struct gk_species *gks = &app->species[i];
     // Scale the adiabatic species to set its density.
     gk_species_scaling_apply(app, gks, &gks->sca, gks->f, bflux);
-    // Compute the phase-space advection speeds and boundary fluxes as t=0
-    // diagnostics and emission BCs may need them.
-    gk_species_collisionless_flux(app, gks, &gks->collisionless, distf[i]);
-    gk_species_bflux_rhs(app, &gks->bflux, gks->f, gks->f);
-    gk_species_bflux_calc_moms(app, &gks->bflux, gks->f, bflux[i]);
   }
 
   // Apply boundary conditions.
   for (int i = 0; i < app->num_species; ++i) {
     gk_species_apply_bc(app, &app->species[i], t0, distf[i]);
   }
+
+  // Compute the boundary fluxes (in the ghost cell of f1) as t=0 diagnostics
+  // and recycling BCs need them. The surface fluxes use the ghost cells of f.
+  for (int i = 0; i < app->num_species; ++i) {
+    struct gk_species *gks = &app->species[i];
+    gks->gyroaverage(app, gks, app->field->phi_smooth, gks->gyro_phi);
+    gk_species_collisionless_flux(app, gks, &gks->collisionless, distf[i]);
+    gk_species_bflux_rhs(app, &gks->bflux, distf[i], gks->f1);
+    gk_species_bflux_calc_moms(app, &gks->bflux, gks->f1, bflux[i]);
+  }
+
   for (int i = 0; i < app->num_neut_species; ++i) {
     if (!app->neut_species[i].info.is_static) {
       gk_neut_species_apply_bc(app, &app->neut_species[i], distf_neut[i]);
@@ -1999,7 +2016,7 @@ gkyl_gyrokinetic_app_write_field_energy(gkyl_gyrokinetic_app *app)
     }
     gkyl_dynvec_clear(app->field->integ_energy);
 
-    if (app->field->info.time_rate_diagnostics) {
+    if (app->field->time_rate_diags) {
       // Write out the time rate of change of the field energy.
       const char *fmt1 = "%s-field_energy_dot.gkyl";
       int sz1 = gkyl_calc_strlen(fmt1, app->name);
@@ -2220,6 +2237,122 @@ gkyl_gyrokinetic_app_calc_neut_species_source_integrated_mom(
 {
   struct gk_neut_species *gkns = &app->neut_species[sidx];
   gk_neut_species_source_calc_integrated_mom(app, gkns, tm);
+}
+
+void
+gkyl_gyrokinetic_app_calc_species_balance(gkyl_gyrokinetic_app *app, int sidx, double tm)
+{
+  struct gk_species *gks = &app->species[sidx];
+  gk_species_balance_calc(app, gks, &gks->bal, tm);
+}
+
+void
+gkyl_gyrokinetic_app_write_species_balance(gkyl_gyrokinetic_app *app, int sidx)
+{
+  struct gk_species *gks = &app->species[sidx];
+  gk_species_balance_write(app, gks, &gks->bal);
+}
+
+void
+gkyl_gyrokinetic_app_calc_balance(gkyl_gyrokinetic_app *app, double tm)
+{
+  // Sum the balance of each dynamic species; the energy balance also includes
+  // the field terms. Must be called after the species balances are computed.
+  for (int d = 0; d < app->bal.num_diags; d++) {
+    double bal_vals[app->bal.num_comp[d]];
+    for (int k = 0; k < app->bal.num_comp[d]; k++) {
+      bal_vals[k] = 0.0;
+    }
+    double mom_tot = 0.0, dt = 0.0;
+    for (int i = 0; i < app->num_species; ++i) {
+      struct gk_species_balance *sbal = &app->species[i].bal;
+      if (!sbal->enabled) {
+        continue;
+      }
+      int sd = -1;
+      for (int k = 0; k < sbal->num_diags; k++) {
+        sd = sbal->diag_types[k] == app->bal.diag_types[d] ? k : sd;
+      }
+      assert(sd >= 0); // The species computes every balance of the app.
+      double sbal_vals[sbal->num_comp];
+      gkyl_dynvec_getlast(sbal->diag[sd], sbal_vals);
+      // Sum every component but the normalized error, recomputed below.
+      for (int k = 0; k < sbal->num_comp; k++) {
+        if (k != 1) {
+          bal_vals[k] += sbal_vals[k];
+        }
+      }
+      mom_tot += sbal->mom[sd];
+      dt = app->species[i].fdot_dt;
+    }
+    if (dt > 0.0) {
+      if (app->bal.diag_types[d] == GKYL_BALANCE_GK_ENERGY && app->field->update_field) {
+        // Field terms of the energy balance.
+        double energy, field_dot, bg_energy, bg_dot;
+        gk_field_calc_energy_balance(app, app->field, tm, &energy, &field_dot, &bg_energy, &bg_dot);
+        bal_vals[0] +=
+          field_dot - bg_dot; // mom_err = src - bflux - (mom_dot - field_dot + bg_dot).
+        bal_vals[5] = field_dot;
+        bal_vals[6] = bg_dot;
+        mom_tot += bg_energy - energy;
+      }
+      bal_vals[1] = bal_vals[0] * dt / mom_tot;
+    }
+    gkyl_dynvec_append(app->bal.diag[d], tm, bal_vals);
+  }
+}
+
+void
+gkyl_gyrokinetic_app_write_balance(gkyl_gyrokinetic_app *app)
+{
+  struct timespec wst = gkyl_wall_clock();
+  int rank;
+  gkyl_comm_get_rank(app->comm, &rank);
+  for (int d = 0; d < app->bal.num_diags; d++) {
+    if (rank == 0) {
+      // File named after the balance, e.g. <name>-balance_particle.gkyl.
+      const char *fmt = "%s-balance_%s.gkyl";
+      const char *diag_name = gkyl_gyrokinetic_balance_diag_strs[app->bal.diag_types[d]];
+      int sz = gkyl_calc_strlen(fmt, app->name, diag_name);
+      char fileNm[sz + 1]; // ensures no buffer overflow
+      snprintf(fileNm, sizeof fileNm, fmt, app->name, diag_name);
+
+      if (app->bal.is_first_write[d]) {
+        bool is_energy = app->bal.diag_types[d] == GKYL_BALANCE_GK_ENERGY;
+        struct gkyl_msgpack_map_elem io_meta_bal[] = {
+          {
+            .key = "Description",
+            .elem_type = GKYL_MP_STRING,
+            .cval = is_energy ? "Energy balance summed over species: mom_err = src_mom - "
+                                "bflux_tot_mom - (mom_dot - field_dot + bg_dot), with field_dot "
+                                "= dE_field/dt and bg_dot = d/dt int rho_bg phi." :
+                                "Balance summed over species: mom_err = src_mom - "
+                                "bflux_tot_mom - mom_dot.",
+          },
+          {
+            .key = "Columns",
+            .elem_type = GKYL_MP_STRING,
+            .cval = is_energy ? "mom_err, mom_err_norm, mom_dot, src_mom, bflux_tot_mom, "
+                                "field_dot, bg_dot" :
+                                "mom_err, mom_err_norm, mom_dot, src_mom, bflux_tot_mom",
+          },
+        };
+        int io_meta_len[] = {app->gk_geom->io_meta_basic_len, 2};
+        const struct gkyl_msgpack_map_elem *io_meta[] = {app->gk_geom->io_meta_basic, io_meta_bal};
+        struct gkyl_msgpack_data *mt =
+          gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
+
+        gkyl_dynvec_write_wmeta(app->bal.diag[d], fileNm, mt);
+        gkyl_msgpack_data_release(mt);
+        app->bal.is_first_write[d] = false;
+      } else {
+        gkyl_dynvec_awrite(app->bal.diag[d], fileNm);
+      }
+      app->stat.n_diag_io += 1;
+    }
+    gkyl_dynvec_clear(app->bal.diag[d]);
+  }
+  app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wst);
 }
 
 void
@@ -2568,7 +2701,9 @@ gkyl_gyrokinetic_app_calc_integrated_mom(gkyl_gyrokinetic_app *app, double tm)
     gkyl_gyrokinetic_app_calc_species_source_integrated_mom(app, i, tm);
     gkyl_gyrokinetic_app_calc_species_source_bgk_integrated_diagnostics(app, i, tm);
     gkyl_gyrokinetic_app_calc_species_positivity_integrated_diagnostics(app, i, tm);
+    gkyl_gyrokinetic_app_calc_species_balance(app, i, tm);
   }
+  gkyl_gyrokinetic_app_calc_balance(app, tm);
 
   for (int i = 0; i < app->num_neut_species; ++i) {
     gkyl_gyrokinetic_app_calc_neut_species_integrated_mom(app, i, tm);
@@ -2598,7 +2733,9 @@ gkyl_gyrokinetic_app_write_integrated_mom(gkyl_gyrokinetic_app *app)
     gkyl_gyrokinetic_app_write_species_lte_max_corr_status(app, i);
     gkyl_gyrokinetic_app_write_species_rad_integrated_mom(app, i);
     gkyl_gyrokinetic_app_write_species_boundary_flux_integrated_mom(app, i);
+    gkyl_gyrokinetic_app_write_species_balance(app, i);
   }
+  gkyl_gyrokinetic_app_write_balance(app);
 
   for (int i = 0; i < app->num_neut_species; ++i) {
     gkyl_gyrokinetic_app_write_neut_species_integrated_mom(app, i);
@@ -4283,8 +4420,6 @@ gkyl_gyrokinetic_app_from_file_species(gkyl_gyrokinetic_app *app, int sidx, cons
 
     if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
       gk_species_source_calc(app, gk_s, &gk_s->src, gk_s->lte.f_lte, 0.0);
-      // Read volume and time integrated boundary flux diagnostics.
-      gk_species_bflux_read_voltime_integrated_mom(app, gk_s, &gk_s->bflux);
     }
   }
 
@@ -4307,8 +4442,6 @@ gkyl_gyrokinetic_app_from_file_neut_species(gkyl_gyrokinetic_app *app, int sidx,
 
     if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
       gk_neut_species_source_calc(app, gkns, &gkns->src, gkns->lte.f_lte, 0.0);
-      // Read volume and time integrated boundary flux diagnostics.
-      gk_neut_species_bflux_read_voltime_integrated_mom(app, gkns, &gkns->bflux);
     }
   }
 
@@ -4341,10 +4474,13 @@ gkyl_gyrokinetic_app_from_frame_species(gkyl_gyrokinetic_app *app, int sidx, int
   app->is_first_dt_write_call = false;
   gk_s->is_first_integ_write_call = false;
   gk_s->is_first_L2norm_write_call = false;
+  for (int d = 0; d < gk_s->bal.num_diags; ++d) {
+    gk_s->bal.is_first_write[d] = false;
+  }
   for (int b = 0; b < gk_s->bflux.num_boundaries; ++b) {
     gk_s->bflux.is_first_intmom_write_call[b] = false;
   }
-  if (gk_s->info.time_rate_diagnostics) {
+  if (gk_s->time_rate_diags) {
     gk_s->is_first_fdot_integ_write_call = false;
   }
   if (gk_s->positivity.type) {
@@ -4353,6 +4489,8 @@ gkyl_gyrokinetic_app_from_frame_species(gkyl_gyrokinetic_app *app, int sidx, int
   if (gk_s->rad.radiation_id == GKYL_GK_RADIATION) {
     gk_s->rad.is_first_integ_write_call = false;
   }
+  gk_s->bgk_src.is_first_integ_write_call = false;
+  gk_s->bgk_src.is_first_diag_dynvec_write_call = false;
   if (gk_s->src.source_id) {
     gk_s->src.is_first_integ_write_call = false;
   }
@@ -4446,10 +4584,10 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
           // Compute the collisionless flux so we can compute the initial boundary flux.
           gk_species_collisionless_flux(app, gks, &gks->collisionless, distf[i]);
 
-          // Compute and store (in the ghost cell of of out) the boundary fluxes.
-          gk_species_bflux_rhs(app, &gks->bflux, distf[i], distf[i]);
+          // Compute and store (in the ghost cell of f1) the boundary fluxes.
+          gk_species_bflux_rhs(app, &gks->bflux, distf[i], gks->f1);
           // Compute moments of the boundary fluxes.
-          gk_species_bflux_calc_moms(app, &gks->bflux, distf[i], bflux[i]);
+          gk_species_bflux_calc_moms(app, &gks->bflux, gks->f1, bflux[i]);
         }
       }
 
@@ -4462,29 +4600,30 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
       gkyl_gyrokinetic_app_from_frame_field(app, 0);
     }
 
-    // Compute boundary fluxes, for recycling and diagnostics and adapt the source.
-    for (int i = 0; i < app->num_species; ++i) {
-      struct gk_species *gks = &app->species[i];
-
-      // Compute the collisionless flux so we can compute the initial boundary flux.
-      gk_species_collisionless_flux(app, gks, &gks->collisionless, distf[i]);
-
-      // Compute and store (in the ghost cell of of out) the boundary fluxes.
-      gk_species_bflux_rhs(app, &gks->bflux, distf[i], distf[i]);
-      // Compute moments of the boundary fluxes.
-      gk_species_bflux_calc_moms(app, &gks->bflux, distf[i], bflux[i]);
-    }
-
     // Apply boundary conditions.
     for (int i = 0; i < app->num_species; ++i) {
       gk_species_apply_bc(app, &app->species[i], rstat.stime, distf[i]);
     }
+
+    // Compute boundary fluxes (in the ghost cell of f1), for recycling and diagnostics
+    // and adapt the source. The surface fluxes use the ghost cells of f.
+    for (int i = 0; i < app->num_species; ++i) {
+      struct gk_species *gks = &app->species[i];
+      gks->gyroaverage(app, gks, app->field->phi_smooth, gks->gyro_phi);
+      gk_species_collisionless_flux(app, gks, &gks->collisionless, distf[i]);
+      gk_species_bflux_rhs(app, &gks->bflux, distf[i], gks->f1);
+      gk_species_bflux_calc_moms(app, &gks->bflux, gks->f1, bflux[i]);
+    }
+
     for (int i = 0; i < app->num_neut_species; ++i) {
       gk_neut_species_apply_bc(app, &app->neut_species[i], distf_neut[i]);
     }
   }
   app->field->is_first_energy_write_call = false; // Append to existing diagnostic.
   app->field->is_first_energy_dot_write_call = false; // Append to existing diagnostic.
+  for (int d = 0; d < app->bal.num_diags; ++d) {
+    app->bal.is_first_write[d] = false;
+  }
   return rstat;
 }
 
@@ -4568,6 +4707,9 @@ gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app *app)
   }
 
   gkyl_dynvec_release(app->dts);
+  for (int d = 0; d < app->bal.num_diags; d++) {
+    gkyl_dynvec_release(app->bal.diag[d]);
+  }
 
   gkyl_msgpack_map_elem_release(app->io_meta_basic_len, app->io_meta_basic);
   gkyl_msgpack_map_elem_release(app->io_meta_dg_len, app->io_meta_dg);

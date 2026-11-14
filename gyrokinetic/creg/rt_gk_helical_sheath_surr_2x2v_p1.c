@@ -564,6 +564,8 @@ main(int argc, char **argv)
       },
 
     .time_rate_diagnostics = true,
+    .num_balance_diags = 2,
+    .balance_diags = {GKYL_BALANCE_GK_PARTICLE, GKYL_BALANCE_GK_ENERGY},
   };
 
   // ions
@@ -655,6 +657,8 @@ main(int argc, char **argv)
       },
 
     .time_rate_diagnostics = true,
+    .num_balance_diags = 2,
+    .balance_diags = {GKYL_BALANCE_GK_PARTICLE, GKYL_BALANCE_GK_ENERGY},
   };
 
   // field
@@ -688,6 +692,9 @@ main(int argc, char **argv)
         .bfield_func = bfield_func, // magnetic field
         .bfield_ctx = &ctx,
       },
+
+    .diagnostics =
+      {.num_balance_diags = 2, .balance_diags = {GKYL_BALANCE_GK_PARTICLE, GKYL_BALANCE_GK_ENERGY}},
 
     .num_species = 2,
     .species = {elc, ion},

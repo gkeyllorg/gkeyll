@@ -53,7 +53,7 @@ gyrokinetic_multib_forward_euler(
     }
     for (int i = 0; i < app->num_neut_species; ++i) {
       struct gk_neut_species *gkns = &sbapp->neut_species[i];
-      gk_neut_species_step_f(gkns, fout_neut[li_charged + i], dta, fin_neut[li_charged + i]);
+      gk_neut_species_step_f(gkns, fout_neut[li_neut + i], dta, fin_neut[li_neut + i]);
       gk_neut_species_bflux_step_f(
         sbapp, &gkns->bflux, bflux_out_neut[li_neut + i], 1.0, bflux_in_neut[li_neut + i]
       );
@@ -151,10 +151,11 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app *app, doubl
             // Compute moment of f_old to later compute moment of df/dt.
             // Do it before the fields are updated, but after dt is calculated.
             gk_species_calc_int_mom_dt(sbapp, gks, dt, gks->fdot_mom_old);
+            gk_species_source_bgk_step(&gks->bgk_src, true);
           }
 
-          // Compute field energy divided by dt for energy balance diagnostics.
-          gk_field_calc_energy_dt(sbapp, sbapp->field, dt, sbapp->field->em_energy_red_old);
+          // Store the field energies divided by dt for the energy rate and balance diagnostics.
+          gk_field_calc_energy_dt(sbapp, sbapp->field, dt, true);
         }
 
         // Compute the fields and apply BCs.
@@ -320,7 +321,6 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app *app, doubl
               gk_species_copy_range(gks, gks->f, gks->f1, &gks->local_ext);
               // Step boundary fluxes.
               gk_species_bflux_set(sbapp, &gks->bflux, gks->bflux.f, 2.0 / 3.0, gks->bflux.fnew);
-              gk_species_bflux_calc_voltime_integrated_mom(sbapp, gks, &gks->bflux, tcurr);
             }
             for (int i = 0; i < ns_neut; ++i) {
               struct gk_neut_species *gkns = &sbapp->neut_species[i];
@@ -332,7 +332,6 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app *app, doubl
               gk_neut_species_bflux_set(
                 sbapp, &gkns->bflux, gkns->bflux.f, 2.0 / 3.0, gkns->bflux.fnew
               );
-              gk_neut_species_bflux_calc_voltime_integrated_mom(sbapp, gkns, &gkns->bflux, tcurr);
             }
           }
           app->stat.time_stepper_arithmetic_tm += gkyl_time_diff_now_sec(wst);
@@ -373,10 +372,11 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app *app, doubl
               // Compute moment of f_new to compute moment of df/dt.
               // Need to do it after the fields are updated.
               gk_species_calc_int_mom_dt(sbapp, gks, dt, gks->fdot_mom_new);
+              gk_species_source_bgk_step(&gks->bgk_src, false);
             }
 
-            // Compute field energy divided by dt for energy balance diagnostics.
-            gk_field_calc_energy_dt(sbapp, sbapp->field, dt, sbapp->field->em_energy_red_new);
+            // Store the field energies divided by dt for the energy rate and balance diagnostics.
+            gk_field_calc_energy_dt(sbapp, sbapp->field, dt, false);
           }
 
           state = RK_COMPLETE;
