@@ -4668,8 +4668,6 @@ gkyl_gyrokinetic_app_release_geom(gkyl_gyrokinetic_app *app)
 void
 gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app *app)
 {
-  gyrokinetic_post_positivity_quasineut_release(app);
-
   gkyl_array_release(app->jacobtot_inv_weak);
   gkyl_array_release(app->delta_ts_x_lo);
   gkyl_array_release(app->delta_ts_x_up);
@@ -4687,6 +4685,7 @@ gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app *app)
   if (app->num_species > 0) {
     gkyl_free(app->species);
   }
+  gyrokinetic_post_positivity_quasineut_release(app);
 
   for (int i = 0; i < app->num_neut_species; ++i) {
     gk_neut_species_release(app, &app->neut_species[i]);

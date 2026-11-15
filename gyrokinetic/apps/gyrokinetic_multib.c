@@ -2389,5 +2389,7 @@ gkyl_gyrokinetic_multib_app_release(gkyl_gyrokinetic_multib_app *mbapp)
 
   gkyl_dynvec_release(mbapp->dts);
 
+  gkyl_msgpack_map_elem_release(mbapp->io_meta_basic_len, mbapp->io_meta_basic);
+
   gkyl_free(mbapp);
 }
