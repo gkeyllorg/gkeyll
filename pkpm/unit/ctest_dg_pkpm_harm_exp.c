@@ -44,7 +44,7 @@ hx_cell_new(int cdim, double mix, double om0)
   double plo[GKYL_MAX_DIM] = {0.0}, pup[GKYL_MAX_DIM] = {1.0, 1.0, 1.0, 1.0};
   int pcells[GKYL_MAX_DIM] = {1, 1, 1, 1};
   gkyl_rect_grid_init(&c.pgrid, cdim + 1, plo, pup, pcells);
-  c.up = gkyl_dg_pkpm_harm_exp_new(&(struct gkyl_dg_pkpm_harm_exp_inp) {
+  c.up = gkyl_dg_pkpm_harm_exp_inew(&(struct gkyl_dg_pkpm_harm_exp_inp) {
     .phase_grid = &c.pgrid, .conf_basis = &c.cbasis, .qbym = 1.0, .mix = mix, .use_gpu = false});
   c.em = gkyl_array_new(GKYL_DOUBLE, 8 * c.nc, 1);
   c.coef = gkyl_array_new(GKYL_DOUBLE, gkyl_dg_pkpm_harm_exp_num_coef(c.up), 1);
@@ -159,7 +159,7 @@ hx_init_nodal(const struct hx_cell *c, double amp, double *f)
       }
     }
   }
-  pkpm_hx_to_modal(c->cdim, Xn, f);
+  ser_pkpm_harm_exp_to_modal_kernels[c->cdim - 1](Xn, f);
 }
 
 static void
@@ -171,8 +171,8 @@ test_transforms(int cdim)
     f[k] = sin(0.7 * k + 0.1);
     g[k] = -1.0;
   }
-  pkpm_hx_to_nodes(cdim, f, fn);
-  pkpm_hx_to_modal(cdim, fn, g);
+  ser_pkpm_harm_exp_to_nodes_kernels[cdim - 1](f, fn);
+  ser_pkpm_harm_exp_to_modal_kernels[cdim - 1](fn, g);
   for (int k = 0; k < 2 * c.np; ++k) {
     TEST_CHECK(g[k] == -1.0); // F and G untouched
   }
@@ -206,9 +206,9 @@ test_damp_step(int cdim)
     }
     hx_step(&c, h, true, f);
     double Mn[24 * 6], Xn[24 * 6], fgn[24 * 2];
-    pkpm_hx_to_nodes(cdim, f0, Mn);
-    pkpm_hx_fg_to_nodes(cdim, f0, fgn);
-    pkpm_hx_to_nodes(cdim, f, Xn);
+    ser_pkpm_harm_exp_to_nodes_kernels[cdim - 1](f0, Mn);
+    ser_pkpm_harm_exp_fg_to_nodes_kernels[cdim - 1](f0, fgn);
+    ser_pkpm_harm_exp_to_nodes_kernels[cdim - 1](f, Xn);
     double oh[3];
     double mag = pkpm_hx_axis(c.om, oh), y = mag * h, err = 0.0, vmax = 0.0;
     int ncap = 0;
@@ -317,7 +317,7 @@ hx_col_new(int nv, double mix)
   double plo[2] = {0.0, -0.5 * nv}, pup[2] = {1.0, 0.5 * nv};
   int pcells[2] = {1, nv};
   gkyl_rect_grid_init(&c.pgrid, 2, plo, pup, pcells);
-  c.up = gkyl_dg_pkpm_harm_exp_new(&(struct gkyl_dg_pkpm_harm_exp_inp) {
+  c.up = gkyl_dg_pkpm_harm_exp_inew(&(struct gkyl_dg_pkpm_harm_exp_inp) {
     .phase_grid = &c.pgrid, .conf_basis = &c.cbasis, .qbym = 1.0, .mix = mix, .use_gpu = false});
   c.em = gkyl_array_new(GKYL_DOUBLE, 8 * c.cbasis.num_basis, 1);
   c.coef = gkyl_array_new(GKYL_DOUBLE, gkyl_dg_pkpm_harm_exp_num_coef(c.up), 1);
@@ -422,8 +422,8 @@ hx_col_diag(const struct hx_col *c, double *rmax, double *mom)
   for (int iv = 0; iv < c->nv; ++iv) {
     const double *f = gkyl_array_cfetch(c->f, iv);
     double fn[24 * 6], fgn[24 * 2];
-    pkpm_hx_to_nodes(1, f, fn);
-    pkpm_hx_fg_to_nodes(1, f, fgn);
+    ser_pkpm_harm_exp_to_nodes_kernels[1 - 1](f, fn);
+    ser_pkpm_harm_exp_fg_to_nodes_kernels[1 - 1](f, fgn);
     for (int p = 0; p < 6; ++p) {
       double F = fgn[2 * p], G = fgn[2 * p + 1];
       double am = sqrt(fn[6 * p] * fn[6 * p] + fn[6 * p + 1] * fn[6 * p + 1] + fn[6 * p + 2] * fn[6 * p + 2]);
@@ -528,7 +528,11 @@ test_stage_weights(int cdim)
   int n = 8 * c.np;
   struct gkyl_basis pbasis;
   gkyl_cart_modal_hybrid(&pbasis, cdim, 1);
-  struct gkyl_pkpm_stage_weights *sw = gkyl_pkpm_stage_weights_new(&c.cbasis, &pbasis, false);
+  struct gkyl_pkpm_stage_weights *sw = gkyl_pkpm_stage_weights_inew(&(struct gkyl_pkpm_stage_weights_inp){
+    .conf_basis = &c.cbasis,
+    .phase_basis = &pbasis,
+    .use_gpu = false,
+  });
   struct gkyl_array *fa = gkyl_array_new(GKYL_DOUBLE, n, 1), *ya = gkyl_array_new(GKYL_DOUBLE, n, 1);
   struct gkyl_array *xa = gkyl_array_new(GKYL_DOUBLE, n, 1), *za = gkyl_array_new(GKYL_DOUBLE, n, 1);
   struct gkyl_array *la = gkyl_array_new(GKYL_DOUBLE, n, 1), *ca = gkyl_array_new(GKYL_DOUBLE, n, 1);
@@ -567,11 +571,11 @@ test_stage_weights(int cdim)
     gkyl_pkpm_stage_weights_advance(sw, &c.crange, &c.prange, coef_fe, fa, la, lam_c, ca);
 
     double Mn[24 * 6], Xn[24 * 6], Zn[24 * 6], Ln[24 * 6], Cn[24 * 6], err = 0.0, err_comb = 0.0, vmax = 0.0;
-    pkpm_hx_to_nodes(cdim, m, Mn);
-    pkpm_hx_to_nodes(cdim, gkyl_array_cfetch(xa, 0), Xn);
-    pkpm_hx_to_nodes(cdim, gkyl_array_cfetch(za, 0), Zn);
-    pkpm_hx_to_nodes(cdim, gkyl_array_cfetch(la, 0), Ln);
-    pkpm_hx_to_nodes(cdim, gkyl_array_cfetch(ca, 0), Cn);
+    ser_pkpm_harm_exp_to_nodes_kernels[cdim - 1](m, Mn);
+    ser_pkpm_harm_exp_to_nodes_kernels[cdim - 1](gkyl_array_cfetch(xa, 0), Xn);
+    ser_pkpm_harm_exp_to_nodes_kernels[cdim - 1](gkyl_array_cfetch(za, 0), Zn);
+    ser_pkpm_harm_exp_to_nodes_kernels[cdim - 1](gkyl_array_cfetch(la, 0), Ln);
+    ser_pkpm_harm_exp_to_nodes_kernels[cdim - 1](gkyl_array_cfetch(ca, 0), Cn);
     for (int p = 0; p < c.np; ++p) {
       double lam_q = lam_d[p / 3];
       double w_fe = coef_fe * lam_q / (coef_old + coef_fe * lam_q), w_old = 1.0 - w_fe;

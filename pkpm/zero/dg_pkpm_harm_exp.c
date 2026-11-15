@@ -7,15 +7,16 @@
 #include <gkyl_dg_pkpm_harm_exp_priv.h>
 #include <gkyl_range.h>
 
-// Sizes and parameters shared by the host and device constructors.
-static void
-dg_pkpm_harm_exp_setup(struct gkyl_dg_pkpm_harm_exp *up, const struct gkyl_dg_pkpm_harm_exp_inp *inp)
+void
+gkyl_dg_pkpm_harm_exp_setup(
+  struct gkyl_dg_pkpm_harm_exp *up, const struct gkyl_dg_pkpm_harm_exp_inp *inp
+)
 {
   assert(
     inp->conf_basis->poly_order == 1 && inp->conf_basis->b_type == GKYL_BASIS_MODAL_SERENDIPITY
   );
   up->cdim = inp->conf_basis->ndim;
-  up->num_conf_nodes = 1 << up->cdim;
+  up->num_conf_nodes = inp->conf_basis->num_basis;
   up->num_phase_nodes = PKPM_NUM_VEL_MODES * up->num_conf_nodes;
   up->qbym = inp->qbym;
   up->mix = inp->mix > 0.0 ? inp->mix : 0.0;
@@ -25,15 +26,16 @@ dg_pkpm_harm_exp_setup(struct gkyl_dg_pkpm_harm_exp *up, const struct gkyl_dg_pk
 }
 
 struct gkyl_dg_pkpm_harm_exp *
-gkyl_dg_pkpm_harm_exp_new(const struct gkyl_dg_pkpm_harm_exp_inp *inp)
+gkyl_dg_pkpm_harm_exp_inew(const struct gkyl_dg_pkpm_harm_exp_inp *inp)
 {
 #ifdef GKYL_HAVE_CUDA
   if (inp->use_gpu) {
-    return gkyl_dg_pkpm_harm_exp_cu_dev_new(inp);
+    return gkyl_dg_pkpm_harm_exp_cu_dev_inew(inp);
   }
 #endif
   struct gkyl_dg_pkpm_harm_exp *up = gkyl_malloc(sizeof(*up));
-  dg_pkpm_harm_exp_setup(up, inp);
+  gkyl_dg_pkpm_harm_exp_setup(up, inp);
+  pkpm_hx_choose_kernels(up);
   up->use_gpu = false;
   GKYL_CLEAR_CU_ALLOC(up->flags);
   up->on_dev = up; // self-reference on host
@@ -174,7 +176,7 @@ gkyl_dg_pkpm_harm_exp_release(struct gkyl_dg_pkpm_harm_exp *up)
 #ifndef GKYL_HAVE_CUDA
 
 struct gkyl_dg_pkpm_harm_exp *
-gkyl_dg_pkpm_harm_exp_cu_dev_new(const struct gkyl_dg_pkpm_harm_exp_inp *inp)
+gkyl_dg_pkpm_harm_exp_cu_dev_inew(const struct gkyl_dg_pkpm_harm_exp_inp *inp)
 {
   assert(false);
   return 0;

@@ -19,12 +19,12 @@ struct gkyl_dg_pkpm_harm_exp_inp {
 
 /**
  * Create a new updater for the gyrophase-mixing integrating factor of the first-harmonic blocks
- * M0_perp and N_perp of the normalized PKPM distributions [F, G, M0_perp, N_perp] (plan 17.44). The
+ * M0_perp and N_perp of the normalized PKPM distributions [F, G, M0_perp, N_perp]. The
  * gyration (q/m) U x B is explicit in the stage right-hand side, so every block is advanced by plain
  * SSP-RK3 (|Omega| is part of the time-step rate, gkyl_dg_pkpm_harm_vol_advance); only the mixing
  * damping, which can be stiff, is integrated exactly.
  *
- * Gyrophase mixing (plan 17.24): agyrotropy beyond what one harmonic can represent relaxes to that
+ * Gyrophase mixing: agyrotropy beyond what one harmonic can represent relaxes to that
  * bound, d(M0_perp, N_perp)/dt = -nu ((M0_perp, N_perp) - P(M0_perp, N_perp)) with nu = mix |Omega|
  * and P the projection onto r <= 1 at each phase node, r = max(sqrt2 |M0_perp|/sqrt(F G),
  * |N_perp| sqrt(F)/G^(3/2)). As a rate on the first harmonic it is nu (1 - 1/r)_+, frozen at the
@@ -46,12 +46,12 @@ struct gkyl_dg_pkpm_harm_exp_inp {
  * @param inp Input parameters.
  * @return New updater pointer.
  */
-struct gkyl_dg_pkpm_harm_exp *gkyl_dg_pkpm_harm_exp_new(const struct gkyl_dg_pkpm_harm_exp_inp *inp);
+struct gkyl_dg_pkpm_harm_exp *gkyl_dg_pkpm_harm_exp_inew(const struct gkyl_dg_pkpm_harm_exp_inp *inp);
 
 /**
  * Create the updater on NV-GPU. See the new method for documentation.
  */
-struct gkyl_dg_pkpm_harm_exp *gkyl_dg_pkpm_harm_exp_cu_dev_new(const struct gkyl_dg_pkpm_harm_exp_inp *inp);
+struct gkyl_dg_pkpm_harm_exp *gkyl_dg_pkpm_harm_exp_cu_dev_inew(const struct gkyl_dg_pkpm_harm_exp_inp *inp);
 
 /**
  * Number of components of the configuration-space coefficient array ((q/m) B_n at the

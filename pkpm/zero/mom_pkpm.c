@@ -22,32 +22,29 @@ gkyl_mom_pkpm_free(const struct gkyl_ref_count *ref)
 }
 
 struct gkyl_mom_type *
-gkyl_mom_pkpm_new(
-  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, double mass, bool diag,
-  bool use_gpu
-)
+gkyl_mom_pkpm_inew(const struct gkyl_mom_pkpm_inp *inp)
 {
-  assert(cbasis->poly_order == pbasis->poly_order);
+  assert(inp->conf_basis->poly_order == inp->phase_basis->poly_order);
 
 #ifdef GKYL_HAVE_CUDA
-  if (use_gpu) {
-    return gkyl_mom_pkpm_cu_dev_new(cbasis, pbasis, mass, diag);
+  if (inp->use_gpu) {
+    return gkyl_mom_pkpm_cu_dev_inew(inp);
   }
 #endif
   struct mom_type_pkpm *mom_pkpm = gkyl_malloc(sizeof(struct mom_type_pkpm));
-  int cdim = cbasis->ndim, pdim = pbasis->ndim, vdim = pdim - cdim;
-  int poly_order = cbasis->poly_order;
+  int cdim = inp->conf_basis->ndim, pdim = inp->phase_basis->ndim;
+  int poly_order = inp->conf_basis->poly_order;
 
   mom_pkpm->momt.cdim = cdim;
   mom_pkpm->momt.pdim = pdim;
   mom_pkpm->momt.poly_order = poly_order;
-  mom_pkpm->momt.num_config = cbasis->num_basis;
-  mom_pkpm->momt.num_phase = pbasis->num_basis;
+  mom_pkpm->momt.num_config = inp->conf_basis->num_basis;
+  mom_pkpm->momt.num_phase = inp->phase_basis->num_basis;
 
   // choose kernel tables based on basis-function type
   const gkyl_mom_pkpm_kern_list *mom_pkpm_kernels, *mom_pkpm_diag_kernels;
 
-  switch (cbasis->b_type) {
+  switch (inp->conf_basis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       mom_pkpm_kernels = ser_mom_pkpm_kernels;
       mom_pkpm_diag_kernels = ser_mom_pkpm_diag_kernels;
@@ -59,7 +56,7 @@ gkyl_mom_pkpm_new(
       break;
   }
 
-  if (diag) {
+  if (inp->is_diag) {
     mom_pkpm->momt.kernel = CK(mom_pkpm_diag_kernels, cdim, poly_order);
     mom_pkpm->momt.num_mom = 8; // rho, M1, p_par, p_perp, q_par, q_perp, r_parpar, r_parperp
   } else {
@@ -67,7 +64,7 @@ gkyl_mom_pkpm_new(
     mom_pkpm->momt.num_mom = 18; // rho, p_par, p_perp, M1, q_par, q_perp, int (1, w, w^2) M0_perp dw (3 each), int N_perp dw (3)
   }
 
-  mom_pkpm->mass = mass;
+  mom_pkpm->mass = inp->mass;
 
   mom_pkpm->momt.flags = 0;
   GKYL_CLEAR_CU_ALLOC(mom_pkpm->momt.flags);
@@ -81,9 +78,7 @@ gkyl_mom_pkpm_new(
 #ifndef GKYL_HAVE_CUDA
 
 struct gkyl_mom_type *
-gkyl_mom_pkpm_cu_dev_new(
-  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, double mass, bool diag
-)
+gkyl_mom_pkpm_cu_dev_inew(const struct gkyl_mom_pkpm_inp *inp)
 {
   assert(false);
   return 0;

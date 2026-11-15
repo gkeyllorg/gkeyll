@@ -108,21 +108,45 @@ test_lbo_constraints(int cdim, double nu_amp)
 
   // Raw normalized moments [M0, M2, M0_G, M1, M3, M1_G, mu] (mass 1) and the primitive moments
   // [u_par, vth^2] at the nodes.
-  struct gkyl_dg_updater_moment *mcalc = gkyl_dg_updater_moment_pkpm_new(
-    &pgrid, &cbasis, &pbasis, &clocal_ext, &vlocal, 1.0, false, false
-  );
+  struct gkyl_dg_updater_moment *mcalc =
+    gkyl_dg_updater_moment_pkpm_inew(&(struct gkyl_dg_updater_moment_pkpm_inp){
+      .phase_grid = &pgrid,
+      .conf_basis = &cbasis,
+      .phase_basis = &pbasis,
+      .conf_range = &clocal_ext,
+      .vel_range = &vlocal,
+      .mass = 1.0,
+      .is_diag = false,
+      .use_gpu = false,
+    });
   gkyl_array_clear(nmoms, 0.0);
   gkyl_dg_updater_moment_pkpm_advance(mcalc, &plocal, &clocal, f, nmoms);
   double v_bounds[2] = {-wmax, wmax};
-  struct gkyl_dg_conf_nodal *conf_nodal = gkyl_dg_conf_nodal_new(&cbasis, &pbasis, false);
+  struct gkyl_dg_conf_nodal *conf_nodal = gkyl_dg_conf_nodal_inew(&(struct gkyl_dg_conf_nodal_inp){
+    .conf_basis = &cbasis,
+    .phase_basis = &pbasis,
+    .use_gpu = false,
+  });
   gkyl_dg_conf_nodal_phase_to_nodal(conf_nodal, &plocal, f, fnodal);
   gkyl_dg_conf_nodal_conf_to_nodal(conf_nodal, &clocal, nu, nu_nodal);
-  struct gkyl_pkpm_lbo_moms *pcalc = gkyl_pkpm_lbo_moms_new(&cbasis, &pbasis, v_bounds, false);
+  struct gkyl_pkpm_lbo_moms *pcalc = gkyl_pkpm_lbo_moms_inew(&(struct gkyl_pkpm_lbo_moms_inp){
+    .conf_basis = &cbasis,
+    .phase_basis = &pbasis,
+    .vel_bounds = v_bounds,
+    .use_gpu = false,
+  });
   gkyl_pkpm_lbo_moms_advance(pcalc, &clocal, &plocal, nmoms, fnodal, prim);
 
-  struct gkyl_dg_lbo_pkpm_nodal_auxfields lbo_inp = {.nu = nu_nodal, .prim_moms = prim};
   struct gkyl_dg_updater_lbo_pkpm_nodal *lbo =
-    gkyl_dg_updater_lbo_pkpm_nodal_new(&pgrid, &cbasis, &pbasis, &clocal, &lbo_inp, false);
+    gkyl_dg_updater_lbo_pkpm_nodal_inew(&(struct gkyl_dg_updater_lbo_pkpm_nodal_inp){
+      .phase_grid = &pgrid,
+      .conf_basis = &cbasis,
+      .phase_basis = &pbasis,
+      .conf_range = &clocal,
+      .nu = nu_nodal,
+      .prim_moms = prim,
+      .use_gpu = false,
+    });
   gkyl_array_clear(rhs, 0.0);
   gkyl_array_clear(rhs_nodal, 0.0);
   gkyl_array_clear(cflrate, 0.0);
@@ -242,21 +266,45 @@ test_lbo_first_harmonic(int cdim, double nu_amp)
   gkyl_proj_on_basis_advance(proj, 0.0, &clocal_ext, nu);
   gkyl_proj_on_basis_release(proj);
 
-  struct gkyl_dg_updater_moment *mcalc = gkyl_dg_updater_moment_pkpm_new(
-    &pgrid, &cbasis, &pbasis, &clocal_ext, &vlocal, 1.0, false, false
-  );
+  struct gkyl_dg_updater_moment *mcalc =
+    gkyl_dg_updater_moment_pkpm_inew(&(struct gkyl_dg_updater_moment_pkpm_inp){
+      .phase_grid = &pgrid,
+      .conf_basis = &cbasis,
+      .phase_basis = &pbasis,
+      .conf_range = &clocal_ext,
+      .vel_range = &vlocal,
+      .mass = 1.0,
+      .is_diag = false,
+      .use_gpu = false,
+    });
   gkyl_array_clear(nmoms, 0.0);
   gkyl_dg_updater_moment_pkpm_advance(mcalc, &plocal, &clocal, f, nmoms);
   double v_bounds[2] = {-wmax, wmax};
-  struct gkyl_dg_conf_nodal *conf_nodal = gkyl_dg_conf_nodal_new(&cbasis, &pbasis, false);
+  struct gkyl_dg_conf_nodal *conf_nodal = gkyl_dg_conf_nodal_inew(&(struct gkyl_dg_conf_nodal_inp){
+    .conf_basis = &cbasis,
+    .phase_basis = &pbasis,
+    .use_gpu = false,
+  });
   gkyl_dg_conf_nodal_phase_to_nodal(conf_nodal, &plocal, f, fnodal);
   gkyl_dg_conf_nodal_conf_to_nodal(conf_nodal, &clocal, nu, nu_nodal);
-  struct gkyl_pkpm_lbo_moms *pcalc = gkyl_pkpm_lbo_moms_new(&cbasis, &pbasis, v_bounds, false);
+  struct gkyl_pkpm_lbo_moms *pcalc = gkyl_pkpm_lbo_moms_inew(&(struct gkyl_pkpm_lbo_moms_inp){
+    .conf_basis = &cbasis,
+    .phase_basis = &pbasis,
+    .vel_bounds = v_bounds,
+    .use_gpu = false,
+  });
   gkyl_pkpm_lbo_moms_advance(pcalc, &clocal, &plocal, nmoms, fnodal, prim);
 
-  struct gkyl_dg_lbo_pkpm_nodal_auxfields lbo_inp = {.nu = nu_nodal, .prim_moms = prim};
   struct gkyl_dg_updater_lbo_pkpm_nodal *lbo =
-    gkyl_dg_updater_lbo_pkpm_nodal_new(&pgrid, &cbasis, &pbasis, &clocal, &lbo_inp, false);
+    gkyl_dg_updater_lbo_pkpm_nodal_inew(&(struct gkyl_dg_updater_lbo_pkpm_nodal_inp){
+      .phase_grid = &pgrid,
+      .conf_basis = &cbasis,
+      .phase_basis = &pbasis,
+      .conf_range = &clocal,
+      .nu = nu_nodal,
+      .prim_moms = prim,
+      .use_gpu = false,
+    });
   gkyl_array_clear(rhs, 0.0);
   gkyl_array_clear(rhs_nodal, 0.0);
   gkyl_array_clear(cflrate, 0.0);

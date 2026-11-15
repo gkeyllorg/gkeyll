@@ -6,10 +6,15 @@
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 
-// Struct containing the pointers to auxiliary fields.
-struct gkyl_dg_lbo_pkpm_nodal_auxfields {
-  const struct gkyl_array *nu; // collision frequency at the configuration-space nodes
-  const struct gkyl_array *prim_moms; // primitive moments [u, vtsq] at the nodes
+// Input packaged as a struct
+struct gkyl_dg_lbo_pkpm_nodal_inp {
+  const struct gkyl_basis *conf_basis; // Configuration-space basis functions (p=1 serendipity).
+  const struct gkyl_basis *phase_basis; // Phase-space basis functions (hybrid).
+  const struct gkyl_range *conf_range; // Configuration-space range for indexing nu and prim_moms.
+  const struct gkyl_rect_grid *phase_grid; // Phase-space grid.
+  const struct gkyl_array *nu; // Collision frequency at the configuration-space nodes.
+  const struct gkyl_array *prim_moms; // Primitive moments [u, vtsq] at the nodes.
+  bool use_gpu; // bool to determine if on GPU (not available yet).
 };
 
 /**
@@ -28,24 +33,7 @@ struct gkyl_dg_lbo_pkpm_nodal_auxfields {
  * The CFL rate of a phase-space cell is the largest over its nodes of
  * 2.5 (2/dv) nu |u - w_c| + 3 nu + 9 (2/dv)^2 nu vtsq.
  *
- * @param cbasis Configuration-space basis functions (p=1 serendipity).
- * @param pbasis Phase-space basis functions (hybrid).
- * @param conf_range Configuration-space range for use in indexing the auxiliary fields.
- * @param pgrid Phase-space grid object.
- * @param use_gpu Bool to determine if equation object is on host or device (not available yet).
+ * @param inp Input parameters defined in gkyl_dg_lbo_pkpm_nodal_inp struct.
  * @return Pointer to the equation object.
  */
-struct gkyl_dg_eqn *gkyl_dg_lbo_pkpm_nodal_new(
-  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
-  const struct gkyl_range *conf_range, const struct gkyl_rect_grid *pgrid, bool use_gpu
-);
-
-/**
- * Set the auxiliary fields of the operator.
- *
- * @param eqn Equation pointer.
- * @param auxin Struct of auxiliary fields.
- */
-void gkyl_lbo_pkpm_nodal_set_auxfields(
-  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_lbo_pkpm_nodal_auxfields auxin
-);
+struct gkyl_dg_eqn *gkyl_dg_lbo_pkpm_nodal_inew(const struct gkyl_dg_lbo_pkpm_nodal_inp *inp);

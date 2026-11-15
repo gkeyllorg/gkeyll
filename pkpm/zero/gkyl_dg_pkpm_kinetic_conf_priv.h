@@ -39,7 +39,11 @@ struct dg_pkpm_kinetic_conf {
     *pos_map; // Position map (acquired; host pointer, 0 on the device copy)
   const struct gkyl_array
     *jacob_pos; // Per-direction Jacobians (borrowed from pos_map; device pointer on device)
-  struct gkyl_dg_pkpm_kinetic_conf_auxfields auxfields; // Auxiliary fields.
+  // Arrays the terms read (acquired; device pointers on the device copy).
+  const struct gkyl_array *bvar;
+  const struct gkyl_array *u;
+  const struct gkyl_array *xi;
+  const struct gkyl_array *conf_flux_surf;
 };
 
 // Volume kernels of the configuration pass (p=1 serendipity only; indexed by cdim-1)
@@ -96,9 +100,9 @@ vol(
   long cidx = gkyl_range_idx(&pkpm->conf_range, idx);
   return pkpm->vol_kern(
     xc, dx, (const double *)gkyl_array_cfetch(pkpm->jacob_pos, cidx),
-    (const double *)gkyl_array_cfetch(pkpm->auxfields.bvar, cidx),
-    (const double *)gkyl_array_cfetch(pkpm->auxfields.u, cidx),
-    (const double *)gkyl_array_cfetch(pkpm->auxfields.xi, cidx), qIn, qRhsOut
+    (const double *)gkyl_array_cfetch(pkpm->bvar, cidx),
+    (const double *)gkyl_array_cfetch(pkpm->u, cidx),
+    (const double *)gkyl_array_cfetch(pkpm->xi, cidx), qIn, qRhsOut
   );
 }
 
@@ -119,8 +123,8 @@ surf(
     int side1 = PKPM_DIST_NUM_BLOCKS * pkpm->num_surf_basis, off = 2 * dir * side1;
     long pidxC = gkyl_range_idx(&pkpm->phase_range, idxC);
     long pidxR = gkyl_range_idx(&pkpm->phase_range, idxR);
-    const double *flux_l = (const double *)gkyl_array_cfetch(pkpm->auxfields.conf_flux_surf, pidxC);
-    const double *flux_r = (const double *)gkyl_array_cfetch(pkpm->auxfields.conf_flux_surf, pidxR);
+    const double *flux_l = (const double *)gkyl_array_cfetch(pkpm->conf_flux_surf, pidxC);
+    const double *flux_r = (const double *)gkyl_array_cfetch(pkpm->conf_flux_surf, pidxR);
     return pkpm->stream_surf[dir](xcC, dxC, &flux_l[off + side1], &flux_r[off], qRhsOut);
   }
   return 0.0;

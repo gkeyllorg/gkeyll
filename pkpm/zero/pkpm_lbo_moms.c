@@ -4,36 +4,45 @@
 #include <gkyl_pkpm_lbo_moms.h>
 #include <gkyl_pkpm_lbo_moms_priv.h>
 
-// F at the velocity edge of a cell (sign = -1 lower, +1 upper) at each node, from the nodal
-// form of its leading block, fnodal[q*3 + j]: the three velocity modes at w = sign.
+// F at a velocity edge of a cell at each node, from the nodal form of its leading block,
+// fnodal[q*3 + j]: the three velocity modes times their values edge_modes at that edge.
 static inline void
-pkpm_lbo_moms_edge_values(int num_nodes, double sign, const double *fnodal, double *edge)
+pkpm_lbo_moms_edge_values(
+  int num_nodes, const double *edge_modes, const double *fnodal, double *edge
+)
 {
   for (int q = 0; q < num_nodes; ++q) {
     const double *mode = &fnodal[q * PKPM_NUM_VEL_MODES];
-    edge[q] = 0.7071067811865475 * mode[0] + sign * 1.224744871391589 * mode[1] +
-              1.5811388300841898 * mode[2];
+    edge[q] = edge_modes[0] * mode[0] + edge_modes[1] * mode[1] + edge_modes[2] * mode[2];
   }
 }
 
 struct gkyl_pkpm_lbo_moms *
-gkyl_pkpm_lbo_moms_new(
-  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis,
-  const double *vel_bounds, bool use_gpu
-)
+gkyl_pkpm_lbo_moms_inew(const struct gkyl_pkpm_lbo_moms_inp *inp)
 {
-  assert(!use_gpu);
-  assert(conf_basis->b_type == GKYL_BASIS_MODAL_SERENDIPITY && conf_basis->poly_order == 1);
-  assert(phase_basis->b_type == GKYL_BASIS_MODAL_HYBRID);
-  assert(phase_basis->ndim == conf_basis->ndim + 1);
-  assert(phase_basis->num_basis == PKPM_NUM_VEL_MODES * conf_basis->num_basis);
+  assert(!inp->use_gpu);
+  assert(
+    inp->conf_basis->b_type == GKYL_BASIS_MODAL_SERENDIPITY && inp->conf_basis->poly_order == 1
+  );
+  assert(inp->phase_basis->b_type == GKYL_BASIS_MODAL_HYBRID);
+  assert(inp->phase_basis->ndim == inp->conf_basis->ndim + 1);
+  assert(inp->phase_basis->num_basis == PKPM_NUM_VEL_MODES * inp->conf_basis->num_basis);
 
   struct gkyl_pkpm_lbo_moms *up = gkyl_malloc(sizeof(*up));
-  up->cdim = conf_basis->ndim;
-  up->num_nodes = conf_basis->num_basis;
-  up->vel_bounds[0] = vel_bounds[0];
-  up->vel_bounds[1] = vel_bounds[1];
-  up->conf_to_nodal = pkpm_lbo_moms_conf_to_nodal_list[up->cdim - 1];
+  up->cdim = inp->conf_basis->ndim;
+  up->num_nodes = inp->conf_basis->num_basis;
+  up->vel_bounds[0] = inp->vel_bounds[0];
+  up->vel_bounds[1] = inp->vel_bounds[1];
+  up->conf_to_nodal = dg_conf_nodal_conf_to_nodal_kernels.kernels[up->cdim - 1];
+
+  // The velocity modes of the basis (p=2 Legendre) at the lower and upper edge of a cell.
+  struct gkyl_basis vel_basis;
+  gkyl_cart_modal_serendip(&vel_basis, 1, 2);
+  assert(vel_basis.num_basis == PKPM_NUM_VEL_MODES);
+  double edge_coord[2] = {-1.0, 1.0};
+  for (int e = 0; e < 2; ++e) {
+    vel_basis.eval(&edge_coord[e], up->edge_modes[e]);
+  }
   return up;
 }
 
@@ -70,11 +79,13 @@ gkyl_pkpm_lbo_moms_advance(
     }
     pidx[cdim] = phase_range->lower[cdim];
     pkpm_lbo_moms_edge_values(
-      num_nodes, -1.0, gkyl_array_cfetch(fnodal, gkyl_range_idx(phase_range, pidx)), f_lower
+      num_nodes, up->edge_modes[0], gkyl_array_cfetch(fnodal, gkyl_range_idx(phase_range, pidx)),
+      f_lower
     );
     pidx[cdim] = phase_range->upper[cdim];
     pkpm_lbo_moms_edge_values(
-      num_nodes, 1.0, gkyl_array_cfetch(fnodal, gkyl_range_idx(phase_range, pidx)), f_upper
+      num_nodes, up->edge_modes[1], gkyl_array_cfetch(fnodal, gkyl_range_idx(phase_range, pidx)),
+      f_upper
     );
 
     for (int q = 0; q < num_nodes; ++q) {

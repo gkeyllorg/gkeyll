@@ -133,23 +133,25 @@ gkyl_dg_pkpm_harm_exp_restore_cu(
   );
 }
 
+// CUDA kernel to set the device pointers to the transform kernels.
+__global__ static void
+dg_pkpm_harm_exp_set_cu_dev_ptrs(struct gkyl_dg_pkpm_harm_exp *up)
+{
+  pkpm_hx_choose_kernels(up);
+}
+
 struct gkyl_dg_pkpm_harm_exp *
-gkyl_dg_pkpm_harm_exp_cu_dev_new(const struct gkyl_dg_pkpm_harm_exp_inp *inp)
+gkyl_dg_pkpm_harm_exp_cu_dev_inew(const struct gkyl_dg_pkpm_harm_exp_inp *inp)
 {
   struct gkyl_dg_pkpm_harm_exp *up =
     (struct gkyl_dg_pkpm_harm_exp *)gkyl_malloc(sizeof(struct gkyl_dg_pkpm_harm_exp));
-  up->cdim = inp->conf_basis->ndim;
-  up->num_conf_nodes = 1 << up->cdim;
-  up->num_phase_nodes = 3 * up->num_conf_nodes;
-  up->qbym = inp->qbym;
-  up->mix = inp->mix > 0.0 ? inp->mix : 0.0;
-  up->half_dw = 0.5 * inp->phase_grid->dx[up->cdim];
+  gkyl_dg_pkpm_harm_exp_setup(up, inp);
   up->use_gpu = true;
-  up->flags = 0;
   GKYL_SET_CU_ALLOC(up->flags);
   struct gkyl_dg_pkpm_harm_exp *up_cu =
     (struct gkyl_dg_pkpm_harm_exp *)gkyl_cu_malloc(sizeof(struct gkyl_dg_pkpm_harm_exp));
   gkyl_cu_memcpy(up_cu, up, sizeof(struct gkyl_dg_pkpm_harm_exp), GKYL_CU_MEMCPY_H2D);
+  dg_pkpm_harm_exp_set_cu_dev_ptrs<<<1, 1>>>(up_cu);
   up->on_dev = up_cu;
   return up;
 }

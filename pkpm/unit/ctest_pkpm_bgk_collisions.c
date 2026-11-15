@@ -60,7 +60,11 @@ test_bgk(int cdim, bool implicit)
   gkyl_array_clear(target, 0.0);
   gkyl_array_clear(cfl, 0.0);
 
-  struct gkyl_dg_conf_nodal *conf_nodal = gkyl_dg_conf_nodal_new(&cbasis, &pbasis, false);
+  struct gkyl_dg_conf_nodal *conf_nodal = gkyl_dg_conf_nodal_inew(&(struct gkyl_dg_conf_nodal_inp){
+    .conf_basis = &cbasis,
+    .phase_basis = &pbasis,
+    .use_gpu = false,
+  });
 
   double J = 1.7;
   struct gkyl_range_iter iter;
@@ -92,7 +96,12 @@ test_bgk(int cdim, bool implicit)
     }
   }
 
-  struct gkyl_pkpm_bgk_collisions *up = gkyl_pkpm_bgk_collisions_new(&cbasis, &pbasis, false);
+  struct gkyl_pkpm_bgk_collisions *up =
+    gkyl_pkpm_bgk_collisions_inew(&(struct gkyl_pkpm_bgk_collisions_inp){
+      .conf_basis = &cbasis,
+      .phase_basis = &pbasis,
+      .use_gpu = false,
+    });
   if (implicit) {
     // in place on the expansions: the change of f is the right-hand side
     gkyl_array_copy(rhs, fin);

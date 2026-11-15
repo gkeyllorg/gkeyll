@@ -9,18 +9,22 @@ struct gkyl_dg_updater_lbo_pkpm_nodal {
 };
 
 struct gkyl_dg_updater_lbo_pkpm_nodal *
-gkyl_dg_updater_lbo_pkpm_nodal_new(
-  const struct gkyl_rect_grid *phase_grid, const struct gkyl_basis *conf_basis,
-  const struct gkyl_basis *phase_basis, const struct gkyl_range *conf_range,
-  struct gkyl_dg_lbo_pkpm_nodal_auxfields *auxin, bool use_gpu
-)
+gkyl_dg_updater_lbo_pkpm_nodal_inew(const struct gkyl_dg_updater_lbo_pkpm_nodal_inp *inp)
 {
   struct gkyl_dg_updater_lbo_pkpm_nodal *up = gkyl_malloc(sizeof(*up));
 
-  up->eqn = gkyl_dg_lbo_pkpm_nodal_new(conf_basis, phase_basis, conf_range, phase_grid, use_gpu);
-  gkyl_lbo_pkpm_nodal_set_auxfields(up->eqn, *auxin);
+  struct gkyl_dg_lbo_pkpm_nodal_inp eqn_inp = {
+    .conf_basis = inp->conf_basis,
+    .phase_basis = inp->phase_basis,
+    .conf_range = inp->conf_range,
+    .phase_grid = inp->phase_grid,
+    .nu = inp->nu,
+    .prim_moms = inp->prim_moms,
+    .use_gpu = inp->use_gpu,
+  };
+  up->eqn = gkyl_dg_lbo_pkpm_nodal_inew(&eqn_inp);
 
-  int cdim = conf_basis->ndim, pdim = phase_basis->ndim;
+  int cdim = inp->conf_basis->ndim, pdim = inp->phase_basis->ndim;
   int vdim = pdim - cdim;
   int num_up_dirs = vdim;
   int up_dirs[GKYL_MAX_DIM] = {0};
@@ -31,7 +35,8 @@ gkyl_dg_updater_lbo_pkpm_nodal_new(
   }
 
   up->slvr = gkyl_hyper_dg_new(
-    phase_grid, phase_basis, up->eqn, num_up_dirs, up_dirs, zero_flux_flags, 1, use_gpu
+    inp->phase_grid, inp->phase_basis, up->eqn, num_up_dirs, up_dirs, zero_flux_flags, 1,
+    inp->use_gpu
   );
   return up;
 }

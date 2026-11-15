@@ -12,26 +12,17 @@ gkyl_lbo_pkpm_nodal_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_dg_eqn *base = container_of(ref, struct gkyl_dg_eqn, ref_count);
   struct dg_lbo_pkpm_nodal *lbo = container_of(base, struct dg_lbo_pkpm_nodal, eqn);
+  gkyl_array_release(lbo->nu);
+  gkyl_array_release(lbo->prim_moms);
   gkyl_free(lbo);
 }
 
-void
-gkyl_lbo_pkpm_nodal_set_auxfields(
-  const struct gkyl_dg_eqn *eqn, const struct gkyl_dg_lbo_pkpm_nodal_auxfields auxin
-)
-{
-  struct dg_lbo_pkpm_nodal *lbo = container_of(eqn, struct dg_lbo_pkpm_nodal, eqn);
-  lbo->auxfields.nu = auxin.nu;
-  lbo->auxfields.prim_moms = auxin.prim_moms;
-}
-
 struct gkyl_dg_eqn *
-gkyl_dg_lbo_pkpm_nodal_new(
-  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
-  const struct gkyl_range *conf_range, const struct gkyl_rect_grid *pgrid, bool use_gpu
-)
+gkyl_dg_lbo_pkpm_nodal_inew(const struct gkyl_dg_lbo_pkpm_nodal_inp *inp)
 {
-  assert(!use_gpu);
+  const struct gkyl_basis *cbasis = inp->conf_basis, *pbasis = inp->phase_basis;
+  const struct gkyl_rect_grid *pgrid = inp->phase_grid;
+  assert(!inp->use_gpu);
   assert(cbasis->b_type == GKYL_BASIS_MODAL_SERENDIPITY && cbasis->poly_order == 1);
   assert(pbasis->b_type == GKYL_BASIS_MODAL_HYBRID);
 
@@ -58,9 +49,9 @@ gkyl_dg_lbo_pkpm_nodal_new(
   assert(lbo->surf);
   assert(lbo->boundary_surf);
 
-  lbo->auxfields.nu = 0;
-  lbo->auxfields.prim_moms = 0;
-  lbo->conf_range = *conf_range;
+  lbo->nu = gkyl_array_acquire(inp->nu);
+  lbo->prim_moms = gkyl_array_acquire(inp->prim_moms);
+  lbo->conf_range = *inp->conf_range;
 
   lbo->eqn.flags = 0;
   GKYL_CLEAR_CU_ALLOC(lbo->eqn.flags);

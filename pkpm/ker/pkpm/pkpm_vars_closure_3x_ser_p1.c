@@ -292,7 +292,7 @@ GKYL_CU_DH static inline void pkpm_vars_closure_3x_ser_p1_prj(const double *v, d
 GKYL_CU_DH int pkpm_vars_closure_3x_ser_p1(double w_lo, double w_up, double dv, const double *norm_moms, const double *rhs_moms,
   const double *bvar, const double *wn, const double *theta, const double *alpha_0_prev, const double *c_h_prev,
   const double *f_lo, const double *f_up,
-  double* GKYL_RESTRICT c_0, double* GKYL_RESTRICT alpha_0, double* GKYL_RESTRICT c_h, double* GKYL_RESTRICT a_perp,
+  double* GKYL_RESTRICT c_0, double* alpha_0, double* c_h, double* GKYL_RESTRICT a_perp,
   double* GKYL_RESTRICT flux_lo, double* GKYL_RESTRICT flux_up, double* GKYL_RESTRICT cfl,
   double* GKYL_RESTRICT cond) 
 { 
@@ -307,7 +307,7 @@ GKYL_CU_DH int pkpm_vars_closure_3x_ser_p1(double w_lo, double w_up, double dv, 
   // c_0, alpha_0, c_h, a_perp: Output closures at the 8 Gauss-Legendre nodes, interpolated to p=1. 
   // flux_lo, flux_up: Output edge fluxes [8 blocks] in the stored face format. 
   // cfl:          Output [0]: the time-step rate of the w fluxes and closure sources of the whole column 
-  //               (absolute coefficients at the larger |w| edge, plan 17.27); [1] = 0. 
+  //               (absolute coefficients at the larger |w| edge); [1] = 0. 
   // cond:         Output [1]: the smallest determinant of the 3x3 system over the nodes relative to 
   //               its edge-free value (1 when the edge terms vanish; small or negative when the 
   //               velocity-domain edges carry a non-negligible trace: too small velocity extents). 
@@ -1200,7 +1200,7 @@ GKYL_CU_DH int pkpm_vars_closure_3x_ser_p1(double w_lo, double w_up, double dv, 
     flux_up[c*8 + 7] = (-3.0070326520293014)*fup_s[c][0] + (3.0070326520293014)*fup_s[c][1] + (3.0070326520293014)*fup_s[c][2] + (-3.0070326520293014)*fup_s[c][3] + (3.0070326520293014)*fup_s[c][4] + (-3.0070326520293014)*fup_s[c][5] + (-3.0070326520293014)*fup_s[c][6] + (3.0070326520293014)*fup_s[c][7]; 
   } 
  
-  // the column time-step rate with the new closures (plan 17.27) 
+  // the column time-step rate with the new closures 
   double a0f[125], cf[125]; 
   pkpm_vars_closure_3x_ser_p1_p1(alpha_0, a0f); 
   pkpm_vars_closure_3x_ser_p1_p1(c_h, cf); 

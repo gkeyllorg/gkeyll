@@ -47,11 +47,21 @@ pkpm_species_lbo_init_nodal(
   }
 
   double vel_bounds[2] = {s->info.lower[0], s->info.upper[0]};
-  lbo->up_moms = gkyl_pkpm_lbo_moms_new(&app->confBasis, &app->basis, vel_bounds, false);
-  struct gkyl_dg_lbo_pkpm_nodal_auxfields nodal_inp = {.nu = lbo->nu, .prim_moms = lbo->prim_moms};
-  lbo->up_coll = gkyl_dg_updater_lbo_pkpm_nodal_new(
-    &s->grid, &app->confBasis, &app->basis, &app->local, &nodal_inp, false
-  );
+  lbo->up_moms = gkyl_pkpm_lbo_moms_inew(&(struct gkyl_pkpm_lbo_moms_inp){
+    .conf_basis = &app->confBasis,
+    .phase_basis = &app->basis,
+    .vel_bounds = vel_bounds,
+    .use_gpu = false,
+  });
+  lbo->up_coll = gkyl_dg_updater_lbo_pkpm_nodal_inew(&(struct gkyl_dg_updater_lbo_pkpm_nodal_inp){
+    .phase_grid = &s->grid,
+    .conf_basis = &app->confBasis,
+    .phase_basis = &app->basis,
+    .conf_range = &app->local,
+    .nu = lbo->nu,
+    .prim_moms = lbo->prim_moms,
+    .use_gpu = false,
+  });
   lbo->kinetic_rhs = pkpm_species_lbo_kinetic_rhs_nodal;
   lbo->calc_moms = pkpm_species_lbo_moms_nodal;
 }

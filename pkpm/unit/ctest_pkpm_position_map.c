@@ -356,10 +356,20 @@ setup(struct sim *s, int cdim, enum map_kind kind)
   gkyl_vlasov_position_map_rescale_jacobpos(s->pos_map, &s->pbasis, &s->plocal_ext_conf, s->f, s->f);
 
   // Intensive derived fields: b and the weak gradients of b, u, xi and ln n.
-  s->calc_b = gkyl_dg_calc_pkpm_bvar_new(&s->cgrid, &s->cbasis, s->pos_map, false);
+  s->calc_b = gkyl_dg_calc_pkpm_bvar_inew(&(struct gkyl_dg_calc_pkpm_bvar_inp){
+    .conf_grid = &s->cgrid,
+    .conf_basis = &s->cbasis,
+    .pos_map = s->pos_map,
+    .use_gpu = false,
+  });
   gkyl_dg_calc_pkpm_bvar_advance(s->calc_b, &s->clocal_ext, s->em, s->bvar);
   gkyl_dg_calc_pkpm_bvar_grad(s->calc_b, &s->clocal, s->bvar, s->grad_b);
-  s->vars = gkyl_dg_calc_pkpm_vars_new(&s->cgrid, &s->cbasis, s->pos_map, false);
+  s->vars = gkyl_dg_calc_pkpm_vars_inew(&(struct gkyl_dg_calc_pkpm_vars_inp){
+    .conf_grid = &s->cgrid,
+    .conf_basis = &s->cbasis,
+    .pos_map = s->pos_map,
+    .use_gpu = false,
+  });
   weak_grad(s->vars, &s->clocal, s->u, s->grad_u);
   weak_grad(s->vars, &s->clocal, s->xi, s->grad_xi);
   gkyl_array_set_offset(s->rho, 1.0, s->fluid_phys, 0);
@@ -416,13 +426,10 @@ advance(struct sim *s)
     .phase_basis = &s->pbasis,
     .conf_range = &s->clocal,
     .phase_range = &s->plocal,
-    .auxfields =
-      {
-        .bvar = s->bvar,
-        .u = s->u,
-        .xi = s->xi,
-        .conf_flux_surf = s->kin_flux,
-      },
+    .bvar = s->bvar,
+    .u = s->u,
+    .xi = s->xi,
+    .conf_flux_surf = s->kin_flux,
     .pos_map = s->pos_map,
     .use_gpu = false,
   };
@@ -451,7 +458,7 @@ advance(struct sim *s)
   struct gkyl_dg_pkpm_fluid_inp fl_eqn_inp = {
     .conf_basis = &s->cbasis,
     .conf_range = &s->clocal,
-    .auxfields = {.vlasov_pkpm_moms = s->cmoms, .bvar = s->bvar, .u = s->u, .fluid_flux_surf = s->fl_flux},
+    .vlasov_pkpm_moms = s->cmoms, .bvar = s->bvar, .u = s->u, .fluid_flux_surf = s->fl_flux,
     .pos_map = s->pos_map,
     .use_gpu = false,
   };

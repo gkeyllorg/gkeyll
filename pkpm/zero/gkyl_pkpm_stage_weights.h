@@ -7,6 +7,13 @@
 // Object type
 typedef struct gkyl_pkpm_stage_weights gkyl_pkpm_stage_weights;
 
+// Input packaged as a struct
+struct gkyl_pkpm_stage_weights_inp {
+  const struct gkyl_basis *conf_basis; // Configuration-space basis functions (p=1 serendipity).
+  const struct gkyl_basis *phase_basis; // Phase-space basis functions (p=1 x p=2 hybrid).
+  bool use_gpu; // bool to determine if on GPU.
+};
+
 /**
  * Create an updater for the stage combination of the normalized PKPM distributions of a species
  * whose implicit operators change its temperature inside the SSP-RK3 stages (implicit BGK with
@@ -25,13 +32,11 @@ typedef struct gkyl_pkpm_stage_weights gkyl_pkpm_stage_weights;
  * 2^cdim interior Gauss-Legendre nodes, and the weights multiply the distributions as weak
  * products (equal at p=1 to the products at the nodes).
  *
- * @param conf_basis Configuration-space basis (p=1 serendipity).
- * @param phase_basis Phase-space basis (p=1 x p=2 hybrid).
- * @param use_gpu Whether to run on the GPU (not available yet).
+ * @param inp Input parameters defined in gkyl_pkpm_stage_weights_inp struct.
  * @return New updater pointer.
  */
-struct gkyl_pkpm_stage_weights *gkyl_pkpm_stage_weights_new(
-  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, bool use_gpu
+struct gkyl_pkpm_stage_weights *gkyl_pkpm_stage_weights_inew(
+  const struct gkyl_pkpm_stage_weights_inp *inp
 );
 
 /**

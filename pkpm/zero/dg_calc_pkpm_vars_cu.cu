@@ -497,26 +497,22 @@ dg_calc_pkpm_vars_set_cu_dev_ptrs(
 }
 
 gkyl_dg_calc_pkpm_vars *
-gkyl_dg_calc_pkpm_vars_cu_dev_new(
-  const struct gkyl_rect_grid *conf_grid, const struct gkyl_basis *cbasis,
-  const struct gkyl_vlasov_position_map *pos_map
-)
+gkyl_dg_calc_pkpm_vars_cu_dev_inew(const struct gkyl_dg_calc_pkpm_vars_inp *inp)
 {
   struct gkyl_dg_calc_pkpm_vars *up =
     (struct gkyl_dg_calc_pkpm_vars *)gkyl_malloc(sizeof(gkyl_dg_calc_pkpm_vars));
 
-  up->conf_grid = *conf_grid;
-  int nc = cbasis->num_basis;
-  int cdim = cbasis->ndim;
-  int poly_order = cbasis->poly_order;
-  enum gkyl_basis_type b_type = cbasis->b_type;
+  up->conf_grid = *inp->conf_grid;
+  int nc = inp->conf_basis->num_basis;
+  int cdim = inp->conf_basis->ndim;
+  int poly_order = inp->conf_basis->poly_order;
+  enum gkyl_basis_type b_type = inp->conf_basis->b_type;
   up->cdim = cdim;
   up->poly_order = poly_order;
-  assert(pos_map);
+  assert(inp->pos_map);
   up->pos_map = 0; // host pointer set after the device memcpy below
-  up->jacob_pos = pos_map->jacob_pos->on_dev;
+  up->jacob_pos = inp->pos_map->jacob_pos->on_dev;
 
-  up->num_null_rho = 0;
   up->num_null_rho_dev = (int *)gkyl_cu_malloc(sizeof(int));
   up->closure_cond_min = 1.0;
   up->closure_cond_min_dev = (unsigned long long *)gkyl_cu_malloc(sizeof(unsigned long long));
@@ -533,8 +529,8 @@ gkyl_dg_calc_pkpm_vars_cu_dev_new(
 
   // set parent on_dev pointer
   up->on_dev = up_cu;
-  up->pos_map = gkyl_vlasov_position_map_acquire(pos_map);
-  up->jacob_pos = pos_map->jacob_pos;
+  up->pos_map = gkyl_vlasov_position_map_acquire(inp->pos_map);
+  up->jacob_pos = inp->pos_map->jacob_pos;
 
   return up;
 }

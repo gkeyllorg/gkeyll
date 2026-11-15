@@ -12,25 +12,28 @@ typedef struct gkyl_dg_updater_moment gkyl_dg_updater_moment;
 // return type for moment timers (defined in gkyl_dg_updater_moment_priv.h)
 typedef struct gkyl_dg_updater_moment_tm gkyl_dg_updater_moment_tm;
 
+// Input packaged as a struct
+struct gkyl_dg_updater_moment_pkpm_inp {
+  const struct gkyl_rect_grid *phase_grid; // Phase-space grid.
+  const struct gkyl_basis *conf_basis; // Configuration-space basis functions (p=1 serendipity).
+  const struct gkyl_basis *phase_basis; // Phase-space basis functions (p=1 x p=2 hybrid).
+  const struct gkyl_range *conf_range; // Configuration-space range.
+  const struct gkyl_range *vel_range; // Velocity-space range.
+  double mass; // Mass of species (the moments are mass weighted).
+  bool is_diag; // bool to determine if computing the diagnostic moments.
+  bool use_gpu; // bool to determine if on GPU.
+};
+
 /**
  * Create new updater to compute moments of distribution function
  * in parallel-kinetic-perpendicular-moment (PKPM) model.
  *
- * @param grid Grid object
- * @param conf_basis Configuration space basis functions
- * @param phase_basis Phase-space basis function
- * @param conf_range Config space range
- * @param vel_range Velocity space range
- * @param mass Mass of species 
- * @param is_diag Boolean for if we are computing the PKPM diagnostic moments
- * @param use_gpu Boolean to determine whether struct objects are on host or device
  * 
+ * @param inp Input parameters defined in gkyl_dg_updater_moment_pkpm_inp struct.
  * @return New moment updater object
  */
-struct gkyl_dg_updater_moment *gkyl_dg_updater_moment_pkpm_new(
-  const struct gkyl_rect_grid *grid, const struct gkyl_basis *conf_basis,
-  const struct gkyl_basis *phase_basis, const struct gkyl_range *conf_range,
-  const struct gkyl_range *vel_range, double mass, bool is_diag, bool use_gpu
+struct gkyl_dg_updater_moment *gkyl_dg_updater_moment_pkpm_inew(
+  const struct gkyl_dg_updater_moment_pkpm_inp *inp
 );
 
 /**

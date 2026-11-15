@@ -61,7 +61,9 @@ struct dg_lbo_pkpm_nodal {
   lbo_pkpm_nodal_surf_t surf; // Surface term at a node
   lbo_pkpm_nodal_boundary_surf_t boundary_surf; // Boundary surface term at a node
   struct gkyl_range conf_range; // Configuration space range.
-  struct gkyl_dg_lbo_pkpm_nodal_auxfields auxfields; // Auxiliary fields.
+  // Arrays the terms read (acquired).
+  const struct gkyl_array *nu;
+  const struct gkyl_array *prim_moms;
 };
 
 void gkyl_lbo_pkpm_nodal_free(const struct gkyl_ref_count *ref);
@@ -81,8 +83,8 @@ vol(
 {
   struct dg_lbo_pkpm_nodal *lbo = container_of(eqn, struct dg_lbo_pkpm_nodal, eqn);
   long cidx = gkyl_range_idx(&lbo->conf_range, idx);
-  const double *nu_p = (const double *)gkyl_array_cfetch(lbo->auxfields.nu, cidx);
-  const double *prim_moms_p = (const double *)gkyl_array_cfetch(lbo->auxfields.prim_moms, cidx);
+  const double *nu_p = (const double *)gkyl_array_cfetch(lbo->nu, cidx);
+  const double *prim_moms_p = (const double *)gkyl_array_cfetch(lbo->prim_moms, cidx);
   int cdim = lbo->cdim, num_nodes = lbo->num_nodes, num_vel_basis = lbo->num_vel_basis;
 
   // The rate of the cell is the largest of the rates of its nodes.
@@ -115,8 +117,8 @@ surf(
     return 0.;
   }
   long cidx = gkyl_range_idx(&lbo->conf_range, idxC);
-  const double *nu_p = (const double *)gkyl_array_cfetch(lbo->auxfields.nu, cidx);
-  const double *prim_moms_p = (const double *)gkyl_array_cfetch(lbo->auxfields.prim_moms, cidx);
+  const double *nu_p = (const double *)gkyl_array_cfetch(lbo->nu, cidx);
+  const double *prim_moms_p = (const double *)gkyl_array_cfetch(lbo->prim_moms, cidx);
 
   for (int q = 0; q < num_nodes; ++q) {
     double nu = nu_p[q], nu_u = nu * prim_moms_p[q], nu_vtsq = nu * prim_moms_p[num_nodes + q];
@@ -143,8 +145,8 @@ boundary_surf(
     return 0.;
   }
   long cidx = gkyl_range_idx(&lbo->conf_range, idxSkin);
-  const double *nu_p = (const double *)gkyl_array_cfetch(lbo->auxfields.nu, cidx);
-  const double *prim_moms_p = (const double *)gkyl_array_cfetch(lbo->auxfields.prim_moms, cidx);
+  const double *nu_p = (const double *)gkyl_array_cfetch(lbo->nu, cidx);
+  const double *prim_moms_p = (const double *)gkyl_array_cfetch(lbo->prim_moms, cidx);
 
   for (int q = 0; q < num_nodes; ++q) {
     double nu = nu_p[q], nu_u = nu * prim_moms_p[q], nu_vtsq = nu * prim_moms_p[num_nodes + q];

@@ -5,19 +5,24 @@
 #include <gkyl_pkpm_stage_weights_priv.h>
 
 struct gkyl_pkpm_stage_weights *
-gkyl_pkpm_stage_weights_new(
-  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, bool use_gpu
-)
+gkyl_pkpm_stage_weights_inew(const struct gkyl_pkpm_stage_weights_inp *inp)
 {
-  assert(!use_gpu);
-  assert(conf_basis->b_type == GKYL_BASIS_MODAL_SERENDIPITY && conf_basis->poly_order == 1);
-  assert(phase_basis->num_basis == PKPM_NUM_VEL_MODES * conf_basis->num_basis);
+  assert(!inp->use_gpu);
+  assert(
+    inp->conf_basis->b_type == GKYL_BASIS_MODAL_SERENDIPITY && inp->conf_basis->poly_order == 1
+  );
+  assert(inp->phase_basis->b_type == GKYL_BASIS_MODAL_HYBRID);
+  assert(inp->phase_basis->num_basis == PKPM_NUM_VEL_MODES * inp->conf_basis->num_basis);
 
   struct gkyl_pkpm_stage_weights *up = gkyl_malloc(sizeof(*up));
-  up->num_nodes = conf_basis->num_basis;
-  up->num_phase_basis = phase_basis->num_basis;
-  up->conf_to_modal = pkpm_stage_weights_conf_to_modal_list[conf_basis->ndim - 1];
-  up->conf_phase_mul_accumulate = pkpm_stage_weights_mul_accumulate_list[conf_basis->ndim - 1];
+  int cdim = inp->conf_basis->ndim, vdim = inp->phase_basis->ndim - cdim;
+  up->num_nodes = inp->conf_basis->num_basis;
+  up->num_phase_basis = inp->phase_basis->num_basis;
+  up->conf_to_modal = dg_conf_nodal_conf_to_modal_kernels.kernels[cdim - 1];
+  up->conf_phase_mul_accumulate = choose_mul_conf_phase_accumulate_kern(
+    inp->phase_basis->b_type, cdim, vdim, inp->conf_basis->poly_order
+  );
+  assert(up->conf_phase_mul_accumulate);
   return up;
 }
 

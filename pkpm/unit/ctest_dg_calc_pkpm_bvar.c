@@ -108,7 +108,12 @@ test_bvar(int cdim)
   gkyl_proj_on_basis_advance(proj, 0.0, &local_ext, em);
   gkyl_proj_on_basis_release(proj);
 
-  struct gkyl_dg_calc_pkpm_bvar *up = gkyl_dg_calc_pkpm_bvar_new(&grid, &basis, pm, false);
+  struct gkyl_dg_calc_pkpm_bvar *up = gkyl_dg_calc_pkpm_bvar_inew(&(struct gkyl_dg_calc_pkpm_bvar_inp){
+    .conf_grid = &grid,
+    .conf_basis = &basis,
+    .pos_map = pm,
+    .use_gpu = false,
+  });
   gkyl_dg_calc_pkpm_bvar_advance(up, &local_ext, em, bvar);
   TEST_CHECK(gkyl_dg_calc_pkpm_bvar_num_null_b(up) == 0);
 
@@ -234,7 +239,12 @@ test_dtB_over_magB(int cdim)
   gkyl_proj_on_basis_advance(proj, 0.0, &local_ext, dt_em);
   gkyl_proj_on_basis_release(proj);
 
-  struct gkyl_dg_calc_pkpm_bvar *up = gkyl_dg_calc_pkpm_bvar_new(&grid, &basis, pm, false);
+  struct gkyl_dg_calc_pkpm_bvar *up = gkyl_dg_calc_pkpm_bvar_inew(&(struct gkyl_dg_calc_pkpm_bvar_inp){
+    .conf_grid = &grid,
+    .conf_basis = &basis,
+    .pos_map = pm,
+    .use_gpu = false,
+  });
   TEST_CHECK(gkyl_dg_calc_pkpm_bvar_dtB_over_magB(up, &local, em, dt_em, out) == 0);
   gkyl_dg_calc_pkpm_bvar_advance(up, &local, em, bvar);
   double eps = 1e-6;

@@ -28,26 +28,26 @@ dg_conf_nodal_apply(
 }
 
 struct gkyl_dg_conf_nodal *
-gkyl_dg_conf_nodal_new(
-  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, bool use_gpu
-)
+gkyl_dg_conf_nodal_inew(const struct gkyl_dg_conf_nodal_inp *inp)
 {
-  assert(!use_gpu);
-  assert(conf_basis->b_type == GKYL_BASIS_MODAL_SERENDIPITY && conf_basis->poly_order == 1);
+  assert(!inp->use_gpu);
+  assert(
+    inp->conf_basis->b_type == GKYL_BASIS_MODAL_SERENDIPITY && inp->conf_basis->poly_order == 1
+  );
 
   struct gkyl_dg_conf_nodal *up = gkyl_malloc(sizeof(*up));
-  int cdim = conf_basis->ndim;
-  up->num_conf_basis = conf_basis->num_basis;
+  int cdim = inp->conf_basis->ndim;
+  up->num_conf_basis = inp->conf_basis->num_basis;
   up->conf_to_nodal = dg_conf_nodal_conf_to_nodal_kernels.kernels[cdim - 1];
   up->conf_to_modal = dg_conf_nodal_conf_to_modal_kernels.kernels[cdim - 1];
 
   up->num_phase_basis = 0;
   up->phase_to_nodal = 0;
   up->phase_to_modal = 0;
-  if (phase_basis) {
-    assert(phase_basis->b_type == GKYL_BASIS_MODAL_HYBRID && phase_basis->poly_order == 1);
-    int vdim = phase_basis->ndim - cdim;
-    up->num_phase_basis = phase_basis->num_basis;
+  if (inp->phase_basis) {
+    assert(inp->phase_basis->b_type == GKYL_BASIS_MODAL_HYBRID && inp->phase_basis->poly_order == 1);
+    int vdim = inp->phase_basis->ndim - cdim;
+    up->num_phase_basis = inp->phase_basis->num_basis;
     up->phase_to_nodal = dg_conf_nodal_phase_to_nodal_kernels[cdim - 1].kernels[vdim - 1];
     up->phase_to_modal = dg_conf_nodal_phase_to_modal_kernels[cdim - 1].kernels[vdim - 1];
     assert(up->phase_to_nodal && up->phase_to_modal);

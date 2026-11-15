@@ -22,23 +22,12 @@ gkyl_dg_pkpm_kinetic_vel_free(const struct gkyl_ref_count *ref)
   }
 
   struct dg_pkpm_kinetic_vel *pkpm = container_of(base, struct dg_pkpm_kinetic_vel, eqn);
+  gkyl_array_release(pkpm->c_0);
+  gkyl_array_release(pkpm->alpha_0);
+  gkyl_array_release(pkpm->c_h);
+  gkyl_array_release(pkpm->a_perp);
+  gkyl_array_release(pkpm->vel_flux_surf);
   gkyl_free(pkpm);
-}
-
-void
-gkyl_dg_pkpm_kinetic_vel_set_auxfields(
-  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_pkpm_kinetic_vel_auxfields auxin
-)
-{
-#ifdef GKYL_HAVE_CUDA
-  if (gkyl_dg_eqn_is_cu_dev(eqn)) {
-    gkyl_dg_pkpm_kinetic_vel_set_auxfields_cu(eqn->on_dev, auxin);
-    return;
-  }
-#endif
-
-  struct dg_pkpm_kinetic_vel *pkpm = container_of(eqn, struct dg_pkpm_kinetic_vel, eqn);
-  pkpm->auxfields = auxin;
 }
 
 struct gkyl_dg_eqn *
@@ -65,7 +54,11 @@ gkyl_dg_pkpm_kinetic_vel_inew(const struct gkyl_dg_pkpm_kinetic_vel_inp *inp)
 
   choose_pkpm_kinetic_vel_kerns(pkpm, inp->conf_basis->b_type, cdim, poly_order);
 
-  pkpm->auxfields = inp->auxfields;
+  pkpm->c_0 = gkyl_array_acquire(inp->c_0);
+  pkpm->alpha_0 = gkyl_array_acquire(inp->alpha_0);
+  pkpm->c_h = gkyl_array_acquire(inp->c_h);
+  pkpm->a_perp = gkyl_array_acquire(inp->a_perp);
+  pkpm->vel_flux_surf = gkyl_array_acquire(inp->vel_flux_surf);
   pkpm->conf_range = *inp->conf_range;
   pkpm->phase_range = *inp->phase_range;
 

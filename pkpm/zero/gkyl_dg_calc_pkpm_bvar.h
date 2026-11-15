@@ -9,6 +9,15 @@
 // Object type
 typedef struct gkyl_dg_calc_pkpm_bvar gkyl_dg_calc_pkpm_bvar;
 
+// Input packaged as a struct
+struct gkyl_dg_calc_pkpm_bvar_inp {
+  const struct gkyl_rect_grid *conf_grid; // Configuration-space grid.
+  const struct gkyl_basis *conf_basis; // Configuration-space basis functions (p=1 serendipity).
+  const struct gkyl_vlasov_position_map
+    *pos_map; // Configuration-space position map (REQUIRED; the weak gradients carry 1/J_d).
+  bool use_gpu; // bool to determine if on GPU.
+};
+
 /**
  * Create new updater to compute the magnetic field unit vector b = B/|B| for the
  * PKPM model by direct normalization at the 2^cdim Gauss-Legendre nodes of each cell,
@@ -19,22 +28,19 @@ typedef struct gkyl_dg_calc_pkpm_bvar gkyl_dg_calc_pkpm_bvar;
  * zero; the number of such nodes encountered in the last advance is available through
  * gkyl_dg_calc_pkpm_bvar_num_null_b. Only p=1 serendipity bases are supported.
  *
- * @param cbasis  Configuration space basis functions.
- * @param use_gpu bool to determine if on GPU.
+ * @param inp Input parameters defined in gkyl_dg_calc_pkpm_bvar_inp struct.
  * @return New updater pointer.
  */
-struct gkyl_dg_calc_pkpm_bvar *gkyl_dg_calc_pkpm_bvar_new(
-  const struct gkyl_rect_grid *conf_grid, const struct gkyl_basis *cbasis,
-  const struct gkyl_vlasov_position_map *pos_map, bool use_gpu
+struct gkyl_dg_calc_pkpm_bvar *gkyl_dg_calc_pkpm_bvar_inew(
+  const struct gkyl_dg_calc_pkpm_bvar_inp *inp
 );
 
 /**
  * Create new updater to compute the magnetic field unit vector on NV-GPU.
  * See new() method for documentation.
  */
-struct gkyl_dg_calc_pkpm_bvar *gkyl_dg_calc_pkpm_bvar_cu_dev_new(
-  const struct gkyl_rect_grid *conf_grid, const struct gkyl_basis *cbasis,
-  const struct gkyl_vlasov_position_map *pos_map
+struct gkyl_dg_calc_pkpm_bvar *gkyl_dg_calc_pkpm_bvar_cu_dev_inew(
+  const struct gkyl_dg_calc_pkpm_bvar_inp *inp
 );
 
 /**

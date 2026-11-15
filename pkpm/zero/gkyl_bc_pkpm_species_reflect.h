@@ -3,6 +3,7 @@
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
 #include <gkyl_range.h>
+#include <gkyl_rect_grid.h>
 
 // Object type
 typedef struct gkyl_bc_pkpm_species_reflect gkyl_bc_pkpm_species_reflect;
@@ -12,6 +13,8 @@ struct gkyl_bc_pkpm_species_reflect_inp {
   int dir; // Configuration-space direction of the wall normal.
   enum gkyl_edge_loc edge; // Lower or upper wall.
   int cdim; // Configuration-space dimensions (the normalized parallel velocity is phase dimension cdim).
+  const struct gkyl_rect_grid
+    *phase_grid; // Phase-space grid (its velocity extent must be symmetric about w = 0).
   const struct gkyl_basis *phase_basis; // Phase-space basis (host object, for its size).
   const struct gkyl_basis *
     phase_basis_on_dev; // Phase-space basis whose flip functions are called (device object when use_gpu).
@@ -39,6 +42,9 @@ struct gkyl_bc_pkpm_species_reflect_inp {
  * is the exact image. For a copied field (b' = b) at oblique b the exact image is not gyrotropic
  * about b'; flipping w then keeps the mass flux through the wall exactly zero, with an energy
  * leak of up to 9% of the outgoing energy flux (ctest_pkpm_reflect_bc).
+ *
+ * The image at s w is taken cell for cell from the mirrored velocity cell, so the velocity grid
+ * must be symmetric about w = 0.
  *
  * @param inp Input parameters.
  * @return New updater pointer.

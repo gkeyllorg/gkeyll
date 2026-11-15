@@ -26,6 +26,7 @@ pkpm_species_reflect_new(
     .dir = dir,
     .edge = edge,
     .cdim = app->cdim,
+    .phase_grid = &s->grid,
     .phase_basis = &app->basis,
     .phase_basis_on_dev = app->basis_on_dev.basis,
     .conf_num_basis = app->confBasis.num_basis,
@@ -219,8 +220,12 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
 
   // Updater for the configuration-space variables (nodal primitive variables, closures, weak
   // gradients, sources, diagnostics); every method takes the range it acts on.
-  s->calc_pkpm_vars =
-    gkyl_dg_calc_pkpm_vars_new(&app->grid, &app->confBasis, app->pos_map, app->use_gpu);
+  s->calc_pkpm_vars = gkyl_dg_calc_pkpm_vars_inew(&(struct gkyl_dg_calc_pkpm_vars_inp){
+    .conf_grid = &app->grid,
+    .conf_basis = &app->confBasis,
+    .pos_map = app->pos_map,
+    .use_gpu = app->use_gpu,
+  });
 
   // array for storing integrated fluid variables in each cell
   // integ_pkpm_mom : integral[rho, rhoux, rhouy, rhouz, rhoux^2, rhouy^2, rhouz^2, p_par, p_perp]
@@ -283,13 +288,10 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
     .conf_range = &app->local,
     .phase_range = &s->local,
     .pos_map = app->pos_map,
-    .auxfields =
-      {
-        .bvar = app->field->bvar,
-        .u = s->pkpm_u,
-        .xi = s->pkpm_xi,
-        .conf_flux_surf = s->conf_flux_surf,
-      },
+    .bvar = app->field->bvar,
+    .u = s->pkpm_u,
+    .xi = s->pkpm_xi,
+    .conf_flux_surf = s->conf_flux_surf,
     .use_gpu = app->use_gpu,
   };
   s->eqn_kinetic_conf = gkyl_dg_pkpm_kinetic_conf_inew(&kinetic_conf_inp);
@@ -309,7 +311,7 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   // gyrophase mixing: default rate 10 |Omega| (plan 17.31: the bulk overshoot is ~(drive/Omega)/c, and
   // problems driven at the ion gyroscale drive agyrotropy at ~Omega), switched off by a negative input
   double gyro_mix = s->info.gyro_mix == 0.0 ? 10.0 : s->info.gyro_mix;
-  s->harm_exp = gkyl_dg_pkpm_harm_exp_new(&(struct gkyl_dg_pkpm_harm_exp_inp){
+  s->harm_exp = gkyl_dg_pkpm_harm_exp_inew(&(struct gkyl_dg_pkpm_harm_exp_inp){
     .phase_grid = &s->grid,
     .conf_basis = &app->confBasis,
     .qbym = s->info.charge / s->info.mass,
@@ -328,14 +330,11 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
     .phase_basis = &app->basis,
     .conf_range = &app->local,
     .phase_range = &s->local,
-    .auxfields =
-      {
-        .c_0 = s->pkpm_c_0,
-        .alpha_0 = s->pkpm_alpha_0,
-        .c_h = s->pkpm_c_h,
-        .a_perp = s->pkpm_a_perp,
-        .vel_flux_surf = s->vel_flux_surf,
-      },
+    .c_0 = s->pkpm_c_0,
+    .alpha_0 = s->pkpm_alpha_0,
+    .c_h = s->pkpm_c_h,
+    .a_perp = s->pkpm_a_perp,
+    .vel_flux_surf = s->vel_flux_surf,
     .use_gpu = app->use_gpu,
   };
   s->eqn_kinetic_vel = gkyl_dg_pkpm_kinetic_vel_inew(&kinetic_vel_inp);
@@ -343,13 +342,10 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
     .conf_basis = &app->confBasis,
     .conf_range = &app->local,
     .pos_map = app->pos_map,
-    .auxfields =
-      {
-        .vlasov_pkpm_moms = s->pkpm_moms,
-        .bvar = app->field->bvar,
-        .u = s->pkpm_u,
-        .fluid_flux_surf = s->fluid_flux_surf,
-      },
+    .vlasov_pkpm_moms = s->pkpm_moms,
+    .bvar = app->field->bvar,
+    .u = s->pkpm_u,
+    .fluid_flux_surf = s->fluid_flux_surf,
     .use_gpu = app->use_gpu,
   };
   s->eqn_fluid = gkyl_dg_pkpm_fluid_inew(&fluid_inp);
@@ -442,7 +438,11 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   if (s->has_stage_weights) {
     s->stage_lam = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
     gkyl_array_clear(s->stage_lam, 1.0);
-    s->up_stage_weights = gkyl_pkpm_stage_weights_new(&app->confBasis, &app->basis, false);
+    s->up_stage_weights = gkyl_pkpm_stage_weights_inew(&(struct gkyl_pkpm_stage_weights_inp){
+      .conf_basis = &app->confBasis,
+      .phase_basis = &app->basis,
+      .use_gpu = false,
+    });
   }
 
   // The LBO acts at the configuration-space nodes on a nodal copy of the distributions. The BGK

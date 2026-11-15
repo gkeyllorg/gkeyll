@@ -14,7 +14,13 @@ test_mom_pkpm_1x1v_p1()
   gkyl_cart_modal_serendip(&pbasis, 2, poly_order); // 1X1V
 
   // Non-diagnostic moments (rho, p_par, p_perp, M1, q_par, q_perp, int M0_perp dw).
-  struct gkyl_mom_type *m = gkyl_mom_pkpm_new(&cbasis, &pbasis, 1.0, false, false);
+  struct gkyl_mom_type *m = gkyl_mom_pkpm_inew(&(struct gkyl_mom_pkpm_inp){
+    .conf_basis = &cbasis,
+    .phase_basis = &pbasis,
+    .mass = 1.0,
+    .is_diag = false,
+    .use_gpu = false,
+  });
   TEST_CHECK(m->cdim == 1);
   TEST_CHECK(m->pdim == 2);
   TEST_CHECK(m->poly_order == 1);
@@ -24,7 +30,13 @@ test_mom_pkpm_1x1v_p1()
   TEST_CHECK(m->kernel != NULL);
 
   // Diagnostic moments has 8 components.
-  struct gkyl_mom_type *md = gkyl_mom_pkpm_new(&cbasis, &pbasis, 2.0, true, false);
+  struct gkyl_mom_type *md = gkyl_mom_pkpm_inew(&(struct gkyl_mom_pkpm_inp){
+    .conf_basis = &cbasis,
+    .phase_basis = &pbasis,
+    .mass = 2.0,
+    .is_diag = true,
+    .use_gpu = false,
+  });
   TEST_CHECK(md->num_mom == 8);
   TEST_CHECK(md->cdim == 1);
   TEST_CHECK(md->kernel != NULL);
@@ -41,11 +53,23 @@ test_mom_pkpm_2x1v_p1()
   gkyl_cart_modal_serendip(&cbasis, 2, poly_order); // 2X
   gkyl_cart_modal_serendip(&pbasis, 3, poly_order); // 2X1V
 
-  struct gkyl_mom_type *m = gkyl_mom_pkpm_new(&cbasis, &pbasis, 1.0, false, false);
+  struct gkyl_mom_type *m = gkyl_mom_pkpm_inew(&(struct gkyl_mom_pkpm_inp){
+    .conf_basis = &cbasis,
+    .phase_basis = &pbasis,
+    .mass = 1.0,
+    .is_diag = false,
+    .use_gpu = false,
+  });
   TEST_CHECK(m->cdim == 2);
   TEST_CHECK(m->pdim == 3);
   TEST_CHECK(m->num_mom == 18);
-  struct gkyl_mom_type *md = gkyl_mom_pkpm_new(&cbasis, &pbasis, 1.0, true, false);
+  struct gkyl_mom_type *md = gkyl_mom_pkpm_inew(&(struct gkyl_mom_pkpm_inp){
+    .conf_basis = &cbasis,
+    .phase_basis = &pbasis,
+    .mass = 1.0,
+    .is_diag = true,
+    .use_gpu = false,
+  });
   TEST_CHECK(md->num_mom == 8);
   gkyl_mom_type_release(m);
   gkyl_mom_type_release(md);
@@ -59,7 +83,13 @@ test_mom_pkpm_3x1v_p1()
   gkyl_cart_modal_serendip(&cbasis, 3, poly_order); // 3X
   gkyl_cart_modal_serendip(&pbasis, 4, poly_order); // 3X1V
 
-  struct gkyl_mom_type *m = gkyl_mom_pkpm_new(&cbasis, &pbasis, 1.0, false, false);
+  struct gkyl_mom_type *m = gkyl_mom_pkpm_inew(&(struct gkyl_mom_pkpm_inp){
+    .conf_basis = &cbasis,
+    .phase_basis = &pbasis,
+    .mass = 1.0,
+    .is_diag = false,
+    .use_gpu = false,
+  });
   TEST_CHECK(m->cdim == 3);
   TEST_CHECK(m->pdim == 4);
   TEST_CHECK(m->num_mom == 18);

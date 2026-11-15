@@ -59,8 +59,7 @@ struct gkyl_dg_pkpm_vel_flux_surf *gkyl_dg_pkpm_vel_flux_surf_cu_dev_inew(
  * @param fin Input distribution functions [F, G, M0_perp, N_perp].
  * @param vel_flux_surf Output modal v_par fluxes.
  *
- * No time-step rate: that of the w fluxes is the column rate of gkyl_dg_calc_pkpm_vars_closure
- * (plan 17.27).
+ * No time-step rate: that of the w fluxes is the column rate of gkyl_dg_calc_pkpm_vars_closure.
  */
 void gkyl_dg_pkpm_vel_flux_surf_advance(
   struct gkyl_dg_pkpm_vel_flux_surf *up, const struct gkyl_range *conf_range,

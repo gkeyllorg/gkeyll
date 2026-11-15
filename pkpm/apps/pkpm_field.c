@@ -175,7 +175,12 @@ pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app)
   gkyl_array_clear(f->dt_em_no_J, 0.0);
   f->dtB_over_magB = mkarr(app->use_gpu, 3 * app->confBasis.num_basis, app->local_ext.volume);
   gkyl_array_clear(f->dtB_over_magB, 0.0);
-  f->calc_bvar = gkyl_dg_calc_pkpm_bvar_new(&app->grid, &app->confBasis, app->pos_map, app->use_gpu);
+  f->calc_bvar = gkyl_dg_calc_pkpm_bvar_inew(&(struct gkyl_dg_calc_pkpm_bvar_inp){
+    .conf_grid = &app->grid,
+    .conf_basis = &app->confBasis,
+    .pos_map = app->pos_map,
+    .use_gpu = app->use_gpu,
+  });
 
   // Check if limiter_fac is specified for adjusting how much diffusion is applied through slope limiter
   // If not specified, set to 0.0 and updater sets default behavior (1/sqrt(3); see gkyl_dg_calc_em_vars.h)

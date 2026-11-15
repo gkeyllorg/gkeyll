@@ -6,16 +6,18 @@
 #include <gkyl_pkpm_coll_cross_priv.h>
 
 struct gkyl_pkpm_coll_cross *
-gkyl_pkpm_coll_cross_new(const struct gkyl_basis *conf_basis, double heat_fac, bool use_gpu)
+gkyl_pkpm_coll_cross_inew(const struct gkyl_pkpm_coll_cross_inp *inp)
 {
-  assert(!use_gpu);
-  assert(conf_basis->b_type == GKYL_BASIS_MODAL_SERENDIPITY && conf_basis->poly_order == 1);
+  assert(!inp->use_gpu);
+  assert(
+    inp->conf_basis->b_type == GKYL_BASIS_MODAL_SERENDIPITY && inp->conf_basis->poly_order == 1
+  );
 
   struct gkyl_pkpm_coll_cross *up = gkyl_malloc(sizeof(*up));
-  up->num_nodes = conf_basis->num_basis;
-  up->heat_fac = heat_fac;
-  up->conf_to_nodal = pkpm_coll_cross_conf_to_nodal_list[conf_basis->ndim - 1];
-  up->nodal_to_conf = pkpm_coll_cross_nodal_to_conf_list[conf_basis->ndim - 1];
+  up->num_nodes = inp->conf_basis->num_basis;
+  up->heat_fac = inp->heat_fac;
+  up->conf_to_nodal = dg_conf_nodal_conf_to_nodal_kernels.kernels[inp->conf_basis->ndim - 1];
+  up->conf_to_modal = dg_conf_nodal_conf_to_modal_kernels.kernels[inp->conf_basis->ndim - 1];
   return up;
 }
 
@@ -235,7 +237,7 @@ gkyl_pkpm_coll_cross_advance(
       double *fluid_d = gkyl_array_fetch(species[s].fluid, loc);
       for (int c = 0; c < PKPM_COLL_CROSS_NUM_INCR; ++c) {
         double incr_modal[PKPM_MAX_CONF_BASIS];
-        up->nodal_to_conf(incr[s][c], incr_modal);
+        up->conf_to_modal(incr[s][c], incr_modal);
         for (int i = 0; i < num_nodes; ++i) {
           fluid_d[(PKPM_FLUID_MOM + c) * num_nodes + i] += incr_modal[i];
         }

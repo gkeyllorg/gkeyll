@@ -7,21 +7,24 @@
 // Object type
 typedef struct gkyl_pkpm_coll_nu gkyl_pkpm_coll_nu;
 
+// Input packaged as a struct
+struct gkyl_pkpm_coll_nu_inp {
+  const struct gkyl_basis *conf_basis; // Configuration-space basis functions (p=1 serendipity).
+  bool
+    spitzer; // True to scale the reference frequency by n_r / (vtsq_s + vtsq_r)^(3/2), false to use it as it is.
+  double vtsq_min; // Floor on each thermal speed squared (used only if spitzer is true).
+  bool use_gpu; // bool to determine if on GPU.
+};
+
 /**
  * Create an updater for the collision frequency of a species s colliding with a species r
  * (r = s for self collisions) at the 2^cdim interior Gauss-Legendre nodes of configuration
  * space. Nodal arrays have the same number of components as the p=1 modal ones.
  *
- * @param conf_basis Configuration-space basis (p=1 serendipity).
- * @param spitzer True to scale the reference frequency by n_r / (vtsq_s + vtsq_r)^(3/2),
- *   false to use the reference frequency as it is.
- * @param vtsq_min Floor on each thermal speed squared (used only if spitzer is true).
- * @param use_gpu Whether to run on the GPU (not available yet).
+ * @param inp Input parameters defined in gkyl_pkpm_coll_nu_inp struct.
  * @return New updater pointer.
  */
-struct gkyl_pkpm_coll_nu *gkyl_pkpm_coll_nu_new(
-  const struct gkyl_basis *conf_basis, bool spitzer, double vtsq_min, bool use_gpu
-);
+struct gkyl_pkpm_coll_nu *gkyl_pkpm_coll_nu_inew(const struct gkyl_pkpm_coll_nu_inp *inp);
 
 /**
  * Compute the collision frequency at the nodes. All arrays hold node values. The result is zero

@@ -22,23 +22,11 @@ gkyl_dg_pkpm_fluid_free(const struct gkyl_ref_count *ref)
 
   struct dg_pkpm_fluid *pkpm = container_of(base, struct dg_pkpm_fluid, eqn);
   gkyl_vlasov_position_map_release(pkpm->pos_map);
+  gkyl_array_release(pkpm->vlasov_pkpm_moms);
+  gkyl_array_release(pkpm->bvar);
+  gkyl_array_release(pkpm->u);
+  gkyl_array_release(pkpm->fluid_flux_surf);
   gkyl_free(pkpm);
-}
-
-void
-gkyl_dg_pkpm_fluid_set_auxfields(
-  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_pkpm_fluid_auxfields auxin
-)
-{
-#ifdef GKYL_HAVE_CUDA
-  if (gkyl_dg_eqn_is_cu_dev(eqn)) {
-    gkyl_dg_pkpm_fluid_set_auxfields_cu(eqn->on_dev, auxin);
-    return;
-  }
-#endif
-
-  struct dg_pkpm_fluid *pkpm = container_of(eqn, struct dg_pkpm_fluid, eqn);
-  pkpm->auxfields = auxin;
 }
 
 struct gkyl_dg_eqn *
@@ -64,7 +52,10 @@ gkyl_dg_pkpm_fluid_inew(const struct gkyl_dg_pkpm_fluid_inp *inp)
 
   choose_pkpm_fluid_kerns(pkpm, inp->conf_basis->b_type, cdim, poly_order);
 
-  pkpm->auxfields = inp->auxfields;
+  pkpm->vlasov_pkpm_moms = gkyl_array_acquire(inp->vlasov_pkpm_moms);
+  pkpm->bvar = gkyl_array_acquire(inp->bvar);
+  pkpm->u = gkyl_array_acquire(inp->u);
+  pkpm->fluid_flux_surf = gkyl_array_acquire(inp->fluid_flux_surf);
   pkpm->conf_range = *inp->conf_range;
   assert(inp->pos_map);
   pkpm->pos_map = gkyl_vlasov_position_map_acquire(inp->pos_map);

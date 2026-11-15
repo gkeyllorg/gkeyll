@@ -23,17 +23,19 @@ gkyl_dg_updater_moment_pkpm_num_mom(const gkyl_dg_updater_moment *moment)
 }
 
 struct gkyl_dg_updater_moment *
-gkyl_dg_updater_moment_pkpm_new(
-  const struct gkyl_rect_grid *grid, const struct gkyl_basis *conf_basis,
-  const struct gkyl_basis *phase_basis, const struct gkyl_range *conf_range,
-  const struct gkyl_range *vel_range, double mass, bool is_diag, bool use_gpu
-)
+gkyl_dg_updater_moment_pkpm_inew(const struct gkyl_dg_updater_moment_pkpm_inp *inp)
 {
   gkyl_dg_updater_moment *up = gkyl_malloc(sizeof(gkyl_dg_updater_moment));
-  up->use_gpu = use_gpu;
+  up->use_gpu = inp->use_gpu;
 
-  up->type = gkyl_mom_pkpm_new(conf_basis, phase_basis, mass, is_diag, use_gpu);
-  up->up_moment = gkyl_mom_calc_new(grid, up->type, use_gpu);
+  up->type = gkyl_mom_pkpm_inew(&(struct gkyl_mom_pkpm_inp){
+    .conf_basis = inp->conf_basis,
+    .phase_basis = inp->phase_basis,
+    .mass = inp->mass,
+    .is_diag = inp->is_diag,
+    .use_gpu = inp->use_gpu,
+  });
+  up->up_moment = gkyl_mom_calc_new(inp->phase_grid, up->type, inp->use_gpu);
 
   up->moment_tm = 0.0;
 

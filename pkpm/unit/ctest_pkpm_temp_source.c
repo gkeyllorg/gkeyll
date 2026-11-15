@@ -119,7 +119,10 @@ test_temp_source(int cdim, bool implicit)
   }
   gkyl_array_copy(fluid0, fluid);
 
-  struct gkyl_pkpm_temp_source *up = gkyl_pkpm_temp_source_new(&cbasis, false);
+  struct gkyl_pkpm_temp_source *up = gkyl_pkpm_temp_source_inew(&(struct gkyl_pkpm_temp_source_inp){
+    .conf_basis = &cbasis,
+    .use_gpu = false,
+  });
   if (implicit) {
     gkyl_pkpm_temp_source_implicit_advance(up, &crange, dt, rate, vtsq, fluid, shape, temp_ratio);
   } else {
@@ -234,7 +237,10 @@ test_inadmissible(bool implicit)
     vtsq_d[q] = vtsq_q;
   }
 
-  struct gkyl_pkpm_temp_source *up = gkyl_pkpm_temp_source_new(&cbasis, false);
+  struct gkyl_pkpm_temp_source *up = gkyl_pkpm_temp_source_inew(&(struct gkyl_pkpm_temp_source_inp){
+    .conf_basis = &cbasis,
+    .use_gpu = false,
+  });
   double incr[2];
   const double *shape_d = gkyl_array_cfetch(shape, 0);
   double eps_target = 1.5 * rho[1] * vtsq_q, eps = -0.2;

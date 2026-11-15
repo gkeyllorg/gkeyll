@@ -39,15 +39,17 @@ pkpm_temp_source_nodal_state(
 }
 
 struct gkyl_pkpm_temp_source *
-gkyl_pkpm_temp_source_new(const struct gkyl_basis *conf_basis, bool use_gpu)
+gkyl_pkpm_temp_source_inew(const struct gkyl_pkpm_temp_source_inp *inp)
 {
-  assert(!use_gpu);
-  assert(conf_basis->b_type == GKYL_BASIS_MODAL_SERENDIPITY && conf_basis->poly_order == 1);
+  assert(!inp->use_gpu);
+  assert(
+    inp->conf_basis->b_type == GKYL_BASIS_MODAL_SERENDIPITY && inp->conf_basis->poly_order == 1
+  );
 
   struct gkyl_pkpm_temp_source *up = gkyl_malloc(sizeof(*up));
-  up->num_nodes = conf_basis->num_basis;
-  up->conf_to_nodal = pkpm_temp_source_conf_to_nodal_list[conf_basis->ndim - 1];
-  up->nodal_to_conf = pkpm_temp_source_nodal_to_conf_list[conf_basis->ndim - 1];
+  up->num_nodes = inp->conf_basis->num_basis;
+  up->conf_to_nodal = dg_conf_nodal_conf_to_nodal_kernels.kernels[inp->conf_basis->ndim - 1];
+  up->conf_to_modal = dg_conf_nodal_conf_to_modal_kernels.kernels[inp->conf_basis->ndim - 1];
   return up;
 }
 
@@ -80,7 +82,7 @@ gkyl_pkpm_temp_source_advance(
       incr[q] = state.has_density[q] ? rate_d[q] * (state.eps_target[q] - state.eps[q]) : 0.0;
     }
 
-    up->nodal_to_conf(incr, incr_modal);
+    up->conf_to_modal(incr, incr_modal);
     double *rhs_energy = (double *)gkyl_array_fetch(rhs, loc) + PKPM_FLUID_ENERGY * num_nodes;
     for (int k = 0; k < num_nodes; ++k) {
       rhs_energy[k] += incr_modal[k];
@@ -121,7 +123,7 @@ gkyl_pkpm_temp_source_implicit_advance(
       temp_ratio_d[q] = state.eps[q] > 0.0 ? state.eps[q] / (state.eps[q] + incr[q]) : 1.0;
     }
 
-    up->nodal_to_conf(incr, incr_modal);
+    up->conf_to_modal(incr, incr_modal);
     double *energy = fluid_d + PKPM_FLUID_ENERGY * num_nodes;
     for (int k = 0; k < num_nodes; ++k) {
       energy[k] += incr_modal[k];

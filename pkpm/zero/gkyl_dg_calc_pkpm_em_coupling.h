@@ -7,6 +7,17 @@
 // Object type
 typedef struct gkyl_dg_calc_pkpm_em_coupling gkyl_dg_calc_pkpm_em_coupling;
 
+// Input packaged as a struct
+struct gkyl_dg_calc_pkpm_em_coupling_inp {
+  const struct gkyl_basis *conf_basis; // Configuration-space basis functions (p=1 serendipity).
+  const struct gkyl_range *mem_range; // Configuration-space range that sets the size of the batched solve.
+  int num_species; // Number of fluid species in the update.
+  const double *qbym; // Charge/mass of each fluid species (num_species values).
+  double epsilon0; // Permittivity of free space.
+  bool pkpm_field_static; // bool to determine if the EM fields are static (no dE/dt update).
+  bool use_gpu; // bool to determine if on GPU.
+};
+
 /**
  * Create new updater for the locally implicit (time-centered) fluid-Maxwell source update
  * of the p=1 PKPM system, solved nodally at the 2^cdim Gauss-Legendre nodes of each cell
@@ -20,28 +31,16 @@ typedef struct gkyl_dg_calc_pkpm_em_coupling gkyl_dg_calc_pkpm_em_coupling;
  * modal solve with exact weak products (no aliasing), and sum_s |M_s|^2/(2 rho_s) +
  * epsilon0 |E|^2/2 is conserved node by node. rho^n and B^n are unchanged by the sources.
  *
- * @param cbasis            Configuration space basis functions (p=1 serendipity)
- * @param mem_range         Configuration space range that sets the size of the batched solve
- * @param num_species       Number of fluid species in the update
- * @param qbym[num_species] Array of charge/mass for each fluid species
- * @param epsilon0          Permitivvity of free space
- * @param pkpm_field_static bool to determine if we are updating the self-consistent EM fields (dE/dt)
- * @param use_gpu           bool to determine if on GPU
+ * @param inp Input parameters defined in gkyl_dg_calc_pkpm_em_coupling_inp struct.
  * @return New updater pointer.
  */
-struct gkyl_dg_calc_pkpm_em_coupling *gkyl_dg_calc_pkpm_em_coupling_new(
-  const struct gkyl_basis *cbasis, const struct gkyl_range *mem_range, int num_species,
-  double qbym[GKYL_MAX_SPECIES], double epsilon0, bool pkpm_field_static, bool use_gpu
-);
+struct gkyl_dg_calc_pkpm_em_coupling *gkyl_dg_calc_pkpm_em_coupling_inew(const struct gkyl_dg_calc_pkpm_em_coupling_inp *inp);
 
 /**
  * Create new updater to compute fluid variables on
  * NV-GPU. See new() method for documentation.
  */
-struct gkyl_dg_calc_pkpm_em_coupling *gkyl_dg_calc_pkpm_em_coupling_cu_dev_new(
-  const struct gkyl_basis *cbasis, const struct gkyl_range *mem_range, int num_species,
-  double qbym[GKYL_MAX_SPECIES], double epsilon0, bool pkpm_field_static
-);
+struct gkyl_dg_calc_pkpm_em_coupling *gkyl_dg_calc_pkpm_em_coupling_cu_dev_inew(const struct gkyl_dg_calc_pkpm_em_coupling_inp *inp);
 
 /**
  * Advance the fluid state of every species and the electric field by the implicit source

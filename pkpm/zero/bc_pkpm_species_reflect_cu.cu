@@ -40,6 +40,7 @@ gkyl_bc_pkpm_species_reflect_advance_cu(
 struct gkyl_bc_pkpm_species_reflect *
 gkyl_bc_pkpm_species_reflect_cu_dev_inew(const struct gkyl_bc_pkpm_species_reflect_inp *inp)
 {
+  assert(bc_pkpm_species_reflect_symmetric_vel(inp->phase_grid, inp->cdim));
   struct gkyl_bc_pkpm_species_reflect *up =
     (struct gkyl_bc_pkpm_species_reflect *)gkyl_malloc(sizeof(*up));
   up->dir = inp->dir;

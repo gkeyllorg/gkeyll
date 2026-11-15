@@ -41,7 +41,12 @@ test_advance(int cdim)
   fill(prim_s, &range, 0.5, 0.01);
   fill(prim_r, &range, 1.5, 0.02);
 
-  struct gkyl_pkpm_coll_nu *up_ref = gkyl_pkpm_coll_nu_new(&cbasis, false, 0.0, false);
+  struct gkyl_pkpm_coll_nu *up_ref = gkyl_pkpm_coll_nu_inew(&(struct gkyl_pkpm_coll_nu_inp){
+    .conf_basis = &cbasis,
+    .spitzer = false,
+    .vtsq_min = 0.0,
+    .use_gpu = false,
+  });
   gkyl_pkpm_coll_nu_advance(up_ref, &range, ref, prim_s, prim_r, nu);
   long loc = gkyl_range_idx(&range, lower);
   const double *nu_d = gkyl_array_cfetch(nu, loc), *ref_d = gkyl_array_cfetch(ref, loc);
@@ -50,7 +55,12 @@ test_advance(int cdim)
   }
 
   double vtsq_min = 0.75;
-  struct gkyl_pkpm_coll_nu *up_sp = gkyl_pkpm_coll_nu_new(&cbasis, true, vtsq_min, false);
+  struct gkyl_pkpm_coll_nu *up_sp = gkyl_pkpm_coll_nu_inew(&(struct gkyl_pkpm_coll_nu_inp){
+    .conf_basis = &cbasis,
+    .spitzer = true,
+    .vtsq_min = vtsq_min,
+    .use_gpu = false,
+  });
   double *n_w = gkyl_array_fetch(prim_r, loc);
   n_w[nc - 1] = -1.0; // a node with a negative density has no collisions
   gkyl_pkpm_coll_nu_advance(up_sp, &range, ref, prim_s, prim_r, nu);

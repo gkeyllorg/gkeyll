@@ -21,10 +21,15 @@ pkpm_fluid_em_coupling_init(struct gkyl_pkpm_app *app)
   }
 
   // Initialize solver
-  pkpm_em->slvr = gkyl_dg_calc_pkpm_em_coupling_new(
-    &app->confBasis, &app->local, num_species, qbym, app->field->info.epsilon0,
-    app->field->info.is_static, app->use_gpu
-  );
+  pkpm_em->slvr = gkyl_dg_calc_pkpm_em_coupling_inew(&(struct gkyl_dg_calc_pkpm_em_coupling_inp){
+    .conf_basis = &app->confBasis,
+    .mem_range = &app->local,
+    .num_species = num_species,
+    .qbym = qbym,
+    .epsilon0 = app->field->info.epsilon0,
+    .pkpm_field_static = app->field->info.is_static,
+    .use_gpu = app->use_gpu,
+  });
 
   return pkpm_em;
 }

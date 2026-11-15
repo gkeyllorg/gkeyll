@@ -9,44 +9,39 @@
 #include <gkyl_util.h>
 
 struct gkyl_dg_calc_pkpm_em_coupling *
-gkyl_dg_calc_pkpm_em_coupling_new(
-  const struct gkyl_basis *cbasis, const struct gkyl_range *mem_range, int num_species,
-  double qbym[GKYL_MAX_SPECIES], double epsilon0, bool pkpm_field_static, bool use_gpu
-)
+gkyl_dg_calc_pkpm_em_coupling_inew(const struct gkyl_dg_calc_pkpm_em_coupling_inp *inp)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (use_gpu) {
-    return gkyl_dg_calc_pkpm_em_coupling_cu_dev_new(
-      cbasis, mem_range, num_species, qbym, epsilon0, pkpm_field_static
-    );
+  if (inp->use_gpu) {
+    return gkyl_dg_calc_pkpm_em_coupling_cu_dev_inew(inp);
   }
 #endif
   gkyl_dg_calc_pkpm_em_coupling *up = gkyl_malloc(sizeof(gkyl_dg_calc_pkpm_em_coupling));
 
-  int nc = cbasis->num_basis;
-  int cdim = cbasis->ndim;
-  int poly_order = cbasis->poly_order;
-  enum gkyl_basis_type b_type = cbasis->b_type;
-  up->mem_range = *mem_range;
+  int nc = inp->conf_basis->num_basis;
+  int cdim = inp->conf_basis->ndim;
+  int poly_order = inp->conf_basis->poly_order;
+  enum gkyl_basis_type b_type = inp->conf_basis->b_type;
+  up->mem_range = *inp->mem_range;
 
   up->pkpm_em_coupling_set = choose_pkpm_em_coupling_set_kern(b_type, cdim, poly_order);
   up->pkpm_em_coupling_copy = choose_pkpm_em_coupling_copy_kern(b_type, cdim, poly_order);
 
   // Linear system size is nc*(3*num_species + 3)
-  up->num_species = num_species;
+  up->num_species = inp->num_species;
   up->As = gkyl_nmat_new(
-    mem_range->volume, nc * (3 * up->num_species + 3), nc * (3 * up->num_species + 3)
+    inp->mem_range->volume, nc * (3 * up->num_species + 3), nc * (3 * up->num_species + 3)
   );
-  up->xs = gkyl_nmat_new(mem_range->volume, nc * (3 * up->num_species + 3), 1);
+  up->xs = gkyl_nmat_new(inp->mem_range->volume, nc * (3 * up->num_species + 3), 1);
   up->mem = gkyl_nmat_linsolve_lu_new(up->As->num, up->As->nr);
 
   // Boolean for whether or not self-consistent EM fields are static
-  up->pkpm_field_static = pkpm_field_static;
+  up->pkpm_field_static = inp->pkpm_field_static;
 
   // Needed constants for the source solve
-  up->epsilon0 = epsilon0;
-  for (int n = 0; n < num_species; ++n) {
-    up->qbym[n] = qbym[n];
+  up->epsilon0 = inp->epsilon0;
+  for (int n = 0; n < inp->num_species; ++n) {
+    up->qbym[n] = inp->qbym[n];
   }
 
   up->flags = 0;

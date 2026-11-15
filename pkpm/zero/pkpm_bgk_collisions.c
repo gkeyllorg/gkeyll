@@ -6,22 +6,27 @@
 #include <gkyl_pkpm_bgk_collisions_priv.h>
 
 struct gkyl_pkpm_bgk_collisions *
-gkyl_pkpm_bgk_collisions_new(
-  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, bool use_gpu
-)
+gkyl_pkpm_bgk_collisions_inew(const struct gkyl_pkpm_bgk_collisions_inp *inp)
 {
-  assert(!use_gpu);
-  assert(conf_basis->b_type == GKYL_BASIS_MODAL_SERENDIPITY && conf_basis->poly_order == 1);
-  assert(phase_basis->num_basis == PKPM_NUM_VEL_MODES * conf_basis->num_basis);
+  assert(!inp->use_gpu);
+  assert(
+    inp->conf_basis->b_type == GKYL_BASIS_MODAL_SERENDIPITY && inp->conf_basis->poly_order == 1
+  );
+  assert(inp->phase_basis->b_type == GKYL_BASIS_MODAL_HYBRID);
+  assert(inp->phase_basis->num_basis == PKPM_NUM_VEL_MODES * inp->conf_basis->num_basis);
 
   struct gkyl_pkpm_bgk_collisions *up = gkyl_malloc(sizeof(*up));
-  up->cdim = conf_basis->ndim;
-  up->num_nodes = conf_basis->num_basis;
-  up->num_phase_basis = phase_basis->num_basis;
-  up->conf_to_modal = pkpm_bgk_conf_to_modal_list[up->cdim - 1];
-  up->phase_to_modal = pkpm_bgk_phase_to_modal_list[up->cdim - 1];
-  up->conf_phase_mul = pkpm_bgk_conf_phase_mul_list[up->cdim - 1];
-  up->conf_phase_mul_accumulate = pkpm_bgk_conf_phase_mul_accumulate_list[up->cdim - 1];
+  int cdim = inp->conf_basis->ndim, vdim = inp->phase_basis->ndim - cdim;
+  int poly_order = inp->conf_basis->poly_order;
+  up->cdim = cdim;
+  up->num_nodes = inp->conf_basis->num_basis;
+  up->num_phase_basis = inp->phase_basis->num_basis;
+  up->conf_to_modal = dg_conf_nodal_conf_to_modal_kernels.kernels[cdim - 1];
+  up->phase_to_modal = dg_conf_nodal_phase_to_modal_kernels[cdim - 1].kernels[vdim - 1];
+  up->conf_phase_mul = choose_mul_conf_phase_kern(inp->phase_basis->b_type, cdim, vdim, poly_order);
+  up->conf_phase_mul_accumulate =
+    choose_mul_conf_phase_accumulate_kern(inp->phase_basis->b_type, cdim, vdim, poly_order);
+  assert(up->phase_to_modal && up->conf_phase_mul && up->conf_phase_mul_accumulate);
   return up;
 }
 
@@ -33,7 +38,7 @@ pkpm_bgk_collisions_target(
   const double *f_lte, double *out
 )
 {
-  double target_nodal[PKPM_BGK_MAX_PHASE_BASIS];
+  double target_nodal[PKPM_MAX_PHASE_BASIS];
   for (int q = 0; q < up->num_nodes; ++q) {
     for (int j = 0; j < PKPM_NUM_VEL_MODES; ++j) {
       target_nodal[q * PKPM_NUM_VEL_MODES + j] = factor[q] * jacob * f_lte[j];
@@ -64,7 +69,7 @@ gkyl_pkpm_bgk_collisions_advance(
     const double *f_d = gkyl_array_cfetch(f, ploc);
     double *rhs_d = gkyl_array_fetch(rhs, ploc);
 
-    double rate_modal[PKPM_MAX_CONF_BASIS], target[PKPM_BGK_MAX_PHASE_BASIS];
+    double rate_modal[PKPM_MAX_CONF_BASIS], target[PKPM_MAX_PHASE_BASIS];
     up->conf_to_modal(rate_d, rate_modal);
     for (int k = 0; k < num_phase_basis; ++k) {
       target[k] = 0.0;
@@ -114,7 +119,7 @@ gkyl_pkpm_bgk_collisions_implicit_advance(
 
     // expansions of S and of (1 - S) J f_t
     double shape_modal[PKPM_MAX_CONF_BASIS], relax[PKPM_MAX_CONF_BASIS];
-    double target[PKPM_BGK_MAX_PHASE_BASIS];
+    double target[PKPM_MAX_PHASE_BASIS];
     up->conf_to_modal(shape_d, shape_modal);
     for (int q = 0; q < num_nodes; ++q) {
       relax[q] = 1.0 - shape_d[q];
@@ -127,7 +132,7 @@ gkyl_pkpm_bgk_collisions_implicit_advance(
     // F and G relax to the Maxwellian, the first-harmonic blocks to zero
     for (int b = 0; b < PKPM_DIST_NUM_BLOCKS; ++b) {
       double *f_b = &f_d[b * num_phase_basis];
-      double prod[PKPM_BGK_MAX_PHASE_BASIS];
+      double prod[PKPM_MAX_PHASE_BASIS];
       up->conf_phase_mul(shape_modal, f_b, prod);
       double target_fac = b < PKPM_DIST_M0 ? 1.0 : 0.0;
       for (int k = 0; k < num_phase_basis; ++k) {

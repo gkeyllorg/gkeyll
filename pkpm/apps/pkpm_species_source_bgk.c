@@ -59,8 +59,15 @@ pkpm_species_source_bgk_init(gkyl_pkpm_app *app, struct pkpm_species *s, struct 
   src->shape = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
   src->temp_ratio = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
   src->f_lte = pkpm_species_bgk_target_new(app, s);
-  src->up_temp = gkyl_pkpm_temp_source_new(&app->confBasis, false);
-  src->up_bgk = gkyl_pkpm_bgk_collisions_new(&app->confBasis, &app->basis, false);
+  src->up_temp = gkyl_pkpm_temp_source_inew(&(struct gkyl_pkpm_temp_source_inp){
+    .conf_basis = &app->confBasis,
+    .use_gpu = false,
+  });
+  src->up_bgk = gkyl_pkpm_bgk_collisions_inew(&(struct gkyl_pkpm_bgk_collisions_inp){
+    .conf_basis = &app->confBasis,
+    .phase_basis = &app->basis,
+    .use_gpu = false,
+  });
 
   src->is_implicit = info->is_implicit;
   if (!src->is_implicit) {

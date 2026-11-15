@@ -8,34 +8,6 @@ extern "C" {
 #include <gkyl_util.h>
 }
 
-// CUDA kernel to set pointers to auxiliary fields.
-__global__ static void
-gkyl_dg_pkpm_fluid_set_auxfields_cu_kernel(
-  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_pkpm_fluid_auxfields auxin
-)
-{
-  struct dg_pkpm_fluid *pkpm = container_of(eqn, struct dg_pkpm_fluid, eqn);
-  pkpm->auxfields.nmoms = auxin.nmoms;
-  pkpm->auxfields.bvar = auxin.bvar;
-  pkpm->auxfields.u = auxin.u;
-  pkpm->auxfields.fluid_flux_surf = auxin.fluid_flux_surf;
-}
-
-// Host-side wrapper for set_auxfields_cu_kernel: the arrays must be device arrays.
-void
-gkyl_dg_pkpm_fluid_set_auxfields_cu(
-  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_pkpm_fluid_auxfields auxin
-)
-{
-  struct gkyl_dg_pkpm_fluid_auxfields auxin_dev = {
-    .nmoms = auxin.nmoms ? auxin.nmoms->on_dev : 0,
-    .bvar = auxin.bvar ? auxin.bvar->on_dev : 0,
-    .u = auxin.u ? auxin.u->on_dev : 0,
-    .fluid_flux_surf = auxin.fluid_flux_surf ? auxin.fluid_flux_surf->on_dev : 0,
-  };
-  gkyl_dg_pkpm_fluid_set_auxfields_cu_kernel<<<1, 1>>>(eqn, auxin_dev);
-}
-
 // CUDA kernel to set device function pointers.
 __global__ static void
 dg_pkpm_fluid_set_cu_dev_ptrs(
@@ -58,7 +30,15 @@ gkyl_dg_pkpm_fluid_cu_dev_inew(const struct gkyl_dg_pkpm_fluid_inp *inp)
   pkpm->num_surf_basis = inp->conf_basis->num_basis / 2;
   pkpm->eqn.num_equations = 5;
   pkpm->conf_range = *inp->conf_range;
-  pkpm->auxfields = inp->auxfields;
+  // Acquire the host arrays and store their on_dev pointers for copying over to device.
+  struct gkyl_array *vlasov_pkpm_moms_ho = gkyl_array_acquire(inp->vlasov_pkpm_moms);
+  struct gkyl_array *bvar_ho = gkyl_array_acquire(inp->bvar);
+  struct gkyl_array *u_ho = gkyl_array_acquire(inp->u);
+  struct gkyl_array *fluid_flux_surf_ho = gkyl_array_acquire(inp->fluid_flux_surf);
+  pkpm->vlasov_pkpm_moms = vlasov_pkpm_moms_ho->on_dev;
+  pkpm->bvar = bvar_ho->on_dev;
+  pkpm->u = u_ho->on_dev;
+  pkpm->fluid_flux_surf = fluid_flux_surf_ho->on_dev;
   assert(inp->pos_map);
   pkpm->pos_map = 0; // host pointer set after the device memcpy below
   pkpm->jacob_pos = inp->pos_map->jacob_pos->on_dev;
@@ -75,6 +55,12 @@ gkyl_dg_pkpm_fluid_cu_dev_inew(const struct gkyl_dg_pkpm_fluid_inp *inp)
   );
 
   pkpm->eqn.on_dev = &pkpm_cu->eqn;
+
+  // Host-side equation object should store host pointers.
+  pkpm->vlasov_pkpm_moms = vlasov_pkpm_moms_ho;
+  pkpm->bvar = bvar_ho;
+  pkpm->u = u_ho;
+  pkpm->fluid_flux_surf = fluid_flux_surf_ho;
   pkpm->pos_map = gkyl_vlasov_position_map_acquire(inp->pos_map);
   pkpm->jacob_pos = inp->pos_map->jacob_pos;
   return &pkpm->eqn;

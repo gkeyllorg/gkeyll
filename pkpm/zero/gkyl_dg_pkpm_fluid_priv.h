@@ -37,7 +37,11 @@ struct dg_pkpm_fluid {
     *pos_map; // Position map (acquired; host pointer, 0 on the device copy)
   const struct gkyl_array
     *jacob_pos; // Per-direction Jacobians (borrowed from pos_map; device pointer on device)
-  struct gkyl_dg_pkpm_fluid_auxfields auxfields; // Auxiliary fields.
+  // Arrays the terms read (acquired; device pointers on the device copy).
+  const struct gkyl_array *vlasov_pkpm_moms;
+  const struct gkyl_array *bvar;
+  const struct gkyl_array *u;
+  const struct gkyl_array *fluid_flux_surf;
 };
 
 // Kernel tables (p=1 serendipity only)
@@ -80,9 +84,9 @@ vol(
   long cidx = gkyl_range_idx(&pkpm->conf_range, idx);
   return pkpm->vol_kern(
     xc, dx, (const double *)gkyl_array_cfetch(pkpm->jacob_pos, cidx),
-    (const double *)gkyl_array_cfetch(pkpm->auxfields.vlasov_pkpm_moms, cidx),
-    (const double *)gkyl_array_cfetch(pkpm->auxfields.bvar, cidx),
-    (const double *)gkyl_array_cfetch(pkpm->auxfields.u, cidx), qIn, qRhsOut
+    (const double *)gkyl_array_cfetch(pkpm->vlasov_pkpm_moms, cidx),
+    (const double *)gkyl_array_cfetch(pkpm->bvar, cidx),
+    (const double *)gkyl_array_cfetch(pkpm->u, cidx), qIn, qRhsOut
   );
 }
 
@@ -100,8 +104,8 @@ surf(
   int off = dir * PKPM_FLUID_NUM_COMP * pkpm->num_surf_basis;
   long cidxC = gkyl_range_idx(&pkpm->conf_range, idxC);
   long cidxR = gkyl_range_idx(&pkpm->conf_range, idxR);
-  const double *flux_l = (const double *)gkyl_array_cfetch(pkpm->auxfields.fluid_flux_surf, cidxC);
-  const double *flux_r = (const double *)gkyl_array_cfetch(pkpm->auxfields.fluid_flux_surf, cidxR);
+  const double *flux_l = (const double *)gkyl_array_cfetch(pkpm->fluid_flux_surf, cidxC);
+  const double *flux_r = (const double *)gkyl_array_cfetch(pkpm->fluid_flux_surf, cidxR);
   return pkpm->fluid_surf[dir](xcC, dxC, &flux_l[off], &flux_r[off], qRhsOut);
 }
 

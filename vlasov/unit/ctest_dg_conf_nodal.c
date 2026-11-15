@@ -104,7 +104,11 @@ test_conf(int cdim)
   }
 
   double *nodes = quad_nodes(&cbasis);
-  struct gkyl_dg_conf_nodal *up = gkyl_dg_conf_nodal_new(&cbasis, 0, false);
+  struct gkyl_dg_conf_nodal *up = gkyl_dg_conf_nodal_inew(&(struct gkyl_dg_conf_nodal_inp){
+    .conf_basis = &cbasis,
+    .phase_basis = 0,
+    .use_gpu = false,
+  });
   gkyl_dg_conf_nodal_conf_to_nodal(up, &crange, fmodal, fnodal);
   gkyl_dg_conf_nodal_conf_to_nodal(up, &crange, gmodal, gnodal);
   gkyl_dg_conf_nodal_conf_to_nodal(up, &crange, fg, fgnodal);
@@ -170,7 +174,11 @@ test_phase(int cdim)
   gkyl_array_clear(back, 0.0);
 
   double *nodes = quad_nodes(&cbasis);
-  struct gkyl_dg_conf_nodal *up = gkyl_dg_conf_nodal_new(&cbasis, &pbasis, false);
+  struct gkyl_dg_conf_nodal *up = gkyl_dg_conf_nodal_inew(&(struct gkyl_dg_conf_nodal_inp){
+    .conf_basis = &cbasis,
+    .phase_basis = &pbasis,
+    .use_gpu = false,
+  });
   gkyl_dg_conf_nodal_phase_to_nodal(up, &prange, fmodal, fnodal);
   gkyl_dg_conf_nodal_phase_to_modal_accumulate(up, &prange, fnodal, back);
 

@@ -8,36 +8,6 @@ extern "C" {
 #include <gkyl_util.h>
 }
 
-// CUDA kernel to set pointers to auxiliary fields.
-__global__ static void
-gkyl_dg_pkpm_kinetic_vel_set_auxfields_cu_kernel(
-  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_pkpm_kinetic_vel_auxfields auxin
-)
-{
-  struct dg_pkpm_kinetic_vel *pkpm = container_of(eqn, struct dg_pkpm_kinetic_vel, eqn);
-  pkpm->auxfields.c_0 = auxin.c_0;
-  pkpm->auxfields.alpha_0 = auxin.alpha_0;
-  pkpm->auxfields.c_h = auxin.c_h;
-  pkpm->auxfields.a_perp = auxin.a_perp;
-  pkpm->auxfields.vel_flux_surf = auxin.vel_flux_surf;
-}
-
-// Host-side wrapper for set_auxfields_cu_kernel: the arrays must be device arrays.
-void
-gkyl_dg_pkpm_kinetic_vel_set_auxfields_cu(
-  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_pkpm_kinetic_vel_auxfields auxin
-)
-{
-  struct gkyl_dg_pkpm_kinetic_vel_auxfields auxin_dev = {
-    .c_0 = auxin.c_0 ? auxin.c_0->on_dev : 0,
-    .alpha_0 = auxin.alpha_0 ? auxin.alpha_0->on_dev : 0,
-    .c_h = auxin.c_h ? auxin.c_h->on_dev : 0,
-    .a_perp = auxin.a_perp ? auxin.a_perp->on_dev : 0,
-    .vel_flux_surf = auxin.vel_flux_surf ? auxin.vel_flux_surf->on_dev : 0,
-  };
-  gkyl_dg_pkpm_kinetic_vel_set_auxfields_cu_kernel<<<1, 1>>>(eqn, auxin_dev);
-}
-
 // CUDA kernel to set device function pointers.
 __global__ static void
 dg_pkpm_kinetic_vel_set_cu_dev_ptrs(
@@ -62,7 +32,17 @@ gkyl_dg_pkpm_kinetic_vel_cu_dev_inew(const struct gkyl_dg_pkpm_kinetic_vel_inp *
   pkpm->eqn.num_equations = 8;
   pkpm->conf_range = *inp->conf_range;
   pkpm->phase_range = *inp->phase_range;
-  pkpm->auxfields = inp->auxfields;
+  // Acquire the host arrays and store their on_dev pointers for copying over to device.
+  struct gkyl_array *c_0_ho = gkyl_array_acquire(inp->c_0);
+  struct gkyl_array *alpha_0_ho = gkyl_array_acquire(inp->alpha_0);
+  struct gkyl_array *c_h_ho = gkyl_array_acquire(inp->c_h);
+  struct gkyl_array *a_perp_ho = gkyl_array_acquire(inp->a_perp);
+  struct gkyl_array *vel_flux_surf_ho = gkyl_array_acquire(inp->vel_flux_surf);
+  pkpm->c_0 = c_0_ho->on_dev;
+  pkpm->alpha_0 = alpha_0_ho->on_dev;
+  pkpm->c_h = c_h_ho->on_dev;
+  pkpm->a_perp = a_perp_ho->on_dev;
+  pkpm->vel_flux_surf = vel_flux_surf_ho->on_dev;
 
   pkpm->eqn.flags = 0;
   GKYL_SET_CU_ALLOC(pkpm->eqn.flags);
@@ -77,5 +57,12 @@ gkyl_dg_pkpm_kinetic_vel_cu_dev_inew(const struct gkyl_dg_pkpm_kinetic_vel_inp *
   );
 
   pkpm->eqn.on_dev = &pkpm_cu->eqn;
+
+  // Host-side equation object should store host pointers.
+  pkpm->c_0 = c_0_ho;
+  pkpm->alpha_0 = alpha_0_ho;
+  pkpm->c_h = c_h_ho;
+  pkpm->a_perp = a_perp_ho;
+  pkpm->vel_flux_surf = vel_flux_surf_ho;
   return &pkpm->eqn;
 }

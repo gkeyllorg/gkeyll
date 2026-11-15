@@ -160,7 +160,11 @@ pkpm_species_bgk_init_nodal(
     bgk->rate = gkyl_array_acquire(bgk->rate_self);
   }
   bgk->f_lte = pkpm_species_bgk_target_new(app, s);
-  bgk->up_bgk = gkyl_pkpm_bgk_collisions_new(&app->confBasis, &app->basis, false);
+  bgk->up_bgk = gkyl_pkpm_bgk_collisions_inew(&(struct gkyl_pkpm_bgk_collisions_inp){
+    .conf_basis = &app->confBasis,
+    .phase_basis = &app->basis,
+    .use_gpu = false,
+  });
   bgk->is_implicit = s->info.collisions.is_implicit;
   if (bgk->is_implicit) {
     bgk->shape = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);

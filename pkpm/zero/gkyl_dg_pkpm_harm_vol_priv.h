@@ -76,7 +76,7 @@ GKYL_CU_D static const pkpm_harm_vol_t ser_pkpm_harm_vol_kernels[] = {
   pkpm_harm_vol_1x1v_ser_p1, pkpm_harm_vol_2x1v_ser_p1, pkpm_harm_vol_3x1v_ser_p1
 };
 
-// Bound of the source rate of the column of a configuration cell (time-step rate, plan 17.27, 17.44):
+// Bound of the source rate of the column of a configuration cell (time-step rate):
 // the largest row sum (Gershgorin) of the source matrix with every entry bounded over the column by
 // its absolute coefficients, sum_j W^j sum_k |e_jk| max|mode_k|, W the larger |w| edge (no w of the
 // column and no point of the cell exceeds it), plus the bound of |Omega| = |(q/m) B| over the cell,

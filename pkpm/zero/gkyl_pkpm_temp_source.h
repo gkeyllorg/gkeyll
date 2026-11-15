@@ -7,6 +7,12 @@
 // Object type
 typedef struct gkyl_pkpm_temp_source gkyl_pkpm_temp_source;
 
+// Input packaged as a struct
+struct gkyl_pkpm_temp_source_inp {
+  const struct gkyl_basis *conf_basis; // Configuration-space basis functions (p=1 serendipity).
+  bool use_gpu; // bool to determine if on GPU.
+};
+
 /**
  * Create an updater for the fluid part of the PKPM temperature source
  * S = nu_Q (f_M(n, u, T_Q) - f), at the 2^cdim interior Gauss-Legendre nodes of configuration
@@ -21,12 +27,10 @@ typedef struct gkyl_pkpm_temp_source gkyl_pkpm_temp_source;
  * At a node with a nonpositive density the energy is left unchanged, and at a node with a
  * nonpositive density or thermal energy the distributions relax at the rate nu_Q.
  *
- * @param conf_basis Configuration-space basis (p=1 serendipity).
- * @param use_gpu Whether to run on the GPU (not available yet).
+ * @param inp Input parameters defined in gkyl_pkpm_temp_source_inp struct.
  * @return New updater pointer.
  */
-struct gkyl_pkpm_temp_source *gkyl_pkpm_temp_source_new(
-  const struct gkyl_basis *conf_basis, bool use_gpu
+struct gkyl_pkpm_temp_source *gkyl_pkpm_temp_source_inew(const struct gkyl_pkpm_temp_source_inp *inp
 );
 
 /**

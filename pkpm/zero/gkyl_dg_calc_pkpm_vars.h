@@ -9,6 +9,15 @@
 // Object type
 typedef struct gkyl_dg_calc_pkpm_vars gkyl_dg_calc_pkpm_vars;
 
+// Input packaged as a struct
+struct gkyl_dg_calc_pkpm_vars_inp {
+  const struct gkyl_rect_grid *conf_grid; // Configuration-space grid.
+  const struct gkyl_basis *conf_basis; // Configuration-space basis functions (p=1 serendipity).
+  const struct gkyl_vlasov_position_map
+    *pos_map; // Configuration-space position map (REQUIRED; the weak gradients carry 1/J_d).
+  bool use_gpu; // bool to determine if on GPU.
+};
+
 /**
  * Create new updater for the configuration-space variables of the energy-constrained PKPM
  * solver (p=1 serendipity): the nodal primitive variables (the flow M/rho and the thermal
@@ -16,23 +25,18 @@ typedef struct gkyl_dg_calc_pkpm_vars gkyl_dg_calc_pkpm_vars;
  * edges, the weak gradients, the explicit source, the initial-condition normalization and
  * the diagnostics.
  *
- * @param conf_grid Configuration space grid (for getting cell spacing and cell center)
- * @param cbasis    Configuration space basis functions
- * @param pos_map   Configuration-space position map (REQUIRED; the weak gradients carry 1/J_d)
- * @param use_gpu   Whether to run on host or device
+ * @param inp Input parameters defined in gkyl_dg_calc_pkpm_vars_inp struct.
  * @return New updater pointer.
  */
-struct gkyl_dg_calc_pkpm_vars *gkyl_dg_calc_pkpm_vars_new(
-  const struct gkyl_rect_grid *conf_grid, const struct gkyl_basis *cbasis,
-  const struct gkyl_vlasov_position_map *pos_map, bool use_gpu
+struct gkyl_dg_calc_pkpm_vars *gkyl_dg_calc_pkpm_vars_inew(
+  const struct gkyl_dg_calc_pkpm_vars_inp *inp
 );
 
 /**
  * Create new updater on NV-GPU.
  */
-struct gkyl_dg_calc_pkpm_vars *gkyl_dg_calc_pkpm_vars_cu_dev_new(
-  const struct gkyl_rect_grid *conf_grid, const struct gkyl_basis *cbasis,
-  const struct gkyl_vlasov_position_map *pos_map
+struct gkyl_dg_calc_pkpm_vars *gkyl_dg_calc_pkpm_vars_cu_dev_inew(
+  const struct gkyl_dg_calc_pkpm_vars_inp *inp
 );
 
 /**
@@ -73,8 +77,8 @@ void gkyl_dg_calc_pkpm_vars_in_cell_grad(
  * slot of vel_flux_surf, the upper one into the slot of the velocity ghost cell above the
  * uppermost cell (the array layout must have that ghost cell). The time-step rate of all the
  * velocity-space terms of the column (the w fluxes with the new closures and the closure sources,
- * bounded with absolute coefficients at the larger |w| edge: no w of the column exceeds it, plan
- * 17.27) is added to cflrate in every cell of the column. The edge speeds use the closures of the previous stage
+ * bounded with absolute coefficients at the larger |w| edge: no w of the column exceeds it) is
+ * added to cflrate in every cell of the column. The edge speeds use the closures of the previous stage
  * (the output arrays on input). At a node with M0(F) <= 0 or a non-positive determinant all
  * closures and edge fluxes of the cell are zero; the number of such nodes is returned. p=1
  * serendipity only.
@@ -289,22 +293,6 @@ void gkyl_dg_calc_pkpm_vars_diag(
 );
 
 /**
- * Compute integrated PKPM variables (rho, rhoux, rhouy, rhouz, rhoux^2, rhouy^2, rhouz^2, p_parallel, p_perp).
- *
- * @param up Updater for computing pkpm variables 
- * @param conf_range Configuration space range
- * @param vlasov_pkpm_moms Input array of pkpm kinetic moments [rho, p_parallel, p_perp]
- * @param euler_pkpm Input array of pkpm fluid variables [rho ux, rho uy, rho uz]
- * @param prim Input array of primitive moments [ux, uy, uz, 1/rho*div(p_par b), T_perp/m, m/T_perp]
- * @param int_pkpm_vars Output array of integrated variables (6 components)
- */
-void gkyl_dg_calc_pkpm_integrated_vars(
-  struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
-  const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *euler_pkpm,
-  const struct gkyl_array *prim, struct gkyl_array *pkpm_int_vars
-);
-
-/**
  * Compute pkpm model source terms.
  *
  * @param up Updater for computing pkpm variables 
@@ -377,12 +365,6 @@ void gkyl_dg_calc_pkpm_vars_diag_cu(
 void gkyl_dg_calc_pkpm_vars_in_cell_grad_cu(
   struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
   const struct gkyl_array *blend, const struct gkyl_array *q, struct gkyl_array *grad
-);
-
-void gkyl_dg_calc_pkpm_integrated_vars_cu(
-  struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
-  const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *euler_pkpm,
-  const struct gkyl_array *prim, struct gkyl_array *pkpm_int_vars
 );
 
 void gkyl_dg_calc_pkpm_vars_source_cu(

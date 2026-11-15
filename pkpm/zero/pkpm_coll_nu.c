@@ -48,17 +48,17 @@ pkpm_coll_nu_advance_spitzer(
 }
 
 struct gkyl_pkpm_coll_nu *
-gkyl_pkpm_coll_nu_new(
-  const struct gkyl_basis *conf_basis, bool spitzer, double vtsq_min, bool use_gpu
-)
+gkyl_pkpm_coll_nu_inew(const struct gkyl_pkpm_coll_nu_inp *inp)
 {
-  assert(!use_gpu);
-  assert(conf_basis->b_type == GKYL_BASIS_MODAL_SERENDIPITY && conf_basis->poly_order == 1);
+  assert(!inp->use_gpu);
+  assert(
+    inp->conf_basis->b_type == GKYL_BASIS_MODAL_SERENDIPITY && inp->conf_basis->poly_order == 1
+  );
 
   struct gkyl_pkpm_coll_nu *up = gkyl_malloc(sizeof(*up));
-  up->num_nodes = conf_basis->num_basis;
-  up->vtsq_min = vtsq_min;
-  up->advance = spitzer ? pkpm_coll_nu_advance_spitzer : pkpm_coll_nu_advance_ref;
+  up->num_nodes = inp->conf_basis->num_basis;
+  up->vtsq_min = inp->vtsq_min;
+  up->advance = inp->spitzer ? pkpm_coll_nu_advance_spitzer : pkpm_coll_nu_advance_ref;
   return up;
 }
 

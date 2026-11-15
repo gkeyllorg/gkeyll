@@ -13,6 +13,7 @@ gkyl_bc_pkpm_species_reflect_inew(const struct gkyl_bc_pkpm_species_reflect_inp 
     return gkyl_bc_pkpm_species_reflect_cu_dev_inew(inp);
   }
 #endif
+  assert(bc_pkpm_species_reflect_symmetric_vel(inp->phase_grid, inp->cdim));
   struct gkyl_bc_pkpm_species_reflect *up = gkyl_malloc(sizeof(*up));
   up->dir = inp->dir;
   up->edge = inp->edge;

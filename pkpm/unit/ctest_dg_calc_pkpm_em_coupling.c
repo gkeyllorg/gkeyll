@@ -110,7 +110,15 @@ test_static_E_push(int cdim)
   set_const_block(s.em, 2, nb, Ez, cdim);
 
   struct gkyl_dg_calc_pkpm_em_coupling *up =
-    gkyl_dg_calc_pkpm_em_coupling_new(&s.basis, &s.local, 1, qbym, eps0, true, false);
+    gkyl_dg_calc_pkpm_em_coupling_inew(&(struct gkyl_dg_calc_pkpm_em_coupling_inp){
+      .conf_basis = &s.basis,
+      .mem_range = &s.local,
+      .num_species = 1,
+      .qbym = qbym,
+      .epsilon0 = eps0,
+      .pkpm_field_static = true,
+      .use_gpu = false,
+    });
   const struct gkyl_array *aa[1] = {s.app_accel[0]};
   struct gkyl_array *ff[1] = {s.fluid[0]};
   gkyl_dg_calc_pkpm_em_coupling_advance(up, dt, aa, s.ext_em, s.app_current, ff, s.em);
@@ -153,7 +161,15 @@ plasma_oscillation(double dt, double t_end)
   set_const_block(s.fluid[0], 4, nb, Eint, 1); // fluid energy: internal only (M = 0)
   set_const_block(s.em, 0, nb, E0, 1);
   struct gkyl_dg_calc_pkpm_em_coupling *up =
-    gkyl_dg_calc_pkpm_em_coupling_new(&s.basis, &s.local, 1, qbym, eps0, false, false);
+    gkyl_dg_calc_pkpm_em_coupling_inew(&(struct gkyl_dg_calc_pkpm_em_coupling_inp){
+      .conf_basis = &s.basis,
+      .mem_range = &s.local,
+      .num_species = 1,
+      .qbym = qbym,
+      .epsilon0 = eps0,
+      .pkpm_field_static = false,
+      .use_gpu = false,
+    });
   const struct gkyl_array *aa[1] = {s.app_accel[0]};
   struct gkyl_array *ff[1] = {s.fluid[0]};
   long loc = gkyl_range_idx(&s.local_ext, s.local.lower);
@@ -201,7 +217,15 @@ test_cyclotron()
   set_const_block(s.fluid[0], 1, nb, M0, cdim);
   set_const_block(s.ext_em, 5, nb, Bz, cdim); // external B_z
   struct gkyl_dg_calc_pkpm_em_coupling *up =
-    gkyl_dg_calc_pkpm_em_coupling_new(&s.basis, &s.local, 1, qbym, eps0, true, false);
+    gkyl_dg_calc_pkpm_em_coupling_inew(&(struct gkyl_dg_calc_pkpm_em_coupling_inp){
+      .conf_basis = &s.basis,
+      .mem_range = &s.local,
+      .num_species = 1,
+      .qbym = qbym,
+      .epsilon0 = eps0,
+      .pkpm_field_static = true,
+      .use_gpu = false,
+    });
   const struct gkyl_array *aa[1] = {s.app_accel[0]};
   struct gkyl_array *ff[1] = {s.fluid[0]};
   long loc = gkyl_range_idx(&s.local_ext, s.local.lower);
@@ -296,7 +320,15 @@ test_varying(int cdim)
   gkyl_array_copy(em_old, s.em);
 
   struct gkyl_dg_calc_pkpm_em_coupling *up =
-    gkyl_dg_calc_pkpm_em_coupling_new(&s.basis, &s.local, 2, qbym, eps0, false, false);
+    gkyl_dg_calc_pkpm_em_coupling_inew(&(struct gkyl_dg_calc_pkpm_em_coupling_inp){
+      .conf_basis = &s.basis,
+      .mem_range = &s.local,
+      .num_species = 2,
+      .qbym = qbym,
+      .epsilon0 = eps0,
+      .pkpm_field_static = false,
+      .use_gpu = false,
+    });
   const struct gkyl_array *aa[2] = {s.app_accel[0], s.app_accel[1]};
   struct gkyl_array *ff[2] = {s.fluid[0], s.fluid[1]};
   gkyl_dg_calc_pkpm_em_coupling_advance(up, dt, aa, s.ext_em, s.app_current, ff, s.em);

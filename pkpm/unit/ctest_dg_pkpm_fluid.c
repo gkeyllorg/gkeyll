@@ -228,11 +228,21 @@ setup(struct test_setup *s, struct field_ctx *ctx)
   gkyl_proj_on_basis_advance(proj, 0.0, &s->local_ext, em);
   gkyl_proj_on_basis_release(proj);
 
-  s->calc_b = gkyl_dg_calc_pkpm_bvar_new(&s->grid, &s->basis, s->pos_map, false);
+  s->calc_b = gkyl_dg_calc_pkpm_bvar_inew(&(struct gkyl_dg_calc_pkpm_bvar_inp){
+    .conf_grid = &s->grid,
+    .conf_basis = &s->basis,
+    .pos_map = s->pos_map,
+    .use_gpu = false,
+  });
   gkyl_dg_calc_pkpm_bvar_advance(s->calc_b, &s->local_ext, em, s->bvar);
   gkyl_array_release(em);
 
-  s->vars = gkyl_dg_calc_pkpm_vars_new(&s->grid, &s->basis, s->pos_map, false);
+  s->vars = gkyl_dg_calc_pkpm_vars_inew(&(struct gkyl_dg_calc_pkpm_vars_inp){
+    .conf_grid = &s->grid,
+    .conf_basis = &s->basis,
+    .pos_map = s->pos_map,
+    .use_gpu = false,
+  });
   // the flow M/rho by the nodal quotient (the weak division at p=1); xi is set above
   struct gkyl_array *xi_scratch = mkarr(3 * nc, s->local_ext.volume);
   gkyl_dg_calc_pkpm_vars_prim(s->vars, &s->local_ext, s->fluid, s->u, xi_scratch);
@@ -261,7 +271,7 @@ make_eqn(struct test_setup *s, const struct gkyl_array *flux)
   struct gkyl_dg_pkpm_fluid_inp inp = {
     .conf_basis = &s->basis,
     .conf_range = &s->local,
-    .auxfields = {.vlasov_pkpm_moms = s->cmoms, .bvar = s->bvar, .u = s->u, .fluid_flux_surf = flux},
+    .vlasov_pkpm_moms = s->cmoms, .bvar = s->bvar, .u = s->u, .fluid_flux_surf = flux,
     .pos_map = s->pos_map, .use_gpu = false,
   };
   return gkyl_dg_pkpm_fluid_inew(&inp);
@@ -304,7 +314,9 @@ test_vol(int cdim)
   struct test_setup s;
   setup(&s, &ctx);
   int nc = s.basis.num_basis;
-  struct gkyl_dg_eqn *eqn = make_eqn(&s, NULL);
+  // only the volume term is called: the stored fluxes are not read
+  struct gkyl_array *flux = mkarr(5 * cdim * nc / 2, s.local_ext.volume);
+  struct gkyl_dg_eqn *eqn = make_eqn(&s, flux);
 
   double max_err = 0.0, max_ref = 0.0;
   struct gkyl_range_iter iter;
@@ -361,6 +373,7 @@ test_vol(int cdim)
   TEST_MSG("cdim=%d: max volume error %g (max reference %g)", cdim, max_err, max_ref);
 
   gkyl_dg_eqn_release(eqn);
+  gkyl_array_release(flux);
   teardown(&s);
 }
 

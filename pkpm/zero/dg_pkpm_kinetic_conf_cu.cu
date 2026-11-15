@@ -8,34 +8,6 @@ extern "C" {
 #include <gkyl_util.h>
 }
 
-// CUDA kernel to set pointers to auxiliary fields.
-__global__ static void
-gkyl_dg_pkpm_kinetic_conf_set_auxfields_cu_kernel(
-  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_pkpm_kinetic_conf_auxfields auxin
-)
-{
-  struct dg_pkpm_kinetic_conf *pkpm = container_of(eqn, struct dg_pkpm_kinetic_conf, eqn);
-  pkpm->auxfields.bvar = auxin.bvar;
-  pkpm->auxfields.u = auxin.u;
-  pkpm->auxfields.xi = auxin.xi;
-  pkpm->auxfields.conf_flux_surf = auxin.conf_flux_surf;
-}
-
-// Host-side wrapper for set_auxfields_cu_kernel: the arrays must be device arrays.
-void
-gkyl_dg_pkpm_kinetic_conf_set_auxfields_cu(
-  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_pkpm_kinetic_conf_auxfields auxin
-)
-{
-  struct gkyl_dg_pkpm_kinetic_conf_auxfields auxin_dev = {
-    .bvar = auxin.bvar ? auxin.bvar->on_dev : 0,
-    .u = auxin.u ? auxin.u->on_dev : 0,
-    .xi = auxin.xi ? auxin.xi->on_dev : 0,
-    .conf_flux_surf = auxin.conf_flux_surf ? auxin.conf_flux_surf->on_dev : 0,
-  };
-  gkyl_dg_pkpm_kinetic_conf_set_auxfields_cu_kernel<<<1, 1>>>(eqn, auxin_dev);
-}
-
 // CUDA kernel to set device function pointers.
 __global__ static void
 dg_pkpm_kinetic_conf_set_cu_dev_ptrs(
@@ -64,7 +36,15 @@ gkyl_dg_pkpm_kinetic_conf_cu_dev_inew(const struct gkyl_dg_pkpm_kinetic_conf_inp
   pkpm->eqn.num_equations = 8;
   pkpm->conf_range = *inp->conf_range;
   pkpm->phase_range = *inp->phase_range;
-  pkpm->auxfields = inp->auxfields;
+  // Acquire the host arrays and store their on_dev pointers for copying over to device.
+  struct gkyl_array *bvar_ho = gkyl_array_acquire(inp->bvar);
+  struct gkyl_array *u_ho = gkyl_array_acquire(inp->u);
+  struct gkyl_array *xi_ho = gkyl_array_acquire(inp->xi);
+  struct gkyl_array *conf_flux_surf_ho = gkyl_array_acquire(inp->conf_flux_surf);
+  pkpm->bvar = bvar_ho->on_dev;
+  pkpm->u = u_ho->on_dev;
+  pkpm->xi = xi_ho->on_dev;
+  pkpm->conf_flux_surf = conf_flux_surf_ho->on_dev;
   assert(inp->pos_map);
   pkpm->pos_map = 0; // host pointer set after the device memcpy below
   pkpm->jacob_pos = inp->pos_map->jacob_pos->on_dev;
@@ -82,6 +62,12 @@ gkyl_dg_pkpm_kinetic_conf_cu_dev_inew(const struct gkyl_dg_pkpm_kinetic_conf_inp
   );
 
   pkpm->eqn.on_dev = &pkpm_cu->eqn;
+
+  // Host-side equation object should store host pointers.
+  pkpm->bvar = bvar_ho;
+  pkpm->u = u_ho;
+  pkpm->xi = xi_ho;
+  pkpm->conf_flux_surf = conf_flux_surf_ho;
   pkpm->pos_map = gkyl_vlasov_position_map_acquire(inp->pos_map);
   pkpm->jacob_pos = inp->pos_map->jacob_pos;
   return &pkpm->eqn;

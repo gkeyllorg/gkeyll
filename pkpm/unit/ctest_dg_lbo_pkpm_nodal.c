@@ -113,10 +113,16 @@ case_init(struct lbo_case *s, int cdim, int num_cells, int num_vel, double w_lo,
 static void
 case_advance(struct lbo_case *s)
 {
-  struct gkyl_dg_lbo_pkpm_nodal_auxfields aux = {.nu = s->nu, .prim_moms = s->prim};
-  struct gkyl_dg_updater_lbo_pkpm_nodal *up = gkyl_dg_updater_lbo_pkpm_nodal_new(
-    &s->phase_grid, &s->cbasis, &s->pbasis, &s->crange, &aux, false
-  );
+  struct gkyl_dg_updater_lbo_pkpm_nodal *up =
+    gkyl_dg_updater_lbo_pkpm_nodal_inew(&(struct gkyl_dg_updater_lbo_pkpm_nodal_inp){
+      .phase_grid = &s->phase_grid,
+      .conf_basis = &s->cbasis,
+      .phase_basis = &s->pbasis,
+      .conf_range = &s->crange,
+      .nu = s->nu,
+      .prim_moms = s->prim,
+      .use_gpu = false,
+    });
   gkyl_array_clear(s->rhs, 0.0);
   gkyl_array_clear(s->cfl, 0.0);
   gkyl_dg_updater_lbo_pkpm_nodal_advance(up, &s->prange, s->fnodal, s->cfl, s->rhs);

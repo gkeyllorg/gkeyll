@@ -44,30 +44,28 @@ set_cu_ptrs(
 }
 
 struct gkyl_mom_type *
-gkyl_mom_pkpm_cu_dev_new(
-  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, double mass, bool diag
-)
+gkyl_mom_pkpm_cu_dev_inew(const struct gkyl_mom_pkpm_inp *inp)
 {
-  assert(cbasis->poly_order == pbasis->poly_order);
+  assert(inp->conf_basis->poly_order == inp->phase_basis->poly_order);
 
   struct mom_type_pkpm *mom_pkpm =
     (struct mom_type_pkpm *)gkyl_malloc(sizeof(struct mom_type_pkpm));
 
-  int cdim = cbasis->ndim, pdim = pbasis->ndim;
-  int poly_order = cbasis->poly_order;
+  int cdim = inp->conf_basis->ndim, pdim = inp->phase_basis->ndim;
+  int poly_order = inp->conf_basis->poly_order;
 
   mom_pkpm->momt.cdim = cdim;
   mom_pkpm->momt.pdim = pdim;
   mom_pkpm->momt.poly_order = poly_order;
-  mom_pkpm->momt.num_config = cbasis->num_basis;
-  mom_pkpm->momt.num_phase = pbasis->num_basis;
+  mom_pkpm->momt.num_config = inp->conf_basis->num_basis;
+  mom_pkpm->momt.num_phase = inp->phase_basis->num_basis;
 
-  if (diag) {
+  if (inp->is_diag) {
     mom_pkpm->momt.num_mom = 8; // rho, M1, p_par, p_perp, q_par, q_perp, r_parpar, r_parperp
   } else {
     mom_pkpm->momt.num_mom = 18; // rho, p_par, p_perp, M1, q_par, q_perp, int (1, w, w^2) M0_perp dw (3 each), int N_perp dw (3)
   }
-  mom_pkpm->mass = mass;
+  mom_pkpm->mass = inp->mass;
 
   mom_pkpm->momt.flags = 0;
   GKYL_SET_CU_ALLOC(mom_pkpm->momt.flags);
@@ -78,7 +76,7 @@ gkyl_mom_pkpm_cu_dev_new(
     (struct mom_type_pkpm *)gkyl_cu_malloc(sizeof(struct mom_type_pkpm));
   gkyl_cu_memcpy(mom_pkpm_cu, mom_pkpm, sizeof(struct mom_type_pkpm), GKYL_CU_MEMCPY_H2D);
 
-  set_cu_ptrs<<<1, 1>>>(mom_pkpm_cu, cbasis->b_type, cdim, poly_order, diag);
+  set_cu_ptrs<<<1, 1>>>(mom_pkpm_cu, inp->conf_basis->b_type, cdim, poly_order, inp->is_diag);
 
   mom_pkpm->momt.on_dev = &mom_pkpm_cu->momt;
 

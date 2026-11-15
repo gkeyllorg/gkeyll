@@ -144,22 +144,20 @@ dg_calc_pkpm_bvar_set_cu_dev_ptrs(
 }
 
 gkyl_dg_calc_pkpm_bvar *
-gkyl_dg_calc_pkpm_bvar_cu_dev_new(
-  const struct gkyl_rect_grid *conf_grid, const struct gkyl_basis *cbasis, const struct gkyl_vlasov_position_map *pos_map
-)
+gkyl_dg_calc_pkpm_bvar_cu_dev_inew(const struct gkyl_dg_calc_pkpm_bvar_inp *inp)
 {
   struct gkyl_dg_calc_pkpm_bvar *up =
     (struct gkyl_dg_calc_pkpm_bvar *)gkyl_malloc(sizeof(gkyl_dg_calc_pkpm_bvar));
 
-  up->cdim = cbasis->ndim;
-  for (int d = 0; d < cbasis->ndim; ++d) {
-    up->dx[d] = conf_grid->dx[d];
+  up->cdim = inp->conf_basis->ndim;
+  for (int d = 0; d < inp->conf_basis->ndim; ++d) {
+    up->dx[d] = inp->conf_grid->dx[d];
   }
   up->num_null_b = 0;
   up->num_null_b_dev = (int *)gkyl_cu_malloc(sizeof(int));
-  assert(pos_map);
+  assert(inp->pos_map);
   up->pos_map = 0; // host pointer set after the device memcpy below
-  up->jacob_pos = pos_map->jacob_pos->on_dev;
+  up->jacob_pos = inp->pos_map->jacob_pos->on_dev;
 
   up->flags = 0;
   GKYL_SET_CU_ALLOC(up->flags);
@@ -169,13 +167,13 @@ gkyl_dg_calc_pkpm_bvar_cu_dev_new(
   gkyl_cu_memcpy(up_cu, up, sizeof(gkyl_dg_calc_pkpm_bvar), GKYL_CU_MEMCPY_H2D);
 
   dg_calc_pkpm_bvar_set_cu_dev_ptrs<<<1, 1>>>(
-    up_cu, cbasis->b_type, cbasis->ndim, cbasis->poly_order
+    up_cu, inp->conf_basis->b_type, inp->conf_basis->ndim, inp->conf_basis->poly_order
   );
 
   // set parent on_dev pointer
   up->on_dev = up_cu;
-  up->pos_map = gkyl_vlasov_position_map_acquire(pos_map);
-  up->jacob_pos = pos_map->jacob_pos;
+  up->pos_map = gkyl_vlasov_position_map_acquire(inp->pos_map);
+  up->jacob_pos = inp->pos_map->jacob_pos;
 
   return up;
 }

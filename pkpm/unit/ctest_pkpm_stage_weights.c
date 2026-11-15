@@ -70,8 +70,17 @@ test_weights(int cdim)
     }
   }
 
-  struct gkyl_dg_conf_nodal *conf_nodal = gkyl_dg_conf_nodal_new(&cbasis, &pbasis, false);
-  struct gkyl_pkpm_stage_weights *up = gkyl_pkpm_stage_weights_new(&cbasis, &pbasis, false);
+  struct gkyl_dg_conf_nodal *conf_nodal = gkyl_dg_conf_nodal_inew(&(struct gkyl_dg_conf_nodal_inp){
+    .conf_basis = &cbasis,
+    .phase_basis = &pbasis,
+    .use_gpu = false,
+  });
+  struct gkyl_pkpm_stage_weights *up =
+    gkyl_pkpm_stage_weights_inew(&(struct gkyl_pkpm_stage_weights_inp){
+      .conf_basis = &cbasis,
+      .phase_basis = &pbasis,
+      .use_gpu = false,
+    });
   gkyl_dg_conf_nodal_phase_to_nodal(conf_nodal, &prange, f_old, old_nodal);
   gkyl_dg_conf_nodal_phase_to_nodal(conf_nodal, &prange, f_fe, fe_nodal);
 

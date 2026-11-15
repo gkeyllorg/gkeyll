@@ -10,28 +10,24 @@
 #include <gkyl_util.h>
 
 gkyl_dg_calc_pkpm_vars *
-gkyl_dg_calc_pkpm_vars_new(
-  const struct gkyl_rect_grid *conf_grid, const struct gkyl_basis *cbasis,
-  const struct gkyl_vlasov_position_map *pos_map, bool use_gpu
-)
+gkyl_dg_calc_pkpm_vars_inew(const struct gkyl_dg_calc_pkpm_vars_inp *inp)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (use_gpu) {
-    return gkyl_dg_calc_pkpm_vars_cu_dev_new(conf_grid, cbasis, pos_map);
+  if (inp->use_gpu) {
+    return gkyl_dg_calc_pkpm_vars_cu_dev_inew(inp);
   }
 #endif
   gkyl_dg_calc_pkpm_vars *up = gkyl_malloc(sizeof(gkyl_dg_calc_pkpm_vars));
 
-  up->conf_grid = *conf_grid;
-  int nc = cbasis->num_basis;
-  int cdim = cbasis->ndim;
-  int poly_order = cbasis->poly_order;
-  enum gkyl_basis_type b_type = cbasis->b_type;
+  up->conf_grid = *inp->conf_grid;
+  int cdim = inp->conf_basis->ndim;
+  int poly_order = inp->conf_basis->poly_order;
+  enum gkyl_basis_type b_type = inp->conf_basis->b_type;
   up->cdim = cdim;
   up->poly_order = poly_order;
-  assert(pos_map);
-  up->pos_map = gkyl_vlasov_position_map_acquire(pos_map);
-  up->jacob_pos = pos_map->jacob_pos;
+  assert(inp->pos_map);
+  up->pos_map = gkyl_vlasov_position_map_acquire(inp->pos_map);
+  up->jacob_pos = inp->pos_map->jacob_pos;
 
   for (int d = 0; d < cdim; ++d) {
     up->pkpm_in_cell_grad[d] = choose_pkpm_in_cell_grad_kern(b_type, cdim, poly_order, d);
@@ -45,7 +41,13 @@ gkyl_dg_calc_pkpm_vars_new(
   up->pkpm_transverse = choose_pkpm_transverse_kern(b_type, cdim, poly_order);
   up->pkpm_source = choose_pkpm_source_kern(b_type, cdim, poly_order);
   up->pkpm_diag = choose_pkpm_diag_kern(b_type, cdim, poly_order);
-  up->num_null_rho = 0;
+  // every kernel exists for the basis (p=1 serendipity)
+  for (int d = 0; d < cdim; ++d) {
+    assert(up->pkpm_in_cell_grad[d]);
+  }
+  assert(up->pkpm_closure && up->pkpm_prim && up->pkpm_int && up->pkpm_grad_ln_n);
+  assert(up->pkpm_fluid_positivity && up->pkpm_normalize && up->pkpm_transverse);
+  assert(up->pkpm_source && up->pkpm_diag);
   up->num_null_rho_dev = 0;
   up->closure_cond_min = 1.0;
   up->closure_cond_min_dev = 0;
@@ -77,7 +79,6 @@ gkyl_dg_calc_pkpm_vars_closure(
     );
   }
 #endif
-  assert(up->pkpm_closure);
   int cdim = conf_range->ndim;
   double w_lo = phase_grid->lower[cdim], w_up = phase_grid->upper[cdim], dv = phase_grid->dx[cdim];
   int idx[GKYL_MAX_DIM];
@@ -112,7 +113,6 @@ gkyl_dg_calc_pkpm_vars_closure(
       c[0] += cfl[0];
     }
   }
-  up->num_null_rho = num_null;
   up->closure_cond_min = cond_min;
   return num_null;
 }
@@ -128,7 +128,6 @@ gkyl_dg_calc_pkpm_vars_prim(
     return gkyl_dg_calc_pkpm_vars_prim_cu(up, conf_range, fluid, u, xi);
   }
 #endif
-  assert(up->pkpm_prim);
   int num_null = 0;
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, conf_range);
@@ -153,7 +152,6 @@ gkyl_dg_calc_pkpm_vars_int(
     return gkyl_dg_calc_pkpm_vars_int_cu(up, conf_range, fluid, vlasov_pkpm_moms, u, int_pkpm_vars);
   }
 #endif
-  assert(up->pkpm_int);
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, conf_range);
   while (gkyl_range_iter_next(&iter)) {
@@ -208,7 +206,6 @@ gkyl_dg_calc_pkpm_vars_grad_ln_n(
     return gkyl_dg_calc_pkpm_vars_grad_ln_n_cu(up, conf_range, rho, grad_rho, grad_ln_n);
   }
 #endif
-  assert(up->pkpm_grad_ln_n);
   int num_null = 0;
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, conf_range);
@@ -235,7 +232,6 @@ gkyl_dg_calc_pkpm_vars_positivity(
     );
   }
 #endif
-  assert(up->pkpm_fluid_positivity);
   int nrho = 0, ne = 0, navg = 0;
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, conf_range);
@@ -273,7 +269,6 @@ gkyl_dg_calc_pkpm_vars_transverse(
     return;
   }
 #endif
-  assert(up->pkpm_transverse);
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, phase_range);
   while (gkyl_range_iter_next(&iter)) {
@@ -295,7 +290,6 @@ gkyl_dg_calc_pkpm_vars_normalize_dist(
     return gkyl_dg_calc_pkpm_vars_normalize_dist_cu(up, conf_range, phase_range, n, f, fbar);
   }
 #endif
-  assert(up->pkpm_normalize);
   int num_null = 0;
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, phase_range);
@@ -327,7 +321,6 @@ gkyl_dg_calc_pkpm_vars_diag(
     );
   }
 #endif
-  assert(up->pkpm_diag);
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, conf_range);
   while (gkyl_range_iter_next(&iter)) {
@@ -363,7 +356,6 @@ gkyl_dg_calc_pkpm_vars_in_cell_grad(
     const double *blend_c = gkyl_array_cfetch(blend, loc);
     double *gd = gkyl_array_fetch(grad, loc);
     for (int d = 0; d < cdim; ++d) {
-      assert(up->pkpm_in_cell_grad[d]);
       gkyl_copy_int_arr(cdim, iter.idx, idx_l);
       gkyl_copy_int_arr(cdim, iter.idx, idx_r);
       idx_l[d] = idx_l[d] - 1;
@@ -390,7 +382,6 @@ gkyl_dg_calc_pkpm_vars_source(
     return gkyl_dg_calc_pkpm_vars_source_cu(up, conf_range, qmem, fluid, rhs);
   }
 #endif
-  assert(up->pkpm_source);
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, conf_range);
   while (gkyl_range_iter_next(&iter)) {

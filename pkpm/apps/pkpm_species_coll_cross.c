@@ -162,7 +162,12 @@ pkpm_species_coll_cross_init(gkyl_pkpm_app *app, struct pkpm_species *s)
     }
     cross->coef[i] = mkarr(false, num_nodes, app->local_ext.volume);
   }
-  cross->up_cross_nu = gkyl_pkpm_coll_nu_new(&app->confBasis, is_computed, 0.0, false);
+  cross->up_cross_nu = gkyl_pkpm_coll_nu_inew(&(struct gkyl_pkpm_coll_nu_inp){
+    .conf_basis = &app->confBasis,
+    .spitzer = is_computed,
+    .vtsq_min = 0.0,
+    .use_gpu = false,
+  });
 
   cross->prim_fluid = mkarr(false, 5 * num_nodes, app->local_ext.volume);
   cross->nu_self = mkarr(false, num_nodes, app->local_ext.volume);
@@ -175,11 +180,19 @@ pkpm_species_coll_cross_init(gkyl_pkpm_app *app, struct pkpm_species *s)
   if (is_lbo) {
     cross->nu_kin_self = gkyl_array_acquire(s->lbo.nu_self);
     cross->nu_kin = gkyl_array_acquire(s->lbo.nu);
-    cross->up = gkyl_pkpm_coll_cross_new(&app->confBasis, 1.0, false);
+    cross->up = gkyl_pkpm_coll_cross_inew(&(struct gkyl_pkpm_coll_cross_inp){
+      .conf_basis = &app->confBasis,
+      .heat_fac = 1.0,
+      .use_gpu = false,
+    });
   } else {
     cross->nu_kin_self = gkyl_array_acquire(s->bgk.rate_self);
     cross->nu_kin = gkyl_array_acquire(s->bgk.rate);
-    cross->up = gkyl_pkpm_coll_cross_new(&app->confBasis, 2.0, false);
+    cross->up = gkyl_pkpm_coll_cross_inew(&(struct gkyl_pkpm_coll_cross_inp){
+      .conf_basis = &app->confBasis,
+      .heat_fac = 2.0,
+      .use_gpu = false,
+    });
   }
 
   // The computed self frequency, with delta_ss (1 + beta) = 2 as in the Vlasov app.
@@ -189,7 +202,12 @@ pkpm_species_coll_cross_init(gkyl_pkpm_app *app, struct pkpm_species *s)
   );
   cross->self_nu_ref = mkarr(false, num_nodes, app->local_ext.volume);
   gkyl_array_clear(cross->self_nu_ref, nu_frac * alpha_E_self);
-  cross->up_self_nu = gkyl_pkpm_coll_nu_new(&app->confBasis, true, 0.0, false);
+  cross->up_self_nu = gkyl_pkpm_coll_nu_inew(&(struct gkyl_pkpm_coll_nu_inp){
+    .conf_basis = &app->confBasis,
+    .spitzer = true,
+    .vtsq_min = 0.0,
+    .use_gpu = false,
+  });
   pkpm_coll_cross_prim_t calc_prim = has_self_nu ? pkpm_species_coll_cross_prim_self_nu :
                                                    pkpm_species_coll_cross_prim_nodal;
 
@@ -265,7 +283,11 @@ void
 pkpm_coll_cross_init(gkyl_pkpm_app *app)
 {
   struct pkpm_coll_exchange *exch = &app->coll_exchange;
-  exch->up = gkyl_pkpm_coll_cross_new(&app->confBasis, 1.0, false);
+  exch->up = gkyl_pkpm_coll_cross_inew(&(struct gkyl_pkpm_coll_cross_inp){
+    .conf_basis = &app->confBasis,
+    .heat_fac = 1.0,
+    .use_gpu = false,
+  });
   exch->num_species = 0;
   int pos[GKYL_MAX_SPECIES]; // position of each species of the app in the exchange
   for (int i = 0; i < app->num_species; ++i) {

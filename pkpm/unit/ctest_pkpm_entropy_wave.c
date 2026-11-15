@@ -264,17 +264,34 @@ sim_init(struct sim *s, const struct run_opts *o)
   gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&s->cgrid, &s->cbasis, 8, 8, eval_em, &bctx);
   gkyl_proj_on_basis_advance(proj, 0.0, &s->clocal_ext, em);
   gkyl_proj_on_basis_release(proj);
-  s->calc_b = gkyl_dg_calc_pkpm_bvar_new(&s->cgrid, &s->cbasis, s->pos_map, false);
+  s->calc_b = gkyl_dg_calc_pkpm_bvar_inew(&(struct gkyl_dg_calc_pkpm_bvar_inp){
+    .conf_grid = &s->cgrid,
+    .conf_basis = &s->cbasis,
+    .pos_map = s->pos_map,
+    .use_gpu = false,
+  });
   gkyl_dg_calc_pkpm_bvar_advance(s->calc_b, &s->clocal_ext, em, s->bvar);
   s->grad_b = mkarr(3 * nc, cvol);
   gkyl_array_clear(s->grad_b, 0.0);
   gkyl_dg_calc_pkpm_bvar_grad(s->calc_b, &s->clocal, s->bvar, s->grad_b);
 
   s->vars =
-    gkyl_dg_calc_pkpm_vars_new(&s->cgrid, &s->cbasis, s->pos_map, false);
-  s->mcalc = gkyl_dg_updater_moment_pkpm_new(
-    &s->pgrid, &s->cbasis, &s->pbasis, &s->clocal_ext, &s->vlocal, 1.0, false, false
-  );
+    gkyl_dg_calc_pkpm_vars_inew(&(struct gkyl_dg_calc_pkpm_vars_inp){
+      .conf_grid = &s->cgrid,
+      .conf_basis = &s->cbasis,
+      .pos_map = s->pos_map,
+      .use_gpu = false,
+    });
+  s->mcalc = gkyl_dg_updater_moment_pkpm_inew(&(struct gkyl_dg_updater_moment_pkpm_inp){
+    .phase_grid = &s->pgrid,
+    .conf_basis = &s->cbasis,
+    .phase_basis = &s->pbasis,
+    .conf_range = &s->clocal_ext,
+    .vel_range = &s->vlocal,
+    .mass = 1.0,
+    .is_diag = false,
+    .use_gpu = false,
+  });
 
   struct gkyl_dg_pkpm_remap_flux_surf_inp cinp = {
     .phase_grid = &s->pgrid,
@@ -294,13 +311,10 @@ sim_init(struct sim *s, const struct run_opts *o)
     .phase_basis = &s->pbasis,
     .conf_range = &s->clocal,
     .phase_range = &s->plocal,
-    .auxfields =
-      {
-        .bvar = s->bvar,
-        .u = s->u,
-        .xi = s->xi,
-        .conf_flux_surf = s->cflux,
-      },
+    .bvar = s->bvar,
+    .u = s->u,
+    .xi = s->xi,
+    .conf_flux_surf = s->cflux,
     .pos_map = s->pos_map, .use_gpu = false,
   };
   s->eqn_a = gkyl_dg_pkpm_kinetic_conf_inew(&ainp);
@@ -325,7 +339,7 @@ sim_init(struct sim *s, const struct run_opts *o)
     .phase_basis = &s->pbasis,
     .conf_range = &s->clocal,
     .phase_range = &s->plocal,
-    .auxfields = {.c_0 = s->c_0, .alpha_0 = s->alpha_0, .c_h = s->c_h, .a_perp = s->a_perp, .vel_flux_surf = s->vflux},
+    .c_0 = s->c_0, .alpha_0 = s->alpha_0, .c_h = s->c_h, .a_perp = s->a_perp, .vel_flux_surf = s->vflux,
     .use_gpu = false,
   };
   s->eqn_b = gkyl_dg_pkpm_kinetic_vel_inew(&binp);
@@ -337,7 +351,7 @@ sim_init(struct sim *s, const struct run_opts *o)
   struct gkyl_dg_pkpm_fluid_inp minp = {
     .conf_basis = &s->cbasis,
     .conf_range = &s->clocal,
-    .auxfields = {.vlasov_pkpm_moms = s->moms, .bvar = s->bvar, .u = s->u, .fluid_flux_surf = s->fflux},
+    .vlasov_pkpm_moms = s->moms, .bvar = s->bvar, .u = s->u, .fluid_flux_surf = s->fflux,
     .pos_map = s->pos_map, .use_gpu = false,
   };
   s->eqn_m = gkyl_dg_pkpm_fluid_inew(&minp);

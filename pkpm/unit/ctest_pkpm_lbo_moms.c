@@ -117,8 +117,17 @@ test_moms(int cdim)
     }
   }
 
-  struct gkyl_pkpm_lbo_moms *up = gkyl_pkpm_lbo_moms_new(&cbasis, &pbasis, vel_bounds, false);
-  struct gkyl_dg_conf_nodal *conf_nodal = gkyl_dg_conf_nodal_new(&cbasis, &pbasis, false);
+  struct gkyl_pkpm_lbo_moms *up = gkyl_pkpm_lbo_moms_inew(&(struct gkyl_pkpm_lbo_moms_inp){
+    .conf_basis = &cbasis,
+    .phase_basis = &pbasis,
+    .vel_bounds = vel_bounds,
+    .use_gpu = false,
+  });
+  struct gkyl_dg_conf_nodal *conf_nodal = gkyl_dg_conf_nodal_inew(&(struct gkyl_dg_conf_nodal_inp){
+    .conf_basis = &cbasis,
+    .phase_basis = &pbasis,
+    .use_gpu = false,
+  });
   gkyl_dg_conf_nodal_phase_to_nodal(conf_nodal, &prange, fin, fnodal);
   gkyl_pkpm_lbo_moms_advance(up, &crange, &prange, moms, fnodal, prim);
   gkyl_dg_conf_nodal_conf_to_nodal(conf_nodal, &crange, coord, coord_nodal);

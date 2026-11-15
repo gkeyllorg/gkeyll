@@ -31,9 +31,8 @@ typedef int (*pkpm_closure_t)(
   double w_lo, double w_up, double dv, const double *norm_moms, const double *rhs_moms,
   const double *bvar, const double *wn, const double *theta, const double *alpha_0_prev,
   const double *c_h_prev, const double *f_lo, const double *f_up, double *GKYL_RESTRICT c_0,
-  double *GKYL_RESTRICT alpha_0, double *GKYL_RESTRICT c_h, double *GKYL_RESTRICT a_perp,
-  double *GKYL_RESTRICT flux_lo, double *GKYL_RESTRICT flux_up, double *GKYL_RESTRICT cfl,
-  double *GKYL_RESTRICT cond
+  double *alpha_0, double *c_h, double *GKYL_RESTRICT a_perp, double *GKYL_RESTRICT flux_lo,
+  double *GKYL_RESTRICT flux_up, double *GKYL_RESTRICT cfl, double *GKYL_RESTRICT cond
 );
 typedef int (*pkpm_prim_t)(const double *fluid, double *GKYL_RESTRICT u, double *GKYL_RESTRICT xi);
 typedef void (*pkpm_int_t)(
@@ -70,8 +69,7 @@ struct gkyl_dg_calc_pkpm_vars {
   pkpm_transverse_t pkpm_transverse; // transversality projection of the first-harmonic blocks
   pkpm_source_t pkpm_source; // explicit electromagnetic source of [rho, M, E]
   pkpm_diag_t pkpm_diag; // diagnostic arrays
-  int num_null_rho; // number of nodes with rho <= 0 in the last nodal computation (host copy)
-  int *num_null_rho_dev; // device counter for num_null_rho (0 on host)
+  int *num_null_rho_dev; // device counter of nodes with rho <= 0 in a nodal computation (0 on host)
   double closure_cond_min; // smallest det/det0 of the closure solves of the last call (host copy)
   unsigned long long *closure_cond_min_dev; // device minimum (bit pattern of the positive double)
   int *num_pos_dev; // device counters [rho, e, avg] of the positivity limiter (0 on host)

@@ -77,7 +77,13 @@ test_mom_pkpm_diag_calc_1x1v_p1()
   struct gkyl_array *distf = mkarr(2 * basis.num_basis, local_ext.volume);
   gkyl_proj_on_basis_advance(proj, 0.0, &local, distf);
 
-  struct gkyl_mom_type *mt = gkyl_mom_pkpm_new(&confBasis, &basis, mass, true, false);
+  struct gkyl_mom_type *mt = gkyl_mom_pkpm_inew(&(struct gkyl_mom_pkpm_inp){
+    .conf_basis = &confBasis,
+    .phase_basis = &basis,
+    .mass = mass,
+    .is_diag = true,
+    .use_gpu = false,
+  });
   TEST_CHECK(mt->num_mom == 8);
   gkyl_mom_calc *mcalc = gkyl_mom_calc_new(&grid, mt, false);
 

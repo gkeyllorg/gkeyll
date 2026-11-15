@@ -7,6 +7,14 @@
 // Object type
 typedef struct gkyl_dg_conf_nodal gkyl_dg_conf_nodal;
 
+// Input packaged as a struct
+struct gkyl_dg_conf_nodal_inp {
+  const struct gkyl_basis *conf_basis; // Configuration-space basis functions (p=1 serendipity).
+  const struct gkyl_basis *
+    phase_basis; // Phase-space basis functions (hybrid), or 0 if only configuration-space arrays are converted.
+  bool use_gpu; // bool to determine if on GPU.
+};
+
 /**
  * Create an updater that converts DG expansions to and from a form that is nodal in
  * configuration space and modal in velocity space, for operators that act in velocity space
@@ -29,15 +37,10 @@ typedef struct gkyl_dg_conf_nodal gkyl_dg_conf_nodal;
  * product (or quotient) of their node values, so operators with configuration-dependent
  * coefficients can be applied node by node.
  *
- * @param conf_basis Configuration-space basis (p=1 serendipity).
- * @param phase_basis Phase-space basis (hybrid), or 0 if only configuration-space arrays are
- *   converted.
- * @param use_gpu Whether to run on the GPU (not available yet).
+ * @param inp Input parameters defined in gkyl_dg_conf_nodal_inp struct.
  * @return New updater pointer.
  */
-struct gkyl_dg_conf_nodal *gkyl_dg_conf_nodal_new(
-  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, bool use_gpu
-);
+struct gkyl_dg_conf_nodal *gkyl_dg_conf_nodal_inew(const struct gkyl_dg_conf_nodal_inp *inp);
 
 /**
  * Convert configuration-space expansions to their node values.

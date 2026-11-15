@@ -28,7 +28,12 @@ struct dg_pkpm_kinetic_vel {
   pkpm_accel_surf_t accel_surf; // Surface kernel scattering stored v_par fluxes
   struct gkyl_range conf_range; // Configuration-space range
   struct gkyl_range phase_range; // Phase-space range
-  struct gkyl_dg_pkpm_kinetic_vel_auxfields auxfields; // Auxiliary fields.
+  // Arrays the terms read (acquired; device pointers on the device copy).
+  const struct gkyl_array *c_0;
+  const struct gkyl_array *alpha_0;
+  const struct gkyl_array *c_h;
+  const struct gkyl_array *a_perp;
+  const struct gkyl_array *vel_flux_surf;
 };
 
 // Kernel tables (p=1 serendipity only; indexed by cdim-1)
@@ -74,10 +79,10 @@ vol(
   struct dg_pkpm_kinetic_vel *pkpm = container_of(eqn, struct dg_pkpm_kinetic_vel, eqn);
   long cidx = gkyl_range_idx(&pkpm->conf_range, idx);
   return pkpm->vol_kern(
-    xc, dx, (const double *)gkyl_array_cfetch(pkpm->auxfields.c_0, cidx),
-    (const double *)gkyl_array_cfetch(pkpm->auxfields.alpha_0, cidx),
-    (const double *)gkyl_array_cfetch(pkpm->auxfields.c_h, cidx),
-    (const double *)gkyl_array_cfetch(pkpm->auxfields.a_perp, cidx), qIn, qRhsOut
+    xc, dx, (const double *)gkyl_array_cfetch(pkpm->c_0, cidx),
+    (const double *)gkyl_array_cfetch(pkpm->alpha_0, cidx),
+    (const double *)gkyl_array_cfetch(pkpm->c_h, cidx),
+    (const double *)gkyl_array_cfetch(pkpm->a_perp, cidx), qIn, qRhsOut
   );
 }
 
@@ -96,8 +101,8 @@ surf(
   if (dir == pkpm->cdim) {
     long pidxC = gkyl_range_idx(&pkpm->phase_range, idxC);
     long pidxR = gkyl_range_idx(&pkpm->phase_range, idxR);
-    const double *flux_l = (const double *)gkyl_array_cfetch(pkpm->auxfields.vel_flux_surf, pidxC);
-    const double *flux_r = (const double *)gkyl_array_cfetch(pkpm->auxfields.vel_flux_surf, pidxR);
+    const double *flux_l = (const double *)gkyl_array_cfetch(pkpm->vel_flux_surf, pidxC);
+    const double *flux_r = (const double *)gkyl_array_cfetch(pkpm->vel_flux_surf, pidxR);
     return pkpm->accel_surf(xcC, dxC, flux_l, flux_r, qRhsOut);
   }
   return 0.0;
@@ -119,8 +124,8 @@ boundary_surf(
   struct dg_pkpm_kinetic_vel *pkpm = container_of(eqn, struct dg_pkpm_kinetic_vel, eqn);
   if (dir == pkpm->cdim && edge == -1) {
     long pidxSkin = gkyl_range_idx(&pkpm->phase_range, idxSkin);
-    const double *flux_l = (const double *)gkyl_array_cfetch(pkpm->auxfields.vel_flux_surf, pidxSkin);
-    const double *flux_r = (const double *)gkyl_array_cfetch(pkpm->auxfields.vel_flux_surf, gkyl_range_idx(&pkpm->phase_range, idxEdge));
+    const double *flux_l = (const double *)gkyl_array_cfetch(pkpm->vel_flux_surf, pidxSkin);
+    const double *flux_r = (const double *)gkyl_array_cfetch(pkpm->vel_flux_surf, gkyl_range_idx(&pkpm->phase_range, idxEdge));
     return pkpm->accel_surf(xcSkin, dxSkin, flux_l, flux_r, qRhsOut);
   }
   return 0.0;

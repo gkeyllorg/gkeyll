@@ -10,6 +10,8 @@
 #include <acutest.h>
 #include <gkyl_pkpm_harm_coeffs.h>
 
+#include "ctest_pkpm_harm_ref.h"
+
 // Deterministic pseudo-random numbers in [-1, 1].
 static double
 rnd(unsigned *state)

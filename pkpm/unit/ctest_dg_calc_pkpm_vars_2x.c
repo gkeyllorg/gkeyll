@@ -67,7 +67,12 @@ test_u_2x_p1()
   int nb = cbasis.num_basis;
 
   struct gkyl_dg_calc_pkpm_vars *up =
-    gkyl_dg_calc_pkpm_vars_new(&grid, &cbasis, pm, false);
+    gkyl_dg_calc_pkpm_vars_inew(&(struct gkyl_dg_calc_pkpm_vars_inp){
+      .conf_grid = &grid,
+      .conf_basis = &cbasis,
+      .pos_map = pm,
+      .use_gpu = false,
+    });
 
   struct gkyl_array *fluid = mkarr(5 * nb, local_ext.volume); // [rho, rho ux, rho uy, rho uz, E]
   struct gkyl_array *pkpm_u = mkarr(3 * nb, local_ext.volume);

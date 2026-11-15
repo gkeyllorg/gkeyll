@@ -7,6 +7,13 @@
 // Object type
 typedef struct gkyl_pkpm_bgk_collisions gkyl_pkpm_bgk_collisions;
 
+// Input packaged as a struct
+struct gkyl_pkpm_bgk_collisions_inp {
+  const struct gkyl_basis *conf_basis; // Configuration-space basis functions (p=1 serendipity).
+  const struct gkyl_basis *phase_basis; // Phase-space basis functions (p=1 x p=2 hybrid).
+  bool use_gpu; // bool to determine if on GPU.
+};
+
 /**
  * Create an updater for the PKPM BGK operator: all 8 blocks relax to [f_t, f_t, 0, 0], with a
  * rate (or an implicit shape factor) given at the 2^cdim interior Gauss-Legendre nodes of
@@ -15,13 +22,11 @@ typedef struct gkyl_pkpm_bgk_collisions gkyl_pkpm_bgk_collisions;
  * weak product of the expansion of the factor with each block of the distributions. At p=1 that
  * equals the product at the nodes, and no nodal copy of the distributions is needed.
  *
- * @param conf_basis Configuration-space basis (p=1 serendipity).
- * @param phase_basis Phase-space basis (p=1 x p=2 hybrid).
- * @param use_gpu Whether to run on the GPU (not available yet).
+ * @param inp Input parameters defined in gkyl_pkpm_bgk_collisions_inp struct.
  * @return New updater pointer.
  */
-struct gkyl_pkpm_bgk_collisions *gkyl_pkpm_bgk_collisions_new(
-  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, bool use_gpu
+struct gkyl_pkpm_bgk_collisions *gkyl_pkpm_bgk_collisions_inew(
+  const struct gkyl_pkpm_bgk_collisions_inp *inp
 );
 
 /**

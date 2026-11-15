@@ -258,7 +258,11 @@ gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm)
   // Conversions to the configuration-nodal, velocity-modal form of the node-based operators.
   app->conf_nodal = 0;
   if (!app->use_gpu) {
-    app->conf_nodal = gkyl_dg_conf_nodal_new(&app->confBasis, &app->basis, false);
+    app->conf_nodal = gkyl_dg_conf_nodal_inew(&(struct gkyl_dg_conf_nodal_inp){
+      .conf_basis = &app->confBasis,
+      .phase_basis = &app->basis,
+      .use_gpu = false,
+    });
   }
   // Finalize the ghost cells of the map: the constructor filled them with the adjacent skin
   // values (a copy, valid at physical boundaries); periodic and inter-rank ghosts get the

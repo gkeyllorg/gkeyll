@@ -1,11 +1,15 @@
 // Private header: not for direct use
 #pragma once
 
+#include <assert.h>
+#include <math.h>
+
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
 #include <gkyl_bc_pkpm_species_reflect.h>
 #include <gkyl_pkpm_layout.h>
 #include <gkyl_range.h>
+#include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
 
 struct gkyl_bc_pkpm_species_reflect {
@@ -22,6 +26,15 @@ struct gkyl_bc_pkpm_species_reflect {
   uint32_t flags;
   struct gkyl_bc_pkpm_species_reflect *on_dev; // pointer to itself or device data
 };
+
+// Whether the velocity extent of the grid is symmetric about w = 0, as the cell-for-cell image of
+// the reflection needs.
+static inline bool
+bc_pkpm_species_reflect_symmetric_vel(const struct gkyl_rect_grid *phase_grid, int cdim)
+{
+  double w_lower = phase_grid->lower[cdim], w_upper = phase_grid->upper[cdim];
+  return fabs(w_lower + w_upper) <= 1e-12 * (w_upper - w_lower);
+}
 
 // Mirror image of the ghost phase-space cell gidx: fills sidx with the skin cell it reflects
 // (mirrored in the wall direction, and in the normalized parallel velocity when flip_w) and

@@ -9,10 +9,16 @@ pkpm_species_moment_init_mass(
   double mass
 )
 {
-  sm->mcalc = gkyl_dg_updater_moment_pkpm_new(
-    &s->grid, &app->confBasis, &app->basis, &app->local, &s->local_vel, mass, is_diag,
-    app->use_gpu
-  );
+  sm->mcalc = gkyl_dg_updater_moment_pkpm_inew(&(struct gkyl_dg_updater_moment_pkpm_inp){
+    .phase_grid = &s->grid,
+    .conf_basis = &app->confBasis,
+    .phase_basis = &app->basis,
+    .conf_range = &app->local,
+    .vel_range = &s->local_vel,
+    .mass = mass,
+    .is_diag = is_diag,
+    .use_gpu = app->use_gpu,
+  });
   int num_mom = gkyl_dg_updater_moment_pkpm_num_mom(sm->mcalc);
 
   sm->marr = mkarr(app->use_gpu, num_mom * app->confBasis.num_basis, app->local_ext.volume);

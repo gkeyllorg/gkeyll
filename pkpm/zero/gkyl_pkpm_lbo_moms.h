@@ -7,6 +7,14 @@
 // Object type
 typedef struct gkyl_pkpm_lbo_moms gkyl_pkpm_lbo_moms;
 
+// Input packaged as a struct
+struct gkyl_pkpm_lbo_moms_inp {
+  const struct gkyl_basis *conf_basis; // Configuration-space basis functions (p=1 serendipity).
+  const struct gkyl_basis *phase_basis; // Phase-space basis functions (p=1 x p=2 hybrid).
+  const double *vel_bounds; // Lower and upper bound of the velocity grid, [w_min, w_max].
+  bool use_gpu; // bool to determine if on GPU.
+};
+
 /**
  * Create an updater for the primitive moments [u, vtsq] of the PKPM Lenard-Bernstein operator
  * at the 2^cdim interior Gauss-Legendre nodes of configuration space. At each node they solve
@@ -24,16 +32,10 @@ typedef struct gkyl_pkpm_lbo_moms gkyl_pkpm_lbo_moms;
  * The determinant, M0 (3 M0 - cE) + cM M1, is positive as long as F is small at the edges of the
  * velocity grid; the solve has no guard.
  *
- * @param conf_basis Configuration-space basis (p=1 serendipity).
- * @param phase_basis Phase-space basis (hybrid, p=2 in the velocity).
- * @param vel_bounds Lower and upper bound of the velocity grid, [w_min, w_max].
- * @param use_gpu Whether to run on the GPU (not available yet).
+ * @param inp Input parameters defined in gkyl_pkpm_lbo_moms_inp struct.
  * @return New updater pointer.
  */
-struct gkyl_pkpm_lbo_moms *gkyl_pkpm_lbo_moms_new(
-  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis,
-  const double *vel_bounds, bool use_gpu
-);
+struct gkyl_pkpm_lbo_moms *gkyl_pkpm_lbo_moms_inew(const struct gkyl_pkpm_lbo_moms_inp *inp);
 
 /**
  * Compute the primitive moments at the nodes.

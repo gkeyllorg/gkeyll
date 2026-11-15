@@ -117,8 +117,16 @@ test_rate(int cdim, double heat_fac)
   const double *mass = dat.mass;
 
   struct gkyl_array *fluid_nodal[2], *coef[2], *nu_kin[2];
-  struct gkyl_dg_conf_nodal *conf_nodal = gkyl_dg_conf_nodal_new(&dat.cbasis, 0, false);
-  struct gkyl_pkpm_coll_cross *up = gkyl_pkpm_coll_cross_new(&dat.cbasis, heat_fac, false);
+  struct gkyl_dg_conf_nodal *conf_nodal = gkyl_dg_conf_nodal_inew(&(struct gkyl_dg_conf_nodal_inp){
+    .conf_basis = &dat.cbasis,
+    .phase_basis = 0,
+    .use_gpu = false,
+  });
+  struct gkyl_pkpm_coll_cross *up = gkyl_pkpm_coll_cross_inew(&(struct gkyl_pkpm_coll_cross_inp){
+    .conf_basis = &dat.cbasis,
+    .heat_fac = heat_fac,
+    .use_gpu = false,
+  });
   for (int s = 0; s < 2; ++s) {
     fluid_nodal[s] = gkyl_array_new(GKYL_DOUBLE, NFLUID * nc, dat.crange.volume);
     coef[s] = gkyl_array_new(GKYL_DOUBLE, nc, dat.crange.volume);
@@ -239,7 +247,11 @@ test_exchange(int cdim, int num_species)
   struct gkyl_array *fluid_old[NSPEC], *prim_new[NSPEC], *temp_ratio[NSPEC], *shape, *nu_tot;
   struct gkyl_array *coef[NSPEC][NSPEC];
   struct gkyl_pkpm_coll_cross_species species[NSPEC];
-  struct gkyl_pkpm_coll_cross *up = gkyl_pkpm_coll_cross_new(&dat.cbasis, 2.0, false);
+  struct gkyl_pkpm_coll_cross *up = gkyl_pkpm_coll_cross_inew(&(struct gkyl_pkpm_coll_cross_inp){
+    .conf_basis = &dat.cbasis,
+    .heat_fac = 2.0,
+    .use_gpu = false,
+  });
   for (int s = 0; s < num_species; ++s) {
     fluid_old[s] = gkyl_array_new(GKYL_DOUBLE, NFLUID * nc, dat.crange.volume);
     prim_new[s] = gkyl_array_new(GKYL_DOUBLE, NPRIM * nc, dat.crange.volume);

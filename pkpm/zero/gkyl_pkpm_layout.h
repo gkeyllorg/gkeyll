@@ -37,3 +37,7 @@ enum gkyl_pkpm_prim_comp {
 
 // Largest number of modes, and of nodes, of the p = 1 configuration-space basis (3x).
 #define PKPM_MAX_CONF_BASIS 8
+
+// Largest number of modes of the phase-space basis, and of values of a cell in the
+// configuration-nodal, velocity-modal form (3x).
+#define PKPM_MAX_PHASE_BASIS (PKPM_NUM_VEL_MODES * PKPM_MAX_CONF_BASIS)

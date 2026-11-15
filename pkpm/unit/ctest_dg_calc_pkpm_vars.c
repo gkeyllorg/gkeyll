@@ -93,7 +93,13 @@ test_quotients(int cdim)
   struct gkyl_range local, local_ext;
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
   struct gkyl_vlasov_position_map *pm = identity_pos_map(&grid, &local, &local_ext, &cbasis);
-  struct gkyl_dg_calc_pkpm_vars *up = gkyl_dg_calc_pkpm_vars_new(&grid, &cbasis, pm, false);
+  struct gkyl_dg_calc_pkpm_vars *up =
+    gkyl_dg_calc_pkpm_vars_inew(&(struct gkyl_dg_calc_pkpm_vars_inp){
+      .conf_grid = &grid,
+      .conf_basis = &cbasis,
+      .pos_map = pm,
+      .use_gpu = false,
+    });
 
   struct gkyl_array *fluid = mkarr(5 * nb, local_ext.volume), *u = mkarr(3 * nb, local_ext.volume);
   struct gkyl_array *xi = mkarr(3 * nb, local_ext.volume), *rho3 = mkarr(3 * nb, local_ext.volume);
@@ -192,7 +198,13 @@ test_source_1x_p1()
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
   struct gkyl_vlasov_position_map *pm = identity_pos_map(&grid, &local, &local_ext, &cbasis);
 
-  struct gkyl_dg_calc_pkpm_vars *up = gkyl_dg_calc_pkpm_vars_new(&grid, &cbasis, pm, false);
+  struct gkyl_dg_calc_pkpm_vars *up =
+    gkyl_dg_calc_pkpm_vars_inew(&(struct gkyl_dg_calc_pkpm_vars_inp){
+      .conf_grid = &grid,
+      .conf_basis = &cbasis,
+      .pos_map = pm,
+      .use_gpu = false,
+    });
 
   // qmem = q/m*[Ex,Ey,Ez,Bx,By,Bz,phi,psi] (8 blocks).
   struct gkyl_array *qmem = mkarr(8 * nb, local_ext.volume);
@@ -288,7 +300,13 @@ test_positivity(int cdim)
   struct gkyl_range local, local_ext;
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
   struct gkyl_vlasov_position_map *pm = identity_pos_map(&grid, &local, &local_ext, &cbasis);
-  struct gkyl_dg_calc_pkpm_vars *vars = gkyl_dg_calc_pkpm_vars_new(&grid, &cbasis, pm, false);
+  struct gkyl_dg_calc_pkpm_vars *vars =
+    gkyl_dg_calc_pkpm_vars_inew(&(struct gkyl_dg_calc_pkpm_vars_inp){
+      .conf_grid = &grid,
+      .conf_basis = &cbasis,
+      .pos_map = pm,
+      .use_gpu = false,
+    });
 
   struct gkyl_array *fluid = mkarr(5 * nb, local_ext.volume), *count = mkarr(3, local_ext.volume);
   gkyl_array_clear(fluid, 0.0);

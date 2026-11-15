@@ -98,35 +98,32 @@ dg_calc_pkpm_em_coupling_set_cu_dev_ptrs(
 }
 
 gkyl_dg_calc_pkpm_em_coupling *
-gkyl_dg_calc_pkpm_em_coupling_cu_dev_new(
-  const struct gkyl_basis *cbasis, const struct gkyl_range *mem_range, int num_species,
-  double qbym[GKYL_MAX_SPECIES], double epsilon0, bool pkpm_field_static
-)
+gkyl_dg_calc_pkpm_em_coupling_cu_dev_inew(const struct gkyl_dg_calc_pkpm_em_coupling_inp *inp)
 {
   struct gkyl_dg_calc_pkpm_em_coupling *up =
     (struct gkyl_dg_calc_pkpm_em_coupling *)gkyl_malloc(sizeof(gkyl_dg_calc_pkpm_em_coupling));
 
-  int nc = cbasis->num_basis;
-  int cdim = cbasis->ndim;
-  int poly_order = cbasis->poly_order;
-  enum gkyl_basis_type b_type = cbasis->b_type;
-  up->mem_range = *mem_range;
+  int nc = inp->conf_basis->num_basis;
+  int cdim = inp->conf_basis->ndim;
+  int poly_order = inp->conf_basis->poly_order;
+  enum gkyl_basis_type b_type = inp->conf_basis->b_type;
+  up->mem_range = *inp->mem_range;
 
   // Linear system size is nc*(3*num_species + 3)
-  up->num_species = num_species;
+  up->num_species = inp->num_species;
   up->As = gkyl_nmat_cu_dev_new(
-    mem_range->volume, nc * (3 * up->num_species + 3), nc * (3 * up->num_species + 3)
+    inp->mem_range->volume, nc * (3 * up->num_species + 3), nc * (3 * up->num_species + 3)
   );
-  up->xs = gkyl_nmat_cu_dev_new(mem_range->volume, nc * (3 * up->num_species + 3), 1);
+  up->xs = gkyl_nmat_cu_dev_new(inp->mem_range->volume, nc * (3 * up->num_species + 3), 1);
   up->mem = gkyl_nmat_linsolve_lu_cu_dev_new(up->As->num, up->As->nr);
 
   // Boolean for whether or not self-consistent EM fields are static
-  up->pkpm_field_static = pkpm_field_static;
+  up->pkpm_field_static = inp->pkpm_field_static;
 
   // Needed constants for the source solve
-  up->epsilon0 = epsilon0;
-  for (int n = 0; n < num_species; ++n) {
-    up->qbym[n] = qbym[n];
+  up->epsilon0 = inp->epsilon0;
+  for (int n = 0; n < inp->num_species; ++n) {
+    up->qbym[n] = inp->qbym[n];
   }
 
   up->flags = 0;

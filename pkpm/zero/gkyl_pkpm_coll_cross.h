@@ -19,6 +19,13 @@ struct gkyl_pkpm_coll_cross_species {
   const struct gkyl_array *coef[GKYL_MAX_SPECIES]; // exchange coefficient K with each partner
 };
 
+// Input packaged as a struct
+struct gkyl_pkpm_coll_cross_inp {
+  const struct gkyl_basis *conf_basis; // Configuration-space basis functions (p=1 serendipity).
+  double heat_fac; // Factor of the heating in the kinetic rate: 1 (LBO) or 2 (BGK).
+  bool use_gpu; // bool to determine if on GPU.
+};
+
 /**
  * Create an updater for the cross-species collisions of the PKPM collision operators (LBO and
  * BGK) at the 2^cdim interior Gauss-Legendre nodes of configuration space.
@@ -47,14 +54,10 @@ struct gkyl_pkpm_coll_cross_species {
  * nu_sr + d ln(n T_s)/dt, which relaxes every pressure component at nu_sr. The two parts meet
  * only through this rate, so the exchange is advanced on its own (gkyl_pkpm_coll_cross_advance).
  *
- * @param conf_basis Configuration-space basis (p=1 serendipity).
- * @param heat_fac Factor of the heating in the kinetic rate: 1 (LBO) or 2 (BGK).
- * @param use_gpu Whether to run on the GPU (not available yet).
+ * @param inp Input parameters defined in gkyl_pkpm_coll_cross_inp struct.
  * @return New updater pointer.
  */
-struct gkyl_pkpm_coll_cross *gkyl_pkpm_coll_cross_new(
-  const struct gkyl_basis *conf_basis, double heat_fac, bool use_gpu
-);
+struct gkyl_pkpm_coll_cross *gkyl_pkpm_coll_cross_inew(const struct gkyl_pkpm_coll_cross_inp *inp);
 
 /**
  * Compute the node values [n, ux, uy, uz, vtsq] of a species from its fluid state.

@@ -27,7 +27,7 @@ GKYL_CU_DH void pkpm_vel_flux_vpar_1x1v_ser_p1(const double *w, const double *dx
   // nv:        Node values [5 nodes][PKPM_HS_NODE_NV] of the w flux of the configuration cell. 
   // f_l/f_r:   Distributions [F, G, M0_perp, N_perp] in the cell below/current cell. 
   // flux:      Output surface fluxes [8 blocks] on the lower w face (stored face format). 
-  // (The time-step rate of the w fluxes is the column rate of the closure kernel, plan 17.27.) 
+  // (The time-step rate of the w fluxes is the column rate of the closure kernel.) 
   const double v_face = w[1] - 0.5*dxv[1]; 
   double tl[2], tr[2], ul[8][5], ur[8][5]; 
   tl[0] = 1.5811388300841895*f_l[4]+1.224744871391589*f_l[2]+0.7071067811865475*f_l[0]; 
