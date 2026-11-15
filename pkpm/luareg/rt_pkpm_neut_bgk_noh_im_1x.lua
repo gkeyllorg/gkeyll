@@ -9,9 +9,9 @@
 -- between them.
 -- Figures of merit (64 x 16 cells): the shocks at 0.167 and 0.833 (where the cell averages of the
 -- density cross 2.5) lie within 0.05 cells of the Euler positions; the 40 cells between them
--- average density 3.98 and pressure 1.331, with 3.74 in the two centre cells (the wall heating of
--- this problem) and 4.28 in the cell behind each shock; the L1 errors of the cell averages are
--- 1.2% in each of density, velocity and pressure. The positivity limiter of the fluid state acts
+-- average density 3.98 and pressure 1.332, with 3.76 in the two centre cells (the wall heating of
+-- this problem) and 4.28 in the cell behind each shock; the L1 errors of the cell averages are 1.1%
+-- (density), 0.98% (velocity) and 1.0% (pressure). The positivity limiter of the fluid state acts
 -- on the internal energy of the cold streams in 8 cells per step. Mass, momentum and energy change
 -- by the boundary fluxes to 1e-11.
 

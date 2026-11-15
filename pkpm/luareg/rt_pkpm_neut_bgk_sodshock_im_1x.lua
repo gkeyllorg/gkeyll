@@ -11,11 +11,11 @@
 -- velocity 0.841.
 -- Figures of merit (32 x 16 cells): the shock at 0.686 and the contact at 0.581 (where the cell
 -- averages of the density cross the middle of each jump) lie within 0.1 cells of the Euler
--- positions; over the three cells between them the density averages 0.230 and the velocity 0.829,
--- with 0.871 (3.6% high) in the cell behind the shock; the L1 error of the cell averages of the
--- density is 0.0064. The explicit update at the same nu, with three times the steps, agrees to
--- 1e-5 in the fluid; nu = 1e5 and 1e6 (nu dt = 190) move the figures of merit by less than 0.001.
--- The constraints hold to round-off.
+-- positions; over the three cells between them the density averages 0.230 and the velocity 0.827,
+-- with 0.874 (3.9% high) in the cell behind the shock; the L1 error of the cell averages of the
+-- density is 0.0069. The explicit update at the same nu, with three times the steps, agrees to 1e-5
+-- in the fluid; nu = 1e5 and 1e6 (nu dt = 190) move the figures of merit by less than 0.001. The
+-- constraints hold to round-off.
 
 local PKPM = G0.PKPM
 

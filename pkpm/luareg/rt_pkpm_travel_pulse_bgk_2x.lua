@@ -10,7 +10,7 @@
 -- Figures of merit (16 x 16 x 8 cells): at t = 2 the mode with k along b has amplitude 0.651 and
 -- the mode with k across b 0.642, against exp(-chi k^2 t) = 0.674 for chi = T/(m nu). BGK relaxes
 -- the first harmonic toward its gyrotropic target at nu, so the gas conducts heat across b as along
--- it. Phase errors are below 5e-4 rad; particle number is conserved to 1e-13.
+-- it. Phase errors are below 6e-4 rad; particle number is conserved to 1e-13.
 
 local PKPM = G0.PKPM
 

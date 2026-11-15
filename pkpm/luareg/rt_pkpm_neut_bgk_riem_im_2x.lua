@@ -11,13 +11,12 @@
 -- the Euler solution of a gas with adiabatic index 5/3. The BGK relaxation takes one
 -- backward-Euler step in each SSP-RK3 stage (nu dt = 1.7).
 -- Figures of merit (24 x 24 x 8 cells) at t = 0.3, against the Euler solution of the moments app
--- (HLLC, adiabatic index 5/3, 400 x 400 cells) averaged over the cells of this grid: the L1
--- errors of the cell averages are 1.5% (density) and 2.0% (pressure); the largest cell average
--- of the density is 1.580 against 1.579, in the same cell; the smallest cell averages of the
--- density and the pressure are 0.1379 and 0.02897 (initial 0.138 and 0.029). The solution is
--- symmetric about the diagonal to round-off (density 8e-15, momentum 1e-14), the momentum along z
--- stays zero, and the first-harmonic blocks, driven by the flow gradients across b, reach 5e-3
--- of F.
+-- (HLLC, adiabatic index 5/3, 400 x 400 cells) averaged over the cells of this grid: the L1 errors
+-- of the cell averages are 1.6% (density) and 2.1% (pressure); the largest cell average of the
+-- density is 1.578 against 1.579, in the same cell; the smallest cell averages of the density and
+-- the pressure are 0.1379 and 0.02897 (initial 0.138 and 0.029). The solution is symmetric about
+-- the diagonal to round-off (density 8e-15, momentum 1e-14), the momentum along z stays zero, and
+-- the first-harmonic blocks, driven by the flow gradients across b, reach 5e-3 of F.
 
 local PKPM = G0.PKPM
 

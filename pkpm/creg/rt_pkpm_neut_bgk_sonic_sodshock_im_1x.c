@@ -9,7 +9,7 @@
 // shock at 0.760, density 0.285, velocity 1.291 and pressure 0.471 between them.
 // Figures of merit (100 x 16 cells): the contact at 0.558 and the shock at 0.760 (where the cell
 // averages of the density cross the middle of each jump) lie within 0.1 cells of the Euler
-// positions; the 18 cells between them average density 0.285, velocity 1.293 and pressure 0.472;
+// positions; the 18 cells between them average density 0.284, velocity 1.293 and pressure 0.472;
 // the L1 errors of the cell averages are 0.75% (density), 0.22% (velocity) and 0.43% (pressure).
 // The density error is smooth across the sonic point (0.005 to 0.007 over the four cells around
 // it). Mass, momentum and energy change by the boundary fluxes to 1e-12.

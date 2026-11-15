@@ -12,10 +12,10 @@
 -- cells).
 -- Figures of merit at t_end (96 cells, 16 electron and 32 ion velocity cells; a one-off Vlasov 1x3v
 -- run, serendipity p2, 4 x 4 perpendicular cells, in parentheses), the front being where the
--- potential crosses half its jump: front at x = 48.7 lambda_D, speed 0.81 c_s (45.2, 0.75);
--- downstream density 2.56 n0 (2.60); potential jump across the front e*dphi/Te = 1.49 (1.54);
--- density ahead of the front 1.40 n0 with mean flow -0.68 c_s (1.41, -0.67); downstream
--- temperatures 1.57 Te for the electrons (1.57) and 0.67 Te for the ions (0.64).
+-- potential crosses half its jump: front at x = 48.8 lambda_D, speed 0.81 c_s (45.2, 0.75);
+-- downstream density 2.55 n0 (2.60); potential jump across the front e*dphi/Te = 1.43 (1.54);
+-- density ahead of the front 1.41 n0 with mean flow -0.66 c_s (1.41, -0.67); downstream
+-- temperatures 1.56 Te for the electrons (1.57) and 0.68 Te for the ions (0.64).
 
 local PKPM = G0.PKPM
 

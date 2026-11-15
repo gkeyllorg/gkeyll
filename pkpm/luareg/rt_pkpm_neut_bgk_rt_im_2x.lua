@@ -13,15 +13,15 @@
 -- Linear theory for a sharp interface in an incompressible fluid: growth rate sqrt(A g k) = 0.915
 -- with the Atwood number A = 1/3; the Euler solution of the moments app (96 x 192 cells, adiabatic
 -- index 5/3) grows at 0.91 between t = 1.5 and 2.3.
--- Figures of merit (12 x 24 x 8 cells): the integral of rho u_y^2 grows at the rate 0.79 between
--- t = 1.5 and 2.3 (half the logarithmic slope), 13% below the Euler solution: the heat conduction
+-- Figures of merit (12 x 24 x 8 cells): the integral of rho u_y^2 grows at the rate 0.78 between
+-- t = 1.5 and 2.3 (half the logarithmic slope), 14% below the Euler solution: the heat conduction
 -- along b across the interface and the viscosity at this collision frequency, and 12 cells per
 -- wavelength, reduce it. At t = 3.5 the spike of heavy gas has fallen to y = 0.18 and the bubble
--- risen to 0.30; the density stays between 0.83 and 2.34, and the solution is symmetric about the
--- middle of the box in x to round-off. The energy changes by the work of gravity, -g int M_y dt,
--- to 2e-10 of the energy; mass is conserved to 2e-13. Without the perturbation the interface
--- stays at rest: the velocity stays below 1e-3 and decays, and the heat conduction spreads the
--- density jump over two cells (density undershoot 4% at t = 0.5 and 2% at t = 3.5).
+-- risen to 0.30; the density stays between 0.86 and 2.22, and the solution is symmetric about the
+-- middle of the box in x to round-off. The energy changes by the work of gravity, -g int M_y dt, to
+-- 2e-10 of the energy; mass is conserved to 2e-13. Without the perturbation the interface stays at
+-- rest: the velocity stays below 1e-3 and decays, and the heat conduction spreads the density jump
+-- over two cells (density undershoot 4% at t = 0.5 and 2% at t = 3.5).
 
 local PKPM = G0.PKPM
 

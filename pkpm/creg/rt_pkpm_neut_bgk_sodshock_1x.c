@@ -10,8 +10,8 @@
 // Exact solution at t = 0.1: shock at x = 0.684, contact at 0.584, post-shock density 0.230,
 // velocity 0.841.
 // Figures of merit (32 x 16 cells): the shock at 0.678 and the contact at 0.571 lie within half a
-// cell of the Euler positions; the post-shock plateau, three cells wide, has density 0.241 (5%
-// high) and velocity 0.846; the density L1 error is 0.020 (Vlasov 1x3v, serendipity p2 with 6^3
+// cell of the Euler positions; the post-shock plateau, three cells wide, has density 0.240 (4%
+// high) and velocity 0.844; the density L1 error is 0.020 (Vlasov 1x3v, serendipity p2 with 6^3
 // mapped velocity cells: 0.02). The implicit update at the same nu differs by 1e-3, the error of
 // the first-order split, which halves with the time step.
 

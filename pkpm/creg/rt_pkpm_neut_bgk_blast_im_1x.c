@@ -7,10 +7,10 @@
 // The BGK relaxation takes one backward-Euler step in each SSP-RK3 stage (nu dt = 3).
 // Figures of merit (160 x 16 cells) at t = 0.038, against a second-order finite-volume Euler
 // solution (MUSCL, HLLE) on 6400 cells averaged over the cells of this grid: the L1 errors of the
-// cell averages are 5.1% (density), 0.5% (velocity) and 2.0% (pressure); the density peaks at
-// 4.19 at x = 0.797 (reference 4.15 at 0.784) and has its minimum at 0.184 (0.186); the pressure
-// peaks at 331 at x = 0.616 (319 at 0.616) and the velocity at 13.15 at x = 0.891 (13.17 at
-// 0.897). Mass and energy are conserved to 1e-11 (the walls exchange momentum).
+// cell averages are 5.6% (density), 0.6% (velocity) and 2.2% (pressure); the density peaks at 4.14
+// at x = 0.791 (reference 4.15 at 0.784) and has its minimum at 0.170 (0.186); the pressure peaks
+// at 328 at x = 0.616 (319 at 0.616) and the velocity at 13.23 at x = 0.891 (13.17 at 0.897). Mass
+// and energy are conserved to 1e-11 (the walls exchange momentum).
 
 #include <math.h>
 #include <stdio.h>

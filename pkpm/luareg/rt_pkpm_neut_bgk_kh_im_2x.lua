@@ -13,12 +13,12 @@
 -- - The first harmonic gives the Navier-Stokes shear stress: a = int w M0_perp,y dw (the stress
 --   across b over the pressure), summed over the rows of one shear layer, is 3.178e-3 at t = 0.5
 --   and at t = 1 against the 3.158e-3 of a BGK gas, -(1/nu) d u_x/dy summed over the same rows.
--- - The integral of rho u_y^2 grows at the rate 1.26 between t = 1 and 2 (half the logarithmic
---   slope), against 1.47 for the Euler solution of the moments app (128 x 128 cells) with the
---   same initial condition; it is 1.3e-4, 1.8e-3 and 1.7e-2 at t = 1, 2 and 3 (Euler 1.5e-4,
---   2.9e-3 and 3.2e-2).
+-- - The integral of rho u_y^2 grows at the rate 1.20 between t = 1 and 2 (half the logarithmic
+--   slope), against 1.47 for the Euler solution of the moments app (128 x 128 cells) with the same
+--   initial condition; it is 1.3e-4, 1.6e-3 and 1.2e-2 at t = 1, 2 and 3 (Euler 1.5e-4, 2.9e-3 and
+--   3.2e-2).
 -- - Mass and energy are conserved to 2e-13, the momentum along y stays zero to 1e-16, and the
---   density stays between 1.00 and 2.13.
+--   density stays between 1.00 and 2.07.
 
 local PKPM = G0.PKPM
 

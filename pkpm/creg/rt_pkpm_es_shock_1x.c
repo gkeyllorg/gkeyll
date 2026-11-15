@@ -12,12 +12,12 @@
 // perpendicular temperatures: with +-12 the front is 14% fast and the ion T_perp rises from 0.25 to
 // 0.41 Te, and with +-6 the reflected ions pile up behind a second front.
 // Figures of merit at t_end (96 cells, 16 electron and 32 ion velocity cells; Vlasov 1x1v,
-// serendipity p2 on the same grid, in parentheses), the front being where the potential crosses half
-// its jump: front at x = 69.8 lambda_D, speed 1.16 c_s (66.7, 1.11); downstream density 2.19 n0
-// (2.20); potential jump across the front e*dphi/Te = 3.27 (3.37); reflected ions ahead of the front
-// 0.235 n0 at 3.52 c_s (0.242 at 3.48); downstream parallel temperatures 3.59 Te for the electrons
-// (3.65) and 1.04 Te for the ions (0.97). The perpendicular temperatures stay at their upstream
-// values, 1.00 Te and 0.26 Te (0.25).
+// serendipity p2 on the same grid, in parentheses), the front being where the potential crosses
+// half its jump: front at x = 70.5 lambda_D, speed 1.18 c_s (66.7, 1.11); downstream density 2.18
+// n0 (2.20); potential jump across the front e*dphi/Te = 3.24 (3.37); reflected ions ahead of the
+// front 0.234 n0 at 3.53 c_s (0.242 at 3.48); downstream parallel temperatures 3.57 Te for the
+// electrons (3.65) and 1.08 Te for the ions (0.97). The perpendicular temperatures stay at their
+// upstream values, 1.00 Te and 0.27 Te (0.25).
 
 #include <math.h>
 #include <stdio.h>
