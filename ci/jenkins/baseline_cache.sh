@@ -13,10 +13,7 @@ cache_root() {
 
 platform_dir() {
   local root
-  case "$3" in
-    personal|team-workstation|stellar-cpu|perlmutter-gpu) ;;
-    *) die "invalid CI platform: $3" ;;
-  esac
+  [[ "$3" =~ ^[A-Za-z0-9][A-Za-z0-9_-]*$ ]] || die "invalid CI platform: $3"
   root="$(cache_root "$1")"
   printf '%s/%s/%s' "$root" "$2" "$3"
 }
@@ -40,6 +37,9 @@ cache_tree_valid() {
   [[ "$(awk -F= '$1 == "format_version" {print $2}' "$manifest")" == 1 ]] || return 1
   [[ "$(awk -F= '$1 == "platform" {print $2}' "$manifest")" == "$platform" ]] || return 1
   [[ "$(awk -F= '$1 == "baseline_commit" {print $2}' "$manifest")" == "$sha" ]] || return 1
+  if [[ -n "${SLURM_CI_CONFIG_HASH:-}" ]]; then
+    [[ "$(awk -F= '$1 == "config_hash" {print $2}' "$manifest")" == "$SLURM_CI_CONFIG_HASH" ]] || return 1
+  fi
   head="$(git -C "$entry/gkeyll" rev-parse HEAD 2>/dev/null || true)"
   [[ "$head" == "$sha" ]] || return 1
   for layer in moments vlasov gyrokinetic pkpm; do
@@ -103,7 +103,7 @@ finalize_candidate() {
   [[ -d "$target/gkeyll/.git" ]] || die "candidate checkout is missing: $target/gkeyll"
   [[ -d "$workspace" ]] || die "Jenkins workspace is missing: $workspace"
   [[ "$(git -C "$target/gkeyll" rev-parse HEAD 2>/dev/null || true)" == "$sha" ]] || die "candidate checkout does not match $sha"
-  for file in "$workspace"/ci-*.txt "$workspace"/*-unit-results.txt "$workspace"/*-seconds.txt "$workspace"/candidate-*.log "$workspace"/slurm-*.out "$workspace"/ci-report.md; do
+  for file in "$workspace"/ci-*.txt "$workspace"/ci-slurm-profile.json "$workspace"/*-unit-results.txt "$workspace"/*-seconds.txt "$workspace"/candidate-*.log "$workspace"/slurm-*.out "$workspace"/ci-report.md; do
     [[ -f "$file" && ! -L "$file" ]] || continue
     destination="$target/$(basename "$file")"
     rm -f "$destination"

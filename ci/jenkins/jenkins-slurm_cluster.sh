@@ -1,20 +1,31 @@
 #!/usr/bin/env bash
 #
-# Start and use the private, loopback-only Jenkins controller on Perlmutter GPU.
+# Start and use the private, loopback-only Jenkins controller on the selected Slurm cluster.
 # This is intentionally a controller launcher, not a replacement for the
-# Jenkins UI: both clients submit the same parameterized Pipeline job.
+# Jenkins UI: CLI and browser submit the same parameterized Pipeline job.
 
 set -euo pipefail
 
 readonly SCRIPT_PATH="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/$(basename -- "${BASH_SOURCE[0]}")"
 readonly SCRIPT_DIR="${SCRIPT_PATH%/*}"
+if [[ "${1:-}" != __configured ]]; then
+    (($# >= 1)) || { echo "Usage: $0 PROFILE COMMAND [flags]" >&2; exit 2; }
+    profile="$1"
+    shift
+    if [[ "${1:-}" == validate ]]; then
+        shift
+        exec python3 "$SCRIPT_DIR/slurm_config.py" validate "$profile" "$@"
+    fi
+    exec python3 "$SCRIPT_DIR/slurm_config.py" client "$profile" "$@"
+fi
+shift
 CI_ROOT="${GKEYLL_CI_ROOT:-}"
 JENKINS_HOME="${JENKINS_HOME:-$CI_ROOT/jenkins_home}"
 JENKINS_WEBROOT="${JENKINS_WEBROOT:-$CI_ROOT/jenkins_webroot}"
 JENKINS_TMPDIR="${TMPDIR:-$CI_ROOT/tmp}"
 JENKINS_PORT="${JENKINS_PORT:-8080}"
 JENKINS_URL="${JENKINS_URL:-http://127.0.0.1:$JENKINS_PORT}"
-JENKINS_JOB="${JENKINS_JOB:-gkeyll-ci-perlmutter_gpu}"
+JENKINS_JOB="${JENKINS_JOB:?}"
 JENKINS_SESSION="${JENKINS_SESSION:-gkeyll_ci}"
 JENKINS_CLI_AUTH_FILE="${JENKINS_CLI_AUTH_FILE:-$JENKINS_HOME/jenkins-cli.auth}"
 JAVA_HOME="${JAVA_HOME:-}"
@@ -34,9 +45,12 @@ die() {
 usage() {
     cat <<'EOF'
 Usage:
-  jenkins-perlmutter_gpu.sh <command> [flags]
+  gkeyll-ci.sh slurm <command> [flags]
+
+Set GKEYLL_CI_CLUSTER to the local cluster's reviewed profile ID.
 
 Commands:
+  validate Show the resolved profile and allocations without submitting work.
   start    Start Jenkins in detached tmux.
   run      Queue a pull-request or comparison build.
   active   List this job's queued and running work.
@@ -51,15 +65,14 @@ The run command returns after Jenkins accepts the request. --follow streams
 the build console and returns its final Jenkins result. Press Ctrl-C to stop
 following without aborting the Jenkins build.
 
-GKEYLL_CI_ROOT must name shared Perlmutter storage. JAVA_HOME must name a Java
-21 or newer installation. The Jenkins API credential file defaults to
-$JENKINS_HOME/jenkins-cli.auth and must contain
+Controller defaults come from the selected reviewed cluster profile. The Jenkins API
+credential file defaults to $JENKINS_HOME/jenkins-cli.auth and must contain
 one line in the form: jenkins-user:api-token
 EOF
 }
 
 command_usage() {
-    local script='jenkins-perlmutter_gpu.sh'
+    local script='gkeyll-ci.sh slurm'
     case "$1" in
         start) cat <<EOF
 Usage: $script start
@@ -137,7 +150,7 @@ EOF
 }
 
 prepare_paths() {
-    [[ -n "$CI_ROOT" ]] || die 'Set GKEYLL_CI_ROOT to the shared Perlmutter CI root'
+    [[ -n "$CI_ROOT" ]] || die "Set GKEYLL_CI_ROOT to a shared absolute CI directory"
     mkdir -p "$JENKINS_HOME" "$JENKINS_WEBROOT" "$JENKINS_TMPDIR" \
         "$CI_ROOT/logs" "$CI_ROOT/workspaces"
 }
@@ -163,7 +176,7 @@ wait_for_controller() {
 
 start_controller() {
     prepare_paths
-    [[ -n "$JAVA_HOME" && -x "$JAVA_HOME/bin/java" ]] || die "Set JAVA_HOME to a Java 21 or newer installation"
+    [[ -n "$JAVA_HOME" && -x "$JAVA_HOME/bin/java" ]] || die "Java 21 was not found at $JAVA_HOME/bin/java"
     [[ -f "$CI_ROOT/jenkins.war" ]] || die "Jenkins WAR is missing: $CI_ROOT/jenkins.war"
 
     if controller_running; then
@@ -172,7 +185,14 @@ start_controller() {
         if ss -ltnH "( sport = :$JENKINS_PORT )" | grep . > /dev/null; then
             die "Port $JENKINS_PORT is already in use on this login node. Set JENKINS_PORT to an unused port before starting Jenkins."
         fi
-        tmux new-session -d -s "$JENKINS_SESSION" "$SCRIPT_PATH" __controller
+        # An existing tmux server may predate the caller's exported settings.
+        # Pass resolved controller values explicitly to the detached process.
+        tmux new-session -d -s "$JENKINS_SESSION" env \
+            "GKEYLL_CI_ROOT=$CI_ROOT" "JAVA_HOME=$JAVA_HOME" \
+            "JENKINS_HOME=$JENKINS_HOME" "JENKINS_WEBROOT=$JENKINS_WEBROOT" \
+            "TMPDIR=$JENKINS_TMPDIR" "JENKINS_PORT=$JENKINS_PORT" \
+            "JENKINS_JOB=$JENKINS_JOB" "JENKINS_SESSION=$JENKINS_SESSION" \
+            "$SCRIPT_PATH" "$GKEYLL_CI_CLUSTER" __controller
         echo "Started Jenkins in tmux session: $JENKINS_SESSION"
     fi
     wait_for_controller
@@ -181,7 +201,7 @@ start_controller() {
 
 run_controller() {
     prepare_paths
-    [[ -n "$JAVA_HOME" && -x "$JAVA_HOME/bin/java" ]] || die "Set JAVA_HOME to a Java 21 or newer installation"
+    [[ -n "$JAVA_HOME" && -x "$JAVA_HOME/bin/java" ]] || die "Java 21 was not found at $JAVA_HOME/bin/java"
     [[ -f "$CI_ROOT/jenkins.war" ]] || die "Jenkins WAR is missing: $CI_ROOT/jenkins.war"
 
     export JENKINS_HOME JENKINS_WEBROOT
@@ -458,7 +478,7 @@ submit_build() {
 
     echo "Queued $JENKINS_JOB as queue item $queue_id" >&2
     echo "Queue URL: $queue_url" >&2
-    echo "Monitor it with: $SCRIPT_PATH follow --queue $queue_id" >&2
+    echo "Monitor it with: $SCRIPT_DIR/gkeyll-ci.sh slurm follow --queue $queue_id" >&2
     SUBMITTED_QUEUE_ID="$queue_id"
 }
 

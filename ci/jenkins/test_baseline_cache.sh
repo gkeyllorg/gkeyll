@@ -56,6 +56,22 @@ $cache_tool valid "$root" "$platform" "$sha"
 test "$entry" = "$stage"
 "$entry/gkylsoft/gkeyll/bin/gkeyll"
 
+# A Slurm fingerprint invalidates legacy/mismatched baselines, then permits
+# a matching one. Candidate creation must still work with this environment.
+export SLURM_CI_CONFIG_HASH=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+if "$cache_tool" valid "$root" "$platform" "$sha"; then
+  echo 'baseline without a fingerprint was accepted' >&2
+  exit 1
+fi
+printf 'config_hash=%s\n' "$SLURM_CI_CONFIG_HASH" >> "$entry/cache-manifest.txt"
+"$cache_tool" valid "$root" "$platform" "$sha"
+if SLURM_CI_CONFIG_HASH=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb \
+  "$cache_tool" valid "$root" "$platform" "$sha"; then
+  echo 'mismatched fingerprint was accepted' >&2
+  exit 1
+fi
+test "$($cache_tool baseline-path "$root" new-cpu_profile "$sha")" = "$root/baseline-cache/new-cpu_profile/$sha"
+
 printf 'outside manifest\n' > "$work_dir/outside-manifest.txt"
 ln -s "$work_dir/outside-manifest.txt" "$fixture/candidate-manifest.txt"
 candidate="$($cache_tool prepare-candidate "$root" "$platform" "$sha" "$fixture" "$sha")"
@@ -74,6 +90,7 @@ printf 'outside data\n' > "$work_dir/outside.log"
 ln -s "$work_dir/outside.log" "$candidate/gkylsoft/gkeyll-results/moments/creg-runs/outside.log"
 mkdir -p "$work_dir/workspace"
 printf 'unit results\n' > "$work_dir/workspace/candidate-unit-results.txt"
+printf '{"PROFILE":"fixture"}\n' > "$work_dir/workspace/ci-slurm-profile.json"
 rm "$candidate/candidate-manifest.txt"
 ln -s "$work_dir/outside-manifest.txt" "$candidate/candidate-manifest.txt"
 $cache_tool finalize-candidate "$root" "$platform" "$sha" "$sha" failure 'C regressions' "$work_dir/workspace"
@@ -82,6 +99,7 @@ test "$(cat "$work_dir/outside-manifest.txt")" = 'outside manifest'
 grep -q '^result=failure$' "$candidate/candidate-manifest.txt"
 grep -q '^baseline_commit='"$sha"'$' "$candidate/candidate-manifest.txt"
 test -f "$candidate/candidate-unit-results.txt"
+cmp "$candidate/ci-slurm-profile.json" "$work_dir/workspace/ci-slurm-profile.json"
 ln -s "$work_dir" "$work_dir/workspace/gkylsoft"
 ln -s "$work_dir" "$work_dir/workspace/build"
 $cache_tool stage-candidate-artifacts "$root" "$platform" "$sha" "$work_dir/workspace"
