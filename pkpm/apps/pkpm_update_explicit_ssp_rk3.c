@@ -34,7 +34,7 @@ pkpm_update_explicit_ssp_rk3(gkyl_pkpm_app *app, double dt0)
             app, 1, tcurr, dt, fin, fluidin, app->field->em, fout, fluidout, app->field->em1, &st
           );
           // Limit the EM solution if desired (done after update as post-hoc fix)
-          pkpm_field_limiter(app, app->field, app->field->emnew);
+          pkpm_field_limiter(app, app->field, app->field->em1);
 
           dt = st.dt_actual;
           pkpm_coll_stage_advance(app, 1, dt);

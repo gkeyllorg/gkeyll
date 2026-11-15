@@ -350,6 +350,11 @@ gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm)
 
   // Set the appropriate update function for taking a single time step
   app->use_explicit_source = pkpm->use_explicit_source;
+  // Steps of the operator split (0: none yet). The frames store them, also for the explicit
+  // stepper, which never sets them.
+  app->op_split_dt_prev = 0.0;
+  app->op_split_dt_suggested = 0.0;
+  app->op_split_synced = false;
   if (app->use_explicit_source) {
     // If momentum-EM field coupling is explicit,
     // we use a pure explicit SSP RK3 method.
@@ -359,9 +364,6 @@ gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm)
     // to implicitly treat the momentum-EM field coupling.
     app->pkpm_em = pkpm_fluid_em_coupling_init(app);
     app->update_func = pkpm_update_op_split;
-    app->op_split_dt_prev = 0.0;
-    app->op_split_dt_suggested = 0.0;
-    app->op_split_synced = false;
     for (int i = 0; i < app->num_species; ++i) {
       app->op_split_fluid[i] =
         mkarr(app->use_gpu, app->species[i].fluid->ncomp, app->species[i].fluid->size);
@@ -1646,9 +1648,18 @@ gkyl_pkpm_app_from_frame_species(gkyl_pkpm_app *app, int sidx, int frame)
   }
   cstr_drop(&fileNm_pos);
 
-  app->species[sidx].is_first_integ_write_call = false; // append to existing diagnostic
-  app->species[sidx].is_first_integ_L2_write_call = false; // append to existing diagnostic
+  // Diagnostic records append to their existing files after a restart.
+  s->is_first_integ_write_call = false;
+  s->is_first_integ_L2_write_call = false;
+  s->is_first_bflux_write_call = false;
+  s->is_first_pos_stat_write_call = false;
+  cstr_drop(&fileNm_fluid);
   cstr_drop(&fileNm);
+
+  // The first failure is reported (a frame without the positivity record is not one).
+  if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
+    rstat.io_status = rstat_fluid.io_status;
+  }
 
   return rstat;
 }
@@ -1656,16 +1667,21 @@ gkyl_pkpm_app_from_frame_species(gkyl_pkpm_app *app, int sidx, int frame)
 struct gkyl_app_restart_status
 gkyl_pkpm_app_read_from_frame(gkyl_pkpm_app *app, int frame)
 {
-  struct gkyl_app_restart_status rstat;
-
-  rstat = gkyl_pkpm_app_from_frame_field(app, frame);
-
+  // The first failure is reported, and the app clock is left alone; otherwise the status
+  // carries the frame and time read from the files.
+  struct gkyl_app_restart_status rstat = gkyl_pkpm_app_from_frame_field(app, frame);
+  if (rstat.io_status != GKYL_ARRAY_RIO_SUCCESS) {
+    return rstat;
+  }
   for (int i = 0; i < app->num_species; i++) {
     rstat = gkyl_pkpm_app_from_frame_species(app, i, frame);
+    if (rstat.io_status != GKYL_ARRAY_RIO_SUCCESS) {
+      return rstat;
+    }
   }
 
   app->tcurr = rstat.stime;
-  if (!app->use_explicit_source && rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
+  if (!app->use_explicit_source) {
     // The frames hold the synchronized state of the staggered operator split (plan 17.34); the
     // uninterrupted run held the sources half its last step behind. Step them back (the implicit
     // midpoint rule is time-reversible: this inverts the synchronization step) and restore the steps,
