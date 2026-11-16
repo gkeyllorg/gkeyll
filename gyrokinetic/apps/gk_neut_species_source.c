@@ -50,24 +50,8 @@ gk_neut_species_source_init(
     }
 
     // Allocate data and updaters for integrated moments.
-    gkns->src.num_integ_moms = 1;
-    gkns->src.integ_mom_types[0] = GKYL_F_MOMENT_M0M1M2;
-    gkns->src.integ_moms = gkyl_malloc(sizeof(struct gk_species_moment));
-    gk_neut_species_moment_init(
-      app, gkns, &gkns->src.integ_moms[0], gkns->src.integ_mom_types[0], true
-    );
-    int num_mom = gkns->src.integ_moms[0].num_mom;
-    if (app->use_gpu) {
-      gkns->src.red_integ_diag = gkyl_cu_malloc(sizeof(double[num_mom]));
-      gkns->src.red_integ_diag_global = gkyl_cu_malloc(sizeof(double[num_mom]));
-    } else {
-      gkns->src.red_integ_diag = gkyl_malloc(sizeof(double[num_mom]));
-      gkns->src.red_integ_diag_global = gkyl_malloc(sizeof(double[num_mom]));
-    }
-    // allocate dynamic-vector to store all-reduced integrated moments
-    gkns->src.integ_diag = gkyl_malloc(sizeof(gkyl_dynvec));
-    gkns->src.integ_diag[0] = gkyl_dynvec_new(GKYL_DOUBLE, num_mom);
-    gkns->src.is_first_integ_write_call = true;
+    enum gkyl_distribution_moments integ_mom_types[] = {GKYL_F_MOMENT_M0M1M2};
+    gk_integ_moms_neut_init(app, gkns, &gkns->src.integ_moms, 1, integ_mom_types);
   }
 }
 
@@ -213,30 +197,13 @@ gk_neut_species_source_calc_integrated_mom(
   if (gkns->src.source_id && gkns->src.evolve) {
     struct timespec wst = gkyl_wall_clock();
 
-    int vdim = gkns->info.vdim;
-    int num_mom = gkns->src.integ_moms[0].num_mom;
-    double avals_global[num_mom];
-    gk_neut_species_moment_calc(
-      app, &gkns->src.integ_moms[0], gkns->local, app->local, gkns->src.source
-    );
+    struct gk_integ_moms *im = &gkns->src.integ_moms;
+    gk_neut_species_moment_calc(app, &im->ops[0], gkns->local, app->local, gkns->src.source);
     app->stat.n_neut_mom += 1;
 
-    // reduce to compute sum over whole domain, append to diagnostics
-    gkyl_array_reduce_range(
-      gkns->src.red_integ_diag, gkns->src.integ_moms[0].marr, GKYL_SUM, &app->local
-    );
-    gkyl_comm_allreduce(
-      app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom, gkns->src.red_integ_diag,
-      gkns->src.red_integ_diag_global
-    );
-    if (app->use_gpu) {
-      gkyl_cu_memcpy(
-        avals_global, gkns->src.red_integ_diag_global, sizeof(double[num_mom]), GKYL_CU_MEMCPY_D2H
-      );
-    } else {
-      memcpy(avals_global, gkns->src.red_integ_diag_global, sizeof(double[num_mom]));
-    }
-    gkyl_dynvec_append(gkns->src.integ_diag[0], tm, avals_global);
+    // Reduce to compute sum over whole domain, append to diagnostics.
+    struct gkyl_array *arrs[] = {im->ops[0].marr};
+    gk_integ_moms_reduce_append(app, im, arrs, tm);
 
     app->stat.neut_species_diag_calc_tm += gkyl_time_diff_now_sec(wst);
     app->stat.n_neut_diag += 1;
@@ -258,7 +225,7 @@ gk_neut_species_source_write_integrated_mom(gkyl_gyrokinetic_app *app, struct gk
       char fileNm[sz + 1]; // ensures no buffer overflow
       snprintf(fileNm, sizeof fileNm, fmt, app->name, gkns->info.name, "integrated_moms");
 
-      if (gkns->src.is_first_integ_write_call) {
+      if (gkns->src.integ_moms.is_first_write) {
         struct gkyl_msgpack_map_elem io_meta_phi[] = {
           {
             .key = "Description",
@@ -273,14 +240,14 @@ gk_neut_species_source_write_integrated_mom(gkyl_gyrokinetic_app *app, struct gk
         struct gkyl_msgpack_data *mt =
           gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
 
-        gkyl_dynvec_write_wmeta(gkns->src.integ_diag[0], fileNm, mt);
-        gkns->src.is_first_integ_write_call = false;
+        gkyl_dynvec_write_wmeta(gkns->src.integ_moms.diag[0], fileNm, mt);
+        gkns->src.integ_moms.is_first_write = false;
         gkyl_msgpack_data_release(mt);
       } else {
-        gkyl_dynvec_awrite(gkns->src.integ_diag[0], fileNm);
+        gkyl_dynvec_awrite(gkns->src.integ_moms.diag[0], fileNm);
       }
     }
-    gkyl_dynvec_clear(gkns->src.integ_diag[0]);
+    gkyl_dynvec_clear(gkns->src.integ_moms.diag[0]);
 
     app->stat.neut_species_diag_io_tm += gkyl_time_diff_now_sec(wst);
     app->stat.n_neut_diag_io += 1;
@@ -307,16 +274,6 @@ gk_neut_species_source_release(const struct gkyl_gyrokinetic_app *app, const str
       gk_neut_species_moment_release(app, &src->moms[i]);
     }
     gkyl_free(src->moms);
-    gk_neut_species_moment_release(app, &src->integ_moms[0]);
-    gkyl_free(src->integ_moms);
-    if (app->use_gpu) {
-      gkyl_cu_free(src->red_integ_diag);
-      gkyl_cu_free(src->red_integ_diag_global);
-    } else {
-      gkyl_free(src->red_integ_diag);
-      gkyl_free(src->red_integ_diag_global);
-    }
-    gkyl_dynvec_release(src->integ_diag[0]);
-    gkyl_free(src->integ_diag);
+    gk_integ_moms_release(app, &src->integ_moms);
   }
 }

@@ -221,6 +221,7 @@ gk_neut_species_kinetic_release(const gkyl_gyrokinetic_app *app, const struct gk
 
   // Free boundary flux memory.
   gk_neut_species_bflux_release(app, gkns, &gkns->bflux);
+  gk_stepped_moms_release(&gkns->step_moms);
 
   gk_neut_species_lte_release(app, &gkns->lte);
 
@@ -1020,6 +1021,7 @@ gk_neut_species_kinetic_init(
 
   // Initialize boundary fluxes.
   gkns->bflux = (struct gk_boundary_fluxes){};
+  gkns->step_moms = (struct gk_stepped_moms){};
   // Additional bflux moments to step in time.
   struct gkyl_phase_diagnostics_inp add_bflux_moms_inp = (struct gkyl_phase_diagnostics_inp){};
   // Set the operation type for the bflux app.

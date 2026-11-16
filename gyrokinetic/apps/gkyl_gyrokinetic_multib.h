@@ -35,7 +35,8 @@ struct gkyl_gyrokinetic_multib_species {
     integrated_diag_moments[12]; // List of integrated diagnostic moments.
   bool time_rate_diagnostics; // Whether to ouput df/dt diagnostics.
   int num_balance_diags; // Number of balance diagnostics (see gkyl_gyrokinetic.h).
-  enum gkyl_gyrokinetic_balance_diag balance_diags[12]; // List of balance diagnostics.
+  enum gkyl_gyrokinetic_balance_diag
+    balance_diags[GKYL_BALANCE_GK_NUM]; // List of balance diagnostics.
 
   struct gkyl_phase_diagnostics_inp boundary_flux_diagnostics;
 
@@ -154,7 +155,7 @@ struct gkyl_gyrokinetic_multib {
   double cfl_frac; // CFL fraction to use (default 1.0)
   double cfl_frac_omegaH; // CFL fraction to use for omegaH (default 1.7)
 
-  struct gkyl_gyrokinetic_diagnostics diagnostics; // Diagnostics summed over species.
+  struct gkyl_phase_diagnostics_inp diagnostics; // App level diagnostics.
 
   int num_periodic_dir; // Number of periodic directions.
   int periodic_dirs[3]; // List of periodic directions.
@@ -486,9 +487,10 @@ void gkyl_gyrokinetic_multib_app_write_species_boundary_flux_integrated_mom(
  * @param app App object.
  * @param sidx Index of species whose balance to compute.
  * @param tm Time at which integrated diagnostics are to be computed
+ * @param dt Last time step taken (<= 0 if none, e.g. at the initial time).
  */
 void gkyl_gyrokinetic_multib_app_calc_species_balance(
-  gkyl_gyrokinetic_multib_app *app, int sidx, double tm
+  gkyl_gyrokinetic_multib_app *app, int sidx, double tm, double dt
 );
 
 /**
@@ -506,8 +508,11 @@ void gkyl_gyrokinetic_multib_app_write_species_balance(gkyl_gyrokinetic_multib_a
  *
  * @param app App object.
  * @param tm Time at which integrated diagnostics are to be computed
+ * @param dt Last time step taken (<= 0 if none, e.g. at the initial time).
  */
-void gkyl_gyrokinetic_multib_app_calc_balance(gkyl_gyrokinetic_multib_app *app, double tm);
+void gkyl_gyrokinetic_multib_app_calc_balance(
+  gkyl_gyrokinetic_multib_app *app, double tm, double dt
+);
 
 /**
  * Write the balance diagnostics summed over species to file.
@@ -822,12 +827,16 @@ void gkyl_gyrokinetic_multib_app_write_neut_species_conf(
 void gkyl_gyrokinetic_multib_app_write_mom(gkyl_gyrokinetic_multib_app *app, double tm, int frame);
 
 /**
- * Calculate integrated diagnostic moments for all species (including sources).
+ * Calculate integrated diagnostic moments for all species (including sources),
+ * and the balance diagnostics.
  *
  * @param app App object.
  * @param tm Time at which integrated diagnostics are to be computed
+ * @param dt Last time step taken (<= 0 if none, e.g. at the initial time).
  */
-void gkyl_gyrokinetic_multib_app_calc_integrated_mom(gkyl_gyrokinetic_multib_app *app, double tm);
+void gkyl_gyrokinetic_multib_app_calc_integrated_mom(
+  gkyl_gyrokinetic_multib_app *app, double tm, double dt
+);
 
 /**
  * Write integrated diagnostic moments for all species (including sources)

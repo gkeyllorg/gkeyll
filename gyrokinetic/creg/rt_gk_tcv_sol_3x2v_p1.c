@@ -698,20 +698,16 @@ main(int argc, char **argv)
         .adapt[0] = adapt_srcCORE_e,
         .projection[1] = proj_srcRECY_e,
         .adapt[1] = adapt_srcRECY_e,
-        .diagnostics =
-          {
-            .num_diag_moments = 1,
-            .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-            .num_integrated_diag_moments = 1,
-            .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-          },
+        .diagnostics = {.num_diag_moments = 1, .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}},
       },
 
     .bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-       {.dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
-       {.dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}},
+      {
+        {.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+        {.dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+        {.dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+      },
 
     .num_diag_moments = 9,
     .diag_moments =
@@ -719,18 +715,9 @@ main(int argc, char **argv)
        GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M3PAR,
        GKYL_F_MOMENT_M3PERP},
 
-    .num_integrated_diag_moments = 1,
-    .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-
     .boundary_flux_diagnostics =
-      {
-        .num_diag_moments = 1,
-        .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-        .num_integrated_diag_moments = 1,
-        .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-      },
+      {.num_diag_moments = 1, .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}},
 
-    .time_rate_diagnostics = true,
     .num_balance_diags = 2,
     .balance_diags = {GKYL_BALANCE_GK_PARTICLE, GKYL_BALANCE_GK_ENERGY},
   };
@@ -786,20 +773,16 @@ main(int argc, char **argv)
         .adapt[0] = adapt_srcCORE_i,
         .projection[1] = proj_srcRECY_i,
         .adapt[1] = adapt_srcRECY_i,
-        .diagnostics =
-          {
-            .num_diag_moments = 1,
-            .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-            .num_integrated_diag_moments = 1,
-            .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-          },
+        .diagnostics = {.num_diag_moments = 1, .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}},
       },
 
     .bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-       {.dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
-       {.dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}},
+      {
+        {.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+        {.dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+        {.dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+      },
 
     .num_diag_moments = 9,
     .diag_moments =
@@ -807,18 +790,9 @@ main(int argc, char **argv)
        GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M3PAR,
        GKYL_F_MOMENT_M3PERP},
 
-    .num_integrated_diag_moments = 1,
-    .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-
     .boundary_flux_diagnostics =
-      {
-        .num_diag_moments = 1,
-        .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-        .num_integrated_diag_moments = 1,
-        .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-      },
+      {.num_diag_moments = 1, .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}},
 
-    .time_rate_diagnostics = true,
     .num_balance_diags = 2,
     .balance_diags = {GKYL_BALANCE_GK_PARTICLE, GKYL_BALANCE_GK_ENERGY},
   };
@@ -828,9 +802,10 @@ main(int argc, char **argv)
     .gkfield_id = GKYL_GK_FIELD_ES,
     .polarization_bmag = ctx.Bref,
     .poisson_bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}}},
-    .time_rate_diagnostics = true,
+      {
+        {.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
+        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
+      },
   };
 
   // Geometry
@@ -852,7 +827,6 @@ main(int argc, char **argv)
 
   // GK app
   struct gkyl_gk app_inp = {
-
     .cfl_frac_omegaH = 1.0e9,
     .cfl_frac = 1.0,
 

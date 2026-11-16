@@ -276,8 +276,8 @@ gk_field_energy_new(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
   // The energy balance of the app needs the energy rate diagnostic and the
   // background-charge energy.
   gkf->energy_balance = false;
-  for (int d = 0; d < app->bal.num_diags; d++) {
-    gkf->energy_balance = gkf->energy_balance || app->bal.diag_types[d] == GKYL_BALANCE_GK_ENERGY;
+  for (int d = 0; d < app->gkbal.num_diags; d++) {
+    gkf->energy_balance = gkf->energy_balance || app->gkbal.diag_types[d] == GKYL_BALANCE_GK_ENERGY;
   }
   gkf->time_rate_diags = gkf->info.time_rate_diagnostics || gkf->energy_balance;
   if (gkf->time_rate_diags) {

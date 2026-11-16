@@ -14,237 +14,6 @@ gk_neut_species_bflux_idx(struct gk_boundary_fluxes *bflux, int dir, enum gkyl_e
   return -1;
 }
 
-static void
-gk_neut_species_bflux_clear_enabled(
-  gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux, struct gkyl_array **fin, double val
-)
-{
-  for (int b = 0; b < bflux->num_boundaries; ++b) {
-    for (int m = 0; m < bflux->num_calc_moms; m++) {
-      gkyl_array_clear_range(
-        fin[b * bflux->num_calc_moms + m], val, bflux->boundaries_conf_ghost[b]
-      );
-    }
-  }
-}
-
-static void
-gk_neut_species_bflux_clear_disabled(
-  gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux, struct gkyl_array **fin, double val
-)
-{
-  // Do nothing.
-}
-
-void
-gk_neut_species_bflux_clear(
-  gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux, struct gkyl_array **fin, double val
-)
-{
-  bflux->bflux_clear_func(app, bflux, fin, val);
-}
-
-static void
-gk_neut_species_bflux_scale_enabled(
-  gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux, struct gkyl_array **fin, double val
-)
-{
-  for (int b = 0; b < bflux->num_boundaries; ++b) {
-    for (int m = 0; m < bflux->num_calc_moms; m++) {
-      gkyl_array_scale_range(
-        fin[b * bflux->num_calc_moms + m], val, bflux->boundaries_conf_ghost[b]
-      );
-    }
-  }
-}
-
-static void
-gk_neut_species_bflux_scale_disabled(
-  gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux, struct gkyl_array **fin, double val
-)
-{
-  // Do nothing.
-}
-
-void
-gk_neut_species_bflux_scale(
-  gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux, struct gkyl_array **fin, double val
-)
-{
-  bflux->bflux_scale_func(app, bflux, fin, val);
-}
-
-static void
-gk_neut_species_bflux_step_f_enabled(
-  gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux, struct gkyl_array **fout, double dt,
-  struct gkyl_array **fin
-)
-{
-  for (int b = 0; b < bflux->num_boundaries; ++b) {
-    for (int m = 0; m < bflux->num_calc_moms; m++) {
-      gkyl_array_accumulate_range(
-        gkyl_array_scale_range(
-          fout[b * bflux->num_calc_moms + m], dt, bflux->boundaries_conf_ghost[b]
-        ),
-        1.0, fin[b * bflux->num_calc_moms + m], bflux->boundaries_conf_ghost[b]
-      );
-    }
-  }
-}
-
-static void
-gk_neut_species_bflux_step_f_disabled(
-  gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux, struct gkyl_array **fout, double dt,
-  struct gkyl_array **fin
-)
-{
-  // Do nothing.
-}
-
-void
-gk_neut_species_bflux_step_f(
-  gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux, struct gkyl_array **fout, double dt,
-  struct gkyl_array **fin
-)
-{
-  bflux->bflux_step_f_func(app, bflux, fout, dt, fin);
-}
-
-static void
-gk_neut_species_bflux_set_enabled(
-  gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux, struct gkyl_array **fout, double fac,
-  struct gkyl_array **fin
-)
-{
-  for (int b = 0; b < bflux->num_boundaries; ++b) {
-    for (int m = 0; m < bflux->num_calc_moms; m++) {
-      gkyl_array_set_range(
-        fout[b * bflux->num_calc_moms + m], fac, fin[b * bflux->num_calc_moms + m],
-        bflux->boundaries_conf_ghost[b]
-      );
-    }
-  }
-}
-
-static void
-gk_neut_species_bflux_set_disabled(
-  gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux, struct gkyl_array **fout, double fac,
-  struct gkyl_array **fin
-)
-{
-}
-
-void
-gk_neut_species_bflux_set(
-  gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux, struct gkyl_array **fout, double fac,
-  struct gkyl_array **fin
-)
-{
-  bflux->bflux_set_func(app, bflux, fout, fac, fin);
-}
-
-static void
-gk_neut_species_bflux_accumulate_enabled(
-  gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux, struct gkyl_array **fout, double fac,
-  struct gkyl_array **fin
-)
-{
-  for (int b = 0; b < bflux->num_boundaries; ++b) {
-    for (int m = 0; m < bflux->num_calc_moms; m++) {
-      gkyl_array_accumulate_range(
-        fout[b * bflux->num_calc_moms + m], fac, fin[b * bflux->num_calc_moms + m],
-        bflux->boundaries_conf_ghost[b]
-      );
-    }
-  }
-}
-
-static void
-gk_neut_species_bflux_accumulate_disabled(
-  gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux, struct gkyl_array **fout, double fac,
-  struct gkyl_array **fin
-)
-{
-}
-
-void
-gk_neut_species_bflux_accumulate(
-  gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux, struct gkyl_array **fout, double fac,
-  struct gkyl_array **fin
-)
-{
-  bflux->bflux_accumulate_func(app, bflux, fout, fac, fin);
-}
-
-static void
-gk_neut_species_bflux_combine_enabled(
-  gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux, struct gkyl_array **fout,
-  double fac1, struct gkyl_array **fin1, double fac2, struct gkyl_array **fin2
-)
-{
-  for (int b = 0; b < bflux->num_boundaries; ++b) {
-    for (int m = 0; m < bflux->num_calc_moms; m++) {
-      gkyl_array_accumulate_range(
-        gkyl_array_set_range(
-          fout[b * bflux->num_calc_moms + m], fac1, fin1[b * bflux->num_calc_moms + m],
-          bflux->boundaries_conf_ghost[b]
-        ),
-        fac2, fin2[b * bflux->num_calc_moms + m], bflux->boundaries_conf_ghost[b]
-      );
-    }
-  }
-}
-
-static void
-gk_neut_species_bflux_combine_disabled(
-  gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux, struct gkyl_array **fout,
-  double fac1, struct gkyl_array **fin1, double fac2, struct gkyl_array **fin2
-)
-{
-}
-
-void
-gk_neut_species_bflux_combine(
-  gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux, struct gkyl_array **fout,
-  double fac1, struct gkyl_array **fin1, double fac2, struct gkyl_array **fin2
-)
-{
-  bflux->bflux_combine_func(app, bflux, fout, fac1, fin1, fac2, fin2);
-}
-
-static void
-gk_neut_species_bflux_copy_enabled(
-  gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux, struct gkyl_array **fout,
-  struct gkyl_array **fin
-)
-{
-  for (int b = 0; b < bflux->num_boundaries; ++b) {
-    for (int m = 0; m < bflux->num_calc_moms; m++) {
-      gkyl_array_copy_range(
-        fout[b * bflux->num_calc_moms + m], fin[b * bflux->num_calc_moms + m],
-        bflux->boundaries_conf_ghost[b]
-      );
-    }
-  }
-}
-
-static void
-gk_neut_species_bflux_copy_disabled(
-  gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux, struct gkyl_array **fout,
-  struct gkyl_array **fin
-)
-{
-}
-
-void
-gk_neut_species_bflux_copy(
-  gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux, struct gkyl_array **fout,
-  struct gkyl_array **fin
-)
-{
-  bflux->bflux_copy_func(app, bflux, fout, fin);
-}
-
 void
 gk_neut_species_bflux_rhs_calc(
   gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux, const struct gkyl_array *fin,
@@ -297,7 +66,7 @@ gk_neut_species_bflux_calc_moms_enabled(
       );
 
       gkyl_array_copy_range(
-        bflux_moms[b * bflux->num_calc_moms + m], bflux->moms_op[m].marr,
+        bflux_moms[bflux->step_moms_idx + b * bflux->num_calc_moms + m], bflux->moms_op[m].marr,
         bflux->boundaries_conf_ghost[b]
       );
     }
@@ -339,7 +108,8 @@ gk_neut_species_bflux_get_flux_mom_enabled(
     }
   }
   gkyl_array_copy_range_to_range(
-    out, bflux_moms[b * bflux->num_calc_moms + mom_idx], out_rng, bflux->boundaries_conf_ghost[b]
+    out, bflux_moms[bflux->step_moms_idx + b * bflux->num_calc_moms + mom_idx], out_rng,
+    bflux->boundaries_conf_ghost[b]
   );
 }
 
@@ -398,33 +168,34 @@ gk_neut_species_bflux_calc_integrated_mom_enabled(
   struct timespec wst = gkyl_wall_clock();
   const struct gk_neut_species *gkns = spec_in;
 
-  int num_diag_int_mom = gkns->info.boundary_flux_diagnostics.num_integrated_diag_moments;
-  for (int m = 0; m < num_diag_int_mom; m++) {
-    int int_mom_idx = bflux->diag_int_mom_idx[m];
-    int num_mom_comp = bflux->moms_op[int_mom_idx].num_mom;
+  int num_calc_integ_moms = bflux->num_calc_integ_moms;
+  for (int m = 0; m < num_calc_integ_moms; m++) {
+    int mom_idx = bflux->calc_integ_mom_idx[m];
+    int num_mom_comp = bflux->moms_op[mom_idx].num_mom;
     double avals_global[num_mom_comp];
 
     for (int b = 0; b < bflux->num_boundaries; ++b) {
       // Integrated moment of the boundary flux.
       int dir = bflux->boundaries_dir[b];
       gkyl_array_integrate_advance(
-        bflux->integ_op[m], bflux->f[b * bflux->num_calc_moms + int_mom_idx], 1.0, 0,
-        bflux->boundaries_conf_ghost[b], 0, bflux->int_moms_local
+        bflux->integ_op[m],
+        bflux->step_moms->f[bflux->step_moms_idx + b * bflux->num_calc_moms + mom_idx], 1.0, 0,
+        bflux->boundaries_conf_ghost[b], 0, bflux->integ_moms_local
       );
 
       gkyl_comm_allreduce(
-        app->comm_plane[dir], GKYL_DOUBLE, GKYL_SUM, num_mom_comp, bflux->int_moms_local,
-        bflux->int_moms_global
+        app->comm_plane[dir], GKYL_DOUBLE, GKYL_SUM, num_mom_comp, bflux->integ_moms_local,
+        bflux->integ_moms_global
       );
       if (app->use_gpu) {
         gkyl_cu_memcpy(
-          avals_global, bflux->int_moms_global, sizeof(double[num_mom_comp]), GKYL_CU_MEMCPY_D2H
+          avals_global, bflux->integ_moms_global, sizeof(double[num_mom_comp]), GKYL_CU_MEMCPY_D2H
         );
       } else {
-        memcpy(avals_global, bflux->int_moms_global, sizeof(double[num_mom_comp]));
+        memcpy(avals_global, bflux->integ_moms_global, sizeof(double[num_mom_comp]));
       }
 
-      gkyl_dynvec_append(bflux->intmom[b * num_diag_int_mom + m], tm, avals_global);
+      gkyl_dynvec_append(bflux->intmom[b * num_calc_integ_moms + m], tm, avals_global);
     }
   }
   app->stat.neut_species_diag_calc_tm += gkyl_time_diff_now_sec(wst);
@@ -460,17 +231,16 @@ gk_neut_species_bflux_write_integrated_mom_enabled(
   const char *vars[] = {"x", "y", "z"};
   const char *edge[] = {"lower", "upper"};
 
-  int num_diag_int_mom = gkns->info.boundary_flux_diagnostics.num_integrated_diag_moments;
+  int num_calc_integ_moms = bflux->num_calc_integ_moms;
   for (int b = 0; b < bflux->num_boundaries; ++b) {
     int dir = bflux->boundaries_dir[b];
     int edi = bflux->boundaries_edge[b] == GKYL_LOWER_EDGE ? 0 : 1;
 
     if ((edi == 0 && rank == 0) || (edi == 1 && rank == comm_size - 1)) {
-      for (int m = 0; m < num_diag_int_mom; m++) {
+      for (int m = 0; m < num_calc_integ_moms; m++) {
         // Write integrated moments of the boundary fluxes.
         const char *fmt = "%s-%s_bflux_%s%s_integrated_%s.gkyl";
-        const char *mom_name = gkyl_distribution_moments_strs[gkns->info.boundary_flux_diagnostics
-                                                                .integrated_diag_moments[m]];
+        const char *mom_name = gkyl_distribution_moments_strs[bflux->calc_integ_mom_names[m]];
 
         int sz = gkyl_calc_strlen(fmt, app->name, gkns->info.name, vars[dir], edge[edi], mom_name);
         char fileNm[sz + 1]; // ensures no buffer overflow
@@ -494,15 +264,15 @@ gk_neut_species_bflux_write_integrated_mom_enabled(
           struct gkyl_msgpack_data *mt =
             gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
 
-          gkyl_dynvec_write_wmeta(bflux->intmom[b * num_diag_int_mom + m], fileNm, mt);
+          gkyl_dynvec_write_wmeta(bflux->intmom[b * num_calc_integ_moms + m], fileNm, mt);
           gkyl_msgpack_data_release(mt);
         } else {
-          gkyl_dynvec_awrite(bflux->intmom[b * num_diag_int_mom + m], fileNm);
+          gkyl_dynvec_awrite(bflux->intmom[b * num_calc_integ_moms + m], fileNm);
         }
 
         app->stat.n_diag_io += 1;
 
-        gkyl_dynvec_clear(bflux->intmom[b * num_diag_int_mom + m]);
+        gkyl_dynvec_clear(bflux->intmom[b * num_calc_integ_moms + m]);
       }
       bflux->is_first_intmom_write_call[b] = false;
     }
@@ -566,7 +336,8 @@ gk_neut_species_bflux_write_mom_enabled(
       for (int m = 0; m < num_diag_mom; ++m) {
         struct timespec wst = gkyl_wall_clock();
         int mom_idx = bflux->diag_mom_idx[m];
-        struct gkyl_array *mom_arr = bflux->f[b * bflux->num_calc_moms + mom_idx];
+        struct gkyl_array *mom_arr =
+          bflux->step_moms->f[bflux->step_moms_idx + b * bflux->num_calc_moms + mom_idx];
 
         // For now copy the moment to the skin ghost and write it out.
         gkyl_array_copy_range_to_range(
@@ -697,13 +468,6 @@ gk_neut_species_bflux_init(
   bflux->bflux_calc_moms_func = gk_neut_species_bflux_calc_moms_disabled;
   bflux->bflux_get_flux_func = gk_neut_species_bflux_get_flux_disabled;
   bflux->bflux_get_flux_mom_func = gk_neut_species_bflux_get_flux_mom_disabled;
-  bflux->bflux_clear_func = gk_neut_species_bflux_clear_disabled;
-  bflux->bflux_scale_func = gk_neut_species_bflux_scale_disabled;
-  bflux->bflux_step_f_func = gk_neut_species_bflux_step_f_disabled;
-  bflux->bflux_set_func = gk_neut_species_bflux_set_disabled;
-  bflux->bflux_accumulate_func = gk_neut_species_bflux_accumulate_disabled;
-  bflux->bflux_combine_func = gk_neut_species_bflux_combine_disabled;
-  bflux->bflux_copy_func = gk_neut_species_bflux_copy_disabled;
   bflux->bflux_calc_integrated_mom_func = gk_neut_species_bflux_calc_integrated_mom_disabled;
   bflux->bflux_write_integrated_mom_func = gk_neut_species_bflux_write_integrated_mom_disabled;
   bflux->bflux_write_mom_func = gk_neut_species_bflux_write_mom_disabled;
@@ -781,8 +545,27 @@ gk_neut_species_bflux_init(
     }
   }
 
+  // Moments requested for diagnostics (diag) and those added by other modules
+  // (add). Integrated moments are only used for diagnostics, so those added by
+  // other modules are also written.
   int num_diag_mom = gkns->info.boundary_flux_diagnostics.num_diag_moments;
-  int num_diag_int_mom = gkns->info.boundary_flux_diagnostics.num_integrated_diag_moments;
+  int num_diag_integ_mom = gkns->info.boundary_flux_diagnostics.num_integrated_diag_moments;
+  int num_add_mom = add_moms_inp.num_diag_moments;
+  int num_add_integ_mom = add_moms_inp.num_integrated_diag_moments;
+  bflux->num_calc_integ_moms = 0;
+  if (num_diag_integ_mom > 0) {
+    gkyl_free(bflux_unionize_moms(
+      num_diag_integ_mom, gkns->info.boundary_flux_diagnostics.integrated_diag_moments,
+      &bflux->num_calc_integ_moms, bflux->calc_integ_mom_names
+    ));
+  }
+  if (num_add_integ_mom > 0) {
+    gkyl_free(bflux_unionize_moms(
+      num_add_integ_mom, add_moms_inp.integrated_diag_moments, &bflux->num_calc_integ_moms,
+      bflux->calc_integ_mom_names
+    ));
+  }
+  int num_calc_integ_moms = bflux->num_calc_integ_moms;
 
   if (bflux_type == GK_SPECIES_BFLUX_CALC_FLUX_STEP_MOMS ||
       bflux_type == GK_SPECIES_BFLUX_CALC_FLUX_STEP_MOMS_DIAGS) {
@@ -791,18 +574,10 @@ gk_neut_species_bflux_init(
     // Set methods for time-stepping boundary fluxes needed for diagnostics.
     bflux->bflux_get_flux_mom_func = gk_neut_species_bflux_get_flux_mom_enabled;
     bflux->bflux_calc_moms_func = gk_neut_species_bflux_calc_moms_enabled;
-    bflux->bflux_clear_func = gk_neut_species_bflux_clear_enabled;
-    bflux->bflux_scale_func = gk_neut_species_bflux_scale_enabled;
-    bflux->bflux_step_f_func = gk_neut_species_bflux_step_f_enabled;
-    bflux->bflux_set_func = gk_neut_species_bflux_set_enabled;
-    bflux->bflux_accumulate_func = gk_neut_species_bflux_accumulate_enabled;
-    bflux->bflux_combine_func = gk_neut_species_bflux_combine_enabled;
-    bflux->bflux_copy_func = gk_neut_species_bflux_copy_enabled;
 
-    // Create a union of the diag_moms, int_diag_moms and add_moms lists. Also store
-    // the index of each mom in this union list.
-    int num_add_mom = add_moms_inp.num_diag_moments;
-    assert(num_add_mom + num_diag_mom + num_diag_int_mom < BFLUX_MAX_MOM_NAMES + 1);
+    // Create a union of the diag moms, calc integ moms and add moms lists. Also
+    // store the index of each diag and calc integ mom in this union list.
+    assert(num_add_mom + num_diag_mom + num_calc_integ_moms < BFLUX_MAX_MOM_NAMES + 1);
 
     bflux->num_calc_moms = 0;
     if (num_diag_mom > 0) {
@@ -812,10 +587,10 @@ gk_neut_species_bflux_init(
       );
     }
 
-    if (num_diag_int_mom > 0) {
-      bflux->diag_int_mom_idx = bflux_unionize_moms(
-        num_diag_int_mom, gkns->info.boundary_flux_diagnostics.integrated_diag_moments,
-        &bflux->num_calc_moms, bflux->calc_mom_names
+    if (num_calc_integ_moms > 0) {
+      bflux->calc_integ_mom_idx = bflux_unionize_moms(
+        num_calc_integ_moms, bflux->calc_integ_mom_names, &bflux->num_calc_moms,
+        bflux->calc_mom_names
       );
     }
 
@@ -834,28 +609,22 @@ gk_neut_species_bflux_init(
     // No Hamiltonian ghost fill needed: the triad Hamiltonian is a function of
     // velocity space only, so it has no configuration-space ghost cells.
 
-    bflux->f =
-      gkyl_malloc(bflux->num_boundaries * bflux->num_calc_moms * sizeof(struct gkyl_array *));
-    bflux->f1 =
-      gkyl_malloc(bflux->num_boundaries * bflux->num_calc_moms * sizeof(struct gkyl_array *));
-    bflux->fnew =
-      gkyl_malloc(bflux->num_boundaries * bflux->num_calc_moms * sizeof(struct gkyl_array *));
+    // Arrays storing moments of the boundary flux, stepped along with f.
+    bflux->step_moms = &gkns->step_moms;
+    bflux->step_moms_idx = gkns->step_moms.num;
     for (int b = 0; b < bflux->num_boundaries; ++b) {
       for (int m = 0; m < bflux->num_calc_moms; m++) {
-        // Allocate arrays storing moments of the boundary flux.
         int num_mom_comp = bflux->moms_op[m].num_mom;
-        bflux->f[b * bflux->num_calc_moms + m] =
-          mkarr(app->use_gpu, num_mom_comp * app->basis.num_basis, app->local_ext.volume);
-        bflux->f1[b * bflux->num_calc_moms + m] =
-          mkarr(app->use_gpu, num_mom_comp * app->basis.num_basis, app->local_ext.volume);
-        bflux->fnew[b * bflux->num_calc_moms + m] =
-          mkarr(app->use_gpu, num_mom_comp * app->basis.num_basis, app->local_ext.volume);
+        gk_stepped_moms_add(
+          &gkns->step_moms, app->use_gpu, num_mom_comp * app->basis.num_basis,
+          app->local_ext.volume, bflux->boundaries_conf_ghost[b]
+        );
       }
     }
   }
 
   if (bflux_type == GK_SPECIES_BFLUX_CALC_FLUX_STEP_MOMS_DIAGS) {
-    assert(num_diag_mom > 0 || num_diag_int_mom > 0);
+    assert(num_diag_mom > 0 || num_calc_integ_moms > 0);
 
     bflux->allocated_diags = true;
 
@@ -988,13 +757,14 @@ gk_neut_species_bflux_init(
       }
     }
 
-    if (num_diag_int_mom > 0) {
+    if (num_calc_integ_moms > 0) {
       // Object to integrate moments of the bflux and dynvectors to store them.
-      bflux->integ_op = gkyl_malloc(num_diag_int_mom * sizeof(struct gkyl_array_integrate *));
-      bflux->intmom = gkyl_malloc(num_diag_int_mom * bflux->num_boundaries * sizeof(gkyl_dynvec));
+      bflux->integ_op = gkyl_malloc(num_calc_integ_moms * sizeof(struct gkyl_array_integrate *));
+      bflux->intmom =
+        gkyl_malloc(num_calc_integ_moms * bflux->num_boundaries * sizeof(gkyl_dynvec));
       int num_mom_comp_max = 1;
-      for (int m = 0; m < num_diag_int_mom; m++) {
-        int num_mom_comp = bflux->moms_op[bflux->diag_int_mom_idx[m]].num_mom;
+      for (int m = 0; m < num_calc_integ_moms; m++) {
+        int num_mom_comp = bflux->moms_op[bflux->calc_integ_mom_idx[m]].num_mom;
         num_mom_comp_max = GKYL_MAX2(num_mom_comp_max, num_mom_comp);
         // Updater to compute the volume integral of the boundary flux moments.
         bflux->integ_op[m] = gkyl_array_integrate_new(
@@ -1002,16 +772,16 @@ gk_neut_species_bflux_init(
         );
         // Allocate a dynvector for each moment.
         for (int b = 0; b < bflux->num_boundaries; ++b) {
-          bflux->intmom[b * bflux->num_calc_moms + m] = gkyl_dynvec_new(GKYL_DOUBLE, num_mom_comp);
+          bflux->intmom[b * num_calc_integ_moms + m] = gkyl_dynvec_new(GKYL_DOUBLE, num_mom_comp);
         }
       }
 
       if (app->use_gpu) {
-        bflux->int_moms_local = gkyl_cu_malloc(num_mom_comp_max * sizeof(double));
-        bflux->int_moms_global = gkyl_cu_malloc(num_mom_comp_max * sizeof(double));
+        bflux->integ_moms_local = gkyl_cu_malloc(num_mom_comp_max * sizeof(double));
+        bflux->integ_moms_global = gkyl_cu_malloc(num_mom_comp_max * sizeof(double));
       } else {
-        bflux->int_moms_local = gkyl_malloc(num_mom_comp_max * sizeof(double));
-        bflux->int_moms_global = gkyl_malloc(num_mom_comp_max * sizeof(double));
+        bflux->integ_moms_local = gkyl_malloc(num_mom_comp_max * sizeof(double));
+        bflux->integ_moms_global = gkyl_malloc(num_mom_comp_max * sizeof(double));
       }
 
       for (int b = 0; b < bflux->num_boundaries; ++b) {
@@ -1046,15 +816,15 @@ gk_neut_species_bflux_release(
   }
 
   int num_diag_mom = gkns->info.boundary_flux_diagnostics.num_diag_moments;
-  int num_diag_int_mom = gkns->info.boundary_flux_diagnostics.num_integrated_diag_moments;
+  int num_calc_integ_moms = bflux->num_calc_integ_moms;
 
   if (bflux->allocated_moms) {
     if (num_diag_mom > 0) {
       gkyl_free(bflux->diag_mom_idx);
     }
 
-    if (num_diag_int_mom > 0) {
-      gkyl_free(bflux->diag_int_mom_idx);
+    if (num_calc_integ_moms > 0) {
+      gkyl_free(bflux->calc_integ_mom_idx);
     }
 
     for (int m = 0; m < bflux->num_calc_moms; m++) {
@@ -1069,16 +839,6 @@ gk_neut_species_bflux_release(
         gkyl_bc_basic_gyrokinetic_release(bflux->gfss_bc_op[b]);
       }
     }
-    for (int b = 0; b < bflux->num_boundaries; ++b) {
-      for (int m = 0; m < bflux->num_calc_moms; m++) {
-        gkyl_array_release(bflux->f[b * bflux->num_calc_moms + m]);
-        gkyl_array_release(bflux->f1[b * bflux->num_calc_moms + m]);
-        gkyl_array_release(bflux->fnew[b * bflux->num_calc_moms + m]);
-      }
-    }
-    gkyl_free(bflux->f);
-    gkyl_free(bflux->f1);
-    gkyl_free(bflux->fnew);
   }
 
   if (bflux->allocated_diags) {
@@ -1112,21 +872,21 @@ gk_neut_species_bflux_release(
       }
     }
 
-    if (num_diag_int_mom > 0) {
-      for (int m = 0; m < num_diag_int_mom; m++) {
+    if (num_calc_integ_moms > 0) {
+      for (int m = 0; m < num_calc_integ_moms; m++) {
         gkyl_array_integrate_release(bflux->integ_op[m]);
         for (int b = 0; b < bflux->num_boundaries; ++b) {
-          gkyl_dynvec_release(bflux->intmom[b * bflux->num_calc_moms + m]);
+          gkyl_dynvec_release(bflux->intmom[b * num_calc_integ_moms + m]);
         }
       }
       gkyl_free(bflux->integ_op);
       gkyl_free(bflux->intmom);
       if (app->use_gpu) {
-        gkyl_cu_free(bflux->int_moms_local);
-        gkyl_cu_free(bflux->int_moms_global);
+        gkyl_cu_free(bflux->integ_moms_local);
+        gkyl_cu_free(bflux->integ_moms_global);
       } else {
-        gkyl_free(bflux->int_moms_local);
-        gkyl_free(bflux->int_moms_global);
+        gkyl_free(bflux->integ_moms_local);
+        gkyl_free(bflux->integ_moms_global);
       }
     }
   }

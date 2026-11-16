@@ -503,7 +503,7 @@ calc_integrated_diagnostics(
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_calc) {
     gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
-    gkyl_gyrokinetic_app_calc_integrated_mom(app, t_curr);
+    gkyl_gyrokinetic_app_calc_integrated_mom(app, t_curr, dt);
 
     if (!(dt < 0.0)) {
       gkyl_gyrokinetic_app_save_dt(app, t_curr, dt);
@@ -804,14 +804,8 @@ main(int argc, char **argv)
         .integrated_diag_moments = {GKYL_F_MOMENT_M0M1M2PARM2PERP},
       },
 
-    .num_integrated_diag_moments = 1,
-    .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-    .time_rate_diagnostics = true,
     .num_balance_diags = 2,
     .balance_diags = {GKYL_BALANCE_GK_PARTICLE, GKYL_BALANCE_GK_ENERGY},
-
-    .boundary_flux_diagnostics =
-      {.num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}},
   };
   struct gkyl_gyrokinetic_field field = {
     .gkfield_id = GKYL_GK_FIELD_BOLTZMANN,

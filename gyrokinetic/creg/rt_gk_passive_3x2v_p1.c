@@ -276,17 +276,9 @@ main(int argc, char **argv)
     .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2},
     .num_balance_diags = 2,
     .balance_diags = {GKYL_BALANCE_GK_PARTICLE, GKYL_BALANCE_GK_ENERGY},
-    .num_integrated_diag_moments = 1,
-    .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-    .time_rate_diagnostics = true,
 
     .boundary_flux_diagnostics =
-      {
-        .num_diag_moments = 1,
-        .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-        .num_integrated_diag_moments = 1,
-        .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-      },
+      {.num_diag_moments = 1, .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}},
   };
 
   // Field.

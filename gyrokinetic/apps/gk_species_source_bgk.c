@@ -30,7 +30,7 @@ gk_species_source_bgk_volume_integrate(
 static void
 gk_species_source_bgk_rhs_disabled(
   gkyl_gyrokinetic_app *app, struct gk_species *species, struct gk_source_bgk *src,
-  const struct gkyl_array *fin, struct gkyl_array *rhs
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **step_moms_out
 )
 {
 }
@@ -38,7 +38,7 @@ gk_species_source_bgk_rhs_disabled(
 static void
 gk_species_source_bgk_rhs_feq_enabled(
   gkyl_gyrokinetic_app *app, struct gk_species *species, struct gk_source_bgk *src,
-  const struct gkyl_array *fin, struct gkyl_array *rhs
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **step_moms_out
 )
 {
   // compute -nu * (f - feq) and add to the rhs.
@@ -53,8 +53,8 @@ gk_species_source_bgk_rhs_feq_enabled(
   );
   // Add to the rhs.
   gkyl_array_accumulate(rhs, 1.0, src->Jrate_df);
-  // Integrated moments of the source term of this RK stage.
-  src->update_integrated_diags_rhs_func(app, species, src);
+  // Integrated moments of the source term, stepped along with f.
+  src->update_integrated_diags_rhs_func(app, species, src, step_moms_out);
   // Reset Jrate_df to Jrate*feq.
   gkyl_array_clear(src->Jrate_df, 0.0);
   gkyl_array_accumulate(src->Jrate_df, 1.0, species->lte.f_lte);
@@ -63,7 +63,7 @@ gk_species_source_bgk_rhs_feq_enabled(
 static void
 gk_species_source_bgk_rhs_heating_enabled(
   gkyl_gyrokinetic_app *app, struct gk_species *species, struct gk_source_bgk *src,
-  const struct gkyl_array *fin, struct gkyl_array *rhs
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **step_moms_out
 )
 {
   struct timespec wst = gkyl_wall_clock();
@@ -115,7 +115,7 @@ gk_species_source_bgk_rhs_heating_enabled(
     src->implicit_step, src->dt_implicit, src->Jrate_df, species->cflrate
   );
   gkyl_array_accumulate(rhs, 1.0, src->Jrate_df);
-  src->update_integrated_diags_rhs_func(app, species, src);
+  src->update_integrated_diags_rhs_func(app, species, src, step_moms_out);
 
   app->stat.species_source_bgk_tm += gkyl_time_diff_now_sec(wst);
 }
@@ -219,7 +219,7 @@ gk_species_source_bgk_rhs_accumulate_maxwellian(
 static void
 gk_species_source_bgk_rhs_external_enabled(
   gkyl_gyrokinetic_app *app, struct gk_species *species, struct gk_source_bgk *src,
-  const struct gkyl_array *fin, struct gkyl_array *rhs
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **step_moms_out
 )
 {
   gkyl_array_clear(src->Jrate_df, 0.0);
@@ -238,7 +238,7 @@ gk_species_source_bgk_rhs_external_enabled(
     src->implicit_step, src->dt_implicit, src->Jrate_df, species->cflrate
   );
   gkyl_array_accumulate(rhs, 1.0, src->Jrate_df);
-  src->update_integrated_diags_rhs_func(app, species, src);
+  src->update_integrated_diags_rhs_func(app, species, src, step_moms_out);
 }
 
 static void
@@ -336,7 +336,8 @@ gk_species_source_bgk_write_diags_external_enabled(
 
 static void
 gk_species_source_bgk_update_integrated_diags_disabled(
-  gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_source_bgk *src
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_source_bgk *src,
+  struct gkyl_array **step_moms_out
 )
 {
   // Do nothing.
@@ -344,39 +345,15 @@ gk_species_source_bgk_update_integrated_diags_disabled(
 
 static void
 gk_species_source_bgk_update_integrated_diags_enabled(
-  gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_source_bgk *src
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_source_bgk *src,
+  struct gkyl_array **step_moms_out
 )
 {
-  src->rk_stage = GKYL_MIN2(src->rk_stage + 1, 2);
-  for (int m = 0; m < src->num_integ_moms; m++) {
-    gk_species_moment_calc(app, &src->integ_moms[m], gks->local, app->local, src->Jrate_df);
-    gkyl_array_set_offset(
-      src->integ_mom_stage[src->rk_stage], 1.0, src->integ_moms[m].marr, src->integ_mom_offset[m]
-    );
-  }
-  app->stat.n_mom += 1;
-}
-
-static void
-gk_species_source_bgk_step_integrated_diags_disabled(struct gk_source_bgk *src, bool is_old)
-{
-}
-
-static void
-gk_species_source_bgk_step_integrated_diags_enabled(struct gk_source_bgk *src, bool is_old)
-{
-  struct gkyl_array **stage = src->integ_mom_stage;
-  if (is_old) {
-    // The last rhs evaluation is the first stage of this step.
-    struct gkyl_array *first = stage[src->rk_stage];
-    stage[src->rk_stage] = stage[0];
-    stage[0] = first;
-    src->rk_stage = 0;
-  } else {
-    // Combine the stages as SSP-RK3 combines f.
-    gkyl_array_set(src->integ_mom_step, 1.0 / 6.0, stage[0]);
-    gkyl_array_accumulate(src->integ_mom_step, 1.0 / 6.0, stage[1]);
-    gkyl_array_accumulate(src->integ_mom_step, 2.0 / 3.0, stage[2]);
+  // Integrated moments of the source term, put in the stepped moments so the
+  // stepper averages them over the time step as it does the rhs.
+  gk_integ_moms_calc(app, gks, &src->integ_moms, src->Jrate_df);
+  for (int m = 0; m < src->integ_moms.num; m++) {
+    gkyl_array_copy(step_moms_out[src->step_moms_idx + m], src->integ_moms.ops[m].marr);
   }
 }
 
@@ -395,23 +372,8 @@ gk_species_source_bgk_calc_integrated_diags_enabled(
 {
   struct timespec wst = gkyl_wall_clock();
 
-  // Volume integral of the source term combined over the RK stages of the last step.
-  int num_comp = src->integ_num_comp;
-  double avals_global[num_comp];
-  gkyl_array_reduce_range(src->red_integ_diag, src->integ_mom_step, GKYL_SUM, &app->local);
-  gkyl_comm_allreduce(
-    app->comm, GKYL_DOUBLE, GKYL_SUM, num_comp, src->red_integ_diag, src->red_integ_diag_global
-  );
-  if (app->use_gpu) {
-    gkyl_cu_memcpy(
-      avals_global, src->red_integ_diag_global, sizeof(double[num_comp]), GKYL_CU_MEMCPY_D2H
-    );
-  } else {
-    memcpy(avals_global, src->red_integ_diag_global, sizeof(double[num_comp]));
-  }
-  for (int m = 0; m < src->num_integ_moms; m++) {
-    gkyl_dynvec_append(src->integ_diag[m], tm, &avals_global[src->integ_mom_offset[m]]);
-  }
+  // Volume integral of the source term averaged over the last time step.
+  gk_integ_moms_reduce_append(app, &src->integ_moms, &gks->step_moms.f[src->step_moms_idx], tm);
 
   app->stat.species_diag_calc_tm += gkyl_time_diff_now_sec(wst);
   app->stat.n_diag += 1;
@@ -422,7 +384,7 @@ gk_species_source_bgk_write_integrated_diags_disabled(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_source_bgk *src
 )
 {
-  // Empty.
+  // Do nothing.
 }
 
 static void
@@ -431,9 +393,8 @@ gk_species_source_bgk_write_integrated_diags_enabled(
 )
 {
   struct timespec wst = gkyl_wall_clock();
-  gk_species_write_integrated_diags(
-    app, gks, "source_bgk_", "Volume integrated moments of the BGK source.", src->num_integ_moms,
-    src->integ_mom_types, src->integ_diag, &src->is_first_integ_write_call
+  gk_integ_moms_write(
+    app, gks, &src->integ_moms, "source_bgk_", "Volume integrated moments of the BGK source."
   );
   app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wst);
 }
@@ -492,7 +453,6 @@ gk_species_source_bgk_init(
   src->write_diags_func = gk_species_source_bgk_write_diags_disabled;
   src->rhs_func = gk_species_source_bgk_rhs_disabled;
   src->update_integrated_diags_rhs_func = gk_species_source_bgk_update_integrated_diags_disabled;
-  src->step_integrated_diags_func = gk_species_source_bgk_step_integrated_diags_disabled;
   src->calc_integrated_diags_func = gk_species_source_bgk_calc_integrated_diags_disabled;
   src->write_integrated_diags_func = gk_species_source_bgk_write_integrated_diags_disabled;
 
@@ -510,48 +470,31 @@ gk_species_source_bgk_init(
     // Integrated moments of the source term requested (M0M1M2 by default if the
     // diagnostics are written), and those the balance diagnostics need.
     const struct gkyl_phase_diagnostics_inp *diags = &gks->info.source_bgk.diagnostics;
-    src->num_integ_moms = diags->num_integrated_diag_moments;
-    for (int m = 0; m < src->num_integ_moms; m++) {
-      src->integ_mom_types[m] = diags->integrated_diag_moments[m];
+    int num_integ_moms = diags->num_integrated_diag_moments;
+    enum gkyl_distribution_moments integ_mom_types[GKYL_F_MOMENT_NUM];
+    for (int m = 0; m < num_integ_moms; m++) {
+      integ_mom_types[m] = diags->integrated_diag_moments[m];
     }
-    if (src->write_diagnostics && src->num_integ_moms == 0) {
-      src->integ_mom_types[src->num_integ_moms++] = GKYL_F_MOMENT_M0M1M2;
+    if (src->write_diagnostics && num_integ_moms == 0) {
+      integ_mom_types[num_integ_moms++] = GKYL_F_MOMENT_M0M1M2;
     }
-    gk_species_balance_add_int_moms(
-      &gks->bal, GK_SPECIES_BALANCE_SRC_BGK, &src->num_integ_moms, src->integ_mom_types
-    );
-    if (src->num_integ_moms > 0) {
-      // Integrated moment calculators, stored one after the other in the stage
-      // arrays and reduction buffers.
-      src->integ_moms = gkyl_malloc(sizeof(struct gk_species_moment[src->num_integ_moms]));
-      src->integ_num_comp = 0;
-      for (int m = 0; m < src->num_integ_moms; m++) {
-        gk_species_moment_init(app, gks, &src->integ_moms[m], src->integ_mom_types[m], true);
-        src->integ_mom_offset[m] = src->integ_num_comp;
-        src->integ_num_comp += src->integ_moms[m].num_mom;
+    if (src == &gks->bgk_src) {
+      // Only the BGK source of the species enters its balance (not those of
+      // other modules, e.g. EIRENE).
+      gk_species_balance_add_integ_moms(
+        &gks->gksbal, GK_SPECIES_BALANCE_SRC_BGK, &num_integ_moms, integ_mom_types
+      );
+    }
+    gk_integ_moms_init(app, gks, &src->integ_moms, num_integ_moms, integ_mom_types);
+    if (num_integ_moms > 0) {
+      // Integrated moments of the source term, stepped along with f.
+      src->step_moms_idx = gks->step_moms.num;
+      for (int m = 0; m < num_integ_moms; m++) {
+        struct gkyl_array *marr = src->integ_moms.ops[m].marr;
+        gk_stepped_moms_add(&gks->step_moms, app->use_gpu, marr->ncomp, marr->size, &app->local);
       }
-      for (int k = 0; k < 3; k++) {
-        src->integ_mom_stage[k] =
-          mkarr(app->use_gpu, src->integ_num_comp, src->integ_moms[0].marr->size);
-      }
-      src->integ_mom_step = mkarr(app->use_gpu, src->integ_num_comp, src->integ_moms[0].marr->size);
-      gkyl_array_clear(src->integ_mom_step, 0.0);
-      src->rk_stage = 0;
-      if (app->use_gpu) {
-        src->red_integ_diag = gkyl_cu_malloc(sizeof(double[src->integ_num_comp]));
-        src->red_integ_diag_global = gkyl_cu_malloc(sizeof(double[src->integ_num_comp]));
-      } else {
-        src->red_integ_diag = gkyl_malloc(sizeof(double[src->integ_num_comp]));
-        src->red_integ_diag_global = gkyl_malloc(sizeof(double[src->integ_num_comp]));
-      }
-      src->integ_diag = gkyl_malloc(sizeof(gkyl_dynvec[src->num_integ_moms]));
-      for (int m = 0; m < src->num_integ_moms; m++) {
-        src->integ_diag[m] = gkyl_dynvec_new(GKYL_DOUBLE, src->integ_moms[m].num_mom);
-      }
-      src->is_first_integ_write_call = true;
 
       src->update_integrated_diags_rhs_func = gk_species_source_bgk_update_integrated_diags_enabled;
-      src->step_integrated_diags_func = gk_species_source_bgk_step_integrated_diags_enabled;
       src->calc_integrated_diags_func = gk_species_source_bgk_calc_integrated_diags_enabled;
       src->write_integrated_diags_func = gk_species_source_bgk_write_integrated_diags_enabled;
     }
@@ -758,10 +701,10 @@ gk_species_source_bgk_init(
 void
 gk_species_source_bgk_rhs(
   gkyl_gyrokinetic_app *app, struct gk_species *species, struct gk_source_bgk *src,
-  const struct gkyl_array *fin, struct gkyl_array *rhs
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **step_moms_out
 )
 {
-  src->rhs_func(app, species, src, fin, rhs);
+  src->rhs_func(app, species, src, fin, rhs, step_moms_out);
 }
 
 void
@@ -770,12 +713,6 @@ gk_species_source_bgk_write_diags(
 )
 {
   src->write_diags_func(app, gks, src, tm, frame);
-}
-
-void
-gk_species_source_bgk_step(struct gk_source_bgk *src, bool is_old)
-{
-  src->step_integrated_diags_func(src, is_old);
 }
 
 void
@@ -805,25 +742,7 @@ gk_species_source_bgk_release(
     gkyl_array_release(src->Jrate_df);
     gkyl_bgk_collisions_release(src->bgk_op);
 
-    if (src->num_integ_moms > 0) {
-      for (int m = 0; m < src->num_integ_moms; m++) {
-        gk_species_moment_release(app, &src->integ_moms[m]);
-        gkyl_dynvec_release(src->integ_diag[m]);
-      }
-      gkyl_free(src->integ_moms);
-      gkyl_free(src->integ_diag);
-      for (int k = 0; k < 3; k++) {
-        gkyl_array_release(src->integ_mom_stage[k]);
-      }
-      gkyl_array_release(src->integ_mom_step);
-      if (app->use_gpu) {
-        gkyl_cu_free(src->red_integ_diag);
-        gkyl_cu_free(src->red_integ_diag_global);
-      } else {
-        gkyl_free(src->red_integ_diag);
-        gkyl_free(src->red_integ_diag_global);
-      }
-    }
+    gk_integ_moms_release(app, &src->integ_moms);
 
     if (src->source_bgk_id == GKYL_SOURCE_BGK_HEATING) {
       gkyl_array_release(src->vtsq_shape);

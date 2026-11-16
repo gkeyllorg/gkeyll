@@ -109,18 +109,15 @@ enum gkyl_gyrokinetic_balance_diag {
 // File-name strings corresponding to the enum options above.
 static const char *gkyl_gyrokinetic_balance_diag_strs[] = {"particle", "energy"};
 
-// Diagnostics of the whole app (summed over species).
-struct gkyl_gyrokinetic_diagnostics {
-  int num_balance_diags; // Number of balance diagnostics.
-  enum gkyl_gyrokinetic_balance_diag balance_diags[GKYL_BALANCE_GK_NUM]; // List of balance diagnostics.
-};
-
 struct gkyl_phase_diagnostics_inp {
   int num_diag_moments; // Number of diagnostic moments.
   enum gkyl_distribution_moments diag_moments[12]; // List of diagnostic moments.
   int num_integrated_diag_moments; // Number of integrated diagnostic moments.
   enum gkyl_distribution_moments
     integrated_diag_moments[12]; // List of integrated diagnostic moments.
+  int num_balance_diags; // Number of balance diagnostics (only used by the app).
+  enum gkyl_gyrokinetic_balance_diag
+    balance_diags[GKYL_BALANCE_GK_NUM]; // List of balance diagnostics (only used by the app).
 };
 
 // Parameters for collisionless terms.
@@ -516,7 +513,8 @@ struct gkyl_gyrokinetic_species {
     integrated_diag_moments[12]; // List of integrated diagnostic moments.
   bool time_rate_diagnostics; // Whether to ouput df/dt diagnostics.
   int num_balance_diags; // Number of balance diagnostics.
-  enum gkyl_gyrokinetic_balance_diag balance_diags[12]; // List of balance diagnostics.
+  enum gkyl_gyrokinetic_balance_diag
+    balance_diags[GKYL_BALANCE_GK_NUM]; // List of balance diagnostics.
   bool write_omega_cfl; // Whether to ouput dt diagnostic for the CFL constraint.
 
   struct gkyl_gyrokinetic_collisionless collisionless; // Collisionless terms.
@@ -674,7 +672,8 @@ struct gkyl_gk {
   double cfl_frac; // CFL fraction to use (default 1.0).
   double cfl_frac_omegaH; // CFL fraction used for the omega_H dt (default 1.0).
 
-  struct gkyl_gyrokinetic_diagnostics diagnostics; // Diagnostics summed over species.
+  // App level diagnostics.
+  struct gkyl_phase_diagnostics_inp diagnostics;
 
   int num_periodic_dir; // Number of periodic directions.
   int periodic_dirs[3]; // List of periodic directions.
@@ -1020,8 +1019,11 @@ void gkyl_gyrokinetic_app_write_species_integrated_mom(gkyl_gyrokinetic_app *app
  * @param app App object.
  * @param sidx Index of species whose balance to compute.
  * @param tm Time at which integrated diagnostics are to be computed
+ * @param dt Last time step taken (<= 0 if none, e.g. at the initial time).
  */
-void gkyl_gyrokinetic_app_calc_species_balance(gkyl_gyrokinetic_app *app, int sidx, double tm);
+void gkyl_gyrokinetic_app_calc_species_balance(
+  gkyl_gyrokinetic_app *app, int sidx, double tm, double dt
+);
 
 /**
  * Write the balance diagnostic of a plasma species to file.
@@ -1036,8 +1038,9 @@ void gkyl_gyrokinetic_app_write_species_balance(gkyl_gyrokinetic_app *app, int s
  *
  * @param app App object.
  * @param tm Time at which integrated diagnostics are to be computed
+ * @param dt Last time step taken (<= 0 if none, e.g. at the initial time).
  */
-void gkyl_gyrokinetic_app_calc_balance(gkyl_gyrokinetic_app *app, double tm);
+void gkyl_gyrokinetic_app_calc_balance(gkyl_gyrokinetic_app *app, double tm, double dt);
 
 /**
  * Write the balance diagnostics summed over species to file. Appended to the
@@ -1396,12 +1399,14 @@ void gkyl_gyrokinetic_app_write_neut_species_conf(
 void gkyl_gyrokinetic_app_write_mom(gkyl_gyrokinetic_app *app, double tm, int frame);
 
 /**
- * Calculate integrated diagnostic moments for all species (including sources).
+ * Calculate integrated diagnostic moments for all species (including sources),
+ * and the balance diagnostics.
  *
  * @param app App object.
  * @param tm Time at which integrated diagnostics are to be computed
+ * @param dt Last time step taken (<= 0 if none, e.g. at the initial time).
  */
-void gkyl_gyrokinetic_app_calc_integrated_mom(gkyl_gyrokinetic_app *app, double tm);
+void gkyl_gyrokinetic_app_calc_integrated_mom(gkyl_gyrokinetic_app *app, double tm, double dt);
 
 /**
  * Calculate the L2 norm for all species.

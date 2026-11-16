@@ -44,7 +44,7 @@ gk_species_kinetic_omegaH_dt(
 static double
 gk_species_kinetic_rhs_dynamic(
   gkyl_gyrokinetic_app *app, struct gk_species *species, const struct gkyl_array *fin,
-  struct gkyl_array *rhs, struct gkyl_array **bflux_moms
+  struct gkyl_array *rhs, struct gkyl_array **step_moms_out
 )
 {
   // Gyroaverage the potential if needed.
@@ -81,13 +81,13 @@ gk_species_kinetic_rhs_dynamic(
   gk_species_react_rhs(app, species, &species->react_neut, fin, rhs);
 
   // BGK source.
-  gk_species_source_bgk_rhs(app, species, &species->bgk_src, fin, rhs);
+  gk_species_source_bgk_rhs(app, species, &species->bgk_src, fin, rhs, step_moms_out);
 
   // Compute and store (in the ghost cell of rhs and in an array in bflux) the boundary fluxes.
   gk_species_bflux_rhs(app, &species->bflux, fin, rhs);
 
   // Compute moments of the boundary fluxes.
-  gk_species_bflux_calc_moms(app, &species->bflux, rhs, bflux_moms);
+  gk_species_bflux_calc_moms(app, &species->bflux, rhs, step_moms_out);
 
   // Multiply CFL rate by the df/dt multiplier.
   gk_species_fdot_multiplier_advance_times_cfl(
@@ -337,7 +337,7 @@ gk_species_kinetic_release_dynamic(const gkyl_gyrokinetic_app *app, const struct
 
   gk_species_release_integrated_mom(app, gks);
 
-  gk_species_balance_release(app, &gks->bal);
+  gk_species_balance_release(app, &gks->gksbal);
 
   // Release L2 norm memory.
   gkyl_array_integrate_release(gks->integ_wfsq_op);
@@ -382,7 +382,7 @@ gk_species_kinetic_init_dynamic(
 
   gk_species_init_integrated_mom(app, gks);
 
-  gk_species_balance_init(app, gks, &gks->bal);
+  gk_species_balance_init(app, gks, &gks->gksbal);
 
   // Objects for L2 norm diagnostic.
   gks->integ_wfsq_op = gkyl_array_integrate_new(
@@ -697,9 +697,9 @@ gk_species_kinetic_init_dynamic(
   gks->calc_L2norm_func = gk_species_calc_L2norm_dynamic;
   gks->write_L2norm_func = gk_species_write_L2norm_dynamic;
   if (gks->time_rate_diags) {
-    gks->calc_int_mom_dt_func = gk_species_calc_int_mom_dt_enabled;
+    gks->calc_integ_mom_dt_func = gk_species_calc_integ_mom_dt_enabled;
   } else {
-    gks->calc_int_mom_dt_func = gk_species_calc_int_mom_dt_disabled;
+    gks->calc_integ_mom_dt_func = gk_species_calc_integ_mom_dt_disabled;
   }
 }
 
@@ -1418,8 +1418,9 @@ gk_species_kinetic_init(
     );
   }
 
-  // Initialize boundary fluxes.
+  // Initialize boundary fluxes, and the arrays stepped along with f.
   gks->bflux = (struct gk_boundary_fluxes){};
+  gks->step_moms = (struct gk_stepped_moms){};
   // Additional bflux moments to step in time.
   struct gkyl_phase_diagnostics_inp add_bflux_moms_inp = (struct gkyl_phase_diagnostics_inp){};
   enum gkyl_species_bflux_type bflux_type = GK_SPECIES_BFLUX_NONE;
@@ -1458,7 +1459,7 @@ gk_species_kinetic_init(
     add_bflux_moms_inp.diag_moments[nmom_extra[0]++] = GKYL_F_MOMENT_M2;
   }
   // The balance diagnostics may turn on integrated diagnostics of the boundary fluxes.
-  gk_species_balance_pre_init(app, gks, &gks->bal, &bflux_type, &add_bflux_moms_inp);
+  gk_species_balance_pre_init(app, gks, &gks->gksbal, &bflux_type, &add_bflux_moms_inp);
   // Introduce new moments into moms_inp if needed.
   gk_species_bflux_init(app, gks, &gks->bflux, bflux_type, add_bflux_moms_inp);
 
@@ -1577,6 +1578,7 @@ gk_species_kinetic_release(const gkyl_gyrokinetic_app *app, const struct gk_spec
 
   // Free boundary flux memory.
   gk_species_bflux_release(app, gks, &gks->bflux);
+  gk_stepped_moms_release(&gks->step_moms);
 
   gk_species_lte_release(app, &gks->lte);
 
