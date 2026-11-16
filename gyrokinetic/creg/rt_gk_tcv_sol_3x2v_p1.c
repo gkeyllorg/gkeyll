@@ -719,7 +719,7 @@ main(int argc, char **argv)
       {.num_diag_moments = 1, .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}},
 
     .num_balance_diags = 2,
-    .balance_diags = {GKYL_BALANCE_GK_PARTICLE, GKYL_BALANCE_GK_ENERGY},
+    .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY},
   };
 
   // ions
@@ -794,7 +794,7 @@ main(int argc, char **argv)
       {.num_diag_moments = 1, .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}},
 
     .num_balance_diags = 2,
-    .balance_diags = {GKYL_BALANCE_GK_PARTICLE, GKYL_BALANCE_GK_ENERGY},
+    .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY},
   };
 
   // field
@@ -843,7 +843,7 @@ main(int argc, char **argv)
     .periodic_dirs = {1},
 
     .diagnostics =
-      {.num_balance_diags = 2, .balance_diags = {GKYL_BALANCE_GK_PARTICLE, GKYL_BALANCE_GK_ENERGY}},
+      {.num_balance_diags = 2, .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY}},
 
     .num_species = ctx.num_species,
     .species = {elc, ion},

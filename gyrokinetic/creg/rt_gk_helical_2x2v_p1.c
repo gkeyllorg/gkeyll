@@ -544,7 +544,7 @@ main(int argc, char **argv)
 
     .time_rate_diagnostics = true,
     .num_balance_diags = 2,
-    .balance_diags = {GKYL_BALANCE_GK_PARTICLE, GKYL_BALANCE_GK_ENERGY},
+    .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY},
   };
 
   // ions
@@ -637,7 +637,7 @@ main(int argc, char **argv)
 
     .time_rate_diagnostics = true,
     .num_balance_diags = 2,
-    .balance_diags = {GKYL_BALANCE_GK_PARTICLE, GKYL_BALANCE_GK_ENERGY},
+    .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY},
   };
 
   // field
@@ -673,7 +673,7 @@ main(int argc, char **argv)
       },
 
     .diagnostics =
-      {.num_balance_diags = 2, .balance_diags = {GKYL_BALANCE_GK_PARTICLE, GKYL_BALANCE_GK_ENERGY}},
+      {.num_balance_diags = 2, .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY}},
 
     .num_species = 2,
     .species = {elc, ion},

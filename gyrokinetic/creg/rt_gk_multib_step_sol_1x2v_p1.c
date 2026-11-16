@@ -513,7 +513,7 @@ main(int argc, char **argv)
       {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR,
        GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP},
     .num_balance_diags = 2,
-    .balance_diags = {GKYL_BALANCE_GK_PARTICLE, GKYL_BALANCE_GK_ENERGY},
+    .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY},
 
     .duplicate_across_blocks = true,
     .blocks = elc_blocks,
@@ -592,7 +592,7 @@ main(int argc, char **argv)
       {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR,
        GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP},
     .num_balance_diags = 2,
-    .balance_diags = {GKYL_BALANCE_GK_PARTICLE, GKYL_BALANCE_GK_ENERGY},
+    .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY},
 
     .duplicate_across_blocks = true,
     .blocks = ion_blocks,
@@ -624,8 +624,8 @@ main(int argc, char **argv)
   app_inp->cfl_frac = 1.0;
   app_inp->gk_block_geom = bgeom;
   app_inp->diagnostics.num_balance_diags = 2;
-  app_inp->diagnostics.balance_diags[0] = GKYL_BALANCE_GK_PARTICLE;
-  app_inp->diagnostics.balance_diags[1] = GKYL_BALANCE_GK_ENERGY;
+  app_inp->diagnostics.balance_diags[0] = GKYL_GK_BALANCE_PARTICLE;
+  app_inp->diagnostics.balance_diags[1] = GKYL_GK_BALANCE_ENERGY;
 
   app_inp->num_species = 2;
   app_inp->species[0] = elc;

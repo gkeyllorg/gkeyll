@@ -9,14 +9,14 @@ gk_species_balance_mom_comp(
 )
 {
   switch (diag_type) {
-    case GKYL_BALANCE_GK_PARTICLE:
+    case GKYL_GK_BALANCE_PARTICLE:
       // The density is the first component of these moments.
       return mom_type == GKYL_F_MOMENT_M0 || mom_type == GKYL_F_MOMENT_M0M1M2 ||
                  mom_type == GKYL_F_MOMENT_M0M1M2PARM2PERP ||
                  mom_type == GKYL_F_MOMENT_HAMILTONIAN ?
                0 :
                -1;
-    case GKYL_BALANCE_GK_ENERGY:
+    case GKYL_GK_BALANCE_ENERGY:
       // The energy is the third component of the Hamiltonian moments.
       return mom_type == GKYL_F_MOMENT_HAMILTONIAN ? 2 : -1;
     default:
@@ -233,7 +233,7 @@ gk_species_balance_pre_init(
       found = found || gksbal->diag_types[k] == app->gkbal.diag_types[d];
     }
     if (!found) {
-      assert(gksbal->num_diags < GKYL_BALANCE_GK_NUM);
+      assert(gksbal->num_diags < GKYL_GK_BALANCE_COUNT);
       gksbal->diag_types[gksbal->num_diags++] = app->gkbal.diag_types[d];
     }
   }
@@ -244,7 +244,7 @@ gk_species_balance_pre_init(
   // Moment with every balanced quantity, added to the integrated diagnostics missing one.
   gksbal->mom_type = GKYL_F_MOMENT_M0;
   for (int d = 0; d < gksbal->num_diags; d++) {
-    if (gksbal->diag_types[d] == GKYL_BALANCE_GK_ENERGY) {
+    if (gksbal->diag_types[d] == GKYL_GK_BALANCE_ENERGY) {
       gksbal->mom_type = GKYL_F_MOMENT_HAMILTONIAN;
     }
   }
@@ -378,7 +378,7 @@ gk_app_balance_init(
   for (int d = 0; d < gkbal->num_diags; d++) {
     gkbal->diag_types[d] = diags->balance_diags[d];
     // Species components, and field_dot and bg_dot for the energy.
-    gkbal->num_comp[d] = gkbal->diag_types[d] == GKYL_BALANCE_GK_ENERGY ? 7 : 5;
+    gkbal->num_comp[d] = gkbal->diag_types[d] == GKYL_GK_BALANCE_ENERGY ? 7 : 5;
     gkbal->diag[d] = gkyl_dynvec_new(GKYL_DOUBLE, gkbal->num_comp[d]);
     gkbal->is_first_write[d] = true;
   }
@@ -418,7 +418,7 @@ gk_app_balance_calc(
       mom_tot += gksbal->mom[sd];
     }
     if (dt > 0.0) {
-      if (gkbal->diag_types[d] == GKYL_BALANCE_GK_ENERGY && app->field->update_field) {
+      if (gkbal->diag_types[d] == GKYL_GK_BALANCE_ENERGY && app->field->update_field) {
         // Field terms of the energy balance.
         double energy, field_dot, bg_energy, bg_dot;
         gk_field_calc_energy_balance(app, app->field, tm, &energy, &field_dot, &bg_energy, &bg_dot);
@@ -450,7 +450,7 @@ gk_app_balance_write(struct gkyl_gyrokinetic_app *app, struct gk_app_balance *gk
       snprintf(fileNm, sizeof fileNm, fmt, app->name, diag_name);
 
       if (gkbal->is_first_write[d]) {
-        bool is_energy = gkbal->diag_types[d] == GKYL_BALANCE_GK_ENERGY;
+        bool is_energy = gkbal->diag_types[d] == GKYL_GK_BALANCE_ENERGY;
         struct gkyl_msgpack_map_elem io_meta_bal[] = {
           {
             .key = "Description",

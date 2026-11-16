@@ -1220,27 +1220,27 @@ enum gk_species_balance_term {
 // Species level balance diagnostics.
 struct gk_species_balance {
   int num_diags; // Number of balance diagnostics.
-  enum gkyl_gyrokinetic_balance_diag diag_types[GKYL_BALANCE_GK_NUM]; // Balance diagnostics.
+  enum gkyl_gyrokinetic_balance_diag diag_types[GKYL_GK_BALANCE_COUNT]; // Balance diagnostics.
   // Moment with every balanced quantity, added to the integrated diagnostics missing one.
   enum gkyl_distribution_moments mom_type;
   bool has_term[GK_SPECIES_BALANCE_NUM_TERMS]; // Whether the species has each term.
-  enum gkyl_distribution_moments integ_mom[GK_SPECIES_BALANCE_NUM_TERMS][GKYL_BALANCE_GK_NUM];
-  int integ_comp[GK_SPECIES_BALANCE_NUM_TERMS][GKYL_BALANCE_GK_NUM];
-  double mom[GKYL_BALANCE_GK_NUM]; // Last value of each balanced quantity (for the sum over species).
+  enum gkyl_distribution_moments integ_mom[GK_SPECIES_BALANCE_NUM_TERMS][GKYL_GK_BALANCE_COUNT];
+  int integ_comp[GK_SPECIES_BALANCE_NUM_TERMS][GKYL_GK_BALANCE_COUNT];
+  double mom[GKYL_GK_BALANCE_COUNT]; // Last value of each balanced quantity (for the sum over species).
   int num_comp; // Number of components in each balance diagnostic.
-  gkyl_dynvec diag[GKYL_BALANCE_GK_NUM]; // Balance diagnostic of each quantity.
+  gkyl_dynvec diag[GKYL_GK_BALANCE_COUNT]; // Balance diagnostic of each quantity.
   bool is_first_write
-    [GKYL_BALANCE_GK_NUM]; // Whether each diagnostic is being written for the first time.
+    [GKYL_GK_BALANCE_COUNT]; // Whether each diagnostic is being written for the first time.
 };
 
 // App level balance diagnostics.
 struct gk_app_balance {
   int num_diags; // Number of balance diagnostics.
-  enum gkyl_gyrokinetic_balance_diag diag_types[GKYL_BALANCE_GK_NUM]; // Balance diagnostics.
-  int num_comp[GKYL_BALANCE_GK_NUM]; // Number of components in each balance diagnostic.
-  gkyl_dynvec diag[GKYL_BALANCE_GK_NUM]; // Balance diagnostic of each quantity.
+  enum gkyl_gyrokinetic_balance_diag diag_types[GKYL_GK_BALANCE_COUNT]; // Balance diagnostics.
+  int num_comp[GKYL_GK_BALANCE_COUNT]; // Number of components in each balance diagnostic.
+  gkyl_dynvec diag[GKYL_GK_BALANCE_COUNT]; // Balance diagnostic of each quantity.
   bool is_first_write
-    [GKYL_BALANCE_GK_NUM]; // Whether each diagnostic is being written for the first time.
+    [GKYL_GK_BALANCE_COUNT]; // Whether each diagnostic is being written for the first time.
 };
 
 // Projected material-wall potential associated with a species sheath BC.

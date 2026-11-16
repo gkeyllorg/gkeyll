@@ -101,9 +101,9 @@ struct gkyl_gyrokinetic_projection {
 // with a static field). The energy balance of a single species omits the field
 // terms, so its error is the energy the species exchanges with the field.
 enum gkyl_gyrokinetic_balance_diag {
-  GKYL_BALANCE_GK_PARTICLE = 0, // Particle balance.
-  GKYL_BALANCE_GK_ENERGY, // Energy balance.
-  GKYL_BALANCE_GK_NUM // Number of balance diagnostics.
+  GKYL_GK_BALANCE_PARTICLE = 0, // Particle balance.
+  GKYL_GK_BALANCE_ENERGY, // Energy balance.
+  GKYL_GK_BALANCE_COUNT // Number of options (for internal use).
 };
 
 // File-name strings corresponding to the enum options above.
@@ -111,13 +111,13 @@ static const char *gkyl_gyrokinetic_balance_diag_strs[] = {"particle", "energy"}
 
 struct gkyl_phase_diagnostics_inp {
   int num_diag_moments; // Number of diagnostic moments.
-  enum gkyl_distribution_moments diag_moments[12]; // List of diagnostic moments.
+  enum gkyl_distribution_moments diag_moments[GKYL_F_MOMENT_COUNT]; // List of diagnostic moments.
   int num_integrated_diag_moments; // Number of integrated diagnostic moments.
   enum gkyl_distribution_moments
-    integrated_diag_moments[12]; // List of integrated diagnostic moments.
+    integrated_diag_moments[GKYL_F_MOMENT_COUNT]; // List of integrated diagnostic moments.
   int num_balance_diags; // Number of balance diagnostics (only used by the app).
   enum gkyl_gyrokinetic_balance_diag
-    balance_diags[GKYL_BALANCE_GK_NUM]; // List of balance diagnostics (only used by the app).
+    balance_diags[GKYL_GK_BALANCE_COUNT]; // List of balance diagnostics (only used by the app).
 };
 
 // Parameters for collisionless terms.
@@ -507,14 +507,14 @@ struct gkyl_gyrokinetic_species {
   bool scale_with_polarization;
 
   int num_diag_moments; // number of diagnostic moments
-  enum gkyl_distribution_moments diag_moments[12]; // list of diagnostic moments
+  enum gkyl_distribution_moments diag_moments[GKYL_F_MOMENT_COUNT]; // list of diagnostic moments
   int num_integrated_diag_moments; // Number of integrated diagnostic moments.
   enum gkyl_distribution_moments
-    integrated_diag_moments[12]; // List of integrated diagnostic moments.
+    integrated_diag_moments[GKYL_F_MOMENT_COUNT]; // List of integrated diagnostic moments.
   bool time_rate_diagnostics; // Whether to ouput df/dt diagnostics.
   int num_balance_diags; // Number of balance diagnostics.
   enum gkyl_gyrokinetic_balance_diag
-    balance_diags[GKYL_BALANCE_GK_NUM]; // List of balance diagnostics.
+    balance_diags[GKYL_GK_BALANCE_COUNT]; // List of balance diagnostics.
   bool write_omega_cfl; // Whether to ouput dt diagnostic for the CFL constraint.
 
   struct gkyl_gyrokinetic_collisionless collisionless; // Collisionless terms.
@@ -577,7 +577,7 @@ struct gkyl_gyrokinetic_neut_species {
   struct gkyl_gyrokinetic_projection projection;
 
   int num_diag_moments; // Number of diagnostic moments.
-  enum gkyl_distribution_moments diag_moments[12]; // List of diagnostic moments.
+  enum gkyl_distribution_moments diag_moments[GKYL_F_MOMENT_COUNT]; // List of diagnostic moments.
 
   struct gkyl_gyrokinetic_collisionless collisionless; // Collisionless terms.
 
