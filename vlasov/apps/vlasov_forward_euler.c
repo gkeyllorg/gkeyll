@@ -7,10 +7,11 @@
 // take a time-step larger than dt even if it is allowed by stability.
 // The actual time-step and dt_suggested are returned in the status object.
 // Species loops run over the overall species count; the RK-state arrays are
-// NULL where a species lacks that aspect.
+// NULL where a species lacks that aspect. 'stage' is the SSP-RK3 stage (1, 2
+// or 3) this step belongs to.
 void
 vlasov_forward_euler(
-  gkyl_vlasov_app *app, double tcurr, double dt, const struct gkyl_array *fin[],
+  gkyl_vlasov_app *app, int stage, double tcurr, double dt, struct gkyl_array *fin[],
   const struct gkyl_array *fluidin[], const struct gkyl_array *emin, struct gkyl_array *fout[],
   struct gkyl_array *fluidout[], struct gkyl_array *emout, struct gkyl_update_status *st
 )
@@ -19,6 +20,12 @@ vlasov_forward_euler(
 
   double dtmin = DBL_MAX;
   int num_species = app->num_species;
+
+  // The field reads the stage distributions without changing them.
+  const struct gkyl_array *fin_field[num_species];
+  for (int i = 0; i < num_species; ++i) {
+    fin_field[i] = fin[i];
+  }
 
   // Compute external EM field or applied currents if present and time-dependent.
   // Note: external EM field and  applied currents use proj_on_basis
@@ -39,12 +46,13 @@ vlasov_forward_euler(
 
   // Update the field at the start of the step: the Maxwell RHS, or the Poisson
   // solve for the potential at the current time (read by the species RHS below).
-  double dt1_field = vlasov_field_update(app, tcurr, fin, emin, emout);
+  double dt1_field = vlasov_field_update(app, stage, tcurr, fin_field, emin, emout);
   dtmin = fmin(dtmin, dt1_field); // null field returns DBL_MAX (no constraint)
 
-  // Compute self-collision moments and boundary corrections.
+  // Compute what each species needs of itself and the field before its RHS
+  // (self-collision moments and boundary corrections).
   for (int i = 0; i < num_species; ++i) {
-    vlasov_species_calc_self_moms(app, &app->species[i], fin[i]);
+    vlasov_species_calc_self_moms(app, &app->species[i], fin[i], fluidin[i]);
   }
 
   // Compute the coupled variables (LBO cross-collision moments, fluid primitive
@@ -66,7 +74,7 @@ vlasov_forward_euler(
     vlasov_species_calc_source_moms(app, &app->species[i], fin[i]);
   }
   for (int i = 0; i < num_species; ++i) {
-    vlasov_species_source_rhs(app, &app->species[i], tcurr, fin, fluidin, fout, fluidout);
+    vlasov_species_source_rhs(app, &app->species[i], tcurr, fout[i], fluidout[i]);
   }
 
   double dt_max_rel_diff = 0.01;
@@ -90,8 +98,13 @@ vlasov_forward_euler(
   for (int i = 0; i < num_species; ++i) {
     vlasov_species_step_f(&app->species[i], dta, fin[i], fluidin[i], fout[i], fluidout[i]);
   }
+  // Then what a species does to its stepped state before the boundary
+  // conditions are applied to it.
+  for (int i = 0; i < num_species; ++i) {
+    vlasov_species_finish_stage(app, &app->species[i], stage, dta, fout[i], fluidout[i]);
+  }
 
   // Complete the field update: for Vlasov-Maxwell, accumulate the species
   // current onto the RHS and finalize emout = emin + dta*RHS.
-  vlasov_field_complete_update(app, dta, fin, fluidin, emin, emout);
+  vlasov_field_complete_update(app, dta, fin_field, fluidin, emin, emout);
 }

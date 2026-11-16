@@ -508,8 +508,8 @@ vp_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
 // impose no CFL constraint of their own.
 double
 vp_field_update(
-  gkyl_vlasov_app *app, double tcurr, const struct gkyl_array *fin[], const struct gkyl_array *emin,
-  struct gkyl_array *emout
+  gkyl_vlasov_app *app, int stage, double tcurr, const struct gkyl_array *fin[],
+  const struct gkyl_array *emin, struct gkyl_array *emout
 )
 {
   vp_field_solve(app, app->field, fin);

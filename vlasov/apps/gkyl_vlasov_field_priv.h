@@ -70,7 +70,7 @@ struct vm_field {
 
   // Pointers to various functions selected at runtime (by field type).
   double (*update_func)(
-    gkyl_vlasov_app *app, double tcurr, const struct gkyl_array *fin[],
+    gkyl_vlasov_app *app, int stage, double tcurr, const struct gkyl_array *fin[],
     const struct gkyl_array *emin, struct gkyl_array *emout
   );
   void (*combine_func)(
@@ -220,6 +220,7 @@ struct vm_field *vlasov_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *ap
  * Poisson solve for the potential from the charge density.
  *
  * @param app Vlasov app object
+ * @param stage SSP-RK3 stage (1, 2 or 3) of the update
  * @param tcurr Current time
  * @param fin[] Input distribution functions (overall species count)
  * @param emin Input EM field
@@ -227,8 +228,8 @@ struct vm_field *vlasov_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *ap
  * @return Maximum stable time-step (DBL_MAX for the Poisson solve)
  */
 double vlasov_field_update(
-  gkyl_vlasov_app *app, double tcurr, const struct gkyl_array *fin[], const struct gkyl_array *emin,
-  struct gkyl_array *emout
+  gkyl_vlasov_app *app, int stage, double tcurr, const struct gkyl_array *fin[],
+  const struct gkyl_array *emin, struct gkyl_array *emout
 );
 
 /**
@@ -493,6 +494,7 @@ double vm_field_rhs(
  * Assigned to the field's update_func; returns the max stable time-step.
  *
  * @param app Vlasov app object
+ * @param stage SSP-RK3 stage (1, 2 or 3) of the update; unused for Maxwell
  * @param tcurr Current time
  * @param fin[] Input distribution function (num_species size); unused for Maxwell
  * @param emin Input field
@@ -500,8 +502,8 @@ double vm_field_rhs(
  * @return Maximum stable time-step
  */
 double vm_field_update(
-  gkyl_vlasov_app *app, double tcurr, const struct gkyl_array *fin[], const struct gkyl_array *emin,
-  struct gkyl_array *emout
+  gkyl_vlasov_app *app, int stage, double tcurr, const struct gkyl_array *fin[],
+  const struct gkyl_array *emin, struct gkyl_array *emout
 );
 
 /**
@@ -694,6 +696,7 @@ void vp_field_solve(gkyl_vlasov_app *app, struct vm_field *field, const struct g
  * impose no CFL constraint, so it returns DBL_MAX.
  *
  * @param app Vlasov app object.
+ * @param stage SSP-RK3 stage (1, 2 or 3) of the update; unused for Poisson.
  * @param tcurr Current time.
  * @param fin[] Input distribution function (num_species size).
  * @param emin Unused (no EM RK state for Vlasov-Poisson).
@@ -701,8 +704,8 @@ void vp_field_solve(gkyl_vlasov_app *app, struct vm_field *field, const struct g
  * @return DBL_MAX (no stability constraint from the elliptic solve).
  */
 double vp_field_update(
-  gkyl_vlasov_app *app, double tcurr, const struct gkyl_array *fin[], const struct gkyl_array *emin,
-  struct gkyl_array *emout
+  gkyl_vlasov_app *app, int stage, double tcurr, const struct gkyl_array *fin[],
+  const struct gkyl_array *emin, struct gkyl_array *emout
 );
 
 /**

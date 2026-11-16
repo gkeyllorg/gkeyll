@@ -10,8 +10,8 @@
 
 static double
 null_field_update(
-  gkyl_vlasov_app *app, double tcurr, const struct gkyl_array *fin[], const struct gkyl_array *emin,
-  struct gkyl_array *emout
+  gkyl_vlasov_app *app, int stage, double tcurr, const struct gkyl_array *fin[],
+  const struct gkyl_array *emin, struct gkyl_array *emout
 )
 {
   return DBL_MAX; // no field force -> no CFL constraint
@@ -117,11 +117,11 @@ vlasov_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
 
 double
 vlasov_field_update(
-  gkyl_vlasov_app *app, double tcurr, const struct gkyl_array *fin[], const struct gkyl_array *emin,
-  struct gkyl_array *emout
+  gkyl_vlasov_app *app, int stage, double tcurr, const struct gkyl_array *fin[],
+  const struct gkyl_array *emin, struct gkyl_array *emout
 )
 {
-  return app->field->update_func(app, tcurr, fin, emin, emout);
+  return app->field->update_func(app, stage, tcurr, fin, emin, emout);
 }
 
 void

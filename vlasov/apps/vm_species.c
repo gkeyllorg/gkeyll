@@ -712,6 +712,32 @@ vm_species_copy_range_static(
   // do nothing
 }
 
+// Diagnostics written with the distribution of a frame when requested: the
+// source and the emission spectra.
+static void
+vm_species_write_source_and_emission(
+  gkyl_vlasov_app *app, struct vm_species *vms, double tm, int frame
+)
+{
+  if (vms->src.write_source) {
+    vm_species_source_write(app, vms, &vms->src, tm, frame);
+  }
+
+  struct gkyl_msgpack_data *mt = vlasov_array_meta_new((struct vlasov_output_meta){
+    .frame = frame,
+    .stime = tm,
+    .poly_order = app->poly_order,
+    .basis_type = vms->basis.id,
+  });
+  if (vms->emit_lo) {
+    vm_species_emission_write(app, vms, &vms->bc_emission_lo, mt, frame);
+  }
+  if (vms->emit_up) {
+    vm_species_emission_write(app, vms, &vms->bc_emission_up, mt, frame);
+  }
+  vlasov_array_meta_release(mt);
+}
+
 static void
 vm_species_write_dynamic(gkyl_vlasov_app *app, struct vm_species *vms, double tm, int frame)
 {
@@ -756,12 +782,15 @@ vm_species_write_dynamic(gkyl_vlasov_app *app, struct vm_species *vms, double tm
 
   app->stat.species_io_tm += gkyl_time_diff_now_sec(wst);
   app->stat.n_io += 1;
+
+  vm_species_write_source_and_emission(app, vms, tm, frame);
 }
 
 static void
 vm_species_write_static(gkyl_vlasov_app *app, struct vm_species *vms, double tm, int frame)
 {
-  // do nothing
+  // The distribution does not change; only its attendant diagnostics are written.
+  vm_species_write_source_and_emission(app, vms, tm, frame);
 }
 
 static void
@@ -935,12 +964,19 @@ vm_species_write_mom_dynamic(gkyl_vlasov_app *app, struct vm_species *vms, doubl
   vm_species_bgk_write_mom(app, vms, tm, frame);
 
   app->stat.n_diag += 1;
+
+  if (vms->src.write_source) {
+    vm_species_source_write_mom(app, vms, &vms->src, tm, frame);
+  }
 }
 
 static void
 vm_species_write_mom_static(gkyl_vlasov_app *app, struct vm_species *vms, double tm, int frame)
 {
-  // do nothing
+  // Only the moments of the source, when requested.
+  if (vms->src.write_source) {
+    vm_species_source_write_mom(app, vms, &vms->src, tm, frame);
+  }
 }
 
 static void
@@ -965,12 +1001,19 @@ vm_species_calc_integrated_mom_dynamic(gkyl_vlasov_app *app, struct vm_species *
   gkyl_dynvec_append(vms->integ_diag, tm, avals_global);
 
   app->stat.species_diag_calc_tm += gkyl_time_diff_now_sec(wst);
+
+  if (vms->src.write_source) {
+    vm_species_source_calc_integrated_mom(app, vms, &vms->src, tm);
+  }
 }
 
 static void
 vm_species_calc_integrated_mom_static(gkyl_vlasov_app *app, struct vm_species *vms, double tm)
 {
-  // do nothing
+  // Only the integrated moments of the source, when requested.
+  if (vms->src.write_source) {
+    vm_species_source_calc_integrated_mom(app, vms, &vms->src, tm);
+  }
 }
 
 static void
@@ -998,12 +1041,19 @@ vm_species_write_integrated_mom_dynamic(gkyl_vlasov_app *app, struct vm_species 
   app->stat.n_diag_io += 1;
 
   app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wst);
+
+  if (vms->src.write_source) {
+    vm_species_source_write_integrated_mom(app, vms, &vms->src);
+  }
 }
 
 static void
 vm_species_write_integrated_mom_static(gkyl_vlasov_app *app, struct vm_species *vms)
 {
-  // do nothing
+  // Only the integrated moments of the source, when requested.
+  if (vms->src.write_source) {
+    vm_species_source_write_integrated_mom(app, vms, &vms->src);
+  }
 }
 
 static void
@@ -1305,6 +1355,94 @@ vm_species_new_static(
   vms->write_integrated_mom_func = vm_species_write_integrated_mom_static;
   vms->calc_L2_func = vm_species_calc_L2_static;
   vms->write_L2_func = vm_species_write_L2_static;
+}
+
+// Methods shared by evolving and static species, assigned in vm_species_init.
+
+static void
+vm_species_calc_implicit_moms_bgk(
+  gkyl_vlasov_app *app, struct vm_species *vms, const struct gkyl_array *fin
+)
+{
+  vm_species_bgk_moms_implicit(app, vms, &vms->bgk, fin);
+}
+
+static void
+vm_species_calc_source_moms_enabled(
+  gkyl_vlasov_app *app, struct vm_species *vms, const struct gkyl_array *fin
+)
+{
+  vm_species_source_adapt_moms(app, vms, &vms->src, fin);
+}
+
+static void
+vm_species_calc_source_moms_disabled(
+  gkyl_vlasov_app *app, struct vm_species *vms, const struct gkyl_array *fin
+)
+{
+}
+
+static void
+vm_species_rhs_source_enabled(
+  gkyl_vlasov_app *app, struct vm_species *vms, double tcurr, struct gkyl_array *rhs
+)
+{
+  if (vms->src.evolve_source) {
+    vm_species_source_calc(app, vms, &vms->src, tcurr);
+  }
+  vm_species_source_adapt(app, vms, &vms->src);
+  vm_species_source_rhs(app, vms, &vms->src, rhs);
+}
+
+static void
+vm_species_rhs_source_disabled(
+  gkyl_vlasov_app *app, struct vm_species *vms, double tcurr, struct gkyl_array *rhs
+)
+{
+}
+
+// Read the distribution function from a file and rebuild what a restart does
+// not carry: the velocity- and configuration-space Jacobian rescale, the
+// boundary fluxes, the BCs, and the source and the applied acceleration
+// evaluated at the time of the file.
+static struct gkyl_app_restart_status
+vm_species_from_file_distf(gkyl_vlasov_app *app, struct vm_species *vms, const char *fname)
+{
+  struct gkyl_app_restart_status rstat = vlasov_header_from_file(app, fname);
+
+  if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
+    rstat.io_status = gkyl_comm_array_read(vms->comm, &vms->grid, &vms->local, vms->f_host, fname);
+    if (app->use_gpu) {
+      gkyl_array_copy(vms->f, vms->f_host);
+    }
+    if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
+      // Rescale distribution function by velocity-space Jacobian if present
+      // since output distribution function does not include velocity-space Jacobian.
+      // Need to do this before applying boundary conditions since we only know f on
+      // the local range for the rescaling.
+      gkyl_vlasov_velocity_map_rescale_jacobvel(
+        vms->vel_map, &app->basis, &vms->basis, &vms->local, vms->f, vms->f_no_J
+      );
+      gkyl_array_copy(vms->f, vms->f_no_J);
+      // Also rescale by the configuration-space Jacobian since the output
+      // distribution does not include it either (stored f is J_x*J_v*f).
+      gkyl_vlasov_position_map_rescale_jacobpos(
+        vms->pos_map, &vms->basis, &vms->local, vms->f, vms->f_no_J
+      );
+      gkyl_array_copy(vms->f, vms->f_no_J);
+
+      if (vms->calc_bflux) {
+        vm_species_bflux_rhs(app, vms, &vms->bflux, vms->f, vms->f);
+      }
+      vm_species_apply_bc(app, vms, vms->f, rstat.stime);
+      if (vms->source_id) {
+        vm_species_source_calc(app, vms, &vms->src, rstat.stime);
+      }
+    }
+  }
+  vm_species_collisionless_app_accel(app, &vms->collisionless, rstat.stime);
+
+  return rstat;
 }
 
 // End static function definitions.
@@ -1610,6 +1748,17 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
   } else {
     vm_species_new_static(vm_app_inp, app, vms);
   }
+
+  // Methods shared by evolving and static species.
+  vms->calc_implicit_moms_func = vm_species_calc_implicit_moms_bgk;
+  if (vms->source_id) {
+    vms->calc_source_moms_func = vm_species_calc_source_moms_enabled;
+    vms->rhs_source_func = vm_species_rhs_source_enabled;
+  } else {
+    vms->calc_source_moms_func = vm_species_calc_source_moms_disabled;
+    vms->rhs_source_func = vm_species_rhs_source_disabled;
+  }
+  vms->from_file_func = vm_species_from_file_distf;
 }
 
 void
@@ -1637,6 +1786,42 @@ vm_species_rhs_implicit(
 )
 {
   return vms->rhs_implicit_func(app, vms, fin, rhs, dt);
+}
+
+// Moments of the implicit collision update.
+void
+vm_species_calc_implicit_moms(
+  gkyl_vlasov_app *app, struct vm_species *vms, const struct gkyl_array *fin
+)
+{
+  vms->calc_implicit_moms_func(app, vms, fin);
+}
+
+// Time-dependent applied acceleration.
+void
+vm_species_calc_app_accel(gkyl_vlasov_app *app, struct vm_species *vms, double tcurr)
+{
+  if (vms->collisionless.app_accel_evolve) {
+    vm_species_collisionless_app_accel(app, &vms->collisionless, tcurr);
+  }
+}
+
+// Moments that rescale adaptive sources.
+void
+vm_species_calc_source_moms(
+  gkyl_vlasov_app *app, struct vm_species *vms, const struct gkyl_array *fin
+)
+{
+  vms->calc_source_moms_func(app, vms, fin);
+}
+
+// Accumulate the source onto the RHS of the species.
+void
+vm_species_rhs_source(
+  gkyl_vlasov_app *app, struct vm_species *vms, double tcurr, struct gkyl_array *rhs
+)
+{
+  vms->rhs_source_func(app, vms, tcurr, rhs);
 }
 
 // Accummulate function for forward Euler method.
@@ -1725,6 +1910,30 @@ void
 vm_species_write_L2(gkyl_vlasov_app *app, struct vm_species *vms)
 {
   vms->write_L2_func(app, vms);
+}
+
+// Read the distribution function from a file.
+struct gkyl_app_restart_status
+vm_species_from_file(gkyl_vlasov_app *app, struct vm_species *vms, const char *fname)
+{
+  return vms->from_file_func(app, vms, fname);
+}
+
+// Restart from the file of a frame; the diagnostic streams then append to
+// their existing files.
+struct gkyl_app_restart_status
+vm_species_read_from_frame(gkyl_vlasov_app *app, struct vm_species *vms, int frame)
+{
+  cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, vms->name, frame);
+  struct gkyl_app_restart_status rstat = vm_species_from_file(app, vms, fileNm.str);
+  cstr_drop(&fileNm);
+
+  vms->is_first_integ_write_call = false;
+  vms->is_first_integ_L2_write_call = false;
+  vms->src.is_first_integ_write_call = false;
+  vms->lte.is_first_corr_status_write_call = false;
+
+  return rstat;
 }
 
 // Write the number of correction iterations to output statistics struct.

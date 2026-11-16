@@ -647,8 +647,25 @@ struct vm_species {
     gkyl_vlasov_app *app, struct vm_species *vms, const struct gkyl_array *fin,
     struct gkyl_array *rhs, double dt
   );
+  // Moments of the implicit collision update (computed for every species before
+  // any rhs_implicit_func, which reads the moments of the collision partners).
+  void (*calc_implicit_moms_func)(
+    gkyl_vlasov_app *app, struct vm_species *vms, const struct gkyl_array *fin
+  );
+  // Source phases of a forward-Euler stage, run after every species' RHS:
+  // moments that rescale adaptive sources, then the source onto the RHS.
+  void (*calc_source_moms_func)(
+    gkyl_vlasov_app *app, struct vm_species *vms, const struct gkyl_array *fin
+  );
+  void (*rhs_source_func)(
+    gkyl_vlasov_app *app, struct vm_species *vms, double tcurr, struct gkyl_array *rhs
+  );
   void (*bc_func)(
     gkyl_vlasov_app *app, const struct vm_species *vms, struct gkyl_array *f, double tcurr
+  );
+  // Read the distribution from a file and rebuild what the file does not carry.
+  struct gkyl_app_restart_status (*from_file_func)(
+    gkyl_vlasov_app *app, struct vm_species *vms, const char *fname
   );
   void (*release_func)(const gkyl_vlasov_app *app, const struct vm_species *vms);
   void (*step_f_func)(struct gkyl_array *out, double dt, const struct gkyl_array *inp);
@@ -783,6 +800,8 @@ struct vm_fluid_species {
   // Pointers to updaters that apply BC.
   struct gkyl_bc_basic *bc_lo[3];
   struct gkyl_bc_basic *bc_up[3];
+  struct gkyl_array *bc_buffer_lo_fixed,
+    *bc_buffer_up_fixed; // fixed buffers for time independent BCs
   bool bc_is_absorb; // boolean for absorbing BCs since 1/rho is undefined in absorbing BCs
     // If BCs are *not* absorbing, primitive variables can be calculated on *extended* range
 
@@ -810,6 +829,8 @@ struct vm_fluid_species {
     gkyl_vlasov_app *app, struct vm_fluid_species *f, const struct gkyl_array *fluid,
     const struct gkyl_array *em, struct gkyl_array *rhs
   );
+  // Source onto the RHS, run after every species' RHS.
+  void (*rhs_source_func)(gkyl_vlasov_app *app, struct vm_fluid_species *f, struct gkyl_array *rhs);
   void (*step_f_func)(struct gkyl_array *out, double dt, const struct gkyl_array *inp);
   void (*combine_func)(
     struct gkyl_array *out, double c1, const struct gkyl_array *arr1, double c2,
@@ -817,6 +838,13 @@ struct vm_fluid_species {
   );
   void (*copy_func)(
     struct gkyl_array *out, const struct gkyl_array *inp, const struct gkyl_range *range
+  );
+  void (*bc_func)(gkyl_vlasov_app *app, const struct vm_fluid_species *f, struct gkyl_array *fluid);
+  // Slope limiter applied to a stepped state (set by the equation type).
+  void (*limiter_func)(gkyl_vlasov_app *app, struct vm_fluid_species *f, struct gkyl_array *fluid);
+  // Read the fluid state from a file and rebuild what the file does not carry.
+  struct gkyl_app_restart_status (*from_file_func)(
+    gkyl_vlasov_app *app, struct vm_fluid_species *f, const char *fname
   );
   // Function pointers for computing primitive/auxiliary variables,
   // and also write method, release method, and method for calculating integrated quantities.
@@ -847,18 +875,28 @@ struct vlasov_species {
   struct vm_species *kinetic; // kinetic aspect (NULL if absent)
   struct vm_fluid_species *fluid; // fluid aspect (NULL if absent)
 
-  // Staging phases that fill the pre-RHS auxiliary arrays. calc_self_moms:
-  // self-collision moments and boundary corrections (kinetic). calc_coupled_vars:
-  // quantities that read other species or the fluid state, i.e. LBO
-  // cross-collision moments (kinetic) and primitive variables (fluid); it runs
-  // after every species' self moments. BGK cross moments are formed inside the
-  // BGK RHS.
+  // Staging phases that fill the pre-RHS auxiliary arrays. calc_self_moms: what
+  // a species needs of its own stage state and the field, i.e. self-collision
+  // moments and boundary corrections (kinetic). The stage distribution is not
+  // const: a species whose state must be made admissible before its moments are
+  // taken does that here, in place. calc_coupled_vars: quantities that read other
+  // species or the fluid state, i.e. LBO cross-collision moments (kinetic) and
+  // primitive variables (fluid); it runs after every species' self moments. BGK
+  // cross moments are formed inside the BGK RHS.
   void (*calc_self_moms_func)(
-    gkyl_vlasov_app *app, struct vlasov_species *sp, const struct gkyl_array *fin
+    gkyl_vlasov_app *app, struct vlasov_species *sp, struct gkyl_array *fin,
+    const struct gkyl_array *fluidin
   );
   void (*calc_coupled_vars_func)(
     gkyl_vlasov_app *app, struct vlasov_species *sp, const struct gkyl_array *fin,
     const struct gkyl_array *fluidin
+  );
+  // What a species does to its stepped state at the end of a forward-Euler
+  // stage, after step_f and before the boundary conditions (nothing for kinetic
+  // and fluid species).
+  void (*finish_stage_func)(
+    gkyl_vlasov_app *app, struct vlasov_species *sp, int stage, double dt, struct gkyl_array *fout,
+    struct gkyl_array *fluidout
   );
   // Explicit field-particle coupling: accumulate this species' source
   // contribution onto the field's target array (Maxwell: the current onto the
@@ -913,14 +951,18 @@ void vlasov_fluid_species_init(
 );
 
 /**
- * Compute self-collision moments and boundary corrections (staging phase 1).
+ * Compute what a species needs of its own stage state and the field before its
+ * RHS: self-collision moments and boundary corrections (staging phase 1).
  *
  * @param app Vlasov app object
  * @param sp Species container
- * @param fin Input distribution function (NULL if no kinetic aspect)
+ * @param fin Stage distribution function (NULL if no kinetic aspect); a species
+ *   may bring it into admissible form in place
+ * @param fluidin Stage fluid moments (NULL if no fluid aspect)
  */
 void vlasov_species_calc_self_moms(
-  gkyl_vlasov_app *app, struct vlasov_species *sp, const struct gkyl_array *fin
+  gkyl_vlasov_app *app, struct vlasov_species *sp, struct gkyl_array *fin,
+  const struct gkyl_array *fluidin
 );
 
 /**
@@ -994,20 +1036,19 @@ void vlasov_species_calc_source_moms(
 );
 
 /**
- * Accumulate the source onto the RHS of each present aspect. Takes the full
- * RK-state arrays since a source may read other species (boundary-flux sources).
+ * Accumulate the source onto the RHS of each present aspect. Run after the RHS
+ * of every species: a boundary-flux source reads the boundary fluxes its
+ * source species computed in its RHS.
  *
  * @param app Vlasov app object
  * @param sp Species container
  * @param tcurr Current time
- * @param fin[] Input distribution functions (overall species count)
- * @param fluidin[] Input fluid moments (overall species count)
- * @param fout[] Distribution RHS arrays (overall species count)
- * @param fluidout[] Fluid RHS arrays (overall species count)
+ * @param fout Distribution RHS (NULL if no kinetic aspect)
+ * @param fluidout Fluid RHS (NULL if no fluid aspect)
  */
 void vlasov_species_source_rhs(
-  gkyl_vlasov_app *app, struct vlasov_species *sp, double tcurr, const struct gkyl_array *fin[],
-  const struct gkyl_array *fluidin[], struct gkyl_array *fout[], struct gkyl_array *fluidout[]
+  gkyl_vlasov_app *app, struct vlasov_species *sp, double tcurr, struct gkyl_array *fout,
+  struct gkyl_array *fluidout
 );
 
 /**
@@ -1023,6 +1064,23 @@ void vlasov_species_source_rhs(
 void vlasov_species_step_f(
   struct vlasov_species *sp, double dt, const struct gkyl_array *fin,
   const struct gkyl_array *fluidin, struct gkyl_array *fout, struct gkyl_array *fluidout
+);
+
+/**
+ * Finish a forward-Euler stage of a species: what it does to its stepped state
+ * after step_f and before the boundary conditions (nothing for kinetic and
+ * fluid species).
+ *
+ * @param app Vlasov app object
+ * @param sp Species container
+ * @param stage SSP-RK3 stage (1, 2 or 3)
+ * @param dt Time-step taken
+ * @param fout Stepped distribution function (NULL if no kinetic aspect)
+ * @param fluidout Stepped fluid moments (NULL if no fluid aspect)
+ */
+void vlasov_species_finish_stage(
+  gkyl_vlasov_app *app, struct vlasov_species *sp, int stage, double dt, struct gkyl_array *fout,
+  struct gkyl_array *fluidout
 );
 
 /**
@@ -1067,7 +1125,7 @@ void vlasov_species_copy_range(
  * @param fluidout On output, the output fluid moments
  */
 void vlasov_species_gather_rk_state(
-  gkyl_vlasov_app *app, enum vm_rk_buf in, enum vm_rk_buf out, const struct gkyl_array *fin[],
+  gkyl_vlasov_app *app, enum vm_rk_buf in, enum vm_rk_buf out, struct gkyl_array *fin[],
   struct gkyl_array *fout[], const struct gkyl_array *fluidin[], struct gkyl_array *fluidout[]
 );
 
@@ -1124,15 +1182,17 @@ void vlasov_species_rhs_implicit(
 
 /**
  * Implicit collision update, phase 3: apply BCs and copy the update into the
- * solution.
+ * stage state.
  *
  * @param app Vlasov app object
  * @param sp Species container
  * @param fout Updated distribution (NULL if no kinetic aspect)
+ * @param fstage Stage distribution the update replaces (NULL if no kinetic aspect)
  * @param tcurr Current time
  */
 void vlasov_species_finish_implicit_update(
-  gkyl_vlasov_app *app, struct vlasov_species *sp, struct gkyl_array *fout, double tcurr
+  gkyl_vlasov_app *app, struct vlasov_species *sp, struct gkyl_array *fout,
+  struct gkyl_array *fstage, double tcurr
 );
 
 /**
@@ -1210,7 +1270,7 @@ void vlasov_species_write_lte_corr_status(gkyl_vlasov_app *app, struct vlasov_sp
 /**
  * Read each present aspect's evolved state from the named file and rebuild what
  * a restart does not carry (Jacobian rescales, boundary fluxes, BCs, sources,
- * static applied accelerations).
+ * static applied accelerations), through the aspect's own method.
  *
  * @param app Vlasov app object
  * @param sp Species container
@@ -1223,9 +1283,9 @@ struct gkyl_app_restart_status vlasov_species_from_file(
 
 /**
  * Restart a species from a frame: seed the kinetic aspect from the initial
- * conditions (fills fixed-function BC buffers), read the frame file named by
- * the species, mark the diagnostics to append, and set the app clock to the
- * frame time.
+ * conditions (fills fixed-function BC buffers), let each present aspect read
+ * its frame file and mark its diagnostics to append, and set the app clock to
+ * the frame time.
  *
  * @param app Vlasov app object
  * @param sp Species container
@@ -1896,17 +1956,17 @@ void vm_species_source_adapt(
 );
 
 /**
- * Compute RHS contribution from source
+ * Accumulate the source onto the RHS of the species (a boundary-flux source is
+ * scaled by the boundary fluxes of its source species first).
  *
  * @param app Vlasov app object
  * @param species Pointer to species
  * @param src Pointer to source
- * @param fin Input distribution function
- * @param rhs On output, the distribution function
+ * @param rhs RHS of the species to accumulate onto
  */
 void vm_species_source_rhs(
   gkyl_vlasov_app *app, const struct vm_species *species, struct vm_source *src,
-  const struct gkyl_array *fin[], struct gkyl_array *rhs[]
+  struct gkyl_array *rhs
 );
 
 /**
@@ -2017,6 +2077,54 @@ double vm_species_rhs_implicit(
 );
 
 /**
+ * Compute the moments of the implicit collision update. Run for every species
+ * before any vm_species_rhs_implicit, which reads the partners' moments.
+ *
+ * @param app Vlasov app object
+ * @param species Pointer to species
+ * @param fin Input distribution function
+ */
+void vm_species_calc_implicit_moms(
+  gkyl_vlasov_app *app, struct vm_species *species, const struct gkyl_array *fin
+);
+
+/**
+ * Compute the time-dependent applied acceleration (no-op when it does not
+ * evolve in time).
+ *
+ * @param app Vlasov app object
+ * @param species Pointer to species
+ * @param tcurr Current time
+ */
+void vm_species_calc_app_accel(gkyl_vlasov_app *app, struct vm_species *species, double tcurr);
+
+/**
+ * Compute the moments that rescale adaptive sources (no-op for other sources).
+ * Run after the RHS of every species.
+ *
+ * @param app Vlasov app object
+ * @param species Pointer to species
+ * @param fin Input distribution function
+ */
+void vm_species_calc_source_moms(
+  gkyl_vlasov_app *app, struct vm_species *species, const struct gkyl_array *fin
+);
+
+/**
+ * Accumulate the source of the species onto its RHS (no-op without a source):
+ * project a time-dependent source, rescale an adaptive one, and accumulate.
+ * Run after vm_species_calc_source_moms for every species.
+ *
+ * @param app Vlasov app object
+ * @param species Pointer to species
+ * @param tcurr Current time
+ * @param rhs RHS of the species to accumulate onto
+ */
+void vm_species_rhs_source(
+  gkyl_vlasov_app *app, struct vm_species *species, double tcurr, struct gkyl_array *rhs
+);
+
+/**
  * Scale and accumulate for the forward Euler method: out = a*out + inp.
  *
  * @param vms Pointer to species.
@@ -2070,7 +2178,8 @@ void vm_species_apply_bc(
 );
 
 /**
- * Species write function.
+ * Species write function: the distribution function and, when requested, the
+ * source and the emission spectra of the frame.
  *
  * @param app Vlasov app object.
  * @param vms Species object.
@@ -2080,7 +2189,8 @@ void vm_species_apply_bc(
 void vm_species_write(gkyl_vlasov_app *app, struct vm_species *vms, double tm, int frame);
 
 /**
- * Species moment write function.
+ * Species moment write function: the diagnostic moments of the distribution
+ * and, when requested, of the source.
  *
  * @param app Vlasov app object.
  * @param vms Species object.
@@ -2090,7 +2200,8 @@ void vm_species_write(gkyl_vlasov_app *app, struct vm_species *vms, double tm, i
 void vm_species_write_mom(gkyl_vlasov_app *app, struct vm_species *vms, double tm, int frame);
 
 /**
- * Species calc integrated moment function.
+ * Species calc integrated moment function (of the distribution and, when
+ * requested, of the source).
  *
  * @param app Vlasov app object.
  * @param vms Species object.
@@ -2099,12 +2210,41 @@ void vm_species_write_mom(gkyl_vlasov_app *app, struct vm_species *vms, double t
 void vm_species_calc_integrated_mom(gkyl_vlasov_app *app, struct vm_species *vms, double tm);
 
 /**
- * Species write integrated moment function.
+ * Species write integrated moment function (of the distribution and, when
+ * requested, of the source).
  *
  * @param app Vlasov app object.
  * @param vms Species object.
  */
 void vm_species_write_integrated_mom(gkyl_vlasov_app *app, struct vm_species *vms);
+
+/**
+ * Read the distribution function from a file and rebuild what the file does
+ * not carry: the velocity- and configuration-space Jacobian rescale, the
+ * boundary fluxes, the BCs, and the source and the applied acceleration at the
+ * time of the file.
+ *
+ * @param app Vlasov app object.
+ * @param vms Species object.
+ * @param fname File to read.
+ * @return Restart status.
+ */
+struct gkyl_app_restart_status vm_species_from_file(
+  gkyl_vlasov_app *app, struct vm_species *vms, const char *fname
+);
+
+/**
+ * Restart the species from its file of a frame (see vm_species_from_file) and
+ * mark its diagnostics to append to their existing files.
+ *
+ * @param app Vlasov app object.
+ * @param vms Species object.
+ * @param frame Frame number.
+ * @return Restart status.
+ */
+struct gkyl_app_restart_status vm_species_read_from_frame(
+  gkyl_vlasov_app *app, struct vm_species *vms, int frame
+);
 
 /**
  * Compute L2 energy (f^2) of the distribution function diagnostic
@@ -2172,12 +2312,11 @@ void vm_fluid_species_source_calc(
  * @param app Vlasov app object
  * @param species Pointer to fluid species
  * @param src Pointer to source
- * @param fin[] Input fluid moments, indexed over the overall species count
- * @param rhs[] Fluid RHS arrays, indexed over the overall species count
+ * @param rhs Fluid RHS of the species to accumulate onto
  */
 void vm_fluid_species_source_rhs(
   gkyl_vlasov_app *app, const struct vm_fluid_species *species, struct vm_fluid_source *src,
-  const struct gkyl_array *fin[], struct gkyl_array *rhs[]
+  struct gkyl_array *rhs
 );
 
 /**
@@ -2263,6 +2402,18 @@ double vm_fluid_species_rhs(
 );
 
 /**
+ * Accumulate the source of the fluid species onto its RHS (no-op without a
+ * source). Run after the RHS of every species.
+ *
+ * @param app Vlasov app object
+ * @param fluid_species Pointer to fluid species
+ * @param rhs Fluid RHS of the species to accumulate onto
+ */
+void vm_fluid_species_rhs_source(
+  gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, struct gkyl_array *rhs
+);
+
+/**
  * Forward-Euler accumulate for the fluid state: out = dt*out + inp.
  */
 void vm_fluid_species_step_f(
@@ -2329,6 +2480,33 @@ void vm_fluid_species_write(
  */
 void vm_fluid_species_write_integrated_mom(
   gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species
+);
+
+/**
+ * Read the fluid state from a file and rebuild what the file does not carry:
+ * the BCs, and the source and the applied acceleration at the time of the file.
+ *
+ * @param app Vlasov app object.
+ * @param fluid_species Pointer to fluid species.
+ * @param fname File to read.
+ * @return Restart status.
+ */
+struct gkyl_app_restart_status vm_fluid_species_from_file(
+  gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, const char *fname
+);
+
+/**
+ * Restart the fluid species from its file of a frame (see
+ * vm_fluid_species_from_file) and mark its diagnostics to append to their
+ * existing files.
+ *
+ * @param app Vlasov app object.
+ * @param fluid_species Pointer to fluid species.
+ * @param frame Frame number.
+ * @return Restart status.
+ */
+struct gkyl_app_restart_status vm_fluid_species_read_from_frame(
+  gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, int frame
 );
 
 /**

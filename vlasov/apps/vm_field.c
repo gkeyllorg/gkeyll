@@ -622,8 +622,8 @@ vm_field_copy_range(
 // Vlasov-Maxwell field update: compute the RHS of Maxwell's equations.
 double
 vm_field_update(
-  gkyl_vlasov_app *app, double tcurr, const struct gkyl_array *fin[], const struct gkyl_array *emin,
-  struct gkyl_array *emout
+  gkyl_vlasov_app *app, int stage, double tcurr, const struct gkyl_array *fin[],
+  const struct gkyl_array *emin, struct gkyl_array *emout
 )
 {
   return vm_field_rhs(app, app->field, emin, emout);

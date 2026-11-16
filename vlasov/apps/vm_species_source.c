@@ -264,12 +264,9 @@ vm_species_source_adapt(gkyl_vlasov_app *app, const struct vm_species *vms, stru
 // computes rhs of the boundary flux
 void
 vm_species_source_rhs(
-  gkyl_vlasov_app *app, const struct vm_species *vms, struct vm_source *src,
-  const struct gkyl_array *fin[], struct gkyl_array *rhs[]
+  gkyl_vlasov_app *app, const struct vm_species *vms, struct vm_source *src, struct gkyl_array *rhs
 )
 {
-  int species_idx;
-  species_idx = vm_find_species_idx(app, vms->name);
   // use boundary fluxes to scale source profile
   if (src->calc_bflux) {
     src->scale_factor = 0.0;
@@ -297,7 +294,7 @@ vm_species_source_rhs(
     }
     src->scale_factor = src->scale_factor / src->source_length;
   }
-  gkyl_array_accumulate(rhs[species_idx], src->scale_factor, src->source);
+  gkyl_array_accumulate(rhs, src->scale_factor, src->source);
 }
 
 void

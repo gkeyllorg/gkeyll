@@ -8,7 +8,7 @@ vlasov_update_ssp_rk3(gkyl_vlasov_app *app, double dt0)
 {
   int num_species = app->num_species;
 
-  const struct gkyl_array *fin[num_species];
+  struct gkyl_array *fin[num_species];
   struct gkyl_array *fout[num_species];
   const struct gkyl_array *fluidin[num_species];
   struct gkyl_array *fluidout[num_species];
@@ -26,7 +26,7 @@ vlasov_update_ssp_rk3(gkyl_vlasov_app *app, double dt0)
 
           vlasov_species_gather_rk_state(app, VM_RK_F, VM_RK_F1, fin, fout, fluidin, fluidout);
           vlasov_forward_euler(
-            app, tcurr, dt, fin, fluidin, app->field->em, fout, fluidout, app->field->em1, &st
+            app, 1, tcurr, dt, fin, fluidin, app->field->em, fout, fluidout, app->field->em1, &st
           );
 
           vm_apply_bc(app, tcurr, fout, fluidout, app->field->em1);
@@ -37,6 +37,7 @@ vlasov_update_ssp_rk3(gkyl_vlasov_app *app, double dt0)
           }
           vlasov_field_limiter(app, app->field->em1); // no-op for the null field
           dt = st.dt_actual;
+          vlasov_stage_implicit(app, 1, dt);
           state = RK_STAGE_2;
 
           app->stat.rk3_tm += gkyl_time_diff_now_sec(rk3_s1_tm);
@@ -49,8 +50,8 @@ vlasov_update_ssp_rk3(gkyl_vlasov_app *app, double dt0)
 
           vlasov_species_gather_rk_state(app, VM_RK_F1, VM_RK_FNEW, fin, fout, fluidin, fluidout);
           vlasov_forward_euler(
-            app, tcurr + dt, dt, fin, fluidin, app->field->em1, fout, fluidout, app->field->emnew,
-            &st
+            app, 2, tcurr + dt, dt, fin, fluidin, app->field->em1, fout, fluidout,
+            app->field->emnew, &st
           );
 
           vm_apply_bc(app, tcurr, fout, fluidout, app->field->emnew);
@@ -78,6 +79,7 @@ vlasov_update_ssp_rk3(gkyl_vlasov_app *app, double dt0)
             vlasov_field_combine(
               app, app->field->em1, 3.0 / 4.0, app->field->em, 1.0 / 4.0, app->field->emnew
             ); // no-op for null field
+            vlasov_stage_implicit(app, 2, dt);
 
             state = RK_STAGE_3;
           }
@@ -92,7 +94,7 @@ vlasov_update_ssp_rk3(gkyl_vlasov_app *app, double dt0)
 
           vlasov_species_gather_rk_state(app, VM_RK_F1, VM_RK_FNEW, fin, fout, fluidin, fluidout);
           vlasov_forward_euler(
-            app, tcurr + dt / 2, dt, fin, fluidin, app->field->em1, fout, fluidout,
+            app, 3, tcurr + dt / 2, dt, fin, fluidin, app->field->em1, fout, fluidout,
             app->field->emnew, &st
           );
 
@@ -119,13 +121,17 @@ vlasov_update_ssp_rk3(gkyl_vlasov_app *app, double dt0)
               vlasov_species_combine(
                 app, &app->species[i], VM_RK_F1, 1.0 / 3.0, VM_RK_F, 2.0 / 3.0, VM_RK_FNEW
               );
-              vlasov_species_copy_range(app, &app->species[i], VM_RK_F, VM_RK_F1);
             }
-            // no-ops for the null field
             vlasov_field_combine(
               app, app->field->em1, 1.0 / 3.0, app->field->em, 2.0 / 3.0, app->field->emnew
-            );
-            vlasov_field_copy_range(app, app->field->em, app->field->em1);
+            ); // no-op for null field
+            // The implicit step of the stage acts on the combined state, which
+            // then becomes the solution.
+            vlasov_stage_implicit(app, 3, dt);
+            for (int i = 0; i < num_species; ++i) {
+              vlasov_species_copy_range(app, &app->species[i], VM_RK_F, VM_RK_F1);
+            }
+            vlasov_field_copy_range(app, app->field->em, app->field->em1); // no-op for null field
 
             state = RK_COMPLETE;
           }

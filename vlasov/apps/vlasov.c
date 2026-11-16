@@ -317,7 +317,8 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
     app->fl_em = vm_fluid_em_coupling_new(app);
   }
 
-  // Use implicit BGK collisions if any species requests them.
+  // Use implicit BGK collisions if any species requests them (applied inside
+  // the SSP-RK3 step, see vlasov_stage_implicit).
   app->has_implicit_coll_scheme = false;
   for (int i = 0; i < ntot; ++i) {
     if (app->species[i].kinetic && app->species[i].kinetic->info.collisions.is_implicit) {
@@ -326,10 +327,10 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   }
 
   // Set the appropriate update function for taking a single time step
-  // If we have implicit fluid-EM coupling or implicit BGK collisions,
-  // we perform a first-order operator split and treat those terms implicitly.
+  // If we have implicit fluid-EM coupling, we perform a first-order operator
+  // split and treat that coupling implicitly.
   // Otherwise, we default to an SSP-RK3 method.
-  if (app->has_implicit_coll_scheme || app->has_fluid_em_coupling) {
+  if (app->has_fluid_em_coupling) {
     app->update_func = vlasov_update_op_split;
   } else {
     app->update_func = vlasov_update_ssp_rk3;

@@ -108,6 +108,31 @@ vm_fluid_species_euler_release(const gkyl_vlasov_app *app, struct vm_fluid_speci
   gkyl_dg_calc_fluid_vars_release(f->calc_fluid_vars_ext);
 }
 
+// Limit the slopes of the solution, then reapply the boundary conditions.
+static void
+vm_fluid_species_euler_limiter(
+  gkyl_vlasov_app *app, struct vm_fluid_species *f, struct gkyl_array *fluid
+)
+{
+  struct timespec tm = gkyl_wall_clock();
+
+  // Limit the slopes of the solution
+  gkyl_dg_calc_fluid_vars_limiter(f->calc_fluid_vars, &app->local, fluid);
+
+  app->stat.fluid_species_vars_tm += gkyl_time_diff_now_sec(tm);
+
+  // Apply boundary conditions after limiting solution
+  vm_fluid_species_apply_bc(app, f, fluid);
+}
+
+// The advection and canonical-PB fluids have no slope limiter.
+static void
+vm_fluid_species_no_limiter(
+  gkyl_vlasov_app *app, struct vm_fluid_species *f, struct gkyl_array *fluid
+)
+{
+}
+
 // Initialize the necessary pieces to solve Euler's or isothermal Euler's equations with DG.
 static void
 vm_fluid_species_euler_init(
@@ -178,6 +203,7 @@ vm_fluid_species_euler_init(
   f->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, 6);
   f->is_first_integ_write_call = true;
 
+  f->limiter_func = vm_fluid_species_euler_limiter;
   f->prim_vars_func = vm_fluid_species_euler_prim_vars;
   f->calc_integrated_mom_func = vm_fluid_species_euler_calc_integrated;
   f->write_func = vm_fluid_species_euler_write;
@@ -318,6 +344,7 @@ vm_fluid_species_advect_init(
   f->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, 2);
   f->is_first_integ_write_call = true;
 
+  f->limiter_func = vm_fluid_species_no_limiter;
   f->prim_vars_func = vm_fluid_species_advect_prim_vars;
   f->calc_integrated_mom_func = vm_fluid_species_advect_calc_integrated;
   f->write_func = vm_fluid_species_advect_write;
@@ -624,6 +651,7 @@ vm_fluid_species_can_pb_fluid_init(
     &app->grid, &app->basis, 1, GKYL_ARRAY_INTEGRATE_OP_GRAD_SQ, app->use_gpu
   );
 
+  f->limiter_func = vm_fluid_species_no_limiter;
   f->prim_vars_func = vm_fluid_species_can_pb_fluid_prim_vars;
   f->calc_integrated_mom_func = vm_fluid_species_can_pb_fluid_calc_integrated;
   f->write_func = vm_fluid_species_can_pb_fluid_write;
@@ -651,6 +679,20 @@ vm_fluid_species_apply_ic_enabled(
   if (app->use_gpu) {
     gkyl_array_copy(fluid_species->fluid, fluid_species->fluid_host);
   }
+
+  // Copy the initial conditions into the buffers of fixed-function BCs, before
+  // the limiter below applies the BCs. *only works in x dimension for now*
+  if (fluid_species->lower_bc[0] == GKYL_SPECIES_FIXED_FUNC) {
+    gkyl_bc_basic_buffer_fixed_func(
+      fluid_species->bc_lo[0], fluid_species->bc_buffer_lo_fixed, fluid_species->fluid
+    );
+  }
+  if (fluid_species->upper_bc[0] == GKYL_SPECIES_FIXED_FUNC) {
+    gkyl_bc_basic_buffer_fixed_func(
+      fluid_species->bc_up[0], fluid_species->bc_buffer_up_fixed, fluid_species->fluid
+    );
+  }
+
   // Apply limiter at t=0 to insure slopes are well-behaved at beginning of simulation
   vm_fluid_species_limiter(app, fluid_species, fluid_species->fluid);
 
@@ -764,6 +806,112 @@ vm_fluid_species_copy_range_enabled(
   gkyl_array_copy_range(out, inp, range);
 }
 
+// Determine which directions are periodic and which directions are not periodic,
+// and then apply boundary conditions for fluid species
+static void
+vm_fluid_species_apply_bc_enabled(
+  gkyl_vlasov_app *app, const struct vm_fluid_species *fluid_species, struct gkyl_array *f
+)
+{
+  struct timespec wst = gkyl_wall_clock();
+
+  int num_periodic_dir = app->num_periodic_dir, cdim = app->cdim;
+  gkyl_comm_array_per_sync(
+    app->comm, &app->local, &app->local_ext, num_periodic_dir, app->periodic_dirs, f
+  );
+
+  int is_np_bc[3] = {1, 1, 1}; // flags to indicate if direction is periodic
+  for (int d = 0; d < num_periodic_dir; ++d) {
+    is_np_bc[app->periodic_dirs[d]] = 0;
+  }
+
+  for (int d = 0; d < cdim; ++d) {
+    if (is_np_bc[d]) {
+      switch (fluid_species->lower_bc[d]) {
+        case GKYL_SPECIES_COPY:
+        case GKYL_SPECIES_ABSORB:
+        case GKYL_SPECIES_REFLECT:
+        case GKYL_SPECIES_NO_SLIP:
+          gkyl_bc_basic_advance(fluid_species->bc_lo[d], fluid_species->bc_buffer, f);
+          break;
+        case GKYL_SPECIES_FIXED_FUNC:
+          gkyl_bc_basic_advance(fluid_species->bc_lo[d], fluid_species->bc_buffer_lo_fixed, f);
+          break;
+        case GKYL_SPECIES_WEDGE:
+          assert(false);
+          break;
+        default:
+          break;
+      }
+
+      switch (fluid_species->upper_bc[d]) {
+        case GKYL_SPECIES_COPY:
+        case GKYL_SPECIES_ABSORB:
+        case GKYL_SPECIES_REFLECT:
+        case GKYL_SPECIES_NO_SLIP:
+          gkyl_bc_basic_advance(fluid_species->bc_up[d], fluid_species->bc_buffer, f);
+          break;
+        case GKYL_SPECIES_FIXED_FUNC:
+          gkyl_bc_basic_advance(fluid_species->bc_up[d], fluid_species->bc_buffer_up_fixed, f);
+          break;
+        case GKYL_SPECIES_WEDGE:
+          assert(false);
+          break;
+        default:
+          break;
+      }
+    }
+  }
+
+  gkyl_comm_array_sync(app->comm, &app->local, &app->local_ext, f);
+
+  app->stat.fluid_species_bc_tm += gkyl_time_diff_now_sec(wst);
+}
+
+// Read the fluid state from a file and rebuild what a restart does not carry:
+// the BCs, and the source and the applied acceleration evaluated at the time of
+// the file.
+static struct gkyl_app_restart_status
+vm_fluid_species_from_file_enabled(
+  gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, const char *fname
+)
+{
+  struct gkyl_app_restart_status rstat = vlasov_header_from_file(app, fname);
+
+  if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
+    rstat.io_status =
+      gkyl_comm_array_read(app->comm, &app->grid, &app->local, fluid_species->fluid_host, fname);
+    if (app->use_gpu) {
+      gkyl_array_copy(fluid_species->fluid, fluid_species->fluid_host);
+    }
+    if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
+      vm_fluid_species_apply_bc(app, fluid_species, fluid_species->fluid);
+      if (fluid_species->source_id) {
+        vm_fluid_species_source_calc(app, fluid_species, rstat.stime);
+      }
+    }
+  }
+  vm_fluid_species_calc_app_accel(app, fluid_species, rstat.stime);
+
+  return rstat;
+}
+
+// Source of the fluid species onto its RHS.
+static void
+vm_fluid_species_rhs_source_enabled(
+  gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, struct gkyl_array *rhs
+)
+{
+  vm_fluid_species_source_rhs(app, fluid_species, &fluid_species->src, rhs);
+}
+
+static void
+vm_fluid_species_rhs_source_disabled(
+  gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, struct gkyl_array *rhs
+)
+{
+}
+
 // initialize fluid species object
 void
 vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_fluid_species *f)
@@ -803,6 +951,8 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   f->step_f_func = vm_fluid_species_step_f_enabled;
   f->combine_func = vm_fluid_species_combine_enabled;
   f->copy_func = vm_fluid_species_copy_range_enabled;
+  f->bc_func = vm_fluid_species_apply_bc_enabled;
+  f->from_file_func = vm_fluid_species_from_file_enabled;
 
   // allocate fluid arrays
   f->fluid = mkarr(app->use_gpu, f->num_equations * app->basis.num_basis, app->local_ext.volume);
@@ -905,6 +1055,8 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
 
   // set species source id
   f->source_id = f->info.source.source_id;
+  f->rhs_source_func = f->source_id ? vm_fluid_species_rhs_source_enabled :
+                                      vm_fluid_species_rhs_source_disabled;
 
   // determine which directions are not periodic
   int num_periodic_dir = app->num_periodic_dir, is_np[3] = {1, 1, 1};
@@ -937,6 +1089,9 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     buff_sz = buff_sz > vol ? buff_sz : vol;
   }
   f->bc_buffer = mkarr(app->use_gpu, f->num_equations * app->basis.num_basis, buff_sz);
+  // Buffers for fixed function BCs on the fluid state.
+  f->bc_buffer_lo_fixed = mkarr(app->use_gpu, f->num_equations * app->basis.num_basis, buff_sz);
+  f->bc_buffer_up_fixed = mkarr(app->use_gpu, f->num_equations * app->basis.num_basis, buff_sz);
 
   // Certain operations fail if absorbing BCs used because absorbing BCs
   // means the mass density is 0 in the ghost cells (divide by zero)
@@ -953,6 +1108,8 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
       bctype = GKYL_BC_EULER_REFLECT;
     } else if (f->lower_bc[d] == GKYL_SPECIES_NO_SLIP) {
       bctype = GKYL_BC_EULER_NO_SLIP;
+    } else if (f->lower_bc[d] == GKYL_SPECIES_FIXED_FUNC) {
+      bctype = GKYL_BC_FIXED_FUNC;
     }
 
     f->bc_lo[d] = gkyl_bc_basic_new(
@@ -970,6 +1127,8 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
       bctype = GKYL_BC_EULER_REFLECT;
     } else if (f->upper_bc[d] == GKYL_SPECIES_NO_SLIP) {
       bctype = GKYL_BC_EULER_NO_SLIP;
+    } else if (f->upper_bc[d] == GKYL_SPECIES_FIXED_FUNC) {
+      bctype = GKYL_BC_FIXED_FUNC;
     }
 
     f->bc_up[d] = gkyl_bc_basic_new(
@@ -1014,17 +1173,7 @@ vm_fluid_species_limiter(
   gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, struct gkyl_array *fluid
 )
 {
-  if (fluid_species->eqn_type == GKYL_EQN_EULER || fluid_species->eqn_type == GKYL_EQN_ISO_EULER) {
-    struct timespec tm = gkyl_wall_clock();
-
-    // Limit the slopes of the solution
-    gkyl_dg_calc_fluid_vars_limiter(fluid_species->calc_fluid_vars, &app->local, fluid);
-
-    app->stat.fluid_species_vars_tm += gkyl_time_diff_now_sec(tm);
-
-    // Apply boundary conditions after limiting solution
-    vm_fluid_species_apply_bc(app, fluid_species, fluid);
-  }
+  fluid_species->limiter_func(app, fluid_species, fluid);
 }
 
 double
@@ -1034,6 +1183,14 @@ vm_fluid_species_rhs(
 )
 {
   return fluid_species->rhs_func(app, fluid_species, fluid, em, rhs);
+}
+
+void
+vm_fluid_species_rhs_source(
+  gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, struct gkyl_array *rhs
+)
+{
+  fluid_species->rhs_source_func(app, fluid_species, rhs);
 }
 
 void
@@ -1064,62 +1221,13 @@ vm_fluid_species_copy_range(
   fluid_species->copy_func(out, inp, range);
 }
 
-// Determine which directions are periodic and which directions are not periodic,
-// and then apply boundary conditions for fluid species
+// Apply boundary conditions to the fluid state.
 void
 vm_fluid_species_apply_bc(
   gkyl_vlasov_app *app, const struct vm_fluid_species *fluid_species, struct gkyl_array *f
 )
 {
-  struct timespec wst = gkyl_wall_clock();
-
-  int num_periodic_dir = app->num_periodic_dir, cdim = app->cdim;
-  gkyl_comm_array_per_sync(
-    app->comm, &app->local, &app->local_ext, num_periodic_dir, app->periodic_dirs, f
-  );
-
-  int is_np_bc[3] = {1, 1, 1}; // flags to indicate if direction is periodic
-  for (int d = 0; d < num_periodic_dir; ++d) {
-    is_np_bc[app->periodic_dirs[d]] = 0;
-  }
-
-  for (int d = 0; d < cdim; ++d) {
-    if (is_np_bc[d]) {
-      switch (fluid_species->lower_bc[d]) {
-        case GKYL_SPECIES_COPY:
-        case GKYL_SPECIES_ABSORB:
-        case GKYL_SPECIES_REFLECT:
-        case GKYL_SPECIES_NO_SLIP:
-          gkyl_bc_basic_advance(fluid_species->bc_lo[d], fluid_species->bc_buffer, f);
-          break;
-        case GKYL_SPECIES_WEDGE:
-        case GKYL_SPECIES_FIXED_FUNC:
-          assert(false);
-          break;
-        default:
-          break;
-      }
-
-      switch (fluid_species->upper_bc[d]) {
-        case GKYL_SPECIES_COPY:
-        case GKYL_SPECIES_ABSORB:
-        case GKYL_SPECIES_REFLECT:
-        case GKYL_SPECIES_NO_SLIP:
-          gkyl_bc_basic_advance(fluid_species->bc_up[d], fluid_species->bc_buffer, f);
-          break;
-        case GKYL_SPECIES_WEDGE:
-        case GKYL_SPECIES_FIXED_FUNC:
-          assert(false);
-          break;
-        default:
-          break;
-      }
-    }
-  }
-
-  gkyl_comm_array_sync(app->comm, &app->local, &app->local_ext, f);
-
-  app->stat.fluid_species_bc_tm += gkyl_time_diff_now_sec(wst);
+  fluid_species->bc_func(app, fluid_species, f);
 }
 
 // Integrated quantities calculator for different fluid equations.
@@ -1134,6 +1242,31 @@ void
 vm_fluid_species_write(gkyl_vlasov_app *app, struct vm_fluid_species *f, double tm, int frame)
 {
   f->write_func(app, f, tm, frame);
+}
+
+// Read the fluid state from a file.
+struct gkyl_app_restart_status
+vm_fluid_species_from_file(
+  gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, const char *fname
+)
+{
+  return fluid_species->from_file_func(app, fluid_species, fname);
+}
+
+// Restart from the file of a frame; the integrated moments then append to
+// their existing file.
+struct gkyl_app_restart_status
+vm_fluid_species_read_from_frame(
+  gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, int frame
+)
+{
+  cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, fluid_species->name, frame);
+  struct gkyl_app_restart_status rstat = vm_fluid_species_from_file(app, fluid_species, fileNm.str);
+  cstr_drop(&fileNm);
+
+  fluid_species->is_first_integ_write_call = false;
+
+  return rstat;
 }
 
 // Write method for integrated fluid quantities.
@@ -1174,6 +1307,8 @@ vm_fluid_species_release(const gkyl_vlasov_app *app, struct vm_fluid_species *f)
   gkyl_array_release(f->fluid1);
   gkyl_array_release(f->fluidnew);
   gkyl_array_release(f->bc_buffer);
+  gkyl_array_release(f->bc_buffer_lo_fixed);
+  gkyl_array_release(f->bc_buffer_up_fixed);
   gkyl_array_release(f->cflrate);
 
   if (f->has_diffusion) {

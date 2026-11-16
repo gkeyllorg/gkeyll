@@ -151,7 +151,7 @@ struct gkyl_vlasov_app {
   bool has_fluid_em_coupling; // Boolean for if there is implicit fluid-EM coupling
   struct vm_fluid_em_coupling *fl_em; // fluid-EM coupling data
 
-  bool has_implicit_coll_scheme; // Boolean for using implicit bgk scheme (over explicit rk3)
+  bool has_implicit_coll_scheme; // Boolean for using the implicit BGK scheme (in the RK3 stages)
 
   // pointer to function that takes a single-step of simulation
   struct gkyl_update_status (*update_func)(gkyl_vlasov_app *app, double dt0);
@@ -162,19 +162,23 @@ struct gkyl_vlasov_app {
 // Take a single forward Euler step of the Vlasov-Maxwell system
 // with the suggested time-step dt. Also supports just Maxwell's equations
 // and fluid equations (Euler's) with potential Vlasov-fluid coupling.
+// 'stage' is the SSP-RK3 stage (1, 2 or 3) the step belongs to. The stage
+// distributions fin[] are not const: a species may bring its stage state into
+// admissible form before its moments are taken (see calc_self_moms_func).
 void vlasov_forward_euler(
-  gkyl_vlasov_app *app, double tcurr, double dt, const struct gkyl_array *fin[],
+  gkyl_vlasov_app *app, int stage, double tcurr, double dt, struct gkyl_array *fin[],
   const struct gkyl_array *fluidin[], const struct gkyl_array *emin, struct gkyl_array *fout[],
   struct gkyl_array *fluidout[], struct gkyl_array *emout, struct gkyl_update_status *st
 );
 
-// The implicit half of the operator-split step: implicit BGK collisions for each
-// species, then the implicit fluid-EM coupling, both with the explicit step's
-// actual dt. A no-op when neither implicit scheme is active.
-void vlasov_update_implicit(gkyl_vlasov_app *app, double dt0);
+// The implicit operators of SSP-RK3 stage 'stage' (1, 2 or 3), applied to the
+// stage state after the explicit part of the stage, its BCs and the stage
+// combination: implicit BGK collisions, one backward-Euler step over dt on the
+// combined state of the last stage. A no-op without implicit collisions.
+void vlasov_stage_implicit(gkyl_vlasov_app *app, int stage, double dt);
 
-// Take a single time-step using a first-order operator split
-// implicit fluid-EM coupling and/or implicit BGK collisions + SSP RK3
+// Take a single time-step using a first-order operator split: SSP RK3, then
+// the implicit fluid-EM coupling
 struct gkyl_update_status vlasov_update_op_split(gkyl_vlasov_app *app, double dt0);
 
 // Take a single time-step using a SSP-RK3 stepper
