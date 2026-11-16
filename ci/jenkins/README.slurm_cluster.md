@@ -33,8 +33,9 @@ and configuration outside purgeable scratch storage.
 | --- | --- | --- | --- |
 | [Stellar CPU](slurm-clusters/slurm_ci_profile_stellar_cpu.sh) | 1 task; 4 / 8 CPUs; no GPUs | 4 tasks, 1 CPU each | Agent; Stellar Intel toolchain |
 | [Perlmutter GPU](slurm-clusters/slurm_ci_profile_perlmutter_gpu.sh) | 1 task, 32 CPUs, 1 GPU | 4 tasks, 8 CPUs and 1 GPU per task | Agent; Perlmutter CUDA/NCCL toolchain |
+| [StellarAI GPU](slurm-clusters/slurm_ci_profile_stellarai_gpu.sh) | 1 task, 4 CPUs, 1 GPU | 4 tasks, 1 CPU each; 4 GPUs on one node | Agent; StellarAI CUDA/NCCL toolchain |
 
-Both profiles use one node. Their default walltimes are 30 minutes for unit
+All profiles use one node. Their default walltimes are 30 minutes for unit
 jobs and 4 hours for each serial or parallel regression job. For another site,
 [create a profile](#add-a-cluster) before continuing.
 
@@ -77,6 +78,41 @@ export JAVA_HOME="$(spack location --install-dir openjdk@21)"
 
 The profile requests `shared` QoS and the `gpu` constraint. Account, resource
 and walltime requests must fit your site's scheduler policy.
+
+### StellarAI GPU example
+
+On a permitted StellarAI host with the GPU build toolchain, set:
+
+```sh
+export GKEYLL_CI_CLUSTER=stellarai_gpu
+export GKEYLL_CI_ROOT=/scratch/gpfs/$USER/gkeyll_ci_stellarai_gpu
+export JAVA_HOME=/absolute/path/to/your/java21
+export SLURM_CI_QOS='your-gpu-qos'
+# Set this only if your allocation requires an account:
+export SLURM_CI_ACCOUNT='your-account'
+./ci/jenkins/gkeyll-ci.sh slurm validate
+```
+
+Supply the shared root and Java path; this profile has no defaults for them.
+Choose a GPU QoS that permits the requested walltimes. The profile selects the
+`gpu` partition and uses the three `machines/*stellarai-gpu.sh` build/environment
+files. Compilation runs on the Jenkins agent; use a host permitted for builds
+that can also execute the resulting Emerald Rapids CPU code. The configure
+script targets CUDA architecture 100. Check current host access and GPU QoS
+names in the [StellarAI site guide](https://researchcomputing.princeton.edu/systems/stellarai).
+
+The submitted scripts unload `anaconda3/2026.7` after loading the environment
+and set `UCX_TLS=sm,cuda_copy,self`, matching `machines/jobScript.stellarai-gpu.sh`.
+Anaconda remains available during dependency installation for ADAS downloads.
+Parallel regressions use `mpirun`, four ranks and four GPUs on one node; keep
+this allocation on one node because these UCX transports do not span nodes.
+Serial regressions run one at a time on one GPU (`SLURM_CI_SERIAL_JOBS=1`).
+
+Follow the common controller and trusted-job setup below, using job name
+`gkeyll-ci-stellarai_gpu` and node label `stellarai_gpu`. The trusted CI revision
+must contain this profile and its payloads, and both candidate and baseline
+must contain the StellarAI machine files. A local profile alone does not make
+it available to an existing Jenkins job pinned to another revision.
 
 ## Install the controller
 
@@ -293,11 +329,11 @@ arguments and selected site script to `sbatch`. The scripts below execute on
 compute nodes; each regression script runs for baseline creation on a cache
 miss and again for candidate comparison.
 
-| Profile option | Stellar CPU script | Perlmutter GPU script |
-| --- | --- | --- |
-| `SLURM_CI_UNIT_SCRIPT` | [slurm-unit-tests.stellar_cpu.sh](slurm-clusters/slurm-unit-tests.stellar_cpu.sh) | [slurm-unit-tests.perlmutter_gpu.sh](slurm-clusters/slurm-unit-tests.perlmutter_gpu.sh) |
-| `SLURM_CI_SERIAL_SCRIPT` | [slurm-serial-regression-tests.stellar_cpu.sh](slurm-clusters/slurm-serial-regression-tests.stellar_cpu.sh) | [slurm-serial-regression-tests.perlmutter_gpu.sh](slurm-clusters/slurm-serial-regression-tests.perlmutter_gpu.sh) |
-| `SLURM_CI_PARALLEL_SCRIPT` | [slurm-parallel-regression-tests.stellar_cpu.sh](slurm-clusters/slurm-parallel-regression-tests.stellar_cpu.sh) | [slurm-parallel-regression-tests.perlmutter_gpu.sh](slurm-clusters/slurm-parallel-regression-tests.perlmutter_gpu.sh) |
+| Profile option | Stellar CPU script | Perlmutter GPU script | StellarAI GPU script |
+| --- | --- | --- | --- |
+| `SLURM_CI_UNIT_SCRIPT` | [slurm-unit-tests.stellar_cpu.sh](slurm-clusters/slurm-unit-tests.stellar_cpu.sh) | [slurm-unit-tests.perlmutter_gpu.sh](slurm-clusters/slurm-unit-tests.perlmutter_gpu.sh) | [slurm-unit-tests.stellarai_gpu.sh](slurm-clusters/slurm-unit-tests.stellarai_gpu.sh) |
+| `SLURM_CI_SERIAL_SCRIPT` | [slurm-serial-regression-tests.stellar_cpu.sh](slurm-clusters/slurm-serial-regression-tests.stellar_cpu.sh) | [slurm-serial-regression-tests.perlmutter_gpu.sh](slurm-clusters/slurm-serial-regression-tests.perlmutter_gpu.sh) | [slurm-serial-regression-tests.stellarai_gpu.sh](slurm-clusters/slurm-serial-regression-tests.stellarai_gpu.sh) |
+| `SLURM_CI_PARALLEL_SCRIPT` | [slurm-parallel-regression-tests.stellar_cpu.sh](slurm-clusters/slurm-parallel-regression-tests.stellar_cpu.sh) | [slurm-parallel-regression-tests.perlmutter_gpu.sh](slurm-clusters/slurm-parallel-regression-tests.perlmutter_gpu.sh) | [slurm-parallel-regression-tests.stellarai_gpu.sh](slurm-clusters/slurm-parallel-regression-tests.stellarai_gpu.sh) |
 
 Keep site module loads, unloads, runtime exports and launch commands in these
 scripts, before test execution. Do not duplicate profile resources in `#SBATCH`
@@ -321,7 +357,7 @@ Submitted scripts and the checker come from the pinned trusted snapshot.
 Preserve the shipped scripts' summary/timing filenames, including
 `ci-serial-regression-summary.txt`, `ci-parallel-regression-summary.txt`, and
 candidate/baseline `*-serial-c-*` / `*-parallel-c-*` timing files. The checker
-receives the candidate/baseline acknowledgment files. Use the six scripts as
+receives the candidate/baseline acknowledgment files. Use the shipped scripts as
 executable examples of the full contract.
 
 ### Compilation inside Slurm

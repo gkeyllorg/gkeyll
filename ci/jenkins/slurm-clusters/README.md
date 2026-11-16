@@ -17,14 +17,15 @@ A cluster can have separate CPU and GPU profiles.
 | `slurm-serial-regression-tests.PROFILE.sh` | Submitted job script that creates serial regression baselines or checks candidate results against them. Serial tests may run concurrently within the allocation. |
 | `slurm-parallel-regression-tests.PROFILE.sh` | Submitted job script that creates or checks parallel regression results; the regression driver launches each MPI test. |
 
-The shipped profiles are [Stellar CPU](slurm_ci_profile_stellar_cpu.sh) and
-[Perlmutter GPU](slurm_ci_profile_perlmutter_gpu.sh). The profile supplies
+The shipped profiles are [Stellar CPU](slurm_ci_profile_stellar_cpu.sh),
+[Perlmutter GPU](slurm_ci_profile_perlmutter_gpu.sh), and
+[StellarAI GPU](slurm_ci_profile_stellarai_gpu.sh). The profile supplies
 allocations to the shared submission helper. The three test scripts own site
 module loads, unloads, runtime exports and launch commands; edit those scripts
 to add preparation before test execution. Keep resource requests in the profile
 rather than duplicating them in `#SBATCH` directives.
 
-Both shipped profiles compile on the Jenkins agent. A cluster that compiles
+All shipped profiles compile on the Jenkins agent. A cluster that compiles
 inside Slurm also supplies its own `SLURM_CI_BUILD_SCRIPT`; see the
 [build script contract](../README.slurm_cluster.md#compilation-inside-slurm).
 Shared Jenkins code and submission/build helpers remain in the parent directory.

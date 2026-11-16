@@ -8,8 +8,9 @@ editable shell profiles and separate site Slurm scripts.
 - [Personal computer CI](README.personal.md): manually run a selected GitHub
   pull request or candidate/baseline branch or commit on a local computer.
 - [Slurm cluster CI](README.slurm_cluster.md): common setup for CPU or GPU
-  profiles, including [Stellar](README.slurm_cluster.md#stellar-cpu-example) and
-  [Perlmutter](README.slurm_cluster.md#perlmutter-gpu-example), with instructions
+  profiles, including [Stellar](README.slurm_cluster.md#stellar-cpu-example),
+  [Perlmutter](README.slurm_cluster.md#perlmutter-gpu-example), and
+  [StellarAI](README.slurm_cluster.md#stellarai-gpu-example), with instructions
   for adding sites.
 - [Team workstation CI](README.team_workstation.md): periodically discover
   pull requests into `main` from every author, with optional selected runs.
