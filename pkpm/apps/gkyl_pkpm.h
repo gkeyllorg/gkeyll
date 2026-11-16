@@ -206,6 +206,30 @@ struct pkpm_mapc2p_pos {
   void (*mapc2p_pos_func)(double t, const double *xc, double *xp, void *ctx);
 };
 
+// Largest number of moments a neural network takes as inputs or as outputs.
+#define GKYL_PKPM_NN_MAX_MOMS 16
+
+// Neural-network options of a run, read by the driver of the run (the Lua wrapper): training
+// one network per species on the diagnostic moments of the simulation (gkyl_pkpm_app_train,
+// gkyl_pkpm_app_write_nn) and testing a trained one against them (gkyl_pkpm_app_test). All
+// zeros, the default, means no network is used.
+struct gkyl_pkpm_nn {
+  bool train_nn; // Train neural network on simulation data?
+  bool train_ab_initio; // Train a new network (otherwise the one read from train_nn_file)?
+  int nn_width; // Number of neurons to use per layer.
+  int nn_depth; // Number of layers to use.
+  char train_nn_file[256]; // File path of neural network to train.
+  int num_trains; // Number of times to train neural network.
+  int num_nn_writes; // Number of times to write out neural network.
+  int num_input_moms; // Number of "input" moments to train on.
+  int input_moms[GKYL_PKPM_NN_MAX_MOMS]; // "Input" moments to train on.
+  int num_output_moms; // Number of "output" moments to train on.
+  int output_moms[GKYL_PKPM_NN_MAX_MOMS]; // "Output" moments to train on.
+  bool test_nn; // Test neural network on simulation data?
+  char test_nn_file[256]; // File path of neural network to test.
+  int num_tests; // Number of times to test neural network.
+};
+
 // Top-level app parameters
 struct gkyl_pkpm {
   char name[128]; // name of app: used as output prefix
@@ -241,6 +265,8 @@ struct gkyl_pkpm {
   // updates the fluid and E lag by half a source step, and output and diagnostics see them
   // synchronized; frames store the steps that make a restart continue the uninterrupted run.
   bool use_explicit_sources; // Use the fully explicit SSP RK3 scheme instead
+
+  struct gkyl_pkpm_nn nn; // Neural-network options (all zeros: no network).
 
   struct gkyl_app_parallelism_inp parallelism; // Parallelism-related inputs.
 };

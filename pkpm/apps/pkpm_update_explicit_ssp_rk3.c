@@ -25,10 +25,10 @@ pkpm_update_explicit_ssp_rk3(gkyl_pkpm_app *app, double dt0)
           struct timespec rk3_s1_tm = gkyl_wall_clock();
 
           for (int i = 0; i < ns; ++i) {
-            fin[i] = app->species[i].f;
-            fluidin[i] = app->species[i].fluid;
-            fout[i] = app->species[i].f1;
-            fluidout[i] = app->species[i].fluid1;
+            fin[i] = app->species[i].kinetic->f;
+            fluidin[i] = app->species[i].fluid->fluid;
+            fout[i] = app->species[i].kinetic->f1;
+            fluidout[i] = app->species[i].fluid->fluid1;
           }
           pkpm_forward_euler(
             app, 1, tcurr, dt, fin, fluidin, app->field->em, fout, fluidout, app->field->em1, &st
@@ -49,10 +49,10 @@ pkpm_update_explicit_ssp_rk3(gkyl_pkpm_app *app, double dt0)
           struct timespec rk3_s2_tm = gkyl_wall_clock();
 
           for (int i = 0; i < ns; ++i) {
-            fin[i] = app->species[i].f1;
-            fluidin[i] = app->species[i].fluid1;
-            fout[i] = app->species[i].fnew;
-            fluidout[i] = app->species[i].fluidnew;
+            fin[i] = app->species[i].kinetic->f1;
+            fluidin[i] = app->species[i].fluid->fluid1;
+            fout[i] = app->species[i].kinetic->fnew;
+            fluidout[i] = app->species[i].fluid->fluidnew;
           }
           pkpm_forward_euler(
             app, 2, tcurr + dt, dt, fin, fluidin, app->field->em1, fout, fluidout,
@@ -73,14 +73,14 @@ pkpm_update_explicit_ssp_rk3(gkyl_pkpm_app *app, double dt0)
           } else {
             for (int i = 0; i < ns; ++i) {
               array_combine(
-                app->species[i].f1, 3.0 / 4.0, app->species[i].f, 1.0 / 4.0, app->species[i].fnew,
-                &app->species[i].local_ext
+                app->species[i].kinetic->f1, 3.0 / 4.0, app->species[i].kinetic->f, 1.0 / 4.0,
+                app->species[i].kinetic->fnew, &app->species[i].kinetic->local_ext
               );
             }
             for (int i = 0; i < ns; ++i) {
               array_combine(
-                app->species[i].fluid1, 3.0 / 4.0, app->species[i].fluid, 1.0 / 4.0,
-                app->species[i].fluidnew, &app->local_ext
+                app->species[i].fluid->fluid1, 3.0 / 4.0, app->species[i].fluid->fluid, 1.0 / 4.0,
+                app->species[i].fluid->fluidnew, &app->local_ext
               );
             }
             array_combine(
@@ -101,10 +101,10 @@ pkpm_update_explicit_ssp_rk3(gkyl_pkpm_app *app, double dt0)
           struct timespec rk3_s3_tm = gkyl_wall_clock();
 
           for (int i = 0; i < ns; ++i) {
-            fin[i] = app->species[i].f1;
-            fluidin[i] = app->species[i].fluid1;
-            fout[i] = app->species[i].fnew;
-            fluidout[i] = app->species[i].fluidnew;
+            fin[i] = app->species[i].kinetic->f1;
+            fluidin[i] = app->species[i].fluid->fluid1;
+            fout[i] = app->species[i].kinetic->fnew;
+            fluidout[i] = app->species[i].fluid->fluidnew;
           }
           pkpm_forward_euler(
             app, 3, tcurr + dt / 2, dt, fin, fluidin, app->field->em1, fout, fluidout,
@@ -127,22 +127,25 @@ pkpm_update_explicit_ssp_rk3(gkyl_pkpm_app *app, double dt0)
           } else {
             for (int i = 0; i < ns; ++i) {
               array_combine(
-                app->species[i].f1, 1.0 / 3.0, app->species[i].f, 2.0 / 3.0, app->species[i].fnew,
-                &app->species[i].local_ext
+                app->species[i].kinetic->f1, 1.0 / 3.0, app->species[i].kinetic->f, 2.0 / 3.0,
+                app->species[i].kinetic->fnew, &app->species[i].kinetic->local_ext
               );
             }
             for (int i = 0; i < ns; ++i) {
               array_combine(
-                app->species[i].fluid1, 1.0 / 3.0, app->species[i].fluid, 2.0 / 3.0,
-                app->species[i].fluidnew, &app->local_ext
+                app->species[i].fluid->fluid1, 1.0 / 3.0, app->species[i].fluid->fluid, 2.0 / 3.0,
+                app->species[i].fluid->fluidnew, &app->local_ext
               );
             }
             pkpm_coll_stage_advance(app, 3, dt);
             for (int i = 0; i < ns; ++i) {
               gkyl_array_copy_range(
-                app->species[i].f, app->species[i].f1, &app->species[i].local_ext
+                app->species[i].kinetic->f, app->species[i].kinetic->f1,
+                &app->species[i].kinetic->local_ext
               );
-              gkyl_array_copy_range(app->species[i].fluid, app->species[i].fluid1, &app->local_ext);
+              gkyl_array_copy_range(
+                app->species[i].fluid->fluid, app->species[i].fluid->fluid1, &app->local_ext
+              );
             }
             array_combine(
               app->field->em1, 1.0 / 3.0, app->field->em, 2.0 / 3.0, app->field->emnew,

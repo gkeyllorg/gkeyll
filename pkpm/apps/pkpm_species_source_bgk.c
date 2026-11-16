@@ -7,31 +7,48 @@
 // operator at that rate. Density, momentum and the constraints are untouched, so the closures
 // receive nothing from it.
 
-// Explicit update: the energy relaxation onto the fluid right-hand side and the relaxation of
-// the distributions onto the nodal right-hand side of the species, each with its CFL rate.
+// Explicit update, fluid half: the energy relaxation of the stage into the array the fluid
+// right-hand side adds, with its CFL rate, and the rate of the distributions.
 static void
-pkpm_species_source_bgk_rhs_explicit(
+pkpm_species_source_bgk_calc_fluid_explicit(
   gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_source_bgk *src,
-  const struct gkyl_array *fin, const struct gkyl_array *fluidin, struct gkyl_array *rhs_f,
-  struct gkyl_array *rhs_fluid
+  const struct gkyl_array *fluidin
 )
 {
+  gkyl_array_clear(s->fluid->src_bgk_rhs, 0.0);
   gkyl_pkpm_temp_source_advance(
-    src->up_temp, &app->local, src->rate, src->vtsq, fluidin, rhs_fluid, s->cflrate_fluid,
-    src->shape
+    src->up_temp, &app->local, src->rate, src->vtsq, fluidin, s->fluid->src_bgk_rhs,
+    s->fluid->cflrate, src->shape
   );
+}
+
+// Explicit update, kinetic half: the relaxation of the distributions onto the right-hand side of
+// the kinetic equations, with its CFL rate.
+static void
+pkpm_species_source_bgk_kinetic_rhs_explicit(
+  gkyl_pkpm_app *app, struct pkpm_kinetic_species *kin, struct pkpm_source_bgk *src,
+  const struct gkyl_array *fin, struct gkyl_array *rhs_f
+)
+{
   gkyl_pkpm_bgk_collisions_advance(
-    src->up_bgk, &app->local, &s->local_vel, &s->local, src->shape, app->pos_map->jacob_pos_gauss,
-    src->f_lte, fin, rhs_f, s->cflrate_f
+    src->up_bgk, &app->local, &kin->local_vel, &kin->local, src->shape,
+    app->pos_map->jacob_pos_gauss, src->f_lte, fin, rhs_f, kin->cflrate
   );
 }
 
 // No source, or the implicit one: nothing enters the right-hand sides of the explicit update.
 static void
-pkpm_species_source_bgk_rhs_none(
+pkpm_species_source_bgk_calc_fluid_none(
   gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_source_bgk *src,
-  const struct gkyl_array *fin, const struct gkyl_array *fluidin, struct gkyl_array *rhs_f,
-  struct gkyl_array *rhs_fluid
+  const struct gkyl_array *fluidin
+)
+{
+}
+
+static void
+pkpm_species_source_bgk_kinetic_rhs_none(
+  gkyl_pkpm_app *app, struct pkpm_kinetic_species *kin, struct pkpm_source_bgk *src,
+  const struct gkyl_array *fin, struct gkyl_array *rhs_f
 )
 {
 }
@@ -39,10 +56,11 @@ pkpm_species_source_bgk_rhs_none(
 void
 pkpm_species_source_bgk_init(gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_source_bgk *src)
 {
-  const struct gkyl_pkpm_source_bgk *info = &s->info.kinetic.source_bgk;
+  const struct gkyl_pkpm_source_bgk *info = &s->kinetic->info.source_bgk;
   src->source_bgk_id = info->source_bgk_id;
   src->is_implicit = false;
-  src->rhs = pkpm_species_source_bgk_rhs_none;
+  src->calc_fluid = pkpm_species_source_bgk_calc_fluid_none;
+  src->kinetic_rhs = pkpm_species_source_bgk_kinetic_rhs_none;
   if (src->source_bgk_id == GKYL_NO_SOURCE_BGK) {
     return;
   }
@@ -53,9 +71,8 @@ pkpm_species_source_bgk_init(gkyl_pkpm_app *app, struct pkpm_species *s, struct 
 
   src->rate =
     pkpm_species_coll_profile_new(app, info->rate_profile, info->rate_profile_ctx, 1.0, true);
-  src->vtsq = pkpm_species_coll_profile_new(
-    app, info->temp_shape, info->temp_shape_ctx, 1.0 / s->info.mass, true
-  );
+  src->vtsq =
+    pkpm_species_coll_profile_new(app, info->temp_shape, info->temp_shape_ctx, 1.0 / s->mass, true);
   src->shape = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
   src->temp_ratio = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
   src->f_lte = pkpm_species_bgk_target_new(app, s);
@@ -71,19 +88,33 @@ pkpm_species_source_bgk_init(gkyl_pkpm_app *app, struct pkpm_species *s, struct 
 
   src->is_implicit = info->is_implicit;
   if (!src->is_implicit) {
-    src->rhs = pkpm_species_source_bgk_rhs_explicit;
+    src->calc_fluid = pkpm_species_source_bgk_calc_fluid_explicit;
+    src->kinetic_rhs = pkpm_species_source_bgk_kinetic_rhs_explicit;
+    // the energy relaxation of the stage, for the fluid right-hand side
+    s->fluid->src_bgk_rhs = mkarr(false, 5 * app->confBasis.num_basis, app->local_ext.volume);
+    s->fluid->has_src_bgk_rhs = true;
   }
 }
 
 void
-pkpm_species_source_bgk_rhs(
+pkpm_species_source_bgk_calc_fluid(
   gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_source_bgk *src,
-  const struct gkyl_array *fin, const struct gkyl_array *fluidin, struct gkyl_array *rhs_f,
-  struct gkyl_array *rhs_fluid
+  const struct gkyl_array *fluidin
 )
 {
   struct timespec tm = gkyl_wall_clock();
-  src->rhs(app, s, src, fin, fluidin, rhs_f, rhs_fluid);
+  src->calc_fluid(app, s, src, fluidin);
+  app->stat.species_coll_tm += gkyl_time_diff_now_sec(tm);
+}
+
+void
+pkpm_species_source_bgk_kinetic_rhs(
+  gkyl_pkpm_app *app, struct pkpm_kinetic_species *kin, struct pkpm_source_bgk *src,
+  const struct gkyl_array *fin, struct gkyl_array *rhs_f
+)
+{
+  struct timespec tm = gkyl_wall_clock();
+  src->kinetic_rhs(app, kin, src, fin, rhs_f);
   app->stat.species_coll_tm += gkyl_time_diff_now_sec(tm);
 }
 
@@ -103,8 +134,8 @@ pkpm_species_source_bgk_implicit_advance(
     src->up_temp, &app->local, dt, src->rate, src->vtsq, fluid, src->shape, src->temp_ratio
   );
   gkyl_pkpm_bgk_collisions_implicit_advance(
-    src->up_bgk, &app->local, &s->local_vel, &s->local, src->shape, app->pos_map->jacob_pos_gauss,
-    src->f_lte, f
+    src->up_bgk, &app->local, &s->kinetic->local_vel, &s->kinetic->local, src->shape,
+    app->pos_map->jacob_pos_gauss, src->f_lte, f
   );
   app->stat.species_coll_tm += gkyl_time_diff_now_sec(tm);
 }

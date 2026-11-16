@@ -37,8 +37,8 @@ pkpm_species_coll_cross_prim_nodal(
 )
 {
   gkyl_pkpm_coll_cross_prim(
-    s->cross.up, &app->local, s->info.mass, app->pos_map->jacob_pos_gauss, fluid,
-    s->cross.prim_fluid
+    s->kinetic->cross.up, &app->local, s->mass, app->pos_map->jacob_pos_gauss, fluid,
+    s->kinetic->cross.prim_fluid
   );
 }
 
@@ -48,7 +48,7 @@ pkpm_species_coll_cross_prim_self_nu(
   gkyl_pkpm_app *app, struct pkpm_species *s, const struct gkyl_array *fluid
 )
 {
-  struct pkpm_coll_cross *cross = &s->cross;
+  struct pkpm_coll_cross *cross = &s->kinetic->cross;
   pkpm_species_coll_cross_prim_nodal(app, s, fluid);
   gkyl_pkpm_coll_nu_advance(
     cross->up_self_nu, &app->local, cross->self_nu_ref, cross->prim_fluid, cross->prim_fluid,
@@ -61,8 +61,8 @@ pkpm_species_coll_cross_prim_self_nu(
 static void
 pkpm_species_coll_cross_pair_nu(gkyl_pkpm_app *app, struct pkpm_species *s, int i)
 {
-  struct pkpm_coll_cross *cross = &s->cross;
-  const struct pkpm_coll_cross *other = &cross->collide_with[i]->cross;
+  struct pkpm_coll_cross *cross = &s->kinetic->cross;
+  const struct pkpm_coll_cross *other = &cross->collide_with[i]->kinetic->cross;
   gkyl_pkpm_coll_nu_advance(
     cross->up_cross_nu, &app->local, cross->nu_ref[i], cross->prim_fluid, other->prim_fluid,
     cross->nu_self
@@ -78,14 +78,14 @@ pkpm_species_coll_cross_pair_nu(gkyl_pkpm_app *app, struct pkpm_species *s, int 
 static void
 pkpm_species_coll_cross_moms_nodal(gkyl_pkpm_app *app, struct pkpm_species *s)
 {
-  struct pkpm_coll_cross *cross = &s->cross;
+  struct pkpm_coll_cross *cross = &s->kinetic->cross;
   gkyl_array_copy_range(cross->nu_kin, cross->nu_kin_self, &app->local);
   for (int i = 0; i < cross->num_cross_collisions; ++i) {
     const struct pkpm_species *other = cross->collide_with[i];
     pkpm_species_coll_cross_pair_nu(app, s, i);
     gkyl_pkpm_coll_cross_kinetic_rate(
-      cross->up, &app->local, s->info.mass, other->info.mass, cross->nu_self, cross->nu_other,
-      cross->prim_fluid, other->cross.prim_fluid, cross->nu_kin
+      cross->up, &app->local, s->mass, other->mass, cross->nu_self, cross->nu_other,
+      cross->prim_fluid, other->kinetic->cross.prim_fluid, cross->nu_kin
     );
   }
   gkyl_pkpm_coll_cross_floor(cross->up, &app->local, cross->nu_kin);
@@ -107,10 +107,10 @@ pkpm_species_coll_cross_ref_params(const struct gkyl_vlasov_collisions *coll, do
 void
 pkpm_species_coll_cross_init(gkyl_pkpm_app *app, struct pkpm_species *s)
 {
-  struct pkpm_coll_cross *cross = &s->cross;
-  const struct gkyl_vlasov_collisions *coll = &s->info.kinetic.collisions;
-  bool is_lbo = s->collision_id == GKYL_LBO_COLLISIONS;
-  bool is_bgk = s->collision_id == GKYL_BGK_COLLISIONS;
+  struct pkpm_coll_cross *cross = &s->kinetic->cross;
+  const struct gkyl_vlasov_collisions *coll = &s->kinetic->info.collisions;
+  bool is_lbo = s->kinetic->collision_id == GKYL_LBO_COLLISIONS;
+  bool is_bgk = s->kinetic->collision_id == GKYL_BGK_COLLISIONS;
   bool has_self_nu = (is_lbo || is_bgk) && !coll->self_nu; // computed self frequency
 
   cross->num_cross_collisions = (is_lbo || is_bgk) ? coll->num_cross_collisions : 0;
@@ -129,15 +129,15 @@ pkpm_species_coll_cross_init(gkyl_pkpm_app *app, struct pkpm_species *s)
   bool is_computed = !coll->cross_nu[0];
   double ref_self[4];
   pkpm_species_coll_cross_ref_params(coll, ref_self);
-  double mass_self = s->info.mass;
+  double mass_self = s->mass;
 
   for (int i = 0; i < cross->num_cross_collisions; ++i) {
     struct pkpm_species *other = pkpm_find_species(app, coll->collide_with[i]);
-    const struct gkyl_vlasov_collisions *other_coll = &other->info.kinetic.collisions;
+    const struct gkyl_vlasov_collisions *other_coll = &other->kinetic->info.collisions;
     cross->collide_with[i] = other;
     cross->other_idx[i] = -1;
     for (int j = 0; j < other_coll->num_cross_collisions; ++j) {
-      if (0 == strcmp(other_coll->collide_with[j], s->info.name)) {
+      if (0 == strcmp(other_coll->collide_with[j], s->name)) {
         cross->other_idx[i] = j;
       }
     }
@@ -147,10 +147,10 @@ pkpm_species_coll_cross_init(gkyl_pkpm_app *app, struct pkpm_species *s)
     if (is_computed) {
       double ref_other[4];
       pkpm_species_coll_cross_ref_params(other_coll, ref_other);
-      double mass_other = other->info.mass;
+      double mass_other = other->mass;
       double alpha_E = gkyl_calc_Morse_alpha_E_const(
-        ref_self[0], ref_other[0], mass_self, mass_other, s->info.charge, other->info.charge,
-        ref_self[1], ref_other[1], 0.0, ref_self[3], ref_self[2]
+        ref_self[0], ref_other[0], mass_self, mass_other, s->charge, other->charge, ref_self[1],
+        ref_other[1], 0.0, ref_self[3], ref_self[2]
       );
       cross->nu_ref[i] = mkarr(false, num_nodes, app->local_ext.volume);
       gkyl_array_clear(
@@ -178,16 +178,16 @@ pkpm_species_coll_cross_init(gkyl_pkpm_app *app, struct pkpm_species *s)
   // nu_sr vtsq_sr / vtsq_s (LBO), or the relaxation to the unit target at the rate
   // nu_sr + d ln(n T_s)/dt (BGK).
   if (is_lbo) {
-    cross->nu_kin_self = gkyl_array_acquire(s->lbo.nu_self);
-    cross->nu_kin = gkyl_array_acquire(s->lbo.nu);
+    cross->nu_kin_self = gkyl_array_acquire(s->kinetic->lbo.nu_self);
+    cross->nu_kin = gkyl_array_acquire(s->kinetic->lbo.nu);
     cross->up = gkyl_pkpm_coll_cross_inew(&(struct gkyl_pkpm_coll_cross_inp){
       .conf_basis = &app->confBasis,
       .heat_fac = 1.0,
       .use_gpu = false,
     });
   } else {
-    cross->nu_kin_self = gkyl_array_acquire(s->bgk.rate_self);
-    cross->nu_kin = gkyl_array_acquire(s->bgk.rate);
+    cross->nu_kin_self = gkyl_array_acquire(s->kinetic->bgk.rate_self);
+    cross->nu_kin = gkyl_array_acquire(s->kinetic->bgk.rate);
     cross->up = gkyl_pkpm_coll_cross_inew(&(struct gkyl_pkpm_coll_cross_inp){
       .conf_basis = &app->confBasis,
       .heat_fac = 2.0,
@@ -197,8 +197,8 @@ pkpm_species_coll_cross_init(gkyl_pkpm_app *app, struct pkpm_species *s)
 
   // The computed self frequency, with delta_ss (1 + beta) = 2 as in the Vlasov app.
   double alpha_E_self = gkyl_calc_Morse_alpha_E_const(
-    ref_self[0], ref_self[0], mass_self, mass_self, s->info.charge, s->info.charge, ref_self[1],
-    ref_self[1], 0.0, ref_self[3], ref_self[2]
+    ref_self[0], ref_self[0], mass_self, mass_self, s->charge, s->charge, ref_self[1], ref_self[1],
+    0.0, ref_self[3], ref_self[2]
   );
   cross->self_nu_ref = mkarr(false, num_nodes, app->local_ext.volume);
   gkyl_array_clear(cross->self_nu_ref, nu_frac * alpha_E_self);
@@ -236,14 +236,14 @@ pkpm_coll_cross_pair_coefs(gkyl_pkpm_app *app)
   struct pkpm_coll_exchange *exch = &app->coll_exchange;
   for (int e = 0; e < exch->num_species; ++e) {
     struct pkpm_species *s = exch->species[e];
-    struct pkpm_coll_cross *cross = &s->cross;
+    struct pkpm_coll_cross *cross = &s->kinetic->cross;
     gkyl_array_copy_range(cross->nu_kin, cross->nu_kin_self, &app->local);
     for (int i = 0; i < cross->num_cross_collisions; ++i) {
       const struct pkpm_species *other = cross->collide_with[i];
       pkpm_species_coll_cross_pair_nu(app, s, i);
       gkyl_pkpm_coll_cross_coef(
-        cross->up, &app->local, s->info.mass, other->info.mass, cross->nu_self, cross->nu_other,
-        cross->prim_fluid, other->cross.prim_fluid, cross->coef[i]
+        cross->up, &app->local, s->mass, other->mass, cross->nu_self, cross->nu_other,
+        cross->prim_fluid, other->kinetic->cross.prim_fluid, cross->coef[i]
       );
       gkyl_array_accumulate_range(cross->nu_kin, 1.0, cross->nu_self, &app->local);
     }
@@ -273,8 +273,8 @@ pkpm_coll_cross_exchange_nodal(gkyl_pkpm_app *app, double dt, struct gkyl_array 
   // limiter and the fluid boundary conditions follow it.
   for (int e = 0; e < exch->num_species; ++e) {
     struct pkpm_species *s = exch->species[e];
-    pkpm_species_apply_positivity(app, s, exch->inp[e].fluid);
-    pkpm_fluid_species_apply_bc(app, s, exch->inp[e].fluid);
+    pkpm_species_apply_positivity(app, s->fluid, exch->inp[e].fluid);
+    pkpm_fluid_species_apply_bc(app, s->fluid, exch->inp[e].fluid);
   }
 }
 
@@ -292,7 +292,7 @@ pkpm_coll_cross_init(gkyl_pkpm_app *app)
   int pos[GKYL_MAX_SPECIES]; // position of each species of the app in the exchange
   for (int i = 0; i < app->num_species; ++i) {
     pos[i] = -1;
-    if (app->species[i].cross.num_cross_collisions > 0) {
+    if (app->species[i].kinetic->cross.num_cross_collisions > 0) {
       pos[i] = exch->num_species;
       exch->species[exch->num_species++] = &app->species[i];
     }
@@ -300,14 +300,14 @@ pkpm_coll_cross_init(gkyl_pkpm_app *app)
   for (int e = 0; e < exch->num_species; ++e) {
     struct pkpm_species *s = exch->species[e];
     struct gkyl_pkpm_coll_cross_species *inp = &exch->inp[e];
-    inp->mass = s->info.mass;
-    inp->prim = s->cross.prim_fluid;
-    inp->fluid = s->fluid;
-    inp->temp_ratio = s->cross.temp_ratio;
-    inp->num_partners = s->cross.num_cross_collisions;
+    inp->mass = s->mass;
+    inp->prim = s->kinetic->cross.prim_fluid;
+    inp->fluid = s->fluid->fluid;
+    inp->temp_ratio = s->kinetic->cross.temp_ratio;
+    inp->num_partners = s->kinetic->cross.num_cross_collisions;
     for (int i = 0; i < inp->num_partners; ++i) {
-      inp->partner[i] = pos[s->cross.collide_with[i] - app->species];
-      inp->coef[i] = s->cross.coef[i];
+      inp->partner[i] = pos[s->kinetic->cross.collide_with[i] - app->species];
+      inp->coef[i] = s->kinetic->cross.coef[i];
     }
   }
   exch->exchange = exch->num_species > 0 ? pkpm_coll_cross_exchange_nodal :
@@ -320,7 +320,7 @@ pkpm_species_coll_cross_prim(
 )
 {
   struct timespec wst = gkyl_wall_clock();
-  s->cross.calc_prim(app, s, fluidin);
+  s->kinetic->cross.calc_prim(app, s, fluidin);
   app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);
 }
 
@@ -328,7 +328,7 @@ void
 pkpm_species_coll_cross_moms(gkyl_pkpm_app *app, struct pkpm_species *s)
 {
   struct timespec wst = gkyl_wall_clock();
-  s->cross.calc_moms(app, s);
+  s->kinetic->cross.calc_moms(app, s);
   app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);
 }
 
@@ -339,7 +339,7 @@ pkpm_coll_cross_step_prim(gkyl_pkpm_app *app, struct gkyl_array *fluid[])
 {
   for (int i = 0; i < app->num_species; ++i) {
     struct pkpm_species *s = &app->species[i];
-    s->cross.calc_step_prim(app, s, fluid[i]);
+    s->kinetic->cross.calc_step_prim(app, s, fluid[i]);
   }
 }
 
@@ -359,7 +359,8 @@ pkpm_species_coll_cross_shape(
 )
 {
   gkyl_pkpm_coll_cross_shape(
-    s->cross.up, &app->local, dt, s->cross.nu_kin, s->cross.temp_ratio, shape
+    s->kinetic->cross.up, &app->local, dt, s->kinetic->cross.nu_kin, s->kinetic->cross.temp_ratio,
+    shape
   );
 }
 

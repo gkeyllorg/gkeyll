@@ -59,7 +59,7 @@ pkpm_op_split_sync(gkyl_pkpm_app *app)
     return;
   }
   for (int i = 0; i < app->num_species; ++i) {
-    gkyl_array_copy(app->op_split_fluid[i], app->species[i].fluid);
+    gkyl_array_copy(app->op_split_fluid[i], app->species[i].fluid->fluid);
   }
   gkyl_array_copy(app->op_split_em, app->field->em);
   // the positivity limiter of the source step is not part of the evolution: keep it out of both
@@ -67,9 +67,9 @@ pkpm_op_split_sync(gkyl_pkpm_app *app)
   long pos_count[GKYL_MAX_SPECIES][PKPM_POS_NUM_STAT];
   for (int i = 0; i < app->num_species; ++i) {
     for (int c = 0; c < PKPM_POS_NUM_STAT; ++c) {
-      pos_count[i][c] = app->species[i].pos_count_since[c];
+      pos_count[i][c] = app->species[i].fluid->pos_count_since[c];
     }
-    gkyl_array_copy(app->op_split_pos_count[i], app->species[i].pkpm_pos_count);
+    gkyl_array_copy(app->op_split_pos_count[i], app->species[i].fluid->pkpm_pos_count);
   }
   // tcurr is the end of the last transport step; the sources stand at its midpoint (applied fields
   // at the midpoint of the half step, as in the inverse step of a restart)
@@ -77,9 +77,9 @@ pkpm_op_split_sync(gkyl_pkpm_app *app)
   pkpm_fluid_em_coupling_update(app, app->pkpm_em, app->tcurr - 0.5 * dt_half, dt_half);
   for (int i = 0; i < app->num_species; ++i) {
     for (int c = 0; c < PKPM_POS_NUM_STAT; ++c) {
-      app->species[i].pos_count_since[c] = pos_count[i][c];
+      app->species[i].fluid->pos_count_since[c] = pos_count[i][c];
     }
-    gkyl_array_copy(app->species[i].pkpm_pos_count, app->op_split_pos_count[i]);
+    gkyl_array_copy(app->species[i].fluid->pkpm_pos_count, app->op_split_pos_count[i]);
   }
   app->op_split_synced = true;
 }
@@ -91,7 +91,7 @@ pkpm_op_split_unsync(gkyl_pkpm_app *app)
     return;
   }
   for (int i = 0; i < app->num_species; ++i) {
-    gkyl_array_copy(app->species[i].fluid, app->op_split_fluid[i]);
+    gkyl_array_copy(app->species[i].fluid->fluid, app->op_split_fluid[i]);
   }
   gkyl_array_copy(app->field->em, app->op_split_em);
   app->op_split_synced = false;

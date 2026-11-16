@@ -17,7 +17,7 @@ pkpm_fluid_em_coupling_init(struct gkyl_pkpm_app *app)
   double qbym[GKYL_MAX_SPECIES] = {0.0};
   for (int i = 0; i < num_species; ++i) {
     struct pkpm_species *s = &app->species[i];
-    qbym[i] = s->info.charge / s->info.mass;
+    qbym[i] = s->charge / s->mass;
   }
 
   // Initialize solver
@@ -50,8 +50,8 @@ pkpm_fluid_em_coupling_update(
   // divided out before and restored after (identity map: copies).
   for (int i = 0; i < num_species; ++i) {
     struct pkpm_species *s = &app->species[i];
-    gkyl_vlasov_position_map_divide_jacobpos_conf(app->pos_map, &app->local, s->fluid->ncomp, s->fluid, s->fluid_no_J);
-    fluids[i] = s->fluid_no_J;
+    gkyl_vlasov_position_map_divide_jacobpos_conf(app->pos_map, &app->local, s->fluid->fluid->ncomp, s->fluid->fluid, s->fluid->fluid_no_J);
+    fluids[i] = s->fluid->fluid_no_J;
   }
   gkyl_vlasov_position_map_divide_jacobpos_conf(
     app->pos_map, &app->local, app->field->em->ncomp, app->field->em, app->field->em_no_J
@@ -67,10 +67,10 @@ pkpm_fluid_em_coupling_update(
   }
   for (int i = 0; i < num_species; ++i) {
     struct pkpm_species *s = &app->species[i];
-    if (s->app_accel_evolve) {
+    if (s->fluid->app_accel_evolve) {
       pkpm_species_calc_app_accel(app, s, tcurr);
     }
-    app_accels[i] = s->app_accel;
+    app_accels[i] = s->fluid->app_accel;
   }
 
   // The currents of the solve besides the species': the applied current, the ghost current and
@@ -86,7 +86,7 @@ pkpm_fluid_em_coupling_update(
     if (field->use_ghost_current) {
       const struct gkyl_array *fluids_J[GKYL_MAX_SPECIES];
       for (int i = 0; i < num_species; ++i) {
-        fluids_J[i] = app->species[i].fluid;
+        fluids_J[i] = app->species[i].fluid->fluid;
       }
       pkpm_field_calc_ghost_current(app, field, fluids_J);
       gkyl_array_set(field->app_current_tot, 1.0, field->app_current_no_J);
@@ -110,9 +110,9 @@ pkpm_fluid_em_coupling_update(
 
   for (int i = 0; i < num_species; ++i) {
     struct pkpm_species *s = &app->species[i];
-    gkyl_vlasov_position_map_rescale_jacobpos_conf(app->pos_map, &app->local, s->fluid_no_J, s->fluid);
-    pkpm_species_apply_positivity(app, s, s->fluid);
-    pkpm_fluid_species_apply_bc(app, s, s->fluid);
+    gkyl_vlasov_position_map_rescale_jacobpos_conf(app->pos_map, &app->local, s->fluid->fluid_no_J, s->fluid->fluid);
+    pkpm_species_apply_positivity(app, s->fluid, s->fluid->fluid);
+    pkpm_fluid_species_apply_bc(app, s->fluid, s->fluid->fluid);
   }
   gkyl_vlasov_position_map_rescale_jacobpos_conf(
     app->pos_map, &app->local, app->field->em_no_J, app->field->em

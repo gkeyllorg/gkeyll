@@ -26,7 +26,7 @@ pkpm_forward_euler(
     pkpm_field_calc_app_current(app, app->field, tcurr);
   }
   for (int i = 0; i < app->num_species; ++i) {
-    if (app->species[i].app_accel_evolve && app->use_explicit_sources) {
+    if (app->species[i].fluid->app_accel_evolve && app->use_explicit_sources) {
       pkpm_species_calc_app_accel(app, &app->species[i], tcurr);
     }
   }
@@ -34,50 +34,22 @@ pkpm_forward_euler(
   // Compute the magnetic field unit vector b = B/|B|
   pkpm_field_calc_bvar(app, app->field, emin);
 
-  // Every kernel of the stage sees first-harmonic blocks perpendicular to the stage's b: project
-  // M0_perp and N_perp of the stage state at the Gauss-Legendre nodes of b.
-  for (int i = 0; i < app->num_species; ++i) {
-    pkpm_species_project_transverse(app, &app->species[i], fin[i]);
-  }
-
   // RHS of Maxwell's equations first: it does not depend on the species, and its magnetic part
   // (stored physical in field->dt_em_no_J) is the d_t B of the first-harmonic force terms.
   double dtmin_field = pkpm_field_rhs(app, app->field, stage, emin, emout);
 
-  // Two separate loops over number of species to compute needed auxiliary quantities.
+  // Everything of the stage that reads a species and the field alone: the moments, the
+  // primitive variables, the collision moments, the face fluxes and the wall losses.
   for (int i = 0; i < app->num_species; ++i) {
-    // Configuration-space variables of the stage: the moments of the normalized distributions,
-    // the flow and thermal speed, the kinetic coupling moments and T_perp/T.
-    pkpm_species_calc_pkpm_vars(app, &app->species[i], fin[i], fluidin[i]);
-    // The distributions of the stage at the configuration-space nodes, for the LBO.
-    pkpm_species_nodal_dist(app, &app->species[i], fin[i]);
-    // compute necessary moments and boundary corrections for collisions
-    if (app->species[i].collision_id == GKYL_LBO_COLLISIONS) {
-      pkpm_species_lbo_moms(app, &app->species[i], &app->species[i].lbo, fin[i]);
-    }
-    // node values of the fluid state for the computed frequencies and cross-species collisions
-    pkpm_species_coll_cross_prim(app, &app->species[i], fluidin[i]);
-  }
-  for (int i = 0; i < app->num_species; ++i) {
-    // rate of the kinetic operator with the partner species: needs the node values (and the
-    // self-collision frequencies) of every species, so separate loop over species
-    pkpm_species_coll_cross_moms(app, &app->species[i]);
+    pkpm_species_calc_self_moms(app, &app->species[i], fin[i], fluidin[i]);
   }
 
-  // Configuration-space face fluxes of the stage for every species (kinetic, fluid and their
-  // rates) and the particle loss rates they imply through absorbing walls; then the rates of
-  // the boundary-flux sources (which read another species' losses).
+  // What reads other species (the rate of the kinetic operator with its partners, the rate of
+  // the boundary-flux sources) after all species' self moments, hence a separate loop.
   for (int i = 0; i < app->num_species; ++i) {
-    struct timespec tm = gkyl_wall_clock();
-    gkyl_array_clear(app->species[i].cflrate_f, 0.0);
-    gkyl_array_clear(app->species[i].cflrate_fluid, 0.0);
-    pkpm_species_face_flux(app, &app->species[i], fin[i]);
-    pkpm_species_calc_bflux(app, &app->species[i]);
-    app->species[i].fluid_tm += gkyl_time_diff_now_sec(tm);
+    pkpm_species_calc_coupled_vars(app, &app->species[i], fin[i], fluidin[i]);
   }
-  for (int i = 0; i < app->num_species; ++i) {
-    pkpm_species_source_calc_rate(app, &app->species[i], &app->species[i].src);
-  }
+
   // compute RHS of pkpm equations
   for (int i = 0; i < app->num_species; ++i) {
     // the species see the physical fields of the stage (computed by pkpm_field_calc_bvar)
@@ -106,15 +78,16 @@ pkpm_forward_euler(
   double dta = st->dt_actual = dt < dtmin ? dt : dtmin;
   st->dt_suggested = dtmin;
 
-  // complete update of distribution function; at the nodes the gyrophase mixing damps, the
-  // first-harmonic blocks are then replaced by the integrating-factor stage
+  // complete update of the species (distributions and fluid state)
   for (int i = 0; i < app->num_species; ++i) {
-    gkyl_array_accumulate(gkyl_array_scale(fout[i], dta), 1.0, fin[i]);
-    pkpm_species_harm_exp_advance(app, &app->species[i], stage, dta, fout[i]);
-    gkyl_array_accumulate(gkyl_array_scale(fluidout[i], dta), 1.0, fluidin[i]);
-    pkpm_species_apply_positivity(app, &app->species[i], fluidout[i]);
-    pkpm_species_apply_bc(app, &app->species[i], fout[i]);
-    pkpm_fluid_species_apply_bc(app, &app->species[i], fluidout[i]);
+    pkpm_species_step_f(&app->species[i], dta, fin[i], fluidin[i], fout[i], fluidout[i]);
+  }
+  // then what follows the step: the integrating-factor stage of the first harmonic and the
+  // positivity limiter, and the boundary conditions
+  for (int i = 0; i < app->num_species; ++i) {
+    pkpm_species_finish_stage(app, &app->species[i], stage, dta, fout[i], fluidout[i]);
+    pkpm_species_apply_bc(app, app->species[i].kinetic, fout[i]);
+    pkpm_fluid_species_apply_bc(app, app->species[i].fluid, fluidout[i]);
   }
 
   // Explicit accumulation current contribution from momentum to electric field terms

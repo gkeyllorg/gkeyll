@@ -380,10 +380,10 @@ pkpm_field_calc_ghost_current(
   double mean_local = 0.0, mean_global = 0.0;
   for (int i = 0; i < app->num_species; ++i) {
     struct pkpm_species *s = &app->species[i];
-    double qbym_nx = s->info.charge / (s->info.mass * app->grid.cells[0]);
+    double qbym_nx = s->charge / (s->mass * app->grid.cells[0]);
     // ghost_current has one component: coefficient 0 of M_x, scaled by q/(m N_x).
-    gkyl_array_set_offset(s->pkpm_mom3, 1.0, fluidin[i], nc);
-    gkyl_array_set_range(field->ghost_current, qbym_nx, s->pkpm_mom3, &app->local);
+    gkyl_array_set_offset(s->fluid->pkpm_mom3, 1.0, fluidin[i], nc);
+    gkyl_array_set_range(field->ghost_current, qbym_nx, s->fluid->pkpm_mom3, &app->local);
     double red[1];
     if (app->use_gpu) {
       gkyl_array_reduce_range(field->red_ghost_current, field->ghost_current, GKYL_SUM, &app->local);
@@ -409,9 +409,9 @@ pkpm_field_explicit_accumulate_current(
       struct pkpm_species *s = &app->species[i];
       // Need to divide out the mass in pkpm model since we evolve momentum. The fluid
       // array is [rho, rho ux, rho uy, rho uz, E]: only its momentum block is the current.
-      double qbymeps = s->info.charge / (s->info.mass * field->info.epsilon0);
-      gkyl_array_set_offset(s->pkpm_mom3, 1.0, fluidin[i], app->confBasis.num_basis);
-      gkyl_array_accumulate_range(emout, -qbymeps, s->pkpm_mom3, &app->local);
+      double qbymeps = s->charge / (s->mass * field->info.epsilon0);
+      gkyl_array_set_offset(s->fluid->pkpm_mom3, 1.0, fluidin[i], app->confBasis.num_basis);
+      gkyl_array_accumulate_range(emout, -qbymeps, s->fluid->pkpm_mom3, &app->local);
     }
     // Ghost current: add back the domain-mean current (coefficient 0 of E_x), J-weighted like
     // the evolved field (a uniform current is then no source of E on a position map).

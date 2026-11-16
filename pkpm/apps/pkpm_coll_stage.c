@@ -27,12 +27,13 @@ static void
 pkpm_coll_stage_combine(gkyl_pkpm_app *app, struct pkpm_species *s, int stage)
 {
   if (stage == 1) {
-    gkyl_array_clear_range(s->stage_lam, 1.0, &app->local);
+    gkyl_array_clear_range(s->kinetic->stage_lam, 1.0, &app->local);
     return;
   }
   gkyl_pkpm_stage_weights_advance(
-    s->up_stage_weights, &app->local, &s->local, pkpm_coll_stage_coef_fe[stage - 1], s->f, s->fnew,
-    s->stage_lam, s->f1
+    s->kinetic->up_stage_weights, &app->local, &s->kinetic->local,
+    pkpm_coll_stage_coef_fe[stage - 1], s->kinetic->f, s->kinetic->fnew, s->kinetic->stage_lam,
+    s->kinetic->f1
   );
 }
 
@@ -42,11 +43,11 @@ pkpm_coll_stage_advance(gkyl_pkpm_app *app, int stage, double dt)
   double dt_stage = pkpm_coll_stage_weight[stage - 1] * dt;
   struct gkyl_array *fluid[GKYL_MAX_SPECIES];
   for (int i = 0; i < app->num_species; ++i) {
-    fluid[i] = app->species[i].fluid1;
+    fluid[i] = app->species[i].fluid->fluid1;
   }
   for (int i = 0; i < app->num_species; ++i) {
     struct pkpm_species *s = &app->species[i];
-    if (s->has_stage_weights) {
+    if (s->kinetic->has_stage_weights) {
       pkpm_coll_stage_combine(app, s, stage);
     }
   }
@@ -58,25 +59,30 @@ pkpm_coll_stage_advance(gkyl_pkpm_app *app, int stage, double dt)
   // temperature source changes the energy at the nodes, so the vertex limiter follows it.
   for (int i = 0; i < app->num_species; ++i) {
     struct pkpm_species *s = &app->species[i];
-    bool is_implicit_bgk = s->collision_id == GKYL_BGK_COLLISIONS && s->bgk.is_implicit;
+    bool is_implicit_bgk = s->kinetic->collision_id == GKYL_BGK_COLLISIONS &&
+                           s->kinetic->bgk.is_implicit;
     if (is_implicit_bgk) {
-      pkpm_species_bgk_implicit_advance(app, s, &s->bgk, dt_stage, s->f1);
-      if (s->has_stage_weights && s->cross.num_cross_collisions > 0) {
+      pkpm_species_bgk_implicit_advance(app, s, &s->kinetic->bgk, dt_stage, s->kinetic->f1);
+      if (s->kinetic->has_stage_weights && s->kinetic->cross.num_cross_collisions > 0) {
         gkyl_pkpm_stage_weights_scale(
-          s->up_stage_weights, &app->local, s->cross.temp_ratio, s->stage_lam
+          s->kinetic->up_stage_weights, &app->local, s->kinetic->cross.temp_ratio,
+          s->kinetic->stage_lam
         );
       }
     }
-    if (s->src_bgk.is_implicit) {
-      pkpm_species_source_bgk_implicit_advance(app, s, &s->src_bgk, dt_stage, s->f1, s->fluid1);
-      gkyl_pkpm_stage_weights_scale(
-        s->up_stage_weights, &app->local, s->src_bgk.temp_ratio, s->stage_lam
+    if (s->kinetic->src_bgk.is_implicit) {
+      pkpm_species_source_bgk_implicit_advance(
+        app, s, &s->kinetic->src_bgk, dt_stage, s->kinetic->f1, s->fluid->fluid1
       );
-      pkpm_species_apply_positivity(app, s, s->fluid1);
-      pkpm_fluid_species_apply_bc(app, s, s->fluid1);
+      gkyl_pkpm_stage_weights_scale(
+        s->kinetic->up_stage_weights, &app->local, s->kinetic->src_bgk.temp_ratio,
+        s->kinetic->stage_lam
+      );
+      pkpm_species_apply_positivity(app, s->fluid, s->fluid->fluid1);
+      pkpm_fluid_species_apply_bc(app, s->fluid, s->fluid->fluid1);
     }
-    if (is_implicit_bgk || s->src_bgk.is_implicit) {
-      pkpm_species_apply_bc(app, s, s->f1);
+    if (is_implicit_bgk || s->kinetic->src_bgk.is_implicit) {
+      pkpm_species_apply_bc(app, s->kinetic, s->kinetic->f1);
     }
   }
 }

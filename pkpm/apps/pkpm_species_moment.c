@@ -10,11 +10,11 @@ pkpm_species_moment_init_mass(
 )
 {
   sm->mcalc = gkyl_dg_updater_moment_pkpm_inew(&(struct gkyl_dg_updater_moment_pkpm_inp){
-    .phase_grid = &s->grid,
+    .phase_grid = &s->kinetic->grid,
     .conf_basis = &app->confBasis,
     .phase_basis = &app->basis,
     .conf_range = &app->local,
-    .vel_range = &s->local_vel,
+    .vel_range = &s->kinetic->local_vel,
     .mass = mass,
     .is_diag = is_diag,
     .use_gpu = app->use_gpu,
@@ -34,7 +34,7 @@ pkpm_species_moment_init(
   struct gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_species_moment *sm, bool is_diag
 )
 {
-  pkpm_species_moment_init_mass(app, s, sm, is_diag, s->info.mass);
+  pkpm_species_moment_init_mass(app, s, sm, is_diag, s->mass);
 }
 
 void
@@ -69,27 +69,27 @@ pkpm_species_moment_diag_calc(
 )
 {
   int nc = app->confBasis.num_basis;
-  int num_mom = gkyl_dg_updater_moment_pkpm_num_mom(s->pkpm_moms_diag.mcalc);
+  int num_mom = gkyl_dg_updater_moment_pkpm_num_mom(s->kinetic->pkpm_moms_diag.mcalc);
   static const int xi_pow[8] = {0, 1, 2, 2, 3, 3, 4, 4};
   // n = rho/m from the PHYSICAL density; the moments of the evolved J [F, G] carry one factor
   // of the position-map Jacobian, divided out at the end.
-  gkyl_vlasov_position_map_divide_jacobpos_conf(app->pos_map, &conf_rng, fluid->ncomp, fluid, s->fluid_no_J);
-  gkyl_array_set_offset(s->pkpm_rho, 1.0 / s->info.mass, s->fluid_no_J, 0);
-  gkyl_dg_updater_moment_pkpm_advance(s->pkpm_moms_diag.mcalc, &phase_rng, &conf_rng, fin, s->pkpm_prim_io);
+  gkyl_vlasov_position_map_divide_jacobpos_conf(app->pos_map, &conf_rng, fluid->ncomp, fluid, s->fluid->fluid_no_J);
+  gkyl_array_set_offset(s->fluid->pkpm_rho, 1.0 / s->mass, s->fluid->fluid_no_J, 0);
+  gkyl_dg_updater_moment_pkpm_advance(s->kinetic->pkpm_moms_diag.mcalc, &phase_rng, &conf_rng, fin, s->fluid->pkpm_prim_io);
   for (int c = 0; c < num_mom; ++c) {
     gkyl_dg_mul_op_range(
-      &app->confBasis, c, s->pkpm_moms_diag.marr, 0, s->pkpm_rho, c, s->pkpm_prim_io, &conf_rng
+      &app->confBasis, c, s->kinetic->pkpm_moms_diag.marr, 0, s->fluid->pkpm_rho, c, s->fluid->pkpm_prim_io, &conf_rng
     );
     for (int k = xi_pow[c]; k > 0; k -= 2) {
       gkyl_dg_mul_op_range(
-        &app->confBasis, 0, s->pkpm_scratch, c, s->pkpm_moms_diag.marr, k > 1 ? 1 : 0, s->pkpm_xi,
+        &app->confBasis, 0, s->fluid->pkpm_scratch, c, s->kinetic->pkpm_moms_diag.marr, k > 1 ? 1 : 0, s->fluid->pkpm_xi,
         &conf_rng
       );
-      gkyl_array_set_offset_range(s->pkpm_moms_diag.marr, 1.0, s->pkpm_scratch, c * nc, &conf_rng);
+      gkyl_array_set_offset_range(s->kinetic->pkpm_moms_diag.marr, 1.0, s->fluid->pkpm_scratch, c * nc, &conf_rng);
     }
   }
   gkyl_vlasov_position_map_divide_jacobpos_conf(
-    app->pos_map, &conf_rng, s->pkpm_moms_diag.marr->ncomp, s->pkpm_moms_diag.marr, s->pkpm_moms_diag.marr
+    app->pos_map, &conf_rng, s->kinetic->pkpm_moms_diag.marr->ncomp, s->kinetic->pkpm_moms_diag.marr, s->kinetic->pkpm_moms_diag.marr
   );
 }
 

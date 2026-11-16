@@ -287,10 +287,10 @@ gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm)
   // allocate space to store species objects
   app->species = ns > 0 ? gkyl_malloc(sizeof(struct pkpm_species[ns])) : 0;
 
-  // set info for each species: this needs to be done here as we need
-  // to access species name from pkpm_species_init
+  // allocate the two aspects of each species and store its input: this needs to be done here
+  // as we need to access species name from pkpm_species_init
   for (int i = 0; i < ns; ++i) {
-    app->species[i].info = pkpm->species[i];
+    pkpm_species_alloc(&pkpm->species[i], &app->species[i]);
   }
 
   // initialize each species
@@ -299,7 +299,7 @@ gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm)
   }
   // Sources refer to other species (the boundary-flux rate): after every species exists.
   for (int i = 0; i < ns; ++i) {
-    pkpm_species_source_init(app, &app->species[i], &app->species[i].src);
+    pkpm_species_source_init(app, &app->species[i], &app->species[i].kinetic->src);
   }
 
   // initialize each species cross-species terms: this has to be done here
@@ -327,10 +327,12 @@ gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm)
     app->pkpm_em = pkpm_fluid_em_coupling_init(app);
     app->update_func = pkpm_update_op_split;
     for (int i = 0; i < app->num_species; ++i) {
-      app->op_split_fluid[i] =
-        mkarr(app->use_gpu, app->species[i].fluid->ncomp, app->species[i].fluid->size);
+      app->op_split_fluid[i] = mkarr(
+        app->use_gpu, app->species[i].fluid->fluid->ncomp, app->species[i].fluid->fluid->size
+      );
       app->op_split_pos_count[i] = mkarr(
-        app->use_gpu, app->species[i].pkpm_pos_count->ncomp, app->species[i].pkpm_pos_count->size
+        app->use_gpu, app->species[i].fluid->pkpm_pos_count->ncomp,
+        app->species[i].fluid->pkpm_pos_count->size
       );
     }
     app->op_split_em = mkarr(app->use_gpu, app->field->em->ncomp, app->field->em->size);
@@ -350,7 +352,7 @@ struct pkpm_species *
 pkpm_find_species(const gkyl_pkpm_app *app, const char *nm)
 {
   for (int i = 0; i < app->num_species; ++i) {
-    if (strcmp(nm, app->species[i].info.name) == 0) {
+    if (strcmp(nm, app->species[i].name) == 0) {
       return &app->species[i];
     }
   }
@@ -361,7 +363,7 @@ int
 pkpm_find_species_idx(const gkyl_pkpm_app *app, const char *nm)
 {
   for (int i = 0; i < app->num_species; ++i) {
-    if (strcmp(nm, app->species[i].info.name) == 0) {
+    if (strcmp(nm, app->species[i].name) == 0) {
       return i;
     }
   }
@@ -403,13 +405,13 @@ gkyl_pkpm_app_apply_ic_species(gkyl_pkpm_app *app, int sidx, double t0)
   app->tcurr = t0;
   struct timespec wtm = gkyl_wall_clock();
   pkpm_species_apply_ic(app, &app->species[sidx], t0);
-  pkpm_species_apply_positivity(app, &app->species[sidx], app->species[sidx].fluid);
+  pkpm_species_apply_positivity(app, app->species[sidx].fluid, app->species[sidx].fluid->fluid);
   app->stat.init_species_tm += gkyl_time_diff_now_sec(wtm);
 
-  pkpm_species_apply_bc(app, &app->species[sidx], app->species[sidx].f);
-  pkpm_fluid_species_apply_bc(app, &app->species[sidx], app->species[sidx].fluid);
+  pkpm_species_apply_bc(app, app->species[sidx].kinetic, app->species[sidx].kinetic->f);
+  pkpm_fluid_species_apply_bc(app, app->species[sidx].fluid, app->species[sidx].fluid->fluid);
 
-  pkpm_species_source_write(app, &app->species[sidx], &app->species[sidx].src, t0, 0);
+  pkpm_species_source_write(app, &app->species[sidx], &app->species[sidx].kinetic->src, t0, 0);
 }
 
 void
@@ -422,34 +424,37 @@ gkyl_pkpm_app_calc_integrated_mom(gkyl_pkpm_app *app, double tm)
 
   for (int i = 0; i < app->num_species; ++i) {
     struct pkpm_species *s = &app->species[i];
-    gkyl_array_clear(s->integ_pkpm_mom, 0.0);
+    gkyl_array_clear(s->fluid->integ_mom, 0.0);
 
-    pkpm_species_calc_pkpm_vars(app, s, s->f, s->fluid);
+    pkpm_species_calc_pkpm_vars(app, s, s->kinetic->f, s->fluid->fluid);
     gkyl_dg_calc_pkpm_vars_int(
-      s->calc_pkpm_vars, &app->local, s->fluid, s->pkpm_moms, s->pkpm_u, s->integ_pkpm_mom
+      s->fluid->calc_pkpm_vars, &app->local, s->fluid->fluid, s->fluid->pkpm_moms, s->fluid->pkpm_u,
+      s->fluid->integ_mom
     );
-    gkyl_array_scale_range(s->integ_pkpm_mom, app->grid.cellVolume, &(app->local));
+    gkyl_array_scale_range(s->fluid->integ_mom, app->grid.cellVolume, &(app->local));
     if (app->use_gpu) {
-      gkyl_array_reduce_range(s->red_integ_diag, s->integ_pkpm_mom, GKYL_SUM, &(app->local));
-      gkyl_cu_memcpy(avals, s->red_integ_diag, sizeof(double[9]), GKYL_CU_MEMCPY_D2H);
+      gkyl_array_reduce_range(
+        s->fluid->red_integ_diag, s->fluid->integ_mom, GKYL_SUM, &(app->local)
+      );
+      gkyl_cu_memcpy(avals, s->fluid->red_integ_diag, sizeof(double[9]), GKYL_CU_MEMCPY_D2H);
     } else {
-      gkyl_array_reduce_range(avals, s->integ_pkpm_mom, GKYL_SUM, &(app->local));
+      gkyl_array_reduce_range(avals, s->fluid->integ_mom, GKYL_SUM, &(app->local));
     }
 
     gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 9, avals, avals_global);
-    gkyl_dynvec_append(s->integ_diag, tm, avals_global);
+    gkyl_dynvec_append(s->fluid->integ_diag, tm, avals_global);
     // particle loss rates through the absorbing walls of the last stage
-    gkyl_dynvec_append(s->bflux_diag, tm, s->bflux);
+    gkyl_dynvec_append(s->kinetic->bflux_diag, tm, s->kinetic->bflux);
 
     // Positivity limiter statistics since the previous call: [cells scaled for the
     // density, for the internal energy, cells with an inadmissible average, applications].
     double pos[PKPM_POS_NUM_STAT], pos_global[PKPM_POS_NUM_STAT];
     for (int c = 0; c < PKPM_POS_NUM_STAT; ++c) {
-      pos[c] = s->pos_count_since[c];
-      s->pos_count_since[c] = 0;
+      pos[c] = s->fluid->pos_count_since[c];
+      s->fluid->pos_count_since[c] = 0;
     }
     gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, PKPM_POS_NUM_STAT, pos, pos_global);
-    gkyl_dynvec_append(s->pos_stat, tm, pos_global);
+    gkyl_dynvec_append(s->fluid->pos_stat, tm, pos_global);
   }
 
   app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
@@ -574,17 +579,21 @@ gkyl_pkpm_app_write_species(gkyl_pkpm_app *app, int sidx, double tm, int frame)
   struct pkpm_species *s = &app->species[sidx];
 
   const char *fmt = "%s-%s_%d.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name, s->info.name, frame);
+  int sz = gkyl_calc_strlen(fmt, app->name, s->name, frame);
   char fileNm[sz + 1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, s->info.name, frame);
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, s->name, frame);
 
   // The evolved distributions carry the position-map Jacobian; write the physical ones.
-  gkyl_vlasov_position_map_divide_jacobpos(app->pos_map, &app->basis, &s->local, s->f, s->f_no_J);
+  gkyl_vlasov_position_map_divide_jacobpos(
+    app->pos_map, &app->basis, &s->kinetic->local, s->kinetic->f, s->kinetic->f_no_J
+  );
   if (app->use_gpu) {
     // copy data from device to host before writing it out
-    gkyl_array_copy(s->f_no_J_host, s->f_no_J);
+    gkyl_array_copy(s->kinetic->f_no_J_host, s->kinetic->f_no_J);
   }
-  gkyl_comm_array_write(s->comm, &s->grid, &s->local, mt, s->f_no_J_host, fileNm);
+  gkyl_comm_array_write(
+    s->kinetic->comm, &s->kinetic->grid, &s->kinetic->local, mt, s->kinetic->f_no_J_host, fileNm
+  );
 
   pkpm_array_meta_release(mt);
 
@@ -599,19 +608,19 @@ gkyl_pkpm_app_write_species(gkyl_pkpm_app *app, int sidx, double tm, int frame)
   });
 
   const char *fmt_fluid = "%s-%s_fluid_%d.gkyl";
-  int sz_fluid = gkyl_calc_strlen(fmt_fluid, app->name, s->info.name, frame);
+  int sz_fluid = gkyl_calc_strlen(fmt_fluid, app->name, s->name, frame);
   char fileNm_fluid[sz_fluid + 1]; // ensures no buffer overflow
-  snprintf(fileNm_fluid, sizeof fileNm_fluid, fmt_fluid, app->name, s->info.name, frame);
+  snprintf(fileNm_fluid, sizeof fileNm_fluid, fmt_fluid, app->name, s->name, frame);
 
   gkyl_vlasov_position_map_divide_jacobpos_conf(
-    app->pos_map, &app->local, s->fluid->ncomp, s->fluid, s->fluid_no_J
+    app->pos_map, &app->local, s->fluid->fluid->ncomp, s->fluid->fluid, s->fluid->fluid_no_J
   );
   if (app->use_gpu) {
     // copy data from device to host before writing it out
-    gkyl_array_copy(s->fluid_no_J_host, s->fluid_no_J);
+    gkyl_array_copy(s->fluid->fluid_no_J_host, s->fluid->fluid_no_J);
   }
   gkyl_comm_array_write(
-    app->comm, &app->grid, &app->local, mt_fluid, s->fluid_no_J_host, fileNm_fluid
+    app->comm, &app->grid, &app->local, mt_fluid, s->fluid->fluid_no_J_host, fileNm_fluid
   );
 
   pkpm_array_meta_release(mt_fluid);
@@ -635,75 +644,85 @@ gkyl_pkpm_app_write_mom(gkyl_pkpm_app *app, int sidx, double tm, int frame)
   // Construct the file handles for the three quantities (PKPM moments, pressure tensor and heat
   // flux, PKPM update variables)
   const char *fmt = "%s-%s_pkpm_moms_%d.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name, s->info.name, frame);
+  int sz = gkyl_calc_strlen(fmt, app->name, s->name, frame);
   char fileNm[sz + 1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, s->info.name, frame);
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, s->name, frame);
 
   const char *fmt_prim = "%s-%s_pkpm_prim_%d.gkyl";
-  int sz_prim = gkyl_calc_strlen(fmt_prim, app->name, s->info.name, frame);
+  int sz_prim = gkyl_calc_strlen(fmt_prim, app->name, s->name, frame);
   char fileNm_prim[sz_prim + 1]; // ensures no buffer overflow
-  snprintf(fileNm_prim, sizeof fileNm_prim, fmt_prim, app->name, s->info.name, frame);
+  snprintf(fileNm_prim, sizeof fileNm_prim, fmt_prim, app->name, s->name, frame);
 
   const char *fmt_pkpm_vars = "%s-%s_pkpm_vars_%d.gkyl";
-  int sz_pkpm_vars = gkyl_calc_strlen(fmt_pkpm_vars, app->name, s->info.name, frame);
+  int sz_pkpm_vars = gkyl_calc_strlen(fmt_pkpm_vars, app->name, s->name, frame);
   char fileNm_pkpm_vars[sz_pkpm_vars + 1]; // ensures no buffer overflow
-  snprintf(fileNm_pkpm_vars, sizeof fileNm_pkpm_vars, fmt_pkpm_vars, app->name, s->info.name, frame);
+  snprintf(fileNm_pkpm_vars, sizeof fileNm_pkpm_vars, fmt_pkpm_vars, app->name, s->name, frame);
 
   // Compute the PKPM variables including moments and primitive variables and construct the
   // arrays for writing out the pressure tensor, the heat flux and the other pkpm variables.
-  pkpm_species_calc_diag_vars(app, s, s->f, s->fluid);
-  pkpm_species_moment_diag_calc(app, s, s->local, app->local, s->f, s->fluid);
+  pkpm_species_calc_diag_vars(app, s, s->kinetic->f, s->fluid->fluid);
+  pkpm_species_moment_diag_calc(
+    app, s, s->kinetic->local, app->local, s->kinetic->f, s->fluid->fluid
+  );
   // Physical coupling moments for the diagnostics (the evolved ones carry the position-map
   // Jacobian).
   gkyl_vlasov_position_map_divide_jacobpos_conf(
-    app->pos_map, &app->local, s->pkpm_moms->ncomp, s->pkpm_moms, s->pkpm_moms_no_J
+    app->pos_map, &app->local, s->fluid->pkpm_moms->ncomp, s->fluid->pkpm_moms,
+    s->fluid->pkpm_moms_no_J
   );
   gkyl_dg_calc_pkpm_vars_diag(
-    s->calc_pkpm_vars, &app->local, s->pkpm_moms_no_J, app->field->bvar, app->field->grad_b,
-    s->pkpm_u, s->pkpm_grad_u, s->pkpm_theta, s->pkpm_alpha_0, s->pkpm_xi, s->pkpm_c_h,
-    s->pkpm_prim_io, s->pkpm_vars_io
+    s->fluid->calc_pkpm_vars, &app->local, s->fluid->pkpm_moms_no_J, app->field->bvar,
+    app->field->grad_b, s->fluid->pkpm_u, s->kinetic->pkpm_grad_u, s->kinetic->pkpm_theta,
+    s->kinetic->pkpm_alpha_0, s->fluid->pkpm_xi, s->kinetic->pkpm_c_h, s->fluid->pkpm_prim_io,
+    s->kinetic->pkpm_vars_io
   );
 
   // copy data from device to host before writing it out
   if (app->use_gpu) {
-    gkyl_array_copy(s->pkpm_moms_diag.marr_host, s->pkpm_moms_diag.marr);
-    gkyl_array_copy(s->pkpm_prim_io_host, s->pkpm_prim_io);
-    gkyl_array_copy(s->pkpm_vars_io_host, s->pkpm_vars_io);
-    gkyl_array_copy(s->pkpm_cmoms_host, s->pkpm_cmoms);
+    gkyl_array_copy(s->kinetic->pkpm_moms_diag.marr_host, s->kinetic->pkpm_moms_diag.marr);
+    gkyl_array_copy(s->fluid->pkpm_prim_io_host, s->fluid->pkpm_prim_io);
+    gkyl_array_copy(s->kinetic->pkpm_vars_io_host, s->kinetic->pkpm_vars_io);
+    gkyl_array_copy(s->kinetic->pkpm_cmoms_host, s->kinetic->pkpm_cmoms);
   }
 
-  gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, s->pkpm_moms_diag.marr_host, fileNm);
-  gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, s->pkpm_prim_io_host, fileNm_prim);
   gkyl_comm_array_write(
-    app->comm, &app->grid, &app->local, mt, s->pkpm_vars_io_host, fileNm_pkpm_vars
+    app->comm, &app->grid, &app->local, mt, s->kinetic->pkpm_moms_diag.marr_host, fileNm
+  );
+  gkyl_comm_array_write(
+    app->comm, &app->grid, &app->local, mt, s->fluid->pkpm_prim_io_host, fileNm_prim
+  );
+  gkyl_comm_array_write(
+    app->comm, &app->grid, &app->local, mt, s->kinetic->pkpm_vars_io_host, fileNm_pkpm_vars
   );
   // The constraints [M0(F), M1(F), (M2(F) + 2 M0(G))/3, int M0_perp dw (x, y, z)] of the normalized
   // distributions, [1, 0, 1, 0, 0, 0] in every mode when the closures hold.
   const char *fmt_cons = "%s-%s_pkpm_constraints_%d.gkyl";
-  int sz_cons = gkyl_calc_strlen(fmt_cons, app->name, s->info.name, frame);
+  int sz_cons = gkyl_calc_strlen(fmt_cons, app->name, s->name, frame);
   char fileNm_cons[sz_cons + 1];
-  snprintf(fileNm_cons, sizeof fileNm_cons, fmt_cons, app->name, s->info.name, frame);
-  gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, s->pkpm_cmoms_host, fileNm_cons);
+  snprintf(fileNm_cons, sizeof fileNm_cons, fmt_cons, app->name, s->name, frame);
+  gkyl_comm_array_write(
+    app->comm, &app->grid, &app->local, mt, s->kinetic->pkpm_cmoms_host, fileNm_cons
+  );
   // The cumulative record of the positivity limiter as the cell averages of a p=1 field:
   // [cells scaled for the density, for the internal energy, inadmissible averages].
   const char *fmt_pos = "%s-%s_pkpm_positivity_%d.gkyl";
-  int sz_pos = gkyl_calc_strlen(fmt_pos, app->name, s->info.name, frame);
+  int sz_pos = gkyl_calc_strlen(fmt_pos, app->name, s->name, frame);
   char fileNm_pos[sz_pos + 1];
-  snprintf(fileNm_pos, sizeof fileNm_pos, fmt_pos, app->name, s->info.name, frame);
+  snprintf(fileNm_pos, sizeof fileNm_pos, fmt_pos, app->name, s->name, frame);
   int nc = app->confBasis.num_basis;
-  struct gkyl_array *count_host = s->pkpm_pos_count;
+  struct gkyl_array *count_host = s->fluid->pkpm_pos_count;
   if (app->use_gpu) {
     count_host = mkarr(false, PKPM_POS_NUM_COUNT, app->local_ext.volume);
-    gkyl_array_copy(count_host, s->pkpm_pos_count);
+    gkyl_array_copy(count_host, s->fluid->pkpm_pos_count);
   }
-  gkyl_array_clear(s->pkpm_pos_io_host, 0.0);
+  gkyl_array_clear(s->fluid->pkpm_pos_io_host, 0.0);
   double c0 = sqrt(pow(2.0, app->cdim)); // constant-mode coefficient of a unit cell average
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &app->local);
   while (gkyl_range_iter_next(&iter)) {
     long loc = gkyl_range_idx(&app->local_ext, iter.idx);
     const double *cnt = gkyl_array_cfetch(count_host, loc);
-    double *io = gkyl_array_fetch(s->pkpm_pos_io_host, loc);
+    double *io = gkyl_array_fetch(s->fluid->pkpm_pos_io_host, loc);
     for (int c = 0; c < PKPM_POS_NUM_COUNT; ++c) {
       io[c * nc] = c0 * cnt[c];
     }
@@ -711,7 +730,9 @@ gkyl_pkpm_app_write_mom(gkyl_pkpm_app *app, int sidx, double tm, int frame)
   if (app->use_gpu) {
     gkyl_array_release(count_host);
   }
-  gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, s->pkpm_pos_io_host, fileNm_pos);
+  gkyl_comm_array_write(
+    app->comm, &app->grid, &app->local, mt, s->fluid->pkpm_pos_io_host, fileNm_pos
+  );
 
   pkpm_array_meta_release(mt);
 }
@@ -725,45 +746,45 @@ gkyl_pkpm_app_write_integrated_mom(gkyl_pkpm_app *app)
     if (rank == 0) {
       // write out integrated diagnostic moments
       const char *fmt = "%s-%s-%s.gkyl";
-      int sz = gkyl_calc_strlen(fmt, app->name, app->species[i].info.name, "imom");
+      int sz = gkyl_calc_strlen(fmt, app->name, app->species[i].name, "imom");
       char fileNm[sz + 1]; // ensures no buffer overflow
-      snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[i].info.name, "imom");
+      snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[i].name, "imom");
 
-      if (app->species[i].is_first_integ_write_call) {
-        gkyl_dynvec_write(app->species[i].integ_diag, fileNm);
-        app->species[i].is_first_integ_write_call = false;
+      if (app->species[i].fluid->is_first_integ_write_call) {
+        gkyl_dynvec_write(app->species[i].fluid->integ_diag, fileNm);
+        app->species[i].fluid->is_first_integ_write_call = false;
       } else {
-        gkyl_dynvec_awrite(app->species[i].integ_diag, fileNm);
+        gkyl_dynvec_awrite(app->species[i].fluid->integ_diag, fileNm);
       }
 
       {
         // wall loss rates on the same cadence as the integrated moments
-        int sz_bf = gkyl_calc_strlen(fmt, app->name, app->species[i].info.name, "bflux");
+        int sz_bf = gkyl_calc_strlen(fmt, app->name, app->species[i].name, "bflux");
         char fileNm_bf[sz_bf + 1];
-        snprintf(fileNm_bf, sizeof fileNm_bf, fmt, app->name, app->species[i].info.name, "bflux");
-        if (app->species[i].is_first_bflux_write_call) {
-          gkyl_dynvec_write(app->species[i].bflux_diag, fileNm_bf);
-          app->species[i].is_first_bflux_write_call = false;
+        snprintf(fileNm_bf, sizeof fileNm_bf, fmt, app->name, app->species[i].name, "bflux");
+        if (app->species[i].kinetic->is_first_bflux_write_call) {
+          gkyl_dynvec_write(app->species[i].kinetic->bflux_diag, fileNm_bf);
+          app->species[i].kinetic->is_first_bflux_write_call = false;
         } else {
-          gkyl_dynvec_awrite(app->species[i].bflux_diag, fileNm_bf);
+          gkyl_dynvec_awrite(app->species[i].kinetic->bflux_diag, fileNm_bf);
         }
       }
       // positivity limiter statistics on the same cadence as the integrated moments
-      int sz_pos = gkyl_calc_strlen(fmt, app->name, app->species[i].info.name, "positivity-stat");
+      int sz_pos = gkyl_calc_strlen(fmt, app->name, app->species[i].name, "positivity-stat");
       char fileNm_pos[sz_pos + 1];
       snprintf(
-        fileNm_pos, sizeof fileNm_pos, fmt, app->name, app->species[i].info.name, "positivity-stat"
+        fileNm_pos, sizeof fileNm_pos, fmt, app->name, app->species[i].name, "positivity-stat"
       );
-      if (app->species[i].is_first_pos_stat_write_call) {
-        gkyl_dynvec_write(app->species[i].pos_stat, fileNm_pos);
-        app->species[i].is_first_pos_stat_write_call = false;
+      if (app->species[i].fluid->is_first_pos_stat_write_call) {
+        gkyl_dynvec_write(app->species[i].fluid->pos_stat, fileNm_pos);
+        app->species[i].fluid->is_first_pos_stat_write_call = false;
       } else {
-        gkyl_dynvec_awrite(app->species[i].pos_stat, fileNm_pos);
+        gkyl_dynvec_awrite(app->species[i].fluid->pos_stat, fileNm_pos);
       }
     }
-    gkyl_dynvec_clear(app->species[i].integ_diag);
-    gkyl_dynvec_clear(app->species[i].pos_stat);
-    gkyl_dynvec_clear(app->species[i].bflux_diag);
+    gkyl_dynvec_clear(app->species[i].fluid->integ_diag);
+    gkyl_dynvec_clear(app->species[i].fluid->pos_stat);
+    gkyl_dynvec_clear(app->species[i].kinetic->bflux_diag);
   }
 }
 
@@ -776,20 +797,20 @@ gkyl_pkpm_app_write_integrated_L2_f(gkyl_pkpm_app *app)
     if (rank == 0) {
       // write out integrated L^2
       const char *fmt = "%s-%s-%s.gkyl";
-      int sz = gkyl_calc_strlen(fmt, app->name, app->species[i].info.name, "L2");
+      int sz = gkyl_calc_strlen(fmt, app->name, app->species[i].name, "L2");
       char fileNm[sz + 1]; // ensures no buffer overflow
-      snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[i].info.name, "L2");
+      snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[i].name, "L2");
 
-      if (app->species[i].is_first_integ_L2_write_call) {
+      if (app->species[i].kinetic->is_first_integ_L2_write_call) {
         // write to a new file (this ensure previous output is removed)
-        gkyl_dynvec_write(app->species[i].integ_L2_f, fileNm);
-        app->species[i].is_first_integ_L2_write_call = false;
+        gkyl_dynvec_write(app->species[i].kinetic->integ_L2_f, fileNm);
+        app->species[i].kinetic->is_first_integ_L2_write_call = false;
       } else {
         // append to existing file
-        gkyl_dynvec_awrite(app->species[i].integ_L2_f, fileNm);
+        gkyl_dynvec_awrite(app->species[i].kinetic->integ_L2_f, fileNm);
       }
     }
-    gkyl_dynvec_clear(app->species[i].integ_L2_f);
+    gkyl_dynvec_clear(app->species[i].kinetic->integ_L2_f);
   }
 }
 
@@ -843,11 +864,13 @@ gkyl_pkpm_app_train_mom(
   pkpm_op_split_sync(app); // the staggered split's source-updated state at tcurr
   struct pkpm_species *s = &app->species[sidx];
   // the diagnostic moments need the thermal speed of the current state
-  pkpm_species_calc_pkpm_vars(app, s, s->f, s->fluid);
-  pkpm_species_moment_diag_calc(app, s, s->local, app->local, s->f, s->fluid);
+  pkpm_species_calc_pkpm_vars(app, s, s->kinetic->f, s->fluid->fluid);
+  pkpm_species_moment_diag_calc(
+    app, s, s->kinetic->local, app->local, s->kinetic->f, s->fluid->fluid
+  );
 
   if (app->use_gpu) {
-    gkyl_array_copy(s->pkpm_moms_diag.marr_host, s->pkpm_moms_diag.marr);
+    gkyl_array_copy(s->kinetic->pkpm_moms_diag.marr_host, s->kinetic->pkpm_moms_diag.marr);
   }
 
   int cell_count = 0;
@@ -863,7 +886,7 @@ gkyl_pkpm_app_train_mom(
   while (gkyl_range_iter_next(&iter)) {
     long loc = gkyl_range_idx(&app->local, iter.idx);
 
-    const double *pkpm_moms_diag_d = gkyl_array_cfetch(s->pkpm_moms_diag.marr_host, loc);
+    const double *pkpm_moms_diag_d = gkyl_array_cfetch(s->kinetic->pkpm_moms_diag.marr_host, loc);
 
     for (int i = 0; i < num_input_moms; i++) {
       if (app->poly_order == 1) {
@@ -944,9 +967,9 @@ gkyl_pkpm_app_write_nn_mom(
   struct pkpm_species *s = &app->species[sidx];
 
   const char *fmt = "%s_moms_nn_%d-%s.dat";
-  int sz = gkyl_calc_strlen(fmt, app->name, frame, s->info.name);
+  int sz = gkyl_calc_strlen(fmt, app->name, frame, s->name);
   char fileNm[sz + 1];
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, frame, s->info.name);
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, frame, s->name);
 
   gkyl_kann_net_save(ann[sidx], fileNm);
 }
@@ -986,11 +1009,13 @@ gkyl_pkpm_app_test_mom(
 
   struct pkpm_species *s = &app->species[sidx];
   // the diagnostic moments need the thermal speed of the current state
-  pkpm_species_calc_pkpm_vars(app, s, s->f, s->fluid);
-  pkpm_species_moment_diag_calc(app, s, s->local, app->local, s->f, s->fluid);
+  pkpm_species_calc_pkpm_vars(app, s, s->kinetic->f, s->fluid->fluid);
+  pkpm_species_moment_diag_calc(
+    app, s, s->kinetic->local, app->local, s->kinetic->f, s->fluid->fluid
+  );
 
   if (app->use_gpu) {
-    gkyl_array_copy(s->pkpm_moms_diag.marr_host, s->pkpm_moms_diag.marr);
+    gkyl_array_copy(s->kinetic->pkpm_moms_diag.marr_host, s->kinetic->pkpm_moms_diag.marr);
   }
 
   struct gkyl_range_iter iter;
@@ -999,7 +1024,7 @@ gkyl_pkpm_app_test_mom(
   while (gkyl_range_iter_next(&iter)) {
     long loc = gkyl_range_idx(&app->local, iter.idx);
 
-    const double *pkpm_moms_diag_d = gkyl_array_cfetch(s->pkpm_moms_diag.marr_host, loc);
+    const double *pkpm_moms_diag_d = gkyl_array_cfetch(s->kinetic->pkpm_moms_diag.marr_host, loc);
 
     for (int i = 0; i < num_input_moms; i++) {
       if (app->poly_order == 1) {
@@ -1076,7 +1101,7 @@ gkyl_pkpm_app_test_mom(
   while (gkyl_range_iter_next(&iter_new)) {
     long loc_new = gkyl_range_idx(&app->local, iter_new.idx);
 
-    double *pkpm_moms_diag_d_new = gkyl_array_fetch(s->pkpm_moms_diag.marr_host, loc_new);
+    double *pkpm_moms_diag_d_new = gkyl_array_fetch(s->kinetic->pkpm_moms_diag.marr_host, loc_new);
 
     for (int i = 0; i < num_output_moms; i++) {
       if (app->poly_order == 1) {
@@ -1109,11 +1134,13 @@ gkyl_pkpm_app_test_mom(
   }
 
   const char *fmt = "%s-%s_pkpm_moms_predicted_%d.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name, s->info.name, frame);
+  int sz = gkyl_calc_strlen(fmt, app->name, s->name, frame);
   char fileNm[sz + 1];
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, s->info.name, frame);
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, s->name, frame);
 
-  gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, s->pkpm_moms_diag.marr_host, fileNm);
+  gkyl_comm_array_write(
+    app->comm, &app->grid, &app->local, mt, s->kinetic->pkpm_moms_diag.marr_host, fileNm
+  );
 
   struct gkyl_range_iter iter_old;
   gkyl_range_iter_init(&iter_old, &app->local);
@@ -1121,7 +1148,7 @@ gkyl_pkpm_app_test_mom(
   while (gkyl_range_iter_next(&iter_old)) {
     long loc_old = gkyl_range_idx(&app->local, iter_old.idx);
 
-    double *pkpm_moms_diag_d_old = gkyl_array_fetch(s->pkpm_moms_diag.marr_host, loc_old);
+    double *pkpm_moms_diag_d_old = gkyl_array_fetch(s->kinetic->pkpm_moms_diag.marr_host, loc_old);
 
     for (int i = 0; i < num_output_moms; i++) {
       if (app->poly_order == 1) {
@@ -1341,7 +1368,7 @@ gkyl_pkpm_app_stat_write(gkyl_pkpm_app *app)
   gkyl_pkpm_app_cout(app, fp, " num_ranks : %d,\n", num_ranks);
 
   for (int s = 0; s < app->num_species; ++s) {
-    range_stat_write(app, app->species[s].info.name, &app->species[s].global, fp);
+    range_stat_write(app, app->species[s].name, &app->species[s].kinetic->global, fp);
   }
 
   gkyl_pkpm_app_cout(app, fp, " nup : %ld,\n", stat.nup);
@@ -1392,12 +1419,12 @@ gkyl_pkpm_app_stat_write(gkyl_pkpm_app *app)
 
   for (int i = 0; i < app->num_species; ++i) {
     struct pkpm_species *s = &app->species[i];
-    double null_loc = (double)s->num_null_closure, null_glob = 0.0, cond_loc = s->closure_cond_min,
-           cond_glob = 1.0;
+    double null_loc = (double)s->kinetic->num_null_closure, null_glob = 0.0,
+           cond_loc = s->kinetic->closure_cond_min, cond_glob = 1.0;
     gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, &null_loc, &null_glob);
     gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MIN, 1, &cond_loc, &cond_glob);
-    gkyl_pkpm_app_cout(app, fp, " %s_closure_null_nodes : %ld,\n", s->info.name, (long)null_glob);
-    gkyl_pkpm_app_cout(app, fp, " %s_closure_cond_min : %lg,\n", s->info.name, cond_glob);
+    gkyl_pkpm_app_cout(app, fp, " %s_closure_null_nodes : %ld,\n", s->name, (long)null_glob);
+    gkyl_pkpm_app_cout(app, fp, " %s_closure_cond_min : %lg,\n", s->name, cond_glob);
   }
   gkyl_pkpm_app_cout(app, fp, " nio : %ld,\n", stat.n_io);
   gkyl_pkpm_app_cout(app, fp, " io_tm : %lg\n", stat.io_tm);
@@ -1507,14 +1534,18 @@ gkyl_pkpm_app_from_file_species(gkyl_pkpm_app *app, int sidx, const char *fname)
   struct pkpm_species *s = &app->species[sidx];
 
   if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
-    rstat.io_status = gkyl_comm_array_read(s->comm, &s->grid, &s->local, s->f_host, fname);
+    rstat.io_status = gkyl_comm_array_read(
+      s->kinetic->comm, &s->kinetic->grid, &s->kinetic->local, s->kinetic->f_host, fname
+    );
     if (app->use_gpu) {
-      gkyl_array_copy(s->f, s->f_host);
+      gkyl_array_copy(s->kinetic->f, s->kinetic->f_host);
     }
     if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
       // The file holds the physical distributions; the evolved ones carry the Jacobian.
-      gkyl_vlasov_position_map_rescale_jacobpos(app->pos_map, &app->basis, &s->local, s->f, s->f);
-      pkpm_species_apply_bc(app, s, s->f);
+      gkyl_vlasov_position_map_rescale_jacobpos(
+        app->pos_map, &app->basis, &s->kinetic->local, s->kinetic->f, s->kinetic->f
+      );
+      pkpm_species_apply_bc(app, s->kinetic, s->kinetic->f);
     }
   }
 
@@ -1536,14 +1567,16 @@ gkyl_pkpm_app_from_file_fluid_species(gkyl_pkpm_app *app, int sidx, const char *
 
   if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
     rstat.io_status =
-      gkyl_comm_array_read(app->comm, &app->grid, &app->local, s->fluid_host, fname);
+      gkyl_comm_array_read(app->comm, &app->grid, &app->local, s->fluid->fluid_host, fname);
     if (app->use_gpu) {
-      gkyl_array_copy(s->fluid, s->fluid_host);
+      gkyl_array_copy(s->fluid->fluid, s->fluid->fluid_host);
     }
     if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
       // The file holds the physical state; the evolved one carries the Jacobian.
-      gkyl_vlasov_position_map_rescale_jacobpos_conf(app->pos_map, &app->local, s->fluid, s->fluid);
-      pkpm_fluid_species_apply_bc(app, s, s->fluid);
+      gkyl_vlasov_position_map_rescale_jacobpos_conf(
+        app->pos_map, &app->local, s->fluid->fluid, s->fluid->fluid
+      );
+      pkpm_fluid_species_apply_bc(app, s->fluid, s->fluid->fluid);
     }
   }
 
@@ -1571,24 +1604,25 @@ gkyl_pkpm_app_from_frame_species(gkyl_pkpm_app *app, int sidx, int frame)
   // boundary condition fills (the corners of the extended range).
   pkpm_species_apply_ic(app, s, 0.0);
 
-  cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, s->info.name, frame);
+  cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, s->name, frame);
   struct gkyl_app_restart_status rstat = gkyl_pkpm_app_from_file_species(app, sidx, fileNm.str);
 
-  cstr fileNm_fluid = cstr_from_fmt("%s-%s_fluid_%d.gkyl", app->name, s->info.name, frame);
+  cstr fileNm_fluid = cstr_from_fmt("%s-%s_fluid_%d.gkyl", app->name, s->name, frame);
   struct gkyl_app_restart_status rstat_fluid =
     gkyl_pkpm_app_from_file_fluid_species(app, sidx, fileNm_fluid.str);
 
   // The cumulative record of the positivity limiter continues from the frame's (a frame
   // without the file restarts the record).
-  cstr fileNm_pos = cstr_from_fmt("%s-%s_pkpm_positivity_%d.gkyl", app->name, s->info.name, frame);
+  cstr fileNm_pos = cstr_from_fmt("%s-%s_pkpm_positivity_%d.gkyl", app->name, s->name, frame);
   struct gkyl_app_restart_status rstat_pos = header_from_file(app, fileNm_pos.str);
   if (rstat_pos.io_status == GKYL_ARRAY_RIO_SUCCESS) {
-    rstat_pos.io_status =
-      gkyl_comm_array_read(app->comm, &app->grid, &app->local, s->pkpm_pos_io_host, fileNm_pos.str);
+    rstat_pos.io_status = gkyl_comm_array_read(
+      app->comm, &app->grid, &app->local, s->fluid->pkpm_pos_io_host, fileNm_pos.str
+    );
   }
   if (rstat_pos.io_status == GKYL_ARRAY_RIO_SUCCESS) {
     int nc = app->confBasis.num_basis;
-    struct gkyl_array *count_host = s->pkpm_pos_count;
+    struct gkyl_array *count_host = s->fluid->pkpm_pos_count;
     if (app->use_gpu) {
       count_host = mkarr(false, PKPM_POS_NUM_COUNT, app->local_ext.volume);
       gkyl_array_clear(count_host, 0.0);
@@ -1598,24 +1632,24 @@ gkyl_pkpm_app_from_frame_species(gkyl_pkpm_app *app, int sidx, int frame)
     gkyl_range_iter_init(&iter, &app->local);
     while (gkyl_range_iter_next(&iter)) {
       long loc = gkyl_range_idx(&app->local_ext, iter.idx);
-      const double *io = gkyl_array_cfetch(s->pkpm_pos_io_host, loc);
+      const double *io = gkyl_array_cfetch(s->fluid->pkpm_pos_io_host, loc);
       double *cnt = gkyl_array_fetch(count_host, loc);
       for (int c = 0; c < PKPM_POS_NUM_COUNT; ++c) {
         cnt[c] = io[c * nc] / c0;
       }
     }
     if (app->use_gpu) {
-      gkyl_array_copy(s->pkpm_pos_count, count_host);
+      gkyl_array_copy(s->fluid->pkpm_pos_count, count_host);
       gkyl_array_release(count_host);
     }
   }
   cstr_drop(&fileNm_pos);
 
   // Diagnostic records append to their existing files after a restart.
-  s->is_first_integ_write_call = false;
-  s->is_first_integ_L2_write_call = false;
-  s->is_first_bflux_write_call = false;
-  s->is_first_pos_stat_write_call = false;
+  s->fluid->is_first_integ_write_call = false;
+  s->kinetic->is_first_integ_L2_write_call = false;
+  s->kinetic->is_first_bflux_write_call = false;
+  s->fluid->is_first_pos_stat_write_call = false;
   cstr_drop(&fileNm_fluid);
   cstr_drop(&fileNm);
 
@@ -1663,16 +1697,16 @@ gkyl_pkpm_app_read_from_frame(gkyl_pkpm_app *app, int frame)
       long pos_count[GKYL_MAX_SPECIES][PKPM_POS_NUM_STAT];
       for (int i = 0; i < app->num_species; ++i) {
         for (int c = 0; c < PKPM_POS_NUM_STAT; ++c) {
-          pos_count[i][c] = app->species[i].pos_count_since[c];
+          pos_count[i][c] = app->species[i].fluid->pos_count_since[c];
         }
-        gkyl_array_copy(app->op_split_pos_count[i], app->species[i].pkpm_pos_count);
+        gkyl_array_copy(app->op_split_pos_count[i], app->species[i].fluid->pkpm_pos_count);
       }
       pkpm_fluid_em_coupling_update(app, app->pkpm_em, app->tcurr - 0.5 * dt_half, -dt_half);
       for (int i = 0; i < app->num_species; ++i) {
         for (int c = 0; c < PKPM_POS_NUM_STAT; ++c) {
-          app->species[i].pos_count_since[c] = pos_count[i][c];
+          app->species[i].fluid->pos_count_since[c] = pos_count[i][c];
         }
-        gkyl_array_copy(app->species[i].pkpm_pos_count, app->op_split_pos_count[i]);
+        gkyl_array_copy(app->species[i].fluid->pkpm_pos_count, app->op_split_pos_count[i]);
       }
     }
   }

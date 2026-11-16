@@ -9,20 +9,20 @@ pkpm_species_lbo_moms_nodal(
 )
 {
   gkyl_pkpm_lbo_moms_advance(
-    lbo->up_moms, &app->local, &species->local, species->pkpm_nmoms.marr, species->f_nodal,
-    lbo->prim_moms
+    lbo->up_moms, &app->local, &species->kinetic->local, species->kinetic->pkpm_nmoms.marr,
+    species->kinetic->f_nodal, lbo->prim_moms
   );
 }
 
 // The operator at the nodes, accumulated onto the nodal right-hand side of the species.
 static void
 pkpm_species_lbo_kinetic_rhs_nodal(
-  gkyl_pkpm_app *app, const struct pkpm_species *species, struct pkpm_lbo_collisions *lbo,
+  gkyl_pkpm_app *app, const struct pkpm_kinetic_species *kin, struct pkpm_lbo_collisions *lbo,
   const struct gkyl_array *fin, struct gkyl_array *rhs
 )
 {
   gkyl_dg_updater_lbo_pkpm_nodal_advance(
-    lbo->up_coll, &species->local, species->f_nodal, species->cflrate_f, species->rhs_nodal
+    lbo->up_coll, &kin->local, kin->f_nodal, kin->cflrate, kin->rhs_nodal
   );
 }
 
@@ -35,19 +35,19 @@ pkpm_species_lbo_init_nodal(
 )
 {
   int num_nodes = app->confBasis.num_basis;
-  double nu_frac = s->info.kinetic.collisions.nu_frac > 0.0 ? s->info.kinetic.collisions.nu_frac :
-                                                              1.0;
+  double nu_frac = s->kinetic->info.collisions.nu_frac > 0.0 ? s->kinetic->info.collisions.nu_frac :
+                                                               1.0;
   lbo->nu_self = pkpm_species_coll_self_nu_new(app, s, nu_frac);
   // Without partners the self frequency is the frequency of the operator. With partners the
   // frequency of the operator is rebuilt from it every stage.
-  if (s->info.kinetic.collisions.num_cross_collisions) {
+  if (s->kinetic->info.collisions.num_cross_collisions) {
     lbo->nu = mkarr(false, num_nodes, app->local_ext.volume);
     gkyl_array_copy(lbo->nu, lbo->nu_self);
   } else {
     lbo->nu = gkyl_array_acquire(lbo->nu_self);
   }
 
-  double vel_bounds[2] = {s->info.kinetic.lower[0], s->info.kinetic.upper[0]};
+  double vel_bounds[2] = {s->kinetic->info.lower[0], s->kinetic->info.upper[0]};
   lbo->up_moms = gkyl_pkpm_lbo_moms_inew(&(struct gkyl_pkpm_lbo_moms_inp){
     .conf_basis = &app->confBasis,
     .phase_basis = &app->basis,
@@ -55,7 +55,7 @@ pkpm_species_lbo_init_nodal(
     .use_gpu = false,
   });
   lbo->up_coll = gkyl_dg_updater_lbo_pkpm_nodal_inew(&(struct gkyl_dg_updater_lbo_pkpm_nodal_inp){
-    .phase_grid = &s->grid,
+    .phase_grid = &s->kinetic->grid,
     .conf_basis = &app->confBasis,
     .phase_basis = &app->basis,
     .conf_range = &app->local,
@@ -94,14 +94,14 @@ pkpm_species_lbo_moms(
 
 void
 pkpm_species_lbo_rhs(
-  gkyl_pkpm_app *app, const struct pkpm_species *species, struct pkpm_lbo_collisions *lbo,
+  gkyl_pkpm_app *app, const struct pkpm_kinetic_species *kin, struct pkpm_lbo_collisions *lbo,
   const struct gkyl_array *fin, struct gkyl_array *rhs
 )
 {
   struct timespec wst = gkyl_wall_clock();
 
   // accumulate update due to collisions onto rhs
-  lbo->kinetic_rhs(app, species, lbo, fin, rhs);
+  lbo->kinetic_rhs(app, kin, lbo, fin, rhs);
 
   app->stat.species_coll_tm += gkyl_time_diff_now_sec(wst);
 }

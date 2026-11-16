@@ -648,20 +648,7 @@ struct pkpm_app_lw {
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 
   // Training parameters.
-  bool train_nn; // Train neural network on simulation data?
-  bool train_ab_initio; // Train neural network ab initio?
-  int nn_width; // Number of neurons to use per layer.
-  int nn_depth; // Number of layers to use.
-  char train_nn_file[256]; // File path of neural network to train.
-  int num_trains; // Number of times to train neural network.
-  int num_nn_writes; // Number of times to write out neural network.
-  int num_input_moms; // Number of "input" moments to train on.
-  int *input_moms; // Array of "input" moments to train on.
-  int num_output_moms; // Number of "output" moments to train on.
-  int *output_moms; // Array of "output" moments to train on.
-  bool test_nn; // Test neural network on simulation data?
-  char test_nn_file[256]; // File path of neural network to test.
-  int num_tests; // Number of times to test neural network.
+  struct gkyl_pkpm_nn nn; // Neural-network options.
 };
 
 // Gets all species objects from the App table, which must on top of
@@ -859,54 +846,55 @@ pkpm_app_new(lua_State *L)
   app_lw->dt_failure_tol = glua_tbl_get_number(L, "dtFailureTol", 1.0e-4);
   app_lw->num_failures_max = glua_tbl_get_integer(L, "numFailuresMax", 20);
 
-  // Initialize training parameters.
-  app_lw->train_nn = glua_tbl_get_bool(L, "trainNN", false);
-  app_lw->train_ab_initio = glua_tbl_get_bool(L, "trainAbInitio", true);
-  app_lw->nn_width = glua_tbl_get_integer(L, "NNWidth", 256);
-  app_lw->nn_depth = glua_tbl_get_integer(L, "NNDepth", 5);
-  const char *train_nn_file_char = glua_tbl_get_string(L, "trainNNFile", "");
-  strcpy(app_lw->train_nn_file, train_nn_file_char);
-  app_lw->num_trains = glua_tbl_get_integer(L, "numTrains", INT_MAX);
-  app_lw->num_nn_writes = glua_tbl_get_integer(L, "numNNWrites", 1);
+  // Neural-network options: one table. Without it no network is trained or tested.
+  struct gkyl_pkpm_nn nn = {
+    .train_ab_initio = true,
+    .nn_width = 256,
+    .nn_depth = 5,
+    .num_trains = INT_MAX,
+    .num_nn_writes = 1,
+    .num_tests = 1,
+  };
+  with_lua_tbl_tbl(L, "neuralNet")
+  {
+    nn.train_nn = glua_tbl_get_bool(L, "trainNN", false);
+    nn.train_ab_initio = glua_tbl_get_bool(L, "trainAbInitio", true);
+    nn.nn_width = glua_tbl_get_integer(L, "NNWidth", 256);
+    nn.nn_depth = glua_tbl_get_integer(L, "NNDepth", 5);
+    strcpy(nn.train_nn_file, glua_tbl_get_string(L, "trainNNFile", ""));
+    nn.num_trains = glua_tbl_get_integer(L, "numTrains", INT_MAX);
+    nn.num_nn_writes = glua_tbl_get_integer(L, "numNNWrites", 1);
 
-  app_lw->num_input_moms = 0;
-  app_lw->input_moms =
-    0; // Freed unconditionally at teardown; must be NULL when no inputMoms table is given.
-  if (glua_tbl_has_key(L, "inputMoms")) {
     with_lua_tbl_tbl(L, "inputMoms")
     {
-      app_lw->num_input_moms = glua_objlen(L);
-      app_lw->input_moms = gkyl_malloc(sizeof(int[app_lw->num_input_moms]));
+      nn.num_input_moms = glua_objlen(L);
+      assert(nn.num_input_moms <= GKYL_PKPM_NN_MAX_MOMS);
 
-      for (int i = 0; i < app_lw->num_input_moms; i++) {
+      for (int i = 0; i < nn.num_input_moms; i++) {
         // Indices are off by 1 between Lua and C.
-        app_lw->input_moms[i] = glua_tbl_iget_integer(L, i + 1, 0) - 1;
+        nn.input_moms[i] = glua_tbl_iget_integer(L, i + 1, 0) - 1;
       }
     }
-  }
 
-  app_lw->num_output_moms = 0;
-  app_lw->output_moms =
-    0; // Freed unconditionally at teardown; must be NULL when no outputMoms table is given.
-  if (glua_tbl_has_key(L, "outputMoms")) {
     with_lua_tbl_tbl(L, "outputMoms")
     {
-      app_lw->num_output_moms = glua_objlen(L);
-      app_lw->output_moms = gkyl_malloc(sizeof(int[app_lw->num_output_moms]));
+      nn.num_output_moms = glua_objlen(L);
+      assert(nn.num_output_moms <= GKYL_PKPM_NN_MAX_MOMS);
 
-      for (int i = 0; i < app_lw->num_output_moms; i++) {
+      for (int i = 0; i < nn.num_output_moms; i++) {
         // Indices are off by 1 between Lua and C.
-        app_lw->output_moms[i] = glua_tbl_iget_integer(L, i + 1, 0) - 1;
+        nn.output_moms[i] = glua_tbl_iget_integer(L, i + 1, 0) - 1;
       }
     }
-  }
 
-  app_lw->test_nn = glua_tbl_get_bool(L, "testNN", false);
-  const char *test_nn_file_char = glua_tbl_get_string(L, "testNNFile", "");
-  strcpy(app_lw->test_nn_file, test_nn_file_char);
-  app_lw->num_tests = glua_tbl_get_integer(L, "numTests", 1);
+    nn.test_nn = glua_tbl_get_bool(L, "testNN", false);
+    strcpy(nn.test_nn_file, glua_tbl_get_string(L, "testNNFile", ""));
+    nn.num_tests = glua_tbl_get_integer(L, "numTests", 1);
+  }
+  app_lw->nn = nn;
 
   struct gkyl_pkpm pkpm = {}; // Input table for app.
+  pkpm.nn = nn;
 
   strcpy(pkpm.name, sim_name);
 
@@ -1191,6 +1179,8 @@ pkpm_app_new(lua_State *L)
 
   pkpm.parallelism.comm = comm;
   pkpm.parallelism.use_gpu = script_cli.use_gpu;
+  gkyl_tool_args_release(script_cli.rest);
+  gkyl_tool_args_release(args);
 
   int rank;
   gkyl_comm_get_rank(comm, &rank);
@@ -1610,7 +1600,7 @@ pkpm_app_run(lua_State *L)
     show_help(app);
     gkyl_tool_args_release(script_cli.rest);
     gkyl_tool_args_release(args);
-    goto freemoms;
+    goto finish;
   }
 
   gkyl_tool_args_release(script_cli.rest);
@@ -1640,7 +1630,7 @@ pkpm_app_run(lua_State *L)
         app, stderr, "*** Failed to read restart file! (%s)\n",
         gkyl_array_rio_status_msg(status.io_status)
       );
-      goto freemoms;
+      goto finish;
     }
 
     frame_curr = status.frame;
@@ -1694,46 +1684,46 @@ pkpm_app_run(lua_State *L)
   write_data(&io_trig, app, t_curr, false);
 
   // Create trigger for neural network training.
-  int num_trains = app_lw->num_trains;
+  int num_trains = app_lw->nn.num_trains;
   struct gkyl_tm_trigger nn_trig = {.dt = t_end / num_trains, .tcurr = t_curr, .curr = frame_curr};
 
   kad_node_t **t = gkyl_malloc(sizeof(kad_node_t *) * app->num_species);
   struct gkyl_kann_net **ann = gkyl_malloc(sizeof(struct gkyl_kann_net *) * app->num_species);
-  if (app_lw->train_nn) {
-    if (app_lw->train_ab_initio) {
+  if (app_lw->nn.train_nn) {
+    if (app_lw->nn.train_ab_initio) {
       for (int i = 0; i < app->num_species; i++) {
         if (app->poly_order == 1) {
           if (app->cdim == 1) {
-            t[i] = kann_layer_input(app_lw->num_input_moms * 2);
+            t[i] = kann_layer_input(app_lw->nn.num_input_moms * 2);
           } else if (app->cdim == 2) {
-            t[i] = kann_layer_input(app_lw->num_input_moms * 4);
+            t[i] = kann_layer_input(app_lw->nn.num_input_moms * 4);
           }
         } else if (app->poly_order == 2) {
-          t[i] = kann_layer_input(app_lw->num_input_moms * 3);
+          t[i] = kann_layer_input(app_lw->nn.num_input_moms * 3);
         }
 
-        for (int j = 0; j < app_lw->nn_depth; j++) {
-          t[i] = kann_layer_dense(t[i], app_lw->nn_width);
+        for (int j = 0; j < app_lw->nn.nn_depth; j++) {
+          t[i] = kann_layer_dense(t[i], app_lw->nn.nn_width);
           t[i] = kad_tanh(t[i]);
         }
 
         if (app->poly_order == 1) {
           if (app->cdim == 1) {
-            t[i] = kann_layer_cost(t[i], app_lw->num_output_moms * 2, KANN_C_MSE);
+            t[i] = kann_layer_cost(t[i], app_lw->nn.num_output_moms * 2, KANN_C_MSE);
           } else if (app->cdim == 2) {
-            t[i] = kann_layer_cost(t[i], app_lw->num_output_moms * 4, KANN_C_MSE);
+            t[i] = kann_layer_cost(t[i], app_lw->nn.num_output_moms * 4, KANN_C_MSE);
           }
         } else if (app->poly_order == 2) {
-          t[i] = kann_layer_cost(t[i], app_lw->num_output_moms * 3, KANN_C_MSE);
+          t[i] = kann_layer_cost(t[i], app_lw->nn.num_output_moms * 3, KANN_C_MSE);
         }
         ann[i] = gkyl_kann_net_new(t[i], app->use_gpu);
       }
     } else {
       for (int i = 0; i < app->num_species; i++) {
         const char *fmt = "%s-%s.dat";
-        int sz = gkyl_calc_strlen(fmt, app_lw->train_nn_file, app->species[i].info.name);
+        int sz = gkyl_calc_strlen(fmt, app_lw->nn.train_nn_file, app->species[i].name);
         char fileNm[sz + 1];
-        snprintf(fileNm, sizeof fileNm, fmt, app_lw->train_nn_file, app->species[i].info.name);
+        snprintf(fileNm, sizeof fileNm, fmt, app_lw->nn.train_nn_file, app->species[i].name);
 
         FILE *file = fopen(fileNm, "r");
         if (file != NULL) {
@@ -1741,10 +1731,10 @@ pkpm_app_run(lua_State *L)
           fclose(file);
         } else {
           ann[i] = 0;
-          app_lw->train_nn = false;
+          app_lw->nn.train_nn = false;
           fprintf(
             stderr, "Neural network for species %s not found! Disabling NN training.\n",
-            app->species[i].info.name
+            app->species[i].name
           );
         }
       }
@@ -1760,42 +1750,42 @@ pkpm_app_run(lua_State *L)
 
   // Number of DG coefficients per moment carried into/out of the network.
   int nn_num_coeff = (app->poly_order == 1) ? ((app->cdim == 1) ? 2 : 4) : 3;
-  int nn_input_dim = app_lw->num_input_moms * nn_num_coeff;
-  int nn_output_dim = app_lw->num_output_moms * nn_num_coeff;
+  int nn_input_dim = app_lw->nn.num_input_moms * nn_num_coeff;
+  int nn_output_dim = app_lw->nn.num_output_moms * nn_num_coeff;
 
   struct gkyl_kn_vec *input_data = gkyl_kn_vec_new(cell_count, nn_input_dim);
   struct gkyl_kn_vec *output_data = gkyl_kn_vec_new(cell_count, nn_output_dim);
 
-  if (app_lw->train_nn) {
+  if (app_lw->nn.train_nn) {
     train_mom(
-      &nn_trig, app, t_curr, false, ann, app_lw->num_input_moms, app_lw->input_moms,
-      app_lw->num_output_moms, app_lw->output_moms, input_data, output_data
+      &nn_trig, app, t_curr, false, ann, app_lw->nn.num_input_moms, app_lw->nn.input_moms,
+      app_lw->nn.num_output_moms, app_lw->nn.output_moms, input_data, output_data
     );
   }
 
   // Create trigger for neural network writing.
-  int num_nn_writes = app_lw->num_nn_writes;
+  int num_nn_writes = app_lw->nn.num_nn_writes;
   struct gkyl_tm_trigger nnw_trig = {
     .dt = t_end / num_nn_writes,
     .tcurr = t_curr,
     .curr = frame_curr,
   };
 
-  if (app_lw->train_nn) {
+  if (app_lw->nn.train_nn) {
     write_nn(&nnw_trig, app, t_curr, false, ann);
   }
 
   // Create trigger for neural network testing.
-  int num_tests = app_lw->num_tests;
+  int num_tests = app_lw->nn.num_tests;
   struct gkyl_tm_trigger nnt_trig = {.dt = t_end / num_tests, .tcurr = t_curr, .curr = frame_curr};
 
   struct gkyl_kann_net **ann_test = gkyl_malloc(sizeof(struct gkyl_kann_net *) * app->num_species);
-  if (app_lw->test_nn) {
+  if (app_lw->nn.test_nn) {
     for (int i = 0; i < app->num_species; i++) {
       const char *fmt = "%s-%s.dat";
-      int sz = gkyl_calc_strlen(fmt, app_lw->test_nn_file, app->species[i].info.name);
+      int sz = gkyl_calc_strlen(fmt, app_lw->nn.test_nn_file, app->species[i].name);
       char fileNm[sz + 1];
-      snprintf(fileNm, sizeof fileNm, fmt, app_lw->test_nn_file, app->species[i].info.name);
+      snprintf(fileNm, sizeof fileNm, fmt, app_lw->nn.test_nn_file, app->species[i].name);
 
       FILE *file = fopen(fileNm, "r");
       if (file != NULL) {
@@ -1803,10 +1793,10 @@ pkpm_app_run(lua_State *L)
         fclose(file);
       } else {
         ann_test[i] = 0;
-        app_lw->test_nn = false;
+        app_lw->nn.test_nn = false;
         fprintf(
           stderr, "Neural network for species %s not found! Disabling NN testing.\n",
-          app->species[i].info.name
+          app->species[i].name
         );
       }
     }
@@ -1816,10 +1806,10 @@ pkpm_app_run(lua_State *L)
   struct gkyl_kn_vec *output_data_real = gkyl_kn_vec_new(cell_count, nn_output_dim);
   struct gkyl_kn_vec *output_data_predicted = gkyl_kn_vec_new(cell_count, nn_output_dim);
 
-  if (app_lw->test_nn) {
+  if (app_lw->nn.test_nn) {
     test_mom(
-      &nnt_trig, app, t_curr, false, ann_test, app_lw->num_input_moms, app_lw->input_moms,
-      app_lw->num_output_moms, app_lw->output_moms, input_data_real, output_data_real,
+      &nnt_trig, app, t_curr, false, ann_test, app_lw->nn.num_input_moms, app_lw->nn.input_moms,
+      app_lw->nn.num_output_moms, app_lw->nn.output_moms, input_data_real, output_data_real,
       output_data_predicted
     );
   }
@@ -1893,17 +1883,17 @@ pkpm_app_run(lua_State *L)
     calc_integrated_mom(&im_trig, app, t_curr, false);
     calc_integrated_L2_f(&l2f_trig, app, t_curr, false);
     write_data(&io_trig, app, t_curr, false);
-    if (app_lw->train_nn) {
+    if (app_lw->nn.train_nn) {
       train_mom(
-        &nn_trig, app, t_curr, false, ann, app_lw->num_input_moms, app_lw->input_moms,
-        app_lw->num_output_moms, app_lw->output_moms, input_data, output_data
+        &nn_trig, app, t_curr, false, ann, app_lw->nn.num_input_moms, app_lw->nn.input_moms,
+        app_lw->nn.num_output_moms, app_lw->nn.output_moms, input_data, output_data
       );
       write_nn(&nnw_trig, app, t_curr, false, ann);
     }
-    if (app_lw->test_nn) {
+    if (app_lw->nn.test_nn) {
       test_mom(
-        &nnt_trig, app, t_curr, false, ann_test, app_lw->num_input_moms, app_lw->input_moms,
-        app_lw->num_output_moms, app_lw->output_moms, input_data_real, output_data_real,
+        &nnt_trig, app, t_curr, false, ann_test, app_lw->nn.num_input_moms, app_lw->nn.input_moms,
+        app_lw->nn.num_output_moms, app_lw->nn.output_moms, input_data_real, output_data_real,
         output_data_predicted
       );
     }
@@ -1926,18 +1916,18 @@ pkpm_app_run(lua_State *L)
         calc_integrated_mom(&im_trig, app, t_curr, true);
         calc_integrated_L2_f(&l2f_trig, app, t_curr, true);
         write_data(&io_trig, app, t_curr, true);
-        if (app_lw->train_nn) {
+        if (app_lw->nn.train_nn) {
           train_mom(
-            &nn_trig, app, t_curr, true, ann, app_lw->num_input_moms, app_lw->input_moms,
-            app_lw->num_output_moms, app_lw->output_moms, input_data, output_data
+            &nn_trig, app, t_curr, true, ann, app_lw->nn.num_input_moms, app_lw->nn.input_moms,
+            app_lw->nn.num_output_moms, app_lw->nn.output_moms, input_data, output_data
           );
           write_nn(&nnw_trig, app, t_curr, true, ann);
         }
-        if (app_lw->test_nn) {
+        if (app_lw->nn.test_nn) {
           test_mom(
-            &nnt_trig, app, t_curr, true, ann_test, app_lw->num_input_moms, app_lw->input_moms,
-            app_lw->num_output_moms, app_lw->output_moms, input_data_real, output_data_real,
-            output_data_predicted
+            &nnt_trig, app, t_curr, true, ann_test, app_lw->nn.num_input_moms,
+            app_lw->nn.input_moms, app_lw->nn.num_output_moms, app_lw->nn.output_moms,
+            input_data_real, output_data_real, output_data_predicted
           );
         }
 
@@ -1958,10 +1948,10 @@ pkpm_app_run(lua_State *L)
   calc_integrated_mom(&im_trig, app, t_curr, false);
   calc_integrated_L2_f(&l2f_trig, app, t_curr, false);
   write_data(&io_trig, app, t_curr, false);
-  if (app_lw->train_nn) {
+  if (app_lw->nn.train_nn) {
     train_mom(
-      &nn_trig, app, t_curr, false, ann, app_lw->num_input_moms, app_lw->input_moms,
-      app_lw->num_output_moms, app_lw->output_moms, input_data, output_data
+      &nn_trig, app, t_curr, false, ann, app_lw->nn.num_input_moms, app_lw->nn.input_moms,
+      app_lw->nn.num_output_moms, app_lw->nn.output_moms, input_data, output_data
     );
     write_nn(&nnw_trig, app, t_curr, false, ann);
 
@@ -1969,10 +1959,10 @@ pkpm_app_run(lua_State *L)
       gkyl_kann_net_release(ann[i]);
     }
   }
-  if (app_lw->test_nn) {
+  if (app_lw->nn.test_nn) {
     test_mom(
-      &nnt_trig, app, t_curr, false, ann_test, app_lw->num_input_moms, app_lw->input_moms,
-      app_lw->num_output_moms, app_lw->output_moms, input_data_real, output_data_real,
+      &nnt_trig, app, t_curr, false, ann_test, app_lw->nn.num_input_moms, app_lw->nn.input_moms,
+      app_lw->nn.num_output_moms, app_lw->nn.output_moms, input_data_real, output_data_real,
       output_data_predicted
     );
 
@@ -2029,10 +2019,7 @@ pkpm_app_run(lua_State *L)
   gkyl_kn_vec_release(output_data_predicted);
 
 // An exit before the time loop (help, failed restart) has not allocated the arrays above.
-freemoms:
-
-  gkyl_free(app_lw->input_moms);
-  gkyl_free(app_lw->output_moms);
+finish:
 
   lua_pushboolean(L, ret_status);
   return 1;
