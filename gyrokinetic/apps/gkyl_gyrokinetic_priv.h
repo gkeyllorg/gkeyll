@@ -1226,7 +1226,8 @@ struct gk_species_balance {
   bool has_term[GK_SPECIES_BALANCE_NUM_TERMS]; // Whether the species has each term.
   enum gkyl_distribution_moments integ_mom[GK_SPECIES_BALANCE_NUM_TERMS][GKYL_GK_BALANCE_COUNT];
   int integ_comp[GK_SPECIES_BALANCE_NUM_TERMS][GKYL_GK_BALANCE_COUNT];
-  double mom[GKYL_GK_BALANCE_COUNT]; // Last value of each balanced quantity (for the sum over species).
+  double
+    mom[GKYL_GK_BALANCE_COUNT]; // Last value of each balanced quantity (for the sum over species).
   int num_comp; // Number of components in each balance diagnostic.
   gkyl_dynvec diag[GKYL_GK_BALANCE_COUNT]; // Balance diagnostic of each quantity.
   bool is_first_write
