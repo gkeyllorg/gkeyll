@@ -447,11 +447,12 @@ create_ctx(void)
 
   // Grid parameters (reduced resolution for the regression test, minimal recommended values in comments)
   int Nx =
-    15; // (24) The LCFS is positionned at 1/3 of the domain -> the resolution must be divisible by 3.
-  int Ny = 8; // (16)
-  int Nz = 8; // (12)
-  int Nvpar = 4; // (12)
-  int Nmu = 4; // (8)
+    24 /
+    4; // The LCFS is positionned at 1/3 of the domain -> the resolution must be divisible by 3.
+  int Ny = 16 / 4;
+  int Nz = 12 / 3;
+  int Nvpar = 12 / 3;
+  int Nmu = 8 / 4;
   int poly_order = 1;
   // Velocity box dimensions
   double vpar_max_elc = 5. * vte;
@@ -704,10 +705,12 @@ main(int argc, char **argv)
       },
 
     .bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-       {.dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
-       {.dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}},
+      {
+        {.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+        {.dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+        {.dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+      },
 
     .num_diag_moments = 9,
     .diag_moments =
@@ -790,10 +793,12 @@ main(int argc, char **argv)
       },
 
     .bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-       {.dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
-       {.dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}},
+      {
+        {.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+        {.dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+        {.dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+      },
 
     .num_diag_moments = 9,
     .diag_moments =
@@ -825,7 +830,7 @@ main(int argc, char **argv)
       .perp_dirs = {0, 2}, // Directions perpendicular to line.
       .perp_coords = {ctx.x_LCFS, ctx.z_max}, // Coordinates of the line in perpendicular directions.
       .val = 0.0, // Biasing value.
-    }
+    },
   };
 
   struct gkyl_poisson_bias_line_list bias_line_list = {.num_bias_line = 2, .bl = target_corner_bcs};
@@ -835,8 +840,10 @@ main(int argc, char **argv)
     .gkfield_id = GKYL_GK_FIELD_ES,
     .polarization_bmag = ctx.Bref,
     .poisson_bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}}},
+      {
+        {.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
+        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
+      },
     .bias_line_list = &bias_line_list,
     .time_rate_diagnostics = true,
   };

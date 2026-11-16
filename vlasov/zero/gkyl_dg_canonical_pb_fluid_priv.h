@@ -5,7 +5,7 @@
 #include <gkyl_array.h>
 #include <gkyl_dg_eqn.h>
 #include <gkyl_eqn_type.h>
-#include <gkyl_canonical_pb_kernels.h>
+#include <gkyl_canonical_fluid_kernels.h>
 #include <gkyl_range.h>
 #include <gkyl_util.h>
 

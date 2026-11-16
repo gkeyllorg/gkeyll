@@ -32,3 +32,5 @@ description: Apply Gkeyll naming conventions when creating, editing, or reviewin
 
 - Do not use single letter names for variables whose scope spans more than 15 lines.
 - Refer to buffer arrays as "buffer" and not as "scratch". 
+- Distinguish between host (CPU) and device (GPU) variables or objects with the
+  suffixes _ho and _dev, respectively.

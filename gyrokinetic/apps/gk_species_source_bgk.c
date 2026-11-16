@@ -264,11 +264,13 @@ gk_species_source_bgk_write_diags_heating_enabled(
     snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name);
 
     if (src->is_first_diag_dynvec_write_call) {
-      struct gkyl_msgpack_map_elem io_meta_phi[] = {{
-        .key = "Description",
-        .elem_type = GKYL_MP_STRING,
-        .cval = "Squared thermal speed amplitude.",
-      }};
+      struct gkyl_msgpack_map_elem io_meta_phi[] = {
+        {
+          .key = "Description",
+          .elem_type = GKYL_MP_STRING,
+          .cval = "Squared thermal speed amplitude.",
+        },
+      };
       int io_meta_len[] = {gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
       const struct gkyl_msgpack_map_elem *io_meta[] = {
         gks->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi
@@ -297,11 +299,13 @@ gk_species_source_bgk_write_diags_external_enabled(
   // Package metadata.
   gkyl_msgpack_map_elem_set_double(gks->io_meta_conf_len, gks->io_meta_conf, "time", tm);
   gkyl_msgpack_map_elem_set_uint(gks->io_meta_conf_len, gks->io_meta_conf, "frame", frame);
-  struct gkyl_msgpack_map_elem desc_bgk_moms[] = {{
-    .key = "Description",
-    .elem_type = GKYL_MP_STRING,
-    .cval = "BGK source particle (M0), momentum (M1) or kinetic energy (M2) source/sink rate.",
-  }};
+  struct gkyl_msgpack_map_elem desc_bgk_moms[] = {
+    {
+      .key = "Description",
+      .elem_type = GKYL_MP_STRING,
+      .cval = "BGK source particle (M0), momentum (M1) or kinetic energy (M2) source/sink rate.",
+    },
+  };
   int io_meta_len[] = {gks->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1};
   const struct gkyl_msgpack_map_elem *io_meta[] = {
     gks->io_meta_conf, app->gk_geom->io_meta_basic, desc_bgk_moms
@@ -420,11 +424,13 @@ gk_species_source_bgk_write_integrated_diags_enabled(
     );
 
     if (src->is_first_diag_dynvec_write_call) {
-      struct gkyl_msgpack_map_elem io_meta_phi[] = {{
-        .key = "Description",
-        .elem_type = GKYL_MP_STRING,
-        .cval = "Volume integrated moment of the BGK source.",
-      }};
+      struct gkyl_msgpack_map_elem io_meta_phi[] = {
+        {
+          .key = "Description",
+          .elem_type = GKYL_MP_STRING,
+          .cval = "Volume integrated moment of the BGK source.",
+        },
+      };
       int io_meta_len[] = {gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
       const struct gkyl_msgpack_map_elem *io_meta[] = {
         gks->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi
@@ -459,7 +465,7 @@ gk_species_source_bgk_write_array(
   gkyl_msgpack_map_elem_set_double(iom_len, iom, "time", stime);
   gkyl_msgpack_map_elem_set_uint(iom_len, iom, "frame", frame);
   struct gkyl_msgpack_map_elem io_meta_f[] = {
-    {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = description}
+    {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = description},
   };
   int io_meta_f_len = sizeof(io_meta_f) / sizeof(io_meta_f[0]);
   int io_meta_len[] = {iom_len, app->gk_geom->io_meta_basic_len, io_meta_f_len};

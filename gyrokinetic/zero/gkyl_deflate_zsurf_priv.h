@@ -26,7 +26,7 @@ GKYL_CU_D static const deflate_zsurf_kernel_dim_list ser_deflate_zsurf_kernel_di
     .list =
       {{NULL, deflate_surfz_lower_3x_ser_p1, deflate_surfz_lower_3x_ser_p2},
        {NULL, deflate_surfz_upper_3x_ser_p1, deflate_surfz_upper_3x_ser_p2}},
-  }
+  },
 };
 
 struct gkyl_deflate_zsurf {

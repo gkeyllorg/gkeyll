@@ -17,6 +17,7 @@ GKYL_CU_DH void binop_div_set_3d_ser_p2(struct gkyl_mat *A, struct gkyl_mat *rhs
 GKYL_CU_DH void binop_div_set_3d_ser_p3(struct gkyl_mat *A, struct gkyl_mat *rhs, const double *f, const double *g);
 
 GKYL_CU_DH void binop_div_set_2d_tensor_p2(struct gkyl_mat *A, struct gkyl_mat *rhs, const double *f, const double *g);
+GKYL_CU_DH void binop_div_set_2d_tensor_p3(struct gkyl_mat *A, struct gkyl_mat *rhs, const double *f, const double *g);
 GKYL_CU_DH void binop_div_set_3d_tensor_p2(struct gkyl_mat *A, struct gkyl_mat *rhs, const double *f, const double *g);
 
 GKYL_CU_DH void binop_div_copy_sol(const struct gkyl_mat *rhs, double* GKYL_RESTRICT fdivg);

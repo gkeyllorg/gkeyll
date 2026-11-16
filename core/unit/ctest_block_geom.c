@@ -34,13 +34,13 @@ test_block_geom_L_domain_ho()
         {
           // x-direction connections
           {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
-          {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL} // physical boundary
+          {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
         },
       .connections[1] =
         {
           // y-direction connections
           {.bid = 1, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
-          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL} // physical boundary
+          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}, // physical boundary
         },
     }
   );
@@ -56,14 +56,16 @@ test_block_geom_L_domain_ho()
       .cells = {10, 10},
 
       .connections[0] =
-        {// x-direction connections
-         {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
-         {.bid = 2, .dir = 0, .edge = GKYL_LOWER_POSITIVE}
+        {
+          // x-direction connections
+          {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
+          {.bid = 2, .dir = 0, .edge = GKYL_LOWER_POSITIVE},
         },
       .connections[1] =
-        {// y-direction connections
-         {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}, // physical boundary
-         {.bid = 0, .dir = 1, .edge = GKYL_LOWER_POSITIVE}
+        {
+          // y-direction connections
+          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}, // physical boundary
+          {.bid = 0, .dir = 1, .edge = GKYL_LOWER_POSITIVE},
         },
     }
   );
@@ -82,13 +84,13 @@ test_block_geom_L_domain_ho()
         {
           // x-direction connections
           {.bid = 1, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
-          {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL} // physical boundary
+          {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
         },
       .connections[1] =
         {
           // y-direction connections
           {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}, // physical boundary
-          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL} // physical boundary
+          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}, // physical boundary
         },
     }
   );
@@ -140,14 +142,16 @@ test_block_geom_mobius_domain_ho()
       .cells = {10, 10},
 
       .connections[0] =
-        {// x-direction connections
-         {.bid = 0, .dir = 0, .edge = GKYL_UPPER_NEGATIVE}, // note twist
-         {.bid = 0, .dir = 0, .edge = GKYL_LOWER_NEGATIVE}
+        {
+          // x-direction connections
+          {.bid = 0, .dir = 0, .edge = GKYL_UPPER_NEGATIVE}, // note twist
+          {.bid = 0, .dir = 0, .edge = GKYL_LOWER_NEGATIVE},
         },
       .connections[1] =
-        {// y-direction connections
-         {.bid = 0, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
-         {.bid = 0, .dir = 1, .edge = GKYL_LOWER_POSITIVE}
+        {
+          // y-direction connections
+          {.bid = 0, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
+          {.bid = 0, .dir = 1, .edge = GKYL_LOWER_POSITIVE},
         },
     }
   );

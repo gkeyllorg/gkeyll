@@ -5,7 +5,6 @@
 #include <gkyl_positivity_shift_gyrokinetic.h>
 #include <gkyl_positivity_shift_gyrokinetic_kernels.h>
 #include <gkyl_mom_gyrokinetic_kernels.h>
-#include <gkyl_mom_gyrokinetic_priv.h>
 #include <gkyl_dg_bin_ops_priv.h>
 #include <gkyl_util.h>
 #include <assert.h>

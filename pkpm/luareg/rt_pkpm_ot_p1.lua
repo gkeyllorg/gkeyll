@@ -32,8 +32,8 @@ nu_elc = 0.01 * omega_ci -- Electron collision frequency.
 nu_ion = 0.01 * omega_ci / math.sqrt(mass_ion) -- Ion collision frequency.
 
 -- Simulation parameters.
-Nx = 32 -- Cell count (configuration space: x-direction).
-Ny = 32 -- Cell count (configuration space: y-direction).
+Nx = 128 -- Cell count (configuration space: x-direction).
+Ny = 128 -- Cell count (configuration space: y-direction).
 Nvx = 16 -- Cell count (velocity space: vx-direction).
 Lx = 20.48 * d_i -- Domain size (configuration space: x-direction).
 Ly = 20.48 * d_i -- Domain size (configuration space: y-direction).
@@ -49,20 +49,6 @@ integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated m
 integrated_L2_f_calcs = GKYL_MAX_INT -- Number of times to calculate integrated L2 norm of distribution function.
 dt_failure_tol = 1.0e-4 -- Minimum allowable fraction of initial time-step.
 num_failures_max = 20 -- Maximum allowable number of consecutive small time-steps.
-
--- Training parameters.
-train_nn = false -- Train neural network on simulation data?
-train_ab_initio = true -- Train neural network ab initio?
-nn_width = 256 -- Number of neurons to use per layer.
-nn_depth = 5 -- Number of layers to use.
-train_nn_file = "pkpm_ot_p1_moms_nn_1" -- File path of neural network to train.
-num_trains = GKYL_MAX_INT -- Number of times to train neural network.
-num_nn_writes = 1 -- Number of times to write out neural network.
-input_moms = { 1, 3, 4 } -- Array of "input" moments to train on.
-output_moms = { 5, 6 } -- Array of "output" moments to train on.
-test_nn = false -- Test neural network on simulation data?
-test_nn_file = "pkpm_ot_p1_moms_nn_1" -- File path of neural network to test.
-num_tests = 1 -- Number of times to test neural network.
 
 pkpmApp = PKPM.App.new {
 
@@ -82,8 +68,10 @@ pkpmApp = PKPM.App.new {
   polyOrder = poly_order,
   timeStepper = time_stepper,
 
+  useExplicitSource = true,
+
   -- Decomposition for configuration space.
-  decompCuts = { 1 }, -- Cuts in each coodinate direction (x-direction only).
+  decompCuts = { 4, 2 }, -- Cuts in each coodinate direction.
 
   -- Boundary conditions for configuration space.
   periodicDirs = { 1, 2 }, -- Periodic directions (x- and y-directions only).
@@ -220,21 +208,7 @@ pkpmApp = PKPM.App.new {
     evolve = true, -- Evolve field?
     elcErrorSpeedFactor = 0.0,
     mgnErrorSpeedFactor = 0.0
-  },
-
-  -- Training parameters.
-  trainNN = train_nn,
-  trainAbInitio = train_ab_initio,
-  NNWidth = nn_width,
-  NNDepth = nn_depth,
-  trainNNFile = train_nn_file,
-  numTrains = num_trains,
-  numNNWrites = num_nn_writes,
-  inputMoms = input_moms,
-  outputMoms = output_moms,
-  testNN = test_nn,
-  testNNFile = test_nn_file,
-  numTests = num_tests
+  }
 }
 
 pkpmApp:run()
