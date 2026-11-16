@@ -22,6 +22,7 @@ import datetime
 import json
 import os
 import re
+import shlex
 import socket
 import sys
 import urllib.error
@@ -293,6 +294,16 @@ def timing_section():
     return "<details><summary>Timings</summary>\n\n" + "\n".join(body) + "\n\n</details>"
 
 
+def artifact_command(platform, build_number):
+  """Use public CLI modes; cluster report names select a Slurm profile."""
+  command = "./ci/jenkins/gkeyll-ci.sh"
+  if platform in ("personal", "team"):
+    command += " " + platform
+  else:
+    command = "GKEYLL_CI_CLUSTER={} {} slurm".format(shlex.quote(platform), command)
+  return "{} artifact --build {} --fetch".format(command, shlex.quote(str(build_number)))
+
+
 def build_report(args):
     selection = read_kv("ci-selection.txt")
     preflight = read_kv("ci-baseline-preflight.txt")
@@ -366,7 +377,7 @@ def build_report(args):
         parts.append(timings)
 
     parts.append("_Logs and regression databases stay on that machine; its owner can fetch them with "
-                 "`./ci/jenkins/gkeyll-ci.sh {} artifact --build {} --fetch`._".format(args.platform, build_number))
+                 "`{}`._".format(artifact_command(args.platform, build_number)))
 
     report = "\n\n".join(parts) + "\n"
     report = truncate(report, COMMENT_LIMIT)
