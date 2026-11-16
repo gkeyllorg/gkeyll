@@ -20,7 +20,7 @@ case "$CI_BUILD_ACTION" in
         configure_args=(--source-dir "$CI_BUILD_SOURCE" --prefix "$CI_BUILD_PREFIX")
         run_args=(-c)
         if [[ "$CI_BUILD_ACTION" == parallel-compile ]]; then
-            configure_args+=(--results-subdir parallel-c-4 --mpiexec "$SLURM_CI_MPIEXEC" --mpi-args "$SLURM_CI_MPI_ARGS")
+            configure_args+=(--results-subdir parallel-c-4 --mpiexec "$SLURM_CI_MPIEXEC" --mpi-args "${SLURM_CI_MPI_ARGS:-}")
             run_args+=(--parallel)
         fi
         "$driver" runregression configure "${configure_args[@]}"
