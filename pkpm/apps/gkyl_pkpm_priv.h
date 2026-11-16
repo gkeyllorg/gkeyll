@@ -327,6 +327,7 @@ struct pkpm_species {
   struct gkyl_array *pkpm_scratch; // one-expansion scratch for weak products
   struct gkyl_array *
     fluid_no_J; // PHYSICAL fluid state [rho, M, E] of the stage (position-map Jacobian divided out)
+  struct gkyl_array *fluid_no_J_host; // host copy of fluid_no_J for I/O
   struct gkyl_array *pkpm_moms_no_J; // physical coupling moments (diagnostics)
   struct gkyl_array *pkpm_rho; // physical mass density (leading block of fluid_no_J)
   struct gkyl_array *pkpm_rho3; // [rho, 0, 0] for the weak-gradient kernels
@@ -384,10 +385,10 @@ struct pkpm_species {
   gkyl_dynvec pos_stat; // the counts per integrated-moment interval, summed over ranks
   bool is_first_pos_stat_write_call; // flag for the positivity statistics dynvec written first time
 
-  // Diagnostic output: the 11-component fluid array [rho, rho u (3), P_ij + rho u_i u_j (6), E]
+  // Diagnostic output: the pressure tensor and heat flux [P_ij (6), q_i (3)] of the fluid equations
   // and the variables [u (3), T_perp/m, a_P, div b, bb:grad u, T_perp/m div b, xi, c]
-  struct gkyl_array *fluid_io;
-  struct gkyl_array *fluid_io_host;
+  struct gkyl_array *pkpm_prim_io;
+  struct gkyl_array *pkpm_prim_io_host;
   struct gkyl_array *pkpm_vars_io;
   struct gkyl_array *pkpm_vars_io_host;
 
@@ -661,7 +662,7 @@ int pkpm_find_species_idx(const gkyl_pkpm_app *app, const char *nm);
 /**
  * Compute the diagnostic moments [rho, M1, p_par, p_perp, q_par, q_perp, r_parpar, r_parperp]
  * into s->pkpm_moms_diag: the moments of the normalized distributions times n xi^k,
- * k = [0, 1, 2, 2, 3, 3, 4, 4]. Uses s->fluid_io as scratch; s->pkpm_xi must be current.
+ * k = [0, 1, 2, 2, 3, 3, 4, 4]. Uses s->pkpm_prim_io as scratch; s->pkpm_xi must be current.
  *
  * @param app PKPM app object
  * @param s Species object

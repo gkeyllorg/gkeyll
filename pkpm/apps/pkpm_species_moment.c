@@ -60,7 +60,7 @@ pkpm_species_moment_calc_into(
 // Diagnostic moments of the normalized state: the moments [rho, M1, p_par, p_perp, q_par,
 // q_perp, r_parpar, r_parperp] of the normalized distributions [F, G] (mass-weighted)
 // times n xi^k, k = [0, 1, 2, 2, 3, 3, 4, 4], n = rho/m from the fluid array (leading block) and xi the
-// nodal thermal speed (weak products projected onto p=1). fluid_io is used as scratch
+// nodal thermal speed (weak products projected onto p=1). pkpm_prim_io is used as scratch
 // (it is rebuilt by the diagnostics afterwards); pkpm_xi must be current.
 void
 pkpm_species_moment_diag_calc(
@@ -75,10 +75,10 @@ pkpm_species_moment_diag_calc(
   // of the position-map Jacobian, divided out at the end.
   gkyl_vlasov_position_map_divide_jacobpos_conf(app->pos_map, &conf_rng, fluid->ncomp, fluid, s->fluid_no_J);
   gkyl_array_set_offset(s->pkpm_rho, 1.0 / s->info.mass, s->fluid_no_J, 0);
-  gkyl_dg_updater_moment_pkpm_advance(s->pkpm_moms_diag.mcalc, &phase_rng, &conf_rng, fin, s->fluid_io);
+  gkyl_dg_updater_moment_pkpm_advance(s->pkpm_moms_diag.mcalc, &phase_rng, &conf_rng, fin, s->pkpm_prim_io);
   for (int c = 0; c < num_mom; ++c) {
     gkyl_dg_mul_op_range(
-      &app->confBasis, c, s->pkpm_moms_diag.marr, 0, s->pkpm_rho, c, s->fluid_io, &conf_rng
+      &app->confBasis, c, s->pkpm_moms_diag.marr, 0, s->pkpm_rho, c, s->pkpm_prim_io, &conf_rng
     );
     for (int k = xi_pow[c]; k > 0; k -= 2) {
       gkyl_dg_mul_op_range(

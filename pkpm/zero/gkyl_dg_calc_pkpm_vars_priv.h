@@ -21,10 +21,9 @@ typedef struct {
 } gkyl_dg_pkpm_in_cell_grad_kern_list;
 
 typedef void (*pkpm_diag_t)(
-  const double *vlasov_pkpm_moms, const double *euler_pkpm, const double *bvar,
-  const double *grad_b, const double *u, const double *grad_u, const double *theta,
-  const double *alpha_0, const double *xi, const double *c_h, double *GKYL_RESTRICT fluid_io,
-  double *GKYL_RESTRICT pkpm_vars_io
+  const double *vlasov_pkpm_moms, const double *bvar, const double *grad_b, const double *u,
+  const double *grad_u, const double *theta, const double *alpha_0, const double *xi,
+  const double *c_h, double *GKYL_RESTRICT pkpm_prim_io, double *GKYL_RESTRICT pkpm_vars_io
 );
 
 typedef int (*pkpm_closure_t)(

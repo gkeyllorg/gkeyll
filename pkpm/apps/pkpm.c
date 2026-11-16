@@ -565,6 +565,7 @@ gkyl_pkpm_app_write_field(gkyl_pkpm_app *app, double tm, int frame)
 void
 gkyl_pkpm_app_write_species(gkyl_pkpm_app *app, int sidx, double tm, int frame)
 {
+  pkpm_op_split_sync(app); // the staggered split's source-updated state at tcurr
   struct gkyl_msgpack_data *mt = pkpm_array_meta_new((struct pkpm_output_meta){
     .frame = frame,
     .stime = tm,
@@ -592,6 +593,34 @@ gkyl_pkpm_app_write_species(gkyl_pkpm_app *app, int sidx, double tm, int frame)
   gkyl_comm_array_write(s->comm, &s->grid, &s->local, mt, s->f_no_J_host, fileNm);
 
   pkpm_array_meta_release(mt);
+
+  // The fluid state [rho, rho ux, rho uy, rho uz, E] of the species, likewise the physical one.
+  struct gkyl_msgpack_data *mt_fluid = pkpm_array_meta_new((struct pkpm_output_meta){
+    .frame = frame,
+    .stime = tm,
+    .dt_prev = app->op_split_dt_prev,
+    .dt_suggested = app->op_split_dt_suggested,
+    .poly_order = app->poly_order,
+    .basis_type = app->confBasis.id,
+  });
+
+  const char *fmt_fluid = "%s-%s_fluid_%d.gkyl";
+  int sz_fluid = gkyl_calc_strlen(fmt_fluid, app->name, s->info.name, frame);
+  char fileNm_fluid[sz_fluid + 1]; // ensures no buffer overflow
+  snprintf(fileNm_fluid, sizeof fileNm_fluid, fmt_fluid, app->name, s->info.name, frame);
+
+  gkyl_vlasov_position_map_divide_jacobpos_conf(
+    app->pos_map, &app->local, s->fluid->ncomp, s->fluid, s->fluid_no_J
+  );
+  if (app->use_gpu) {
+    // copy data from device to host before writing it out
+    gkyl_array_copy(s->fluid_no_J_host, s->fluid_no_J);
+  }
+  gkyl_comm_array_write(
+    app->comm, &app->grid, &app->local, mt_fluid, s->fluid_no_J_host, fileNm_fluid
+  );
+
+  pkpm_array_meta_release(mt_fluid);
 }
 
 void
@@ -609,47 +638,48 @@ gkyl_pkpm_app_write_mom(gkyl_pkpm_app *app, int sidx, double tm, int frame)
 
   struct pkpm_species *s = &app->species[sidx];
 
-  // Construct the file handles for the three quantities (PKPM moments, PKPM fluid variables, PKPM update variables)
+  // Construct the file handles for the three quantities (PKPM moments, pressure tensor and heat
+  // flux, PKPM update variables)
   const char *fmt = "%s-%s_pkpm_moms_%d.gkyl";
   int sz = gkyl_calc_strlen(fmt, app->name, s->info.name, frame);
   char fileNm[sz + 1]; // ensures no buffer overflow
   snprintf(fileNm, sizeof fileNm, fmt, app->name, s->info.name, frame);
 
-  const char *fmt_fluid = "%s-%s_pkpm_fluid_%d.gkyl";
-  int sz_fluid = gkyl_calc_strlen(fmt_fluid, app->name, s->info.name, frame);
-  char fileNm_fluid[sz_fluid + 1]; // ensures no buffer overflow
-  snprintf(fileNm_fluid, sizeof fileNm_fluid, fmt_fluid, app->name, s->info.name, frame);
+  const char *fmt_prim = "%s-%s_pkpm_prim_%d.gkyl";
+  int sz_prim = gkyl_calc_strlen(fmt_prim, app->name, s->info.name, frame);
+  char fileNm_prim[sz_prim + 1]; // ensures no buffer overflow
+  snprintf(fileNm_prim, sizeof fileNm_prim, fmt_prim, app->name, s->info.name, frame);
 
   const char *fmt_pkpm_vars = "%s-%s_pkpm_vars_%d.gkyl";
   int sz_pkpm_vars = gkyl_calc_strlen(fmt_pkpm_vars, app->name, s->info.name, frame);
   char fileNm_pkpm_vars[sz_pkpm_vars + 1]; // ensures no buffer overflow
   snprintf(fileNm_pkpm_vars, sizeof fileNm_pkpm_vars, fmt_pkpm_vars, app->name, s->info.name, frame);
 
-  // Compute the PKPM variables including moments and primitive variables
-  // and construct arrays for writing out fluid and other pkpm variables.
+  // Compute the PKPM variables including moments and primitive variables and construct the
+  // arrays for writing out the pressure tensor, the heat flux and the other pkpm variables.
   pkpm_species_calc_diag_vars(app, s, s->f, s->fluid);
   pkpm_species_moment_diag_calc(app, s, s->local, app->local, s->f, s->fluid);
-  // Physical fluid state and coupling moments for the diagnostics (the evolved ones carry
-  // the position-map Jacobian; fluid_no_J is current from pkpm_species_calc_pkpm_vars).
+  // Physical coupling moments for the diagnostics (the evolved ones carry the position-map
+  // Jacobian).
   gkyl_vlasov_position_map_divide_jacobpos_conf(
     app->pos_map, &app->local, s->pkpm_moms->ncomp, s->pkpm_moms, s->pkpm_moms_no_J
   );
   gkyl_dg_calc_pkpm_vars_diag(
-    s->calc_pkpm_vars, &app->local, s->pkpm_moms_no_J, s->fluid_no_J, app->field->bvar,
-    app->field->grad_b, s->pkpm_u, s->pkpm_grad_u, s->pkpm_theta, s->pkpm_alpha_0, s->pkpm_xi,
-    s->pkpm_c_h, s->fluid_io, s->pkpm_vars_io
+    s->calc_pkpm_vars, &app->local, s->pkpm_moms_no_J, app->field->bvar, app->field->grad_b,
+    s->pkpm_u, s->pkpm_grad_u, s->pkpm_theta, s->pkpm_alpha_0, s->pkpm_xi, s->pkpm_c_h,
+    s->pkpm_prim_io, s->pkpm_vars_io
   );
 
   // copy data from device to host before writing it out
   if (app->use_gpu) {
     gkyl_array_copy(s->pkpm_moms_diag.marr_host, s->pkpm_moms_diag.marr);
-    gkyl_array_copy(s->fluid_io_host, s->fluid_io);
+    gkyl_array_copy(s->pkpm_prim_io_host, s->pkpm_prim_io);
     gkyl_array_copy(s->pkpm_vars_io_host, s->pkpm_vars_io);
     gkyl_array_copy(s->pkpm_cmoms_host, s->pkpm_cmoms);
   }
 
   gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, s->pkpm_moms_diag.marr_host, fileNm);
-  gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, s->fluid_io_host, fileNm_fluid);
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, s->pkpm_prim_io_host, fileNm_prim);
   gkyl_comm_array_write(
     app->comm, &app->grid, &app->local, mt, s->pkpm_vars_io_host, fileNm_pkpm_vars
   );
@@ -1511,21 +1541,11 @@ gkyl_pkpm_app_from_file_fluid_species(gkyl_pkpm_app *app, int sidx, const char *
   struct pkpm_species *s = &app->species[sidx];
 
   if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
-    // Read in the full 11 component fluid array
     rstat.io_status =
-      gkyl_comm_array_read(app->comm, &app->grid, &app->local, s->fluid_io_host, fname);
+      gkyl_comm_array_read(app->comm, &app->grid, &app->local, s->fluid_host, fname);
     if (app->use_gpu) {
-      gkyl_array_copy(s->fluid_io, s->fluid_io_host);
+      gkyl_array_copy(s->fluid, s->fluid_host);
     }
-    // The density and momentum (components 0-3 of the 11 component array) are the
-    // leading blocks of the fluid array; the energy (component 10) its trailing block.
-    int nc = app->confBasis.num_basis;
-    gkyl_array_set_offset(s->pkpm_rho, 1.0, s->fluid_io, 0);
-    gkyl_array_set_offset(s->fluid, 1.0, s->pkpm_rho, 0);
-    gkyl_array_set_offset(s->pkpm_mom3, 1.0, s->fluid_io, nc);
-    gkyl_array_set_offset(s->fluid, 1.0, s->pkpm_mom3, nc);
-    gkyl_array_set_offset(s->pkpm_rho, 1.0, s->fluid_io, 10 * nc);
-    gkyl_array_set_offset(s->fluid, 1.0, s->pkpm_rho, 4 * nc);
     if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
       // The file holds the physical state; the evolved one carries the Jacobian.
       gkyl_vlasov_position_map_rescale_jacobpos_conf(app->pos_map, &app->local, s->fluid, s->fluid);
@@ -1560,7 +1580,7 @@ gkyl_pkpm_app_from_frame_species(gkyl_pkpm_app *app, int sidx, int frame)
   cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, s->info.name, frame);
   struct gkyl_app_restart_status rstat = gkyl_pkpm_app_from_file_species(app, sidx, fileNm.str);
 
-  cstr fileNm_fluid = cstr_from_fmt("%s-%s_pkpm_fluid_%d.gkyl", app->name, s->info.name, frame);
+  cstr fileNm_fluid = cstr_from_fmt("%s-%s_fluid_%d.gkyl", app->name, s->info.name, frame);
   struct gkyl_app_restart_status rstat_fluid =
     gkyl_pkpm_app_from_file_fluid_species(app, sidx, fileNm_fluid.str);
 

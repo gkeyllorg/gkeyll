@@ -267,14 +267,17 @@ int gkyl_dg_calc_pkpm_vars_normalize_dist(
 
 /**
  * Construct the diagnostic arrays:
- * fluid_io = [rho, M_i, P_ij + M_i u_j, E] (11 components; ij = xx, xy, xz, yy, yz, zz) and
+ * pkpm_prim_io = [P_xx, P_xy, P_xz, P_yy, P_yz, P_zz, q_x, q_y, q_z] (9 components), the
+ * pressure tensor and the heat flux of the fluid equations,
+ *   P_ij = (p_par - p_perp) b_i b_j + p_perp delta_ij + s_i b_j + b_i s_j,
+ *   q_i = b_i (q_par + 2 q_perp)/2 + r_i, and
  * pkpm_vars_io = [u_x, u_y, u_z, T_perp/m, a_P, div b, bb:grad u, T_perp/m div b, xi, c]
  * (10 components), with the products projected onto p=1. p=1 serendipity only.
  *
  * @param up               Updater for computing pkpm variables
  * @param conf_range       Configuration space range
- * @param vlasov_pkpm_moms Input kinetic coupling moments [p_par, p_perp, q_par, q_perp, ...]
- * @param euler_pkpm       Input fluid state [rho, rho ux, rho uy, rho uz, E]
+ * @param vlasov_pkpm_moms Input kinetic coupling moments [p_par, p_perp, q_par, q_perp,
+ *                         s (x, y, z), r (x, y, z)]
  * @param bvar             Input magnetic field unit vector [bx, by, bz]
  * @param grad_b           Input weak gradient of b (gkyl_dg_calc_pkpm_bvar_grad)
  * @param u                Input flow velocity [ux, uy, uz]
@@ -283,16 +286,15 @@ int gkyl_dg_calc_pkpm_vars_normalize_dist(
  * @param alpha_0          Input pressure force a_P/xi
  * @param xi               Input thermal speed [xi, xi^2, p]
  * @param c_h              Input heating rate c
- * @param fluid_io         Output fluid diagnostics (11 components)
+ * @param pkpm_prim_io     Output pressure tensor and heat flux (9 components)
  * @param pkpm_vars_io     Output pkpm variables (10 components)
  */
 void gkyl_dg_calc_pkpm_vars_diag(
   struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
-  const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *euler_pkpm,
-  const struct gkyl_array *bvar, const struct gkyl_array *grad_b, const struct gkyl_array *u,
-  const struct gkyl_array *grad_u, const struct gkyl_array *theta, const struct gkyl_array *alpha_0,
-  const struct gkyl_array *xi, const struct gkyl_array *c_h, struct gkyl_array *fluid_io,
-  struct gkyl_array *pkpm_vars_io
+  const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *bvar,
+  const struct gkyl_array *grad_b, const struct gkyl_array *u, const struct gkyl_array *grad_u,
+  const struct gkyl_array *theta, const struct gkyl_array *alpha_0, const struct gkyl_array *xi,
+  const struct gkyl_array *c_h, struct gkyl_array *pkpm_prim_io, struct gkyl_array *pkpm_vars_io
 );
 
 /**
@@ -362,11 +364,10 @@ int gkyl_dg_calc_pkpm_vars_normalize_dist_cu(
 );
 void gkyl_dg_calc_pkpm_vars_diag_cu(
   struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
-  const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *euler_pkpm,
-  const struct gkyl_array *bvar, const struct gkyl_array *grad_b, const struct gkyl_array *u,
-  const struct gkyl_array *grad_u, const struct gkyl_array *theta, const struct gkyl_array *alpha_0,
-  const struct gkyl_array *xi, const struct gkyl_array *c_h, struct gkyl_array *fluid_io,
-  struct gkyl_array *pkpm_vars_io
+  const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *bvar,
+  const struct gkyl_array *grad_b, const struct gkyl_array *u, const struct gkyl_array *grad_u,
+  const struct gkyl_array *theta, const struct gkyl_array *alpha_0, const struct gkyl_array *xi,
+  const struct gkyl_array *c_h, struct gkyl_array *pkpm_prim_io, struct gkyl_array *pkpm_vars_io
 );
 
 void gkyl_dg_calc_pkpm_vars_in_cell_grad_cu(

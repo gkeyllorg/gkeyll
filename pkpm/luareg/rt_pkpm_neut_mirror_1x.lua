@@ -3,8 +3,8 @@
 -- 1 + 0.2 sin(pi x) in a uniform flow u = 0.5 at uniform pressure p = 1 moves through the static
 -- field B = (sin 0.3, -cos 0.3, -0.5 cos(pi x)) in a periodic box of length 2. The gas has no
 -- charge, so the field only sets the direction b, and div b is not zero: streaming along b, the
--- mirror force and the work of the pressure anisotropy on the flow, (p_par - p_perp) bb:grad(u),
--- act together.
+-- mirror force, the work of the pressure anisotropy on the flow, (p_par - p_perp) bb:grad(u), and
+-- the first-harmonic stress act together.
 -- Figures of merit (16 x 16 cells) to t = 2: particle number, the three components of the momentum
 -- and the total energy (kinetic + p_par/2 + p_perp) are conserved to 2e-13. The kinetic energy
 -- rises from 0.25 to 0.272 (t = 0.74) and is 0.254 at t = 2, where the integrated parallel and

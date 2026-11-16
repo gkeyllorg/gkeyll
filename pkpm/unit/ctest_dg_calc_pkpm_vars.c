@@ -12,6 +12,8 @@
 //   positivity : the limiter scales the slopes of a cell with an inadmissible vertex density or
 //            internal energy to the floor with the cell averages preserved; a cell with an
 //            inadmissible average is left as is and counted.
+//   diag : the pressure tensor, the heat flux and the pkpm variables of the output are the p=1
+//            projections of their expressions in the coupling moments, b and the closures.
 //
 #include <acutest.h>
 #include <math.h>
@@ -22,6 +24,7 @@
 #include <gkyl_basis.h>
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_calc_pkpm_vars.h>
+#include <gkyl_gauss_quad_data.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
@@ -426,7 +429,185 @@ test_positivity_3x()
   test_positivity(3);
 }
 
-TEST_LIST = {{"test_positivity_1x", test_positivity_1x}, {"test_positivity_2x", test_positivity_2x},
-             {"test_positivity_3x", test_positivity_3x}, {"test_quotients_1x", test_quotients_1x},
-             {"test_quotients_2x", test_quotients_2x},   {"test_quotients_3x", test_quotients_3x},
-             {"source_1x_p1", test_source_1x_p1},        {NULL, NULL}};
+// Coefficients of an arbitrary p=1 expansion in every block of every cell.
+static void
+fill_expansions(struct gkyl_array *arr, double shift)
+{
+  for (long loc = 0; loc < arr->size; ++loc) {
+    double *d = gkyl_array_fetch(arr, loc);
+    for (int k = 0; k < arr->ncomp; ++k) {
+      d[k] = 0.3 + 0.5 * sin(shift + 1.7 * k + 0.37 * loc);
+    }
+  }
+}
+
+// The diagnostic arrays are the p=1 projections of the pressure tensor and heat flux of the fluid
+// equations, P_ij = (p_par - p_perp) b_i b_j + p_perp delta_ij + s_i b_j + b_i s_j and
+// q_i = b_i (q_par + 2 q_perp)/2 + r_i, and of the variables [u, xi^2 theta, xi alpha_0, div b,
+// bb:grad u, xi^2 theta div b, xi, c]: the updater against a Gauss-Legendre projection of the same
+// expressions (three nodes per direction integrate a product of four p=1 factors exactly).
+static void
+test_diag(int cdim)
+{
+  double lower[3] = {-1.0, -1.0, -1.0}, upper[3] = {1.0, 1.0, 1.0};
+  int cells[3] = {3, 2, 2}, ghost[3] = {0, 0, 0};
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, cdim, lower, upper, cells);
+  struct gkyl_basis cbasis;
+  gkyl_cart_modal_serendip(&cbasis, cdim, 1);
+  int nb = cbasis.num_basis;
+  struct gkyl_range local, local_ext;
+  gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
+  struct gkyl_vlasov_position_map *pm = identity_pos_map(&grid, &local, &local_ext, &cbasis);
+  struct gkyl_dg_calc_pkpm_vars *up =
+    gkyl_dg_calc_pkpm_vars_inew(&(struct gkyl_dg_calc_pkpm_vars_inp){
+      .conf_grid = &grid,
+      .conf_basis = &cbasis,
+      .pos_map = pm,
+      .use_gpu = false,
+    });
+
+  long vol = local_ext.volume;
+  struct gkyl_array *moms = mkarr(10 * nb, vol), *bvar = mkarr(3 * nb, vol);
+  struct gkyl_array *grad_b = mkarr(cdim * 3 * nb, vol), *flow = mkarr(3 * nb, vol);
+  struct gkyl_array *grad_u = mkarr(cdim * 3 * nb, vol), *theta = mkarr(nb, vol);
+  struct gkyl_array *alpha_0 = mkarr(nb, vol), *xi = mkarr(3 * nb, vol), *c_h = mkarr(nb, vol);
+  struct gkyl_array *prim_io = mkarr(9 * nb, vol), *vars_io = mkarr(10 * nb, vol);
+  fill_expansions(moms, 0.1);
+  fill_expansions(bvar, 0.2);
+  fill_expansions(grad_b, 0.3);
+  fill_expansions(flow, 0.4);
+  fill_expansions(grad_u, 0.5);
+  fill_expansions(theta, 0.6);
+  fill_expansions(alpha_0, 0.7);
+  fill_expansions(xi, 0.8);
+  fill_expansions(c_h, 0.9);
+
+  gkyl_dg_calc_pkpm_vars_diag(
+    up, &local, moms, bvar, grad_b, flow, grad_u, theta, alpha_0, xi, c_h, prim_io, vars_io
+  );
+
+  static const int ij[6][2] = {{0, 0}, {0, 1}, {0, 2}, {1, 1}, {1, 2}, {2, 2}};
+  const double *ordinates = gkyl_gauss_ordinates[3], *weights = gkyl_gauss_weights[3];
+  int num_quad = cdim == 1 ? 3 : (cdim == 2 ? 9 : 27);
+  double err_prim = 0.0, err_vars = 0.0;
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &local);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&local, iter.idx);
+    const double *moms_c = gkyl_array_cfetch(moms, loc), *bvar_c = gkyl_array_cfetch(bvar, loc);
+    const double *grad_b_c = gkyl_array_cfetch(grad_b, loc), *flow_c = gkyl_array_cfetch(flow, loc);
+    const double *grad_u_c = gkyl_array_cfetch(grad_u, loc),
+                 *theta_c = gkyl_array_cfetch(theta, loc);
+    const double *alpha_c = gkyl_array_cfetch(alpha_0, loc), *xi_c = gkyl_array_cfetch(xi, loc);
+    const double *c_h_c = gkyl_array_cfetch(c_h, loc);
+    double ref_prim[9 * 8] = {0.0}, ref_vars[10 * 8] = {0.0};
+    for (int quad = 0; quad < num_quad; ++quad) {
+      double node[3], wgt = 1.0, basis_at_node[8];
+      for (int d = 0, rem = quad; d < cdim; ++d, rem /= 3) {
+        node[d] = ordinates[rem % 3];
+        wgt *= weights[rem % 3];
+      }
+      cbasis.eval(node, basis_at_node);
+      double mq[10], bq[3], uq[3], div_b = 0.0, bb_grad_u = 0.0;
+      for (int c = 0; c < 10; ++c) {
+        mq[c] = cbasis.eval_expand(node, moms_c + c * nb);
+      }
+      for (int i = 0; i < 3; ++i) {
+        bq[i] = cbasis.eval_expand(node, bvar_c + i * nb);
+        uq[i] = cbasis.eval_expand(node, flow_c + i * nb);
+      }
+      for (int d = 0; d < cdim; ++d) {
+        div_b += cbasis.eval_expand(node, grad_b_c + (d * 3 + d) * nb);
+        for (int j = 0; j < 3; ++j) {
+          bb_grad_u += bq[d] * bq[j] * cbasis.eval_expand(node, grad_u_c + (d * 3 + j) * nb);
+        }
+      }
+      double ppar = mq[0], pperp = mq[1], qpar = mq[2], qperp = mq[3];
+      const double *sq = mq + 4, *rq = mq + 7;
+      double prim[9], vars[10];
+      for (int c = 0; c < 6; ++c) {
+        int i = ij[c][0], j = ij[c][1];
+        prim[c] =
+          (ppar - pperp) * bq[i] * bq[j] + (i == j ? pperp : 0.0) + sq[i] * bq[j] + bq[i] * sq[j];
+      }
+      for (int i = 0; i < 3; ++i) {
+        prim[6 + i] = bq[i] * (0.5 * qpar + qperp) + rq[i];
+        vars[i] = uq[i];
+      }
+      double xi_1 = cbasis.eval_expand(node, xi_c), xi_sq = cbasis.eval_expand(node, xi_c + nb);
+      double tperp = xi_sq * cbasis.eval_expand(node, theta_c);
+      vars[3] = tperp;
+      vars[4] = xi_1 * cbasis.eval_expand(node, alpha_c);
+      vars[5] = div_b;
+      vars[6] = bb_grad_u;
+      vars[7] = tperp * div_b;
+      vars[8] = xi_1;
+      vars[9] = cbasis.eval_expand(node, c_h_c);
+      for (int k = 0; k < nb; ++k) {
+        for (int c = 0; c < 9; ++c) {
+          ref_prim[c * nb + k] += wgt * basis_at_node[k] * prim[c];
+        }
+        for (int c = 0; c < 10; ++c) {
+          ref_vars[c * nb + k] += wgt * basis_at_node[k] * vars[c];
+        }
+      }
+    }
+    const double *out_prim = gkyl_array_cfetch(prim_io, loc);
+    const double *out_vars = gkyl_array_cfetch(vars_io, loc);
+    for (int k = 0; k < 9 * nb; ++k) {
+      err_prim = fmax(err_prim, fabs(out_prim[k] - ref_prim[k]));
+    }
+    for (int k = 0; k < 10 * nb; ++k) {
+      err_vars = fmax(err_vars, fabs(out_vars[k] - ref_vars[k]));
+    }
+  }
+  TEST_CHECK(err_prim < 1e-13);
+  TEST_MSG("cdim=%d: pressure tensor and heat flux against the projection: %g", cdim, err_prim);
+  TEST_CHECK(err_vars < 1e-13);
+  TEST_MSG("cdim=%d: pkpm variables against the projection: %g", cdim, err_vars);
+
+  gkyl_array_release(vars_io);
+  gkyl_array_release(prim_io);
+  gkyl_array_release(c_h);
+  gkyl_array_release(xi);
+  gkyl_array_release(alpha_0);
+  gkyl_array_release(theta);
+  gkyl_array_release(grad_u);
+  gkyl_array_release(flow);
+  gkyl_array_release(grad_b);
+  gkyl_array_release(bvar);
+  gkyl_array_release(moms);
+  gkyl_dg_calc_pkpm_vars_release(up);
+  gkyl_vlasov_position_map_release(pm);
+}
+
+void
+test_diag_1x()
+{
+  test_diag(1);
+}
+void
+test_diag_2x()
+{
+  test_diag(2);
+}
+void
+test_diag_3x()
+{
+  test_diag(3);
+}
+
+TEST_LIST = {
+  {"test_positivity_1x", test_positivity_1x},
+  {"test_positivity_2x", test_positivity_2x},
+  {"test_positivity_3x", test_positivity_3x},
+  {"test_quotients_1x", test_quotients_1x},
+  {"test_quotients_2x", test_quotients_2x},
+  {"test_quotients_3x", test_quotients_3x},
+  {"source_1x_p1", test_source_1x_p1},
+  {"test_diag_1x", test_diag_1x},
+  {"test_diag_2x", test_diag_2x},
+  {"test_diag_3x", test_diag_3x},
+  {NULL, NULL}
+};

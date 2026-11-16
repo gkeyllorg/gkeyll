@@ -305,18 +305,17 @@ gkyl_dg_calc_pkpm_vars_normalize_dist(
 void
 gkyl_dg_calc_pkpm_vars_diag(
   struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
-  const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *euler_pkpm,
-  const struct gkyl_array *bvar, const struct gkyl_array *grad_b, const struct gkyl_array *u,
-  const struct gkyl_array *grad_u, const struct gkyl_array *theta, const struct gkyl_array *alpha_0,
-  const struct gkyl_array *xi, const struct gkyl_array *c_h, struct gkyl_array *fluid_io,
-  struct gkyl_array *pkpm_vars_io
+  const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *bvar,
+  const struct gkyl_array *grad_b, const struct gkyl_array *u, const struct gkyl_array *grad_u,
+  const struct gkyl_array *theta, const struct gkyl_array *alpha_0, const struct gkyl_array *xi,
+  const struct gkyl_array *c_h, struct gkyl_array *pkpm_prim_io, struct gkyl_array *pkpm_vars_io
 )
 {
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(fluid_io)) {
+  if (gkyl_array_is_cu_dev(pkpm_prim_io)) {
     return gkyl_dg_calc_pkpm_vars_diag_cu(
-      up, conf_range, vlasov_pkpm_moms, euler_pkpm, bvar, grad_b, u, grad_u, theta, alpha_0, xi,
-      c_h, fluid_io, pkpm_vars_io
+      up, conf_range, vlasov_pkpm_moms, bvar, grad_b, u, grad_u, theta, alpha_0, xi, c_h,
+      pkpm_prim_io, pkpm_vars_io
     );
   }
 #endif
@@ -325,11 +324,11 @@ gkyl_dg_calc_pkpm_vars_diag(
   while (gkyl_range_iter_next(&iter)) {
     long loc = gkyl_range_idx(conf_range, iter.idx);
     up->pkpm_diag(
-      gkyl_array_cfetch(vlasov_pkpm_moms, loc), gkyl_array_cfetch(euler_pkpm, loc),
-      gkyl_array_cfetch(bvar, loc), gkyl_array_cfetch(grad_b, loc), gkyl_array_cfetch(u, loc),
-      gkyl_array_cfetch(grad_u, loc), gkyl_array_cfetch(theta, loc),
-      gkyl_array_cfetch(alpha_0, loc), gkyl_array_cfetch(xi, loc), gkyl_array_cfetch(c_h, loc),
-      gkyl_array_fetch(fluid_io, loc), gkyl_array_fetch(pkpm_vars_io, loc)
+      gkyl_array_cfetch(vlasov_pkpm_moms, loc), gkyl_array_cfetch(bvar, loc),
+      gkyl_array_cfetch(grad_b, loc), gkyl_array_cfetch(u, loc), gkyl_array_cfetch(grad_u, loc),
+      gkyl_array_cfetch(theta, loc), gkyl_array_cfetch(alpha_0, loc), gkyl_array_cfetch(xi, loc),
+      gkyl_array_cfetch(c_h, loc), gkyl_array_fetch(pkpm_prim_io, loc),
+      gkyl_array_fetch(pkpm_vars_io, loc)
     );
   }
 }

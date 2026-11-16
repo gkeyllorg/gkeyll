@@ -2,13 +2,15 @@
 -- of equations (1x, normalized parallel velocity w = v_par/xi). A uniform gas (n = 1, p = 1) with
 -- the flow u_y = 0.5 cos(pi x) sits in the uniform static field B = (sin 0.3, -cos 0.3, 0) in a
 -- periodic box of length 2. The gas has no charge, so the field only sets the direction b. The rate
--- of strain along the field, bb:grad(u) = b_x b_y du_y/dx, is not zero, so the flow exchanges
--- energy with the parallel and perpendicular pressures through the stress (p_par - p_perp) b_x b_y.
+-- of strain along the field, bb:grad(u) = b_x b_y du_y/dx, is not zero, and the flow exchanges
+-- energy with the parallel and perpendicular pressures through the stress P_xy = (p_par - p_perp)
+-- b_x b_y + s_x b_y + b_x s_y, s the first-harmonic (parallel-perpendicular) stress.
 -- Figures of merit (16 x 16 cells) to t = 2: particle number, the three components of the momentum
 -- and the total energy (kinetic + p_par/2 + p_perp) are conserved to 2e-13. The kinetic energy
 -- falls from 0.125 to 0.0028 (t = 0.74) and is 0.0100 at t = 2, where the integrated parallel and
--- perpendicular pressures are 2.2275 and 2.0013 (both 2 initially). The positivity limiter scales
--- no cell.
+-- perpendicular pressures are 2.2275 and 2.0013 (both 2 initially) and the largest cell averages of
+-- the two parts of P_xy are 0.051 (pressure anisotropy) and 0.155 (first harmonic). The positivity
+-- limiter scales no cell.
 
 local PKPM = G0.PKPM
 

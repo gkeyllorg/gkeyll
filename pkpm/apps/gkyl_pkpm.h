@@ -386,10 +386,12 @@ void gkyl_pkpm_app_write(gkyl_pkpm_app *app, double tm, int frame);
 void gkyl_pkpm_app_write_field(gkyl_pkpm_app *app, double tm, int frame);
 
 /**
- * Write species data to file.
+ * Write the state of a species to files, both read by a restart:
+ * 1. <name>_<frame>: the distributions [F, G, M0_perp (x, y, z), N_perp (x, y, z)]
+ * 2. <name>_fluid_<frame>: the fluid state [rho, rho ux, rho uy, rho uz, E]
  * 
  * @param app App object.
- * @param sidx Index of species to initialize.
+ * @param sidx Index of species to write.
  * @param tm Time-stamp
  * @param frame Frame number
  */
@@ -398,9 +400,8 @@ void gkyl_pkpm_app_write_species(gkyl_pkpm_app *app, int sidx, double tm, int fr
 /**
  * Write the PKPM diagnostic data of a species to files:
  * 1. _pkpm_moms_: the moments [rho, M1, p_par, p_perp, q_par, q_perp, r_parpar, r_parperp]
- * 2. _pkpm_fluid_: the fluid variables [rho, rho ux, rho uy, rho uz,
- *    P_xx + rho ux^2, P_xy + rho ux uy, P_xz + rho ux uz,
- *    P_yy + rho uy^2, P_yz + rho uy uz, P_zz + rho uz^2, E]
+ * 2. _pkpm_prim_: the pressure tensor and the heat flux of the fluid equations,
+ *    [P_xx, P_xy, P_xz, P_yy, P_yz, P_zz, q_x, q_y, q_z]
  * 3. _pkpm_vars_: [ux, uy, uz, T_perp/m, a_P (pressure force), div(b), bb : grad(u),
  *    T_perp/m div(b), xi (thermal speed), c (heating-rate closure)]
  * 4. _pkpm_constraints_: [M0(F), M1(F), (M2(F) + 2 M0(G))/3, int M0_perp dw (x, y, z)]

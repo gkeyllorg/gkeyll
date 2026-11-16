@@ -362,11 +362,10 @@ gkyl_dg_calc_pkpm_vars_normalize_dist_cu(
 __global__ void
 gkyl_dg_calc_pkpm_vars_diag_cu_kernel(
   struct gkyl_dg_calc_pkpm_vars *up, struct gkyl_range conf_range,
-  const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *euler_pkpm,
-  const struct gkyl_array *bvar, const struct gkyl_array *grad_b, const struct gkyl_array *u,
-  const struct gkyl_array *grad_u, const struct gkyl_array *theta, const struct gkyl_array *alpha_0,
-  const struct gkyl_array *xi, const struct gkyl_array *c_h, struct gkyl_array *fluid_io,
-  struct gkyl_array *pkpm_vars_io
+  const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *bvar,
+  const struct gkyl_array *grad_b, const struct gkyl_array *u, const struct gkyl_array *grad_u,
+  const struct gkyl_array *theta, const struct gkyl_array *alpha_0, const struct gkyl_array *xi,
+  const struct gkyl_array *c_h, struct gkyl_array *pkpm_prim_io, struct gkyl_array *pkpm_vars_io
 )
 {
   int idx[GKYL_MAX_DIM];
@@ -376,12 +375,11 @@ gkyl_dg_calc_pkpm_vars_diag_cu_kernel(
     long loc = gkyl_range_idx(&conf_range, idx);
     up->pkpm_diag(
       (const double *)gkyl_array_cfetch(vlasov_pkpm_moms, loc),
-      (const double *)gkyl_array_cfetch(euler_pkpm, loc),
       (const double *)gkyl_array_cfetch(bvar, loc), (const double *)gkyl_array_cfetch(grad_b, loc),
       (const double *)gkyl_array_cfetch(u, loc), (const double *)gkyl_array_cfetch(grad_u, loc),
       (const double *)gkyl_array_cfetch(theta, loc),
       (const double *)gkyl_array_cfetch(alpha_0, loc), (const double *)gkyl_array_cfetch(xi, loc),
-      (const double *)gkyl_array_cfetch(c_h, loc), (double *)gkyl_array_fetch(fluid_io, loc),
+      (const double *)gkyl_array_cfetch(c_h, loc), (double *)gkyl_array_fetch(pkpm_prim_io, loc),
       (double *)gkyl_array_fetch(pkpm_vars_io, loc)
     );
   }
@@ -390,17 +388,16 @@ gkyl_dg_calc_pkpm_vars_diag_cu_kernel(
 void
 gkyl_dg_calc_pkpm_vars_diag_cu(
   struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
-  const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *euler_pkpm,
-  const struct gkyl_array *bvar, const struct gkyl_array *grad_b, const struct gkyl_array *u,
-  const struct gkyl_array *grad_u, const struct gkyl_array *theta, const struct gkyl_array *alpha_0,
-  const struct gkyl_array *xi, const struct gkyl_array *c_h, struct gkyl_array *fluid_io,
-  struct gkyl_array *pkpm_vars_io
+  const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *bvar,
+  const struct gkyl_array *grad_b, const struct gkyl_array *u, const struct gkyl_array *grad_u,
+  const struct gkyl_array *theta, const struct gkyl_array *alpha_0, const struct gkyl_array *xi,
+  const struct gkyl_array *c_h, struct gkyl_array *pkpm_prim_io, struct gkyl_array *pkpm_vars_io
 )
 {
   gkyl_dg_calc_pkpm_vars_diag_cu_kernel<<<conf_range->nblocks, conf_range->nthreads>>>(
-    up->on_dev, *conf_range, vlasov_pkpm_moms->on_dev, euler_pkpm->on_dev, bvar->on_dev,
-    grad_b->on_dev, u->on_dev, grad_u->on_dev, theta->on_dev, alpha_0->on_dev, xi->on_dev,
-    c_h->on_dev, fluid_io->on_dev, pkpm_vars_io->on_dev
+    up->on_dev, *conf_range, vlasov_pkpm_moms->on_dev, bvar->on_dev, grad_b->on_dev, u->on_dev,
+    grad_u->on_dev, theta->on_dev, alpha_0->on_dev, xi->on_dev, c_h->on_dev, pkpm_prim_io->on_dev,
+    pkpm_vars_io->on_dev
   );
 }
 

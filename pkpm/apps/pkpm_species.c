@@ -156,6 +156,10 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   s->pkpm_moms = mkarr(app->use_gpu, 10 * nc, app->local_ext.volume);
   s->pkpm_moms_no_J = mkarr(app->use_gpu, 10 * nc, app->local_ext.volume);
   s->fluid_no_J = mkarr(app->use_gpu, 5 * nc, app->local_ext.volume);
+  s->fluid_no_J_host = s->fluid_no_J;
+  if (app->use_gpu) {
+    s->fluid_no_J_host = mkarr(false, 5 * nc, app->local_ext.volume);
+  }
   gkyl_array_clear(s->pkpm_moms, 0.0);
   s->pkpm_cmoms = mkarr(app->use_gpu, 6 * nc, app->local_ext.volume);
   s->pkpm_cmoms_host = s->pkpm_cmoms;
@@ -214,15 +218,15 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   // array for storing integrated fluid variables in each cell
   // integ_pkpm_mom : integral[rho, rhoux, rhouy, rhouz, rhoux^2, rhouy^2, rhouz^2, p_par, p_perp]
   s->integ_pkpm_mom = mkarr(app->use_gpu, 9, app->local_ext.volume);
-  // arrays for I/O, fluid_io and pkpm_vars_io
-  // fluid_io : [rho, rhoux, rhouy, rhouz, P_xx+rhoux^2, P_xy+rhouxuy, P_xz+rhouxuz, P_yy+rhouy^2, P_yz+rhouyuz, P_zz+rhouz^2, E]
+  // arrays for I/O, pkpm_prim_io and pkpm_vars_io
+  // pkpm_prim_io : [P_xx, P_xy, P_xz, P_yy, P_yz, P_zz, q_x, q_y, q_z]
   // pkpm_vars_io : [ux, uy, uz, T_perp/m, a_P, div(b), bb:grad(u), T_perp/m div(b), xi, c]
-  s->fluid_io = mkarr(app->use_gpu, 11 * nc, app->local_ext.volume);
+  s->pkpm_prim_io = mkarr(app->use_gpu, 9 * nc, app->local_ext.volume);
   s->pkpm_vars_io = mkarr(app->use_gpu, 10 * nc, app->local_ext.volume);
-  s->fluid_io_host = s->fluid_io;
+  s->pkpm_prim_io_host = s->pkpm_prim_io;
   s->pkpm_vars_io_host = s->pkpm_vars_io;
   if (app->use_gpu) {
-    s->fluid_io_host = mkarr(false, 11 * nc, app->local_ext.volume);
+    s->pkpm_prim_io_host = mkarr(false, 9 * nc, app->local_ext.volume);
     s->pkpm_vars_io_host = mkarr(false, 10 * nc, app->local_ext.volume);
   }
   // Record of the positivity limiter: per cell [density scalings, energy scalings,
@@ -1350,6 +1354,9 @@ pkpm_species_release(const gkyl_pkpm_app *app, const struct pkpm_species *s)
     gkyl_array_release(s->f_host);
     gkyl_array_release(s->f_no_J_host);
     gkyl_array_release(s->fluid_host);
+    gkyl_array_release(s->fluid_no_J_host);
+    gkyl_array_release(s->pkpm_prim_io_host);
+    gkyl_array_release(s->pkpm_vars_io_host);
   }
 
   gkyl_array_release(s->qmem);
@@ -1392,7 +1399,7 @@ pkpm_species_release(const gkyl_pkpm_app *app, const struct pkpm_species *s)
   gkyl_array_release(s->pkpm_c_0);
   gkyl_array_release(s->pkpm_a_perp);
   gkyl_array_release(s->integ_pkpm_mom);
-  gkyl_array_release(s->fluid_io);
+  gkyl_array_release(s->pkpm_prim_io);
   gkyl_array_release(s->pkpm_vars_io);
   gkyl_array_release(s->pkpm_pos_count);
   gkyl_array_release(s->pkpm_pos_io);
