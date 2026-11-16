@@ -23,7 +23,7 @@ gk_species_fluid_file_import_init(
 static double
 gk_species_fluid_rhs_dynamic(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, const struct gkyl_array *fin,
-  struct gkyl_array *rhs, struct gkyl_array **bflux_moms
+  const struct gkyl_array *fbar_in, struct gkyl_array *rhs, struct gkyl_array **bflux_moms
 )
 {
   gkyl_array_clear(rhs, 0.0);

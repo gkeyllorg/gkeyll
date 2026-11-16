@@ -706,6 +706,7 @@ main(int argc, char **argv)
         .type = GKYL_GK_DAMPING_USER_INPUT,
         .rate_profile = loss_cone_damping_rate_scaling,
         .rate_profile_ctx = &ctx,
+        .write_rate = true,
       },
 
     .bcs =
