@@ -412,8 +412,6 @@ gkyl_proj_maxwellian_pots_on_basis_release(gkyl_proj_maxwellian_pots_on_basis *u
   gkyl_array_release(up->surf_basis_at_ords);
 
   if (up->use_gpu) {
-    gkyl_array_release(up->conf_basis_at_nodes);
-
     gkyl_array_release(up->prim_moms_conf_quad);
     gkyl_array_release(up->prim_moms_conf_nodes);
 
@@ -432,6 +430,9 @@ gkyl_proj_maxwellian_pots_on_basis_release(gkyl_proj_maxwellian_pots_on_basis *u
     gkyl_array_release(up->conf_ordinates);
     gkyl_array_release(up->conf_weights);
     gkyl_array_release(up->conf_basis_at_ords);
+
+    gkyl_cu_free(up->p2c_qidx);
+    gkyl_cu_free(up->surf2c_qidx);
   } else {
     gkyl_array_release(up->fpo_h_at_ords);
     gkyl_array_release(up->fpo_g_at_ords);

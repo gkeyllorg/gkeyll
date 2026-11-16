@@ -558,11 +558,6 @@ gkyl_proj_maxwellian_pots_on_basis_cu_ho_new(
   up->phase_qrange = get_qrange(up->cdim, up->pdim, num_quad, num_quad_v, is_vdim_p2);
   up->surf_qrange = get_qrange(up->cdim, up->pdim - 1, num_quad, num_quad_v, is_vdim_p2);
 
-  // Evaluate conf basis at nodes
-  struct gkyl_array *conf_nodes_ho =
-    gkyl_array_new(GKYL_DOUBLE, up->cdim, up->surf_basis.num_basis);
-  up->conf_basis.node_list((double *)gkyl_array_fetch(conf_nodes_ho, 0));
-
   // Allocate the memory for computing the specific phase and surface nodal to modal calculations
   struct gkyl_mat_mm_array_mem *phase_quad_nodal_to_modal_mem_ho;
   phase_quad_nodal_to_modal_mem_ho = gkyl_mat_mm_array_mem_new(
@@ -645,6 +640,14 @@ gkyl_proj_maxwellian_pots_on_basis_cu_ho_new(
   );
   gkyl_mat_copy(up->dgdv_surf_quad_nodal_to_modal_mem->A, dgdv_surf_quad_nodal_to_modal_mem_ho->A);
   gkyl_mat_mm_array_mem_release(dgdv_surf_quad_nodal_to_modal_mem_ho);
+
+  // The host quadrature data was only needed to build the nodal-to-modal matrices.
+  gkyl_array_release(up->ordinates);
+  gkyl_array_release(up->weights);
+  gkyl_array_release(up->basis_at_ords);
+  gkyl_array_release(up->surf_ordinates);
+  gkyl_array_release(up->surf_weights);
+  gkyl_array_release(up->surf_basis_at_ords);
 
   // Initialize quadrature data on device
   // Quadrature points for configuration space expansion

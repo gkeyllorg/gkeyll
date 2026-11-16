@@ -31,7 +31,6 @@ struct gkyl_proj_maxwellian_pots_on_basis {
   struct gkyl_array *conf_ordinates;
   struct gkyl_array *conf_weights;
   struct gkyl_array *conf_basis_at_ords;
-  struct gkyl_array *conf_basis_at_nodes;
 
   int tot_quad;
   struct gkyl_range phase_qrange;
@@ -75,7 +74,6 @@ struct gkyl_proj_maxwellian_pots_on_basis {
 
   int *p2c_qidx; // Mapping between conf-space and phase-space ordinates.
   int *surf2c_qidx; // Mapping between conf-space and phase-space surface ordinates.
-  int *surf2c_nidx; // Mapping between conf-space and phase-space surface nodes.
 
   struct gkyl_basis *surf_basis_dev; // Basis that lives on device for nodal-modal conversion
 };
