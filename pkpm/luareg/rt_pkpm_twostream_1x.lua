@@ -69,7 +69,7 @@ pkpmApp = PKPM.App.new {
   cells = { Nx },
   cflFrac = cfl_frac,
 
-  useExplicitSource = true,
+  useExplicitSources = true,
 
   basis = basis_type,
   polyOrder = poly_order,
@@ -85,31 +85,43 @@ pkpmApp = PKPM.App.new {
   elc = PKPM.Species.new {
     charge = charge_elc, mass = mass_elc,
 
-    -- Velocity space grid.
-    lower = { -vx_max },
-    upper = { vx_max },
-    cells = { Nvx },
+    kinetic = {
+      -- Velocity space grid.
+      lower = { -vx_max },
+      upper = { vx_max },
+      cells = { Nvx },
 
-    -- Initial conditions.
-    initDist = function (t, xn)
-      local w = xn[2]
+      -- Initial conditions.
+      numInit = 1,
+      projections = {
+        {
+          projectionID = G0.Projection.Func,
 
-      local wd = Vx_drift / xi -- Beam drift in w.
-      local s2 = (vt * vt) / (xi * xi) -- Variance of each beam in w.
-      local F = 0.5 * (math.exp(-0.5 * (w - wd) * (w - wd) / s2) + math.exp(-0.5 * (w + wd) * (w + wd) / s2)) / math.sqrt(2.0 * pi * s2) -- Two-hump normalized parallel distribution.
-      local G = (T_perp / (mass_elc * xi * xi)) * F -- Perpendicular-temperature weighted distribution.
+          init = function (t, xn)
+            local w = xn[2]
 
-      return F, G
-    end,
+            local wd = Vx_drift / xi -- Beam drift in w.
+            local s2 = (vt * vt) / (xi * xi) -- Variance of each beam in w.
+            local F = 0.5 * (math.exp(-0.5 * (w - wd) * (w - wd) / s2) + math.exp(-0.5 * (w + wd) * (w + wd) / s2)) / math.sqrt(2.0 * pi * s2) -- Two-hump normalized parallel distribution.
+            local G = (T_perp / (mass_elc * xi * xi)) * F -- Perpendicular-temperature weighted distribution.
 
-    initFluid = function (t, xn)
-      local x = xn[1]
+            return F, G, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+          end
+        }
+      }
+    },
 
-      local rho = mass_elc * n0 * (1.0 + alpha * math.cos(kx * x)) -- Electron mass density.
-      local E = 1.5 * rho * xi * xi -- Electron total energy density (zero net flow).
+    fluid = {
+      -- Initial conditions.
+      init = function (t, xn)
+        local x = xn[1]
 
-      return rho, 0.0, 0.0, 0.0, E
-    end,
+        local rho = mass_elc * n0 * (1.0 + alpha * math.cos(kx * x)) -- Electron mass density.
+        local E = 1.5 * rho * xi * xi -- Electron total energy density (zero net flow).
+
+        return rho, 0.0, 0.0, 0.0, E
+      end
+    },
 
     evolve = true -- Evolve species?
   },

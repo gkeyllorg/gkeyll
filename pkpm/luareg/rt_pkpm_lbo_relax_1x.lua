@@ -84,38 +84,50 @@ pkpmApp = PKPM.App.new {
   square = PKPM.Species.new {
     charge = charge, mass = mass,
 
-    -- Velocity space grid.
-    lower = { -vx_max },
-    upper = { vx_max },
-    cells = { Nvx },
+    kinetic = {
+      -- Velocity space grid.
+      lower = { -vx_max },
+      upper = { vx_max },
+      cells = { Nvx },
 
-    -- Initial conditions.
-    initDist = function (t, xn)
-      local w = xn[2]
+      -- Initial conditions.
+      numInit = 1,
+      projections = {
+        {
+          projectionID = G0.Projection.Func,
 
-      -- Waterbag of half the reference density on |v_par| < 1, in w = v_par/xi with xi = sqrt(T_sq):
-      -- F = xi f/n on |w| < 1/xi, and G = (T_perp/T) F = F.
-      local xi = math.sqrt(T_sq) -- Normalizing thermal velocity.
-      local F = 0.0
-      if math.abs(w) < 1.0 / xi then
-        F = 0.5 * n0 * xi / n_sq
-      end
+          init = function (t, xn)
+            local w = xn[2]
 
-      return F, F
-    end,
+            -- Waterbag of half the reference density on |v_par| < 1, in w = v_par/xi with xi = sqrt(T_sq):
+            -- F = xi f/n on |w| < 1/xi, and G = (T_perp/T) F = F.
+            local xi = math.sqrt(T_sq) -- Normalizing thermal velocity.
+            local F = 0.0
+            if math.abs(w) < 1.0 / xi then
+              F = 0.5 * n0 * xi / n_sq
+            end
 
-    initFluid = function (t, xn)
-      local rho = mass * n_sq -- Mass density.
-      local E = 1.5 * rho * T_sq -- Total energy density (at rest).
+            return F, F, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+          end
+        }
+      },
 
-      return rho, 0.0, 0.0, 0.0, E
-    end,
+      collisions = {
+        collisionID = G0.Collisions.LBO,
 
-    collisions = {
-      collisionID = G0.Collisions.LBO,
+        selfNu = function (t, xn)
+          return nu
+        end
+      }
+    },
 
-      selfNu = function (t, xn)
-        return nu
+    fluid = {
+      -- Initial conditions.
+      init = function (t, xn)
+        local rho = mass * n_sq -- Mass density.
+        local E = 1.5 * rho * T_sq -- Total energy density (at rest).
+
+        return rho, 0.0, 0.0, 0.0, E
       end
     },
 
@@ -126,39 +138,51 @@ pkpmApp = PKPM.App.new {
   bump = PKPM.Species.new {
     charge = charge, mass = mass,
 
-    -- Velocity space grid.
-    lower = { -vx_max },
-    upper = { vx_max },
-    cells = { Nvx },
+    kinetic = {
+      -- Velocity space grid.
+      lower = { -vx_max },
+      upper = { vx_max },
+      cells = { Nvx },
 
-    -- Initial conditions.
-    initDist = function (t, xn)
-      local w = xn[2]
+      -- Initial conditions.
+      numInit = 1,
+      projections = {
+        {
+          projectionID = G0.Projection.Func,
 
-      -- Maxwellian core plus a bump with a Lorentzian envelope, at v_par = u_b + xi w, xi = sqrt(T_b):
-      -- F = xi f/n and G = (T_perp/T) F = F.
-      local xi = math.sqrt(T_b) -- Normalizing thermal velocity.
-      local v = u_b + xi * w -- Parallel velocity.
-      local vb_sq = (v - ub) * (v - ub) -- Squared distance to the bump.
-      local f = (n0 / math.sqrt(2.0 * pi * vt * vt)) * math.exp(-v * v / (2.0 * vt * vt)) + (n0 / math.sqrt(2.0 * pi * vtb * vtb)) * math.exp(-vb_sq / (2.0 * vtb * vtb)) * (ab * ab) / (vb_sq + (sb * sb)) -- Parallel distribution.
-      local F = xi * f / n_b -- Normalized parallel distribution.
+          init = function (t, xn)
+            local w = xn[2]
 
-      return F, F
-    end,
+            -- Maxwellian core plus a bump with a Lorentzian envelope, at v_par = u_b + xi w, xi = sqrt(T_b):
+            -- F = xi f/n and G = (T_perp/T) F = F.
+            local xi = math.sqrt(T_b) -- Normalizing thermal velocity.
+            local v = u_b + xi * w -- Parallel velocity.
+            local vb_sq = (v - ub) * (v - ub) -- Squared distance to the bump.
+            local f = (n0 / math.sqrt(2.0 * pi * vt * vt)) * math.exp(-v * v / (2.0 * vt * vt)) + (n0 / math.sqrt(2.0 * pi * vtb * vtb)) * math.exp(-vb_sq / (2.0 * vtb * vtb)) * (ab * ab) / (vb_sq + (sb * sb)) -- Parallel distribution.
+            local F = xi * f / n_b -- Normalized parallel distribution.
 
-    initFluid = function (t, xn)
-      local rho = mass * n_b -- Mass density.
-      local mom_x = rho * u_b -- Momentum density (x-direction).
-      local E = 0.5 * rho * u_b * u_b + 1.5 * rho * T_b -- Total energy density.
+            return F, F, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+          end
+        }
+      },
 
-      return rho, mom_x, 0.0, 0.0, E
-    end,
+      collisions = {
+        collisionID = G0.Collisions.LBO,
 
-    collisions = {
-      collisionID = G0.Collisions.LBO,
+        selfNu = function (t, xn)
+          return nu
+        end
+      }
+    },
 
-      selfNu = function (t, xn)
-        return nu
+    fluid = {
+      -- Initial conditions.
+      init = function (t, xn)
+        local rho = mass * n_b -- Mass density.
+        local mom_x = rho * u_b -- Momentum density (x-direction).
+        local E = 0.5 * rho * u_b * u_b + 1.5 * rho * T_b -- Total energy density.
+
+        return rho, mom_x, 0.0, 0.0, E
       end
     },
 

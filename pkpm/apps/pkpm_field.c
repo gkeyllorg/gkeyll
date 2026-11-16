@@ -444,7 +444,7 @@ pkpm_field_rhs(
   gkyl_array_clear(field->cflrate, 0.0);
   gkyl_array_clear(rhs, 0.0);
 
-  if (!field->info.is_static && !app->use_explicit_source && stage > 1) {
+  if (!field->info.is_static && !app->use_explicit_sources && stage > 1) {
     // operator split: B drifts with the E of the source half kick over the whole transport step
     gkyl_array_copy(rhs, field->rhs_split);
     gkyl_vlasov_position_map_divide_jacobpos_conf(app->pos_map, &app->local, rhs->ncomp, rhs, field->dt_em_no_J);
@@ -455,7 +455,7 @@ pkpm_field_rhs(
 
   if (!field->info.is_static) {
     gkyl_hyper_dg_advance(field->slvr, &app->local, em, field->cflrate, rhs);
-    if (!app->use_explicit_source) {
+    if (!app->use_explicit_sources) {
       // operator split: E is advanced only by the implicit source half steps (Stormer-Verlet in the
       // curl terms); zero the E rows (the first 3 components) and keep the right-hand side for
       // stages 2 and 3

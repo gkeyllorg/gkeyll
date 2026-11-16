@@ -84,46 +84,58 @@ pkpmApp = PKPM.App.new {
   neut = PKPM.Species.new {
     charge = charge_neut, mass = mass_neut,
 
-    -- Velocity space grid.
-    lower = { -vx_max },
-    upper = { vx_max },
-    cells = { Nvx },
+    kinetic = {
+      -- Velocity space grid.
+      lower = { -vx_max },
+      upper = { vx_max },
+      cells = { Nvx },
 
-    -- Initial conditions.
-    initDist = function (t, xn)
-      local w = xn[2]
+      -- Initial conditions.
+      numInit = 1,
+      projections = {
+        {
+          projectionID = G0.Projection.Func,
 
-      local F = math.exp(-0.5 * w * w) / math.sqrt(2.0 * pi) -- Normalized Maxwellian in w = v_par/xi.
+          init = function (t, xn)
+            local w = xn[2]
 
-      return F, F
-    end,
+            local F = math.exp(-0.5 * w * w) / math.sqrt(2.0 * pi) -- Normalized Maxwellian in w = v_par/xi.
 
-    initFluid = function (t, xn)
-      local x = xn[1]
+            return F, F, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+          end
+        }
+      },
 
-      local rho = 0.0
-      local vel = 0.0
-      local pres = 0.0
-      if x < x_loc then
-        rho = rho_l -- Mass density (left).
-        vel = u_l -- Velocity (left).
-        pres = p_l -- Pressure (left).
-      else
-        rho = rho_r -- Mass density (right).
-        vel = u_r -- Velocity (right).
-        pres = p_r -- Pressure (right).
-      end
-      local E = 0.5 * rho * vel * vel + 1.5 * pres -- Total energy density.
+      collisions = {
+        collisionID = G0.Collisions.BGK,
+        useImplicitCollisionScheme = true,
 
-      return rho, rho * vel, 0.0, 0.0, E
-    end,
+        selfNu = function (t, xn)
+          return nu
+        end
+      }
+    },
 
-    collisions = {
-      collisionID = G0.Collisions.BGK,
-      useImplicitCollisionScheme = true,
+    fluid = {
+      -- Initial conditions.
+      init = function (t, xn)
+        local x = xn[1]
 
-      selfNu = function (t, xn)
-        return nu
+        local rho = 0.0
+        local vel = 0.0
+        local pres = 0.0
+        if x < x_loc then
+          rho = rho_l -- Mass density (left).
+          vel = u_l -- Velocity (left).
+          pres = p_l -- Pressure (left).
+        else
+          rho = rho_r -- Mass density (right).
+          vel = u_r -- Velocity (right).
+          pres = p_r -- Pressure (right).
+        end
+        local E = 0.5 * rho * vel * vel + 1.5 * pres -- Total energy density.
+
+        return rho, rho * vel, 0.0, 0.0, E
       end
     },
 

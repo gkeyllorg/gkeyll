@@ -166,6 +166,14 @@ evalNeutDistInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT
   // Set normalized neutral distribution functions [F, G] (G = (T_perp/T) F = F).
   fout[0] = F;
   fout[1] = F;
+
+  // No first harmonic: the blocks [M0_perp (x, y, z), N_perp (x, y, z)] vanish.
+  fout[2] = 0.0;
+  fout[3] = 0.0;
+  fout[4] = 0.0;
+  fout[5] = 0.0;
+  fout[6] = 0.0;
+  fout[7] = 0.0;
 }
 
 void
@@ -385,26 +393,33 @@ main(int argc, char **argv)
   }
 
   // Neutrals.
-  struct gkyl_pkpm_species neut = {
-    .name = "neut",
-    .charge = ctx.charge,
-    .mass = ctx.mass,
+  struct gkyl_pkpm_kinetic_species neut_kinetic = {
     .lower = {-ctx.vx_max},
     .upper = {ctx.vx_max},
     .cells = {NVX},
 
-    .init_dist = evalNeutDistInit,
-    .ctx_dist = &ctx,
-    .init_fluid = evalNeutFluidInit,
-    .ctx_fluid = &ctx,
+    .num_init = 1,
+    .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalNeutDistInit, .ctx_func = &ctx},
+
+    .collisions =
+      {
+        .collision_id = GKYL_BGK_COLLISIONS,
+        .self_nu = evalNu,
+        .self_nu_ctx = &ctx,
+        .is_implicit = true,
+      },
+
+    .bcy = {.lower = {.type = GKYL_SPECIES_REFLECT}, .upper = {.type = GKYL_SPECIES_REFLECT}},
+  };
+
+  struct gkyl_pkpm_fluid_species neut_fluid = {
+    .init = evalNeutFluidInit,
+    .ctx = &ctx,
 
     .app_accel = evalAppAccel,
     .app_accel_ctx = &ctx,
 
     .bcy = {GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT},
-
-    .collisions =
-      {.collision_id = GKYL_BGK_COLLISIONS, .self_nu = evalNu, .ctx = &ctx, .is_implicit = true},
   };
 
   // Field.
@@ -437,11 +452,18 @@ main(int argc, char **argv)
     .periodic_dirs = {0},
 
     .num_species = 1,
-    .species = {neut},
+    .species = {{
+      .name = "neut",
+      .charge = ctx.charge,
+      .mass = ctx.mass,
+      .type = GKYL_SPECIES_PKPM,
+      .kinetic = neut_kinetic,
+      .fluid = neut_fluid,
+    }},
 
     .field = field,
 
-    .use_explicit_source = true,
+    .use_explicit_sources = true,
 
     .parallelism =
       {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0], app_args.cuts[1]}, .comm = comm},

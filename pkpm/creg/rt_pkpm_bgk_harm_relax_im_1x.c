@@ -133,7 +133,29 @@ create_ctx(void)
 }
 
 void
-evalDistInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+evalDriftDistInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct relax_ctx *app = ctx;
+  double w = xn[1];
+
+  double F = exp(-0.5 * w * w) / sqrt(2.0 * app->pi); // Unit Maxwellian in w.
+  double M0_y = app->a_drift * w * F; // Reduced moment of f = f_M (1 + a w z_y).
+
+  // Set normalized distribution functions [F, G].
+  fout[0] = F;
+  fout[1] = F;
+
+  // Set first-harmonic blocks [M0_perp (x, y, z), N_perp (x, y, z)].
+  fout[2] = 0.0;
+  fout[3] = M0_y;
+  fout[4] = 0.0;
+  fout[5] = 0.0;
+  fout[6] = 2.0 * M0_y;
+  fout[7] = 0.0;
+}
+
+void
+evalHeatDistInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct relax_ctx *app = ctx;
   double w = xn[1];
@@ -143,42 +165,15 @@ evalDistInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fou
   // Set normalized distribution functions [F, G].
   fout[0] = F;
   fout[1] = F;
-}
-
-void
-evalDriftHarmInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
-{
-  struct relax_ctx *app = ctx;
-  double w = xn[1];
-
-  double F = exp(-0.5 * w * w) / sqrt(2.0 * app->pi); // Unit Maxwellian in w.
-  double M0_y = app->a_drift * w * F; // Reduced moment of f = f_M (1 + a w z_y).
-
-  // Set first-harmonic blocks [M0_perp (x, y, z), N_perp (x, y, z)].
-  fout[0] = 0.0;
-  fout[1] = M0_y;
-  fout[2] = 0.0;
-  fout[3] = 0.0;
-  fout[4] = 2.0 * M0_y;
-  fout[5] = 0.0;
-}
-
-void
-evalHeatHarmInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
-{
-  struct relax_ctx *app = ctx;
-  double w = xn[1];
-
-  double F = exp(-0.5 * w * w) / sqrt(2.0 * app->pi); // Unit Maxwellian in w.
 
   // Set first-harmonic blocks [M0_perp (x, y, z), N_perp (x, y, z)]: the reduced moments of
   // f = f_M (1 + a z_y (z^2/2 - 2)), which has no M0_perp.
-  fout[0] = 0.0;
-  fout[1] = 0.0;
   fout[2] = 0.0;
   fout[3] = 0.0;
-  fout[4] = 2.0 * app->a_heat * F;
+  fout[4] = 0.0;
   fout[5] = 0.0;
+  fout[6] = 2.0 * app->a_heat * F;
+  fout[7] = 0.0;
 }
 
 void
@@ -357,44 +352,44 @@ main(int argc, char **argv)
   }
 
   // Species seeded with the drift-like first harmonic.
-  struct gkyl_pkpm_species drift = {
-    .name = "drift",
-    .charge = ctx.charge,
-    .mass = ctx.mass,
+  struct gkyl_pkpm_kinetic_species drift_kinetic = {
     .lower = {-ctx.vx_max},
     .upper = {ctx.vx_max},
     .cells = {NVX},
 
-    .init_dist = evalDistInit,
-    .init_harm = evalDriftHarmInit,
-    .ctx_harm = &ctx,
-    .ctx_dist = &ctx,
-    .init_fluid = evalFluidInit,
-    .ctx_fluid = &ctx,
+    .num_init = 1,
+    .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalDriftDistInit, .ctx_func = &ctx},
 
     .collisions =
-      {.collision_id = GKYL_BGK_COLLISIONS, .self_nu = evalNu, .ctx = &ctx, .is_implicit = true},
+      {
+        .collision_id = GKYL_BGK_COLLISIONS,
+        .self_nu = evalNu,
+        .self_nu_ctx = &ctx,
+        .is_implicit = true,
+      },
   };
+
+  struct gkyl_pkpm_fluid_species drift_fluid = {.init = evalFluidInit, .ctx = &ctx};
 
   // Species seeded with the heat-flux-like first harmonic.
-  struct gkyl_pkpm_species heat = {
-    .name = "heat",
-    .charge = ctx.charge,
-    .mass = ctx.mass,
+  struct gkyl_pkpm_kinetic_species heat_kinetic = {
     .lower = {-ctx.vx_max},
     .upper = {ctx.vx_max},
     .cells = {NVX},
 
-    .init_dist = evalDistInit,
-    .init_harm = evalHeatHarmInit,
-    .ctx_harm = &ctx,
-    .ctx_dist = &ctx,
-    .init_fluid = evalFluidInit,
-    .ctx_fluid = &ctx,
+    .num_init = 1,
+    .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalHeatDistInit, .ctx_func = &ctx},
 
     .collisions =
-      {.collision_id = GKYL_BGK_COLLISIONS, .self_nu = evalNu, .ctx = &ctx, .is_implicit = true},
+      {
+        .collision_id = GKYL_BGK_COLLISIONS,
+        .self_nu = evalNu,
+        .self_nu_ctx = &ctx,
+        .is_implicit = true,
+      },
   };
+
+  struct gkyl_pkpm_fluid_species heat_fluid = {.init = evalFluidInit, .ctx = &ctx};
 
   // Field.
   struct gkyl_pkpm_field field = {
@@ -426,7 +421,23 @@ main(int argc, char **argv)
     .periodic_dirs = {0},
 
     .num_species = 2,
-    .species = {drift, heat},
+    .species =
+      {{
+         .name = "drift",
+         .charge = ctx.charge,
+         .mass = ctx.mass,
+         .type = GKYL_SPECIES_PKPM,
+         .kinetic = drift_kinetic,
+         .fluid = drift_fluid,
+       },
+       {
+         .name = "heat",
+         .charge = ctx.charge,
+         .mass = ctx.mass,
+         .type = GKYL_SPECIES_PKPM,
+         .kinetic = heat_kinetic,
+         .fluid = heat_fluid,
+       }},
 
     .field = field,
 

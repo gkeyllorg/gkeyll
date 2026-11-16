@@ -100,78 +100,102 @@ pkpmApp = PKPM.App.new {
   elc = PKPM.Species.new {
     charge = charge_elc, mass = mass_elc,
 
-    -- Velocity space grid.
-    lower = { -vx_max_elc },
-    upper = { vx_max_elc },
-    cells = { Nvx },
+    kinetic = {
+      -- Velocity space grid.
+      lower = { -vx_max_elc },
+      upper = { vx_max_elc },
+      cells = { Nvx },
 
-    -- Initial conditions.
-    initDist = function (t, xn)
-      local w = xn[2] -- Normalized parallel velocity w = v_par/xi.
-
-      -- Normalized isotropic Maxwellian: F = exp(-w^2/2)/sqrt(2 pi) (M0 = 1, M2 = 1) and
-      -- G = (T_perp/T) F = F; the density and temperature enter through the fluid state.
-      local F = math.exp(-0.5 * w * w) / math.sqrt(2.0 * math.pi)
-
-      return F, F
-    end,
-
-    initFluid = function (t, xn)
-      local rho = mass_elc * n0 -- Electron mass density.
-      local E = 1.5 * rho * vte * vte -- Electron total energy density (no flow).
-
-      return rho, 0.0, 0.0, 0.0, E
-    end,
-
-    -- Temperature source: rate nu_Q_elc upstream (x < L_nu), vanishing over 6 lambda_D towards
-    -- the collisionless region next to the wall, at the source temperature.
-    sourceBGK = {
-      rateProfile = function (t, xn)
-        local x = xn[1]
-
-        return nu_Q_elc / (1.0 + math.exp((x - L_nu) / (6.0 * lambda_D)))
-      end,
-
-      tempShape = function (t, xn)
-        return mass_elc * vte * vte -- Electron source temperature.
-      end
-    },
-
-    -- Source profile: a density 2 (Ls - x)/Ls inside the source region (it integrates to Ls,
-    -- so the boundary-flux source replaces the wall losses exactly), at the plasma
-    -- temperature and without drift.
-    source = {
-      sourceID = G0.Source.BoundaryFlux,
-      sourceLength = Ls,
-      sourceSpecies = "ion",
-      writeSource = true,
-
-      numSources = 1,
+      -- Initial conditions.
+      numInit = 1,
       projections = {
         {
-          densityInit = function (t, xn)
-            local x = xn[1]
-            local n = 0.0
+          projectionID = G0.Projection.Func,
 
-            if x < Ls then
-              n = 2.0 * (Ls - x) / Ls -- Source number density (inside the source region).
-            end
+          init = function (t, xn)
+            local w = xn[2] -- Normalized parallel velocity w = v_par/xi.
 
-            return n
-          end,
+            -- Normalized isotropic Maxwellian: F = exp(-w^2/2)/sqrt(2 pi) (M0 = 1, M2 = 1) and
+            -- G = (T_perp/T) F = F; the density and temperature enter through the fluid state.
+            local F = math.exp(-0.5 * w * w) / math.sqrt(2.0 * math.pi)
 
-          temperatureInit = function (t, xn)
-            return mass_elc * vte * vte -- Electron source temperature.
-          end,
-
-          driftVelocityInit = function (t, xn)
-            return 0.0, 0.0, 0.0 -- Source drift velocity.
+            return F, F, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
           end
+        }
+      },
+
+      -- Temperature source: rate nu_Q_elc upstream (x < L_nu), vanishing over 6 lambda_D towards
+      -- the collisionless region next to the wall, at the source temperature.
+      sourceBGK = {
+        rateProfile = function (t, xn)
+          local x = xn[1]
+
+          return nu_Q_elc / (1.0 + math.exp((x - L_nu) / (6.0 * lambda_D)))
+        end,
+
+        tempShape = function (t, xn)
+          return mass_elc * vte * vte -- Electron source temperature.
+        end
+      },
+
+      -- Source profile: a density 2 (Ls - x)/Ls inside the source region (it integrates to Ls,
+      -- so the boundary-flux source replaces the wall losses exactly), at the plasma
+      -- temperature and without drift.
+      source = {
+        sourceID = G0.Source.BoundaryFlux,
+        sourceLength = Ls,
+        sourceSpecies = "ion",
+        writeSource = true,
+
+        numSources = 1,
+        projections = {
+          {
+            projectionID = G0.Projection.LTE,
+
+            densityInit = function (t, xn)
+              local x = xn[1]
+              local n = 0.0
+
+              if x < Ls then
+                n = 2.0 * (Ls - x) / Ls -- Source number density (inside the source region).
+              end
+
+              return n
+            end,
+
+            temperatureInit = function (t, xn)
+              return mass_elc * vte * vte -- Electron source temperature.
+            end,
+
+            driftVelocityInit = function (t, xn)
+              return 0.0, 0.0, 0.0 -- Source drift velocity.
+            end
+          }
+        }
+      },
+
+      -- Symmetry boundary and absorbing wall (x-direction).
+      bcx = {
+        lower = {
+          type = G0.SpeciesBc.bcReflect
+        },
+        upper = {
+          type = G0.SpeciesBc.bcAbsorb
         }
       }
     },
 
-    bcx = { G0.SpeciesBc.bcReflect, G0.SpeciesBc.bcAbsorb }, -- Symmetry boundary and absorbing wall (x-direction).
+    fluid = {
+      -- Initial conditions.
+      init = function (t, xn)
+        local rho = mass_elc * n0 -- Electron mass density.
+        local E = 1.5 * rho * vte * vte -- Electron total energy density (no flow).
+
+        return rho, 0.0, 0.0, 0.0, E
+      end,
+
+      bcx = { G0.SpeciesBc.bcReflect, G0.SpeciesBc.bcAbsorb } -- Symmetry boundary and absorbing wall (x-direction).
+    },
 
     evolve = true -- Evolve species?
   },
@@ -180,77 +204,101 @@ pkpmApp = PKPM.App.new {
   ion = PKPM.Species.new {
     charge = charge_ion, mass = mass_ion,
 
-    -- Velocity space grid.
-    lower = { -vx_max_ion },
-    upper = { vx_max_ion },
-    cells = { Nvx },
+    kinetic = {
+      -- Velocity space grid.
+      lower = { -vx_max_ion },
+      upper = { vx_max_ion },
+      cells = { Nvx },
 
-    -- Initial conditions.
-    initDist = function (t, xn)
-      local w = xn[2] -- Normalized parallel velocity w = v_par/xi.
-
-      -- Normalized isotropic Maxwellian: F = exp(-w^2/2)/sqrt(2 pi) (M0 = 1, M2 = 1) and
-      -- G = (T_perp/T) F = F; the density and temperature enter through the fluid state.
-      local F = math.exp(-0.5 * w * w) / math.sqrt(2.0 * math.pi)
-
-      return F, F
-    end,
-
-    initFluid = function (t, xn)
-      local rho = mass_ion * n0 -- Ion mass density.
-      local E = 1.5 * rho * vti * vti -- Ion total energy density (no flow).
-
-      return rho, 0.0, 0.0, 0.0, E
-    end,
-
-    -- Temperature source: rate nu_Q_ion upstream (x < L_nu), vanishing over 6 lambda_D towards
-    -- the collisionless region next to the wall, at the source temperature.
-    sourceBGK = {
-      rateProfile = function (t, xn)
-        local x = xn[1]
-
-        return nu_Q_ion / (1.0 + math.exp((x - L_nu) / (6.0 * lambda_D)))
-      end,
-
-      tempShape = function (t, xn)
-        return mass_ion * vti * vti -- Ion source temperature.
-      end
-    },
-
-    -- Source profile: the same density as the electrons' (the rate follows the ion wall
-    -- losses), at the plasma temperature and without drift.
-    source = {
-      sourceID = G0.Source.BoundaryFlux,
-      sourceLength = Ls,
-      sourceSpecies = "ion",
-      writeSource = true,
-
-      numSources = 1,
+      -- Initial conditions.
+      numInit = 1,
       projections = {
         {
-          densityInit = function (t, xn)
-            local x = xn[1]
-            local n = 0.0
+          projectionID = G0.Projection.Func,
 
-            if x < Ls then
-              n = 2.0 * (Ls - x) / Ls -- Source number density (inside the source region).
-            end
+          init = function (t, xn)
+            local w = xn[2] -- Normalized parallel velocity w = v_par/xi.
 
-            return n
-          end,
+            -- Normalized isotropic Maxwellian: F = exp(-w^2/2)/sqrt(2 pi) (M0 = 1, M2 = 1) and
+            -- G = (T_perp/T) F = F; the density and temperature enter through the fluid state.
+            local F = math.exp(-0.5 * w * w) / math.sqrt(2.0 * math.pi)
 
-          temperatureInit = function (t, xn)
-            return mass_ion * vti * vti -- Ion source temperature.
-          end,
-
-          driftVelocityInit = function (t, xn)
-            return 0.0, 0.0, 0.0 -- Source drift velocity.
+            return F, F, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
           end
+        }
+      },
+
+      -- Temperature source: rate nu_Q_ion upstream (x < L_nu), vanishing over 6 lambda_D towards
+      -- the collisionless region next to the wall, at the source temperature.
+      sourceBGK = {
+        rateProfile = function (t, xn)
+          local x = xn[1]
+
+          return nu_Q_ion / (1.0 + math.exp((x - L_nu) / (6.0 * lambda_D)))
+        end,
+
+        tempShape = function (t, xn)
+          return mass_ion * vti * vti -- Ion source temperature.
+        end
+      },
+
+      -- Source profile: the same density as the electrons' (the rate follows the ion wall
+      -- losses), at the plasma temperature and without drift.
+      source = {
+        sourceID = G0.Source.BoundaryFlux,
+        sourceLength = Ls,
+        sourceSpecies = "ion",
+        writeSource = true,
+
+        numSources = 1,
+        projections = {
+          {
+            projectionID = G0.Projection.LTE,
+
+            densityInit = function (t, xn)
+              local x = xn[1]
+              local n = 0.0
+
+              if x < Ls then
+                n = 2.0 * (Ls - x) / Ls -- Source number density (inside the source region).
+              end
+
+              return n
+            end,
+
+            temperatureInit = function (t, xn)
+              return mass_ion * vti * vti -- Ion source temperature.
+            end,
+
+            driftVelocityInit = function (t, xn)
+              return 0.0, 0.0, 0.0 -- Source drift velocity.
+            end
+          }
+        }
+      },
+
+      -- Symmetry boundary and absorbing wall (x-direction).
+      bcx = {
+        lower = {
+          type = G0.SpeciesBc.bcReflect
+        },
+        upper = {
+          type = G0.SpeciesBc.bcAbsorb
         }
       }
     },
 
-    bcx = { G0.SpeciesBc.bcReflect, G0.SpeciesBc.bcAbsorb }, -- Symmetry boundary and absorbing wall (x-direction).
+    fluid = {
+      -- Initial conditions.
+      init = function (t, xn)
+        local rho = mass_ion * n0 -- Ion mass density.
+        local E = 1.5 * rho * vti * vti -- Ion total energy density (no flow).
+
+        return rho, 0.0, 0.0, 0.0, E
+      end,
+
+      bcx = { G0.SpeciesBc.bcReflect, G0.SpeciesBc.bcAbsorb } -- Symmetry boundary and absorbing wall (x-direction).
+    },
 
     evolve = true -- Evolve species?
   },

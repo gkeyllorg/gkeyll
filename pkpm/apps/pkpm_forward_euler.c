@@ -19,14 +19,14 @@ pkpm_forward_euler(
   // Note these are only computed here *if* momentum-EM coupling is explicit
   // Otherwise, applies acceleration, external EM fields, and applied currents are computed in implicit update.
   // Also, these quantities use proj_on_basis so we copy to GPU every call if app->use_gpu = true.
-  if (app->field->ext_em_evolve && app->use_explicit_source) {
+  if (app->field->ext_em_evolve && app->use_explicit_sources) {
     pkpm_field_calc_ext_em(app, app->field, tcurr);
   }
-  if (app->field->app_current_evolve && app->use_explicit_source) {
+  if (app->field->app_current_evolve && app->use_explicit_sources) {
     pkpm_field_calc_app_current(app, app->field, tcurr);
   }
   for (int i = 0; i < app->num_species; ++i) {
-    if (app->species[i].app_accel_evolve && app->use_explicit_source) {
+    if (app->species[i].app_accel_evolve && app->use_explicit_sources) {
       pkpm_species_calc_app_accel(app, &app->species[i], tcurr);
     }
   }
@@ -118,7 +118,7 @@ pkpm_forward_euler(
   }
 
   // Explicit accumulation current contribution from momentum to electric field terms
-  if (app->use_explicit_source) {
+  if (app->use_explicit_sources) {
     pkpm_field_explicit_accumulate_current(app, app->field, fluidin, emout);
   }
   // complete update of field (even when field is static, it is

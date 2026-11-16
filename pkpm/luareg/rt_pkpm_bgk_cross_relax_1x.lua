@@ -92,44 +92,56 @@ pkpmApp = PKPM.App.new {
   elc = PKPM.Species.new {
     charge = charge, mass = mass_elc,
 
-    -- Velocity space grid.
-    lower = { -vx_max },
-    upper = { vx_max },
-    cells = { Nvx },
+    kinetic = {
+      -- Velocity space grid.
+      lower = { -vx_max },
+      upper = { vx_max },
+      cells = { Nvx },
 
-    -- Initial conditions.
-    initDist = function (t, xn)
-      local w = xn[2]
-
-      -- Bi-Maxwellian in w = v_par/xi: F has variance T_par/T and G = (T_perp/T) F.
-      local F = math.exp(-w * w / (2.0 * Tpar_over_T)) / math.sqrt(2.0 * pi * Tpar_over_T)
-
-      return F, Tperp_over_T * F
-    end,
-
-    initFluid = function (t, xn)
-      local rho = mass_elc * n0 -- Electron mass density.
-      local E = 0.5 * rho * ue * ue + 1.5 * n0 * Te -- Electron total energy density.
-
-      return rho, rho * ue, 0.0, 0.0, E
-    end,
-
-    collisions = {
-      collisionID = G0.Collisions.BGK,
-
-      selfNu = function (t, xn)
-        return nu_ee
-      end,
-
-      numCrossCollisions = 1,
-      collideWith = { "ion" },
-      collideWithCrossNu = {
+      -- Initial conditions.
+      numInit = 1,
+      projections = {
         {
-          crossNu = function (t, xn)
-            return nu_ei
+          projectionID = G0.Projection.Func,
+
+          init = function (t, xn)
+            local w = xn[2]
+
+            -- Bi-Maxwellian in w = v_par/xi: F has variance T_par/T and G = (T_perp/T) F.
+            local F = math.exp(-w * w / (2.0 * Tpar_over_T)) / math.sqrt(2.0 * pi * Tpar_over_T)
+
+            return F, Tperp_over_T * F, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
           end
         }
+      },
+
+      collisions = {
+        collisionID = G0.Collisions.BGK,
+
+        selfNu = function (t, xn)
+          return nu_ee
+        end,
+
+        numCrossCollisions = 1,
+        collideWith = { "ion" },
+        collideWithCrossNu = {
+          {
+            crossNu = function (t, xn)
+              return nu_ei
+            end
+          }
+        }
       }
+    },
+
+    fluid = {
+      -- Initial conditions.
+      init = function (t, xn)
+        local rho = mass_elc * n0 -- Electron mass density.
+        local E = 0.5 * rho * ue * ue + 1.5 * n0 * Te -- Electron total energy density.
+
+        return rho, rho * ue, 0.0, 0.0, E
+      end
     },
 
     evolve = true -- Evolve species?
@@ -139,44 +151,56 @@ pkpmApp = PKPM.App.new {
   ion = PKPM.Species.new {
     charge = charge, mass = mass_ion,
 
-    -- Velocity space grid.
-    lower = { -vx_max },
-    upper = { vx_max },
-    cells = { Nvx },
+    kinetic = {
+      -- Velocity space grid.
+      lower = { -vx_max },
+      upper = { vx_max },
+      cells = { Nvx },
 
-    -- Initial conditions.
-    initDist = function (t, xn)
-      local w = xn[2]
-
-      -- Bi-Maxwellian in w = v_par/xi: F has variance T_par/T and G = (T_perp/T) F.
-      local F = math.exp(-w * w / (2.0 * Tpar_over_T)) / math.sqrt(2.0 * pi * Tpar_over_T)
-
-      return F, Tperp_over_T * F
-    end,
-
-    initFluid = function (t, xn)
-      local rho = mass_ion * n0 -- Ion mass density.
-      local E = 0.5 * rho * ui * ui + 1.5 * n0 * Ti -- Ion total energy density.
-
-      return rho, rho * ui, 0.0, 0.0, E
-    end,
-
-    collisions = {
-      collisionID = G0.Collisions.BGK,
-
-      selfNu = function (t, xn)
-        return nu_ii
-      end,
-
-      numCrossCollisions = 1,
-      collideWith = { "elc" },
-      collideWithCrossNu = {
+      -- Initial conditions.
+      numInit = 1,
+      projections = {
         {
-          crossNu = function (t, xn)
-            return nu_ie
+          projectionID = G0.Projection.Func,
+
+          init = function (t, xn)
+            local w = xn[2]
+
+            -- Bi-Maxwellian in w = v_par/xi: F has variance T_par/T and G = (T_perp/T) F.
+            local F = math.exp(-w * w / (2.0 * Tpar_over_T)) / math.sqrt(2.0 * pi * Tpar_over_T)
+
+            return F, Tperp_over_T * F, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
           end
         }
+      },
+
+      collisions = {
+        collisionID = G0.Collisions.BGK,
+
+        selfNu = function (t, xn)
+          return nu_ii
+        end,
+
+        numCrossCollisions = 1,
+        collideWith = { "elc" },
+        collideWithCrossNu = {
+          {
+            crossNu = function (t, xn)
+              return nu_ie
+            end
+          }
+        }
       }
+    },
+
+    fluid = {
+      -- Initial conditions.
+      init = function (t, xn)
+        local rho = mass_ion * n0 -- Ion mass density.
+        local E = 0.5 * rho * ui * ui + 1.5 * n0 * Ti -- Ion total energy density.
+
+        return rho, rho * ui, 0.0, 0.0, E
+      end
     },
 
     evolve = true -- Evolve species?

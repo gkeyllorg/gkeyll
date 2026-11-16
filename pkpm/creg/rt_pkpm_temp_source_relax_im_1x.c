@@ -170,6 +170,14 @@ evalDistInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fou
   // Set normalized distribution functions [F, G].
   fout[0] = F;
   fout[1] = Tperp_over_T * F;
+
+  // No first harmonic: the blocks [M0_perp (x, y, z), N_perp (x, y, z)] vanish.
+  fout[2] = 0.0;
+  fout[3] = 0.0;
+  fout[4] = 0.0;
+  fout[5] = 0.0;
+  fout[6] = 0.0;
+  fout[7] = 0.0;
 }
 
 void
@@ -377,18 +385,13 @@ main(int argc, char **argv)
   }
 
   // Heated species.
-  struct gkyl_pkpm_species heat = {
-    .name = "heat",
-    .charge = ctx.charge,
-    .mass = ctx.mass,
+  struct gkyl_pkpm_kinetic_species heat_kinetic = {
     .lower = {-ctx.vx_max},
     .upper = {ctx.vx_max},
     .cells = {NVX},
 
-    .init_dist = evalDistInit,
-    .ctx_dist = &ctx,
-    .init_fluid = evalFluidInit,
-    .ctx_fluid = &ctx,
+    .num_init = 1,
+    .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalDistInit, .ctx_func = &ctx},
 
     .source_bgk =
       {
@@ -401,19 +404,16 @@ main(int argc, char **argv)
       },
   };
 
+  struct gkyl_pkpm_fluid_species heat_fluid = {.init = evalFluidInit, .ctx = &ctx};
+
   // Cooled species.
-  struct gkyl_pkpm_species cool = {
-    .name = "cool",
-    .charge = ctx.charge,
-    .mass = ctx.mass,
+  struct gkyl_pkpm_kinetic_species cool_kinetic = {
     .lower = {-ctx.vx_max},
     .upper = {ctx.vx_max},
     .cells = {NVX},
 
-    .init_dist = evalDistInit,
-    .ctx_dist = &ctx,
-    .init_fluid = evalFluidInit,
-    .ctx_fluid = &ctx,
+    .num_init = 1,
+    .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalDistInit, .ctx_func = &ctx},
 
     .source_bgk =
       {
@@ -425,6 +425,8 @@ main(int argc, char **argv)
         .is_implicit = true,
       },
   };
+
+  struct gkyl_pkpm_fluid_species cool_fluid = {.init = evalFluidInit, .ctx = &ctx};
 
   // Field.
   struct gkyl_pkpm_field field = {
@@ -456,7 +458,23 @@ main(int argc, char **argv)
     .periodic_dirs = {0},
 
     .num_species = 2,
-    .species = {heat, cool},
+    .species =
+      {{
+         .name = "heat",
+         .charge = ctx.charge,
+         .mass = ctx.mass,
+         .type = GKYL_SPECIES_PKPM,
+         .kinetic = heat_kinetic,
+         .fluid = heat_fluid,
+       },
+       {
+         .name = "cool",
+         .charge = ctx.charge,
+         .mass = ctx.mass,
+         .type = GKYL_SPECIES_PKPM,
+         .kinetic = cool_kinetic,
+         .fluid = cool_fluid,
+       }},
 
     .field = field,
 

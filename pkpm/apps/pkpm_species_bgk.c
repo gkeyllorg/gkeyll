@@ -35,9 +35,9 @@ pkpm_species_coll_profile_new(
 struct gkyl_array *
 pkpm_species_coll_self_nu_new(gkyl_pkpm_app *app, const struct pkpm_species *s, double nu_frac)
 {
-  const struct gkyl_pkpm_collisions *coll = &s->info.collisions;
+  const struct gkyl_vlasov_collisions *coll = &s->info.kinetic.collisions;
   if (coll->self_nu) {
-    return pkpm_species_coll_profile_new(app, coll->self_nu, coll->ctx, nu_frac, true);
+    return pkpm_species_coll_profile_new(app, coll->self_nu, coll->self_nu_ctx, nu_frac, true);
   }
   struct gkyl_array *nu = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
   gkyl_array_clear(nu, 0.0);
@@ -153,7 +153,7 @@ pkpm_species_bgk_init_nodal(
   bgk->rate_self = pkpm_species_coll_self_nu_new(app, s, nu_frac);
   // Without partners the self frequency is the rate of the operator. With partners the rate is
   // rebuilt from it every stage.
-  if (s->info.collisions.num_cross_collisions) {
+  if (s->info.kinetic.collisions.num_cross_collisions) {
     bgk->rate = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
     gkyl_array_copy(bgk->rate, bgk->rate_self);
   } else {
@@ -165,12 +165,13 @@ pkpm_species_bgk_init_nodal(
     .phase_basis = &app->basis,
     .use_gpu = false,
   });
-  bgk->is_implicit = s->info.collisions.is_implicit;
+  bgk->is_implicit = s->info.kinetic.collisions.is_implicit;
   if (bgk->is_implicit) {
     bgk->shape = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
     bgk->kinetic_rhs = pkpm_species_bgk_kinetic_rhs_none;
-    bgk->calc_shape = s->info.collisions.num_cross_collisions ? pkpm_species_bgk_shape_cross :
-                                                                pkpm_species_bgk_shape_self;
+    bgk->calc_shape = s->info.kinetic.collisions.num_cross_collisions ?
+                        pkpm_species_bgk_shape_cross :
+                        pkpm_species_bgk_shape_self;
   } else {
     bgk->kinetic_rhs = pkpm_species_bgk_kinetic_rhs_explicit;
   }
@@ -184,9 +185,9 @@ pkpm_species_bgk_init_modal(
 )
 {
   // The computed frequency is not available in this form.
-  assert(s->info.collisions.self_nu);
+  assert(s->info.kinetic.collisions.self_nu);
   struct gkyl_array *nu_host = pkpm_species_coll_profile_new(
-    app, s->info.collisions.self_nu, s->info.collisions.ctx, nu_frac, false
+    app, s->info.kinetic.collisions.self_nu, s->info.kinetic.collisions.self_nu_ctx, nu_frac, false
   );
   bgk->nu = mkarr(app->use_gpu, nu_host->ncomp, nu_host->size);
   gkyl_array_copy(bgk->nu, nu_host);
@@ -218,10 +219,11 @@ pkpm_species_bgk_init_modal(
 void
 pkpm_species_bgk_init(gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_bgk_collisions *bgk)
 {
-  double nu_frac = s->info.collisions.nuFrac > 0.0 ? s->info.collisions.nuFrac : 1.0;
+  double nu_frac = s->info.kinetic.collisions.nu_frac > 0.0 ? s->info.kinetic.collisions.nu_frac :
+                                                              1.0;
 
   // GPU runs take the explicit modal form, which has no implicit step.
-  assert(!(app->use_gpu && s->info.collisions.is_implicit));
+  assert(!(app->use_gpu && s->info.kinetic.collisions.is_implicit));
   bgk->use_nodal = !app->use_gpu;
   bgk->is_implicit = false;
   if (bgk->use_nodal) {

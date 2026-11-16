@@ -178,6 +178,14 @@ evalElcDistInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT 
   // Set normalized electron distribution functions.
   fout[0] = F;
   fout[1] = F;
+
+  // No first harmonic: the blocks [M0_perp (x, y, z), N_perp (x, y, z)] vanish.
+  fout[2] = 0.0;
+  fout[3] = 0.0;
+  fout[4] = 0.0;
+  fout[5] = 0.0;
+  fout[6] = 0.0;
+  fout[7] = 0.0;
 }
 
 void
@@ -208,6 +216,14 @@ evalIonDistInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT 
   // Set normalized ion distribution functions.
   fout[0] = F;
   fout[1] = F;
+
+  // No first harmonic: the blocks [M0_perp (x, y, z), N_perp (x, y, z)] vanish.
+  fout[2] = 0.0;
+  fout[3] = 0.0;
+  fout[4] = 0.0;
+  fout[5] = 0.0;
+  fout[6] = 0.0;
+  fout[7] = 0.0;
 }
 
 void
@@ -469,24 +485,19 @@ main(int argc, char **argv)
   }
 
   // Electrons.
-  struct gkyl_pkpm_species elc = {
-    .name = "elc",
-    .charge = ctx.charge_elc,
-    .mass = ctx.mass_elc,
+  struct gkyl_pkpm_kinetic_species elc_kinetic = {
     .lower = {-ctx.vx_max_elc},
     .upper = {ctx.vx_max_elc},
     .cells = {NVX},
 
-    .init_dist = evalElcDistInit,
-    .ctx_dist = &ctx,
-    .init_fluid = evalElcFluidInit,
-    .ctx_fluid = &ctx,
+    .num_init = 1,
+    .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalElcDistInit, .ctx_func = &ctx},
 
     .collisions =
       {
         .collision_id = GKYL_LBO_COLLISIONS,
         .self_nu = evalElcNu,
-        .ctx = &ctx,
+        .self_nu_ctx = &ctx,
         .num_cross_collisions = 1,
         .collide_with = {"ion"},
       },
@@ -497,36 +508,44 @@ main(int argc, char **argv)
         .source_length = ctx.Ls,
         .source_species = "ion",
         .write_source = true,
-        .density = evalSourceDensity,
-        .ctx_density = &ctx,
-        .temp = evalElcSourceTemp,
-        .ctx_temp = &ctx,
-        .V_drift = evalSourceVDrift,
-        .ctx_V_drift = &ctx,
+
+        .num_sources = 1,
+        .projection[0] =
+          {
+            .proj_id = GKYL_PROJ_VLASOV_LTE,
+            .density = evalSourceDensity,
+            .ctx_density = &ctx,
+            .temp = evalElcSourceTemp,
+            .ctx_temp = &ctx,
+            .V_drift = evalSourceVDrift,
+            .ctx_V_drift = &ctx,
+          },
       },
+
+    .bcx = {.lower = {.type = GKYL_SPECIES_REFLECT}, .upper = {.type = GKYL_SPECIES_ABSORB}},
+  };
+
+  struct gkyl_pkpm_fluid_species elc_fluid = {
+    .init = evalElcFluidInit,
+    .ctx = &ctx,
 
     .bcx = {GKYL_SPECIES_REFLECT, GKYL_SPECIES_ABSORB},
   };
 
   // Ions.
-  struct gkyl_pkpm_species ion = {
-    .name = "ion",
-    .charge = ctx.charge_ion,
-    .mass = ctx.mass_ion,
+  struct gkyl_pkpm_kinetic_species ion_kinetic = {
     .lower = {-ctx.vx_max_ion},
     .upper = {ctx.vx_max_ion},
     .cells = {NVX},
 
-    .init_dist = evalIonDistInit,
-    .ctx_dist = &ctx,
-    .init_fluid = evalIonFluidInit,
-    .ctx_fluid = &ctx,
+    .num_init = 1,
+    .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalIonDistInit, .ctx_func = &ctx},
 
     .collisions =
       {
         .collision_id = GKYL_LBO_COLLISIONS,
         .self_nu = evalIonNu,
-        .ctx = &ctx,
+        .self_nu_ctx = &ctx,
         .num_cross_collisions = 1,
         .collide_with = {"elc"},
       },
@@ -537,13 +556,26 @@ main(int argc, char **argv)
         .source_length = ctx.Ls,
         .source_species = "ion",
         .write_source = true,
-        .density = evalSourceDensity,
-        .ctx_density = &ctx,
-        .temp = evalIonSourceTemp,
-        .ctx_temp = &ctx,
-        .V_drift = evalSourceVDrift,
-        .ctx_V_drift = &ctx,
+
+        .num_sources = 1,
+        .projection[0] =
+          {
+            .proj_id = GKYL_PROJ_VLASOV_LTE,
+            .density = evalSourceDensity,
+            .ctx_density = &ctx,
+            .temp = evalIonSourceTemp,
+            .ctx_temp = &ctx,
+            .V_drift = evalSourceVDrift,
+            .ctx_V_drift = &ctx,
+          },
       },
+
+    .bcx = {.lower = {.type = GKYL_SPECIES_REFLECT}, .upper = {.type = GKYL_SPECIES_ABSORB}},
+  };
+
+  struct gkyl_pkpm_fluid_species ion_fluid = {
+    .init = evalIonFluidInit,
+    .ctx = &ctx,
 
     .bcx = {GKYL_SPECIES_REFLECT, GKYL_SPECIES_ABSORB},
   };
@@ -581,7 +613,23 @@ main(int argc, char **argv)
     .periodic_dirs = {},
 
     .num_species = 2,
-    .species = {elc, ion},
+    .species =
+      {{
+         .name = "elc",
+         .charge = ctx.charge_elc,
+         .mass = ctx.mass_elc,
+         .type = GKYL_SPECIES_PKPM,
+         .kinetic = elc_kinetic,
+         .fluid = elc_fluid,
+       },
+       {
+         .name = "ion",
+         .charge = ctx.charge_ion,
+         .mass = ctx.mass_ion,
+         .type = GKYL_SPECIES_PKPM,
+         .kinetic = ion_kinetic,
+         .fluid = ion_fluid,
+       }},
 
     .field = field,
 

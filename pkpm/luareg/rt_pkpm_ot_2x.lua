@@ -94,56 +94,68 @@ pkpmApp = PKPM.App.new {
   elc = PKPM.Species.new {
     charge = charge_elc, mass = mass_elc,
 
-    -- Velocity space grid.
-    lower = { -vx_max_elc },
-    upper = { vx_max_elc },
-    cells = { Nvx },
+    kinetic = {
+      -- Velocity space grid.
+      lower = { -vx_max_elc },
+      upper = { vx_max_elc },
+      cells = { Nvx },
 
-    -- Initial conditions.
-    initDist = function (t, xn)
-      local w = xn[3] -- Normalized parallel velocity w = v_par/xi.
+      -- Initial conditions.
+      numInit = 1,
+      projections = {
+        {
+          projectionID = G0.Projection.Func,
 
-      -- Normalized isotropic Maxwellian: F = exp(-w^2/2)/sqrt(2 pi) (M0 = 1, M2 = 1) and
-      -- G = (T_perp/T) F = F, independent of position; the density, flow and temperature
-      -- enter through the fluid state.
-      local F = math.exp(-0.5 * w * w) / math.sqrt(2.0 * math.pi)
+          init = function (t, xn)
+            local w = xn[3] -- Normalized parallel velocity w = v_par/xi.
 
-      return F, F
-    end,
+            -- Normalized isotropic Maxwellian: F = exp(-w^2/2)/sqrt(2 pi) (M0 = 1, M2 = 1) and
+            -- G = (T_perp/T) F = F, independent of position; the density, flow and temperature
+            -- enter through the fluid state.
+            local F = math.exp(-0.5 * w * w) / math.sqrt(2.0 * math.pi)
 
-    initFluid = function (t, xn)
-      local x, y = xn[1], xn[2]
+            return F, F, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+          end
+        }
+      },
 
-      local Jz = (delta_B0 * (4.0 * pi / Lx) * math.cos(4.0 * pi * x / Lx) +
-                  delta_B0 * (2.0 * pi / Ly) * math.cos(2.0 * pi * y / Ly)) /
-                 mu0
+      collisions = {
+        collisionID = G0.Collisions.LBO,
 
-      local vx_drift = -delta_u0 * math.sin(2.0 * pi * y / Ly) -- Electron drift velocity (x-direction).
-      local vy_drift = delta_u0 * math.sin(2.0 * pi * x / Lx) -- Electron drift velocity (y-direction).
-      local vz_drift = -Jz / charge_ion -- Electron drift velocity (z-direction).
-
-      local mom_x = mass_elc * n0 * vx_drift -- Electron total momentum density (x-direction).
-      local mom_y = mass_elc * n0 * vy_drift -- Electron total momentum density (y-direction).
-      local mom_z = mass_elc * n0 * vz_drift -- Electron total momentum density (z-direction).
-
-      local rho = mass_elc * n0 -- Electron mass density.
-      local vtsq = vte * vte -- Electron T/m.
-      local E = 0.5 * (mom_x * mom_x + mom_y * mom_y + mom_z * mom_z) / rho + 1.5 * rho * vtsq -- Electron total energy density.
-
-      return rho, mom_x, mom_y, mom_z, E
-    end,
-
-    collisions = {
-      collisionID = G0.Collisions.LBO,
-
-      selfNu = function (t, xn)
-        return nu_elc
-      end
+        selfNu = function (t, xn)
+          return nu_elc
+        end
+      }
     },
 
-    diffusion = {
-      D = 1.0e-4,
-      order = 4
+    fluid = {
+      -- Initial conditions.
+      init = function (t, xn)
+        local x, y = xn[1], xn[2]
+
+        local Jz = (delta_B0 * (4.0 * pi / Lx) * math.cos(4.0 * pi * x / Lx) +
+                    delta_B0 * (2.0 * pi / Ly) * math.cos(2.0 * pi * y / Ly)) /
+                   mu0
+
+        local vx_drift = -delta_u0 * math.sin(2.0 * pi * y / Ly) -- Electron drift velocity (x-direction).
+        local vy_drift = delta_u0 * math.sin(2.0 * pi * x / Lx) -- Electron drift velocity (y-direction).
+        local vz_drift = -Jz / charge_ion -- Electron drift velocity (z-direction).
+
+        local mom_x = mass_elc * n0 * vx_drift -- Electron total momentum density (x-direction).
+        local mom_y = mass_elc * n0 * vy_drift -- Electron total momentum density (y-direction).
+        local mom_z = mass_elc * n0 * vz_drift -- Electron total momentum density (z-direction).
+
+        local rho = mass_elc * n0 -- Electron mass density.
+        local vtsq = vte * vte -- Electron T/m.
+        local E = 0.5 * (mom_x * mom_x + mom_y * mom_y + mom_z * mom_z) / rho + 1.5 * rho * vtsq -- Electron total energy density.
+
+        return rho, mom_x, mom_y, mom_z, E
+      end,
+
+      diffusion = {
+        diffusionCoefficient = 1.0e-4,
+        diffusionOrder = 4
+      }
     },
 
     evolve = true -- Evolve species?
@@ -153,52 +165,64 @@ pkpmApp = PKPM.App.new {
   ion = PKPM.Species.new {
     charge = charge_ion, mass = mass_ion,
 
-    -- Velocity space grid.
-    lower = { -vx_max_ion },
-    upper = { vx_max_ion },
-    cells = { Nvx },
+    kinetic = {
+      -- Velocity space grid.
+      lower = { -vx_max_ion },
+      upper = { vx_max_ion },
+      cells = { Nvx },
 
-    -- Initial conditions.
-    initDist = function (t, xn)
-      local w = xn[3] -- Normalized parallel velocity w = v_par/xi.
+      -- Initial conditions.
+      numInit = 1,
+      projections = {
+        {
+          projectionID = G0.Projection.Func,
 
-      -- Normalized isotropic Maxwellian: F = exp(-w^2/2)/sqrt(2 pi) (M0 = 1, M2 = 1) and
-      -- G = (T_perp/T) F = F, independent of position; the density, flow and temperature
-      -- enter through the fluid state.
-      local F = math.exp(-0.5 * w * w) / math.sqrt(2.0 * math.pi)
+          init = function (t, xn)
+            local w = xn[3] -- Normalized parallel velocity w = v_par/xi.
 
-      return F, F
-    end,
+            -- Normalized isotropic Maxwellian: F = exp(-w^2/2)/sqrt(2 pi) (M0 = 1, M2 = 1) and
+            -- G = (T_perp/T) F = F, independent of position; the density, flow and temperature
+            -- enter through the fluid state.
+            local F = math.exp(-0.5 * w * w) / math.sqrt(2.0 * math.pi)
 
-    initFluid = function (t, xn)
-      local x, y = xn[1], xn[2]
+            return F, F, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+          end
+        }
+      },
 
-      local vx_drift = -delta_u0 * math.sin(2.0 * pi * y / Ly) -- Ion drift velocity (x-direction).
-      local vy_drift = delta_u0 * math.sin(2.0 * pi * x / Lx) -- Ion drift velocity (y-direction).
-      local vz_drift = 0.0 -- Ion drift velocity (z-direction).
+      collisions = {
+        collisionID = G0.Collisions.LBO,
 
-      local mom_x = mass_ion * n0 * vx_drift -- Ion total momentum density (x-direction).
-      local mom_y = mass_ion * n0 * vy_drift -- Ion total momentum density (y-direction).
-      local mom_z = mass_ion * n0 * vz_drift -- Ion total momentum density (z-direction).
-
-      local rho = mass_ion * n0 -- Ion mass density.
-      local vtsq = vti * vti -- Ion T/m.
-      local E = 0.5 * (mom_x * mom_x + mom_y * mom_y + mom_z * mom_z) / rho + 1.5 * rho * vtsq -- Ion total energy density.
-
-      return rho, mom_x, mom_y, mom_z, E
-    end,
-
-    collisions = {
-      collisionID = G0.Collisions.LBO,
-
-      selfNu = function (t, xn)
-        return nu_ion
-      end
+        selfNu = function (t, xn)
+          return nu_ion
+        end
+      }
     },
 
-    diffusion = {
-      D = 1.0e-4,
-      order = 4
+    fluid = {
+      -- Initial conditions.
+      init = function (t, xn)
+        local x, y = xn[1], xn[2]
+
+        local vx_drift = -delta_u0 * math.sin(2.0 * pi * y / Ly) -- Ion drift velocity (x-direction).
+        local vy_drift = delta_u0 * math.sin(2.0 * pi * x / Lx) -- Ion drift velocity (y-direction).
+        local vz_drift = 0.0 -- Ion drift velocity (z-direction).
+
+        local mom_x = mass_ion * n0 * vx_drift -- Ion total momentum density (x-direction).
+        local mom_y = mass_ion * n0 * vy_drift -- Ion total momentum density (y-direction).
+        local mom_z = mass_ion * n0 * vz_drift -- Ion total momentum density (z-direction).
+
+        local rho = mass_ion * n0 -- Ion mass density.
+        local vtsq = vti * vti -- Ion T/m.
+        local E = 0.5 * (mom_x * mom_x + mom_y * mom_y + mom_z * mom_z) / rho + 1.5 * rho * vtsq -- Ion total energy density.
+
+        return rho, mom_x, mom_y, mom_z, E
+      end,
+
+      diffusion = {
+        diffusionCoefficient = 1.0e-4,
+        diffusionOrder = 4
+      }
     },
 
     evolve = true -- Evolve species?

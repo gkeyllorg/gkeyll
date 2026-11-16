@@ -86,18 +86,24 @@ void
 pkpm_species_source_init(gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_source *src)
 {
   int nc = app->confBasis.num_basis, np = app->basis.num_basis;
-  src->source_id = s->info.source.source_id;
+  const struct gkyl_vlasov_source *info = &s->info.kinetic.source;
+  src->source_id = info->source_id;
   src->calc_bflux = false;
   src->scale = 1.0;
   if (src->source_id == GKYL_NO_SOURCE) {
     return;
   }
-  assert(s->info.source.density && s->info.source.temp);
+  // One LTE profile, added as given or scaled by the wall losses; the other sources of the
+  // Vlasov app (time-dependent, adaptive) are not available.
+  assert(src->source_id == GKYL_PROJ_SOURCE || src->source_id == GKYL_BFLUX_SOURCE);
+  assert(info->num_sources == 1 && info->projection[0].proj_id == GKYL_PROJ_VLASOV_LTE);
+  assert(info->projection[0].density && info->projection[0].temp);
+  assert(!info->evolve_source);
   if (src->source_id == GKYL_BFLUX_SOURCE) {
-    assert(s->info.source.source_length > 0.0);
+    assert(info->source_length > 0.0);
     src->calc_bflux = true;
-    src->source_length = s->info.source.source_length;
-    src->source_species = pkpm_find_species(app, s->info.source.source_species);
+    src->source_length = info->source_length;
+    src->source_species = pkpm_find_species(app, info->source_species);
     assert(src->source_species);
     src->scale = 0.0;
   }
@@ -107,7 +113,7 @@ pkpm_species_source_init(gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm
     .conf_grid = &app->grid,
     .conf_basis = &app->confBasis,
     .local_ext = &app->local_ext,
-    .info = &s->info.source,
+    .info = &info->projection[0],
   };
 
   // Profile [n_s, T_s, u_s] and its fluid image, sampled at the physical coordinates.
@@ -281,7 +287,7 @@ pkpm_species_source_write(
   gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_source *src, double tm, int frame
 )
 {
-  if (src->source_id == GKYL_NO_SOURCE || !s->info.source.write_source) {
+  if (src->source_id == GKYL_NO_SOURCE || !s->info.kinetic.source.write_source) {
     return;
   }
   struct gkyl_msgpack_data *mt = pkpm_array_meta_new((struct pkpm_output_meta){

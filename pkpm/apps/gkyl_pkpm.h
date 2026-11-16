@@ -5,42 +5,11 @@
 #include <gkyl_eqn_type.h>
 #include <gkyl_range.h>
 #include <gkyl_util.h>
+#include <gkyl_vlasov.h>
 
 #include <stdbool.h>
 #include <gkyl_kann_net.h>
 #include <gkyl_knutils.h>
-
-// Parameters for species collisions
-struct gkyl_pkpm_collisions {
-  enum gkyl_collision_id collision_id; // type of collisions (see gkyl_eqn_type.h)
-
-  void *ctx; // context for collision function
-  // Function for the self-collision frequency. Without it the frequency is the Spitzer one
-  // computed from the local moments (see cross_nu).
-  void (*self_nu)(double t, const double *xn, double *fout, void *ctx);
-
-  double nuFrac; // Rescales collision frequencies (default = 1)
-  // Reference parameters of the Coulomb logarithm of the computed collision frequencies. Unset
-  // entries default to 1, i.e. normalized units.
-  double den_ref; // Reference density
-  double temp_ref; // Reference temperature
-  double hbar, eps0; // Planck's constant/2 pi, vacuum permittivity
-
-  int num_cross_collisions; // number of species to cross-collide with
-  char collide_with[GKYL_MAX_SPECIES][128]; // names of species to cross collide with
-  // Functions for the cross-collision frequencies, one per species in collide_with. A species
-  // gives all of them or none, and so must its partners. With none, the frequencies are the
-  // Spitzer ones computed from the local moments of the pair,
-  //   nu_sr = nuFrac alpha_E (m_s + m_r) / (2 m_s) n_r / (vtsq_s + vtsq_r)^(3/2),
-  // with the constant part alpha_E of Morse's energy-exchange coefficient at the reference
-  // parameters (nu_ss = nuFrac alpha_E n_s / (2 vtsq_s)^(3/2) for the self frequency).
-  void (*cross_nu[GKYL_MAX_SPECIES])(double t, const double *xn, double *fout, void *ctx);
-  void *cross_nu_ctx[GKYL_MAX_SPECIES]; // contexts for the cross-collision functions
-
-  // BGK collisions: one backward-Euler step in each SSP-RK3 stage, over the time weight of the
-  // stage, instead of the explicit update (with its CFL limit). Not available on the GPU.
-  bool is_implicit;
-};
 
 // Parameters for a BGK-form temperature source of a species,
 //   S = nu_Q(x) (f_M(n, u, T_Q(x)) - f),
@@ -66,72 +35,50 @@ struct gkyl_pkpm_source_bgk {
   bool is_implicit;
 };
 
-// Parameters for a species source: an LTE profile [density, isotropic temperature, drift]
-// injected into the normalized kinetic equations (through the configuration pass, so the
-// closures keep the constraints exact) and into the fluid state [rho, M, E]. With
-// GKYL_PROJ_SOURCE the profile is added as given; with GKYL_BFLUX_SOURCE it is scaled every
-// stage by the particle loss rate of `source_species` through its absorbing walls divided
-// by `source_length` (so a density profile integrating to source_length replaces the
-// losses exactly). The drift enters the parallel Maxwellian through its component along b;
-// a perpendicular drift relative to the local flow is not carried by G.
-struct gkyl_pkpm_source {
-  enum gkyl_source_id source_id; // GKYL_NO_SOURCE (default), GKYL_PROJ_SOURCE, GKYL_BFLUX_SOURCE
-  double source_length; // bflux: the length the density profile integrates to
-  char source_species[128]; // bflux: species whose wall losses set the rate
-  bool write_source; // write the fluid image of the profile at frame 0
+// Parameters for the kinetic block of a PKPM species: the grid of the normalized velocity
+// w = v_par/xi, the initial condition of the distributions, collisions, sources and the kinetic
+// BCs. Declared as the 'kinetic' block of struct gkyl_pkpm_species. The members it shares with
+// struct gkyl_vlasov_kinetic_species have the same names and types.
+struct gkyl_pkpm_kinetic_species {
+  double lower[3], upper[3]; // Lower, upper bounds of the NORMALIZED velocity w = v_par/xi.
+  int cells[3]; // Velocity-space cells.
 
-  void *ctx_density, *ctx_temp, *ctx_V_drift; // contexts
-  void (*density)(double t, const double *xn, double *fout, void *ctx); // number density
-  void (*temp)(double t, const double *xn, double *fout, void *ctx); // isotropic temperature
-  void (*V_drift)(
-    double t, const double *xn, double *fout, void *ctx
-  ); // drift velocity (3 components); optional
-};
+  // Initial condition using the projection routine: one GKYL_PROJ_FUNC projection of a function
+  // returning the eight blocks [F, G, M0_perp (x, y, z), N_perp (x, y, z)] of the normalized
+  // distributions. F is a probability density in w (M0 = 1, M1 = 0) and G its
+  // perpendicular-energy partner (M0(G) = T_perp/T) with M2(F) + 2 M0(G) = 3; e.g. a
+  // bi-Maxwellian is F = exp(-w^2/(2 r))/sqrt(2 pi r), G = (T_perp/T) F with r = T_par/T,
+  // T = (T_par + 2 T_perp)/3. The first-harmonic blocks [M0_perp, N_perp] must be perpendicular
+  // to b, and int M0_perp dw must vanish; a gyrotropic start returns zeros for them.
+  int num_init; // Number of initial condition functions (1).
+  struct gkyl_vlasov_projection projection[GKYL_MAX_PROJ];
 
-// Parameters of the momentum diffusion of a species (also on a position map)
-struct gkyl_pkpm_fluid_diffusion {
-  double D; // constant diffusion coefficient
-  int order; // order of the diffusion: 2 (grad^2, the default) or 4 (grad^4)
-  void *Dij_ctx; // context for applied diffusion function if using general diffusion tensor
-  // pointer to applied diffusion function is using general diffusion tensor
-  void (*Dij)(double t, const double *xn, double *Dout, void *ctx);
-};
+  // Collisions to include (GKYL_LBO_COLLISIONS or GKYL_BGK_COLLISIONS). Without self_nu the
+  // self-collision frequency is the Spitzer one computed from the local moments, and so are
+  // the cross-collision frequencies without cross_nu,
+  //   nu_sr = nu_frac alpha_E (m_s + m_r) / (2 m_s) n_r / (vtsq_s + vtsq_r)^(3/2),
+  // with the constant part alpha_E of Morse's energy-exchange coefficient at the reference
+  // parameters (nu_ss = nu_frac alpha_E n_s / (2 vtsq_s)^(3/2) for the self frequency).
+  // is_implicit (BGK): one backward-Euler step in each SSP-RK3 stage, over the time weight of
+  // the stage, instead of the explicit update (with its CFL limit); not available on the GPU.
+  // write_coll_diagnostics and fixed_temp_relax are not available (source_bgk is the
+  // temperature source).
+  struct gkyl_vlasov_collisions collisions;
 
-// Parameters for PKPM species
-struct gkyl_pkpm_species {
-  char name[128]; // species name
+  // Source to include: GKYL_PROJ_SOURCE or GKYL_BFLUX_SOURCE with one GKYL_PROJ_VLASOV_LTE
+  // projection, the profile [density, isotropic temperature, drift] injected into the
+  // normalized kinetic equations (through the configuration pass, so the closures keep the
+  // constraints exact) and into the fluid state [rho, M, E]. With GKYL_PROJ_SOURCE the profile
+  // is added as given; with GKYL_BFLUX_SOURCE it is scaled every stage by the particle loss
+  // rate of `source_species` through its absorbing walls divided by `source_length` (so a
+  // density profile integrating to source_length replaces the losses exactly). The drift
+  // enters the parallel Maxwellian through its component along b; a perpendicular drift
+  // relative to the local flow is not carried by G. write_source writes the fluid image of the
+  // profile at frame 0.
+  struct gkyl_vlasov_source source;
 
-  double charge, mass; // charge and mass
-  double lower[3], upper[3]; // lower, upper bounds of the NORMALIZED velocity w = v_par/xi
-  int cells[3]; // velocity-space cells
-
-  void *ctx_dist; // context for initial condition init function
-  void *ctx_fluid; // context for initial condition init function
-  // pointer to the initialization function of the normalized distributions [F, G]:
-  // F is a probability density in w (M0 = 1, M1 = 0) and G its perpendicular-energy
-  // partner (M0(G) = T_perp/T) with M2(F) + 2 M0(G) = 3; e.g. a bi-Maxwellian is
-  // F = exp(-w^2/(2 r))/sqrt(2 pi r), G = (T_perp/T) F with r = T_par/T, T = (T_par + 2 T_perp)/3.
-  void (*init_dist)(double t, const double *xn, double *fout, void *ctx);
-  void *ctx_harm; // context for the first-harmonic initial condition
-  // pointer to the initialization function of the first-harmonic blocks
-  // [M0_perp (x, y, z), N_perp (x, y, z)] (optional; zero if not given). They must be perpendicular
-  // to b, and int M0_perp dw must vanish.
-  void (*init_harm)(double t, const double *xn, double *fout, void *ctx);
-  // pointer to the initialization function of the fluid state
-  // [rho, rho ux, rho uy, rho uz, E], E = rho |u|^2/2 + 3 p/2 = rho |u|^2/2 + (p_par + 2 p_perp)/2
-  void (*init_fluid)(double t, const double *xn, double *fout, void *ctx);
-
-  // collisions to include
-  struct gkyl_pkpm_collisions collisions;
-
-  // source to include
-  struct gkyl_pkpm_source source;
-
-  // temperature source to include
+  // Temperature source to include.
   struct gkyl_pkpm_source_bgk source_bgk;
-
-  // diffusion coupling to include for momentum
-  struct gkyl_pkpm_fluid_diffusion diffusion;
 
   // Gyrophase-mixing closure of the first harmonic: rate, in units of the species' local |Omega|, at
   // which agyrotropy beyond what one harmonic can represent relaxes back to that bound (0: the
@@ -139,13 +86,77 @@ struct gkyl_pkpm_species {
   // (drive rate/|Omega|)/gyro_mix; a drive the default cannot hold calls for more Fourier harmonics.
   double gyro_mix;
 
-  void *app_accel_ctx; // context for applied acceleration function
-  // pointer to applied acceleration function
-  void (*app_accel)(double t, const double *xn, double *app_accel_out, void *ctx);
-  bool app_accel_evolve; // set to true if applied acceleration function is time dependent
+  // Gauss-Legendre nodes per transverse direction of a configuration face (0 => default 5, at
+  // least 3).
+  int num_face_nodes;
 
-  // boundary conditions
+  // Boundary conditions of the distributions (see struct gkyl_pkpm_species).
+  struct gkyl_vlasov_bcs bcx, bcy, bcz;
+};
+
+// Parameters for the fluid block of a PKPM species: the initial condition of the fluid state,
+// the positivity limiter, momentum diffusion, the applied acceleration and the fluid BCs.
+// Declared as the 'fluid' block of struct gkyl_pkpm_species. The members it shares with
+// struct gkyl_vlasov_fluid_species have the same names and types.
+struct gkyl_pkpm_fluid_species {
+  void *ctx; // Context for initial condition init function.
+  // Pointer to the initialization function of the fluid state
+  // [rho, rho ux, rho uy, rho uz, E], E = rho |u|^2/2 + 3 p/2 = rho |u|^2/2 + (p_par + 2 p_perp)/2.
+  void (*init)(double t, const double *xn, double *fout, void *ctx);
+
+  // Vertex positivity limiter of the fluid state [rho, M, E] (Zhang-Shu scaling of the
+  // slopes toward the cell averages, always applied, after every forward-Euler stage, the
+  // implicit coupling and the initial condition): the vertex density and the vertex internal
+  // energy are kept above positivity_eps times the cell values, so the thermal speed is real
+  // at the Gauss-Legendre nodes. The cells it acts on are recorded in
+  // <name>-<species>_pkpm_positivity_<frame>.gkyl (cumulative counts per cell: [density,
+  // internal energy, inadmissible average]) and the counts per integrated-moment interval
+  // in the dynvec <name>-<species>-positivity-stat.gkyl ([cells scaled for the density, for
+  // the internal energy, cells with an inadmissible average, limiter applications], summed
+  // over ranks).
+  double positivity_eps; // Relative floor (0 => default 1e-2).
+
+  // Diffusion of the momentum to include (also on a position map): order 2 (grad^2, the
+  // default) or 4 (grad^4).
+  struct gkyl_vlasov_fluid_diffusion diffusion;
+
+  void *app_accel_ctx; // Context for applied acceleration function.
+  // Pointer to applied acceleration function.
+  void (*app_accel)(double t, const double *xn, double *aout, void *ctx);
+  bool app_accel_evolve; // Set to true if applied acceleration function is time dependent.
+
+  // Boundary conditions of the fluid state (see struct gkyl_pkpm_species).
   enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
+};
+
+// Parameters for one PKPM species: the identity (name, charge, mass) and its two blocks, as in
+// struct gkyl_vlasov_species. For example
+//   struct gkyl_pkpm_kinetic_species elc_kinetic = { .lower = ..., .cells = ..., ... };
+//   struct gkyl_pkpm_fluid_species elc_fluid = { .init = ..., ... };
+//   .num_species = 1,
+//   .species = {
+//     { .name = "elc", .charge = -1.0, .mass = 1.0, .type = GKYL_SPECIES_PKPM,
+//       .kinetic = elc_kinetic, .fluid = elc_fluid },
+//   },
+// Boundary conditions: each block carries its own and each is applied to its own state.
+// The kinetic BC fills the ghost cells of the distributions: GKYL_SPECIES_COPY, GKYL_SPECIES_ABSORB
+// (empty ghost distributions; the wall losses are recorded and T_perp/T of the ghost cell is the
+// mirror image of the skin cell), GKYL_SPECIES_REFLECT (the field-aligned mirror image) or
+// GKYL_SPECIES_FIXED_FUNC (the initial condition; x direction only). The fluid BC fills the
+// ghost cells of [rho, M, E], which set the frame (rho, u, xi) of the ghost cell: GKYL_SPECIES_COPY,
+// GKYL_SPECIES_ABSORB (the mirror image of the skin cell, even in the wall direction, so the
+// primitive variables and their gradients are one-sided at the wall), GKYL_SPECIES_REFLECT (the
+// mirror image with the momentum reflected) or GKYL_SPECIES_FIXED_FUNC. The same type in both
+// blocks is the natural pair: an absorbing wall records its losses, and a reflecting wall
+// passes no mass and no energy.
+struct gkyl_pkpm_species {
+  char name[128]; // Species name.
+  double charge, mass; // Charge and mass.
+
+  enum gkyl_species_type type; // GKYL_SPECIES_PKPM: the species owns both blocks.
+
+  struct gkyl_pkpm_kinetic_species kinetic; // Kinetic block (velocity grid, projection, ...).
+  struct gkyl_pkpm_fluid_species fluid; // Fluid block (init, diffusion, ...).
 };
 
 // Parameter for EM field
@@ -229,20 +240,7 @@ struct gkyl_pkpm {
   // The default is a staggered (Strang) operator split with implicit fluid-EM coupling: between
   // updates the fluid and E lag by half a source step, and output and diagnostics see them
   // synchronized; frames store the steps that make a restart continue the uninterrupted run.
-  bool use_explicit_source; // Use the fully explicit SSP RK3 scheme instead
-
-  // Vertex positivity limiter of the fluid state [rho, M, E] (Zhang-Shu scaling of the
-  // slopes toward the cell averages, always applied, after every forward-Euler stage, the
-  // implicit coupling and the initial condition): the vertex density and the vertex internal
-  // energy are kept above fluid_positivity_eps times the cell values (default 1e-2), so the
-  // thermal speed is real at the Gauss-Legendre nodes. The cells it acts on are recorded in
-  // <name>-<species>_pkpm_positivity_<frame>.gkyl (cumulative counts per cell: [density,
-  // internal energy, inadmissible average]) and the counts per integrated-moment interval
-  // in the dynvec <name>-<species>-positivity-stat.gkyl ([cells scaled for the density, for
-  // the internal energy, cells with an inadmissible average, limiter applications], summed
-  // over ranks).
-  double fluid_positivity_eps; // Relative floor (0 => default 1e-2).
-  int num_face_nodes; // Gauss-Legendre nodes per transverse direction of a configuration face (0 => default 5, at least 3).
+  bool use_explicit_sources; // Use the fully explicit SSP RK3 scheme instead
 
   struct gkyl_app_parallelism_inp parallelism; // Parallelism-related inputs.
 };

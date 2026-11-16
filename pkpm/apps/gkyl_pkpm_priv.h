@@ -99,7 +99,7 @@ struct pkpm_source_eval_ctx {
   const struct gkyl_rect_grid *conf_grid;
   const struct gkyl_basis *conf_basis;
   const struct gkyl_range *local_ext;
-  const struct gkyl_pkpm_source *info;
+  const struct gkyl_vlasov_projection *info; // LTE profile functions of the source
   const struct gkyl_array *prof; // [n_s, T_s, u_s] of the source (physical)
   const struct gkyl_array *rho, *u, *xi, *bvar; // nodal state of the stage (host)
 };
@@ -400,8 +400,12 @@ struct pkpm_species {
   bool is_first_integ_L2_write_call; // flag for integrated L^2 norm dynvec written first time
   bool is_first_integ_write_call; // flag for integrated moments dynvec written first time
 
-  // boundary conditions on lower/upper edges in each direction
+  // boundary conditions on lower/upper edges in each direction, of the distributions (kinetic
+  // block) and of the fluid state (fluid block)
   enum gkyl_species_bc_type lower_bc[3], upper_bc[3];
+  enum gkyl_species_bc_type lower_bc_fluid[3], upper_bc_fluid[3];
+  int num_face_nodes; // Transverse Gauss-Legendre nodes of a configuration face, per direction
+  double positivity_eps; // Relative floor of the vertex positivity limiter (always applied)
   // Pointers to updaters that apply BC on distribution functions and momentum.
   struct gkyl_bc_basic *bc_lo_dist[3];
   struct gkyl_bc_basic *bc_up_dist[3];
@@ -601,9 +605,7 @@ struct gkyl_pkpm_app {
   int num_species;
   struct pkpm_species *species; // data for each species
 
-  bool use_explicit_source; // Boolean to turn on explicit fluid-EM coupling
-  double fluid_positivity_eps; // Relative floor of the vertex positivity limiter (always applied)
-  int num_face_nodes; // Transverse Gauss-Legendre nodes of a configuration face, per direction
+  bool use_explicit_sources; // Boolean to turn on explicit fluid-EM coupling
   struct pkpm_fluid_em_coupling *pkpm_em; // fluid-EM coupling data
   struct pkpm_coll_exchange coll_exchange; // cross-species momentum and energy exchange
   // pointer to function that takes a single-step of simulation
@@ -880,7 +882,7 @@ void pkpm_species_face_flux(
 /** Particle loss rates through the absorbing walls from the stored fluxes (into species->bflux). */
 void pkpm_species_calc_bflux(gkyl_pkpm_app *app, struct pkpm_species *s);
 
-// Source object: see gkyl_pkpm_source in gkyl_pkpm.h.
+// Source object: see the source member of gkyl_pkpm_kinetic_species in gkyl_pkpm.h.
 void pkpm_species_source_init(gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_source *src);
 void pkpm_species_source_calc_rate(
   gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_source *src

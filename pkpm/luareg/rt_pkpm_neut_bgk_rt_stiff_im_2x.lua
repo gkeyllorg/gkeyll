@@ -68,7 +68,7 @@ pkpmApp = PKPM.App.new {
   polyOrder = poly_order,
   timeStepper = time_stepper,
 
-  useExplicitSource = true, -- Gravity in the SSP-RK3 stages.
+  useExplicitSources = true, -- Gravity in the SSP-RK3 stages.
 
   -- Decomposition for configuration space.
   decompCuts = { 1, 1 }, -- Cuts in each coordinate direction (x-direction, y-direction).
@@ -80,62 +80,84 @@ pkpmApp = PKPM.App.new {
   neut = PKPM.Species.new {
     charge = charge, mass = mass,
 
-    -- Velocity space grid.
-    lower = { -vx_max },
-    upper = { vx_max },
-    cells = { Nvx },
+    kinetic = {
+      -- Velocity space grid.
+      lower = { -vx_max },
+      upper = { vx_max },
+      cells = { Nvx },
 
-    -- Initial conditions.
-    initDist = function (t, xn)
-      local w = xn[3]
+      -- Initial conditions.
+      numInit = 1,
+      projections = {
+        {
+          projectionID = G0.Projection.Func,
 
-      local F = math.exp(-0.5 * w * w) / math.sqrt(2.0 * pi) -- Normalized Maxwellian in w = v_par/xi.
+          init = function (t, xn)
+            local w = xn[3]
 
-      return F, F
-    end,
+            local F = math.exp(-0.5 * w * w) / math.sqrt(2.0 * pi) -- Normalized Maxwellian in w = v_par/xi.
 
-    initFluid = function (t, xn)
-      local x, y = xn[1], xn[2]
+            return F, F, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+          end
+        }
+      },
 
-      local kx = 2.0 * pi / Lx -- Wavenumber of the perturbation.
-      local yloc = 0.5 * Ly -- Interface.
+      collisions = {
+        collisionID = G0.Collisions.BGK,
+        useImplicitCollisionScheme = true,
 
-      local rho = 0.0
-      local pres = 0.0
-      if y > yloc then
-        rho = rho_top -- Mass density (top).
-        pres = p_ref + rho_top * grav * (Ly - y) -- Hydrostatic pressure (top).
-      else
-        rho = rho_bot -- Mass density (bottom).
-        pres = p_ref + rho_top * grav * (Ly - yloc) + rho_bot * grav * (yloc - y) -- Hydrostatic pressure (bottom).
-      end
-      -- Velocity of the incompressible interface mode.
-      local decay = math.exp(-kx * math.abs(y - yloc))
-      local sgn = -1.0
-      if y > yloc then
-        sgn = 1.0
-      end
-      local vx = sgn * pert_max * math.sin(kx * x) * decay
-      local vy = pert_max * math.cos(kx * x) * decay
-      local E = 0.5 * rho * (vx * vx + vy * vy) + 1.5 * pres -- Total energy density.
+        selfNu = function (t, xn)
+          return nu
+        end
+      },
 
-      return rho, rho * vx, rho * vy, 0.0, E
-    end,
+      -- Reflecting walls (y-direction).
+      bcy = {
+        lower = {
+          type = G0.SpeciesBc.bcReflect
+        },
+        upper = {
+          type = G0.SpeciesBc.bcReflect
+        }
+      }
+    },
 
-    -- Gravity.
-    appliedAcceleration = function (t, xn)
-      return 0.0, -grav, 0.0
-    end,
+    fluid = {
+      -- Initial conditions.
+      init = function (t, xn)
+        local x, y = xn[1], xn[2]
 
-    bcy = { G0.SpeciesBc.bcReflect, G0.SpeciesBc.bcReflect }, -- Reflecting walls (y-direction).
+        local kx = 2.0 * pi / Lx -- Wavenumber of the perturbation.
+        local yloc = 0.5 * Ly -- Interface.
 
-    collisions = {
-      collisionID = G0.Collisions.BGK,
-      useImplicitCollisionScheme = true,
+        local rho = 0.0
+        local pres = 0.0
+        if y > yloc then
+          rho = rho_top -- Mass density (top).
+          pres = p_ref + rho_top * grav * (Ly - y) -- Hydrostatic pressure (top).
+        else
+          rho = rho_bot -- Mass density (bottom).
+          pres = p_ref + rho_top * grav * (Ly - yloc) + rho_bot * grav * (yloc - y) -- Hydrostatic pressure (bottom).
+        end
+        -- Velocity of the incompressible interface mode.
+        local decay = math.exp(-kx * math.abs(y - yloc))
+        local sgn = -1.0
+        if y > yloc then
+          sgn = 1.0
+        end
+        local vx = sgn * pert_max * math.sin(kx * x) * decay
+        local vy = pert_max * math.cos(kx * x) * decay
+        local E = 0.5 * rho * (vx * vx + vy * vy) + 1.5 * pres -- Total energy density.
 
-      selfNu = function (t, xn)
-        return nu
-      end
+        return rho, rho * vx, rho * vy, 0.0, E
+      end,
+
+      -- Gravity.
+      appliedAccel = function (t, xn)
+        return 0.0, -grav, 0.0
+      end,
+
+      bcy = { G0.SpeciesBc.bcReflect, G0.SpeciesBc.bcReflect } -- Reflecting walls (y-direction).
     },
 
     evolve = true -- Evolve species?

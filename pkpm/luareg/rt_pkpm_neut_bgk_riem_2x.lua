@@ -96,63 +96,75 @@ pkpmApp = PKPM.App.new {
   neut = PKPM.Species.new {
     charge = charge, mass = mass,
 
-    -- Velocity space grid.
-    lower = { -vx_max },
-    upper = { vx_max },
-    cells = { Nvx },
+    kinetic = {
+      -- Velocity space grid.
+      lower = { -vx_max },
+      upper = { vx_max },
+      cells = { Nvx },
 
-    -- Initial conditions.
-    initDist = function (t, xn)
-      local w = xn[3]
+      -- Initial conditions.
+      numInit = 1,
+      projections = {
+        {
+          projectionID = G0.Projection.Func,
 
-      local F = math.exp(-0.5 * w * w) / math.sqrt(2.0 * pi) -- Normalized Maxwellian in w = v_par/xi.
+          init = function (t, xn)
+            local w = xn[3]
 
-      return F, F
-    end,
+            local F = math.exp(-0.5 * w * w) / math.sqrt(2.0 * pi) -- Normalized Maxwellian in w = v_par/xi.
 
-    initFluid = function (t, xn)
-      local x, y = xn[1], xn[2]
+            return F, F, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+          end
+        }
+      },
 
-      local rho = 0.0
-      local vx = 0.0
-      local vy = 0.0
-      local pres = 0.0
+      collisions = {
+        collisionID = G0.Collisions.BGK,
 
-      if y > loc then
-        if x < loc then
-          rho = rho_ul -- Mass density (upper left).
-          vx = u_ul -- x-velocity (upper left).
-          vy = v_ul -- y-velocity (upper left).
-          pres = p_ul -- Pressure (upper left).
-        else
-          rho = rho_ur -- Mass density (upper right).
-          vx = u_ur -- x-velocity (upper right).
-          vy = v_ur -- y-velocity (upper right).
-          pres = p_ur -- Pressure (upper right).
+        selfNu = function (t, xn)
+          return nu
         end
-      else
-        if x < loc then
-          rho = rho_ll -- Mass density (lower left).
-          vx = u_ll -- x-velocity (lower left).
-          vy = v_ll -- y-velocity (lower left).
-          pres = p_ll -- Pressure (lower left).
+      }
+    },
+
+    fluid = {
+      -- Initial conditions.
+      init = function (t, xn)
+        local x, y = xn[1], xn[2]
+
+        local rho = 0.0
+        local vx = 0.0
+        local vy = 0.0
+        local pres = 0.0
+
+        if y > loc then
+          if x < loc then
+            rho = rho_ul -- Mass density (upper left).
+            vx = u_ul -- x-velocity (upper left).
+            vy = v_ul -- y-velocity (upper left).
+            pres = p_ul -- Pressure (upper left).
+          else
+            rho = rho_ur -- Mass density (upper right).
+            vx = u_ur -- x-velocity (upper right).
+            vy = v_ur -- y-velocity (upper right).
+            pres = p_ur -- Pressure (upper right).
+          end
         else
-          rho = rho_lr -- Mass density (lower right).
-          vx = u_lr -- x-velocity (lower right).
-          vy = v_lr -- y-velocity (lower right).
-          pres = p_lr -- Pressure (lower right).
+          if x < loc then
+            rho = rho_ll -- Mass density (lower left).
+            vx = u_ll -- x-velocity (lower left).
+            vy = v_ll -- y-velocity (lower left).
+            pres = p_ll -- Pressure (lower left).
+          else
+            rho = rho_lr -- Mass density (lower right).
+            vx = u_lr -- x-velocity (lower right).
+            vy = v_lr -- y-velocity (lower right).
+            pres = p_lr -- Pressure (lower right).
+          end
         end
-      end
-      local E = 0.5 * rho * (vx * vx + vy * vy) + 1.5 * pres -- Total energy density.
+        local E = 0.5 * rho * (vx * vx + vy * vy) + 1.5 * pres -- Total energy density.
 
-      return rho, rho * vx, rho * vy, 0.0, E
-    end,
-
-    collisions = {
-      collisionID = G0.Collisions.BGK,
-
-      selfNu = function (t, xn)
-        return nu
+        return rho, rho * vx, rho * vy, 0.0, E
       end
     },
 

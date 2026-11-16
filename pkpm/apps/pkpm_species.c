@@ -37,11 +37,54 @@ pkpm_species_reflect_new(
   });
 }
 
+// The basic boundary condition of the distributions for a kinetic BC type. A reflecting wall
+// uses the field-aligned reflection updater instead; the basic updater is not applied there.
+static enum gkyl_bc_basic_type
+pkpm_species_bc_basic_type_dist(enum gkyl_species_bc_type bc_type)
+{
+  switch (bc_type) {
+    case GKYL_SPECIES_ABSORB:
+      return GKYL_BC_ABSORB;
+    case GKYL_SPECIES_FIXED_FUNC:
+      return GKYL_BC_FIXED_FUNC;
+    default:
+      return GKYL_BC_COPY;
+  }
+}
+
+// The basic boundary condition of the fluid state for a fluid BC type: at an absorbing wall the
+// mirror image of the skin cell (even in the wall direction), at a reflecting wall the mirror
+// image with the momentum reflected.
+static enum gkyl_bc_basic_type
+pkpm_species_bc_basic_type_fluid(enum gkyl_species_bc_type bc_type)
+{
+  switch (bc_type) {
+    case GKYL_SPECIES_ABSORB:
+      return GKYL_BC_REFLECT;
+    case GKYL_SPECIES_REFLECT:
+      return GKYL_BC_PKPM_MOM_REFLECT;
+    case GKYL_SPECIES_FIXED_FUNC:
+      return GKYL_BC_FIXED_FUNC;
+    default:
+      return GKYL_BC_COPY;
+  }
+}
+
 void
 pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm_species *s)
 {
   int cdim = app->cdim, vdim = app->vdim;
   int pdim = cdim + vdim;
+
+  // A PKPM species owns both blocks; the distributions start from one function of eight blocks.
+  assert(s->info.type == GKYL_SPECIES_PKPM);
+  assert(s->info.kinetic.num_init == 1);
+  assert(s->info.kinetic.projection[0].proj_id == GKYL_PROJ_FUNC);
+  assert(s->info.kinetic.projection[0].func && s->info.fluid.init);
+  // defaults of the number of face quadrature nodes and of the fluid positivity floor
+  s->num_face_nodes = s->info.kinetic.num_face_nodes > 0 ? s->info.kinetic.num_face_nodes : 5;
+  assert(s->num_face_nodes >= 3);
+  s->positivity_eps = s->info.fluid.positivity_eps > 0.0 ? s->info.fluid.positivity_eps : 1.0e-2;
 
   int cells[GKYL_MAX_DIM], ghost[GKYL_MAX_DIM];
   double lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
@@ -57,15 +100,15 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   }
   for (int d = 0; d < vdim; ++d) {
     // full phase space grid (the velocity coordinate is w = v_par/xi, normalized)
-    cells[cdim + d] = s->info.cells[d];
-    lower[cdim + d] = s->info.lower[d];
-    upper[cdim + d] = s->info.upper[d];
+    cells[cdim + d] = s->info.kinetic.cells[d];
+    lower[cdim + d] = s->info.kinetic.lower[d];
+    upper[cdim + d] = s->info.kinetic.upper[d];
     ghost[cdim + d] = 0; // no ghost-cells in velocity space
 
     // only velocity space
-    cells_vel[d] = s->info.cells[d];
-    lower_vel[d] = s->info.lower[d];
-    upper_vel[d] = s->info.upper[d];
+    cells_vel[d] = s->info.kinetic.cells[d];
+    lower_vel[d] = s->info.kinetic.lower[d];
+    upper_vel[d] = s->info.kinetic.upper[d];
     ghost_vel[d] = 0; // no ghost-cells in velocity space
   }
   // full phase space grid
@@ -246,7 +289,7 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
     .conf_basis = &app->confBasis,
     .phase_basis = &app->basis,
     .pos_map = app->pos_map,
-    .num_face_nodes = app->num_face_nodes,
+    .num_face_nodes = s->num_face_nodes,
     .use_gpu = app->use_gpu,
   };
   s->calc_face_flux = gkyl_dg_pkpm_remap_flux_surf_inew(&face_flux_inp);
@@ -299,7 +342,7 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
     mkarr(app->use_gpu, gkyl_dg_pkpm_harm_vol_num_wnode(s->harm_vol), app->local_ext.volume);
   // gyrophase mixing: default rate 10 |Omega| (the bulk overshoot is ~(drive/Omega)/c, and problems
   // driven at the ion gyroscale drive agyrotropy at ~Omega), switched off by a negative input
-  double gyro_mix = s->info.gyro_mix == 0.0 ? 10.0 : s->info.gyro_mix;
+  double gyro_mix = s->info.kinetic.gyro_mix == 0.0 ? 10.0 : s->info.kinetic.gyro_mix;
   s->harm_exp = gkyl_dg_pkpm_harm_exp_inew(&(struct gkyl_dg_pkpm_harm_exp_inp){
     .phase_grid = &s->grid,
     .conf_basis = &app->confBasis,
@@ -385,10 +428,10 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   s->has_app_accel = false;
   s->app_accel_evolve = false;
   // setup applied acceleration
-  if (s->info.app_accel) {
+  if (s->info.fluid.app_accel) {
     s->has_app_accel = true;
-    if (s->info.app_accel_evolve) {
-      s->app_accel_evolve = s->info.app_accel_evolve;
+    if (s->info.fluid.app_accel_evolve) {
+      s->app_accel_evolve = s->info.fluid.app_accel_evolve;
     }
 
     s->app_accel_host = s->app_accel;
@@ -400,15 +443,18 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
       .basis = &app->confBasis,
       .num_quad = app->confBasis.poly_order + 1,
       .num_ret_vals = 3,
-      .eval = s->info.app_accel,
-      .ctx = s->info.app_accel_ctx,
+      .eval = s->info.fluid.app_accel,
+      .ctx = s->info.fluid.app_accel_ctx,
       .c2p_func = pkpm_pos_c2p,
       .c2p_func_ctx = app->pos_map,
     });
   }
 
   // determine collision type to use in PKPM update
-  s->collision_id = s->info.collisions.collision_id;
+  s->collision_id = s->info.kinetic.collisions.collision_id;
+  // not available: collision diagnostics and BGK relaxation to a fixed temperature (source_bgk)
+  assert(!s->info.kinetic.collisions.write_coll_diagnostics);
+  assert(!s->info.kinetic.collisions.fixed_temp_relax);
   if (s->collision_id == GKYL_BGK_COLLISIONS) {
     pkpm_species_bgk_init(app, s, &s->bgk);
   }
@@ -421,8 +467,8 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   // implicit BGK with partners, or of the implicit temperature source) needs the weighted stage
   // combination.
   bool has_implicit_cross = s->collision_id == GKYL_BGK_COLLISIONS &&
-                            s->info.collisions.is_implicit &&
-                            s->info.collisions.num_cross_collisions > 0;
+                            s->info.kinetic.collisions.is_implicit &&
+                            s->info.kinetic.collisions.num_cross_collisions > 0;
   s->has_stage_weights = !app->use_gpu && (has_implicit_cross || s->src_bgk.is_implicit);
   if (s->has_stage_weights) {
     s->stage_lam = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
@@ -444,9 +490,9 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
 
   // momentum diffusion, if present, on the position map (orders 2 and 4)
   s->has_diffusion = false;
-  if (s->info.diffusion.D) {
+  if (s->info.fluid.diffusion.D) {
     s->has_diffusion = true;
-    int order = s->info.diffusion.order < 2 ? 2 : s->info.diffusion.order;
+    int order = s->info.fluid.diffusion.order < 2 ? 2 : s->info.fluid.diffusion.order;
     if (order != 2 && order != 4) {
       gkyl_exit("pkpm_species: momentum diffusion supports orders 2 and 4 only.");
     }
@@ -458,7 +504,7 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
       .use_gpu = app->use_gpu,
     };
     for (int d = 0; d < cdim; ++d) {
-      diff_inp.D[d] = s->info.diffusion.D;
+      diff_inp.D[d] = s->info.fluid.diffusion.D;
     }
     s->mom_diff = gkyl_dg_pkpm_mom_diffusion_inew(&diff_inp);
   }
@@ -472,18 +518,25 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
 
   for (int dir = 0; dir < cdim; ++dir) {
     s->lower_bc[dir] = s->upper_bc[dir] = GKYL_SPECIES_COPY;
+    s->lower_bc_fluid[dir] = s->upper_bc_fluid[dir] = GKYL_SPECIES_COPY;
     if (is_np[dir]) {
-      const enum gkyl_species_bc_type *bc;
+      const struct gkyl_vlasov_bcs *bc;
+      const enum gkyl_species_bc_type *bc_fluid;
       if (dir == 0) {
-        bc = s->info.bcx;
+        bc = &s->info.kinetic.bcx;
+        bc_fluid = s->info.fluid.bcx;
       } else if (dir == 1) {
-        bc = s->info.bcy;
+        bc = &s->info.kinetic.bcy;
+        bc_fluid = s->info.fluid.bcy;
       } else {
-        bc = s->info.bcz;
+        bc = &s->info.kinetic.bcz;
+        bc_fluid = s->info.fluid.bcz;
       }
 
-      s->lower_bc[dir] = bc[0];
-      s->upper_bc[dir] = bc[1];
+      s->lower_bc[dir] = bc->lower.type;
+      s->upper_bc[dir] = bc->upper.type;
+      s->lower_bc_fluid[dir] = bc_fluid[0];
+      s->upper_bc_fluid[dir] = bc_fluid[1];
     }
     // Create local lower skin and ghost ranges for distribution function
     gkyl_skin_ghost_ranges(
@@ -533,28 +586,17 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
     s->bc_lo_reflect[d] = 0;
     s->bc_up_reflect[d] = 0;
     s->bc_lo_theta[d] = s->bc_up_theta[d] = 0;
-    // Lower BC updater. Copy BCs by default.
-    enum gkyl_bc_basic_type bctype_dist = GKYL_BC_COPY;
-    enum gkyl_bc_basic_type bctype_fluid = GKYL_BC_COPY;
-    if (s->lower_bc[d] == GKYL_SPECIES_COPY) {
-      bctype_dist = GKYL_BC_COPY;
-      bctype_fluid = GKYL_BC_COPY;
-    } else if (s->lower_bc[d] == GKYL_SPECIES_ABSORB) {
-      bctype_dist = GKYL_BC_ABSORB;
-      bctype_fluid = GKYL_BC_REFLECT;
+    // Lower BC updaters. Each block has its own type; copy BCs by default.
+    enum gkyl_bc_basic_type bctype_dist = pkpm_species_bc_basic_type_dist(s->lower_bc[d]);
+    enum gkyl_bc_basic_type bctype_fluid = pkpm_species_bc_basic_type_fluid(s->lower_bc_fluid[d]);
+    if (s->lower_bc[d] == GKYL_SPECIES_ABSORB) {
       s->bc_is_absorb = true;
       s->bc_lo_theta[d] = gkyl_bc_basic_new(
         d, GKYL_LOWER_EDGE, GKYL_BC_REFLECT, app->basis_on_dev.confBasis, &app->lower_skin[d],
         &app->lower_ghost[d], app->confBasis.num_basis, app->cdim, app->use_gpu
       );
     } else if (s->lower_bc[d] == GKYL_SPECIES_REFLECT) {
-      // the distributions use bc_lo_reflect; the basic updater is not applied there
-      bctype_dist = GKYL_BC_COPY;
-      bctype_fluid = GKYL_BC_PKPM_MOM_REFLECT;
       s->bc_lo_reflect[d] = pkpm_species_reflect_new(app, s, d, GKYL_LOWER_EDGE);
-    } else if (s->lower_bc[d] == GKYL_SPECIES_FIXED_FUNC) {
-      bctype_dist = GKYL_BC_FIXED_FUNC;
-      bctype_fluid = GKYL_BC_FIXED_FUNC;
     }
 
     // Distribution function non-periodic lower boundary conditions
@@ -568,25 +610,17 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
       &app->lower_ghost[d], s->fluid->ncomp, app->cdim, app->use_gpu
     );
 
-    // Upper BC updater. Copy BCs by default.
-    if (s->upper_bc[d] == GKYL_SPECIES_COPY) {
-      bctype_dist = GKYL_BC_COPY;
-      bctype_fluid = GKYL_BC_COPY;
-    } else if (s->upper_bc[d] == GKYL_SPECIES_ABSORB) {
-      bctype_dist = GKYL_BC_ABSORB;
-      bctype_fluid = GKYL_BC_REFLECT;
+    // Upper BC updaters.
+    bctype_dist = pkpm_species_bc_basic_type_dist(s->upper_bc[d]);
+    bctype_fluid = pkpm_species_bc_basic_type_fluid(s->upper_bc_fluid[d]);
+    if (s->upper_bc[d] == GKYL_SPECIES_ABSORB) {
       s->bc_is_absorb = true;
       s->bc_up_theta[d] = gkyl_bc_basic_new(
         d, GKYL_UPPER_EDGE, GKYL_BC_REFLECT, app->basis_on_dev.confBasis, &app->upper_skin[d],
         &app->upper_ghost[d], app->confBasis.num_basis, app->cdim, app->use_gpu
       );
     } else if (s->upper_bc[d] == GKYL_SPECIES_REFLECT) {
-      bctype_dist = GKYL_BC_COPY;
-      bctype_fluid = GKYL_BC_PKPM_MOM_REFLECT;
       s->bc_up_reflect[d] = pkpm_species_reflect_new(app, s, d, GKYL_UPPER_EDGE);
-    } else if (s->upper_bc[d] == GKYL_SPECIES_FIXED_FUNC) {
-      bctype_dist = GKYL_BC_FIXED_FUNC;
-      bctype_fluid = GKYL_BC_FIXED_FUNC;
     }
 
     // Distribution function non-periodic upper boundary conditions
@@ -606,18 +640,18 @@ void
 pkpm_species_apply_ic(gkyl_pkpm_app *app, struct pkpm_species *species, double t0)
 {
   int poly_order = app->poly_order;
-  // The user provides the normalized distributions [F, G] on the normalized velocity grid
-  // (w = v_par/xi; F a probability density in w, G its perpendicular-energy partner so
-  // that M0(F) = 1, M1(F) = 0 and M2(F) + 2 M0(G) = 3) and the fluid state
-  // [rho, rho ux, rho uy, rho uz, E].
+  // The user provides the normalized distributions [F, G, M0_perp, N_perp] on the normalized
+  // velocity grid (w = v_par/xi; F a probability density in w, G its perpendicular-energy
+  // partner so that M0(F) = 1, M1(F) = 0 and M2(F) + 2 M0(G) = 3; the first-harmonic blocks
+  // are zero for a gyrotropic start) and the fluid state [rho, rho ux, rho uy, rho uz, E].
   // Both are sampled at the physical coordinates of the position map (identity: unchanged).
   gkyl_proj_on_basis *proj_dist = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
     .grid = &species->grid,
     .basis = &app->basis,
     .num_quad = 8,
-    .num_ret_vals = 2,
-    .eval = species->info.init_dist,
-    .ctx = species->info.ctx_dist,
+    .num_ret_vals = PKPM_DIST_NUM_BLOCKS,
+    .eval = species->info.kinetic.projection[0].func,
+    .ctx = species->info.kinetic.projection[0].ctx_func,
     .c2p_func = pkpm_pos_c2p,
     .c2p_func_ctx = app->pos_map,
   });
@@ -626,8 +660,8 @@ pkpm_species_apply_ic(gkyl_pkpm_app *app, struct pkpm_species *species, double t
     .basis = &app->confBasis,
     .num_quad = poly_order + 1,
     .num_ret_vals = 5,
-    .eval = species->info.init_fluid,
-    .ctx = species->info.ctx_fluid,
+    .eval = species->info.fluid.init,
+    .ctx = species->info.fluid.ctx,
     .c2p_func = pkpm_pos_c2p,
     .c2p_func_ctx = app->pos_map,
   });
@@ -640,26 +674,6 @@ pkpm_species_apply_ic(gkyl_pkpm_app *app, struct pkpm_species *species, double t
   gkyl_array_clear(species->f_host, 0.0);
   gkyl_proj_on_basis_advance(proj_dist, t0, &species->local_ext_conf, species->f_host);
   gkyl_proj_on_basis_release(proj_dist);
-  if (species->info.init_harm) {
-    // The optional first-harmonic blocks [M0_perp, N_perp].
-    struct gkyl_array *harm_host = mkarr(
-      false, (PKPM_DIST_NUM_BLOCKS - PKPM_DIST_M0) * app->basis.num_basis, species->f_host->size
-    );
-    gkyl_proj_on_basis *proj_harm = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
-      .grid = &species->grid,
-      .basis = &app->basis,
-      .num_quad = 8,
-      .num_ret_vals = PKPM_DIST_NUM_BLOCKS - PKPM_DIST_M0,
-      .eval = species->info.init_harm,
-      .ctx = species->info.ctx_harm,
-      .c2p_func = pkpm_pos_c2p,
-      .c2p_func_ctx = app->pos_map,
-    });
-    gkyl_proj_on_basis_advance(proj_harm, t0, &species->local_ext_conf, harm_host);
-    gkyl_proj_on_basis_release(proj_harm);
-    gkyl_array_set_offset(species->f_host, 1.0, harm_host, PKPM_DIST_M0 * app->basis.num_basis);
-    gkyl_array_release(harm_host);
-  }
   gkyl_proj_on_basis_advance(proj_fluid, t0, &app->local_ext, species->fluid_host);
   gkyl_proj_on_basis_release(proj_fluid);
 
@@ -838,7 +852,7 @@ pkpm_species_apply_positivity(
   struct timespec tm = gkyl_wall_clock();
   int num_rho = 0, num_e = 0, num_avg = 0;
   gkyl_dg_calc_pkpm_vars_positivity(
-    species->calc_pkpm_vars, &app->local, app->fluid_positivity_eps, fluid, species->pkpm_pos_count,
+    species->calc_pkpm_vars, &app->local, species->positivity_eps, fluid, species->pkpm_pos_count,
     &num_rho, &num_e, &num_avg
   );
   species->pos_count_since[0] += num_rho;
@@ -1086,7 +1100,7 @@ pkpm_species_rhs(
   }
 
   // If PKPM update is fully explicit, include the fluid-EM coupling in fluid update
-  if (app->use_explicit_source) {
+  if (app->use_explicit_sources) {
     double qbym = species->info.charge / species->info.mass;
     gkyl_array_set(species->qmem, qbym, em);
 
@@ -1215,7 +1229,7 @@ pkpm_fluid_species_apply_bc(
 
   for (int d = 0; d < cdim; ++d) {
     if (is_np_bc[d]) {
-      switch (species->lower_bc[d]) {
+      switch (species->lower_bc_fluid[d]) {
         case GKYL_SPECIES_COPY:
         case GKYL_SPECIES_REFLECT:
         case GKYL_SPECIES_ABSORB:
@@ -1232,7 +1246,7 @@ pkpm_fluid_species_apply_bc(
           break;
       }
 
-      switch (species->upper_bc[d]) {
+      switch (species->upper_bc_fluid[d]) {
         case GKYL_SPECIES_COPY:
         case GKYL_SPECIES_REFLECT:
         case GKYL_SPECIES_ABSORB:

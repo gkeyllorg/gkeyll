@@ -98,38 +98,60 @@ pkpmApp = PKPM.App.new {
   elc = PKPM.Species.new {
     charge = charge_elc, mass = mass_elc,
 
-    -- Velocity space grid.
-    lower = { -vx_max_elc },
-    upper = { vx_max_elc },
-    cells = { Nvx_elc },
+    kinetic = {
+      -- Velocity space grid.
+      lower = { -vx_max_elc },
+      upper = { vx_max_elc },
+      cells = { Nvx_elc },
 
-    -- Initial conditions.
-    initDist = function (t, xn)
-      local w = xn[2]
+      -- Initial conditions.
+      numInit = 1,
+      projections = {
+        {
+          projectionID = G0.Projection.Func,
 
-      local F = math.exp(-0.5 * w * w) / math.sqrt(2.0 * pi) -- Normalized Maxwellian in w = v_par/xi.
+          init = function (t, xn)
+            local w = xn[2]
 
-      return F, F
-    end,
+            local F = math.exp(-0.5 * w * w) / math.sqrt(2.0 * pi) -- Normalized Maxwellian in w = v_par/xi.
 
-    initFluid = function (t, xn)
-      local rho = mass_elc * n0 -- Electron mass density.
-      local ux = Vx_drift -- Electron drift.
-      local E = 0.5 * rho * ux * ux + 1.5 * rho * vte * vte -- Electron total energy density.
+            return F, F, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+          end
+        }
+      },
 
-      return rho, rho * ux, 0.0, 0.0, E
-    end,
+      collisions = {
+        collisionID = G0.Collisions.LBO,
 
-    collisions = {
-      collisionID = G0.Collisions.LBO,
+        selfNu = function (t, xn)
+          return nu_ee
+        end
+      },
 
-      selfNu = function (t, xn)
-        return nu_ee
-      end
+      -- Reflecting wall at x = 0, the upstream state held fixed at x = Lx.
+      bcx = {
+        lower = {
+          type = G0.SpeciesBc.bcReflect
+        },
+        upper = {
+          type = G0.SpeciesBc.bcFixedFunc
+        }
+      }
     },
 
-    -- Reflecting wall at x = 0, the upstream state held fixed at x = Lx.
-    bcx = { G0.SpeciesBc.bcReflect, G0.SpeciesBc.bcFixedFunc },
+    fluid = {
+      -- Initial conditions.
+      init = function (t, xn)
+        local rho = mass_elc * n0 -- Electron mass density.
+        local ux = Vx_drift -- Electron drift.
+        local E = 0.5 * rho * ux * ux + 1.5 * rho * vte * vte -- Electron total energy density.
+
+        return rho, rho * ux, 0.0, 0.0, E
+      end,
+
+      -- Reflecting wall at x = 0, the upstream state held fixed at x = Lx.
+      bcx = { G0.SpeciesBc.bcReflect, G0.SpeciesBc.bcFixedFunc }
+    },
 
     evolve = true -- Evolve species?
   },
@@ -138,38 +160,60 @@ pkpmApp = PKPM.App.new {
   ion = PKPM.Species.new {
     charge = charge_ion, mass = mass_ion,
 
-    -- Velocity space grid.
-    lower = { -vx_max_ion },
-    upper = { vx_max_ion },
-    cells = { Nvx_ion },
+    kinetic = {
+      -- Velocity space grid.
+      lower = { -vx_max_ion },
+      upper = { vx_max_ion },
+      cells = { Nvx_ion },
 
-    -- Initial conditions.
-    initDist = function (t, xn)
-      local w = xn[2]
+      -- Initial conditions.
+      numInit = 1,
+      projections = {
+        {
+          projectionID = G0.Projection.Func,
 
-      local F = math.exp(-0.5 * w * w) / math.sqrt(2.0 * pi) -- Normalized Maxwellian in w = v_par/xi.
+          init = function (t, xn)
+            local w = xn[2]
 
-      return F, F
-    end,
+            local F = math.exp(-0.5 * w * w) / math.sqrt(2.0 * pi) -- Normalized Maxwellian in w = v_par/xi.
 
-    initFluid = function (t, xn)
-      local rho = mass_ion * n0 -- Ion mass density.
-      local ux = Vx_drift -- Ion drift.
-      local E = 0.5 * rho * ux * ux + 1.5 * rho * vti * vti -- Ion total energy density.
+            return F, F, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+          end
+        }
+      },
 
-      return rho, rho * ux, 0.0, 0.0, E
-    end,
+      collisions = {
+        collisionID = G0.Collisions.LBO,
 
-    collisions = {
-      collisionID = G0.Collisions.LBO,
+        selfNu = function (t, xn)
+          return nu_ii
+        end
+      },
 
-      selfNu = function (t, xn)
-        return nu_ii
-      end
+      -- Reflecting wall at x = 0, the upstream state held fixed at x = Lx.
+      bcx = {
+        lower = {
+          type = G0.SpeciesBc.bcReflect
+        },
+        upper = {
+          type = G0.SpeciesBc.bcFixedFunc
+        }
+      }
     },
 
-    -- Reflecting wall at x = 0, the upstream state held fixed at x = Lx.
-    bcx = { G0.SpeciesBc.bcReflect, G0.SpeciesBc.bcFixedFunc },
+    fluid = {
+      -- Initial conditions.
+      init = function (t, xn)
+        local rho = mass_ion * n0 -- Ion mass density.
+        local ux = Vx_drift -- Ion drift.
+        local E = 0.5 * rho * ux * ux + 1.5 * rho * vti * vti -- Ion total energy density.
+
+        return rho, rho * ux, 0.0, 0.0, E
+      end,
+
+      -- Reflecting wall at x = 0, the upstream state held fixed at x = Lx.
+      bcx = { G0.SpeciesBc.bcReflect, G0.SpeciesBc.bcFixedFunc }
+    },
 
     evolve = true -- Evolve species?
   },

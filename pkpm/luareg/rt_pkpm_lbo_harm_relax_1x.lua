@@ -78,39 +78,44 @@ pkpmApp = PKPM.App.new {
   drift = PKPM.Species.new {
     charge = charge, mass = mass,
 
-    -- Velocity space grid.
-    lower = { -vx_max },
-    upper = { vx_max },
-    cells = { Nvx },
+    kinetic = {
+      -- Velocity space grid.
+      lower = { -vx_max },
+      upper = { vx_max },
+      cells = { Nvx },
 
-    -- Initial conditions.
-    initDist = function (t, xn)
-      local w = xn[2]
-      local F = math.exp(-0.5 * w * w) / math.sqrt(2.0 * pi) -- Unit Maxwellian in w.
+      -- Initial conditions.
+      numInit = 1,
+      projections = {
+        {
+          projectionID = G0.Projection.Func,
 
-      return F, F
-    end,
+          init = function (t, xn)
+            local w = xn[2]
+            local F = math.exp(-0.5 * w * w) / math.sqrt(2.0 * pi) -- Unit Maxwellian in w.
 
-    initHarm = function (t, xn)
-      local w = xn[2]
-      local F = math.exp(-0.5 * w * w) / math.sqrt(2.0 * pi) -- Unit Maxwellian in w.
+            local M0_y = a_drift * w * F -- Reduced moment of f = f_M (1 + a w z_y).
 
-      local M0_y = a_drift * w * F -- Reduced moment of f = f_M (1 + a w z_y).
+            return F, F, 0.0, M0_y, 0.0, 0.0, 2.0 * M0_y, 0.0
+          end
+        }
+      },
 
-      return 0.0, M0_y, 0.0, 0.0, 2.0 * M0_y, 0.0
-    end,
+      collisions = {
+        collisionID = G0.Collisions.LBO,
 
-    initFluid = function (t, xn)
-      local rho = mass * n0 -- Mass density.
+        selfNu = function (t, xn)
+          return nu
+        end
+      }
+    },
 
-      return rho, 0.0, 0.0, 0.0, 1.5 * rho
-    end,
+    fluid = {
+      -- Initial conditions.
+      init = function (t, xn)
+        local rho = mass * n0 -- Mass density.
 
-    collisions = {
-      collisionID = G0.Collisions.LBO,
-
-      selfNu = function (t, xn)
-        return nu
+        return rho, 0.0, 0.0, 0.0, 1.5 * rho
       end
     },
 
@@ -121,38 +126,43 @@ pkpmApp = PKPM.App.new {
   heat = PKPM.Species.new {
     charge = charge, mass = mass,
 
-    -- Velocity space grid.
-    lower = { -vx_max },
-    upper = { vx_max },
-    cells = { Nvx },
+    kinetic = {
+      -- Velocity space grid.
+      lower = { -vx_max },
+      upper = { vx_max },
+      cells = { Nvx },
 
-    -- Initial conditions.
-    initDist = function (t, xn)
-      local w = xn[2]
-      local F = math.exp(-0.5 * w * w) / math.sqrt(2.0 * pi) -- Unit Maxwellian in w.
+      -- Initial conditions.
+      numInit = 1,
+      projections = {
+        {
+          projectionID = G0.Projection.Func,
 
-      return F, F
-    end,
+          init = function (t, xn)
+            local w = xn[2]
+            local F = math.exp(-0.5 * w * w) / math.sqrt(2.0 * pi) -- Unit Maxwellian in w.
 
-    initHarm = function (t, xn)
-      local w = xn[2]
-      local F = math.exp(-0.5 * w * w) / math.sqrt(2.0 * pi) -- Unit Maxwellian in w.
+            -- The reduced moments of f = f_M (1 + a z_y (z^2/2 - 2)), which has no M0_perp.
+            return F, F, 0.0, 0.0, 0.0, 0.0, 2.0 * a_heat * F, 0.0
+          end
+        }
+      },
 
-      -- The reduced moments of f = f_M (1 + a z_y (z^2/2 - 2)), which has no M0_perp.
-      return 0.0, 0.0, 0.0, 0.0, 2.0 * a_heat * F, 0.0
-    end,
+      collisions = {
+        collisionID = G0.Collisions.LBO,
 
-    initFluid = function (t, xn)
-      local rho = mass * n0 -- Mass density.
+        selfNu = function (t, xn)
+          return nu
+        end
+      }
+    },
 
-      return rho, 0.0, 0.0, 0.0, 1.5 * rho
-    end,
+    fluid = {
+      -- Initial conditions.
+      init = function (t, xn)
+        local rho = mass * n0 -- Mass density.
 
-    collisions = {
-      collisionID = G0.Collisions.LBO,
-
-      selfNu = function (t, xn)
-        return nu
+        return rho, 0.0, 0.0, 0.0, 1.5 * rho
       end
     },
 

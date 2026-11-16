@@ -55,7 +55,7 @@ pkpm_update_op_split(gkyl_pkpm_app *app, double dt0)
 void
 pkpm_op_split_sync(gkyl_pkpm_app *app)
 {
-  if (app->use_explicit_source || app->op_split_synced || !(app->op_split_dt_prev > 0.0)) {
+  if (app->use_explicit_sources || app->op_split_synced || !(app->op_split_dt_prev > 0.0)) {
     return;
   }
   for (int i = 0; i < app->num_species; ++i) {

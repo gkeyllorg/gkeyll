@@ -281,12 +281,6 @@ gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm)
   app->geom =
     gkyl_wave_geom_new(&app->grid, &app->local_ext, app->mapc2p, app->c2p_ctx, app->use_gpu);
 
-  // defaults of the fluid positivity floor and the number of face quadrature nodes
-  app->fluid_positivity_eps = pkpm->fluid_positivity_eps > 0.0 ? pkpm->fluid_positivity_eps :
-                                                                 1.0e-2;
-  app->num_face_nodes = pkpm->num_face_nodes > 0 ? pkpm->num_face_nodes : 5;
-  assert(app->num_face_nodes >= 3);
-
   // the PKPM system always has a field, which defines the local magnetic field direction
   app->field = pkpm_field_new(pkpm, app);
 
@@ -317,13 +311,13 @@ gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm)
   pkpm_coll_cross_init(app);
 
   // Set the appropriate update function for taking a single time step
-  app->use_explicit_source = pkpm->use_explicit_source;
+  app->use_explicit_sources = pkpm->use_explicit_sources;
   // Steps of the operator split (0: none yet). The frames store them, also for the explicit
   // stepper, which never sets them.
   app->op_split_dt_prev = 0.0;
   app->op_split_dt_suggested = 0.0;
   app->op_split_synced = false;
-  if (app->use_explicit_source) {
+  if (app->use_explicit_sources) {
     // If momentum-EM field coupling is explicit,
     // we use a pure explicit SSP RK3 method.
     app->update_func = pkpm_update_explicit_ssp_rk3;
@@ -1364,7 +1358,7 @@ gkyl_pkpm_app_stat_write(gkyl_pkpm_app *app)
 
   gkyl_pkpm_app_cout(app, fp, " total_tm : %lg,\n", stat.total_tm);
   gkyl_pkpm_app_cout(app, fp, " rk3_tm : %lg,\n", stat.rk3_tm);
-  if (!app->use_explicit_source) {
+  if (!app->use_explicit_sources) {
     gkyl_pkpm_app_cout(app, fp, " fluid_em_coupling_tm : %lg,\n", stat.pkpm_em_tm);
   }
   gkyl_pkpm_app_cout(app, fp, " init_species_tm : %lg,\n", stat.init_species_tm);
@@ -1383,7 +1377,7 @@ gkyl_pkpm_app_stat_write(gkyl_pkpm_app *app)
   gkyl_pkpm_app_cout(app, fp, " field_rhs_tm : %lg,\n", stat.field_rhs_tm);
   gkyl_pkpm_app_cout(app, fp, " field_bc_tm : %lg,\n", stat.field_bc_tm);
   gkyl_pkpm_app_cout(app, fp, " field_em_vars_tm : %lg,\n", stat.field_em_vars_tm);
-  if (app->use_explicit_source) {
+  if (app->use_explicit_sources) {
     gkyl_pkpm_app_cout(app, fp, " current_tm : %lg,\n", stat.current_tm);
   }
 
@@ -1650,7 +1644,7 @@ gkyl_pkpm_app_read_from_frame(gkyl_pkpm_app *app, int frame)
   }
 
   app->tcurr = rstat.stime;
-  if (!app->use_explicit_source) {
+  if (!app->use_explicit_sources) {
     // The frames hold the synchronized state of the staggered operator split; the
     // uninterrupted run held the sources half its last step behind. Step them back (the implicit
     // midpoint rule is time-reversible: this inverts the synchronization step) and restore the steps,
@@ -1719,7 +1713,7 @@ gkyl_pkpm_app_release(gkyl_pkpm_app *app)
 
   pkpm_field_release(app, app->field);
   pkpm_coll_cross_release(app);
-  if (!app->use_explicit_source) {
+  if (!app->use_explicit_sources) {
     pkpm_fluid_em_coupling_release(app, app->pkpm_em);
     for (int i = 0; i < app->num_species; ++i) {
       gkyl_array_release(app->op_split_fluid[i]);

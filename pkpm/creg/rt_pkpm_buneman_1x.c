@@ -170,6 +170,14 @@ evalElcDistInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT 
   // Set normalized electron distribution functions [F, G] (G = (T_perp/T) F = F).
   fout[0] = F;
   fout[1] = F;
+
+  // No first harmonic: the blocks [M0_perp (x, y, z), N_perp (x, y, z)] vanish.
+  fout[2] = 0.0;
+  fout[3] = 0.0;
+  fout[4] = 0.0;
+  fout[5] = 0.0;
+  fout[6] = 0.0;
+  fout[7] = 0.0;
 }
 
 void
@@ -210,6 +218,14 @@ evalIonDistInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT 
   // Set normalized ion distribution functions [F, G] (G = (T_perp/T) F = F).
   fout[0] = F;
   fout[1] = F;
+
+  // No first harmonic: the blocks [M0_perp (x, y, z), N_perp (x, y, z)] vanish.
+  fout[2] = 0.0;
+  fout[3] = 0.0;
+  fout[4] = 0.0;
+  fout[5] = 0.0;
+  fout[6] = 0.0;
+  fout[7] = 0.0;
 }
 
 void
@@ -406,34 +422,28 @@ main(int argc, char **argv)
   }
 
   // Electrons.
-  struct gkyl_pkpm_species elc = {
-    .name = "elc",
-    .charge = ctx.charge_elc,
-    .mass = ctx.mass_elc,
+  struct gkyl_pkpm_kinetic_species elc_kinetic = {
     .lower = {-ctx.vx_max_elc},
     .upper = {ctx.vx_max_elc},
     .cells = {NVX},
 
-    .init_dist = evalElcDistInit,
-    .ctx_dist = &ctx,
-    .init_fluid = evalElcFluidInit,
-    .ctx_fluid = &ctx,
+    .num_init = 1,
+    .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalElcDistInit, .ctx_func = &ctx},
   };
 
+  struct gkyl_pkpm_fluid_species elc_fluid = {.init = evalElcFluidInit, .ctx = &ctx};
+
   // Ions.
-  struct gkyl_pkpm_species ion = {
-    .name = "ion",
-    .charge = ctx.charge_ion,
-    .mass = ctx.mass_ion,
+  struct gkyl_pkpm_kinetic_species ion_kinetic = {
     .lower = {-ctx.vx_max_ion},
     .upper = {ctx.vx_max_ion},
     .cells = {NVX},
 
-    .init_dist = evalIonDistInit,
-    .ctx_dist = &ctx,
-    .init_fluid = evalIonFluidInit,
-    .ctx_fluid = &ctx,
+    .num_init = 1,
+    .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalIonDistInit, .ctx_func = &ctx},
   };
+
+  struct gkyl_pkpm_fluid_species ion_fluid = {.init = evalIonFluidInit, .ctx = &ctx};
 
   // Field.
   struct gkyl_pkpm_field field = {
@@ -464,13 +474,29 @@ main(int argc, char **argv)
     .basis_type = app_args.basis_type,
     .cfl_frac = ctx.cfl_frac,
 
-    .use_explicit_source = true,
+    .use_explicit_sources = true,
 
     .num_periodic_dir = 1,
     .periodic_dirs = {0},
 
     .num_species = 2,
-    .species = {elc, ion},
+    .species =
+      {{
+         .name = "elc",
+         .charge = ctx.charge_elc,
+         .mass = ctx.mass_elc,
+         .type = GKYL_SPECIES_PKPM,
+         .kinetic = elc_kinetic,
+         .fluid = elc_fluid,
+       },
+       {
+         .name = "ion",
+         .charge = ctx.charge_ion,
+         .mass = ctx.mass_ion,
+         .type = GKYL_SPECIES_PKPM,
+         .kinetic = ion_kinetic,
+         .fluid = ion_fluid,
+       }},
 
     .field = field,
 

@@ -80,43 +80,55 @@ pkpmApp = PKPM.App.new {
   neut = PKPM.Species.new {
     charge = charge_neut, mass = mass_neut,
 
-    -- Velocity space grid.
-    lower = { -vx_max },
-    upper = { vx_max },
-    cells = { Nvx },
+    kinetic = {
+      -- Velocity space grid.
+      lower = { -vx_max },
+      upper = { vx_max },
+      cells = { Nvx },
 
-    -- Initial conditions.
-    initDist = function (t, xn)
-      local w = xn[2]
+      -- Initial conditions.
+      numInit = 1,
+      projections = {
+        {
+          projectionID = G0.Projection.Func,
 
-      local F = math.exp(-0.5 * w * w) / math.sqrt(2.0 * pi) -- Normalized Maxwellian in w = v_par/xi.
+          init = function (t, xn)
+            local w = xn[2]
 
-      return F, F
-    end,
+            local F = math.exp(-0.5 * w * w) / math.sqrt(2.0 * pi) -- Normalized Maxwellian in w = v_par/xi.
 
-    initFluid = function (t, xn)
-      local x = xn[1]
+            return F, F, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+          end
+        }
+      },
 
-      local n = 0.0
-      local T = 0.0
-      if x < 0.5 * Lx then
-        n = nl -- Left number density.
-        T = Tl -- Left temperature.
-      else
-        n = nr -- Right number density.
-        T = Tr -- Right temperature.
-      end
-      local rho = mass_neut * n -- Mass density.
-      local E = 1.5 * n * T -- Total energy density (at rest).
+      collisions = {
+        collisionID = G0.Collisions.BGK,
 
-      return rho, 0.0, 0.0, 0.0, E
-    end,
+        selfNu = function (t, xn)
+          return nu
+        end
+      }
+    },
 
-    collisions = {
-      collisionID = G0.Collisions.BGK,
+    fluid = {
+      -- Initial conditions.
+      init = function (t, xn)
+        local x = xn[1]
 
-      selfNu = function (t, xn)
-        return nu
+        local n = 0.0
+        local T = 0.0
+        if x < 0.5 * Lx then
+          n = nl -- Left number density.
+          T = Tl -- Left temperature.
+        else
+          n = nr -- Right number density.
+          T = Tr -- Right temperature.
+        end
+        local rho = mass_neut * n -- Mass density.
+        local E = 1.5 * n * T -- Total energy density (at rest).
+
+        return rho, 0.0, 0.0, 0.0, E
       end
     },
 

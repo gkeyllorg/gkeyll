@@ -148,51 +148,73 @@ pkpmApp = PKPM.App.new {
   elc = PKPM.Species.new {
     charge = charge_elc, mass = mass_elc,
 
-    -- Velocity space grid.
-    lower = { -vx_max_elc },
-    upper = { vx_max_elc },
-    cells = { Nvx },
+    kinetic = {
+      -- Velocity space grid.
+      lower = { -vx_max_elc },
+      upper = { vx_max_elc },
+      cells = { Nvx },
 
-    -- Initial conditions.
-    initDist = function (t, xn)
-      local w = xn[3] -- Normalized parallel velocity w = v_par/xi.
+      -- Initial conditions.
+      numInit = 1,
+      projections = {
+        {
+          projectionID = G0.Projection.Func,
 
-      -- Normalized isotropic Maxwellian: F = exp(-w^2/2)/sqrt(2 pi) (M0 = 1, M2 = 1) and
-      -- G = (T_perp/T) F = F, independent of position; the density, flow and temperature
-      -- enter through the fluid state.
-      local F = math.exp(-0.5 * w * w) / math.sqrt(2.0 * math.pi)
+          init = function (t, xn)
+            local w = xn[3] -- Normalized parallel velocity w = v_par/xi.
 
-      return F, F
-    end,
+            -- Normalized isotropic Maxwellian: F = exp(-w^2/2)/sqrt(2 pi) (M0 = 1, M2 = 1) and
+            -- G = (T_perp/T) F = F, independent of position; the density, flow and temperature
+            -- enter through the fluid state.
+            local F = math.exp(-0.5 * w * w) / math.sqrt(2.0 * math.pi)
 
-    initFluid = function (t, xn)
-      local x, y = xn[1], xn[2]
+            return F, F, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+          end
+        }
+      },
 
-      local Te_frac = Te / (Te + Ti) -- Electron share of the current.
+      collisions = {
+        collisionID = G0.Collisions.LBO,
 
-      local n = harris_n(y) -- Electron number density.
-      local Jz = total_jz(x, y) -- Out-of-plane current density.
+        selfNu = function (t, xn)
+          return nu_elc
+        end
+      },
 
-      local mom_x = 0.0 -- Electron total momentum density (x-direction).
-      local mom_y = 0.0 -- Electron total momentum density (y-direction).
-      local mom_z = mass_elc * Jz * Te_frac / charge_elc -- Electron total momentum density (z-direction).
-
-      local rho = mass_elc * n -- Electron mass density.
-      local vtsq = vte * vte -- Electron T/m.
-      local E = 0.5 * (mom_x * mom_x + mom_y * mom_y + mom_z * mom_z) / rho + 1.5 * rho * vtsq -- Electron total energy density.
-
-      return rho, mom_x, mom_y, mom_z, E
-    end,
-
-    collisions = {
-      collisionID = G0.Collisions.LBO,
-
-      selfNu = function (t, xn)
-        return nu_elc
-      end
+      -- Reflecting walls (y-direction).
+      bcy = {
+        lower = {
+          type = G0.SpeciesBc.bcReflect
+        },
+        upper = {
+          type = G0.SpeciesBc.bcReflect
+        }
+      }
     },
 
-    bcy = { G0.SpeciesBc.bcReflect, G0.SpeciesBc.bcReflect }, -- Reflecting walls (y-direction).
+    fluid = {
+      -- Initial conditions.
+      init = function (t, xn)
+        local x, y = xn[1], xn[2]
+
+        local Te_frac = Te / (Te + Ti) -- Electron share of the current.
+
+        local n = harris_n(y) -- Electron number density.
+        local Jz = total_jz(x, y) -- Out-of-plane current density.
+
+        local mom_x = 0.0 -- Electron total momentum density (x-direction).
+        local mom_y = 0.0 -- Electron total momentum density (y-direction).
+        local mom_z = mass_elc * Jz * Te_frac / charge_elc -- Electron total momentum density (z-direction).
+
+        local rho = mass_elc * n -- Electron mass density.
+        local vtsq = vte * vte -- Electron T/m.
+        local E = 0.5 * (mom_x * mom_x + mom_y * mom_y + mom_z * mom_z) / rho + 1.5 * rho * vtsq -- Electron total energy density.
+
+        return rho, mom_x, mom_y, mom_z, E
+      end,
+
+      bcy = { G0.SpeciesBc.bcReflect, G0.SpeciesBc.bcReflect } -- Reflecting walls (y-direction).
+    },
 
     evolve = true -- Evolve species?
   },
@@ -201,51 +223,73 @@ pkpmApp = PKPM.App.new {
   ion = PKPM.Species.new {
     charge = charge_ion, mass = mass_ion,
 
-    -- Velocity space grid.
-    lower = { -vx_max_ion },
-    upper = { vx_max_ion },
-    cells = { Nvx },
+    kinetic = {
+      -- Velocity space grid.
+      lower = { -vx_max_ion },
+      upper = { vx_max_ion },
+      cells = { Nvx },
 
-    -- Initial conditions.
-    initDist = function (t, xn)
-      local w = xn[3] -- Normalized parallel velocity w = v_par/xi.
+      -- Initial conditions.
+      numInit = 1,
+      projections = {
+        {
+          projectionID = G0.Projection.Func,
 
-      -- Normalized isotropic Maxwellian: F = exp(-w^2/2)/sqrt(2 pi) (M0 = 1, M2 = 1) and
-      -- G = (T_perp/T) F = F, independent of position; the density, flow and temperature
-      -- enter through the fluid state.
-      local F = math.exp(-0.5 * w * w) / math.sqrt(2.0 * math.pi)
+          init = function (t, xn)
+            local w = xn[3] -- Normalized parallel velocity w = v_par/xi.
 
-      return F, F
-    end,
+            -- Normalized isotropic Maxwellian: F = exp(-w^2/2)/sqrt(2 pi) (M0 = 1, M2 = 1) and
+            -- G = (T_perp/T) F = F, independent of position; the density, flow and temperature
+            -- enter through the fluid state.
+            local F = math.exp(-0.5 * w * w) / math.sqrt(2.0 * math.pi)
 
-    initFluid = function (t, xn)
-      local x, y = xn[1], xn[2]
+            return F, F, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+          end
+        }
+      },
 
-      local Ti_frac = Ti / (Te + Ti) -- Ion share of the current.
+      collisions = {
+        collisionID = G0.Collisions.LBO,
 
-      local n = harris_n(y) -- Ion number density.
-      local Jz = total_jz(x, y) -- Out-of-plane current density.
+        selfNu = function (t, xn)
+          return nu_ion
+        end
+      },
 
-      local mom_x = 0.0 -- Ion total momentum density (x-direction).
-      local mom_y = 0.0 -- Ion total momentum density (y-direction).
-      local mom_z = mass_ion * Jz * Ti_frac / charge_ion -- Ion total momentum density (z-direction).
-
-      local rho = mass_ion * n -- Ion mass density.
-      local vtsq = vti * vti -- Ion T/m.
-      local E = 0.5 * (mom_x * mom_x + mom_y * mom_y + mom_z * mom_z) / rho + 1.5 * rho * vtsq -- Ion total energy density.
-
-      return rho, mom_x, mom_y, mom_z, E
-    end,
-
-    collisions = {
-      collisionID = G0.Collisions.LBO,
-
-      selfNu = function (t, xn)
-        return nu_ion
-      end
+      -- Reflecting walls (y-direction).
+      bcy = {
+        lower = {
+          type = G0.SpeciesBc.bcReflect
+        },
+        upper = {
+          type = G0.SpeciesBc.bcReflect
+        }
+      }
     },
 
-    bcy = { G0.SpeciesBc.bcReflect, G0.SpeciesBc.bcReflect }, -- Reflecting walls (y-direction).
+    fluid = {
+      -- Initial conditions.
+      init = function (t, xn)
+        local x, y = xn[1], xn[2]
+
+        local Ti_frac = Ti / (Te + Ti) -- Ion share of the current.
+
+        local n = harris_n(y) -- Ion number density.
+        local Jz = total_jz(x, y) -- Out-of-plane current density.
+
+        local mom_x = 0.0 -- Ion total momentum density (x-direction).
+        local mom_y = 0.0 -- Ion total momentum density (y-direction).
+        local mom_z = mass_ion * Jz * Ti_frac / charge_ion -- Ion total momentum density (z-direction).
+
+        local rho = mass_ion * n -- Ion mass density.
+        local vtsq = vti * vti -- Ion T/m.
+        local E = 0.5 * (mom_x * mom_x + mom_y * mom_y + mom_z * mom_z) / rho + 1.5 * rho * vtsq -- Ion total energy density.
+
+        return rho, mom_x, mom_y, mom_z, E
+      end,
+
+      bcy = { G0.SpeciesBc.bcReflect, G0.SpeciesBc.bcReflect } -- Reflecting walls (y-direction).
+    },
 
     evolve = true -- Evolve species?
   },

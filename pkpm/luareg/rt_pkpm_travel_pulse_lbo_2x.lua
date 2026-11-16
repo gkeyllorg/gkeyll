@@ -79,35 +79,47 @@ pkpmApp = PKPM.App.new {
   neut = PKPM.Species.new {
     charge = charge, mass = mass,
 
-    -- Velocity space grid.
-    lower = { -vx_max },
-    upper = { vx_max },
-    cells = { Nvx },
+    kinetic = {
+      -- Velocity space grid.
+      lower = { -vx_max },
+      upper = { vx_max },
+      cells = { Nvx },
 
-    -- Initial conditions.
-    initDist = function (t, xn)
-      local w = xn[3]
+      -- Initial conditions.
+      numInit = 1,
+      projections = {
+        {
+          projectionID = G0.Projection.Func,
 
-      local F = math.exp(-0.5 * w * w) / math.sqrt(2.0 * pi) -- Normalized Maxwellian in w = v_par/xi.
+          init = function (t, xn)
+            local w = xn[3]
 
-      return F, F
-    end,
+            local F = math.exp(-0.5 * w * w) / math.sqrt(2.0 * pi) -- Normalized Maxwellian in w = v_par/xi.
 
-    initFluid = function (t, xn)
-      local x, y = xn[1], xn[2]
+            return F, F, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+          end
+        }
+      },
 
-      local n = n0 + alpha * math.sin(pi * x) * math.sin(pi * y) -- Number density.
-      local rho = mass * n -- Mass density.
-      local E = 0.5 * rho * u0 * u0 * 2.0 + 1.5 * pr0 -- Total energy density (uniform pressure).
+      collisions = {
+        collisionID = G0.Collisions.LBO,
 
-      return rho, rho * u0, rho * u0, 0.0, E
-    end,
+        selfNu = function (t, xn)
+          return nu
+        end
+      }
+    },
 
-    collisions = {
-      collisionID = G0.Collisions.LBO,
+    fluid = {
+      -- Initial conditions.
+      init = function (t, xn)
+        local x, y = xn[1], xn[2]
 
-      selfNu = function (t, xn)
-        return nu
+        local n = n0 + alpha * math.sin(pi * x) * math.sin(pi * y) -- Number density.
+        local rho = mass * n -- Mass density.
+        local E = 0.5 * rho * u0 * u0 * 2.0 + 1.5 * pr0 -- Total energy density (uniform pressure).
+
+        return rho, rho * u0, rho * u0, 0.0, E
       end
     },
 

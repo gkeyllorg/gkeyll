@@ -5,8 +5,8 @@
 // LBO and BGK operators alike, at the configuration-space nodes. The input follows the Vlasov
 // app: a frequency (self, or with a partner) is the profile of the input function, or, without
 // one, the Spitzer frequency
-//   nu_sr = nuFrac alpha_E (m_s + m_r) / (2 m_s) n_r / (vtsq_s + vtsq_r)^(3/2)
-// (nu_ss = nuFrac alpha_E n_s / (2 vtsq_s)^(3/2)), with the constant part alpha_E of Morse's
+//   nu_sr = nu_frac alpha_E (m_s + m_r) / (2 m_s) n_r / (vtsq_s + vtsq_r)^(3/2)
+// (nu_ss = nu_frac alpha_E n_s / (2 vtsq_s)^(3/2)), with the constant part alpha_E of Morse's
 // energy-exchange coefficient at the reference parameters (no magnetic field in the Coulomb
 // logarithm), so m_s n_s nu_sr = m_r n_r nu_rs.
 //
@@ -94,7 +94,7 @@ pkpm_species_coll_cross_moms_nodal(gkyl_pkpm_app *app, struct pkpm_species *s)
 // Reference density, temperature, Planck constant and permittivity of the Coulomb logarithm of
 // a computed frequency (1 where the input does not set them).
 static void
-pkpm_species_coll_cross_ref_params(const struct gkyl_pkpm_collisions *coll, double ref[4])
+pkpm_species_coll_cross_ref_params(const struct gkyl_vlasov_collisions *coll, double ref[4])
 {
   ref[0] = coll->den_ref ? coll->den_ref : 1.0;
   ref[1] = coll->temp_ref ? coll->temp_ref : 1.0;
@@ -108,7 +108,7 @@ void
 pkpm_species_coll_cross_init(gkyl_pkpm_app *app, struct pkpm_species *s)
 {
   struct pkpm_coll_cross *cross = &s->cross;
-  const struct gkyl_pkpm_collisions *coll = &s->info.collisions;
+  const struct gkyl_vlasov_collisions *coll = &s->info.kinetic.collisions;
   bool is_lbo = s->collision_id == GKYL_LBO_COLLISIONS;
   bool is_bgk = s->collision_id == GKYL_BGK_COLLISIONS;
   bool has_self_nu = (is_lbo || is_bgk) && !coll->self_nu; // computed self frequency
@@ -125,7 +125,7 @@ pkpm_species_coll_cross_init(gkyl_pkpm_app *app, struct pkpm_species *s)
   assert(!app->use_gpu);
 
   int num_nodes = app->confBasis.num_basis;
-  double nu_frac = coll->nuFrac > 0.0 ? coll->nuFrac : 1.0;
+  double nu_frac = coll->nu_frac > 0.0 ? coll->nu_frac : 1.0;
   bool is_computed = !coll->cross_nu[0];
   double ref_self[4];
   pkpm_species_coll_cross_ref_params(coll, ref_self);
@@ -133,7 +133,7 @@ pkpm_species_coll_cross_init(gkyl_pkpm_app *app, struct pkpm_species *s)
 
   for (int i = 0; i < cross->num_cross_collisions; ++i) {
     struct pkpm_species *other = pkpm_find_species(app, coll->collide_with[i]);
-    const struct gkyl_pkpm_collisions *other_coll = &other->info.collisions;
+    const struct gkyl_vlasov_collisions *other_coll = &other->info.kinetic.collisions;
     cross->collide_with[i] = other;
     cross->other_idx[i] = -1;
     for (int j = 0; j < other_coll->num_cross_collisions; ++j) {

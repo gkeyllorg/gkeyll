@@ -139,6 +139,14 @@ evalElcDistInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT 
   // Set normalized electron distribution functions [F, G] (G = (T_perp/T) F = F).
   fout[0] = F;
   fout[1] = F;
+
+  // No first harmonic: the blocks [M0_perp (x, y, z), N_perp (x, y, z)] vanish.
+  fout[2] = 0.0;
+  fout[3] = 0.0;
+  fout[4] = 0.0;
+  fout[5] = 0.0;
+  fout[6] = 0.0;
+  fout[7] = 0.0;
 }
 
 void
@@ -336,19 +344,16 @@ main(int argc, char **argv)
   }
 
   // Electrons.
-  struct gkyl_pkpm_species elc = {
-    .name = "elc",
-    .charge = ctx.charge_elc,
-    .mass = ctx.mass_elc,
+  struct gkyl_pkpm_kinetic_species elc_kinetic = {
     .lower = {-ctx.vx_max},
     .upper = {ctx.vx_max},
     .cells = {NVX},
 
-    .init_dist = evalElcDistInit,
-    .ctx_dist = &ctx,
-    .init_fluid = evalElcFluidInit,
-    .ctx_fluid = &ctx,
+    .num_init = 1,
+    .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalElcDistInit, .ctx_func = &ctx},
   };
+
+  struct gkyl_pkpm_fluid_species elc_fluid = {.init = evalElcFluidInit, .ctx = &ctx};
 
   // Field.
   struct gkyl_pkpm_field field = {
@@ -377,13 +382,20 @@ main(int argc, char **argv)
     .basis_type = app_args.basis_type,
     .cfl_frac = ctx.cfl_frac,
 
-    .use_explicit_source = true,
+    .use_explicit_sources = true,
 
     .num_periodic_dir = 1,
     .periodic_dirs = {0},
 
     .num_species = 1,
-    .species = {elc},
+    .species = {{
+      .name = "elc",
+      .charge = ctx.charge_elc,
+      .mass = ctx.mass_elc,
+      .type = GKYL_SPECIES_PKPM,
+      .kinetic = elc_kinetic,
+      .fluid = elc_fluid,
+    }},
 
     .field = field,
 

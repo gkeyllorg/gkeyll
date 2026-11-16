@@ -86,38 +86,50 @@ pkpmApp = PKPM.App.new {
   heat = PKPM.Species.new {
     charge = charge, mass = mass,
 
-    -- Velocity space grid.
-    lower = { -vx_max },
-    upper = { vx_max },
-    cells = { Nvx },
+    kinetic = {
+      -- Velocity space grid.
+      lower = { -vx_max },
+      upper = { vx_max },
+      cells = { Nvx },
 
-    -- Initial conditions.
-    initDist = function (t, xn)
-      local w = xn[2]
+      -- Initial conditions.
+      numInit = 1,
+      projections = {
+        {
+          projectionID = G0.Projection.Func,
 
-      -- Bi-Maxwellian in w = v_par/xi: F has variance T_par/T and G = (T_perp/T) F.
-      local F = math.exp(-w * w / (2.0 * Tpar_over_T)) / math.sqrt(2.0 * pi * Tpar_over_T)
+          init = function (t, xn)
+            local w = xn[2]
 
-      return F, Tperp_over_T * F
-    end,
+            -- Bi-Maxwellian in w = v_par/xi: F has variance T_par/T and G = (T_perp/T) F.
+            local F = math.exp(-w * w / (2.0 * Tpar_over_T)) / math.sqrt(2.0 * pi * Tpar_over_T)
 
-    initFluid = function (t, xn)
-      local rho = mass * n0 -- Mass density.
-      local E = 0.5 * rho * (ux0 * ux0 + uy0 * uy0) + 1.5 * n0 * T0 -- Total energy density.
+            return F, Tperp_over_T * F, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+          end
+        }
+      },
 
-      return rho, rho * ux0, rho * uy0, 0.0, E
-    end,
+      sourceBGK = {
+        rateProfile = function (t, xn)
+          return nu_Q
+        end,
 
-    sourceBGK = {
-      rateProfile = function (t, xn)
-        return nu_Q
-      end,
+        tempShape = function (t, xn)
+          return T_heat
+        end,
 
-      tempShape = function (t, xn)
-        return T_heat
-      end,
+        useImplicitScheme = true,
+      }
+    },
 
-      useImplicitScheme = true,
+    fluid = {
+      -- Initial conditions.
+      init = function (t, xn)
+        local rho = mass * n0 -- Mass density.
+        local E = 0.5 * rho * (ux0 * ux0 + uy0 * uy0) + 1.5 * n0 * T0 -- Total energy density.
+
+        return rho, rho * ux0, rho * uy0, 0.0, E
+      end
     },
 
     evolve = true -- Evolve species?
@@ -127,38 +139,50 @@ pkpmApp = PKPM.App.new {
   cool = PKPM.Species.new {
     charge = charge, mass = mass,
 
-    -- Velocity space grid.
-    lower = { -vx_max },
-    upper = { vx_max },
-    cells = { Nvx },
+    kinetic = {
+      -- Velocity space grid.
+      lower = { -vx_max },
+      upper = { vx_max },
+      cells = { Nvx },
 
-    -- Initial conditions.
-    initDist = function (t, xn)
-      local w = xn[2]
+      -- Initial conditions.
+      numInit = 1,
+      projections = {
+        {
+          projectionID = G0.Projection.Func,
 
-      -- Bi-Maxwellian in w = v_par/xi: F has variance T_par/T and G = (T_perp/T) F.
-      local F = math.exp(-w * w / (2.0 * Tpar_over_T)) / math.sqrt(2.0 * pi * Tpar_over_T)
+          init = function (t, xn)
+            local w = xn[2]
 
-      return F, Tperp_over_T * F
-    end,
+            -- Bi-Maxwellian in w = v_par/xi: F has variance T_par/T and G = (T_perp/T) F.
+            local F = math.exp(-w * w / (2.0 * Tpar_over_T)) / math.sqrt(2.0 * pi * Tpar_over_T)
 
-    initFluid = function (t, xn)
-      local rho = mass * n0 -- Mass density.
-      local E = 0.5 * rho * (ux0 * ux0 + uy0 * uy0) + 1.5 * n0 * T0 -- Total energy density.
+            return F, Tperp_over_T * F, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+          end
+        }
+      },
 
-      return rho, rho * ux0, rho * uy0, 0.0, E
-    end,
+      sourceBGK = {
+        rateProfile = function (t, xn)
+          return nu_Q
+        end,
 
-    sourceBGK = {
-      rateProfile = function (t, xn)
-        return nu_Q
-      end,
+        tempShape = function (t, xn)
+          return T_cool
+        end,
 
-      tempShape = function (t, xn)
-        return T_cool
-      end,
+        useImplicitScheme = true,
+      }
+    },
 
-      useImplicitScheme = true,
+    fluid = {
+      -- Initial conditions.
+      init = function (t, xn)
+        local rho = mass * n0 -- Mass density.
+        local E = 0.5 * rho * (ux0 * ux0 + uy0 * uy0) + 1.5 * n0 * T0 -- Total energy density.
+
+        return rho, rho * ux0, rho * uy0, 0.0, E
+      end
     },
 
     evolve = true -- Evolve species?

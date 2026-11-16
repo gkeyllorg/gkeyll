@@ -81,53 +81,75 @@ pkpmApp = PKPM.App.new {
   neut = PKPM.Species.new {
     charge = charge_neut, mass = mass_neut,
 
-    -- Velocity space grid.
-    lower = { -vx_max },
-    upper = { vx_max },
-    cells = { Nvx },
+    kinetic = {
+      -- Velocity space grid.
+      lower = { -vx_max },
+      upper = { vx_max },
+      cells = { Nvx },
 
-    -- Initial conditions.
-    initDist = function (t, xn)
-      local w = xn[2]
+      -- Initial conditions.
+      numInit = 1,
+      projections = {
+        {
+          projectionID = G0.Projection.Func,
 
-      local F = math.exp(-0.5 * w * w) / math.sqrt(2.0 * pi) -- Normalized Maxwellian in w = v_par/xi.
+          init = function (t, xn)
+            local w = xn[2]
 
-      return F, F
-    end,
+            local F = math.exp(-0.5 * w * w) / math.sqrt(2.0 * pi) -- Normalized Maxwellian in w = v_par/xi.
 
-    initFluid = function (t, xn)
-      local x = xn[1]
+            return F, F, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+          end
+        }
+      },
 
-      local rho = 0.0
-      local vel = 0.0
-      local pres = 0.0
-      if x < x_lm then
-        rho = rho_l -- Mass density (left).
-        vel = u_l -- Velocity (left).
-        pres = p_l -- Pressure (left).
-      elseif x < x_mr then
-        rho = rho_m -- Mass density (middle).
-        vel = u_m -- Velocity (middle).
-        pres = p_m -- Pressure (middle).
-      else
-        rho = rho_r -- Mass density (right).
-        vel = u_r -- Velocity (right).
-        pres = p_r -- Pressure (right).
-      end
-      local E = 0.5 * rho * vel * vel + 1.5 * pres -- Total energy density.
+      collisions = {
+        collisionID = G0.Collisions.BGK,
 
-      return rho, rho * vel, 0.0, 0.0, E
-    end,
+        selfNu = function (t, xn)
+          return nu
+        end
+      },
 
-    collisions = {
-      collisionID = G0.Collisions.BGK,
-
-      selfNu = function (t, xn)
-        return nu
-      end
+      -- Reflecting walls (x-direction).
+      bcx = {
+        lower = {
+          type = G0.SpeciesBc.bcReflect
+        },
+        upper = {
+          type = G0.SpeciesBc.bcReflect
+        }
+      }
     },
 
-    bcx = { G0.SpeciesBc.bcReflect, G0.SpeciesBc.bcReflect }, -- Reflecting walls (x-direction).
+    fluid = {
+      -- Initial conditions.
+      init = function (t, xn)
+        local x = xn[1]
+
+        local rho = 0.0
+        local vel = 0.0
+        local pres = 0.0
+        if x < x_lm then
+          rho = rho_l -- Mass density (left).
+          vel = u_l -- Velocity (left).
+          pres = p_l -- Pressure (left).
+        elseif x < x_mr then
+          rho = rho_m -- Mass density (middle).
+          vel = u_m -- Velocity (middle).
+          pres = p_m -- Pressure (middle).
+        else
+          rho = rho_r -- Mass density (right).
+          vel = u_r -- Velocity (right).
+          pres = p_r -- Pressure (right).
+        end
+        local E = 0.5 * rho * vel * vel + 1.5 * pres -- Total energy density.
+
+        return rho, rho * vel, 0.0, 0.0, E
+      end,
+
+      bcx = { G0.SpeciesBc.bcReflect, G0.SpeciesBc.bcReflect } -- Reflecting walls (x-direction).
+    },
 
     evolve = true -- Evolve species?
   },

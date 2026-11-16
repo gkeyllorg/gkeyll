@@ -39,7 +39,7 @@ pkpm_species_source_bgk_rhs_none(
 void
 pkpm_species_source_bgk_init(gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_source_bgk *src)
 {
-  const struct gkyl_pkpm_source_bgk *info = &s->info.source_bgk;
+  const struct gkyl_pkpm_source_bgk *info = &s->info.kinetic.source_bgk;
   src->source_bgk_id = info->source_bgk_id;
   src->is_implicit = false;
   src->rhs = pkpm_species_source_bgk_rhs_none;

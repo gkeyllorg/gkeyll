@@ -72,7 +72,7 @@ pkpmApp = PKPM.App.new {
   cells = { Nx },
   cflFrac = cfl_frac,
 
-  useExplicitSource = true,
+  useExplicitSources = true,
 
   basis = basis_type,
   polyOrder = poly_order,
@@ -88,29 +88,41 @@ pkpmApp = PKPM.App.new {
   elc = PKPM.Species.new {
     charge = charge_elc, mass = mass_elc,
 
-    -- Velocity space grid.
-    lower = { -vx_max_elc },
-    upper = { vx_max_elc },
-    cells = { Nvx },
+    kinetic = {
+      -- Velocity space grid.
+      lower = { -vx_max_elc },
+      upper = { vx_max_elc },
+      cells = { Nvx },
 
-    -- Initial conditions.
-    initDist = function (t, xn)
-      local w = xn[2]
+      -- Initial conditions.
+      numInit = 1,
+      projections = {
+        {
+          projectionID = G0.Projection.Func,
 
-      local F = math.exp(-0.5 * w * w) / math.sqrt(2.0 * pi) -- Normalized Maxwellian in w = v_par/xi.
+          init = function (t, xn)
+            local w = xn[2]
 
-      return F, F
-    end,
+            local F = math.exp(-0.5 * w * w) / math.sqrt(2.0 * pi) -- Normalized Maxwellian in w = v_par/xi.
 
-    initFluid = function (t, xn)
-      local x = xn[1]
+            return F, F, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+          end
+        }
+      }
+    },
 
-      local rho = mass_elc * n0 * (1.0 + alpha * math.cos(kx * x)) -- Electron mass density.
-      local ux = Vx_drift_elc -- Electron drift.
-      local E = 0.5 * rho * ux * ux + 1.5 * rho * vte * vte -- Electron total energy density.
+    fluid = {
+      -- Initial conditions.
+      init = function (t, xn)
+        local x = xn[1]
 
-      return rho, rho * ux, 0.0, 0.0, E
-    end,
+        local rho = mass_elc * n0 * (1.0 + alpha * math.cos(kx * x)) -- Electron mass density.
+        local ux = Vx_drift_elc -- Electron drift.
+        local E = 0.5 * rho * ux * ux + 1.5 * rho * vte * vte -- Electron total energy density.
+
+        return rho, rho * ux, 0.0, 0.0, E
+      end
+    },
 
     evolve = true -- Evolve species?
   },
@@ -119,27 +131,39 @@ pkpmApp = PKPM.App.new {
   ion = PKPM.Species.new {
     charge = charge_ion, mass = mass_ion,
 
-    -- Velocity space grid.
-    lower = { -vx_max_ion },
-    upper = { vx_max_ion },
-    cells = { Nvx },
+    kinetic = {
+      -- Velocity space grid.
+      lower = { -vx_max_ion },
+      upper = { vx_max_ion },
+      cells = { Nvx },
 
-    -- Initial conditions.
-    initDist = function (t, xn)
-      local w = xn[2]
+      -- Initial conditions.
+      numInit = 1,
+      projections = {
+        {
+          projectionID = G0.Projection.Func,
 
-      local F = math.exp(-0.5 * w * w) / math.sqrt(2.0 * pi) -- Normalized Maxwellian in w = v_par/xi.
+          init = function (t, xn)
+            local w = xn[2]
 
-      return F, F
-    end,
+            local F = math.exp(-0.5 * w * w) / math.sqrt(2.0 * pi) -- Normalized Maxwellian in w = v_par/xi.
 
-    initFluid = function (t, xn)
-      local rho = mass_ion * n0 -- Ion mass density.
-      local ux = Vx_drift_ion -- Ion drift.
-      local E = 0.5 * rho * ux * ux + 1.5 * rho * vti * vti -- Ion total energy density.
+            return F, F, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+          end
+        }
+      }
+    },
 
-      return rho, rho * ux, 0.0, 0.0, E
-    end,
+    fluid = {
+      -- Initial conditions.
+      init = function (t, xn)
+        local rho = mass_ion * n0 -- Ion mass density.
+        local ux = Vx_drift_ion -- Ion drift.
+        local E = 0.5 * rho * ux * ux + 1.5 * rho * vti * vti -- Ion total energy density.
+
+        return rho, rho * ux, 0.0, 0.0, E
+      end
+    },
 
     evolve = true -- Evolve species?
   },

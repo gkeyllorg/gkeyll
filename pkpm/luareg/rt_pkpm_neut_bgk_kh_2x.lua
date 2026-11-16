@@ -80,52 +80,64 @@ pkpmApp = PKPM.App.new {
   neut = PKPM.Species.new {
     charge = charge, mass = mass,
 
-    -- Velocity space grid.
-    lower = { -vx_max },
-    upper = { vx_max },
-    cells = { Nvx },
+    kinetic = {
+      -- Velocity space grid.
+      lower = { -vx_max },
+      upper = { vx_max },
+      cells = { Nvx },
 
-    -- Initial conditions.
-    initDist = function (t, xn)
-      local w = xn[3]
+      -- Initial conditions.
+      numInit = 1,
+      projections = {
+        {
+          projectionID = G0.Projection.Func,
 
-      local F = math.exp(-0.5 * w * w) / math.sqrt(2.0 * pi) -- Normalized Maxwellian in w = v_par/xi.
+          init = function (t, xn)
+            local w = xn[3]
 
-      return F, F
-    end,
+            local F = math.exp(-0.5 * w * w) / math.sqrt(2.0 * pi) -- Normalized Maxwellian in w = v_par/xi.
 
-    initFluid = function (t, xn)
-      local x, y = xn[1], xn[2]
+            return F, F, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+          end
+        }
+      },
 
-      -- Smooth shear layers at y = 1/4 and 3/4 (McNally, Lyra & Passy 2012).
-      local rho_m = 0.5 * (rho_out - rho_in)
-      local u_m = 0.5 * (u_out - u_in)
-      local rho = 0.0
-      local vx = 0.0
-      if y < 0.25 then
-        rho = rho_out - rho_m * math.exp((y - 0.25) / width)
-        vx = u_out - u_m * math.exp((y - 0.25) / width)
-      elseif y < 0.5 then
-        rho = rho_in + rho_m * math.exp((0.25 - y) / width)
-        vx = u_in + u_m * math.exp((0.25 - y) / width)
-      elseif y < 0.75 then
-        rho = rho_in + rho_m * math.exp((y - 0.75) / width)
-        vx = u_in + u_m * math.exp((y - 0.75) / width)
-      else
-        rho = rho_out - rho_m * math.exp((0.75 - y) / width)
-        vx = u_out - u_m * math.exp((0.75 - y) / width)
-      end
-      local vy = alpha * math.sin(2.0 * pi * x) -- Perturbation of the y-velocity (one wavelength in x).
-      local E = 0.5 * rho * (vx * vx + vy * vy) + 1.5 * p0 -- Total energy density.
+      collisions = {
+        collisionID = G0.Collisions.BGK,
 
-      return rho, rho * vx, rho * vy, 0.0, E
-    end,
+        selfNu = function (t, xn)
+          return nu
+        end
+      }
+    },
 
-    collisions = {
-      collisionID = G0.Collisions.BGK,
+    fluid = {
+      -- Initial conditions.
+      init = function (t, xn)
+        local x, y = xn[1], xn[2]
 
-      selfNu = function (t, xn)
-        return nu
+        -- Smooth shear layers at y = 1/4 and 3/4 (McNally, Lyra & Passy 2012).
+        local rho_m = 0.5 * (rho_out - rho_in)
+        local u_m = 0.5 * (u_out - u_in)
+        local rho = 0.0
+        local vx = 0.0
+        if y < 0.25 then
+          rho = rho_out - rho_m * math.exp((y - 0.25) / width)
+          vx = u_out - u_m * math.exp((y - 0.25) / width)
+        elseif y < 0.5 then
+          rho = rho_in + rho_m * math.exp((0.25 - y) / width)
+          vx = u_in + u_m * math.exp((0.25 - y) / width)
+        elseif y < 0.75 then
+          rho = rho_in + rho_m * math.exp((y - 0.75) / width)
+          vx = u_in + u_m * math.exp((y - 0.75) / width)
+        else
+          rho = rho_out - rho_m * math.exp((0.75 - y) / width)
+          vx = u_out - u_m * math.exp((0.75 - y) / width)
+        end
+        local vy = alpha * math.sin(2.0 * pi * x) -- Perturbation of the y-velocity (one wavelength in x).
+        local E = 0.5 * rho * (vx * vx + vy * vy) + 1.5 * p0 -- Total energy density.
+
+        return rho, rho * vx, rho * vy, 0.0, E
       end
     },
 

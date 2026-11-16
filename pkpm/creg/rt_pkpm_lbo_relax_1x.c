@@ -177,6 +177,14 @@ evalSquareDistInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRI
   // Set normalized waterbag distribution functions [F, G].
   fout[0] = F;
   fout[1] = F;
+
+  // No first harmonic: the blocks [M0_perp (x, y, z), N_perp (x, y, z)] vanish.
+  fout[2] = 0.0;
+  fout[3] = 0.0;
+  fout[4] = 0.0;
+  fout[5] = 0.0;
+  fout[6] = 0.0;
+  fout[7] = 0.0;
 }
 
 void
@@ -209,6 +217,14 @@ evalBumpDistInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT
   // Set normalized bump distribution functions [F, G].
   fout[0] = F;
   fout[1] = F;
+
+  // No first harmonic: the blocks [M0_perp (x, y, z), N_perp (x, y, z)] vanish.
+  fout[2] = 0.0;
+  fout[3] = 0.0;
+  fout[4] = 0.0;
+  fout[5] = 0.0;
+  fout[6] = 0.0;
+  fout[7] = 0.0;
 }
 
 void
@@ -414,38 +430,32 @@ main(int argc, char **argv)
   }
 
   // Waterbag species.
-  struct gkyl_pkpm_species square = {
-    .name = "square",
-    .charge = ctx.charge,
-    .mass = ctx.mass,
+  struct gkyl_pkpm_kinetic_species square_kinetic = {
     .lower = {-ctx.vx_max},
     .upper = {ctx.vx_max},
     .cells = {NVX},
 
-    .init_dist = evalSquareDistInit,
-    .ctx_dist = &ctx,
-    .init_fluid = evalSquareFluidInit,
-    .ctx_fluid = &ctx,
+    .num_init = 1,
+    .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalSquareDistInit, .ctx_func = &ctx},
 
-    .collisions = {.collision_id = GKYL_LBO_COLLISIONS, .self_nu = evalNu, .ctx = &ctx},
+    .collisions = {.collision_id = GKYL_LBO_COLLISIONS, .self_nu = evalNu, .self_nu_ctx = &ctx},
   };
+
+  struct gkyl_pkpm_fluid_species square_fluid = {.init = evalSquareFluidInit, .ctx = &ctx};
 
   // Bump-on-tail species.
-  struct gkyl_pkpm_species bump = {
-    .name = "bump",
-    .charge = ctx.charge,
-    .mass = ctx.mass,
+  struct gkyl_pkpm_kinetic_species bump_kinetic = {
     .lower = {-ctx.vx_max},
     .upper = {ctx.vx_max},
     .cells = {NVX},
 
-    .init_dist = evalBumpDistInit,
-    .ctx_dist = &ctx,
-    .init_fluid = evalBumpFluidInit,
-    .ctx_fluid = &ctx,
+    .num_init = 1,
+    .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = evalBumpDistInit, .ctx_func = &ctx},
 
-    .collisions = {.collision_id = GKYL_LBO_COLLISIONS, .self_nu = evalNu, .ctx = &ctx},
+    .collisions = {.collision_id = GKYL_LBO_COLLISIONS, .self_nu = evalNu, .self_nu_ctx = &ctx},
   };
+
+  struct gkyl_pkpm_fluid_species bump_fluid = {.init = evalBumpFluidInit, .ctx = &ctx};
 
   // Field.
   struct gkyl_pkpm_field field = {
@@ -477,7 +487,23 @@ main(int argc, char **argv)
     .periodic_dirs = {0},
 
     .num_species = 2,
-    .species = {square, bump},
+    .species =
+      {{
+         .name = "square",
+         .charge = ctx.charge,
+         .mass = ctx.mass,
+         .type = GKYL_SPECIES_PKPM,
+         .kinetic = square_kinetic,
+         .fluid = square_fluid,
+       },
+       {
+         .name = "bump",
+         .charge = ctx.charge,
+         .mass = ctx.mass,
+         .type = GKYL_SPECIES_PKPM,
+         .kinetic = bump_kinetic,
+         .fluid = bump_fluid,
+       }},
 
     .field = field,
 

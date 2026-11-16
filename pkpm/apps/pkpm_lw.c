@@ -53,10 +53,6 @@ struct pkpm_species_lw {
   struct lua_func_ctx
     dist_init_func_ref; // Lua registry reference to distribution initialization function.
 
-  bool has_harm_init_func; // Is there a first-harmonic initialization function?
-  struct lua_func_ctx
-    harm_init_func_ref; // Lua registry reference to first-harmonic initialization function.
-
   bool has_fluid_init_func; // Is there a fluid initialization function?
   struct lua_func_ctx fluid_init_func_ref; // Lua registry reference to fluid initialization function.
 
@@ -64,10 +60,6 @@ struct pkpm_species_lw {
   struct lua_func_ctx
     applied_acceleration_func_ref; // Lua registry reference to applied acceleration initialization function.
   bool evolve_applied_acceleration; // Is the applied acceleration evolved?
-
-  bool has_diffusion; // Is there a diffusion operator?
-  double D; // Diffusion coefficient.
-  double order; // Diffusion order: 2 (grad^2) or 4 (grad^4).
 
   enum gkyl_collision_id collision_id; // Collision type.
 
@@ -95,6 +87,8 @@ struct pkpm_species_lw {
   double source_length; // Boundary-flux source: the length the density profile integrates to.
   char source_species[128]; // Boundary-flux source: species whose wall losses set the rate.
   bool write_source; // Write the fluid image of the source at frame 0?
+  int num_sources; // Number of source projections.
+  enum gkyl_projection_id source_proj_id; // Projection type of the source.
   bool has_source_density_func; // Is there a source density function?
   struct lua_func_ctx source_density_func_ref; // Lua registry reference to the source density.
   bool has_source_temp_func; // Is there a source temperature function?
@@ -107,108 +101,15 @@ static int
 pkpm_species_lw_new(lua_State *L)
 {
   int vdim = 0;
-  struct gkyl_pkpm_species pkpm_species = {};
+  struct gkyl_pkpm_species pkpm_species = {.type = GKYL_SPECIES_PKPM};
 
   pkpm_species.charge = glua_tbl_get_number(L, "charge", 0.0);
   pkpm_species.mass = glua_tbl_get_number(L, "mass", 1.0);
-  pkpm_species.gyro_mix = glua_tbl_get_number(L, "gyroMix", 0.0);
-
-  with_lua_tbl_tbl(L, "cells")
-  {
-    vdim = glua_objlen(L);
-
-    for (int d = 0; d < vdim; d++) {
-      pkpm_species.cells[d] = glua_tbl_iget_integer(L, d + 1, 0);
-    }
-  }
-
-  with_lua_tbl_tbl(L, "lower")
-  {
-    for (int d = 0; d < vdim; d++) {
-      pkpm_species.lower[d] = glua_tbl_iget_number(L, d + 1, 0);
-    }
-  }
-
-  with_lua_tbl_tbl(L, "upper")
-  {
-    for (int d = 0; d < vdim; d++) {
-      pkpm_species.upper[d] = glua_tbl_iget_number(L, d + 1, 0);
-    }
-  }
 
   bool evolve = glua_tbl_get_bool(L, "evolve", true);
 
-  with_lua_tbl_tbl(L, "bcx")
-  {
-    int nbc = glua_objlen(L);
-
-    for (int i = 0; i < (nbc > 2 ? 2 : nbc); i++) {
-      pkpm_species.bcx[i] = glua_tbl_iget_integer(L, i + 1, 0);
-    }
-  }
-
-  with_lua_tbl_tbl(L, "bcy")
-  {
-    int nbc = glua_objlen(L);
-
-    for (int i = 0; i < (nbc > 2 ? 2 : nbc); i++) {
-      pkpm_species.bcy[i] = glua_tbl_iget_integer(L, i + 1, 0);
-    }
-  }
-
-  with_lua_tbl_tbl(L, "bcz")
-  {
-    int nbc = glua_objlen(L);
-
-    for (int i = 0; i < (nbc > 2 ? 2 : nbc); i++) {
-      pkpm_species.bcz[i] = glua_tbl_iget_integer(L, i + 1, 0);
-    }
-  }
-
   bool has_dist_init_func = false;
   int dist_init_func_ref = LUA_NOREF;
-
-  bool has_harm_init_func = false;
-  int harm_init_func_ref = LUA_NOREF;
-
-  bool has_fluid_init_func = false;
-  int fluid_init_func_ref = LUA_NOREF;
-
-  if (glua_tbl_get_func(L, "initDist")) {
-    dist_init_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-    has_dist_init_func = true;
-  }
-
-  if (glua_tbl_get_func(L, "initHarm")) {
-    harm_init_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-    has_harm_init_func = true;
-  }
-
-  if (glua_tbl_get_func(L, "initFluid")) {
-    fluid_init_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-    has_fluid_init_func = true;
-  }
-
-  bool has_applied_acceleration_func = false;
-  int applied_acceleration_func_ref = LUA_NOREF;
-  bool evolve_applied_acceleration = false;
-
-  if (glua_tbl_get_func(L, "appliedAcceleration")) {
-    applied_acceleration_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-    has_applied_acceleration_func = true;
-
-    evolve_applied_acceleration = glua_tbl_get_bool(L, "evolveAppliedAcceleration", false);
-  }
-
-  bool has_diffusion = false;
-  double D = 0.0;
-  int order = 0;
-  with_lua_tbl_tbl(L, "diffusion")
-  {
-    has_diffusion = true;
-    D = glua_tbl_get_number(L, "D", 0.0);
-    order = glua_tbl_get_integer(L, "order", 0);
-  }
 
   enum gkyl_collision_id collision_id = GKYL_NO_COLLISIONS;
 
@@ -223,62 +124,9 @@ pkpm_species_lw_new(lua_State *L)
 
   bool is_implicit = false;
 
-  with_lua_tbl_tbl(L, "collisions")
-  {
-    collision_id = glua_tbl_get_integer(L, "collisionID", 0);
-    is_implicit = glua_tbl_get_bool(L, "useImplicitCollisionScheme", false);
-    nu_frac = glua_tbl_get_number(L, "nuFrac", 1.0);
-    // Parameters used to compute Coulomb logarithm.
-    den_ref = glua_tbl_get_number(L, "n0", 1.0);
-    temp_ref = glua_tbl_get_number(L, "T0", 1.0);
-    hbar = glua_tbl_get_number(L, "hbar", 1.0);
-    eps0 = glua_tbl_get_number(L, "epsilon0", 1.0);
-
-    if (glua_tbl_get_func(L, "selfNu")) {
-      self_nu_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-      has_self_nu_func = true;
-    }
-
-    num_cross_collisions = glua_tbl_get_integer(L, "numCrossCollisions", 0);
-    with_lua_tbl_tbl(L, "collideWith")
-    {
-      for (int i = 0; i < num_cross_collisions; i++) {
-        const char *collide_with_char = glua_tbl_iget_string(L, i + 1, "");
-        strcpy(collide_with[i], collide_with_char);
-        has_cross_nu_func[i] = false;
-        cross_nu_func_ref[i] = LUA_NOREF;
-      }
-    }
-    // Cross-collision frequencies, one table per entry of collideWith.
-    with_lua_tbl_tbl(L, "collideWithCrossNu")
-    {
-      for (int i = 0; i < num_cross_collisions; i++) {
-        if (glua_tbl_iget_tbl(L, i + 1)) {
-          if (glua_tbl_get_func(L, "crossNu")) {
-            cross_nu_func_ref[i] = luaL_ref(L, LUA_REGISTRYINDEX);
-            has_cross_nu_func[i] = true;
-          }
-        }
-        lua_pop(L, 1);
-      }
-    }
-  }
-
   // Temperature source nu_Q (f_M(n, u, T_Q) - f): the rate nu_Q and the temperature T_Q.
   bool has_source_bgk = false, source_bgk_is_implicit = false;
   int source_bgk_rate_func_ref = LUA_NOREF, source_bgk_temp_func_ref = LUA_NOREF;
-
-  with_lua_tbl_tbl(L, "sourceBGK")
-  {
-    has_source_bgk = true;
-    source_bgk_is_implicit = glua_tbl_get_bool(L, "useImplicitScheme", false);
-    if (glua_tbl_get_func(L, "rateProfile")) {
-      source_bgk_rate_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-    }
-    if (glua_tbl_get_func(L, "tempShape")) {
-      source_bgk_temp_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-    }
-  }
 
   // Source: one LTE profile (density, isotropic temperature, drift velocity), in the layout of
   // the Vlasov source table (a single projection).
@@ -286,35 +134,239 @@ pkpm_species_lw_new(lua_State *L)
   double source_length = 1.0;
   char source_species[128] = "";
   bool write_source = false;
+  int num_sources = 0;
+  enum gkyl_projection_id source_proj_id = GKYL_PROJ_FUNC;
   int source_density_func_ref = LUA_NOREF, source_temp_func_ref = LUA_NOREF,
       source_drift_func_ref = LUA_NOREF;
   bool has_source_density_func = false, has_source_temp_func = false, has_source_drift_func = false;
 
-  with_lua_tbl_tbl(L, "source")
+  // Kinetic block: the grid of the normalized velocity, the initial condition of the
+  // distributions, collisions, sources and the kinetic BCs, with the keys of a Vlasov species.
+  with_lua_tbl_tbl(L, "kinetic")
   {
-    source_id = glua_tbl_get_integer(L, "sourceID", 0);
-    source_length = glua_tbl_get_number(L, "sourceLength", 1.0);
-    strcpy(source_species, glua_tbl_get_string(L, "sourceSpecies", ""));
-    write_source = glua_tbl_get_bool(L, "writeSource", false);
+    pkpm_species.kinetic.gyro_mix = glua_tbl_get_number(L, "gyroMix", 0.0);
+    pkpm_species.kinetic.num_face_nodes = glua_tbl_get_integer(L, "numFaceNodes", 0);
 
-    int num_sources = glua_tbl_get_integer(L, "numSources", 1);
-    assert(num_sources == 1); // PKPM species carry a single LTE source profile.
+    with_lua_tbl_tbl(L, "cells")
+    {
+      vdim = glua_objlen(L);
+
+      for (int d = 0; d < vdim; d++) {
+        pkpm_species.kinetic.cells[d] = glua_tbl_iget_integer(L, d + 1, 0);
+      }
+    }
+
+    with_lua_tbl_tbl(L, "lower")
+    {
+      for (int d = 0; d < vdim; d++) {
+        pkpm_species.kinetic.lower[d] = glua_tbl_iget_number(L, d + 1, 0);
+      }
+    }
+
+    with_lua_tbl_tbl(L, "upper")
+    {
+      for (int d = 0; d < vdim; d++) {
+        pkpm_species.kinetic.upper[d] = glua_tbl_iget_number(L, d + 1, 0);
+      }
+    }
+
+    with_lua_tbl_tbl(L, "bcx")
+    {
+      with_lua_tbl_tbl(L, "lower")
+      {
+        pkpm_species.kinetic.bcx.lower.type = glua_tbl_get_integer(L, "type", 0);
+      }
+
+      with_lua_tbl_tbl(L, "upper")
+      {
+        pkpm_species.kinetic.bcx.upper.type = glua_tbl_get_integer(L, "type", 0);
+      }
+    }
+
+    with_lua_tbl_tbl(L, "bcy")
+    {
+      with_lua_tbl_tbl(L, "lower")
+      {
+        pkpm_species.kinetic.bcy.lower.type = glua_tbl_get_integer(L, "type", 0);
+      }
+
+      with_lua_tbl_tbl(L, "upper")
+      {
+        pkpm_species.kinetic.bcy.upper.type = glua_tbl_get_integer(L, "type", 0);
+      }
+    }
+
+    with_lua_tbl_tbl(L, "bcz")
+    {
+      with_lua_tbl_tbl(L, "lower")
+      {
+        pkpm_species.kinetic.bcz.lower.type = glua_tbl_get_integer(L, "type", 0);
+      }
+
+      with_lua_tbl_tbl(L, "upper")
+      {
+        pkpm_species.kinetic.bcz.upper.type = glua_tbl_get_integer(L, "type", 0);
+      }
+    }
+
+    // Initial condition: one function projection of the eight blocks
+    // [F, G, M0_perp (x, y, z), N_perp (x, y, z)].
+    pkpm_species.kinetic.num_init = glua_tbl_get_integer(L, "numInit", 0);
+
     with_lua_tbl_tbl(L, "projections")
     {
       if (glua_tbl_iget_tbl(L, 1)) {
-        if (glua_tbl_get_func(L, "densityInit")) {
-          source_density_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-          has_source_density_func = true;
+        pkpm_species.kinetic.projection[0].proj_id = glua_tbl_get_integer(L, "projectionID", 0);
+
+        if (glua_tbl_get_func(L, "init")) {
+          dist_init_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+          has_dist_init_func = true;
         }
-        if (glua_tbl_get_func(L, "temperatureInit")) {
-          source_temp_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-          has_source_temp_func = true;
-        }
-        if (glua_tbl_get_func(L, "driftVelocityInit")) {
-          source_drift_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-          has_source_drift_func = true;
-        }
+
         lua_pop(L, 1);
+      }
+    }
+
+    with_lua_tbl_tbl(L, "collisions")
+    {
+      collision_id = glua_tbl_get_integer(L, "collisionID", 0);
+      is_implicit = glua_tbl_get_bool(L, "useImplicitCollisionScheme", false);
+      nu_frac = glua_tbl_get_number(L, "nuFrac", 1.0);
+      // Parameters used to compute Coulomb logarithm.
+      den_ref = glua_tbl_get_number(L, "n0", 1.0);
+      temp_ref = glua_tbl_get_number(L, "T0", 1.0);
+      hbar = glua_tbl_get_number(L, "hbar", 1.0);
+      eps0 = glua_tbl_get_number(L, "epsilon0", 1.0);
+
+      if (glua_tbl_get_func(L, "selfNu")) {
+        self_nu_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+        has_self_nu_func = true;
+      }
+
+      num_cross_collisions = glua_tbl_get_integer(L, "numCrossCollisions", 0);
+      with_lua_tbl_tbl(L, "collideWith")
+      {
+        for (int i = 0; i < num_cross_collisions; i++) {
+          const char *collide_with_char = glua_tbl_iget_string(L, i + 1, "");
+          strcpy(collide_with[i], collide_with_char);
+          has_cross_nu_func[i] = false;
+          cross_nu_func_ref[i] = LUA_NOREF;
+        }
+      }
+      // Cross-collision frequencies, one table per entry of collideWith.
+      with_lua_tbl_tbl(L, "collideWithCrossNu")
+      {
+        for (int i = 0; i < num_cross_collisions; i++) {
+          if (glua_tbl_iget_tbl(L, i + 1)) {
+            if (glua_tbl_get_func(L, "crossNu")) {
+              cross_nu_func_ref[i] = luaL_ref(L, LUA_REGISTRYINDEX);
+              has_cross_nu_func[i] = true;
+            }
+          }
+          lua_pop(L, 1);
+        }
+      }
+    }
+
+    with_lua_tbl_tbl(L, "sourceBGK")
+    {
+      has_source_bgk = true;
+      source_bgk_is_implicit = glua_tbl_get_bool(L, "useImplicitScheme", false);
+      if (glua_tbl_get_func(L, "rateProfile")) {
+        source_bgk_rate_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+      }
+      if (glua_tbl_get_func(L, "tempShape")) {
+        source_bgk_temp_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+      }
+    }
+
+    with_lua_tbl_tbl(L, "source")
+    {
+      source_id = glua_tbl_get_integer(L, "sourceID", 0);
+      source_length = glua_tbl_get_number(L, "sourceLength", 1.0);
+      strcpy(source_species, glua_tbl_get_string(L, "sourceSpecies", ""));
+      write_source = glua_tbl_get_bool(L, "writeSource", false);
+
+      num_sources = glua_tbl_get_integer(L, "numSources", 0);
+      with_lua_tbl_tbl(L, "projections")
+      {
+        if (glua_tbl_iget_tbl(L, 1)) {
+          source_proj_id = glua_tbl_get_integer(L, "projectionID", 0);
+
+          if (glua_tbl_get_func(L, "densityInit")) {
+            source_density_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+            has_source_density_func = true;
+          }
+          if (glua_tbl_get_func(L, "temperatureInit")) {
+            source_temp_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+            has_source_temp_func = true;
+          }
+          if (glua_tbl_get_func(L, "driftVelocityInit")) {
+            source_drift_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+            has_source_drift_func = true;
+          }
+          lua_pop(L, 1);
+        }
+      }
+    }
+  }
+
+  bool has_fluid_init_func = false;
+  int fluid_init_func_ref = LUA_NOREF;
+
+  bool has_applied_acceleration_func = false;
+  int applied_acceleration_func_ref = LUA_NOREF;
+  bool evolve_applied_acceleration = false;
+
+  // Fluid block: the initial condition of the fluid state, the positivity floor, momentum
+  // diffusion, the applied acceleration and the fluid BCs, with the keys of a Vlasov fluid
+  // species.
+  with_lua_tbl_tbl(L, "fluid")
+  {
+    pkpm_species.fluid.positivity_eps = glua_tbl_get_number(L, "positivityEps", 0.0);
+
+    if (glua_tbl_get_func(L, "init")) {
+      fluid_init_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+      has_fluid_init_func = true;
+    }
+
+    if (glua_tbl_get_func(L, "appliedAccel")) {
+      applied_acceleration_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+      has_applied_acceleration_func = true;
+
+      evolve_applied_acceleration = glua_tbl_get_bool(L, "evolveAppliedAccel", false);
+    }
+
+    with_lua_tbl_tbl(L, "diffusion")
+    {
+      pkpm_species.fluid.diffusion.D = glua_tbl_get_number(L, "diffusionCoefficient", 0.0);
+      pkpm_species.fluid.diffusion.order = glua_tbl_get_integer(L, "diffusionOrder", 2);
+    }
+
+    with_lua_tbl_tbl(L, "bcx")
+    {
+      int nbc = glua_objlen(L);
+
+      for (int i = 0; i < (nbc > 2 ? 2 : nbc); i++) {
+        pkpm_species.fluid.bcx[i] = glua_tbl_iget_integer(L, i + 1, 0);
+      }
+    }
+
+    with_lua_tbl_tbl(L, "bcy")
+    {
+      int nbc = glua_objlen(L);
+
+      for (int i = 0; i < (nbc > 2 ? 2 : nbc); i++) {
+        pkpm_species.fluid.bcy[i] = glua_tbl_iget_integer(L, i + 1, 0);
+      }
+    }
+
+    with_lua_tbl_tbl(L, "bcz")
+    {
+      int nbc = glua_objlen(L);
+
+      for (int i = 0; i < (nbc > 2 ? 2 : nbc); i++) {
+        pkpm_species.fluid.bcz[i] = glua_tbl_iget_integer(L, i + 1, 0);
       }
     }
   }
@@ -329,15 +381,7 @@ pkpm_species_lw_new(lua_State *L)
   pkpm_s_lw->dist_init_func_ref = (struct lua_func_ctx){
     .func_ref = dist_init_func_ref,
     .ndim = 0, // This will be set later.
-    .nret = 2,
-    .L = L,
-  };
-
-  pkpm_s_lw->has_harm_init_func = has_harm_init_func;
-  pkpm_s_lw->harm_init_func_ref = (struct lua_func_ctx){
-    .func_ref = harm_init_func_ref,
-    .ndim = 0, // This will be set later.
-    .nret = 6,
+    .nret = PKPM_DIST_NUM_BLOCKS,
     .L = L,
   };
 
@@ -357,10 +401,6 @@ pkpm_species_lw_new(lua_State *L)
     .L = L,
   };
   pkpm_s_lw->evolve_applied_acceleration = evolve_applied_acceleration;
-
-  pkpm_s_lw->has_diffusion = has_diffusion;
-  pkpm_s_lw->D = D;
-  pkpm_s_lw->order = order;
 
   pkpm_s_lw->collision_id = collision_id;
 
@@ -393,6 +433,8 @@ pkpm_species_lw_new(lua_State *L)
   pkpm_s_lw->source_length = source_length;
   strcpy(pkpm_s_lw->source_species, source_species);
   pkpm_s_lw->write_source = write_source;
+  pkpm_s_lw->num_sources = num_sources;
+  pkpm_s_lw->source_proj_id = source_proj_id;
   pkpm_s_lw->has_source_density_func = has_source_density_func;
   pkpm_s_lw->source_density_func_ref =
     (struct lua_func_ctx){.func_ref = source_density_func_ref, .ndim = 0, .nret = 1, .L = L};
@@ -565,8 +607,6 @@ struct pkpm_app_lw {
   struct lua_func_ctx
     dist_init_func_ctx[GKYL_MAX_SPECIES]; // Context for distribution initialization function.
   struct lua_func_ctx
-    harm_init_func_ctx[GKYL_MAX_SPECIES]; // Context for first-harmonic initialization function.
-  struct lua_func_ctx
     fluid_init_func_ctx[GKYL_MAX_SPECIES]; // Context for fluid initialization function.
   struct lua_func_ctx
     applied_acceleration_func_ctx[GKYL_MAX_SPECIES]; // Context for applied acceleration function.
@@ -642,10 +682,6 @@ get_species_inp(lua_State *L, int cdim, struct pkpm_species_lw *species[GKYL_MAX
       if (pkpm_s->magic == PKPM_SPECIES_DEFAULT) {
         if (pkpm_s->has_dist_init_func) {
           pkpm_s->dist_init_func_ref.ndim = cdim + pkpm_s->vdim;
-        }
-
-        if (pkpm_s->has_harm_init_func) {
-          pkpm_s->harm_init_func_ref.ndim = cdim + pkpm_s->vdim;
         }
 
         if (pkpm_s->has_fluid_init_func) {
@@ -942,9 +978,7 @@ pkpm_app_new(lua_State *L)
     }
   }
 
-  pkpm.use_explicit_source = glua_tbl_get_bool(L, "useExplicitSource", false);
-  pkpm.fluid_positivity_eps = glua_tbl_get_number(L, "fluidPositivityEps", 0.0);
-  pkpm.num_face_nodes = glua_tbl_get_integer(L, "numFaceNodes", 0);
+  pkpm.use_explicit_sources = glua_tbl_get_bool(L, "useExplicitSources", false);
 
   pkpm.basis_type = get_basis_type(glua_tbl_get_string(L, "basis", "serendipity"));
 
@@ -978,38 +1012,28 @@ pkpm_app_new(lua_State *L)
     app_lw->dist_init_func_ctx[s] = species[s]->dist_init_func_ref;
     app_lw->fluid_init_func_ctx[s] = species[s]->fluid_init_func_ref;
     if (species[s]->has_dist_init_func) {
-      pkpm.species[s].init_dist = gkyl_lw_eval_cb;
-      pkpm.species[s].ctx_dist = &app_lw->dist_init_func_ctx[s];
-    }
-    app_lw->harm_init_func_ctx[s] = species[s]->harm_init_func_ref;
-    if (species[s]->has_harm_init_func) {
-      pkpm.species[s].init_harm = gkyl_lw_eval_cb;
-      pkpm.species[s].ctx_harm = &app_lw->harm_init_func_ctx[s];
+      pkpm.species[s].kinetic.projection[0].func = gkyl_lw_eval_cb;
+      pkpm.species[s].kinetic.projection[0].ctx_func = &app_lw->dist_init_func_ctx[s];
     }
     if (species[s]->has_fluid_init_func) {
-      pkpm.species[s].init_fluid = gkyl_lw_eval_cb;
-      pkpm.species[s].ctx_fluid = &app_lw->fluid_init_func_ctx[s];
+      pkpm.species[s].fluid.init = gkyl_lw_eval_cb;
+      pkpm.species[s].fluid.ctx = &app_lw->fluid_init_func_ctx[s];
     }
 
     app_lw->applied_acceleration_func_ctx[s] = species[s]->applied_acceleration_func_ref;
     if (species[s]->has_applied_acceleration_func) {
-      pkpm.species[s].app_accel = gkyl_lw_eval_cb;
-      pkpm.species[s].app_accel_ctx = &app_lw->applied_acceleration_func_ctx[s];
-      pkpm.species[s].app_accel_evolve = species[s]->evolve_applied_acceleration;
-    }
-
-    if (species[s]->has_diffusion) {
-      pkpm.species[s].diffusion.D = species[s]->D;
-      pkpm.species[s].diffusion.order = species[s]->order;
+      pkpm.species[s].fluid.app_accel = gkyl_lw_eval_cb;
+      pkpm.species[s].fluid.app_accel_ctx = &app_lw->applied_acceleration_func_ctx[s];
+      pkpm.species[s].fluid.app_accel_evolve = species[s]->evolve_applied_acceleration;
     }
 
     app_lw->collision_id[s] = species[s]->collision_id;
-    pkpm.species[s].collisions.collision_id = app_lw->collision_id[s];
+    pkpm.species[s].kinetic.collisions.collision_id = app_lw->collision_id[s];
 
     app_lw->self_nu_func_ctx[s] = species[s]->self_nu_func_ref;
     if (species[s]->has_self_nu_func) {
-      pkpm.species[s].collisions.self_nu = gkyl_lw_eval_cb;
-      pkpm.species[s].collisions.ctx = &app_lw->self_nu_func_ctx[s];
+      pkpm.species[s].kinetic.collisions.self_nu = gkyl_lw_eval_cb;
+      pkpm.species[s].kinetic.collisions.self_nu_ctx = &app_lw->self_nu_func_ctx[s];
     }
 
     app_lw->num_cross_collisions[s] = species[s]->num_cross_collisions;
@@ -1017,26 +1041,26 @@ pkpm_app_new(lua_State *L)
       strcpy(app_lw->collide_with[s][i], species[s]->collide_with[i]);
     }
 
-    pkpm.species[s].collisions.num_cross_collisions = app_lw->num_cross_collisions[s];
+    pkpm.species[s].kinetic.collisions.num_cross_collisions = app_lw->num_cross_collisions[s];
     for (int i = 0; i < app_lw->num_cross_collisions[s]; i++) {
-      strcpy(pkpm.species[s].collisions.collide_with[i], app_lw->collide_with[s][i]);
+      strcpy(pkpm.species[s].kinetic.collisions.collide_with[i], app_lw->collide_with[s][i]);
       app_lw->cross_nu_func_ctx[s][i] = species[s]->cross_nu_func_ref[i];
       if (species[s]->has_cross_nu_func[i]) {
-        pkpm.species[s].collisions.cross_nu[i] = gkyl_lw_eval_cb;
-        pkpm.species[s].collisions.cross_nu_ctx[i] = &app_lw->cross_nu_func_ctx[s][i];
+        pkpm.species[s].kinetic.collisions.cross_nu[i] = gkyl_lw_eval_cb;
+        pkpm.species[s].kinetic.collisions.cross_nu_ctx[i] = &app_lw->cross_nu_func_ctx[s][i];
       }
     }
-    pkpm.species[s].collisions.is_implicit = species[s]->is_implicit;
-    pkpm.species[s].collisions.nuFrac = species[s]->nu_frac;
-    pkpm.species[s].collisions.den_ref = species[s]->den_ref;
-    pkpm.species[s].collisions.temp_ref = species[s]->temp_ref;
-    pkpm.species[s].collisions.hbar = species[s]->hbar;
-    pkpm.species[s].collisions.eps0 = species[s]->eps0;
+    pkpm.species[s].kinetic.collisions.is_implicit = species[s]->is_implicit;
+    pkpm.species[s].kinetic.collisions.nu_frac = species[s]->nu_frac;
+    pkpm.species[s].kinetic.collisions.den_ref = species[s]->den_ref;
+    pkpm.species[s].kinetic.collisions.temp_ref = species[s]->temp_ref;
+    pkpm.species[s].kinetic.collisions.hbar = species[s]->hbar;
+    pkpm.species[s].kinetic.collisions.eps0 = species[s]->eps0;
 
     if (species[s]->has_source_bgk) {
       app_lw->source_bgk_rate_func_ctx[s] = species[s]->source_bgk_rate_func_ref;
       app_lw->source_bgk_temp_func_ctx[s] = species[s]->source_bgk_temp_func_ref;
-      pkpm.species[s].source_bgk = (struct gkyl_pkpm_source_bgk){
+      pkpm.species[s].kinetic.source_bgk = (struct gkyl_pkpm_source_bgk){
         .source_bgk_id = GKYL_SOURCE_BGK_HEATING,
         .rate_profile = gkyl_lw_eval_cb,
         .rate_profile_ctx = &app_lw->source_bgk_rate_func_ctx[s],
@@ -1047,25 +1071,29 @@ pkpm_app_new(lua_State *L)
     }
 
     if (species[s]->source_id != GKYL_NO_SOURCE) {
-      pkpm.species[s].source.source_id = species[s]->source_id;
-      pkpm.species[s].source.source_length = species[s]->source_length;
-      strcpy(pkpm.species[s].source.source_species, species[s]->source_species);
-      pkpm.species[s].source.write_source = species[s]->write_source;
+      pkpm.species[s].kinetic.source.source_id = species[s]->source_id;
+      pkpm.species[s].kinetic.source.source_length = species[s]->source_length;
+      strcpy(pkpm.species[s].kinetic.source.source_species, species[s]->source_species);
+      pkpm.species[s].kinetic.source.write_source = species[s]->write_source;
+      pkpm.species[s].kinetic.source.num_sources = species[s]->num_sources;
+      pkpm.species[s].kinetic.source.projection[0].proj_id = species[s]->source_proj_id;
 
       app_lw->source_density_func_ctx[s] = species[s]->source_density_func_ref;
       app_lw->source_temp_func_ctx[s] = species[s]->source_temp_func_ref;
       app_lw->source_drift_func_ctx[s] = species[s]->source_drift_func_ref;
       if (species[s]->has_source_density_func) {
-        pkpm.species[s].source.density = gkyl_lw_eval_cb;
-        pkpm.species[s].source.ctx_density = &app_lw->source_density_func_ctx[s];
+        pkpm.species[s].kinetic.source.projection[0].density = gkyl_lw_eval_cb;
+        pkpm.species[s].kinetic.source.projection[0].ctx_density =
+          &app_lw->source_density_func_ctx[s];
       }
       if (species[s]->has_source_temp_func) {
-        pkpm.species[s].source.temp = gkyl_lw_eval_cb;
-        pkpm.species[s].source.ctx_temp = &app_lw->source_temp_func_ctx[s];
+        pkpm.species[s].kinetic.source.projection[0].temp = gkyl_lw_eval_cb;
+        pkpm.species[s].kinetic.source.projection[0].ctx_temp = &app_lw->source_temp_func_ctx[s];
       }
       if (species[s]->has_source_drift_func) {
-        pkpm.species[s].source.V_drift = gkyl_lw_eval_cb;
-        pkpm.species[s].source.ctx_V_drift = &app_lw->source_drift_func_ctx[s];
+        pkpm.species[s].kinetic.source.projection[0].V_drift = gkyl_lw_eval_cb;
+        pkpm.species[s].kinetic.source.projection[0].ctx_V_drift =
+          &app_lw->source_drift_func_ctx[s];
       }
     }
   }
