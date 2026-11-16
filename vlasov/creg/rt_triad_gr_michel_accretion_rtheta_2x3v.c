@@ -2,18 +2,18 @@
 // coordinates through the GR triad Vlasov solver with implicit BGK collisions (2x3v, r-theta preset
 // geometry with a single reflecting polar cell about the equator and cubic velocity maps). The
 // exact transonic Michel solution with sonic radius 8 M (temperature 0.037 at r = 15 M rising to
-// 0.15 inside the horizon, radial velocity -0.14 to -0.97) is tabulated and projected as the
-// initial state; the outer boundary holds the Michel state and the inner boundary at r = 1.8 M,
+// 0.15 inside the horizon, radial four-velocity U^r -0.14 to -0.80) is tabulated and projected as
+// the initial state; the outer boundary holds the Michel state and the inner boundary at r = 1.8 M,
 // inside the horizon, absorbs the inflow. The driver runs the tensor p = 1 hybrid basis on a
 // coarser grid and shorter run (t = 5 M) than the radial driver and must reproduce it at equal
 // resolution. The accretion rate r^2 n U^r computed from the rest-frame LTE moments must equal the
 // exact -16 M^2 at every radius, and the profile must stay stationary over the run. Figures of
-// merit (tensor p1 hybrid, 10 x 1 x 6 x 6 x 6 cells on cubic velocity maps, 78 steps): the
-// accretion rate r^2 n U^r from the rest-frame LTE moments is -16.001 at t = 0
-// (exact -16, constant in r to 3.0e-3) and -16.06 at t = 5 M (constant to 2.0e-2); over the run the
-// density, temperature and drift profiles change by at most 3.7e-2, 5.6e-2 and 2.1e-2 inside r = 12
+// merit (tensor p1 hybrid, 10 x 1 x 6 x 6 x 6 cells on cubic velocity maps, 74 steps): the
+// accretion rate r^2 n U^r from the rest-frame LTE moments is -16.006 at t = 0
+// (exact -16, constant in r to 3.0e-3) and -16.07 at t = 5 M (constant to 2.9e-2); over the run the
+// density, temperature and drift profiles change by at most 4.8e-2, 3.5e-2 and 2.4e-2 inside r = 12
 // M; the cell-averaged density agrees with the serendipity p2 1x3v driver at the same grid and time
-// to 1.7e-2 (relative L1 2.2e-3); mass changes by -8.4e-3 through the horizon boundary.
+// to 2.5e-2 (relative L1 2.9e-3); mass changes by -9.0e-3 through the horizon boundary.
 
 #include <math.h>
 #include <stdio.h>

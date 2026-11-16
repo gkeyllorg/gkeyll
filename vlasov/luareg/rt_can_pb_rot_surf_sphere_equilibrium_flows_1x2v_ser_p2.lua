@@ -10,7 +10,7 @@
 -- for t = 2 (nu t = 20). Figures of merit (serendipity p2, 32 x 12 x 12 cells, 2307 steps): the LTE
 -- projection reproduces the companion's directly projected f = exp(-H/T) to 1.0e-4 of its peak and
 -- its LTE moments return zero drift and T = 1 to round-off; under implicit BGK at nu = 10 the
--- density, temperature and mean p_phi change by at most 2.2e-4, 1.9e-4 and 7.2e-5 over t = 2; mass
+-- density, temperature and mean p_phi change by at most 2.2e-4, 1.9e-4 and 7.1e-5 over t = 2; mass
 -- and energy conserved to round-off.
 local Vlasov = G0.Vlasov
 

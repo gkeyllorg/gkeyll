@@ -4,9 +4,9 @@
 -- (up to 0.63) and unit determinant; a planar Sod state (n, T) = (1, 1) | (0.125, 0.8) across z1 =
 -- 0 is independent of y, so the kinetic solution must equal the exact planar Riemann solution
 -- (gamma = 2) in z1 and stay uniform in z2. Figures of merit
--- (serendipity p1, 32 x 2 x 12 x 12 cells): L1 density error 0.0157 against the exact planar
--- Riemann solution along z1, variation across z2 below 1e-14; mass changes by 1e-3 through the copy
--- boundaries.
+-- (serendipity p1, 32 x 2 x 12 x 12 cells): L1 density error 0.0155 against the exact planar
+-- Riemann solution along z1, variation across z2 below 1e-14; mass changes by 3e-4 and energy by
+-- 8e-4 through the copy boundaries.
 local Vlasov = G0.Vlasov
 
 mass = 1.0 -- Neutral mass.

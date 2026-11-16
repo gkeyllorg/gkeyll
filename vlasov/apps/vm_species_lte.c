@@ -73,6 +73,7 @@ vm_species_lte_init(
       .use_last_converged = use_last_converged,
     };
     lte->n_iter = 0;
+    lte->num_corr = 0;
     lte->corr_lte = gkyl_vlasov_lte_correct_inew(&inp_corr);
 
     lte->corr_stat = gkyl_dynvec_new(GKYL_DOUBLE, 8);
@@ -133,6 +134,7 @@ vm_species_lte_from_moms(
     gkyl_dynvec_append(lte->corr_stat, app->tcurr, corr_vec_global);
 
     lte->n_iter += status_corr.num_iter;
+    lte->num_corr += 1;
   }
 
   // The moments are physical, so weight f_lte by the configuration-space

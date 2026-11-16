@@ -30,12 +30,16 @@ stage_implicit_coll(gkyl_vlasov_app *app, double dt)
   }
 }
 
+// Share of the time-step each stage adds to its state: stage 1 is a full Euler
+// step, and the combinations of stages 2 and 3 carry 1/4 and 2/3 of theirs.
+static const double stage_dt_frac[3] = {1.0, 1.0 / 4.0, 2.0 / 3.0};
+
 void
 vlasov_stage_implicit(gkyl_vlasov_app *app, int stage, double dt)
 {
-  // The implicit BGK operator takes one backward-Euler step over the whole
-  // time-step, on the combined state of the last stage.
-  if (stage == 3 && app->has_implicit_coll_scheme) {
-    stage_implicit_coll(app, dt);
+  // The implicit BGK operator takes one backward-Euler step over the stage's
+  // share of the time-step, on the state the stage produced.
+  if (app->has_implicit_coll_scheme) {
+    stage_implicit_coll(app, stage_dt_frac[stage - 1] * dt);
   }
 }

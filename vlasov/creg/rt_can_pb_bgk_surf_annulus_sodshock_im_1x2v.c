@@ -5,8 +5,8 @@
 // gamma = 2. The reference is a quasi-1D finite-volume Euler solution with the metric determinant
 // as area factor (reflecting walls), and the exact planar Riemann solution bounds the early-time
 // profile. Figures of merit (serendipity p2, 64 x 12 x 16 cells, 440 steps): L1 density error
-// 0.0077 against the quasi-1D reference (0.0120 against the planar exact solution), shock at r =
-// 1.1953 (reference 1.1934), contact at 1.0703 (reference 1.0756); mass and energy conserved to
+// 0.0068 against the quasi-1D reference (0.0116 against the planar exact solution), shock at r =
+// 1.1953 (reference 1.1934), contact at 1.0755 (reference 1.0756); mass and energy conserved to
 // round-off.
 
 #include <math.h>

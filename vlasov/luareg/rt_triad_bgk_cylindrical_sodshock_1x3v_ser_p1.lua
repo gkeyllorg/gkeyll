@@ -2,11 +2,11 @@
 -- cylinder (coordinates r with velocities v_r, v_theta, v_z in the orthonormal triad, jump at r = 1
 -- on 0.5 < r < 1.5), on cubic velocity maps that cluster cells at the origin (1x3v). The states
 -- (n, T) = (1, 1) and (0.125, 0.8) are at rest on either side of the jump; with collision frequency
--- NU the solution is the Euler one with gamma = 5/3. The reference is a quasi-1D finite-volume
+-- 1000 the solution is the Euler one with gamma = 5/3. The reference is a quasi-1D finite-volume
 -- Euler solution with the metric determinant as area factor (reflecting walls), and the exact
 -- planar Riemann solution is quoted for contrast. Figures of merit (serendipity p1, 24 x 6 x 6 x 6
--- cells on cubic velocity maps): density L1 error 0.0409 against the quasi-1D reference; mass and
--- energy conserved to round-off.
+-- cells on cubic velocity maps): density L1 error 0.0395 against the quasi-1D reference; mass
+-- conserved to round-off and energy to 3e-13.
 local Vlasov = G0.Vlasov
 
 mass = 1.0 -- Neutral mass.

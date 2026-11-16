@@ -5,7 +5,7 @@
 -- density, momentum and energy. Figures of merit (serendipity p1, 2 x 2 x 16 x 16 cells): the
 -- projected square has n = 2.5313 and T = 0.4939 (quadrature of the discontinuity); after
 -- relaxation every cell carries exactly these moments and the cell averages of f agree with those
--- of the Maxwellian(n, T) to 7.0e-2 (cell averages of the p1 projection) of its peak; mass and
+-- of the Maxwellian(n, T) to 0.14 of its peak; mass and
 -- energy conserved to round-off.
 local Vlasov = G0.Vlasov
 

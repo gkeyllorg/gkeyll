@@ -5,9 +5,9 @@
 -- the solution is the Euler one with gamma = 2. The reference is a quasi-1D finite-volume Euler
 -- solution with the metric determinant as area factor (reflecting walls), and the exact planar
 -- Riemann solution bounds the early-time profile. Figures of merit
--- (serendipity p2, 64 x 12 x 12 cells, 197 steps): L1 density error 0.0076 against the quasi-1D
--- reference (0.0084 against the planar exact solution), shock at theta = 1.7702 (reference 1.7672),
--- contact at 1.6414 (reference 1.6470); mass and energy conserved to round-off.
+-- (serendipity p2, 64 x 12 x 12 cells, 197 steps): L1 density error 0.0068 against the quasi-1D
+-- reference (0.0076 against the planar exact solution), shock at theta = 1.7702 (reference 1.7672),
+-- contact at 1.6475 (reference 1.6470); mass and energy conserved to round-off.
 local Vlasov = G0.Vlasov
 
 mass = 1.0 -- Neutral mass.

@@ -1,13 +1,13 @@
 -- Sod shock tube of a neutral gas with implicit BGK collisions through the triad Vlasov solver on
 -- an annulus (polar coordinates r, theta with the orthonormal triad of unit radial and azimuthal
 -- vectors, jump at r = 1 on 0.5 < r < 1.5) (1x2v). The states (n, T) = (1, 1) and (0.125, 0.8) are
--- at rest on either side of the jump; with collision frequency NU the solution is the Euler one
+-- at rest on either side of the jump; with collision frequency 2000 the solution is the Euler one
 -- with gamma = 2. The Lua variants give the same geometry through the vierbein, the preset annulus
 -- and a non-uniform radial mesh and must reproduce this driver. The reference is a quasi-1D
 -- finite-volume Euler solution with the metric determinant as area factor (reflecting walls), and
 -- the exact planar Riemann solution is quoted for contrast. Figures of merit (serendipity p2, 64
--- radial cells on the stretched mesh r = x - 0.1 sin(2 pi (x - 0.5))): density L1 error 0.0058
--- against the quasi-1D reference (0.0076 against the planar exact solution); shock at 1.1919
+-- radial cells on the stretched mesh r = x - 0.1 sin(2 pi (x - 0.5))): density L1 error 0.0056
+-- against the quasi-1D reference (0.0074 against the planar exact solution); shock at 1.1919
 -- (reference 1.1934); mass and energy conserved to round-off.
 local Vlasov = G0.Vlasov
 

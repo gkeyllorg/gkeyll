@@ -11,7 +11,7 @@
 -- differs from the companion's directly projected f = exp(-H/T) by 0.20 of its peak
 -- (the p1 Maxwellian is corrected to the requested moments) while its LTE moments return zero drift
 -- and T = 1 to round-off; under implicit BGK at nu = 10 the density, temperature and mean p_phi
--- change by at most 9.3e-2, 6.7e-2 and 6.1e-3 over t = 2; mass and energy conserved to round-off.
+-- change by at most 9.2e-2, 6.7e-2 and 6.1e-3 over t = 2; mass and energy conserved to round-off.
 local Vlasov = G0.Vlasov
 
 mass = 1.0 -- Neutral mass.

@@ -495,7 +495,7 @@ struct vlasov_species_lw {
   bool output_f_lte; // Should f_lte be written out (for calculating transport coefficients)?
 
   bool fixed_temp_relax; // Are BGK collisions relaxing to a fixed input temperature?
-  bool is_implicit; // Boolean for using implicit BGK collisions (replaces rk3).
+  bool is_implicit; // Boolean for using implicit BGK collisions (backward Euler in each RK3 stage).
 
   enum gkyl_source_id source_id; // Source type.
 
@@ -1426,6 +1426,10 @@ struct vlasov_fluid_species_lw {
   bool has_n0_func; // Is there a background density function?
   struct lua_func_ctx n0_func_ref; // Lua registry reference to background density function.
 
+  bool has_app_accel_func; // Is there an applied acceleration function?
+  struct lua_func_ctx app_accel_func_ref; // Lua registry reference to applied acceleration function.
+  bool evolve_app_accel; // Is the applied acceleration evolved?
+
   bool has_diffusion_func; // Is there a diffusion tensor function?
   struct lua_func_ctx diffusion_func_ref; // Lua registry reference to diffusion tensor function.
 };
@@ -1481,6 +1485,16 @@ vlasov_fluid_species_lw_new(lua_State *L)
   if (glua_tbl_get_func(L, "n0")) {
     n0_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
     has_n0_func = true;
+  }
+
+  bool has_app_accel_func = false;
+  int app_accel_func_ref = LUA_NOREF;
+  bool evolve_app_accel = false;
+  if (glua_tbl_get_func(L, "appliedAccel")) {
+    app_accel_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    has_app_accel_func = true;
+
+    evolve_app_accel = glua_tbl_get_bool(L, "evolveAppliedAccel", false);
   }
 
   bool has_diffusion_func = false;
@@ -1556,6 +1570,15 @@ vlasov_fluid_species_lw_new(lua_State *L)
     .nret = 1,
     .L = L,
   };
+
+  vmfs_lw->has_app_accel_func = has_app_accel_func;
+  vmfs_lw->app_accel_func_ref = (struct lua_func_ctx){
+    .func_ref = app_accel_func_ref,
+    .ndim = 0, // This will be set later.
+    .nret = 3,
+    .L = L,
+  };
+  vmfs_lw->evolve_app_accel = evolve_app_accel;
 
   vmfs_lw->has_diffusion_func = has_diffusion_func;
   vmfs_lw->diffusion_func_ref = (struct lua_func_ctx){
@@ -3027,6 +3050,14 @@ vm_app_new(lua_State *L)
       vm.species[num_kinetic_species + s].fluid.can_pb_n0 = gkyl_lw_eval_cb;
       vm.species[num_kinetic_species + s].fluid.can_pb_n0_ctx =
         vm_app_ctx(app_lw, &fluid_species[s]->n0_func_ref, cdim);
+    }
+
+    if (fluid_species[s]->has_app_accel_func) {
+      vm.species[num_kinetic_species + s].fluid.app_accel = gkyl_lw_eval_cb;
+      vm.species[num_kinetic_species + s].fluid.app_accel_ctx =
+        vm_app_ctx(app_lw, &fluid_species[s]->app_accel_func_ref, cdim);
+      vm.species[num_kinetic_species + s].fluid.app_accel_evolve =
+        fluid_species[s]->evolve_app_accel;
     }
 
     if (fluid_species[s]->has_diffusion_func) {

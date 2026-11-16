@@ -998,7 +998,9 @@ void vlasov_species_accumulate_field_coupling(
 );
 
 /**
- * Compute the time-dependent applied acceleration (kinetic aspect).
+ * Compute the time-dependent applied acceleration of each present aspect at a
+ * stage time (no-op for an aspect whose acceleration does not evolve, and for
+ * a fluid aspect whose acceleration the implicit fluid-EM coupling applies).
  *
  * @param app Vlasov app object
  * @param sp Species container
@@ -2361,6 +2363,19 @@ void vm_fluid_species_apply_ic(
  * @param tm Time for use in acceleration
  */
 void vm_fluid_species_calc_app_accel(
+  gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, double tm
+);
+
+/**
+ * Recompute a time-dependent applied acceleration at a stage time, when the
+ * RHS of the fluid species applies it (no field). With a field the implicit
+ * fluid-EM coupling applies the acceleration and evaluates it at its own time.
+ *
+ * @param app Vlasov app object
+ * @param fluid_species Fluid Species object
+ * @param tm Stage time
+ */
+void vm_fluid_species_calc_stage_app_accel(
   gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, double tm
 );
 

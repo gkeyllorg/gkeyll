@@ -292,12 +292,16 @@ vlasov_species_accumulate_field_coupling(
 
 // --- Per-aspect operations ---------------------------------------------------
 
-// Compute time-dependent applied acceleration (kinetic aspect only).
+// Compute the time-dependent applied acceleration of each present aspect at a
+// stage time.
 void
 vlasov_species_calc_app_accel(gkyl_vlasov_app *app, struct vlasov_species *sp, double tcurr)
 {
   if (sp->kinetic) {
     vm_species_calc_app_accel(app, sp->kinetic, tcurr);
+  }
+  if (sp->fluid) {
+    vm_fluid_species_calc_stage_app_accel(app, sp->fluid, tcurr);
   }
 }
 

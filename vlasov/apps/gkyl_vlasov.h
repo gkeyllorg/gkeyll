@@ -69,7 +69,7 @@ struct gkyl_vlasov_collisions {
 
   // BGK collisions specific inputs
   bool fixed_temp_relax; // Are BGK collisions relaxing to a fixed input temperature?
-  bool is_implicit; // Boolean for using implicit BGK collisions (replaces rk3).
+  bool is_implicit; // Boolean for using implicit BGK collisions (backward Euler in each RK3 stage).
 };
 
 // Parameters for species radiation

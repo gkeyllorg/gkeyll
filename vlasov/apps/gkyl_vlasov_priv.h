@@ -173,8 +173,9 @@ void vlasov_forward_euler(
 
 // The implicit operators of SSP-RK3 stage 'stage' (1, 2 or 3), applied to the
 // stage state after the explicit part of the stage, its BCs and the stage
-// combination: implicit BGK collisions, one backward-Euler step over dt on the
-// combined state of the last stage. A no-op without implicit collisions.
+// combination: implicit BGK collisions, one backward-Euler step over the share
+// of dt the stage adds to its state (dt, dt/4, 2 dt/3). A no-op without
+// implicit collisions.
 void vlasov_stage_implicit(gkyl_vlasov_app *app, int stage, double dt);
 
 // Take a single time-step using a first-order operator split: SSP RK3, then

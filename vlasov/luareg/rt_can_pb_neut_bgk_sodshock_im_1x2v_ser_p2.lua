@@ -3,9 +3,9 @@
 -- BGK Sod family: (n, T) = (1, 1) left and (0.125, 0.8) right at rest, gamma = 2 for two velocity
 -- dimensions, collision frequency 2000 (mean free path 0.03 cells) so the solution is the Euler
 -- one; the reference is the exact Riemann solution. Figures of merit
--- (serendipity p2, 64 x 12 x 12 cells, 190 steps): L1 density error 0.0105 against the exact
--- Riemann solution (0.0092 against the quasi-1D reference), shock at x = 0.6953 (exact 0.6957),
--- contact at 0.5703 (exact 0.5760); mass and energy conserved to round-off.
+-- (serendipity p2, 64 x 12 x 12 cells, 190 steps): L1 density error 0.0086 against the exact
+-- Riemann solution (0.0073 against the quasi-1D reference), shock at x = 0.6953 (exact 0.6957),
+-- contact at 0.5755 (exact 0.5760); mass and energy conserved to round-off.
 local Vlasov = G0.Vlasov
 
 mass = 1.0 -- Neutral mass.

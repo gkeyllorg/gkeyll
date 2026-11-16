@@ -5,9 +5,9 @@
 -- the solution is the Euler one with gamma = 2. The reference is a quasi-1D finite-volume Euler
 -- solution with the metric determinant as area factor (reflecting walls), and the exact planar
 -- Riemann solution bounds the early-time profile. Figures of merit (tensor p1, 64 x 12 x 12 cells):
--- L1 density error 0.0098 against the quasi-1D reference
--- (0.0108 against the planar exact solution), shock at theta = 1.7656 (reference 1.7672), contact
--- at 1.6368 (reference 1.6470); mass and energy conserved to round-off.
+-- L1 density error 0.0091 against the quasi-1D reference
+-- (0.0101 against the planar exact solution), shock at theta = 1.7656 (reference 1.7672), contact
+-- at 1.6460 (reference 1.6470); mass and energy conserved to round-off.
 local Vlasov = G0.Vlasov
 
 mass = 1.0 -- Neutral mass.

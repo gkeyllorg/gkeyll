@@ -3,14 +3,14 @@
 -- collision frequency puts the mean free path at 1/40 of a cell, so the solution follows the Euler
 -- Sod solution of a gas with adiabatic index (d+2)/d = 3 with the discontinuities resolved to the
 -- grid scale.
--- The BGK relaxation is integrated implicitly, split from the explicit RK3 step of the
--- collisionless terms.
+-- The BGK relaxation is integrated implicitly, with a backward-Euler step in each stage of the
+-- explicit RK3 step of the collisionless terms.
 -- Quadratic velocity maps cluster the cells at the origin of velocity space.
 -- Exact solution at t = 0.1: shock at x = 0.727, contact at 0.561, post-shock density 0.171,
 -- velocity 0.609.
--- The shock and contact positions agree to within a cell and the plateaus to 0.2%; the density L1
+-- The shock and contact positions agree to within a cell and the plateaus to 0.1%; the density L1
 -- error is 0.004.
--- The density differs from the explicit run at the same collision frequency by 2% at most.
+-- The density differs from the explicit run at the same collision frequency by 0.04% at most.
 local Vlasov = G0.Vlasov
 
 -- Physical constants (using normalized code units).

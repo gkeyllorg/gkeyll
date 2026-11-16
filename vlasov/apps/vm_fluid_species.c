@@ -1161,6 +1161,16 @@ vm_fluid_species_calc_app_accel(
 }
 
 void
+vm_fluid_species_calc_stage_app_accel(
+  gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, double tm
+)
+{
+  if (fluid_species->app_accel_evolve && !app->has_field) {
+    vm_fluid_species_calc_app_accel(app, fluid_species, tm);
+  }
+}
+
+void
 vm_fluid_species_prim_vars(
   gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, const struct gkyl_array *fluid
 )

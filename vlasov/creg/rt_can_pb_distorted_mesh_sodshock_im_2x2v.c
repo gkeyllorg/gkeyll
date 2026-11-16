@@ -5,8 +5,8 @@
 // 0 is independent of y, so the kinetic solution must equal the exact planar Riemann solution
 // (gamma = 2) in z1 and stay uniform in z2. Figures of merit
 // (serendipity p2, 32 x 2 x 12 x 12 cells, 123 steps): L1 density error 0.0110 against the exact
-// planar Riemann solution along z1, variation across z2 below 1e-14; mass changes by 1e-3 through
-// the copy boundaries.
+// planar Riemann solution along z1, variation across z2 below 1e-14; mass changes by 1e-3 and
+// energy by 2e-3 through the copy boundaries.
 
 #include <math.h>
 #include <stdio.h>

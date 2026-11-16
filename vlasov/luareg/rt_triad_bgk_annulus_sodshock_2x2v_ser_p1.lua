@@ -1,11 +1,11 @@
 -- Sod shock tube of a neutral gas with implicit BGK collisions through the triad Vlasov solver on
 -- an annulus in two configuration dimensions (r, theta) with a single periodic azimuthal cell, jump
 -- at r = 1 on 0.5 < r < 1.5 (2x2v). The states (n, T) = (1, 1) and (0.125, 0.8) are at rest on
--- either side of the jump; with collision frequency NU the solution is the Euler one with gamma =
+-- either side of the jump; with collision frequency 2000 the solution is the Euler one with gamma =
 -- 2. The solution must stay azimuthally uniform and reproduce the 1x2v driver run at the same
 -- radial resolution. The reference is a quasi-1D finite-volume Euler solution with the metric
 -- determinant as area factor (reflecting walls), and the exact planar Riemann solution is quoted
--- for contrast. Figures of merit (serendipity p1, 32 x 1 x 12 x 12 cells): density L1 error 0.0250
+-- for contrast. Figures of merit (serendipity p1, 32 x 1 x 12 x 12 cells): density L1 error 0.0241
 -- against the quasi-1D reference; mass and energy conserved to round-off.
 local Vlasov = G0.Vlasov
 

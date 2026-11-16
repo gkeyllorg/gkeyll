@@ -4,8 +4,8 @@
 -- the pressure gradient exactly, n V_theta^2 / r = d(nT)/dr, so the Euler state is stationary
 -- between reflecting walls at r = 0.5 and 1.5; the kinetic solution must keep the density,
 -- temperature and rotation profiles fixed over t = 0.5 (a sound crossing). Figures of merit
--- (serendipity p1, 32 x 12 x 12 cells): over t = 0.5 the density changes by at most 7.4e-2
--- (relative), the temperature by 3.2e-2 and the rotation velocity by 5.6e-2; mass and energy
+-- (serendipity p1, 32 x 12 x 12 cells): over t = 0.5 the density changes by at most 9.4e-2
+-- (relative), the temperature by 3.7e-2 and the rotation velocity by 6.1e-2; mass and energy
 -- conserved to round-off.
 local Vlasov = G0.Vlasov
 

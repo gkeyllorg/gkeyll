@@ -2,8 +2,8 @@
 -- periodic angular cell (2x2v). Same problem as the 1x2v annulus test (polar metric diag(1, r^2),
 -- jump at r = 1, implicit BGK at collision frequency 2000.0); the angular direction is uniform, so
 -- the 2x2v kernels must reproduce the 1x2v run, and the reference is the same quasi-1D Euler
--- solution. Figures of merit (tensor p1, 32 x 1 x 8 x 12 cells): L1 density error 0.0192 against
--- the quasi-1D reference (0.0208 against the planar exact solution), shock at r = 1.1953
+-- solution. Figures of merit (tensor p1, 32 x 1 x 8 x 12 cells): L1 density error 0.0187 against
+-- the quasi-1D reference (0.0198 against the planar exact solution), shock at r = 1.1953
 -- (reference 1.1934), contact at 1.0703 (reference 1.0756); mass and energy conserved to round-off.
 local Vlasov = G0.Vlasov
 

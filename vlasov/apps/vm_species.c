@@ -1394,6 +1394,19 @@ vm_species_rhs_source_enabled(
   vm_species_source_rhs(app, vms, &vms->src, rhs);
 }
 
+// A static species does not take its source (its RK buffers are the
+// distribution itself); a time-dependent source is still projected so that its
+// diagnostics are those of the current time.
+static void
+vm_species_rhs_source_static(
+  gkyl_vlasov_app *app, struct vm_species *vms, double tcurr, struct gkyl_array *rhs
+)
+{
+  if (vms->src.evolve_source) {
+    vm_species_source_calc(app, vms, &vms->src, tcurr);
+  }
+}
+
 static void
 vm_species_rhs_source_disabled(
   gkyl_vlasov_app *app, struct vm_species *vms, double tcurr, struct gkyl_array *rhs
@@ -1753,7 +1766,8 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
   vms->calc_implicit_moms_func = vm_species_calc_implicit_moms_bgk;
   if (vms->source_id) {
     vms->calc_source_moms_func = vm_species_calc_source_moms_enabled;
-    vms->rhs_source_func = vm_species_rhs_source_enabled;
+    vms->rhs_source_func = vms->info.is_static ? vm_species_rhs_source_static :
+                                                 vm_species_rhs_source_enabled;
   } else {
     vms->calc_source_moms_func = vm_species_calc_source_moms_disabled;
     vms->rhs_source_func = vm_species_rhs_source_disabled;

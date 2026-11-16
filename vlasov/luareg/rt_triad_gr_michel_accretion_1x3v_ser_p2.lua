@@ -1,16 +1,16 @@
 -- Michel accretion of a Juttner gas onto a Schwarzschild black hole in ingoing Kerr-Schild
 -- coordinates through the GR triad Vlasov solver with implicit BGK collisions (1x3v, radial preset
 -- geometry with cubic velocity maps). The exact transonic Michel solution with sonic radius 8 M
--- (temperature 0.037 at r = 15 M rising to 0.15 inside the horizon, radial velocity -0.14 to -0.97)
--- is tabulated and projected as the initial state; the outer boundary holds the Michel state and
--- the inner boundary at r = 1.8 M, inside the horizon, absorbs the inflow. The accretion rate r^2 n
--- U^r computed from the rest-frame LTE moments must equal the exact -16 M^2 at every radius, and
--- the profile must stay stationary over the run. Figures of merit (serendipity p2, 16 x 6 x 6 x 6
--- cells on cubic velocity maps, 332 steps): the accretion rate r^2 n U^r from the rest-frame LTE
--- moments is -16.007 at t = 0 (exact -16, constant in r to 3.4e-3) and -16.17 at t = 20 M
--- (constant to 2.8e-2); over the run the density, temperature and drift profiles change by at most
--- 1.7e-2, 2.0e-2 and 1.5e-2 inside r = 12 M; mass changes by -1.9e-2 through the horizon boundary
--- as the inner cells settle.
+-- (temperature 0.037 at r = 15 M rising to 0.15 inside the horizon, radial four-velocity U^r -0.14
+-- to -0.80) is tabulated and projected as the initial state; the outer boundary holds the Michel
+-- state and the inner boundary at r = 1.8 M, inside the horizon, absorbs the inflow. The accretion
+-- rate r^2 n U^r computed from the rest-frame LTE moments must equal the exact -16 M^2 at every
+-- radius, and the profile must stay stationary over the run. Figures of merit (serendipity p2, 16 x
+-- 6 x 6 x 6 cells on cubic velocity maps, 332 steps): the accretion rate r^2 n U^r from the
+-- rest-frame LTE moments is -16.007 at t = 0 (exact -16, constant in r to 3.4e-3) and -16.17 at t =
+-- 20 M (constant to 2.7e-2); over the run the density, temperature and drift profiles change by at
+-- most 1.6e-2, 1.0e-2 and 1.6e-2 inside r = 12 M; mass changes by -1.9e-2 through the horizon
+-- boundary as the inner cells settle.
 local Vlasov = G0.Vlasov
 
 mass = 1.0 -- Neutral mass.

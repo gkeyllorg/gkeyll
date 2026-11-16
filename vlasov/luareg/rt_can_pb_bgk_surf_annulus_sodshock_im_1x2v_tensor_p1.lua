@@ -4,8 +4,8 @@
 -- on either side of the jump; with collision frequency 2000.0 the solution is the Euler one with
 -- gamma = 2. The reference is a quasi-1D finite-volume Euler solution with the metric determinant
 -- as area factor (reflecting walls), and the exact planar Riemann solution bounds the early-time
--- profile. Figures of merit (tensor p1, 64 x 12 x 16 cells): L1 density error 0.0115 against the
--- quasi-1D reference (0.0147 against the planar exact solution), shock at r = 1.1992
+-- profile. Figures of merit (tensor p1, 64 x 12 x 16 cells): L1 density error 0.0106 against the
+-- quasi-1D reference (0.0141 against the planar exact solution), shock at r = 1.1992
 -- (reference 1.1934), contact at 1.0742 (reference 1.0756); mass and energy conserved to round-off.
 local Vlasov = G0.Vlasov
 
