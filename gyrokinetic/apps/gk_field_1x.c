@@ -185,8 +185,8 @@ gk_field_fem_new_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
     gkf->currentDens_global = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
     gkf->dApartdtSlvr_lhs_factor = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     gkf->div_mem = app->use_gpu ?
-                   gkyl_dg_bin_op_mem_cu_dev_new(app->local.volume, app->basis.num_basis) :
-                   gkyl_dg_bin_op_mem_new(app->local.volume, app->basis.num_basis);
+                     gkyl_dg_bin_op_mem_cu_dev_new(app->local.volume, app->basis.num_basis) :
+                     gkyl_dg_bin_op_mem_new(app->local.volume, app->basis.num_basis);
 
     // Need to set weight to kperpsq*polarizationWeight for use in potential smoothing.
     gkyl_array_copy(gkf->lapWeightAmpere, app->gk_geom->geo_int.jacobgeo);

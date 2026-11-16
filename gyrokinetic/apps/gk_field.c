@@ -704,7 +704,6 @@ gk_field_calc_apar_energy_dt(
   field->calc_apar_energy_dt_func(app, field, dt, energy_reduced);
 }
 
-
 void
 gk_field_accumulate_rho_c_poisson(
   gkyl_gyrokinetic_app *app, struct gk_field *field, struct gk_species *gks,
