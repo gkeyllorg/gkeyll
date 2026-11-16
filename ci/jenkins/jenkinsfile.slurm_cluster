@@ -366,15 +366,16 @@ def publishGitHubReport(String statusCredentialsId, String commit, String state,
 }
 
 def submitSlurmJob(String kind, String lane, List<String> extraExports = []) {
-    def payload = env["SLURM_CI_${lane}_SCRIPT"]
+    // Jenkins permits environment properties; bracket access invokes a rejected getAt.
+    def payload = env.getProperty("SLURM_CI_${lane}_SCRIPT".toString())
     withEnv([
         "CI_WORKSPACE=${env.WORKSPACE}", "CI_SLURM_LANE=${lane}",
         "CI_SLURM_JOB_KIND=${kind}", "CI_SLURM_JOB_ID_FILE=slurm-${kind}-job-id.txt",
         "CI_SLURM_JOB_STATUS_FILE=slurm-${kind}-job-status.txt",
         "CI_SLURM_PAYLOAD=${env.CI_TRUSTED_DIR}/${payload}",
         "CI_SLURM_OUTPUT=slurm-${kind}-%j.out",
-        "CI_SLURM_CPUS_PER_TASK=${env["SLURM_CI_${lane}_CPUS_PER_TASK"]}",
-        "CI_SLURM_GPUS_PER_TASK=${env["SLURM_CI_${lane}_GPUS_PER_TASK"]}"
+        "CI_SLURM_CPUS_PER_TASK=${env.getProperty("SLURM_CI_${lane}_CPUS_PER_TASK".toString())}",
+        "CI_SLURM_GPUS_PER_TASK=${env.getProperty("SLURM_CI_${lane}_GPUS_PER_TASK".toString())}"
     ] + extraExports) {
         sh 'bash -l "$CI_TRUSTED_DIR/ci/jenkins/slurm-submit.sh"'
     }
