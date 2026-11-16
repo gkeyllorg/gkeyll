@@ -173,20 +173,18 @@ gkyl_dg_calc_pkpm_vars_constraints(
   const struct gkyl_array *norm_moms, struct gkyl_array *constraints
 )
 {
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(constraints)) {
+    return gkyl_dg_calc_pkpm_vars_constraints_cu(up, conf_range, num_basis, norm_moms, constraints);
+  }
+#endif
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, conf_range);
   while (gkyl_range_iter_next(&iter)) {
     long loc = gkyl_range_idx(conf_range, iter.idx);
-    const double *m = gkyl_array_cfetch(norm_moms, loc);
-    double *c = gkyl_array_fetch(constraints, loc);
-    for (int k = 0; k < num_basis; ++k) {
-      c[k] = m[k];
-      c[num_basis + k] = m[3 * num_basis + k];
-      c[2 * num_basis + k] = (m[num_basis + k] + 2.0 * m[2 * num_basis + k]) / 3.0;
-      for (int a = 0; a < 3; ++a) {
-        c[(3 + a) * num_basis + k] = m[(6 + a) * num_basis + k];
-      }
-    }
+    pkpm_vars_constraints_cell(
+      num_basis, gkyl_array_cfetch(norm_moms, loc), gkyl_array_fetch(constraints, loc)
+    );
   }
 }
 

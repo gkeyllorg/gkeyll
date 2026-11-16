@@ -156,7 +156,15 @@ gkyl_dg_calc_pkpm_bvar_advance_cu(
   assert(false);
 }
 
-#endif
+int
+gkyl_dg_calc_pkpm_bvar_dtB_over_magB_cu(
+  struct gkyl_dg_calc_pkpm_bvar *up, const struct gkyl_range *conf_range,
+  const struct gkyl_array *em, const struct gkyl_array *dt_em, struct gkyl_array *dtB_over_magB
+)
+{
+  assert(false);
+  return 0;
+}
 
 void
 gkyl_dg_calc_pkpm_bvar_grad_cu(
@@ -166,3 +174,5 @@ gkyl_dg_calc_pkpm_bvar_grad_cu(
 {
   assert(false);
 }
+
+#endif

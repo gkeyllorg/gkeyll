@@ -343,6 +343,10 @@ void gkyl_dg_calc_pkpm_vars_int_cu(
   const struct gkyl_array *fluid, const struct gkyl_array *vlasov_pkpm_moms,
   const struct gkyl_array *u, struct gkyl_array *int_pkpm_vars
 );
+void gkyl_dg_calc_pkpm_vars_constraints_cu(
+  struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, int num_basis,
+  const struct gkyl_array *norm_moms, struct gkyl_array *constraints
+);
 int gkyl_dg_calc_pkpm_vars_grad_ln_n_cu(
   struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
   const struct gkyl_array *rho, const struct gkyl_array *grad_rho, struct gkyl_array *grad_ln_n

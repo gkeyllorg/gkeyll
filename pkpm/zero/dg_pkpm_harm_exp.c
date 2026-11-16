@@ -93,9 +93,9 @@ gkyl_dg_pkpm_harm_exp_advance(
   }
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(out)) {
-    // the weighted combination is not available on the device
-    assert(!lam);
-    gkyl_dg_pkpm_harm_exp_advance_cu(up, stage, h, conf_range, phase_range, coef, f0, nu, act, out);
+    gkyl_dg_pkpm_harm_exp_advance_cu(
+      up, stage, h, conf_range, phase_range, coef, f0, lam, nu, act, out
+    );
     return;
   }
 #endif

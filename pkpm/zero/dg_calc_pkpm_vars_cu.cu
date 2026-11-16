@@ -1,8 +1,8 @@
 /* -*- c++ -*- */
 
+#include <assert.h>
 #include <math.h>
 #include <string.h>
-#include <time.h>
 
 extern "C" {
 #include <gkyl_alloc.h>
@@ -170,6 +170,36 @@ gkyl_dg_calc_pkpm_vars_int_cu(
 }
 
 __global__ void
+gkyl_dg_calc_pkpm_vars_constraints_cu_kernel(
+  struct gkyl_range conf_range, int num_basis, const struct gkyl_array *norm_moms,
+  struct gkyl_array *constraints
+)
+{
+  int idx[GKYL_MAX_DIM];
+  for (unsigned long linc1 = threadIdx.x + blockIdx.x * blockDim.x; linc1 < conf_range.volume;
+       linc1 += gridDim.x * blockDim.x) {
+    gkyl_sub_range_inv_idx(&conf_range, linc1, idx);
+    long loc = gkyl_range_idx(&conf_range, idx);
+    pkpm_vars_constraints_cell(
+      num_basis, (const double *)gkyl_array_cfetch(norm_moms, loc),
+      (double *)gkyl_array_fetch(constraints, loc)
+    );
+  }
+}
+
+// Host-side wrapper for the constraints of the normalized distributions
+void
+gkyl_dg_calc_pkpm_vars_constraints_cu(
+  struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, int num_basis,
+  const struct gkyl_array *norm_moms, struct gkyl_array *constraints
+)
+{
+  gkyl_dg_calc_pkpm_vars_constraints_cu_kernel<<<conf_range->nblocks, conf_range->nthreads>>>(
+    *conf_range, num_basis, norm_moms->on_dev, constraints->on_dev
+  );
+}
+
+__global__ void
 gkyl_dg_calc_pkpm_vars_grad_ln_n_cu_kernel(
   struct gkyl_dg_calc_pkpm_vars *up, struct gkyl_range conf_range, const struct gkyl_array *rho,
   const struct gkyl_array *grad_rho, struct gkyl_array *grad_ln_n, int *num_null
@@ -192,15 +222,6 @@ gkyl_dg_calc_pkpm_vars_grad_ln_n_cu_kernel(
   }
 }
 
-int null = up->pkpm_grad_ln_n(
-  (const double *)gkyl_array_cfetch(rho, loc), (const double *)gkyl_array_cfetch(grad_rho, loc),
-  (double *)gkyl_array_fetch(grad_ln_n, loc)
-);
-if (null > 0) {
-  atomicAdd(num_null, null);
-}
-}
-}
 // Host-side wrapper for grad(ln n)
 int
 gkyl_dg_calc_pkpm_vars_grad_ln_n_cu(
@@ -246,6 +267,7 @@ gkyl_dg_calc_pkpm_vars_positivity_cu_kernel(
     }
   }
 }
+
 // Host-side wrapper for the fluid positivity limiter
 void
 gkyl_dg_calc_pkpm_vars_positivity_cu(
@@ -264,39 +286,6 @@ gkyl_dg_calc_pkpm_vars_positivity_cu(
   *num_avg = num_pos[2];
 }
 
-__global__ void
-gkyl_dg_calc_pkpm_vars_normalize_dist_cu_kernel(
-  struct gkyl_dg_calc_pkpm_vars *up, struct gkyl_range conf_range, struct gkyl_range phase_range,
-  const struct gkyl_array *n, const struct gkyl_array *f, struct gkyl_array *fbar, int *num_null
-)
-{
-  int idx[GKYL_MAX_DIM];
-
-  for (unsigned long linc1 = threadIdx.x + blockIdx.x * blockDim.x; linc1 < phase_range.volume;
-       linc1 += gridDim.x * blockDim.x) {
-    gkyl_sub_range_inv_idx(&phase_range, linc1, idx);
-    long cidx = gkyl_range_idx(&conf_range, idx);
-    long pidx = gkyl_range_idx(&phase_range, idx);
-
-    int null = up->pkpm_normalize(
-      (const double *)gkyl_array_cfetch(n, cidx), (const double *)gkyl_array_cfetch(f, pidx),
-      (double *)gkyl_array_fetch(fbar, pidx)
-    );
-    if (null > 0) {
-      atomicAdd(num_null, null);
-    }
-  }
-}
-
-int null = up->pkpm_normalize(
-  (const double *)gkyl_array_cfetch(n, cidx), (const double *)gkyl_array_cfetch(f, pidx),
-  (double *)gkyl_array_fetch(fbar, pidx)
-);
-if (null > 0) {
-  atomicAdd(num_null, null);
-}
-}
-}
 __global__ void
 gkyl_dg_calc_pkpm_vars_transverse_cu_kernel(
   struct gkyl_dg_calc_pkpm_vars *up, struct gkyl_range conf_range, struct gkyl_range phase_range,
@@ -327,17 +316,43 @@ gkyl_dg_calc_pkpm_vars_transverse_cu(
   );
 }
 
-// Host-side wrapper for the weak division of the distributions by n
+__global__ void
+gkyl_dg_calc_pkpm_vars_normalize_dist_cu_kernel(
+  struct gkyl_dg_calc_pkpm_vars *up, struct gkyl_range conf_range, struct gkyl_range phase_range,
+  const struct gkyl_array *norm_moms, const struct gkyl_array *f, struct gkyl_array *fbar,
+  int *num_null
+)
+{
+  int idx[GKYL_MAX_DIM];
+
+  for (unsigned long linc1 = threadIdx.x + blockIdx.x * blockDim.x; linc1 < phase_range.volume;
+       linc1 += gridDim.x * blockDim.x) {
+    gkyl_sub_range_inv_idx(&phase_range, linc1, idx);
+    long cidx = gkyl_range_idx(&conf_range, idx);
+    long pidx = gkyl_range_idx(&phase_range, idx);
+
+    int null = up->pkpm_normalize(
+      (const double *)gkyl_array_cfetch(norm_moms, cidx),
+      (const double *)gkyl_array_cfetch(f, pidx), (double *)gkyl_array_fetch(fbar, pidx)
+    );
+    if (null > 0) {
+      atomicAdd(num_null, null);
+    }
+  }
+}
+
+// Host-side wrapper for the rescaling of the distributions to the constraints
 int
 gkyl_dg_calc_pkpm_vars_normalize_dist_cu(
   struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
-  const struct gkyl_range *phase_range, const struct gkyl_array *n, const struct gkyl_array *f,
-  struct gkyl_array *fbar
+  const struct gkyl_range *phase_range, const struct gkyl_array *norm_moms,
+  const struct gkyl_array *f, struct gkyl_array *fbar
 )
 {
   gkyl_cu_memset(up->num_null_rho_dev, 0, sizeof(int));
   gkyl_dg_calc_pkpm_vars_normalize_dist_cu_kernel<<<phase_range->nblocks, phase_range->nthreads>>>(
-    up->on_dev, *conf_range, *phase_range, n->on_dev, f->on_dev, fbar->on_dev, up->num_null_rho_dev
+    up->on_dev, *conf_range, *phase_range, norm_moms->on_dev, f->on_dev, fbar->on_dev,
+    up->num_null_rho_dev
   );
   int num_null = 0;
   gkyl_cu_memcpy(&num_null, up->num_null_rho_dev, sizeof(int), GKYL_CU_MEMCPY_D2H);
@@ -480,8 +495,6 @@ dg_calc_pkpm_vars_set_cu_dev_ptrs(
   struct gkyl_dg_calc_pkpm_vars *up, enum gkyl_basis_type b_type, int cdim, int poly_order
 )
 {
-  up->pkpm_u_set = choose_pkpm_u_set_kern(b_type, cdim, poly_order);
-  up->pkpm_u_copy = choose_pkpm_u_copy_kern(b_type, cdim, poly_order);
   for (int d = 0; d < cdim; ++d) {
     up->pkpm_in_cell_grad[d] = choose_pkpm_in_cell_grad_kern(b_type, cdim, poly_order, d);
   }
@@ -503,7 +516,6 @@ gkyl_dg_calc_pkpm_vars_cu_dev_inew(const struct gkyl_dg_calc_pkpm_vars_inp *inp)
     (struct gkyl_dg_calc_pkpm_vars *)gkyl_malloc(sizeof(gkyl_dg_calc_pkpm_vars));
 
   up->conf_grid = *inp->conf_grid;
-  int nc = inp->conf_basis->num_basis;
   int cdim = inp->conf_basis->ndim;
   int poly_order = inp->conf_basis->poly_order;
   enum gkyl_basis_type b_type = inp->conf_basis->b_type;

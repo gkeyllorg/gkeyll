@@ -1582,7 +1582,7 @@ pkpm_app_run(lua_State *L)
     show_help(app);
     gkyl_tool_args_release(script_cli.rest);
     gkyl_tool_args_release(args);
-    goto freeresources;
+    goto freemoms;
   }
 
   gkyl_tool_args_release(script_cli.rest);
@@ -1612,7 +1612,7 @@ pkpm_app_run(lua_State *L)
         app, stderr, "*** Failed to read restart file! (%s)\n",
         gkyl_array_rio_status_msg(status.io_status)
       );
-      goto freeresources;
+      goto freemoms;
     }
 
     frame_curr = status.frame;
@@ -1990,10 +1990,6 @@ pkpm_app_run(lua_State *L)
   gkyl_pkpm_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);
   gkyl_pkpm_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
-freeresources:
-
-  gkyl_free(app_lw->input_moms);
-  gkyl_free(app_lw->output_moms);
   gkyl_free(t);
   gkyl_free(ann);
   gkyl_free(ann_test);
@@ -2003,6 +1999,12 @@ freeresources:
   gkyl_kn_vec_release(input_data_real);
   gkyl_kn_vec_release(output_data_real);
   gkyl_kn_vec_release(output_data_predicted);
+
+// An exit before the time loop (help, failed restart) has not allocated the arrays above.
+freemoms:
+
+  gkyl_free(app_lw->input_moms);
+  gkyl_free(app_lw->output_moms);
 
   lua_pushboolean(L, ret_status);
   return 1;

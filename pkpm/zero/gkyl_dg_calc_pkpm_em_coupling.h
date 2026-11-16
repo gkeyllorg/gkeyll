@@ -14,7 +14,9 @@ struct gkyl_dg_calc_pkpm_em_coupling_inp {
   int num_species; // Number of fluid species in the update.
   const double *qbym; // Charge/mass of each fluid species (num_species values).
   double epsilon0; // Permittivity of free space.
-  bool pkpm_field_static; // bool to determine if the EM fields are static (no dE/dt update).
+  // True if the EM fields are static: the species currents do not enter the E rows (E then
+  // changes only by the applied current handed to the advance method).
+  bool pkpm_field_static;
   bool use_gpu; // bool to determine if on GPU.
 };
 

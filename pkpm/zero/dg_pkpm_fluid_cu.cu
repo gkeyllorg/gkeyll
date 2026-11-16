@@ -28,7 +28,7 @@ gkyl_dg_pkpm_fluid_cu_dev_inew(const struct gkyl_dg_pkpm_fluid_inp *inp)
   int cdim = inp->conf_basis->ndim;
   pkpm->cdim = cdim;
   pkpm->num_surf_basis = inp->conf_basis->num_basis / 2;
-  pkpm->eqn.num_equations = 5;
+  pkpm->eqn.num_equations = PKPM_FLUID_NUM_COMP;
   pkpm->conf_range = *inp->conf_range;
   // Acquire the host arrays and store their on_dev pointers for copying over to device.
   struct gkyl_array *vlasov_pkpm_moms_ho = gkyl_array_acquire(inp->vlasov_pkpm_moms);

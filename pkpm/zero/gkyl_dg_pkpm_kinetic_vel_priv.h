@@ -36,6 +36,13 @@ struct dg_pkpm_kinetic_vel {
   const struct gkyl_array *vel_flux_surf;
 };
 
+/**
+ * Free the equation object of the PKPM velocity-pass kinetic equations.
+ *
+ * @param ref Reference counter of the equation object
+ */
+void gkyl_dg_pkpm_kinetic_vel_free(const struct gkyl_ref_count *ref);
+
 // Kernel tables (p=1 serendipity only; indexed by cdim-1)
 GKYL_CU_D static const pkpm_kinetic_vel_vol_t ser_pkpm_kinetic_vel_vol_kernels[] = {
   pkpm_kinetic_vel_vol_1x1v_ser_p1,

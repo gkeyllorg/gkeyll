@@ -208,3 +208,19 @@ choose_pkpm_source_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
   }
   return 0;
 }
+
+// The six constraints [M0(F), M1(F), (M2(F) + 2 M0(G))/3, int M0_perp dw (x, y, z)] of one cell
+// from its raw moments [M0, M2, M0_G, M1, M3, M1_G, int M0_perp dw (x, y, z), ...].
+GKYL_CU_DH static inline void
+pkpm_vars_constraints_cell(int num_basis, const double *norm_moms, double *GKYL_RESTRICT constraints)
+{
+  for (int k = 0; k < num_basis; ++k) {
+    constraints[k] = norm_moms[k];
+    constraints[num_basis + k] = norm_moms[3 * num_basis + k];
+    constraints[2 * num_basis + k] =
+      (norm_moms[num_basis + k] + 2.0 * norm_moms[2 * num_basis + k]) / 3.0;
+    for (int a = 0; a < 3; ++a) {
+      constraints[(3 + a) * num_basis + k] = norm_moms[(6 + a) * num_basis + k];
+    }
+  }
+}

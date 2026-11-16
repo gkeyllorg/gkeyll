@@ -164,6 +164,7 @@ pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app)
   f->curl_rhs = mkarr(app->use_gpu, 8 * app->confBasis.num_basis, app->local_ext.volume);
   f->curl_rhs_no_J = mkarr(app->use_gpu, 8 * app->confBasis.num_basis, app->local_ext.volume);
   f->curl_current = mkarr(app->use_gpu, 3 * app->confBasis.num_basis, app->local_ext.volume);
+  gkyl_array_clear(f->curl_current, 0.0); // a static field leaves it zero
   // physical time derivative of the fields of the stage (zero for a static field)
   f->dt_em_no_J = mkarr(app->use_gpu, 8 * app->confBasis.num_basis, app->local_ext.volume);
   gkyl_array_clear(f->dt_em_no_J, 0.0);

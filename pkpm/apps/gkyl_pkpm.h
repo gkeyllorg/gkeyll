@@ -152,7 +152,8 @@ struct gkyl_pkpm_species {
 struct gkyl_pkpm_field {
   enum gkyl_field_id field_id; // type of field
     // (e.g., Maxwell's, Poisson, see gkyl_eqn_type.h)
-  bool is_static; // set to true if field does not change in time
+  // set to true if field does not change in time (applied and ghost currents are then ignored)
+  bool is_static;
 
   double epsilon0, mu0;
   double elcErrorSpeedFactor, mgnErrorSpeedFactor;

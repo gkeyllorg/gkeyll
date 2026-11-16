@@ -160,7 +160,8 @@ void gkyl_dg_pkpm_harm_exp_coef_cu(
 void gkyl_dg_pkpm_harm_exp_advance_cu(
   const struct gkyl_dg_pkpm_harm_exp *up, int stage, double h, const struct gkyl_range *conf_range,
   const struct gkyl_range *phase_range, const struct gkyl_array *coef, const struct gkyl_array *f0,
-  struct gkyl_array *nu, struct gkyl_array *act, struct gkyl_array *out
+  const struct gkyl_array *lam, struct gkyl_array *nu, struct gkyl_array *act,
+  struct gkyl_array *out
 );
 void gkyl_dg_pkpm_harm_exp_restore_cu(
   const struct gkyl_dg_pkpm_harm_exp *up, const struct gkyl_range *conf_range,

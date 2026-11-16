@@ -46,6 +46,13 @@ struct dg_pkpm_kinetic_conf {
   const struct gkyl_array *conf_flux_surf;
 };
 
+/**
+ * Free the equation object of the PKPM configuration-pass kinetic equations.
+ *
+ * @param ref Reference counter of the equation object
+ */
+void gkyl_dg_pkpm_kinetic_conf_free(const struct gkyl_ref_count *ref);
+
 // Volume kernels of the configuration pass (p=1 serendipity only; indexed by cdim-1)
 GKYL_CU_D static const pkpm_kinetic_conf_vol_t ser_pkpm_kinetic_conf_vol_kernels[] = {
   pkpm_kinetic_conf_vol_1x1v_ser_p1, pkpm_kinetic_conf_vol_2x1v_ser_p1,

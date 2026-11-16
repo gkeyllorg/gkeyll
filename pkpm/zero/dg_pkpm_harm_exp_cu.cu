@@ -39,7 +39,8 @@ __global__ static void
 gkyl_dg_pkpm_harm_exp_advance_cu_kernel(
   const struct gkyl_dg_pkpm_harm_exp *up, int stage, double h, struct gkyl_range conf_range,
   struct gkyl_range phase_range, const struct gkyl_array *coef, const struct gkyl_array *f0,
-  struct gkyl_array *nu, struct gkyl_array *act, struct gkyl_array *out
+  const struct gkyl_array *lam, struct gkyl_array *nu, struct gkyl_array *act,
+  struct gkyl_array *out
 )
 {
   int idx[GKYL_MAX_DIM];
@@ -50,8 +51,10 @@ gkyl_dg_pkpm_harm_exp_advance_cu_kernel(
     long ploc = gkyl_range_idx(&phase_range, idx);
     // act is shared by the cells of a column; every writer writes 1
     pkpm_hx_advance_cell(up, stage, h, (const double *)gkyl_array_cfetch(coef, cloc),
-      (const double *)gkyl_array_cfetch(f0, ploc), 0, (double *)gkyl_array_fetch(nu, ploc),
-      (double *)gkyl_array_fetch(act, cloc), (double *)gkyl_array_fetch(out, ploc));
+      (const double *)gkyl_array_cfetch(f0, ploc),
+      lam ? (const double *)gkyl_array_cfetch(lam, cloc) : 0,
+      (double *)gkyl_array_fetch(nu, ploc), (double *)gkyl_array_fetch(act, cloc),
+      (double *)gkyl_array_fetch(out, ploc));
   }
 }
 
@@ -59,12 +62,13 @@ void
 gkyl_dg_pkpm_harm_exp_advance_cu(
   const struct gkyl_dg_pkpm_harm_exp *up, int stage, double h, const struct gkyl_range *conf_range,
   const struct gkyl_range *phase_range, const struct gkyl_array *coef, const struct gkyl_array *f0,
-  struct gkyl_array *nu, struct gkyl_array *act, struct gkyl_array *out
+  const struct gkyl_array *lam, struct gkyl_array *nu, struct gkyl_array *act,
+  struct gkyl_array *out
 )
 {
   gkyl_dg_pkpm_harm_exp_advance_cu_kernel<<<phase_range->nblocks, phase_range->nthreads>>>(
-    up->on_dev, stage, h, *conf_range, *phase_range, coef->on_dev, f0->on_dev, nu->on_dev,
-    act->on_dev, out->on_dev
+    up->on_dev, stage, h, *conf_range, *phase_range, coef->on_dev, f0->on_dev,
+    lam ? lam->on_dev : 0, nu->on_dev, act->on_dev, out->on_dev
   );
 }
 

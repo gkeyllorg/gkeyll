@@ -498,8 +498,8 @@ struct pkpm_field {
   double omega_cfl_split; // its time-step rate
   struct gkyl_array *curl_rhs,
     *curl_rhs_no_J; // field right-hand side at a source half step (E rows: c^2 curl B)
-  struct gkyl_array
-    *curl_current; // applied current - eps0 c^2 curl B (physical), for the implicit solve
+  // applied current - eps0 c^2 curl B (physical), for the implicit solve; zero for a static field
+  struct gkyl_array *curl_current;
 
   struct gkyl_array *bvar; // magnetic field unit vector b = B/|B| [bx, by, bz] (p=1)
   struct gkyl_array *grad_b; // weak (surface-averaged) gradient of b, cdim x 3 expansions

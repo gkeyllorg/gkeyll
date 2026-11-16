@@ -30,10 +30,11 @@ gkyl_dg_pkpm_kinetic_conf_cu_dev_inew(const struct gkyl_dg_pkpm_kinetic_conf_inp
     (struct dg_pkpm_kinetic_conf *)gkyl_malloc(sizeof(struct dg_pkpm_kinetic_conf));
 
   int cdim = inp->conf_basis->ndim, pdim = inp->phase_basis->ndim;
+  assert(pdim == cdim + 1);
   pkpm->cdim = cdim;
   pkpm->pdim = pdim;
   pkpm->num_surf_basis = inp->phase_basis->num_basis / 2;
-  pkpm->eqn.num_equations = 8;
+  pkpm->eqn.num_equations = PKPM_DIST_NUM_BLOCKS;
   pkpm->conf_range = *inp->conf_range;
   pkpm->phase_range = *inp->phase_range;
   // Acquire the host arrays and store their on_dev pointers for copying over to device.
