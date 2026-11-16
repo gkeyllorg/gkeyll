@@ -109,7 +109,7 @@ surf(
   return pkpm->fluid_surf[dir](xcC, dxC, &flux_l[off], &flux_r[off], qRhsOut);
 }
 
-// The momentum equation has ghost cells in every direction; no zero-flux faces.
+// The fluid system has ghost cells in every direction; no zero-flux faces.
 GKYL_CU_D static double
 boundary_surf(
   const struct gkyl_dg_eqn *eqn, int dir, const double *xcEdge, const double *xcSkin,

@@ -1,17 +1,17 @@
 // Test computation of PKPM diagnostic moments (8 components) via gkyl_mom_calc.
 //
 // For the diagnostic kernel the (mass-weighted) moment block layout is:
-//   0: rho            = \int F_0 dvpar
-//   1: M1             = \int vpar F_0 dvpar
-//   2: p_par          = \int vpar^2 F_0 dvpar
-//   3: \int G_1 dvpar
-//   4: q_par          = \int vpar^3 F_0 dvpar
-//   5: \int vpar G_1 dvpar
-//   6: r_parpar       = \int vpar^4 F_0 dvpar
-//   7: \int vpar^2 G_1 dvpar
+//   0: rho            = \int F dvpar
+//   1: M1             = \int vpar F dvpar
+//   2: p_par          = \int vpar^2 F dvpar
+//   3: \int G dvpar
+//   4: q_par          = \int vpar^3 F dvpar
+//   5: \int vpar G dvpar
+//   6: r_parpar       = \int vpar^4 F dvpar
+//   7: \int vpar^2 G dvpar
 //
-// With F_0 = a and G_1 = b constant over a symmetric velocity domain [-V,V]
-// the odd-in-v moments (M1, q_par, \int vpar G_1) all vanish.
+// With F = a and G = b constant over a symmetric velocity domain [-V,V]
+// the odd-in-v moments (M1, q_par, \int vpar G) all vanish.
 #include <acutest.h>
 
 #include <gkyl_array_ops.h>

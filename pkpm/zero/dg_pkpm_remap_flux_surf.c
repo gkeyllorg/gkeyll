@@ -12,7 +12,7 @@
 gkyl_dg_pkpm_remap_flux_surf *
 gkyl_dg_pkpm_remap_flux_surf_inew(const struct gkyl_dg_pkpm_remap_flux_surf_inp *inp)
 {
-  assert(!inp->use_gpu); // the GPU port follows the CPU verification
+  assert(!inp->use_gpu); // host only: there is no device implementation
   assert(inp->pos_map);
   assert(inp->conf_basis->poly_order == 1);
   assert(inp->conf_basis->b_type == GKYL_BASIS_MODAL_SERENDIPITY);

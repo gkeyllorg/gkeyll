@@ -1,4 +1,4 @@
-// Tests of the direct nodal magnetic field unit vector (dg_calc_pkpm_bvar) and the
+// Tests of the nodal magnetic field unit vector (dg_calc_pkpm_bvar) and of d_t B/|B| at its nodes.
 #include <math.h>
 
 #include <acutest.h>
@@ -54,17 +54,6 @@ eval_em(double t, const double *xn, double *restrict fout, void *ctx)
   fout[7] = 0.0;
 }
 
-static void
-eval_moms(double t, const double *xn, double *restrict fout, void *ctx)
-{
-  int cdim = *(int *)ctx;
-  double x = xn[0], y = cdim > 1 ? xn[1] : 0.3, z = cdim > 2 ? xn[2] : -0.2;
-  fout[0] = 2.0 + 0.5 * sin(x) * cos(y) + 0.2 * z; // rho
-  fout[1] = 1.0 + 0.3 * cos(x); // p_par
-  fout[2] = 0.7 + 0.25 * cos(y) * sin(x) + 0.1 * z * z; // p_perp
-  fout[3] = 0.0; // M1
-}
-
 // Fill the 2^cdim Gauss-Legendre nodes of the reference cell.
 static int
 gl2_nodes(int cdim, double nodes[8][3])
@@ -117,20 +106,21 @@ test_bvar(int cdim)
   gkyl_dg_calc_pkpm_bvar_advance(up, &local_ext, em, bvar);
   TEST_CHECK(gkyl_dg_calc_pkpm_bvar_num_null_b(up) == 0);
 
-  // Legacy unit vector for a closeness check where its fallback is inactive.
+  // Unit vector of gkyl_dg_calc_em_vars for a closeness check where it does not fall back to the
+  // cell average of |B|^2.
   struct gkyl_wv_eqn *maxwell = gkyl_wv_maxwell_new(1.0, 0.0, 0.0, false);
   struct gkyl_wave_geom *geom = gkyl_wave_geom_new(&grid, &local_ext, 0, 0, false);
-  struct gkyl_dg_calc_em_vars *calc_legacy =
+  struct gkyl_dg_calc_em_vars *em_vars =
     gkyl_dg_calc_em_vars_new(&grid, &basis, &local_ext, maxwell, geom, 0.0, 0, false);
   int nsurf = nb / (poly_order + 1);
-  struct gkyl_array *bvar_legacy = mkarr(9 * nb, local_ext.volume);
-  struct gkyl_array *bvar_surf_legacy = mkarr(2 * cdim * 4 * nsurf, local_ext.volume);
+  struct gkyl_array *bvar_em_vars = mkarr(9 * nb, local_ext.volume);
+  struct gkyl_array *bvar_surf_em_vars = mkarr(2 * cdim * 4 * nsurf, local_ext.volume);
   struct gkyl_array *cell_avg_magB2 = gkyl_array_new(GKYL_INT, 1, local_ext.volume);
-  gkyl_dg_calc_em_vars_advance(calc_legacy, em, cell_avg_magB2, bvar_legacy, bvar_surf_legacy);
+  gkyl_dg_calc_em_vars_advance(em_vars, em, cell_avg_magB2, bvar_em_vars, bvar_surf_em_vars);
 
   double nodes[8][3];
   int nn = gl2_nodes(cdim, nodes);
-  double max_legacy_diff = 0.0;
+  double max_em_vars_diff = 0.0;
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &local_ext);
@@ -139,7 +129,7 @@ test_bvar(int cdim)
     const double *em_d = gkyl_array_cfetch(em, loc);
     const double *b_d = gkyl_array_cfetch(bvar, loc);
     const int *fallback = gkyl_array_cfetch(cell_avg_magB2, loc);
-    const double *bl_d = gkyl_array_cfetch(bvar_legacy, loc);
+    const double *bl_d = gkyl_array_cfetch(bvar_em_vars, loc);
 
     for (int n = 0; n < nn; ++n) {
       double B[3], b[3];
@@ -160,16 +150,16 @@ test_bvar(int cdim)
       for (int i = 0; i < 3; ++i) {
         for (int k = 0; k < nb; ++k) {
           double diff = fabs(b_d[i * nb + k] - bl_d[i * nb + k]);
-          max_legacy_diff = diff > max_legacy_diff ? diff : max_legacy_diff;
+          max_em_vars_diff = diff > max_em_vars_diff ? diff : max_em_vars_diff;
         }
       }
     }
   }
-  // The legacy vector is sqrt-with-sign of a projected bb; both are second-order
+  // The gkyl_dg_calc_em_vars vector is sqrt-with-sign of a projected bb; both are second-order
   // accurate representations of the same smooth field, so they agree to the
   // projection error of the grid but not to round-off.
-  TEST_CHECK(max_legacy_diff < 2.0e-2);
-  TEST_MSG("max |b_new - b_legacy| = %g", max_legacy_diff);
+  TEST_CHECK(max_em_vars_diff < 2.0e-2);
+  TEST_MSG("max |b - b of gkyl_dg_calc_em_vars| = %g", max_em_vars_diff);
 
   // Null-field policy: B = 0 in one cell gives b = 0 there and counts every node.
   int idx0[3] = {local.lower[0], cdim > 1 ? local.lower[1] : 0, cdim > 2 ? local.lower[2] : 0};
@@ -186,9 +176,9 @@ test_bvar(int cdim)
   }
 
   gkyl_array_release(cell_avg_magB2);
-  gkyl_array_release(bvar_surf_legacy);
-  gkyl_array_release(bvar_legacy);
-  gkyl_dg_calc_em_vars_release(calc_legacy);
+  gkyl_array_release(bvar_surf_em_vars);
+  gkyl_array_release(bvar_em_vars);
+  gkyl_dg_calc_em_vars_release(em_vars);
   gkyl_wave_geom_release(geom);
   gkyl_wv_eqn_release(maxwell);
   gkyl_dg_calc_pkpm_bvar_release(up);

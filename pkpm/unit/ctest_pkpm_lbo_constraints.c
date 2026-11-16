@@ -215,7 +215,7 @@ eval_f_harm(double t, const double *xn, double *restrict fout, void *ctx)
   }
 }
 
-// The first-harmonic part of the operator (lbo_first_harmonic.tex): C[M0] = -nu M0 + C_par[M0],
+// The first-harmonic part of the operator: C[M0] = -nu M0 + C_par[M0],
 // C[N] = 4 nu vth^2 M0 - 3 nu N + C_par[N]. Its w-moments obey, with nu a weak product,
 //   int C[M0] = -nu int M0 = 0,  int w C[M0] = -2 nu int w M0,  int C[N] = -3 nu int N,
 //   d/dt q_perp = -3 nu q_perp,  q_perp = int (w^2/2 M0 + N),

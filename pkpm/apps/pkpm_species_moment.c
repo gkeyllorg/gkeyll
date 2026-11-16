@@ -2,7 +2,7 @@
 #include <gkyl_pkpm_priv.h>
 
 // initialize species moment object with the given mass factor (1.0 for the moments of
-// the normalized distributions of the factored update)
+// the normalized distributions)
 void
 pkpm_species_moment_init_mass(
   struct gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_species_moment *sm, bool is_diag,
@@ -47,7 +47,7 @@ pkpm_species_moment_calc(
 }
 
 // compute moments of an arbitrary phase-space array into a separate output array
-// (for the moments of the stage-A right-hand side, keeping marr untouched)
+// (for the moments of the configuration pass's right-hand side, keeping marr untouched)
 void
 pkpm_species_moment_calc_into(
   const struct pkpm_species_moment *sm, const struct gkyl_range phase_rng,

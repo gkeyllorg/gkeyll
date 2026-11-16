@@ -14,15 +14,15 @@ struct gkyl_dg_calc_pkpm_vars_inp {
   const struct gkyl_rect_grid *conf_grid; // Configuration-space grid.
   const struct gkyl_basis *conf_basis; // Configuration-space basis functions (p=1 serendipity).
   const struct gkyl_vlasov_position_map
-    *pos_map; // Configuration-space position map (REQUIRED; the weak gradients carry 1/J_d).
+    *pos_map; // Configuration-space position map (REQUIRED; the gradients carry 1/J_d).
   bool use_gpu; // bool to determine if on GPU.
 };
 
 /**
- * Create new updater for the configuration-space variables of the energy-constrained PKPM
+ * Create new updater for the configuration-space variables of the PKPM
  * solver (p=1 serendipity): the nodal primitive variables (the flow M/rho and the thermal
  * speed; nodal quotients, the weak division at p=1), the closures with the velocity-space
- * edges, the weak gradients, the explicit source, the initial-condition normalization and
+ * edges, the in-cell gradients, the explicit source, the initial-condition normalization and
  * the diagnostics.
  *
  * @param inp Input parameters defined in gkyl_dg_calc_pkpm_vars_inp struct.
@@ -116,7 +116,7 @@ int gkyl_dg_calc_pkpm_vars_closure(
 );
 
 /**
- * Compute the nodal primitive variables of the energy-constrained fluid state
+ * Compute the nodal primitive variables of the fluid state
  * [rho, rho ux, rho uy, rho uz, E]: the flow u = M/rho and [xi, xi^2, p] with
  * xi^2 = (2 E/rho - |u|^2)/3, p = rho xi^2, by the nodal quotient at the 2^cdim
  * Gauss-Legendre nodes interpolated to p=1. For p=1 the nodal quotient is the weak
@@ -200,15 +200,15 @@ double gkyl_dg_calc_pkpm_vars_closure_cond_min(const struct gkyl_dg_calc_pkpm_va
 
 /**
  * Compute grad(ln n) = grad(rho)/rho, the configuration-space factor of the source
- * -v_par b.grad(ln n) of the factored kinetic equations, by the nodal quotient of the
- * weak gradient of rho (computed with gkyl_dg_calc_pkpm_vars_in_cell_grad on the array
+ * -v_par b.grad(ln n) of the normalized kinetic equations, by the nodal quotient of the
+ * gradient of rho (computed with gkyl_dg_calc_pkpm_vars_in_cell_grad on the array
  * [rho, 0, 0]) at the 2^cdim Gauss-Legendre nodes. At a node where rho <= 0 the quotient is
  * set to zero; the number of such nodes is returned. p=1 serendipity only.
  *
  * @param up         Updater for computing pkpm variables
  * @param conf_range Configuration space range
  * @param rho        Input mass density
- * @param grad_rho   Input weak gradient of [rho, 0, 0] (cdim x 3 expansions per cell)
+ * @param grad_rho   Input gradient of [rho, 0, 0] (cdim x 3 expansions per cell)
  * @param grad_ln_n  Output grad(ln n) (cdim expansions per cell)
  * @return Number of nodes where rho <= 0 in this call
  */
@@ -245,43 +245,46 @@ void gkyl_dg_calc_pkpm_vars_positivity(
 );
 
 /**
- * Divide the distributions [F_0, G] weakly by the number density n to form the
- * normalized state [F_0/n, G/n] of the factored update (initial conditions). The
- * division is exact for a p=1 n positive at the 2^cdim Gauss-Legendre nodes; at a node
- * where n <= 0 the quotient is set to zero and counted. p=1 serendipity only.
+ * Rescale the distributions [F, G] to the constraints M0(F) = 1 and M2(F) + 2 M0(G) = 3
+ * (initial conditions): fbar = [F/M0, G s/M0] with s = (3 - M2/M0)/(2 M0_G/M0), the factors
+ * formed from the moments of f at the 2^cdim Gauss-Legendre nodes of configuration space. At
+ * a node where M0 <= 0 or M0_G <= 0 both factors are set to zero and the node is counted. The
+ * other blocks of fbar are not written. p=1 serendipity only.
  *
  * @param up          Updater for computing pkpm variables
- * @param conf_range  Configuration space range for indexing n
+ * @param conf_range  Configuration space range for indexing norm_moms
  * @param phase_range Phase space range to operate on
- * @param n           Input number density
- * @param f           Input distributions [F_0, G]
- * @param fbar        Output normalized distributions [F_0/n, G/n]
- * @return Number of nodes where n <= 0 in this call
+ * @param norm_moms   Input raw moments [M0, M2, M0_G, ...] of f (mass 1)
+ * @param f           Input distributions [F, G, ...]
+ * @param fbar        Output rescaled distributions [F, G]
+ * @return Number of nodes where M0 <= 0 or M0_G <= 0 in this call
  */
 int gkyl_dg_calc_pkpm_vars_normalize_dist(
   struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
-  const struct gkyl_range *phase_range, const struct gkyl_array *n, const struct gkyl_array *f,
-  struct gkyl_array *fbar
+  const struct gkyl_range *phase_range, const struct gkyl_array *norm_moms,
+  const struct gkyl_array *f, struct gkyl_array *fbar
 );
 
 /**
- * Construct the diagnostic arrays of the refactored solver:
- * fluid_io = [rho, M_i, P_ij + M_i u_j] (10 components) and
- * pkpm_vars_io = [u_x, u_y, u_z, theta, a_P, div b, bb:grad u, theta div b] (8 components),
- * with the products projected onto p=1. p=1 serendipity only.
+ * Construct the diagnostic arrays:
+ * fluid_io = [rho, M_i, P_ij + M_i u_j, E] (11 components; ij = xx, xy, xz, yy, yz, zz) and
+ * pkpm_vars_io = [u_x, u_y, u_z, T_perp/m, a_P, div b, bb:grad u, T_perp/m div b, xi, c]
+ * (10 components), with the products projected onto p=1. p=1 serendipity only.
  *
- * @param up               Updater for computing pkpm variables 
+ * @param up               Updater for computing pkpm variables
  * @param conf_range       Configuration space range
- * @param vlasov_pkpm_moms Input array of pkpm kinetic moments [rho, p_parallel, p_perp, M1]
- * @param euler_pkpm       Input momentum [rho ux, rho uy, rho uz]
+ * @param vlasov_pkpm_moms Input kinetic coupling moments [p_par, p_perp, q_par, q_perp, ...]
+ * @param euler_pkpm       Input fluid state [rho, rho ux, rho uy, rho uz, E]
  * @param bvar             Input magnetic field unit vector [bx, by, bz]
  * @param grad_b           Input weak gradient of b (gkyl_dg_calc_pkpm_bvar_grad)
  * @param u                Input flow velocity [ux, uy, uz]
  * @param grad_u           Input gradient of u (gkyl_dg_calc_pkpm_vars_in_cell_grad)
- * @param theta            Input T_perp/m
- * @param a_P              Input pressure force
- * @param fluid_io         Output conserved fluid variables (10 components)
- * @param pkpm_vars_io     Output pkpm variables (8 components)
+ * @param theta            Input T_perp/T
+ * @param alpha_0          Input pressure force a_P/xi
+ * @param xi               Input thermal speed [xi, xi^2, p]
+ * @param c_h              Input heating rate c
+ * @param fluid_io         Output fluid diagnostics (11 components)
+ * @param pkpm_vars_io     Output pkpm variables (10 components)
  */
 void gkyl_dg_calc_pkpm_vars_diag(
   struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
@@ -293,14 +296,14 @@ void gkyl_dg_calc_pkpm_vars_diag(
 );
 
 /**
- * Compute pkpm model source terms.
+ * Explicit electromagnetic source of the fluid state: rhs is incremented by
+ * [0, q/m (rho E + M x B), q/m M.E]. p=1 serendipity only.
  *
- * @param up Updater for computing pkpm variables 
+ * @param up         Updater for computing pkpm variables
  * @param conf_range Configuration space range
- * @param qmem Input array of q/m*EM fields
- * @param vlasov_pkpm_moms Input array of pkpm kinetic moments [rho, p_parallel, p_perp]
- * @param euler_pkpm Input array of pkpm fluid variables [rho ux, rho uy, rho uz]
- * @param rhs Output increment to fluid variables
+ * @param qmem       Input q/m times the electromagnetic field [Ex, Ey, Ez, Bx, By, Bz, ...]
+ * @param fluid      Input fluid state [rho, rho ux, rho uy, rho uz, E]
+ * @param rhs        Output right-hand side of the fluid state, incremented
  */
 void gkyl_dg_calc_pkpm_vars_source(
   struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
@@ -350,8 +353,8 @@ void gkyl_dg_calc_pkpm_vars_positivity_cu(
 );
 int gkyl_dg_calc_pkpm_vars_normalize_dist_cu(
   struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
-  const struct gkyl_range *phase_range, const struct gkyl_array *n, const struct gkyl_array *f,
-  struct gkyl_array *fbar
+  const struct gkyl_range *phase_range, const struct gkyl_array *norm_moms,
+  const struct gkyl_array *f, struct gkyl_array *fbar
 );
 void gkyl_dg_calc_pkpm_vars_diag_cu(
   struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,

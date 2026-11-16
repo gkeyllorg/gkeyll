@@ -3,7 +3,7 @@
 // J = prod_d J_d is constant per cell and the solver evolves J [F, G] and J [rho, M, E]:
 //   d_t (J q) + sum_d d_xi_d [ (J/J_d) F_d(q) ] = J S.
 // Two checks of the configuration-space operators (weak gradients, HLL face fluxes,
-// absorbing-wall fluxes, kinetic configuration pass and fluid right-hand sides):
+// kinetic configuration pass and fluid right-hand sides):
 //   1. A constant stretch x_d = s_d xi_d (different in every direction) is the uniform
 //      physical grid in disguise: the modal coefficients of every field agree with those of
 //      the uniform grid (times J for the extensive ones), so the weak gradients must be equal,
@@ -381,14 +381,13 @@ setup(struct sim *s, int cdim, enum map_kind kind)
 }
 
 // The configuration-space operators on the current fields: the kinetic configuration
-// pass (stored face fluxes, then hyper_dg: volume + scatter), the fluid (stored HLL
-// face fluxes, hyper_dg) and the absorbing-wall fluxes of the x walls.
+// pass (stored face fluxes, then hyper_dg: volume + scatter, then the first-harmonic terms)
+// and the fluid (stored HLL face fluxes, hyper_dg).
 static void
 advance(struct sim *s)
 {
   int cdim = s->cdim, nc = s->cbasis.num_basis, np = s->pbasis.num_basis;
   long cvol = s->clocal_ext.volume, pvol = s->plocal_ext.volume;
-  int cghost[3] = {1, 1, 1};
 
   // Face fluxes of the eight blocks and of the fluid, which take the physical fluid state and the
   // weighted distribution.

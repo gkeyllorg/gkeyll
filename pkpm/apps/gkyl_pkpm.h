@@ -101,9 +101,6 @@ struct gkyl_pkpm_fluid_diffusion {
 struct gkyl_pkpm_species {
   char name[128]; // species name
 
-  enum gkyl_model_id model_id; // type of model
-    // (e.g., SR, general geometry, PKPM, see gkyl_eqn_type.h)
-
   double charge, mass; // charge and mass
   double lower[3], upper[3]; // lower, upper bounds of the NORMALIZED velocity w = v_par/xi
   int cells[3]; // velocity-space cells
@@ -169,8 +166,8 @@ struct gkyl_pkpm_field {
   void (*ext_em)(double t, const double *xn, double *ext_em_out, void *ctx);
   bool ext_em_evolve; // set to true if external electromagnetic field function is time dependent
 
-  void *app_current_ctx; // context for external electromagnetic fields function
-  // pointer to external electromagnetic fields function
+  void *app_current_ctx; // context for applied current function
+  // pointer to applied current function
   void (*app_current)(double t, const double *xn, double *app_current_out, void *ctx);
   bool app_current_evolve; // set to true if applied current function is time dependent
 
@@ -228,10 +225,10 @@ struct gkyl_pkpm {
 
   struct gkyl_pkpm_field field; // field object
 
-  bool use_explicit_source; // Use fully explicit SSP RK3 scheme
-    // Default is a staggered (Strang) operator split with implicit fluid-EM coupling: between
-    // updates the fluid and E lag by half a source step, and output and diagnostics see them
-    // synchronized; frames store the steps that make a restart continue the uninterrupted run.
+  // The default is a staggered (Strang) operator split with implicit fluid-EM coupling: between
+  // updates the fluid and E lag by half a source step, and output and diagnostics see them
+  // synchronized; frames store the steps that make a restart continue the uninterrupted run.
+  bool use_explicit_source; // Use the fully explicit SSP RK3 scheme instead
 
   // Vertex positivity limiter of the fluid state [rho, M, E] (Zhang-Shu scaling of the
   // slopes toward the cell averages, always applied, after every forward-Euler stage, the
@@ -273,15 +270,12 @@ struct gkyl_pkpm_stat {
   double fluid_species_rhs_tm; // time to compute fluid species RHS
 
   double species_coll_mom_tm; // time needed to compute various moments needed in LBO
-  double species_lbo_coll_drag_tm[GKYL_MAX_SPECIES]; // time to compute LBO drag terms
-  double species_lbo_coll_diff_tm[GKYL_MAX_SPECIES]; // time to compute LBO diffusion terms
   double species_coll_tm; // total time for collision updater (excluded moments)
 
-  double species_pkpm_vars_tm; // time to compute pkpm vars
-    // These are the coupling moments [rho, p_par, p_perp], the self-consistent
-    // pressure force (div(p_par b_hat)), and the primitive variables
-    // along with the acceleration variables in the kinetic equation
-    // and the source distribution functions for Laguerre couplings.
+  // time to compute the configuration-space variables of a stage: the moments of the
+  // normalized distributions, the flow and thermal speed, the kinetic coupling moments
+  // [p_par, p_perp, q_par, q_perp, s, r], the constraints and the gradients for the sources
+  double species_pkpm_vars_tm;
 
   double species_bc_tm; // time to compute species BCs
   double fluid_species_bc_tm; // time to compute fluid species BCs
@@ -401,17 +395,18 @@ void gkyl_pkpm_app_write_field(gkyl_pkpm_app *app, double tm, int frame);
 void gkyl_pkpm_app_write_species(gkyl_pkpm_app *app, int sidx, double tm, int frame);
 
 /**
- * Write pkpm auxiliar data to files. Includes:
- * 1. PKPM moments [rho, p_par, p_perp, q_par, q_perp, r_parpar, r_parperp]
- * 2. PKPM fluid variables [rho, rho ux, rho uy, rho uz, 
- * P_xx + rho ux^2, P_xy + rho ux uy, P_xz + rho ux uz,
- * P_yy + rho uy^2, P_yz + rho uy uz, P_zz + rho uz^2]
- * 3. PKPM variables, including primitive variables (ux, uy, uz, T_perp/m, m/T_perp) and 
- * acceleration variables (div(b), 1/rho div(p_par b), T_perp/m div(b), bb : grad(u), and 
- * vperp configuration space characteristics = bb : grad(u) - div(u) - 2 nu.
- * 
+ * Write the PKPM diagnostic data of a species to files:
+ * 1. _pkpm_moms_: the moments [rho, M1, p_par, p_perp, q_par, q_perp, r_parpar, r_parperp]
+ * 2. _pkpm_fluid_: the fluid variables [rho, rho ux, rho uy, rho uz,
+ *    P_xx + rho ux^2, P_xy + rho ux uy, P_xz + rho ux uz,
+ *    P_yy + rho uy^2, P_yz + rho uy uz, P_zz + rho uz^2, E]
+ * 3. _pkpm_vars_: [ux, uy, uz, T_perp/m, a_P (pressure force), div(b), bb : grad(u),
+ *    T_perp/m div(b), xi (thermal speed), c (heating-rate closure)]
+ * 4. _pkpm_constraints_: [M0(F), M1(F), (M2(F) + 2 M0(G))/3, int M0_perp dw (x, y, z)]
+ * 5. _pkpm_positivity_: the cumulative per-cell record of the positivity limiter
+ *
  * @param app App object.
- * @param sidx Index of fluid species to initialize.
+ * @param sidx Index of species to write.
  * @param tm Time-stamp
  * @param frame Frame number
  */
@@ -568,7 +563,7 @@ struct gkyl_app_restart_status gkyl_pkpm_app_from_file_field(gkyl_pkpm_app *app,
  * Initialize pkpm species from file
  *
  * @param app App object
- * @param sidx gk species index
+ * @param sidx Species index
  * @param fname file to read
  */
 struct gkyl_app_restart_status gkyl_pkpm_app_from_file_species(
@@ -579,7 +574,7 @@ struct gkyl_app_restart_status gkyl_pkpm_app_from_file_species(
  * Initialize pkpm fluid species from file
  *
  * @param app App object
- * @param sidx gk species index
+ * @param sidx Species index
  * @param fname file to read
  */
 struct gkyl_app_restart_status gkyl_pkpm_app_from_file_fluid_species(
@@ -598,7 +593,7 @@ struct gkyl_app_restart_status gkyl_pkpm_app_from_frame_field(gkyl_pkpm_app *app
  * Initialize pkpm species and fluid species from frame
  *
  * @param app App object
- * @param sidx gk species index
+ * @param sidx Species index
  * @param frame frame to read
  */
 struct gkyl_app_restart_status gkyl_pkpm_app_from_frame_species(

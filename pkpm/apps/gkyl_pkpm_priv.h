@@ -44,8 +44,6 @@
 #include <gkyl_mom_calc.h>
 #include <gkyl_mom_pkpm.h>
 #include <gkyl_null_pool.h>
-#include <gkyl_prim_lbo_cross_calc.h>
-#include <gkyl_prim_lbo_type.h>
 #include <gkyl_pkpm_bgk_collisions.h>
 #include <gkyl_pkpm_coll_nu.h>
 #include <gkyl_dg_conf_nodal.h>
@@ -61,11 +59,9 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_spitzer_coll_freq.h>
 #include <gkyl_util.h>
-#include <gkyl_vlasov_position_map.h>
 #include <gkyl_wave_geom.h>
 #include <gkyl_wv_eqn.h>
 #include <gkyl_wv_maxwell.h>
-#include <gkyl_wv_ten_moment.h>
 #include <gkyl_pkpm.h>
 
 // Definitions of private structs and APIs attached to these objects
@@ -126,7 +122,6 @@ struct pkpm_source {
   struct pkpm_source_eval_ctx eval_ctx;
 };
 
-struct pkpm_species;
 struct pkpm_bgk_collisions;
 
 // Compute the node values [n, u (3), vtsq] of a species from a fluid state (with the Jacobian).
@@ -304,19 +299,9 @@ struct pkpm_species {
   struct gkyl_array *f_host; // host copy of distribution function for use IO and initialization
   struct gkyl_array *fluid_host; // host copy of momentum for use IO and initialization
 
-  // Duplicate copy of fluid data in case time step fails.
-  // Needed because of implicit source split which modifies solution and
-  // is always successful, so if a time step fails due to the SSP RK3
-  // we must restore the old solution before restarting the time step
-  struct gkyl_array *fluid_dup;
-
-  struct gkyl_wv_eqn
-    *equation; // For storing 10 moment equation object for upwinding fluid equations with Roe solve
-
-  struct gkyl_array *qmem; // array for q/m*(E,B) for use in *explicit* update
-    // Note: this array is *only* used if the PKPM self-consistent EM fields are static
-    // If PKPM self-consistent EM fields are dynamics we utilize an implicit source update
-    // for the momentum equations and Ampere's Law
+  // q/m (E, B) plus the applied acceleration and the external fields, for the explicit
+  // Lorentz force on the fluid (explicit source update only)
+  struct gkyl_array *qmem;
 
   struct pkpm_species_moment pkpm_moms_diag; // for computing pkpm moments diagnostics
   struct pkpm_species_moment
@@ -327,7 +312,7 @@ struct pkpm_species {
     pkpm_cmoms; // the constraints [M0(F), M1(F), (M2(F) + 2 M0(G))/3, int M0_perp dw (x, y, z)], [1, 0, 1, 0, 0, 0] when the closures hold
   struct gkyl_array *pkpm_cmoms_host; // host copy for output
 
-  // Refactored (p=1) PKPM update variables.
+  // Configuration-space variables of the update (p=1).
   struct gkyl_array
     *pkpm_u; // flow velocity [ux, uy, uz], nodal quotient M/rho (the weak division at p=1)
   struct gkyl_array *
@@ -349,7 +334,7 @@ struct pkpm_species {
     *pkpm_mom3; // momentum block of the fluid array (scratch for the 3-component consumers)
   struct gkyl_array *pkpm_grad_rho; // gradient of [rho, 0, 0] (scratch)
   struct gkyl_array *pkpm_grad_ln_n; // grad(ln n), cdim expansions
-  struct gkyl_array *pkpm_c_0; // normalization closure of the factored update
+  struct gkyl_array *pkpm_c_0; // normalization closure (zeroth w moment of F)
   struct gkyl_array *pkpm_alpha_0; // pressure force a_P/xi closing the first w moment
   struct gkyl_array *pkpm_c_h; // heating rate closing the scalar second moment M2(F) + 2 M0(G)
   struct gkyl_array *pkpm_a_perp; // perpendicular force closing int M0_perp dw [x, y, z]
@@ -361,11 +346,10 @@ struct pkpm_species {
   struct gkyl_array *flux_blend; // weight of the label-paired flux of each lower face, [dir]
   struct gkyl_array *vel_flux_surf; // stored modal v_par kinetic fluxes
   struct gkyl_dg_pkpm_harm_vol
-    *harm_vol; // modal volume integrals of the first-harmonic terms (stage A)
+    *harm_vol; // modal volume integrals of the first-harmonic terms (configuration pass)
   struct gkyl_array *harm_coef; // stored operator of the stage (gkyl_pkpm_harm_ops.h)
   struct gkyl_array *harm_wnode; // raw w-flux values of the stage at the w-face nodes
-  struct gkyl_dg_pkpm_harm_exp
-    *harm_exp; // gyrophase-mixing integrating factor of the first harmonic (plan 17.44)
+  struct gkyl_dg_pkpm_harm_exp *harm_exp; // gyrophase-mixing integrating factor of the first harmonic
   struct gkyl_array *harm_exp_coef; // its field (q/m) B frozen at the start of the step
   struct gkyl_array *harm_exp_nu; // gyrophase-mixing rate at the phase nodes, frozen per step
   struct gkyl_array *harm_exp_act; // configuration cells with a damped node (momentum restoration)
@@ -378,8 +362,8 @@ struct pkpm_species {
   struct gkyl_dg_pkpm_remap_flux_surf
     *calc_face_flux; // configuration-space face flux updater (kinetic and fluid)
   struct gkyl_dg_pkpm_vel_flux_surf *calc_vel_flux; // v_par flux updater
-  struct gkyl_dg_eqn *eqn_kinetic_conf; // configuration pass (stage A) equation object
-  struct gkyl_dg_eqn *eqn_kinetic_vel; // velocity pass (stage B) equation object
+  struct gkyl_dg_eqn *eqn_kinetic_conf; // equation object of the configuration pass
+  struct gkyl_dg_eqn *eqn_kinetic_vel; // equation object of the velocity pass
   struct gkyl_dg_eqn *eqn_fluid; // momentum equation object
   gkyl_hyper_dg *slvr_kinetic_conf; // hyper_dg over the configuration directions
   gkyl_hyper_dg *slvr_kinetic_vel; // hyper_dg over v_par
@@ -400,9 +384,8 @@ struct pkpm_species {
   gkyl_dynvec pos_stat; // the counts per integrated-moment interval, summed over ranks
   bool is_first_pos_stat_write_call; // flag for the positivity statistics dynvec written first time
 
-  // Pointers for io for PKPM fluid variables, handled by kinetic species because of fluid-kinetic coupling.
-  // For PKPM we construct the 10 moment conserved variables for ease of analysis
-  // along with an array of the various update variables, primitive and acceleration
+  // Diagnostic output: the 11-component fluid array [rho, rho u (3), P_ij + rho u_i u_j (6), E]
+  // and the variables [u (3), T_perp/m, a_P, div b, bb:grad u, T_perp/m div b, xi, c]
   struct gkyl_array *fluid_io;
   struct gkyl_array *fluid_io_host;
   struct gkyl_array *pkpm_vars_io;
@@ -483,14 +466,6 @@ struct pkpm_field {
 
   struct gkyl_array *em_host; // host copy for use IO and initialization
 
-  // Duplicate copy of EM data in case time step fails.
-  // Needed because of implicit source split which modifies solution and
-  // is always successful, so if a time step fails due to the SSP RK3
-  // we must restore the old solution before restarting the time step
-  struct gkyl_array *em_dup;
-
-  // Identity position map (PKPM runs on uniform grids); the Maxwell curl
-
   bool has_ext_em; // flag to indicate there is external electromagnetic field
   bool ext_em_evolve; // flag to indicate external electromagnetic field is time dependent
   struct gkyl_array *ext_em; // external electromagnetic field
@@ -515,7 +490,7 @@ struct pkpm_field {
   double *red_ghost_current; // device reduction scratch
   struct gkyl_array *app_current_tot; // applied current plus the ghost current (implicit coupling)
 
-  // Operator split (plan 17.29): Stormer-Verlet in the curl terms. E is advanced only by the
+  // Operator split: Stormer-Verlet in the curl terms. E is advanced only by the
   // implicit source half steps, with curl B (at the half step's start, known) as an effective
   // current; B drifts over the transport step with the E of the first half kick, so the field
   // right-hand side of the transport step is that of RK stage 1 with its E rows zeroed.
@@ -608,8 +583,7 @@ struct gkyl_pkpm_app {
   // pointer to mapc2p function
   void (*mapc2p)(double t, const double *xc, double *xp, void *ctx);
 
-  struct gkyl_wave_geom
-    *geom; // geometry needed for species and field solvers (*only* p=1 right now JJ: 05/03/24)
+  struct gkyl_wave_geom *geom; // wave geometry for the limiter of the fields
   struct gkyl_vlasov_position_map *
     pos_map; // configuration-space position map (always created; identity by default); shared by the field and species
   struct gkyl_dg_conf_nodal
@@ -662,9 +636,6 @@ void pkpm_op_split_unsync(gkyl_pkpm_app *app);
 // Take a fully explicit single time-step using a SSP RK3 (including explicit fluid-EM coupling)
 struct gkyl_update_status pkpm_update_explicit_ssp_rk3(gkyl_pkpm_app *app, double dt0);
 
-// The SSP-RK3 step followed by one backward-Euler step of the implicit collisions over the step
-// RK3 took (the transport step T of both update paths).
-
 /** gkyl_pkpm_app private API */
 
 /**
@@ -688,21 +659,44 @@ int pkpm_find_species_idx(const gkyl_pkpm_app *app, const char *nm);
 /** pkpm_species_moment API */
 
 /**
- * Initialize species moment object.
+ * Compute the diagnostic moments [rho, M1, p_par, p_perp, q_par, q_perp, r_parpar, r_parperp]
+ * into s->pkpm_moms_diag: the moments of the normalized distributions times n xi^k,
+ * k = [0, 1, 2, 2, 3, 3, 4, 4]. Uses s->fluid_io as scratch; s->pkpm_xi must be current.
  *
  * @param app PKPM app object
- * @param s Species object 
- * @param sm Species moment object
- * @param nm Name string indicating moment type
+ * @param s Species object
+ * @param phase_rng Phase-space range
+ * @param conf_rng Configuration-space range
+ * @param fin Input distribution functions
+ * @param fluid Input fluid state (the density gives n)
  */
 void pkpm_species_moment_diag_calc(
   struct gkyl_pkpm_app *app, struct pkpm_species *s, const struct gkyl_range phase_rng,
   const struct gkyl_range conf_rng, const struct gkyl_array *fin, const struct gkyl_array *fluid
 );
+
+/**
+ * Initialize species moment object with a given mass factor.
+ *
+ * @param app PKPM app object
+ * @param s Species object
+ * @param sm Species moment object
+ * @param is_diag True for the diagnostic moment set, false for the moments of the update
+ * @param mass Mass factor of the moments (1.0 for the moments of the normalized distributions)
+ */
 void pkpm_species_moment_init_mass(
   struct gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_species_moment *sm, bool is_diag,
   double mass
 );
+
+/**
+ * Initialize species moment object with the species mass.
+ *
+ * @param app PKPM app object
+ * @param s Species object
+ * @param sm Species moment object
+ * @param is_diag True for the diagnostic moment set, false for the moments of the update
+ */
 void pkpm_species_moment_init(
   struct gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_species_moment *sm, bool is_diag
 );
@@ -751,7 +745,6 @@ void pkpm_species_moment_release(
  * @param app PKPM app object
  * @param s Species object 
  * @param lbo Species LBO object
- * @param collides_with_fluid Boolean for if kinetic species collides with a fluid species
  */
 void pkpm_species_lbo_init(
   struct gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_lbo_collisions *lbo
@@ -779,7 +772,6 @@ void pkpm_species_lbo_moms(
  * @param lbo Pointer to LBO
  * @param fin Input distribution function
  * @param rhs On output, the RHS from LBO
- * @return Maximum stable time-step
  */
 void pkpm_species_lbo_rhs(
   gkyl_pkpm_app *app, const struct pkpm_species *species, struct pkpm_lbo_collisions *lbo,
@@ -826,16 +818,6 @@ void pkpm_species_apply_ic(gkyl_pkpm_app *app, struct pkpm_species *species, dou
 void pkpm_species_calc_app_accel(gkyl_pkpm_app *app, struct pkpm_species *species, double tm);
 
 /**
- * Compute parallel-kinetic-perpendicular-moment (pkpm) model variables
- * These are the coupling moments [rho, p_par, p_perp], the self-consistent
- * pressure force (div(p_par b_hat)), and the primitive variables
- *
- * @param app PKPM app object
- * @param species Species object
- * @param fin Input distribution function
- * @param fluidin Input fluid species array (size: num_fluid_species)
- */
-/**
  * Convert the distributions of the stage to the configuration-nodal, velocity-modal form and
  * clear the increments of the nodal operators (species with such operators only).
  *
@@ -869,6 +851,17 @@ void pkpm_species_nodal_accumulate(
  */
 void pkpm_pos_c2p(const double *xcomp, double *xphys, void *ctx);
 
+/**
+ * Compute the configuration-space variables of a stage over the extended range: the raw
+ * moments of the normalized distributions, the flow u and the thermal speed xi (nodal
+ * quotients of the fluid state), the kinetic coupling moments
+ * [p_par, p_perp, q_par, q_perp, s (3), r (3)], the constraints and theta = T_perp/T.
+ *
+ * @param app PKPM app object
+ * @param species Species object
+ * @param fin Input distribution functions
+ * @param fluidin Input fluid state [rho, M (3), E]
+ */
 void pkpm_species_calc_pkpm_vars(
   gkyl_pkpm_app *app, struct pkpm_species *species, const struct gkyl_array *fin,
   const struct gkyl_array *fluidin
@@ -972,11 +965,11 @@ void pkpm_species_source_bgk_implicit_advance(
 );
 void pkpm_species_source_bgk_release(const gkyl_pkpm_app *app, const struct pkpm_source_bgk *src);
 // Project M0_perp and N_perp of the distributions f onto the plane perpendicular to the current b
-// at the Gauss-Legendre nodes of b, in place, over the extended ranges (plan 17.11).
+// at the Gauss-Legendre nodes of b, in place, over the extended ranges.
 void pkpm_species_project_transverse(
   gkyl_pkpm_app *app, struct pkpm_species *species, struct gkyl_array *f
 );
-// Gyrophase-mixing integrating factor of the first-harmonic blocks (plan 17.44, 17.24), after the
+// Gyrophase-mixing integrating factor of the first-harmonic blocks, after the
 // forward Euler accumulate of stage s (fout = fin + h rhs; the gyration is explicit in rhs). At
 // s = 1 it freezes the mixing of the step (the field and the rate at the phase nodes). At damped
 // nodes it writes the first-harmonic blocks of fout as the value whose SSP-RK3 combination with the
@@ -1040,14 +1033,15 @@ void pkpm_species_calc_diag_vars(
 );
 
 /**
- * Compute RHS from species distribution function
+ * Compute the right-hand sides of the species' kinetic and fluid equations.
  *
  * @param app PKPM app object
  * @param species Pointer to species
- * @param fin Input distribution function
+ * @param fin Input distribution functions
+ * @param fluidin Input fluid state
  * @param em EM field
- * @param rhs On output, the RHS from the species object
- * @param fluidin Input fluid array for potential fluid force (size: num_fluid_species)
+ * @param rhs_f On output, the right-hand side of the kinetic equations
+ * @param rhs_fluid On output, the right-hand side of the fluid equations
  * @return Maximum stable time-step
  */
 double pkpm_species_rhs(
@@ -1086,13 +1080,6 @@ void pkpm_fluid_species_apply_bc(
  * @param species Pointer to species
  */
 void pkpm_species_calc_L2(gkyl_pkpm_app *app, double tm, const struct pkpm_species *species);
-
-/**
- * Fill stat object in app with collision timers.
- *
- * @param app App object to update stat timers
- */
-void pkpm_species_coll_tm(gkyl_pkpm_app *app);
 
 /**
  * Fill stat object in app with collisionless timers.
@@ -1155,22 +1142,14 @@ void pkpm_field_calc_ghost_current(
 );
 
 /**
- * Compute magnetic field unit vector and unit tensor
+ * Compute the magnetic field unit vector b (of the total field, with the external field)
+ * and its gradient.
  *
  * @param app PKPM app object
  * @param field Field object (output bvar is stored in field object)
  * @param em Input electromagnetic fields
  */
 void pkpm_field_calc_bvar(gkyl_pkpm_app *app, struct pkpm_field *field, const struct gkyl_array *em);
-
-/**
- * Compute E x B velocity
- *
- * @param app PKPM app object
- * @param field Field object (output ExB is stored in field object)
- * @param em Input electromagnetic fields
- */
-void pkpm_field_calc_ExB(gkyl_pkpm_app *app, struct pkpm_field *field, const struct gkyl_array *em);
 
 /**
  * Accumulate current density onto RHS from field equations

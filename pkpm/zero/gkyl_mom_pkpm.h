@@ -14,11 +14,14 @@ struct gkyl_mom_pkpm_inp {
 };
 
 /**
- * Create new Vlasov parallel-kinetic-perpendicular-moment (pkpm) moment type object.
- * Can either compute moments needed for update (rho, p_par, p_perp) or diagnostic moments
- * (rho, p_par, p_perp, q_par, q_perp, r_parpar, r_parperp)
+ * Create new Vlasov parallel-kinetic-perpendicular-moment (pkpm) moment type object: the
+ * mass-weighted w moments of the distributions [F, G, M0_perp, N_perp], with Mk the k-th w
+ * moment of F and Mk_G that of G. The update set has 18 moments, [M0, M2, M0_G, M1, M3, M1_G,
+ * int (1, w, w^2) M0_perp dw (x, y, z each), int N_perp dw (x, y, z)]; the diagnostic set
+ * (is_diag) has 8, [M0, M1, M2, M0_G, M3, M1_G, M4, M2_G].
  *
  * @param inp Input parameters defined in gkyl_mom_pkpm_inp struct.
+ * @return New moment type object.
  */
 struct gkyl_mom_type *gkyl_mom_pkpm_inew(const struct gkyl_mom_pkpm_inp *inp);
 

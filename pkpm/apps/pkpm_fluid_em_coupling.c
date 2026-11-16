@@ -87,7 +87,7 @@ pkpm_fluid_em_coupling_update(
     gkyl_array_accumulate_range(app->field->app_current_tot, -1.0, app->field->ghost_current, &app->local);
     app_current = app->field->app_current_tot;
   }
-  // Stormer-Verlet in the curl terms (plan 17.29): E advances only here, with c^2 curl B of the field
+  // Stormer-Verlet in the curl terms: E advances only here, with c^2 curl B of the field
   // at the start of the half step (B is not changed by the sources) entering as the effective current
   // -eps0 c^2 curl B; the transport step then drifts B with this E.
   if (!app->field->info.is_static) {

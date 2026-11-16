@@ -41,12 +41,6 @@ pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app)
   }
   f->pos_map = gkyl_vlasov_position_map_acquire(app->pos_map);
 
-  // Duplicate copy of EM data in case time step fails.
-  // Needed because of implicit source split which modifies solution and
-  // is always successful, so if a time step fails due to the SSP RK3
-  // we must restore the old solution before restarting the time step
-  f->em_dup = mkarr(app->use_gpu, 8 * app->confBasis.num_basis, app->local_ext.volume);
-
   f->integ_energy = gkyl_dynvec_new(GKYL_DOUBLE, 6);
   f->is_first_energy_write_call = true;
 
@@ -164,7 +158,7 @@ pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app)
   f->grad_b = mkarr(app->use_gpu, app->cdim * 3 * app->confBasis.num_basis, app->local_ext.volume);
   gkyl_array_clear(f->grad_b, 0.0);
   // operator split: the frozen transport right-hand side and the curl B current of the source
-  // half steps (plan 17.29)
+  // half steps
   f->rhs_split = mkarr(app->use_gpu, 8 * app->confBasis.num_basis, app->local_ext.volume);
   f->omega_cfl_split = 1.0 / DBL_MAX;
   f->curl_rhs = mkarr(app->use_gpu, 8 * app->confBasis.num_basis, app->local_ext.volume);
@@ -462,8 +456,8 @@ pkpm_field_rhs(
     gkyl_hyper_dg_advance(field->slvr, &app->local, em, field->cflrate, rhs);
     if (!app->use_explicit_source) {
       // operator split: E is advanced only by the implicit source half steps (Stormer-Verlet in the
-      // curl terms, plan 17.29); zero the E rows (the first 3 components) and keep the right-hand
-      // side for stages 2 and 3
+      // curl terms); zero the E rows (the first 3 components) and keep the right-hand side for
+      // stages 2 and 3
       gkyl_array_set_offset(rhs, 0.0, field->curl_current, 0);
       gkyl_array_copy(field->rhs_split, rhs);
     }
@@ -579,7 +573,6 @@ pkpm_field_release(const gkyl_pkpm_app *app, struct pkpm_field *f)
   gkyl_array_release(f->em1);
   gkyl_array_release(f->emnew);
   gkyl_array_release(f->tot_em);
-  gkyl_array_release(f->em_dup);
 
   gkyl_array_release(f->bc_buffer);
   gkyl_array_release(f->cflrate);

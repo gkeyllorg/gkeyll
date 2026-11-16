@@ -21,7 +21,6 @@ typedef void (*pkpm_em_coupling_copy_t)(
   int count, int num_species, double qbym[GKYL_MAX_SPECIES], double epsilon0, struct gkyl_nmat *x,
   double *GKYL_RESTRICT fluid[GKYL_MAX_SPECIES], double *GKYL_RESTRICT em
 );
-// for use in kernel tables
 
 struct gkyl_dg_calc_pkpm_em_coupling {
   struct gkyl_range mem_range; // Configuration space range for linear solve
@@ -33,7 +32,7 @@ struct gkyl_dg_calc_pkpm_em_coupling {
   pkpm_em_coupling_copy_t pkpm_em_coupling_copy; // kernel for copying solution to output
 
   bool
-    pkpm_field_static; // bool to determine if we are updating the self-consistent EM fields (dE/dt)
+    pkpm_field_static; // true if the EM fields are static: the species currents do not advance E
 
   int num_species; // number of species being implicitly solved for
   double qbym[GKYL_MAX_SPECIES]; // charge/mass ratio for each species

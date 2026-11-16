@@ -163,9 +163,10 @@ gkyl_dg_calc_pkpm_vars_int(
   }
 }
 
-// The three constraints of the normalized distributions [M0(F), M1(F), (M2(F) + 2 M0(G))/3]
-// from the raw moments [M0, M2, M0_G, M1, M3, M1_G]; they are [1, 0, 1] in every mode of
-// every cell when the closures hold.
+// The six constraints of the normalized distributions [M0(F), M1(F), (M2(F) + 2 M0(G))/3,
+// int M0_perp dw (x, y, z)] from the raw moments [M0, M2, M0_G, M1, M3, M1_G,
+// int M0_perp dw (x, y, z), ...]; they are [1, 0, 1, 0, 0, 0] in every mode of every cell when
+// the closures hold.
 void
 gkyl_dg_calc_pkpm_vars_constraints(
   struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, int num_basis,
@@ -281,13 +282,13 @@ gkyl_dg_calc_pkpm_vars_transverse(
 int
 gkyl_dg_calc_pkpm_vars_normalize_dist(
   struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
-  const struct gkyl_range *phase_range, const struct gkyl_array *n, const struct gkyl_array *f,
-  struct gkyl_array *fbar
+  const struct gkyl_range *phase_range, const struct gkyl_array *norm_moms,
+  const struct gkyl_array *f, struct gkyl_array *fbar
 )
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(fbar)) {
-    return gkyl_dg_calc_pkpm_vars_normalize_dist_cu(up, conf_range, phase_range, n, f, fbar);
+    return gkyl_dg_calc_pkpm_vars_normalize_dist_cu(up, conf_range, phase_range, norm_moms, f, fbar);
   }
 #endif
   int num_null = 0;
@@ -297,7 +298,7 @@ gkyl_dg_calc_pkpm_vars_normalize_dist(
     long cidx = gkyl_range_idx(conf_range, iter.idx);
     long pidx = gkyl_range_idx(phase_range, iter.idx);
     num_null += up->pkpm_normalize(
-      gkyl_array_cfetch(n, cidx), gkyl_array_cfetch(f, pidx), gkyl_array_fetch(fbar, pidx)
+      gkyl_array_cfetch(norm_moms, cidx), gkyl_array_cfetch(f, pidx), gkyl_array_fetch(fbar, pidx)
     );
   }
   return num_null;

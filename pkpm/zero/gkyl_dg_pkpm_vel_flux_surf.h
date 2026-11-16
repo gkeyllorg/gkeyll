@@ -18,15 +18,18 @@ struct gkyl_dg_pkpm_vel_flux_surf_inp {
 
 /**
  * Create a new updater computing the v_par surface fluxes of the PKPM kinetic
- * equations (velocity-space pass, stage B) of the eight blocks U = [F, G, M0_perp, N_perp].
+ * equations (velocity-space pass) of the eight blocks U = [F, G, M0_perp, N_perp].
  * Per configuration cell the w flux is formed at the 5^cdim face nodes once from the raw values of
  * the w-flux coefficients there (written with the stored operator of the stage by
- * gkyl_dg_pkpm_harm_vol_coef), theta, b and the closures: alpha = alpha_0 + (c - K) w_face - (b.grad xi) w_face^2 and the coupling T (beta, t,
- * R_B1 with the closures H and O). On the lower v_par face of every velocity cell the HLL flux of
- * alpha U + T(U) with the speeds alpha + the bounds of the spectrum of T is formed at the nodes
- * (pkpm_harm_node_wflux; exact upwinding when the speeds share a sign) and projected onto the
- * surface modal basis. Each cell owns its *lower* face, stored as [block][surface mode]; the faces
- * at the two velocity domain edges are the closure's.
+ * gkyl_dg_pkpm_harm_vol_coef), theta, b and the closures: the speed
+ * alpha = alpha_0 + (c - K) w_face - (b.grad xi) w_face^2, K = bb:grad u, and the coupling
+ * T: F <- t.M0 + beta G, G <- t.N + beta H, M0 <- G t + R_B1 N, N <- H t + R_B1 O, with
+ * H = 4 theta G - 2 theta^2 F and O = 6 theta N - 6 theta^2 M0; the coefficients t, beta and
+ * R_B1 are listed in gkyl_pkpm_harm_slots.h. On the lower v_par face of every velocity cell the
+ * HLL flux of alpha U + T(U) with the speeds alpha + the bounds of the spectrum of T is formed at
+ * the nodes (pkpm_harm_node_wflux; exact upwinding when the speeds share a sign) and projected
+ * onto the surface modal basis. Each cell owns its *lower* face, stored as [block][surface mode];
+ * the faces at the two velocity domain edges are the closure's.
  *
  * @param inp Input parameters defined in gkyl_dg_pkpm_vel_flux_surf_inp struct.
  * @return Pointer to v_par surface flux updater.

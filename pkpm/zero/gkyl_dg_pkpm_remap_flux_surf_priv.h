@@ -119,7 +119,7 @@ struct gkyl_dg_pkpm_remap_flux_surf {
   dg_conf_nodal_kern_t conf_to_nodal; // Expansion to node values.
   dg_conf_nodal_kern_t conf_to_modal; // Node values to expansion.
   int *line_upper; // Upper node of the line through a node along a direction, [dir][node].
-  double node_to_face; // Half the distance between the nodes of a line over that to a face.
+  double node_to_face; // Distance from the midpoint of a line's nodes to a face over their spacing.
 
   // Workspace for one face.
   long *column; // Phase index of each velocity cell, [side][cell].
@@ -278,12 +278,12 @@ pkpm_remap_flux_blend(const struct pkpm_remap_flux_share *share)
 
 // Thermal speed at one face of a node line of a cell, from the values of the thermal speed and the
 // density at the line's two Gauss-Legendre nodes (lower, upper); sign is +1 for the upper face and
-// -1 for the lower, and node_to_face is half the distance between the nodes over the distance
-// from their midpoint to the face. tau = 1/xi^2 is extrapolated linearly to the face: exact where the pressure is
-// uniform and the density linear. On the face beyond the hotter node the result is limited to the
-// ratio of the pressure and density traces (p = rho xi^2 at the nodes, both linear along the line),
-// and never below the hot node's own value. A line with a non-positive node value keeps its linear
-// extrapolation.
+// -1 for the lower, and node_to_face is the distance from the nodes' midpoint to the face over the
+// distance between the nodes. tau = 1/xi^2 is extrapolated linearly to the face: exact where the
+// pressure is uniform and the density linear. On the face beyond the hotter node the result is
+// limited to the ratio of the pressure and density traces (p = rho xi^2 at the nodes, both linear
+// along the line), and never below the hot node's own value. A line with a non-positive node value
+// keeps its linear extrapolation.
 GKYL_CU_DH static inline double
 pkpm_remap_flux_xi_line(
   double xi_lo, double xi_up, double rho_lo, double rho_up, double sign, double node_to_face

@@ -1,7 +1,7 @@
 #include <gkyl_pkpm_priv.h>
 
 // Staggered operator split of the locally implicit fluid-Maxwell source update S and the SSP-RK3
-// step T of the hyperbolic terms (plan 17.34). Over a run the sequence is
+// step T of the hyperbolic terms. Over a run the sequence is
 //   S(h/2) T S(h) T S(h) T ... T S(h/2),
 // the Strang split with the two source half steps that meet between consecutive transport steps
 // taken as ONE implicit-midpoint step. Two half steps rotate the plasma oscillation by

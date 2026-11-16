@@ -70,7 +70,7 @@ matvec(double A[3][3], const double *v, double *out)
   }
 }
 
-// Independent construction of the terms from the definitions of the notes with explicit matrices.
+// Independent construction of the terms from their definitions with explicit matrices.
 struct ref_terms {
   double flux[8], src[8], T[8];
 };

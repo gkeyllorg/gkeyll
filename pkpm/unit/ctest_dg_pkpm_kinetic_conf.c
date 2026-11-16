@@ -1,10 +1,12 @@
-// Tests of the configuration-space pass (stage A) of the refactored PKPM kinetic
-// update of the eight blocks [F, G, M0_perp, N_perp]: the exact modal volume kernel of the
-// two-field terms against an independent Gauss-Legendre quadrature of the same terms, the modal
-// first-harmonic volume integrals (dg_pkpm_harm_vol) against a quadrature exact for them of the
-// pointwise coefficients of gkyl_pkpm_harm_coeffs.h, and the closures (weak residuals of
-// M0(f) c_0 + M0(rhs_A) = 0 and M0(f) a_P + M1(rhs_A) + c_0 M1(f) = 0 in every mode, and the
-// perpendicular rows M0 a_perp + I_perp int rhs_A(M0_perp) dw = 0 at the closure nodes).
+// Tests of the configuration-space pass of the PKPM kinetic update of the eight blocks
+// [F, G, M0_perp, N_perp]: the weak gradient against an independent quadrature of its weak form,
+// the exact modal volume kernel (the streaming of every block) against an independent
+// Gauss-Legendre quadrature of the same terms, the modal first-harmonic volume integrals
+// (dg_pkpm_harm_vol) against a quadrature exact for them of the pointwise coefficients of
+// gkyl_pkpm_harm_coeffs.h, and the closures (weak residuals of the normalization, first-moment and
+// second-moment rows in every mode, and the perpendicular rows
+// M0 a_perp + I_perp int rhs(M0_perp) dw = 0 at the closure nodes, rhs the right-hand side of the
+// pass).
 #include <math.h>
 
 #include <acutest.h>
@@ -439,8 +441,9 @@ reference_harm_vol(struct test_setup *s, const int *idx, double *out_ref)
   }
 }
 
-// Independent evaluation of the stage-A volume terms of one cell, the streaming of every block, by
-// 4-point Gauss-Legendre quadrature in every phase-space direction (exact for the products).
+// Independent evaluation of the volume terms of the configuration-space pass of one cell, the
+// streaming of every block, by 4-point Gauss-Legendre quadrature in every phase-space direction
+// (exact for the products).
 static void
 reference_vol(struct test_setup *s, const int *idx, double *out_ref)
 {
@@ -533,10 +536,6 @@ test_vol(int cdim)
   teardown(&s);
 }
 
-// Full stage-A right-hand side (fluxes + volume) through hyper_dg, then the closures of
-// the factored update: the weak residuals <psi_k, M0(f) c_0 + M0(rhs_A)> and
-// <psi_k, M0(f) a_P + M1(rhs_A) + c_0 M1(f)> vanish in every mode (f need not be normalized
-// for this: the closures are weak divisions by its zeroth moment).
 // The modal first-harmonic volume integrals against the exact quadrature of the pointwise
 // coefficients, every block of every phase cell.
 static void
@@ -557,9 +556,9 @@ test_harm_vol(int cdim)
     gkyl_dg_pkpm_harm_vol_coef(harm, &s.clocal, s.bvar, s.grad_b, s.u, s.grad_u, s.xi,
       s.grad_xi, s.grad_ln_n, s.theta, s.dtb, s.em, hcoef, hwn);
     gkyl_dg_pkpm_harm_vol_advance(harm, &s.clocal, &s.plocal, hcoef, s.f, cflrate, rhs);
-    // the column source bound (plan 17.27, 17.44) against the Gershgorin row sums of the stored source
-    // entries plus |Omega| from the gyration entries, sampled over the cell (corners included) and
-    // over |w| <= W
+    // the column source bound against the Gershgorin row sums of the stored source entries plus
+    // |Omega| from the gyration entries, sampled over the cell (corners included) and over
+    // |w| <= W
     double W = harm->wmax, max_ratio = 0.0, om_max = 0.0;
     int ns = 1;
     for (int d = 0; d < cdim; ++d) {
@@ -655,6 +654,10 @@ test_harm_vol(int cdim)
   teardown(&s);
 }
 
+// Full right-hand side of the configuration-space pass (fluxes + volume) through hyper_dg, then
+// the closures: the weak residuals of the normalization, first-moment and second-moment rows
+// vanish in every mode (f is not normalized here; the rows do not need it), and the
+// perpendicular rows hold at the closure nodes.
 static void
 test_closure(int cdim)
 {
@@ -859,7 +862,7 @@ test_closure(int cdim)
   TEST_MSG("cdim=%d: second-moment residual %g (max |M2 + 2 M0G (rhs)| %g, max |c| %g)", cdim, max_res2, max_m2, max_ch);
 
   // Perpendicular rows at the closure nodes (where b is a unit vector): M0 a_perp + I_perp rho_M = 0,
-  // rho_M = int rhs_A(M0_perp) dw.
+  // rho_M = int rhs(M0_perp) dw of the configuration-space pass.
   double max_res_p = 0.0, max_rho_p = 0.0;
   int node_lower[3] = {0, 0, 0}, node_upper[3] = {1, 1, 1};
   struct gkyl_range node_range;

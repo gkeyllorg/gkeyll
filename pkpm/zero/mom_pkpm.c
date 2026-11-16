@@ -58,10 +58,12 @@ gkyl_mom_pkpm_inew(const struct gkyl_mom_pkpm_inp *inp)
 
   if (inp->is_diag) {
     mom_pkpm->momt.kernel = CK(mom_pkpm_diag_kernels, cdim, poly_order);
-    mom_pkpm->momt.num_mom = 8; // rho, M1, p_par, p_perp, q_par, q_perp, r_parpar, r_parperp
+    // mass times [M0, M1, M2, M0_G, M3, M1_G, M4, M2_G] of the input distributions
+    mom_pkpm->momt.num_mom = 8;
   } else {
     mom_pkpm->momt.kernel = CK(mom_pkpm_kernels, cdim, poly_order);
-    mom_pkpm->momt.num_mom = 18; // rho, p_par, p_perp, M1, q_par, q_perp, int (1, w, w^2) M0_perp dw (3 each), int N_perp dw (3)
+    // M0, M2, M0_G, M1, M3, M1_G, int (1, w, w^2) M0_perp dw (3 each), int N_perp dw (3)
+    mom_pkpm->momt.num_mom = 18;
   }
 
   mom_pkpm->mass = inp->mass;

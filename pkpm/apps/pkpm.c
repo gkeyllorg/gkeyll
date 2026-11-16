@@ -38,7 +38,7 @@ pkpm_array_meta_new(struct pkpm_output_meta meta)
   mpack_write_cstr(&writer, "basisType");
   mpack_write_cstr(&writer, meta.basis_type);
 
-  // the staggered operator split's last and suggested steps (restart, plan 17.34)
+  // the staggered operator split's last and suggested steps (for a restart)
   mpack_write_cstr(&writer, "dt_prev");
   mpack_write_double(&writer, meta.dt_prev);
   mpack_write_cstr(&writer, "dt_suggested");
@@ -129,7 +129,6 @@ gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm)
 
   int cdim = app->cdim = pkpm->cdim;
   int vdim = app->vdim = pkpm->vdim;
-  int pdim = cdim + vdim;
   int poly_order = app->poly_order = pkpm->poly_order;
   int ns = app->num_species = pkpm->num_species;
 
@@ -159,50 +158,18 @@ gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm)
     app->basis_on_dev.confBasis = &app->confBasis;
   }
 
-  // basis functions: the PKPM solver supports p=1 serendipity configuration space
-  // (tensored with p=2 in v_par) only; p=2 and tensor bases are retired.
+  // basis functions: p=1 serendipity in configuration space, the hybrid basis (p=2 in v_par)
+  // in phase space
   if (poly_order != 1 || pkpm->basis_type != GKYL_BASIS_MODAL_SERENDIPITY) {
     fprintf(stderr, "PKPM: only polyOrder = 1 with the serendipity basis is supported.\n");
     assert(false);
   }
-  switch (pkpm->basis_type) {
-    case GKYL_BASIS_MODAL_SERENDIPITY:
-      gkyl_cart_modal_serendip(&app->confBasis, cdim, poly_order);
-      if (poly_order > 1) {
-        gkyl_cart_modal_serendip(&app->basis, pdim, poly_order);
-        if (vdim > 0) {
-          gkyl_cart_modal_serendip(&app->velBasis, vdim, poly_order);
-        }
-      } else if (poly_order == 1) {
-        /* Force hybrid basis (p=2 in velocity space). */
-        gkyl_cart_modal_hybrid(&app->basis, cdim, vdim);
-        if (vdim > 0) {
-          gkyl_cart_modal_serendip(&app->velBasis, vdim, 2);
-        }
-      }
-
-      if (app->use_gpu) {
-        gkyl_cart_modal_serendip_cu_dev(app->basis_on_dev.confBasis, cdim, poly_order);
-        if (poly_order > 1) {
-          gkyl_cart_modal_serendip_cu_dev(app->basis_on_dev.basis, pdim, poly_order);
-        } else if (poly_order == 1) {
-          /* Force hybrid basis (p=2 in velocity space). */
-          gkyl_cart_modal_hybrid_cu_dev(app->basis_on_dev.basis, cdim, vdim);
-        }
-      }
-      break;
-
-    case GKYL_BASIS_MODAL_TENSOR:
-      gkyl_cart_modal_tensor(&app->basis, pdim, poly_order);
-      gkyl_cart_modal_tensor(&app->confBasis, cdim, poly_order);
-      if (vdim > 0) {
-        gkyl_cart_modal_tensor(&app->velBasis, vdim, poly_order);
-      }
-      break;
-
-    default:
-      assert(false);
-      break;
+  gkyl_cart_modal_serendip(&app->confBasis, cdim, poly_order);
+  gkyl_cart_modal_hybrid(&app->basis, cdim, vdim);
+  gkyl_cart_modal_serendip(&app->velBasis, vdim, 2);
+  if (app->use_gpu) {
+    gkyl_cart_modal_serendip_cu_dev(app->basis_on_dev.confBasis, cdim, poly_order);
+    gkyl_cart_modal_hybrid_cu_dev(app->basis_on_dev.basis, cdim, vdim);
   }
 
   gkyl_rect_grid_init(&app->grid, cdim, pkpm->lower, pkpm->upper, pkpm->cells);
@@ -282,7 +249,7 @@ gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm)
   gkyl_vlasov_position_map_write(app->pos_map, app->comm, app->name, "position-map");
 
   // Configuration space geometry initialization
-  // Note: *only* uses a p=1 DG representation of the geometry (JJ: 05/03/24)
+  // Note: uses a p=1 DG representation of the geometry
   app->c2p_ctx = app->mapc2p = 0;
   app->has_mapc2p = pkpm->mapc2p ? true : false;
 
@@ -314,12 +281,13 @@ gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm)
   app->geom =
     gkyl_wave_geom_new(&app->grid, &app->local_ext, app->mapc2p, app->c2p_ctx, app->use_gpu);
 
-  // PKPM system *always* has a field to define the local magnetic field direction
+  // defaults of the fluid positivity floor and the number of face quadrature nodes
   app->fluid_positivity_eps = pkpm->fluid_positivity_eps > 0.0 ? pkpm->fluid_positivity_eps :
                                                                  1.0e-2;
   app->num_face_nodes = pkpm->num_face_nodes > 0 ? pkpm->num_face_nodes : 5;
   assert(app->num_face_nodes >= 3);
 
+  // the PKPM system always has a field, which defines the local magnetic field direction
   app->field = pkpm_field_new(pkpm, app);
 
   // allocate space to store species objects
@@ -360,8 +328,8 @@ gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm)
     // we use a pure explicit SSP RK3 method.
     app->update_func = pkpm_update_explicit_ssp_rk3;
   } else {
-    // By default: we perform a first-order operator split
-    // to implicitly treat the momentum-EM field coupling.
+    // By default: a staggered (Strang) operator split treats the
+    // momentum-EM field coupling implicitly.
     app->pkpm_em = pkpm_fluid_em_coupling_init(app);
     app->update_func = pkpm_update_op_split;
     for (int i = 0; i < app->num_species; ++i) {
@@ -1183,7 +1151,6 @@ struct gkyl_pkpm_stat
 gkyl_pkpm_app_stat(gkyl_pkpm_app *app)
 {
   pkpm_species_tm(app);
-  pkpm_species_coll_tm(app);
   return app->stat;
 }
 
@@ -1259,7 +1226,7 @@ comm_reduce_app_stat(
     [PKPM_EM_TM] = local->pkpm_em_tm,
     [INIT_SPECIES_TM] = local->init_species_tm,
     [INIT_FLUID_SPECIES_TM] = local->init_fluid_species_tm,
-    [INIT_FIELD_TM] = local->field_rhs_tm,
+    [INIT_FIELD_TM] = local->init_field_tm,
     [SPECIES_RHS_TM] = local->species_rhs_tm,
     [FLUID_SPECIES_RHS_TM] = local->fluid_species_rhs_tm,
     [SPECIES_COLL_MOM_TM] = local->species_coll_mom_tm,
@@ -1285,7 +1252,7 @@ comm_reduce_app_stat(
   global->pkpm_em_tm = d_red_global[PKPM_EM_TM];
   global->init_species_tm = d_red_global[INIT_SPECIES_TM];
   global->init_fluid_species_tm = d_red_global[INIT_FLUID_SPECIES_TM];
-  global->field_rhs_tm = d_red_global[INIT_FIELD_TM];
+  global->init_field_tm = d_red_global[INIT_FIELD_TM];
   global->species_rhs_tm = d_red_global[SPECIES_RHS_TM];
   global->fluid_species_rhs_tm = d_red_global[FLUID_SPECIES_RHS_TM];
   global->species_coll_mom_tm = d_red_global[SPECIES_COLL_MOM_TM];
@@ -1310,15 +1277,6 @@ comm_reduce_app_stat(
   gkyl_comm_allreduce_host(
     app->comm, GKYL_DOUBLE, GKYL_MAX, 2, local->stage_3_dt_diff, global->stage_3_dt_diff
   );
-
-  gkyl_comm_allreduce_host(
-    app->comm, GKYL_DOUBLE, GKYL_MAX, GKYL_MAX_SPECIES, local->species_lbo_coll_drag_tm,
-    global->species_lbo_coll_drag_tm
-  );
-  gkyl_comm_allreduce_host(
-    app->comm, GKYL_DOUBLE, GKYL_MAX, GKYL_MAX_SPECIES, local->species_lbo_coll_diff_tm,
-    global->species_lbo_coll_diff_tm
-  );
 }
 
 void
@@ -1336,7 +1294,6 @@ gkyl_pkpm_app_stat_write(gkyl_pkpm_app *app)
   time_t t = time(NULL);
   struct tm curr_tm = *localtime(&t);
 
-  pkpm_species_coll_tm(app);
   pkpm_species_tm(app);
 
   struct gkyl_pkpm_stat stat = {};
@@ -1389,14 +1346,6 @@ gkyl_pkpm_app_stat_write(gkyl_pkpm_app *app)
 
   gkyl_pkpm_app_cout(app, fp, " species_coll_mom_tm : %lg,\n", stat.species_coll_mom_tm);
   gkyl_pkpm_app_cout(app, fp, " species_coll_tm : %lg,\n", stat.species_coll_tm);
-  for (int s = 0; s < app->num_species; ++s) {
-    gkyl_pkpm_app_cout(
-      app, fp, " species_coll_drag_tm[%d] : %lg,\n", s, stat.species_lbo_coll_drag_tm[s]
-    );
-    gkyl_pkpm_app_cout(
-      app, fp, " species_coll_diff_tm[%d] : %lg,\n", s, stat.species_lbo_coll_diff_tm[s]
-    );
-  }
 
   gkyl_pkpm_app_cout(app, fp, " fluid_species_rhs_tm : %lg,\n", stat.fluid_species_rhs_tm);
   gkyl_pkpm_app_cout(app, fp, " fluid_species_bc_tm : %lg,\n", stat.fluid_species_bc_tm);
@@ -1682,7 +1631,7 @@ gkyl_pkpm_app_read_from_frame(gkyl_pkpm_app *app, int frame)
 
   app->tcurr = rstat.stime;
   if (!app->use_explicit_source) {
-    // The frames hold the synchronized state of the staggered operator split (plan 17.34); the
+    // The frames hold the synchronized state of the staggered operator split; the
     // uninterrupted run held the sources half its last step behind. Step them back (the implicit
     // midpoint rule is time-reversible: this inverts the synchronization step) and restore the steps,
     // so the next update continues as the uninterrupted run. Frames without the steps restart as a

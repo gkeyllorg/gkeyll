@@ -40,8 +40,8 @@ struct gkyl_bc_pkpm_species_reflect_inp {
  * flipped when the normal field is even (b'_n b_n > 0) or the image is the reversed mirror
  * (b' . R b < 0, which decides when b_n = 0), and kept otherwise. For PEC and symmetry walls this
  * is the exact image. For a copied field (b' = b) at oblique b the exact image is not gyrotropic
- * about b'; flipping w then keeps the mass flux through the wall exactly zero, with an energy
- * leak of up to 9% of the outgoing energy flux (ctest_pkpm_reflect_bc).
+ * about b'; flipping w then keeps the mass flux through the wall exactly zero (checked in
+ * ctest_pkpm_reflect_bc); the energy and tangential momentum fluxes are not zero in general.
  *
  * The image at s w is taken cell for cell from the mirrored velocity cell, so the velocity grid
  * must be symmetric about w = 0.

@@ -45,7 +45,9 @@ typedef int (*pkpm_grad_ln_n_t)(
   const double *rho, const double *grad_rho, double *GKYL_RESTRICT grad_ln_n
 );
 
-typedef int (*pkpm_normalize_t)(const double *n, const double *f, double *GKYL_RESTRICT fbar);
+typedef int (*pkpm_normalize_t)(
+  const double *norm_moms, const double *f, double *GKYL_RESTRICT fbar
+);
 typedef void (*pkpm_transverse_t)(const double *bvar, double *GKYL_RESTRICT f);
 typedef void (*pkpm_source_t)(const double *qmem, const double *fluid, double *GKYL_RESTRICT out);
 
@@ -60,10 +62,10 @@ struct gkyl_dg_calc_pkpm_vars {
 
   pkpm_in_cell_grad_t pkpm_in_cell_grad[3]; // in-cell gradient of a 3-vector in each direction
   pkpm_closure_t
-    pkpm_closure; // closures c_0, a_P/xi and c from the moments of the stage-A rhs, with the velocity edges
+    pkpm_closure; // closures c_0, a_P/xi, c, a_perp from the configuration-pass rhs moments
   pkpm_prim_t pkpm_prim; // nodal flow and thermal speed [xi, xi^2, p] of the fluid state
   pkpm_int_t pkpm_int; // cell integrals of the diagnostics of the [rho, M, E] state
-  pkpm_grad_ln_n_t pkpm_grad_ln_n; // grad(ln n) by nodal quotient of the weak gradient of rho
+  pkpm_grad_ln_n_t pkpm_grad_ln_n; // grad(ln n) by nodal quotient of the gradient of rho
   pkpm_fluid_positivity_t pkpm_fluid_positivity; // vertex positivity limiter of the fluid state
   pkpm_normalize_t pkpm_normalize; // nodal constraint enforcement of the initial distributions
   pkpm_transverse_t pkpm_transverse; // transversality projection of the first-harmonic blocks
@@ -108,7 +110,8 @@ choose_pkpm_diag_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
   return 0;
 }
 
-// Closures of the factored, normalized update: c_0, a_P/xi and the heating rate c (p=1 serendipity)
+// Closures of the normalized kinetic update: c_0, a_P/xi, the heating rate c and a_perp, with
+// the velocity-space edge fluxes (p=1 serendipity)
 GKYL_CU_D static const pkpm_closure_t ser_pkpm_closure_kernels[] = {
   pkpm_vars_closure_1x_ser_p1, pkpm_vars_closure_2x_ser_p1, pkpm_vars_closure_3x_ser_p1
 };
@@ -120,7 +123,7 @@ choose_pkpm_closure_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
   }
   return 0;
 }
-// Nodal thermal speed [xi, xi^2] of the fluid state (p=1 serendipity)
+// Nodal flow u and thermal speed [xi, xi^2, p] of the fluid state (p=1 serendipity)
 GKYL_CU_D static const pkpm_prim_t ser_pkpm_prim_kernels[] = {
   pkpm_vars_prim_1x_ser_p1, pkpm_vars_prim_2x_ser_p1, pkpm_vars_prim_3x_ser_p1
 };
@@ -143,7 +146,7 @@ choose_pkpm_int_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
   }
   return 0;
 }
-// grad(ln n) from the weak gradient of rho over the cell average (p=1 serendipity)
+// Vertex positivity limiter of the fluid state [rho, M, E] (p=1 serendipity)
 GKYL_CU_D static const pkpm_fluid_positivity_t ser_pkpm_fluid_positivity_kernels[] = {
   pkpm_fluid_positivity_1x_ser_p1, pkpm_fluid_positivity_2x_ser_p1, pkpm_fluid_positivity_3x_ser_p1
 };
@@ -156,6 +159,7 @@ choose_pkpm_fluid_positivity_kern(enum gkyl_basis_type b_type, int cdim, int pol
   return 0;
 }
 
+// grad(ln n) by nodal quotient of the gradient of rho (p=1 serendipity)
 GKYL_CU_D static const pkpm_grad_ln_n_t ser_pkpm_grad_ln_n_kernels[] = {
   pkpm_vars_grad_ln_n_1x_ser_p1, pkpm_vars_grad_ln_n_2x_ser_p1, pkpm_vars_grad_ln_n_3x_ser_p1
 };

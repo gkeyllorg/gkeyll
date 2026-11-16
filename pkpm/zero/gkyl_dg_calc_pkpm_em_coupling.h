@@ -37,7 +37,7 @@ struct gkyl_dg_calc_pkpm_em_coupling_inp {
 struct gkyl_dg_calc_pkpm_em_coupling *gkyl_dg_calc_pkpm_em_coupling_inew(const struct gkyl_dg_calc_pkpm_em_coupling_inp *inp);
 
 /**
- * Create new updater to compute fluid variables on
+ * Create new updater for the implicit fluid-Maxwell source update on
  * NV-GPU. See new() method for documentation.
  */
 struct gkyl_dg_calc_pkpm_em_coupling *gkyl_dg_calc_pkpm_em_coupling_cu_dev_inew(const struct gkyl_dg_calc_pkpm_em_coupling_inp *inp);
@@ -62,14 +62,14 @@ void gkyl_dg_calc_pkpm_em_coupling_advance(
 );
 
 /**
- * Delete pointer to updater to compute fluid variables.
+ * Delete the updater for the implicit fluid-Maxwell source update.
  *
  * @param up Updater to delete.
  */
 void gkyl_dg_calc_pkpm_em_coupling_release(struct gkyl_dg_calc_pkpm_em_coupling *up);
 
 /**
- * Host-side wrappers for fluid vars operations on device
+ * Host-side wrapper for the implicit fluid-Maxwell source update on device
  */
 
 void gkyl_dg_calc_pkpm_em_coupling_advance_cu(

@@ -13,7 +13,8 @@ test_mom_pkpm_1x1v_p1()
   gkyl_cart_modal_serendip(&cbasis, 1, poly_order); // 1X
   gkyl_cart_modal_serendip(&pbasis, 2, poly_order); // 1X1V
 
-  // Non-diagnostic moments (rho, p_par, p_perp, M1, q_par, q_perp, int M0_perp dw).
+  // Moments of the update: [M0, M2, M0_G, M1, M3, M1_G] of F and G, int (1, w, w^2) M0_perp dw
+  // and int N_perp dw (three components each).
   struct gkyl_mom_type *m = gkyl_mom_pkpm_inew(&(struct gkyl_mom_pkpm_inp){
     .conf_basis = &cbasis,
     .phase_basis = &pbasis,

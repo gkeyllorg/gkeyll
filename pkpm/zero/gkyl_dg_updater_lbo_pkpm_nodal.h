@@ -16,7 +16,7 @@ struct gkyl_dg_updater_lbo_pkpm_nodal_inp {
   const struct gkyl_basis *phase_basis; // Phase-space basis functions (p=1 x p=2 hybrid).
   const struct gkyl_range *conf_range; // Configuration-space range for indexing nu and prim_moms.
   const struct gkyl_array *nu; // Collision frequency at the configuration-space nodes.
-  const struct gkyl_array *prim_moms; // Primitive moments [u, vtsq] at the nodes.
+  const struct gkyl_array *prim_moms; // Nodal drift and thermal speed squared [u, vtsq] in w units.
   bool use_gpu; // bool to determine if on GPU.
 };
 

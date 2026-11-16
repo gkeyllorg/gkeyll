@@ -25,13 +25,14 @@ struct gkyl_dg_pkpm_harm_exp_inp {
  * damping, which can be stiff, is integrated exactly.
  *
  * Gyrophase mixing: agyrotropy beyond what one harmonic can represent relaxes to that
- * bound, d(M0_perp, N_perp)/dt = -nu ((M0_perp, N_perp) - P(M0_perp, N_perp)) with nu = mix |Omega|
- * and P the projection onto r <= 1 at each phase node, r = max(sqrt2 |M0_perp|/sqrt(F G),
- * |N_perp| sqrt(F)/G^(3/2)). As a rate on the first harmonic it is nu (1 - 1/r)_+, frozen at the
- * start of the step (capped at ln(r)/h, which takes the unforced state to the bound in one step), on
- * the plane perpendicular to b_n, the field direction at the start of the step. With L = -nu (1 - 1/r)_+
- * on that plane, SSP-RK3 advances V = e^(-(t - t_n) L) U with the full stage right-hand sides N_i (the
- * mixing is not part of them). In the Shu-Osher form of the driver (stages at t_n, t_n + h, t_n + h/2):
+ * bound, d(M0_perp, N_perp)/dt = -mix |Omega| ((M0_perp, N_perp) - P(M0_perp, N_perp)), with
+ * P the projection onto r <= 1 at each phase node, r = max(sqrt2 |M0_perp|/sqrt(F G),
+ * |N_perp| sqrt(F)/G^(3/2)). As a rate on the first harmonic it is nu = mix |Omega| (1 - 1/r)_+,
+ * capped at ln(r)/h (which takes the unforced state to the bound in one step) and frozen at the
+ * start of the step, on the plane perpendicular to b_n, the field direction at the start of the
+ * step. With L = -nu on that plane, SSP-RK3 advances V = e^(-(t - t_n) L) U with the full stage
+ * right-hand sides N_i (the mixing is not part of them). In the Shu-Osher form of the driver
+ * (stages at t_n, t_n + h, t_n + h/2):
  *
  *   U_2 = e^(hL) (M + h N_1),
  *   U_3 = 3/4 e^(hL/2) M + 1/4 e^(-hL/2) (U_2 + h N_2),
@@ -109,7 +110,7 @@ void gkyl_dg_pkpm_harm_exp_coef(
  * @param f0 State M at the start of the step (eight blocks).
  * @param lam Temperature factor of the stage weights at the configuration nodes (ordered as in
  *   gkyl_dg_conf_nodal), or 0 for the SSP-RK3 weights.
- * @param nu Mixing rate at the phase nodes (written at stage 1).
+ * @param nu Mixing rate nu at the phase nodes, the cap included (written at stage 1).
  * @param act Configuration-space flag of damped columns (set at stage 1).
  * @param out Forward Euler output of the stage (eight blocks; blocks 2-7 replaced at damped nodes).
  */

@@ -13,7 +13,7 @@ extern "C" {
 }
 
 // One thread per configuration cell: its node values, then the lower v_par faces of its velocity
-// cells (zero at the lower velocity domain edge).
+// cells but the lowest (the lower velocity domain edge, set by the closure).
 __global__ void
 gkyl_dg_pkpm_vel_flux_surf_advance_cu_kernel(
   struct gkyl_dg_pkpm_vel_flux_surf *up, struct gkyl_range conf_range, struct gkyl_range phase_range,

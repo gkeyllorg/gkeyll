@@ -35,7 +35,7 @@ pkpm_forward_euler(
   pkpm_field_calc_bvar(app, app->field, emin);
 
   // Every kernel of the stage sees first-harmonic blocks perpendicular to the stage's b: project
-  // M0_perp and N_perp of the stage state at the Gauss-Legendre nodes of b (plan 17.11).
+  // M0_perp and N_perp of the stage state at the Gauss-Legendre nodes of b.
   for (int i = 0; i < app->num_species; ++i) {
     pkpm_species_project_transverse(app, &app->species[i], fin[i]);
   }
@@ -46,8 +46,8 @@ pkpm_forward_euler(
 
   // Two separate loops over number of species to compute needed auxiliary quantities.
   for (int i = 0; i < app->num_species; ++i) {
-    // Compute parallel-kinetic-perpendicular moment (pkpm) variables:
-    // the moments [rho, p_par, p_perp, M1], the flow velocity and T_perp/m.
+    // Configuration-space variables of the stage: the moments of the normalized distributions,
+    // the flow and thermal speed, the kinetic coupling moments and T_perp/T.
     pkpm_species_calc_pkpm_vars(app, &app->species[i], fin[i], fluidin[i]);
     // The distributions of the stage at the configuration-space nodes, for the LBO.
     pkpm_species_nodal_dist(app, &app->species[i], fin[i]);
@@ -107,7 +107,7 @@ pkpm_forward_euler(
   st->dt_suggested = dtmin;
 
   // complete update of distribution function; at the nodes the gyrophase mixing damps, the
-  // first-harmonic blocks are then replaced by the integrating-factor stage (plan 17.44)
+  // first-harmonic blocks are then replaced by the integrating-factor stage
   for (int i = 0; i < app->num_species; ++i) {
     gkyl_array_accumulate(gkyl_array_scale(fout[i], dta), 1.0, fin[i]);
     pkpm_species_harm_exp_advance(app, &app->species[i], stage, dta, fout[i]);

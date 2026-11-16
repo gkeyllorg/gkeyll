@@ -1,5 +1,5 @@
-// Tests of the PKPM configuration-space face flux (dg_pkpm_remap_flux_surf), the exact remap of
-// physical_jump_flux.tex blended with the label-paired flux.
+// Tests of the PKPM configuration-space face flux (dg_pkpm_remap_flux_surf): the HLL flux of the
+// two sides' distributions mapped exactly to the face frame, blended with the label-paired flux.
 #include <math.h>
 #include <stdlib.h>
 
@@ -367,7 +367,7 @@ same_physical(double w, void *ctx, double *blocks)
   blocks[1] = fr->xi / fr->rho * g / (fr->xi * fr->xi);
 }
 
-// 3. Every cell holds the same physical distribution in its own frame: the flux each cell receives
+// 2. Every cell holds the same physical distribution in its own frame: the flux each cell receives
 // through its two faces of direction dir agrees, so the face divergence vanishes.
 static void
 test_steady_state(int cdim, int dir, const struct phys_frame *frames)
@@ -449,7 +449,7 @@ test_steady_shift(void)
   test_steady_state_all(frames);
 }
 
-// 4. With no flux outside either grid, each side's kinetic flux has the moments of the fluid flux
+// 3. With no flux outside either grid, each side's kinetic flux has the moments of the fluid flux
 // when mapped with that side's own frame.
 void
 test_moments(void)
@@ -535,7 +535,7 @@ test_moments(void)
   teardown(&s);
 }
 
-// 5. A reflecting wall (mirror ghost: u_n reversed, f(x, w) -> f(-x, -w)) has no normal mass flux.
+// 4. A reflecting wall (mirror ghost: u_n reversed, f(x, w) -> f(-x, -w)) has no normal mass flux.
 void
 test_reflecting_wall(void)
 {
@@ -579,7 +579,7 @@ test_reflecting_wall(void)
   teardown(&s);
 }
 
-// 6. Disjoint velocity grids (the initial state of Noh): the flux is two non-overlapping beams.
+// 5. Disjoint velocity grids (the initial state of Noh): the flux is two non-overlapping beams.
 void
 test_disjoint_beams(void)
 {
@@ -668,7 +668,7 @@ test_disjoint_beams(void)
   teardown(&s);
 }
 
-// 7. A 1x problem run along each axis of a 3x grid reproduces 1x.
+// 6. A 1x problem run along each axis of a 3x grid reproduces 1x.
 struct along_ctx {
   int dir; // the axis the problem varies along
 };
@@ -819,7 +819,7 @@ eval_maxwellian_fg(double t, const double *xn, double *fout, void *ctx)
   fout[0] = fout[1] = exp(-0.5 * w * w) / sqrt(2.0 * M_PI);
 }
 
-// 8. A gas at rest with uniform pressure and a density that is linear across the cells (1x): the
+// 7. A gas at rest with uniform pressure and a density that is linear across the cells (1x): the
 // thermal speed at the Gauss-Legendre nodes is sqrt(p/rho), and the face value from 1/xi^2 along
 // the node line is sqrt(p/rho_face) on both sides of every face. So no mass or energy crosses a
 // face and the momentum flux, the pressure, is the same on every face.

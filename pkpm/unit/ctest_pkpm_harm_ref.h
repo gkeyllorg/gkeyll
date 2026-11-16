@@ -9,8 +9,8 @@
 // The distributions are the eight blocks [F, G, M0_perp (x, y, z), N_perp (x, y, z)]. The inputs
 // are the values at the point of p=1 fields; every product is formed here, at the point, with
 // I_perp v = v - b (b.v) for the interpolated b. The coefficients are the known parts: the closure
-// parts (c_0 in sigma_0, alpha_0 = b.a, c in Gamma_w, a_perp = I_perp a) are added by the stage-B
-// kernels.
+// parts (c_0 in sigma_0, alpha_0 = b.a, c in Gamma_w, a_perp = I_perp a) are added by the kernels
+// of the velocity-space pass.
 
 #include <math.h>
 #include <gkyl_pkpm_harm_coeffs.h>

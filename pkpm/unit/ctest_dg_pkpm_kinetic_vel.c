@@ -1,10 +1,10 @@
-// Tests of the velocity-space pass (stage B) of the refactored PKPM kinetic update of the eight
-// blocks [F, G, M0_perp, N_perp]: the v_par flux (dg_pkpm_vel_flux_surf, HLL of the coupled w
-// flux) against an independent nodal evaluation, the stage-B volume kernel against quadrature,
-// the invariants of the complete two-pass right-hand side (M0, M1 and M2(F) + 2 M0(G) of
-// rhs_A + rhs_B vanish per cell and mode, and I_perp int rhs(M0_perp) dw at the closure nodes, also
-// off the constraint manifold, int M0_perp dw != 0), the characteristic velocity edges, and the
-// transversality projection of the first-harmonic blocks.
+// Tests of the velocity-space pass of the PKPM kinetic update of the eight blocks
+// [F, G, M0_perp, N_perp]: the v_par flux (dg_pkpm_vel_flux_surf, HLL of the coupled w flux)
+// against an independent nodal evaluation, the volume kernel of the pass against quadrature, the
+// invariants of the complete two-pass right-hand side (M0, M1 and M2(F) + 2 M0(G) of the sum of
+// the two passes vanish per cell and mode, and I_perp int rhs(M0_perp) dw at the closure nodes,
+// also off the constraint manifold, int M0_perp dw != 0), the characteristic velocity edges, and
+// the transversality projection of the first-harmonic blocks.
 #include <math.h>
 
 #include <acutest.h>
@@ -105,8 +105,8 @@ eval_conf_scalars(double t, const double *xn, double *restrict fout, void *ctx)
   int cdim = *(int *)ctx;
   double x = xn[0], y = cdim > 1 ? xn[1] : 0.3, z = cdim > 2 ? xn[2] : -0.2;
   fout[0] = 0.7 + 0.2 * cos(x) * sin(y) + 0.1 * z; // theta
-  fout[1] = 0.3 + 0.1 * sin(x); // nu_sum
-  fout[2] = 0.2 + 0.05 * cos(y) + 0.03 * sin(z); // nu_vthsq_sum
+  fout[1] = 0.3 + 0.1 * sin(x); // (no field is set from components 1 and 2)
+  fout[2] = 0.2 + 0.05 * cos(y) + 0.03 * sin(z);
   fout[3] = 0.4 * sin(x) - 0.3 * cos(y) * sin(z); // a stand-in alpha_0 = a_P/xi
   fout[4] = 0.2 * cos(x) + 0.1 * sin(y) * cos(z); // a stand-in heating rate c
   fout[5] = 0.3 * sin(x) * sin(y) - 0.1 * cos(z); // a stand-in c_0
@@ -219,7 +219,7 @@ struct test_setup {
   struct gkyl_rect_grid cgrid, pgrid;
   struct gkyl_basis cbasis, pbasis;
   struct gkyl_range clocal, clocal_ext, plocal, plocal_ext, plocal_ext_conf, vlocal, vlocal_ext;
-  struct gkyl_array *bvar, *grad_b, *u, *grad_u, *grad_ln_n, *theta, *nu_sum, *nu_vthsq_sum, *alpha_0, *c_h, *c_0, *f;
+  struct gkyl_array *bvar, *grad_b, *u, *grad_u, *grad_ln_n, *theta, *alpha_0, *c_h, *c_0, *f;
   struct gkyl_array *xi, *grad_xi, *a_perp, *em, *dtb;
   struct gkyl_array *hcoef; // stored first-harmonic operator of the fields
   struct gkyl_array *hwn; // raw w-flux values at the w-face nodes
@@ -301,8 +301,6 @@ setup(struct test_setup *s, int cdim)
   s->u = mkarr(3 * nc, s->clocal_ext.volume);
   s->xi = mkarr(3 * nc, s->clocal_ext.volume);
   s->theta = mkarr(nc, s->clocal_ext.volume);
-  s->nu_sum = mkarr(nc, s->clocal_ext.volume);
-  s->nu_vthsq_sum = mkarr(nc, s->clocal_ext.volume);
   s->alpha_0 = mkarr(nc, s->clocal_ext.volume);
   s->c_h = mkarr(nc, s->clocal_ext.volume);
   s->c_0 = mkarr(nc, s->clocal_ext.volume);
@@ -319,14 +317,10 @@ setup(struct test_setup *s, int cdim)
   gkyl_proj_on_basis_advance(proj, 0.0, &s->clocal_ext, scal);
   gkyl_proj_on_basis_release(proj);
   gkyl_array_set_offset(s->theta, 1.0, scal, 0 * nc);
-  gkyl_array_set_offset(s->nu_sum, 1.0, scal, 1 * nc);
-  gkyl_array_set_offset(s->nu_vthsq_sum, 1.0, scal, 2 * nc);
   gkyl_array_set_offset(s->alpha_0, 1.0, scal, 3 * nc);
   gkyl_array_set_offset(s->c_h, 1.0, scal, 4 * nc);
   gkyl_array_set_offset(s->c_0, 1.0, scal, 5 * nc);
-  for (int a = 0; a < 3; ++a) {
-    gkyl_array_set_offset_range(s->a_perp, 1.0, scal, (6 + a) * nc, &s->clocal_ext);
-  }
+  gkyl_array_set_offset(s->a_perp, 1.0, scal, 6 * nc);
   proj = gkyl_proj_on_basis_new(&s->cgrid, &s->cbasis, 8, 3, eval_dtb, &cdim);
   gkyl_proj_on_basis_advance(proj, 0.0, &s->clocal_ext, s->dtb);
   gkyl_proj_on_basis_release(proj);
@@ -379,8 +373,6 @@ teardown(struct test_setup *s)
   gkyl_array_release(s->alpha_0);
   gkyl_array_release(s->c_h);
   gkyl_array_release(s->c_0);
-  gkyl_array_release(s->nu_vthsq_sum);
-  gkyl_array_release(s->nu_sum);
   gkyl_array_release(s->theta);
   gkyl_array_release(s->u);
   gkyl_array_release(s->bvar);
@@ -494,7 +486,7 @@ reference_vel_face(
     flux_ref[k] = 0.0;
   }
   double cfl_max = 0.0;
-  // the column bound of the w-flux speeds (absolute coefficients at the larger |w| edge, plan 17.27)
+  // the column bound of the w-flux speeds (absolute coefficients at the larger |w| edge)
   double wm = fmax(fabs(s->pgrid.lower[cdim]), fabs(s->pgrid.upper[cdim]));
   *ratio = 0.0;
   int node_lower[3] = {0, 0, 0}, node_upper[3] = {4, 4, 4};
@@ -627,7 +619,7 @@ test_vel_flux(int cdim)
   TEST_CHECK(max_flux > 0.0);
   TEST_CHECK(max_err < 1e-12 * max_flux);
   TEST_MSG("cdim=%d: max flux error %g (max flux %g)", cdim, max_err, max_flux);
-  // no interior face speed exceeds the column bound at the edges (plan 17.27)
+  // no interior face speed exceeds the column bound at the edges
   TEST_CHECK(max_ratio <= 1.0 + 1e-12);
   TEST_MSG("cdim=%d: largest face speed / column bound %g", cdim, max_ratio);
 
@@ -734,8 +726,8 @@ test_vel_flux_exact(int cdim)
 // The velocity-domain edges are constructed as the interior w faces: with previous closures that
 // make the upper edge pure outflow and the lower edge inflow at every node (alpha_0 large), the
 // stored upper edge flux is the exact Galerkin projection of the POINTWISE flux alpha U + T(U) at
-// w_max with the NEW closures (6 Gauss-Legendre points per configuration direction), and the lower
-// edge carries no flux.
+// w_max with the returned closures (6 Gauss-Legendre points per configuration direction), and the
+// lower edge carries no flux.
 static void
 test_edge_flux_exact(int cdim)
 {
@@ -966,10 +958,10 @@ perp_moment_max(struct test_setup *s, long cidx, const struct gkyl_array *mom)
   return mx;
 }
 
-// The complete two-pass right-hand side: configuration fluxes, stage A, closures, w
-// fluxes, stage B. The zeroth and first moments of the total and its scalar second
-// moment M2(F) + 2 M0(G) must vanish in every cell and configuration mode, to round-off
-// relative to the cancelling stage-A moments.
+// The complete two-pass right-hand side: configuration fluxes, the configuration-space pass,
+// closures, w fluxes, the velocity-space pass. The zeroth and first moments of the total and its
+// scalar second moment M2(F) + 2 M0(G) must vanish in every cell and configuration mode, to
+// round-off relative to the cancelling moments of the configuration-space pass.
 static void
 test_m1_invariant(int cdim)
 {
@@ -977,7 +969,7 @@ test_m1_invariant(int cdim)
   setup(&s, cdim);
   int nc = s.cbasis.num_basis, np = s.pbasis.num_basis;
 
-  // Stage A.
+  // Configuration-space pass.
   // Face fluxes of the eight blocks (the fluid flux and the blend weight are not used here).
   struct gkyl_dg_pkpm_remap_flux_surf_inp cinp = {
     .phase_grid = &s.pgrid,
@@ -1097,7 +1089,7 @@ test_m1_invariant(int cdim)
     max_mu = fmax(max_mu, perp_moment_max(&s, cidx, moms));
   }
 
-  // Stage B (interior faces with the closures; the edge faces were set above).
+  // Velocity-space pass (interior faces with the closures; the edge faces were set above).
   gkyl_dg_pkpm_vel_flux_surf_advance(
     calc_vflux, &s.clocal, &s.plocal, s.hwn, s.theta, s.bvar, a_P, c_h, s.f, vflux
   );
@@ -1134,17 +1126,22 @@ test_m1_invariant(int cdim)
   }
   TEST_CHECK(max_m1_a > 0.0);
   TEST_CHECK(max_m1 < 1e-12 * max_m1_a);
-  TEST_MSG("cdim=%d: max |M1(rhs)| %g after closure (stage-A moment %g)", cdim, max_m1, max_m1_a);
+  TEST_MSG("cdim=%d: max |M1(rhs)| %g after closure (configuration-pass moment %g)", cdim, max_m1,
+    max_m1_a);
   TEST_CHECK(max_m0_a > 0.0);
   TEST_CHECK(max_m0 < 1e-12 * max_m0_a);
-  TEST_MSG("cdim=%d: max |M0(rhs)| %g after closure (stage-A moment %g)", cdim, max_m0, max_m0_a);
+  TEST_MSG("cdim=%d: max |M0(rhs)| %g after closure (configuration-pass moment %g)", cdim, max_m0,
+    max_m0_a);
   TEST_CHECK(max_m2_a > 0.0);
   TEST_CHECK(max_m2 < 1e-12 * max_m2_a);
-  TEST_MSG("cdim=%d: max |M2(rhs_F) + 2 M0(rhs_G)| %g after closure (stage-A moment %g)", cdim, max_m2, max_m2_a);
-  TEST_CHECK(max_mu > 0.0); // off the constraint manifold: the coupled 5x5 is exercised
+  TEST_MSG("cdim=%d: max |M2(rhs_F) + 2 M0(rhs_G)| %g after closure (configuration-pass moment %g)",
+    cdim, max_m2, max_m2_a);
+  // off the constraint manifold: the perpendicular rows enter the 3x3 solve
+  TEST_CHECK(max_mu > 0.0);
   TEST_CHECK(max_mp_a > 0.0);
   TEST_CHECK(max_mp < 1e-12 * max_mp_a);
-  TEST_MSG("cdim=%d: max |I_perp int rhs(M0_perp) dw| %g at the nodes after closure (stage-A moment %g, |mu| %g)",
+  TEST_MSG("cdim=%d: max |I_perp int rhs(M0_perp) dw| %g at the nodes after closure "
+           "(configuration-pass moment %g, |mu| %g)",
     cdim, max_mp, max_mp_a, max_mu);
   gkyl_array_release(a_perp);
 
@@ -1192,13 +1189,13 @@ void test_m1_invariant_2x() { test_m1_invariant(2); }
 void test_m1_invariant_3x() { test_m1_invariant(3); }
 
 // Characteristic condition at the velocity domain edges inside the closure: a uniform state
-// whose distribution is concentrated near the upper edge w = 4, a prescribed stage-A
-// energy residual (heating, so the new alpha(w_max) is positive), and the previous
-// closures pointing outward (alpha_0 = 0.7) or inward (-0.7) at the upper edge. In both
-// cases the 3x3 solve balances the stage-A residual with c_0, alpha_0, c such that the
-// complete stage-B right-hand side (closure terms + edge flux) cancels it in the
+// whose distribution is concentrated near the upper edge w = 4, a prescribed energy residual
+// of the configuration-space pass (heating, so the returned alpha(w_max) is positive), and the
+// previous closures pointing outward (alpha_0 = 0.7) or inward (-0.7) at the upper edge. In
+// both cases the 3x3 solve balances that residual with c_0, alpha_0, c such that the complete
+// right-hand side of the velocity-space pass (closure terms + edge flux) cancels it in the
 // constrained moments. Outward: the stored edge flux equals alpha(w_max) F_edge of the
-// NEW closures. Inward: nothing leaves (the lower edge holds no distribution).
+// returned closures. Inward: nothing leaves (the lower edge holds no distribution).
 static void
 eval_edge_f(double t, const double *xn, double *restrict fout, void *ctx)
 {
@@ -1288,7 +1285,8 @@ test_edge_closure(int cdim)
     gkyl_array_clear(s.c_h, 0.0);
     gkyl_array_clear(s.c_0, 0.0);
     gkyl_array_clear(rhs_moms, 0.0);
-    gkyl_array_shiftc(rhs_moms, -4.0 * c0, nc); // stage-A rate of M2(F): the energy residual
+    // configuration-pass rate of M2(F): the energy residual
+    gkyl_array_shiftc(rhs_moms, -4.0 * c0, nc);
     gkyl_array_clear(vflux, 0.0);
     gkyl_array_clear(cflrate, 0.0);
     int num_null = gkyl_dg_calc_pkpm_vars_closure(
@@ -1320,8 +1318,8 @@ test_edge_closure(int cdim)
         max_cons = fmax(max_cons, fmax(fabs(m0), fmax(fabs(m1), fabs(m2))));
       }
       max_a0 = fmax(max_a0, fabs(a0[0]) / c0);
-      // stored upper flux (uniform state: mode 0 only) vs max(alpha(w_max), 0) F_edge of the new closures,
-      // in the stored format (orthonormal coefficient times sqrt(2)^cdim)
+      // stored upper flux (uniform state: mode 0 only) vs max(alpha(w_max), 0) F_edge of the
+      // returned closures, in the stored format (orthonormal coefficient times sqrt(2)^cdim)
       double alpha_new = (a0[0] + ch[0] * w_up) / c0;
       double expect = fmax(alpha_new, 0.0) * F_edge * c0 * c0;
       max_flux_err = fmax(max_flux_err, fabs(fu[0] - expect));
@@ -1329,7 +1327,8 @@ test_edge_closure(int cdim)
       for (int k = 0; k < 8 * nc; ++k) max_stored = fmax(max_stored, fabs(fu[k]));
     }
     TEST_CHECK(max_cons < 1e-11);
-    TEST_MSG("cdim=%d alpha_prev=%g: constrained moments of stage A + stage B %g", cdim, alphas[a], max_cons);
+    TEST_MSG("cdim=%d alpha_prev=%g: constrained moments of the two passes %g", cdim, alphas[a],
+      max_cons);
     TEST_CHECK(max_a0 > 0.1);
     TEST_MSG("cdim=%d alpha_prev=%g: the forcing produced no closure (|alpha_0| %g)", cdim, alphas[a], max_a0);
     if (alphas[a] > 0.0) {

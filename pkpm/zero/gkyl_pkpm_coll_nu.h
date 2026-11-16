@@ -27,9 +27,11 @@ struct gkyl_pkpm_coll_nu_inp {
 struct gkyl_pkpm_coll_nu *gkyl_pkpm_coll_nu_inew(const struct gkyl_pkpm_coll_nu_inp *inp);
 
 /**
- * Compute the collision frequency at the nodes. All arrays hold node values. The result is zero
- * at nodes where the density of the partner is not positive. The node fields are not read unless
- * the updater was created with spitzer = true.
+ * Compute the collision frequency at the nodes. All arrays hold node values. Without the
+ * Spitzer scaling the result is the reference frequency and the node fields are not read. With
+ * it (spitzer = true) the result is nu_ref n_r / (vtsq_s + vtsq_r)^(3/2), each vtsq floored at
+ * vtsq_min, and zero at nodes where the density of the partner or the sum of the floored vtsq is
+ * not positive.
  *
  * @param up Updater.
  * @param range Configuration-space range.

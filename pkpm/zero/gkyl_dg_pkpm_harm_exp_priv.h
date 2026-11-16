@@ -207,8 +207,8 @@ pkpm_hx_advance_cell(
   up->to_modal(Yn, out);
 }
 
-// The integrals over w of F and M0_perp at the configuration nodes of one column (the phase cells
-// f[0..num_cells-1] of a configuration cell, stride apart): col[node*4 + (0: F, 1-3: M0_perp)].
+// Add the integrals over w of F and M0_perp over one phase cell f, at the configuration nodes, to
+// col[node*4 + (0: F, 1-3: M0_perp)]; summed over the cells of a column, the integrals over w.
 GKYL_CU_DH static inline void
 pkpm_hx_col_add(const struct gkyl_dg_pkpm_harm_exp *up, const double *f, double *col)
 {

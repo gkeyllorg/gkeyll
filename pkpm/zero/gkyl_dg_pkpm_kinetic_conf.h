@@ -24,12 +24,12 @@ struct gkyl_dg_pkpm_kinetic_conf_inp {
 };
 
 /**
- * Create a new equation object for the configuration-space pass (stage A) of the
+ * Create a new equation object for the configuration-space pass of the
  * PKPM kinetic update of the eight blocks [F, G, M0_perp, N_perp]: the streaming volume term of
  * every block and the surface term scattering the stored configuration-space fluxes of the eight
  * blocks. The known velocity-space terms of the pass (w forces, mirror and coupling terms,
  * sources) are the stored operator of gkyl_dg_pkpm_harm_vol; the closure terms and the v_par
- * surface term belong to the velocity-space pass (stage B).
+ * surface term belong to the velocity-space pass.
  *
  * @param inp Input parameters defined in gkyl_dg_pkpm_kinetic_conf_inp struct.
  * @return Pointer to the equation object.

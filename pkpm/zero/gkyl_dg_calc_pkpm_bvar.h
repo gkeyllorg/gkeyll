@@ -21,8 +21,7 @@ struct gkyl_dg_calc_pkpm_bvar_inp {
 /**
  * Create new updater to compute the magnetic field unit vector b = B/|B| for the
  * PKPM model by direct normalization at the 2^cdim Gauss-Legendre nodes of each cell,
- * interpolated to the p=1 modal basis. No unit tensor b_i b_j is formed: consumers
- * build b_i b_j from the two p=1 components wherever the product is needed.
+ * interpolated to the p=1 modal basis.
  *
  * Policy for a vanishing field: at a node where |B| = 0 the unit vector is set to
  * zero; the number of such nodes encountered in the last advance is available through

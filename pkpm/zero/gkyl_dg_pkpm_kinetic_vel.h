@@ -22,12 +22,13 @@ struct gkyl_dg_pkpm_kinetic_vel_inp {
 };
 
 /**
- * Create a new equation object for the velocity-space pass (stage B) of the PKPM
+ * Create a new equation object for the velocity-space pass of the PKPM
  * kinetic update of the eight blocks [F, G, M0_perp, N_perp]: the volume terms of the closures
- * (forces (alpha_0 + c w) U, sources c_0 U, k c U and the a_perp couplings,
- * pkpm-kinetic-vel-vol.mac) and the surface term scattering the stored v_par fluxes (the HLL
- * edge fluxes of the closure at the velocity domain edges). Run after the configuration-space
- * pass and the closures, accumulating into the same right-hand side.
+ * (forces (alpha_0 + c w) U, sources c_0 U and k c U with k = 0, 2, 1, 3 for F, G, M0_perp
+ * and N_perp, and the a_perp couplings, pkpm-kinetic-vel-vol.mac) and the surface term
+ * scattering the stored v_par fluxes (the HLL edge fluxes of the closure at the velocity domain
+ * edges). Run after the configuration-space pass and the closures, accumulating into the same
+ * right-hand side.
  *
  * @param inp Input parameters defined in gkyl_dg_pkpm_kinetic_vel_inp struct.
  * @return Pointer to the equation object.

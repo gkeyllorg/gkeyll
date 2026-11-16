@@ -16,8 +16,10 @@ struct gkyl_pkpm_lbo_moms_inp {
 };
 
 /**
- * Create an updater for the primitive moments [u, vtsq] of the PKPM Lenard-Bernstein operator
- * at the 2^cdim interior Gauss-Legendre nodes of configuration space. At each node they solve
+ * Create an updater for the primitive moments [u, vtsq] of the PKPM Lenard-Bernstein operator,
+ * the drift and the thermal speed squared of the normalized distributions in the w coordinate
+ * (not the [n, u (x, y, z), vtsq] of gkyl_pkpm_layout.h), at the 2^cdim interior Gauss-Legendre
+ * nodes of configuration space. At each node they solve
  *
  *   M0 u - cM vtsq = M1
  *   M1 u + (3 M0 - cE) vtsq = M2 + 2 M0_G
@@ -46,7 +48,7 @@ struct gkyl_pkpm_lbo_moms *gkyl_pkpm_lbo_moms_inew(const struct gkyl_pkpm_lbo_mo
  * @param moms Moments [M0, M2, M0_G, M1, ...] of the normalized distributions (p=1 expansions).
  * @param fnodal Distribution functions in the configuration-nodal, velocity-modal form
  *   (gkyl_dg_conf_nodal; the leading block is F).
- * @param prim_moms Output primitive moments [u, vtsq] at the nodes.
+ * @param prim_moms Output primitive moments [u, vtsq] in w at the nodes (one value per node each).
  */
 void gkyl_pkpm_lbo_moms_advance(
   const struct gkyl_pkpm_lbo_moms *up, const struct gkyl_range *conf_range,

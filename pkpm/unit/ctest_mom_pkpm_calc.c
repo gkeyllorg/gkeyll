@@ -1,19 +1,21 @@
 // Test actual computation of PKPM moments via gkyl_mom_calc.
 //
-// The PKPM distribution f is the eight blocks [F_0, G_1, M0_perp (x, y, z), N_perp (x, y, z)]
+// The PKPM distribution f is the eight blocks [F, G, M0_perp (x, y, z), N_perp (x, y, z)]
 // (each with num_basis components). The non-diagnostic moment kernel produces
-//   out = [rho, p_par, p_perp, M1, q_par, q_perp, mu (3), m1 (3), m2 (3), n0 (3)]   (mass weighted)
+//   out = [M0, M2, M0_G, M1, M3, M1_G, mu (3), m1 (3), m2 (3), n0 (3)]   (mass weighted)
 // where
-//   rho     = mass * \int F_0 dvpar
-//   p_par   = mass * \int vpar^2 F_0 dvpar
-//   p_perp  = mass * \int G_1   dvpar
-//   M1      = mass * \int vpar  F_0 dvpar
+//   M0      = mass * \int F dvpar
+//   M2      = mass * \int vpar^2 F dvpar
+//   M0_G    = mass * \int G dvpar
+//   M1      = mass * \int vpar F dvpar
+//   M3      = mass * \int vpar^3 F dvpar
+//   M1_G    = mass * \int vpar G dvpar
 //   mu      = mass * \int M0_perp dvpar
 //   m1, m2  = mass * \int vpar M0_perp dvpar, mass * \int vpar^2 M0_perp dvpar
 //   n0      = mass * \int N_perp dvpar
 //
 // We project a distribution that is constant in velocity:
-//   F_0 = a,  G_1 = b,  M0_perp = (c_x, c_y, c_z), N_perp = (d_x, d_y, d_z)
+//   F = a,  G = b,  M0_perp = (c_x, c_y, c_z), N_perp = (d_x, d_y, d_z)
 // over a symmetric velocity domain [-V, V] (so M1 = 0), and check the
 // resulting moments against the exact analytic integrals.
 #include <acutest.h>
@@ -28,14 +30,14 @@
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 
-static const double AVAL = 0.75; // F_0 amplitude
-static const double BVAL = 0.40; // G_1 amplitude
+static const double AVAL = 0.75; // F amplitude
+static const double BVAL = 0.40; // G amplitude
 static const double CVAL[3] = {0.3, -0.2, 0.15}; // M0_perp amplitudes
 
 static void
 eval_distf(double t, const double *xn, double *restrict fout, void *ctx)
 {
-  // Eight blocks, constant in velocity: F_0, G_1, M0_perp, N_perp.
+  // Eight blocks, constant in velocity: F, G, M0_perp, N_perp.
   fout[0] = AVAL;
   fout[1] = BVAL;
   for (int i = 0; i < 3; ++i) {
@@ -110,8 +112,8 @@ test_mom_pkpm_calc_1x1v_p1()
   double pperp_exp = mass * BVAL * Lv; // \int b dv
   double m1_exp = 0.0; // symmetric => 0
 
-  // moment block layout: [rho(2), p_par(2), p_perp(2), M1(2), q_par(2), q_perp(2), mu(3 x 2), m1(3 x 2),
-  // m2(3 x 2), n0(3 x 2)] per conf cell.
+  // moment block layout: [M0(2), M2(2), M0_G(2), M1(2), M3(2), M1_G(2), mu(3 x 2), m1(3 x 2),
+  // m2(3 x 2), n0(3 x 2)] per conf cell (rho, ppar, pperp and m1 below are M0, M2, M0_G and M1).
   for (int i = 1; i <= cells[0]; ++i) {
     int cidx[] = {i};
     long lidx = gkyl_range_idx(&confLocal, cidx);

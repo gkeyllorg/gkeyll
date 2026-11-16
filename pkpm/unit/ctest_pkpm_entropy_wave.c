@@ -1,13 +1,12 @@
-// Semi-discrete stability check of the coupled factored, thermal-velocity normalized
+// Semi-discrete stability check of the coupled, thermal-velocity normalized
 // PKPM update (kinetic two-pass update of the normalized distributions on the w grid
 // plus the fluid system [rho, M, E]) on a 1x1v periodic entropy wave: a density pulse
 // advected by a uniform flow with uniform pressure. The exact solution keeps u and p
 // uniform; the test integrates the coupled zero-layer operators with SSP-RK3 and checks
 // that the flow stays bounded and that the integrated fluid energy is conserved (the
 // energy equation is in conservative form; the kinetic closures only redistribute it).
-// (The legacy split-form momentum flux with a Lax mass flux was unstable here at a rate
-// ~ u/dx.) The kinetic and fluid halves can be frozen separately to localize an
-// instability (diagnostics, printed with -v).
+// The kinetic and fluid halves can be frozen separately to localize an instability
+// (diagnostics, printed with -v).
 #include <math.h>
 #include <stdio.h>
 
@@ -318,10 +317,10 @@ sim_init(struct sim *s, const struct run_opts *o)
     .pos_map = s->pos_map, .use_gpu = false,
   };
   s->eqn_a = gkyl_dg_pkpm_kinetic_conf_inew(&ainp);
-  // First-harmonic stage-A terms of a magnetized species: Omega = 20 |B| (|B| ~ 1), gyroradius
-  // vt/Omega = 0.05 below the cell size, Omega dt < 0.4 for the explicit gyration. Without
-  // gyration (the unmagnetized limit, outside the model's ordering) the sources drive M0 and N
-  // secularly in the oblique cases until they blow up.
+  // First-harmonic terms of the configuration-space pass of a magnetized species: Omega = 20 |B|
+  // (|B| ~ 1), gyroradius vt/Omega = 0.05 below the cell size, Omega dt < 0.4 for the explicit
+  // gyration. Without gyration (the unmagnetized limit, outside the model's ordering) the sources
+  // drive M0 and N secularly in the oblique cases until they blow up.
   struct gkyl_dg_pkpm_harm_vol_inp hinp = {
     .phase_grid = &s->pgrid, .conf_basis = &s->cbasis, .phase_basis = &s->pbasis, .qbym = 20.0, .pos_map = s->pos_map, .use_gpu = false};
   s->harm = gkyl_dg_pkpm_harm_vol_inew(&hinp);
@@ -717,9 +716,9 @@ test_mirror_oblique_flow()
 
 // Same field, kinetic update alone (u = u0 exactly) with a uniform density: without
 // compression work the internal energy p_par/2 + p_perp must be conserved by the
-// mirror-force pairing. (In the factored update the density lives in the frozen fluid
-// array, so a non-uniform frozen density with a flow would not be a consistent state:
-// the normalized distribution would stream through a density it cannot change.)
+// mirror-force pairing. (The density lives in the frozen fluid array, so a non-uniform
+// frozen density with a flow would not be a consistent state: the normalized distribution
+// would stream through a density it cannot change.)
 void
 test_mirror_oblique_frozen_fluid()
 {
@@ -745,8 +744,6 @@ check_shear(int Nx)
 }
 void test_shear_nx16() { check_shear(16); }
 
-// Same shear with a nearly perpendicular field: the streaming speed along x is
-// small for every particle, so the slope modes get little upwind damping.
 // Compressive flow varying along x across a nearly perpendicular field: the upwind
 // switch w* = -u_x/b_x of the face flux sits inside different velocity cells at the
 // two faces of a cell, so its quadrature error acts on the slope modes.
@@ -765,6 +762,7 @@ check_compress(double theta, double amp, bool b_along_x)
 void test_compress_quasi_perp() { check_compress(0.0871, 0.1, false); }
 void test_compress_parallel() { check_compress(0.0, 0.1, true); }
 
+// Same shear with a nearly perpendicular field (b_x = 0.087).
 void
 test_shear_quasi_perp()
 {
@@ -810,8 +808,7 @@ test_mirror_oblique_flow_nx64()
   TEST_MSG("max energy drift over the run: %g", r.denergy_max);
 }
 
-// Finer grid: the inconsistent coupling grew at a rate ~ u/dx, so this run is the
-// sharper instability check.
+// Same check on a finer grid (Nx = 64).
 void
 test_coupled_u1_nx64()
 {
@@ -839,12 +836,12 @@ test_frozen_kinetic_u1()
   TEST_MSG("max |u - u0| over the run: %g", r.dev_max);
 }
 
-// Discrete steady state on a steep density profile (plan section 11.11, step 2): a uniform
-// Maxwellian [F, G] with u = 0 and uniform xi on n = 1 + alpha sin(pi x) is a steady state of
-// the normalized kinetic equation (the density-gradient source is cancelled pointwise in w by
-// the closure force alpha_0 = xi b.grad(ln n)). The discrete right-hand side of one evaluation
-// is measured by mode (cell average, slope) and by moment; the constrained moments vanish by
-// construction, the residual of the other coefficients is the source/closure mismatch.
+// Discrete steady state on a steep density profile: a uniform Maxwellian [F, G] with u = 0 and
+// uniform xi on n = 1 + alpha sin(pi x) is a steady state of the normalized kinetic equation
+// (the density-gradient source is cancelled pointwise in w by the closure force
+// alpha_0 = xi b.grad(ln n)). The discrete right-hand side of one evaluation is measured by
+// mode (cell average, slope) and by moment; the constrained moments vanish by construction,
+// the residual of the other coefficients is the source/closure mismatch.
 struct steady_res {
   double avg, slope, m3_total;
 };
@@ -875,7 +872,7 @@ steady_gradient_residual(int Nx, int Nv, double alpha, bool verbose)
   periodic(M, s.cskin, s.cghost);
 
   sim_rhs(&s, &o, f, M, rhs, rhs_M);
-  // sim_rhs leaves the moments of the configuration pass (stage A) in rhs_moms
+  // sim_rhs leaves the moments of the configuration pass in rhs_moms
   struct gkyl_array *momsA = mkarr(18 * nc, cvol);
   gkyl_array_copy(momsA, s.rhs_moms);
   gkyl_array_clear(s.rhs_moms, 0.0);
@@ -945,7 +942,7 @@ steady_gradient_residual(int Nx, int Nv, double alpha, bool verbose)
   }
 
   // Scale: the size of the density-gradient source alone, xi w |d ln n/dx| F at w = 2.
-  double dx = s.cgrid.dx[0], gmax = alpha * M_PI / (1.0 - alpha);
+  double gmax = alpha * M_PI / (1.0 - alpha);
   double scale = 2.0 * gmax * exp(-2.0) / sqrt(2.0 * M_PI);
   double res_avg = 0.0, res_slope = 0.0, mom_cons = 0.0, mom_other = 0.0;
   struct gkyl_range_iter iter;
@@ -971,7 +968,7 @@ steady_gradient_residual(int Nx, int Nv, double alpha, bool verbose)
     }
   }
   if (verbose) {
-    printf("  Nx=%d Nv=%d alpha=%g (max |dlnn/dx| %.2f): residual/scale avg %.3e slope %.3e | stage A: M1 %.3e M3 %.3e (M3/M1 %.3f, Maxwellian 3) | total M3 %.3e | alpha_0 %.3e vs xi grad ln n %.3e\n",
+    printf("  Nx=%d Nv=%d alpha=%g (max |dlnn/dx| %.2f): residual/scale avg %.3e slope %.3e | configuration pass: M1 %.3e M3 %.3e (M3/M1 %.3f, Maxwellian 3) | total M3 %.3e | alpha_0 %.3e vs xi grad ln n %.3e\n",
       Nx, Nv, alpha, gmax, res_avg / scale, res_slope / scale, m1A, m3A, ratioA, m3T, a0, gln);
   }
   TEST_CHECK(mom_cons < 1e-11);

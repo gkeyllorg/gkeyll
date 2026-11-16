@@ -21,7 +21,7 @@ struct gkyl_dg_pkpm_harm_vol_inp {
 
 /**
  * Create a new updater for the volume integrals of the known velocity-space terms of the
- * configuration-space pass (stage A) of the normalized PKPM kinetic update, on the eight blocks
+ * configuration-space pass of the normalized PKPM kinetic update, on the eight blocks
  * [F, G, M0_perp (x, y, z), N_perp (x, y, z)]: the w-flux volume terms int d_w phi Phi, the
  * sources int phi S and the configuration-space flux couplings int d_x phi . T of the first
  * harmonic (the streaming of all eight blocks stays in the configuration-pass equation object).
@@ -76,7 +76,7 @@ int gkyl_dg_pkpm_harm_vol_num_wnode(const struct gkyl_dg_pkpm_harm_vol *up);
  * @param u Flow velocity [ux, uy, uz].
  * @param grad_u Gradient of u of the sources (in-cell plus the blended face lift).
  * @param xi Thermal speed [xi, xi^2, p] (the first expansion is used).
- * @param grad_xi Weak gradient of [xi, 0, 0].
+ * @param grad_xi Gradient of [xi, 0, 0] (in-cell plus the blended face lift).
  * @param grad_ln_n grad(ln n), cdim expansions.
  * @param theta T_perp/T.
  * @param dtB_over_magB d_t B/|B| of the stage.

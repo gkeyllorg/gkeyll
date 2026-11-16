@@ -1,4 +1,4 @@
-// Tests of the momentum solve of the refactored PKPM solver: the exact modal volume kernel (with
+// Tests of the PKPM fluid equations [rho, rho u, E]: the exact modal volume kernel (with
 // the first-harmonic stress and heat flux) against quadrature, and the face flux
 // (the fluid flux of dg_pkpm_remap_flux_surf, the moments of the eight-block kinetic HLL flux)
 // against an independent reference at interior faces, an absorbing wall and a reflecting wall.
@@ -39,10 +39,6 @@ identity_pos_map(
 
 struct field_ctx {
   int cdim;
-  bool uniform_rho; // for the legacy comparison
-  bool b_along_x;
-  bool zero_u; // for the legacy comparison
-  bool inadmissible; // make p_par negative in part of the domain to exercise the HLL fallback
 };
 
 static void
@@ -53,10 +49,6 @@ eval_em(double t, const double *xn, double *restrict fout, void *ctx)
   double x = xn[0], y = cdim > 1 ? xn[1] : 0.3, z = cdim > 2 ? xn[2] : -0.2;
   for (int i = 0; i < 8; ++i) {
     fout[i] = 0.0;
-  }
-  if (c->b_along_x) {
-    fout[3] = 2.0;
-    return;
   }
   fout[3] = 1.0 + 0.4 * sin(x) * cos(y);
   fout[4] = 0.6 * cos(x) * sin(z) + 0.5 * sin(y);
@@ -70,63 +62,28 @@ eval_moms(double t, const double *xn, double *restrict fout, void *ctx)
   struct field_ctx *c = ctx;
   int cdim = c->cdim;
   double x = xn[0], y = cdim > 1 ? xn[1] : 0.3, z = cdim > 2 ? xn[2] : -0.2;
-  fout[0] = c->uniform_rho ? 2.0 : 2.0 + 0.5 * sin(x) * cos(y) + 0.2 * sin(z);
+  fout[0] = 2.0 + 0.5 * sin(x) * cos(y) + 0.2 * sin(z);
   fout[1] = 1.0 + 0.3 * cos(x) * sin(y);
   fout[2] = 0.7 + 0.25 * cos(y) * sin(x) + 0.1 * cos(z);
   fout[3] = 0.0;
   fout[4] = 0.3 * sin(x) * cos(z) + 0.1 * cos(y);
   fout[5] = -0.2 * cos(x) + 0.15 * sin(y) * sin(z);
-  if (c->inadmissible && x > 1.0) {
-    fout[1] = -0.2; // negative parallel pressure: P_nn <= 0 where b is along the normal
-    fout[2] = 0.05;
-  }
 }
 
-// Normalized moments [1, M2, theta, 0, M3, M1_G] of the same state with p = (p_par + 2 p_perp)/3
-// and xi^2 = p/rho: M2 = p_par/p, theta = p_perp/p, and the third moments scaled by 1/(p xi).
-static void
-eval_nmoms(double t, const double *xn, double *restrict fout, void *ctx)
-{
-  double m[6];
-  eval_moms(t, xn, m, ctx);
-  double p = (m[1] + 2.0 * m[2]) / 3.0, xi = sqrt(fabs(p) / m[0]);
-  fout[0] = 1.0;
-  fout[1] = m[1] / p;
-  fout[2] = m[2] / p;
-  fout[3] = 0.0;
-  fout[4] = m[4] / (p * xi);
-  fout[5] = m[5] / (p * xi);
-}
-
-// Thermal speed and scalar pressure [xi, xi^2, p] of the same state.
-static void
-eval_xi(double t, const double *xn, double *restrict fout, void *ctx)
-{
-  double m[6];
-  eval_moms(t, xn, m, ctx);
-  double p = (m[1] + 2.0 * m[2]) / 3.0;
-  fout[1] = p / m[0];
-  fout[0] = sqrt(fabs(fout[1]));
-  fout[2] = p;
-}
-
-// Momentum M = rho u for a smooth u that stays positive along x (no stagnation switch).
+// Momentum M = rho u for a smooth u that stays positive along x.
 static void
 eval_euler(double t, const double *xn, double *restrict fout, void *ctx)
 {
   struct field_ctx *c = ctx;
   int cdim = c->cdim;
   double x = xn[0], y = cdim > 1 ? xn[1] : 0.3, z = cdim > 2 ? xn[2] : -0.2;
-  double rho = c->uniform_rho ? 2.0 : 2.0 + 0.5 * sin(x) * cos(y) + 0.2 * sin(z);
+  double rho = 2.0 + 0.5 * sin(x) * cos(y) + 0.2 * sin(z);
   fout[0] = rho * (1.5 + 0.3 * sin(x) + 0.2 * cos(y));
   fout[1] = rho * (0.4 * cos(y) * sin(z) + 0.2 * sin(x));
   fout[2] = rho * (-0.3 * sin(z) + 0.25 * cos(x) * cos(y));
-  if (c->zero_u) {
-    fout[0] = fout[1] = fout[2] = 0.0;
-  }
 }
 
-// Fluid state [rho, rho ux, rho uy, rho uz, E] of the energy-constrained update.
+// Fluid state [rho, rho ux, rho uy, rho uz, E], E = rho |u|^2/2 + (p_par + 2 p_perp)/2.
 static void
 eval_fluid(double t, const double *xn, double *restrict fout, void *ctx)
 {
@@ -163,8 +120,6 @@ eval_cmoms(double t, const double *xn, double *restrict fout, void *ctx)
 }
 
 
-static const double gl3_x[3] = {-0.7745966692414834, 0.0, 0.7745966692414834};
-static const double gl3_w[3] = {5.0 / 9.0, 8.0 / 9.0, 5.0 / 9.0};
 static const double gl4_x[4] = {-0.8611363115940526, -0.3399810435848563, 0.3399810435848563,
   0.8611363115940526};
 static const double gl4_w[4] = {0.3478548451374538, 0.6521451548625461, 0.6521451548625461,
@@ -176,7 +131,7 @@ struct test_setup {
   struct gkyl_rect_grid grid;
   struct gkyl_basis basis;
   struct gkyl_range local, local_ext;
-  struct gkyl_array *moms, *cmoms, *euler, *nmoms, *fluid, *bvar, *u, *xi;
+  struct gkyl_array *moms, *cmoms, *fluid, *bvar, *u;
   struct gkyl_dg_calc_pkpm_vars *vars;
   struct gkyl_dg_calc_pkpm_bvar *calc_b;
 };
@@ -197,10 +152,7 @@ setup(struct test_setup *s, struct field_ctx *ctx)
 
   s->moms = mkarr(6 * nc, s->local_ext.volume);
   s->cmoms = mkarr(10 * nc, s->local_ext.volume);
-  s->euler = mkarr(3 * nc, s->local_ext.volume);
-  s->nmoms = mkarr(6 * nc, s->local_ext.volume);
   s->fluid = mkarr(5 * nc, s->local_ext.volume);
-  s->xi = mkarr(3 * nc, s->local_ext.volume);
 
   s->bvar = mkarr(3 * nc, s->local_ext.volume);
   s->u = mkarr(3 * nc, s->local_ext.volume);
@@ -212,17 +164,8 @@ setup(struct test_setup *s, struct field_ctx *ctx)
   proj = gkyl_proj_on_basis_new(&s->grid, &s->basis, 8, 10, eval_cmoms, ctx);
   gkyl_proj_on_basis_advance(proj, 0.0, &s->local_ext, s->cmoms);
   gkyl_proj_on_basis_release(proj);
-  proj = gkyl_proj_on_basis_new(&s->grid, &s->basis, 8, 3, eval_euler, ctx);
-  gkyl_proj_on_basis_advance(proj, 0.0, &s->local_ext, s->euler);
-  gkyl_proj_on_basis_release(proj);
-  proj = gkyl_proj_on_basis_new(&s->grid, &s->basis, 8, 6, eval_nmoms, ctx);
-  gkyl_proj_on_basis_advance(proj, 0.0, &s->local_ext, s->nmoms);
-  gkyl_proj_on_basis_release(proj);
   proj = gkyl_proj_on_basis_new(&s->grid, &s->basis, 8, 5, eval_fluid, ctx);
   gkyl_proj_on_basis_advance(proj, 0.0, &s->local_ext, s->fluid);
-  gkyl_proj_on_basis_release(proj);
-  proj = gkyl_proj_on_basis_new(&s->grid, &s->basis, 8, 3, eval_xi, ctx);
-  gkyl_proj_on_basis_advance(proj, 0.0, &s->local_ext, s->xi);
   gkyl_proj_on_basis_release(proj);
   proj = gkyl_proj_on_basis_new(&s->grid, &s->basis, 8, 8, eval_em, ctx);
   gkyl_proj_on_basis_advance(proj, 0.0, &s->local_ext, em);
@@ -243,7 +186,7 @@ setup(struct test_setup *s, struct field_ctx *ctx)
     .pos_map = s->pos_map,
     .use_gpu = false,
   });
-  // the flow M/rho by the nodal quotient (the weak division at p=1); xi is set above
+  // the flow M/rho by the nodal quotient (the weak division at p=1)
   struct gkyl_array *xi_scratch = mkarr(3 * nc, s->local_ext.volume);
   gkyl_dg_calc_pkpm_vars_prim(s->vars, &s->local_ext, s->fluid, s->u, xi_scratch);
   gkyl_array_release(xi_scratch);
@@ -257,12 +200,9 @@ teardown(struct test_setup *s)
   gkyl_dg_calc_pkpm_vars_release(s->vars);
   gkyl_array_release(s->u);
   gkyl_array_release(s->bvar);
-  gkyl_array_release(s->euler);
   gkyl_array_release(s->moms);
   gkyl_array_release(s->cmoms);
-  gkyl_array_release(s->nmoms);
   gkyl_array_release(s->fluid);
-  gkyl_array_release(s->xi);
 }
 
 static struct gkyl_dg_eqn *
@@ -310,7 +250,7 @@ pressure_at(
 static void
 test_vol(int cdim)
 {
-  struct field_ctx ctx = {.cdim = cdim, .uniform_rho = false, .b_along_x = false};
+  struct field_ctx ctx = {.cdim = cdim};
   struct test_setup s;
   setup(&s, &ctx);
   int nc = s.basis.num_basis;
@@ -443,14 +383,14 @@ struct ref_side {
   bool full;
 };
 
-// Reference fluid flux through a face with normal e_d between two uniform sides (notes, eqs.
-// kinetic-face-flux, vector-HLL and fluid-flux-map), written out independently of the kernels:
-// per w the side contributions of the eight-block HLL Phi^l = (S_R J_l - S_L S_R X_l)/ds,
-// Phi^r = (-S_L J_r + S_L S_R X_r)/ds of the flux function with face-averaged coefficients
-// (plan 17.41), J(X) = a X + T(X), a = {u_d} + {xi} b_d w, T with {xi}, b = {b}/|{b}|, {theta}, applied to
-// each side's state, the bounds S_L = min(a - c, 0), S_R = max(a + c, 0) with the averaged
-// c = xi |b x e_d| sqrt((2 + sqrt 2) theta) (plan 17.42), then the moment map of each contribution
-// with its own frame, integrated over w in [-wmax, wmax] by Simpson's rule.
+// Reference fluid flux through a face with normal e_d between two uniform sides, written out
+// independently of the kernels: per w the side contributions of the eight-block HLL
+// Phi^l = (S_R J_l - S_L S_R X_l)/ds, Phi^r = (-S_L J_r + S_L S_R X_r)/ds of the flux function
+// with face-averaged coefficients, J(X) = a X + T(X), a = {u_d} + {xi} b_d w, T with {xi},
+// b = {b}/|{b}|, {theta}, applied to each side's state, the bounds S_L = min(a - c, 0),
+// S_R = max(a + c, 0) with the averaged c = xi |b x e_d| sqrt((2 + sqrt 2) theta), then the
+// moment map of each contribution with its own frame, integrated over w in [-wmax, wmax] by
+// Simpson's rule.
 static void
 ref_kinetic_flux(int d, const struct ref_side *sl, const struct ref_side *sr, double wmax, double *F)
 {

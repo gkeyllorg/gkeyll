@@ -9,6 +9,9 @@
 //   prim, grad_ln_n : the nodal quotients u = M/rho and grad(ln n) = grad(rho)/rho are the
 //            weak divisions at p=1 (rho times the quotient, projected, is the numerator).
 //   source : Lorentz force q/m (rho E + M x B) momentum source and M.E work.
+//   positivity : the limiter scales the slopes of a cell with an inadmissible vertex density or
+//            internal energy to the floor with the cell averages preserved; a cell with an
+//            inadmissible average is left as is and counted.
 //
 #include <acutest.h>
 #include <math.h>
