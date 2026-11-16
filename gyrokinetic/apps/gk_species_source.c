@@ -472,7 +472,7 @@ gk_species_source_init(
     // Integrated moments requested (M0M1M2PARM2PERP by default if the source
     // evolves), and those the balance diagnostics need.
     int num_integ_moms = gks->info.source.diagnostics.num_integrated_diag_moments;
-    enum gkyl_distribution_moments integ_mom_types[GKYL_F_MOMENT_NUM];
+    enum gkyl_distribution_moments integ_mom_types[GKYL_F_MOMENT_COUNT];
     for (int m = 0; m < num_integ_moms; m++) {
       integ_mom_types[m] = gks->info.source.diagnostics.integrated_diag_moments[m];
     }

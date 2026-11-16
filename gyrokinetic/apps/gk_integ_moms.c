@@ -34,7 +34,7 @@ gk_integ_moms_init(
   const enum gkyl_distribution_moments *types
 )
 {
-  assert(num <= GKYL_F_MOMENT_NUM);
+  assert(num <= GKYL_F_MOMENT_COUNT);
   *im = (struct gk_integ_moms){};
   im->num = num;
   if (num == 0) {
@@ -55,7 +55,7 @@ gk_integ_moms_neut_init(
   const enum gkyl_distribution_moments *types
 )
 {
-  assert(num <= GKYL_F_MOMENT_NUM);
+  assert(num <= GKYL_F_MOMENT_COUNT);
   *im = (struct gk_integ_moms){};
   im->num = num;
   if (num == 0) {

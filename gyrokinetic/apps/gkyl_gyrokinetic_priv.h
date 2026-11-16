@@ -196,9 +196,9 @@ struct gk_species_moment {
 // Volume-integrated moments.
 struct gk_integ_moms {
   int num; // Number of integrated moments.
-  enum gkyl_distribution_moments types[GKYL_F_MOMENT_NUM]; // Type of each moment.
+  enum gkyl_distribution_moments types[GKYL_F_MOMENT_COUNT]; // Type of each moment.
   struct gk_species_moment *ops; // Moment calculators.
-  int offset[GKYL_F_MOMENT_NUM]; // Index of the first component of each moment in red_*.
+  int offset[GKYL_F_MOMENT_COUNT]; // Index of the first component of each moment in red_*.
   int num_mom_all; // Number of components of all the moments.
   double *red_local, *red_global; // Reduction buffers (on device if using GPUs).
   gkyl_dynvec *diag; // Integrated moments over time (one per moment).
@@ -2338,7 +2338,7 @@ void gk_species_balance_pre_init(
  * @param gksbal Balance diagnostic object.
  * @param term Term of the balance the integrated moments are of.
  * @param num_moms Number of integrated moments (incremented if a moment is appended).
- * @param moms Integrated moments of the module (GKYL_F_MOMENT_NUM at most).
+ * @param moms Integrated moments of the module (GKYL_F_MOMENT_COUNT at most).
  */
 void gk_species_balance_add_integ_moms(
   struct gk_species_balance *gksbal, enum gk_species_balance_term term, int *num_moms,
@@ -2352,7 +2352,7 @@ void gk_species_balance_add_integ_moms(
  *
  * @param gksbal Balance diagnostic object.
  * @param num_moms Number of df/dt moments (incremented for each moment appended).
- * @param moms df/dt moments (GKYL_F_MOMENT_NUM at most).
+ * @param moms df/dt moments (GKYL_F_MOMENT_COUNT at most).
  */
 void gk_species_balance_add_fdot_moms(
   const struct gk_species_balance *gksbal, int *num_moms, enum gkyl_distribution_moments *moms

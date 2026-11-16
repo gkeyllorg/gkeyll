@@ -471,7 +471,7 @@ gk_species_source_bgk_init(
     // diagnostics are written), and those the balance diagnostics need.
     const struct gkyl_phase_diagnostics_inp *diags = &gks->info.source_bgk.diagnostics;
     int num_integ_moms = diags->num_integrated_diag_moments;
-    enum gkyl_distribution_moments integ_mom_types[GKYL_F_MOMENT_NUM];
+    enum gkyl_distribution_moments integ_mom_types[GKYL_F_MOMENT_COUNT];
     for (int m = 0; m < num_integ_moms; m++) {
       integ_mom_types[m] = diags->integrated_diag_moments[m];
     }

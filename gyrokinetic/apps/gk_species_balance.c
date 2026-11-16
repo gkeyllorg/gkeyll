@@ -182,7 +182,7 @@ gk_species_balance_add_integ_moms(
     has_all = has_all && gk_species_balance_find_mom(gksbal->diag_types[d], *num_moms, moms) >= 0;
   }
   if (!has_all) {
-    assert(*num_moms < GKYL_F_MOMENT_NUM);
+    assert(*num_moms < GKYL_F_MOMENT_COUNT);
     moms[(*num_moms)++] = gksbal->mom_type;
   }
 
@@ -206,7 +206,7 @@ gk_species_balance_add_fdot_moms(
       found = found || moms[m] == f_mom;
     }
     if (!found) {
-      assert(*num_moms < GKYL_F_MOMENT_NUM);
+      assert(*num_moms < GKYL_F_MOMENT_COUNT);
       moms[(*num_moms)++] = f_mom;
     }
   }
@@ -266,7 +266,7 @@ gk_species_balance_pre_init(
     // The bflux appends the additional moments to those requested.
     const struct gkyl_phase_diagnostics_inp *bflux_diags = &info->boundary_flux_diagnostics;
     int num_moms = 0;
-    enum gkyl_distribution_moments moms[GKYL_F_MOMENT_NUM];
+    enum gkyl_distribution_moments moms[GKYL_F_MOMENT_COUNT];
     for (int m = 0; m < bflux_diags->num_integrated_diag_moments; m++) {
       moms[num_moms++] = bflux_diags->integrated_diag_moments[m];
     }

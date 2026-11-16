@@ -871,7 +871,7 @@ gk_species_init_integrated_mom(struct gkyl_gyrokinetic_app *app, struct gk_speci
   // Integrated moments requested (M0M1M2PARM2PERP by default), and those the
   // balance diagnostics need.
   int num_integ_moms = gks->info.num_integrated_diag_moments;
-  enum gkyl_distribution_moments integ_mom_types[GKYL_F_MOMENT_NUM];
+  enum gkyl_distribution_moments integ_mom_types[GKYL_F_MOMENT_COUNT];
   for (int m = 0; m < num_integ_moms; m++) {
     integ_mom_types[m] = gks->info.integrated_diag_moments[m];
   }
@@ -888,7 +888,7 @@ gk_species_init_integrated_mom(struct gkyl_gyrokinetic_app *app, struct gk_speci
   gks->time_rate_diags = gks->info.time_rate_diagnostics || gks->gksbal.num_diags > 0;
   if (gks->time_rate_diags) {
     int num_fdot_moms = 0;
-    enum gkyl_distribution_moments fdot_mom_types[GKYL_F_MOMENT_NUM];
+    enum gkyl_distribution_moments fdot_mom_types[GKYL_F_MOMENT_COUNT];
     if (gks->info.time_rate_diagnostics) {
       for (int m = 0; m < num_integ_moms; m++) {
         fdot_mom_types[num_fdot_moms++] = integ_mom_types[m];
