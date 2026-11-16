@@ -370,11 +370,55 @@ struct vm_bgk_collisions {
     gkyl_vlasov_app *app, struct vm_species *vms, struct vm_bgk_collisions *bgk,
     const struct gkyl_array *fin, double dt, struct gkyl_array *rhs
   );
+  void (*target_func_implicit)(
+    gkyl_vlasov_app *app, struct vm_species *vms, struct vm_bgk_collisions *bgk,
+    const struct gkyl_array *fin
+  );
   void (*fixed_temp_calc_func)(
     gkyl_vlasov_app *app, const struct vm_species *vms, struct vm_bgk_collisions *bgk,
     const struct gkyl_array *fin
   );
   void (*write_mom_func)(gkyl_vlasov_app *app, struct vm_species *vms, double tm, int frame);
+};
+
+// BGK-form temperature source nu_Q (f_M(n, u, T_Q) - f) (see struct gkyl_vlasov_source_bgk)
+struct vm_source_bgk {
+  enum gkyl_source_bgk_id source_bgk_id; // type of temperature source
+  bool is_implicit; // backward Euler in each RK stage instead of the explicit update
+
+  struct gkyl_array *nu; // source rate nu_Q, zeroed where the density is not positive
+  struct gkyl_array *ref_nu; // source rate nu_Q as projected
+  struct gkyl_array *vtsq; // source temperature over the mass, T_Q/m
+  struct gkyl_array *moms; // LTE moments (n, V_drift, T_Q/m) of the target
+  struct gkyl_array *nu_f_lte; // source rate times the target Maxwellian
+  struct gkyl_bgk_collisions *up_bgk; // BGK updater (also computes stable timestep)
+
+  // Implicit source only.
+  bool has_implicit_coll; // the species also has implicit BGK collisions (taken in the same step)
+  struct gkyl_array *nu_tot; // source rate plus the collision frequencies (with collisions only)
+  struct gkyl_array *vtsq_new; // T'/m, the temperature the source gives the species over a step
+  struct gkyl_array *div_num, *div_den; // numerator and denominator of T'/m
+  gkyl_dg_bin_op_mem *div_mem; // memory of the weak division
+
+  // Methods chosen at runtime. Explicit update: moms_func, rhs_func. Implicit update:
+  // moms_implicit_func, implicit_func. The methods of the other update, and all of them without
+  // a source or for a static species, are empty.
+  void (*moms_func)(
+    gkyl_vlasov_app *app, const struct vm_species *vms, struct vm_source_bgk *src,
+    const struct gkyl_array *fin
+  );
+  void (*rhs_func)(
+    gkyl_vlasov_app *app, struct vm_species *vms, struct vm_source_bgk *src,
+    const struct gkyl_array *fin, struct gkyl_array *rhs
+  );
+  void (*moms_implicit_func)(
+    gkyl_vlasov_app *app, const struct vm_species *vms, struct vm_source_bgk *src,
+    const struct gkyl_array *fin, double dt
+  );
+  void (*implicit_func)(
+    gkyl_vlasov_app *app, struct vm_species *vms, struct vm_source_bgk *src,
+    const struct gkyl_array *fin, double dt, struct gkyl_array *out
+  );
 };
 
 struct vm_boundary_fluxes {
@@ -628,6 +672,7 @@ struct vm_species {
 
   struct vm_lbo_collisions lbo; // LBO collisions object
   struct vm_bgk_collisions bgk; // BGK collisions object
+  struct vm_source_bgk src_bgk; // temperature source object
 
   bool calc_bflux; // are we computing boundary fluxes?
   struct vm_boundary_fluxes bflux; // boundary flux object
@@ -647,10 +692,10 @@ struct vm_species {
     gkyl_vlasov_app *app, struct vm_species *vms, const struct gkyl_array *fin,
     struct gkyl_array *rhs, double dt
   );
-  // Moments of the implicit collision update (computed for every species before
+  // Moments of the implicit update over dt (computed for every species before
   // any rhs_implicit_func, which reads the moments of the collision partners).
   void (*calc_implicit_moms_func)(
-    gkyl_vlasov_app *app, struct vm_species *vms, const struct gkyl_array *fin
+    gkyl_vlasov_app *app, struct vm_species *vms, const struct gkyl_array *fin, double dt
   );
   // Source phases of a forward-Euler stage, run after every species' RHS:
   // moments that rescale adaptive sources, then the source onto the RHS.
@@ -1157,14 +1202,16 @@ void vlasov_species_limiter(
 );
 
 /**
- * Implicit collision update, phase 1: moments of the input distribution.
+ * Implicit update of a stage (BGK collisions and the temperature source), phase 1:
+ * moments of the input distribution.
  *
  * @param app Vlasov app object
  * @param sp Species container
  * @param fin Input distribution function (NULL if no kinetic aspect)
+ * @param dt Time-step of the implicit update
  */
 void vlasov_species_calc_implicit_moms(
-  gkyl_vlasov_app *app, struct vlasov_species *sp, const struct gkyl_array *fin
+  gkyl_vlasov_app *app, struct vlasov_species *sp, const struct gkyl_array *fin, double dt
 );
 
 /**
@@ -1772,6 +1819,22 @@ void vm_species_bgk_rhs(
 );
 
 /**
+ * Build the target of implicit BGK collisions without applying the operator (no-op without
+ * them): the sum over self and cross collisions of the collision frequency times its
+ * Maxwellian in bgk->nu_f_lte and the sum of the frequencies in bgk->nu_sum. For an implicit
+ * update that takes the collisions together with another operator of the same form.
+ *
+ * @param app Vlasov app object
+ * @param species Pointer to species
+ * @param bgk Pointer to BGK
+ * @param fin Input distribution function
+ */
+void vm_species_bgk_target_implicit(
+  gkyl_vlasov_app *app, struct vm_species *species, struct vm_bgk_collisions *bgk,
+  const struct gkyl_array *fin
+);
+
+/**
  * Compute RHS from BGK collisions (implicit integrator).
  *
  * @param app Vlasov app object
@@ -1805,6 +1868,98 @@ void vm_species_bgk_write_mom(
  * @param bgk Species BGK object to release
  */
 void vm_species_bgk_release(const struct gkyl_vlasov_app *app, const struct vm_bgk_collisions *bgk);
+
+/** vm_species_source_bgk API */
+
+/**
+ * Initialize the temperature source nu_Q (f_M(n, u, T_Q) - f) of a species: project the
+ * rate and the temperature, allocate the target and choose the methods of the explicit or
+ * the implicit update (all empty without a source and for a static species). The collision
+ * objects of the species must be initialized first.
+ *
+ * @param app Vlasov app object
+ * @param s Species object
+ * @param src Temperature source object
+ */
+void vm_species_source_bgk_init(
+  struct gkyl_vlasov_app *app, struct vm_species *s, struct vm_source_bgk *src
+);
+
+/**
+ * Compute the moments of the target of the explicit temperature source: the LTE moments of
+ * the input distribution with the temperature replaced by T_Q.
+ *
+ * @param app Vlasov app object
+ * @param species Pointer to species
+ * @param src Pointer to temperature source
+ * @param fin Input distribution function
+ */
+void vm_species_source_bgk_moms(
+  gkyl_vlasov_app *app, const struct vm_species *species, struct vm_source_bgk *src,
+  const struct gkyl_array *fin
+);
+
+/**
+ * Accumulate the explicit temperature source onto the RHS of the species and its rate onto
+ * the CFL frequency. Run after vm_species_source_bgk_moms.
+ *
+ * @param app Vlasov app object
+ * @param species Pointer to species
+ * @param src Pointer to temperature source
+ * @param fin Input distribution function
+ * @param rhs On output, the RHS from the temperature source
+ */
+void vm_species_source_bgk_rhs(
+  gkyl_vlasov_app *app, struct vm_species *species, struct vm_source_bgk *src,
+  const struct gkyl_array *fin, struct gkyl_array *rhs
+);
+
+/**
+ * Compute the moments of the implicit temperature source over dt (no-op without one):
+ * those of its target, and the temperature it gives the species over the step,
+ * T' = (T + dt nu_Q T_Q)/(1 + dt nu_Q), written into the LTE moments of the species, where
+ * implicit BGK collisions (of the species and of its partners) read their targets. Run after
+ * vm_species_bgk_moms_implicit.
+ *
+ * @param app Vlasov app object
+ * @param species Pointer to species
+ * @param src Pointer to temperature source
+ * @param fin Input distribution function
+ * @param dt Time-step of the backward-Euler step
+ */
+void vm_species_source_bgk_moms_implicit(
+  gkyl_vlasov_app *app, const struct vm_species *species, struct vm_source_bgk *src,
+  const struct gkyl_array *fin, double dt
+);
+
+/**
+ * Accumulate the implicit RHS of the temperature source, together with the implicit BGK
+ * collisions of the species if it has them, onto out (no-op without an implicit source):
+ * (nu_c f_M(n, u, T') + nu_Q f_M(n, u, T_Q) - (nu_c + nu_Q) fin)/(1 + dt (nu_c + nu_Q)),
+ * so that fin + dt out is the backward-Euler step of both. Run after the moments of every
+ * species.
+ *
+ * @param app Vlasov app object
+ * @param species Pointer to species
+ * @param src Pointer to temperature source
+ * @param fin Input distribution function
+ * @param dt Time-step of the backward-Euler step
+ * @param out On output, the implicit RHS
+ */
+void vm_species_source_bgk_implicit_advance(
+  gkyl_vlasov_app *app, struct vm_species *species, struct vm_source_bgk *src,
+  const struct gkyl_array *fin, double dt, struct gkyl_array *out
+);
+
+/**
+ * Release the temperature source object.
+ *
+ * @param app Vlasov app object
+ * @param src Temperature source object to release
+ */
+void vm_species_source_bgk_release(
+  const struct gkyl_vlasov_app *app, const struct vm_source_bgk *src
+);
 
 /** vm_species_boundary_fluxes API */
 
@@ -2079,15 +2234,17 @@ double vm_species_rhs_implicit(
 );
 
 /**
- * Compute the moments of the implicit collision update. Run for every species
- * before any vm_species_rhs_implicit, which reads the partners' moments.
+ * Compute the moments of the implicit update of the species (BGK collisions and
+ * the temperature source). Run for every species before any
+ * vm_species_rhs_implicit, which reads the partners' moments.
  *
  * @param app Vlasov app object
  * @param species Pointer to species
  * @param fin Input distribution function
+ * @param dt Time-step of the implicit update
  */
 void vm_species_calc_implicit_moms(
-  gkyl_vlasov_app *app, struct vm_species *species, const struct gkyl_array *fin
+  gkyl_vlasov_app *app, struct vm_species *species, const struct gkyl_array *fin, double dt
 );
 
 /**

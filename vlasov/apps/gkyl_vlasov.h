@@ -72,6 +72,29 @@ struct gkyl_vlasov_collisions {
   bool is_implicit; // Boolean for using implicit BGK collisions (backward Euler in each RK3 stage).
 };
 
+// Parameters for a BGK-form temperature source of a species,
+//   S = nu_Q(x) (f_M(n, u, T_Q(x)) - f),
+// the form of the gyrokinetic GKYL_SOURCE_BGK_HEATING with a prescribed temperature T_Q. The
+// target Maxwellian has the density and the drift of the species, so the source conserves both
+// and relaxes the temperature, d_t T = nu_Q (T_Q - T), and every other moment of the departure
+// from the target at the rate nu_Q. It is independent of `collisions`.
+struct gkyl_vlasov_source_bgk {
+  enum gkyl_source_bgk_id source_bgk_id; // GKYL_NO_SOURCE_BGK (default) or GKYL_SOURCE_BGK_HEATING
+
+  void *rate_profile_ctx; // context for the rate function
+  // pointer to the source rate nu_Q(x)
+  void (*rate_profile)(double t, const double *xn, double *fout, void *ctx);
+  void *temp_shape_ctx; // context for the temperature function
+  // pointer to the source temperature T_Q(x)
+  void (*temp_shape)(double t, const double *xn, double *fout, void *ctx);
+
+  // One backward-Euler step in each SSP-RK3 stage, over the time weight of the stage, instead of
+  // the explicit update (whose time step is limited by nu_Q). A kinetic species with implicit
+  // BGK collisions takes the collisions and the source in the same step, with the collisions
+  // relaxing to the temperature the source gives the species over the step.
+  bool is_implicit;
+};
+
 // Parameters for species radiation
 struct gkyl_vlasov_radiation {
   enum gkyl_vlasov_radiation_id radiation_id; // type of radiation (see gkyl_eqn_type.h)
@@ -282,6 +305,9 @@ struct gkyl_vlasov_kinetic_species {
 
   // Source to include.
   struct gkyl_vlasov_source source;
+
+  // Temperature source to include.
+  struct gkyl_vlasov_source_bgk source_bgk;
 
   // Boundary conditions.
   struct gkyl_vlasov_bcs bcx, bcy, bcz;

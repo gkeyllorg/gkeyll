@@ -11,30 +11,6 @@
 #include <gkyl_kann_net.h>
 #include <gkyl_knutils.h>
 
-// Parameters for a BGK-form temperature source of a species,
-//   S = nu_Q(x) (f_M(n, u, T_Q(x)) - f),
-// the form of the gyrokinetic GKYL_SOURCE_BGK_HEATING with a prescribed temperature T_Q. It
-// conserves the density and the flow and relaxes the temperature, d_t T = nu_Q (T_Q - T). In
-// the normalized variables the fluid thermal energy relaxes to (3/2) n T_Q at the rate nu_Q
-// and the distributions relax to the unit Maxwellian at the rate nu_Q T_Q/T, which relaxes
-// every pressure component at the rate nu_Q of the source. Terms of order (T_Q/T - 1) times
-// the departure of the distributions from a Maxwellian are dropped: moments of degree three
-// decay at nu_Q T_Q/T instead of nu_Q (3 T_Q/T - 1)/2. It is independent of `collisions`.
-struct gkyl_pkpm_source_bgk {
-  enum gkyl_source_bgk_id source_bgk_id; // GKYL_NO_SOURCE_BGK (default) or GKYL_SOURCE_BGK_HEATING
-
-  void *rate_profile_ctx; // context for the rate function
-  // pointer to the source rate nu_Q(x)
-  void (*rate_profile)(double t, const double *xn, double *fout, void *ctx);
-  void *temp_shape_ctx; // context for the temperature function
-  // pointer to the source temperature T_Q(x)
-  void (*temp_shape)(double t, const double *xn, double *fout, void *ctx);
-
-  // One backward-Euler step in each SSP-RK3 stage, over the time weight of the stage, instead of
-  // the explicit update (whose time step is limited by nu_Q and by nu_Q T_Q/T).
-  bool is_implicit;
-};
-
 // Parameters for the kinetic block of a PKPM species: the grid of the normalized velocity
 // w = v_par/xi, the initial condition of the distributions, collisions, sources and the kinetic
 // BCs. Declared as the 'kinetic' block of struct gkyl_pkpm_species. The members it shares with
@@ -77,8 +53,14 @@ struct gkyl_pkpm_kinetic_species {
   // profile at frame 0.
   struct gkyl_vlasov_source source;
 
-  // Temperature source to include.
-  struct gkyl_pkpm_source_bgk source_bgk;
+  // Temperature source to include, S = nu_Q(x) (f_M(n, u, T_Q(x)) - f) (see struct
+  // gkyl_vlasov_source_bgk). In the normalized variables the fluid thermal energy relaxes to
+  // (3/2) n T_Q at the rate nu_Q and the distributions relax to the unit Maxwellian at the rate
+  // nu_Q T_Q/T, which relaxes every pressure component at the rate nu_Q of the source. Terms of
+  // order (T_Q/T - 1) times the departure of the distributions from a Maxwellian are dropped:
+  // moments of degree three decay at nu_Q T_Q/T instead of nu_Q (3 T_Q/T - 1)/2. The explicit
+  // time step is limited by nu_Q and by nu_Q T_Q/T.
+  struct gkyl_vlasov_source_bgk source_bgk;
 
   // Gyrophase-mixing closure of the first harmonic: rate, in units of the species' local |Omega|, at
   // which agyrotropy beyond what one harmonic can represent relaxes back to that bound (0: the

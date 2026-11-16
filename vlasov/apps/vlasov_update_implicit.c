@@ -4,11 +4,12 @@
 // f1 buffer) once the explicit part of the stage, its boundary conditions and
 // the stage combination are done.
 
-// Implicit BGK collisions in three phases over all species: moments of the
+// Implicit BGK collisions and implicit temperature sources, one backward-Euler
+// step of both per species, in three phases over all species: moments of the
 // stage state, the implicit update (which forms cross moments, so it needs all
 // species' moments first), then BCs and the copy back into the stage state.
 static void
-stage_implicit_coll(gkyl_vlasov_app *app, double dt)
+stage_implicit_species(gkyl_vlasov_app *app, double dt)
 {
   int num_species = app->num_species;
   struct gkyl_array *fstage[num_species];
@@ -18,7 +19,7 @@ stage_implicit_coll(gkyl_vlasov_app *app, double dt)
   vlasov_species_gather_rk_state(app, VM_RK_F1, VM_RK_FNEW, fstage, fout, fluidin, fluidout);
 
   for (int i = 0; i < num_species; ++i) {
-    vlasov_species_calc_implicit_moms(app, &app->species[i], fstage[i]);
+    vlasov_species_calc_implicit_moms(app, &app->species[i], fstage[i], dt);
   }
 
   for (int i = 0; i < num_species; ++i) {
@@ -37,9 +38,9 @@ static const double stage_dt_frac[3] = {1.0, 1.0 / 4.0, 2.0 / 3.0};
 void
 vlasov_stage_implicit(gkyl_vlasov_app *app, int stage, double dt)
 {
-  // The implicit BGK operator takes one backward-Euler step over the stage's
-  // share of the time-step, on the state the stage produced.
-  if (app->has_implicit_coll_scheme) {
-    stage_implicit_coll(app, stage_dt_frac[stage - 1] * dt);
+  // The implicit operators of the species take one backward-Euler step over the
+  // stage's share of the time-step, on the state the stage produced.
+  if (app->has_implicit_species_ops) {
+    stage_implicit_species(app, stage_dt_frac[stage - 1] * dt);
   }
 }

@@ -1048,7 +1048,7 @@ pkpm_app_new(lua_State *L)
     if (species[s]->has_source_bgk) {
       app_lw->source_bgk_rate_func_ctx[s] = species[s]->source_bgk_rate_func_ref;
       app_lw->source_bgk_temp_func_ctx[s] = species[s]->source_bgk_temp_func_ref;
-      pkpm.species[s].kinetic.source_bgk = (struct gkyl_pkpm_source_bgk){
+      pkpm.species[s].kinetic.source_bgk = (struct gkyl_vlasov_source_bgk){
         .source_bgk_id = GKYL_SOURCE_BGK_HEATING,
         .rate_profile = gkyl_lw_eval_cb,
         .rate_profile_ctx = &app_lw->source_bgk_rate_func_ctx[s],

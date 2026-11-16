@@ -552,6 +552,11 @@ struct vlasov_species_lw {
   double t_cool; // Cooling time in radiation operator rad_force ~ -1/t_cool*drag
   double p0; // (four-) velocity to cool to.
 
+  bool has_source_bgk; // Is there a temperature source?
+  bool source_bgk_is_implicit; // Temperature source: backward Euler instead of the explicit update?
+  struct lua_func_ctx source_bgk_rate_func_ref; // Lua registry reference to the source rate.
+  struct lua_func_ctx source_bgk_temp_func_ref; // Lua registry reference to the source temperature.
+
   bool has_app_accel_func; // Is there an applied acceleration initialization function?
   struct lua_func_ctx
     app_accel_func_ref; // Lua registry reference to applied acceleration initialization function.
@@ -1072,6 +1077,20 @@ vlasov_species_lw_new(lua_State *L)
     p0 = glua_tbl_get_number(L, "p0", 0.0);
   }
 
+  bool has_source_bgk = false, source_bgk_is_implicit = false;
+  int source_bgk_rate_func_ref = LUA_NOREF, source_bgk_temp_func_ref = LUA_NOREF;
+  with_lua_tbl_tbl(L, "sourceBGK")
+  {
+    has_source_bgk = true;
+    source_bgk_is_implicit = glua_tbl_get_bool(L, "useImplicitScheme", false);
+    if (glua_tbl_get_func(L, "rateProfile")) {
+      source_bgk_rate_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    }
+    if (glua_tbl_get_func(L, "tempShape")) {
+      source_bgk_temp_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    }
+  }
+
   bool has_app_accel_func = false;
   int app_accel_func_ref = LUA_NOREF;
   bool evolve_app_accel = false;
@@ -1325,6 +1344,21 @@ vlasov_species_lw_new(lua_State *L)
   vms_lw->radiation_id = radiation_id;
   vms_lw->t_cool = t_cool;
   vms_lw->p0 = p0;
+
+  vms_lw->has_source_bgk = has_source_bgk;
+  vms_lw->source_bgk_is_implicit = source_bgk_is_implicit;
+  vms_lw->source_bgk_rate_func_ref = (struct lua_func_ctx){
+    .func_ref = source_bgk_rate_func_ref,
+    .ndim = 0, // This will be set later.
+    .nret = 1,
+    .L = L,
+  };
+  vms_lw->source_bgk_temp_func_ref = (struct lua_func_ctx){
+    .func_ref = source_bgk_temp_func_ref,
+    .ndim = 0, // This will be set later.
+    .nret = 1,
+    .L = L,
+  };
 
   vms_lw->has_app_accel_func = has_app_accel_func;
   vms_lw->app_accel_func_ref = (struct lua_func_ctx){
@@ -3005,6 +3039,17 @@ vm_app_new(lua_State *L)
         vm_app_ctx(app_lw, &species[s]->app_accel_func_ref, cdim);
 
       vm.species[s].kinetic.app_accel_evolve = species[s]->evolve_app_accel;
+    }
+
+    if (species[s]->has_source_bgk) {
+      vm.species[s].kinetic.source_bgk = (struct gkyl_vlasov_source_bgk){
+        .source_bgk_id = GKYL_SOURCE_BGK_HEATING,
+        .rate_profile = gkyl_lw_eval_cb,
+        .rate_profile_ctx = vm_app_ctx(app_lw, &species[s]->source_bgk_rate_func_ref, cdim),
+        .temp_shape = gkyl_lw_eval_cb,
+        .temp_shape_ctx = vm_app_ctx(app_lw, &species[s]->source_bgk_temp_func_ref, cdim),
+        .is_implicit = species[s]->source_bgk_is_implicit,
+      };
     }
   }
 

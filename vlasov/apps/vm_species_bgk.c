@@ -144,13 +144,22 @@ vmbgk_rhs_disabled(
 }
 
 static void
-vmbgk_rhs_enabled(
+vmbgk_target_disabled(
   gkyl_vlasov_app *app, struct vm_species *vms, struct vm_bgk_collisions *bgk,
-  const struct gkyl_array *fin, double dt, struct gkyl_array *rhs
+  const struct gkyl_array *fin
 )
 {
-  struct timespec wst = gkyl_wall_clock();
+  // Empty method.
+}
 
+// The target of the operator: the sum over self and cross collisions of the collision frequency
+// times its Maxwellian (bgk->nu_f_lte), and of the collision frequencies (bgk->nu_sum).
+static void
+vmbgk_target_enabled(
+  gkyl_vlasov_app *app, struct vm_species *vms, struct vm_bgk_collisions *bgk,
+  const struct gkyl_array *fin
+)
+{
   // Compute the self-collisions Maxwellian.
   struct vm_lte *lte = &vms->lte;
   if (bgk->fixed_temp_relax) {
@@ -180,6 +189,17 @@ vmbgk_rhs_enabled(
     );
     gkyl_array_accumulate(bgk->nu_f_lte, 1.0, lte->f_lte);
   }
+}
+
+static void
+vmbgk_rhs_enabled(
+  gkyl_vlasov_app *app, struct vm_species *vms, struct vm_bgk_collisions *bgk,
+  const struct gkyl_array *fin, double dt, struct gkyl_array *rhs
+)
+{
+  struct timespec wst = gkyl_wall_clock();
+
+  vmbgk_target_enabled(app, vms, bgk, fin);
 
   // Apply BGK collisions.
   gkyl_bgk_collisions_advance(
@@ -261,6 +281,7 @@ vm_species_bgk_init(
   bgk->moms_func_implicit = vmbgk_moms_disabled;
   bgk->rhs_func = vmbgk_rhs_disabled;
   bgk->rhs_func_implicit = vmbgk_rhs_disabled;
+  bgk->target_func_implicit = vmbgk_target_disabled;
   bgk->fixed_temp_calc_func = vmbgk_fixed_temp_disabled;
   bgk->write_mom_func = vmbgk_write_mom_disabled;
 
@@ -365,6 +386,7 @@ vm_species_bgk_init(
       bgk->rhs_func = vmbgk_rhs_disabled;
       bgk->moms_func_implicit = vmbgk_moms_enabled;
       bgk->rhs_func_implicit = vmbgk_rhs_enabled;
+      bgk->target_func_implicit = vmbgk_target_enabled;
     } else {
       bgk->moms_func = vmbgk_moms_enabled;
       bgk->rhs_func = vmbgk_rhs_enabled;
@@ -562,6 +584,15 @@ vm_species_bgk_rhs_implicit(
 )
 {
   bgk->rhs_func_implicit(app, vms, bgk, fin, dt, rhs);
+}
+
+void
+vm_species_bgk_target_implicit(
+  gkyl_vlasov_app *app, struct vm_species *vms, struct vm_bgk_collisions *bgk,
+  const struct gkyl_array *fin
+)
+{
+  bgk->target_func_implicit(app, vms, bgk, fin);
 }
 
 void

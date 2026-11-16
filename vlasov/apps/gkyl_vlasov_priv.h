@@ -151,7 +151,9 @@ struct gkyl_vlasov_app {
   bool has_fluid_em_coupling; // Boolean for if there is implicit fluid-EM coupling
   struct vm_fluid_em_coupling *fl_em; // fluid-EM coupling data
 
-  bool has_implicit_coll_scheme; // Boolean for using the implicit BGK scheme (in the RK3 stages)
+  // Boolean for implicit operators of the species in the RK3 stages (BGK collisions,
+  // temperature sources)
+  bool has_implicit_species_ops;
 
   // pointer to function that takes a single-step of simulation
   struct gkyl_update_status (*update_func)(gkyl_vlasov_app *app, double dt0);
@@ -173,9 +175,9 @@ void vlasov_forward_euler(
 
 // The implicit operators of SSP-RK3 stage 'stage' (1, 2 or 3), applied to the
 // stage state after the explicit part of the stage, its BCs and the stage
-// combination: implicit BGK collisions, one backward-Euler step over the share
-// of dt the stage adds to its state (dt, dt/4, 2 dt/3). A no-op without
-// implicit collisions.
+// combination: implicit BGK collisions and implicit temperature sources, one
+// backward-Euler step of both over the share of dt the stage adds to its state
+// (dt, dt/4, 2 dt/3). A no-op without implicit operators.
 void vlasov_stage_implicit(gkyl_vlasov_app *app, int stage, double dt);
 
 // Take a single time-step using a first-order operator split: SSP RK3, then

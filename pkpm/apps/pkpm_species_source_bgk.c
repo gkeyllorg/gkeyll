@@ -56,7 +56,7 @@ pkpm_species_source_bgk_kinetic_rhs_none(
 void
 pkpm_species_source_bgk_init(gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_source_bgk *src)
 {
-  const struct gkyl_pkpm_source_bgk *info = &s->kinetic->info.source_bgk;
+  const struct gkyl_vlasov_source_bgk *info = &s->kinetic->info.source_bgk;
   src->source_bgk_id = info->source_bgk_id;
   src->is_implicit = false;
   src->calc_fluid = pkpm_species_source_bgk_calc_fluid_none;

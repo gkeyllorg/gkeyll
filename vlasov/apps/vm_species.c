@@ -525,6 +525,9 @@ vm_species_rhs_dynamic(
   vm_species_lbo_rhs(app, vms, &vms->lbo, fin, rhs);
   vm_species_bgk_rhs(app, vms, &vms->bgk, fin, rhs);
 
+  // Update RHS due to the explicit temperature source if present.
+  vm_species_source_bgk_rhs(app, vms, &vms->src_bgk, fin, rhs);
+
   if (vms->calc_bflux) {
     vm_species_bflux_rhs(app, vms, &vms->bflux, fin, rhs);
   }
@@ -1361,10 +1364,45 @@ vm_species_new_static(
 
 static void
 vm_species_calc_implicit_moms_bgk(
-  gkyl_vlasov_app *app, struct vm_species *vms, const struct gkyl_array *fin
+  gkyl_vlasov_app *app, struct vm_species *vms, const struct gkyl_array *fin, double dt
 )
 {
   vm_species_bgk_moms_implicit(app, vms, &vms->bgk, fin);
+}
+
+// Implicit update of a species with an implicit temperature source: the moments of the
+// implicit BGK collisions (if any), then those of the source, which sets the temperature the
+// collisions relax to.
+static void
+vm_species_calc_implicit_moms_source_bgk(
+  gkyl_vlasov_app *app, struct vm_species *vms, const struct gkyl_array *fin, double dt
+)
+{
+  vm_species_bgk_moms_implicit(app, vms, &vms->bgk, fin);
+  vm_species_source_bgk_moms_implicit(app, vms, &vms->src_bgk, fin, dt);
+}
+
+// ... and the backward-Euler step of the source and the collisions together.
+static double
+vm_species_rhs_implicit_source_bgk(
+  gkyl_vlasov_app *app, struct vm_species *vms, const struct gkyl_array *fin,
+  struct gkyl_array *rhs, double dt
+)
+{
+  gkyl_array_clear(vms->cflrate, 0.0);
+  gkyl_array_clear(rhs, 0.0);
+
+  // Compute implicit update and update rhs to new time with time step size dt.
+  vm_species_source_bgk_implicit_advance(app, vms, &vms->src_bgk, fin, dt, rhs);
+  gkyl_array_accumulate(gkyl_array_scale(rhs, dt), 1.0, fin);
+
+  if (vms->calc_bflux) {
+    vm_species_bflux_rhs(app, vms, &vms->bflux, fin, rhs);
+  }
+
+  // Implicit step does not affect the stable time step.
+  double dt_out = DBL_MAX;
+  return dt_out;
 }
 
 static void
@@ -1750,6 +1788,10 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
   vms->bgk = (struct vm_bgk_collisions){};
   vm_species_bgk_init(app, vms, &vms->bgk);
 
+  // Initialize the temperature source (empty methods if none is specified).
+  vms->src_bgk = (struct vm_source_bgk){};
+  vm_species_source_bgk_init(app, vms, &vms->src_bgk);
+
   // Set species source id.
   vms->source_id = vms->info.source.source_id;
   if (vms->source_id == GKYL_BFLUX_SOURCE) {
@@ -1773,6 +1815,12 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
     vms->rhs_source_func = vm_species_rhs_source_disabled;
   }
   vms->from_file_func = vm_species_from_file_distf;
+  // With an implicit temperature source the implicit update of the species is the source and
+  // the implicit BGK collisions, if any, in one backward-Euler step.
+  if (vms->src_bgk.is_implicit) {
+    vms->calc_implicit_moms_func = vm_species_calc_implicit_moms_source_bgk;
+    vms->rhs_implicit_func = vm_species_rhs_implicit_source_bgk;
+  }
 }
 
 void
@@ -1802,13 +1850,13 @@ vm_species_rhs_implicit(
   return vms->rhs_implicit_func(app, vms, fin, rhs, dt);
 }
 
-// Moments of the implicit collision update.
+// Moments of the implicit update.
 void
 vm_species_calc_implicit_moms(
-  gkyl_vlasov_app *app, struct vm_species *vms, const struct gkyl_array *fin
+  gkyl_vlasov_app *app, struct vm_species *vms, const struct gkyl_array *fin, double dt
 )
 {
-  vms->calc_implicit_moms_func(app, vms, fin);
+  vms->calc_implicit_moms_func(app, vms, fin, dt);
 }
 
 // Time-dependent applied acceleration.
@@ -2034,6 +2082,7 @@ vm_species_release(const gkyl_vlasov_app *app, const struct vm_species *vms)
   gkyl_free(vms->moms);
 
   vm_species_lte_release(app, &vms->lte);
+  vm_species_source_bgk_release(app, &vms->src_bgk);
 
   vms->release_func(app, vms);
 }

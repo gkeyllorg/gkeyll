@@ -317,12 +317,13 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
     app->fl_em = vm_fluid_em_coupling_new(app);
   }
 
-  // Use implicit BGK collisions if any species requests them (applied inside
-  // the SSP-RK3 step, see vlasov_stage_implicit).
-  app->has_implicit_coll_scheme = false;
+  // Implicit operators of the species (BGK collisions, temperature sources) are
+  // applied inside the SSP-RK3 step, see vlasov_stage_implicit.
+  app->has_implicit_species_ops = false;
   for (int i = 0; i < ntot; ++i) {
-    if (app->species[i].kinetic && app->species[i].kinetic->info.collisions.is_implicit) {
-      app->has_implicit_coll_scheme = true;
+    struct vm_species *vms = app->species[i].kinetic;
+    if (vms && (vms->info.collisions.is_implicit || vms->src_bgk.is_implicit)) {
+      app->has_implicit_species_ops = true;
     }
   }
 

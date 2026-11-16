@@ -47,6 +47,7 @@ kinetic_calc_self_moms(
 {
   vm_species_lbo_moms(app, sp->kinetic, &sp->kinetic->lbo, fin);
   vm_species_bgk_moms(app, sp->kinetic, &sp->kinetic->bgk, fin);
+  vm_species_source_bgk_moms(app, sp->kinetic, &sp->kinetic->src_bgk, fin);
 }
 
 static void
@@ -354,15 +355,15 @@ vlasov_species_source_rhs(
   }
 }
 
-// Implicit collision update, phase 1: moments of the input distribution
-// (kinetic aspect only; a no-op for species without implicit BGK collisions).
+// Implicit update, phase 1: moments of the input distribution (kinetic aspect only;
+// a no-op for species without implicit BGK collisions or temperature source).
 void
 vlasov_species_calc_implicit_moms(
-  gkyl_vlasov_app *app, struct vlasov_species *sp, const struct gkyl_array *fin
+  gkyl_vlasov_app *app, struct vlasov_species *sp, const struct gkyl_array *fin, double dt
 )
 {
   if (sp->kinetic) {
-    vm_species_calc_implicit_moms(app, sp->kinetic, fin);
+    vm_species_calc_implicit_moms(app, sp->kinetic, fin, dt);
   }
 }
 
