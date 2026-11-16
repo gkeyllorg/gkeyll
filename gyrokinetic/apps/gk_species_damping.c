@@ -153,7 +153,7 @@ gk_species_damping_write_fbar_cellwise_const(
       .cval = "Low-pass-filtered distribution function.",
     },
     {.key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = tm},
-    {.key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = frame}
+    {.key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = frame},
   };
   int io_meta_fbar_len[] = {
     gks->io_meta_basic_len, (int)(sizeof(mpe_fbar_p0) / sizeof(mpe_fbar_p0[0])),
@@ -193,11 +193,13 @@ gk_species_damping_write_fbar_same_basis(
   gkyl_msgpack_map_elem_set_double(gks->io_meta_phase_len, gks->io_meta_phase, "time", tm);
   gkyl_msgpack_map_elem_set_uint(gks->io_meta_phase_len, gks->io_meta_phase, "frame", frame);
 
-  struct gkyl_msgpack_map_elem io_meta_fbar_desc[] = {{
-    .key = "Description",
-    .elem_type = GKYL_MP_STRING,
-    .cval = "Low-pass-filtered distribution function.",
-  }};
+  struct gkyl_msgpack_map_elem io_meta_fbar_desc[] = {
+    {
+      .key = "Description",
+      .elem_type = GKYL_MP_STRING,
+      .cval = "Low-pass-filtered distribution function.",
+    },
+  };
   int io_meta_fbar_len[] = {gks->io_meta_phase_len, app->gk_geom->io_meta_basic_len, 1};
   const struct gkyl_msgpack_map_elem *io_meta_fbar[] = {
     gks->io_meta_phase, app->gk_geom->io_meta_basic, io_meta_fbar_desc
