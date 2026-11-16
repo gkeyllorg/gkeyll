@@ -36,6 +36,7 @@ struct gk_solovev_ctx {
   int cells[GKYL_MAX_DIM]; // Number of cells in all directions.
   double Lx; // Box size in x
   double Ly; // Box size in y
+  double Cy, rho_s; // Binormal and ion-sound-gyroradius reference lengths.
   double Lz; // Box size in z
   double vpar_max_elc; // Velocity space extents in vparallel for electrons
   double mu_max_elc; // Velocity space extents in mu for electrons
@@ -303,6 +304,8 @@ create_ctx(void)
     .n0 = n0,
     .Lx = Lx,
     .Ly = Ly,
+    .Cy = r0 / q0,
+    .rho_s = rho_s,
     .Lz = Lz,
     .lambda_source = lambda_source,
     .x_source = x_source,
@@ -559,6 +562,11 @@ main(int argc, char **argv)
     .zmax = 1.5, // Z of upper divertor plate
   };
 
+  struct gkyl_msgpack_map_elem additional_metadata[] = {
+    {.key = "Cy", .elem_type = GKYL_MP_DOUBLE, .dval = ctx.Cy},
+    {.key = "rho_s", .elem_type = GKYL_MP_DOUBLE, .dval = ctx.rho_s},
+  };
+
   // GK app
   struct gkyl_gk app_inp = {
 
@@ -578,6 +586,12 @@ main(int argc, char **argv)
     .num_species = 2,
     .species = {elc, ion},
     .field = field,
+
+    .metadata =
+      {
+        .num_attributes = sizeof(additional_metadata) / sizeof(additional_metadata[0]),
+        .attributes = additional_metadata,
+      },
 
     .parallelism =
       {

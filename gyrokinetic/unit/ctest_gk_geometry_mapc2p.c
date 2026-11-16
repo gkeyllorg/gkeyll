@@ -1,5 +1,4 @@
 #include <math.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -646,13 +645,7 @@ compare_nodes(
     const double *value = gkyl_array_cfetch(actual, gkyl_range_idx(nodes, iter.idx));
     const double *ref = gkyl_array_cfetch(expected, gkyl_range_idx(full_nodes, index));
     for (int comp = 0; comp < actual->ncomp; ++comp) {
-      union {
-        double value;
-        uint64_t bits;
-      } actual_bits = {.value = value[comp]}, ref_bits = {.value = ref[comp]};
-      bool finite = (actual_bits.bits & UINT64_C(0x7ff0000000000000)) !=
-                      UINT64_C(0x7ff0000000000000) &&
-                    (ref_bits.bits & UINT64_C(0x7ff0000000000000)) != UINT64_C(0x7ff0000000000000);
+      bool finite = gkyl_is_dfinite(value[comp]) && gkyl_is_dfinite(ref[comp]);
       TEST_CHECK(finite);
       TEST_MSG(
         "%s at %d %d %d component %d: actual %g reference %g", name, iter.idx[0], iter.idx[1],

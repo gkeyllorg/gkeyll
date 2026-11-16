@@ -18,7 +18,7 @@ struct gk_app_ctx {
   double den_floor;
   double Te_floor;
   double Ti_floor;
-  double n0, Te0, Ti0, B0; // Reference parameters.
+  double n0, Te0, Ti0, B0, Cy, rho_s; // Reference parameters.
   // Collision parameters
   double nuFrac, nuElc, nuIon;
   // Source parameters
@@ -518,6 +518,8 @@ create_ctx(void)
     .z_max = z_max,
     .Lx = Lx,
     .Ly = Ly,
+    .Cy = r0 / q0,
+    .rho_s = rho_s,
     .Lz = Lz,
     .rho_min = rho_min,
     .rho_max = rho_max,
@@ -1018,6 +1020,10 @@ main(int argc, char **argv)
     .time_rate_diagnostics = true,
   };
 
+  struct gkyl_msgpack_map_elem additional_metadata[] = {
+    {.key = "Cy", .elem_type = GKYL_MP_DOUBLE, .dval = ctx.Cy},
+    {.key = "rho_s", .elem_type = GKYL_MP_DOUBLE, .dval = ctx.rho_s},
+  };
   struct gkyl_gyrokinetic_multib *app_inp = gkyl_calloc(1, sizeof(struct gkyl_gyrokinetic_multib));
   app_inp->cdim = ctx.cdim;
   app_inp->poly_order = 1;
@@ -1032,6 +1038,10 @@ main(int argc, char **argv)
   app_inp->field = field;
   app_inp->comm = comm;
   app_inp->use_gpu = app_args.use_gpu;
+  app_inp->metadata = (struct gkyl_gyrokinetic_metadata_inp){
+    .num_attributes = sizeof(additional_metadata) / sizeof(additional_metadata[0]),
+    .attributes = additional_metadata,
+  };
 
   // Set app output name from the executable name (argv[0]).
   snprintf(app_inp->name, sizeof(app_inp->name), "%s", app_args.app_name);

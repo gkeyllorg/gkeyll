@@ -161,6 +161,9 @@ gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp *inp)
   struct timespec tm_init = gkyl_wall_clock();
 
   gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&inp->app_inp);
+  if (!app) {
+    gkyl_exit("gyrokinetic_run: failed to construct single-block application.");
+  }
 
   if (verbose.enabled) {
     gkyl_gyrokinetic_app_cout(app, stdout, "Gyrokinetic simulation initialized...\n");

@@ -109,11 +109,9 @@ gk_neut_species_source_write(
     struct gkyl_msgpack_map_elem desc_src[] = {
       {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Neutral species source."},
     };
-    int io_meta_len[] = {
-      gkns->io_meta_phase_len, gkns->io_meta_phase_len, app->gk_geom->io_meta_basic_len, 1
-    };
+    int io_meta_len[] = {gkns->io_meta_phase_len, app->gk_geom->io_meta_basic_len, 1};
     const struct gkyl_msgpack_map_elem *io_meta[] = {
-      gkns->io_meta_phase, gkns->io_meta_phase, app->gk_geom->io_meta_basic, desc_src
+      gkns->io_meta_phase, app->gk_geom->io_meta_basic, desc_src
     };
     struct gkyl_msgpack_data *mt =
       gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
