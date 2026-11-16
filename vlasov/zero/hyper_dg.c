@@ -146,9 +146,6 @@ gkyl_hyper_dg_gen_stencil_advance(
   double dx[sz_dim][GKYL_MAX_DIM];
   const double *fIn_d[sz_dim];
 
-  // bool for checking if index is in the domain
-  int in_grid = 1;
-
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, update_range);
   while (gkyl_range_iter_next(&iter)) {
@@ -166,28 +163,16 @@ gkyl_hyper_dg_gen_stencil_advance(
 
     // Get pointers to all neighbor values (i.e., 9 cells in 2D, 27 cells in 3D)
     for (int i = 0; i < sz_dim; ++i) {
-      // Get index based on offset (not necessarily a valid index)
+      // Get index based on offset. Neighbors of cells on the edge of update_range are
+      // ghost cells; these are fetched too so kernels see the data boundary conditions
+      // (e.g. periodic) put there. Assumes fIn has at least one layer of ghost cells
+      // around update_range in every update direction.
       gkyl_sub_range_inv_idx(update_range, linc + offsets[i], idx[i]);
-
-      // Check if the index is in the domain
-      // Assumes update_range owns lower and upper edges of the domain
-      for (int d = 0; d < up->num_up_dirs; ++d) {
-        int dir = up->update_dirs[d];
-        if (idx[i][dir] < update_range->lower[dir] || idx[i][dir] > update_range->upper[dir]) {
-          in_grid = 0;
-        }
+      gkyl_rect_grid_cell_center(&up->grid, idx[i], xc[i]);
+      for (int j = 0; j < ndim; ++j) {
+        dx[i][j] = up->grid.dx[j];
       }
-
-      // Only if the index is in the domain, fetch the pointer (otherwise pointer stays NULL)
-      if (in_grid) {
-        gkyl_rect_grid_cell_center(&up->grid, idx[i], xc[i]);
-        for (int j = 0; j < ndim; ++j) {
-          dx[i][j] = up->grid.dx[j];
-        }
-        fIn_d[i] = gkyl_array_cfetch(fIn, linc + offsets[i]);
-      }
-      // reset in_grid for next neighbor value check
-      in_grid = 1;
+      fIn_d[i] = gkyl_array_cfetch(fIn, linc + offsets[i]);
     }
 
     // Loop over surfaces and update using any/all neighbors needed

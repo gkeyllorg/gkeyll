@@ -1301,7 +1301,7 @@ phase_bases(
     if (vdim_red == 0) {
       gkyl_cart_modal_serendip(basis_red, cdim_red, 1);
     } else if (cdim_red == 0) {
-      gkyl_cart_modal_serendip(basis_red, vdim_red, 2);
+      gkyl_cart_modal_tensor(basis_red, vdim_red, 2); // Velocity factor of the tensor hybrid.
     } else {
       gkyl_cart_modal_hybrid(basis_red, cdim_red, vdim_red);
     }
