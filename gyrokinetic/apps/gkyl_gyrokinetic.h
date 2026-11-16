@@ -102,7 +102,8 @@ struct gkyl_gyrokinetic_projection {
 // terms, so its error is the energy the species exchanges with the field.
 enum gkyl_gyrokinetic_balance_diag {
   GKYL_BALANCE_GK_PARTICLE = 0, // Particle balance.
-  GKYL_BALANCE_GK_ENERGY // Energy balance.
+  GKYL_BALANCE_GK_ENERGY, // Energy balance.
+  GKYL_BALANCE_GK_NUM // Number of balance diagnostics.
 };
 
 // File-name strings corresponding to the enum options above.
@@ -111,7 +112,7 @@ static const char *gkyl_gyrokinetic_balance_diag_strs[] = {"particle", "energy"}
 // Diagnostics of the whole app (summed over species).
 struct gkyl_gyrokinetic_diagnostics {
   int num_balance_diags; // Number of balance diagnostics.
-  enum gkyl_gyrokinetic_balance_diag balance_diags[12]; // List of balance diagnostics.
+  enum gkyl_gyrokinetic_balance_diag balance_diags[GKYL_BALANCE_GK_NUM]; // List of balance diagnostics.
 };
 
 struct gkyl_phase_diagnostics_inp {

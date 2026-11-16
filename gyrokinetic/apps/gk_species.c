@@ -956,8 +956,8 @@ gk_species_init_io(struct gkyl_gyrokinetic_app *app, struct gk_species *gks)
 void
 gk_species_init_integrated_mom(struct gkyl_gyrokinetic_app *app, struct gk_species *gks)
 {
-  // Integrated moments requested (M0M1M2PARM2PERP by default), and those the
-  // balance diagnostics need.
+  // Integrated moments requested (M0M1M2PARM2PERP by default), and those other
+  // modules need.
   gks->num_integ_moms = gks->info.num_integrated_diag_moments;
   for (int m = 0; m < gks->num_integ_moms; m++) {
     gks->integ_mom_types[m] = gks->info.integrated_diag_moments[m];

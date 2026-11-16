@@ -1040,9 +1040,9 @@ struct gk_source {
   struct gk_species_moment *moms; // Diagnostic moments.
   int num_diag_int_mom; // Number of volume-integrated diagnostic moments (asked by user).
   int num_integ_moms; // Number of integrated moments (requested + needed by other modules).
-  enum gkyl_distribution_moments integ_mom_types[12]; // Integrated moments.
+  enum gkyl_distribution_moments integ_mom_types[GKYL_F_MOMENT_NUM]; // Integrated moments.
   struct gk_species_moment *integ_moms; // Integrated moment updaters.
-  int integ_mom_offset[12]; // Index of the first component of each integrated moment.
+  int integ_mom_offset[GKYL_F_MOMENT_NUM]; // Index of the first component of each integrated moment.
   int integ_num_comp; // Number of components of all the integrated moments.
   double *red_integ_diag, *red_integ_diag_global; // For reduction of integrated moments.
   gkyl_dynvec *integ_diag; // Integrated moments reduced across grid.
@@ -1249,13 +1249,13 @@ enum gk_species_balance_term {
 struct gk_species_balance {
   bool enabled; // =true if requested (by the species or the app) and the species is dynamic.
   int num_diags; // Number of balance diagnostics.
-  enum gkyl_gyrokinetic_balance_diag diag_types[12]; // Balance diagnostics.
+  enum gkyl_gyrokinetic_balance_diag diag_types[GKYL_BALANCE_GK_NUM]; // Balance diagnostics.
   bool write[12]; // Whether each diagnostic is written (=true if requested by the species).
   // Moment with every balanced quantity, added to the integrated diagnostics missing one.
   enum gkyl_distribution_moments mom_type;
   // Integrated diagnostic moment (index in the list of its diagnostic) and
   // component of each balanced quantity, for each term.
-  int int_mom[GK_SPECIES_BALANCE_NUM_TERMS][12], int_comp[GK_SPECIES_BALANCE_NUM_TERMS][12];
+  int int_mom[GK_SPECIES_BALANCE_NUM_TERMS][GKYL_BALANCE_GK_NUM], int_comp[GK_SPECIES_BALANCE_NUM_TERMS][GKYL_BALANCE_GK_NUM];
   bool has_source; // Whether the species has a source.
   int num_boundaries; // Number of boundaries with a boundary flux.
   bool has_source_bgk; // Whether the species has a BGK source.
@@ -2166,7 +2166,7 @@ void gk_species_moment_release(
  * @param app Gyrokinetic app object.
  * @param gks Species object.
  * @param bal Balance diagnostic object.
- * @param bflux_type Boundary flux type, raised to compute the bflux diagnostics if needed.
+ * @param bflux_type Boundary flux type, activated by this function if needed.
  * @param add_bflux_moms_inp Additional bflux moments (integrated diagnostic moments appended).
  */
 void gk_species_balance_pre_init(
