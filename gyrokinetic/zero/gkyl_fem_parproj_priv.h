@@ -64,69 +64,73 @@ typedef struct {
 } local2global_kern_list;
 
 // Serendipity local-to-global kernels.
-GKYL_CU_D static const local2global_kern_list ser_loc2glob_list[] = { // 1x
+GKYL_CU_D static const local2global_kern_list ser_loc2glob_list[] = {
+  // 1x
   {
     .list =
-      {// periodicx
-       {
-         .list =
-           {{fem_parproj_local_to_global_1x_ser_p1_inx_periodicx,
-             fem_parproj_local_to_global_1x_ser_p1_upx_periodicx},
-            {fem_parproj_local_to_global_1x_ser_p2_inx_periodicx,
-             fem_parproj_local_to_global_1x_ser_p2_upx_periodicx}},
-       },
-       // nonperiodicx
-       {
-         .list =
-           {{fem_parproj_local_to_global_1x_ser_p1_inx_nonperiodicx,
-             fem_parproj_local_to_global_1x_ser_p1_upx_nonperiodicx},
-            {fem_parproj_local_to_global_1x_ser_p2_inx_nonperiodicx,
-             fem_parproj_local_to_global_1x_ser_p2_upx_nonperiodicx}},
-       }
+      {
+        // periodicx
+        {
+          .list =
+            {{fem_parproj_local_to_global_1x_ser_p1_inx_periodicx,
+              fem_parproj_local_to_global_1x_ser_p1_upx_periodicx},
+             {fem_parproj_local_to_global_1x_ser_p2_inx_periodicx,
+              fem_parproj_local_to_global_1x_ser_p2_upx_periodicx}},
+        },
+        // nonperiodicx
+        {
+          .list =
+            {{fem_parproj_local_to_global_1x_ser_p1_inx_nonperiodicx,
+              fem_parproj_local_to_global_1x_ser_p1_upx_nonperiodicx},
+             {fem_parproj_local_to_global_1x_ser_p2_inx_nonperiodicx,
+              fem_parproj_local_to_global_1x_ser_p2_upx_nonperiodicx}},
+        },
       },
   },
   // 2x
   {
     .list =
-      {// periodicy
-       {
-         .list =
-           {{fem_parproj_local_to_global_2x_ser_p1_iny_periodicy,
-             fem_parproj_local_to_global_2x_ser_p1_upy_periodicy},
-            {fem_parproj_local_to_global_2x_ser_p2_iny_periodicy,
-             fem_parproj_local_to_global_2x_ser_p2_upy_periodicy}},
-       },
-       // nonperiodicy
-       {
-         .list =
-           {{fem_parproj_local_to_global_2x_ser_p1_iny_nonperiodicy,
-             fem_parproj_local_to_global_2x_ser_p1_upy_nonperiodicy},
-            {fem_parproj_local_to_global_2x_ser_p2_iny_nonperiodicy,
-             fem_parproj_local_to_global_2x_ser_p2_upy_nonperiodicy}},
-       }
+      {
+        // periodicy
+        {
+          .list =
+            {{fem_parproj_local_to_global_2x_ser_p1_iny_periodicy,
+              fem_parproj_local_to_global_2x_ser_p1_upy_periodicy},
+             {fem_parproj_local_to_global_2x_ser_p2_iny_periodicy,
+              fem_parproj_local_to_global_2x_ser_p2_upy_periodicy}},
+        },
+        // nonperiodicy
+        {
+          .list =
+            {{fem_parproj_local_to_global_2x_ser_p1_iny_nonperiodicy,
+              fem_parproj_local_to_global_2x_ser_p1_upy_nonperiodicy},
+             {fem_parproj_local_to_global_2x_ser_p2_iny_nonperiodicy,
+              fem_parproj_local_to_global_2x_ser_p2_upy_nonperiodicy}},
+        },
       },
   },
   // 3x
   {
     .list =
-      {// periodicz
-       {
-         .list =
-           {{fem_parproj_local_to_global_3x_ser_p1_inz_periodicz,
-             fem_parproj_local_to_global_3x_ser_p1_upz_periodicz},
-            {fem_parproj_local_to_global_3x_ser_p2_inz_periodicz,
-             fem_parproj_local_to_global_3x_ser_p2_upz_periodicz}},
-       },
-       // nonperiodicz
-       {
-         .list =
-           {{fem_parproj_local_to_global_3x_ser_p1_inz_nonperiodicz,
-             fem_parproj_local_to_global_3x_ser_p1_upz_nonperiodicz},
-            {fem_parproj_local_to_global_3x_ser_p2_inz_nonperiodicz,
-             fem_parproj_local_to_global_3x_ser_p2_upz_nonperiodicz}},
-       }
+      {
+        // periodicz
+        {
+          .list =
+            {{fem_parproj_local_to_global_3x_ser_p1_inz_periodicz,
+              fem_parproj_local_to_global_3x_ser_p1_upz_periodicz},
+             {fem_parproj_local_to_global_3x_ser_p2_inz_periodicz,
+              fem_parproj_local_to_global_3x_ser_p2_upz_periodicz}},
+        },
+        // nonperiodicz
+        {
+          .list =
+            {{fem_parproj_local_to_global_3x_ser_p1_inz_nonperiodicz,
+              fem_parproj_local_to_global_3x_ser_p1_upz_nonperiodicz},
+             {fem_parproj_local_to_global_3x_ser_p2_inz_nonperiodicz,
+              fem_parproj_local_to_global_3x_ser_p2_upz_nonperiodicz}},
+        },
       },
-  }
+  },
 };
 
 // Function pointer type for lhs kernels.
@@ -146,159 +150,167 @@ typedef struct {
 } lhsstencil_kern_list;
 
 // Serendipity unweighted lhs kernels.
-static const lhsstencil_kern_list ser_lhsstencil_list_noweight[] = { // 1x
+static const lhsstencil_kern_list ser_lhsstencil_list_noweight[] = {
+  // 1x
   {
     .list =
-      {// nondirichletx
-       {
-         .list =
-           {{fem_parproj_lhs_stencil_noweight_1x_ser_p1_inx_nondirichletx,
-             fem_parproj_lhs_stencil_noweight_1x_ser_p1_lox_nondirichletx,
-             fem_parproj_lhs_stencil_noweight_1x_ser_p1_upx_nondirichletx},
-            {fem_parproj_lhs_stencil_noweight_1x_ser_p2_inx_nondirichletx,
-             fem_parproj_lhs_stencil_noweight_1x_ser_p2_lox_nondirichletx,
-             fem_parproj_lhs_stencil_noweight_1x_ser_p2_upx_nondirichletx}},
-       },
-       // dirichletx
-       {
-         .list =
-           {{fem_parproj_lhs_stencil_noweight_1x_ser_p1_inx_nondirichletx,
-             fem_parproj_lhs_stencil_noweight_1x_ser_p1_lox_dirichletx,
-             fem_parproj_lhs_stencil_noweight_1x_ser_p1_upx_dirichletx},
-            {fem_parproj_lhs_stencil_noweight_1x_ser_p2_inx_nondirichletx,
-             fem_parproj_lhs_stencil_noweight_1x_ser_p2_lox_dirichletx,
-             fem_parproj_lhs_stencil_noweight_1x_ser_p2_upx_dirichletx}},
-       }
+      {
+        // nondirichletx
+        {
+          .list =
+            {{fem_parproj_lhs_stencil_noweight_1x_ser_p1_inx_nondirichletx,
+              fem_parproj_lhs_stencil_noweight_1x_ser_p1_lox_nondirichletx,
+              fem_parproj_lhs_stencil_noweight_1x_ser_p1_upx_nondirichletx},
+             {fem_parproj_lhs_stencil_noweight_1x_ser_p2_inx_nondirichletx,
+              fem_parproj_lhs_stencil_noweight_1x_ser_p2_lox_nondirichletx,
+              fem_parproj_lhs_stencil_noweight_1x_ser_p2_upx_nondirichletx}},
+        },
+        // dirichletx
+        {
+          .list =
+            {{fem_parproj_lhs_stencil_noweight_1x_ser_p1_inx_nondirichletx,
+              fem_parproj_lhs_stencil_noweight_1x_ser_p1_lox_dirichletx,
+              fem_parproj_lhs_stencil_noweight_1x_ser_p1_upx_dirichletx},
+             {fem_parproj_lhs_stencil_noweight_1x_ser_p2_inx_nondirichletx,
+              fem_parproj_lhs_stencil_noweight_1x_ser_p2_lox_dirichletx,
+              fem_parproj_lhs_stencil_noweight_1x_ser_p2_upx_dirichletx}},
+        },
       },
   },
   // 2x
   {
     .list =
-      {// nondirichlety
-       {
-         .list =
-           {{fem_parproj_lhs_stencil_noweight_2x_ser_p1_iny_nondirichlety,
-             fem_parproj_lhs_stencil_noweight_2x_ser_p1_loy_nondirichlety,
-             fem_parproj_lhs_stencil_noweight_2x_ser_p1_upy_nondirichlety},
-            {fem_parproj_lhs_stencil_noweight_2x_ser_p2_iny_nondirichlety,
-             fem_parproj_lhs_stencil_noweight_2x_ser_p2_loy_nondirichlety,
-             fem_parproj_lhs_stencil_noweight_2x_ser_p2_upy_nondirichlety}},
-       },
-       // dirichlety
-       {
-         .list =
-           {{fem_parproj_lhs_stencil_noweight_2x_ser_p1_iny_nondirichlety,
-             fem_parproj_lhs_stencil_noweight_2x_ser_p1_loy_dirichlety,
-             fem_parproj_lhs_stencil_noweight_2x_ser_p1_upy_dirichlety},
-            {fem_parproj_lhs_stencil_noweight_2x_ser_p2_iny_nondirichlety,
-             fem_parproj_lhs_stencil_noweight_2x_ser_p2_loy_dirichlety,
-             fem_parproj_lhs_stencil_noweight_2x_ser_p2_upy_dirichlety}},
-       }
+      {
+        // nondirichlety
+        {
+          .list =
+            {{fem_parproj_lhs_stencil_noweight_2x_ser_p1_iny_nondirichlety,
+              fem_parproj_lhs_stencil_noweight_2x_ser_p1_loy_nondirichlety,
+              fem_parproj_lhs_stencil_noweight_2x_ser_p1_upy_nondirichlety},
+             {fem_parproj_lhs_stencil_noweight_2x_ser_p2_iny_nondirichlety,
+              fem_parproj_lhs_stencil_noweight_2x_ser_p2_loy_nondirichlety,
+              fem_parproj_lhs_stencil_noweight_2x_ser_p2_upy_nondirichlety}},
+        },
+        // dirichlety
+        {
+          .list =
+            {{fem_parproj_lhs_stencil_noweight_2x_ser_p1_iny_nondirichlety,
+              fem_parproj_lhs_stencil_noweight_2x_ser_p1_loy_dirichlety,
+              fem_parproj_lhs_stencil_noweight_2x_ser_p1_upy_dirichlety},
+             {fem_parproj_lhs_stencil_noweight_2x_ser_p2_iny_nondirichlety,
+              fem_parproj_lhs_stencil_noweight_2x_ser_p2_loy_dirichlety,
+              fem_parproj_lhs_stencil_noweight_2x_ser_p2_upy_dirichlety}},
+        },
       },
   },
   // 3x
   {
     .list =
-      {// nondirichletz
-       {
-         .list =
-           {{fem_parproj_lhs_stencil_noweight_3x_ser_p1_inz_nondirichletz,
-             fem_parproj_lhs_stencil_noweight_3x_ser_p1_loz_nondirichletz,
-             fem_parproj_lhs_stencil_noweight_3x_ser_p1_upz_nondirichletz},
-            {fem_parproj_lhs_stencil_noweight_3x_ser_p2_inz_nondirichletz,
-             fem_parproj_lhs_stencil_noweight_3x_ser_p2_loz_nondirichletz,
-             fem_parproj_lhs_stencil_noweight_3x_ser_p2_upz_nondirichletz}},
-       },
-       // dirichletz
-       {
-         .list =
-           {{fem_parproj_lhs_stencil_noweight_3x_ser_p1_inz_nondirichletz,
-             fem_parproj_lhs_stencil_noweight_3x_ser_p1_loz_dirichletz,
-             fem_parproj_lhs_stencil_noweight_3x_ser_p1_upz_dirichletz},
-            {fem_parproj_lhs_stencil_noweight_3x_ser_p2_inz_nondirichletz,
-             fem_parproj_lhs_stencil_noweight_3x_ser_p2_loz_dirichletz,
-             fem_parproj_lhs_stencil_noweight_3x_ser_p2_upz_dirichletz}},
-       }
+      {
+        // nondirichletz
+        {
+          .list =
+            {{fem_parproj_lhs_stencil_noweight_3x_ser_p1_inz_nondirichletz,
+              fem_parproj_lhs_stencil_noweight_3x_ser_p1_loz_nondirichletz,
+              fem_parproj_lhs_stencil_noweight_3x_ser_p1_upz_nondirichletz},
+             {fem_parproj_lhs_stencil_noweight_3x_ser_p2_inz_nondirichletz,
+              fem_parproj_lhs_stencil_noweight_3x_ser_p2_loz_nondirichletz,
+              fem_parproj_lhs_stencil_noweight_3x_ser_p2_upz_nondirichletz}},
+        },
+        // dirichletz
+        {
+          .list =
+            {{fem_parproj_lhs_stencil_noweight_3x_ser_p1_inz_nondirichletz,
+              fem_parproj_lhs_stencil_noweight_3x_ser_p1_loz_dirichletz,
+              fem_parproj_lhs_stencil_noweight_3x_ser_p1_upz_dirichletz},
+             {fem_parproj_lhs_stencil_noweight_3x_ser_p2_inz_nondirichletz,
+              fem_parproj_lhs_stencil_noweight_3x_ser_p2_loz_dirichletz,
+              fem_parproj_lhs_stencil_noweight_3x_ser_p2_upz_dirichletz}},
+        },
       },
-  }
+  },
 };
 
 // Serendipity weighted lhs kernels.
-static const lhsstencil_kern_list ser_lhsstencil_list_weighted[] = { // 1x
+static const lhsstencil_kern_list ser_lhsstencil_list_weighted[] = {
+  // 1x
   {
     .list =
-      {// nondirichletx
-       {
-         .list =
-           {{fem_parproj_lhs_stencil_weighted_1x_ser_p1_inx_nondirichletx,
-             fem_parproj_lhs_stencil_weighted_1x_ser_p1_lox_nondirichletx,
-             fem_parproj_lhs_stencil_weighted_1x_ser_p1_upx_nondirichletx},
-            {fem_parproj_lhs_stencil_weighted_1x_ser_p2_inx_nondirichletx,
-             fem_parproj_lhs_stencil_weighted_1x_ser_p2_lox_nondirichletx,
-             fem_parproj_lhs_stencil_weighted_1x_ser_p2_upx_nondirichletx}},
-       },
-       // dirichletx
-       {
-         .list =
-           {{fem_parproj_lhs_stencil_weighted_1x_ser_p1_inx_nondirichletx,
-             fem_parproj_lhs_stencil_weighted_1x_ser_p1_lox_dirichletx,
-             fem_parproj_lhs_stencil_weighted_1x_ser_p1_upx_dirichletx},
-            {fem_parproj_lhs_stencil_weighted_1x_ser_p2_inx_nondirichletx,
-             fem_parproj_lhs_stencil_weighted_1x_ser_p2_lox_dirichletx,
-             fem_parproj_lhs_stencil_weighted_1x_ser_p2_upx_dirichletx}},
-       }
+      {
+        // nondirichletx
+        {
+          .list =
+            {{fem_parproj_lhs_stencil_weighted_1x_ser_p1_inx_nondirichletx,
+              fem_parproj_lhs_stencil_weighted_1x_ser_p1_lox_nondirichletx,
+              fem_parproj_lhs_stencil_weighted_1x_ser_p1_upx_nondirichletx},
+             {fem_parproj_lhs_stencil_weighted_1x_ser_p2_inx_nondirichletx,
+              fem_parproj_lhs_stencil_weighted_1x_ser_p2_lox_nondirichletx,
+              fem_parproj_lhs_stencil_weighted_1x_ser_p2_upx_nondirichletx}},
+        },
+        // dirichletx
+        {
+          .list =
+            {{fem_parproj_lhs_stencil_weighted_1x_ser_p1_inx_nondirichletx,
+              fem_parproj_lhs_stencil_weighted_1x_ser_p1_lox_dirichletx,
+              fem_parproj_lhs_stencil_weighted_1x_ser_p1_upx_dirichletx},
+             {fem_parproj_lhs_stencil_weighted_1x_ser_p2_inx_nondirichletx,
+              fem_parproj_lhs_stencil_weighted_1x_ser_p2_lox_dirichletx,
+              fem_parproj_lhs_stencil_weighted_1x_ser_p2_upx_dirichletx}},
+        },
       },
   },
   // 2x
   {
     .list =
-      {// nondirichlety
-       {
-         .list =
-           {{fem_parproj_lhs_stencil_weighted_2x_ser_p1_iny_nondirichlety,
-             fem_parproj_lhs_stencil_weighted_2x_ser_p1_loy_nondirichlety,
-             fem_parproj_lhs_stencil_weighted_2x_ser_p1_upy_nondirichlety},
-            {fem_parproj_lhs_stencil_weighted_2x_ser_p2_iny_nondirichlety,
-             fem_parproj_lhs_stencil_weighted_2x_ser_p2_loy_nondirichlety,
-             fem_parproj_lhs_stencil_weighted_2x_ser_p2_upy_nondirichlety}},
-       },
-       // dirichlety
-       {
-         .list =
-           {{fem_parproj_lhs_stencil_weighted_2x_ser_p1_iny_nondirichlety,
-             fem_parproj_lhs_stencil_weighted_2x_ser_p1_loy_dirichlety,
-             fem_parproj_lhs_stencil_weighted_2x_ser_p1_upy_dirichlety},
-            {fem_parproj_lhs_stencil_weighted_2x_ser_p2_iny_nondirichlety,
-             fem_parproj_lhs_stencil_weighted_2x_ser_p2_loy_dirichlety,
-             fem_parproj_lhs_stencil_weighted_2x_ser_p2_upy_dirichlety}},
-       }
+      {
+        // nondirichlety
+        {
+          .list =
+            {{fem_parproj_lhs_stencil_weighted_2x_ser_p1_iny_nondirichlety,
+              fem_parproj_lhs_stencil_weighted_2x_ser_p1_loy_nondirichlety,
+              fem_parproj_lhs_stencil_weighted_2x_ser_p1_upy_nondirichlety},
+             {fem_parproj_lhs_stencil_weighted_2x_ser_p2_iny_nondirichlety,
+              fem_parproj_lhs_stencil_weighted_2x_ser_p2_loy_nondirichlety,
+              fem_parproj_lhs_stencil_weighted_2x_ser_p2_upy_nondirichlety}},
+        },
+        // dirichlety
+        {
+          .list =
+            {{fem_parproj_lhs_stencil_weighted_2x_ser_p1_iny_nondirichlety,
+              fem_parproj_lhs_stencil_weighted_2x_ser_p1_loy_dirichlety,
+              fem_parproj_lhs_stencil_weighted_2x_ser_p1_upy_dirichlety},
+             {fem_parproj_lhs_stencil_weighted_2x_ser_p2_iny_nondirichlety,
+              fem_parproj_lhs_stencil_weighted_2x_ser_p2_loy_dirichlety,
+              fem_parproj_lhs_stencil_weighted_2x_ser_p2_upy_dirichlety}},
+        },
       },
   },
   // 3x
   {
     .list =
-      {// nondirichletz
-       {
-         .list =
-           {{fem_parproj_lhs_stencil_weighted_3x_ser_p1_inz_nondirichletz,
-             fem_parproj_lhs_stencil_weighted_3x_ser_p1_loz_nondirichletz,
-             fem_parproj_lhs_stencil_weighted_3x_ser_p1_upz_nondirichletz},
-            {fem_parproj_lhs_stencil_weighted_3x_ser_p2_inz_nondirichletz,
-             fem_parproj_lhs_stencil_weighted_3x_ser_p2_loz_nondirichletz,
-             fem_parproj_lhs_stencil_weighted_3x_ser_p2_upz_nondirichletz}},
-       },
-       // dirichletz
-       {
-         .list =
-           {{fem_parproj_lhs_stencil_weighted_3x_ser_p1_inz_nondirichletz,
-             fem_parproj_lhs_stencil_weighted_3x_ser_p1_loz_dirichletz,
-             fem_parproj_lhs_stencil_weighted_3x_ser_p1_upz_dirichletz},
-            {fem_parproj_lhs_stencil_weighted_3x_ser_p2_inz_nondirichletz,
-             fem_parproj_lhs_stencil_weighted_3x_ser_p2_loz_dirichletz,
-             fem_parproj_lhs_stencil_weighted_3x_ser_p2_upz_dirichletz}},
-       }
+      {
+        // nondirichletz
+        {
+          .list =
+            {{fem_parproj_lhs_stencil_weighted_3x_ser_p1_inz_nondirichletz,
+              fem_parproj_lhs_stencil_weighted_3x_ser_p1_loz_nondirichletz,
+              fem_parproj_lhs_stencil_weighted_3x_ser_p1_upz_nondirichletz},
+             {fem_parproj_lhs_stencil_weighted_3x_ser_p2_inz_nondirichletz,
+              fem_parproj_lhs_stencil_weighted_3x_ser_p2_loz_nondirichletz,
+              fem_parproj_lhs_stencil_weighted_3x_ser_p2_upz_nondirichletz}},
+        },
+        // dirichletz
+        {
+          .list =
+            {{fem_parproj_lhs_stencil_weighted_3x_ser_p1_inz_nondirichletz,
+              fem_parproj_lhs_stencil_weighted_3x_ser_p1_loz_dirichletz,
+              fem_parproj_lhs_stencil_weighted_3x_ser_p1_upz_dirichletz},
+             {fem_parproj_lhs_stencil_weighted_3x_ser_p2_inz_nondirichletz,
+              fem_parproj_lhs_stencil_weighted_3x_ser_p2_loz_dirichletz,
+              fem_parproj_lhs_stencil_weighted_3x_ser_p2_upz_dirichletz}},
+        },
       },
-  }
+  },
 };
 
 // Function pointer type for rhs source kernels.
@@ -318,218 +330,226 @@ typedef struct {
 } srcstencil_kern_list; // For use in kernel tables.
 
 // Serendipity src kernels.
-GKYL_CU_D static const srcstencil_kern_list ser_srcstencil_list_noweight[] = { // 1x
+GKYL_CU_D static const srcstencil_kern_list ser_srcstencil_list_noweight[] = {
+  // 1x
   {
     .list =
-      {// nondirichletx
-       {
-         .list =
-           {{fem_parproj_src_stencil_noweight_1x_ser_p1_inx_nondirichletx,
-             fem_parproj_src_stencil_noweight_1x_ser_p1_lox_nondirichletx,
-             fem_parproj_src_stencil_noweight_1x_ser_p1_upx_nondirichletx},
-            {fem_parproj_src_stencil_noweight_1x_ser_p2_inx_nondirichletx,
-             fem_parproj_src_stencil_noweight_1x_ser_p2_lox_nondirichletx,
-             fem_parproj_src_stencil_noweight_1x_ser_p2_upx_nondirichletx}},
-       },
-       // dirichletx ghost
-       {
-         .list =
-           {{fem_parproj_src_stencil_noweight_1x_ser_p1_inx_nondirichletx,
-             fem_parproj_src_stencil_noweight_1x_ser_p1_lox_dirichlet_ghostx,
-             fem_parproj_src_stencil_noweight_1x_ser_p1_upx_dirichlet_ghostx},
-            {fem_parproj_src_stencil_noweight_1x_ser_p2_inx_nondirichletx,
-             fem_parproj_src_stencil_noweight_1x_ser_p2_lox_dirichlet_ghostx,
-             fem_parproj_src_stencil_noweight_1x_ser_p2_upx_dirichlet_ghostx}},
-       },
-       // dirichletx skin
-       {
-         .list =
-           {{fem_parproj_src_stencil_noweight_1x_ser_p1_inx_nondirichletx,
-             fem_parproj_src_stencil_noweight_1x_ser_p1_lox_dirichlet_skinx,
-             fem_parproj_src_stencil_noweight_1x_ser_p1_upx_dirichlet_skinx},
-            {fem_parproj_src_stencil_noweight_1x_ser_p2_inx_nondirichletx,
-             fem_parproj_src_stencil_noweight_1x_ser_p2_lox_dirichlet_skinx,
-             fem_parproj_src_stencil_noweight_1x_ser_p2_upx_dirichlet_skinx}},
-       }
+      {
+        // nondirichletx
+        {
+          .list =
+            {{fem_parproj_src_stencil_noweight_1x_ser_p1_inx_nondirichletx,
+              fem_parproj_src_stencil_noweight_1x_ser_p1_lox_nondirichletx,
+              fem_parproj_src_stencil_noweight_1x_ser_p1_upx_nondirichletx},
+             {fem_parproj_src_stencil_noweight_1x_ser_p2_inx_nondirichletx,
+              fem_parproj_src_stencil_noweight_1x_ser_p2_lox_nondirichletx,
+              fem_parproj_src_stencil_noweight_1x_ser_p2_upx_nondirichletx}},
+        },
+        // dirichletx ghost
+        {
+          .list =
+            {{fem_parproj_src_stencil_noweight_1x_ser_p1_inx_nondirichletx,
+              fem_parproj_src_stencil_noweight_1x_ser_p1_lox_dirichlet_ghostx,
+              fem_parproj_src_stencil_noweight_1x_ser_p1_upx_dirichlet_ghostx},
+             {fem_parproj_src_stencil_noweight_1x_ser_p2_inx_nondirichletx,
+              fem_parproj_src_stencil_noweight_1x_ser_p2_lox_dirichlet_ghostx,
+              fem_parproj_src_stencil_noweight_1x_ser_p2_upx_dirichlet_ghostx}},
+        },
+        // dirichletx skin
+        {
+          .list =
+            {{fem_parproj_src_stencil_noweight_1x_ser_p1_inx_nondirichletx,
+              fem_parproj_src_stencil_noweight_1x_ser_p1_lox_dirichlet_skinx,
+              fem_parproj_src_stencil_noweight_1x_ser_p1_upx_dirichlet_skinx},
+             {fem_parproj_src_stencil_noweight_1x_ser_p2_inx_nondirichletx,
+              fem_parproj_src_stencil_noweight_1x_ser_p2_lox_dirichlet_skinx,
+              fem_parproj_src_stencil_noweight_1x_ser_p2_upx_dirichlet_skinx}},
+        },
       },
   },
   // 2x
   {
     .list =
-      {// nondirichlety
-       {
-         .list =
-           {{fem_parproj_src_stencil_noweight_2x_ser_p1_iny_nondirichlety,
-             fem_parproj_src_stencil_noweight_2x_ser_p1_loy_nondirichlety,
-             fem_parproj_src_stencil_noweight_2x_ser_p1_upy_nondirichlety},
-            {fem_parproj_src_stencil_noweight_2x_ser_p2_iny_nondirichlety,
-             fem_parproj_src_stencil_noweight_2x_ser_p2_loy_nondirichlety,
-             fem_parproj_src_stencil_noweight_2x_ser_p2_upy_nondirichlety}},
-       },
-       // dirichlety ghost
-       {
-         .list =
-           {{fem_parproj_src_stencil_noweight_2x_ser_p1_iny_nondirichlety,
-             fem_parproj_src_stencil_noweight_2x_ser_p1_loy_dirichlet_ghosty,
-             fem_parproj_src_stencil_noweight_2x_ser_p1_upy_dirichlet_ghosty},
-            {fem_parproj_src_stencil_noweight_2x_ser_p2_iny_nondirichlety,
-             fem_parproj_src_stencil_noweight_2x_ser_p2_loy_dirichlet_ghosty,
-             fem_parproj_src_stencil_noweight_2x_ser_p2_upy_dirichlet_ghosty}},
-       },
-       // dirichlety skin
-       {
-         .list =
-           {{fem_parproj_src_stencil_noweight_2x_ser_p1_iny_nondirichlety,
-             fem_parproj_src_stencil_noweight_2x_ser_p1_loy_dirichlet_skiny,
-             fem_parproj_src_stencil_noweight_2x_ser_p1_upy_dirichlet_skiny},
-            {fem_parproj_src_stencil_noweight_2x_ser_p2_iny_nondirichlety,
-             fem_parproj_src_stencil_noweight_2x_ser_p2_loy_dirichlet_skiny,
-             fem_parproj_src_stencil_noweight_2x_ser_p2_upy_dirichlet_skiny}},
-       }
+      {
+        // nondirichlety
+        {
+          .list =
+            {{fem_parproj_src_stencil_noweight_2x_ser_p1_iny_nondirichlety,
+              fem_parproj_src_stencil_noweight_2x_ser_p1_loy_nondirichlety,
+              fem_parproj_src_stencil_noweight_2x_ser_p1_upy_nondirichlety},
+             {fem_parproj_src_stencil_noweight_2x_ser_p2_iny_nondirichlety,
+              fem_parproj_src_stencil_noweight_2x_ser_p2_loy_nondirichlety,
+              fem_parproj_src_stencil_noweight_2x_ser_p2_upy_nondirichlety}},
+        },
+        // dirichlety ghost
+        {
+          .list =
+            {{fem_parproj_src_stencil_noweight_2x_ser_p1_iny_nondirichlety,
+              fem_parproj_src_stencil_noweight_2x_ser_p1_loy_dirichlet_ghosty,
+              fem_parproj_src_stencil_noweight_2x_ser_p1_upy_dirichlet_ghosty},
+             {fem_parproj_src_stencil_noweight_2x_ser_p2_iny_nondirichlety,
+              fem_parproj_src_stencil_noweight_2x_ser_p2_loy_dirichlet_ghosty,
+              fem_parproj_src_stencil_noweight_2x_ser_p2_upy_dirichlet_ghosty}},
+        },
+        // dirichlety skin
+        {
+          .list =
+            {{fem_parproj_src_stencil_noweight_2x_ser_p1_iny_nondirichlety,
+              fem_parproj_src_stencil_noweight_2x_ser_p1_loy_dirichlet_skiny,
+              fem_parproj_src_stencil_noweight_2x_ser_p1_upy_dirichlet_skiny},
+             {fem_parproj_src_stencil_noweight_2x_ser_p2_iny_nondirichlety,
+              fem_parproj_src_stencil_noweight_2x_ser_p2_loy_dirichlet_skiny,
+              fem_parproj_src_stencil_noweight_2x_ser_p2_upy_dirichlet_skiny}},
+        },
       },
   },
   // 3x
   {
     .list =
-      {// nondirichletz
-       {
-         .list =
-           {{fem_parproj_src_stencil_noweight_3x_ser_p1_inz_nondirichletz,
-             fem_parproj_src_stencil_noweight_3x_ser_p1_loz_nondirichletz,
-             fem_parproj_src_stencil_noweight_3x_ser_p1_upz_nondirichletz},
-            {fem_parproj_src_stencil_noweight_3x_ser_p2_inz_nondirichletz,
-             fem_parproj_src_stencil_noweight_3x_ser_p2_loz_nondirichletz,
-             fem_parproj_src_stencil_noweight_3x_ser_p2_upz_nondirichletz}},
-       },
-       // dirichletz ghost
-       {
-         .list =
-           {{fem_parproj_src_stencil_noweight_3x_ser_p1_inz_nondirichletz,
-             fem_parproj_src_stencil_noweight_3x_ser_p1_loz_dirichlet_ghostz,
-             fem_parproj_src_stencil_noweight_3x_ser_p1_upz_dirichlet_ghostz},
-            {fem_parproj_src_stencil_noweight_3x_ser_p2_inz_nondirichletz,
-             fem_parproj_src_stencil_noweight_3x_ser_p2_loz_dirichlet_ghostz,
-             fem_parproj_src_stencil_noweight_3x_ser_p2_upz_dirichlet_ghostz}},
-       },
-       // dirichletz skin
-       {
-         .list =
-           {{fem_parproj_src_stencil_noweight_3x_ser_p1_inz_nondirichletz,
-             fem_parproj_src_stencil_noweight_3x_ser_p1_loz_dirichlet_skinz,
-             fem_parproj_src_stencil_noweight_3x_ser_p1_upz_dirichlet_skinz},
-            {fem_parproj_src_stencil_noweight_3x_ser_p2_inz_nondirichletz,
-             fem_parproj_src_stencil_noweight_3x_ser_p2_loz_dirichlet_skinz,
-             fem_parproj_src_stencil_noweight_3x_ser_p2_upz_dirichlet_skinz}},
-       }
+      {
+        // nondirichletz
+        {
+          .list =
+            {{fem_parproj_src_stencil_noweight_3x_ser_p1_inz_nondirichletz,
+              fem_parproj_src_stencil_noweight_3x_ser_p1_loz_nondirichletz,
+              fem_parproj_src_stencil_noweight_3x_ser_p1_upz_nondirichletz},
+             {fem_parproj_src_stencil_noweight_3x_ser_p2_inz_nondirichletz,
+              fem_parproj_src_stencil_noweight_3x_ser_p2_loz_nondirichletz,
+              fem_parproj_src_stencil_noweight_3x_ser_p2_upz_nondirichletz}},
+        },
+        // dirichletz ghost
+        {
+          .list =
+            {{fem_parproj_src_stencil_noweight_3x_ser_p1_inz_nondirichletz,
+              fem_parproj_src_stencil_noweight_3x_ser_p1_loz_dirichlet_ghostz,
+              fem_parproj_src_stencil_noweight_3x_ser_p1_upz_dirichlet_ghostz},
+             {fem_parproj_src_stencil_noweight_3x_ser_p2_inz_nondirichletz,
+              fem_parproj_src_stencil_noweight_3x_ser_p2_loz_dirichlet_ghostz,
+              fem_parproj_src_stencil_noweight_3x_ser_p2_upz_dirichlet_ghostz}},
+        },
+        // dirichletz skin
+        {
+          .list =
+            {{fem_parproj_src_stencil_noweight_3x_ser_p1_inz_nondirichletz,
+              fem_parproj_src_stencil_noweight_3x_ser_p1_loz_dirichlet_skinz,
+              fem_parproj_src_stencil_noweight_3x_ser_p1_upz_dirichlet_skinz},
+             {fem_parproj_src_stencil_noweight_3x_ser_p2_inz_nondirichletz,
+              fem_parproj_src_stencil_noweight_3x_ser_p2_loz_dirichlet_skinz,
+              fem_parproj_src_stencil_noweight_3x_ser_p2_upz_dirichlet_skinz}},
+        },
       },
-  }
+  },
 };
 
-GKYL_CU_D static const srcstencil_kern_list ser_srcstencil_list_weighted[] = { // 1x
+GKYL_CU_D static const srcstencil_kern_list ser_srcstencil_list_weighted[] = {
+  // 1x
   {
     .list =
-      {// nondirichletx
-       {
-         .list =
-           {{fem_parproj_src_stencil_weighted_1x_ser_p1_inx_nondirichletx,
-             fem_parproj_src_stencil_weighted_1x_ser_p1_lox_nondirichletx,
-             fem_parproj_src_stencil_weighted_1x_ser_p1_upx_nondirichletx},
-            {fem_parproj_src_stencil_weighted_1x_ser_p2_inx_nondirichletx,
-             fem_parproj_src_stencil_weighted_1x_ser_p2_lox_nondirichletx,
-             fem_parproj_src_stencil_weighted_1x_ser_p2_upx_nondirichletx}},
-       },
-       // dirichletx ghost
-       {
-         .list =
-           {{fem_parproj_src_stencil_weighted_1x_ser_p1_inx_nondirichletx,
-             fem_parproj_src_stencil_weighted_1x_ser_p1_lox_dirichlet_ghostx,
-             fem_parproj_src_stencil_weighted_1x_ser_p1_upx_dirichlet_ghostx},
-            {fem_parproj_src_stencil_weighted_1x_ser_p2_inx_nondirichletx,
-             fem_parproj_src_stencil_weighted_1x_ser_p2_lox_dirichlet_ghostx,
-             fem_parproj_src_stencil_weighted_1x_ser_p2_upx_dirichlet_ghostx}},
-       },
-       // dirichletx skin
-       {
-         .list =
-           {{fem_parproj_src_stencil_weighted_1x_ser_p1_inx_nondirichletx,
-             fem_parproj_src_stencil_weighted_1x_ser_p1_lox_dirichlet_skinx,
-             fem_parproj_src_stencil_weighted_1x_ser_p1_upx_dirichlet_skinx},
-            {fem_parproj_src_stencil_weighted_1x_ser_p2_inx_nondirichletx,
-             fem_parproj_src_stencil_weighted_1x_ser_p2_lox_dirichlet_skinx,
-             fem_parproj_src_stencil_weighted_1x_ser_p2_upx_dirichlet_skinx}},
-       }
+      {
+        // nondirichletx
+        {
+          .list =
+            {{fem_parproj_src_stencil_weighted_1x_ser_p1_inx_nondirichletx,
+              fem_parproj_src_stencil_weighted_1x_ser_p1_lox_nondirichletx,
+              fem_parproj_src_stencil_weighted_1x_ser_p1_upx_nondirichletx},
+             {fem_parproj_src_stencil_weighted_1x_ser_p2_inx_nondirichletx,
+              fem_parproj_src_stencil_weighted_1x_ser_p2_lox_nondirichletx,
+              fem_parproj_src_stencil_weighted_1x_ser_p2_upx_nondirichletx}},
+        },
+        // dirichletx ghost
+        {
+          .list =
+            {{fem_parproj_src_stencil_weighted_1x_ser_p1_inx_nondirichletx,
+              fem_parproj_src_stencil_weighted_1x_ser_p1_lox_dirichlet_ghostx,
+              fem_parproj_src_stencil_weighted_1x_ser_p1_upx_dirichlet_ghostx},
+             {fem_parproj_src_stencil_weighted_1x_ser_p2_inx_nondirichletx,
+              fem_parproj_src_stencil_weighted_1x_ser_p2_lox_dirichlet_ghostx,
+              fem_parproj_src_stencil_weighted_1x_ser_p2_upx_dirichlet_ghostx}},
+        },
+        // dirichletx skin
+        {
+          .list =
+            {{fem_parproj_src_stencil_weighted_1x_ser_p1_inx_nondirichletx,
+              fem_parproj_src_stencil_weighted_1x_ser_p1_lox_dirichlet_skinx,
+              fem_parproj_src_stencil_weighted_1x_ser_p1_upx_dirichlet_skinx},
+             {fem_parproj_src_stencil_weighted_1x_ser_p2_inx_nondirichletx,
+              fem_parproj_src_stencil_weighted_1x_ser_p2_lox_dirichlet_skinx,
+              fem_parproj_src_stencil_weighted_1x_ser_p2_upx_dirichlet_skinx}},
+        },
       },
   },
   // 2x
   {
     .list =
-      {// nondirichlety
-       {
-         .list =
-           {{fem_parproj_src_stencil_weighted_2x_ser_p1_iny_nondirichlety,
-             fem_parproj_src_stencil_weighted_2x_ser_p1_loy_nondirichlety,
-             fem_parproj_src_stencil_weighted_2x_ser_p1_upy_nondirichlety},
-            {fem_parproj_src_stencil_weighted_2x_ser_p2_iny_nondirichlety,
-             fem_parproj_src_stencil_weighted_2x_ser_p2_loy_nondirichlety,
-             fem_parproj_src_stencil_weighted_2x_ser_p2_upy_nondirichlety}},
-       },
-       // dirichlety ghost
-       {
-         .list =
-           {{fem_parproj_src_stencil_weighted_2x_ser_p1_iny_nondirichlety,
-             fem_parproj_src_stencil_weighted_2x_ser_p1_loy_dirichlet_ghosty,
-             fem_parproj_src_stencil_weighted_2x_ser_p1_upy_dirichlet_ghosty},
-            {fem_parproj_src_stencil_weighted_2x_ser_p2_iny_nondirichlety,
-             fem_parproj_src_stencil_weighted_2x_ser_p2_loy_dirichlet_ghosty,
-             fem_parproj_src_stencil_weighted_2x_ser_p2_upy_dirichlet_ghosty}},
-       },
-       // dirichlety skin
-       {
-         .list =
-           {{fem_parproj_src_stencil_weighted_2x_ser_p1_iny_nondirichlety,
-             fem_parproj_src_stencil_weighted_2x_ser_p1_loy_dirichlet_skiny,
-             fem_parproj_src_stencil_weighted_2x_ser_p1_upy_dirichlet_skiny},
-            {fem_parproj_src_stencil_weighted_2x_ser_p2_iny_nondirichlety,
-             fem_parproj_src_stencil_weighted_2x_ser_p2_loy_dirichlet_skiny,
-             fem_parproj_src_stencil_weighted_2x_ser_p2_upy_dirichlet_skiny}},
-       }
+      {
+        // nondirichlety
+        {
+          .list =
+            {{fem_parproj_src_stencil_weighted_2x_ser_p1_iny_nondirichlety,
+              fem_parproj_src_stencil_weighted_2x_ser_p1_loy_nondirichlety,
+              fem_parproj_src_stencil_weighted_2x_ser_p1_upy_nondirichlety},
+             {fem_parproj_src_stencil_weighted_2x_ser_p2_iny_nondirichlety,
+              fem_parproj_src_stencil_weighted_2x_ser_p2_loy_nondirichlety,
+              fem_parproj_src_stencil_weighted_2x_ser_p2_upy_nondirichlety}},
+        },
+        // dirichlety ghost
+        {
+          .list =
+            {{fem_parproj_src_stencil_weighted_2x_ser_p1_iny_nondirichlety,
+              fem_parproj_src_stencil_weighted_2x_ser_p1_loy_dirichlet_ghosty,
+              fem_parproj_src_stencil_weighted_2x_ser_p1_upy_dirichlet_ghosty},
+             {fem_parproj_src_stencil_weighted_2x_ser_p2_iny_nondirichlety,
+              fem_parproj_src_stencil_weighted_2x_ser_p2_loy_dirichlet_ghosty,
+              fem_parproj_src_stencil_weighted_2x_ser_p2_upy_dirichlet_ghosty}},
+        },
+        // dirichlety skin
+        {
+          .list =
+            {{fem_parproj_src_stencil_weighted_2x_ser_p1_iny_nondirichlety,
+              fem_parproj_src_stencil_weighted_2x_ser_p1_loy_dirichlet_skiny,
+              fem_parproj_src_stencil_weighted_2x_ser_p1_upy_dirichlet_skiny},
+             {fem_parproj_src_stencil_weighted_2x_ser_p2_iny_nondirichlety,
+              fem_parproj_src_stencil_weighted_2x_ser_p2_loy_dirichlet_skiny,
+              fem_parproj_src_stencil_weighted_2x_ser_p2_upy_dirichlet_skiny}},
+        },
       },
   },
   // 3x
   {
     .list =
-      {// nondirichletz
-       {
-         .list =
-           {{fem_parproj_src_stencil_weighted_3x_ser_p1_inz_nondirichletz,
-             fem_parproj_src_stencil_weighted_3x_ser_p1_loz_nondirichletz,
-             fem_parproj_src_stencil_weighted_3x_ser_p1_upz_nondirichletz},
-            {fem_parproj_src_stencil_weighted_3x_ser_p2_inz_nondirichletz,
-             fem_parproj_src_stencil_weighted_3x_ser_p2_loz_nondirichletz,
-             fem_parproj_src_stencil_weighted_3x_ser_p2_upz_nondirichletz}},
-       },
-       // dirichletz ghost
-       {
-         .list =
-           {{fem_parproj_src_stencil_weighted_3x_ser_p1_inz_nondirichletz,
-             fem_parproj_src_stencil_weighted_3x_ser_p1_loz_dirichlet_ghostz,
-             fem_parproj_src_stencil_weighted_3x_ser_p1_upz_dirichlet_ghostz},
-            {fem_parproj_src_stencil_weighted_3x_ser_p2_inz_nondirichletz,
-             fem_parproj_src_stencil_weighted_3x_ser_p2_loz_dirichlet_ghostz,
-             fem_parproj_src_stencil_weighted_3x_ser_p2_upz_dirichlet_ghostz}},
-       },
-       // dirichletz skin
-       {
-         .list =
-           {{fem_parproj_src_stencil_weighted_3x_ser_p1_inz_nondirichletz,
-             fem_parproj_src_stencil_weighted_3x_ser_p1_loz_dirichlet_skinz,
-             fem_parproj_src_stencil_weighted_3x_ser_p1_upz_dirichlet_skinz},
-            {fem_parproj_src_stencil_weighted_3x_ser_p2_inz_nondirichletz,
-             fem_parproj_src_stencil_weighted_3x_ser_p2_loz_dirichlet_skinz,
-             fem_parproj_src_stencil_weighted_3x_ser_p2_upz_dirichlet_skinz}},
-       }
+      {
+        // nondirichletz
+        {
+          .list =
+            {{fem_parproj_src_stencil_weighted_3x_ser_p1_inz_nondirichletz,
+              fem_parproj_src_stencil_weighted_3x_ser_p1_loz_nondirichletz,
+              fem_parproj_src_stencil_weighted_3x_ser_p1_upz_nondirichletz},
+             {fem_parproj_src_stencil_weighted_3x_ser_p2_inz_nondirichletz,
+              fem_parproj_src_stencil_weighted_3x_ser_p2_loz_nondirichletz,
+              fem_parproj_src_stencil_weighted_3x_ser_p2_upz_nondirichletz}},
+        },
+        // dirichletz ghost
+        {
+          .list =
+            {{fem_parproj_src_stencil_weighted_3x_ser_p1_inz_nondirichletz,
+              fem_parproj_src_stencil_weighted_3x_ser_p1_loz_dirichlet_ghostz,
+              fem_parproj_src_stencil_weighted_3x_ser_p1_upz_dirichlet_ghostz},
+             {fem_parproj_src_stencil_weighted_3x_ser_p2_inz_nondirichletz,
+              fem_parproj_src_stencil_weighted_3x_ser_p2_loz_dirichlet_ghostz,
+              fem_parproj_src_stencil_weighted_3x_ser_p2_upz_dirichlet_ghostz}},
+        },
+        // dirichletz skin
+        {
+          .list =
+            {{fem_parproj_src_stencil_weighted_3x_ser_p1_inz_nondirichletz,
+              fem_parproj_src_stencil_weighted_3x_ser_p1_loz_dirichlet_skinz,
+              fem_parproj_src_stencil_weighted_3x_ser_p1_upz_dirichlet_skinz},
+             {fem_parproj_src_stencil_weighted_3x_ser_p2_inz_nondirichletz,
+              fem_parproj_src_stencil_weighted_3x_ser_p2_loz_dirichlet_skinz,
+              fem_parproj_src_stencil_weighted_3x_ser_p2_upz_dirichlet_skinz}},
+        },
       },
-  }
+  },
 };
 
 // Function pointer type for kernels that convert the solution from nodal to
@@ -566,53 +586,57 @@ typedef struct {
 } bias_lhs_kern_dim_list;
 
 // Serendipity bias_lhs kernels.
-static const bias_lhs_kern_dim_list ser_bias_lhs_list[] = { // 1x
+static const bias_lhs_kern_dim_list ser_bias_lhs_list[] = {
+  // 1x
   {
     .list =
-      {// periodicy
-       {.list = {{NULL, NULL}, {NULL, NULL}}},
-       // nonperiodicy
-       {.list = {{NULL, NULL}, {NULL, NULL}}}
+      {
+        // periodicy
+        {.list = {{NULL, NULL}, {NULL, NULL}}},
+        // nonperiodicy
+        {.list = {{NULL, NULL}, {NULL, NULL}}},
       },
   },
   // 2x
   {
     .list =
-      {// periodicy
-       {
-         .list =
-           {{fem_parproj_bias_line_lhs_2x_ser_p1_iny_periodicy,
-             fem_parproj_bias_line_lhs_2x_ser_p1_upy_periodicy},
-            {NULL, NULL}},
-       },
-       // nonperiodicy
-       {
-         .list =
-           {{fem_parproj_bias_line_lhs_2x_ser_p1_iny_periodicy,
-             fem_parproj_bias_line_lhs_2x_ser_p1_upy_nonperiodicy},
-            {NULL, NULL}},
-       }
+      {
+        // periodicy
+        {
+          .list =
+            {{fem_parproj_bias_line_lhs_2x_ser_p1_iny_periodicy,
+              fem_parproj_bias_line_lhs_2x_ser_p1_upy_periodicy},
+             {NULL, NULL}},
+        },
+        // nonperiodicy
+        {
+          .list =
+            {{fem_parproj_bias_line_lhs_2x_ser_p1_iny_periodicy,
+              fem_parproj_bias_line_lhs_2x_ser_p1_upy_nonperiodicy},
+             {NULL, NULL}},
+        },
       },
   },
   // 3x
   {
     .list =
-      {// periodicz
-       {
-         .list =
-           {{fem_parproj_bias_line_lhs_3x_ser_p1_inz_periodicz,
-             fem_parproj_bias_line_lhs_3x_ser_p1_upz_periodicz},
-            {NULL, NULL}},
-       },
-       // nonperiodicz
-       {
-         .list =
-           {{fem_parproj_bias_line_lhs_3x_ser_p1_inz_periodicz,
-             fem_parproj_bias_line_lhs_3x_ser_p1_upz_nonperiodicz},
-            {NULL, NULL}},
-       }
+      {
+        // periodicz
+        {
+          .list =
+            {{fem_parproj_bias_line_lhs_3x_ser_p1_inz_periodicz,
+              fem_parproj_bias_line_lhs_3x_ser_p1_upz_periodicz},
+             {NULL, NULL}},
+        },
+        // nonperiodicz
+        {
+          .list =
+            {{fem_parproj_bias_line_lhs_3x_ser_p1_inz_periodicz,
+              fem_parproj_bias_line_lhs_3x_ser_p1_upz_nonperiodicz},
+             {NULL, NULL}},
+        },
       },
-  }
+  },
 
 };
 
@@ -634,53 +658,57 @@ typedef struct {
 } bias_src_kern_dim_list;
 
 // Serendipity bias_src kernels.
-GKYL_CU_D static const bias_src_kern_dim_list ser_bias_src_list[] = { // 1x
+GKYL_CU_D static const bias_src_kern_dim_list ser_bias_src_list[] = {
+  // 1x
   {
     .list =
-      {// periodicy
-       {.list = {{NULL, NULL}, {NULL, NULL}}},
-       // nonperiodicy
-       {.list = {{NULL, NULL}, {NULL, NULL}}}
+      {
+        // periodicy
+        {.list = {{NULL, NULL}, {NULL, NULL}}},
+        // nonperiodicy
+        {.list = {{NULL, NULL}, {NULL, NULL}}},
       },
   },
   // 2x
   {
     .list =
-      {// periodicy
-       {
-         .list =
-           {{fem_parproj_bias_line_src_2x_ser_p1_iny_periodicy,
-             fem_parproj_bias_line_src_2x_ser_p1_upy_periodicy},
-            {NULL, NULL}},
-       },
-       // nonperiodicy
-       {
-         .list =
-           {{fem_parproj_bias_line_src_2x_ser_p1_iny_periodicy,
-             fem_parproj_bias_line_src_2x_ser_p1_upy_nonperiodicy},
-            {NULL, NULL}},
-       }
+      {
+        // periodicy
+        {
+          .list =
+            {{fem_parproj_bias_line_src_2x_ser_p1_iny_periodicy,
+              fem_parproj_bias_line_src_2x_ser_p1_upy_periodicy},
+             {NULL, NULL}},
+        },
+        // nonperiodicy
+        {
+          .list =
+            {{fem_parproj_bias_line_src_2x_ser_p1_iny_periodicy,
+              fem_parproj_bias_line_src_2x_ser_p1_upy_nonperiodicy},
+             {NULL, NULL}},
+        },
       },
   },
   // 3x
   {
     .list =
-      {// periodicz
-       {
-         .list =
-           {{fem_parproj_bias_line_src_3x_ser_p1_inz_periodicz,
-             fem_parproj_bias_line_src_3x_ser_p1_upz_periodicz},
-            {NULL, NULL}},
-       },
-       // nonperiodicz
-       {
-         .list =
-           {{fem_parproj_bias_line_src_3x_ser_p1_inz_periodicz,
-             fem_parproj_bias_line_src_3x_ser_p1_upz_nonperiodicz},
-            {NULL, NULL}},
-       }
+      {
+        // periodicz
+        {
+          .list =
+            {{fem_parproj_bias_line_src_3x_ser_p1_inz_periodicz,
+              fem_parproj_bias_line_src_3x_ser_p1_upz_periodicz},
+             {NULL, NULL}},
+        },
+        // nonperiodicz
+        {
+          .list =
+            {{fem_parproj_bias_line_src_3x_ser_p1_inz_periodicz,
+              fem_parproj_bias_line_src_3x_ser_p1_upz_nonperiodicz},
+             {NULL, NULL}},
+        },
       },
-  }
+  },
 };
 
 // Functions that return the value to impose as Dirichlet BC.

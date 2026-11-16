@@ -1139,7 +1139,7 @@ test_2x_bias(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
       .perp_dirs = {0, 1},
       .perp_coords = {-2 + 2 * 4.0 / 3.0, 0.5}, // Location of the plane in the 'dir' dimension.
       .val = 0.,
-    } // Biasing value.
+    }, // Biasing value.
   };
   struct gkyl_poisson_bias_line_list bll = {
     .num_bias_line = sizeof(bias) / sizeof(bias[0]), // Number of bias lines.
@@ -2004,7 +2004,7 @@ test_3x_bias(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool us
       .perp_dirs = {0, 2},
       .perp_coords = {-2 + 2 * 4.0 / 3.0, 0.5}, // Location of the plane in the 'dir' dimension.
       .val = 0.,
-    } // Biasing value.
+    }, // Biasing value.
   };
   struct gkyl_poisson_bias_line_list bll = {
     .num_bias_line = sizeof(bias) / sizeof(bias[0]), // Number of bias lines.

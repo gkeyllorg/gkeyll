@@ -40,7 +40,7 @@ header_from_file(gkyl_gyrokinetic_app *app, const char *fname)
 
     struct gkyl_msgpack_map_elem elem_list[] = {
       {.key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0},
-      {.key = "time", .elem_type = GKYL_MP_DOUBLE, .cval = 0}
+      {.key = "time", .elem_type = GKYL_MP_DOUBLE, .cval = 0},
     };
     int elem_list_len = sizeof(elem_list) / sizeof(elem_list[0]);
     gkyl_msgpack_to_map_elem_list(

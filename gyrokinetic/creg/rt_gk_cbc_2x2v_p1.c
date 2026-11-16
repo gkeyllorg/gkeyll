@@ -796,18 +796,20 @@ main(int argc, char **argv)
       },
 
     .bcs =
-      {{
-         .dir = 0,
-         .edge = GKYL_LOWER_EDGE,
-         .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
-         .projection = elc_bc,
-       },
-       {
-         .dir = 0,
-         .edge = GKYL_UPPER_EDGE,
-         .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
-         .projection = elc_bc,
-       }},
+      {
+        {
+          .dir = 0,
+          .edge = GKYL_LOWER_EDGE,
+          .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
+          .projection = elc_bc,
+        },
+        {
+          .dir = 0,
+          .edge = GKYL_UPPER_EDGE,
+          .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
+          .projection = elc_bc,
+        },
+      },
 
     .anomalous_diffusion =
       {
@@ -862,18 +864,20 @@ main(int argc, char **argv)
       },
 
     .bcs =
-      {{
-         .dir = 0,
-         .edge = GKYL_LOWER_EDGE,
-         .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
-         .projection = ion_bc,
-       },
-       {
-         .dir = 0,
-         .edge = GKYL_UPPER_EDGE,
-         .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
-         .projection = ion_bc,
-       }},
+      {
+        {
+          .dir = 0,
+          .edge = GKYL_LOWER_EDGE,
+          .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
+          .projection = ion_bc,
+        },
+        {
+          .dir = 0,
+          .edge = GKYL_UPPER_EDGE,
+          .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
+          .projection = ion_bc,
+        },
+      },
 
     .anomalous_diffusion =
       {
@@ -898,8 +902,10 @@ main(int argc, char **argv)
   // field
   struct gkyl_gyrokinetic_field field = {
     .poisson_bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}}},
+      {
+        {.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
+        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
+      },
     .time_rate_diagnostics = true,
   };
 

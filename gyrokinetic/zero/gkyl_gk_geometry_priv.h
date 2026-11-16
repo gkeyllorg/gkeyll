@@ -37,6 +37,26 @@ gk_geometry_node_coord(
   return grid->lower[dir] + cell * grid->dx[dir];
 }
 
+// Sample the requested world slice in removed directions. Repeating its values
+// at every auxiliary node makes modal restriction and nodal restriction identical.
+static inline double
+gk_geometry_node_coord_world(
+  int world_dim, const struct gkyl_rect_grid *grid, const struct gkyl_range *local,
+  const struct gkyl_range *global, const struct gkyl_range *nrange, int dir, int node,
+  int num_nodes, bool quadrature
+)
+{
+  if ((world_dim == 1 && dir < 2) || (world_dim == 2 && dir == 1)) {
+    return grid->lower[dir] + 0.5 * (grid->upper[dir] - grid->lower[dir]);
+  }
+  return gk_geometry_node_coord(grid, local, global, nrange, dir, node, num_nodes, quadrature);
+}
+
+// Set optimize_map=false to sample tangents without changing the established position map.
+struct gk_geometry *gk_geometry_tok_init(struct gkyl_gk_geometry_inp *inp, bool optimize_map);
+struct gk_geometry *gk_geometry_mapc2p_init(struct gkyl_gk_geometry_inp *inp, bool optimize_map);
+struct gk_geometry *gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *inp, bool optimize_map);
+
 static inline void
 get_filename_from_path(const char *filepath, char *out_buffer, size_t out_size)
 {
@@ -163,6 +183,8 @@ gk_geometry_surf_alloc_expansions(struct gk_geometry *up, int dir)
   up->geo_surf[dir].B3 = gkyl_array_new(GKYL_DOUBLE, 1 * up->num_surf_basis, up->local_ext.volume);
   up->geo_surf[dir].normcurlbhat =
     gkyl_array_new(GKYL_DOUBLE, 1 * up->num_surf_basis, up->local_ext.volume);
+  up->geo_surf[dir].dxdz =
+    gkyl_array_new(GKYL_DOUBLE, 9 * up->num_surf_basis, up->local_ext.volume);
   up->geo_surf[dir].normals =
     gkyl_array_new(GKYL_DOUBLE, 9 * up->num_surf_basis, up->local_ext.volume);
   up->geo_surf[dir].lenr =
@@ -218,6 +240,7 @@ gk_geometry_int_alloc_nodal(struct gk_geometry *gk_geom)
   gk_geom->geo_int.g_ij_nodal = gkyl_array_new(GKYL_DOUBLE, 6, gk_geom->nrange_int.volume);
   gk_geom->geo_int.g_ij_neut_nodal = gkyl_array_new(GKYL_DOUBLE, 6, gk_geom->nrange_int.volume);
   gk_geom->geo_int.dxdz_nodal = gkyl_array_new(GKYL_DOUBLE, 9, gk_geom->nrange_int.volume);
+  gk_geom->geo_int.dxdz_grad_nodal = gkyl_array_new(GKYL_DOUBLE, 27, gk_geom->nrange_int.volume);
   gk_geom->geo_int.dzdx_nodal = gkyl_array_new(GKYL_DOUBLE, 9, gk_geom->nrange_int.volume);
   gk_geom->geo_int.dualmag_nodal = gkyl_array_new(GKYL_DOUBLE, 3, gk_geom->nrange_int.volume);
   gk_geom->geo_int.normals_nodal = gkyl_array_new(GKYL_DOUBLE, 9, gk_geom->nrange_int.volume);
@@ -244,6 +267,8 @@ gk_geometry_int_alloc_expansions(struct gk_geometry *up)
   up->geo_int.g_ij_neut =
     gkyl_array_new(GKYL_DOUBLE, 6 * up->basis.num_basis, up->local_ext.volume);
   up->geo_int.dxdz = gkyl_array_new(GKYL_DOUBLE, 9 * up->basis.num_basis, up->local_ext.volume);
+  up->geo_int.dxdz_grad =
+    gkyl_array_new(GKYL_DOUBLE, 27 * up->basis.num_basis, up->local_ext.volume);
   up->geo_int.dzdx = gkyl_array_new(GKYL_DOUBLE, 9 * up->basis.num_basis, up->local_ext.volume);
   up->geo_int.dualmag = gkyl_array_new(GKYL_DOUBLE, 3 * up->basis.num_basis, up->local_ext.volume);
   up->geo_int.normals = gkyl_array_new(GKYL_DOUBLE, 9 * up->basis.num_basis, up->local_ext.volume);
@@ -287,6 +312,7 @@ gk_geometry_int_release_nodal(struct gk_geometry *gk_geom)
   gkyl_array_release(gk_geom->geo_int.g_ij_nodal);
   gkyl_array_release(gk_geom->geo_int.g_ij_neut_nodal);
   gkyl_array_release(gk_geom->geo_int.dxdz_nodal);
+  gkyl_array_release(gk_geom->geo_int.dxdz_grad_nodal);
   gkyl_array_release(gk_geom->geo_int.dzdx_nodal);
   gkyl_array_release(gk_geom->geo_int.dualmag_nodal);
   gkyl_array_release(gk_geom->geo_int.normals_nodal);
@@ -375,6 +401,10 @@ gk_geometry_surf_calc_expansions(
   gkyl_nodal_ops_n2m_surface(
     n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf, &local_ext_in_dir, 1,
     up_surf.normcurlbhat_nodal, up_surf.normcurlbhat, dir
+  );
+  gkyl_nodal_ops_n2m_surface(
+    n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf, &local_ext_in_dir, 9,
+    up_surf.dxdz_nodal, up_surf.dxdz, dir
   );
   gkyl_nodal_ops_n2m_surface(
     n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf, &local_ext_in_dir, 9,

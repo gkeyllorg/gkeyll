@@ -723,30 +723,23 @@ main(int argc, char **argv)
     // Fixed Maxwellian ghost cells: the walls act as a reservoir for the radial
     // magnetic drift (zero-flux and copy BCs build up boundary layers).
     .bcs =
-      {{
-         .dir = 0,
-         .edge = GKYL_LOWER_EDGE,
-         .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
-         .projection = ion_bc,
-       },
-       {
-         .dir = 0,
-         .edge = GKYL_UPPER_EDGE,
-         .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
-         .projection = ion_bc,
-       }},
-
-    // Krook buffers at the x walls.
-    .source_bgk =
       {
-        .source_bgk_id = GKYL_SOURCE_BGK_STATIC,
-        .rate_profile = eval_krook_rate,
-        .rate_profile_ctx = &ctx,
-        .feq_shape = eval_feq_ion,
-        .feq_shape_ctx = &ctx,
+        {
+          .dir = 0,
+          .edge = GKYL_LOWER_EDGE,
+          .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
+          .projection = elc_bc,
+        },
+        {
+          .dir = 0,
+          .edge = GKYL_UPPER_EDGE,
+          .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
+          .projection = elc_bc,
+        },
+        {.dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_TWISTSHIFT},
+        {.dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_TWISTSHIFT},
       },
-
-    .num_diag_moments = 4,
+    .num_diag_moments = 9,
     .diag_moments =
       {GKYL_F_MOMENT_BIMAXWELLIAN, GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP},
     .num_integrated_diag_moments = 1,
@@ -798,29 +791,23 @@ main(int argc, char **argv)
     .collisionless = {.type = GKYL_GK_COLLISIONLESS_ES},
 
     .bcs =
-      {{
-         .dir = 0,
-         .edge = GKYL_LOWER_EDGE,
-         .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
-         .projection = elc_bc,
-       },
-       {
-         .dir = 0,
-         .edge = GKYL_UPPER_EDGE,
-         .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
-         .projection = elc_bc,
-       }},
-
-    .source_bgk =
       {
-        .source_bgk_id = GKYL_SOURCE_BGK_STATIC,
-        .rate_profile = eval_krook_rate,
-        .rate_profile_ctx = &ctx,
-        .feq_shape = eval_feq_elc,
-        .feq_shape_ctx = &ctx,
+        {
+          .dir = 0,
+          .edge = GKYL_LOWER_EDGE,
+          .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
+          .projection = ion_bc,
+        },
+        {
+          .dir = 0,
+          .edge = GKYL_UPPER_EDGE,
+          .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
+          .projection = ion_bc,
+        },
+        {.dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_TWISTSHIFT},
+        {.dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_TWISTSHIFT},
       },
-
-    .num_diag_moments = 4,
+    .num_diag_moments = 9,
     .diag_moments =
       {GKYL_F_MOMENT_BIMAXWELLIAN, GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP},
     .num_integrated_diag_moments = 1,
@@ -854,8 +841,10 @@ main(int argc, char **argv)
     .gkfield_id = GKYL_GK_FIELD_ES,
     .polarization_bmag = ctx.B_axis,
     .poisson_bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}}},
+      {
+        {.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
+        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
+      },
     .time_rate_diagnostics = true,
   };
 

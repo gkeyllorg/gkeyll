@@ -590,8 +590,11 @@ init_maxwellian_gaussian(
   }
 
   struct gkyl_array *shape_ho = mkarr(false, app->basis.num_basis, app->local_ext.volume);
-  struct gkyl_proj_on_basis *proj_gaussian =
-    gkyl_proj_on_basis_new(&app->grid, &app->basis, app->poly_order + 1, 1, func_gaussian, &fg_ctx);
+  struct gkyl_proj_on_basis *proj_gaussian = gkyl_proj_on_basis_new(
+    &app->grid, &app->basis, app->poly_order + 1, 1,
+    inp.configuration_profile ? inp.configuration_profile : func_gaussian,
+    inp.configuration_profile ? inp.configuration_profile_ctx : &fg_ctx
+  );
   proj->gaussian_profile = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
 
   gkyl_proj_on_basis_advance(proj_gaussian, 0, &app->local, shape_ho);

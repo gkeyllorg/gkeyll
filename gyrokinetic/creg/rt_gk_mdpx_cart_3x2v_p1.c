@@ -351,37 +351,41 @@ main(int argc, char **argv)
       {
         .num_react = 2,
         .react_type =
-          {{
-             .react_id = GKYL_REACT_IZ,
-             .type_self = GKYL_SELF_ELC,
-             .ion_id = GKYL_ION_AR,
-             .elc_nm = "elc",
-             .ion_nm = "Ar1", // ion is always the higher charge state
-             .donor_nm = "Ar0", // interacts with elc to give up charge
-             .charge_state = 0, // corresponds to lower charge state (donor)
-             .ion_mass = ctx.massAr,
-             .elc_mass = ctx.massElc,
-           },
-           {
-             .react_id = GKYL_REACT_RECOMB,
-             .type_self = GKYL_SELF_ELC,
-             .ion_id = GKYL_ION_AR,
-             .elc_nm = "elc",
-             .ion_nm = "Ar1",
-             .recvr_nm = "Ar0",
-             .charge_state = 0,
-             .ion_mass = ctx.massAr,
-             .elc_mass = ctx.massElc,
-           }},
+          {
+            {
+              .react_id = GKYL_REACT_IZ,
+              .type_self = GKYL_SELF_ELC,
+              .ion_id = GKYL_ION_AR,
+              .elc_nm = "elc",
+              .ion_nm = "Ar1", // ion is always the higher charge state
+              .donor_nm = "Ar0", // interacts with elc to give up charge
+              .charge_state = 0, // corresponds to lower charge state (donor)
+              .ion_mass = ctx.massAr,
+              .elc_mass = ctx.massElc,
+            },
+            {
+              .react_id = GKYL_REACT_RECOMB,
+              .type_self = GKYL_SELF_ELC,
+              .ion_id = GKYL_ION_AR,
+              .elc_nm = "elc",
+              .ion_nm = "Ar1",
+              .recvr_nm = "Ar0",
+              .charge_state = 0,
+              .ion_mass = ctx.massAr,
+              .elc_mass = ctx.massElc,
+            },
+          },
       },
 
     .bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
-       {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
-       {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
-       {.dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
-       {.dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}},
+      {
+        {.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
+        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
+        {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
+        {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
+        {.dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+        {.dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+      },
 
     .num_diag_moments = 7,
     .diag_moments =
@@ -426,37 +430,41 @@ main(int argc, char **argv)
       {
         .num_react = 2,
         .react_type =
-          {{
-             .react_id = GKYL_REACT_IZ,
-             .type_self = GKYL_SELF_ION,
-             .ion_id = GKYL_ION_AR,
-             .elc_nm = "elc",
-             .ion_nm = "Ar1",
-             .donor_nm = "Ar0",
-             .charge_state = 0,
-             .ion_mass = ctx.massAr,
-             .elc_mass = ctx.massElc,
-           },
-           {
-             .react_id = GKYL_REACT_RECOMB,
-             .type_self = GKYL_SELF_ION,
-             .ion_id = GKYL_ION_AR,
-             .elc_nm = "elc",
-             .ion_nm = "Ar1",
-             .recvr_nm = "Ar0",
-             .charge_state = 0,
-             .ion_mass = ctx.massAr,
-             .elc_mass = ctx.massElc,
-           }},
+          {
+            {
+              .react_id = GKYL_REACT_IZ,
+              .type_self = GKYL_SELF_ION,
+              .ion_id = GKYL_ION_AR,
+              .elc_nm = "elc",
+              .ion_nm = "Ar1",
+              .donor_nm = "Ar0",
+              .charge_state = 0,
+              .ion_mass = ctx.massAr,
+              .elc_mass = ctx.massElc,
+            },
+            {
+              .react_id = GKYL_REACT_RECOMB,
+              .type_self = GKYL_SELF_ION,
+              .ion_id = GKYL_ION_AR,
+              .elc_nm = "elc",
+              .ion_nm = "Ar1",
+              .recvr_nm = "Ar0",
+              .charge_state = 0,
+              .ion_mass = ctx.massAr,
+              .elc_mass = ctx.massElc,
+            },
+          },
       },
 
     .bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
-       {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
-       {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
-       {.dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
-       {.dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}},
+      {
+        {.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
+        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
+        {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
+        {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
+        {.dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+        {.dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+      },
 
     .num_diag_moments = 5,
     .diag_moments =
@@ -486,12 +494,14 @@ main(int argc, char **argv)
       },
 
     .bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
-       {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
-       {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
-       {.dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_REFLECT},
-       {.dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_REFLECT}},
+      {
+        {.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
+        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
+        {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
+        {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
+        {.dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_REFLECT},
+        {.dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_REFLECT},
+      },
 
     .num_diag_moments = 3,
     .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2},
@@ -500,10 +510,12 @@ main(int argc, char **argv)
   // Field.
   struct gkyl_gyrokinetic_field field = {
     .poisson_bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
-       {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
-       {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}}},
+      {
+        {.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
+        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
+        {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
+        {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
+      },
   };
 
   // GK app

@@ -40,6 +40,7 @@ struct gk_tcv_ctx {
   double psi_max_core, psi_min_sol, psi_max_pf; // Psi extents.
   double Lx_core; // Box size in y.
   double Ly; // Box size in y.
+  double Cy, rho_s; // Binormal and ion-sound-gyroradius reference lengths.
   double y_min, y_max; // Limits in y.
 
   // Grid.
@@ -226,19 +227,22 @@ create_asdex_lsn_gk_block_geom(void *ctx)
         },
 
       .connections[0] =
-        {// x-direction.
-         {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // Physical boundary.
-         {.bid = 1, .dir = 0, .edge = GKYL_LOWER_POSITIVE}
+        {
+          // x-direction.
+          {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // Physical boundary.
+          {.bid = 1, .dir = 0, .edge = GKYL_LOWER_POSITIVE},
         },
       .connections[1] =
-        {// y-direction.
-         {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL},
-         {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}
+        {
+          // y-direction.
+          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL},
+          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL},
         },
       .connections[2] =
-        {// z-direction.
-         {.bid = 0, .dir = 2, .edge = GKYL_PHYSICAL}, // Physical boundary.
-         {.bid = 4, .dir = 2, .edge = GKYL_LOWER_POSITIVE}
+        {
+          // z-direction.
+          {.bid = 0, .dir = 2, .edge = GKYL_PHYSICAL}, // Physical boundary.
+          {.bid = 4, .dir = 2, .edge = GKYL_LOWER_POSITIVE},
         },
     }
   );
@@ -285,17 +289,19 @@ create_asdex_lsn_gk_block_geom(void *ctx)
         {
           // x-direction.
           {.bid = 0, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
-          {.bid = 1, .dir = 0, .edge = GKYL_PHYSICAL} // Physical boundary.
+          {.bid = 1, .dir = 0, .edge = GKYL_PHYSICAL}, // Physical boundary.
         },
       .connections[1] =
-        {// y-direction.
-         {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL},
-         {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}
+        {
+          // y-direction.
+          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL},
+          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL},
         },
       .connections[2] =
-        {// z-direction.
-         {.bid = 1, .dir = 2, .edge = GKYL_PHYSICAL}, // Physical boundary.
-         {.bid = 2, .dir = 2, .edge = GKYL_LOWER_POSITIVE}
+        {
+          // z-direction.
+          {.bid = 1, .dir = 2, .edge = GKYL_PHYSICAL}, // Physical boundary.
+          {.bid = 2, .dir = 2, .edge = GKYL_LOWER_POSITIVE},
         },
     }
   );
@@ -342,17 +348,19 @@ create_asdex_lsn_gk_block_geom(void *ctx)
         {
           // x-direction.
           {.bid = 5, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
-          {.bid = 2, .dir = 0, .edge = GKYL_PHYSICAL} // Physical boundary.
+          {.bid = 2, .dir = 0, .edge = GKYL_PHYSICAL}, // Physical boundary.
         },
       .connections[1] =
-        {// y-direction.
-         {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL},
-         {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}
+        {
+          // y-direction.
+          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL},
+          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL},
         },
       .connections[2] =
-        {// z-direction.
-         {.bid = 1, .dir = 2, .edge = GKYL_UPPER_POSITIVE},
-         {.bid = 3, .dir = 2, .edge = GKYL_LOWER_POSITIVE}
+        {
+          // z-direction.
+          {.bid = 1, .dir = 2, .edge = GKYL_UPPER_POSITIVE},
+          {.bid = 3, .dir = 2, .edge = GKYL_LOWER_POSITIVE},
         },
     }
   );
@@ -399,18 +407,19 @@ create_asdex_lsn_gk_block_geom(void *ctx)
         {
           // x-direction.
           {.bid = 4, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
-          {.bid = 3, .dir = 0, .edge = GKYL_PHYSICAL} // Physical boundary.
+          {.bid = 3, .dir = 0, .edge = GKYL_PHYSICAL}, // Physical boundary.
         },
       .connections[1] =
-        {// y-direction.
-         {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL},
-         {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}
+        {
+          // y-direction.
+          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL},
+          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL},
         },
       .connections[2] =
         {
           // z-direction.
           {.bid = 2, .dir = 2, .edge = GKYL_UPPER_POSITIVE},
-          {.bid = 3, .dir = 2, .edge = GKYL_PHYSICAL} // Physical boundary.
+          {.bid = 3, .dir = 2, .edge = GKYL_PHYSICAL}, // Physical boundary.
         },
     }
   );
@@ -453,19 +462,22 @@ create_asdex_lsn_gk_block_geom(void *ctx)
         },
 
       .connections[0] =
-        {// x-direction.
-         {.bid = 4, .dir = 0, .edge = GKYL_PHYSICAL}, // Physical boundary.
-         {.bid = 3, .dir = 0, .edge = GKYL_LOWER_POSITIVE}
+        {
+          // x-direction.
+          {.bid = 4, .dir = 0, .edge = GKYL_PHYSICAL}, // Physical boundary.
+          {.bid = 3, .dir = 0, .edge = GKYL_LOWER_POSITIVE},
         },
       .connections[1] =
-        {// y-direction.
-         {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL},
-         {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}
+        {
+          // y-direction.
+          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL},
+          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL},
         },
       .connections[2] =
-        {// z-direction.
-         {.bid = 0, .dir = 2, .edge = GKYL_UPPER_POSITIVE}, // Physical boundary.
-         {.bid = 4, .dir = 2, .edge = GKYL_PHYSICAL}
+        {
+          // z-direction.
+          {.bid = 0, .dir = 2, .edge = GKYL_UPPER_POSITIVE}, // Physical boundary.
+          {.bid = 4, .dir = 2, .edge = GKYL_PHYSICAL},
         },
     }
   );
@@ -504,19 +516,22 @@ create_asdex_lsn_gk_block_geom(void *ctx)
         },
 
       .connections[0] =
-        {// x-direction.
-         {.bid = 5, .dir = 0, .edge = GKYL_PHYSICAL}, // Physical boundary.
-         {.bid = 2, .dir = 0, .edge = GKYL_LOWER_POSITIVE}
+        {
+          // x-direction.
+          {.bid = 5, .dir = 0, .edge = GKYL_PHYSICAL}, // Physical boundary.
+          {.bid = 2, .dir = 0, .edge = GKYL_LOWER_POSITIVE},
         },
       .connections[1] =
-        {// y-direction.
-         {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL},
-         {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}
+        {
+          // y-direction.
+          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL},
+          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL},
         },
       .connections[2] =
-        {// z-direction.
-         {.bid = 5, .dir = 2, .edge = GKYL_UPPER_POSITIVE},
-         {.bid = 5, .dir = 2, .edge = GKYL_LOWER_POSITIVE}
+        {
+          // z-direction.
+          {.bid = 5, .dir = 2, .edge = GKYL_UPPER_POSITIVE},
+          {.bid = 5, .dir = 2, .edge = GKYL_LOWER_POSITIVE},
         },
     }
   );
@@ -883,6 +898,8 @@ create_ctx(void)
     .psi_max_pf = psi_max_pf,
     .Lx_core = Lx_core,
     .Ly = Ly,
+    .Cy = r0 / q0,
+    .rho_s = rho_s,
     .y_min = y_min,
     .y_max = y_max,
     .lambda_src = lambda_src,
@@ -1040,7 +1057,7 @@ main(int argc, char **argv)
     {.bidx = 4, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
     {.bidx = 4, .dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
     // block 5 BCs
-    {.bidx = 5, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX}
+    {.bidx = 5, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
   };
 
   struct gkyl_gyrokinetic_multib_species elc = {
@@ -1166,7 +1183,7 @@ main(int argc, char **argv)
     {.bidx = 4, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
     {.bidx = 4, .dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
     // block 5 BCs
-    {.bidx = 5, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX}
+    {.bidx = 5, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
   };
 
   struct gkyl_gyrokinetic_multib_species ion = {
@@ -1302,7 +1319,7 @@ main(int argc, char **argv)
       .edge = GKYL_UPPER_EDGE,
       .type = GKYL_BC_GK_FIELD_PERIODIC,
       .value = {0.0},
-    }
+    },
   };
 
   struct gkyl_gyrokinetic_multib_field field = {
@@ -1313,6 +1330,10 @@ main(int argc, char **argv)
     .bcs = field_phys_bcs,
   };
 
+  struct gkyl_msgpack_map_elem additional_metadata[] = {
+    {.key = "Cy", .elem_type = GKYL_MP_DOUBLE, .dval = ctx.Cy},
+    {.key = "rho_s", .elem_type = GKYL_MP_DOUBLE, .dval = ctx.rho_s},
+  };
   struct gkyl_gyrokinetic_multib *app_inp = gkyl_calloc(1, sizeof(struct gkyl_gyrokinetic_multib));
   app_inp->cdim = ctx.cdim;
   app_inp->poly_order = 1;
@@ -1325,6 +1346,10 @@ main(int argc, char **argv)
   app_inp->species[1] = ion;
   app_inp->field = field;
   app_inp->comm = comm;
+  app_inp->metadata = (struct gkyl_gyrokinetic_metadata_inp){
+    .num_attributes = sizeof(additional_metadata) / sizeof(additional_metadata[0]),
+    .attributes = additional_metadata,
+  };
 
   // Set app output name from the executable name (argv[0]).
   snprintf(app_inp->name, sizeof(app_inp->name), "%s", app_args.app_name);
