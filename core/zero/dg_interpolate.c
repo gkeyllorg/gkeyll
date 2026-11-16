@@ -112,8 +112,9 @@ gkyl_dg_interpolate_new(
     }
   }
 
-  // Ratio of cell-lengths in each direction.
-  up->dxRat = grid_do->dx[up->dir] / grid_tar->dx[up->dir];
+  // Both grids have the same bounds. Use their cell counts so an integer
+  // refinement ratio cannot round slightly above the integer stencil size.
+  up->dxRat = (double)grid_tar->cells[up->dir] / grid_do->cells[up->dir];
 
   // Interior (away from boundaries) stencil size.
   int intStencilSize = -1;

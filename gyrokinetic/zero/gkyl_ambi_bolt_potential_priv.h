@@ -30,7 +30,8 @@ typedef struct {
 } phi_calc_kern_list;
 
 // Serendipity sheath_calc kernels.
-GKYL_CU_D static const sheath_calc_kern_edge_list ser_sheath_calc_list[] = { // 1x
+GKYL_CU_D static const sheath_calc_kern_edge_list ser_sheath_calc_list[] = {
+  // 1x
   {
     .list =
       {{ambi_bolt_potential_sheath_calc_lower_1x_ser_p1,
@@ -53,7 +54,7 @@ GKYL_CU_D static const sheath_calc_kern_edge_list ser_sheath_calc_list[] = { // 
         ambi_bolt_potential_sheath_calc_upper_3x_ser_p1},
        {ambi_bolt_potential_sheath_calc_lower_3x_ser_p2,
         ambi_bolt_potential_sheath_calc_upper_3x_ser_p2}},
-  }
+  },
 };
 
 // Serendipity phi_calc kernels.

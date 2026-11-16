@@ -1,0 +1,44 @@
+#pragma once
+
+#include <gkyl_gen_miller_eqdsk.h>
+
+struct gen_miller_shape {
+  double kappa, delta, a_shift;
+};
+
+/**
+ * Evaluate the Miller major-radius map in auxiliary coordinates.
+ *
+ * @param inp Miller geometry input.
+ * @param shape Resolved shaping parameters.
+ * @param eta Arcsine of the resolved triangularity.
+ * @param u Auxiliary horizontal coordinate r*cos(theta) [m].
+ * @param v Auxiliary vertical coordinate r*sin(theta) [m].
+ * @param derivative Optional output for dR/du.
+ * @return Finite cylindrical major radius [m]. Exits if the map or derivative is nonfinite.
+ */
+double gen_miller_R_uv(
+  const struct gkyl_gen_miller_eqdsk_inp *inp, const struct gen_miller_shape *shape, double eta,
+  double u, double v, double *derivative
+);
+
+/** Resolve constant shaping callbacks and defaults; false for nonfinite values. */
+bool gen_miller_resolve_shape(
+  const struct gkyl_gen_miller_eqdsk_inp *inp, struct gen_miller_shape *shape
+);
+
+/**
+ * Resolve flux or normalized-radius endpoints for either EQDSK flux orientation.
+ * Uses signed flux differences; the axis and zero-width domains are excluded.
+ *
+ * @param type PSI_POL or RHO_POL representation; other values fail.
+ * @param bounds Non-NULL finite, numerically increasing input endpoints.
+ * @param psi_axis Magnetic-axis flux [Wb/rad].
+ * @param psi_lcfs LCFS flux [Wb/rad], distinct from psi_axis.
+ * @param psi_bounds Non-NULL output endpoints, sorted numerically; valid on success.
+ * @return True on success, false for invalid or unrepresentable bounds.
+ */
+bool gen_miller_flux_bounds(
+  enum gkyl_gk_geometry_coord_type type, const double bounds[2], double psi_axis, double psi_lcfs,
+  double psi_bounds[2]
+);

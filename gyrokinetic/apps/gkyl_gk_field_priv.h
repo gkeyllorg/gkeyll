@@ -15,6 +15,22 @@
 
 /** FEM Initialization Functions **/
 
+// Check projection support after selecting the parallel field boundary conditions.
+void gk_field_ts_fem_perpproj_check_input(
+  const gkyl_gyrokinetic_app *app, const struct gk_field *field
+);
+
+// Initialize the optional perpendicular FEM projection of the shifted potential boundary field.
+void gk_field_ts_fem_perpproj_new(const gkyl_gyrokinetic_app *app, struct gk_field *field);
+
+// Project and replace only the lower global potential ghost slab; disabled is a no-op.
+void gk_field_ts_fem_perpproj_advance(
+  const gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *potential
+);
+
+// Release the optional boundary projection resources.
+void gk_field_ts_fem_perpproj_release(struct gk_field *field);
+
 /**
  * Initialize the FEM object for the Boltzmann field solver.
  * Sets up the finite element machinery needed for Boltzmann electron response.

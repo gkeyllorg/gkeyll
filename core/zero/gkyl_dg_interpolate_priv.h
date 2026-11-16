@@ -51,7 +51,8 @@ struct gkyl_dg_interpolate {
 };
 
 // Serendipity  kernels.
-GKYL_CU_D static const dg_interp_kern_p_list dg_interp_kern_list_ser[] = { // 1x
+GKYL_CU_D static const dg_interp_kern_p_list dg_interp_kern_list_ser[] = {
+  // 1x
   {
     .list =
       {{dg_interpolate_1x_ser_p1_x, NULL, NULL, NULL, NULL, NULL},
@@ -70,10 +71,11 @@ GKYL_CU_D static const dg_interp_kern_p_list dg_interp_kern_list_ser[] = { // 1x
         NULL, NULL},
        {dg_interpolate_3x_ser_p2_x, dg_interpolate_3x_ser_p2_y, dg_interpolate_3x_ser_p2_z, NULL,
         NULL, NULL}},
-  }
+  },
 };
 
-GKYL_CU_D static const dg_interp_kern_p_list dg_interp_kern_list_gk_ser[] = { // 1x1v
+GKYL_CU_D static const dg_interp_kern_p_list dg_interp_kern_list_gk_ser[] = {
+  // 1x1v
   {
     .list =
       {{dg_interpolate_gyrokinetic_1x1v_ser_p1_x, dg_interpolate_gyrokinetic_1x1v_ser_p1_vpar, NULL,
@@ -106,70 +108,145 @@ GKYL_CU_D static const dg_interp_kern_p_list dg_interp_kern_list_gk_ser[] = { //
         dg_interpolate_gyrokinetic_3x2v_ser_p1_z, dg_interpolate_gyrokinetic_3x2v_ser_p1_vpar,
         dg_interpolate_gyrokinetic_3x2v_ser_p1_mu, NULL},
        {NULL, NULL, NULL, NULL, NULL, NULL}},
-  }
+  },
 };
 
-GKYL_CU_D static const dg_interp_kern_p_list_vlasov dg_interp_kern_list_vlasov_ser[] = { // 1x
+GKYL_CU_D static const dg_interp_kern_p_list_vlasov dg_interp_kern_list_vlasov_ser[] = {
+  // 1x
   {
     .vdim =
-      {{
-         .list =
-           {{dg_interpolate_vlasov_1x1v_ser_p1_x, dg_interpolate_vlasov_1x1v_ser_p1_vx, NULL, NULL,
-             NULL, NULL},
-            {dg_interpolate_vlasov_1x1v_ser_p2_x, dg_interpolate_vlasov_1x1v_ser_p2_vx, NULL, NULL,
-             NULL, NULL}},
-       },
-       {
-         .list =
-           {{dg_interpolate_vlasov_1x2v_ser_p1_x, dg_interpolate_vlasov_1x2v_ser_p1_vx,
-             dg_interpolate_vlasov_1x2v_ser_p1_vy, NULL, NULL, NULL},
-            {dg_interpolate_vlasov_1x2v_ser_p2_x, dg_interpolate_vlasov_1x2v_ser_p2_vx,
-             dg_interpolate_vlasov_1x2v_ser_p2_vy, NULL, NULL, NULL}},
-       },
-       {
-         .list =
-           {{dg_interpolate_vlasov_1x3v_ser_p1_x, dg_interpolate_vlasov_1x3v_ser_p1_vx,
-             dg_interpolate_vlasov_1x2v_ser_p1_vy, dg_interpolate_vlasov_1x3v_ser_p1_vz, NULL, NULL},
-            {dg_interpolate_vlasov_1x3v_ser_p2_x, dg_interpolate_vlasov_1x3v_ser_p2_vx,
-             dg_interpolate_vlasov_1x2v_ser_p2_vy, dg_interpolate_vlasov_1x3v_ser_p2_vz, NULL, NULL}
-           },
-       }},
+      {
+        {
+          .list =
+            {{dg_interpolate_vlasov_1x1v_ser_p1_x, dg_interpolate_vlasov_1x1v_ser_p1_vx, NULL, NULL,
+              NULL, NULL},
+             {dg_interpolate_vlasov_1x1v_ser_p2_x, dg_interpolate_vlasov_1x1v_ser_p2_vx, NULL, NULL,
+              NULL, NULL}},
+        },
+        {
+          .list =
+            {{dg_interpolate_vlasov_1x2v_ser_p1_x, dg_interpolate_vlasov_1x2v_ser_p1_vx,
+              dg_interpolate_vlasov_1x2v_ser_p1_vy, NULL, NULL, NULL},
+             {dg_interpolate_vlasov_1x2v_ser_p2_x, dg_interpolate_vlasov_1x2v_ser_p2_vx,
+              dg_interpolate_vlasov_1x2v_ser_p2_vy, NULL, NULL, NULL}},
+        },
+        {
+          .list =
+            {{dg_interpolate_vlasov_1x3v_ser_p1_x, dg_interpolate_vlasov_1x3v_ser_p1_vx,
+              dg_interpolate_vlasov_1x2v_ser_p1_vy, dg_interpolate_vlasov_1x3v_ser_p1_vz, NULL,
+              NULL},
+             {dg_interpolate_vlasov_1x3v_ser_p2_x, dg_interpolate_vlasov_1x3v_ser_p2_vx,
+              dg_interpolate_vlasov_1x2v_ser_p2_vy, dg_interpolate_vlasov_1x3v_ser_p2_vz, NULL,
+              NULL}},
+        },
+      },
   },
   // 2x
   {
     .vdim =
-      {{.list = {{NULL, NULL, NULL, NULL, NULL, NULL}, {NULL, NULL, NULL, NULL, NULL, NULL}}},
-       {
-         .list =
-           {{dg_interpolate_vlasov_2x2v_ser_p1_x, dg_interpolate_vlasov_2x2v_ser_p1_y,
-             dg_interpolate_vlasov_2x2v_ser_p1_vx, dg_interpolate_vlasov_2x2v_ser_p1_vy, NULL, NULL},
-            {dg_interpolate_vlasov_2x2v_ser_p2_x, dg_interpolate_vlasov_2x2v_ser_p2_y,
-             dg_interpolate_vlasov_2x2v_ser_p2_vx, dg_interpolate_vlasov_2x2v_ser_p2_vy, NULL, NULL}
-           },
-       },
-       {
-         .list =
-           {{dg_interpolate_vlasov_2x3v_ser_p1_x, dg_interpolate_vlasov_2x3v_ser_p1_y,
-             dg_interpolate_vlasov_2x3v_ser_p1_vx, dg_interpolate_vlasov_2x2v_ser_p1_vy,
-             dg_interpolate_vlasov_2x3v_ser_p1_vz, NULL},
-            {dg_interpolate_vlasov_2x3v_ser_p2_x, dg_interpolate_vlasov_2x3v_ser_p2_y,
-             dg_interpolate_vlasov_2x3v_ser_p2_vx, dg_interpolate_vlasov_2x2v_ser_p2_vy,
-             dg_interpolate_vlasov_2x3v_ser_p2_vz, NULL}},
-       }},
+      {
+        {.list = {{NULL, NULL, NULL, NULL, NULL, NULL}, {NULL, NULL, NULL, NULL, NULL, NULL}}},
+        {
+          .list =
+            {{dg_interpolate_vlasov_2x2v_ser_p1_x, dg_interpolate_vlasov_2x2v_ser_p1_y,
+              dg_interpolate_vlasov_2x2v_ser_p1_vx, dg_interpolate_vlasov_2x2v_ser_p1_vy, NULL,
+              NULL},
+             {dg_interpolate_vlasov_2x2v_ser_p2_x, dg_interpolate_vlasov_2x2v_ser_p2_y,
+              dg_interpolate_vlasov_2x2v_ser_p2_vx, dg_interpolate_vlasov_2x2v_ser_p2_vy, NULL,
+              NULL}},
+        },
+        {
+          .list =
+            {{dg_interpolate_vlasov_2x3v_ser_p1_x, dg_interpolate_vlasov_2x3v_ser_p1_y,
+              dg_interpolate_vlasov_2x3v_ser_p1_vx, dg_interpolate_vlasov_2x2v_ser_p1_vy,
+              dg_interpolate_vlasov_2x3v_ser_p1_vz, NULL},
+             {dg_interpolate_vlasov_2x3v_ser_p2_x, dg_interpolate_vlasov_2x3v_ser_p2_y,
+              dg_interpolate_vlasov_2x3v_ser_p2_vx, dg_interpolate_vlasov_2x2v_ser_p2_vy,
+              dg_interpolate_vlasov_2x3v_ser_p2_vz, NULL}},
+        },
+      },
   },
   // 3x
   {
     .vdim =
-      {{.list = {{NULL, NULL, NULL, NULL, NULL, NULL}, {NULL, NULL, NULL, NULL, NULL, NULL}}},
-       {.list = {{NULL, NULL, NULL, NULL, NULL, NULL}, {NULL, NULL, NULL, NULL, NULL, NULL}}},
-       {
-         .list =
-           {{dg_interpolate_vlasov_3x3v_ser_p1_x, dg_interpolate_vlasov_3x3v_ser_p1_y,
-             dg_interpolate_vlasov_3x3v_ser_p1_z, dg_interpolate_vlasov_3x3v_ser_p1_vx,
-             dg_interpolate_vlasov_3x3v_ser_p1_vy, dg_interpolate_vlasov_3x3v_ser_p1_vz},
-            {NULL, NULL, NULL, NULL, NULL, NULL}},
-       }},
-  }
+      {
+        {.list = {{NULL, NULL, NULL, NULL, NULL, NULL}, {NULL, NULL, NULL, NULL, NULL, NULL}}},
+        {.list = {{NULL, NULL, NULL, NULL, NULL, NULL}, {NULL, NULL, NULL, NULL, NULL, NULL}}},
+        {
+          .list =
+            {{dg_interpolate_vlasov_3x3v_ser_p1_x, dg_interpolate_vlasov_3x3v_ser_p1_y,
+              dg_interpolate_vlasov_3x3v_ser_p1_z, dg_interpolate_vlasov_3x3v_ser_p1_vx,
+              dg_interpolate_vlasov_3x3v_ser_p1_vy, dg_interpolate_vlasov_3x3v_ser_p1_vz},
+             {NULL, NULL, NULL, NULL, NULL, NULL}},
+        },
+      },
+  },
+};
+
+// Vlasov tensor p=1 hybrid (p1 conf x p2 vel) interpolation kernels;
+// p>1 tensor kernels do not exist.
+GKYL_CU_D static const dg_interp_kern_p_list_vlasov dg_interp_kern_list_vlasov_tensor[] = {
+  // 1x
+  {
+    .vdim =
+      {
+        {
+          .list =
+            {{dg_interpolate_vlasov_1x1v_tensor_p1_x, dg_interpolate_vlasov_1x1v_tensor_p1_vx, NULL,
+              NULL, NULL, NULL},
+             {NULL, NULL, NULL, NULL, NULL, NULL}},
+        },
+        {
+          .list =
+            {{dg_interpolate_vlasov_1x2v_tensor_p1_x, dg_interpolate_vlasov_1x2v_tensor_p1_vx,
+              dg_interpolate_vlasov_1x2v_tensor_p1_vy, NULL, NULL, NULL},
+             {NULL, NULL, NULL, NULL, NULL, NULL}},
+        },
+        {
+          .list =
+            {{dg_interpolate_vlasov_1x3v_tensor_p1_x, dg_interpolate_vlasov_1x3v_tensor_p1_vx,
+              dg_interpolate_vlasov_1x3v_tensor_p1_vy, dg_interpolate_vlasov_1x3v_tensor_p1_vz,
+              NULL, NULL},
+             {NULL, NULL, NULL, NULL, NULL, NULL}},
+        },
+      },
+  },
+  // 2x
+  {
+    .vdim =
+      {
+        {.list = {{NULL, NULL, NULL, NULL, NULL, NULL}, {NULL, NULL, NULL, NULL, NULL, NULL}}},
+        {
+          .list =
+            {{dg_interpolate_vlasov_2x2v_tensor_p1_x, dg_interpolate_vlasov_2x2v_tensor_p1_y,
+              dg_interpolate_vlasov_2x2v_tensor_p1_vx, dg_interpolate_vlasov_2x2v_tensor_p1_vy,
+              NULL, NULL},
+             {NULL, NULL, NULL, NULL, NULL, NULL}},
+        },
+        {
+          .list =
+            {{dg_interpolate_vlasov_2x3v_tensor_p1_x, dg_interpolate_vlasov_2x3v_tensor_p1_y,
+              dg_interpolate_vlasov_2x3v_tensor_p1_vx, dg_interpolate_vlasov_2x3v_tensor_p1_vy,
+              dg_interpolate_vlasov_2x3v_tensor_p1_vz, NULL},
+             {NULL, NULL, NULL, NULL, NULL, NULL}},
+        },
+      },
+  },
+  // 3x
+  {
+    .vdim =
+      {
+        {.list = {{NULL, NULL, NULL, NULL, NULL, NULL}, {NULL, NULL, NULL, NULL, NULL, NULL}}},
+        {.list = {{NULL, NULL, NULL, NULL, NULL, NULL}, {NULL, NULL, NULL, NULL, NULL, NULL}}},
+        {
+          .list =
+            {{dg_interpolate_vlasov_3x3v_tensor_p1_x, dg_interpolate_vlasov_3x3v_tensor_p1_y,
+              dg_interpolate_vlasov_3x3v_tensor_p1_z, dg_interpolate_vlasov_3x3v_tensor_p1_vx,
+              dg_interpolate_vlasov_3x3v_tensor_p1_vy, dg_interpolate_vlasov_3x3v_tensor_p1_vz},
+             {NULL, NULL, NULL, NULL, NULL, NULL}},
+        },
+      },
+  },
 };
 
 #ifdef GKYL_HAVE_CUDA
@@ -212,7 +289,9 @@ dg_interp_choose_gk_interp_kernel(int cdim, struct gkyl_basis basis, int dir)
           .dirs[dir];
         break;
       case GKYL_BASIS_MODAL_HYBRID:
-        return dg_interp_kern_list_vlasov_ser[cdim - 1]
+      case GKYL_BASIS_MODAL_TENSOR:
+        // The p=1 tensor hybrid (p1 conf x p2 vel); no p>1 tensor kernels.
+        return dg_interp_kern_list_vlasov_tensor[cdim - 1]
           .vdim[vdim - 1]
           .list[poly_order - 1]
           .dirs[dir];

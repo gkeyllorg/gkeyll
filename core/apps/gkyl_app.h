@@ -62,8 +62,10 @@ enum gkyl_field_bc_type {
   GKYL_FIELD_RESERVOIR, // Reservoir Maxwell's BCs for heat flux problem
   GKYL_FIELD_WEDGE, // specialized "wedge" BCs for RZ-theta
   GKYL_FIELD_FUNC, // Function boundary conditions
+  GKYL_FIELD_FIXED_FUNC, // Fixed function, time-independent, boundary conditions
   GKYL_FIELD_DIRICHLET, // Dirichlet boundary conditions
   GKYL_FIELD_NEUMANN, // Nemann boundary conditions
+  GKYL_FIELD_THETA_POLE, // Specialized BCs for theta=0 and theta=pi in spherical and spherical-like coordinates
   GKYL_FIELD_NONE // Do not apply any boundary conditions
 };
 
