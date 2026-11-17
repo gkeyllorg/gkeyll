@@ -8,14 +8,52 @@
 #include <gkyl_comm_io.h>
 #include <gkyl_dflt.h>
 #include <gkyl_dynvec.h>
+#include <gkyl_gauss_quad_data.h>
 #include <gkyl_null_comm.h>
 #include <gkyl_nodal_ops.h>
 #include <gkyl_translate_dim.h>
+#include <gkyl_util.h>
 
 #include <gkyl_gyrokinetic_priv.h>
 #include <gkyl_app_priv.h>
 
 #include <mpack.h>
+
+// These keys select internal app behavior or describe provenance, not user data.
+static void
+gyrokinetic_check_input_metadata(const struct gkyl_gyrokinetic_metadata_inp *input)
+{
+  for (int i = 0; i < input->num_attributes; ++i) {
+    const char *key = input->attributes[i].key;
+    if (strcmp(key, "is_multib") == 0 || strcmp(key, "input_metadata_keys") == 0) {
+      int size = gkyl_calc_strlen("Input metadata key \"%s\" is reserved by Gkeyll.", key) + 1;
+      char message[size];
+      snprintf(message, size, "Input metadata key \"%s\" is reserved by Gkeyll.", key);
+      gkyl_exit(message);
+    }
+  }
+}
+
+struct gkyl_msgpack_map_elem *
+gyrokinetic_app_input_metadata(
+  int num_defaults, const struct gkyl_msgpack_map_elem *defaults,
+  const struct gkyl_gyrokinetic_metadata_inp *input, int *num_metadata
+)
+{
+  gyrokinetic_check_input_metadata(input);
+  const char *keys[input->num_attributes > 0 ? input->num_attributes : 1];
+  for (int i = 0; i < input->num_attributes; ++i) {
+    keys[i] = input->attributes[i].key;
+  }
+  struct gkyl_msgpack_map_elem origin = {
+    .key = "input_metadata_keys",
+    .elem_type = GKYL_MP_STRING_ARRAY,
+    .sarray = {.size = input->num_attributes, .data = keys},
+  };
+  int lengths[] = {num_defaults, input->num_attributes, 1};
+  const struct gkyl_msgpack_map_elem *lists[] = {defaults, input->attributes, &origin};
+  return gkyl_msgpack_map_elem_union(3, lengths, lists, num_metadata);
+}
 
 void
 gyrokinetic_cuts_check(
@@ -216,6 +254,20 @@ gyrokinetic_prepare_miller(struct gkyl_gk *gk)
         gk->metadata.num_attributes, gk->metadata.attributes, "is_multib"
       )) {
     error = "Miller initialization supports single-block 2x/3x simulations";
+  } else if (gk->geometry.efit_info.eqdsk_cocos_index != 0 &&
+             gk->geometry.efit_info.eqdsk_cocos_index != 3) {
+    error = "GKYL_GEOMETRY_MILLER generates COCOS 3 equilibria; "
+            "eqdsk_cocos_index must be 0 (default) or 3";
+  } else if (inp.input_coord_limits_type[1] == GKYL_GK_GEOMETRY_COORD_BINORMAL_LENGTH &&
+             gk->cdim != 3) {
+    error = "Miller binormal length bounds require a 3x simulation";
+  } else if (inp.input_coord_limits_type[2] == GKYL_GK_GEOMETRY_COORD_PARALLEL_THETA_MILLER &&
+             gk->cdim != 3) {
+    error = "Miller theta bounds require a 3x simulation";
+  } else if (inp.input_coord_limits_type[2] != GKYL_GK_GEOMETRY_COORD_UNSPECIFIED &&
+             inp.input_coord_limits_type[2] != GKYL_GK_GEOMETRY_COORD_PARALLEL_THETA &&
+             inp.input_coord_limits_type[2] != GKYL_GK_GEOMETRY_COORD_PARALLEL_THETA_MILLER) {
+    error = "invalid Miller parallel coordinate type";
   }
   double x_bounds[2] = {gk->lower[0], gk->upper[0]}, psi_bounds[2];
   gkyl_gen_miller_eqdsk *generator =
@@ -234,6 +286,29 @@ gyrokinetic_prepare_miller(struct gkyl_gk *gk)
   const struct gkyl_gen_miller_eqdsk_info *info = gkyl_gen_miller_eqdsk_get_info(generator);
 
   double psi_lower = psi_bounds[0], psi_upper = psi_bounds[1];
+  struct gkyl_gen_miller_eqdsk_binormal_extent binormal;
+  if (inp.input_coord_limits_type[1] == GKYL_GK_GEOMETRY_COORD_BINORMAL_LENGTH) {
+    double y_bounds[2] = {gk->lower[1], gk->upper[1]};
+    if (!gkyl_gen_miller_eqdsk_set_binormal_extents(generator, psi_bounds, y_bounds, &binormal)) {
+      error = "invalid Miller binormal length bounds or reference scale";
+      failure = 1;
+    }
+  } else if (inp.input_coord_limits_type[1] != GKYL_GK_GEOMETRY_COORD_UNSPECIFIED &&
+             inp.input_coord_limits_type[1] != GKYL_GK_GEOMETRY_COORD_BINORMAL_ALPHA) {
+    error = "invalid Miller binormal extent type";
+    failure = 1;
+  }
+
+  double theta_bounds[2];
+  if (inp.input_coord_limits_type[2] == GKYL_GK_GEOMETRY_COORD_PARALLEL_THETA_MILLER) {
+    theta_bounds[0] = gkyl_gen_miller_eqdsk_theta_tok_at_theta(&inp, gk->lower[2]);
+    theta_bounds[1] = gkyl_gen_miller_eqdsk_theta_tok_at_theta(&inp, gk->upper[2]);
+    if (!gkyl_is_dfinite(theta_bounds[0]) || !gkyl_is_dfinite(theta_bounds[1]) ||
+        theta_bounds[0] >= theta_bounds[1]) {
+      error = "invalid Miller theta bounds or failed parallel coordinate conversion";
+      failure = 1;
+    }
+  }
 
   // Use the serialized boundary value, exactly as the EFIT reader will see it.
   char boundary_text[32];
@@ -257,7 +332,17 @@ gyrokinetic_prepare_miller(struct gkyl_gk *gk)
     }
   }
 
+  if (comm) {
+    gkyl_comm_allreduce_host(comm, GKYL_INT, GKYL_MAX, 1, &failure, &global_failure);
+  } else {
+    global_failure = failure;
+  }
+  if (global_failure) {
+    goto fail;
+  }
+
   struct gkyl_efit_inp efit = gk->geometry.efit_info;
+  efit.eqdsk_cocos_index = 3;
   if (!efit.filepath[0]) {
     snprintf(efit.filepath, sizeof efit.filepath, "%s-miller.geqdsk", gk->name);
   }
@@ -299,6 +384,14 @@ gyrokinetic_prepare_miller(struct gkyl_gk *gk)
 
   gk->lower[0] = psi_lower;
   gk->upper[0] = psi_upper;
+  if (inp.input_coord_limits_type[1] == GKYL_GK_GEOMETRY_COORD_BINORMAL_LENGTH) {
+    gk->lower[1] = binormal.alpha_bounds[0];
+    gk->upper[1] = binormal.alpha_bounds[1];
+  }
+  if (inp.input_coord_limits_type[2] == GKYL_GK_GEOMETRY_COORD_PARALLEL_THETA_MILLER) {
+    gk->lower[2] = theta_bounds[0];
+    gk->upper[2] = theta_bounds[1];
+  }
   gk->geometry.geometry_id = GKYL_GEOMETRY_TOKAMAK;
   gk->geometry.efit_info = efit;
   gk->geometry.tok_grid_info = tok;
@@ -323,9 +416,12 @@ fail:
   return false;
 }
 
-static gkyl_gyrokinetic_app *
-gyrokinetic_app_new_geom_impl(struct gkyl_gk *gk, bool write_geometry)
+gkyl_gyrokinetic_app *
+gyrokinetic_app_new_geom(struct gkyl_gk *gk, bool is_multib, bool write_geometry)
 {
+  if (!is_multib) {
+    gyrokinetic_check_input_metadata(&gk->metadata);
+  }
   if (!gyrokinetic_prepare_miller(gk)) {
     return 0;
   }
@@ -335,10 +431,8 @@ gyrokinetic_app_new_geom_impl(struct gkyl_gk *gk, bool write_geometry)
 
   gkyl_gyrokinetic_app *app = gkyl_malloc(sizeof(gkyl_gyrokinetic_app));
 
-  // Check if this is a multiblock sim from metadata.
-  app->is_multib = gkyl_msgpack_map_elem_get_uint(
-    gk->metadata.num_attributes, gk->metadata.attributes, "is_multib"
-  );
+  // Only the private multiblock construction path supplies this flag.
+  app->is_multib = is_multib;
 
   int cdim = app->cdim = gk->cdim;
   int poly_order = app->poly_order = gk->poly_order;
@@ -348,6 +442,12 @@ gyrokinetic_app_new_geom_impl(struct gkyl_gk *gk, bool write_geometry)
 
   int ns = app->num_species = gk->num_species;
   int neuts = app->num_neut_species = gk->num_neut_species;
+
+  // Fluid neutrals have no velocity cells (see gk_neut_species_init).
+  app->has_kinetic_neut = false;
+  for (int i = 0; i < neuts; ++i) {
+    app->has_kinetic_neut = app->has_kinetic_neut || gk->neut_species[i].cells[0] != 0;
+  }
 
   double cfl_frac = gk->cfl_frac == 0 ? 1.0 : gk->cfl_frac;
   app->cfl = cfl_frac;
@@ -717,17 +817,11 @@ gyrokinetic_app_new_geom_impl(struct gkyl_gk *gk, bool write_geometry)
   } else {
     struct gkyl_msgpack_map_elem io_meta_basic_default[] = {
       {.key = "changeset", .elem_type = GKYL_MP_STRING, .cval = (char *)build_id},
-      {.key = "builddate", .elem_type = GKYL_MP_STRING, .cval = (char *)build_date}
+      {.key = "builddate", .elem_type = GKYL_MP_STRING, .cval = (char *)build_date},
     };
-    const struct gkyl_msgpack_map_elem *io_meta_basic_union[] = {
-      io_meta_basic_default, gk->metadata.attributes
-    };
-    int io_meta_basic_union_len[] = {
-      sizeof(io_meta_basic_default) / sizeof(io_meta_basic_default[0]), gk->metadata.num_attributes
-    };
-    app->io_meta_basic = gkyl_msgpack_map_elem_union(
-      sizeof(io_meta_basic_union) / sizeof(io_meta_basic_union[0]), io_meta_basic_union_len,
-      io_meta_basic_union, &app->io_meta_basic_len
+    app->io_meta_basic = gyrokinetic_app_input_metadata(
+      sizeof(io_meta_basic_default) / sizeof(io_meta_basic_default[0]), io_meta_basic_default,
+      &gk->metadata, &app->io_meta_basic_len
     );
   }
 
@@ -737,7 +831,7 @@ gyrokinetic_app_new_geom_impl(struct gkyl_gk *gk, bool write_geometry)
     {.key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0},
     {.key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0},
     {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = app->basis.poly_order},
-    {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = app->basis.id}
+    {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = app->basis.id},
   };
   const struct gkyl_msgpack_map_elem *io_meta_dg_union[] = {app->io_meta_basic, io_meta_dg};
   int io_meta_dg_union_len[] = {app->io_meta_basic_len, sizeof(io_meta_dg) / sizeof(io_meta_dg[0])};
@@ -996,13 +1090,13 @@ gyrokinetic_app_new_geom_impl(struct gkyl_gk *gk, bool write_geometry)
 gkyl_gyrokinetic_app *
 gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
 {
-  return gyrokinetic_app_new_geom_impl(gk, true);
+  return gyrokinetic_app_new_geom(gk, false, true);
 }
 
 gkyl_gyrokinetic_app *
 gkyl_gyrokinetic_app_new_geom_no_write(struct gkyl_gk *gk)
 {
-  return gyrokinetic_app_new_geom_impl(gk, false);
+  return gyrokinetic_app_new_geom(gk, false, false);
 }
 
 static void
@@ -1566,7 +1660,7 @@ gyrokinetic_app_geometry_copy_and_write(
   snprintf(fileNm, sizeof fileNm, fmt, app->name, varNm);
 
   struct gkyl_msgpack_map_elem desc_elem[] = {
-    {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = (char *)description}
+    {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = (char *)description},
   };
   int io_meta_len[] = {app->io_meta_dg_len, app->gk_geom->io_meta_basic_len, 1};
   const struct gkyl_msgpack_map_elem *io_meta[] = {
@@ -1577,6 +1671,67 @@ gyrokinetic_app_geometry_copy_and_write(
 
   gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, arr_host, fileNm);
   gkyl_msgpack_data_release(mt);
+}
+
+// q is constant in the binormal and parallel directions. Rank zero owns the entire radial
+// grid because gyrokinetic only parallelizes along z.
+static void
+gyrokinetic_app_write_qsafety(gkyl_gyrokinetic_app *app, const struct gkyl_array *q_host)
+{
+  if (app->gk_geom->geometry_id != GKYL_GEOMETRY_TOKAMAK) {
+    return;
+  }
+  int rank;
+  gkyl_comm_get_rank(app->comm, &rank);
+  if (rank != 0) {
+    return;
+  }
+
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, 1, app->grid.lower, app->grid.upper, app->grid.cells);
+  struct gkyl_range range;
+  gkyl_range_init_from_shape(&range, 1, grid.cells);
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, 1, app->basis.poly_order);
+  struct gkyl_array *profile = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, range.volume);
+  gkyl_array_clear(profile, 0.0);
+  int nquad = basis.poly_order + 1;
+  int idx[GKYL_MAX_CDIM];
+  for (int d = 0; d < app->cdim; ++d) {
+    idx[d] = app->local.lower[d];
+  }
+  for (int cell = 0; cell < grid.cells[0]; ++cell) {
+    idx[0] = app->local.lower[0] + cell;
+    const double *coeff = gkyl_array_cfetch(q_host, gkyl_range_idx(&app->local, idx));
+    double *out = gkyl_array_fetch(profile, cell);
+    for (int node = 0; node < nquad; ++node) {
+      double eta[GKYL_MAX_CDIM] = {gkyl_gauss_ordinates[nquad][node]};
+      double qval = app->basis.eval_expand(eta, coeff), values[basis.num_basis];
+      basis.eval(eta, values);
+      for (int k = 0; k < basis.num_basis; ++k) {
+        out[k] += gkyl_gauss_weights[nquad][node] * qval * values[k];
+      }
+    }
+  }
+  struct gkyl_msgpack_map_elem extra[] = {
+    {
+      .key = "Description",
+      .elem_type = GKYL_MP_STRING,
+      .cval = "Signed safety factor on closed contours; full-connection winding on open contours.",
+    },
+  };
+  struct gkyl_msgpack_map_elem *profile_meta =
+    gkyl_msgpack_map_elem_clone(app->io_meta_dg_len, app->io_meta_dg);
+  gkyl_msgpack_map_elem_set_string(app->io_meta_dg_len, profile_meta, "basis_type", basis.id);
+  int lengths[] = {app->io_meta_dg_len, app->gk_geom->io_meta_basic_len, 1};
+  const struct gkyl_msgpack_map_elem *lists[] = {profile_meta, app->gk_geom->io_meta_basic, extra};
+  struct gkyl_msgpack_data *meta = gkyl_msgpack_create_union(3, lengths, lists);
+  gkyl_msgpack_map_elem_release(app->io_meta_dg_len, profile_meta);
+  cstr name = cstr_from_fmt("%s-qsafety.gkyl", app->name);
+  gkyl_grid_sub_array_write(&grid, &range, meta, profile, name.str);
+  cstr_drop(&name);
+  gkyl_msgpack_data_release(meta);
+  gkyl_array_release(profile);
 }
 
 static void
@@ -1608,7 +1763,7 @@ gyrokinetic_app_geometry_copy_and_write_surf(
     }
   }
   struct gkyl_msgpack_map_elem desc_elem[] = {
-    {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = (char *)description}
+    {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = (char *)description},
   };
   int io_meta_len[] = {app->io_meta_dg_len, app->gk_geom->io_meta_basic_len, 1};
   const struct gkyl_msgpack_map_elem *io_meta[] = {
@@ -1641,7 +1796,7 @@ gyrokinetic_app_geometry_write_surf_nodal(
   snprintf(fileNm, sizeof fileNm, fmt, app->name, dir, varNm);
 
   struct gkyl_msgpack_map_elem desc_elem[] = {
-    {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = (char *)description}
+    {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = (char *)description},
   };
   int io_meta_len[] = {app->io_meta_dg_len, app->gk_geom->io_meta_basic_len, 1};
   const struct gkyl_msgpack_map_elem *io_meta[] = {
@@ -1681,7 +1836,7 @@ gyrokinetic_app_write_ts_shift(gkyl_gyrokinetic_app *app)
         .elem_type = GKYL_MP_UNSIGNED_INT,
         .uval = app->delta_ts_x_basis.poly_order,
       },
-      {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = app->delta_ts_x_basis.id}
+      {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = app->delta_ts_x_basis.id},
     };
     int io_meta_x_len = sizeof(io_meta_x) / sizeof(io_meta_x[0]);
 
@@ -1748,7 +1903,18 @@ gkyl_gyrokinetic_app_write_geometry(
   gkyl_comm_get_rank(app->comm, &rank);
   if (rank == 0 && geometry_inp->geometry_id == GKYL_GEOMETRY_TOKAMAK) {
     if ((!app->is_multib) || (app->is_multib && gyrokinetic_str_ends_in_b0(app->name))) {
-      gkyl_gk_geometry_write_efit(geometry_inp, app->io_meta_basic, app->io_meta_basic_len);
+      // All blocks share the simulation's discrete equilibrium file.
+      int name_len = strlen(app->name);
+      if (app->is_multib && gyrokinetic_str_ends_in_bnum(app->name)) {
+        name_len = strrchr(app->name, '_') - app->name;
+      }
+      const char *fmt = "%.*s-psi.gkyl";
+      int sz = gkyl_calc_strlen(fmt, name_len, app->name);
+      char file_name[sz + 1];
+      snprintf(file_name, sizeof file_name, fmt, name_len, app->name);
+      gkyl_gk_geometry_write_efit(
+        geometry_inp, app->io_meta_basic, app->io_meta_basic_len, file_name
+      );
     }
   }
 
@@ -1759,6 +1925,7 @@ gkyl_gyrokinetic_app_write_geometry(
   struct gkyl_array *arr_ho3 = mkarr(false, 3 * app->basis.num_basis, app->local_ext.volume);
   struct gkyl_array *arr_ho6 = mkarr(false, 6 * app->basis.num_basis, app->local_ext.volume);
   struct gkyl_array *arr_ho9 = mkarr(false, 9 * app->basis.num_basis, app->local_ext.volume);
+  struct gkyl_array *arr_ho27 = mkarr(false, 27 * app->basis.num_basis, app->local_ext.volume);
 
   gyrokinetic_app_geometry_copy_and_write(
     app, app->gk_geom->geo_corn.mc2p, arr_ho3, "geo_corn_mapc2p",
@@ -1808,6 +1975,15 @@ gkyl_gyrokinetic_app_write_geometry(
     app, app->gk_geom->geo_int.dxdz, arr_ho9, "geo_int_dxdz",
     "Cartesian components of tangent vectors."
   );
+  if (app->cdim < 3 && app->has_kinetic_neut && app->gk_geom->has_dxdz_grad) {
+    // Tangent gradients along all three field-aligned coordinates. Only
+    // kinetic neutrals use them (also when reading this geometry back from
+    // file), so other runs do not write them.
+    gyrokinetic_app_geometry_copy_and_write(
+      app, app->gk_geom->geo_int.dxdz_grad, arr_ho27, "geo_int_dxdz_grad",
+      "Gradients of the Cartesian tangent vectors along the three field-aligned coordinates."
+    );
+  }
   gyrokinetic_app_geometry_copy_and_write(
     app, app->gk_geom->geo_int.dzdx, arr_ho9, "geo_int_dzdx",
     "Cartesian components of dual vectors."
@@ -1873,6 +2049,7 @@ gkyl_gyrokinetic_app_write_geometry(
   gyrokinetic_app_geometry_copy_and_write(
     app, app->gk_geom->geo_int.qprofile, arr_ho1, "geo_int_qprofile", "Safety factor."
   );
+  gyrokinetic_app_write_qsafety(app, arr_ho1);
   gyrokinetic_app_geometry_copy_and_write(
     app, app->gk_geom->geo_int.B3overB, arr_ho1, "geo_int_B3overB",
     "Reciprocal square root of the zz covariant metric component."
@@ -1908,6 +2085,12 @@ gkyl_gyrokinetic_app_write_geometry(
   struct gkyl_array *arr_surf_ho18 =
     mkarr(false, 18 * app->gk_geom->num_surf_basis, app->local_ext.volume);
   for (int dir = 0; dir < app->cdim; dir++) {
+    if (app->has_kinetic_neut) {
+      gyrokinetic_app_geometry_copy_and_write_surf(
+        app, app->gk_geom->geo_surf[dir].dxdz, arr_surf_ho9, arr_surf_ho18, "dxdz", dir,
+        "Cartesian tangent vectors at faces."
+      );
+    }
     gyrokinetic_app_geometry_copy_and_write_surf(
       app, app->gk_geom->geo_surf[dir].jacobgeo, arr_surf_ho1, arr_surf_ho2, "jacobgeo", dir,
       "Conf-space Jacobian."
@@ -2047,7 +2230,7 @@ gkyl_gyrokinetic_app_write_geometry(
         .elem_type = GKYL_MP_STRING,
         .cval = "Physical coordinates of grid corner nodes.",
       },
-      {.key = "value_form", .elem_type = GKYL_MP_STRING, .cval = "nodal"}
+      {.key = "value_form", .elem_type = GKYL_MP_STRING, .cval = "nodal"},
     };
     int io_meta_nodes_len[] = {app->io_meta_dg_len, app->gk_geom->io_meta_basic_len, 1};
     const struct gkyl_msgpack_map_elem *io_meta_nodes[] = {
@@ -2099,7 +2282,7 @@ gkyl_gyrokinetic_app_write_geometry(
       {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = app->basis.poly_order},
       {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = app->basis.id},
       {.key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0},
-      {.key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0}
+      {.key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0},
     };
     int io_meta_nodesint_len[] = {
       app->io_meta_basic_len, app->gk_geom->io_meta_basic_len,
@@ -2133,6 +2316,7 @@ gkyl_gyrokinetic_app_write_geometry(
   gkyl_array_release(arr_ho3);
   gkyl_array_release(arr_ho6);
   gkyl_array_release(arr_ho9);
+  gkyl_array_release(arr_ho27);
   gkyl_array_release(arr_surf_ho1);
   gkyl_array_release(arr_surf_ho2);
   gkyl_array_release(arr_surf_ho3);
@@ -2158,7 +2342,7 @@ gkyl_gyrokinetic_app_write_field(gkyl_gyrokinetic_app *app, double tm, int frame
     gkyl_msgpack_map_elem_set_double(app->io_meta_dg_len, app->io_meta_dg, "time", tm);
     gkyl_msgpack_map_elem_set_uint(app->io_meta_dg_len, app->io_meta_dg, "frame", frame);
     struct gkyl_msgpack_map_elem io_meta_phi[] = {
-      {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Electrostatic potential."}
+      {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Electrostatic potential."},
     };
     int io_meta_len[] = {app->io_meta_dg_len, app->gk_geom->io_meta_basic_len, 1};
     const struct gkyl_msgpack_map_elem *io_meta[] = {
@@ -2212,7 +2396,11 @@ gkyl_gyrokinetic_app_write_field_energy(gkyl_gyrokinetic_app *app)
       if (app->field->is_first_energy_write_call) {
         // Write to a new file (this ensure previous output is removed).
         struct gkyl_msgpack_map_elem io_meta_phi[] = {
-          {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Electrostatic field energy."}
+          {
+            .key = "Description",
+            .elem_type = GKYL_MP_STRING,
+            .cval = "Electrostatic field energy.",
+          },
         };
         int io_meta_len[] = {app->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
         const struct gkyl_msgpack_map_elem *io_meta[] = {
@@ -2242,11 +2430,13 @@ gkyl_gyrokinetic_app_write_field_energy(gkyl_gyrokinetic_app *app)
       if (rank == 0) {
         if (app->field->is_first_energy_dot_write_call) {
           // Write to a new file (this ensure previous output is removed).
-          struct gkyl_msgpack_map_elem io_meta_phi[] = {{
-            .key = "Description",
-            .elem_type = GKYL_MP_STRING,
-            .cval = "Electrostatic field energy rate of change.",
-          }};
+          struct gkyl_msgpack_map_elem io_meta_phi[] = {
+            {
+              .key = "Description",
+              .elem_type = GKYL_MP_STRING,
+              .cval = "Electrostatic field energy rate of change.",
+            },
+          };
           int io_meta_len[] = {app->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
           const struct gkyl_msgpack_map_elem *io_meta[] = {
             app->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi
@@ -2580,33 +2770,6 @@ gkyl_gyrokinetic_app_write_species_positivity_integrated_diagnostics(
   gk_species_positivity_write_integrated_diags(app, gks, &gks->positivity);
 }
 
-void
-gkyl_gyrokinetic_app_write_neut_species_positivity_diagnostics(
-  gkyl_gyrokinetic_app *app, int sidx, double tm, int frame
-)
-{
-  struct gk_neut_species *gkns = &app->neut_species[sidx];
-  gk_neut_species_positivity_write_diags(app, gkns, &gkns->positivity, tm, frame);
-}
-
-void
-gkyl_gyrokinetic_app_calc_neut_species_positivity_integrated_diagnostics(
-  gkyl_gyrokinetic_app *app, int sidx, double tm
-)
-{
-  struct gk_neut_species *gkns = &app->neut_species[sidx];
-  gk_neut_species_positivity_calc_integrated_diags(app, gkns, &gkns->positivity, tm);
-}
-
-void
-gkyl_gyrokinetic_app_write_neut_species_positivity_integrated_diagnostics(
-  gkyl_gyrokinetic_app *app, int sidx
-)
-{
-  struct gk_neut_species *gkns = &app->neut_species[sidx];
-  gk_neut_species_positivity_write_integrated_diags(app, gkns, &gkns->positivity);
-}
-
 //
 // ............. LTE outputs ............... //
 //
@@ -2776,8 +2939,6 @@ gkyl_gyrokinetic_app_write_neut_species_conf(
 
   gkyl_gyrokinetic_app_write_neut_species_source_mom(app, sidx, tm, frame);
 
-  gkyl_gyrokinetic_app_write_neut_species_positivity_diagnostics(app, sidx, tm, frame);
-
   struct gk_neut_species *gkns = &app->neut_species[sidx];
 
   for (int j = 0; j < gkns->react_neut.num_react; ++j) {
@@ -2814,7 +2975,6 @@ gkyl_gyrokinetic_app_write_mom(gkyl_gyrokinetic_app *app, double tm, int frame)
   for (int i = 0; i < app->num_neut_species; ++i) {
     gkyl_gyrokinetic_app_write_neut_species_mom(app, i, tm, frame);
     gkyl_gyrokinetic_app_write_neut_species_source_mom(app, i, tm, frame);
-    gkyl_gyrokinetic_app_write_neut_species_positivity_diagnostics(app, i, tm, frame);
     gkyl_gyrokinetic_app_write_neut_species_boundary_flux_mom(app, i, tm, frame);
   }
 }
@@ -2834,7 +2994,6 @@ gkyl_gyrokinetic_app_calc_integrated_mom(gkyl_gyrokinetic_app *app, double tm)
   for (int i = 0; i < app->num_neut_species; ++i) {
     gkyl_gyrokinetic_app_calc_neut_species_integrated_mom(app, i, tm);
     gkyl_gyrokinetic_app_calc_neut_species_source_integrated_mom(app, i, tm);
-    gkyl_gyrokinetic_app_calc_neut_species_positivity_integrated_diagnostics(app, i, tm);
     gkyl_gyrokinetic_app_calc_neut_species_boundary_flux_integrated_mom(app, i, tm);
   }
 
@@ -2865,7 +3024,6 @@ gkyl_gyrokinetic_app_write_integrated_mom(gkyl_gyrokinetic_app *app)
   for (int i = 0; i < app->num_neut_species; ++i) {
     gkyl_gyrokinetic_app_write_neut_species_integrated_mom(app, i);
     gkyl_gyrokinetic_app_write_neut_species_source_integrated_mom(app, i);
-    gkyl_gyrokinetic_app_write_neut_species_positivity_integrated_diagnostics(app, i);
     gkyl_gyrokinetic_app_write_neut_species_lte_max_corr_status(app, i);
     gkyl_gyrokinetic_app_write_neut_species_boundary_flux_integrated_mom(app, i);
   }
@@ -4138,7 +4296,7 @@ gkyl_gyrokinetic_app_write_dt(gkyl_gyrokinetic_app *app)
 
     if (app->is_first_dt_write_call) {
       struct gkyl_msgpack_map_elem io_meta_phi[] = {
-        {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Time step size."}
+        {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Time step size."},
       };
       int io_meta_len[] = {app->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
       const struct gkyl_msgpack_map_elem *io_meta[] = {
@@ -4184,7 +4342,7 @@ header_from_file(gkyl_gyrokinetic_app *app, const char *fname)
 
     struct gkyl_msgpack_map_elem elem_list[] = {
       {.key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0},
-      {.key = "time", .elem_type = GKYL_MP_DOUBLE, .cval = 0}
+      {.key = "time", .elem_type = GKYL_MP_DOUBLE, .cval = 0},
     };
     int elem_list_len = sizeof(elem_list) / sizeof(elem_list[0]);
     gkyl_msgpack_to_map_elem_list(
@@ -4269,6 +4427,7 @@ gkyl_gyrokinetic_app_read_geometry(
   struct gkyl_array *arr_ho3 = mkarr(false, 3 * app->basis.num_basis, app->local_ext.volume);
   struct gkyl_array *arr_ho6 = mkarr(false, 6 * app->basis.num_basis, app->local_ext.volume);
   struct gkyl_array *arr_ho9 = mkarr(false, 9 * app->basis.num_basis, app->local_ext.volume);
+  struct gkyl_array *arr_ho27 = mkarr(false, 27 * app->basis.num_basis, app->local_ext.volume);
 
   cstr fileNm =
     cstr_from_fmt("%s%s-%s.gkyl", geometry_inp->geometry_path, app->name, "geo_int_jacobgeo");
@@ -4281,7 +4440,7 @@ gkyl_gyrokinetic_app_read_geometry(
 
     // Read geometry ID from header.
     struct gkyl_msgpack_map_elem elem_list[] = {
-      {.key = "geometry_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0}
+      {.key = "geometry_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0},
     };
     int elem_list_len = sizeof(elem_list) / sizeof(elem_list[0]);
     gkyl_msgpack_to_map_elem_list(
@@ -4295,7 +4454,7 @@ gkyl_gyrokinetic_app_read_geometry(
         (app->gk_geom->geometry_id == GKYL_GEOMETRY_MIRROR)) {
       // Read other metadata for numerical equilibrium from header.
       struct gkyl_msgpack_map_elem elem_list_numeq[] = {
-        {.key = "geqdsk_sign_convention", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0}
+        {.key = "geqdsk_sign_convention", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0},
       };
       int elem_list_numeq_len = sizeof(elem_list) / sizeof(elem_list[0]);
       gkyl_msgpack_to_map_elem_list(
@@ -4310,7 +4469,7 @@ gkyl_gyrokinetic_app_read_geometry(
     if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK) {
       // Read other metadata for numerical equilibrium from header.
       struct gkyl_msgpack_map_elem elem_list_numeq[] = {
-        {.key = "half_domain", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0}
+        {.key = "half_domain", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0},
       };
       int elem_list_numeq_len = sizeof(elem_list) / sizeof(elem_list[0]);
       gkyl_msgpack_to_map_elem_list(
@@ -4324,7 +4483,7 @@ gkyl_gyrokinetic_app_read_geometry(
     if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK) {
       struct gkyl_msgpack_map_elem convention[] = {
         {.key = "equilibrium_cocos", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0},
-        {.key = "parallel_coordinate", .elem_type = GKYL_MP_STRING, .cval = NULL}
+        {.key = "parallel_coordinate", .elem_type = GKYL_MP_STRING, .cval = NULL},
       };
       gkyl_msgpack_to_map_elem_list(
         &(struct gkyl_msgpack_data){.meta = hdr.meta, .meta_sz = hdr.meta_size}, 2, convention
@@ -4336,9 +4495,31 @@ gkyl_gyrokinetic_app_read_geometry(
             .elem_type = GKYL_MP_UNSIGNED_INT,
             .uval = convention[0].uval,
           },
-          {.key = "parallel_coordinate", .elem_type = GKYL_MP_STRING, .cval = convention[1].cval}
+          {.key = "parallel_coordinate", .elem_type = GKYL_MP_STRING, .cval = convention[1].cval},
         };
-        int lengths[] = {app->gk_geom->io_meta_basic_len, convention[1].cval ? 2 : 1};
+        // Existing geometry owns its strings. Replace those values explicitly;
+        // only new keys may be appended by a metadata union.
+        int num_missing = 0;
+        for (int i = 0; i < (convention[1].cval ? 2 : 1); ++i) {
+          if (gkyl_msgpack_map_elem_has_key(
+                app->gk_geom->io_meta_basic_len, app->gk_geom->io_meta_basic, theta_meta[i].key
+              )) {
+            if (i == 0) {
+              gkyl_msgpack_map_elem_set_uint(
+                app->gk_geom->io_meta_basic_len, app->gk_geom->io_meta_basic, theta_meta[i].key,
+                theta_meta[i].uval
+              );
+            } else {
+              gkyl_msgpack_map_elem_set_string(
+                app->gk_geom->io_meta_basic_len, app->gk_geom->io_meta_basic, theta_meta[i].key,
+                theta_meta[i].cval
+              );
+            }
+          } else {
+            theta_meta[num_missing++] = theta_meta[i];
+          }
+        }
+        int lengths[] = {app->gk_geom->io_meta_basic_len, num_missing};
         const struct gkyl_msgpack_map_elem *lists[] = {app->gk_geom->io_meta_basic, theta_meta};
         int new_len;
         struct gkyl_msgpack_map_elem *metadata =
@@ -4384,6 +4565,23 @@ gkyl_gyrokinetic_app_read_geometry(
   gyrokinetic_app_geometry_read_and_copy(
     app, app->gk_geom->geo_int.dxdz, arr_ho9, geometry_inp->geometry_path, "geo_int_dxdz"
   );
+  if (app->cdim < 3) {
+    // Tangent gradients along the three field-aligned coordinates: written
+    // only by runs with kinetic neutrals. Only kinetic neutrals need them, so
+    // their absence is recorded rather than fatal.
+    cstr gradNm =
+      cstr_from_fmt("%s%s-%s.gkyl", geometry_inp->geometry_path, app->name, "geo_int_dxdz_grad");
+    FILE *fp_grad = fopen(gradNm.str, "r");
+    app->gk_geom->has_dxdz_grad = fp_grad != NULL;
+    if (fp_grad) {
+      fclose(fp_grad);
+      gyrokinetic_app_geometry_read_and_copy(
+        app, app->gk_geom->geo_int.dxdz_grad, arr_ho27, geometry_inp->geometry_path,
+        "geo_int_dxdz_grad"
+      );
+    }
+    cstr_drop(&gradNm);
+  }
   gyrokinetic_app_geometry_read_and_copy(
     app, app->gk_geom->geo_int.dzdx, arr_ho9, geometry_inp->geometry_path, "geo_int_dzdx"
   );
@@ -4467,6 +4665,12 @@ gkyl_gyrokinetic_app_read_geometry(
   struct gkyl_array *arr_surf_ho18 =
     mkarr(false, 18 * app->gk_geom->num_surf_basis, app->local_ext.volume);
   for (int dir = 0; dir < app->cdim; dir++) {
+    if (app->has_kinetic_neut) {
+      gyrokinetic_app_geometry_read_and_copy_surf(
+        app, app->gk_geom->geo_surf[dir].dxdz, arr_surf_ho9, arr_surf_ho18,
+        geometry_inp->geometry_path, "dxdz", dir
+      );
+    }
     gyrokinetic_app_geometry_read_and_copy_surf(
       app, app->gk_geom->geo_surf[dir].jacobgeo, arr_surf_ho1, arr_surf_ho2,
       geometry_inp->geometry_path, "jacobgeo", dir
@@ -4520,6 +4724,7 @@ gkyl_gyrokinetic_app_read_geometry(
   gkyl_array_release(arr_ho3);
   gkyl_array_release(arr_ho6);
   gkyl_array_release(arr_ho9);
+  gkyl_array_release(arr_ho27);
   gkyl_array_release(arr_surf_ho1);
   gkyl_array_release(arr_surf_ho2);
   gkyl_array_release(arr_surf_ho3);
@@ -4651,9 +4856,6 @@ gkyl_gyrokinetic_app_from_frame_neut_species(gkyl_gyrokinetic_app *app, int sidx
   gkns->is_first_integ_write_call = false;
   if (gkns->src.source_id) {
     gkns->src.is_first_integ_write_call = false;
-  }
-  if (gkns->positivity.type) {
-    gkns->positivity.is_first_integ_write_call = false;
   }
   if (gkns->lte.correct_all_moms) {
     gkns->lte.is_first_corr_status_write_call = false;

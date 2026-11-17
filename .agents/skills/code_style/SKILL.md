@@ -41,12 +41,14 @@ The pre-commit hook and CI already exclude both for this reason.
 
 ## Designated initializers: the script decides, not the trailing comma
 
-A designated initializer that fits on one line stays on one line. One that does
-not gets one member per line, first member below the `{`, closing `}` on its own
-line. `ci/format.py` enforces this by stripping every trailing comma, running
+A designated initializer, or an array of them, that fits on one line stays on one
+line. One that does not gets one member per line, first member below the `{`,
+closing `}` on its own line, so an array of structs never collapses into `{{`.
+`ci/format.py` enforces this by stripping every trailing comma, running
 clang-format, re-adding a trailing comma to each list that did not fit, and running
-clang-format again. So don't add or remove trailing commas to steer the layout;
-write the list any way you like and run the script.
+clang-format again until nothing is left to expand. So don't add or remove
+trailing commas to steer the layout; write the list any way you like and run the
+script.
 
 ## Two conventions the formatter enforces that you should know when reading code
 

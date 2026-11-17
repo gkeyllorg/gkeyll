@@ -4,6 +4,8 @@
 #include <string.h>
 
 #include <gkyl_alloc.h>
+#include <gkyl_array_rio.h>
+#include <gkyl_comm.h>
 #include <gkyl_efit.h>
 #include <gkyl_gk_block_geom.h>
 #include <gkyl_gyrokinetic_multib.h>
@@ -195,8 +197,10 @@ create_gk_block_geom(
       .connections[0] =
         {{.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}},
       .connections[1] =
-        {{.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL},
-         {.bid = 1, .dir = 1, .edge = GKYL_LOWER_POSITIVE}},
+        {
+          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL},
+          {.bid = 1, .dir = 1, .edge = GKYL_LOWER_POSITIVE},
+        },
     }
   );
 
@@ -239,12 +243,47 @@ create_gk_block_geom(
       .connections[0] =
         {{.bid = 1, .dir = 0, .edge = GKYL_PHYSICAL}, {.bid = 1, .dir = 0, .edge = GKYL_PHYSICAL}},
       .connections[1] =
-        {{.bid = 0, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
-         {.bid = 1, .dir = 1, .edge = GKYL_PHYSICAL}},
+        {
+          {.bid = 0, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
+          {.bid = 1, .dir = 1, .edge = GKYL_PHYSICAL},
+        },
     }
   );
 
   return bgeom;
+}
+
+/**
+ * Check that geometry-only output retains custom metadata and its provenance.
+ *
+ * @param path Geometry output file.
+ * @param shot Expected shot number.
+ * @return True if both the value and the original key list are preserved.
+ */
+static bool
+check_input_metadata(const char *path, int shot)
+{
+  struct gkyl_rect_grid grid;
+  struct gkyl_array_header_info hdr = {0};
+  if (gkyl_grid_sub_array_header_read(&grid, &hdr, path) != GKYL_ARRAY_RIO_SUCCESS) {
+    fprintf(stderr, "ERROR: failed to read geometry metadata from %s\n", path);
+    gkyl_array_header_info_release(&hdr);
+    return false;
+  }
+  struct gkyl_msgpack_data metadata = {.meta_sz = hdr.meta_size, .meta = hdr.meta};
+  struct gkyl_msgpack_map_elem values[] = {
+    {.key = "shot", .elem_type = GKYL_MP_INT},
+    {.key = "input_metadata_keys", .elem_type = GKYL_MP_STRING_ARRAY},
+  };
+  gkyl_msgpack_to_map_elem_list(&metadata, 2, values);
+  bool valid = values[0].ival == shot && values[1].sarray.size == 1 && values[1].sarray.data[0] &&
+               strcmp(values[1].sarray.data[0], "shot") == 0;
+  if (!valid) {
+    fprintf(stderr, "ERROR: missing or incorrect input metadata in %s\n", path);
+  }
+  gkyl_msgpack_map_elem_release_value(&values[1]);
+  gkyl_array_header_info_release(&hdr);
+  return valid;
 }
 
 int
@@ -275,6 +314,9 @@ main(int argc, char **argv)
 
   struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, stderr);
 
+  struct gkyl_msgpack_map_elem metadata[] = {
+    {.key = "shot", .elem_type = GKYL_MP_INT, .ival = shot.shot},
+  };
   struct gkyl_gyrokinetic_multib mbinp = {
     .cdim = 2,
     .poly_order = 1,
@@ -286,6 +328,7 @@ main(int argc, char **argv)
     .num_species = 0,
     .num_neut_species = 0,
     .comm = comm,
+    .metadata = {.attributes = metadata, .num_attributes = 1},
   };
   snprintf(mbinp.name, sizeof(mbinp.name), "nstxu_relaxed_xpt_shot%d_ms%d", shot.shot, shot.time_ms);
 
@@ -296,6 +339,25 @@ main(int argc, char **argv)
     status = 1;
   } else {
     gkyl_gyrokinetic_multib_app_write_geometry(app);
+    gkyl_comm_barrier(comm);
+    int rank;
+    gkyl_comm_get_rank(comm, &rank);
+    if (rank == 0) {
+      char path[256];
+      snprintf(path, sizeof(path), "%s-psi.gkyl", mbinp.name);
+      if (!check_input_metadata(path, shot.shot)) {
+        status = 1;
+      }
+      for (int block = 0; block < 2; ++block) {
+        snprintf(path, sizeof(path), "%s_b%d-geo_int_bmag.gkyl", mbinp.name, block);
+        if (!check_input_metadata(path, shot.shot)) {
+          status = 1;
+        }
+      }
+    }
+    int global_status;
+    gkyl_comm_allreduce_host(comm, GKYL_INT, GKYL_MAX, 1, &status, &global_status);
+    status = global_status;
     gkyl_gyrokinetic_multib_app_release_geom(app);
   }
 

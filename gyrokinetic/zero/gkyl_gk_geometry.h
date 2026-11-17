@@ -15,6 +15,7 @@
 typedef struct gk_geometry gk_geometry;
 
 struct gk_geom_surf {
+  struct gkyl_array *dxdz; // 9 components. Cartesian tangents e_1, e_2, e_3 in the surface basis.
   struct gkyl_array *jacobgeo; // 1 component. Configuration space jacobian J.
   struct gkyl_array *jacobgeo_signed; // 1 component. Signed J_RZ; diagnostic only.
   struct gkyl_array *
@@ -99,6 +100,7 @@ struct gk_geom_int {
   // Calculated with coord definition alpha = phi for tokamak geometry.
   struct gkyl_array
     *dxdz; // 9 components. Cartesian components of tangent Vectors stored in order e_1, e_2, e_3.
+  struct gkyl_array *dxdz_grad; // 27 components. Modal expansion of dxdz_grad_nodal (I/O).
   struct gkyl_array
     *dzdx; // 9 components. Cartesian components of dual vectors stored in order e^1, e^2, e^3.
   struct gkyl_array *dualmag; // 3 components. Norms of the dual vectors: sqrt(e^i.e^i).
@@ -128,8 +130,8 @@ struct gk_geom_int {
   struct gkyl_array *B3overB; // 1 component. Signed b^3 = B^3/|B|; +1/sqrt(g_33) if B is along e_3.
   struct gkyl_array *bioverJB; // 3 components b_i/J/|B|.
   struct gkyl_array *B3; // 1 component. Signed e^3 \dot \vec{B}.
-  struct gkyl_array
-    *qprofile; // Signed COCOS safety factor on closed surfaces; NaN on open lines. Diagnostic only.
+  struct gkyl_array *
+    qprofile; // Signed COCOS q on closed surfaces; full-connection winding on open lines. Diagnostic only.
 
   // Arrays below are just for computation of arrays above
   struct gkyl_array *bmag_nodal;
@@ -159,6 +161,8 @@ struct gk_geom_int {
   // Calculated with coord definition alpha = phi for tokamak geometry
   struct gkyl_array *dxdz_nodal; // 9 components.
   // Cartesian components of tangent Vectors stored in order e_1, e_2, e_3
+  struct gkyl_array *dxdz_grad_nodal; // 27 components. d(e_i)/dz^j Cartesian, direction j
+  // slowest: [9 j + 3 i + c]. Filled for deflated (cdim<3) geometries only.
   struct gkyl_array *dzdx_nodal; // 9 components.
   // Cartesian components of dual vectors stroed in order e^1, e^2, e^3
   struct gkyl_array *dualmag_nodal; // 3 components
@@ -179,6 +183,7 @@ struct gk_geom_int {
 };
 
 struct gk_geometry {
+  int world_dim; // Active configuration dimensions; 0 or 3 samples the full 3D grid.
   enum gkyl_geometry_id geometry_id;
 
   // Objects for mapc2p and finite differences array.
@@ -214,6 +219,9 @@ struct gk_geometry {
   // location of the LCFS. For numerical IWL, it may be stored
   // in the eqdsk.
   int idx_LCFS_lo; // Index of the cell that abuts the LCFS from below.
+
+  bool has_dxdz_grad; // Whether geo_int.dxdz_grad(_nodal) are filled: deflated (cdim<3)
+  // geometries built in-app, or read from files that carry them (runs with kinetic neutrals).
 
   struct gkyl_msgpack_map_elem *io_meta_basic; // Metadata for I/O.
   int io_meta_basic_len; // Number of elements in io_meta_basic.
@@ -401,14 +409,15 @@ struct gk_geometry *gkyl_gk_geometry_deflate(
 void gkyl_gk_geometry_populate_nodal(struct gk_geometry *gk_geom);
 
 /**
- * Write psi(R,Z)
-* @param geometry_inp Geometry input struct.
-* @param io_meta_basic_basic basic metadata
-* @param io_meta_basic_basic_len length of basic metadata
+ * Write psi(R,Z).
+ * @param geometry_inp Geometry input struct.
+ * @param io_meta_basic_basic Basic metadata.
+ * @param io_meta_basic_basic_len Length of basic metadata.
+ * @param file_name Output filename.
  */
 void gkyl_gk_geometry_write_efit(
   struct gkyl_gk_geometry_inp *geometry_inp, struct gkyl_msgpack_map_elem *io_meta_basic_basic,
-  int io_meta_basic_basic_len
+  int io_meta_basic_basic_len, const char *file_name
 );
 
 /**
@@ -436,14 +445,6 @@ void gkyl_gk_geometry_free(const struct gkyl_ref_count *ref);
  * @param up gk geometry object to release.
  */
 void gkyl_gk_geometry_release(const struct gk_geometry *up);
-
-/**
- * Interior-geometry point queries use host arrays and actual configuration
- * coordinates. They terminate with a diagnostic for invalid inputs or points
- * outside the local interior domain. Internal faces use the upper-cell trace;
- * local outer boundaries use the interior trace. No MPI communication occurs.
- * Output buffers must not alias the input coordinates.
- */
 
 /**
  * Evaluate the stored magnetic-field magnitude [T].

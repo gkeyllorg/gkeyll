@@ -552,8 +552,6 @@ struct gkyl_gyrokinetic_neut_species {
 
   bool is_static; // Set to true if neutral species does not change in time.
 
-  struct gkyl_gyrokinetic_positivity positivity; // Positivity enforcement options.
-
   struct gkyl_gyrokinetic_ic_import init_from_file;
 
   // Initial conditions using projection routine.
@@ -631,7 +629,10 @@ struct gkyl_gyrokinetic_eirene {
   char coupling_species[GKYL_MAX_SPECIES][128]; // Names of species to couple
 };
 
-// Additional metadata users can provide.
+// Additional metadata users can provide. Output files automatically include the
+// original key names in input_metadata_keys. Duplicate keys, including collisions
+// with Gkeyll metadata, are rejected when lists are combined or serialized.
+// input_metadata_keys and is_multib are reserved for internal application use.
 struct gkyl_gyrokinetic_metadata_inp {
   struct gkyl_msgpack_map_elem *attributes; // List of metadata elements to add to output files.
   int num_attributes; // Number of attributes.

@@ -3,31 +3,15 @@
 #include <gkyl_gk_geometry_priv.h>
 #include <gkyl_position_map.h>
 #include <gkyl_tok_geo_priv.h>
+#include <gkyl_util.h>
 #include <math.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
 
 struct tok_field_ctx {
   double psi_sign, tor_sign, shear;
 };
-
-/**
- * Check finiteness without relying on floating-point predicates disabled by fast-math.
- *
- * @param value Floating-point value to classify.
- * @return Whether the value is finite.
- */
-static bool
-tok_is_finite(double value)
-{
-  uint64_t bits;
-  memcpy(&bits, &value, sizeof bits);
-  volatile uint64_t exponent = bits & UINT64_C(0x7ff0000000000000);
-  return exponent != UINT64_C(0x7ff0000000000000);
-}
 
 /**
  * Write nested analytic flux surfaces and a linear F profile, constant in the SOL.
@@ -135,9 +119,9 @@ tok_check_field(
     const double *actual_b = gkyl_array_cfetch(bhat, loc);
     const double *actual_curl = gkyl_array_cfetch(curl, loc);
     for (int comp = 0; comp < 3; ++comp) {
-      TEST_ASSERT(tok_is_finite(rzphi[comp]));
-      TEST_ASSERT(tok_is_finite(actual_b[comp]));
-      TEST_ASSERT(tok_is_finite(actual_curl[comp]));
+      TEST_ASSERT(gkyl_is_dfinite(rzphi[comp]));
+      TEST_ASSERT(gkyl_is_dfinite(actual_b[comp]));
+      TEST_ASSERT(gkyl_is_dfinite(actual_curl[comp]));
     }
     TEST_ASSERT(rzphi[0] > 0);
     double xyz[] = {rzphi[0] * cos(rzphi[2]), rzphi[0] * sin(rzphi[2]), rzphi[1]};
@@ -212,12 +196,10 @@ tok_check_q(const struct tok_field_ctx *ctx, const struct gk_geometry *geo)
       double psi = center[0] + eta[0] * geo->grid.dx[0] / 2;
       double expected = tok_reference_q(ctx, psi);
       double actual = geo->basis.eval_expand(eta, modal);
-      if (ctx->psi_sign * psi > 0.125) {
-        TEST_CHECK(!tok_is_finite(actual));
-      } else {
-        TEST_CHECK(tok_is_finite(actual));
-        error = fmax(error, fabs(actual - expected));
-      }
+      // Without a limiter cut the full IWL connection covers the whole contour,
+      // including outside the nominal LCFS of this analytic equilibrium.
+      TEST_CHECK(gkyl_is_dfinite(actual));
+      error = fmax(error, fabs(actual - expected));
     }
   }
   TEST_CHECK(error < 1e-3);
@@ -238,9 +220,12 @@ tok_check_map(struct gk_geometry *geometry, struct gkyl_gk_geometry_inp *inp)
 {
   inp->tok_grid_info.cgrid = inp->grid;
   inp->tok_grid_info.cbasis = inp->basis;
+
   struct gkyl_tok_geo *tok = gkyl_tok_geo_new(&inp->efit_info, &inp->tok_grid_info);
+
   struct gkyl_array *deriv = gkyl_array_clone(geometry->geo_int.ddtheta_nodal);
   struct gkyl_array *plus = gkyl_array_clone(geometry->geo_int.mc2p_nodal);
+
   bool original_derivs = inp->position_map->use_map_derivs;
   inp->position_map->use_map_derivs = false;
   mc2nu_t original = inp->position_map->maps[2];
@@ -248,38 +233,47 @@ tok_check_map(struct gk_geometry *geometry, struct gkyl_gk_geometry_inp *inp)
   double params[] = {0, 0.07};
   inp->position_map->maps[2] = tok_shift_theta;
   inp->position_map->ctxs[2] = params;
+
   gkyl_tok_geo_calc_interior(
     geometry, &geometry->nrange_int, geometry->dzc, tok, &inp->tok_grid_info, inp->position_map
   );
+
   gkyl_array_copy(deriv, geometry->geo_int.ddtheta_nodal);
+
   const double step = 1e-4;
   params[0] = step;
   gkyl_tok_geo_calc_interior(
     geometry, &geometry->nrange_int, geometry->dzc, tok, &inp->tok_grid_info, inp->position_map
   );
   gkyl_array_copy(plus, geometry->geo_int.mc2p_nodal);
+
   params[0] = -step;
   gkyl_tok_geo_calc_interior(
     geometry, &geometry->nrange_int, geometry->dzc, tok, &inp->tok_grid_info, inp->position_map
   );
+
   double error[3] = {0}, scale[3] = {1, 1, 1};
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &geometry->nrange_int);
   while (gkyl_range_iter_next(&iter)) {
     long loc = gkyl_range_idx(&geometry->nrange_int, iter.idx);
+
     const double *upper = gkyl_array_cfetch(plus, loc);
     const double *lower = gkyl_array_cfetch(geometry->geo_int.mc2p_nodal, loc);
     const double *expected = gkyl_array_cfetch(deriv, loc);
+
     double theta = gk_geometry_node_coord(
       &geometry->grid, &geometry->local, &geometry->global, &geometry->nrange_int, 2, iter.idx[2],
       geometry->basis.poly_order + 1, true
     );
+
     double slope = 1 + params[1] * cos(theta);
     for (int c = 0; c < 3; ++c) {
       scale[c] = fmax(scale[c], fabs(expected[c]));
       error[c] = fmax(error[c], fabs((upper[c] - lower[c]) / (2 * step) * slope - expected[c]));
     }
   }
+
   for (int c = 0; c < 3; ++c) {
     // Ordered traces estimate the arc derivative from adjacent trace points;
     // their finite-difference derivative therefore agrees to trace accuracy.
@@ -291,9 +285,11 @@ tok_check_map(struct gk_geometry *geometry, struct gkyl_gk_geometry_inp *inp)
       error[c], scale[c]
     );
   }
+
   inp->position_map->use_map_derivs = original_derivs;
   inp->position_map->maps[2] = original;
   inp->position_map->ctxs[2] = original_ctx;
+
   gkyl_array_release(plus);
   gkyl_array_release(deriv);
   gkyl_tok_geo_release(tok);
@@ -311,11 +307,14 @@ tok_check_curl(bool cubic)
     for (int tor_sign = -1; tor_sign <= 1; tor_sign += 2) {
       for (int varying = 0; varying < 2; ++varying) {
         struct tok_field_ctx ctx = {psi_sign, tor_sign, varying ? 0.4 : 0};
+
         char filename[] = "/tmp/gkyl_tok_curl_XXXXXX";
         int descriptor = mkstemp(filename);
         TEST_ASSERT(descriptor >= 0);
+
         FILE *stream = fdopen(descriptor, "w");
         TEST_ASSERT(stream != NULL);
+
         tok_write_equilibrium(stream, &ctx);
         TEST_ASSERT(fclose(stream) == 0);
 
@@ -338,28 +337,34 @@ tok_check_curl(bool cubic)
           .position_map = gkyl_position_map_null_new(),
         };
         snprintf(inp.efit_info.filepath, sizeof inp.efit_info.filepath, "%s", filename);
+
         double lower[] = {psi_sign > 0 ? 0.08 : -0.17, -0.2, -2.8};
         double upper[] = {psi_sign > 0 ? 0.17 : -0.08, 0.2, 2.8};
         gkyl_rect_grid_init(&inp.grid, 3, lower, upper, (int[]){2, 1, 2});
         gkyl_cart_modal_serendip(&inp.basis, 3, 1);
         gkyl_create_grid_ranges(&inp.grid, (int[]){1, 1, 1}, &inp.local_ext, &inp.local);
+
         inp.global = inp.geo_local = inp.geo_global = inp.local;
         inp.global_ext = inp.geo_local_ext = inp.geo_global_ext = inp.local_ext;
         inp.geo_grid = inp.grid;
         inp.geo_basis = inp.basis;
         struct gk_geometry *geo = gkyl_gk_geometry_tok_new(&inp);
+
         tok_check_q(&ctx, geo);
+
         double errors[3] = {0};
         tok_check_field(
           &ctx, &geo->nrange_int, geo->geo_int.mc2p_nodal, geo->geo_int.bcart_nodal,
           geo->geo_int.curlbhat_nodal, errors
         );
+
         for (int dir = 0; dir < 3; ++dir) {
           tok_check_field(
             &ctx, &geo->nrange_surf[dir], geo->geo_surf[dir].mc2p_nodal_fd,
             geo->geo_surf[dir].bcart_nodal, geo->geo_surf[dir].curlbhat_nodal, errors
           );
         }
+
         for (int quantity = 0; quantity < 3; ++quantity) {
           // Both reconstructions have second-derivative error from sampled flux;
           // doubling the R-Z resolution halves the observed curl error.
@@ -369,9 +374,11 @@ tok_check_curl(bool cubic)
             tor_sign, varying, quantity, errors[quantity]
           );
         }
+
         if (!varying) {
           tok_check_map(geo, &inp);
         }
+
         gkyl_gk_geometry_release(geo);
         gkyl_position_map_release(inp.position_map);
         TEST_CHECK(unlink(filename) == 0);
@@ -446,9 +453,11 @@ test_tok_cubic_quadratic_limit(void)
 static void
 test_tok_ordered_cocos(void)
 {
+  // ASDEX has outward-increasing psi; TCV exercises the opposite flux orientation.
   const char *files[] = {
     "gyrokinetic/data/eqdsk/asdex.geqdsk", "gyrokinetic/data/eqdsk/tcv_65402_t1.eqdsk"
   };
+
   for (int equilibrium = 0; equilibrium < 2; ++equilibrium) {
     struct gkyl_gk_geometry_inp inp = {
       .geometry_id = GKYL_GEOMETRY_TOKAMAK,
@@ -458,43 +467,150 @@ test_tok_ordered_cocos(void)
       .position_map = gkyl_position_map_null_new(),
     };
     snprintf(inp.efit_info.filepath, sizeof inp.efit_info.filepath, "%s", files[equilibrium]);
+
     struct gkyl_efit *efit = gkyl_efit_new(&inp.efit_info);
+
     inp.tok_grid_info.rmin = inp.tok_grid_info.rleft = efit->rmin;
     inp.tok_grid_info.rmax = inp.tok_grid_info.rright = efit->rmax;
     inp.tok_grid_info.rclose = efit->rmaxis;
     inp.tok_grid_info.zmin = efit->zmin;
     inp.tok_grid_info.zmax = efit->zmax;
+
+    // Select rho_pol in [0.9, 0.97], inside the cubic representation's separatrix.
     double span = efit->psisep_cubic - efit->simag;
     double psi0 = efit->simag + 0.9 * 0.9 * span;
     double psi1 = efit->simag + 0.97 * 0.97 * span;
+
     TEST_CHECK((equilibrium == 0 ? 1 : -1) * span > 0);
     gkyl_efit_release(efit);
+
     struct gkyl_tok_geo *tok = gkyl_tok_geo_new(&inp.efit_info, &inp.tok_grid_info);
     double theta_lo, theta_up;
+    // Resolve the oriented theta bounds and cache the separatrix arc fraction.
     gkyl_tok_geo_set_extent(&inp.tok_grid_info, tok, &theta_lo, &theta_up);
+
     TEST_CHECK(theta_up > theta_lo);
     TEST_CHECK(inp.tok_grid_info.arc_frac_valid);
+
+    // Grid bounds must increase numerically even when psi decreases outward.
     double lower[] = {fmin(psi0, psi1), -0.1, theta_lo};
     double upper[] = {fmax(psi0, psi1), 0.1, theta_up};
     gkyl_rect_grid_init(&inp.grid, 3, lower, upper, (int[]){2, 1, 4});
     gkyl_cart_modal_serendip(&inp.basis, 3, 1);
     gkyl_create_grid_ranges(&inp.grid, (int[]){1, 1, 1}, &inp.local_ext, &inp.local);
+
     inp.global = inp.geo_local = inp.geo_global = inp.local;
     inp.global_ext = inp.geo_local_ext = inp.geo_global_ext = inp.local_ext;
     inp.geo_grid = inp.grid;
     inp.geo_basis = inp.basis;
+
     struct gk_geometry *geo = gkyl_gk_geometry_tok_new(&inp);
+
+    // Check the theta tangent against finite differences with a nonuniform theta map.
     tok_check_map(geo, &inp);
+
     gkyl_gk_geometry_release(geo);
     gkyl_tok_geo_release(tok);
     gkyl_position_map_release(inp.position_map);
   }
 }
 
+// Compare core q with EQDSK and check finite, identical full-connection SOL
+// profiles for the unsplit contour and each of its three block types.
+static void
+test_tok_qprofile_branches(void)
+{
+  struct gkyl_efit_inp einp = {
+    .filepath = "gyrokinetic/data/eqdsk/asdex.geqdsk",
+    .rz_poly_order = 2,
+    .flux_poly_order = 1,
+  };
+
+  struct gkyl_tok_geo_grid_inp inp = {
+    .ftype = GKYL_GEOMETRY_TOKAMAK_CORE,
+    .rmin = 0,
+    .rmax = 5,
+    .rclose = 2.5,
+    .rright = 2.5,
+    .rleft = 0.7,
+    .zmin = -1.3,
+    .zmax = 1.0,
+    .zmin_left = -1.2,
+    .zmin_right = -1.0,
+  };
+  struct gkyl_tok_geo *geo = gkyl_tok_geo_new(&einp, &inp);
+
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, 1, 1);
+
+  double lower[] = {0.01}, upper[] = {0.08};
+  int cells[] = {4};
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, 1, lower, upper, cells);
+
+  struct gkyl_array *profile = gkyl_array_new(GKYL_DOUBLE, 2, cells[0]);
+  struct gkyl_array *split = gkyl_array_new(GKYL_DOUBLE, 2, cells[0]);
+
+  gkyl_tok_geo_calc_qprofile(geo, &inp, &grid, &basis, profile);
+
+  double max_error = 0;
+  for (int cell = 0; cell < cells[0]; ++cell) {
+    for (int side = -1; side <= 1; side += 2) {
+      double eta = side / sqrt(3.0);
+      double psi = grid.lower[0] + (cell + 0.5 * (1 + eta)) * grid.dx[0];
+      int idx = geo->frange.lower[0] + (int)((psi - geo->fgrid.lower[0]) / geo->fgrid.dx[0]);
+
+      double center;
+      gkyl_rect_grid_cell_center(&geo->fgrid, &idx, &center);
+
+      double efeta = 2 * (psi - center) / geo->fgrid.dx[0];
+      double expected = geo->fbasis.eval_expand(
+        &efeta, gkyl_array_cfetch(geo->qdg, gkyl_range_idx(&geo->frange, &idx))
+      );
+
+      double actual = basis.eval_expand(&eta, gkyl_array_cfetch(profile, cell));
+      TEST_CHECK(gkyl_is_dfinite(actual));
+      max_error = fmax(max_error, fabs(actual / expected - 1));
+    }
+  }
+  TEST_CHECK(max_error < 0.02);
+  TEST_MSG("core q relative error against EQDSK = %.9g", max_error);
+
+  // A cell face lies at the separatrix, while the Gauss nodes remain in the SOL.
+  lower[0] = geo->psisep;
+  upper[0] = lower[0] + 0.01;
+  gkyl_rect_grid_init(&grid, 1, lower, upper, cells);
+
+  inp.ftype = GKYL_GEOMETRY_TOKAMAK_LSN_SOL;
+  gkyl_tok_geo_calc_qprofile(geo, &inp, &grid, &basis, profile);
+
+  enum gkyl_tok_geo_type types[] = {
+    GKYL_GEOMETRY_TOKAMAK_LSN_SOL_LO, GKYL_GEOMETRY_TOKAMAK_LSN_SOL_MID,
+    GKYL_GEOMETRY_TOKAMAK_LSN_SOL_UP
+  };
+  for (int part = 0; part < 3; ++part) {
+    inp.ftype = types[part];
+    gkyl_tok_geo_calc_qprofile(geo, &inp, &grid, &basis, split);
+    for (int cell = 0; cell < cells[0]; ++cell) {
+      const double *full = gkyl_array_cfetch(profile, cell);
+      const double *piece = gkyl_array_cfetch(split, cell);
+      for (int mode = 0; mode < 2; ++mode) {
+        TEST_CHECK(gkyl_is_dfinite(piece[mode]));
+        TEST_CHECK(fabs(piece[mode] - full[mode]) < 1e-12);
+      }
+    }
+  }
+
+  gkyl_array_release(split);
+  gkyl_array_release(profile);
+  gkyl_tok_geo_release(geo);
+}
+
 TEST_LIST = {
-  {"tok_ordered_cocos", test_tok_ordered_cocos},
-  {"tok_cubic_quadratic_limit", test_tok_cubic_quadratic_limit},
-  {"tok_curl_quadratic", test_tok_curl_quadratic},
-  {"tok_curl_cubic", test_tok_curl_cubic},
+  {"tok_geo_ordered_cocos", test_tok_ordered_cocos},
+  {"tok_geo_qprofile_branches", test_tok_qprofile_branches},
+  {"tok_geo_cubic_quadratic_limit", test_tok_cubic_quadratic_limit},
+  {"tok_geo_curl_quadratic", test_tok_curl_quadratic},
+  {"tok_geo_curl_cubic", test_tok_curl_cubic},
   {NULL, NULL}
 };

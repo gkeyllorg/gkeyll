@@ -200,6 +200,9 @@ gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp *inp)
   struct timespec tm_init = gkyl_wall_clock();
 
   gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&inp->app_inp);
+  if (!app) {
+    gkyl_exit("gyrokinetic_run: failed to construct single-block application.");
+  }
 
   if (verbose.enabled) {
     gkyl_gyrokinetic_app_cout(app, stdout, "Gyrokinetic simulation initialized...\n");
@@ -229,20 +232,22 @@ gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp *inp)
     gkyl_gyrokinetic_app_apply_ic(app, t_curr);
   }
 
-  // Create triggers for IO. The frame-based restart values allow an ordinary
-  // on-cadence restart frame to be rewritten below. After that initial write,
-  // reset_restart_output_triggers decouples the next frame number from the
-  // configuration and phase trigger times, which also supports force-written
-  // off-cadence restart frames.
+  // Create triggers for IO. On restart, resume each frame writer on its own grid
+  // (the last grid point at or before the restart time) rather than offset by the
+  // restart stime, which would drift the cadence and drop the final frame.
+  // After rewriting the restart frame, reset_restart_output_triggers decouples
+  // frame numbers from trigger times, including force-written off-cadence frames.
   int num_frames = time_stepping.num_frames, num_int_diag_calc = time_stepping.int_diag_calc_num;
+  double dt_write_conf = t_end / num_frames;
+  double dt_write_phase = t_end / (time_stepping.write_phase_freq * num_frames);
   struct gkyl_tm_trigger trig_write_conf = {
-    .dt = t_end / num_frames,
-    .tcurr = frame_curr * (t_end / num_frames),
+    .dt = dt_write_conf,
+    .tcurr = gkyl_tm_trigger_anchor(dt_write_conf, t_curr),
     .curr = frame_curr,
   };
   struct gkyl_tm_trigger trig_write_phase = {
-    .dt = t_end / (time_stepping.write_phase_freq * num_frames),
-    .tcurr = frame_curr * (t_end / num_frames),
+    .dt = dt_write_phase,
+    .tcurr = gkyl_tm_trigger_anchor(dt_write_phase, t_curr),
     .curr = frame_curr,
   };
   struct gkyl_tm_trigger trig_calc_intdiag = {
@@ -563,20 +568,22 @@ gyrokinetic_run_multib_simulation(struct gkyl_gyrokinetic_run_inp *inp)
     gkyl_gyrokinetic_multib_app_apply_ic(app, t_curr);
   }
 
-  // Create triggers for IO. The frame-based restart values allow an ordinary
-  // on-cadence restart frame to be rewritten below. After that initial write,
-  // reset_restart_output_triggers decouples the next frame number from the
-  // configuration and phase trigger times, which also supports force-written
-  // off-cadence restart frames.
+  // Create triggers for IO. On restart, resume each frame writer on its own grid
+  // (the last grid point at or before the restart time) rather than offset by the
+  // restart stime, which would drift the cadence and drop the final frame.
+  // After rewriting the restart frame, reset_restart_output_triggers decouples
+  // frame numbers from trigger times, including force-written off-cadence frames.
   int num_frames = time_stepping.num_frames, num_int_diag_calc = time_stepping.int_diag_calc_num;
+  double dt_write_conf = t_end / num_frames;
+  double dt_write_phase = t_end / (time_stepping.write_phase_freq * num_frames);
   struct gkyl_tm_trigger trig_write_conf = {
-    .dt = t_end / num_frames,
-    .tcurr = frame_curr * (t_end / num_frames),
+    .dt = dt_write_conf,
+    .tcurr = gkyl_tm_trigger_anchor(dt_write_conf, t_curr),
     .curr = frame_curr,
   };
   struct gkyl_tm_trigger trig_write_phase = {
-    .dt = t_end / (time_stepping.write_phase_freq * num_frames),
-    .tcurr = frame_curr * (t_end / num_frames),
+    .dt = dt_write_phase,
+    .tcurr = gkyl_tm_trigger_anchor(dt_write_phase, t_curr),
     .curr = frame_curr,
   };
   struct gkyl_tm_trigger trig_calc_intdiag = {

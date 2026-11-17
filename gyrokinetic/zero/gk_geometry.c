@@ -8,6 +8,8 @@
 #include <gkyl_basis.h>
 #include <gkyl_deflate_geo.h>
 #include <gkyl_gk_geometry.h>
+#include <gkyl_gen_miller_eqdsk_priv.h>
+#include <gkyl_util.h>
 #include <gkyl_gk_geometry_priv.h>
 #include <gkyl_nodal_ops.h>
 #include <gkyl_alloc_flags_priv.h>
@@ -27,6 +29,7 @@ gkyl_gk_geometry_new(
 #endif
 
   struct gk_geometry *up = gkyl_malloc(sizeof(struct gk_geometry));
+  up->world_dim = geometry_inp->grid.ndim;
   up->geometry_id = geometry_inp->geometry_id;
   up->basis = geometry_inp->basis;
   up->local = geometry_inp->local;
@@ -35,6 +38,7 @@ gkyl_gk_geometry_new(
   up->global_ext = geometry_inp->global_ext;
   up->grid = geometry_inp->grid;
   gk_geometry_set_nodal_ranges(up);
+  up->has_dxdz_grad = false;
 
   for (int d = 0; d < 3; d++) {
     up->is_periodic[d] = geometry_inp->geo_is_periodic[d];
@@ -83,7 +87,7 @@ gkyl_gk_geometry_new(
         .elem_type = GKYL_MP_UNSIGNED_INT,
         .uval = up->geqdsk_sign_convention,
       },
-      {.key = "half_domain", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->half_domain}
+      {.key = "half_domain", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->half_domain},
     };
     up->io_meta_basic_len = sizeof(io_meta_basic) / sizeof(io_meta_basic[0]);
     up->io_meta_basic = gkyl_msgpack_map_elem_clone(up->io_meta_basic_len, io_meta_basic);
@@ -94,13 +98,13 @@ gkyl_gk_geometry_new(
         .key = "geqdsk_sign_convention",
         .elem_type = GKYL_MP_UNSIGNED_INT,
         .uval = up->geqdsk_sign_convention,
-      }
+      },
     };
     up->io_meta_basic_len = sizeof(io_meta_basic) / sizeof(io_meta_basic[0]);
     up->io_meta_basic = gkyl_msgpack_map_elem_clone(up->io_meta_basic_len, io_meta_basic);
   } else {
     struct gkyl_msgpack_map_elem io_meta_basic[] = {
-      {.key = "geometry_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geometry_id}
+      {.key = "geometry_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geometry_id},
     };
     up->io_meta_basic_len = sizeof(io_meta_basic) / sizeof(io_meta_basic[0]);
     up->io_meta_basic = gkyl_msgpack_map_elem_clone(up->io_meta_basic_len, io_meta_basic);
@@ -132,11 +136,13 @@ gkyl_gk_geometry_reset_io_meta(struct gk_geometry *up)
       );
     } else {
       // Element list doesn't have this key. Create a new list with it.
-      struct gkyl_msgpack_map_elem io_meta_basic_new[] = {{
-        .key = "geqdsk_sign_convention",
-        .elem_type = GKYL_MP_UNSIGNED_INT,
-        .uval = up->geqdsk_sign_convention,
-      }};
+      struct gkyl_msgpack_map_elem io_meta_basic_new[] = {
+        {
+          .key = "geqdsk_sign_convention",
+          .elem_type = GKYL_MP_UNSIGNED_INT,
+          .uval = up->geqdsk_sign_convention,
+        },
+      };
       int io_meta_basic_new_len = sizeof(io_meta_basic_new) / sizeof(io_meta_basic_new[0]);
 
       struct gkyl_msgpack_map_elem *io_meta_basic_buffer =
@@ -166,7 +172,7 @@ gkyl_gk_geometry_reset_io_meta(struct gk_geometry *up)
     } else {
       // Element list doesn't have this key. Create a new list with it.
       struct gkyl_msgpack_map_elem io_meta_basic_new[] = {
-        {.key = "half_domain", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->half_domain}
+        {.key = "half_domain", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->half_domain},
       };
       int io_meta_basic_new_len = sizeof(io_meta_basic_new) / sizeof(io_meta_basic_new[0]);
 
@@ -201,6 +207,14 @@ gkyl_gk_geometry_populate_nodal(struct gk_geometry *gk_geom)
   gkyl_nodal_ops_m2n(
     n2m, &gk_geom->basis, &gk_geom->grid, &gk_geom->nrange_int, &gk_geom->local, 9,
     gk_geom->geo_int.dxdz_nodal, gk_geom->geo_int.dxdz, true
+  );
+  gkyl_nodal_ops_m2n(
+    n2m, &gk_geom->basis, &gk_geom->grid, &gk_geom->nrange_int, &gk_geom->local, 27,
+    gk_geom->geo_int.dxdz_grad_nodal, gk_geom->geo_int.dxdz_grad, true
+  );
+  gkyl_nodal_ops_m2n(
+    n2m, &gk_geom->basis, &gk_geom->grid, &gk_geom->nrange_int, &gk_geom->local, 3,
+    gk_geom->geo_int.bcart_nodal, gk_geom->geo_int.bcart, true
   );
   gkyl_nodal_ops_m2n(
     n2m, &gk_geom->basis, &gk_geom->grid, &gk_geom->nrange_int, &gk_geom->local, 9,
@@ -260,6 +274,10 @@ gkyl_gk_geometry_populate_nodal(struct gk_geometry *gk_geom)
     gkyl_nodal_ops_m2n_surface(
       n2m, &gk_geom->surf_basis, &gk_geom->grid, &gk_geom->nrange_surf[dir], &local_ext_in_dir, 1,
       up_surf.normcurlbhat_nodal, up_surf.normcurlbhat, dir
+    );
+    gkyl_nodal_ops_m2n_surface(
+      n2m, &gk_geom->surf_basis, &gk_geom->grid, &gk_geom->nrange_surf[dir], &local_ext_in_dir, 9,
+      up_surf.dxdz_nodal, up_surf.dxdz, dir
     );
     gkyl_nodal_ops_m2n_surface(
       n2m, &gk_geom->surf_basis, &gk_geom->grid, &gk_geom->nrange_surf[dir], &local_ext_in_dir, 9,
@@ -525,15 +543,68 @@ gkyl_gk_geometry_init_nodal_grid(
   gkyl_rect_grid_init(ngrid, nrange->ndim, lower, upper, cells);
 }
 
+// Evaluate tangents on a separate, symmetric stencil about the world slice.
+// Its width controls differentiation, independently of the augmented grid.
+static struct gk_geometry *
+gk_geometry_derivative_samples(const struct gkyl_gk_geometry_inp *inp)
+{
+  struct gkyl_gk_geometry_inp sample = *inp;
+  double lower[3], upper[3];
+  for (int d = 0; d < 3; ++d) {
+    lower[d] = inp->geo_grid.lower[d];
+    upper[d] = inp->geo_grid.upper[d];
+    if ((inp->grid.ndim == 1 && d < 2) || (inp->grid.ndim == 2 && d == 1)) {
+      double center = lower[d] + 0.5 * (upper[d] - lower[d]);
+      bool sqrt_psi = d == 0 && inp->geometry_id == GKYL_GEOMETRY_MIRROR &&
+                      inp->mirror_grid_info.fl_coord ==
+                        GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z;
+      if (sqrt_psi) {
+        center = sqrt(center);
+      }
+      // Tangents themselves involve finite differences: a fourth-root epsilon
+      // step balances their roundoff against the centered stencil's O(h^2) error.
+      double scale = d == 0 && center != 0.0 ? fabs(center) : fmax(1.0, fabs(center));
+      double half_width = pow(DBL_EPSILON, 0.25) * scale;
+      lower[d] = center - half_width;
+      upper[d] = center + half_width;
+      if (sqrt_psi) {
+        // The mirror provider accepts psi bounds but samples in sqrt(psi).
+        lower[d] *= lower[d];
+        upper[d] *= upper[d];
+      }
+    }
+  }
+  gkyl_rect_grid_init(&sample.geo_grid, 3, lower, upper, inp->geo_grid.cells);
+  sample.grid = sample.geo_grid; // Sample all three directions rather than the world slice.
+  if (inp->grid.ndim == 1) {
+    sample.mirror_grid_info.include_axis = false;
+  }
+  switch (sample.geometry_id) {
+    case GKYL_GEOMETRY_TOKAMAK:
+      return gk_geometry_tok_init(&sample, false);
+    case GKYL_GEOMETRY_MIRROR:
+      return gk_geometry_mirror_init(&sample, false);
+    case GKYL_GEOMETRY_MAPC2P:
+    case GKYL_GEOMETRY_NONE:
+      return gk_geometry_mapc2p_init(&sample, false);
+    default:
+      gkyl_exit("Unsupported geometry provider for tangent derivatives.");
+  }
+  return NULL;
+}
+
 struct gk_geometry *
 gkyl_gk_geometry_deflate(const struct gk_geometry *up_3d, struct gkyl_gk_geometry_inp *geometry_inp)
 {
   struct gk_geometry *up = gkyl_malloc(sizeof(struct gk_geometry));
+  up->world_dim = geometry_inp->grid.ndim;
   up->geometry_id = geometry_inp->geometry_id;
   up->basis = geometry_inp->basis;
   up->local = geometry_inp->local;
   up->local_ext = geometry_inp->local_ext;
   up->grid = geometry_inp->grid;
+  up->global = geometry_inp->global;
+  up->global_ext = geometry_inp->global_ext;
   gk_geometry_set_nodal_ranges(up);
 
   if (up->grid.ndim > 1) {
@@ -551,6 +622,7 @@ gkyl_gk_geometry_deflate(const struct gk_geometry *up_3d, struct gkyl_gk_geometr
   up->has_LCFS = up_3d->has_LCFS;
   up->x_LCFS = up_3d->x_LCFS;
   up->idx_LCFS_lo = up_3d->idx_LCFS_lo;
+  up->has_dxdz_grad = true;
 
   gk_geometry_corn_alloc_expansions(up);
   gk_geometry_corn_alloc_nodal(up);
@@ -690,6 +762,37 @@ gkyl_gk_geometry_deflate(const struct gk_geometry *up_3d, struct gkyl_gk_geometr
     up->geo_int.dxdz_nodal, 9
   );
   gkyl_deflate_geo_advance_nodal(
+    deflator, &up_3d->nrange_int, &up->nrange_int, up_3d->geo_int.bcart_nodal,
+    up->geo_int.bcart_nodal, 3
+  );
+  // The geometry above is evaluated directly on the world slice. Sample a
+  // separate symmetric grid for the missing derivatives, then restrict at its
+  // center (not at either Gauss node).
+  struct gk_geometry *samples = gk_geometry_derivative_samples(geometry_inp);
+  struct gkyl_array *dxdz_grad_nodal_3d =
+    gkyl_array_new(GKYL_DOUBLE, 27, samples->nrange_int.volume);
+  struct gkyl_rect_grid derivative_grid = samples->grid;
+  if (geometry_inp->geometry_id == GKYL_GEOMETRY_MIRROR &&
+      geometry_inp->mirror_grid_info.fl_coord == GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z) {
+    derivative_grid.dx[0] =
+      (sqrt(samples->grid.upper[0]) - sqrt(samples->grid.lower[0])) / samples->grid.cells[0];
+  }
+  gkyl_nodal_ops_grad_interior(
+    &derivative_grid, &samples->nrange_int, 9, samples->geo_int.dxdz_nodal, dxdz_grad_nodal_3d
+  );
+  gkyl_deflate_geo_advance_nodal(
+    deflator, &samples->nrange_int, &up->nrange_int, dxdz_grad_nodal_3d,
+    up->geo_int.dxdz_grad_nodal, 27
+  );
+  gkyl_gk_geometry_release(samples);
+  gkyl_array_release(dxdz_grad_nodal_3d);
+  struct gkyl_nodal_ops *n2m_grad = gkyl_nodal_ops_new(&up->basis, &up->grid, false);
+  gkyl_nodal_ops_n2m(
+    n2m_grad, &up->basis, &up->grid, &up->nrange_int, &up->local, 27, up->geo_int.dxdz_grad_nodal,
+    up->geo_int.dxdz_grad, true
+  );
+  gkyl_nodal_ops_release(n2m_grad);
+  gkyl_deflate_geo_advance_nodal(
     deflator, &up_3d->nrange_int, &up->nrange_int, up_3d->geo_int.dzdx_nodal,
     up->geo_int.dzdx_nodal, 9
   );
@@ -795,6 +898,10 @@ gkyl_gk_geometry_deflate(const struct gk_geometry *up_3d, struct gkyl_gk_geometr
         up->geo_surf[count].normcurlbhat, 1
       );
       gkyl_deflate_geo_surf_advance(
+        deflator_surf, &local_ext_in_dir_3d, &local_ext_in_dir, up_3d->geo_surf[dir].dxdz,
+        up->geo_surf[count].dxdz, 9
+      );
+      gkyl_deflate_geo_surf_advance(
         deflator_surf, &local_ext_in_dir_3d, &local_ext_in_dir, up_3d->geo_surf[dir].normals,
         up->geo_surf[count].normals, 9
       );
@@ -875,6 +982,16 @@ gkyl_gk_geometry_deflate(const struct gk_geometry *up_3d, struct gkyl_gk_geometr
         deflator_surf, &up_3d->nrange_surf[dir], &up->nrange_surf[count],
         up_3d->geo_surf[dir].bimpactangle_nodal, up->geo_surf[count].bimpactangle_nodal, 1
       );
+      // Cartesian tangents and field direction at the face nodes (3D order), for
+      // consumers that build frames on the faces (e.g. the kinetic-neutral triads).
+      gkyl_deflate_geo_surf_advance_nodal(
+        deflator_surf, &up_3d->nrange_surf[dir], &up->nrange_surf[count],
+        up_3d->geo_surf[dir].dxdz_nodal, up->geo_surf[count].dxdz_nodal, 9
+      );
+      gkyl_deflate_geo_surf_advance_nodal(
+        deflator_surf, &up_3d->nrange_surf[dir], &up->nrange_surf[count],
+        up_3d->geo_surf[dir].bcart_nodal, up->geo_surf[count].bcart_nodal, 3
+      );
       count += 1;
       gkyl_deflate_geo_surf_release(deflator_surf);
     }
@@ -895,14 +1012,10 @@ gkyl_gk_geometry_deflate(const struct gk_geometry *up_3d, struct gkyl_gk_geometr
 void
 gkyl_gk_geometry_write_efit(
   struct gkyl_gk_geometry_inp *geometry_inp, struct gkyl_msgpack_map_elem *io_meta_basic_basic,
-  int io_meta_basic_basic_len
+  int io_meta_basic_basic_len, const char *file_name
 )
 {
   struct gkyl_efit *efit = gkyl_efit_new(&geometry_inp->efit_info);
-  const char *fmt = "%s-psi.gkyl";
-  int sz = gkyl_calc_strlen(fmt, efit->name);
-  char fileNm[sz + 1];
-  snprintf(fileNm, sizeof fileNm, fmt, efit->name);
 
   // Set extra metadata
   char geqdsk_file_name[128];
@@ -912,28 +1025,80 @@ gkyl_gk_geometry_write_efit(
     {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = efit->rzbasis.poly_order},
     {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = efit->rzbasis.id},
     {.key = "geqdsk_file", .elem_type = GKYL_MP_STRING, .cval = geqdsk_file_name},
-    {.key = "psisep", .elem_type = GKYL_MP_DOUBLE, .dval = efit->psisep},
+    {
+      .key = "eqdsk_cocos_index",
+      .elem_type = GKYL_MP_UNSIGNED_INT,
+      .uval = efit->eqdsk_cocos_index,
+    },
+    {.key = "geometry_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = geometry_inp->geometry_id},
+    {
+      .key = "tokamak_geo_type",
+      .elem_type = GKYL_MP_UNSIGNED_INT,
+      .uval = geometry_inp->tok_grid_info.ftype,
+    },
     {.key = "sibry", .elem_type = GKYL_MP_DOUBLE, .dval = efit->sibry},
     {.key = "simag", .elem_type = GKYL_MP_DOUBLE, .dval = efit->simag},
     {.key = "bcentr", .elem_type = GKYL_MP_DOUBLE, .dval = efit->bcentr},
     {.key = "current", .elem_type = GKYL_MP_DOUBLE, .dval = efit->current},
     {.key = "rmaxis", .elem_type = GKYL_MP_DOUBLE, .dval = efit->rmaxis},
-    {.key = "rcentr", .elem_type = GKYL_MP_DOUBLE, .dval = efit->zmaxis},
+    {.key = "rcentr", .elem_type = GKYL_MP_DOUBLE, .dval = efit->rcentr},
     {.key = "rleft", .elem_type = GKYL_MP_DOUBLE, .dval = efit->rleft},
     {.key = "rdim", .elem_type = GKYL_MP_DOUBLE, .dval = efit->rdim},
     {.key = "zmaxis", .elem_type = GKYL_MP_DOUBLE, .dval = efit->zmaxis},
     {.key = "zmid", .elem_type = GKYL_MP_DOUBLE, .dval = efit->zmid},
-    {.key = "zdim", .elem_type = GKYL_MP_DOUBLE, .dval = efit->zdim}
+    {.key = "zdim", .elem_type = GKYL_MP_DOUBLE, .dval = efit->zdim},
   };
+  const bool limited = geometry_inp->tok_grid_info.ftype == GKYL_GEOMETRY_TOKAMAK_IWL;
+  struct gkyl_msgpack_map_elem boundary_flux = limited ?
+                                                 (struct gkyl_msgpack_map_elem){
+                                                   .key = "psi_lcfs",
+                                                   .elem_type = GKYL_MP_DOUBLE,
+                                                   .dval = efit->sibry,
+                                                 } :
+                                                 (struct gkyl_msgpack_map_elem){
+                                                   .key = "psi_sep",
+                                                   .elem_type = GKYL_MP_DOUBLE,
+                                                   .dval = efit->psisep,
+                                                 };
+  const struct gkyl_gen_miller_eqdsk_inp *miller = &geometry_inp->miller_grid_info;
+  struct gen_miller_shape shape = {0};
+  if (miller->qsafety && !gen_miller_resolve_shape(miller, &shape)) {
+    gkyl_exit("Invalid Miller shaping callbacks.");
+  }
+  struct gkyl_msgpack_map_elem miller_meta[] = {
+    {.key = "geometry_generator", .elem_type = GKYL_MP_STRING, .cval = "miller"},
+    {.key = "miller_R_axis", .elem_type = GKYL_MP_DOUBLE, .dval = miller->Rmajor_axis},
+    {.key = "miller_Z_axis", .elem_type = GKYL_MP_DOUBLE, .dval = miller->Zvert_axis},
+    {.key = "miller_B_axis", .elem_type = GKYL_MP_DOUBLE, .dval = miller->bmag_axis},
+    {.key = "miller_R_lcfs", .elem_type = GKYL_MP_DOUBLE, .dval = miller->Rmajor_LCFS},
+    {.key = "miller_kappa", .elem_type = GKYL_MP_DOUBLE, .dval = shape.kappa},
+    {.key = "miller_delta", .elem_type = GKYL_MP_DOUBLE, .dval = shape.delta},
+    {.key = "miller_a_shift", .elem_type = GKYL_MP_DOUBLE, .dval = shape.a_shift},
+    {.key = "miller_psi_boundary", .elem_type = GKYL_MP_DOUBLE, .dval = efit->sibry},
+    {
+      .key = "miller_R_omp_lower",
+      .elem_type = GKYL_MP_DOUBLE,
+      .dval = miller->Rmajor_omp_bounds[0],
+    },
+    {
+      .key = "miller_R_omp_upper",
+      .elem_type = GKYL_MP_DOUBLE,
+      .dval = miller->Rmajor_omp_bounds[1],
+    },
+  };
+  int miller_meta_len = miller->qsafety ? sizeof(miller_meta) / sizeof(miller_meta[0]) : 0;
   int io_meta_basic_rz_len = sizeof(io_meta_basic_rz) / sizeof(io_meta_basic_rz[0]);
-  int io_meta_basic_len[] = {io_meta_basic_basic_len, io_meta_basic_rz_len};
-  const struct gkyl_msgpack_map_elem *io_meta_basic[] = {io_meta_basic_basic, io_meta_basic_rz};
+  int io_meta_basic_len[] = {io_meta_basic_basic_len, io_meta_basic_rz_len, 1, miller_meta_len};
+  const struct gkyl_msgpack_map_elem *io_meta_basic[] = {
+    io_meta_basic_basic, io_meta_basic_rz, &boundary_flux, miller_meta
+  };
   struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(
     sizeof(io_meta_basic_len) / sizeof(int), io_meta_basic_len, io_meta_basic
   );
-  gkyl_grid_sub_array_write(&efit->rzgrid, &efit->rzlocal, mt, efit->psizr, fileNm);
+  gkyl_grid_sub_array_write(&efit->rzgrid, &efit->rzlocal, mt, efit->psizr, file_name);
 
   gkyl_msgpack_data_release(mt);
+  gkyl_efit_release(efit);
 }
 
 void
@@ -955,6 +1120,7 @@ gkyl_gk_geometry_free(const struct gkyl_ref_count *ref)
   gkyl_array_release(up->geo_int.jacobgeo_ghost);
   gkyl_array_release(up->geo_int.jacobgeo_inv);
   gkyl_array_release(up->geo_int.dxdz);
+  gkyl_array_release(up->geo_int.dxdz_grad);
   gkyl_array_release(up->geo_int.dzdx);
   gkyl_array_release(up->geo_int.dualmag);
   gkyl_array_release(up->geo_int.normals);
@@ -987,6 +1153,7 @@ gkyl_gk_geometry_free(const struct gkyl_ref_count *ref)
     gkyl_array_release(up->geo_surf[dir].jacobtot_inv);
     gkyl_array_release(up->geo_surf[dir].B3);
     gkyl_array_release(up->geo_surf[dir].normcurlbhat);
+    gkyl_array_release(up->geo_surf[dir].dxdz);
     gkyl_array_release(up->geo_surf[dir].normals);
     gkyl_array_release(up->geo_surf[dir].lenr);
     gkyl_array_release(up->geo_surf[dir].deltats);
@@ -1020,21 +1187,6 @@ void
 gkyl_gk_geometry_release(const struct gk_geometry *up)
 {
   gkyl_ref_count_dec(&up->ref_count);
-}
-
-/**
- * Classify doubles without fast-math eliminating NaN/Inf checks.
- *
- * @param value Value to classify.
- * @return Whether the value is finite.
- */
-static bool
-gk_geometry_query_finite(double value)
-{
-  uint64_t bits;
-  memcpy(&bits, &value, sizeof bits);
-  volatile uint64_t exponent = bits & UINT64_C(0x7ff0000000000000);
-  return exponent != UINT64_C(0x7ff0000000000000);
 }
 
 /**
@@ -1086,7 +1238,7 @@ gk_geometry_query_eval(
     double dx = geo->grid.dx[dir];
     double lower = geo->grid.lower[dir] + (geo->local.lower[dir] - 1) * dx;
     double upper = geo->grid.lower[dir] + geo->local.upper[dir] * dx;
-    if (!gk_geometry_query_finite(xc[dir]) || xc[dir] < lower || xc[dir] > upper) {
+    if (!gkyl_is_dfinite(xc[dir]) || xc[dir] < lower || xc[dir] > upper) {
       gkyl_exit("geo_int query: computational point outside local interior domain or nonfinite.");
     }
     double cell = (xc[dir] - geo->grid.lower[dir]) / dx;
@@ -1101,7 +1253,7 @@ gk_geometry_query_eval(
   const double *coeff = gkyl_array_cfetch(field, gkyl_range_idx(&geo->local, idx));
   for (int comp = 0; comp < ncomp; ++comp) {
     out[comp] = geo->basis.eval_expand(xref, coeff + comp * geo->basis.num_basis);
-    if (!gk_geometry_query_finite(out[comp])) {
+    if (!gkyl_is_dfinite(out[comp])) {
       gkyl_exit("geo_int query: nonfinite interpolated value.");
     }
   }
@@ -1193,8 +1345,7 @@ gkyl_gk_geometry_geo_int_comp2tor_coords(
 )
 {
   gk_geometry_query_check(geo, xc, out);
-  if (!gk_geometry_query_finite(Rmajor_axis) || !gk_geometry_query_finite(Zvert_axis) ||
-      Rmajor_axis <= 0) {
+  if (!gkyl_is_dfinite(Rmajor_axis) || !gkyl_is_dfinite(Zvert_axis) || Rmajor_axis <= 0) {
     gkyl_exit("geo_int query: invalid reference axis.");
   }
   double cyl[3];
@@ -1208,38 +1359,6 @@ gkyl_gk_geometry_geo_int_comp2tor_coords(
   out[2] = cyl[1];
 }
 
-/**
- * Evaluate the Miller horizontal map at fixed v=r*sin(theta), checking its
- * derivative dR/du, where u=r*cos(theta).
- *
- * @param miller Axis and shaping parameters.
- * @param u Horizontal auxiliary-circle coordinate [m].
- * @param v Vertical auxiliary-circle coordinate [m].
- * @param derivative Output dR/du for checking the nonfolding branch.
- * @return Cylindrical major radius [m].
- */
-static double
-gk_geometry_query_miller_R(
-  const struct gkyl_gen_miller_eqdsk_inp *miller, double u, double v, double *derivative
-)
-{
-  double radius = hypot(u, v), eta = asin(miller->delta);
-  double beta = radius > 0 ? eta * v / radius : 0;
-  double dbeta = radius > 0 ? -eta * (v / radius) * (u / radius) / radius : 0;
-  *derivative =
-    cos(beta) - miller->a_shift * u / miller->Rmajor_axis - (u * sin(beta) + v * cos(beta)) * dbeta;
-  if (!gk_geometry_query_finite(*derivative)) {
-    gkyl_exit("geo_int query: nonfinite Miller map derivative.");
-  }
-  double Rmajor = miller->Rmajor_axis -
-                  miller->a_shift * radius * radius / (2 * miller->Rmajor_axis) + u * cos(beta) -
-                  v * sin(beta);
-  if (!gk_geometry_query_finite(Rmajor)) {
-    gkyl_exit("geo_int query: nonfinite Miller map.");
-  }
-  return Rmajor;
-}
-
 void
 gkyl_gk_geometry_geo_int_comp2miller_coords(
   const struct gk_geometry *geo, const double *xc, const struct gkyl_gen_miller_eqdsk_inp *miller,
@@ -1250,34 +1369,39 @@ gkyl_gk_geometry_geo_int_comp2miller_coords(
   if (!miller) {
     gkyl_exit("geo_int query: NULL Miller parameters.");
   }
+  struct gen_miller_shape shape;
+  if (!gen_miller_resolve_shape(miller, &shape)) {
+    gkyl_exit("geo_int query: invalid Miller shaping callbacks.");
+  }
   double params[] = {
-    miller->Rmajor_axis, miller->Zvert_axis, miller->kappa, miller->delta, miller->a_shift
+    miller->Rmajor_axis, miller->Zvert_axis, shape.kappa, shape.delta, shape.a_shift
   };
   for (int j = 0; j < 5; ++j) {
-    if (!gk_geometry_query_finite(params[j])) {
+    if (!gkyl_is_dfinite(params[j])) {
       gkyl_exit("geo_int query: nonfinite Miller parameter.");
     }
   }
-  if (miller->Rmajor_axis <= 0 || miller->kappa < 0 || fabs(miller->delta) >= 1) {
+  if (miller->Rmajor_axis <= 0 || shape.kappa <= 0 || fabs(shape.delta) >= 1) {
     gkyl_exit("geo_int query: invalid Miller axis or shaping parameters.");
   }
   double cyl[3];
   gkyl_gk_geometry_geo_int_comp2cyl_coords(geo, xc, cyl);
-  double kappa = miller->kappa == 0 ? 1 : miller->kappa; // Match generator defaults.
+  double kappa = shape.kappa;
+  double eta = asin(shape.delta);
   double v = (cyl[2] - miller->Zvert_axis) / kappa;
   double scale = hypot(cyl[0] - miller->Rmajor_axis, v);
   if (scale <= 16 * DBL_EPSILON * fmax(miller->Rmajor_axis, fabs(miller->Zvert_axis))) {
     gkyl_exit("geo_int query: Miller angle undefined at magnetic axis.");
   }
   // Concentric ellipses have an explicit inverse (including circular CBC).
-  if (miller->a_shift == 0 && miller->delta == 0) {
+  if (shape.a_shift == 0 && shape.delta == 0) {
     out[0] = scale;
     out[1] = atan2(v, cyl[0] - miller->Rmajor_axis);
     out[2] = cyl[1];
     return;
   }
   double derivative;
-  double at_zero = gk_geometry_query_miller_R(miller, 0, v, &derivative);
+  double at_zero = gen_miller_R_uv(miller, &shape, eta, 0, v, &derivative);
   if (derivative <= 0) {
     gkyl_exit("geo_int query: folded Miller branch at inversion origin.");
   }
@@ -1290,12 +1414,12 @@ gkyl_gk_geometry_geo_int_comp2miller_coords(
     double start = previous;
     for (int sample = 1; sample <= 32; ++sample) {
       endpoint = start + (direction * scale - start) * sample / 32.0;
-      double Rmajor = gk_geometry_query_miller_R(miller, endpoint, v, &derivative);
+      double Rmajor = gen_miller_R_uv(miller, &shape, eta, endpoint, v, &derivative);
       // A trial beyond a fold may still bracket a root on the valid side.
       // Approach the fold from the last monotone sample before rejecting it.
       for (int shrink = 0; derivative <= 0 && shrink < 64; ++shrink) {
         endpoint = 0.5 * (previous + endpoint);
-        Rmajor = gk_geometry_query_miller_R(miller, endpoint, v, &derivative);
+        Rmajor = gen_miller_R_uv(miller, &shape, eta, endpoint, v, &derivative);
       }
       if (derivative <= 0 || endpoint == previous) {
         gkyl_exit("geo_int query: Miller inverse outside the nonfolding branch.");
@@ -1314,7 +1438,7 @@ gkyl_gk_geometry_geo_int_comp2miller_coords(
   double lower = fmin(previous, endpoint), upper = fmax(previous, endpoint);
   for (int iter = 0; iter < 60; ++iter) {
     double middle = 0.5 * (lower + upper);
-    double Rmajor = gk_geometry_query_miller_R(miller, middle, v, &derivative);
+    double Rmajor = gen_miller_R_uv(miller, &shape, eta, middle, v, &derivative);
     if (derivative <= 0) {
       gkyl_exit("geo_int query: folded Miller inverse bracket.");
     }
@@ -1325,7 +1449,7 @@ gkyl_gk_geometry_geo_int_comp2miller_coords(
     }
   }
   double u = 0.5 * (lower + upper);
-  if (fabs(gk_geometry_query_miller_R(miller, u, v, &derivative) - cyl[0]) >
+  if (fabs(gen_miller_R_uv(miller, &shape, eta, u, v, &derivative) - cyl[0]) >
       1e-12 * miller->Rmajor_axis) {
     gkyl_exit("geo_int query: Miller inverse residual exceeds tolerance.");
   }

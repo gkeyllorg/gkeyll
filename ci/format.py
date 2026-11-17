@@ -1,21 +1,25 @@
 #!/usr/bin/env python3
 """Format Gkeyll C/C++/CUDA sources: clang-format plus the trailing-comma rules.
 
-Each file goes through four steps, in memory, and is written back only if the
+Each file goes through these steps, in memory, and is written back only if the
 final result differs from what is on disk (so the hook is idempotent and a
 clean tree passes):
 
   1. strip every trailing comma before a closing '}'   (author-independent input)
   2. clang-format
   3. add a trailing comma to every designated-initializer list that clang-format
-     could not fit on one line, and to any braced list it left starting a line
-     with '){' (a compound literal whose cast parentheses got broken instead)
+     could not fit on one line, to every multi-line list of those (an array of
+     structs, which would otherwise collapse into '{{'), and to any braced list
+     it left starting a line with '){' (a compound literal whose cast
+     parentheses got broken instead)
   4. clang-format again -- the trailing comma is what makes it put one member
      per line, with the first member on its own line below the '{'
+  5. repeat 3 and 4 until no list is left to expand, since expanding a list
+     indents its contents and can push a list inside it past the column limit
 
-The net rule is: a designated initializer that fits on one line stays on one
-line; one that does not gets one member per line. That is independent of
-whether the author typed a trailing comma.
+The net rule is: a designated initializer, or an array of them, that fits on one
+line stays on one line; one that does not gets one member per line. That is
+independent of whether the author typed a trailing comma.
 
 Usage:
     format.py FILE...          # rewrite files in place
@@ -91,17 +95,34 @@ def strip_trailing_commas(text):
     return "".join(chars)
 
 
+def _only_braced_lists(m, o, i, children):
+    """True if the text directly inside m[o..i] is nothing but the child braced
+    lists and the commas between them (so a code block can never qualify)."""
+    rest = []
+    pos = o + 1
+    for start, end in children:
+        rest.append(m[pos:start])
+        pos = end + 1
+    rest.append(m[pos:i])
+    return not "".join(rest).replace(",", "").replace("\\", "").strip()
+
+
 def add_trailing_commas(text):
     m = _mask(text)
     inserts = []
-    stack = []
+    stack = []  # one [offset of '{', spans of its child lists, any child designated] per open brace
     for i, ch in enumerate(m):
         if ch == "{":
-            stack.append(i)
+            stack.append([i, [], False])
         elif ch == "}" and stack:
-            o = stack.pop()
+            o, children, child_designated = stack.pop()
             body = m[o + 1 : i]
-            designated = bool(_DESIGNATOR_RE.match(body.lstrip()))
+            designated = bool(_DESIGNATOR_RE.match(body.lstrip())) or (
+                child_designated and _only_braced_lists(m, o, i, children)
+            )
+            if stack:
+                stack[-1][1].append((o, i))
+                stack[-1][2] = stack[-1][2] or designated
             line_start = m.rfind("\n", 0, o) + 1
             cast_broken = m[line_start:o].strip() == ")"
             if not (cast_broken or (designated and "\n" in body)):
@@ -129,10 +150,13 @@ def clang_format(text, path):
 
 
 def format_text(text, path):
-    text = strip_trailing_commas(text)
-    text = clang_format(text, path)
-    text = add_trailing_commas(text)
-    return clang_format(text, path)
+    text = clang_format(strip_trailing_commas(text), path)
+    while True:
+        text = clang_format(add_trailing_commas(text), path)
+        # Expanding a list indents its contents, which can push a list inside it
+        # past the column limit, so go again until no list is left to expand.
+        if add_trailing_commas(text) == text:
+            return text
 
 
 def main(argv):

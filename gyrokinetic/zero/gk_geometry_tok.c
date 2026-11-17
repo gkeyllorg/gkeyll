@@ -486,9 +486,10 @@ tok_xpt_trial_surface_metric_finite(const struct gk_geometry *up)
 }
 
 struct gk_geometry *
-gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
+gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp, bool optimize_map)
 {
   struct gk_geometry *up = gkyl_calloc(1, sizeof(struct gk_geometry));
+  up->world_dim = geometry_inp->grid.ndim;
   up->geometry_id = geometry_inp->geometry_id;
   up->basis = geometry_inp->geo_basis;
 
@@ -557,7 +558,9 @@ gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
     gk_geometry_surf_alloc_expansions(up, dir);
   }
 
-  gkyl_position_map_optimize(geometry_inp->position_map, up->grid, up->global);
+  if (optimize_map) {
+    gkyl_position_map_optimize(geometry_inp->position_map, up->grid, up->global);
+  }
 
   bool optimizer_trial = tok_xpt_trial_active(&ginp);
   struct gkyl_tok_geo_xpt_seam_trial_status *trial_status = ginp.relaxed_xpt_seam_trial_status;
@@ -666,43 +669,26 @@ gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
     },
     {.key = "parallel_coordinate", .elem_type = GKYL_MP_STRING, .cval = "field_aligned_theta"},
     {.key = "geometry_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geometry_id},
+    {.key = "tokamak_geo_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = ginp.ftype},
     {
       .key = "geqdsk_sign_convention",
       .elem_type = GKYL_MP_UNSIGNED_INT,
       .uval = up->geqdsk_sign_convention,
     },
     {.key = "geqdsk_file", .elem_type = GKYL_MP_STRING, .cval = geqdsk_file_name},
-    {.key = "half_domain", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->half_domain}
+    {
+      .key = "eqdsk_cocos_index",
+      .elem_type = GKYL_MP_UNSIGNED_INT,
+      .uval = geo->efit->eqdsk_cocos_index,
+    },
+    {.key = "half_domain", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->half_domain},
   };
   up->io_meta_basic_len = sizeof(io_meta_basic) / sizeof(io_meta_basic[0]);
   up->io_meta_basic = gkyl_msgpack_map_elem_clone(up->io_meta_basic_len, io_meta_basic);
 
   if (geometry_inp->miller_grid_info.qsafety) {
-    const struct gkyl_gen_miller_eqdsk_inp *miller = &geometry_inp->miller_grid_info;
     struct gkyl_msgpack_map_elem miller_meta[] = {
       {.key = "geometry_generator", .elem_type = GKYL_MP_STRING, .cval = "miller"},
-      {.key = "miller_R_axis", .elem_type = GKYL_MP_DOUBLE, .dval = miller->Rmajor_axis},
-      {.key = "miller_Z_axis", .elem_type = GKYL_MP_DOUBLE, .dval = miller->Zvert_axis},
-      {.key = "miller_B_axis", .elem_type = GKYL_MP_DOUBLE, .dval = miller->bmag_axis},
-      {.key = "miller_R_lcfs", .elem_type = GKYL_MP_DOUBLE, .dval = miller->Rmajor_LCFS},
-      {
-        .key = "miller_kappa",
-        .elem_type = GKYL_MP_DOUBLE,
-        .dval = miller->kappa ? miller->kappa : 1,
-      },
-      {.key = "miller_delta", .elem_type = GKYL_MP_DOUBLE, .dval = miller->delta},
-      {.key = "miller_a_shift", .elem_type = GKYL_MP_DOUBLE, .dval = miller->a_shift},
-      {.key = "miller_psi_boundary", .elem_type = GKYL_MP_DOUBLE, .dval = geo->efit->sibry},
-      {
-        .key = "miller_R_omp_lower",
-        .elem_type = GKYL_MP_DOUBLE,
-        .dval = miller->Rmajor_omp_bounds[0],
-      },
-      {
-        .key = "miller_R_omp_upper",
-        .elem_type = GKYL_MP_DOUBLE,
-        .dval = miller->Rmajor_omp_bounds[1],
-      }
     };
     const struct gkyl_msgpack_map_elem *lists[] = {up->io_meta_basic, miller_meta};
     int lengths[] = {up->io_meta_basic_len, sizeof miller_meta / sizeof miller_meta[0]};
@@ -801,7 +787,7 @@ gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geometry_inp)
     struct gkyl_gk_geometry_inp uniform_inp = *geometry_inp;
     uniform_inp.tok_grid_info.relaxed_xpt_seam_optimizer_trial = false;
     uniform_inp.tok_grid_info.relaxed_xpt_seam_trial_status = 0;
-    gk_geom_3d = gk_geometry_tok_init(&uniform_inp);
+    gk_geom_3d = gk_geometry_tok_init(&uniform_inp, true);
     // The array mc2nu is computed using the uniform geometry, so we need to deflate it
     // Must deflate the 3D uniform geometry in order for the allgather to work
     if (geometry_inp->grid.ndim < 3) {
@@ -818,7 +804,7 @@ gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geometry_inp)
     gkyl_gk_geometry_release(gk_geom); // release 3d geometry
   }
   // Construct the non-uniform grid
-  gk_geom_3d = gk_geometry_tok_init(geometry_inp);
+  gk_geom_3d = gk_geometry_tok_init(geometry_inp, true);
   return gk_geom_3d;
 }
 

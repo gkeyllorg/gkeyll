@@ -1,0 +1,45 @@
+#include <gkyl_flux_vlasov_kernels.h> 
+#include <gkyl_vlasov_flux_surf_mod2nod_tables_1x1v_ser_p1.h> 
+GKYL_CU_DH int nc_hamil_phase_alpha_quad_vx_1x1v_ser_p1_shared(int tid, int off, const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, const double *hamil,
+  double* GKYL_RESTRICT O, double* GKYL_RESTRICT I) 
+{ 
+  if (O == NULL) return 2; 
+  O += off*2; 
+  I += off*1; 
+  const double dx10 = 2.0/dxv[0]; 
+  const double jacob_cx_inv = 1.0/jacob_pos[0]; 
+  const double *poisson_tensor_conf_x0 = &poisson_tensor_conf[0]; 
+  if (tid < 2) { 
+    const int i = tid; 
+    double px0_q = 0.0; 
+    for (int a = 0; a < 2; ++a) { 
+      px0_q += vst_1x1v_ser_p1_conf_ev[i*2 + a]*poisson_tensor_conf_x0[a]; 
+    } 
+    for (int a = 0; a < 2; ++a) O[a*2 + i] = -(px0_q*vst_1x1v_ser_p1_ph_v0_CmDx0[i*2 + a]*dx10*jacob_cx_inv); 
+  } 
+  if (tid < 1) { 
+    const int j = tid; 
+    double G[2]; 
+    for (int a = 0; a < 2; ++a) { G[a] = 0.0; } 
+    for (int k = 0; k < 4; ++k) { 
+      const int a = vst_1x1v_ser_p1_ph_v0_cmap[k]; 
+      G[a] += vst_1x1v_ser_p1_ph_v0_V[j*2 + vst_1x1v_ser_p1_ph_v0_vrmap[k]]*(vst_1x1v_ser_p1_ph_v0_coefr[k]*hamil[k]); 
+    } 
+    for (int a = 0; a < 2; ++a) I[a*1 + j] = G[a]; 
+  } 
+  return 2; 
+} 
+
+GKYL_CU_DH void nc_hamil_phase_alpha_quad_vx_1x1v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad) 
+{ 
+  double O[4]; 
+  double I[2]; 
+  for (int tid = 0; tid < 2; ++tid) nc_hamil_phase_alpha_quad_vx_1x1v_ser_p1_shared(tid, 0, w, dxv, vmap, jacob_pos, jacob_vel_surf, poisson_tensor_conf, hamil, O, I); 
+  for (int i = 0; i < 2; ++i) { 
+    for (int j = 0; j < 1; ++j) { 
+      double alpha = 0.0; 
+      for (int t = 0; t < 2; ++t) alpha += O[t*2 + i]*I[t*1 + j]; 
+      alpha_quad[i*1 + j] += alpha; 
+    } 
+  } 
+} 
