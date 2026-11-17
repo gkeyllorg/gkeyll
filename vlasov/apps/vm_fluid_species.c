@@ -547,6 +547,9 @@ vm_fluid_species_can_pb_fluid_init(
       &app->global, &app->grid, app->basis, &poisson_bcs, 0, f->epsilon, NULL, true, app->use_gpu
     );
   }
+  if (f->info.use_superlu_system_memory) {
+    gkyl_fem_poisson_set_use_superlu_system_memory(f->fem_poisson);
+  }
   f->has_poisson = true;
 
   // Hasegawa-Wakatani: the adiabatic coupling relaxes phi toward n at the rate
