@@ -141,3 +141,6 @@ gyrokinetic/creg/rt_gk_cbc_2x2v_p1                # IC envelope removed and t_en
 gyrokinetic/creg/rt_gk_cbc_adiabatic_3x2v_p1      # Nx 4->8, Ny 2->4 to satisfy the Ly-2dy twist-shift check
 gyrokinetic/creg/rt_gk_d3d_iwl_3x2v_p1            # resolution changed (Ny 4->8, Nz 8->6, Nvpar 8->4, Nmu 4->2)
 gyrokinetic/creg/rt_gk_rosenbluth_hinton_2x2v_p1  # reduced resolution (Nx 16->8, Nz 8->4, Nvpar 12->6, Nmu 6->4)
+gyrokinetic/creg/rt_gk_lapd_cyl_nonuniformr_3x2v_p1	# fixed parenthesis in elc source temperature profile
+gyrokinetic/creg/rt_gk_lapd_cyl_3x2v_p1	# switched to the JCP 2025 nonuniform-v LAPD setup (sec. 4.3.3)
+gyrokinetic/creg/rt_gk_lapd_cart_3x2v_p1	# fixed parenthesis in elc source temperature profile
