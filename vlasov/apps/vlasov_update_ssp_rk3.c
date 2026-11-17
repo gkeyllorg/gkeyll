@@ -2,9 +2,12 @@
 
 // Take time-step using the RK3 method. Also sets the status object
 // which has the actual and suggested dts used. These can be different
-// from the actual time-step.
-struct gkyl_update_status
-vlasov_update_ssp_rk3(gkyl_vlasov_app *app, double dt0)
+// from the actual time-step. With retake, a stage whose step comes out
+// smaller than dt0 restarts the step with it; without, the function
+// returns at that stage with the solution untouched (only the stage
+// arrays are written) and dt_actual < dt0 in the status.
+static inline struct gkyl_update_status
+update_ssp_rk3(gkyl_vlasov_app *app, double dt0, bool retake)
 {
   int num_species = app->num_species;
 
@@ -28,6 +31,11 @@ vlasov_update_ssp_rk3(gkyl_vlasov_app *app, double dt0)
           vlasov_forward_euler(
             app, 1, tcurr, dt, fin, fluidin, app->field->em, fout, fluidout, app->field->em1, &st
           );
+
+          if (!retake && st.dt_actual < dt) {
+            app->stat.rk3_tm += gkyl_time_diff_now_sec(rk3_s1_tm);
+            return st;
+          }
 
           vm_apply_bc(app, tcurr, fout, fluidout, app->field->em1);
 
@@ -67,6 +75,10 @@ vlasov_update_ssp_rk3(gkyl_vlasov_app *app, double dt0)
             app->stat.stage_2_dt_diff[0] = fmin(app->stat.stage_2_dt_diff[0], dt_rel_diff);
             app->stat.stage_2_dt_diff[1] = fmax(app->stat.stage_2_dt_diff[1], dt_rel_diff);
             app->stat.nstage_2_fail += 1;
+            if (!retake) {
+              app->stat.rk3_tm += gkyl_time_diff_now_sec(rk3_s2_tm);
+              return st;
+            }
 
             dt = st.dt_actual;
             state = RK_STAGE_1; // restart from stage 1
@@ -111,6 +123,10 @@ vlasov_update_ssp_rk3(gkyl_vlasov_app *app, double dt0)
             app->stat.stage_3_dt_diff[0] = fmin(app->stat.stage_3_dt_diff[0], dt_rel_diff);
             app->stat.stage_3_dt_diff[1] = fmax(app->stat.stage_3_dt_diff[1], dt_rel_diff);
             app->stat.nstage_3_fail += 1;
+            if (!retake) {
+              app->stat.rk3_tm += gkyl_time_diff_now_sec(rk3_s3_tm);
+              return st;
+            }
 
             dt = st.dt_actual;
             state = RK_STAGE_1; // restart from stage 1
@@ -146,4 +162,16 @@ vlasov_update_ssp_rk3(gkyl_vlasov_app *app, double dt0)
   }
 
   return st;
+}
+
+struct gkyl_update_status
+vlasov_update_ssp_rk3(gkyl_vlasov_app *app, double dt0)
+{
+  return update_ssp_rk3(app, dt0, true);
+}
+
+struct gkyl_update_status
+vlasov_update_ssp_rk3_attempt(gkyl_vlasov_app *app, double dt0)
+{
+  return update_ssp_rk3(app, dt0, false);
 }

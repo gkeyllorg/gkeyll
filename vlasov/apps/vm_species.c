@@ -1193,6 +1193,41 @@ vm_species_release_static(const gkyl_vlasov_app *app, const struct vm_species *v
 {
 }
 
+// A reflecting wall mirrors the cells of the velocity grid normal to it, so that grid (and its
+// velocity map, if any) must be symmetric about zero: otherwise the mirrored cells hold other
+// velocities and the wall neither conserves particles nor reverses their velocity.
+static void
+vm_species_check_reflect(const gkyl_vlasov_app *app, const struct vm_species *vms, int dir)
+{
+  if (dir >= app->vdim) {
+    gkyl_exit("vm_species: a reflecting boundary needs the velocity direction normal to it.");
+  }
+  double lower = vms->info.lower[dir], upper = vms->info.upper[dir];
+  bool is_symmetric = fabs(lower + upper) <= 1.0e-12 * (upper - lower);
+  if (is_symmetric && vms->info.mapc2p_vel[dir].mapc2p_vel_func) {
+    // The edges of the mapped cells in mirrored pairs.
+    int cells = vms->grid_vel.cells[dir];
+    double dxi = vms->grid_vel.dx[dir];
+    void *ctx = vms->info.mapc2p_vel[dir].mapc2p_vel_ctx;
+    double v_lower, v_upper;
+    vms->info.mapc2p_vel[dir].mapc2p_vel_func(0.0, &lower, &v_lower, ctx);
+    vms->info.mapc2p_vel[dir].mapc2p_vel_func(0.0, &upper, &v_upper, ctx);
+    for (int i = 0; i <= cells / 2; ++i) {
+      double xi_lo = lower + i * dxi, xi_up = upper - i * dxi;
+      double v_lo, v_up;
+      vms->info.mapc2p_vel[dir].mapc2p_vel_func(0.0, &xi_lo, &v_lo, ctx);
+      vms->info.mapc2p_vel[dir].mapc2p_vel_func(0.0, &xi_up, &v_up, ctx);
+      is_symmetric = is_symmetric && fabs(v_lo + v_up) <= 1.0e-12 * fabs(v_upper - v_lower);
+    }
+  }
+  if (!is_symmetric) {
+    gkyl_exit(
+      "vm_species: a reflecting boundary needs a velocity grid (and velocity map) symmetric about "
+      "zero in the direction normal to it."
+    );
+  }
+}
+
 // Initialize dynamic species object.
 static void
 vm_species_new_dynamic(
@@ -1243,6 +1278,11 @@ vm_species_new_dynamic(
   vms->bc_buffer_up_fixed = mkarr(app->use_gpu, vms->basis.num_basis, buff_sz);
 
   for (int d = 0; d < cdim; ++d) {
+    if (vms->lower_bc[d].type == GKYL_SPECIES_REFLECT ||
+        vms->upper_bc[d].type == GKYL_SPECIES_REFLECT) {
+      vm_species_check_reflect(app, vms, d);
+    }
+
     // Lower BC updater. Copy BCs by default.
     enum gkyl_bc_basic_type bctype = GKYL_BC_COPY;
     if (vms->lower_bc[d].type == GKYL_SPECIES_EMISSION) {

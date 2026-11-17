@@ -13,7 +13,7 @@
 // Figures of merit at t = 25 / Omega_ci (64 x 32 cells, serendipity p1, 4167 steps): the
 // reconnected flux int |B_y(x, y = 0)| dx / 2 grows from 0.0200 to 0.1242 (the moments
 // finite-volume solution on 128 x 64 cells: 0.0200 to 0.1167; the implicit variant,
-// rt_dg_5m_gem_2x: 0.1268). The out-of-plane field reaches |B_z| = 0.014 and the electron speed
+// rt_dg_5m_gem_2x: 0.1304). The out-of-plane field reaches |B_z| = 0.014 and the electron speed
 // 0.21 (cell averages); the cell averages of the correction potential stay below 1.1e-3, the field
 // energy falls from 1.511 to 1.258, and the total energy of the diagnostics by 3.4%. The run
 // amplifies round-off: the Lua twin starts from the same state to 1e-16 and ends with a reconnected

@@ -9,6 +9,7 @@ extern "C" {
 #include <gkyl_wave_geom.h>
 #include <gkyl_wv_eqn.h>
 #include <gkyl_wv_euler.h>
+#include <gkyl_wv_iso_euler.h>
 }
 
 #include <cassert>
@@ -45,19 +46,20 @@ __global__ void static dg_euler_set_cu_dev_ptrs(
   const gkyl_dg_euler_vol_kern_list *vol_kernels;
   const gkyl_dg_euler_surf_kern_list *surf_x_kernels, *surf_y_kernels, *surf_z_kernels;
 
+  bool is_iso = euler->eqn_type == GKYL_EQN_ISO_EULER;
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      vol_kernels = ser_vol_kernels;
-      surf_x_kernels = ser_surf_x_kernels;
-      surf_y_kernels = ser_surf_y_kernels;
-      surf_z_kernels = ser_surf_z_kernels;
+      vol_kernels = is_iso ? ser_iso_vol_kernels : ser_vol_kernels;
+      surf_x_kernels = is_iso ? ser_iso_surf_x_kernels : ser_surf_x_kernels;
+      surf_y_kernels = is_iso ? ser_iso_surf_y_kernels : ser_surf_y_kernels;
+      surf_z_kernels = is_iso ? ser_iso_surf_z_kernels : ser_surf_z_kernels;
       break;
 
     case GKYL_BASIS_MODAL_TENSOR:
-      vol_kernels = ten_vol_kernels;
-      surf_x_kernels = ten_surf_x_kernels;
-      surf_y_kernels = ten_surf_y_kernels;
-      surf_z_kernels = ten_surf_z_kernels;
+      vol_kernels = is_iso ? ten_iso_vol_kernels : ten_vol_kernels;
+      surf_x_kernels = is_iso ? ten_iso_surf_x_kernels : ten_surf_x_kernels;
+      surf_y_kernels = is_iso ? ten_iso_surf_y_kernels : ten_surf_y_kernels;
+      surf_z_kernels = is_iso ? ten_iso_surf_z_kernels : ten_surf_z_kernels;
       break;
 
     default:
@@ -89,7 +91,13 @@ gkyl_dg_euler_cu_dev_new(
 
   euler->eqn_type = wv_eqn->type;
   euler->eqn.num_equations = wv_eqn->num_equations;
-  euler->gas_gamma = gkyl_wv_euler_gas_gamma(wv_eqn);
+  euler->gas_gamma = 0.0;
+  euler->vt = 0.0;
+  if (euler->eqn_type == GKYL_EQN_ISO_EULER) {
+    euler->vt = gkyl_wv_iso_euler_vt(wv_eqn);
+  } else {
+    euler->gas_gamma = gkyl_wv_euler_gas_gamma(wv_eqn);
+  }
 
   // acquire pointer to wave equation object
   struct gkyl_wv_eqn *eqn = gkyl_wv_eqn_acquire(wv_eqn);

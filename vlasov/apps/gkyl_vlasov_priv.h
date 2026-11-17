@@ -103,9 +103,32 @@ struct vm_fluid_em_coupling {
   struct gkyl_array *curl_rhs; // Maxwell right-hand side of the field at the start of the source step
   struct gkyl_array *curl_current; // applied current - eps0 * (E rows of curl_rhs)
 
-  // Staggered states (fluids, field) kept while the app holds the synchronized ones.
+  // Staggered states (fluids, field): those at the start of an update while it runs (for a
+  // transport step that takes less than planned), and those kept while the app holds the
+  // synchronized ones.
   struct gkyl_array *fluid_stag[GKYL_MAX_SPECIES];
   struct gkyl_array *em_stag;
+
+  // Ghost current (1x periodic; allocated with it): the fluids and the field at the start of a
+  // source step, and the solve of the step (with or without the ghost current of the fluids).
+  struct gkyl_array *fluid_ghost[GKYL_MAX_SPECIES];
+  struct gkyl_array *em_ghost;
+  void (*advance_func)(
+    struct gkyl_vlasov_app *app, struct vm_fluid_em_coupling *fl_em, double dt,
+    const struct gkyl_array *app_accels[GKYL_MAX_SPECIES],
+    struct gkyl_array *fluids[GKYL_MAX_SPECIES]
+  );
+
+  // Kinetic species of a hybrid run: their current at the start of a source step is a known
+  // current of the step (a leapfrog with the transport step, which moves them with the E of the
+  // source step), so the step has to resolve their plasma frequency.
+  int num_kinetic; // number of kinetic species
+  struct vlasov_species *kinetic[GKYL_MAX_SPECIES]; // kinetic species, in declaration order
+  struct gkyl_array *omega_p_sq; // per cell: sum over the kinetic species of q^2 n / (eps0 m)
+  struct gkyl_array *m0_avg; // per cell: average density of a kinetic species (scratch)
+  double *omega_p_sq_max; // maximum of omega_p_sq over the local range
+  // Largest step of the leapfrog of the kinetic currents (DBL_MAX without kinetic species).
+  double (*src_dt_func)(struct gkyl_vlasov_app *app, struct vm_fluid_em_coupling *fl_em);
 };
 
 // Vlasov object: used as opaque pointer in user code
@@ -241,6 +264,12 @@ void vlasov_op_split_restart(gkyl_vlasov_app *app, int frame);
 // Take a single time-step using a SSP-RK3 stepper
 struct gkyl_update_status vlasov_update_ssp_rk3(gkyl_vlasov_app *app, double dt0);
 
+// Attempt a single SSP-RK3 step of size dt0: as vlasov_update_ssp_rk3, but when a stage allows
+// only a smaller step it returns with the solution untouched and dt_actual < dt0 in the status,
+// for the caller to prepare the smaller step (the staggered operator split repeats its source
+// step).
+struct gkyl_update_status vlasov_update_ssp_rk3_attempt(gkyl_vlasov_app *app, double dt0);
+
 /** gkyl_vlasov_app private API */
 
 /**
@@ -362,9 +391,10 @@ bool vm_fluid_em_coupling_supported(const struct vm_fluid_species *f);
 /**
  * Implicit source step of the fluid-EM coupling (implicit midpoint at the nodes): advances the
  * fluid momenta and energies and the electric field in place. E advances only here, with
- * c^2 curl B of the field at the start of the step as a known current (Stormer-Verlet in the curl
- * terms; the transport step drifts B with this E). The step is time-reversible: a negative dt
- * inverts it.
+ * c^2 curl B of the field and the current of the kinetic species at the start of the step as
+ * known currents (Stormer-Verlet in the curl terms and a leapfrog in the kinetic currents; the
+ * transport step drifts B and moves the kinetic species with this E). The step is
+ * time-reversible: a negative dt inverts it.
  *
  * @param app Vlasov app object
  * @param fl_em fluid-EM coupling updater
@@ -374,6 +404,18 @@ bool vm_fluid_em_coupling_supported(const struct vm_fluid_species *f);
 void vm_fluid_em_coupling_update(
   struct gkyl_vlasov_app *app, struct vm_fluid_em_coupling *fl_em, double tcurr, double dt
 );
+
+/**
+ * Largest step the leapfrog of the kinetic currents allows: cfl_frac / omega_p, with omega_p^2
+ * the largest sum over the kinetic species of the plasma frequency squared of the cell-average
+ * density (the leapfrog is stable for omega_p dt < 2 at a fixed step). DBL_MAX when the run has
+ * no kinetic species.
+ *
+ * @param app Vlasov app object
+ * @param fl_em fluid-EM coupling updater
+ * @return Largest step of the source update
+ */
+double vm_fluid_em_coupling_dt(struct gkyl_vlasov_app *app, struct vm_fluid_em_coupling *fl_em);
 
 /**
  * Limiters after a source step of an update: the vertex positivity limiter of the fluids and

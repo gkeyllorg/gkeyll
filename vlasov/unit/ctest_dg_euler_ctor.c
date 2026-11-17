@@ -8,6 +8,7 @@
 #include <gkyl_dg_euler.h>
 #include <gkyl_dg_euler_priv.h>
 #include <gkyl_wv_euler.h>
+#include <gkyl_wv_iso_euler.h>
 #include <gkyl_wave_geom.h>
 
 static struct gkyl_wave_geom *
@@ -125,9 +126,65 @@ test_euler_3x_p1()
   gkyl_wave_geom_release(geom);
 }
 
+// Isothermal Euler: four conserved variables (rho, momentum x3) and the kernels of every direction.
+static void
+test_iso_euler(int cdim)
+{
+  struct gkyl_basis cbasis;
+  gkyl_cart_modal_serendip(&cbasis, cdim, 1);
+  struct gkyl_rect_grid grid;
+  struct gkyl_range crange;
+  struct gkyl_wave_geom *geom = mk_geom(
+    &grid, &crange, cdim, (double[]){0.0, 0.0, 0.0}, (double[]){1.0, 1.0, 1.0}, (int[]){4, 3, 2}
+  );
+
+  double vt = 0.7;
+  struct gkyl_wv_eqn *wv = gkyl_wv_iso_euler_new(vt, false);
+  struct gkyl_dg_eqn *eqn = gkyl_dg_euler_new(&cbasis, &crange, wv, geom, false);
+
+  TEST_CHECK(eqn->num_equations == 4);
+  TEST_CHECK(eqn->num_equations == wv->num_equations);
+  TEST_CHECK(eqn->vol_term != 0);
+  TEST_CHECK(eqn->surf_term != 0);
+  TEST_CHECK(eqn->on_dev == eqn);
+
+  struct dg_euler *euler = container_of(eqn, struct dg_euler, eqn);
+  TEST_CHECK(euler->eqn_type == GKYL_EQN_ISO_EULER);
+  TEST_CHECK(gkyl_compare(euler->vt, vt, 1e-15));
+  for (int d = 0; d < cdim; ++d) {
+    TEST_CHECK(euler->surf[d] != 0);
+  }
+  TEST_CHECK(euler->wv_eqn == wv);
+
+  gkyl_dg_eqn_release(eqn);
+  gkyl_wv_eqn_release(wv);
+  gkyl_wave_geom_release(geom);
+}
+
+void
+test_iso_euler_1x_p1()
+{
+  test_iso_euler(1);
+}
+
+void
+test_iso_euler_2x_p1()
+{
+  test_iso_euler(2);
+}
+
+void
+test_iso_euler_3x_p1()
+{
+  test_iso_euler(3);
+}
+
 TEST_LIST = {
   {"euler_1x_p1", test_euler_1x_p1},
   {"euler_2x_p1", test_euler_2x_p1},
   {"euler_3x_p1", test_euler_3x_p1},
+  {"iso_euler_1x_p1", test_iso_euler_1x_p1},
+  {"iso_euler_2x_p1", test_iso_euler_2x_p1},
+  {"iso_euler_3x_p1", test_iso_euler_3x_p1},
   {NULL, NULL}
 };

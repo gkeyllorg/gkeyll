@@ -14,6 +14,9 @@ struct gkyl_dg_calc_fluid_em_coupling_inp {
     *mem_range; // Configuration-space range that sets the size of the batched solve.
   int num_species; // Number of fluid species in the update.
   const double *qbym; // Charge/mass of each fluid species (num_species values).
+  // Whether the state of each species carries an energy, [rho, rho u, E] (num_species values);
+  // false for an isothermal fluid, [rho, rho u]. NULL: all species carry one.
+  const bool *has_energy;
   double epsilon0; // Permittivity of free space.
   // True if the EM fields are static: the species currents do not enter the E rows (E then
   // changes only by the applied current handed to the advance method).

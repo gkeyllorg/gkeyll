@@ -8,6 +8,7 @@
 #include <gkyl_dg_calc_fluid_vars_priv.h>
 #include <gkyl_wv_eqn.h>
 #include <gkyl_wv_euler.h>
+#include <gkyl_wv_iso_euler.h>
 #include <gkyl_util.h>
 
 gkyl_dg_calc_fluid_vars *
@@ -29,6 +30,8 @@ gkyl_dg_calc_fluid_vars_new(
   up->geom = gkyl_wave_geom_acquire(geom);
   if (up->eqn_type == GKYL_EQN_EULER) {
     up->param = gkyl_wv_euler_gas_gamma(up->wv_eqn);
+  } else if (up->eqn_type == GKYL_EQN_ISO_EULER) {
+    up->param = gkyl_wv_iso_euler_vt(up->wv_eqn);
   }
 
   int nc = cbasis->num_basis;
@@ -42,15 +45,15 @@ gkyl_dg_calc_fluid_vars_new(
 
   up->fluid_set = choose_fluid_set_kern(b_type, cdim, poly_order);
   up->fluid_copy = choose_fluid_copy_kern(b_type, cdim, poly_order);
-  up->fluid_pressure = choose_fluid_pressure_kern(b_type, cdim, poly_order);
+  up->fluid_pressure = choose_fluid_pressure_kern(up->eqn_type, b_type, cdim, poly_order);
   up->fluid_ke = choose_fluid_ke_kern(b_type, cdim, poly_order);
   up->fluid_int = choose_fluid_int_kern(b_type, cdim, poly_order);
-  up->fluid_source = choose_fluid_source_kern(b_type, cdim, poly_order);
-  up->fluid_em_source = choose_fluid_em_source_kern(b_type, cdim, poly_order);
-  up->fluid_positivity = choose_fluid_positivity_kern(b_type, cdim, poly_order);
+  up->fluid_source = choose_fluid_source_kern(up->eqn_type, b_type, cdim, poly_order);
+  up->fluid_em_source = choose_fluid_em_source_kern(up->eqn_type, b_type, cdim, poly_order);
+  up->fluid_positivity = choose_fluid_positivity_kern(up->eqn_type, b_type, cdim, poly_order);
   // Fetch the kernels in each direction
   for (int d = 0; d < cdim; ++d) {
-    up->fluid_limiter[d] = choose_fluid_limiter_kern(d, b_type, cdim, poly_order);
+    up->fluid_limiter[d] = choose_fluid_limiter_kern(up->eqn_type, d, b_type, cdim, poly_order);
   }
 
   // Limiter factor for relationship between slopes and cell average differences

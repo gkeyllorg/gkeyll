@@ -286,13 +286,13 @@ static const double gl4_w[4] = {
   0.3478548451374538, 0.6521451548625461, 0.6521451548625461, 0.3478548451374538
 };
 
+// Spatially varying state of two species and the fields: projections of eval_fields, with a
+// varying internal energy on top of the bulk kinetic energy.
 static void
-test_varying(int cdim)
+set_varying_state(struct setup *sp, int cdim)
 {
-  struct setup s;
-  setup_init(&s, cdim, 2);
+  struct setup s = *sp;
   int nb = s.nc;
-  double qbym[2] = {-1.0, 0.5}, eps0 = 1.3, dt = 0.21;
   struct gkyl_array *all = mkarr(23 * nb, s.local_ext.volume);
   gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&s.grid, &s.basis, 8, 23, eval_fields, &cdim);
   gkyl_proj_on_basis_advance(proj, 0.0, &s.local_ext, all);
@@ -335,6 +335,18 @@ test_varying(int cdim)
   gkyl_array_set_offset(s.fluid[0], 2.5, tmp, 4 * nb);
   gkyl_array_set_offset(tmp, 1.0, all, 1 * nb);
   gkyl_array_set_offset(s.fluid[1], 1.5, tmp, 4 * nb);
+  gkyl_array_release(tmp);
+  gkyl_array_release(all);
+}
+
+static void
+test_varying(int cdim)
+{
+  struct setup s;
+  setup_init(&s, cdim, 2);
+  int nb = s.nc;
+  double qbym[2] = {-1.0, 0.5}, eps0 = 1.3, dt = 0.21;
+  set_varying_state(&s, cdim);
   struct gkyl_array *M_old[2] = {
     mkarr(5 * nb, s.local_ext.volume), mkarr(5 * nb, s.local_ext.volume)
   };
@@ -485,10 +497,104 @@ test_varying(int cdim)
   gkyl_array_release(em_old);
   gkyl_array_release(M_old[0]);
   gkyl_array_release(M_old[1]);
-  gkyl_array_release(tmp);
-  gkyl_array_release(all);
   gkyl_dg_calc_fluid_em_coupling_release(up);
   setup_release(&s, 2);
+}
+
+// A species without an energy (isothermal fluid): the momenta, the field and the energy of the
+// other species are those of the solve in which both carry one, and its fifth block is not
+// written.
+static void
+test_no_energy(int cdim)
+{
+  struct setup s_ref, s_iso;
+  setup_init(&s_ref, cdim, 2);
+  setup_init(&s_iso, cdim, 2);
+  set_varying_state(&s_ref, cdim);
+  set_varying_state(&s_iso, cdim);
+  int nb = s_ref.nc;
+  double qbym[2] = {-1.0, 0.5}, eps0 = 1.3, dt = 0.21, sentinel = -7.5;
+  // the fifth block of the isothermal species holds a sentinel
+  struct gkyl_array *block = mkarr(nb, s_iso.local_ext.volume);
+  gkyl_array_clear(block, 0.0);
+  gkyl_array_set_offset(s_iso.fluid[0], 1.0, block, 4 * nb);
+  gkyl_array_release(block);
+  set_const_block(s_iso.fluid[0], 4, nb, sentinel, cdim);
+  struct gkyl_array *fluid_old = mkarr(5 * nb, s_iso.local_ext.volume);
+  gkyl_array_copy(fluid_old, s_iso.fluid[0]);
+
+  bool has_energy[2] = {false, true};
+  struct gkyl_dg_calc_fluid_em_coupling *up_ref =
+    gkyl_dg_calc_fluid_em_coupling_inew(&(struct gkyl_dg_calc_fluid_em_coupling_inp){
+      .conf_basis = &s_ref.basis,
+      .mem_range = &s_ref.local,
+      .num_species = 2,
+      .qbym = qbym,
+      .epsilon0 = eps0,
+      .is_field_static = false,
+      .use_gpu = false,
+    });
+  struct gkyl_dg_calc_fluid_em_coupling *up_iso =
+    gkyl_dg_calc_fluid_em_coupling_inew(&(struct gkyl_dg_calc_fluid_em_coupling_inp){
+      .conf_basis = &s_iso.basis,
+      .mem_range = &s_iso.local,
+      .num_species = 2,
+      .qbym = qbym,
+      .has_energy = has_energy,
+      .epsilon0 = eps0,
+      .is_field_static = false,
+      .use_gpu = false,
+    });
+  const struct gkyl_array *aa_ref[2] = {s_ref.app_accel[0], s_ref.app_accel[1]};
+  struct gkyl_array *ff_ref[2] = {s_ref.fluid[0], s_ref.fluid[1]};
+  gkyl_dg_calc_fluid_em_coupling_advance(
+    up_ref, dt, aa_ref, s_ref.ext_em, s_ref.app_current, ff_ref, s_ref.em
+  );
+  const struct gkyl_array *aa_iso[2] = {s_iso.app_accel[0], s_iso.app_accel[1]};
+  struct gkyl_array *ff_iso[2] = {s_iso.fluid[0], s_iso.fluid[1]};
+  gkyl_dg_calc_fluid_em_coupling_advance(
+    up_iso, dt, aa_iso, s_iso.ext_em, s_iso.app_current, ff_iso, s_iso.em
+  );
+
+  double max_diff = 0.0, max_sentinel = 0.0, max_change = 0.0;
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &s_ref.local);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&s_ref.local_ext, iter.idx);
+    const double *f0_ref = gkyl_array_cfetch(s_ref.fluid[0], loc);
+    const double *f0_iso = gkyl_array_cfetch(s_iso.fluid[0], loc);
+    const double *f1_ref = gkyl_array_cfetch(s_ref.fluid[1], loc);
+    const double *f1_iso = gkyl_array_cfetch(s_iso.fluid[1], loc);
+    const double *em_ref = gkyl_array_cfetch(s_ref.em, loc);
+    const double *em_iso = gkyl_array_cfetch(s_iso.em, loc);
+    for (int k = 0; k < 4 * nb; ++k) {
+      max_diff = fmax(max_diff, fabs(f0_ref[k] - f0_iso[k]));
+    }
+    for (int k = 0; k < 5 * nb; ++k) {
+      max_diff = fmax(max_diff, fabs(f1_ref[k] - f1_iso[k]));
+    }
+    for (int k = 0; k < 3 * nb; ++k) {
+      max_diff = fmax(max_diff, fabs(em_ref[k] - em_iso[k]));
+    }
+    max_sentinel = fmax(max_sentinel, fabs(f0_iso[4 * nb] - sentinel * pow(sqrt(2.0), cdim)));
+    for (int k = 1; k < nb; ++k) {
+      max_sentinel = fmax(max_sentinel, fabs(f0_iso[4 * nb + k]));
+    }
+    // the solve changes the momentum (the comparison is not of untouched states)
+    const double *f0_old = gkyl_array_cfetch(fluid_old, loc);
+    max_change = fmax(max_change, fabs(f0_iso[nb] - f0_old[nb]));
+  }
+  TEST_CHECK(max_diff == 0.0);
+  TEST_MSG("largest difference from the solve with energies: %g", max_diff);
+  TEST_CHECK(max_sentinel == 0.0);
+  TEST_MSG("fifth block of the isothermal species changed by %g", max_sentinel);
+  TEST_CHECK(max_change > 0.0);
+
+  gkyl_array_release(fluid_old);
+  gkyl_dg_calc_fluid_em_coupling_release(up_ref);
+  gkyl_dg_calc_fluid_em_coupling_release(up_iso);
+  setup_release(&s_ref, 2);
+  setup_release(&s_iso, 2);
 }
 
 void
@@ -516,6 +622,21 @@ test_varying_3x()
 {
   test_varying(3);
 }
+void
+test_no_energy_1x()
+{
+  test_no_energy(1);
+}
+void
+test_no_energy_2x()
+{
+  test_no_energy(2);
+}
+void
+test_no_energy_3x()
+{
+  test_no_energy(3);
+}
 
 TEST_LIST = {
   {"static_E_push_1x", test_static_E_push_1x},
@@ -525,5 +646,8 @@ TEST_LIST = {
   {"varying_1x", test_varying_1x},
   {"varying_2x", test_varying_2x},
   {"varying_3x", test_varying_3x},
+  {"no_energy_1x", test_no_energy_1x},
+  {"no_energy_2x", test_no_energy_2x},
+  {"no_energy_3x", test_no_energy_3x},
   {NULL, NULL}
 };

@@ -7,6 +7,7 @@
 #include <gkyl_basis.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_euler_kernels.h>
+#include <gkyl_iso_euler_kernels.h>
 #include <gkyl_range.h>
 #include <gkyl_util.h>
 #include <gkyl_wv_eqn.h>
@@ -21,7 +22,7 @@ typedef void (*fluid_copy_t)(
 );
 
 typedef void (*fluid_pressure_t)(
-  double gas_gamma, const double *fluid, const double *u, double *GKYL_RESTRICT p,
+  double param, const double *fluid, const double *u, double *GKYL_RESTRICT p,
   double *GKYL_RESTRICT p_surf
 );
 
@@ -263,6 +264,94 @@ GKYL_CU_D static const fluid_positivity_t fluid_positivity_kernels[] = {
   fluid_vars_positivity_1x_ser_p1, fluid_vars_positivity_2x_ser_p1, fluid_vars_positivity_3x_ser_p1
 };
 
+// Isothermal Euler, [rho, rho ux, rho uy, rho uz] with p = vt^2 rho: pressure, slope limiter, source
+// and positivity kernels (the flow velocity, kinetic energy and integrated-variable kernels above
+// do not read the energy and serve both systems).
+GKYL_CU_D static const gkyl_dg_fluid_pressure_kern_list ser_fluid_iso_pressure_kernels[] = {
+  {NULL, fluid_vars_iso_pressure_1x_ser_p1, fluid_vars_iso_pressure_1x_ser_p2,
+   fluid_vars_iso_pressure_1x_ser_p3}, // 0
+  {NULL, fluid_vars_iso_pressure_2x_ser_p1, NULL, NULL}, // 1
+  {NULL, fluid_vars_iso_pressure_3x_ser_p1, NULL, NULL} // 2
+};
+
+GKYL_CU_D static const gkyl_dg_fluid_limiter_kern_list ser_fluid_iso_limiter_x_kernels[] = {
+  {NULL, fluid_vars_iso_limiterx_1x_ser_p1, fluid_vars_iso_limiterx_1x_ser_p2,
+   fluid_vars_iso_limiterx_1x_ser_p3}, // 0
+  {NULL, fluid_vars_iso_limiterx_2x_ser_p1, NULL, NULL}, // 1
+  {NULL, fluid_vars_iso_limiterx_3x_ser_p1, NULL, NULL} // 2
+};
+
+GKYL_CU_D static const gkyl_dg_fluid_limiter_kern_list ser_fluid_iso_limiter_y_kernels[] = {
+  {NULL, NULL, NULL, NULL}, // 0
+  {NULL, fluid_vars_iso_limitery_2x_ser_p1, NULL, NULL}, // 1
+  {NULL, fluid_vars_iso_limitery_3x_ser_p1, NULL, NULL} // 2
+};
+
+GKYL_CU_D static const gkyl_dg_fluid_limiter_kern_list ser_fluid_iso_limiter_z_kernels[] = {
+  {NULL, NULL, NULL, NULL}, // 0
+  {NULL, NULL, NULL, NULL}, // 1
+  {NULL, fluid_vars_iso_limiterz_3x_ser_p1, NULL, NULL} // 2
+};
+
+GKYL_CU_D static const gkyl_dg_fluid_source_kern_list ser_fluid_iso_source_kernels[] = {
+  {NULL, fluid_vars_iso_source_1x_ser_p1, fluid_vars_iso_source_1x_ser_p2,
+   fluid_vars_iso_source_1x_ser_p3}, // 0
+  {NULL, fluid_vars_iso_source_2x_ser_p1, NULL, NULL}, // 1
+  {NULL, fluid_vars_iso_source_3x_ser_p1, NULL, NULL} // 2
+};
+
+GKYL_CU_D static const gkyl_dg_fluid_em_source_kern_list ser_fluid_iso_em_source_kernels[] = {
+  {NULL, fluid_vars_iso_em_source_1x_ser_p1, fluid_vars_iso_em_source_1x_ser_p2,
+   fluid_vars_iso_em_source_1x_ser_p3}, // 0
+  {NULL, fluid_vars_iso_em_source_2x_ser_p1, NULL, NULL}, // 1
+  {NULL, fluid_vars_iso_em_source_3x_ser_p1, NULL, NULL} // 2
+};
+
+GKYL_CU_D static const gkyl_dg_fluid_pressure_kern_list ten_fluid_iso_pressure_kernels[] = {
+  {NULL, fluid_vars_iso_pressure_1x_ser_p1, fluid_vars_iso_pressure_1x_ser_p2,
+   fluid_vars_iso_pressure_1x_ser_p3}, // 0
+  {NULL, fluid_vars_iso_pressure_2x_ser_p1, fluid_vars_iso_pressure_2x_tensor_p2, NULL}, // 1
+  {NULL, fluid_vars_iso_pressure_3x_ser_p1, NULL, NULL} // 2
+};
+
+GKYL_CU_D static const gkyl_dg_fluid_limiter_kern_list ten_fluid_iso_limiter_x_kernels[] = {
+  {NULL, fluid_vars_iso_limiterx_1x_ser_p1, fluid_vars_iso_limiterx_1x_ser_p2,
+   fluid_vars_iso_limiterx_1x_ser_p3}, // 0
+  {NULL, fluid_vars_iso_limiterx_2x_ser_p1, fluid_vars_iso_limiterx_2x_tensor_p2, NULL}, // 1
+  {NULL, fluid_vars_iso_limiterx_3x_ser_p1, NULL, NULL} // 2
+};
+
+GKYL_CU_D static const gkyl_dg_fluid_limiter_kern_list ten_fluid_iso_limiter_y_kernels[] = {
+  {NULL, NULL, NULL, NULL}, // 0
+  {NULL, fluid_vars_iso_limitery_2x_ser_p1, fluid_vars_iso_limitery_2x_tensor_p2, NULL}, // 1
+  {NULL, fluid_vars_iso_limitery_3x_ser_p1, NULL, NULL} // 2
+};
+
+GKYL_CU_D static const gkyl_dg_fluid_limiter_kern_list ten_fluid_iso_limiter_z_kernels[] = {
+  {NULL, NULL, NULL, NULL}, // 0
+  {NULL, NULL, NULL, NULL}, // 1
+  {NULL, fluid_vars_iso_limiterz_3x_ser_p1, NULL, NULL} // 2
+};
+
+GKYL_CU_D static const gkyl_dg_fluid_source_kern_list ten_fluid_iso_source_kernels[] = {
+  {NULL, fluid_vars_iso_source_1x_ser_p1, fluid_vars_iso_source_1x_ser_p2,
+   fluid_vars_iso_source_1x_ser_p3}, // 0
+  {NULL, fluid_vars_iso_source_2x_ser_p1, fluid_vars_iso_source_2x_tensor_p2, NULL}, // 1
+  {NULL, fluid_vars_iso_source_3x_ser_p1, NULL, NULL} // 2
+};
+
+GKYL_CU_D static const gkyl_dg_fluid_em_source_kern_list ten_fluid_iso_em_source_kernels[] = {
+  {NULL, fluid_vars_iso_em_source_1x_ser_p1, fluid_vars_iso_em_source_1x_ser_p2,
+   fluid_vars_iso_em_source_1x_ser_p3}, // 0
+  {NULL, fluid_vars_iso_em_source_2x_ser_p1, fluid_vars_iso_em_source_2x_tensor_p2, NULL}, // 1
+  {NULL, fluid_vars_iso_em_source_3x_ser_p1, NULL, NULL} // 2
+};
+
+GKYL_CU_D static const fluid_positivity_t fluid_iso_positivity_kernels[] = {
+  fluid_vars_iso_positivity_1x_ser_p1, fluid_vars_iso_positivity_2x_ser_p1,
+  fluid_vars_iso_positivity_3x_ser_p1
+};
+
 GKYL_CU_D static fluid_set_t
 choose_fluid_set_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
@@ -296,14 +385,19 @@ choose_fluid_copy_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
 }
 
 GKYL_CU_D static fluid_pressure_t
-choose_fluid_pressure_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
+choose_fluid_pressure_kern(
+  enum gkyl_eqn_type eqn_type, enum gkyl_basis_type b_type, int cdim, int poly_order
+)
 {
+  bool is_iso = eqn_type == GKYL_EQN_ISO_EULER;
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      return ser_fluid_pressure_kernels[cdim - 1].kernels[poly_order];
+      return is_iso ? ser_fluid_iso_pressure_kernels[cdim - 1].kernels[poly_order] :
+                      ser_fluid_pressure_kernels[cdim - 1].kernels[poly_order];
       break;
     case GKYL_BASIS_MODAL_TENSOR:
-      return ten_fluid_pressure_kernels[cdim - 1].kernels[poly_order];
+      return is_iso ? ten_fluid_iso_pressure_kernels[cdim - 1].kernels[poly_order] :
+                      ten_fluid_pressure_kernels[cdim - 1].kernels[poly_order];
       break;
     default:
       assert(false);
@@ -328,27 +422,36 @@ choose_fluid_ke_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
 }
 
 GKYL_CU_D static fluid_limiter_t
-choose_fluid_limiter_kern(int dir, enum gkyl_basis_type b_type, int cdim, int poly_order)
+choose_fluid_limiter_kern(
+  enum gkyl_eqn_type eqn_type, int dir, enum gkyl_basis_type b_type, int cdim, int poly_order
+)
 {
+  bool is_iso = eqn_type == GKYL_EQN_ISO_EULER;
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       if (dir == 0) {
-        return ser_fluid_limiter_x_kernels[cdim - 1].kernels[poly_order];
+        return is_iso ? ser_fluid_iso_limiter_x_kernels[cdim - 1].kernels[poly_order] :
+                        ser_fluid_limiter_x_kernels[cdim - 1].kernels[poly_order];
       } else if (dir == 1) {
-        return ser_fluid_limiter_y_kernels[cdim - 1].kernels[poly_order];
+        return is_iso ? ser_fluid_iso_limiter_y_kernels[cdim - 1].kernels[poly_order] :
+                        ser_fluid_limiter_y_kernels[cdim - 1].kernels[poly_order];
       } else if (dir == 2) {
-        return ser_fluid_limiter_z_kernels[cdim - 1].kernels[poly_order];
+        return is_iso ? ser_fluid_iso_limiter_z_kernels[cdim - 1].kernels[poly_order] :
+                        ser_fluid_limiter_z_kernels[cdim - 1].kernels[poly_order];
       } else {
         return NULL;
       }
       break;
     case GKYL_BASIS_MODAL_TENSOR:
       if (dir == 0) {
-        return ten_fluid_limiter_x_kernels[cdim - 1].kernels[poly_order];
+        return is_iso ? ten_fluid_iso_limiter_x_kernels[cdim - 1].kernels[poly_order] :
+                        ten_fluid_limiter_x_kernels[cdim - 1].kernels[poly_order];
       } else if (dir == 1) {
-        return ten_fluid_limiter_y_kernels[cdim - 1].kernels[poly_order];
+        return is_iso ? ten_fluid_iso_limiter_y_kernels[cdim - 1].kernels[poly_order] :
+                        ten_fluid_limiter_y_kernels[cdim - 1].kernels[poly_order];
       } else if (dir == 2) {
-        return ten_fluid_limiter_z_kernels[cdim - 1].kernels[poly_order];
+        return is_iso ? ten_fluid_iso_limiter_z_kernels[cdim - 1].kernels[poly_order] :
+                        ten_fluid_limiter_z_kernels[cdim - 1].kernels[poly_order];
       } else {
         return NULL;
       }
@@ -376,14 +479,19 @@ choose_fluid_int_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
 }
 
 GKYL_CU_D static fluid_source_t
-choose_fluid_source_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
+choose_fluid_source_kern(
+  enum gkyl_eqn_type eqn_type, enum gkyl_basis_type b_type, int cdim, int poly_order
+)
 {
+  bool is_iso = eqn_type == GKYL_EQN_ISO_EULER;
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      return ser_fluid_source_kernels[cdim - 1].kernels[poly_order];
+      return is_iso ? ser_fluid_iso_source_kernels[cdim - 1].kernels[poly_order] :
+                      ser_fluid_source_kernels[cdim - 1].kernels[poly_order];
       break;
     case GKYL_BASIS_MODAL_TENSOR:
-      return ten_fluid_source_kernels[cdim - 1].kernels[poly_order];
+      return is_iso ? ten_fluid_iso_source_kernels[cdim - 1].kernels[poly_order] :
+                      ten_fluid_source_kernels[cdim - 1].kernels[poly_order];
       break;
     default:
       assert(false);
@@ -392,14 +500,19 @@ choose_fluid_source_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
 }
 
 GKYL_CU_D static fluid_em_source_t
-choose_fluid_em_source_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
+choose_fluid_em_source_kern(
+  enum gkyl_eqn_type eqn_type, enum gkyl_basis_type b_type, int cdim, int poly_order
+)
 {
+  bool is_iso = eqn_type == GKYL_EQN_ISO_EULER;
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      return ser_fluid_em_source_kernels[cdim - 1].kernels[poly_order];
+      return is_iso ? ser_fluid_iso_em_source_kernels[cdim - 1].kernels[poly_order] :
+                      ser_fluid_em_source_kernels[cdim - 1].kernels[poly_order];
       break;
     case GKYL_BASIS_MODAL_TENSOR:
-      return ten_fluid_em_source_kernels[cdim - 1].kernels[poly_order];
+      return is_iso ? ten_fluid_iso_em_source_kernels[cdim - 1].kernels[poly_order] :
+                      ten_fluid_em_source_kernels[cdim - 1].kernels[poly_order];
       break;
     default:
       assert(false);
@@ -408,9 +521,15 @@ choose_fluid_em_source_kern(enum gkyl_basis_type b_type, int cdim, int poly_orde
 }
 
 GKYL_CU_D static fluid_positivity_t
-choose_fluid_positivity_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
+choose_fluid_positivity_kern(
+  enum gkyl_eqn_type eqn_type, enum gkyl_basis_type b_type, int cdim, int poly_order
+)
 {
   bool is_p1 = poly_order == 1 &&
                (b_type == GKYL_BASIS_MODAL_SERENDIPITY || b_type == GKYL_BASIS_MODAL_TENSOR);
-  return is_p1 ? fluid_positivity_kernels[cdim - 1] : 0;
+  if (!is_p1) {
+    return 0;
+  }
+  return eqn_type == GKYL_EQN_ISO_EULER ? fluid_iso_positivity_kernels[cdim - 1] :
+                                          fluid_positivity_kernels[cdim - 1];
 }

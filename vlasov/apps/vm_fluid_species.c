@@ -133,7 +133,7 @@ vm_fluid_species_euler_limiter(
 
   // Limit the slopes of the solution
   gkyl_dg_calc_fluid_vars_limiter(f->calc_fluid_vars, &app->local, fluid);
-  // Keep the vertex density and internal energy positive
+  // Keep the vertex density and (Euler) internal energy positive
   f->positivity_func(app, f, fluid);
 
   app->stat.fluid_species_vars_tm += gkyl_time_diff_now_sec(tm);
@@ -157,7 +157,7 @@ vm_fluid_species_euler_init(
 )
 {
   // allocate array to store fluid velocity (ux, uy, uz) and pressure
-  // For isothermal Euler, p : (vth*rho)
+  // For isothermal Euler, p : (vth^2*rho)
   // For Euler, p : (gamma - 1)*(E - 1/2 rho u^2)
   f->u = mkarr(app->use_gpu, 3 * app->basis.num_basis, app->local_ext.volume);
   f->p = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
@@ -974,10 +974,9 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   f->can_pb_alpha_cfl_rate = 0.0; // Only Hasegawa-Wakatani sets a nonzero rate below.
   // Setup equation-specific memory and equation type/number of equations based on input table
   f->eqn_type = f->info.equation->type;
-  // The fluid DG updater has no isothermal Euler solver yet (it would fall
-  // through to the canonical-PB branch); reject it until one exists.
-  if (f->eqn_type == GKYL_EQN_ISO_EULER) {
-    gkyl_exit("vm_fluid_species: isothermal Euler fluid species are not supported yet.");
+  // The isothermal Euler equation object has no device copy.
+  if (f->eqn_type == GKYL_EQN_ISO_EULER && app->use_gpu) {
+    gkyl_exit("vm_fluid_species: isothermal Euler fluid species are not supported on the GPU.");
   }
   // The fluid solvers (and their initial conditions, sources and coefficients) work on the
   // computational grid and do not use the position map.

@@ -54,4 +54,11 @@ void gkyl_register_vlasov_source_types(lua_State *L);
  */
 void gkyl_register_vlasov_radiation_types(lua_State *L);
 
+/**
+ * Add the Riemann-solver types of the isothermal Euler fluid (G0.IsoEulerRP) into Lua interpreter.
+ *
+ * @param L Lua state to use.
+ */
+void gkyl_register_vlasov_iso_euler_rp_types(lua_State *L);
+
 #endif

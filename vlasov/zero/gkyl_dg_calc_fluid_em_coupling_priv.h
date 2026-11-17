@@ -18,8 +18,9 @@ typedef void (*fluid_em_coupling_set_t)(
   const double *em
 );
 typedef void (*fluid_em_coupling_copy_t)(
-  int count, int num_species, double qbym[GKYL_MAX_SPECIES], double epsilon0, struct gkyl_nmat *x,
-  double *GKYL_RESTRICT fluid[GKYL_MAX_SPECIES], double *GKYL_RESTRICT em
+  int count, int num_species, double qbym[GKYL_MAX_SPECIES], bool has_energy[GKYL_MAX_SPECIES],
+  double epsilon0, struct gkyl_nmat *x, double *GKYL_RESTRICT fluid[GKYL_MAX_SPECIES],
+  double *GKYL_RESTRICT em
 );
 
 struct gkyl_dg_calc_fluid_em_coupling {
@@ -35,6 +36,7 @@ struct gkyl_dg_calc_fluid_em_coupling {
 
   int num_species; // number of species being implicitly solved for
   double qbym[GKYL_MAX_SPECIES]; // charge/mass ratio for each species
+  bool has_energy[GKYL_MAX_SPECIES]; // whether the state of each species carries an energy
   double epsilon0; // permitivvity of free space
 
   uint32_t flags;
@@ -53,13 +55,21 @@ GKYL_CU_D static const fluid_em_coupling_copy_t ser_fluid_em_coupling_copy_kerne
 GKYL_CU_D static fluid_em_coupling_set_t
 choose_fluid_em_coupling_set_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
-  assert(poly_order == 1 && b_type == GKYL_BASIS_MODAL_SERENDIPITY);
+  // The tensor and serendipity p = 1 bases are the same (a kinetic species selects its hybrid
+  // phase basis through the tensor type).
+  assert(
+    poly_order == 1 && (b_type == GKYL_BASIS_MODAL_SERENDIPITY || b_type == GKYL_BASIS_MODAL_TENSOR)
+  );
   return ser_fluid_em_coupling_set_kernels[cdim - 1];
 }
 
 GKYL_CU_D static fluid_em_coupling_copy_t
 choose_fluid_em_coupling_copy_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
-  assert(poly_order == 1 && b_type == GKYL_BASIS_MODAL_SERENDIPITY);
+  // The tensor and serendipity p = 1 bases are the same (a kinetic species selects its hybrid
+  // phase basis through the tensor type).
+  assert(
+    poly_order == 1 && (b_type == GKYL_BASIS_MODAL_SERENDIPITY || b_type == GKYL_BASIS_MODAL_TENSOR)
+  );
   return ser_fluid_em_coupling_copy_kernels[cdim - 1];
 }

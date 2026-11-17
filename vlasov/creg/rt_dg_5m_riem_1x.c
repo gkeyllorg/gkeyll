@@ -14,10 +14,10 @@
 // limiter the electron pressure is 2.2e-3 or more everywhere at t = 10 (it is 6e-5 at most here).
 //
 // Figures of merit at t = 10 (256 cells, serendipity p1, 8534 steps): relative L1 differences of
-// the cell averages from the moments finite-volume solution on 1024 cells, 1.2% (ion density), 1.2%
-// of the maximum (ion u_x), 1.7% (ion pressure), 1.5% (electron pressure), 1.2% and 1.5% of the
-// maximum (B_y, B_z); with 512 cells 0.69%, 0.70%, 0.97%, 0.61%, 0.61% and 1.9%. The electron
-// pressure lies between 4.0e-6 and 5.7e-5 and the ion density between 0.118 and 1.07.
+// the cell averages from the moments finite-volume solution on 1024 cells, 1.1% (ion density), 1.2%
+// of the maximum (ion u_x), 1.6% (ion pressure), 1.5% (electron pressure), 1.2% and 1.6% of the
+// maximum (B_y, B_z); with 512 cells 0.71%, 0.68%, 1.0%, 0.59%, 0.65% and 1.7%. The electron
+// pressure lies between 4.0e-6 and 5.6e-5 and the ion density between 0.118 and 1.07.
 
 #include <math.h>
 #include <stdio.h>

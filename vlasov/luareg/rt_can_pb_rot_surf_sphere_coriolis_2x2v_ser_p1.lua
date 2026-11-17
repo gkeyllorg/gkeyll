@@ -1,14 +1,15 @@
 -- Coriolis deflection of a bump launched along a meridian on a rotating unit sphere, rotating-frame
 -- Hamiltonian form H = p^2/2 - omega p_phi (2x2v, collisionless). A Gaussian bump of temperature
 -- 0.01 just below the equator moves poleward with unit momentum while co-rotating with the sphere;
--- in the inertial frame its mean momentum follows the great circle through (theta_0, phi_0) =
--- (1.4, pi) with physical velocity (-1, omega sin theta_0), x(t) = x_0 cos(s t) + (v/s) sin(s t)
--- with s = |v| = 1.405, and in the rotating frame phi_rot = phi_inertial - omega t, so the centroid
--- must reach (theta, phi) = (1.113, 3.167) at t = 0.3
--- (thermal corrections are of order T t^2 = 1e-3); the drift in phi relative to the meridian is the
--- Coriolis effect. Figures of merit (serendipity p1, 10 x 20 x 11 x 8 cells): at t = 0.3 the
--- centroid is at (theta, phi) = (1.1080, 3.1712) against the exact (1.1129, 3.1673), errors -0.005
--- and +0.004 rad with cells of 0.039 and 0.105 rad; mass changes by -3e-2.
+-- in the inertial frame its mean momentum follows the great circle through (theta_0, phi_0) = (1.4,
+-- pi) with physical velocity (-1, omega sin theta_0), x(t) = x_0 cos(s t) + (v/s) sin(s t) with s =
+-- |v| = 1.405, and in the rotating frame phi_rot = phi_inertial - omega t, so the centroid must
+-- reach (theta, phi) = (1.113, 3.167) at t = 0.3 (thermal corrections are of order T t^2 = 1e-3);
+-- the drift in phi relative to the meridian is the Coriolis effect. Figures of merit (serendipity
+-- p1, 10 x 20 x 11 x 8 cells): at t = 0.3 the centroid is at (theta, phi) = (1.1080, 3.1701)
+-- against the exact (1.1129, 3.1673), errors -0.005 and +0.003 rad with cells of 0.039 and 0.105
+-- rad; mass changes by -1.4e-2, through the boundaries in theta, which are open (absorbing): the
+-- grid of the polar momentum is not symmetric about zero, as a reflecting wall requires.
 local Vlasov = G0.Vlasov
 
 mass = 1.0 -- Neutral mass.
@@ -125,12 +126,14 @@ vlasovApp = Vlasov.App.new {
       }
     },
 
+    -- Open boundaries in the polar direction: the momentum grid is not symmetric about zero, which
+    -- a reflecting wall requires.
     bcx = {
       lower = {
-        type = G0.SpeciesBc.bcReflect
+        type = G0.SpeciesBc.bcAbsorb
       },
       upper = {
-        type = G0.SpeciesBc.bcReflect
+        type = G0.SpeciesBc.bcAbsorb
       }
     },
 

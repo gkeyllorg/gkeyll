@@ -9,6 +9,7 @@
 #include <gkyl_wave_geom.h>
 #include <gkyl_wv_eqn.h>
 #include <gkyl_wv_euler.h>
+#include <gkyl_wv_iso_euler.h>
 #include <gkyl_util.h>
 
 // "Choose Kernel" based on cdim and polyorder
@@ -64,19 +65,20 @@ gkyl_dg_euler_new(
   const gkyl_dg_euler_vol_kern_list *vol_kernels;
   const gkyl_dg_euler_surf_kern_list *surf_x_kernels, *surf_y_kernels, *surf_z_kernels;
 
+  bool is_iso = wv_eqn->type == GKYL_EQN_ISO_EULER;
   switch (cbasis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      vol_kernels = ser_vol_kernels;
-      surf_x_kernels = ser_surf_x_kernels;
-      surf_y_kernels = ser_surf_y_kernels;
-      surf_z_kernels = ser_surf_z_kernels;
+      vol_kernels = is_iso ? ser_iso_vol_kernels : ser_vol_kernels;
+      surf_x_kernels = is_iso ? ser_iso_surf_x_kernels : ser_surf_x_kernels;
+      surf_y_kernels = is_iso ? ser_iso_surf_y_kernels : ser_surf_y_kernels;
+      surf_z_kernels = is_iso ? ser_iso_surf_z_kernels : ser_surf_z_kernels;
       break;
 
     case GKYL_BASIS_MODAL_TENSOR:
-      vol_kernels = ten_vol_kernels;
-      surf_x_kernels = ten_surf_x_kernels;
-      surf_y_kernels = ten_surf_y_kernels;
-      surf_z_kernels = ten_surf_z_kernels;
+      vol_kernels = is_iso ? ten_iso_vol_kernels : ten_vol_kernels;
+      surf_x_kernels = is_iso ? ten_iso_surf_x_kernels : ten_surf_x_kernels;
+      surf_y_kernels = is_iso ? ten_iso_surf_y_kernels : ten_surf_y_kernels;
+      surf_z_kernels = is_iso ? ten_iso_surf_z_kernels : ten_surf_z_kernels;
       break;
 
     default:
@@ -88,7 +90,13 @@ gkyl_dg_euler_new(
   euler->eqn.num_equations = wv_eqn->num_equations;
   euler->wv_eqn = gkyl_wv_eqn_acquire(wv_eqn);
   euler->geom = gkyl_wave_geom_acquire(geom);
-  euler->gas_gamma = gkyl_wv_euler_gas_gamma(euler->wv_eqn);
+  euler->gas_gamma = 0.0;
+  euler->vt = 0.0;
+  if (is_iso) {
+    euler->vt = gkyl_wv_iso_euler_vt(euler->wv_eqn);
+  } else {
+    euler->gas_gamma = gkyl_wv_euler_gas_gamma(euler->wv_eqn);
+  }
 
   euler->eqn.surf_term = surf;
   euler->eqn.boundary_surf_term = boundary_surf;

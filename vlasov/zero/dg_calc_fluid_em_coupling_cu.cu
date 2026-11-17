@@ -61,7 +61,7 @@ gkyl_dg_calc_fluid_em_coupling_copy_cu_kernel(
       fluids[1] = (double *)gkyl_array_fetch(fluid1, loc);
     }
     up->fluid_em_coupling_copy(
-      linc1, up->num_species, up->qbym, up->epsilon0, xs, fluids,
+      linc1, up->num_species, up->qbym, up->has_energy, up->epsilon0, xs, fluids,
       (double *)gkyl_array_fetch(em, loc)
     );
   }
@@ -128,6 +128,7 @@ gkyl_dg_calc_fluid_em_coupling_cu_dev_inew(const struct gkyl_dg_calc_fluid_em_co
   up->epsilon0 = inp->epsilon0;
   for (int n = 0; n < inp->num_species; ++n) {
     up->qbym[n] = inp->qbym[n];
+    up->has_energy[n] = inp->has_energy ? inp->has_energy[n] : true;
   }
 
   up->flags = 0;

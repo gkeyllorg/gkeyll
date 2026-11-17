@@ -31,6 +31,7 @@
 #include <gkyl_util.h>
 #include <gkyl_wave_geom.h>
 #include <gkyl_wv_euler.h>
+#include <gkyl_wv_iso_euler.h>
 
 // Grid, ranges, geometry and updater of a cdim-dimensional p = 1 test.
 struct fluid_vars_test {
@@ -42,8 +43,9 @@ struct fluid_vars_test {
   struct gkyl_dg_calc_fluid_vars *up;
 };
 
+// The test of an equation object (which the test then owns).
 static struct fluid_vars_test
-fluid_vars_test_new(int cdim, enum gkyl_wv_euler_rp rp_type)
+fluid_vars_test_from_eqn(int cdim, struct gkyl_wv_eqn *wv_eqn)
 {
   struct fluid_vars_test ft;
   double lower[3] = {0.0, 0.0, 0.0}, upper[3] = {1.0, 1.0, 1.0};
@@ -52,13 +54,28 @@ fluid_vars_test_new(int cdim, enum gkyl_wv_euler_rp rp_type)
   gkyl_rect_grid_init(&ft.grid, cdim, lower, upper, cells);
   gkyl_create_grid_ranges(&ft.grid, nghost, &ft.local_ext, &ft.local);
   ft.geom = gkyl_wave_geom_new(&ft.grid, &ft.local_ext, NULL, NULL, false);
-  ft.wv_eqn = gkyl_wv_euler_inew(&(struct gkyl_wv_euler_inp){
-    .gas_gamma = 5.0 / 3.0,
-    .rp_type = rp_type,
-    .use_gpu = false,
-  });
+  ft.wv_eqn = wv_eqn;
   ft.up = gkyl_dg_calc_fluid_vars_new(ft.wv_eqn, ft.geom, &ft.basis, &ft.local_ext, 0.0, false);
   return ft;
+}
+
+static struct fluid_vars_test
+fluid_vars_test_new(int cdim, enum gkyl_wv_euler_rp rp_type)
+{
+  return fluid_vars_test_from_eqn(
+    cdim, gkyl_wv_euler_inew(&(struct gkyl_wv_euler_inp){
+            .gas_gamma = 5.0 / 3.0,
+            .rp_type = rp_type,
+            .use_gpu = false,
+          })
+  );
+}
+
+// Isothermal Euler, [rho, rho ux, rho uy, rho uz] with p = vt^2 rho.
+static struct fluid_vars_test
+fluid_vars_iso_test_new(int cdim, double vt)
+{
+  return fluid_vars_test_from_eqn(cdim, gkyl_wv_iso_euler_new(vt, false));
 }
 
 static void
@@ -448,8 +465,331 @@ test_limiter_3x()
   test_limiter(3);
 }
 
-TEST_LIST = {{"em_source_1x", test_em_source_1x},   {"em_source_2x", test_em_source_2x},
-             {"em_source_3x", test_em_source_3x},   {"positivity_1x", test_positivity_1x},
-             {"positivity_2x", test_positivity_2x}, {"positivity_3x", test_positivity_3x},
-             {"lax_flux_1x", test_lax_flux_1x},     {"limiter_2x", test_limiter_2x},
-             {"limiter_3x", test_limiter_3x},       {NULL, NULL}};
+// Isothermal Euler: the pressure is vt^2 rho, the sources are those of Euler on the density and
+// the momentum, the rate of the source is omega_p + |q/m B|, and nothing is written past the
+// four blocks of the state (the arrays have a fifth block holding a sentinel).
+static void
+test_iso_sources(int cdim)
+{
+  double vt = 0.7, sentinel = -3.25;
+  struct fluid_vars_test ft = fluid_vars_test_new(cdim, WV_EULER_RP_ROE);
+  struct fluid_vars_test ft_iso = fluid_vars_iso_test_new(cdim, vt);
+  int nb = ft.basis.num_basis;
+  double c0 = avg_coeff(cdim);
+  long vol = ft.local_ext.volume;
+
+  struct gkyl_array *fluid = gkyl_array_new(GKYL_DOUBLE, 5 * nb, vol);
+  struct gkyl_array *qmem = gkyl_array_new(GKYL_DOUBLE, 6 * nb, vol);
+  struct gkyl_array *accel = gkyl_array_new(GKYL_DOUBLE, 3 * nb, vol);
+  struct gkyl_array *vel = gkyl_array_new(GKYL_DOUBLE, 3 * nb, vol);
+  struct gkyl_array *pressure = gkyl_array_new(GKYL_DOUBLE, nb, vol);
+  struct gkyl_array *pressure_surf = gkyl_array_new(GKYL_DOUBLE, 2 * cdim * nb / 2, vol);
+  struct gkyl_array *rhs = gkyl_array_new(GKYL_DOUBLE, 5 * nb, vol);
+  struct gkyl_array *rhs_iso = gkyl_array_new(GKYL_DOUBLE, 5 * nb, vol);
+  struct gkyl_array *omega_p_sq = gkyl_array_new(GKYL_DOUBLE, 1, vol);
+  struct gkyl_array *cflrate = gkyl_array_new(GKYL_DOUBLE, 1, vol);
+  struct gkyl_array *cflrate_iso = gkyl_array_new(GKYL_DOUBLE, 1, vol);
+  gkyl_array_clear(fluid, 0.0);
+  gkyl_array_clear(qmem, 0.0);
+  gkyl_array_clear(accel, 0.0);
+  gkyl_array_clear(vel, 0.0);
+  double omega_p = 2.0, rate_lo = 1.0, rate_up = 100.0;
+  gkyl_array_clear(omega_p_sq, omega_p * omega_p);
+
+  // A uniform flow u in a density that varies linearly in x, and uniform a and q/m B.
+  double rho0 = 1.3, rho1 = 0.2, uvec[3] = {0.3, -0.5, 0.7};
+  double avec[3] = {0.4, 0.1, -0.6}, bvec[3] = {0.9, -0.2, 0.5};
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &ft.local);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&ft.local, iter.idx);
+    double *fluid_d = gkyl_array_fetch(fluid, loc);
+    double *qmem_d = gkyl_array_fetch(qmem, loc);
+    double *accel_d = gkyl_array_fetch(accel, loc);
+    double *cflrate_d = gkyl_array_fetch(cflrate, loc);
+    fluid_d[0] = rho0 * c0;
+    fluid_d[1] = rho1;
+    fluid_d[4 * nb] = 5.0 * c0; // the energy of the Euler reference
+    for (int d = 0; d < 3; ++d) {
+      fluid_d[(1 + d) * nb] = uvec[d] * rho0 * c0;
+      fluid_d[(1 + d) * nb + 1] = uvec[d] * rho1;
+      qmem_d[d * nb] = avec[d] * c0;
+      qmem_d[(3 + d) * nb] = bvec[d] * c0;
+      accel_d[d * nb] = avec[d] * c0;
+    }
+    cflrate_d[0] = iter.idx[0] == 1 ? rate_lo : rate_up;
+  }
+  gkyl_array_copy(cflrate_iso, cflrate);
+
+  gkyl_dg_calc_fluid_vars_pressure(ft_iso.up, &ft.local, fluid, vel, pressure, pressure_surf);
+
+  gkyl_array_clear(rhs, 0.0);
+  gkyl_array_clear(rhs_iso, 0.0);
+  gkyl_array_shiftc(rhs_iso, sentinel, 4 * nb);
+  gkyl_dg_calc_fluid_vars_em_source(ft.up, &ft.local, qmem, omega_p_sq, fluid, cflrate, rhs);
+  gkyl_dg_calc_fluid_vars_em_source(
+    ft_iso.up, &ft.local, qmem, omega_p_sq, fluid, cflrate_iso, rhs_iso
+  );
+  double rate_freq = omega_p + sqrt(bvec[0] * bvec[0] + bvec[1] * bvec[1] + bvec[2] * bvec[2]);
+  gkyl_range_iter_init(&iter, &ft.local);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&ft.local, iter.idx);
+    const double *fluid_d = gkyl_array_cfetch(fluid, loc);
+    const double *pressure_d = gkyl_array_cfetch(pressure, loc);
+    const double *rhs_d = gkyl_array_cfetch(rhs, loc);
+    const double *rhs_iso_d = gkyl_array_cfetch(rhs_iso, loc);
+    const double *cflrate_iso_d = gkyl_array_cfetch(cflrate_iso, loc);
+    for (int k = 0; k < nb; ++k) {
+      TEST_CHECK(gkyl_compare(pressure_d[k], vt * vt * fluid_d[k], 1e-15));
+    }
+    for (int k = 0; k < 4 * nb; ++k) {
+      TEST_CHECK(rhs_iso_d[k] == rhs_d[k]);
+    }
+    TEST_CHECK(rhs_iso_d[4 * nb] == sentinel);
+    for (int k = 1; k < nb; ++k) {
+      TEST_CHECK(rhs_iso_d[4 * nb + k] == 0.0);
+    }
+    TEST_CHECK(gkyl_compare(cflrate_iso_d[0], iter.idx[0] == 1 ? rate_freq : rate_up, 1e-13));
+  }
+
+  // The source of an applied acceleration.
+  gkyl_array_clear(rhs, 0.0);
+  gkyl_array_clear(rhs_iso, 0.0);
+  gkyl_array_shiftc(rhs_iso, sentinel, 4 * nb);
+  gkyl_dg_calc_fluid_vars_source(ft.up, &ft.local, accel, fluid, rhs);
+  gkyl_dg_calc_fluid_vars_source(ft_iso.up, &ft.local, accel, fluid, rhs_iso);
+  double max_rhs = 0.0;
+  gkyl_range_iter_init(&iter, &ft.local);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&ft.local, iter.idx);
+    const double *rhs_d = gkyl_array_cfetch(rhs, loc);
+    const double *rhs_iso_d = gkyl_array_cfetch(rhs_iso, loc);
+    for (int k = 0; k < 4 * nb; ++k) {
+      TEST_CHECK(rhs_iso_d[k] == rhs_d[k]);
+      max_rhs = fmax(max_rhs, fabs(rhs_iso_d[k]));
+    }
+    TEST_CHECK(rhs_iso_d[4 * nb] == sentinel);
+  }
+  TEST_CHECK(max_rhs > 0.0);
+
+  gkyl_array_release(fluid);
+  gkyl_array_release(qmem);
+  gkyl_array_release(accel);
+  gkyl_array_release(vel);
+  gkyl_array_release(pressure);
+  gkyl_array_release(pressure_surf);
+  gkyl_array_release(rhs);
+  gkyl_array_release(rhs_iso);
+  gkyl_array_release(omega_p_sq);
+  gkyl_array_release(cflrate);
+  gkyl_array_release(cflrate_iso);
+  fluid_vars_test_release(&ft);
+  fluid_vars_test_release(&ft_iso);
+}
+
+// Isothermal Euler: the positivity limiter scales the density slopes only, to the floor.
+static void
+test_iso_positivity(int cdim)
+{
+  struct fluid_vars_test ft = fluid_vars_iso_test_new(cdim, 0.7);
+  int nb = ft.basis.num_basis;
+  double c0 = avg_coeff(cdim), eps = 1.0e-2;
+
+  struct gkyl_array *fluid = gkyl_array_new(GKYL_DOUBLE, 4 * nb, ft.local_ext.volume);
+  struct gkyl_array *fluid_in = gkyl_array_new(GKYL_DOUBLE, 4 * nb, ft.local_ext.volume);
+  gkyl_array_clear(fluid, 0.0);
+
+  // Cell averages rho = 1 and M = (0.5, 0, 0) with a momentum slope; admissible density slopes
+  // in the cells of the first kind (by the first index), a negative vertex density in the others.
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &ft.local);
+  while (gkyl_range_iter_next(&iter)) {
+    double *fluid_d = gkyl_array_fetch(fluid, gkyl_range_idx(&ft.local, iter.idx));
+    fluid_d[0] = c0;
+    fluid_d[nb] = 0.5 * c0;
+    for (int d = 0; d < cdim; ++d) {
+      fluid_d[1 + d] = (iter.idx[0] == 1 ? 0.1 : 1.2 / cdim) * c0 / sqrt(3.0);
+      fluid_d[nb + 1 + d] = -0.3 * c0 / sqrt(3.0);
+    }
+  }
+  gkyl_array_copy(fluid_in, fluid);
+
+  gkyl_dg_calc_fluid_vars_positivity(ft.up, &ft.local, eps, fluid);
+
+  gkyl_range_iter_init(&iter, &ft.local);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&ft.local, iter.idx);
+    const double *fluid_d = gkyl_array_cfetch(fluid, loc);
+    const double *fluid_in_d = gkyl_array_cfetch(fluid_in, loc);
+    // The cell average of the density and the momentum are untouched.
+    TEST_CHECK(fluid_d[0] == fluid_in_d[0]);
+    for (int k = nb; k < 4 * nb; ++k) {
+      TEST_CHECK(fluid_d[k] == fluid_in_d[k]);
+    }
+    double rho_min = DBL_MAX, rho_min_in = DBL_MAX;
+    for (int v = 0; v < (1 << cdim); ++v) {
+      double rho_v = fluid_d[0] / c0, rho_v_in = fluid_in_d[0] / c0;
+      for (int d = 0; d < cdim; ++d) {
+        double sgn = (v >> d) & 1 ? 1.0 : -1.0;
+        rho_v += sgn * sqrt(3.0) * fluid_d[1 + d] / c0;
+        rho_v_in += sgn * sqrt(3.0) * fluid_in_d[1 + d] / c0;
+      }
+      rho_min = fmin(rho_min, rho_v);
+      rho_min_in = fmin(rho_min_in, rho_v_in);
+    }
+    if (iter.idx[0] == 1) {
+      for (int k = 0; k < nb; ++k) {
+        TEST_CHECK(fluid_d[k] == fluid_in_d[k]);
+      }
+    } else {
+      TEST_CHECK(rho_min_in < 0.0);
+      TEST_CHECK(gkyl_compare(rho_min, eps, 1e-12));
+    }
+  }
+
+  gkyl_array_release(fluid);
+  gkyl_array_release(fluid_in);
+  fluid_vars_test_release(&ft);
+}
+
+// Isothermal Euler: the slope limiter removes a momentum slope its neighbours do not support
+// and drops the higher coefficients of the components of the limited (sound) waves; a density
+// ramp its neighbours support is kept.
+static void
+test_iso_limiter(int cdim)
+{
+  int nb = 1 << cdim;
+  double c0 = avg_coeff(cdim);
+  int idx_cell[3] = {2, 2, 2};
+
+  for (int dir = 0; dir < cdim; ++dir) {
+    struct fluid_vars_test ft = fluid_vars_iso_test_new(cdim, 0.7);
+    struct gkyl_array *fluid = gkyl_array_new(GKYL_DOUBLE, 4 * nb, ft.local_ext.volume);
+    gkyl_array_clear(fluid, 0.0);
+
+    // A uniform gas at rest, rho = 1.
+    for (long linc = 0; linc < ft.local_ext.volume; ++linc) {
+      double *fluid_d = gkyl_array_fetch(fluid, linc);
+      fluid_d[0] = c0;
+    }
+
+    // In one cell: a slope along dir of the momentum along dir, which its neighbours do not
+    // support, and the same higher coefficients in all four components.
+    double *fluid_d = gkyl_array_fetch(fluid, gkyl_range_idx(&ft.local_ext, idx_cell));
+    fluid_d[(1 + dir) * nb + 1 + dir] = 0.05;
+    for (int c = 0; c < 4; ++c) {
+      for (int k = cdim + 1; k < nb; ++k) {
+        fluid_d[c * nb + k] = 0.1;
+      }
+    }
+
+    gkyl_dg_calc_fluid_vars_limiter(ft.up, &ft.local, fluid);
+
+    TEST_CHECK(fluid_d[(1 + dir) * nb + 1 + dir] == 0.0);
+    for (int c = 0; c < 4; ++c) {
+      bool is_acoustic = c == 0 || c == 1 + dir;
+      for (int k = cdim + 1; k < nb; ++k) {
+        TEST_CHECK(fluid_d[c * nb + k] == (is_acoustic ? 0.0 : 0.1));
+        TEST_MSG("sweep %d, component %d, coefficient %d: %g", dir, c, k, fluid_d[c * nb + k]);
+      }
+    }
+    // The cell averages are untouched.
+    TEST_CHECK(fluid_d[0] == c0);
+
+    // A density ramp along dir across all cells (slope = the difference of the neighbouring
+    // averages over sqrt(3), the limiter's own estimate) is kept.
+    double ramp = 0.02;
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init(&iter, &ft.local_ext);
+    while (gkyl_range_iter_next(&iter)) {
+      double *ramp_d = gkyl_array_fetch(fluid, gkyl_range_idx(&ft.local_ext, iter.idx));
+      for (int k = 0; k < 4 * nb; ++k) {
+        ramp_d[k] = 0.0;
+      }
+      ramp_d[0] = (1.0 + ramp * iter.idx[dir]) * c0;
+      ramp_d[1 + dir] = ramp * c0 / (2.0 * sqrt(3.0));
+    }
+    gkyl_dg_calc_fluid_vars_limiter(ft.up, &ft.local, fluid);
+    TEST_CHECK(gkyl_compare(fluid_d[1 + dir], ramp * c0 / (2.0 * sqrt(3.0)), 1e-13));
+    TEST_MSG("sweep %d: slope %g of %g", dir, fluid_d[1 + dir], ramp * c0 / (2.0 * sqrt(3.0)));
+
+    gkyl_array_release(fluid);
+    fluid_vars_test_release(&ft);
+  }
+}
+
+static void
+test_iso_sources_1x()
+{
+  test_iso_sources(1);
+}
+
+static void
+test_iso_sources_2x()
+{
+  test_iso_sources(2);
+}
+
+static void
+test_iso_sources_3x()
+{
+  test_iso_sources(3);
+}
+
+static void
+test_iso_positivity_1x()
+{
+  test_iso_positivity(1);
+}
+
+static void
+test_iso_positivity_2x()
+{
+  test_iso_positivity(2);
+}
+
+static void
+test_iso_positivity_3x()
+{
+  test_iso_positivity(3);
+}
+
+static void
+test_iso_limiter_1x()
+{
+  test_iso_limiter(1);
+}
+
+static void
+test_iso_limiter_2x()
+{
+  test_iso_limiter(2);
+}
+
+static void
+test_iso_limiter_3x()
+{
+  test_iso_limiter(3);
+}
+
+TEST_LIST = {
+  {"em_source_1x", test_em_source_1x},
+  {"em_source_2x", test_em_source_2x},
+  {"em_source_3x", test_em_source_3x},
+  {"positivity_1x", test_positivity_1x},
+  {"positivity_2x", test_positivity_2x},
+  {"positivity_3x", test_positivity_3x},
+  {"lax_flux_1x", test_lax_flux_1x},
+  {"limiter_2x", test_limiter_2x},
+  {"limiter_3x", test_limiter_3x},
+  {"iso_sources_1x", test_iso_sources_1x},
+  {"iso_sources_2x", test_iso_sources_2x},
+  {"iso_sources_3x", test_iso_sources_3x},
+  {"iso_positivity_1x", test_iso_positivity_1x},
+  {"iso_positivity_2x", test_iso_positivity_2x},
+  {"iso_positivity_3x", test_iso_positivity_3x},
+  {"iso_limiter_1x", test_iso_limiter_1x},
+  {"iso_limiter_2x", test_iso_limiter_2x},
+  {"iso_limiter_3x", test_iso_limiter_3x},
+  {NULL, NULL}
+};

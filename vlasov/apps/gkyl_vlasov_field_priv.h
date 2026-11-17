@@ -497,14 +497,30 @@ double vm_field_rhs(
 
 /**
  * Switch the field to the transport step of the staggered operator split (see
- * vlasov_update_op_split): the Maxwell RHS with zero E rows, since E advances
- * only in the implicit fluid-EM source step. Called at construction, once the
+ * vlasov_update_op_split): the Maxwell RHS with zero E rows and no species
+ * currents, since E advances only in the fluid-EM source step, which takes the
+ * currents of the kinetic species as known. Called at construction, once the
  * app knows the fluid-EM coupling is implicit.
  *
  * @param app Vlasov app object
  * @param field Pointer to field
  */
 void vm_field_set_source_split(gkyl_vlasov_app *app, struct vm_field *field);
+
+/**
+ * Ghost current (1x periodic): fac times the average over the domain of the first coefficient
+ * of the first component of an array (the x-component of a current, or E_x), reduced across
+ * ranks. The field's ghost_current array is used as scratch.
+ *
+ * @param app Vlasov app object
+ * @param field Pointer to field (with use_ghost_current)
+ * @param fac Factor multiplying the average
+ * @param arr Array whose leading coefficient is averaged
+ * @return fac times the global average
+ */
+double vm_field_ghost_current_mean(
+  gkyl_vlasov_app *app, struct vm_field *field, double fac, const struct gkyl_array *arr
+);
 
 /**
  * Update the field at the current time: compute the RHS of Maxwell's equations.

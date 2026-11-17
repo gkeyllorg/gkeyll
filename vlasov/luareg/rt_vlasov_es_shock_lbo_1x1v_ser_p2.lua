@@ -200,14 +200,7 @@ vlasovApp = Vlasov.App.new {
     elcErrorSpeedFactor = 0.0,
     mgnErrorSpeedFactor = 0.0,
 
-    bcx = {
-      lower = {
-        type = G0.FieldBc.bcSymWall
-      },
-      upper = {
-        type = G0.FieldBc.bcCopy
-      }
-    }
+    bcx = { G0.FieldBc.bcSymWall, G0.FieldBc.bcCopy }
   }
 }
 

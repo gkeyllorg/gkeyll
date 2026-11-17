@@ -33,7 +33,7 @@ gkyl_dg_updater_fluid_new(
     up->eqn_fluid = gkyl_dg_advection_new(cbasis, conf_range, up->use_gpu);
     struct gkyl_dg_advection_auxfields *adv_in = aux_inp;
     gkyl_advection_set_auxfields(up->eqn_fluid, *adv_in);
-  } else if (up->eqn_id == GKYL_EQN_EULER) {
+  } else if (up->eqn_id == GKYL_EQN_EULER || up->eqn_id == GKYL_EQN_ISO_EULER) {
     up->eqn_fluid = gkyl_dg_euler_new(cbasis, conf_range, wv_eqn, geom, up->use_gpu);
     struct gkyl_dg_euler_auxfields *euler_inp = aux_inp;
     gkyl_euler_set_auxfields(up->eqn_fluid, *euler_inp);

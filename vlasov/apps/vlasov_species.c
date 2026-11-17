@@ -40,6 +40,22 @@ species_no_field_coupling(
 {
 }
 
+// Ghost-current correction to dE/dt = -J in 1x: remove the global average of a current from
+// the field RHS ('current' holds J_x / fac in its leading component; the cell average of
+// fac * current / nx summed over the domain is added back).
+static void
+species_accumulate_ghost_current(
+  gkyl_vlasov_app *app, double fac, const struct gkyl_array *current, struct gkyl_array *target
+)
+{
+  if (app->field->use_ghost_current) {
+    double mean = vm_field_ghost_current_mean(app, app->field, fac, current);
+    // Set the scalar ghost current array to the global average current and accumulate to the electric field.
+    gkyl_array_clear(app->field->ghost_current, mean);
+    gkyl_array_accumulate_range(target, 1.0, app->field->ghost_current, &app->local);
+  }
+}
+
 // Current of a momentum-carrying fluid coupled explicitly to the Maxwell field.
 static void
 fluid_accumulate_current(
@@ -48,6 +64,8 @@ fluid_accumulate_current(
 )
 {
   vm_fluid_species_accumulate_current(app, sp->fluid, fluidin, target);
+  double qbymeps = sp->charge / (sp->mass * app->field->info.epsilon0);
+  species_accumulate_ghost_current(app, qbymeps, sp->fluid->mom, target);
 }
 
 static void
@@ -80,40 +98,6 @@ fluid_calc_coupled_vars(
   vm_fluid_species_prim_vars(app, sp->fluid, fluidin);
 }
 
-// Ghost-current correction to dE/dt = -J in 1x: replace the current by its
-// global average (cell average of J/(eps0*nx) summed over the domain).
-static void
-kinetic_accumulate_ghost_current(
-  gkyl_vlasov_app *app, struct vm_species *s, double qbyeps, struct gkyl_array *target
-)
-{
-  if (app->field->use_ghost_current) {
-    double avals_ghost_current[1], avals_ghost_current_global[1];
-    // First set the scalar ghost current array to the cell average
-    // current/(epsilon0*nx) where nx is the number of x cells.
-    gkyl_array_set_range(
-      app->field->ghost_current, qbyeps / app->grid.cells[0], s->m1i.marr, &app->local
-    );
-    // Integrate the current over the whole domain to find the globally averaged ghost current.
-    if (app->use_gpu) {
-      gkyl_array_reduce_range(
-        app->field->red_ghost_current, app->field->ghost_current, GKYL_SUM, &app->local
-      );
-      gkyl_cu_memcpy(
-        avals_ghost_current, app->field->red_ghost_current, sizeof(double[1]), GKYL_CU_MEMCPY_D2H
-      );
-    } else {
-      gkyl_array_reduce_range(avals_ghost_current, app->field->ghost_current, GKYL_SUM, &app->local);
-    }
-    gkyl_comm_allreduce_host(
-      app->comm, GKYL_DOUBLE, GKYL_SUM, 1, avals_ghost_current, avals_ghost_current_global
-    );
-    // Set the scalar ghost current array to the global average current and accumulate to the electric field.
-    gkyl_array_clear(app->field->ghost_current, avals_ghost_current_global[0]);
-    gkyl_array_accumulate_range(target, 1.0, app->field->ghost_current, &app->local);
-  }
-}
-
 // Explicit coupling to Vlasov-Maxwell: accumulate this species' current onto
 // the EM RHS ('target' is emout), J_s = q_s * m1i, scaled by -1/epsilon0.
 static void
@@ -127,7 +111,7 @@ kinetic_accumulate_current(
 
   vm_species_moment_calc(&s->m1i, s->local, app->local, fin);
   gkyl_array_accumulate_range(target, -qbyeps, s->m1i.marr, &app->local);
-  kinetic_accumulate_ghost_current(app, s, qbyeps, target);
+  species_accumulate_ghost_current(app, qbyeps, s->m1i.marr, target);
 }
 
 // Explicit coupling of a triad species to GR-Maxwell: deposit the current
@@ -148,7 +132,7 @@ kinetic_accumulate_current_gr(
     s->collisionless.calc_current_dep, &app->local, qbyeps, app->field->geom->lapse,
     app->field->geom->shift, app->field->geom->vierb_con, s->m0.marr, s->m1i.marr, target
   );
-  kinetic_accumulate_ghost_current(app, s, qbyeps, target);
+  species_accumulate_ghost_current(app, qbyeps, s->m1i.marr, target);
 }
 
 // Explicit coupling to Vlasov-Poisson: deposit this species' number density
@@ -263,10 +247,10 @@ vlasov_fluid_species_init(
   sp->calc_self_moms_func = species_no_calc_moms;
   sp->calc_coupled_vars_func = fluid_calc_coupled_vars;
   sp->finish_stage_func = species_no_finish_stage;
-  // Field coupling of the stage: the current of a momentum-carrying (Euler)
-  // fluid when the Maxwell field is coupled explicitly; nothing otherwise.
+  // Field coupling of the stage: the current of a momentum-carrying (Euler or
+  // isothermal Euler) fluid when the Maxwell field is coupled explicitly; nothing otherwise.
   bool has_explicit_current = app->use_explicit_sources && app->field->field_id == GKYL_FIELD_E_B &&
-                              inp->fluid.equation->type == GKYL_EQN_EULER;
+                              vm_fluid_em_coupling_supported(sp->fluid);
   sp->accumulate_field_coupling_func = has_explicit_current ? fluid_accumulate_current :
                                                               species_no_field_coupling;
 }
@@ -630,16 +614,14 @@ vlasov_species_from_file(gkyl_vlasov_app *app, struct vlasov_species *sp, const 
   return rstat;
 }
 
-// Restart a species from a frame. The kinetic aspect is seeded from the initial
+// Restart a species from a frame. Every aspect is seeded from the initial
 // conditions first, so that fixed-function BC buffers are filled before the
 // read overwrites the interior; each aspect then reads its frame file and marks
 // its diagnostic dynvectors to append, and the app clock is set to the frame time.
 struct gkyl_app_restart_status
 vlasov_species_read_from_frame(gkyl_vlasov_app *app, struct vlasov_species *sp, int frame)
 {
-  if (sp->kinetic) {
-    vlasov_species_apply_ic(app, sp, 0.0);
-  }
+  vlasov_species_apply_ic(app, sp, 0.0);
 
   struct gkyl_app_restart_status rstat = {.io_status = GKYL_ARRAY_RIO_SUCCESS};
   if (sp->kinetic) {

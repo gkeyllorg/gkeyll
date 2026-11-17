@@ -21,7 +21,8 @@ GKYL_CU_DH void fluid_em_coupling_set_1x_ser_p1(int count, int num_species, doub
   const double *app_accel[GKYL_MAX_SPECIES], const double *ext_em, const double *app_current,
   const double *fluid[GKYL_MAX_SPECIES], const double *em); 
 GKYL_CU_DH void fluid_em_coupling_copy_1x_ser_p1(int count, int num_species, double qbym[GKYL_MAX_SPECIES],
-  double epsilon0, struct gkyl_nmat *x, double* GKYL_RESTRICT fluid[GKYL_MAX_SPECIES], double* GKYL_RESTRICT em); 
+  bool has_energy[GKYL_MAX_SPECIES], double epsilon0, struct gkyl_nmat *x,
+  double* GKYL_RESTRICT fluid[GKYL_MAX_SPECIES], double* GKYL_RESTRICT em); 
 
 // p=1 serendipity in 2x: values at the 4 Gauss-Legendre nodes, and back. 
 GKYL_CU_DH static inline void fluid_em_coupling_2x_ser_p1_nodal(const double *f, double *fq) 
@@ -43,7 +44,8 @@ GKYL_CU_DH void fluid_em_coupling_set_2x_ser_p1(int count, int num_species, doub
   const double *app_accel[GKYL_MAX_SPECIES], const double *ext_em, const double *app_current,
   const double *fluid[GKYL_MAX_SPECIES], const double *em); 
 GKYL_CU_DH void fluid_em_coupling_copy_2x_ser_p1(int count, int num_species, double qbym[GKYL_MAX_SPECIES],
-  double epsilon0, struct gkyl_nmat *x, double* GKYL_RESTRICT fluid[GKYL_MAX_SPECIES], double* GKYL_RESTRICT em); 
+  bool has_energy[GKYL_MAX_SPECIES], double epsilon0, struct gkyl_nmat *x,
+  double* GKYL_RESTRICT fluid[GKYL_MAX_SPECIES], double* GKYL_RESTRICT em); 
 
 // p=1 serendipity in 3x: values at the 8 Gauss-Legendre nodes, and back. 
 GKYL_CU_DH static inline void fluid_em_coupling_3x_ser_p1_nodal(const double *f, double *fq) 
@@ -73,6 +75,7 @@ GKYL_CU_DH void fluid_em_coupling_set_3x_ser_p1(int count, int num_species, doub
   const double *app_accel[GKYL_MAX_SPECIES], const double *ext_em, const double *app_current,
   const double *fluid[GKYL_MAX_SPECIES], const double *em); 
 GKYL_CU_DH void fluid_em_coupling_copy_3x_ser_p1(int count, int num_species, double qbym[GKYL_MAX_SPECIES],
-  double epsilon0, struct gkyl_nmat *x, double* GKYL_RESTRICT fluid[GKYL_MAX_SPECIES], double* GKYL_RESTRICT em); 
+  bool has_energy[GKYL_MAX_SPECIES], double epsilon0, struct gkyl_nmat *x,
+  double* GKYL_RESTRICT fluid[GKYL_MAX_SPECIES], double* GKYL_RESTRICT em); 
 
 EXTERN_C_END 

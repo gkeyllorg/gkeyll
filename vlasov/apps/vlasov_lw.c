@@ -12,6 +12,7 @@
 #include <gkyl_wv_advect.h>
 #include <gkyl_wv_canonical_pb_fluid.h>
 #include <gkyl_wv_euler.h>
+#include <gkyl_wv_iso_euler.h>
 #include <gkyl_zero_lw.h>
 
 #include <lua.h>
@@ -105,6 +106,10 @@ static const struct gkyl_str_int_pair source_type[] = {
 };
 
 // Vlasov radiation type -> enum map.
+// Isothermal Euler Riemann problem -> enum map.
+static const struct gkyl_str_int_pair iso_euler_rp_type[] =
+  {{"Roe", WV_ISO_EULER_RP_ROE}, {"Lax", WV_ISO_EULER_RP_LAX}, {0, 0}};
+
 static const struct gkyl_str_int_pair radiation_type[] = {
   {"None", GKYL_VM_NO_RADIATION},
   {"Compton", GKYL_VM_COMPTON_RADIATION},
@@ -160,6 +165,12 @@ gkyl_register_vlasov_radiation_types(lua_State *L)
   register_types(L, radiation_type, "VMRadiation");
 }
 
+void
+gkyl_register_vlasov_iso_euler_rp_types(lua_State *L)
+{
+  register_types(L, iso_euler_rp_type, "IsoEulerRP");
+}
+
 // Magic IDs for use in distinguishing various species and field types.
 enum vlasov_magic_ids {
   VLASOV_SPECIES_DEFAULT = 100, // Non-relativistic kinetic species.
@@ -213,6 +224,43 @@ wv_eqn_get(lua_State *L)
 // (default HLLC): the Riemann solver of the numerical flux of the DG Euler fluid.
 static bool vm_lw_use_gpu(lua_State *L);
 
+// Boundary conditions of a field or a fluid species, with the table on top of the stack: the
+// array form { lower, upper }. Any other form is an error (the form of the kinetic species, {
+// lower = { type = ... }, upper = { type = ... } }, would otherwise be read as no boundary
+// condition).
+static void
+vm_lw_check_bc_array(lua_State *L, const char *block, const char *key)
+{
+  bool has_side = false;
+  with_lua_tbl_key(L, "lower")
+  {
+    has_side = true;
+  }
+  with_lua_tbl_key(L, "upper")
+  {
+    has_side = true;
+  }
+  if (has_side || glua_objlen(L) != 2) {
+    luaL_error(
+      L, "%s: \"%s\" must be { lower, upper }, the boundary-condition types of the two sides!",
+      block, key
+    );
+  }
+}
+
+// Boundary conditions of a kinetic species, with the table on top of the stack: the form { lower =
+// { type = ... }, upper = { type = ... } } (either side may be absent). The array form of the
+// field and the fluid species is an error (it would otherwise be read as no boundary condition).
+static void
+vm_lw_check_bc_sides(lua_State *L, const char *key)
+{
+  if (glua_objlen(L) != 0) {
+    luaL_error(
+      L, "Species: \"%s\" must be { lower = { type = ... }, upper = { type = ... } }!", key
+    );
+  }
+}
+
 static int
 eqn_euler_lw_new(lua_State *L)
 {
@@ -243,6 +291,45 @@ eqn_euler_lw_new(lua_State *L)
 
 // Equation constructor.
 static struct luaL_Reg eqn_euler_ctor[] = {{"new", eqn_euler_lw_new}, {0, 0}};
+
+/* ************************** */
+/* Isothermal Euler Equations */
+/* ************************** */
+
+// IsoEuler.new { vThermal = 1.0, rpType = G0.IsoEulerRP.Roe }
+// where rpType is one of G0.IsoEulerRP.Roe or G0.IsoEulerRP.Lax (default Roe): the Riemann
+// solver of the numerical flux of the DG isothermal Euler fluid. Not available on the GPU.
+static int
+eqn_iso_euler_lw_new(lua_State *L)
+{
+  struct wv_eqn_lw *iso_euler_lw = gkyl_malloc(sizeof(*iso_euler_lw));
+
+  double vt = glua_tbl_get_number(L, "vThermal", -1.0);
+  if (vt < 0) {
+    return luaL_error(L, "Thermal velocity \"vThermal\" not specified properly!");
+  }
+  enum gkyl_wv_iso_euler_rp rp_type = glua_tbl_get_integer(L, "rpType", WV_ISO_EULER_RP_ROE);
+
+  iso_euler_lw->magic = VLASOV_EQN_DEFAULT;
+  iso_euler_lw->eqn = gkyl_wv_iso_euler_inew(&(struct gkyl_wv_iso_euler_inp){
+    .vt = vt,
+    .rp_type = rp_type,
+    .use_gpu = false,
+  });
+
+  // Create Lua userdata.
+  struct wv_eqn_lw **l_iso_euler_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw *));
+  *l_iso_euler_lw = iso_euler_lw; // Point userdata to the equation object.
+
+  // Set metatable.
+  luaL_getmetatable(L, VLASOV_WAVE_EQN_METATABLE_NM);
+  lua_setmetatable(L, -2);
+
+  return 1;
+}
+
+// Equation constructor.
+static struct luaL_Reg eqn_iso_euler_ctor[] = {{"new", eqn_iso_euler_lw_new}, {0, 0}};
 
 /* ****************************** */
 /* Advection Equation */
@@ -373,6 +460,7 @@ eqn_openlibs(lua_State *L)
   lua_settable(L, -3);
 
   luaL_register(L, "G0.Vlasov.Eq.Euler", eqn_euler_ctor);
+  luaL_register(L, "G0.Vlasov.Eq.IsoEuler", eqn_iso_euler_ctor);
   luaL_register(L, "G0.Vlasov.Eq.LinearAdvection", eqn_advect_ctor);
   luaL_register(L, "G0.Vlasov.Eq.IncompressEuler", eqn_incompress_euler_ctor);
   luaL_register(L, "G0.Vlasov.Eq.HasegawaMima", eqn_hasegawa_mima_ctor);
@@ -625,6 +713,7 @@ vlasov_species_lw_new(lua_State *L)
 
   with_lua_tbl_tbl(L, "bcx")
   {
+    vm_lw_check_bc_sides(L, "bcx");
     with_lua_tbl_tbl(L, "lower")
     {
       vm_species.bcx.lower.type = glua_tbl_get_integer(L, "type", 0);
@@ -646,6 +735,7 @@ vlasov_species_lw_new(lua_State *L)
 
   with_lua_tbl_tbl(L, "bcy")
   {
+    vm_lw_check_bc_sides(L, "bcy");
     with_lua_tbl_tbl(L, "lower")
     {
       vm_species.bcy.lower.type = glua_tbl_get_integer(L, "type", 0);
@@ -667,6 +757,7 @@ vlasov_species_lw_new(lua_State *L)
 
   with_lua_tbl_tbl(L, "bcz")
   {
+    vm_lw_check_bc_sides(L, "bcz");
     with_lua_tbl_tbl(L, "lower")
     {
       vm_species.bcz.lower.type = glua_tbl_get_integer(L, "type", 0);
@@ -1552,27 +1643,24 @@ vlasov_fluid_species_lw_new(lua_State *L)
 
   with_lua_tbl_tbl(L, "bcx")
   {
-    int nbc = glua_objlen(L);
-
-    for (int i = 0; i < (nbc > 2 ? 2 : nbc); i++) {
+    vm_lw_check_bc_array(L, "FluidSpecies", "bcx");
+    for (int i = 0; i < 2; i++) {
       vm_fluid_species.bcx[i] = glua_tbl_iget_integer(L, i + 1, 0);
     }
   }
 
   with_lua_tbl_tbl(L, "bcy")
   {
-    int nbc = glua_objlen(L);
-
-    for (int i = 0; i < (nbc > 2 ? 2 : nbc); i++) {
+    vm_lw_check_bc_array(L, "FluidSpecies", "bcy");
+    for (int i = 0; i < 2; i++) {
       vm_fluid_species.bcy[i] = glua_tbl_iget_integer(L, i + 1, 0);
     }
   }
 
   with_lua_tbl_tbl(L, "bcz")
   {
-    int nbc = glua_objlen(L);
-
-    for (int i = 0; i < (nbc > 2 ? 2 : nbc); i++) {
+    vm_lw_check_bc_array(L, "FluidSpecies", "bcz");
+    for (int i = 0; i < 2; i++) {
       vm_fluid_species.bcz[i] = glua_tbl_iget_integer(L, i + 1, 0);
     }
   }
@@ -1710,27 +1798,24 @@ vlasov_field_lw_new(lua_State *L)
 
   with_lua_tbl_tbl(L, "bcx")
   {
-    int nbc = glua_objlen(L);
-
-    for (int i = 0; i < (nbc > 2 ? 2 : nbc); i++) {
+    vm_lw_check_bc_array(L, "Field", "bcx");
+    for (int i = 0; i < 2; i++) {
       vm_field.bcx[i] = glua_tbl_iget_integer(L, i + 1, 0);
     }
   }
 
   with_lua_tbl_tbl(L, "bcy")
   {
-    int nbc = glua_objlen(L);
-
-    for (int i = 0; i < (nbc > 2 ? 2 : nbc); i++) {
+    vm_lw_check_bc_array(L, "Field", "bcy");
+    for (int i = 0; i < 2; i++) {
       vm_field.bcy[i] = glua_tbl_iget_integer(L, i + 1, 0);
     }
   }
 
   with_lua_tbl_tbl(L, "bcz")
   {
-    int nbc = glua_objlen(L);
-
-    for (int i = 0; i < (nbc > 2 ? 2 : nbc); i++) {
+    vm_lw_check_bc_array(L, "Field", "bcz");
+    for (int i = 0; i < 2; i++) {
       vm_field.bcz[i] = glua_tbl_iget_integer(L, i + 1, 0);
     }
   }
@@ -3993,6 +4078,7 @@ gkyl_vlasov_lw_openlibs(lua_State *L)
   gkyl_register_vlasov_collision_types(L);
   gkyl_register_vlasov_source_types(L);
   gkyl_register_vlasov_radiation_types(L);
+  gkyl_register_vlasov_iso_euler_rp_types(L);
 
   eqn_openlibs(L);
   emission_openlibs(L);

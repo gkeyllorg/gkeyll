@@ -324,12 +324,17 @@ struct gkyl_vlasov_fluid_species {
   // Hyper-diffusion coefficient
   double nuHyp;
 
-  struct gkyl_wv_eqn *equation; // equation object
+  // Equation object: Euler (gkyl_wv_euler), isothermal Euler (gkyl_wv_iso_euler; p = vt^2 rho,
+  // state [rho, rho ux, rho uy, rho uz], not on the GPU), scalar advection, or a canonical
+  // Poisson bracket fluid. Its Riemann solver is the numerical flux of an Euler or isothermal
+  // Euler fluid.
+  struct gkyl_wv_eqn *equation;
   double limiter_fac; // Optional input parameter for adjusting diffusion in slope limiter
   // Vertex positivity limiter of an Euler fluid (polynomial order 1): after the slope limiter of
   // every stage and after the implicit fluid-EM source steps of an update, the vertex density and internal
   // energy are kept above positivity_eps times the cell values, so the sound speed is real
-  // everywhere in the cell. The cell averages are untouched.
+  // everywhere in the cell. The cell averages are untouched. An isothermal Euler fluid has the
+  // density kept so.
   double positivity_eps; // Relative floor (0 => default 1e-2).
 
   // advection coupling (if scalar advection)
@@ -412,7 +417,9 @@ struct gkyl_vlasov_field {
   double limiter_fac; // Optional input parameter for adjusting diffusion in slope limiter.
   bool limit_em; // Optional input parameter for applying limiters to EM fields.
 
-  bool use_ghost_current; // Are we using ghost currents to correct dE/dt = -J in 1x?
+  // Are we using ghost currents to correct dE/dt = -J in 1x? The average current of every
+  // species, kinetic or fluid, is removed from Ampere's law.
+  bool use_ghost_current;
   bool use_geom_sources; // Are we using geometric sources to correct dE/dt = -J in 1x?
 
   // Vlasov-Maxwell boundary conditions.
@@ -484,7 +491,10 @@ struct gkyl_vm {
   // Momentum-carrying (Euler) fluid species with the Maxwell field: the default is a staggered
   // (Strang) operator split with implicit fluid-EM coupling. Between updates the fluids and E lag
   // by half a source step, output and diagnostics see them synchronized, and the field frames
-  // store the steps that make a restart continue the uninterrupted run.
+  // store the steps that make a restart continue the uninterrupted run. Kinetic species may be
+  // present (hybrid runs, polynomial order 1): the source step takes their current as known, the
+  // transport step moves them with its E, and the step resolves their plasma frequency
+  // (cfl_frac / omega_p).
   // With use_explicit_sources the Lorentz force is in the fluid RHS and the fluid currents on the
   // RHS of Ampere's law in every SSP-RK3 stage, and in each cell the time-step resolves the larger
   // of the rate of the hyperbolic terms and the rate of the source of each coupled fluid (see

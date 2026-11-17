@@ -16,7 +16,8 @@ struct gkyl_dg_euler_auxfields {
 };
 
 /**
- * Create a new Euler equation object.
+ * Create a new Euler equation object: Euler, [rho, rho ux, rho uy, rho uz, energy], or isothermal
+ * Euler, [rho, rho ux, rho uy, rho uz], by the type of the wave equation object.
  *
  * @param cbasis Configuration space basis functions
  * @param conf_range Configuration space range for use in indexing auxiliary variables

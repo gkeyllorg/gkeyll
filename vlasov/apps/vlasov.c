@@ -309,20 +309,17 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   vlasov_species_link_kinetic_aspects(app);
   vlasov_species_init_fluid_aspects(vm, app);
 
-  // Fluid-EM coupling: supported for momentum-carrying fluid species (Euler)
+  // Fluid-EM coupling: supported for momentum-carrying fluid species (Euler, isothermal Euler)
   // under the standard Maxwell field. Scalar advection and canonical-PB fluids
   // carry no current and are never coupled; a momentum-carrying fluid under any
   // other field type has no coupling formulation and is rejected. The coupling
   // is implicit (the staggered operator split, see vlasov_update_op_split)
   // unless use_explicit_sources puts the Lorentz force in the fluid RHS and the
   // fluid current on the Ampere RHS of every SSP-RK3 stage.
-  int num_coupled_fluids = 0, num_kinetic = 0;
+  int num_coupled_fluids = 0;
   for (int i = 0; i < ntot; ++i) {
     if (app->species[i].fluid && vm_fluid_em_coupling_supported(app->species[i].fluid)) {
       num_coupled_fluids += 1;
-    }
-    if (app->species[i].kinetic) {
-      num_kinetic += 1;
     }
   }
   app->has_fluid_em_coupling = false;
@@ -338,14 +335,8 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
       );
     }
     if (!app->use_explicit_sources) {
-      // The transport step of the split does not advance E, so the current of a kinetic
-      // species has no place in it yet.
-      if (num_kinetic > 0) {
-        gkyl_exit(
-          "gkyl_vlasov_app_new: the implicit fluid-EM coupling does not support kinetic species "
-          "yet (use use_explicit_sources)."
-        );
-      }
+      // Kinetic species join the split: the source step takes their current as known and the
+      // transport step moves them with its E (see vlasov_update_op_split).
       app->has_fluid_em_coupling = true;
       app->fl_em = vm_fluid_em_coupling_new(app);
       vm_field_set_source_split(app, app->field);

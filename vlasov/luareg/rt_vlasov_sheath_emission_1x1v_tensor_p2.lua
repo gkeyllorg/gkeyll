@@ -328,14 +328,7 @@ vlasovApp = Vlasov.App.new {
       return Ex, Ey, Ez, Bx, By, Bz, 0.0, 0.0
     end,
 
-    bcx = {
-      lower = {
-        type = G0.FieldBc.bcSymWall
-      },
-      upper = {
-        type = G0.FieldBc.bcWall
-      }
-    },
+    bcx = { G0.FieldBc.bcSymWall, G0.FieldBc.bcWall },
 
     evolve = true, -- Evolve field?
     elcErrorSpeedFactor = 0.0,

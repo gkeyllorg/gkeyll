@@ -12,16 +12,17 @@
 // (mgnErrorSpeedFactor = 1).
 //
 // Figures of merit at t = 25 / Omega_ci (64 x 32 cells, serendipity p1, 4167 steps): the
-// reconnected flux int |B_y(x, y = 0)| dx / 2 grows from 0.0200 to 0.1268 (the moments
+// reconnected flux int |B_y(x, y = 0)| dx / 2 grows from 0.0200 to 0.1304 (the moments
 // finite-volume solution on 128 x 64 cells: 0.0200 to 0.1167; the explicit variant,
-// rt_dg_5m_gem_explicit_2x: 0.1242). The out-of-plane field reaches |B_z| = 0.015 and the electron
-// speed 0.20 (cell averages); the cell averages of the correction potential stay below 1.3e-3, the
-// field energy falls from 1.511 to 1.252, and the total energy of the diagnostics by 2.9%. The run
+// rt_dg_5m_gem_explicit_2x: 0.1242). The out-of-plane field reaches |B_z| = 0.011 and the electron
+// speed 0.17 (cell averages); the cell averages of the correction potential stay below 9.4e-4, the
+// field energy falls from 1.511 to 1.266, and the total energy of the diagnostics by 3.3%. The run
 // amplifies round-off: the Lua twin starts from the same state to 1e-16 and ends with a reconnected
-// flux of 0.1264 and fields that differ by up to 5% of their maximum. For the same reason the
+// flux of 0.1245 and fields that differ by up to 6% of their maximum. For the same reason the
 // mirror symmetry of the problem about the midplane y = 0, kept to round-off at first, is lost: at
-// the end the electron z-momentum departs from it by 27% of its maximum (33% in the Lua twin; 1.4%
-// of the current in the moments solution).
+// the end the electron z-momentum departs from it by 29% of its maximum (31% in the Lua twin; 1.4%
+// of the current in the moments solution). At the end B_y changes sign three times along the
+// midplane (five times in the Lua twin; once in the explicit variant and in the moments solution).
 
 #include <math.h>
 #include <stdio.h>

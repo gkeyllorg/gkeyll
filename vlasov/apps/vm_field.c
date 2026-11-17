@@ -683,6 +683,42 @@ vm_field_update_split_cleaning(
   return dt_out;
 }
 
+// Completion of a stage of the transport step of the staggered operator split: the currents of
+// all species (and the applied current) enter the source step, so the stage only finalizes
+// emout = emin + dt*RHS.
+static void
+vm_field_complete_update_split(
+  gkyl_vlasov_app *app, double dt, const struct gkyl_array *fin[],
+  const struct gkyl_array *fluidin[], const struct gkyl_array *emin, struct gkyl_array *emout
+)
+{
+  gkyl_array_accumulate(gkyl_array_scale(emout, dt), 1.0, emin);
+}
+
+double
+vm_field_ghost_current_mean(
+  gkyl_vlasov_app *app, struct vm_field *field, double fac, const struct gkyl_array *arr
+)
+{
+  double avals_ghost_current[1], avals_ghost_current_global[1];
+  // First set the scalar ghost current array to fac / nx times the leading coefficient, where nx
+  // is the number of x cells.
+  gkyl_array_set_range(field->ghost_current, fac / app->grid.cells[0], arr, &app->local);
+  // Sum over the whole domain for the global average.
+  if (app->use_gpu) {
+    gkyl_array_reduce_range(field->red_ghost_current, field->ghost_current, GKYL_SUM, &app->local);
+    gkyl_cu_memcpy(
+      avals_ghost_current, field->red_ghost_current, sizeof(double[1]), GKYL_CU_MEMCPY_D2H
+    );
+  } else {
+    gkyl_array_reduce_range(avals_ghost_current, field->ghost_current, GKYL_SUM, &app->local);
+  }
+  gkyl_comm_allreduce_host(
+    app->comm, GKYL_DOUBLE, GKYL_SUM, 1, avals_ghost_current, avals_ghost_current_global
+  );
+  return avals_ghost_current_global[0];
+}
+
 void
 vm_field_set_source_split(gkyl_vlasov_app *app, struct vm_field *field)
 {
@@ -703,6 +739,7 @@ vm_field_set_source_split(gkyl_vlasov_app *app, struct vm_field *field)
   field->dt_split = DBL_MAX;
   field->update_func = field->info.mgnErrorSpeedFactor != 0.0 ? vm_field_update_split_cleaning :
                                                                 vm_field_update_split;
+  field->complete_update_func = vm_field_complete_update_split;
 }
 
 // Vlasov-Maxwell completion of the field update: accumulate the species current
