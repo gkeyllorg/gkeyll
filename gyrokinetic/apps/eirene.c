@@ -71,17 +71,14 @@ gk_eirene_gyrokinetic_str_ends_in_b1011(char *name)
 }
 
 void
-gk_eirene_rhs(
-  gkyl_gyrokinetic_app *app, const struct gkyl_array *fin[], struct gkyl_array *rhs[],
-  struct gkyl_array **step_moms_out[]
-)
+gk_eirene_rhs(gkyl_gyrokinetic_app *app, const struct gkyl_array *fin[], struct gkyl_array *rhs[])
 {
   struct gk_eirene *eirene = app->eirene;
   for (int i = 0; i < eirene->info.num_coupling_species; ++i) {
     struct gk_species *gks = eirene->coupling_species[i];
     struct gk_source_bgk *bgk_src = &eirene->bgk_src[i];
     int sidx = gk_find_species_idx(app, gks->info.name);
-    gk_species_source_bgk_rhs(app, gks, bgk_src, fin[sidx], rhs[sidx], step_moms_out[sidx]);
+    gk_species_source_bgk_rhs(app, gks, bgk_src, fin[sidx], rhs[sidx]);
   }
 }
 
