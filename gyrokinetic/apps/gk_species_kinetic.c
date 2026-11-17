@@ -327,13 +327,8 @@ gk_species_kinetic_release_dynamic(const gkyl_gyrokinetic_app *app, const struct
     gkyl_bc_twistshift_release(gks->bc_ts_up);
   }
 
-  if (app->use_gpu) {
-    gkyl_cu_free(gks->omega_cfl);
-    gkyl_cu_free(gks->m0_max);
-  } else {
-    gkyl_free(gks->omega_cfl);
-    gkyl_free(gks->m0_max);
-  }
+  gkyl_free_hodev(app->use_gpu, gks->omega_cfl);
+  gkyl_free_hodev(app->use_gpu, gks->m0_max);
 
   gk_species_release_integrated_mom(app, gks);
 
@@ -342,13 +337,8 @@ gk_species_kinetic_release_dynamic(const gkyl_gyrokinetic_app *app, const struct
   // Release L2 norm memory.
   gkyl_array_integrate_release(gks->integ_wfsq_op);
   gkyl_dynvec_release(gks->L2norm);
-  if (app->use_gpu) {
-    gkyl_cu_free(gks->L2norm_local);
-    gkyl_cu_free(gks->L2norm_global);
-  } else {
-    gkyl_free(gks->L2norm_local);
-    gkyl_free(gks->L2norm_global);
-  }
+  gkyl_free_hodev(app->use_gpu, gks->L2norm_local);
+  gkyl_free_hodev(app->use_gpu, gks->L2norm_global);
 }
 
 static void
@@ -372,13 +362,8 @@ gk_species_kinetic_init_dynamic(
   gks->f1 = mkarr(app->use_gpu, gks->basis.num_basis, gks->local_ext.volume);
   gks->fnew = mkarr(app->use_gpu, gks->basis.num_basis, gks->local_ext.volume);
 
-  if (app->use_gpu) {
-    gks->omega_cfl = gkyl_cu_malloc(sizeof(double));
-    gks->m0_max = gkyl_cu_malloc(app->basis.num_basis * sizeof(double));
-  } else {
-    gks->omega_cfl = gkyl_malloc(sizeof(double));
-    gks->m0_max = gkyl_malloc(app->basis.num_basis * sizeof(double));
-  }
+  gks->omega_cfl = gkyl_calloc_hodev(app->use_gpu, 1, sizeof(double));
+  gks->m0_max = gkyl_calloc_hodev(app->use_gpu, app->basis.num_basis, sizeof(double));
 
   gk_species_init_integrated_mom(app, gks);
 
@@ -388,13 +373,8 @@ gk_species_kinetic_init_dynamic(
   gks->integ_wfsq_op = gkyl_array_integrate_new(
     &gks->grid, &gks->basis, 1, GKYL_ARRAY_INTEGRATE_OP_SQ_WEIGHTED, app->use_gpu
   );
-  if (app->use_gpu) {
-    gks->L2norm_local = gkyl_cu_malloc(sizeof(double));
-    gks->L2norm_global = gkyl_cu_malloc(sizeof(double));
-  } else {
-    gks->L2norm_local = gkyl_malloc(sizeof(double));
-    gks->L2norm_global = gkyl_malloc(sizeof(double));
-  }
+  gks->L2norm_local = gkyl_calloc_hodev(app->use_gpu, 1, sizeof(double));
+  gks->L2norm_global = gkyl_calloc_hodev(app->use_gpu, 1, sizeof(double));
   gks->L2norm = gkyl_dynvec_new(GKYL_DOUBLE, 1); // L2 norm.
   gks->is_first_L2norm_write_call = true;
 

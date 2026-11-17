@@ -1168,11 +1168,7 @@ gkyl_gyrokinetic_app_omegaH_init(gkyl_gyrokinetic_app *app)
       mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     gkyl_dg_mul_op_range(&app->basis, 0, omegaH_gf_grid, 0, parfac, 0, perpfac_inv, &app->local);
     double *omegaH_gf_red;
-    if (app->use_gpu) {
-      omegaH_gf_red = gkyl_cu_malloc(app->basis.num_basis * sizeof(double));
-    } else {
-      omegaH_gf_red = gkyl_malloc(app->basis.num_basis * sizeof(double));
-    }
+    omegaH_gf_red = gkyl_calloc_hodev(app->use_gpu, app->basis.num_basis, sizeof(double));
 
     gkyl_array_reduce_range(omegaH_gf_red, omegaH_gf_grid, GKYL_MAX, &app->local);
 
@@ -1186,11 +1182,7 @@ gkyl_gyrokinetic_app_omegaH_init(gkyl_gyrokinetic_app *app)
     double omegaH_gf_local = app->omegaH_gf;
     gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &omegaH_gf_local, &app->omegaH_gf);
 
-    if (app->use_gpu) {
-      gkyl_cu_free(omegaH_gf_red);
-    } else {
-      gkyl_free(omegaH_gf_red);
-    }
+    gkyl_free_hodev(app->use_gpu, omegaH_gf_red);
     gkyl_array_release(omegaH_gf_grid);
     gkyl_array_release(perpfac_inv);
     gkyl_array_release(perpfac);

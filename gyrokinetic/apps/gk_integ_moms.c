@@ -13,13 +13,8 @@ gk_integ_moms_alloc(struct gkyl_gyrokinetic_app *app, struct gk_integ_moms *im)
     im->num_mom_all += im->ops[m].num_mom;
   }
 
-  if (app->use_gpu) {
-    im->red_local = gkyl_cu_malloc(sizeof(double[im->num_mom_all]));
-    im->red_global = gkyl_cu_malloc(sizeof(double[im->num_mom_all]));
-  } else {
-    im->red_local = gkyl_malloc(sizeof(double[im->num_mom_all]));
-    im->red_global = gkyl_malloc(sizeof(double[im->num_mom_all]));
-  }
+  im->red_local = gkyl_calloc_hodev(app->use_gpu, im->num_mom_all, sizeof(double));
+  im->red_global = gkyl_calloc_hodev(app->use_gpu, im->num_mom_all, sizeof(double));
 
   im->diag = gkyl_malloc(sizeof(gkyl_dynvec[im->num]));
   for (int m = 0; m < im->num; m++) {
@@ -183,11 +178,6 @@ gk_integ_moms_release(const struct gkyl_gyrokinetic_app *app, const struct gk_in
   }
   gkyl_free(im->ops);
   gkyl_free(im->diag);
-  if (app->use_gpu) {
-    gkyl_cu_free(im->red_local);
-    gkyl_cu_free(im->red_global);
-  } else {
-    gkyl_free(im->red_local);
-    gkyl_free(im->red_global);
-  }
+  gkyl_free_hodev(app->use_gpu, im->red_local);
+  gkyl_free_hodev(app->use_gpu, im->red_global);
 }

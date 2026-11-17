@@ -144,11 +144,7 @@ gk_neut_species_kinetic_release_dynamic(
   gkyl_array_release(gkns->fnew);
   gkyl_array_release(gkns->cflrate);
 
-  if (app->use_gpu) {
-    gkyl_cu_free(gkns->omega_cfl);
-  } else {
-    gkyl_free(gkns->omega_cfl);
-  }
+  gkyl_free_hodev(app->use_gpu, gkns->omega_cfl);
 
   gk_neut_species_source_release(app, &gkns->src);
 
@@ -158,13 +154,8 @@ gk_neut_species_kinetic_release_dynamic(
   // Release integrated mom diag data.
   gkyl_dynvec_release(gkns->integ_diag);
 
-  if (app->use_gpu) {
-    gkyl_cu_free(gkns->red_integ_diag);
-    gkyl_cu_free(gkns->red_integ_diag_global);
-  } else {
-    gkyl_free(gkns->red_integ_diag);
-    gkyl_free(gkns->red_integ_diag_global);
-  }
+  gkyl_free_hodev(app->use_gpu, gkns->red_integ_diag);
+  gkyl_free_hodev(app->use_gpu, gkns->red_integ_diag_global);
 
   // Copy BCs are allocated by default. Need to free.
   for (int d = 0; d < app->cdim; ++d) {
@@ -261,23 +252,15 @@ gk_neut_species_kinetic_init_dynamic(
   // Allocate cflrate (scalar array).
   gkns->cflrate = mkarr(app->use_gpu, 1, gkns->local_ext.volume);
 
-  if (app->use_gpu) {
-    gkns->omega_cfl = gkyl_cu_malloc(sizeof(double));
-  } else {
-    gkns->omega_cfl = gkyl_malloc(sizeof(double));
-  }
+  gkns->omega_cfl = gkyl_calloc_hodev(app->use_gpu, 1, sizeof(double));
 
   // Allocate data for integrated moments.
   gk_neut_species_moment_init(app, gkns, &gkns->integ_moms, GKYL_F_MOMENT_M0M1M2, true);
 
   // Allocate data for integrated diagnostics.
-  if (app->use_gpu) {
-    gkns->red_integ_diag = gkyl_cu_malloc(sizeof(double[gkns->integ_moms.num_mom]));
-    gkns->red_integ_diag_global = gkyl_cu_malloc(sizeof(double[gkns->integ_moms.num_mom]));
-  } else {
-    gkns->red_integ_diag = gkyl_malloc(sizeof(double[gkns->integ_moms.num_mom]));
-    gkns->red_integ_diag_global = gkyl_malloc(sizeof(double[gkns->integ_moms.num_mom]));
-  }
+  gkns->red_integ_diag = gkyl_calloc_hodev(app->use_gpu, gkns->integ_moms.num_mom, sizeof(double));
+  gkns->red_integ_diag_global =
+    gkyl_calloc_hodev(app->use_gpu, gkns->integ_moms.num_mom, sizeof(double));
   // Allocate dynamic-vector to store all-reduced integrated moments.
   gkns->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, gkns->integ_moms.num_mom);
   gkns->is_first_integ_write_call = true;
