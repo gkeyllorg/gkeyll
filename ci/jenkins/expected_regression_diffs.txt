@@ -130,7 +130,6 @@ gyrokinetic/creg/rt_gk_wham_kinetic_poa_1x2v_p1
 
 # BGK-source integrated diag is now the step-averaged net source (f unchanged); t=0 boundary fluxes computed after BCs (295e87c6f)
 gyrokinetic/creg/rt_gk_cbc_3x2v_p1
-gyrokinetic/creg/rt_gk_sheath_heat_source_2x2v_p1
 
 # BGK-source integrated diag is now the step-averaged net source (f unchanged)
 gyrokinetic/creg/rt_gk_multib_step_eirene_2x2v_p1
@@ -144,3 +143,4 @@ gyrokinetic/creg/rt_gk_rosenbluth_hinton_2x2v_p1  # reduced resolution (Nx 16->8
 gyrokinetic/creg/rt_gk_lapd_cyl_nonuniformr_3x2v_p1	# fixed parenthesis in elc source temperature profile
 gyrokinetic/creg/rt_gk_lapd_cyl_3x2v_p1	# switched to the JCP 2025 nonuniform-v LAPD setup (sec. 4.3.3)
 gyrokinetic/creg/rt_gk_lapd_cart_3x2v_p1	# fixed parenthesis in elc source temperature profile
+gyrokinetic/creg/rt_gk_sheath_heat_source_2x2v_p1 # Change the resolution to fix the particle injection of the heating source
