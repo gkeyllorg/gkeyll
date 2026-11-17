@@ -624,8 +624,8 @@ struct gk_boundary_fluxes {
   bool a_hamiltonian_mom; // There is one Hamiltonian moment.
   struct gkyl_bc_basic_gyrokinetic *gfss_bc_op[2 * GKYL_MAX_CDIM]; // Applies BCs to bmag and phi.
   struct gkyl_array *bc_buffer; // Buffer used by gfss_bc_op;
-  struct gk_stepped_moms *step_moms; // Stepped moments of the species.
-  int step_moms_idx; // Index of the first boundary-flux moment in step_moms.
+  struct gk_stepped_moms step_moms; // Owned boundary-flux moments.
+  int step_moms_idx; // Index of the first boundary-flux moment in the species view.
   struct gk_species_moment *moms_op; // Moments calculator.
   // Objects used for calculating diagnostics.
   int *diag_mom_idx; // Index of each diag mom in the array of calc moms.
@@ -1136,7 +1136,8 @@ struct gk_source_bgk {
   bool implicit_step; // Whether or not to take an implcit BGK step.
   double dt_implicit; // Timestep used by the implicit collisions.
   struct gk_integ_moms integ_moms;
-  int step_moms_idx; // Index of the first integrated moment in the species stepped moments.
+  struct gk_stepped_moms step_moms; // Owned BGK-source moments.
+  int step_moms_idx; // Index of the first integrated moment in the species view.
   struct gk_species_moment correct_mom_op; // Correction moments.
   gkyl_dynvec vtsq_amp_diag; // Stores vtsq_amplitude for diagnostics.
   bool is_first_diag_dynvec_write_call; // Whether vtsq_amp_diag is being written for the first time.
@@ -1326,7 +1327,7 @@ struct gk_species {
   struct gk_integ_moms fdot_integ_moms; // Integrated moments of df/dt.
   struct gkyl_array **fdot_mom_old, **fdot_mom_new; // Integrated moments of f_old/dt and f_new/dt.
 
-  // Arrays stepped along with f: boundary-flux moments, then BGK source moments.
+  // Non-owning view of arrays stepped along with f in other modules.
   struct gk_stepped_moms step_moms;
 
   struct gk_species_balance gksbal; // Balance computations.
@@ -1533,7 +1534,7 @@ struct gk_neut_species {
 
   // Boundary fluxes used for other solvers and diagnostics.
   struct gk_boundary_fluxes bflux;
-  struct gk_stepped_moms step_moms; // Arrays stepped along with f (boundary-flux moments).
+  struct gk_stepped_moms step_moms; // Non-owning view of boundary-flux moments.
 
   union {
     // Kinetic neutrals ............................................ //
@@ -2258,6 +2259,15 @@ int gk_stepped_moms_add(
 );
 
 /**
+ * Append references to an owner's stepped arrays to a non-owning view.
+ *
+ * @param view Non-owning stepped-moment view.
+ * @param owner Stepped moments that own their arrays and ranges.
+ * @return Index of the first appended array in the view.
+ */
+int gk_stepped_moms_append_refs(struct gk_stepped_moms *view, const struct gk_stepped_moms *owner);
+
+/**
  * Forward Euler step of every stepped array: fout = fin + dt*fout.
  *
  * @param sm Stepped moments object.
@@ -2325,6 +2335,13 @@ void gk_stepped_moms_copy(
  * @param sm Stepped moments object.
  */
 void gk_stepped_moms_release(const struct gk_stepped_moms *sm);
+
+/**
+ * Release only the pointer lists of a non-owning stepped-moment view.
+ *
+ * @param view Non-owning stepped-moment view.
+ */
+void gk_stepped_moms_release_view(const struct gk_stepped_moms *view);
 
 /** gk_species_balance API */
 

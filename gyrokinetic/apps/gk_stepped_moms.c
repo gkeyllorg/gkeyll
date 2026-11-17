@@ -19,6 +19,27 @@ gk_stepped_moms_add(
   return idx;
 }
 
+int
+gk_stepped_moms_append_refs(struct gk_stepped_moms *view, const struct gk_stepped_moms *owner)
+{
+  int idx = view->num;
+  if (owner->num == 0) {
+    return idx;
+  }
+  view->num += owner->num;
+  view->f = gkyl_realloc(view->f, sizeof(struct gkyl_array * [view->num]));
+  view->f1 = gkyl_realloc(view->f1, sizeof(struct gkyl_array * [view->num]));
+  view->fnew = gkyl_realloc(view->fnew, sizeof(struct gkyl_array * [view->num]));
+  view->range = gkyl_realloc(view->range, sizeof(const struct gkyl_range * [view->num]));
+  for (int m = 0; m < owner->num; ++m) {
+    view->f[idx + m] = owner->f[m];
+    view->f1[idx + m] = owner->f1[m];
+    view->fnew[idx + m] = owner->fnew[m];
+    view->range[idx + m] = owner->range[m];
+  }
+  return idx;
+}
+
 void
 gk_stepped_moms_step_f(
   const struct gk_stepped_moms *sm, struct gkyl_array **fout, double dt, struct gkyl_array **fin
@@ -87,5 +108,16 @@ gk_stepped_moms_release(const struct gk_stepped_moms *sm)
     gkyl_free(sm->f1);
     gkyl_free(sm->fnew);
     gkyl_free(sm->range);
+  }
+}
+
+void
+gk_stepped_moms_release_view(const struct gk_stepped_moms *view)
+{
+  if (view->num > 0) {
+    gkyl_free(view->f);
+    gkyl_free(view->f1);
+    gkyl_free(view->fnew);
+    gkyl_free(view->range);
   }
 }

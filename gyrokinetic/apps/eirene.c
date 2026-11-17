@@ -201,6 +201,8 @@ gk_eirene_init(struct gkyl_gyrokinetic_app *app, struct gkyl_gk *gk)
     eirene->bgk_src[i].source_bgk_id = GKYL_SOURCE_BGK_EXTERNAL;
     eirene->bgk_src[i].write_diagnostics = true;
     gk_species_source_bgk_init(app, gks, &eirene->bgk_src[i]);
+    eirene->bgk_src[i].step_moms_idx =
+      gk_stepped_moms_append_refs(&gks->step_moms, &eirene->bgk_src[i].step_moms);
   }
 
   // Read initial EIRENE data.
