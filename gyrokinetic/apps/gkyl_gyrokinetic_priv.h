@@ -203,19 +203,10 @@ struct gk_integ_moms {
   bool is_first_write; // Whether diag is being written for the first time.
 };
 
-// Stages of the time steppers, i.e. the f, f1 and fnew of each species.
-enum gk_step_stage {
-  GK_STEP_STAGE_F = 0, // f.
-  GK_STEP_STAGE_F1, // f1.
-  GK_STEP_STAGE_FNEW, // fnew.
-  GK_STEP_STAGE_COUNT // Number of stages (for internal use).
-};
-
-// Arrays a module steps in time along with the distribution function.
+// Arrays stepped in time along with the distribution function of a species.
 struct gk_stepped_moms {
   int num; // Number of arrays.
-  struct gkyl_array **stage[GK_STEP_STAGE_COUNT]; // Arrays for each stage of the stepper.
-  struct gkyl_array **rate; // Rates of change of the arrays.
+  struct gkyl_array **f, **f1, **fnew; // Arrays for each stage of the stepper.
   const struct gkyl_range **range; // Range each array is stepped on.
 };
 
@@ -629,10 +620,12 @@ struct gk_boundary_fluxes {
   struct gkyl_array **flux; // Array storing boundary fluxes.
   // Objects used for calculating moments.
   int num_calc_moms; // Number of moments of boundary fluxes to compute.
+  bool *is_hamiltonian_mom; // True if need Hamiltonian moments.
   bool a_hamiltonian_mom; // There is one Hamiltonian moment.
   struct gkyl_bc_basic_gyrokinetic *gfss_bc_op[2 * GKYL_MAX_CDIM]; // Applies BCs to bmag and phi.
   struct gkyl_array *bc_buffer; // Buffer used by gfss_bc_op;
-  struct gk_stepped_moms step_moms; // Stepped moments of the boundary fluxes.
+  struct gk_stepped_moms step_moms; // Owned boundary-flux moments.
+  int step_moms_idx; // Index of the first boundary-flux moment in the species view.
   struct gk_species_moment *moms_op; // Moments calculator.
   // Objects used for calculating diagnostics.
   int *diag_mom_idx; // Index of each diag mom in the array of calc moms.
@@ -1142,22 +1135,24 @@ struct gk_source_bgk {
   struct gkyl_bgk_collisions *bgk_op; // BGK operator.
   bool implicit_step; // Whether or not to take an implcit BGK step.
   double dt_implicit; // Timestep used by the implicit collisions.
-  struct gk_integ_moms integ_moms; // Integrated moments of the source term.
-  struct gk_stepped_moms step_moms; // Stepped moments of the source term.
+  struct gk_integ_moms integ_moms;
+  struct gk_stepped_moms step_moms; // Owned BGK-source moments.
+  int step_moms_idx; // Index of the first integrated moment in the species view.
   struct gk_species_moment correct_mom_op; // Correction moments.
   gkyl_dynvec vtsq_amp_diag; // Stores vtsq_amplitude for diagnostics.
   bool is_first_diag_dynvec_write_call; // Whether vtsq_amp_diag is being written for the first time.
   // Methods chosen at runtime.
   void (*rhs_func)(
     gkyl_gyrokinetic_app *app, struct gk_species *species, struct gk_source_bgk *src,
-    const struct gkyl_array *fin, struct gkyl_array *rhs
+    const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **step_moms_out
   );
   void (*write_diags_func)(
     gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_source_bgk *src, double tm,
     int frame
   );
   void (*update_integrated_diags_rhs_func)(
-    gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_source_bgk *src
+    gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_source_bgk *src,
+    struct gkyl_array **step_moms_out
   );
   void (*calc_integrated_diags_func)(
     gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_source_bgk *src, double tm
@@ -1221,10 +1216,11 @@ enum gk_species_balance_term {
 
 // Components of a species balance diagnostic.
 enum gk_species_balance_comp {
-  GK_SPECIES_BALANCE_COMP_ERR = 0, // mom_err = src - bflux_tot - mom_dot.
+  GK_SPECIES_BALANCE_COMP_ERR = 0, // mom_err = src + src_bgk - bflux_tot - mom_dot.
   GK_SPECIES_BALANCE_COMP_ERR_NORM, // mom_err*dt/mom.
   GK_SPECIES_BALANCE_COMP_MOM_DOT, // Time rate of change of the balanced quantity.
-  GK_SPECIES_BALANCE_COMP_SRC, // Sources (including the BGK source).
+  GK_SPECIES_BALANCE_COMP_SRC, // Source contribution.
+  GK_SPECIES_BALANCE_COMP_SRC_BGK, // BGK source contribution.
   GK_SPECIES_BALANCE_COMP_BFLUX, // Total flux through the boundaries.
   GK_SPECIES_BALANCE_COMP_COUNT // Number of components (for internal use).
 };
@@ -1331,6 +1327,9 @@ struct gk_species {
   bool time_rate_diags; // Whether to compute df/dt diagnostics (requested or needed by the balance).
   struct gk_integ_moms fdot_integ_moms; // Integrated moments of df/dt.
   struct gkyl_array **fdot_mom_old, **fdot_mom_new; // Integrated moments of f_old/dt and f_new/dt.
+
+  // Non-owning view of arrays stepped along with f in other modules.
+  struct gk_stepped_moms step_moms;
 
   struct gk_species_balance gksbal; // Balance computations.
 
@@ -1536,6 +1535,7 @@ struct gk_neut_species {
 
   // Boundary fluxes used for other solvers and diagnostics.
   struct gk_boundary_fluxes bflux;
+  struct gk_stepped_moms step_moms; // Non-owning view of boundary-flux moments.
 
   union {
     // Kinetic neutrals ............................................ //
@@ -2253,50 +2253,81 @@ void gk_integ_moms_release(const struct gkyl_gyrokinetic_app *app, const struct 
  * @param ncomp Number of components of the array.
  * @param size Number of cells of the array.
  * @param range Range the array is stepped on.
- * @param rate Array the rhs puts the rate in, or NULL if the rhs puts it in the
- *   output stage.
- * @return Index of the new array in each stage.
+ * @return Index of the new array in sm->f, sm->f1 and sm->fnew.
  */
 int gk_stepped_moms_add(
-  struct gk_stepped_moms *sm, bool use_gpu, long ncomp, long size, const struct gkyl_range *range,
-  struct gkyl_array *rate
+  struct gk_stepped_moms *sm, bool use_gpu, long ncomp, long size, const struct gkyl_range *range
 );
 
 /**
- * Forward Euler step of every stepped array, after the rhs computed the rates:
- * out = in + rate. The rate is the output stage itself for arrays without a
- * rate array.
+ * Append references to an owner's stepped arrays to a non-owning view.
  *
- * @param sm Stepped moments object.
- * @param out Output stage.
- * @param in Input stage.
+ * @param view Non-owning stepped-moment view.
+ * @param owner Stepped moments that own their arrays and ranges.
+ * @return Index of the first appended array in the view.
  */
-void gk_stepped_moms_forward_euler(
-  const struct gk_stepped_moms *sm, enum gk_step_stage out, enum gk_step_stage in
+int gk_stepped_moms_append_refs(struct gk_stepped_moms *view, const struct gk_stepped_moms *owner);
+
+/**
+ * Forward Euler step of every stepped array: fout = fin + dt*fout.
+ *
+ * @param sm Stepped moments object.
+ * @param fout Output (holds the rates on input).
+ * @param dt Time step.
+ * @param fin Input.
+ */
+void gk_stepped_moms_step_f(
+  const struct gk_stepped_moms *sm, struct gkyl_array **fout, double dt, struct gkyl_array **fin
 );
 
 /**
- * Set every stepped array: out = fac*in.
+ * Set every stepped array: fout = fac*fin.
  *
  * @param sm Stepped moments object.
- * @param out Output stage.
- * @param fac Factor multiplying the input stage.
- * @param in Input stage.
+ * @param fout Output.
+ * @param fac Factor multiplying fin.
+ * @param fin Input.
  */
 void gk_stepped_moms_set(
-  const struct gk_stepped_moms *sm, enum gk_step_stage out, double fac, enum gk_step_stage in
+  const struct gk_stepped_moms *sm, struct gkyl_array **fout, double fac, struct gkyl_array **fin
 );
 
 /**
- * Accumulate into every stepped array: out += fac*in.
+ * Accumulate into every stepped array: fout += fac*fin.
  *
  * @param sm Stepped moments object.
- * @param out Output stage.
- * @param fac Factor multiplying the input stage.
- * @param in Input stage.
+ * @param fout Output.
+ * @param fac Factor multiplying fin.
+ * @param fin Input.
  */
 void gk_stepped_moms_accumulate(
-  const struct gk_stepped_moms *sm, enum gk_step_stage out, double fac, enum gk_step_stage in
+  const struct gk_stepped_moms *sm, struct gkyl_array **fout, double fac, struct gkyl_array **fin
+);
+
+/**
+ * Combine every stepped array: fout = fac1*fin1 + fac2*fin2.
+ *
+ * @param sm Stepped moments object.
+ * @param fout Output.
+ * @param fac1 Factor multiplying fin1.
+ * @param fin1 First input.
+ * @param fac2 Factor multiplying fin2.
+ * @param fin2 Second input.
+ */
+void gk_stepped_moms_combine(
+  const struct gk_stepped_moms *sm, struct gkyl_array **fout, double fac1, struct gkyl_array **fin1,
+  double fac2, struct gkyl_array **fin2
+);
+
+/**
+ * Copy every stepped array: fout = fin.
+ *
+ * @param sm Stepped moments object.
+ * @param fout Output.
+ * @param fin Input.
+ */
+void gk_stepped_moms_copy(
+  const struct gk_stepped_moms *sm, struct gkyl_array **fout, struct gkyl_array **fin
 );
 
 /**
@@ -2305,6 +2336,13 @@ void gk_stepped_moms_accumulate(
  * @param sm Stepped moments object.
  */
 void gk_stepped_moms_release(const struct gk_stepped_moms *sm);
+
+/**
+ * Release only the pointer lists of a non-owning stepped-moment view.
+ *
+ * @param view Non-owning stepped-moment view.
+ */
+void gk_stepped_moms_release_view(const struct gk_stepped_moms *view);
 
 /** gk_species_balance API */
 
@@ -2401,6 +2439,46 @@ void gk_species_balance_write(
 void gk_species_balance_release(
   const struct gkyl_gyrokinetic_app *app, const struct gk_species_balance *gksbal
 );
+
+/**
+ * Initialize the balance diagnostics of the app (summed over species).
+ *
+ * @param app Gyrokinetic app object.
+ * @param gkbal App balance diagnostic object.
+ * @param diags Diagnostics requested for the app.
+ */
+void gk_app_balance_init(
+  struct gkyl_gyrokinetic_app *app, struct gk_app_balance *gkbal,
+  const struct gkyl_phase_diagnostics_inp *diags
+);
+
+/**
+ * Sum the balances of the species, and add the field terms to the energy
+ * balance. Must be called after the species balances are computed.
+ *
+ * @param app Gyrokinetic app object.
+ * @param gkbal App balance diagnostic object.
+ * @param tm Current time.
+ * @param dt Last time step (<= 0 if no step has been taken).
+ */
+void gk_app_balance_calc(
+  struct gkyl_gyrokinetic_app *app, struct gk_app_balance *gkbal, double tm, double dt
+);
+
+/**
+ * Write the balances of the app to <name>-balance_<balance>.gkyl.
+ *
+ * @param app Gyrokinetic app object.
+ * @param gkbal App balance diagnostic object.
+ */
+void gk_app_balance_write(struct gkyl_gyrokinetic_app *app, struct gk_app_balance *gkbal);
+
+/**
+ * Release the balance diagnostics of the app.
+ *
+ * @param gkbal App balance diagnostic object.
+ */
+void gk_app_balance_release(const struct gk_app_balance *gkbal);
 
 /** gk_positivity API */
 
@@ -3714,10 +3792,12 @@ void gk_species_source_bgk_init(
  * @param src Pointer to source.
  * @param fin Input distribution function.
  * @param rhs source_bgk contribution to df/dt.
+ * @param step_moms_out Stepped moments of the species, where the integrated moments
+ *   of the source term are put (if computed).
  */
 void gk_species_source_bgk_rhs(
   gkyl_gyrokinetic_app *app, struct gk_species *species, struct gk_source_bgk *src,
-  const struct gkyl_array *fin, struct gkyl_array *rhs
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **step_moms_out
 );
 
 /**
@@ -5075,9 +5155,12 @@ struct gk_eirene *gk_eirene_init(gkyl_gyrokinetic_app *app, struct gkyl_gk *gk);
  * @param app Gyrokinetic app object.
  * @param fin Array of distribution functions (one for each species) .
  * @param fout Output array of distribution functions (one for each species).
+ * @param step_moms_out Stepped moments of each species (where the BGK sources put
+ *   the integrated moments of the source term).
  */
 void gk_eirene_rhs(
-  gkyl_gyrokinetic_app *app, const struct gkyl_array *fin[], struct gkyl_array *rhs[]
+  gkyl_gyrokinetic_app *app, const struct gkyl_array *fin[], struct gkyl_array *rhs[],
+  struct gkyl_array **step_moms_out[]
 );
 
 /**
@@ -5139,56 +5222,6 @@ void gyrokinetic_calc_field(
 void gyrokinetic_calc_field_and_apply_bc(
   gkyl_gyrokinetic_app *app, double tcurr, struct gkyl_array *distf[], struct gkyl_array **bflux[],
   struct gkyl_array *distf_neut[]
-);
-
-/**
- * Forward Euler step of the arrays stepped along with f by all the modules of
- * the app (boundary fluxes, BGK sources, ...), once the rhs computed their rates.
- *
- * @param app Gyrokinetic app object.
- * @param out Output stage.
- * @param in Input stage.
- */
-void gyrokinetic_step_moms_forward_euler(
-  gkyl_gyrokinetic_app *app, enum gk_step_stage out, enum gk_step_stage in
-);
-
-/**
- * Set the arrays stepped along with f by all the modules of the app: out = fac*in.
- *
- * @param app Gyrokinetic app object.
- * @param out Output stage.
- * @param fac Factor multiplying the input stage.
- * @param in Input stage.
- */
-void gyrokinetic_step_moms_set(
-  gkyl_gyrokinetic_app *app, enum gk_step_stage out, double fac, enum gk_step_stage in
-);
-
-/**
- * Accumulate into the arrays stepped along with f by all the modules of the
- * app: out += fac*in.
- *
- * @param app Gyrokinetic app object.
- * @param out Output stage.
- * @param fac Factor multiplying the input stage.
- * @param in Input stage.
- */
-void gyrokinetic_step_moms_accumulate(
-  gkyl_gyrokinetic_app *app, enum gk_step_stage out, double fac, enum gk_step_stage in
-);
-
-/**
- * Boundary-flux moments of each charged and neutral species in a stage.
- *
- * @param app Gyrokinetic app object.
- * @param stage Stage of the stepper.
- * @param bflux Output boundary-flux moments of each charged species.
- * @param bflux_neut Output boundary-flux moments of each neutral species.
- */
-void gyrokinetic_bflux_moms_stage(
-  gkyl_gyrokinetic_app *app, enum gk_step_stage stage, struct gkyl_array **bflux[],
-  struct gkyl_array **bflux_neut[]
 );
 
 /**

@@ -44,7 +44,7 @@ gk_species_kinetic_omegaH_dt(
 static double
 gk_species_kinetic_rhs_dynamic(
   gkyl_gyrokinetic_app *app, struct gk_species *species, const struct gkyl_array *fin,
-  struct gkyl_array *rhs, struct gkyl_array **bflux_moms
+  struct gkyl_array *rhs, struct gkyl_array **step_moms_out
 )
 {
   // Gyroaverage the potential if needed.
@@ -81,13 +81,13 @@ gk_species_kinetic_rhs_dynamic(
   gk_species_react_rhs(app, species, &species->react_neut, fin, rhs);
 
   // BGK source.
-  gk_species_source_bgk_rhs(app, species, &species->bgk_src, fin, rhs);
+  gk_species_source_bgk_rhs(app, species, &species->bgk_src, fin, rhs, step_moms_out);
 
   // Compute and store (in the ghost cell of rhs and in an array in bflux) the boundary fluxes.
   gk_species_bflux_rhs(app, &species->bflux, fin, rhs);
 
   // Compute moments of the boundary fluxes.
-  gk_species_bflux_calc_moms(app, &species->bflux, rhs, bflux_moms);
+  gk_species_bflux_calc_moms(app, &species->bflux, rhs, step_moms_out);
 
   // Multiply CFL rate by the df/dt multiplier.
   gk_species_fdot_multiplier_advance_times_cfl(
@@ -1398,8 +1398,9 @@ gk_species_kinetic_init(
     );
   }
 
-  // Initialize boundary fluxes.
+  // Initialize boundary fluxes, and the arrays stepped along with f.
   gks->bflux = (struct gk_boundary_fluxes){};
+  gks->step_moms = (struct gk_stepped_moms){};
   // Additional bflux moments to step in time.
   struct gkyl_phase_diagnostics_inp add_bflux_moms_inp = (struct gkyl_phase_diagnostics_inp){};
   enum gkyl_species_bflux_type bflux_type = GK_SPECIES_BFLUX_NONE;
@@ -1441,6 +1442,7 @@ gk_species_kinetic_init(
   gk_species_balance_pre_init(app, gks, &gks->gksbal, &bflux_type, &add_bflux_moms_inp);
   // Introduce new moments into moms_inp if needed.
   gk_species_bflux_init(app, gks, &gks->bflux, bflux_type, add_bflux_moms_inp);
+  gks->bflux.step_moms_idx = gk_stepped_moms_append_refs(&gks->step_moms, &gks->bflux.step_moms);
 
   // Initialize empty structs. New methods will fill them if specified.
   gks->src = (struct gk_source){};
@@ -1485,6 +1487,8 @@ gk_species_kinetic_init(
   // Initialize a BGK source.
   gks->bgk_src = (struct gk_source_bgk){};
   gk_species_source_bgk_init(app, gks, &gks->bgk_src);
+  gks->bgk_src.step_moms_idx =
+    gk_stepped_moms_append_refs(&gks->step_moms, &gks->bgk_src.step_moms);
 
   // Initialize positivity enforcing operator.
   gks->positivity = (struct gk_positivity){};
@@ -1557,6 +1561,7 @@ gk_species_kinetic_release(const gkyl_gyrokinetic_app *app, const struct gk_spec
 
   // Free boundary flux memory.
   gk_species_bflux_release(app, gks, &gks->bflux);
+  gk_stepped_moms_release_view(&gks->step_moms);
 
   gk_species_lte_release(app, &gks->lte);
 

@@ -1260,139 +1260,6 @@ gyrokinetic_post_positivity_quasineut_release(gkyl_gyrokinetic_app *app)
   app->post_pos_quasineut_func = gyrokinetic_post_positivity_quasineut_disabled;
 }
 
-// App level balance diagnostics, summing those of the species.
-
-static void
-gyrokinetic_balance_init(
-  struct gkyl_gyrokinetic_app *app, struct gk_app_balance *gkbal,
-  const struct gkyl_phase_diagnostics_inp *diags
-)
-{
-  *gkbal = (struct gk_app_balance){};
-  gkbal->num_diags = diags->num_balance_diags;
-  for (int d = 0; d < gkbal->num_diags; d++) {
-    gkbal->diag_types[d] = diags->balance_diags[d];
-    // Species components, and the field terms for the energy.
-    gkbal->num_comp[d] = gkbal->diag_types[d] == GKYL_GK_BALANCE_ENERGY ?
-                           GK_APP_BALANCE_COMP_COUNT :
-                           GK_SPECIES_BALANCE_COMP_COUNT;
-    gkbal->diag[d] = gkyl_dynvec_new(GKYL_DOUBLE, gkbal->num_comp[d]);
-    gkbal->is_first_write[d] = true;
-  }
-}
-
-static void
-gyrokinetic_balance_calc(
-  struct gkyl_gyrokinetic_app *app, struct gk_app_balance *gkbal, double tm, double dt
-)
-{
-  // Sum the balance of each dynamic species; the energy balance also includes
-  // the field terms. Must be called after the species balances are computed.
-  for (int d = 0; d < gkbal->num_diags; d++) {
-    double bal_vals[gkbal->num_comp[d]];
-    for (int k = 0; k < gkbal->num_comp[d]; k++) {
-      bal_vals[k] = 0.0;
-    }
-    double mom_tot = 0.0;
-    for (int i = 0; i < app->num_species; ++i) {
-      struct gk_species_balance *gksbal = &app->species[i].gksbal;
-      if (gksbal->num_diags == 0) {
-        continue;
-      }
-      int sd = -1;
-      for (int k = 0; k < gksbal->num_diags; k++) {
-        sd = gksbal->diag_types[k] == gkbal->diag_types[d] ? k : sd;
-      }
-      assert(sd >= 0); // The species computes every balance of the app.
-      double sbal_vals[gksbal->num_comp];
-      gkyl_dynvec_getlast(gksbal->diag[sd], sbal_vals);
-      // Sum every component but the normalized error, recomputed below.
-      for (int k = 0; k < gksbal->num_comp; k++) {
-        if (k != GK_SPECIES_BALANCE_COMP_ERR_NORM) {
-          bal_vals[k] += sbal_vals[k];
-        }
-      }
-      mom_tot += gksbal->mom[sd];
-    }
-    if (dt > 0.0) {
-      if (gkbal->diag_types[d] == GKYL_GK_BALANCE_ENERGY && app->field->update_field) {
-        // Field terms of the energy balance.
-        double energy, field_dot, bg_energy, bg_dot;
-        gk_field_calc_energy_balance(app, app->field, tm, &energy, &field_dot, &bg_energy, &bg_dot);
-        // mom_err = src - bflux - (mom_dot - field_dot + bg_dot).
-        bal_vals[GK_SPECIES_BALANCE_COMP_ERR] += field_dot - bg_dot;
-        bal_vals[GK_APP_BALANCE_COMP_FIELD_DOT] = field_dot;
-        bal_vals[GK_APP_BALANCE_COMP_BG_DOT] = bg_dot;
-        mom_tot += bg_energy - energy;
-      }
-      bal_vals[GK_SPECIES_BALANCE_COMP_ERR_NORM] =
-        bal_vals[GK_SPECIES_BALANCE_COMP_ERR] * dt / mom_tot;
-    }
-    gkyl_dynvec_append(gkbal->diag[d], tm, bal_vals);
-  }
-}
-
-static void
-gyrokinetic_balance_write(struct gkyl_gyrokinetic_app *app, struct gk_app_balance *gkbal)
-{
-  struct timespec wst = gkyl_wall_clock();
-  int rank;
-  gkyl_comm_get_rank(app->comm, &rank);
-  for (int d = 0; d < gkbal->num_diags; d++) {
-    if (rank == 0) {
-      // File named after the balance, e.g. <name>-balance_particle.gkyl.
-      const char *fmt = "%s-balance_%s.gkyl";
-      const char *diag_name = gkyl_gyrokinetic_balance_diag_strs[gkbal->diag_types[d]];
-      int sz = gkyl_calc_strlen(fmt, app->name, diag_name);
-      char fileNm[sz + 1]; // ensures no buffer overflow
-      snprintf(fileNm, sizeof fileNm, fmt, app->name, diag_name);
-
-      if (gkbal->is_first_write[d]) {
-        bool is_energy = gkbal->diag_types[d] == GKYL_GK_BALANCE_ENERGY;
-        struct gkyl_msgpack_map_elem io_meta_bal[] = {
-          {
-            .key = "Description",
-            .elem_type = GKYL_MP_STRING,
-            .cval = is_energy ? "Energy balance summed over species: mom_err = src_mom - "
-                                "bflux_tot_mom - (mom_dot - field_dot + bg_dot), with field_dot "
-                                "= dE_field/dt and bg_dot = d/dt int rho_bg phi." :
-                                "Balance summed over species: mom_err = src_mom - "
-                                "bflux_tot_mom - mom_dot.",
-          },
-          {
-            .key = "Columns",
-            .elem_type = GKYL_MP_STRING,
-            .cval = is_energy ? "mom_err, mom_err_norm, mom_dot, src_mom, bflux_tot_mom, "
-                                "field_dot, bg_dot" :
-                                "mom_err, mom_err_norm, mom_dot, src_mom, bflux_tot_mom",
-          },
-        };
-        int io_meta_len[] = {app->gk_geom->io_meta_basic_len, 2};
-        const struct gkyl_msgpack_map_elem *io_meta[] = {app->gk_geom->io_meta_basic, io_meta_bal};
-        struct gkyl_msgpack_data *mt =
-          gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
-
-        gkyl_dynvec_write_wmeta(gkbal->diag[d], fileNm, mt);
-        gkyl_msgpack_data_release(mt);
-      } else {
-        gkyl_dynvec_awrite(gkbal->diag[d], fileNm);
-      }
-      app->stat.n_diag_io += 1;
-    }
-    gkbal->is_first_write[d] = false;
-    gkyl_dynvec_clear(gkbal->diag[d]);
-  }
-  app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wst);
-}
-
-static void
-gyrokinetic_balance_release(const struct gk_app_balance *gkbal)
-{
-  for (int d = 0; d < gkbal->num_diags; d++) {
-    gkyl_dynvec_release(gkbal->diag[d]);
-  }
-}
-
 void
 gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
 {
@@ -1413,7 +1280,7 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
   }
 
   // Balance diagnostics summed over species, whose terms the species and the field compute.
-  gyrokinetic_balance_init(app, &app->gkbal, &gk->diagnostics);
+  gk_app_balance_init(app, &app->gkbal, &gk->diagnostics);
 
   app->field = gk_field_new(gk, app); // Initialize field, even if we are  skipping field updates.
 
@@ -1652,7 +1519,7 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app *app, double t0)
   struct gkyl_array *distf_neut[app->num_neut_species];
   for (int i = 0; i < app->num_species; ++i) {
     distf[i] = app->species[i].f;
-    bflux[i] = app->species[i].bflux.step_moms.stage[GK_STEP_STAGE_F];
+    bflux[i] = app->species[i].step_moms.f;
   }
   for (int i = 0; i < app->num_neut_species; ++i) {
     distf_neut[i] = app->neut_species[i].f;
@@ -2696,13 +2563,13 @@ gkyl_gyrokinetic_app_write_species_balance(gkyl_gyrokinetic_app *app, int sidx)
 void
 gkyl_gyrokinetic_app_calc_balance(gkyl_gyrokinetic_app *app, double tm, double dt)
 {
-  gyrokinetic_balance_calc(app, &app->gkbal, tm, dt);
+  gk_app_balance_calc(app, &app->gkbal, tm, dt);
 }
 
 void
 gkyl_gyrokinetic_app_write_balance(gkyl_gyrokinetic_app *app)
 {
-  gyrokinetic_balance_write(app, &app->gkbal);
+  gk_app_balance_write(app, &app->gkbal);
 }
 
 void
@@ -3144,82 +3011,6 @@ gkyl_gyrokinetic_app_write(gkyl_gyrokinetic_app *app, double tm, int frame)
 // ............. End of write functions ............... //
 //
 
-// Gather the arrays stepped along with f by the modules of the app.
-static int
-gyrokinetic_step_moms_list(gkyl_gyrokinetic_app *app, const struct gk_stepped_moms **sm)
-{
-  int num = 0;
-  for (int i = 0; i < app->num_species; ++i) {
-    struct gk_species *gks = &app->species[i];
-    sm[num++] = &gks->bflux.step_moms;
-    sm[num++] = &gks->bgk_src.step_moms;
-  }
-  for (int i = 0; i < app->num_neut_species; ++i) {
-    sm[num++] = &app->neut_species[i].bflux.step_moms;
-  }
-  for (int i = 0; i < app->eirene->info.num_coupling_species; ++i) {
-    sm[num++] = &app->eirene->bgk_src[i].step_moms;
-  }
-  return num;
-}
-
-// Maximum number of objects gyrokinetic_step_moms_list returns.
-static int
-gyrokinetic_step_moms_list_max(const gkyl_gyrokinetic_app *app)
-{
-  return 2 * app->num_species + app->num_neut_species + app->eirene->info.num_coupling_species;
-}
-
-void
-gyrokinetic_step_moms_forward_euler(
-  gkyl_gyrokinetic_app *app, enum gk_step_stage out, enum gk_step_stage in
-)
-{
-  const struct gk_stepped_moms *sm[gyrokinetic_step_moms_list_max(app)];
-  int num = gyrokinetic_step_moms_list(app, sm);
-  for (int i = 0; i < num; ++i) {
-    gk_stepped_moms_forward_euler(sm[i], out, in);
-  }
-}
-
-void
-gyrokinetic_step_moms_set(
-  gkyl_gyrokinetic_app *app, enum gk_step_stage out, double fac, enum gk_step_stage in
-)
-{
-  const struct gk_stepped_moms *sm[gyrokinetic_step_moms_list_max(app)];
-  int num = gyrokinetic_step_moms_list(app, sm);
-  for (int i = 0; i < num; ++i) {
-    gk_stepped_moms_set(sm[i], out, fac, in);
-  }
-}
-
-void
-gyrokinetic_step_moms_accumulate(
-  gkyl_gyrokinetic_app *app, enum gk_step_stage out, double fac, enum gk_step_stage in
-)
-{
-  const struct gk_stepped_moms *sm[gyrokinetic_step_moms_list_max(app)];
-  int num = gyrokinetic_step_moms_list(app, sm);
-  for (int i = 0; i < num; ++i) {
-    gk_stepped_moms_accumulate(sm[i], out, fac, in);
-  }
-}
-
-void
-gyrokinetic_bflux_moms_stage(
-  gkyl_gyrokinetic_app *app, enum gk_step_stage stage, struct gkyl_array **bflux[],
-  struct gkyl_array **bflux_neut[]
-)
-{
-  for (int i = 0; i < app->num_species; ++i) {
-    bflux[i] = app->species[i].bflux.step_moms.stage[stage];
-  }
-  for (int i = 0; i < app->num_neut_species; ++i) {
-    bflux_neut[i] = app->neut_species[i].bflux.step_moms.stage[stage];
-  }
-}
-
 void
 gyrokinetic_rhs(
   gkyl_gyrokinetic_app *app, double tcurr, double dt, const struct gkyl_array *fin[],
@@ -3281,7 +3072,7 @@ gyrokinetic_rhs(
     dtmin = fmin(dtmin, dt1);
   }
 
-  gk_eirene_rhs(app, fin, fout);
+  gk_eirene_rhs(app, fin, fout, bflux_out);
 
   // Sources. Done after df/dt in case boundary fluxes are needed.
   for (int i = 0; i < app->num_species; ++i) {
@@ -5054,7 +4845,7 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
     struct gkyl_array *distf_neut[app->num_neut_species];
     for (int i = 0; i < app->num_species; ++i) {
       distf[i] = app->species[i].f;
-      bflux[i] = app->species[i].bflux.step_moms.stage[GK_STEP_STAGE_F];
+      bflux[i] = app->species[i].step_moms.f;
     }
     for (int i = 0; i < app->num_neut_species; ++i) {
       distf_neut[i] = app->neut_species[i].f;
@@ -5192,7 +4983,7 @@ gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app *app)
   }
 
   gkyl_dynvec_release(app->dts);
-  gyrokinetic_balance_release(&app->gkbal);
+  gk_app_balance_release(&app->gkbal);
 
   gkyl_msgpack_map_elem_release(app->io_meta_basic_len, app->io_meta_basic);
   gkyl_msgpack_map_elem_release(app->io_meta_dg_len, app->io_meta_dg);

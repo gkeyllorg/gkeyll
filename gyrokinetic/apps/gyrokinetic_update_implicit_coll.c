@@ -13,26 +13,30 @@ gyrokinetic_update_implicit_coll(gkyl_gyrokinetic_app *app, double dt0)
   const int ns = app->num_species;
   struct gkyl_array *fin[ns];
   struct gkyl_array *fout[ns];
+  struct gkyl_array **bflux_in[ns];
   struct gkyl_array **bflux_out[ns];
 
   const int neuts = app->num_neut_species;
   struct gkyl_array *fin_neut[neuts];
   struct gkyl_array *fout_neut[neuts];
-  struct gkyl_array **bflux_out_neut[neuts];
+  struct gkyl_array **bflux_in_neut[ns];
+  struct gkyl_array **bflux_out_neut[ns];
 
   // Fetch input and output arrays.
   for (int i = 0; i < ns; ++i) {
     struct gk_species *gks = &app->species[i];
     fin[i] = gks->f;
     fout[i] = gks->f1;
+    bflux_in[i] = gks->step_moms.f;
+    bflux_out[i] = gks->step_moms.f;
   }
   for (int i = 0; i < neuts; ++i) {
     struct gk_neut_species *gkns = &app->neut_species[i];
     fin_neut[i] = gkns->f;
     fout_neut[i] = gkns->f1;
+    bflux_in_neut[i] = gkns->step_moms.f;
+    bflux_out_neut[i] = gkns->step_moms.f;
   }
-  // Boundary-flux moments in f (the implicit terms do not change them).
-  gyrokinetic_bflux_moms_stage(app, GK_STEP_STAGE_F, bflux_out, bflux_out_neut);
 
   // Compute df/dt from implicit terms.
   gyrokinetic_rhs_implicit(

@@ -1198,7 +1198,7 @@ gkyl_gyrokinetic_multib_app_apply_ic(gkyl_gyrokinetic_multib_app *app, double t0
     int li_neut = b * app->num_neut_species;
     for (int i = 0; i < app->num_species; ++i) {
       distf[li_charged + i] = sbapp->species[i].f;
-      bflux[li_charged + i] = sbapp->species[i].bflux.step_moms.stage[GK_STEP_STAGE_F1];
+      bflux[li_charged + i] = sbapp->species[i].step_moms.f1;
     }
     for (int i = 0; i < app->num_neut_species; ++i) {
       distf_neut[li_neut + i] = sbapp->neut_species[i].f;
@@ -1283,7 +1283,7 @@ gkyl_gyrokinetic_multib_app_read_from_frame(gkyl_gyrokinetic_multib_app *app, in
       int li_neut = b * app->num_neut_species;
       for (int i = 0; i < app->num_species; ++i) {
         distf[li_charged + i] = sbapp->species[i].f;
-        bflux[li_charged + i] = sbapp->species[i].bflux.step_moms.stage[GK_STEP_STAGE_F];
+        bflux[li_charged + i] = sbapp->species[i].step_moms.f;
       }
       for (int i = 0; i < app->num_neut_species; ++i) {
         distf_neut[li_neut + i] = sbapp->neut_species[i].f;

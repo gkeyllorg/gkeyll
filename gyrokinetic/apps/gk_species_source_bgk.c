@@ -30,7 +30,7 @@ gk_species_source_bgk_volume_integrate(
 static void
 gk_species_source_bgk_rhs_disabled(
   gkyl_gyrokinetic_app *app, struct gk_species *species, struct gk_source_bgk *src,
-  const struct gkyl_array *fin, struct gkyl_array *rhs
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **step_moms_out
 )
 {
 }
@@ -38,7 +38,7 @@ gk_species_source_bgk_rhs_disabled(
 static void
 gk_species_source_bgk_rhs_feq_enabled(
   gkyl_gyrokinetic_app *app, struct gk_species *species, struct gk_source_bgk *src,
-  const struct gkyl_array *fin, struct gkyl_array *rhs
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **step_moms_out
 )
 {
   // compute -nu * (f - feq) and add to the rhs.
@@ -54,7 +54,7 @@ gk_species_source_bgk_rhs_feq_enabled(
   // Add to the rhs.
   gkyl_array_accumulate(rhs, 1.0, src->Jrate_df);
   // Integrated moments of the source term, stepped along with f.
-  src->update_integrated_diags_rhs_func(app, species, src);
+  src->update_integrated_diags_rhs_func(app, species, src, step_moms_out);
   // Reset Jrate_df to Jrate*feq.
   gkyl_array_clear(src->Jrate_df, 0.0);
   gkyl_array_accumulate(src->Jrate_df, 1.0, species->lte.f_lte);
@@ -63,7 +63,7 @@ gk_species_source_bgk_rhs_feq_enabled(
 static void
 gk_species_source_bgk_rhs_heating_enabled(
   gkyl_gyrokinetic_app *app, struct gk_species *species, struct gk_source_bgk *src,
-  const struct gkyl_array *fin, struct gkyl_array *rhs
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **step_moms_out
 )
 {
   struct timespec wst = gkyl_wall_clock();
@@ -115,7 +115,7 @@ gk_species_source_bgk_rhs_heating_enabled(
     src->implicit_step, src->dt_implicit, src->Jrate_df, species->cflrate
   );
   gkyl_array_accumulate(rhs, 1.0, src->Jrate_df);
-  src->update_integrated_diags_rhs_func(app, species, src);
+  src->update_integrated_diags_rhs_func(app, species, src, step_moms_out);
 
   app->stat.species_source_bgk_tm += gkyl_time_diff_now_sec(wst);
 }
@@ -219,7 +219,7 @@ gk_species_source_bgk_rhs_accumulate_maxwellian(
 static void
 gk_species_source_bgk_rhs_external_enabled(
   gkyl_gyrokinetic_app *app, struct gk_species *species, struct gk_source_bgk *src,
-  const struct gkyl_array *fin, struct gkyl_array *rhs
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **step_moms_out
 )
 {
   gkyl_array_clear(src->Jrate_df, 0.0);
@@ -238,7 +238,7 @@ gk_species_source_bgk_rhs_external_enabled(
     src->implicit_step, src->dt_implicit, src->Jrate_df, species->cflrate
   );
   gkyl_array_accumulate(rhs, 1.0, src->Jrate_df);
-  src->update_integrated_diags_rhs_func(app, species, src);
+  src->update_integrated_diags_rhs_func(app, species, src, step_moms_out);
 }
 
 static void
@@ -336,7 +336,8 @@ gk_species_source_bgk_write_diags_external_enabled(
 
 static void
 gk_species_source_bgk_update_integrated_diags_disabled(
-  gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_source_bgk *src
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_source_bgk *src,
+  struct gkyl_array **step_moms_out
 )
 {
   // Do nothing.
@@ -344,10 +345,16 @@ gk_species_source_bgk_update_integrated_diags_disabled(
 
 static void
 gk_species_source_bgk_update_integrated_diags_enabled(
-  gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_source_bgk *src
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_source_bgk *src,
+  struct gkyl_array **step_moms_out
 )
 {
+  // Integrated moments of the source term, put in the stepped moments so the
+  // stepper averages them over the time step as it does the rhs.
   gk_integ_moms_calc(app, gks, &src->integ_moms, src->Jrate_df);
+  for (int m = 0; m < src->integ_moms.num; m++) {
+    gkyl_array_copy(step_moms_out[src->step_moms_idx + m], src->integ_moms.ops[m].marr);
+  }
 }
 
 static void
@@ -366,7 +373,7 @@ gk_species_source_bgk_calc_integrated_diags_enabled(
   struct timespec wst = gkyl_wall_clock();
 
   // Volume integral of the source term averaged over the last time step.
-  gk_integ_moms_reduce_append(app, &src->integ_moms, src->step_moms.stage[GK_STEP_STAGE_F], tm);
+  gk_integ_moms_reduce_append(app, &src->integ_moms, src->step_moms.f, tm);
 
   app->stat.species_diag_calc_tm += gkyl_time_diff_now_sec(wst);
   app->stat.n_diag += 1;
@@ -439,11 +446,10 @@ gk_species_source_bgk_init(
   struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_source_bgk *src
 )
 {
+  src->step_moms = (struct gk_stepped_moms){};
   src->source_bgk_id = src->source_bgk_id ? src->source_bgk_id : gks->info.source_bgk.source_bgk_id;
   src->write_diagnostics = src->write_diagnostics ? src->write_diagnostics :
                                                     gks->info.source_bgk.write_diagnostics;
-
-  src->step_moms = (struct gk_stepped_moms){};
 
   src->write_diags_func = gk_species_source_bgk_write_diags_disabled;
   src->rhs_func = gk_species_source_bgk_rhs_disabled;
@@ -482,13 +488,10 @@ gk_species_source_bgk_init(
     }
     gk_integ_moms_init(app, gks, &src->integ_moms, num_integ_moms, integ_mom_types);
     if (num_integ_moms > 0) {
-      // Integrated moments of the source term, stepped along with f. The rhs
-      // leaves their rates in the moment calculators.
+      // Integrated moments of the source term, stepped along with f.
       for (int m = 0; m < num_integ_moms; m++) {
         struct gkyl_array *marr = src->integ_moms.ops[m].marr;
-        gk_stepped_moms_add(
-          &src->step_moms, app->use_gpu, marr->ncomp, marr->size, &app->local, marr
-        );
+        gk_stepped_moms_add(&src->step_moms, app->use_gpu, marr->ncomp, marr->size, &app->local);
       }
 
       src->update_integrated_diags_rhs_func = gk_species_source_bgk_update_integrated_diags_enabled;
@@ -693,10 +696,10 @@ gk_species_source_bgk_init(
 void
 gk_species_source_bgk_rhs(
   gkyl_gyrokinetic_app *app, struct gk_species *species, struct gk_source_bgk *src,
-  const struct gkyl_array *fin, struct gkyl_array *rhs
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **step_moms_out
 )
 {
-  src->rhs_func(app, species, src, fin, rhs);
+  src->rhs_func(app, species, src, fin, rhs, step_moms_out);
 }
 
 void
@@ -728,13 +731,14 @@ gk_species_source_bgk_release(
   const struct gkyl_gyrokinetic_app *app, const struct gk_source_bgk *src
 )
 {
+  gk_stepped_moms_release(&src->step_moms);
+
   if (src->source_bgk_id) {
     gkyl_array_release(src->rate);
     gkyl_array_release(src->Jrate);
     gkyl_array_release(src->Jrate_df);
     gkyl_bgk_collisions_release(src->bgk_op);
 
-    gk_stepped_moms_release(&src->step_moms);
     gk_integ_moms_release(app, &src->integ_moms);
 
     if (src->source_bgk_id == GKYL_SOURCE_BGK_HEATING) {

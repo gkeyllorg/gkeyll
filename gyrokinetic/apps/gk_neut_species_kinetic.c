@@ -212,6 +212,7 @@ gk_neut_species_kinetic_release(const gkyl_gyrokinetic_app *app, const struct gk
 
   // Free boundary flux memory.
   gk_neut_species_bflux_release(app, gkns, &gkns->bflux);
+  gk_stepped_moms_release_view(&gkns->step_moms);
 
   gk_neut_species_lte_release(app, &gkns->lte);
 
@@ -1003,6 +1004,7 @@ gk_neut_species_kinetic_init(
 
   // Initialize boundary fluxes.
   gkns->bflux = (struct gk_boundary_fluxes){};
+  gkns->step_moms = (struct gk_stepped_moms){};
   // Additional bflux moments to step in time.
   struct gkyl_phase_diagnostics_inp add_bflux_moms_inp = (struct gkyl_phase_diagnostics_inp){};
   // Set the operation type for the bflux app.
@@ -1018,6 +1020,7 @@ gk_neut_species_kinetic_init(
   }
   // Introduce new moments into moms_inp if needed.
   gk_neut_species_bflux_init(app, gkns, &gkns->bflux, bflux_type, add_bflux_moms_inp);
+  gkns->bflux.step_moms_idx = gk_stepped_moms_append_refs(&gkns->step_moms, &gkns->bflux.step_moms);
 
   // Initialize a Maxwellian/LTE (local thermodynamic equilibrium) projection routine
   // Projection routine optionally corrects all the Maxwellian/LTE moments
