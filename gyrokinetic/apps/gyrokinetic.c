@@ -2299,7 +2299,7 @@ write_field_with_metadata(
 )
 {
   struct gkyl_msgpack_map_elem custom_meta[] = {
-    {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = description}
+    {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = description},
   };
   int io_meta_len[] = {app->io_meta_dg_len, app->gk_geom->io_meta_basic_len, 1};
   const struct gkyl_msgpack_map_elem *io_meta[] = {
