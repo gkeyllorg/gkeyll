@@ -67,6 +67,7 @@ gkyl_wv_euler_cu_dev_inew(const struct gkyl_wv_euler_inp *inp)
   euler->eqn.num_diag = 6; // KE and PE stored separate
 
   euler->gas_gamma = inp->gas_gamma;
+  euler->rp_type = inp->rp_type;
 
   euler->eqn.flags = 0;
   GKYL_SET_CU_ALLOC(euler->eqn.flags);

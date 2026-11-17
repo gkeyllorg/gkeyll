@@ -3,8 +3,8 @@
 -- with gamma = 1.4, after Section 4 of M. Sementilli, R. Zangeneh and J. Chen, Fluids 9 (2024) 52,
 -- on a periodic unit box; a deterministic multi-mode velocity perturbation of amplitude 0.01 seeds
 -- the shear layers and the run follows the instability into its nonlinear roll-up. Figures of merit
--- (tensor p2, 32 x 32 cells): the y-directed kinetic energy density grows from 5.3e-4 to 0.084 at t
--- = 10; kinetic energy 0.1886 -> 0.1441 is converted into internal energy 6.2500 -> 6.2945 while
+-- (tensor p2, 32 x 32 cells): the y-directed kinetic energy density grows from 5.3e-4 to 0.078 at t
+-- = 10; kinetic energy 0.1886 -> 0.1462 is converted into internal energy 6.2500 -> 6.2923 while
 -- mass, x-momentum and total energy are conserved to 4e-13.
 local Vlasov = G0.Vlasov
 local Euler = G0.Vlasov.Eq.Euler

@@ -11,6 +11,9 @@
 #include <gkyl_util.h>
 #include <assert.h>
 
+// Largest number of configuration-space basis functions (3x tensor p2).
+#define GR_MAXWELL_MAX_CONF_BASIS 27
+
 typedef void (*dg_gr_maxwell_alpha_quad_conf_t)(
   const gkyl_dg_gr_maxwell_inp *meq, const double *w, const double *dxv, const int geom_edge,
   const double *jacob_pos_l, const double *jacob_pos_r, const double *lapse, const double *shift,
@@ -62,11 +65,51 @@ struct gkyl_dg_gr_maxwell_conf_flux_surf {
     [GKYL_MAX_CDIM]; // (Lower side) Default zeros, but 1 if any directions use theta-pole BC's.
   int theta_pole_up
     [GKYL_MAX_CDIM]; // (Upper side) Default zeros, but 1 if any directions use theta-pole BC's.
+  int num_conf_basis; // Number of configuration-space basis functions.
+  // Sign of each configuration-space basis function under a reflection in each direction.
+  double mirror_sign[GKYL_MAX_CDIM][GR_MAXWELL_MAX_CONF_BASIS];
 
   uint32_t flags;
   bool use_gpu;
   struct gkyl_dg_gr_maxwell_conf_flux_surf *on_dev; // pointer to itself or device data.
 };
+
+// Set the reflection signs of the configuration-space basis functions (host only: uses the
+// function pointers of the basis).
+static inline void
+conf_flux_surf_set_mirror_sign(
+  struct gkyl_dg_gr_maxwell_conf_flux_surf *up, const struct gkyl_basis *conf_basis
+)
+{
+  assert(conf_basis->num_basis <= GR_MAXWELL_MAX_CONF_BASIS);
+  up->num_conf_basis = conf_basis->num_basis;
+  double ones[GR_MAXWELL_MAX_CONF_BASIS];
+  for (int k = 0; k < conf_basis->num_basis; ++k) {
+    ones[k] = 1.0;
+  }
+  for (int d = 0; d < conf_basis->ndim; ++d) {
+    conf_basis->flip_odd_sign(d, ones, up->mirror_sign[d]);
+  }
+}
+
+// State beyond a theta-pole face: the state of the cell next to the pole reflected across the
+// face. E^r, E^phi, B^r, B^phi and the correction potentials are even, E^theta and B^theta odd
+// (r-theta-phi ordering of the components, as in the theta-pole ghost-cell boundary condition).
+GKYL_CU_DH static inline void
+conf_flux_surf_theta_pole_mirror(
+  const struct gkyl_dg_gr_maxwell_conf_flux_surf *up, int dir, const double *field,
+  double *GKYL_RESTRICT field_mirror
+)
+{
+  const double comp_parity[8] = {1.0, -1.0, 1.0, 1.0, -1.0, 1.0, 1.0, 1.0};
+  int num_basis = up->num_conf_basis;
+  for (int c = 0; c < 8; ++c) {
+    for (int k = 0; k < num_basis; ++k) {
+      field_mirror[c * num_basis + k] =
+        comp_parity[c] * up->mirror_sign[dir][k] * field[c * num_basis + k];
+    }
+  }
+}
 
 GKYL_CU_DH static void inline conf_flux_surf_alpha_quad(
   struct gkyl_dg_gr_maxwell_conf_flux_surf *up, int dir, const double *w, const double *dxv,

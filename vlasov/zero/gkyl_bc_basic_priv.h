@@ -350,18 +350,13 @@ euler_reflect_bc(size_t nc, double *out, const double *inp, void *ctx)
   int dir = mc->dir;
   int nbasis = mc->basis->num_basis;
 
-  // Copy BCs for density and energy
-  for (int c = 0; c < nbasis; ++c) {
-    out[c] = inp[c];
-  }
-  for (int c = 4 * nbasis; c < 5 * nbasis; ++c) {
-    out[c] = inp[c];
-  }
-
-  // reflect normal component (zero normal) and zero gradient in other components
-  for (int i = 1; i < 4; ++i) {
+  // The fluid array is [rho, rho ux, rho uy, rho uz, E] (no E for isothermal Euler): the
+  // ghost cell is the mirror image of the skin cell, with the normal momentum (block 1 + dir)
+  // odd and every other block (density, tangential momenta, energy) even.
+  int ncomp = nc / nbasis;
+  for (int i = 0; i < ncomp; ++i) {
     int loc = nbasis * i;
-    if (i == dir) {
+    if (i == dir + 1) {
       mc->basis->flip_even_sign(dir, &inp[loc], &out[loc]);
     } else {
       mc->basis->flip_odd_sign(dir, &inp[loc], &out[loc]);
@@ -377,17 +372,15 @@ euler_no_slip_bc(size_t nc, double *out, const double *inp, void *ctx)
   int dir = mc->dir;
   int nbasis = mc->basis->num_basis;
 
-  // Copy BCs for density and energy
-  for (int c = 0; c < nbasis; ++c) {
-    out[c] = inp[c];
-  }
-  for (int c = 4 * nbasis; c < 5 * nbasis; ++c) {
-    out[c] = inp[c];
-  }
-
-  // zero normal and zero tangent
-  for (int i = 1; i < 4; ++i) {
+  // The ghost cell is the mirror image of the skin cell, with every momentum component odd
+  // (zero normal and zero tangent velocity at the wall) and the density and energy even.
+  int ncomp = nc / nbasis;
+  for (int i = 0; i < ncomp; ++i) {
     int loc = nbasis * i;
-    mc->basis->flip_even_sign(dir, &inp[loc], &out[loc]);
+    if (i >= 1 && i <= 3) {
+      mc->basis->flip_even_sign(dir, &inp[loc], &out[loc]);
+    } else {
+      mc->basis->flip_odd_sign(dir, &inp[loc], &out[loc]);
+    }
   }
 }

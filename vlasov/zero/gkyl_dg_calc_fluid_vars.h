@@ -147,6 +147,51 @@ void gkyl_dg_calc_fluid_vars_source(
 );
 
 /**
+ * Compute the source terms of a charged fluid coupled explicitly to the
+ * electromagnetic field: momentum source rho a + rho u x (q/m B), energy
+ * source rho u . a. The CFL rate of each cell is raised to the rate of the
+ * source where that is larger (they are not added): the larger of
+ * omega_p + |q/m B|, which bounds the frequencies of the fluid-Maxwell source,
+ * and 2 |a + u x (q/m B)| / sqrt(2 e / rho) with e the internal energy density
+ * (a forward-Euler source step dt lowers e by rho |dt (a + u x q/m B)|^2 / 2,
+ * so at a CFL number of 1 a stage keeps three quarters of it), both from the
+ * cell averages.
+ *
+ * @param up         Updater for computing fluid variables
+ * @param conf_range Configuration space range
+ * @param qmem       Input array [a, q/m B] (6 components): the acceleration a (q/m E plus any
+ *                   applied acceleration) and q/m times the magnetic field
+ * @param omega_p_sq Input array (1 component): plasma frequency squared of each cell, summed
+ *                   over the coupled species (zero when the field does not respond)
+ * @param fluid      Input array of fluid variables [rho, rhoux, rhouy, rhouz, energy]
+ * @param cflrate    In/out CFL rate in each cell
+ * @param rhs        Output increment to fluid variables
+ */
+void gkyl_dg_calc_fluid_vars_em_source(
+  struct gkyl_dg_calc_fluid_vars *up, const struct gkyl_range *conf_range,
+  const struct gkyl_array *qmem, const struct gkyl_array *omega_p_sq,
+  const struct gkyl_array *fluid, struct gkyl_array *cflrate, struct gkyl_array *rhs
+);
+
+/**
+ * Vertex positivity limiter of the fluid state [rho, M, E] (Zhang & Shu 2010; p=1, whose
+ * extreme values over a cell are at its vertices): in every cell the density slopes are
+ * scaled so that the vertex densities stay above eps times the cell average, then all
+ * slopes are scaled so that the vertex internal energies E - |M|^2/(2 rho) stay above eps
+ * times that of the cell average. The cell averages are untouched; a cell whose average is
+ * itself inadmissible is left as is. Only available for polynomial order 1.
+ *
+ * @param up         Updater for computing fluid variables
+ * @param conf_range Configuration space range
+ * @param eps        Relative floor of the vertex density and internal energy
+ * @param fluid      In/out fluid state [rho, rhoux, rhouy, rhouz, energy]
+ */
+void gkyl_dg_calc_fluid_vars_positivity(
+  struct gkyl_dg_calc_fluid_vars *up, const struct gkyl_range *conf_range, double eps,
+  struct gkyl_array *fluid
+);
+
+/**
  * Delete pointer to updater to compute fluid variables.
  *
  * @param up Updater to delete.
@@ -186,4 +231,15 @@ void gkyl_dg_calc_fluid_integrated_vars_cu(
 void gkyl_dg_calc_fluid_vars_source_cu(
   struct gkyl_dg_calc_fluid_vars *up, const struct gkyl_range *conf_range,
   const struct gkyl_array *app_accel, const struct gkyl_array *fluid, struct gkyl_array *rhs
+);
+
+void gkyl_dg_calc_fluid_vars_em_source_cu(
+  struct gkyl_dg_calc_fluid_vars *up, const struct gkyl_range *conf_range,
+  const struct gkyl_array *qmem, const struct gkyl_array *omega_p_sq,
+  const struct gkyl_array *fluid, struct gkyl_array *cflrate, struct gkyl_array *rhs
+);
+
+void gkyl_dg_calc_fluid_vars_positivity_cu(
+  struct gkyl_dg_calc_fluid_vars *up, const struct gkyl_range *conf_range, double eps,
+  struct gkyl_array *fluid
 );

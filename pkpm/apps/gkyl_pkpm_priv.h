@@ -21,7 +21,7 @@
 #include <gkyl_comm_io.h>
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_calc_em_vars.h>
-#include <gkyl_dg_calc_pkpm_em_coupling.h>
+#include <gkyl_dg_calc_fluid_em_coupling.h>
 #include <gkyl_dg_calc_pkpm_bvar.h>
 #include <gkyl_dg_calc_pkpm_vars.h>
 #include <gkyl_vlasov_position_map.h>
@@ -585,7 +585,7 @@ struct pkpm_field {
 // fluid-EM coupling data in PKPM system
 struct pkpm_fluid_em_coupling {
   double qbym[GKYL_MAX_SPECIES]; // charge/mass ratio for each species
-  struct gkyl_dg_calc_pkpm_em_coupling *slvr; // fluid-EM coupling solver
+  struct gkyl_dg_calc_fluid_em_coupling *slvr; // fluid-EM coupling solver
 };
 
 // PKPM object: used as opaque pointer in user code

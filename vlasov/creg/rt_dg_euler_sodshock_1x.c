@@ -3,7 +3,7 @@
 // (Section 2.6.2 of A. Hakim's 2006 thesis, High Resolution Wave Propagation Schemes for Two-
 // Fluid Plasma Simulations), producing a left rarefaction, a contact and a right shock; the
 // reference is the exact Riemann solution. Figures of merit (serendipity p2, 512 cells): L1 errors
-// of 0.0020 in density, 0.0008 in velocity and 0.0016 in pressure against the exact Riemann
+// of 0.0021 in density, 0.0008 in velocity and 0.0016 in pressure against the exact Riemann
 // solution; shock at x = 0.9001 (exact 0.8994), contact at x = 0.7965 (exact 0.7964), star-state
 // pressure 1.6934 and velocity 0.4641, both exact to four digits.
 
@@ -196,7 +196,11 @@ main(int argc, char **argv)
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
 
   // Fluid equations.
-  struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(ctx.gas_gamma, app_args.use_gpu);
+  struct gkyl_wv_eqn *euler = gkyl_wv_euler_inew(&(struct gkyl_wv_euler_inp){
+    .gas_gamma = ctx.gas_gamma,
+    .rp_type = WV_EULER_RP_HLLC,
+    .use_gpu = app_args.use_gpu,
+  });
 
   struct gkyl_vlasov_fluid_species fluid = {
     .equation = euler,

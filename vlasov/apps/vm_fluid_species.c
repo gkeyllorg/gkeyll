@@ -102,10 +102,25 @@ vm_fluid_species_euler_release(const gkyl_vlasov_app *app, struct vm_fluid_speci
   gkyl_array_release(f->cell_avg_prim);
   gkyl_array_release(f->u_surf);
   gkyl_array_release(f->p_surf);
-  gkyl_array_release(f->ke_old);
-  gkyl_array_release(f->ke_new);
   gkyl_dg_calc_fluid_vars_release(f->calc_fluid_vars);
   gkyl_dg_calc_fluid_vars_release(f->calc_fluid_vars_ext);
+}
+
+// Vertex positivity limiter of the Euler state at polynomial order 1.
+static void
+vm_fluid_species_euler_positivity(
+  gkyl_vlasov_app *app, struct vm_fluid_species *f, struct gkyl_array *fluid
+)
+{
+  gkyl_dg_calc_fluid_vars_positivity(f->calc_fluid_vars, &app->local, f->positivity_eps, fluid);
+}
+
+// No positivity limiter (higher polynomial orders; advection and canonical-PB fluids).
+static void
+vm_fluid_species_no_positivity(
+  gkyl_vlasov_app *app, struct vm_fluid_species *f, struct gkyl_array *fluid
+)
+{
 }
 
 // Limit the slopes of the solution, then reapply the boundary conditions.
@@ -118,6 +133,8 @@ vm_fluid_species_euler_limiter(
 
   // Limit the slopes of the solution
   gkyl_dg_calc_fluid_vars_limiter(f->calc_fluid_vars, &app->local, fluid);
+  // Keep the vertex density and internal energy positive
+  f->positivity_func(app, f, fluid);
 
   app->stat.fluid_species_vars_tm += gkyl_time_diff_now_sec(tm);
 
@@ -152,12 +169,6 @@ vm_fluid_species_euler_init(
   // boolean array for if we are only using the cell average for primitive variables
   f->cell_avg_prim = mk_int_arr(app->use_gpu, 1, app->local_ext.volume);
 
-  // Allocate arrays for kinetic energy at old and new time steps.
-  // These are used because implicit source solve updates momentum but does not affect
-  // the pressure, so we can construct the updated energy from the updated momentum.
-  f->ke_old = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-  f->ke_new = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-
   int Nbasis_surf = app->basis.num_basis /
                     (app->basis.poly_order + 1); // *only valid for tensor bases for cdim > 1*
   // Surface primitive variables (2*cdim*3 components). Ordered as:
@@ -186,8 +197,6 @@ vm_fluid_species_euler_init(
   struct gkyl_dg_euler_auxfields aux_inp = {
     .u = f->u,
     .p = f->p,
-    .u_surf = f->u_surf,
-    .p_surf = f->p_surf,
   };
   f->advect_slvr = gkyl_dg_updater_fluid_new(
     &app->grid, &app->basis, &app->local, f->equation, app->geom, &aux_inp, app->use_gpu
@@ -202,6 +211,11 @@ vm_fluid_species_euler_init(
   // allocate dynamic-vector to store all-reduced integrated moments
   f->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, 6);
   f->is_first_integ_write_call = true;
+
+  // Vertex positivity limiter: the kernels exist for polynomial order 1.
+  f->positivity_eps = f->info.positivity_eps > 0.0 ? f->info.positivity_eps : 1.0e-2;
+  f->positivity_func = app->poly_order == 1 ? vm_fluid_species_euler_positivity :
+                                              vm_fluid_species_no_positivity;
 
   f->limiter_func = vm_fluid_species_euler_limiter;
   f->prim_vars_func = vm_fluid_species_euler_prim_vars;
@@ -344,6 +358,7 @@ vm_fluid_species_advect_init(
   f->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, 2);
   f->is_first_integ_write_call = true;
 
+  f->positivity_func = vm_fluid_species_no_positivity;
   f->limiter_func = vm_fluid_species_no_limiter;
   f->prim_vars_func = vm_fluid_species_advect_prim_vars;
   f->calc_integrated_mom_func = vm_fluid_species_advect_calc_integrated;
@@ -651,6 +666,7 @@ vm_fluid_species_can_pb_fluid_init(
     &app->grid, &app->basis, 1, GKYL_ARRAY_INTEGRATE_OP_GRAD_SQ, app->use_gpu
   );
 
+  f->positivity_func = vm_fluid_species_no_positivity;
   f->limiter_func = vm_fluid_species_no_limiter;
   f->prim_vars_func = vm_fluid_species_can_pb_fluid_prim_vars;
   f->calc_integrated_mom_func = vm_fluid_species_can_pb_fluid_calc_integrated;
@@ -702,6 +718,46 @@ vm_fluid_species_apply_ic_enabled(
   // we are pre-computing source for now as it is time-independent
   vm_fluid_species_source_calc(app, fluid_species, t0);
 }
+// Forces in the RHS of the fluid species, assigned in vm_fluid_species_init.
+// None: no force, or the implicit fluid-EM coupling applies them.
+static void
+vm_fluid_species_rhs_force_none(
+  gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, const struct gkyl_array *fluid,
+  const struct gkyl_array *em, struct gkyl_array *rhs
+)
+{
+}
+
+// Applied acceleration (external forces) of a fluid without a field.
+static void
+vm_fluid_species_rhs_force_app_accel(
+  gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, const struct gkyl_array *fluid,
+  const struct gkyl_array *em, struct gkyl_array *rhs
+)
+{
+  gkyl_dg_calc_fluid_vars_source(
+    fluid_species->calc_fluid_vars, &app->local, fluid_species->app_accel, fluid, rhs
+  );
+}
+
+// Applied acceleration and Lorentz force of a fluid coupled explicitly to the Maxwell field:
+// qmem = [app_accel + q/m (E + E_ext), q/m (B + B_ext)], as for a kinetic species.
+static void
+vm_fluid_species_rhs_force_em(
+  gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, const struct gkyl_array *fluid,
+  const struct gkyl_array *em, struct gkyl_array *rhs
+)
+{
+  double qbym = fluid_species->charge / fluid_species->mass;
+  gkyl_array_set_offset(fluid_species->qmem, qbym, em, 0);
+  gkyl_array_accumulate_range(fluid_species->qmem, qbym, app->field->ext_em, &app->local);
+  gkyl_array_accumulate_range(fluid_species->qmem, 1.0, fluid_species->app_accel, &app->local);
+  gkyl_dg_calc_fluid_vars_em_source(
+    fluid_species->calc_fluid_vars, &app->local, fluid_species->qmem, app->src_omega_p_sq, fluid,
+    fluid_species->cflrate, rhs
+  );
+}
+
 // Compute the RHS for fluid species update, returning maximum stable
 // time-step.
 static double
@@ -743,14 +799,10 @@ vm_fluid_species_rhs_enabled(
     fluid_species->advect_slvr, &app->local, fluid, fluid_species->cflrate, rhs
   );
 
-  // Accumulate explicit source contribution, e.g., external forces
-  // Only done if there are external forces and no EM fields, as fluid-EM coupling
-  // is handled by implicit source solve, see vm_fluid_em_coupling.c.
-  if (fluid_species->has_app_accel && !app->has_field) {
-    gkyl_dg_calc_fluid_vars_source(
-      fluid_species->calc_fluid_vars, &app->local, fluid_species->app_accel, fluid, rhs
-    );
-  }
+  // Accumulate the forces the fluid applies itself: external forces without a
+  // field, and the Lorentz force of a field coupled explicitly. With the implicit
+  // fluid-EM coupling the source solve applies them, see vm_fluid_em_coupling.c.
+  fluid_species->rhs_force_func(app, fluid_species, fluid, em, rhs);
 
   if (fluid_species->has_diffusion) {
     if (fluid_species->info.diffusion.Dij) {
@@ -1053,6 +1105,21 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     );
   }
 
+  // Forces in the RHS of the fluid: the applied acceleration without a field, and with it the
+  // Lorentz force of a momentum-carrying fluid when the Maxwell field is coupled explicitly.
+  // With the implicit fluid-EM coupling the source solve applies both.
+  f->rhs_force_func = vm_fluid_species_rhs_force_none;
+  if (app->has_field) {
+    if (app->use_explicit_sources && vm_fluid_em_coupling_supported(f)) {
+      f->qmem = mkarr(app->use_gpu, 6 * app->basis.num_basis, app->local_ext.volume);
+      f->mom = mkarr(app->use_gpu, 3 * app->basis.num_basis, app->local_ext.volume);
+      f->rhs_force_func = vm_fluid_species_rhs_force_em;
+    }
+  } else if (f->has_app_accel) {
+    f->rhs_force_func = vm_fluid_species_rhs_force_app_accel;
+  }
+  f->has_explicit_force = f->rhs_force_func != vm_fluid_species_rhs_force_none;
+
   // set species source id
   f->source_id = f->info.source.source_id;
   f->rhs_source_func = f->source_id ? vm_fluid_species_rhs_source_enabled :
@@ -1165,9 +1232,30 @@ vm_fluid_species_calc_stage_app_accel(
   gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, double tm
 )
 {
-  if (fluid_species->app_accel_evolve && !app->has_field) {
+  if (fluid_species->app_accel_evolve && fluid_species->has_explicit_force) {
     vm_fluid_species_calc_app_accel(app, fluid_species, tm);
   }
+}
+
+void
+vm_fluid_species_apply_positivity(
+  gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, struct gkyl_array *fluid
+)
+{
+  fluid_species->positivity_func(app, fluid_species, fluid);
+}
+
+void
+vm_fluid_species_accumulate_current(
+  gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, const struct gkyl_array *fluid,
+  struct gkyl_array *emout
+)
+{
+  // The fluid array is [rho, rho ux, rho uy, rho uz, energy]: its momentum block over the mass
+  // is the number flux.
+  double qbymeps = fluid_species->charge / (fluid_species->mass * app->field->info.epsilon0);
+  gkyl_array_set_offset(fluid_species->mom, 1.0, fluid, app->basis.num_basis);
+  gkyl_array_accumulate_range(emout, -qbymeps, fluid_species->mom, &app->local);
 }
 
 void
@@ -1333,6 +1421,10 @@ vm_fluid_species_release(const gkyl_vlasov_app *app, struct vm_fluid_species *f)
   gkyl_array_release(f->integ_mom);
   gkyl_dynvec_release(f->integ_diag);
 
+  if (f->qmem) {
+    gkyl_array_release(f->qmem);
+    gkyl_array_release(f->mom);
+  }
   gkyl_array_release(f->app_accel);
   if (f->has_app_accel) {
     if (app->use_gpu) {

@@ -66,7 +66,8 @@ enum gkyl_field_bc_type {
   GKYL_FIELD_DIRICHLET, // Dirichlet boundary conditions
   GKYL_FIELD_NEUMANN, // Nemann boundary conditions
   GKYL_FIELD_THETA_POLE, // Specialized BCs for theta=0 and theta=pi in spherical and spherical-like coordinates
-  GKYL_FIELD_NONE // Do not apply any boundary conditions
+  GKYL_FIELD_NONE, // Do not apply any boundary conditions
+  GKYL_FIELD_ABSORB // Maxwell's absorbing (outflow) BC: only the outgoing waves at the boundary face
 };
 
 // Type of file import for initial conditions

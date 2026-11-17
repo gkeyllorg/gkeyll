@@ -50,3 +50,11 @@ struct gkyl_wv_eqn *gkyl_wv_euler_cu_dev_inew(const struct gkyl_wv_euler_inp *in
  * @return Gas adiabatic constant
  */
 double gkyl_wv_euler_gas_gamma(const struct gkyl_wv_eqn *wv);
+
+/**
+ * Get the type of Riemann problem solver.
+ *
+ * @param wv Euler equation object
+ * @return Type of Riemann problem solver
+ */
+enum gkyl_wv_euler_rp gkyl_wv_euler_rp_type(const struct gkyl_wv_eqn *wv);

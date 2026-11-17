@@ -5,6 +5,7 @@
 #include <math.h>
 #include <gkyl_array.h>
 #include <gkyl_wv_eqn.h>
+#include <gkyl_wv_euler.h>
 #include <gkyl_wv_embed_geo.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_range.h>
@@ -13,6 +14,7 @@
 struct wv_euler {
   struct gkyl_wv_eqn eqn; // base object
   double gas_gamma; // gas adiabatic constant
+  enum gkyl_wv_euler_rp rp_type; // type of Riemann problem solver
 };
 
 /**
@@ -480,22 +482,22 @@ states_hll_common(const struct gkyl_wv_eqn *eqn, const double *ql, const double 
   double ur = qr[1] / rr;
   double pr = gkyl_euler_pressure(g, qr);
 
-  // STEP 1. compute min and max wave speeds; here, the pressure-based speed
-  // estimates Toro (10.59) are used
-  //   first, estimate middle pressure; using PVRS Toro (10.61) but Toro Fig 9.4
-  //   presents an adaptive method to switch between PVRS and TRRS (10.63) and
-  //   TSRS (10.65); for ideal gases, max(0, p_PVRS) might also be good
+  // STEP 1. compute min and max wave speeds: the Einfeldt estimates, the more extreme of the
+  // characteristic speed of each side and that of the Roe average (Einfeldt 1988; Einfeldt,
+  // Munz, Roe and Sjogreen 1991; Batten, Clarke, Lambert and Causon 1997 for HLLC). They are
+  // exact for an isolated shock, and sl < sr always, so the HLL and HLLC middle states are
+  // defined for any pair of admissible states. (The pressure-based estimates of Toro (10.59) with
+  // the PVRS pressure (10.61), used before, are too slow in strong compressions, where sl and sr
+  // could cross, and far too fast next to a near vacuum.)
   double cl = sqrt(g * pl / rl);
   double cr = sqrt(g * pr / rr);
-  double ra = 0.5 * (rl + rr);
-  double ca = 0.5 * (cl + cr);
-  double pm = 0.5 * (pl + pr) - 0.5 * (ur - ul) * ra * ca;
-  //   second, compue the q coefficients in Toro (10.60)
-  double coeffl = pm <= pl ? 1 : sqrt(1 + 0.5 * (1 + 1 / g) * (pm / pl - 1));
-  double coeffr = pm <= pr ? 1 : sqrt(1 + 0.5 * (1 + 1 / g) * (pm / pr - 1));
-  //   finally, compute Toro (10.59)
-  double sl = ul - cl * coeffl;
-  double sr = ur + cr * coeffr;
+  double srl = sqrt(rl), srr = sqrt(rr), ravg = 1 / (srl + srr);
+  double ua = (srl * ul + srr * ur) * ravg;
+  double va = (ql[2] / srl + qr[2] / srr) * ravg, wa = (ql[3] / srl + qr[3] / srr) * ravg;
+  double ha = ((ql[4] + pl) / srl + (qr[4] + pr) / srr) * ravg;
+  double ca = sqrt((g - 1) * (ha - 0.5 * (ua * ua + va * va + wa * wa)));
+  double sl = fmin(ul - cl, ua - ca);
+  double sr = fmax(ur + cr, ua + ca);
 
   state[0] = rl;
   state[1] = ul;

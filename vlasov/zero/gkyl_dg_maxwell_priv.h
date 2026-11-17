@@ -18,6 +18,12 @@ typedef double (*maxwell_surf_t)(
   const double *qr, double *GKYL_RESTRICT out
 );
 
+typedef double (*maxwell_boundary_surf_t)(
+  const gkyl_maxwell_inp *meq, const double *w, const double *dx, const double *jacob_pos_edge,
+  const double *jacob_pos_skin, const int edge, const double *qedge, const double *qskin,
+  double *GKYL_RESTRICT out
+);
+
 typedef double (*maxwell_surf_from_flux_t)(
   const double *w, const double *dx, const double *flux_l, const double *flux_r,
   double *GKYL_RESTRICT out
@@ -38,6 +44,9 @@ typedef struct {
   maxwell_surf_t kernels[4];
 } gkyl_dg_maxwell_surf_kern_list;
 typedef struct {
+  maxwell_boundary_surf_t kernels[4];
+} gkyl_dg_maxwell_boundary_surf_kern_list;
+typedef struct {
   maxwell_gr_maxwell_vol_t kernels[4];
 } gkyl_dg_maxwell_gr_maxwell_vol_kern_list;
 typedef struct {
@@ -54,6 +63,9 @@ struct dg_maxwell {
   // callers without a nonuniform map pass an identity position map).
 
   maxwell_surf_t surf[3]; // pointers to surface kernels
+  // Surface kernels of the cells on an edge of the domain whose boundary condition is a flux
+  // through the boundary face (absorbing boundaries; see the zero_flux_flags of hyper_dg).
+  maxwell_boundary_surf_t boundary_surf[3];
   bool use_conf_flux_surf; // If using configuration-space fluxes for streaming terms (GR Maxwell).
   const struct gkyl_array
     *conf_flux_surf; // Nodal expansion of fluxes at configuration space surfaces.
@@ -278,6 +290,49 @@ GKYL_CU_D static const gkyl_dg_maxwell_surf_kern_list ten_surf_z_kernels[] = {
   {NULL, maxwell_surfz_3x_ser_p1, maxwell_surfz_3x_tensor_p2, NULL} // 2
 };
 
+// Boundary surface kernel lists (the cell on an edge of the domain with a flux boundary condition)
+GKYL_CU_D static const gkyl_dg_maxwell_boundary_surf_kern_list ser_boundary_surf_x_kernels[] = {
+  {NULL, maxwell_boundary_surfx_1x_ser_p1, maxwell_boundary_surfx_1x_ser_p2,
+   maxwell_boundary_surfx_1x_ser_p3}, // 0
+  {NULL, maxwell_boundary_surfx_2x_ser_p1, maxwell_boundary_surfx_2x_ser_p2,
+   maxwell_boundary_surfx_2x_ser_p3}, // 1
+  {NULL, maxwell_boundary_surfx_3x_ser_p1, maxwell_boundary_surfx_3x_ser_p2, NULL} // 2
+};
+
+GKYL_CU_D static const gkyl_dg_maxwell_boundary_surf_kern_list ten_boundary_surf_x_kernels[] = {
+  {NULL, maxwell_boundary_surfx_1x_ser_p1, maxwell_boundary_surfx_1x_ser_p2,
+   maxwell_boundary_surfx_1x_ser_p3}, // 0
+  {NULL, maxwell_boundary_surfx_2x_ser_p1, maxwell_boundary_surfx_2x_tensor_p2,
+   maxwell_boundary_surfx_2x_tensor_p3}, // 1
+  {NULL, maxwell_boundary_surfx_3x_ser_p1, maxwell_boundary_surfx_3x_tensor_p2, NULL} // 2
+};
+
+GKYL_CU_D static const gkyl_dg_maxwell_boundary_surf_kern_list ser_boundary_surf_y_kernels[] = {
+  {NULL, NULL, NULL, NULL}, // 0
+  {NULL, maxwell_boundary_surfy_2x_ser_p1, maxwell_boundary_surfy_2x_ser_p2,
+   maxwell_boundary_surfy_2x_ser_p3}, // 1
+  {NULL, maxwell_boundary_surfy_3x_ser_p1, maxwell_boundary_surfy_3x_ser_p2, NULL} // 2
+};
+
+GKYL_CU_D static const gkyl_dg_maxwell_boundary_surf_kern_list ten_boundary_surf_y_kernels[] = {
+  {NULL, NULL, NULL, NULL}, // 0
+  {NULL, maxwell_boundary_surfy_2x_ser_p1, maxwell_boundary_surfy_2x_tensor_p2,
+   maxwell_boundary_surfy_2x_tensor_p3}, // 1
+  {NULL, maxwell_boundary_surfy_3x_ser_p1, maxwell_boundary_surfy_3x_tensor_p2, NULL} // 2
+};
+
+GKYL_CU_D static const gkyl_dg_maxwell_boundary_surf_kern_list ser_boundary_surf_z_kernels[] = {
+  {NULL, NULL, NULL, NULL}, // 0
+  {NULL, NULL, NULL, NULL}, // 1
+  {NULL, maxwell_boundary_surfz_3x_ser_p1, maxwell_boundary_surfz_3x_ser_p2, NULL} // 2
+};
+
+GKYL_CU_D static const gkyl_dg_maxwell_boundary_surf_kern_list ten_boundary_surf_z_kernels[] = {
+  {NULL, NULL, NULL, NULL}, // 0
+  {NULL, NULL, NULL, NULL}, // 1
+  {NULL, maxwell_boundary_surfz_3x_ser_p1, maxwell_boundary_surfz_3x_tensor_p2, NULL} // 2
+};
+
 // DG GR Maxwell surface kernel list: x-direction (Serendipity basis)
 GKYL_CU_D static const gkyl_dg_maxwell_surf_from_flux_kern_list
   ser_gr_maxwell_surf_from_flux_x_kernels[] = {
@@ -430,5 +485,15 @@ boundary_surf(
   const int edge, const double *qInEdge, const double *qInSkin, double *GKYL_RESTRICT qRhsOut
 )
 {
-  return 0.;
+  struct dg_maxwell *maxwell = container_of(eqn, struct dg_maxwell, eqn);
+
+  // The cell on an edge of the domain with a flux boundary condition: the central flux on its
+  // interior face and the outgoing waves only on the boundary face (absorbing boundary).
+  long cidx_edge = gkyl_range_idx(&maxwell->crange, idxEdge);
+  long cidx_skin = gkyl_range_idx(&maxwell->crange, idxSkin);
+  const double *jp_edge = (const double *)gkyl_array_cfetch(maxwell->jacob_pos, cidx_edge);
+  const double *jp_skin = (const double *)gkyl_array_cfetch(maxwell->jacob_pos, cidx_skin);
+  return maxwell->boundary_surf[dir](
+    &maxwell->maxwell_data, xcSkin, dxSkin, jp_edge, jp_skin, edge, qInEdge, qInSkin, qRhsOut
+  );
 }

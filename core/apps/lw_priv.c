@@ -57,6 +57,7 @@ static const struct gkyl_str_int_pair field_bcs[] = {
   {"bcFunc", GKYL_FIELD_FUNC},
   {"bcFixedFunc", GKYL_FIELD_FIXED_FUNC},
   {"bcThetaPole", GKYL_FIELD_THETA_POLE},
+  {"bcAbsorb", GKYL_FIELD_ABSORB},
   {0, 0}
 };
 

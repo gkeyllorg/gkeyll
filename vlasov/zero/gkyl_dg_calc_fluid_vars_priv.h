@@ -40,6 +40,12 @@ typedef void (*fluid_source_t)(
   const double *app_accel, const double *fluid, double *GKYL_RESTRICT out
 );
 
+typedef double (*fluid_em_source_t)(
+  const double *qmem, const double *omega_p_sq, const double *fluid, double *GKYL_RESTRICT out
+);
+
+typedef int (*fluid_positivity_t)(double eps, double *GKYL_RESTRICT fluid);
+
 // for use in kernel tables
 typedef struct {
   fluid_set_t kernels[4];
@@ -62,6 +68,9 @@ typedef struct {
 typedef struct {
   fluid_source_t kernels[4];
 } gkyl_dg_fluid_source_kern_list;
+typedef struct {
+  fluid_em_source_t kernels[4];
+} gkyl_dg_fluid_em_source_kern_list;
 
 struct gkyl_dg_calc_fluid_vars {
   enum gkyl_eqn_type eqn_type; // Equation type
@@ -89,6 +98,8 @@ struct gkyl_dg_calc_fluid_vars {
   fluid_limiter_t fluid_limiter[3]; // kernel for limiting slopes of fluid variables
   fluid_int_t fluid_int; // kernel for computing integrated fluid variables
   fluid_source_t fluid_source; // kernel for computing fluid source update
+  fluid_em_source_t fluid_em_source; // kernel for the source update with the Lorentz force
+  fluid_positivity_t fluid_positivity; // kernel for the vertex positivity limiter (p=1; else NULL)
 
   uint32_t flags;
   struct gkyl_dg_calc_fluid_vars *on_dev; // pointer to itself or device data
@@ -230,6 +241,28 @@ GKYL_CU_D static const gkyl_dg_fluid_source_kern_list ten_fluid_source_kernels[]
   {NULL, fluid_vars_source_3x_ser_p1, NULL, NULL} // 2
 };
 
+// Fluid explicit source solve with the Lorentz force (Serendipity kernels)
+GKYL_CU_D static const gkyl_dg_fluid_em_source_kern_list ser_fluid_em_source_kernels[] = {
+  {NULL, fluid_vars_em_source_1x_ser_p1, fluid_vars_em_source_1x_ser_p2,
+   fluid_vars_em_source_1x_ser_p3}, // 0
+  {NULL, fluid_vars_em_source_2x_ser_p1, NULL, NULL}, // 1
+  {NULL, fluid_vars_em_source_3x_ser_p1, NULL, NULL} // 2
+};
+
+// Fluid explicit source solve with the Lorentz force (Tensor kernels)
+GKYL_CU_D static const gkyl_dg_fluid_em_source_kern_list ten_fluid_em_source_kernels[] = {
+  {NULL, fluid_vars_em_source_1x_ser_p1, fluid_vars_em_source_1x_ser_p2,
+   fluid_vars_em_source_1x_ser_p3}, // 0
+  {NULL, fluid_vars_em_source_2x_ser_p1, fluid_vars_em_source_2x_tensor_p2, NULL}, // 1
+  {NULL, fluid_vars_em_source_3x_ser_p1, NULL, NULL} // 2
+};
+
+// Vertex positivity limiter of the fluid state [rho, M, E] (p=1, where the serendipity and
+// tensor bases coincide)
+GKYL_CU_D static const fluid_positivity_t fluid_positivity_kernels[] = {
+  fluid_vars_positivity_1x_ser_p1, fluid_vars_positivity_2x_ser_p1, fluid_vars_positivity_3x_ser_p1
+};
+
 GKYL_CU_D static fluid_set_t
 choose_fluid_set_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
@@ -356,4 +389,28 @@ choose_fluid_source_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
       assert(false);
       break;
   }
+}
+
+GKYL_CU_D static fluid_em_source_t
+choose_fluid_em_source_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
+{
+  switch (b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      return ser_fluid_em_source_kernels[cdim - 1].kernels[poly_order];
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      return ten_fluid_em_source_kernels[cdim - 1].kernels[poly_order];
+      break;
+    default:
+      assert(false);
+      break;
+  }
+}
+
+GKYL_CU_D static fluid_positivity_t
+choose_fluid_positivity_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
+{
+  bool is_p1 = poly_order == 1 &&
+               (b_type == GKYL_BASIS_MODAL_SERENDIPITY || b_type == GKYL_BASIS_MODAL_TENSOR);
+  return is_p1 ? fluid_positivity_kernels[cdim - 1] : 0;
 }

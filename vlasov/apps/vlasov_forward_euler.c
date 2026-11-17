@@ -1,5 +1,31 @@
 #include <gkyl_vlasov_priv.h>
 
+void
+vlasov_src_omega_p_none(gkyl_vlasov_app *app, const struct gkyl_array *fluidin[])
+{
+}
+
+void
+vlasov_src_omega_p_explicit(gkyl_vlasov_app *app, const struct gkyl_array *fluidin[])
+{
+  double eps0 = app->field->info.epsilon0;
+  gkyl_array_clear(app->src_omega_p_sq, 0.0);
+  // A static field does not respond to the currents: only the gyration of each fluid remains.
+  if (app->field->info.is_static) {
+    return;
+  }
+  for (int i = 0; i < app->num_species; ++i) {
+    struct vm_fluid_species *fs = app->species[i].fluid;
+    if (fs && fs->qmem) {
+      double qbym = fs->charge / fs->mass;
+      gkyl_dg_calc_average_range(&app->basis, 0, app->src_rho_avg, 0, fluidin[i], app->local);
+      gkyl_array_accumulate_range(
+        app->src_omega_p_sq, qbym * qbym / eps0, app->src_rho_avg, &app->local
+      );
+    }
+  }
+}
+
 // Take a forward Euler step of the Vlasov-Maxwell system of equations
 // with the suggested time-step dt. Also supports just Maxwell's equations
 // and fluid equations (Euler's) with potential Vlasov-fluid coupling.
@@ -60,6 +86,10 @@ vlasov_forward_euler(
   for (int i = 0; i < num_species; ++i) {
     vlasov_species_calc_coupled_vars(app, &app->species[i], fin[i], fluidin[i]);
   }
+
+  // Explicit fluid-EM coupling: the plasma frequency of the stage, for the time-step of the
+  // fluids.
+  app->src_omega_p_func(app, fluidin);
 
   // Compute RHS of the Vlasov/fluid equations.
   for (int i = 0; i < num_species; ++i) {

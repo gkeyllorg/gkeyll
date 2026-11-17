@@ -29,14 +29,25 @@ species_no_finish_stage(
 {
 }
 
-// No explicit field coupling: the null field, and fluid species (whose EM
-// coupling is the implicit operator split, see vm_fluid_em_coupling.c).
+// No explicit field coupling: the null field, and fluid species that carry no
+// current or whose EM coupling is the implicit operator split (see
+// vm_fluid_em_coupling.c).
 static void
 species_no_field_coupling(
   gkyl_vlasov_app *app, struct vlasov_species *sp, const struct gkyl_array *fin,
   const struct gkyl_array *fluidin, struct gkyl_array *target
 )
 {
+}
+
+// Current of a momentum-carrying fluid coupled explicitly to the Maxwell field.
+static void
+fluid_accumulate_current(
+  gkyl_vlasov_app *app, struct vlasov_species *sp, const struct gkyl_array *fin,
+  const struct gkyl_array *fluidin, struct gkyl_array *target
+)
+{
+  vm_fluid_species_accumulate_current(app, sp->fluid, fluidin, target);
 }
 
 static void
@@ -252,7 +263,12 @@ vlasov_fluid_species_init(
   sp->calc_self_moms_func = species_no_calc_moms;
   sp->calc_coupled_vars_func = fluid_calc_coupled_vars;
   sp->finish_stage_func = species_no_finish_stage;
-  sp->accumulate_field_coupling_func = species_no_field_coupling;
+  // Field coupling of the stage: the current of a momentum-carrying (Euler)
+  // fluid when the Maxwell field is coupled explicitly; nothing otherwise.
+  bool has_explicit_current = app->use_explicit_sources && app->field->field_id == GKYL_FIELD_E_B &&
+                              inp->fluid.equation->type == GKYL_EQN_EULER;
+  sp->accumulate_field_coupling_func = has_explicit_current ? fluid_accumulate_current :
+                                                              species_no_field_coupling;
 }
 
 // --- Wrappers over the constructor-assigned methods --------------------------

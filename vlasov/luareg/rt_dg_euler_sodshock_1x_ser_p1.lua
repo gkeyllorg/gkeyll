@@ -3,7 +3,7 @@
 -- (Section 2.6.2 of A. Hakim's 2006 thesis, High Resolution Wave Propagation Schemes for Two-
 -- Fluid Plasma Simulations), producing a left rarefaction, a contact and a right shock; the
 -- reference is the exact Riemann solution. Figures of merit (serendipity p1, 512 cells): L1 errors
--- of 0.0020 in density, 0.0008 in velocity and 0.0016 in pressure against the exact Riemann
+-- of 0.0021 in density, 0.0008 in velocity and 0.0016 in pressure against the exact Riemann
 -- solution; shock at x = 0.8999 (exact 0.8994), contact at x = 0.7964 (exact 0.7964), star-state
 -- pressure 1.6934 and velocity 0.4641, both exact to four digits.
 local Vlasov = G0.Vlasov

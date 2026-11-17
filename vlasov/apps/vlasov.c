@@ -39,6 +39,14 @@ vlasov_array_meta_new(struct vlasov_output_meta meta)
   mpack_write_cstr(&writer, "basisType");
   mpack_write_cstr(&writer, meta.basis_type);
 
+  // the staggered operator split's last and suggested steps (for a restart)
+  if (meta.dt_prev > 0.0 || meta.dt_suggested > 0.0) {
+    mpack_write_cstr(&writer, "dt_prev");
+    mpack_write_double(&writer, meta.dt_prev);
+    mpack_write_cstr(&writer, "dt_suggested");
+    mpack_write_double(&writer, meta.dt_suggested);
+  }
+
   mpack_complete_map(&writer);
 
   int status = mpack_writer_destroy(&writer);
@@ -65,7 +73,7 @@ vlasov_array_meta_release(struct gkyl_msgpack_data *mt)
 struct vlasov_output_meta
 vlasov_meta_from_mpack(struct gkyl_msgpack_data *mt)
 {
-  struct vlasov_output_meta meta = {.frame = 0, .stime = 0.0};
+  struct vlasov_output_meta meta = {.frame = 0, .stime = 0.0, .dt_prev = 0.0, .dt_suggested = 0.0};
 
   if (mt->meta_sz > 0) {
     mpack_tree_t tree;
@@ -87,6 +95,11 @@ vlasov_meta_from_mpack(struct gkyl_msgpack_data *mt)
     strcpy(meta.basis_type_nm, basis_type);
     meta.basis_type = meta.basis_type_nm;
     MPACK_FREE(basis_type);
+
+    mpack_node_t dtp_node = mpack_node_map_cstr_optional(root, "dt_prev");
+    meta.dt_prev = mpack_node_is_missing(dtp_node) ? 0.0 : mpack_node_double(dtp_node);
+    mpack_node_t dts_node = mpack_node_map_cstr_optional(root, "dt_suggested");
+    meta.dt_suggested = mpack_node_is_missing(dts_node) ? 0.0 : mpack_node_double(dts_node);
 
     mpack_tree_destroy(&tree);
   }
@@ -277,6 +290,7 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
 
   app->has_field = !vm->skip_field; // note inversion of truth value
   // A field object is always created: the null field when no field is present.
+  app->use_explicit_sources = vm->use_explicit_sources;
   app->field = vlasov_field_new(vm, app);
 
   app->species = ntot > 0 ? gkyl_malloc(sizeof(struct vlasov_species[ntot])) : 0;
@@ -295,26 +309,52 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   vlasov_species_link_kinetic_aspects(app);
   vlasov_species_init_fluid_aspects(vm, app);
 
-  // Implicit fluid-EM coupling: supported for momentum-carrying fluid species
-  // (Euler) under the standard Maxwell field. Scalar
-  // advection and canonical-PB fluids carry no current and are never coupled;
-  // a momentum-carrying fluid under any other field type has no coupling
-  // formulation and is rejected.
-  int num_coupled_fluids = 0;
+  // Fluid-EM coupling: supported for momentum-carrying fluid species (Euler)
+  // under the standard Maxwell field. Scalar advection and canonical-PB fluids
+  // carry no current and are never coupled; a momentum-carrying fluid under any
+  // other field type has no coupling formulation and is rejected. The coupling
+  // is implicit (the staggered operator split, see vlasov_update_op_split)
+  // unless use_explicit_sources puts the Lorentz force in the fluid RHS and the
+  // fluid current on the Ampere RHS of every SSP-RK3 stage.
+  int num_coupled_fluids = 0, num_kinetic = 0;
   for (int i = 0; i < ntot; ++i) {
     if (app->species[i].fluid && vm_fluid_em_coupling_supported(app->species[i].fluid)) {
       num_coupled_fluids += 1;
     }
+    if (app->species[i].kinetic) {
+      num_kinetic += 1;
+    }
   }
   app->has_fluid_em_coupling = false;
+  app->src_omega_p_func = vlasov_src_omega_p_none;
+  app->src_omega_p_sq = 0;
+  app->op_split_dt_prev = 0.0;
+  app->op_split_dt_suggested = 0.0;
+  app->op_split_synced = false;
   if (num_coupled_fluids > 0 && app->has_field) {
     if (app->field->field_id != GKYL_FIELD_E_B) {
       gkyl_exit(
         "gkyl_vlasov_app_new: fluid-EM coupling is only supported with the standard Maxwell field (E_B)."
       );
     }
-    app->has_fluid_em_coupling = true;
-    app->fl_em = vm_fluid_em_coupling_new(app);
+    if (!app->use_explicit_sources) {
+      // The transport step of the split does not advance E, so the current of a kinetic
+      // species has no place in it yet.
+      if (num_kinetic > 0) {
+        gkyl_exit(
+          "gkyl_vlasov_app_new: the implicit fluid-EM coupling does not support kinetic species "
+          "yet (use use_explicit_sources)."
+        );
+      }
+      app->has_fluid_em_coupling = true;
+      app->fl_em = vm_fluid_em_coupling_new(app);
+      vm_field_set_source_split(app, app->field);
+    } else {
+      // The time-step of the explicit coupling resolves the plasma and cyclotron frequencies.
+      app->src_omega_p_func = vlasov_src_omega_p_explicit;
+      app->src_omega_p_sq = mkarr(app->use_gpu, 1, app->local_ext.volume);
+      app->src_rho_avg = mkarr(app->use_gpu, 1, app->local_ext.volume);
+    }
   }
 
   // Implicit operators of the species (BGK collisions, temperature sources) are
@@ -328,8 +368,8 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   }
 
   // Set the appropriate update function for taking a single time step
-  // If we have implicit fluid-EM coupling, we perform a first-order operator
-  // split and treat that coupling implicitly.
+  // If we have implicit fluid-EM coupling, we perform a staggered (Strang)
+  // operator split and treat that coupling implicitly.
   // Otherwise, we default to an SSP-RK3 method.
   if (app->has_fluid_em_coupling) {
     app->update_func = vlasov_update_op_split;
@@ -397,6 +437,10 @@ void
 gkyl_vlasov_app_apply_ic(gkyl_vlasov_app *app, double t0)
 {
   app->tcurr = t0;
+  // a new run of the staggered operator split
+  app->op_split_dt_prev = 0.0;
+  app->op_split_dt_suggested = 0.0;
+  app->op_split_synced = false;
   for (int i = 0; i < app->num_species; ++i) {
     vlasov_species_apply_ic(app, &app->species[i], t0);
   }
@@ -441,6 +485,7 @@ gkyl_vlasov_app_find_species(const gkyl_vlasov_app *app, const char *nm)
 void
 gkyl_vlasov_app_calc_integrated_mom(gkyl_vlasov_app *app, double tm)
 {
+  vlasov_op_split_sync(app); // the staggered split's source-updated state at tcurr
   for (int i = 0; i < app->num_species; ++i) {
     vlasov_species_calc_integrated_mom(app, &app->species[i], tm);
   }
@@ -457,6 +502,7 @@ gkyl_vlasov_app_calc_integrated_L2_f(gkyl_vlasov_app *app, double tm)
 void
 gkyl_vlasov_app_calc_field_energy(gkyl_vlasov_app *app, double tm)
 {
+  vlasov_op_split_sync(app); // the staggered split's source-updated state at tcurr
   // The distributions let Vlasov-Poisson solve for the potential at time tm.
   const struct gkyl_array *fin[app->num_species];
   vlasov_species_gather_dist(app, fin);
@@ -466,6 +512,7 @@ gkyl_vlasov_app_calc_field_energy(gkyl_vlasov_app *app, double tm)
 void
 gkyl_vlasov_app_write(gkyl_vlasov_app *app, double tm, int frame)
 {
+  vlasov_op_split_sync(app); // the staggered split's source-updated state at tcurr
   gkyl_vlasov_app_write_field(app, tm, frame); // no-op for the null field
   for (int i = 0; i < app->num_species; ++i) {
     vlasov_species_write(app, &app->species[i], tm, frame);
@@ -475,6 +522,7 @@ gkyl_vlasov_app_write(gkyl_vlasov_app *app, double tm, int frame)
 void
 gkyl_vlasov_app_write_field(gkyl_vlasov_app *app, double tm, int frame)
 {
+  vlasov_op_split_sync(app); // the staggered split's source-updated state at tcurr
   // The distributions let Vlasov-Poisson solve for the potential at time tm.
   const struct gkyl_array *fin[app->num_species];
   vlasov_species_gather_dist(app, fin);
@@ -484,6 +532,7 @@ gkyl_vlasov_app_write_field(gkyl_vlasov_app *app, double tm, int frame)
 void
 gkyl_vlasov_app_write_species(gkyl_vlasov_app *app, int sidx, double tm, int frame)
 {
+  vlasov_op_split_sync(app); // the staggered split's source-updated state at tcurr
   vlasov_species_write(app, &app->species[sidx], tm, frame);
 }
 
@@ -873,6 +922,29 @@ vlasov_header_from_file(gkyl_vlasov_app *app, const char *fname)
   return rstat;
 }
 
+struct vlasov_output_meta
+vlasov_meta_from_file(const char *fname)
+{
+  struct vlasov_output_meta meta = {.frame = 0, .stime = 0.0, .dt_prev = 0.0, .dt_suggested = 0.0};
+
+  FILE *fp = 0;
+  with_file(fp, fname, "r")
+  {
+    struct gkyl_rect_grid grid;
+    struct gkyl_array_header_info hdr;
+    if (GKYL_ARRAY_RIO_SUCCESS == gkyl_grid_sub_array_header_read_fp(&grid, &hdr, fp)) {
+      meta = vlasov_meta_from_mpack(&(struct gkyl_msgpack_data){
+        .meta = hdr.meta,
+        .meta_sz = hdr.meta_size,
+      });
+      meta.basis_type = 0; // names a buffer of the copy made inside vlasov_meta_from_mpack
+    }
+    gkyl_grid_sub_array_header_release(&hdr);
+  }
+
+  return meta;
+}
+
 struct gkyl_app_restart_status
 gkyl_vlasov_app_from_file_field(gkyl_vlasov_app *app, const char *fname)
 {
@@ -920,6 +992,9 @@ gkyl_vlasov_app_read_from_frame(gkyl_vlasov_app *app, int frame)
     return fstat;
   }
 
+  // The frames hold the synchronized state of the staggered operator split.
+  vlasov_op_split_restart(app, frame);
+
   return rstat;
 }
 
@@ -959,6 +1034,10 @@ gkyl_vlasov_app_release(gkyl_vlasov_app *app)
   vlasov_field_release(app);
   if (app->has_fluid_em_coupling) {
     vm_fluid_em_coupling_release(app, app->fl_em);
+  }
+  if (app->src_omega_p_sq) {
+    gkyl_array_release(app->src_omega_p_sq);
+    gkyl_array_release(app->src_rho_avg);
   }
 
   gkyl_comm_release(app->comm);

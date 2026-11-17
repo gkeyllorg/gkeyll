@@ -149,6 +149,12 @@ struct vm_field {
       struct gkyl_bc_basic *bc_up[3];
 
       double *omega_cfl;
+
+      // Staggered operator split (implicit fluid-EM coupling): E is advanced only by the
+      // implicit source steps, so the E rows of the transport right-hand side are zero. Without
+      // divergence cleaning the right-hand side of stage 1 holds for the whole step.
+      struct gkyl_array *rhs_split; // field right-hand side of the transport step (stage 1)
+      double dt_split; // its stable time-step
     };
 
     // Vlasov-Poisson.
@@ -488,6 +494,17 @@ void vm_field_buffer_fixed_func_bc(gkyl_vlasov_app *app, struct vm_field *field)
 double vm_field_rhs(
   gkyl_vlasov_app *app, struct vm_field *field, const struct gkyl_array *em, struct gkyl_array *rhs
 );
+
+/**
+ * Switch the field to the transport step of the staggered operator split (see
+ * vlasov_update_op_split): the Maxwell RHS with zero E rows, since E advances
+ * only in the implicit fluid-EM source step. Called at construction, once the
+ * app knows the fluid-EM coupling is implicit.
+ *
+ * @param app Vlasov app object
+ * @param field Pointer to field
+ */
+void vm_field_set_source_split(gkyl_vlasov_app *app, struct vm_field *field);
 
 /**
  * Update the field at the current time: compute the RHS of Maxwell's equations.

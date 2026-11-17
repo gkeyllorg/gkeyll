@@ -33,10 +33,32 @@ vm_fluid_em_coupling_new(struct gkyl_vlasov_app *app)
     }
   }
 
+  // The source update is solved at the Gauss-Legendre nodes of the p = 1 basis.
+  if (app->poly_order != 1) {
+    gkyl_exit("vm_fluid_em_coupling: fluid-EM coupling requires polynomial order 1.");
+  }
+
   // Initialize solver
-  fl_em->slvr = gkyl_dg_calc_fluid_em_coupling_new(
-    &app->basis, &app->local, fl_em->num_fluid, fl_em->qbym, app->field->info.epsilon0, app->use_gpu
-  );
+  fl_em->slvr = gkyl_dg_calc_fluid_em_coupling_inew(&(struct gkyl_dg_calc_fluid_em_coupling_inp){
+    .conf_basis = &app->basis,
+    .mem_range = &app->local,
+    .num_species = fl_em->num_fluid,
+    .qbym = fl_em->qbym,
+    .epsilon0 = app->field->info.epsilon0,
+    .is_field_static = app->field->info.is_static,
+    .use_gpu = app->use_gpu,
+  });
+
+  int num_basis = app->basis.num_basis;
+  long num_cells = app->local_ext.volume;
+  fl_em->curl_rhs = mkarr(app->use_gpu, 8 * num_basis, num_cells);
+  fl_em->curl_current = mkarr(app->use_gpu, 3 * num_basis, num_cells);
+  gkyl_array_clear(fl_em->curl_current, 0.0);
+  for (int i = 0; i < fl_em->num_fluid; ++i) {
+    const struct gkyl_array *fluid = fl_em->species[i]->fluid->fluid;
+    fl_em->fluid_stag[i] = mkarr(app->use_gpu, fluid->ncomp, fluid->size);
+  }
+  fl_em->em_stag = mkarr(app->use_gpu, app->field->em->ncomp, app->field->em->size);
 
   return fl_em;
 }
@@ -54,13 +76,6 @@ vm_fluid_em_coupling_update(
   for (int i = 0; i < num_fluid; ++i) {
     struct vm_fluid_species *fs = fl_em->species[i]->fluid;
     fluids[i] = fs->fluid;
-
-    if (fs->eqn_type == GKYL_EQN_EULER) {
-      gkyl_dg_calc_fluid_vars_advance(
-        fs->calc_fluid_vars, fluids[i], fs->cell_avg_prim, fs->u, fs->u_surf
-      );
-      gkyl_dg_calc_fluid_vars_ke(fs->calc_fluid_vars, &app->local, fluids[i], fs->u, fs->ke_old);
-    }
     app_accels[i] = fs->app_accel;
     // Compute applied accelerations if present and time-dependent.
     // Note: applied accelerations use proj_on_basis
@@ -80,29 +95,57 @@ vm_fluid_em_coupling_update(
     vlasov_field_calc_app_current(app, tcurr);
   }
 
+  // The currents of the solve besides the species': the applied current and the effective
+  // current of the curl. A static field takes none of them (curl_current stays zero), so its E
+  // does not change.
+  struct vm_field *field = app->field;
+  if (!field->info.is_static) {
+    // Stormer-Verlet in the curl terms: E advances only here, with c^2 curl B of the field at
+    // the start of the step (B is not changed by the sources) entering as the effective current
+    // -eps0 c^2 curl B; the transport step then drifts B with this E.
+    gkyl_array_clear(fl_em->curl_rhs, 0.0);
+    gkyl_hyper_dg_advance(field->slvr, &app->local, field->em, field->cflrate, fl_em->curl_rhs);
+    gkyl_array_set(fl_em->curl_current, 1.0, field->app_current);
+    gkyl_array_accumulate_offset(fl_em->curl_current, -field->info.epsilon0, fl_em->curl_rhs, 0);
+  }
+
   gkyl_dg_calc_fluid_em_coupling_advance(
-    fl_em->slvr, dt, app_accels, app->field->ext_em, app->field->app_current, fluids, app->field->em
+    fl_em->slvr, dt, app_accels, field->ext_em, fl_em->curl_current, fluids, field->em
   );
 
+  // The solve advances the momentum and the electric field, and the fluid energy by the change
+  // of the bulk kinetic energy (the work of the field): the density is unchanged, and so is the
+  // internal energy at the nodes of the solve.
   for (int i = 0; i < num_fluid; ++i) {
     struct vm_fluid_species *fs = fl_em->species[i]->fluid;
-
-    // Compute the updated energy from the old and new kinetic energies
-    if (fs->eqn_type == GKYL_EQN_EULER) {
-      gkyl_dg_calc_fluid_vars_advance(
-        fs->calc_fluid_vars, fluids[i], fs->cell_avg_prim, fs->u, fs->u_surf
-      );
-      gkyl_dg_calc_fluid_vars_ke(fs->calc_fluid_vars, &app->local, fluids[i], fs->u, fs->ke_new);
-      gkyl_dg_calc_fluid_em_coupling_energy(fl_em->slvr, fs->ke_old, fs->ke_new, fluids[i]);
-    }
     vm_fluid_species_apply_bc(app, fs, fluids[i]);
   }
   vlasov_field_apply_bc(app, app->field->em);
 }
 
 void
+vm_fluid_em_coupling_limit(struct gkyl_vlasov_app *app, struct vm_fluid_em_coupling *fl_em)
+{
+  // The positivity limiter keeps the internal energy positive at the vertices of the fluids, and
+  // a limited field (limit_em) is limited: E enters the transport step as the stages of an
+  // explicit update leave it.
+  for (int i = 0; i < fl_em->num_fluid; ++i) {
+    struct vm_fluid_species *fs = fl_em->species[i]->fluid;
+    vm_fluid_species_apply_positivity(app, fs, fs->fluid);
+    vm_fluid_species_apply_bc(app, fs, fs->fluid);
+  }
+  vlasov_field_limiter(app, app->field->em);
+}
+
+void
 vm_fluid_em_coupling_release(struct gkyl_vlasov_app *app, struct vm_fluid_em_coupling *fl_em)
 {
   gkyl_dg_calc_fluid_em_coupling_release(fl_em->slvr);
+  gkyl_array_release(fl_em->curl_rhs);
+  gkyl_array_release(fl_em->curl_current);
+  for (int i = 0; i < fl_em->num_fluid; ++i) {
+    gkyl_array_release(fl_em->fluid_stag[i]);
+  }
+  gkyl_array_release(fl_em->em_stag);
   gkyl_free(fl_em);
 }

@@ -12,6 +12,7 @@
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_wave_geom.h>
 #include <gkyl_wv_eqn.h>
 #include <gkyl_wv_maxwell.h>
 #include <gkyl_util.h>
@@ -1150,7 +1151,89 @@ test_dg_em_vars_3x_tensor_p2_dev()
 
 #endif
 
+// Slope limiter of the field: a slope of the field component normal to the sweep direction that
+// the limiter removes takes with it the higher coefficients of that component and of the
+// correction potential of its pair (E_n with phi, B_n with psi), in every sweep direction, and
+// leaves those of every other component.
+static void
+test_dg_em_vars_limiter(int cdim, bool is_magnetic)
+{
+  double lower[] = {0.0, 0.0, 0.0}, upper[] = {1.0, 1.0, 1.0};
+  int cells[] = {4, 4, 4}, ghost[] = {1, 1, 1}, idx_cell[] = {2, 2, 2};
+
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, cdim, lower, upper, cells);
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, cdim, 1);
+  int num_basis = basis.num_basis;
+  struct gkyl_range local, local_ext;
+  gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
+
+  struct gkyl_wave_geom *geom = gkyl_wave_geom_new(&grid, &local_ext, NULL, NULL, false);
+  struct gkyl_wv_eqn *maxwell = gkyl_wv_maxwell_new(1.0, 1.0, 1.0, false);
+  struct gkyl_dg_calc_em_vars *calc_em_vars =
+    gkyl_dg_calc_em_vars_new(&grid, &basis, &local_ext, maxwell, geom, 0.0, false, false);
+
+  double uniform[8] = {0.3, 0.2, 0.1, 0.5, 0.4, 0.6, 0.05, 0.07};
+  double avg_coeff = sqrt((double)(1 << cdim));
+
+  for (int dir = 0; dir < cdim; ++dir) {
+    struct gkyl_array *em = mkarr(8 * num_basis, local_ext.volume);
+    for (long linc = 0; linc < local_ext.volume; ++linc) {
+      double *em_d = gkyl_array_fetch(em, linc);
+      for (int c = 0; c < 8; ++c) {
+        em_d[c * num_basis] = uniform[c] * avg_coeff;
+      }
+    }
+
+    // In one cell: a slope along dir of the field component along dir, which its neighbours do
+    // not support, and the same higher coefficients in all eight components.
+    int comp_normal = (is_magnetic ? 3 : 0) + dir, comp_potential = is_magnetic ? 7 : 6;
+    double *em_d = gkyl_array_fetch(em, gkyl_range_idx(&local_ext, idx_cell));
+    em_d[comp_normal * num_basis + 1 + dir] = 0.01;
+    for (int c = 0; c < 8; ++c) {
+      for (int k = cdim + 1; k < num_basis; ++k) {
+        em_d[c * num_basis + k] = 0.1;
+      }
+    }
+
+    gkyl_dg_calc_em_vars_limiter(calc_em_vars, &local, em);
+
+    TEST_CHECK(em_d[comp_normal * num_basis + 1 + dir] == 0.0);
+    for (int c = 0; c < 8; ++c) {
+      bool is_dropped = c == comp_normal || c == comp_potential;
+      for (int k = cdim + 1; k < num_basis; ++k) {
+        TEST_CHECK(em_d[c * num_basis + k] == (is_dropped ? 0.0 : 0.1));
+        TEST_MSG("sweep %d, component %d, coefficient %d: %g", dir, c, k, em_d[c * num_basis + k]);
+      }
+      TEST_CHECK(em_d[c * num_basis] == uniform[c] * avg_coeff);
+    }
+
+    gkyl_array_release(em);
+  }
+
+  gkyl_dg_calc_em_vars_release(calc_em_vars);
+  gkyl_wv_eqn_release(maxwell);
+  gkyl_wave_geom_release(geom);
+}
+
+void
+test_dg_em_vars_limiter_2x()
+{
+  test_dg_em_vars_limiter(2, false);
+  test_dg_em_vars_limiter(2, true);
+}
+
+void
+test_dg_em_vars_limiter_3x()
+{
+  test_dg_em_vars_limiter(3, false);
+  test_dg_em_vars_limiter(3, true);
+}
+
 TEST_LIST = {
+  {"test_dg_em_vars_limiter_2x", test_dg_em_vars_limiter_2x},
+  {"test_dg_em_vars_limiter_3x", test_dg_em_vars_limiter_3x},
   {"test_dg_em_vars_1x_p1_ho", test_dg_em_vars_1x_p1_ho},
   {"test_dg_em_vars_2x_p1_ho", test_dg_em_vars_2x_p1_ho},
   {"test_dg_em_vars_3x_p1_ho", test_dg_em_vars_3x_p1_ho},

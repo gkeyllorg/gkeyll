@@ -46,6 +46,9 @@ struct vlasov_output_meta {
   int poly_order; // polynomial order
   const char *basis_type; // name of basis functions
   char basis_type_nm[64]; // used during read
+  // Staggered operator split (0: none): the step of the last update and the step it suggested, so a
+  // restart continues as the uninterrupted run. Written when nonzero (field frames only).
+  double dt_prev, dt_suggested;
 };
 
 // geometry data
@@ -94,6 +97,15 @@ struct vm_fluid_em_coupling {
   struct vlasov_species *species[GKYL_MAX_SPECIES]; // gathered species, in declaration order
   double qbym[GKYL_MAX_SPECIES]; // charge/mass ratio for each gathered species
   struct gkyl_dg_calc_fluid_em_coupling *slvr; // fluid-EM coupling solver
+
+  // Currents of the solve besides the species': the applied current and the effective current
+  // -eps0 c^2 curl B of Ampere's law, whose E advances only in the source step.
+  struct gkyl_array *curl_rhs; // Maxwell right-hand side of the field at the start of the source step
+  struct gkyl_array *curl_current; // applied current - eps0 * (E rows of curl_rhs)
+
+  // Staggered states (fluids, field) kept while the app holds the synchronized ones.
+  struct gkyl_array *fluid_stag[GKYL_MAX_SPECIES];
+  struct gkyl_array *em_stag;
 };
 
 // Vlasov object: used as opaque pointer in user code
@@ -148,12 +160,31 @@ struct gkyl_vlasov_app {
   int num_species; // Total number of species (kinetic + fluid).
   struct vlasov_species *species; // Species containers.
 
+  // Momentum-carrying fluids with the Maxwell field: fully explicit coupling in the SSP-RK3
+  // stages instead of the implicit fluid-EM coupling of the staggered operator split.
+  bool use_explicit_sources;
+
   bool has_fluid_em_coupling; // Boolean for if there is implicit fluid-EM coupling
   struct vm_fluid_em_coupling *fl_em; // fluid-EM coupling data
+
+  // Staggered operator split: between updates the source-updated state (fluids, E) lags tcurr by
+  // half the last step. Output and diagnostics synchronize it (vlasov_op_split_sync) and the next
+  // update restores the staggered state.
+  double op_split_dt_prev; // step taken by the previous operator-split update (0: none yet)
+  double op_split_dt_suggested; // step suggested by the previous operator-split update (0: none yet)
+  bool op_split_synced; // the fluids and the field hold the synchronized state
 
   // Boolean for implicit operators of the species in the RK3 stages (BGK collisions,
   // temperature sources)
   bool has_implicit_species_ops;
+
+  // Explicit fluid-EM coupling (use_explicit_sources with momentum-carrying fluids and the
+  // Maxwell field): the plasma frequency squared of the coupled fluids in each cell, for the rate
+  // of the source in the time-step of each fluid; computed every stage by src_omega_p_func (a
+  // no-op otherwise, and the arrays are NULL).
+  void (*src_omega_p_func)(gkyl_vlasov_app *app, const struct gkyl_array *fluidin[]);
+  struct gkyl_array *src_omega_p_sq; // per cell: sum over the fluids of (q/m)^2 rho / eps0
+  struct gkyl_array *src_rho_avg; // per cell: average density of a fluid (scratch)
 
   // pointer to function that takes a single-step of simulation
   struct gkyl_update_status (*update_func)(gkyl_vlasov_app *app, double dt0);
@@ -173,6 +204,16 @@ void vlasov_forward_euler(
   struct gkyl_array *fluidout[], struct gkyl_array *emout, struct gkyl_update_status *st
 );
 
+// Explicit fluid-EM coupling: nothing to prepare (assigned to the app's src_omega_p_func).
+void vlasov_src_omega_p_none(gkyl_vlasov_app *app, const struct gkyl_array *fluidin[]);
+
+// Explicit fluid-EM coupling: the plasma frequency squared of the coupled fluids in each cell,
+// the sum of (q/m)^2 rho / eps0 with the cell averages of the stage densities, into
+// app->src_omega_p_sq. With the cyclotron frequency of a fluid it bounds the frequencies of its
+// source (see gkyl_dg_calc_fluid_vars_em_source), which enters the time-step of the fluid. Zero
+// for a static field, which does not respond to the currents. Kinetic species are not included.
+void vlasov_src_omega_p_explicit(gkyl_vlasov_app *app, const struct gkyl_array *fluidin[]);
+
 // The implicit operators of SSP-RK3 stage 'stage' (1, 2 or 3), applied to the
 // stage state after the explicit part of the stage, its BCs and the stage
 // combination: implicit BGK collisions and implicit temperature sources, one
@@ -180,9 +221,22 @@ void vlasov_forward_euler(
 // (dt, dt/4, 2 dt/3). A no-op without implicit operators.
 void vlasov_stage_implicit(gkyl_vlasov_app *app, int stage, double dt);
 
-// Take a single time-step using a first-order operator split: SSP RK3, then
-// the implicit fluid-EM coupling
+// Take a single time-step of the staggered operator split: one implicit fluid-EM source step over
+// the interval between the midpoints of consecutive transport steps, and the SSP-RK3 transport step.
 struct gkyl_update_status vlasov_update_op_split(gkyl_vlasov_app *app, double dt0);
+
+// Staggered split: advance the source-updated state (fluids, E) by the half source step it lags
+// tcurr, keeping the staggered state for the next update. A no-op when there is no implicit
+// fluid-EM coupling, when already synchronized, and before the first update.
+void vlasov_op_split_sync(gkyl_vlasov_app *app);
+
+// Staggered split: restore the staggered state saved by vlasov_op_split_sync (no-op if not
+// synchronized).
+void vlasov_op_split_unsync(gkyl_vlasov_app *app);
+
+// Staggered split: after the frames of a restart are read, restore the steps stored in the field
+// frame and step the sources back by the half step the uninterrupted run held them behind.
+void vlasov_op_split_restart(gkyl_vlasov_app *app, int frame);
 
 // Take a single time-step using a SSP-RK3 stepper
 struct gkyl_update_status vlasov_update_ssp_rk3(gkyl_vlasov_app *app, double dt0);
@@ -207,6 +261,14 @@ struct gkyl_msgpack_data *vlasov_array_meta_new(struct vlasov_output_meta meta);
  *   from the file's embedded metadata.
  */
 struct gkyl_app_restart_status vlasov_header_from_file(gkyl_vlasov_app *app, const char *fname);
+
+/**
+ * Read the metadata of an output file.
+ *
+ * @param fname File to read the metadata from.
+ * @return Metadata of the file (zeros if the file cannot be read or has none).
+ */
+struct vlasov_output_meta vlasov_meta_from_file(const char *fname);
 
 /**
  * Free memory for array metadata object.
@@ -298,16 +360,30 @@ struct vm_fluid_em_coupling *vm_fluid_em_coupling_new(struct gkyl_vlasov_app *ap
 bool vm_fluid_em_coupling_supported(const struct vm_fluid_species *f);
 
 /**
- * Compute implicit update of fluid-EM coupling
+ * Implicit source step of the fluid-EM coupling (implicit midpoint at the nodes): advances the
+ * fluid momenta and energies and the electric field in place. E advances only here, with
+ * c^2 curl B of the field at the start of the step as a known current (Stormer-Verlet in the curl
+ * terms; the transport step drifts B with this E). The step is time-reversible: a negative dt
+ * inverts it.
  *
  * @param app Vlasov app object
  * @param fl_em fluid-EM coupling updater
- * @param tcurr Current time
+ * @param tcurr Time at which time-dependent applied fields, currents and accelerations are evaluated
  * @param dt Time step size
  */
 void vm_fluid_em_coupling_update(
   struct gkyl_vlasov_app *app, struct vm_fluid_em_coupling *fl_em, double tcurr, double dt
 );
+
+/**
+ * Limiters after a source step of an update: the vertex positivity limiter of the fluids and
+ * the slope limiter of the field. Not part of the source step itself, which stays reversible
+ * for the synchronization of output and the inverse step of a restart.
+ *
+ * @param app Vlasov app object
+ * @param fl_em fluid-EM coupling updater
+ */
+void vm_fluid_em_coupling_limit(struct gkyl_vlasov_app *app, struct vm_fluid_em_coupling *fl_em);
 
 /**
  * Release resources allocated by fluid-EM coupling object

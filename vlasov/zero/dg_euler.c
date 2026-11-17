@@ -43,8 +43,6 @@ gkyl_euler_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_euler_aux
   struct dg_euler *euler = container_of(eqn, struct dg_euler, eqn);
   euler->auxfields.u = auxin.u;
   euler->auxfields.p = auxin.p;
-  euler->auxfields.u_surf = auxin.u_surf;
-  euler->auxfields.p_surf = auxin.p_surf;
 }
 
 struct gkyl_dg_eqn *
@@ -112,8 +110,6 @@ gkyl_dg_euler_new(
 
   euler->auxfields.u = 0;
   euler->auxfields.p = 0;
-  euler->auxfields.u_surf = 0;
-  euler->auxfields.p_surf = 0;
   euler->conf_range = *conf_range;
 
   euler->eqn.flags = 0;

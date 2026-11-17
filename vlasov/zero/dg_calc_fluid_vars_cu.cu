@@ -315,6 +315,91 @@ gkyl_dg_calc_fluid_vars_source_cu(
   );
 }
 
+__global__ void
+gkyl_dg_calc_fluid_vars_em_source_cu_kernel(
+  struct gkyl_dg_calc_fluid_vars *up, struct gkyl_range conf_range, const struct gkyl_array *qmem,
+  const struct gkyl_array *omega_p_sq, const struct gkyl_array *fluid, struct gkyl_array *cflrate,
+  struct gkyl_array *rhs
+)
+{
+  int idx[GKYL_MAX_DIM];
+
+  for (unsigned long linc1 = threadIdx.x + blockIdx.x * blockDim.x; linc1 < conf_range.volume;
+       linc1 += gridDim.x * blockDim.x) {
+    // inverse index from linc1 to idx
+    // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}
+    // since update_range is a subrange
+    gkyl_sub_range_inv_idx(&conf_range, linc1, idx);
+
+    // convert back to a linear index on the super-range (with ghost cells)
+    // linc will have jumps in it to jump over ghost cells
+    long loc = gkyl_range_idx(&conf_range, idx);
+
+    const double *qmem_d = (const double *)gkyl_array_cfetch(qmem, loc);
+    const double *omega_p_sq_d = (const double *)gkyl_array_cfetch(omega_p_sq, loc);
+    const double *fluid_d = (const double *)gkyl_array_cfetch(fluid, loc);
+
+    double *cflrate_d = (double *)gkyl_array_fetch(cflrate, loc);
+    double *rhs_d = (double *)gkyl_array_fetch(rhs, loc);
+    // The step resolves the faster of the hyperbolic terms and the source.
+    double rate = up->fluid_em_source(qmem_d, omega_p_sq_d, fluid_d, rhs_d);
+    cflrate_d[0] = fmax(cflrate_d[0], rate);
+  }
+}
+
+// Host-side wrapper for fluid source term calculations with the Lorentz force
+void
+gkyl_dg_calc_fluid_vars_em_source_cu(
+  struct gkyl_dg_calc_fluid_vars *up, const struct gkyl_range *conf_range,
+  const struct gkyl_array *qmem, const struct gkyl_array *omega_p_sq,
+  const struct gkyl_array *fluid, struct gkyl_array *cflrate, struct gkyl_array *rhs
+)
+{
+  int nblocks = conf_range->nblocks;
+  int nthreads = conf_range->nthreads;
+  gkyl_dg_calc_fluid_vars_em_source_cu_kernel<<<nblocks, nthreads>>>(
+    up->on_dev, *conf_range, qmem->on_dev, omega_p_sq->on_dev, fluid->on_dev, cflrate->on_dev,
+    rhs->on_dev
+  );
+}
+
+__global__ void
+gkyl_dg_calc_fluid_vars_positivity_cu_kernel(
+  struct gkyl_dg_calc_fluid_vars *up, struct gkyl_range conf_range, double eps,
+  struct gkyl_array *fluid
+)
+{
+  int idx[GKYL_MAX_DIM];
+
+  for (unsigned long linc1 = threadIdx.x + blockIdx.x * blockDim.x; linc1 < conf_range.volume;
+       linc1 += gridDim.x * blockDim.x) {
+    // inverse index from linc1 to idx
+    // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}
+    // since update_range is a subrange
+    gkyl_sub_range_inv_idx(&conf_range, linc1, idx);
+
+    // convert back to a linear index on the super-range (with ghost cells)
+    // linc will have jumps in it to jump over ghost cells
+    long loc = gkyl_range_idx(&conf_range, idx);
+
+    up->fluid_positivity(eps, (double *)gkyl_array_fetch(fluid, loc));
+  }
+}
+
+// Host-side wrapper for the vertex positivity limiter
+void
+gkyl_dg_calc_fluid_vars_positivity_cu(
+  struct gkyl_dg_calc_fluid_vars *up, const struct gkyl_range *conf_range, double eps,
+  struct gkyl_array *fluid
+)
+{
+  int nblocks = conf_range->nblocks;
+  int nthreads = conf_range->nthreads;
+  gkyl_dg_calc_fluid_vars_positivity_cu_kernel<<<nblocks, nthreads>>>(
+    up->on_dev, *conf_range, eps, fluid->on_dev
+  );
+}
+
 // CUDA kernel to set device pointers to fluid vars kernel functions
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
 __global__ static void
@@ -329,6 +414,8 @@ dg_calc_fluid_vars_set_cu_dev_ptrs(
   up->fluid_ke = choose_fluid_ke_kern(b_type, cdim, poly_order);
   up->fluid_int = choose_fluid_int_kern(b_type, cdim, poly_order);
   up->fluid_source = choose_fluid_source_kern(b_type, cdim, poly_order);
+  up->fluid_em_source = choose_fluid_em_source_kern(b_type, cdim, poly_order);
+  up->fluid_positivity = choose_fluid_positivity_kern(b_type, cdim, poly_order);
   // Fetch the kernels in each direction
   for (int d = 0; d < cdim; ++d) {
     up->fluid_limiter[d] = choose_fluid_limiter_kern(d, b_type, cdim, poly_order);

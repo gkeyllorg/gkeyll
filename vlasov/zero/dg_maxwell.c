@@ -80,6 +80,8 @@ gkyl_dg_maxwell_inew(const struct gkyl_dg_maxwell_inp *inp)
   const gkyl_dg_maxwell_vol_kern_list *vol_kernels;
   const gkyl_dg_maxwell_gr_maxwell_vol_kern_list *vol_gr_kernels;
   const gkyl_dg_maxwell_surf_kern_list *surf_x_kernels, *surf_y_kernels, *surf_z_kernels;
+  const gkyl_dg_maxwell_boundary_surf_kern_list *bsurf_x_kernels, *bsurf_y_kernels,
+    *bsurf_z_kernels;
   const gkyl_dg_maxwell_surf_from_flux_kern_list *surf_from_flux_x_kernels,
     *surf_from_flux_y_kernels, *surf_from_flux_z_kernels;
 
@@ -95,6 +97,9 @@ gkyl_dg_maxwell_inew(const struct gkyl_dg_maxwell_inp *inp)
         surf_x_kernels = ser_surf_x_kernels;
         surf_y_kernels = ser_surf_y_kernels;
         surf_z_kernels = ser_surf_z_kernels;
+        bsurf_x_kernels = ser_boundary_surf_x_kernels;
+        bsurf_y_kernels = ser_boundary_surf_y_kernels;
+        bsurf_z_kernels = ser_boundary_surf_z_kernels;
       }
 
       break;
@@ -110,6 +115,9 @@ gkyl_dg_maxwell_inew(const struct gkyl_dg_maxwell_inp *inp)
         surf_x_kernels = ten_surf_x_kernels;
         surf_y_kernels = ten_surf_y_kernels;
         surf_z_kernels = ten_surf_z_kernels;
+        bsurf_x_kernels = ten_boundary_surf_x_kernels;
+        bsurf_y_kernels = ten_boundary_surf_y_kernels;
+        bsurf_z_kernels = ten_boundary_surf_z_kernels;
       }
 
       break;
@@ -158,6 +166,13 @@ gkyl_dg_maxwell_inew(const struct gkyl_dg_maxwell_inp *inp)
     }
     if (cdim > 2) {
       maxwell->surf[2] = CK(surf_z_kernels, cdim, poly_order);
+    }
+    maxwell->boundary_surf[0] = CK(bsurf_x_kernels, cdim, poly_order);
+    if (cdim > 1) {
+      maxwell->boundary_surf[1] = CK(bsurf_y_kernels, cdim, poly_order);
+    }
+    if (cdim > 2) {
+      maxwell->boundary_surf[2] = CK(bsurf_z_kernels, cdim, poly_order);
     }
   }
 

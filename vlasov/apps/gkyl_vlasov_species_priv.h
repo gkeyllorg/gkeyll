@@ -778,12 +778,6 @@ struct vm_fluid_species {
         cell_avg_prim; // Integer array for whether e.g., rho *only* uses cell averages for weak division
       // Determined when constructing the matrix if rho < 0.0 at control points
 
-      // Arrays for kinetic energy at old and new time steps.
-      // These are used because implicit source solve updates momentum but does not affect
-      // the pressure, so we can construct the updated energy from the updated momentum.
-      struct gkyl_array *ke_old;
-      struct gkyl_array *ke_new;
-
       struct gkyl_array *u_surf;
       struct gkyl_array *p_surf;
       struct gkyl_dg_calc_fluid_vars
@@ -860,6 +854,25 @@ struct vm_fluid_species {
   struct gkyl_array *app_accel; // applied acceleration
   struct gkyl_array *app_accel_host; // host copy for use in IO and projecting
   gkyl_proj_on_basis *app_accel_proj; // projector for acceleration
+
+  // Vertex positivity limiter of the fluid state (Euler fluids at polynomial order 1; a no-op
+  // otherwise).
+  double positivity_eps; // relative floor of the vertex density and internal energy
+  void (*positivity_func)(
+    gkyl_vlasov_app *app, struct vm_fluid_species *f, struct gkyl_array *fluid
+  );
+
+  // Forces in the fluid's own RHS: the applied acceleration without a field, and with it the
+  // Lorentz force of a Maxwell field coupled explicitly (use_explicit_sources). None with the
+  // implicit fluid-EM coupling, which applies both.
+  bool has_explicit_force; // the RHS of the fluid applies its forces
+  struct gkyl_array *qmem; // [a, q/m B]: acceleration (applied + q/m E) and q/m times B (NULL
+    // unless the field is coupled explicitly)
+  struct gkyl_array *mom; // momentum density, for the current of the explicit coupling (same)
+  void (*rhs_force_func)(
+    gkyl_vlasov_app *app, struct vm_fluid_species *f, const struct gkyl_array *fluid,
+    const struct gkyl_array *em, struct gkyl_array *rhs
+  );
 
   // fluid source
   enum gkyl_source_id source_id; // type of source
@@ -2525,8 +2538,9 @@ void vm_fluid_species_calc_app_accel(
 
 /**
  * Recompute a time-dependent applied acceleration at a stage time, when the
- * RHS of the fluid species applies it (no field). With a field the implicit
- * fluid-EM coupling applies the acceleration and evaluates it at its own time.
+ * RHS of the fluid species applies it (no field, or a field coupled
+ * explicitly). Otherwise the implicit fluid-EM coupling applies the
+ * acceleration and evaluates it at its own time.
  *
  * @param app Vlasov app object
  * @param fluid_species Fluid Species object
@@ -2534,6 +2548,33 @@ void vm_fluid_species_calc_app_accel(
  */
 void vm_fluid_species_calc_stage_app_accel(
   gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, double tm
+);
+
+/**
+ * Apply the vertex positivity limiter to a fluid state over the local range
+ * (Euler fluids at polynomial order 1; a no-op otherwise). The boundary
+ * conditions are not reapplied.
+ *
+ * @param app Vlasov app object
+ * @param fluid_species Fluid Species object
+ * @param fluid In/out fluid state
+ */
+void vm_fluid_species_apply_positivity(
+  gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, struct gkyl_array *fluid
+);
+
+/**
+ * Accumulate the current of a fluid species coupled explicitly to the Maxwell
+ * field onto the RHS of the electric field: -q/(m eps0) times its momentum.
+ *
+ * @param app Vlasov app object
+ * @param fluid_species Fluid Species object
+ * @param fluid Input array fluid species
+ * @param emout On output, the RHS of the field with the current accumulated
+ */
+void vm_fluid_species_accumulate_current(
+  gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, const struct gkyl_array *fluid,
+  struct gkyl_array *emout
 );
 
 /**

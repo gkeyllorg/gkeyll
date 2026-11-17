@@ -36,6 +36,7 @@ gkyl_wv_euler_inew(const struct gkyl_wv_euler_inp *inp)
   euler->eqn.num_diag = 6; // KE and PE stored separate
 
   euler->gas_gamma = inp->gas_gamma;
+  euler->rp_type = inp->rp_type;
 
   switch (inp->rp_type) {
     case WV_EULER_RP_ROE:
@@ -122,4 +123,11 @@ gkyl_wv_euler_gas_gamma(const struct gkyl_wv_eqn *eqn)
 {
   const struct wv_euler *euler = container_of(eqn, struct wv_euler, eqn);
   return euler->gas_gamma;
+}
+
+enum gkyl_wv_euler_rp
+gkyl_wv_euler_rp_type(const struct gkyl_wv_eqn *eqn)
+{
+  const struct wv_euler *euler = container_of(eqn, struct wv_euler, eqn);
+  return euler->rp_type;
 }

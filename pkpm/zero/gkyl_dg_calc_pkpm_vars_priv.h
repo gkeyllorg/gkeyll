@@ -5,6 +5,7 @@
 
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
+#include <gkyl_euler_kernels.h>
 #include <gkyl_pkpm_vars_kernels.h>
 #include <gkyl_pkpm_kinetic_kernels.h>
 #include <gkyl_range.h>
@@ -147,7 +148,7 @@ choose_pkpm_int_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
 }
 // Vertex positivity limiter of the fluid state [rho, M, E] (p=1 serendipity)
 GKYL_CU_D static const pkpm_fluid_positivity_t ser_pkpm_fluid_positivity_kernels[] = {
-  pkpm_fluid_positivity_1x_ser_p1, pkpm_fluid_positivity_2x_ser_p1, pkpm_fluid_positivity_3x_ser_p1
+  fluid_vars_positivity_1x_ser_p1, fluid_vars_positivity_2x_ser_p1, fluid_vars_positivity_3x_ser_p1
 };
 GKYL_CU_D static pkpm_fluid_positivity_t
 choose_pkpm_fluid_positivity_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)

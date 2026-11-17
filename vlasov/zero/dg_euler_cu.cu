@@ -20,24 +20,19 @@ extern "C" {
 // and so its members cannot be modified without a full __global__ kernel on device.
 __global__ static void
 gkyl_euler_set_auxfields_cu_kernel(
-  const struct gkyl_dg_eqn *eqn, const struct gkyl_array *u, const struct gkyl_array *u_surf,
-  const struct gkyl_array *p, const struct gkyl_array *p_surf
+  const struct gkyl_dg_eqn *eqn, const struct gkyl_array *u, const struct gkyl_array *p
 )
 {
   struct dg_euler *euler = container_of(eqn, struct dg_euler, eqn);
   euler->auxfields.u = u;
   euler->auxfields.p = p;
-  euler->auxfields.u_surf = u_surf;
-  euler->auxfields.p_surf = p_surf;
 }
 
 // Host-side wrapper for set_auxfields_cu_kernel
 void
 gkyl_euler_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_euler_auxfields auxin)
 {
-  gkyl_euler_set_auxfields_cu_kernel<<<1, 1>>>(
-    eqn, auxin.u->on_dev, auxin.u_surf->on_dev, auxin.p->on_dev, auxin.p_surf->on_dev
-  );
+  gkyl_euler_set_auxfields_cu_kernel<<<1, 1>>>(eqn, auxin.u->on_dev, auxin.p->on_dev);
 }
 
 __global__ void static dg_euler_set_cu_dev_ptrs(
@@ -46,8 +41,6 @@ __global__ void static dg_euler_set_cu_dev_ptrs(
 {
   euler->auxfields.u = 0;
   euler->auxfields.p = 0;
-  euler->auxfields.u_surf = 0;
-  euler->auxfields.p_surf = 0;
 
   const gkyl_dg_euler_vol_kern_list *vol_kernels;
   const gkyl_dg_euler_surf_kern_list *surf_x_kernels, *surf_y_kernels, *surf_z_kernels;

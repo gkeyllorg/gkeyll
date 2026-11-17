@@ -4,10 +4,10 @@
 // on a periodic unit box; a deterministic multi-mode velocity perturbation of amplitude 0.01 seeds
 // the shear layers and the run follows the instability into its nonlinear roll-up. Figures of merit
 // (serendipity p1, 64 x 64 cells): the y-directed kinetic energy density grows from 5.4e-4 to a
-// peak of 0.117 at t = 5.4 and ends at 0.086 (the incompressible vortex-sheet rate of the m = 1
+// peak of 0.122 at t = 4.8 and ends at 0.116 (the incompressible vortex-sheet rate of the m = 1
 // mode, k du sqrt(rho_in rho_out)/(rho_in + rho_out) = 2.96, sets the time scale; the multi-mode
-// seed has no single-mode linear phase to fit); kinetic energy 0.1886 -> 0.1564 is converted into
-// internal energy 6.2500 -> 6.2822 while mass, x-momentum and total energy are conserved to 6e-13.
+// seed has no single-mode linear phase to fit); kinetic energy 0.1886 -> 0.1581 is converted into
+// internal energy 6.2500 -> 6.2805 while mass, x-momentum and total energy are conserved to 6e-13.
 
 #include <math.h>
 #include <stdio.h>
@@ -225,7 +225,11 @@ main(int argc, char **argv)
   int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
 
   // Fluid equations.
-  struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(ctx.gas_gamma, app_args.use_gpu);
+  struct gkyl_wv_eqn *euler = gkyl_wv_euler_inew(&(struct gkyl_wv_euler_inp){
+    .gas_gamma = ctx.gas_gamma,
+    .rp_type = WV_EULER_RP_HLLC,
+    .use_gpu = app_args.use_gpu,
+  });
 
   struct gkyl_vlasov_fluid_species fluid = {
     .equation = euler,

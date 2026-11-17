@@ -208,8 +208,9 @@ wv_eqn_get(lua_State *L)
 /* Euler Equations */
 /* *************** */
 
-// Euler.new { gasGamma = 1.4, rpType = G0.EulerRP.Roe }
-// where rpType is one of G0.EulerRP.Roe, G0.EulerRP.Lax, G0.EulerRP.HLL or G0.EulerRP.HLLC.
+// Euler.new { gasGamma = 1.4, rpType = G0.EulerRP.HLLC }
+// where rpType is one of G0.EulerRP.Roe, G0.EulerRP.Lax, G0.EulerRP.HLL or G0.EulerRP.HLLC
+// (default HLLC): the Riemann solver of the numerical flux of the DG Euler fluid.
 static bool vm_lw_use_gpu(lua_State *L);
 
 static int
@@ -218,7 +219,7 @@ eqn_euler_lw_new(lua_State *L)
   struct wv_eqn_lw *euler_lw = gkyl_malloc(sizeof(*euler_lw));
 
   double gas_gamma = glua_tbl_get_number(L, "gasGamma", 1.4);
-  enum gkyl_wv_euler_rp rp_type = glua_tbl_get_integer(L, "rpType", WV_EULER_RP_ROE);
+  enum gkyl_wv_euler_rp rp_type = glua_tbl_get_integer(L, "rpType", WV_EULER_RP_HLLC);
 
   // The fluid-species limiter dereferences the equation on the device, so the
   // equation needs its device copy whenever the run is on the GPU.
@@ -1504,6 +1505,10 @@ vlasov_fluid_species_lw_new(lua_State *L)
   } else {
     return luaL_error(L, "Fluid species must have an \"init\" function for initial conditions!");
   }
+
+  // Slope limiter factor and relative floor of the vertex positivity limiter (0: defaults).
+  vm_fluid_species.limiter_fac = glua_tbl_get_number(L, "limiterFac", 0.0);
+  vm_fluid_species.positivity_eps = glua_tbl_get_number(L, "positivityEps", 0.0);
 
   bool has_app_advect_func = false;
   int app_advect_func_ref = LUA_NOREF;
@@ -3117,6 +3122,9 @@ vm_app_new(lua_State *L)
   // Set field input.
   vm.skip_field = glua_tbl_get_bool(L, "skipField", false);
   vm.is_electrostatic = glua_tbl_get_bool(L, "isElectrostatic", false);
+  // Momentum-carrying fluids with the Maxwell field: explicit coupling in the SSP-RK3 stages
+  // instead of the implicit fluid-EM coupling of the staggered operator split.
+  vm.use_explicit_sources = glua_tbl_get_bool(L, "useExplicitSources", false);
 
   with_lua_tbl_key(L, "field")
   {

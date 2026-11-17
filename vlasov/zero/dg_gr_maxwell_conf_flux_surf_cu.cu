@@ -92,8 +92,18 @@ gkyl_dg_gr_maxwell_conf_flux_surf_advance_cu_kernel(
       const double *jacob_pos_c = (const double *)gkyl_array_cfetch(jacob_pos, cidx);
 
       // Lower-face flux; the face is a theta pole only on the global lower edge
-      // (theta_pole_lo is already false for ranks not touching it).
+      // (theta_pole_lo is already false for ranks not touching it). The flux through a pole is
+      // a boundary flux: the state beyond the face is the reflection of this cell, built here,
+      // and not the ghost cell.
       int theta_pole = idx[dir] == conf_range.lower[dir] && up->theta_pole_lo[dir];
+      double field_con_m[8 * GR_MAXWELL_MAX_CONF_BASIS];
+      double field_no_J_con_m[8 * GR_MAXWELL_MAX_CONF_BASIS];
+      if (theta_pole) {
+        conf_flux_surf_theta_pole_mirror(up, dir, field_con_c, field_con_m);
+        conf_flux_surf_theta_pole_mirror(up, dir, field_no_J_con_c, field_no_J_con_m);
+        field_con_l = field_con_m;
+        field_no_J_con_l = field_no_J_con_m;
+      }
 
       cflrate_d[0] += up->conf_flux_surf(
         up, dir, xcC, up->conf_grid.dx, theta_pole, jacob_pos_l, jacob_pos_c, lapse_d, shift_d,
@@ -135,8 +145,15 @@ gkyl_dg_gr_maxwell_conf_flux_surf_advance_cu_kernel(
         }
 
         // Upper-face flux (owned by the ghost cell): a theta pole only on the
-        // global upper edge, independent of whether the lower face was one.
+        // global upper edge, independent of whether the lower face was one. As on the lower
+        // edge, the state beyond a pole is the reflection of this cell.
         theta_pole = up->theta_pole_up[dir];
+        if (theta_pole) {
+          conf_flux_surf_theta_pole_mirror(up, dir, field_con_c, field_con_m);
+          conf_flux_surf_theta_pole_mirror(up, dir, field_no_J_con_c, field_no_J_con_m);
+          field_con_r = field_con_m;
+          field_no_J_con_r = field_no_J_con_m;
+        }
 
         gkyl_rect_grid_cell_center(&up->conf_grid, idx_r, xcR);
         const double *jacob_pos_r = (const double *)gkyl_array_cfetch(jacob_pos, cidx_r);
@@ -248,6 +265,8 @@ gkyl_dg_gr_maxwell_conf_flux_surf_cu_dev_inew(const struct gkyl_dg_gr_maxwell_co
     up->theta_pole_lo[i] = inp->theta_pole_lo[i];
     up->theta_pole_up[i] = inp->theta_pole_up[i];
   }
+  // Reflection signs of the basis functions, for the state beyond a theta-pole face.
+  conf_flux_surf_set_mirror_sign(up, inp->conf_basis);
 
   up->flags = 0;
 

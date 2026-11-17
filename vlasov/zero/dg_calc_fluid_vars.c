@@ -46,6 +46,8 @@ gkyl_dg_calc_fluid_vars_new(
   up->fluid_ke = choose_fluid_ke_kern(b_type, cdim, poly_order);
   up->fluid_int = choose_fluid_int_kern(b_type, cdim, poly_order);
   up->fluid_source = choose_fluid_source_kern(b_type, cdim, poly_order);
+  up->fluid_em_source = choose_fluid_em_source_kern(b_type, cdim, poly_order);
+  up->fluid_positivity = choose_fluid_positivity_kern(b_type, cdim, poly_order);
   // Fetch the kernels in each direction
   for (int d = 0; d < cdim; ++d) {
     up->fluid_limiter[d] = choose_fluid_limiter_kern(d, b_type, cdim, poly_order);
@@ -265,6 +267,58 @@ gkyl_dg_calc_fluid_vars_source(
 
     double *rhs_d = gkyl_array_fetch(rhs, loc);
     up->fluid_source(app_accel_d, fluid_d, rhs_d);
+  }
+}
+
+void
+gkyl_dg_calc_fluid_vars_em_source(
+  struct gkyl_dg_calc_fluid_vars *up, const struct gkyl_range *conf_range,
+  const struct gkyl_array *qmem, const struct gkyl_array *omega_p_sq,
+  const struct gkyl_array *fluid, struct gkyl_array *cflrate, struct gkyl_array *rhs
+)
+{
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(rhs)) {
+    return gkyl_dg_calc_fluid_vars_em_source_cu(
+      up, conf_range, qmem, omega_p_sq, fluid, cflrate, rhs
+    );
+  }
+#endif
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, conf_range);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(conf_range, iter.idx);
+
+    const double *qmem_d = gkyl_array_cfetch(qmem, loc);
+    const double *omega_p_sq_d = gkyl_array_cfetch(omega_p_sq, loc);
+    const double *fluid_d = gkyl_array_cfetch(fluid, loc);
+
+    double *cflrate_d = gkyl_array_fetch(cflrate, loc);
+    double *rhs_d = gkyl_array_fetch(rhs, loc);
+    // The step resolves the faster of the hyperbolic terms and the source.
+    double rate = up->fluid_em_source(qmem_d, omega_p_sq_d, fluid_d, rhs_d);
+    cflrate_d[0] = fmax(cflrate_d[0], rate);
+  }
+}
+
+void
+gkyl_dg_calc_fluid_vars_positivity(
+  struct gkyl_dg_calc_fluid_vars *up, const struct gkyl_range *conf_range, double eps,
+  struct gkyl_array *fluid
+)
+{
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(fluid)) {
+    return gkyl_dg_calc_fluid_vars_positivity_cu(up, conf_range, eps, fluid);
+  }
+#endif
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, conf_range);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(conf_range, iter.idx);
+    up->fluid_positivity(eps, gkyl_array_fetch(fluid, loc));
   }
 }
 

@@ -273,6 +273,27 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
 
   int up_dirs[GKYL_MAX_DIM] = {0, 1, 2}, zero_flux_flags[2 * GKYL_MAX_DIM] = {false};
 
+  // Absorbing boundaries are a flux through the boundary face, not a ghost cell: on such an edge
+  // the solver updates the boundary cells with the boundary surface kernels of the equation (the
+  // outgoing waves only), on the ranks that own the edge. The ghost cells of the edge are filled
+  // by copy for the operations that read them (limiter).
+  for (int d = 0; d < app->cdim; ++d) {
+    const enum gkyl_field_bc_type *bc = d == 0 ? f->info.bcx : (d == 1 ? f->info.bcy : f->info.bcz);
+    bool is_periodic = false;
+    for (int i = 0; i < app->num_periodic_dir; ++i) {
+      is_periodic = is_periodic || app->periodic_dirs[i] == d;
+    }
+    bool absorb_lo = !is_periodic && bc[0] == GKYL_FIELD_ABSORB;
+    bool absorb_up = !is_periodic && bc[1] == GKYL_FIELD_ABSORB;
+    if ((absorb_lo || absorb_up) && f->field_id != GKYL_FIELD_E_B) {
+      gkyl_exit(
+        "vm_field: absorbing boundaries are only supported with the standard Maxwell field (E_B)."
+      );
+    }
+    zero_flux_flags[d] = absorb_lo && app->local.lower[d] == app->global.lower[d];
+    zero_flux_flags[d + app->cdim] = absorb_up && app->local.upper[d] == app->global.upper[d];
+  }
+
   // Maxwell solver
   f->slvr = gkyl_hyper_dg_new(
     &app->grid, &app->basis, eqn, app->cdim, up_dirs, zero_flux_flags, 1, app->use_gpu
@@ -416,6 +437,8 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   }
 
   gkyl_dg_eqn_release(eqn);
+
+  f->rhs_split = 0; // allocated by vm_field_set_source_split
 
   // Set the type-specific dispatch methods (Vlasov-Maxwell).
   f->update_func = vm_field_update;
@@ -629,6 +652,59 @@ vm_field_update(
   return vm_field_rhs(app, app->field, emin, emout);
 }
 
+// Transport step of the staggered operator split without divergence cleaning: B drifts with
+// the E of the source step, which the transport step does not change, so the right-hand side of
+// stage 1 (zero E rows) serves the three stages.
+static double
+vm_field_update_split(
+  gkyl_vlasov_app *app, int stage, double tcurr, const struct gkyl_array *fin[],
+  const struct gkyl_array *emin, struct gkyl_array *emout
+)
+{
+  struct vm_field *field = app->field;
+  if (stage == 1) {
+    field->dt_split = vm_field_rhs(app, field, emin, field->rhs_split);
+    gkyl_array_set_offset(field->rhs_split, 0.0, field->app_current, 0);
+  }
+  gkyl_array_copy(emout, field->rhs_split);
+  return field->dt_split;
+}
+
+// Transport step of the staggered operator split with divergence cleaning of the magnetic
+// field: B and the correction potential evolve together through the stages, with zero E rows.
+static double
+vm_field_update_split_cleaning(
+  gkyl_vlasov_app *app, int stage, double tcurr, const struct gkyl_array *fin[],
+  const struct gkyl_array *emin, struct gkyl_array *emout
+)
+{
+  double dt_out = vm_field_rhs(app, app->field, emin, emout);
+  gkyl_array_set_offset(emout, 0.0, app->field->app_current, 0);
+  return dt_out;
+}
+
+void
+vm_field_set_source_split(gkyl_vlasov_app *app, struct vm_field *field)
+{
+  // The split advances E in the source step only: terms of the E rows other than the curl
+  // (resistive layer) would be dropped, and the correction potential of div(E) would be driven
+  // by an E the transport step does not advance.
+  if (field->has_sigma) {
+    gkyl_exit("vm_field: a resistive layer is not supported with the implicit fluid-EM coupling "
+              "(use use_explicit_sources).");
+  }
+  if (field->info.elcErrorSpeedFactor != 0.0) {
+    gkyl_exit(
+      "vm_field: divergence cleaning of the electric field is not supported with the implicit "
+      "fluid-EM coupling."
+    );
+  }
+  field->rhs_split = mkarr(app->use_gpu, 8 * app->basis.num_basis, app->local_ext.volume);
+  field->dt_split = DBL_MAX;
+  field->update_func = field->info.mgnErrorSpeedFactor != 0.0 ? vm_field_update_split_cleaning :
+                                                                vm_field_update_split;
+}
+
 // Vlasov-Maxwell completion of the field update: accumulate the species current
 // onto the field RHS (unless the field is static), then finalize the explicit
 // step emout = emin + dt*RHS.
@@ -677,8 +753,9 @@ vm_field_rhs(
     );
 
     // Apply BCs after dividing out J so ghost cells are populated for
-    // conf_flux_surf, which references the ghost cells for the flux. The input
-    // em already has its BCs applied by the caller.
+    // conf_flux_surf, which references the ghost cells for the flux (except on
+    // theta-pole faces, whose flux is built from the cell next to the pole). The
+    // input em already has its BCs applied by the caller.
     vm_field_apply_bc(app, field, field->em_no_J);
 
     // Compute the surface expansion of the phase space flux in configuration space.
@@ -744,6 +821,7 @@ vm_field_apply_bc(gkyl_vlasov_app *app, const struct vm_field *field, struct gky
     if (is_np_bc[d]) {
       switch (field->lower_bc[d]) {
         case GKYL_FIELD_COPY:
+        case GKYL_FIELD_ABSORB:
         case GKYL_FIELD_PEC_WALL:
         case GKYL_FIELD_SYM_WALL:
         case GKYL_FIELD_THETA_POLE:
@@ -763,6 +841,7 @@ vm_field_apply_bc(gkyl_vlasov_app *app, const struct vm_field *field, struct gky
 
       switch (field->upper_bc[d]) {
         case GKYL_FIELD_COPY:
+        case GKYL_FIELD_ABSORB:
         case GKYL_FIELD_PEC_WALL:
         case GKYL_FIELD_SYM_WALL:
         case GKYL_FIELD_THETA_POLE:
@@ -792,11 +871,14 @@ vm_field_write(gkyl_vlasov_app *app, double tm, int frame, const struct gkyl_arr
 {
   struct timespec wst = gkyl_wall_clock();
 
+  // The field frame also stores the steps of the staggered operator split (zero without it).
   struct gkyl_msgpack_data *mt = vlasov_array_meta_new((struct vlasov_output_meta){
     .frame = frame,
     .stime = tm,
     .poly_order = app->poly_order,
     .basis_type = app->basis.id,
+    .dt_prev = app->op_split_dt_prev,
+    .dt_suggested = app->op_split_dt_suggested,
   });
 
   const char *fmt = "%s-field_%d.gkyl";
@@ -1005,6 +1087,9 @@ vm_field_release(const gkyl_vlasov_app *app, struct vm_field *f)
   gkyl_array_release(f->em);
   gkyl_array_release(f->em1);
   gkyl_array_release(f->emnew);
+  if (f->rhs_split) {
+    gkyl_array_release(f->rhs_split);
+  }
   if (f->weight_by_pos_jacob) {
     gkyl_array_release(f->em_no_J);
     gkyl_array_release(f->em_no_J_host);

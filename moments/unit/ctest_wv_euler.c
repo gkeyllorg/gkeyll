@@ -249,6 +249,125 @@ test_wv_euler_dev()
 
 #endif
 
+// HLL and HLLC wave speeds: ordered, finite, and with a positive HLLC middle density, for pairs
+// of states where the pressure-based estimate failed (colliding streams, two strong shocks, a
+// near vacuum); the fluctuations sum to the flux jump, and an isolated contact is exact for HLLC.
+static void
+test_euler_hll_speeds(enum gkyl_wv_euler_rp rp_type)
+{
+  double gas_gamma = 1.4;
+  struct gkyl_wv_eqn *euler = gkyl_wv_euler_inew(&(struct gkyl_wv_euler_inp){
+    .gas_gamma = gas_gamma,
+    .rp_type = rp_type,
+    .use_gpu = false,
+  });
+  int num_waves = euler->num_waves;
+
+  // primitive states (rho, u, v, w, p)
+  double vl[][5] = {
+    {1.0, 2.5, 0.0, 0.0, 1.0}, // colliding streams, Mach 2.1 each
+    {1.0, 2.0897846388247809, 0.0, 0.0, 1.0}, // the old estimates were both zero here
+    {5.99924, 19.5975, 0.0, 0.0, 460.894}, // two strong shocks (Toro test 5)
+    {5.99924, 19.5975, 0.0, 0.0, 460.894}, // the old estimates were equal here
+    {1.0, 0.0, 0.0, 0.0, 1.0}, // near vacuum on the right
+    {1.4, 0.3, 0.2, -0.1, 1.0} // isolated moving contact with shear
+  };
+  double vr[][5] = {
+    {1.0, -2.5, 0.0, 0.0, 1.0},
+    {1.0, -2.0897846388247809, 0.0, 0.0, 1.0},
+    {5.99242, -6.19633, 0.0, 0.0, 46.0950},
+    {5.99242, -6.0170177200762591, 0.0, 0.0, 46.0950},
+    {1.0e-8, 0.0, 0.0, 0.0, 1.0e-10},
+    {1.0, 0.3, -0.4, 0.5, 1.0}
+  };
+  int num_cases = sizeof(vl) / sizeof(vl[0]);
+
+  for (int n = 0; n < num_cases; ++n) {
+    double ql[5], qr[5], fl[5], fr[5], delta[5];
+    const double *prim[2] = {vl[n], vr[n]};
+    double *cons[2] = {ql, qr}, *flux[2] = {fl, fr};
+    for (int side = 0; side < 2; ++side) {
+      const double *v = prim[side];
+      double *q = cons[side];
+      q[0] = v[0];
+      q[1] = v[0] * v[1];
+      q[2] = v[0] * v[2];
+      q[3] = v[0] * v[3];
+      q[4] = v[4] / (gas_gamma - 1) + 0.5 * v[0] * (v[1] * v[1] + v[2] * v[2] + v[3] * v[3]);
+      gkyl_euler_flux(gas_gamma, q, flux[side]);
+    }
+    for (int i = 0; i < 5; ++i) {
+      delta[i] = qr[i] - ql[i];
+    }
+
+    double waves[15] = {0.0}, speeds[3] = {0.0}, amdq[5], apdq[5];
+    gkyl_wv_eqn_waves(euler, GKYL_WV_HIGH_ORDER_FLUX, delta, ql, qr, 1.0, 1.0, waves, speeds);
+    gkyl_wv_eqn_qfluct(euler, GKYL_WV_HIGH_ORDER_FLUX, ql, qr, 1.0, 1.0, waves, speeds, amdq, apdq);
+
+    // ordered speeds that bound the characteristic speeds of both sides
+    for (int m = 0; m < num_waves; ++m) {
+      TEST_CHECK(isfinite(speeds[m]));
+      if (m > 0) {
+        TEST_CHECK(speeds[m] > speeds[m - 1]);
+      }
+    }
+    TEST_CHECK(speeds[0] <= vl[n][1] - sqrt(gas_gamma * vl[n][4] / vl[n][0]));
+    TEST_CHECK(speeds[num_waves - 1] >= vr[n][1] + sqrt(gas_gamma * vr[n][4] / vr[n][0]));
+
+    // positive density behind every wave, and waves that sum to the jump
+    double rho = ql[0];
+    for (int m = 0; m < num_waves - 1; ++m) {
+      rho += waves[5 * m];
+      TEST_CHECK(rho > 0.0);
+    }
+    for (int i = 0; i < 5; ++i) {
+      double wsum = 0.0;
+      for (int m = 0; m < num_waves; ++m) {
+        wsum += waves[5 * m + i];
+      }
+      TEST_CHECK(gkyl_compare(wsum, delta[i], 1e-12));
+      TEST_CHECK(isfinite(amdq[i]) && isfinite(apdq[i]));
+      TEST_CHECK(gkyl_compare(amdq[i] + apdq[i], fr[i] - fl[i], 1e-12));
+    }
+  }
+
+  // HLLC keeps the isolated contact (the last case): its flux is the physical flux of either side
+  if (rp_type == WV_EULER_RP_HLLC) {
+    int n = num_cases - 1;
+    double ql[5] = {vl[n][0], vl[n][0] * vl[n][1], vl[n][0] * vl[n][2], vl[n][0] * vl[n][3], 0.0};
+    double qr[5] = {vr[n][0], vr[n][0] * vr[n][1], vr[n][0] * vr[n][2], vr[n][0] * vr[n][3], 0.0};
+    ql[4] =
+      vl[n][4] / (gas_gamma - 1) + 0.5 * (ql[1] * ql[1] + ql[2] * ql[2] + ql[3] * ql[3]) / ql[0];
+    qr[4] =
+      vr[n][4] / (gas_gamma - 1) + 0.5 * (qr[1] * qr[1] + qr[2] * qr[2] + qr[3] * qr[3]) / qr[0];
+    double delta[5], waves[15] = {0.0}, speeds[3] = {0.0}, amdq[5], apdq[5], fl[5];
+    for (int i = 0; i < 5; ++i) {
+      delta[i] = qr[i] - ql[i];
+    }
+    gkyl_euler_flux(gas_gamma, ql, fl);
+    gkyl_wv_eqn_waves(euler, GKYL_WV_HIGH_ORDER_FLUX, delta, ql, qr, 1.0, 1.0, waves, speeds);
+    gkyl_wv_eqn_qfluct(euler, GKYL_WV_HIGH_ORDER_FLUX, ql, qr, 1.0, 1.0, waves, speeds, amdq, apdq);
+    // the contact moves to the right (u = 0.3): the interface flux is that of the left state
+    for (int i = 0; i < 5; ++i) {
+      TEST_CHECK(gkyl_compare(fl[i] + amdq[i], fl[i], 1e-13));
+    }
+  }
+
+  gkyl_wv_eqn_release(euler);
+}
+
+void
+test_euler_hll_speeds_hll(void)
+{
+  test_euler_hll_speeds(WV_EULER_RP_HLL);
+}
+
+void
+test_euler_hll_speeds_hllc(void)
+{
+  test_euler_hll_speeds(WV_EULER_RP_HLLC);
+}
+
 void
 test_euler_waves_2_hof_roe_ho(void)
 {
@@ -303,6 +422,8 @@ TEST_LIST = {
   {"euler_waves_2_lof_hllc_ho", test_euler_waves_2_lof_hllc_ho},
   {"euler_waves_2_hof_lax_ho", test_euler_waves_2_hof_lax_ho},
   {"euler_waves_2_lof_lax_ho", test_euler_waves_2_lof_lax_ho},
+  {"euler_hll_speeds_hll", test_euler_hll_speeds_hll},
+  {"euler_hll_speeds_hllc", test_euler_hll_speeds_hllc},
   {"euler_waves_2_hof_hll_ho", test_euler_waves_2_hof_hll_ho},
   {"euler_waves_2_lof_hll_ho", test_euler_waves_2_lof_hll_ho},
 #ifdef GKYL_HAVE_CUDA

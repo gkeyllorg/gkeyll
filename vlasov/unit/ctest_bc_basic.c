@@ -405,6 +405,125 @@ test_bc_absorb_3x2v_p2_ho()
   test_bc(3, 2, 2, "absorb", false);
 }
 
+// Fluid wall boundary conditions (reflecting and no-slip) on a [rho, rho u, E] array: the ghost
+// cell must be the mirror image of the skin cell across the wall, with the normal momentum
+// (reflecting) or every momentum component (no-slip) odd and every other component even.
+static void
+test_bc_fluid_wall(int cdim, int poly_order, enum gkyl_bc_basic_type bctype)
+{
+  double lower[] = {-2.0, -2.0, -2.0}, upper[] = {2.0, 2.0, 2.0};
+  int cells[] = {4, 3, 2}, ghost[] = {1, 1, 1}, num_comp = 5;
+
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, cdim, lower, upper, cells);
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, cdim, poly_order);
+
+  struct gkyl_range local, local_ext;
+  gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
+  struct skin_ghost_ranges skin_ghost;
+  skin_ghost_ranges_init(&skin_ghost, &local_ext, ghost);
+
+  // A different, non-symmetric value in every coefficient of every cell.
+  struct gkyl_array *fluid = mkarr(num_comp * basis.num_basis, local_ext.volume);
+  for (long linc = 0; linc < local_ext.volume; ++linc) {
+    double *fluid_d = gkyl_array_fetch(fluid, linc);
+    for (int k = 0; k < num_comp * basis.num_basis; ++k) {
+      fluid_d[k] = sin(1.0 + 0.7 * linc + 1.3 * k);
+    }
+  }
+
+  long buff_sz = 0;
+  for (int d = 0; d < cdim; ++d) {
+    long vol = skin_ghost.lower_skin[d].volume;
+    buff_sz = buff_sz > vol ? buff_sz : vol;
+  }
+  struct gkyl_array *bc_buffer = mkarr(num_comp * basis.num_basis, buff_sz);
+
+  // A point of the reference cell away from every symmetry plane.
+  double xi_ghost[] = {0.3, -0.45, 0.6}, xi_skin[3];
+
+  for (int bc_dir = 0; bc_dir < cdim; ++bc_dir) {
+    for (int edge = 0; edge < 2; ++edge) {
+      struct gkyl_range *skin_r = edge == 0 ? &skin_ghost.lower_skin[bc_dir] :
+                                              &skin_ghost.upper_skin[bc_dir];
+      struct gkyl_range *ghost_r = edge == 0 ? &skin_ghost.lower_ghost[bc_dir] :
+                                               &skin_ghost.upper_ghost[bc_dir];
+      struct gkyl_bc_basic *bc = gkyl_bc_basic_new(
+        bc_dir, edge == 0 ? GKYL_LOWER_EDGE : GKYL_UPPER_EDGE, bctype, &basis, skin_r, ghost_r,
+        fluid->ncomp, cdim, false
+      );
+      gkyl_bc_basic_advance(bc, bc_buffer, fluid);
+      gkyl_bc_basic_release(bc);
+
+      for (int d = 0; d < cdim; ++d) {
+        xi_skin[d] = d == bc_dir ? -xi_ghost[d] : xi_ghost[d];
+      }
+
+      struct gkyl_range_iter iter;
+      gkyl_range_iter_init(&iter, ghost_r);
+      while (gkyl_range_iter_next(&iter)) {
+        int idx_skin[GKYL_MAX_DIM];
+        gkyl_copy_int_arr(cdim, iter.idx, idx_skin);
+        idx_skin[bc_dir] += edge == 0 ? 1 : -1;
+        const double *ghost_d = gkyl_array_cfetch(fluid, gkyl_range_idx(&local_ext, iter.idx));
+        const double *skin_d = gkyl_array_cfetch(fluid, gkyl_range_idx(&local_ext, idx_skin));
+
+        for (int c = 0; c < num_comp; ++c) {
+          bool is_odd = bctype == GKYL_BC_EULER_NO_SLIP ? (c >= 1 && c <= 3) : c == bc_dir + 1;
+          double val_ghost = basis.eval_expand(xi_ghost, &ghost_d[c * basis.num_basis]);
+          double val_skin = basis.eval_expand(xi_skin, &skin_d[c * basis.num_basis]);
+          TEST_CHECK(gkyl_compare(val_ghost, is_odd ? -val_skin : val_skin, 1e-14));
+        }
+      }
+    }
+  }
+
+  gkyl_array_release(fluid);
+  gkyl_array_release(bc_buffer);
+}
+
+void
+test_bc_euler_reflect_1x_p1()
+{
+  test_bc_fluid_wall(1, 1, GKYL_BC_EULER_REFLECT);
+}
+void
+test_bc_euler_reflect_2x_p1()
+{
+  test_bc_fluid_wall(2, 1, GKYL_BC_EULER_REFLECT);
+}
+void
+test_bc_euler_reflect_3x_p1()
+{
+  test_bc_fluid_wall(3, 1, GKYL_BC_EULER_REFLECT);
+}
+void
+test_bc_euler_reflect_2x_p2()
+{
+  test_bc_fluid_wall(2, 2, GKYL_BC_EULER_REFLECT);
+}
+void
+test_bc_euler_no_slip_1x_p1()
+{
+  test_bc_fluid_wall(1, 1, GKYL_BC_EULER_NO_SLIP);
+}
+void
+test_bc_euler_no_slip_2x_p1()
+{
+  test_bc_fluid_wall(2, 1, GKYL_BC_EULER_NO_SLIP);
+}
+void
+test_bc_euler_no_slip_3x_p1()
+{
+  test_bc_fluid_wall(3, 1, GKYL_BC_EULER_NO_SLIP);
+}
+void
+test_bc_pkpm_mom_reflect_3x_p1()
+{
+  test_bc_fluid_wall(3, 1, GKYL_BC_PKPM_MOM_REFLECT);
+}
+
 #ifdef GKYL_HAVE_CUDA
 void
 test_bc_reflect_1x1v_p1_dev()
@@ -507,6 +626,14 @@ TEST_LIST = {
   {"test_bc_absorb_1x2v_p2_ho", test_bc_absorb_1x2v_p2_ho},
   {"test_bc_absorb_2x2v_p2_ho", test_bc_absorb_2x2v_p2_ho},
   {"test_bc_absorb_3x2v_p2_ho", test_bc_absorb_3x2v_p2_ho},
+  {"test_bc_euler_reflect_1x_p1", test_bc_euler_reflect_1x_p1},
+  {"test_bc_euler_reflect_2x_p1", test_bc_euler_reflect_2x_p1},
+  {"test_bc_euler_reflect_3x_p1", test_bc_euler_reflect_3x_p1},
+  {"test_bc_euler_reflect_2x_p2", test_bc_euler_reflect_2x_p2},
+  {"test_bc_euler_no_slip_1x_p1", test_bc_euler_no_slip_1x_p1},
+  {"test_bc_euler_no_slip_2x_p1", test_bc_euler_no_slip_2x_p1},
+  {"test_bc_euler_no_slip_3x_p1", test_bc_euler_no_slip_3x_p1},
+  {"test_bc_pkpm_mom_reflect_3x_p1", test_bc_pkpm_mom_reflect_3x_p1},
 #ifdef GKYL_HAVE_CUDA
   {"test_bc_reflect_1x1v_p1_dev", test_bc_reflect_1x1v_p1_dev},
   {"test_bc_reflect_1x2v_p1_dev", test_bc_reflect_1x2v_p1_dev},

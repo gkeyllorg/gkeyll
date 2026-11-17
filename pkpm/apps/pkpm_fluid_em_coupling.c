@@ -21,13 +21,13 @@ pkpm_fluid_em_coupling_init(struct gkyl_pkpm_app *app)
   }
 
   // Initialize solver
-  pkpm_em->slvr = gkyl_dg_calc_pkpm_em_coupling_inew(&(struct gkyl_dg_calc_pkpm_em_coupling_inp){
+  pkpm_em->slvr = gkyl_dg_calc_fluid_em_coupling_inew(&(struct gkyl_dg_calc_fluid_em_coupling_inp){
     .conf_basis = &app->confBasis,
     .mem_range = &app->local,
     .num_species = num_species,
     .qbym = qbym,
     .epsilon0 = app->field->info.epsilon0,
-    .pkpm_field_static = app->field->info.is_static,
+    .is_field_static = app->field->info.is_static,
     .use_gpu = app->use_gpu,
   });
 
@@ -104,7 +104,7 @@ pkpm_fluid_em_coupling_update(
     gkyl_array_set(field->curl_current, 1.0, applied);
     gkyl_array_accumulate_offset(field->curl_current, -field->info.epsilon0, field->curl_rhs_no_J, 0);
   }
-  gkyl_dg_calc_pkpm_em_coupling_advance(
+  gkyl_dg_calc_fluid_em_coupling_advance(
     pkpm_em->slvr, dt, app_accels, app->field->ext_em, app_current, fluids, app->field->em_no_J
   );
 
@@ -123,6 +123,6 @@ pkpm_fluid_em_coupling_update(
 void
 pkpm_fluid_em_coupling_release(struct gkyl_pkpm_app *app, struct pkpm_fluid_em_coupling *pkpm_em)
 {
-  gkyl_dg_calc_pkpm_em_coupling_release(pkpm_em->slvr);
+  gkyl_dg_calc_fluid_em_coupling_release(pkpm_em->slvr);
   gkyl_free(pkpm_em);
 }

@@ -106,46 +106,62 @@ GKYL_CU_DH void fluid_vars_limiterx_2x_tensor_p2(double limiter_fac, const struc
   rhouy_c[1] = slope[1]*norm[1] + slope[2]*tau1[1] + slope[3]*tau2[1]; 
   rhouz_c[1] = slope[1]*norm[2] + slope[2]*tau1[2] + slope[3]*tau2[2]; 
   energy_c[1] = slope[4]; 
-  for (int i = 0; i < 3; ++i) { 
-    if (mm[5*i] != waves_slope_c[5*i]) { 
-      rho_c[3] = 0.0; 
-      rho_c[4] = 0.0; 
-      rho_c[5] = 0.0; 
-      rho_c[6] = 0.0; 
-      rho_c[7] = 0.0; 
-      rho_c[8] = 0.0; 
+  // Components (in the local frame) whose slope the limiter changed by more than round-off: 
+  // the change summed over the waves against the size of the component and of its slopes in 
+  // the three cells. 
+  int is_limited[5] = {0}; 
+  for (int k = 0; k < 5; ++k) { 
+    double slope_change = 0.0; 
+    double slope_size = fabs(q_l_local[k]) + fabs(q_c_local[k]) + fabs(q_r_local[k]); 
+    for (int i = 0; i < 3; ++i) { 
+      slope_change += fabs(mm[5*i+k] - waves_slope_c[5*i+k]); 
+      slope_size += fabs(waves_slope_c[5*i+k]) + fabs(waves_slope_l[5*i+k]) + fabs(waves_slope_r[5*i+k]); 
     } 
-    if (mm[5*i+1] != waves_slope_c[5*i+1]) { 
-      rhoux_c[3] = 0.0; 
-      rhoux_c[4] = 0.0; 
-      rhoux_c[5] = 0.0; 
-      rhoux_c[6] = 0.0; 
-      rhoux_c[7] = 0.0; 
-      rhoux_c[8] = 0.0; 
-    } 
-    if (mm[5*i+2] != waves_slope_c[5*i+2]) { 
-      rhouy_c[3] = 0.0; 
-      rhouy_c[4] = 0.0; 
-      rhouy_c[5] = 0.0; 
-      rhouy_c[6] = 0.0; 
-      rhouy_c[7] = 0.0; 
-      rhouy_c[8] = 0.0; 
-    } 
-    if (mm[5*i+3] != waves_slope_c[5*i+3]) { 
-      rhouz_c[3] = 0.0; 
-      rhouz_c[4] = 0.0; 
-      rhouz_c[5] = 0.0; 
-      rhouz_c[6] = 0.0; 
-      rhouz_c[7] = 0.0; 
-      rhouz_c[8] = 0.0; 
-    } 
-    if (mm[5*i+4] != waves_slope_c[5*i+4]) { 
-      energy_c[3] = 0.0; 
-      energy_c[4] = 0.0; 
-      energy_c[5] = 0.0; 
-      energy_c[6] = 0.0; 
-      energy_c[7] = 0.0; 
-      energy_c[8] = 0.0; 
-    } 
+    is_limited[k] = slope_change > 1.0e-12*slope_size; 
+  } 
+  // A limited local momentum component drops the higher coefficients of the global 
+  // momentum components it projects onto. 
+  int is_limited_ux = (is_limited[1] && norm[0] != 0.0) || (is_limited[2] && tau1[0] != 0.0) || (is_limited[3] && tau2[0] != 0.0); 
+  int is_limited_uy = (is_limited[1] && norm[1] != 0.0) || (is_limited[2] && tau1[1] != 0.0) || (is_limited[3] && tau2[1] != 0.0); 
+  int is_limited_uz = (is_limited[1] && norm[2] != 0.0) || (is_limited[2] && tau1[2] != 0.0) || (is_limited[3] && tau2[2] != 0.0); 
+  if (is_limited[0]) { 
+    rho_c[3] = 0.0; 
+    rho_c[4] = 0.0; 
+    rho_c[5] = 0.0; 
+    rho_c[6] = 0.0; 
+    rho_c[7] = 0.0; 
+    rho_c[8] = 0.0; 
+  } 
+  if (is_limited_ux) { 
+    rhoux_c[3] = 0.0; 
+    rhoux_c[4] = 0.0; 
+    rhoux_c[5] = 0.0; 
+    rhoux_c[6] = 0.0; 
+    rhoux_c[7] = 0.0; 
+    rhoux_c[8] = 0.0; 
+  } 
+  if (is_limited_uy) { 
+    rhouy_c[3] = 0.0; 
+    rhouy_c[4] = 0.0; 
+    rhouy_c[5] = 0.0; 
+    rhouy_c[6] = 0.0; 
+    rhouy_c[7] = 0.0; 
+    rhouy_c[8] = 0.0; 
+  } 
+  if (is_limited_uz) { 
+    rhouz_c[3] = 0.0; 
+    rhouz_c[4] = 0.0; 
+    rhouz_c[5] = 0.0; 
+    rhouz_c[6] = 0.0; 
+    rhouz_c[7] = 0.0; 
+    rhouz_c[8] = 0.0; 
+  } 
+  if (is_limited[4]) { 
+    energy_c[3] = 0.0; 
+    energy_c[4] = 0.0; 
+    energy_c[5] = 0.0; 
+    energy_c[6] = 0.0; 
+    energy_c[7] = 0.0; 
+    energy_c[8] = 0.0; 
   } 
 } 

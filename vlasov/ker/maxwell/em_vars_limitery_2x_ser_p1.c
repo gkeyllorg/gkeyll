@@ -142,30 +142,49 @@ GKYL_CU_DH void em_vars_limitery_2x_ser_p1(double limiter_fac, const struct gkyl
   bz_c[2] = slope[3]*norm[2] + slope[4]*tau1[2] + slope[5]*tau2[2]; 
   phi_c[2] = slope[6]; 
   psi_c[2] = slope[7]; 
-  for (int i = 0; i < 6; ++i) { 
-    if (mm[8*i] != waves_slope_c[8*i]) { 
-      ex_c[3] = 0.0; 
+  // Components (in the local frame) whose slope the limiter changed by more than round-off: 
+  // the change summed over the waves against the size of the component and of its slopes in 
+  // the three cells. 
+  int is_limited[8] = {0}; 
+  for (int k = 0; k < 8; ++k) { 
+    double slope_change = 0.0; 
+    double slope_size = fabs(q_l_local[k]) + fabs(q_c_local[k]) + fabs(q_r_local[k]); 
+    for (int i = 0; i < 6; ++i) { 
+      slope_change += fabs(mm[8*i+k] - waves_slope_c[8*i+k]); 
+      slope_size += fabs(waves_slope_c[8*i+k]) + fabs(waves_slope_l[8*i+k]) + fabs(waves_slope_r[8*i+k]); 
     } 
-    if (mm[8*i+1] != waves_slope_c[8*i+1]) { 
-      ey_c[3] = 0.0; 
-    } 
-    if (mm[8*i+2] != waves_slope_c[8*i+2]) { 
-      ez_c[3] = 0.0; 
-    } 
-    if (mm[8*i+3] != waves_slope_c[8*i+3]) { 
-      bx_c[3] = 0.0; 
-    } 
-    if (mm[8*i+4] != waves_slope_c[8*i+4]) { 
-      by_c[3] = 0.0; 
-    } 
-    if (mm[8*i+5] != waves_slope_c[8*i+5]) { 
-      bz_c[3] = 0.0; 
-    } 
-    if (mm[8*i+6] != waves_slope_c[8*i+6]) { 
-      phi_c[3] = 0.0; 
-    } 
-    if (mm[8*i+7] != waves_slope_c[8*i+7]) { 
-      psi_c[3] = 0.0; 
-    } 
+    is_limited[k] = slope_change > 1.0e-12*slope_size; 
+  } 
+  // A limited local component of E or B drops the higher coefficients of the global 
+  // components it projects onto. 
+  int is_limited_ex = (is_limited[0] && norm[0] != 0.0) || (is_limited[1] && tau1[0] != 0.0) || (is_limited[2] && tau2[0] != 0.0); 
+  int is_limited_ey = (is_limited[0] && norm[1] != 0.0) || (is_limited[1] && tau1[1] != 0.0) || (is_limited[2] && tau2[1] != 0.0); 
+  int is_limited_ez = (is_limited[0] && norm[2] != 0.0) || (is_limited[1] && tau1[2] != 0.0) || (is_limited[2] && tau2[2] != 0.0); 
+  int is_limited_bx = (is_limited[3] && norm[0] != 0.0) || (is_limited[4] && tau1[0] != 0.0) || (is_limited[5] && tau2[0] != 0.0); 
+  int is_limited_by = (is_limited[3] && norm[1] != 0.0) || (is_limited[4] && tau1[1] != 0.0) || (is_limited[5] && tau2[1] != 0.0); 
+  int is_limited_bz = (is_limited[3] && norm[2] != 0.0) || (is_limited[4] && tau1[2] != 0.0) || (is_limited[5] && tau2[2] != 0.0); 
+  if (is_limited_ex) { 
+    ex_c[3] = 0.0; 
+  } 
+  if (is_limited_ey) { 
+    ey_c[3] = 0.0; 
+  } 
+  if (is_limited_ez) { 
+    ez_c[3] = 0.0; 
+  } 
+  if (is_limited_bx) { 
+    bx_c[3] = 0.0; 
+  } 
+  if (is_limited_by) { 
+    by_c[3] = 0.0; 
+  } 
+  if (is_limited_bz) { 
+    bz_c[3] = 0.0; 
+  } 
+  if (is_limited[6]) { 
+    phi_c[3] = 0.0; 
+  } 
+  if (is_limited[7]) { 
+    psi_c[3] = 0.0; 
   } 
 } 

@@ -5,7 +5,7 @@
 -- the 1e-4 nonlinear correction. Figures of merit (serendipity p1, 128 cells, 429 steps): after one
 -- period the pressure differs from its initial profile by at most 4.1e-5 and the density by 3.0e-5,
 -- both at the 1e-4 level of the second-order correction to the linear wave, the residual velocity
--- is below 1.2e-4, and mass and energy are conserved to 4e-14.
+-- is below 1.2e-4, and mass and energy are conserved to 2e-14.
 local Vlasov = G0.Vlasov
 local Euler = G0.Vlasov.Eq.Euler
 

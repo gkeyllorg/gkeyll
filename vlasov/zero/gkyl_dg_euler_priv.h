@@ -15,9 +15,7 @@
 typedef double (*euler_surf_t)(
   const double *w, const double *dxv, const struct gkyl_wv_eqn *wv_eqn,
   const struct gkyl_wave_cell_geom *geom_l, const struct gkyl_wave_cell_geom *geom_r,
-  const double *u_surf_l, const double *u_surf_c, const double *u_surf_r, const double *p_surf_l,
-  const double *p_surf_c, const double *p_surf_r, const double *fluid_l, const double *fluid_c,
-  const double *fluid_r, double *GKYL_RESTRICT out
+  const double *fluid_l, const double *fluid_c, const double *fluid_r, double *GKYL_RESTRICT out
 );
 
 // for use in kernel tables
@@ -202,22 +200,10 @@ surf(
 {
   struct dg_euler *euler = container_of(eqn, struct dg_euler, eqn);
 
-  long cidx_l = gkyl_range_idx(&euler->conf_range, idxL);
-  long cidx_c = gkyl_range_idx(&euler->conf_range, idxC);
-  long cidx_r = gkyl_range_idx(&euler->conf_range, idxR);
-
   const struct gkyl_wave_cell_geom *geom_l = gkyl_wave_geom_get(euler->geom, idxC);
   const struct gkyl_wave_cell_geom *geom_r = gkyl_wave_geom_get(euler->geom, idxR);
 
-  return euler->surf[dir](
-    xcC, dxC, euler->wv_eqn, geom_l, geom_r,
-    (const double *)gkyl_array_cfetch(euler->auxfields.u_surf, cidx_l),
-    (const double *)gkyl_array_cfetch(euler->auxfields.u_surf, cidx_c),
-    (const double *)gkyl_array_cfetch(euler->auxfields.u_surf, cidx_r),
-    (const double *)gkyl_array_cfetch(euler->auxfields.p_surf, cidx_l),
-    (const double *)gkyl_array_cfetch(euler->auxfields.p_surf, cidx_c),
-    (const double *)gkyl_array_cfetch(euler->auxfields.p_surf, cidx_r), qInL, qInC, qInR, qRhsOut
-  );
+  return euler->surf[dir](xcC, dxC, euler->wv_eqn, geom_l, geom_r, qInL, qInC, qInR, qRhsOut);
 }
 
 GKYL_CU_D static double
