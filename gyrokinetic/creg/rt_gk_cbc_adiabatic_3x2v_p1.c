@@ -521,8 +521,8 @@ create_ctx(void)
   double inv_asp_ratio = r0 / R_axis;
 
   // Grid parameters
-  int Nx = 4; // dx = 2 rho_s.
-  int Ny = 2; // dy = 7.5 rho_s: ky*rho_s up to 0.42; Ny = 32 resolves the linear peak (~0.45).
+  int Nx = 8; // dx = 2 rho_s.
+  int Ny = 4; // dy = 7.5 rho_s: ky*rho_s up to 0.42; Ny = 32 resolves the linear peak (~0.45).
   int Nz = 4;
   int Nvpar = 2;
   int Nmu = 2;
