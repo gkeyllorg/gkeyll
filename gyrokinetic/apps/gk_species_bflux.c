@@ -26,7 +26,7 @@ gk_species_bflux_mom_idx(
   int b = gk_species_bflux_boundary_idx(bflux, dir, edge);
   int mom_idx = -1;
   for (int m = 0; m < bflux->num_calc_moms; m++) {
-    if (bflux->calc_mom_names[m] == mom_type) {
+    if (bflux->moms_op[m].type == mom_type) {
       mom_idx = m;
       break;
     }
@@ -261,7 +261,8 @@ gk_species_bflux_write_integrated_mom_enabled(
       for (int m = 0; m < num_calc_integ_moms; m++) {
         // Write integrated moments of the boundary fluxes.
         const char *fmt = "%s-%s_bflux_%s%s_integrated_%s.gkyl";
-        const char *mom_name = gkyl_distribution_moments_strs[bflux->calc_integ_mom_names[m]];
+        const char *mom_name =
+          gkyl_distribution_moments_strs[bflux->moms_op[bflux->calc_integ_mom_idx[m]].type];
 
         int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, vars[dir], edge[edi], mom_name);
         char fileNm[sz + 1]; // ensures no buffer overflow
@@ -590,17 +591,18 @@ gk_species_bflux_init(
   int num_diag_integ_mom = gk_s->info.boundary_flux_diagnostics.num_integrated_diag_moments;
   int num_add_mom = add_moms_inp.num_diag_moments;
   int num_add_integ_mom = add_moms_inp.num_integrated_diag_moments;
+  enum gkyl_distribution_moments calc_integ_mom_types[BFLUX_MAX_MOM_NAMES];
   bflux->num_calc_integ_moms = 0;
   if (num_diag_integ_mom > 0) {
     gkyl_free(bflux_unionize_moms(
       num_diag_integ_mom, gk_s->info.boundary_flux_diagnostics.integrated_diag_moments,
-      &bflux->num_calc_integ_moms, bflux->calc_integ_mom_names
+      &bflux->num_calc_integ_moms, calc_integ_mom_types
     ));
   }
   if (num_add_integ_mom > 0) {
     gkyl_free(bflux_unionize_moms(
       num_add_integ_mom, add_moms_inp.integrated_diag_moments, &bflux->num_calc_integ_moms,
-      bflux->calc_integ_mom_names
+      calc_integ_mom_types
     ));
   }
   int num_calc_integ_moms = bflux->num_calc_integ_moms;
@@ -617,24 +619,24 @@ gk_species_bflux_init(
     // store the index of each diag and calc integ mom in this union list.
     assert(num_add_mom + num_diag_mom + num_calc_integ_moms < BFLUX_MAX_MOM_NAMES + 1);
 
+    enum gkyl_distribution_moments calc_mom_types[BFLUX_MAX_MOM_NAMES];
     bflux->num_calc_moms = 0;
     if (num_diag_mom > 0) {
       bflux->diag_mom_idx = bflux_unionize_moms(
         num_diag_mom, gk_s->info.boundary_flux_diagnostics.diag_moments, &bflux->num_calc_moms,
-        bflux->calc_mom_names
+        calc_mom_types
       );
     }
 
     if (num_calc_integ_moms > 0) {
       bflux->calc_integ_mom_idx = bflux_unionize_moms(
-        num_calc_integ_moms, bflux->calc_integ_mom_names, &bflux->num_calc_moms,
-        bflux->calc_mom_names
+        num_calc_integ_moms, calc_integ_mom_types, &bflux->num_calc_moms, calc_mom_types
       );
     }
 
     if (num_add_mom > 0) {
       int *add_mom_idx = bflux_unionize_moms(
-        num_add_mom, add_moms_inp.diag_moments, &bflux->num_calc_moms, bflux->calc_mom_names
+        num_add_mom, add_moms_inp.diag_moments, &bflux->num_calc_moms, calc_mom_types
       );
       gkyl_free(add_mom_idx);
     }
@@ -645,14 +647,14 @@ gk_species_bflux_init(
     bool need_m2perp = false;
     bflux->a_hamiltonian_mom = false;
     for (int m = 0; m < bflux->num_calc_moms; m++) {
-      gk_species_moment_init(app, gk_s, &bflux->moms_op[m], bflux->calc_mom_names[m], false);
+      gk_species_moment_init(app, gk_s, &bflux->moms_op[m], calc_mom_types[m], false);
 
-      need_m2perp = need_m2perp || ((bflux->calc_mom_names[m] == GKYL_F_MOMENT_M2PERP) ||
-                                    (bflux->calc_mom_names[m] == GKYL_F_MOMENT_M2) ||
-                                    (bflux->calc_mom_names[m] == GKYL_F_MOMENT_M0M1M2) ||
-                                    (bflux->calc_mom_names[m] == GKYL_F_MOMENT_M0M1M2PARM2PERP) ||
-                                    (bflux->calc_mom_names[m] == GKYL_F_MOMENT_HAMILTONIAN));
-      bflux->is_hamiltonian_mom[m] = bflux->calc_mom_names[m] == GKYL_F_MOMENT_HAMILTONIAN;
+      need_m2perp = need_m2perp || ((calc_mom_types[m] == GKYL_F_MOMENT_M2PERP) ||
+                                    (calc_mom_types[m] == GKYL_F_MOMENT_M2) ||
+                                    (calc_mom_types[m] == GKYL_F_MOMENT_M0M1M2) ||
+                                    (calc_mom_types[m] == GKYL_F_MOMENT_M0M1M2PARM2PERP) ||
+                                    (calc_mom_types[m] == GKYL_F_MOMENT_HAMILTONIAN));
+      bflux->is_hamiltonian_mom[m] = calc_mom_types[m] == GKYL_F_MOMENT_HAMILTONIAN;
       bflux->a_hamiltonian_mom = bflux->a_hamiltonian_mom || bflux->is_hamiltonian_mom[m];
     }
 

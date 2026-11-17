@@ -133,8 +133,7 @@ struct gk_species_moment {
   struct gkyl_array *marr; // array to moment data
   struct gkyl_array *marr_host; // host copy (same as marr if not on GPUs)
 
-  bool is_maxwellian_moms; // =True for Maxwellian moments (n, u, T/m).
-  bool is_bimaxwellian_moms; // =True for BiMaxwellian moments (n, u, Tpar/m, Tperp/m).
+  enum gkyl_distribution_moments type; // Moment computed.
 
   // MF 2025/07/18: These two objects shouldn't be here. They are needed by
   // fluid neutral moments, and we should get them directly from app->basis or
@@ -196,7 +195,6 @@ struct gk_species_moment {
 // Volume-integrated moments.
 struct gk_integ_moms {
   int num; // Number of integrated moments.
-  enum gkyl_distribution_moments types[GKYL_F_MOMENT_COUNT]; // Type of each moment.
   struct gk_species_moment *ops; // Moment calculators.
   int offset[GKYL_F_MOMENT_COUNT]; // Index of the first component of each moment in red_*.
   int num_mom_all; // Number of components of all the moments.
@@ -622,7 +620,6 @@ struct gk_boundary_fluxes {
   struct gkyl_array **flux; // Array storing boundary fluxes.
   // Objects used for calculating moments.
   int num_calc_moms; // Number of moments of boundary fluxes to compute.
-  enum gkyl_distribution_moments calc_mom_names[BFLUX_MAX_MOM_NAMES]; // Names of moments calculated.
   bool *is_hamiltonian_mom; // True if need Hamiltonian moments.
   bool a_hamiltonian_mom; // There is one Hamiltonian moment.
   struct gkyl_bc_basic_gyrokinetic *gfss_bc_op[2 * GKYL_MAX_CDIM]; // Applies BCs to bmag and phi.
@@ -633,7 +630,6 @@ struct gk_boundary_fluxes {
   // Objects used for calculating diagnostics.
   int *diag_mom_idx; // Index of each diag mom in the array of calc moms.
   int num_calc_integ_moms; // Number of integrated moments to compute.
-  enum gkyl_distribution_moments calc_integ_mom_names[BFLUX_MAX_MOM_NAMES]; // Integrated moments.
   int *calc_integ_mom_idx; // Index of each calc integ mom in the array of calc moms.
   struct gkyl_translate_dim **transdim; // Updater that projects to lower dim.
   struct gkyl_rect_decomp *decomp_surf[GKYL_MAX_CDIM]; // Surface decomposition object.
