@@ -607,6 +607,9 @@ main(int argc, char **argv)
     .species = {elc, ion},
     .field = field,
 
+    .diagnostics =
+      {.num_balance_diags = 2, .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY}},
+
     .parallelism =
       {
         .use_gpu = app_args.use_gpu,
