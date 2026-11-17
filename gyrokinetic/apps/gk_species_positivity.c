@@ -267,13 +267,10 @@ gk_species_positivity_init(
       // Integrated moments of delta f.
       gk_species_moment_init(app, gks, &pos->integ_moms, GKYL_F_MOMENT_M0M1M2PARM2PERP, true);
 
-      if (app->use_gpu) {
-        pos->red_integ_diag = gkyl_cu_malloc(sizeof(double[pos->integ_moms.num_mom]));
-        pos->red_integ_diag_global = gkyl_cu_malloc(sizeof(double[pos->integ_moms.num_mom]));
-      } else {
-        pos->red_integ_diag = gkyl_malloc(sizeof(double[pos->integ_moms.num_mom]));
-        pos->red_integ_diag_global = gkyl_malloc(sizeof(double[pos->integ_moms.num_mom]));
-      }
+      pos->red_integ_diag =
+        gkyl_calloc_hodev(app->use_gpu, pos->integ_moms.num_mom, sizeof(double));
+      pos->red_integ_diag_global =
+        gkyl_calloc_hodev(app->use_gpu, pos->integ_moms.num_mom, sizeof(double));
       pos->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, pos->integ_moms.num_mom);
       pos->is_first_integ_write_call = true;
 
@@ -348,13 +345,8 @@ gk_species_positivity_release(
       gk_species_moment_release(app, &pos->moms);
       gk_species_moment_release(app, &pos->integ_moms);
       gkyl_dynvec_release(pos->integ_diag);
-      if (app->use_gpu) {
-        gkyl_cu_free(pos->red_integ_diag);
-        gkyl_cu_free(pos->red_integ_diag_global);
-      } else {
-        gkyl_free(pos->red_integ_diag);
-        gkyl_free(pos->red_integ_diag_global);
-      }
+      gkyl_free_hodev(app->use_gpu, pos->red_integ_diag);
+      gkyl_free_hodev(app->use_gpu, pos->red_integ_diag_global);
     }
   }
 }

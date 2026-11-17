@@ -554,17 +554,10 @@ gk_species_source_init(
         );
 
         int num_mom = adapt_src->integ_threemoms.num_mom;
-        if (app->use_gpu) {
-          adapt_src->red_integ_mom = gkyl_cu_malloc(sizeof(double[num_mom]));
-          adapt_src->red_integ_mom_global = gkyl_cu_malloc(sizeof(double[num_mom]));
-          adapt_src->integ_m0 = gkyl_cu_malloc(sizeof(double));
-          adapt_src->integ_m2 = gkyl_cu_malloc(sizeof(double));
-        } else {
-          adapt_src->red_integ_mom = gkyl_malloc(sizeof(double[num_mom]));
-          adapt_src->red_integ_mom_global = gkyl_malloc(sizeof(double[num_mom]));
-          adapt_src->integ_m0 = gkyl_malloc(sizeof(double));
-          adapt_src->integ_m2 = gkyl_malloc(sizeof(double));
-        }
+        adapt_src->red_integ_mom = gkyl_calloc_hodev(app->use_gpu, num_mom, sizeof(double));
+        adapt_src->red_integ_mom_global = gkyl_calloc_hodev(app->use_gpu, num_mom, sizeof(double));
+        adapt_src->integ_m0 = gkyl_calloc_hodev(app->use_gpu, 1, sizeof(double));
+        adapt_src->integ_m2 = gkyl_calloc_hodev(app->use_gpu, 1, sizeof(double));
 
         adapt_src->num_boundaries = gks->info.source.adapt[k].num_boundaries;
         bool is_dir_periodic[GKYL_MAX_CDIM] = {0};
@@ -677,17 +670,10 @@ gk_species_source_release(const struct gkyl_gyrokinetic_app *app, const struct g
         gkyl_array_integrate_release(adapt_src->integrate_op);
         gkyl_array_release(adapt_src->bflux_m0);
         gkyl_array_release(adapt_src->bflux_m2);
-        if (app->use_gpu) {
-          gkyl_cu_free(adapt_src->red_integ_mom);
-          gkyl_cu_free(adapt_src->red_integ_mom_global);
-          gkyl_cu_free(adapt_src->integ_m0);
-          gkyl_cu_free(adapt_src->integ_m2);
-        } else {
-          gkyl_free(adapt_src->red_integ_mom);
-          gkyl_free(adapt_src->red_integ_mom_global);
-          gkyl_free(adapt_src->integ_m0);
-          gkyl_free(adapt_src->integ_m2);
-        }
+        gkyl_free_hodev(app->use_gpu, adapt_src->red_integ_mom);
+        gkyl_free_hodev(app->use_gpu, adapt_src->red_integ_mom_global);
+        gkyl_free_hodev(app->use_gpu, adapt_src->integ_m0);
+        gkyl_free_hodev(app->use_gpu, adapt_src->integ_m2);
       }
     }
   }

@@ -89,7 +89,8 @@ gk_species_balance_bflux_tot(
   struct gk_boundary_fluxes *bflux = &gks->bflux;
   int bm = -1;
   for (int m = 0; m < bflux->num_calc_integ_moms; m++) {
-    if (bflux->calc_integ_mom_names[m] == gksbal->integ_mom[GK_SPECIES_BALANCE_BFLUX][d]) {
+    if (bflux->calc_integ_mom_names[m]].type;
+    if (type == gksbal->integ_mom[GK_SPECIES_BALANCE_BFLUX][d]) {
       bm = m;
       break;
     }

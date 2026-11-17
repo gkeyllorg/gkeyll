@@ -626,13 +626,8 @@ gk_species_source_bgk_init(
       src->vol_integ_op = gkyl_array_integrate_new(
         &app->grid, &app->basis, 1, GKYL_ARRAY_INTEGRATE_OP_NONE, app->use_gpu
       );
-      if (app->use_gpu) {
-        src->volint_local = gkyl_cu_malloc(sizeof(double));
-        src->volint_global = gkyl_cu_malloc(sizeof(double));
-      } else {
-        src->volint_local = gkyl_malloc(sizeof(double));
-        src->volint_global = gkyl_malloc(sizeof(double));
-      }
+      src->volint_local = gkyl_calloc_hodev(app->use_gpu, 1, sizeof(double));
+      src->volint_global = gkyl_calloc_hodev(app->use_gpu, 1, sizeof(double));
 
       if (src->write_diagnostics) {
         src->vtsq_amp_diag = gkyl_dynvec_new(GKYL_DOUBLE, 1);
@@ -750,13 +745,8 @@ gk_species_source_bgk_release(
       gkyl_array_release(src->Jrate_mom);
 
       gkyl_array_integrate_release(src->vol_integ_op);
-      if (app->use_gpu) {
-        gkyl_cu_free(src->volint_local);
-        gkyl_cu_free(src->volint_global);
-      } else {
-        gkyl_free(src->volint_local);
-        gkyl_free(src->volint_global);
-      }
+      gkyl_free_hodev(app->use_gpu, src->volint_local);
+      gkyl_free_hodev(app->use_gpu, src->volint_global);
 
       if (src->write_diagnostics) {
         gkyl_dynvec_release(src->vtsq_amp_diag);

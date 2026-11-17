@@ -776,13 +776,8 @@ gk_neut_species_bflux_init(
         }
       }
 
-      if (app->use_gpu) {
-        bflux->integ_moms_local = gkyl_cu_malloc(num_mom_comp_max * sizeof(double));
-        bflux->integ_moms_global = gkyl_cu_malloc(num_mom_comp_max * sizeof(double));
-      } else {
-        bflux->integ_moms_local = gkyl_malloc(num_mom_comp_max * sizeof(double));
-        bflux->integ_moms_global = gkyl_malloc(num_mom_comp_max * sizeof(double));
-      }
+      bflux->integ_moms_local = gkyl_calloc_hodev(app->use_gpu, num_mom_comp_max, sizeof(double));
+      bflux->integ_moms_global = gkyl_calloc_hodev(app->use_gpu, num_mom_comp_max, sizeof(double));
 
       for (int b = 0; b < bflux->num_boundaries; ++b) {
         bflux->is_first_intmom_write_call[b] = true;
@@ -881,13 +876,8 @@ gk_neut_species_bflux_release(
       }
       gkyl_free(bflux->integ_op);
       gkyl_free(bflux->intmom);
-      if (app->use_gpu) {
-        gkyl_cu_free(bflux->integ_moms_local);
-        gkyl_cu_free(bflux->integ_moms_global);
-      } else {
-        gkyl_free(bflux->integ_moms_local);
-        gkyl_free(bflux->integ_moms_global);
-      }
+      gkyl_free_hodev(app->use_gpu, bflux->integ_moms_local);
+      gkyl_free_hodev(app->use_gpu, bflux->integ_moms_global);
     }
   }
 }

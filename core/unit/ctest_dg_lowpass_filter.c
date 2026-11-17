@@ -160,17 +160,16 @@ filter_integral(
   // Integral of f over sub, with op applied in every cell.
   struct gkyl_array_integrate *integ =
     gkyl_array_integrate_new(&env->grid, &env->basis, 1, op, env->use_gpu);
-  double *out = env->use_gpu ? gkyl_cu_malloc(sizeof(double)) : gkyl_malloc(sizeof(double));
+  double *out = gkyl_calloc_hodev(env->use_gpu, 1, sizeof(double));
   gkyl_array_integrate_advance(integ, f, 1.0, NULL, sub, sub, out);
 
   double out_ho;
   if (env->use_gpu) {
     gkyl_cu_memcpy(&out_ho, out, sizeof(double), GKYL_CU_MEMCPY_D2H);
-    gkyl_cu_free(out);
   } else {
     out_ho = out[0];
-    gkyl_free(out);
   }
+  gkyl_free_hodev(env->use_gpu, out);
   gkyl_array_integrate_release(integ);
   return out_ho;
 }

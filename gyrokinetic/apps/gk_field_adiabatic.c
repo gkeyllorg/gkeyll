@@ -47,8 +47,8 @@ gk_field_adiabatic_energy_bg(
 static double
 gk_field_adiabatic_integral(struct gkyl_gyrokinetic_app *app, const struct gkyl_array *arr)
 {
-  double *integ = app->use_gpu ? gkyl_cu_malloc(sizeof(double)) : gkyl_malloc(sizeof(double));
-  double *integ_red = app->use_gpu ? gkyl_cu_malloc(sizeof(double)) : gkyl_malloc(sizeof(double));
+  double *integ = gkyl_calloc_hodev(app->use_gpu, 1, sizeof(double));
+  double *integ_red = gkyl_calloc_hodev(app->use_gpu, 1, sizeof(double));
   struct gkyl_array_integrate *int_op = gkyl_array_integrate_new(
     &app->grid, &app->basis, 1, GKYL_ARRAY_INTEGRATE_OP_NONE, app->use_gpu
   );
@@ -58,13 +58,11 @@ gk_field_adiabatic_integral(struct gkyl_gyrokinetic_app *app, const struct gkyl_
   double integ_ho[1];
   if (app->use_gpu) {
     gkyl_cu_memcpy(integ_ho, integ_red, sizeof(double), GKYL_CU_MEMCPY_D2H);
-    gkyl_cu_free(integ);
-    gkyl_cu_free(integ_red);
   } else {
     integ_ho[0] = integ_red[0];
-    gkyl_free(integ);
-    gkyl_free(integ_red);
   }
+  gkyl_free_hodev(app->use_gpu, integ);
+  gkyl_free_hodev(app->use_gpu, integ_red);
   gkyl_array_integrate_release(int_op);
   return integ_ho[0];
 }
@@ -137,7 +135,7 @@ gk_field_adiab_elc_init_2x3x(gkyl_gyrokinetic_app *app, struct gk_field *gkf)
   ad->calc_energy = gkyl_array_integrate_new(
     &app->grid, &app->basis, 1, GKYL_ARRAY_INTEGRATE_OP_SQ_WEIGHTED, app->use_gpu
   );
-  ad->energy_red = app->use_gpu ? gkyl_cu_malloc(sizeof(double)) : gkyl_malloc(sizeof(double));
+  ad->energy_red = gkyl_calloc_hodev(app->use_gpu, 1, sizeof(double));
 
   // Field solver with the adiabatic response, smoothing every right-hand side along z.
   struct timespec wst = gkyl_wall_clock();
@@ -228,11 +226,7 @@ gk_field_adiab_elc_release_2x3x(const gkyl_gyrokinetic_app *app, struct gk_field
   gkyl_array_release(ad->phi_fsa);
   gkyl_array_release(ad->phi_buff);
   gkyl_array_integrate_release(ad->calc_energy);
-  if (app->use_gpu) {
-    gkyl_cu_free(ad->energy_red);
-  } else {
-    gkyl_free(ad->energy_red);
-  }
+  gkyl_free_hodev(app->use_gpu, ad->energy_red);
 }
 
 void
