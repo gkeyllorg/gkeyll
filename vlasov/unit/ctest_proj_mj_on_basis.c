@@ -4,6 +4,7 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_array_ops_priv.h>
 #include <gkyl_array_rio.h>
+#include <gkyl_dg_vlasov_calc_hamil.h>
 #include <gkyl_dg_calc_sr_vars.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_proj_on_basis.h>
@@ -115,7 +116,7 @@ test_1x1v_no_drift(int poly_order)
   struct gkyl_rect_grid vel_grid;
   gkyl_rect_grid_init(&vel_grid, vdim, velLower, velUpper, velCells);
 
-  int velGhost[] = {0};
+  int velGhost[] = {0, 0, 0};
   struct gkyl_range velLocal, velLocal_ext;
   gkyl_create_grid_ranges(&vel_grid, velGhost, &velLocal_ext, &velLocal);
 
@@ -153,15 +154,16 @@ test_1x1v_no_drift(int poly_order)
   gkyl_array_set_offset_range(moms, 1.0, m1i, 1 * confBasis.num_basis, &confLocal);
   gkyl_array_set_offset_range(moms, 1.0, m2, (vdim + 1) * confBasis.num_basis, &confLocal);
 
-  // build gamma and gamma_inv
-  struct gkyl_array *gamma = mkarr(velBasis.num_basis, velLocal.volume);
+  // build hamil and gamma_inv
+  struct gkyl_array *hamil = mkarr(velBasis.num_basis, velLocal.volume);
   struct gkyl_array *gamma_inv = mkarr(velBasis.num_basis, velLocal.volume);
-  struct gkyl_dg_calc_sr_vars *sr_vars =
-    gkyl_dg_calc_sr_vars_new(&grid, &vel_grid, &confBasis, &velBasis, &confLocal, &velLocal, false);
-  // Project gamma and its inverse
-  gkyl_calc_sr_vars_init_p_vars(sr_vars, gamma, gamma_inv);
-  // Free SR variable computation
-  gkyl_dg_calc_sr_vars_release(sr_vars);
+  // Identity velocity map: used to build the Hamiltonian and by the moment/LTE updaters.
+  struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = {0};
+  struct gkyl_vlasov_velocity_map *vel_map =
+    gkyl_vlasov_velocity_map_new(&vel_grid, &velLocal, &velBasis, inp_vmap, false, false);
+  gkyl_dg_vlasov_calc_hamil(
+    &vel_grid, &velBasis, &velLocal, GKYL_MODEL_SR, vel_map, hamil, gamma_inv, false
+  );
 
   // create distribution function array
   struct gkyl_array *distf;
@@ -178,10 +180,14 @@ test_1x1v_no_drift(int poly_order)
     .conf_range_ext = &confLocal_ext,
     .vel_range = &velLocal,
     .phase_range = &local,
-    .gamma = gamma,
+    .hamil = hamil,
+    .hamil_range = &velLocal,
     .gamma_inv = gamma_inv,
     .model_id = GKYL_MODEL_SR,
+    .hamil_id = gkyl_hamil_id_from_model_id(GKYL_MODEL_SR),
+    .use_extended_hamil_def = false,
     .use_gpu = false,
+    .vel_map = vel_map,
   };
   gkyl_vlasov_lte_proj_on_basis *proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_lte);
   gkyl_vlasov_lte_proj_on_basis_advance(proj_lte, &local, &confLocal, moms, distf);
@@ -223,7 +229,8 @@ test_1x1v_no_drift(int poly_order)
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);
-  gkyl_array_release(gamma);
+  gkyl_array_release(hamil);
+  gkyl_vlasov_velocity_map_release(vel_map);
   gkyl_array_release(gamma_inv);
 }
 
@@ -255,7 +262,7 @@ test_1x1v(int poly_order)
   gkyl_rect_grid_init(&vel_grid, vdim, velLower, velUpper, velCells);
 
   // velocity range
-  int velGhost[] = {0};
+  int velGhost[] = {0, 0, 0};
   struct gkyl_range velLocal, velLocal_ext;
   gkyl_create_grid_ranges(&vel_grid, velGhost, &velLocal_ext, &velLocal);
 
@@ -293,15 +300,16 @@ test_1x1v(int poly_order)
   gkyl_array_set_offset_range(moms, 1.0, m1i, 1 * confBasis.num_basis, &confLocal);
   gkyl_array_set_offset_range(moms, 1.0, m2, (vdim + 1) * confBasis.num_basis, &confLocal);
 
-  // build gamma and gamma_inv
-  struct gkyl_array *gamma = mkarr(velBasis.num_basis, velLocal.volume);
+  // build hamil and gamma_inv
+  struct gkyl_array *hamil = mkarr(velBasis.num_basis, velLocal.volume);
   struct gkyl_array *gamma_inv = mkarr(velBasis.num_basis, velLocal.volume);
-  struct gkyl_dg_calc_sr_vars *sr_vars =
-    gkyl_dg_calc_sr_vars_new(&grid, &vel_grid, &confBasis, &velBasis, &confLocal, &velLocal, false);
-  // Project gamma and its inverse
-  gkyl_calc_sr_vars_init_p_vars(sr_vars, gamma, gamma_inv);
-  // Free SR variable computation
-  gkyl_dg_calc_sr_vars_release(sr_vars);
+  // Identity velocity map: used to build the Hamiltonian and by the moment/LTE updaters.
+  struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = {0};
+  struct gkyl_vlasov_velocity_map *vel_map =
+    gkyl_vlasov_velocity_map_new(&vel_grid, &velLocal, &velBasis, inp_vmap, false, false);
+  gkyl_dg_vlasov_calc_hamil(
+    &vel_grid, &velBasis, &velLocal, GKYL_MODEL_SR, vel_map, hamil, gamma_inv, false
+  );
 
   // create distribution function array
   struct gkyl_array *distf;
@@ -318,10 +326,14 @@ test_1x1v(int poly_order)
     .conf_range_ext = &confLocal_ext,
     .vel_range = &velLocal,
     .phase_range = &local,
-    .gamma = gamma,
+    .hamil = hamil,
+    .hamil_range = &velLocal,
     .gamma_inv = gamma_inv,
     .model_id = GKYL_MODEL_SR,
+    .hamil_id = gkyl_hamil_id_from_model_id(GKYL_MODEL_SR),
+    .use_extended_hamil_def = false,
     .use_gpu = false,
+    .vel_map = vel_map,
   };
   gkyl_vlasov_lte_proj_on_basis *proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_lte);
   gkyl_vlasov_lte_proj_on_basis_advance(proj_lte, &local, &confLocal, moms, distf);
@@ -337,10 +349,14 @@ test_1x1v(int poly_order)
     .conf_range_ext = &confLocal_ext,
     .vel_range = &velLocal,
     .phase_range = &local,
-    .gamma = gamma,
+    .hamil = hamil,
+    .hamil_range = &velLocal,
     .gamma_inv = gamma_inv,
     .model_id = GKYL_MODEL_SR,
+    .hamil_id = gkyl_hamil_id_from_model_id(GKYL_MODEL_SR),
+    .use_extended_hamil_def = false,
     .use_gpu = false,
+    .vel_map = vel_map,
   };
   gkyl_vlasov_lte_moments *lte_moms = gkyl_vlasov_lte_moments_inew(&inp_mom);
   gkyl_vlasov_lte_moments_advance(lte_moms, &local, &confLocal, distf, moms);
@@ -378,7 +394,8 @@ test_1x1v(int poly_order)
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);
-  gkyl_array_release(gamma);
+  gkyl_array_release(hamil);
+  gkyl_vlasov_velocity_map_release(vel_map);
   gkyl_array_release(gamma_inv);
 }
 
@@ -450,15 +467,16 @@ test_1x2v(int poly_order)
   gkyl_array_set_offset_range(moms, 1.0, m1i, 1 * confBasis.num_basis, &confLocal);
   gkyl_array_set_offset_range(moms, 1.0, m2, (vdim + 1) * confBasis.num_basis, &confLocal);
 
-  // build gamma and gamma_inv
-  struct gkyl_array *gamma = mkarr(velBasis.num_basis, velLocal.volume);
+  // build hamil and gamma_inv
+  struct gkyl_array *hamil = mkarr(velBasis.num_basis, velLocal.volume);
   struct gkyl_array *gamma_inv = mkarr(velBasis.num_basis, velLocal.volume);
-  struct gkyl_dg_calc_sr_vars *sr_vars =
-    gkyl_dg_calc_sr_vars_new(&grid, &vel_grid, &confBasis, &velBasis, &confLocal, &velLocal, false);
-  // Project gamma and its inverse
-  gkyl_calc_sr_vars_init_p_vars(sr_vars, gamma, gamma_inv);
-  // Free SR variable computation
-  gkyl_dg_calc_sr_vars_release(sr_vars);
+  // Identity velocity map: used to build the Hamiltonian and by the moment/LTE updaters.
+  struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = {0};
+  struct gkyl_vlasov_velocity_map *vel_map =
+    gkyl_vlasov_velocity_map_new(&vel_grid, &velLocal, &velBasis, inp_vmap, false, false);
+  gkyl_dg_vlasov_calc_hamil(
+    &vel_grid, &velBasis, &velLocal, GKYL_MODEL_SR, vel_map, hamil, gamma_inv, false
+  );
 
   // create distribution function array
   struct gkyl_array *distf;
@@ -475,10 +493,14 @@ test_1x2v(int poly_order)
     .conf_range_ext = &confLocal_ext,
     .vel_range = &velLocal,
     .phase_range = &local,
-    .gamma = gamma,
+    .hamil = hamil,
+    .hamil_range = &velLocal,
     .gamma_inv = gamma_inv,
     .model_id = GKYL_MODEL_SR,
+    .hamil_id = gkyl_hamil_id_from_model_id(GKYL_MODEL_SR),
+    .use_extended_hamil_def = false,
     .use_gpu = false,
+    .vel_map = vel_map,
   };
   gkyl_vlasov_lte_proj_on_basis *proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_lte);
   gkyl_vlasov_lte_proj_on_basis_advance(proj_lte, &local, &confLocal, moms, distf);
@@ -516,7 +538,8 @@ test_1x2v(int poly_order)
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);
-  gkyl_array_release(gamma);
+  gkyl_array_release(hamil);
+  gkyl_vlasov_velocity_map_release(vel_map);
   gkyl_array_release(gamma_inv);
 }
 
@@ -587,15 +610,16 @@ test_1x3v(int poly_order)
   gkyl_array_set_offset_range(moms, 1.0, m1i, 1 * confBasis.num_basis, &confLocal);
   gkyl_array_set_offset_range(moms, 1.0, m2, (vdim + 1) * confBasis.num_basis, &confLocal);
 
-  // build gamma and gamma_inv
-  struct gkyl_array *gamma = mkarr(velBasis.num_basis, velLocal.volume);
+  // build hamil and gamma_inv
+  struct gkyl_array *hamil = mkarr(velBasis.num_basis, velLocal.volume);
   struct gkyl_array *gamma_inv = mkarr(velBasis.num_basis, velLocal.volume);
-  struct gkyl_dg_calc_sr_vars *sr_vars =
-    gkyl_dg_calc_sr_vars_new(&grid, &vel_grid, &confBasis, &velBasis, &confLocal, &velLocal, false);
-  // Project gamma and its inverse
-  gkyl_calc_sr_vars_init_p_vars(sr_vars, gamma, gamma_inv);
-  // Free SR variable computation
-  gkyl_dg_calc_sr_vars_release(sr_vars);
+  // Identity velocity map: used to build the Hamiltonian and by the moment/LTE updaters.
+  struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = {0};
+  struct gkyl_vlasov_velocity_map *vel_map =
+    gkyl_vlasov_velocity_map_new(&vel_grid, &velLocal, &velBasis, inp_vmap, false, false);
+  gkyl_dg_vlasov_calc_hamil(
+    &vel_grid, &velBasis, &velLocal, GKYL_MODEL_SR, vel_map, hamil, gamma_inv, false
+  );
 
   // create distribution function array
   struct gkyl_array *distf;
@@ -612,10 +636,14 @@ test_1x3v(int poly_order)
     .conf_range_ext = &confLocal_ext,
     .vel_range = &velLocal,
     .phase_range = &local,
-    .gamma = gamma,
+    .hamil = hamil,
+    .hamil_range = &velLocal,
     .gamma_inv = gamma_inv,
     .model_id = GKYL_MODEL_SR,
+    .hamil_id = gkyl_hamil_id_from_model_id(GKYL_MODEL_SR),
+    .use_extended_hamil_def = false,
     .use_gpu = false,
+    .vel_map = vel_map,
   };
   gkyl_vlasov_lte_proj_on_basis *proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_lte);
   gkyl_vlasov_lte_proj_on_basis_advance(proj_lte, &local, &confLocal, moms, distf);
@@ -662,7 +690,8 @@ test_1x3v(int poly_order)
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);
-  gkyl_array_release(gamma);
+  gkyl_array_release(hamil);
+  gkyl_vlasov_velocity_map_release(vel_map);
   gkyl_array_release(gamma_inv);
 }
 

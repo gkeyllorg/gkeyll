@@ -1,3 +1,8 @@
+#include <gkyl_deflate_zsurf.h>
+#include <gkyl_translate_dim.h>
+#include <gkyl_fem_proj.h>
+#include <gkyl_fem_parproj.h>
+#include <gkyl_eval_on_nodes.h>
 // Test the bc_twistshift orchestrator: the twist-shift BC on its own, and the
 // supersample -> twist-shift -> low-pass filter -> restrict pipeline used to
 // de-alias the shift along the shear direction. The sub-cell integrals the
@@ -17,6 +22,13 @@
 #include <gkyl_twistshift_dg.h>
 
 #include <math.h>
+
+static struct gkyl_array *
+mkarr(bool use_gpu, int ncomp, long size)
+{
+  return use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, ncomp, size) :
+                   gkyl_array_new(GKYL_DOUBLE, ncomp, size);
+}
 
 static const double ts_lower[] = {-2.0, -1.5, -3.0};
 static const double ts_upper[] = {2.0, 1.5, 3.0};
@@ -53,10 +65,15 @@ struct ts_setup {
   int ghost[GKYL_MAX_DIM];
 };
 
+// Initialize the test grid, p1 basis, and interior/ghost ranges. Select the ghost
+// plane at the requested edge and the opposite skin plane that supplies its data.
 static void
-ts_setup_init(struct ts_setup *s, enum gkyl_edge_loc edge)
+ts_setup_init_grid(
+  struct ts_setup *s, enum gkyl_edge_loc edge, const double *lower, const double *upper,
+  const int *cells
+)
 {
-  gkyl_rect_grid_init(&s->grid, ts_ndim, ts_lower, ts_upper, ts_cells);
+  gkyl_rect_grid_init(&s->grid, ts_ndim, lower, upper, cells);
   gkyl_cart_modal_serendip(&s->basis, ts_ndim, 1);
 
   for (int d = 0; d < ts_ndim; d++) {
@@ -179,7 +196,7 @@ test_bc_twistshift_plain_matches_twistshift_dg_ho(void)
   for (int e = 0; e < 2; e++) {
     enum gkyl_edge_loc edge = e == 0 ? GKYL_LOWER_EDGE : GKYL_UPPER_EDGE;
     struct ts_setup s;
-    ts_setup_init(&s, edge);
+    ts_setup_init_grid(&s, edge, ts_lower, ts_upper, ts_cells);
 
     struct gkyl_array *f_bc = ts_run(&s, edge, 1, -1, 0.0, NULL, &tctx);
 
@@ -226,7 +243,7 @@ test_bc_twistshift_only_ghost_plane_written_ho(void)
   for (int e = 0; e < 2; e++) {
     enum gkyl_edge_loc edge = e == 0 ? GKYL_LOWER_EDGE : GKYL_UPPER_EDGE;
     struct ts_setup s;
-    ts_setup_init(&s, edge);
+    ts_setup_init_grid(&s, edge, ts_lower, ts_upper, ts_cells);
 
     struct gkyl_array *f_pre = ts_donor_new(&s);
 
@@ -257,7 +274,7 @@ test_bc_twistshift_identity_filter_matches_plain_ho(void)
   double dx = (ts_upper[0] - ts_lower[0]) / ts_cells[0];
 
   struct ts_setup s;
-  ts_setup_init(&s, GKYL_LOWER_EDGE);
+  ts_setup_init_grid(&s, GKYL_LOWER_EDGE, ts_lower, ts_upper, ts_cells);
 
   struct gkyl_array *f_plain = ts_run(&s, GKYL_LOWER_EDGE, 1, -1, 0.0, NULL, &tctx);
   struct gkyl_array *f_filt = ts_run(&s, GKYL_LOWER_EDGE, 1, 4, 2.0 * dx, NULL, &tctx);
@@ -281,7 +298,7 @@ test_bc_twistshift_upsample_no_shear_matches_plain_ho(void)
 
   for (int upsample = 2; upsample <= 4; upsample *= 2) {
     struct ts_setup s;
-    ts_setup_init(&s, GKYL_LOWER_EDGE);
+    ts_setup_init_grid(&s, GKYL_LOWER_EDGE, ts_lower, ts_upper, ts_cells);
 
     struct gkyl_array *f_plain = ts_run(&s, GKYL_LOWER_EDGE, 1, -1, 0.0, NULL, &tctx);
     struct gkyl_array *f_up =
@@ -297,6 +314,31 @@ test_bc_twistshift_upsample_no_shear_matches_plain_ho(void)
 }
 
 void
+test_bc_twistshift_upsample_six_cbc_grid_ho(void)
+{
+  // The CBC radial extent and 48 cells give dx_coarse/dx_fine slightly above
+  // six in floating point, despite an exact integer cell-count ratio.
+  double lower[] = {-0.13360368663594469, -1.5, -3.0};
+  double upper[] = {0.13360368663594469, 1.5, 3.0};
+  int cells[] = {48, 8, 4};
+  struct ts_setup s;
+  ts_setup_init_grid(&s, GKYL_LOWER_EDGE, lower, upper, cells);
+
+  struct ts_ctx tctx = {.offset = 0.75, .shear = 0.25};
+  double dx = s.grid.dx[0];
+  struct gkyl_array *f = ts_run(&s, GKYL_LOWER_EDGE, 6, 4, 2.0 * dx, NULL, &tctx);
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &s.ghost_r);
+  while (gkyl_range_iter_next(&iter)) {
+    const double *fc = gkyl_array_cfetch(f, gkyl_range_idx(&s.ghost_r, iter.idx));
+    for (int k = 0; k < s.basis.num_basis; k++) {
+      TEST_CHECK(isfinite(fc[k]));
+    }
+  }
+  gkyl_array_release(f);
+}
+
+void
 test_bc_twistshift_shift_dg_matches_shift_func_ho(void)
 {
   // A discretized shift given on the field's own grid must give the same answer
@@ -306,7 +348,7 @@ test_bc_twistshift_shift_dg_matches_shift_func_ho(void)
 
   for (int upsample = 1; upsample <= 2; upsample++) {
     struct ts_setup s;
-    ts_setup_init(&s, GKYL_LOWER_EDGE);
+    ts_setup_init_grid(&s, GKYL_LOWER_EDGE, ts_lower, ts_upper, ts_cells);
 
     // The 1D DG shift on the shear cells of the update range, as the app builds it.
     struct gkyl_rect_grid xgrid;
@@ -349,7 +391,7 @@ test_bc_twistshift_dealiasing_smooths_shear_direction_ho(void)
   double dx = (ts_upper[0] - ts_lower[0]) / ts_cells[0];
 
   struct ts_setup s;
-  ts_setup_init(&s, GKYL_LOWER_EDGE);
+  ts_setup_init_grid(&s, GKYL_LOWER_EDGE, ts_lower, ts_upper, ts_cells);
 
   struct gkyl_array *f_plain = ts_run(&s, GKYL_LOWER_EDGE, 1, -1, 0.0, NULL, &tctx);
   struct gkyl_array *f_deal = ts_run(&s, GKYL_LOWER_EDGE, 4, 4, 2.0 * dx, NULL, &tctx);
@@ -387,7 +429,7 @@ test_bc_twistshift_conserves_particles_ho(void)
   for (int e = 0; e < 2; e++) {
     enum gkyl_edge_loc edge = e == 0 ? GKYL_LOWER_EDGE : GKYL_UPPER_EDGE;
     struct ts_setup s;
-    ts_setup_init(&s, edge);
+    ts_setup_init_grid(&s, edge, ts_lower, ts_upper, ts_cells);
 
     // Integral over the plane the BC fills.
     struct gkyl_array_integrate *integ =
@@ -442,7 +484,7 @@ test_bc_twistshift_preserves_y_average_ho(void)
   for (int e = 0; e < 2; e++) {
     enum gkyl_edge_loc edge = e == 0 ? GKYL_LOWER_EDGE : GKYL_UPPER_EDGE;
     struct ts_setup s;
-    ts_setup_init(&s, edge);
+    ts_setup_init_grid(&s, edge, ts_lower, ts_upper, ts_cells);
 
     for (int d = 0; d < 2; d++) {
       for (int c = 0; c < 3; c++) {
@@ -520,7 +562,7 @@ test_bc_twistshift_zero_shift_is_identity_ho(void)
   for (int e = 0; e < 2; e++) {
     enum gkyl_edge_loc edge = e == 0 ? GKYL_LOWER_EDGE : GKYL_UPPER_EDGE;
     struct ts_setup s;
-    ts_setup_init(&s, edge);
+    ts_setup_init_grid(&s, edge, ts_lower, ts_upper, ts_cells);
 
     struct gkyl_array *f_pre = ts_donor_new(&s);
 
@@ -553,7 +595,7 @@ test_bc_twistshift_zero_shear_is_cell_translation_ho(void)
   for (int e = 0; e < 2; e++) {
     enum gkyl_edge_loc edge = e == 0 ? GKYL_LOWER_EDGE : GKYL_UPPER_EDGE;
     struct ts_setup s;
-    ts_setup_init(&s, edge);
+    ts_setup_init_grid(&s, edge, ts_lower, ts_upper, ts_cells);
 
     struct gkyl_array *f_pre = ts_donor_new(&s);
     struct gkyl_array *f = ts_run(&s, edge, 1, -1, 0.0, NULL, &tctx);
@@ -583,6 +625,299 @@ test_bc_twistshift_zero_shear_is_cell_translation_ho(void)
   }
 }
 
+// Return the maximum jump between matching face quadrature points, including periodic y.
+static double
+ts_field_face_jump(
+  const struct ts_setup *s, const struct gkyl_range *range, const struct gkyl_array *field, int dir
+)
+{
+  double max_jump = 0.0;
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, range);
+  while (gkyl_range_iter_next(&iter)) {
+    int neighbor[3];
+    gkyl_copy_int_arr(3, iter.idx, neighbor);
+    if (iter.idx[dir] == range->upper[dir]) {
+      if (dir != 1) {
+        continue;
+      }
+      neighbor[dir] = range->lower[dir];
+    } else {
+      neighbor[dir]++;
+    }
+    const double *left = gkyl_array_cfetch(field, gkyl_range_idx(range, iter.idx));
+    const double *right = gkyl_array_cfetch(field, gkyl_range_idx(range, neighbor));
+    for (int qa = -1; qa <= 1; qa += 2) {
+      for (int qb = -1; qb <= 1; qb += 2) {
+        double point[3];
+        point[dir] = 1;
+        point[(dir + 1) % 3] = qa / sqrt(3.0);
+        point[(dir + 2) % 3] = qb / sqrt(3.0);
+        double value = s->basis.eval_expand(point, left);
+        point[dir] = -1;
+        max_jump = fmax(max_jump, fabs(value - s->basis.eval_expand(point, right)));
+      }
+    }
+  }
+  return max_jump;
+}
+
+// Check deflation onto the upper face and constant-in-z inflation, leaving other cells untouched.
+// We use this combination in applying an FEM projection in x-y after applying TSBCs.
+static void
+ts_field_deflate_inflate(bool use_gpu)
+{
+  // Create grid and ranges.
+  struct ts_setup setup;
+  ts_setup_init_grid(&setup, GKYL_LOWER_EDGE, ts_lower, ts_upper, ts_cells);
+
+  // Create 2D grid, range, basis.
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, 2, ts_lower, ts_upper, ts_cells);
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, 2, 1);
+  struct gkyl_range ext, local;
+  gkyl_create_grid_ranges(&grid, (int[]){1, 1}, &ext, &local);
+
+  struct gkyl_array *host = mkarr(false, 8, setup.local_ext.volume);
+  struct gkyl_array *result = mkarr(false, 8, setup.local_ext.volume);
+  struct gkyl_array *input = mkarr(use_gpu, 8, host->size);
+  struct gkyl_array *output = mkarr(use_gpu, 8, host->size);
+  struct gkyl_array *boundary_field = mkarr(use_gpu, 4, ext.volume);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &setup.local_ext);
+  while (gkyl_range_iter_next(&iter)) {
+    double *coeff = gkyl_array_fetch(host, gkyl_range_idx(&setup.local_ext, iter.idx));
+    for (int mode = 0; mode < 8; mode++) {
+      coeff[mode] = 0.17 * (mode + 1) + 0.03 * iter.idx[0];
+    }
+  }
+  gkyl_array_copy(input, host);
+  gkyl_array_clear(output, 17.0);
+
+  struct gkyl_deflate_zsurf *deflate = gkyl_deflate_zsurf_new(&setup.basis, &basis, 1, use_gpu);
+  struct gkyl_translate_dim *inflate =
+    gkyl_translate_dim_new(2, basis, 3, setup.basis, 2, GKYL_UPPER_EDGE, use_gpu);
+  gkyl_deflate_zsurf_advance(
+    deflate, setup.ghost_r.lower[2], &setup.local_ext, &local, input, boundary_field, 1
+  );
+
+  gkyl_translate_dim_advance(inflate, &local, &setup.ghost_r, boundary_field, 1, output);
+  gkyl_array_copy(result, output);
+
+  double max_error = 0.0;
+  gkyl_range_iter_init(&iter, &setup.local_ext);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&setup.local_ext, iter.idx);
+    const double *got = gkyl_array_cfetch(result, loc);
+    if (!gkyl_range_contains_idx(&setup.ghost_r, iter.idx)) {
+      for (int mode = 0; mode < 8; mode++) {
+        TEST_CHECK(got[mode] == 17.0);
+      }
+      continue;
+    }
+    const double *original = gkyl_array_cfetch(host, loc);
+    for (int qx = -1; qx <= 1; qx += 2) {
+      for (int qy = -1; qy <= 1; qy += 2) {
+        double point[] = {qx / sqrt(3.0), qy / sqrt(3.0), 1};
+        double expected = setup.basis.eval_expand(point, original);
+        for (int edge = -1; edge <= 1; edge += 2) {
+          point[2] = edge;
+          max_error = fmax(max_error, fabs(expected - setup.basis.eval_expand(point, got)));
+        }
+      }
+    }
+  }
+  TEST_CHECK(max_error < 1e-11);
+
+  gkyl_deflate_zsurf_release(deflate);
+  gkyl_translate_dim_release(inflate);
+  gkyl_array_release(input);
+  gkyl_array_release(output);
+  gkyl_array_release(boundary_field);
+  gkyl_array_release(host);
+  gkyl_array_release(result);
+}
+
+static void
+ts_field_init(double t, const double *xn, double *out, void *ctx)
+{
+  bool constant = *(bool *)ctx;
+  out[0] = constant ? 1.0 : sin(M_PI * xn[0]) * cos(2 * M_PI * xn[1]);
+}
+
+// Check continuity and untouched cells through the shift/projection sequence, and return
+// the L2 error of the FEM-projected boundary field relative to the analytic shifted field.
+static double
+ts_field_projection_case(int cells, bool use_gpu, bool zero_shift, bool constant, bool filtered)
+{
+  struct ts_setup setup;
+  ts_setup_init_grid(
+    &setup, GKYL_LOWER_EDGE, (double[]){0, 0, -1}, (double[]){1, 1, 1}, (int[]){cells, cells, 16}
+  );
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, 2, setup.grid.lower, setup.grid.upper, setup.grid.cells);
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, 2, 1);
+  struct gkyl_range ext, local;
+  gkyl_create_grid_ranges(&grid, (int[]){1, 1}, &ext, &local);
+  struct gkyl_array *host = gkyl_array_new(GKYL_DOUBLE, 8, setup.local_ext.volume);
+  struct gkyl_array *original = gkyl_array_new(GKYL_DOUBLE, 8, host->size);
+  struct gkyl_array *input = mkarr(use_gpu, 8, host->size);
+  struct gkyl_array *output = mkarr(use_gpu, 8, host->size);
+  struct gkyl_eval_on_nodes *eval =
+    gkyl_eval_on_nodes_new(&setup.grid, &setup.basis, 1, ts_field_init, &constant);
+  gkyl_eval_on_nodes_advance(eval, 0.0, &setup.local_ext, original);
+  gkyl_array_copy(input, original);
+  struct ts_ctx shift = {.offset = zero_shift ? 0 : 0.13, .shear = zero_shift ? 0 : 0.7};
+  struct gkyl_bc_twistshift *ts = gkyl_bc_twistshift_inew(&(struct gkyl_bc_twistshift_inp){
+    .bc_dir = 2,
+    .shift_dir = 1,
+    .shear_dir = 0,
+    .edge = GKYL_LOWER_EDGE,
+    .cdim = 3,
+    .bcdir_ext_update_r = &setup.update_r,
+    .num_ghost = setup.ghost,
+    .basis = &setup.basis,
+    .grid = &setup.grid,
+    .shift_func = shift_func,
+    .shift_func_ctx = &shift,
+    .upsample_factor = filtered ? 6 : -1,
+    .filter_half_width = filtered ? 4 : -1,
+    .filter_cutoff_wavelength = 2 * grid.dx[0],
+    .use_gpu = use_gpu,
+  });
+  gkyl_bc_twistshift_advance(ts, input, input);
+  struct gkyl_array *boundary_field = mkarr(use_gpu, 4, ext.volume);
+  struct gkyl_array *projected = mkarr(use_gpu, 4, ext.volume);
+  struct gkyl_fem_proj_inp inp = {
+    .grid = &grid,
+    .solve_range = &local,
+    .basis = &basis,
+    .bcs =
+      {
+        .lo_type = {GKYL_FEM_PROJ_DIRICHLET, GKYL_FEM_PROJ_PERIODIC},
+        .up_type = {GKYL_FEM_PROJ_DIRICHLET, GKYL_FEM_PROJ_PERIODIC},
+        .lo_value = {constant ? 1.0 : 0.0},
+        .up_value = {constant ? 1.0 : 0.0},
+      },
+    .use_gpu = use_gpu,
+  };
+  struct gkyl_fem_proj *proj = gkyl_fem_proj_inew(&inp);
+  struct gkyl_deflate_zsurf *deflate = gkyl_deflate_zsurf_new(&setup.basis, &basis, 1, use_gpu);
+  struct gkyl_translate_dim *inflate =
+    gkyl_translate_dim_new(2, basis, 3, setup.basis, 2, GKYL_UPPER_EDGE, use_gpu);
+  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(
+    &setup.local, &setup.grid, &setup.basis, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, NULL, NULL, NULL,
+    use_gpu
+  );
+  // Establish that the original operator chain has the defect on this field.
+  gkyl_fem_parproj_set_rhs(parproj, input, input);
+  gkyl_fem_parproj_solve(parproj, output);
+  gkyl_array_copy(host, output);
+  double before = ts_field_face_jump(&setup, &setup.local, host, 1);
+  if (!zero_shift && !constant) {
+    TEST_CHECK(before > 1e-7);
+  }
+  gkyl_deflate_zsurf_advance(deflate, 0, &setup.local_ext, &local, input, boundary_field, 1);
+  gkyl_fem_proj_set_rhs(proj, boundary_field, NULL);
+  gkyl_fem_proj_solve(proj, projected);
+  gkyl_translate_dim_advance(inflate, &local, &setup.ghost_r, projected, 1, input);
+  gkyl_array_copy(host, input);
+  double error_sq = 0.0;
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &setup.local_ext);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&setup.local_ext, iter.idx);
+    const double *got = gkyl_array_cfetch(host, loc), *ref = gkyl_array_cfetch(original, loc);
+    if (!gkyl_range_contains_idx(&setup.ghost_r, iter.idx)) {
+      for (int mode = 0; mode < 8; mode++) {
+        TEST_CHECK(got[mode] == ref[mode]);
+      }
+      continue;
+    }
+    if (zero_shift || constant) {
+      for (int mode = 0; mode < 8; mode++) {
+        TEST_CHECK(fabs(got[mode] - ref[mode]) < 1e-11);
+      }
+    }
+    double center[3];
+    gkyl_rect_grid_cell_center(&setup.grid, iter.idx, center);
+    // Three-point quadrature measures convergence to the smooth shifted function.
+    const double quad[] = {-0.7745966692414834, 0, 0.7745966692414834};
+    const double weights[] = {5.0 / 9, 8.0 / 9, 5.0 / 9};
+    for (int qx = 0; qx < 3; qx++) {
+      for (int qy = 0; qy < 3; qy++) {
+        double point[] = {quad[qx], quad[qy], 1};
+        double x = center[0] + 0.5 * grid.dx[0] * point[0];
+        double y = center[1] + 0.5 * grid.dx[1] * point[1];
+        double expected =
+          constant ? 1.0 : sin(M_PI * x) * cos(2 * M_PI * (y - shift.offset - shift.shear * x));
+        double err = setup.basis.eval_expand(point, got) - expected;
+        error_sq += weights[qx] * weights[qy] * grid.cellVolume * err * err / 4;
+      }
+    }
+  }
+  for (int dir = 0; dir < 2; dir++) {
+    TEST_CHECK(ts_field_face_jump(&setup, &setup.ghost_r, host, dir) < 1e-11);
+  }
+  gkyl_fem_parproj_set_rhs(parproj, input, input);
+  gkyl_fem_parproj_solve(parproj, output);
+  gkyl_array_copy(host, output);
+  for (int dir = 0; dir < 3; dir++) {
+    double jump = ts_field_face_jump(&setup, &setup.local, host, dir);
+    TEST_CHECK(jump < 1e-11);
+    TEST_MSG("nx=%d gpu=%d dir=%d jump=%.3e", cells, use_gpu, dir, jump);
+  }
+  gkyl_fem_parproj_release(parproj);
+  gkyl_fem_proj_release(proj);
+  gkyl_deflate_zsurf_release(deflate);
+  gkyl_translate_dim_release(inflate);
+  gkyl_bc_twistshift_release(ts);
+  gkyl_eval_on_nodes_release(eval);
+  gkyl_array_release(host);
+  gkyl_array_release(original);
+  gkyl_array_release(input);
+  gkyl_array_release(output);
+  gkyl_array_release(boundary_field);
+  gkyl_array_release(projected);
+  return sqrt(error_sq);
+}
+
+// Test deflation/inflation, zero shift, Preservation of a constant field, filtering, and p1
+// convergence.
+static void
+test_ts_field_projection(bool use_gpu)
+{
+  ts_field_deflate_inflate(use_gpu); // Deflation/inflation
+  ts_field_projection_case(8, use_gpu, true, false, false); // Zero shift.
+  ts_field_projection_case(8, use_gpu, false, true, false); // Preserving a constant.
+  ts_field_projection_case(8, use_gpu, false, false, true); // Filter.
+  // Convergence.
+  double prev = ts_field_projection_case(8, use_gpu, false, false, false);
+  for (int cells = 16; cells <= 32; cells *= 2) {
+    double err = ts_field_projection_case(cells, use_gpu, false, false, false);
+    double order = log(prev / err) / log(2.0);
+    TEST_CHECK(order > 1.8);
+    TEST_MSG("nx=%d error=%.3e order=%.3f", cells, err, order);
+    prev = err;
+  }
+}
+
+static void
+test_bc_twistshift_field_projection_ho(void)
+{
+  test_ts_field_projection(false);
+}
+#ifdef GKYL_HAVE_CUDA
+static void
+test_bc_twistshift_field_projection_dev(void)
+{
+  test_ts_field_projection(true);
+}
+#endif
+
 TEST_LIST = {
   {"test_bc_twistshift_zero_shift_is_identity_ho", test_bc_twistshift_zero_shift_is_identity_ho},
   {"test_bc_twistshift_zero_shear_is_cell_translation_ho",
@@ -596,10 +931,15 @@ TEST_LIST = {
    test_bc_twistshift_identity_filter_matches_plain_ho},
   {"test_bc_twistshift_upsample_no_shear_matches_plain_ho",
    test_bc_twistshift_upsample_no_shear_matches_plain_ho},
+  {"test_bc_twistshift_upsample_six_cbc_grid_ho", test_bc_twistshift_upsample_six_cbc_grid_ho},
   {"test_bc_twistshift_shift_dg_matches_shift_func_ho",
    test_bc_twistshift_shift_dg_matches_shift_func_ho},
   {"test_bc_twistshift_dealiasing_smooths_shear_direction_ho",
    test_bc_twistshift_dealiasing_smooths_shear_direction_ho},
   {"test_bc_twistshift_preserves_y_average_ho", test_bc_twistshift_preserves_y_average_ho},
+  {"test_bc_twistshift_field_projection_ho", test_bc_twistshift_field_projection_ho},
+#ifdef GKYL_HAVE_CUDA
+  {"test_bc_twistshift_field_projection_dev", test_bc_twistshift_field_projection_dev},
+#endif
   {NULL, NULL}
 };

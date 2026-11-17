@@ -9,12 +9,15 @@
 // Forward declare internal object
 struct gkyl_mirror_grid_gen_x;
 
-// Geometric quantities: various vectors are stored as contravariant
-// components
+// Geometric quantities: vectors use contravariant components in the
+// right-handed (R, phi, Z) basis, as required by gkyl_vec3_polar_con_to_cart.
+// Positions in nodes_rza use cylindrical coordinate order (R, Z, phi).
+// The flux convention is B = grad(psi) x grad(phi), so increasing radial
+// flux gives B_Z > 0 and B follows increasing Z along a field line.
 struct gkyl_mirror_grid_gen_geom {
   struct gkyl_vec3 tang[3]; // tangent vectors, e_i
   struct gkyl_vec3 dual[3]; // dual vectors, e^i
-  struct gkyl_vec3 B; // Magnetic field
+  struct gkyl_vec3 B; // Magnetic field: B_R = -psi_Z/R, B_Z = psi_R/R, B_phi = 0.
   double Jc; // Jacobian = e_1*(e_2 X e_3)  = 1/e^1*(e^2 X e^3)
   struct gkyl_vec3 curlbhat; // \nabla X \hat{b}
 };
@@ -37,6 +40,7 @@ enum gkyl_mirror_grid_gen_field_line_coord {
 
 // input struct to construct the mirror geometry
 struct gkyl_mirror_grid_gen_inp {
+  int world_dim; // Active configuration dimensions; 0 or 3 samples all directions.
   const struct gkyl_rect_grid *comp_grid; // Computational space grid (psi, phi, z)
   const struct gkyl_range nrange; // Nodal range
   const struct gkyl_range local; // local range

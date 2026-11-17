@@ -10,7 +10,7 @@ EXTERN_C_BEG
 GKYL_CU_DH double dg_gyrokinetic_passive_vol_1x1v_ser_p1(const double *w, const double *dxv,
             const double *vmap, const double *vmapSq, const double q_, const double m_,
             const double *bmag, const double *speeds,
-            const double *dualcurlbhatoverB, const double *rtg33inv, const double* bioverJB,
+            const double *dualcurlbhatoverB, const double *B3overB, const double* bioverJB,
             const double *fin, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double dg_gyrokinetic_passive_surfx_1x1v_ser_p1(const double *w, const double *dxv,
               const double *vmap_prime_l, const double *vmap_prime_c, const double *vmap_prime_r, 
@@ -24,7 +24,7 @@ GKYL_CU_DH double dg_gyrokinetic_passive_boundary_surfx_1x1v_ser_p1(const double
 GKYL_CU_DH double dg_gyrokinetic_passive_vol_1x2v_ser_p1(const double *w, const double *dxv,
             const double *vmap, const double *vmapSq, const double q_, const double m_,
             const double *bmag, const double *speeds,
-            const double *dualcurlbhatoverB, const double *rtg33inv, const double* bioverJB,
+            const double *dualcurlbhatoverB, const double *B3overB, const double* bioverJB,
             const double *fin, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double dg_gyrokinetic_passive_surfx_1x2v_ser_p1(const double *w, const double *dxv,
               const double *vmap_prime_l, const double *vmap_prime_c, const double *vmap_prime_r, 
@@ -38,7 +38,7 @@ GKYL_CU_DH double dg_gyrokinetic_passive_boundary_surfx_1x2v_ser_p1(const double
 GKYL_CU_DH double dg_gyrokinetic_passive_vol_2x2v_ser_p1(const double *w, const double *dxv,
             const double *vmap, const double *vmapSq, const double q_, const double m_,
             const double *bmag, const double *speeds,
-            const double *dualcurlbhatoverB, const double *rtg33inv, const double* bioverJB,
+            const double *dualcurlbhatoverB, const double *B3overB, const double* bioverJB,
             const double *fin, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double dg_gyrokinetic_passive_surfx_2x2v_ser_p1(const double *w, const double *dxv,
               const double *vmap_prime_l, const double *vmap_prime_c, const double *vmap_prime_r, 
@@ -60,7 +60,7 @@ GKYL_CU_DH double dg_gyrokinetic_passive_boundary_surfy_2x2v_ser_p1(const double
 GKYL_CU_DH double dg_gyrokinetic_passive_vol_3x2v_ser_p1(const double *w, const double *dxv,
             const double *vmap, const double *vmapSq, const double q_, const double m_,
             const double *bmag, const double *speeds,
-            const double *dualcurlbhatoverB, const double *rtg33inv, const double* bioverJB,
+            const double *dualcurlbhatoverB, const double *B3overB, const double* bioverJB,
             const double *fin, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double dg_gyrokinetic_passive_surfx_3x2v_ser_p1(const double *w, const double *dxv,
               const double *vmap_prime_l, const double *vmap_prime_c, const double *vmap_prime_r, 

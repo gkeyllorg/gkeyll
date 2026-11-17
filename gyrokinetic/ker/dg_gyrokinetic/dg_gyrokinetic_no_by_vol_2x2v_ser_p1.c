@@ -1,7 +1,7 @@
 #include <gkyl_dg_gyrokinetic_kernels.h> 
 GKYL_CU_DH double dg_gyrokinetic_no_by_vol_2x2v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *vmapSq,
     const double q_, const double m_, const double *bmag, const double *phi,
-    const double *dualcurlbhatoverB, const double *rtg33inv, const double *bioverJB,
+    const double *dualcurlbhatoverB, const double *B3overB, const double *bioverJB,
     const double *fin, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]: cell-center.
@@ -53,14 +53,14 @@ GKYL_CU_DH double dg_gyrokinetic_no_by_vol_2x2v_ser_p1(const double *w, const do
 
 
   double alphaz[24] = {0.}; 
-  alphaz[0] = (0.7071067811865475*rtg33inv[0]*hamil[3]*rdz2)/(vmap[1]*m_); 
-  alphaz[1] = (0.7071067811865475*rtg33inv[1]*hamil[3]*rdz2)/(vmap[1]*m_); 
-  alphaz[2] = (0.7071067811865475*rtg33inv[2]*hamil[3]*rdz2)/(vmap[1]*m_); 
-  alphaz[3] = (1.5811388300841895*rtg33inv[0]*hamil[16]*rdz2)/(vmap[1]*m_); 
-  alphaz[5] = (0.7071067811865475*hamil[3]*rtg33inv[3]*rdz2)/(vmap[1]*m_); 
-  alphaz[6] = (1.5811388300841895*rtg33inv[1]*hamil[16]*rdz2)/(vmap[1]*m_); 
-  alphaz[7] = (1.5811388300841895*rtg33inv[2]*hamil[16]*rdz2)/(vmap[1]*m_); 
-  alphaz[11] = (1.5811388300841895*rtg33inv[3]*hamil[16]*rdz2)/(vmap[1]*m_); 
+  alphaz[0] = (0.7071067811865475*B3overB[0]*hamil[3]*rdz2)/(vmap[1]*m_); 
+  alphaz[1] = (0.7071067811865475*B3overB[1]*hamil[3]*rdz2)/(vmap[1]*m_); 
+  alphaz[2] = (0.7071067811865475*B3overB[2]*hamil[3]*rdz2)/(vmap[1]*m_); 
+  alphaz[3] = (1.5811388300841895*B3overB[0]*hamil[16]*rdz2)/(vmap[1]*m_); 
+  alphaz[5] = (0.7071067811865475*hamil[3]*B3overB[3]*rdz2)/(vmap[1]*m_); 
+  alphaz[6] = (1.5811388300841895*B3overB[1]*hamil[16]*rdz2)/(vmap[1]*m_); 
+  alphaz[7] = (1.5811388300841895*B3overB[2]*hamil[16]*rdz2)/(vmap[1]*m_); 
+  alphaz[11] = (1.5811388300841895*B3overB[3]*hamil[16]*rdz2)/(vmap[1]*m_); 
 
 
   out[2] += 0.4330127018922193*(alphaz[11]*fin[11]+alphaz[7]*fin[7]+alphaz[6]*fin[6]+alphaz[5]*fin[5]+alphaz[3]*fin[3]+alphaz[2]*fin[2]+alphaz[1]*fin[1]+alphaz[0]*fin[0]); 
@@ -77,14 +77,14 @@ GKYL_CU_DH double dg_gyrokinetic_no_by_vol_2x2v_ser_p1(const double *w, const do
   out[23] += 0.4330127018922193*alphaz[2]*fin[23]+0.43301270189221935*(alphaz[5]*fin[22]+alphaz[0]*fin[21])+0.4330127018922193*alphaz[1]*fin[19]+0.3872983346207417*(alphaz[7]*fin[15]+alphaz[11]*fin[14]+alphaz[3]*fin[13]+alphaz[6]*fin[10]); 
 
   double alphavpar[24] = {0.}; 
-  alphavpar[0] = ((-(0.7071067811865475*rtg33inv[1]*hamil[5])-0.7071067811865475*rtg33inv[0]*hamil[2])*rdz2)/(vmap[1]*m_); 
-  alphavpar[1] = ((-(0.7071067811865475*rtg33inv[0]*hamil[5])-0.7071067811865475*rtg33inv[1]*hamil[2])*rdz2)/(vmap[1]*m_); 
-  alphavpar[2] = ((-(0.7071067811865475*rtg33inv[3]*hamil[5])-0.7071067811865475*hamil[2]*rtg33inv[2])*rdz2)/(vmap[1]*m_); 
-  alphavpar[4] = ((-(0.7071067811865475*rtg33inv[1]*hamil[12])-0.7071067811865475*rtg33inv[0]*hamil[9])*rdz2)/(vmap[1]*m_); 
-  alphavpar[5] = ((-(0.7071067811865475*rtg33inv[2]*hamil[5])-0.7071067811865475*hamil[2]*rtg33inv[3])*rdz2)/(vmap[1]*m_); 
-  alphavpar[8] = ((-(0.7071067811865475*rtg33inv[0]*hamil[12])-0.7071067811865475*rtg33inv[1]*hamil[9])*rdz2)/(vmap[1]*m_); 
-  alphavpar[9] = ((-(0.7071067811865475*rtg33inv[3]*hamil[12])-0.7071067811865475*rtg33inv[2]*hamil[9])*rdz2)/(vmap[1]*m_); 
-  alphavpar[12] = ((-(0.7071067811865475*rtg33inv[2]*hamil[12])-0.7071067811865475*rtg33inv[3]*hamil[9])*rdz2)/(vmap[1]*m_); 
+  alphavpar[0] = ((-(0.7071067811865475*B3overB[1]*hamil[5])-0.7071067811865475*B3overB[0]*hamil[2])*rdz2)/(vmap[1]*m_); 
+  alphavpar[1] = ((-(0.7071067811865475*B3overB[0]*hamil[5])-0.7071067811865475*B3overB[1]*hamil[2])*rdz2)/(vmap[1]*m_); 
+  alphavpar[2] = ((-(0.7071067811865475*B3overB[3]*hamil[5])-0.7071067811865475*hamil[2]*B3overB[2])*rdz2)/(vmap[1]*m_); 
+  alphavpar[4] = ((-(0.7071067811865475*B3overB[1]*hamil[12])-0.7071067811865475*B3overB[0]*hamil[9])*rdz2)/(vmap[1]*m_); 
+  alphavpar[5] = ((-(0.7071067811865475*B3overB[2]*hamil[5])-0.7071067811865475*hamil[2]*B3overB[3])*rdz2)/(vmap[1]*m_); 
+  alphavpar[8] = ((-(0.7071067811865475*B3overB[0]*hamil[12])-0.7071067811865475*B3overB[1]*hamil[9])*rdz2)/(vmap[1]*m_); 
+  alphavpar[9] = ((-(0.7071067811865475*B3overB[3]*hamil[12])-0.7071067811865475*B3overB[2]*hamil[9])*rdz2)/(vmap[1]*m_); 
+  alphavpar[12] = ((-(0.7071067811865475*B3overB[2]*hamil[12])-0.7071067811865475*B3overB[3]*hamil[9])*rdz2)/(vmap[1]*m_); 
 
 
   out[3] += 0.4330127018922193*(alphavpar[12]*fin[12]+alphavpar[9]*fin[9]+alphavpar[8]*fin[8]+alphavpar[5]*fin[5]+alphavpar[4]*fin[4]+alphavpar[2]*fin[2]+alphavpar[1]*fin[1]+alphavpar[0]*fin[0]); 

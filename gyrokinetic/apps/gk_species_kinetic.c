@@ -488,11 +488,12 @@ gk_species_kinetic_init_dynamic(
         .filter_half_width = app->core_parallel_bcs.ts_filter_half_width,
         .filter_cutoff_wavelength = app->core_parallel_bcs.ts_filter_cutoff_wavelength,
       };
-      if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK) {
-        tsinp.shift_dg = app->delta_ts_x_lo;
+      // User shift functions are projected on the (possibly upsampled) twist-shift grid.
+      if (app->core_parallel_bcs.lower_shift_func) {
+        tsinp.shift_func = app->core_parallel_bcs.lower_shift_func;
+        tsinp.shift_func_ctx = app->core_parallel_bcs.lower_shift_ctx;
       } else {
-        tsinp.shift_func = app->gk_geom->lower_shift_func;
-        tsinp.shift_func_ctx = app->gk_geom->lower_shift_ctx;
+        tsinp.shift_dg = app->delta_ts_x_lo;
       }
 
       gks->bc_ts_lo = gkyl_bc_twistshift_inew(&tsinp);
@@ -563,11 +564,12 @@ gk_species_kinetic_init_dynamic(
         .filter_half_width = app->core_parallel_bcs.ts_filter_half_width,
         .filter_cutoff_wavelength = app->core_parallel_bcs.ts_filter_cutoff_wavelength,
       };
-      if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK) {
-        tsinp.shift_dg = app->delta_ts_x_up;
+      // User shift functions are projected on the (possibly upsampled) twist-shift grid.
+      if (app->core_parallel_bcs.upper_shift_func) {
+        tsinp.shift_func = app->core_parallel_bcs.upper_shift_func;
+        tsinp.shift_func_ctx = app->core_parallel_bcs.upper_shift_ctx;
       } else {
-        tsinp.shift_func = app->gk_geom->upper_shift_func;
-        tsinp.shift_func_ctx = app->gk_geom->upper_shift_ctx;
+        tsinp.shift_dg = app->delta_ts_x_up;
       }
 
       gks->bc_ts_up = gkyl_bc_twistshift_inew(&tsinp);
@@ -624,11 +626,12 @@ gk_species_kinetic_init_dynamic(
       .filter_half_width = app->core_parallel_bcs.ts_filter_half_width,
       .filter_cutoff_wavelength = app->core_parallel_bcs.ts_filter_cutoff_wavelength,
     };
-    if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK) {
-      tsinp_lo.shift_dg = app->delta_ts_x_lo;
+    // User shift functions are projected on the (possibly upsampled) twist-shift grid.
+    if (app->core_parallel_bcs.lower_shift_func) {
+      tsinp_lo.shift_func = app->core_parallel_bcs.lower_shift_func;
+      tsinp_lo.shift_func_ctx = app->core_parallel_bcs.lower_shift_ctx;
     } else {
-      tsinp_lo.shift_func = app->gk_geom->lower_shift_func;
-      tsinp_lo.shift_func_ctx = app->gk_geom->lower_shift_ctx;
+      tsinp_lo.shift_dg = app->delta_ts_x_lo;
     }
     gks->bc_ts_lo = gkyl_bc_twistshift_inew(&tsinp_lo);
 
@@ -647,11 +650,12 @@ gk_species_kinetic_init_dynamic(
       .filter_half_width = app->core_parallel_bcs.ts_filter_half_width,
       .filter_cutoff_wavelength = app->core_parallel_bcs.ts_filter_cutoff_wavelength,
     };
-    if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK) {
-      tsinp_up.shift_dg = app->delta_ts_x_up;
+    // User shift functions are projected on the (possibly upsampled) twist-shift grid.
+    if (app->core_parallel_bcs.upper_shift_func) {
+      tsinp_up.shift_func = app->core_parallel_bcs.upper_shift_func;
+      tsinp_up.shift_func_ctx = app->core_parallel_bcs.upper_shift_ctx;
     } else {
-      tsinp_up.shift_func = app->gk_geom->upper_shift_func;
-      tsinp_up.shift_func_ctx = app->gk_geom->upper_shift_ctx;
+      tsinp_up.shift_dg = app->delta_ts_x_up;
     }
     gks->bc_ts_up = gkyl_bc_twistshift_inew(&tsinp_up);
   }
@@ -762,7 +766,7 @@ gk_species_kinetic_read_distf_from_file(
     // Read basis info from header, check its consistency.
     struct gkyl_msgpack_map_elem elem_list[] = {
       {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0},
-      {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = 0}
+      {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = 0},
     };
     int elem_list_len = sizeof(elem_list) / sizeof(elem_list[0]);
     gkyl_msgpack_to_map_elem_list(

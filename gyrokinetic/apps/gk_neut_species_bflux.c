@@ -559,11 +559,13 @@ gk_neut_species_bflux_write_integrated_mom_enabled(
 
         struct timespec wtm = gkyl_wall_clock();
         if (bflux->is_first_intmom_write_call[b]) {
-          struct gkyl_msgpack_map_elem io_meta_phi[] = {{
-            .key = "Description",
-            .elem_type = GKYL_MP_STRING,
-            .cval = "Volume integrated moments of the boundary flux.",
-          }};
+          struct gkyl_msgpack_map_elem io_meta_phi[] = {
+            {
+              .key = "Description",
+              .elem_type = GKYL_MP_STRING,
+              .cval = "Volume integrated moments of the boundary flux.",
+            },
+          };
           int io_meta_len[] = {gkns->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
           const struct gkyl_msgpack_map_elem *io_meta[] = {
             gkns->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi
@@ -615,11 +617,13 @@ gk_neut_species_bflux_write_mom_enabled(
   // Package metadata.
   gkyl_msgpack_map_elem_set_double(gkns->io_meta_conf_len, gkns->io_meta_conf, "time", tm);
   gkyl_msgpack_map_elem_set_uint(gkns->io_meta_conf_len, gkns->io_meta_conf, "frame", frame);
-  struct gkyl_msgpack_map_elem desc[] = {{
-    .key = "Description",
-    .elem_type = GKYL_MP_STRING,
-    .cval = "Velocity-space moment of the boundary flux.",
-  }};
+  struct gkyl_msgpack_map_elem desc[] = {
+    {
+      .key = "Description",
+      .elem_type = GKYL_MP_STRING,
+      .cval = "Velocity-space moment of the boundary flux.",
+    },
+  };
   int io_meta_len[] = {gkns->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1};
   const struct gkyl_msgpack_map_elem *io_meta[] = {
     gkns->io_meta_conf, app->gk_geom->io_meta_basic, desc
@@ -826,7 +830,7 @@ gk_neut_species_bflux_init(
 
     int eqc = 0;
     if (gkns->collisionless.collisionless_id == GKYL_GK_COLLISIONLESS_NEUTRAL) {
-      bflux->eqns[eqc++] = gkyl_dg_updater_vlasov_acquire_eqn(gkns->collisionless.vlasov_slvr);
+      bflux->eqns[eqc++] = gkyl_dg_eqn_acquire(gkns->collisionless.eqn_vlasov);
     }
 
     // Allocate updater that computes boundary fluxes.
@@ -908,48 +912,11 @@ gk_neut_species_bflux_init(
 
     // Create a moments app for each mom needed.
     bflux->moms_op = gkyl_malloc(sizeof(struct gk_species_moment[bflux->num_calc_moms]));
-    bool need_hamil_ghost = false;
     for (int m = 0; m < bflux->num_calc_moms; m++) {
       gk_neut_species_moment_init(app, gkns, &bflux->moms_op[m], bflux->calc_mom_names[m], false);
-
-      need_hamil_ghost = (bflux->calc_mom_names[m] == GKYL_F_MOMENT_M1_FROM_H) ||
-                         (bflux->calc_mom_names[m] == GKYL_F_MOMENT_ENERGY);
     }
-
-    if (need_hamil_ghost) {
-      // For moments that use the Hamiltonian, we must fill the ghost cell of H. Use an option
-      // in bc_basic that fills the ghost cells keeping the value at the skin-ghost boundary the same.
-      long buff_sz = 0;
-      for (int b = 0; b < bflux->num_boundaries; ++b) {
-        int dir = bflux->boundaries_dir[b];
-        struct gkyl_range *skin_r = bflux->boundaries_edge[b] == GKYL_LOWER_EDGE ?
-                                      &gkns->local_lower_skin[dir] :
-                                      &gkns->local_upper_skin[dir];
-
-        // MF 2025/09/29: The option `GKYL_BC_GK_SPECIES_REFLECT` here is a
-        // just a place holder and almost certainly wrong. Currently REFLECT is
-        // meant to reflect particles. Need something that mirrors the
-        // Hamiltonian into the ghost cell.
-        bflux->gfss_bc_op[b] = gkyl_bc_basic_gyrokinetic_new(
-          bflux->boundaries_dir[b], bflux->boundaries_edge[b], GKYL_BC_GK_SPECIES_REFLECT,
-          &gkns->basis, skin_r, bflux->boundaries_phase_ghost[b], 1, app->cdim, app->use_gpu
-        );
-
-        long vol = skin_r->volume;
-        buff_sz = buff_sz > vol ? buff_sz : vol;
-      }
-      bflux->bc_buffer = mkarr(app->use_gpu, gkns->basis.num_basis, buff_sz);
-
-      // Fill ghost cell of H.
-      for (int b = 0; b < bflux->num_boundaries; ++b) {
-        gkyl_bc_basic_gyrokinetic_advance(bflux->gfss_bc_op[b], bflux->bc_buffer, gkns->hamil);
-      }
-
-      gkyl_array_release(bflux->bc_buffer);
-      for (int b = 0; b < bflux->num_boundaries; ++b) {
-        gkyl_bc_basic_gyrokinetic_release(bflux->gfss_bc_op[b]);
-      }
-    }
+    // No Hamiltonian ghost fill needed: the triad Hamiltonian is a function of
+    // velocity space only, so it has no configuration-space ghost cells.
 
     bflux->f =
       gkyl_malloc(bflux->num_boundaries * bflux->num_calc_moms * sizeof(struct gkyl_array *));

@@ -506,9 +506,9 @@ main(int argc, char **argv)
   // start, end and initial time-step
   double tcurr = 0.0, tend = ctx.tend;
   double dt = tend - tcurr;
-  int nframe = 1;
+  int num_frames = 1;
   // create trigger for IO
-  struct gkyl_tm_trigger io_trig = {.dt = tend / nframe};
+  struct gkyl_tm_trigger io_trig = {.dt = tend / num_frames};
 
   // initialize simulation
   gkyl_pkpm_app_apply_ic(app, tcurr);

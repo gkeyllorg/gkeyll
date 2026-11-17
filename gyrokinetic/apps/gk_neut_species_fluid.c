@@ -850,8 +850,6 @@ gk_neut_species_fluid_release(const gkyl_gyrokinetic_app *app, const struct gk_n
 
   gk_neut_species_bgk_release(app, &ns->bgk);
 
-  gk_neut_species_positivity_release(app, &ns->positivity);
-
   gk_neut_species_react_release(app, &ns->react_neut);
 
   // Free boundary flux memory.
@@ -1159,7 +1157,7 @@ gk_neut_species_fluid_init(
     {.key = "mass", .elem_type = GKYL_MP_DOUBLE, .dval = ns->info.mass},
     {.key = "charge", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0},
     {.key = "gas_gamma", .elem_type = GKYL_MP_DOUBLE, .dval = ns->info.gas_gamma},
-    {.key = "vdim", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = ns->info.vdim}
+    {.key = "vdim", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = ns->info.vdim},
   };
 
   // Metadata for integrated quantities.
@@ -1174,10 +1172,11 @@ gk_neut_species_fluid_init(
 
   // Metadata for conf-space quantities.
   struct gkyl_msgpack_map_elem io_meta_conf[] = {
+    {.key = "value_form", .elem_type = GKYL_MP_STRING, .cval = "modal"},
     {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = app->basis.poly_order},
     {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = app->basis.id},
     {.key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0},
-    {.key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0}
+    {.key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0},
   };
   const struct gkyl_msgpack_map_elem *io_meta_conf_union[] = {
     app->io_meta_basic, io_meta_sprop, io_meta_conf
@@ -1267,10 +1266,6 @@ gk_neut_species_fluid_init(
   ns->bgk = (struct gk_bgk_collisions){};
   ns->info.collisions.collision_id = 0;
   gk_neut_species_bgk_init(app, ns, &ns->bgk);
-
-  // Initialize positivity enforcing operator with null type (NYI for fluids).
-  ns->positivity = (struct gk_positivity){};
-  gk_neut_species_positivity_init(app, ns, &ns->positivity);
 
   // Initialize reactions with charged species. Fluid neutrals use the
   // ionization reaction as a density loss; CX supplies the diffusion rate.

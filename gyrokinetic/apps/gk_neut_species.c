@@ -227,7 +227,7 @@ gk_neut_species_write_dynamic(
       .cval = gkns->is_fluid ? "Neutral fluid moments times Jacobians." :
                                "Neutral species distribution times Jacobians.",
     },
-    {.key = "is_fluid", .elem_type = GKYL_MP_BOOL, .bval = gkns->is_fluid}
+    {.key = "is_fluid", .elem_type = GKYL_MP_BOOL, .bval = gkns->is_fluid},
   };
   int desc_f_len = sizeof(desc_f) / sizeof(desc_f[0]);
   int io_meta_len[] = {gkns->io_meta_phase_len, app->gk_geom->io_meta_basic_len, desc_f_len};
@@ -263,8 +263,6 @@ gk_neut_species_write_dynamic(
     gkyl_msgpack_map_elem_set_double(gkns->io_meta_conf_len, gkns->io_meta_conf, "time", tm);
     gkyl_msgpack_map_elem_set_uint(gkns->io_meta_conf_len, gkns->io_meta_conf, "frame", frame);
     struct gkyl_msgpack_map_elem desc_diag[] = {
-      {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = app->basis.poly_order},
-      {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = "serendipity"},
       {
         .key = "implicit_iterations",
         .elem_type = GKYL_MP_UNSIGNED_INT,
@@ -274,7 +272,7 @@ gk_neut_species_write_dynamic(
         .key = "implicit_relative_residual",
         .elem_type = GKYL_MP_DOUBLE,
         .dval = gkns->implicit_diffusion ? gkns->diffusion_implicit_last_residual : 0.0,
-      }
+      },
     };
     int diag_meta_len[] = {
       gkns->io_meta_conf_len, sizeof(desc_diag) / sizeof(desc_diag[0]),
@@ -294,18 +292,13 @@ gk_neut_species_write_dynamic(
       gkns->comm, &gkns->grid, &gkns->local, dmt, gkns->diffusion_coeff_host, dfile
     );
 
-    struct gkyl_msgpack_map_elem desc_cfl[] = {
-      {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0},
-      {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = "serendipity"}
-    };
-    int cfl_meta_len[] = {
-      gkns->io_meta_conf_len, sizeof(desc_cfl) / sizeof(desc_cfl[0]),
-      app->gk_geom->io_meta_basic_len
-    };
-    const struct gkyl_msgpack_map_elem *cfl_meta[] = {
-      gkns->io_meta_conf, desc_cfl, app->gk_geom->io_meta_basic
-    };
-    struct gkyl_msgpack_data *cmt = gkyl_msgpack_create_union(3, cfl_meta_len, cfl_meta);
+    struct gkyl_msgpack_map_elem *io_meta_cfl =
+      gkyl_msgpack_map_elem_clone(gkns->io_meta_conf_len, gkns->io_meta_conf);
+    gkyl_msgpack_map_elem_set_uint(gkns->io_meta_conf_len, io_meta_cfl, "poly_order", 0);
+    int cfl_meta_len[] = {gkns->io_meta_conf_len, app->gk_geom->io_meta_basic_len};
+    const struct gkyl_msgpack_map_elem *cfl_meta[] = {io_meta_cfl, app->gk_geom->io_meta_basic};
+    struct gkyl_msgpack_data *cmt = gkyl_msgpack_create_union(2, cfl_meta_len, cfl_meta);
+    gkyl_msgpack_map_elem_release(gkns->io_meta_conf_len, io_meta_cfl);
 
     dname = "diffusion_cflrate";
     dsz = gkyl_calc_strlen(dfmt, app->name, gkns->info.name, dname, frame);
@@ -357,11 +350,13 @@ gk_neut_species_write_mom_dynamic(
       gkyl_array_copy(gkns->moms[m].marr_host, gkns->moms[m].marr);
     }
 
-    struct gkyl_msgpack_map_elem desc_mom[] = {{
-      .key = "Description",
-      .elem_type = GKYL_MP_STRING,
-      .cval = (char *)gkyl_distribution_moments_descriptions[gkns->info.diag_moments[m]],
-    }};
+    struct gkyl_msgpack_map_elem desc_mom[] = {
+      {
+        .key = "Description",
+        .elem_type = GKYL_MP_STRING,
+        .cval = (char *)gkyl_distribution_moments_descriptions[gkns->info.diag_moments[m]],
+      },
+    };
     int io_meta_len[] = {gkns->io_meta_phase_len, app->gk_geom->io_meta_basic_len, 1};
     const struct gkyl_msgpack_map_elem *io_meta[] = {
       gkns->io_meta_phase, app->gk_geom->io_meta_basic, desc_mom
@@ -433,11 +428,13 @@ gk_neut_species_write_integrated_mom_dynamic(gkyl_gyrokinetic_app *app, struct g
     snprintf(fileNm, sizeof fileNm, fmt, app->name, gkns->info.name, "integrated_moms");
 
     if (gkns->is_first_integ_write_call) {
-      struct gkyl_msgpack_map_elem io_meta_phi[] = {{
-        .key = "Description",
-        .elem_type = GKYL_MP_STRING,
-        .cval = "Volume integrated moments of neutral species.",
-      }};
+      struct gkyl_msgpack_map_elem io_meta_phi[] = {
+        {
+          .key = "Description",
+          .elem_type = GKYL_MP_STRING,
+          .cval = "Volume integrated moments of neutral species.",
+        },
+      };
       int io_meta_len[] = {gkns->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
       const struct gkyl_msgpack_map_elem *io_meta[] = {
         gkns->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi

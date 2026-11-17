@@ -47,13 +47,13 @@ create_block_geom(void)
         {
           // x-direction connections
           {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
-          {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL} // physical boundary
+          {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
         },
       .connections[1] =
         {
           // y-direction connections
           {.bid = 1, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
-          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL} // physical boundary
+          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}, // physical boundary
         },
     }
   );
@@ -68,14 +68,16 @@ create_block_geom(void)
       .cuts = {1, 1},
 
       .connections[0] =
-        {// x-direction connections
-         {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
-         {.bid = 2, .dir = 0, .edge = GKYL_LOWER_POSITIVE}
+        {
+          // x-direction connections
+          {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
+          {.bid = 2, .dir = 0, .edge = GKYL_LOWER_POSITIVE},
         },
       .connections[1] =
-        {// y-direction connections
-         {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}, // physical boundary
-         {.bid = 0, .dir = 1, .edge = GKYL_LOWER_POSITIVE}
+        {
+          // y-direction connections
+          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}, // physical boundary
+          {.bid = 0, .dir = 1, .edge = GKYL_LOWER_POSITIVE},
         },
     }
   );
@@ -93,13 +95,13 @@ create_block_geom(void)
         {
           // x-direction connections
           {.bid = 1, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
-          {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL} // physical boundary
+          {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
         },
       .connections[1] =
         {
           // y-direction connections
           {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}, // physical boundary
-          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL} // physical boundary
+          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}, // physical boundary
         },
     }
   );
@@ -184,7 +186,7 @@ main(int argc, char **argv)
     // block 2 BCs
     {.bidx = 2, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_COPY},
     {.bidx = 2, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_REFLECT},
-    {.bidx = 2, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_REFLECT}
+    {.bidx = 2, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_REFLECT},
   };
 
   struct gkyl_moment_multib_species euler = {

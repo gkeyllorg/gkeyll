@@ -256,7 +256,7 @@ gklbo_write_mom_enabled(gkyl_gyrokinetic_app *app, struct gk_species *gks, doubl
   gkyl_msgpack_map_elem_set_double(gks->io_meta_conf_len, gks->io_meta_conf, "time", tm);
   gkyl_msgpack_map_elem_set_uint(gks->io_meta_conf_len, gks->io_meta_conf, "frame", frame);
   struct gkyl_msgpack_map_elem desc_nu_sum[] = {
-    {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Sum of collision frequencies."}
+    {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Sum of collision frequencies."},
   };
   int io_meta_nu_sum_len[] = {gks->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1};
   const struct gkyl_msgpack_map_elem *io_meta_nu_sum[] = {
@@ -266,12 +266,14 @@ gklbo_write_mom_enabled(gkyl_gyrokinetic_app *app, struct gk_species *gks, doubl
     sizeof(io_meta_nu_sum_len) / sizeof(int), io_meta_nu_sum_len, io_meta_nu_sum
   );
 
-  struct gkyl_msgpack_map_elem desc_nu_prim[] = {{
-    .key = "Description",
-    .elem_type = GKYL_MP_STRING,
-    .cval = "Drift velocity and thermal speed squared, times collision frequency, summed over "
-            "colliding species.",
-  }};
+  struct gkyl_msgpack_map_elem desc_nu_prim[] = {
+    {
+      .key = "Description",
+      .elem_type = GKYL_MP_STRING,
+      .cval = "Drift velocity and thermal speed squared, times collision frequency, summed over "
+              "colliding species.",
+    },
+  };
   int io_meta_nu_prim_len[] = {gks->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1};
   const struct gkyl_msgpack_map_elem *io_meta_nu_prim[] = {
     gks->io_meta_conf, app->gk_geom->io_meta_basic, desc_nu_prim
