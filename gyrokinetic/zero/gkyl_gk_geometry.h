@@ -177,6 +177,7 @@ struct gk_geom_int {
 struct gk_geometry {
   int world_dim; // Active configuration dimensions; 0 or 3 samples the full 3D grid.
   enum gkyl_geometry_id geometry_id;
+  bool tangent_only; // Auxiliary interior samples for deflated tangent derivatives.
 
   // Objects for mapc2p and finite differences array.
   struct gkyl_range local;

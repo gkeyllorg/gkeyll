@@ -173,6 +173,25 @@ gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp, bool optimize_ma
   return up;
 }
 
+void
+gk_geometry_tok_tangent_samples(struct gk_geometry *up, struct gkyl_gk_geometry_inp *geometry_inp)
+{
+  const struct gkyl_efit_inp inp = geometry_inp->efit_info;
+  struct gkyl_tok_geo_grid_inp ginp = geometry_inp->tok_grid_info;
+  ginp.cgrid = up->grid;
+  ginp.cbasis = up->basis;
+  struct gkyl_tok_geo *geo = gkyl_tok_geo_new(&inp, &ginp);
+
+  gkyl_tok_geo_calc_interior(up, &up->nrange_int, up->dzc, geo, &ginp, geometry_inp->position_map);
+
+  struct gkyl_calc_metric *mcalc = gkyl_calc_metric_new(
+    &up->basis, &up->grid, &up->global, &up->global_ext, &up->local, &up->local_ext, true, false
+  );
+  gkyl_calc_metric_advance_rz_interior(mcalc, up);
+  gkyl_calc_metric_release(mcalc);
+  gkyl_tok_geo_release(geo);
+}
+
 struct gk_geometry *
 gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geometry_inp)
 {

@@ -31,6 +31,7 @@ gkyl_gk_geometry_new(
   struct gk_geometry *up = gkyl_malloc(sizeof(struct gk_geometry));
   up->world_dim = geometry_inp->grid.ndim;
   up->geometry_id = geometry_inp->geometry_id;
+  up->tangent_only = false;
   up->basis = geometry_inp->basis;
   up->local = geometry_inp->local;
   up->local_ext = geometry_inp->local_ext;
@@ -586,18 +587,79 @@ gk_geometry_derivative_samples(const struct gkyl_gk_geometry_inp *inp)
   if (inp->grid.ndim == 1) {
     sample.mirror_grid_info.include_axis = false;
   }
+  // The temporary object owns only the interior arrays used to recover tangents.
+  // Each provider runs its usual interior sampler and tangent calculation.
+  struct gk_geometry *up = gkyl_calloc(1, sizeof(*up));
+  up->world_dim = sample.grid.ndim;
+  up->geometry_id = sample.geometry_id;
+  up->tangent_only = true;
+  up->basis = sample.geo_basis;
+  up->local = sample.geo_local;
+  up->local_ext = sample.geo_local_ext;
+  up->global = sample.geo_global;
+  up->global_ext = sample.geo_global_ext;
+  up->grid = sample.geo_grid;
+  gk_geometry_set_nodal_ranges(up);
+  gk_geometry_int_alloc_nodal(up);
+
   switch (sample.geometry_id) {
     case GKYL_GEOMETRY_TOKAMAK:
-      return gk_geometry_tok_init(&sample, false);
+      gk_geometry_tok_tangent_samples(up, &sample);
+      break;
     case GKYL_GEOMETRY_MIRROR:
-      return gk_geometry_mirror_init(&sample, false);
+      gk_geometry_mirror_tangent_samples(up, &sample);
+      break;
     case GKYL_GEOMETRY_MAPC2P:
     case GKYL_GEOMETRY_NONE:
-      return gk_geometry_mapc2p_init(&sample, false);
+      gk_geometry_mapc2p_tangent_samples(up, &sample);
+      break;
     default:
       gkyl_exit("Unsupported geometry provider for tangent derivatives.");
   }
-  return NULL;
+  return up;
+}
+
+static void
+gk_geometry_int_release_expansions(struct gk_geometry *up)
+{
+  gkyl_array_release(up->geo_int.mc2p);
+  gkyl_array_release(up->geo_int.bmag);
+  gkyl_array_release(up->geo_int.g_ij);
+  gkyl_array_release(up->geo_int.g_ij_neut);
+  gkyl_array_release(up->geo_int.dxdz);
+  gkyl_array_release(up->geo_int.dxdz_grad);
+  gkyl_array_release(up->geo_int.dzdx);
+  gkyl_array_release(up->geo_int.dualmag);
+  gkyl_array_release(up->geo_int.normals);
+  gkyl_array_release(up->geo_int.jacobgeo);
+  gkyl_array_release(up->geo_int.jacobgeo_ghost);
+  gkyl_array_release(up->geo_int.jacobgeo_inv);
+  gkyl_array_release(up->geo_int.gij);
+  gkyl_array_release(up->geo_int.gij_neut);
+  gkyl_array_release(up->geo_int.b_i);
+  gkyl_array_release(up->geo_int.bcart);
+  gkyl_array_release(up->geo_int.cmag);
+  gkyl_array_release(up->geo_int.jacobtot);
+  gkyl_array_release(up->geo_int.jacobtot_inv);
+  gkyl_array_release(up->geo_int.gxxj);
+  gkyl_array_release(up->geo_int.gxyj);
+  gkyl_array_release(up->geo_int.gyyj);
+  gkyl_array_release(up->geo_int.gxzj);
+  gkyl_array_release(up->geo_int.eps2);
+  gkyl_array_release(up->geo_int.dualcurlbhat);
+  gkyl_array_release(up->geo_int.dualcurlbhatoverB);
+  gkyl_array_release(up->geo_int.B3overB);
+  gkyl_array_release(up->geo_int.bioverJB);
+  gkyl_array_release(up->geo_int.B3);
+  gkyl_array_release(up->geo_int.qprofile);
+}
+
+static void
+gk_geometry_derivative_samples_release(struct gk_geometry *samples)
+{
+  gk_geometry_int_release_nodal(samples);
+  gk_geometry_int_release_expansions(samples);
+  gkyl_free(samples);
 }
 
 struct gk_geometry *
@@ -606,6 +668,7 @@ gkyl_gk_geometry_deflate(const struct gk_geometry *up_3d, struct gkyl_gk_geometr
   struct gk_geometry *up = gkyl_malloc(sizeof(struct gk_geometry));
   up->world_dim = geometry_inp->grid.ndim;
   up->geometry_id = geometry_inp->geometry_id;
+  up->tangent_only = false;
   up->basis = geometry_inp->basis;
   up->local = geometry_inp->local;
   up->local_ext = geometry_inp->local_ext;
@@ -787,7 +850,7 @@ gkyl_gk_geometry_deflate(const struct gk_geometry *up_3d, struct gkyl_gk_geometr
     deflator, &samples->nrange_int, &up->nrange_int, dxdz_grad_nodal_3d,
     up->geo_int.dxdz_grad_nodal, 27
   );
-  gkyl_gk_geometry_release(samples);
+  gk_geometry_derivative_samples_release(samples);
   gkyl_array_release(dxdz_grad_nodal_3d);
   struct gkyl_nodal_ops *n2m_grad = gkyl_nodal_ops_new(&up->basis, &up->grid, false);
   gkyl_nodal_ops_n2m(
@@ -1082,36 +1145,7 @@ gkyl_gk_geometry_free(const struct gkyl_ref_count *ref)
   gkyl_array_release(up->geo_corn.mc2p_deflated);
   gkyl_array_release(up->geo_corn.mc2nu_pos_deflated);
 
-  gkyl_array_release(up->geo_int.mc2p);
-  gkyl_array_release(up->geo_int.bmag);
-  gkyl_array_release(up->geo_int.g_ij);
-  gkyl_array_release(up->geo_int.g_ij_neut);
-  gkyl_array_release(up->geo_int.jacobgeo);
-  gkyl_array_release(up->geo_int.jacobgeo_ghost);
-  gkyl_array_release(up->geo_int.jacobgeo_inv);
-  gkyl_array_release(up->geo_int.dxdz);
-  gkyl_array_release(up->geo_int.dxdz_grad);
-  gkyl_array_release(up->geo_int.dzdx);
-  gkyl_array_release(up->geo_int.dualmag);
-  gkyl_array_release(up->geo_int.normals);
-  gkyl_array_release(up->geo_int.gij);
-  gkyl_array_release(up->geo_int.gij_neut);
-  gkyl_array_release(up->geo_int.b_i);
-  gkyl_array_release(up->geo_int.bcart);
-  gkyl_array_release(up->geo_int.cmag);
-  gkyl_array_release(up->geo_int.jacobtot);
-  gkyl_array_release(up->geo_int.jacobtot_inv);
-  gkyl_array_release(up->geo_int.gxxj);
-  gkyl_array_release(up->geo_int.gxyj);
-  gkyl_array_release(up->geo_int.gyyj);
-  gkyl_array_release(up->geo_int.gxzj);
-  gkyl_array_release(up->geo_int.eps2);
-  gkyl_array_release(up->geo_int.dualcurlbhat);
-  gkyl_array_release(up->geo_int.dualcurlbhatoverB);
-  gkyl_array_release(up->geo_int.B3overB);
-  gkyl_array_release(up->geo_int.bioverJB);
-  gkyl_array_release(up->geo_int.B3);
-  gkyl_array_release(up->geo_int.qprofile);
+  gk_geometry_int_release_expansions(up);
 
   for (int dir = 0; dir < up->grid.ndim; dir++) {
     gkyl_array_release(up->geo_surf[dir].jacobgeo);

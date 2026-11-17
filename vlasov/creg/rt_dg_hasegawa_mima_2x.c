@@ -203,7 +203,7 @@ main(int argc, char **argv)
     .ctx = &ctx,
     .can_pb_n0 = evalN0,
     .can_pb_n0_ctx = &ctx,
-    .use_superlu_system_memory = true,
+    .use_superlu_system_memory = true, // Keeps SuperLU from running OOM on some machines.
   };
 
   int nrank = 1; // Number of processors in simulation.

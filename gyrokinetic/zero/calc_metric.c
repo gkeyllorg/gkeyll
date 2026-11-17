@@ -466,6 +466,20 @@ gkyl_calc_metric_advance_rz(
   gkyl_array_release(normFld_nodal);
 }
 
+static void
+rz_cart_tangents(double R, double phi, double dxdz[3][3], double dphidtheta, double *tangents)
+{
+  tangents[0] = dxdz[0][0] * cos(phi) - R * sin(phi) * dxdz[2][0];
+  tangents[1] = dxdz[0][0] * sin(phi) + R * cos(phi) * dxdz[2][0];
+  tangents[2] = dxdz[1][0];
+  tangents[3] = -R * sin(phi);
+  tangents[4] = R * cos(phi);
+  tangents[5] = 0.0;
+  tangents[6] = dxdz[0][2] * cos(phi) - R * sin(phi) * dphidtheta;
+  tangents[7] = dxdz[0][2] * sin(phi) + R * cos(phi) * dphidtheta;
+  tangents[8] = dxdz[1][2];
+}
+
 void
 gkyl_calc_metric_advance_rz_interior(gkyl_calc_metric *up, struct gk_geometry *gk_geom)
 {
@@ -544,6 +558,14 @@ gkyl_calc_metric_advance_rz_interior(gkyl_calc_metric *up, struct gk_geometry *g
           dphidtheta = -dphidtheta;
         }
 
+        double phi = mc2p_n[PHI_IDX];
+        double *tanvecFld_n =
+          gkyl_array_fetch(gk_geom->geo_int.dxdz_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
+        rz_cart_tangents(R, phi, dxdz, dphidtheta, tanvecFld_n);
+        if (gk_geom->tangent_only) {
+          continue;
+        }
+
         // AS 2/22/25 It seems that now that we are using interior points,
         // cmag comes out fine without directtly enforcing the condition
         //double dphidtheta = ddtheta_n[2];
@@ -564,7 +586,6 @@ gkyl_calc_metric_advance_rz_interior(gkyl_calc_metric *up, struct gk_geometry *g
         double *bcartFld_n = gkyl_array_fetch(
           gk_geom->geo_int.bcart_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx)
         );
-        double phi = mc2p_n[PHI_IDX];
         double b3 = 1 / sqrt(gFld_n[5]);
         bcartFld_n[0] = b3 * (dxdz[0][2] * cos(phi) - R * sin(phi) * dphidtheta);
         bcartFld_n[1] = b3 * (dxdz[0][2] * sin(phi) + R * cos(phi) * dphidtheta);
@@ -573,20 +594,6 @@ gkyl_calc_metric_advance_rz_interior(gkyl_calc_metric *up, struct gk_geometry *g
         // Set cartesian components of tangents and duals
         double Z = mc2p_n[Z_IDX];
         double J = jFld_n[0];
-        double *tanvecFld_n =
-          gkyl_array_fetch(gk_geom->geo_int.dxdz_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
-        tanvecFld_n[0] = dxdz[0][0] * cos(phi) - R * sin(phi) * dxdz[2][0];
-        tanvecFld_n[1] = dxdz[0][0] * sin(phi) + R * cos(phi) * dxdz[2][0];
-        tanvecFld_n[2] = dxdz[1][0];
-
-        tanvecFld_n[3] = -R * sin(phi);
-        tanvecFld_n[4] = +R * cos(phi);
-        tanvecFld_n[5] = 0.0;
-
-        tanvecFld_n[6] = dxdz[0][2] * cos(phi) - R * sin(phi) * dphidtheta;
-        tanvecFld_n[7] = dxdz[0][2] * sin(phi) + R * cos(phi) * dphidtheta;
-        tanvecFld_n[8] = dxdz[1][2];
-
         double *dualFld_n =
           gkyl_array_fetch(gk_geom->geo_int.dzdx_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
         dualFld_n[0] = +R / J * cos(phi) * dxdz[1][2];
@@ -687,6 +694,9 @@ gkyl_calc_metric_advance_rz_interior(gkyl_calc_metric *up, struct gk_geometry *g
         bioverJB_n[2] = gFld_n[5] / sqrt(gFld_n[5]) / J / bmag_n[0];
       }
     }
+  }
+  if (gk_geom->tangent_only) {
+    return;
   }
   gkyl_nodal_ops_n2m(
     up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 6,
@@ -1763,6 +1773,17 @@ gkyl_calc_metric_advance_interior(gkyl_calc_metric *up, struct gk_geometry *gk_g
         dxdz[1][2] = -(mc2p_n[27 + Y_IDX] - mc2p_n[30 + Y_IDX]) / 2 / gk_geom->dzc[2];
         dxdz[2][2] = -(mc2p_n[27 + Z_IDX] - mc2p_n[30 + Z_IDX]) / 2 / gk_geom->dzc[2];
 
+        double *tanvecFld_n =
+          gkyl_array_fetch(gk_geom->geo_int.dxdz_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
+        for (int dir = 0; dir < 3; ++dir) {
+          for (int comp = 0; comp < 3; ++comp) {
+            tanvecFld_n[3 * dir + comp] = dxdz[comp][dir];
+          }
+        }
+        if (gk_geom->tangent_only) {
+          continue;
+        }
+
         const double *bhat_n = gkyl_array_cfetch(
           gk_geom->geo_int.b_i_nodal_fd, gkyl_range_idx(&gk_geom->nrange_int, cidx)
         );
@@ -1818,18 +1839,6 @@ gkyl_calc_metric_advance_interior(gkyl_calc_metric *up, struct gk_geometry *gk_g
         dualFld_n[6] = dzdx[2][0];
         dualFld_n[7] = dzdx[2][1];
         dualFld_n[8] = dzdx[2][2];
-
-        double *tanvecFld_n =
-          gkyl_array_fetch(gk_geom->geo_int.dxdz_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
-        tanvecFld_n[0] = dxdz[0][0];
-        tanvecFld_n[1] = dxdz[1][0];
-        tanvecFld_n[2] = dxdz[2][0];
-        tanvecFld_n[3] = dxdz[0][1];
-        tanvecFld_n[4] = dxdz[1][1];
-        tanvecFld_n[5] = dxdz[2][1];
-        tanvecFld_n[6] = dxdz[0][2];
-        tanvecFld_n[7] = dxdz[1][2];
-        tanvecFld_n[8] = dxdz[2][2];
 
         // Check that the coordinate system has tangent/dual vectors
         // satisfying orthonormality, and that it's right handed.
@@ -1939,6 +1948,10 @@ gkyl_calc_metric_advance_interior(gkyl_calc_metric *up, struct gk_geometry *gk_g
         bioverJB_n[2] = gFld_n[5] / sqrt(gFld_n[5]) / J / bmag_n[0];
       }
     }
+  }
+
+  if (gk_geom->tangent_only) {
+    return;
   }
 
   check_axisymmetric(gk_geom->geo_int.g_ij_nodal, &gk_geom->nrange_int, up->exit_at_checks);

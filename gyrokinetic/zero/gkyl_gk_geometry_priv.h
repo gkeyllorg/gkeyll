@@ -57,6 +57,30 @@ struct gk_geometry *gk_geometry_tok_init(struct gkyl_gk_geometry_inp *inp, bool 
 struct gk_geometry *gk_geometry_mapc2p_init(struct gkyl_gk_geometry_inp *inp, bool optimize_map);
 struct gk_geometry *gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *inp, bool optimize_map);
 
+/**
+ * Sample tokamak interior tangents on an auxiliary three-dimensional grid.
+ *
+ * @param up Interior-only geometry with tangent sample storage allocated.
+ * @param inp Geometry input with the auxiliary grid and unchanged position map.
+ */
+void gk_geometry_tok_tangent_samples(struct gk_geometry *up, struct gkyl_gk_geometry_inp *inp);
+
+/**
+ * Sample mirror interior tangents on an auxiliary three-dimensional grid.
+ *
+ * @param up Interior-only geometry with tangent sample storage allocated.
+ * @param inp Geometry input with the auxiliary grid and unchanged position map.
+ */
+void gk_geometry_mirror_tangent_samples(struct gk_geometry *up, struct gkyl_gk_geometry_inp *inp);
+
+/**
+ * Sample mapc2p interior tangents on an auxiliary three-dimensional grid.
+ *
+ * @param up Interior-only geometry with tangent sample storage allocated.
+ * @param inp Geometry input with the auxiliary grid and unchanged position map.
+ */
+void gk_geometry_mapc2p_tangent_samples(struct gk_geometry *up, struct gkyl_gk_geometry_inp *inp);
+
 static inline void
 get_filename_from_path(const char *filepath, char *out_buffer, size_t out_size)
 {
@@ -225,6 +249,24 @@ gk_geometry_surf_release_nodal(struct gk_geometry *gk_geom, int dir)
 static void
 gk_geometry_int_alloc_nodal(struct gk_geometry *gk_geom)
 {
+  if (gk_geom->tangent_only) {
+    size_t volume = gk_geom->nrange_int.volume;
+    gk_geom->geo_int.dxdz_nodal = gkyl_array_new(GKYL_DOUBLE, 9, volume);
+    if (gk_geom->geometry_id == GKYL_GEOMETRY_MIRROR) {
+      return;
+    }
+    gk_geom->geo_int.mc2p_nodal_fd = gkyl_array_new(GKYL_DOUBLE, 39, volume);
+    if (gk_geom->geometry_id == GKYL_GEOMETRY_MAPC2P ||
+        gk_geom->geometry_id == GKYL_GEOMETRY_NONE) {
+      return;
+    }
+    gk_geom->geo_int.mc2p_nodal = gkyl_array_new(GKYL_DOUBLE, 3, volume);
+    gk_geom->geo_int.bmag_nodal = gkyl_array_new(GKYL_DOUBLE, 1, volume);
+    gk_geom->geo_int.ddtheta_nodal = gkyl_array_new(GKYL_DOUBLE, 3, volume);
+    gk_geom->geo_int.ddpsi_nodal = gkyl_array_new(GKYL_DOUBLE, 1, volume);
+    gk_geom->geo_int.jacobgeo_nodal = gkyl_array_new(GKYL_DOUBLE, 1, volume);
+    return;
+  }
   // mapc2p for calculations of tangents
   int num_fd_nodes = 13;
   gk_geom->geo_int.mc2p_nodal_fd =

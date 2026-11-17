@@ -178,33 +178,35 @@ gk_geometry_mapc2p_advance_interior(
 
               double *mc2p_quad_fd_n =
                 (double *)gkyl_array_fetch(up->geo_int.mc2p_nodal_fd, gkyl_range_idx(nrange, cidx));
-              double *mc2p_quad_n =
-                (double *)gkyl_array_fetch(up->geo_int.mc2p_nodal, gkyl_range_idx(nrange, cidx));
-              double *bmag_n =
-                (double *)gkyl_array_fetch(up->geo_int.bmag_nodal, gkyl_range_idx(nrange, cidx));
-              double *bhat_quad_fd_n =
-                (double *)gkyl_array_fetch(up->geo_int.b_i_nodal_fd, gkyl_range_idx(nrange, cidx));
 
               double xyz[3] = {psi_curr, alpha_curr, theta_curr};
               double XYZ[3] = {0.};
-              double B[3] = {0.};
               mapc2p_func(0.0, xyz, XYZ, mapc2p_ctx);
-              bfield_func(0.0, xyz, B, bfield_ctx);
 
               mc2p_quad_fd_n[lidx + X_IDX] = XYZ[X_IDX];
               mc2p_quad_fd_n[lidx + Y_IDX] = XYZ[Y_IDX];
               mc2p_quad_fd_n[lidx + Z_IDX] = XYZ[Z_IDX];
 
-              double bmag = sqrt(B[0] * B[0] + B[1] * B[1] + B[2] * B[2]);
-              bhat_quad_fd_n[lidx + X_IDX] = B[X_IDX] / bmag;
-              bhat_quad_fd_n[lidx + Y_IDX] = B[Y_IDX] / bmag;
-              bhat_quad_fd_n[lidx + Z_IDX] = B[Z_IDX] / bmag;
+              if (!up->tangent_only) {
+                double *mc2p_quad_n =
+                  gkyl_array_fetch(up->geo_int.mc2p_nodal, gkyl_range_idx(nrange, cidx));
+                double *bmag_n =
+                  gkyl_array_fetch(up->geo_int.bmag_nodal, gkyl_range_idx(nrange, cidx));
+                double *bhat_quad_fd_n =
+                  gkyl_array_fetch(up->geo_int.b_i_nodal_fd, gkyl_range_idx(nrange, cidx));
+                double B[3] = {0.};
+                bfield_func(0.0, xyz, B, bfield_ctx);
+                double bmag = sqrt(B[0] * B[0] + B[1] * B[1] + B[2] * B[2]);
+                bhat_quad_fd_n[lidx + X_IDX] = B[X_IDX] / bmag;
+                bhat_quad_fd_n[lidx + Y_IDX] = B[Y_IDX] / bmag;
+                bhat_quad_fd_n[lidx + Z_IDX] = B[Z_IDX] / bmag;
 
-              if (ip_delta == 0 && ia_delta == 0 && it_delta == 0) {
-                mc2p_quad_n[X_IDX] = XYZ[X_IDX];
-                mc2p_quad_n[Y_IDX] = XYZ[Y_IDX];
-                mc2p_quad_n[Z_IDX] = XYZ[Z_IDX];
-                bmag_n[0] = bmag;
+                if (ip_delta == 0 && ia_delta == 0 && it_delta == 0) {
+                  mc2p_quad_n[X_IDX] = XYZ[X_IDX];
+                  mc2p_quad_n[Y_IDX] = XYZ[Y_IDX];
+                  mc2p_quad_n[Z_IDX] = XYZ[Z_IDX];
+                  bmag_n[0] = bmag;
+                }
               }
             }
           }
@@ -213,22 +215,28 @@ gk_geometry_mapc2p_advance_interior(
     }
   }
 
-  struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&up->basis, &up->grid, false);
-  gkyl_nodal_ops_n2m(
-    n2m, &up->basis, &up->grid, nrange, &up->local, 3, up->geo_int.mc2p_nodal, up->geo_int.mc2p,
-    true
-  );
-  gkyl_nodal_ops_n2m(
-    n2m, &up->basis, &up->grid, nrange, &up->local, 1, up->geo_int.bmag_nodal, up->geo_int.bmag,
-    true
-  );
-  gkyl_nodal_ops_release(n2m);
+  if (!up->tangent_only) {
+    struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&up->basis, &up->grid, false);
+    gkyl_nodal_ops_n2m(
+      n2m, &up->basis, &up->grid, nrange, &up->local, 3, up->geo_int.mc2p_nodal, up->geo_int.mc2p,
+      true
+    );
+    gkyl_nodal_ops_n2m(
+      n2m, &up->basis, &up->grid, nrange, &up->local, 1, up->geo_int.bmag_nodal, up->geo_int.bmag,
+      true
+    );
+    gkyl_nodal_ops_release(n2m);
+  }
 
   // Now calculate the metrics.
   struct gkyl_calc_metric *mcalc = gkyl_calc_metric_new(
     &up->basis, &up->grid, &up->global, &up->global_ext, &up->local, &up->local_ext, false, false
   );
   gkyl_calc_metric_advance_interior(mcalc, up);
+  if (up->tangent_only) {
+    gkyl_calc_metric_release(mcalc);
+    return;
+  }
   gkyl_array_copy(up->geo_int.g_ij_neut, up->geo_int.g_ij);
 
   // Calculate the derived geometric quantities.
@@ -568,6 +576,7 @@ struct gk_geometry *
 gk_geometry_mapc2p_init(struct gkyl_gk_geometry_inp *geometry_inp, bool optimize_map)
 {
   struct gk_geometry *up = gkyl_malloc(sizeof(struct gk_geometry));
+  up->tangent_only = false;
   up->has_dxdz_grad = false;
   up->world_dim = geometry_inp->grid.ndim;
   up->geometry_id = geometry_inp->geometry_id;
@@ -688,4 +697,13 @@ gkyl_gk_geometry_mapc2p_new(struct gkyl_gk_geometry_inp *geometry_inp)
     gk_geom_3d = gk_geometry_mapc2p_init(geometry_inp, true);
   }
   return gk_geom_3d;
+}
+
+void
+gk_geometry_mapc2p_tangent_samples(struct gk_geometry *up, struct gkyl_gk_geometry_inp *geometry_inp)
+{
+  gk_geometry_mapc2p_advance_interior(
+    up, &up->nrange_int, up->dzc, geometry_inp->mapc2p, geometry_inp->c2p_ctx,
+    geometry_inp->bfield_func, geometry_inp->bfield_ctx, geometry_inp->position_map
+  );
 }

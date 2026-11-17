@@ -120,6 +120,19 @@ gkyl_calc_metric_mirror_advance(
   );
 }
 
+static void
+mirror_store_cart_tangents(
+  double R, double phi, const struct gkyl_mirror_grid_gen_geom *geo, double *tangents
+)
+{
+  for (int ivec = 0; ivec < 3; ivec++) {
+    struct gkyl_vec3 tan = gkyl_vec3_polar_con_to_cart(R, phi, geo->tang[ivec]);
+    for (int comp = 0; comp < 3; comp++) {
+      tangents[ivec * 3 + comp] = tan.x[comp];
+    }
+  }
+}
+
 void
 gkyl_calc_metric_mirror_advance_interior(
   gkyl_calc_metric_mirror *up, struct gk_geometry *gk_geom, struct gkyl_mirror_grid_gen *mirror_grid
@@ -144,6 +157,14 @@ gkyl_calc_metric_mirror_advance_interior(
           gkyl_array_cfetch(mirror_grid->nodes_psi, gkyl_range_idx(&gk_geom->nrange_int, cidx));
         const struct gkyl_mirror_grid_gen_geom *mirror_geo_n =
           gkyl_array_cfetch(mirror_grid->nodes_geom, gkyl_range_idx(&gk_geom->nrange_int, cidx));
+
+        if (gk_geom->tangent_only) {
+          double *tangents = gkyl_array_fetch(
+            gk_geom->geo_int.dxdz_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx)
+          );
+          mirror_store_cart_tangents(mirror_rza_n[0], mirror_rza_n[2], mirror_geo_n, tangents);
+          continue;
+        }
 
         // Next fetch the gk_geometry nodal values at this location
         double *mc2p_n =
@@ -206,14 +227,10 @@ gkyl_calc_metric_mirror_advance_interior(
         curlbhat_n[2] = curlbhat_cart.x[2];
 
         // Set tangents and duals
+        mirror_store_cart_tangents(mirror_rza_n[0], mirror_rza_n[2], mirror_geo_n, tanvecFld_n);
         for (int ivec = 0; ivec < 3; ivec++) {
-          struct gkyl_vec3 tan =
-            gkyl_vec3_polar_con_to_cart(mirror_rza_n[0], mirror_rza_n[2], mirror_geo_n->tang[ivec]);
           struct gkyl_vec3 dual =
             gkyl_vec3_polar_con_to_cart(mirror_rza_n[0], mirror_rza_n[2], mirror_geo_n->dual[ivec]);
-          tanvecFld_n[ivec * 3 + 0] = tan.x[0];
-          tanvecFld_n[ivec * 3 + 1] = tan.x[1];
-          tanvecFld_n[ivec * 3 + 2] = tan.x[2];
           dualFld_n[ivec * 3 + 0] = dual.x[0];
           dualFld_n[ivec * 3 + 1] = dual.x[1];
           dualFld_n[ivec * 3 + 2] = dual.x[2];
@@ -302,6 +319,10 @@ gkyl_calc_metric_mirror_advance_interior(
         }
       }
     }
+  }
+
+  if (gk_geom->tangent_only) {
+    return;
   }
 
   gkyl_nodal_ops_n2m(

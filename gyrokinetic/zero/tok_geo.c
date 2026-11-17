@@ -1287,7 +1287,9 @@ gkyl_tok_geo_calc_interior(
 
   // Temporary array to store nodal q profile.
   struct gkyl_array *qprofile_nodal =
-    gkyl_array_new(GKYL_DOUBLE, up->geo_int.bmag_nodal->ncomp, up->geo_int.bmag_nodal->size);
+    up->tangent_only ?
+      NULL :
+      gkyl_array_new(GKYL_DOUBLE, up->geo_int.bmag_nodal->ncomp, up->geo_int.bmag_nodal->size);
 
   int cidx[3] = {0};
   for (int ia = nrange->lower[AL_IDX]; ia < nrange->lower[AL_IDX] + 1; ++ia) {
@@ -1328,7 +1330,7 @@ gkyl_tok_geo_calc_interior(
         tok_verify_contour_orientation(inp, &arc_ctx);
 
         // Diagnostic signed safety factor; independent of the theta subdomain.
-        double qprofile = ip_delta == 0 ? qprofile_func(&arc_ctx) : 0.0;
+        double qprofile = !up->tangent_only && ip_delta == 0 ? qprofile_func(&arc_ctx) : 0.0;
 
         // at the beginning of each theta loop we need to reset things
         cidx[PSI_IDX] = ip;
@@ -1407,8 +1409,12 @@ gkyl_tok_geo_calc_interior(
           double *mc2p_n = gkyl_array_fetch(up->geo_int.mc2p_nodal, gkyl_range_idx(nrange, cidx));
           double *bmag_n = gkyl_array_fetch(up->geo_int.bmag_nodal, gkyl_range_idx(nrange, cidx));
           double *curlbhat_n =
-            gkyl_array_fetch(up->geo_int.curlbhat_nodal, gkyl_range_idx(nrange, cidx));
-          double *qprofile_n = gkyl_array_fetch(qprofile_nodal, gkyl_range_idx(nrange, cidx));
+            up->tangent_only ?
+              NULL :
+              gkyl_array_fetch(up->geo_int.curlbhat_nodal, gkyl_range_idx(nrange, cidx));
+          double *qprofile_n = up->tangent_only ?
+                                 NULL :
+                                 gkyl_array_fetch(qprofile_nodal, gkyl_range_idx(nrange, cidx));
 
           mc2p_fd_n[lidx + X_IDX] = r_curr;
           mc2p_fd_n[lidx + Y_IDX] = z_curr;
@@ -1421,8 +1427,10 @@ gkyl_tok_geo_calc_interior(
             mc2p_n[lidx + Y_IDX] = z_curr;
             mc2p_n[lidx + Z_IDX] = phi_curr;
             bmag_n[0] = bmag_func(r_curr, z_curr, &arc_ctx);
-            qprofile_n[0] = qprofile;
-            curlbhat_func(psi_curr, r_curr, z_curr, phi_curr, curlbhat_n, &arc_ctx);
+            if (!up->tangent_only) {
+              qprofile_n[0] = qprofile;
+              curlbhat_func(psi_curr, r_curr, z_curr, phi_curr, curlbhat_n, &arc_ctx);
+            }
           }
         }
       }
@@ -1467,7 +1475,9 @@ gkyl_tok_geo_calc_interior(
           double *mc2p_n = gkyl_array_fetch(up->geo_int.mc2p_nodal, gkyl_range_idx(nrange, cidx));
           double *bmag_n = gkyl_array_fetch(up->geo_int.bmag_nodal, gkyl_range_idx(nrange, cidx));
           double *curlbhat_n =
-            gkyl_array_fetch(up->geo_int.curlbhat_nodal, gkyl_range_idx(nrange, cidx));
+            up->tangent_only ?
+              NULL :
+              gkyl_array_fetch(up->geo_int.curlbhat_nodal, gkyl_range_idx(nrange, cidx));
 
           int donor_cidx[3];
           donor_cidx[AL_IDX] = nrange->lower[AL_IDX];
@@ -1499,34 +1509,38 @@ gkyl_tok_geo_calc_interior(
             mc2p_n[lidx + Y_IDX] = donor_mc2p_n[lidx + Y_IDX];
             mc2p_n[lidx + Z_IDX] = donor_mc2p_n[lidx + Z_IDX] + alpha_diff;
             bmag_n[0] = donor_bmag_n[0];
-            double *qprofile_n = gkyl_array_fetch(qprofile_nodal, gkyl_range_idx(nrange, cidx));
-            const double *donor_qprofile_n =
-              gkyl_array_cfetch(qprofile_nodal, gkyl_range_idx(nrange, donor_cidx));
-            qprofile_n[0] = donor_qprofile_n[0];
-            curlbhat_func(
-              psi_curr, mc2p_n[lidx + X_IDX], mc2p_n[lidx + Y_IDX], mc2p_n[lidx + Z_IDX],
-              curlbhat_n, &arc_ctx
-            );
+            if (!up->tangent_only) {
+              double *qprofile_n = gkyl_array_fetch(qprofile_nodal, gkyl_range_idx(nrange, cidx));
+              const double *donor_qprofile_n =
+                gkyl_array_cfetch(qprofile_nodal, gkyl_range_idx(nrange, donor_cidx));
+              qprofile_n[0] = donor_qprofile_n[0];
+              curlbhat_func(
+                psi_curr, mc2p_n[lidx + X_IDX], mc2p_n[lidx + Y_IDX], mc2p_n[lidx + Z_IDX],
+                curlbhat_n, &arc_ctx
+              );
+            }
           }
         }
       }
     }
   }
 
-  struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&inp->cbasis, &inp->cgrid, false);
-  gkyl_nodal_ops_n2m(
-    n2m, &inp->cbasis, &inp->cgrid, nrange, &up->local, 3, up->geo_int.mc2p_nodal, up->geo_int.mc2p,
-    true
-  );
-  gkyl_nodal_ops_n2m(
-    n2m, &inp->cbasis, &inp->cgrid, nrange, &up->local, 1, up->geo_int.bmag_nodal, up->geo_int.bmag,
-    true
-  );
-  gkyl_nodal_ops_n2m(
-    n2m, &inp->cbasis, &inp->cgrid, nrange, &up->local, 1, qprofile_nodal, up->geo_int.qprofile,
-    true
-  );
-  gkyl_nodal_ops_release(n2m);
+  if (!up->tangent_only) {
+    struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&inp->cbasis, &inp->cgrid, false);
+    gkyl_nodal_ops_n2m(
+      n2m, &inp->cbasis, &inp->cgrid, nrange, &up->local, 3, up->geo_int.mc2p_nodal,
+      up->geo_int.mc2p, true
+    );
+    gkyl_nodal_ops_n2m(
+      n2m, &inp->cbasis, &inp->cgrid, nrange, &up->local, 1, up->geo_int.bmag_nodal,
+      up->geo_int.bmag, true
+    );
+    gkyl_nodal_ops_n2m(
+      n2m, &inp->cbasis, &inp->cgrid, nrange, &up->local, 1, qprofile_nodal, up->geo_int.qprofile,
+      true
+    );
+    gkyl_nodal_ops_release(n2m);
+  }
   gkyl_array_release(qprofile_nodal);
 
   gkyl_free(arc_memo);

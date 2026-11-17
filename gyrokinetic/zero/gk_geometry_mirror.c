@@ -15,6 +15,7 @@ struct gk_geometry *
 gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp, bool optimize_map)
 {
   struct gk_geometry *up = gkyl_malloc(sizeof(struct gk_geometry));
+  up->tangent_only = false;
   up->has_dxdz_grad = false;
   up->world_dim = geometry_inp->grid.ndim;
   up->geometry_id = geometry_inp->geometry_id;
@@ -231,4 +232,39 @@ gkyl_gk_geometry_mirror_new(struct gkyl_gk_geometry_inp *geometry_inp)
     gk_geom_3d = gk_geometry_mirror_init(geometry_inp, true);
   }
   return gk_geom_3d;
+}
+
+void
+gk_geometry_mirror_tangent_samples(struct gk_geometry *up, struct gkyl_gk_geometry_inp *geometry_inp)
+{
+  struct gkyl_rect_grid psi_grid;
+  struct gkyl_array *psi =
+    gkyl_grid_array_new_from_file(&psi_grid, geometry_inp->mirror_grid_info.filename_psi);
+  assert(psi);
+
+  struct gkyl_mirror_grid_gen *mirror_grid_int =
+    gkyl_mirror_grid_gen_int_inew(&(struct gkyl_mirror_grid_gen_inp){
+      .comp_grid = &up->grid,
+      .world_dim = up->world_dim,
+      .nrange = up->nrange_int,
+      .local = up->local,
+      .global = up->global,
+      .position_map = geometry_inp->position_map,
+      .R = {psi_grid.lower[0], psi_grid.upper[0]},
+      .Z = {psi_grid.lower[1], psi_grid.upper[1]},
+      .nrcells = psi_grid.cells[0] - 1,
+      .nzcells = psi_grid.cells[1] - 1,
+      .psiRZ = psi,
+      .fl_coord = geometry_inp->mirror_grid_info.fl_coord,
+      .include_axis = geometry_inp->mirror_grid_info.include_axis,
+      .write_psi_cubic = false,
+    });
+  assert(mirror_grid_int);
+
+  struct gkyl_calc_metric_mirror *mcalc =
+    gkyl_calc_metric_mirror_new(&up->basis, &up->grid, &up->local, &up->local_ext, false);
+  gkyl_calc_metric_mirror_advance_interior(mcalc, up, mirror_grid_int);
+  gkyl_calc_metric_mirror_release(mcalc);
+  gkyl_mirror_grid_gen_release(mirror_grid_int);
+  gkyl_array_release(psi);
 }
