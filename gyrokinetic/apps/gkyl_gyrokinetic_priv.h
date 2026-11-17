@@ -1212,11 +1212,29 @@ struct gk_positivity {
 
 // Terms of the balance of a species, each from the integrated moments of a module.
 enum gk_species_balance_term {
-  GK_SPECIES_BALANCE_F = 0, // Integrated moments of f (and of df/dt).
-  GK_SPECIES_BALANCE_SRC, // Integrated moments of the source.
-  GK_SPECIES_BALANCE_SRC_BGK, // Integrated moments of the BGK source.
-  GK_SPECIES_BALANCE_BFLUX, // Integrated moments of the boundary fluxes.
-  GK_SPECIES_BALANCE_NUM_TERMS // Number of terms.
+  GK_SPECIES_BALANCE_TERM_F = 0, // Integrated moments of f (and of df/dt).
+  GK_SPECIES_BALANCE_TERM_SRC, // Integrated moments of the source.
+  GK_SPECIES_BALANCE_TERM_SRC_BGK, // Integrated moments of the BGK source.
+  GK_SPECIES_BALANCE_TERM_BFLUX, // Integrated moments of the boundary fluxes.
+  GK_SPECIES_BALANCE_TERM_COUNT // Number of terms (for internal use).
+};
+
+// Components of a species balance diagnostic.
+enum gk_species_balance_comp {
+  GK_SPECIES_BALANCE_COMP_ERR = 0, // mom_err = src - bflux_tot - mom_dot.
+  GK_SPECIES_BALANCE_COMP_ERR_NORM, // mom_err*dt/mom.
+  GK_SPECIES_BALANCE_COMP_MOM_DOT, // Time rate of change of the balanced quantity.
+  GK_SPECIES_BALANCE_COMP_SRC, // Sources (including the BGK source).
+  GK_SPECIES_BALANCE_COMP_BFLUX, // Total flux through the boundaries.
+  GK_SPECIES_BALANCE_COMP_COUNT // Number of components (for internal use).
+};
+
+// Components of an app balance diagnostic: those of the species balances,
+// then the field terms of the energy balance.
+enum gk_app_balance_comp {
+  GK_APP_BALANCE_COMP_FIELD_DOT = GK_SPECIES_BALANCE_COMP_COUNT, // dE_field/dt.
+  GK_APP_BALANCE_COMP_BG_DOT, // d/dt int rho_bg phi.
+  GK_APP_BALANCE_COMP_COUNT // Number of components (for internal use).
 };
 
 // Species level balance diagnostics.
@@ -1225,9 +1243,9 @@ struct gk_species_balance {
   enum gkyl_gyrokinetic_balance_diag diag_types[GKYL_GK_BALANCE_COUNT]; // Balance diagnostics.
   // Moment with every balanced quantity, added to the integrated diagnostics missing one.
   enum gkyl_distribution_moments mom_type;
-  bool has_term[GK_SPECIES_BALANCE_NUM_TERMS]; // Whether the species has each term.
-  enum gkyl_distribution_moments integ_mom[GK_SPECIES_BALANCE_NUM_TERMS][GKYL_GK_BALANCE_COUNT];
-  int integ_comp[GK_SPECIES_BALANCE_NUM_TERMS][GKYL_GK_BALANCE_COUNT];
+  bool has_term[GK_SPECIES_BALANCE_TERM_COUNT]; // Whether the species has each term.
+  enum gkyl_distribution_moments integ_mom[GK_SPECIES_BALANCE_TERM_COUNT][GKYL_GK_BALANCE_COUNT];
+  int integ_comp[GK_SPECIES_BALANCE_TERM_COUNT][GKYL_GK_BALANCE_COUNT];
   double
     mom[GKYL_GK_BALANCE_COUNT]; // Last value of each balanced quantity (for the sum over species).
   int num_comp; // Number of components in each balance diagnostic.

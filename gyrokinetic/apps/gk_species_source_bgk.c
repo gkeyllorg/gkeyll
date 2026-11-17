@@ -477,7 +477,7 @@ gk_species_source_bgk_init(
       // Only the BGK source of the species enters its balance (not those of
       // other modules, e.g. EIRENE).
       gk_species_balance_add_integ_moms(
-        &gks->gksbal, GK_SPECIES_BALANCE_SRC_BGK, &num_integ_moms, integ_mom_types
+        &gks->gksbal, GK_SPECIES_BALANCE_TERM_SRC_BGK, &num_integ_moms, integ_mom_types
       );
     }
     gk_integ_moms_init(app, gks, &src->integ_moms, num_integ_moms, integ_mom_types);

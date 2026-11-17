@@ -480,7 +480,7 @@ gk_species_source_init(
       integ_mom_types[num_integ_moms++] = GKYL_F_MOMENT_M0M1M2PARM2PERP;
     }
     gk_species_balance_add_integ_moms(
-      &gks->gksbal, GK_SPECIES_BALANCE_SRC, &num_integ_moms, integ_mom_types
+      &gks->gksbal, GK_SPECIES_BALANCE_TERM_SRC, &num_integ_moms, integ_mom_types
     );
     gk_integ_moms_init(app, gks, &src->integ_moms, num_integ_moms, integ_mom_types);
     if (num_integ_moms > 0) {
