@@ -134,23 +134,19 @@ gk_species_balance_calc_diag(
     double mom_dot = gk_species_balance_getlast_integ_mom(&gks->fdot_integ_moms, f_mom, f_comp, tm);
 
     // Sources.
-    const struct gk_integ_moms *src_moms[] = {
-      [GK_SPECIES_BALANCE_TERM_SRC] = &gks->src.integ_moms,
-      [GK_SPECIES_BALANCE_TERM_SRC_BGK] = &gks->bgk_src.integ_moms,
-    };
-    const int num_src_terms = 2;
-    enum gk_species_balance_term src_terms[] = {
-      GK_SPECIES_BALANCE_TERM_SRC, GK_SPECIES_BALANCE_TERM_SRC_BGK
-    };
-    double src = 0.0;
-    for (int k = 0; k < num_src_terms; k++) {
-      enum gk_species_balance_term t = src_terms[k];
-      if (gksbal->has_term[t]) {
-        src += gk_species_balance_getlast_integ_mom(
-          src_moms[t], gksbal->integ_mom[t][d], gksbal->integ_comp[t][d], tm
-        );
-      }
-    }
+    double src = gksbal->has_term[GK_SPECIES_BALANCE_TERM_SRC] ?
+                   gk_species_balance_getlast_integ_mom(
+                     &gks->src.integ_moms, gksbal->integ_mom[GK_SPECIES_BALANCE_TERM_SRC][d],
+                     gksbal->integ_comp[GK_SPECIES_BALANCE_TERM_SRC][d], tm
+                   ) :
+                   0.0;
+    double src_bgk = gksbal->has_term[GK_SPECIES_BALANCE_TERM_SRC_BGK] ?
+                       gk_species_balance_getlast_integ_mom(
+                         &gks->bgk_src.integ_moms,
+                         gksbal->integ_mom[GK_SPECIES_BALANCE_TERM_SRC_BGK][d],
+                         gksbal->integ_comp[GK_SPECIES_BALANCE_TERM_SRC_BGK][d], tm
+                       ) :
+                       0.0;
 
     // Total flux through the boundaries.
     double bflux_tot = gksbal->has_term[GK_SPECIES_BALANCE_TERM_BFLUX] ?
@@ -158,11 +154,12 @@ gk_species_balance_calc_diag(
                          0.0;
 
     // Quantity gained/lost in the last step, also relative to mom.
-    double mom_err = src - bflux_tot - mom_dot;
+    double mom_err = src + src_bgk - bflux_tot - mom_dot;
     bal_vals[GK_SPECIES_BALANCE_COMP_ERR] = mom_err;
     bal_vals[GK_SPECIES_BALANCE_COMP_ERR_NORM] = mom_err * dt / mom;
     bal_vals[GK_SPECIES_BALANCE_COMP_MOM_DOT] = mom_dot;
     bal_vals[GK_SPECIES_BALANCE_COMP_SRC] = src;
+    bal_vals[GK_SPECIES_BALANCE_COMP_SRC_BGK] = src_bgk;
     bal_vals[GK_SPECIES_BALANCE_COMP_BFLUX] = bflux_tot;
   }
 
@@ -335,13 +332,13 @@ gk_species_balance_write(
           {
             .key = "Description",
             .elem_type = GKYL_MP_STRING,
-            .cval = "Species balance: mom_err = src_mom - bflux_tot_mom - mom_dot, "
+            .cval = "Species balance: mom_err = src_mom + src_bgk_mom - bflux_tot_mom - mom_dot, "
                     "mom_err_norm = mom_err*dt/mom.",
           },
           {
             .key = "Columns",
             .elem_type = GKYL_MP_STRING,
-            .cval = "mom_err, mom_err_norm, mom_dot, src_mom, bflux_tot_mom",
+            .cval = "mom_err, mom_err_norm, mom_dot, src_mom, src_bgk_mom, bflux_tot_mom",
           },
         };
         int io_meta_len[] = {gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 2};
@@ -431,7 +428,7 @@ gk_app_balance_calc(
         // Field terms of the energy balance.
         double energy, field_dot, bg_energy, bg_dot;
         gk_field_calc_energy_balance(app, app->field, tm, &energy, &field_dot, &bg_energy, &bg_dot);
-        // mom_err = src - bflux - (mom_dot - field_dot + bg_dot).
+        // mom_err = src + src_bgk - bflux - (mom_dot - field_dot + bg_dot).
         bal_vals[GK_SPECIES_BALANCE_COMP_ERR] += field_dot - bg_dot;
         bal_vals[GK_APP_BALANCE_COMP_FIELD_DOT] = field_dot;
         bal_vals[GK_APP_BALANCE_COMP_BG_DOT] = bg_dot;
@@ -465,18 +462,20 @@ gk_app_balance_write(struct gkyl_gyrokinetic_app *app, struct gk_app_balance *gk
           {
             .key = "Description",
             .elem_type = GKYL_MP_STRING,
-            .cval = is_energy ? "Energy balance summed over species: mom_err = src_mom - "
-                                "bflux_tot_mom - (mom_dot - field_dot + bg_dot), with field_dot "
-                                "= dE_field/dt and bg_dot = d/dt int rho_bg phi." :
-                                "Balance summed over species: mom_err = src_mom - "
-                                "bflux_tot_mom - mom_dot.",
+            .cval = is_energy ?
+                      "Energy balance summed over species: mom_err = src_mom + src_bgk_mom - "
+                      "bflux_tot_mom - (mom_dot - field_dot + bg_dot), with field_dot "
+                      "= dE_field/dt and bg_dot = d/dt int rho_bg phi." :
+                      "Balance summed over species: mom_err = src_mom + src_bgk_mom - "
+                      "bflux_tot_mom - mom_dot.",
           },
           {
             .key = "Columns",
             .elem_type = GKYL_MP_STRING,
-            .cval = is_energy ? "mom_err, mom_err_norm, mom_dot, src_mom, bflux_tot_mom, "
-                                "field_dot, bg_dot" :
-                                "mom_err, mom_err_norm, mom_dot, src_mom, bflux_tot_mom",
+            .cval = is_energy ?
+                      "mom_err, mom_err_norm, mom_dot, src_mom, src_bgk_mom, bflux_tot_mom, "
+                      "field_dot, bg_dot" :
+                      "mom_err, mom_err_norm, mom_dot, src_mom, src_bgk_mom, bflux_tot_mom",
           },
         };
         int io_meta_len[] = {app->gk_geom->io_meta_basic_len, 2};

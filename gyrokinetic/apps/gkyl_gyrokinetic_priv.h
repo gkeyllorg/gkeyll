@@ -1216,10 +1216,11 @@ enum gk_species_balance_term {
 
 // Components of a species balance diagnostic.
 enum gk_species_balance_comp {
-  GK_SPECIES_BALANCE_COMP_ERR = 0, // mom_err = src - bflux_tot - mom_dot.
+  GK_SPECIES_BALANCE_COMP_ERR = 0, // mom_err = src + src_bgk - bflux_tot - mom_dot.
   GK_SPECIES_BALANCE_COMP_ERR_NORM, // mom_err*dt/mom.
   GK_SPECIES_BALANCE_COMP_MOM_DOT, // Time rate of change of the balanced quantity.
-  GK_SPECIES_BALANCE_COMP_SRC, // Sources (including the BGK source).
+  GK_SPECIES_BALANCE_COMP_SRC, // Source contribution.
+  GK_SPECIES_BALANCE_COMP_SRC_BGK, // BGK source contribution.
   GK_SPECIES_BALANCE_COMP_BFLUX, // Total flux through the boundaries.
   GK_SPECIES_BALANCE_COMP_COUNT // Number of components (for internal use).
 };
