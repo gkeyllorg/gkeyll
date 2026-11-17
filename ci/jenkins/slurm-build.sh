@@ -9,7 +9,13 @@ export PREFIX="$CI_BUILD_PREFIX"
 metric=''
 case "$CI_BUILD_ACTION" in
     deps) bash "$SLURM_CI_MKDEPS_SCRIPT" ;;
-    configure) bash "$SLURM_CI_CONFIGURE_SCRIPT" ;;
+    configure)
+        bash "$SLURM_CI_CONFIGURE_SCRIPT"
+        if grep -Eq '^[[:space:]]*CC[[:space:]]*=[[:space:]]*(nvcc|nvc)([[:space:]]|$)' config.mak; then
+            # Apply strict FP to both candidate and baseline GPU builds.
+            printf '\nUSE_STRICT_FP=1\n' >> config.mak
+        fi
+        ;;
     unit|install)
         started="$(date +%s)"
         make -j"$SLURM_CI_BUILD_JOBS" "$CI_BUILD_ACTION"
