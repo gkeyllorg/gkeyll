@@ -879,7 +879,7 @@ gk_species_init_integrated_mom(struct gkyl_gyrokinetic_app *app, struct gk_speci
     integ_mom_types[num_integ_moms++] = GKYL_F_MOMENT_M0M1M2PARM2PERP;
   }
   gk_species_balance_add_integ_moms(
-    &gks->gksbal, GK_SPECIES_BALANCE_F, &num_integ_moms, integ_mom_types
+    &gks->gksbal, GK_SPECIES_BALANCE_TERM_F, &num_integ_moms, integ_mom_types
   );
   gk_integ_moms_init(app, gks, &gks->integ_moms, num_integ_moms, integ_mom_types);
 

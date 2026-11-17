@@ -89,8 +89,8 @@ gk_species_balance_bflux_tot(
   struct gk_boundary_fluxes *bflux = &gks->bflux;
   int bm = -1;
   for (int m = 0; m < bflux->num_calc_integ_moms; m++) {
-    if (bflux->moms_op[bflux->calc_integ_mom_idx[m]].type ==
-        gksbal->integ_mom[GK_SPECIES_BALANCE_BFLUX][d]) {
+    enum gkyl_distribution_moments type = bflux->moms_op[bflux->calc_integ_mom_idx[m]].type;
+    if (type == gksbal->integ_mom[GK_SPECIES_BALANCE_TERM_BFLUX][d]) {
       bm = m;
       break;
     }
@@ -102,7 +102,7 @@ gk_species_balance_bflux_tot(
     if (gk_species_balance_owns_boundary(app, bflux->boundaries_dir[b], bflux->boundaries_edge[b])) {
       bflux_tot_local += gk_species_balance_getlast(
         bflux->intmom[b * bflux->num_calc_integ_moms + bm], tm,
-        gksbal->integ_comp[GK_SPECIES_BALANCE_BFLUX][d]
+        gksbal->integ_comp[GK_SPECIES_BALANCE_TERM_BFLUX][d]
       );
     }
   }
@@ -124,8 +124,8 @@ gk_species_balance_calc_diag(
   }
 
   // Balanced quantity, from the integrated moments of f.
-  enum gkyl_distribution_moments f_mom = gksbal->integ_mom[GK_SPECIES_BALANCE_F][d];
-  int f_comp = gksbal->integ_comp[GK_SPECIES_BALANCE_F][d];
+  enum gkyl_distribution_moments f_mom = gksbal->integ_mom[GK_SPECIES_BALANCE_TERM_F][d];
+  int f_comp = gksbal->integ_comp[GK_SPECIES_BALANCE_TERM_F][d];
   double mom = gk_species_balance_getlast_integ_mom(&gks->integ_moms, f_mom, f_comp, tm);
   gksbal->mom[d] = mom;
 
@@ -135,11 +135,13 @@ gk_species_balance_calc_diag(
 
     // Sources.
     const struct gk_integ_moms *src_moms[] = {
-      [GK_SPECIES_BALANCE_SRC] = &gks->src.integ_moms,
-      [GK_SPECIES_BALANCE_SRC_BGK] = &gks->bgk_src.integ_moms,
+      [GK_SPECIES_BALANCE_TERM_SRC] = &gks->src.integ_moms,
+      [GK_SPECIES_BALANCE_TERM_SRC_BGK] = &gks->bgk_src.integ_moms,
     };
     const int num_src_terms = 2;
-    enum gk_species_balance_term src_terms[] = {GK_SPECIES_BALANCE_SRC, GK_SPECIES_BALANCE_SRC_BGK};
+    enum gk_species_balance_term src_terms[] = {
+      GK_SPECIES_BALANCE_TERM_SRC, GK_SPECIES_BALANCE_TERM_SRC_BGK
+    };
     double src = 0.0;
     for (int k = 0; k < num_src_terms; k++) {
       enum gk_species_balance_term t = src_terms[k];
@@ -151,17 +153,17 @@ gk_species_balance_calc_diag(
     }
 
     // Total flux through the boundaries.
-    double bflux_tot = gksbal->has_term[GK_SPECIES_BALANCE_BFLUX] ?
+    double bflux_tot = gksbal->has_term[GK_SPECIES_BALANCE_TERM_BFLUX] ?
                          gk_species_balance_bflux_tot(app, gks, gksbal, d, tm) :
                          0.0;
 
     // Quantity gained/lost in the last step, also relative to mom.
     double mom_err = src - bflux_tot - mom_dot;
-    bal_vals[0] = mom_err;
-    bal_vals[1] = mom_err * dt / mom;
-    bal_vals[2] = mom_dot;
-    bal_vals[3] = src;
-    bal_vals[4] = bflux_tot;
+    bal_vals[GK_SPECIES_BALANCE_COMP_ERR] = mom_err;
+    bal_vals[GK_SPECIES_BALANCE_COMP_ERR_NORM] = mom_err * dt / mom;
+    bal_vals[GK_SPECIES_BALANCE_COMP_MOM_DOT] = mom_dot;
+    bal_vals[GK_SPECIES_BALANCE_COMP_SRC] = src;
+    bal_vals[GK_SPECIES_BALANCE_COMP_BFLUX] = bflux_tot;
   }
 
   gkyl_dynvec_append(gksbal->diag[d], tm, bal_vals);
@@ -201,7 +203,7 @@ gk_species_balance_add_fdot_moms(
 )
 {
   for (int d = 0; d < gksbal->num_diags; d++) {
-    enum gkyl_distribution_moments f_mom = gksbal->integ_mom[GK_SPECIES_BALANCE_F][d];
+    enum gkyl_distribution_moments f_mom = gksbal->integ_mom[GK_SPECIES_BALANCE_TERM_F][d];
     bool found = false;
     for (int m = 0; m < *num_moms; m++) {
       found = found || moms[m] == f_mom;
@@ -251,18 +253,18 @@ gk_species_balance_pre_init(
   }
 
   // Terms of the balance.
-  gksbal->has_term[GK_SPECIES_BALANCE_F] = true;
-  gksbal->has_term[GK_SPECIES_BALANCE_SRC] = info->source.source_id != 0;
-  gksbal->has_term[GK_SPECIES_BALANCE_SRC_BGK] = info->source_bgk.source_bgk_id != 0;
+  gksbal->has_term[GK_SPECIES_BALANCE_TERM_F] = true;
+  gksbal->has_term[GK_SPECIES_BALANCE_TERM_SRC] = info->source.source_id != 0;
+  gksbal->has_term[GK_SPECIES_BALANCE_TERM_SRC_BGK] = info->source_bgk.source_bgk_id != 0;
   // Boundaries with a boundary flux (same as in gk_species_bflux_init).
   for (int d = 0; d < app->cdim; ++d) {
     if (gks->bc_is_np[d] && (gks->lower_bc[d].type != GKYL_BC_GK_SPECIES_ZERO_FLUX ||
                              gks->upper_bc[d].type != GKYL_BC_GK_SPECIES_ZERO_FLUX)) {
-      gksbal->has_term[GK_SPECIES_BALANCE_BFLUX] = true;
+      gksbal->has_term[GK_SPECIES_BALANCE_TERM_BFLUX] = true;
     }
   }
 
-  if (gksbal->has_term[GK_SPECIES_BALANCE_BFLUX]) {
+  if (gksbal->has_term[GK_SPECIES_BALANCE_TERM_BFLUX]) {
     // Turn on the integrated bflux diagnostics, with the balanced quantities.
     // The bflux appends the additional moments to those requested.
     const struct gkyl_phase_diagnostics_inp *bflux_diags = &info->boundary_flux_diagnostics;
@@ -275,7 +277,7 @@ gk_species_balance_pre_init(
       moms[num_moms++] = add_bflux_moms_inp->integrated_diag_moments[m];
     }
     int num_moms_prev = num_moms;
-    gk_species_balance_add_integ_moms(gksbal, GK_SPECIES_BALANCE_BFLUX, &num_moms, moms);
+    gk_species_balance_add_integ_moms(gksbal, GK_SPECIES_BALANCE_TERM_BFLUX, &num_moms, moms);
     for (int m = num_moms_prev; m < num_moms; m++) {
       add_bflux_moms_inp
         ->integrated_diag_moments[add_bflux_moms_inp->num_integrated_diag_moments++] = moms[m];
@@ -289,7 +291,11 @@ gk_species_balance_init(
   struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_species_balance *gksbal
 )
 {
-  gksbal->num_comp = 5; // mom_err, mom_err_norm=mom_err*dt/mom, mom_dot, src, bflux_tot.
+  if (gksbal->num_diags == 0) {
+    return;
+  }
+
+  gksbal->num_comp = GK_SPECIES_BALANCE_COMP_COUNT;
   for (int d = 0; d < gksbal->num_diags; d++) {
     gksbal->diag[d] = gkyl_dynvec_new(GKYL_DOUBLE, gksbal->num_comp);
     gksbal->is_first_write[d] = true;
@@ -379,7 +385,9 @@ gk_app_balance_init(
   for (int d = 0; d < gkbal->num_diags; d++) {
     gkbal->diag_types[d] = diags->balance_diags[d];
     // Species components, and field_dot and bg_dot for the energy.
-    gkbal->num_comp[d] = gkbal->diag_types[d] == GKYL_GK_BALANCE_ENERGY ? 7 : 5;
+    gkbal->num_comp[d] = gkbal->diag_types[d] == GKYL_GK_BALANCE_ENERGY ?
+                           GK_APP_BALANCE_COMP_COUNT :
+                           GK_SPECIES_BALANCE_COMP_COUNT;
     gkbal->diag[d] = gkyl_dynvec_new(GKYL_DOUBLE, gkbal->num_comp[d]);
     gkbal->is_first_write[d] = true;
   }
@@ -412,7 +420,7 @@ gk_app_balance_calc(
       gkyl_dynvec_getlast(gksbal->diag[sd], sbal_vals);
       // Sum every component but the normalized error, recomputed below.
       for (int k = 0; k < gksbal->num_comp; k++) {
-        if (k != 1) {
+        if (k != GK_SPECIES_BALANCE_COMP_ERR_NORM) {
           bal_vals[k] += sbal_vals[k];
         }
       }
@@ -424,12 +432,13 @@ gk_app_balance_calc(
         double energy, field_dot, bg_energy, bg_dot;
         gk_field_calc_energy_balance(app, app->field, tm, &energy, &field_dot, &bg_energy, &bg_dot);
         // mom_err = src - bflux - (mom_dot - field_dot + bg_dot).
-        bal_vals[0] += field_dot - bg_dot;
-        bal_vals[5] = field_dot;
-        bal_vals[6] = bg_dot;
+        bal_vals[GK_SPECIES_BALANCE_COMP_ERR] += field_dot - bg_dot;
+        bal_vals[GK_APP_BALANCE_COMP_FIELD_DOT] = field_dot;
+        bal_vals[GK_APP_BALANCE_COMP_BG_DOT] = bg_dot;
         mom_tot += bg_energy - energy;
       }
-      bal_vals[1] = bal_vals[0] * dt / mom_tot;
+      bal_vals[GK_SPECIES_BALANCE_COMP_ERR_NORM] =
+        bal_vals[GK_SPECIES_BALANCE_COMP_ERR] * dt / mom_tot;
     }
     gkyl_dynvec_append(gkbal->diag[d], tm, bal_vals);
   }
