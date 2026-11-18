@@ -461,6 +461,16 @@ main(int argc, char **argv)
        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
        {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
        {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}},
+    .num_diag_moments = 9,
+    .diag_moments =
+      {GKYL_F_MOMENT_HAMILTONIAN, GKYL_F_MOMENT_BIMAXWELLIAN, GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1,
+       GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M3PAR,
+       GKYL_F_MOMENT_M3PERP},
+    .num_integrated_diag_moments = 1,
+    .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
+    .boundary_flux_diagnostics =
+      {.num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}},
+    .time_rate_diagnostics = true,
   };
 
   // Ion species.
@@ -541,15 +551,22 @@ main(int argc, char **argv)
        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
        {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
        {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}},
+    .num_diag_moments = 9,
+    .diag_moments =
+      {GKYL_F_MOMENT_HAMILTONIAN, GKYL_F_MOMENT_BIMAXWELLIAN, GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1,
+       GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M3PAR,
+       GKYL_F_MOMENT_M3PERP},
+    .num_integrated_diag_moments = 1,
+    .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
+    // M0 boundary fluxes are kept to check the recycled particle balance.
     .boundary_flux_diagnostics =
       {
         .num_diag_moments = 1,
         .diag_moments = {GKYL_F_MOMENT_M0},
-        .num_integrated_diag_moments = 1,
-        .integrated_diag_moments = {GKYL_F_MOMENT_M0},
+        .num_integrated_diag_moments = 2,
+        .integrated_diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_HAMILTONIAN},
       },
-    .num_diag_moments = 1,
-    .diag_moments = {GKYL_F_MOMENT_M0},
+    .time_rate_diagnostics = true,
   };
 
   // Recycling input shared by the lower and upper parallel targets.
@@ -686,6 +703,7 @@ main(int argc, char **argv)
             {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
           },
         .bias_line_list = &bias_line_list,
+        .time_rate_diagnostics = true,
       },
     .parallelism =
       {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0], app_args.cuts[1]}, .comm = comm},
