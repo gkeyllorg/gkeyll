@@ -509,10 +509,10 @@ test_1x2v(int poly_order, bool use_gpu)
       primMomsCross_e[1 * confBasis.num_basis] / sqrt(2)
     );
     TEST_CHECK(
-      gkyl_compare(5.273760673326e+12, primMomsCross_e[2 * confBasis.num_basis] / sqrt(2), 1e-12)
+      gkyl_compare(5.273732149974e+12, primMomsCross_e[2 * confBasis.num_basis] / sqrt(2), 1e-12)
     );
     TEST_MSG(
-      "k:%d | Expected: %.12e | Got: %.12e \n", k, 5.27373215e12,
+      "k:%d | Expected: %.12e | Got: %.12e \n", k, 5.273732149974e12,
       primMomsCross_e[2 * confBasis.num_basis] / sqrt(2)
     );
     TEST_CHECK(gkyl_compare(1.0e19, primMomsCross_i[0 * confBasis.num_basis] / sqrt(2), 1e-12));
@@ -528,10 +528,10 @@ test_1x2v(int poly_order, bool use_gpu)
       primMomsCross_i[1 * confBasis.num_basis] / sqrt(2)
     );
     TEST_CHECK(
-      gkyl_compare(2.862629920293e+09, primMomsCross_i[2 * confBasis.num_basis] / sqrt(2), 1e-12)
+      gkyl_compare(2.834106568320e+09, primMomsCross_i[2 * confBasis.num_basis] / sqrt(2), 1e-12)
     );
     TEST_MSG(
-      "k:%d | Expected: %.12e | Got: %.12e \n", k, 2.86262992e9,
+      "k:%d | Expected: %.12e | Got: %.12e \n", k, 2.834106568320e9,
       primMomsCross_i[2 * confBasis.num_basis] / sqrt(2)
     );
   } // The hard coded numbers are expected values. The basis is looked up in maxima with: load("basis-precalc/basisSer1x"); polyOrder:1$ basis:basisC[polyOrder];
@@ -695,7 +695,96 @@ test_cross_prim_moms_bgk_1x2v_p1_ho()
   test_1x2v(1, false);
 }
 
+// Check conservation independently of the cross-temperature formula. The rates
+// satisfy m_s*n_s*nu_sr = m_r*n_r*nu_rs, as required for pairwise exchange.
+static void
+run_pair_conservation(int cdim, int vdim)
+{
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, cdim, 1);
+
+  int shape[] = {1, 1, 1};
+  struct gkyl_range range;
+  gkyl_range_init_from_shape(&range, cdim, shape);
+
+  int nb = basis.num_basis;
+  double fac = pow(sqrt(2.0), cdim);
+  int vdim_phys = vdim == 1 ? 1 : 3;
+
+  struct gkyl_array *moms[2], *cross[2];
+  for (int i = 0; i < 2; ++i) {
+    moms[i] = mkarr(3 * nb, 1, false);
+    cross[i] = mkarr(3 * nb, 1, false);
+  }
+
+  gkyl_gyrokinetic_cross_prim_moms_bgk *calc =
+    gkyl_gyrokinetic_cross_prim_moms_bgk_new_with_vdim(&basis, vdim, false);
+
+  for (int mass_ratio = 1; mass_ratio <= 4; mass_ratio += 3) {
+    double mass[] = {1.0, mass_ratio};
+    double den[] = {2.0, 3.0}, upar[] = {-0.5, 1.0}, vtsq[] = {10.0, 10.0 / mass_ratio};
+
+    for (int i = 0; i < 2; ++i) {
+      gkyl_array_clear(moms[i], 0.0);
+      double *data = gkyl_array_fetch(moms[i], 0);
+      data[0] = fac * den[i];
+      data[nb] = fac * upar[i];
+      data[2 * nb] = fac * vtsq[i];
+    }
+
+    for (int delta = 1; delta <= 2; ++delta) {
+      double momentum_rate = 0.0, energy_rate = 0.0;
+      for (int i = 0; i < 2; ++i) {
+        int other = 1 - i;
+
+        gkyl_gyrokinetic_cross_prim_moms_bgk_advance(
+          calc, &range, delta, 1.0, mass[i], moms[i], mass[other], moms[other], cross[i]
+        );
+
+        const double *out = gkyl_array_cfetch(cross[i], 0);
+        double n_cross = out[0] / fac;
+        double u_cross = out[nb] / fac, vt_cross = out[2 * nb] / fac;
+        double nu = 1.0 / (mass[i] * den[i]);
+        TEST_CHECK(fabs(n_cross - den[i]) < 1e-13);
+
+        momentum_rate += mass[i] * nu * (n_cross * u_cross - den[i] * upar[i]);
+        energy_rate += 0.5 * mass[i] * nu *
+                       (n_cross * (u_cross * u_cross + vdim_phys * vt_cross) -
+                        den[i] * (upar[i] * upar[i] + vdim_phys * vtsq[i]));
+        for (int k = 0; k < 3 * nb; ++k) {
+          if (k % nb != 0) {
+            TEST_CHECK(fabs(out[k]) < 1e-13);
+          }
+        }
+      }
+
+      TEST_CHECK(fabs(momentum_rate) < 1e-13);
+      TEST_CHECK(fabs(energy_rate) < 1e-13);
+      TEST_MSG(
+        "%dx%dv mass ratio=%d delta=%d: momentum=%g energy=%g", cdim, vdim, mass_ratio, delta,
+        momentum_rate, energy_rate
+      );
+    }
+  }
+
+  gkyl_gyrokinetic_cross_prim_moms_bgk_release(calc);
+  for (int i = 0; i < 2; ++i) {
+    gkyl_array_release(moms[i]);
+    gkyl_array_release(cross[i]);
+  }
+}
+
+static void
+test_pair_conservation(void)
+{
+  run_pair_conservation(1, 1);
+  for (int cdim = 1; cdim <= 3; ++cdim) {
+    run_pair_conservation(cdim, 2);
+  }
+}
+
 TEST_LIST = {
+  {"pair_conservation", test_pair_conservation},
   {"test_cross_prim_moms_bgk_1x1v_p1_ho", test_cross_prim_moms_bgk_1x1v_p1_ho},
   {"test_cross_prim_moms_bgk_1x2v_p1_ho", test_cross_prim_moms_bgk_1x2v_p1_ho},
   {"equal_1x1v_p1", test_equal_1x1v_p1},
