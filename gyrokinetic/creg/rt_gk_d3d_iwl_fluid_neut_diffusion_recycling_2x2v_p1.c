@@ -8,9 +8,10 @@
 //   d_t(J n_n) = d_i[J D_n g_n^{ij} d_j n_n] - J nu_iz n_n,
 //   D_n = v_ti^2/(n_e <sigma v>_cx).
 //
-// At each target, the recycling boundary density is set locally by
+// At each target the diffusive neutral flux is replaced by the recycled flux,
+// so the neutral flux entering through the target is locally
 //
-//   n_n sqrt[T_n/(2 pi m_n)] = R Gamma_i,
+//   Gamma_n = R Gamma_i,
 //
 // where R is the recycling fraction and Gamma_i is the incident ion flux.
 // The test exercises reaction-rate diffusion, ionization loss, recycling,
@@ -444,7 +445,7 @@ main(int argc, char **argv)
     .num_diag_moments = 3,
     .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2},
     .bcs =
-      {// Match the emitted neutral flux to the local incident ion flux.
+      {// Neutral flux entering through each target is R times the incident ion flux.
        {
          .dir = 1,
          .edge = GKYL_LOWER_EDGE,

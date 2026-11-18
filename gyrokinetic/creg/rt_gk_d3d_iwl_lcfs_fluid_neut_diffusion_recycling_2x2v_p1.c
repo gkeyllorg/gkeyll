@@ -12,14 +12,18 @@
 //   d_t(J n_n) = d_i[J D_n g_n^{ij} d_j n_n] - J nu_iz n_n,
 //   D_n = v_ti^2/(n_e <sigma v>_cx).
 //
-// At each SOL target, the recycling boundary density is set locally by
+// At each SOL target the diffusive neutral flux is replaced by the recycled
+// flux, so the neutral flux entering through the target is locally
 //
-//   n_n sqrt[T_n/(2 pi m_n)] = R Gamma_i,
+//   Gamma_n = R Gamma_i,
 //
 // where R is the recycling fraction and Gamma_i is the incident ion flux.
-// The test exercises reaction-rate diffusion, ionization loss, recycling,
-// periodic confined-region neutral BCs, adaptive core sources, mapped geometry,
-// and the matrix-free backward-Euler diffusion solve.
+// Ionization, recombination and charge exchange couple the neutrals to the
+// plasma species as in the 3x2v DIII-D input, so particles are exchanged
+// between the neutrals and the plasma. The test exercises reaction-rate
+// diffusion, particle-conserving recycling, periodic confined-region neutral
+// BCs, adaptive core sources, mapped geometry, and the matrix-free
+// backward-Euler diffusion solve.
 
 #include <math.h>
 #include <stdio.h>
@@ -36,7 +40,7 @@ struct d3d_neut_ctx {
   double kappa, delta, q0, Cy, x_LCFS;
 
   // Species parameters.
-  double me, mi, qe, n0, Te0, Ti0, Tn;
+  double me, mi, qe, n0, Te0, Ti0;
 
   // Configuration-space domain and recycling coefficient.
   double x_min, x_max, z_min, z_max, Lx, Lz, rec_frac;
@@ -309,7 +313,6 @@ main(int argc, char **argv)
     .n0 = 2.0e19,
     .Te0 = 300.0 * GKYL_ELEMENTARY_CHARGE,
     .Ti0 = 300.0 * GKYL_ELEMENTARY_CHARGE,
-    .Tn = 2.0 * GKYL_ELEMENTARY_CHARGE,
     .x_min = 0.0,
     .x_max = Rmid_max - Rmid_min,
     .Lx = Rmid_max - Rmid_min,
@@ -411,6 +414,34 @@ main(int argc, char **argv)
     .correct =
       {.correct_all_moms = true, .use_last_converged = true, .iter_eps = 1.0e-10, .max_iter = 20},
     .collisionless = {.type = GKYL_GK_COLLISIONLESS_ES},
+    .react_neut =
+      {
+        .num_react = 2,
+        .write_diagnostics = true,
+        .react_type =
+          {{
+             .react_id = GKYL_REACT_IZ,
+             .type_self = GKYL_SELF_ELC,
+             .ion_id = GKYL_ION_H,
+             .elc_nm = "elc",
+             .ion_nm = "ion",
+             .donor_nm = "D0",
+             .charge_state = 0,
+             .ion_mass = ctx.mi,
+             .elc_mass = ctx.me,
+           },
+           {
+             .react_id = GKYL_REACT_RECOMB,
+             .type_self = GKYL_SELF_ELC,
+             .ion_id = GKYL_ION_H,
+             .elc_nm = "elc",
+             .ion_nm = "ion",
+             .recvr_nm = "D0",
+             .charge_state = 0,
+             .ion_mass = ctx.mi,
+             .elc_mass = ctx.me,
+           }},
+      },
     .source =
       {
         .source_id = GKYL_PROJ_SOURCE,
@@ -456,6 +487,43 @@ main(int argc, char **argv)
     .correct =
       {.correct_all_moms = true, .use_last_converged = true, .iter_eps = 1.0e-10, .max_iter = 20},
     .collisionless = {.type = GKYL_GK_COLLISIONLESS_ES},
+    .react_neut =
+      {
+        .num_react = 3,
+        .write_diagnostics = true,
+        .react_type =
+          {{
+             .react_id = GKYL_REACT_IZ,
+             .type_self = GKYL_SELF_ION,
+             .ion_id = GKYL_ION_H,
+             .elc_nm = "elc",
+             .ion_nm = "ion",
+             .donor_nm = "D0",
+             .charge_state = 0,
+             .ion_mass = ctx.mi,
+             .elc_mass = ctx.me,
+           },
+           {
+             .react_id = GKYL_REACT_RECOMB,
+             .type_self = GKYL_SELF_ION,
+             .ion_id = GKYL_ION_H,
+             .elc_nm = "elc",
+             .ion_nm = "ion",
+             .recvr_nm = "D0",
+             .charge_state = 0,
+             .ion_mass = ctx.mi,
+             .elc_mass = ctx.me,
+           },
+           {
+             .react_id = GKYL_REACT_CX,
+             .type_self = GKYL_SELF_ION,
+             .ion_id = GKYL_ION_H,
+             .ion_nm = "ion",
+             .partner_nm = "D0",
+             .ion_mass = ctx.mi,
+             .partner_mass = ctx.mi,
+           }},
+      },
     .source =
       {
         .source_id = GKYL_PROJ_SOURCE,
@@ -476,7 +544,13 @@ main(int argc, char **argv)
        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
        {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
        {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB}},
-    .boundary_flux_diagnostics = {.num_diag_moments = 1, .diag_moments = {GKYL_F_MOMENT_M0}},
+    .boundary_flux_diagnostics =
+      {
+        .num_diag_moments = 1,
+        .diag_moments = {GKYL_F_MOMENT_M0},
+        .num_integrated_diag_moments = 1,
+        .integrated_diag_moments = {GKYL_F_MOMENT_M0},
+      },
     .num_diag_moments = 1,
     .diag_moments = {GKYL_F_MOMENT_M0},
   };
@@ -486,7 +560,6 @@ main(int argc, char **argv)
     .num_species = 1,
     .in_species = {"ion"},
     .recycling_frac = ctx.rec_frac,
-    .emission_temp = ctx.Tn,
   };
 
   // Fluid-neutral species.
@@ -518,9 +591,10 @@ main(int argc, char **argv)
       },
     .react_neut =
       {
-        // CX supplies D_n; ionization depletes the neutral density.
+        // CX supplies D_n; ionization depletes and recombination replenishes
+        // the neutral density.
         .write_diagnostics = true,
-        .num_react = 2,
+        .num_react = 3,
         .react_type =
           {{
              .react_id = GKYL_REACT_CX,
@@ -542,12 +616,23 @@ main(int argc, char **argv)
              .charge_state = 0,
              .ion_mass = ctx.mi,
              .elc_mass = ctx.me,
+           },
+           {
+             .react_id = GKYL_REACT_RECOMB,
+             .type_self = GKYL_SELF_RECVR,
+             .ion_id = GKYL_ION_H,
+             .elc_nm = "elc",
+             .ion_nm = "ion",
+             .recvr_nm = "D0",
+             .charge_state = 0,
+             .ion_mass = ctx.mi,
+             .elc_mass = ctx.me,
            }},
       },
     .num_diag_moments = 3,
     .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2},
     .bcs =
-      {// Match the emitted neutral flux to the local incident ion flux.
+      {// Neutral flux entering through each SOL target is R times the incident ion flux.
        {
          .dir = 1,
          .edge = GKYL_LOWER_EDGE,
