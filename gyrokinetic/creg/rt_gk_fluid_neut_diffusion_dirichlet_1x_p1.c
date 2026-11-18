@@ -1,16 +1,3 @@
-// Analytic relaxation of a fluid-neutral density on an open field line.
-//
-//   partial_t n_n = D_n partial_z^2 n_n,
-//   n_n(z_lo,t) = n_lo,  n_n(z_up,t) = n_up.
-//
-// The backward-Euler fluid-neutral diffusion update relaxes the sine
-// perturbation toward the linear Dirichlet steady state. The exact solution
-// used to initialize the regression is
-//
-//   n_n(z,t) = n_ss(z)
-//     + A exp[-D_n (pi/L)^2 t] sin[pi(z-z_lo)/L],
-//   n_ss(z) = n_lo + (n_up-n_lo)(z-z_lo)/L.
-
 #include <math.h>
 #include <stdio.h>
 

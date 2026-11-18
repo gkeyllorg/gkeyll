@@ -1,19 +1,3 @@
-// Implicit diffusion of a periodic fluid-neutral density perturbation in a
-// 3x sheared slab with a nonuniform configuration-space Jacobian.
-//
-// The physical coordinate map is
-//
-//   X = x + epsilon sin(x) + s sin(z),  Y = y,  Z = z.
-//
-// The fluid-neutral equation in mapped coordinates is
-//
-//   partial_t(J n_n)
-//     = partial_i[J D_n g_n^{ij} partial_j n_n].
-//
-// This regression exercises the 3x mapped tensor, including its off-diagonal
-// entries, and the matrix-free backward-Euler solve. Only neutral density is
-// diffused; the dependent fluid moments retain their specific values.
-
 #include <math.h>
 #include <stdio.h>
 

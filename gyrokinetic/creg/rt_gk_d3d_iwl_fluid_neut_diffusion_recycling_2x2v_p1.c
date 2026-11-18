@@ -1,22 +1,3 @@
-// DIII-D inner-wall-limited 2x2v regression for a locally recycled,
-// diffusive fluid neutral.
-//
-// The configuration coordinates are x (radial) and theta (parallel). The
-// domain contains only the open-field-line region, so both parallel
-// boundaries are material targets. The mapped neutral equation is
-//
-//   d_t(J n_n) = d_i[J D_n g_n^{ij} d_j n_n] - J nu_iz n_n,
-//   D_n = v_ti^2/(n_e <sigma v>_cx).
-//
-// At each target the diffusive neutral flux is replaced by the recycled flux,
-// so the neutral flux entering through the target is locally
-//
-//   Gamma_n = R Gamma_i,
-//
-// where R is the recycling fraction and Gamma_i is the incident ion flux.
-// The test exercises reaction-rate diffusion, ionization loss, recycling,
-// mapped geometry, and the matrix-free backward-Euler diffusion solve.
-
 #include <math.h>
 #include <stdio.h>
 

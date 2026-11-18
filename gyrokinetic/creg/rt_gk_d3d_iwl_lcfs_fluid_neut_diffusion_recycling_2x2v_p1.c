@@ -1,31 +1,3 @@
-// DIII-D inner-wall-limited 2x2v regression for a locally recycled,
-// diffusive fluid neutral in a domain spanning the last closed flux surface.
-//
-// The configuration coordinates are x (radial) and theta (parallel). The
-// domain spans the closed-field-line core (x < x_LCFS), where the parallel
-// direction is periodic, and the open-field-line SOL (x > x_LCFS), whose
-// parallel boundaries are conducting-sheath targets. The electrostatic
-// potential is solved with the TCV IWL boundary setup. An adaptive core source replaces
-// the particles and energy lost through the inner radial boundary. Geometry,
-// profiles and source parameters follow the 3x2v DIII-D negative-triangularity
-// IWL setup, reduced to 2x (no binormal direction). The mapped neutral equation is
-//
-//   d_t(J n_n) = d_i[J D_n g_n^{ij} d_j n_n] - J nu_iz n_n,
-//   D_n = v_ti^2/(n_e <sigma v>_cx).
-//
-// At each SOL target the diffusive neutral flux is replaced by the recycled
-// flux, so the neutral flux entering through the target is locally
-//
-//   Gamma_n = R Gamma_i,
-//
-// where R is the recycling fraction and Gamma_i is the incident ion flux.
-// Ionization, recombination and charge exchange couple the neutrals to the
-// plasma species as in the 3x2v DIII-D input, so particles are exchanged
-// between the neutrals and the plasma. The test exercises reaction-rate
-// diffusion, particle-conserving recycling, periodic confined-region neutral
-// BCs, adaptive core sources, mapped geometry, and the matrix-free
-// backward-Euler diffusion solve.
-
 #include <math.h>
 #include <stdio.h>
 
