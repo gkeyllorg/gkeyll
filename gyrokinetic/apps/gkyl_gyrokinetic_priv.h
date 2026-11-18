@@ -1580,6 +1580,7 @@ struct gk_neut_species {
       struct gkyl_array *diffusion_recycling_flux; // Recycled neutral mass flux in target ghosts.
       struct gkyl_array *diffusion_recycling_flux_tmp; // One impacting-species contribution.
       struct gkyl_array *diffusion_moment_ratio; // Conserved moments divided by density.
+      struct gkyl_array *diffusion_vt_sq; // Neutral T_n/m_n in the D numerator.
       gkyl_dg_bin_op_mem *diffusion_div_mem; // Memory for weak moment/density division.
       struct gkyl_dg_updater_conf_diffusion *diffusion_slvr; // Conservative DG diffusion updater.
       int diffusion_recycling_num_species[2]; // Impacting species at lower/upper parallel edges.

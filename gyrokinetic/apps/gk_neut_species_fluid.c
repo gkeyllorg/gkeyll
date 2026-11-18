@@ -299,6 +299,18 @@ gk_neut_species_fluid_apply_bc_dynamic(
   app->stat.neut_species_bc_tm += gkyl_time_diff_now_sec(wst);
 }
 
+// Squared neutral thermal speed T_n/m_n in the numerator of
+// D = vt^2/(ne*<sigma v>_cx), from the neutral LTE moments
+// (n, u_e1, u_e2, u_bhat, T/m) computed for the current stage.
+static const struct gkyl_array *
+fluid_diffusion_vt_sq(gkyl_gyrokinetic_app *app, struct gk_neut_species *species)
+{
+  gkyl_array_set_offset(
+    species->diffusion_vt_sq, 1.0, species->lte.moms.marr, 4 * app->basis.num_basis
+  );
+  return species->diffusion_vt_sq;
+}
+
 static double
 gk_neut_species_fluid_rhs_dynamic(
   gkyl_gyrokinetic_app *app, struct gk_neut_species *species, const struct gkyl_array *fin,
@@ -319,6 +331,7 @@ gk_neut_species_fluid_rhs_dynamic(
       struct gk_react *react = &species->react_neut;
       int iz_idx = species->ionization_react_idx;
       int cx_idx = species->diffusion_cx_react_idx;
+      const struct gkyl_array *vt_sq_D = fluid_diffusion_vt_sq(app, species);
       struct gk_species *elc = &app->species[react->elc_idx[iz_idx]];
 
       // Evaluate <sigma v>_cx for the diffusion closure independently of the
@@ -344,7 +357,7 @@ gk_neut_species_fluid_rhs_dynamic(
 #ifdef GKYL_HAVE_CUDA
         if (app->use_gpu) {
           gk_neut_fluid_diffusion_floor_cu(
-            app->cdim, nu_min, &species->local, react->vt_sq_ion[cx_idx],
+            app->cdim, nu_min, &species->local, vt_sq_D,
             species->diffusion_moment_ratio, species->diffusion_coeff
           );
         } else
@@ -357,7 +370,7 @@ gk_neut_species_fluid_rhs_dynamic(
           gkyl_range_iter_init(&iter, &species->local);
           while (gkyl_range_iter_next(&iter)) {
             long loc = gkyl_range_idx(&species->local, iter.idx);
-            const double *vt_sq = gkyl_array_cfetch(react->vt_sq_ion[cx_idx], loc);
+            const double *vt_sq = gkyl_array_cfetch(vt_sq_D, loc);
             const double *nu = gkyl_array_cfetch(species->diffusion_moment_ratio, loc);
             double *D = gkyl_array_fetch(species->diffusion_coeff, loc);
             for (int q = 0; q < app->basis.num_basis; ++q) {
@@ -372,7 +385,7 @@ gk_neut_species_fluid_rhs_dynamic(
         // With no floor requested, retain the original weak quotient.
         gkyl_dg_div_op_range(
           species->diffusion_div_mem, &app->basis, 0, species->diffusion_coeff, 0,
-          react->vt_sq_ion[cx_idx], 0, species->diffusion_moment_ratio, &species->local
+          vt_sq_D, 0, species->diffusion_moment_ratio, &species->local
         );
       }
 
@@ -563,6 +576,7 @@ fluid_diffusion_prepare_implicit(gkyl_gyrokinetic_app *app, struct gk_neut_speci
     struct gk_react *react = &species->react_neut;
     int iz_idx = species->ionization_react_idx;
     int cx_idx = species->diffusion_cx_react_idx;
+    const struct gkyl_array *vt_sq_D = fluid_diffusion_vt_sq(app, species);
     struct gk_species *elc = &app->species[react->elc_idx[iz_idx]];
     gkyl_dg_cx_coll_rate(
       react->cx[cx_idx], app->species[react->ion_idx[cx_idx]].lte.moms.marr, species->lte.moms.marr,
@@ -578,7 +592,7 @@ fluid_diffusion_prepare_implicit(gkyl_gyrokinetic_app *app, struct gk_neut_speci
 #ifdef GKYL_HAVE_CUDA
       if (app->use_gpu) {
         gk_neut_fluid_diffusion_floor_cu(
-          app->cdim, nu_min, &species->local, react->vt_sq_ion[cx_idx],
+          app->cdim, nu_min, &species->local, vt_sq_D,
           species->diffusion_moment_ratio, species->diffusion_coeff
         );
       } else
@@ -590,7 +604,7 @@ fluid_diffusion_prepare_implicit(gkyl_gyrokinetic_app *app, struct gk_neut_speci
         gkyl_range_iter_init(&iter, &species->local);
         while (gkyl_range_iter_next(&iter)) {
           long loc = gkyl_range_idx(&species->local, iter.idx);
-          const double *vt_sq = gkyl_array_cfetch(react->vt_sq_ion[cx_idx], loc);
+          const double *vt_sq = gkyl_array_cfetch(vt_sq_D, loc);
           const double *nu = gkyl_array_cfetch(species->diffusion_moment_ratio, loc);
           double *D = gkyl_array_fetch(species->diffusion_coeff, loc);
           for (int q = 0; q < app->basis.num_basis; ++q) {
@@ -604,7 +618,7 @@ fluid_diffusion_prepare_implicit(gkyl_gyrokinetic_app *app, struct gk_neut_speci
     } else {
       gkyl_dg_div_op_range(
         species->diffusion_div_mem, &app->basis, 0, species->diffusion_coeff, 0,
-        react->vt_sq_ion[cx_idx], 0, species->diffusion_moment_ratio, &species->local
+        vt_sq_D, 0, species->diffusion_moment_ratio, &species->local
       );
     }
   }
@@ -918,6 +932,9 @@ gk_neut_species_fluid_release_dynamic(
       gkyl_array_release(ns->diffusion_recycling_flux_tmp);
     }
     gkyl_array_release(ns->diffusion_moment_ratio);
+    if (ns->diffusion_vt_sq) {
+      gkyl_array_release(ns->diffusion_vt_sq);
+    }
     gkyl_dg_bin_op_mem_release(ns->diffusion_div_mem);
     gkyl_dg_updater_conf_diffusion_release(ns->diffusion_slvr);
   }
@@ -1021,6 +1038,7 @@ gk_neut_species_fluid_init_dynamic(
   ns->diffusion_recycling_flux = 0;
   ns->diffusion_recycling_flux_tmp = 0;
   ns->diffusion_moment_ratio = 0;
+  ns->diffusion_vt_sq = 0;
   ns->diffusion_div_mem = 0;
   ns->diffusion_slvr = 0;
   ns->diffusion_recycling_num_species[0] = 0;
@@ -1118,6 +1136,7 @@ gk_neut_species_fluid_init_dynamic(
     if (ns->use_reaction_rate_diffusion) {
       assert(ns->ionization_react_idx >= 0);
       assert(ns->diffusion_cx_react_idx >= 0);
+      ns->diffusion_vt_sq = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     }
 
     ns->diffusion_moment_ratio = mkarr(app->use_gpu, ns->f->ncomp, ns->f->size);
