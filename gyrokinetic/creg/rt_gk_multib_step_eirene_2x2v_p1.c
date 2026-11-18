@@ -206,12 +206,13 @@ create_gk_block_geom(void)
         {
           // x-direction connections
           {.bid = 1, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
-          {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL} // physical boundary
+          {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
         },
       .connections[1] =
-        {// z-direction connections
-         {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}, // physical boundary
-         {.bid = 5, .dir = 1, .edge = GKYL_LOWER_POSITIVE}
+        {
+          // z-direction connections
+          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}, // physical boundary
+          {.bid = 5, .dir = 1, .edge = GKYL_LOWER_POSITIVE},
         },
     }
   );
@@ -257,14 +258,16 @@ create_gk_block_geom(void)
         },
 
       .connections[0] =
-        {// x-direction connections
-         {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
-         {.bid = 0, .dir = 0, .edge = GKYL_LOWER_POSITIVE}
+        {
+          // x-direction connections
+          {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
+          {.bid = 0, .dir = 0, .edge = GKYL_LOWER_POSITIVE},
         },
       .connections[1] =
-        {// z-direction connections
-         {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}, // physical boundary
-         {.bid = 2, .dir = 1, .edge = GKYL_LOWER_POSITIVE}
+        {
+          // z-direction connections
+          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}, // physical boundary
+          {.bid = 2, .dir = 1, .edge = GKYL_LOWER_POSITIVE},
         },
     }
   );
@@ -310,14 +313,16 @@ create_gk_block_geom(void)
         },
 
       .connections[0] =
-        {// x-direction connections
-         {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
-         {.bid = 6, .dir = 0, .edge = GKYL_LOWER_POSITIVE}
+        {
+          // x-direction connections
+          {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
+          {.bid = 6, .dir = 0, .edge = GKYL_LOWER_POSITIVE},
         },
       .connections[1] =
-        {// z-direction connections
-         {.bid = 1, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
-         {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}
+        {
+          // z-direction connections
+          {.bid = 1, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
+          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL},
         },
     }
   );
@@ -361,14 +366,16 @@ create_gk_block_geom(void)
         },
 
       .connections[0] =
-        {// x-direction connections
-         {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
-         {.bid = 7, .dir = 0, .edge = GKYL_LOWER_POSITIVE}
+        {
+          // x-direction connections
+          {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
+          {.bid = 7, .dir = 0, .edge = GKYL_LOWER_POSITIVE},
         },
       .connections[1] =
-        {// z-direction connections
-         {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL},
-         {.bid = 4, .dir = 1, .edge = GKYL_LOWER_POSITIVE}
+        {
+          // z-direction connections
+          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL},
+          {.bid = 4, .dir = 1, .edge = GKYL_LOWER_POSITIVE},
         },
     }
   );
@@ -412,14 +419,16 @@ create_gk_block_geom(void)
         },
 
       .connections[0] =
-        {// x-direction connections
-         {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
-         {.bid = 5, .dir = 0, .edge = GKYL_LOWER_POSITIVE}
+        {
+          // x-direction connections
+          {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
+          {.bid = 5, .dir = 0, .edge = GKYL_LOWER_POSITIVE},
         },
       .connections[1] =
-        {// z-direction connections
-         {.bid = 3, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
-         {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}
+        {
+          // z-direction connections
+          {.bid = 3, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
+          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL},
         },
     }
   );
@@ -466,13 +475,13 @@ create_gk_block_geom(void)
         {
           // x-direction connections
           {.bid = 4, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
-          {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL} // physical boundary
+          {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
         },
       .connections[1] =
         {
           // z-direction connections
           {.bid = 0, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
-          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL} // physical boundary
+          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}, // physical boundary
         },
     }
   );
@@ -516,12 +525,13 @@ create_gk_block_geom(void)
         {
           // x-direction connections
           {.bid = 2, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
-          {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL} // physical boundary
+          {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
         },
       .connections[1] =
-        {// z-direction connections
-         {.bid = 7, .dir = 1, .edge = GKYL_UPPER_POSITIVE}, // physical boundary
-         {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}
+        {
+          // z-direction connections
+          {.bid = 7, .dir = 1, .edge = GKYL_UPPER_POSITIVE}, // physical boundary
+          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL},
         },
     }
   );
@@ -565,12 +575,13 @@ create_gk_block_geom(void)
         {
           // x-direction connections
           {.bid = 3, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
-          {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL} // physical boundary
+          {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
         },
       .connections[1] =
-        {// z-direction connections
-         {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL},
-         {.bid = 6, .dir = 1, .edge = GKYL_LOWER_POSITIVE}
+        {
+          // z-direction connections
+          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL},
+          {.bid = 6, .dir = 1, .edge = GKYL_LOWER_POSITIVE},
         },
     }
   );
@@ -1234,7 +1245,7 @@ main(int argc, char **argv)
     {.bidx = 6, .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_REFLECT},
     //block 11 BCs
     {.bidx = 7, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
-    {.bidx = 7, .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_REFLECT}
+    {.bidx = 7, .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_REFLECT},
   };
 
   struct gkyl_gyrokinetic_multib_species elc = {
@@ -1516,7 +1527,7 @@ main(int argc, char **argv)
     {.bidx = 6, .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_REFLECT},
     //block 11 BCs
     {.bidx = 7, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
-    {.bidx = 7, .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_REFLECT}
+    {.bidx = 7, .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_REFLECT},
   };
 
   struct gkyl_gyrokinetic_multib_species ion = {
@@ -1632,7 +1643,7 @@ main(int argc, char **argv)
     // block 6 BCs
     {.bidx = 6, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_NEUMANN},
     // block 7 BCs
-    {.bidx = 7, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_NEUMANN}
+    {.bidx = 7, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_NEUMANN},
   };
 
   struct gkyl_gyrokinetic_multib_field field = {

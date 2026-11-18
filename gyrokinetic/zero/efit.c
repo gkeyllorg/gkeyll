@@ -16,15 +16,39 @@
 #include <assert.h>
 #include <ctype.h>
 #include <float.h>
-#include <stdint.h>
+#include <gkyl_util.h>
 
-// Keep malformed-file rejection effective under -ffast-math.
+// SI equilibrium transformation to the fixed internal COCOS 3 convention.
 static bool
-efit_finite(double value)
+efit_cocos_factors(int index, double *psi_factor, double *f_factor, double *q_factor)
 {
-  uint64_t bits;
-  memcpy(&bits, &value, sizeof bits);
-  return (bits & UINT64_C(0x7ff0000000000000)) != UINT64_C(0x7ff0000000000000);
+  *f_factor = 1.0;
+  *q_factor = -1.0;
+  switch (index) {
+    case 1:
+      *psi_factor = -1.0;
+      break;
+    case 2:
+      *psi_factor = 1.0;
+      *f_factor = -1.0;
+      break;
+    case 3:
+      *psi_factor = 1.0;
+      *q_factor = 1.0;
+      break;
+    case 7:
+      *psi_factor = 1.0;
+      break;
+    case 11:
+      *psi_factor = -1.0 / (2.0 * M_PI);
+      break;
+    case 17:
+      *psi_factor = 1.0 / (2.0 * M_PI);
+      break;
+    default:
+      return false;
+  }
+  return true;
 }
 
 // Active half (2026-09-29).  With reflect, the reader
@@ -187,8 +211,18 @@ gkyl_efit_limiter_self_intersections(const struct gkyl_efit *e)
 static gkyl_efit *
 efit_new_impl(const struct gkyl_efit_inp *inp, bool flip_z)
 {
+  int cocos_index = inp->eqdsk_cocos_index ? inp->eqdsk_cocos_index : 3;
+  double psi_factor, f_factor, q_factor;
+  if (!efit_cocos_factors(cocos_index, &psi_factor, &f_factor, &q_factor)) {
+    fprintf(
+      stderr, "efit.c: Unsupported EQDSK COCOS index %d (supported: 1, 2, 3, 7, 11, 17)\n",
+      cocos_index
+    );
+    return NULL;
+  }
   gkyl_efit *up = gkyl_calloc(1, sizeof(struct gkyl_efit));
 
+  up->eqdsk_cocos_index = cocos_index;
   up->reflect = inp->reflect;
   up->use_gpu = inp->use_gpu;
   up->is_verbose = inp->is_verbose;
@@ -265,6 +299,10 @@ efit_new_impl(const struct gkyl_efit_inp *inp, bool flip_z)
     &up->bcentr, &up->current, &up->simag, &up->xdum, &up->rmaxis, &up->xdum, &up->zmaxis,
     &up->xdum, &up->sibry, &up->xdum, &up->xdum
   );
+  up->simag *= psi_factor;
+  up->sibry *= psi_factor;
+  up->bcentr *= f_factor;
+  up->current *= f_factor;
 
   up->psisep = up->sibry;
   up->psisep_cubic = up->sibry;
@@ -353,12 +391,14 @@ efit_new_impl(const struct gkyl_efit_inp *inp, bool flip_z)
       fidx[0] = i;
       double *fpol_n = gkyl_array_fetch(fpolflux_n, gkyl_range_idx(&flux_nrange, fidx));
       status = fscanf(ptr, "%lf", fpol_n);
+      fpol_n[0] *= f_factor;
     }
   } else {
     for (int i = 0; i < up->nr; i++) {
       fidx[0] = i;
       double *fpol_n = gkyl_array_fetch(fpolflux_n, gkyl_range_idx(&flux_nrange, fidx));
       status = fscanf(ptr, "%lf", fpol_n);
+      fpol_n[0] *= f_factor;
     }
   }
 
@@ -385,12 +425,14 @@ efit_new_impl(const struct gkyl_efit_inp *inp, bool flip_z)
       fidx[0] = i;
       double *fpolprime_n = gkyl_array_fetch(fpolprimeflux_n, gkyl_range_idx(&flux_nrange, fidx));
       status = fscanf(ptr, "%lf", fpolprime_n);
+      fpolprime_n[0] /= psi_factor;
     }
   } else {
     for (int i = 0; i < up->nr; i++) {
       fidx[0] = i;
       double *fpolprime_n = gkyl_array_fetch(fpolprimeflux_n, gkyl_range_idx(&flux_nrange, fidx));
       status = fscanf(ptr, "%lf", fpolprime_n);
+      fpolprime_n[0] /= psi_factor;
     }
   }
   // FF'/F is undefined where F vanishes (including a purely poloidal
@@ -441,6 +483,7 @@ efit_new_impl(const struct gkyl_efit_inp *inp, bool flip_z)
       // set psi
       double *psi_n = gkyl_array_fetch(psizr_n, gkyl_range_idx(&nrange, idx));
       status = fscanf(ptr, "%lf", psi_n);
+      psi_n[0] *= psi_factor;
     }
   }
 
@@ -512,6 +555,7 @@ efit_new_impl(const struct gkyl_efit_inp *inp, bool flip_z)
       fidx[0] = i;
       double *q_n = gkyl_array_fetch(qflux_n, gkyl_range_idx(&flux_nrange, fidx));
       status = fscanf(ptr, "%lf", q_n);
+      q_n[0] *= q_factor;
     }
   } else {
     // psi increases away from magnetic axis.
@@ -519,6 +563,7 @@ efit_new_impl(const struct gkyl_efit_inp *inp, bool flip_z)
       fidx[0] = i;
       double *q_n = gkyl_array_fetch(qflux_n, gkyl_range_idx(&flux_nrange, fidx));
       status = fscanf(ptr, "%lf", q_n);
+      q_n[0] *= q_factor;
     }
   }
   gkyl_nodal_ops_n2m(
@@ -538,7 +583,7 @@ efit_new_impl(const struct gkyl_efit_inp *inp, bool flip_z)
       bool valid = true;
       double R, Z;
       for (int i = 0; i < nboundary && valid; ++i) {
-        valid = fscanf(ptr, "%lf %lf", &R, &Z) == 2 && efit_finite(R) && efit_finite(Z);
+        valid = fscanf(ptr, "%lf %lf", &R, &Z) == 2 && gkyl_is_dfinite(R) && gkyl_is_dfinite(Z);
       }
       // Classify by vertex count exhaustively. Previously nlimiter==1 matched
       // neither branch and kept the pessimistic -1, so a readable record was
@@ -549,8 +594,8 @@ efit_new_impl(const struct gkyl_efit_inp *inp, bool flip_z)
         double *wall_R = gkyl_malloc(nlimiter * sizeof(double));
         double *wall_Z = gkyl_malloc(nlimiter * sizeof(double));
         for (int i = 0; i < nlimiter && valid; ++i) {
-          valid = fscanf(ptr, "%lf %lf", &wall_R[i], &wall_Z[i]) == 2 && efit_finite(wall_R[i]) &&
-                  efit_finite(wall_Z[i]);
+          valid = fscanf(ptr, "%lf %lf", &wall_R[i], &wall_Z[i]) == 2 &&
+                  gkyl_is_dfinite(wall_R[i]) && gkyl_is_dfinite(wall_Z[i]);
         }
         // The wall belongs to the machine, so it is mirrored with the flux.
         if (valid && flip_z) {
@@ -751,6 +796,10 @@ gkyl_efit_new(const struct gkyl_efit_inp *inp)
 
   efit_trial_quiet = 1;
   gkyl_efit *lo = efit_new_impl(inp, false);
+  if (!lo) {
+    efit_trial_quiet = 0;
+    return NULL;
+  }
   gkyl_efit *hi = efit_new_impl(inp, true);
   efit_trial_quiet = 0;
 

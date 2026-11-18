@@ -19,7 +19,7 @@ gk_species_source_write_enabled(
   gkyl_msgpack_map_elem_set_double(gks->io_meta_phase_len, gks->io_meta_phase, "time", tm);
   gkyl_msgpack_map_elem_set_uint(gks->io_meta_phase_len, gks->io_meta_phase, "frame", frame);
   struct gkyl_msgpack_map_elem io_meta_source[] = {
-    {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Source."}
+    {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Source."},
   };
   int io_meta_len[] = {gks->io_meta_phase_len, app->gk_geom->io_meta_basic_len, 1};
   const struct gkyl_msgpack_map_elem *io_meta[] = {
@@ -90,12 +90,14 @@ gk_species_source_write_mom_enabled(
       gkyl_array_copy(gks->src.moms[m].marr_host, gks->src.moms[m].marr);
     }
 
-    struct gkyl_msgpack_map_elem io_meta_mom[] = {{
-      .key = "Description",
-      .elem_type = GKYL_MP_STRING,
-      .cval = (char *)
-        gkyl_distribution_moments_descriptions[gks->info.source.diagnostics.diag_moments[m]],
-    }};
+    struct gkyl_msgpack_map_elem io_meta_mom[] = {
+      {
+        .key = "Description",
+        .elem_type = GKYL_MP_STRING,
+        .cval = (char *)
+          gkyl_distribution_moments_descriptions[gks->info.source.diagnostics.diag_moments[m]],
+      },
+    };
     int io_meta_len[] = {gks->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1};
     const struct gkyl_msgpack_map_elem *io_meta[] = {
       gks->io_meta_conf, app->gk_geom->io_meta_basic, io_meta_mom
@@ -225,11 +227,13 @@ gk_species_source_write_integrated_mom_enabled(gkyl_gyrokinetic_app *app, struct
     snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, "integrated_moms");
 
     if (gks->src.is_first_integ_write_call) {
-      struct gkyl_msgpack_map_elem io_meta_phi[] = {{
-        .key = "Description",
-        .elem_type = GKYL_MP_STRING,
-        .cval = "Volume integrated moments of the source.",
-      }};
+      struct gkyl_msgpack_map_elem io_meta_phi[] = {
+        {
+          .key = "Description",
+          .elem_type = GKYL_MP_STRING,
+          .cval = "Volume integrated moments of the source.",
+        },
+      };
       int io_meta_len[] = {gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
       const struct gkyl_msgpack_map_elem *io_meta[] = {
         gks->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi
@@ -257,11 +261,13 @@ gk_species_source_write_integrated_mom_enabled(gkyl_gyrokinetic_app *app, struct
       snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, "particle");
 
       if (gks->src.is_first_integ_write_call_adapt) {
-        struct gkyl_msgpack_map_elem io_meta_phi[] = {{
-          .key = "Description",
-          .elem_type = GKYL_MP_STRING,
-          .cval = "Source particle injection rate.",
-        }};
+        struct gkyl_msgpack_map_elem io_meta_phi[] = {
+          {
+            .key = "Description",
+            .elem_type = GKYL_MP_STRING,
+            .cval = "Source particle injection rate.",
+          },
+        };
         int io_meta_len[] = {gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
         const struct gkyl_msgpack_map_elem *io_meta[] = {
           gks->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi
@@ -288,7 +294,7 @@ gk_species_source_write_integrated_mom_enabled(gkyl_gyrokinetic_app *app, struct
 
       if (gks->src.is_first_integ_write_call_adapt) {
         struct gkyl_msgpack_map_elem io_meta_phi[] = {
-          {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Source temperature."}
+          {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Source temperature."},
         };
         int io_meta_len[] = {gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
         const struct gkyl_msgpack_map_elem *io_meta[] = {
@@ -321,6 +327,11 @@ gk_species_source_calc(
   if (src->source_id && src->source_id != GKYL_SOURCE_FROMFILE) {
     gkyl_array_clear(src->source, 0.0);
     for (int k = 0; k < gks->info.source.num_sources; k++) {
+      // Skip zero-rate adaptive source, to avoid div by 0 when correcting moments.
+      if (k < src->num_adapt_sources && src->adapt[k].particle_src_curr == 0.0 &&
+          gks->info.source.projection[k].f_floor == 0.0) {
+        continue;
+      }
       gk_species_projection_calc(app, gks, &src->proj_source[k], f_buffer, tm);
       gkyl_array_accumulate(src->source, 1., f_buffer);
     }

@@ -63,6 +63,8 @@ comm_free(const struct gkyl_ref_count *ref)
 
   gkyl_mem_buff_release(mpi->allgather_buff_local.buff);
   gkyl_mem_buff_release(mpi->allgather_buff_global.buff);
+  gkyl_free(mpi->allgather_counts);
+  gkyl_free(mpi->allgather_displs);
 
   if (mpi->is_mcomm_allocated) {
     MPI_Comm_free(&mpi->mcomm);
@@ -172,11 +174,19 @@ array_allgather(
   // copy data to local buffer
   gkyl_array_copy_to_buffer(gkyl_mem_buff_data(mpi->allgather_buff_local.buff), array_local, local);
 
-  size_t nelem = array_local->esznc * mpi->decomp->ranges[rank].volume;
-  // gather data into global buffer
-  int ret = MPI_Allgather(
-    gkyl_mem_buff_data(mpi->allgather_buff_local.buff), nelem, MPI_CHAR,
-    gkyl_mem_buff_data(mpi->allgather_buff_global.buff), nelem, MPI_CHAR, mpi->mcomm
+  // Gather data into the global buffer. Ranks may own different numbers of cells
+  // (uneven decomposition), so each contributes its own volume, stored in rank
+  // order as the copy to the global array below expects.
+  int displ = 0;
+  for (int r = 0; r < mpi->decomp->ndecomp; ++r) {
+    mpi->allgather_counts[r] = array_local->esznc * mpi->decomp->ranges[r].volume;
+    mpi->allgather_displs[r] = displ;
+    displ += mpi->allgather_counts[r];
+  }
+  int ret = MPI_Allgatherv(
+    gkyl_mem_buff_data(mpi->allgather_buff_local.buff), mpi->allgather_counts[rank], MPI_CHAR,
+    gkyl_mem_buff_data(mpi->allgather_buff_global.buff), mpi->allgather_counts,
+    mpi->allgather_displs, MPI_CHAR, mpi->mcomm
   );
 
   // copy data to global array
@@ -797,6 +807,8 @@ mpi_comm_new(const struct gkyl_mpi_comm_inp *inp, const struct extra_mpi_comm_in
 
   mpi->allgather_buff_local.buff = gkyl_mem_buff_new(16);
   mpi->allgather_buff_global.buff = gkyl_mem_buff_new(16);
+  mpi->allgather_counts = gkyl_malloc(sizeof(int[mpi->decomp->ndecomp]));
+  mpi->allgather_displs = gkyl_malloc(sizeof(int[mpi->decomp->ndecomp]));
 
   mpi->priv_comm.gkyl_array_sync = array_sync;
   mpi->priv_comm.gkyl_array_per_sync = array_per_sync;

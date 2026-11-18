@@ -165,3 +165,23 @@ void gkyl_nodal_ops_m2n_deflated_cu(
   int num_comp, struct gkyl_array *nodal_fld, const struct gkyl_array *deflated_modal_fld,
   int extra_idx
 );
+
+/**
+ * Gradient of a nodal field on the per-cell Gauss-Legendre interior nodes of a
+ * grid (2 nodes per direction per cell, the layout of gkyl_nodal_ops_n2m_interior
+ * at p=1) by second-order finite differences along the node grid. The node
+ * spacing alternates between g*dx within a cell and (1-g)*dx across a cell
+ * boundary (g = 1/sqrt(3)); one-sided differences at the ends of the grid and
+ * a two-point difference along a direction with a single cell. Host only.
+ *
+ * @param grid Grid the nodes belong to
+ * @param nrange Nodal range of the interior nodes (2*cells per direction)
+ * @param num_comp Number of components of the field
+ * @param fld Nodal field on nrange, num_comp per node
+ * @param grad Output gradient on nrange, num_comp*ndim per node, direction
+ *   slowest: [num_comp*j + c] = d fld[c]/dz^j
+ */
+void gkyl_nodal_ops_grad_interior(
+  const struct gkyl_rect_grid *grid, const struct gkyl_range *nrange, int num_comp,
+  const struct gkyl_array *fld, struct gkyl_array *grad
+);

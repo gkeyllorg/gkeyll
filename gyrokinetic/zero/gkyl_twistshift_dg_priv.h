@@ -100,6 +100,7 @@ struct ts_shift_dg_eval_ctx {
   struct gkyl_basis *shift_b; // Basis for the shift.
   struct gkyl_rect_grid *shear_grid; // shear grid along x.
   struct gkyl_range *shear_r; // Shear grid range.
+  int shear_idx; // Cell whose polynomial defines the current overlap integral.
 };
 
 // Primary struct in this updater.

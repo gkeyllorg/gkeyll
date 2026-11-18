@@ -2263,7 +2263,7 @@ find_lower_turning_point_pf_up(struct gkyl_tok_geo *geo, double psi_curr, double
   double dRlo[4], dZlo[4];
   while (true) {
     int nup = gkyl_tok_geo_R_psiZ(geo, psi_curr, zup, 4, R, dRdZ, dR, dZ);
-    int nlo = gkyl_tok_geo_R_psiZ(geo, psi_curr, zlo, 4, Rlo, dRlo, dRlo, dZlo);
+    int nlo = gkyl_tok_geo_R_psiZ(geo, psi_curr, zlo, 4, Rlo, dRdZlo, dRlo, dZlo);
     //if(nlo==1){
     //  if (Rlo[0] < geo->rleft)
     //    nlo=0;
@@ -3723,6 +3723,7 @@ tok_set_ridders(
            (arc_ctx->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_LO) ||
            (arc_ctx->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_MID) ||
            (arc_ctx->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_UP)) {
+    arc_ctx->right = true;
     *ridders_min = -arcL_curr;
     *ridders_max = arc_ctx->arcL_tot - arcL_curr;
     *rclose = arc_ctx->rclose;
@@ -3731,6 +3732,7 @@ tok_set_ridders(
              (arc_ctx->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_LO) ||
              (arc_ctx->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_MID) ||
              (arc_ctx->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_UP)) {
+    arc_ctx->right = false;
     *ridders_min = arc_ctx->arcL_tot - arcL_curr;
     *ridders_max = -arcL_curr;
     *rclose = arc_ctx->rclose;

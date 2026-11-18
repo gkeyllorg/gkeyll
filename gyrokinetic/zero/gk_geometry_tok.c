@@ -1,3 +1,4 @@
+#include <gkyl_cocos.h>
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
 #include <gkyl_array.h>
@@ -485,9 +486,10 @@ tok_xpt_trial_surface_metric_finite(const struct gk_geometry *up)
 }
 
 struct gk_geometry *
-gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
+gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp, bool optimize_map)
 {
   struct gk_geometry *up = gkyl_calloc(1, sizeof(struct gk_geometry));
+  up->world_dim = geometry_inp->grid.ndim;
   up->geometry_id = geometry_inp->geometry_id;
   up->basis = geometry_inp->geo_basis;
 
@@ -556,7 +558,9 @@ gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
     gk_geometry_surf_alloc_expansions(up, dir);
   }
 
-  gkyl_position_map_optimize(geometry_inp->position_map, up->grid, up->global);
+  if (optimize_map) {
+    gkyl_position_map_optimize(geometry_inp->position_map, up->grid, up->global);
+  }
 
   bool optimizer_trial = tok_xpt_trial_active(&ginp);
   struct gkyl_tok_geo_xpt_seam_trial_status *trial_status = ginp.relaxed_xpt_seam_trial_status;
@@ -658,17 +662,41 @@ gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
   char geqdsk_file_name[128];
   get_filename_from_path(geo->efit->filepath, geqdsk_file_name, sizeof(geqdsk_file_name));
   struct gkyl_msgpack_map_elem io_meta_basic[] = {
+    {
+      .key = "equilibrium_cocos",
+      .elem_type = GKYL_MP_UNSIGNED_INT,
+      .uval = gkyl_cocos_tokamak.index,
+    },
+    {.key = "parallel_coordinate", .elem_type = GKYL_MP_STRING, .cval = "field_aligned_theta"},
     {.key = "geometry_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geometry_id},
+    {.key = "tokamak_geo_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = ginp.ftype},
     {
       .key = "geqdsk_sign_convention",
       .elem_type = GKYL_MP_UNSIGNED_INT,
       .uval = up->geqdsk_sign_convention,
     },
     {.key = "geqdsk_file", .elem_type = GKYL_MP_STRING, .cval = geqdsk_file_name},
-    {.key = "half_domain", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->half_domain}
+    {
+      .key = "eqdsk_cocos_index",
+      .elem_type = GKYL_MP_UNSIGNED_INT,
+      .uval = geo->efit->eqdsk_cocos_index,
+    },
+    {.key = "half_domain", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->half_domain},
   };
   up->io_meta_basic_len = sizeof(io_meta_basic) / sizeof(io_meta_basic[0]);
   up->io_meta_basic = gkyl_msgpack_map_elem_clone(up->io_meta_basic_len, io_meta_basic);
+
+  if (geometry_inp->miller_grid_info.qsafety) {
+    struct gkyl_msgpack_map_elem miller_meta[] = {
+      {.key = "geometry_generator", .elem_type = GKYL_MP_STRING, .cval = "miller"},
+    };
+    const struct gkyl_msgpack_map_elem *lists[] = {up->io_meta_basic, miller_meta};
+    int lengths[] = {up->io_meta_basic_len, sizeof miller_meta / sizeof miller_meta[0]};
+    struct gkyl_msgpack_map_elem *merged =
+      gkyl_msgpack_map_elem_union(2, lengths, lists, &up->io_meta_basic_len);
+    gkyl_msgpack_map_elem_release(lengths[0], up->io_meta_basic);
+    up->io_meta_basic = merged;
+  }
 
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);
@@ -687,30 +715,35 @@ gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geometry_inp)
   struct gk_geometry *gk_geom;
 
   if (geometry_inp->position_map->id == GKYL_PMAP_XPT_COMPRESSION) {
+    struct gkyl_efit *efit = gkyl_efit_new(&geometry_inp->efit_info);
+    int theta_orientation = efit->sibry > efit->simag ? 1 : -1;
+    // Choose the compression anchor in the physical reference traversal,
+    // then transform it along with theta. This also covers half-domain blocks.
+    double theta_lo = theta_orientation > 0 ? geometry_inp->geo_grid.lower[2] :
+                                              -geometry_inp->geo_grid.upper[2];
+    double theta_up = theta_orientation > 0 ? geometry_inp->geo_grid.upper[2] :
+                                              -geometry_inp->geo_grid.lower[2];
     double zcenter, zcut, len;
     switch (geometry_inp->tok_grid_info.ftype) {
       case GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_MID:
       case GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_MID:
-        len = geometry_inp->tok_grid_info.half_domain ?
-                2.0 * (geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2]) :
-                geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2];
+        len = geometry_inp->tok_grid_info.half_domain ? 2.0 * (theta_up - theta_lo) :
+                                                        theta_up - theta_lo;
         zcut = len / 2.0;
         zcenter = 0.0;
         break;
       case GKYL_GEOMETRY_TOKAMAK_CORE_R:
       case GKYL_GEOMETRY_TOKAMAK_CORE:
       case GKYL_GEOMETRY_TOKAMAK_LSN_SOL_MID:
-        len = geometry_inp->tok_grid_info.half_domain ?
-                2.0 * (geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2]) :
-                geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2];
-        zcenter = geometry_inp->geo_grid.lower[2] + len / 2.0;
+        len = geometry_inp->tok_grid_info.half_domain ? 2.0 * (theta_up - theta_lo) :
+                                                        theta_up - theta_lo;
+        zcenter = theta_lo + len / 2.0;
         zcut = len / 2.0;
         break;
       case GKYL_GEOMETRY_TOKAMAK_CORE_L:
-        len = geometry_inp->tok_grid_info.half_domain ?
-                2.0 * (geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2]) :
-                geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2];
-        zcenter = geometry_inp->geo_grid.upper[2] - len / 2.0;
+        len = geometry_inp->tok_grid_info.half_domain ? 2.0 * (theta_up - theta_lo) :
+                                                        theta_up - theta_lo;
+        zcenter = theta_up - len / 2.0;
         zcut = len / 2.0;
         break;
       case GKYL_GEOMETRY_TOKAMAK_PF_LO_R:
@@ -718,10 +751,9 @@ gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geometry_inp)
       case GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_LO:
       case GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_UP:
       case GKYL_GEOMETRY_TOKAMAK_LSN_SOL_LO:
-        len = geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2];
-        zcenter = geometry_inp->position_map->xpt_ctx->compress_divertor ?
-                    geometry_inp->geo_grid.lower[2] + len / 2.0 :
-                    geometry_inp->geo_grid.lower[2];
+        len = theta_up - theta_lo;
+        zcenter = geometry_inp->position_map->xpt_ctx->compress_divertor ? theta_lo + len / 2.0 :
+                                                                           theta_lo;
         zcut = geometry_inp->position_map->xpt_ctx->compress_divertor ? len / 2.0 : len;
         break;
       case GKYL_GEOMETRY_TOKAMAK_PF_LO_L:
@@ -729,10 +761,9 @@ gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geometry_inp)
       case GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_UP:
       case GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_LO:
       case GKYL_GEOMETRY_TOKAMAK_LSN_SOL_UP:
-        len = geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2];
-        zcenter = geometry_inp->position_map->xpt_ctx->compress_divertor ?
-                    geometry_inp->geo_grid.upper[2] - len / 2.0 :
-                    geometry_inp->geo_grid.upper[2];
+        len = theta_up - theta_lo;
+        zcenter = geometry_inp->position_map->xpt_ctx->compress_divertor ? theta_up - len / 2.0 :
+                                                                           theta_up;
         zcut = geometry_inp->position_map->xpt_ctx->compress_divertor ? len / 2.0 : len;
         break;
       default:
@@ -740,21 +771,23 @@ gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geometry_inp)
     }
 
     double w = geometry_inp->geo_grid.upper[0] - geometry_inp->geo_grid.lower[0];
-    struct gkyl_efit *efit = gkyl_efit_new(&geometry_inp->efit_info);
+
     // The map is the identity only at its anchor, so the anchor must be the
     // separatrix flux of the representation the block is traced on; the
     // quadratic one moved a cubic block's separatrix row ~8e-6 off the
     // separatrix and its ordered map failed (STEP nonuniform, 2026-10-05).
     double psisep = geometry_inp->tok_grid_info.use_cubics ? efit->psisep_cubic : efit->psisep;
     gkyl_efit_release(efit);
-    gkyl_position_map_set_compression(geometry_inp->position_map, zcut, zcenter, w, psisep);
+    gkyl_position_map_set_compression(
+      geometry_inp->position_map, zcut, theta_orientation * zcenter, w, psisep
+    );
   } else if (geometry_inp->position_map->id == GKYL_PMAP_CONSTANT_DB_POLYNOMIAL ||
              geometry_inp->position_map->id == GKYL_PMAP_CONSTANT_DB_NUMERIC) {
     // First construct the uniform 3d geometry
     struct gkyl_gk_geometry_inp uniform_inp = *geometry_inp;
     uniform_inp.tok_grid_info.relaxed_xpt_seam_optimizer_trial = false;
     uniform_inp.tok_grid_info.relaxed_xpt_seam_trial_status = 0;
-    gk_geom_3d = gk_geometry_tok_init(&uniform_inp);
+    gk_geom_3d = gk_geometry_tok_init(&uniform_inp, true);
     // The array mc2nu is computed using the uniform geometry, so we need to deflate it
     // Must deflate the 3D uniform geometry in order for the allgather to work
     if (geometry_inp->grid.ndim < 3) {
@@ -771,7 +804,7 @@ gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geometry_inp)
     gkyl_gk_geometry_release(gk_geom); // release 3d geometry
   }
   // Construct the non-uniform grid
-  gk_geom_3d = gk_geometry_tok_init(geometry_inp);
+  gk_geom_3d = gk_geometry_tok_init(geometry_inp, true);
   return gk_geom_3d;
 }
 

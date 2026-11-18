@@ -16,15 +16,15 @@ extern "C" {
 }
 
 extern "C" {
-void test_cusolver_qr();
-void test_cusolver_rf();
-void test_cusolver_ops();
-void test_cusolver_ops_multiple_rhs();
-void test_cusolver_ops_multiple_prob();
+void test_cusolver_qr_dev();
+void test_cusolver_rf_dev();
+void test_cusolver_ops_dev();
+void test_cusolver_ops_multiple_rhs_dev();
+void test_cusolver_ops_multiple_prob_dev();
 }
 
 void
-test_cusolver_qr()
+test_cusolver_qr_dev()
 {
   /*  
  * This is the small 5x5 example used in the Sections 2 and 3 of the 
@@ -140,7 +140,7 @@ test_cusolver_qr()
 }
 
 void
-test_cusolver_ops()
+test_cusolver_ops_dev()
 {
   double s, u, p, e, r, l;
   int nrhs, m, n;
@@ -223,7 +223,7 @@ test_cusolver_ops()
 }
 
 void
-test_cusolver_ops_multiple_rhs()
+test_cusolver_ops_multiple_rhs_dev()
 {
   double s, u, p, e, r, l;
   int nrhs, m, n;
@@ -377,7 +377,7 @@ superlu_test_answer(double s, double u, double p, double e, double r, double l, 
 };
 
 void
-test_cusolver_ops_multiple_prob()
+test_cusolver_ops_multiple_prob_dev()
 {
   double s, u, p, e, r, l;
   int nprob, m, n;
@@ -469,7 +469,7 @@ test_cusolver_ops_multiple_prob()
 }
 
 void
-test_cusolver_rf()
+test_cusolver_rf_dev()
 {
   /*  
  * This is the small 5x5 example used in the Sections 2 and 3 of the 

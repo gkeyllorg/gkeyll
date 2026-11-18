@@ -1,3 +1,4 @@
+#include <gkyl_efit.h>
 #include <gkyl_gk_block_geom.h>
 #include <gkyl_array_rio_priv.h>
 #include <gkyl_dg_basis_ops.h>
@@ -22,6 +23,68 @@
 static void gyrokinetic_multib_optimize_xpt_seams(
   const struct gkyl_gyrokinetic_multib *mbinp, struct gkyl_gyrokinetic_multib_app *mbapp
 );
+
+// Convert a physical reference edge to the field-aligned computational edge.
+static enum gkyl_edge_loc
+multib_tok_edge(
+  const struct gkyl_gyrokinetic_multib_app *app, int bid, int dir, enum gkyl_edge_loc edge
+)
+{
+  int par_dir = gkyl_gk_block_geom_ndim(app->gk_block_geom) - 1;
+  if (dir == par_dir && app->tok_theta_reversed[bid]) {
+    return edge == GKYL_LOWER_EDGE ? GKYL_UPPER_EDGE : GKYL_LOWER_EDGE;
+  }
+  return edge;
+}
+
+// Clone user topology and orient numerical-tokamak block edges along B_p.
+// Physical block names/plate callbacks retain their meaning; user objects are not mutated.
+static void
+multib_tok_orient_blocks(
+  const struct gkyl_gk_block_geom *input, struct gkyl_gyrokinetic_multib_app *app
+)
+{
+  int ndim = gkyl_gk_block_geom_ndim(input), count = gkyl_gk_block_geom_num_blocks(input);
+  int par_dir = ndim - 1;
+  app->tok_theta_reversed = gkyl_calloc(count, sizeof(bool));
+  app->gk_block_geom = gkyl_gk_block_geom_new(ndim, count);
+  for (int b = 0; b < count; ++b) {
+    const struct gkyl_gk_block_geom_info *info = gkyl_gk_block_geom_get_block(input, b);
+    if (info->geometry.geometry_id == GKYL_GEOMETRY_TOKAMAK ||
+        info->geometry.geometry_id == GKYL_GEOMETRY_FROMFILE) {
+      struct gkyl_efit *efit = gkyl_efit_new(&info->geometry.efit_info);
+      app->tok_theta_reversed[b] = efit->sibry < efit->simag;
+      gkyl_efit_release(efit);
+    }
+  }
+  for (int b = 0; b < count; ++b) {
+    const struct gkyl_gk_block_geom_info *src = gkyl_gk_block_geom_get_block(input, b);
+    struct gkyl_gk_block_geom_info dst = *src;
+    for (int d = 0; d < ndim; ++d) {
+      for (int e = 0; e < 2; ++e) {
+        int output_edge = d == par_dir && app->tok_theta_reversed[b] ? 1 - e : e;
+        struct gkyl_target_edge target = src->connections[d][e];
+        if (target.edge != GKYL_PHYSICAL) {
+          bool target_flip = app->tok_theta_reversed[target.bid];
+          int upper = target.edge >= GKYL_UPPER_POSITIVE;
+          int negative = target.edge == GKYL_LOWER_NEGATIVE || target.edge == GKYL_UPPER_NEGATIVE;
+          if (target.dir == par_dir && target_flip) {
+            upper = !upper;
+          }
+          // Tangential theta also reverses on radial block interfaces.
+          if (d != par_dir && target.dir != par_dir && app->tok_theta_reversed[b] != target_flip) {
+            negative = !negative;
+          }
+          target.edge = 1 + 2 * upper + negative;
+        }
+        dst.connections[d][output_edge] = target;
+      }
+    }
+    gkyl_gk_block_geom_set_block(app->gk_block_geom, b, &dst);
+  }
+  app->block_topo = gkyl_gk_block_geom_topo(app->gk_block_geom);
+  assert(gkyl_block_topo_check_consistency(app->block_topo));
+}
 
 // Compute total number of ranges specified by cuts.
 static inline int
@@ -118,10 +181,16 @@ singleb_app_new_geom_from_block(
   if (have_tok_grid_info) {
     app_inp->geometry.tok_grid_info = tok_grid_info_with_frac;
   }
-  // This constructor only builds geometry; species and neutral inputs are not
-  // populated in the single-block geometry app.
-  app_inp->num_species = 0;
-  app_inp->num_neut_species = 0;
+  app_inp->num_species = mbinp->num_species;
+  int num_neut_species = app_inp->num_neut_species = mbinp->num_neut_species;
+  // The geometry needs to know which neutral species are kinetic (velocity cells).
+  for (int i = 0; i < num_neut_species; ++i) {
+    const struct gkyl_gyrokinetic_multib_neut_species *nsp = &mbinp->neut_species[i];
+    app_inp->neut_species[i].vdim = nsp->vdim;
+    for (int v = 0; v < nsp->vdim; ++v) {
+      app_inp->neut_species[i].cells[v] = nsp->cells[v];
+    }
+  }
 
   app_inp->poly_order = mbinp->poly_order;
   app_inp->basis_type = mbinp->basis_type;
@@ -147,9 +216,7 @@ singleb_app_new_geom_from_block(
   app_inp->metadata.num_attributes = mbapp->io_meta_basic_len;
   app_inp->metadata.attributes = mbapp->io_meta_basic;
 
-  struct gkyl_gyrokinetic_app *app = write_geometry ?
-                                       gkyl_gyrokinetic_app_new_geom(app_inp) :
-                                       gkyl_gyrokinetic_app_new_geom_no_write(app_inp);
+  struct gkyl_gyrokinetic_app *app = gyrokinetic_app_new_geom(app_inp, true, write_geometry);
   gkyl_free(app_inp);
   return app;
 }
@@ -288,7 +355,8 @@ singleb_app_new_solver(
     for (int i = 0; i < sp->num_physical_bcs; ++i) {
       if (bid == sp->bcs[i].bidx) {
         species_inp.bcs[bc_count_sp[bid]].dir = sp->bcs[i].dir;
-        species_inp.bcs[bc_count_sp[bid]].edge = sp->bcs[i].edge;
+        species_inp.bcs[bc_count_sp[bid]].edge =
+          multib_tok_edge(mbapp, bid, sp->bcs[i].dir, sp->bcs[i].edge);
         species_inp.bcs[bc_count_sp[bid]].type = sp->bcs[i].type;
         species_inp.bcs[bc_count_sp[bid]].aux_profile = sp->bcs[i].aux_profile;
         species_inp.bcs[bc_count_sp[bid]].aux_ctx = sp->bcs[i].aux_ctx;
@@ -359,7 +427,8 @@ singleb_app_new_solver(
     for (int i = 0; i < nsp->num_physical_bcs; ++i) {
       if (bid == nsp->bcs[i].bidx) {
         neut_species_inp.bcs[bc_count_nsp[bid]].dir = nsp->bcs[i].dir;
-        neut_species_inp.bcs[bc_count_nsp[bid]].edge = nsp->bcs[i].edge;
+        neut_species_inp.bcs[bc_count_nsp[bid]].edge =
+          multib_tok_edge(mbapp, bid, nsp->bcs[i].dir, nsp->bcs[i].edge);
         neut_species_inp.bcs[bc_count_nsp[bid]].type = nsp->bcs[i].type;
         neut_species_inp.bcs[bc_count_nsp[bid]].aux_profile = nsp->bcs[i].aux_profile;
         neut_species_inp.bcs[bc_count_nsp[bid]].aux_ctx = nsp->bcs[i].aux_ctx;
@@ -407,7 +476,8 @@ singleb_app_new_solver(
   for (int i = 0; i < fld->num_physical_bcs; i++) {
     if (bid == fld->bcs[i].bidx) {
       struct gkyl_gyrokinetic_bc *bc_curr = gk_fetch_bc_with_dir_edge(
-        field_inp.poisson_bcs, 2 * cdim, fld->bcs[i].dir, fld->bcs[i].edge
+        field_inp.poisson_bcs, 2 * cdim, fld->bcs[i].dir,
+        multib_tok_edge(mbapp, bid, fld->bcs[i].dir, fld->bcs[i].edge)
       );
       bc_curr->type = fld->bcs[i].type;
       bc_curr->aux_profile = fld->bcs[i].aux_profile;
@@ -1333,6 +1403,33 @@ gyrokinetic_multib_app_wall_wrapper(const struct gkyl_gyrokinetic_multib *inp, b
   return app;
 }
 
+// Both public construction paths pass the same validated metadata to child blocks.
+static void
+multib_init_io(
+  const struct gkyl_gyrokinetic_multib *mbinp, struct gkyl_gyrokinetic_multib_app *mbapp
+)
+{
+  // Create multiblock metadata to pass to each block, and combine with user's metadata.
+  const char *fmt_btopo = "%s-block_topo.gkyl";
+  int sz = gkyl_calc_strlen(fmt_btopo, mbapp->name);
+  char fileNm_btopo[sz + 1]; // ensures no buffer overflow
+  snprintf(fileNm_btopo, sizeof fileNm_btopo, fmt_btopo, mbapp->name);
+
+  // Basic metadata for I/O (including metadata optional from user).
+  const char *build_id = GIT_COMMIT_ID;
+  const char *build_date = GKYL_BUILD_DATE;
+  struct gkyl_msgpack_map_elem io_meta_default[] = {
+    {.key = "changeset", .elem_type = GKYL_MP_STRING, .cval = (char *)build_id},
+    {.key = "builddate", .elem_type = GKYL_MP_STRING, .cval = (char *)build_date},
+    {.key = "is_multib", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 1},
+    {.key = "topo_file", .elem_type = GKYL_MP_STRING, .cval = fileNm_btopo},
+  };
+  mbapp->io_meta_basic = gyrokinetic_app_input_metadata(
+    sizeof(io_meta_default) / sizeof(io_meta_default[0]), io_meta_default, &mbinp->metadata,
+    &mbapp->io_meta_basic_len
+  );
+}
+
 gkyl_gyrokinetic_multib_app *
 gkyl_gyrokinetic_multib_app_new_geom(const struct gkyl_gyrokinetic_multib *inp)
 {
@@ -1380,8 +1477,9 @@ and the maximum number of cuts in a block is %d\n\n",
   mbapp->comm = gkyl_comm_acquire(mbinp->comm);
   mbapp->use_gpu = mbinp->use_gpu;
 
-  mbapp->gk_block_geom = gkyl_gk_block_geom_acquire(mbinp->gk_block_geom);
-  mbapp->block_topo = gkyl_gk_block_geom_topo(mbinp->gk_block_geom);
+  multib_init_io(mbinp, mbapp);
+
+  multib_tok_orient_blocks(mbinp->gk_block_geom, mbapp);
 
   int cdim = gkyl_gk_block_geom_ndim(mbapp->gk_block_geom);
   int num_blocks = gkyl_gk_block_geom_num_blocks(mbapp->gk_block_geom);
@@ -1432,33 +1530,6 @@ and the maximum number of cuts in a block is %d\n\n",
   }
 
   mbapp->num_local_blocks = num_local_blocks;
-
-  // Create multiblock metadata to pass to each block, and combine with user's metadata.
-  const char *fmt_btopo = "%s-block_topo.gkyl";
-  int sz = gkyl_calc_strlen(fmt_btopo, mbapp->name);
-  char fileNm_btopo[sz + 1]; // ensures no buffer overflow
-  snprintf(fileNm_btopo, sizeof fileNm_btopo, fmt_btopo, mbapp->name);
-
-  // Basic metadata for I/O (including metadata optional from user).
-  const char *build_id = GIT_COMMIT_ID;
-  const char *build_date = GKYL_BUILD_DATE;
-  struct gkyl_msgpack_map_elem io_meta_default[] = {
-    {.key = "changeset", .elem_type = GKYL_MP_STRING, .cval = (char *)build_id},
-    {.key = "builddate", .elem_type = GKYL_MP_STRING, .cval = (char *)build_date},
-    {.key = "is_multib", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 1},
-    {.key = "topo_file", .elem_type = GKYL_MP_STRING, .cval = fileNm_btopo}
-  };
-  const struct gkyl_msgpack_map_elem *io_meta_union[] = {
-    io_meta_default, mbinp->metadata.attributes
-  };
-  int io_meta_union_len[] = {
-    sizeof(io_meta_default) / sizeof(io_meta_default[0]), mbinp->metadata.num_attributes
-  };
-
-  mbapp->io_meta_basic = gkyl_msgpack_map_elem_union(
-    sizeof(io_meta_union) / sizeof(io_meta_union[0]), io_meta_union_len, io_meta_union,
-    &mbapp->io_meta_basic_len
-  );
 
   printf("Rank %d handles %d Apps\n", my_rank, num_local_blocks);
   for (int i = 0; i < num_local_blocks; ++i) {
@@ -1657,6 +1728,9 @@ and the maximum number of cuts in a block is %d\n\n",
     }
   }
 
+  gkyl_free(rank_list);
+  gkyl_free(branks);
+
   // No partial grid: all local blocks and their hard material checks must
   // finish on every rank before any block's geometry is written.
   gkyl_comm_barrier(mbapp->comm);
@@ -1699,8 +1773,9 @@ and the maximum number of cuts in a block is %d\n\n",
   mbapp->comm = gkyl_comm_acquire(mbinp->comm);
   mbapp->use_gpu = mbinp->use_gpu;
 
-  mbapp->gk_block_geom = gkyl_gk_block_geom_acquire(mbinp->gk_block_geom);
-  mbapp->block_topo = gkyl_gk_block_geom_topo(mbinp->gk_block_geom);
+  multib_init_io(mbinp, mbapp);
+
+  multib_tok_orient_blocks(mbinp->gk_block_geom, mbapp);
 
   int cdim = gkyl_gk_block_geom_ndim(mbapp->gk_block_geom);
   int num_blocks = gkyl_gk_block_geom_num_blocks(mbapp->gk_block_geom);
@@ -1751,33 +1826,6 @@ and the maximum number of cuts in a block is %d\n\n",
   }
 
   mbapp->num_local_blocks = num_local_blocks;
-
-  // Create multiblock metadata to pass to each block, and combine with user's metadata.
-  const char *fmt_btopo = "%s-block_topo.gkyl";
-  int sz = gkyl_calc_strlen(fmt_btopo, mbapp->name);
-  char fileNm_btopo[sz + 1]; // ensures no buffer overflow
-  snprintf(fileNm_btopo, sizeof fileNm_btopo, fmt_btopo, mbapp->name);
-
-  // Basic metadata for I/O (including metadata optional from user).
-  const char *build_id = GIT_COMMIT_ID;
-  const char *build_date = GKYL_BUILD_DATE;
-  struct gkyl_msgpack_map_elem io_meta_default[] = {
-    {.key = "changeset", .elem_type = GKYL_MP_STRING, .cval = (char *)build_id},
-    {.key = "builddate", .elem_type = GKYL_MP_STRING, .cval = (char *)build_date},
-    {.key = "is_multib", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 1},
-    {.key = "topo_file", .elem_type = GKYL_MP_STRING, .cval = fileNm_btopo}
-  };
-  const struct gkyl_msgpack_map_elem *io_meta_union[] = {
-    io_meta_default, mbinp->metadata.attributes
-  };
-  int io_meta_union_len[] = {
-    sizeof(io_meta_default) / sizeof(io_meta_default[0]), mbinp->metadata.num_attributes
-  };
-
-  mbapp->io_meta_basic = gkyl_msgpack_map_elem_union(
-    sizeof(io_meta_union) / sizeof(io_meta_union[0]), io_meta_union_len, io_meta_union,
-    &mbapp->io_meta_basic_len
-  );
 
   // Write the block topo file.
   gkyl_gyrokinetic_multib_app_write_topo(mbapp);
@@ -3287,22 +3335,24 @@ pointwise_write_xpt_objective_header(FILE *fp)
 
 static void
 pointwise_write_xpt_objective_node(
-  FILE *fp, const char *app_name, int rank, int bid, int edge, int partner_bid, int partner_dir,
-  enum gkyl_oriented_edge partner_oriented_edge, const char *comparison_status, int transfer_status,
-  bool can_canonicalize, long interface_node, long interface_node_count,
-  const struct gkyl_gk_block_geom_info *local_bgi,
+  FILE *fp, const struct gkyl_gyrokinetic_multib_app *app, const char *app_name, int rank, int bid,
+  int edge, int partner_bid, int partner_dir, enum gkyl_oriented_edge partner_oriented_edge,
+  const char *comparison_status, int transfer_status, bool can_canonicalize, long interface_node,
+  long interface_node_count, const struct gkyl_gk_block_geom_info *local_bgi,
   const struct gkyl_gk_block_geom_info *partner_bgi, const double *local, const double *partner
 )
 {
   const struct gkyl_tok_geo_grid_inp *local_inp = &local_bgi->geometry.tok_grid_info;
   const struct gkyl_tok_geo_grid_inp *partner_inp = &partner_bgi->geometry.tok_grid_info;
   int partner_edge = oriented_edge_index(partner_oriented_edge);
-  bool topology_pair_valid = local_bgi->geometry.geometry_id == GKYL_GEOMETRY_TOKAMAK &&
-                             partner_bgi->geometry.geometry_id == GKYL_GEOMETRY_TOKAMAK &&
-                             pointwise_xpt_seam_edge_active(local_bgi, edge) &&
-                             pointwise_xpt_seam_edge_active(partner_bgi, partner_edge) &&
-                             partner_dir == 1 &&
-                             pointwise_xpt_ftype_pair(local_inp->ftype, partner_inp->ftype);
+  bool topology_pair_valid =
+    local_bgi->geometry.geometry_id == GKYL_GEOMETRY_TOKAMAK &&
+    partner_bgi->geometry.geometry_id == GKYL_GEOMETRY_TOKAMAK &&
+    pointwise_xpt_seam_edge_active(local_bgi, multib_tok_edge(app, bid, 1, edge)) &&
+    pointwise_xpt_seam_edge_active(
+      partner_bgi, multib_tok_edge(app, partner_bid, 1, partner_edge)
+    ) &&
+    partner_dir == 1 && pointwise_xpt_ftype_pair(local_inp->ftype, partner_inp->ftype);
 
   double coefficient_scale = fmax(
     1.0, fmax(
@@ -3599,8 +3649,10 @@ gyrokinetic_multib_app_write_interface_pointwise_diag(gkyl_gyrokinetic_multib_ap
           gkyl_gk_block_geom_get_block(app->gk_block_geom, partner->bid);
         bool unique_xpt_seam =
           objective_fp && d == 1 && cdim == 2 &&
-          (pointwise_xpt_seam_edge_active(local_bgi, e) ||
-           pointwise_xpt_seam_edge_active(partner_bgi, partner_edge)) &&
+          (pointwise_xpt_seam_edge_active(local_bgi, multib_tok_edge(app, bid, 1, e)) ||
+           pointwise_xpt_seam_edge_active(
+             partner_bgi, multib_tok_edge(app, partner->bid, 1, partner_edge)
+           )) &&
           pointwise_interface_is_owner(bid, d, e, partner->bid, partner->dir, partner_edge);
         const struct gkyl_range *ghost_range = e == 0 ? &sbapp->local_lower_ghost[d] :
                                                         &sbapp->local_upper_ghost[d];
@@ -3682,8 +3734,8 @@ gyrokinetic_multib_app_write_interface_pointwise_diag(gkyl_gyrokinetic_multib_ap
             }
             if (unique_xpt_seam) {
               pointwise_write_xpt_objective_node(
-                objective_fp, app->name, rank, bid, e, partner->bid, partner->dir, partner->edge,
-                comparison_status, transfer_status, can_canonicalize, interface_node,
+                objective_fp, app, app->name, rank, bid, e, partner->bid, partner->dir,
+                partner->edge, comparison_status, transfer_status, can_canonicalize, interface_node,
                 interface_node_count, local_bgi, partner_bgi, local_record, partner_canonical
               );
             }
@@ -3867,8 +3919,10 @@ xpt_optimizer_make_pair(const struct gkyl_gyrokinetic_multib_app *app, int bid, 
 
   const struct gkyl_gk_block_geom_info *partner_bgi =
     gkyl_gk_block_geom_get_block(app->gk_block_geom, partner_bid);
-  if (!pointwise_xpt_seam_edge_active(bgi, edge) ||
-      !pointwise_xpt_seam_edge_active(partner_bgi, partner_edge)) {
+  if (!pointwise_xpt_seam_edge_active(bgi, multib_tok_edge(app, bid, 1, edge)) ||
+      !pointwise_xpt_seam_edge_active(
+        partner_bgi, multib_tok_edge(app, partner_bid, 1, partner_edge)
+      )) {
     return pair;
   }
   if (!pointwise_xpt_ftype_pair(
@@ -3978,7 +4032,7 @@ xpt_optimizer_discover_pairs(
     // becomes a pair, and ascending order makes that outcome deterministic
     // rather than a race.
     for (int seam_edge = 0; seam_edge < 2; ++seam_edge) {
-      if (!pointwise_xpt_seam_edge_active(bgi, seam_edge)) {
+      if (!pointwise_xpt_seam_edge_active(bgi, multib_tok_edge(app, bid, 1, seam_edge))) {
         continue;
       }
       const struct gkyl_target_edge *target = &app->block_topo->conn[bid].connections[1][seam_edge];
@@ -6322,7 +6376,7 @@ gkyl_gyrokinetic_multib_app_write_dt(gkyl_gyrokinetic_multib_app *app)
     struct timespec wtm = gkyl_wall_clock();
     if (app->is_first_dt_write_call) {
       struct gkyl_msgpack_map_elem io_meta_phi[] = {
-        {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Time step size."}
+        {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Time step size."},
       };
       int io_meta_len[] = {app->io_meta_basic_len, 1};
       const struct gkyl_msgpack_map_elem *io_meta[] = {app->io_meta_basic, io_meta_phi};
@@ -6382,6 +6436,7 @@ gkyl_gyrokinetic_multib_app_release_geom(gkyl_gyrokinetic_multib_app *mbapp)
   gkyl_rrobin_decomp_release(mbapp->round_robin);
 
   gkyl_gk_block_geom_release(mbapp->gk_block_geom);
+  gkyl_free(mbapp->tok_theta_reversed);
   gkyl_block_topo_release(mbapp->block_topo);
 
   gkyl_comm_release(mbapp->comm);
@@ -6448,6 +6503,7 @@ gkyl_gyrokinetic_multib_app_release(gkyl_gyrokinetic_multib_app *mbapp)
   gkyl_rrobin_decomp_release(mbapp->round_robin);
 
   gkyl_gk_block_geom_release(mbapp->gk_block_geom);
+  gkyl_free(mbapp->tok_theta_reversed);
   gkyl_block_topo_release(mbapp->block_topo);
 
   gkyl_comm_release(mbapp->comm);

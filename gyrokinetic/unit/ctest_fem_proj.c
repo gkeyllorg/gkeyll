@@ -886,7 +886,8 @@ test_fem_proj_invalid_input(void)
         inp.bcs.lo_type[0] = GKYL_FEM_PROJ_PERIODIC;
       }
       struct gkyl_fem_proj_bias_plane planes[] = {
-        {.dir = 0, .loc = 0.5, .val = 0.7}, {.dir = 0, .loc = 0.5, .val = -0.4}
+        {.dir = 0, .loc = 0.5, .val = 0.7},
+        {.dir = 0, .loc = 0.5, .val = -0.4},
       };
       struct gkyl_fem_proj_bias_plane_list list = {.num_bias_plane = 1, .bp = planes};
       if (scenario >= 2) {

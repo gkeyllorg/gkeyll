@@ -161,13 +161,16 @@ init_quad_values(
 static void
 gkyl_vlasov_lte_proj_on_basis_geom_quad_vars(
   gkyl_vlasov_lte_proj_on_basis *up, const struct gkyl_range *conf_range,
-  const struct gkyl_array *h_ij, const struct gkyl_array *h_ij_inv, const struct gkyl_array *det_h
+  const struct gkyl_array *h_ij, const struct gkyl_array *h_ij_inv, const struct gkyl_array *det_h,
+  const struct gkyl_array *background_flows, const struct gkyl_array *effective_potential
 )
 {
 // Setup the intial geometric vars, on GPU
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
-    return gkyl_vlasov_lte_proj_on_basis_geom_quad_vars_cu(up, conf_range, h_ij, h_ij_inv, det_h);
+    return gkyl_vlasov_lte_proj_on_basis_geom_quad_vars_cu(
+      up, conf_range, h_ij, h_ij_inv, det_h, background_flows, effective_potential
+    );
   }
 #endif
 
@@ -205,6 +208,27 @@ gkyl_vlasov_lte_proj_on_basis_geom_quad_vars(
         }
       }
     }
+
+    // Geometry for the extended can-pb when H has time-independant but spatially varying potentials
+    if (up->use_extended_hamil_def) {
+      const double *background_flows_d = gkyl_array_cfetch(background_flows, midx);
+      const double *effective_potential_d = gkyl_array_cfetch(effective_potential, midx);
+      double *background_flows_quad = gkyl_array_fetch(up->background_flows_quad, midx);
+      double *effective_potential_quad = gkyl_array_fetch(up->effective_potential_quad, midx);
+
+      // Sum over basis
+      for (int n = 0; n < tot_conf_quad; ++n) {
+        const double *b_ord = gkyl_array_cfetch(up->conf_basis_at_ords, n);
+
+        for (int k = 0; k < num_conf_basis; ++k) {
+          effective_potential_quad[n] += effective_potential_d[k] * b_ord[k];
+          for (int j = 0; j < vdim; ++j) {
+            background_flows_quad[tot_conf_quad * j + n] +=
+              background_flows_d[num_conf_basis * j + k] * b_ord[k];
+          }
+        }
+      }
+    }
   }
 }
 
@@ -223,10 +247,6 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
   up->num_conf_basis = up->conf_basis.num_basis;
   up->num_phase_basis = up->phase_basis.num_basis;
   up->use_gpu = inp->use_gpu;
-  up->vel_map = 0;
-  if (inp->vel_map != 0) {
-    up->vel_map = gkyl_velocity_map_acquire(inp->vel_map);
-  }
 
   int num_quad = up->conf_basis.poly_order + 1;
   // initialize data needed for conf-space quadrature
@@ -234,6 +254,26 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
     up->cdim, &up->conf_basis, inp->quad_type, num_quad, &up->conf_ordinates, &up->conf_weights,
     &up->conf_basis_at_ords, false
   );
+
+  up->vel_map = 0;
+  up->vmap = 0;
+  up->jacob_vel_gauss = 0;
+  up->use_vmap = false;
+  if (inp->vel_map) {
+    up->vel_map = gkyl_vlasov_velocity_map_acquire(inp->vel_map);
+    if (inp->vel_map->is_mapped) {
+      up->use_vmap = true;
+      if (up->use_gpu) {
+        up->vmap_basis_on_dev = gkyl_cu_malloc(sizeof(struct gkyl_basis));
+        gkyl_cart_modal_tensor_cu_dev(up->vmap_basis_on_dev, 1, 3);
+      } else {
+        gkyl_cart_modal_tensor(&up->vmap_basis, 1, 3);
+      }
+      // Borrowed pointers; kept alive by the acquired vel_map.
+      up->vmap = inp->vel_map->vmap;
+      up->jacob_vel_gauss = inp->vel_map->jacob_vel_gauss;
+    }
+  }
 
   // initialize data needed for phase-space quadrature
   up->tot_quad = init_quad_values(
@@ -256,7 +296,10 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
     }
   }
   up->conf_qrange = get_qrange(up->cdim, up->cdim, num_quad, num_quad_v, is_vdim_p2);
+  up->vel_qrange = get_qrange(vdim, vdim, num_quad_v, num_quad_v, is_vdim_p2);
   up->phase_qrange = get_qrange(up->cdim, up->pdim, num_quad, num_quad_v, is_vdim_p2);
+
+  up->vel_range = *inp->vel_range;
 
   long conf_local_ncells = inp->conf_range->volume;
   long conf_local_ext_ncells = inp->conf_range_ext->volume;
@@ -278,6 +321,8 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
 
     int p2c_qidx_ho[up->phase_qrange.volume];
     up->p2c_qidx = (int *)gkyl_cu_malloc(sizeof(int) * up->phase_qrange.volume);
+    int p2v_qidx_ho[up->phase_qrange.volume];
+    up->p2v_qidx = (int *)gkyl_cu_malloc(sizeof(int) * up->phase_qrange.volume);
 
     // Allocate f_lte_quad at phase-space quadrature points
     // moms_lte_quad (n, V_drift, T/m) at configuration-space quadrature points.
@@ -327,22 +372,36 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
       &up->basis_at_ords, up->use_gpu
     );
 
-    int pidx[GKYL_MAX_DIM];
+    int pidx[GKYL_MAX_DIM], qidx_vel[GKYL_MAX_DIM];
     for (int n = 0; n < up->tot_quad; ++n) {
       gkyl_range_inv_idx(&up->phase_qrange, n, pidx);
+      // Fetch the configuration-space quadrature point corresponding to the phase-space quadrature point.
       int cqidx = gkyl_range_idx(&up->conf_qrange, pidx);
       p2c_qidx_ho[n] = cqidx;
+
+      // Fetch the velocity-space quadrature point corresponding to the phase-space quadrature point.
+      for (int i = 0; i < vdim; ++i) {
+        qidx_vel[i] = pidx[up->cdim + i];
+      }
+      int vqidx = gkyl_range_idx(&up->vel_qrange, qidx_vel);
+      p2v_qidx_ho[n] = vqidx;
     }
     gkyl_cu_memcpy(
       up->p2c_qidx, p2c_qidx_ho, sizeof(int) * up->phase_qrange.volume, GKYL_CU_MEMCPY_H2D
+    );
+    gkyl_cu_memcpy(
+      up->p2v_qidx, p2v_qidx_ho, sizeof(int) * up->phase_qrange.volume, GKYL_CU_MEMCPY_H2D
     );
   }
 #endif
 
   up->is_relativistic = false;
-  if (inp->model_id == GKYL_MODEL_SR) {
+  if (inp->model_id == GKYL_MODEL_SR || inp->model_id == GKYL_MODEL_TRIAD_GR) {
     up->is_relativistic = true;
   }
+
+  // Flag for using the extended hamiltonian defintion which includes background flows
+  up->use_extended_hamil_def = inp->use_extended_hamil_def;
 
   up->is_canonical_pb = false;
   if (inp->model_id == GKYL_MODEL_CANONICAL_PB || inp->model_id == GKYL_MODEL_CANONICAL_PB_GR) {
@@ -358,6 +417,12 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
       );
       up->det_h_quad =
         gkyl_array_cu_dev_new(GKYL_DOUBLE, up->tot_conf_quad, inp->conf_range_ext->volume);
+      if (up->use_extended_hamil_def) {
+        up->background_flows_quad =
+          gkyl_array_cu_dev_new(GKYL_DOUBLE, up->tot_conf_quad * vdim, inp->conf_range_ext->volume);
+        up->effective_potential_quad =
+          gkyl_array_cu_dev_new(GKYL_DOUBLE, up->tot_conf_quad, inp->conf_range_ext->volume);
+      }
     } else {
       up->h_ij_quad = gkyl_array_new(
         GKYL_DOUBLE, up->tot_conf_quad * (vdim * (vdim + 1) / 2), inp->conf_range_ext->volume
@@ -366,14 +431,28 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
         GKYL_DOUBLE, up->tot_conf_quad * (vdim * (vdim + 1) / 2), inp->conf_range_ext->volume
       );
       up->det_h_quad = gkyl_array_new(GKYL_DOUBLE, up->tot_conf_quad, inp->conf_range_ext->volume);
+      if (up->use_extended_hamil_def) {
+        up->background_flows_quad =
+          gkyl_array_new(GKYL_DOUBLE, up->tot_conf_quad * vdim, inp->conf_range_ext->volume);
+        up->effective_potential_quad =
+          gkyl_array_new(GKYL_DOUBLE, up->tot_conf_quad, inp->conf_range_ext->volume);
+      }
     }
     gkyl_array_clear(up->h_ij_quad, 0.0);
     gkyl_array_clear(up->h_ij_inv_quad, 0.0);
     gkyl_array_clear(up->det_h_quad, 0.0);
+    if (up->use_extended_hamil_def) {
+      gkyl_array_clear(up->background_flows_quad, 0.0);
+      gkyl_array_clear(up->effective_potential_quad, 0.0);
+    }
     gkyl_vlasov_lte_proj_on_basis_geom_quad_vars(
-      up, inp->conf_range, inp->h_ij, inp->h_ij_inv, inp->det_h
+      up, inp->conf_range, inp->h_ij, inp->h_ij_inv, inp->det_h,
+      inp->use_extended_hamil_def ? inp->background_flows : 0,
+      inp->use_extended_hamil_def ? inp->effective_potential : 0
     );
   }
+
+  up->is_bimaxwellian = inp->is_bimaxwellian;
 
   // Store a LTE moment calculation updater to compute and correct the density
   struct gkyl_vlasov_lte_moments_inp inp_mom = {
@@ -386,13 +465,17 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
     .conf_range_ext = inp->conf_range_ext,
     .vel_range = inp->vel_range,
     .phase_range = inp->phase_range,
-    .gamma = inp->gamma,
+    .vel_map = inp->vel_map,
+    .hamil_range = inp->hamil_range,
+    .hamil = inp->hamil,
+    .model_id = inp->model_id,
+    .hamil_id = inp->hamil_id,
     .gamma_inv = inp->gamma_inv,
     .h_ij = inp->h_ij,
     .h_ij_inv = inp->h_ij_inv,
     .det_h = inp->det_h,
-    .hamil = inp->hamil,
-    .model_id = inp->model_id,
+    .use_extended_hamil_def = inp->use_extended_hamil_def,
+    .effective_potential = inp->effective_potential,
     .use_gpu = inp->use_gpu,
   };
   up->moments_up = gkyl_vlasov_lte_moments_inew(&inp_mom);
@@ -436,7 +519,7 @@ gkyl_vlasov_lte_proj_on_basis_advance(
   }
 #endif
 
-  double f_floor = 1.e-40;
+  double f_floor = 1.0e-40;
   int cdim = up->cdim, pdim = up->pdim;
   int vdim = pdim - cdim;
   int tot_quad = up->tot_quad;
@@ -455,6 +538,7 @@ gkyl_vlasov_lte_proj_on_basis_advance(
 
   double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM];
   double n_quad[tot_conf_quad], V_drift_quad[tot_conf_quad][vdim], T_over_m_quad[tot_conf_quad];
+  double Tperp_over_m_quad[tot_conf_quad];
   double expamp_quad[tot_conf_quad];
 
   // outer loop over configuration space cells; for each
@@ -490,8 +574,20 @@ gkyl_vlasov_lte_proj_on_basis_advance(
       // Amplitude of the exponential.
       if ((n_quad[n] > 0.0) && (T_over_m_quad[n] > 0.0)) {
         if (up->is_relativistic) {
-          expamp_quad[n] = n_quad[n] * (1.0 / (4.0 * GKYL_PI * T_over_m_quad[n])) *
-                           (sqrt(2.0 * T_over_m_quad[n] / GKYL_PI));
+          if (up->is_bimaxwellian) {
+            const double *Tperp_over_m_d = &moms_lte_d[num_conf_basis * (vdim + 2)];
+            Tperp_over_m_quad[n] = 0.0;
+            for (int k = 0; k < num_conf_basis; ++k) {
+              Tperp_over_m_quad[n] += Tperp_over_m_d[k] * b_ord[k];
+            }
+            expamp_quad[n] = n_quad[n] *
+                             (1.0 / (4.0 * GKYL_PI * Tperp_over_m_quad[n] *
+                                     (1 + (Tperp_over_m_quad[n] - T_over_m_quad[n])))) *
+                             (sqrt(2.0 * T_over_m_quad[n] / GKYL_PI));
+          } else {
+            expamp_quad[n] = n_quad[n] * (1.0 / (4.0 * GKYL_PI * T_over_m_quad[n])) *
+                             (sqrt(2.0 * T_over_m_quad[n] / GKYL_PI));
+          }
         } else if (up->is_canonical_pb) {
           const double *det_h_quad = gkyl_array_cfetch(up->det_h_quad, midx);
           expamp_quad[n] =
@@ -505,6 +601,8 @@ gkyl_vlasov_lte_proj_on_basis_advance(
     }
 
     // inner loop over velocity space
+    double jacob_vel_qidx;
+    int qidx_vel[GKYL_MAX_DIM];
     gkyl_range_deflate(&vel_rng, phase_range, rem_dir, conf_iter.idx);
     gkyl_range_iter_no_split_init(&vel_iter, &vel_rng);
     while (gkyl_range_iter_next(&vel_iter)) {
@@ -518,9 +616,26 @@ gkyl_vlasov_lte_proj_on_basis_advance(
         int cqidx = gkyl_range_idx(&up->conf_qrange, qiter.idx);
         int pqidx = gkyl_range_idx(&up->phase_qrange, qiter.idx);
 
-        const double *xcomp_d = gkyl_array_cfetch(up->ordinates, pqidx);
-
-        comp_to_phys(pdim, xcomp_d, up->phase_grid.dx, xc, xmu);
+        if (up->use_vmap) {
+          const double *xcomp_d = gkyl_array_cfetch(up->ordinates, pqidx);
+          long loc_vel = gkyl_range_idx(&up->vel_range, vel_iter.idx);
+          const double *vmap_d = gkyl_array_cfetch(up->vmap, loc_vel);
+          const double *jacob_vel_quad_d = gkyl_array_cfetch(up->jacob_vel_gauss, loc_vel);
+          double xcomp[1];
+          for (int vd = 0; vd < vdim; vd++) {
+            xcomp[0] = xcomp_d[cdim + vd];
+            xmu[cdim + vd] =
+              up->vmap_basis.eval_expand(xcomp, vmap_d + vd * up->vmap_basis.num_basis);
+          }
+          for (int i = 0; i < vdim; ++i) {
+            qidx_vel[i] = qiter.idx[cdim + i];
+          }
+          int vqidx = gkyl_range_idx(&up->vel_qrange, qidx_vel);
+          jacob_vel_qidx = jacob_vel_quad_d[vqidx];
+        } else {
+          comp_to_phys(pdim, gkyl_array_cfetch(up->ordinates, pqidx), up->phase_grid.dx, xc, xmu);
+          jacob_vel_qidx = 1.0;
+        }
 
         double *fq = gkyl_array_fetch(up->fun_at_ords, pqidx);
         fq[0] = f_floor;
@@ -536,14 +651,50 @@ gkyl_vlasov_lte_proj_on_basis_advance(
               uu += (xmu[cdim + d] * xmu[cdim + d]);
             }
             double GammaV_quad = sqrt(1.0 + vv);
-            fq[0] += expamp_quad[cqidx] *
-                     exp(
-                       (1.0 / T_over_m_quad[cqidx]) -
-                       (1.0 / T_over_m_quad[cqidx]) * (GammaV_quad * sqrt(1.0 + uu) - vu)
-                     );
+            double gamma_quad = sqrt(1.0 + uu);
+            if (up->is_bimaxwellian) {
+              // NOTE: THIS PROJECTION ROUTINE CURRENTLY ASSUMES Tpar = Txx AND THUS THE INITIAL MAGNETIC FIELD IS B = B0 x_hat (JJ: 10/23/24)
+              fq[0] += jacob_vel_qidx * expamp_quad[cqidx] *
+                       exp(
+                         (1.0 / T_over_m_quad[cqidx]) -
+                         (1.0 / Tperp_over_m_quad[cqidx]) * (GammaV_quad * gamma_quad - vu) -
+                         ((1.0 / T_over_m_quad[cqidx]) - (1.0 / Tperp_over_m_quad[cqidx])) *
+                           sqrt(
+                             1.0 + (1.0 + vv) * xmu[cdim] * xmu[cdim] -
+                             2.0 * GammaV_quad * gamma_quad * xmu[cdim] * V_drift_quad[cqidx][0] +
+                             (1.0 + uu) * V_drift_quad[cqidx][0] * V_drift_quad[cqidx][0]
+                           )
+                       );
+            } else {
+              fq[0] += jacob_vel_qidx * expamp_quad[cqidx] *
+                       exp(
+                         (1.0 / T_over_m_quad[cqidx]) -
+                         (1.0 / T_over_m_quad[cqidx]) * (GammaV_quad * gamma_quad - vu)
+                       );
+            }
           } else if (up->is_canonical_pb) {
-            // Assumes a (particle) hamiltonian in canocial form: H = 1/2 g^{ij} p_i p_j
+            // Assumes a (particle) hamiltonian in canonical form: H = 1/2 g^{ij} p_i p_j, or, with
+            // use_extended_hamil_def, H = 1/2 g^{ij} (p_i - A_i)(p_j - A_j) + Phi with the
+            // background flow A_i and effective potential Phi declared separately. The species must
+            // still carry the full H: the LTE moments differentiate and integrate that array, so a
+            // kinetic-only H combined with declared flows yields a target centred at p = 0 with
+            // width T + Phi.
+            //
+            // We could instead project the target directly as A exp(-(H - lambda^i p_i)/T) from the
+            // Hamiltonian array at the quadrature nodes, with (A, lambda, T) matched to (n, int p_i
+            // f, int H f) by the existing correction. That is the maximum-entropy state for the
+            // conserved quantities of any H (rotating frames, potentials, Newtonian 1/r, GR),
+            // reduces to this Maxwellian for quadratic H, and would make the extended-definition
+            // inputs and the -2 n Phi bookkeeping in the LTE moments unnecessary.
+            // In the relativistic case this is the Juttner family exp(-u_mu p^mu / T) with lambda =
+            // v and T' = T / gamma_u, so the correction matches the lab-frame N^0, T^0i and T^00
+            // (Landau matching, which conserves energy) and the rest-frame n and T are derived from
+            // lambda afterwards for the diagnostics.
             const double *h_ij_inv_quad = gkyl_array_cfetch(up->h_ij_inv_quad, midx);
+            const double *background_flows_quad;
+            if (up->use_extended_hamil_def) {
+              background_flows_quad = gkyl_array_cfetch(up->background_flows_quad, midx);
+            }
             double efact = 0.0;
             for (int d0 = 0; d0 < vdim; ++d0) {
               for (int d1 = d0; d1 < vdim; ++d1) {
@@ -554,8 +705,17 @@ gkyl_vlasov_lte_proj_on_basis_advance(
                 double h_ij_inv_loc = h_ij_inv_quad[tot_conf_quad * sym_tensor_index + cqidx];
                 // For off-diagnol components, we need to count these twice, due to symmetry
                 int sym_fact = (d0 == d1) ? 1 : 2;
-                efact += sym_fact * h_ij_inv_loc * (xmu[cdim + d0] - V_drift_quad[cqidx][d0]) *
-                         (xmu[cdim + d1] - V_drift_quad[cqidx][d1]);
+                if (up->use_extended_hamil_def) {
+                  //printf(" (d0: %d, d1: %d) background_flows_quad[tot_conf_quad*d0 + cqidx]: %1.16e, background_flows_quad[tot_conf_quad*d1 + cqidx]: %1.16e\n",d0, d1, background_flows_quad[tot_conf_quad*d0 + cqidx], background_flows_quad[tot_conf_quad*d1 + cqidx]);
+                  efact += sym_fact * h_ij_inv_loc *
+                           (xmu[cdim + d0] - V_drift_quad[cqidx][d0] -
+                            background_flows_quad[tot_conf_quad * d0 + cqidx]) *
+                           (xmu[cdim + d1] - V_drift_quad[cqidx][d1] -
+                            background_flows_quad[tot_conf_quad * d1 + cqidx]);
+                } else {
+                  efact += sym_fact * h_ij_inv_loc * (xmu[cdim + d0] - V_drift_quad[cqidx][d0]) *
+                           (xmu[cdim + d1] - V_drift_quad[cqidx][d1]);
+                }
               }
             }
             fq[0] += expamp_quad[cqidx] * exp(-efact / (2.0 * T_over_m_quad[cqidx]));
@@ -565,7 +725,10 @@ gkyl_vlasov_lte_proj_on_basis_advance(
               efact +=
                 (xmu[cdim + d] - V_drift_quad[cqidx][d]) * (xmu[cdim + d] - V_drift_quad[cqidx][d]);
             }
-            fq[0] += expamp_quad[cqidx] * exp(-efact / (2.0 * T_over_m_quad[cqidx]));
+            // The velocity-space Jacobian is included since the projected
+            // distribution is the evolved quantity Jf on mapped velocity grids.
+            fq[0] +=
+              jacob_vel_qidx * expamp_quad[cqidx] * exp(-efact / (2.0 * T_over_m_quad[cqidx]));
           }
         }
       }
@@ -598,10 +761,6 @@ gkyl_vlasov_lte_proj_on_basis_advance(
 void
 gkyl_vlasov_lte_proj_on_basis_release(gkyl_vlasov_lte_proj_on_basis *up)
 {
-  if (up->vel_map != 0) {
-    gkyl_velocity_map_release(up->vel_map);
-  }
-
   gkyl_array_release(up->ordinates);
   gkyl_array_release(up->weights);
   gkyl_array_release(up->basis_at_ords);
@@ -610,6 +769,10 @@ gkyl_vlasov_lte_proj_on_basis_release(gkyl_vlasov_lte_proj_on_basis *up)
   gkyl_array_release(up->conf_basis_at_ords);
   gkyl_array_release(up->fun_at_ords);
 
+  if (up->vel_map) {
+    gkyl_vlasov_velocity_map_release(up->vel_map);
+  }
+
   gkyl_array_release(up->num_ratio);
   gkyl_dg_bin_op_mem_release(up->mem);
 
@@ -617,10 +780,18 @@ gkyl_vlasov_lte_proj_on_basis_release(gkyl_vlasov_lte_proj_on_basis *up)
     gkyl_array_release(up->h_ij_quad);
     gkyl_array_release(up->h_ij_inv_quad);
     gkyl_array_release(up->det_h_quad);
+    if (up->use_extended_hamil_def) {
+      gkyl_array_release(up->background_flows_quad);
+      gkyl_array_release(up->effective_potential_quad);
+    }
   }
 
   if (up->use_gpu) {
+    if (up->use_vmap) {
+      gkyl_cu_free(up->vmap_basis_on_dev);
+    }
     gkyl_cu_free(up->p2c_qidx);
+    gkyl_cu_free(up->p2v_qidx);
     gkyl_array_release(up->f_lte_quad);
     gkyl_array_release(up->moms_lte_quad);
     gkyl_array_release(up->expamp_quad);
