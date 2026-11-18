@@ -22,6 +22,7 @@ SLURM_CI_SERIAL_CPUS_PER_TASK=4
 SLURM_CI_SERIAL_GRES=gpu:1
 SLURM_CI_PARALLEL_SCRIPT=ci/jenkins/slurm-clusters/slurm-parallel-regression-tests.stellarai_gpu.sh
 SLURM_CI_PARALLEL_GRES=gpu:4
+SLURM_CI_PARALLEL_MEM=64G
 # Defaults: one node; unit/serial one task; parallel four tasks, one CPU each;
 # 00:30:00 unit and 04:00:00 regression wall time. Keep parallel on one node:
 # the site scripts use UCX_TLS=sm,cuda_copy,self for intra-node communication.
