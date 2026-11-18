@@ -315,7 +315,7 @@ gks_react_rhs_enabled(
       }
     } else if (react->react_id[i] == GKYL_REACT_CX) {
       // ion update is coeff_react*(n_ion*fmax(n_partner, upar_partner, vt_partner^2) - n_partner*f_ion)
-      struct gk_neut_species *gkns_partner = &app->neut_species[react->donor_idx[i]];
+      struct gk_neut_species *gkns_partner = &app->neut_species[react->partner_idx[i]];
 
       // Copy components of partner neutrals into reaction moments
       gkyl_array_set_offset(
