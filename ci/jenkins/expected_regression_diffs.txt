@@ -144,3 +144,4 @@ gyrokinetic/creg/rt_gk_lapd_cyl_nonuniformr_3x2v_p1	# fixed parenthesis in elc s
 gyrokinetic/creg/rt_gk_lapd_cyl_3x2v_p1	# switched to the JCP 2025 nonuniform-v LAPD setup (sec. 4.3.3)
 gyrokinetic/creg/rt_gk_lapd_cart_3x2v_p1	# fixed parenthesis in elc source temperature profile
 gyrokinetic/creg/rt_gk_sheath_heat_source_2x2v_p1 # Change the resolution to fix the particle injection of the heating source
+gyrokinetic/creg/rt_gk_ltx_iwl_num_miller_3x2v_p1 # adjust resolution to avoid tsbc assert
