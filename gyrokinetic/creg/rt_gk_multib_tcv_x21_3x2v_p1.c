@@ -230,8 +230,8 @@ create_asdex_lsn_gk_block_geom(void *ctx)
       .connections[0] =
         {
           // x-direction.
-          {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // Physical boundary.
-          {.bid = 1, .dir = 0, .edge = GKYL_LOWER_POSITIVE},
+          {.bid = 1, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
+          {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL} // Physical boundary.
         },
       .connections[1] =
         {
@@ -288,10 +288,9 @@ create_asdex_lsn_gk_block_geom(void *ctx)
         },
 
       .connections[0] =
-        {
-          // x-direction.
-          {.bid = 0, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
-          {.bid = 1, .dir = 0, .edge = GKYL_PHYSICAL}, // Physical boundary.
+        {// x-direction.
+         {.bid = 1, .dir = 0, .edge = GKYL_PHYSICAL}, // Physical boundary.
+         {.bid = 0, .dir = 0, .edge = GKYL_LOWER_POSITIVE}
         },
       .connections[1] =
         {
@@ -348,10 +347,9 @@ create_asdex_lsn_gk_block_geom(void *ctx)
         },
 
       .connections[0] =
-        {
-          // x-direction.
-          {.bid = 5, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
-          {.bid = 2, .dir = 0, .edge = GKYL_PHYSICAL}, // Physical boundary.
+        {// x-direction.
+         {.bid = 2, .dir = 0, .edge = GKYL_PHYSICAL}, // Physical boundary.
+         {.bid = 5, .dir = 0, .edge = GKYL_LOWER_POSITIVE}
         },
       .connections[1] =
         {
@@ -408,10 +406,9 @@ create_asdex_lsn_gk_block_geom(void *ctx)
         },
 
       .connections[0] =
-        {
-          // x-direction.
-          {.bid = 4, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
-          {.bid = 3, .dir = 0, .edge = GKYL_PHYSICAL}, // Physical boundary.
+        {// x-direction.
+         {.bid = 3, .dir = 0, .edge = GKYL_PHYSICAL}, // Physical boundary.
+         {.bid = 4, .dir = 0, .edge = GKYL_LOWER_POSITIVE}
         },
       .connections[1] =
         {
@@ -469,8 +466,8 @@ create_asdex_lsn_gk_block_geom(void *ctx)
       .connections[0] =
         {
           // x-direction.
-          {.bid = 4, .dir = 0, .edge = GKYL_PHYSICAL}, // Physical boundary.
-          {.bid = 3, .dir = 0, .edge = GKYL_LOWER_POSITIVE},
+          {.bid = 3, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
+          {.bid = 4, .dir = 0, .edge = GKYL_PHYSICAL} // Physical boundary.
         },
       .connections[1] =
         {
@@ -524,8 +521,8 @@ create_asdex_lsn_gk_block_geom(void *ctx)
       .connections[0] =
         {
           // x-direction.
-          {.bid = 5, .dir = 0, .edge = GKYL_PHYSICAL}, // Physical boundary.
-          {.bid = 2, .dir = 0, .edge = GKYL_LOWER_POSITIVE},
+          {.bid = 2, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
+          {.bid = 5, .dir = 0, .edge = GKYL_PHYSICAL} // Physical boundary.
         },
       .connections[1] =
         {
