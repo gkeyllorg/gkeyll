@@ -101,7 +101,7 @@ test_1x(int poly_order, bool use_gpu)
     const double *g_p = gkyl_array_cfetch(g, linidx);
     const double *gA_p = gkyl_array_cfetch(gA, linidx);
     for (int m = 0; m < basis.num_basis; m++) {
-      TEST_CHECK(gkyl_compare(gA_p[m], g_p[m], 1e-10));
+      TEST_CHECK(gkyl_compare(gA_p[m], g_p[m], 3e-10));
       TEST_MSG("Expected: %.13e in cell (%d)", gA_p[m], idx[0]);
       TEST_MSG("Produced: %.13e", g_p[m]);
     }

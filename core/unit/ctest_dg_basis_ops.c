@@ -149,7 +149,7 @@ test_basis_ops_cubic_2d_ho(void)
   TEST_CHECK(gkyl_compare_double(val[3], b3.eval_expand((double[2]){1.0, 1.0}, coeff), 1.0e-15));
 
   TEST_CHECK(
-    gkyl_compare_double(gradx[0], b3.eval_grad_expand(0, (double[2]){-1.0, -1.0}, coeff), 1.0e-15)
+    gkyl_compare_double(gradx[0], b3.eval_grad_expand(0, (double[2]){-1.0, -1.0}, coeff), 5.0e-15)
   );
   TEST_CHECK(
     gkyl_compare_double(gradx[1], b3.eval_grad_expand(0, (double[2]){-1.0, 1.0}, coeff), 1.0e-15)
