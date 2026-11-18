@@ -49,6 +49,9 @@ gyrokinetic_update_implicit_coll(gkyl_gyrokinetic_app *app, double dt0)
   for (int i = 0; i < ns; ++i) {
     struct gk_species *gks = &app->species[i];
     gk_species_copy_range(gks, fin[i], fout[i], &gks->local_ext);
+
+    // Rescale species (e.g. fixed fraction, adiabatic).
+    gk_species_scaling_apply(app, gks, &gks->sca, fin[i], bflux_out);
   }
   for (int i = 0; i < neuts; ++i) {
     struct gk_neut_species *gkns = &app->neut_species[i];

@@ -5,22 +5,21 @@
 #include <gkyl_gyrokinetic_cross_prim_moms_bgk_priv.h>
 
 gkyl_gyrokinetic_cross_prim_moms_bgk *
-gkyl_gyrokinetic_cross_prim_moms_bgk_new(
-  const struct gkyl_basis *phase_basis, const struct gkyl_basis *conf_basis, bool use_gpu
+gkyl_gyrokinetic_cross_prim_moms_bgk_new_with_vdim(
+  const struct gkyl_basis *conf_basis, int vdim, bool use_gpu
 )
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
-    return gkyl_gyrokinetic_cross_prim_moms_bgk_cu_dev_new(phase_basis, conf_basis);
+    return gkyl_gyrokinetic_cross_prim_moms_bgk_cu_dev_new_with_vdim(conf_basis, vdim);
   }
 #endif
   gkyl_gyrokinetic_cross_prim_moms_bgk *up = gkyl_malloc(sizeof(*up));
   up->use_gpu = use_gpu;
 
   // Select the kernel.
-  up->cross_prim_moms_calc = choose_gyrokinetic_cross_prim_moms_bgk_kern(
-    conf_basis->ndim, phase_basis->ndim - conf_basis->ndim, phase_basis->poly_order
-  );
+  up->cross_prim_moms_calc =
+    choose_gyrokinetic_cross_prim_moms_bgk_kern(conf_basis->ndim, vdim, conf_basis->poly_order);
 
   up->on_dev = up; // host-side points to itself
   return up;
@@ -65,4 +64,14 @@ gkyl_gyrokinetic_cross_prim_moms_bgk_release(gkyl_gyrokinetic_cross_prim_moms_bg
   }
 
   gkyl_free(up);
+}
+
+gkyl_gyrokinetic_cross_prim_moms_bgk *
+gkyl_gyrokinetic_cross_prim_moms_bgk_new(
+  const struct gkyl_basis *phase_basis, const struct gkyl_basis *conf_basis, bool use_gpu
+)
+{
+  return gkyl_gyrokinetic_cross_prim_moms_bgk_new_with_vdim(
+    conf_basis, phase_basis->ndim - conf_basis->ndim, use_gpu
+  );
 }

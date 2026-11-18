@@ -13,46 +13,6 @@ extern "C" {
 #include <gkyl_util.h>
 }
 
-__global__ void
-gkyl_calc_sr_vars_init_p_vars_cu_kernel(
-  gkyl_dg_calc_sr_vars *up, struct gkyl_array *gamma, struct gkyl_array *gamma_inv
-)
-{
-  int idx[GKYL_MAX_DIM];
-  // Cell center array
-  double xc[GKYL_MAX_DIM];
-
-  for (unsigned long linc1 = threadIdx.x + blockIdx.x * blockDim.x; linc1 < up->vel_range.volume;
-       linc1 += gridDim.x * blockDim.x) {
-    // inverse index from linc1 to idx
-    // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}
-    // since update_range is a subrange
-    gkyl_sub_range_inv_idx(&up->vel_range, linc1, idx);
-    gkyl_rect_grid_cell_center(&up->vel_grid, idx, xc);
-
-    // convert back to a linear index on the super-range (with ghost cells)
-    // linc will have jumps in it to jump over ghost cells
-    long loc = gkyl_range_idx(&up->vel_range, idx);
-
-    double *gamma_d = (double *)gkyl_array_fetch(gamma, loc);
-    double *gamma_inv_d = (double *)gkyl_array_fetch(gamma_inv, loc);
-    up->sr_p_vars(xc, up->vel_grid.dx, gamma_d, gamma_inv_d);
-  }
-}
-
-// Host-side wrapper for initialization of momentum variables (gamma, gamma_inv)
-void
-gkyl_calc_sr_vars_init_p_vars_cu(
-  struct gkyl_dg_calc_sr_vars *up, struct gkyl_array *gamma, struct gkyl_array *gamma_inv
-)
-{
-  int nblocks = up->vel_range.nblocks;
-  int nthreads = up->vel_range.nthreads;
-  gkyl_calc_sr_vars_init_p_vars_cu_kernel<<<nblocks, nthreads>>>(
-    up->on_dev, gamma->on_dev, gamma_inv->on_dev
-  );
-}
-
 __global__ static void
 gkyl_dg_calc_sr_vars_n_set_cu_kernel(
   gkyl_dg_calc_sr_vars *up, struct gkyl_nmat *As, struct gkyl_nmat *xs,
@@ -178,9 +138,10 @@ gkyl_dg_calc_sr_vars_GammaV_cu(
 __global__ void
 gkyl_dg_calc_sr_vars_pressure_cu_kernel(
   struct gkyl_dg_calc_sr_vars *up, struct gkyl_range conf_range, struct gkyl_range phase_range,
-  const struct gkyl_array *gamma, const struct gkyl_array *gamma_inv, const struct gkyl_array *u_i,
-  const struct gkyl_array *u_i_sq, const struct gkyl_array *GammaV,
-  const struct gkyl_array *GammaV_sq, const struct gkyl_array *f, struct gkyl_array *sr_pressure
+  bool use_vmap, const struct gkyl_array *vmap, const struct gkyl_array *gamma,
+  const struct gkyl_array *gamma_inv, const struct gkyl_array *u_i, const struct gkyl_array *u_i_sq,
+  const struct gkyl_array *GammaV, const struct gkyl_array *GammaV_sq, const struct gkyl_array *f,
+  struct gkyl_array *sr_pressure
 )
 {
   int cdim = conf_range.ndim;
@@ -222,8 +183,8 @@ gkyl_dg_calc_sr_vars_pressure_cu_kernel(
     }
 
     up->sr_pressure(
-      xc, up->phase_grid.dx, gamma_d, gamma_inv_d, u_i_d, u_i_sq_d, GammaV_d, GammaV_sq_d, f_d,
-      &momLocal[0]
+      xc, up->phase_grid.dx, use_vmap ? (const double *)gkyl_array_cfetch(vmap, loc_vel) : 0,
+      gamma_d, gamma_inv_d, u_i_d, u_i_sq_d, GammaV_d, GammaV_sq_d, f_d, &momLocal[0]
     );
 
     // Accumulate output to output array atomically to avoid race conditions
@@ -247,8 +208,9 @@ gkyl_dg_calc_sr_vars_pressure_cu(
   int nthreads = phase_range->nthreads;
   gkyl_array_clear(sr_pressure, 0.0);
   gkyl_dg_calc_sr_vars_pressure_cu_kernel<<<nblocks, nthreads>>>(
-    up->on_dev, *conf_range, *phase_range, gamma->on_dev, gamma_inv->on_dev, u_i->on_dev,
-    u_i_sq->on_dev, GammaV->on_dev, GammaV_sq->on_dev, f->on_dev, sr_pressure->on_dev
+    up->on_dev, *conf_range, *phase_range, up->use_vmap, up->use_vmap ? up->vmap->on_dev : 0,
+    gamma->on_dev, gamma_inv->on_dev, u_i->on_dev, u_i_sq->on_dev, GammaV->on_dev,
+    GammaV_sq->on_dev, f->on_dev, sr_pressure->on_dev
   );
 }
 
@@ -256,11 +218,10 @@ gkyl_dg_calc_sr_vars_pressure_cu(
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
 __global__ static void
 dg_calc_sr_vars_set_cu_dev_ptrs(
-  struct gkyl_dg_calc_sr_vars *up, enum gkyl_basis_type b_type, enum gkyl_basis_type b_type_v,
-  int cdim, int vdim, int poly_order, int poly_order_v
+  struct gkyl_dg_calc_sr_vars *up, enum gkyl_basis_type b_type, int cdim, int vdim, int poly_order
 )
 {
-  up->sr_p_vars = choose_sr_p_vars_kern(b_type_v, vdim, poly_order_v);
+  up->sr_pressure = choose_sr_vars_pressure_kern(b_type, cdim, vdim, poly_order);
   up->sr_n_set = choose_sr_vars_n_set_kern(b_type, cdim, vdim, poly_order);
   up->sr_n_copy = choose_sr_vars_n_copy_kern(b_type, cdim, vdim, poly_order);
   up->sr_GammaV = choose_sr_vars_GammaV_kern(b_type, cdim, vdim, poly_order);
@@ -271,7 +232,8 @@ gkyl_dg_calc_sr_vars *
 gkyl_dg_calc_sr_vars_cu_dev_new(
   const struct gkyl_rect_grid *phase_grid, const struct gkyl_rect_grid *vel_grid,
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *vel_basis,
-  const struct gkyl_range *mem_range, const struct gkyl_range *vel_range
+  const struct gkyl_range *mem_range, const struct gkyl_range *vel_range,
+  const struct gkyl_vlasov_velocity_map *vel_map
 )
 {
   struct gkyl_dg_calc_sr_vars *up = (struct gkyl_dg_calc_sr_vars *)gkyl_malloc(sizeof(*up));
@@ -289,8 +251,11 @@ gkyl_dg_calc_sr_vars_cu_dev_new(
   up->mem_range = *mem_range;
 
   int vdim = vel_basis->ndim;
-  int poly_order_v = vel_basis->poly_order;
-  enum gkyl_basis_type b_type_v = vel_basis->b_type;
+  up->use_vmap = vel_map && vel_map->is_mapped;
+  up->vmap = 0;
+  if (up->use_vmap) {
+    up->vmap = gkyl_array_acquire(vel_map->vmap);
+  }
 
   // Linear system for solving for the drift velocity V_drift = M1i/M0
   // and then computing the rest-frame density n = GammaV_inv*M0
@@ -307,9 +272,7 @@ gkyl_dg_calc_sr_vars_cu_dev_new(
     (struct gkyl_dg_calc_sr_vars *)gkyl_cu_malloc(sizeof(*up_cu));
   gkyl_cu_memcpy(up_cu, up, sizeof(gkyl_dg_calc_sr_vars), GKYL_CU_MEMCPY_H2D);
 
-  dg_calc_sr_vars_set_cu_dev_ptrs<<<1, 1>>>(
-    up_cu, b_type, b_type_v, cdim, vdim, poly_order, poly_order_v
-  );
+  dg_calc_sr_vars_set_cu_dev_ptrs<<<1, 1>>>(up_cu, b_type, cdim, vdim, poly_order);
 
   // set parent on_dev pointer
   up->on_dev = up_cu;

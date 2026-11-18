@@ -57,6 +57,9 @@ LDFLAGS += -Wl,-rpath,../${BUILD_DIR}/core
 unit: ${LLIB} ${SLLIB} $(UNITS) ${MPI_UNITS} ${LUA_UNITS} ## Build unit tests
 regression: ${LLIB} ${SLLIB} ${REGS} ## Build regression tests
 
+.PHONY: library
+library: $(LLIB) $(SLLIB) ## Build only the shared library, without installing data
+
 .PHONY: all
 all: $(LLIB) ## Build all targets
 .DEFAULT_GOAL := all
@@ -104,6 +107,14 @@ ifdef USING_NVCC
 ../$(BUILD_DIR)/core/$(KERNELS_DIR)/bin_op/%.c.o : $(KERNELS_DIR)/bin_op/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
+
+# Register-capped bin_op family (see BINOP_MAX_REGS in the top-level Makefile): the
+# conf*phase multiply-accumulate kernels parallelized over components, which the
+# gkyl_dg_mul_conf_phase_op_accumulate_range kernel calls through a function pointer.
+# The shorter stem makes make prefer this rule over the bin_op/% rule above.
+../$(BUILD_DIR)/core/$(KERNELS_DIR)/bin_op/binop_cross_mul_accumulate_comp_par_%.c.o : $(KERNELS_DIR)/bin_op/binop_cross_mul_accumulate_comp_par_%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(NVCC_BINOP_FLAGS) $(INCS) -c $< -o $@
 
 ../$(BUILD_DIR)/core/$(KERNELS_DIR)/array_integrate/%.c.o : $(KERNELS_DIR)/array_integrate/%.c
 	$(MKDIR_P) $(dir $@)

@@ -447,6 +447,116 @@ test_array_scale_ho()
   gkyl_array_release(a1);
 }
 
+static void
+array_set_offset_ncoeff_test(bool use_gpu, bool use_range)
+{
+  struct gkyl_range parent, range, empty;
+  gkyl_range_init(&parent, 2, (int[]){-1, 2}, (int[]){4, 8});
+  gkyl_sub_range_init(&range, &parent, (int[]){0, 3}, (int[]){2, 6});
+  gkyl_sub_range_init(&empty, &parent, (int[]){0, 3}, (int[]){-1, 6});
+
+  const struct {
+    int inp_ncomp, out_ncomp, ncoeff, inp_offset, out_offset;
+    bool in_place, legacy, empty_range;
+  } cases[] = {{6, 8, 2, 1, 3, false, false, false}, {8, 6, 2, 3, 1, false, false, false},
+               {6, 6, 2, 1, 3, false, false, false}, {6, 8, 2, 4, 6, false, false, false},
+               {6, 6, 2, 1, 1, true, false, false},  {6, 6, 2, 0, 4, true, false, false},
+               {6, 6, 2, 4, 0, true, false, false},  {6, 8, 0, 6, 8, false, false, false},
+               {6, 6, 6, 0, 0, false, true, false},  {6, 8, 2, 1, 3, false, false, true}};
+
+  for (int tc = 0; tc < sizeof cases / sizeof cases[0]; ++tc) {
+    if (cases[tc].empty_range && !use_range) {
+      continue;
+    }
+
+    int inp_ncomp = cases[tc].inp_ncomp, out_ncomp = cases[tc].out_ncomp;
+    int ncoeff = cases[tc].ncoeff;
+    int inp_offset = cases[tc].inp_offset, out_offset = cases[tc].out_offset;
+    const struct gkyl_range *selected = cases[tc].empty_range ? &empty : &range;
+
+    struct gkyl_array *inp_host = mkarr(false, inp_ncomp, parent.volume);
+    struct gkyl_array *out_host = mkarr(false, out_ncomp, parent.volume);
+
+    for (long loc = 0; loc < parent.volume; ++loc) {
+      double *inp_d = gkyl_array_fetch(inp_host, loc);
+      for (int k = 0; k < inp_ncomp; ++k) {
+        inp_d[k] = 100.0 * loc + k + 1.0;
+      }
+    }
+
+    struct gkyl_array *inp = mkarr(use_gpu, inp_ncomp, parent.volume);
+    struct gkyl_array *out = cases[tc].in_place ? gkyl_array_acquire(inp) :
+                                                  mkarr(use_gpu, out_ncomp, parent.volume);
+    gkyl_array_copy(inp, inp_host);
+    if (!cases[tc].in_place) {
+      gkyl_array_clear(out, -123.0);
+    }
+
+    struct gkyl_array *ret;
+    if (cases[tc].legacy) {
+      ret = use_range ? gkyl_array_set_offset_range(out, -0.5, inp, 0, selected) :
+                        gkyl_array_set_offset(out, -0.5, inp, 0);
+    } else {
+      ret = use_range ?
+              gkyl_array_set_offset_ncoeff_range(
+                out, -0.5, inp, ncoeff, inp_offset, out_offset, selected
+              ) :
+              gkyl_array_set_offset_ncoeff(out, -0.5, inp, ncoeff, inp_offset, out_offset);
+    }
+    TEST_CHECK(ret == out);
+    gkyl_array_copy(out_host, out);
+
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init(&iter, &parent);
+    while (gkyl_range_iter_next(&iter)) {
+      long loc = gkyl_range_idx(&parent, iter.idx);
+      const double *inp_d = gkyl_array_cfetch(inp_host, loc);
+      const double *out_d = gkyl_array_cfetch(out_host, loc);
+      bool selected_cell = !use_range || gkyl_range_contains_idx(selected, iter.idx);
+      for (int k = 0; k < out_ncomp; ++k) {
+        double expected = cases[tc].in_place ? inp_d[k] : -123.0;
+        if (selected_cell && k >= out_offset && k < out_offset + ncoeff) {
+          expected = -0.5 * inp_d[inp_offset + k - out_offset];
+        }
+        TEST_CHECK(out_d[k] == expected);
+        TEST_MSG(
+          "case=%d, cell=%ld, coefficient=%d, GPU=%d, range=%d", tc, loc, k, use_gpu, use_range
+        );
+      }
+    }
+    gkyl_array_release(inp_host);
+    gkyl_array_release(out_host);
+    gkyl_array_release(inp);
+    gkyl_array_release(out);
+  }
+}
+
+void
+test_array_set_offset_ncoeff_ho()
+{
+  array_set_offset_ncoeff_test(false, false);
+}
+
+void
+test_array_set_offset_ncoeff_range_ho()
+{
+  array_set_offset_ncoeff_test(false, true);
+}
+
+#ifdef GKYL_HAVE_CUDA
+void
+test_array_set_offset_ncoeff_dev()
+{
+  array_set_offset_ncoeff_test(true, false);
+}
+
+void
+test_array_set_offset_ncoeff_range_dev()
+{
+  array_set_offset_ncoeff_test(true, true);
+}
+#endif
+
 void
 test_array_scale_by_cell_ho()
 {
@@ -2552,6 +2662,8 @@ TEST_LIST = {
   {"array_set_range_ho", test_array_set_range_ho},
   {"array_set_offset_ho", test_array_set_offset_ho},
   {"array_set_offset_range_ho", test_array_set_offset_range_ho},
+  {"array_set_offset_ncoeff_ho", test_array_set_offset_ncoeff_ho},
+  {"array_set_offset_ncoeff_range_ho", test_array_set_offset_ncoeff_range_ho},
   {"array_scale_ho", test_array_scale_ho},
   {"array_scale_by_cell_ho", test_array_scale_by_cell_ho},
   {"array_invert_by_cell_ho", test_array_invert_by_cell_ho},
@@ -2588,6 +2700,8 @@ TEST_LIST = {
   {"array_set_range_dev", test_array_set_range_dev},
   {"array_set_offset_dev", test_array_set_offset_dev},
   {"array_set_offset_range_dev", test_array_set_offset_range_dev},
+  {"array_set_offset_ncoeff_dev", test_array_set_offset_ncoeff_dev},
+  {"array_set_offset_ncoeff_range_dev", test_array_set_offset_ncoeff_range_dev},
   {"array_scale_dev", test_array_scale_dev},
   {"array_scale_by_cell_dev", test_array_scale_by_cell_dev},
   {"array_invert_by_cell_dev", test_array_invert_by_cell_dev},

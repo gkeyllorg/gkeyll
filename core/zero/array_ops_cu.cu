@@ -84,23 +84,16 @@ gkyl_array_set_cu_kernel(struct gkyl_array *out, double a, const struct gkyl_arr
 }
 
 __global__ void
-gkyl_array_set_offset_cu_kernel(
-  struct gkyl_array *out, double a, const struct gkyl_array *inp, int coff
+gkyl_array_set_offset_ncoeff_cu_kernel(
+  struct gkyl_array *out, double a, const struct gkyl_array *inp, int ncoeff, int inp_offset,
+  int out_offset
 )
 {
   double *out_d = (double *)out->data;
   const double *inp_d = (const double *)inp->data;
-  if (NCOM(out) < NCOM(inp)) {
-    for (unsigned long linc = START_ID; linc < NSIZE(out); linc += blockDim.x * gridDim.x) {
-      for (unsigned k = 0; k < NCOM(out); ++k) {
-        out_d[linc * NCOM(out) + k] = a * inp_d[linc * NCOM(inp) + coff + k];
-      }
-    }
-  } else {
-    for (unsigned long linc = START_ID; linc < NSIZE(out); linc += blockDim.x * gridDim.x) {
-      for (unsigned k = 0; k < NCOM(inp); ++k) {
-        out_d[linc * NCOM(out) + coff + k] = a * inp_d[linc * NCOM(inp) + k];
-      }
+  for (unsigned long linc = START_ID; linc < NSIZE(out); linc += blockDim.x * gridDim.x) {
+    for (int k = 0; k < ncoeff; ++k) {
+      out_d[linc * NCOM(out) + out_offset + k] = a * inp_d[linc * NCOM(inp) + inp_offset + k];
     }
   }
 }
@@ -185,10 +178,18 @@ gkyl_array_set_cu(struct gkyl_array *out, double a, const struct gkyl_array *inp
 }
 
 void
-gkyl_array_set_offset_cu(struct gkyl_array *out, double a, const struct gkyl_array *inp, int coff)
+gkyl_array_set_offset_ncoeff_cu(
+  struct gkyl_array *out, double a, const struct gkyl_array *inp, int ncoeff, int inp_offset,
+  int out_offset
+)
 {
+  if (ncoeff == 0 || out->size == 0) {
+    return;
+  }
   int nblocks = gkyl_int_div_up(out->size, out->nthreads);
-  gkyl_array_set_offset_cu_kernel<<<nblocks, out->nthreads>>>(out->on_dev, a, inp->on_dev, coff);
+  gkyl_array_set_offset_ncoeff_cu_kernel<<<nblocks, out->nthreads>>>(
+    out->on_dev, a, inp->on_dev, ncoeff, inp_offset, out_offset
+  );
 }
 
 void
@@ -406,22 +407,13 @@ gkyl_array_set_range_cu_kernel(
 }
 
 __global__ void
-gkyl_array_set_offset_range_cu_kernel(
-  struct gkyl_array *out, double a, const struct gkyl_array *inp, int coff, struct gkyl_range range
+gkyl_array_set_offset_ncoeff_range_cu_kernel(
+  struct gkyl_array *out, double a, const struct gkyl_array *inp, int ncoeff, int inp_offset,
+  int out_offset, struct gkyl_range range
 )
 {
   long outnc = NCOM(out), inpnc = NCOM(inp);
-  long n;
-  int outoff, inpoff;
-  if (outnc < inpnc) {
-    n = outnc;
-    outoff = 0;
-    inpoff = coff;
-  } else {
-    n = inpnc;
-    outoff = coff;
-    inpoff = 0;
-  }
+  long n = ncoeff;
   int idx[GKYL_MAX_DIM];
 
   int ndim = range.ndim;
@@ -452,7 +444,7 @@ gkyl_array_set_offset_range_cu_kernel(
     const double *inp_d = (const double *)gkyl_array_cfetch(inp, start);
     // do operation on contiguous data block
     if (linc2 < n * ac1) {
-      out_d[linc2_out + outoff] = a * inp_d[linc2_in + inpoff];
+      out_d[linc2_out + out_offset] = a * inp_d[linc2_in + inp_offset];
     }
   }
 }
@@ -796,11 +788,26 @@ gkyl_array_set_offset_range_cu(
   const struct gkyl_range *range
 )
 {
-  dim3 dimGrid, dimBlock;
-  gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, *range, min(out->ncomp, inp->ncomp));
+  gkyl_array_set_offset_ncoeff_range_cu(
+    out, a, inp, min(out->ncomp, inp->ncomp), out->ncomp < inp->ncomp ? coff : 0,
+    out->ncomp < inp->ncomp ? 0 : coff, range
+  );
+}
 
-  gkyl_array_set_offset_range_cu_kernel<<<dimGrid, dimBlock>>>(
-    out->on_dev, a, inp->on_dev, coff, *range
+void
+gkyl_array_set_offset_ncoeff_range_cu(
+  struct gkyl_array *out, double a, const struct gkyl_array *inp, int ncoeff, int inp_offset,
+  int out_offset, const struct gkyl_range *range
+)
+{
+  if (ncoeff == 0 || range->volume == 0) {
+    return;
+  }
+  dim3 dimGrid, dimBlock;
+  gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, *range, ncoeff);
+
+  gkyl_array_set_offset_ncoeff_range_cu_kernel<<<dimGrid, dimBlock>>>(
+    out->on_dev, a, inp->on_dev, ncoeff, inp_offset, out_offset, *range
   );
 }
 

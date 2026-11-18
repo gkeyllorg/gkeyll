@@ -1,14 +1,20 @@
 #include <gkyl_prim_lbo_vlasov_kernels.h> 
  
-GKYL_CU_DH void vlasov_cross_prim_moments_1x3v_ser_p2(struct gkyl_mat *A, struct gkyl_mat *rhs, const double *greene, const double m_self, const double *moms_self, const double *prim_mom_self, const double m_other, const double *moms_other, const double *prim_mom_other, const double *boundary_corrections, const double *nu) 
+GKYL_CU_DH void vlasov_cross_prim_moments_1x3v_ser_p2(struct gkyl_mat *A, struct gkyl_mat *rhs, const double *alphaE, const double m_self, const double *moms_self, const double *prim_mom_self, const double m_other, const double *moms_other, const double *prim_mom_other, const double *boundary_corrections, const double *nu) 
 { 
-  // greene:               Greene's factor. 
-  // m_:                   mass. 
-  // moms:                 moments of the distribution function. 
-  // prim_mom              self primitive moments: mean flow velocity and thermal speed squared. 
+  // A:                    Left-side matrix. 
+  // rhs:                  Right-side vector. 
+  // alphaE:               Morse's alpha_E factor. 
+  // m_self:               self mass. 
+  // moms_self:            self moments of the distribution function. 
+  // prim_mom_self:        self primitive moments: mean flow velocity and thermal speed squared. 
+  // m_other:              mass of other species. 
+  // moms_other:           moments of the other distribution function. 
+  // prim_mom_other:       cross primitive moments: mean flow velocity and thermal speed squared. 
   // boundary_corrections: corrections to momentum and energy conservation due to finite velocity space. 
-  // nu:                   Collision frequency. 
+  // nu:                   Cross-species collision frequency. 
  
+  const double m_sumDms = (m_self+m_other)/m_self;
   const double *u_self = &prim_mom_self[0];
   const double *vtsq_self = &prim_mom_self[9];
   const double *u_other = &prim_mom_other[0];
@@ -40,6 +46,8 @@ GKYL_CU_DH void vlasov_cross_prim_moments_1x3v_ser_p2(struct gkyl_mat *A, struct
   if (notCellAvg && (0.7071067811865475*(2.23606797749979*vtsq_other[2]-1.7320508075688772*vtsq_other[1]+vtsq_other[0]) < 0)) notCellAvg = false; 
   if (notCellAvg && (0.7071067811865475*(2.23606797749979*vtsq_other[2]+1.7320508075688772*vtsq_other[1]+vtsq_other[0]) < 0)) notCellAvg = false; 
  
+  if (notCellAvg && (0.7071067811865475*(2.23606797749979*alphaE[2]-1.7320508075688772*alphaE[1]+alphaE[0]) < 0)) notCellAvg = false; 
+  if (notCellAvg && (0.7071067811865475*(2.23606797749979*alphaE[2]+1.7320508075688772*alphaE[1]+alphaE[0]) < 0)) notCellAvg = false; 
   if (notCellAvg) { 
     m0r[0] = moms_self[0]; 
     m0r[1] = moms_self[1]; 
@@ -219,9 +227,9 @@ GKYL_CU_DH void vlasov_cross_prim_moments_1x3v_ser_p2(struct gkyl_mat *A, struct
   gkyl_mat_set(A,11,1,-(0.7857142857142857*m0r[1]*u_selfr[2])-0.7857142857142857*m0r[1]*u_otherr[2]-0.7857142857142857*u_selfr[1]*m0r[2]-0.7857142857142857*u_otherr[1]*m0r[2]-0.4472135954999579*m0r[0]*u_selfr[1]-0.4472135954999579*m0r[0]*u_otherr[1]+1.264911064067352*m1r[1]-0.4472135954999579*u_selfr[0]*m0r[1]-0.4472135954999579*u_otherr[0]*m0r[1]); 
   gkyl_mat_set(A,11,2,-(1.0714285714285714*m0r[2]*u_selfr[2])-0.31943828249996997*m0r[0]*u_selfr[2]-1.0714285714285714*m0r[2]*u_otherr[2]-0.31943828249996997*m0r[0]*u_otherr[2]+0.9035079029052515*m1r[2]-0.31943828249996997*u_selfr[0]*m0r[2]-0.31943828249996997*u_otherr[0]*m0r[2]-0.7857142857142857*m0r[1]*u_selfr[1]-0.7857142857142857*m0r[1]*u_otherr[1]-0.5*m0r[0]*u_selfr[0]-0.5*m0r[0]*u_otherr[0]+1.4142135623730951*m1r[0]); 
  
-  momRHS[0] += -(0.7071067811865475*(greene[2]*u_selfr[2]-1.0*greene[2]*u_otherr[2]+greene[1]*u_selfr[1]-1.0*greene[1]*u_otherr[1]+greene[0]*u_selfr[0]-1.0*greene[0]*u_otherr[0]-2.8284271247461907*m1r[0])); 
-  momRHS[1] += -(0.1414213562373095*(4.47213595499958*greene[1]*u_selfr[2]-4.47213595499958*greene[1]*u_otherr[2]+(4.47213595499958*u_selfr[1]-4.47213595499958*u_otherr[1])*greene[2]+5.0*greene[0]*u_selfr[1]-5.0*greene[0]*u_otherr[1]-14.142135623730955*m1r[1]+(5.0*u_selfr[0]-5.0*u_otherr[0])*greene[1])); 
-  momRHS[2] += -(0.020203050891044214*((22.3606797749979*greene[2]+35.0*greene[0])*u_selfr[2]+(-(22.3606797749979*greene[2])-35.0*greene[0])*u_otherr[2]-98.99494936611667*m1r[2]+(35.0*u_selfr[0]-35.0*u_otherr[0])*greene[2]+31.304951684997057*greene[1]*u_selfr[1]-31.304951684997057*greene[1]*u_otherr[1])); 
+  momRHS[0] += -(0.7071067811865475*((alphaE[2]*u_selfr[2]-1.0*alphaE[2]*u_otherr[2]+alphaE[1]*u_selfr[1]-1.0*alphaE[1]*u_otherr[1]+alphaE[0]*u_selfr[0]-1.0*alphaE[0]*u_otherr[0])*m_sumDms-2.8284271247461907*m1r[0])); 
+  momRHS[1] += -(0.1414213562373095*((4.47213595499958*alphaE[1]*u_selfr[2]-4.47213595499958*alphaE[1]*u_otherr[2]+(4.47213595499958*u_selfr[1]-4.47213595499958*u_otherr[1])*alphaE[2]+5.0*alphaE[0]*u_selfr[1]-5.0*alphaE[0]*u_otherr[1]+(5.0*u_selfr[0]-5.0*u_otherr[0])*alphaE[1])*m_sumDms-14.142135623730955*m1r[1])); 
+  momRHS[2] += -(0.020203050891044214*(((22.3606797749979*alphaE[2]+35.0*alphaE[0])*u_selfr[2]+(-(22.3606797749979*alphaE[2])-35.0*alphaE[0])*u_otherr[2]+(35.0*u_selfr[0]-35.0*u_otherr[0])*alphaE[2]+31.304951684997057*alphaE[1]*u_selfr[1]-31.304951684997057*alphaE[1]*u_otherr[1])*m_sumDms-98.99494936611667*m1r[2])); 
  
   // ... Block from weak multiply of m_self, nu, M0 and uCrossY ... // 
   gkyl_mat_set(A,3,3,1.4142135623730951*m0r[0]); 
@@ -256,9 +264,9 @@ GKYL_CU_DH void vlasov_cross_prim_moments_1x3v_ser_p2(struct gkyl_mat *A, struct
   gkyl_mat_set(A,11,4,-(0.7857142857142857*m0r[1]*u_selfr[5])-0.7857142857142857*m0r[1]*u_otherr[5]-0.7857142857142857*m0r[2]*u_selfr[4]-0.4472135954999579*m0r[0]*u_selfr[4]-0.7857142857142857*m0r[2]*u_otherr[4]-0.4472135954999579*m0r[0]*u_otherr[4]+1.264911064067352*m1r[4]-0.4472135954999579*m0r[1]*u_selfr[3]-0.4472135954999579*m0r[1]*u_otherr[3]); 
   gkyl_mat_set(A,11,5,-(1.0714285714285714*m0r[2]*u_selfr[5])-0.31943828249996997*m0r[0]*u_selfr[5]-1.0714285714285714*m0r[2]*u_otherr[5]-0.31943828249996997*m0r[0]*u_otherr[5]+0.9035079029052515*m1r[5]-0.7857142857142857*m0r[1]*u_selfr[4]-0.7857142857142857*m0r[1]*u_otherr[4]-0.31943828249996997*m0r[2]*u_selfr[3]-0.5*m0r[0]*u_selfr[3]-0.31943828249996997*m0r[2]*u_otherr[3]-0.5*m0r[0]*u_otherr[3]+1.4142135623730951*m1r[3]); 
  
-  momRHS[3] += -(0.7071067811865475*(greene[2]*u_selfr[5]-1.0*greene[2]*u_otherr[5]+greene[1]*u_selfr[4]-1.0*greene[1]*u_otherr[4]+greene[0]*u_selfr[3]-1.0*greene[0]*u_otherr[3]-2.8284271247461907*m1r[3])); 
-  momRHS[4] += -(0.1414213562373095*(4.47213595499958*greene[1]*u_selfr[5]-4.47213595499958*greene[1]*u_otherr[5]+(4.47213595499958*greene[2]+5.0*greene[0])*u_selfr[4]+(-(4.47213595499958*greene[2])-5.0*greene[0])*u_otherr[4]-14.142135623730955*m1r[4]+5.0*greene[1]*u_selfr[3]-5.0*greene[1]*u_otherr[3])); 
-  momRHS[5] += -(0.020203050891044214*((22.3606797749979*greene[2]+35.0*greene[0])*u_selfr[5]+(-(22.3606797749979*greene[2])-35.0*greene[0])*u_otherr[5]-98.99494936611667*m1r[5]+31.304951684997057*greene[1]*u_selfr[4]-31.304951684997057*greene[1]*u_otherr[4]+35.0*greene[2]*u_selfr[3]-35.0*greene[2]*u_otherr[3])); 
+  momRHS[3] += -(0.7071067811865475*((alphaE[2]*u_selfr[5]-1.0*alphaE[2]*u_otherr[5]+alphaE[1]*u_selfr[4]-1.0*alphaE[1]*u_otherr[4]+alphaE[0]*u_selfr[3]-1.0*alphaE[0]*u_otherr[3])*m_sumDms-2.8284271247461907*m1r[3])); 
+  momRHS[4] += -(0.1414213562373095*((4.47213595499958*alphaE[1]*u_selfr[5]-4.47213595499958*alphaE[1]*u_otherr[5]+(4.47213595499958*alphaE[2]+5.0*alphaE[0])*u_selfr[4]+(-(4.47213595499958*alphaE[2])-5.0*alphaE[0])*u_otherr[4]+5.0*alphaE[1]*u_selfr[3]-5.0*alphaE[1]*u_otherr[3])*m_sumDms-14.142135623730955*m1r[4])); 
+  momRHS[5] += -(0.020203050891044214*(((22.3606797749979*alphaE[2]+35.0*alphaE[0])*u_selfr[5]+(-(22.3606797749979*alphaE[2])-35.0*alphaE[0])*u_otherr[5]+31.304951684997057*alphaE[1]*u_selfr[4]-31.304951684997057*alphaE[1]*u_otherr[4]+35.0*alphaE[2]*u_selfr[3]-35.0*alphaE[2]*u_otherr[3])*m_sumDms-98.99494936611667*m1r[5])); 
  
   // ... Block from weak multiply of m_self, nu, M0 and uCrossZ ... // 
   gkyl_mat_set(A,6,6,1.4142135623730951*m0r[0]); 
@@ -293,9 +301,9 @@ GKYL_CU_DH void vlasov_cross_prim_moments_1x3v_ser_p2(struct gkyl_mat *A, struct
   gkyl_mat_set(A,11,7,-(0.7857142857142857*m0r[1]*u_selfr[8])-0.7857142857142857*m0r[1]*u_otherr[8]-0.7857142857142857*m0r[2]*u_selfr[7]-0.4472135954999579*m0r[0]*u_selfr[7]-0.7857142857142857*m0r[2]*u_otherr[7]-0.4472135954999579*m0r[0]*u_otherr[7]+1.264911064067352*m1r[7]-0.4472135954999579*m0r[1]*u_selfr[6]-0.4472135954999579*m0r[1]*u_otherr[6]); 
   gkyl_mat_set(A,11,8,-(1.0714285714285714*m0r[2]*u_selfr[8])-0.31943828249996997*m0r[0]*u_selfr[8]-1.0714285714285714*m0r[2]*u_otherr[8]-0.31943828249996997*m0r[0]*u_otherr[8]+0.9035079029052515*m1r[8]-0.7857142857142857*m0r[1]*u_selfr[7]-0.7857142857142857*m0r[1]*u_otherr[7]-0.31943828249996997*m0r[2]*u_selfr[6]-0.5*m0r[0]*u_selfr[6]-0.31943828249996997*m0r[2]*u_otherr[6]-0.5*m0r[0]*u_otherr[6]+1.4142135623730951*m1r[6]); 
  
-  momRHS[6] += -(0.7071067811865475*(greene[2]*u_selfr[8]-1.0*greene[2]*u_otherr[8]+greene[1]*u_selfr[7]-1.0*greene[1]*u_otherr[7]+greene[0]*u_selfr[6]-1.0*greene[0]*u_otherr[6]-2.8284271247461907*m1r[6])); 
-  momRHS[7] += -(0.1414213562373095*(4.47213595499958*greene[1]*u_selfr[8]-4.47213595499958*greene[1]*u_otherr[8]+(4.47213595499958*greene[2]+5.0*greene[0])*u_selfr[7]+(-(4.47213595499958*greene[2])-5.0*greene[0])*u_otherr[7]-14.142135623730955*m1r[7]+5.0*greene[1]*u_selfr[6]-5.0*greene[1]*u_otherr[6])); 
-  momRHS[8] += -(0.020203050891044214*((22.3606797749979*greene[2]+35.0*greene[0])*u_selfr[8]+(-(22.3606797749979*greene[2])-35.0*greene[0])*u_otherr[8]-98.99494936611667*m1r[8]+31.304951684997057*greene[1]*u_selfr[7]-31.304951684997057*greene[1]*u_otherr[7]+35.0*greene[2]*u_selfr[6]-35.0*greene[2]*u_otherr[6])); 
+  momRHS[6] += -(0.7071067811865475*((alphaE[2]*u_selfr[8]-1.0*alphaE[2]*u_otherr[8]+alphaE[1]*u_selfr[7]-1.0*alphaE[1]*u_otherr[7]+alphaE[0]*u_selfr[6]-1.0*alphaE[0]*u_otherr[6])*m_sumDms-2.8284271247461907*m1r[6])); 
+  momRHS[7] += -(0.1414213562373095*((4.47213595499958*alphaE[1]*u_selfr[8]-4.47213595499958*alphaE[1]*u_otherr[8]+(4.47213595499958*alphaE[2]+5.0*alphaE[0])*u_selfr[7]+(-(4.47213595499958*alphaE[2])-5.0*alphaE[0])*u_otherr[7]+5.0*alphaE[1]*u_selfr[6]-5.0*alphaE[1]*u_otherr[6])*m_sumDms-14.142135623730955*m1r[7])); 
+  momRHS[8] += -(0.020203050891044214*(((22.3606797749979*alphaE[2]+35.0*alphaE[0])*u_selfr[8]+(-(22.3606797749979*alphaE[2])-35.0*alphaE[0])*u_otherr[8]+31.304951684997057*alphaE[1]*u_selfr[7]-31.304951684997057*alphaE[1]*u_otherr[7]+35.0*alphaE[2]*u_selfr[6]-35.0*alphaE[2]*u_otherr[6])*m_sumDms-98.99494936611667*m1r[8])); 
  
   double ucMSelf[3] = {0.0}; 
   double ucMOther[3] = {0.0}; 
@@ -347,12 +355,11 @@ GKYL_CU_DH void vlasov_cross_prim_moments_1x3v_ser_p2(struct gkyl_mat *A, struct
   uSumSq[2] += 0.45175395145262565*u_selfr2R2-0.9035079029052515*u_otherr[a0+2]*u_selfr[a0+2]+1.4142135623730951*u_selfr[a0]*u_selfr[a0+2]-1.4142135623730951*u_otherr[a0]*u_selfr[a0+2]+0.45175395145262565*u_otherr2R2-1.4142135623730951*u_selfr[a0]*u_otherr[a0+2]+1.4142135623730951*u_otherr[a0]*u_otherr[a0+2]+0.6324555320336759*u_selfr1R2-1.264911064067352*u_otherr[a0+1]*u_selfr[a0+1]+0.6324555320336759*u_otherr1R2; 
   } 
  
-  double m_sum = m_self+m_other;
   double m_diff = m_other-m_self;
   double enRHS[3] = {0.0}; 
-  enRHS[0] = -((2.1213203435596424*greene[2]*vtsq_self[2]*m_self)/m_sum)-(2.1213203435596424*greene[1]*vtsq_self[1]*m_self)/m_sum-(2.1213203435596424*greene[0]*vtsq_self[0]*m_self)/m_sum+(2.1213203435596424*greene[2]*vtsq_other[2]*m_other)/m_sum+(2.1213203435596424*greene[1]*vtsq_other[1]*m_other)/m_sum+(2.1213203435596424*greene[0]*vtsq_other[0]*m_other)/m_sum+(0.3535533905932737*greene[2]*uSumSq[2]*m_diff)/m_sum+(0.3535533905932737*greene[1]*uSumSq[1]*m_diff)/m_sum+(0.3535533905932737*greene[0]*uSumSq[0]*m_diff)/m_sum-1.0*uM1Self[0]-1.0*uM1Other[0]+2.0*m2r[0]; 
-  enRHS[1] = -((1.8973665961010278*greene[1]*vtsq_self[2]*m_self)/m_sum)-(1.8973665961010278*vtsq_self[1]*greene[2]*m_self)/m_sum-(2.1213203435596424*greene[0]*vtsq_self[1]*m_self)/m_sum-(2.1213203435596424*vtsq_self[0]*greene[1]*m_self)/m_sum+(1.8973665961010278*greene[1]*vtsq_other[2]*m_other)/m_sum+(1.8973665961010278*vtsq_other[1]*greene[2]*m_other)/m_sum+(2.1213203435596424*greene[0]*vtsq_other[1]*m_other)/m_sum+(2.1213203435596424*vtsq_other[0]*greene[1]*m_other)/m_sum+(0.3162277660168379*greene[1]*uSumSq[2]*m_diff)/m_sum+(0.3162277660168379*uSumSq[1]*greene[2]*m_diff)/m_sum+(0.3535533905932737*greene[0]*uSumSq[1]*m_diff)/m_sum+(0.3535533905932737*uSumSq[0]*greene[1]*m_diff)/m_sum-1.0*uM1Self[1]-1.0*uM1Other[1]+2.0*m2r[1]; 
-  enRHS[2] = -((1.355261854357877*greene[2]*vtsq_self[2]*m_self)/m_sum)-(2.1213203435596424*greene[0]*vtsq_self[2]*m_self)/m_sum-(2.1213203435596424*vtsq_self[0]*greene[2]*m_self)/m_sum-(1.8973665961010278*greene[1]*vtsq_self[1]*m_self)/m_sum+(1.355261854357877*greene[2]*vtsq_other[2]*m_other)/m_sum+(2.1213203435596424*greene[0]*vtsq_other[2]*m_other)/m_sum+(2.1213203435596424*vtsq_other[0]*greene[2]*m_other)/m_sum+(1.8973665961010278*greene[1]*vtsq_other[1]*m_other)/m_sum+(0.22587697572631277*greene[2]*uSumSq[2]*m_diff)/m_sum+(0.3535533905932737*greene[0]*uSumSq[2]*m_diff)/m_sum+(0.3535533905932737*uSumSq[0]*greene[2]*m_diff)/m_sum+(0.3162277660168379*greene[1]*uSumSq[1]*m_diff)/m_sum-1.0*uM1Self[2]-1.0*uM1Other[2]+2.0*m2r[2]; 
+  enRHS[0] = (2.1213203435596424*alphaE[2]*vtsq_other[2]*m_other)/m_self+(2.1213203435596424*alphaE[1]*vtsq_other[1]*m_other)/m_self+(2.1213203435596424*alphaE[0]*vtsq_other[0]*m_other)/m_self+(0.3535533905932737*alphaE[2]*uSumSq[2]*m_diff)/m_self+(0.3535533905932737*alphaE[1]*uSumSq[1]*m_diff)/m_self+(0.3535533905932737*alphaE[0]*uSumSq[0]*m_diff)/m_self-2.1213203435596424*alphaE[2]*vtsq_self[2]-2.1213203435596424*alphaE[1]*vtsq_self[1]-2.1213203435596424*alphaE[0]*vtsq_self[0]-1.0*uM1Self[0]-1.0*uM1Other[0]+4.0*m2r[0]; 
+  enRHS[1] = (1.8973665961010278*alphaE[1]*vtsq_other[2]*m_other)/m_self+(1.8973665961010278*vtsq_other[1]*alphaE[2]*m_other)/m_self+(2.1213203435596424*alphaE[0]*vtsq_other[1]*m_other)/m_self+(2.1213203435596424*vtsq_other[0]*alphaE[1]*m_other)/m_self+(0.3162277660168379*alphaE[1]*uSumSq[2]*m_diff)/m_self+(0.3162277660168379*uSumSq[1]*alphaE[2]*m_diff)/m_self+(0.3535533905932737*alphaE[0]*uSumSq[1]*m_diff)/m_self+(0.3535533905932737*uSumSq[0]*alphaE[1]*m_diff)/m_self-1.8973665961010278*alphaE[1]*vtsq_self[2]-1.8973665961010278*vtsq_self[1]*alphaE[2]-2.1213203435596424*alphaE[0]*vtsq_self[1]-1.0*uM1Self[1]-1.0*uM1Other[1]+4.0*m2r[1]-2.1213203435596424*vtsq_self[0]*alphaE[1]; 
+  enRHS[2] = (1.355261854357877*alphaE[2]*vtsq_other[2]*m_other)/m_self+(2.1213203435596424*alphaE[0]*vtsq_other[2]*m_other)/m_self+(2.1213203435596424*vtsq_other[0]*alphaE[2]*m_other)/m_self+(1.8973665961010278*alphaE[1]*vtsq_other[1]*m_other)/m_self+(0.22587697572631277*alphaE[2]*uSumSq[2]*m_diff)/m_self+(0.3535533905932737*alphaE[0]*uSumSq[2]*m_diff)/m_self+(0.3535533905932737*uSumSq[0]*alphaE[2]*m_diff)/m_self+(0.3162277660168379*alphaE[1]*uSumSq[1]*m_diff)/m_self-1.355261854357877*alphaE[2]*vtsq_self[2]-2.1213203435596424*alphaE[0]*vtsq_self[2]-1.0*uM1Self[2]-1.0*uM1Other[2]+4.0*m2r[2]-2.1213203435596424*vtsq_self[0]*alphaE[2]-1.8973665961010278*alphaE[1]*vtsq_self[1]; 
  
   gkyl_mat_set(rhs,0,0,momRHS[0]); 
   gkyl_mat_set(rhs,1,0,momRHS[1]); 

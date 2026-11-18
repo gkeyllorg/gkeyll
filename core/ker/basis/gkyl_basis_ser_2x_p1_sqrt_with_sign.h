@@ -18,8 +18,8 @@ ser_2x_p1_sqrt_with_sign(const double *ASign, const double *A, double *ASqrt)
   } else { 
   AOrd[0] = sqrt(temp); 
   } 
-  temp = (-0.5*A[3])+0.5*A[2]-0.5*A[1]+0.5*A[0]; 
-  temp_sign = (-0.5*ASign[3])+0.5*ASign[2]-0.5*ASign[1]+0.5*ASign[0]; 
+  temp = -(0.5*A[3])+0.5*A[2]-0.5*A[1]+0.5*A[0]; 
+  temp_sign = -(0.5*ASign[3])+0.5*ASign[2]-0.5*ASign[1]+0.5*ASign[0]; 
   if (temp < 0.0) { 
   AOrd[1] = 0.0; 
   } else if (temp > 0.0 && temp_sign < 0.0) { 

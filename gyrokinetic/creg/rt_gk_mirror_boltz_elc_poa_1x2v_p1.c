@@ -372,7 +372,7 @@ create_ctx(void)
   double alpha_fdp = 1.0;
 
   // Duration of each phase.
-  double tau_oap = 2400.0e-9;
+  double tau_oap = 1.0e-3;
   double tau_fdp = 24.0e-9;
   double tau_fdp_extra = 2 * tau_fdp;
   int num_cycles = 2; // Number of OAP+FDP cycles to run.
@@ -433,7 +433,7 @@ create_ctx(void)
   double write_phase_freq =
     1; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
   double int_diag_calc_freq =
-    5; // Frequency of calculating integrated diagnostics (as a factor of num_frames).
+    1000; // Frequency of calculating integrated diagnostics (as a factor of num_frames).
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
@@ -785,8 +785,10 @@ main(int argc, char **argv)
       },
 
     .bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}},
+      {
+        {.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+      },
     .write_omega_cfl = true,
     .num_diag_moments = 8,
     .diag_moments =
@@ -797,7 +799,9 @@ main(int argc, char **argv)
     .time_rate_diagnostics = true,
 
     .boundary_flux_diagnostics =
-      {.num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_M0M1M2PARM2PERP}
+      {
+        .num_integrated_diag_moments = 1,
+        .integrated_diag_moments = {GKYL_F_MOMENT_M0M1M2PARM2PERP},
       },
   };
   struct gkyl_gyrokinetic_field field = {

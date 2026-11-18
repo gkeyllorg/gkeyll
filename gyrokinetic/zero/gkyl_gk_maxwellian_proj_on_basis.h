@@ -62,23 +62,6 @@ void gkyl_gk_maxwellian_proj_on_basis_advance(
 );
 
 /**
- * Host-side wrapper for geometry variables (bmag and jacobtot) at quadrature points
- */
-void gkyl_gk_maxwellian_proj_on_basis_geom_quad_vars_cu(
-  gkyl_gk_maxwellian_proj_on_basis *up, const struct gkyl_range *conf_range,
-  const struct gkyl_array *bmag, const struct gkyl_array *jacobtot
-);
-
-/**
- * Host-side wrapper for projection of Maxwellian distribution function on device
- */
-void gkyl_gk_maxwellian_proj_on_basis_advance_cu(
-  gkyl_gk_maxwellian_proj_on_basis *up, const struct gkyl_range *phase_range,
-  const struct gkyl_range *conf_range, const struct gkyl_array *moms_maxwellian, bool use_jacobtot,
-  struct gkyl_array *f_maxwellian
-);
-
-/**
  * Delete updater.
  *
  * @param up Updater to delete.

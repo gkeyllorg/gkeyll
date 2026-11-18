@@ -201,7 +201,7 @@ gkyl_velocity_map_write(
   }
 
   struct gkyl_msgpack_map_elem meta[] = {
-    {.key = "value_form", .elem_type = GKYL_MP_STRING, .cval = "modal"}
+    {.key = "value_form", .elem_type = GKYL_MP_STRING, .cval = "modal"},
   };
   struct gkyl_msgpack_data *mt = gkyl_msgpack_create(sizeof(meta) / sizeof(meta[0]), meta);
 

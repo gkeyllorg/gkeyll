@@ -9,11 +9,14 @@
 #include <gkyl_mirror_grid_gen.h>
 #include <gkyl_rz_calc_derived_geo.h>
 #include <gkyl_calc_metric_mirror.h>
+#include <gkyl_nodal_ops.h>
 
 struct gk_geometry *
-gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp)
+gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp, bool optimize_map)
 {
   struct gk_geometry *up = gkyl_malloc(sizeof(struct gk_geometry));
+  up->has_dxdz_grad = false;
+  up->world_dim = geometry_inp->grid.ndim;
   up->geometry_id = geometry_inp->geometry_id;
   up->basis = geometry_inp->geo_basis;
   up->local = geometry_inp->geo_local;
@@ -24,6 +27,9 @@ gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp)
   up->geqdsk_sign_convention =
     0.0; // Hardcoded 0. Means psi increases from axis. Always true for mirror geometry.
   up->half_domain = 0;
+  for (int d = 0; d < 3; d++) {
+    up->is_periodic[d] = geometry_inp->geo_is_periodic[d];
+  }
   up->has_LCFS = false; // MF 2025/09/19: Hardcodded for now.
 
   // Initialize nodal ranges for corner, interior, and surface geometry
@@ -54,12 +60,15 @@ gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp)
     assert(false);
   }
 
-  gkyl_position_map_optimize(geometry_inp->position_map, up->grid, up->global);
+  if (optimize_map) {
+    gkyl_position_map_optimize(geometry_inp->position_map, up->grid, up->global);
+  }
 
   // Create mirror geometry for corners.
   struct gkyl_mirror_grid_gen *mirror_grid_corn =
     gkyl_mirror_grid_gen_inew(&(struct gkyl_mirror_grid_gen_inp){
       .comp_grid = &up->grid,
+      .world_dim = up->world_dim,
       .nrange = up->nrange_corn,
       .local = up->local,
       .global = up->global,
@@ -78,10 +87,13 @@ gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp)
       .write_psi_cubic = false,
     });
 
+  assert(mirror_grid_corn);
+
   // Create mirror geometry for interior.
   struct gkyl_mirror_grid_gen *mirror_grid_int =
     gkyl_mirror_grid_gen_int_inew(&(struct gkyl_mirror_grid_gen_inp){
       .comp_grid = &up->grid,
+      .world_dim = up->world_dim,
       .nrange = up->nrange_int,
       .local = up->local,
       .global = up->global,
@@ -100,11 +112,14 @@ gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp)
       .write_psi_cubic = false,
     });
 
+  assert(mirror_grid_int);
+
   // create mirror geometry for surfaces
   struct gkyl_mirror_grid_gen *mirror_grid_surf[3];
   for (int dir = 0; dir < up->grid.ndim; dir++) {
     mirror_grid_surf[dir] = gkyl_mirror_grid_gen_surf_inew(&(struct gkyl_mirror_grid_gen_inp){
       .comp_grid = &up->grid,
+      .world_dim = up->world_dim,
       .nrange = up->nrange_surf[dir],
       .local = up->local,
       .global = up->global,
@@ -123,6 +138,7 @@ gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp)
       .include_axis = geometry_inp->mirror_grid_info.include_axis,
       .write_psi_cubic = false,
     });
+    assert(mirror_grid_surf[dir]);
   }
 
   // Now calculate the derived geometric coefficients at necessary nodes and compute modal expansions where required.
@@ -141,6 +157,14 @@ gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp)
     up->geo_int.gyyj, up->geo_int.gxzj, up->geo_int.eps2
   );
   gkyl_rz_calc_derived_geo_release(jcalculator);
+  // The metric-only derived-geometry kernel assumes bhat is along e_3.
+  // Restore the covariant components computed from the actual mirror field.
+  struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&up->basis, &up->grid, false);
+  gkyl_nodal_ops_n2m(
+    n2m, &up->basis, &up->grid, &up->nrange_int, &up->local, 3, up->geo_int.b_i_nodal,
+    up->geo_int.b_i, true
+  );
+  gkyl_nodal_ops_release(n2m);
   // Calculate metrics/derived geo quantities at surface.
   for (int dir = 0; dir < up->grid.ndim; dir++) {
     gkyl_calc_metric_mirror_advance_surface(mcalc, dir, up, mirror_grid_surf[dir]);
@@ -158,7 +182,7 @@ gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp)
       .key = "geqdsk_sign_convention",
       .elem_type = GKYL_MP_UNSIGNED_INT,
       .uval = up->geqdsk_sign_convention,
-    }
+    },
   };
   up->io_meta_basic_len = sizeof(io_meta_basic) / sizeof(io_meta_basic[0]);
   up->io_meta_basic = gkyl_msgpack_map_elem_clone(up->io_meta_basic_len, io_meta_basic);
@@ -185,7 +209,7 @@ gkyl_gk_geometry_mirror_new(struct gkyl_gk_geometry_inp *geometry_inp)
   struct gk_geometry *gk_geom;
 
   // First construct the uniform 3d geometry
-  gk_geom_3d = gk_geometry_mirror_init(geometry_inp);
+  gk_geom_3d = gk_geometry_mirror_init(geometry_inp, true);
   if (geometry_inp->position_map->id == GKYL_PMAP_CONSTANT_DB_POLYNOMIAL ||
       geometry_inp->position_map->id == GKYL_PMAP_CONSTANT_DB_NUMERIC) {
     // The array mc2nu is computed using the uniform geometry, so we need to deflate it
@@ -204,7 +228,7 @@ gkyl_gk_geometry_mirror_new(struct gkyl_gk_geometry_inp *geometry_inp)
     gkyl_gk_geometry_release(gk_geom); // release 3d geometry
 
     // Construct the non-uniform grid
-    gk_geom_3d = gk_geometry_mirror_init(geometry_inp);
+    gk_geom_3d = gk_geometry_mirror_init(geometry_inp, true);
   }
   return gk_geom_3d;
 }

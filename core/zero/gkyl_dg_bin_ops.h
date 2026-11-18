@@ -224,7 +224,7 @@ void gkyl_dg_calc_average_range(
 );
 
 /**
- * Compute the mean L2 norm of input array iop and store it in out
+ * Compute the mean L2 energy of input array iop and store it in out
  * array.
  *
  * @param basis Basis functions used in expansions
@@ -237,6 +237,24 @@ void gkyl_dg_calc_average_range(
 void gkyl_dg_calc_l2_range(
   const struct gkyl_basis *basis, int c_oop, struct gkyl_array *out, int c_iop,
   const struct gkyl_array *iop, struct gkyl_range range
+);
+
+/**
+ * Compute the mean product of input arrays f and g and store it in out
+ * array.
+ *
+ * @param basis Basis functions used in expansions
+ * @param c_oop Component of output field 
+ * @param out Output DG field
+ * @param c_f Component of first input DG field
+ * @param f First input DG field
+ * @param c_g Component of second input DG field
+ * @param g Second input DG field
+ * @param range Range to apply multiplication operator
+ */
+void gkyl_dg_calc_prod_op_range(
+  struct gkyl_basis basis, int c_oop, struct gkyl_array *out, int c_f, const struct gkyl_array *f,
+  int c_g, const struct gkyl_array *g, struct gkyl_range range
 );
 
 /**
@@ -294,4 +312,9 @@ void gkyl_dg_inv_op_cu(
 void gkyl_dg_inv_op_range_cu(
   const struct gkyl_basis *basis, int c_oop, struct gkyl_array *out, int c_iop,
   const struct gkyl_array *iop, const struct gkyl_range *range
+);
+
+void gkyl_dg_calc_prod_op_range_cu(
+  struct gkyl_basis basis, int c_oop, struct gkyl_array *out, int c_f, const struct gkyl_array *f,
+  int c_g, const struct gkyl_array *g, struct gkyl_range range
 );

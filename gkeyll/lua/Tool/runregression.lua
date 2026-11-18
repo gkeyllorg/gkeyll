@@ -1250,8 +1250,14 @@ local function executeBatch(items)
       local stripped = raw
          :gsub("\n?__START__:%d+\n?", "\n")
          :gsub("\n?__END__:%d+\n?",   "\n")
-      local exitCode = tonumber(stripped:match("__EXIT__:(%d+)%s*$")) or 0
+      local exitCode = tonumber(stripped:match("__EXIT__:(%d+)%s*$"))
       local runlog   = stripped:gsub("\n?__EXIT__:%d+%s*$", "")
+      if exitCode == nil then
+         -- The wrapper did not confirm completion.  Do not compare or save
+         -- partial output as a successful regression result.
+         exitCode = -1
+         runlog = runlog .. "\nERROR: missing __EXIT__ marker (run interrupted)\n"
+      end
       -- Guarantee a trailing newline so whatever runregression logs next
       -- (e.g. "... saving accepted results" or the first "Comparing" line)
       -- doesn't get glued onto the test's own last line of output.
@@ -1356,6 +1362,15 @@ end
 --   Pass looser values (e.g. 1e-7) for GPU-vs-accepted comparisons.
 -- File comparison uses the G0.Zero Lua-C API registered by
 -- gkyl_zero_lw_openlibs at startup (core/apps/zero_lw.c). 
+-- gkyl_array_diff / dynvecDiff report signed absolute-difference extrema of
+-- (accepted - run).  A run uniformly above its baseline can have a negative
+-- max_abs_diff, so compare the magnitudes of both extrema.
+local function diffMagnitudes(diff)
+   local absD = math.max(math.abs(diff.max_abs_diff or 0), math.abs(diff.min_abs_diff or 0))
+   local relD = math.max(math.abs(diff.max_rel_diff or 0), math.abs(diff.min_rel_diff or 0))
+   return absD, relD
+end
+
 local function compareFiles(f1, f2, absTol, relTol)
    absTol = absTol or 1e-12
    relTol = relTol or 1e-12
@@ -1391,14 +1406,14 @@ local function compareFiles(f1, f2, absTol, relTol)
          -- Combined tolerance: fail only when BOTH absolute and relative
          -- thresholds are exceeded.  This avoids false failures for near-zero
          -- values (tiny abs but large rel%) and for large values (large abs but
-         -- tiny rel%).  When max_abs_diff is 0, the abs check is false so the
-         -- condition short-circuits (handles the 0/0 → DBL_MAX rel case).
-         if diff.max_abs_diff > absTol and diff.max_rel_diff > relTol then
+         -- tiny rel%).  A zero absolute difference passes even if the
+         -- relative difference is large.
+         local absD, relD = diffMagnitudes(diff)
+         if absD > absTol and relD > relTol then
             verboseLog(string.format(
                "    ... dynvec max abs diff %g (tol %g), max rel diff %g (tol %g)\n",
-               diff.max_abs_diff, absTol, diff.max_rel_diff, relTol))
-            return false, string.format("dynvec max_abs=%.3g max_rel=%.3g",
-               diff.max_abs_diff, diff.max_rel_diff)
+               absD, absTol, relD, relTol))
+            return false, string.format("dynvec max_abs=%.3g max_rel=%.3g", absD, relD)
          end
          if diff.tm_max_abs_diff > 1e-10 then
             verboseLog(string.format(
@@ -1459,14 +1474,14 @@ local function compareFiles(f1, f2, absTol, relTol)
       -- (e.g. 1e-15 vs -1e-15 → rel=200%) but negligible absolute differences;
       -- large values can have large absolute differences but tiny relative
       -- differences.  Failing on either alone produces false positives.
-      -- When max_abs_diff is 0, the condition short-circuits safely (handles the
-      -- 0/0 → DBL_MAX rel case from gkyl_array_diff).
-      if diff.max_abs_diff > absTol and diff.max_rel_diff > relTol then
+      -- A zero absolute difference passes even if the relative difference is
+      -- large.
+      local absD, relD = diffMagnitudes(diff)
+      if absD > absTol and relD > relTol then
          verboseLog(string.format(
             "    ... max abs diff %g (tol %g), max rel diff %g (tol %g)\n",
-            diff.max_abs_diff, absTol, diff.max_rel_diff, relTol))
-         return false, string.format("max_abs=%.3g max_rel=%.3g",
-            diff.max_abs_diff, diff.max_rel_diff)
+            absD, absTol, relD, relTol))
+         return false, string.format("max_abs=%.3g max_rel=%.3g", absD, relD)
       end
 
       return true
@@ -1554,6 +1569,23 @@ local function check_action(test, runDir, testType, absTol, relTol)
       end
    end
 
+   -- Files the run produced that the baseline lacks mean the baseline is stale:
+   -- either it was created from a run that died after an early frame, or the
+   -- code now writes diagnostics it did not write at create time. Either way
+   -- the comparison is incomplete, so report them and fail.
+   if lfs.attributes(aDir) then
+      for fn in lfs.dir(runDir) do
+         local isGkyl  = (string.sub(fn, -5) == ".gkyl")
+         local inScope = isGkyl and (
+            testPrefix == nil or string.find(fn, "^" .. testPrefix) ~= nil)
+         if inScope and not lfs.attributes(aDir .. "/" .. fn) then
+            verboseLog(string.format("  EXTRA run file not in baseline: %s\n", fn))
+            table.insert(failedFiles, fn .. "  [EXTRA]")
+            passed = false
+         end
+      end
+   end
+
    -- count == 0 means either no accepted files exist (create not yet run) or the
    -- accepted directory itself is absent. Either way the check cannot pass.
    if count == 0 then passed = false end
@@ -1572,7 +1604,7 @@ local function check_action(test, runDir, testType, absTol, relTol)
          for _, ff in ipairs(failedFiles) do
             log(string.format("    %s\n", ff))
          end
-         log("  Legend: [DIFF] values exceed tolerance  [MISSING] file not produced by run\n")
+         log("  Legend: [DIFF] values exceed tolerance  [MISSING] file not produced by run  [EXTRA] run file absent from baseline\n")
          -- Build checkLog for DB storage so queryrdb --test N surfaces magnitudes.
          checkLog = "--- Comparison failures ---\n"
             .. table.concat(failedFiles, "\n")

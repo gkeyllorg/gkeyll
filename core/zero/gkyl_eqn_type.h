@@ -39,7 +39,6 @@ enum gkyl_gkfield_id {
   GKYL_GK_FIELD_ES = 0, // Electrostatic GK. This is default.
   GKYL_GK_FIELD_BOLTZMANN =
     1, // GK Boltzmann, isothermal electrons, phi = phi_sheath + (T_e/e)*ln(n_i/n_is).
-  GKYL_GK_FIELD_ADIABATIC = 2, // GK field with an adiabatic species.
   GKYL_GK_FIELD_EM = 4 // Electromagnetic GK.
 };
 
@@ -47,9 +46,8 @@ enum gkyl_gkfield_id {
 enum gkyl_field_id {
   GKYL_FIELD_E_B = 0, // Maxwell (E, B). This is default.
   GKYL_FIELD_PHI = 1, // Poisson (only phi).
-  GKYL_FIELD_PHI_EXT_POTENTIALS = 2, // Poisson + external potentials (phi_ext, A_ext).
-  GKYL_FIELD_PHI_EXT_FIELDS = 3, // Poisson + external fields (E_ext, B_ext).
-  GKYL_FIELD_NULL = 4 // no field is present.
+  GKYL_FIELD_NULL = 4, // no field is present.
+  GKYL_FIELD_GR_D_B = 5 // Maxwell (D, B). This is for GR Maxwell.
 };
 
 // Identifiers for subsidary models.
@@ -58,8 +56,42 @@ enum gkyl_model_id {
   GKYL_MODEL_DEFAULT = 0, // No subsidiary model specified.
   GKYL_MODEL_SR = 1,
   GKYL_MODEL_CANONICAL_PB = 2,
-  GKYL_MODEL_CANONICAL_PB_GR = 3
+  GKYL_MODEL_CANONICAL_PB_GR = 3,
+  GKYL_MODEL_TRIAD = 4,
+  GKYL_MODEL_TRIAD_GR = 5
 };
+
+// Identifiers for the representation of the Hamiltonian in the unified
+// Hamiltonian Vlasov solver. Decoupled from gkyl_model_id, which identifies
+// the bracket/geometry (default vs. triad vs. canonical-PB); the Hamiltonian
+// identifier determines both the storage (velocity-space vs. phase-space
+// basis expansion) and the sparsity of the kernels operating on it.
+enum gkyl_hamil_id {
+  GKYL_HAMIL_VEL_SPARSE = 0, // H = sum_i H_i(v_i) (e.g., H = v^2/2); velocity-space basis
+  // expansion with cross-variable coefficients identically zero,
+  // so kernels only reference single-velocity-variable coefficients.
+  GKYL_HAMIL_VEL_DENSE = 1, // General H(v) (e.g., H = sqrt(1 + p^2)); full velocity-space
+  // basis expansion.
+  GKYL_HAMIL_PHASE = 2 // General H(x,v); full phase-space basis expansion.
+};
+
+// Derive the Hamiltonian representation from the subsidiary model:
+// default and triad models build H = v^2/2 (separable -> sparse), SR builds
+// H = sqrt(1 + p^2) (dense in velocity space), and canonical-PB/GR models
+// carry a general phase-space Hamiltonian.
+static inline enum gkyl_hamil_id
+gkyl_hamil_id_from_model_id(enum gkyl_model_id model_id)
+{
+  switch (model_id) {
+    case GKYL_MODEL_DEFAULT:
+    case GKYL_MODEL_TRIAD:
+      return GKYL_HAMIL_VEL_SPARSE;
+    case GKYL_MODEL_SR:
+      return GKYL_HAMIL_VEL_DENSE;
+    default:
+      return GKYL_HAMIL_PHASE;
+  }
+}
 
 // Identifiers for specific collision object types.
 enum gkyl_collision_id {
@@ -74,6 +106,7 @@ enum gkyl_source_id {
   GKYL_NO_SOURCE = 0, // No source. This is default.
   GKYL_FUNC_SOURCE, // Function source.
   GKYL_PROJ_SOURCE, // Source given by projection object determined by gkyl_projection_id.
+  GKYL_PROJ_ADAPT_DENSITY_SOURCE, // Projected source with time-dependent density scaling.
   GKYL_BFLUX_SOURCE, // Source which scales to boundary fluxes.
   GKYL_SOURCE_FROMFILE // Source shape imported directly from a file.
 };
@@ -97,11 +130,17 @@ enum gkyl_projection_id {
   GKYL_PROJ_MAXWELLIAN_GAUSSIAN // Maxwellian in velocity space + Gaussian in configuration space
 };
 
-// Identifiers for specific radiation object types
+// Identifiers for specific radiation object types for gyrokinetic equation
 enum gkyl_radiation_id {
   GKYL_NO_RADIATION = 0, // No radiation. This is default
-  GKYL_GK_RADIATION, // Radiation in gyrokinetic equations.
-  GKYL_VM_COMPTON_RADIATION // Vlasov simple Compton radiation model.
+  GKYL_GK_RADIATION // Radiation in gyrokinetic equations.
+};
+
+// Identifiers for specific radiation object types for Vlasov equation
+enum gkyl_vlasov_radiation_id {
+  GKYL_VM_NO_RADIATION = 0, // No radiation. This is default
+  GKYL_VM_COMPTON_RADIATION, // Vlasov simple Compton radiation model.
+  GKYL_VM_CURVATURE_RADIATION // Vlasov simple curvature radiation model.
 };
 
 // Identifiers for specific reaction object types
@@ -152,7 +191,20 @@ enum gkyl_geometry_id {
   GKYL_GEOMETRY_TOKAMAK, // Tokamak Geometry from Efit.
   GKYL_GEOMETRY_MIRROR, // Mirror Geometry from Efit.
   GKYL_GEOMETRY_MAPC2P, // General geometry from user provided mapc2p.
+  GKYL_GEOMETRY_MILLER, // Generate a Miller GEQDSK, then use tokamak geometry.
   GKYL_GEOMETRY_FROMFILE // Geometry from file.
+};
+
+// Representation of configuration-domain endpoints supplied to geometry initialization.
+enum gkyl_gk_geometry_coord_type {
+  GKYL_GK_GEOMETRY_COORD_UNSPECIFIED = 0, // Use the computational coordinate for this direction.
+  GKYL_GK_GEOMETRY_COORD_RADIAL_PSI_POL, // Poloidal flux divided by 2*pi [Wb/rad].
+  GKYL_GK_GEOMETRY_COORD_RADIAL_RHO_POL, // Normalized poloidal radius.
+  GKYL_GK_GEOMETRY_COORD_RADIAL_R_OMP, // Outboard-midplane major radius [m].
+  GKYL_GK_GEOMETRY_COORD_BINORMAL_ALPHA, // Field-line label angle [rad].
+  GKYL_GK_GEOMETRY_COORD_BINORMAL_LENGTH, // Binormal length [m].
+  GKYL_GK_GEOMETRY_COORD_PARALLEL_THETA, // Normalized poloidal arc coordinate [rad].
+  GKYL_GK_GEOMETRY_COORD_PARALLEL_THETA_MILLER // Miller poloidal angle [rad].
 };
 
 // type of quadrature to use
@@ -169,7 +221,8 @@ enum gkyl_vel_edge {
   GKYL_VZ_LOWER,
   GKYL_VX_UPPER,
   GKYL_VY_UPPER,
-  GKYL_VZ_UPPER
+  GKYL_VZ_UPPER,
+  GKYL_VEL_EDGE_NONE // Not at a velocity-space boundary (ordinary moments).
 };
 
 // Identifiers for FLR models (in gyrokinetics).

@@ -73,6 +73,12 @@ struct gkyl_gyrokinetic_projection {
       double gaussian_mean[GKYL_MAX_CDIM]; // Center in configuration space.
       double gaussian_std_dev
         [GKYL_MAX_CDIM]; // Sigma in configuration space, function is constant if sigma is 0.
+      // Optional nonnegative configuration envelope for MAXWELLIAN_GAUSSIAN.
+      // Evaluated once at t=0 in grid coordinates; overrides gaussian_mean/std_dev.
+      // The callback handles periodic wrapping and adds any desired profile floor.
+      // Its volume integral is normalized to one by the projection updater.
+      void (*configuration_profile)(double t, const double *xn, double *fout, void *ctx);
+      void *configuration_profile_ctx;
       double total_num_particles; // Total number of particle (M0 moment).
       double total_kin_energy; // Total kinetic energy (0.5*mass*M2 moment).
       double temp_max; // Maximum temperature of the Gaussian Maxwellian distribution.
@@ -236,6 +242,7 @@ struct gkyl_gyrokinetic_bc {
 
 // Parameters for BCs in closed flux surfaces.
 struct gkyl_gyrokinetic_core_parallel_bcs {
+  // Optional twist-shift functions of x. If given, they override the shift computed from the geometry.
   void (*lower_shift_func)(
     double t, const double *xn, double *fout, void *ctx
   ); // Lower twist-shift function.
@@ -244,6 +251,7 @@ struct gkyl_gyrokinetic_core_parallel_bcs {
   ); // Upper twist-shift function.
   void *lower_shift_ctx; // Context for lower twist-shift function.
   void *upper_shift_ctx; // Context for upper twist-shift function.
+  bool ts_field_dg; // Keep the shifted potential ghost field discontinuous in x-y (default false).
   int ts_upsample_factor; // Twist-shift supersampling factor (default 4), set to -1 to disable filter.
   int ts_filter_half_width; // Twist-shift filter stencil half-width in cells of the simulation grid (default 1), set to -1 to disable filter.
   double
@@ -272,12 +280,20 @@ struct gkyl_gyrokinetic_geometry {
   struct gkyl_gyrokinetic_core_parallel_bcs
     core_parallel_bcs; // BCs info in closed flux surface region.
 
-  struct gkyl_efit_inp efit_info; // Context with RZ data such as efit file for a tokamak or mirror.
   struct gkyl_tok_geo_grid_inp
     tok_grid_info; // Context for tokamak geometry with computational domain info.
   struct gkyl_mirror_geo_grid_inp
     mirror_grid_info; // Context for mirror geometry with computational domain info.
+  struct gkyl_gen_miller_eqdsk_inp miller_grid_info; // Context for Miller geometry.
+
   struct gkyl_position_map_inp position_map_info; // Position map object.
+
+  struct gkyl_efit_inp efit_info; // Context with RZ data such as efit file for a tokamak or mirror.
+
+  // Optional function to return the gk_geometry pointer to the user,
+  // so they can use it or store it in their context.
+  void (*set_gk_geometry)(const struct gk_geometry *geo, void *ctx);
+  void *set_gk_geometry_ctx;
 };
 
 // Parameters for species radiation.
@@ -333,7 +349,8 @@ enum gkyl_gk_species_scaling_type {
   GKYL_GK_SPECIES_SCALING_NONE = 0, // No scaling.
   GKYL_GK_SPECIES_SCALING_RECYCLING_IZ_BALANCE, // Balance between recycling and ionization.
   GKYL_GK_SPECIES_SCALING_FIXED_FRACTION, // Maintains fixed fraction relative to another species.
-  GKYL_GK_SPECIES_SCALING_BOLTZMANN // n_s = n_{s,sheath}*exp(-q_s*(phi-phi_sheath)/T_s).
+  GKYL_GK_SPECIES_SCALING_BOLTZMANN, // n_s = n_{s,sheath}*exp(-q_s*(phi-phi_sheath)/T_s).
+  GKYL_GK_SPECIES_SCALING_ADIABATIC // Adiabatic response for core simulations.
 };
 
 // Input parameters for scaling a species every time step.
@@ -448,9 +465,9 @@ struct gkyl_gyrokinetic_species {
   char name[128]; // Species name.
 
   double charge, mass; // Charge and mass.
-  int vdim; // Velocity-space dimensions.
+  int vdim; // Velocity-space dimensions; ignored for fluid species, which always assume 2.
   double lower[GKYL_MAX_VDIM], upper[GKYL_MAX_VDIM]; // Lower, upper bounds of velocity-space.
-  int cells[GKYL_MAX_VDIM]; // Velocity-space cells.
+  int cells[GKYL_MAX_VDIM]; // Velocity-space cells; cells[0]==0 selects fluid.
 
   struct gkyl_mapc2p_inp mapc2p;
 
@@ -533,8 +550,6 @@ struct gkyl_gyrokinetic_neut_species {
 
   bool is_static; // Set to true if neutral species does not change in time.
 
-  struct gkyl_gyrokinetic_positivity positivity; // Positivity enforcement options.
-
   struct gkyl_gyrokinetic_ic_import init_from_file;
 
   // Initial conditions using projection routine.
@@ -579,8 +594,9 @@ struct gkyl_gyrokinetic_field {
   double polarization_bmag; // B factor in the polarization density.
   double kperpSq; // kperp^2 parameter for 1D field equations
 
-  // parameters for adiabatic electrons simulations
-  double electron_mass, electron_charge, electron_density, electron_temp;
+  // Parameters for Boltzmann electron simulations. Adiabatic species are
+  // instead set with GKYL_GK_SPECIES_SCALING_ADIABATIC in the species input.
+  double electron_mass, electron_charge, electron_temp;
 
   struct gkyl_gyrokinetic_bc poisson_bcs[2 * GKYL_MAX_CDIM];
 
@@ -611,7 +627,10 @@ struct gkyl_gyrokinetic_eirene {
   char coupling_species[GKYL_MAX_SPECIES][128]; // Names of species to couple
 };
 
-// Additional metadata users can provide.
+// Additional metadata users can provide. Output files automatically include the
+// original key names in input_metadata_keys. Duplicate keys, including collisions
+// with Gkeyll metadata, are rejected when lists are combined or serialized.
+// input_metadata_keys and is_multib are reserved for internal application use.
 struct gkyl_gyrokinetic_metadata_inp {
   struct gkyl_msgpack_map_elem *attributes; // List of metadata elements to add to output files.
   int num_attributes; // Number of attributes.

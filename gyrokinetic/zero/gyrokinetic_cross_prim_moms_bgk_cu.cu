@@ -67,8 +67,8 @@ set_gyrokinetic_cross_prim_moms_bgk_cu_ptrs(
 }
 
 gkyl_gyrokinetic_cross_prim_moms_bgk *
-gkyl_gyrokinetic_cross_prim_moms_bgk_cu_dev_new(
-  const struct gkyl_basis *phase_basis, const struct gkyl_basis *conf_basis
+gkyl_gyrokinetic_cross_prim_moms_bgk_cu_dev_new_with_vdim(
+  const struct gkyl_basis *conf_basis, int vdim
 )
 {
   struct gkyl_gyrokinetic_cross_prim_moms_bgk *up =
@@ -80,9 +80,19 @@ gkyl_gyrokinetic_cross_prim_moms_bgk_cu_dev_new(
     (struct gkyl_gyrokinetic_cross_prim_moms_bgk *)gkyl_cu_malloc(sizeof(*up_cu));
 
   set_gyrokinetic_cross_prim_moms_bgk_cu_ptrs<<<1, 1>>>(
-    up_cu, conf_basis->ndim, phase_basis->ndim - conf_basis->ndim, phase_basis->poly_order
+    up_cu, conf_basis->ndim, vdim, conf_basis->poly_order
   );
 
   up->on_dev = up_cu;
   return up;
+}
+
+gkyl_gyrokinetic_cross_prim_moms_bgk *
+gkyl_gyrokinetic_cross_prim_moms_bgk_cu_dev_new(
+  const struct gkyl_basis *phase_basis, const struct gkyl_basis *conf_basis
+)
+{
+  return gkyl_gyrokinetic_cross_prim_moms_bgk_cu_dev_new_with_vdim(
+    conf_basis, phase_basis->ndim - conf_basis->ndim
+  );
 }

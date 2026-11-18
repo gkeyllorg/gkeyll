@@ -16,6 +16,11 @@ struct gkyl_bgk_collisions {
   bool use_gpu;
 };
 
+void gkyl_bgk_collisions_correct_nu_cu(
+  const gkyl_bgk_collisions *up, const struct gkyl_range *crange, const struct gkyl_array *marr,
+  const struct gkyl_array *nu_input, struct gkyl_array *actual_nu
+);
+
 void gkyl_bgk_collisions_advance_cu(
   const gkyl_bgk_collisions *up, const struct gkyl_range *crange, const struct gkyl_range *prange,
   const struct gkyl_array *nu, const struct gkyl_array *nufM, const struct gkyl_array *fin,

@@ -18,7 +18,7 @@ plasma_frequency(double n, double m, double eps0, double charge)
 
 // Calculate the Coulomb Logarithm
 double
-coulomb_log(
+gkyl_spitzer_coll_freq_calc_coulomb_log(
   double ns, double nr, double ms, double mr, double Ts, double Tr, double qs, double qr,
   double bmag, double eps0, double hbar
 )
@@ -45,8 +45,10 @@ gkyl_calc_Morse_alpha_E_const(
   double bmag, double eps0, double hbar
 )
 {
-  double clog = 0.5 * (coulomb_log(ns, nr, ms, mr, Ts, Tr, qs, qr, bmag, eps0, hbar) +
-                       coulomb_log(nr, ns, mr, ms, Tr, Ts, qr, qs, bmag, eps0, hbar));
+  double clog =
+    0.5 *
+    (gkyl_spitzer_coll_freq_calc_coulomb_log(ns, nr, ms, mr, Ts, Tr, qs, qr, bmag, eps0, hbar) +
+     gkyl_spitzer_coll_freq_calc_coulomb_log(nr, ns, mr, ms, Tr, Ts, qr, qs, bmag, eps0, hbar));
   return 2.0 * pow(qs * qr, 2) * clog / (3.0 * pow(2.0 * M_PI, 1.5) * pow(eps0, 2) * ms * mr);
 }
 

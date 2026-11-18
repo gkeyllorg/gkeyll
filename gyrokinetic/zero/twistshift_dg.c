@@ -121,12 +121,9 @@ ts_shift_dg_eval(double t, const double *coord, double *fout, void *ctx)
 {
   struct ts_shift_dg_eval_ctx *tsectx = ctx;
 
-  int cell_idx[GKYL_MAX_DIM];
-  gkyl_rect_grid_coord_idx(tsectx->shear_grid, coord, cell_idx);
-  // Ensure that we do not go outside of the range
-  // (it does sometimes if x=x_max,x_min).
-  cell_idx[0] = fmin(cell_idx[0], tsectx->shear_r->upper[0]);
-  cell_idx[0] = fmax(cell_idx[0], tsectx->shear_r->lower[0]);
+  // Use this cell's trace at both endpoints. Looking up the cell from coord
+  // can select the neighboring polynomial at a DG jump and produce false roots.
+  int cell_idx[] = {tsectx->shear_idx};
 
   double xc[GKYL_MAX_DIM];
   gkyl_rect_grid_cell_center(tsectx->shear_grid, cell_idx, xc);
@@ -274,6 +271,10 @@ ts_find_donors(struct gkyl_twistshift_dg *up)
   // gkyl_rect_grid_find_cell) so that shifted test points are never
   // ambiguously on a cell boundary.
   int num_test_pt[2] = {10, 10}; // Number of test points taken along each side of the cell.
+  // With |S(x_up)-S(x_lo)| < Ly, this count keeps consecutive shifted samples
+  // less than one y cell apart for linear and monotonic quadratic shifts.
+  num_test_pt[up->shear_dir_in_ts_grid] =
+    GKYL_MAX2(10, 2 * up->ts_grid.cells[up->shift_dir_in_ts_grid] + 2);
 
   double step_sz[2] = {0.0}; // Size of the step between test points.
   double delta[2] = {0.0}; // Space between cell boundary and test points.
@@ -1538,6 +1539,7 @@ ts_calc_mats(struct gkyl_twistshift_dg *up)
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &up->shear_r);
   while (gkyl_range_iter_next(&iter)) {
+    up->shift_dg_eval_ctx.shear_idx = iter.idx[0];
     // Get the cell boundaries and cell center.
     int idx_tar[2]; // Target index.
     idx_tar[up->shift_dir_in_ts_grid] = shift_dir_idx_tar;

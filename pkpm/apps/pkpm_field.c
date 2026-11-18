@@ -98,7 +98,28 @@ pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app)
   double ef = f->info.elcErrorSpeedFactor, mf = f->info.mgnErrorSpeedFactor;
 
   struct gkyl_dg_eqn *eqn;
-  eqn = gkyl_dg_maxwell_new(&app->confBasis, c, ef, mf, app->use_gpu);
+
+  // Input structure for building the dg eqn object
+  // Identity position map (PKPM runs on uniform grids): the Maxwell curl
+  // kernels always index a position-map Jacobian, which is 1 everywhere for
+  // the identity map so they stay bit-identical to the uniform-grid kernels.
+  struct gkyl_vlasov_position_map_inp inp_pmap[GKYL_MAX_CDIM] = {0};
+  f->pos_map = gkyl_vlasov_position_map_new(
+    &app->grid, &app->local, &app->local_ext, &app->confBasis, inp_pmap, app->use_gpu
+  );
+
+  struct gkyl_dg_maxwell_inp inp_dg_maxwell = {
+    .cbasis = &app->confBasis,
+    .crange = &app->local,
+    .jacob_pos = f->pos_map->jacob_pos,
+    .conf_flux_surf = 0,
+    .lightSpeed = c,
+    .field_id = GKYL_FIELD_E_B,
+    .elcErrorSpeedFactor = ef,
+    .mgnErrorSpeedFactor = mf,
+    .use_gpu = app->use_gpu,
+  };
+  eqn = gkyl_dg_maxwell_inew(&inp_dg_maxwell);
 
   int up_dirs[GKYL_MAX_DIM] = {0, 1, 2}, zero_flux_flags[2 * GKYL_MAX_DIM] = {0, 0, 0, 0, 0, 0};
 
@@ -480,6 +501,7 @@ pkpm_field_release(const gkyl_pkpm_app *app, struct pkpm_field *f)
   }
 
   gkyl_hyper_dg_release(f->slvr);
+  gkyl_vlasov_position_map_release(f->pos_map);
 
   if (app->use_gpu) {
     gkyl_array_release(f->em_host);

@@ -64,22 +64,25 @@ static const struct gkyl_str_int_pair gk_collisionless_type[] = {
   {0, 0}
 };
 
+// Gyrokinetic species scaling type -> enum map.
+static const struct gkyl_str_int_pair gk_species_scaling_type[] = {
+  {"None", GKYL_GK_SPECIES_SCALING_NONE},
+  {"Boltzmann", GKYL_GK_SPECIES_SCALING_BOLTZMANN},
+  {"Adiabatic", GKYL_GK_SPECIES_SCALING_ADIABATIC},
+  {0, 0}
+};
+
 // Gyrokinetic field type -> enum map.
 static const struct gkyl_str_int_pair gk_field_type[] = {
   {"Electrostatic", GKYL_GK_FIELD_ES},
   {"Boltzmann", GKYL_GK_FIELD_BOLTZMANN},
-  {"Adiabatic", GKYL_GK_FIELD_ADIABATIC},
   {"Electromagnetic", GKYL_GK_FIELD_EM},
   {0, 0}
 };
 
 // Gyrokinetic radiation type -> enum map.
-static const struct gkyl_str_int_pair gk_radiation_type[] = {
-  {"None", GKYL_NO_RADIATION},
-  {"GKRadiation", GKYL_GK_RADIATION},
-  {"VMComptonRadiation", GKYL_VM_COMPTON_RADIATION},
-  {0, 0}
-};
+static const struct gkyl_str_int_pair gk_radiation_type[] =
+  {{"None", GKYL_NO_RADIATION}, {"GKRadiation", GKYL_GK_RADIATION}, {0, 0}};
 
 // Gyrokinetic radiation Te model type -> enum map.
 static const struct gkyl_str_int_pair gk_radiation_te_type[] = {
@@ -357,7 +360,7 @@ struct gyrokinetic_species_lw {
 static int
 gyrokinetic_species_lw_new(lua_State *L)
 {
-  int vdim = 0;
+  int vdim = glua_tbl_get_integer(L, "vdim", 2);
   struct gkyl_gyrokinetic_species gk_species = {};
 
   gk_species.charge = glua_tbl_get_number(L, "charge", 0.0);
@@ -505,6 +508,11 @@ gyrokinetic_species_lw_new(lua_State *L)
   with_lua_tbl_tbl(L, "collisionless")
   {
     collisionless_type = glua_tbl_get_integer(L, "type", 0);
+  }
+
+  with_lua_tbl_tbl(L, "scaling")
+  {
+    gk_species.scaling.type = glua_tbl_get_integer(L, "type", 0);
   }
 
   enum gkyl_collision_id collision_id = GKYL_NO_COLLISIONS;
@@ -1123,7 +1131,6 @@ gyrokinetic_field_lw_new(lua_State *L)
   gk_field.gkfield_id = glua_tbl_get_integer(L, "fieldID", 0);
   gk_field.electron_mass = glua_tbl_get_number(L, "electronMass", 0.0);
   gk_field.electron_charge = glua_tbl_get_number(L, "electronCharge", 0.0);
-  gk_field.electron_density = glua_tbl_get_number(L, "electronDensity", 0.0);
   gk_field.electron_temp = glua_tbl_get_number(L, "electronTemperature", 0.0);
 
   gk_field.kperpSq = glua_tbl_get_number(L, "kPerpSq", 0.0);
@@ -1699,6 +1706,11 @@ gk_app_new(lua_State *L)
   with_lua_tbl_tbl(L, "geometry")
   {
     gk.geometry.geometry_id = glua_tbl_get_integer(L, "geometryID", 0);
+
+    with_lua_tbl_tbl(L, "coreParallelBcs")
+    {
+      gk.geometry.core_parallel_bcs.ts_field_dg = glua_tbl_get_bool(L, "tsFieldDg", false);
+    }
 
     with_lua_tbl_tbl(L, "world")
     {
@@ -2523,7 +2535,7 @@ gk_app_run(lua_State *L)
   // Triggers for IO and logging.
   struct gkyl_tm_trigger io_trig = {
     .dt = t_end / num_frames,
-    .tcurr = frame_curr * (t_end / num_frames),
+    .tcurr = gkyl_tm_trigger_anchor(t_end / num_frames, t_curr),
     .curr = frame_curr,
   };
   struct gkyl_tm_trigger fe_trig = {
@@ -2785,6 +2797,7 @@ gkyl_gyrokinetic_lw_openlibs(lua_State *L)
   gkyl_register_gyrokinetic_geometry_types(L);
   gkyl_register_gyrokinetic_position_map_types(L);
   gkyl_register_gyrokinetic_collisionless_types(L);
+  register_types(L, gk_species_scaling_type, "GKSpeciesScaling");
   gkyl_register_gyrokinetic_field_types(L);
   gkyl_register_gyrokinetic_radiation_types(L);
   gkyl_register_gyrokinetic_radiation_Te_types(L);

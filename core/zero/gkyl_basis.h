@@ -1,5 +1,7 @@
 #pragma once
 
+#include <gkyl_util.h>
+
 /* Basis function identifiers */
 enum gkyl_basis_type {
   GKYL_BASIS_MODAL_SERENDIPITY,
@@ -173,8 +175,9 @@ struct gkyl_basis *gkyl_cart_modal_tensor_new(int ndim, int poly_order);
 struct gkyl_basis *gkyl_cart_modal_tensor_cu_dev_new(int ndim, int poly_order);
 
 /**
- * Assign object members in hybrid basis. These are p=1 in configuration space
- * and p=2 in velocity space.
+ * Assign object members in hybrid basis: the tensor hybrid, a full tensor
+ * product of p=1 tensor basis in configuration space and p=2 tensor basis in
+ * velocity space (2^cdim*3^vdim functions).
  *
  * @param basis Basis object to initialize
  * @param cdim dimension of configuration space.
@@ -184,8 +187,8 @@ void gkyl_cart_modal_hybrid(struct gkyl_basis *basis, int cdim, int vdim);
 void gkyl_cart_modal_hybrid_cu_dev(struct gkyl_basis *basis, int cdim, int vdim);
 
 /**
- * Create new hybrid basis. These are p=1 in configuration space
- * and p=2 in velocity space.
+ * Create new hybrid basis: the tensor hybrid, a full tensor product of p=1
+ * tensor basis in configuration space and p=2 tensor basis in velocity space.
  * This basis needs to be deallocated with free/release methods.
  *
  * @param cdim dimension of configuration space.
@@ -276,6 +279,55 @@ unsigned gkyl_cart_modal_basis_get_num_basis(const struct gkyl_basis *basis);
  * @return Type of the basis.
  */
 enum gkyl_basis_type gkyl_cart_modal_basis_get_type(const struct gkyl_basis *basis);
+
+/**
+ * Basis type to use when selecting the kernel tables of a phase-space
+ * updater from a (configuration basis, phase basis) pair. Kernel tables are
+ * keyed on the configuration-space basis type, and the tensor p=1 hybrid
+ * phase basis (p=1 in configuration space, p=2 in velocity space) stores its
+ * kernels in the tensor tables' p=1 slots. A hybrid phase basis therefore
+ * selects the tensor tables regardless of how the configuration basis is
+ * typed (Serendipity p=1 and tensor p=1 are the same functions), so callers
+ * may pair a hybrid distribution with a Serendipity-typed p=1 configuration
+ * basis (e.g. the gyrokinetic app's basis for kinetic neutrals).
+ *
+ * @param conf_basis Configuration-space basis.
+ * @param phase_basis Phase-space basis.
+ * @return Basis type to dispatch kernel tables on.
+ */
+GKYL_CU_DH static inline enum gkyl_basis_type
+gkyl_basis_phase_kernel_type(
+  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis
+)
+{
+  if (phase_basis->b_type == GKYL_BASIS_MODAL_HYBRID) {
+    return GKYL_BASIS_MODAL_TENSOR;
+  }
+  return conf_basis->b_type;
+}
+
+/**
+ * Number of Gauss-Legendre points per direction for projecting a function
+ * onto this basis by quadrature. This is poly_order + 1, except for the
+ * hybrid bases: they report poly_order = 1 but are p=2 in their velocity
+ * directions, and the 2-point nodes are the roots of P_2, so 2 points would
+ * zero every p=2 velocity coefficient. Hybrid bases use 3 points.
+ *
+ * @param basis Basis to project onto.
+ * @return Number of quadrature points per direction.
+ */
+GKYL_CU_DH static inline int
+gkyl_basis_proj_num_quad(const struct gkyl_basis *basis)
+{
+  switch (basis->b_type) {
+    case GKYL_BASIS_MODAL_HYBRID:
+    case GKYL_BASIS_MODAL_GKHYBRID:
+    case GKYL_BASIS_MODAL_GKHYBRID_VEL:
+      return 3;
+    default:
+      return basis->poly_order + 1;
+  }
+}
 
 /**
  * Free the memory associated with basis objects

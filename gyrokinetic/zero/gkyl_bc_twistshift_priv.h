@@ -3,6 +3,7 @@
 // Private header for the bc_twistshift orchestrator, not for direct use in
 // user code.
 
+#include <gkyl_array_average.h>
 #include <gkyl_bc_twistshift.h>
 #include <gkyl_twistshift_dg.h>
 #include <gkyl_dg_lowpass_filter.h>
@@ -40,4 +41,7 @@ struct gkyl_bc_twistshift {
   struct gkyl_dg_interpolate *coarsen; // Fine ghost plane -> coarse ghost plane.
   void (*prolong_func)(struct gkyl_bc_twistshift *up, struct gkyl_array *fdo);
   void (*coarsen_func)(struct gkyl_bc_twistshift *up, struct gkyl_array *ftar);
+
+  struct gkyl_array_average *shift_avg; // Average along shift_dir over the ghost plane.
+  struct gkyl_array *favg; // shift_dir average of fprolong, repeated in every shift_dir cell.
 };

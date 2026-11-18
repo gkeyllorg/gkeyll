@@ -10,19 +10,21 @@
 #include <gkyl_tok_geo.h>
 #include <gkyl_mirror_grid_gen.h>
 #include <gkyl_position_map.h>
+#include <gkyl_gen_miller_eqdsk.h>
 
 typedef struct gk_geometry gk_geometry;
 
 struct gk_geom_surf {
+  struct gkyl_array *dxdz; // 9 components. Cartesian tangents e_1, e_2, e_3 in the surface basis.
   struct gkyl_array *jacobgeo; // 1 component. Configuration space jacobian J.
   struct gkyl_array *
     jacobgeo_ratio; // 1 component. Ratio of jacobgeo from neigboring blocks (valid only at the boundary, stored in ghost cell).
   struct gkyl_array *bmag; // 1 component. B Magnitude of magnetic field.
   struct gkyl_array
-    *b_i; // 3 components. Contravariant components of magnetic field vector b_1, b_2, b_3.
-  struct gkyl_array *cmag; // 1 component. C = JB/sqrt(g_33).
+    *b_i; // 3 components. Covariant components of magnetic field unit vector b_1, b_2, b_3.
+  struct gkyl_array *cmag; // 1 component. Clebsch magnitude J|B|/sqrt(g_33).
   struct gkyl_array *jacobtot_inv; // 1 component. 1/(JB).
-  struct gkyl_array *B3; // 1 component n^3 \dot \vec{B} = 1/g_33.
+  struct gkyl_array *B3; // 1 component. Signed n^3 \dot \vec{B}.
   struct gkyl_array *normcurlbhat; // 1 component, n^m \dot curl(bhat).
   struct gkyl_array
     *normals; // 9 components Cartesian components of normal. vectors in order n^1, n^2, n^3.
@@ -39,9 +41,9 @@ struct gk_geom_surf {
   struct gkyl_array *normcurlbhat_nodal; // 1 component, n^m \dot curl(bhat).
   struct gkyl_array *jacobgeo_nodal; // 1 component. Configuration space jacobian J.
   struct gkyl_array
-    *b_i_nodal; // 3 components. Contravariant components of magnetic field vector b_1, b_2, b_3.
+    *b_i_nodal; // 3 components. Covariant components of magnetic field unit vector b_1, b_2, b_3.
   struct gkyl_array *b_i_nodal_fd; // 3 components. b_i at surf quad nodes and nodes epsilon away.
-  struct gkyl_array *cmag_nodal; // 1 component. C = JB/sqrt(g_33).
+  struct gkyl_array *cmag_nodal; // 1 component. Clebsch magnitude J|B|/sqrt(g_33).
   struct gkyl_array *jacobtot_inv_nodal; // 1 component. 1/(JB).
   struct gkyl_array *ddtheta_nodal; // dphi/dtheta, dR/dtheta, dz/dtheta at surf quad nodes.
   struct gkyl_array *ddpsi_nodal; // dPsi/dpsi at surf quad nodes.
@@ -56,7 +58,7 @@ struct gk_geom_surf {
   struct gkyl_array
     *bcart_nodal; // 3 components. Cartesian components of magnetic field unit vector b_X, b_Y, b_Z.
 
-  struct gkyl_array *B3_nodal; // 1 component n^3 \dot \vec{B} = 1/g_33.
+  struct gkyl_array *B3_nodal; // 1 component. Signed n^3 \dot \vec{B}.
   struct gkyl_array *lenr_nodal; // 1 components Jc|n^i|.
   struct gkyl_array *bimpactangle_nodal; // 1 component arcsin(1/sqrt(g_33 * g^33))
   struct gkyl_array *deltats_nodal; // 1 component. Function of psi-alpha.
@@ -81,7 +83,7 @@ struct gk_geom_corn {
 };
 
 struct gk_geom_int {
-  struct gkyl_array *mc2p; // 3 components. Cartesian X, Y and Z,
+  struct gkyl_array *mc2p; // 3 components. TOKAMAK/MIRROR: (R,Z,phi); MAPC2P/NONE: (X,Y,Z).
   struct gkyl_array *bmag; // 1 component. B Magnitude of magnetic field.
   struct gkyl_array *
     g_ij; // 6 components. Metric coefficients g_{ij} Stored in order g_11, g12, g_13, g_22, g_23, g_33.
@@ -90,6 +92,7 @@ struct gk_geom_int {
   // Calculated with coord definition alpha = phi for tokamak geometry.
   struct gkyl_array
     *dxdz; // 9 components. Cartesian components of tangent Vectors stored in order e_1, e_2, e_3.
+  struct gkyl_array *dxdz_grad; // 27 components. Modal expansion of dxdz_grad_nodal (I/O).
   struct gkyl_array
     *dzdx; // 9 components. Cartesian components of dual vectors stored in order e^1, e^2, e^3.
   struct gkyl_array *dualmag; // 3 components. Norms of the dual vectors: sqrt(e^i.e^i).
@@ -105,7 +108,7 @@ struct gk_geom_int {
     *b_i; // 3 components. Covariant components of magnetic field unit vector b_1, b_2, b_3.
   struct gkyl_array
     *bcart; // 3 components. Cartesian components of magnetic field unit vector b_X, b_Y, b_Z.
-  struct gkyl_array *cmag; // 1 component. C = JB/sqrt(g_33).
+  struct gkyl_array *cmag; // 1 component. Clebsch magnitude J|B|/sqrt(g_33).
   struct gkyl_array *jacobtot; // 1 component. Phase space Jacobian = JB.
   struct gkyl_array *jacobtot_inv; // 1 component. 1/(JB).
   struct gkyl_array *gxxj; // 1 component. g^{xx} * J. For poisson solve.
@@ -116,10 +119,11 @@ struct gk_geom_int {
     *eps2; // 1 component. eps2 = Jg^33 - J/g_33. For poisson if z derivatives are kept.
   struct gkyl_array *dualcurlbhat; // 3 components, e^m \dot curl(bhat).
   struct gkyl_array *dualcurlbhatoverB; // 3 components, e^m \dot curl(bhat)/|B|.
-  struct gkyl_array *rtg33inv; // 1 component 1/sqrt(g_33).
-  struct gkyl_array *bioverJB; // 1 component b_i/J/|B|.
-  struct gkyl_array *B3; // 1 component e^3 \dot \vec{B} = 1/g_33.
-  struct gkyl_array *qprofile; // 1 component. Flux surface averaged q profle q(psi).
+  struct gkyl_array *B3overB; // 1 component. Signed b^3 = B^3/|B|; +1/sqrt(g_33) if B is along e_3.
+  struct gkyl_array *bioverJB; // 3 components b_i/J/|B|.
+  struct gkyl_array *B3; // 1 component. Signed e^3 \dot \vec{B}.
+  struct gkyl_array *
+    qprofile; // Signed COCOS q on closed surfaces; full-connection winding on open lines. Diagnostic only.
 
   // Arrays below are just for computation of arrays above
   struct gkyl_array *bmag_nodal;
@@ -149,6 +153,8 @@ struct gk_geom_int {
   // Calculated with coord definition alpha = phi for tokamak geometry
   struct gkyl_array *dxdz_nodal; // 9 components.
   // Cartesian components of tangent Vectors stored in order e_1, e_2, e_3
+  struct gkyl_array *dxdz_grad_nodal; // 27 components. d(e_i)/dz^j Cartesian, direction j
+  // slowest: [9 j + 3 i + c]. Filled for deflated (cdim<3) geometries only.
   struct gkyl_array *dzdx_nodal; // 9 components.
   // Cartesian components of dual vectors stroed in order e^1, e^2, e^3
   struct gkyl_array *dualmag_nodal; // 3 components
@@ -162,13 +168,14 @@ struct gk_geom_int {
   struct gkyl_array *b_i_nodal_fd; // 3 components. b_i at interior quad nodes and nodes epsilon away
   struct gkyl_array
     *bcart_nodal; // 3 components. Cartesian components of magnetic field unit vector b_X, b_Y, b_Z.
-  struct gkyl_array *B3_nodal; // 1 component e^3 \dot \vec{B} = 1/g_33
+  struct gkyl_array *B3_nodal; // 1 component. Signed e^3 \dot \vec{B}.
   struct gkyl_array *dualcurlbhatoverB_nodal; // 3 components, e^m \dot curl(bhat)/|B|
-  struct gkyl_array *rtg33inv_nodal; // 1 component 1/sqrt(g_33)
+  struct gkyl_array *B3overB_nodal; // 1 component. Signed b^3 = B^3/|B|.
   struct gkyl_array *bioverJB_nodal; // 3 components b_i/J/|B|
 };
 
 struct gk_geometry {
+  int world_dim; // Active configuration dimensions; 0 or 3 samples the full 3D grid.
   enum gkyl_geometry_id geometry_id;
 
   // Objects for mapc2p and finite differences array.
@@ -193,22 +200,20 @@ struct gk_geometry {
   struct gk_geom_int geo_int; // Volume geometry from interior nodes.
   struct gk_geom_surf geo_surf[3]; // Surface geometry.
 
-  int geqdsk_sign_convention; // 0 if psi increases away from magnetic axis.
+  int geqdsk_sign_convention; // Radial flux direction only, not COCOS: 0 if psi increases away from the axis.
   // 1 if psi increases toward magnetic axis.
 
   int half_domain; // For double null geometry. 0 for full domain 1 for lower half domain.
 
+  bool is_periodic[3]; // Whether each direction of the 3D geometry grid is periodic.
   bool has_LCFS; // Whether the geometry has an LCFS.
   double x_LCFS; // For mapc2p IWL geometry, the user has to provide the
   // location of the LCFS. For numerical IWL, it may be stored
   // in the eqdsk.
   int idx_LCFS_lo; // Index of the cell that abuts the LCFS from below.
 
-  // Functions defining the twistshift for parallel BCs.
-  void (*lower_shift_func)(double t, const double *xn, double *fout, void *ctx);
-  void (*upper_shift_func)(double t, const double *xn, double *fout, void *ctx);
-  void *lower_shift_ctx; // Context for lower_shift_func.
-  void *upper_shift_ctx; // Context for upper_shift_func.
+  bool has_dxdz_grad; // Whether geo_int.dxdz_grad(_nodal) are filled: deflated (cdim<3)
+  // geometries built in-app, or read from files that carry them (runs with kinetic neutrals).
 
   struct gkyl_msgpack_map_elem *io_meta_basic; // Metadata for I/O.
   int io_meta_basic_len; // Number of elements in io_meta_basic.
@@ -244,21 +249,21 @@ struct gkyl_gk_geometry_inp {
   // Pointer to bfield function.
   void (*bfield_func)(double t, const double *xc, double *xp, void *ctx);
 
-  // Functions defining the twistshift for parallel BCs.
-  void (*lower_shift_func)(double t, const double *xn, double *fout, void *ctx);
-  void (*upper_shift_func)(double t, const double *xn, double *fout, void *ctx);
-  void *lower_shift_ctx; // Context for lower_shift_func.
-  void *upper_shift_ctx; // Context for upper_shift_func.
+  // Compute deltats (used to get the twist-shift shift) from mapc2p.
+  bool calc_deltats_mapc2p;
 
   struct gkyl_efit_inp efit_info; // Context with RZ data such as efit file for a tokamak or mirror.
   struct gkyl_tok_geo_grid_inp
     tok_grid_info; // Context for tokamak geometry with computational domain info.
   struct gkyl_mirror_geo_grid_inp
     mirror_grid_info; // Context for mirror geometry with computational domain info.
+  struct gkyl_gen_miller_eqdsk_inp miller_grid_info; // Parameters for Miller geometry.
   struct gkyl_position_map *position_map; // Position map object.
   struct gkyl_comm *comm; // Communicator object.
 
   double world[3]; // Extra computational coordinates for cases with reduced dimensionality.
+
+  bool geo_is_periodic[3]; // Whether each direction of the 3D geometry grid (geo_grid) is periodic.
 
   bool has_LCFS; // Whether the geometry has a last closed flux surface (LCFS).
   double x_LCFS; // x location of the LCFS.
@@ -396,14 +401,15 @@ struct gk_geometry *gkyl_gk_geometry_deflate(
 void gkyl_gk_geometry_populate_nodal(struct gk_geometry *gk_geom);
 
 /**
- * Write psi(R,Z)
-* @param geometry_inp Geometry input struct.
-* @param io_meta_basic_basic basic metadata
-* @param io_meta_basic_basic_len length of basic metadata
+ * Write psi(R,Z).
+ * @param geometry_inp Geometry input struct.
+ * @param io_meta_basic_basic Basic metadata.
+ * @param io_meta_basic_basic_len Length of basic metadata.
+ * @param file_name Output filename.
  */
 void gkyl_gk_geometry_write_efit(
   struct gkyl_gk_geometry_inp *geometry_inp, struct gkyl_msgpack_map_elem *io_meta_basic_basic,
-  int io_meta_basic_basic_len
+  int io_meta_basic_basic_len, const char *file_name
 );
 
 /**
@@ -431,3 +437,90 @@ void gkyl_gk_geometry_free(const struct gkyl_ref_count *ref);
  * @param up gk geometry object to release.
  */
 void gkyl_gk_geometry_release(const struct gk_geometry *up);
+
+/**
+ * Evaluate the stored magnetic-field magnitude [T].
+ *
+ * @param geo Non-NULL, borrowed host geometry (e.g. from set_gk_geometry).
+ * @param xc Computational coordinates within the local interior domain.
+ * @param out One magnetic-field magnitude [T].
+ */
+void gkyl_gk_geometry_geo_int_bmag_at_comp_coord(
+  const struct gk_geometry *geo, const double *xc, double *out
+);
+
+/**
+ * Return (B_X,B_Y,B_Z) [T] as interpolated bmag times interpolated bcart.
+ * No renormalization is applied: the norm need not equal interpolated bmag.
+ *
+ * @param geo Non-NULL, borrowed host geometry (e.g. from set_gk_geometry).
+ * @param xc Computational coordinates within the local interior domain.
+ * @param out Three Cartesian components (B_X,B_Y,B_Z) [T].
+ */
+void gkyl_gk_geometry_geo_int_bfieldcart_at_comp_coord(
+  const struct gk_geometry *geo, const double *xc, double *out
+);
+
+/**
+ * Return cylindrical field components (B_R,B_phi,B_Z) [T].
+ *
+ * @param geo Non-NULL, borrowed host geometry (e.g. from set_gk_geometry).
+ * @param xc Computational coordinates within the local interior domain.
+ * @param out Three cylindrical components (B_R,B_phi,B_Z) [T].
+ */
+void gkyl_gk_geometry_geo_int_bfieldcyl_at_comp_coord(
+  const struct gk_geometry *geo, const double *xc, double *out
+);
+
+/**
+ * Return signed B_phi and nonnegative B_pol=hypot(B_R,B_Z) [T].
+ *
+ * @param geo Non-NULL, borrowed host geometry (e.g. from set_gk_geometry).
+ * @param xc Computational coordinates within the local interior domain.
+ * @param out Two values (B_phi,B_pol) [T].
+ */
+void gkyl_gk_geometry_geo_int_bfieldtor_at_comp_coord(
+  const struct gk_geometry *geo, const double *xc, double *out
+);
+
+/**
+ * Return cylindrical position (R,phi,Z) [m,rad,m] from discrete mc2p.
+ * Stored cylindrical phi remains unwrapped; Cartesian maps use atan2.
+ *
+ * @param geo Non-NULL, borrowed host geometry (e.g. from set_gk_geometry).
+ * @param xc Computational coordinates within the local interior domain.
+ * @param out Three cylindrical coordinates (R,phi,Z) [m,rad,m].
+ */
+void gkyl_gk_geometry_geo_int_comp2cyl_coords(
+  const struct gk_geometry *geo, const double *xc, double *out
+);
+
+/**
+ * Return geometric (r,theta,phi) [m,rad,rad] about a fixed reference axis.
+ * Geometric r is distance to that axis, not a Miller flux-surface label.
+ *
+ * @param geo Non-NULL, borrowed host geometry (e.g. from set_gk_geometry).
+ * @param xc Computational coordinates within the local interior domain.
+ * @param Rmajor_axis Reference-axis major radius [m], positive.
+ * @param Zvert_axis Reference-axis vertical location [m].
+ * @param out Three geometric toroidal coordinates (r,theta,phi) [m,rad,rad].
+ */
+void gkyl_gk_geometry_geo_int_comp2tor_coords(
+  const struct gk_geometry *geo, const double *xc, double Rmajor_axis, double Zvert_axis,
+  double *out
+);
+
+/**
+ * Return Miller (r,theta,phi) [m,rad,rad] by inverting the shape map at
+ * discrete mc2p. Inferred r need not be constant on a discrete flux contour.
+ *
+ * @param geo Non-NULL, borrowed host geometry (e.g. from set_gk_geometry).
+ * @param xc Computational coordinates within the local interior domain.
+ * @param miller Non-NULL axis and shape parameters; kappa=0 selects 1, as in the generator.
+ * The field, safety factor, LCFS, and grid parameters are unused.
+ * @param out Three Miller coordinates (r,theta,phi) [m,rad,rad].
+ */
+void gkyl_gk_geometry_geo_int_comp2miller_coords(
+  const struct gk_geometry *geo, const double *xc, const struct gkyl_gen_miller_eqdsk_inp *miller,
+  double *out
+);

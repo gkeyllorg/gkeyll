@@ -30,7 +30,7 @@ GKYL_CU_DH static const rz_derived_geo_node_list ser_rz_derived_geo_kernel_list[
        {NULL, NULL, NULL}, // 1x Not tested yet
        {NULL, NULL, NULL}, // 2x Not tested yet
        {NULL, rz_derived_geo_quad_3x_Ser_p1, NULL}},
-  }
+  },
 
 };
 
