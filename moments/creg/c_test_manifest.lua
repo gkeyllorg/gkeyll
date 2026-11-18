@@ -69,6 +69,9 @@ return {
          "rt_5m_ion_heat_flux",
          "rt_5m_hartmann",
          "rt_iso_euler_hartmann",
+         "rt_mhd_ot",
+         "rt_sr_euler_KH_2d",
+         "rt_sr_euler_sodshock",
       },
       gpu = {
       },
