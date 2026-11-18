@@ -1873,7 +1873,7 @@ struct gkyl_gyrokinetic_app {
 
 /**
  * Merge application defaults and input metadata, recording the original input keys.
- * 
+ *
  * @param num_defaults Number of application defaults.
  * @param defaults Application metadata entries.
  * @param input Metadata supplied by the input file, before application defaults are merged.
@@ -1887,12 +1887,15 @@ struct gkyl_msgpack_map_elem *gyrokinetic_app_input_metadata(
 
 /**
  * Construct geometry with an explicit internal multiblock status.
- * 
+ *
  * @param gk Input, with already-merged metadata for a multiblock child.
  * @param is_multib True only for a child created by the multiblock app.
+ * @param write_geometry Write geometry files after construction.
  * @return App with initialized geometry.
  */
-gkyl_gyrokinetic_app *gyrokinetic_app_new_geom(struct gkyl_gk *gk, bool is_multib);
+gkyl_gyrokinetic_app *gyrokinetic_app_new_geom(
+  struct gkyl_gk *gk, bool is_multib, bool write_geometry
+);
 
 /** gkyl_gyrokinetic_app private API */
 
@@ -1924,6 +1927,15 @@ gk_fetch_bc_with_dir_edge(
  * @return A gyrokinetic app object.
  */
 gkyl_gyrokinetic_app *gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk);
+
+/**
+ * Allocate a geometry-only gyrokinetic app without writing geometry files.
+ * The returned app must be released with gkyl_gyrokinetic_app_release_geom.
+ *
+ * @param gk Gyrokinetic input struct.
+ * @return A gyrokinetic app object.
+ */
+gkyl_gyrokinetic_app *gkyl_gyrokinetic_app_new_geom_no_write(struct gkyl_gk *gk);
 
 /**
  * Initialize the rest of the gyrokinetic app solver, after having called
@@ -2047,7 +2059,7 @@ void gk_species_moment_init(
 
 /**
  * Calculate a moment from a kinetic distribution or conservative fluid state.
- * 
+ *
  * @param app Gyrokinetic application providing the current field.
  * @param sm Species moment object.
  * @param species_rng Phase-space range for kinetic species, configuration-space range for fluids.
@@ -2064,7 +2076,7 @@ void gk_species_moment_calc(
  * Divide the moment by the configuration-space Jacobian for diagnostic
  * purposes. Not all components of the diagnostic moment are divided, depending
  * on the type.
- * 
+ *
  * @param app Gyrokinetic app object.
  * @param sm Species moment object.
  * @param Jmom_in Moment(s) to be divided by J.
@@ -3345,7 +3357,7 @@ void gk_species_source_calc(
 
 /**
  * Adapt source to maintain input power and/or particle content constant.
- * 
+ *
  * @param app gyrokinetic app object.
  * @param gks Species object.
  * @param src Species source object.
@@ -3968,7 +3980,7 @@ void gk_neut_species_moment_init(
 
 /**
  * Calculate neutral species moment, given input neutral distribution function fin.
- * 
+ *
  * @param app Gyrokinetic application.
  * @param sm Neutral species moment object.
  * @param phase_rng Phase-space range.
@@ -3984,7 +3996,7 @@ void gk_neut_species_moment_calc(
  * Divide the moment by the configuration-space Jacobian for diagnostic
  * purposes. Not all components of the diagnostic moment are divided, depending
  * on the type.
- * 
+ *
  * @param app Gyrokinetic app object.
  * @param sm Species moment object.
  * @param Jmom_in Moment(s) to be divided by J.

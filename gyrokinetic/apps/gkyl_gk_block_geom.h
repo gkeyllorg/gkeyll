@@ -88,6 +88,22 @@ void gkyl_gk_block_geom_reset_block_extents(
 );
 
 /**
+ * Record a selected, guard-checked X-point seam delta-s coefficient for a
+ * tokamak block in place, so later queries of this block's geometry info
+ * (diagnostics, restart/checkpoint reconstruction) see the coefficient
+ * actually in use rather than the pre-selection default. Does not itself
+ * rebuild any geometry; the caller is responsible for that.
+ *
+ * @param bgeom Geometry object
+ * @param bidx Block index (must be a GKYL_GEOMETRY_TOKAMAK block)
+ * @param coefficient Selected relaxed_xpt_seam_delta_s_coeff [m]
+ * @param bound Hard displacement bound [m]
+ */
+void gkyl_gk_block_geom_apply_xpt_seam_selection(
+  struct gkyl_gk_block_geom *bgeom, int bidx, double coefficient, double bound
+);
+
+/**
  * Get geometry and connectivity information about a block.
  *
  * @param bgeom Geometry object
@@ -97,6 +113,35 @@ void gkyl_gk_block_geom_reset_block_extents(
  */
 const struct gkyl_gk_block_geom_info *gkyl_gk_block_geom_get_block(
   const struct gkyl_gk_block_geom *bgeom, int bidx
+);
+
+// Whether a mixed radial interface (one block legacy, its peer extended)
+// places its shared separatrix row identically from both sides.  Both blocks
+// place that row uniformly in arc length along the same contour, so they agree
+// exactly when they trace the same curve.  This is the property that decides
+// whether mixed extended-construction participation across that interface can
+// actually misparameterize the row.
+enum gkyl_gk_shared_sep_row_status {
+  GKYL_GK_SHARED_SEP_ROW_NONE = 0, // not a mixed radial interface
+  GKYL_GK_SHARED_SEP_ROW_SHARED, // both sides trace the same curve
+  GKYL_GK_SHARED_SEP_ROW_UNSUPPORTED // mixed, but the descriptors disagree
+};
+
+/**
+ * Shared-separatrix-row status of one interface, asked from the LEGACY block's
+ * side: @a legacy takes the legacy construction, @a peer the extended one.
+ * Used by the seam-participation guard to decide whether a mixed interface
+ * can misparameterize its shared row.
+ *
+ * @param legacy Legacy-construction block
+ * @param peer Its extended-construction radial peer
+ * @param src_dir Direction of @a legacy's edge at this interface
+ * @param tgt_dir Direction of @a peer's edge at this interface
+ * @return Whether the row is shared, unsupported, or the interface is not mixed
+ */
+enum gkyl_gk_shared_sep_row_status gkyl_gk_block_geom_shared_sep_row_status(
+  const struct gkyl_gk_block_geom_info *legacy, const struct gkyl_gk_block_geom_info *peer,
+  int src_dir, int tgt_dir
 );
 
 /**
@@ -109,6 +154,15 @@ const struct gkyl_gk_block_geom_info *gkyl_gk_block_geom_get_block(
  * @return 1 if geometry is consistent, 0 otherwise.
  */
 int gkyl_gk_block_geom_check_consistency(const struct gkyl_gk_block_geom *bgeom);
+
+/**
+ * Whether any block's geometry asks for construction diagnostics
+ * (gkyl_gyrokinetic_geometry.is_verbose). Multiblock-level reports follow it.
+ *
+ * @param bgeom Block geometry (may be NULL).
+ * @return true if some block sets is_verbose.
+ */
+bool gkyl_gk_block_geom_is_verbose(const struct gkyl_gk_block_geom *bgeom);
 
 /**
  * Free block geometry.

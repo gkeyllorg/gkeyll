@@ -64,13 +64,14 @@ write_cocos_variant(
   fclose(output);
 }
 
-void
-test_efit_cocos_conversion(void)
+static void
+check_efit_cocos_conversion(bool reflect)
 {
   struct gkyl_efit_inp inp = {
     .filepath = "gyrokinetic/data/eqdsk/asdex.geqdsk",
     .rz_poly_order = 2,
     .flux_poly_order = 1,
+    .reflect = reflect,
   };
 
   gkyl_efit *reference = gkyl_efit_new(&inp);
@@ -115,6 +116,18 @@ test_efit_cocos_conversion(void)
   TEST_CHECK(gkyl_efit_new(&inp) == NULL);
 
   gkyl_efit_release(reference);
+}
+
+void
+test_efit_cocos_conversion(void)
+{
+  check_efit_cocos_conversion(false);
+}
+
+void
+test_efit_cocos_conversion_reflected(void)
+{
+  check_efit_cocos_conversion(true);
 }
 
 void
@@ -414,6 +427,7 @@ test_efit_ltx_ho()
 
 TEST_LIST = {
   {"test_efit_cocos_conversion", test_efit_cocos_conversion},
+  {"test_efit_cocos_conversion_reflected", test_efit_cocos_conversion_reflected},
   {"test_efit_solovev_ho", test_efit_solovev_ho},
   {"test_efit_step_ho", test_efit_step_ho},
   {"test_efit_asdex_ho", test_efit_asdex_ho},
