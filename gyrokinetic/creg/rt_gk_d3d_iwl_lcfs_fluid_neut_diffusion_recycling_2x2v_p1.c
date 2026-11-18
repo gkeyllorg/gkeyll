@@ -4,7 +4,8 @@
 // The configuration coordinates are x (radial) and theta (parallel). The
 // domain spans the closed-field-line core (x < x_LCFS), where the parallel
 // direction is periodic, and the open-field-line SOL (x > x_LCFS), whose
-// parallel boundaries are material targets. An adaptive core source replaces
+// parallel boundaries are conducting-sheath targets. The electrostatic
+// potential is solved with the TCV IWL boundary setup. An adaptive core source replaces
 // the particles and energy lost through the inner radial boundary. Geometry,
 // profiles and source parameters follow the 3x2v DIII-D negative-triangularity
 // IWL setup, reduced to 2x (no binormal direction). The mapped neutral equation is
@@ -460,8 +461,8 @@ main(int argc, char **argv)
     .bcs =
       {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-       {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-       {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB}},
+       {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+       {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}},
   };
 
   // Ion species.
@@ -542,8 +543,8 @@ main(int argc, char **argv)
     .bcs =
       {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-       {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-       {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB}},
+       {.dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+       {.dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}},
     .boundary_flux_diagnostics =
       {
         .num_diag_moments = 1,
@@ -648,6 +649,13 @@ main(int argc, char **argv)
       },
   };
 
+  // Zero potential where the LCFS meets the targets, as in the TCV IWL tests.
+  struct gkyl_poisson_bias_line target_corner_bcs[] = {
+    {.perp_dirs = {0, 1}, .perp_coords = {ctx.x_LCFS, ctx.z_min}, .val = 0.0},
+    {.perp_dirs = {0, 1}, .perp_coords = {ctx.x_LCFS, ctx.z_max}, .val = 0.0},
+  };
+  struct gkyl_poisson_bias_line_list bias_line_list = {.num_bias_line = 2, .bl = target_corner_bcs};
+
   // Gyrokinetic app input.
   struct gkyl_gk app_inp = {
     .cdim = 2,
@@ -672,7 +680,17 @@ main(int argc, char **argv)
     .species = {elc, ion},
     .num_neut_species = 1,
     .neut_species = {neut},
-    .field = {.is_static = true, .zero_init_field = true},
+    .field =
+      {
+        .gkfield_id = GKYL_GK_FIELD_ES,
+        .polarization_bmag = ctx.B0,
+        .poisson_bcs =
+          {
+            {.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
+            {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
+          },
+        .bias_line_list = &bias_line_list,
+      },
     .parallelism =
       {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0], app_args.cuts[1]}, .comm = comm},
   };
