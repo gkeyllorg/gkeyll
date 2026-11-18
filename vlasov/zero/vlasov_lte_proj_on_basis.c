@@ -360,6 +360,14 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
     gkyl_mat_copy(up->phase_nodal_to_modal_mem->A, phase_nodal_to_modal_mem_ho->A);
     gkyl_mat_mm_array_mem_release(phase_nodal_to_modal_mem_ho);
 
+    // Replace the host quadrature arrays with device ones.
+    gkyl_array_release(up->conf_ordinates);
+    gkyl_array_release(up->conf_weights);
+    gkyl_array_release(up->conf_basis_at_ords);
+    gkyl_array_release(up->ordinates);
+    gkyl_array_release(up->weights);
+    gkyl_array_release(up->basis_at_ords);
+
     // initialize data needed for conf-space quadrature on device
     up->tot_conf_quad = init_quad_values(
       up->cdim, &up->conf_basis, inp->quad_type, num_quad, &up->conf_ordinates, &up->conf_weights,

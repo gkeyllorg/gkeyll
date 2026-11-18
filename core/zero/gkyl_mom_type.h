@@ -26,7 +26,8 @@ enum gkyl_distribution_moments {
   GKYL_F_MOMENT_ENERGY, // H moment.
   GKYL_F_MOMENT_ENERGY_FLUX, // H*dH/dv /m moment.
   GKYL_F_MOMENT_M0_UPPER, // M0 integrated over (part of) the upper half-plane.
-  GKYL_F_MOMENT_M0_LOWER // M0 integrated over (part of) the lower half-plane.
+  GKYL_F_MOMENT_M0_LOWER, // M0 integrated over (part of) the lower half-plane.
+  GKYL_F_MOMENT_COUNT // Number of options (for internal use).
 };
 
 // String names corresponding to the enum options above.

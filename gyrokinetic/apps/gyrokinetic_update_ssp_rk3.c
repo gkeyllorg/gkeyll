@@ -26,12 +26,12 @@ gyrokinetic_forward_euler(
   for (int i = 0; i < app->num_species; ++i) {
     struct gk_species *gks = &app->species[i];
     gk_species_step_f(gks, fout[i], dta, fin[i]);
-    gk_species_bflux_accumulate(app, &gks->bflux, bflux_out[i], 1.0, bflux_in[i]);
+    gk_stepped_moms_accumulate(&gks->step_moms, bflux_out[i], 1.0, bflux_in[i]);
   }
   for (int i = 0; i < app->num_neut_species; ++i) {
     struct gk_neut_species *gkns = &app->neut_species[i];
     gk_neut_species_step_f(gkns, fout_neut[i], dta, fin_neut[i]);
-    gk_neut_species_bflux_accumulate(app, &gkns->bflux, bflux_out_neut[i], 1.0, bflux_in_neut[i]);
+    gk_stepped_moms_accumulate(&gkns->step_moms, bflux_out_neut[i], 1.0, bflux_in_neut[i]);
   }
   app->stat.fwd_euler_step_f_tm += gkyl_time_diff_now_sec(wst);
   app->stat.fwd_euler_tm += gkyl_time_diff_now_sec(wst_fe);
@@ -67,16 +67,16 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app *app, double dt0)
           fin[i] = gks->f;
           fout[i] = gks->f1;
           // Boundary fluxes.
-          bflux_in[i] = gks->bflux.f;
-          bflux_out[i] = gks->bflux.f1;
+          bflux_in[i] = gks->step_moms.f;
+          bflux_out[i] = gks->step_moms.f1;
         }
         for (int i = 0; i < app->num_neut_species; ++i) {
           struct gk_neut_species *gkns = &app->neut_species[i];
           fin_neut[i] = gkns->f;
           fout_neut[i] = gkns->f1;
           // Boundary fluxes.
-          bflux_in_neut[i] = gkns->bflux.f;
-          bflux_out_neut[i] = gkns->bflux.f1;
+          bflux_in_neut[i] = gkns->step_moms.f;
+          bflux_out_neut[i] = gkns->step_moms.f1;
         }
 
         for (int i = 0; i < app->num_species; ++i) {
@@ -97,13 +97,11 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app *app, double dt0)
         struct timespec wst = gkyl_wall_clock();
         for (int i = 0; i < app->num_species; ++i) {
           struct gk_species *gks = &app->species[i];
-          gk_species_bflux_accumulate(app, &gks->bflux, bflux_out[i], -1.0, bflux_in[i]);
+          gk_stepped_moms_accumulate(&gks->step_moms, bflux_out[i], -1.0, bflux_in[i]);
         }
         for (int i = 0; i < app->num_neut_species; ++i) {
           struct gk_neut_species *gkns = &app->neut_species[i];
-          gk_neut_species_bflux_accumulate(
-            app, &gkns->bflux, bflux_out_neut[i], -1.0, bflux_in_neut[i]
-          );
+          gk_stepped_moms_accumulate(&gkns->step_moms, bflux_out_neut[i], -1.0, bflux_in_neut[i]);
         }
         app->stat.time_stepper_arithmetic_tm += gkyl_time_diff_now_sec(wst);
 
@@ -111,11 +109,11 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app *app, double dt0)
           struct gk_species *gks = &app->species[i];
           // Compute moment of f_old to later compute moment of df/dt.
           // Do it before the fields are updated, but after dt is calculated.
-          gk_species_calc_int_mom_dt(app, gks, dt, gks->fdot_mom_old);
+          gk_species_calc_integ_mom_dt(app, gks, dt, gks->fdot_mom_old);
         }
 
-        // Compute field energy divided by dt for energy balance diagnostics.
-        gk_field_calc_energy_dt(app, app->field, dt, app->field->em_energy_red_old);
+        // Store the field energies divided by dt for the energy rate and balance diagnostics.
+        gk_field_calc_energy_dt(app, app->field, dt, true);
 
         // Compute the fields and apply BCs.
         gyrokinetic_calc_field_and_apply_bc(app, tcurr, fout, bflux_out, fout_neut);
@@ -129,16 +127,16 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app *app, double dt0)
           fin[i] = gks->f1;
           fout[i] = gks->fnew;
           // Boundary fluxes.
-          bflux_in[i] = gks->bflux.f1;
-          bflux_out[i] = gks->bflux.fnew;
+          bflux_in[i] = gks->step_moms.f1;
+          bflux_out[i] = gks->step_moms.fnew;
         }
         for (int i = 0; i < app->num_neut_species; ++i) {
           struct gk_neut_species *gkns = &app->neut_species[i];
           fin_neut[i] = gkns->f1;
           fout_neut[i] = gkns->fnew;
           // Boundary fluxes.
-          bflux_in_neut[i] = gkns->bflux.f1;
-          bflux_out_neut[i] = gkns->bflux.fnew;
+          bflux_in_neut[i] = gkns->step_moms.f1;
+          bflux_out_neut[i] = gkns->step_moms.fnew;
         }
 
         gyrokinetic_forward_euler(
@@ -151,7 +149,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app *app, double dt0)
           for (int i = 0; i < app->num_species; ++i) {
             struct gk_species *gks = &app->species[i];
             fin[i] = gks->f;
-            bflux_in[i] = gks->bflux.f;
+            bflux_in[i] = gks->step_moms.f;
           }
           gyrokinetic_calc_field(app, tcurr, fin, bflux_in);
 
@@ -171,15 +169,15 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app *app, double dt0)
             gk_species_combine(
               gks, gks->f1, 3.0 / 4.0, gks->f, 1.0 / 4.0, gks->fnew, &gks->local_ext
             );
-            gk_species_bflux_set(app, &gks->bflux, gks->bflux.f1, 1.0 / 4.0, gks->bflux.fnew);
+            gk_stepped_moms_set(&gks->step_moms, gks->step_moms.f1, 1.0 / 4.0, gks->step_moms.fnew);
           }
           for (int i = 0; i < app->num_neut_species; ++i) {
             struct gk_neut_species *gkns = &app->neut_species[i];
             gk_neut_species_combine(
               gkns, gkns->f1, 3.0 / 4.0, gkns->f, 1.0 / 4.0, gkns->fnew, &gkns->local_ext
             );
-            gk_neut_species_bflux_set(
-              app, &gkns->bflux, gkns->bflux.f1, 1.0 / 4.0, gkns->bflux.fnew
+            gk_stepped_moms_set(
+              &gkns->step_moms, gkns->step_moms.f1, 1.0 / 4.0, gkns->step_moms.fnew
             );
           }
           app->stat.time_stepper_arithmetic_tm += gkyl_time_diff_now_sec(wst);
@@ -188,7 +186,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app *app, double dt0)
           for (int i = 0; i < app->num_species; ++i) {
             struct gk_species *gks = &app->species[i];
             fout[i] = gks->f1;
-            bflux_out[i] = gks->bflux.f1;
+            bflux_out[i] = gks->step_moms.f1;
           }
           for (int i = 0; i < app->num_neut_species; ++i) {
             fout_neut[i] = app->neut_species[i].f1;
@@ -205,16 +203,16 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app *app, double dt0)
           fin[i] = gks->f1;
           fout[i] = gks->fnew;
           // Boundary fluxes.
-          bflux_in[i] = gks->bflux.f1;
-          bflux_out[i] = gks->bflux.fnew;
+          bflux_in[i] = gks->step_moms.f1;
+          bflux_out[i] = gks->step_moms.fnew;
         }
         for (int i = 0; i < app->num_neut_species; ++i) {
           struct gk_neut_species *gkns = &app->neut_species[i];
           fin_neut[i] = gkns->f1;
           fout_neut[i] = gkns->fnew;
           // Boundary fluxes.
-          bflux_in_neut[i] = gkns->bflux.f1;
-          bflux_out_neut[i] = gkns->bflux.fnew;
+          bflux_in_neut[i] = gkns->step_moms.f1;
+          bflux_out_neut[i] = gkns->step_moms.fnew;
         }
 
         gyrokinetic_forward_euler(
@@ -227,7 +225,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app *app, double dt0)
           for (int i = 0; i < app->num_species; ++i) {
             struct gk_species *gks = &app->species[i];
             fin[i] = gks->f;
-            bflux_in[i] = gks->bflux.f;
+            bflux_in[i] = gks->step_moms.f;
           }
           gyrokinetic_calc_field(app, tcurr, fin, bflux_in);
 
@@ -251,8 +249,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app *app, double dt0)
             );
             gk_species_copy_range(gks, gks->f, gks->f1, &gks->local_ext);
             // Step boundary fluxes.
-            gk_species_bflux_set(app, &gks->bflux, gks->bflux.f, 2.0 / 3.0, gks->bflux.fnew);
-            gk_species_bflux_calc_voltime_integrated_mom(app, gks, &gks->bflux, tcurr);
+            gk_stepped_moms_set(&gks->step_moms, gks->step_moms.f, 2.0 / 3.0, gks->step_moms.fnew);
           }
 
           for (int i = 0; i < app->num_neut_species; ++i) {
@@ -262,8 +259,9 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app *app, double dt0)
             );
             gk_neut_species_copy_range(gkns, gkns->f, gkns->f1, &gkns->local_ext);
             // Step boundary fluxes.
-            gk_neut_species_bflux_set(app, &gkns->bflux, gkns->bflux.f, 2.0 / 3.0, gkns->bflux.fnew);
-            gk_neut_species_bflux_calc_voltime_integrated_mom(app, gkns, &gkns->bflux, tcurr);
+            gk_stepped_moms_set(
+              &gkns->step_moms, gkns->step_moms.f, 2.0 / 3.0, gkns->step_moms.fnew
+            );
           }
           app->stat.time_stepper_arithmetic_tm += gkyl_time_diff_now_sec(wst);
 
@@ -276,7 +274,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app *app, double dt0)
           for (int i = 0; i < app->num_species; ++i) {
             struct gk_species *gks = &app->species[i];
             fout[i] = gks->f;
-            bflux_out[i] = gks->bflux.f;
+            bflux_out[i] = gks->step_moms.f;
           }
           for (int i = 0; i < app->num_neut_species; ++i) {
             fout_neut[i] = app->neut_species[i].f;
@@ -292,7 +290,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app *app, double dt0)
             struct gk_species *gks = &app->species[i];
             // Compute moment of f_new to compute moment of df/dt.
             // Need to do it after the fields are updated.
-            gk_species_calc_int_mom_dt(app, gks, dt, gks->fdot_mom_new);
+            gk_species_calc_integ_mom_dt(app, gks, dt, gks->fdot_mom_new);
           }
 
           // Scale species according to some criteria.
@@ -305,8 +303,8 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app *app, double dt0)
             gk_neut_species_scaling_apply(app, gkns, &gkns->sca, gkns->f, bflux_out);
           }
 
-          // Compute field energy divided by dt for energy balance diagnostics.
-          gk_field_calc_energy_dt(app, app->field, dt, app->field->em_energy_red_new);
+          // Store the field energies divided by dt for the energy rate and balance diagnostics.
+          gk_field_calc_energy_dt(app, app->field, dt, false);
 
           state = RK_COMPLETE;
         }
