@@ -1,4 +1,5 @@
 #include <acutest.h>
+#include <float.h>
 #include <mpack.h>
 
 #include <gkyl_alloc.h>
@@ -543,19 +544,174 @@ test_array_set_offset_ncoeff_range_ho()
   array_set_offset_ncoeff_test(false, true);
 }
 
-#ifdef GKYL_HAVE_CUDA
-void
-test_array_set_offset_ncoeff_dev()
+// Exercise whole arrays and parent-strided subranges with all aliasing patterns.
+static double
+comp_op_expected(enum gkyl_array_op op, double first, double second)
 {
-  array_set_offset_ncoeff_test(true, false);
+  const double fac1 = -0.75, fac2 = 0.375;
+  switch (op) {
+    case GKYL_ABS:
+      return fabs(fac1 * first);
+    case GKYL_INV:
+      return fac1 / first;
+    case GKYL_PROD:
+      return fac1 * first * second + fac2;
+    case GKYL_DIV:
+      return fac1 * first / second + fac2;
+    case GKYL_AXPBY:
+      return fac1 * first + fac2 * second;
+    default:
+      return 0.0;
+  }
 }
 
-void
-test_array_set_offset_ncoeff_range_dev()
+static void
+array_comp_op_test(bool use_gpu)
 {
-  array_set_offset_ncoeff_test(true, true);
+  struct gkyl_range parent, selections[3];
+  gkyl_range_init(&parent, 3, (int[]){-2, 1, 4}, (int[]){2, 5, 8});
+
+  gkyl_sub_range_init(&selections[0], &parent, (int[]){-1, 2, 5}, (int[]){1, 4, 7});
+  gkyl_sub_range_init(&selections[1], &parent, (int[]){0, 3, 6}, (int[]){0, 3, 6});
+  gkyl_sub_range_init(&selections[2], &parent, (int[]){0, 3, 6}, (int[]){-1, 3, 6});
+
+  const enum gkyl_array_op ops[] = {GKYL_ABS, GKYL_INV, GKYL_PROD, GKYL_DIV, GKYL_AXPBY};
+
+  const int components[] = {1, 3, 8};
+  for (int shape = 0; shape < 3; ++shape) {
+    int ncomp = components[shape];
+
+    struct gkyl_array *first_ho = mkarr(false, ncomp, parent.volume);
+    struct gkyl_array *second_ho = mkarr(false, ncomp, parent.volume);
+    struct gkyl_array *result_ho = mkarr(false, ncomp, parent.volume);
+
+    struct gkyl_array *first = mkarr(use_gpu, ncomp, parent.volume);
+    struct gkyl_array *second = mkarr(use_gpu, ncomp, parent.volume);
+    struct gkyl_array *separate = mkarr(use_gpu, ncomp, parent.volume);
+
+    for (long cell = 0; cell < parent.volume; ++cell) {
+      double *first_data = gkyl_array_fetch(first_ho, cell);
+      double *second_data = gkyl_array_fetch(second_ho, cell);
+      for (int comp = 0; comp < ncomp; ++comp) {
+        first_data[comp] = (cell % 2 ? -1.0 : 1.0) * (1.0 + cell / 8.0 + comp / 4.0);
+        second_data[comp] = (comp % 2 ? -1.0 : 1.0) * (0.5 + cell / 16.0 + comp / 8.0);
+      }
+    }
+
+    for (int operation = 0; operation < 5; ++operation) {
+      bool unary = operation < 2;
+      for (int alias = 0; alias < 4; ++alias) {
+        if (unary && alias > 1) {
+          continue;
+        }
+        for (int region = 0; region < 5; ++region) {
+          const struct gkyl_range *range = region < 2 ? &parent : &selections[region - 2];
+
+          gkyl_array_copy(first, first_ho);
+          gkyl_array_copy(second, second_ho);
+          gkyl_array_clear(separate, -87.0);
+
+          struct gkyl_array *out = alias == 0 ? separate : alias == 2 ? second : first;
+          const struct gkyl_array *in2 = unary ? NULL : alias == 3 ? first : second;
+
+          struct gkyl_array *returned =
+            region == 0 ?
+              gkyl_array_comp_op(out, ops[operation], -0.75, first, 0.375, in2) :
+              gkyl_array_comp_op_range(out, ops[operation], -0.75, first, 0.375, in2, range);
+          TEST_CHECK(returned == out);
+
+          gkyl_array_copy(result_ho, out);
+          struct gkyl_range_iter iter;
+          gkyl_range_iter_init(&iter, &parent);
+          while (gkyl_range_iter_next(&iter)) {
+            long cell = gkyl_range_idx(&parent, iter.idx);
+
+            const double *first_data = gkyl_array_cfetch(first_ho, cell);
+            const double *second_data = gkyl_array_cfetch(second_ho, cell);
+            const double *result = gkyl_array_cfetch(result_ho, cell);
+
+            bool selected = range->volume > 0 && gkyl_range_contains_idx(range, iter.idx);
+            for (int comp = 0; comp < ncomp; ++comp) {
+              double expected = alias == 0 ? -87.0 :
+                                alias == 2 ? second_data[comp] :
+                                             first_data[comp];
+              if (selected) {
+                expected = comp_op_expected(
+                  ops[operation], first_data[comp],
+                  alias == 3 ? first_data[comp] : second_data[comp]
+                );
+              }
+              TEST_CHECK(gkyl_compare(result[comp], expected, 1e-13));
+              TEST_MSG(
+                "op=%d alias=%d region=%d cell=%ld comp=%d: %.17g != %.17g", ops[operation], alias,
+                region, cell, comp, result[comp], expected
+              );
+            }
+          }
+        }
+      }
+    }
+
+    gkyl_array_release(first_ho);
+    gkyl_array_release(second_ho);
+    gkyl_array_release(result_ho);
+    gkyl_array_release(first);
+    gkyl_array_release(second);
+    gkyl_array_release(separate);
+  }
 }
-#endif
+
+static void
+array_randomize_test(bool use_gpu)
+{
+  // Odd entry counts also exercise the last partial CUDA block.
+  const int sizes[] = {1, 7, 257};
+  const double bounds[][2] = {{-3.5, 2.25}, {1.5, 1.5}, {0.0, 1.0}, {-DBL_MAX, DBL_MAX}};
+  for (int shape = 0; shape < 3; ++shape) {
+    struct gkyl_array *arr = mkarr(use_gpu, 3, sizes[shape]);
+    struct gkyl_array *first_ho = mkarr(false, 3, sizes[shape]);
+    struct gkyl_array *second_ho = mkarr(false, 3, sizes[shape]);
+
+    for (int bound = 0; bound < 4; ++bound) {
+      double lo = bounds[bound][0], hi = bounds[bound][1];
+      TEST_CHECK(gkyl_array_randomize(arr, lo, hi) == arr);
+
+      gkyl_array_copy(first_ho, arr);
+
+      gkyl_array_randomize(arr, lo, hi);
+
+      gkyl_array_copy(second_ho, arr);
+      const double *first_data = first_ho->data, *second_data = second_ho->data;
+      bool different = false;
+      for (size_t entry = 0; entry < arr->size * arr->ncomp; ++entry) {
+        TEST_CHECK(first_data[entry] >= lo && first_data[entry] <= hi);
+        TEST_CHECK(first_data[entry] == second_data[entry]);
+        different |= first_data[entry] != first_data[0];
+        if (lo == hi) {
+          TEST_CHECK(first_data[entry] == lo);
+        }
+      }
+      if (lo != hi) {
+        TEST_CHECK(different);
+      }
+    }
+
+    gkyl_array_release(arr);
+    gkyl_array_release(first_ho);
+    gkyl_array_release(second_ho);
+  }
+}
+
+static void
+test_array_comp_op_ho(void)
+{
+  array_comp_op_test(false);
+}
+static void
+test_array_randomize_ho(void)
+{
+  array_randomize_test(false);
+}
 
 void
 test_array_scale_by_cell_ho()
@@ -2648,6 +2804,29 @@ test_array_min_range_dev()
   test_array_min_range(true);
 }
 
+void
+test_array_set_offset_ncoeff_dev()
+{
+  array_set_offset_ncoeff_test(true, false);
+}
+
+void
+test_array_set_offset_ncoeff_range_dev()
+{
+  array_set_offset_ncoeff_test(true, true);
+}
+
+static void
+test_array_comp_op_dev(void)
+{
+  array_comp_op_test(true);
+}
+
+static void
+test_array_randomize_dev(void)
+{
+  array_randomize_test(true);
+}
 #endif
 
 TEST_LIST = {
@@ -2687,6 +2866,8 @@ TEST_LIST = {
   {"array_shiftc_basic", test_array_shiftc_basic},
   {"array_copy_basic", test_array_copy_basic},
   {"array_fetch_multicomp", test_array_fetch_multicomp},
+  {"array_comp_op_ho", test_array_comp_op_ho},
+  {"array_randomize_ho", test_array_randomize_ho},
 #ifdef GKYL_HAVE_CUDA
   {"array_clear_dev", test_array_clear_dev},
   {"array_clear_range_dev", test_array_clear_range_dev},
@@ -2715,6 +2896,8 @@ TEST_LIST = {
   {"array_copy_range_dev", test_array_copy_range_dev},
   {"array_copy_range_to_range_diff_range_dim_dev", test_array_copy_range_to_range_diff_range_dim_dev
   },
+  {"array_comp_op_dev", test_array_comp_op_dev},
+  {"array_randomize_dev", test_array_randomize_dev},
 #endif
   {NULL, NULL}
 };

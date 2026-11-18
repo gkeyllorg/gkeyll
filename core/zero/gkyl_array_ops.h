@@ -52,6 +52,58 @@ bool gkyl_array_copy_func_is_cu_dev(const struct gkyl_array_copy_func *bc);
 struct gkyl_array *gkyl_array_clear(struct gkyl_array *out, double val);
 
 /**
+ * Fill all entries with repeatable pseudorandom doubles in [lo, hi].
+ * The fixed sequence is reproducible within a backend, not between CPU/CUDA.
+ * Equal bounds fill a constant; an empty array is unchanged.
+ *
+ * @param out Double array to fill on its own backend.
+ * @param lo Finite lower bound, no greater than hi.
+ * @param hi Finite upper bound.
+ * @return out array.
+ */
+struct gkyl_array *gkyl_array_randomize(struct gkyl_array *out, double lo, double hi);
+
+/**
+ * Apply componentwise algebra: ABS = fabs(a*in1), INV = a/in1,
+ * PROD = a*in1*in2+b, DIV = a*in1/in2+b, AXPBY = a*in1+b*in2.
+ * Participating arrays must be doubles with matching sizes, component counts,
+ * and backends. out may alias either input. Divisors must be nonzero.
+ *
+ * @param out Output array, including all allocated cells.
+ * @param op One of GKYL_ABS, GKYL_INV, GKYL_PROD, GKYL_DIV, GKYL_AXPBY.
+ * @param a Coefficient of the first input.
+ * @param in1 First input array.
+ * @param b Additive constant for PROD/DIV, second coefficient for AXPBY;
+ * ignored for ABS/INV.
+ * @param in2 Second input array; ignored and may be NULL for ABS/INV.
+ * @return out array.
+ */
+struct gkyl_array *gkyl_array_comp_op(
+  struct gkyl_array *out, enum gkyl_array_op op, double a, const struct gkyl_array *in1, double b,
+  const struct gkyl_array *in2
+);
+
+/**
+ * Apply componentwise algebra on a range using the same formulas, matching
+ * array requirements, and aliasing rules as gkyl_array_comp_op.
+ * Cells outside the range are unchanged; an empty range is a no-op.
+ *
+ * @param out Output double array.
+ * @param op One of GKYL_ABS, GKYL_INV, GKYL_PROD, GKYL_DIV, GKYL_AXPBY.
+ * @param a Coefficient of the first input.
+ * @param in1 First input array.
+ * @param b Additive constant for PROD/DIV, second coefficient for AXPBY;
+ * ignored for ABS/INV.
+ * @param in2 Second input array; ignored and may be NULL for ABS/INV.
+ * @param range Range with indexing inherited from the arrays' parent range.
+ * @return out array.
+ */
+struct gkyl_array *gkyl_array_comp_op_range(
+  struct gkyl_array *out, enum gkyl_array_op op, double a, const struct gkyl_array *in1, double b,
+  const struct gkyl_array *in2, const struct gkyl_range *range
+);
+
+/**
  * Compute out = out + a*inp. Returns out.
  *
  * @param out Output array
@@ -539,4 +591,44 @@ void gkyl_array_flip_copy_to_buffer_fn_cu(
 
 void gkyl_array_max_by_cell_per_cell_avg_range_cu(
   struct gkyl_array *out, const struct gkyl_array *inp, const struct gkyl_range *range
+);
+
+/**
+ * CUDA wrapper for fixed-seed, whole-array randomization.
+ *
+ * @param out Output device array.
+ * @param lo Finite lower bound.
+ * @param hi Finite upper bound, no smaller than lo.
+ */
+void gkyl_array_randomize_cu(struct gkyl_array *out, double lo, double hi);
+
+/**
+ * CUDA wrapper for componentwise algebra; uses gkyl_array_comp_op's contract.
+ *
+ * @param out Output device array.
+ * @param op Algebraic operator.
+ * @param a First coefficient.
+ * @param in1 First device input array.
+ * @param b Second coefficient or additive constant.
+ * @param in2 Second device input array, or NULL for unary operators.
+ */
+void gkyl_array_comp_op_cu(
+  struct gkyl_array *out, enum gkyl_array_op op, double a, const struct gkyl_array *in1, double b,
+  const struct gkyl_array *in2
+);
+
+/**
+ * CUDA wrapper for range-based componentwise algebra.
+ *
+ * @param out Output device array.
+ * @param op Algebraic operator.
+ * @param a First coefficient.
+ * @param in1 First device input array.
+ * @param b Second coefficient or additive constant.
+ * @param in2 Second device input array, or NULL for unary operators.
+ * @param range Range with the arrays' parent indexing.
+ */
+void gkyl_array_comp_op_range_cu(
+  struct gkyl_array *out, enum gkyl_array_op op, double a, const struct gkyl_array *in1, double b,
+  const struct gkyl_array *in2, const struct gkyl_range *range
 );
