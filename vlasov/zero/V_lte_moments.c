@@ -6,7 +6,8 @@
 #include <gkyl_array_ops_priv.h>
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_util.h>
-#include <gkyl_dg_updater_moment.h>
+#include <gkyl_mom_calc.h>
+#include <gkyl_mom_vlasov.h>
 #include <gkyl_vlasov_dist_moments.h>
 #include <gkyl_vlasov_dist_moments_priv.h>
 #include <gkyl_dg_vlasov_pressure.h>
@@ -24,9 +25,9 @@ struct gkyl_vlasov_lte_moments
   struct gkyl_array *pressure;
   struct gkyl_array *temperature;
   struct gkyl_dg_bin_op_mem *mem;
-  struct gkyl_dg_updater_moment *M0_calc;
-  struct gkyl_dg_updater_moment *M1i_calc;
-  struct gkyl_dg_updater_moment *M2_calc;
+  struct gkyl_mom_calc *M0_calc;
+  struct gkyl_mom_calc *M1i_calc;
+  struct gkyl_mom_calc *M2_calc;
   struct gkyl_dg_vlasov_pressure *pressure_calc;
 };
 
@@ -38,7 +39,7 @@ vlasov_lte_density_moment_advance(struct gkyl_vlasov_dist_moments *dist_moms,
   struct gkyl_vlasov_lte_moments *lte_moms = (struct gkyl_vlasov_lte_moments *) dist_moms;
 
   // Compute lab frame moment M0.
-  gkyl_dg_updater_moment_advance(lte_moms->M0_calc, phase_local, conf_local, 
+  gkyl_mom_calc_advance(lte_moms->M0_calc, phase_local, conf_local, 
     fin, lte_moms->M0);
   gkyl_array_set_range(density_out, 1.0, lte_moms->M0, conf_local);
 }
@@ -55,9 +56,9 @@ vlasov_lte_moments_advance(struct gkyl_vlasov_dist_moments *dist_moms,
   int num_conf_basis = dist_moms->num_conf_basis;
 
   // Compute lab frame moments M0 and M1i.
-  gkyl_dg_updater_moment_advance(lte_moms->M0_calc, phase_local, conf_local, 
+  gkyl_mom_calc_advance(lte_moms->M0_calc, phase_local, conf_local, 
     fin, lte_moms->M0);
-  gkyl_dg_updater_moment_advance(lte_moms->M1i_calc, phase_local, conf_local, 
+  gkyl_mom_calc_advance(lte_moms->M1i_calc, phase_local, conf_local, 
     fin, lte_moms->M1i);
 
   // Isolate drift velocity by dividing M1i by M0.
@@ -68,7 +69,7 @@ vlasov_lte_moments_advance(struct gkyl_vlasov_dist_moments *dist_moms,
   }
 
   // Compute the lab frame M2.
-  gkyl_dg_updater_moment_advance(lte_moms->M2_calc, phase_local, conf_local,
+  gkyl_mom_calc_advance(lte_moms->M2_calc, phase_local, conf_local,
     fin, lte_moms->M2);
 
   // Compute scalar pressure.
@@ -95,13 +96,14 @@ vlasov_lte_moments_release(struct gkyl_vlasov_dist_moments *dist_moms)
 
   gkyl_array_release(lte_moms->M0);
   gkyl_array_release(lte_moms->M1i);
-  gkyl_dg_updater_moment_release(lte_moms->M2_calc);
+  gkyl_mom_calc_release(lte_moms->M2_calc);
+  gkyl_array_release(lte_moms->M2);
   gkyl_array_release(lte_moms->V_drift);
   gkyl_array_release(lte_moms->pressure);
   gkyl_array_release(lte_moms->temperature);
   gkyl_dg_bin_op_mem_release(lte_moms->mem);
-  gkyl_dg_updater_moment_release(lte_moms->M0_calc);
-  gkyl_dg_updater_moment_release(lte_moms->M1i_calc);
+  gkyl_mom_calc_release(lte_moms->M0_calc);
+  gkyl_mom_calc_release(lte_moms->M1i_calc);
   gkyl_dg_vlasov_pressure_release(lte_moms->pressure_calc);
   gkyl_free(lte_moms);
 }
@@ -148,20 +150,34 @@ struct gkyl_vlasov_dist_moments*gkyl_vlasov_lte_moments_new(
   }
 
   // Moment calculators for needed moments (M0, M1i, and M2 for non-relativistic).
-  lte_moms->M0_calc = gkyl_dg_updater_moment_new(inp->phase_grid, inp->conf_basis,
-      inp->phase_basis, inp->conf_range, inp->vel_range, inp->phase_range,
-      dist_moms->model_id, 0, GKYL_F_MOMENT_M0, false, inp->use_gpu);
+  struct gkyl_mom_vlasov_inp inp_mom = {
+    .conf_basis = inp->conf_basis,
+    .phase_basis = inp->phase_basis,
+    .vel_range = inp->vel_range,
+    .vel_map = inp->vel_map,
+    .hamil_range = inp->hamil_range,
+    .hamil = inp->hamil,
+    .model_id = inp->model_id,
+    .hamil_id = inp->hamil_id,
+    .use_gpu = inp->use_gpu,
+  };
 
-  lte_moms->M1i_calc = gkyl_dg_updater_moment_new(inp->phase_grid, inp->conf_basis,
-      inp->phase_basis, inp->conf_range, inp->vel_range, inp->phase_range,
-      dist_moms->model_id, 0, GKYL_F_MOMENT_M1, false, inp->use_gpu);
+  inp_mom.mom_type = GKYL_F_MOMENT_M0;
+  struct gkyl_mom_type *M0_type = gkyl_mom_vlasov_inew(&inp_mom);
+  inp_mom.mom_type = GKYL_F_MOMENT_M1;
+  struct gkyl_mom_type *M1_type = gkyl_mom_vlasov_inew(&inp_mom);
+  inp_mom.mom_type = GKYL_F_MOMENT_M2;
+  struct gkyl_mom_type *M2_type = gkyl_mom_vlasov_inew(&inp_mom);
 
-  lte_moms->M2_calc = gkyl_dg_updater_moment_new(inp->phase_grid, inp->conf_basis,
-      inp->phase_basis, inp->conf_range, inp->vel_range, inp->phase_range,
-      dist_moms->model_id, 0, GKYL_F_MOMENT_M2, false, inp->use_gpu);
-
+  lte_moms->M0_calc =gkyl_mom_calc_new(inp->phase_grid, M0_type, inp->use_gpu);
+  lte_moms->M1i_calc = gkyl_mom_calc_new(inp->phase_grid, M1_type, inp->use_gpu);
+  lte_moms->M2_calc = gkyl_mom_calc_new(inp->phase_grid, M2_type, inp->use_gpu);
   lte_moms->pressure_calc = gkyl_dg_vlasov_pressure_new(inp->conf_basis, inp->conf_range,
       inp->conf_range_ext, dist_moms->vdim, dist_moms->mass, inp->use_gpu);
+
+  gkyl_mom_type_release(M0_type);
+  gkyl_mom_type_release(M1_type);
+  gkyl_mom_type_release(M2_type);
 
   return dist_moms;
 }

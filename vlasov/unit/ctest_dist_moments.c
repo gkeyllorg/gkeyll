@@ -13,6 +13,8 @@
 #include <gkyl_rect_decomp.h>
 #include <gkyl_vlasov_dist_moments.h>
 #include <gkyl_vlasov_dist_correct.h>
+#include <gkyl_dg_vlasov_calc_hamil.h>
+#include <gkyl_vlasov_velocity_map.h>
 #include <gkyl_util.h>
 
 // allocate array (filled with zeros)
@@ -124,6 +126,11 @@ struct dist_test_geometry {
   struct gkyl_range conf_local_ext;
   struct gkyl_range vel_local;
   struct gkyl_range vel_local_ext;
+  
+  struct gkyl_vlasov_velocity_map *vel_map;
+  
+  struct gkyl_array *hamil;
+  struct gkyl_array *hamil_inv;
 };
 
 static void
@@ -163,6 +170,15 @@ init_test_geometry(struct dist_test_geometry *g, const struct dist_test_case *tc
   gkyl_create_grid_ranges(&g->conf_grid, conf_ghost, &g->conf_local_ext, &g->conf_local);
   gkyl_create_grid_ranges(&g->vel_grid, vel_ghost, &g->vel_local_ext, &g->vel_local);
   gkyl_create_grid_ranges(&g->phase_grid, phase_ghost, &g->phase_local_ext, &g->phase_local);
+  
+  struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = {0};
+  g->vel_map = gkyl_vlasov_velocity_map_new(
+    &g->vel_grid, &g->vel_local, &g->vel_basis, inp_vmap, false, false);
+
+  g->hamil = mkarr(g->vel_basis.num_basis, g->vel_local_ext.volume);
+  g->hamil_inv = mkarr(g->vel_basis.num_basis, g->vel_local_ext.volume);
+  gkyl_dg_vlasov_calc_hamil(&g->vel_grid, &g->vel_basis, &g->vel_local,
+    GKYL_MODEL_DEFAULT, g->vel_map, g->hamil, g->hamil_inv, false);
 }
 
 static struct gkyl_vlasov_dist_moments * test_moment_updater(
@@ -181,6 +197,10 @@ static struct gkyl_vlasov_dist_moments * test_moment_updater(
     .phase_range = &g->phase_local,
     .dist_id = tc->dist_id,
     .model_id = GKYL_MODEL_DEFAULT,
+    .vel_map = g->vel_map,
+    .hamil = g->hamil,
+    .hamil_range = &g->vel_local,
+    .hamil_id = gkyl_hamil_id_from_model_id(GKYL_MODEL_DEFAULT),
     .mass = 1.0,
     .use_gpu = false,
   };
@@ -307,6 +327,9 @@ test_distribution_moments(int poly_order, struct dist_test_case *tc, double tol)
   gkyl_array_release(density);
   gkyl_proj_on_basis_release(proj_dist);
   gkyl_vlasov_dist_moments_release(dist_moms);
+  gkyl_array_release(g.hamil);
+  gkyl_array_release(g.hamil_inv);
+  gkyl_vlasov_velocity_map_release(g.vel_map);
 }
 
 // General moment correction test
@@ -370,7 +393,11 @@ test_distribution_correct(int poly_order, struct dist_test_case *tc)
     .conf_range = &g.conf_local,
     .conf_range_ext = &g.conf_local_ext,
     .vel_range = &g.vel_local,
-    .vel_map = NULL,
+    .vel_map = g.vel_map,
+    .hamil = g.hamil,
+    .hamil_range = &g.vel_local,
+    .hamil_id = gkyl_hamil_id_from_model_id(GKYL_MODEL_DEFAULT),
+    .quad_type = GKYL_GAUSS_QUAD,
     .mass = 1.0,
     .phase_range = &g.phase_local,
     .model_id = GKYL_MODEL_DEFAULT,
@@ -447,6 +474,9 @@ test_distribution_correct(int poly_order, struct dist_test_case *tc)
   gkyl_array_release(moms_after);
   gkyl_array_release(moms_target);
   gkyl_proj_on_basis_release(proj_dist);
+  gkyl_array_release(g.hamil);
+  gkyl_array_release(g.hamil_inv);
+  gkyl_vlasov_velocity_map_release(g.vel_map);
 }
 
 // LTE moment test

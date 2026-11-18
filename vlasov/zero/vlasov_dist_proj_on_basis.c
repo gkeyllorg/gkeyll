@@ -228,7 +228,7 @@ gkyl_vlasov_dist_proj_on_basis_inew(const struct gkyl_vlasov_dist_proj_on_basis_
   up->use_gpu = inp->use_gpu;
   up->vel_map = 0;
   if (inp->vel_map != 0) {
-    up->vel_map = gkyl_velocity_map_acquire(inp->vel_map);
+    up->vel_map = gkyl_vlasov_velocity_map_acquire(inp->vel_map);
   }
 
   int num_quad = up->conf_basis.poly_order+1;
@@ -467,7 +467,7 @@ void
 gkyl_vlasov_dist_proj_on_basis_release(gkyl_vlasov_dist_proj_on_basis* up)
 {
   if (up->vel_map != 0) {
-    gkyl_velocity_map_release(up->vel_map);
+    gkyl_vlasov_velocity_map_release(up->vel_map);
   }
 
   gkyl_array_release(up->ordinates);

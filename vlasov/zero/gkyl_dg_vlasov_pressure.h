@@ -29,7 +29,7 @@ struct gkyl_dg_vlasov_pressure * gkyl_dg_vlasov_pressure_new(
 
 /**
  * Compute the scalar pressure from the velocity moments:
- * P = (m/vdim) * (M2 - V_drift dot M1i)
+ * P = (m/vdim) * (2*M2 - V_drift dot M1i)
  *
  * @param up Pressure updater
  * @param conf_local Configuration-space range

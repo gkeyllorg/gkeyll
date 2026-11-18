@@ -5,7 +5,7 @@
 #include <gkyl_eqn_type.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
-#include <gkyl_velocity_map.h>
+#include <gkyl_vlasov_velocity_map.h>
 #include <gkyl_dist_type.h>
 
 // Object type
@@ -26,7 +26,7 @@ struct gkyl_vlasov_dist_proj_on_basis_inp {
   const struct gkyl_range *phase_range; // phase space range
   const struct gkyl_array *gamma; // SR quantitiy: gamma = sqrt(1 + p^2)
   const struct gkyl_array *gamma_inv; // SR quantitiy: 1/gamma = 1/sqrt(1 + p^2)
-  const struct gkyl_velocity_map *vel_map; // Velocity space mapping object.
+  const struct gkyl_vlasov_velocity_map *vel_map; // Velocity space mapping object.
   const struct gkyl_array *h_ij; // (Can-bp quantity) metric tensor (covariant components)
   const struct gkyl_array *h_ij_inv; // (Can-bp quantity) inverse of the metric tensor (contravariant components)
   const struct gkyl_array *det_h; // (Can-bp quantity) determinant of the metric tensor

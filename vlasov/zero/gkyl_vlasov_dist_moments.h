@@ -6,6 +6,7 @@
 #include <gkyl_rect_grid.h> 
 #include <gkyl_dist_type.h>
 #include <gkyl_eqn_type.h>
+#include <gkyl_vlasov_velocity_map.h>
 
 // Object type
 typedef struct gkyl_vlasov_dist_moments gkyl_vlasov_dist_moments;
@@ -21,6 +22,10 @@ struct gkyl_vlasov_dist_moments_inp {
   const struct gkyl_range *conf_range_ext; // Extended configuration-space range (for internal memory allocations)
   const struct gkyl_range *vel_range; // Velocity-space range
   const struct gkyl_range *phase_range; // Phase-space range
+  const struct gkyl_vlasov_velocity_map *vel_map;
+  const struct gkyl_array *hamil;
+  const struct gkyl_range *hamil_range;
+  enum gkyl_hamil_id hamil_id;
   enum gkyl_distribution_projection dist_id; // Selected distribution
   enum gkyl_model_id model_id; // Enum identifier for model type (e.g., SR, see gkyl_eqn_type.h)
   double mass; // Mass factor 

@@ -21,7 +21,7 @@ gkyl_vlasov_dist_correct_inew(const struct gkyl_vlasov_dist_correct_inp *inp)
   up->dist_proj = gkyl_dist_proj_type_acquire(inp->dist_proj);
   up->vel_map = 0;
   if (inp->vel_map != 0) {
-    up->vel_map = gkyl_velocity_map_acquire(inp->vel_map);
+    up->vel_map = gkyl_vlasov_velocity_map_acquire(inp->vel_map);
   }
 
   up->eps = inp->eps;
@@ -71,6 +71,10 @@ gkyl_vlasov_dist_correct_inew(const struct gkyl_vlasov_dist_correct_inp *inp)
     .conf_range_ext = inp->conf_range_ext,
     .vel_range = inp->vel_range,
     .phase_range = inp->phase_range,
+    .vel_map = up->vel_map,
+    .hamil = inp->hamil,
+    .hamil_range = inp->hamil_range,
+    .hamil_id = inp->hamil_id,
     .dist_id = up->dist_proj->dist_id,
     .model_id = inp->model_id,
     .mass = inp->mass,
@@ -91,6 +95,8 @@ gkyl_vlasov_dist_correct_inew(const struct gkyl_vlasov_dist_correct_inp *inp)
     .conf_range_ext = inp->conf_range_ext,
     .vel_range = inp->vel_range,
     .phase_range = inp->phase_range,
+    .vel_map = up->vel_map,
+    .quad_type = inp->quad_type,
     .model_id = inp->model_id,
     .use_gpu = inp->use_gpu,
   };
@@ -307,7 +313,7 @@ void
 gkyl_vlasov_dist_correct_release(gkyl_vlasov_dist_correct *up)
 {
   if (up->vel_map != 0) {
-    gkyl_velocity_map_release(up->vel_map);
+    gkyl_vlasov_velocity_map_release(up->vel_map);
   }
 
   gkyl_array_release(up->moms_iter);

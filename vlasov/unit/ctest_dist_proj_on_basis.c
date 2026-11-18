@@ -10,9 +10,11 @@
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_vlasov_dist_proj_on_basis.h>
+#include <gkyl_vlasov_velocity_map.h>
 #include <gkyl_util.h>
 #include <math.h>
 #include <stdio.h>
+#include <gkyl_rect_decomp.h>
 
 // allocate array (filled with zeros)
 static struct gkyl_array *
@@ -281,6 +283,10 @@ test_distribution_projection(int poly_order, struct dist_test_case *tc, double t
     moms_test, tc->param, f_test);
   TEST_CHECK(gkyl_compare_double(f_test[0], f_expected, 1e-14));
 
+  struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = {0};
+  struct gkyl_vlasov_velocity_map *vel_map =
+    gkyl_vlasov_velocity_map_new(&g.vel_grid, &g.vel_local, &g.vel_basis, inp_vmap, false, false);
+
   struct gkyl_vlasov_dist_proj_on_basis_inp inp = {
     .dist_proj = dist_proj,
     .param = tc->param,
@@ -296,6 +302,7 @@ test_distribution_projection(int poly_order, struct dist_test_case *tc, double t
     .model_id = GKYL_MODEL_DEFAULT,
     .use_gpu = false,
     .quad_type = GKYL_GAUSS_QUAD,
+    .vel_map = vel_map,
   };
   gkyl_vlasov_dist_proj_on_basis *proj_dist = gkyl_vlasov_dist_proj_on_basis_inew(&inp);
   TEST_CHECK(proj_dist != NULL);
@@ -355,6 +362,7 @@ test_distribution_projection(int poly_order, struct dist_test_case *tc, double t
   gkyl_proj_on_basis_release(proj_ref);
   gkyl_vlasov_dist_proj_on_basis_release(proj_dist);
   gkyl_dist_proj_type_release(dist_proj);
+  gkyl_vlasov_velocity_map_release(vel_map);
 }
 
 void

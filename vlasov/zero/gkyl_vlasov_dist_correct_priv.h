@@ -7,7 +7,7 @@
 #include <gkyl_eqn_type.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
-#include <gkyl_velocity_map.h>
+#include <gkyl_vlasov_velocity_map.h>
 #include <gkyl_vlasov_dist_correct.h>
 #include <gkyl_vlasov_dist_moments.h>
 #include <gkyl_vlasov_dist_proj_on_basis.h>
@@ -20,7 +20,7 @@ struct gkyl_vlasov_dist_correct {
   struct gkyl_dist_proj_type *dist_proj; // Distribution projection object
   enum gkyl_model_id model_id; // Selected model
 
-  struct gkyl_velocity_map *vel_map; // Velocity-space mapping object
+  struct gkyl_vlasov_velocity_map *vel_map; // Velocity-space mapping object
 
   struct gkyl_array *moms_iter;
   struct gkyl_array *d_moms;

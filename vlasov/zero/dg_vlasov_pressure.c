@@ -67,8 +67,8 @@ struct gkyl_dg_vlasov_pressure *up,
   // Compute V_drift dot M1i.
   gkyl_dg_dot_product_op_range(&up->conf_basis, up->V_drift_dot_M1i, V_drift, M1i, conf_local);
 
-  // pressure = M2 - V_drift dot M1i.
-  gkyl_array_set_range(pressure, 1.0, M2, conf_local);
+  // pressure = (mass/vdim)*(2*M2 - V_drift dot M1i).
+  gkyl_array_set_range(pressure, 2.0, M2, conf_local);
   gkyl_array_accumulate_range(pressure, -1.0, up->V_drift_dot_M1i, conf_local);
   gkyl_array_scale_range(pressure, up->mass/up->vdim, conf_local);
 }

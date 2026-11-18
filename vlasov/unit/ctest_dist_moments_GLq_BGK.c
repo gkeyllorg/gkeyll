@@ -6,6 +6,7 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_basis.h>
 #include <gkyl_bgk_collisions.h>
+#include <gkyl_const.h>
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_gauss_quad_data.h>
 #include <gkyl_proj_on_basis.h>
@@ -53,11 +54,10 @@ static double
 maxwellian(double density, const double drift[2], double temperature,
   const double velocity[2])
 {
-  const double pi = acos(-1.0);
   double relative_velocity0 = velocity[0]-drift[0];
   double relative_velocity1 = velocity[1]-drift[1];
 
-  return density/(2.0*pi*temperature) * exp(-(relative_velocity0*relative_velocity0
+  return density/(2.0*GKYL_PI*temperature) * exp(-(relative_velocity0*relative_velocity0
       + relative_velocity1*relative_velocity1)/(2.0*temperature));
 }
 
@@ -72,9 +72,10 @@ eval_maxwellian(double time, const double *xn, double *out, void *vctx)
 
   double drift_plus[] = {drift[0]+ctx->separation, drift[1]};
   double drift_minus[] = {drift[0]-ctx->separation, drift[1]};
+  double velocity[] = {xn[ctx->cdim], xn[ctx->cdim+1]};
   
-  out[0] = 0.5*(maxwellian(density, drift_plus, temperature, xn+ctx->cdim)
-    + maxwellian(density, drift_minus, temperature, xn+ctx->cdim));
+  out[0] = 0.5*(maxwellian(density, drift_plus, temperature, velocity)
+    + maxwellian(density, drift_minus, temperature, velocity));
 }
 
 static void
@@ -97,8 +98,8 @@ gaussian_moments(double drift_input, double temperature,
   double zlo = (vmin-drift_input)/thermal_speed;
   double zhi = (vmax-drift_input)/thermal_speed;
 
-  double exp_lo = exp(-0.5*zlo*zlo)/sqrt(2.0*acos(-1.0));
-  double exp_hi = exp(-0.5*zhi*zhi)/sqrt(2.0*acos(-1.0));
+  double exp_lo = exp(-0.5*zlo*zlo)/sqrt(2.0*GKYL_PI);
+  double exp_hi = exp(-0.5*zhi*zhi)/sqrt(2.0*GKYL_PI);
  
   // Integrals of the normalized 1D Gaussian:
   // zeroth   = integral g(v) dv
@@ -160,9 +161,9 @@ eval_equilibrium(double time, const double *xn, double *out, void *vctx)
   const double *mc = gkyl_array_cfetch(ctx->moms, gkyl_range_idx(ctx->conf_ext, cidx));
   double modal[4];
   for (int comp = 0; comp < 4; ++comp)
-    modal[comp] = ctx->conf_basis->eval_expand(zconf, mc+comp*ctx->conf_basis->num_basis);
+    modal[comp] = ctx->conf_basis->eval_expand(zconf, &mc[comp*ctx->conf_basis->num_basis]);
 
-  out[0] = maxwellian(modal[0], modal+1, modal[3], xn+2);
+  out[0] = maxwellian(modal[0], &modal[1], modal[3], &xn[2]);
 }
 
 // Enumerate tensor GL nodes and map reference coordinates to physical ones.
@@ -195,13 +196,13 @@ run_case(struct experiment *ctx, int nx, int nv, int poly_order)
   int pdim = cdim+vdim;
 
   double lower[] = {0.0, 0.0, ctx->vmin, ctx->vmin};
-  double upper[] = {2.0*acos(-1.0), 2.0*acos(-1.0), ctx->vmax, ctx->vmax};
+  double upper[] = {2.0*GKYL_PI, 2.0*GKYL_PI, ctx->vmax, ctx->vmax};
   int cells[] = {nx, nx, nv, nv}, ghosts[] = {0, 0, 0, 0};
 
   struct gkyl_rect_grid phase_grid, conf_grid, vel_grid;
   gkyl_rect_grid_init(&phase_grid, pdim, lower, upper, cells);
   gkyl_rect_grid_init(&conf_grid, cdim, lower, upper, cells);
-  gkyl_rect_grid_init(&vel_grid, vdim, lower+cdim, upper+cdim, cells+cdim);
+  gkyl_rect_grid_init(&vel_grid, vdim, &lower[cdim], &upper[cdim], &cells[cdim]);
 
   struct gkyl_range phase_ext, phase_local, conf_ext, conf_local;
   struct gkyl_range vel_ext, vel_local;
@@ -307,7 +308,7 @@ run_case(struct experiment *ctx, int nx, int nv, int poly_order)
         for (int qnode = 0; qnode < num_velocity_nodes; ++qnode) {
           double zphase[4] = {zconf[0], zconf[1], 0.0, 0.0}, velocity[2];
           double weight = jacobian*quadrature_point(qnode, vdim, num_nodes,
-            nodes, weights, vcenter, vel_grid.dx, zphase+cdim, velocity);
+            nodes, weights, vcenter, vel_grid.dx, &zphase[cdim], velocity);
           double weighted_f = weight*phase_basis.eval_expand(zphase, fc);
         
           raw[0] += weighted_f;
@@ -322,7 +323,7 @@ run_case(struct experiment *ctx, int nx, int nv, int poly_order)
       nodal[3] = 0.5*(raw[3]/raw[0]-nodal[1]*nodal[1]-nodal[2]*nodal[2]);
 
       for (int comp = 0; comp < 4; ++comp) {
-        double modal = conf_basis.eval_expand(zconf, mc+comp*ncb);
+        double modal = conf_basis.eval_expand(zconf, &mc[comp*ncb]);
 
         result.modal[comp] = fmax(result.modal[comp], fabs(modal-ref[comp]));
         result.nodal[comp] = fmax(result.nodal[comp], fabs(nodal[comp]-ref[comp]));
@@ -346,7 +347,7 @@ run_case(struct experiment *ctx, int nx, int nv, int poly_order)
           double zphase[4] = {zconf[0], zconf[1], 0.0, 0.0};
           double xn[4] = {xpos[0], xpos[1], 0.0, 0.0};
           double weight = jacobian*quadrature_point(qnode, vdim, num_nodes,
-            nodes, weights, vcenter, vel_grid.dx, zphase+cdim, xn+cdim);
+            nodes, weights, vcenter, vel_grid.dx, &zphase[cdim], &xn[cdim]);
 
           double fnode = phase_basis.eval_expand(zphase, fc);
 
@@ -354,12 +355,12 @@ run_case(struct experiment *ctx, int nx, int nv, int poly_order)
           double modal = phase_basis.eval_expand(zphase, rc);
 
           // Calculate the nodal collision term from the nodal primitives.
-          double nodal_rhs = frequency*(maxwellian(nodal[0], nodal+1, nodal[3], xn+cdim)-fnode);
+          double nodal_rhs = frequency*(maxwellian(nodal[0], &nodal[1], nodal[3], &xn[cdim])-fnode);
 
           double original, nu_ref;
           eval_maxwellian(0.0, xn, &original, ctx);
           eval_collision_frequency(0.0, xn, &nu_ref, ctx);
-          double reference = nu_ref*(maxwellian(ref[0], ref+1, ref[3], xn+cdim)-original);
+          double reference = nu_ref*(maxwellian(ref[0], &ref[1], ref[3], &xn[cdim])-original);
 
           result.modal[4] = fmax(result.modal[4], fabs(modal-reference));
           result.nodal[4] = fmax(result.nodal[4], fabs(nodal_rhs-reference));
