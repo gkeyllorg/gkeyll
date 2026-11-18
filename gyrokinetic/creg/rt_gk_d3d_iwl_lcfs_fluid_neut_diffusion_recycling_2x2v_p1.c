@@ -412,8 +412,6 @@ main(int argc, char **argv)
         .temp = eval_elc_temp,
         .ctx_temp = &ctx,
       },
-    .correct =
-      {.correct_all_moms = true, .use_last_converged = true, .iter_eps = 1.0e-10, .max_iter = 20},
     .collisionless = {.type = GKYL_GK_COLLISIONLESS_ES},
     .react_neut =
       {
@@ -485,8 +483,6 @@ main(int argc, char **argv)
         .temp = eval_ion_temp,
         .ctx_temp = &ctx,
       },
-    .correct =
-      {.correct_all_moms = true, .use_last_converged = true, .iter_eps = 1.0e-10, .max_iter = 20},
     .collisionless = {.type = GKYL_GK_COLLISIONLESS_ES},
     .react_neut =
       {
