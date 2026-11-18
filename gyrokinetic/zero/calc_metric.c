@@ -975,12 +975,14 @@ gkyl_calc_metric_advance_rz_surface(gkyl_calc_metric *up, int dir, struct gk_geo
                             normFld_n[3 * dir + 1] * curlbhat_n[1] +
                             normFld_n[3 * dir + 2] * curlbhat_n[2];
 
-        // set bimpactangle = arcsin(1/sqrt(g_33 * g^33))
+        // set bimpactangle = arcsin(1/sqrt(g_33 * g^33)). The argument is <= 1 because
+        // e_3 . e^3 = 1 <= |e_3| |e^3|; clamp it so round-off where b is normal to the
+        // surface (argument = 1) does not produce asin(1 + eps) = NaN.
         double *bimpactangle_n = gkyl_array_fetch(
           gk_geom->geo_surf[dir].bimpactangle_nodal,
           gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx)
         );
-        bimpactangle_n[0] = asin(1.0 / (sqrt(gFld_n[5]) * norm3));
+        bimpactangle_n[0] = asin(fmin(1.0, 1.0 / (sqrt(gFld_n[5]) * norm3)));
       }
     }
   }
@@ -2291,12 +2293,14 @@ gkyl_calc_metric_advance_surface(gkyl_calc_metric *up, int dir, struct gk_geomet
                             normFld_n[3 * dir + 1] * curlbhat_n[1] +
                             normFld_n[3 * dir + 2] * curlbhat_n[2];
 
-        // set bimpactangle = arcsin(1/sqrt(g_33 * g^33))
+        // set bimpactangle = arcsin(1/sqrt(g_33 * g^33)). The argument is <= 1 because
+        // e_3 . e^3 = 1 <= |e_3| |e^3|; clamp it so round-off where b is normal to the
+        // surface (argument = 1) does not produce asin(1 + eps) = NaN.
         double *bimpactangle_n = gkyl_array_fetch(
           gk_geom->geo_surf[dir].bimpactangle_nodal,
           gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx)
         );
-        bimpactangle_n[0] = asin(1.0 / (sqrt(gFld_n[5]) * norm3));
+        bimpactangle_n[0] = asin(fmin(1.0, 1.0 / (sqrt(gFld_n[5]) * norm3)));
       }
     }
   }
