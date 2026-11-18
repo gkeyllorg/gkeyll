@@ -582,12 +582,11 @@ gk_species_source_init(
       assert(gks->info.vdim > 1); // MF 2025/10/24: hasn't been tested in 1v.
       src->adapt_func = gk_species_source_adapt_after_first_step;
 
-      if (src->num_diag_int_mom > 0) {
-        // Allocate dynvecs to store the temperature and particle count diagnostics of the adaptive sources.
-        src->temp_diag = gkyl_dynvec_new(GKYL_DOUBLE, src->num_adapt_sources);
-        src->part_diag = gkyl_dynvec_new(GKYL_DOUBLE, src->num_adapt_sources);
-        src->is_first_integ_write_call_adapt = true;
-      }
+      // Allocate dynvecs to store the temperature and particle count diagnostics of the adaptive
+      // sources. These are always computed for adaptive sources (src->evolve is true).
+      src->temp_diag = gkyl_dynvec_new(GKYL_DOUBLE, src->num_adapt_sources);
+      src->part_diag = gkyl_dynvec_new(GKYL_DOUBLE, src->num_adapt_sources);
+      src->is_first_integ_write_call_adapt = true;
 
       for (int k = 0; k < src->num_adapt_sources; ++k) {
         // Adaptive source must be a Maxwellian Gaussian projection.
@@ -753,10 +752,8 @@ gk_species_source_release(const struct gkyl_gyrokinetic_app *app, const struct g
       gkyl_dynvec_release(src->integ_diag);
     }
     if (src->num_adapt_sources > 0) {
-      if (src->num_diag_int_mom > 0) {
-        gkyl_dynvec_release(src->part_diag);
-        gkyl_dynvec_release(src->temp_diag);
-      }
+      gkyl_dynvec_release(src->part_diag);
+      gkyl_dynvec_release(src->temp_diag);
       for (int k = 0; k < src->num_adapt_sources; ++k) {
         const struct gk_adapt_source *adapt_src = &src->adapt[k];
         gk_species_moment_release(app, &adapt_src->integ_threemoms);
