@@ -79,6 +79,7 @@
 #include <gkyl_translate_dim.h>
 #include <gkyl_velocity_map.h>
 #include <gkyl_gyrokinetic.h>
+#include <gkyl_time_integ_gyrokinetic.h>
 #include <gkyl_gyrokinetic_cross_prim_moms_bgk.h>
 #include <gkyl_hyper_dg.h>
 #include <gkyl_mat.h>
@@ -1810,6 +1811,7 @@ struct gk_eirene {
 
 // Gyrokinetic object: used as opaque pointer in user code.
 struct gkyl_gyrokinetic_app {
+  struct gkyl_gyrokinetic_fdot_args fdot_args; // Solver-owned state pointer arrays.
   char name[128]; // Name of app.
   struct gkyl_job_pool *job_pool; // Job pool.
 
@@ -5225,45 +5227,43 @@ void gyrokinetic_calc_field_and_apply_bc(
 );
 
 /**
- * Compute the RHS of the gyrokinetic equation (df/dt) and the minimum time
- * step it requires for stability based on the CFL constraint.
+ * Compute the combined gyrokinetic RHS and its rank-local CFL timestep.
+ * This does not choose the native timestep or reduce the estimate across ranks.
+ *
+ * @param app Gyrokinetic app.
+ * @param tcurr Current simulation time.
+ * @param fdot_args Borrowed input states and output rate/stepped-moment arrays.
+ * @return Rank-local CFL timestep estimate.
+ */
+double gyrokinetic_dfdt(
+  gkyl_gyrokinetic_app *app, double tcurr, struct gkyl_gyrokinetic_fdot_args *fdot_args
+);
+
+/**
+ * Compute the combined RHS and choose the native CFL-limited timestep.
  *
  * @param app Gyrokinetic app.
  * @param tcurr Current simulation time.
  * @param dt Suggested time step.
- * @param fin Input array of charged-species distribution functions.
- * @param fout Output array of charged-species change in distribution functions.
- * @param bflux_out Output array of charged-species boundary fluxes.
- * @param fin_neut Input array of neutral-species distribution functions.
- * @param fout_neut Output array of neutral-species change in distribution functions.
- * @param bflux_out_neut Output array of neutral-species boundary fluxes.
- * @param st Time stepping status object.
+ * @param fdot_args Borrowed input states and output rate/stepped-moment arrays.
+ * @param st Output actual and suggested timesteps.
  */
 void gyrokinetic_rhs(
-  gkyl_gyrokinetic_app *app, double tcurr, double dt, const struct gkyl_array *fin[],
-  struct gkyl_array *fout[], struct gkyl_array **bflux_out[], const struct gkyl_array *fin_neut[],
-  struct gkyl_array *fout_neut[], struct gkyl_array **bflux_out_neut[],
+  gkyl_gyrokinetic_app *app, double tcurr, double dt, struct gkyl_gyrokinetic_fdot_args *fdot_args,
   struct gkyl_update_status *st
 );
 
 /**
- * Compute the RHS of the gyrokinetic equation (df/dt) due to implicit terms.
+ * Compute the timestep-dependent implicit collision update.
  *
  * @param app Gyrokinetic app.
  * @param tcurr Current simulation time.
- * @param dt Suggested time step.
- * @param fin Input array of charged-species distribution functions.
- * @param fout Output array of change in charged-species distribution functions.
- * @param bflux_out Output array of charged-species boundary fluxes.
- * @param fin_neut Input array of neutral-species distribution functions.
- * @param fout_neut Output array of change in neutral-species distribution functions.
- * @param bflux_out_neut Output array of neutral-species boundary fluxes.
- * @param st Time stepping status object.
+ * @param dt Time step used by the implicit update.
+ * @param fdot_args Borrowed input states and output updated states/stepped moments.
+ * @param st Time stepping status object (unchanged).
  */
 void gyrokinetic_rhs_implicit(
-  gkyl_gyrokinetic_app *app, double tcurr, double dt, struct gkyl_array *fin[],
-  struct gkyl_array *fout[], struct gkyl_array **bflux_out[], struct gkyl_array *fin_neut[],
-  struct gkyl_array *fout_neut[], struct gkyl_array **bflux_out_neut[],
+  gkyl_gyrokinetic_app *app, double tcurr, double dt, struct gkyl_gyrokinetic_fdot_args *fdot_args,
   struct gkyl_update_status *st
 );
 
