@@ -13,8 +13,7 @@ extern "C" {
 __global__ static void
 dirichlet_ghost_cu_ker(
   int cdim, int dir, int skin_idx_dir, double mass, double number_density,
-  struct gkyl_range local_ext, struct gkyl_range ghost,
-  const struct gkyl_array *number_density_field, struct gkyl_array *density,
+  struct gkyl_range local_ext, struct gkyl_range ghost, struct gkyl_array *density,
   struct gkyl_array *tensor
 )
 {
@@ -35,15 +34,7 @@ dirichlet_ghost_cu_ker(
     for (int k = 0; k < nb; ++k) {
       rho_ghost[k] = -rho_ghost[k];
     }
-    if (number_density_field) {
-      const double *nbnd =
-        (const double *)gkyl_array_cfetch(number_density_field, gkyl_range_idx(&local_ext, gidx));
-      for (int k = 0; k < nb; ++k) {
-        rho_ghost[k] += 2.0 * mass * nbnd[k];
-      }
-    } else {
-      rho_ghost[0] += 2.0 * rho_b_modal;
-    }
+    rho_ghost[0] += 2.0 * rho_b_modal;
 
     const double *Kskin =
       (const double *)gkyl_array_cfetch(tensor, gkyl_range_idx(&local_ext, sidx));
@@ -57,14 +48,90 @@ dirichlet_ghost_cu_ker(
 void
 gk_neut_fluid_diffusion_dirichlet_ghost_cu(
   int cdim, int dir, int skin_idx_dir, double mass, double number_density,
-  const struct gkyl_range *local_ext, const struct gkyl_range *ghost,
-  const struct gkyl_array *number_density_field, struct gkyl_array *density,
+  const struct gkyl_range *local_ext, const struct gkyl_range *ghost, struct gkyl_array *density,
   struct gkyl_array *tensor
 )
 {
   dirichlet_ghost_cu_ker<<<ghost->nblocks, ghost->nthreads>>>(
-    cdim, dir, skin_idx_dir, mass, number_density, *local_ext, *ghost,
-    number_density_field ? number_density_field->on_dev : 0, density->on_dev, tensor->on_dev
+    cdim, dir, skin_idx_dir, mass, number_density, *local_ext, *ghost, density->on_dev,
+    tensor->on_dev
+  );
+}
+
+__global__ static void
+zero_flux_ghost_cu_ker(
+  int cdim, int dir, int skin_idx_dir, struct gkyl_range local_ext, struct gkyl_range ghost,
+  struct gkyl_array *density, struct gkyl_array *tensor
+)
+{
+  int gidx[GKYL_MAX_CDIM], sidx[GKYL_MAX_CDIM];
+  const int nb = 1 << cdim, nK = cdim * cdim;
+  for (unsigned long tid = threadIdx.x + blockIdx.x * blockDim.x; tid < ghost.volume;
+       tid += blockDim.x * gridDim.x) {
+    gkyl_sub_range_inv_idx(&ghost, tid, gidx);
+    for (int d = 0; d < cdim; ++d) {
+      sidx[d] = gidx[d];
+    }
+    sidx[dir] = skin_idx_dir;
+    long sloc = gkyl_range_idx(&local_ext, sidx), gloc = gkyl_range_idx(&local_ext, gidx);
+    fos_list[cdim].fs[1](
+      dir, (const double *)gkyl_array_cfetch(density, sloc),
+      (double *)gkyl_array_fetch(density, gloc)
+    );
+    const double *Kskin = (const double *)gkyl_array_cfetch(tensor, sloc);
+    double *Kghost = (double *)gkyl_array_fetch(tensor, gloc);
+    for (int k = 0; k < nK; ++k) {
+      fes_list[cdim].fs[1](dir, &Kskin[k * nb], &Kghost[k * nb]);
+    }
+  }
+}
+
+void
+gk_neut_fluid_diffusion_zero_flux_ghost_cu(
+  int cdim, int dir, int skin_idx_dir, const struct gkyl_range *local_ext,
+  const struct gkyl_range *ghost, struct gkyl_array *density, struct gkyl_array *tensor
+)
+{
+  zero_flux_ghost_cu_ker<<<ghost->nblocks, ghost->nthreads>>>(
+    cdim, dir, skin_idx_dir, *local_ext, *ghost, density->on_dev, tensor->on_dev
+  );
+}
+
+__global__ static void
+recycling_source_cu_ker(
+  int cdim, int dir, int skin_idx_dir, struct gkyl_range local_ext, struct gkyl_range ghost,
+  const struct gkyl_array *flux, struct gkyl_array *rhs
+)
+{
+  int gidx[GKYL_MAX_CDIM], sidx[GKYL_MAX_CDIM];
+  const int nb = 1 << cdim;
+  double src[8];
+  for (unsigned long tid = threadIdx.x + blockIdx.x * blockDim.x; tid < ghost.volume;
+       tid += blockDim.x * gridDim.x) {
+    gkyl_sub_range_inv_idx(&ghost, tid, gidx);
+    for (int d = 0; d < cdim; ++d) {
+      sidx[d] = gidx[d];
+    }
+    sidx[dir] = skin_idx_dir;
+    fos_list[cdim].fs[1](
+      dir, (const double *)gkyl_array_cfetch(flux, gkyl_range_idx(&local_ext, gidx)), src
+    );
+    // Each ghost cell maps to a distinct skin cell, so no atomics are needed.
+    double *rhs_skin = (double *)gkyl_array_fetch(rhs, gkyl_range_idx(&local_ext, sidx));
+    for (int k = 0; k < nb; ++k) {
+      rhs_skin[k] += src[k];
+    }
+  }
+}
+
+void
+gk_neut_fluid_recycling_source_cu(
+  int cdim, int dir, int skin_idx_dir, const struct gkyl_range *local_ext,
+  const struct gkyl_range *ghost, const struct gkyl_array *flux, struct gkyl_array *rhs
+)
+{
+  recycling_source_cu_ker<<<ghost->nblocks, ghost->nthreads>>>(
+    cdim, dir, skin_idx_dir, *local_ext, *ghost, flux->on_dev, rhs->on_dev
   );
 }
 

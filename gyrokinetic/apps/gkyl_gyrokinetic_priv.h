@@ -774,6 +774,10 @@ struct gk_react {
   struct gkyl_array *Jm0_ion[GKYL_MAX_REACT]; // J*ion density.
   struct gkyl_array *Jm0_donor[GKYL_MAX_REACT]; // J*donor density.
   struct gkyl_array *Jm0_partner[GKYL_MAX_REACT]; // J*partner density.
+  // Fluid neutral receiving recombination: conserved moments divided by
+  // density, used to carry dependent moments with the recombined density.
+  struct gkyl_array *fluid_moment_ratio;
+  gkyl_dg_bin_op_mem *fluid_div_mem;
 
   struct gkyl_array
     *react_lte_moms[GKYL_MAX_REACT]; // LTE/Maxwellian moments used for Maxwellian projection.
@@ -1573,8 +1577,8 @@ struct gk_neut_species {
       double *diffusion_implicit_dot; // Device reduction scalar for BiCGSTAB.
       int diffusion_implicit_last_iter;
       double diffusion_implicit_last_residual;
-      struct gkyl_array *diffusion_bc_density; // Local recycling boundary density.
-      struct gkyl_array *diffusion_bc_density_tmp; // One impacting-ion contribution.
+      struct gkyl_array *diffusion_recycling_flux; // Recycled neutral mass flux in target ghosts.
+      struct gkyl_array *diffusion_recycling_flux_tmp; // One impacting-species contribution.
       struct gkyl_array *diffusion_moment_ratio; // Conserved moments divided by density.
       gkyl_dg_bin_op_mem *diffusion_div_mem; // Memory for weak moment/density division.
       struct gkyl_dg_updater_conf_diffusion *diffusion_slvr; // Conservative DG diffusion updater.

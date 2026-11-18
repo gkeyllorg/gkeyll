@@ -6,9 +6,20 @@
 #ifdef GKYL_HAVE_CUDA
 void gk_neut_fluid_diffusion_dirichlet_ghost_cu(
   int cdim, int dir, int skin_idx_dir, double mass, double number_density,
-  const struct gkyl_range *local_ext, const struct gkyl_range *ghost,
-  const struct gkyl_array *number_density_field, struct gkyl_array *density,
+  const struct gkyl_range *local_ext, const struct gkyl_range *ghost, struct gkyl_array *density,
   struct gkyl_array *tensor
+);
+
+// Zero diffusive flux: density ghost = R(skin), tensor ghost = -R(skin).
+void gk_neut_fluid_diffusion_zero_flux_ghost_cu(
+  int cdim, int dir, int skin_idx_dir, const struct gkyl_range *local_ext,
+  const struct gkyl_range *ghost, struct gkyl_array *density, struct gkyl_array *tensor
+);
+
+// rhs(skin)[0:num_basis] += R(flux(ghost)).
+void gk_neut_fluid_recycling_source_cu(
+  int cdim, int dir, int skin_idx_dir, const struct gkyl_range *local_ext,
+  const struct gkyl_range *ghost, const struct gkyl_array *flux, struct gkyl_array *rhs
 );
 
 void gk_neut_fluid_diffusion_floor_cu(

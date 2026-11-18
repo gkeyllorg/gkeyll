@@ -156,24 +156,46 @@ gkns_react_rhs_enabled(
 
   if (gkns->is_fluid) {
     // Fluid neutrals evolve density only. Ionization removes density and all
-    // dependent conserved moments proportionally. CX does not change neutral
-    // density and is used by the diffusion closure.
+    // dependent conserved moments proportionally. Recombination adds the
+    // density m_n <sigma v>_rec n_e n_i (times J) and carries the dependent
+    // moments at the current specific values (moment/density), as the
+    // density-only diffusion does. CX does not change neutral density and is
+    // used by the diffusion closure.
     for (int i = 0; i < react->num_react; ++i) {
-      if (react->react_id[i] != GKYL_REACT_IZ) {
-        continue;
-      }
-
-      struct gk_species *electron = &app->species[react->elc_idx[i]];
-      for (int m = 0; m < gkns->num_moments; ++m) {
+      if (react->react_id[i] == GKYL_REACT_IZ) {
+        struct gk_species *electron = &app->species[react->elc_idx[i]];
+        for (int m = 0; m < gkns->num_moments; ++m) {
+          gkyl_dg_mul_op_range(
+            &app->basis, m, react->f_react, 0, electron->lte.moms.marr, m, fin, &app->local
+          );
+          gkyl_dg_mul_op_range(
+            &app->basis, m, react->f_react, 0, react->coeff_react[i], m, react->f_react,
+            &app->local
+          );
+        }
+        gkyl_array_accumulate_range(rhs, -1.0, react->f_react, &app->local);
+      } else if (react->react_id[i] == GKYL_REACT_RECOMB) {
+        // J*n_e*n_i*<sigma v>_rec; ion lte moments hold physical n_i here.
+        struct gk_species *ion = &app->species[react->ion_idx[i]];
         gkyl_dg_mul_op_range(
-          &app->basis, m, react->f_react, 0, electron->lte.moms.marr, m, fin, &app->local
+          &app->basis, 0, react->f_react, 0, react->Jm0_elc[i], 0, ion->lte.moms.marr, &app->local
         );
         gkyl_dg_mul_op_range(
-          &app->basis, m, react->f_react, 0, react->coeff_react[i], m, react->f_react,
-          &app->local
+          &app->basis, 0, react->f_react, 0, react->coeff_react[i], 0, react->f_react, &app->local
         );
+        for (int m = 1; m < gkns->num_moments; ++m) {
+          gkyl_dg_div_op_range(
+            react->fluid_div_mem, &app->basis, m, react->fluid_moment_ratio, m, fin, 0, fin,
+            &app->local
+          );
+          gkyl_dg_mul_op_range(
+            &app->basis, m, react->f_react, m, react->fluid_moment_ratio, 0, react->f_react,
+            &app->local
+          );
+        }
+        // Component 0 is a number rate; the evolved moments are mass-weighted.
+        gkyl_array_accumulate_range(rhs, gkns->info.mass, react->f_react, &app->local);
       }
-      gkyl_array_accumulate_range(rhs, -1.0, react->f_react, &app->local);
     }
     app->stat.neut_species_react_tm += gkyl_time_diff_now_sec(wst);
     return;
@@ -431,6 +453,8 @@ gk_neut_species_react_cross_init(
   struct gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gk_react *react
 )
 {
+  react->fluid_moment_ratio = 0;
+  react->fluid_div_mem = 0;
   if (react->num_react) {
     // Distribution function which holds update for each reaction
     // form depend on react->type_self, e.g., for recombination and react->type_self == GKYL_SELF_RECVR
@@ -529,6 +553,13 @@ gk_neut_species_react_cross_init(
           app->use_gpu ? mkarr(false, react->coeff_react[i]->ncomp, react->coeff_react[i]->size) :
                          gkyl_array_acquire(react->coeff_react[i]);
       }
+
+      if (gkns->is_fluid && react->react_id[i] == GKYL_REACT_RECOMB && !react->fluid_div_mem) {
+        react->fluid_moment_ratio = mkarr(app->use_gpu, gkns->f->ncomp, app->local_ext.volume);
+        react->fluid_div_mem =
+          app->use_gpu ? gkyl_dg_bin_op_mem_cu_dev_new(app->local.volume, app->basis.num_basis) :
+                         gkyl_dg_bin_op_mem_new(app->local.volume, app->basis.num_basis);
+      }
     }
   }
 }
@@ -565,6 +596,10 @@ gk_neut_species_react_release(const struct gkyl_gyrokinetic_app *app, const stru
 {
   if (react->num_react) {
     gkyl_array_release(react->f_react);
+    if (react->fluid_div_mem) {
+      gkyl_array_release(react->fluid_moment_ratio);
+      gkyl_dg_bin_op_mem_release(react->fluid_div_mem);
+    }
 
     for (int i = 0; i < react->num_react; ++i) {
       gkyl_array_release(react->coeff_react[i]);

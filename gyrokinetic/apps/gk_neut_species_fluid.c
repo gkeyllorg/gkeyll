@@ -1,18 +1,25 @@
 #include <gkyl_gk_neut_species_priv.h>
 #include <gk_neut_species_fluid_cu.h>
 
+// True if this rank owns the physical boundary at (dir, edge). Communication
+// has already populated ghosts shared with neighboring ranks.
+static bool
+gk_neut_species_fluid_owns_edge(
+  const struct gk_neut_species *species, int dir, enum gkyl_edge_loc edge
+)
+{
+  return edge == GKYL_LOWER_EDGE ? species->local.lower[dir] == species->global.lower[dir] :
+                                   species->local.upper[dir] == species->global.upper[dir];
+}
+
 static void
 gk_neut_species_fluid_diffusion_dirichlet_ghost(
   const gkyl_gyrokinetic_app *app, const struct gk_neut_species *species, int dir,
   enum gkyl_edge_loc edge, const struct gkyl_range *ghost, double number_density,
-  const struct gkyl_array *number_density_field, struct gkyl_array *density,
-  struct gkyl_array *tensor
+  struct gkyl_array *density, struct gkyl_array *tensor
 )
 {
-  // Communication has already populated internal-rank ghosts. Only a rank
-  // owning the physical edge supplies the exterior Dirichlet state.
-  if ((edge == GKYL_LOWER_EDGE && species->local.lower[dir] != species->global.lower[dir]) ||
-      (edge == GKYL_UPPER_EDGE && species->local.upper[dir] != species->global.upper[dir])) {
+  if (!gk_neut_species_fluid_owns_edge(species, dir, edge)) {
     return;
   }
 
@@ -22,7 +29,7 @@ gk_neut_species_fluid_diffusion_dirichlet_ghost(
   if (app->use_gpu) {
     gk_neut_fluid_diffusion_dirichlet_ghost_cu(
       app->cdim, dir, skin_idx_dir, species->info.mass, number_density, &species->local_ext, ghost,
-      number_density_field, density, tensor
+      density, tensor
     );
     return;
   }
@@ -51,15 +58,7 @@ gk_neut_species_fluid_diffusion_dirichlet_ghost(
     for (int k = 0; k < nb; ++k) {
       rho_ghost[k] = -rho_ghost[k];
     }
-    if (number_density_field) {
-      const double *n_b =
-        gkyl_array_cfetch(number_density_field, gkyl_range_idx(&species->local_ext, iter.idx));
-      for (int k = 0; k < nb; ++k) {
-        rho_ghost[k] += 2.0 * species->info.mass * n_b[k];
-      }
-    } else {
-      rho_ghost[0] += 2.0 * rho_b_modal;
-    }
+    rho_ghost[0] += 2.0 * rho_b_modal;
 
     const double *K_skin = gkyl_array_cfetch(tensor, gkyl_range_idx(&species->local_ext, skin_idx));
     double *K_ghost = gkyl_array_fetch(tensor, gkyl_range_idx(&species->local_ext, iter.idx));
@@ -69,33 +68,218 @@ gk_neut_species_fluid_diffusion_dirichlet_ghost(
   }
 }
 
+// Impose zero diffusive flux through the physical face by mirroring the skin
+// cell into the ghost cell:
+//   rho_g = R(rho_s),  K_g = -R(K_s),
+// where R reflects across the face. With these ghosts the interior surface
+// kernel reduces exactly to the one-sided zero-flux boundary kernel, including
+// the off-diagonal (mapped-geometry) tensor terms; see the unit test
+// conf_diffusion_zero_flux_boundary_kernels. Unlike the hyper_dg zero-flux
+// flag, this acts only on the given ghost range (e.g. the SOL part of a
+// parallel boundary whose confined part is periodic).
 static void
-gk_neut_species_fluid_recycling_density(
+gk_neut_species_fluid_diffusion_zero_flux_ghost(
+  const gkyl_gyrokinetic_app *app, const struct gk_neut_species *species, int dir,
+  enum gkyl_edge_loc edge, const struct gkyl_range *ghost, struct gkyl_array *density,
+  struct gkyl_array *tensor
+)
+{
+  if (!gk_neut_species_fluid_owns_edge(species, dir, edge)) {
+    return;
+  }
+
+  const int skin_idx_dir = edge == GKYL_LOWER_EDGE ? species->local.lower[dir] :
+                                                     species->local.upper[dir];
+#ifdef GKYL_HAVE_CUDA
+  if (app->use_gpu) {
+    gk_neut_fluid_diffusion_zero_flux_ghost_cu(
+      app->cdim, dir, skin_idx_dir, &species->local_ext, ghost, density, tensor
+    );
+    return;
+  }
+#endif
+  const int nb = app->basis.num_basis;
+  const int nK = app->cdim * app->cdim;
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, ghost);
+  while (gkyl_range_iter_next(&iter)) {
+    int skin_idx[GKYL_MAX_CDIM];
+    for (int d = 0; d < app->cdim; ++d) {
+      skin_idx[d] = iter.idx[d];
+    }
+    skin_idx[dir] = skin_idx_dir;
+    long skin_loc = gkyl_range_idx(&species->local_ext, skin_idx);
+    long ghost_loc = gkyl_range_idx(&species->local_ext, iter.idx);
+
+    app->basis.flip_odd_sign(
+      dir, gkyl_array_cfetch(density, skin_loc), gkyl_array_fetch(density, ghost_loc)
+    );
+    const double *K_skin = gkyl_array_cfetch(tensor, skin_loc);
+    double *K_ghost = gkyl_array_fetch(tensor, ghost_loc);
+    for (int k = 0; k < nK; ++k) {
+      app->basis.flip_even_sign(dir, &K_skin[k * nb], &K_ghost[k * nb]);
+    }
+  }
+}
+
+// Recycled neutral mass flux at a target, stored in the ghost cells in the
+// same representation as the ion boundary-flux moments:
+//   F_n = m_n R sum_s g_s,
+// where g_s is the J-weighted M0 rate of impacting species s deposited in the
+// ghost cell (its ghost-cell integral is the particle loss rate through the
+// face). Within an explicit RK stage g_s is the rate of the current stage
+// (bflux.current_moms). In the operator-split implicit stage it must be the
+// RK-weighted rate over the whole step (bflux.f), i.e. what the species lost
+// during the step; current_moms then points to an RK work array that the
+// stage combination has since rescaled.
+static void
+gk_neut_species_fluid_recycling_flux(
   gkyl_gyrokinetic_app *app, const struct gk_neut_species *species, int dir,
-  enum gkyl_edge_loc edge, const struct gkyl_range *ghost
+  enum gkyl_edge_loc edge, const struct gkyl_range *ghost, bool step_averaged
 )
 {
   const int e = edge == GKYL_LOWER_EDGE ? 0 : 1;
   const struct gkyl_gyrokinetic_bc *bc = edge == GKYL_LOWER_EDGE ? &species->lower_bc[dir] :
                                                                    &species->upper_bc[dir];
-  gkyl_array_clear_range(species->diffusion_bc_density, 0.0, ghost);
-
-  // A unit-density isotropic Maxwellian emits the one-sided particle flux
-  // Gamma_M,1=sqrt(T_n/(2*pi*m_n)). Match the kinetic recycling convention:
-  // n_b*Gamma_M,1=R*Gamma_i, locally along the target.
-  const double unit_flux = sqrt(bc->emission.emission_temp / (2.0 * M_PI * species->info.mass));
+  gkyl_array_clear_range(species->diffusion_recycling_flux, 0.0, ghost);
   for (int i = 0; i < species->diffusion_recycling_num_species[e]; ++i) {
     struct gk_species *ion = &app->species[species->diffusion_recycling_ion_idx[e][i]];
-    assert(ion->bflux.current_moms);
-    gkyl_array_clear_range(species->diffusion_bc_density_tmp, 0.0, ghost);
+    struct gkyl_array **ion_flux_moms = step_averaged ? ion->bflux.f : ion->bflux.current_moms;
+    assert(ion_flux_moms);
+    gkyl_array_clear_range(species->diffusion_recycling_flux_tmp, 0.0, ghost);
     gk_species_bflux_get_flux_mom(
-      &ion->bflux, dir, edge, GKYL_F_MOMENT_M0, ion->bflux.current_moms,
-      species->diffusion_bc_density_tmp, ghost
+      &ion->bflux, dir, edge, GKYL_F_MOMENT_M0, ion_flux_moms,
+      species->diffusion_recycling_flux_tmp, ghost
     );
     gkyl_array_accumulate_range(
-      species->diffusion_bc_density, bc->emission.recycling_frac / unit_flux,
-      species->diffusion_bc_density_tmp, ghost
+      species->diffusion_recycling_flux, species->info.mass * bc->emission.recycling_frac,
+      species->diffusion_recycling_flux_tmp, ghost
     );
+  }
+}
+
+// Add the recycled flux entering through the physical face to the density
+// component (the first num_basis coefficients) of rhs in the skin cells. The
+// ghost-cell projection of a face flux and the skin-cell projection of the same
+// face flux are mirror images, so the skin increment is R(F_n); it has the same
+// cell integral, so the neutrals gain exactly R times the ion loss rate.
+static void
+gk_neut_species_fluid_recycling_source(
+  const gkyl_gyrokinetic_app *app, const struct gk_neut_species *species, int dir,
+  enum gkyl_edge_loc edge, const struct gkyl_range *ghost, struct gkyl_array *rhs
+)
+{
+  if (!gk_neut_species_fluid_owns_edge(species, dir, edge)) {
+    return;
+  }
+
+  const int skin_idx_dir = edge == GKYL_LOWER_EDGE ? species->local.lower[dir] :
+                                                     species->local.upper[dir];
+#ifdef GKYL_HAVE_CUDA
+  if (app->use_gpu) {
+    gk_neut_fluid_recycling_source_cu(
+      app->cdim, dir, skin_idx_dir, &species->local_ext, ghost, species->diffusion_recycling_flux,
+      rhs
+    );
+    return;
+  }
+#endif
+  const int nb = app->basis.num_basis;
+  double src[8] = {0.0};
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, ghost);
+  while (gkyl_range_iter_next(&iter)) {
+    int skin_idx[GKYL_MAX_CDIM];
+    for (int d = 0; d < app->cdim; ++d) {
+      skin_idx[d] = iter.idx[d];
+    }
+    skin_idx[dir] = skin_idx_dir;
+
+    app->basis.flip_odd_sign(
+      dir,
+      gkyl_array_cfetch(
+        species->diffusion_recycling_flux, gkyl_range_idx(&species->local_ext, iter.idx)
+      ),
+      src
+    );
+    double *rhs_skin = gkyl_array_fetch(rhs, gkyl_range_idx(&species->local_ext, skin_idx));
+    for (int k = 0; k < nb; ++k) {
+      rhs_skin[k] += src[k];
+    }
+  }
+}
+
+// Ghost ranges of the parallel boundaries. In an LCFS-spanning domain only the
+// SOL part of each parallel boundary is a material target.
+static void
+gk_neut_species_fluid_par_ghost_ranges(
+  const gkyl_gyrokinetic_app *app, const struct gk_neut_species *species,
+  const struct gkyl_range *ghost[2]
+)
+{
+  const int par_dir = app->cdim - 1;
+  ghost[0] =
+    app->gk_geom->has_LCFS ? &app->local_lower_ghost_par_sol : &species->local_lower_ghost[par_dir];
+  ghost[1] =
+    app->gk_geom->has_LCFS ? &app->local_upper_ghost_par_sol : &species->local_upper_ghost[par_dir];
+}
+
+// Fill the parallel ghosts of the diffusion density and tensor. Recycling
+// targets get a zero diffusive flux (the recycled flux is added separately as
+// a boundary source); fixed-density targets get a Dirichlet trace, which is
+// zero for the homogeneous part of the implicit operator.
+static void
+gk_neut_species_fluid_diffusion_par_ghosts(
+  const gkyl_gyrokinetic_app *app, const struct gk_neut_species *species,
+  struct gkyl_array *density, bool homogeneous_bc
+)
+{
+  const int par_dir = app->cdim - 1;
+  const struct gkyl_range *ghost[2];
+  gk_neut_species_fluid_par_ghost_ranges(app, species, ghost);
+  for (int e = 0; e < 2; ++e) {
+    const enum gkyl_edge_loc edge = e == 0 ? GKYL_LOWER_EDGE : GKYL_UPPER_EDGE;
+    const struct gkyl_gyrokinetic_bc *bc = e == 0 ? &species->lower_bc[par_dir] :
+                                                    &species->upper_bc[par_dir];
+    const enum gkyl_gyrokinetic_neut_fluid_diffusion_bc_type diff_bc =
+      e == 0 ? species->info.diffusion.lower_bc_type : species->info.diffusion.upper_bc_type;
+    if (bc->type == GKYL_BC_GK_SPECIES_RECYCLE) {
+      gk_neut_species_fluid_diffusion_zero_flux_ghost(
+        app, species, par_dir, edge, ghost[e], density, species->diffusion_tensor
+      );
+    } else if (diff_bc == GKYL_NEUT_FLUID_DIFFUSION_DIRICHLET) {
+      const double n_b =
+        e == 0 ? species->info.diffusion.lower_bc_density : species->info.diffusion.upper_bc_density;
+      gk_neut_species_fluid_diffusion_dirichlet_ghost(
+        app, species, par_dir, edge, ghost[e], homogeneous_bc ? 0.0 : n_b, density,
+        species->diffusion_tensor
+      );
+    }
+  }
+}
+
+// Add the recycled neutral flux at the parallel targets to rhs. step_averaged
+// selects the step-averaged impacting flux (implicit stage) instead of the
+// current RK-stage flux (explicit RHS).
+static void
+gk_neut_species_fluid_diffusion_add_recycling(
+  gkyl_gyrokinetic_app *app, const struct gk_neut_species *species, struct gkyl_array *rhs,
+  bool step_averaged
+)
+{
+  const int par_dir = app->cdim - 1;
+  const struct gkyl_range *ghost[2];
+  gk_neut_species_fluid_par_ghost_ranges(app, species, ghost);
+  for (int e = 0; e < 2; ++e) {
+    const enum gkyl_edge_loc edge = e == 0 ? GKYL_LOWER_EDGE : GKYL_UPPER_EDGE;
+    const struct gkyl_gyrokinetic_bc *bc = e == 0 ? &species->lower_bc[par_dir] :
+                                                    &species->upper_bc[par_dir];
+    if (bc->type == GKYL_BC_GK_SPECIES_RECYCLE) {
+      gk_neut_species_fluid_recycling_flux(app, species, par_dir, edge, ghost[e], step_averaged);
+      gk_neut_species_fluid_recycling_source(app, species, par_dir, edge, ghost[e], rhs);
+    }
   }
 }
 
@@ -247,46 +431,15 @@ gk_neut_species_fluid_rhs_dynamic(
       species->comm, &species->local, &species->local_ext, species->diffusion_tensor
     );
 
-    // Fixed-density or locally recycled open-field-line boundaries.
-    const int par_dir = app->cdim - 1;
-    const struct gkyl_range *lower_ghost = app->gk_geom->has_LCFS ?
-                                             &app->local_lower_ghost_par_sol :
-                                             &species->local_lower_ghost[par_dir];
-    const struct gkyl_range *upper_ghost = app->gk_geom->has_LCFS ?
-                                             &app->local_upper_ghost_par_sol :
-                                             &species->local_upper_ghost[par_dir];
-    if (species->lower_bc[par_dir].type == GKYL_BC_GK_SPECIES_RECYCLE) {
-      gk_neut_species_fluid_recycling_density(app, species, par_dir, GKYL_LOWER_EDGE, lower_ghost);
-      gk_neut_species_fluid_diffusion_dirichlet_ghost(
-        app, species, par_dir, GKYL_LOWER_EDGE, lower_ghost, 0.0, species->diffusion_bc_density,
-        species->diffusion_density, species->diffusion_tensor
-      );
-    } else if (species->info.diffusion.lower_bc_type == GKYL_NEUT_FLUID_DIFFUSION_DIRICHLET) {
-      gk_neut_species_fluid_diffusion_dirichlet_ghost(
-        app, species, par_dir, GKYL_LOWER_EDGE, lower_ghost,
-        species->info.diffusion.lower_bc_density, 0, species->diffusion_density,
-        species->diffusion_tensor
-      );
-    }
-    if (species->upper_bc[par_dir].type == GKYL_BC_GK_SPECIES_RECYCLE) {
-      gk_neut_species_fluid_recycling_density(app, species, par_dir, GKYL_UPPER_EDGE, upper_ghost);
-      gk_neut_species_fluid_diffusion_dirichlet_ghost(
-        app, species, par_dir, GKYL_UPPER_EDGE, upper_ghost, 0.0, species->diffusion_bc_density,
-        species->diffusion_density, species->diffusion_tensor
-      );
-    } else if (species->info.diffusion.upper_bc_type == GKYL_NEUT_FLUID_DIFFUSION_DIRICHLET) {
-      gk_neut_species_fluid_diffusion_dirichlet_ghost(
-        app, species, par_dir, GKYL_UPPER_EDGE, upper_ghost,
-        species->info.diffusion.upper_bc_density, 0, species->diffusion_density,
-        species->diffusion_tensor
-      );
-    }
+    // Fixed-density or recycling open-field-line boundaries.
+    gk_neut_species_fluid_diffusion_par_ghosts(app, species, species->diffusion_density, false);
 
     gkyl_dg_updater_conf_diffusion_advance(
       species->diffusion_slvr, &species->local, species->diffusion_density,
       species->diffusion_cflrate, rhs
     );
     gkyl_array_accumulate_range(species->cflrate, 1.0, species->diffusion_cflrate, &species->local);
+    gk_neut_species_fluid_diffusion_add_recycling(app, species, rhs, false);
 
     // Density is the only independently diffused quantity. Propagate its
     // change to the dependent conserved moments while holding their specific
@@ -495,47 +648,18 @@ fluid_diffusion_apply_L(
   );
   gkyl_comm_array_sync(species->comm, &species->local, &species->local_ext, rho);
 
-  const int par_dir = app->cdim - 1;
-  const struct gkyl_range *lower_ghost =
-    app->gk_geom->has_LCFS ? &app->local_lower_ghost_par_sol : &species->local_lower_ghost[par_dir];
-  const struct gkyl_range *upper_ghost =
-    app->gk_geom->has_LCFS ? &app->local_upper_ghost_par_sol : &species->local_upper_ghost[par_dir];
-  if (species->lower_bc[par_dir].type == GKYL_BC_GK_SPECIES_RECYCLE) {
-    if (!homogeneous_bc) {
-      gk_neut_species_fluid_recycling_density(app, species, par_dir, GKYL_LOWER_EDGE, lower_ghost);
-    }
-    gk_neut_species_fluid_diffusion_dirichlet_ghost(
-      app, species, par_dir, GKYL_LOWER_EDGE, lower_ghost, 0.0,
-      homogeneous_bc ? 0 : species->diffusion_bc_density, rho, species->diffusion_tensor
-    );
-  } else if (species->info.diffusion.lower_bc_type == GKYL_NEUT_FLUID_DIFFUSION_DIRICHLET) {
-    gk_neut_species_fluid_diffusion_dirichlet_ghost(
-      app, species, par_dir, GKYL_LOWER_EDGE, lower_ghost,
-      homogeneous_bc ? 0.0 : species->info.diffusion.lower_bc_density, 0, rho,
-      species->diffusion_tensor
-    );
-  }
-  if (species->upper_bc[par_dir].type == GKYL_BC_GK_SPECIES_RECYCLE) {
-    if (!homogeneous_bc) {
-      gk_neut_species_fluid_recycling_density(app, species, par_dir, GKYL_UPPER_EDGE, upper_ghost);
-    }
-    gk_neut_species_fluid_diffusion_dirichlet_ghost(
-      app, species, par_dir, GKYL_UPPER_EDGE, upper_ghost, 0.0,
-      homogeneous_bc ? 0 : species->diffusion_bc_density, rho, species->diffusion_tensor
-    );
-  } else if (species->info.diffusion.upper_bc_type == GKYL_NEUT_FLUID_DIFFUSION_DIRICHLET) {
-    gk_neut_species_fluid_diffusion_dirichlet_ghost(
-      app, species, par_dir, GKYL_UPPER_EDGE, upper_ghost,
-      homogeneous_bc ? 0.0 : species->info.diffusion.upper_bc_density, 0, rho,
-      species->diffusion_tensor
-    );
-  }
+  gk_neut_species_fluid_diffusion_par_ghosts(app, species, rho, homogeneous_bc);
 
   gkyl_array_clear(out, 0.0);
   gkyl_array_clear(species->diffusion_cflrate, 0.0);
   gkyl_dg_updater_conf_diffusion_advance(
     species->diffusion_slvr, &species->local, rho, species->diffusion_cflrate, out
   );
+  // The recycled flux is independent of the neutral state, so it belongs to
+  // the inhomogeneous part c of the affine operator L(rho)=L_h(rho)+c.
+  if (!homogeneous_bc) {
+    gk_neut_species_fluid_diffusion_add_recycling(app, species, out, true);
+  }
 }
 
 static void
@@ -632,7 +756,7 @@ gk_neut_species_fluid_rhs_implicit_dynamic(
     &species->local
   );
 
-  // The inhomogeneous Dirichlet/recycling trace makes L affine. If
+  // The inhomogeneous Dirichlet trace and the recycled flux make L affine. If
   // L(rho)=L_h(rho)+c, backward Euler is
   // (J-dt*L_h)rho_new=N_old+dt*c.
   gkyl_array_clear(s, 0.0);
@@ -787,11 +911,11 @@ gk_neut_species_fluid_release_dynamic(
         gkyl_cu_free(ns->diffusion_implicit_dot);
       }
     }
-    if (ns->diffusion_bc_density) {
-      gkyl_array_release(ns->diffusion_bc_density);
+    if (ns->diffusion_recycling_flux) {
+      gkyl_array_release(ns->diffusion_recycling_flux);
     }
-    if (ns->diffusion_bc_density_tmp) {
-      gkyl_array_release(ns->diffusion_bc_density_tmp);
+    if (ns->diffusion_recycling_flux_tmp) {
+      gkyl_array_release(ns->diffusion_recycling_flux_tmp);
     }
     gkyl_array_release(ns->diffusion_moment_ratio);
     gkyl_dg_bin_op_mem_release(ns->diffusion_div_mem);
@@ -894,8 +1018,8 @@ gk_neut_species_fluid_init_dynamic(
   ns->diffusion_density = 0;
   ns->diffusion_cflrate = 0;
   ns->diffusion_cflrate_host = 0;
-  ns->diffusion_bc_density = 0;
-  ns->diffusion_bc_density_tmp = 0;
+  ns->diffusion_recycling_flux = 0;
+  ns->diffusion_recycling_flux_tmp = 0;
   ns->diffusion_moment_ratio = 0;
   ns->diffusion_div_mem = 0;
   ns->diffusion_slvr = 0;
@@ -961,11 +1085,11 @@ gk_neut_species_fluid_init_dynamic(
     const bool recycle_lo = ns->lower_bc[par_dir].type == GKYL_BC_GK_SPECIES_RECYCLE;
     const bool recycle_up = ns->upper_bc[par_dir].type == GKYL_BC_GK_SPECIES_RECYCLE;
     if (recycle_lo || recycle_up) {
-      ns->diffusion_bc_density = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-      ns->diffusion_bc_density_tmp =
+      ns->diffusion_recycling_flux = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+      ns->diffusion_recycling_flux_tmp =
         mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-      gkyl_array_clear(ns->diffusion_bc_density, 0.0);
-      gkyl_array_clear(ns->diffusion_bc_density_tmp, 0.0);
+      gkyl_array_clear(ns->diffusion_recycling_flux, 0.0);
+      gkyl_array_clear(ns->diffusion_recycling_flux_tmp, 0.0);
     }
     for (int e = 0; e < 2; ++e) {
       const struct gkyl_gyrokinetic_bc *bc = e == 0 ? &ns->lower_bc[par_dir] :
@@ -973,7 +1097,6 @@ gk_neut_species_fluid_init_dynamic(
       if (bc->type != GKYL_BC_GK_SPECIES_RECYCLE) {
         continue;
       }
-      assert(bc->emission.emission_temp > 0.0);
       assert(bc->emission.num_species > 0);
       ns->diffusion_recycling_num_species[e] = bc->emission.num_species;
       for (int i = 0; i < bc->emission.num_species; ++i) {
