@@ -1581,6 +1581,16 @@ struct gk_neut_species {
       struct gkyl_array *diffusion_recycling_flux_tmp; // One impacting-species contribution.
       struct gkyl_array *diffusion_moment_ratio; // Conserved moments divided by density.
       struct gkyl_array *diffusion_vt_sq; // Neutral T_n/m_n in the D numerator.
+      // Prescribed neutral temperature T_n = w*T_cold + (1-w)*f*T_i
+      // (temp_model). All NULL when the model is disabled; ion weight NULL
+      // when w = 1 everywhere.
+      bool has_temp_model;
+      int temp_ion_idx; // Index of the ion species supplying T_i, or -1.
+      struct gkyl_array *temp_vt_sq_cold; // w*T_cold/m_n.
+      struct gkyl_array *temp_ion_weight; // (1-w)*f.
+      struct gkyl_array *temp_vt_sq; // Prescribed T_n/m_n.
+      struct gkyl_array *temp_work; // Energy work array.
+      struct gkyl_gk_neut_fluid_prim_vars *temp_thermal_energy; // p/(gamma-1) updater.
       gkyl_dg_bin_op_mem *diffusion_div_mem; // Memory for weak moment/density division.
       struct gkyl_dg_updater_conf_diffusion *diffusion_slvr; // Conservative DG diffusion updater.
       int diffusion_recycling_num_species[2]; // Impacting species at lower/upper parallel edges.
@@ -4538,6 +4548,18 @@ void gk_neut_species_scaling_cross_moms(
 void gk_neut_species_scaling_rhs(
   gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gk_scaling *sca,
   const struct gkyl_array *fin, struct gkyl_array *rhs
+);
+
+/**
+ * Impose the prescribed temperature (temp_model) on a fluid neutral state by
+ * replacing the thermal part of its energy moment. No-op without a model.
+ *
+ * @param app Gyrokinetic app object.
+ * @param gkns Fluid neutral species.
+ * @param f Neutral state to modify.
+ */
+void gk_neut_species_fluid_apply_temp_model(
+  gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gkyl_array *f
 );
 
 /**

@@ -299,6 +299,125 @@ gk_neut_species_fluid_apply_bc_dynamic(
   app->stat.neut_species_bc_tm += gkyl_time_diff_now_sec(wst);
 }
 
+// Set up the prescribed neutral temperature T_n = w*T_cold + (1-w)*f*T_i.
+static void
+fluid_temp_model_init(gkyl_gyrokinetic_app *app, struct gk_neut_species *ns)
+{
+  const struct gkyl_gyrokinetic_neut_fluid_temp_model *inp = &ns->info.temp_model;
+  ns->has_temp_model = inp->temp_cold > 0.0 || inp->cold_weight;
+  ns->temp_ion_idx = -1;
+  ns->temp_vt_sq_cold = 0;
+  ns->temp_ion_weight = 0;
+  ns->temp_vt_sq = 0;
+  ns->temp_work = 0;
+  ns->temp_thermal_energy = 0;
+  if (!ns->has_temp_model) {
+    return;
+  }
+  assert(inp->temp_cold >= 0.0 && inp->ion_temp_frac >= 0.0);
+  int cdim = app->cdim;
+  double f = inp->ion_temp_frac > 0.0 ? inp->ion_temp_frac : 1.0;
+
+  // Cold-neutral weight w.
+  struct gkyl_array *w = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  gkyl_array_clear(w, 0.0);
+  if (inp->cold_weight) {
+    assert(inp->ion_nm[0] != '\0');
+    struct gkyl_array *w_host = app->use_gpu ?
+                                  mkarr(false, app->basis.num_basis, app->local_ext.volume) :
+                                  gkyl_array_acquire(w);
+    gkyl_proj_on_basis *proj = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
+      .grid = &app->grid,
+      .basis = &app->basis,
+      .qtype = GKYL_GAUSS_QUAD,
+      .num_quad = app->basis.poly_order + 1,
+      .num_ret_vals = 1,
+      .eval = inp->cold_weight,
+      .ctx = inp->cold_weight_ctx,
+    });
+    gkyl_proj_on_basis_advance(proj, 0.0, &app->local, w_host);
+    gkyl_proj_on_basis_release(proj);
+    if (app->use_gpu) {
+      gkyl_array_copy(w, w_host);
+    }
+    gkyl_array_release(w_host);
+
+    // (1-w)*f.
+    ns->temp_ion_weight = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    gkyl_array_set(ns->temp_ion_weight, -f, w);
+    gkyl_array_shiftc(ns->temp_ion_weight, f * pow(sqrt(2.0), cdim), 0);
+  } else {
+    gkyl_array_shiftc(w, pow(sqrt(2.0), cdim), 0); // w = 1: T_n = T_cold.
+  }
+
+  // w*T_cold/m_n.
+  ns->temp_vt_sq_cold = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  gkyl_array_set(ns->temp_vt_sq_cold, inp->temp_cold / ns->info.mass, w);
+  gkyl_array_release(w);
+
+  ns->temp_vt_sq = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  ns->temp_work = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  ns->temp_thermal_energy = gkyl_gk_neut_fluid_prim_vars_new(
+    ns->info.gas_gamma, ns->info.mass, &app->basis, &app->grid, &app->local_ext,
+    GKYL_GK_NEUT_FLUID_PRIM_VARS_THERMAL_ENERGY, false, app->use_gpu
+  );
+}
+
+static void
+fluid_temp_model_release(struct gk_neut_species *ns)
+{
+  if (!ns->has_temp_model) {
+    return;
+  }
+  gkyl_array_release(ns->temp_vt_sq_cold);
+  if (ns->temp_ion_weight) {
+    gkyl_array_release(ns->temp_ion_weight);
+  }
+  gkyl_array_release(ns->temp_vt_sq);
+  gkyl_array_release(ns->temp_work);
+  gkyl_gk_neut_fluid_prim_vars_release(ns->temp_thermal_energy);
+}
+
+void
+gk_neut_species_fluid_apply_temp_model(
+  gkyl_gyrokinetic_app *app, struct gk_neut_species *ns, struct gkyl_array *f
+)
+{
+  if (!ns->has_temp_model) {
+    return;
+  }
+  const int nb = app->basis.num_basis;
+
+  // T_n/m_n = w*T_cold/m_n + (1-w)*f*(m_i/m_n)*(T_i/m_i).
+  gkyl_array_set_range(ns->temp_vt_sq, 1.0, ns->temp_vt_sq_cold, &ns->local);
+  if (ns->temp_ion_weight) {
+    if (ns->temp_ion_idx < 0) {
+      ns->temp_ion_idx = gk_find_species_idx(app, ns->info.temp_model.ion_nm);
+      assert(ns->temp_ion_idx >= 0);
+    }
+    struct gk_species *ion = &app->species[ns->temp_ion_idx];
+    // The ion LTE moments (J*n, upar, T/m) are a work array that the
+    // reactions recompute before use, so refreshing them here is harmless.
+    gk_species_moment_calc(app, &ion->lte.moms, ion->local, app->local, ion->f);
+    gkyl_dg_mul_op_range(
+      &app->basis, 0, ns->temp_work, 0, ns->temp_ion_weight, 2, ion->lte.moms.marr, &ns->local
+    );
+    gkyl_array_accumulate_range(
+      ns->temp_vt_sq, ion->info.mass / ns->info.mass, ns->temp_work, &ns->local
+    );
+  }
+
+  // Replace the thermal part of the total energy (component 4):
+  //   E <- E - p_old/(gamma-1) + rho*(T_n/m_n)/(gamma-1).
+  // With the THERMAL_ENERGY type the pressure kernel returns p/(gamma-1).
+  gkyl_gk_neut_fluid_prim_vars_pressure_advance(ns->temp_thermal_energy, f, ns->temp_work, 0);
+  gkyl_array_accumulate_offset_range(f, -1.0, ns->temp_work, 4 * nb, &ns->local);
+  gkyl_dg_mul_op_range(&app->basis, 0, ns->temp_work, 0, f, 0, ns->temp_vt_sq, &ns->local);
+  gkyl_array_accumulate_offset_range(
+    f, 1.0 / (ns->info.gas_gamma - 1.0), ns->temp_work, 4 * nb, &ns->local
+  );
+}
+
 // Squared neutral thermal speed T_n/m_n in the numerator of
 // D = vt^2/(ne*<sigma v>_cx), from the neutral LTE moments
 // (n, u_e1, u_e2, u_bhat, T/m) computed for the current stage.
@@ -1001,6 +1120,7 @@ gk_neut_species_fluid_release(const gkyl_gyrokinetic_app *app, const struct gk_n
   // Free memory for the object that scales the species according to a balance
   // between recycling and reactions.
   gk_neut_species_scaling_release(app, &ns->sca);
+  fluid_temp_model_release(ns);
 
   ns->release_is_static_func(app, ns);
 }
@@ -1403,6 +1523,9 @@ gk_neut_species_fluid_init(
   // between recycling and reactions.
   ns->sca = (struct gk_scaling){};
   gk_neut_species_scaling_init(app, ns, &ns->sca);
+
+  // Prescribed neutral temperature.
+  fluid_temp_model_init(app, ns);
 
   // Initialize BGK collisions with null type (not applicable to fluids).
   ns->bgk = (struct gk_bgk_collisions){};

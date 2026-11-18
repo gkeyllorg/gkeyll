@@ -556,7 +556,7 @@ struct gkyl_gyrokinetic_neut_fluid_diffusion {
   int implicit_max_iter;
   // Compute D = (T_n/m_n)/(ne*<sigma v>_cx) from the neutral temperature,
   // the IZ electron density and the CX rate. Requires one GKYL_REACT_IZ and
-  // one GKYL_REACT_CX entry.
+  // one GKYL_REACT_CX entry. See temp_model to prescribe T_n.
   bool use_reaction_rates;
   // Minimum cell-average ne*<sigma v>_cx used in the diffusion denominator
   // (units 1/s). A value of zero disables the floor.
@@ -574,6 +574,23 @@ struct gkyl_gyrokinetic_neut_fluid_diffusion {
   enum gkyl_gyrokinetic_neut_fluid_diffusion_bc_type upper_bc_type;
   double lower_bc_density;
   double upper_bc_density;
+};
+
+// Prescribed temperature of a fluid neutral species,
+//   T_n = w*temp_cold + (1 - w)*ion_temp_frac*T_i,
+// imposed on the neutral energy moment at the initial condition and after
+// every time step, so reactions, diffusion and diagnostics all use it. T_i is
+// the temperature of the ion species ion_nm, and w in [0,1] is the cold-neutral
+// weight given by cold_weight (e.g. 1 at the targets, where recycled atoms are
+// cold, and 0 a CX mean free path away). Without cold_weight, w = 1 and
+// T_n = temp_cold. ion_temp_frac = 0 selects 1. The model is disabled when
+// temp_cold = 0 and cold_weight is NULL.
+struct gkyl_gyrokinetic_neut_fluid_temp_model {
+  double temp_cold; // Cold (e.g. Franck-Condon) neutral temperature [J].
+  double ion_temp_frac; // Fraction of T_i for the CX-heated neutrals.
+  char ion_nm[128]; // Ion species supplying T_i; required when cold_weight is set.
+  void (*cold_weight)(double t, const double *xn, double *fout, void *ctx);
+  void *cold_weight_ctx;
 };
 
 // Parameters for neutral species.
@@ -624,6 +641,10 @@ struct gkyl_gyrokinetic_neut_species {
   // rescaled to preserve velocity and specific energy. This input is ignored
   // for kinetic and static neutral species.
   struct gkyl_gyrokinetic_neut_fluid_diffusion diffusion;
+
+  // Prescribed temperature of a fluid neutral species (ignored for kinetic
+  // neutrals).
+  struct gkyl_gyrokinetic_neut_fluid_temp_model temp_model;
 
   // Inputs to operation that scales the species every time step.
   struct gkyl_gyrokinetic_scaling_inp scaling;

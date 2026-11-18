@@ -304,6 +304,13 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app *app, double dt0)
             struct gk_neut_species *gkns = &app->neut_species[i];
             gk_neut_species_scaling_apply(app, gkns, &gkns->sca, gkns->f, bflux_out);
           }
+          // Impose prescribed fluid-neutral temperatures.
+          for (int i = 0; i < app->num_neut_species; ++i) {
+            struct gk_neut_species *gkns = &app->neut_species[i];
+            if (gkns->is_fluid) {
+              gk_neut_species_fluid_apply_temp_model(app, gkns, gkns->f);
+            }
+          }
 
           // Compute field energy divided by dt for energy balance diagnostics.
           gk_field_calc_energy_dt(app, app->field, dt, app->field->em_energy_red_new);

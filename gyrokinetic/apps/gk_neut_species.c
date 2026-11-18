@@ -32,6 +32,10 @@ gk_neut_species_apply_ic_cross(
 {
   // Store initial density in scaling operator.
   gk_neut_species_scaling_apply_ic_cross(app, gkns_self, &gkns_self->sca);
+  // Impose a prescribed fluid-neutral temperature (needs the ion state).
+  if (gkns_self->is_fluid) {
+    gk_neut_species_fluid_apply_temp_model(app, gkns_self, gkns_self->f);
+  }
 }
 
 double
