@@ -243,7 +243,7 @@ create_ctx(void)
 
   // Grid parameters
   int Nx = 12;
-  int Ny = 2;
+  int Ny = 4;
   int Nz = 4;
   int Nvpar = 4;
   int Nmu = 2;
