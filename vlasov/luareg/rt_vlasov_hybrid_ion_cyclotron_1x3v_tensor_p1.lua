@@ -5,7 +5,7 @@
 -- split: the source step takes the ion current as known and solves the electron momentum with E,
 -- the transport step moves the ions with that E.
 --
--- Linear theory (derived; Maxwell's equations with the displacement current, kinetic ions, and cold
+-- Linear theory (Maxwell's equations with the displacement current, kinetic ions, and cold
 -- electrons, since the pressure does not enter a transverse wave along B): omega^2 - c^2 k^2 +
 -- omega_pi^2 (omega / (sqrt(2) k v_ti)) Z((omega - Omega_ci) / (sqrt(2) k v_ti)) - omega_pe^2 omega
 -- / (omega + |Omega_ce|) = 0 gives omega = 0.51572 Omega_ci and a damping rate of 0.05099 Omega_ci.
@@ -16,21 +16,17 @@
 -- x B0. These amplitudes solve the linear initial value problem for which the three other normal
 -- modes at this wave number and polarization are not excited: the whistler that propagates the
 -- opposite way (omega = -1.566 Omega_ci) and two high-frequency electron modes. The amplitude
--- relations of the wave itself start the whistler, which is not damped, at 4.5% of the field
--- (derived; a run started that way shows a beat of that size in the magnetic energy). The
+-- relations of the wave itself start the whistler, which is not damped, at 4.5% of the field. The
 -- Maxwellian is not the kinetic eigenfunction: the rest of the perturbation phase-mixes during the
--- first period, which leaves the wave 0.985 of the initial field (derived), so the figures of merit
--- are taken after it.
+-- first period, which leaves the wave 0.985 of the initial field, so the figures of merit are taken
+-- after it.
 --
 -- Figures of merit (tensor p1 with the hybrid phase basis, 16 x 16 x 6 x 6 cells, 2327 steps,
 -- omega_pi dt = 0.131, omega_pe dt = |Omega_ce| dt = 1.31, set by the light wave): between t = 1
 -- and 2.5 wave periods the k d_i = 1 mode of B_y + i B_z decays at 0.05137 Omega_ci (+0.7%) with
 -- omega = 0.51631 Omega_ci (+0.1%); the history of the transverse magnetic energy over the same
 -- interval gives 0.05131 Omega_ci (+0.6%). The total energy changes by -5e-13 (6e-5 of the initial
--- magnetic energy of the wave). With 12 and 8 cells per wavelength the damping rate is 2.0% and
--- 7.6% too large; half the step, or 24 x 12 x 12 velocity cells, change neither. A run of the same
--- problem with kinetic electrons on the same number of velocity cells takes a step 24 times smaller
--- (0.054 / omega_pe, from its first step).
+-- magnetic energy of the wave).
 
 local Vlasov = G0.Vlasov
 local Euler = G0.Vlasov.Eq.Euler

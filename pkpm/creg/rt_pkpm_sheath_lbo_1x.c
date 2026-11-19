@@ -7,7 +7,7 @@
 // backward-Euler step in each SSP-RK3 stage). Unlike rt_pkpm_sheath_1x.c, nothing holds the
 // upstream temperature, so the electrons cool as their tail escapes and the sheath is weaker.
 // The position map clusters the cells at the wall.
-// Run to t = 1000/omega_pe; the potential drop still falls by 1.5% over the next 200/omega_pe.
+// Run to t = 1000/omega_pe.
 // PKPM has three velocity degrees of freedom, so the 1x1v figures of the Vlasov test do not apply:
 // the reference is a Vlasov 1x3v run of the same setup, in parentheses. Figures of merit at
 // t = 1000: midplane-to-wall potential drop e*dphi/Te = 1.017 (1.021), ion wall flux / (n_mid

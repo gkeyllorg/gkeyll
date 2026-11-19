@@ -13,8 +13,7 @@
 
 // Parameters for the kinetic block of a PKPM species: the grid of the normalized velocity
 // w = v_par/xi, the initial condition of the distributions, collisions, sources and the kinetic
-// BCs. Declared as the 'kinetic' block of struct gkyl_pkpm_species. The members it shares with
-// struct gkyl_vlasov_kinetic_species have the same names and types.
+// BCs. Declared as the 'kinetic' block of struct gkyl_pkpm_species.
 struct gkyl_pkpm_kinetic_species {
   double lower[3], upper[3]; // Lower, upper bounds of the NORMALIZED velocity w = v_par/xi.
   int cells[3]; // Velocity-space cells.
@@ -78,8 +77,7 @@ struct gkyl_pkpm_kinetic_species {
 
 // Parameters for the fluid block of a PKPM species: the initial condition of the fluid state,
 // the positivity limiter, momentum diffusion, the applied acceleration and the fluid BCs.
-// Declared as the 'fluid' block of struct gkyl_pkpm_species. The members it shares with
-// struct gkyl_vlasov_fluid_species have the same names and types.
+// Declared as the 'fluid' block of struct gkyl_pkpm_species.
 struct gkyl_pkpm_fluid_species {
   void *ctx; // Context for initial condition init function.
   // Pointer to the initialization function of the fluid state
@@ -111,8 +109,8 @@ struct gkyl_pkpm_fluid_species {
   enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
 };
 
-// Parameters for one PKPM species: the identity (name, charge, mass) and its two blocks, as in
-// struct gkyl_vlasov_species. For example
+// Parameters for one PKPM species: the identity (name, charge, mass) and its two blocks. For
+// example
 //   struct gkyl_pkpm_kinetic_species elc_kinetic = { .lower = ..., .cells = ..., ... };
 //   struct gkyl_pkpm_fluid_species elc_fluid = { .init = ..., ... };
 //   .num_species = 1,
@@ -273,7 +271,7 @@ struct gkyl_pkpm_stat {
   double init_fluid_species_tm; // time to initialize all fluid species
   double init_field_tm; // time to initialize fields
 
-  double species_rhs_tm; // time to compute species collisionless RHS
+  double species_rhs_tm; // time to compute the kinetic RHS
   double fluid_species_rhs_tm; // time to compute fluid species RHS
 
   double species_coll_mom_tm; // time needed to compute various moments needed in LBO
@@ -289,7 +287,7 @@ struct gkyl_pkpm_stat {
   double field_bc_tm; // time to compute field
 
   double field_rhs_tm; // time to compute field RHS
-  double field_em_vars_tm; // time to compute EM auxiliary variables (e.g., bvar and E x B)
+  double field_em_vars_tm; // time to compute bvar and its gradient and to limit the field
   double current_tm; // time to compute currents and accumulation
 
   long n_species_omega_cfl; // number of times CFL-omega all-reduce is called
@@ -383,7 +381,8 @@ void gkyl_pkpm_app_calc_field_energy(gkyl_pkpm_app *app, double tm);
 void gkyl_pkpm_app_write(gkyl_pkpm_app *app, double tm, int frame);
 
 /**
- * Write field data to file.
+ * Write field data to file. With the implicit fluid-EM coupling the field the stepper holds
+ * between updates is written too (<name>-field_restart_<frame>), for a restart.
  * 
  * @param app App object.
  * @param tm Time-stamp
@@ -395,6 +394,10 @@ void gkyl_pkpm_app_write_field(gkyl_pkpm_app *app, double tm, int frame);
  * Write the state of a species to files, both read by a restart:
  * 1. <name>_<frame>: the distributions [F, G, M0_perp (x, y, z), N_perp (x, y, z)]
  * 2. <name>_fluid_<frame>: the fluid state [rho, rho ux, rho uy, rho uz, E]
+ * 3. <name>_pkpm_closure_restart_<frame>: the closures [alpha_0, c] of the last stage of the last
+ *    completed step, from which the next step takes the speeds of the velocity-domain edges
+ * 4. <name>_fluid_restart_<frame>: with the implicit fluid-EM coupling, the fluid state the
+ *    stepper holds between updates
  * 
  * @param app App object.
  * @param sidx Index of species to write.
@@ -609,7 +612,8 @@ struct gkyl_app_restart_status gkyl_pkpm_app_from_frame_species(
 );
 
 /**
- * Initialize the pkpm app from a specific frame.
+ * Initialize the pkpm app from a specific frame, with the frame's restart files, so that the run
+ * continues as the run that wrote the frame.
  *
  * @param app App object
  * @param frame frame to read

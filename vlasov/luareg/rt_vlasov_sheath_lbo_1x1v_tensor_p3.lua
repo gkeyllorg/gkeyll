@@ -5,8 +5,6 @@
 -- fixed-temperature BGK version, nothing holds the upstream temperature, so the electrons cool as
 -- their tail escapes, equilibrate with the ions and the sheath is weaker. The position map clusters
 -- the cells at the wall.
--- Figures of merit at steady state (serendipity p2): midplane-to-wall potential drop
--- e*dphi/Te = 0.47, ion wall flux / (n_mid c_s) = 0.35, ion speed at the wall / c_s = 0.87.
 local Vlasov = G0.Vlasov
 
 -- Physical constants (using normalized code units).

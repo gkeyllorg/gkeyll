@@ -200,7 +200,7 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
     s->fluid->fluid_host = mkarr(false, 5 * app->confBasis.num_basis, app->local_ext.volume);
   }
 
-  // allocate cflrate for distribution function and momentum updates (scalar arrays)
+  // allocate cflrate for distribution function and fluid updates (scalar arrays)
   s->kinetic->cflrate = mkarr(app->use_gpu, 1, s->kinetic->local_ext.volume);
   s->fluid->cflrate = mkarr(app->use_gpu, 1, app->local_ext.volume);
 
@@ -212,12 +212,11 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
     s->fluid->omegaCfl_ptr = gkyl_malloc(sizeof(double));
   }
 
-  // allocate array to store q/m*(E,B) if using a fully explicit update
+  // q/m (E, B) and the applied acceleration for the explicit Lorentz force
   s->fluid->qmem = mkarr(app->use_gpu, 8 * app->confBasis.num_basis, app->local_ext.volume);
 
   int nc = app->confBasis.num_basis;
   // pkpm moments for diagnostics [rho, M1, p_par, p_perp, q_par, q_perp, r_parpar, r_parperp]
-  // (the is_integrated flag selects the diagnostic moment set)
   pkpm_species_moment_init(app, s, &s->kinetic->pkpm_moms_diag, true);
   // raw moments of the normalized distributions [F, G, M0_perp, N_perp] (mass 1), the kinetic
   // coupling moments [p_par, p_perp, q_par, q_perp, s (3), r (3)] formed from them and the
@@ -259,6 +258,12 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   gkyl_array_clear(s->kinetic->pkpm_c_h, 0.0);
   s->kinetic->pkpm_a_perp = mkarr(app->use_gpu, 3 * nc, app->local_ext.volume);
   gkyl_array_clear(s->kinetic->pkpm_a_perp, 0.0);
+  s->kinetic->pkpm_closure_step = mkarr(app->use_gpu, 2 * nc, app->local_ext.volume);
+  gkyl_array_clear(s->kinetic->pkpm_closure_step, 0.0);
+  s->kinetic->pkpm_closure_step_host = s->kinetic->pkpm_closure_step;
+  if (app->use_gpu) {
+    s->kinetic->pkpm_closure_step_host = mkarr(false, 2 * nc, app->local_ext.volume);
+  }
   s->fluid->pkpm_xi = mkarr(app->use_gpu, 3 * nc, app->local_ext.volume);
   gkyl_array_clear(s->fluid->pkpm_xi, 0.0);
   s->kinetic->pkpm_xi = mkarr(app->use_gpu, 3 * nc, app->local_ext.volume);
@@ -277,10 +282,10 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   s->kinetic->closure_cond_min = 1.0;
   s->kinetic->closure_null_warned = false;
 
-  // Updater for the configuration-space variables (nodal primitive variables, closures, weak
-  // gradients, sources, diagnostics); every method takes the range it acts on.
-  // Each aspect has its own updater of the configuration-space variables: the fluid one forms the
-  // primitive variables, their gradients and the limiter, the kinetic one the closures.
+  // Updaters for the configuration-space variables, one per aspect: the fluid one forms the
+  // primitive variables, their gradients, the limiter, the sources and the diagnostics, the
+  // kinetic one the closures, the constraints and the transverse projection. Every method takes
+  // the range it acts on.
   struct gkyl_dg_calc_pkpm_vars_inp calc_pkpm_vars_inp = {
     .conf_grid = &app->grid,
     .conf_basis = &app->confBasis,
@@ -376,8 +381,7 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   s->kinetic->harm_wnode = mkarr(
     app->use_gpu, gkyl_dg_pkpm_harm_vol_num_wnode(s->kinetic->harm_vol), app->local_ext.volume
   );
-  // gyrophase mixing: default rate 10 |Omega| (the bulk overshoot is ~(drive/Omega)/c, and problems
-  // driven at the ion gyroscale drive agyrotropy at ~Omega), switched off by a negative input
+  // gyrophase mixing: default rate 10 |Omega|, switched off by a negative input
   double gyro_mix = s->kinetic->info.gyro_mix == 0.0 ? 10.0 : s->kinetic->info.gyro_mix;
   s->kinetic->harm_exp = gkyl_dg_pkpm_harm_exp_inew(&(struct gkyl_dg_pkpm_harm_exp_inp){
     .phase_grid = &s->kinetic->grid,
@@ -619,18 +623,16 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   gkyl_array_clear(s->kinetic->bc_buffer_up_fixed, 0.0);
 
   s->fluid->bc_buffer = mkarr(app->use_gpu, 5 * app->confBasis.num_basis, buff_sz_fluid);
-  // buffer arrays for fixed function boundary conditions on momentum
+  // buffer arrays for fixed function boundary conditions on the fluid state
   s->fluid->bc_buffer_lo_fixed = mkarr(app->use_gpu, 5 * app->confBasis.num_basis, buff_sz_fluid);
   s->fluid->bc_buffer_up_fixed = mkarr(app->use_gpu, 5 * app->confBasis.num_basis, buff_sz_fluid);
 
   // Absorbing boundaries: the distribution functions vanish in the ghost cells; the
   // fluid state is the mirror image of the skin cell (even in the wall direction), so the
   // ghost trace at the wall is the skin trace and the primitive variables, their weak
-  // gradients and the face averages of the flux coefficients are one-sided at the wall (a
-  // zero ghost state would be a huge gradient of xi, n and u that drives spurious forces in
-  // the wall cell; a copied one halves the wall-cell gradients). The fluid fluxes through
-  // the wall are the moments of the kinetic flux against the zero ghost distributions
-  // (pkpm_species_face_flux), not the fluid flux of the ghost state.
+  // gradients and the face averages of the flux coefficients are one-sided at the wall. The
+  // fluid fluxes through the wall are the moments of the kinetic flux against the zero ghost
+  // distributions (pkpm_species_face_flux), not the fluid flux of the ghost state.
   s->kinetic->bc_is_absorb = false;
   for (int d = 0; d < cdim; ++d) {
     s->kinetic->bc_lo_reflect[d] = 0;
@@ -654,7 +656,7 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
       d, GKYL_LOWER_EDGE, bctype_dist, app->basis_on_dev.basis, &s->kinetic->lower_skin[d],
       &s->kinetic->lower_ghost[d], s->kinetic->f->ncomp, app->cdim, app->use_gpu
     );
-    // Momentum non-periodic lower boundary conditions
+    // Fluid state non-periodic lower boundary conditions
     s->fluid->bc_lo[d] = gkyl_bc_basic_new(
       d, GKYL_LOWER_EDGE, bctype_fluid, app->basis_on_dev.confBasis, &app->lower_skin[d],
       &app->lower_ghost[d], s->fluid->fluid->ncomp, app->cdim, app->use_gpu
@@ -678,7 +680,7 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
       d, GKYL_UPPER_EDGE, bctype_dist, app->basis_on_dev.basis, &s->kinetic->upper_skin[d],
       &s->kinetic->upper_ghost[d], s->kinetic->f->ncomp, app->cdim, app->use_gpu
     );
-    // Momentum non-periodic upper boundary conditions
+    // Fluid state non-periodic upper boundary conditions
     s->fluid->bc_up[d] = gkyl_bc_basic_new(
       d, GKYL_UPPER_EDGE, bctype_fluid, app->basis_on_dev.confBasis, &app->upper_skin[d],
       &app->upper_ghost[d], s->fluid->fluid->ncomp, app->cdim, app->use_gpu
@@ -802,9 +804,7 @@ static void
 pkpm_species_coupling_moms(gkyl_pkpm_app *app, struct pkpm_species *species)
 {
   int nc = app->confBasis.num_basis;
-  // [p_par, p_perp, q_par, q_perp] = p [M2, M0_G, xi M3, xi M1_G] and the first-harmonic stress and
-  // heat flux s = p m1, r = p xi (m2/2 + n0), p = rho xi^2, from the normalized moments
-  // [M0, M2, M0_G, M1, M3, M1_G, mu (3), m1 (3), m2 (3), n0 (3)].
+  // layout of the normalized moments: [M0, M2, M0_G, M1, M3, M1_G, mu (3), m1 (3), m2 (3), n0 (3)]
   static const int raw[7] = {1, 2, 4, 5, 9, 10, 11}; // M2, M0_G, M3, M1_G, m1 (3)
   for (int c = 0; c < 10; ++c) {
     if (c < 7) {
@@ -1052,26 +1052,44 @@ pkpm_species_harm_exp_advance(
   );
 }
 
-// Closures from the moments of the partial right-hand side rhs_A (configuration pass):
-// c_0 M0 = -M0(rhs_A), (alpha_0, c) from the first and scalar second moments and a_perp from the
-// perpendicular rows I_perp int M0_perp dw (pkpm-vars-closure.mac).
-static void
+// Closures from the moments of the partial right-hand side rhs (configuration pass, sources and
+// collisions): c_0 M0 = -M0(rhs), (alpha_0, c) from the first and scalar second moments and
+// a_perp from the perpendicular rows I_perp int M0_perp dw. The velocity-edge fluxes enter the
+// solve and are stored for the velocity pass, so that the complete right-hand side keeps the
+// constraints. Their edge speeds use the closures of the stage before; from_step takes those of
+// the last stage of the last completed step (the first stage of a step, the diagnostics).
+// Returns the number of nodes where the closures are undefined.
+static int
 pkpm_species_kinetic_closure(
   gkyl_pkpm_app *app, struct pkpm_kinetic_species *kin, const struct gkyl_array *fin,
-  const struct gkyl_array *rhs
+  const struct gkyl_array *rhs, bool from_step
 )
 {
-  // Closures from the moments of the configuration pass, with the characteristic
-  // velocity-edge fluxes inside the 3x3 solve (upwind switch from the closures of the
-  // previous stage): the edge fluxes are written for the velocity pass, so that the
-  // complete right-hand side keeps the constraints exactly.
+  if (from_step) {
+    gkyl_array_set_offset(kin->pkpm_alpha_0, 1.0, kin->pkpm_closure_step, 0);
+    gkyl_array_set_offset(kin->pkpm_c_h, 1.0, kin->pkpm_closure_step, app->confBasis.num_basis);
+  }
   gkyl_array_clear(kin->pkpm_rhs_moms, 0.0);
   pkpm_species_moment_calc_into(&kin->pkpm_nmoms, kin->local, app->local, rhs, kin->pkpm_rhs_moms);
-  int num_null = gkyl_dg_calc_pkpm_vars_closure(
+  return gkyl_dg_calc_pkpm_vars_closure(
     kin->calc_pkpm_vars, &app->local, &kin->local, &kin->grid, kin->pkpm_nmoms.marr,
     kin->pkpm_rhs_moms, app->field->bvar, kin->harm_wnode, kin->pkpm_theta, fin, kin->pkpm_c_0,
     kin->pkpm_alpha_0, kin->pkpm_c_h, kin->pkpm_a_perp, kin->vel_flux_surf, kin->cflrate
   );
+}
+
+void
+pkpm_species_complete_step(gkyl_pkpm_app *app, struct pkpm_species *sp)
+{
+  struct pkpm_kinetic_species *kin = sp->kinetic;
+  gkyl_array_set_offset(kin->pkpm_closure_step, 1.0, kin->pkpm_alpha_0, 0);
+  gkyl_array_set_offset(kin->pkpm_closure_step, 1.0, kin->pkpm_c_h, app->confBasis.num_basis);
+}
+
+// Record the nulled closure nodes of a stage in the statistics of the species.
+static void
+pkpm_species_kinetic_closure_stat(gkyl_pkpm_app *app, struct pkpm_kinetic_species *kin, int num_null)
+{
   kin->num_null_closure += num_null;
   kin->closure_cond_min =
     fmin(kin->closure_cond_min, gkyl_dg_calc_pkpm_vars_closure_cond_min(kin->calc_pkpm_vars));
@@ -1103,14 +1121,14 @@ pkpm_species_calc_diag_vars(
   pkpm_species_face_flux(app, species, fin);
   // fnew is free scratch between time steps.
   pkpm_species_kinetic_conf_pass(app, species->kinetic, fin, species->kinetic->fnew);
-  pkpm_species_kinetic_closure(app, species->kinetic, fin, species->kinetic->fnew);
+  pkpm_species_kinetic_closure(app, species->kinetic, fin, species->kinetic->fnew, true);
 }
 
 // Right-hand side of the kinetic equations of a species. The face fluxes of the stage, the source
 // distributions and the rates were staged for every species before any right-hand side.
 double
 pkpm_kinetic_species_rhs(
-  gkyl_pkpm_app *app, struct pkpm_kinetic_species *kin, const struct gkyl_array *fin,
+  gkyl_pkpm_app *app, struct pkpm_kinetic_species *kin, int stage, const struct gkyl_array *fin,
   const struct gkyl_array *em, struct gkyl_array *rhs
 )
 {
@@ -1120,9 +1138,8 @@ pkpm_kinetic_species_rhs(
   // velocity pass accumulating into the same rhs.
   pkpm_species_kinetic_conf_pass(app, kin, fin, rhs);
   // Sources and collisions enter before the closures, which keep the constraints exact
-  // against them (the fluid carries the density and energy changes). The self-species LBO
-  // conserves the constraints on its own (boundary corrections, zero-flux w edges); it sits
-  // here so that a cross-species energy exchange reaches the thermal-speed closure.
+  // against them (the fluid carries the density and energy changes). The LBO conserves the
+  // constraints on its own (boundary corrections, zero-flux w edges).
   pkpm_species_source_kinetic_rhs(app, kin, &kin->src, fin, rhs);
   pkpm_species_source_bgk_kinetic_rhs(app, kin, &kin->src_bgk, fin, rhs);
   if (kin->collision_id == GKYL_BGK_COLLISIONS) {
@@ -1133,7 +1150,8 @@ pkpm_kinetic_species_rhs(
   }
   // The operators at the nodes accumulated into the nodal right-hand side.
   pkpm_species_nodal_accumulate(app, kin, rhs);
-  pkpm_species_kinetic_closure(app, kin, fin, rhs);
+  int num_null = pkpm_species_kinetic_closure(app, kin, fin, rhs, stage == 1);
+  pkpm_species_kinetic_closure_stat(app, kin, num_null);
   gkyl_dg_pkpm_vel_flux_surf_advance(
     kin->calc_vel_flux, &app->local, &kin->local, kin->harm_wnode, kin->pkpm_theta,
     app->field->bvar, kin->pkpm_alpha_0, kin->pkpm_c_h, fin, kin->vel_flux_surf
@@ -1268,13 +1286,13 @@ pkpm_species_calc_coupled_vars(
 
 double
 pkpm_species_rhs(
-  gkyl_pkpm_app *app, struct pkpm_species *sp, const struct gkyl_array *fin,
+  gkyl_pkpm_app *app, struct pkpm_species *sp, int stage, const struct gkyl_array *fin,
   const struct gkyl_array *fluidin, const struct gkyl_array *emin, struct gkyl_array *fout,
   struct gkyl_array *fluidout
 )
 {
   double dt = DBL_MAX;
-  dt = fmin(dt, pkpm_kinetic_species_rhs(app, sp->kinetic, fin, emin, fout));
+  dt = fmin(dt, pkpm_kinetic_species_rhs(app, sp->kinetic, stage, fin, emin, fout));
   dt = fmin(dt, pkpm_fluid_species_rhs(app, sp->fluid, fluidin, emin, fluidout));
   return dt;
 }
@@ -1578,6 +1596,10 @@ pkpm_species_release(const gkyl_pkpm_app *app, const struct pkpm_species *s)
   gkyl_array_release(s->kinetic->pkpm_grad_ln_n);
   gkyl_array_release(s->kinetic->pkpm_c_0);
   gkyl_array_release(s->kinetic->pkpm_a_perp);
+  if (app->use_gpu) {
+    gkyl_array_release(s->kinetic->pkpm_closure_step_host);
+  }
+  gkyl_array_release(s->kinetic->pkpm_closure_step);
   gkyl_array_release(s->fluid->integ_mom);
   gkyl_array_release(s->fluid->pkpm_prim_io);
   gkyl_array_release(s->kinetic->pkpm_vars_io);

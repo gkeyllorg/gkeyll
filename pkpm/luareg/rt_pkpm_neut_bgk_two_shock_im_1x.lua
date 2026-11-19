@@ -1,5 +1,5 @@
 -- Collision of two strong shocks for a neutral gas with BGK collisions with the PKPM system of
--- equations (1x, normalized parallel velocity w = v_par/xi): the states of test 5 of Toro, Riemann
+-- equations (1x, normalized parallel velocity w = v_par/xi): the states of test 4 of Toro, Riemann
 -- Solvers and Numerical Methods for Fluid Dynamics. Density 5.99924, velocity 19.5975 and pressure
 -- 460.894 left of x = 0.4; density 5.99242, velocity -6.19633 and pressure 46.0895 on the right.
 -- The collision frequency puts the mean free path below 1/400 of a cell, so the solution follows

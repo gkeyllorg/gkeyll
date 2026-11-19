@@ -12,15 +12,9 @@
 //
 // Figures of merit at t = 5e-9 (200 cells, serendipity p1, 1000 steps): on 0.3 < x < 0.95 the cell
 // averages of E_y are the moments finite-volume solution (400 cells) times a constant to 0.013 in
-// L2 (0.002 with 400 cells, 0.023 with 100 cells where omega_p dt reaches 7.5). The constant is -1
-// / 6.79: the moments test has a copy boundary next to the antenna, and its wave has a different
-// amplitude and the opposite sign. The maximum of |E_y| is 8.70e-13, 1.85 times the amplitude mu_0
-// c J_0 / 800 the antenna radiates to each side in free space, and |E_y| stays below 0.9% of the
-// maximum for x < 0.483, beyond the cutoff. With a copy boundary in place of the absorbing one
-// (central flux of the field) the maximum is 12.6 times larger, |E_y| reaches 4.9% of it beyond the
-// cutoff and the residual of the shape is 0.60. With 100 cells the antenna covers a quarter of the
-// last cell and the two-point projection of its current doubles the amplitude (3.79 times the
-// free-space one); the shape is not affected.
+// L2. The maximum of |E_y| is 8.70e-13, 1.85 times the amplitude mu_0 c J_0 / 800 the antenna
+// radiates to each side in free space, and |E_y| stays below 0.9% of the maximum for x < 0.483,
+// beyond the cutoff.
 
 #include <math.h>
 #include <stdio.h>

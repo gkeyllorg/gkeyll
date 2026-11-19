@@ -16,7 +16,7 @@ pkpm_forward_euler(
   double dtmin = DBL_MAX;
 
   // Compute applied acceleration, external EM fields, and applied currents if present.
-  // Note these are only computed here *if* momentum-EM coupling is explicit
+  // Note these are only computed here *if* fluid-EM coupling is explicit
   // Otherwise, applies acceleration, external EM fields, and applied currents are computed in implicit update.
   // Also, these quantities use proj_on_basis so we copy to GPU every call if app->use_gpu = true.
   if (app->field->ext_em_evolve && app->use_explicit_sources) {
@@ -54,7 +54,7 @@ pkpm_forward_euler(
   for (int i = 0; i < app->num_species; ++i) {
     // the species see the physical fields of the stage (computed by pkpm_field_calc_bvar)
     double dt1 = pkpm_species_rhs(
-      app, &app->species[i], fin[i], fluidin[i], app->field->em_no_J, fout[i], fluidout[i]
+      app, &app->species[i], stage, fin[i], fluidin[i], app->field->em_no_J, fout[i], fluidout[i]
     );
     dtmin = fmin(dtmin, dt1);
   }
@@ -90,7 +90,7 @@ pkpm_forward_euler(
     pkpm_fluid_species_apply_bc(app, app->species[i].fluid, fluidout[i]);
   }
 
-  // Explicit accumulation current contribution from momentum to electric field terms
+  // Explicit accumulation of the species current onto the electric field terms
   if (app->use_explicit_sources) {
     pkpm_field_explicit_accumulate_current(app, app->field, fluidin, emout);
   }

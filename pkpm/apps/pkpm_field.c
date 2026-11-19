@@ -112,7 +112,6 @@ pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app)
     f->omegaCfl_ptr = gkyl_malloc(sizeof(double));
   }
 
-  // equation object
   f->use_ghost_current = false;
   if (f->info.use_ghost_current) {
     // 1D periodic electrostatics only: the mean current is a single number.
@@ -129,6 +128,7 @@ pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app)
   double c = 1 / sqrt(f->info.epsilon0 * f->info.mu0);
   double ef = f->info.elcErrorSpeedFactor, mf = f->info.mgnErrorSpeedFactor;
 
+  // equation object
   struct gkyl_dg_eqn *eqn;
 
   // Input structure for building the dg eqn object: the Maxwell curl kernels take the

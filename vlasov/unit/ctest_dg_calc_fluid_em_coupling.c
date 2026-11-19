@@ -253,7 +253,7 @@ eval_fields(double t, const double *xn, double *restrict fout, void *ctx)
 {
   int cdim = *(int *)ctx;
   double x = xn[0], y = cdim > 1 ? xn[1] : 0.3, z = cdim > 2 ? xn[2] : -0.2;
-  // [rho0, rho1, M0(3), M1(3), E(3), B(3), Bext(3), a0(3), Japp(3)] = 20 components
+  // [rho0, rho1, M0(3), M1(3), E(3), B(3), Bext(3), a0(3), Japp(3)] = 23 components
   fout[0] = 2.0 + 0.5 * sin(x) * cos(y) + 0.2 * z;
   fout[1] = 1.0 + 0.3 * cos(x) + 0.1 * sin(y) * z;
   fout[2] = 0.4 * sin(y) + 0.1 * x;

@@ -71,7 +71,7 @@ static const struct gkyl_str_int_pair field_type[] = {
   {0, 0}
 };
 
-// Vlasov model type -> enum map.
+// Triad preset geometry type -> enum map.
 static const struct gkyl_str_int_pair triad_geom_type[] = {
   {"None", GKYL_TRIAD_NONE},
   {"Flat", GKYL_TRIAD_FLAT},
@@ -105,11 +105,11 @@ static const struct gkyl_str_int_pair source_type[] = {
   {0, 0}
 };
 
-// Vlasov radiation type -> enum map.
 // Isothermal Euler Riemann problem -> enum map.
 static const struct gkyl_str_int_pair iso_euler_rp_type[] =
   {{"Roe", WV_ISO_EULER_RP_ROE}, {"Lax", WV_ISO_EULER_RP_LAX}, {0, 0}};
 
+// Vlasov radiation type -> enum map.
 static const struct gkyl_str_int_pair radiation_type[] = {
   {"None", GKYL_VM_NO_RADIATION},
   {"Compton", GKYL_VM_COMPTON_RADIATION},
@@ -173,8 +173,8 @@ gkyl_register_vlasov_iso_euler_rp_types(lua_State *L)
 
 // Magic IDs for use in distinguishing various species and field types.
 enum vlasov_magic_ids {
-  VLASOV_SPECIES_DEFAULT = 100, // Non-relativistic kinetic species.
-  VLASOV_FIELD_DEFAULT, // Maxwell equations.
+  VLASOV_SPECIES_DEFAULT = 100, // Kinetic species.
+  VLASOV_FIELD_DEFAULT, // Field.
   VLASOV_FLUID_SPECIES_DEFAULT, // Fluid species.
   VLASOV_EQN_DEFAULT, // Equation object.
   VLASOV_EMISSION_DEFAULT, // Emission model or emitting-wall context object.
@@ -205,7 +205,7 @@ wv_eqn_lw_gc(lua_State *L)
   return 0;
 }
 
-// Acquire equation object.
+// Get the equation object of the userdata on top of the stack.
 static struct gkyl_wv_eqn *
 wv_eqn_get(lua_State *L)
 {
@@ -219,15 +219,10 @@ wv_eqn_get(lua_State *L)
 /* Euler Equations */
 /* *************** */
 
-// Euler.new { gasGamma = 1.4, rpType = G0.EulerRP.HLLC }
-// where rpType is one of G0.EulerRP.Roe, G0.EulerRP.Lax, G0.EulerRP.HLL or G0.EulerRP.HLLC
-// (default HLLC): the Riemann solver of the numerical flux of the DG Euler fluid.
 static bool vm_lw_use_gpu(lua_State *L);
 
-// Boundary conditions of a field or a fluid species, with the table on top of the stack: the
-// array form { lower, upper }. Any other form is an error (the form of the kinetic species, {
-// lower = { type = ... }, upper = { type = ... } }, would otherwise be read as no boundary
-// condition).
+// Check that the BC table on top of the stack is the array { lower, upper } of a field or a
+// fluid species; raise a Lua error if it has lower/upper keys or its length is not 2.
 static void
 vm_lw_check_bc_array(lua_State *L, const char *block, const char *key)
 {
@@ -248,9 +243,8 @@ vm_lw_check_bc_array(lua_State *L, const char *block, const char *key)
   }
 }
 
-// Boundary conditions of a kinetic species, with the table on top of the stack: the form { lower =
-// { type = ... }, upper = { type = ... } } (either side may be absent). The array form of the
-// field and the fluid species is an error (it would otherwise be read as no boundary condition).
+// Check that the BC table on top of the stack has no array part: a kinetic species takes
+// { lower = { type = ... }, upper = { type = ... } }, either side optional.
 static void
 vm_lw_check_bc_sides(lua_State *L, const char *key)
 {
@@ -261,6 +255,9 @@ vm_lw_check_bc_sides(lua_State *L, const char *key)
   }
 }
 
+// Euler.new { gasGamma = 1.4, rpType = G0.EulerRP.HLLC }
+// where rpType is one of G0.EulerRP.Roe, G0.EulerRP.Lax, G0.EulerRP.HLL or G0.EulerRP.HLLC
+// (default HLLC): the Riemann solver of the numerical flux of the DG Euler fluid.
 static int
 eqn_euler_lw_new(lua_State *L)
 {
@@ -1484,10 +1481,10 @@ static struct luaL_Reg vm_species_ctor[] = {{"new", vlasov_species_lw_new}, {0, 
 /* Geometry methods */
 /* **************** */
 
-// Metatable name for species input struct.
+// Metatable name for geometry input struct.
 #define VLASOV_GEOM_METATABLE_NM "GkeyllZero.App.Vlasov.Geom"
 
-// Lua userdata object for constructing species input.
+// Lua userdata object for constructing geometry input.
 struct vlasov_geom_lw {
   int magic; // This must be first element in the struct.
   struct gkyl_vlasov_geom vlasov_geom; // Input struct to construct geometry.
@@ -2357,7 +2354,7 @@ emission_lw_push(lua_State *L, struct gkyl_bc_emission_ctx *ctx)
   return 1;
 }
 
-// Acquire the wrapped objects (the userdata is on the top of the stack).
+// Get the wrapped objects (the userdata is on the top of the stack).
 static struct gkyl_emission_spectrum_model *
 emission_spectrum_get(lua_State *L)
 {
@@ -3745,7 +3742,7 @@ vm_app_run(lua_State *L)
 {
   bool ret_status = true;
 
-  // Create app object.
+  // Get app object.
   struct vlasov_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
   struct vlasov_app_lw *app_lw = *l_app_lw;
   struct gkyl_vlasov_app *app = app_lw->app;
@@ -3834,7 +3831,7 @@ vm_app_run(lua_State *L)
   };
 
   struct timespec tm_ic0 = gkyl_wall_clock();
-  // Initialize simulation.
+  // Compute and write the initial diagnostics.
   calc_field_energy(&fe_trig, app, t_curr, false);
   calc_integrated_mom(&im_trig, app, t_curr, false);
   calc_integrated_L2_f(&l2f_trig, app, t_curr, false);
@@ -4069,8 +4066,7 @@ gkyl_vlasov_lw_openlibs(lua_State *L)
 {
   gkyl_register_poisson_bc_types(L);
 
-  // Register types for Vlasov projection, model ID,
-  // collision ID, source ID, and radiation ID initialization.
+  // Register the Vlasov enum tables.
   gkyl_register_vlasov_projection_types(L);
   gkyl_register_vlasov_model_types(L);
   gkyl_register_vlasov_field_types(L);

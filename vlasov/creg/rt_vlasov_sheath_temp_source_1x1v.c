@@ -7,10 +7,10 @@
 // region next to the wall is collisionless. The position map clusters the cells at the wall. The
 // setup is that of rt_vlasov_sheath_1x1v.c, whose BGK collisions relaxing to a fixed temperature
 // are the same operator with the temperature taken from the initial condition.
-// Figures of merit at t = 1000 (PKPM in parentheses): midplane-to-wall potential drop e*dphi/Te =
-// 1.925 (1.929), ion wall flux / (n_mid c_s) = 0.509 (0.506), ion speed at the wall / c_s = 1.629
-// (1.635), with c_s = sqrt((Te + Ti)/mi). The cell averages of the density and of the flow velocity
-// of both species agree with rt_vlasov_sheath_1x1v.c to 1e-14.
+// Figures of merit at t = 1000: midplane-to-wall potential drop e*dphi/Te = 1.925, ion wall flux /
+// (n_mid c_s) = 0.509, ion speed at the wall / c_s = 1.629, with c_s = sqrt((Te + Ti)/mi). The cell
+// averages of the density and of the flow velocity of both species agree with
+// rt_vlasov_sheath_1x1v.c to 1e-14.
 
 #include <math.h>
 #include <stdio.h>

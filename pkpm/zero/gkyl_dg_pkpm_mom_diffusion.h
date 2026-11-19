@@ -26,7 +26,7 @@ struct gkyl_dg_pkpm_mom_diffusion_inp {
  *
  * with J the per-cell constant Jacobian of the position map and M = (J M)/J the physical momentum
  * (the momentum blocks of the J-weighted fluid state [rho, M_x, M_y, M_z, E]). Recovery DG in
- * physical coordinates (pkpm-mom-diffusion.mac): the face values of the cubic recovered from the
+ * physical coordinates: the face values of the cubic recovered from the
  * two cells sharing a face (their physical widths J_d dxi_d), shared by both cells, so the momentum
  * is conserved; on the identity map the operator is that of gkyl_dg_updater_diffusion_fluid.
  * p=1 serendipity only.

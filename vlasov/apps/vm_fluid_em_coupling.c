@@ -49,7 +49,9 @@ fluid_em_coupling_dt_kinetic(struct gkyl_vlasov_app *app, struct vm_fluid_em_cou
   return omega_p_sq_global > 0.0 ? app->cfl / sqrt(omega_p_sq_global) : DBL_MAX;
 }
 
-// The solve of a source step: momenta of the fluids and E.
+// The solve of a source step. It advances the momentum of the fluids and the electric field, and
+// the energy of an Euler fluid by the change of the bulk kinetic energy (the work of the field):
+// the density is unchanged, and so is the internal energy at the nodes of the solve.
 static void
 fluid_em_coupling_advance(
   struct gkyl_vlasov_app *app, struct vm_fluid_em_coupling *fl_em, double dt,
@@ -240,9 +242,7 @@ vm_fluid_em_coupling_update(
 
   fl_em->advance_func(app, fl_em, dt, app_accels, fluids);
 
-  // The solve advances the momentum and the electric field, and the energy of an Euler fluid by
-  // the change of the bulk kinetic energy (the work of the field): the density is unchanged, and
-  // so is the internal energy at the nodes of the solve.
+  // Apply BCs to the updated fluids and field.
   for (int i = 0; i < num_fluid; ++i) {
     struct vm_fluid_species *fs = fl_em->species[i]->fluid;
     vm_fluid_species_apply_bc(app, fs, fluids[i]);

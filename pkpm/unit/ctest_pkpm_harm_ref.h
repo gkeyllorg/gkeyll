@@ -3,8 +3,8 @@
 // Reference definitions for the unit tests of the first harmonic of the normalized PKPM kinetic
 // equations at one point of configuration space: C, t, f_perp, R_B1, L_perp, R_E1, the coupling
 // part of the w flux, its speed bounds and the known sources, written out from the equations.
-// The kernels form the same quantities at their own nodes from the stored operator
-// (gkylcas/pkpm/pkpm/pkpm-harm-ops.mac); the tests compare the two.
+// The kernels form the same quantities at their own nodes from the stored operator; the tests
+// compare the two.
 //
 // The distributions are the eight blocks [F, G, M0_perp (x, y, z), N_perp (x, y, z)]. The inputs
 // are the values at the point of p=1 fields; every product is formed here, at the point, with
@@ -293,8 +293,8 @@ pkpm_harm_speed_bounds(const struct pkpm_harm_coeffs *c, double w, double *lo, d
 }
 
 /**
- * Known part of the w flux of the eight blocks at w (the w-flux entries of the stored operator,
- * pkpm-harm-ops.mac): alpha_k U + T(U) for every block, alpha_k = -w K - w^2 b.grad xi.
+ * Known part of the w flux of the eight blocks at w (the w-flux entries of the stored
+ * operator): alpha_k U + T(U) for every block, alpha_k = -w K - w^2 b.grad xi.
  */
 GKYL_CU_DH static inline void
 pkpm_harm_flux_known(const struct pkpm_harm_coeffs *c, double w, const double *U, double *out)
@@ -308,8 +308,8 @@ pkpm_harm_flux_known(const struct pkpm_harm_coeffs *c, double w, const double *U
 }
 
 /**
- * Known part of the sources of the eight blocks at w (the source entries of the stored operator,
- * pkpm-harm-ops.mac; the gyration included):
+ * Known part of the sources of the eight blocks at w (the source entries of the stored
+ * operator; the gyration included):
  *   F:  sigma_0 F - ell_xi.M0
  *   G:  (K - div u - w (beta + 2 b.grad xi + b.ell_xi)) G + f_perp.M0 - (ell_xi + 2 g).N
  *   M0: f_perp F + sigma_0 M0 + L_perp M0 - G I_perp (ell_xi + g) - b (C.M0 + beta G)

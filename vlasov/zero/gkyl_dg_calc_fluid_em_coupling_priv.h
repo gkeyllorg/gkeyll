@@ -37,7 +37,7 @@ struct gkyl_dg_calc_fluid_em_coupling {
   int num_species; // number of species being implicitly solved for
   double qbym[GKYL_MAX_SPECIES]; // charge/mass ratio for each species
   bool has_energy[GKYL_MAX_SPECIES]; // whether the state of each species carries an energy
-  double epsilon0; // permitivvity of free space
+  double epsilon0; // permittivity of free space
 
   uint32_t flags;
   struct gkyl_dg_calc_fluid_em_coupling *on_dev; // pointer to itself or device data
@@ -55,8 +55,7 @@ GKYL_CU_D static const fluid_em_coupling_copy_t ser_fluid_em_coupling_copy_kerne
 GKYL_CU_D static fluid_em_coupling_set_t
 choose_fluid_em_coupling_set_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
-  // The tensor and serendipity p = 1 bases are the same (a kinetic species selects its hybrid
-  // phase basis through the tensor type).
+  // The tensor and serendipity p = 1 bases are the same.
   assert(
     poly_order == 1 && (b_type == GKYL_BASIS_MODAL_SERENDIPITY || b_type == GKYL_BASIS_MODAL_TENSOR)
   );
@@ -66,8 +65,7 @@ choose_fluid_em_coupling_set_kern(enum gkyl_basis_type b_type, int cdim, int pol
 GKYL_CU_D static fluid_em_coupling_copy_t
 choose_fluid_em_coupling_copy_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
-  // The tensor and serendipity p = 1 bases are the same (a kinetic species selects its hybrid
-  // phase basis through the tensor type).
+  // The tensor and serendipity p = 1 bases are the same.
   assert(
     poly_order == 1 && (b_type == GKYL_BASIS_MODAL_SERENDIPITY || b_type == GKYL_BASIS_MODAL_TENSOR)
   );

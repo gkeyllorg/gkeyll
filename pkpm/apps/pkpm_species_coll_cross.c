@@ -2,9 +2,8 @@
 #include <gkyl_pkpm_priv.h>
 
 // Collision frequencies computed from the local moments and cross-species collisions, for the
-// LBO and BGK operators alike, at the configuration-space nodes. The input follows the Vlasov
-// app: a frequency (self, or with a partner) is the profile of the input function, or, without
-// one, the Spitzer frequency
+// LBO and BGK operators alike, at the configuration-space nodes. A frequency (self, or with a
+// partner) is the profile of the input function, or, without one, the Spitzer frequency
 //   nu_sr = nu_frac alpha_E (m_s + m_r) / (2 m_s) n_r / (vtsq_s + vtsq_r)^(3/2)
 // (nu_ss = nu_frac alpha_E n_s / (2 vtsq_s)^(3/2)), with the constant part alpha_E of Morse's
 // energy-exchange coefficient at the reference parameters (no magnetic field in the Coulomb
@@ -102,8 +101,8 @@ pkpm_species_coll_cross_ref_params(const struct gkyl_vlasov_collisions *coll, do
   ref[3] = coll->eps0 ? coll->eps0 : 1.0;
 }
 
-// As in the Vlasov app, every partner must list this species, and the cross frequencies of a
-// pair are either both given (cross_nu) or both computed.
+// Every partner must list this species, and the cross frequencies of a pair are either both
+// given (cross_nu) or both computed.
 void
 pkpm_species_coll_cross_init(gkyl_pkpm_app *app, struct pkpm_species *s)
 {
@@ -195,7 +194,7 @@ pkpm_species_coll_cross_init(gkyl_pkpm_app *app, struct pkpm_species *s)
     });
   }
 
-  // The computed self frequency, with delta_ss (1 + beta) = 2 as in the Vlasov app.
+  // The computed self frequency, with delta_ss (1 + beta) = 2.
   double alpha_E_self = gkyl_calc_Morse_alpha_E_const(
     ref_self[0], ref_self[0], mass_self, mass_self, s->charge, s->charge, ref_self[1], ref_self[1],
     0.0, ref_self[3], ref_self[2]

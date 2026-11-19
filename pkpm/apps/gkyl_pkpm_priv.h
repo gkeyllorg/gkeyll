@@ -275,7 +275,7 @@ struct pkpm_kinetic_species {
     local_ext; // local, local-ext phase-space ranges (local_ext has one velocity ghost cell above w_max)
   struct gkyl_range
     local_ext_conf; // local range extended in configuration space only (moments, distribution BCs, sync)
-  struct gkyl_range global, global_ext; // global, global-ext conf-space ranges
+  struct gkyl_range global, global_ext; // global, global-ext phase-space ranges
 
   struct gkyl_comm *comm; // communicator object for phase-space arrays
 
@@ -305,8 +305,9 @@ struct pkpm_kinetic_species {
   struct gkyl_array *f_host; // host copy of distribution function for use IO and initialization
 
   struct pkpm_species_moment pkpm_moms_diag; // for computing pkpm moments diagnostics
-  struct pkpm_species_moment
-    pkpm_nmoms; // raw moments [M0, M2, M0_G, M1, M3, M1_G] of the normalized [F, G] (mass 1)
+  // raw moments [M0, M2, M0_G, M1, M3, M1_G, mu (3), m1 (3), m2 (3), n0 (3)] of the normalized
+  // distributions (mass 1): mu, m1, m2 = int (1, w, w^2) M0_perp dw and n0 = int N_perp dw
+  struct pkpm_species_moment pkpm_nmoms;
   struct gkyl_array *
     pkpm_cmoms; // the constraints [M0(F), M1(F), (M2(F) + 2 M0(G))/3, int M0_perp dw (x, y, z)], [1, 0, 1, 0, 0, 0] when the closures hold
   struct gkyl_array *pkpm_cmoms_host; // host copy for output
@@ -324,6 +325,10 @@ struct pkpm_kinetic_species {
   struct gkyl_array *pkpm_alpha_0; // pressure force a_P/xi closing the first w moment
   struct gkyl_array *pkpm_c_h; // heating rate closing the scalar second moment M2(F) + 2 M0(G)
   struct gkyl_array *pkpm_a_perp; // perpendicular force closing int M0_perp dw [x, y, z]
+  // [alpha_0, c] of the last stage of the last completed step: the closures of the first stage
+  // of a step take the speeds of the velocity-domain edges from them. Written with the species.
+  struct gkyl_array *pkpm_closure_step;
+  struct gkyl_array *pkpm_closure_step_host; // host copy for output
   struct gkyl_array
     *pkpm_rhs_moms; // moments of the configuration-pass right-hand side (separate scratch)
   struct gkyl_array
@@ -351,6 +356,8 @@ struct pkpm_kinetic_species {
     num_null_closure; // accumulated count of closure nodes nulled (M0 <= 0 or a non-positive determinant)
   double closure_cond_min; // smallest det/det0 of the closure solves over the run
   bool closure_null_warned; // the velocity-extent warning was printed
+  // Diagnostic output: the variables
+  // [u (3), T_perp/m, a_P, div b, bb:grad u, T_perp/m div b, xi, c]
   struct gkyl_array *pkpm_vars_io;
   struct gkyl_array *pkpm_vars_io_host;
 
@@ -378,7 +385,6 @@ struct pkpm_kinetic_species {
   struct gkyl_range upper_skin[GKYL_MAX_DIM];
   struct gkyl_range upper_ghost[GKYL_MAX_DIM];
   bool bc_is_absorb; // whether any boundary is absorbing (wall fluxes from the kinetic upwind flux)
-    // If BCs are *not* absorbing, primitive variables can be calculated on *extended* range
 
   enum gkyl_collision_id collision_id; // type of collisions
   struct pkpm_lbo_collisions lbo; // collisions object
@@ -411,11 +417,11 @@ struct pkpm_fluid_species {
   double charge, mass; // Charge and mass.
 
   struct gkyl_array *fluid, *fluid1, *fluidnew; // fluid state [rho, rho ux, rho uy, rho uz, E]
-  struct gkyl_array *cflrate; // CFL rate in each cell for momentum update
-  struct gkyl_array *bc_buffer; // buffer for BCs for momentum (used by bc_basic)
+  struct gkyl_array *cflrate; // CFL rate in each cell for the fluid update
+  struct gkyl_array *bc_buffer; // buffer for BCs for the fluid state (used by bc_basic)
   struct gkyl_array *bc_buffer_lo_fixed,
-    *bc_buffer_up_fixed; // fixed buffers for time independent BCs for momentum
-  struct gkyl_array *fluid_host; // host copy of momentum for use IO and initialization
+    *bc_buffer_up_fixed; // fixed buffers for time independent BCs for the fluid state
+  struct gkyl_array *fluid_host; // host copy of the fluid state for use IO and initialization
 
   // q/m (E, B) plus the applied acceleration and the external fields, for the explicit
   // Lorentz force on the fluid (explicit source update only)
@@ -445,9 +451,9 @@ struct pkpm_fluid_species {
     integ_mom; // integrated PKPM variables [rho, rho ux, rho uy, rho uz, rho ux^2, rho uy^2, rho uz^2, p_par, p_perp]
 
   struct gkyl_dg_calc_pkpm_vars *calc_pkpm_vars; // Updater for the configuration-space variables
-  struct gkyl_dg_eqn *eqn_fluid; // momentum equation object
-  gkyl_hyper_dg *slvr_fluid; // hyper_dg for the momentum equation
-  double fluid_tm; // time spent in the momentum right-hand side
+  struct gkyl_dg_eqn *eqn_fluid; // fluid equation object
+  gkyl_hyper_dg *slvr_fluid; // hyper_dg for the fluid equations
+  double fluid_tm; // time spent in the fluid right-hand side
   struct gkyl_array
     *pkpm_pos_count; // per-cell record of the positivity limiter [rho, e, avg] (cumulative)
   struct gkyl_array *pkpm_pos_io,
@@ -458,7 +464,6 @@ struct pkpm_fluid_species {
   bool is_first_pos_stat_write_call; // flag for the positivity statistics dynvec written first time
 
   // Diagnostic output: the pressure tensor and heat flux [P_ij (6), q_i (3)] of the fluid equations
-  // and the variables [u (3), T_perp/m, a_P, div b, bb:grad u, T_perp/m div b, xi, c]
   struct gkyl_array *pkpm_prim_io;
   struct gkyl_array *pkpm_prim_io_host;
   double *red_integ_diag; // for reduction of integrated moments on GPU
@@ -707,8 +712,9 @@ int pkpm_find_species_idx(const gkyl_pkpm_app *app, const char *nm);
 
 /**
  * Compute the diagnostic moments [rho, M1, p_par, p_perp, q_par, q_perp, r_parpar, r_parperp]
- * into s->pkpm_moms_diag: the moments of the normalized distributions times n xi^k,
- * k = [0, 1, 2, 2, 3, 3, 4, 4]. Uses s->pkpm_prim_io as scratch; s->pkpm_xi must be current.
+ * into s->kinetic->pkpm_moms_diag: the moments of the normalized distributions times n xi^k,
+ * k = [0, 1, 2, 2, 3, 3, 4, 4]. Uses s->fluid->pkpm_prim_io as scratch; s->fluid->pkpm_xi must be
+ * current.
  *
  * @param app PKPM app object
  * @param s Species object
@@ -1069,8 +1075,8 @@ struct gkyl_msgpack_data *pkpm_array_meta_new(struct pkpm_output_meta meta);
 void pkpm_array_meta_release(struct gkyl_msgpack_data *mt);
 
 /**
- * Apply the vertex positivity limiter to a fluid state over the local range (no-op when
- * disabled), recording the cells it acted on and the run totals.
+ * Apply the vertex positivity limiter to a fluid state over the local range and record the
+ * cells it acted on and the counts of the current integrated-moment interval.
  *
  * @param app PKPM app object
  * @param fl Fluid aspect of the species
@@ -1132,13 +1138,16 @@ void pkpm_species_calc_coupled_vars(
  *
  * @param app PKPM app object
  * @param kin Kinetic aspect of the species
+ * @param stage SSP-RK3 stage (1, 2 or 3): the closures take the speeds of the velocity-domain
+ *              edges from the closures of the stage before, those of stage 1 from the last stage
+ *              of the last completed step
  * @param fin Input distribution functions
  * @param em EM field
  * @param rhs On output, the right-hand side of the kinetic equations
  * @return Maximum stable time-step
  */
 double pkpm_kinetic_species_rhs(
-  gkyl_pkpm_app *app, struct pkpm_kinetic_species *kin, const struct gkyl_array *fin,
+  gkyl_pkpm_app *app, struct pkpm_kinetic_species *kin, int stage, const struct gkyl_array *fin,
   const struct gkyl_array *em, struct gkyl_array *rhs
 );
 
@@ -1160,10 +1169,20 @@ double pkpm_fluid_species_rhs(
 );
 
 /**
+ * Complete a time step of a species: keep the closures of its last stage for the first stage of
+ * the next step.
+ *
+ * @param app PKPM app object
+ * @param sp Species object
+ */
+void pkpm_species_complete_step(gkyl_pkpm_app *app, struct pkpm_species *sp);
+
+/**
  * Compute the right-hand side of each aspect of a species.
  *
  * @param app PKPM app object
  * @param sp Species object
+ * @param stage SSP-RK3 stage (1, 2 or 3)
  * @param fin Input distribution functions
  * @param fluidin Input fluid state
  * @param emin EM field
@@ -1172,7 +1191,7 @@ double pkpm_fluid_species_rhs(
  * @return Maximum stable time-step across the aspects
  */
 double pkpm_species_rhs(
-  gkyl_pkpm_app *app, struct pkpm_species *sp, const struct gkyl_array *fin,
+  gkyl_pkpm_app *app, struct pkpm_species *sp, int stage, const struct gkyl_array *fin,
   const struct gkyl_array *fluidin, const struct gkyl_array *emin, struct gkyl_array *fout,
   struct gkyl_array *fluidout
 );
@@ -1220,11 +1239,11 @@ void pkpm_species_apply_bc(
 );
 
 /**
- * Apply BCs to species momentum
+ * Apply BCs to the fluid state of a species
  *
  * @param app PKPM app object
  * @param fl Fluid aspect of the species
- * @param fluid momentum to apply BCs to
+ * @param fluid Fluid state [rho, M, E] to apply BCs to
  */
 void pkpm_fluid_species_apply_bc(
   gkyl_pkpm_app *app, const struct pkpm_fluid_species *fl, struct gkyl_array *fluid
@@ -1240,7 +1259,7 @@ void pkpm_fluid_species_apply_bc(
 void pkpm_species_calc_L2(gkyl_pkpm_app *app, double tm, const struct pkpm_species *species);
 
 /**
- * Fill stat object in app with collisionless timers.
+ * Sum the kinetic and fluid right-hand-side timers of the species into the stat object of the app.
  *
  * @param app App object to update stat timers
  */

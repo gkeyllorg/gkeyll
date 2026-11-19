@@ -1,18 +1,17 @@
 -- Rayleigh-Taylor instability with the DG Euler solver (2x) and the HLLC flux, the counterpart of
--- moments/creg/rt_euler_rt.c (which cites no reference): heavy fluid (rho = 2) over light fluid
--- (rho = 1) in [0, 1/6] x [0, 1], interface y = 0.5 + 0.01 cos(2 pi x / Lx), gamma = 1.4, applied
--- acceleration (0, -0.1, 0), reflecting walls on all sides, t_end = 8.5. The fluid starts at rest
--- with the hydrostatic pressure p = 0.2 (1 - y) above the interface, continuous across it, and the
--- total energy (p + 0.01) / (gamma - 1), exactly as the moments test sets it.
+-- moments/creg/rt_euler_rt.c: heavy fluid (rho = 2) over light fluid (rho = 1) in [0, 1/6] x
+-- [0, 1], interface y = 0.5 + 0.01 cos(2 pi x / Lx), gamma = 1.4, applied acceleration
+-- (0, -0.1, 0), reflecting walls on all sides, t_end = 8.5. The fluid starts at rest with the
+-- hydrostatic pressure p = 0.2 (1 - y) above the interface, continuous across it, and the total
+-- energy (p + 0.01) / (gamma - 1).
 --
 -- Figures of merit (serendipity p1, 50 x 200 cells, 6797 steps; in brackets the moments solutions
 -- on 50 x 200 and 100 x 400 cells): mass is conserved to 4e-13. The kinetic energy grows as exp(2
 -- gamma t) with gamma = 0.951 while it rises from 1e-6 to 1e-5 (0.949, 0.977) and is 3.62e-4 at t =
 -- 8.5 (4.15e-4, 3.65e-4), when the heavy fluid (rho > 1.5) reaches down to y = 0.1725 and the light
 -- fluid up to y = 0.6775 (0.1625 and 0.7125, 0.1413 and 0.7037). The total energy rises by 9.62e-5
--- while the potential energy g int rho y dV falls by 9.51e-5. The Lua run keeps the mirror symmetry
--- about x = Lx / 2 to 4e-9; the C run does not and ends up to 1.1e-1 from it. Both give these
--- figures.
+-- while the potential energy g int rho y dV falls by 9.51e-5. The run keeps the mirror symmetry
+-- about x = Lx / 2 to 4e-9.
 local Vlasov = G0.Vlasov
 local Euler = G0.Vlasov.Eq.Euler
 

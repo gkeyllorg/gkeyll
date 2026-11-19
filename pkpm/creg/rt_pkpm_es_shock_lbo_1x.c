@@ -8,14 +8,12 @@
 // self-collisions act on both species (nu_ee = 0.002 omega_pe); they exchange parallel and
 // perpendicular energy, so the reference is Vlasov with three velocity dimensions (the 1x1v run has
 // one and a faster front, 0.89 c_s).
-// The ion velocity grid reaches w = +-16, as in rt_pkpm_es_shock_1x (reflected ions in cold upstream
-// cells).
-// Figures of merit at t_end (96 cells, 16 electron and 32 ion velocity cells; a one-off Vlasov 1x3v
-// run, serendipity p2, 4 x 4 perpendicular cells, in parentheses), the front being where the
-// potential crosses half its jump: front at x = 48.8 lambda_D, speed 0.81 c_s (45.2, 0.75);
-// downstream density 2.55 n0 (2.60); potential jump across the front e*dphi/Te = 1.43 (1.54);
-// density ahead of the front 1.41 n0 with mean flow -0.66 c_s (1.41, -0.67); downstream
-// temperatures 1.56 Te for the electrons (1.57) and 0.68 Te for the ions (0.64).
+// Figures of merit at t_end (96 cells, 16 electron and 32 ion velocity cells; a Vlasov 1x3v run,
+// serendipity p2, 4 x 4 perpendicular cells, in parentheses), the front being where the potential
+// crosses half its jump: front at x = 48.8 lambda_D, speed 0.81 c_s (45.2, 0.75); downstream
+// density 2.55 n0 (2.60); potential jump across the front e*dphi/Te = 1.43 (1.54); density ahead of
+// the front 1.41 n0 with mean flow -0.66 c_s (1.41, -0.67); downstream temperatures 1.56 Te for the
+// electrons (1.57) and 0.68 Te for the ions (0.64).
 
 #include <math.h>
 #include <stdio.h>

@@ -37,11 +37,11 @@ struct gkyl_dg_calc_pkpm_bvar {
   struct gkyl_dg_calc_pkpm_bvar *on_dev; // pointer to itself or device data
 };
 
-// Weak gradient of a p=1 three-vector (the same kernels as for u; indexed [cdim-1].kernels[dir])
+// Weak gradient of b (indexed [cdim-1].kernels[dir])
 GKYL_CU_D static const gkyl_dg_pkpm_bvar_grad_kern_list ser_pkpm_bvar_grad_kernels[] = {
-  {pkpm_vars_grad_u_x_1x_ser_p1, NULL, NULL}, // 0
-  {pkpm_vars_grad_u_x_2x_ser_p1, pkpm_vars_grad_u_y_2x_ser_p1, NULL}, // 1
-  {pkpm_vars_grad_u_x_3x_ser_p1, pkpm_vars_grad_u_y_3x_ser_p1, pkpm_vars_grad_u_z_3x_ser_p1}, // 2
+  {pkpm_bvar_grad_x_1x_ser_p1, NULL, NULL}, // 0
+  {pkpm_bvar_grad_x_2x_ser_p1, pkpm_bvar_grad_y_2x_ser_p1, NULL}, // 1
+  {pkpm_bvar_grad_x_3x_ser_p1, pkpm_bvar_grad_y_3x_ser_p1, pkpm_bvar_grad_z_3x_ser_p1}, // 2
 };
 
 GKYL_CU_D static pkpm_bvar_grad_t

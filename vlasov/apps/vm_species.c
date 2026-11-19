@@ -65,7 +65,8 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
 {
   int vdim = app->vdim;
 
-  // Allocate arrays for configuration space Poisson tensor (unused)
+  // Allocate the configuration-space Poisson tensor (filled below for the triad and
+  // canonical-PB models).
   int num_pt_indices[3] = {1, 6, 18};
   vms->conf_poisson_tensor =
     mkarr(app->use_gpu, app->basis.num_basis * num_pt_indices[vdim - 1], app->local_ext.volume);
@@ -77,8 +78,7 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
   vms->conf_poisson_tensor_surf = NULL;
 
   // Coordinate-map context for sampling geometry/Hamiltonians at physical
-  // coordinates on non-uniform meshes. All uses complete within this function,
-  // so a stack-local context is safe.
+  // coordinates on non-uniform meshes.
   struct vm_proj_c2p_ctx c2p_ctx = {
     .cdim = app->cdim,
     .pos_map = vms->pos_map,
@@ -185,9 +185,8 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
     vms->hamil_id = GKYL_HAMIL_PHASE;
     vms->mom_hamil_id = GKYL_HAMIL_VEL_DENSE;
 
-    // 1. Build a velocity space only hamiltonian for moments.
-    // Hamiltonian is only a function of velocity space, non-relativistic only using the
-    // same infrastructure as GKYL_MODEL_DEFAULT
+    // 1. Velocity-space Hamiltonian for the moments: the relativistic gamma (GKYL_MODEL_SR
+    // infrastructure).
     vms->mom_hamil_range = vms->local_vel;
     vms->mom_hamil = mkarr(app->use_gpu, vms->basis_vel.num_basis, vms->local_vel.volume);
     vms->gamma_inv = mkarr(app->use_gpu, vms->basis_vel.num_basis, vms->local_vel.volume);
@@ -272,7 +271,7 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
       vms->hamil_host = mkarr(false, vms->basis.num_basis, vms->local_ext.volume);
     }
 
-    // Allocate arrays for specified metric inverse
+    // Allocate arrays for the specified metric
     vms->h_ij =
       mkarr(app->use_gpu, app->basis.num_basis * vdim * (vdim + 1) / 2, app->local_ext.volume);
     vms->h_ij_host = vms->h_ij;
@@ -384,11 +383,11 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
     }
     gkyl_eval_on_nodes_release(det_h_proj);
 
-    // As the mom_hamil and hamil are identical, aquire hamil and hamil_range here
+    // mom_hamil and hamil are identical: acquire mom_hamil and mom_hamil_range from hamil.
     vms->mom_hamil_range = vms->hamil_range;
     vms->mom_hamil = gkyl_array_acquire(vms->hamil);
 
-    // Evaluate specified determinant metric function at nodes to ensure continuity of the background flows
+    // Evaluate the background flows at nodes to ensure continuity
     if (vms->info.use_extended_hamil_def) {
       struct gkyl_eval_on_nodes *background_flows_proj =
         gkyl_eval_on_nodes_inew(&(struct gkyl_eval_on_nodes_inp){
@@ -408,7 +407,7 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
       }
       gkyl_eval_on_nodes_release(background_flows_proj);
 
-      // Evaluate specified determinant metric function at nodes to ensure continuity of the effective potential
+      // Evaluate the effective potential at nodes to ensure continuity
       struct gkyl_eval_on_nodes *effective_potential_proj =
         gkyl_eval_on_nodes_inew(&(struct gkyl_eval_on_nodes_inp){
           .grid = &app->grid,
@@ -470,7 +469,7 @@ vm_species_apply_ic_dynamic(gkyl_vlasov_app *app, struct vm_species *vms, double
   // Pre-compute applied acceleration in case it's time-independent
   vm_species_collisionless_app_accel(app, &vms->collisionless, tm);
 
-  // we are pre-computing source for now as it is time-independent
+  // Project the source at the initial time (re-projected every stage if time-dependent).
   vm_species_source_calc(app, vms, &vms->src, tm);
 
   if (vms->calc_bflux) {
@@ -483,8 +482,7 @@ vm_species_apply_ic_dynamic(gkyl_vlasov_app *app, struct vm_species *vms, double
     vm_species_bgk_moms_fixed_temp(app, vms, &vms->bgk, vms->f);
   }
 
-  // copy contents of initial conditions into buffer if specific BCs require them
-  // *only works in x dimension for now*
+  // Fill the fixed-function BC buffers from the initial condition (x direction only).
   if (vms->lower_bc[0].type == GKYL_SPECIES_FIXED_FUNC) {
     gkyl_bc_basic_buffer_fixed_func(vms->bc_lo[0], vms->bc_buffer_lo_fixed, vms->f);
   }
@@ -603,7 +601,7 @@ vm_species_apply_bc_dynamic(
     vms->comm, &vms->local, &vms->local_ext, num_periodic_dir, app->periodic_dirs, f
   );
 
-  int is_np_bc[3] = {1, 1, 1}; // flags to indicate if direction is periodic
+  int is_np_bc[3] = {1, 1, 1}; // flags to indicate if direction is not periodic
   for (int d = 0; d < num_periodic_dir; ++d) {
     is_np_bc[app->periodic_dirs[d]] = 0;
   }
@@ -1422,7 +1420,8 @@ vm_species_calc_implicit_moms_source_bgk(
   vm_species_source_bgk_moms_implicit(app, vms, &vms->src_bgk, fin, dt);
 }
 
-// ... and the backward-Euler step of the source and the collisions together.
+// Backward-Euler step of the implicit temperature source and of the implicit BGK collisions, if
+// any; on output rhs is the updated distribution.
 static double
 vm_species_rhs_implicit_source_bgk(
   gkyl_vlasov_app *app, struct vm_species *vms, const struct gkyl_array *fin,
@@ -1472,9 +1471,8 @@ vm_species_rhs_source_enabled(
   vm_species_source_rhs(app, vms, &vms->src, rhs);
 }
 
-// A static species does not take its source (its RK buffers are the
-// distribution itself); a time-dependent source is still projected so that its
-// diagnostics are those of the current time.
+// Static species: the source is not added to the RHS; a time-dependent source is
+// projected at the stage time for its diagnostics.
 static void
 vm_species_rhs_source_static(
   gkyl_vlasov_app *app, struct vm_species *vms, double tcurr, struct gkyl_array *rhs
@@ -1536,13 +1534,9 @@ vm_species_from_file_distf(gkyl_vlasov_app *app, struct vm_species *vms, const c
   return rstat;
 }
 
-// End static function definitions.
-
-// Initialize species object.
-// The 3x3v tensor p=1 hybrid kernels and the 2x3v tensor p=2 kernels are
-// optional build sets (see ./configure --help and the top-level Makefile).
-// Refuse a configuration whose kernels were not built with an actionable
-// message instead of a NULL kernel pointer assert deep in a constructor.
+// Exit with a message if the kernels of the requested basis were not built: the
+// 3x3v tensor p=1 hybrid kernels and the 2x3v tensor p=2 kernels are optional
+// build sets (see ./configure --help and the top-level Makefile).
 static void
 vm_species_check_hyb_build(struct gkyl_vlasov_app *app, struct vm_species *vms)
 {
@@ -1574,6 +1568,9 @@ vm_species_check_hyb_build(struct gkyl_vlasov_app *app, struct vm_species *vms)
 #endif
 }
 
+// End static function definitions.
+
+// Initialize species object.
 void
 vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct vm_species *vms)
 {
@@ -1702,7 +1699,7 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
   vms->f_host = app->use_gpu ? mkarr(false, vms->f->ncomp, vms->f->size) :
                                gkyl_array_acquire(vms->f);
 
-  vms->write_cell_avg = vms->info.write_cell_avg; // Write out only the cell averages?
+  vms->write_cell_avg = vms->info.write_cell_avg; // Also write the cell average of f?
 
   // Velocity-space mapping object. Always created: directions without a
   // user-specified mapping get the identity map, so uniform and non-uniform
@@ -1718,9 +1715,9 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
     &vms->grid_vel, &vms->local_vel, &vms->basis_vel, inp_vmap, vms->info.use_lo, app->use_gpu
   );
 
-  // The velocity map is static in time, so write it (uniform grids included)
-  // only with the first frame. Both the p=3 map and its p=0 cell average are
-  // written, with metadata built from the map's I/O basis.
+  // The velocity map is static in time: write it once here (uniform grids
+  // included). Both the p=3 map and its p=0 cell average are written, with
+  // metadata built from the map's I/O basis.
   gkyl_vlasov_velocity_map_write(vms->vel_map, vms->comm, app->name, vms->name);
 
   // Configuration-space mapping object. Created once on the app and shared by
@@ -1800,7 +1797,7 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
 
   // Initialize a Maxwellian/LTE (local thermodynamic equilibrium) projection routine.
   // Projection routine optionally corrects all the Maxwellian/LTE moments.
-  // This routine is utilized by BGK collisions.
+  // Used by BGK collisions, the temperature source and the LTE output.
   vms->lte = (struct vm_lte){};
   struct correct_all_moms_inp corr_inp = {
     .correct_all_moms = vms->info.correct.correct_all_moms,
@@ -1879,8 +1876,8 @@ vm_species_rhs(
   return vms->rhs_func(app, vms, fin, em, rhs);
 }
 
-// Compute the implicit RHS for species update; returns DBL_MAX because implicit
-// update does not affect the stable time step.
+// Implicit update of the species: on return rhs is the distribution after the
+// backward-Euler step. Returns DBL_MAX (no time-step limit).
 double
 vm_species_rhs_implicit(
   gkyl_vlasov_app *app, struct vm_species *vms, const struct gkyl_array *fin,

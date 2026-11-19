@@ -9,7 +9,7 @@ typedef struct gkyl_dg_calc_fluid_em_coupling gkyl_dg_calc_fluid_em_coupling;
 
 // Input packaged as a struct
 struct gkyl_dg_calc_fluid_em_coupling_inp {
-  const struct gkyl_basis *conf_basis; // Configuration-space basis functions (p=1 serendipity).
+  const struct gkyl_basis *conf_basis; // Configuration-space basis functions (p=1).
   const struct gkyl_range
     *mem_range; // Configuration-space range that sets the size of the batched solve.
   int num_species; // Number of fluid species in the update.
@@ -26,7 +26,7 @@ struct gkyl_dg_calc_fluid_em_coupling_inp {
 
 /**
  * Create new updater for the locally implicit (time-centered) fluid-Maxwell source update
- * of p=1 DG fluids (the DG Euler fluid and the PKPM fluid), solved nodally at the 2^cdim
+ * of p=1 DG fluids with state [rho, rho u, (E)], solved nodally at the 2^cdim
  * Gauss-Legendre nodes of each cell
  * (Wang et al. JCP 2020 in the unknowns [Mbar_s, epsilon0 Ebar]):
  *
@@ -63,7 +63,7 @@ struct gkyl_dg_calc_fluid_em_coupling *gkyl_dg_calc_fluid_em_coupling_cu_dev_ine
  * @param app_accel[num_species] Input array of applied accelerations (external forces) on each species
  * @param ext_em                 Input array of external electromagnetic fields
  * @param app_current            Input array of applied currents
- * @param fluid[num_species]     Fluid state [rho, rho ux, rho uy, rho uz, E] of each species: old time in, new time out
+ * @param fluid[num_species]     Fluid state [rho, rho ux, rho uy, rho uz, E] of each species (no E without energy): old time in, new time out
  * @param em                     EM fields: electric field at the old time in, new time out
  */
 void gkyl_dg_calc_fluid_em_coupling_advance(

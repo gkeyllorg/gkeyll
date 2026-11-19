@@ -10,9 +10,8 @@
 // t)), u_z = A (sin(Omega_c t) - (omega / Omega_c) sin(omega t)) with A = Omega_c (q / m) E_0 /
 // (Omega_c^2 - omega^2): at t = 10, u_y = 1.49698 and u_z = 0.08608.
 // Figures of merit (2 x 8 cells, Omega_c dt = 0.12): at t = 10, u_y = 1.50626 and u_z = 0.07298,
-// off by the second-order error of the split source (+9.3e-3 and -1.3e-2, falling fourfold per
-// halving of the time-step); the temperature stays 1 to round-off. The Vlasov test is exact to
-// 1e-5.
+// off by the second-order error of the split source (+9.3e-3 and -1.3e-2); the temperature stays 1
+// to round-off. The Vlasov test is exact to 1e-5.
 
 #include <math.h>
 #include <stdio.h>

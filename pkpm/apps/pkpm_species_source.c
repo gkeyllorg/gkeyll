@@ -93,8 +93,8 @@ pkpm_species_source_init(gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm
   if (src->source_id == GKYL_NO_SOURCE) {
     return;
   }
-  // One LTE profile, added as given or scaled by the wall losses; the other sources of the
-  // Vlasov app (time-dependent, adaptive) are not available.
+  // One LTE profile, added as given or scaled by the wall losses; time-dependent and adaptive
+  // sources are not available.
   assert(src->source_id == GKYL_PROJ_SOURCE || src->source_id == GKYL_BFLUX_SOURCE);
   assert(info->num_sources == 1 && info->projection[0].proj_id == GKYL_PROJ_VLASOV_LTE);
   assert(info->projection[0].density && info->projection[0].temp);

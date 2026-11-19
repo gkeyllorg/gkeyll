@@ -1,8 +1,7 @@
 -- Forms of the boundary-condition tables in the Lua wrapper. The field and the fluid species take
 -- the array form { lower, upper }; the kinetic species take the table form { lower = { type = ...
--- }, upper = { type = ... } } (either side may be absent). A table in the other form used to be
--- read as no boundary condition (copy on both sides) without an error: each constructor must
--- accept its own form and raise an error for the other.
+-- }, upper = { type = ... } } (either side may be absent). Each constructor accepts its own form and
+-- raises an error for the other.
 
 local Vlasov = G0.Vlasov
 local Euler = G0.Vlasov.Eq.Euler

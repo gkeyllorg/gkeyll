@@ -304,7 +304,7 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
 
   // Species initialization runs in three phases: kinetic aspects, then the
   // links between them (emission, cross collisions, sources), then the fluid
-  // aspects, some of which couple to kinetic species.
+  // aspects and their sources.
   vlasov_species_init_kinetic_aspects(vm, app);
   vlasov_species_link_kinetic_aspects(app);
   vlasov_species_init_fluid_aspects(vm, app);
@@ -415,7 +415,7 @@ vm_apply_bc(
   struct gkyl_array *emfield
 )
 {
-  // distf[] and fluid[] are indexed over the overall species count.
+  // distf[] and fluid[] are indexed by species.
   int num_species = app->num_species;
   for (int i = 0; i < num_species; ++i) {
     vlasov_species_apply_bc(app, &app->species[i], distf[i], fluid[i], tcurr);
@@ -506,7 +506,7 @@ gkyl_vlasov_app_write(gkyl_vlasov_app *app, double tm, int frame)
   vlasov_op_split_sync(app); // the staggered split's source-updated state at tcurr
   gkyl_vlasov_app_write_field(app, tm, frame); // no-op for the null field
   for (int i = 0; i < app->num_species; ++i) {
-    vlasov_species_write(app, &app->species[i], tm, frame);
+    gkyl_vlasov_app_write_species(app, i, tm, frame);
   }
 }
 
@@ -518,6 +518,7 @@ gkyl_vlasov_app_write_field(gkyl_vlasov_app *app, double tm, int frame)
   const struct gkyl_array *fin[app->num_species];
   vlasov_species_gather_dist(app, fin);
   vlasov_field_write(app, tm, frame, fin);
+  vlasov_op_split_write_field(app, tm, frame);
 }
 
 void
@@ -525,6 +526,7 @@ gkyl_vlasov_app_write_species(gkyl_vlasov_app *app, int sidx, double tm, int fra
 {
   vlasov_op_split_sync(app); // the staggered split's source-updated state at tcurr
   vlasov_species_write(app, &app->species[sidx], tm, frame);
+  vlasov_op_split_write_species(app, &app->species[sidx], tm, frame);
 }
 
 void
@@ -984,7 +986,10 @@ gkyl_vlasov_app_read_from_frame(gkyl_vlasov_app *app, int frame)
   }
 
   // The frames hold the synchronized state of the staggered operator split.
-  vlasov_op_split_restart(app, frame);
+  struct gkyl_app_restart_status sstat = vlasov_op_split_restart(app, frame);
+  if (sstat.io_status != GKYL_ARRAY_RIO_SUCCESS) {
+    return sstat;
+  }
 
   return rstat;
 }

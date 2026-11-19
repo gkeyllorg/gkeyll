@@ -2,7 +2,7 @@
 
 // Euler and isothermal Euler function pointers for primitive/auxiliary variables,
 // including computing the flow velocity, u, from rhou and rho with weak division, and
-// p, the pressure, from the energy in Euler (and just vth*rho in isothermal Euler),
+// p, the pressure, from the energy in Euler (and just vth^2*rho in isothermal Euler),
 // and also write method, release method, and method for calculating integrated quantities.
 static void
 vm_fluid_species_euler_prim_vars(
@@ -36,8 +36,8 @@ vm_fluid_species_euler_calc_integrated(
   double avals_fluid[6], avals_fluid_global[6];
   gkyl_array_clear(f->integ_mom, 0.0);
   vm_fluid_species_prim_vars(app, f, f->fluid);
-  // Euler and isothermal Euler integrated quantities: rho, rhoux, rhouy, rhouz, ke, ie
-  // where ke is the kinetic energy 1/2 rhou^2 and ie is the internal energy (for ideal Euler = p/(gas_gamma - 1))
+  // Euler and isothermal Euler integrated quantities: rho, rho ux, rho uy, rho uz, rho u^2, p
+  // (p = vth^2*rho for isothermal Euler).
   gkyl_dg_calc_fluid_integrated_vars(
     f->calc_fluid_vars, &app->local, f->fluid, f->u, f->p, f->integ_mom
   );
@@ -123,7 +123,7 @@ vm_fluid_species_no_positivity(
 {
 }
 
-// Limit the slopes of the solution, then reapply the boundary conditions.
+// Limit the slopes, apply the vertex positivity limiter, then reapply the boundary conditions.
 static void
 vm_fluid_species_euler_limiter(
   gkyl_vlasov_app *app, struct vm_fluid_species *f, struct gkyl_array *fluid
@@ -176,7 +176,7 @@ vm_fluid_species_euler_init(
   //  ux_yl, ux_yr, uy_yl, uy_yr, uz_yl, uz_yr,
   //  ux_zl, ux_zr, uy_zl, uy_zr, uz_zl, uz_zr]
   f->u_surf = mkarr(app->use_gpu, 2 * app->cdim * 3 * Nbasis_surf, app->local_ext.volume);
-  // Surface pressure tensor (2*cdim components). Ordered as:
+  // Surface pressure (2*cdim components). Ordered as:
   // [p_xl, p_xr, p_yl, p_yr, p_zl, p_zr]
   f->p_surf = mkarr(app->use_gpu, 2 * app->cdim * Nbasis_surf, app->local_ext.volume);
 
@@ -202,8 +202,8 @@ vm_fluid_species_euler_init(
     &app->grid, &app->basis, &app->local, f->equation, app->geom, &aux_inp, app->use_gpu
   );
 
-  // Euler and isothermal Euler integrated quantities: rho, rhoux, rhouy, rhouz, ke, ie
-  // where ke is the kinetic energy 1/2 rhou^2 and ie is the internal energy (for ideal Euler = p/(gas_gamma - 1))
+  // Euler and isothermal Euler integrated quantities: rho, rho ux, rho uy, rho uz, rho u^2, p
+  // (p = vth^2*rho for isothermal Euler).
   f->integ_mom = mkarr(app->use_gpu, 6, app->local_ext.volume);
   if (app->use_gpu) {
     f->red_integ_diag = gkyl_cu_malloc(sizeof(double[6]));
@@ -568,7 +568,7 @@ vm_fluid_species_can_pb_fluid_init(
   gkyl_array_clear(f->epsilon, 0.0);
   gkyl_array_shiftc(f->epsilon, -1.0 * pow(sqrt(2.0), app->cdim), 0);
 
-  // Create Poisson solver. Only supports periodic boundary conditions for now.
+  // Create Poisson solver (periodic boundary conditions only).
   struct gkyl_poisson_bc poisson_bcs = {
     .lo_type = {GKYL_POISSON_PERIODIC, GKYL_POISSON_PERIODIC},
     .up_type = {GKYL_POISSON_PERIODIC, GKYL_POISSON_PERIODIC},
@@ -674,7 +674,7 @@ vm_fluid_species_can_pb_fluid_init(
   f->release_func = vm_fluid_species_can_pb_fluid_release;
 }
 
-// Time-stepping methods for an evolving fluid species, assigned in
+// Methods common to all fluid equation types, assigned in
 // vm_fluid_species_init.
 static void
 vm_fluid_species_apply_ic_enabled(
@@ -697,7 +697,7 @@ vm_fluid_species_apply_ic_enabled(
   }
 
   // Copy the initial conditions into the buffers of fixed-function BCs, before
-  // the limiter below applies the BCs. *only works in x dimension for now*
+  // the limiter below applies the BCs (x direction only).
   if (fluid_species->lower_bc[0] == GKYL_SPECIES_FIXED_FUNC) {
     gkyl_bc_basic_buffer_fixed_func(
       fluid_species->bc_lo[0], fluid_species->bc_buffer_lo_fixed, fluid_species->fluid
@@ -715,7 +715,7 @@ vm_fluid_species_apply_ic_enabled(
   // Pre-compute applied acceleration in case it's time-independent
   vm_fluid_species_calc_app_accel(app, fluid_species, t0);
 
-  // we are pre-computing source for now as it is time-independent
+  // Evaluate the source at t0.
   vm_fluid_species_source_calc(app, fluid_species, t0);
 }
 // Forces in the RHS of the fluid species, assigned in vm_fluid_species_init.
@@ -872,7 +872,7 @@ vm_fluid_species_apply_bc_enabled(
     app->comm, &app->local, &app->local_ext, num_periodic_dir, app->periodic_dirs, f
   );
 
-  int is_np_bc[3] = {1, 1, 1}; // flags to indicate if direction is periodic
+  int is_np_bc[3] = {1, 1, 1}; // flags to indicate if direction is not periodic
   for (int d = 0; d < num_periodic_dir; ++d) {
     is_np_bc[app->periodic_dirs[d]] = 0;
   }
@@ -1250,8 +1250,8 @@ vm_fluid_species_accumulate_current(
   struct gkyl_array *emout
 )
 {
-  // The fluid array is [rho, rho ux, rho uy, rho uz, energy]: its momentum block over the mass
-  // is the number flux.
+  // The fluid array is [rho, rho ux, rho uy, rho uz, E] (no E for isothermal Euler): its momentum
+  // block over the mass is the number flux.
   double qbymeps = fluid_species->charge / (fluid_species->mass * app->field->info.epsilon0);
   gkyl_array_set_offset(fluid_species->mom, 1.0, fluid, app->basis.num_basis);
   gkyl_array_accumulate_range(emout, -qbymeps, fluid_species->mom, &app->local);

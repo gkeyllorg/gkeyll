@@ -1,8 +1,7 @@
 #include <gkyl_pkpm_priv.h>
 
-// Take time-step using the RK3 method. Also sets the status object
-// which has the actual and suggested dts used. These can be different
-// from the actual time-step.
+// Take a time-step with the SSP-RK3 method. The status object holds the step
+// taken and the step suggested for the next update.
 struct gkyl_update_status
 pkpm_update_explicit_ssp_rk3(gkyl_pkpm_app *app, double dt0)
 {
@@ -139,6 +138,7 @@ pkpm_update_explicit_ssp_rk3(gkyl_pkpm_app *app, double dt0)
             }
             pkpm_coll_stage_advance(app, 3, dt);
             for (int i = 0; i < ns; ++i) {
+              pkpm_species_complete_step(app, &app->species[i]);
               gkyl_array_copy_range(
                 app->species[i].kinetic->f, app->species[i].kinetic->f1,
                 &app->species[i].kinetic->local_ext

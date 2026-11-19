@@ -32,9 +32,9 @@ vlasov_src_omega_p_explicit(gkyl_vlasov_app *app, const struct gkyl_array *fluid
 // Note: this may not be the actual time-step taken. However, the function will never
 // take a time-step larger than dt even if it is allowed by stability.
 // The actual time-step and dt_suggested are returned in the status object.
-// Species loops run over the overall species count; the RK-state arrays are
-// NULL where a species lacks that aspect. 'stage' is the SSP-RK3 stage (1, 2
-// or 3) this step belongs to.
+// The RK-state arrays are indexed by species and are NULL where a species
+// lacks that aspect. 'stage' is the SSP-RK3 stage (1, 2 or 3) this step
+// belongs to.
 void
 vlasov_forward_euler(
   gkyl_vlasov_app *app, int stage, double tcurr, double dt, struct gkyl_array *fin[],
@@ -75,8 +75,8 @@ vlasov_forward_euler(
   double dt1_field = vlasov_field_update(app, stage, tcurr, fin_field, emin, emout);
   dtmin = fmin(dtmin, dt1_field); // null field returns DBL_MAX (no constraint)
 
-  // Compute what each species needs of itself and the field before its RHS
-  // (self-collision moments and boundary corrections).
+  // Compute the moments of each species' own stage state needed by its RHS (LBO
+  // moments and boundary corrections, explicit BGK, explicit temperature source).
   for (int i = 0; i < num_species; ++i) {
     vlasov_species_calc_self_moms(app, &app->species[i], fin[i], fluidin[i]);
   }
@@ -128,8 +128,8 @@ vlasov_forward_euler(
   for (int i = 0; i < num_species; ++i) {
     vlasov_species_step_f(&app->species[i], dta, fin[i], fluidin[i], fout[i], fluidout[i]);
   }
-  // Then what a species does to its stepped state before the boundary
-  // conditions are applied to it.
+  // Finish-stage method of each species, between step_f and the boundary
+  // conditions (empty for kinetic and fluid species).
   for (int i = 0; i < num_species; ++i) {
     vlasov_species_finish_stage(app, &app->species[i], stage, dta, fout[i], fluidout[i]);
   }

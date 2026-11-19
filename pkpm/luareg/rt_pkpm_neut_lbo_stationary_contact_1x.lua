@@ -2,12 +2,10 @@
 -- system of equations (1x, normalized parallel velocity w = v_par/xi).
 -- Density 1 moving at -18.281207, with pressure 1000 left of x = 0.8 and 0.01 right of it, to t =
 -- 0.012 (the left half of the Woodward-Colella blast wave in the frame in which its contact is at
--- rest). A Mach 198 shock moves to the right and the contact stays at x = 0.8. A static magnetic
+-- rest). A Mach 189 shock moves to the right and the contact stays at x = 0.8. A static magnetic
 -- field along x sets the field direction.
 -- Moderate collisions advanced explicitly, nu = 1.0e4: the mean free path of the hottest gas is
--- 0.32 cells. This is the collision frequency at which the diffusion step of the LBO operator is
--- about the transport step; rt_pkpm_neut_bgk_stationary_contact_1x has the same collision
--- frequency and grid.
+-- 0.32 cells. rt_pkpm_neut_bgk_stationary_contact_1x has the same collision frequency and grid.
 -- Figures of merit (100 x 16 cells) at t = 0.012, with nu dt = 0.0072 on average: the L1
 -- differences of the cell averages from the Euler solution (adiabatic index 5/3) are 5.2%
 -- (density), 5.2% (velocity) and 1.6% (pressure), and the density between 0.6111 and 4.072.

@@ -6,8 +6,7 @@
 // right, to t = 0.3. A static uniform magnetic field along the diagonal x = y sets the field
 // direction b, at 45 degrees to the grid.
 // Moderate collisions advanced explicitly, nu = 100.0: the mean free path of the hottest gas is
-// 0.2 cells. This is the collision frequency at which the diffusion step of the LBO operator is
-// about the transport step; rt_pkpm_neut_bgk_riem_2x has the same collision frequency and grid.
+// 0.2 cells. rt_pkpm_neut_bgk_riem_2x has the same collision frequency and grid.
 // Figures of merit (20 x 20 x 8 cells) at t = 0.3, with nu dt = 0.012 on average: against the
 // Euler solution of the moments app (400 x 400 cells) averaged over the cells of this grid the L1
 // differences of the cell averages are 3.2% (density) and 3.8% (pressure); the density stays

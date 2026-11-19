@@ -17,12 +17,11 @@
 // rt_dg_5m_gem_explicit_2x: 0.1242). The out-of-plane field reaches |B_z| = 0.011 and the electron
 // speed 0.17 (cell averages); the cell averages of the correction potential stay below 9.4e-4, the
 // field energy falls from 1.511 to 1.266, and the total energy of the diagnostics by 3.3%. The run
-// amplifies round-off: the Lua twin starts from the same state to 1e-16 and ends with a reconnected
-// flux of 0.1245 and fields that differ by up to 6% of their maximum. For the same reason the
-// mirror symmetry of the problem about the midplane y = 0, kept to round-off at first, is lost: at
-// the end the electron z-momentum departs from it by 29% of its maximum (31% in the Lua twin; 1.4%
-// of the current in the moments solution). At the end B_y changes sign three times along the
-// midplane (five times in the Lua twin; once in the explicit variant and in the moments solution).
+// amplifies round-off, so the late-time figures agree between runs only to a few percent. For the
+// same reason the mirror symmetry of the problem about the midplane y = 0, kept to round-off at
+// first, is lost: at the end the electron z-momentum departs from it by 29% of its maximum (1.4% of
+// the current in the moments solution). At the end B_y changes sign three times along the midplane
+// (once in the explicit variant and in the moments solution).
 
 #include <math.h>
 #include <stdio.h>

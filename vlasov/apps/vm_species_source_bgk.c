@@ -8,13 +8,12 @@
 // of the collision operator of the species. The implicit form is one backward-Euler step
 // together with the implicit BGK collisions of the species, if it has them:
 //   f' = (f + dt nu_c f_M(n, u, T') + dt nu_Q f_M(n, u, T_Q))/(1 + dt (nu_c + nu_Q)),
-// where T' = (T + dt nu_Q T_Q)/(1 + dt nu_Q) is the temperature the source gives the species
-// over the step, which the collisions conserve: the collisions relax to the Maxwellian of the
-// new temperature, so the step has the temperature T' and ends on that Maxwellian when the
-// collisions are stiff.
+// with cell-average rates in the denominator. The self-collision target is f_M(n, u, T'),
+// T' = (T + dt nu_Q T_Q)/(1 + dt nu_Q); the cross-collision targets are built from T' too.
 
 // Moments of the target: the LTE moments (n, V_drift, T/m) of the input distribution with the
-// temperature replaced by T_Q/m. The rate is zeroed where the density is not positive.
+// temperature replaced by T_Q/m. The rate is zeroed in cells where the average density or T_Q is
+// not positive.
 static void
 source_bgk_target_moms(
   gkyl_vlasov_app *app, const struct vm_species *vms, struct vm_source_bgk *src,
@@ -149,7 +148,7 @@ source_bgk_implicit_with_collisions(
 )
 {
   struct timespec wst = gkyl_wall_clock();
-  // The collision target first: both targets are projected through the same LTE object.
+  // Collision and source targets and rates, summed.
   vm_species_bgk_target_implicit(app, vms, &vms->bgk, fin);
   source_bgk_target(app, vms, src);
   gkyl_array_accumulate(src->nu_f_lte, 1.0, vms->bgk.nu_f_lte);

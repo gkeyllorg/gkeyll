@@ -358,7 +358,7 @@ test_positivity(int cdim)
   int num_rho = -1, num_e = -1, num_avg = -1;
   gkyl_dg_calc_pkpm_vars_positivity(vars, &local, eps, fluid, count, &num_rho, &num_e, &num_avg);
   TEST_CHECK(num_rho == 1);
-  TEST_CHECK(num_e == 2); // the steep-density cell also needs the energy scaling after step 1
+  TEST_CHECK(num_e == 2); // the steep-density cell also needs the energy scaling
   TEST_CHECK(num_avg == 1);
 
   for (int i = 1; i <= 4; ++i) {

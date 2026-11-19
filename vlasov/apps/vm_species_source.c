@@ -57,14 +57,12 @@ vm_species_source_init(struct gkyl_vlasov_app *app, struct vm_species *vms, stru
     src->num_cross_source = vms->info.source.num_cross_source;
     for (int i = 0; i < src->num_cross_source; i++) {
       src->adapt_source_species[i] = vm_find_species(app, vms->info.source.source_with[i]);
-      // source_with must name an existing *kinetic* species (a typo, or a fluid
-      // species, returns NULL and would segfault in the adapt phase otherwise).
+      // source_with must name an existing kinetic species.
       assert(src->adapt_source_species[i]);
       // Cross-species adaptive sourcing is reciprocal: the adapt phase reads the
       // partner's scale_m0 at the slot where the partner lists this species, so
       // the partner must itself be adaptive and must include us in its
-      // source_with. (Read from info, not the partner's src: source objects are
-      // initialized one species at a time, and the partner's may not exist yet.)
+      // source_with.
       const struct vm_species *other = src->adapt_source_species[i];
       assert(other->info.source.source_id == GKYL_PROJ_ADAPT_DENSITY_SOURCE);
       src->adapt_source_slot[i] = -1;
@@ -261,7 +259,8 @@ vm_species_source_adapt(gkyl_vlasov_app *app, const struct vm_species *vms, stru
   }
 }
 
-// computes rhs of the boundary flux
+// Accumulate the source onto rhs, scaled by the boundary flux of the source
+// species for a boundary-flux source.
 void
 vm_species_source_rhs(
   gkyl_vlasov_app *app, const struct vm_species *vms, struct vm_source *src, struct gkyl_array *rhs

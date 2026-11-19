@@ -2,10 +2,10 @@
 // rest with density 1 and pressure 1 (gamma = 1.4) on a periodic domain is accelerated by
 // a_x = a0 cos(omega t) with a0 = 0.5 and omega = 2; there is no field, so the fluid RHS applies the
 // force and the acceleration is evaluated at every stage time. The state must stay uniform with
-// velocity (a0/omega) sin(omega t) and energy p0/(gamma - 1) + rho u^2/2, which is -0.25 and 2.53125
-// at t = 3 pi/4 (an acceleration frozen at its initial value would give u = 1.18). Figures of merit
-// (serendipity p2, 16 cells, 46 steps): the momentum differs from the exact one by at most
-// 1.1e-8 and the energy by 1.4e-5; the density stays 1 to round-off.
+// velocity (a0/omega) sin(omega t) and energy p0/(gamma - 1) + rho u^2/2, which is -0.25 and
+// 2.53125 at t = 3 pi/4. Figures of merit (serendipity p2, 16 cells, 46 steps): the momentum
+// differs from the exact one by at most 1.1e-8 and the energy by 1.4e-5; the density stays 1 to
+// round-off.
 
 #include <math.h>
 #include <stdio.h>

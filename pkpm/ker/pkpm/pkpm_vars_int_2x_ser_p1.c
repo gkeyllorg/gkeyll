@@ -2,7 +2,7 @@
 GKYL_CU_DH void pkpm_vars_int_2x_ser_p1(const double *fluid, const double *vlasov_pkpm_moms, const double *u, double* GKYL_RESTRICT int_pkpm_vars) 
 { 
   // fluid:            Fluid state [rho, rho ux, rho uy, rho uz, E]. 
-  // vlasov_pkpm_moms: Kinetic coupling moments [p_par, p_perp, q_par, q_perp]. 
+  // vlasov_pkpm_moms: Kinetic coupling moments [p_par, p_perp, q_par, q_perp, s (x, y, z), r (x, y, z)]; p_par and p_perp are read. 
   // u:                Flow velocity [ux, uy, uz]. 
   // int_pkpm_vars:    Incremented cell integrals [rho, rho ux, rho uy, rho uz, rho ux^2, rho uy^2, rho uz^2, p_par, p_perp]. 
  

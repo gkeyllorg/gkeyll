@@ -71,7 +71,7 @@ struct gkyl_dg_calc_pkpm_vars {
   pkpm_transverse_t pkpm_transverse; // transversality projection of the first-harmonic blocks
   pkpm_source_t pkpm_source; // explicit electromagnetic source of [rho, M, E]
   pkpm_diag_t pkpm_diag; // diagnostic arrays
-  int *num_null_rho_dev; // device counter of nodes with rho <= 0 in a nodal computation (0 on host)
+  int *num_null_rho_dev; // device counter of the null nodes of the last nodal call (0 on host)
   double closure_cond_min; // smallest det/det0 of the closure solves of the last call (host copy)
   unsigned long long *closure_cond_min_dev; // device minimum (bit pattern of the positive double)
   int *num_pos_dev; // device counters [rho, e, avg] of the positivity limiter (0 on host)

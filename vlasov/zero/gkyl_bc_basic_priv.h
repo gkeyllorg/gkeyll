@@ -289,13 +289,13 @@ maxwell_theta_pole_bc(size_t nc, double *out, const double *inp, void *ctx)
   assert(dir == 1);
 
   // E^r  : even, E^\theta : odd, E^\phi : even
-  // flip_x_sign has an overall - sign, so flipped
+  // (flip_odd_sign gives the mirror image, flip_even_sign minus the mirror image)
   mc->basis->flip_odd_sign(dir, &inp[nbasis * 0], &out[nbasis * 0]);
   mc->basis->flip_even_sign(dir, &inp[nbasis * 1], &out[nbasis * 1]);
   mc->basis->flip_odd_sign(dir, &inp[nbasis * 2], &out[nbasis * 2]);
 
   // B^r  : even, B^\theta : odd, B^\phi : even
-  // flip_x_sign has an overall - sign, so flipped
+  // (flip_odd_sign gives the mirror image, flip_even_sign minus the mirror image)
   mc->basis->flip_odd_sign(dir, &inp[nbasis * 3], &out[nbasis * 3]);
   mc->basis->flip_even_sign(dir, &inp[nbasis * 4], &out[nbasis * 4]);
   mc->basis->flip_odd_sign(dir, &inp[nbasis * 5], &out[nbasis * 5]);

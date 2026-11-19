@@ -31,7 +31,7 @@ struct dg_euler {
   struct gkyl_dg_eqn eqn; // Base object
   euler_surf_t surf[3]; // pointers to surface kernels
   enum gkyl_eqn_type eqn_type; // Equation type
-  const struct gkyl_wv_eqn *wv_eqn; // wave equation object for Roe solve
+  const struct gkyl_wv_eqn *wv_eqn; // wave equation object (Riemann solver of the interface flux)
   const struct gkyl_wave_geom *geom; // wave geometry
   double gas_gamma; // adiabatic index (Euler)
   double vt; // thermal velocity (isothermal Euler)

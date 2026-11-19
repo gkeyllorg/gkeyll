@@ -3,8 +3,7 @@
 // Density 1.4 left of x = 0.5 and 1 right of it, at rest at uniform pressure 1, to t = 2. A static
 // magnetic field along x sets the field direction.
 // Moderate collisions advanced explicitly, nu = 60.0: the mean free path of the hottest gas is 1.7
-// cells. This is the collision frequency at which the diffusion step of the LBO operator is about
-// the transport step; rt_pkpm_neut_bgk_contact_1x has the same collision frequency and grid.
+// cells. rt_pkpm_neut_bgk_contact_1x has the same collision frequency and grid.
 // Figures of merit (100 x 16 cells) at t = 2, with nu dt = 0.0064 on average: the L1 differences
 // of the cell averages from the Euler solution (adiabatic index 5/3) are 3.6% (density) and below
 // 0.01% (pressure), the velocity stays below 0.005, and the density between 1 and 1.4.

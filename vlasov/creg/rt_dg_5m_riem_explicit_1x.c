@@ -8,17 +8,14 @@
 // explicit (use_explicit_sources); the light-wave CFL condition keeps omega_pe dt at 0.05, so the
 // rate of the source does not set the time-step.
 //
-// The electrons become supersonic in the current sheet: in the implicit variant they reach Mach 2.7
-// at t = 0.09, with their internal energy down to 20% of their total energy (cell averages). The
-// fluids use the HLLC flux of the Riemann solver (rp_type; Roe, Lax and HLL complete as well) with
-// the vertex positivity limiter, and the field its slope limiter (limit_em): without the field
-// limiter the electron pressure is 2.6e-3 or more everywhere at t = 10 (it is 6e-5 at most here).
+// The electrons become supersonic in the current sheet. The fluids use the HLLC flux of the Riemann
+// solver (rp_type) with the vertex positivity limiter, and the field its slope limiter (limit_em).
 //
 // Figures of merit at t = 10 (256 cells, serendipity p1, 8534 steps): relative L1 differences of
 // the cell averages from the moments finite-volume solution on 1024 cells, 1.2% (ion density), 1.1%
 // of the maximum (ion u_x), 1.7% (ion pressure), 1.8% (electron pressure), 1.4% and 1.9% of the
-// maximum (B_y, B_z); with 512 cells 0.74%, 0.64%, 1.1%, 0.76%, 0.76% and 1.3%. The electron
-// pressure lies between 4.1e-6 and 5.6e-5 and the ion density between 0.118 and 1.06.
+// maximum (B_y, B_z). The electron pressure lies between 4.1e-6 and 5.6e-5 and the ion density
+// between 0.118 and 1.06.
 
 #include <math.h>
 #include <stdio.h>

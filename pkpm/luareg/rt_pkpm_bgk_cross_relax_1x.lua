@@ -15,8 +15,7 @@
 -- The temperature difference decays at 2 (nu_ei m_e + nu_ie m_i) / (m_e + m_i) = 0.0396 (measured
 -- 0.0395). The pressure anisotropy decays at nu_ee + nu_ei = 2 for the electrons and at
 -- nu_ii + nu_ie = 0.11 for the ions (measured 2.0001 and 0.1100), half the LBO rates. Vlasov 1x3v
--- measures 1.02, 0.0395, 2.09 and 0.110. The same figures hold with the drift across the magnetic
--- field.
+-- measures 1.02, 0.0395, 2.09 and 0.110.
 local PKPM = G0.PKPM
 
 -- Mathematical constants (dimensionless).

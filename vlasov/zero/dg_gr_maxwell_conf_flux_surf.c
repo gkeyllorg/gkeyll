@@ -136,7 +136,7 @@ gkyl_dg_gr_maxwell_conf_flux_surf_advance(
     double *flux = gkyl_array_fetch(conf_flux_surf, cidx);
 
     // Each cell owns *lower* fluxes in each configuration-space direction.
-    // So we need the distribution function in our current cell, and the cell
+    // So we need the field in our current cell, and the cell
     // one index lower in each direction. If we are at the lower configuration-space
     // edge, we call ghost cells
     for (int dir = 0; dir < cdim; ++dir) {

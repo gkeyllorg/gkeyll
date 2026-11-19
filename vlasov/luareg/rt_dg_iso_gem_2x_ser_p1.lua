@@ -16,11 +16,10 @@
 -- volume solution on the same cells: 0.0200 to 0.1265). The out-of-plane field reaches |B_z| =
 -- 0.027 and the electron speed 0.20 (cell averages); the cell averages of the correction potential
 -- stay below 2.4e-3, the densities between 0.11 and 2.4, and the field energy falls from 1.511 to
--- 1.052. The run amplifies round-off: the C twin (vlasov/creg/rt_dg_iso_gem_2x.c) starts from the
--- same state to 3e-16 and ends with a reconnected flux of 0.1561 and fields that differ by 1.5% of
--- their maximum, and B_y changes sign once along the midplane here and in the moments solution and
--- three times in the C twin. The mirror symmetry about the midplane y = 0, kept to round-off by the
--- moments solution, is lost to 1.6% of the maximum of the electron z-momentum (1.9% in the C twin).
+-- 1.052. The run amplifies round-off, so the late-time figures agree between runs only to a few
+-- percent. B_y changes sign once along the midplane, as in the moments solution. The mirror
+-- symmetry about the midplane y = 0, kept to round-off by the moments solution, is lost to 1.6% of
+-- the maximum of the electron z-momentum.
 local Vlasov = G0.Vlasov
 local IsoEuler = G0.Vlasov.Eq.IsoEuler
 

@@ -1,11 +1,10 @@
 #include <gkyl_vlasov_priv.h>
 
-// Take time-step using the RK3 method. Also sets the status object
-// which has the actual and suggested dts used. These can be different
-// from the actual time-step. With retake, a stage whose step comes out
-// smaller than dt0 restarts the step with it; without, the function
-// returns at that stage with the solution untouched (only the stage
-// arrays are written) and dt_actual < dt0 in the status.
+// Take a time-step with SSP-RK3; the status holds the step taken and the
+// step suggested. With retake, stage 1 takes the step its CFL bound allows
+// and a smaller bound in stage 2 or 3 restarts from stage 1; without, the
+// function returns at the first stage whose bound is below dt0, with only
+// the stage arrays written and dt_actual < dt0 in the status.
 static inline struct gkyl_update_status
 update_ssp_rk3(gkyl_vlasov_app *app, double dt0, bool retake)
 {

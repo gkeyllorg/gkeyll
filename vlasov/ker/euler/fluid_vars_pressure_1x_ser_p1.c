@@ -3,8 +3,7 @@
 GKYL_CU_DH void fluid_vars_pressure_1x_ser_p1(double param, const double *fluid, const double *u, 
     double* GKYL_RESTRICT p, double* GKYL_RESTRICT p_surf) 
 { 
-  // param:  Input parameter needed for pressure computation.
-  //         vth for isothermal Euler, gas_gamma for Euler 
+  // param:  Adiabatic index gas_gamma.
   // fluid:  [rho, rho ux, rho uy, rho uz...], Fluid input state vector.
   // u:      Input volume expansion of flow velocity: [ux, uy, uz]. 
   // p:      Output volume expansion of pressure.

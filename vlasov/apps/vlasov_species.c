@@ -6,8 +6,8 @@
 // Per-aspect operations apply to whichever aspects (kinetic, fluid) a species owns;
 // the staging phases and the explicit field coupling go through the function
 // pointers set by the constructors. RK-state arrays (fin, fluidin, fout,
-// fluidout) are indexed over the overall species count and are NULL where a
-// species lacks that aspect.
+// fluidout) are indexed by species and are NULL where a species lacks that
+// aspect.
 
 // --- Methods assigned by the constructors -----------------------------------
 
@@ -20,7 +20,7 @@ species_no_calc_moms(
 {
 }
 
-// Nothing between step_f and the boundary conditions (kinetic and fluid species).
+// Empty finish-stage method (kinetic and fluid species).
 static void
 species_no_finish_stage(
   gkyl_vlasov_app *app, struct vlasov_species *sp, int stage, double dt, struct gkyl_array *fout,
@@ -177,7 +177,7 @@ vlasov_species_init(
       vlasov_fluid_species_init(app, inp, sp);
       break;
     default:
-      assert(false); // GKYL_SPECIES_PKPM is reserved and not supported here
+      assert(false); // unsupported species type
       break;
   }
 }
@@ -257,7 +257,8 @@ vlasov_fluid_species_init(
 
 // --- Wrappers over the constructor-assigned methods --------------------------
 
-// Self-collision moments and boundary corrections (staging phase 1).
+// Moments of the species' own stage state (LBO moments and boundary corrections,
+// explicit BGK, explicit temperature source; staging phase 1).
 void
 vlasov_species_calc_self_moms(
   gkyl_vlasov_app *app, struct vlasov_species *sp, struct gkyl_array *fin,
@@ -306,9 +307,8 @@ vlasov_species_calc_app_accel(gkyl_vlasov_app *app, struct vlasov_species *sp, d
   }
 }
 
-// Compute the species RHS, returning the maximum stable time-step across
-// aspects. Cross-aspect coupling is staged in the moments phases, so the aspect
-// RHSs are independent here.
+// Compute the RHS of each present aspect; returns the smallest of their stable
+// time-steps.
 double
 vlasov_species_rhs(
   gkyl_vlasov_app *app, struct vlasov_species *sp, const struct gkyl_array *fin,
@@ -326,8 +326,9 @@ vlasov_species_rhs(
   return dt;
 }
 
-// Pre-compute moments needed to rescale adaptive sources (kinetic aspect only).
-// Done in its own pass so the species RHS (and any boundary fluxes) are complete.
+// Compute the moments that rescale adaptive sources (kinetic aspect only). Run for
+// every species before any source is accumulated: an adaptive source reads its
+// partners' moments.
 void
 vlasov_species_calc_source_moms(
   gkyl_vlasov_app *app, struct vlasov_species *sp, const struct gkyl_array *fin
@@ -367,8 +368,9 @@ vlasov_species_calc_implicit_moms(
   }
 }
 
-// Implicit collision update, phase 2: the implicit RHS. Run after phase 1 for
-// all species (the RHS also computes cross moments).
+// Implicit update, phase 2: the backward-Euler step, fout = fin + dt*(implicit
+// RHS). Run after phase 1 for all species (cross collisions read the partners'
+// moments).
 void
 vlasov_species_rhs_implicit(
   gkyl_vlasov_app *app, struct vlasov_species *sp, const struct gkyl_array *fin,
@@ -380,7 +382,7 @@ vlasov_species_rhs_implicit(
   }
 }
 
-// Implicit collision update, phase 3: BCs and copy-back into the stage state.
+// Implicit update, phase 3: apply BCs and copy the update into the stage state.
 void
 vlasov_species_finish_implicit_update(
   gkyl_vlasov_app *app, struct vlasov_species *sp, struct gkyl_array *fout,
@@ -408,7 +410,8 @@ vlasov_species_step_f(
   }
 }
 
-// What a species does to its stepped state after step_f and before the BCs.
+// Finish-stage method of the species, between step_f and the BCs (empty for
+// kinetic and fluid species).
 void
 vlasov_species_finish_stage(
   gkyl_vlasov_app *app, struct vlasov_species *sp, int stage, double dt, struct gkyl_array *fout,
@@ -498,7 +501,7 @@ vlasov_species_apply_bc(
   }
 }
 
-// Apply the post-update slope limiter (fluid aspect only).
+// Apply the limiters to the stepped fluid state (fluid aspect only).
 void
 vlasov_species_limiter(gkyl_vlasov_app *app, struct vlasov_species *sp, struct gkyl_array *fluid)
 {

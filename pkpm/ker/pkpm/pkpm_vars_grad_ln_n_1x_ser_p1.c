@@ -2,7 +2,7 @@
 GKYL_CU_DH int pkpm_vars_grad_ln_n_1x_ser_p1(const double *rho, const double *grad_rho, double* GKYL_RESTRICT grad_ln_n) 
 { 
   // rho:       Input mass density. 
-  // grad_rho:  Input weak gradient of [rho, 0, 0] (pkpm_vars_grad_u_* layout, cdim x 3 expansions). 
+  // grad_rho:  Input gradient of [rho, 0, 0] (cdim x 3 expansions). 
   // grad_ln_n: Output [d_x ln n, ...] (cdim expansions): grad(rho)/rho at the 2 Gauss-Legendre nodes, 
   //            interpolated to the p=1 basis (the weak division at p=1). 
   // Returns the number of nodes where rho <= 0 (the quotient is zero there). 

@@ -89,7 +89,7 @@ struct gkyl_dg_calc_fluid_vars {
 
   struct gkyl_nmat *As, *xs; // matrices for LHS and RHS
   gkyl_nmat_mem *mem; // memory for use in batched linear solve
-  int Ncomp; // number of components in the linear solve (6 variables being solved for)
+  int Ncomp; // number of components in the linear solve (3 variables being solved for: ux, uy, uz)
 
   fluid_set_t fluid_set; // kernel for setting matrices for linear solve
   fluid_copy_t
@@ -136,7 +136,7 @@ GKYL_CU_D static const gkyl_dg_fluid_copy_kern_list ten_fluid_copy_kernels[] = {
   {NULL, fluid_vars_u_copy_3x_ser_p1, NULL, NULL} // 2
 };
 
-// Scalar pressure Isothermal Euler -> p = vth*rho; Euler -> p = (gas_gamma - 1)*(E - 1/2 rho u^2) (Serendipity kernels)
+// Scalar pressure of Euler, p = (gas_gamma - 1)*(E - 1/2 rho u^2) (Serendipity kernels)
 GKYL_CU_D static const gkyl_dg_fluid_pressure_kern_list ser_fluid_pressure_kernels[] = {
   {NULL, fluid_vars_pressure_1x_ser_p1, fluid_vars_pressure_1x_ser_p2, fluid_vars_pressure_1x_ser_p3
   }, // 0
@@ -144,7 +144,7 @@ GKYL_CU_D static const gkyl_dg_fluid_pressure_kern_list ser_fluid_pressure_kerne
   {NULL, fluid_vars_pressure_3x_ser_p1, NULL, NULL} // 2
 };
 
-// Scalar pressure Isothermal Euler -> p = vth*rho; Euler -> p = (gas_gamma - 1)*(E - 1/2 rho u^2) (Tensor kernels)
+// Scalar pressure of Euler, p = (gas_gamma - 1)*(E - 1/2 rho u^2) (Tensor kernels)
 GKYL_CU_D static const gkyl_dg_fluid_pressure_kern_list ten_fluid_pressure_kernels[] = {
   {NULL, fluid_vars_pressure_1x_ser_p1, fluid_vars_pressure_1x_ser_p2, fluid_vars_pressure_1x_ser_p3
   }, // 0

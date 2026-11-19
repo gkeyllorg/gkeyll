@@ -298,7 +298,7 @@ GKYL_CU_DH int pkpm_vars_closure_3x_ser_p1(double w_lo, double w_up, double dv, 
 { 
   // w_lo, w_up:   Velocity domain edges; dv: velocity cell size. 
   // norm_moms:    Input [M0, M2, M0_G, M1, M3, M1_G, mu (x, y, z)] moments of the normalized distributions (stage state). 
-  // rhs_moms:     Input moments of the stage-A right-hand sides, same layout. 
+  // rhs_moms:     Input moments of the right-hand sides of the configuration-space pass, same layout. 
   // bvar:         Magnetic field unit vector [bx, by, bz]. 
   // wn:           Raw w-flux values at the 125 w-face nodes [node][PKPM_HS_W_END] (the build of the stored operator). 
   // theta:        T_perp/T. 
@@ -595,7 +595,7 @@ GKYL_CU_DH int pkpm_vars_closure_3x_ser_p1(double w_lo, double w_up, double dv, 
     // eliminated into the energy row, which carries 2 mu . a_perp (Schur complement) 
     const double fac = n0_q > 0.0 ? 2.0/n0_q : 0.0; 
     const double sQQ = pkpm_harm_dot(Q, Q), sQP = pkpm_harm_dot(Q, P), sQA = pkpm_harm_dot(Q, Aa), sQC = pkpm_harm_dot(Q, Ac); 
-    // 3x3 system A [c_0, alpha_0, c] = rhs: stage-A rates + interior stage-B rates + edge rates = 0 
+    // 3x3 system A [c_0, alpha_0, c] = rhs: configuration-pass rates + interior velocity-pass rates + edge rates = 0 
     const double A00 = n0_q, A01 = eF0, A02 = eF1; 
     const double A10 = n1_q, A11 = n0_q + eF1, A12 = n1_q + eF2; 
     const double A20 = n2_q + 2.0*nG_q - fac*sQQ, A21 = 2.0*n1_q + eF2 + 2.0*eG0 - fac*sQA, A22 = 2.0*(n2_q + 2.0*nG_q) + eF3 + 2.0*eG1 - fac*(sQQ + sQC); 
@@ -667,7 +667,7 @@ GKYL_CU_DH int pkpm_vars_closure_3x_ser_p1(double w_lo, double w_up, double dv, 
     // eliminated into the energy row, which carries 2 mu . a_perp (Schur complement) 
     const double fac = n0_q > 0.0 ? 2.0/n0_q : 0.0; 
     const double sQQ = pkpm_harm_dot(Q, Q), sQP = pkpm_harm_dot(Q, P), sQA = pkpm_harm_dot(Q, Aa), sQC = pkpm_harm_dot(Q, Ac); 
-    // 3x3 system A [c_0, alpha_0, c] = rhs: stage-A rates + interior stage-B rates + edge rates = 0 
+    // 3x3 system A [c_0, alpha_0, c] = rhs: configuration-pass rates + interior velocity-pass rates + edge rates = 0 
     const double A00 = n0_q, A01 = eF0, A02 = eF1; 
     const double A10 = n1_q, A11 = n0_q + eF1, A12 = n1_q + eF2; 
     const double A20 = n2_q + 2.0*nG_q - fac*sQQ, A21 = 2.0*n1_q + eF2 + 2.0*eG0 - fac*sQA, A22 = 2.0*(n2_q + 2.0*nG_q) + eF3 + 2.0*eG1 - fac*(sQQ + sQC); 
@@ -739,7 +739,7 @@ GKYL_CU_DH int pkpm_vars_closure_3x_ser_p1(double w_lo, double w_up, double dv, 
     // eliminated into the energy row, which carries 2 mu . a_perp (Schur complement) 
     const double fac = n0_q > 0.0 ? 2.0/n0_q : 0.0; 
     const double sQQ = pkpm_harm_dot(Q, Q), sQP = pkpm_harm_dot(Q, P), sQA = pkpm_harm_dot(Q, Aa), sQC = pkpm_harm_dot(Q, Ac); 
-    // 3x3 system A [c_0, alpha_0, c] = rhs: stage-A rates + interior stage-B rates + edge rates = 0 
+    // 3x3 system A [c_0, alpha_0, c] = rhs: configuration-pass rates + interior velocity-pass rates + edge rates = 0 
     const double A00 = n0_q, A01 = eF0, A02 = eF1; 
     const double A10 = n1_q, A11 = n0_q + eF1, A12 = n1_q + eF2; 
     const double A20 = n2_q + 2.0*nG_q - fac*sQQ, A21 = 2.0*n1_q + eF2 + 2.0*eG0 - fac*sQA, A22 = 2.0*(n2_q + 2.0*nG_q) + eF3 + 2.0*eG1 - fac*(sQQ + sQC); 
@@ -811,7 +811,7 @@ GKYL_CU_DH int pkpm_vars_closure_3x_ser_p1(double w_lo, double w_up, double dv, 
     // eliminated into the energy row, which carries 2 mu . a_perp (Schur complement) 
     const double fac = n0_q > 0.0 ? 2.0/n0_q : 0.0; 
     const double sQQ = pkpm_harm_dot(Q, Q), sQP = pkpm_harm_dot(Q, P), sQA = pkpm_harm_dot(Q, Aa), sQC = pkpm_harm_dot(Q, Ac); 
-    // 3x3 system A [c_0, alpha_0, c] = rhs: stage-A rates + interior stage-B rates + edge rates = 0 
+    // 3x3 system A [c_0, alpha_0, c] = rhs: configuration-pass rates + interior velocity-pass rates + edge rates = 0 
     const double A00 = n0_q, A01 = eF0, A02 = eF1; 
     const double A10 = n1_q, A11 = n0_q + eF1, A12 = n1_q + eF2; 
     const double A20 = n2_q + 2.0*nG_q - fac*sQQ, A21 = 2.0*n1_q + eF2 + 2.0*eG0 - fac*sQA, A22 = 2.0*(n2_q + 2.0*nG_q) + eF3 + 2.0*eG1 - fac*(sQQ + sQC); 
@@ -883,7 +883,7 @@ GKYL_CU_DH int pkpm_vars_closure_3x_ser_p1(double w_lo, double w_up, double dv, 
     // eliminated into the energy row, which carries 2 mu . a_perp (Schur complement) 
     const double fac = n0_q > 0.0 ? 2.0/n0_q : 0.0; 
     const double sQQ = pkpm_harm_dot(Q, Q), sQP = pkpm_harm_dot(Q, P), sQA = pkpm_harm_dot(Q, Aa), sQC = pkpm_harm_dot(Q, Ac); 
-    // 3x3 system A [c_0, alpha_0, c] = rhs: stage-A rates + interior stage-B rates + edge rates = 0 
+    // 3x3 system A [c_0, alpha_0, c] = rhs: configuration-pass rates + interior velocity-pass rates + edge rates = 0 
     const double A00 = n0_q, A01 = eF0, A02 = eF1; 
     const double A10 = n1_q, A11 = n0_q + eF1, A12 = n1_q + eF2; 
     const double A20 = n2_q + 2.0*nG_q - fac*sQQ, A21 = 2.0*n1_q + eF2 + 2.0*eG0 - fac*sQA, A22 = 2.0*(n2_q + 2.0*nG_q) + eF3 + 2.0*eG1 - fac*(sQQ + sQC); 
@@ -955,7 +955,7 @@ GKYL_CU_DH int pkpm_vars_closure_3x_ser_p1(double w_lo, double w_up, double dv, 
     // eliminated into the energy row, which carries 2 mu . a_perp (Schur complement) 
     const double fac = n0_q > 0.0 ? 2.0/n0_q : 0.0; 
     const double sQQ = pkpm_harm_dot(Q, Q), sQP = pkpm_harm_dot(Q, P), sQA = pkpm_harm_dot(Q, Aa), sQC = pkpm_harm_dot(Q, Ac); 
-    // 3x3 system A [c_0, alpha_0, c] = rhs: stage-A rates + interior stage-B rates + edge rates = 0 
+    // 3x3 system A [c_0, alpha_0, c] = rhs: configuration-pass rates + interior velocity-pass rates + edge rates = 0 
     const double A00 = n0_q, A01 = eF0, A02 = eF1; 
     const double A10 = n1_q, A11 = n0_q + eF1, A12 = n1_q + eF2; 
     const double A20 = n2_q + 2.0*nG_q - fac*sQQ, A21 = 2.0*n1_q + eF2 + 2.0*eG0 - fac*sQA, A22 = 2.0*(n2_q + 2.0*nG_q) + eF3 + 2.0*eG1 - fac*(sQQ + sQC); 
@@ -1027,7 +1027,7 @@ GKYL_CU_DH int pkpm_vars_closure_3x_ser_p1(double w_lo, double w_up, double dv, 
     // eliminated into the energy row, which carries 2 mu . a_perp (Schur complement) 
     const double fac = n0_q > 0.0 ? 2.0/n0_q : 0.0; 
     const double sQQ = pkpm_harm_dot(Q, Q), sQP = pkpm_harm_dot(Q, P), sQA = pkpm_harm_dot(Q, Aa), sQC = pkpm_harm_dot(Q, Ac); 
-    // 3x3 system A [c_0, alpha_0, c] = rhs: stage-A rates + interior stage-B rates + edge rates = 0 
+    // 3x3 system A [c_0, alpha_0, c] = rhs: configuration-pass rates + interior velocity-pass rates + edge rates = 0 
     const double A00 = n0_q, A01 = eF0, A02 = eF1; 
     const double A10 = n1_q, A11 = n0_q + eF1, A12 = n1_q + eF2; 
     const double A20 = n2_q + 2.0*nG_q - fac*sQQ, A21 = 2.0*n1_q + eF2 + 2.0*eG0 - fac*sQA, A22 = 2.0*(n2_q + 2.0*nG_q) + eF3 + 2.0*eG1 - fac*(sQQ + sQC); 
@@ -1099,7 +1099,7 @@ GKYL_CU_DH int pkpm_vars_closure_3x_ser_p1(double w_lo, double w_up, double dv, 
     // eliminated into the energy row, which carries 2 mu . a_perp (Schur complement) 
     const double fac = n0_q > 0.0 ? 2.0/n0_q : 0.0; 
     const double sQQ = pkpm_harm_dot(Q, Q), sQP = pkpm_harm_dot(Q, P), sQA = pkpm_harm_dot(Q, Aa), sQC = pkpm_harm_dot(Q, Ac); 
-    // 3x3 system A [c_0, alpha_0, c] = rhs: stage-A rates + interior stage-B rates + edge rates = 0 
+    // 3x3 system A [c_0, alpha_0, c] = rhs: configuration-pass rates + interior velocity-pass rates + edge rates = 0 
     const double A00 = n0_q, A01 = eF0, A02 = eF1; 
     const double A10 = n1_q, A11 = n0_q + eF1, A12 = n1_q + eF2; 
     const double A20 = n2_q + 2.0*nG_q - fac*sQQ, A21 = 2.0*n1_q + eF2 + 2.0*eG0 - fac*sQA, A22 = 2.0*(n2_q + 2.0*nG_q) + eF3 + 2.0*eG1 - fac*(sQQ + sQC); 

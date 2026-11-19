@@ -8,11 +8,7 @@
 //
 // Figures of merit (48 x 48 cells, serendipity p1, 640 steps): the energy of E and B is 1.1e-2 of
 // the initial one at t = 1, 5.2e-3 at t = 1.5 and 3.8e-4 at t = 2; the eight components are finite
-// and the largest cell average is 6.8e-3 at t = 2, against 0.956 at t = 0. With 96 x 96 cells the
-// energy left is 1.1e-2, 5.3e-3 and 3.9e-4 at the same times: what is left is set by the reflection
-// at oblique incidence and not by the resolution. With copy boundaries in place of the absorbing
-// ones (GKYL_FIELD_COPY, central flux) the energy reaches 20 times the initial one and is 13 times
-// it at t = 2.
+// and the largest cell average is 6.8e-3 at t = 2, against 0.956 at t = 0.
 
 #include <math.h>
 #include <stdio.h>

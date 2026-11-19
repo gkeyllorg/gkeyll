@@ -1151,8 +1151,8 @@ test_dg_em_vars_3x_tensor_p2_dev()
 
 #endif
 
-// Slope limiter of the field: a slope of the field component normal to the sweep direction that
-// the limiter removes takes with it the higher coefficients of that component and of the
+// Slope limiter of the field: a slope along the sweep direction of the field component along it
+// that the limiter removes takes with it the higher coefficients of that component and of the
 // correction potential of its pair (E_n with phi, B_n with psi), in every sweep direction, and
 // leaves those of every other component.
 static void

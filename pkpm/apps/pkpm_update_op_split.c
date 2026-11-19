@@ -2,25 +2,19 @@
 
 // Staggered operator split of the locally implicit fluid-Maxwell source update S and the SSP-RK3
 // step T of the hyperbolic terms. Over a run the sequence is
-//   S(h/2) T S(h) T S(h) T ... T S(h/2),
-// the Strang split with the two source half steps that meet between consecutive transport steps
-// taken as ONE implicit-midpoint step. Two half steps rotate the plasma oscillation by
-// 4 atan(omega_pe h/4) per step, which reaches pi at omega_pe h = 4 and makes the curl coupling (the
-// frozen c^2 curl B current in S, the B drift with frozen E in T) resonate; one step rotates it by
-// 2 atan(omega_pe h/2) < pi. So between updates the source-updated state (fluid, E) lags tcurr by half
-// the last step (E at half steps, B at whole steps).
+//   T S(h/2) S(h) T S(h) T ... S(h) T S(h/2):
+// the first update has no source step before T and applies S(h/2) after it, every later update
+// applies one implicit-midpoint step S(h) before T, and the last S(h/2) is the synchronization
+// of the output (pkpm_op_split_sync). Between updates the source-updated state (fluid, E) lags
+// tcurr by half the last step (E at half steps, B at whole steps).
 //
-// Each update applies the sources over the interval between the midpoint of the previous transport
-// step and the midpoint of this one, (dt_prev + dt)/2. The step T takes is only known afterwards (it
-// is bounded by the CFL condition), so the source step before T assumes the requested step dt0, capped
-// by the step the previous update suggested, and a source step after T covers the difference. T takes
-// dt0 unless its CFL bound is more than 1% smaller, so the difference is zero when the step is steady
-// or growing, and negative when T took less (the implicit midpoint rule is time-reversible); a positive
-// correction would add rotation to a step that may already be close to pi. The first update of a run
-// is a Lie start (no source step before T). The cap by the suggested step also makes a restart (which
-// restores both steps) continue as the uninterrupted run. Time-dependent applied fields, currents and
-// accelerations are evaluated at the midpoint of each source interval (second order for one step, and
-// the same time for a step and its inverse).
+// Each update applies the sources over the interval between the midpoint of the previous
+// transport step and the midpoint of this one, (dt_prev + dt)/2. The source step before T assumes
+// the requested step dt0, capped by the step the previous update suggested (a restart restores
+// both steps from the frame). A source step after T covers the difference between the planned
+// and the actual midpoint: half the step in the first update, and a negative step when T took
+// less than planned (the implicit midpoint rule is time-reversible). Time-dependent applied
+// fields, currents and accelerations are evaluated at the midpoint of each source interval.
 struct gkyl_update_status
 pkpm_update_op_split(gkyl_pkpm_app *app, double dt0)
 {
@@ -72,7 +66,7 @@ pkpm_op_split_sync(gkyl_pkpm_app *app)
     gkyl_array_copy(app->op_split_pos_count[i], app->species[i].fluid->pkpm_pos_count);
   }
   // tcurr is the end of the last transport step; the sources stand at its midpoint (applied fields
-  // at the midpoint of the half step, as in the inverse step of a restart)
+  // at the midpoint of the half step)
   double dt_half = 0.5 * app->op_split_dt_prev;
   pkpm_fluid_em_coupling_update(app, app->pkpm_em, app->tcurr - 0.5 * dt_half, dt_half);
   for (int i = 0; i < app->num_species; ++i) {

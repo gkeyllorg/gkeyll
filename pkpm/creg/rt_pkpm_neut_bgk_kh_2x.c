@@ -6,8 +6,7 @@
 // one wavelength, to t = 3. A static uniform magnetic field along x, the direction of the shear
 // flow, sets the field direction b.
 // Moderate collisions advanced explicitly, nu = 30.0: the mean free path of the hottest gas is
-// 0.53 cells. This is the collision frequency at which the diffusion step of the LBO operator is
-// about the transport step; rt_pkpm_neut_lbo_kh_2x has the same collision frequency and grid.
+// 0.53 cells. rt_pkpm_neut_lbo_kh_2x has the same collision frequency and grid.
 // Figures of merit (16 x 16 x 8 cells) at t = 3, with nu dt = 0.035 on average: the integral of
 // rho u_y^2 is 1.96e-05 at the end of the run (7.5e-05 at t = 0); mass is conserved to 1e-13.
 

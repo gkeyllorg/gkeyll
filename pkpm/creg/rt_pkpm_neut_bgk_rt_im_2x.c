@@ -19,9 +19,7 @@
 // wavelength, reduce it. At t = 3.5 the spike of heavy gas has fallen to y = 0.18 and the bubble
 // risen to 0.30; the density stays between 0.86 and 2.22, and the solution is symmetric about the
 // middle of the box in x to round-off. The energy changes by the work of gravity, -g int M_y dt, to
-// 2e-10 of the energy; mass is conserved to 2e-13. Without the perturbation the interface stays at
-// rest: the velocity stays below 1e-3 and decays, and the heat conduction spreads the density jump
-// over two cells (density undershoot 4% at t = 0.5 and 2% at t = 3.5).
+// 2e-10 of the energy; mass is conserved to 2e-13.
 
 #include <math.h>
 #include <stdio.h>

@@ -318,12 +318,12 @@ gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm)
   app->op_split_dt_suggested = 0.0;
   app->op_split_synced = false;
   if (app->use_explicit_sources) {
-    // If momentum-EM field coupling is explicit,
+    // If fluid-EM field coupling is explicit,
     // we use a pure explicit SSP RK3 method.
     app->update_func = pkpm_update_explicit_ssp_rk3;
   } else {
     // By default: a staggered (Strang) operator split treats the
-    // momentum-EM field coupling implicitly.
+    // fluid-EM field coupling implicitly.
     app->pkpm_em = pkpm_fluid_em_coupling_init(app);
     app->update_func = pkpm_update_op_split;
     for (int i = 0; i < app->num_species; ++i) {
@@ -558,6 +558,20 @@ gkyl_pkpm_app_write_field(gkyl_pkpm_app *app, double tm, int frame)
     }
   }
 
+  if (!app->use_explicit_sources) {
+    // The staggered field of the operator split, as the stepper holds it, for a restart
+    // (before the first update nothing lags, and the field is the staggered one).
+    const struct gkyl_array *em_stag = app->op_split_synced ? app->op_split_em : app->field->em;
+    if (app->use_gpu) {
+      // copy data from device to host before writing it out
+      gkyl_array_copy(app->field->em_host, em_stag);
+      em_stag = app->field->em_host;
+    }
+    cstr fileNm_restart = cstr_from_fmt("%s-field_restart_%d.gkyl", app->name, frame);
+    gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, em_stag, fileNm_restart.str);
+    cstr_drop(&fileNm_restart);
+  }
+
   pkpm_array_meta_release(mt);
 }
 
@@ -622,6 +636,35 @@ gkyl_pkpm_app_write_species(gkyl_pkpm_app *app, int sidx, double tm, int frame)
   gkyl_comm_array_write(
     app->comm, &app->grid, &app->local, mt_fluid, s->fluid->fluid_no_J_host, fileNm_fluid
   );
+
+  // What a restart needs besides the frame, as the stepper holds it: the closures [alpha_0, c]
+  // of the last stage of the last completed step, from which the closures of the next step take
+  // the speeds of the velocity-domain edges, and the staggered fluid state of the operator split
+  // (before the first update nothing lags, and the fluid state is the staggered one).
+  cstr fileNm_closure =
+    cstr_from_fmt("%s-%s_pkpm_closure_restart_%d.gkyl", app->name, s->name, frame);
+  if (app->use_gpu) {
+    // copy data from device to host before writing it out
+    gkyl_array_copy(s->kinetic->pkpm_closure_step_host, s->kinetic->pkpm_closure_step);
+  }
+  gkyl_comm_array_write(
+    app->comm, &app->grid, &app->local, mt_fluid, s->kinetic->pkpm_closure_step_host,
+    fileNm_closure.str
+  );
+  cstr_drop(&fileNm_closure);
+  if (!app->use_explicit_sources) {
+    const struct gkyl_array *fluid_stag = app->op_split_synced ? app->op_split_fluid[sidx] :
+                                                                 s->fluid->fluid;
+    if (app->use_gpu) {
+      gkyl_array_copy(s->fluid->fluid_host, fluid_stag);
+      fluid_stag = s->fluid->fluid_host;
+    }
+    cstr fileNm_restart = cstr_from_fmt("%s-%s_fluid_restart_%d.gkyl", app->name, s->name, frame);
+    gkyl_comm_array_write(
+      app->comm, &app->grid, &app->local, mt_fluid, fluid_stag, fileNm_restart.str
+    );
+    cstr_drop(&fileNm_restart);
+  }
 
   pkpm_array_meta_release(mt_fluid);
 }
@@ -1611,6 +1654,21 @@ gkyl_pkpm_app_from_frame_species(gkyl_pkpm_app *app, int sidx, int frame)
   struct gkyl_app_restart_status rstat_fluid =
     gkyl_pkpm_app_from_file_fluid_species(app, sidx, fileNm_fluid.str);
 
+  // The closures the first step takes the speeds of its velocity-domain edges from (a frame
+  // without the file starts them from zero, as a new run does).
+  cstr fileNm_closure =
+    cstr_from_fmt("%s-%s_pkpm_closure_restart_%d.gkyl", app->name, s->name, frame);
+  struct gkyl_app_restart_status rstat_closure = header_from_file(app, fileNm_closure.str);
+  if (rstat_closure.io_status == GKYL_ARRAY_RIO_SUCCESS) {
+    rstat_closure.io_status = gkyl_comm_array_read(
+      app->comm, &app->grid, &app->local, s->kinetic->pkpm_closure_step_host, fileNm_closure.str
+    );
+  }
+  if (rstat_closure.io_status == GKYL_ARRAY_RIO_SUCCESS && app->use_gpu) {
+    gkyl_array_copy(s->kinetic->pkpm_closure_step, s->kinetic->pkpm_closure_step_host);
+  }
+  cstr_drop(&fileNm_closure);
+
   // The cumulative record of the positivity limiter continues from the frame's (a frame
   // without the file restarts the record).
   cstr fileNm_pos = cstr_from_fmt("%s-%s_pkpm_positivity_%d.gkyl", app->name, s->name, frame);
@@ -1679,36 +1737,47 @@ gkyl_pkpm_app_read_from_frame(gkyl_pkpm_app *app, int frame)
 
   app->tcurr = rstat.stime;
   if (!app->use_explicit_sources) {
-    // The frames hold the synchronized state of the staggered operator split; the
-    // uninterrupted run held the sources half its last step behind. Step them back (the implicit
-    // midpoint rule is time-reversible: this inverts the synchronization step) and restore the steps,
-    // so the next update continues as the uninterrupted run. Frames without the steps restart as a
-    // new run (Lie start).
-    cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, "field", frame);
+    // The frames hold the synchronized state of the staggered operator split; the staggered
+    // field and fluids replace it, with the steps of the split, so that the next update
+    // continues the run.
+    cstr fileNm = cstr_from_fmt("%s-field_restart_%d.gkyl", app->name, frame);
     struct pkpm_output_meta meta = meta_from_file(fileNm.str);
+    struct gkyl_app_restart_status sstat = header_from_file(app, fileNm.str);
+    if (sstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
+      sstat.io_status =
+        gkyl_comm_array_read(app->comm, &app->grid, &app->local, app->field->em_host, fileNm.str);
+    }
     cstr_drop(&fileNm);
+    if (sstat.io_status != GKYL_ARRAY_RIO_SUCCESS) {
+      return sstat;
+    }
+    if (app->use_gpu) {
+      gkyl_array_copy(app->field->em, app->field->em_host);
+    }
+    pkpm_field_apply_bc(app, app->field, app->field->em);
+
+    for (int i = 0; i < app->num_species; ++i) {
+      struct pkpm_species *s = &app->species[i];
+      cstr fileNm_fluid = cstr_from_fmt("%s-%s_fluid_restart_%d.gkyl", app->name, s->name, frame);
+      sstat = header_from_file(app, fileNm_fluid.str);
+      if (sstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
+        sstat.io_status = gkyl_comm_array_read(
+          app->comm, &app->grid, &app->local, s->fluid->fluid_host, fileNm_fluid.str
+        );
+      }
+      cstr_drop(&fileNm_fluid);
+      if (sstat.io_status != GKYL_ARRAY_RIO_SUCCESS) {
+        return sstat;
+      }
+      if (app->use_gpu) {
+        gkyl_array_copy(s->fluid->fluid, s->fluid->fluid_host);
+      }
+      pkpm_fluid_species_apply_bc(app, s->fluid, s->fluid->fluid);
+    }
+
     app->op_split_synced = false;
     app->op_split_dt_prev = meta.dt_prev;
     app->op_split_dt_suggested = meta.dt_suggested;
-    if (meta.dt_prev > 0.0) {
-      double dt_half = 0.5 * meta.dt_prev;
-      // the positivity limiter of this step is not part of the evolution: keep it out of the
-      // records, as the synchronization step does
-      long pos_count[GKYL_MAX_SPECIES][PKPM_POS_NUM_STAT];
-      for (int i = 0; i < app->num_species; ++i) {
-        for (int c = 0; c < PKPM_POS_NUM_STAT; ++c) {
-          pos_count[i][c] = app->species[i].fluid->pos_count_since[c];
-        }
-        gkyl_array_copy(app->op_split_pos_count[i], app->species[i].fluid->pkpm_pos_count);
-      }
-      pkpm_fluid_em_coupling_update(app, app->pkpm_em, app->tcurr - 0.5 * dt_half, -dt_half);
-      for (int i = 0; i < app->num_species; ++i) {
-        for (int c = 0; c < PKPM_POS_NUM_STAT; ++c) {
-          app->species[i].fluid->pos_count_since[c] = pos_count[i][c];
-        }
-        gkyl_array_copy(app->species[i].fluid->pkpm_pos_count, app->op_split_pos_count[i]);
-      }
-    }
   }
 
   return rstat;

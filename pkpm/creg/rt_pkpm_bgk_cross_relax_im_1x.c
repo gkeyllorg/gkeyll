@@ -15,7 +15,7 @@
 // R(2 (nu_ei m_e + nu_ie m_i) / (m_e + m_i) dt) to 8e-4 (the frictional heating) and the pressure
 // anisotropy of each species by R((nu_ss + nu_sr) dt) to 5e-5 (the stages combine the distributions
 // with weights that follow the temperature change of the exchange). The temperatures end at 0.78782
-// (electrons) and 0.71260 (ions). The same holds with the drift across the magnetic field.
+// (electrons) and 0.71260 (ions).
 
 #include <math.h>
 #include <stdio.h>

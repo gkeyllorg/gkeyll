@@ -13,7 +13,7 @@ typedef struct gkyl_dg_calc_fluid_vars gkyl_dg_calc_fluid_vars;
 /**
  * Create new updater to compute fluid variables needed in 
  * update of DG fluid equations (e.g., isothermal Euler, Euler, 10 moment). Methods compute:
- * p : Isothermal Euler -> p = vth*rho; Euler -> p = (gas_gamma - 1)*(E - 1/2 rho u^2)
+ * p : Isothermal Euler -> p = vt^2 rho; Euler -> p = (gas_gamma - 1)*(E - 1/2 rho u^2)
  * p_surf : [p_xl, p_xr, p_yl, p_yr, p_zl, p_zr]
  * u : [ux, uy, uz]
  * u_surf : [ux_xl, ux_xr, uy_xl, uy_xr, uz_xl, uz_xr, 
@@ -114,7 +114,7 @@ void gkyl_dg_calc_fluid_vars_limiter(
 
 /**
  * Compute integrated fluid variables (rho, rhoux, rhouy, rhouz, rhou^2, ...).
- * For isothermal Euler, integrated internal energy is just weighted integrated density (rho*vth)
+ * For isothermal Euler, integrated internal energy is just weighted integrated density (vt^2 rho)
  * For Euler, computes integrated internal energy p (without the 1/(gas_gamma - 1) factor) 
  * For 10 moment, computes integrated internal energy from sum over directions (Pxx + Pyy + Pzz)
  * Note: post-processing requires the addition of the needed factors (such as 1/2 in rhou^2)
@@ -124,7 +124,7 @@ void gkyl_dg_calc_fluid_vars_limiter(
  * @param fluid Input array of fluid variables [rho, rhoux, rhouy, rhouz, ...]
  * @param u_i Input array of flow velocity [ux, uy, uz]
  * @param p_ij Input array of pressure 
- * @param int_fluid_vars Output array of integrated variables (6 components)
+ * @param fluid_int_vars Output array of integrated variables (6 components)
  */
 void gkyl_dg_calc_fluid_integrated_vars(
   struct gkyl_dg_calc_fluid_vars *up, const struct gkyl_range *conf_range,

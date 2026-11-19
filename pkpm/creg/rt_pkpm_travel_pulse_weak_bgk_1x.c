@@ -5,8 +5,8 @@
 // Weak collisions: the collision frequency nu = 0.559 makes the domain one mean free path long
 // (the thermal speed sqrt(p/rho) of the hottest gas is 1.118). The collisions are advanced
 // explicitly.
-// Figures of merit (16 x 16 cells) at t = 2, with nu dt = 0.0015 on average: the pulse is back at
-// its starting position (phase error 3 rad) with 0.002 of its amplitude.
+// Figures of merit (16 x 16 cells) at t = 2, with nu dt = 0.0015 on average: the pulse has decayed
+// to 0.002 of its amplitude.
 
 #include <math.h>
 #include <stdio.h>

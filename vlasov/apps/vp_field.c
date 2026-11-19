@@ -394,7 +394,7 @@ vp_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   gkyl_array_clear(vpf->ext_pot, 0.0);
   vpf->has_ext_pot = false;
   vpf->ext_pot_evolve = false;
-  // setup external electromagnetic field
+  // setup external potentials
   if (vpf->info.external_potentials) {
     vpf->has_ext_pot = true;
     if (vpf->info.external_potentials_evolve) {
@@ -403,7 +403,7 @@ vp_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
 
     vpf->ext_pot_host = app->use_gpu ? mkarr(false, vpf->ext_pot->ncomp, vpf->ext_pot->size) :
                                        gkyl_array_acquire(vpf->ext_pot);
-    // Project on the physical coordinates of the (possibly mapped) conf mesh.
+    // Evaluate at nodes, on the physical coordinates of the (possibly mapped) conf mesh.
     // 4 components: phi and the three components of A.
     vpf->ext_pot_proj = gkyl_eval_on_nodes_inew(&(struct gkyl_eval_on_nodes_inp){
       .grid = &app->grid,
@@ -444,9 +444,7 @@ vp_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
     });
   }
 
-  // Vlasov-Poisson doesn't presently use external currents. (EM limiting is a
-  // Vlasov-Maxwell member of the field union, so it must not be written here:
-  // it aliases the potentials.)
+  // No applied currents in Vlasov-Poisson.
   vpf->has_app_current = vpf->app_current_evolve = false;
 
   // Integrated |grad phi|^2 energy diagnostic shared by the potentials. For an
@@ -457,8 +455,7 @@ vp_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   // same metric as the Poisson permittivity with unit scale) folded into the
   // full-gradient weighted operator (EPS_GRAD_SQ), which integrates over the
   // computational cells. The weight uses the same symmetric upper-triangular
-  // layout as the Poisson permittivity tensor. (Verified against the analytic
-  // potential of a Gaussian sheet on a linear-to-exponential 1x map.)
+  // layout as the Poisson permittivity tensor.
   bool wgt_const = app->pos_map->is_identity;
   int wgtnum = vp_field_tensor_num_comp(app, wgt_const);
   vpf->grad_sq_wgt = mkarr(app->use_gpu, wgtnum * nb, app->local_ext.volume);
@@ -482,8 +479,8 @@ vp_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   vpf->is_first_energy_write_call = true;
 
   // Set the type-specific dispatch methods (Vlasov-Poisson). The potentials are
-  // re-solved each stage (update_func) rather than carried in the RK state, so
-  // the combine/copy/BC/current/limiter stage operations are no-ops.
+  // solved each stage (update_func), so the combine/copy/BC/current/limiter
+  // stage operations are no-ops.
   vpf->update_func = vp_field_update;
   vpf->combine_func = vp_field_combine;
   vpf->copy_range_func = vp_field_copy_range;
@@ -516,9 +513,7 @@ vp_field_update(
   return DBL_MAX;
 }
 
-// Evaluate the external potentials and fields at the given time. Shared by the
-// initial conditions and the restart: the potentials themselves are solved from
-// the distribution wherever they are needed, so neither path solves them here.
+// Evaluate the external potentials and fields at time tm.
 static void
 vp_field_calc_ext(gkyl_vlasov_app *app, struct vm_field *field, double tm)
 {
@@ -608,10 +603,8 @@ vp_field_solve(gkyl_vlasov_app *app, struct vm_field *field, const struct gkyl_a
 {
   struct timespec wst = gkyl_wall_clock();
 
-  // Accumulate the sources: each species owns its explicit contribution and
-  // deposits its density, weighted by its coupling to each potential, onto that
-  // potential's source (species without a Poisson coupling are a no-op). fin[]
-  // is indexed over the overall species count.
+  // Accumulate the source of each potential: the number density of each species
+  // times its coupling weight (fin[] is indexed by species).
   for (int p = 0; p < field->num_pots; ++p) {
     gkyl_array_clear(field->pots[p].rho, 0.0);
   }
@@ -677,7 +670,7 @@ vp_field_write(gkyl_vlasov_app *app, double tm, int frame, const struct gkyl_arr
       char fileNm_ext_pot[sz_ext_pot + 1]; // ensures no buffer overflow
       snprintf(fileNm_ext_pot, sizeof fileNm_ext_pot, fmt_ext_pot, app->name, frame);
 
-      // External potentials computed with project on basis, so just use host copy.
+      // External potentials are evaluated on nodes, so just use host copy.
       vp_field_calc_ext_pot(app, app->field, tm);
       gkyl_comm_array_write(
         app->comm, &app->grid, &app->local, mt, app->field->ext_pot_host, fileNm_ext_pot

@@ -16,8 +16,7 @@
 // serendipity p1, cfl_frac = 0.1, 1613 steps, Omega_c dt = 0.062 on average): u_y = 0.138377 and
 // u_z = 0.499214, errors 1.5e-3 and -1.0e-3. The internal energy rises by 1.2e-3 of its initial
 // value (the implicit variant, rt_dg_5m_em_advect_1x, keeps it to round-off), and the state stays
-// uniform. With cfl_frac = 1 the run completes with an error of order one (Omega_c dt = 0.6);
-// without the bound on the acceleration it fails within two steps.
+// uniform.
 
 #include <math.h>
 #include <stdio.h>

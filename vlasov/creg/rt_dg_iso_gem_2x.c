@@ -13,15 +13,13 @@
 //
 // Figures of merit at t = 25 / Omega_ci (64 x 32 cells, serendipity p1, 4167 steps): the
 // reconnected flux int |B_y(x, y = 0)| dx / 2 grows from 0.0200 to 0.1561 (the moments finite-
-// volume solution on the same cells: 0.0200 to 0.1265; with the Roe flux: 0.1543). The out-of-plane
-// field reaches |B_z| = 0.027 and the electron speed 0.20 (cell averages); the cell averages of the
-// correction potential stay below 2.2e-3, the densities between 0.12 and 2.4, and the field energy
-// falls from 1.511 to 1.052. The run amplifies round-off: the Lua twin starts from the same state
-// to 3e-16 and ends with a reconnected flux of 0.1566 and fields that differ by 1.5% of their
-// maximum, and B_y changes sign three times along the midplane here and once in the Lua twin and in
-// the moments solution. The mirror symmetry about the midplane y = 0, kept to round-off by the
-// moments solution, is lost to 1.9% of the maximum of the electron z-momentum (1.6% in the Lua
-// twin; 15% with the Roe flux, where B_y changes sign six times).
+// volume solution on the same cells: 0.0200 to 0.1265). The out-of-plane field reaches |B_z| =
+// 0.027 and the electron speed 0.20 (cell averages); the cell averages of the correction potential
+// stay below 2.2e-3, the densities between 0.12 and 2.4, and the field energy falls from 1.511 to
+// 1.052. The run amplifies round-off, so the late-time figures agree between runs only to a few
+// percent. B_y changes sign three times along the midplane (once in the moments solution). The
+// mirror symmetry about the midplane y = 0, kept to round-off by the moments solution, is lost to
+// 1.9% of the maximum of the electron z-momentum.
 
 #include <math.h>
 #include <stdio.h>

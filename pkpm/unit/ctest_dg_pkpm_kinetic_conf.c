@@ -3,7 +3,7 @@
 // the exact modal volume kernel (the streaming of every block) against an independent
 // Gauss-Legendre quadrature of the same terms, the modal first-harmonic volume integrals
 // (dg_pkpm_harm_vol) against a quadrature exact for them of the pointwise coefficients of
-// gkyl_pkpm_harm_coeffs.h, and the closures (weak residuals of the normalization, first-moment and
+// ctest_pkpm_harm_ref.h, and the closures (weak residuals of the normalization, first-moment and
 // second-moment rows in every mode, and the perpendicular rows
 // M0 a_perp + I_perp int rhs(M0_perp) dw = 0 at the closure nodes, rhs the right-hand side of the
 // pass).
@@ -117,6 +117,16 @@ eval_f(double t, const double *xn, double *restrict fout, void *ctx)
   fout[7] = 0.5 * vt * vt * F0 * (-0.3 * sin(x + z) + 0.05 * v * v);
 }
 
+// The blocks F and G of eval_f alone.
+static void
+eval_fg(double t, const double *xn, double *restrict fout, void *ctx)
+{
+  double f[8];
+  eval_f(t, xn, f, ctx);
+  fout[0] = f[0];
+  fout[1] = f[1];
+}
+
 // Fluid state [rho, rho u, E]: the face flux reads the mass density only.
 static void
 eval_fluid(double t, const double *xn, double *restrict fout, void *ctx)
@@ -217,7 +227,8 @@ eval_xi(double t, const double *xn, double *restrict fout, void *ctx)
   fout[2] = 0.9 * xi * xi;
 }
 
-// Weak gradient of u on the interior cells (u is projected on the extended range).
+// Weak gradients of u and of [xi, xi^2, p] on the interior cells (both are projected on the
+// extended range), and the projected grad(ln n).
 static void
 compute_grad_u(struct test_setup *s)
 {
@@ -360,7 +371,7 @@ make_eqn(struct test_setup *s, const struct gkyl_array *flux)
 
 // Independent evaluation of the first-harmonic volume terms of one phase cell: the 6-point rule
 // in every phase direction (exact for them) applied to the pointwise coefficients of
-// gkyl_pkpm_harm_coeffs.h (whose definitions ctest_pkpm_harm_coeffs checks) from the fields
+// ctest_pkpm_harm_ref.h (whose definitions ctest_pkpm_harm_coeffs checks) from the fields
 // evaluated at the nodes.
 static void
 reference_harm_vol(struct test_setup *s, const int *idx, double *out_ref)
@@ -670,7 +681,7 @@ test_closure(int cdim)
   gkyl_array_clear(s.grad_b, 0.0);
   gkyl_array_clear_range(s.f, 0.0, &s.plocal_ext);
   {
-    gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&s.pgrid, &s.pbasis, 8, 2, eval_f, &cdim);
+    gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&s.pgrid, &s.pbasis, 8, 2, eval_fg, &cdim);
     gkyl_proj_on_basis_advance(proj, 0.0, &s.plocal_ext_conf, s.f);
     gkyl_proj_on_basis_release(proj);
   }
@@ -916,7 +927,8 @@ test_closure(int cdim)
   teardown(&s);
 }
 
-// The weak gradient kernels against an independent quadrature of the weak form
+// The in-cell gradient with the whole jump of every face lifted (blend = 1) against an
+// independent quadrature of the weak form
 //   <psi_k, d_i u_j> = dx1_i [ <psi_k(xi_i=+1), ubar_r> - <psi_k(xi_i=-1), ubar_l> - <d_xi_i psi_k, u_c> ]
 // with ubar the average of the two traces at the face.
 static void

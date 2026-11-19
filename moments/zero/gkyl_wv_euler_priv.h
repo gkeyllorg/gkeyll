@@ -486,9 +486,7 @@ states_hll_common(const struct gkyl_wv_eqn *eqn, const double *ql, const double 
   // characteristic speed of each side and that of the Roe average (Einfeldt 1988; Einfeldt,
   // Munz, Roe and Sjogreen 1991; Batten, Clarke, Lambert and Causon 1997 for HLLC). They are
   // exact for an isolated shock, and sl < sr always, so the HLL and HLLC middle states are
-  // defined for any pair of admissible states. (The pressure-based estimates of Toro (10.59) with
-  // the PVRS pressure (10.61), used before, are too slow in strong compressions, where sl and sr
-  // could cross, and far too fast next to a near vacuum.)
+  // defined for any pair of admissible states.
   double cl = sqrt(g * pl / rl);
   double cr = sqrt(g * pr / rr);
   double srl = sqrt(rl), srr = sqrt(rr), ravg = 1 / (srl + srr);

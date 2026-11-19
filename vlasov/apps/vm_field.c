@@ -81,13 +81,13 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
     f->bc_buffer_lo_fixed_no_J[d] = f->bc_buffer_up_fixed_no_J[d] = 0;
   }
 
-  // Acquire the geometry object (only used for GR)
   // Standard E_B Maxwell on a non-identity position map evolves the J-weighted
   // fields J*E, J*B (so the mapped curl kernels and the J-weighted current are
   // consistent) and keeps the physical E, B in em_no_J for the Lorentz force and
   // I/O. The GR path uses the same em_no_J array (un-weighted by det_h instead).
   f->weight_by_pos_jacob = (f->field_id == GKYL_FIELD_E_B) && (!app->pos_map->is_identity);
   if (f->field_id == GKYL_FIELD_GR_D_B) {
+    // Geometry of GR-Maxwell, owned by the app.
     f->geom = app->vm_geom;
     f->em_no_J = mkarr(app->use_gpu, 8 * app->basis.num_basis, app->local_ext.volume);
     f->em_no_J_host = app->use_gpu ? mkarr(false, f->em_no_J->ncomp, f->em_no_J->size) :
@@ -172,7 +172,7 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
     });
   }
 
-  // Vlasov-Maxwell doesn't presently use external potentials.
+  // No external potentials in Vlasov-Maxwell.
   f->has_ext_pot = f->ext_pot_evolve = false;
 
   // Initialize applied currents (always used by implicit fluid sources, so always initialize)
@@ -229,12 +229,11 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
 
   struct gkyl_dg_eqn *eqn;
 
-  // Allocate nodal surface expansion of Configuration space flux array.
+  // Modal surface expansion of the configuration-space flux (GR-Maxwell).
   if (f->field_id == GKYL_FIELD_GR_D_B) {
-    // Compute the number of configuration space nodes, with case for hybrid-tensor.
+    // Number of surface nodes of the tensor basis.
     f->num_surf_conf_nodes = pow(app->poly_order + 1, app->cdim - 1);
 
-    //
     f->conf_flux_surf =
       mkarr(app->use_gpu, app->cdim * 8 * f->num_surf_conf_nodes, app->local_ext.volume);
     struct gkyl_dg_gr_maxwell_conf_flux_surf_inp inp_conf_flux = {
@@ -273,10 +272,9 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
 
   int up_dirs[GKYL_MAX_DIM] = {0, 1, 2}, zero_flux_flags[2 * GKYL_MAX_DIM] = {false};
 
-  // Absorbing boundaries are a flux through the boundary face, not a ghost cell: on such an edge
-  // the solver updates the boundary cells with the boundary surface kernels of the equation (the
-  // outgoing waves only), on the ranks that own the edge. The ghost cells of the edge are filled
-  // by copy for the operations that read them (limiter).
+  // Absorbing edges: the solver updates the cells of the edge with the boundary surface kernels of
+  // the equation (the outgoing waves only), on the ranks that own the edge. The BC updaters below
+  // fill the ghost cells of the edge for the operations that read them (limiter).
   for (int d = 0; d < app->cdim; ++d) {
     const enum gkyl_field_bc_type *bc = d == 0 ? f->info.bcx : (d == 1 ? f->info.bcy : f->info.bcz);
     bool is_periodic = false;
@@ -569,18 +567,15 @@ vm_field_accumulate_current(
   struct gkyl_array *emout
 )
 {
-  // Each species owns its explicit contribution (kinetic species accumulate
-  // -q/eps0 * m1i; implicitly-coupled fluid species are a no-op); the field
-  // only owns this loop and the applied current below.
+  // Accumulate the current of each species onto the E rows (kinetic: -q/eps0 M1; Euler fluids
+  // coupled explicitly: -q/(m eps0) rho u).
   int num_species = app->num_species;
   for (int i = 0; i < num_species; ++i) {
     vlasov_species_accumulate_field_coupling(app, &app->species[i], fin[i], fluidin[i], emout);
   }
 
-  // Accumulate applied current to electric field terms.
-  // *Only* accumulate applied currents if there is no fluid-EM coupling.
-  // If there are fluid species, then applied current coupling handled by implicit fluid-EM coupling
-  // See vm_fluid_em_coupling.c
+  // Accumulate the applied current onto the E rows, unless the fluid-EM coupling is implicit: its
+  // source step applies it (vm_fluid_em_coupling.c).
   if (app->field->has_app_current && !app->has_fluid_em_coupling) {
     gkyl_array_accumulate_range(
       emout, -1.0 / app->field->info.epsilon0, app->field->app_current, &app->local
@@ -618,12 +613,7 @@ vm_field_limiter(gkyl_vlasov_app *app, struct vm_field *field, struct gkyl_array
   }
 }
 
-// Combine the RK stages of the field state (out = c1*arr1 + c2*arr2). The field
-// is part of the RK state vector only for Vlasov-Maxwell (E_B/GR_D_B); for
-// Vlasov-Poisson the potential is re-solved from the charge density each stage
-// (see vp_field_solve), so this is a no-op. Note: for Vlasov-Poisson the em/em1/
-// emnew pointers alias the Poisson scratch arrays via the vm_field union, so
-// skipping the combine here also avoids scribbling on them.
+// Combine the RK stages of the field state (out = c1*arr1 + c2*arr2) over the extended range.
 void
 vm_field_combine(
   gkyl_vlasov_app *app, struct vm_field *field, struct gkyl_array *out, double c1,
@@ -633,7 +623,7 @@ vm_field_combine(
   array_combine(out, c1, arr1, c2, arr2, &app->local_ext);
 }
 
-// Copy the field state (out = inp). No-op for Vlasov-Poisson (see vm_field_combine).
+// Copy the field state (out = inp) over the extended range.
 void
 vm_field_copy_range(
   gkyl_vlasov_app *app, struct vm_field *field, struct gkyl_array *out, const struct gkyl_array *inp
@@ -652,9 +642,8 @@ vm_field_update(
   return vm_field_rhs(app, app->field, emin, emout);
 }
 
-// Transport step of the staggered operator split without divergence cleaning: B drifts with
-// the E of the source step, which the transport step does not change, so the right-hand side of
-// stage 1 (zero E rows) serves the three stages.
+// Transport step of the staggered operator split without divergence cleaning: zero E rows; the
+// right-hand side of stage 1 is reused in stages 2 and 3.
 static double
 vm_field_update_split(
   gkyl_vlasov_app *app, int stage, double tcurr, const struct gkyl_array *fin[],
@@ -755,7 +744,7 @@ vm_field_complete_update(
 
   // (can't accumulate current when field is static)
   if (!app->field->info.is_static) {
-    // accumulate current contribution from kinetic species to electric field terms
+    // Accumulate the species and applied currents onto the E rows.
     vm_field_accumulate_current(app, fin, fluidin, emout);
     app->stat.current_tm += gkyl_time_diff_now_sec(wst);
   }
@@ -795,7 +784,7 @@ vm_field_rhs(
     // input em already has its BCs applied by the caller.
     vm_field_apply_bc(app, field, field->em_no_J);
 
-    // Compute the surface expansion of the phase space flux in configuration space.
+    // Compute the surface expansion of the GR-Maxwell flux at configuration-space surfaces.
     gkyl_dg_gr_maxwell_conf_flux_surf_advance(
       field->calc_conf_flux, &app->local, &app->local_ext, field->geom->lapse, field->geom->shift,
       field->geom->h_ij, field->geom->h_ij_inv, field->geom->det_h, em, field->em_no_J,
@@ -849,7 +838,7 @@ vm_field_apply_bc(gkyl_vlasov_app *app, const struct vm_field *field, struct gky
     app->comm, &app->local, &app->local_ext, num_periodic_dir, app->periodic_dirs, f
   );
 
-  int is_np_bc[3] = {1, 1, 1}; // flags to indicate if direction is periodic
+  int is_np_bc[3] = {1, 1, 1}; // flags to indicate if direction is not periodic
   for (int d = 0; d < num_periodic_dir; ++d) {
     is_np_bc[app->periodic_dirs[d]] = 0;
   }
@@ -975,7 +964,7 @@ vm_field_write(gkyl_vlasov_app *app, double tm, int frame, const struct gkyl_arr
     }
   }
   if (app->field->has_app_current) {
-    // Only write out external fields at t=0 or if they are time-dependent.
+    // Only write the applied current at t=0 or if it is time-dependent.
     if (frame == 0 || app->field->app_current_evolve) {
       const char *fmt_app_current = "%s-field_app_current_%d.gkyl";
       int sz_app_current = gkyl_calc_strlen(fmt_app_current, app->name, frame);

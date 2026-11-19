@@ -12,10 +12,6 @@
 -- x = 0.499 and fall from 1.39 to 1.01 over six cells; they stay between 1.0000 and 1.4001; the
 -- largest velocity is 6e-4 and the pressure stays uniform to 2e-6; the L1 error of the density
 -- against the sharp contact is 0.49%.
--- This contact needs nu dt below about 15: at larger nu dt the face values of the thermal speed
--- (extrapolated from the nodes of a cell) leave a pressure deficit at the faces of a cell with a
--- density slope, which the heat conduction of the gas no longer smooths, and the over- and
--- undershoots at the contact grow.
 
 local PKPM = G0.PKPM
 

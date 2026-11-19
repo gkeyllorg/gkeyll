@@ -1,9 +1,10 @@
-// Tests of the first-harmonic coefficients of the normalized PKPM kinetic equations at a point
-// (gkyl_pkpm_harm_coeffs.h): every coefficient and term against an independent construction with
-// explicit 3x3 matrices (I_perp = I - b b^T, U, B_1 = xi grad b), the bounds of the spectrum of the
-// coupling part of the w flux (sign changes of det(T - lambda I): all six roots real and inside),
-// the pairing that keeps d_t b out of the energy row, and the w flux from node values (the stored
-// coefficients evaluated at a node) against the pointwise definitions.
+// Tests of the reference definitions of the first-harmonic terms of the normalized PKPM kinetic
+// equations at a point (ctest_pkpm_harm_ref.h): every coefficient and term against an independent
+// construction with explicit 3x3 matrices (I_perp = I - b b^T, U, B_1 = xi grad b), the bounds of
+// the spectrum of the coupling part of the w flux (sign changes of det(T - lambda I): all six
+// roots real and inside) and the pairing that keeps d_t b out of the energy row; and of the node
+// functions of gkyl_pkpm_harm_coeffs.h (the w flux from node values, the stored coefficients
+// evaluated at a node) against those definitions.
 #include <math.h>
 #include <stdlib.h>
 

@@ -10,10 +10,8 @@
 // depend on the time step.
 // Figures of merit (16 x 16 cells): at t = 2 the pulse is back at its starting position (phase
 // error below 2e-3 rad) with amplitude 0.836, against exp(-chi k^2 t) = 0.821. At nu dt = 0.26 the
-// decay rate is 0.9996 times that of rt_pkpm_travel_pulse_bgk_1x (amplitude 0.836). At nu = 1e3 and
-// 1e6 (nu dt = 2.6 and 2600) the decay rates 0.0110 and 0.0022 are the same at cfl 1 and 1/2; the
-// second is the diffusion of the grid alone. Particle number is conserved to 1e-13 and the
-// constraints to round-off.
+// decay rate is 0.9996 times that of rt_pkpm_travel_pulse_bgk_1x (amplitude 0.836). Particle number
+// is conserved to 1e-13 and the constraints to round-off.
 
 #include <math.h>
 #include <stdio.h>

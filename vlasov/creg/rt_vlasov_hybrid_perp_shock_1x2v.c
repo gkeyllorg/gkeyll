@@ -7,14 +7,14 @@
 // ion current as known and solves the electron momentum with E, the transport step moves the ions
 // with that E.
 //
-// Reference (derived): mass, magnetic flux, momentum and energy balance across the shock in the
-// frame of the wall, v_s (Q2 - Q1) = F2 - F1 with the Maxwell stress and the Poynting flux of the
-// motional field E_y = -u0 B_z, an ion enthalpy of 2 p_i and an electron enthalpy of gamma p_e /
-// (gamma - 1). They give the compression r = 1 + u0 / v_s of the density and of B_z, but the shock
-// speed v_s depends on how the heating divides between the species, which the conservation laws do
-// not determine. Assuming that the electrons are compressed adiabatically (an assumption; in the
-// run p_e / n_e^gamma rises by 0.2% across the shock), v_s = 1.4210 vA, r = 1.5278 (fast Mach
-// number 1.42, Alfven Mach number 2.21), T_i2 / T_i1 = 1.680 and T_e2 / T_e1 = 1.327.
+// Reference: mass, magnetic flux, momentum and energy balance across the shock in the frame of the
+// wall, v_s (Q2 - Q1) = F2 - F1 with the Maxwell stress and the Poynting flux of the motional field
+// E_y = -u0 B_z, an ion enthalpy of 2 p_i and an electron enthalpy of gamma p_e / (gamma - 1). They
+// give the compression r = 1 + u0 / v_s of the density and of B_z, but the shock speed v_s depends
+// on how the heating divides between the species, which the conservation laws do not determine.
+// With adiabatically compressed electrons (in the run p_e / n_e^gamma rises by 0.2% across the
+// shock), v_s = 1.4210 vA, r = 1.5278 (fast Mach number 1.42, Alfven Mach number 2.21), T_i2 / T_i1
+// = 1.680 and T_e2 / T_e1 = 1.327.
 //
 // Figures of merit at t = 10 / Omega_ci (tensor p1 with the hybrid phase basis, 128 x 16 x 14
 // cells, 2000 steps, omega_pi dt = 0.05, set by the light wave): the shock (B_z through the mean of
@@ -23,10 +23,7 @@
 // 9.9, behind the shock: compression 1.5294 (ions), 1.5295 (electrons) and 1.5298 (B_z), +0.1%,
 // with a wave train of 6% rms in the density and 5% in B_z; T_i2 / T_i1 = 1.631 (-2.9%), T_e2 /
 // T_e1 = 1.330 (+0.3%). The total energy (field, ions and electrons, from the frames) grows by the
-// inflow through the upper boundary to 1.4e-3, and the number of ions to 4e-4. With 24 x 20
-// velocity cells the figures change by less than 1e-3. The inflow is slow because the wave train
-// grows with it: at u0 = 1.0, 1.25 and 1.75 vA (fast Mach numbers 1.59, 1.78 and 2.17) it is 10%,
-// 15% and 22% rms of the density, and the shock speed is +2.1%, +2.0% and -3.7% from the reference.
+// inflow through the upper boundary to 1.4e-3, and the number of ions to 4e-4.
 
 #include <math.h>
 #include <stdio.h>

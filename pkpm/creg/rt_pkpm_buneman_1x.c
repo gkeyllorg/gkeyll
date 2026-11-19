@@ -5,8 +5,7 @@
 // 0.001, density perturbation 1e-5 with the electric field from Gauss's law. The ghost current
 // cancels the net current of the drifting electrons, so that Ampere's law equals the periodic
 // Poisson solve. In the PKPM variables the drift is the electron fluid velocity and F is a
-// Maxwellian in w; the thermal-speed normalization follows the heating, so the w extents stay at
-// +-8. A uniform magnetic field along x sets the field direction.
+// Maxwellian in w. A uniform magnetic field along x sets the field direction.
 // The fluid-field coupling is advanced explicitly within the SSP-RK3 step.
 // Kinetic linear theory at k = 2 pi: gamma = 0.1976 omega_pe, omega_r = 0.1425 omega_pe (cold-beam
 // maximum 0.235).

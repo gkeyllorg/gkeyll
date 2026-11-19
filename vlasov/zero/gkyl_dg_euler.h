@@ -44,7 +44,7 @@ struct gkyl_dg_eqn *gkyl_dg_euler_cu_dev_new(
  * Set the auxiliary fields (e.g. velocity u = rho*u/rho) needed in updating euler equation.
  * 
  * @param eqn Equation pointer.
- * @param auxfields Pointer to struct of aux fields.
+ * @param auxin Struct of auxiliary fields (u, p).
  */
 void gkyl_euler_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_euler_auxfields auxin);
 
@@ -53,7 +53,7 @@ void gkyl_euler_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_eule
  * CUDA device function to set auxiliary fields (e.g. velocity u = rho*u/rho) needed in updating euler equation.
  * 
  * @param eqn Equation pointer.
- * @param auxfields Pointer to struct of aux fields.
+ * @param auxin Struct of auxiliary fields (u, p).
  */
 void gkyl_euler_set_auxfields_cu(
   const struct gkyl_dg_eqn *eqn, struct gkyl_dg_euler_auxfields auxin

@@ -94,10 +94,9 @@ int gkyl_dg_calc_pkpm_bvar_num_null_b(const struct gkyl_dg_calc_pkpm_bvar *up);
 /**
  * Compute the weak (surface-averaged) gradient of b, the p=1 expansions of d_i b_j for
  * every configuration direction i and component j, stored per cell as
- * [direction][component][mode] (cdim * 3 * num_basis entries), with the face-averaged
- * kernels pkpm_vars_grad_u_*. b is the only field that keeps this form: the gradients of
- * u, xi and rho are in-cell plus the blended face lift
- * (gkyl_dg_calc_pkpm_vars_in_cell_grad). It needs b in the neighbors of every cell of
+ * [direction][component][mode] (cdim * 3 * num_basis entries), with the average of the two
+ * traces at each face. The gradients of u, xi and rho are computed by
+ * gkyl_dg_calc_pkpm_vars_in_cell_grad. It needs b in the neighbors of every cell of
  * conf_range. The kinetic mirror terms form div b from it.
  *
  * @param up         Updater for computing the magnetic field unit vector.

@@ -27,7 +27,6 @@ GKYL_CU_DH int fluid_vars_u_set_1x_ser_p3(int count, struct gkyl_nmat *A, struct
 
   int cell_avg = 0;
   // Check if rho < 0 at control points. 
-  // *THIS IS ONLY A CHECK RIGHT NOW AND UNUSED* 
   if ((-1.870828693386971*rho[3])+1.58113883008419*rho[2]-1.224744871391589*rho[1]+0.7071067811865475*rho[0] < 0.0) cell_avg = 1; 
   if (0.7621894676761731*rho[3]-0.5270462766947298*rho[2]-0.408248290463863*rho[1]+0.7071067811865475*rho[0] < 0.0) cell_avg = 1; 
   if ((-0.7621894676761731*rho[3])-0.5270462766947298*rho[2]+0.408248290463863*rho[1]+0.7071067811865475*rho[0] < 0.0) cell_avg = 1; 

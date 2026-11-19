@@ -6,7 +6,7 @@ vm_fluid_species_source_init(
   struct gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, struct vm_fluid_source *src
 )
 {
-  // we need to ensure source has same shape as distribution function
+  // Source of the fluid species: one scalar expansion.
   src->source = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
 
   src->source_host = app->use_gpu ? mkarr(false, src->source->ncomp, src->source->size) :

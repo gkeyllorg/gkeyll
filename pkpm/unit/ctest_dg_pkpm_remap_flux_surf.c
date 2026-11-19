@@ -436,7 +436,7 @@ test_steady_state_all(const struct phys_frame *frames)
 void
 test_steady_dilation(void)
 {
-  // xi = 1 and 2: the edges of the xi = 2 grid are a subset of those of the xi = 1 grid in v
+  // xi = 1 and 2: the xi = 2 cell edges inside the xi = 1 grid coincide with xi = 1 edges in v
   struct phys_frame frames[2] = {{1.0, 0.0, 1.0}, {3.0, 0.0, 2.0}};
   test_steady_state_all(frames);
 }

@@ -1,11 +1,10 @@
-// The collision operator of the thermal-velocity normalized PKPM solver as a
-// self-contained update: the conservative LBO in the configuration-nodal form (drag and
-// diffusion of every block, the G source 2 nu vth^2 F - 2 nu G, the first-harmonic couplings)
-// with the primitive moments of gkyl_pkpm_lbo_moms at the nodes must preserve the
-// three constraints M0(F) = 1, M1(F) = 0 and M2(F) + 2 M0(G) = 3 of any normalized state
-// to round-off, i.e. the moments [M0, M1, M2 + 2 M0_G] of its right-hand side vanish
-// cell by cell. The state here is anisotropic and non-Maxwellian with a varying
-// collisionality so that every term of the operator is active.
+// The collision operator of the thermal-velocity normalized PKPM solver: the conservative LBO
+// in the configuration-nodal form (drag and diffusion of every block, the G source
+// 2 nu vth^2 F - 2 nu G, the first-harmonic couplings) with the primitive moments of
+// gkyl_pkpm_lbo_moms at the nodes. The moments [M0, M1, M2 + 2 M0_G] of its right-hand side
+// vanish cell by cell to round-off for an anisotropic, non-Maxwellian F and G with a varying
+// collisionality, and the w-moments of its first-harmonic part obey their relaxation
+// identities.
 #include <math.h>
 
 #include <acutest.h>
@@ -36,7 +35,7 @@ struct lbo_ctx {
   double nu_amp; // relative amplitude of the collisionality variation
 };
 
-// A two-stream, anisotropic normalized state: F a weighted pair of shifted Gaussians,
+// A two-stream, anisotropic state with M0(F) = 1: F a weighted pair of shifted Gaussians,
 // G = theta(x) F with theta != 1 (perpendicular temperature differs from the parallel one).
 static void
 eval_f(double t, const double *xn, double *restrict fout, void *ctx)
@@ -62,9 +61,8 @@ static void
 test_lbo_constraints(int cdim, double nu_amp)
 {
   struct lbo_ctx ctx = {.cdim = cdim, .nu_amp = nu_amp};
-  // The velocity domain holds the tails of the state to below round-off: with the wider
-  // Gaussian reaching 1e-6 at the boundary (wmax = 8) the boundary treatment of the
-  // operator leaves a 1e-10 relative residual that decreases with the cell size.
+  // The velocity domain holds the tails of the state to below round-off, so the boundary terms
+  // of the operator do not enter the moments.
   double wmax = 12.0;
   double lower[4] = {-1.0, -1.0, -1.0, 0.0}, upper[4] = {1.0, 1.0, 1.0, 0.0};
   int cells[4] = {4, 3, 2, 0}, ghost[4] = {1, 1, 1, 0};

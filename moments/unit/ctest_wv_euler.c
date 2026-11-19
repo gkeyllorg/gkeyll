@@ -249,9 +249,9 @@ test_wv_euler_dev()
 
 #endif
 
-// HLL and HLLC wave speeds: ordered, finite, and with a positive HLLC middle density, for pairs
-// of states where the pressure-based estimate failed (colliding streams, two strong shocks, a
-// near vacuum); the fluctuations sum to the flux jump, and an isolated contact is exact for HLLC.
+// HLL and HLLC wave speeds: ordered, finite, and with a positive HLLC middle density, for
+// colliding streams, two strong shocks and a near vacuum; the fluctuations sum to the flux jump,
+// and an isolated contact is exact for HLLC.
 static void
 test_euler_hll_speeds(enum gkyl_wv_euler_rp rp_type)
 {
@@ -266,9 +266,9 @@ test_euler_hll_speeds(enum gkyl_wv_euler_rp rp_type)
   // primitive states (rho, u, v, w, p)
   double vl[][5] = {
     {1.0, 2.5, 0.0, 0.0, 1.0}, // colliding streams, Mach 2.1 each
-    {1.0, 2.0897846388247809, 0.0, 0.0, 1.0}, // the old estimates were both zero here
+    {1.0, 2.0897846388247809, 0.0, 0.0, 1.0}, // colliding streams, Mach 1.77 each
     {5.99924, 19.5975, 0.0, 0.0, 460.894}, // two strong shocks (Toro test 5)
-    {5.99924, 19.5975, 0.0, 0.0, 460.894}, // the old estimates were equal here
+    {5.99924, 19.5975, 0.0, 0.0, 460.894}, // two strong shocks, slower right stream
     {1.0, 0.0, 0.0, 0.0, 1.0}, // near vacuum on the right
     {1.4, 0.3, 0.2, -0.1, 1.0} // isolated moving contact with shear
   };

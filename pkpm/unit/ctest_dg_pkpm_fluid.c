@@ -401,7 +401,7 @@ ref_kinetic_flux(int d, const struct ref_side *sl, const struct ref_side *sr, do
   for (int i = 0; i <= n; ++i) {
     double w = -wmax + i * hw, wt = (i == 0 || i == n) ? 1.0 : (i % 2 ? 4.0 : 2.0);
     double maxw = exp(-0.5 * w * w) / sqrt(2.0 * M_PI);
-    // face averages of the coefficients (index 2) next to those of the two sides
+    // face averages of the coefficients
     struct ref_side avg = {.xi = 0.5 * (sl->xi + sr->xi), .theta = 0.5 * (sl->theta + sr->theta)};
     for (int a = 0; a < 3; ++a) {
       avg.u[a] = 0.5 * (sl->u[a] + sr->u[a]);

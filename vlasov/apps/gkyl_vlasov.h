@@ -74,10 +74,10 @@ struct gkyl_vlasov_collisions {
 
 // Parameters for a BGK-form temperature source of a species,
 //   S = nu_Q(x) (f_M(n, u, T_Q(x)) - f),
-// the form of the gyrokinetic GKYL_SOURCE_BGK_HEATING with a prescribed temperature T_Q. The
-// target Maxwellian has the density and the drift of the species, so the source conserves both
-// and relaxes the temperature, d_t T = nu_Q (T_Q - T), and every other moment of the departure
-// from the target at the rate nu_Q. It is independent of `collisions`.
+// with a prescribed temperature T_Q. The target Maxwellian has the density and the drift of the
+// species, so the source conserves both and relaxes the temperature, d_t T = nu_Q (T_Q - T), and
+// every other moment of the departure from the target at the rate nu_Q. The explicit form does
+// not depend on the collision operator.
 struct gkyl_vlasov_source_bgk {
   enum gkyl_source_bgk_id source_bgk_id; // GKYL_NO_SOURCE_BGK (default) or GKYL_SOURCE_BGK_HEATING
 
@@ -197,7 +197,7 @@ struct vlasov_mapc2p_pos {
 // Parameters for Vlasov geometry.
 struct gkyl_vlasov_geom {
   double spin_bh, mass_bh; // Black hole spin and mass.
-  bool use_preset_geom; // bool to determine if we are using triad input geom
+  bool use_preset_geom; // Use the preset triad geometry given by triad_preset_geom_type.
   enum gkyl_triad_preset_geom_type
     triad_preset_geom_type; // geom type for preset geometries for triads
 };
@@ -230,7 +230,7 @@ struct gkyl_vlasov_kinetic_species {
   bool is_static; // Set to true if species does not change in time.
   bool no_collisionless_terms; // Set to true to turn off collisionles terms.
   bool write_omega_cfl; // Whether to output dt diagnostic for the CFL constraint.
-  bool write_cell_avg; // Boolean for only writing cell average of f.
+  bool write_cell_avg; // Also write the cell average of f.
   bool use_lo; // bool to determine if using low-order kernels for non-canonical Hamiltonian models.
 
   bool
@@ -420,7 +420,7 @@ struct gkyl_vlasov_field {
   // Are we using ghost currents to correct dE/dt = -J in 1x? The average current of every
   // species, kinetic or fluid, is removed from Ampere's law.
   bool use_ghost_current;
-  bool use_geom_sources; // Are we using geometric sources to correct dE/dt = -J in 1x?
+  bool use_geom_sources; // Include the geometric source terms of the GR Maxwell (D, B) field.
 
   // Vlasov-Maxwell boundary conditions.
   enum gkyl_field_bc_type bcx[2], bcy[2], bcz[2];
@@ -500,7 +500,7 @@ struct gkyl_vm {
   // of the rate of the hyperbolic terms and the rate of the source of each coupled fluid (see
   // gkyl_dg_calc_fluid_vars_em_source): omega_p + |Omega_c|, or its acceleration over its
   // thermal speed.
-  bool use_explicit_sources; // Use the fully explicit SSP-RK3 scheme instead
+  bool use_explicit_sources; // Explicit fluid-Maxwell coupling in the SSP-RK3 stages.
 
   struct gkyl_app_parallelism_inp parallelism; // Parallelism-related inputs.
 };
@@ -544,7 +544,7 @@ struct gkyl_vlasov_stat {
 
   double species_bc_tm; // time to compute species BCs
   double fluid_species_bc_tm; // time to compute fluid species BCs
-  double field_bc_tm; // time to compute field
+  double field_bc_tm; // time to compute field BCs
 
   double field_rhs_tm; // time to compute field RHS
   double current_tm; // time to compute currents and accumulation
@@ -662,7 +662,9 @@ struct gkyl_app_restart_status gkyl_vlasov_app_from_frame_species(
 );
 
 /**
- * Initialize the Vlasov app from a specific frame.
+ * Initialize the Vlasov app from a specific frame. With the implicit fluid-EM coupling the
+ * frame's restart files of the field and the fluids are read as well, so that the run continues
+ * as the run that wrote the frame.
  *
  * @param app App object
  * @param frame frame to read
@@ -703,7 +705,8 @@ void gkyl_vlasov_app_calc_field_energy(gkyl_vlasov_app *app, double tm);
 void gkyl_vlasov_app_write(gkyl_vlasov_app *app, double tm, int frame);
 
 /**
- * Write field data to file.
+ * Write field data to file. With the implicit fluid-EM coupling the field the stepper holds
+ * between updates is written too (<name>-field_restart_<frame>), for a restart.
  *
  * @param app App object.
  * @param tm Time-stamp
@@ -712,7 +715,8 @@ void gkyl_vlasov_app_write(gkyl_vlasov_app *app, double tm, int frame);
 void gkyl_vlasov_app_write_field(gkyl_vlasov_app *app, double tm, int frame);
 
 /**
- * Write species data to file.
+ * Write species data to file. With the implicit fluid-EM coupling the fluid state the stepper
+ * holds between updates is written too (<name>-<species>_restart_<frame>), for a restart.
  *
  * @param app App object.
  * @param sidx Index of species to write (see gkyl_vlasov_app_apply_ic_species).

@@ -2,12 +2,9 @@
 
 // Implicit collisions and sources inside the SSP-RK3 stages: the cross-species momentum and
 // energy exchange of every collision operator, the implicit BGK relaxation of the distributions
-// and the implicit temperature source. After the
-// forward-Euler step and the combination of stage i, whose state is in f1 and fluid1 of each
-// species, each takes one backward-Euler step over the time weight of the stage: dt, dt/4 and
-// 2 dt/3. Every stage is then a convex combination of forward-Euler steps and the targets for any
-// dt, and it has the balance of transport and collisions as its fixed point, so the relaxed
-// quantities the transport sees do not depend on dt (no conduction or friction of order dt).
+// and the implicit temperature source. After the forward-Euler step and the combination of
+// stage i, whose state is in f1 and fluid1 of each species, each takes one backward-Euler step
+// over the time weight of the stage: dt, dt/4 and 2 dt/3.
 //
 // An implicit relaxation of the distributions that carries a temperature change (implicit BGK
 // with partners, implicit temperature source) rescales the normalized distributions in the

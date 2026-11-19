@@ -2,7 +2,7 @@
 -- system of equations (1x, normalized parallel velocity w = v_par/xi).
 -- Density 1 moving at -18.281207, with pressure 1000 left of x = 0.8 and 0.01 right of it, to t =
 -- 0.012 (the left half of the Woodward-Colella blast wave in the frame in which its contact is at
--- rest). A Mach 198 shock moves to the right and the contact stays at x = 0.8. A static magnetic
+-- rest). A Mach 189 shock moves to the right and the contact stays at x = 0.8. A static magnetic
 -- field along x sets the field direction.
 -- Stiff collisions, nu = 7.5e9 (nu dt of order 1e4): the BGK relaxation takes one backward-Euler
 -- step in each SSP-RK3 stage, so the transport alone sets the time step.

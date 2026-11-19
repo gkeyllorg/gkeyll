@@ -99,7 +99,7 @@ void gkyl_dg_pkpm_harm_exp_coef(
  * The factors 3 and 1/2 of M are the ratios c_M / c_Y of the weights of the combinations. If the
  * driver combines with the weights of gkyl_pkpm_stage_weights instead, w_M / w_Y = c_M / (c_Y lam),
  * pass lam: the factors are divided by it, and the weighted combination of M and X_s is the
- * integrating-factor stage with those weights. Not available on the device.
+ * integrating-factor stage with those weights.
  *
  * @param up Updater.
  * @param stage Stage (1, 2 or 3).

@@ -1,11 +1,11 @@
 -- Electrostatic shock problem with kinetic ions and a DG isothermal Euler fluid for the electrons
 -- (1x1v), the variant of rt_vlasov_hybrid_es_shock_1x1v with isothermal electrons (p = n Te at the
 -- inflow temperature, Roe flux, vertex positivity limiter of the density) and the hybrid twin of
--- vlasov/creg/rt_vlasov_es_shock_1x1v.c. Half domain: a plasma flowing toward a reflecting wall at
--- x = 0 (Mach 2 relative to c_s = sqrt(Te / m_i), Te / Ti = 4, m_i / m_e = 100) piles up against
--- its own reflection; the inflow boundary at x = Lx holds the upstream state fixed. The electrons
--- are coupled to the field by the implicit source step of the staggered operator split, in which
--- the ions deposit their current as a known current.
+-- vlasov/luareg/rt_vlasov_es_shock_1x1v_tensor_p1.lua. Half domain: a plasma flowing toward a
+-- reflecting wall at x = 0 (Mach 2 relative to c_s = sqrt(Te / m_i), Te / Ti = 4, m_i / m_e = 100)
+-- piles up against its own reflection; the inflow boundary at x = Lx holds the upstream state
+-- fixed. The electrons are coupled to the field by the implicit source step of the staggered
+-- operator split, in which the ions deposit their current as a known current.
 --
 -- Figures of merit at t = 600 / omega_pe (tensor p1, hybrid basis of the ions, 192 x 32 cells, 9000
 -- steps, omega_pe dt = 0.067, the CFL limit of the light wave of the field), measured as in
@@ -14,11 +14,9 @@
 -- t = 300 and t = 600 (29.3 lambda_D and 0.42 c_s; 66.7 lambda_D and 1.11 c_s). The ion density is
 -- 1.74 n0 behind and 1.56 n0 ahead of it (2.66 and 1.73; 2.20 and 1.27). The potential jump across
 -- it is e dphi / Te = 0.11 (1.16; 3.20), the logarithm of the density ratio, the momentum balance
--- of a massless isothermal fluid (derived). Ions moving away from the wall ahead of the front: 0.54
--- n0 at 2.42 c_s (0.64 n0 at 2.20 c_s; 0.24 n0 at 3.46 c_s). Neither electron fluid gives the
--- potential jump of the kinetic test. With 96 and with 384 cells the front is at 91.8 and 92.3
--- lambda_D, and the other figures change by 0.01 or less in the units above. A restart from the
--- frame at t = 300 reproduces the frame at t = 600 to 2e-12.
+-- of a massless isothermal fluid. Ions moving away from the wall ahead of the front: 0.54 n0 at
+-- 2.42 c_s (0.64 n0 at 2.20 c_s; 0.24 n0 at 3.46 c_s). Neither electron fluid gives the potential
+-- jump of the kinetic test.
 local Vlasov = G0.Vlasov
 local IsoEuler = G0.Vlasov.Eq.IsoEuler
 

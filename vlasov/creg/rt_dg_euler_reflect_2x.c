@@ -1,15 +1,14 @@
 // Pressure pulse in a box of reflecting walls with the DG Euler solver (2x) and the HLLC flux, the
-// counterpart of moments/creg/rt_euler_reflect_2d.c (which cites no reference): a gas at rest with
-// rho = 1 and p = 1 + 0.1 exp(-50 r^2), r measured from the centre of the unit square, gamma = 1.4,
-// reflecting walls on all four sides, run to t = 0.5.
+// counterpart of moments/creg/rt_euler_reflect_2d.c: a gas at rest with rho = 1 and p = 1 + 0.1
+// exp(-50 r^2), r measured from the centre of the unit square, gamma = 1.4, reflecting walls on all
+// four sides, run to t = 0.5.
 //
 // Figures of merit (serendipity p1, 128 x 128 cells, 523 steps): the integrated mass and total
 // energy are conserved to 5e-14 throughout the run. Against the moments solution on 512 x 512 cells
 // (ending at t = 0.5007), block-averaged, the L2 difference of the pressure is 1.1% of the L2
 // deviation of the reference pressure from its mean; the pressure spans [0.9935, 1.0477] (reference
 // [0.9933, 1.0480]). The density cell averages keep the mirror symmetries in x, in y and about the
-// diagonal to 4e-8 in the C run and to 3e-7 in the Lua run; the two runs differ by 2.0e-5 at t =
-// 0.5 and both give the figures above.
+// diagonal to 4e-8.
 
 #include <math.h>
 #include <stdio.h>

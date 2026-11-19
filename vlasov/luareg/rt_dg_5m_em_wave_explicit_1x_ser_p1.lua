@@ -9,12 +9,10 @@
 -- stage.
 --
 -- Figures of merit at t = 20, 4.5 wave periods (32 cells, serendipity p1, 306 steps, omega dt =
--- 0.093): the fitted amplitude of E_y is E_0 (1 - 1.3e-3) and its phase error 1.1e-2 rad, both
--- second order in the cell size at fixed CFL (-2.1e-4 and 2.8e-3 rad with 64 cells). The relative
--- L2 errors are 3.1e-2 (E_y), 2.4e-2 (B_z) and 2.0e-2 (electron u_y), first order in the cell size
--- (1.4e-2, 1.0e-2 and 8.8e-3 with 64 cells). The total energy (field plus fluids, from the frames)
--- changes by -1.9e-3 of the initial field energy (7.7e-7 in the implicit variant,
--- rt_dg_5m_em_wave_1x).
+-- 0.093): the fitted amplitude of E_y is E_0 (1 - 1.3e-3) and its phase error 1.1e-2 rad. The
+-- relative L2 errors are 3.1e-2 (E_y), 2.4e-2 (B_z) and 2.0e-2 (electron u_y). The total energy
+-- (field plus fluids, from the frames) changes by -1.9e-3 of the initial field energy (7.7e-7 in
+-- the implicit variant, rt_dg_5m_em_wave_1x).
 
 local Vlasov = G0.Vlasov
 local Euler = G0.Vlasov.Eq.Euler

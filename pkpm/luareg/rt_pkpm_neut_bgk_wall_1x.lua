@@ -4,8 +4,7 @@
 -- and 1, to t = 0.3. A shock leaves the wall the gas runs into and
 -- a rarefaction the wall it leaves. A static magnetic field along x sets the field direction.
 -- Moderate collisions advanced explicitly, nu = 100.0: the mean free path of the hottest gas is
--- 0.32 cells. This is the collision frequency at which the diffusion step of the LBO operator is
--- about the transport step; rt_pkpm_neut_lbo_wall_1x has the same collision frequency and grid.
+-- 0.32 cells. rt_pkpm_neut_lbo_wall_1x has the same collision frequency and grid.
 -- Figures of merit (64 x 16 cells) at t = 0.3, with nu dt = 0.016 on average: the L1 differences
 -- of the cell averages from the Euler solution (adiabatic index 5/3) are 3.7% (density), 5.8%
 -- (velocity) and 6.3% (pressure), and the density between 0.07363 and 2.653.

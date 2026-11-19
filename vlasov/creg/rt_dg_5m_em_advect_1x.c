@@ -13,9 +13,8 @@
 // t)), u_z = A (sin(Omega_c t) - (omega / Omega_c) sin(omega t)) with A = Omega_c (q / m) E_0 /
 // (Omega_c^2 - omega^2): at t = 100, u_y = 0.136863 and u_z = 0.500238. Figures of merit (2 cells,
 // serendipity p1, 3945 steps, Omega_c dt = 0.025): u_y = 0.140498 and u_z = 0.506395, errors 3.6e-3
-// and 6.2e-3 (second order in the time-step: the norm of the error is 7.2e-3, and 2.9e-2 and 1.1e-1
-// with two and four times the step). The internal energy and the density stay at their initial
-// values to round-off (1e-13), and the state stays uniform.
+// and 6.2e-3. The internal energy and the density stay at their initial values to round-off
+// (1e-13), and the state stays uniform.
 
 #include <math.h>
 #include <stdio.h>

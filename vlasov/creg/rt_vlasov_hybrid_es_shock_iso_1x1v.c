@@ -14,11 +14,9 @@
 // t = 300 and t = 600 (29.3 lambda_D and 0.42 c_s; 66.7 lambda_D and 1.11 c_s). The ion density is
 // 1.74 n0 behind and 1.56 n0 ahead of it (2.66 and 1.73; 2.20 and 1.27). The potential jump across
 // it is e dphi / Te = 0.11 (1.16; 3.20), the logarithm of the density ratio, the momentum balance
-// of a massless isothermal fluid (derived). Ions moving away from the wall ahead of the front: 0.54
-// n0 at 2.42 c_s (0.64 n0 at 2.20 c_s; 0.24 n0 at 3.46 c_s). Neither electron fluid gives the
-// potential jump of the kinetic test. With 96 and with 384 cells the front is at 91.8 and 92.3
-// lambda_D, and the other figures change by 0.01 or less in the units above. A restart from the
-// frame at t = 300 reproduces the frame at t = 600 to 2e-12.
+// of a massless isothermal fluid. Ions moving away from the wall ahead of the front: 0.54 n0 at
+// 2.42 c_s (0.64 n0 at 2.20 c_s; 0.24 n0 at 3.46 c_s). Neither electron fluid gives the potential
+// jump of the kinetic test.
 
 #include <math.h>
 #include <stdio.h>

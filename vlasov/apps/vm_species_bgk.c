@@ -152,8 +152,9 @@ vmbgk_target_disabled(
   // Empty method.
 }
 
-// The target of the operator: the sum over self and cross collisions of the collision frequency
-// times its Maxwellian (bgk->nu_f_lte), and of the collision frequencies (bgk->nu_sum).
+// The target of the operator, bgk->nu_f_lte: the sum over self and cross collisions of the
+// collision frequency times its Maxwellian. Accumulates the cross frequencies onto bgk->nu_sum
+// (set to self_nu by the moments method).
 static void
 vmbgk_target_enabled(
   gkyl_vlasov_app *app, struct vm_species *vms, struct vm_bgk_collisions *bgk,
@@ -227,7 +228,7 @@ vmbgk_fixed_temp_enabled(
 {
   vm_species_lte_moms(app, vms, &vms->lte, fin);
 
-  // Set the temperature to the fixed value
+  // Store the temperature of fin as the fixed relaxation temperature.
   gkyl_array_set_offset_range(
     bgk->fixed_temp, 1.0, vms->lte.moms.marr, (app->vdim + 1) * app->basis.num_basis, &app->local
   );
@@ -344,7 +345,6 @@ vm_species_bgk_init(
       struct vm_coll_ref_params rp = vm_species_coll_ref_params(&vms->info.collisions);
       // Vlasov does not use reference magnetic field for cyclotron frequency contribution to log(Lambda)
       double bmag_ref = 0.0;
-      // vtsq_min and spitzer_calc are set up above (needed for any computed frequency).
 
       // We define nu_ss = nu_sr(r=s) = alpha_E/((delta_ss * (1+beta))*n_s), with delta_ss = 2,
       // beta = 0. This gives a nu_ss that is arguably 2X smaller than it should be, but it's
@@ -422,8 +422,7 @@ vm_species_bgk_cross_init(
       int my_idx_in_other[GKYL_MAX_SPECIES];
       for (int i = 0; i < bgk->num_cross_collisions; ++i) {
         bgk->collide_with[i] = vm_find_species(app, vms->info.collisions.collide_with[i]);
-        // collide_with must name an existing *kinetic* species (a typo, or a
-        // fluid species, returns NULL and would segfault below without a message).
+        // collide_with must name an existing kinetic species.
         assert(bgk->collide_with[i]);
         my_idx_in_other[i] = -1;
         for (int j = 0; j < bgk->collide_with[i]->bgk.num_cross_collisions; ++j) {
@@ -440,7 +439,7 @@ vm_species_bgk_cross_init(
 
       // Morse's alpha_E.
       bgk->alpha_E = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-      // Cross primitive moments (n_sr, u_{parallel sr}, v_{t,sr}^2).
+      // Cross primitive moments (n_sr, u_sr (vdim components), v_{t,sr}^2).
       bgk->cross_prim_moms =
         mkarr(app->use_gpu, (app->vdim + 2) * app->basis.num_basis, app->local_ext.volume);
       for (int i = 0; i < bgk->num_cross_collisions; ++i) {
@@ -473,10 +472,8 @@ vm_species_bgk_cross_init(
         // Project user's cross-species collision frequency.
         bgk->norm_nu_cross = false;
 
-        // Cross-collision frequency must be specified symmetrically: if this
-        // species provides an explicit cross_nu, its partner must too. The self
-        // collision frequency mode is independent (a species may use explicit
-        // self_nu with explicit or computed cross_nu), so it is not checked here.
+        // Cross-collision frequencies must be specified symmetrically: a
+        // user-specified cross_nu here requires one on the partner.
         for (int i = 0; i < bgk->num_cross_collisions; ++i) {
           assert(bgk->collide_with[i]->info.collisions.cross_nu[my_idx_in_other[i]]);
         }
@@ -518,10 +515,8 @@ vm_species_bgk_cross_init(
         // Cross-collision frequency computed in time.
         bgk->norm_nu_cross = true;
 
-        // Cross-collision frequency must be specified symmetrically: if this
-        // species uses a computed (Spitzer) cross_nu, its partner must too (i.e.
-        // the partner must not provide an explicit cross_nu). The self collision
-        // frequency mode is independent and is not checked here.
+        // Cross-collision frequencies must be specified symmetrically: a
+        // computed (Spitzer) cross_nu here requires a computed one on the partner.
         for (int i = 0; i < bgk->num_cross_collisions; ++i) {
           assert(!(bgk->collide_with[i]->info.collisions.cross_nu[my_idx_in_other[i]]));
         }
@@ -636,9 +631,8 @@ vm_species_bgk_release(const struct gkyl_vlasov_app *app, const struct vm_bgk_co
       }
     }
 
-    // ref_self_nu is allocated only for an explicit self_nu; spitzer_calc is
-    // allocated whenever any frequency is computed (self or cross). These are
-    // now independent (e.g. explicit self_nu with computed cross_nu allocates both).
+    // ref_self_nu exists only for a user-specified self_nu; spitzer_calc whenever
+    // a self or cross frequency is computed.
     if (!bgk->norm_nu_self) {
       gkyl_array_release(bgk->ref_self_nu);
     }

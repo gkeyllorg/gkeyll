@@ -7,17 +7,16 @@
 -- 1836.2, c = 1, and the ion skin depth equal to the domain length. The fluid-field coupling is the
 -- staggered operator split with the implicit fluid-Maxwell source step.
 --
--- The electrons become supersonic in the current sheet: in the implicit variant they reach Mach 2.7
--- at t = 0.09, with their internal energy down to 20% of their total energy (cell averages). The
--- fluids use the HLLC flux of the Riemann solver (rp_type; Roe, Lax and HLL complete as well) with
--- the vertex positivity limiter, and the field its slope limiter (limit_em): without the field
--- limiter the electron pressure is 2.2e-3 or more everywhere at t = 10 (it is 6e-5 at most here).
+-- The electrons become supersonic in the current sheet: they reach Mach 2.7 at t = 0.09, with their
+-- internal energy down to 20% of their total energy (cell averages). The fluids use the HLLC flux
+-- of the Riemann solver (rp_type) with the vertex positivity limiter, and the field its slope
+-- limiter (limit_em).
 --
 -- Figures of merit at t = 10 (256 cells, serendipity p1, 8534 steps): relative L1 differences of
 -- the cell averages from the moments finite-volume solution on 1024 cells, 1.1% (ion density), 1.2%
 -- of the maximum (ion u_x), 1.6% (ion pressure), 1.5% (electron pressure), 1.2% and 1.6% of the
--- maximum (B_y, B_z); with 512 cells 0.71%, 0.68%, 1.0%, 0.59%, 0.65% and 1.7%. The electron
--- pressure lies between 4.0e-6 and 5.6e-5 and the ion density between 0.118 and 1.07.
+-- maximum (B_y, B_z). The electron pressure lies between 4.0e-6 and 5.6e-5 and the ion density
+-- between 0.118 and 1.07.
 
 local Vlasov = G0.Vlasov
 local Euler = G0.Vlasov.Eq.Euler

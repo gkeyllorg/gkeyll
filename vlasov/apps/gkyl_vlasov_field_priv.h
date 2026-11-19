@@ -113,7 +113,7 @@ struct vm_field {
       struct gkyl_job_pool *job_pool; // Job pool
       struct gkyl_array *em, *em1, *emnew; // arrays for updates
       struct gkyl_array *cflrate; // CFL rate in each cell
-      struct gkyl_array *bc_buffer; // buffer for BCs (used for both copy and periodic)
+      struct gkyl_array *bc_buffer; // buffer for applying non-periodic BCs
       struct gkyl_array *bc_buffer_lo_fixed[3],
         *bc_buffer_up_fixed[3]; // fixed buffers for time independent BCs
       struct gkyl_array *bc_buffer_lo_fixed_no_J[3],
@@ -137,7 +137,7 @@ struct vm_field {
       struct gkyl_array *ghost_current; // Array for storing global average of current density
       double *red_ghost_current; // memory for use in GPU reduction of average of current density
 
-      bool use_geom_sources; // Are we using geometric sources to correct dE/dt = -J in 1x?
+      bool use_geom_sources; // Accumulate the geometric sources of GR-Maxwell onto the field RHS?
       struct gkyl_array *geom_source; // Geometric source contribution to field RHS.
       struct gkyl_dg_gr_maxwell_geom_source
         *calc_geom_source; // Updater for geometric source contribution.
@@ -150,9 +150,9 @@ struct vm_field {
 
       double *omega_cfl;
 
-      // Staggered operator split (implicit fluid-EM coupling): E is advanced only by the
-      // implicit source steps, so the E rows of the transport right-hand side are zero. Without
-      // divergence cleaning the right-hand side of stage 1 holds for the whole step.
+      // Staggered operator split (implicit fluid-EM coupling): right-hand side of the transport
+      // step (zero E rows), computed at stage 1 and reused in stages 2 and 3 without divergence
+      // cleaning.
       struct gkyl_array *rhs_split; // field right-hand side of the transport step (stage 1)
       double dt_split; // its stable time-step
     };
@@ -179,8 +179,8 @@ struct vm_field {
   struct vm_geom *geom; // Geometry data for GR-DG-Maxwell (owned by app as app->vm_geom)
   bool weight_by_pos_jacob; // True for the standard E_B Maxwell field on a non-identity position map:
     // em stores J*E, J*B; em_no_J holds the physical E, B for force/I/O.
-  struct gkyl_array *em_no_J; // arrays for storing em field without Jc
-  struct gkyl_array *em_no_J_host; // host copy of primitive GR fields for I/O
+  struct gkyl_array *em_no_J; // EM field without its Jacobian weight (GR: det_h; mapped E_B: J)
+  struct gkyl_array *em_no_J_host; // host copy for I/O
   int num_surf_conf_nodes; // number of surface nodes at configuration-space surfaces
   struct gkyl_array *conf_flux_surf; // Modal expansion of surface fluxes at conf-space surfaces.
   struct gkyl_dg_gr_maxwell_conf_flux_surf
@@ -202,7 +202,7 @@ struct vm_field {
   bool ext_pot_evolve; // flag to indicate external external potentials are time dependent
   struct gkyl_array *ext_pot; // external potentials
   struct gkyl_array *ext_pot_host; // host copy for use in IO and projecting
-  gkyl_eval_on_nodes *ext_pot_proj; // projector for external potentials
+  gkyl_eval_on_nodes *ext_pot_proj; // evaluates the external potentials at nodes
 
   gkyl_dynvec
     integ_energy; // integrated energy components (Vlasov-Maxwell; Vlasov-Poisson keeps one per potential)
@@ -228,7 +228,7 @@ struct vm_field *vlasov_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *ap
  * @param app Vlasov app object
  * @param stage SSP-RK3 stage (1, 2 or 3) of the update
  * @param tcurr Current time
- * @param fin[] Input distribution functions (overall species count)
+ * @param fin[] Input distribution functions (indexed by species)
  * @param emin Input EM field
  * @param emout On output, the field RHS
  * @return Maximum stable time-step (DBL_MAX for the Poisson solve)
@@ -269,7 +269,7 @@ void vlasov_field_copy_range(
  * Compute field initial conditions.
  *
  * @param app Vlasov app object
- * @param fin[] Input distribution functions (overall species count)
+ * @param fin[] Input distribution functions (indexed by species)
  * @param t0 Time for initial conditions
  */
 void vlasov_field_apply_ic(gkyl_vlasov_app *app, const struct gkyl_array *fin[], double t0);
@@ -296,8 +296,8 @@ void vlasov_field_limiter(gkyl_vlasov_app *app, struct gkyl_array *em);
  *
  * @param app Vlasov app object
  * @param dt Time-step
- * @param fin[] Input distribution functions (overall species count)
- * @param fluidin[] Input fluid moments (overall species count)
+ * @param fin[] Input distribution functions (indexed by species)
+ * @param fluidin[] Input fluid moments (indexed by species)
  * @param emin Input EM field
  * @param emout On input the field RHS, on output the updated field
  */
@@ -336,7 +336,7 @@ void vlasov_field_calc_ext_pot(gkyl_vlasov_app *app, double tm);
  *
  * @param app Vlasov app object
  * @param tm Time at which the diagnostic is computed
- * @param fin[] Input distribution functions (overall species count)
+ * @param fin[] Input distribution functions (indexed by species)
  */
 void vlasov_field_calc_energy(gkyl_vlasov_app *app, double tm, const struct gkyl_array *fin[]);
 
@@ -347,7 +347,7 @@ void vlasov_field_calc_energy(gkyl_vlasov_app *app, double tm, const struct gkyl
  * @param app Vlasov app object
  * @param tm Time-stamp
  * @param frame Frame number
- * @param fin[] Input distribution functions (overall species count)
+ * @param fin[] Input distribution functions (indexed by species)
  */
 void vlasov_field_write(gkyl_vlasov_app *app, double tm, int frame, const struct gkyl_array *fin[]);
 
@@ -437,14 +437,13 @@ void vm_field_calc_app_current(gkyl_vlasov_app *app, struct vm_field *field, dou
 void vm_field_calc_ext_pot(gkyl_vlasov_app *app, struct vm_field *field, double tm);
 
 /**
- * Accumulate current density onto RHS from field equations. Loops over the
- * species and dispatches each species' explicit field coupling
- * (kinetic species accumulate -q/eps0*m1i; implicitly-coupled fluid species
- * are a no-op), then adds the applied current.
+ * Accumulate the current of each species onto the E rows of the field RHS
+ * (kinetic: -q/eps0 M1; Euler fluids coupled explicitly: -q/(m eps0) rho u),
+ * then the applied current unless the fluid-EM coupling is implicit.
  *
  * @param app Vlasov app object
- * @param fin[] Input distribution functions, indexed over the overall species count (NULL for fluid-only species)
- * @param fluidin[] Input fluid arrays, indexed over the overall species count (NULL for kinetic-only species)
+ * @param fin[] Input distribution functions, indexed by species (NULL for fluid-only species)
+ * @param fluidin[] Input fluid arrays, indexed by species (NULL for kinetic-only species)
  * @param emout On output, the RHS from the field solver *with* accumulated current density
  */
 void vm_field_accumulate_current(
@@ -456,7 +455,7 @@ void vm_field_accumulate_current(
  * Accumulate geometric source terms onto RHS from field equations.
  *
  * @param app Vlasov app object
- * @param emin Input field at the start of the step
+ * @param emin Input field of the stage
  * @param vm_geom Geometry data
  * @param emout On output, the RHS from the field solver *with* geometric sources
  */
@@ -546,8 +545,8 @@ double vm_field_update(
  * @param app Vlasov app object
  * @param dt Time-step taken
  * @param fin[] Input distribution function (num_species size)
- * @param fluidin[] Input fluid arrays, indexed over the overall species count
- * @param emin Input field at the start of the step
+ * @param fluidin[] Input fluid arrays, indexed by species
+ * @param emin Input field of the stage
  * @param emout On output, the completed field emin + dt*RHS
  */
 void vm_field_complete_update(
@@ -686,7 +685,7 @@ void vp_field_calc_ext_pot(gkyl_vlasov_app *app, struct vm_field *field, double 
  * Vlasov-Poisson initial conditions: evaluate the external potentials and
  * fields at t0. The potential itself is not solved here; it is solved from the
  * distribution wherever it is needed (each forward Euler step and the field
- * diagnostics), so initial conditions and restart share this code path.
+ * diagnostics).
  *
  * @param app Vlasov app object.
  * @param field Field object.
@@ -713,13 +712,12 @@ struct gkyl_app_restart_status vp_field_from_file(
 /**
  * Solve for the potentials (electrostatic and/or gravitational) from the
  * distribution functions: accumulate each potential's source over all species,
- * then solve its Poisson equation. The single definition of the potentials,
- * used by the field update (each forward Euler stage) and by the field
- * diagnostics.
+ * then solve its Poisson equation. Called by the field update (each forward
+ * Euler stage) and by the field diagnostics.
  *
  * @param app Vlasov app object.
  * @param field Pointer to field.
- * @param fin[] Input distribution functions, indexed over the overall species count.
+ * @param fin[] Input distribution functions, indexed by species.
  */
 void vp_field_solve(gkyl_vlasov_app *app, struct vm_field *field, const struct gkyl_array *fin[]);
 
@@ -783,7 +781,7 @@ void vp_field_limiter(gkyl_vlasov_app *app, struct vm_field *field, struct gkyl_
  * @param app Vlasov app object
  * @param tm Time-stamp
  * @param frame Frame number
- * @param fin[] Input distribution functions, indexed over the overall species count
+ * @param fin[] Input distribution functions, indexed by species
  */
 void vp_field_write(gkyl_vlasov_app *app, double tm, int frame, const struct gkyl_array *fin[]);
 
@@ -796,7 +794,7 @@ void vp_field_write(gkyl_vlasov_app *app, double tm, int frame, const struct gky
  * @param app Vlasov app object
  * @param tm Time at which diagnostic is computed
  * @param field Pointer to field
- * @param fin[] Input distribution functions, indexed over the overall species count
+ * @param fin[] Input distribution functions, indexed by species
  */
 void vp_field_calc_energy(
   gkyl_vlasov_app *app, double tm, struct vm_field *field, const struct gkyl_array *fin[]

@@ -13,17 +13,12 @@
 -- lambda_D and moves at 0.42 c_s between t = 300 and t = 600 (66.7 lambda_D; 1.11 c_s). The ion
 -- density is 2.66 n0 behind and 1.73 n0 ahead of it (2.20, 1.27). The potential jump across it is e
 -- dphi / Te = 1.16 (3.20), which is 5/2 of the jump of the electron temperature (1.91 Te behind,
--- 1.45 Te ahead), the momentum balance of a massless adiabatic fluid (derived); p / n^(5/3) of the
--- electrons stays within 1.9% of its inflow value. Ions moving away from the wall ahead of the
--- front: 0.64 n0 at 2.20 c_s (0.24 n0 at 3.46 c_s).
+-- 1.45 Te ahead), the momentum balance of a massless adiabatic fluid; p / n^(5/3) of the electrons
+-- stays within 1.9% of its inflow value. Ions moving away from the wall ahead of the front: 0.64 n0
+-- at 2.20 c_s (0.24 n0 at 3.46 c_s).
 --
--- The front position depends on the cell size: with 384 cells the front is 3.1 lambda_D closer to
--- the wall in both frames, and the figures are 26.2 lambda_D, 0.42 c_s, 2.68 n0, 1.75 n0, 1.17 and
--- 0.66 n0 at 2.17 c_s; with 96 cells they are 38.5 lambda_D, 0.50 c_s, 2.51 n0, 1.66 n0, 1.13 and
--- 0.59 n0 at 2.31 c_s. The step is omega_pe dt = 0.067, the CFL limit of the light wave of the
--- field (c = 5 vte; omega_pi dt = 0.011 at the largest density); with kinetic electrons on the same
--- grid the step is 0.052 (11368 steps). The output is identical to that of
--- vlasov/creg/rt_vlasov_hybrid_es_shock_1x1v.c.
+-- The step is omega_pe dt = 0.067, the CFL limit of the light wave of the field (c = 5 vte;
+-- omega_pi dt = 0.011 at the largest density).
 
 local Vlasov = G0.Vlasov
 local Euler = G0.Vlasov.Eq.Euler

@@ -24,7 +24,7 @@ struct gkyl_dg_pkpm_harm_vol_inp {
  * configuration-space pass of the normalized PKPM kinetic update, on the eight blocks
  * [F, G, M0_perp (x, y, z), N_perp (x, y, z)]: the w-flux volume terms int d_w phi Phi, the
  * sources int phi S and the configuration-space flux couplings int d_x phi . T of the first
- * harmonic (the streaming of all eight blocks stays in the configuration-pass equation object).
+ * harmonic (the streaming of all eight blocks is in gkyl_dg_pkpm_kinetic_conf).
  *
  * The stored operator (gkyl_pkpm_harm_ops.h) is built once per stage into a configuration-space
  * array (the coef method, generated kernels pkpm_harm_build_*): every coefficient is a product of
@@ -106,10 +106,10 @@ void gkyl_dg_pkpm_harm_vol_coef_cu(
 );
 
 /**
- * Accumulate the first-harmonic volume terms into rhs, and the bound of their source rate over each
- * column (absolute coefficients over the configuration cell, at the larger |w| edge), plus the
- * bound of the gyration rate |(q/m) B| over the cell, into cflrate in every
- * cell of the column.
+ * Accumulate the volume terms of the stored operator (all eight blocks) into rhs, and the bound of
+ * their source rate over each column (absolute coefficients over the configuration cell, at the
+ * larger |w| edge), plus the bound of the gyration rate |(q/m) B| over the cell, into cflrate in
+ * every cell of the column.
  *
  * @param up Updater.
  * @param conf_range Configuration-space range indexing the coefficients.

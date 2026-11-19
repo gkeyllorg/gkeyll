@@ -16,10 +16,9 @@
 -- rt_dg_5m_gem_2x: 0.1304). The out-of-plane field reaches |B_z| = 0.014 and the electron speed
 -- 0.24 (cell averages); the cell averages of the correction potential stay below 8.4e-4, the field
 -- energy falls from 1.511 to 1.259, and the total energy of the diagnostics by 3.5%. The run
--- amplifies round-off: the C twin starts from the same state to 1e-16 and ends with a reconnected
--- flux of 0.1242 and fields that differ by up to 7% of their maximum. For the same reason the
--- mirror symmetry of the problem about the midplane y = 0, kept to round-off at first, is lost: at
--- the end the electron z-momentum departs from it by 29% of its maximum (33% in the C twin; 1.4% of
+-- amplifies round-off, so the late-time figures agree between runs only to a few percent. For the
+-- same reason the mirror symmetry of the problem about the midplane y = 0, kept to round-off at
+-- first, is lost: at the end the electron z-momentum departs from it by 29% of its maximum (1.4% of
 -- the current in the moments solution).
 
 local Vlasov = G0.Vlasov

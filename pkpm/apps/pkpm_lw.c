@@ -128,8 +128,8 @@ pkpm_species_lw_new(lua_State *L)
   bool has_source_bgk = false, source_bgk_is_implicit = false;
   int source_bgk_rate_func_ref = LUA_NOREF, source_bgk_temp_func_ref = LUA_NOREF;
 
-  // Source: one LTE profile (density, isotropic temperature, drift velocity), in the layout of
-  // the Vlasov source table (a single projection).
+  // Source: one LTE profile (density, isotropic temperature, drift velocity), a single
+  // projection.
   enum gkyl_source_id source_id = GKYL_NO_SOURCE;
   double source_length = 1.0;
   char source_species[128] = "";
@@ -141,7 +141,7 @@ pkpm_species_lw_new(lua_State *L)
   bool has_source_density_func = false, has_source_temp_func = false, has_source_drift_func = false;
 
   // Kinetic block: the grid of the normalized velocity, the initial condition of the
-  // distributions, collisions, sources and the kinetic BCs, with the keys of a Vlasov species.
+  // distributions, collisions, sources and the kinetic BCs.
   with_lua_tbl_tbl(L, "kinetic")
   {
     pkpm_species.kinetic.gyro_mix = glua_tbl_get_number(L, "gyroMix", 0.0);
@@ -319,8 +319,7 @@ pkpm_species_lw_new(lua_State *L)
   bool evolve_applied_acceleration = false;
 
   // Fluid block: the initial condition of the fluid state, the positivity floor, momentum
-  // diffusion, the applied acceleration and the fluid BCs, with the keys of a Vlasov fluid
-  // species.
+  // diffusion, the applied acceleration and the fluid BCs.
   with_lua_tbl_tbl(L, "fluid")
   {
     pkpm_species.fluid.positivity_eps = glua_tbl_get_number(L, "positivityEps", 0.0);
@@ -590,7 +589,7 @@ pkpm_field_lw_new(lua_State *L)
   return 1;
 }
 
-// Species constructor.
+// Field constructor.
 static struct luaL_Reg pkpm_field_ctor[] = {{"new", pkpm_field_lw_new}, {0, 0}};
 
 /* *********** */

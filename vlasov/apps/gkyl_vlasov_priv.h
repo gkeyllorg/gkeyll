@@ -219,8 +219,8 @@ struct gkyl_vlasov_app {
 // with the suggested time-step dt. Also supports just Maxwell's equations
 // and fluid equations (Euler's) with potential Vlasov-fluid coupling.
 // 'stage' is the SSP-RK3 stage (1, 2 or 3) the step belongs to. The stage
-// distributions fin[] are not const: a species may bring its stage state into
-// admissible form before its moments are taken (see calc_self_moms_func).
+// distributions fin[] are not const (the signature of calc_self_moms_func); no
+// species modifies them.
 void vlasov_forward_euler(
   gkyl_vlasov_app *app, int stage, double tcurr, double dt, struct gkyl_array *fin[],
   const struct gkyl_array *fluidin[], const struct gkyl_array *emin, struct gkyl_array *fout[],
@@ -257,9 +257,19 @@ void vlasov_op_split_sync(gkyl_vlasov_app *app);
 // synchronized).
 void vlasov_op_split_unsync(gkyl_vlasov_app *app);
 
-// Staggered split: after the frames of a restart are read, restore the steps stored in the field
-// frame and step the sources back by the half step the uninterrupted run held them behind.
-void vlasov_op_split_restart(gkyl_vlasov_app *app, int frame);
+// Staggered split: write the staggered field of a frame (<app>-field_restart_<frame>.gkyl), as the
+// stepper holds it, for a restart. A no-op when there is no implicit fluid-EM coupling.
+void vlasov_op_split_write_field(gkyl_vlasov_app *app, double tm, int frame);
+
+// Staggered split: write the staggered fluid state of a species of a frame
+// (<app>-<species>_restart_<frame>.gkyl). A no-op for a species the source step does not advance.
+void vlasov_op_split_write_species(
+  gkyl_vlasov_app *app, const struct vlasov_species *sp, double tm, int frame
+);
+
+// Staggered split: after the frames of a restart are read, replace the synchronized fluids and
+// field by the staggered ones of the frame and restore the steps of the split.
+struct gkyl_app_restart_status vlasov_op_split_restart(gkyl_vlasov_app *app, int frame);
 
 // Take a single time-step using a SSP-RK3 stepper
 struct gkyl_update_status vlasov_update_ssp_rk3(gkyl_vlasov_app *app, double dt0);
@@ -380,8 +390,8 @@ void vm_pos_c2p(const double *xcomp, double *xphys, void *ctx);
 struct vm_fluid_em_coupling *vm_fluid_em_coupling_new(struct gkyl_vlasov_app *app);
 
 /**
- * Whether a fluid species takes part in the implicit fluid-EM coupling: only
- * momentum-carrying fluids (Euler) do.
+ * Whether a fluid species takes part in the fluid-EM coupling: only
+ * momentum-carrying fluids (Euler and isothermal Euler) do.
  *
  * @param f Fluid species
  * @return True if the fluid species couples to the EM field
@@ -393,8 +403,9 @@ bool vm_fluid_em_coupling_supported(const struct vm_fluid_species *f);
  * fluid momenta and energies and the electric field in place. E advances only here, with
  * c^2 curl B of the field and the current of the kinetic species at the start of the step as
  * known currents (Stormer-Verlet in the curl terms and a leapfrog in the kinetic currents; the
- * transport step drifts B and moves the kinetic species with this E). The step is
- * time-reversible: a negative dt inverts it.
+ * transport step drifts B and moves the kinetic species with this E). A negative dt steps the
+ * sources back; this inverts the forward step except at absorbing field edges, whose flux is
+ * evaluated at the start of the step.
  *
  * @param app Vlasov app object
  * @param fl_em fluid-EM coupling updater
@@ -419,8 +430,8 @@ double vm_fluid_em_coupling_dt(struct gkyl_vlasov_app *app, struct vm_fluid_em_c
 
 /**
  * Limiters after a source step of an update: the vertex positivity limiter of the fluids and
- * the slope limiter of the field. Not part of the source step itself, which stays reversible
- * for the synchronization of output and the inverse step of a restart.
+ * the slope limiter of the field. Not part of the source step itself: the synchronization for
+ * output applies the source step alone.
  *
  * @param app Vlasov app object
  * @param fl_em fluid-EM coupling updater

@@ -1,48 +1,25 @@
 #include <gkyl_vlasov_priv.h>
 
-// Staggered operator split of the locally implicit fluid-Maxwell source update S and the SSP-RK3
-// step T of the hyperbolic terms. Over a run the sequence is
-//   S(h/2) T S(h) T S(h) T ... T S(h/2),
-// the Strang split with the two source half steps that meet between consecutive transport steps
-// taken as ONE implicit-midpoint step. Two half steps rotate the plasma oscillation by
-// 4 atan(omega_pe h/4) per step, which reaches pi at omega_pe h = 4 and makes the curl coupling (the
-// frozen c^2 curl B current in S, the B drift with frozen E in T) resonate; one step rotates it by
-// 2 atan(omega_pe h/2) < pi. So between updates the source-updated state (fluids, E) lags tcurr by
-// half the last step (E at half steps, B at whole steps).
+// Staggered operator split of the implicit fluid-Maxwell source step S and the SSP-RK3 transport
+// step T. Each update is the Strang step S(h/2) T(h) S(h/2) of the step h it takes, with the two
+// source half steps between consecutive transport steps taken as one step; between updates the
+// fluids and E lag tcurr by half the last step. The first update of a run takes a trial forward
+// Euler step for h. If the CFL bound of a stage of T is more than 1% below the planned step, the
+// fluids and the field are restored, the source step is repeated over the smaller interval and T
+// is attempted again. Applied fields, currents and accelerations are evaluated at the midpoint of
+// each source interval.
 //
-// Each update applies the sources over the interval between the midpoint of the previous transport
-// step and the midpoint of this one, (dt_prev + dt)/2. The step T can take is only known once its
-// stages are evaluated (it is bounded by the CFL condition), so the source step before T assumes
-// the requested step dt0, capped by the step the previous update suggested. T takes dt0 unless the
-// CFL bound of one of its stages is more than 1% smaller; then nothing of the attempt is kept: the
-// fluids and the field are restored to their state before the source step, the source step is
-// repeated over the smaller interval (with the same currents of the kinetic species, which T has
-// not moved), and T is attempted again. The first update of a run has no previous step to suggest
-// one: a trial forward Euler step from the initial state (into the stage arrays, which T
-// overwrites) gives the step the CFL condition allows, and the run starts with the source half
-// step S(h/2) over it. Every update is thus the Strang step S(h/2) T(h) S(h/2) of the step h it
-// took, which is second order for any sequence of steps, and after every update the
-// source-updated state lags tcurr by half of that step, the half step of the synchronization for
-// output. The cap by the suggested step also makes a restart (which restores both steps) continue
-// as the uninterrupted run. Time-dependent applied fields, currents and accelerations are
-// evaluated at the midpoint of each source interval (second order for one step, and the same time
-// for a step and its inverse).
+// Kinetic species: the source step takes the current of each kinetic species at its start as a
+// known current, and the transport step moves the species with the E of the source step. This
+// leapfrog of the kinetic currents and E is stable for omega_p dt < 2, with omega_p the plasma
+// frequency of the kinetic species, so the step is bounded by cfl_frac / omega_p
+// (vm_fluid_em_coupling_dt).
 //
-// Kinetic species (hybrid runs): the source step takes the current of each kinetic species at its
-// start as a known current, and the transport step moves the species with the E of the source
-// step, which it does not change. This is a leapfrog of the kinetic currents and E (second order,
-// the energy error is second order without drift), stable for omega_p dt < 2 at a fixed step, with
-// omega_p the plasma frequency of the kinetic species: the implicit fluids do not respond to the
-// mode that alternates in sign from step to step. The update therefore bounds the step by
-// cfl_frac / omega_p (vm_fluid_em_coupling_dt). The margin of two at cfl_frac = 1 is not derived: a
-// changing step perturbs the leapfrog, and a run at omega_p dt = 1.6 whose step the CFL condition
-// kept changing went unstable.
-//
-// The transport step drifts B with the E of the source step over its three stages, so a limited
-// field (limit_em) is limited after the source steps of an update too: E enters the transport step
-// as the stages of an explicit update leave it; the positivity limiter of the fluids acts there as
-// well. The synchronization for output and the inverse step of a restart are the bare source step,
-// so that one inverts the other.
+// The positivity limiter of the fluids and the field limiter (limit_em) are applied after the
+// source step of an update. The synchronization for output applies the source step alone. Each
+// frame is written with the staggered fluids and field (the files _restart_<frame>), from which
+// a restart continues the run.
+
 // Step the CFL condition allows from the present state, at most dt0: a forward Euler step into the
 // stage arrays of the SSP-RK3 step, which overwrites them.
 static double
@@ -128,7 +105,7 @@ vlasov_op_split_sync(gkyl_vlasov_app *app)
   }
   gkyl_array_copy(fl_em->em_stag, app->field->em);
   // tcurr is the end of the last transport step; the sources stand at its midpoint (applied fields
-  // at the midpoint of the half step, as in the inverse step of a restart)
+  // at the midpoint of the half step)
   double dt_half = 0.5 * app->op_split_dt_prev;
   vm_fluid_em_coupling_update(app, fl_em, app->tcurr - 0.5 * dt_half, dt_half);
   app->op_split_synced = true;
@@ -148,27 +125,113 @@ vlasov_op_split_unsync(gkyl_vlasov_app *app)
   app->op_split_synced = false;
 }
 
+// Write an array of the staggered state as the stepper holds it, with the steps of the split.
+static void
+op_split_write_array(
+  gkyl_vlasov_app *app, const struct gkyl_array *arr, struct gkyl_array *arr_host, double tm,
+  int frame, const char *fname
+)
+{
+  struct gkyl_msgpack_data *mt = vlasov_array_meta_new((struct vlasov_output_meta){
+    .frame = frame,
+    .stime = tm,
+    .poly_order = app->poly_order,
+    .basis_type = app->basis.id,
+    .dt_prev = app->op_split_dt_prev,
+    .dt_suggested = app->op_split_dt_suggested,
+  });
+  if (app->use_gpu) {
+    // Copy data from device to host before writing it out.
+    gkyl_array_copy(arr_host, arr);
+    arr = arr_host;
+  }
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, arr, fname);
+  vlasov_array_meta_release(mt);
+}
+
 void
-vlasov_op_split_restart(gkyl_vlasov_app *app, int frame)
+vlasov_op_split_write_field(gkyl_vlasov_app *app, double tm, int frame)
 {
   if (!app->has_fluid_em_coupling) {
     return;
   }
-  // The frames hold the synchronized state of the staggered operator split; the uninterrupted run
-  // held the sources half its last step behind. Step them back (the implicit midpoint rule is
-  // time-reversible: this inverts the synchronization step) and restore the steps, so the next
-  // update continues as the uninterrupted run. Frames without the steps restart as a new run.
-  const char *fmt = "%s-field_%d.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name, frame);
-  char fileNm[sz + 1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, frame);
-  struct vlasov_output_meta meta = vlasov_meta_from_file(fileNm);
+  // Before the first update nothing lags, and the field is the staggered one.
+  const struct gkyl_array *em = app->op_split_synced ? app->fl_em->em_stag : app->field->em;
+  cstr fileNm = cstr_from_fmt("%s-field_restart_%d.gkyl", app->name, frame);
+  op_split_write_array(app, em, app->field->em_host, tm, frame, fileNm.str);
+  cstr_drop(&fileNm);
+}
+
+void
+vlasov_op_split_write_species(
+  gkyl_vlasov_app *app, const struct vlasov_species *sp, double tm, int frame
+)
+{
+  if (!app->has_fluid_em_coupling) {
+    return;
+  }
+  struct vm_fluid_em_coupling *fl_em = app->fl_em;
+  for (int i = 0; i < fl_em->num_fluid; ++i) {
+    if (fl_em->species[i] == sp) {
+      struct vm_fluid_species *fs = sp->fluid;
+      const struct gkyl_array *fluid = app->op_split_synced ? fl_em->fluid_stag[i] : fs->fluid;
+      cstr fileNm = cstr_from_fmt("%s-%s_restart_%d.gkyl", app->name, fs->name, frame);
+      op_split_write_array(app, fluid, fs->fluid_host, tm, frame, fileNm.str);
+      cstr_drop(&fileNm);
+    }
+  }
+}
+
+// Read an array of the staggered state of a frame; the status carries the steps of the split.
+static struct gkyl_app_restart_status
+op_split_read_array(
+  gkyl_vlasov_app *app, struct gkyl_array *arr, struct gkyl_array *arr_host, const char *fname
+)
+{
+  struct gkyl_app_restart_status rstat = vlasov_header_from_file(app, fname);
+  if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
+    rstat.io_status = gkyl_comm_array_read(app->comm, &app->grid, &app->local, arr_host, fname);
+    if (app->use_gpu) {
+      gkyl_array_copy(arr, arr_host);
+    }
+  }
+  return rstat;
+}
+
+struct gkyl_app_restart_status
+vlasov_op_split_restart(gkyl_vlasov_app *app, int frame)
+{
+  struct gkyl_app_restart_status rstat = {.io_status = GKYL_ARRAY_RIO_SUCCESS};
+  if (!app->has_fluid_em_coupling) {
+    return rstat;
+  }
+  // The frames hold the synchronized state; the staggered fluids and field replace it, with the
+  // steps of the split, so that the next update continues the run.
+  struct vm_fluid_em_coupling *fl_em = app->fl_em;
+  cstr fileNm = cstr_from_fmt("%s-field_restart_%d.gkyl", app->name, frame);
+  struct vlasov_output_meta meta = vlasov_meta_from_file(fileNm.str);
+  rstat = op_split_read_array(app, app->field->em, app->field->em_host, fileNm.str);
+  cstr_drop(&fileNm);
+  if (rstat.io_status != GKYL_ARRAY_RIO_SUCCESS) {
+    return rstat;
+  }
+  vlasov_field_apply_bc(app, app->field->em);
+
+  for (int i = 0; i < fl_em->num_fluid; ++i) {
+    struct vm_fluid_species *fs = fl_em->species[i]->fluid;
+    cstr fileNm_fluid = cstr_from_fmt("%s-%s_restart_%d.gkyl", app->name, fs->name, frame);
+    struct gkyl_app_restart_status rstat_fluid =
+      op_split_read_array(app, fs->fluid, fs->fluid_host, fileNm_fluid.str);
+    cstr_drop(&fileNm_fluid);
+    if (rstat_fluid.io_status != GKYL_ARRAY_RIO_SUCCESS) {
+      return rstat_fluid;
+    }
+    vm_fluid_species_apply_bc(app, fs, fs->fluid);
+  }
 
   app->op_split_synced = false;
   app->op_split_dt_prev = meta.dt_prev;
   app->op_split_dt_suggested = meta.dt_suggested;
-  if (meta.dt_prev > 0.0) {
-    double dt_half = 0.5 * meta.dt_prev;
-    vm_fluid_em_coupling_update(app, app->fl_em, app->tcurr - 0.5 * dt_half, -dt_half);
-  }
+
+  return rstat;
 }

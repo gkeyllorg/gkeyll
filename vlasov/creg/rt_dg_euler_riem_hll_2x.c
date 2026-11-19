@@ -2,13 +2,13 @@
 // moments/creg/rt_euler_riem_2d_hll.c: Section 4.3, case 3 of R. Liska and B. Wendroff (2003),
 // "Comparison of Several Difference Schemes on 1D and 2D Test Problems for the Euler Equations",
 // SIAM J. Sci. Comput. 25 (3): 995-1017, with gamma = 1.4, the four states meeting at (0.8, 0.8) on
-// the unit square, copy boundaries and t_end = 0.8 instead of 0.3. Figures of merit (serendipity
-// p1, 100 x 100 cells, 1137 steps): against the moments HLLC solution on 400 x 400 cells (ending at
-// t = 0.8005), block-averaged, the L1 differences of the cell averages are 3.3e-2 of the mean in
-// density and 4.4e-2 in pressure; the largest density is 1.774 (reference 1.752). The density cell
-// averages keep the mirror symmetry of the problem about the diagonal x = y to 2.7e-14 (the
-// reference departs from it by up to 0.46, and by 8.4e-3 of the mean in L1). The mass in the box
-// grows from 0.3187 to 0.8951 through the copy boundaries (reference 0.8949).
+// the unit square, copy boundaries and t_end = 0.8 (the paper runs to 0.3). Figures of merit
+// (serendipity p1, 100 x 100 cells, 1137 steps): against the moments HLLC solution on 400 x 400
+// cells (ending at t = 0.8005), block-averaged, the L1 differences of the cell averages are 3.3e-2
+// of the mean in density and 4.4e-2 in pressure; the largest density is 1.774 (reference 1.752).
+// The density cell averages keep the mirror symmetry of the problem about the diagonal x = y to
+// 2.7e-14 (the reference departs from it by up to 0.46, and by 8.4e-3 of the mean in L1). The mass
+// in the box grows from 0.3187 to 0.8951 through the copy boundaries (reference 0.8949).
 
 #include <math.h>
 #include <stdio.h>

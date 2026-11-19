@@ -155,9 +155,8 @@ test_bvar(int cdim)
       }
     }
   }
-  // The gkyl_dg_calc_em_vars vector is sqrt-with-sign of a projected bb; both are second-order
-  // accurate representations of the same smooth field, so they agree to the
-  // projection error of the grid but not to round-off.
+  // The unit vector of gkyl_dg_calc_em_vars, where it does not use its cell-average fallback, is
+  // compared with b coefficient by coefficient.
   TEST_CHECK(max_em_vars_diff < 2.0e-2);
   TEST_MSG("max |b - b of gkyl_dg_calc_em_vars| = %g", max_em_vars_diff);
 

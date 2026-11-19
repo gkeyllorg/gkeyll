@@ -5,9 +5,8 @@
 // 0.2 sin(pi (x + y)) is carried at the velocity (1, -0.5) and pressure 1 (gamma = 1.4) through the
 // periodic box [0, 2]^2 and returns at t = 4, so the exact solution is the initial condition.
 // Figures of merit (serendipity p1, 50 x 50 cells, 1380 steps): the L2 error of the density is
-// 1.62e-2 of the L2 amplitude of the wave (5.96e-2 on 25 x 25 cells, 4.24e-3 on 100 x 100: orders
-// 1.88 and 1.93); the amplitude of the cell averages falls from 0.1993 to 0.1938; mass and energy
-// are conserved to 1e-13. The C and Lua runs agree to 2e-14.
+// 1.62e-2 of the L2 amplitude of the wave; the amplitude of the cell averages falls from 0.1993 to
+// 0.1938; mass and energy are conserved to 1e-13.
 
 #include <math.h>
 #include <stdio.h>

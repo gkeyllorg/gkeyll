@@ -1,6 +1,7 @@
 // The Jacobian-weighted (position-mapped) form of the PKPM configuration-space operators.
 // With the C^0 linear map x_d = x_d(xi_d) of gkyl_vlasov_position_map the Jacobian
-// J = prod_d J_d is constant per cell and the solver evolves J [F, G] and J [rho, M, E]:
+// J = prod_d J_d is constant per cell and the solver evolves J [F, G, M0_perp, N_perp] and
+// J [rho, M, E]:
 //   d_t (J q) + sum_d d_xi_d [ (J/J_d) F_d(q) ] = J S.
 // Two checks of the configuration-space operators (weak gradients, HLL face fluxes,
 // kinetic configuration pass and fluid right-hand sides):
@@ -140,7 +141,7 @@ eval_fluid(double t, const double *xn, double *restrict fout, void *ctx)
   fout[4] = 0.5 * rho * uu + 0.5 * rho * xi * xi + 0.8 * rho * xi * xi;
 }
 
-// Physical kinetic coupling moments [p_par, p_perp, q_par, q_perp].
+// Physical kinetic coupling moments [p_par, p_perp, q_par, q_perp, s (3), r (3)].
 static void
 eval_cmoms(double t, const double *xn, double *restrict fout, void *ctx)
 {

@@ -12,8 +12,8 @@
 -- the exchange is first order in time, with (nu_ei + nu_ie) dt = 1.1e-3) and the
 -- temperature difference at 2 (nu_ei m_e + nu_ie m_i) / (m_e + m_i) = 0.0396 (measured 0.0395). The
 -- pressure anisotropy decays at 2 (nu_ee + nu_ei) = 4 for the electrons and at 2 (nu_ii + nu_ie) =
--- 0.22 for the ions (measured 4.0000 and 0.2200). Vlasov 1x3v measures 1.01, 0.0396, 4.02 and 0.220.
--- The same rates and conservation hold with the drift across the magnetic field.
+-- 0.22 for the ions (measured 4.0000 and 0.2200). Vlasov 1x3v measures 1.01, 0.0396, 4.02 and
+-- 0.220.
 local PKPM = G0.PKPM
 
 -- Mathematical constants (dimensionless).

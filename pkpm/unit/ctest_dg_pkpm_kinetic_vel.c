@@ -385,7 +385,7 @@ teardown(struct test_setup *s)
 }
 
 // Pointwise first-harmonic coefficients at reference point z of cell cidx (the definitions of
-// gkyl_pkpm_harm_coeffs.h from the fields, not the stored projections).
+// ctest_pkpm_harm_ref.h from the fields, not the stored projections).
 static void
 conf_coeffs(struct test_setup *s, long cidx, const double *z, struct pkpm_harm_coeffs *hc)
 {
@@ -411,7 +411,7 @@ conf_coeffs(struct test_setup *s, long cidx, const double *z, struct pkpm_harm_c
 }
 
 // Node values of the w flux at reference point z of cell cidx (PKPM_HS_NODE_NV): the w-flux
-// coefficients from the pointwise definitions of gkyl_pkpm_harm_coeffs.h (conf_coeffs; the build
+// coefficients from the pointwise definitions of ctest_pkpm_harm_ref.h (conf_coeffs; the build
 // writes these raw values at its nodes), theta, b, the closures and the spectrum part of the bounds.
 static void
 node_values(
@@ -464,9 +464,10 @@ node_values(
   pkpm_harm_node_spec(nv);
 }
 
-// Independent reference of the stored v_par flux on the lower face of cell idx (idx_l is the cell
-// below): the HLL flux of the pointwise node values (node_values, pkpm_harm_node_wflux) at the 5-point Gauss-Legendre nodes of every configuration direction,
-// projected with that rule. Returns the CFL speed estimate at the nodes.
+// Reference of the stored v_par flux on the lower face of cell idx (idx_l is the cell below):
+// pkpm_harm_node_wflux of the pointwise node values (node_values) at the 5-point Gauss-Legendre
+// nodes of every configuration direction, projected with that rule. Returns the largest node
+// speed.
 static double
 reference_vel_face(
   struct test_setup *s, const struct gkyl_array *alpha_0, const struct gkyl_array *c_h,
@@ -530,7 +531,7 @@ reference_vel_face(
 }
 
 // The raw w-flux values the build writes (gkyl_dg_pkpm_harm_vol_coef) at the 5^cdim w-face nodes
-// (row-major, the order of gkyl_range) are the pointwise definitions of gkyl_pkpm_harm_coeffs.h
+// (row-major, the order of gkyl_range) are the pointwise definitions of ctest_pkpm_harm_ref.h
 // (node_values) at those points.
 static void
 test_build_nodes(int cdim)
@@ -630,7 +631,7 @@ test_vel_flux(int cdim)
 
 // Exactness of the w faces: where the flux is upwind over the whole face (alpha_0 large, every
 // speed positive), the stored flux equals the exact Galerkin projection of the POINTWISE flux
-// alpha U_l + T(U_l) (pointwise coefficients of gkyl_pkpm_harm_coeffs.h, integrated with 6
+// alpha U_l + T(U_l) (pointwise coefficients of ctest_pkpm_harm_ref.h, integrated with 6
 // Gauss-Legendre points per configuration direction): the face rule integrates the raw node
 // values exactly (degree 1 + 7 + 1 <= 9 per direction with 5 points).
 static void
@@ -1063,7 +1064,7 @@ test_m1_invariant(int cdim)
   struct gkyl_array *c_h = mkarr(nc, s.clocal_ext.volume);
   struct gkyl_array *c_0 = mkarr(nc, s.clocal_ext.volume);
   struct gkyl_array *a_perp = mkarr(3 * nc, s.clocal_ext.volume);
-  // closures of the previous stage (the upwind switch of the edges): the setup fields
+  // closures of the previous stage on input (they set the edge speeds): the setup fields
   gkyl_array_copy(a_P, s.alpha_0);
   gkyl_array_copy(c_h, s.c_h);
   gkyl_array_clear(c_0, 0.0);
@@ -1108,7 +1109,7 @@ test_m1_invariant(int cdim)
     gkyl_hyper_dg_new(&s.pgrid, &s.pbasis, eqn_b, 1, up_dirs_b, zero_flux_b, 1, false);
   gkyl_hyper_dg_advance(slvr_b, &s.plocal, s.f, cflrate, rhs);
 
-  // Zeroth and first moments of the total right-hand side.
+  // Constrained moments of the total right-hand side.
   gkyl_array_clear(rhs_moms, 0.0);
   gkyl_dg_updater_moment_pkpm_advance(mcalc, &s.plocal, &s.clocal, rhs, rhs_moms);
   double max_m1 = 0.0, max_m0 = 0.0, max_m2 = 0.0, max_mp = 0.0;
@@ -1279,7 +1280,7 @@ test_edge_closure(int cdim)
 
   double alphas[2] = {0.7, -0.7};
   for (int a = 0; a < 2; ++a) {
-    // previous-stage closures (the switch), no configuration pass
+    // previous-stage closures (they set the edge speeds), no configuration pass
     gkyl_array_clear(s.alpha_0, 0.0);
     gkyl_array_shiftc(s.alpha_0, alphas[a] * c0, 0);
     gkyl_array_clear(s.c_h, 0.0);

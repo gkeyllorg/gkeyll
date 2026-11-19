@@ -1,5 +1,5 @@
-// Tests for the updater of DG fluid variables (gkyl_dg_calc_fluid_vars) and the Lax-Friedrichs
-// surface kernels of the DG Euler equation:
+// Tests for the updater of DG fluid variables (gkyl_dg_calc_fluid_vars) and the surface kernels
+// of the DG Euler equation with the Lax solver:
 //   em_source  : the source of a charged fluid coupled explicitly to the field. Without a magnetic
 //                field it is the source of an applied acceleration; for uniform fields and a
 //                uniform flow it is rho a + rho u x (q/m B) and rho u . a, also for a density that
@@ -8,10 +8,10 @@
 //   positivity : the limiter scales the slopes of a cell with an inadmissible vertex density or
 //                internal energy until the vertices are at the floor, leaves the cell averages
 //                alone, and does not touch an admissible cell.
-//   limiter    : a slope of the momentum normal to the sweep direction that the limiter removes
-//                takes with it the higher coefficients of the density, of that momentum component
-//                and of the energy (the components of the acoustic waves), in every sweep
-//                direction, and leaves those of the tangential momenta.
+//   limiter    : a slope along the sweep direction of the momentum component along it that the
+//                limiter removes takes with it the higher coefficients of the density, of that
+//                momentum component and of the energy (the components of the acoustic waves), in
+//                every sweep direction, and leaves those of the tangential momenta.
 //   lax_flux   : the surface kernels with the Lax solver of the wave equation object leave the
 //                cell averages of a uniform state alone, and across a jump the rates of the cell
 //                averages on the two sides of an interface are those of the Lax-Friedrichs flux.

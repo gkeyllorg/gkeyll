@@ -22,7 +22,8 @@ struct gkyl_dg_calc_pkpm_vars_inp {
  * Create new updater for the configuration-space variables of the PKPM
  * solver (p=1 serendipity): the nodal primitive variables (the flow M/rho and the thermal
  * speed; nodal quotients, the weak division at p=1), the closures with the velocity-space
- * edges, the in-cell gradients, the explicit source, the initial-condition normalization and
+ * edges, the in-cell gradients and grad(ln n), the vertex positivity limiter, the constraints,
+ * the transversality projection, the explicit source, the initial-condition normalization and
  * the diagnostics.
  *
  * @param inp Input parameters defined in gkyl_dg_calc_pkpm_vars_inp struct.
@@ -72,7 +73,7 @@ void gkyl_dg_calc_pkpm_vars_in_cell_grad(
  * I_perp int M0_perp dw = 0 of the complete right-hand side (configuration pass + closure terms +
  * the HLL edge fluxes against an empty state outside the velocity domain, constructed at the
  * w-face nodes as on the interior w faces and projected onto p=1), a 3x3 solve after the
- * perpendicular rows are eliminated, see pkpm-vars-closure.mac. The edge fluxes of all eight
+ * perpendicular rows are eliminated. The edge fluxes of all eight
  * blocks are written in the stored face format: the lower one into the lowest velocity cell's
  * slot of vel_flux_surf, the upper one into the slot of the velocity ghost cell above the
  * uppermost cell (the array layout must have that ghost cell). The time-step rate of all the
@@ -159,7 +160,7 @@ void gkyl_dg_calc_pkpm_vars_int(
  * int M0_perp dw (x, y, z), ...]: they are [1, 0, 1, 0, 0, 0] in every mode of every cell when
  * the closures hold.
  *
- * @param up          Updater (unused; kept for symmetry)
+ * @param up          Updater (not used)
  * @param conf_range  Configuration space range
  * @param num_basis   Number of configuration basis functions
  * @param norm_moms   Input normalized moments (at least 9 expansions per cell)
@@ -173,8 +174,8 @@ void gkyl_dg_calc_pkpm_vars_constraints(
 /**
  * Transversality projection of the first-harmonic blocks: M0_perp and N_perp of every phase cell
  * of phase_range are projected onto the plane perpendicular to b at the 2^cdim interior
- * Gauss-Legendre nodes of configuration space, for every Legendre mode in w, in place
- * (pkpm-dist-transverse.mac). p=1 serendipity only.
+ * Gauss-Legendre nodes of configuration space, for every Legendre mode in w, in place. p=1
+ * serendipity only.
  *
  * @param up          Updater for computing pkpm variables
  * @param conf_range  Configuration-space range indexing bvar

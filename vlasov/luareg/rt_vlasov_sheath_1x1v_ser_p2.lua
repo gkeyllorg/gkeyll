@@ -6,7 +6,7 @@
 -- the region next to the wall is collisionless. The position map clusters the cells at the wall.
 -- Figures of merit at t = 1000 (serendipity p2): midplane-to-wall potential drop e*dphi/Te =
 -- 1.925, ion wall flux / (n_mid c_s) = 0.509, ion speed at the wall / c_s = 1.629, with
--- c_s = sqrt((Te + Ti)/mi) (at t = 1500: 1.929, 0.508, 1.642).
+-- c_s = sqrt((Te + Ti)/mi).
 local Vlasov = G0.Vlasov
 
 -- Physical constants (using normalized code units).

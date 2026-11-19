@@ -27,7 +27,6 @@ GKYL_CU_DH int fluid_vars_u_set_2x_tensor_p2(int count, struct gkyl_nmat *A, str
 
   int cell_avg = 0;
   // Check if rho < 0 at control points. 
-  // *THIS IS ONLY A CHECK RIGHT NOW AND UNUSED* 
   if (2.5*rho[8]-1.936491673103709*rho[7]-1.936491673103709*rho[6]+1.118033988749895*rho[5]+1.118033988749895*rho[4]+1.5*rho[3]-0.8660254037844386*rho[2]-0.8660254037844386*rho[1]+0.5*rho[0] < 0.0) cell_avg = 1; 
   if ((-1.25*rho[8])+0.9682458365518543*rho[6]+1.118033988749895*rho[5]-0.5590169943749475*rho[4]-0.8660254037844386*rho[2]+0.5*rho[0] < 0.0) cell_avg = 1; 
   if (2.5*rho[8]+1.936491673103709*rho[7]-1.936491673103709*rho[6]+1.118033988749895*rho[5]+1.118033988749895*rho[4]-1.5*rho[3]-0.8660254037844386*rho[2]+0.8660254037844386*rho[1]+0.5*rho[0] < 0.0) cell_avg = 1; 
