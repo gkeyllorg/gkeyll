@@ -915,12 +915,22 @@ dom_eig_diag_func(sunrealtype t, N_Vector manynvin, N_Vector fn, sunrealtype* la
     flag = SUNDomEigEstimator_SetRhs(DEE, user_data, gksun->has_ssprk? gksun->dfdt_func : gksun->dfdt_sts_func);
     sundials_check_flag(&flag, "SUNDomEigEstimator_SetRhs", 1);
 
+    // Set the number of initial preprocessing iterations for the dominant eigenvalue estimator.
+    flag = SUNDomEigEstimator_SetNumPreprocessIters(DEE, gksun->stepper_inp->dee_num_init_warmups);
+    sundials_check_flag(&flag, "SUNDomEigEstimator_SetNumPreprocessIters", 1);
+
     flag = SUNDomEigEstimator_Initialize(DEE);
     sundials_check_flag(&flag, "SUNDomEigEstimator_Initialize", 1);
   }
+  else
+  {
+    // Set the number of successive preprocessing iterations for the dominant eigenvalue estimator.
+    flag = SUNDomEigEstimator_SetNumPreprocessIters(DEE, gksun->stepper_inp->dee_num_succ_warmups);
+    sundials_check_flag(&flag, "SUNDomEigEstimator_SetNumPreprocessIters", 1);
+  }
 
   // Set the linearization vector and time for the Jacobian-vector products.
-  flag = SUNDomEigEstimator_SetRhsLinearizationPoint(DEE, t, manynvin);
+  flag = SUNDomEigEstimator_SetRhsLinearizationPoint(DEE, t, manynvin, fn);
 //  N_Vector nvin = N_VGetSubvector_ManyVector(manynvin, 0);
 //  flag = SUNDomEigEstimator_SetRhsLinearizationPoint(DEE, t, nvin);
   sundials_check_flag(&flag, "SUNDomEigEstimator_SetRhsLinearizationPoint", 1);
