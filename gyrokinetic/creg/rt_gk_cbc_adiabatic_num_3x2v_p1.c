@@ -90,7 +90,8 @@ qsafety(double Rmajor_omp, void *ctx)
   if (!gkyl_is_dfinite(rminor)) {
     gkyl_exit("CBC: invalid outboard radius in safety-factor evaluation.");
   }
-  return qsafety_at_rminor(rminor, app->rminor_LCFS);
+  // Signed COCOS 3 q gives CW toroidal and CCW poloidal fields.
+  return -qsafety_at_rminor(rminor, app->rminor_LCFS);
 }
 
 static void
@@ -574,10 +575,10 @@ create_ctx(struct gk_app_ctx *ctx)
   double mu_max_ion = 9. * Ti0 / bmag_axis; // GENE uses bmag_axis as reference field.
   double vpar_max_elc = 3. * vte * sqrt(2);
   double mu_max_elc = 9. * Te0 / bmag_axis;
-  // Optional ion-ion LBO collisions, nu_star = nu_ii q Rmajor_axis/(eps^{3/2}
+  // Optional ion-ion LBO collisions, nu_star = nu_ii |q| Rmajor_axis/(eps^{3/2}
   // v_ti) with v_ti = sqrt(Ti/mi).
   double nu_star = 0.0;
-  double nu_ion = nu_star * pow(inv_asp_ratio, 1.5) * vti / (q0 * Rmajor_axis);
+  double nu_ion = nu_star * pow(inv_asp_ratio, 1.5) * vti / (fabs(q0) * Rmajor_axis);
 
   // Preserve Krook widths num_cell_buff*L_rMr0/N_psi.
   // This is a reference radial scale, not the spacing of the uniform-psi grid.

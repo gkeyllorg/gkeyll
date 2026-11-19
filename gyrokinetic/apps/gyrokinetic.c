@@ -303,8 +303,13 @@ gyrokinetic_prepare_miller(struct gkyl_gk *gk)
   if (inp.input_coord_limits_type[2] == GKYL_GK_GEOMETRY_COORD_PARALLEL_THETA_MILLER) {
     theta_bounds[0] = gkyl_gen_miller_eqdsk_theta_tok_at_theta(&inp, gk->lower[2]);
     theta_bounds[1] = gkyl_gen_miller_eqdsk_theta_tok_at_theta(&inp, gk->upper[2]);
-    if (!gkyl_is_dfinite(theta_bounds[0]) || !gkyl_is_dfinite(theta_bounds[1]) ||
-        theta_bounds[0] >= theta_bounds[1]) {
+    if (gk->lower[2] < gk->upper[2] && theta_bounds[0] > theta_bounds[1]) {
+      double swap = theta_bounds[0];
+      theta_bounds[0] = theta_bounds[1];
+      theta_bounds[1] = swap;
+    }
+    if (gk->lower[2] >= gk->upper[2] || !gkyl_is_dfinite(theta_bounds[0]) ||
+        !gkyl_is_dfinite(theta_bounds[1]) || theta_bounds[0] >= theta_bounds[1]) {
       error = "invalid Miller theta bounds or failed parallel coordinate conversion";
       failure = 1;
     }

@@ -309,6 +309,16 @@ int gkyl_compare_float(float a, float b, float eps);
 int gkyl_compare_double(double a, double b, double eps);
 
 /**
+ * Construct a quiet double NaN from its IEEE binary64 representation.
+ * This avoids floating-point arithmetic and string parsing, including in
+ * fast-math builds. Use gkyl_is_dfinite for fast-math-safe validity checks;
+ * constructing a NaN does not make ordinary floating-point comparisons safe.
+ *
+ * @return Quiet NaN used to signal an invalid evaluation.
+ */
+double gkyl_gen_nan(void);
+
+/**
  * Classify a double by its IEEE binary64 bits, including in fast-math builds.
  *
  * @param value Value to classify.

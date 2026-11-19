@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Generate a synthetic Miller GEQDSK from a Python equilibrium input file.
 
-See README.md and doc/notes/miller_eq/gkeyll_gen_miller_eqdsk.tex. All lengths are
-meters, bmag_axis is the signed toroidal field in tesla, and psi is poloidal flux / (2*pi).
+See README.md. All lengths are meters, bmag_axis is the signed toroidal field in tesla,
+and psi is poloidal flux / (2*pi).
 """
 
 import argparse
@@ -121,7 +121,8 @@ def load_input(filename):
 class MillerEquilibrium:
   """Physical flux table plus explicit exterior continuation.
 
-  q is a scalar callback q(R_omp). Rmajor_omp_bounds labels optional simulation
+  q is a signed COCOS 3 scalar callback q(R_omp), finite, nonzero, and of
+  constant sign from axis through guard. Rmajor_omp_bounds labels optional simulation
   surfaces; the physical construction always includes the axis and LCFS.
   """
 
@@ -147,19 +148,23 @@ class MillerEquilibrium:
       self.rminor_required = max(self.a, float(r_bounds[1]))
     self.rminor_guard = self.rminor_required*(1 + guard_fraction)
     self.s_guard = self.rminor_guard**2
+    self.q_sign = None
+    self.q_sign = math.copysign(1.0, self.q_at_r(0))
+    self.psi_sign = math.copysign(1.0, geometry.F)*self.q_sign
     self._validate_surfaces()
     self._build_flux_table()
     self.psi_boundary = float(self.psi_at_r(self.a))
 
   def q_at_r(self, r):
-    """Evaluate q at minor radius r and require a finite positive value."""
+    """Evaluate signed COCOS 3 q; require a finite, nonzero, consistent sign."""
     R_omp = float(self.geometry.R_omp_at_r(r))
     try:
       value = float(self.q(R_omp))
     except Exception as exc:
       raise ValueError(f"q failed at R_omp={R_omp:.16g}: {exc}") from exc
-    if not math.isfinite(value) or value <= 0:
-      raise ValueError(f"q must be finite and positive at R_omp={R_omp:.16g}; got {value}")
+    if (not math.isfinite(value) or value == 0 or
+        (self.q_sign is not None and math.copysign(1.0, value) != self.q_sign)):
+      raise ValueError(f"q must be finite, nonzero, and have its axis sign at R_omp={R_omp:.16g}; got {value}")
     return value
 
   def _validate_surfaces(self):
@@ -176,7 +181,7 @@ class MillerEquilibrium:
       self.q_at_r(radius)
 
   def _flux_derivative(self, s):
-    """Direct quadrature for dpsi/ds; independent of the radial interpolant."""
+    """Quadrature for positive d(psi_hat)/ds; psi = psi_sign*psi_hat."""
     g, radius = self.geometry, math.sqrt(s)
     triangularity = math.asin(g.delta)
 
@@ -194,13 +199,13 @@ class MillerEquilibrium:
                            epsrel=self.rtol*0.05, limit=200)
     if error > self.rtol*max(1, abs(integral)):
       raise ValueError(f"poloidal quadrature did not converge at r={radius:.16g}")
-    value = abs(g.F)*integral/(4*math.pi*g.Rmajor_axis*self.q_at_r(radius))
+    value = abs(g.F)*integral/(4*math.pi*g.Rmajor_axis*abs(self.q_at_r(radius)))
     if not math.isfinite(value) or value <= 0:
       raise ValueError("flux derivative must be finite and positive")
     return value
 
   def _build_flux_table(self):
-    """Adaptively tabulate dpsi/ds for s=r^2 and integrate its PCHIP interpolant."""
+    """Adaptively tabulate positive d(psi_hat)/ds for s=r^2 and integrate its PCHIP interpolant."""
     # Triangular surfaces can produce sqrt(s) terms at the axis. Cluster
     # initial samples there and cache unchanged midpoint quadratures.
     evaluate = lru_cache(maxsize=None)(self._flux_derivative)
@@ -218,7 +223,7 @@ class MillerEquilibrium:
         self._derivative = derivative
         self._integral = derivative.antiderivative()
         self.radial_error = float(np.max(errors))
-        self.psi_guard = float(self._integral(self.s_guard))
+        self.psi_guard = self.psi_sign*float(self._integral(self.s_guard))
         return
       if len(nodes)+np.count_nonzero(bad) > 262145:
         break
@@ -234,17 +239,18 @@ class MillerEquilibrium:
     if np.any(~np.isfinite(radius)) or np.any(radius < 0):
       raise ValueError("Minor radius must be finite and nonnegative")
     s = radius**2
-    return self._integral(np.minimum(s, self.s_guard)) + self.g_nodes[-1]*np.maximum(s-self.s_guard, 0)
+    return self.psi_sign*(self._integral(np.minimum(s, self.s_guard))
+                          + self.g_nodes[-1]*np.maximum(s-self.s_guard, 0))
 
   def dpsidr_at_r(self, r):
     """Return the radial flux derivative, including the exterior continuation."""
     radius = np.asarray(r)
-    return 2*radius*self._derivative(np.minimum(radius**2, self.s_guard))
+    return self.psi_sign*2*radius*self._derivative(np.minimum(radius**2, self.s_guard))
 
   def r_at_psi(self, psi):
     """Invert physical flux; do not silently return a background surface."""
-    value = float(psi)
-    if not math.isfinite(value) or not 0 <= value <= self.psi_guard:
+    value = self.psi_sign*float(psi)
+    if not math.isfinite(value) or not 0 <= value <= self.psi_sign*self.psi_guard:
       raise ValueError("psi is outside the physical axis-to-guard interval")
     s = brentq(lambda s: float(self._integral(s))-value, 0, self.s_guard,
                xtol=self.s_guard*1e-14, rtol=1e-14)
@@ -309,7 +315,7 @@ class MillerEquilibrium:
     return radius, theta
 
   def Bfield_at_rtheta(self, r, theta):
-    """Return cylindrical (B_R, B_Z, B_phi), with B_p tangent to +theta."""
+    """Return cylindrical (B_R, B_Z, B_phi), with signed B_p tangent to psi_sign*theta."""
     R, _ = self.geometry.RZ_at_rtheta(r, theta)
     _, Rt, _, Zt = self.geometry.RZ_derivatives_at_rtheta(r, theta)
     det = np.asarray(r)*self.geometry.RZdet_over_r(r, theta)
@@ -353,7 +359,7 @@ def sample_eqdsk(equilibrium, nr=257, nz=257, RmajorZvert_bounds=None):
   if not np.all(np.isfinite(psi)):
     raise ValueError("nonfinite flux on the R–Z mesh")
   flux_nodes = np.linspace(0, eq.psi_boundary, nr)
-  qpsi = np.sign(g.F)*np.array([eq.q_at_r(eq.r_at_psi(value)) for value in flux_nodes])
+  qpsi = np.array([eq.q_at_r(eq.r_at_psi(value)) for value in flux_nodes])
   boundary = np.column_stack(g.RZ_at_rtheta(eq.a, np.linspace(0, 2*np.pi, 257)))
   return {"R": Rgrid, "Z": Zgrid, "psi": psi, "qpsi": qpsi,
           "boundary": boundary, "exterior": radius > eq.rminor_guard,
@@ -424,9 +430,9 @@ def summary(equilibrium, sampled, source=None):
                        "clearance_cells": sampled["clearance_cells"]},
           "RmajorZvert_bounds": [float(sampled[k][i]) for k, i in (("R", 0), ("R", -1), ("Z", 0), ("Z", -1))],
           "exterior_nodes": int(np.count_nonzero(sampled["exterior"])),
-          "conventions": {"equilibrium_cocos": 3, "psi": "poloidal flux / (2*pi), increasing outwards; axis=0",
+          "conventions": {"equilibrium_cocos": 3, "psi": "poloidal flux / (2*pi); axis=0", "psi_sign": eq.psi_sign,
                           "q_argument": "outboard midplane major radius [m]",
-                          "q": "positive input magnitude; signed GEQDSK q follows bmag_axis",
+                          "q": "signed COCOS 3 safety factor, written directly to QPSI",
                           "bmag_axis": "signed toroidal field at the magnetic axis [T]",
                           "exterior": "linear in r^2 beyond guard; not physical coverage",
                           "pressure_and_current": "zero placeholders; not a Grad-Shafranov solution",

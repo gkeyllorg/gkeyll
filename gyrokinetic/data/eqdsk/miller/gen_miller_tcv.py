@@ -19,8 +19,9 @@ Rmajor_omp_bounds = (geometry.R_omp_at_r(a-0.04), geometry.R_omp_at_r(a+0.08))
 
 def q(R_omp):
   """Return the TCV safety factor at outboard midplane major radius R_omp [m]."""
-  return ((497.3420166252413*R_omp-1408.736172826569)*R_omp
-          + 1331.4134861681464)*R_omp-419.00692601227627
+  # Negative COCOS 3 q preserves the original CW toroidal / CCW poloidal fields.
+  return -(((497.3420166252413*R_omp-1408.736172826569)*R_omp
+          + 1331.4134861681464)*R_omp-419.00692601227627)
 
 # Build the equilibrium and sample its flux on the rectangular R-Z grid.
 equilibrium = MillerEquilibrium(geometry, q, Rmajor_omp_bounds)

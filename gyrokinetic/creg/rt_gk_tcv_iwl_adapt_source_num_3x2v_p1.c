@@ -83,8 +83,10 @@ static double
 qsafety(double R, void *ctx)
 {
   // Evaluate the cubic fit to the TCV negative-triangularity q profile (discharge 65130).
-  return ((497.3420166252413 * R - 1408.736172826569) * R + 1331.4134861681464) * R -
-         419.00692601227627;
+  // Signed COCOS 3 q gives CW toroidal and CCW poloidal fields.
+  return -(
+    ((497.3420166252413 * R - 1408.736172826569) * R + 1331.4134861681464) * R - 419.00692601227627
+  );
 }
 
 static double

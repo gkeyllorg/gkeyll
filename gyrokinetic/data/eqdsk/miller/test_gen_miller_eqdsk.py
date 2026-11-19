@@ -68,11 +68,12 @@ def reconstruction_errors(eq, sampled):
     Bp_ref = np.hypot(Br, Bz)
     B_ref = np.hypot(Bp_ref, Bt)
     _, Rt, _, Zt = eq.geometry.RZ_derivatives_at_rtheta(radius, theta)
-    q_reconstructed = eq.geometry.F/(2*np.pi)*simpson(np.hypot(Rt, Zt)/(R*R*Bp), x=theta)
-    errors["psi"] = max(errors["psi"], np.max(np.abs(spline.ev(Z, R)-eq.psi_at_r(radius)))/eq.psi_boundary)
+    orientation = np.sign(np.mean((-dpsi_Z*Rt+dpsi_R*Zt)/R))
+    q_reconstructed = orientation*eq.geometry.F/(2*np.pi)*simpson(np.hypot(Rt, Zt)/(R*R*Bp), x=theta)
+    errors["psi"] = max(errors["psi"], np.max(np.abs(spline.ev(Z, R)-eq.psi_at_r(radius)))/abs(eq.psi_boundary))
     errors["B"] = max(errors["B"], np.max(np.abs(np.hypot(Bp, Bt)/B_ref-1)))
     errors["Bp"] = max(errors["Bp"], np.max(np.abs(Bp/Bp_ref-1)))
-    errors["q"] = max(errors["q"], abs(q_reconstructed/(np.sign(eq.geometry.F)*eq.q_at_r(radius))-1))
+    errors["q"] = max(errors["q"], abs(q_reconstructed/eq.q_at_r(radius)-1))
   return {key: float(value) for key, value in errors.items()}
 
 
@@ -101,28 +102,43 @@ class TestMiller(unittest.TestCase):
     with self.assertRaises(ValueError):
       eq.r_at_psi(eq.psi_guard*1.01)
 
-  def test_signed_toroidal_field(self):
-    """Changing toroidal orientation preserves flux and the poloidal field."""
-    positive = self.circle
-    negative = MillerEquilibrium(replace(positive.geometry, bmag_axis=-1.5),
-                                 positive.q, guard_fraction=0.25)
-    radius = np.linspace(0.01, positive.a, 17)
+  def test_signed_fields(self):
+    """All four COCOS 3 orientations: flux, components, q, file and inverse."""
+    radius = np.linspace(0.01, self.circle.a, 17)
     theta = np.linspace(-np.pi, np.pi, 17)
-    np.testing.assert_array_equal(positive.psi_at_r(radius), negative.psi_at_r(radius))
-    bp = positive.Bfield_at_rtheta(radius, theta)
-    bn = negative.Bfield_at_rtheta(radius, theta)
-    np.testing.assert_array_equal(bp[:2], bn[:2])
-    np.testing.assert_array_equal(bp[2], -bn[2])
-    for eq in (positive, negative):
-      sampled = sample_eqdsk(eq, nr=129, nz=129)
-      with tempfile.TemporaryDirectory() as directory:
-        path = Path(directory)/"signed.geqdsk"
-        write_eqdsk(path, eq, sampled)
-        header, profiles, psi, qpsi, _ = read_geqdsk(path)
-      self.assertEqual(header[9], eq.geometry.bmag_axis)
-      np.testing.assert_allclose(profiles[0], eq.geometry.F, rtol=1e-9)
-      np.testing.assert_allclose(qpsi, np.sign(eq.geometry.F)*2, rtol=1e-9)
-      self.assertGreater(header[8], header[7])
+    reference = self.circle.Bfield_at_rtheta(radius, theta)
+    for tor_sign in (-1, 1):
+      for q_sign in (-1, 1):
+        with self.subTest(tor_sign=tor_sign, q_sign=q_sign):
+          eq = MillerEquilibrium(replace(self.circle.geometry, bmag_axis=tor_sign*1.5),
+                                 lambda R: q_sign*2, guard_fraction=0.25)
+          orientation = tor_sign*q_sign
+          exact = eq.geometry.F/(q_sign*2)*radius**2/(2+np.sqrt(4-radius**2))
+          np.testing.assert_allclose(eq.psi_at_r(radius), exact, rtol=1e-8)
+          np.testing.assert_allclose(eq.Bfield_at_rtheta(radius, theta),
+                                     reference*np.array([[orientation], [orientation], [tor_sign]]))
+          for r in radius:
+            self.assertAlmostEqual(eq.r_at_psi(eq.psi_at_r(r)), r, delta=1e-9)
+          self.assertEqual(np.sign(eq.psi_boundary), orientation)
+          for bad in (-orientation*0.01, eq.psi_guard*1.01):
+            with self.assertRaises(ValueError):
+              eq.r_at_psi(bad)
+          # Value and derivative are continuous at the guard, including decreasing flux.
+          h = eq.rminor_guard*1e-6
+          derivative = (eq.psi_at_r(eq.rminor_guard+h)-eq.psi_at_r(eq.rminor_guard-h))/(2*h)
+          self.assertAlmostEqual(derivative/eq.dpsidr_at_r(eq.rminor_guard), 1, delta=1e-5)
+          sampled = sample_eqdsk(eq, nr=129, nz=129)
+          with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory)/"signed.geqdsk"
+            write_eqdsk(path, eq, sampled)
+            header, profiles, psi, qpsi, _ = read_geqdsk(path)
+          self.assertEqual(header[9], eq.geometry.bmag_axis)
+          np.testing.assert_allclose(profiles[0], eq.geometry.F, rtol=1e-9)
+          np.testing.assert_allclose(qpsi, q_sign*2, rtol=1e-9)
+          self.assertEqual(np.sign(header[8]-header[7]), orientation)
+          self.assertEqual(summary(eq, sampled)["conventions"]["psi_sign"], orientation)
+          errors = reconstruction_errors(eq, sampled)
+          self.assertLess(errors["q"], 1e-3)
 
   def test_derivatives_and_coordinate_round_trips(self):
     """Check surface derivatives, coordinate inversions, and outward flux monotonicity."""
@@ -154,7 +170,7 @@ class TestMiller(unittest.TestCase):
     eq = self.examples["ltx"]
     h = eq.a*1e-5
     shear = eq.a/eq.q_at_r(eq.a)*(eq.q_at_r(eq.a+h)-eq.q_at_r(eq.a-h))/(2*h)
-    self.assertAlmostEqual(eq.q_at_r(eq.a), 4.3153848, places=10)
+    self.assertAlmostEqual(eq.q_at_r(eq.a), -4.3153848, places=10)
     self.assertAlmostEqual(shear, 2.6899871, places=8)
 
   def test_geqdsk_format_and_determinism(self):
@@ -180,11 +196,16 @@ class TestMiller(unittest.TestCase):
     """Check reconstructed flux, magnetic fields, and contour q for each device."""
     for name, eq in self.examples.items():
       with self.subTest(device=name):
-        sampled = sample_eqdsk(eq)
-        errors = reconstruction_errors(eq, sampled)
-        for quantity in ("B", "Bp", "q"):
-          self.assertLess(errors[quantity], 1e-3, (name, errors))
-        self.assertLess(errors["psi"], 1e-5, (name, errors))
+        for tor_sign in (-1, 1):
+          for q_sign in (-1, 1):
+            signed = MillerEquilibrium(
+              replace(eq.geometry, bmag_axis=tor_sign*abs(eq.geometry.bmag_axis)),
+              lambda R: q_sign*abs(eq.q(R)), eq.bounds)
+            sampled = sample_eqdsk(signed)
+            errors = reconstruction_errors(signed, sampled)
+            for quantity in ("B", "Bp", "q"):
+              self.assertLess(errors[quantity], 1e-3, (name, tor_sign, q_sign, errors))
+            self.assertLess(errors["psi"], 1e-5, (name, tor_sign, q_sign, errors))
 
   def test_refinement(self):
     """Verify decreasing flux and poloidal-field errors as the R-Z mesh is refined."""
@@ -225,7 +246,7 @@ class TestMiller(unittest.TestCase):
       fields.update(kwargs)
       with self.assertRaises(ValueError):
         MillerGeometry(**fields)
-    for q in (lambda R: 0, lambda R: -1, lambda R: math.nan):
+    for q in (lambda R: 0, lambda R: math.inf, lambda R: math.nan, lambda R: 1 if R < 2.25 else -1):
       with self.assertRaisesRegex(ValueError, "q must"):
         MillerEquilibrium(self.circle.geometry, q)
     with self.assertRaises(ValueError):

@@ -422,7 +422,7 @@ qprofile_func(void *ctx)
   struct arc_length_ctx *actx = ctx;
   const struct gkyl_tok_geo *geo = actx->geo;
   if (geo->efit->num_xpts > 0 && actx->psi == geo->psisep) {
-    return NAN;
+    return gkyl_gen_nan();
   }
 
   // The endpoint context spans the complete branch, even for split blocks.
@@ -492,7 +492,7 @@ qprofile_func(void *ctx)
       );
       break;
     default:
-      return NAN;
+      return gkyl_gen_nan();
   }
   double psi_fpol = actx->psi;
   if (psi_fpol < geo->fgrid.lower[0] || psi_fpol > geo->fgrid.upper[0]) {
@@ -590,7 +590,7 @@ gkyl_tok_geo_calc_Cy(
       Romp = roots[i];
     }
   }
-  return (Romp - Raxis) / qref;
+  return (Romp - Raxis) / fabs(qref);
 }
 
 static double

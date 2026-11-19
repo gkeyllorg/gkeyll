@@ -20,12 +20,33 @@ keys are `Rmajor_axis`, `bmag_axis` (toroidal field), and `Rmajor_LCFS` (outboar
 Defaults: `Zvert_axis=0`, `kappa=1`, `delta=0`, `a_shift=0`. Lengths are meters and fields
 tesla. `bmag_axis` is the signed toroidal field: negative means negative cylindrical
 B_phi, positive means positive B_phi; zero and nonfinite values are rejected.
-The supplied `q(R_omp)` is a positive finite magnitude. Flux quadrature uses
-`abs(Rmajor_axis*bmag_axis)`, so reversing the field preserves outward-increasing psi,
-the poloidal field, and radial conversions. The GEQDSK central field, F profile,
-and q profile carry the toroidal sign; the input q and diagnostic q(R_omp) plot
-remain magnitudes. Existing positive-field inputs retain their interpretation;
-the supplied examples explicitly choose negative toroidal field.
+The supplied `q(R_omp)` is the **signed COCOS 3 safety factor**, finite,
+nonzero, and of constant sign from the axis through the guard. Define
+`F=Rmajor_axis*bmag_axis` and `s_psi=sign(F/q)`. The positive internal flux
+magnitude is integrated using `abs(F)/abs(q)`; physical flux and its derivatives
+carry `s_psi`. QPSI is written directly from the signed callback.
+
+| bmag_axis | q | Toroidal field, from above | Poloidal field, R right and Z up | Outward psi |
+|---|---|---|---|---|
+| Positive | Positive | CCW | CCW | Increasing |
+| Positive | Negative | CCW | CW | Decreasing |
+| Negative | Positive | CW | CW | Decreasing |
+| Negative | Negative | CW | CCW | Increasing |
+
+The C and Python generators share this convention. To preserve an equilibrium
+from the former magnitude-only interface, use
+`q_new=sign(bmag_axis)*q_old_magnitude`. The supplied device examples retain
+negative toroidal field and counterclockwise poloidal field by using negative q.
+Reversing only q reverses the poloidal field; reversing only bmag_axis at fixed q
+reverses the whole field; reversing both inputs reverses only the toroidal field.
+Field magnitudes and geometry remain unchanged at fixed input magnitudes.
+
+The application's binormal conversion uses positive `Cy=r0/abs(q0)` and keeps
+`q0` signed. The tokamak helper instead uses `(R_omp-R_axis)/abs(q0)`.
+Physical flux bounds must be sorted numerically; negative outward flux puts the
+outer physical surface at the lower computational radial boundary. The Miller
+angle stays geometrically CCW, while the computational parallel angle follows
+B_pol and reverses when `s_psi<0`.
 
 Optional `Rmajor_omp_bounds=(lower,upper)` requests coverage of complete flux surfaces
 for a core annulus, SOL-only simulation, or LCFS-crossing simulation. These are
@@ -49,8 +70,8 @@ Examples [miller_inp_d3d.py](miller_inp_d3d.py) and [miller_inp_tcv.py](miller_i
 DIII-D and TCV shaping and q profiles. TCV includes a vertical offset and uses
 the shifted `R_omp(r)` mapping to specify its coverage endpoints.
 [miller_inp_ltx.py](miller_inp_ltx.py) replaces the old rational q profile (pole at
-`R_omp` about 0.688328 m) with a positive exponential profile preserving LCFS
-q and shear.
+`R_omp` about 0.688328 m) with a negative signed exponential profile preserving LCFS
+|q| and magnetic shear.
 
 ### Python API
 
@@ -58,14 +79,14 @@ q and shear.
 its own TCV parameters and q function, builds the equilibrium through the
 Python API, and writes `tcv_miller.geqdsk` and
 `tcv_miller.geqdsk.json` in the current directory. It also prints the requested
-radial bounds in psi. Uncomment its plotting lines to save a diagnostic figure.
+radial bounds in psi. Its plotting lines also save a diagnostic figure.
 Run it from the repository root with:
 
 ```bash
 python3 gyrokinetic/data/eqdsk/miller/gen_miller_tcv.py
 ```
 
-A minimal circular example is:
+A minimal circular example with both fields clockwise is:
 
 ```python
 from gkeyll_gen_miller_eqdsk import (
@@ -84,4 +105,5 @@ python3 -m unittest discover -s gyrokinetic/data/eqdsk/miller -v
 ```
 
 The Python tests check analytic flux, coordinate conversions, GEQDSK formatting,
-field reconstruction, mesh refinement, domain coverage, and invalid inputs.
+signed vector-field reconstruction in all four orientations, mesh refinement,
+domain coverage, and invalid or sign-changing inputs.

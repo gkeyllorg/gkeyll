@@ -1,4 +1,3 @@
-#include <gkyl_cocos.h>
 #include <gkyl_gen_miller_eqdsk_priv.h>
 #include <gkyl_alloc.h>
 #include <gkyl_math.h>
@@ -7,7 +6,6 @@
 #include <float.h>
 #include <limits.h>
 #include <math.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -20,25 +18,13 @@ struct gkyl_gen_miller_eqdsk {
   struct gen_miller_shape shape;
   struct gkyl_gen_miller_eqdsk_info info;
   double eta, fpol, s_guard;
+  int q_sign, psi_sign; // Axis q sign and outward physical flux orientation.
+  // g, flux and their interpolants represent positive d(psi_hat)/ds and psi_hat.
   double *s, *g, *slope, *flux, *mid, *new_s, *new_g, *new_mid;
   double *psi_rz, *qpsi, *guard;
   double arc[MILLER_CONTOUR_NODES]; // Unit-radius arc length from Miller angle 0 to pi.
   bool sampled;
 };
-
-/**
- * Construct a quiet NaN from its IEEE binary64 bit representation.
- *
- * @return Quiet NaN used to signal an invalid evaluation.
- */
-static double
-gen_miller_nan(void)
-{
-  uint64_t bits = UINT64_C(0x7ff8000000000000);
-  double value;
-  memcpy(&value, &bits, sizeof value);
-  return value;
-}
 
 /**
  * Report a Miller generation failure to stderr.
@@ -51,6 +37,33 @@ gen_miller_error(const char *message)
 {
   fprintf(stderr, "Miller GEQDSK: %s\n", message);
   return false;
+}
+
+/**
+ * Resolve the signed-q and physical-flux orientations from the axis inputs.
+ *
+ * @param inp Miller inputs with a valid callback context.
+ * @param q_sign Output sign of the axis safety factor.
+ * @param psi_sign Output outward flux orientation in COCOS 3.
+ * @return True for finite nonzero field and q, false otherwise.
+ */
+static bool
+gen_miller_orientation(const struct gkyl_gen_miller_eqdsk_inp *inp, int *q_sign, int *psi_sign)
+{
+  if (!inp || !inp->qsafety || !gkyl_is_dfinite(inp->Rmajor_axis) || inp->Rmajor_axis <= 0 ||
+      !gkyl_is_dfinite(inp->bmag_axis) || inp->bmag_axis == 0) {
+    return false;
+  }
+  double q = inp->qsafety(inp->Rmajor_axis, inp->qsafety_ctx);
+  if (!gkyl_is_dfinite(q) || q == 0) {
+    fprintf(
+      stderr, "Miller GEQDSK: nonfinite or zero axis q at R_omp=%g: %g\n", inp->Rmajor_axis, q
+    );
+    return false;
+  }
+  *q_sign = q > 0 ? 1 : -1;
+  *psi_sign = (inp->bmag_axis > 0 ? 1 : -1) * *q_sign;
+  return true;
 }
 
 bool
@@ -81,17 +94,17 @@ gkyl_gen_miller_eqdsk_R_omp_at_rminor(const struct gkyl_gen_miller_eqdsk_inp *in
 {
   struct gen_miller_shape shape;
   if (!gen_miller_resolve_shape(inp, &shape)) {
-    return gen_miller_nan();
+    return gkyl_gen_nan();
   }
   if (!inp || !gkyl_is_dfinite(rminor) || rminor < 0 || !gkyl_is_dfinite(inp->Rmajor_axis) ||
       inp->Rmajor_axis <= 0) {
-    return gen_miller_nan();
+    return gkyl_gen_nan();
   }
   double derivative = 1 - shape.a_shift * rminor / inp->Rmajor_axis;
   double R_omp =
     inp->Rmajor_axis - shape.a_shift * rminor * rminor / (2 * inp->Rmajor_axis) + rminor;
   if (!gkyl_is_dfinite(derivative) || derivative <= 0 || !gkyl_is_dfinite(R_omp) || R_omp <= 0) {
-    return gen_miller_nan();
+    return gkyl_gen_nan();
   }
   return R_omp;
 }
@@ -101,22 +114,22 @@ gkyl_gen_miller_eqdsk_rminor_at_R_omp(const struct gkyl_gen_miller_eqdsk_inp *in
 {
   struct gen_miller_shape shape;
   if (!gen_miller_resolve_shape(inp, &shape)) {
-    return gen_miller_nan();
+    return gkyl_gen_nan();
   }
   if (!inp || !gkyl_is_dfinite(R_omp) || !gkyl_is_dfinite(inp->Rmajor_axis) ||
       inp->Rmajor_axis <= 0 || R_omp < inp->Rmajor_axis) {
-    return gen_miller_nan();
+    return gkyl_gen_nan();
   }
   double offset = R_omp - inp->Rmajor_axis;
   double disc = 1 - 2 * shape.a_shift * offset / inp->Rmajor_axis;
   if (!gkyl_is_dfinite(disc) || disc <= 0) {
-    return gen_miller_nan();
+    return gkyl_gen_nan();
   }
   // Rationalized root avoids cancellation for small shift or radius.
   double rminor = 2 * offset / (1 + sqrt(disc));
   double derivative = 1 - shape.a_shift * rminor / inp->Rmajor_axis;
   if (!gkyl_is_dfinite(rminor) || !gkyl_is_dfinite(derivative) || derivative <= 0) {
-    return gen_miller_nan();
+    return gkyl_gen_nan();
   }
   return rminor;
 }
@@ -152,30 +165,38 @@ gen_miller_RZdet_over_r(const gkyl_gen_miller_eqdsk *up, double radius, double t
  *
  * @param up Generator containing the callback and its context.
  * @param radius Miller minor radius in meters.
- * @return Callback value of q; validity checks are performed by the caller.
+ * @return Signed q with the axis sign, or NaN with a diagnostic for invalid values.
  */
 static double
 gen_miller_q_at_r(const gkyl_gen_miller_eqdsk *up, double radius)
 {
   double R_omp = gkyl_gen_miller_eqdsk_R_omp_at_rminor(&up->inp, radius);
-  return gkyl_is_dfinite(R_omp) ? up->inp.qsafety(R_omp, up->inp.qsafety_ctx) : gen_miller_nan();
+  double q = gkyl_is_dfinite(R_omp) ? up->inp.qsafety(R_omp, up->inp.qsafety_ctx) : gkyl_gen_nan();
+  if (!gkyl_is_dfinite(q) || q == 0 || (q > 0 ? 1 : -1) != up->q_sign) {
+    fprintf(
+      stderr, "Miller GEQDSK: q must be finite, nonzero and have axis sign %d at R_omp=%g: %g\n",
+      up->q_sign, R_omp, q
+    );
+    return gkyl_gen_nan();
+  }
+  return q;
 }
 
 /**
- * Compute dpsi/ds by refining periodic trapezoidal quadrature in poloidal angle.
+ * Compute positive d(psi_hat)/ds by refining periodic trapezoidal quadrature in poloidal angle.
  * The smooth angular integrand permits spectral convergence; successive integrals
  * are compared against an explicit tolerance.
  *
  * @param up Generator containing the geometry, q profile, and quadrature tolerance.
  * @param s Squared Miller minor radius in square meters.
- * @return dpsi/ds [Wb/(rad m^2)], or NaN for invalid q, geometry, or failed convergence.
+ * @return Positive d(psi_hat)/ds [Wb/(rad m^2)], or NaN for invalid q, geometry, or failed convergence.
  */
 static double
 gen_miller_dpsids_at_s(const gkyl_gen_miller_eqdsk *up, double s)
 {
   double radius = sqrt(s), q = gen_miller_q_at_r(up, radius), previous = 0;
-  if (!gkyl_is_dfinite(q) || q <= 0) {
-    return gen_miller_nan();
+  if (!gkyl_is_dfinite(q) || q == 0) {
+    return gkyl_gen_nan();
   }
 
   for (int count = 32; count <= 16384; count *= 2) {
@@ -185,18 +206,18 @@ gen_miller_dpsids_at_s(const gkyl_gen_miller_eqdsk *up, double s)
       gkyl_gen_miller_eqdsk_RZ_at_rtheta(up, radius, theta, rz);
       double det = gen_miller_RZdet_over_r(up, radius, theta);
       if (rz[0] <= 0 || det <= 0) {
-        return gen_miller_nan();
+        return gkyl_gen_nan();
       }
       sum += up->inp.Rmajor_axis * det / rz[0];
     }
     double integral = sum * 2 * M_PI / count;
     if (count > 32 && fabs(integral - previous) <= up->inp.rtol * 0.05 * fmax(1, fabs(integral))) {
-      return fabs(up->fpol) * integral / (4 * M_PI * up->inp.Rmajor_axis * q);
+      return fabs(up->fpol) * integral / (4 * M_PI * up->inp.Rmajor_axis * fabs(q));
     }
     previous = integral;
   }
 
-  return gen_miller_nan();
+  return gkyl_gen_nan();
 }
 
 /**
@@ -250,7 +271,7 @@ gen_miller_slopes(gkyl_gen_miller_eqdsk *up)
 }
 
 /**
- * Evaluate the cubic Hermite interpolant of dpsi/ds at an interval midpoint.
+ * Evaluate the cubic Hermite interpolant of positive d(psi_hat)/ds at an interval midpoint.
  *
  * @param up Generator with a radial table and PCHIP slopes.
  * @param index Index of the interval between s[index] and s[index+1].
@@ -264,12 +285,12 @@ gen_miller_midpoint(const gkyl_gen_miller_eqdsk *up, int index)
 }
 
 /**
- * Integrate the cubic Hermite interpolant of dpsi/ds over part of one interval.
+ * Integrate the cubic Hermite interpolant of positive d(psi_hat)/ds over part of one interval.
  *
  * @param up Generator with a radial table and PCHIP slopes.
  * @param index Index of the interval to integrate.
  * @param x Offset in s from the interval start, between zero and the interval width.
- * @return Flux increment from s[index] to s[index]+x [Wb/rad].
+ * @return Positive flux-magnitude increment from s[index] to s[index]+x [Wb/rad].
  */
 static double
 gen_miller_integral(const gkyl_gen_miller_eqdsk *up, int index, double x)
@@ -282,8 +303,8 @@ gen_miller_integral(const gkyl_gen_miller_eqdsk *up, int index, double x)
 }
 
 /**
- * Adaptively refine the radial dpsi/ds table using midpoint quadrature checks,
- * then integrate its PCHIP representation to obtain flux from the axis.
+ * Adaptively refine the positive radial d(psi_hat)/ds table using midpoint quadrature checks,
+ * then integrate its PCHIP representation to obtain positive flux magnitude from the axis.
  *
  * @param up Generator with preallocated table storage; tables and radial metadata are updated.
  * @return True on convergence, false for invalid quadrature or exhausted refinement limits.
@@ -340,7 +361,7 @@ gen_miller_build_table(gkyl_gen_miller_eqdsk *up)
       for (int j = 0; j < count - 1; ++j) {
         up->flux[j + 1] = up->flux[j] + gen_miller_integral(up, j, up->s[j + 1] - up->s[j]);
       }
-      up->info.psi_guard = up->flux[count - 1];
+      up->info.psi_guard = up->psi_sign * up->flux[count - 1];
       return true;
     }
 
@@ -356,18 +377,18 @@ gen_miller_build_table(gkyl_gen_miller_eqdsk *up)
 }
 
 /**
- * Evaluate integrated radial flux, with continuation linear in s beyond the guard.
+ * Evaluate positive integrated flux magnitude, with continuation linear in s beyond the guard.
  *
  * @param up Generator with a completed radial flux table.
  * @param s Nonnegative squared Miller minor radius in square meters.
- * @return Poloidal flux divided by 2*pi [Wb/rad].
+ * @return Positive flux magnitude divided by 2*pi [Wb/rad].
  */
 static double
-gen_miller_psi_at_s(const gkyl_gen_miller_eqdsk *up, double s)
+gen_miller_flux_magnitude_at_s(const gkyl_gen_miller_eqdsk *up, double s)
 {
   int lo = 0, hi = up->info.num_nodes_radial - 1;
   if (s >= up->s_guard) {
-    return up->info.psi_guard + up->g[hi] * (s - up->s_guard);
+    return up->flux[hi] + up->g[hi] * (s - up->s_guard);
   }
 
   while (hi - lo > 1) {
@@ -387,9 +408,9 @@ gkyl_gen_miller_eqdsk_psi_at_r(const gkyl_gen_miller_eqdsk *up, double radius)
 {
   if (!gkyl_is_dfinite(radius) || radius < 0 ||
       radius > up->info.rminor_guard * (1 + 4 * DBL_EPSILON)) {
-    return gen_miller_nan();
+    return gkyl_gen_nan();
   }
-  return gen_miller_psi_at_s(up, radius * radius);
+  return up->psi_sign * gen_miller_flux_magnitude_at_s(up, radius * radius);
 }
 
 double
@@ -401,8 +422,9 @@ gkyl_gen_miller_eqdsk_psi_at_R_omp(const gkyl_gen_miller_eqdsk *up, double R_omp
 double
 gkyl_gen_miller_eqdsk_r_at_psi(const gkyl_gen_miller_eqdsk *up, double psi)
 {
-  if (!gkyl_is_dfinite(psi) || psi < 0 || psi > up->info.psi_guard) {
-    return gen_miller_nan();
+  psi *= up->psi_sign;
+  if (!gkyl_is_dfinite(psi) || psi < 0 || psi > up->psi_sign * up->info.psi_guard) {
+    return gkyl_gen_nan();
   }
 
   if (psi == 0) {
@@ -412,7 +434,7 @@ gkyl_gen_miller_eqdsk_r_at_psi(const gkyl_gen_miller_eqdsk *up, double psi)
   double lo = 0, hi = up->s_guard;
   for (int iter = 0; iter < 52; ++iter) {
     double middle = (lo + hi) / 2;
-    if (gen_miller_psi_at_s(up, middle) < psi) {
+    if (gen_miller_flux_magnitude_at_s(up, middle) < psi) {
       lo = middle;
     } else {
       hi = middle;
@@ -445,15 +467,13 @@ gkyl_gen_miller_eqdsk_set_binormal_extents(
   double rhi = gkyl_gen_miller_eqdsk_r_at_psi(up, psi_bounds[1]);
   double r0 = 0.5 * (rlo + rhi);
 
-  double R0 = gkyl_gen_miller_eqdsk_R_omp_at_rminor(&up->inp, r0);
+  double q0 = gen_miller_q_at_r(up, r0);
 
-  double q0 = gkyl_is_dfinite(R0) ? up->inp.qsafety(R0, up->inp.qsafety_ctx) : gen_miller_nan();
-
-  double Cy = r0 / q0;
+  double Cy = r0 / fabs(q0);
 
   double requested_Ly = y_bounds[1] - y_bounds[0];
   double modes = round(2 * M_PI * Cy / requested_Ly);
-  if (!gkyl_is_dfinite(r0) || r0 <= 0 || !gkyl_is_dfinite(q0) || q0 <= 0 || !gkyl_is_dfinite(Cy) ||
+  if (!gkyl_is_dfinite(r0) || r0 <= 0 || !gkyl_is_dfinite(q0) || q0 == 0 || !gkyl_is_dfinite(Cy) ||
       Cy <= 0 || !gkyl_is_dfinite(requested_Ly) || requested_Ly <= 0 || !gkyl_is_dfinite(modes) ||
       modes < 1 || modes > INT_MAX) {
     return false;
@@ -518,23 +538,27 @@ gkyl_gen_miller_eqdsk_theta_tok_at_theta(
   const struct gkyl_gen_miller_eqdsk_inp *inp, double thetaMiller
 )
 {
+  int q_sign, psi_sign;
+  if (!gen_miller_orientation(inp, &q_sign, &psi_sign)) {
+    return gkyl_gen_nan();
+  }
   struct gen_miller_shape shape;
   if (!gen_miller_resolve_shape(inp, &shape)) {
-    return gen_miller_nan();
+    return gkyl_gen_nan();
   }
   if (!inp || !gkyl_is_dfinite(thetaMiller) || fabs(thetaMiller) > M_PI || shape.kappa <= 0 ||
       fabs(shape.delta) >= 1) {
-    return gen_miller_nan();
+    return gkyl_gen_nan();
   }
   double kappa = shape.kappa;
   if (thetaMiller == 0 || fabs(thetaMiller) == M_PI || (kappa == 1 && shape.delta == 0)) {
-    return thetaMiller;
+    return psi_sign * thetaMiller;
   }
 
   struct gen_miller_arc_ctx arc = {kappa, asin(shape.delta), 0, M_PI};
   struct gkyl_qr_res half = gkyl_dbl_exp(gen_miller_arc_integrand, &arc, 0, 1, 12, 1e-12);
   if (half.status || !gkyl_is_dfinite(half.res) || half.res <= 0) {
-    return gen_miller_nan();
+    return gkyl_gen_nan();
   }
   double half_arc = M_PI * half.res, angle = fabs(thetaMiller);
   bool complement = angle > M_PI / 2;
@@ -542,16 +566,16 @@ gkyl_gen_miller_eqdsk_theta_tok_at_theta(
   arc.width = complement ? M_PI - angle : angle;
   struct gkyl_qr_res part = gkyl_dbl_exp(gen_miller_arc_integrand, &arc, 0, 1, 12, 1e-12);
   if (part.status || !gkyl_is_dfinite(part.res) || part.res <= 0) {
-    return gen_miller_nan();
+    return gkyl_gen_nan();
   }
   double theta_tok = M_PI * arc.width * (part.res / half_arc);
   if (complement) {
     theta_tok = M_PI - theta_tok;
   }
   if (!gkyl_is_dfinite(theta_tok) || theta_tok < 0 || theta_tok > M_PI) {
-    return gen_miller_nan();
+    return gkyl_gen_nan();
   }
-  return copysign(theta_tok, thetaMiller);
+  return psi_sign * copysign(theta_tok, thetaMiller);
 }
 
 /**
@@ -574,8 +598,9 @@ gen_miller_arc_interval(const gkyl_gen_miller_eqdsk *up, double lower, double up
 double
 gkyl_gen_miller_eqdsk_theta_at_theta_tok(const gkyl_gen_miller_eqdsk *up, double theta_tok)
 {
+  theta_tok *= up->psi_sign;
   if (!gkyl_is_dfinite(theta_tok) || fabs(theta_tok) > M_PI) {
-    return gen_miller_nan();
+    return gkyl_gen_nan();
   }
   if (theta_tok == 0 || fabs(theta_tok) == M_PI) {
     return theta_tok;
@@ -672,8 +697,16 @@ gkyl_gen_miller_eqdsk_inew(const struct gkyl_gen_miller_eqdsk_inp *inp)
     goto fail;
   }
 
+  if (!gen_miller_orientation(inp, &up->q_sign, &up->psi_sign)) {
+    gen_miller_error("Invalid signed axis q or toroidal field");
+    goto fail;
+  }
   up->eta = asin(shape.delta);
   up->fpol = inp->Rmajor_axis * inp->bmag_axis;
+  if (!gkyl_is_dfinite(up->fpol) || up->fpol == 0) {
+    gen_miller_error("Nonfinite or zero toroidal flux function");
+    goto fail;
+  }
   for (int j = 1; j < MILLER_CONTOUR_NODES; ++j) {
     double step = M_PI / (MILLER_CONTOUR_NODES - 1);
     up->arc[j] = up->arc[j - 1] + gen_miller_arc_interval(up, (j - 1) * step, j * step);
@@ -708,8 +741,8 @@ gkyl_gen_miller_eqdsk_inew(const struct gkyl_gen_miller_eqdsk_inp *inp)
 
   for (int ir = 0; ir <= 256; ++ir) {
     double radius = up->info.rminor_guard * ir / 256, q = gen_miller_q_at_r(up, radius);
-    if (!gkyl_is_dfinite(q) || q <= 0 || 1 - shape.a_shift * radius / inp->Rmajor_axis <= 0) {
-      gen_miller_error("Nonpositive/nonfinite q or folded midplane map before guard");
+    if (!gkyl_is_dfinite(q) || q == 0 || 1 - shape.a_shift * radius / inp->Rmajor_axis <= 0) {
+      gen_miller_error("Invalid signed q or folded midplane map before guard");
       goto fail;
     }
     for (int it = 0; it <= 1024; ++it) {
@@ -741,7 +774,8 @@ gkyl_gen_miller_eqdsk_inew(const struct gkyl_gen_miller_eqdsk_inp *inp)
     goto fail;
   }
 
-  up->info.psi_boundary = gen_miller_psi_at_s(up, up->info.rminor_LCFS * up->info.rminor_LCFS);
+  up->info.psi_boundary =
+    up->psi_sign * gen_miller_flux_magnitude_at_s(up, up->info.rminor_LCFS * up->info.rminor_LCFS);
 
   double bounds[] = {DBL_MAX, -DBL_MAX, DBL_MAX, -DBL_MAX};
   for (int j = 0; j < MILLER_CONTOUR_NODES; ++j) {
@@ -889,6 +923,11 @@ gkyl_gen_miller_eqdsk_inew_for_domain(
     if (outboard) {
       resolved[0] = gen_miller_domain_psi_at_R_omp(up, x_bounds[0]);
       resolved[1] = gen_miller_domain_psi_at_R_omp(up, x_bounds[1]);
+      if (up->psi_sign < 0) {
+        double swap = resolved[0];
+        resolved[0] = resolved[1];
+        resolved[1] = swap;
+      }
     } else if (!gen_miller_flux_bounds(
                  inp->input_coord_limits_type[0], x_bounds,
                  gen_miller_serialized_flux(up->info.psi_axis),
@@ -920,16 +959,19 @@ gkyl_gen_miller_eqdsk_inew_for_domain(
       return up;
     }
 
-    double required_flux = gkyl_gen_miller_eqdsk_psi_at_r(up, up->info.rminor_required);
+    double outer_flux = fmax(up->psi_sign * resolved[0], up->psi_sign * resolved[1]);
+    double guard_flux = up->psi_sign * up->info.psi_guard;
+    double required_flux =
+      up->psi_sign * gkyl_gen_miller_eqdsk_psi_at_r(up, up->info.rminor_required);
     double tol = (2 * up->inp.rtol + 64 * DBL_EPSILON) * fabs(up->info.psi_boundary) +
                  fabs(gen_miller_serialized_flux(up->info.psi_boundary) - up->info.psi_boundary);
-    if (resolved[1] <= required_flux + tol && resolved[1] <= up->info.psi_guard) {
+    if (outer_flux <= required_flux + tol && outer_flux <= guard_flux) {
       memcpy(psi_bounds, resolved, sizeof resolved);
       return up;
     }
     double next_required = up->info.rminor_guard;
-    if (resolved[1] <= up->info.psi_guard) {
-      next_required = gkyl_gen_miller_eqdsk_r_at_psi(up, resolved[1]);
+    if (outer_flux <= guard_flux) {
+      next_required = gkyl_gen_miller_eqdsk_r_at_psi(up, up->psi_sign * outer_flux);
       // Allow for the flux-table tolerance when rebuilding on the final interval.
       next_required *= 1 + 4 * up->inp.rtol;
     }
@@ -1000,20 +1042,20 @@ gen_miller_r_at_RZ(const gkyl_gen_miller_eqdsk *up, double Rmajor, double Zvert,
 {
   double v = (Zvert - up->inp.Zvert_axis) / up->shape.kappa, bound = up->info.rminor_guard;
   if (!gkyl_is_dfinite(v)) {
-    return gen_miller_nan();
+    return gkyl_gen_nan();
   }
 
   for (int expansion = 0;; ++expansion) {
     double left = gen_miller_R_uv(&up->inp, &up->shape, up->eta, -bound, v, 0);
     double right = gen_miller_R_uv(&up->inp, &up->shape, up->eta, bound, v, 0);
     if (!gkyl_is_dfinite(left) || !gkyl_is_dfinite(right)) {
-      return gen_miller_nan();
+      return gkyl_gen_nan();
     }
     if (left <= Rmajor && right >= Rmajor) {
       break;
     }
     if (expansion == 12) {
-      return gen_miller_nan();
+      return gkyl_gen_nan();
     }
     bound *= 1.5;
   }
@@ -1022,7 +1064,7 @@ gen_miller_r_at_RZ(const gkyl_gen_miller_eqdsk *up, double Rmajor, double Zvert,
     double u = bound * (j / 32.0 - 1), derivative;
     double mapped_R = gen_miller_R_uv(&up->inp, &up->shape, up->eta, u, v, &derivative);
     if (!gkyl_is_dfinite(mapped_R) || !gkyl_is_dfinite(derivative) || derivative <= 0) {
-      return gen_miller_nan();
+      return gkyl_gen_nan();
     }
   }
 
@@ -1031,7 +1073,7 @@ gen_miller_r_at_RZ(const gkyl_gen_miller_eqdsk *up, double Rmajor, double Zvert,
     double middle = (lo + hi) / 2;
     double mapped_R = gen_miller_R_uv(&up->inp, &up->shape, up->eta, middle, v, 0);
     if (!gkyl_is_dfinite(mapped_R)) {
-      return gen_miller_nan();
+      return gkyl_gen_nan();
     }
     if (mapped_R < Rmajor) {
       lo = middle;
@@ -1042,7 +1084,7 @@ gen_miller_r_at_RZ(const gkyl_gen_miller_eqdsk *up, double Rmajor, double Zvert,
 
   double mapped_R = gen_miller_R_uv(&up->inp, &up->shape, up->eta, (lo + hi) / 2, v, 0);
   if (!gkyl_is_dfinite(mapped_R) || fabs(mapped_R - Rmajor) > 1e-11 * up->inp.Rmajor_axis) {
-    return gen_miller_nan();
+    return gkyl_gen_nan();
   }
   double u = (lo + hi) / 2;
   if (u_out) {
@@ -1111,7 +1153,7 @@ gkyl_gen_miller_eqdsk_bmag_at_RZ(const gkyl_gen_miller_eqdsk *up, double Rmajor,
     gkyl_exit("Miller magnetic field: invalid map derivatives.");
   }
 
-  double g = gen_miller_g_at_s(up, radius * radius);
+  double g = up->psi_sign * gen_miller_g_at_s(up, radius * radius);
   double dpsi_dR = g * 2 * u / R_u;
   double dpsi_dZ = g * (2 * v - 2 * u * R_v / R_u) / up->shape.kappa;
   double bmag = hypot(hypot(dpsi_dR, dpsi_dZ) / Rmajor, Bphi);
@@ -1160,20 +1202,18 @@ gkyl_gen_miller_eqdsk_advance(gkyl_gen_miller_eqdsk *up)
         return false;
       }
       up->psi_rz[(size_t)iz * up->info.num_nodes_Rmajor + ir] =
-        gen_miller_psi_at_s(up, radius * radius);
+        up->psi_sign * gen_miller_flux_magnitude_at_s(up, radius * radius);
     }
   }
 
   for (int j = 0; j < up->info.num_nodes_Rmajor; ++j) {
     double psi = up->info.psi_boundary * j / (up->info.num_nodes_Rmajor - 1);
     double Rmajor = gkyl_gen_miller_eqdsk_R_omp_at_psi(up, psi);
-    up->qpsi[j] = up->inp.qsafety(Rmajor, up->inp.qsafety_ctx);
-    if (!gkyl_is_dfinite(up->qpsi[j]) || up->qpsi[j] <= 0) {
+    up->qpsi[j] = gen_miller_q_at_r(up, gkyl_gen_miller_eqdsk_rminor_at_R_omp(&up->inp, Rmajor));
+    if (!gkyl_is_dfinite(up->qpsi[j]) || up->qpsi[j] == 0) {
       return gen_miller_error("Invalid q at a GEQDSK flux node");
     }
-    // Positive outward flux and positive input |q|; COCOS reference theta is CCW.
-    up->qpsi[j] *= gkyl_cocos_tokamak.sigma_Bp_cocos *
-                   gkyl_cocos_tokamak.sigma_rhothetavarphi_cocos * copysign(1.0, up->fpol);
+    // The callback already supplies signed COCOS 3 q.
   }
 
   up->sampled = true;
