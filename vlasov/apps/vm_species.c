@@ -532,6 +532,7 @@ vm_species_rhs_dynamic(
   // Update RHS due to collisions if collisions are present.
   vm_species_lbo_rhs(app, vms, &vms->lbo, fin, rhs);
   vm_species_bgk_rhs(app, vms, &vms->bgk, fin, rhs);
+  vm_species_fpo_rhs(app, vms, &vms->fpo, fin, rhs);
 
   if (vms->calc_bflux) {
     vm_species_bflux_rhs(app, vms, &vms->bflux, fin, rhs);
@@ -937,10 +938,12 @@ vm_species_write_mom_dynamic(gkyl_vlasov_app *app, struct vm_species *vms, doubl
 
   vlasov_array_meta_release(mt);
 
-  // Collision diagnostics (nu_sum, nu_prim_moms), no-ops unless the species
+  // Collision diagnostics (nu_sum, nu_prim_moms; FPO potentials and coefficients),
+  // no-ops unless the species
   // has collisions with write_coll_diagnostics set.
   vm_species_lbo_write_mom(app, vms, tm, frame);
   vm_species_bgk_write_mom(app, vms, tm, frame);
+  vm_species_fpo_write_mom(app, vms, tm, frame);
 
   app->stat.n_diag += 1;
 }
@@ -1602,6 +1605,8 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
   vm_species_lbo_init(app, vms, &vms->lbo);
   vms->bgk = (struct vm_bgk_collisions){};
   vm_species_bgk_init(app, vms, &vms->bgk);
+  vms->fpo = (struct vm_fpo_collisions){};
+  vm_species_fpo_init(app, vms, &vms->fpo);
 
   // Set species source id.
   vms->source_id = vms->info.source.source_id;
@@ -1839,6 +1844,8 @@ vm_species_release(const gkyl_vlasov_app *app, const struct vm_species *vms)
     vm_species_lbo_release(app, &vms->lbo);
   } else if (vms->bgk.collision_id == GKYL_BGK_COLLISIONS) {
     vm_species_bgk_release(app, &vms->bgk);
+  } else if (vms->fpo.collision_id == GKYL_FPO_COLLISIONS) {
+    vm_species_fpo_release(app, &vms->fpo);
   }
 
   vms->release_func(app, vms);

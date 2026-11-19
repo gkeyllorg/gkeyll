@@ -29,17 +29,18 @@ typedef double (*boundary_surf_termf_t)(
   const int edge, const double *qInEdge, const double *qInSkin, double *GKYL_RESTRICT qRhsOut
 );
 
-// Function pointer type for generic stencil kernel
-// Similar to surface kernel, but size of input arrays unspecified
-// Could be 9 (for a generic 2D stencil) or 27 (for a generic 3D stencil)
-// Hard code to 27 for 3D for GPU compatibility
+// Generic stencil function pointer type, for terms of second-order operators with
+// mixed partial derivatives. The term for directions (dir1,dir2) gets the 3 cells along
+// dir1 if dir1=dir2, or the 9 cells in the (dir1,dir2) plane otherwise, ordered as in
+// gkyl_hyper_dg_gen_stencil_offsets (unused entries of idx and qIn are undefined).
+// Takes the index of the cell being updated (idxc) and the indices of the stencil cells
+// (idx) so auxiliary variables can be fetched for neighbors or just the cell being
+// updated, and the index keri of the kernel for the cell's location in the domain
+// (interior, edge or corner; see gkyl_hyper_dg_gen_stencil_advance).
 // NOTE: ASSUMES UNIFORM GRIDS FOR NOW
-// NOTE: Takes the index of the cell being updated (idxc) and array of indices
-//       (idx) so we can fetch auxiliary variables easily for neighbors or just
-//       the cell being updated. Need size of integer array (sz_dim)
 typedef double (*gen_termf_t)(
   const struct gkyl_dg_eqn *eqn, int dir1, int dir2, const double *xc, const double *dxc,
-  const int *idxc, long sz_dim, const int idx[27][GKYL_MAX_DIM], const double *qIn[27],
+  const int *idxc, int keri, const int idx[9][GKYL_MAX_DIM], const double *qIn[9],
   double *GKYL_RESTRICT qRhsOut
 );
 
@@ -49,9 +50,7 @@ struct gkyl_dg_eqn {
   surf_termf_t surf_term; // Surface term kernel.
   boundary_surf_termf_t boundary_surf_term; // Boundary surface term kernel.
   boundary_surf_termf_t boundary_diag_term; // Boundary diagnotic kernel.
-  gen_termf_t gen_surf_term; // Generic stencil kernel with input variable size unspecified.
-  gen_termf_t gen_boundary_surf_term; // Generic stencil kernel with input variable size unspecified
-    // for boundary surface updates.
+  gen_termf_t gen_surf_term; // Generic stencil kernel (interior and boundary cells).
   uint32_t flags;
   struct gkyl_ref_count ref_count; // Reference count.
   struct gkyl_dg_eqn *on_dev; // Pointer to itself or device data.

@@ -843,6 +843,17 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   f->has_diffusion = false;
   f->diffD = NULL;
   if (f->info.diffusion.Dij) {
+    // The cross terms of the general diffusion tensor reach corner ghost cells. The NCCL
+    // communicator does not fill those at periodic boundaries (the null and MPI
+    // communicators do), so with it the solution would be silently wrong there. A single
+    // GPU can run with the null communicator instead (no -M for C inputs, gkeyll -S for
+    // Lua inputs).
+    if (app->use_gpu && strcmp(app->comm->id, "nccl_comm") == 0) {
+      gkyl_exit("vm_fluid_species: general diffusion (Dij) is not supported with the NCCL "
+                "communicator yet (it does not sync corner ghost cells at periodic boundaries). "
+                "Run a single GPU without MPI instead.");
+    }
+
     f->has_diffusion = true;
     // allocate space for full diffusion tensor
     int szD = cdim * (cdim + 1) / 2;

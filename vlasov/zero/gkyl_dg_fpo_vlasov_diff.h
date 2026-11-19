@@ -7,7 +7,8 @@
 
 // Struct containing the pointers to auxiliary fields.
 struct gkyl_dg_fpo_vlasov_diff_auxfields {
-  const struct gkyl_array *g;
+  const struct gkyl_array *diff_coeff;
+  const struct gkyl_array *diff_coeff_surf;
 };
 
 /**

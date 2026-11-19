@@ -29,14 +29,15 @@ gkyl_dg_updater_diffusion_gen_new(
   up->dgeqn = gkyl_dg_diffusion_gen_new(basis, diff_range, up->use_gpu);
 
   int ndim = basis->ndim;
-  int up_dirs[GKYL_MAX_DIM], zero_flux_flags[2 * GKYL_MAX_DIM];
+  int zero_flux_flags[2 * GKYL_MAX_DIM];
+  up->num_up_dirs = ndim;
   for (int d = 0; d < ndim; ++d) {
-    up_dirs[d] = d;
+    up->up_dirs[d] = d;
     zero_flux_flags[d] = zero_flux_flags[d + ndim] = 0;
   }
 
   up->hyperdg =
-    gkyl_hyper_dg_new(grid, basis, up->dgeqn, ndim, up_dirs, zero_flux_flags, 1, up->use_gpu);
+    gkyl_hyper_dg_new(grid, basis, up->dgeqn, ndim, up->up_dirs, zero_flux_flags, 1, up->use_gpu);
 
   up->diffusion_tm = 0.0;
 
@@ -55,10 +56,10 @@ gkyl_dg_updater_diffusion_gen_advance(
   gkyl_diffusion_gen_set_auxfields(
     up->dgeqn, (struct gkyl_dg_diffusion_gen_auxfields){.Dij = coeff}
   );
-  // The general-stencil hyper DG advance is not implemented on the device, so a
-  // GPU build can only run this updater on the host.
-  assert(!up->use_gpu);
-  gkyl_hyper_dg_gen_stencil_advance(up->hyperdg, update_rng, fIn, cflrate, rhs);
+  // Relative offsets of the stencil of each term of the diffusion tensor.
+  long offsets[GKYL_HYPER_DG_GEN_NUM_OFFSETS];
+  gkyl_hyper_dg_gen_stencil_offsets(up->num_up_dirs, up->up_dirs, update_rng, offsets);
+  gkyl_hyper_dg_gen_stencil_advance(up->hyperdg, offsets, update_rng, fIn, cflrate, rhs);
   up->diffusion_tm += gkyl_time_diff_now_sec(wst);
 }
 
