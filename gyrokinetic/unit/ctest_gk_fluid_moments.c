@@ -76,7 +76,7 @@ test_moments(bool use_gpu)
       GKYL_F_MOMENT_M0M1M2PARM2PERP,
       GKYL_F_MOMENT_HAMILTONIAN
     };
-    o double expected[][4] = {
+    double expected[][4] = {
       {2},
       {6},
       {28 + perp},
