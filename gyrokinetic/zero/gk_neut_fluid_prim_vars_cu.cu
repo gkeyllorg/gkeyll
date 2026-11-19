@@ -123,7 +123,8 @@ gkyl_gk_neut_fluid_prim_vars_pressure_copy_cu_kernel(
     double *out_d = (double *)gkyl_array_fetch(out, loc);
     double *prim_vars_d = up->is_integrated ? prim_vars_buff : &out_d[out_coff];
 
-    up->udrift_get_sol_ker(count, xs, prim_vars_d);
+    // Solve for u into a local buffer: out holds only the pressure.
+    up->udrift_get_sol_ker(count, xs, udrift_d);
     up->pressure_ker(up->gas_gamma, moms_d, udrift_d, prim_vars_d);
 
     for (int i = 0; i < up->num_basis; i++) {

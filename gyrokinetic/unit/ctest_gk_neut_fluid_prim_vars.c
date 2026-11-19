@@ -241,7 +241,77 @@ test_prim_vars_combined()
   gkyl_array_release(m);
 }
 
+// Pointwise (non-integrated) pressure and thermal energy into a single-component
+// output, on the CPU and, if available, the GPU. The output holds only the
+// pressure, so the updater must not write the drift velocity into it: ghost
+// cells (outside the update range) must keep a sentinel value.
+static void
+check_pressure_pointwise(bool use_gpu, enum gkyl_gk_neut_fluid_prim_vars_type type, double expect)
+{
+  struct setup s;
+  make_setup(&s, 1);
+  double gas_gamma = 5.0 / 3.0, mass = 2.0;
+  double rho = 3.0, ux = 1.5, uy = -0.5, uz = 0.25, p = 4.0;
+  double E = p / (gas_gamma - 1.0) + 0.5 * rho * (ux * ux + uy * uy + uz * uz);
+  double moms[] = {rho, rho * ux, rho * uy, rho * uz, E};
+  int nb = s.basis.num_basis;
+  const double sentinel = -12345.0;
+
+  struct gkyl_array *m_ho = mk_const_moms(&s.basis, &s.local_ext, 5, moms);
+  struct gkyl_array *out_ho = gkyl_array_new(GKYL_DOUBLE, nb, s.local_ext.volume);
+  gkyl_array_clear(out_ho, sentinel);
+  struct gkyl_array *m = m_ho, *out = out_ho;
+  if (use_gpu) {
+    m = gkyl_array_cu_dev_new(GKYL_DOUBLE, 5 * nb, s.local_ext.volume);
+    out = gkyl_array_cu_dev_new(GKYL_DOUBLE, nb, s.local_ext.volume);
+    gkyl_array_copy(m, m_ho);
+    gkyl_array_copy(out, out_ho);
+  }
+
+  struct gkyl_gk_neut_fluid_prim_vars *up = gkyl_gk_neut_fluid_prim_vars_new(
+    gas_gamma, mass, &s.basis, &s.grid, &s.local, type, false, use_gpu
+  );
+  gkyl_gk_neut_fluid_prim_vars_pressure_advance(up, m, out, 0);
+  if (use_gpu) {
+    gkyl_array_copy(out_ho, out);
+  }
+
+  double fac = pow(sqrt(2.0), s.basis.ndim);
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &s.local_ext);
+  while (gkyl_range_iter_next(&iter)) {
+    const double *d = gkyl_array_cfetch(out_ho, gkyl_range_idx(&s.local_ext, iter.idx));
+    bool interior = gkyl_range_contains_idx(&s.local, iter.idx);
+    for (int k = 0; k < nb; ++k) {
+      double ref = interior ? (k == 0 ? expect * fac : 0.0) : sentinel;
+      TEST_CHECK(fabs(d[k] - ref) < 1e-12 * fabs(expect * fac));
+      TEST_MSG("gpu=%d cell=%d k=%d: got %.16e expected %.16e", use_gpu, iter.idx[0], k, d[k], ref);
+    }
+  }
+
+  gkyl_gk_neut_fluid_prim_vars_release(up);
+  if (use_gpu) {
+    gkyl_array_release(m);
+    gkyl_array_release(out);
+  }
+  gkyl_array_release(m_ho);
+  gkyl_array_release(out_ho);
+}
+
+void
+test_prim_vars_pressure_pointwise()
+{
+  double gas_gamma = 5.0 / 3.0, p = 4.0;
+  check_pressure_pointwise(false, GKYL_GK_NEUT_FLUID_PRIM_VARS_PRESSURE, p);
+  check_pressure_pointwise(false, GKYL_GK_NEUT_FLUID_PRIM_VARS_THERMAL_ENERGY, p / (gas_gamma - 1.0));
+#ifdef GKYL_HAVE_CUDA
+  check_pressure_pointwise(true, GKYL_GK_NEUT_FLUID_PRIM_VARS_PRESSURE, p);
+  check_pressure_pointwise(true, GKYL_GK_NEUT_FLUID_PRIM_VARS_THERMAL_ENERGY, p / (gas_gamma - 1.0));
+#endif
+}
+
 TEST_LIST = {
+  {"prim_vars_pressure_pointwise", test_prim_vars_pressure_pointwise},
   {"prim_vars_udrift_pressure_temp", test_prim_vars_udrift_pressure_temp},
   {"prim_vars_combined", test_prim_vars_combined},
   {NULL, NULL}
