@@ -12,7 +12,7 @@
 //
 // Figures of merit at t = 5e-9 (200 cells, serendipity p1, 1000 steps): on 0.3 < x < 0.95 the cell
 // averages of E_y are the moments finite-volume solution (400 cells) times a constant to 0.013 in
-// L2. The maximum of |E_y| is 8.70e-13, 1.85 times the amplitude mu_0 c J_0 / 800 the antenna
+// L2. The maximum of |E_y| is 8.67e-13, 1.84 times the amplitude mu_0 c J_0 / 800 the antenna
 // radiates to each side in free space, and |E_y| stays below 0.9% of the maximum for x < 0.483,
 // beyond the cutoff.
 

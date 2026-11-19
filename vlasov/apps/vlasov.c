@@ -972,17 +972,48 @@ gkyl_vlasov_app_read_from_frame(gkyl_vlasov_app *app, int frame)
   // is needed). The first failure is reported; otherwise the status carries the
   // frame and time read from the species files, or from the field file when
   // there are no species.
+  // A static kinetic species has its distribution in the file of frame 0 only:
+  // it is read after the species and the field that evolve, and the frame and
+  // the clock are theirs. When nothing else has a file, the run restarts at the
+  // time of frame 0.
   struct gkyl_app_restart_status rstat = {.io_status = GKYL_ARRAY_RIO_SUCCESS};
+  int num_evolving = 0;
   for (int i = 0; i < app->num_species; i++) {
-    rstat = vlasov_species_read_from_frame(app, &app->species[i], frame);
+    struct vlasov_species *sp = &app->species[i];
+    if (sp->kinetic && sp->kinetic->info.is_static) {
+      continue;
+    }
+    rstat = vlasov_species_read_from_frame(app, sp, frame);
     if (rstat.io_status != GKYL_ARRAY_RIO_SUCCESS) {
       return rstat;
     }
+    num_evolving += 1;
   }
 
   struct gkyl_app_restart_status fstat = gkyl_vlasov_app_from_frame_field(app, frame);
   if (fstat.io_status != GKYL_ARRAY_RIO_SUCCESS || app->num_species == 0) {
     return fstat;
+  }
+  bool has_field_file = app->field->field_id == GKYL_FIELD_E_B ||
+                        app->field->field_id == GKYL_FIELD_GR_D_B;
+  if (num_evolving == 0 && has_field_file) {
+    rstat = fstat;
+  }
+
+  double tm_frame = app->tcurr;
+  for (int i = 0; i < app->num_species; i++) {
+    struct vlasov_species *sp = &app->species[i];
+    if (sp->kinetic && sp->kinetic->info.is_static) {
+      struct gkyl_app_restart_status sstat = vlasov_species_read_from_frame(app, sp, frame);
+      if (sstat.io_status != GKYL_ARRAY_RIO_SUCCESS) {
+        return sstat;
+      }
+      if (num_evolving == 0 && !has_field_file) {
+        rstat = sstat;
+      } else {
+        app->tcurr = tm_frame;
+      }
+    }
   }
 
   // The frames hold the synchronized state of the staggered operator split.

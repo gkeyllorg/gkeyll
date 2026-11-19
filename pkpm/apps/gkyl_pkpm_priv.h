@@ -299,8 +299,9 @@ struct pkpm_kinetic_species {
   struct gkyl_array *rhs_nodal; // increment of the nodal operator, in the same form
 
   struct gkyl_array *bc_buffer; // buffer for BCs for distribution functions (used by bc_basic)
-  struct gkyl_array *bc_buffer_lo_fixed,
-    *bc_buffer_up_fixed; // fixed buffers for time independent BCs for distribution functions
+  // buffers of the fixed-function BCs of the distribution functions per direction (allocated
+  // for the edges that have one)
+  struct gkyl_array *bc_buffer_lo_fixed[3], *bc_buffer_up_fixed[3];
 
   struct gkyl_array *f_host; // host copy of distribution function for use IO and initialization
 
@@ -419,8 +420,9 @@ struct pkpm_fluid_species {
   struct gkyl_array *fluid, *fluid1, *fluidnew; // fluid state [rho, rho ux, rho uy, rho uz, E]
   struct gkyl_array *cflrate; // CFL rate in each cell for the fluid update
   struct gkyl_array *bc_buffer; // buffer for BCs for the fluid state (used by bc_basic)
-  struct gkyl_array *bc_buffer_lo_fixed,
-    *bc_buffer_up_fixed; // fixed buffers for time independent BCs for the fluid state
+  // buffers of the fixed-function BCs of the fluid state per direction (allocated for the edges
+  // that have one)
+  struct gkyl_array *bc_buffer_lo_fixed[3], *bc_buffer_up_fixed[3];
   struct gkyl_array *fluid_host; // host copy of the fluid state for use IO and initialization
 
   // q/m (E, B) plus the applied acceleration and the external fields, for the explicit

@@ -105,9 +105,10 @@ static const struct gkyl_str_int_pair source_type[] = {
   {0, 0}
 };
 
-// Isothermal Euler Riemann problem -> enum map.
+// Isothermal Euler Riemann problem -> enum map. The values are those of the Euler map, so that
+// G0.EulerRP.Roe and G0.EulerRP.Lax select the same solver; the constructor translates them.
 static const struct gkyl_str_int_pair iso_euler_rp_type[] =
-  {{"Roe", WV_ISO_EULER_RP_ROE}, {"Lax", WV_ISO_EULER_RP_LAX}, {0, 0}};
+  {{"Roe", WV_EULER_RP_ROE}, {"Lax", WV_EULER_RP_LAX}, {0, 0}};
 
 // Vlasov radiation type -> enum map.
 static const struct gkyl_str_int_pair radiation_type[] = {
@@ -299,14 +300,23 @@ static struct luaL_Reg eqn_euler_ctor[] = {{"new", eqn_euler_lw_new}, {0, 0}};
 static int
 eqn_iso_euler_lw_new(lua_State *L)
 {
-  struct wv_eqn_lw *iso_euler_lw = gkyl_malloc(sizeof(*iso_euler_lw));
-
   double vt = glua_tbl_get_number(L, "vThermal", -1.0);
   if (vt < 0) {
     return luaL_error(L, "Thermal velocity \"vThermal\" not specified properly!");
   }
-  enum gkyl_wv_iso_euler_rp rp_type = glua_tbl_get_integer(L, "rpType", WV_ISO_EULER_RP_ROE);
+  enum gkyl_wv_iso_euler_rp rp_type = WV_ISO_EULER_RP_ROE;
+  switch (glua_tbl_get_integer(L, "rpType", WV_EULER_RP_ROE)) {
+    case WV_EULER_RP_ROE:
+      rp_type = WV_ISO_EULER_RP_ROE;
+      break;
+    case WV_EULER_RP_LAX:
+      rp_type = WV_ISO_EULER_RP_LAX;
+      break;
+    default:
+      return luaL_error(L, "IsoEuler: \"rpType\" must be G0.IsoEulerRP.Roe or G0.IsoEulerRP.Lax!");
+  }
 
+  struct wv_eqn_lw *iso_euler_lw = gkyl_malloc(sizeof(*iso_euler_lw));
   iso_euler_lw->magic = VLASOV_EQN_DEFAULT;
   iso_euler_lw->eqn = gkyl_wv_iso_euler_inew(&(struct gkyl_wv_iso_euler_inp){
     .vt = vt,

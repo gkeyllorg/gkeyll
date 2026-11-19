@@ -15,7 +15,8 @@
 // Configuration-space Poisson tensor of the triads from the geometry inputs.
 static void
 vm_species_triad_poisson_tensor(
-  struct gkyl_vlasov_app *app, struct vm_species *vms, struct gkyl_vlasov_triad_geom_inp inp_triad_geom
+  struct gkyl_vlasov_app *app, struct vm_species *vms,
+  struct gkyl_vlasov_triad_geom_inp inp_triad_geom
 )
 {
   int cdim = app->cdim, vdim = app->vdim;
@@ -482,12 +483,14 @@ vm_species_apply_ic_dynamic(gkyl_vlasov_app *app, struct vm_species *vms, double
     vm_species_bgk_moms_fixed_temp(app, vms, &vms->bgk, vms->f);
   }
 
-  // Fill the fixed-function BC buffers from the initial condition (x direction only).
-  if (vms->lower_bc[0].type == GKYL_SPECIES_FIXED_FUNC) {
-    gkyl_bc_basic_buffer_fixed_func(vms->bc_lo[0], vms->bc_buffer_lo_fixed, vms->f);
-  }
-  if (vms->upper_bc[0].type == GKYL_SPECIES_FIXED_FUNC) {
-    gkyl_bc_basic_buffer_fixed_func(vms->bc_up[0], vms->bc_buffer_up_fixed, vms->f);
+  // Fill the fixed-function BC buffers from the initial condition.
+  for (int d = 0; d < app->cdim; ++d) {
+    if (vms->lower_bc[d].type == GKYL_SPECIES_FIXED_FUNC) {
+      gkyl_bc_basic_buffer_fixed_func(vms->bc_lo[d], vms->bc_buffer_lo_fixed[d], vms->f);
+    }
+    if (vms->upper_bc[d].type == GKYL_SPECIES_FIXED_FUNC) {
+      gkyl_bc_basic_buffer_fixed_func(vms->bc_up[d], vms->bc_buffer_up_fixed[d], vms->f);
+    }
   }
 }
 
@@ -505,6 +508,9 @@ vm_species_apply_ic_static(gkyl_vlasov_app *app, struct vm_species *vms, double 
   } else {
     vm_species_projection_calc(app, vms, &vms->proj_init[0], vms->f, tm);
   }
+
+  // Project the source at the initial time (re-projected every stage if time-dependent).
+  vm_species_source_calc(app, vms, &vms->src, tm);
 }
 
 static double
@@ -618,7 +624,7 @@ vm_species_apply_bc_dynamic(
           gkyl_bc_basic_advance(vms->bc_lo[d], vms->bc_buffer, f);
           break;
         case GKYL_SPECIES_FIXED_FUNC:
-          gkyl_bc_basic_advance(vms->bc_lo[d], vms->bc_buffer_lo_fixed, f);
+          gkyl_bc_basic_advance(vms->bc_lo[d], vms->bc_buffer_lo_fixed[d], f);
           break;
         case GKYL_SPECIES_ZERO_FLUX:
           break; // do nothing, BCs already applied in hyper_dg loop by not updating flux
@@ -640,7 +646,7 @@ vm_species_apply_bc_dynamic(
           gkyl_bc_basic_advance(vms->bc_up[d], vms->bc_buffer, f);
           break;
         case GKYL_SPECIES_FIXED_FUNC:
-          gkyl_bc_basic_advance(vms->bc_up[d], vms->bc_buffer_up_fixed, f);
+          gkyl_bc_basic_advance(vms->bc_up[d], vms->bc_buffer_up_fixed[d], f);
           break;
         case GKYL_SPECIES_ZERO_FLUX:
           break; // do nothing, BCs already applied in hyper_dg loop by not updating flux
@@ -1139,8 +1145,14 @@ vm_species_release_dynamic(const gkyl_vlasov_app *app, const struct vm_species *
   gkyl_array_release(vms->cflrate);
   gkyl_array_release(vms->cflrate_host);
   gkyl_array_release(vms->bc_buffer);
-  gkyl_array_release(vms->bc_buffer_lo_fixed);
-  gkyl_array_release(vms->bc_buffer_up_fixed);
+  for (int d = 0; d < app->cdim; ++d) {
+    if (vms->bc_buffer_lo_fixed[d]) {
+      gkyl_array_release(vms->bc_buffer_lo_fixed[d]);
+    }
+    if (vms->bc_buffer_up_fixed[d]) {
+      gkyl_array_release(vms->bc_buffer_up_fixed[d]);
+    }
+  }
 
   vm_species_moment_release(app, &vms->integ_moms);
 
@@ -1272,8 +1284,19 @@ vm_species_new_dynamic(
   }
   vms->bc_buffer = mkarr(app->use_gpu, vms->basis.num_basis, buff_sz);
   // Buffers for fixed function BCs on distribution function.
-  vms->bc_buffer_lo_fixed = mkarr(app->use_gpu, vms->basis.num_basis, buff_sz);
-  vms->bc_buffer_up_fixed = mkarr(app->use_gpu, vms->basis.num_basis, buff_sz);
+  for (int d = 0; d < 3; ++d) {
+    vms->bc_buffer_lo_fixed[d] = vms->bc_buffer_up_fixed[d] = 0;
+  }
+  for (int d = 0; d < cdim; ++d) {
+    if (vms->lower_bc[d].type == GKYL_SPECIES_FIXED_FUNC) {
+      vms->bc_buffer_lo_fixed[d] =
+        mkarr(app->use_gpu, vms->basis.num_basis, vms->lower_skin[d].volume);
+    }
+    if (vms->upper_bc[d].type == GKYL_SPECIES_FIXED_FUNC) {
+      vms->bc_buffer_up_fixed[d] =
+        mkarr(app->use_gpu, vms->basis.num_basis, vms->upper_skin[d].volume);
+    }
+  }
 
   for (int d = 0; d < cdim; ++d) {
     if (vms->lower_bc[d].type == GKYL_SPECIES_REFLECT ||
@@ -1307,6 +1330,7 @@ vm_species_new_dynamic(
     }
 
     // Upper BC updater. Copy BCs by default.
+    bctype = GKYL_BC_COPY;
     if (vms->upper_bc[d].type == GKYL_SPECIES_EMISSION) {
       vms->emit_up = true;
       vms->calc_bflux = true;
@@ -2019,11 +2043,13 @@ vm_species_from_file(gkyl_vlasov_app *app, struct vm_species *vms, const char *f
 }
 
 // Restart from the file of a frame; the diagnostic streams then append to
-// their existing files.
+// their existing files. A static species has its distribution in the file of
+// frame 0 only, and the status then carries that file's frame and time.
 struct gkyl_app_restart_status
 vm_species_read_from_frame(gkyl_vlasov_app *app, struct vm_species *vms, int frame)
 {
-  cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, vms->name, frame);
+  int file_frame = vms->info.is_static ? 0 : frame;
+  cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, vms->name, file_frame);
   struct gkyl_app_restart_status rstat = vm_species_from_file(app, vms, fileNm.str);
   cstr_drop(&fileNm);
 
@@ -2031,6 +2057,12 @@ vm_species_read_from_frame(gkyl_vlasov_app *app, struct vm_species *vms, int fra
   vms->is_first_integ_L2_write_call = false;
   vms->src.is_first_integ_write_call = false;
   vms->lte.is_first_corr_status_write_call = false;
+  if (vms->emit_lo) {
+    vms->bc_emission_lo.is_first_yield_write_call = false;
+  }
+  if (vms->emit_up) {
+    vms->bc_emission_up.is_first_yield_write_call = false;
+  }
 
   return rstat;
 }

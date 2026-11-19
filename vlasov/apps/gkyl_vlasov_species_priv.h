@@ -560,8 +560,8 @@ struct vm_species {
   struct gkyl_array *f, *f1, *fnew; // arrays for updates
   struct gkyl_array *cflrate; // CFL rate in each cell
   struct gkyl_array *bc_buffer; // buffer for BCs (used by bc_basic)
-  struct gkyl_array *bc_buffer_lo_fixed,
-    *bc_buffer_up_fixed; // fixed buffers for time independent BCs
+  // buffers of the fixed-function BCs per direction (allocated for the edges that have one)
+  struct gkyl_array *bc_buffer_lo_fixed[3], *bc_buffer_up_fixed[3];
 
   struct gkyl_array *f_host; // Host-side distribution function for I/O on GPUs.
   struct gkyl_array *cflrate_host; // Host-side cflrate for I/O on GPUs.
@@ -838,8 +838,8 @@ struct vm_fluid_species {
   // Pointers to updaters that apply BC.
   struct gkyl_bc_basic *bc_lo[3];
   struct gkyl_bc_basic *bc_up[3];
-  struct gkyl_array *bc_buffer_lo_fixed,
-    *bc_buffer_up_fixed; // fixed buffers for time independent BCs
+  // buffers of the fixed-function BCs per direction (allocated for the edges that have one)
+  struct gkyl_array *bc_buffer_lo_fixed[3], *bc_buffer_up_fixed[3];
   bool bc_is_absorb; // boolean for absorbing BCs since 1/rho is undefined in absorbing BCs
     // If BCs are *not* absorbing, primitive variables can be calculated on *extended* range
 

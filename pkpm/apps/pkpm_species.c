@@ -616,16 +616,30 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   }
 
   s->kinetic->bc_buffer = mkarr(app->use_gpu, s->kinetic->f->ncomp, buff_sz_dist);
-  // buffer arrays for fixed function boundary conditions on distribution function
-  s->kinetic->bc_buffer_lo_fixed = mkarr(app->use_gpu, s->kinetic->f->ncomp, buff_sz_dist);
-  s->kinetic->bc_buffer_up_fixed = mkarr(app->use_gpu, s->kinetic->f->ncomp, buff_sz_dist);
-  gkyl_array_clear(s->kinetic->bc_buffer_lo_fixed, 0.0);
-  gkyl_array_clear(s->kinetic->bc_buffer_up_fixed, 0.0);
-
   s->fluid->bc_buffer = mkarr(app->use_gpu, 5 * app->confBasis.num_basis, buff_sz_fluid);
-  // buffer arrays for fixed function boundary conditions on the fluid state
-  s->fluid->bc_buffer_lo_fixed = mkarr(app->use_gpu, 5 * app->confBasis.num_basis, buff_sz_fluid);
-  s->fluid->bc_buffer_up_fixed = mkarr(app->use_gpu, 5 * app->confBasis.num_basis, buff_sz_fluid);
+  // buffer arrays for fixed function boundary conditions on the distribution functions and the
+  // fluid state, for the edges that have one
+  for (int d = 0; d < 3; ++d) {
+    s->kinetic->bc_buffer_lo_fixed[d] = s->kinetic->bc_buffer_up_fixed[d] = 0;
+    s->fluid->bc_buffer_lo_fixed[d] = s->fluid->bc_buffer_up_fixed[d] = 0;
+  }
+  for (int d = 0; d < cdim; ++d) {
+    int nc_fluid = 5 * app->confBasis.num_basis;
+    if (s->kinetic->lower_bc[d] == GKYL_SPECIES_FIXED_FUNC) {
+      s->kinetic->bc_buffer_lo_fixed[d] =
+        mkarr(app->use_gpu, s->kinetic->f->ncomp, s->kinetic->lower_skin[d].volume);
+    }
+    if (s->kinetic->upper_bc[d] == GKYL_SPECIES_FIXED_FUNC) {
+      s->kinetic->bc_buffer_up_fixed[d] =
+        mkarr(app->use_gpu, s->kinetic->f->ncomp, s->kinetic->upper_skin[d].volume);
+    }
+    if (s->fluid->lower_bc[d] == GKYL_SPECIES_FIXED_FUNC) {
+      s->fluid->bc_buffer_lo_fixed[d] = mkarr(app->use_gpu, nc_fluid, app->lower_skin[d].volume);
+    }
+    if (s->fluid->upper_bc[d] == GKYL_SPECIES_FIXED_FUNC) {
+      s->fluid->bc_buffer_up_fixed[d] = mkarr(app->use_gpu, nc_fluid, app->upper_skin[d].volume);
+    }
+  }
 
   // Absorbing boundaries: the distribution functions vanish in the ghost cells; the
   // fluid state is the mirror image of the skin cell (even in the wall direction), so the
@@ -765,20 +779,29 @@ pkpm_species_apply_ic(gkyl_pkpm_app *app, struct pkpm_species *species, double t
   // pre-compute the applied acceleration (it is not recomputed when time-independent)
   pkpm_species_calc_app_accel(app, species, t0);
 
-  // copy contents of initial conditions into buffer if specific BCs require them
-  // (fixed-function boundary conditions are supported in x only)
-  gkyl_bc_basic_buffer_fixed_func(
-    species->kinetic->bc_lo[0], species->kinetic->bc_buffer_lo_fixed, species->kinetic->f
-  );
-  gkyl_bc_basic_buffer_fixed_func(
-    species->kinetic->bc_up[0], species->kinetic->bc_buffer_up_fixed, species->kinetic->f
-  );
-  gkyl_bc_basic_buffer_fixed_func(
-    species->fluid->bc_lo[0], species->fluid->bc_buffer_lo_fixed, species->fluid->fluid
-  );
-  gkyl_bc_basic_buffer_fixed_func(
-    species->fluid->bc_up[0], species->fluid->bc_buffer_up_fixed, species->fluid->fluid
-  );
+  // copy the initial conditions into the buffers of the fixed-function boundary conditions
+  for (int d = 0; d < app->cdim; ++d) {
+    if (species->kinetic->lower_bc[d] == GKYL_SPECIES_FIXED_FUNC) {
+      gkyl_bc_basic_buffer_fixed_func(
+        species->kinetic->bc_lo[d], species->kinetic->bc_buffer_lo_fixed[d], species->kinetic->f
+      );
+    }
+    if (species->kinetic->upper_bc[d] == GKYL_SPECIES_FIXED_FUNC) {
+      gkyl_bc_basic_buffer_fixed_func(
+        species->kinetic->bc_up[d], species->kinetic->bc_buffer_up_fixed[d], species->kinetic->f
+      );
+    }
+    if (species->fluid->lower_bc[d] == GKYL_SPECIES_FIXED_FUNC) {
+      gkyl_bc_basic_buffer_fixed_func(
+        species->fluid->bc_lo[d], species->fluid->bc_buffer_lo_fixed[d], species->fluid->fluid
+      );
+    }
+    if (species->fluid->upper_bc[d] == GKYL_SPECIES_FIXED_FUNC) {
+      gkyl_bc_basic_buffer_fixed_func(
+        species->fluid->bc_up[d], species->fluid->bc_buffer_up_fixed[d], species->fluid->fluid
+      );
+    }
+  }
 }
 
 void
@@ -1349,7 +1372,7 @@ pkpm_species_apply_bc(
           gkyl_bc_pkpm_species_reflect_advance(kin->bc_lo_reflect[d], app->field->bvar, f);
           break;
         case GKYL_SPECIES_FIXED_FUNC:
-          gkyl_bc_basic_advance(kin->bc_lo[d], kin->bc_buffer_lo_fixed, f);
+          gkyl_bc_basic_advance(kin->bc_lo[d], kin->bc_buffer_lo_fixed[d], f);
           break;
         case GKYL_SPECIES_NO_SLIP:
         case GKYL_SPECIES_WEDGE:
@@ -1368,7 +1391,7 @@ pkpm_species_apply_bc(
           gkyl_bc_pkpm_species_reflect_advance(kin->bc_up_reflect[d], app->field->bvar, f);
           break;
         case GKYL_SPECIES_FIXED_FUNC:
-          gkyl_bc_basic_advance(kin->bc_up[d], kin->bc_buffer_up_fixed, f);
+          gkyl_bc_basic_advance(kin->bc_up[d], kin->bc_buffer_up_fixed[d], f);
           break;
         case GKYL_SPECIES_NO_SLIP:
         case GKYL_SPECIES_WEDGE:
@@ -1413,7 +1436,7 @@ pkpm_fluid_species_apply_bc(
           gkyl_bc_basic_advance(fl->bc_lo[d], fl->bc_buffer, fluid);
           break;
         case GKYL_SPECIES_FIXED_FUNC:
-          gkyl_bc_basic_advance(fl->bc_lo[d], fl->bc_buffer_lo_fixed, fluid);
+          gkyl_bc_basic_advance(fl->bc_lo[d], fl->bc_buffer_lo_fixed[d], fluid);
           break;
         case GKYL_SPECIES_NO_SLIP:
         case GKYL_SPECIES_WEDGE:
@@ -1430,7 +1453,7 @@ pkpm_fluid_species_apply_bc(
           gkyl_bc_basic_advance(fl->bc_up[d], fl->bc_buffer, fluid);
           break;
         case GKYL_SPECIES_FIXED_FUNC:
-          gkyl_bc_basic_advance(fl->bc_up[d], fl->bc_buffer_up_fixed, fluid);
+          gkyl_bc_basic_advance(fl->bc_up[d], fl->bc_buffer_up_fixed[d], fluid);
           break;
         case GKYL_SPECIES_NO_SLIP:
         case GKYL_SPECIES_WEDGE:
@@ -1539,11 +1562,21 @@ pkpm_species_release(const gkyl_pkpm_app *app, const struct pkpm_species *s)
   gkyl_array_release(s->fluid->cflrate);
 
   gkyl_array_release(s->kinetic->bc_buffer);
-  gkyl_array_release(s->kinetic->bc_buffer_lo_fixed);
-  gkyl_array_release(s->kinetic->bc_buffer_up_fixed);
   gkyl_array_release(s->fluid->bc_buffer);
-  gkyl_array_release(s->fluid->bc_buffer_lo_fixed);
-  gkyl_array_release(s->fluid->bc_buffer_up_fixed);
+  for (int d = 0; d < app->cdim; ++d) {
+    if (s->kinetic->bc_buffer_lo_fixed[d]) {
+      gkyl_array_release(s->kinetic->bc_buffer_lo_fixed[d]);
+    }
+    if (s->kinetic->bc_buffer_up_fixed[d]) {
+      gkyl_array_release(s->kinetic->bc_buffer_up_fixed[d]);
+    }
+    if (s->fluid->bc_buffer_lo_fixed[d]) {
+      gkyl_array_release(s->fluid->bc_buffer_lo_fixed[d]);
+    }
+    if (s->fluid->bc_buffer_up_fixed[d]) {
+      gkyl_array_release(s->fluid->bc_buffer_up_fixed[d]);
+    }
+  }
 
   gkyl_comm_release(s->kinetic->comm);
 

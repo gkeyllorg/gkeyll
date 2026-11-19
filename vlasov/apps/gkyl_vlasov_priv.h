@@ -403,9 +403,7 @@ bool vm_fluid_em_coupling_supported(const struct vm_fluid_species *f);
  * fluid momenta and energies and the electric field in place. E advances only here, with
  * c^2 curl B of the field and the current of the kinetic species at the start of the step as
  * known currents (Stormer-Verlet in the curl terms and a leapfrog in the kinetic currents; the
- * transport step drifts B and moves the kinetic species with this E). A negative dt steps the
- * sources back; this inverts the forward step except at absorbing field edges, whose flux is
- * evaluated at the start of the step.
+ * transport step drifts B and moves the kinetic species with this E).
  *
  * @param app Vlasov app object
  * @param fl_em fluid-EM coupling updater

@@ -400,6 +400,8 @@ gkyl_wv_iso_euler_inew(const struct gkyl_wv_iso_euler_inp *inp)
     iso_euler->eqn.num_waves = 3;
     iso_euler->eqn.waves_func = wave_roe_l;
     iso_euler->eqn.qfluct_func = qfluct_roe_l;
+  } else {
+    assert(false); // unknown Riemann solver
   }
 
   iso_euler->eqn.flux_jump = flux_jump;

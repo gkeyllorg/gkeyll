@@ -128,6 +128,7 @@ struct vm_field {
       gkyl_hyper_dg *slvr; // Maxwell solver
 
       bool limit_em; // boolean for whether or not we are limiting EM fields
+      bool has_absorb; // an edge of the domain is absorbing
       struct gkyl_dg_calc_em_vars *calc_em_vars; // Updater to limit EM fields
 
       struct gkyl_array *em_energy; // EM energy components in each cell

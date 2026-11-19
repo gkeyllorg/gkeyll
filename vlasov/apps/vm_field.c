@@ -275,6 +275,7 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   // Absorbing edges: the solver updates the cells of the edge with the boundary surface kernels of
   // the equation (the outgoing waves only), on the ranks that own the edge. The BC updaters below
   // fill the ghost cells of the edge for the operations that read them (limiter).
+  f->has_absorb = false;
   for (int d = 0; d < app->cdim; ++d) {
     const enum gkyl_field_bc_type *bc = d == 0 ? f->info.bcx : (d == 1 ? f->info.bcy : f->info.bcz);
     bool is_periodic = false;
@@ -288,6 +289,7 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
         "vm_field: absorbing boundaries are only supported with the standard Maxwell field (E_B)."
       );
     }
+    f->has_absorb = f->has_absorb || absorb_lo || absorb_up;
     zero_flux_flags[d] = absorb_lo && app->local.lower[d] == app->global.lower[d];
     zero_flux_flags[d + app->cdim] = absorb_up && app->local.upper[d] == app->global.upper[d];
   }
@@ -400,6 +402,7 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
     );
 
     // Upper BC updater. Copy BCs by default.
+    bctype = GKYL_BC_COPY;
     if (f->upper_bc[d] == GKYL_FIELD_COPY) {
       bctype = GKYL_BC_COPY;
     } else if (f->upper_bc[d] == GKYL_FIELD_PEC_WALL) {
@@ -642,8 +645,9 @@ vm_field_update(
   return vm_field_rhs(app, app->field, emin, emout);
 }
 
-// Transport step of the staggered operator split without divergence cleaning: zero E rows; the
-// right-hand side of stage 1 is reused in stages 2 and 3.
+// Transport step of the staggered operator split when the right-hand side of the B rows depends
+// on E alone (no divergence cleaning, no absorbing edge): zero E rows; the right-hand side of
+// stage 1 is reused in stages 2 and 3, since the transport step does not advance E.
 static double
 vm_field_update_split(
   gkyl_vlasov_app *app, int stage, double tcurr, const struct gkyl_array *fin[],
@@ -659,10 +663,12 @@ vm_field_update_split(
   return field->dt_split;
 }
 
-// Transport step of the staggered operator split with divergence cleaning of the magnetic
-// field: B and the correction potential evolve together through the stages, with zero E rows.
+// Transport step of the staggered operator split when the right-hand side of the B rows depends
+// on the stage field, with zero E rows: with divergence cleaning of the magnetic field B and the
+// correction potential evolve together, and the flux of an absorbing edge is built from the B
+// of its cells.
 static double
-vm_field_update_split_cleaning(
+vm_field_update_split_stages(
   gkyl_vlasov_app *app, int stage, double tcurr, const struct gkyl_array *fin[],
   const struct gkyl_array *emin, struct gkyl_array *emout
 )
@@ -726,8 +732,8 @@ vm_field_set_source_split(gkyl_vlasov_app *app, struct vm_field *field)
   }
   field->rhs_split = mkarr(app->use_gpu, 8 * app->basis.num_basis, app->local_ext.volume);
   field->dt_split = DBL_MAX;
-  field->update_func = field->info.mgnErrorSpeedFactor != 0.0 ? vm_field_update_split_cleaning :
-                                                                vm_field_update_split;
+  bool rhs_of_stage = field->info.mgnErrorSpeedFactor != 0.0 || field->has_absorb;
+  field->update_func = rhs_of_stage ? vm_field_update_split_stages : vm_field_update_split;
   field->complete_update_func = vm_field_complete_update_split;
 }
 

@@ -194,10 +194,7 @@ vm_fluid_species_euler_init(
     f->equation, app->geom, &app->basis, &app->local, limiter_fac, app->use_gpu
   );
 
-  struct gkyl_dg_euler_auxfields aux_inp = {
-    .u = f->u,
-    .p = f->p,
-  };
+  struct gkyl_dg_euler_auxfields aux_inp = {.u = f->u, .p = f->p};
   f->advect_slvr = gkyl_dg_updater_fluid_new(
     &app->grid, &app->basis, &app->local, f->equation, app->geom, &aux_inp, app->use_gpu
   );
@@ -431,8 +428,8 @@ vm_fluid_species_can_pb_fluid_calc_integrated(
   vm_fluid_species_prim_vars(app, f, f->fluid);
   // integrate |grad phi|^2
   gkyl_array_integrate_advance(
-    f->calc_can_pb_energy, f->phi, 1.0, f->can_pb_energy_fac, &app->local,
-    &app->local, f->red_can_pb_energy
+    f->calc_can_pb_energy, f->phi, 1.0, f->can_pb_energy_fac, &app->local, &app->local,
+    f->red_can_pb_energy
   );
   gkyl_comm_allreduce(
     app->comm, GKYL_DOUBLE, GKYL_SUM, 1, f->red_can_pb_energy, f->red_can_pb_energy_global
@@ -697,16 +694,18 @@ vm_fluid_species_apply_ic_enabled(
   }
 
   // Copy the initial conditions into the buffers of fixed-function BCs, before
-  // the limiter below applies the BCs (x direction only).
-  if (fluid_species->lower_bc[0] == GKYL_SPECIES_FIXED_FUNC) {
-    gkyl_bc_basic_buffer_fixed_func(
-      fluid_species->bc_lo[0], fluid_species->bc_buffer_lo_fixed, fluid_species->fluid
-    );
-  }
-  if (fluid_species->upper_bc[0] == GKYL_SPECIES_FIXED_FUNC) {
-    gkyl_bc_basic_buffer_fixed_func(
-      fluid_species->bc_up[0], fluid_species->bc_buffer_up_fixed, fluid_species->fluid
-    );
+  // the limiter below applies the BCs.
+  for (int d = 0; d < app->cdim; ++d) {
+    if (fluid_species->lower_bc[d] == GKYL_SPECIES_FIXED_FUNC) {
+      gkyl_bc_basic_buffer_fixed_func(
+        fluid_species->bc_lo[d], fluid_species->bc_buffer_lo_fixed[d], fluid_species->fluid
+      );
+    }
+    if (fluid_species->upper_bc[d] == GKYL_SPECIES_FIXED_FUNC) {
+      gkyl_bc_basic_buffer_fixed_func(
+        fluid_species->bc_up[d], fluid_species->bc_buffer_up_fixed[d], fluid_species->fluid
+      );
+    }
   }
 
   // Apply limiter at t=0 to insure slopes are well-behaved at beginning of simulation
@@ -887,7 +886,7 @@ vm_fluid_species_apply_bc_enabled(
           gkyl_bc_basic_advance(fluid_species->bc_lo[d], fluid_species->bc_buffer, f);
           break;
         case GKYL_SPECIES_FIXED_FUNC:
-          gkyl_bc_basic_advance(fluid_species->bc_lo[d], fluid_species->bc_buffer_lo_fixed, f);
+          gkyl_bc_basic_advance(fluid_species->bc_lo[d], fluid_species->bc_buffer_lo_fixed[d], f);
           break;
         case GKYL_SPECIES_WEDGE:
           assert(false);
@@ -904,7 +903,7 @@ vm_fluid_species_apply_bc_enabled(
           gkyl_bc_basic_advance(fluid_species->bc_up[d], fluid_species->bc_buffer, f);
           break;
         case GKYL_SPECIES_FIXED_FUNC:
-          gkyl_bc_basic_advance(fluid_species->bc_up[d], fluid_species->bc_buffer_up_fixed, f);
+          gkyl_bc_basic_advance(fluid_species->bc_up[d], fluid_species->bc_buffer_up_fixed[d], f);
           break;
         case GKYL_SPECIES_WEDGE:
           assert(false);
@@ -1156,8 +1155,18 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   }
   f->bc_buffer = mkarr(app->use_gpu, f->num_equations * app->basis.num_basis, buff_sz);
   // Buffers for fixed function BCs on the fluid state.
-  f->bc_buffer_lo_fixed = mkarr(app->use_gpu, f->num_equations * app->basis.num_basis, buff_sz);
-  f->bc_buffer_up_fixed = mkarr(app->use_gpu, f->num_equations * app->basis.num_basis, buff_sz);
+  for (int d = 0; d < 3; ++d) {
+    f->bc_buffer_lo_fixed[d] = f->bc_buffer_up_fixed[d] = 0;
+  }
+  for (int d = 0; d < app->cdim; ++d) {
+    int ncomp = f->num_equations * app->basis.num_basis;
+    if (f->lower_bc[d] == GKYL_SPECIES_FIXED_FUNC) {
+      f->bc_buffer_lo_fixed[d] = mkarr(app->use_gpu, ncomp, app->lower_skin[d].volume);
+    }
+    if (f->upper_bc[d] == GKYL_SPECIES_FIXED_FUNC) {
+      f->bc_buffer_up_fixed[d] = mkarr(app->use_gpu, ncomp, app->upper_skin[d].volume);
+    }
+  }
 
   // Certain operations fail if absorbing BCs used because absorbing BCs
   // means the mass density is 0 in the ghost cells (divide by zero)
@@ -1184,6 +1193,7 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     );
 
     // Upper BC updater. Copy BCs by default.
+    bctype = GKYL_BC_COPY;
     if (f->upper_bc[d] == GKYL_SPECIES_COPY) {
       bctype = GKYL_BC_COPY;
     } else if (f->upper_bc[d] == GKYL_SPECIES_ABSORB) {
@@ -1404,8 +1414,14 @@ vm_fluid_species_release(const gkyl_vlasov_app *app, struct vm_fluid_species *f)
   gkyl_array_release(f->fluid1);
   gkyl_array_release(f->fluidnew);
   gkyl_array_release(f->bc_buffer);
-  gkyl_array_release(f->bc_buffer_lo_fixed);
-  gkyl_array_release(f->bc_buffer_up_fixed);
+  for (int d = 0; d < app->cdim; ++d) {
+    if (f->bc_buffer_lo_fixed[d]) {
+      gkyl_array_release(f->bc_buffer_lo_fixed[d]);
+    }
+    if (f->bc_buffer_up_fixed[d]) {
+      gkyl_array_release(f->bc_buffer_up_fixed[d]);
+    }
+  }
   gkyl_array_release(f->cflrate);
 
   if (f->has_diffusion) {
