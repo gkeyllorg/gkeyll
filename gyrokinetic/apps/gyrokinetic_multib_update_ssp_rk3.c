@@ -47,15 +47,15 @@ gyrokinetic_multib_forward_euler(
     for (int i = 0; i < app->num_species; ++i) {
       struct gk_species *gks = &sbapp->species[i];
       gk_species_step_f(gks, fout[li_charged + i], dta, fin[li_charged + i]);
-      gk_species_bflux_step_f(
-        sbapp, &gks->bflux, bflux_out[li_charged + i], 1.0, bflux_in[li_charged + i]
+      gk_stepped_moms_step_f(
+        &gks->step_moms, bflux_out[li_charged + i], 1.0, bflux_in[li_charged + i]
       );
     }
     for (int i = 0; i < app->num_neut_species; ++i) {
       struct gk_neut_species *gkns = &sbapp->neut_species[i];
-      gk_neut_species_step_f(gkns, fout_neut[li_charged + i], dta, fin_neut[li_charged + i]);
-      gk_neut_species_bflux_step_f(
-        sbapp, &gkns->bflux, bflux_out_neut[li_neut + i], 1.0, bflux_in_neut[li_neut + i]
+      gk_neut_species_step_f(gkns, fout_neut[li_neut + i], dta, fin_neut[li_neut + i]);
+      gk_stepped_moms_step_f(
+        &gkns->step_moms, bflux_out_neut[li_neut + i], 1.0, bflux_in_neut[li_neut + i]
       );
     }
   }
@@ -102,16 +102,16 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app *app, doubl
             fin[li_charged + i] = gks->f;
             fout[li_charged + i] = gks->f1;
             // Boundary fluxes.
-            bflux_in[li_charged + i] = gks->bflux.f;
-            bflux_out[li_charged + i] = gks->bflux.f1;
+            bflux_in[li_charged + i] = gks->step_moms.f;
+            bflux_out[li_charged + i] = gks->step_moms.f1;
           }
           for (int i = 0; i < ns_neut; ++i) {
             struct gk_neut_species *gkns = &sbapp->neut_species[i];
             fin_neut[li_neut + i] = gkns->f;
             fout_neut[li_neut + i] = gkns->f1;
             // Boundary fluxes.
-            bflux_in_neut[li_neut + i] = gkns->bflux.f;
-            bflux_out_neut[li_neut + i] = gkns->bflux.f1;
+            bflux_in_neut[li_neut + i] = gkns->step_moms.f;
+            bflux_out_neut[li_neut + i] = gkns->step_moms.f1;
           }
         }
 
@@ -131,14 +131,14 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app *app, doubl
           int li_neut = b * ns_neut;
           for (int i = 0; i < ns_charged; ++i) {
             struct gk_species *gks = &sbapp->species[i];
-            gk_species_bflux_accumulate(
-              sbapp, &gks->bflux, bflux_out[li_charged + i], -1.0, bflux_in[li_charged + i]
+            gk_stepped_moms_accumulate(
+              &gks->step_moms, bflux_out[li_charged + i], -1.0, bflux_in[li_charged + i]
             );
           }
           for (int i = 0; i < ns_neut; ++i) {
             struct gk_neut_species *gkns = &sbapp->neut_species[i];
-            gk_neut_species_bflux_accumulate(
-              sbapp, &gkns->bflux, bflux_out_neut[li_neut + i], -1.0, bflux_in_neut[li_neut + i]
+            gk_stepped_moms_accumulate(
+              &gkns->step_moms, bflux_out_neut[li_neut + i], -1.0, bflux_in_neut[li_neut + i]
             );
           }
         }
@@ -150,11 +150,11 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app *app, doubl
             struct gk_species *gks = &sbapp->species[i];
             // Compute moment of f_old to later compute moment of df/dt.
             // Do it before the fields are updated, but after dt is calculated.
-            gk_species_calc_int_mom_dt(sbapp, gks, dt, gks->fdot_mom_old);
+            gk_species_calc_integ_mom_dt(sbapp, gks, dt, gks->fdot_mom_old);
           }
 
-          // Compute field energy divided by dt for energy balance diagnostics.
-          gk_field_calc_energy_dt(sbapp, sbapp->field, dt, sbapp->field->em_energy_red_old);
+          // Store the field energies divided by dt for the energy rate and balance diagnostics.
+          gk_field_calc_energy_dt(sbapp, sbapp->field, dt, true);
         }
 
         // Compute the fields and apply BCs.
@@ -173,16 +173,16 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app *app, doubl
             fin[li_charged + i] = gks->f1;
             fout[li_charged + i] = gks->fnew;
             // Boundary fluxes.
-            bflux_in[li_charged + i] = gks->bflux.f1;
-            bflux_out[li_charged + i] = gks->bflux.fnew;
+            bflux_in[li_charged + i] = gks->step_moms.f1;
+            bflux_out[li_charged + i] = gks->step_moms.fnew;
           }
           for (int i = 0; i < ns_neut; ++i) {
             struct gk_neut_species *gkns = &sbapp->neut_species[i];
             fin_neut[li_neut + i] = gkns->f1;
             fout_neut[li_neut + i] = gkns->fnew;
             // Boundary fluxes.
-            bflux_in_neut[li_neut + i] = gkns->bflux.f1;
-            bflux_out_neut[li_neut + i] = gkns->bflux.fnew;
+            bflux_in_neut[li_neut + i] = gkns->step_moms.f1;
+            bflux_out_neut[li_neut + i] = gkns->step_moms.fnew;
           }
         }
 
@@ -199,7 +199,7 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app *app, doubl
             for (int i = 0; i < ns_charged; ++i) {
               struct gk_species *gks = &sbapp->species[i];
               fin[li_charged + i] = gks->f;
-              bflux_in[li_charged + i] = gks->bflux.f;
+              bflux_in[li_charged + i] = gks->step_moms.f;
             }
           }
           gyrokinetic_multib_calc_field(app, tcurr, fin, bflux_in);
@@ -222,15 +222,17 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app *app, doubl
               gk_species_combine(
                 gks, gks->f1, 3.0 / 4.0, gks->f, 1.0 / 4.0, gks->fnew, &gks->local_ext
               );
-              gk_species_bflux_set(sbapp, &gks->bflux, gks->bflux.f1, 1.0 / 4.0, gks->bflux.fnew);
+              gk_stepped_moms_set(
+                &gks->step_moms, gks->step_moms.f1, 1.0 / 4.0, gks->step_moms.fnew
+              );
             }
             for (int i = 0; i < ns_neut; ++i) {
               struct gk_neut_species *gkns = &sbapp->neut_species[i];
               gk_neut_species_combine(
                 gkns, gkns->f1, 3.0 / 4.0, gkns->f, 1.0 / 4.0, gkns->fnew, &gkns->local_ext
               );
-              gk_neut_species_bflux_set(
-                sbapp, &gkns->bflux, gkns->bflux.f1, 1.0 / 4.0, gkns->bflux.fnew
+              gk_stepped_moms_set(
+                &gkns->step_moms, gkns->step_moms.f1, 1.0 / 4.0, gkns->step_moms.fnew
               );
             }
           }
@@ -244,7 +246,7 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app *app, doubl
             for (int i = 0; i < ns_charged; ++i) {
               struct gk_species *gks = &sbapp->species[i];
               fout[li_charged + i] = gks->f1;
-              bflux_out[li_charged + i] = gks->bflux.f1;
+              bflux_out[li_charged + i] = gks->step_moms.f1;
             }
             for (int i = 0; i < ns_neut; ++i) {
               fout_neut[li_neut + i] = sbapp->neut_species[i].f1;
@@ -266,16 +268,16 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app *app, doubl
             fin[li_charged + i] = gks->f1;
             fout[li_charged + i] = gks->fnew;
             // Boundary fluxes.
-            bflux_in[li_charged + i] = gks->bflux.f1;
-            bflux_out[li_charged + i] = gks->bflux.fnew;
+            bflux_in[li_charged + i] = gks->step_moms.f1;
+            bflux_out[li_charged + i] = gks->step_moms.fnew;
           }
           for (int i = 0; i < ns_neut; ++i) {
             struct gk_neut_species *gkns = &sbapp->neut_species[i];
             fin_neut[li_neut + i] = sbapp->neut_species[i].f1;
             fout_neut[li_neut + i] = sbapp->neut_species[i].fnew;
             // Boundary fluxes.
-            bflux_in_neut[li_neut + i] = gkns->bflux.f1;
-            bflux_out_neut[li_neut + i] = gkns->bflux.fnew;
+            bflux_in_neut[li_neut + i] = gkns->step_moms.f1;
+            bflux_out_neut[li_neut + i] = gkns->step_moms.fnew;
           }
         }
 
@@ -292,7 +294,7 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app *app, doubl
             for (int i = 0; i < ns_charged; ++i) {
               struct gk_species *gks = &sbapp->species[i];
               fin[li_charged + i] = gks->f;
-              bflux_in[li_charged + i] = gks->bflux.f;
+              bflux_in[li_charged + i] = gks->step_moms.f;
             }
           }
           gyrokinetic_multib_calc_field(app, tcurr, fin, bflux_in);
@@ -319,8 +321,7 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app *app, doubl
               );
               gk_species_copy_range(gks, gks->f, gks->f1, &gks->local_ext);
               // Step boundary fluxes.
-              gk_species_bflux_set(sbapp, &gks->bflux, gks->bflux.f, 2.0 / 3.0, gks->bflux.fnew);
-              gk_species_bflux_calc_voltime_integrated_mom(sbapp, gks, &gks->bflux, tcurr);
+              gk_stepped_moms_set(&gks->step_moms, gks->step_moms.f, 2.0 / 3.0, gks->step_moms.fnew);
             }
             for (int i = 0; i < ns_neut; ++i) {
               struct gk_neut_species *gkns = &sbapp->neut_species[i];
@@ -329,10 +330,9 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app *app, doubl
               );
               gk_neut_species_copy_range(gkns, gkns->f, gkns->f1, &gkns->local_ext);
               // Step boundary fluxes.
-              gk_neut_species_bflux_set(
-                sbapp, &gkns->bflux, gkns->bflux.f, 2.0 / 3.0, gkns->bflux.fnew
+              gk_stepped_moms_set(
+                &gkns->step_moms, gkns->step_moms.f, 2.0 / 3.0, gkns->step_moms.fnew
               );
-              gk_neut_species_bflux_calc_voltime_integrated_mom(sbapp, gkns, &gkns->bflux, tcurr);
             }
           }
           app->stat.time_stepper_arithmetic_tm += gkyl_time_diff_now_sec(wst);
@@ -353,7 +353,7 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app *app, doubl
             for (int i = 0; i < ns_charged; ++i) {
               struct gk_species *gks = &sbapp->species[i];
               fout[li_charged + i] = gks->f;
-              bflux_out[li_charged + i] = gks->bflux.f;
+              bflux_out[li_charged + i] = gks->step_moms.f;
             }
             for (int i = 0; i < ns_neut; ++i) {
               fout_neut[li_neut + i] = sbapp->neut_species[i].f;
@@ -372,11 +372,11 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app *app, doubl
               struct gk_species *gks = &sbapp->species[i];
               // Compute moment of f_new to compute moment of df/dt.
               // Need to do it after the fields are updated.
-              gk_species_calc_int_mom_dt(sbapp, gks, dt, gks->fdot_mom_new);
+              gk_species_calc_integ_mom_dt(sbapp, gks, dt, gks->fdot_mom_new);
             }
 
-            // Compute field energy divided by dt for energy balance diagnostics.
-            gk_field_calc_energy_dt(sbapp, sbapp->field, dt, sbapp->field->em_energy_red_new);
+            // Store the field energies divided by dt for the energy rate and balance diagnostics.
+            gk_field_calc_energy_dt(sbapp, sbapp->field, dt, false);
           }
 
           state = RK_COMPLETE;

@@ -73,11 +73,7 @@ gk_neut_species_fluid_release_dynamic(
   // Release memory allocated for dynamic neutrals.
   gkyl_array_release(gkns->cflrate);
 
-  if (app->use_gpu) {
-    gkyl_cu_free(gkns->omega_cfl);
-  } else {
-    gkyl_free(gkns->omega_cfl);
-  }
+  gkyl_free_hodev(app->use_gpu, gkns->omega_cfl);
 
   // Release integrated mom data.
   gk_neut_species_moment_release(app, &gkns->integ_moms);
@@ -85,13 +81,8 @@ gk_neut_species_fluid_release_dynamic(
   // Release integrated mom diag data.
   gkyl_dynvec_release(gkns->integ_diag);
 
-  if (app->use_gpu) {
-    gkyl_cu_free(gkns->red_integ_diag);
-    gkyl_cu_free(gkns->red_integ_diag_global);
-  } else {
-    gkyl_free(gkns->red_integ_diag);
-    gkyl_free(gkns->red_integ_diag_global);
-  }
+  gkyl_free_hodev(app->use_gpu, gkns->red_integ_diag);
+  gkyl_free_hodev(app->use_gpu, gkns->red_integ_diag_global);
 }
 
 static void
@@ -122,6 +113,7 @@ gk_neut_species_fluid_release(const gkyl_gyrokinetic_app *app, const struct gk_n
 
   // Free boundary flux memory.
   gk_neut_species_bflux_release(app, gkns, &gkns->bflux);
+  gk_stepped_moms_release_view(&gkns->step_moms);
 
   gk_neut_species_lte_release(app, &gkns->lte);
 
@@ -146,19 +138,15 @@ gk_neut_species_fluid_init_dynamic(
   // Allocate cflrate (scalar array).
   gkns->cflrate = mkarr(app->use_gpu, 1, gkns->local_ext.volume);
 
-  gkns->omega_cfl = app->use_gpu ? gkyl_cu_malloc(sizeof(double)) : gkyl_malloc(sizeof(double));
+  gkns->omega_cfl = gkyl_calloc_hodev(app->use_gpu, 1, sizeof(double));
 
   // Allocate data for integrated moments.
   gk_neut_species_moment_init(app, gkns, &gkns->integ_moms, GKYL_F_MOMENT_M0M1M2, true);
 
   // Allocate data for integrated diagnostics.
-  if (app->use_gpu) {
-    gkns->red_integ_diag = gkyl_cu_malloc(sizeof(double[gkns->integ_moms.num_mom]));
-    gkns->red_integ_diag_global = gkyl_cu_malloc(sizeof(double[gkns->integ_moms.num_mom]));
-  } else {
-    gkns->red_integ_diag = gkyl_malloc(sizeof(double[gkns->integ_moms.num_mom]));
-    gkns->red_integ_diag_global = gkyl_malloc(sizeof(double[gkns->integ_moms.num_mom]));
-  }
+  gkns->red_integ_diag = gkyl_calloc_hodev(app->use_gpu, gkns->integ_moms.num_mom, sizeof(double));
+  gkns->red_integ_diag_global =
+    gkyl_calloc_hodev(app->use_gpu, gkns->integ_moms.num_mom, sizeof(double));
   // Allocate dynamic-vector to store all-reduced integrated moments.
   gkns->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, gkns->integ_moms.num_mom);
   gkns->is_first_integ_write_call = true;
@@ -362,11 +350,13 @@ gk_neut_species_fluid_init(
 
   // Initialize boundary fluxes.
   gkns->bflux = (struct gk_boundary_fluxes){};
+  gkns->step_moms = (struct gk_stepped_moms){};
   // Additional bflux moments to step in time.
   struct gkyl_phase_diagnostics_inp add_bflux_moms_inp = (struct gkyl_phase_diagnostics_inp){};
   // Set the operation type for the bflux app.
   enum gkyl_species_bflux_type bflux_type = GK_SPECIES_BFLUX_NONE;
   gk_neut_species_bflux_init(app, gkns, &gkns->bflux, bflux_type, add_bflux_moms_inp);
+  gkns->bflux.step_moms_idx = gk_stepped_moms_append_refs(&gkns->step_moms, &gkns->bflux.step_moms);
 
   // Initialize a Maxwellian/LTE (local thermodynamic equilibrium) projection routine
   // Projection routine optionally corrects all the Maxwellian/LTE moments

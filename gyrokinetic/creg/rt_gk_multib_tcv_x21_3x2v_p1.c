@@ -40,6 +40,7 @@ struct gk_tcv_ctx {
   double psi_max_core, psi_min_sol, psi_max_pf; // Psi extents.
   double Lx_core; // Box size in y.
   double Ly; // Box size in y.
+  double Cy, rho_s; // Binormal and ion-sound-gyroradius reference lengths.
   double y_min, y_max; // Limits in y.
 
   // Grid.
@@ -897,6 +898,8 @@ create_ctx(void)
     .psi_max_pf = psi_max_pf,
     .Lx_core = Lx_core,
     .Ly = Ly,
+    .Cy = r0 / q0,
+    .rho_s = rho_s,
     .y_min = y_min,
     .y_max = y_max,
     .lambda_src = lambda_src,
@@ -1032,7 +1035,6 @@ main(int argc, char **argv)
             .diag_moments = {GKYL_F_MOMENT_M0M1M2PARM2PERP},
             .num_integrated_diag_moments = 1,
             .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-            //        .time_integrated = true,
           },
       },
 
@@ -1092,11 +1094,10 @@ main(int argc, char **argv)
     .num_integrated_diag_moments = 1,
     .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
     .time_rate_diagnostics = true,
+    .num_balance_diags = 2,
+    .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY},
     .boundary_flux_diagnostics =
-      {
-        .num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-        //      .time_integrated = true,
-      },
+      {.num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}},
   };
 
   // Ions.
@@ -1158,7 +1159,6 @@ main(int argc, char **argv)
             .diag_moments = {GKYL_F_MOMENT_M0M1M2PARM2PERP},
             .num_integrated_diag_moments = 1,
             .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-            //        .time_integrated = true,
           },
       },
 
@@ -1218,11 +1218,10 @@ main(int argc, char **argv)
     .num_integrated_diag_moments = 1,
     .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
     .time_rate_diagnostics = true,
+    .num_balance_diags = 2,
+    .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY},
     .boundary_flux_diagnostics =
-      {
-        .num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-        //      .time_integrated = true,
-      },
+      {.num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}},
   };
 
   // Field object.
@@ -1327,6 +1326,10 @@ main(int argc, char **argv)
     .bcs = field_phys_bcs,
   };
 
+  struct gkyl_msgpack_map_elem additional_metadata[] = {
+    {.key = "Cy", .elem_type = GKYL_MP_DOUBLE, .dval = ctx.Cy},
+    {.key = "rho_s", .elem_type = GKYL_MP_DOUBLE, .dval = ctx.rho_s},
+  };
   struct gkyl_gyrokinetic_multib *app_inp = gkyl_calloc(1, sizeof(struct gkyl_gyrokinetic_multib));
   app_inp->cdim = ctx.cdim;
   app_inp->poly_order = 1;
@@ -1334,11 +1337,19 @@ main(int argc, char **argv)
   app_inp->use_gpu = app_args.use_gpu;
   app_inp->cfl_frac = 1.0;
   app_inp->gk_block_geom = bgeom;
+  app_inp->diagnostics.num_balance_diags = 2;
+  app_inp->diagnostics.balance_diags[0] = GKYL_GK_BALANCE_PARTICLE;
+  app_inp->diagnostics.balance_diags[1] = GKYL_GK_BALANCE_ENERGY;
+
   app_inp->num_species = 2;
   app_inp->species[0] = elc;
   app_inp->species[1] = ion;
   app_inp->field = field;
   app_inp->comm = comm;
+  app_inp->metadata = (struct gkyl_gyrokinetic_metadata_inp){
+    .num_attributes = sizeof(additional_metadata) / sizeof(additional_metadata[0]),
+    .attributes = additional_metadata,
+  };
 
   // Set app output name from the executable name (argv[0]).
   snprintf(app_inp->name, sizeof(app_inp->name), "%s", app_args.app_name);

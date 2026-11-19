@@ -1,3 +1,4 @@
+#include <gkyl_tok_geo.h>
 #include <gkyl_alloc.h>
 #include <gkyl_const.h>
 #include <gkyl_efit.h>
@@ -61,6 +62,8 @@ struct gk_app_ctx {
   double nuIon; // ion collision frequency
   double nu_frac; // Factor to multiply collision frequencies
   double B0; // reference magnetic field
+  double rho_s; // Reference ion-sound gyroradius [m].
+  double Cy; // Reference binormal scale [m].
   double n0; // reference density
   double n0H0; // neutral hydrogen reference density
   // Source parameters
@@ -107,6 +110,7 @@ create_ctx(void)
   double Ti = 1500.0 / temp_fac * eV;
   double TH0 = 100.0 * eV;
   double B0 = 2.18; // Magnetic field magnitude in Tesla
+  double rho_s = sqrt(Te / mi) / fabs(qi * B0 / mi);
   double n0 = 2.0e19; // Particle density in 1/m^3
   double n0H0 = n0 * 1.0e-2; // Particle density in 1/m^3
 
@@ -173,6 +177,7 @@ create_ctx(void)
     .nuIon = nuIon,
     .nu_frac = nu_frac,
     .B0 = B0,
+    .rho_s = rho_s,
     .n0 = n0,
     .n0H0 = n0H0,
     .nsource = nsource,
@@ -469,6 +474,16 @@ create_gk_block_geom(void *ctx)
     }
   );
 
+  // Use the radial midpoint of the outer SOL and the full connection path.
+  struct gkyl_tok_geo_grid_inp qinp =
+    gkyl_gk_block_geom_get_block(bgeom, 1)->geometry.tok_grid_info;
+  qinp.ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT;
+  struct gkyl_rect_grid qgrid;
+  gkyl_rect_grid_init(&qgrid, 1, &psi_lo_outer_sol, &psi_up_outer_sol, &npsi_outer_sol);
+  struct gkyl_tok_geo *qgeo = gkyl_tok_geo_new(&efit_inp, &qinp);
+  app->Cy =
+    gkyl_tok_geo_calc_Cy(qgeo, &qinp, &qgrid, 1, 0.5 * (psi_lo_outer_sol + psi_up_outer_sol));
+  gkyl_tok_geo_release(qgeo);
   return bgeom;
 }
 
@@ -608,7 +623,7 @@ calc_integrated_diagnostics(
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_calc) {
     gkyl_gyrokinetic_multib_app_calc_field_energy(app, t_curr);
-    gkyl_gyrokinetic_multib_app_calc_integrated_mom(app, t_curr);
+    gkyl_gyrokinetic_multib_app_calc_integrated_mom(app, t_curr, dt);
     if (!(dt < 0.0)) {
       gkyl_gyrokinetic_multib_app_save_dt(app, t_curr, dt);
     }
@@ -753,13 +768,14 @@ main(int argc, char **argv)
     .num_integrated_diag_moments = 1,
     .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
     .time_rate_diagnostics = true,
+    .num_balance_diags = 2,
+    .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY},
     .boundary_flux_diagnostics =
       {
         .num_diag_moments = 1,
         .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
         .num_integrated_diag_moments = 1,
         .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-        //      .time_integrated = true,
       },
 
     .mapc2p = {.mapping = mapc2p_vel_elc, .ctx = &ctx},
@@ -870,13 +886,14 @@ main(int argc, char **argv)
     .num_integrated_diag_moments = 1,
     .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
     .time_rate_diagnostics = true,
+    .num_balance_diags = 2,
+    .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY},
     .boundary_flux_diagnostics =
       {
         .num_diag_moments = 1,
         .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
         .num_integrated_diag_moments = 1,
         .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-        //      .time_integrated = true,
       },
 
     .mapc2p = {.mapping = mapc2p_vel_ion, .ctx = &ctx},
@@ -958,12 +975,20 @@ main(int argc, char **argv)
     .time_rate_diagnostics = true,
   };
 
+  struct gkyl_msgpack_map_elem additional_metadata[] = {
+    {.key = "Cy", .elem_type = GKYL_MP_DOUBLE, .dval = ctx.Cy},
+    {.key = "rho_s", .elem_type = GKYL_MP_DOUBLE, .dval = ctx.rho_s},
+  };
   struct gkyl_gyrokinetic_multib *app_inp = gkyl_calloc(1, sizeof(struct gkyl_gyrokinetic_multib));
   app_inp->cdim = ctx.cdim;
   app_inp->poly_order = 1;
   app_inp->basis_type = app_args.basis_type;
   app_inp->cfl_frac = 1.0;
   app_inp->gk_block_geom = bgeom;
+  app_inp->diagnostics.num_balance_diags = 2;
+  app_inp->diagnostics.balance_diags[0] = GKYL_GK_BALANCE_PARTICLE;
+  app_inp->diagnostics.balance_diags[1] = GKYL_GK_BALANCE_ENERGY;
+
   app_inp->num_species = 2;
   app_inp->species[0] = elc;
   app_inp->species[1] = ion;
@@ -971,6 +996,10 @@ main(int argc, char **argv)
   app_inp->periodic_dirs[0] = 1;
   app_inp->field = field;
   app_inp->comm = comm;
+  app_inp->metadata = (struct gkyl_gyrokinetic_metadata_inp){
+    .num_attributes = sizeof(additional_metadata) / sizeof(additional_metadata[0]),
+    .attributes = additional_metadata,
+  };
   app_inp->use_gpu = app_args.use_gpu;
 
   // Set app output name from the executable name (argv[0]).

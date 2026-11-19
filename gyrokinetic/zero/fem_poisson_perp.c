@@ -523,6 +523,7 @@ gkyl_fem_poisson_perp_new(
                 break;
               }
             }
+            gkyl_mat_triples_iter_release(mtt_iter);
             csr_val_idx_p[k * up->basis.num_basis + l] = paridx * nnz + off;
           }
         }

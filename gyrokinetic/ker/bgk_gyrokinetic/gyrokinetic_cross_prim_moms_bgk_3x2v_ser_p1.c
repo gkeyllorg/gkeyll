@@ -68,7 +68,7 @@ GKYL_CU_DH void gyrokinetic_cross_prim_moms_bgk_3x2v_ser_p1(const double delta_s
   dTemp[7] = vdimPhys * (m_r*vtsq_r[7]-m_s*vtsq_s[7]); 
   double dUparSq[8] = {0.0}; 
   binop_mul_3d_ser_p1(dUpar, dUpar, dUparSq); 
-  const double dUparSq_fac = (m_r-0.25*deltaTbetap1*mSum/vdimPhys);
+  const double dUparSq_fac = (m_r-0.25*deltaTbetap1*mSum);
   vtsq_sr[0] = vtsq_s[0] + deltaTbetap1/(vdimPhys*mSum)*(dTemp[0]+dUparSq_fac*dUparSq[0]); 
   vtsq_sr[1] = vtsq_s[1] + deltaTbetap1/(vdimPhys*mSum)*(dTemp[1]+dUparSq_fac*dUparSq[1]); 
   vtsq_sr[2] = vtsq_s[2] + deltaTbetap1/(vdimPhys*mSum)*(dTemp[2]+dUparSq_fac*dUparSq[2]); 

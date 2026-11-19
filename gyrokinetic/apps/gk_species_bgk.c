@@ -392,12 +392,18 @@ gk_species_bgk_cross_init(
             bgk->collide_with[i]->info.vdim != gks->info.vdim) {
           gkyl_exit("Cross collisions require matching collision models and velocity dimensions.");
         }
+        if (bgk->collide_with[i]->info.collisions.is_implicit != bgk->implicit_step) {
+          gkyl_exit("BGK cross collisions require matching explicit/implicit timestep modes.");
+        }
         my_idx_in_other[i] = -1;
         for (int j = 0; j < bgk->collide_with[i]->bgk.num_cross_collisions; ++j) {
           if (0 == strcmp(gks->info.name, bgk->collide_with[i]->info.collisions.collide_with[j])) {
             my_idx_in_other[i] = j;
             break;
           }
+        }
+        if (my_idx_in_other[i] < 0) {
+          gkyl_exit("BGK cross collisions require reciprocal collide_with lists.");
         }
       }
 
