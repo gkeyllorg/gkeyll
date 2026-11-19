@@ -269,7 +269,10 @@ create_ctx(struct gk_app_ctx *out)
   // Geometry and magnetic field.
   double Zvert_axis = -0.0014645315; // Magnetic axis height [m].
   double Rmajor_axis = 1.7074685; // Magnetic axis major radius [m].
-  double bmag_axis = 2.0; // Toroidal field at the axis [T]; positive B_phi as in the analytic input.
+  // B_phi clockwise viewed from above, so the ion grad-B drift is downward.
+  // The Miller generator fixes the plasma current along -phi, so here the
+  // current is parallel to B_phi.
+  double bmag_axis = -2.0; // Toroidal field at the axis [T].
   double R_LCFSmid = 2.17; // Major radius of the LCFS at the outboard midplane [m].
   double x_inner = 0.10; // Radial extent inside the LCFS [m].
   double x_outer = 0.05; // Radial extent outside the LCFS [m].

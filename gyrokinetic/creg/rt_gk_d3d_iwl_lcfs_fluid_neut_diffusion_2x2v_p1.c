@@ -232,7 +232,10 @@ main(int argc, char **argv)
   const double Rmajor_axis = 1.7074685, R_LCFSmid = 2.17;
   const double a_shift = 1.0, x_inner = 0.10, x_outer = 0.05;
   const double R0 = R_LCFSmid + 0.5 * (x_outer - x_inner); // Outboard reference radius [m].
-  const double bmag_axis = 2.0; // Positive B_phi, as in the analytic input.
+  // B_phi clockwise viewed from above, so the ion grad-B drift is downward.
+  // The Miller generator fixes the plasma current along -phi, so here the
+  // current is parallel to B_phi.
+  const double bmag_axis = -2.0;
 
   // The Miller shape callbacks need the final context address.
   struct d3d_neut_ctx ctx = {
