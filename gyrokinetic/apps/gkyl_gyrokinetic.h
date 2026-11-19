@@ -565,11 +565,15 @@ struct gkyl_gyrokinetic_neut_fluid_diffusion {
   // Density boundary conditions in the parallel direction (cdim-1). The
   // default is homogeneous diffusive flux. Dirichlet values are physical
   // neutral number densities; the fluid mass density imposed on the operator
-  // is mass*n. A GKYL_BC_GK_SPECIES_RECYCLE entry in the neutral bcs array
-  // overrides the corresponding diffusion edge with a flux condition: the
-  // neutral flux entering through the target is R*Gamma_i, with R the
-  // emission recycling_frac and Gamma_i the local flux of the emission
-  // in_species, so recycling conserves particles. emission_temp is not used.
+  // is mass*n. Entries in the neutral bcs array override the diffusion
+  // condition at any non-periodic boundary (the default is zero flux):
+  //   - GKYL_BC_GK_SPECIES_RECYCLE: the neutral flux entering through the
+  //     boundary is R*Gamma_i, with R the emission recycling_frac and Gamma_i
+  //     the local flux of the emission in_species out of that boundary, so
+  //     recycling conserves particles. Each boundary has its own emission
+  //     input, so e.g. wall and target recycling coefficients can differ.
+  //     emission_temp is not used.
+  //   - GKYL_BC_GK_SPECIES_ABSORB: absorbing boundary, n_n = 0.
   enum gkyl_gyrokinetic_neut_fluid_diffusion_bc_type lower_bc_type;
   enum gkyl_gyrokinetic_neut_fluid_diffusion_bc_type upper_bc_type;
   double lower_bc_density;

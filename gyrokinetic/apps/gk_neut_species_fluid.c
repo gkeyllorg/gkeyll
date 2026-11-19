@@ -123,7 +123,7 @@ gk_neut_species_fluid_diffusion_zero_flux_ghost(
   }
 }
 
-// Recycled neutral mass flux at a target, stored in the ghost cells in the
+// Recycled neutral mass flux at a boundary, stored in the ghost cells in the
 // same representation as the ion boundary-flux moments:
 //   F_n = m_n R sum_s g_s,
 // where g_s is the J-weighted M0 rate of impacting species s deposited in the
@@ -139,12 +139,12 @@ gk_neut_species_fluid_recycling_flux(
   enum gkyl_edge_loc edge, const struct gkyl_range *ghost, bool step_averaged
 )
 {
-  const int e = edge == GKYL_LOWER_EDGE ? 0 : 1;
+  const int k = 2 * dir + (edge == GKYL_LOWER_EDGE ? 0 : 1);
   const struct gkyl_gyrokinetic_bc *bc = edge == GKYL_LOWER_EDGE ? &species->lower_bc[dir] :
                                                                    &species->upper_bc[dir];
   gkyl_array_clear_range(species->diffusion_recycling_flux, 0.0, ghost);
-  for (int i = 0; i < species->diffusion_recycling_num_species[e]; ++i) {
-    struct gk_species *ion = &app->species[species->diffusion_recycling_ion_idx[e][i]];
+  for (int i = 0; i < species->diffusion_recycling_num_species[k]; ++i) {
+    struct gk_species *ion = &app->species[species->diffusion_recycling_ion_idx[k][i]];
     struct gkyl_array **ion_flux_moms = step_averaged ? ion->bflux.f : ion->bflux.current_moms;
     assert(ion_flux_moms);
     gkyl_array_clear_range(species->diffusion_recycling_flux_tmp, 0.0, ghost);
@@ -211,74 +211,86 @@ gk_neut_species_fluid_recycling_source(
   }
 }
 
-// Ghost ranges of the parallel boundaries. In an LCFS-spanning domain only the
-// SOL part of each parallel boundary is a material target.
-static void
-gk_neut_species_fluid_par_ghost_ranges(
-  const gkyl_gyrokinetic_app *app, const struct gk_neut_species *species,
-  const struct gkyl_range *ghost[2]
+// Ghost range of the boundary (dir, edge). In an LCFS-spanning domain only the
+// SOL part of each parallel boundary is a material target; the confined part
+// is periodic.
+static const struct gkyl_range *
+gk_neut_species_fluid_bc_ghost_range(
+  const gkyl_gyrokinetic_app *app, const struct gk_neut_species *species, int dir,
+  enum gkyl_edge_loc edge
 )
 {
-  const int par_dir = app->cdim - 1;
-  ghost[0] =
-    app->gk_geom->has_LCFS ? &app->local_lower_ghost_par_sol : &species->local_lower_ghost[par_dir];
-  ghost[1] =
-    app->gk_geom->has_LCFS ? &app->local_upper_ghost_par_sol : &species->local_upper_ghost[par_dir];
+  const bool lower = edge == GKYL_LOWER_EDGE;
+  if (dir == app->cdim - 1 && app->gk_geom->has_LCFS) {
+    return lower ? &app->local_lower_ghost_par_sol : &app->local_upper_ghost_par_sol;
+  }
+  return lower ? &species->local_lower_ghost[dir] : &species->local_upper_ghost[dir];
 }
 
-// Fill the parallel ghosts of the diffusion density and tensor. Recycling
-// targets get a zero diffusive flux (the recycled flux is added separately as
-// a boundary source); fixed-density targets get a Dirichlet trace, which is
-// zero for the homogeneous part of the implicit operator.
+// Fill the boundary ghosts of the diffusion density and tensor:
+//   - GKYL_BC_GK_SPECIES_RECYCLE: zero diffusive flux; the recycled flux is
+//     added separately as a boundary source.
+//   - GKYL_BC_GK_SPECIES_ABSORB: absorbing wall, Dirichlet n_n = 0.
+//   - parallel Dirichlet diffusion input: fixed density n_b, which is zero
+//     for the homogeneous part of the implicit operator.
+// Other non-periodic boundaries use the solver's zero-flux boundary kernel.
 static void
-gk_neut_species_fluid_diffusion_par_ghosts(
+gk_neut_species_fluid_diffusion_bc_ghosts(
   const gkyl_gyrokinetic_app *app, const struct gk_neut_species *species,
   struct gkyl_array *density, bool homogeneous_bc
 )
 {
   const int par_dir = app->cdim - 1;
-  const struct gkyl_range *ghost[2];
-  gk_neut_species_fluid_par_ghost_ranges(app, species, ghost);
-  for (int e = 0; e < 2; ++e) {
-    const enum gkyl_edge_loc edge = e == 0 ? GKYL_LOWER_EDGE : GKYL_UPPER_EDGE;
-    const struct gkyl_gyrokinetic_bc *bc = e == 0 ? &species->lower_bc[par_dir] :
-                                                    &species->upper_bc[par_dir];
-    const enum gkyl_gyrokinetic_neut_fluid_diffusion_bc_type diff_bc =
-      e == 0 ? species->info.diffusion.lower_bc_type : species->info.diffusion.upper_bc_type;
-    if (bc->type == GKYL_BC_GK_SPECIES_RECYCLE) {
-      gk_neut_species_fluid_diffusion_zero_flux_ghost(
-        app, species, par_dir, edge, ghost[e], density, species->diffusion_tensor
-      );
-    } else if (diff_bc == GKYL_NEUT_FLUID_DIFFUSION_DIRICHLET) {
-      const double n_b =
-        e == 0 ? species->info.diffusion.lower_bc_density : species->info.diffusion.upper_bc_density;
-      gk_neut_species_fluid_diffusion_dirichlet_ghost(
-        app, species, par_dir, edge, ghost[e], homogeneous_bc ? 0.0 : n_b, density,
-        species->diffusion_tensor
-      );
+  for (int dir = 0; dir < app->cdim; ++dir) {
+    for (int e = 0; e < 2; ++e) {
+      const enum gkyl_edge_loc edge = e == 0 ? GKYL_LOWER_EDGE : GKYL_UPPER_EDGE;
+      const struct gkyl_gyrokinetic_bc *bc =
+        e == 0 ? &species->lower_bc[dir] : &species->upper_bc[dir];
+      const struct gkyl_range *ghost = gk_neut_species_fluid_bc_ghost_range(app, species, dir, edge);
+      if (bc->type == GKYL_BC_GK_SPECIES_RECYCLE) {
+        gk_neut_species_fluid_diffusion_zero_flux_ghost(
+          app, species, dir, edge, ghost, density, species->diffusion_tensor
+        );
+      } else if (bc->type == GKYL_BC_GK_SPECIES_ABSORB) {
+        gk_neut_species_fluid_diffusion_dirichlet_ghost(
+          app, species, dir, edge, ghost, 0.0, density, species->diffusion_tensor
+        );
+      } else if (dir == par_dir) {
+        const enum gkyl_gyrokinetic_neut_fluid_diffusion_bc_type diff_bc =
+          e == 0 ? species->info.diffusion.lower_bc_type : species->info.diffusion.upper_bc_type;
+        if (diff_bc == GKYL_NEUT_FLUID_DIFFUSION_DIRICHLET) {
+          const double n_b = e == 0 ? species->info.diffusion.lower_bc_density :
+                                      species->info.diffusion.upper_bc_density;
+          gk_neut_species_fluid_diffusion_dirichlet_ghost(
+            app, species, dir, edge, ghost, homogeneous_bc ? 0.0 : n_b, density,
+            species->diffusion_tensor
+          );
+        }
+      }
     }
   }
 }
 
-// Add the recycled neutral flux at the parallel targets to rhs. step_averaged
-// selects the step-averaged impacting flux (implicit stage) instead of the
-// current RK-stage flux (explicit RHS).
+// Add the recycled neutral flux at every recycling boundary to rhs.
+// step_averaged selects the step-averaged impacting flux (implicit stage)
+// instead of the current RK-stage flux (explicit RHS).
 static void
 gk_neut_species_fluid_diffusion_add_recycling(
   gkyl_gyrokinetic_app *app, const struct gk_neut_species *species, struct gkyl_array *rhs,
   bool step_averaged
 )
 {
-  const int par_dir = app->cdim - 1;
-  const struct gkyl_range *ghost[2];
-  gk_neut_species_fluid_par_ghost_ranges(app, species, ghost);
-  for (int e = 0; e < 2; ++e) {
-    const enum gkyl_edge_loc edge = e == 0 ? GKYL_LOWER_EDGE : GKYL_UPPER_EDGE;
-    const struct gkyl_gyrokinetic_bc *bc = e == 0 ? &species->lower_bc[par_dir] :
-                                                    &species->upper_bc[par_dir];
-    if (bc->type == GKYL_BC_GK_SPECIES_RECYCLE) {
-      gk_neut_species_fluid_recycling_flux(app, species, par_dir, edge, ghost[e], step_averaged);
-      gk_neut_species_fluid_recycling_source(app, species, par_dir, edge, ghost[e], rhs);
+  for (int dir = 0; dir < app->cdim; ++dir) {
+    for (int e = 0; e < 2; ++e) {
+      const enum gkyl_edge_loc edge = e == 0 ? GKYL_LOWER_EDGE : GKYL_UPPER_EDGE;
+      const struct gkyl_gyrokinetic_bc *bc =
+        e == 0 ? &species->lower_bc[dir] : &species->upper_bc[dir];
+      if (bc->type == GKYL_BC_GK_SPECIES_RECYCLE) {
+        const struct gkyl_range *ghost =
+          gk_neut_species_fluid_bc_ghost_range(app, species, dir, edge);
+        gk_neut_species_fluid_recycling_flux(app, species, dir, edge, ghost, step_averaged);
+        gk_neut_species_fluid_recycling_source(app, species, dir, edge, ghost, rhs);
+      }
     }
   }
 }
@@ -572,8 +584,8 @@ gk_neut_species_fluid_rhs_dynamic(
       species->comm, &species->local, &species->local_ext, species->diffusion_tensor
     );
 
-    // Fixed-density or recycling open-field-line boundaries.
-    gk_neut_species_fluid_diffusion_par_ghosts(app, species, species->diffusion_density, false);
+    // Recycling, absorbing or fixed-density boundaries.
+    gk_neut_species_fluid_diffusion_bc_ghosts(app, species, species->diffusion_density, false);
 
     gkyl_dg_updater_conf_diffusion_advance(
       species->diffusion_slvr, &species->local, species->diffusion_density,
@@ -790,7 +802,7 @@ fluid_diffusion_apply_L(
   );
   gkyl_comm_array_sync(species->comm, &species->local, &species->local_ext, rho);
 
-  gk_neut_species_fluid_diffusion_par_ghosts(app, species, rho, homogeneous_bc);
+  gk_neut_species_fluid_diffusion_bc_ghosts(app, species, rho, homogeneous_bc);
 
   gkyl_array_clear(out, 0.0);
   gkyl_array_clear(species->diffusion_cflrate, 0.0);
@@ -1170,8 +1182,9 @@ gk_neut_species_fluid_init_dynamic(
   ns->diffusion_vt_sq = 0;
   ns->diffusion_div_mem = 0;
   ns->diffusion_slvr = 0;
-  ns->diffusion_recycling_num_species[0] = 0;
-  ns->diffusion_recycling_num_species[1] = 0;
+  for (int k = 0; k < 2 * GKYL_MAX_CDIM; ++k) {
+    ns->diffusion_recycling_num_species[k] = 0;
+  }
   ns->ionization_rate = 0;
   ns->ionization_cflrate = 0;
   ns->ionization_cflrate_host = 0;
@@ -1229,28 +1242,40 @@ gk_neut_species_fluid_init_dynamic(
     }
 
     const int par_dir = cdim - 1;
-    const bool recycle_lo = ns->lower_bc[par_dir].type == GKYL_BC_GK_SPECIES_RECYCLE;
-    const bool recycle_up = ns->upper_bc[par_dir].type == GKYL_BC_GK_SPECIES_RECYCLE;
-    if (recycle_lo || recycle_up) {
+    // Whether each boundary (lower edges first, then upper) fills its own
+    // diffusion ghosts instead of using the solver's zero-flux kernel.
+    bool bc_sets_ghosts[2 * GKYL_MAX_CDIM] = {false};
+    bool has_recycling = false;
+    for (int dir = 0; dir < cdim; ++dir) {
+      for (int e = 0; e < 2; ++e) {
+        const struct gkyl_gyrokinetic_bc *bc = e == 0 ? &ns->lower_bc[dir] : &ns->upper_bc[dir];
+        const bool diffusion_dirichlet =
+          dir == par_dir && (e == 0 ? ns->info.diffusion.lower_bc_type :
+                                      ns->info.diffusion.upper_bc_type) ==
+                              GKYL_NEUT_FLUID_DIFFUSION_DIRICHLET;
+        bc_sets_ghosts[dir + e * cdim] = bc->type == GKYL_BC_GK_SPECIES_RECYCLE ||
+                                         bc->type == GKYL_BC_GK_SPECIES_ABSORB ||
+                                         diffusion_dirichlet;
+        if (bc->type != GKYL_BC_GK_SPECIES_RECYCLE) {
+          continue;
+        }
+        has_recycling = true;
+        const int k = 2 * dir + e;
+        assert(bc->emission.num_species > 0);
+        ns->diffusion_recycling_num_species[k] = bc->emission.num_species;
+        for (int i = 0; i < bc->emission.num_species; ++i) {
+          ns->diffusion_recycling_ion_idx[k][i] =
+            gk_find_species_idx(app, bc->emission.in_species[i]);
+          assert(ns->diffusion_recycling_ion_idx[k][i] >= 0);
+        }
+      }
+    }
+    if (has_recycling) {
       ns->diffusion_recycling_flux = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
       ns->diffusion_recycling_flux_tmp =
         mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
       gkyl_array_clear(ns->diffusion_recycling_flux, 0.0);
       gkyl_array_clear(ns->diffusion_recycling_flux_tmp, 0.0);
-    }
-    for (int e = 0; e < 2; ++e) {
-      const struct gkyl_gyrokinetic_bc *bc = e == 0 ? &ns->lower_bc[par_dir] :
-                                                      &ns->upper_bc[par_dir];
-      if (bc->type != GKYL_BC_GK_SPECIES_RECYCLE) {
-        continue;
-      }
-      assert(bc->emission.num_species > 0);
-      ns->diffusion_recycling_num_species[e] = bc->emission.num_species;
-      for (int i = 0; i < bc->emission.num_species; ++i) {
-        ns->diffusion_recycling_ion_idx[e][i] =
-          gk_find_species_idx(app, bc->emission.in_species[i]);
-        assert(ns->diffusion_recycling_ion_idx[e][i] >= 0);
-      }
     }
     gkyl_array_clear(ns->diffusion_coeff, 0.0);
     gkyl_array_clear(ns->diffusion_tensor, 0.0);
@@ -1275,13 +1300,8 @@ gk_neut_species_fluid_init_dynamic(
 
     int diffusion_zero_flux_flags[2 * GKYL_MAX_CDIM] = {0};
     for (int d = 0; d < cdim; ++d) {
-      diffusion_zero_flux_flags[d] = diffusion_zero_flux_flags[d + cdim] = ns->bc_is_np[d];
-    }
-    if (recycle_lo || ns->info.diffusion.lower_bc_type == GKYL_NEUT_FLUID_DIFFUSION_DIRICHLET) {
-      diffusion_zero_flux_flags[par_dir] = 0;
-    }
-    if (recycle_up || ns->info.diffusion.upper_bc_type == GKYL_NEUT_FLUID_DIFFUSION_DIRICHLET) {
-      diffusion_zero_flux_flags[par_dir + cdim] = 0;
+      diffusion_zero_flux_flags[d] = ns->bc_is_np[d] && !bc_sets_ghosts[d];
+      diffusion_zero_flux_flags[d + cdim] = ns->bc_is_np[d] && !bc_sets_ghosts[d + cdim];
     }
     ns->diffusion_slvr = gkyl_dg_updater_conf_diffusion_new(
       &app->grid, &app->basis, &app->local_ext, ns->diffusion_tensor,

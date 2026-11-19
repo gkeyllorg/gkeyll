@@ -1593,8 +1593,9 @@ struct gk_neut_species {
       struct gkyl_gk_neut_fluid_prim_vars *temp_thermal_energy; // p/(gamma-1) updater.
       gkyl_dg_bin_op_mem *diffusion_div_mem; // Memory for weak moment/density division.
       struct gkyl_dg_updater_conf_diffusion *diffusion_slvr; // Conservative DG diffusion updater.
-      int diffusion_recycling_num_species[2]; // Impacting species at lower/upper parallel edges.
-      int diffusion_recycling_ion_idx[2][GKYL_MAX_SPECIES];
+      // Impacting species at each boundary, indexed by 2*dir + (0 lower, 1 upper).
+      int diffusion_recycling_num_species[2 * GKYL_MAX_CDIM];
+      int diffusion_recycling_ion_idx[2 * GKYL_MAX_CDIM][GKYL_MAX_SPECIES];
       struct gkyl_array *ionization_rate; // DG ne*<sigma v>_iz frequency.
       struct gkyl_array *ionization_cflrate; // Cell-average ionization CFL frequency.
       struct gkyl_array *ionization_cflrate_host; // Host mirror for diagnostics.
