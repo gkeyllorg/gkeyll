@@ -286,25 +286,6 @@ gkyl_array_divide_by_cell(struct gkyl_array *out, const struct gkyl_array *a)
 }
 
 struct gkyl_array *
-gkyl_array_invert_by_cell(struct gkyl_array *out, const struct gkyl_array *inp)
-{
-  assert(out->type == GKYL_DOUBLE);
-#ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(out)) {
-    gkyl_array_invert_by_cell_cu(out, inp);
-    return out;
-  }
-#endif
-
-  double *out_d = out->data;
-  const double *inp_d = inp->data;
-  for (size_t i = 0; i < NELM(out); ++i) {
-    out_d[i] = 1.0 / inp_d[i];
-  }
-  return out;
-}
-
-struct gkyl_array *
 gkyl_array_shiftc(struct gkyl_array *out, double a, unsigned k)
 {
   assert(out->type == GKYL_DOUBLE);

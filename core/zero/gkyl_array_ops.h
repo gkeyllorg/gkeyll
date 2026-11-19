@@ -204,16 +204,6 @@ struct gkyl_array *gkyl_array_scale_by_cell(struct gkyl_array *out, const struct
 struct gkyl_array *gkyl_array_divide_by_cell(struct gkyl_array *out, const struct gkyl_array *a);
 
 /**
- * Compute element-wise reciprocal, out = 1/inp. Returns out.
- * For in-place operation, pass out == inp.
- *
- * @param out Output array.
- * @param inp Input array.
- * @return out array.
- */
-struct gkyl_array *gkyl_array_invert_by_cell(struct gkyl_array *out, const struct gkyl_array *inp);
-
-/**
  * Shift the k-th coefficient in every cell, out_k = a+out_k. Returns out.
  *
  * @param out Output array.
@@ -512,8 +502,6 @@ void gkyl_array_scale_cu(struct gkyl_array *out, double a);
 void gkyl_array_scale_by_cell_cu(struct gkyl_array *out, const struct gkyl_array *a);
 
 void gkyl_array_divide_by_cell_cu(struct gkyl_array *out, const struct gkyl_array *a);
-
-void gkyl_array_invert_by_cell_cu(struct gkyl_array *out, const struct gkyl_array *inp);
 
 void gkyl_array_shiftc_cu(struct gkyl_array *out, double a, unsigned k);
 

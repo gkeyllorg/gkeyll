@@ -120,16 +120,6 @@ gkyl_array_divide_by_cell_cu_kernel(struct gkyl_array *out, const struct gkyl_ar
 }
 
 __global__ void
-gkyl_array_invert_by_cell_cu_kernel(struct gkyl_array *out, const struct gkyl_array *inp)
-{
-  double *out_d = (double *)out->data;
-  const double *inp_d = (const double *)inp->data;
-  for (unsigned long linc = START_ID; linc < NELM(out); linc += blockDim.x * gridDim.x) {
-    out_d[linc] = 1.0 / inp_d[linc];
-  }
-}
-
-__global__ void
 gkyl_array_shiftc_cu_kernel(struct gkyl_array *out, double a, unsigned k)
 {
   double *out_d = (double *)out->data;
@@ -209,12 +199,6 @@ void
 gkyl_array_divide_by_cell_cu(struct gkyl_array *out, const struct gkyl_array *a)
 {
   gkyl_array_divide_by_cell_cu_kernel<<<out->nblocks, out->nthreads>>>(out->on_dev, a->on_dev);
-}
-
-void
-gkyl_array_invert_by_cell_cu(struct gkyl_array *out, const struct gkyl_array *inp)
-{
-  gkyl_array_invert_by_cell_cu_kernel<<<out->nblocks, out->nthreads>>>(out->on_dev, inp->on_dev);
 }
 
 void

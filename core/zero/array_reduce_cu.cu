@@ -1,7 +1,6 @@
 /* -*- c++ -*- */
 
-// CUB for reductions.
-#include <cub/cub.cuh>
+#include <gkyl_array_reduce_cu_priv.h>
 
 extern "C" {
 #include <gkyl_alloc.h>
@@ -9,52 +8,6 @@ extern "C" {
 #include <gkyl_array_reduce.h>
 #include <gkyl_array_reduce_priv.h>
 #include <gkyl_basis.h>
-}
-
-// CUDA does not natively support atomics for MAX and MIN on doubles (addition/sum is fine).
-// These functions utilize the atomicCAS (compare and swap) to thread-by-thread find if the
-// input value is greater than (for max) or less than (for min) the output and swap the values
-// if the condition is satisfied, along the way doing the double_as_longlong and longlong_as_double
-// conversions needed to determine if the double (as a long long) is indeed greater than or less than
-// the output. Note that because this operation is done thread-by-thread we still use CUB to perform
-// the reduction over CUDA blocks, but then the threads are compared thread-by-thread.
-// These particular functions are adapted from (adapted by JJ on 03/14/24):
-// https://github.com/treecode/Bonsai/blob/master/runtime/profiling/derived_atomic_functions.h
-__device__ static __forceinline__ double
-atomicMax_double(double *address, double val)
-{
-  unsigned long long int ret = __double_as_longlong(*address);
-  while (val > __longlong_as_double(ret)) {
-    unsigned long long int old = ret;
-    if ((ret = atomicCAS((unsigned long long int *)address, old, __double_as_longlong(val))) ==
-        old) {
-      break;
-    }
-  }
-  return __longlong_as_double(ret);
-}
-
-__device__ static __forceinline__ double
-atomicMin_double(double *address, double val)
-{
-  unsigned long long int ret = __double_as_longlong(*address);
-  while (val < __longlong_as_double(ret)) {
-    unsigned long long int old = ret;
-    if ((ret = atomicCAS((unsigned long long int *)address, old, __double_as_longlong(val))) ==
-        old) {
-      break;
-    }
-  }
-  return __longlong_as_double(ret);
-}
-
-__global__ static void
-array_reduce_init_cu_kernel(double *out, size_t ncomp, double identity)
-{
-  size_t comp = blockIdx.x * blockDim.x + threadIdx.x;
-  if (comp < ncomp) {
-    out[comp] = identity;
-  }
 }
 
 template <unsigned int BLOCKSIZE>
@@ -79,19 +32,7 @@ arrayMax_blockRedAtomic_cub(const struct gkyl_array *inp, double *out)
     if (linc < nCells) {
       f = inp_d[linc * nComp + k];
     }
-    double bResult = 0;
-    bResult = BlockReduceT(temp).Reduce(
-      f,
-#if CUDART_VERSION > 12090
-      ::cuda::maximum()
-#else
-      cub::Max()
-#endif
-    );
-    if (threadIdx.x == 0) {
-      atomicMax_double(&out[k], bResult);
-    }
-    __syncthreads();
+    array_reduce_block<BLOCKSIZE, GKYL_MAX>(temp, f, &out[k]);
   }
 }
 
@@ -125,19 +66,7 @@ arrayMax_range_blockRedAtomic_cub(
     if (linc < nCells) {
       f = fptr[k];
     }
-    double bResult = 0;
-    bResult = BlockReduceT(temp).Reduce(
-      f,
-#if CUDART_VERSION > 12090
-      ::cuda::maximum()
-#else
-      cub::Max()
-#endif
-    );
-    if (threadIdx.x == 0) {
-      atomicMax_double(&out[k], bResult);
-    }
-    __syncthreads();
+    array_reduce_block<BLOCKSIZE, GKYL_MAX>(temp, f, &out[k]);
   }
 }
 
@@ -201,19 +130,7 @@ arrayMin_blockRedAtomic_cub(const struct gkyl_array *inp, double *out)
     if (linc < nCells) {
       f = inp_d[linc * nComp + k];
     }
-    double bResult = 0;
-    bResult = BlockReduceT(temp).Reduce(
-      f,
-#if CUDART_VERSION > 12090
-      ::cuda::minimum()
-#else
-      cub::Min()
-#endif
-    );
-    if (threadIdx.x == 0) {
-      atomicMin_double(&out[k], bResult);
-    }
-    __syncthreads();
+    array_reduce_block<BLOCKSIZE, GKYL_MIN>(temp, f, &out[k]);
   }
 }
 
@@ -247,19 +164,7 @@ arrayMin_range_blockRedAtomic_cub(
     if (linc < nCells) {
       f = fptr[k];
     }
-    double bResult = 0;
-    bResult = BlockReduceT(temp).Reduce(
-      f,
-#if CUDART_VERSION > 12090
-      ::cuda::minimum()
-#else
-      cub::Min()
-#endif
-    );
-    if (threadIdx.x == 0) {
-      atomicMin_double(&out[k], bResult);
-    }
-    __syncthreads();
+    array_reduce_block<BLOCKSIZE, GKYL_MIN>(temp, f, &out[k]);
   }
 }
 
@@ -323,19 +228,7 @@ arraySum_blockRedAtomic_cub(const struct gkyl_array *inp, double *out)
     if (linc < nCells) {
       f = inp_d[linc * nComp + k];
     }
-    double bResult = 0;
-    bResult = BlockReduceT(temp).Reduce(
-      f,
-#if CUDART_VERSION > 12090
-      ::cuda::std::plus()
-#else
-      cub::Sum()
-#endif
-    );
-    if (threadIdx.x == 0) {
-      atomicAdd(&out[k], bResult);
-    }
-    __syncthreads();
+    array_reduce_block<BLOCKSIZE, GKYL_SUM>(temp, f, &out[k]);
   }
 }
 
@@ -369,19 +262,7 @@ arraySum_range_blockRedAtomic_cub(
     if (linc < nCells) {
       f = fptr[k];
     }
-    double bResult = 0;
-    bResult = BlockReduceT(temp).Reduce(
-      f,
-#if CUDART_VERSION > 12090
-      ::cuda::std::plus()
-#else
-      cub::Sum()
-#endif
-    );
-    if (threadIdx.x == 0) {
-      atomicAdd(&out[k], bResult);
-    }
-    __syncthreads();
+    array_reduce_block<BLOCKSIZE, GKYL_SUM>(temp, f, &out[k]);
   }
 }
 
@@ -445,19 +326,7 @@ arrayAbsMax_blockRedAtomic_cub(const struct gkyl_array *inp, double *out)
     if (linc < nCells) {
       f = fabs(inp_d[linc * nComp + k]);
     }
-    double bResult = 0;
-    bResult = BlockReduceT(temp).Reduce(
-      f,
-#if CUDART_VERSION > 12090
-      ::cuda::maximum()
-#else
-      cub::Max()
-#endif
-    );
-    if (threadIdx.x == 0) {
-      atomicMax_double(&out[k], bResult);
-    }
-    __syncthreads();
+    array_reduce_block<BLOCKSIZE, GKYL_MAX>(temp, f, &out[k]);
   }
 }
 
@@ -491,19 +360,7 @@ arrayAbsMax_range_blockRedAtomic_cub(
     if (linc < nCells) {
       f = fabs(fptr[k]);
     }
-    double bResult = 0;
-    bResult = BlockReduceT(temp).Reduce(
-      f,
-#if CUDART_VERSION > 12090
-      ::cuda::maximum()
-#else
-      cub::Max()
-#endif
-    );
-    if (threadIdx.x == 0) {
-      atomicMax_double(&out[k], bResult);
-    }
-    __syncthreads();
+    array_reduce_block<BLOCKSIZE, GKYL_MAX>(temp, f, &out[k]);
   }
 }
 
@@ -568,19 +425,7 @@ arraySqSum_blockRedAtomic_cub(const struct gkyl_array *inp, double *out)
     if (linc < nCells) {
       f = pow(inp_d[linc * nComp + k], 2);
     }
-    double bResult = 0;
-    bResult = BlockReduceT(temp).Reduce(
-      f,
-#if CUDART_VERSION > 12090
-      ::cuda::std::plus()
-#else
-      cub::Sum()
-#endif
-    );
-    if (threadIdx.x == 0) {
-      atomicAdd(&out[k], bResult);
-    }
-    __syncthreads();
+    array_reduce_block<BLOCKSIZE, GKYL_SUM>(temp, f, &out[k]);
   }
 }
 
@@ -614,19 +459,7 @@ arraySqSum_range_blockRedAtomic_cub(
     if (linc < nCells) {
       f = pow(fptr[k], 2);
     }
-    double bResult = 0;
-    bResult = BlockReduceT(temp).Reduce(
-      f,
-#if CUDART_VERSION > 12090
-      ::cuda::std::plus()
-#else
-      cub::Sum()
-#endif
-    );
-    if (threadIdx.x == 0) {
-      atomicAdd(&out[k], bResult);
-    }
-    __syncthreads();
+    array_reduce_block<BLOCKSIZE, GKYL_SUM>(temp, f, &out[k]);
   }
 }
 
@@ -694,19 +527,7 @@ arrayMax_weighted_blockRedAtomic_cub(
     if (linc < nCells) {
       f = wgt_d[linc * nComp + k] * inp_d[linc * nComp + k];
     }
-    double bResult = 0;
-    bResult = BlockReduceT(temp).Reduce(
-      f,
-#if CUDART_VERSION > 12090
-      ::cuda::maximum()
-#else
-      cub::Max()
-#endif
-    );
-    if (threadIdx.x == 0) {
-      atomicMax_double(&out[k], bResult);
-    }
-    __syncthreads();
+    array_reduce_block<BLOCKSIZE, GKYL_MAX>(temp, f, &out[k]);
   }
 }
 
@@ -743,19 +564,7 @@ arrayMax_weighted_range_blockRedAtomic_cub(
     if (linc < nCells) {
       f = wptr[k] * fptr[k];
     }
-    double bResult = 0;
-    bResult = BlockReduceT(temp).Reduce(
-      f,
-#if CUDART_VERSION > 12090
-      ::cuda::maximum()
-#else
-      cub::Max()
-#endif
-    );
-    if (threadIdx.x == 0) {
-      atomicMax_double(&out[k], bResult);
-    }
-    __syncthreads();
+    array_reduce_block<BLOCKSIZE, GKYL_MAX>(temp, f, &out[k]);
   }
 }
 
@@ -827,19 +636,7 @@ arrayMin_weighted_blockRedAtomic_cub(
     if (linc < nCells) {
       f = wgt_d[linc * nComp + k] * inp_d[linc * nComp + k];
     }
-    double bResult = 0;
-    bResult = BlockReduceT(temp).Reduce(
-      f,
-#if CUDART_VERSION > 12090
-      ::cuda::minimum()
-#else
-      cub::Min()
-#endif
-    );
-    if (threadIdx.x == 0) {
-      atomicMin_double(&out[k], bResult);
-    }
-    __syncthreads();
+    array_reduce_block<BLOCKSIZE, GKYL_MIN>(temp, f, &out[k]);
   }
 }
 
@@ -876,19 +673,7 @@ arrayMin_weighted_range_blockRedAtomic_cub(
     if (linc < nCells) {
       f = wptr[k] * fptr[k];
     }
-    double bResult = 0;
-    bResult = BlockReduceT(temp).Reduce(
-      f,
-#if CUDART_VERSION > 12090
-      ::cuda::minimum()
-#else
-      cub::Min()
-#endif
-    );
-    if (threadIdx.x == 0) {
-      atomicMin_double(&out[k], bResult);
-    }
-    __syncthreads();
+    array_reduce_block<BLOCKSIZE, GKYL_MIN>(temp, f, &out[k]);
   }
 }
 
@@ -960,19 +745,7 @@ arraySum_weighted_blockRedAtomic_cub(
     if (linc < nCells) {
       f = wgt_d[linc * nComp + k] * inp_d[linc * nComp + k];
     }
-    double bResult = 0;
-    bResult = BlockReduceT(temp).Reduce(
-      f,
-#if CUDART_VERSION > 12090
-      ::cuda::std::plus()
-#else
-      cub::Sum()
-#endif
-    );
-    if (threadIdx.x == 0) {
-      atomicAdd(&out[k], bResult);
-    }
-    __syncthreads();
+    array_reduce_block<BLOCKSIZE, GKYL_SUM>(temp, f, &out[k]);
   }
 }
 
@@ -1009,19 +782,7 @@ arraySum_weighted_range_blockRedAtomic_cub(
     if (linc < nCells) {
       f = wptr[k] * fptr[k];
     }
-    double bResult = 0;
-    bResult = BlockReduceT(temp).Reduce(
-      f,
-#if CUDART_VERSION > 12090
-      ::cuda::std::plus()
-#else
-      cub::Sum()
-#endif
-    );
-    if (threadIdx.x == 0) {
-      atomicAdd(&out[k], bResult);
-    }
-    __syncthreads();
+    array_reduce_block<BLOCKSIZE, GKYL_SUM>(temp, f, &out[k]);
   }
 }
 
@@ -1093,19 +854,7 @@ arrayAbsMax_weighted_blockRedAtomic_cub(
     if (linc < nCells) {
       f = fabs(wgt_d[linc * nComp + k] * inp_d[linc * nComp + k]);
     }
-    double bResult = 0;
-    bResult = BlockReduceT(temp).Reduce(
-      f,
-#if CUDART_VERSION > 12090
-      ::cuda::maximum()
-#else
-      cub::Max()
-#endif
-    );
-    if (threadIdx.x == 0) {
-      atomicMax_double(&out[k], bResult);
-    }
-    __syncthreads();
+    array_reduce_block<BLOCKSIZE, GKYL_MAX>(temp, f, &out[k]);
   }
 }
 
@@ -1142,19 +891,7 @@ arrayAbsMax_weighted_range_blockRedAtomic_cub(
     if (linc < nCells) {
       f = fabs(wptr[k] * fptr[k]);
     }
-    double bResult = 0;
-    bResult = BlockReduceT(temp).Reduce(
-      f,
-#if CUDART_VERSION > 12090
-      ::cuda::maximum()
-#else
-      cub::Max()
-#endif
-    );
-    if (threadIdx.x == 0) {
-      atomicMax_double(&out[k], bResult);
-    }
-    __syncthreads();
+    array_reduce_block<BLOCKSIZE, GKYL_MAX>(temp, f, &out[k]);
   }
 }
 
@@ -1227,19 +964,7 @@ arraySqSum_weighted_blockRedAtomic_cub(
       double value = inp_d[linc * nComp + k];
       f = (wgt_d[linc * nComp + k] * value) * value;
     }
-    double bResult = 0;
-    bResult = BlockReduceT(temp).Reduce(
-      f,
-#if CUDART_VERSION > 12090
-      ::cuda::std::plus()
-#else
-      cub::Sum()
-#endif
-    );
-    if (threadIdx.x == 0) {
-      atomicAdd(&out[k], bResult);
-    }
-    __syncthreads();
+    array_reduce_block<BLOCKSIZE, GKYL_SUM>(temp, f, &out[k]);
   }
 }
 
@@ -1276,19 +1001,7 @@ arraySqSum_weighted_range_blockRedAtomic_cub(
     if (linc < nCells) {
       f = (wptr[k] * fptr[k]) * fptr[k];
     }
-    double bResult = 0;
-    bResult = BlockReduceT(temp).Reduce(
-      f,
-#if CUDART_VERSION > 12090
-      ::cuda::std::plus()
-#else
-      cub::Sum()
-#endif
-    );
-    if (threadIdx.x == 0) {
-      atomicAdd(&out[k], bResult);
-    }
-    __syncthreads();
+    array_reduce_block<BLOCKSIZE, GKYL_SUM>(temp, f, &out[k]);
   }
 }
 
@@ -1368,19 +1081,7 @@ arrayCellMeanSqSum_weighted_blockRedAtomic_cub(
     if (linc < nCells) {
       f = wgt_d[linc * nComp + k] * mean_sq;
     }
-    double bResult = 0;
-    bResult = BlockReduceT(temp).Reduce(
-      f,
-#if CUDART_VERSION > 12090
-      ::cuda::std::plus()
-#else
-      cub::Sum()
-#endif
-    );
-    if (threadIdx.x == 0) {
-      atomicAdd(&out[k], bResult);
-    }
-    __syncthreads();
+    array_reduce_block<BLOCKSIZE, GKYL_SUM>(temp, f, &out[k]);
   }
 }
 
@@ -1425,19 +1126,7 @@ arrayCellMeanSqSum_weighted_range_blockRedAtomic_cub(
     if (linc < nCells) {
       f = wptr[k] * mean_sq;
     }
-    double bResult = 0;
-    bResult = BlockReduceT(temp).Reduce(
-      f,
-#if CUDART_VERSION > 12090
-      ::cuda::std::plus()
-#else
-      cub::Sum()
-#endif
-    );
-    if (threadIdx.x == 0) {
-      atomicAdd(&out[k], bResult);
-    }
-    __syncthreads();
+    array_reduce_block<BLOCKSIZE, GKYL_SUM>(temp, f, &out[k]);
   }
 }
 

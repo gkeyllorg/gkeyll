@@ -546,9 +546,9 @@ test_array_set_offset_ncoeff_range_ho()
 
 // Exercise whole arrays and parent-strided subranges with all aliasing patterns.
 static double
-comp_op_expected(enum gkyl_array_op op, double first, double second)
+comp_op_expected(enum gkyl_array_op op, double first, double second, double fac2)
 {
-  const double fac1 = -0.75, fac2 = 0.375;
+  const double fac1 = -0.75;
   switch (op) {
     case GKYL_ABS:
       return fabs(fac1 * first);
@@ -575,7 +575,8 @@ array_comp_op_test(bool use_gpu)
   gkyl_sub_range_init(&selections[1], &parent, (int[]){0, 3, 6}, (int[]){0, 3, 6});
   gkyl_sub_range_init(&selections[2], &parent, (int[]){0, 3, 6}, (int[]){-1, 3, 6});
 
-  const enum gkyl_array_op ops[] = {GKYL_ABS, GKYL_INV, GKYL_PROD, GKYL_DIV, GKYL_AXPBY};
+  const enum gkyl_array_op ops[] = {GKYL_ABS, GKYL_INV,   GKYL_PROD,
+                                    GKYL_DIV, GKYL_AXPBY, GKYL_AXPBY};
 
   const int components[] = {1, 3, 8};
   for (int shape = 0; shape < 3; ++shape) {
@@ -598,7 +599,9 @@ array_comp_op_test(bool use_gpu)
       }
     }
 
-    for (int operation = 0; operation < 5; ++operation) {
+    for (int operation = 0; operation < 6; ++operation) {
+      // Also check AXPBY with a unit coefficient on the second input.
+      double fac2 = operation == 5 ? 1.0 : 0.375;
       bool unary = operation < 2;
       for (int alias = 0; alias < 4; ++alias) {
         if (unary && alias > 1) {
@@ -616,8 +619,8 @@ array_comp_op_test(bool use_gpu)
 
           struct gkyl_array *returned =
             region == 0 ?
-              gkyl_array_comp_op(out, ops[operation], -0.75, first, 0.375, in2) :
-              gkyl_array_comp_op_range(out, ops[operation], -0.75, first, 0.375, in2, range);
+              gkyl_array_comp_op(out, ops[operation], -0.75, first, fac2, in2) :
+              gkyl_array_comp_op_range(out, ops[operation], -0.75, first, fac2, in2, range);
           TEST_CHECK(returned == out);
 
           gkyl_array_copy(result_ho, out);
@@ -638,7 +641,7 @@ array_comp_op_test(bool use_gpu)
               if (selected) {
                 expected = comp_op_expected(
                   ops[operation], first_data[comp],
-                  alias == 3 ? first_data[comp] : second_data[comp]
+                  alias == 3 ? first_data[comp] : second_data[comp], fac2
                 );
               }
               TEST_CHECK(gkyl_compare(result[comp], expected, 1e-13));
@@ -823,34 +826,6 @@ test_array_shiftc_ho()
   }
 
   gkyl_array_release(a2);
-}
-
-void
-test_array_invert_by_cell_ho()
-{
-  struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 3, 8);
-  double *a1_d = a1->data;
-
-  // Set values: 1.0, 2.0, 4.0, 5.0, 10.0, 0.5, 0.25, 0.1
-  double test_vals[] = {1.0, 2.0, 4.0, 5.0, 10.0, 0.5, 0.25, 0.1};
-  double expected_inv[] = {1.0, 0.5, 0.25, 0.2, 0.1, 2.0, 4.0, 10.0};
-
-  for (unsigned i = 0; i < a1->size; ++i) {
-    for (size_t k = 0; k < a1->ncomp; ++k) {
-      a1_d[i * a1->ncomp + k] = test_vals[i];
-    }
-  }
-
-  gkyl_array_invert_by_cell(a1, a1);
-
-  // Check inverted values
-  for (unsigned i = 0; i < a1->size; ++i) {
-    for (size_t k = 0; k < a1->ncomp; ++k) {
-      TEST_CHECK(gkyl_compare(a1_d[i * a1->ncomp + k], expected_inv[i], 1e-14));
-    }
-  }
-
-  gkyl_array_release(a1);
 }
 
 void
@@ -2498,42 +2473,6 @@ test_array_shiftc_dev()
 }
 
 void
-test_array_invert_by_cell_dev()
-{
-  struct gkyl_array *a1_ho = gkyl_array_new(GKYL_DOUBLE, 3, 8);
-  struct gkyl_array *a1 = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3, 8);
-  double *a1_ho_d = a1_ho->data;
-
-  // Set values: 1.0, 2.0, 4.0, 5.0, 10.0, 0.5, 0.25, 0.1
-  double test_vals[] = {1.0, 2.0, 4.0, 5.0, 10.0, 0.5, 0.25, 0.1};
-  double expected_inv[] = {1.0, 0.5, 0.25, 0.2, 0.1, 2.0, 4.0, 10.0};
-
-  for (unsigned i = 0; i < a1_ho->size; ++i) {
-    for (size_t k = 0; k < a1_ho->ncomp; ++k) {
-      a1_ho_d[i * a1_ho->ncomp + k] = test_vals[i];
-    }
-  }
-
-  // Copy to device
-  gkyl_array_copy(a1, a1_ho);
-
-  gkyl_array_invert_by_cell(a1, a1);
-
-  // Copy back from device
-  gkyl_array_copy(a1_ho, a1);
-
-  // Check inverted values
-  for (unsigned i = 0; i < a1_ho->size; ++i) {
-    for (size_t k = 0; k < a1_ho->ncomp; ++k) {
-      TEST_CHECK(gkyl_compare(a1_ho_d[i * a1_ho->ncomp + k], expected_inv[i], 1e-14));
-    }
-  }
-
-  gkyl_array_release(a1_ho);
-  gkyl_array_release(a1);
-}
-
-void
 test_array_copy_buffer_dev()
 {
   int shape[] = {10, 20};
@@ -2845,7 +2784,6 @@ TEST_LIST = {
   {"array_set_offset_ncoeff_range_ho", test_array_set_offset_ncoeff_range_ho},
   {"array_scale_ho", test_array_scale_ho},
   {"array_scale_by_cell_ho", test_array_scale_by_cell_ho},
-  {"array_invert_by_cell_ho", test_array_invert_by_cell_ho},
   {"array_shiftc_ho", test_array_shiftc_ho},
   {"array_shiftc_range_ho", test_array_shiftc_range_ho},
   {"array_min_by_cell_ho", test_array_min_by_cell_ho},
@@ -2885,7 +2823,6 @@ TEST_LIST = {
   {"array_set_offset_ncoeff_range_dev", test_array_set_offset_ncoeff_range_dev},
   {"array_scale_dev", test_array_scale_dev},
   {"array_scale_by_cell_dev", test_array_scale_by_cell_dev},
-  {"array_invert_by_cell_dev", test_array_invert_by_cell_dev},
   {"array_shiftc_dev", test_array_shiftc_dev},
   {"array_shiftc_range_dev", test_array_shiftc_range_dev},
   {"array_min_by_cell_dev", test_array_min_by_cell_dev},
