@@ -1470,18 +1470,14 @@ local function compareFiles(f1, f2, absTol, relTol)
                return false, "nonfinite integrated moment"
             end
          end
-         local diff = G0.Zero.dynvecDiff(f1, f2)
+         local diff = G0.Zero.dynvecDiff(f1, f2, absTol, relTol)
          if not diff.is_compatible then
             verboseLog("    ... dynvector files not compatible (size/type mismatch or read failure)\n")
             return false, "dynvec not compatible"
          end
-         -- Combined tolerance: fail only when BOTH absolute and relative
-         -- thresholds are exceeded.  This avoids false failures for near-zero
-         -- values (tiny abs but large rel%) and for large values (large abs but
-         -- tiny rel%).  A zero absolute difference passes even if the
-         -- relative difference is large.
+         -- Both thresholds must be exceeded by the same data component.
          local absD, relD = diffMagnitudes(diff)
-         if absD > absTol and relD > relTol then
+         if not diff.within_combined_tol then
             if vlasovScaleEligible(f1) and f1:match("%-[^/]+%-imom%.gkyl$") then
                local scaled, ratio = G0.Zero.scaledVlasovIntegratedDiff(f1, f2, relTol, absTol)
                if scaled then return true end
@@ -1557,18 +1553,12 @@ local function compareFiles(f1, f2, absTol, relTol)
       local r1, er1 = G0.Zero.createGridRanges(g1, nghost)
       local r2, er2 = G0.Zero.createGridRanges(g2, nghost)
 
-      local diff = G0.Zero.arrayDiff(a1, a2, r1)
+      local diff = G0.Zero.arrayDiff(a1, a2, r1, absTol, relTol)
 
       if not diff.is_compatible then return false, "incompatible arrays" end
-      -- Combined tolerance: fail only when BOTH absolute and relative thresholds
-      -- are exceeded.  Near-zero values naturally have large relative differences
-      -- (e.g. 1e-15 vs -1e-15 → rel=200%) but negligible absolute differences;
-      -- large values can have large absolute differences but tiny relative
-      -- differences.  Failing on either alone produces false positives.
-      -- A zero absolute difference passes even if the relative difference is
-      -- large.
+      -- Both thresholds must be exceeded by the same data component.
       local absD, relD = diffMagnitudes(diff)
-      if absD > absTol and relD > relTol then
+      if not diff.within_combined_tol then
          local vlasovScaled, vlasovRatio = scaledVlasovRetry(f1, g1, a1, a2, absTol, relTol)
          if vlasovScaled then return true end
          if vlasovScaled == false then

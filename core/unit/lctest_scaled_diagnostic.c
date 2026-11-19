@@ -94,6 +94,15 @@ write_vlasov_integrated(const char *name, int ncomp, double momentum, double ene
 }
 
 static void
+write_pair_dynvec(const char *name, const double *values)
+{
+  gkyl_dynvec v = gkyl_dynvec_new(GKYL_DOUBLE, 2);
+  gkyl_dynvec_append(v, 0, values);
+  gkyl_dynvec_write(v, name);
+  gkyl_dynvec_release(v);
+}
+
+static void
 test_scale_aware_comparison(void)
 {
   char dir[] = "/tmp/gkeyll-scale-diagnostic-XXXXXX";
@@ -140,6 +149,15 @@ test_scale_aware_comparison(void)
   write_vlasov_integrated("vlasov-imom-3v.gkyl", 5, 1e17, 1e30);
   write_vlasov_integrated("vlasov-imom-3v-base.gkyl", 5, 0, 1e30);
   write_vlasov_integrated("vlasov-imom-bad.gkyl", 4, nan_value, 1e30);
+  double mixed_base[] = {2.080718738636528e19, -3.5479266818092526e-16};
+  double mixed_close[] = {2.0807187386365293e19, 8.2912128896862711e-18};
+  double mixed_far[] = {3.080718738636528e19, 8.2912128896862711e-18};
+  write_values("mixed-base.gkyl", 2, mixed_base);
+  write_values("mixed-close.gkyl", 2, mixed_close);
+  write_values("mixed-far.gkyl", 2, mixed_far);
+  write_pair_dynvec("mixed-base-dyn.gkyl", mixed_base);
+  write_pair_dynvec("mixed-close-dyn.gkyl", mixed_close);
+  write_pair_dynvec("mixed-far-dyn.gkyl", mixed_far);
 
   lua_State *L = luaL_newstate();
   luaL_openlibs(L);
@@ -200,6 +218,16 @@ test_scale_aware_comparison(void)
     "assert(z.scaledVlasovIntegratedDiff('vlasov-imom-3v-base.gkyl','vlasov-imom-3v.gkyl',1e-7,1e-7))\n"
     "local vok,vr=z.scaledVlasovIntegratedDiff('vlasov-imom.gkyl','vlasov-imom-bad.gkyl',1e-7,1e-7)\n"
     "assert(vok==false and vr==math.huge)\n"
+    "local _,xb=z.arrayNewFromFile('mixed-base.gkyl')\n"
+    "local _,xc=z.arrayNewFromFile('mixed-close.gkyl')\n"
+    "local _,xf=z.arrayNewFromFile('mixed-far.gkyl')\n"
+    "local xr=z.createGridRanges(g,{0,0,0,0,0,0,0})\n"
+    "local xd=z.arrayDiff(xb,xc,xr,1e-7,1e-7)\n"
+    "assert(math.abs(xd.min_abs_diff)>1e-7 and xd.max_rel_diff==1 and xd.within_combined_tol)\n"
+    "assert(not z.arrayDiff(xb,xf,xr,1e-7,1e-7).within_combined_tol)\n"
+    "local yd=z.dynvecDiff('mixed-base-dyn.gkyl','mixed-close-dyn.gkyl',1e-7,1e-7)\n"
+    "assert(yd.is_compatible and math.abs(yd.min_abs_diff)>1e-7 and yd.max_rel_diff==1 and yd.within_combined_tol)\n"
+    "assert(not z.dynvecDiff('mixed-base-dyn.gkyl','mixed-far-dyn.gkyl',1e-7,1e-7).within_combined_tol)\n"
   );
   TEST_CHECK(status == 0);
   TEST_MSG("%s", status ? lua_tostring(L, -1) : "");
@@ -222,6 +250,12 @@ test_scale_aware_comparison(void)
   remove("integrated-small.gkyl");
   remove("integrated-large.gkyl");
   remove("integrated-nonfinite.gkyl");
+  remove("mixed-base.gkyl");
+  remove("mixed-close.gkyl");
+  remove("mixed-far.gkyl");
+  remove("mixed-base-dyn.gkyl");
+  remove("mixed-close-dyn.gkyl");
+  remove("mixed-far-dyn.gkyl");
   const char *vlasov_files[] = {"vlasov-M0.gkyl",           "vlasov-M2.gkyl",
                                 "vlasov-M1.gkyl",           "vlasov-M1-small.gkyl",
                                 "vlasov-M1-large.gkyl",     "vlasov-LTE.gkyl",

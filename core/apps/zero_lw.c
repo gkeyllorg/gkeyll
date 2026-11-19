@@ -22,6 +22,7 @@
 #include <string.h>
 #include <math.h>
 #include <stdint.h>
+#include <float.h>
 
 // The core is built with -ffast-math, which can optimize isfinite away.
 static bool
@@ -392,7 +393,38 @@ create_grid_ranges_lw(lua_State *L)
   return 2; // (range_ud, ext_range_ud)
 }
 
-/* -- G0.Zero.arrayDiff(a1_ud, a2_ud, range_ud) -> table -- */
+// Apply absolute and relative tolerances to each coefficient together.
+static bool
+array_within_combined_tol(
+  const struct gkyl_array *a, const struct gkyl_array *b, const struct gkyl_range *range,
+  double abs_tol, double rel_tol
+)
+{
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, range);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(range, iter.idx);
+    const double *av = gkyl_array_cfetch(a, loc), *bv = gkyl_array_cfetch(b, loc);
+    for (int c = 0; c < a->ncomp; ++c) {
+      double diff = fabs(av[c] - bv[c]);
+      if (!finite_double(av[c]) || !finite_double(bv[c]) || !finite_double(diff)) {
+        return false;
+      }
+      if (diff <= abs_tol) {
+        continue;
+      }
+      double sum = fabs(av[c]) + fabs(bv[c]);
+      double rel_diff = av[c] == 0 || bv[c] == 0 || sum < DBL_MIN ? diff :
+                                                                    diff / fmin(sum, DBL_MAX);
+      if (rel_diff > rel_tol) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+/* -- G0.Zero.arrayDiff(a1_ud, a2_ud, range_ud, abs_tol?, rel_tol?) -> table -- */
 // Returned table has fields: is_compatible, max_abs_diff, min_abs_diff,
 //                             max_rel_diff, min_rel_diff.
 static int
@@ -420,6 +452,15 @@ array_diff_lw(lua_State *L)
 
   lua_pushnumber(L, diff.min_rel_diff);
   lua_setfield(L, -2, "min_rel_diff");
+
+  if (!lua_isnoneornil(L, 4) && !lua_isnoneornil(L, 5)) {
+    bool passed = diff.is_compatible && array_within_combined_tol(
+                                          (*l_a1)->arr, (*l_a2)->arr, &(*l_r)->range,
+                                          luaL_checknumber(L, 4), luaL_checknumber(L, 5)
+                                        );
+    lua_pushboolean(L, passed);
+    lua_setfield(L, -2, "within_combined_tol");
+  }
 
   return 1;
 }
@@ -722,7 +763,7 @@ dynvec_incompat(lua_State *L)
   return 1;
 }
 
-// G0.Zero.dynvecDiff(f1, f2) -> table
+// G0.Zero.dynvecDiff(f1, f2, abs_tol?, rel_tol?) -> table
 // Reads two dynvector files, compares their data payloads, and returns a
 // table with the same fields as arrayDiff plus two informational timestamp
 // fields (tm_max_abs_diff, tm_min_abs_diff).  Timestamp differences are
@@ -800,6 +841,10 @@ dynvec_diff_lw(lua_State *L)
     lua_setfield(L, -2, "tm_max_abs_diff");
     lua_pushnumber(L, 0.0);
     lua_setfield(L, -2, "tm_min_abs_diff");
+    if (!lua_isnoneornil(L, 3) && !lua_isnoneornil(L, 4)) {
+      lua_pushboolean(L, 1);
+      lua_setfield(L, -2, "within_combined_tol");
+    }
     return 1;
   }
 
@@ -822,6 +867,10 @@ dynvec_diff_lw(lua_State *L)
 
   struct gkyl_array_diff ddiff = gkyl_array_diff(da1, da2, &rng);
   struct gkyl_array_diff tdiff = gkyl_array_diff(tm1, tm2, &rng);
+  bool check_tol = !lua_isnoneornil(L, 3) && !lua_isnoneornil(L, 4);
+  bool passed =
+    check_tol && ddiff.is_compatible &&
+    array_within_combined_tol(da1, da2, &rng, luaL_checknumber(L, 3), luaL_checknumber(L, 4));
 
   gkyl_array_release(tm1);
   gkyl_array_release(tm2);
@@ -844,6 +893,11 @@ dynvec_diff_lw(lua_State *L)
 
   lua_pushnumber(L, ddiff.min_rel_diff);
   lua_setfield(L, -2, "min_rel_diff");
+
+  if (check_tol) {
+    lua_pushboolean(L, passed);
+    lua_setfield(L, -2, "within_combined_tol");
+  }
 
   // Timestamp fields: informational only, never cause a test failure.
   lua_pushnumber(L, tdiff.is_compatible ? tdiff.max_abs_diff : 0.0);
