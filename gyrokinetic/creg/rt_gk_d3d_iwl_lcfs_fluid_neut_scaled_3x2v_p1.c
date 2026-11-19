@@ -31,6 +31,10 @@ struct gk_app_ctx {
   // Miller geometry parameters.
   double a_shift, Zvert_axis, Rmajor_axis, R0, rminor_LCFS, x_inner, r0, B0, kappa, delta;
   double q0, Cy, Bref, x_LCFS;
+  // +1 if psi increases outward, -1 if it decreases. x = psi after the app
+  // converts the radial coordinate, so with psi_sign = -1 the core (inner)
+  // boundary is the upper x edge.
+  double psi_sign;
   struct gkyl_gen_miller_eqdsk_inp miller;
   gkyl_gen_miller_eqdsk *equilibrium; // Flux table for profile callbacks; owned by main.
   // Plasma parameters.
@@ -203,14 +207,21 @@ temp_neut(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, 
   fout[0] = 0.6 * ctx->Ti0 * (0.5 * (1.0 + tanh(2.0 - 25.0 * x)) + 0.1);
 }
 
+// True inside the LCFS, for psi of either sign convention.
+static inline bool
+in_core(const struct gk_app_ctx *ctx, double psi)
+{
+  return ctx->psi_sign * (psi - ctx->x_LCFS) < 0.0;
+}
+
 // Weight of the cold (recycled) neutral temperature: 1 at the SOL targets,
 // decaying over Tn_cold_width along z, and 0 in the core.
 static void
 neut_cold_weight(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *vctx)
 {
   struct gk_app_ctx *ctx = vctx;
-  const double psi = xn[0], z = xn[2];
-  if (psi < ctx->x_LCFS) {
+  const double z = xn[2];
+  if (in_core(ctx, xn[0])) {
     fout[0] = 0.0;
     return;
   }
@@ -269,9 +280,9 @@ create_ctx(struct gk_app_ctx *out)
   // Geometry and magnetic field.
   double Zvert_axis = -0.0014645315; // Magnetic axis height [m].
   double Rmajor_axis = 1.7074685; // Magnetic axis major radius [m].
-  // B_phi clockwise viewed from above, so the ion grad-B drift is downward.
-  // The Miller generator fixes the plasma current along -phi, so here the
-  // current is parallel to B_phi.
+  // B_phi clockwise viewed from above (ion grad-B drift down). With the
+  // positive (signed COCOS 3) q below, B_pol is also clockwise, the plasma
+  // current is anti-parallel to B, and psi decreases outward.
   double bmag_axis = -2.0; // Toroidal field at the axis [T].
   double R_LCFSmid = 2.17; // Major radius of the LCFS at the outboard midplane [m].
   double x_inner = 0.10; // Radial extent inside the LCFS [m].
@@ -332,23 +343,24 @@ create_ctx(struct gk_app_ctx *out)
   double c_s = sqrt(Te0 / mi);
   double rho_s = c_s / fabs(qi * B0 / mi);
 
-  // Radial domain: keep the analytic outer surface and put the LCFS at 2/3 of
-  // the psi grid.
+  // Radial domain: keep the analytic outer surface and put the LCFS 2/3 of the
+  // way from the core edge.
   double Lx = x_inner + x_outer;
   out->rminor_LCFS = rminor_LCFS;
   out->x_inner = x_inner;
+  double psi_sign = info->psi_boundary > info->psi_axis ? 1.0 : -1.0;
   double x_LCFS = gkyl_round_to_e16_9(info->psi_boundary);
-  double psi_upper = psi_at_x(out, Lx);
-  double psi_lower = (x_LCFS - (2.0 / 3.0) * psi_upper) / (1.0 / 3.0);
-  if (!(psi_lower > info->psi_axis)) {
+  double psi_outer = psi_at_x(out, Lx);
+  double psi_core = (x_LCFS - (2.0 / 3.0) * psi_outer) / (1.0 / 3.0);
+  if (!(psi_sign * (psi_core - info->psi_axis) > 0.0)) {
     gkyl_gen_miller_eqdsk_release(out->equilibrium);
     out->equilibrium = NULL;
     return false;
   }
-  double x_min = gkyl_gen_miller_eqdsk_R_omp_at_psi(out->equilibrium, psi_lower);
+  double x_min = gkyl_gen_miller_eqdsk_R_omp_at_psi(out->equilibrium, psi_core);
 
   // Binormal domain, quantized to an integer number of toroidal wedges.
-  double psi_bounds[2] = {psi_lower, psi_upper};
+  double psi_bounds[2] = {fmin(psi_core, psi_outer), fmax(psi_core, psi_outer)};
   double requested_Ly = Ly_length_over_rho_s * rho_s;
   double y_bounds[2] = {-0.5 * requested_Ly, 0.5 * requested_Ly};
   struct gkyl_gen_miller_eqdsk_binormal_extent binormal;
@@ -391,6 +403,7 @@ create_ctx(struct gk_app_ctx *out)
     .Cy = binormal.Cy,
     .Bref = B0,
     .x_LCFS = x_LCFS,
+    .psi_sign = psi_sign,
     .miller = out->miller,
     .equilibrium = out->equilibrium,
     .me = me,
@@ -412,7 +425,7 @@ create_ctx(struct gk_app_ctx *out)
     .adapt_particle_srcCORE = true,
     // Centered on the inner radial surface; the ion source is at +Lz/4 and the
     // electron source at -Lz/4 (Miller angle).
-    .center_srcCORE = {x_inner + gkyl_gen_miller_eqdsk_r_at_psi(out->equilibrium, psi_lower) -
+    .center_srcCORE = {x_inner + gkyl_gen_miller_eqdsk_r_at_psi(out->equilibrium, psi_core) -
                          rminor_LCFS,
                        0.0, 0.25 * Lz},
     .sigma_srcCORE = {0.03 * Lx, 0.0, Lz / 6.0},
@@ -515,7 +528,7 @@ main(int argc, char **argv)
     .adapt_energy = ctx.adapt_energy_srcCORE,
     .num_boundaries = 1,
     .dir = {0},
-    .edge = {GKYL_LOWER_EDGE},
+    .edge = {ctx.psi_sign > 0 ? GKYL_LOWER_EDGE : GKYL_UPPER_EDGE}, // Core edge.
   };
 
   // Electrons.
@@ -632,7 +645,7 @@ main(int argc, char **argv)
     .adapt_energy = ctx.adapt_energy_srcCORE,
     .num_boundaries = 1,
     .dir = {0},
-    .edge = {GKYL_LOWER_EDGE},
+    .edge = {ctx.psi_sign > 0 ? GKYL_LOWER_EDGE : GKYL_UPPER_EDGE}, // Core edge.
   };
 
   // Ions.

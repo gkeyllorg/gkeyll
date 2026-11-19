@@ -12,6 +12,10 @@ struct d3d_neut_ctx {
   // Miller geometry parameters.
   double a_shift, Zvert_axis, Rmajor_axis, R0, rminor_LCFS, x_inner, B0;
   double kappa, delta, x_LCFS;
+  // +1 if psi increases outward, -1 if it decreases. x = psi after the app
+  // converts the radial coordinate, so with psi_sign = -1 the core (inner)
+  // boundary is the upper x edge.
+  double psi_sign;
   struct gkyl_gen_miller_eqdsk_inp miller;
   gkyl_gen_miller_eqdsk *equilibrium; // Flux table for profile callbacks; owned by main.
 
@@ -161,6 +165,13 @@ eval_zero_upar(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT f
   fout[0] = 0.0;
 }
 
+// True inside the LCFS, for psi of either sign convention.
+static inline bool
+in_core(const struct d3d_neut_ctx *ctx, double psi)
+{
+  return ctx->psi_sign * (psi - ctx->x_LCFS) < 0.0;
+}
+
 // Ion parallel flow: zero inside the LCFS and, in the SOL, rising to
 // -c_s at the lower target and +c_s at the upper target within about 0.5 rad of
 // each target. c_s = sqrt(Te0/m_i) uses the reference electron temperature.
@@ -172,7 +183,7 @@ eval_ion_upar(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fo
   const double cs = sqrt(ctx->Te0 / ctx->mi);
   const double target_factor =
     1.0 / cosh((z - 0.5 * ctx->Lz) / 0.5) - 1.0 / cosh((z + 0.5 * ctx->Lz) / 0.5);
-  fout[0] = xn[0] < ctx->x_LCFS ? 0.0 : cs * target_factor;
+  fout[0] = in_core(ctx, xn[0]) ? 0.0 : cs * target_factor;
 }
 
 // Weight of the cold (recycled) neutral temperature: 1 at the SOL
@@ -181,8 +192,8 @@ static void
 eval_neut_cold_weight(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *vctx)
 {
   struct d3d_neut_ctx *ctx = vctx;
-  const double x = xn[0], z = xn[1];
-  if (x < ctx->x_LCFS) {
+  const double z = xn[1];
+  if (in_core(ctx, xn[0])) {
     fout[0] = 0.0;
     return;
   }
@@ -232,9 +243,9 @@ main(int argc, char **argv)
   const double Rmajor_axis = 1.7074685, R_LCFSmid = 2.17;
   const double a_shift = 1.0, x_inner = 0.10, x_outer = 0.05;
   const double R0 = R_LCFSmid + 0.5 * (x_outer - x_inner); // Outboard reference radius [m].
-  // B_phi clockwise viewed from above, so the ion grad-B drift is downward.
-  // The Miller generator fixes the plasma current along -phi, so here the
-  // current is parallel to B_phi.
+  // B_phi clockwise viewed from above (ion grad-B drift down). With the
+  // positive (signed COCOS 3) q below, B_pol is also clockwise, the plasma
+  // current is anti-parallel to B, and psi decreases outward.
   const double bmag_axis = -2.0;
 
   // The Miller shape callbacks need the final context address.
@@ -284,14 +295,15 @@ main(int argc, char **argv)
   if (!failed) {
     const struct gkyl_gen_miller_eqdsk_info *info = gkyl_gen_miller_eqdsk_get_info(ctx.equilibrium);
     ctx.rminor_LCFS = info->rminor_LCFS;
-    // Put the LCFS at 2/3 of the psi grid, keeping the analytic outer surface.
+    ctx.psi_sign = info->psi_boundary > info->psi_axis ? 1.0 : -1.0;
+    // Put the LCFS 2/3 of the way from the core edge to the analytic outer surface.
     ctx.x_LCFS = gkyl_round_to_e16_9(info->psi_boundary);
-    const double psi_upper = psi_at_x(&ctx, ctx.Lx);
-    const double psi_lower = (ctx.x_LCFS - (2.0 / 3.0) * psi_upper) / (1.0 / 3.0);
-    ctx.x_min = gkyl_gen_miller_eqdsk_R_omp_at_psi(ctx.equilibrium, psi_lower);
+    const double psi_outer = psi_at_x(&ctx, ctx.Lx);
+    const double psi_core = (ctx.x_LCFS - (2.0 / 3.0) * psi_outer) / (1.0 / 3.0);
+    ctx.x_min = gkyl_gen_miller_eqdsk_R_omp_at_psi(ctx.equilibrium, psi_core);
     ctx.B0 = gkyl_gen_miller_eqdsk_bmag_at_RZ(ctx.equilibrium, R0, ctx.Zvert_axis);
-    failed = !(psi_lower > info->psi_axis) || !isfinite(ctx.x_min) || !isfinite(ctx.B0) ||
-             ctx.B0 <= 0.0;
+    failed = !(ctx.psi_sign * (psi_core - info->psi_axis) > 0.0) || !isfinite(ctx.x_min) ||
+             !isfinite(ctx.B0) || ctx.B0 <= 0.0;
   }
   ctx.z_min = -0.5 * ctx.Lz;
   ctx.z_max = 0.5 * ctx.Lz;
@@ -351,6 +363,10 @@ main(int argc, char **argv)
   struct source_profile_ctx core_ion = core_elc;
   core_ion.center[1] = ctx.center_srcCORE[1];
 
+  // Radial edges of the computational (psi) grid.
+  const enum gkyl_edge_loc core_edge = ctx.psi_sign > 0 ? GKYL_LOWER_EDGE : GKYL_UPPER_EDGE;
+  const enum gkyl_edge_loc wall_edge = ctx.psi_sign > 0 ? GKYL_UPPER_EDGE : GKYL_LOWER_EDGE;
+
   // Core sources, adapting to the losses through the inner radial boundary.
   struct gkyl_gyrokinetic_projection proj_srcCORE_e = {
     .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN,
@@ -377,7 +393,7 @@ main(int argc, char **argv)
     .adapt_energy = ctx.adapt_energy_srcCORE,
     .num_boundaries = 1, // Only the inner radial boundary.
     .dir = {0},
-    .edge = {GKYL_LOWER_EDGE},
+    .edge = {core_edge},
   };
   struct gkyl_gyrokinetic_adapt_source adapt_srcCORE_i = {
     .adapt_to_species = "ion",
@@ -385,7 +401,7 @@ main(int argc, char **argv)
     .adapt_energy = ctx.adapt_energy_srcCORE,
     .num_boundaries = 1, // Only the inner radial boundary.
     .dir = {0},
-    .edge = {GKYL_LOWER_EDGE},
+    .edge = {core_edge},
   };
 
   // Electron species.
@@ -661,12 +677,12 @@ main(int argc, char **argv)
       {
         // Neutrals leaving through the inner (core) boundary are absorbed:
         // they would ionize deeper in the core.
-        {.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+        {.dir = 0, .edge = core_edge, .type = GKYL_BC_GK_SPECIES_ABSORB},
         // The neutral flux entering through the outer wall and through each
         // SOL target is R times the incident ion flux there.
         {
           .dir = 0,
-          .edge = GKYL_UPPER_EDGE,
+          .edge = wall_edge,
           .type = GKYL_BC_GK_SPECIES_RECYCLE,
           .emission = recycling_wall,
         },
