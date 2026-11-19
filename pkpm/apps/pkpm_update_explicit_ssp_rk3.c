@@ -32,8 +32,6 @@ pkpm_update_explicit_ssp_rk3(gkyl_pkpm_app *app, double dt0)
           pkpm_forward_euler(
             app, 1, tcurr, dt, fin, fluidin, app->field->em, fout, fluidout, app->field->em1, &st
           );
-          // Limit the EM solution if desired (done after update as post-hoc fix)
-          pkpm_field_limiter(app, app->field, app->field->em1);
 
           dt = st.dt_actual;
           pkpm_coll_stage_advance(app, 1, dt);
@@ -57,8 +55,6 @@ pkpm_update_explicit_ssp_rk3(gkyl_pkpm_app *app, double dt0)
             app, 2, tcurr + dt, dt, fin, fluidin, app->field->em1, fout, fluidout,
             app->field->emnew, &st
           );
-          // Limit the EM solution if desired (done after update as post-hoc fix)
-          pkpm_field_limiter(app, app->field, app->field->emnew);
 
           if (st.dt_actual < dt) {
             // collect stats
@@ -109,8 +105,6 @@ pkpm_update_explicit_ssp_rk3(gkyl_pkpm_app *app, double dt0)
             app, 3, tcurr + dt / 2, dt, fin, fluidin, app->field->em1, fout, fluidout,
             app->field->emnew, &st
           );
-          // Limit the EM solution if desired (done after update as post-hoc fix)
-          pkpm_field_limiter(app, app->field, app->field->emnew);
 
           if (st.dt_actual < dt) {
             // collect stats

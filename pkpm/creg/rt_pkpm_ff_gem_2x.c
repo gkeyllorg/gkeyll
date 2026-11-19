@@ -6,12 +6,13 @@
 // perturbed by the flux function psi0 cos(2 pi x/Lx) cos(pi y/Ly) with psi0 = 0.1 B0 d_i, on a
 // domain 8 pi d_i by 4 pi d_i, periodic in x, with conducting walls that reflect the species in y.
 // Position maps cluster the cells at the X point and at the sheet (cells from 0.15 to 1.85 of the
-// uniform size in both directions). Run to t = 22/Omega_ci.
+// uniform size in both directions). The divergence of B is cleaned at the speed of light, because
+// the projected perturbation is not discretely divergence free. Run to t = 22/Omega_ci.
 // Figures of merit (12 x 12 x 8 cells), with the reconnected flux psi = (1/2) int |B_y(x, y = 0)|
-// dx and the rate d psi/dt between frames: psi = 0.200 B0 d_i initially and 0.894 at t =
-// 22/Omega_ci. The rate is 0.02 to 0.03 B0 vA from 5 to 17/Omega_ci, rises from 17/Omega_ci on
-// (onset) and is 0.086 B0 vA between 20 and 21/Omega_ci and 0.088 between 21 and 22/Omega_ci. The
-// onset time depends on the mesh at this resolution.
+// dx and the rate d psi/dt between frames: psi = 0.200 B0 d_i initially and 0.971 at t =
+// 22/Omega_ci. The rate is 0.017 to 0.036 B0 vA from 4 to 16/Omega_ci, rises from 16/Omega_ci on
+// (onset), peaks at 0.089 B0 vA between 19 and 20/Omega_ci and is 0.076 between 21 and 22/Omega_ci.
+// The onset time depends on the mesh at this resolution.
 
 #include <math.h>
 #include <stdio.h>
@@ -586,7 +587,7 @@ main(int argc, char **argv)
     .epsilon0 = ctx.epsilon0,
     .mu0 = ctx.mu0,
     .elcErrorSpeedFactor = 0.0,
-    .mgnErrorSpeedFactor = 0.0,
+    .mgnErrorSpeedFactor = 1.0, // Divergence of B cleaned at the speed of light.
 
     .init = evalFieldInit,
     .ctx = &ctx,

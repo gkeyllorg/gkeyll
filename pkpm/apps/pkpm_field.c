@@ -146,7 +146,22 @@ pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app)
   };
   eqn = gkyl_dg_maxwell_inew(&inp_dg_maxwell);
 
-  int up_dirs[GKYL_MAX_DIM] = {0, 1, 2}, zero_flux_flags[2 * GKYL_MAX_DIM] = {0, 0, 0, 0, 0, 0};
+  int up_dirs[GKYL_MAX_DIM] = {0, 1, 2}, zero_flux_flags[2 * GKYL_MAX_DIM] = {false};
+
+  // Absorbing edges: the solver updates the cells of the edge with the boundary surface kernels of
+  // the equation (the outgoing waves only), on the ranks that own the edge. The BC updaters below
+  // fill the ghost cells of the edge for the operations that read them (b, limiter).
+  for (int d = 0; d < app->cdim; ++d) {
+    const enum gkyl_field_bc_type *bc = d == 0 ? f->info.bcx : (d == 1 ? f->info.bcy : f->info.bcz);
+    bool is_periodic = false;
+    for (int i = 0; i < app->num_periodic_dir; ++i) {
+      is_periodic = is_periodic || app->periodic_dirs[i] == d;
+    }
+    bool absorb_lo = !is_periodic && bc[0] == GKYL_FIELD_ABSORB;
+    bool absorb_up = !is_periodic && bc[1] == GKYL_FIELD_ABSORB;
+    zero_flux_flags[d] = absorb_lo && app->local.lower[d] == app->global.lower[d];
+    zero_flux_flags[d + app->cdim] = absorb_up && app->local.upper[d] == app->global.upper[d];
+  }
 
   // Maxwell solver
   f->slvr = gkyl_hyper_dg_new(
@@ -157,10 +172,15 @@ pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app)
   f->bvar = mkarr(app->use_gpu, 3 * app->confBasis.num_basis, app->local_ext.volume);
   f->grad_b = mkarr(app->use_gpu, app->cdim * 3 * app->confBasis.num_basis, app->local_ext.volume);
   gkyl_array_clear(f->grad_b, 0.0);
-  // operator split: the frozen transport right-hand side and the curl B current of the source
-  // half steps
-  f->rhs_split = mkarr(app->use_gpu, 8 * app->confBasis.num_basis, app->local_ext.volume);
-  f->omega_cfl_split = 1.0 / DBL_MAX;
+  if (!app->use_explicit_sources && ef != 0.0) {
+    // The split advances E in the source step only: the correction potential of div(E) would be
+    // driven by an E the transport step does not advance.
+    gkyl_exit(
+      "pkpm_field: divergence cleaning of the electric field is not supported with the implicit "
+      "fluid-EM coupling."
+    );
+  }
+  // operator split: the field right-hand side and the curl B current of the source half steps
   f->curl_rhs = mkarr(app->use_gpu, 8 * app->confBasis.num_basis, app->local_ext.volume);
   f->curl_rhs_no_J = mkarr(app->use_gpu, 8 * app->confBasis.num_basis, app->local_ext.volume);
   f->curl_current = mkarr(app->use_gpu, 3 * app->confBasis.num_basis, app->local_ext.volume);
@@ -177,20 +197,11 @@ pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app)
     .use_gpu = app->use_gpu,
   });
 
-  // Check if limiter_fac is specified for adjusting how much diffusion is applied through slope limiter
-  // If not specified, set to 0.0 and updater sets default behavior (1/sqrt(3); see gkyl_dg_calc_em_vars.h)
-  double limiter_fac = f->info.limiter_fac == 0 ? 0.0 : f->info.limiter_fac;
-  f->limit_em = f->info.limit_em;
-  if (f->limit_em) {
-    f->em_lim = mkarr(app->use_gpu, 8 * app->confBasis.num_basis, app->local_ext.volume);
+  if (f->info.limit_em) {
+    // The slope limiter does not keep the discrete divergence of B that the Maxwell solver
+    // preserves, and b = B/|B| of a PKPM species follows the limited field.
+    gkyl_exit("pkpm_field: the limiter of the electromagnetic fields (limit_em) is not supported.");
   }
-
-  struct gkyl_wv_eqn *maxwell = gkyl_wv_maxwell_new(c, ef, mf, app->use_gpu);
-  // Create updaters for limiting EM fields
-  f->calc_em_vars = gkyl_dg_calc_em_vars_new(
-    &app->grid, &app->confBasis, &app->local_ext, maxwell, app->geom, limiter_fac, 0, app->use_gpu
-  );
-  gkyl_wv_eqn_release(maxwell);
 
   // determine which directions are not periodic
   int num_periodic_dir = app->num_periodic_dir, is_np[3] = {1, 1, 1};
@@ -243,6 +254,7 @@ pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app)
     );
 
     // Upper BC updater. Copy BCs by default.
+    bctype = GKYL_BC_COPY;
     if (f->upper_bc[d] == GKYL_FIELD_COPY) {
       bctype = GKYL_BC_COPY;
     } else if (f->upper_bc[d] == GKYL_FIELD_PEC_WALL) {
@@ -291,7 +303,9 @@ pkpm_field_apply_ic(gkyl_pkpm_app *app, struct pkpm_field *field, double t0)
   if (app->use_gpu) {
     gkyl_array_copy(field->em_no_J, field->em_no_J_host);
   }
-  gkyl_vlasov_position_map_rescale_jacobpos_conf(app->pos_map, &app->local_ext, field->em_no_J, field->em);
+  gkyl_vlasov_position_map_rescale_jacobpos_conf(
+    app->pos_map, &app->local_ext, field->em_no_J, field->em
+  );
 
   // pre-compute external EM field and applied current if present
   // pre-computation necessary in case external EM field or applied current
@@ -337,7 +351,9 @@ pkpm_field_calc_bvar(gkyl_pkpm_app *app, struct pkpm_field *field, const struct 
   struct timespec tm = gkyl_wall_clock();
 
   // Physical fields of the stage (the evolved em carries the position-map Jacobian).
-  gkyl_vlasov_position_map_divide_jacobpos_conf(app->pos_map, &app->local_ext, em->ncomp, em, field->em_no_J);
+  gkyl_vlasov_position_map_divide_jacobpos_conf(
+    app->pos_map, &app->local_ext, em->ncomp, em, field->em_no_J
+  );
   gkyl_array_clear(field->tot_em, 0.0);
   gkyl_array_set(field->tot_em, 1.0, field->em_no_J);
   if (field->has_ext_em) {
@@ -350,25 +366,6 @@ pkpm_field_calc_bvar(gkyl_pkpm_app *app, struct pkpm_field *field, const struct 
   gkyl_dg_calc_pkpm_bvar_grad(field->calc_bvar, &app->local, field->bvar, field->grad_b);
 
   app->stat.field_em_vars_tm += gkyl_time_diff_now_sec(tm);
-}
-
-void
-pkpm_field_limiter(gkyl_pkpm_app *app, struct pkpm_field *field, struct gkyl_array *em)
-{
-  if (field->limit_em) {
-    struct timespec tm = gkyl_wall_clock();
-
-    // Limit the slopes of the PHYSICAL field (on a position map the J-weighted field jumps with J
-    // between cells; on the identity map J = 1 exactly and this is the field itself)
-    gkyl_vlasov_position_map_divide_jacobpos_conf(app->pos_map, &app->local_ext, em->ncomp, em, field->em_lim);
-    gkyl_dg_calc_em_vars_limiter(field->calc_em_vars, &app->local, field->em_lim);
-    gkyl_vlasov_position_map_rescale_jacobpos_conf(app->pos_map, &app->local, field->em_lim, em);
-
-    app->stat.field_em_vars_tm += gkyl_time_diff_now_sec(tm);
-
-    // Apply boundary conditions after limiting solution
-    pkpm_field_apply_bc(app, field, em);
-  }
 }
 
 void
@@ -417,8 +414,12 @@ pkpm_field_explicit_accumulate_current(
     // the evolved field (a uniform current is then no source of E on a position map).
     if (field->use_ghost_current) {
       pkpm_field_calc_ghost_current(app, field, fluidin);
-      gkyl_vlasov_position_map_rescale_jacobpos_conf(app->pos_map, &app->local, field->ghost_current, field->ghost_current);
-      gkyl_array_accumulate_range(emout, 1.0 / field->info.epsilon0, field->ghost_current, &app->local);
+      gkyl_vlasov_position_map_rescale_jacobpos_conf(
+        app->pos_map, &app->local, field->ghost_current, field->ghost_current
+      );
+      gkyl_array_accumulate_range(
+        emout, 1.0 / field->info.epsilon0, field->ghost_current, &app->local
+      );
     }
     // Accumulate applied current to electric field terms
     if (field->has_app_current) {
@@ -430,11 +431,38 @@ pkpm_field_explicit_accumulate_current(
   app->stat.current_tm += gkyl_time_diff_now_sec(wst);
 }
 
+// Physical time derivative of the fields from a right-hand side of the evolved ones (which carry
+// the position-map Jacobian), and d_t B/|B| at the nodes of b (tot_em holds the physical fields
+// the right-hand side was computed from).
+static void
+pkpm_field_calc_dtB(gkyl_pkpm_app *app, struct pkpm_field *field, const struct gkyl_array *rhs)
+{
+  gkyl_vlasov_position_map_divide_jacobpos_conf(
+    app->pos_map, &app->local, rhs->ncomp, rhs, field->dt_em_no_J
+  );
+  gkyl_dg_calc_pkpm_bvar_dtB_over_magB(
+    field->calc_bvar, &app->local, field->tot_em, field->dt_em_no_J, field->dtB_over_magB
+  );
+}
+
+void
+pkpm_field_calc_diag_vars(gkyl_pkpm_app *app, struct pkpm_field *field)
+{
+  pkpm_field_calc_bvar(app, field, field->em);
+  if (!field->info.is_static) {
+    // emnew is free scratch between time steps.
+    gkyl_array_clear(field->cflrate, 0.0);
+    gkyl_array_clear(field->emnew, 0.0);
+    gkyl_hyper_dg_advance(field->slvr, &app->local, field->em, field->cflrate, field->emnew);
+    pkpm_field_calc_dtB(app, field, field->emnew);
+  }
+}
+
 // Compute the RHS for field update, returning maximum stable
 // time-step.
 double
 pkpm_field_rhs(
-  gkyl_pkpm_app *app, struct pkpm_field *field, int stage, const struct gkyl_array *em, struct gkyl_array *rhs
+  gkyl_pkpm_app *app, struct pkpm_field *field, const struct gkyl_array *em, struct gkyl_array *rhs
 )
 {
   struct timespec wst = gkyl_wall_clock();
@@ -444,28 +472,17 @@ pkpm_field_rhs(
   gkyl_array_clear(field->cflrate, 0.0);
   gkyl_array_clear(rhs, 0.0);
 
-  if (!field->info.is_static && !app->use_explicit_sources && stage > 1) {
-    // operator split: B drifts with the E of the source half kick over the whole transport step
-    gkyl_array_copy(rhs, field->rhs_split);
-    gkyl_vlasov_position_map_divide_jacobpos_conf(app->pos_map, &app->local, rhs->ncomp, rhs, field->dt_em_no_J);
-    gkyl_dg_calc_pkpm_bvar_dtB_over_magB(field->calc_bvar, &app->local, field->tot_em, field->dt_em_no_J, field->dtB_over_magB);
-    app->stat.field_rhs_tm += gkyl_time_diff_now_sec(wst);
-    return app->cfl / field->omega_cfl_split;
-  }
-
   if (!field->info.is_static) {
     gkyl_hyper_dg_advance(field->slvr, &app->local, em, field->cflrate, rhs);
     if (!app->use_explicit_sources) {
       // operator split: E is advanced only by the implicit source half steps (Stormer-Verlet in the
-      // curl terms); zero the E rows (the first 3 components) and keep the right-hand side for
-      // stages 2 and 3
+      // curl terms), so the E rows (the first 3 components) are zero and B drifts with the E of
+      // the source half kick over the whole transport step. The terms of the B rows that depend
+      // on B (divergence cleaning of the magnetic field, the flux of an absorbing edge) follow
+      // the stages.
       gkyl_array_set_offset(rhs, 0.0, field->curl_current, 0);
-      gkyl_array_copy(field->rhs_split, rhs);
     }
-    // physical time derivative of the fields (the evolved em carries the position-map Jacobian)
-    // and d_t B/|B| at the nodes of b (tot_em holds the physical fields of the stage)
-    gkyl_vlasov_position_map_divide_jacobpos_conf(app->pos_map, &app->local, rhs->ncomp, rhs, field->dt_em_no_J);
-    gkyl_dg_calc_pkpm_bvar_dtB_over_magB(field->calc_bvar, &app->local, field->tot_em, field->dt_em_no_J, field->dtB_over_magB);
+    pkpm_field_calc_dtB(app, field, rhs);
 
     gkyl_array_reduce_range(field->omegaCfl_ptr, field->cflrate, GKYL_MAX, &app->local);
 
@@ -479,7 +496,6 @@ pkpm_field_rhs(
       omegaCfl_ho[0] = field->omegaCfl_ptr[0];
     }
     omegaCfl = omegaCfl_ho[0];
-    field->omega_cfl_split = omegaCfl;
 
     app->stat.field_omega_cfl_tm += gkyl_time_diff_now_sec(tm);
   }
@@ -510,6 +526,7 @@ pkpm_field_apply_bc(gkyl_pkpm_app *app, const struct pkpm_field *field, struct g
     if (is_np_bc[d]) {
       switch (field->lower_bc[d]) {
         case GKYL_FIELD_COPY:
+        case GKYL_FIELD_ABSORB:
         case GKYL_FIELD_PEC_WALL:
         case GKYL_FIELD_SYM_WALL:
         case GKYL_FIELD_RESERVOIR:
@@ -522,6 +539,7 @@ pkpm_field_apply_bc(gkyl_pkpm_app *app, const struct pkpm_field *field, struct g
 
       switch (field->upper_bc[d]) {
         case GKYL_FIELD_COPY:
+        case GKYL_FIELD_ABSORB:
         case GKYL_FIELD_PEC_WALL:
         case GKYL_FIELD_SYM_WALL:
         case GKYL_FIELD_RESERVOIR:
@@ -582,14 +600,12 @@ pkpm_field_release(const gkyl_pkpm_app *app, struct pkpm_field *f)
 
   gkyl_array_release(f->bvar);
   gkyl_array_release(f->grad_b);
-  gkyl_array_release(f->rhs_split);
   gkyl_array_release(f->curl_rhs);
   gkyl_array_release(f->curl_rhs_no_J);
   gkyl_array_release(f->curl_current);
   gkyl_array_release(f->dt_em_no_J);
   gkyl_array_release(f->dtB_over_magB);
   gkyl_dg_calc_pkpm_bvar_release(f->calc_bvar);
-  gkyl_dg_calc_em_vars_release(f->calc_em_vars);
 
   gkyl_array_release(f->ext_em);
   if (f->has_ext_em) {
@@ -608,9 +624,6 @@ pkpm_field_release(const gkyl_pkpm_app *app, struct pkpm_field *f)
   }
   gkyl_array_release(f->app_current_no_J);
   gkyl_array_release(f->em_no_J);
-  if (f->limit_em) {
-    gkyl_array_release(f->em_lim);
-  }
   if (app->use_gpu) {
     gkyl_array_release(f->em_no_J_host);
   }

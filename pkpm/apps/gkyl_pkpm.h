@@ -168,8 +168,10 @@ struct gkyl_pkpm_field {
   // initial state, e.g. the Buneman instability).
   bool use_ghost_current;
 
-  double limiter_fac; // Optional input parameter for adjusting diffusion in slope limiter
-  bool limit_em; // Optional input parameter for applying limiters to EM fields
+  // The slope limiter of the EM fields is not supported by the PKPM field: setting limit_em is an
+  // error (it does not keep the discrete divergence of B), and limiter_fac is not read.
+  double limiter_fac;
+  bool limit_em;
 
   // boundary conditions
   enum gkyl_field_bc_type bcx[2], bcy[2], bcz[2];

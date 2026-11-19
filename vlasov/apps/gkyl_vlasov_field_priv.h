@@ -128,7 +128,6 @@ struct vm_field {
       gkyl_hyper_dg *slvr; // Maxwell solver
 
       bool limit_em; // boolean for whether or not we are limiting EM fields
-      bool has_absorb; // an edge of the domain is absorbing
       struct gkyl_dg_calc_em_vars *calc_em_vars; // Updater to limit EM fields
 
       struct gkyl_array *em_energy; // EM energy components in each cell
@@ -150,12 +149,6 @@ struct vm_field {
       struct gkyl_bc_basic *bc_up[3];
 
       double *omega_cfl;
-
-      // Staggered operator split (implicit fluid-EM coupling): right-hand side of the transport
-      // step (zero E rows), computed at stage 1 and reused in stages 2 and 3 without divergence
-      // cleaning.
-      struct gkyl_array *rhs_split; // field right-hand side of the transport step (stage 1)
-      double dt_split; // its stable time-step
     };
 
     // Vlasov-Poisson.

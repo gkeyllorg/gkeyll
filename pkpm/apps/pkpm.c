@@ -702,7 +702,9 @@ gkyl_pkpm_app_write_mom(gkyl_pkpm_app *app, int sidx, double tm, int frame)
   snprintf(fileNm_pkpm_vars, sizeof fileNm_pkpm_vars, fmt_pkpm_vars, app->name, s->name, frame);
 
   // Compute the PKPM variables including moments and primitive variables and construct the
-  // arrays for writing out the pressure tensor, the heat flux and the other pkpm variables.
+  // arrays for writing out the pressure tensor, the heat flux and the other pkpm variables,
+  // with b, its gradient and d_t B/|B| of the field being written.
+  pkpm_field_calc_diag_vars(app, app->field);
   pkpm_species_calc_diag_vars(app, s, s->kinetic->f, s->fluid->fluid);
   pkpm_species_moment_diag_calc(
     app, s, s->kinetic->local, app->local, s->kinetic->f, s->fluid->fluid

@@ -20,7 +20,6 @@
 #include <gkyl_bc_pkpm_species_reflect.h>
 #include <gkyl_comm_io.h>
 #include <gkyl_dg_bin_ops.h>
-#include <gkyl_dg_calc_em_vars.h>
 #include <gkyl_dg_calc_fluid_em_coupling.h>
 #include <gkyl_dg_calc_pkpm_bvar.h>
 #include <gkyl_dg_calc_pkpm_vars.h>
@@ -61,7 +60,6 @@
 #include <gkyl_util.h>
 #include <gkyl_wave_geom.h>
 #include <gkyl_wv_eqn.h>
-#include <gkyl_wv_maxwell.h>
 #include <gkyl_pkpm.h>
 
 // Definitions of private structs and APIs attached to these objects
@@ -549,9 +547,7 @@ struct pkpm_field {
   // Operator split: Stormer-Verlet in the curl terms. E is advanced only by the
   // implicit source half steps, with curl B (at the half step's start, known) as an effective
   // current; B drifts over the transport step with the E of the first half kick, so the field
-  // right-hand side of the transport step is that of RK stage 1 with its E rows zeroed.
-  struct gkyl_array *rhs_split; // field right-hand side of the transport step (stage 1, E rows zero)
-  double omega_cfl_split; // its time-step rate
+  // right-hand side of the transport step has zero E rows.
   struct gkyl_array *curl_rhs,
     *curl_rhs_no_J; // field right-hand side at a source half step (E rows: c^2 curl B)
   // applied current - eps0 c^2 curl B (physical), for the implicit solve; zero for a static field
@@ -567,10 +563,6 @@ struct pkpm_field {
   // kernels of the first harmonic form d_t b = (I - b b) . (d_t B/|B|) from it
   struct gkyl_array *dtB_over_magB;
   struct gkyl_dg_calc_pkpm_bvar *calc_bvar; // Updater computing b by nodal normalization
-
-  bool limit_em; // boolean for whether or not we are limiting EM fields
-  struct gkyl_array *em_lim; // physical E, B being limited (scratch; only with limit_em)
-  struct gkyl_dg_calc_em_vars *calc_em_vars; // Updater to limit EM fields
 
   gkyl_hyper_dg *slvr; // Maxwell solver
 
@@ -1331,6 +1323,15 @@ void pkpm_field_calc_ghost_current(
 void pkpm_field_calc_bvar(gkyl_pkpm_app *app, struct pkpm_field *field, const struct gkyl_array *em);
 
 /**
+ * Compute b, its gradient and d_t B/|B| of the current field, for the output. Between updates
+ * the field object holds those of the input of the last stage.
+ *
+ * @param app PKPM app object
+ * @param field Field object
+ */
+void pkpm_field_calc_diag_vars(gkyl_pkpm_app *app, struct pkpm_field *field);
+
+/**
  * Accumulate current density onto RHS from field equations
  *
  * @param app PKPM app object
@@ -1340,15 +1341,6 @@ void pkpm_field_calc_bvar(gkyl_pkpm_app *app, struct pkpm_field *field, const st
 void pkpm_field_accumulate_current(
   gkyl_pkpm_app *app, const struct gkyl_array *fluidin[], struct gkyl_array *emout
 );
-
-/**
- * Limit slopes of solution of EM variables
- *
- * @param app PKPM app object
- * @param field Pointer to field 
- * @param em Input (and Output after limiting) EM fields
- */
-void pkpm_field_limiter(gkyl_pkpm_app *app, struct pkpm_field *field, struct gkyl_array *em);
 
 /**
  * Accumulate current density onto RHS from field equations in fully explicit update
@@ -1364,19 +1356,17 @@ void pkpm_field_explicit_accumulate_current(
 );
 
 /**
- * Compute RHS from field equations
+ * Compute RHS from field equations. With the operator split its E rows are zero: B drifts with
+ * the E of the source half kick.
  *
  * @param app PKPM app object
  * @param field Pointer to field
- * @param stage SSP-RK3 stage (1, 2 or 3). With the operator split the right-hand side of stage 1
- *   (E rows zeroed: B drifts with the E of the source half kick) is kept for stages 2 and 3.
  * @param em Input field
  * @param rhs On output, the RHS from the field solver
  * @return Maximum stable time-step
  */
 double pkpm_field_rhs(
-  gkyl_pkpm_app *app, struct pkpm_field *field, int stage, const struct gkyl_array *em,
-  struct gkyl_array *rhs
+  gkyl_pkpm_app *app, struct pkpm_field *field, const struct gkyl_array *em, struct gkyl_array *rhs
 );
 
 /**

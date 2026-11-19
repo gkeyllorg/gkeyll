@@ -6,12 +6,13 @@
 -- by the flux function psi0 cos(2 pi x/Lx) cos(pi y/Ly) with psi0 = 0.1 B0 d_i, on a domain 8 pi
 -- d_i by 4 pi d_i, periodic in x, with conducting walls that reflect the species in y. Position
 -- maps cluster the cells at the X point (x cells from 0.15 to 1.85 of the uniform size) and at the
--- sheet (y cells from 0.3 to 1.7). Run to t = 22/Omega_ci.
+-- sheet (y cells from 0.3 to 1.7). The divergence of B is cleaned at the speed of light, because
+-- the projected perturbation is not discretely divergence free. Run to t = 22/Omega_ci.
 -- Figures of merit (12 x 12 x 8 cells), with the reconnected flux psi = (1/2) int |B_y(x, y = 0)|
--- dx and the rate d psi/dt between frames: psi = 0.200 B0 d_i initially and 1.177 at t =
--- 22/Omega_ci. The rate is 0.02 to 0.03 B0 vA from 7 to 15/Omega_ci, rises from 15/Omega_ci on
--- (onset), peaks at 0.148 B0 vA between 19 and 20/Omega_ci and is 0.113 between 21 and 22/Omega_ci.
--- The onset time depends on the mesh at this resolution.
+-- dx and the rate d psi/dt between frames: psi = 0.200 B0 d_i initially and 1.187 at t =
+-- 22/Omega_ci. The rate is 0.016 to 0.031 B0 vA from 6 to 13/Omega_ci and 0.043 from 13 to
+-- 15/Omega_ci, rises from 15/Omega_ci on (onset), peaks at 0.129 B0 vA between 18 and 19/Omega_ci
+-- and is 0.073 between 21 and 22/Omega_ci. The onset time depends on the mesh at this resolution.
 
 local PKPM = G0.PKPM
 
@@ -316,7 +317,7 @@ pkpmApp = PKPM.App.new {
 
     evolve = true, -- Evolve field?
     elcErrorSpeedFactor = 0.0,
-    mgnErrorSpeedFactor = 0.0
+    mgnErrorSpeedFactor = 1.0 -- Divergence of B cleaned at the speed of light.
   }
 }
 
