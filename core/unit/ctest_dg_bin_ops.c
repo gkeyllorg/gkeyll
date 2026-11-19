@@ -546,8 +546,9 @@ test_inv_1d(int poly_order, bool use_gpu)
 
     double A_inv_expected[basis.num_basis];
     A_inv_expected[0] = A[0] / det;
-    if (poly_order > 0)
+    if (poly_order > 0) {
       A_inv_expected[1] = -(1.0 * A[1]) / det;
+    }
 
     for (int k = 0; k < basis.num_basis; ++k) {
       TEST_CHECK(gkyl_compare(A_inv_expected[k], A_inv[k], 1e-12));
@@ -573,8 +574,9 @@ test_inv_1d(int poly_order, bool use_gpu)
 
     double A_inv_expected[basis.num_basis];
     A_inv_expected[0] = A[0] / det;
-    if (poly_order > 0)
+    if (poly_order > 0) {
       A_inv_expected[1] = -(1.0 * A[1]) / det;
+    }
 
     for (int k = 0; k < basis.num_basis; ++k) {
       TEST_CHECK(gkyl_compare(A_inv_expected[k], A_inv[k], 1e-12));
