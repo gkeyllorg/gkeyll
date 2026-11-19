@@ -32,7 +32,7 @@ solution_array_integrate(
   struct gkyl_range local, struct gkyl_array *win, struct gkyl_array *fin, bool use_gpu
 )
 {
-  double *avgf_ref = use_gpu ? gkyl_cu_malloc(sizeof(double)) : gkyl_malloc(sizeof(double));
+  double *avgf_ref = gkyl_calloc_hodev(use_gpu, 1, sizeof(double));
 
   if (win) {
     gkyl_dg_mul_op_range(&basis, 0, fin, 0, win, 0, fin, &local_ext);
@@ -53,11 +53,7 @@ solution_array_integrate(
   }
 
   double out = avgf_ref_ho[0];
-  if (use_gpu) {
-    gkyl_cu_free(avgf_ref);
-  } else {
-    gkyl_free(avgf_ref);
-  }
+  gkyl_free_hodev(use_gpu, avgf_ref);
   gkyl_free(avgf_ref_ho);
   return out;
 }
@@ -1301,7 +1297,7 @@ phase_bases(
     if (vdim_red == 0) {
       gkyl_cart_modal_serendip(basis_red, cdim_red, 1);
     } else if (cdim_red == 0) {
-      gkyl_cart_modal_serendip(basis_red, vdim_red, 2);
+      gkyl_cart_modal_tensor(basis_red, vdim_red, 2); // Velocity factor of the tensor hybrid.
     } else {
       gkyl_cart_modal_hybrid(basis_red, cdim_red, vdim_red);
     }

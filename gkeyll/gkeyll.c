@@ -651,7 +651,7 @@ int
 main(int argc, char **argv)
 {
   fprintf(stderr, "Gkeyll built without Lua support!\n");
-  return 0;
+  return 1;
 }
 
 #endif

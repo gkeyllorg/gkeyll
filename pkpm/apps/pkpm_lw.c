@@ -646,6 +646,8 @@ pkpm_app_new(lua_State *L)
   app_lw->num_nn_writes = glua_tbl_get_integer(L, "numNNWrites", 1);
 
   app_lw->num_input_moms = 0;
+  app_lw->input_moms =
+    0; // Freed unconditionally at teardown; must be NULL when no inputMoms table is given.
   if (glua_tbl_has_key(L, "inputMoms")) {
     with_lua_tbl_tbl(L, "inputMoms")
     {
@@ -660,6 +662,8 @@ pkpm_app_new(lua_State *L)
   }
 
   app_lw->num_output_moms = 0;
+  app_lw->output_moms =
+    0; // Freed unconditionally at teardown; must be NULL when no outputMoms table is given.
   if (glua_tbl_has_key(L, "outputMoms")) {
     with_lua_tbl_tbl(L, "outputMoms")
     {
@@ -1349,7 +1353,7 @@ pkpm_app_run(lua_State *L)
   // Triggers for IO and logging.
   struct gkyl_tm_trigger io_trig = {
     .dt = t_end / num_frames,
-    .tcurr = frame_curr * (t_end / num_frames),
+    .tcurr = gkyl_tm_trigger_anchor(t_end / num_frames, t_curr),
     .curr = frame_curr,
   };
   struct gkyl_tm_trigger fe_trig = {

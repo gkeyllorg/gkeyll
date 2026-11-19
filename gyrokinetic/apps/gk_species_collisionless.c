@@ -136,7 +136,7 @@ gk_species_collisionless_write_diags_enabled(
       .elem_type = GKYL_MP_STRING,
       .cval = "Collisionless flux at cell surface.",
     },
-    {.key = "value_form", .elem_type = GKYL_MP_STRING, .cval = "modal"}
+    {.key = "value_form", .elem_type = GKYL_MP_STRING, .cval = "modal"},
   };
   int io_meta_len[] = {gks->io_meta_phase_len, app->gk_geom->io_meta_basic_len, 1};
   const struct gkyl_msgpack_map_elem *io_meta[] = {
@@ -212,11 +212,13 @@ gk_species_collisionless_init_passive(
   if (gkcls->write_diagnostics) {
     gkyl_msgpack_map_elem_set_double(gks->io_meta_conf_len, gks->io_meta_conf, "time", 0.0);
     gkyl_msgpack_map_elem_set_uint(gks->io_meta_conf_len, gks->io_meta_conf, "frame", 0);
-    struct gkyl_msgpack_map_elem desc[] = {{
-      .key = "Description",
-      .elem_type = GKYL_MP_STRING,
-      .cval = "Conf-space passive advection speeds.",
-    }};
+    struct gkyl_msgpack_map_elem desc[] = {
+      {
+        .key = "Description",
+        .elem_type = GKYL_MP_STRING,
+        .cval = "Conf-space passive advection speeds.",
+      },
+    };
     int io_meta_len[] = {gks->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1};
     const struct gkyl_msgpack_map_elem *io_meta[] = {
       gks->io_meta_conf, app->gk_geom->io_meta_basic, desc

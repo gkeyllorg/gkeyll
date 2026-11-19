@@ -22,7 +22,7 @@ gk_species_damping_write_enabled(
     {.key = "value_form", .elem_type = GKYL_MP_STRING, .cval = "nodal"},
     {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Rate of the damping term."},
     {.key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = tm},
-    {.key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = frame}
+    {.key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = frame},
   };
 
   int mpe_drate_len = sizeof(mpe_drate) / sizeof(mpe_drate[0]);

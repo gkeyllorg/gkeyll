@@ -72,12 +72,11 @@ void gk_mom_free(const struct gkyl_ref_count *ref);
 GKYL_CU_D static void
 kernel(
   const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
-  const double *f, double *out, void *param
+  const double *f, double *out, enum gkyl_vel_edge edge
 )
 {
   struct mom_type_bcorr_lbo_gyrokinetic *mom_bcorr =
     container_of(momt, struct mom_type_bcorr_lbo_gyrokinetic, momt);
-  enum gkyl_vel_edge edge = *(enum gkyl_vel_edge *)param;
 
   int vidx[2];
   for (int d = momt->cdim; d < momt->pdim; d++) {

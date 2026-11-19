@@ -80,26 +80,28 @@ create_block_topo()
       {
         // x-direction connections
         {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
-        {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL} // physical boundary
+        {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
       },
     .connections[1] =
       {
         // y-direction connections
         {.bid = 1, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
-        {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL} // physical boundary
+        {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}, // physical boundary
       },
   };
   // block 1
   btopo->conn[1] = (struct gkyl_block_connections){
     .connections[0] =
-      {// x-direction connections
-       {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
-       {.bid = 2, .dir = 0, .edge = GKYL_LOWER_POSITIVE}
+      {
+        // x-direction connections
+        {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
+        {.bid = 2, .dir = 0, .edge = GKYL_LOWER_POSITIVE},
       },
     .connections[1] =
-      {// y-direction connections
-       {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}, // physical boundary
-       {.bid = 0, .dir = 1, .edge = GKYL_LOWER_POSITIVE}
+      {
+        // y-direction connections
+        {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}, // physical boundary
+        {.bid = 0, .dir = 1, .edge = GKYL_LOWER_POSITIVE},
       },
   };
   // block 2
@@ -108,13 +110,13 @@ create_block_topo()
       {
         // x-direction connections
         {.bid = 1, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
-        {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL} // physical boundary
+        {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, // physical boundary
       },
     .connections[1] =
       {
         // y-direction connections
         {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}, // physical boundary
-        {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL} // physical boundary
+        {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}, // physical boundary
       },
   };
 
