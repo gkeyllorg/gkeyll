@@ -35,3 +35,25 @@ void gkyl_gk_fluid_moments_final_integrate_cu(
   const struct gkyl_gk_fluid_moments *up, const struct gkyl_range *range, struct gkyl_array *out
 );
 #endif
+
+/**
+ * Reject selectors outside density, momentum and second moments.
+ *
+ * @param moment Requested weighted moment.
+ */
+static inline void
+gk_fluid_moments_validate_weighted(enum gkyl_distribution_moments moment)
+{
+  switch (moment) {
+    case GKYL_F_MOMENT_M0:
+    case GKYL_F_MOMENT_M1:
+    case GKYL_F_MOMENT_M2:
+    case GKYL_F_MOMENT_M2PAR:
+    case GKYL_F_MOMENT_M2PERP:
+    case GKYL_F_MOMENT_M0M1M2:
+    case GKYL_F_MOMENT_M0M1M2PARM2PERP:
+      return;
+    default:
+      gkyl_exit("Unsupported weighted gyrokinetic moment selector.");
+  }
+}
