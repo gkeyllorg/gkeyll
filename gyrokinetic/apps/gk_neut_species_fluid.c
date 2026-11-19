@@ -299,6 +299,13 @@ gk_neut_species_fluid_apply_bc_dynamic(
   app->stat.neut_species_bc_tm += gkyl_time_diff_now_sec(wst);
 }
 
+// The cold weight is a user function of the position-mapped coordinates.
+static void
+fluid_temp_c2p_position_func(const double *xcomp, double *xphys, void *ctx)
+{
+  gkyl_position_map_eval_mc2nu(ctx, xcomp, xphys);
+}
+
 // Set up the prescribed neutral temperature T_n = w*T_cold + (1-w)*f*T_i.
 static void
 fluid_temp_model_init(gkyl_gyrokinetic_app *app, struct gk_neut_species *ns)
@@ -334,6 +341,8 @@ fluid_temp_model_init(gkyl_gyrokinetic_app *app, struct gk_neut_species *ns)
       .num_ret_vals = 1,
       .eval = inp->cold_weight,
       .ctx = inp->cold_weight_ctx,
+      .c2p_func = fluid_temp_c2p_position_func,
+      .c2p_func_ctx = app->position_map,
     });
     gkyl_proj_on_basis_advance(proj, 0.0, &app->local, w_host);
     gkyl_proj_on_basis_release(proj);

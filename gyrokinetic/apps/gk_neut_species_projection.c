@@ -245,6 +245,32 @@ gk_neut_species_projection_fluid_release(
   }
 }
 
+// Map computational configuration-space coordinates to the nonuniform
+// (position-mapped) coordinates that user functions are written in.
+static void
+fluid_proj_c2p_position_func(const double *xcomp, double *xphys, void *ctx)
+{
+  gkyl_position_map_eval_mc2nu(ctx, xcomp, xphys);
+}
+
+static gkyl_proj_on_basis *
+fluid_proj_new(
+  struct gkyl_gyrokinetic_app *app, int num_ret_vals, evalf_t func, void *func_ctx
+)
+{
+  return gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
+    .grid = &app->grid,
+    .basis = &app->basis,
+    .qtype = GKYL_GAUSS_QUAD,
+    .num_quad = app->basis.poly_order + 1,
+    .num_ret_vals = num_ret_vals,
+    .eval = func,
+    .ctx = func_ctx,
+    .c2p_func = fluid_proj_c2p_position_func,
+    .c2p_func_ctx = app->position_map,
+  });
+}
+
 static void
 gk_neut_species_projection_fluid_init(
   struct gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns,
@@ -253,15 +279,7 @@ gk_neut_species_projection_fluid_init(
 {
   proj->proj_id = inp.proj_id;
   if (proj->proj_id == GKYL_PROJ_FUNC) {
-    proj->proj_func = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
-      .grid = &gkns->grid,
-      .basis = &gkns->basis,
-      .qtype = GKYL_GAUSS_QUAD,
-      .num_quad = gkns->basis.poly_order + 1,
-      .num_ret_vals = gkns->num_moments,
-      .eval = inp.func,
-      .ctx = inp.ctx_func,
-    });
+    proj->proj_func = fluid_proj_new(app, gkns->num_moments, inp.func, inp.ctx_func);
     if (app->use_gpu) {
       proj->proj_host =
         mkarr(false, gkns->num_moments * gkns->basis.num_basis, gkns->local_ext.volume);
@@ -273,15 +291,9 @@ gk_neut_species_projection_fluid_init(
     proj->vtsq = mkarr(false, app->basis.num_basis, app->local_ext.volume);
     proj->proj_host = mkarr(false, gkns->f->ncomp, gkns->f->size);
 
-    proj->proj_dens = gkyl_proj_on_basis_new(
-      &app->grid, &app->basis, gkns->basis.poly_order + 1, 1, inp.density, inp.ctx_density
-    );
-    proj->proj_udrift = gkyl_proj_on_basis_new(
-      &app->grid, &app->basis, gkns->basis.poly_order + 1, udim, inp.udrift, inp.ctx_udrift
-    );
-    proj->proj_temp = gkyl_proj_on_basis_new(
-      &app->grid, &app->basis, gkns->basis.poly_order + 1, 1, inp.temp, inp.ctx_temp
-    );
+    proj->proj_dens = fluid_proj_new(app, 1, inp.density, inp.ctx_density);
+    proj->proj_udrift = fluid_proj_new(app, udim, inp.udrift, inp.ctx_udrift);
+    proj->proj_temp = fluid_proj_new(app, 1, inp.temp, inp.ctx_temp);
   }
 
   proj->neut_calc_func = gk_neut_species_projection_fluid_calc;
