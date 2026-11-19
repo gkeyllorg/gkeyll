@@ -23,8 +23,9 @@ struct d3d_neut_ctx {
   double Tn_cold, Tn_ion_frac, Tn_cold_width;
 
   // Configuration-space domain (x in outboard major radius before the app
-  // converts it to psi) and recycling coefficient.
-  double x_min, x_max, z_min, z_max, Lx, Lz, rec_frac;
+  // converts it to psi) and recycling coefficients of the targets and the
+  // outer wall.
+  double x_min, x_max, z_min, z_max, Lx, Lz, rec_frac_target, rec_frac_wall;
 
   // Adaptive core source parameters.
   bool adapt_energy_srcCORE, adapt_particle_srcCORE;
@@ -250,7 +251,8 @@ main(int argc, char **argv)
     .Ti0 = 300.0 * GKYL_ELEMENTARY_CHARGE,
     .Lx = x_inner + x_outer,
     .Lz = 2.0 * M_PI - 1.0e-10,
-    .rec_frac = 0.98,
+    .rec_frac_target = 0.98,
+    .rec_frac_wall = 0.9,
     .Tn_cold = 3.0 * GKYL_ELEMENTARY_CHARGE, // Franck-Condon recycled atoms.
     .Tn_ion_frac = 0.5,
     .Tn_cold_width = 0.1, // About a 3 eV atom's CX mean free path [rad].
@@ -560,11 +562,16 @@ main(int argc, char **argv)
     .time_rate_diagnostics = true,
   };
 
-  // Recycling input shared by the lower and upper parallel targets.
-  struct gkyl_gyrokinetic_emission_inp recycling = {
+  // Recycling of the ion flux at the parallel targets and at the outer wall.
+  struct gkyl_gyrokinetic_emission_inp recycling_target = {
     .num_species = 1,
     .in_species = {"ion"},
-    .recycling_frac = ctx.rec_frac,
+    .recycling_frac = ctx.rec_frac_target,
+  };
+  struct gkyl_gyrokinetic_emission_inp recycling_wall = {
+    .num_species = 1,
+    .in_species = {"ion"},
+    .recycling_frac = ctx.rec_frac_wall,
   };
 
   // Fluid-neutral species.
@@ -648,19 +655,30 @@ main(int argc, char **argv)
     .num_diag_moments = 3,
     .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2},
     .bcs =
-      {// Neutral flux entering through each SOL target is R times the incident ion flux.
-       {
-         .dir = 1,
-         .edge = GKYL_LOWER_EDGE,
-         .type = GKYL_BC_GK_SPECIES_RECYCLE,
-         .emission = recycling,
-       },
-       {
-         .dir = 1,
-         .edge = GKYL_UPPER_EDGE,
-         .type = GKYL_BC_GK_SPECIES_RECYCLE,
-         .emission = recycling,
-       }
+      {
+        // Neutrals leaving through the inner (core) boundary are absorbed:
+        // they would ionize deeper in the core.
+        {.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+        // The neutral flux entering through the outer wall and through each
+        // SOL target is R times the incident ion flux there.
+        {
+          .dir = 0,
+          .edge = GKYL_UPPER_EDGE,
+          .type = GKYL_BC_GK_SPECIES_RECYCLE,
+          .emission = recycling_wall,
+        },
+        {
+          .dir = 1,
+          .edge = GKYL_LOWER_EDGE,
+          .type = GKYL_BC_GK_SPECIES_RECYCLE,
+          .emission = recycling_target,
+        },
+        {
+          .dir = 1,
+          .edge = GKYL_UPPER_EDGE,
+          .type = GKYL_BC_GK_SPECIES_RECYCLE,
+          .emission = recycling_target,
+        },
       },
   };
 
