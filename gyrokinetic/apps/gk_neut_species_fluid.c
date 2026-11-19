@@ -130,7 +130,7 @@ gk_neut_species_fluid_diffusion_zero_flux_ghost(
 // ghost cell (its ghost-cell integral is the particle loss rate through the
 // face). Within an explicit RK stage g_s is the rate of the current stage
 // (bflux.current_moms). In the operator-split implicit stage it must be the
-// RK-weighted rate over the whole step (bflux.f), i.e. what the species lost
+// RK-weighted rate over the whole step (the species step_moms.f view), i.e. what the species lost
 // during the step; current_moms then points to an RK work array that the
 // stage combination has since rescaled.
 static void
@@ -145,7 +145,7 @@ gk_neut_species_fluid_recycling_flux(
   gkyl_array_clear_range(species->diffusion_recycling_flux, 0.0, ghost);
   for (int i = 0; i < species->diffusion_recycling_num_species[k]; ++i) {
     struct gk_species *ion = &app->species[species->diffusion_recycling_ion_idx[k][i]];
-    struct gkyl_array **ion_flux_moms = step_averaged ? ion->bflux.f : ion->bflux.current_moms;
+    struct gkyl_array **ion_flux_moms = step_averaged ? ion->step_moms.f : ion->bflux.current_moms;
     assert(ion_flux_moms);
     gkyl_array_clear_range(species->diffusion_recycling_flux_tmp, 0.0, ghost);
     gk_species_bflux_get_flux_mom(
@@ -1086,11 +1086,7 @@ gk_neut_species_fluid_release_dynamic(
     }
   }
 
-  if (app->use_gpu) {
-    gkyl_cu_free(ns->omega_cfl);
-  } else {
-    gkyl_free(ns->omega_cfl);
-  }
+  gkyl_free_hodev(app->use_gpu, ns->omega_cfl);
 
   // Release integrated mom data.
   gk_neut_species_moment_release(app, &ns->integ_moms);
@@ -1098,13 +1094,8 @@ gk_neut_species_fluid_release_dynamic(
   // Release integrated mom diag data.
   gkyl_dynvec_release(ns->integ_diag);
 
-  if (app->use_gpu) {
-    gkyl_cu_free(ns->red_integ_diag);
-    gkyl_cu_free(ns->red_integ_diag_global);
-  } else {
-    gkyl_free(ns->red_integ_diag);
-    gkyl_free(ns->red_integ_diag_global);
-  }
+  gkyl_free_hodev(app->use_gpu, ns->red_integ_diag);
+  gkyl_free_hodev(app->use_gpu, ns->red_integ_diag_global);
 }
 
 static void
@@ -1135,6 +1126,7 @@ gk_neut_species_fluid_release(const gkyl_gyrokinetic_app *app, const struct gk_n
 
   // Free boundary flux memory.
   gk_neut_species_bflux_release(app, ns, &ns->bflux);
+  gk_stepped_moms_release_view(&ns->step_moms);
 
   gk_neut_species_lte_release(app, &ns->lte);
 
@@ -1160,7 +1152,7 @@ gk_neut_species_fluid_init_dynamic(
   // Allocate cflrate (scalar array).
   ns->cflrate = mkarr(app->use_gpu, 1, ns->local_ext.volume);
 
-  ns->omega_cfl = app->use_gpu ? gkyl_cu_malloc(sizeof(double)) : gkyl_malloc(sizeof(double));
+  ns->omega_cfl = gkyl_calloc_hodev(app->use_gpu, 1, sizeof(double));
 
   // Initialize diffusion of neutral density (component 0) only. The same
   // scalar coefficient is used in every configuration-space direction.
@@ -1313,13 +1305,9 @@ gk_neut_species_fluid_init_dynamic(
   gk_neut_species_moment_init(app, ns, &ns->integ_moms, GKYL_F_MOMENT_M0M1M2, true);
 
   // Allocate data for integrated diagnostics.
-  if (app->use_gpu) {
-    ns->red_integ_diag = gkyl_cu_malloc(sizeof(double[ns->integ_moms.num_mom]));
-    ns->red_integ_diag_global = gkyl_cu_malloc(sizeof(double[ns->integ_moms.num_mom]));
-  } else {
-    ns->red_integ_diag = gkyl_malloc(sizeof(double[ns->integ_moms.num_mom]));
-    ns->red_integ_diag_global = gkyl_malloc(sizeof(double[ns->integ_moms.num_mom]));
-  }
+  ns->red_integ_diag = gkyl_calloc_hodev(app->use_gpu, ns->integ_moms.num_mom, sizeof(double));
+  ns->red_integ_diag_global =
+    gkyl_calloc_hodev(app->use_gpu, ns->integ_moms.num_mom, sizeof(double));
   // Allocate dynamic-vector to store all-reduced integrated moments.
   ns->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, ns->integ_moms.num_mom);
   ns->is_first_integ_write_call = true;
@@ -1530,11 +1518,13 @@ gk_neut_species_fluid_init(
 
   // Initialize boundary fluxes.
   ns->bflux = (struct gk_boundary_fluxes){};
+  ns->step_moms = (struct gk_stepped_moms){};
   // Additional bflux moments to step in time.
   struct gkyl_phase_diagnostics_inp add_bflux_moms_inp = (struct gkyl_phase_diagnostics_inp){};
   // Set the operation type for the bflux app.
   enum gkyl_species_bflux_type bflux_type = GK_SPECIES_BFLUX_NONE;
   gk_neut_species_bflux_init(app, ns, &ns->bflux, bflux_type, add_bflux_moms_inp);
+  ns->bflux.step_moms_idx = gk_stepped_moms_append_refs(&ns->step_moms, &ns->bflux.step_moms);
 
   // Initialize a Maxwellian/LTE (local thermodynamic equilibrium) projection routine
   // Projection routine optionally corrects all the Maxwellian/LTE moments

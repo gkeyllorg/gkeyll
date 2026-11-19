@@ -83,33 +83,23 @@ static double
 qsafety(double R, void *ctx)
 {
   // Evaluate the cubic fit to the TCV negative-triangularity q profile (discharge 65130).
-  return ((497.3420166252413 * R - 1408.736172826569) * R + 1331.4134861681464) * R -
-         419.00692601227627;
+  // Signed COCOS 3 q gives CW toroidal and CCW poloidal fields.
+  return -(
+    ((497.3420166252413 * R - 1408.736172826569) * R + 1331.4134861681464) * R - 419.00692601227627
+  );
 }
 
-/**
- * Convert the minor radial coordinate r-r_min to poloidal flux.
- *
- * @param app Simulation context with an initialized flux table.
- * @param rMrlo Minor radial coordinate, r - rminor_LCFS + x_inner [m].
- * @return Poloidal flux divided by 2*pi [Wb/rad].
- */
 static double
 psi_at_rMrlo(const struct gk_app_ctx *app, double rMrlo)
 {
+  // Convert the minor radial coordinate r-r_min (rMrlo) to poloidal flux (psi).
   return gkyl_gen_miller_eqdsk_psi_at_r(app->equilibrium, rMrlo + app->rminor_LCFS - app->x_inner);
 }
 
-/**
- * Recover the minor radial coordinate r-r_min for a given psi.
- *
- * @param app Simulation context with an initialized flux table.
- * @param psi Poloidal flux divided by 2*pi [Wb/rad].
- * @return Minor radial coordinate, r - rminor_LCFS + x_inner [m].
- */
 static double
 rMrlo_at_psi(const struct gk_app_ctx *app, double psi)
 {
+  // Minor radial coordinate r-r_min (rMrlo) for a given poloidal flux (psi).
   return gkyl_gen_miller_eqdsk_r_at_psi(app->equilibrium, psi) - app->rminor_LCFS + app->x_inner;
 }
 
@@ -221,15 +211,13 @@ mapc2p_vel_ion(double t, const double *vc, double *GKYL_RESTRICT vp, void *ctx)
   vp[1] = mu_max_ion * pow(cmu, 2);
 }
 
-/**
- * Build the Miller equilibrium and derive the simulation parameters from it.
- *
- * @param out Simulation context, which must remain alive while geometry callbacks run.
- * @return True when the equilibrium was created successfully.
- */
 static bool
 create_ctx(struct gk_app_ctx *out)
 {
+  // Build the Miller equilibrium and derive the simulation parameters from it.
+  // Simulation context (out) must remain alive while geometry functions run.
+  // Return true when the equilibrium was created successfully.
+
   int cdim = 3, vdim = 2; // Dimensionality.
   // Universal constant parameters.
   double eps0 = GKYL_EPSILON0, eV = GKYL_ELEMENTARY_CHARGE;

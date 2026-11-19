@@ -24,10 +24,10 @@ check_quad_roundtrip(gpython_basis *basis, int expected_num_quad)
   for (int mode = 0; mode < num_basis; ++mode) {
     modal[mode] = 1.0;
     for (int node = 0; node < num_quad; ++node) {
-      quad[node] = NAN;
+      quad[node] = gkyl_gen_nan();
     }
     for (int index = 0; index < num_basis; ++index) {
-      restored[index] = NAN;
+      restored[index] = gkyl_gen_nan();
     }
     TEST_CHECK(gpython_basis_modal_to_quad(basis, modal, quad) == 0);
     TEST_CHECK(gpython_basis_quad_to_modal(basis, quad, restored) == 0);

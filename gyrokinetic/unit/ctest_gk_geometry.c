@@ -289,7 +289,7 @@ test_query_failures(void)
           gkyl_gk_geometry_geo_int_bmag_at_comp_coord(&geo, xc, out);
           break;
         case 2:
-          xc[0] = strtod("nan", NULL);
+          xc[0] = gkyl_gen_nan();
           gkyl_gk_geometry_geo_int_bmag_at_comp_coord(&geo, xc, out);
           break;
         case 3:

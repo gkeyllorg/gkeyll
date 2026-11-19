@@ -6,5 +6,6 @@ Rmajor_omp_bounds = (2.17-5*0.15/8, 2.17+3*0.15/8)
 
 def q(R_omp):
   # Safety factor as a function of outboard major radius [m].
-  return ((49.46395467479657*R_omp-260.79513158768754)*R_omp
-          + 458.42618139184754)*R_omp-267.63441353752336
+  # Negative COCOS 3 q preserves the original CW toroidal / CCW poloidal fields.
+  return -(((49.46395467479657*R_omp-260.79513158768754)*R_omp
+          + 458.42618139184754)*R_omp-267.63441353752336)

@@ -204,14 +204,14 @@ void gkyl_tok_geo_calc_qprofile(
 );
 
 /**
- * Calculate Cy=(R_omp(psi_ref)-R_axis)/q(psi_ref), sampling the projected q profile.
+ * Calculate Cy=(R_omp(psi_ref)-R_axis)/|q(psi_ref)|, sampling the projected q profile.
  *
  * @param geo Tokamak equilibrium (host).
  * @param inp Branch and plate specification.
  * @param grid One-dimensional physical-psi grid.
  * @param poly_order Polynomial order of the q profile.
  * @param psi_ref Reference flux, within grid bounds.
- * @return Reference binormal scale in meters (nonfinite if no OMP root or q is zero).
+ * @return Positive reference binormal scale in meters (nonfinite if no OMP root or q is zero).
  */
 double gkyl_tok_geo_calc_Cy(
   struct gkyl_tok_geo *geo, const struct gkyl_tok_geo_grid_inp *inp,

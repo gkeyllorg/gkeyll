@@ -752,13 +752,8 @@ gk_species_radiation_init(
       // Allocate data and updaters for integrated moments.
       gk_species_moment_init(app, gks, &rad->integ_moms, GKYL_F_MOMENT_M0M1M2PARM2PERP, true);
       int num_mom = rad->integ_moms.num_mom;
-      if (app->use_gpu) {
-        rad->red_integ_diag = gkyl_cu_malloc(sizeof(double[num_mom]));
-        rad->red_integ_diag_global = gkyl_cu_malloc(sizeof(double[num_mom]));
-      } else {
-        rad->red_integ_diag = gkyl_malloc(sizeof(double[num_mom]));
-        rad->red_integ_diag_global = gkyl_malloc(sizeof(double[num_mom]));
-      }
+      rad->red_integ_diag = gkyl_calloc_hodev(app->use_gpu, num_mom, sizeof(double));
+      rad->red_integ_diag_global = gkyl_calloc_hodev(app->use_gpu, num_mom, sizeof(double));
 
       // Allocate dynamic-vector to store all-reduced integrated moments.
       rad->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, num_mom);
@@ -873,13 +868,8 @@ gk_species_radiation_release(const struct gkyl_gyrokinetic_app *app, const struc
       }
       gk_species_moment_release(app, &rad->integ_moms);
 
-      if (app->use_gpu) {
-        gkyl_cu_free(rad->red_integ_diag);
-        gkyl_cu_free(rad->red_integ_diag_global);
-      } else {
-        gkyl_free(rad->red_integ_diag);
-        gkyl_free(rad->red_integ_diag_global);
-      }
+      gkyl_free_hodev(app->use_gpu, rad->red_integ_diag);
+      gkyl_free_hodev(app->use_gpu, rad->red_integ_diag_global);
       gkyl_dynvec_release(rad->integ_diag);
     }
   }

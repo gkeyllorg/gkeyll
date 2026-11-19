@@ -15,7 +15,7 @@ struct gkyl_gen_miller_eqdsk_inp {
   double bmag_axis; // Signed toroidal field at the magnetic axis [T]; nonzero, sign sets B_phi.
   double Rmajor_LCFS; // Major radius of LCFS at OMP.
   // Shaping functions presently called with: t=0, xc[0]=0 (Miller minor radius
-  // [m]). If the functions return NULL, they select kappa=1, delta=0, or a_shift=0.
+  // [m]). If the function pointers are NULL, they select kappa=1, delta=0, or a_shift=0.
   // Elongation.
   void (*kappa)(double t, const double *xc, double *GKYL_RESTRICT out, void *ctx);
   void *kappa_ctx;
@@ -25,7 +25,8 @@ struct gkyl_gen_miller_eqdsk_inp {
   // Shafranov shift amplitude.
   void (*a_shift)(double t, const double *xc, double *GKYL_RESTRICT out, void *ctx);
   void *a_shift_ctx;
-  double (*qsafety)(double R_omp, void *ctx); // Safety factor (>0) as a function of major radius.
+  // Signed COCOS 3 q(R_omp); finite, nonzero, constant sign from axis through guard.
+  double (*qsafety)(double R_omp, void *ctx);
   void *qsafety_ctx;
   bool has_Rmajor_omp_bounds;
   double Rmajor_omp_bounds[2]; // Optional requested simulation surfaces, as major radii [m].
@@ -44,7 +45,7 @@ struct gkyl_gen_miller_eqdsk_info {
   double rminor_required; // Larger of LCFS and outer requested Miller minor radii [m].
   double rminor_guard; // Outer physical minor radius: rminor_required*(1+guard_fraction) [m].
   double RmajorZvert_bounds[4]; // Resolved rectangular mesh bounds: Rmin, Rmax, Zmin, Zmax [m].
-  // Maximum midpoint interpolation error in g=dpsi/d(r^2), normalized by max(g,1e-8*max(g_nodes)).
+  // Maximum midpoint interpolation error in g=d|psi|/d(r^2), normalized by max(g,1e-8*max(g_nodes)).
   double radial_error;
   // Minimum sampled LCFS/outer-required contour distance to guard or box, in R-Z mesh spacings.
   // Populated by advance; at least 3 after a successful advance.
@@ -55,7 +56,9 @@ struct gkyl_gen_miller_eqdsk_info {
 };
 
 struct gkyl_gen_miller_eqdsk_binormal_extent {
-  double r0, q0, Cy; // Reference minor radius [m], safety factor, and y/alpha scale [m].
+  double r0; // Reference minor radius [m].
+  double q0; // Signed safety factor at r0.
+  double Cy; // Positive y/alpha scale r0/|q0| [m].
   int n_tor; // Integer number of toroidal wedges in a full 2*pi*Cy circumference.
   double Ly; // Quantized binormal width [m].
   double alpha_bounds[2]; // Grid bounds in field-line label angle [rad].
@@ -190,8 +193,10 @@ double gkyl_gen_miller_eqdsk_r_at_psi(const gkyl_gen_miller_eqdsk *up, double ps
  * Convert Miller angle to the tokamak normalized poloidal arc coordinate without
  * constructing a generator. Uses the analytic constant-shaping, full-contour
  * convention: zero at the outboard midplane and +/-pi at the inboard midplane.
+ * The output follows B_p; it reverses geometric angle when sign(B_axis/q) is negative.
  *
- * @param inp Input parameters; shaping callbacks are read (NULL kappa selects 1).
+ * @param inp Inputs with Rmajor_axis>0, nonzero bmag_axis, and signed qsafety at the axis;
+ * shaping callbacks are read (NULL kappa selects 1).
  * @param thetaMiller Miller poloidal angle in [-pi,pi] [rad].
  * @return Tokamak angle [rad], or NaN for invalid inputs or quadrature failure.
  */

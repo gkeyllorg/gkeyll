@@ -32,6 +32,21 @@ test_round_to_e16_9()
   TEST_CHECK(gkyl_round_to_e16_9(0.0) == 0.0);
 }
 
+/**
+ * Verify a quiet NaN is returned even with the configured fast-math flags.
+ */
+void
+test_gen_nan(void)
+{
+  double value = gkyl_gen_nan();
+  uint64_t bits;
+  memcpy(&bits, &value, sizeof bits);
+  // Inspect exponent and quiet bit; ordinary isnan may be optimized away.
+  TEST_CHECK((bits & UINT64_C(0x7ff0000000000000)) == UINT64_C(0x7ff0000000000000));
+  TEST_CHECK((bits & UINT64_C(0x0008000000000000)) != 0);
+  TEST_CHECK(!gkyl_is_dfinite(value));
+}
+
 void
 test_is_dfinite()
 {
@@ -445,24 +460,25 @@ test_msgpack_set_string()
 }
 
 TEST_LIST = {
-  {"msgpack_unique_keys", test_msgpack_unique_keys},
-  {"msgpack_set_string", test_msgpack_set_string},
-  {"msgpack_string_array", test_msgpack_string_array},
-  {"msgpack_scalar_copy", test_msgpack_scalar_copy},
-  {"compare_double", test_compare_double},
-  {"round_to_e16_9", test_round_to_e16_9},
-  {"is_dfinite", test_is_dfinite},
-  {"compare_float", test_compare_float},
-  {"copy_int_arr", test_copy_int_arr},
-  {"copy_long_arr", test_copy_long_arr},
-  {"copy_double_arr", test_copy_double_arr},
-  {"int_div_up", test_int_div_up},
-  {"minmod_util", test_minmod_util},
-  {"sgn_macro", test_sgn_macro},
-  {"minmax_macros", test_minmax_macros},
-  {"tm_trigger", test_tm_trigger},
-  {"tm_trigger_anchor", test_tm_trigger_anchor},
-  {"search_str_int_pair", test_search_str_int_pair},
-  {"constants", test_constants},
+  {"util_msgpack_unique_keys", test_msgpack_unique_keys},
+  {"util_msgpack_set_string", test_msgpack_set_string},
+  {"util_msgpack_string_array", test_msgpack_string_array},
+  {"util_msgpack_scalar_copy", test_msgpack_scalar_copy},
+  {"util_compare_double", test_compare_double},
+  {"util_round_to_e16_9", test_round_to_e16_9},
+  {"util_gen_nan", test_gen_nan},
+  {"util_is_dfinite", test_is_dfinite},
+  {"util_compare_float", test_compare_float},
+  {"util_copy_int_arr", test_copy_int_arr},
+  {"util_copy_long_arr", test_copy_long_arr},
+  {"util_copy_double_arr", test_copy_double_arr},
+  {"util_int_div_up", test_int_div_up},
+  {"util_minmod_util", test_minmod_util},
+  {"util_sgn_macro", test_sgn_macro},
+  {"util_minmax_macros", test_minmax_macros},
+  {"util_tm_trigger", test_tm_trigger},
+  {"util_tm_trigger_anchor", test_tm_trigger_anchor},
+  {"util_search_str_int_pair", test_search_str_int_pair},
+  {"util_constants", test_constants},
   {NULL, NULL}
 };

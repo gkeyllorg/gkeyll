@@ -108,6 +108,17 @@ gkyl_compare_double(double a, double b, double eps)
   return diff / fmin(absa + absb, DBL_MAX) < eps;
 }
 
+double
+gkyl_gen_nan(void)
+{
+  // Keep fast-math from treating a compile-time NaN return as unreachable.
+  volatile uint64_t nan_bits = UINT64_C(0x7ff8000000000000);
+  uint64_t bits = nan_bits;
+  double value;
+  memcpy(&value, &bits, sizeof value);
+  return value;
+}
+
 bool
 gkyl_is_dfinite(double value)
 {
