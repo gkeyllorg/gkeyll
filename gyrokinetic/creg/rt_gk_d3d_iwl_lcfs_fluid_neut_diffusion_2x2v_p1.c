@@ -197,7 +197,7 @@ eval_neut_density(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRIC
   struct d3d_neut_ctx *ctx = vctx;
   const double x = x_at_psi(ctx, xn[0]), theta = theta_at_z(ctx, xn[1]);
   const double x_LCFS = ctx->x_inner; // LCFS position in the analytic radial coordinate.
-  const double alpha_neut = 0.01 * ctx->n0;
+  const double alpha_neut = 0.1 * ctx->n0;
   const double radial_factor = 1.0 - tanh((x_LCFS - x) / 0.05);
   // Symmetric in theta: the same peak at both targets.
   const double dist_to_target = 0.5 * ctx->Lz - fabs(theta);
