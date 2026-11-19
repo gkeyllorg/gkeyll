@@ -18,6 +18,6 @@ Put the GEQDSK file you want in this folder and name it `input.geqdsk` to run g0
 - `solovev.geqdsk`: Generated from analytical equilibrium described in Noah Mandell's thesis Sec. 5.3
 - `step.geqdsk`: From STEP. Proposed magnetic equilibrium.
 - `wham.geqdsk`: case with beams and ~0.8 T central field.
-- `tcv.geqdsk`:  TCV equilibrium from Oliveira and Body et. al., Nuclear Fusion, 2021. https://github.com/SPCData/TCV-X21/blob/main/1.experimental_data/reference_scenario/65402_t1.eqdsk
+- `tcv_65402_t1.eqdsk`:  TCV equilibrium from Oliveira and Body et. al., Nuclear Fusion, 2021. https://github.com/SPCData/TCV-X21/blob/main/1.experimental_data/reference_scenario/65402_t1.eqdsk
 - `tcv_upper_SN.geqdsk`: TCV upper single null equilibrium g162940.02944_670 from Gabriele Merlo and David Hatch
 - `mast.geadsk`: generated with the tutorial from freegs
