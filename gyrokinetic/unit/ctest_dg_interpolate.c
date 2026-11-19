@@ -51,8 +51,7 @@ calc_int_moms(
 )
 {
   // Compute the volume integral of the moments.
-  double *integrated_moms = use_gpu ? gkyl_cu_malloc(num_mom * sizeof(double)) :
-                                      gkyl_malloc(num_mom * sizeof(double));
+  double *integrated_moms = gkyl_calloc_hodev(use_gpu, num_mom, sizeof(double));
 
   struct gkyl_array_integrate *integ_op =
     gkyl_array_integrate_new(confGrid, confBasis, num_mom, GKYL_ARRAY_INTEGRATE_OP_NONE, use_gpu);
@@ -65,11 +64,7 @@ calc_int_moms(
     memcpy(int_moms, integrated_moms, sizeof(double[num_mom]));
   }
 
-  if (use_gpu) {
-    gkyl_cu_free(integrated_moms);
-  } else {
-    gkyl_free(integrated_moms);
-  }
+  gkyl_free_hodev(use_gpu, integrated_moms);
   gkyl_array_integrate_release(integ_op);
 }
 

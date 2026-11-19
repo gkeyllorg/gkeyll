@@ -150,8 +150,10 @@ gklbo_alpha_E_constNu(
   int coll_idx
 )
 {
-  gkyl_array_clear(lbo->alpha_E, 0.0);
-  gkyl_array_shiftc(lbo->alpha_E, lbo->alpha_E_fac[coll_idx], 0);
+  // The cross solve uses J-weighted moments and boundary corrections.
+  gkyl_array_set_range(
+    lbo->alpha_E, lbo->alpha_E_fac[coll_idx], app->gk_geom->geo_int.jacobgeo, &app->local
+  );
 }
 
 static void
@@ -160,8 +162,9 @@ gklbo_alpha_E_normNu(
   int coll_idx
 )
 {
+  // Use J*n_s, matching the density weighting in the cross solve.
   gkyl_dg_mul_op_range(
-    &app->basis, 0, lbo->alpha_E, 0, lbo->cross_nu[coll_idx], 0, gks->lte.moms.marr, &app->local
+    &app->basis, 0, lbo->alpha_E, 0, lbo->cross_nu[coll_idx], 0, lbo->moms.marr, &app->local
   );
   gkyl_array_scale_range(lbo->alpha_E, lbo->alpha_E_fac[coll_idx], &app->local);
 }
@@ -556,9 +559,8 @@ gk_species_lbo_cross_init(
           double vtsq_s = gks->info.collisions.temp_ref / mass_self;
           double vtsq_r = lbo->collide_with[i]->info.collisions.temp_ref / mass_other;
 
-          lbo->alpha_E_fac[i] =
-            (alpha_E_norm[i] * den_s * den_r / pow(sqrt(vtsq_s + vtsq_r), 3.0)) *
-            pow(sqrt(2.0), app->cdim);
+          // Physical reference coefficient; jacobgeo supplies the modal normalization.
+          lbo->alpha_E_fac[i] = alpha_E_norm[i] * den_s * den_r / pow(sqrt(vtsq_s + vtsq_r), 3.0);
         }
         gkyl_array_release(cross_nu_ho);
 
