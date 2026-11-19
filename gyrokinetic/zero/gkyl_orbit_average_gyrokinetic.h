@@ -51,6 +51,7 @@ struct gkyl_orbit_average_gyrokinetic_inp {
   const struct gkyl_range *local_range;
   gkyl_orbit_average_reduce_t reduce; // Required for a distributed local_range.
   void *reduce_ctx; // Borrowed until release; communication remains caller-owned.
+  bool distribute_source; // Cache additional component-local kinetic-energy constraints.
 };
 
 /** Diagnostics for one implicit update. A failed update does not change f. */
@@ -64,7 +65,7 @@ struct gkyl_orbit_average_gyrokinetic_result {
 struct gkyl_orbit_average_gyrokinetic_info {
   long num_selected_cells;
   long num_rejected_cells;
-  long num_modes; // Total rank after removing dependent projected invariant columns.
+  long num_modes; // Total cached rank, including any source kinetic-energy constraints.
   int num_blocks; // Independent magnetic-moment cells.
 };
 
@@ -114,6 +115,19 @@ gkyl_orbit_average_gyrokinetic *gkyl_orbit_average_gyrokinetic_inew(
  */
 struct gkyl_orbit_average_gyrokinetic_result gkyl_orbit_average_gyrokinetic_advance(
   gkyl_orbit_average_gyrokinetic *up, double dt, double frequency, struct gkyl_array *f
+);
+
+/**
+ * Distribute a projected source at fixed frozen orbit topology. The projection
+ * retains the kinetic-energy moment in each connected family in addition to
+ * its invariant moments. Signed sources are supported.
+ *
+ * @param up Frozen projector constructed with distribute_source enabled.
+ * @param source Jacobian-weighted DG source on the same range and device as the distribution.
+ * @return True on success. On failure the source is unmodified.
+ */
+bool gkyl_orbit_average_gyrokinetic_distribute_source(
+  gkyl_orbit_average_gyrokinetic *up, struct gkyl_array *source
 );
 
 /** Return statistics for the frozen projector. */

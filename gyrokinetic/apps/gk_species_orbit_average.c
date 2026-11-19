@@ -40,7 +40,8 @@ gk_species_orbit_average_init(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_orbit_average *orbit
 )
 {
-  if (gks->info.orbit_average.enabled && app->is_multib) {
+  if ((gks->info.orbit_average.enabled || gks->info.orbit_average.distribute_source) &&
+      app->is_multib) {
     gkyl_exit("Orbit averaging requires the single-block app time integrator.");
   }
   *orbit = (struct gk_orbit_average){};
@@ -50,8 +51,15 @@ bool
 gk_species_orbit_average_prepare(gkyl_gyrokinetic_app *app, struct gk_species *gks)
 {
   const struct gkyl_gyrokinetic_orbit_average *options = &gks->info.orbit_average;
-  if (!options->enabled) {
+  if (!options->enabled && !options->distribute_source) {
     return true;
+  }
+
+  if (options->distribute_source && !gks->src.source_id) {
+    gkyl_gyrokinetic_app_cout(
+      app, stderr, "Orbit source distribution for %s requires a source.\n", gks->info.name
+    );
+    return false;
   }
 
   // The frozen projector describes parallel electrostatic orbits,
@@ -63,7 +71,7 @@ gk_species_orbit_average_prepare(gkyl_gyrokinetic_app *app, struct gk_species *g
       app->field->gkfield_id == GKYL_GK_FIELD_EM || gks->info.flr.type || gks->info.scaling.type ||
       (type != GKYL_GK_COLLISIONLESS_NONE && type != GKYL_GK_COLLISIONLESS_ES &&
        type != GKYL_GK_COLLISIONLESS_ES_NO_BY) ||
-      (!options->frequency_is_infinite && options->frequency < 0.0) ||
+      (options->enabled && !options->frequency_is_infinite && options->frequency < 0.0) ||
       options->num_energy_nodes < 0 || options->num_energy_nodes == 1) {
     gkyl_gyrokinetic_app_cout(
       app, stderr,
@@ -156,6 +164,7 @@ gk_species_orbit_average_prepare(gkyl_gyrokinetic_app *app, struct gk_species *g
       .num_energy_nodes = options->num_energy_nodes ? options->num_energy_nodes : 16,
       .separatrix_margin = options->separatrix_margin,
       .positivity = options->positivity,
+      .distribute_source = options->distribute_source,
       .frequency_is_infinite = options->frequency_is_infinite,
       .use_gpu = app->use_gpu,
     };
@@ -184,9 +193,17 @@ gk_species_orbit_average_prepare(gkyl_gyrokinetic_app *app, struct gk_species *g
   if (!info.num_selected_cells) {
     gkyl_gyrokinetic_app_cout(
       app, stdout,
-      "Orbit-average warning: no accepted closed cells for %s; relaxation is the identity.\n",
+      "Orbit-average warning: no accepted closed cells for %s; the projector is the identity.\n",
       gks->info.name
     );
+  }
+  if (options->distribute_source) {
+    orbit->source_input = gkyl_array_clone(gks->src.source);
+    if (!gkyl_orbit_average_gyrokinetic_distribute_source(orbit->up, gks->src.source)) {
+      gk_species_orbit_average_release(orbit);
+      *orbit = (struct gk_orbit_average){};
+      return false;
+    }
   }
   return true;
 }
@@ -251,6 +268,7 @@ gkyl_gyrokinetic_app_species_orbit_average_stat(
     return stat;
   }
   stat.enabled = gks->info.orbit_average.enabled;
+  stat.distribute_source = gks->info.orbit_average.distribute_source;
   if (gks->orbit_average.up) {
     stat.prepared = true;
     struct gkyl_orbit_average_gyrokinetic_info info =
@@ -267,6 +285,9 @@ gkyl_gyrokinetic_app_species_orbit_average_stat(
 void
 gk_species_orbit_average_release(const struct gk_orbit_average *orbit)
 {
+  if (orbit->source_input) {
+    gkyl_array_release(orbit->source_input);
+  }
   if (orbit->up) {
     gkyl_orbit_average_gyrokinetic_release(orbit->up);
   }
@@ -278,6 +299,12 @@ gk_species_orbit_average_reset(
   struct gkyl_gyrokinetic_orbit_average inp
 )
 {
+  if (orbit->source_input) {
+    gkyl_array_copy(gks->src.source, orbit->source_input);
+  }
+  if (orbit->source_input || inp.distribute_source) {
+    gk_species_source_refresh_output(&gks->src);
+  }
   gk_species_orbit_average_release(orbit);
   gks->info.orbit_average = inp;
   gk_species_orbit_average_init(app, gks, orbit);
@@ -285,7 +312,8 @@ gk_species_orbit_average_reset(
   // Keep the split while any species needs an implicit substep.
   bool use_split = app->has_implicit_coll_scheme;
   for (int i = 0; i < app->num_species; ++i) {
-    use_split |= app->species[i].info.orbit_average.enabled;
+    use_split |= app->species[i].info.orbit_average.enabled ||
+                 app->species[i].info.orbit_average.distribute_source;
   }
   app->update_func = use_split ? gyrokinetic_update_op_split : gyrokinetic_update_ssp_rk3;
 }

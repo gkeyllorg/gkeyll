@@ -119,7 +119,12 @@ struct gkyl_gyrokinetic_orbit_average {
   bool frequency_is_infinite; // Use the projection limit, ignoring frequency.
   int num_energy_nodes; // Energy knots per topology branch (0 selects 16).
   double separatrix_margin; // Nonnegative energy buffer around escape/internal saddle levels.
-  bool positivity; // Limit the correction conservatively at monitored nodes.
+  bool positivity; // Limit the distribution relaxation at monitored nodes.
+  // Distribute the projected source on closed orbits, independently of enabled/frequency.
+  // Preserve particle, kinetic-energy, and frozen-H injection within each connected family.
+  // A varying potential can require a residual along the contour to conserve kinetic power.
+  // Passing and mixed cells retain the input source. The source projection is linear and signed.
+  bool distribute_source;
 };
 
 /** Cached-space and most recent implicit-relaxation diagnostics. */
@@ -128,6 +133,7 @@ struct gkyl_gyrokinetic_orbit_average_stat {
   long num_selected_cells, num_rejected_cells, num_modes;
   long num_limited_blocks;
   double min_blend;
+  bool distribute_source; // Whether the source also uses the cached projector.
 };
 
 // Parameters for species collisions.
@@ -1650,7 +1656,8 @@ void gkyl_gyrokinetic_app_reset_species_collisionless(
 
 /**
  * Enable/disable or reconfigure orbit averaging at a POA phase boundary.
- * Rebuilds the frozen projector on the next update. Enable only with a static
+ * Rebuilds the frozen projector on the next update or orbit-source diagnostic.
+ * Disabling source distribution restores the original projection. Enable only with a static
  * electrostatic field; periodic or time-dependent wall topology is unsupported.
  * Reselects the time integrator without changing the collisionless terms.
  * Call after changing the frozen field, reapplying initial conditions, or

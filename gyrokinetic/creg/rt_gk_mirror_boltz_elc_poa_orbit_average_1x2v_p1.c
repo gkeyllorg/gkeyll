@@ -13,8 +13,8 @@
 
 // Mirror POA with implicit orbit relaxation replacing collisionless advection
 // during OAP. The full-dynamics phase restores electrostatic advection and the
-// evolving Boltzmann field. Geometry, collisions, source, and loss-cone masking
-// follow rt_gk_mirror_boltz_elc_poa_1x2v_p1.c.
+// evolving Boltzmann field. Each OAP distributes the projected ion source on
+// its frozen closed orbits. Each FDP restores the original source profile.
 // Use -s1 to exercise one step in every phase, -M -c N for MPI, and -g for CUDA.
 
 // State of the pseudo orbit-averaged integrator.
@@ -635,6 +635,7 @@ run_phase(
     app, "ion",
     (struct gkyl_gyrokinetic_orbit_average){
       .enabled = orbit_average,
+      .distribute_source = orbit_average,
       .frequency = 1e20,
       .num_energy_nodes = 16,
       .positivity = pparams->is_positivity_enabled,

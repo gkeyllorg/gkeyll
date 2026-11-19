@@ -545,6 +545,7 @@ gyrokinetic_species_lw_new(lua_State *L)
   with_lua_tbl_tbl(L, "orbitAverage")
   {
     gk_species.orbit_average.enabled = glua_tbl_get_bool(L, "enabled", false);
+    gk_species.orbit_average.distribute_source = glua_tbl_get_bool(L, "distributeSource", false);
     gk_species.orbit_average.frequency = glua_tbl_get_number(L, "frequency", 0.0);
     gk_species.orbit_average.frequency_is_infinite =
       glua_tbl_get_bool(L, "frequencyIsInfinite", false);

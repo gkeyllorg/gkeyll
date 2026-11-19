@@ -20,16 +20,6 @@ struct gk_orbit_cu {
   double *status, *reduce_buffer;
 };
 
-static double
-gk_orbit_beta_cu(double dt, double frequency, bool frequency_is_infinite)
-{
-  if (frequency_is_infinite || (dt > 1.0 && frequency > DBL_MAX / dt)) {
-    return 1.0;
-  }
-  const double product = dt * frequency;
-  return product >= 1.0 ? 1.0 - 1.0 / (1.0 + product) : product / (1.0 + product);
-}
-
 __global__ static void
 gk_orbit_reduce_cu_kernel(
   int num_basis, long num_reduced, const struct gkyl_orbit_average_gyrokinetic_block *blocks,
@@ -65,9 +55,10 @@ gk_orbit_reduce_cu_kernel(
 
 __global__ static void
 gk_orbit_correction_cu_kernel(
-  int num_basis, long num_modes, const struct gkyl_orbit_average_gyrokinetic_block *blocks,
-  const long *cell_indices, const int *cell_blocks, const double *q, const double *coeff,
-  const struct gkyl_array *fin, double *correction
+  int num_basis, bool source, long num_modes,
+  const struct gkyl_orbit_average_gyrokinetic_block *blocks, const long *cell_indices,
+  const int *cell_blocks, const double *q, const double *coeff, const struct gkyl_array *fin,
+  double *correction
 )
 {
   for (long mode = threadIdx.x + (long)blockIdx.x * blockDim.x; mode < num_modes;
@@ -76,7 +67,7 @@ gk_orbit_correction_cu_kernel(
     const struct gkyl_orbit_average_gyrokinetic_block block = blocks[cell_blocks[cell]];
     const int block_mode = mode - block.cell_offset * num_basis;
     double value = 0.0;
-    for (int column = 0; column < block.rank; ++column) {
+    for (int column = 0; column < (source ? block.rank : block.invariant_rank); ++column) {
       value += q[block.basis_offset + (long)column * block.num_modes + block_mode] *
                coeff[block.reduce_offset + column];
     }
@@ -222,15 +213,11 @@ gkyl_orbit_average_gyrokinetic_cu_init(gkyl_orbit_average_gyrokinetic *up)
 }
 
 struct gkyl_orbit_average_gyrokinetic_result
-gkyl_orbit_average_gyrokinetic_advance_cu(
-  gkyl_orbit_average_gyrokinetic *up, double dt, double frequency, struct gkyl_array *f
+gkyl_orbit_average_gyrokinetic_apply_cu(
+  gkyl_orbit_average_gyrokinetic *up, double beta, bool source, struct gkyl_array *f
 )
 {
   struct gkyl_orbit_average_gyrokinetic_result result = {true, 0.0, 0};
-  if (dt == 0.0 || (!up->frequency_is_infinite && frequency == 0.0) || up->num_global_cells == 0) {
-    return result;
-  }
-  const double beta = gk_orbit_beta_cu(dt, frequency, up->frequency_is_infinite);
   struct gk_orbit_cu *gpu = (struct gk_orbit_cu *)up->gpu;
   const long num_modes = up->num_cells * up->num_basis;
   const int mode_blocks = (int)fmin(65535.0, (double)((num_modes - 1) / GKYL_ORBIT_CU_THREADS + 1));
@@ -250,14 +237,14 @@ gkyl_orbit_average_gyrokinetic_advance_cu(
     );
   }
   gk_orbit_correction_cu_kernel<<<mode_blocks, GKYL_ORBIT_CU_THREADS>>>(
-    up->num_basis, num_modes, gpu->blocks, gpu->cell_indices, gpu->cell_blocks, gpu->q, gpu->coeff,
-    f->on_dev, gpu->correction
+    up->num_basis, source, num_modes, gpu->blocks, gpu->cell_indices, gpu->cell_blocks, gpu->q,
+    gpu->coeff, f->on_dev, gpu->correction
   );
   gk_orbit_limit_cu_kernel<<<limit_blocks, GKYL_ORBIT_CU_THREADS>>>(
-    up->num_basis, up->num_pos, up->num_blocks, up->positivity, gpu->blocks, gpu->cell_indices,
-    gpu->eval, gpu->correction, f->on_dev, gpu->blend
+    up->num_basis, up->num_pos, up->num_blocks, !source && up->positivity, gpu->blocks,
+    gpu->cell_indices, gpu->eval, gpu->correction, f->on_dev, gpu->blend
   );
-  if (up->reduce) {
+  if (!source && up->positivity && up->reduce) {
     if (up->reduce(up->reduce_ctx, false, up->num_blocks, gpu->blend, gpu->reduce_buffer)) {
       result.success = false;
       return result;

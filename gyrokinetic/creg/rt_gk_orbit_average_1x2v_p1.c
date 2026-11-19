@@ -3,6 +3,7 @@
 #include <stdlib.h>
 
 #include <gkyl_alloc.h>
+#include <gkyl_array_rio.h>
 #include <gkyl_dynvec.h>
 #include <gkyl_gyrokinetic.h>
 #include <gkyl_util.h>
@@ -39,6 +40,140 @@ orbit_initial(double time, const double *xn, double *out, void *ctx)
 {
   // The positive polynomial has a resolved orbit-varying component in z.
   out[0] = 1.0 + 0.15 * xn[0] + 0.1 * xn[1] * xn[1] + 0.05 * xn[2];
+}
+
+static void
+orbit_double_well(double time, const double *xn, double *out, void *ctx)
+{
+  out[0] = 2.0 * fabs(fabs(xn[0]) - 0.5);
+}
+
+static void
+orbit_local_source(double time, const double *xn, double *out, void *ctx)
+{
+  // Inject only into the left well, at positive parallel velocity below the saddle.
+  out[0] = fmax(0.0, 1.0 - fabs(xn[0] + 0.72) / 0.08) * fmax(0.0, 1.0 - fabs(xn[1] - 0.2) / 0.17);
+}
+
+static bool
+orbit_check_source_shape(const char *name)
+{
+  char file_name[256];
+  snprintf(file_name, sizeof(file_name), "%s-ion_source_0.gkyl", name);
+  struct gkyl_rect_grid grid;
+  struct gkyl_array *source = gkyl_grid_array_new_from_file(&grid, file_name);
+  if (!source) {
+    return false;
+  }
+  struct gkyl_range range;
+  gkyl_range_init_from_shape1(&range, grid.ndim, grid.cells);
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &range);
+  double returning = 0.0, other_well = 0.0;
+  while (gkyl_range_iter_next(&iter)) {
+    double center[3];
+    gkyl_rect_grid_cell_center(&grid, iter.idx, center);
+    const double *modal = gkyl_array_cfetch(source, gkyl_range_idx(&range, iter.idx));
+    if (center[0] > 0.0) {
+      for (int mode = 0; mode < source->ncomp; ++mode) {
+        other_well = fmax(other_well, fabs(modal[mode]));
+      }
+    } else if (center[1] < 0.0) {
+      returning = fmax(returning, modal[0]);
+    }
+  }
+  printf(
+    "Peak returning-branch mean coefficient %.9g, largest coefficient in the other well %.9g.\n",
+    returning, other_well
+  );
+  gkyl_array_release(source);
+  return returning > 1e-5 && other_well < 1e-12 * returning;
+}
+
+static bool
+orbit_read_moment_pair(const char *name, const char *tag, double first[3], double second[3])
+{
+  char file_name[256];
+  snprintf(file_name, sizeof(file_name), "%s-ion_%sintegrated_moms.gkyl", name, tag);
+  gkyl_dynvec values = gkyl_dynvec_new(GKYL_DOUBLE, 3);
+  bool valid = gkyl_dynvec_read(values, file_name) && gkyl_dynvec_size(values) == 2;
+  if (valid) {
+    gkyl_dynvec_get(values, 0, first);
+    gkyl_dynvec_get(values, 1, second);
+  }
+  gkyl_dynvec_release(values);
+  return valid;
+}
+
+// Compare the actual source diagnostics before and after distribution, then
+// use the species diagnostics to check which source entered the RK update.
+static bool
+orbit_check_source(const struct gkyl_gk *reference, enum gkyl_distribution_moments type)
+{
+  struct gkyl_gk *inp = gkyl_malloc(sizeof(*inp));
+  *inp = *reference;
+  snprintf(
+    inp->name, sizeof(inp->name), "%.80s_source_%s", reference->name,
+    gkyl_distribution_moments_strs[type]
+  );
+  // Resolve both wells and align the saddle and v_parallel=0 with cell faces.
+  inp->cells[0] = 24;
+  inp->species[0].cells[0] = 16;
+  inp->field.init_field_profile = orbit_double_well;
+  inp->species[0].orbit_average =
+    (struct gkyl_gyrokinetic_orbit_average){.distribute_source = true, .num_energy_nodes = 8};
+  inp->species[0].integrated_diag_moments[0] = type;
+  inp->species[0].source = (struct gkyl_gyrokinetic_source){
+    .source_id = GKYL_PROJ_SOURCE,
+    .num_sources = 1,
+    .projection[0] = {.proj_id = GKYL_PROJ_FUNC, .func = orbit_local_source},
+    .diagnostics = {.num_integrated_diag_moments = 1, .integrated_diag_moments = {type}},
+  };
+  gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(inp);
+  gkyl_gyrokinetic_app_apply_ic(app, 0.0);
+  gkyl_gyrokinetic_app_write_species_source(app, 0, 0.0, 0);
+  gkyl_gyrokinetic_app_calc_integrated_mom(app, 0.0);
+  struct gkyl_update_status step = gkyl_gyrokinetic_update(app, 0.1);
+  gkyl_gyrokinetic_app_reset_species_orbit_average(
+    app, "ion", (struct gkyl_gyrokinetic_orbit_average){}
+  );
+  gkyl_gyrokinetic_app_calc_integrated_mom(app, step.dt_actual);
+  gkyl_gyrokinetic_app_write_integrated_mom(app);
+  struct gkyl_comm *comm = reference->parallelism.comm;
+  gkyl_comm_barrier(comm);
+  int rank;
+  gkyl_comm_get_rank(comm, &rank);
+  bool valid = step.success && step.dt_actual > 0.0;
+  if (rank == 0) {
+    double distributed[3], raw[3], before[3], after[3];
+    valid = valid && orbit_check_source_shape(inp->name) &&
+            orbit_read_moment_pair(inp->name, "source_", distributed, raw) &&
+            orbit_read_moment_pair(inp->name, "", before, after);
+    if (valid) {
+      for (int j = 0; j < 3; j += 2) {
+        valid = valid && raw[j] > 0.0 && fabs(distributed[j] - raw[j]) < 2e-11 * raw[j];
+      }
+      const bool kinetic = type == GKYL_F_MOMENT_M0M1M2;
+      const double factor = kinetic ? 0.5 * inp->species[0].mass : 1.0;
+      printf(
+        "Source rates (projected, distributed): N=(%.16g, %.16g), %s=(%.16g, %.16g).\n", raw[0],
+        distributed[0], kinetic ? "K" : "H", factor * raw[2], factor * distributed[2]
+      );
+      // Momentum distinguishes the returning branch from the one-sided input.
+      valid = valid && fabs(raw[1] - distributed[1]) > 1e-6 * raw[0];
+      for (int j = 0; j < 3; ++j) {
+        valid = valid && fabs(after[j] - before[j] - step.dt_actual * distributed[j]) < 2e-12;
+      }
+    }
+  }
+  int failed = !valid, global_failed;
+  gkyl_comm_allreduce_host(comm, GKYL_INT, GKYL_MAX, 1, &failed, &global_failed);
+  gkyl_gyrokinetic_app_cout(
+    app, stdout, "Connected-well source distribution: %s.\n", global_failed ? "FAILED" : "passed"
+  );
+  gkyl_gyrokinetic_app_release(app);
+  gkyl_free(inp);
+  return !global_failed;
 }
 
 static bool
@@ -471,6 +606,12 @@ main(int argc, char **argv)
     result = 1;
   }
   gkyl_comm_allreduce_host(comm, GKYL_INT, GKYL_MAX, 1, &result, &global_result);
+  // The app supports one integrated source moment set per run.
+  if (!global_result && num_steps > 0 &&
+      (!orbit_check_source(&inp, GKYL_F_MOMENT_M0M1M2) ||
+       !orbit_check_source(&inp, GKYL_F_MOMENT_HAMILTONIAN))) {
+    global_result = 1;
+  }
   gkyl_gyrokinetic_comms_release(comm);
 #ifdef GKYL_HAVE_MPI
   if (args.use_mpi) {
