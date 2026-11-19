@@ -227,7 +227,7 @@ gk_neut_species_write_dynamic(
       .cval = gkns->is_fluid ? "Neutral fluid moments times Jacobians." :
                                "Neutral species distribution times Jacobians.",
     },
-    {.key = "is_fluid", .elem_type = GKYL_MP_BOOL, .bval = gkns->is_fluid}
+    {.key = "is_fluid", .elem_type = GKYL_MP_BOOL, .bval = gkns->is_fluid},
   };
   int desc_f_len = sizeof(desc_f) / sizeof(desc_f[0]);
   int io_meta_len[] = {gkns->io_meta_phase_len, app->gk_geom->io_meta_basic_len, desc_f_len};
@@ -279,11 +279,13 @@ gk_neut_species_write_mom_dynamic(
       gkyl_array_copy(gkns->moms[m].marr_host, gkns->moms[m].marr);
     }
 
-    struct gkyl_msgpack_map_elem desc_mom[] = {{
-      .key = "Description",
-      .elem_type = GKYL_MP_STRING,
-      .cval = (char *)gkyl_distribution_moments_descriptions[gkns->info.diag_moments[m]],
-    }};
+    struct gkyl_msgpack_map_elem desc_mom[] = {
+      {
+        .key = "Description",
+        .elem_type = GKYL_MP_STRING,
+        .cval = (char *)gkyl_distribution_moments_descriptions[gkns->info.diag_moments[m]],
+      },
+    };
     int io_meta_len[] = {gkns->io_meta_phase_len, app->gk_geom->io_meta_basic_len, 1};
     const struct gkyl_msgpack_map_elem *io_meta[] = {
       gkns->io_meta_phase, app->gk_geom->io_meta_basic, desc_mom
@@ -355,11 +357,13 @@ gk_neut_species_write_integrated_mom_dynamic(gkyl_gyrokinetic_app *app, struct g
     snprintf(fileNm, sizeof fileNm, fmt, app->name, gkns->info.name, "integrated_moms");
 
     if (gkns->is_first_integ_write_call) {
-      struct gkyl_msgpack_map_elem io_meta_phi[] = {{
-        .key = "Description",
-        .elem_type = GKYL_MP_STRING,
-        .cval = "Volume integrated moments of neutral species.",
-      }};
+      struct gkyl_msgpack_map_elem io_meta_phi[] = {
+        {
+          .key = "Description",
+          .elem_type = GKYL_MP_STRING,
+          .cval = "Volume integrated moments of neutral species.",
+        },
+      };
       int io_meta_len[] = {gkns->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
       const struct gkyl_msgpack_map_elem *io_meta[] = {
         gkns->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi

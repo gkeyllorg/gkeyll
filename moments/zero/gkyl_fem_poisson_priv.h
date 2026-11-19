@@ -51,72 +51,74 @@ GKYL_CU_D static const local2global_kern_bcx_list_1x ser_loc2glob_list_1x[] = {
         fem_poisson_local_to_global_1x_ser_p1_upx_nonperiodicx},
        {fem_poisson_local_to_global_1x_ser_p2_inx_nonperiodicx,
         fem_poisson_local_to_global_1x_ser_p2_upx_nonperiodicx}},
-  }
+  },
 };
 
 GKYL_CU_D static const local2global_kern_bcx_list_2x ser_loc2glob_list_2x[] = {
   // periodicx
   {
     .list =
-      {// periodicy
-       {
-         .list =
-           {{NULL, NULL, NULL, NULL},
-            {fem_poisson_local_to_global_2x_ser_p1_inx_periodicx_iny_periodicy,
-             fem_poisson_local_to_global_2x_ser_p1_upx_periodicx_iny_periodicy,
-             fem_poisson_local_to_global_2x_ser_p1_inx_periodicx_upy_periodicy,
-             fem_poisson_local_to_global_2x_ser_p1_upx_periodicx_upy_periodicy},
-            {fem_poisson_local_to_global_2x_ser_p2_inx_periodicx_iny_periodicy,
-             fem_poisson_local_to_global_2x_ser_p2_upx_periodicx_iny_periodicy,
-             fem_poisson_local_to_global_2x_ser_p2_inx_periodicx_upy_periodicy,
-             fem_poisson_local_to_global_2x_ser_p2_upx_periodicx_upy_periodicy}},
-       },
-       // nonperiodicy
-       {
-         .list =
-           {{NULL, NULL, NULL, NULL},
-            {fem_poisson_local_to_global_2x_ser_p1_inx_periodicx_iny_nonperiodicy,
-             fem_poisson_local_to_global_2x_ser_p1_upx_periodicx_iny_nonperiodicy,
-             fem_poisson_local_to_global_2x_ser_p1_inx_periodicx_upy_nonperiodicy,
-             fem_poisson_local_to_global_2x_ser_p1_upx_periodicx_upy_nonperiodicy},
-            {fem_poisson_local_to_global_2x_ser_p2_inx_periodicx_iny_nonperiodicy,
-             fem_poisson_local_to_global_2x_ser_p2_upx_periodicx_iny_nonperiodicy,
-             fem_poisson_local_to_global_2x_ser_p2_inx_periodicx_upy_nonperiodicy,
-             fem_poisson_local_to_global_2x_ser_p2_upx_periodicx_upy_nonperiodicy}},
-       }
+      {
+        // periodicy
+        {
+          .list =
+            {{NULL, NULL, NULL, NULL},
+             {fem_poisson_local_to_global_2x_ser_p1_inx_periodicx_iny_periodicy,
+              fem_poisson_local_to_global_2x_ser_p1_upx_periodicx_iny_periodicy,
+              fem_poisson_local_to_global_2x_ser_p1_inx_periodicx_upy_periodicy,
+              fem_poisson_local_to_global_2x_ser_p1_upx_periodicx_upy_periodicy},
+             {fem_poisson_local_to_global_2x_ser_p2_inx_periodicx_iny_periodicy,
+              fem_poisson_local_to_global_2x_ser_p2_upx_periodicx_iny_periodicy,
+              fem_poisson_local_to_global_2x_ser_p2_inx_periodicx_upy_periodicy,
+              fem_poisson_local_to_global_2x_ser_p2_upx_periodicx_upy_periodicy}},
+        },
+        // nonperiodicy
+        {
+          .list =
+            {{NULL, NULL, NULL, NULL},
+             {fem_poisson_local_to_global_2x_ser_p1_inx_periodicx_iny_nonperiodicy,
+              fem_poisson_local_to_global_2x_ser_p1_upx_periodicx_iny_nonperiodicy,
+              fem_poisson_local_to_global_2x_ser_p1_inx_periodicx_upy_nonperiodicy,
+              fem_poisson_local_to_global_2x_ser_p1_upx_periodicx_upy_nonperiodicy},
+             {fem_poisson_local_to_global_2x_ser_p2_inx_periodicx_iny_nonperiodicy,
+              fem_poisson_local_to_global_2x_ser_p2_upx_periodicx_iny_nonperiodicy,
+              fem_poisson_local_to_global_2x_ser_p2_inx_periodicx_upy_nonperiodicy,
+              fem_poisson_local_to_global_2x_ser_p2_upx_periodicx_upy_nonperiodicy}},
+        },
       },
   },
   // nonperiodicx
   {
     .list =
-      {// periodicy
-       {
-         .list =
-           {{NULL, NULL, NULL, NULL},
-            {fem_poisson_local_to_global_2x_ser_p1_inx_nonperiodicx_iny_periodicy,
-             fem_poisson_local_to_global_2x_ser_p1_upx_nonperiodicx_iny_periodicy,
-             fem_poisson_local_to_global_2x_ser_p1_inx_nonperiodicx_upy_periodicy,
-             fem_poisson_local_to_global_2x_ser_p1_upx_nonperiodicx_upy_periodicy},
-            {fem_poisson_local_to_global_2x_ser_p2_inx_nonperiodicx_iny_periodicy,
-             fem_poisson_local_to_global_2x_ser_p2_upx_nonperiodicx_iny_periodicy,
-             fem_poisson_local_to_global_2x_ser_p2_inx_nonperiodicx_upy_periodicy,
-             fem_poisson_local_to_global_2x_ser_p2_upx_nonperiodicx_upy_periodicy}},
-       },
-       // nonperiodicy
-       {
-         .list =
-           {{NULL, NULL, NULL, NULL},
-            {fem_poisson_local_to_global_2x_ser_p1_inx_nonperiodicx_iny_nonperiodicy,
-             fem_poisson_local_to_global_2x_ser_p1_upx_nonperiodicx_iny_nonperiodicy,
-             fem_poisson_local_to_global_2x_ser_p1_inx_nonperiodicx_upy_nonperiodicy,
-             fem_poisson_local_to_global_2x_ser_p1_upx_nonperiodicx_upy_nonperiodicy},
-            {fem_poisson_local_to_global_2x_ser_p2_inx_nonperiodicx_iny_nonperiodicy,
-             fem_poisson_local_to_global_2x_ser_p2_upx_nonperiodicx_iny_nonperiodicy,
-             fem_poisson_local_to_global_2x_ser_p2_inx_nonperiodicx_upy_nonperiodicy,
-             fem_poisson_local_to_global_2x_ser_p2_upx_nonperiodicx_upy_nonperiodicy}},
-       }
+      {
+        // periodicy
+        {
+          .list =
+            {{NULL, NULL, NULL, NULL},
+             {fem_poisson_local_to_global_2x_ser_p1_inx_nonperiodicx_iny_periodicy,
+              fem_poisson_local_to_global_2x_ser_p1_upx_nonperiodicx_iny_periodicy,
+              fem_poisson_local_to_global_2x_ser_p1_inx_nonperiodicx_upy_periodicy,
+              fem_poisson_local_to_global_2x_ser_p1_upx_nonperiodicx_upy_periodicy},
+             {fem_poisson_local_to_global_2x_ser_p2_inx_nonperiodicx_iny_periodicy,
+              fem_poisson_local_to_global_2x_ser_p2_upx_nonperiodicx_iny_periodicy,
+              fem_poisson_local_to_global_2x_ser_p2_inx_nonperiodicx_upy_periodicy,
+              fem_poisson_local_to_global_2x_ser_p2_upx_nonperiodicx_upy_periodicy}},
+        },
+        // nonperiodicy
+        {
+          .list =
+            {{NULL, NULL, NULL, NULL},
+             {fem_poisson_local_to_global_2x_ser_p1_inx_nonperiodicx_iny_nonperiodicy,
+              fem_poisson_local_to_global_2x_ser_p1_upx_nonperiodicx_iny_nonperiodicy,
+              fem_poisson_local_to_global_2x_ser_p1_inx_nonperiodicx_upy_nonperiodicy,
+              fem_poisson_local_to_global_2x_ser_p1_upx_nonperiodicx_upy_nonperiodicy},
+             {fem_poisson_local_to_global_2x_ser_p2_inx_nonperiodicx_iny_nonperiodicy,
+              fem_poisson_local_to_global_2x_ser_p2_upx_nonperiodicx_iny_nonperiodicy,
+              fem_poisson_local_to_global_2x_ser_p2_inx_nonperiodicx_upy_nonperiodicy,
+              fem_poisson_local_to_global_2x_ser_p2_upx_nonperiodicx_upy_nonperiodicy}},
+        },
       },
-  }
+  },
 };
 
 // Function pointer type for lhs kernels.
@@ -210,7 +212,7 @@ static const lhsstencil_kern_bcx_list_1x ser_lhsstencil_consteps_list_1x[] = {
        {fem_poisson_lhs_stencil_consteps_1x_ser_p2_inx_periodicx,
         fem_poisson_lhs_stencil_consteps_1x_ser_p2_lox_robinx,
         fem_poisson_lhs_stencil_consteps_1x_ser_p2_upx_dirichletx}},
-  }
+  },
 };
 
 static const lhsstencil_kern_bcx_list_2x
@@ -219,136 +221,155 @@ static const lhsstencil_kern_bcx_list_2x
       // periodicx
       {
         .list =
-          {// periodicy
-           {
-             .list =
-               {{NULL, NULL, NULL, NULL},
-                {fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_iny_periodicy,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_periodicx_iny_periodicy,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_periodicx_iny_periodicy,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_loy_periodicy,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_upy_periodicy,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_periodicx_loy_periodicy,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_periodicx_upy_periodicy,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_periodicx_loy_periodicy,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_periodicx_upy_periodicy},
-                {fem_poisson_lhs_stencil_consteps_2x_ser_p2_inx_periodicx_iny_periodicy,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_periodicx_iny_periodicy,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_periodicx_iny_periodicy,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p2_inx_periodicx_loy_periodicy,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p2_inx_periodicx_upy_periodicy,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_periodicx_loy_periodicy,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_periodicx_upy_periodicy,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_periodicx_loy_periodicy,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_periodicx_upy_periodicy}},
-           },
-           // dirichlety-dirichlety
-           {
-             .list =
-               {{NULL, NULL, NULL, NULL},
-                {fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_iny_periodicy,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_periodicx_iny_periodicy,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_periodicx_iny_periodicy,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_loy_dirichlety,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_upy_dirichlety,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_periodicx_loy_dirichlety,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_periodicx_upy_dirichlety,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_periodicx_loy_dirichlety,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_periodicx_upy_dirichlety},
-                {fem_poisson_lhs_stencil_consteps_2x_ser_p2_inx_periodicx_iny_periodicy,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_periodicx_iny_periodicy,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_periodicx_iny_periodicy,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p2_inx_periodicx_loy_dirichlety,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p2_inx_periodicx_upy_dirichlety,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_periodicx_loy_dirichlety,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_periodicx_upy_dirichlety,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_periodicx_loy_dirichlety,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_periodicx_upy_dirichlety}},
-           },
-           // dirichlety-neumanny
-           {
-             .list =
-               {{NULL, NULL, NULL, NULL},
-                {fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_iny_periodicy,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_periodicx_iny_periodicy,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_periodicx_iny_periodicy,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_loy_dirichlety,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_upy_neumanny,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_periodicx_loy_dirichlety,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_periodicx_upy_neumanny,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_periodicx_loy_dirichlety,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_periodicx_upy_neumanny},
-                {fem_poisson_lhs_stencil_consteps_2x_ser_p2_inx_periodicx_iny_periodicy,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_periodicx_iny_periodicy,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_periodicx_iny_periodicy,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p2_inx_periodicx_loy_dirichlety,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p2_inx_periodicx_upy_neumanny,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_periodicx_loy_dirichlety,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_periodicx_upy_neumanny,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_periodicx_loy_dirichlety,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_periodicx_upy_neumanny}},
-           },
-           // neumanny-dirichlety
-           {
-             .list =
-               {{NULL, NULL, NULL, NULL},
-                {fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_iny_periodicy,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_periodicx_iny_periodicy,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_periodicx_iny_periodicy,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_loy_neumanny,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_upy_dirichlety,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_periodicx_loy_neumanny,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_periodicx_upy_dirichlety,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_periodicx_loy_neumanny,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_periodicx_upy_dirichlety},
-                {fem_poisson_lhs_stencil_consteps_2x_ser_p2_inx_periodicx_iny_periodicy,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_periodicx_iny_periodicy,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_periodicx_iny_periodicy,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p2_inx_periodicx_loy_neumanny,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p2_inx_periodicx_upy_dirichlety,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_periodicx_loy_neumanny,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_periodicx_upy_dirichlety,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_periodicx_loy_neumanny,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_periodicx_upy_dirichlety}},
-           }
+          {
+            // periodicy
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL},
+                 {fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_loy_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_upy_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_periodicx_loy_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_periodicx_upy_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_periodicx_loy_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_periodicx_upy_periodicy},
+                 {fem_poisson_lhs_stencil_consteps_2x_ser_p2_inx_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_inx_periodicx_loy_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_inx_periodicx_upy_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_periodicx_loy_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_periodicx_upy_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_periodicx_loy_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_periodicx_upy_periodicy}},
+            },
+            // dirichlety-dirichlety
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL},
+                 {fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_loy_dirichlety,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_upy_dirichlety,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_periodicx_loy_dirichlety,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_periodicx_upy_dirichlety,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_periodicx_loy_dirichlety,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_periodicx_upy_dirichlety},
+                 {fem_poisson_lhs_stencil_consteps_2x_ser_p2_inx_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_inx_periodicx_loy_dirichlety,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_inx_periodicx_upy_dirichlety,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_periodicx_loy_dirichlety,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_periodicx_upy_dirichlety,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_periodicx_loy_dirichlety,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_periodicx_upy_dirichlety}},
+            },
+            // dirichlety-neumanny
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL},
+                 {fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_loy_dirichlety,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_upy_neumanny,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_periodicx_loy_dirichlety,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_periodicx_upy_neumanny,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_periodicx_loy_dirichlety,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_periodicx_upy_neumanny},
+                 {fem_poisson_lhs_stencil_consteps_2x_ser_p2_inx_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_inx_periodicx_loy_dirichlety,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_inx_periodicx_upy_neumanny,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_periodicx_loy_dirichlety,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_periodicx_upy_neumanny,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_periodicx_loy_dirichlety,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_periodicx_upy_neumanny}},
+            },
+            // neumanny-dirichlety
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL},
+                 {fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_loy_neumanny,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_upy_dirichlety,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_periodicx_loy_neumanny,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_periodicx_upy_dirichlety,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_periodicx_loy_neumanny,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_periodicx_upy_dirichlety},
+                 {fem_poisson_lhs_stencil_consteps_2x_ser_p2_inx_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_inx_periodicx_loy_neumanny,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_inx_periodicx_upy_dirichlety,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_periodicx_loy_neumanny,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_periodicx_upy_dirichlety,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_periodicx_loy_neumanny,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_periodicx_upy_dirichlety}},
+            },
           },
       },
       // dirichletx-dirichletx
       {
         .list =
-          {// periodicy
-           {
-             .list =
-               {{NULL, NULL, NULL, NULL},
-                {fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_iny_periodicy,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_dirichletx_iny_periodicy,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_dirichletx_iny_periodicy,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_loy_periodicy,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_upy_periodicy,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_dirichletx_loy_periodicy,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_dirichletx_upy_periodicy,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_dirichletx_loy_periodicy,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_dirichletx_upy_periodicy},
-                {fem_poisson_lhs_stencil_consteps_2x_ser_p2_inx_periodicx_iny_periodicy,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_dirichletx_iny_periodicy,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_dirichletx_iny_periodicy,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p2_inx_periodicx_loy_periodicy,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p2_inx_periodicx_upy_periodicy,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_dirichletx_loy_periodicy,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_dirichletx_upy_periodicy,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_dirichletx_loy_periodicy,
-                 fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_dirichletx_upy_periodicy}},
-           },
-           // dirichlety-dirichlety
-           {
-             .list =
-               {{NULL, NULL, NULL, NULL}, {fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_iny_periodicy, fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_dirichletx_iny_periodicy, fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_dirichletx_iny_periodicy, fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_loy_dirichlety, fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_upy_dirichlety, fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_dirichletx_loy_dirichlety, fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_dirichletx_upy_dirichlety, fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_dirichletx_loy_dirichlety, fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_dirichletx_upy_dirichlety}, {fem_poisson_lhs_stencil_consteps_2x_ser_p2_inx_periodicx_iny_periodicy, fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_dirichletx_iny_periodicy, fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_dirichletx_iny_periodicy, fem_poisson_lhs_stencil_consteps_2x_ser_p2_inx_periodicx_loy_dirichlety, fem_poisson_lhs_stencil_consteps_2x_ser_p2_inx_periodicx_upy_dirichlety, fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_dirichletx_loy_dirichlety, fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_dirichletx_upy_dirichlety, fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_dirichletx_loy_dirichlety, fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_dirichletx_upy_dirichlety}},
-           },
-           // dirichlety-neumanny
-           {
-             .list =
-               {
-                 {NULL, NULL, NULL, NULL},
+          {
+            // periodicy
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL},
+                 {fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_dirichletx_iny_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_dirichletx_iny_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_loy_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_upy_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_dirichletx_loy_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_dirichletx_upy_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_dirichletx_loy_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_dirichletx_upy_periodicy},
+                 {fem_poisson_lhs_stencil_consteps_2x_ser_p2_inx_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_dirichletx_iny_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_dirichletx_iny_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_inx_periodicx_loy_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_inx_periodicx_upy_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_dirichletx_loy_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_dirichletx_upy_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_dirichletx_loy_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_dirichletx_upy_periodicy}},
+            },
+            // dirichlety-dirichlety
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL},
+                 {fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_dirichletx_iny_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_dirichletx_iny_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_loy_dirichlety,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_upy_dirichlety,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_dirichletx_loy_dirichlety,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_dirichletx_upy_dirichlety,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_dirichletx_loy_dirichlety,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_dirichletx_upy_dirichlety},
+                 {fem_poisson_lhs_stencil_consteps_2x_ser_p2_inx_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_dirichletx_iny_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_dirichletx_iny_periodicy,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_inx_periodicx_loy_dirichlety,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_inx_periodicx_upy_dirichlety,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_dirichletx_loy_dirichlety,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_dirichletx_upy_dirichlety,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_dirichletx_loy_dirichlety,
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_dirichletx_upy_dirichlety}},
+            },
+            // dirichlety-neumanny
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL},
                  {fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_iny_periodicy,
                   fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_dirichletx_iny_periodicy,
                   fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_dirichletx_iny_periodicy,
@@ -366,14 +387,12 @@ static const lhsstencil_kern_bcx_list_2x
                   fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_dirichletx_loy_dirichlety,
                   fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_dirichletx_upy_neumanny,
                   fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_dirichletx_loy_dirichlety,
-                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_dirichletx_upy_neumanny}
-               },
-           },
-           // neumanny-dirichlety
-           {
-             .list =
-               {
-                 {NULL, NULL, NULL, NULL},
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_dirichletx_upy_neumanny}},
+            },
+            // neumanny-dirichlety
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL},
                  {fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_iny_periodicy,
                   fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_dirichletx_iny_periodicy,
                   fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_dirichletx_iny_periodicy,
@@ -391,9 +410,8 @@ static const lhsstencil_kern_bcx_list_2x
                   fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_dirichletx_loy_neumanny,
                   fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_dirichletx_upy_dirichlety,
                   fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_dirichletx_loy_neumanny,
-                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_dirichletx_upy_dirichlety}
-               },
-           }
+                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_dirichletx_upy_dirichlety}},
+            },
           },
       },
       // dirichletx-neumannx
@@ -425,73 +443,16 @@ static const lhsstencil_kern_bcx_list_2x
             },
             // dirichlety-dirichlety
             {
-              .list =
-                {{NULL, NULL, NULL, NULL},
-                 {fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_iny_periodicy,
-                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_dirichletx_iny_periodicy,
-                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_neumannx_iny_periodicy,
-                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_loy_dirichlety,
-                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_upy_dirichlety,
-                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_dirichletx_loy_dirichlety,
-                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_dirichletx_upy_dirichlety,
-                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_neumannx_loy_dirichlety,
-                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_neumannx_upy_dirichlety},
-                 {fem_poisson_lhs_stencil_consteps_2x_ser_p2_inx_periodicx_iny_periodicy,
-                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_dirichletx_iny_periodicy,
-                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_neumannx_iny_periodicy,
-                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_inx_periodicx_loy_dirichlety,
-                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_inx_periodicx_upy_dirichlety,
-                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_dirichletx_loy_dirichlety,
-                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_dirichletx_upy_dirichlety,
-                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_neumannx_loy_dirichlety,
-                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_neumannx_upy_dirichlety}},
+              .list = {{NULL, NULL, NULL, NULL}, {fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_iny_periodicy, fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_dirichletx_iny_periodicy, fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_neumannx_iny_periodicy, fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_loy_dirichlety, fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_upy_dirichlety, fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_dirichletx_loy_dirichlety, fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_dirichletx_upy_dirichlety, fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_neumannx_loy_dirichlety, fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_neumannx_upy_dirichlety}, {fem_poisson_lhs_stencil_consteps_2x_ser_p2_inx_periodicx_iny_periodicy, fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_dirichletx_iny_periodicy, fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_neumannx_iny_periodicy, fem_poisson_lhs_stencil_consteps_2x_ser_p2_inx_periodicx_loy_dirichlety, fem_poisson_lhs_stencil_consteps_2x_ser_p2_inx_periodicx_upy_dirichlety, fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_dirichletx_loy_dirichlety, fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_dirichletx_upy_dirichlety, fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_neumannx_loy_dirichlety, fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_neumannx_upy_dirichlety}},
             },
             // dirichlety-neumanny
             {
-              .list =
-                {{NULL, NULL, NULL, NULL},
-                 {fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_iny_periodicy,
-                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_dirichletx_iny_periodicy,
-                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_neumannx_iny_periodicy,
-                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_loy_dirichlety,
-                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_upy_neumanny,
-                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_dirichletx_loy_dirichlety,
-                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_dirichletx_upy_neumanny,
-                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_neumannx_loy_dirichlety,
-                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_neumannx_upy_neumanny},
-                 {fem_poisson_lhs_stencil_consteps_2x_ser_p2_inx_periodicx_iny_periodicy,
-                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_dirichletx_iny_periodicy,
-                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_neumannx_iny_periodicy,
-                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_inx_periodicx_loy_dirichlety,
-                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_inx_periodicx_upy_neumanny,
-                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_dirichletx_loy_dirichlety,
-                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_dirichletx_upy_neumanny,
-                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_neumannx_loy_dirichlety,
-                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_neumannx_upy_neumanny}},
+              .list = {{NULL, NULL, NULL, NULL}, {fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_iny_periodicy, fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_dirichletx_iny_periodicy, fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_neumannx_iny_periodicy, fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_loy_dirichlety, fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_upy_neumanny, fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_dirichletx_loy_dirichlety, fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_dirichletx_upy_neumanny, fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_neumannx_loy_dirichlety, fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_neumannx_upy_neumanny}, {fem_poisson_lhs_stencil_consteps_2x_ser_p2_inx_periodicx_iny_periodicy, fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_dirichletx_iny_periodicy, fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_neumannx_iny_periodicy, fem_poisson_lhs_stencil_consteps_2x_ser_p2_inx_periodicx_loy_dirichlety, fem_poisson_lhs_stencil_consteps_2x_ser_p2_inx_periodicx_upy_neumanny, fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_dirichletx_loy_dirichlety, fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_dirichletx_upy_neumanny, fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_neumannx_loy_dirichlety, fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_neumannx_upy_neumanny}},
             },
             // neumanny-dirichlety
             {
-              .list =
-                {{NULL, NULL, NULL, NULL},
-                 {fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_iny_periodicy,
-                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_dirichletx_iny_periodicy,
-                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_neumannx_iny_periodicy,
-                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_loy_neumanny,
-                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_upy_dirichlety,
-                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_dirichletx_loy_neumanny,
-                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_dirichletx_upy_dirichlety,
-                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_neumannx_loy_neumanny,
-                  fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_neumannx_upy_dirichlety},
-                 {fem_poisson_lhs_stencil_consteps_2x_ser_p2_inx_periodicx_iny_periodicy,
-                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_dirichletx_iny_periodicy,
-                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_neumannx_iny_periodicy,
-                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_inx_periodicx_loy_neumanny,
-                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_inx_periodicx_upy_dirichlety,
-                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_dirichletx_loy_neumanny,
-                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_dirichletx_upy_dirichlety,
-                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_neumannx_loy_neumanny,
-                  fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_neumannx_upy_dirichlety}},
-            }
+              .list = {{NULL, NULL, NULL, NULL}, {fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_iny_periodicy, fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_dirichletx_iny_periodicy, fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_neumannx_iny_periodicy, fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_loy_neumanny, fem_poisson_lhs_stencil_consteps_2x_ser_p1_inx_periodicx_upy_dirichlety, fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_dirichletx_loy_neumanny, fem_poisson_lhs_stencil_consteps_2x_ser_p1_lox_dirichletx_upy_dirichlety, fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_neumannx_loy_neumanny, fem_poisson_lhs_stencil_consteps_2x_ser_p1_upx_neumannx_upy_dirichlety}, {fem_poisson_lhs_stencil_consteps_2x_ser_p2_inx_periodicx_iny_periodicy, fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_dirichletx_iny_periodicy, fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_neumannx_iny_periodicy, fem_poisson_lhs_stencil_consteps_2x_ser_p2_inx_periodicx_loy_neumanny, fem_poisson_lhs_stencil_consteps_2x_ser_p2_inx_periodicx_upy_dirichlety, fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_dirichletx_loy_neumanny, fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_dirichletx_upy_dirichlety, fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_neumannx_loy_neumanny, fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_neumannx_upy_dirichlety}},
+            },
           },
       },
       // neumannx-dirichletx
@@ -589,9 +550,9 @@ static const lhsstencil_kern_bcx_list_2x
                   fem_poisson_lhs_stencil_consteps_2x_ser_p2_lox_neumannx_upy_dirichlety,
                   fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_dirichletx_loy_neumanny,
                   fem_poisson_lhs_stencil_consteps_2x_ser_p2_upx_dirichletx_upy_dirichlety}},
-            }
+            },
           },
-      }
+      },
 };
 
 static const lhsstencil_kern_bcx_list_1x ser_lhsstencil_vareps_list_1x[] = {
@@ -660,328 +621,347 @@ static const lhsstencil_kern_bcx_list_1x ser_lhsstencil_vareps_list_1x[] = {
        {fem_poisson_lhs_stencil_vareps_1x_ser_p2_inx_periodicx,
         fem_poisson_lhs_stencil_vareps_1x_ser_p2_lox_robinx,
         fem_poisson_lhs_stencil_vareps_1x_ser_p2_upx_dirichletx}},
-  }
+  },
 };
 
 static const lhsstencil_kern_bcx_list_2x
-  ser_lhsstencil_vareps_list_2x
-    [] =
+  ser_lhsstencil_vareps_list_2x[] =
+    {
+      // periodicx
       {
-        // periodicx
-        {
-          .list =
-            {// periodicy
-             {
-               .list =
-                 {{NULL, NULL, NULL, NULL},
-                  {fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_iny_periodicy,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_periodicx_iny_periodicy,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_periodicx_iny_periodicy,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_loy_periodicy,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_upy_periodicy,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_periodicx_loy_periodicy,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_periodicx_upy_periodicy,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_periodicx_loy_periodicy,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_periodicx_upy_periodicy},
-                  {fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_iny_periodicy,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_periodicx_iny_periodicy,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_periodicx_iny_periodicy,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_loy_periodicy,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_upy_periodicy,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_periodicx_loy_periodicy,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_periodicx_upy_periodicy,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_periodicx_loy_periodicy,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_periodicx_upy_periodicy}},
-             },
-             // dirichlety-dirichlety
-             {
-               .list =
-                 {{NULL, NULL, NULL, NULL},
-                  {fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_iny_periodicy,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_periodicx_iny_periodicy,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_periodicx_iny_periodicy,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_loy_dirichlety,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_upy_dirichlety,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_periodicx_loy_dirichlety,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_periodicx_upy_dirichlety,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_periodicx_loy_dirichlety,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_periodicx_upy_dirichlety},
-                  {fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_iny_periodicy,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_periodicx_iny_periodicy,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_periodicx_iny_periodicy,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_loy_dirichlety,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_upy_dirichlety,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_periodicx_loy_dirichlety,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_periodicx_upy_dirichlety,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_periodicx_loy_dirichlety,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_periodicx_upy_dirichlety}},
-             },
-             // dirichlety-neumanny
-             {
-               .list =
-                 {{NULL, NULL, NULL, NULL},
-                  {fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_iny_periodicy,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_periodicx_iny_periodicy,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_periodicx_iny_periodicy,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_loy_dirichlety,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_upy_neumanny,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_periodicx_loy_dirichlety,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_periodicx_upy_neumanny,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_periodicx_loy_dirichlety,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_periodicx_upy_neumanny},
-                  {fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_iny_periodicy,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_periodicx_iny_periodicy,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_periodicx_iny_periodicy,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_loy_dirichlety,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_upy_neumanny,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_periodicx_loy_dirichlety,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_periodicx_upy_neumanny,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_periodicx_loy_dirichlety,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_periodicx_upy_neumanny}},
-             },
-             // neumanny-dirichlety
-             {
-               .list =
-                 {{NULL, NULL, NULL, NULL},
-                  {fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_iny_periodicy,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_periodicx_iny_periodicy,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_periodicx_iny_periodicy,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_loy_neumanny,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_upy_dirichlety,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_periodicx_loy_neumanny,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_periodicx_upy_dirichlety,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_periodicx_loy_neumanny,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_periodicx_upy_dirichlety},
-                  {fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_iny_periodicy,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_periodicx_iny_periodicy,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_periodicx_iny_periodicy,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_loy_neumanny,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_upy_dirichlety,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_periodicx_loy_neumanny,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_periodicx_upy_dirichlety,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_periodicx_loy_neumanny,
-                   fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_periodicx_upy_dirichlety}},
-             }
-            },
-        },
-        // dirichletx-dirichletx
-        {
-          .list =
+        .list =
+          {
+            // periodicy
             {
-              // periodicy
-              {
-                .list = {{NULL, NULL, NULL, NULL}, {fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_iny_periodicy, fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_iny_periodicy, fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_iny_periodicy, fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_loy_periodicy, fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_upy_periodicy, fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_loy_periodicy, fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_upy_periodicy, fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_loy_periodicy, fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_upy_periodicy}, {fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_iny_periodicy, fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_iny_periodicy, fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_iny_periodicy, fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_loy_periodicy, fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_upy_periodicy, fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_loy_periodicy, fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_upy_periodicy, fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_loy_periodicy, fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_upy_periodicy}},
-              },
-              // dirichlety-dirichlety
-              {
-                .list = {{NULL, NULL, NULL, NULL}, {fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_iny_periodicy, fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_iny_periodicy, fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_iny_periodicy, fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_loy_dirichlety, fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_upy_dirichlety, fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_loy_dirichlety, fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_upy_dirichlety, fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_loy_dirichlety, fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_upy_dirichlety}, {fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_iny_periodicy, fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_iny_periodicy, fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_iny_periodicy, fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_loy_dirichlety, fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_upy_dirichlety, fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_loy_dirichlety, fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_upy_dirichlety, fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_loy_dirichlety, fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_upy_dirichlety}},
-              },
-              // dirichlety-neumanny
-              {
-                .list = {{NULL, NULL, NULL, NULL}, {fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_iny_periodicy, fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_iny_periodicy, fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_iny_periodicy, fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_loy_dirichlety, fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_upy_neumanny, fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_loy_dirichlety, fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_upy_neumanny, fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_loy_dirichlety, fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_upy_neumanny}, {fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_iny_periodicy, fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_iny_periodicy, fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_iny_periodicy, fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_loy_dirichlety, fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_upy_neumanny, fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_loy_dirichlety, fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_upy_neumanny, fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_loy_dirichlety, fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_upy_neumanny}},
-              },
-              // neumanny-dirichlety
-              {
-                .list = {{NULL, NULL, NULL, NULL}, {fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_iny_periodicy, fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_iny_periodicy, fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_iny_periodicy, fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_loy_neumanny, fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_upy_dirichlety, fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_loy_neumanny, fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_upy_dirichlety, fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_loy_neumanny, fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_upy_dirichlety}, {fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_iny_periodicy, fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_iny_periodicy, fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_iny_periodicy, fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_loy_neumanny, fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_upy_dirichlety, fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_loy_neumanny, fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_upy_dirichlety, fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_loy_neumanny, fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_upy_dirichlety}},
-              }
+              .list =
+                {{NULL, NULL, NULL, NULL},
+                 {fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_loy_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_upy_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_periodicx_loy_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_periodicx_upy_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_periodicx_loy_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_periodicx_upy_periodicy},
+                 {fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_loy_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_upy_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_periodicx_loy_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_periodicx_upy_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_periodicx_loy_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_periodicx_upy_periodicy}},
             },
-        },
-        // dirichletx-neumannx
-        {
-          .list =
+            // dirichlety-dirichlety
             {
-              // periodicy
-              {
-                .list =
-                  {{NULL, NULL, NULL, NULL},
-                   {fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_iny_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_iny_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_neumannx_iny_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_loy_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_upy_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_loy_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_upy_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_neumannx_loy_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_neumannx_upy_periodicy},
-                   {fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_iny_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_iny_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_neumannx_iny_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_loy_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_upy_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_loy_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_upy_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_neumannx_loy_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_neumannx_upy_periodicy}},
-              },
-              // dirichlety-dirichlety
-              {
-                .list =
-                  {{NULL, NULL, NULL, NULL},
-                   {fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_iny_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_iny_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_neumannx_iny_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_loy_dirichlety,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_upy_dirichlety,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_loy_dirichlety,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_upy_dirichlety,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_neumannx_loy_dirichlety,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_neumannx_upy_dirichlety},
-                   {fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_iny_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_iny_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_neumannx_iny_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_loy_dirichlety,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_upy_dirichlety,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_loy_dirichlety,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_upy_dirichlety,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_neumannx_loy_dirichlety,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_neumannx_upy_dirichlety}},
-              },
-              // dirichlety-neumanny
-              {
-                .list =
-                  {{NULL, NULL, NULL, NULL},
-                   {fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_iny_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_iny_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_neumannx_iny_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_loy_dirichlety,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_upy_neumanny,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_loy_dirichlety,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_upy_neumanny,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_neumannx_loy_dirichlety,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_neumannx_upy_neumanny},
-                   {fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_iny_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_iny_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_neumannx_iny_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_loy_dirichlety,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_upy_neumanny,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_loy_dirichlety,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_upy_neumanny,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_neumannx_loy_dirichlety,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_neumannx_upy_neumanny}},
-              },
-              // neumanny-dirichlety
-              {
-                .list =
-                  {{NULL, NULL, NULL, NULL},
-                   {fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_iny_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_iny_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_neumannx_iny_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_loy_neumanny,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_upy_dirichlety,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_loy_neumanny,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_upy_dirichlety,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_neumannx_loy_neumanny,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_neumannx_upy_dirichlety},
-                   {fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_iny_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_iny_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_neumannx_iny_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_loy_neumanny,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_upy_dirichlety,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_loy_neumanny,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_upy_dirichlety,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_neumannx_loy_neumanny,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_neumannx_upy_dirichlety}},
-              }
+              .list =
+                {{NULL, NULL, NULL, NULL},
+                 {fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_loy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_upy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_periodicx_loy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_periodicx_upy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_periodicx_loy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_periodicx_upy_dirichlety},
+                 {fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_loy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_upy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_periodicx_loy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_periodicx_upy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_periodicx_loy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_periodicx_upy_dirichlety}},
             },
-        },
-        // neumannx-dirichletx
-        {
-          .list =
+            // dirichlety-neumanny
             {
-              // periodicy
-              {
-                .list =
-                  {{NULL, NULL, NULL, NULL},
-                   {fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_iny_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_neumannx_iny_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_iny_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_loy_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_upy_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_neumannx_loy_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_neumannx_upy_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_loy_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_upy_periodicy},
-                   {fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_iny_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_neumannx_iny_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_iny_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_loy_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_upy_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_neumannx_loy_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_neumannx_upy_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_loy_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_upy_periodicy}},
-              },
-              // dirichlety-dirichlety
-              {
-                .list =
-                  {{NULL, NULL, NULL, NULL},
-                   {fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_iny_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_neumannx_iny_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_iny_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_loy_dirichlety,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_upy_dirichlety,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_neumannx_loy_dirichlety,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_neumannx_upy_dirichlety,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_loy_dirichlety,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_upy_dirichlety},
-                   {fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_iny_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_neumannx_iny_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_iny_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_loy_dirichlety,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_upy_dirichlety,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_neumannx_loy_dirichlety,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_neumannx_upy_dirichlety,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_loy_dirichlety,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_upy_dirichlety}},
-              },
-              // dirichlety-neumanny
-              {
-                .list =
-                  {{NULL, NULL, NULL, NULL},
-                   {fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_iny_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_neumannx_iny_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_iny_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_loy_dirichlety,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_upy_neumanny,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_neumannx_loy_dirichlety,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_neumannx_upy_neumanny,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_loy_dirichlety,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_upy_neumanny},
-                   {fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_iny_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_neumannx_iny_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_iny_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_loy_dirichlety,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_upy_neumanny,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_neumannx_loy_dirichlety,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_neumannx_upy_neumanny,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_loy_dirichlety,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_upy_neumanny}},
-              },
-              // neumanny-dirichlety
-              {
-                .list =
-                  {{NULL, NULL, NULL, NULL},
-                   {fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_iny_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_neumannx_iny_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_iny_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_loy_neumanny,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_upy_dirichlety,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_neumannx_loy_neumanny,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_neumannx_upy_dirichlety,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_loy_neumanny,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_upy_dirichlety},
-                   {fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_iny_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_neumannx_iny_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_iny_periodicy,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_loy_neumanny,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_upy_dirichlety,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_neumannx_loy_neumanny,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_neumannx_upy_dirichlety,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_loy_neumanny,
-                    fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_upy_dirichlety}},
-              }
+              .list =
+                {{NULL, NULL, NULL, NULL},
+                 {fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_loy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_upy_neumanny,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_periodicx_loy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_periodicx_upy_neumanny,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_periodicx_loy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_periodicx_upy_neumanny},
+                 {fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_loy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_upy_neumanny,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_periodicx_loy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_periodicx_upy_neumanny,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_periodicx_loy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_periodicx_upy_neumanny}},
             },
-        }
+            // neumanny-dirichlety
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL},
+                 {fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_loy_neumanny,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_upy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_periodicx_loy_neumanny,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_periodicx_upy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_periodicx_loy_neumanny,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_periodicx_upy_dirichlety},
+                 {fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_loy_neumanny,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_upy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_periodicx_loy_neumanny,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_periodicx_upy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_periodicx_loy_neumanny,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_periodicx_upy_dirichlety}},
+            },
+          },
+      },
+      // dirichletx-dirichletx
+      {
+        .list =
+          {
+            // periodicy
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL},
+                 {fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_loy_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_upy_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_loy_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_upy_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_loy_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_upy_periodicy},
+                 {fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_loy_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_upy_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_loy_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_upy_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_loy_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_upy_periodicy}},
+            },
+            // dirichlety-dirichlety
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL},
+                 {fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_loy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_upy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_loy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_upy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_loy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_upy_dirichlety},
+                 {fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_loy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_upy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_loy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_upy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_loy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_upy_dirichlety}},
+            },
+            // dirichlety-neumanny
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL},
+                 {fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_loy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_upy_neumanny,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_loy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_upy_neumanny,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_loy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_upy_neumanny},
+                 {fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_loy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_upy_neumanny,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_loy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_upy_neumanny,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_loy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_upy_neumanny}},
+            },
+            // neumanny-dirichlety
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL},
+                 {fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_loy_neumanny,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_upy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_loy_neumanny,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_upy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_loy_neumanny,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_upy_dirichlety},
+                 {fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_loy_neumanny,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_upy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_loy_neumanny,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_upy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_loy_neumanny,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_upy_dirichlety}},
+            },
+          },
+      },
+      // dirichletx-neumannx
+      {
+        .list =
+          {
+            // periodicy
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL},
+                 {fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_neumannx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_loy_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_upy_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_loy_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_upy_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_neumannx_loy_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_neumannx_upy_periodicy},
+                 {fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_neumannx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_loy_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_upy_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_loy_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_upy_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_neumannx_loy_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_neumannx_upy_periodicy}},
+            },
+            // dirichlety-dirichlety
+            {
+              .list = {{NULL, NULL, NULL, NULL}, {fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_iny_periodicy, fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_iny_periodicy, fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_neumannx_iny_periodicy, fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_loy_dirichlety, fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_upy_dirichlety, fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_loy_dirichlety, fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_upy_dirichlety, fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_neumannx_loy_dirichlety, fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_neumannx_upy_dirichlety}, {fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_iny_periodicy, fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_iny_periodicy, fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_neumannx_iny_periodicy, fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_loy_dirichlety, fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_upy_dirichlety, fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_loy_dirichlety, fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_upy_dirichlety, fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_neumannx_loy_dirichlety, fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_neumannx_upy_dirichlety}},
+            },
+            // dirichlety-neumanny
+            {
+              .list = {{NULL, NULL, NULL, NULL}, {fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_iny_periodicy, fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_iny_periodicy, fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_neumannx_iny_periodicy, fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_loy_dirichlety, fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_upy_neumanny, fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_loy_dirichlety, fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_upy_neumanny, fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_neumannx_loy_dirichlety, fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_neumannx_upy_neumanny}, {fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_iny_periodicy, fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_iny_periodicy, fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_neumannx_iny_periodicy, fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_loy_dirichlety, fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_upy_neumanny, fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_loy_dirichlety, fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_upy_neumanny, fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_neumannx_loy_dirichlety, fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_neumannx_upy_neumanny}},
+            },
+            // neumanny-dirichlety
+            {
+              .list = {{NULL, NULL, NULL, NULL}, {fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_iny_periodicy, fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_iny_periodicy, fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_neumannx_iny_periodicy, fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_loy_neumanny, fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_upy_dirichlety, fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_loy_neumanny, fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_dirichletx_upy_dirichlety, fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_neumannx_loy_neumanny, fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_neumannx_upy_dirichlety}, {fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_iny_periodicy, fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_iny_periodicy, fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_neumannx_iny_periodicy, fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_loy_neumanny, fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_upy_dirichlety, fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_loy_neumanny, fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_dirichletx_upy_dirichlety, fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_neumannx_loy_neumanny, fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_neumannx_upy_dirichlety}},
+            },
+          },
+      },
+      // neumannx-dirichletx
+      {
+        .list =
+          {
+            // periodicy
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL},
+                 {fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_neumannx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_loy_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_upy_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_neumannx_loy_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_neumannx_upy_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_loy_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_upy_periodicy},
+                 {fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_neumannx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_loy_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_upy_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_neumannx_loy_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_neumannx_upy_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_loy_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_upy_periodicy}},
+            },
+            // dirichlety-dirichlety
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL},
+                 {fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_neumannx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_loy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_upy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_neumannx_loy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_neumannx_upy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_loy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_upy_dirichlety},
+                 {fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_neumannx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_loy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_upy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_neumannx_loy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_neumannx_upy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_loy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_upy_dirichlety}},
+            },
+            // dirichlety-neumanny
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL},
+                 {fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_neumannx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_loy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_upy_neumanny,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_neumannx_loy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_neumannx_upy_neumanny,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_loy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_upy_neumanny},
+                 {fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_neumannx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_loy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_upy_neumanny,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_neumannx_loy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_neumannx_upy_neumanny,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_loy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_upy_neumanny}},
+            },
+            // neumanny-dirichlety
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL},
+                 {fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_neumannx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_loy_neumanny,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_inx_periodicx_upy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_neumannx_loy_neumanny,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_lox_neumannx_upy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_loy_neumanny,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p1_upx_dirichletx_upy_dirichlety},
+                 {fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_neumannx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_iny_periodicy,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_loy_neumanny,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_inx_periodicx_upy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_neumannx_loy_neumanny,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_lox_neumannx_upy_dirichlety,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_loy_neumanny,
+                  fem_poisson_lhs_stencil_vareps_2x_ser_p2_upx_dirichletx_upy_dirichlety}},
+            },
+          },
+      },
 };
 
 // Function pointer type for rhs source kernels.
@@ -1152,7 +1132,7 @@ GKYL_CU_D static const srcstencil_kern_bcx_list_1x ser_srcstencil_consteps_list_
        {fem_poisson_src_stencil_consteps_1x_ser_p2_inx_periodicx,
         fem_poisson_src_stencil_consteps_1x_ser_p2_lox_robinx,
         fem_poisson_src_stencil_consteps_1x_ser_p2_upx_dirichletvarx}},
-  }
+  },
 };
 
 GKYL_CU_D static const srcstencil_kern_bcx_list_2x
@@ -1161,151 +1141,222 @@ GKYL_CU_D static const srcstencil_kern_bcx_list_2x
       // periodicx
       {
         .list =
-          {// periodicy
-           {
-             .list =
-               {{NULL, NULL, NULL, NULL},
-                {fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_loy_periodicy,
-                 fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_upy_periodicy,
-                 fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_loy_periodicy,
-                 fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_upy_periodicy,
-                 fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_loy_periodicy,
-                 fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_upy_periodicy},
-                {fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_loy_periodicy,
-                 fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_upy_periodicy,
-                 fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_loy_periodicy,
-                 fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_upy_periodicy,
-                 fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_loy_periodicy,
-                 fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_upy_periodicy}},
-           },
-           // dirichlety-dirichlety
-           {
-             .list =
-               {{NULL, NULL, NULL, NULL},
-                {fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_loy_dirichlety,
-                 fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_upy_dirichlety,
-                 fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_loy_dirichlety,
-                 fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_upy_dirichlety,
-                 fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_loy_dirichlety,
-                 fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_upy_dirichlety},
-                {fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_loy_dirichlety,
-                 fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_upy_dirichlety,
-                 fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_loy_dirichlety,
-                 fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_upy_dirichlety,
-                 fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_loy_dirichlety,
-                 fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_upy_dirichlety}},
-           },
-           // dirichlety-neumanny
-           {
-             .list =
-               {{NULL, NULL, NULL, NULL},
-                {fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_loy_dirichlety,
-                 fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_upy_neumanny,
-                 fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_loy_dirichlety,
-                 fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_upy_neumanny,
-                 fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_loy_dirichlety,
-                 fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_upy_neumanny},
-                {fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_loy_dirichlety,
-                 fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_upy_neumanny,
-                 fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_loy_dirichlety,
-                 fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_upy_neumanny,
-                 fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_loy_dirichlety,
-                 fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_upy_neumanny}},
-           },
-           // neumanny-dirichlety
-           {
-             .list =
-               {{NULL, NULL, NULL, NULL},
-                {fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_loy_neumanny,
-                 fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_upy_dirichlety,
-                 fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_loy_neumanny,
-                 fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_upy_dirichlety,
-                 fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_loy_neumanny,
-                 fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_upy_dirichlety},
-                {fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_loy_neumanny,
-                 fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_upy_dirichlety,
-                 fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_loy_neumanny,
-                 fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_upy_dirichlety,
-                 fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_loy_neumanny,
-                 fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_upy_dirichlety}},
-           },
-           // dirichlety-robiny
-           {
-             .list =
-               {{NULL, NULL, NULL, NULL},
-                {fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_loy_dirichlety,
-                 fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_upy_robiny,
-                 fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_loy_dirichlety,
-                 fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_upy_robiny,
-                 fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_loy_dirichlety,
-                 fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_upy_robiny},
-                {fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_loy_dirichlety,
-                 fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_upy_robiny,
-                 fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_loy_dirichlety,
-                 fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_upy_robiny,
-                 fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_loy_dirichlety,
-                 fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_upy_robiny}},
-           },
-           // robiny-dirichlety
-           {
-             .list =
-               {{NULL, NULL, NULL, NULL}, {fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_iny_periodicy, fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_iny_periodicy, fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_iny_periodicy, fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_loy_robiny, fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_upy_dirichlety, fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_loy_robiny, fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_upy_dirichlety, fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_loy_robiny, fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_upy_dirichlety}, {fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_iny_periodicy, fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_iny_periodicy, fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_iny_periodicy, fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_loy_robiny, fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_upy_dirichlety, fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_loy_robiny, fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_upy_dirichlety, fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_loy_robiny, fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_upy_dirichlety}},
-           },
-           // dirichlety-dirichletvary
-           {
-             .list =
-               {{NULL, NULL, NULL, NULL}, {fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_iny_periodicy, fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_iny_periodicy, fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_iny_periodicy, fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_loy_dirichlety, fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_upy_dirichletvary, fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_loy_dirichlety, fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_upy_dirichletvary, fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_loy_dirichlety, fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_upy_dirichletvary}, {fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_iny_periodicy, fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_iny_periodicy, fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_iny_periodicy, fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_loy_dirichlety, fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_upy_dirichletvary, fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_loy_dirichlety, fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_upy_dirichletvary, fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_loy_dirichlety, fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_upy_dirichletvary}},
-           },
-           // dirichletvary-dirichlety
-           {
-             .list =
-               {{NULL, NULL, NULL, NULL}, {fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_iny_periodicy, fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_iny_periodicy, fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_iny_periodicy, fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_loy_dirichletvary, fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_upy_dirichlety, fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_loy_dirichletvary, fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_upy_dirichlety, fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_loy_dirichletvary, fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_upy_dirichlety}, {fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_iny_periodicy, fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_iny_periodicy, fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_iny_periodicy, fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_loy_dirichletvary, fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_upy_dirichlety, fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_loy_dirichletvary, fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_upy_dirichlety, fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_loy_dirichletvary, fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_upy_dirichlety}},
-           },
-           // dirichletvary-dirichletvary
-           {
-             .list =
-               {{NULL, NULL, NULL, NULL}, {fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_iny_periodicy, fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_iny_periodicy, fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_iny_periodicy, fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_loy_dirichletvary, fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_upy_dirichletvary, fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_loy_dirichletvary, fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_upy_dirichletvary, fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_loy_dirichletvary, fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_upy_dirichletvary}, {fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_iny_periodicy, fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_iny_periodicy, fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_iny_periodicy, fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_loy_dirichletvary, fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_upy_dirichletvary, fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_loy_dirichletvary, fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_upy_dirichletvary, fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_loy_dirichletvary, fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_upy_dirichletvary}},
-           },
-           // dirichletvary-neumanny
-           {
-             .list =
-               {{NULL, NULL, NULL, NULL}, {fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_iny_periodicy, fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_iny_periodicy, fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_iny_periodicy, fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_loy_dirichletvary, fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_upy_neumanny, fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_loy_dirichletvary, fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_upy_neumanny, fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_loy_dirichletvary, fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_upy_neumanny}, {fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_iny_periodicy, fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_iny_periodicy, fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_iny_periodicy, fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_loy_dirichletvary, fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_upy_neumanny, fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_loy_dirichletvary, fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_upy_neumanny, fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_loy_dirichletvary, fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_upy_neumanny}},
-           },
-           // neumanny-dirichletvary
-           {
-             .list =
-               {{NULL, NULL, NULL, NULL}, {fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_iny_periodicy, fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_iny_periodicy, fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_iny_periodicy, fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_loy_neumanny, fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_upy_dirichletvary, fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_loy_neumanny, fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_upy_dirichletvary, fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_loy_neumanny, fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_upy_dirichletvary}, {fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_iny_periodicy, fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_iny_periodicy, fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_iny_periodicy, fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_loy_neumanny, fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_upy_dirichletvary, fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_loy_neumanny, fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_upy_dirichletvary, fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_loy_neumanny, fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_upy_dirichletvary}},
-           }
+          {
+            // periodicy
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL},
+                 {fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_loy_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_upy_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_loy_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_upy_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_loy_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_upy_periodicy},
+                 {fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_loy_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_upy_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_loy_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_upy_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_loy_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_upy_periodicy}},
+            },
+            // dirichlety-dirichlety
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL},
+                 {fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_loy_dirichlety,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_upy_dirichlety,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_loy_dirichlety,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_upy_dirichlety,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_loy_dirichlety,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_upy_dirichlety},
+                 {fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_loy_dirichlety,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_upy_dirichlety,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_loy_dirichlety,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_upy_dirichlety,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_loy_dirichlety,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_upy_dirichlety}},
+            },
+            // dirichlety-neumanny
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL},
+                 {fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_loy_dirichlety,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_upy_neumanny,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_loy_dirichlety,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_upy_neumanny,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_loy_dirichlety,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_upy_neumanny},
+                 {fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_loy_dirichlety,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_upy_neumanny,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_loy_dirichlety,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_upy_neumanny,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_loy_dirichlety,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_upy_neumanny}},
+            },
+            // neumanny-dirichlety
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL},
+                 {fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_loy_neumanny,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_upy_dirichlety,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_loy_neumanny,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_upy_dirichlety,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_loy_neumanny,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_upy_dirichlety},
+                 {fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_loy_neumanny,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_upy_dirichlety,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_loy_neumanny,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_upy_dirichlety,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_loy_neumanny,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_upy_dirichlety}},
+            },
+            // dirichlety-robiny
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL},
+                 {fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_loy_dirichlety,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_upy_robiny,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_loy_dirichlety,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_upy_robiny,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_loy_dirichlety,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_upy_robiny},
+                 {fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_loy_dirichlety,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_upy_robiny,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_loy_dirichlety,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_upy_robiny,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_loy_dirichlety,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_upy_robiny}},
+            },
+            // robiny-dirichlety
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL},
+                 {fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_loy_robiny,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_upy_dirichlety,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_loy_robiny,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_upy_dirichlety,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_loy_robiny,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_upy_dirichlety},
+                 {fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_loy_robiny,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_upy_dirichlety,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_loy_robiny,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_upy_dirichlety,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_loy_robiny,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_upy_dirichlety}},
+            },
+            // dirichlety-dirichletvary
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL},
+                 {fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_loy_dirichlety,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_upy_dirichletvary,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_loy_dirichlety,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_upy_dirichletvary,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_loy_dirichlety,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_upy_dirichletvary},
+                 {fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_loy_dirichlety,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_upy_dirichletvary,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_loy_dirichlety,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_upy_dirichletvary,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_loy_dirichlety,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_upy_dirichletvary}},
+            },
+            // dirichletvary-dirichlety
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL},
+                 {fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_loy_dirichletvary,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_upy_dirichlety,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_loy_dirichletvary,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_upy_dirichlety,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_loy_dirichletvary,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_upy_dirichlety},
+                 {fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_loy_dirichletvary,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_upy_dirichlety,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_loy_dirichletvary,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_upy_dirichlety,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_loy_dirichletvary,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_upy_dirichlety}},
+            },
+            // dirichletvary-dirichletvary
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL},
+                 {fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_loy_dirichletvary,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_upy_dirichletvary,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_loy_dirichletvary,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_upy_dirichletvary,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_loy_dirichletvary,
+                  fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_upy_dirichletvary},
+                 {fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_loy_dirichletvary,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_upy_dirichletvary,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_loy_dirichletvary,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_upy_dirichletvary,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_loy_dirichletvary,
+                  fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_upy_dirichletvary}},
+            },
+            // dirichletvary-neumanny
+            {
+              .list = {{NULL, NULL, NULL, NULL}, {fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_iny_periodicy, fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_iny_periodicy, fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_iny_periodicy, fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_loy_dirichletvary, fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_upy_neumanny, fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_loy_dirichletvary, fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_upy_neumanny, fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_loy_dirichletvary, fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_upy_neumanny}, {fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_iny_periodicy, fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_iny_periodicy, fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_iny_periodicy, fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_loy_dirichletvary, fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_upy_neumanny, fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_loy_dirichletvary, fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_upy_neumanny, fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_loy_dirichletvary, fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_upy_neumanny}},
+            },
+            // neumanny-dirichletvary
+            {
+              .list = {{NULL, NULL, NULL, NULL}, {fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_iny_periodicy, fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_iny_periodicy, fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_iny_periodicy, fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_loy_neumanny, fem_poisson_src_stencil_consteps_2x_ser_p1_inx_periodicx_upy_dirichletvary, fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_loy_neumanny, fem_poisson_src_stencil_consteps_2x_ser_p1_lox_periodicx_upy_dirichletvary, fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_loy_neumanny, fem_poisson_src_stencil_consteps_2x_ser_p1_upx_periodicx_upy_dirichletvary}, {fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_iny_periodicy, fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_iny_periodicy, fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_iny_periodicy, fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_loy_neumanny, fem_poisson_src_stencil_consteps_2x_ser_p2_inx_periodicx_upy_dirichletvary, fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_loy_neumanny, fem_poisson_src_stencil_consteps_2x_ser_p2_lox_periodicx_upy_dirichletvary, fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_loy_neumanny, fem_poisson_src_stencil_consteps_2x_ser_p2_upx_periodicx_upy_dirichletvary}},
+            },
           },
       },
       // dirichletx-dirichletx
@@ -1564,7 +1615,7 @@ GKYL_CU_D static const srcstencil_kern_bcx_list_2x
                   fem_poisson_src_stencil_consteps_2x_ser_p2_lox_dirichletx_upy_dirichletvary,
                   fem_poisson_src_stencil_consteps_2x_ser_p2_upx_dirichletx_loy_neumanny,
                   fem_poisson_src_stencil_consteps_2x_ser_p2_upx_dirichletx_upy_dirichletvary}},
-            }
+            },
           },
       },
       // dirichletx-neumannx
@@ -1823,7 +1874,7 @@ GKYL_CU_D static const srcstencil_kern_bcx_list_2x
                   fem_poisson_src_stencil_consteps_2x_ser_p2_lox_dirichletx_upy_dirichletvary,
                   fem_poisson_src_stencil_consteps_2x_ser_p2_upx_neumannx_loy_neumanny,
                   fem_poisson_src_stencil_consteps_2x_ser_p2_upx_neumannx_upy_dirichletvary}},
-            }
+            },
           },
       },
       // neumannx-dirichletx
@@ -2082,7 +2133,7 @@ GKYL_CU_D static const srcstencil_kern_bcx_list_2x
                   fem_poisson_src_stencil_consteps_2x_ser_p2_lox_neumannx_upy_dirichletvary,
                   fem_poisson_src_stencil_consteps_2x_ser_p2_upx_dirichletx_loy_neumanny,
                   fem_poisson_src_stencil_consteps_2x_ser_p2_upx_dirichletx_upy_dirichletvary}},
-            }
+            },
           },
       },
       // dirichletx-robinx
@@ -2341,7 +2392,7 @@ GKYL_CU_D static const srcstencil_kern_bcx_list_2x
                   fem_poisson_src_stencil_consteps_2x_ser_p2_lox_dirichletx_upy_dirichletvary,
                   fem_poisson_src_stencil_consteps_2x_ser_p2_upx_robinx_loy_neumanny,
                   fem_poisson_src_stencil_consteps_2x_ser_p2_upx_robinx_upy_dirichletvary}},
-            }
+            },
           },
       },
       // robinx-dirichletx
@@ -2600,7 +2651,7 @@ GKYL_CU_D static const srcstencil_kern_bcx_list_2x
                   fem_poisson_src_stencil_consteps_2x_ser_p2_lox_robinx_upy_dirichletvary,
                   fem_poisson_src_stencil_consteps_2x_ser_p2_upx_dirichletx_loy_neumanny,
                   fem_poisson_src_stencil_consteps_2x_ser_p2_upx_dirichletx_upy_dirichletvary}},
-            }
+            },
           },
       },
       // dirichletx-dirichletvarx
@@ -2859,7 +2910,7 @@ GKYL_CU_D static const srcstencil_kern_bcx_list_2x
                   fem_poisson_src_stencil_consteps_2x_ser_p2_lox_dirichletx_upy_dirichletvary,
                   fem_poisson_src_stencil_consteps_2x_ser_p2_upx_dirichletvarx_loy_neumanny,
                   fem_poisson_src_stencil_consteps_2x_ser_p2_upx_dirichletvarx_upy_dirichletvary}},
-            }
+            },
           },
       },
       // dirichletvarx-dirichletx
@@ -3118,7 +3169,7 @@ GKYL_CU_D static const srcstencil_kern_bcx_list_2x
                   fem_poisson_src_stencil_consteps_2x_ser_p2_lox_dirichletvarx_upy_dirichletvary,
                   fem_poisson_src_stencil_consteps_2x_ser_p2_upx_dirichletx_loy_neumanny,
                   fem_poisson_src_stencil_consteps_2x_ser_p2_upx_dirichletx_upy_dirichletvary}},
-            }
+            },
           },
       },
       // dirichletvarx-dirichletvarx
@@ -3377,7 +3428,7 @@ GKYL_CU_D static const srcstencil_kern_bcx_list_2x
                   fem_poisson_src_stencil_consteps_2x_ser_p2_lox_dirichletvarx_upy_dirichletvary,
                   fem_poisson_src_stencil_consteps_2x_ser_p2_upx_dirichletvarx_loy_neumanny,
                   fem_poisson_src_stencil_consteps_2x_ser_p2_upx_dirichletvarx_upy_dirichletvary}},
-            }
+            },
           },
       },
       // dirichletvarx-neumannx
@@ -3636,7 +3687,7 @@ GKYL_CU_D static const srcstencil_kern_bcx_list_2x
                   fem_poisson_src_stencil_consteps_2x_ser_p2_lox_dirichletvarx_upy_dirichletvary,
                   fem_poisson_src_stencil_consteps_2x_ser_p2_upx_neumannx_loy_neumanny,
                   fem_poisson_src_stencil_consteps_2x_ser_p2_upx_neumannx_upy_dirichletvary}},
-            }
+            },
           },
       },
       // neumannx-dirichletvarx
@@ -3895,9 +3946,9 @@ GKYL_CU_D static const srcstencil_kern_bcx_list_2x
                   fem_poisson_src_stencil_consteps_2x_ser_p2_lox_neumannx_upy_dirichletvary,
                   fem_poisson_src_stencil_consteps_2x_ser_p2_upx_dirichletvarx_loy_neumanny,
                   fem_poisson_src_stencil_consteps_2x_ser_p2_upx_dirichletvarx_upy_dirichletvary}},
-            }
+            },
           },
-      }
+      },
 };
 
 GKYL_CU_D static const srcstencil_kern_bcx_list_1x ser_srcstencil_vareps_list_1x[] = {
@@ -4043,7 +4094,7 @@ GKYL_CU_D static const srcstencil_kern_bcx_list_1x ser_srcstencil_vareps_list_1x
        {fem_poisson_src_stencil_vareps_1x_ser_p2_inx_periodicx,
         fem_poisson_src_stencil_vareps_1x_ser_p2_lox_robinx,
         fem_poisson_src_stencil_vareps_1x_ser_p2_upx_dirichletvarx}},
-  }
+  },
 };
 
 GKYL_CU_D static const srcstencil_kern_bcx_list_2x
@@ -4052,131 +4103,149 @@ GKYL_CU_D static const srcstencil_kern_bcx_list_2x
       // periodicx
       {
         .list =
-          {// periodicy
-           {
-             .list =
-               {{NULL, NULL, NULL, NULL},
-                {fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_loy_periodicy,
-                 fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_upy_periodicy,
-                 fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_loy_periodicy,
-                 fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_upy_periodicy,
-                 fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_loy_periodicy,
-                 fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_upy_periodicy},
-                {fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_loy_periodicy,
-                 fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_upy_periodicy,
-                 fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_loy_periodicy,
-                 fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_upy_periodicy,
-                 fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_loy_periodicy,
-                 fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_upy_periodicy}},
-           },
-           // dirichlety-dirichlety
-           {
-             .list =
-               {{NULL, NULL, NULL, NULL},
-                {fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_loy_dirichlety,
-                 fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_upy_dirichlety,
-                 fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_loy_dirichlety,
-                 fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_upy_dirichlety,
-                 fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_loy_dirichlety,
-                 fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_upy_dirichlety},
-                {fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_loy_dirichlety,
-                 fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_upy_dirichlety,
-                 fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_loy_dirichlety,
-                 fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_upy_dirichlety,
-                 fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_loy_dirichlety,
-                 fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_upy_dirichlety}},
-           },
-           // dirichlety-neumanny
-           {
-             .list =
-               {{NULL, NULL, NULL, NULL},
-                {fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_loy_dirichlety,
-                 fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_upy_neumanny,
-                 fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_loy_dirichlety,
-                 fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_upy_neumanny,
-                 fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_loy_dirichlety,
-                 fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_upy_neumanny},
-                {fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_loy_dirichlety,
-                 fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_upy_neumanny,
-                 fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_loy_dirichlety,
-                 fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_upy_neumanny,
-                 fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_loy_dirichlety,
-                 fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_upy_neumanny}},
-           },
-           // neumanny-dirichlety
-           {
-             .list =
-               {{NULL, NULL, NULL, NULL},
-                {fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_loy_neumanny,
-                 fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_upy_dirichlety,
-                 fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_loy_neumanny,
-                 fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_upy_dirichlety,
-                 fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_loy_neumanny,
-                 fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_upy_dirichlety},
-                {fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_loy_neumanny,
-                 fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_upy_dirichlety,
-                 fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_loy_neumanny,
-                 fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_upy_dirichlety,
-                 fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_loy_neumanny,
-                 fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_upy_dirichlety}},
-           },
-           // dirichlety-robiny
-           {
-             .list =
-               {{NULL, NULL, NULL, NULL},
-                {fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_loy_dirichlety,
-                 fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_upy_robiny,
-                 fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_loy_dirichlety,
-                 fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_upy_robiny,
-                 fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_loy_dirichlety,
-                 fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_upy_robiny},
-                {fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_iny_periodicy,
-                 fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_loy_dirichlety,
-                 fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_upy_robiny,
-                 fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_loy_dirichlety,
-                 fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_upy_robiny,
-                 fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_loy_dirichlety,
-                 fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_upy_robiny}},
-           },
-           // robiny-dirichlety
-           {
-             .list =
-               {{NULL, NULL, NULL, NULL}, {fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_iny_periodicy, fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_iny_periodicy, fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_iny_periodicy, fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_loy_robiny, fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_upy_dirichlety, fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_loy_robiny, fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_upy_dirichlety, fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_loy_robiny, fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_upy_dirichlety}, {fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_iny_periodicy, fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_iny_periodicy, fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_iny_periodicy, fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_loy_robiny, fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_upy_dirichlety, fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_loy_robiny, fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_upy_dirichlety, fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_loy_robiny, fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_upy_dirichlety}},
-           },
-           // dirichlety-dirichletvary
-           {
-             .list =
-               {
-                 {NULL, NULL, NULL, NULL},
+          {
+            // periodicy
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL},
+                 {fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_loy_periodicy,
+                  fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_upy_periodicy,
+                  fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_loy_periodicy,
+                  fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_upy_periodicy,
+                  fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_loy_periodicy,
+                  fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_upy_periodicy},
+                 {fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_loy_periodicy,
+                  fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_upy_periodicy,
+                  fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_loy_periodicy,
+                  fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_upy_periodicy,
+                  fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_loy_periodicy,
+                  fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_upy_periodicy}},
+            },
+            // dirichlety-dirichlety
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL},
+                 {fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_loy_dirichlety,
+                  fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_upy_dirichlety,
+                  fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_loy_dirichlety,
+                  fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_upy_dirichlety,
+                  fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_loy_dirichlety,
+                  fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_upy_dirichlety},
+                 {fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_loy_dirichlety,
+                  fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_upy_dirichlety,
+                  fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_loy_dirichlety,
+                  fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_upy_dirichlety,
+                  fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_loy_dirichlety,
+                  fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_upy_dirichlety}},
+            },
+            // dirichlety-neumanny
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL},
+                 {fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_loy_dirichlety,
+                  fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_upy_neumanny,
+                  fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_loy_dirichlety,
+                  fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_upy_neumanny,
+                  fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_loy_dirichlety,
+                  fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_upy_neumanny},
+                 {fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_loy_dirichlety,
+                  fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_upy_neumanny,
+                  fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_loy_dirichlety,
+                  fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_upy_neumanny,
+                  fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_loy_dirichlety,
+                  fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_upy_neumanny}},
+            },
+            // neumanny-dirichlety
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL},
+                 {fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_loy_neumanny,
+                  fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_upy_dirichlety,
+                  fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_loy_neumanny,
+                  fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_upy_dirichlety,
+                  fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_loy_neumanny,
+                  fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_upy_dirichlety},
+                 {fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_loy_neumanny,
+                  fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_upy_dirichlety,
+                  fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_loy_neumanny,
+                  fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_upy_dirichlety,
+                  fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_loy_neumanny,
+                  fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_upy_dirichlety}},
+            },
+            // dirichlety-robiny
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL},
+                 {fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_loy_dirichlety,
+                  fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_upy_robiny,
+                  fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_loy_dirichlety,
+                  fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_upy_robiny,
+                  fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_loy_dirichlety,
+                  fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_upy_robiny},
+                 {fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_loy_dirichlety,
+                  fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_upy_robiny,
+                  fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_loy_dirichlety,
+                  fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_upy_robiny,
+                  fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_loy_dirichlety,
+                  fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_upy_robiny}},
+            },
+            // robiny-dirichlety
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL},
+                 {fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_loy_robiny,
+                  fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_upy_dirichlety,
+                  fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_loy_robiny,
+                  fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_upy_dirichlety,
+                  fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_loy_robiny,
+                  fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_upy_dirichlety},
+                 {fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_iny_periodicy,
+                  fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_loy_robiny,
+                  fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_upy_dirichlety,
+                  fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_loy_robiny,
+                  fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_upy_dirichlety,
+                  fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_loy_robiny,
+                  fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_upy_dirichlety}},
+            },
+            // dirichlety-dirichletvary
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL},
                  {fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_iny_periodicy,
                   fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_iny_periodicy,
                   fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_iny_periodicy,
@@ -4194,14 +4263,12 @@ GKYL_CU_D static const srcstencil_kern_bcx_list_2x
                   fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_loy_dirichlety,
                   fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_upy_dirichletvary,
                   fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_loy_dirichlety,
-                  fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_upy_dirichletvary}
-               },
-           },
-           // dirichletvary-dirichlety
-           {
-             .list =
-               {
-                 {NULL, NULL, NULL, NULL},
+                  fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_upy_dirichletvary}},
+            },
+            // dirichletvary-dirichlety
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL},
                  {fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_iny_periodicy,
                   fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_iny_periodicy,
                   fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_iny_periodicy,
@@ -4219,14 +4286,12 @@ GKYL_CU_D static const srcstencil_kern_bcx_list_2x
                   fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_loy_dirichletvary,
                   fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_upy_dirichlety,
                   fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_loy_dirichletvary,
-                  fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_upy_dirichlety}
-               },
-           },
-           // dirichletvary-dirichletvary
-           {
-             .list =
-               {
-                 {NULL, NULL, NULL, NULL},
+                  fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_upy_dirichlety}},
+            },
+            // dirichletvary-dirichletvary
+            {
+              .list =
+                {{NULL, NULL, NULL, NULL},
                  {fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_iny_periodicy,
                   fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_iny_periodicy,
                   fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_iny_periodicy,
@@ -4244,59 +4309,16 @@ GKYL_CU_D static const srcstencil_kern_bcx_list_2x
                   fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_loy_dirichletvary,
                   fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_upy_dirichletvary,
                   fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_loy_dirichletvary,
-                  fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_upy_dirichletvary}
-               },
-           },
-           // dirichletvary-neumanny
-           {
-             .list =
-               {
-                 {NULL, NULL, NULL, NULL},
-                 {fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_iny_periodicy,
-                  fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_iny_periodicy,
-                  fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_iny_periodicy,
-                  fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_loy_dirichletvary,
-                  fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_upy_neumanny,
-                  fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_loy_dirichletvary,
-                  fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_upy_neumanny,
-                  fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_loy_dirichletvary,
-                  fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_upy_neumanny},
-                 {fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_iny_periodicy,
-                  fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_iny_periodicy,
-                  fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_iny_periodicy,
-                  fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_loy_dirichletvary,
-                  fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_upy_neumanny,
-                  fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_loy_dirichletvary,
-                  fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_upy_neumanny,
-                  fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_loy_dirichletvary,
-                  fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_upy_neumanny}
-               },
-           },
-           // neumanny-dirichletvary
-           {
-             .list =
-               {
-                 {NULL, NULL, NULL, NULL},
-                 {fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_iny_periodicy,
-                  fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_iny_periodicy,
-                  fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_iny_periodicy,
-                  fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_loy_neumanny,
-                  fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_upy_dirichletvary,
-                  fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_loy_neumanny,
-                  fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_upy_dirichletvary,
-                  fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_loy_neumanny,
-                  fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_upy_dirichletvary},
-                 {fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_iny_periodicy,
-                  fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_iny_periodicy,
-                  fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_iny_periodicy,
-                  fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_loy_neumanny,
-                  fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_upy_dirichletvary,
-                  fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_loy_neumanny,
-                  fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_upy_dirichletvary,
-                  fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_loy_neumanny,
-                  fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_upy_dirichletvary}
-               },
-           }
+                  fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_upy_dirichletvary}},
+            },
+            // dirichletvary-neumanny
+            {
+              .list = {{NULL, NULL, NULL, NULL}, {fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_iny_periodicy, fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_iny_periodicy, fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_iny_periodicy, fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_loy_dirichletvary, fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_upy_neumanny, fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_loy_dirichletvary, fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_upy_neumanny, fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_loy_dirichletvary, fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_upy_neumanny}, {fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_iny_periodicy, fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_iny_periodicy, fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_iny_periodicy, fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_loy_dirichletvary, fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_upy_neumanny, fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_loy_dirichletvary, fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_upy_neumanny, fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_loy_dirichletvary, fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_upy_neumanny}},
+            },
+            // neumanny-dirichletvary
+            {
+              .list = {{NULL, NULL, NULL, NULL}, {fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_iny_periodicy, fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_iny_periodicy, fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_iny_periodicy, fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_loy_neumanny, fem_poisson_src_stencil_vareps_2x_ser_p1_inx_periodicx_upy_dirichletvary, fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_loy_neumanny, fem_poisson_src_stencil_vareps_2x_ser_p1_lox_periodicx_upy_dirichletvary, fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_loy_neumanny, fem_poisson_src_stencil_vareps_2x_ser_p1_upx_periodicx_upy_dirichletvary}, {fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_iny_periodicy, fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_iny_periodicy, fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_iny_periodicy, fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_loy_neumanny, fem_poisson_src_stencil_vareps_2x_ser_p2_inx_periodicx_upy_dirichletvary, fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_loy_neumanny, fem_poisson_src_stencil_vareps_2x_ser_p2_lox_periodicx_upy_dirichletvary, fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_loy_neumanny, fem_poisson_src_stencil_vareps_2x_ser_p2_upx_periodicx_upy_dirichletvary}},
+            },
           },
       },
       // dirichletx-dirichletx
@@ -4555,7 +4577,7 @@ GKYL_CU_D static const srcstencil_kern_bcx_list_2x
                   fem_poisson_src_stencil_vareps_2x_ser_p2_lox_dirichletx_upy_dirichletvary,
                   fem_poisson_src_stencil_vareps_2x_ser_p2_upx_dirichletx_loy_neumanny,
                   fem_poisson_src_stencil_vareps_2x_ser_p2_upx_dirichletx_upy_dirichletvary}},
-            }
+            },
           },
       },
       // dirichletx-neumannx
@@ -4814,7 +4836,7 @@ GKYL_CU_D static const srcstencil_kern_bcx_list_2x
                   fem_poisson_src_stencil_vareps_2x_ser_p2_lox_dirichletx_upy_dirichletvary,
                   fem_poisson_src_stencil_vareps_2x_ser_p2_upx_neumannx_loy_neumanny,
                   fem_poisson_src_stencil_vareps_2x_ser_p2_upx_neumannx_upy_dirichletvary}},
-            }
+            },
           },
       },
       // neumannx-dirichletx
@@ -5073,7 +5095,7 @@ GKYL_CU_D static const srcstencil_kern_bcx_list_2x
                   fem_poisson_src_stencil_vareps_2x_ser_p2_lox_neumannx_upy_dirichletvary,
                   fem_poisson_src_stencil_vareps_2x_ser_p2_upx_dirichletx_loy_neumanny,
                   fem_poisson_src_stencil_vareps_2x_ser_p2_upx_dirichletx_upy_dirichletvary}},
-            }
+            },
           },
       },
       // dirichletx-robinx
@@ -5332,7 +5354,7 @@ GKYL_CU_D static const srcstencil_kern_bcx_list_2x
                   fem_poisson_src_stencil_vareps_2x_ser_p2_lox_dirichletx_upy_dirichletvary,
                   fem_poisson_src_stencil_vareps_2x_ser_p2_upx_robinx_loy_neumanny,
                   fem_poisson_src_stencil_vareps_2x_ser_p2_upx_robinx_upy_dirichletvary}},
-            }
+            },
           },
       },
       // robinx-dirichletx
@@ -5591,7 +5613,7 @@ GKYL_CU_D static const srcstencil_kern_bcx_list_2x
                   fem_poisson_src_stencil_vareps_2x_ser_p2_lox_robinx_upy_dirichletvary,
                   fem_poisson_src_stencil_vareps_2x_ser_p2_upx_dirichletx_loy_neumanny,
                   fem_poisson_src_stencil_vareps_2x_ser_p2_upx_dirichletx_upy_dirichletvary}},
-            }
+            },
           },
       },
       // dirichletx-dirichletvarx
@@ -5850,7 +5872,7 @@ GKYL_CU_D static const srcstencil_kern_bcx_list_2x
                   fem_poisson_src_stencil_vareps_2x_ser_p2_lox_dirichletx_upy_dirichletvary,
                   fem_poisson_src_stencil_vareps_2x_ser_p2_upx_dirichletvarx_loy_neumanny,
                   fem_poisson_src_stencil_vareps_2x_ser_p2_upx_dirichletvarx_upy_dirichletvary}},
-            }
+            },
           },
       },
       // dirichletvarx-dirichletx
@@ -6109,7 +6131,7 @@ GKYL_CU_D static const srcstencil_kern_bcx_list_2x
                   fem_poisson_src_stencil_vareps_2x_ser_p2_lox_dirichletvarx_upy_dirichletvary,
                   fem_poisson_src_stencil_vareps_2x_ser_p2_upx_dirichletx_loy_neumanny,
                   fem_poisson_src_stencil_vareps_2x_ser_p2_upx_dirichletx_upy_dirichletvary}},
-            }
+            },
           },
       },
       // dirichletvarx-dirichletvarx
@@ -6368,7 +6390,7 @@ GKYL_CU_D static const srcstencil_kern_bcx_list_2x
                   fem_poisson_src_stencil_vareps_2x_ser_p2_lox_dirichletvarx_upy_dirichletvary,
                   fem_poisson_src_stencil_vareps_2x_ser_p2_upx_dirichletvarx_loy_neumanny,
                   fem_poisson_src_stencil_vareps_2x_ser_p2_upx_dirichletvarx_upy_dirichletvary}},
-            }
+            },
           },
       },
       // dirichletvarx-neumannx
@@ -6627,7 +6649,7 @@ GKYL_CU_D static const srcstencil_kern_bcx_list_2x
                   fem_poisson_src_stencil_vareps_2x_ser_p2_lox_dirichletvarx_upy_dirichletvary,
                   fem_poisson_src_stencil_vareps_2x_ser_p2_upx_neumannx_loy_neumanny,
                   fem_poisson_src_stencil_vareps_2x_ser_p2_upx_neumannx_upy_dirichletvary}},
-            }
+            },
           },
       },
       // neumannx-dirichletvarx
@@ -6886,9 +6908,9 @@ GKYL_CU_D static const srcstencil_kern_bcx_list_2x
                   fem_poisson_src_stencil_vareps_2x_ser_p2_lox_neumannx_upy_dirichletvary,
                   fem_poisson_src_stencil_vareps_2x_ser_p2_upx_dirichletvarx_loy_neumanny,
                   fem_poisson_src_stencil_vareps_2x_ser_p2_upx_dirichletvarx_upy_dirichletvary}},
-            }
+            },
           },
-      }
+      },
 };
 
 // Function pointer type for sol kernels.
@@ -6948,72 +6970,74 @@ static const bias_lhs_kern_bcx_list_1x ser_bias_lhs_list_1x[] = {
         fem_poisson_bias_plane_lhs_1x_ser_p1_upx_nonperiodicx},
        {fem_poisson_bias_plane_lhs_1x_ser_p2_inx,
         fem_poisson_bias_plane_lhs_1x_ser_p2_upx_nonperiodicx}},
-  }
+  },
 };
 
 static const bias_lhs_kern_bcx_list_2x ser_bias_lhs_list_2x[] = {
   // periodicx
   {
     .list =
-      {// periodicy
-       {
-         .list =
-           {{NULL, NULL, NULL, NULL},
-            {fem_poisson_bias_plane_lhs_2x_ser_p1_inx_iny,
-             fem_poisson_bias_plane_lhs_2x_ser_p1_upx_periodicx_iny,
-             fem_poisson_bias_plane_lhs_2x_ser_p1_inx_upy_periodicy,
-             fem_poisson_bias_plane_lhs_2x_ser_p1_upx_periodicx_upy_periodicy},
-            {fem_poisson_bias_plane_lhs_2x_ser_p2_inx_iny,
-             fem_poisson_bias_plane_lhs_2x_ser_p2_upx_periodicx_iny,
-             fem_poisson_bias_plane_lhs_2x_ser_p2_inx_upy_periodicy,
-             fem_poisson_bias_plane_lhs_2x_ser_p2_upx_periodicx_upy_periodicy}},
-       },
-       // nonperiodicy
-       {
-         .list =
-           {{NULL, NULL, NULL, NULL},
-            {fem_poisson_bias_plane_lhs_2x_ser_p1_inx_iny,
-             fem_poisson_bias_plane_lhs_2x_ser_p1_upx_periodicx_iny,
-             fem_poisson_bias_plane_lhs_2x_ser_p1_inx_upy_nonperiodicy,
-             fem_poisson_bias_plane_lhs_2x_ser_p1_upx_periodicx_upy_nonperiodicy},
-            {fem_poisson_bias_plane_lhs_2x_ser_p2_inx_iny,
-             fem_poisson_bias_plane_lhs_2x_ser_p2_upx_periodicx_iny,
-             fem_poisson_bias_plane_lhs_2x_ser_p2_inx_upy_nonperiodicy,
-             fem_poisson_bias_plane_lhs_2x_ser_p2_upx_periodicx_upy_nonperiodicy}},
-       }
+      {
+        // periodicy
+        {
+          .list =
+            {{NULL, NULL, NULL, NULL},
+             {fem_poisson_bias_plane_lhs_2x_ser_p1_inx_iny,
+              fem_poisson_bias_plane_lhs_2x_ser_p1_upx_periodicx_iny,
+              fem_poisson_bias_plane_lhs_2x_ser_p1_inx_upy_periodicy,
+              fem_poisson_bias_plane_lhs_2x_ser_p1_upx_periodicx_upy_periodicy},
+             {fem_poisson_bias_plane_lhs_2x_ser_p2_inx_iny,
+              fem_poisson_bias_plane_lhs_2x_ser_p2_upx_periodicx_iny,
+              fem_poisson_bias_plane_lhs_2x_ser_p2_inx_upy_periodicy,
+              fem_poisson_bias_plane_lhs_2x_ser_p2_upx_periodicx_upy_periodicy}},
+        },
+        // nonperiodicy
+        {
+          .list =
+            {{NULL, NULL, NULL, NULL},
+             {fem_poisson_bias_plane_lhs_2x_ser_p1_inx_iny,
+              fem_poisson_bias_plane_lhs_2x_ser_p1_upx_periodicx_iny,
+              fem_poisson_bias_plane_lhs_2x_ser_p1_inx_upy_nonperiodicy,
+              fem_poisson_bias_plane_lhs_2x_ser_p1_upx_periodicx_upy_nonperiodicy},
+             {fem_poisson_bias_plane_lhs_2x_ser_p2_inx_iny,
+              fem_poisson_bias_plane_lhs_2x_ser_p2_upx_periodicx_iny,
+              fem_poisson_bias_plane_lhs_2x_ser_p2_inx_upy_nonperiodicy,
+              fem_poisson_bias_plane_lhs_2x_ser_p2_upx_periodicx_upy_nonperiodicy}},
+        },
       },
   },
   // nonperiodicx
   {
     .list =
-      {// periodicy
-       {
-         .list =
-           {{NULL, NULL, NULL, NULL},
-            {fem_poisson_bias_plane_lhs_2x_ser_p1_inx_iny,
-             fem_poisson_bias_plane_lhs_2x_ser_p1_upx_nonperiodicx_iny,
-             fem_poisson_bias_plane_lhs_2x_ser_p1_inx_upy_periodicy,
-             fem_poisson_bias_plane_lhs_2x_ser_p1_upx_nonperiodicx_upy_periodicy},
-            {fem_poisson_bias_plane_lhs_2x_ser_p2_inx_iny,
-             fem_poisson_bias_plane_lhs_2x_ser_p2_upx_nonperiodicx_iny,
-             fem_poisson_bias_plane_lhs_2x_ser_p2_inx_upy_periodicy,
-             fem_poisson_bias_plane_lhs_2x_ser_p2_upx_nonperiodicx_upy_periodicy}},
-       },
-       // nonperiodicy
-       {
-         .list =
-           {{NULL, NULL, NULL, NULL},
-            {fem_poisson_bias_plane_lhs_2x_ser_p1_inx_iny,
-             fem_poisson_bias_plane_lhs_2x_ser_p1_upx_nonperiodicx_iny,
-             fem_poisson_bias_plane_lhs_2x_ser_p1_inx_upy_nonperiodicy,
-             fem_poisson_bias_plane_lhs_2x_ser_p1_upx_nonperiodicx_upy_nonperiodicy},
-            {fem_poisson_bias_plane_lhs_2x_ser_p2_inx_iny,
-             fem_poisson_bias_plane_lhs_2x_ser_p2_upx_nonperiodicx_iny,
-             fem_poisson_bias_plane_lhs_2x_ser_p2_inx_upy_nonperiodicy,
-             fem_poisson_bias_plane_lhs_2x_ser_p2_upx_nonperiodicx_upy_nonperiodicy}},
-       }
+      {
+        // periodicy
+        {
+          .list =
+            {{NULL, NULL, NULL, NULL},
+             {fem_poisson_bias_plane_lhs_2x_ser_p1_inx_iny,
+              fem_poisson_bias_plane_lhs_2x_ser_p1_upx_nonperiodicx_iny,
+              fem_poisson_bias_plane_lhs_2x_ser_p1_inx_upy_periodicy,
+              fem_poisson_bias_plane_lhs_2x_ser_p1_upx_nonperiodicx_upy_periodicy},
+             {fem_poisson_bias_plane_lhs_2x_ser_p2_inx_iny,
+              fem_poisson_bias_plane_lhs_2x_ser_p2_upx_nonperiodicx_iny,
+              fem_poisson_bias_plane_lhs_2x_ser_p2_inx_upy_periodicy,
+              fem_poisson_bias_plane_lhs_2x_ser_p2_upx_nonperiodicx_upy_periodicy}},
+        },
+        // nonperiodicy
+        {
+          .list =
+            {{NULL, NULL, NULL, NULL},
+             {fem_poisson_bias_plane_lhs_2x_ser_p1_inx_iny,
+              fem_poisson_bias_plane_lhs_2x_ser_p1_upx_nonperiodicx_iny,
+              fem_poisson_bias_plane_lhs_2x_ser_p1_inx_upy_nonperiodicy,
+              fem_poisson_bias_plane_lhs_2x_ser_p1_upx_nonperiodicx_upy_nonperiodicy},
+             {fem_poisson_bias_plane_lhs_2x_ser_p2_inx_iny,
+              fem_poisson_bias_plane_lhs_2x_ser_p2_upx_nonperiodicx_iny,
+              fem_poisson_bias_plane_lhs_2x_ser_p2_inx_upy_nonperiodicy,
+              fem_poisson_bias_plane_lhs_2x_ser_p2_upx_nonperiodicx_upy_nonperiodicy}},
+        },
       },
-  }
+  },
 };
 
 // Function pointer type for kernels that enforce biasing in RHS source.
@@ -7056,72 +7080,74 @@ GKYL_CU_D static const bias_src_kern_bcx_list_1x ser_bias_src_list_1x[] = {
         fem_poisson_bias_plane_src_1x_ser_p1_upx_nonperiodicx},
        {fem_poisson_bias_plane_src_1x_ser_p2_inx,
         fem_poisson_bias_plane_src_1x_ser_p2_upx_nonperiodicx}},
-  }
+  },
 };
 
 GKYL_CU_D static const bias_src_kern_bcx_list_2x ser_bias_src_list_2x[] = {
   // periodicx
   {
     .list =
-      {// periodicy
-       {
-         .list =
-           {{NULL, NULL, NULL, NULL},
-            {fem_poisson_bias_plane_src_2x_ser_p1_inx_iny,
-             fem_poisson_bias_plane_src_2x_ser_p1_upx_periodicx_iny,
-             fem_poisson_bias_plane_src_2x_ser_p1_inx_upy_periodicy,
-             fem_poisson_bias_plane_src_2x_ser_p1_upx_periodicx_upy_periodicy},
-            {fem_poisson_bias_plane_src_2x_ser_p2_inx_iny,
-             fem_poisson_bias_plane_src_2x_ser_p2_upx_periodicx_iny,
-             fem_poisson_bias_plane_src_2x_ser_p2_inx_upy_periodicy,
-             fem_poisson_bias_plane_src_2x_ser_p2_upx_periodicx_upy_periodicy}},
-       },
-       // nonperiodicy
-       {
-         .list =
-           {{NULL, NULL, NULL, NULL},
-            {fem_poisson_bias_plane_src_2x_ser_p1_inx_iny,
-             fem_poisson_bias_plane_src_2x_ser_p1_upx_periodicx_iny,
-             fem_poisson_bias_plane_src_2x_ser_p1_inx_upy_nonperiodicy,
-             fem_poisson_bias_plane_src_2x_ser_p1_upx_periodicx_upy_nonperiodicy},
-            {fem_poisson_bias_plane_src_2x_ser_p2_inx_iny,
-             fem_poisson_bias_plane_src_2x_ser_p2_upx_periodicx_iny,
-             fem_poisson_bias_plane_src_2x_ser_p2_inx_upy_nonperiodicy,
-             fem_poisson_bias_plane_src_2x_ser_p2_upx_periodicx_upy_nonperiodicy}},
-       }
+      {
+        // periodicy
+        {
+          .list =
+            {{NULL, NULL, NULL, NULL},
+             {fem_poisson_bias_plane_src_2x_ser_p1_inx_iny,
+              fem_poisson_bias_plane_src_2x_ser_p1_upx_periodicx_iny,
+              fem_poisson_bias_plane_src_2x_ser_p1_inx_upy_periodicy,
+              fem_poisson_bias_plane_src_2x_ser_p1_upx_periodicx_upy_periodicy},
+             {fem_poisson_bias_plane_src_2x_ser_p2_inx_iny,
+              fem_poisson_bias_plane_src_2x_ser_p2_upx_periodicx_iny,
+              fem_poisson_bias_plane_src_2x_ser_p2_inx_upy_periodicy,
+              fem_poisson_bias_plane_src_2x_ser_p2_upx_periodicx_upy_periodicy}},
+        },
+        // nonperiodicy
+        {
+          .list =
+            {{NULL, NULL, NULL, NULL},
+             {fem_poisson_bias_plane_src_2x_ser_p1_inx_iny,
+              fem_poisson_bias_plane_src_2x_ser_p1_upx_periodicx_iny,
+              fem_poisson_bias_plane_src_2x_ser_p1_inx_upy_nonperiodicy,
+              fem_poisson_bias_plane_src_2x_ser_p1_upx_periodicx_upy_nonperiodicy},
+             {fem_poisson_bias_plane_src_2x_ser_p2_inx_iny,
+              fem_poisson_bias_plane_src_2x_ser_p2_upx_periodicx_iny,
+              fem_poisson_bias_plane_src_2x_ser_p2_inx_upy_nonperiodicy,
+              fem_poisson_bias_plane_src_2x_ser_p2_upx_periodicx_upy_nonperiodicy}},
+        },
       },
   },
   // nonperiodicx
   {
     .list =
-      {// periodicy
-       {
-         .list =
-           {{NULL, NULL, NULL, NULL},
-            {fem_poisson_bias_plane_src_2x_ser_p1_inx_iny,
-             fem_poisson_bias_plane_src_2x_ser_p1_upx_nonperiodicx_iny,
-             fem_poisson_bias_plane_src_2x_ser_p1_inx_upy_periodicy,
-             fem_poisson_bias_plane_src_2x_ser_p1_upx_nonperiodicx_upy_periodicy},
-            {fem_poisson_bias_plane_src_2x_ser_p2_inx_iny,
-             fem_poisson_bias_plane_src_2x_ser_p2_upx_nonperiodicx_iny,
-             fem_poisson_bias_plane_src_2x_ser_p2_inx_upy_periodicy,
-             fem_poisson_bias_plane_src_2x_ser_p2_upx_nonperiodicx_upy_periodicy}},
-       },
-       // nonperiodicy
-       {
-         .list =
-           {{NULL, NULL, NULL, NULL},
-            {fem_poisson_bias_plane_src_2x_ser_p1_inx_iny,
-             fem_poisson_bias_plane_src_2x_ser_p1_upx_nonperiodicx_iny,
-             fem_poisson_bias_plane_src_2x_ser_p1_inx_upy_nonperiodicy,
-             fem_poisson_bias_plane_src_2x_ser_p1_upx_nonperiodicx_upy_nonperiodicy},
-            {fem_poisson_bias_plane_src_2x_ser_p2_inx_iny,
-             fem_poisson_bias_plane_src_2x_ser_p2_upx_nonperiodicx_iny,
-             fem_poisson_bias_plane_src_2x_ser_p2_inx_upy_nonperiodicy,
-             fem_poisson_bias_plane_src_2x_ser_p2_upx_nonperiodicx_upy_nonperiodicy}},
-       }
+      {
+        // periodicy
+        {
+          .list =
+            {{NULL, NULL, NULL, NULL},
+             {fem_poisson_bias_plane_src_2x_ser_p1_inx_iny,
+              fem_poisson_bias_plane_src_2x_ser_p1_upx_nonperiodicx_iny,
+              fem_poisson_bias_plane_src_2x_ser_p1_inx_upy_periodicy,
+              fem_poisson_bias_plane_src_2x_ser_p1_upx_nonperiodicx_upy_periodicy},
+             {fem_poisson_bias_plane_src_2x_ser_p2_inx_iny,
+              fem_poisson_bias_plane_src_2x_ser_p2_upx_nonperiodicx_iny,
+              fem_poisson_bias_plane_src_2x_ser_p2_inx_upy_periodicy,
+              fem_poisson_bias_plane_src_2x_ser_p2_upx_nonperiodicx_upy_periodicy}},
+        },
+        // nonperiodicy
+        {
+          .list =
+            {{NULL, NULL, NULL, NULL},
+             {fem_poisson_bias_plane_src_2x_ser_p1_inx_iny,
+              fem_poisson_bias_plane_src_2x_ser_p1_upx_nonperiodicx_iny,
+              fem_poisson_bias_plane_src_2x_ser_p1_inx_upy_nonperiodicy,
+              fem_poisson_bias_plane_src_2x_ser_p1_upx_nonperiodicx_upy_nonperiodicy},
+             {fem_poisson_bias_plane_src_2x_ser_p2_inx_iny,
+              fem_poisson_bias_plane_src_2x_ser_p2_upx_nonperiodicx_iny,
+              fem_poisson_bias_plane_src_2x_ser_p2_inx_upy_nonperiodicy,
+              fem_poisson_bias_plane_src_2x_ser_p2_upx_nonperiodicx_upy_nonperiodicy}},
+        },
       },
-  }
+  },
 };
 
 // "Choose Kernel" based on cdim, vdim and polyorder
@@ -7173,6 +7199,7 @@ struct gkyl_fem_poisson {
   bool ishelmholtz; // if solving Helmholtz equation (kSq is not zero/NULL).
 
   bool isdomperiodic; // =true if all directions are periodic.
+  bool pin_gauge; // fix phi's free constant (fully periodic, no Helmholtz term or bias plane).
   struct gkyl_array *rhs_cellavg;
   double *rhs_avg, mavgfac;
   double *rhs_avg_cu;

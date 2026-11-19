@@ -509,25 +509,29 @@ main(int argc, char **argv)
         .projection[2] = proj_srcRECYup_e,
         .adapt[2] = adapt_srcRECYup_e,
         .diagnostics =
-          {.num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}
+          {
+            .num_integrated_diag_moments = 1,
+            .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
           },
       },
 
     .bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-       {
-         .dir = 2,
-         .edge = GKYL_LOWER_EDGE,
-         .type = GKYL_BC_GK_SPECIES_SHEATH_SURROGATE,
-         .aux_str = "gyrokinetic/data/nn_model/nn_model_sheath_bc_conv_MPE.kann",
-       },
-       {
-         .dir = 2,
-         .edge = GKYL_UPPER_EDGE,
-         .type = GKYL_BC_GK_SPECIES_SHEATH_SURROGATE,
-         .aux_str = "gyrokinetic/data/nn_model/nn_model_sheath_bc_conv_MPE.kann",
-       }},
+      {
+        {.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+        {
+          .dir = 2,
+          .edge = GKYL_LOWER_EDGE,
+          .type = GKYL_BC_GK_SPECIES_SHEATH_SURROGATE,
+          .aux_str = "gyrokinetic/data/nn_model/nn_model_sheath_bc_conv_MPE.kann",
+        },
+        {
+          .dir = 2,
+          .edge = GKYL_UPPER_EDGE,
+          .type = GKYL_BC_GK_SPECIES_SHEATH_SURROGATE,
+          .aux_str = "gyrokinetic/data/nn_model/nn_model_sheath_bc_conv_MPE.kann",
+        },
+      },
 
     .num_diag_moments = 9,
     .diag_moments =
@@ -547,6 +551,8 @@ main(int argc, char **argv)
       },
 
     .time_rate_diagnostics = true,
+    .num_balance_diags = 2,
+    .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY},
   };
 
   // Projection parameters for the sources.
@@ -656,15 +662,19 @@ main(int argc, char **argv)
         .projection[2] = proj_srcRECYup_i,
         .adapt[2] = adapt_srcRECYup_i,
         .diagnostics =
-          {.num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}
+          {
+            .num_integrated_diag_moments = 1,
+            .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
           },
       },
 
     .bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-       {.dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
-       {.dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}},
+      {
+        {.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+        {.dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+        {.dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+      },
 
     .num_diag_moments = 9,
     .diag_moments =
@@ -684,13 +694,17 @@ main(int argc, char **argv)
       },
 
     .time_rate_diagnostics = true,
+    .num_balance_diags = 2,
+    .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY},
   };
 
   // field
   struct gkyl_gyrokinetic_field field = {
     .poisson_bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}}},
+      {
+        {.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
+        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
+      },
     .time_rate_diagnostics = true,
   };
 
@@ -718,6 +732,9 @@ main(int argc, char **argv)
 
     .num_periodic_dir = 1,
     .periodic_dirs = {1},
+
+    .diagnostics =
+      {.num_balance_diags = 2, .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY}},
 
     .num_species = 2,
     .species = {elc, ion},

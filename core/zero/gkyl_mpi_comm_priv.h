@@ -46,4 +46,8 @@ struct mpi_comm {
   // buffers for for allgather
   struct comm_buff_stat allgather_buff_local;
   struct comm_buff_stat allgather_buff_global;
+  // Bytes each rank contributes to an allgather and where they land in the
+  // gathered buffer (the decomposition need not split the cells evenly).
+  int *allgather_counts;
+  int *allgather_displs;
 };

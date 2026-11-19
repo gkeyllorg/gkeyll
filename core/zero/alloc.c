@@ -331,3 +331,28 @@ gkyl_cu_memset(void *data, int val, size_t count)
 }
 
 #endif // CUDA specific code
+
+// Host or device allocators.
+
+void *
+gkyl_calloc_hodev_(
+  const char *file, int line, const char *func, bool use_gpu, size_t num, size_t size
+)
+{
+  if (use_gpu) {
+    void *ptr = gkyl_cu_malloc_(file, line, func, num * size);
+    gkyl_cu_memset(ptr, 0, num * size);
+    return ptr;
+  }
+  return gkyl_calloc_(file, line, func, num, size);
+}
+
+void
+gkyl_free_hodev_(const char *file, int line, const char *func, bool use_gpu, void *ptr)
+{
+  if (use_gpu) {
+    gkyl_cu_free_(file, line, func, ptr);
+  } else {
+    gkyl_free_(file, line, func, ptr);
+  }
+}

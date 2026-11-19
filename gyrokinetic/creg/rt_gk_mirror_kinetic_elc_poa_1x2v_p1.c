@@ -778,7 +778,7 @@ calc_integrated_diagnostics(
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_calc) {
     gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
-    gkyl_gyrokinetic_app_calc_integrated_mom(app, t_curr);
+    gkyl_gyrokinetic_app_calc_integrated_mom(app, t_curr, dt);
 
     if (!(dt < 0.0)) {
       gkyl_gyrokinetic_app_save_dt(app, t_curr, dt);
@@ -1051,8 +1051,10 @@ main(int argc, char **argv)
     .positivity = {.type = GKYL_GK_POSITIVITY_SHIFT, .write_diagnostics = true},
 
     .bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}},
+      {
+        {.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+      },
 
     .write_omega_cfl = true,
     .num_diag_moments = 8,
@@ -1129,8 +1131,10 @@ main(int argc, char **argv)
     .positivity = {.type = GKYL_GK_POSITIVITY_SHIFT, .write_diagnostics = true},
 
     .bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}},
+      {
+        {.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+      },
 
     .write_omega_cfl = true,
     .num_diag_moments = 8,
@@ -1170,6 +1174,9 @@ main(int argc, char **argv)
 
     .num_periodic_dir = 0,
     .periodic_dirs = {},
+    .diagnostics =
+      {.num_balance_diags = 2, .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY}},
+
     .num_species = 2,
     .species = {elc, ion},
     .field = field,

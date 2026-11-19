@@ -29,50 +29,52 @@ static const deflate_geo_surf_kernel_dim_list ser_deflate_surf_geo_kernel_list[]
       {{NULL, deflate_geo_surfx_2x_ser_p1, NULL},
        {NULL, deflate_geo_surfy_2x_ser_p1, NULL},
        {NULL, NULL, NULL}},
-  }
+  },
 };
 
 GKYL_CU_DH static const deflate_geo_kernel_remx_list ser_deflate_geo_kernel_rem_list[] = {
   // don't remove x
   {
     .list =
-      {// don't remove y
-       {.list = {{NULL, NULL, NULL}, {NULL, NULL, NULL}, {NULL, NULL, NULL}, {NULL, NULL, NULL}}},
+      {
+        // don't remove y
+        {.list = {{NULL, NULL, NULL}, {NULL, NULL, NULL}, {NULL, NULL, NULL}, {NULL, NULL, NULL}}},
 
-       // remove y
-       {
-         .list =
-           {{NULL, NULL, NULL},
-            {NULL, NULL, NULL},
-            {NULL, deflate_geo_2x_ser_p1_remy, deflate_geo_2x_ser_p2_remy},
-            {NULL, NULL, NULL}},
-       }
+        // remove y
+        {
+          .list =
+            {{NULL, NULL, NULL},
+             {NULL, NULL, NULL},
+             {NULL, deflate_geo_2x_ser_p1_remy, deflate_geo_2x_ser_p2_remy},
+             {NULL, NULL, NULL}},
+        },
 
       },
   },
   // remove x
   {
     .list =
-      {// don't remove y
-       {
-         .list =
-           {{NULL, NULL, NULL},
-            {NULL, NULL, NULL},
-            {NULL, deflate_geo_2x_ser_p1_remx, deflate_geo_2x_ser_p2_remx},
-            {NULL, NULL, NULL}},
-       },
+      {
+        // don't remove y
+        {
+          .list =
+            {{NULL, NULL, NULL},
+             {NULL, NULL, NULL},
+             {NULL, deflate_geo_2x_ser_p1_remx, deflate_geo_2x_ser_p2_remx},
+             {NULL, NULL, NULL}},
+        },
 
-       // remove y
-       {
-         .list =
-           {{NULL, NULL, NULL},
-            {NULL, deflate_geo_1x_ser_p1_remxy, deflate_geo_1x_ser_p2_remxy},
-            {NULL, NULL, NULL},
-            {NULL, NULL, NULL}},
-       }
+        // remove y
+        {
+          .list =
+            {{NULL, NULL, NULL},
+             {NULL, deflate_geo_1x_ser_p1_remxy, deflate_geo_1x_ser_p2_remxy},
+             {NULL, NULL, NULL},
+             {NULL, NULL, NULL}},
+        },
 
       },
-  }
+  },
 
 };
 

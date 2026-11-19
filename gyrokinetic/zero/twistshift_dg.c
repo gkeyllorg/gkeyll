@@ -121,12 +121,9 @@ ts_shift_dg_eval(double t, const double *coord, double *fout, void *ctx)
 {
   struct ts_shift_dg_eval_ctx *tsectx = ctx;
 
-  int cell_idx[GKYL_MAX_DIM];
-  gkyl_rect_grid_coord_idx(tsectx->shear_grid, coord, cell_idx);
-  // Ensure that we do not go outside of the range
-  // (it does sometimes if x=x_max,x_min).
-  cell_idx[0] = fmin(cell_idx[0], tsectx->shear_r->upper[0]);
-  cell_idx[0] = fmax(cell_idx[0], tsectx->shear_r->lower[0]);
+  // Use this cell's trace at both endpoints. Looking up the cell from coord
+  // can select the neighboring polynomial at a DG jump and produce false roots.
+  int cell_idx[] = {tsectx->shear_idx};
 
   double xc[GKYL_MAX_DIM];
   gkyl_rect_grid_cell_center(tsectx->shear_grid, cell_idx, xc);
@@ -274,6 +271,10 @@ ts_find_donors(struct gkyl_twistshift_dg *up)
   // gkyl_rect_grid_find_cell) so that shifted test points are never
   // ambiguously on a cell boundary.
   int num_test_pt[2] = {10, 10}; // Number of test points taken along each side of the cell.
+  // With |S(x_up)-S(x_lo)| < Ly, this count keeps consecutive shifted samples
+  // less than one y cell apart for linear and monotonic quadratic shifts.
+  num_test_pt[up->shear_dir_in_ts_grid] =
+    GKYL_MAX2(10, 2 * up->ts_grid.cells[up->shift_dir_in_ts_grid] + 2);
 
   double step_sz[2] = {0.0}; // Size of the step between test points.
   double delta[2] = {0.0}; // Space between cell boundary and test points.
@@ -1538,6 +1539,7 @@ ts_calc_mats(struct gkyl_twistshift_dg *up)
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &up->shear_r);
   while (gkyl_range_iter_next(&iter)) {
+    up->shift_dg_eval_ctx.shear_idx = iter.idx[0];
     // Get the cell boundaries and cell center.
     int idx_tar[2]; // Target index.
     idx_tar[up->shift_dir_in_ts_grid] = shift_dir_idx_tar;
@@ -1561,9 +1563,7 @@ ts_calc_mats(struct gkyl_twistshift_dg *up)
       linidx_mats_do += up->num_do[i];
     }
 
-    // Check that the shift variation within this x-cell < Ly.
-    // The algorithm assumes at most one x-intersection per (y-boundary, y-boundary) pair,
-    // which breaks when |S(x_up) - S(x_lo)| >= Ly.
+    // Check that the shift variation within this x-cell < Ly - 2*dy.
     double x_lo = cellb_tar[cellb_lo(up->shear_dir_in_ts_grid)];
     double x_up = cellb_tar[cellb_up(up->shear_dir_in_ts_grid)];
     double Ly = shift_dir_lims[1] - shift_dir_lims[0];
@@ -1572,12 +1572,14 @@ ts_calc_mats(struct gkyl_twistshift_dg *up)
     up->shift_func(0.0, (double[]){x_up}, &S_up, up->shift_func_ctx);
     up->shift_func(0.0, (double[]){xc_tar[up->shear_dir_in_ts_grid]}, &S_c, up->shift_func_ctx);
 
-    if (fabs(S_up - S_lo) >= Ly) {
+    double dy = up->ts_grid.dx[up->shift_dir_in_ts_grid];
+    if (fabs(S_up - S_lo) >= Ly - 2.0 * dy) {
       fprintf(
         stderr,
         "bc_twistshift: shift variation |S(x_up)-S(x_lo)| = %g across a single x-cell"
-        " exceeds Ly = %g (cell ix=%d). Increase Nx, reduce the shear, or increase Ly.\n",
-        fabs(S_up - S_lo), Ly, iter.idx[0]
+        " exceeds Ly - 2*dy = %g (cell ix=%d, Ly = %g, dy = %g). Increase Nx or Ny, reduce the shear,"
+        " or increase Ly.\n",
+        fabs(S_up - S_lo), Ly - 2.0 * dy, iter.idx[0], Ly, dy
       );
       assert(false);
     }

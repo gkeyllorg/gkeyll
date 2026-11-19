@@ -15,7 +15,18 @@ CORELLIB := ../$(BUILD_DIR)/core/libg0core.so
 CORESLLIB := 
 LLIB := ../$(BUILD_DIR)/vlasov/libg0vlasov.so
 SLLIB := 
-SRCS := $(shell find $(SRC_DIRS) -name *.c)
+# Optional heavy kernel set: exclude the generated tensor p=2 kernels in 2x3v
+# from the build unless its knob is set (see the top-level Makefile).
+# KER_PRUNE lists the same set as object-file patterns: the library link
+# globs every object under the build directory, so objects of a set that was
+# built earlier and is now switched off are deleted before linking.
+KER_EXCLUDE :=
+KER_PRUNE :=
+ifneq ($(BUILD_VLASOV_TEN_2X3V_P2),1)
+KER_EXCLUDE += -not -name '*2x3v_tensor_p2*' -not -name '*2x_3v_tensor_p2*'
+KER_PRUNE += -o -name '*2x3v_tensor_p2*.o' -o -name '*2x_3v_tensor_p2*.o'
+endif
+SRCS := $(shell find $(SRC_DIRS) -name '*.c' $(KER_EXCLUDE))
 ifdef USING_NVCC
 	SRCS += $(shell find $(SRC_DIRS) -name *.cu)
 	SRCS += $(shell find $(UNIT_DIRS) -name *.cu)
@@ -24,9 +35,18 @@ OBJS := $(SRCS:%=../$(BUILD_DIR)/vlasov/%.o)
 
 DEPS := $(OBJS:.o=.d)
 
+# Compile flags come from config.mak (feature and kernel-set knobs), so a
+# configuration change rebuilds the code that was compiled with the old flags:
+# the zero/apps layers, unit tests and regression binaries. Generated kernels
+# do not depend on those flags and are left alone (a full kernel rebuild is
+# tens of minutes under nvcc).
+$(filter-out ../$(BUILD_DIR)/vlasov/$(KERNELS_DIR)/%,$(OBJS)) $(UNITS) $(REGS): $(wildcard ../config.mak)
+
 UNITS := $(patsubst %.c,../${BUILD_DIR}/vlasov/%,$(wildcard unit/ctest_*.c))
 MPI_UNITS := $(patsubst %.c,../${BUILD_DIR}/vlasov/%,$(wildcard unit/mctest_*.c))
-LUA_UNITS := $(patsubst %.c,../${BUILD_DIR}/vlasov/%,$(wildcard unit/lctest_*.c))
+# Lua unit tests: input files that exercise the Lua wrapper itself (object lifetimes, callback
+# contexts). They run through the gkeyll executable, each in a scratch directory.
+LUA_TESTS := $(wildcard unit/lua/ltest_*.lua)
 
 # We need to build CUDA unit-test objects                                                                                                                                            
 UNIT_CU_SRCS =
@@ -98,7 +118,11 @@ ifdef USING_NVCC
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
-../$(BUILD_DIR)/vlasov/$(KERNELS_DIR)/canonical_pb/%.c.o : $(KERNELS_DIR)/canonical_pb/%.c
+../$(BUILD_DIR)/vlasov/$(KERNELS_DIR)/bgk_vlasov/%.c.o : $(KERNELS_DIR)/bgk_vlasov/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
+
+../$(BUILD_DIR)/vlasov/$(KERNELS_DIR)/canonical_fluid/%.c.o : $(KERNELS_DIR)/canonical_fluid/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
@@ -111,6 +135,10 @@ ifdef USING_NVCC
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
 ../$(BUILD_DIR)/vlasov/$(KERNELS_DIR)/dg_diffusion_vlasov/%.c.o : $(KERNELS_DIR)/dg_diffusion_vlasov/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
+
+../$(BUILD_DIR)/vlasov/$(KERNELS_DIR)/dg_gr_maxwell/%.c.o : $(KERNELS_DIR)/dg_gr_maxwell/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
@@ -134,15 +162,35 @@ ifdef USING_NVCC
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
+# Register-capped kernel families (see MOM_MAX_REGS/FLUX_MAX_REGS in the top-level
+# Makefile). The moment family is everything reachable from the moment advance kernels
+# through the momf_t pointer: the moment and LBO boundary-correction kernels, their
+# wrappers and the advance kernels themselves. (Any other translation unit that
+# includes gkyl_mom_*_priv.h would instantiate the wrappers uncapped and break the
+# link, so those headers must only be included by the moment sources.) The
+# mom_bcorr_% rule has a shorter stem than the lbo_vlasov/%.c.o rule below, so make
+# prefers it for those files.
+../$(BUILD_DIR)/vlasov/$(KERNELS_DIR)/mom_vlasov/%.c.o : $(KERNELS_DIR)/mom_vlasov/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(NVCC_MOM_FLAGS) $(INCS) -c $< -o $@
+
+../$(BUILD_DIR)/vlasov/$(KERNELS_DIR)/lbo_vlasov/mom_bcorr_%.c.o : $(KERNELS_DIR)/lbo_vlasov/mom_bcorr_%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(NVCC_MOM_FLAGS) $(INCS) -c $< -o $@
+
+../$(BUILD_DIR)/vlasov/zero/mom_calc_cu.cu.o ../$(BUILD_DIR)/vlasov/zero/mom_calc_bcorr_cu.cu.o ../$(BUILD_DIR)/vlasov/zero/mom_vlasov_cu.cu.o ../$(BUILD_DIR)/vlasov/zero/mom_bcorr_lbo_vlasov_cu.cu.o : ../$(BUILD_DIR)/vlasov/zero/%.cu.o : zero/%.cu
+	$(MKDIR_P) $(dir $@)
+	$(CC) -c $(CFLAGS) $(NVCC_FLAGS) $(NVCC_MOM_FLAGS) $(INCS) $< -o $@
+
+../$(BUILD_DIR)/vlasov/$(KERNELS_DIR)/flux_vlasov/%.c.o : $(KERNELS_DIR)/flux_vlasov/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(NVCC_FLUX_FLAGS) $(INCS) -c $< -o $@
+
+../$(BUILD_DIR)/vlasov/zero/dg_vlasov_vel_flux_surf_cu.cu.o ../$(BUILD_DIR)/vlasov/zero/dg_vlasov_conf_flux_surf_cu.cu.o : ../$(BUILD_DIR)/vlasov/zero/%.cu.o : zero/%.cu
+	$(MKDIR_P) $(dir $@)
+	$(CC) -c $(CFLAGS) $(NVCC_FLAGS) $(NVCC_FLUX_FLAGS) $(INCS) $< -o $@
+
 ../$(BUILD_DIR)/vlasov/$(KERNELS_DIR)/vlasov/%.c.o : $(KERNELS_DIR)/vlasov/%.c
-	$(MKDIR_P) $(dir $@)
-	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
-
-../$(BUILD_DIR)/vlasov/$(KERNELS_DIR)/vlasov_poisson/%.c.o : $(KERNELS_DIR)/vlasov_poisson/%.c
-	$(MKDIR_P) $(dir $@)
-	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
-
-../$(BUILD_DIR)/vlasov/$(KERNELS_DIR)/positivity_shift_vlasov/%.c.o : $(KERNELS_DIR)/positivity_shift_vlasov/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 endif
@@ -150,6 +198,9 @@ endif
 # build lib
 $(LLIB): $(OBJS) ../$(BUILD_DIR)/moments/libg0moments.so
 	$(MKDIR_P) $(dir $@)
+ifneq ($(strip $(KER_PRUNE)),)
+	find ../$(BUILD_DIR)/vlasov/$(KERNELS_DIR) \( -false $(KER_PRUNE) \) -delete
+endif
 ifeq ($(UNAME),Linux)
 ifdef USING_NVCC
 	$(CC) -shared -o $@ ${CORE_LINK_OBJS} ${MOMENTS_LINK_OBJS} ${VLASOV_LINK_OBJS} ${VLASOV_CU_LINK_OBJS}  -Xlinker=-soname -Xlinker=libg0vlasov.so -L${LAPACK_LIB_DIR} -L${SUPERLU_LIB_DIR} -L${MPI_LIB_DIR} -L${NCCL_LIB_DIR} -L${CUDSS_LIB_DIR} -L${LUA_LIB_DIR} ${SUPERLU_LIBS} ${LAPACK_LIBS} ${CUDA_LIBS} ${MPI_RPATH} ${MPI_LIBS} ${NCCL_LIBS} ${CUDSS_RPATH} ${CUDSS_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl -arch=sm_${CUDA_ARCH} -rdc=true --compiler-options="-fPIC"
@@ -165,6 +216,39 @@ endif
 # Run all unit tests
 check: unit unit-run ## Build (if needed) and run all unit tests
 
+
+# Loop over the Lua unit tests; expects app, npass, nfail and GKYL_TEST_LOG to be set by the caller
+# and the shell to be in the repository root.
+define run-lua-units
+	root=$$PWD; \
+	for test in ${LUA_TESTS}; do \
+	  tname=$$(basename $$test); scratch=$$(mktemp -d); ln -s "$$root/${BUILD_DIR}" "$$scratch/${BUILD_DIR}"; \
+	  if (cd "$$scratch" && ./${BUILD_DIR}/gkeyll/gkeyll "$$root/vlasov/$$test" > "$$scratch/log.txt" 2>&1); then \
+	    npass=$$((npass+1)); echo "PASS $$app: $$tname" >> "$$GKYL_TEST_LOG"; \
+	  else \
+	    nfail=$$((nfail+1)); echo "FAIL $$app: $$tname" >> "$$GKYL_TEST_LOG"; cat "$$scratch/log.txt"; \
+	  fi; \
+	  rm -rf "$$scratch"; \
+	done
+endef
+
+# Run the Lua unit tests without (re)building the executable
+lua-unit-run: ## Run Lua unit tests (unit/lua/ltest_*.lua) through the gkeyll executable
+	@cd ..; app=vlasov; own_log=0; \
+	if [ ! -x ${BUILD_DIR}/gkeyll/gkeyll ]; then echo "lua-unit-run: ${BUILD_DIR}/gkeyll/gkeyll not built (needs a Lua-enabled build)"; exit 1; fi; \
+	if [ -z "$$GKYL_TEST_LOG" ]; then GKYL_TEST_LOG=$$(mktemp); own_log=1; fi; \
+	npass=0; nfail=0; \
+	$(run-lua-units); \
+	if [ $$own_log -eq 1 ]; then \
+	  echo "==================== $$app Lua unit test summary ===================="; \
+	  echo "Passed: $$npass   Failed: $$nfail"; \
+	  if [ $$nfail -gt 0 ]; then \
+	    echo "Failed tests:"; grep '^FAIL ' "$$GKYL_TEST_LOG" | sed 's/^FAIL /  /'; rm -f "$$GKYL_TEST_LOG"; exit 1; \
+	  else \
+	    echo "All $$app Lua unit tests passed."; rm -f "$$GKYL_TEST_LOG"; \
+	  fi; \
+	fi
+
 # Run all unit tests without (re)building them
 unit-run: ## Run unit tests without (re)building them
 	@cd ..; app=vlasov; own_log=0; \
@@ -178,6 +262,7 @@ unit-run: ## Run unit tests without (re)building them
 	    nfail=$$((nfail+1)); echo "FAIL $$app: $$tname" >> "$$GKYL_TEST_LOG"; \
 	  fi; \
 	done; \
+	if [ -x ${BUILD_DIR}/gkeyll/gkeyll ]; then $(run-lua-units); fi; \
 	if [ $$own_log -eq 1 ]; then \
 	  echo "==================== $$app test summary ===================="; \
 	  echo "Passed: $$npass   Failed: $$nfail"; \

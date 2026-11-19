@@ -468,10 +468,10 @@ create_ctx(void)
     1.0 / (1.0 + q0 * q0 * (1.6 / sqrt(inv_asp_ratio) + 0.5 + 0.36 * sqrt(inv_asp_ratio)));
 
   // Grid parameters (accurate RH test with 32x32x24x12)
-  int Nx = 16;
-  int Nz = 8;
-  int Nvpar = 12;
-  int Nmu = 6;
+  int Nx = 8;
+  int Nz = 4;
+  int Nvpar = 6;
+  int Nmu = 4;
   int poly_order = 1;
   int psi_lut_nfact = 100 * (poly_order + 1); // Resolution factor for the psi lookup table.
 
@@ -629,18 +629,20 @@ main(int argc, char **argv)
     // Fixed Maxwellian ghost cells: the walls act as a reservoir for the radial
     // magnetic drift (zero-flux and copy BCs build up boundary layers).
     .bcs =
-      {{
-         .dir = 0,
-         .edge = GKYL_LOWER_EDGE,
-         .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
-         .projection = ion_bc,
-       },
-       {
-         .dir = 0,
-         .edge = GKYL_UPPER_EDGE,
-         .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
-         .projection = ion_bc,
-       }},
+      {
+        {
+          .dir = 0,
+          .edge = GKYL_LOWER_EDGE,
+          .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
+          .projection = ion_bc,
+        },
+        {
+          .dir = 0,
+          .edge = GKYL_UPPER_EDGE,
+          .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
+          .projection = ion_bc,
+        },
+      },
 
     .num_diag_moments = 9,
     .diag_moments =
@@ -652,6 +654,8 @@ main(int argc, char **argv)
     .boundary_flux_diagnostics =
       {.num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}},
     .time_rate_diagnostics = true,
+    .num_balance_diags = 2,
+    .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY},
   };
 
   if (ctx.nu_star > 0.0) {
@@ -685,8 +689,10 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_field field = {
     .polarization_bmag = ctx.B_axis, // Important for the Rosenbluth-Hinton residual to be correct.
     .poisson_bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}}},
+      {
+        {.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
+        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},
+      },
     .time_rate_diagnostics = true,
   };
 
@@ -730,6 +736,9 @@ main(int argc, char **argv)
     .field = field,
 
     .parallelism = parallelism,
+
+    .diagnostics =
+      {.num_balance_diags = 2, .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY}},
   };
 
   // Set app output name from the executable name (argv[0]).
