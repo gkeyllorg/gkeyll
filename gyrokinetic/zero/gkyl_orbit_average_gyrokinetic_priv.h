@@ -9,13 +9,13 @@ struct gkyl_orbit_average_gyrokinetic_block {
   long cell_offset; // Offset in cell_indices.
   int num_cells;
   int num_modes; // Number of modal coefficients = num_cells*num_basis.
-  int rank;
+  int rank, invariant_rank; // Source projection includes additional energy constraints.
   long basis_offset; // Offset in q and dual; both have rank*num_modes entries.
   long reduce_offset; // Offset in reduced coefficients.
 };
 
 struct gkyl_orbit_average_gyrokinetic {
-  bool use_gpu, positivity, frequency_is_infinite;
+  bool use_gpu, positivity, frequency_is_infinite, distribute_source;
   int num_basis, num_pos, num_blocks;
   long num_cells, num_rejected, num_reduced;
   long basis_size, num_global_cells, max_cell_index;
@@ -33,7 +33,7 @@ struct gkyl_orbit_average_gyrokinetic {
 #ifdef GKYL_HAVE_CUDA
 void gkyl_orbit_average_gyrokinetic_cu_init(gkyl_orbit_average_gyrokinetic *up);
 void gkyl_orbit_average_gyrokinetic_cu_release(gkyl_orbit_average_gyrokinetic *up);
-struct gkyl_orbit_average_gyrokinetic_result gkyl_orbit_average_gyrokinetic_advance_cu(
-  gkyl_orbit_average_gyrokinetic *up, double dt, double frequency, struct gkyl_array *f
+struct gkyl_orbit_average_gyrokinetic_result gkyl_orbit_average_gyrokinetic_apply_cu(
+  gkyl_orbit_average_gyrokinetic *up, double beta, bool source, struct gkyl_array *f
 );
 #endif

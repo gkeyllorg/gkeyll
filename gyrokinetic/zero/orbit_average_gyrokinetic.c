@@ -11,7 +11,7 @@
 // kernels. Geometry construction runs on the host; the distribution never does
 // on a GPU update.
 struct gk_oa_sample {
-  double energy, weight, jacobian;
+  double energy, kinetic_energy, weight, jacobian;
   int group;
 };
 
@@ -428,8 +428,9 @@ gk_oa_build_block(
       gk_oa_velocity(inp, vindices[cell], muindex, eta[1], eta[2], &velocity, &mu, &jacvel);
       double bmag = gk_oa_field(inp, geo->bmag, zindices[cell], eta[0]);
       double jacgeo = gk_oa_field(inp, geo->jacobgeo, zindices[cell], eta[0]);
-      double energy = 0.5 * inp->mass * velocity * velocity + mu * bmag +
-                      inp->charge * gk_oa_field(inp, geo->phi, zindices[cell], eta[0]);
+      double kinetic_energy = 0.5 * inp->mass * velocity * velocity + mu * bmag;
+      double energy =
+        kinetic_energy + inp->charge * gk_oa_field(inp, geo->phi, zindices[cell], eta[0]);
       gk_oa_potential(inp, geo, mu, potential);
       int nlevels = gk_oa_critical(nz, potential, levels), minimum;
       gk_oa_component(inp, geo, potential, zindices[cell], mu, energy, &minimum);
@@ -453,8 +454,9 @@ gk_oa_build_block(
       energy_min = fmin(energy_min, energy);
       energy_max = fmax(energy_max, energy);
       struct gk_oa_sample *sample = samples + (long)cell * GKYL_ORBIT_NUM_QUAD + node;
-      *sample =
-        (struct gk_oa_sample){energy, volume * weights[node], bmag * jacgeo * jacvel, group};
+      *sample = (struct gk_oa_sample){
+        energy, kinetic_energy, volume * weights[node], bmag * jacgeo * jacvel, group,
+      };
       const double *basis = up->eval + node * nb;
       double weight = sample->weight / sample->jacobian;
       double *matrix = matrices + (long)cell * nb * nb;
@@ -475,52 +477,65 @@ gk_oa_build_block(
   double *orthogonal = 0, *dual = 0;
   double *column = gkyl_malloc(nm * sizeof(double));
   double *moment = gkyl_malloc(nm * sizeof(double));
-  int rank = 0;
+  int rank = 0, invariant_rank = 0;
   if (success) {
     double base_spacing = (energy_max - energy_min) / (inp->num_energy_nodes - 1);
-    for (int group = 0; group < ngroups; ++group) {
-      double width = groups[group].upper - groups[group].lower;
-      int intervals = base_spacing > 0.0 ? (int)ceil(width / base_spacing) : 1;
-      intervals = intervals > 1 ? intervals : 1;
-      // Constant and normalized energy first protect invariant moments before
-      // any dependent hat columns are removed. Interior hats complete the
-      // same piecewise-linear space as endpoint-plus-interior hat functions.
-      int columns = width > 0.0 ? intervals + 1 : 1;
-      for (int mode = 0; mode < columns; ++mode) {
-        memset(moment, 0, nm * sizeof(double));
-        for (int cell = 0; cell < count; ++cell) {
-          for (int node = 0; node < GKYL_ORBIT_NUM_QUAD; ++node) {
-            const struct gk_oa_sample *sample = samples + (long)cell * GKYL_ORBIT_NUM_QUAD + node;
-            if (sample->group != group) {
-              continue;
-            }
-            double coordinate = width > 0.0 ? (sample->energy - groups[group].lower) / width : 0.0;
-            double value = 1.0;
-            if (mode == 1) {
-              value = coordinate;
-            } else if (mode > 1) {
-              value = fmax(0.0, 1.0 - fabs(coordinate * intervals - (mode - 1)));
-            }
-            const double *basis = up->eval + node * nb;
-            for (int row = 0; row < nb; ++row) {
-              moment[cell * nb + row] += sample->weight * value * basis[row];
+    // Append source constraints after all invariant columns so state relaxation
+    // and source distribution can use different ranks of the same cached basis.
+    int passes = inp->distribute_source ? 2 : 1;
+    for (int pass = 0; pass < passes; ++pass) {
+      for (int group = 0; group < ngroups; ++group) {
+        double width = groups[group].upper - groups[group].lower;
+        int intervals = base_spacing > 0.0 ? (int)ceil(width / base_spacing) : 1;
+        intervals = intervals > 1 ? intervals : 1;
+        // Constant and normalized energy first protect invariant moments before
+        // any dependent hat columns are removed. Interior hats complete the
+        // same piecewise-linear space as endpoint-plus-interior hat functions.
+        int columns = pass == 0 && width > 0.0 ? intervals + 1 : 1;
+        for (int mode = 0; mode < columns; ++mode) {
+          memset(moment, 0, nm * sizeof(double));
+          for (int cell = 0; cell < count; ++cell) {
+            for (int node = 0; node < GKYL_ORBIT_NUM_QUAD; ++node) {
+              const struct gk_oa_sample *sample = samples + (long)cell * GKYL_ORBIT_NUM_QUAD + node;
+              if (sample->group != group) {
+                continue;
+              }
+              double coordinate = width > 0.0 ? (sample->energy - groups[group].lower) / width :
+                                                0.0;
+              double value = 1.0;
+              if (pass == 1) {
+                // K = H - q phi varies along an electrostatic orbit. Its metric
+                // representer retains the minimal residual needed for source power.
+                value = sample->kinetic_energy;
+              } else if (mode == 1) {
+                value = coordinate;
+              } else if (mode > 1) {
+                value = fmax(0.0, 1.0 - fabs(coordinate * intervals - (mode - 1)));
+              }
+              const double *basis = up->eval + node * nb;
+              for (int row = 0; row < nb; ++row) {
+                moment[cell * nb + row] += sample->weight * value * basis[row];
+              }
             }
           }
+          memcpy(column, moment, nm * sizeof(double));
+          for (int cell = 0; cell < count; ++cell) {
+            gk_oa_solve(nb, matrices + (long)cell * nb * nb, column + cell * nb);
+          }
+          gk_oa_append_column(nm, &rank, &orthogonal, &dual, column, moment);
         }
-        memcpy(column, moment, nm * sizeof(double));
-        for (int cell = 0; cell < count; ++cell) {
-          gk_oa_solve(nb, matrices + (long)cell * nb * nb, column + cell * nb);
-        }
-        gk_oa_append_column(nm, &rank, &orthogonal, &dual, column, moment);
+      }
+      if (pass == 0) {
+        invariant_rank = rank;
       }
     }
-    success = rank > 0;
+    success = invariant_rank > 0;
   }
   if (success) {
     int block = up->num_blocks++;
     up->blocks = gkyl_realloc(up->blocks, up->num_blocks * sizeof(*up->blocks));
     up->blocks[block] = (struct gkyl_orbit_average_gyrokinetic_block){
-      up->num_cells, count, nm, rank, up->basis_size, up->num_reduced,
+      up->num_cells, count, nm, rank, invariant_rank, up->basis_size, up->num_reduced,
     };
     up->cell_indices = gkyl_realloc(up->cell_indices, (up->num_cells + count) * sizeof(long));
     memcpy(up->cell_indices + up->num_cells, indices, count * sizeof(long));
@@ -751,6 +766,7 @@ gkyl_orbit_average_gyrokinetic_inew(
   up->num_pos = GKYL_ORBIT_NUM_POS;
   up->use_gpu = inp->use_gpu;
   up->positivity = inp->positivity;
+  up->distribute_source = inp->distribute_source;
   up->frequency_is_infinite = inp->frequency_is_infinite;
   up->eval = gkyl_malloc(up->num_pos * up->num_basis * sizeof(double));
   double nodes[GKYL_ORBIT_NUM_POS * 3], weights[GKYL_ORBIT_NUM_QUAD];
@@ -839,34 +855,26 @@ gkyl_orbit_average_gyrokinetic_get_info(const gkyl_orbit_average_gyrokinetic *up
   };
 }
 
-struct gkyl_orbit_average_gyrokinetic_result
-gkyl_orbit_average_gyrokinetic_advance(
-  gkyl_orbit_average_gyrokinetic *up, double dt, double frequency, struct gkyl_array *f
-)
+static struct gkyl_orbit_average_gyrokinetic_result
+gk_oa_apply(gkyl_orbit_average_gyrokinetic *up, double beta, bool source, struct gkyl_array *f)
 {
   struct gkyl_orbit_average_gyrokinetic_result result = {false, 0.0, 0};
-  if (!up || !f || f->type != GKYL_DOUBLE || f->ncomp != up->num_basis || !(dt >= 0.0) ||
-      (!up->frequency_is_infinite && !(frequency >= 0.0)) ||
+  if (!up || !f || f->type != GKYL_DOUBLE || f->ncomp != up->num_basis ||
       gkyl_array_is_cu_dev(f) != up->use_gpu) {
     return result;
   }
   if (up->num_cells && up->max_cell_index >= f->size) {
     return result;
   }
-  if (dt == 0.0 || (!up->frequency_is_infinite && frequency == 0.0) || up->num_global_cells == 0) {
+  if (beta == 0.0 || up->num_global_cells == 0) {
     result.success = true;
     return result;
   }
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
-    return gkyl_orbit_average_gyrokinetic_advance_cu(up, dt, frequency, f);
+    return gkyl_orbit_average_gyrokinetic_apply_cu(up, beta, source, f);
   }
 #endif
-  double beta = 1.0;
-  if (!up->frequency_is_infinite && (dt <= 1.0 || frequency <= DBL_MAX / dt)) {
-    double product = dt * frequency;
-    beta = product >= 1.0 ? 1.0 - 1.0 / (1.0 + product) : product / (1.0 + product);
-  }
   result.min_blend = beta;
   // Build every correction and validate every block before changing f.
   for (int iblock = 0; iblock < up->num_blocks; ++iblock) {
@@ -897,14 +905,14 @@ gkyl_orbit_average_gyrokinetic_advance(
       double *correction = up->correction + (block->cell_offset + cell) * up->num_basis;
       for (int basis = 0; basis < up->num_basis; ++basis) {
         double value = -modal[basis];
-        for (int mode = 0; mode < block->rank; ++mode) {
+        for (int mode = 0; mode < (source ? block->rank : block->invariant_rank); ++mode) {
           value +=
             up->q[block->basis_offset + (long)mode * block->num_modes + cell * up->num_basis + basis] *
             up->coeff[block->reduce_offset + mode];
         }
         correction[basis] = value;
       }
-      if (up->positivity) {
+      if (!source && up->positivity) {
         for (int node = 0; node < up->num_pos; ++node) {
           const double *basis = up->eval + node * up->num_basis;
           double initial = gk_oa_dot(up->num_basis, basis, modal);
@@ -920,7 +928,7 @@ gkyl_orbit_average_gyrokinetic_advance(
     }
     up->blend[iblock] = bound;
   }
-  if (up->reduce) {
+  if (!source && up->positivity && up->reduce) {
     if (up->reduce(up->reduce_ctx, false, up->num_blocks, up->blend, up->reduce_buffer)) {
       return result;
     }
@@ -949,4 +957,28 @@ gkyl_orbit_average_gyrokinetic_advance(
   }
   result.success = true;
   return result;
+}
+
+struct gkyl_orbit_average_gyrokinetic_result
+gkyl_orbit_average_gyrokinetic_advance(
+  gkyl_orbit_average_gyrokinetic *up, double dt, double frequency, struct gkyl_array *f
+)
+{
+  if (!up || !(dt >= 0.0) || (!up->frequency_is_infinite && !(frequency >= 0.0))) {
+    return (struct gkyl_orbit_average_gyrokinetic_result){};
+  }
+  double beta = 1.0;
+  if (!up->frequency_is_infinite && (dt <= 1.0 || frequency <= DBL_MAX / dt)) {
+    double product = dt * frequency;
+    beta = product >= 1.0 ? 1.0 - 1.0 / (1.0 + product) : product / (1.0 + product);
+  }
+  return gk_oa_apply(up, dt == 0.0 ? 0.0 : beta, false, f);
+}
+
+bool
+gkyl_orbit_average_gyrokinetic_distribute_source(
+  gkyl_orbit_average_gyrokinetic *up, struct gkyl_array *source
+)
+{
+  return up && up->distribute_source && gk_oa_apply(up, 1.0, true, source).success;
 }

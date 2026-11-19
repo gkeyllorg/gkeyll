@@ -216,9 +216,9 @@ orbit_test_distribution_new(const struct orbit_test *test, enum orbit_test_distr
 }
 
 static void
-orbit_test_moments(const struct orbit_test *test, const struct gkyl_array *distf, double moments[3])
+orbit_test_moments(const struct orbit_test *test, const struct gkyl_array *distf, double moments[4])
 {
-  moments[0] = moments[1] = moments[2] = 0.0;
+  moments[0] = moments[1] = moments[2] = moments[3] = 0.0;
   const double volume = test->grid.dx[0] * test->grid.dx[1] * test->grid.dx[2] / 8.0;
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &test->local);
@@ -238,6 +238,11 @@ orbit_test_moments(const struct orbit_test *test, const struct gkyl_array *distf
           moments[0] += weight * value;
           moments[1] += weight * hamiltonian * value;
           moments[2] += weight * mu * value;
+          const double *bmag =
+            gkyl_array_cfetch(test->bmag, gkyl_range_idx(&test->conf_local, iter.idx));
+          double kinetic =
+            0.5 * test->mass * vpar * vpar + mu * test->conf_basis.eval_expand(eta, bmag);
+          moments[3] += weight * kinetic * value;
         }
       }
     }
@@ -310,7 +315,7 @@ orbit_test_check_moments(
   const struct orbit_test *test, const struct gkyl_array *before, const struct gkyl_array *after
 )
 {
-  double initial[3], final[3];
+  double initial[4], final[4];
   orbit_test_moments(test, before, initial);
   orbit_test_moments(test, after, final);
   for (int moment = 0; moment < 3; ++moment) {
@@ -457,6 +462,7 @@ orbit_test_projection(bool use_gpu, bool mapped)
   // The explicit infinite-frequency option overrides the numeric rate.
   struct gkyl_orbit_average_gyrokinetic_inp inp = orbit_test_input(&test, use_gpu, false);
   inp.frequency_is_infinite = true;
+  inp.distribute_source = true;
   enum gkyl_orbit_average_gyrokinetic_status construction;
   gkyl_orbit_average_gyrokinetic *infinite =
     gkyl_orbit_average_gyrokinetic_inew(&inp, &construction);
@@ -470,6 +476,37 @@ orbit_test_projection(bool use_gpu, bool mapped)
   TEST_CHECK(orbit_test_difference(projected, twice) < 2e-11);
   status = orbit_test_update(infinite, use_gpu, 0.0, 0.0, initial, twice);
   TEST_CHECK(status.success && orbit_test_difference(initial, twice) == 0.0);
+  // Concentrate a signed source at small |z|, where K differs from its contour
+  // mean. The same cache must conserve K for the source and relax it for f.
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &test.local);
+  while (gkyl_range_iter_next(&iter)) {
+    double center[3];
+    gkyl_rect_grid_cell_center(&test.grid, iter.idx, center);
+    double *modal = gkyl_array_fetch(finite_dt, gkyl_range_idx(&test.local, iter.idx));
+    modal[0] = fabs(center[0]) < 0.5 ? -2.0 : 1.0;
+  }
+  struct gkyl_array *source =
+    use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, finite_dt->ncomp, finite_dt->size) :
+              gkyl_array_acquire(twice);
+  gkyl_array_copy(source, finite_dt);
+  TEST_CHECK(gkyl_orbit_average_gyrokinetic_distribute_source(infinite, source));
+  if (use_gpu) {
+    gkyl_array_copy(twice, source);
+  }
+  orbit_test_unchanged_exterior(&test, finite_dt, twice);
+  double raw[4], distributed[4], relaxed[4];
+  orbit_test_moments(&test, finite_dt, raw);
+  orbit_test_moments(&test, twice, distributed);
+  TEST_CHECK(orbit_test_difference(finite_dt, twice) > 1e-4);
+  for (int m = 0; m < 4; ++m) {
+    TEST_CHECK(gkyl_compare(raw[m], distributed[m], 2e-11));
+  }
+  status = orbit_test_update(infinite, use_gpu, 1.0, 0.0, finite_dt, twice);
+  TEST_CHECK(status.success);
+  orbit_test_moments(&test, twice, relaxed);
+  TEST_CHECK(fabs(raw[3] - relaxed[3]) > 1e-5);
+  gkyl_array_release(source);
   gkyl_orbit_average_gyrokinetic_release(infinite);
 
   if (use_gpu) {

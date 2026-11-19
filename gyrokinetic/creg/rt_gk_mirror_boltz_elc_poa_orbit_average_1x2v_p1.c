@@ -13,8 +13,8 @@
 
 // Mirror POA with implicit orbit relaxation replacing collisionless advection
 // during OAP. The full-dynamics phase restores electrostatic advection and the
-// evolving Boltzmann field. Geometry, collisions, source, and loss-cone masking
-// follow rt_gk_mirror_boltz_elc_poa_1x2v_p1.c.
+// evolving Boltzmann field. Each OAP distributes the projected ion source on
+// its frozen closed orbits. Each FDP restores the original source profile.
 // Use -s1 to exercise one step in every phase, -M -c N for MPI, and -g for CUDA.
 
 // State of the pseudo orbit-averaged integrator.
@@ -510,7 +510,7 @@ calc_integrated_diagnostics(
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_calc) {
     gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
-    gkyl_gyrokinetic_app_calc_integrated_mom(app, t_curr);
+    gkyl_gyrokinetic_app_calc_integrated_mom(app, t_curr, dt);
 
     if (!(dt < 0.0)) {
       gkyl_gyrokinetic_app_save_dt(app, t_curr, dt);
@@ -635,6 +635,7 @@ run_phase(
     app, "ion",
     (struct gkyl_gyrokinetic_orbit_average){
       .enabled = orbit_average,
+      .distribute_source = orbit_average,
       .frequency = 1e20,
       .num_energy_nodes = 16,
       .positivity = pparams->is_positivity_enabled,
@@ -801,8 +802,10 @@ main(int argc, char **argv)
       },
 
     .bcs =
-      {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
-       {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING}},
+      {
+        {.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+        {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING},
+      },
     .write_omega_cfl = true,
     .num_diag_moments = 8,
     .diag_moments =
@@ -813,7 +816,9 @@ main(int argc, char **argv)
     .time_rate_diagnostics = true,
 
     .boundary_flux_diagnostics =
-      {.num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_M0M1M2PARM2PERP}
+      {
+        .num_integrated_diag_moments = 1,
+        .integrated_diag_moments = {GKYL_F_MOMENT_M0M1M2PARM2PERP},
       },
   };
   struct gkyl_gyrokinetic_field field = {

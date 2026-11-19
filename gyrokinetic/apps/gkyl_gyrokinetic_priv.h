@@ -1274,6 +1274,7 @@ struct gk_species_wall_potential {
 // Species data.
 struct gk_orbit_average {
   struct gkyl_orbit_average_gyrokinetic *up; // Cached frozen-field projector.
+  struct gkyl_array *source_input; // Original projected source, retained for phase resets.
   double min_blend; // Last implicit update's minimum accepted relaxation fraction.
   long num_limited_blocks; // Last implicit update's positivity-limited blocks.
 };
@@ -3515,6 +3516,13 @@ void gk_species_kinetic_read_distf_from_file(
 void gk_species_source_init(
   struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_source *src
 );
+
+/**
+ * Schedule the next output of a static source after its shape changes.
+ *
+ * @param src Species source.
+ */
+void gk_species_source_refresh_output(struct gk_source *src);
 
 /**
  * Compute species applied source term.

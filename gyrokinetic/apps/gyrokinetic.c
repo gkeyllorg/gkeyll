@@ -1363,7 +1363,8 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
     if (gk->species[i].collisions.is_implicit) {
       has_implicit_coll_scheme = true;
     }
-    has_orbit_average |= gk->species[i].orbit_average.enabled;
+    has_orbit_average |= gk->species[i].orbit_average.enabled ||
+                         gk->species[i].orbit_average.distribute_source;
   }
   for (int i = 0; i < neuts; ++i) {
     if (gk->neut_species[i].collisions.is_implicit) {
