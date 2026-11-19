@@ -561,6 +561,123 @@ scaled_moment_diff_lw(lua_State *L)
   return 2;
 }
 
+// Compare Vlasov vector moments against a global baseline density/thermal scale.
+static int
+scaled_vlasov_moment_diff_lw(lua_State *L)
+{
+  struct gkyl_array *b = (*(struct array_lw **)luaL_checkudata(L, 1, ARRAY_METATABLE_NM))->arr;
+  struct gkyl_array *c = (*(struct array_lw **)luaL_checkudata(L, 2, ARRAY_METATABLE_NM))->arr;
+  const char *kind = luaL_checkstring(L, 3);
+  double tol = luaL_checknumber(L, 4), abs_tol = luaL_checknumber(L, 5);
+  struct gkyl_array *m0 = (*(struct array_lw **)luaL_checkudata(L, 6, ARRAY_METATABLE_NM))->arr;
+  struct gkyl_array *energy =
+    lua_isnoneornil(L, 7) ? NULL :
+                            (*(struct array_lw **)luaL_checkudata(L, 7, ARRAY_METATABLE_NM))->arr;
+  struct gkyl_array *lte = lua_isnoneornil(L, 8) ?
+                             NULL :
+                             (*(struct array_lw **)luaL_checkudata(L, 8, ARRAY_METATABLE_NM))->arr;
+  struct rect_grid_lw **grid = luaL_checkudata(L, 9, RECT_GRID_METATABLE_NM);
+  bool is_lte = strcmp(kind, "LTE") == 0;
+  if ((!is_lte && strcmp(kind, "M1") != 0) || b->type != GKYL_DOUBLE || c->type != GKYL_DOUBLE ||
+      m0->type != GKYL_DOUBLE || b->size != c->size || b->size != m0->size ||
+      b->ncomp != c->ncomp || m0->ncomp < 1) {
+    lua_pushnil(L);
+    return 1;
+  }
+  int nb = m0->ncomp, vdim = b->ncomp / nb - (is_lte ? 2 : 0);
+  if (vdim < 1 || vdim > 3 || b->ncomp != (vdim + (is_lte ? 2 : 0)) * nb ||
+      (energy && (energy->type != GKYL_DOUBLE || energy->size != b->size || energy->ncomp != nb)) ||
+      (lte && (lte->type != GKYL_DOUBLE || lte->size != b->size || lte->ncomp != (vdim + 2) * nb)
+      ) ||
+      (!is_lte && !energy && !lte)) {
+    lua_pushnil(L);
+    return 1;
+  }
+  double n = 0, p = 0, t = 0;
+  for (long i = 0; i < b->size; ++i) {
+    double n0 = *(const double *)gkyl_array_cfetch(m0, i);
+    if (!finite_double(n0)) {
+      lua_pushnil(L);
+      return 1;
+    }
+    n = fmax(n, fabs(n0));
+    if (energy) {
+      double e0 = *(const double *)gkyl_array_cfetch(energy, i);
+      if (!finite_double(e0)) {
+        lua_pushnil(L);
+        return 1;
+      }
+      p = fmax(p, e0);
+    }
+    if (lte || is_lte) {
+      const double *lv = gkyl_array_cfetch(is_lte ? b : lte, i);
+      double t0 = lv[(vdim + 1) * nb];
+      if (!finite_double(t0)) {
+        lua_pushnil(L);
+        return 1;
+      }
+      t = fmax(t, t0);
+    }
+  }
+  double basis_zero = pow(2.0, (*grid)->grid.ndim / 2.0);
+  double scale = is_lte ? sqrt(basis_zero * t) : (energy ? sqrt(n * p) : n * sqrt(t / basis_zero));
+  if (!(scale > 0) || !finite_double(scale)) {
+    lua_pushnil(L);
+    return 1;
+  }
+  bool passed = true;
+  double worst = 0;
+  for (long i = 0; i < b->size; ++i) {
+    const double *bv = gkyl_array_cfetch(b, i), *cv = gkyl_array_cfetch(c, i);
+    for (int d = 0; d < vdim; ++d) {
+      int offset = (d + (is_lte ? 1 : 0)) * nb;
+      double high_sq = 0;
+      for (int k = 0; k < nb; ++k) {
+        double diff = fabs(cv[offset + k] - bv[offset + k]);
+        if (!finite_double(bv[offset + k]) || !finite_double(cv[offset + k]) ||
+            !finite_double(diff)) {
+          lua_pushboolean(L, 0);
+          lua_pushnumber(L, infinite_double());
+          return 2;
+        }
+        if (k == 0) {
+          double ratio = diff / fmax(fabs(bv[offset]), scale);
+          worst = fmax(worst, ratio);
+          if (ratio > tol) {
+            passed = false;
+          }
+        } else {
+          high_sq += (diff / scale) * (diff / scale);
+        }
+      }
+      double ratio = sqrt(high_sq);
+      worst = fmax(worst, ratio);
+      if (ratio > tol) {
+        passed = false;
+      }
+    }
+    if (is_lte) {
+      for (int block = 0; block <= vdim + 1; block += vdim + 1) {
+        for (int k = 0; k < nb; ++k) {
+          int j = block * nb + k;
+          double diff = fabs(cv[j] - bv[j]);
+          if (!finite_double(bv[j]) || !finite_double(cv[j]) || !finite_double(diff)) {
+            lua_pushboolean(L, 0);
+            lua_pushnumber(L, infinite_double());
+            return 2;
+          }
+          if (diff > abs_tol && diff > tol * (fabs(bv[j]) + fabs(cv[j]))) {
+            passed = false;
+          }
+        }
+      }
+    }
+  }
+  lua_pushboolean(L, passed);
+  lua_pushnumber(L, worst);
+  return 2;
+}
+
 static int
 array_finite_lw(lua_State *L)
 {
@@ -823,6 +940,84 @@ scaled_integrated_m1_diff_lw(lua_State *L)
   return 2;
 }
 
+// Compare Vlasov integrated M0, vector M1, M2 records with a baseline M1 scale.
+static int
+scaled_vlasov_integrated_diff_lw(lua_State *L)
+{
+  const char *bf = luaL_checkstring(L, 1), *cf = luaL_checkstring(L, 2);
+  double tol = luaL_checknumber(L, 3), abs_tol = luaL_checknumber(L, 4);
+  struct gkyl_dynvec_etype_ncomp be = gkyl_dynvec_read_ncomp(bf);
+  struct gkyl_dynvec_etype_ncomp ce = gkyl_dynvec_read_ncomp(cf);
+  if (be.type != GKYL_DOUBLE || ce.type != GKYL_DOUBLE || be.ncomp != ce.ncomp || be.ncomp < 3 ||
+      be.ncomp > 5) {
+    lua_pushnil(L);
+    return 1;
+  }
+  int nc = be.ncomp;
+  gkyl_dynvec b = gkyl_dynvec_new(GKYL_DOUBLE, nc), c = gkyl_dynvec_new(GKYL_DOUBLE, nc);
+  bool valid = gkyl_dynvec_read(b, bf) && gkyl_dynvec_read(c, cf) &&
+               gkyl_dynvec_size(b) == gkyl_dynvec_size(c);
+  if (!valid) {
+    gkyl_dynvec_release(b);
+    gkyl_dynvec_release(c);
+    lua_pushnil(L);
+    return 1;
+  }
+  size_t count = gkyl_dynvec_size(b);
+  struct gkyl_array *ba = gkyl_array_new(GKYL_DOUBLE, nc, count ? count : 1);
+  struct gkyl_array *ca = gkyl_array_new(GKYL_DOUBLE, nc, count ? count : 1);
+  struct gkyl_array *bt = gkyl_array_new(GKYL_DOUBLE, 1, count ? count : 1);
+  struct gkyl_array *ct = gkyl_array_new(GKYL_DOUBLE, 1, count ? count : 1);
+  if (count) {
+    gkyl_dynvec_to_array(b, bt, ba);
+    gkyl_dynvec_to_array(c, ct, ca);
+  }
+  bool passed = true;
+  double worst = 0;
+  for (size_t i = 0; i < count; ++i) {
+    const double *bv = gkyl_array_cfetch(ba, i), *cv = gkyl_array_cfetch(ca, i);
+    if (!finite_double(bv[0]) || !finite_double(bv[nc - 1]) || !(bv[0] > 0) || !(bv[nc - 1] > 0)) {
+      valid = false;
+      break;
+    }
+    double scale = sqrt(bv[0]) * sqrt(bv[nc - 1]);
+    if (!(scale > 0) || !finite_double(scale)) {
+      valid = false;
+      break;
+    }
+    for (int k = 0; k < nc; ++k) {
+      double diff = fabs(cv[k] - bv[k]);
+      if (!finite_double(bv[k]) || !finite_double(cv[k]) || !finite_double(diff)) {
+        passed = false;
+        worst = infinite_double();
+        break;
+      }
+      if (k > 0 && k < nc - 1) {
+        double ratio = diff / fmax(fabs(bv[k]), scale);
+        worst = fmax(worst, ratio);
+        if (ratio > tol) {
+          passed = false;
+        }
+      } else if (diff > abs_tol && diff > tol * (fabs(bv[k]) + fabs(cv[k]))) {
+        passed = false;
+      }
+    }
+  }
+  gkyl_array_release(ba);
+  gkyl_array_release(ca);
+  gkyl_array_release(bt);
+  gkyl_array_release(ct);
+  gkyl_dynvec_release(b);
+  gkyl_dynvec_release(c);
+  if (!valid) {
+    lua_pushnil(L);
+    return 1;
+  }
+  lua_pushboolean(L, passed);
+  lua_pushnumber(L, worst);
+  return 2;
+}
+
 // G0.Zero.blockTopoCmp(f1, f2) -> bool
 // Reads two block-topology files and returns true if they are identical
 // (same ndim, num_blocks, and all per-block connection entries), false
@@ -884,6 +1079,8 @@ static struct luaL_Reg zero_array_funcs[] = {
   {"dynvecDiff", dynvec_diff_lw},
   {"scaledMomentDiff", scaled_moment_diff_lw},
   {"scaledIntegratedM1Diff", scaled_integrated_m1_diff_lw},
+  {"scaledVlasovMomentDiff", scaled_vlasov_moment_diff_lw},
+  {"scaledVlasovIntegratedDiff", scaled_vlasov_integrated_diff_lw},
   {"arrayFinite", array_finite_lw},
   {"blockTopoCmp", block_topo_cmp_lw},
   {0, 0}

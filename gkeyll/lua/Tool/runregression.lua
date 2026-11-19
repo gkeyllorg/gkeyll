@@ -1404,6 +1404,38 @@ local function scaledMomentRetry(f1, g1, a1, a2, tol)
    return passed, ratio
 end
 
+-- The rt_vlasov family uses standard or SR velocity moments. Other Vlasov
+-- Hamiltonians need their own characteristic scales.
+local function vlasovScaleEligible(path)
+   return path:match("/vlasov/creg%-accepted/[^/]+/rt_vlasov_[^/]+/") ~= nil
+end
+
+local function scaledVlasovRetry(f1, g1, a1, a2, absTol, relTol)
+   if not vlasovScaleEligible(f1) then return nil end
+   local kind, frame = f1:match("%-elc_(M1)_(%d+)%.gkyl$")
+   if not kind then kind, frame = f1:match("%-[^/]+_(M1)_(%d+)%.gkyl$") end
+   if not kind then kind, frame = f1:match("%-[^/]+_(LTEMoments)_(%d+)%.gkyl$") end
+   if not kind then return nil end
+   local function companion(name)
+      local path = f1:gsub(kind .. "_" .. frame .. "%.gkyl$", name .. "_" .. frame .. ".gkyl")
+      if path == f1 or not lfs.attributes(path) then return nil end
+      local grid, array = G0.Zero.arrayNewFromFile(path)
+      if not grid or not G0.Zero.rectGridCmp(g1, grid) then return nil end
+      return array
+   end
+   local m0 = companion("M0")
+   local sr = f1:match("/rt_vlasov_sr_[^/]+/") ~= nil
+   local energy = kind == "M1" and not sr and companion("M2") or nil
+   local lte = kind == "M1" and sr and companion("LTEMoments") or nil
+   if not m0 or (kind == "M1" and not energy and not lte) then
+      return nil, "missing or incompatible Vlasov baseline companion"
+   end
+   local passed, ratio = G0.Zero.scaledVlasovMomentDiff(
+      a1, a2, kind == "M1" and "M1" or "LTE", relTol, absTol, m0, energy, lte, g1)
+   if passed == nil then return nil, "invalid Vlasov baseline scale or array layout" end
+   return passed, ratio
+end
+
 local function compareFiles(f1, f2, absTol, relTol)
    absTol = absTol or 1e-12
    relTol = relTol or 1e-12
@@ -1450,6 +1482,14 @@ local function compareFiles(f1, f2, absTol, relTol)
          -- relative difference is large.
          local absD, relD = diffMagnitudes(diff)
          if absD > absTol and relD > relTol then
+            if vlasovScaleEligible(f1) and f1:match("%-[^/]+%-imom%.gkyl$") then
+               local scaled, ratio = G0.Zero.scaledVlasovIntegratedDiff(f1, f2, relTol, absTol)
+               if scaled then return true end
+               if scaled == false then
+                  return false, string.format("Vlasov integrated M1 scale-aware max_ratio=%.3g", ratio)
+               end
+               verboseLog("    ... Vlasov integrated retry unavailable: invalid baseline scale or layout\n")
+            end
             if f1:find("/gyrokinetic/", 1, true) and
                f1:match("[_%-]integrated_moms%.gkyl$") and not f1:find("fdot_") then
                local scaled, ratio = G0.Zero.scaledIntegratedM1Diff(f1, f2, relTol)
@@ -1529,6 +1569,12 @@ local function compareFiles(f1, f2, absTol, relTol)
       -- large.
       local absD, relD = diffMagnitudes(diff)
       if absD > absTol and relD > relTol then
+         local vlasovScaled, vlasovRatio = scaledVlasovRetry(f1, g1, a1, a2, absTol, relTol)
+         if vlasovScaled then return true end
+         if vlasovScaled == false then
+            return false, string.format("Vlasov scale-aware max_ratio=%.3g", vlasovRatio)
+         end
+         if vlasovRatio then verboseLog("    ... Vlasov scale-aware retry unavailable: " .. vlasovRatio .. "\n") end
          local scaled, ratio = scaledMomentRetry(f1, g1, a1, a2, relTol)
          if scaled then return true end
          if scaled == false then

@@ -65,6 +65,35 @@ write_maxwellian(const char *name, double u0, double u1, double temperature)
 }
 
 static void
+write_values(const char *name, int ncomp, const double *values)
+{
+  double lower[] = {0}, upper[] = {1};
+  int cells[] = {1};
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, 1, lower, upper, cells);
+  struct gkyl_range range;
+  gkyl_range_init_from_shape(&range, 1, cells);
+  struct gkyl_array *a = gkyl_array_new(GKYL_DOUBLE, ncomp, 1);
+  memcpy(gkyl_array_fetch(a, 0), values, ncomp * sizeof(double));
+  TEST_CHECK(gkyl_grid_sub_array_write(&grid, &range, NULL, a, name) == 0);
+  gkyl_array_release(a);
+}
+
+static void
+write_vlasov_integrated(const char *name, int ncomp, double momentum, double energy)
+{
+  gkyl_dynvec v = gkyl_dynvec_new(GKYL_DOUBLE, ncomp);
+  double values[5] = {1e20, 0, 0, 0, 0};
+  for (int k = 1; k < ncomp - 1; ++k) {
+    values[k] = momentum;
+  }
+  values[ncomp - 1] = energy;
+  gkyl_dynvec_append(v, 0, values);
+  gkyl_dynvec_write(v, name);
+  gkyl_dynvec_release(v);
+}
+
+static void
 test_scale_aware_comparison(void)
 {
   char dir[] = "/tmp/gkeyll-scale-diagnostic-XXXXXX";
@@ -93,6 +122,24 @@ test_scale_aware_comparison(void)
   write_integrated("integrated-small.gkyl", 1e17);
   write_integrated("integrated-large.gkyl", 1e20);
   write_integrated("integrated-nonfinite.gkyl", nan_value);
+  write_values("vlasov-M0.gkyl", 2, (double[]){1e20, 0});
+  write_values("vlasov-M2.gkyl", 2, (double[]){1e30, 0});
+  write_values("vlasov-M1.gkyl", 4, (double[]){0, 0, 0, 0});
+  write_values("vlasov-M1-small.gkyl", 4, (double[]){1e17, 1e17, 1e17, 1e17});
+  write_values("vlasov-M1-large.gkyl", 4, (double[]){1e20, 0, 0, 0});
+  write_values("vlasov-LTE.gkyl", 8, (double[]){1e20, 0, 0, 0, 0, 0, 1e12, 0});
+  write_values("vlasov-LTE-small.gkyl", 8, (double[]){1e20, 0, 0.01, 0, 0.01, 0, 1e12, 0});
+  write_values("vlasov-LTE-large.gkyl", 8, (double[]){1e20, 0, 1, 0, 0, 0, 1e12, 0});
+  write_values("vlasov-LTE-temp.gkyl", 8, (double[]){1e20, 0, 0, 0, 0, 0, 2e12, 0});
+  write_vlasov_integrated("vlasov-imom.gkyl", 4, 0, 1e30);
+  write_vlasov_integrated("vlasov-imom-small.gkyl", 4, 1e17, 1e30);
+  write_vlasov_integrated("vlasov-imom-large.gkyl", 4, 1e20, 1e30);
+  write_vlasov_integrated("vlasov-imom-energy.gkyl", 4, 0, 2e30);
+  write_vlasov_integrated("vlasov-imom-1v.gkyl", 3, 1e17, 1e30);
+  write_vlasov_integrated("vlasov-imom-1v-base.gkyl", 3, 0, 1e30);
+  write_vlasov_integrated("vlasov-imom-3v.gkyl", 5, 1e17, 1e30);
+  write_vlasov_integrated("vlasov-imom-3v-base.gkyl", 5, 0, 1e30);
+  write_vlasov_integrated("vlasov-imom-bad.gkyl", 4, nan_value, 1e30);
 
   lua_State *L = luaL_newstate();
   luaL_openlibs(L);
@@ -130,6 +177,29 @@ test_scale_aware_comparison(void)
     "assert(not z.scaledIntegratedM1Diff('integrated-baseline.gkyl','integrated-large.gkyl',1e-7))\n"
     "local ok,ratio=z.scaledIntegratedM1Diff('integrated-baseline.gkyl','integrated-nonfinite.gkyl',1e-7)\n"
     "assert(ok==false and ratio==math.huge)\n"
+    "local _,vn=z.arrayNewFromFile('vlasov-M0.gkyl')\n"
+    "local _,ve=z.arrayNewFromFile('vlasov-M2.gkyl')\n"
+    "local _,vb=z.arrayNewFromFile('vlasov-M1.gkyl')\n"
+    "local _,vs=z.arrayNewFromFile('vlasov-M1-small.gkyl')\n"
+    "local _,vl=z.arrayNewFromFile('vlasov-M1-large.gkyl')\n"
+    "local _,vt=z.arrayNewFromFile('vlasov-LTE.gkyl')\n"
+    "local _,vts=z.arrayNewFromFile('vlasov-LTE-small.gkyl')\n"
+    "local _,vtl=z.arrayNewFromFile('vlasov-LTE-large.gkyl')\n"
+    "local _,vtt=z.arrayNewFromFile('vlasov-LTE-temp.gkyl')\n"
+    "assert(z.scaledVlasovMomentDiff(vb,vs,'M1',1e-7,1e-7,vn,ve,nil,g))\n"
+    "assert(not z.scaledVlasovMomentDiff(vb,vl,'M1',1e-7,1e-7,vn,ve,nil,g))\n"
+    "assert(z.scaledVlasovMomentDiff(vb,vs,'M1',1e-7,1e-7,vn,nil,vt,g))\n"
+    "assert(z.scaledVlasovMomentDiff(vb,vs,'M1',1e-7,1e-7,vn,nil,nil,g)==nil)\n"
+    "assert(z.scaledVlasovMomentDiff(vt,vts,'LTE',1e-7,1e-7,vn,nil,nil,g))\n"
+    "assert(not z.scaledVlasovMomentDiff(vt,vtl,'LTE',1e-7,1e-7,vn,nil,nil,g))\n"
+    "assert(not z.scaledVlasovMomentDiff(vt,vtt,'LTE',1e-7,1e-7,vn,nil,nil,g))\n"
+    "assert(z.scaledVlasovIntegratedDiff('vlasov-imom.gkyl','vlasov-imom-small.gkyl',1e-7,1e-7))\n"
+    "assert(not z.scaledVlasovIntegratedDiff('vlasov-imom.gkyl','vlasov-imom-large.gkyl',1e-7,1e-7))\n"
+    "assert(not z.scaledVlasovIntegratedDiff('vlasov-imom.gkyl','vlasov-imom-energy.gkyl',1e-7,1e-7))\n"
+    "assert(z.scaledVlasovIntegratedDiff('vlasov-imom-1v-base.gkyl','vlasov-imom-1v.gkyl',1e-7,1e-7))\n"
+    "assert(z.scaledVlasovIntegratedDiff('vlasov-imom-3v-base.gkyl','vlasov-imom-3v.gkyl',1e-7,1e-7))\n"
+    "local vok,vr=z.scaledVlasovIntegratedDiff('vlasov-imom.gkyl','vlasov-imom-bad.gkyl',1e-7,1e-7)\n"
+    "assert(vok==false and vr==math.huge)\n"
   );
   TEST_CHECK(status == 0);
   TEST_MSG("%s", status ? lua_tostring(L, -1) : "");
@@ -152,6 +222,18 @@ test_scale_aware_comparison(void)
   remove("integrated-small.gkyl");
   remove("integrated-large.gkyl");
   remove("integrated-nonfinite.gkyl");
+  const char *vlasov_files[] = {"vlasov-M0.gkyl",           "vlasov-M2.gkyl",
+                                "vlasov-M1.gkyl",           "vlasov-M1-small.gkyl",
+                                "vlasov-M1-large.gkyl",     "vlasov-LTE.gkyl",
+                                "vlasov-LTE-small.gkyl",    "vlasov-LTE-large.gkyl",
+                                "vlasov-LTE-temp.gkyl",     "vlasov-imom.gkyl",
+                                "vlasov-imom-small.gkyl",   "vlasov-imom-large.gkyl",
+                                "vlasov-imom-energy.gkyl",  "vlasov-imom-1v.gkyl",
+                                "vlasov-imom-1v-base.gkyl", "vlasov-imom-3v.gkyl",
+                                "vlasov-imom-3v-base.gkyl", "vlasov-imom-bad.gkyl"};
+  for (size_t i = 0; i < sizeof(vlasov_files) / sizeof(vlasov_files[0]); ++i) {
+    remove(vlasov_files[i]);
+  }
   TEST_CHECK(chdir(old) == 0);
   TEST_CHECK(rmdir(dir) == 0);
 }
