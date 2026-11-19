@@ -681,13 +681,8 @@ twistshift_dg_3x2v_fig6_wcells(
 
   struct gkyl_array *marr = mkarr(use_gpu, num_mom, local_ext_conf.volume);
   double *red_integ_mom_skin, *red_integ_mom_ghost;
-  if (use_gpu) {
-    red_integ_mom_skin = gkyl_cu_malloc(sizeof(double[num_mom]));
-    red_integ_mom_ghost = gkyl_cu_malloc(sizeof(double[num_mom]));
-  } else {
-    red_integ_mom_skin = gkyl_malloc(sizeof(double[num_mom]));
-    red_integ_mom_ghost = gkyl_malloc(sizeof(double[num_mom]));
-  }
+  red_integ_mom_skin = gkyl_calloc_hodev(use_gpu, num_mom, sizeof(double));
+  red_integ_mom_ghost = gkyl_calloc_hodev(use_gpu, num_mom, sizeof(double));
   double *red_integ_mom_skin_ho = gkyl_malloc(sizeof(double[num_mom]));
   double *red_integ_mom_ghost_ho = gkyl_malloc(sizeof(double[num_mom]));
 
@@ -811,13 +806,8 @@ twistshift_dg_3x2v_fig6_wcells(
 
   gkyl_free(red_integ_mom_skin_ho);
   gkyl_free(red_integ_mom_ghost_ho);
-  if (use_gpu) {
-    gkyl_cu_free(red_integ_mom_skin);
-    gkyl_cu_free(red_integ_mom_ghost);
-  } else {
-    gkyl_free(red_integ_mom_skin);
-    gkyl_free(red_integ_mom_ghost);
-  }
+  gkyl_free_hodev(use_gpu, red_integ_mom_skin);
+  gkyl_free_hodev(use_gpu, red_integ_mom_ghost);
   gkyl_dg_updater_moment_gyrokinetic_release(mcalc);
   gkyl_array_release(marr);
   gkyl_gk_geometry_release(gk_geom);
@@ -1880,13 +1870,8 @@ twistshift_dg_3x2v_fig11_wcells(
 
   struct gkyl_array *marr = mkarr(use_gpu, num_mom, local_ext_conf.volume);
   double *red_integ_mom_skin, *red_integ_mom_ghost;
-  if (use_gpu) {
-    red_integ_mom_skin = gkyl_cu_malloc(sizeof(double[num_mom]));
-    red_integ_mom_ghost = gkyl_cu_malloc(sizeof(double[num_mom]));
-  } else {
-    red_integ_mom_skin = gkyl_malloc(sizeof(double[num_mom]));
-    red_integ_mom_ghost = gkyl_malloc(sizeof(double[num_mom]));
-  }
+  red_integ_mom_skin = gkyl_calloc_hodev(use_gpu, num_mom, sizeof(double));
+  red_integ_mom_ghost = gkyl_calloc_hodev(use_gpu, num_mom, sizeof(double));
   double *red_integ_mom_skin_ho = gkyl_malloc(sizeof(double[num_mom]));
   double *red_integ_mom_ghost_ho = gkyl_malloc(sizeof(double[num_mom]));
 
@@ -2045,13 +2030,8 @@ twistshift_dg_3x2v_fig11_wcells(
 
   gkyl_free(red_integ_mom_skin_ho);
   gkyl_free(red_integ_mom_ghost_ho);
-  if (use_gpu) {
-    gkyl_cu_free(red_integ_mom_skin);
-    gkyl_cu_free(red_integ_mom_ghost);
-  } else {
-    gkyl_free(red_integ_mom_skin);
-    gkyl_free(red_integ_mom_ghost);
-  }
+  gkyl_free_hodev(use_gpu, red_integ_mom_skin);
+  gkyl_free_hodev(use_gpu, red_integ_mom_ghost);
   gkyl_dg_updater_moment_gyrokinetic_release(mcalc);
   gkyl_array_release(marr);
   gkyl_gk_geometry_release(gk_geom);

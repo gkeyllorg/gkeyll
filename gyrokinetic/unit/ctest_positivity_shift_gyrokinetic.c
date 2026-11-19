@@ -236,11 +236,7 @@ test_1x2v(int poly_order, bool use_gpu)
   int num_mom = gkyl_dg_updater_moment_gyrokinetic_num_mom(int_mom_up);
   struct gkyl_array *intmom_grid = mkarr(use_gpu, num_mom, confLocal_ext.volume);
   double *red_intmom;
-  if (use_gpu) {
-    red_intmom = gkyl_cu_malloc(sizeof(double[2 + vdim]));
-  } else {
-    red_intmom = gkyl_malloc(sizeof(double[2 + vdim]));
-  }
+  red_intmom = gkyl_calloc_hodev(use_gpu, 2 + vdim, sizeof(double));
 
   gkyl_dg_updater_moment_gyrokinetic_advance(int_mom_up, &local, &confLocal, distf, intmom_grid);
   gkyl_array_reduce_range(red_intmom, intmom_grid, GKYL_SUM, &confLocal);
@@ -333,10 +329,8 @@ test_1x2v(int poly_order, bool use_gpu)
   if (use_gpu) {
     gkyl_array_release(bmag_ho);
     gkyl_array_release(distf_ho);
-    gkyl_cu_free(red_intmom);
-  } else {
-    gkyl_free(red_intmom);
   }
+  gkyl_free_hodev(use_gpu, red_intmom);
   gkyl_proj_on_basis_release(proj_bmag);
   gkyl_proj_on_basis_release(proj_distf);
   gkyl_dg_updater_moment_gyrokinetic_release(int_mom_up);

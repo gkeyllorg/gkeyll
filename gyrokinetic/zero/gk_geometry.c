@@ -1069,6 +1069,7 @@ gkyl_gk_geometry_write_efit(
   gkyl_grid_sub_array_write(&efit->rzgrid, &efit->rzlocal, mt, efit->psizr, file_name);
 
   gkyl_msgpack_data_release(mt);
+  gkyl_efit_release(efit);
 }
 
 void

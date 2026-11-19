@@ -605,9 +605,8 @@ init_maxwellian_gaussian(
 
   // Build the integrant Jacobian * s(x), to normalize the shape function, and integrate it.
   struct gkyl_array *integrant = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-  double *integral = app->use_gpu ? gkyl_cu_malloc(sizeof(double)) : gkyl_malloc(sizeof(double));
-  double *red_integral = app->use_gpu ? gkyl_cu_malloc(sizeof(double)) :
-                                        gkyl_malloc(sizeof(double));
+  double *integral = gkyl_calloc_hodev(app->use_gpu, 1, sizeof(double));
+  double *red_integral = gkyl_calloc_hodev(app->use_gpu, 1, sizeof(double));
   struct gkyl_array_integrate *int_op = gkyl_array_integrate_new(
     &app->grid, &app->basis, 1, GKYL_ARRAY_INTEGRATE_OP_NONE, app->use_gpu
   );
@@ -622,13 +621,11 @@ init_maxwellian_gaussian(
 
   if (app->use_gpu) {
     gkyl_cu_memcpy(red_integral_ho, red_integral, sizeof(double), GKYL_CU_MEMCPY_D2H);
-    gkyl_cu_free(integral);
-    gkyl_cu_free(red_integral);
   } else {
     memcpy(red_integral_ho, red_integral, sizeof(double));
-    gkyl_free(integral);
-    gkyl_free(red_integral);
   }
+  gkyl_free_hodev(app->use_gpu, integral);
+  gkyl_free_hodev(app->use_gpu, red_integral);
   gkyl_array_release(integrant);
   gkyl_array_integrate_release(int_op);
   // Scale the shape configuration function
