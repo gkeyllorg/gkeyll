@@ -61,6 +61,74 @@ write output.
 
 ## Unified local command
 
+### Regression worker budget
+
+`gkeyll runregression run --jobs N` uses a worker pool for C compilation and
+test execution. Each finished job releases its slots immediately so the next
+test can start without waiting for a whole batch. Compilation finishes before
+execution starts, with each compiler invocation limited to `make -j1`.
+
+Serial tests use one slot; `--parallel` tests reserve one slot per MPI rank.
+For example, `--parallel --jobs 12` can launch a four-rank test and an eight-rank
+test concurrently, or three four-rank tests.
+A test requiring more ranks than the budget runs alone. The default remains
+`--jobs 1`; `--jobs 0` detects the available CPU count.
+
+Worker slots only account for concurrency within one runregression invocation.
+They do not assign CPU IDs or reserve physical cores, and separate invocations
+have independent budgets. The MPI launcher controls CPU and GPU placement;
+GPU jobs share the available devices. Set the budget to fit your allocation,
+and configure the launcher for concurrent tests as described below.
+
+### Concurrent MPI tests and placement
+
+Configure launcher options with `runregression configure --mpi-args`; these
+options apply to each MPI launch. Keep your existing source, prefix, results
+subdirectory, and other configuration options when configuring your suite.
+
+For Open MPI, independent `mpirun` launches can bind ranks to the same cores.
+For concurrent tests on a shared CPU allocation, disabling binding lets the
+operating system schedule ranks across the available CPUs:
+
+```sh
+gkeyll runregression configure --source-dir /path/to/gkeyll \
+  --mpiexec /path/to/openmpi/bin/mpirun --mpi-args="--bind-to none"
+gkeyll runregression run --parallel --jobs 12 check
+```
+
+`--bind-to none` does not give tests exclusive cores. Guaranteed disjoint core
+placement requires a resource manager or launcher wrapper that assigns separate
+CPU sets to concurrent tests; runregression does not allocate those sets.
+See the [Open MPI launcher documentation](https://docs.open-mpi.org/en/v5.0.10/man-openmpi/man1/mpirun.1.html).
+
+For Slurm, use `--exact` when launching concurrent steps inside an existing job
+allocation. By default, a step can consume all non-GRES resources on its nodes,
+causing another step to wait even when its rank count fits the worker budget.
+`--exact` limits each step to its requested resources:
+
+```sh
+gkeyll runregression configure --source-dir /path/to/gkeyll \
+  --mpiexec /path/to/srun --mpi-args="--exact"
+# Run inside a Slurm allocation with sufficient resources for these ranks.
+gkeyll runregression run --parallel --jobs 12 check
+```
+
+Slurm placement still depends on the allocation, site configuration, and other
+resource requests, including CPUs per task, node count, and GPUs. `--exact`
+does not guarantee that every step can start immediately. See the
+[Slurm srun documentation](https://slurm.schedmd.com/srun.html).
+
+`--timeout` measures the whole launcher invocation, including startup and time
+spent waiting for a Slurm step allocation. Waiting for runregression's own worker
+slots occurs before this timer starts.
+
+Use `--parallel --jobs 1` to serialize MPI tests when concurrent placement is
+unsuitable. Each test still launches its full manifest-defined MPI rank count;
+`--jobs 1` does not reduce it to one rank. This prevents overlap between tests
+within that invocation only.
+
+### CI client
+
 The script `gkeyll-ci.sh` provides a CLI to run, query and terminate CI. See
 
 ```sh

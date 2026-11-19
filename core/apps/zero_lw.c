@@ -19,6 +19,8 @@
 #include <lualib.h>
 #include <lauxlib.h>
 
+#include <float.h>
+#include <math.h>
 #include <string.h>
 
 struct gkyl_tool_args *
@@ -372,9 +374,47 @@ create_grid_ranges_lw(lua_State *L)
   return 2; // (range_ud, ext_range_ud)
 }
 
-/* -- G0.Zero.arrayDiff(a1_ud, a2_ud, range_ud) -> table -- */
+// Apply both tolerances to each value, not to independent file-wide extrema.
+// Keep the symmetric relative-error convention used by gkyl_array_diff.
+static bool
+array_within_tolerance(
+  const struct gkyl_array *arr1, const struct gkyl_array *arr2, const struct gkyl_range *range,
+  double abs_tol, double rel_tol
+)
+{
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, range);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(range, iter.idx);
+    const double *a1 = gkyl_array_cfetch(arr1, loc);
+    const double *a2 = gkyl_array_cfetch(arr2, loc);
+    for (int c = 0; c < arr1->ncomp; ++c) {
+      // Preserve matching nonfinite baseline diagnostics, but never let a
+      // new NaN/Inf disappear in fmin/fmax when computing error extrema.
+      if (a1[c] == a2[c] || (isnan(a1[c]) && isnan(a2[c]))) {
+        continue;
+      }
+      if (!isfinite(a1[c]) || !isfinite(a2[c])) {
+        return false;
+      }
+      double diff = fabs(a1[c] - a2[c]);
+      if (diff <= abs_tol) {
+        continue;
+      }
+      double scale = fabs(a1[c]) + fabs(a2[c]);
+      double rel_diff = a1[c] == 0 || a2[c] == 0 || scale < DBL_MIN ? diff :
+                                                                      diff / fmin(scale, DBL_MAX);
+      if (rel_diff > rel_tol) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+/* -- G0.Zero.arrayDiff(a1_ud, a2_ud, range_ud [, abs_tol, rel_tol]) -> table -- */
 // Returned table has fields: is_compatible, max_abs_diff, min_abs_diff,
-//                             max_rel_diff, min_rel_diff.
+//                             max_rel_diff, min_rel_diff, within_tolerance.
 static int
 array_diff_lw(lua_State *L)
 {
@@ -382,9 +422,19 @@ array_diff_lw(lua_State *L)
   struct array_lw **l_a2 = luaL_checkudata(L, 2, ARRAY_METATABLE_NM);
   struct range_lw **l_r = luaL_checkudata(L, 3, RANGE_METATABLE_NM);
 
+  double abs_tol = luaL_optnumber(L, 4, 1e-12);
+  double rel_tol = luaL_optnumber(L, 5, 1e-12);
+  luaL_argcheck(L, isfinite(abs_tol) && abs_tol >= 0, 4, "invalid absolute tolerance");
+  luaL_argcheck(L, isfinite(rel_tol) && rel_tol >= 0, 5, "invalid relative tolerance");
   struct gkyl_array_diff diff = gkyl_array_diff((*l_a1)->arr, (*l_a2)->arr, &(*l_r)->range);
+  bool within_tol =
+    diff.is_compatible &&
+    array_within_tolerance((*l_a1)->arr, (*l_a2)->arr, &(*l_r)->range, abs_tol, rel_tol);
 
   lua_newtable(L);
+
+  lua_pushboolean(L, within_tol);
+  lua_setfield(L, -2, "within_tolerance");
 
   lua_pushboolean(L, diff.is_compatible);
   lua_setfield(L, -2, "is_compatible");
@@ -427,7 +477,7 @@ dynvec_incompat(lua_State *L)
   return 1;
 }
 
-// G0.Zero.dynvecDiff(f1, f2) -> table
+// G0.Zero.dynvecDiff(f1, f2 [, abs_tol, rel_tol]) -> table
 // Reads two dynvector files, compares their data payloads, and returns a
 // table with the same fields as arrayDiff plus two informational timestamp
 // fields (tm_max_abs_diff, tm_min_abs_diff).  Timestamp differences are
@@ -438,6 +488,10 @@ dynvec_diff_lw(lua_State *L)
 {
   const char *f1 = luaL_checkstring(L, 1);
   const char *f2 = luaL_checkstring(L, 2);
+  double abs_tol = luaL_optnumber(L, 3, 1e-12);
+  double rel_tol = luaL_optnumber(L, 4, 1e-12);
+  luaL_argcheck(L, isfinite(abs_tol) && abs_tol >= 0, 3, "invalid absolute tolerance");
+  luaL_argcheck(L, isfinite(rel_tol) && rel_tol >= 0, 4, "invalid relative tolerance");
 
   // Read metadata (fast: header only, no data allocation).
   struct gkyl_dynvec_etype_ncomp enc1 = gkyl_dynvec_read_ncomp(f1);
@@ -493,6 +547,8 @@ dynvec_diff_lw(lua_State *L)
     lua_newtable(L);
     lua_pushboolean(L, 1);
     lua_setfield(L, -2, "is_compatible");
+    lua_pushboolean(L, 1);
+    lua_setfield(L, -2, "within_tolerance");
     lua_pushnumber(L, 0.0);
     lua_setfield(L, -2, "max_abs_diff");
     lua_pushnumber(L, 0.0);
@@ -527,6 +583,7 @@ dynvec_diff_lw(lua_State *L)
 
   struct gkyl_array_diff ddiff = gkyl_array_diff(da1, da2, &rng);
   struct gkyl_array_diff tdiff = gkyl_array_diff(tm1, tm2, &rng);
+  bool within_tol = ddiff.is_compatible && array_within_tolerance(da1, da2, &rng, abs_tol, rel_tol);
 
   gkyl_array_release(tm1);
   gkyl_array_release(tm2);
@@ -534,6 +591,9 @@ dynvec_diff_lw(lua_State *L)
   gkyl_array_release(da2);
 
   lua_newtable(L);
+
+  lua_pushboolean(L, within_tol);
+  lua_setfield(L, -2, "within_tolerance");
 
   lua_pushboolean(L, ddiff.is_compatible);
   lua_setfield(L, -2, "is_compatible");
