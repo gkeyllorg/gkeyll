@@ -343,6 +343,127 @@ test_reduce_dg_range_ho()
   test_reduce_dg_range(false);
 }
 
+static void
+test_reduce_dg_edges(bool use_gpu, bool pinned)
+{
+  // Check DG reductions across multiple blocks, partial blocks and parent-strided
+  // subranges, with ghosts, repeated output reuse and empty selections.
+  struct gkyl_basis basis_ho;
+  gkyl_cart_modal_serendip(&basis_ho, 2, 1);
+
+  struct gkyl_basis *basis = &basis_ho;
+  if (use_gpu) {
+    basis = gkyl_cu_malloc(sizeof(*basis));
+    gkyl_cart_modal_serendip_cu_dev(basis, 2, 1);
+  }
+
+  int upper = 2 * GKYL_DEFAULT_NUM_THREADS + 2;
+
+  struct gkyl_range parent, local, empty;
+  gkyl_range_init(&parent, 2, (int[]){-2, 4}, (int[]){upper + 2, 8});
+  gkyl_sub_range_init(&local, &parent, (int[]){0, 5}, (int[]){upper, 7});
+  gkyl_sub_range_init(&empty, &parent, (int[]){0, 5}, (int[]){-1, 7});
+
+  struct gkyl_array *arr_ho = gkyl_array_new(GKYL_DOUBLE, 2 * basis_ho.num_basis, parent.volume);
+  struct gkyl_array *arr = use_gpu ?
+                             gkyl_array_cu_dev_new(GKYL_DOUBLE, arr_ho->ncomp, arr_ho->size) :
+                             gkyl_array_acquire(arr_ho);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &parent);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&parent, iter.idx);
+    double *coeff = gkyl_array_fetch(arr_ho, loc);
+    bool interior = gkyl_range_contains_idx(&local, iter.idx);
+    for (int comp = 0; comp < 2; ++comp) {
+      double base = interior ? 1 + 0.01 * loc : (loc % 2 ? -1e4 : 1e4);
+      coeff[4 * comp] = 2 * (comp + 1) * base;
+      coeff[4 * comp + 1] = 0.3 * (comp + 1);
+      coeff[4 * comp + 2] = -0.2 * (comp + 1);
+      coeff[4 * comp + 3] = 0.1;
+    }
+  }
+
+  gkyl_array_copy(arr, arr_ho);
+  double result_ho;
+  double *result =
+    use_gpu ? (pinned ? gkyl_cu_malloc_host(sizeof(double)) : gkyl_cu_malloc(sizeof(double))) :
+              &result_ho;
+
+  const enum gkyl_array_op ops[] = {GKYL_MIN, GKYL_MAX, GKYL_SUM};
+  for (int selection = 0; selection < 4; ++selection) {
+    const struct gkyl_range *range = selection == 0 ? &parent : selection == 1 ? &local : &empty;
+
+    // Only the host size is consulted for empty whole-array reductions.
+    struct gkyl_array empty_arr = *arr;
+    empty_arr.size = 0;
+
+    for (int comp = 0; comp < 2; ++comp) {
+      double expected[] = {DBL_MAX, -DBL_MAX, 0};
+      gkyl_range_iter_init(&iter, range);
+      while (gkyl_range_iter_next(&iter)) {
+        const double *coeff = gkyl_array_cfetch(arr_ho, gkyl_range_idx(range, iter.idx));
+        for (int node = 0; node < 4; ++node) {
+          double coord[] = {gkyl_gauss_ordinates[2][node % 2], gkyl_gauss_ordinates[2][node / 2]};
+          double value = basis_ho.eval_expand(coord, coeff + comp * basis_ho.num_basis);
+          expected[0] = fmin(expected[0], value);
+          expected[1] = fmax(expected[1], value);
+          expected[2] += value;
+        }
+      }
+
+      for (int repeat = 0; repeat < 3; ++repeat) {
+        for (int operation = 0; operation < 3; ++operation) {
+          result_ho = 123.0 + repeat;
+          if (use_gpu && !pinned) {
+            gkyl_cu_memcpy(result, &result_ho, sizeof(double), GKYL_CU_MEMCPY_H2D);
+          } else {
+            *result = result_ho;
+          }
+          if (selection == 0 || selection == 3) {
+            gkyl_array_dg_reducec(
+              result, selection == 3 ? &empty_arr : arr, comp, ops[operation], basis
+            );
+          } else {
+            gkyl_array_dg_reducec_range(result, arr, comp, ops[operation], basis, range);
+          }
+          if (use_gpu && !pinned) {
+            gkyl_cu_memcpy(&result_ho, result, sizeof(double), GKYL_CU_MEMCPY_D2H);
+          } else {
+            result_ho = *result;
+          }
+          double target = expected[operation];
+          TEST_CHECK(
+            selection >= 2 ? result_ho == target :
+                             fabs(result_ho - target) <= 2e-12 * fmax(1.0, fabs(target))
+          );
+          TEST_MSG(
+            "selection=%d component=%d op=%d repeat=%d pinned=%d: %.17g != %.17g", selection, comp,
+            operation, repeat, pinned, result_ho, target
+          );
+        }
+      }
+    }
+  }
+
+  gkyl_array_release(arr);
+  gkyl_array_release(arr_ho);
+  if (use_gpu) {
+    gkyl_cart_modal_basis_release_cu(basis);
+    if (pinned) {
+      gkyl_cu_free_host(result);
+    } else {
+      gkyl_cu_free(result);
+    }
+  }
+}
+
+static void
+test_reduce_dg_edges_ho(void)
+{
+  test_reduce_dg_edges(false, false);
+}
+
 // CUDA specific tests
 #ifdef GKYL_HAVE_CUDA
 
@@ -358,12 +479,20 @@ test_reduce_dg_range_dev()
   test_reduce_dg_range(true);
 }
 
+static void
+test_reduce_dg_edges_dev()
+{
+  test_reduce_dg_edges(true, false);
+  test_reduce_dg_edges(true, true);
+}
 #endif
 
 TEST_LIST = {
+  {"array_reduce_dg_edges_ho", test_reduce_dg_edges_ho},
   {"array_reduce_dg_ho", test_reduce_dg_ho},
   {"array_reduce_dg_range_ho", test_reduce_dg_range_ho},
 #ifdef GKYL_HAVE_CUDA
+  {"array_reduce_dg_edges_dev", test_reduce_dg_edges_dev},
   {"array_reduce_dg_dev", test_reduce_dg_dev},
   {"array_reduce_dg_range_dev", test_reduce_dg_range_dev},
 #endif
