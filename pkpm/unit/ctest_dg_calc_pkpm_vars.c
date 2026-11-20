@@ -216,9 +216,11 @@ test_source_1x_p1()
   struct gkyl_array *qmem = mkarr(8 * nb, local_ext.volume);
   struct gkyl_array *euler = mkarr(5 * nb, local_ext.volume);
   struct gkyl_array *rhs = mkarr(5 * nb, local_ext.volume);
+  struct gkyl_array *omega_p_sq = mkarr(1, local_ext.volume);
+  struct gkyl_array *cflrate = mkarr(1, local_ext.volume);
 
   // Choose B along z only, E along x only, so source = rho*E + rhou x B.
-  double rho = 3.0;
+  double rho = 3.0, energy = 10.0;
   double Ex = 2.0, Ey = 0.0, Ez = 0.0;
   double Bx = 0.0, By = 0.0, Bz = 5.0;
   double rhoux = 1.0, rhouy = 4.0, rhouz = -2.0;
@@ -236,9 +238,14 @@ test_source_1x_p1()
   set_const_block(euler, 1, nb, rhoux);
   set_const_block(euler, 2, nb, rhouy);
   set_const_block(euler, 3, nb, rhouz);
+  set_const_block(euler, 4, nb, energy);
 
+  // Plasma frequency below the rate of the force; the CFL rate starts below both.
+  double omega_p = 2.0;
+  gkyl_array_clear(omega_p_sq, omega_p * omega_p);
+  gkyl_array_clear(cflrate, 1.0);
   gkyl_array_clear(rhs, 0.0);
-  gkyl_dg_calc_pkpm_vars_source(up, &local, qmem, euler, rhs);
+  gkyl_dg_calc_pkpm_vars_source(up, &local, qmem, omega_p_sq, euler, cflrate, rhs);
 
   // Expected Lorentz-force cell-average source:
   //   out_x = rho*Ex + (rhouy*Bz - rhouz*By)
@@ -262,6 +269,41 @@ test_source_1x_p1()
     TEST_CHECK(gkyl_compare(o[4 * nb] / s2, sE, 1e-12));
   }
 
+  // Rate of the source: the larger of omega_p + |q/m B| and sqrt(2 |f|^2/(rho e)), and the CFL
+  // rate is raised to it only where it is larger.
+  double e_int = energy - 0.5 * (rhoux * rhoux + rhouy * rhouy + rhouz * rhouz) / rho;
+  double rate_accel = sqrt(2.0 * (sx * sx + sy * sy + sz * sz) / (rho * e_int));
+  double rate_freq = omega_p + sqrt(Bx * Bx + By * By + Bz * Bz);
+  TEST_CHECK(rate_accel > rate_freq);
+  gkyl_range_iter_init(&iter, &local);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&local, iter.idx);
+    const double *c = gkyl_array_cfetch(cflrate, loc);
+    TEST_CHECK(gkyl_compare(c[0], rate_accel, 1e-12));
+  }
+  omega_p = 7.0;
+  gkyl_array_clear(omega_p_sq, omega_p * omega_p);
+  gkyl_array_clear(cflrate, 1.0);
+  gkyl_dg_calc_pkpm_vars_source(up, &local, qmem, omega_p_sq, euler, cflrate, rhs);
+  rate_freq = omega_p + sqrt(Bx * Bx + By * By + Bz * Bz);
+  TEST_CHECK(rate_freq > rate_accel);
+  gkyl_array_clear(cflrate, 100.0);
+  gkyl_range_iter_init(&iter, &local);
+  gkyl_range_iter_next(&iter);
+  double *c_first = gkyl_array_fetch(cflrate, gkyl_range_idx(&local, iter.idx));
+  c_first[0] = 1.0;
+  gkyl_dg_calc_pkpm_vars_source(up, &local, qmem, omega_p_sq, euler, cflrate, rhs);
+  gkyl_range_iter_init(&iter, &local);
+  bool is_first = true;
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&local, iter.idx);
+    const double *c = gkyl_array_cfetch(cflrate, loc);
+    TEST_CHECK(gkyl_compare(c[0], is_first ? rate_freq : 100.0, 1e-12));
+    is_first = false;
+  }
+
+  gkyl_array_release(cflrate);
+  gkyl_array_release(omega_p_sq);
   gkyl_array_release(rhs);
   gkyl_array_release(euler);
   gkyl_array_release(qmem);

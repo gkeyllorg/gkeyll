@@ -5,12 +5,13 @@
 // T_perp/T = 0.8. The source of the first has T_Q = 10 (heating, T_Q/T = 10 initially) and that of
 // the second T_Q = 0.1 (cooling). A static magnetic field along x sets the field direction. Source
 // rate 1, run for 5 relaxation times.
-// Density and momentum are conserved to round-off and the constraints stay at [1, 0, 1]. The
-// temperature follows T_Q + (T_0 - T_Q) exp(-nu_Q t): 9.9394 and 0.10606 at t = 5, with T - T_Q
-// decaying at rate 1.0000. The pressure anisotropy p_par - p_perp decays at rate 1.0000 for both
-// species, although the normalized distributions relax at nu_Q T_Q/T. The explicit time step is
-// limited by nu_Q T_Q/T (10 at the start of the heated species), where the anisotropy of that
-// species departs from the exponential by 3.7e-4, third order in the time step.
+// Figures of merit (2 x 48 cells, to t = 5): density and momentum are conserved to round-off and
+// the constraints stay at [1, 0, 1]. The temperature follows T_Q + (T_0 - T_Q) exp(-nu_Q t): 9.9394
+// and 0.10606 at t = 5, with T - T_Q decaying at rate 1.0000. The pressure anisotropy p_par -
+// p_perp decays at rate 1.0000 for both species, although the normalized distributions relax at
+// nu_Q T_Q/T. The explicit time step is limited by nu_Q T_Q/T (10 at the start of the heated
+// species), where the anisotropy of that species departs from the exponential by 3.7e-4, third
+// order in the time step.
 
 #include <math.h>
 #include <stdio.h>

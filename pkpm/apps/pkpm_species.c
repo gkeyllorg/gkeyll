@@ -1238,7 +1238,9 @@ pkpm_fluid_species_rhs(
       gkyl_array_accumulate_range(fl->qmem, qbym, app->field->ext_em, &app->local);
     }
 
-    gkyl_dg_calc_pkpm_vars_source(fl->calc_pkpm_vars, &app->local, fl->qmem, fluidin, rhs);
+    gkyl_dg_calc_pkpm_vars_source(
+      fl->calc_pkpm_vars, &app->local, fl->qmem, app->src_omega_p_sq, fluidin, fl->cflrate, rhs
+    );
   }
 
   tm = gkyl_wall_clock();

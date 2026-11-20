@@ -7,13 +7,14 @@
 -- a M, the reduced moments of f = f_M (1 + a v_y (v_perp^2/2 - 2)), a perpendicular heat flux with
 -- no perpendicular drift. Collision frequency 50, run for 25 collision times in 10 steps, with nu
 -- dt = 2.62 (2.01 in the last two).
--- The harmonic moments are w integrals of the M0_perp and N_perp blocks of the distribution frames
--- (no moment output carries them); the 10 frames sample the decay at their step times. The
--- relaxation takes one backward-Euler step in each SSP-RK3 stage, over the time weight of the
--- stage, so with z = nu dt a step multiplies each harmonic moment by R(z) = [1/3 + (2/3) (3/4 +
--- (1/4)/(1 + z))/(1 + z/4)]/(1 + 2 z/3). int w M0_y dw, int w N_y dw and int N_y dw follow the
--- product of R(nu dt) over the steps to 5e-15 (relative) at every frame, down to 1.0367e-6 of their
--- initial values (the exact exponential would give 1.4e-11). int M0_perp dw = 0 holds to round-off.
+-- Figures of merit (2 x 32 cells, to t = 0.5): the harmonic moments are w integrals of the M0_perp
+-- and N_perp blocks of the distribution frames (no moment output carries them); the 10 frames
+-- sample the decay at their step times. The relaxation takes one backward-Euler step in each
+-- SSP-RK3 stage, over the time weight of the stage, so with z = nu dt a step multiplies each
+-- harmonic moment by R(z) = [1/3 + (2/3) (3/4 + (1/4)/(1 + z))/(1 + z/4)]/(1 + 2 z/3). int w M0_y
+-- dw, int w N_y dw and int N_y dw follow the product of R(nu dt) over the steps to 5e-15 (relative)
+-- at every frame, down to 1.0367e-6 of their initial values (the exact exponential would give
+-- 1.4e-11). int M0_perp dw = 0 holds to round-off.
 local PKPM = G0.PKPM
 
 -- Mathematical constants (dimensionless).

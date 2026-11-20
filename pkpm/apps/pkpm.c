@@ -277,10 +277,6 @@ gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm)
     gkyl_eval_on_nodes_release(ev_c2p);
   }
 
-  // create geometry object
-  app->geom =
-    gkyl_wave_geom_new(&app->grid, &app->local_ext, app->mapc2p, app->c2p_ctx, app->use_gpu);
-
   // the PKPM system always has a field, which defines the local magnetic field direction
   app->field = pkpm_field_new(pkpm, app);
 
@@ -317,10 +313,14 @@ gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm)
   app->op_split_dt_prev = 0.0;
   app->op_split_dt_suggested = 0.0;
   app->op_split_synced = false;
+  app->src_omega_p_sq = 0;
   if (app->use_explicit_sources) {
     // If fluid-EM field coupling is explicit,
     // we use a pure explicit SSP RK3 method.
+    // Its time-step resolves the plasma and cyclotron frequencies.
     app->update_func = pkpm_update_explicit_ssp_rk3;
+    app->src_omega_p_sq = mkarr(app->use_gpu, 1, app->local_ext.volume);
+    app->src_rho_avg = mkarr(app->use_gpu, 1, app->local_ext.volume);
   } else {
     // By default: a staggered (Strang) operator split treats the
     // fluid-EM field coupling implicitly.
@@ -1826,11 +1826,14 @@ gkyl_pkpm_app_release(gkyl_pkpm_app *app)
     }
     gkyl_array_release(app->op_split_em);
   }
+  if (app->src_omega_p_sq) {
+    gkyl_array_release(app->src_omega_p_sq);
+    gkyl_array_release(app->src_rho_avg);
+  }
 
   gkyl_comm_release(app->comm);
   gkyl_rect_decomp_release(app->decomp);
 
-  gkyl_wave_geom_release(app->geom);
   gkyl_vlasov_position_map_release(app->pos_map);
   if (app->conf_nodal) {
     gkyl_dg_conf_nodal_release(app->conf_nodal);

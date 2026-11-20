@@ -1,14 +1,15 @@
 -- Two-stream instability with weak LBO self-collisions with the PKPM system of equations (1x,
--- normalized parallel velocity w = v_par/xi), the collisional variant of rt_pkpm_twostream_1x. Two
--- counter-streaming Maxwellian electron beams (drift +-4 vt, n0/2 each, lambda_D = 1) on a
--- neutralizing ion background are perturbed in density at k lambda_D = 0.1 with amplitude 1e-5; the
--- electric field follows from Gauss's law. In the PKPM variables the beams are one normalized
--- distribution F(w) with two humps at w = +-4 vt/xi, xi^2 = (T_par + 2 T_perp)/(3 m) = 19/3, and
--- G = (T_perp/(m xi^2)) F. A uniform magnetic field along x sets the field direction. LBO
--- self-collisions at nu = 1e-4 omega_pe act on the electrons: the operator relaxes the two-hump F
--- towards the isotropic Maxwellian at the total temperature, so it also exchanges parallel and
--- perpendicular energy. The reference is therefore Vlasov with three velocity dimensions
--- (vlasov/creg/rt_vlasov_twostream_lbo_1x1v.c has one and relaxes to a different temperature).
+-- normalized parallel velocity w = v_par/xi), the collisional variant of
+-- rt_pkpm_twostream_explicit_1x. Two counter-streaming Maxwellian electron beams (drift +-4 vt,
+-- n0/2 each, lambda_D = 1) on a neutralizing ion background are perturbed in density at k lambda_D
+-- = 0.1 with amplitude 1e-5; the electric field follows from Gauss's law. In the PKPM variables the
+-- beams are one normalized distribution F(w) with two humps at w = +-4 vt/xi, xi^2 = (T_par + 2
+-- T_perp)/(3 m) = 19/3, and G = (T_perp/(m xi^2)) F. A uniform magnetic field along x sets the
+-- field direction. LBO self-collisions at nu = 1e-4 omega_pe act on the electrons: the operator
+-- relaxes the two-hump F towards the isotropic Maxwellian at the total temperature, so it also
+-- exchanges parallel and perpendicular energy. The reference is therefore Vlasov with three
+-- velocity dimensions (vlasov/creg/rt_vlasov_twostream_lbo_1x1v.c has one and relaxes to a
+-- different temperature).
 -- The fluid-field coupling is advanced explicitly within the SSP-RK3 step.
 -- Kinetic linear theory without collisions: a purely growing mode with gamma = 0.2770 omega_pe
 -- (cold-beam limit 0.308).

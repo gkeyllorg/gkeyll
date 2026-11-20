@@ -6,13 +6,13 @@
 -- (x < L_nu) to hold the pre-sheath plasma at that temperature; the region next to
 -- the wall is collisionless. The position map clusters the cells at the wall.
 -- Run to t = 1000/omega_pe, when the wall loss is 0.6% below its steady value.
--- Figures of merit at t = 1000 (Vlasov 1x1v in parentheses): midplane-to-wall potential drop
--- e*dphi/Te = 1.929 (1.925), ion wall flux / (n_mid c_s) = 0.506 (0.509), ion speed at the
--- wall / c_s = 1.635 (1.629), with c_s = sqrt((Te + Ti)/mi). Over the presheath (the 13 cells
--- upstream of the three sheath cells) the cell averages of the density and the flow velocity
--- of both species are within 1.1% of Vlasov (rms 0.4%), the largest difference being in the
--- cell at the sheath edge; the wall cell has the electron density 2.2% low and the electron
--- velocity 2.0% high.
+-- Figures of merit at t = 1000 (16 x 16 cells; Vlasov 1x1v in parentheses): midplane-to-wall
+-- potential drop e*dphi/Te = 1.929 (1.925), ion wall flux / (n_mid c_s) = 0.506 (0.509), ion speed
+-- at the wall / c_s = 1.635 (1.629), with c_s = sqrt((Te + Ti)/mi). Over the presheath (the 13
+-- cells upstream of the three sheath cells) the cell averages of the density and the flow velocity
+-- of both species are within 1.1% of Vlasov (rms 0.4%), the largest difference being in the cell at
+-- the sheath edge; the wall cell has the electron density 2.2% low and the electron velocity 2.0%
+-- high.
 
 local PKPM = G0.PKPM
 

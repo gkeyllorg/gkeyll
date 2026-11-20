@@ -7,9 +7,9 @@
 -- the temperature isotropic and the parallel distribution relaxes as under the one-dimensional
 -- operator. A static magnetic field along x sets the field direction. Collision frequency 1, run
 -- for 5 collision times.
--- Density, momentum and energy are conserved to round-off. Under BGK every non-Maxwellian moment
--- decays at the collision frequency: the heat flux and the kurtosis decay at rate 1.000 (Vlasov
--- 1x3v, on a coarser grid: 1.05 and 1.23).
+-- Figures of merit (2 x 72 cells, to t = 5): density, momentum and energy are conserved to
+-- round-off. Under BGK every non-Maxwellian moment decays at the collision frequency: the heat flux
+-- and the kurtosis decay at rate 1.000 (Vlasov 1x3v, on a coarser grid: 1.05 and 1.23).
 
 local PKPM = G0.PKPM
 

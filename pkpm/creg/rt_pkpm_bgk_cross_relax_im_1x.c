@@ -9,13 +9,13 @@
 // The exchange of the pair and the relaxation of the distributions take one backward-Euler step in
 // each SSP-RK3 stage, over the time weight of the stage, so with z = nu dt a step multiplies a
 // relaxing quantity by R(z) = [1/3 + (2/3) (3/4 + (1/4)/(1 + z))/(1 + z/4)]/(1 + 2 z/3).
-// Particle number is conserved exactly and the total momentum and total energy to 7e-15; the
-// constraints hold to 1e-15. Each step multiplies the drift difference by R((nu_ei + nu_ie) dt) to
-// the round-off of that difference, the temperature difference by
-// R(2 (nu_ei m_e + nu_ie m_i) / (m_e + m_i) dt) to 8e-4 (the frictional heating) and the pressure
-// anisotropy of each species by R((nu_ss + nu_sr) dt) to 5e-5 (the stages combine the distributions
-// with weights that follow the temperature change of the exchange). The temperatures end at 0.78782
-// (electrons) and 0.71260 (ions).
+// Figures of merit (2 x 48 cells, to t = 1): particle number is conserved exactly and the total
+// momentum and total energy to 7e-15; the constraints hold to 1e-15. Each step multiplies the drift
+// difference by R((nu_ei + nu_ie) dt) to the round-off of that difference, the temperature
+// difference by R(2 (nu_ei m_e + nu_ie m_i) / (m_e + m_i) dt) to 8e-4 (the frictional heating) and
+// the pressure anisotropy of each species by R((nu_ss + nu_sr) dt) to 5e-5 (the stages combine the
+// distributions with weights that follow the temperature change of the exchange). The temperatures
+// end at 0.78782 (electrons) and 0.71260 (ions).
 
 #include <math.h>
 #include <stdio.h>

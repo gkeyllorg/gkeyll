@@ -1,5 +1,31 @@
 #include <gkyl_pkpm_priv.h>
 
+// Explicit fluid-EM coupling: the plasma frequency squared of the species in each cell, the sum
+// of (q/m)^2 rho / eps0 with the cell averages of the physical stage densities (those of
+// pkpm_species_calc_self_moms), into app->src_omega_p_sq. With the cyclotron frequency of a
+// species it bounds the frequencies of its source (see gkyl_dg_calc_pkpm_vars_source), which
+// enters the time-step of its fluid. Zero for a static field, which does not respond to the
+// currents: only the gyration of each fluid remains.
+static void
+pkpm_src_omega_p_explicit(gkyl_pkpm_app *app)
+{
+  double eps0 = app->field->info.epsilon0;
+  gkyl_array_clear(app->src_omega_p_sq, 0.0);
+  if (app->field->info.is_static) {
+    return;
+  }
+  for (int i = 0; i < app->num_species; ++i) {
+    struct pkpm_species *s = &app->species[i];
+    double qbym = s->charge / s->mass;
+    gkyl_dg_calc_average_range(
+      &app->confBasis, 0, app->src_rho_avg, 0, s->fluid->fluid_no_J, app->local
+    );
+    gkyl_array_accumulate_range(
+      app->src_omega_p_sq, qbym * qbym / eps0, app->src_rho_avg, &app->local
+    );
+  }
+}
+
 // Take a forward Euler step of the PKPM system of equations with the suggested time-step dt.
 // Note: this may not be the actual time-step taken. However, the function will never
 // take a time-step larger than dt even if it is allowed by stability.
@@ -48,6 +74,12 @@ pkpm_forward_euler(
   // the boundary-flux sources) after all species' self moments, hence a separate loop.
   for (int i = 0; i < app->num_species; ++i) {
     pkpm_species_calc_coupled_vars(app, &app->species[i], fin[i], fluidin[i]);
+  }
+
+  // Explicit fluid-EM coupling: the plasma frequency of the stage, for the time-step of the
+  // fluids.
+  if (app->use_explicit_sources) {
+    pkpm_src_omega_p_explicit(app);
   }
 
   // compute RHS of pkpm equations

@@ -249,7 +249,8 @@ void vlasov_stage_implicit(gkyl_vlasov_app *app, int stage, double dt);
 struct gkyl_update_status vlasov_update_op_split(gkyl_vlasov_app *app, double dt0);
 
 // Staggered split: advance the source-updated state (fluids, E) by the half source step it lags
-// tcurr, keeping the staggered state for the next update. A no-op when there is no implicit
+// tcurr, with the limiters as after the source step of an update, keeping the staggered state
+// for the next update. A no-op when there is no implicit
 // fluid-EM coupling, when already synchronized, and before the first update.
 void vlasov_op_split_sync(gkyl_vlasov_app *app);
 

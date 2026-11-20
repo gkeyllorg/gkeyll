@@ -5,7 +5,7 @@
 -- = 3.5. The interface is flat at y = 1/4, the pressure is hydrostatic with 0.01 at the top wall,
 -- and the perturbation is the velocity of the incompressible interface mode with one wavelength. A
 -- static uniform magnetic field along y, the direction of gravity, sets the field direction b.
--- Gravity is an applied acceleration (explicit sources).
+-- Gravity is an applied acceleration in the implicit source step of the staggered operator split.
 -- Stiff collisions, nu = 7.5e6 (nu dt of order 1e4): the BGK relaxation takes one backward-Euler
 -- step in each SSP-RK3 stage, so the transport alone sets the time step.
 -- Figures of merit (12 x 24 x 8 cells) at t = 3.5, with nu dt = 8400 on average: the integral of
@@ -67,8 +67,6 @@ pkpmApp = PKPM.App.new {
   basis = basis_type,
   polyOrder = poly_order,
   timeStepper = time_stepper,
-
-  useExplicitSources = true, -- Gravity in the SSP-RK3 stages.
 
   -- Decomposition for configuration space.
   decompCuts = { 1, 1 }, -- Cuts in each coordinate direction (x-direction, y-direction).

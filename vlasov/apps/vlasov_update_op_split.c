@@ -16,9 +16,10 @@
 // (vm_fluid_em_coupling_dt).
 //
 // The positivity limiter of the fluids and the field limiter (limit_em) are applied after the
-// source step of an update. The synchronization for output applies the source step alone. Each
-// frame is written with the staggered fluids and field (the files _restart_<frame>), from which
-// a restart continues the run.
+// source step of an update, and after that of the synchronization for output, so that the fluids
+// and the field that are written are limited as those that are evolved. Each frame is written
+// with the staggered fluids and field (the files _restart_<frame>), from which a restart
+// continues the run.
 
 // Step the CFL condition allows from the present state, at most dt0: a forward Euler step into the
 // stage arrays of the SSP-RK3 step, which overwrites them.
@@ -108,6 +109,7 @@ vlasov_op_split_sync(gkyl_vlasov_app *app)
   // at the midpoint of the half step)
   double dt_half = 0.5 * app->op_split_dt_prev;
   vm_fluid_em_coupling_update(app, fl_em, app->tcurr - 0.5 * dt_half, dt_half);
+  vm_fluid_em_coupling_limit(app, fl_em);
   app->op_split_synced = true;
 }
 

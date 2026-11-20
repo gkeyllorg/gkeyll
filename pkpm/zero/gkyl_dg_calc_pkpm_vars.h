@@ -300,17 +300,24 @@ void gkyl_dg_calc_pkpm_vars_diag(
 
 /**
  * Explicit electromagnetic source of the fluid state: rhs is incremented by
- * [0, q/m (rho E + M x B), q/m M.E]. p=1 serendipity only.
+ * [0, q/m (rho E + M x B), q/m M.E]. The CFL rate of each cell is raised to the rate of the
+ * source where that is larger: the plasma plus the cyclotron frequency, or the rate of the
+ * force, from the cell averages (the source kernels of the DG Euler fluid). p=1 serendipity only.
  *
  * @param up         Updater for computing pkpm variables
  * @param conf_range Configuration space range
- * @param qmem       Input q/m times the electromagnetic field [Ex, Ey, Ez, Bx, By, Bz, ...]
+ * @param qmem       Input acceleration and q/m times the magnetic field
+ *                   [ax, ay, az, q/m Bx, q/m By, q/m Bz, ...]
+ * @param omega_p_sq Input array (1 component): plasma frequency squared of each cell, summed
+ *                   over the species
  * @param fluid      Input fluid state [rho, rho ux, rho uy, rho uz, E]
+ * @param cflrate    CFL rate of the fluid (1 component), raised to the rate of the source
  * @param rhs        Output right-hand side of the fluid state, incremented
  */
 void gkyl_dg_calc_pkpm_vars_source(
   struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
-  const struct gkyl_array *qmem, const struct gkyl_array *fluid, struct gkyl_array *rhs
+  const struct gkyl_array *qmem, const struct gkyl_array *omega_p_sq,
+  const struct gkyl_array *fluid, struct gkyl_array *cflrate, struct gkyl_array *rhs
 );
 
 /**
@@ -378,5 +385,6 @@ void gkyl_dg_calc_pkpm_vars_in_cell_grad_cu(
 
 void gkyl_dg_calc_pkpm_vars_source_cu(
   struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
-  const struct gkyl_array *qmem, const struct gkyl_array *fluid, struct gkyl_array *rhs
+  const struct gkyl_array *qmem, const struct gkyl_array *omega_p_sq,
+  const struct gkyl_array *fluid, struct gkyl_array *cflrate, struct gkyl_array *rhs
 );

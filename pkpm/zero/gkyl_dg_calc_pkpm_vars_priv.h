@@ -49,7 +49,9 @@ typedef int (*pkpm_normalize_t)(
   const double *norm_moms, const double *f, double *GKYL_RESTRICT fbar
 );
 typedef void (*pkpm_transverse_t)(const double *bvar, double *GKYL_RESTRICT f);
-typedef void (*pkpm_source_t)(const double *qmem, const double *fluid, double *GKYL_RESTRICT out);
+typedef double (*pkpm_source_t)(
+  const double *qmem, const double *omega_p_sq, const double *fluid, double *GKYL_RESTRICT out
+);
 
 struct gkyl_dg_calc_pkpm_vars {
   struct gkyl_rect_grid conf_grid; // Configuration space grid for cell spacing and cell center
@@ -196,9 +198,10 @@ choose_pkpm_transverse_kern(enum gkyl_basis_type b_type, int cdim, int poly_orde
   }
   return 0;
 }
-// Explicit electromagnetic source of [rho, M, E] (p=1 serendipity)
+// Explicit electromagnetic source of [rho, M, E] (p=1 serendipity): the kernels of the DG Euler
+// fluid, whose state is the same; they return the rate of the source for the time-step.
 GKYL_CU_D static const pkpm_source_t ser_pkpm_source_kernels[] = {
-  pkpm_vars_source_1x_ser_p1, pkpm_vars_source_2x_ser_p1, pkpm_vars_source_3x_ser_p1
+  fluid_vars_em_source_1x_ser_p1, fluid_vars_em_source_2x_ser_p1, fluid_vars_em_source_3x_ser_p1
 };
 GKYL_CU_D static pkpm_source_t
 choose_pkpm_source_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)

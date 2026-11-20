@@ -58,7 +58,6 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_spitzer_coll_freq.h>
 #include <gkyl_util.h>
-#include <gkyl_wave_geom.h>
 #include <gkyl_wv_eqn.h>
 #include <gkyl_pkpm.h>
 
@@ -217,6 +216,7 @@ typedef void (*pkpm_source_bgk_kinetic_rhs_t)(
 struct pkpm_source_bgk {
   enum gkyl_source_bgk_id source_bgk_id; // type of source
   bool is_implicit; // backward Euler in each SSP-RK3 stage
+  bool has_implicit_coll; // the implicit step includes the implicit BGK collisions of the species
   struct gkyl_array *rate; // source rate nu_Q at the nodes
   struct gkyl_array *vtsq; // source temperature over the mass, T_Q/m, at the nodes
   struct gkyl_array *shape; // rate (explicit) or shape factor (implicit) of the distributions
@@ -542,7 +542,6 @@ struct pkpm_field {
   bool use_ghost_current; // 1D periodic: subtract the domain-mean x current from Ampere's law
   struct gkyl_array *ghost_current; // one component: the mean current (coefficient 0), constant
   double *red_ghost_current; // device reduction scratch
-  struct gkyl_array *app_current_tot; // applied current plus the ghost current (implicit coupling)
 
   // Operator split: Stormer-Verlet in the curl terms. E is advanced only by the
   // implicit source half steps, with curl B (at the half step's start, known) as an effective
@@ -585,6 +584,18 @@ struct pkpm_field {
 struct pkpm_fluid_em_coupling {
   double qbym[GKYL_MAX_SPECIES]; // charge/mass ratio for each species
   struct gkyl_dg_calc_fluid_em_coupling *slvr; // fluid-EM coupling solver
+
+  // The solve of a source step on the physical fluids and field: plain, or with the ghost
+  // current.
+  void (*advance_func)(
+    struct gkyl_pkpm_app *app, struct pkpm_fluid_em_coupling *pkpm_em, double dt,
+    const struct gkyl_array *app_accels[GKYL_MAX_SPECIES],
+    struct gkyl_array *fluids[GKYL_MAX_SPECIES]
+  );
+  // Ghost current: the physical fluids and field at the start of a source step, for its trial
+  // solves (em_ghost is 0 without it).
+  struct gkyl_array *fluid_ghost[GKYL_MAX_SPECIES];
+  struct gkyl_array *em_ghost;
 };
 
 // PKPM object: used as opaque pointer in user code
@@ -605,9 +616,11 @@ struct gkyl_pkpm_app {
   // behind tcurr. Output and diagnostics advance a copy of it by that half step (synchronized), and
   // the next update restores the staggered state.
   bool op_split_synced; // the fluid and field hold the synchronized state
-  struct gkyl_array *op_split_fluid[GKYL_MAX_SPECIES]; // staggered fluid states while synchronized
-  struct gkyl_array *op_split_em; // staggered field while synchronized
-  // per-cell limiter record held across the synchronizing source step
+  // Staggered fluid states and field: those at the start of an update (restored when the
+  // transport step takes less than planned), and those held while synchronized.
+  struct gkyl_array *op_split_fluid[GKYL_MAX_SPECIES];
+  struct gkyl_array *op_split_em;
+  // per-cell limiter record held across the limiter of the synchronization
   struct gkyl_array *op_split_pos_count[GKYL_MAX_SPECIES];
   int num_periodic_dir; // number of periodic directions
   int periodic_dirs[3]; // list of periodic directions
@@ -631,7 +644,6 @@ struct gkyl_pkpm_app {
   // pointer to mapc2p function
   void (*mapc2p)(double t, const double *xc, double *xp, void *ctx);
 
-  struct gkyl_wave_geom *geom; // wave geometry for the limiter of the fields
   struct gkyl_vlasov_position_map *
     pos_map; // configuration-space position map (always created; identity by default); shared by the field and species
   struct gkyl_dg_conf_nodal
@@ -649,6 +661,10 @@ struct gkyl_pkpm_app {
   struct pkpm_species *species; // data for each species
 
   bool use_explicit_sources; // Boolean to turn on explicit fluid-EM coupling
+  // Explicit fluid-EM coupling: the plasma frequency of the stage, for the time-step of the
+  // fluids (0 with the implicit coupling).
+  struct gkyl_array *src_omega_p_sq; // per cell: sum over the species of (q/m)^2 rho / eps0
+  struct gkyl_array *src_rho_avg; // per cell: average density of a species (scratch)
   struct pkpm_fluid_em_coupling *pkpm_em; // fluid-EM coupling data
   struct pkpm_coll_exchange coll_exchange; // cross-species momentum and energy exchange
   // pointer to function that takes a single-step of simulation
@@ -670,9 +686,11 @@ void pkpm_forward_euler(
 
 // Take a single time-step of the staggered operator split: one implicit fluid-EM source step over the
 // interval between the midpoints of consecutive transport steps, then the SSP-RK3 transport step.
+// When the transport step allows less than planned, the source step is repeated for the smaller step.
 struct gkyl_update_status pkpm_update_op_split(gkyl_pkpm_app *app, double dt0);
 
 // Staggered split: advance the source-updated state (fluid, E) by the half source step it lags tcurr,
+// with the positivity limiter as after the source step of an update (not counted in its records),
 // keeping the staggered state for the next update (no-op if already synchronized or not staggered).
 void pkpm_op_split_sync(gkyl_pkpm_app *app);
 
@@ -681,6 +699,11 @@ void pkpm_op_split_unsync(gkyl_pkpm_app *app);
 
 // Take a fully explicit single time-step using a SSP RK3 (including explicit fluid-EM coupling)
 struct gkyl_update_status pkpm_update_explicit_ssp_rk3(gkyl_pkpm_app *app, double dt0);
+
+// One attempt at an SSP RK3 time-step of size dt0, for a driver that prepares the state for a
+// given step (the staggered operator split): it returns at the first stage whose CFL bound is
+// below dt0, with dt_actual < dt0 in the status and only the stage arrays written.
+struct gkyl_update_status pkpm_update_explicit_ssp_rk3_attempt(gkyl_pkpm_app *app, double dt0);
 
 /** gkyl_pkpm_app private API */
 
@@ -1009,7 +1032,9 @@ void pkpm_species_coll_cross_release(const gkyl_pkpm_app *app, const struct pkpm
 // sides before the closures: its energy relaxation is computed with the species' staging and
 // added by the fluid right-hand side, the relaxation of the distributions by the kinetic one. The
 // implicit form is one backward-Euler step over dt on a distribution and a fluid state of the
-// species (interior only).
+// species (interior only), together with its implicit BGK collisions if it has them: _moms steps
+// the energy of the fluid and forms the shape factor (after pkpm_coll_cross_advance), _advance
+// steps the distribution.
 void pkpm_species_source_bgk_init(
   gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_source_bgk *src
 );
@@ -1021,9 +1046,12 @@ void pkpm_species_source_bgk_kinetic_rhs(
   gkyl_pkpm_app *app, struct pkpm_kinetic_species *kin, struct pkpm_source_bgk *src,
   const struct gkyl_array *fin, struct gkyl_array *rhs_f
 );
-void pkpm_species_source_bgk_implicit_advance(
+void pkpm_species_source_bgk_implicit_moms(
   gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_source_bgk *src, double dt,
-  struct gkyl_array *f, struct gkyl_array *fluid
+  struct gkyl_array *fluid
+);
+void pkpm_species_source_bgk_implicit_advance(
+  gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_source_bgk *src, struct gkyl_array *f
 );
 void pkpm_species_source_bgk_release(const gkyl_pkpm_app *app, const struct pkpm_source_bgk *src);
 // Project M0_perp and N_perp of the distributions f onto the plane perpendicular to the current b
@@ -1053,10 +1081,13 @@ void pkpm_species_bgk_kinetic_rhs(
   const struct gkyl_array *fin, struct gkyl_array *rhs
 );
 // One backward-Euler step of the BGK operator over dt on a distribution of the species (interior
-// only).
+// only): _moms forms the shape factor of the step (after pkpm_coll_cross_advance), _advance
+// steps the distribution.
+void pkpm_species_bgk_implicit_moms(
+  gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_bgk_collisions *bgk, double dt
+);
 void pkpm_species_bgk_implicit_advance(
-  gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_bgk_collisions *bgk, double dt,
-  struct gkyl_array *f
+  gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_bgk_collisions *bgk, struct gkyl_array *f
 );
 // Implicit collisions and sources of a Runge-Kutta stage (stage = 1, 2, 3), after its
 // forward-Euler step and combination: one backward-Euler step over the time weight of the stage
@@ -1305,6 +1336,13 @@ void pkpm_field_calc_ext_em(gkyl_pkpm_app *app, struct pkpm_field *field, double
  */
 void pkpm_field_calc_app_current(gkyl_pkpm_app *app, struct pkpm_field *field, double tm);
 
+// Sum over the domain (all ranks) of fac / N_x times the leading coefficient of the first
+// component of arr: the domain mean of that component in 1x. The field's ghost_current array is
+// used as scratch.
+double pkpm_field_ghost_current_mean(
+  gkyl_pkpm_app *app, struct pkpm_field *field, double fac, const struct gkyl_array *arr
+);
+
 // Domain mean of the species x current (coefficient 0 of sum_s q_s M_x/m_s), stored as a
 // constant (physical) in field->ghost_current. fluidin are the J-weighted (evolved) fluid states:
 // their cell mean is the physical domain mean on a position map that fixes the end points.
@@ -1404,7 +1442,8 @@ void pkpm_field_release(const gkyl_pkpm_app *app, struct pkpm_field *f);
 struct pkpm_fluid_em_coupling *pkpm_fluid_em_coupling_init(struct gkyl_pkpm_app *app);
 
 /**
- * Compute implicit update of fluid-EM coupling for the PKPM system
+ * Compute implicit update of fluid-EM coupling for the PKPM system: the source step alone, with
+ * the boundary conditions of the fluids and the field.
  *
  * @param app PKPM app object
  * @param pkpm_em fluid-EM coupling updater
@@ -1414,6 +1453,15 @@ struct pkpm_fluid_em_coupling *pkpm_fluid_em_coupling_init(struct gkyl_pkpm_app 
 void pkpm_fluid_em_coupling_update(
   struct gkyl_pkpm_app *app, struct pkpm_fluid_em_coupling *pkpm_em, double tcurr, double dt
 );
+
+/**
+ * Apply the positivity limiter to the fluids after the source step of an update, with their
+ * boundary conditions.
+ *
+ * @param app PKPM app object
+ * @param pkpm_em fluid-EM coupling updater
+ */
+void pkpm_fluid_em_coupling_limit(struct gkyl_pkpm_app *app, struct pkpm_fluid_em_coupling *pkpm_em);
 
 /**
  * Release resources allocated by fluid-EM coupling object for the PKPM system

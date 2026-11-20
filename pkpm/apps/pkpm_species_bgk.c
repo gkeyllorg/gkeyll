@@ -245,17 +245,25 @@ pkpm_species_bgk_kinetic_rhs(
   app->stat.species_coll_tm += gkyl_time_diff_now_sec(tm);
 }
 
+void
+pkpm_species_bgk_implicit_moms(
+  gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_bgk_collisions *bgk, double dt
+)
+{
+  struct timespec tm = gkyl_wall_clock();
+  bgk->calc_shape(app, s, bgk, dt);
+  app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(tm);
+}
+
 // Backward Euler of the operator: the step is a convex combination of the state and the target,
 // so it keeps the constraints of the state and takes F, G to the target and the first harmonic
 // to zero as nu dt grows.
 void
 pkpm_species_bgk_implicit_advance(
-  gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_bgk_collisions *bgk, double dt,
-  struct gkyl_array *f
+  gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_bgk_collisions *bgk, struct gkyl_array *f
 )
 {
   struct timespec tm = gkyl_wall_clock();
-  bgk->calc_shape(app, s, bgk, dt);
   gkyl_pkpm_bgk_collisions_implicit_advance(
     bgk->up_bgk, &app->local, &s->kinetic->local_vel, &s->kinetic->local, bgk->shape,
     app->pos_map->jacob_pos_gauss, bgk->f_lte, f

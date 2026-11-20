@@ -6,13 +6,13 @@
 // N_y = 2 M0_y, the reduced moments of f = f_M (1 + a v_par v_y). Species heat carries only N_y = 2
 // a M, the reduced moments of f = f_M (1 + a v_y (v_perp^2/2 - 2)), a perpendicular heat flux with
 // no perpendicular drift. Collision frequency 1, run for 5 collision times.
-// The harmonic moments are w integrals of the M0_perp and N_perp blocks of the distribution frames
-// (no moment output carries them); the 10 frames sample the decay at their step times. int M0_perp
-// dw = 0 holds to 2e-17 and the other constraints to 1e-14. BGK relaxes the first harmonic at the
-// collision frequency: int w M0_y dw, int w N_y dw and int N_y dw all decay at rate 1.00001, fitted
-// over the frames, and each stays within 2e-7 (relative) of one exponential down to 0.0067 of its
-// initial value (Vlasov 1x3v: the off-diagonal pressure at 1.00003 and the perpendicular heat flux
-// at 1.00007).
+// Figures of merit (2 x 32 cells, to t = 5): the harmonic moments are w integrals of the M0_perp
+// and N_perp blocks of the distribution frames (no moment output carries them); the 10 frames
+// sample the decay at their step times. int M0_perp dw = 0 holds to 2e-17 and the other constraints
+// to 1e-14. BGK relaxes the first harmonic at the collision frequency: int w M0_y dw, int w N_y dw
+// and int N_y dw all decay at rate 1.00001, fitted over the frames, and each stays within 2e-7
+// (relative) of one exponential down to 0.0067 of its initial value (Vlasov 1x3v: the off-diagonal
+// pressure at 1.00003 and the perpendicular heat flux at 1.00007).
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>

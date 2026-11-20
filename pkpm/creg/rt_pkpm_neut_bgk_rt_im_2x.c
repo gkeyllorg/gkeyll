@@ -7,7 +7,7 @@
 // interface mode with one wavelength, u_y = 0.01 cos(k x) exp(-k |y - 1/4|), k = 8 pi. A static
 // uniform magnetic field along y, the direction of gravity, sets the field direction b; the
 // charge is zero, so the field only names the direction of the kinetic velocity. Gravity is an
-// applied acceleration in the SSP-RK3 stages (explicit sources).
+// applied acceleration in the implicit source step of the staggered operator split.
 // The collision frequency puts the mean free path at 1/140 of a cell at the bottom wall. The
 // BGK relaxation takes one backward-Euler step in each SSP-RK3 stage (nu dt = 2 to 4).
 // Linear theory for a sharp interface in an incompressible fluid: growth rate sqrt(A g k) = 0.915
@@ -19,7 +19,7 @@
 // wavelength, reduce it. At t = 3.5 the spike of heavy gas has fallen to y = 0.18 and the bubble
 // risen to 0.30; the density stays between 0.86 and 2.22, and the solution is symmetric about the
 // middle of the box in x to round-off. The energy changes by the work of gravity, -g int M_y dt, to
-// 2e-10 of the energy; mass is conserved to 2e-13.
+// 2e-13 of the energy; mass is conserved to 2e-13.
 
 #include <math.h>
 #include <stdio.h>
@@ -460,8 +460,6 @@ main(int argc, char **argv)
     }},
 
     .field = field,
-
-    .use_explicit_sources = true,
 
     .parallelism =
       {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0], app_args.cuts[1]}, .comm = comm},

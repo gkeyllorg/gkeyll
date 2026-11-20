@@ -372,21 +372,26 @@ gkyl_dg_calc_pkpm_vars_in_cell_grad(
 void
 gkyl_dg_calc_pkpm_vars_source(
   struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
-  const struct gkyl_array *qmem, const struct gkyl_array *fluid, struct gkyl_array *rhs
+  const struct gkyl_array *qmem, const struct gkyl_array *omega_p_sq,
+  const struct gkyl_array *fluid, struct gkyl_array *cflrate, struct gkyl_array *rhs
 )
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(rhs)) {
-    return gkyl_dg_calc_pkpm_vars_source_cu(up, conf_range, qmem, fluid, rhs);
+    return gkyl_dg_calc_pkpm_vars_source_cu(up, conf_range, qmem, omega_p_sq, fluid, cflrate, rhs);
   }
 #endif
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, conf_range);
   while (gkyl_range_iter_next(&iter)) {
     long loc = gkyl_range_idx(conf_range, iter.idx);
-    up->pkpm_source(
-      gkyl_array_cfetch(qmem, loc), gkyl_array_cfetch(fluid, loc), gkyl_array_fetch(rhs, loc)
+    double *cflrate_d = gkyl_array_fetch(cflrate, loc);
+    // The step resolves the faster of the hyperbolic terms and the source.
+    double rate = up->pkpm_source(
+      gkyl_array_cfetch(qmem, loc), gkyl_array_cfetch(omega_p_sq, loc),
+      gkyl_array_cfetch(fluid, loc), gkyl_array_fetch(rhs, loc)
     );
+    cflrate_d[0] = fmax(cflrate_d[0], rate);
   }
 }
 

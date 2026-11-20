@@ -3,8 +3,12 @@
 // Implicit collisions and sources inside the SSP-RK3 stages: the cross-species momentum and
 // energy exchange of every collision operator, the implicit BGK relaxation of the distributions
 // and the implicit temperature source. After the forward-Euler step and the combination of
-// stage i, whose state is in f1 and fluid1 of each species, each takes one backward-Euler step
-// over the time weight of the stage: dt, dt/4 and 2 dt/3.
+// stage i, whose state is in f1 and fluid1 of each species, they take one backward-Euler step
+// over the time weight of the stage: dt, dt/4 and 2 dt/3. The step has three phases over all
+// species: the moments of the stage state (the exchange, which needs every species, and the
+// energy step and frequencies of each species), the implicit update of the distributions, then
+// the limiter and the boundary conditions. A species with an implicit temperature source and
+// implicit BGK collisions takes the two in one step.
 //
 // An implicit relaxation of the distributions that carries a temperature change (implicit BGK
 // with partners, implicit temperature source) rescales the normalized distributions in the
@@ -34,6 +38,12 @@ pkpm_coll_stage_combine(gkyl_pkpm_app *app, struct pkpm_species *s, int stage)
   );
 }
 
+static bool
+coll_stage_has_implicit_bgk(const struct pkpm_species *s)
+{
+  return s->kinetic->collision_id == GKYL_BGK_COLLISIONS && s->kinetic->bgk.is_implicit;
+}
+
 void
 pkpm_coll_stage_advance(gkyl_pkpm_app *app, int stage, double dt)
 {
@@ -48,37 +58,52 @@ pkpm_coll_stage_advance(gkyl_pkpm_app *app, int stage, double dt)
       pkpm_coll_stage_combine(app, s, stage);
     }
   }
-  // Exchange of the species that collide with each other, which also forms the node values and
-  // frequencies the implicit BGK steps read.
+  // Moments of the stage state. The exchange of the species that collide with each other comes
+  // first: it also forms the node values and frequencies the implicit steps read. Then the
+  // energy step of the implicit temperature source and the shape factor of the implicit step of
+  // each species.
   pkpm_coll_cross_advance(app, dt_stage, fluid);
-
-  // The implicit operators act at the nodes on the same target, so they commute. The
-  // temperature source changes the energy at the nodes, so the vertex limiter follows it.
   for (int i = 0; i < app->num_species; ++i) {
     struct pkpm_species *s = &app->species[i];
-    bool is_implicit_bgk = s->kinetic->collision_id == GKYL_BGK_COLLISIONS &&
-                           s->kinetic->bgk.is_implicit;
-    if (is_implicit_bgk) {
-      pkpm_species_bgk_implicit_advance(app, s, &s->kinetic->bgk, dt_stage, s->kinetic->f1);
-      if (s->kinetic->has_stage_weights && s->kinetic->cross.num_cross_collisions > 0) {
-        gkyl_pkpm_stage_weights_scale(
-          s->kinetic->up_stage_weights, &app->local, s->kinetic->cross.temp_ratio,
-          s->kinetic->stage_lam
-        );
-      }
+    if (s->kinetic->src_bgk.is_implicit) {
+      pkpm_species_source_bgk_implicit_moms(app, s, &s->kinetic->src_bgk, dt_stage, fluid[i]);
+    } else if (coll_stage_has_implicit_bgk(s)) {
+      pkpm_species_bgk_implicit_moms(app, s, &s->kinetic->bgk, dt_stage);
+    }
+  }
+
+  // The implicit update of the distributions: the source with the implicit collisions of the
+  // species, or the collisions alone.
+  for (int i = 0; i < app->num_species; ++i) {
+    struct pkpm_species *s = &app->species[i];
+    if (s->kinetic->src_bgk.is_implicit) {
+      pkpm_species_source_bgk_implicit_advance(app, s, &s->kinetic->src_bgk, s->kinetic->f1);
+    } else if (coll_stage_has_implicit_bgk(s)) {
+      pkpm_species_bgk_implicit_advance(app, s, &s->kinetic->bgk, s->kinetic->f1);
+    }
+  }
+
+  // The temperature factors of the stage for the weighted combination, the vertex limiter where
+  // the temperature source changed the energy at the nodes, and the boundary conditions.
+  for (int i = 0; i < app->num_species; ++i) {
+    struct pkpm_species *s = &app->species[i];
+    bool has_implicit_bgk = coll_stage_has_implicit_bgk(s);
+    if (has_implicit_bgk && s->kinetic->has_stage_weights &&
+        s->kinetic->cross.num_cross_collisions > 0) {
+      gkyl_pkpm_stage_weights_scale(
+        s->kinetic->up_stage_weights, &app->local, s->kinetic->cross.temp_ratio,
+        s->kinetic->stage_lam
+      );
     }
     if (s->kinetic->src_bgk.is_implicit) {
-      pkpm_species_source_bgk_implicit_advance(
-        app, s, &s->kinetic->src_bgk, dt_stage, s->kinetic->f1, s->fluid->fluid1
-      );
       gkyl_pkpm_stage_weights_scale(
         s->kinetic->up_stage_weights, &app->local, s->kinetic->src_bgk.temp_ratio,
         s->kinetic->stage_lam
       );
-      pkpm_species_apply_positivity(app, s->fluid, s->fluid->fluid1);
-      pkpm_fluid_species_apply_bc(app, s->fluid, s->fluid->fluid1);
+      pkpm_species_apply_positivity(app, s->fluid, fluid[i]);
+      pkpm_fluid_species_apply_bc(app, s->fluid, fluid[i]);
     }
-    if (is_implicit_bgk || s->kinetic->src_bgk.is_implicit) {
+    if (has_implicit_bgk || s->kinetic->src_bgk.is_implicit) {
       pkpm_species_apply_bc(app, s->kinetic, s->kinetic->f1);
     }
   }

@@ -448,7 +448,8 @@ gkyl_dg_calc_pkpm_vars_in_cell_grad_cu(
 __global__ void
 gkyl_dg_calc_pkpm_vars_source_cu_kernel(
   struct gkyl_dg_calc_pkpm_vars *up, struct gkyl_range conf_range, const struct gkyl_array *qmem,
-  const struct gkyl_array *fluid, struct gkyl_array *rhs
+  const struct gkyl_array *omega_p_sq, const struct gkyl_array *fluid, struct gkyl_array *cflrate,
+  struct gkyl_array *rhs
 )
 {
   int idx[GKYL_MAX_DIM];
@@ -464,10 +465,14 @@ gkyl_dg_calc_pkpm_vars_source_cu_kernel(
     // linc will have jumps in it to jump over ghost cells
     long loc = gkyl_range_idx(&conf_range, idx);
 
-    up->pkpm_source(
-      (const double *)gkyl_array_cfetch(qmem, loc), (const double *)gkyl_array_cfetch(fluid, loc),
-      (double *)gkyl_array_fetch(rhs, loc)
+    double *cflrate_d = (double *)gkyl_array_fetch(cflrate, loc);
+    // The step resolves the faster of the hyperbolic terms and the source.
+    double rate = up->pkpm_source(
+      (const double *)gkyl_array_cfetch(qmem, loc),
+      (const double *)gkyl_array_cfetch(omega_p_sq, loc),
+      (const double *)gkyl_array_cfetch(fluid, loc), (double *)gkyl_array_fetch(rhs, loc)
     );
+    cflrate_d[0] = fmax(cflrate_d[0], rate);
   }
 }
 
@@ -475,13 +480,15 @@ gkyl_dg_calc_pkpm_vars_source_cu_kernel(
 void
 gkyl_dg_calc_pkpm_vars_source_cu(
   struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
-  const struct gkyl_array *qmem, const struct gkyl_array *fluid, struct gkyl_array *rhs
+  const struct gkyl_array *qmem, const struct gkyl_array *omega_p_sq,
+  const struct gkyl_array *fluid, struct gkyl_array *cflrate, struct gkyl_array *rhs
 )
 {
   int nblocks = conf_range->nblocks;
   int nthreads = conf_range->nthreads;
   gkyl_dg_calc_pkpm_vars_source_cu_kernel<<<nblocks, nthreads>>>(
-    up->on_dev, *conf_range, qmem->on_dev, fluid->on_dev, rhs->on_dev
+    up->on_dev, *conf_range, qmem->on_dev, omega_p_sq->on_dev, fluid->on_dev, cflrate->on_dev,
+    rhs->on_dev
   );
 }
 

@@ -12,9 +12,10 @@
 // The stages combine the distributions with weights that follow the temperature change of the
 // implicit steps, so the combination is linear in the pressure components although the temperature
 // changes seven-fold in the first step of the heated species.
-// Density and momentum are conserved to round-off and the constraints stay at [1, 0, 1]. Each step
-// multiplies T - T_Q by R(z) to 1e-9 and the pressure anisotropy p_par - p_perp by R(z) to 1e-6, and
-// the temperature stays between T_0 and T_Q: 6.9882 and 0.40118 after the first step.
+// Figures of merit (2 x 48 cells, to t = 0.5): density and momentum are conserved to round-off and
+// the constraints stay at [1, 0, 1]. Each step multiplies T - T_Q by R(z) to 1e-9 and the pressure
+// anisotropy p_par - p_perp by R(z) to 1e-6, and the temperature stays between T_0 and T_Q: 6.9882
+// and 0.40118 after the first step.
 
 #include <math.h>
 #include <stdio.h>

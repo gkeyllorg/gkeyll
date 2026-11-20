@@ -5,7 +5,7 @@
 // = 3.5. The interface is flat at y = 1/4, the pressure is hydrostatic with 0.01 at the top wall,
 // and the perturbation is the velocity of the incompressible interface mode with one wavelength. A
 // static uniform magnetic field along y, the direction of gravity, sets the field direction b.
-// Gravity is an applied acceleration (explicit sources).
+// Gravity is an applied acceleration in the implicit source step of the staggered operator split.
 // Stiff collisions, nu = 7.5e6 (nu dt of order 1e4): the BGK relaxation takes one backward-Euler
 // step in each SSP-RK3 stage, so the transport alone sets the time step.
 // Figures of merit (12 x 24 x 8 cells) at t = 3.5, with nu dt = 8400 on average: the integral of
@@ -450,8 +450,6 @@ main(int argc, char **argv)
     }},
 
     .field = field,
-
-    .use_explicit_sources = true,
 
     .parallelism =
       {.use_gpu = app_args.use_gpu, .cuts = {app_args.cuts[0], app_args.cuts[1]}, .comm = comm},

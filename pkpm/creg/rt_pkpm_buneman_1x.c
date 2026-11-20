@@ -6,13 +6,17 @@
 // cancels the net current of the drifting electrons, so that Ampere's law equals the periodic
 // Poisson solve. In the PKPM variables the drift is the electron fluid velocity and F is a
 // Maxwellian in w. A uniform magnetic field along x sets the field direction.
-// The fluid-field coupling is advanced explicitly within the SSP-RK3 step.
+// The fluid-field coupling is the staggered operator split with the implicit fluid-Maxwell source
+// step, which solves for the ghost current that keeps the mean of E_x over the step;
+// rt_pkpm_buneman_explicit_1x.c is the same problem with the coupling advanced explicitly within
+// the SSP-RK3 step.
 // Kinetic linear theory at k = 2 pi: gamma = 0.1976 omega_pe, omega_r = 0.1425 omega_pe (cold-beam
 // maximum 0.235).
 // Figures of merit (16 x 64 cells): the field energy grows at gamma = 0.1895 over t = 20-65
 // (Vlasov, serendipity p2 on the same grid: 0.1950). It saturates near t = 72 at about 46% of the
-// Vlasov peak (3.2e-3 at t = 72.3 against 7.0e-3 at t = 72.1) and is 1.3e-3 at t = 80 (Vlasov
-// 1.1e-3). Electron and ion number are conserved to 1e-12.
+// Vlasov peak (3.2e-3 at t = 72.2 against 7.0e-3 at t = 72.1) and is 1.3e-3 at t = 80 (Vlasov
+// 1.1e-3). Electron and ion number are conserved to 1e-12. The mean of E_x is 5e-16 at t = 80,
+// where the largest cell average of E_x is 0.072.
 
 #include <math.h>
 #include <stdio.h>
@@ -472,8 +476,6 @@ main(int argc, char **argv)
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
     .cfl_frac = ctx.cfl_frac,
-
-    .use_explicit_sources = true,
 
     .num_periodic_dir = 1,
     .periodic_dirs = {0},

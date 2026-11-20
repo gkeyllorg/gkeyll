@@ -5,7 +5,8 @@
 // configuration-space nodes: the thermal energy of the fluid relaxes to (3/2) n T_Q at the rate
 // nu_Q, and the distributions relax to the unit Maxwellian at the rate nu_Q T_Q/T, the BGK
 // operator at that rate. Density, momentum and the constraints are untouched, so the closures
-// receive nothing from it.
+// receive nothing from it. The implicit form is one backward-Euler step together with the
+// implicit BGK collisions of the species, if it has them.
 
 // Explicit update, fluid half: the energy relaxation of the stage into the array the fluid
 // right-hand side adds, with its CFL rate, and the rate of the distributions.
@@ -59,6 +60,7 @@ pkpm_species_source_bgk_init(gkyl_pkpm_app *app, struct pkpm_species *s, struct 
   const struct gkyl_vlasov_source_bgk *info = &s->kinetic->info.source_bgk;
   src->source_bgk_id = info->source_bgk_id;
   src->is_implicit = false;
+  src->has_implicit_coll = false;
   src->calc_fluid = pkpm_species_source_bgk_calc_fluid_none;
   src->kinetic_rhs = pkpm_species_source_bgk_kinetic_rhs_none;
   if (src->source_bgk_id == GKYL_NO_SOURCE_BGK) {
@@ -87,6 +89,10 @@ pkpm_species_source_bgk_init(gkyl_pkpm_app *app, struct pkpm_species *s, struct 
   });
 
   src->is_implicit = info->is_implicit;
+  // The implicit step of the source includes the implicit BGK collisions of the species (its
+  // collision object is initialized before the source).
+  src->has_implicit_coll = src->is_implicit && s->kinetic->collision_id == GKYL_BGK_COLLISIONS &&
+                           s->kinetic->bgk.is_implicit;
   if (!src->is_implicit) {
     src->calc_fluid = pkpm_species_source_bgk_calc_fluid_explicit;
     src->kinetic_rhs = pkpm_species_source_bgk_kinetic_rhs_explicit;
@@ -118,21 +124,71 @@ pkpm_species_source_bgk_kinetic_rhs(
   app->stat.species_coll_tm += gkyl_time_diff_now_sec(tm);
 }
 
-// Backward Euler: the thermal energy first, eps <- (eps + nu_Q dt eps_Q)/(1 + nu_Q dt), then
-// the distributions with S = 1/(1 + nu_Q dt eps_Q/eps), eps being the energy before the step.
-// S times the new energy over the old one is 1/(1 + nu_Q dt), so every pressure component, the
-// product of the energy and a normalized moment, takes the backward-Euler step of the source.
-// Both updates are convex combinations at the nodes.
+// Shape factor of the source and the implicit BGK collisions of the species in one
+// backward-Euler step, in which the frequencies of the two are summed:
+//   S_q = min(1, (T_q / T_q') / (1 + (nu_q + nu_Q_q) dt)),
+// with nu the rate of the collision operator (self plus partners), T the temperature before the
+// implicit operators of the stage and T' the one after them (the exchange with the partners,
+// then the source). Every pressure component then takes the backward-Euler step at the total
+// frequency.
+static void
+source_bgk_shape_with_collisions(
+  gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_source_bgk *src, double dt
+)
+{
+  struct pkpm_kinetic_species *kin = s->kinetic;
+  bool has_cross = kin->cross.num_cross_collisions > 0;
+  const struct gkyl_array *nu_coll = has_cross ? kin->cross.nu_kin : kin->bgk.rate_self;
+  // the temperature factor of the exchange (none without partners)
+  const struct gkyl_array *temp_ratio_coll = has_cross ? kin->cross.temp_ratio : 0;
+
+  int num_nodes = app->confBasis.num_basis;
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &app->local);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&app->local, iter.idx);
+    const double *nu_coll_d = gkyl_array_cfetch(nu_coll, loc);
+    const double *nu_src_d = gkyl_array_cfetch(src->rate, loc);
+    const double *ratio_src_d = gkyl_array_cfetch(src->temp_ratio, loc);
+    const double *ratio_coll_d = has_cross ? gkyl_array_cfetch(temp_ratio_coll, loc) : 0;
+    double *shape_d = gkyl_array_fetch(src->shape, loc);
+    for (int q = 0; q < num_nodes; ++q) {
+      double ratio = has_cross ? ratio_coll_d[q] * ratio_src_d[q] : ratio_src_d[q];
+      shape_d[q] = fmin(1.0, ratio / (1.0 + (nu_coll_d[q] + nu_src_d[q]) * dt));
+    }
+  }
+}
+
+// Backward Euler, the thermal energy: eps <- (eps + nu_Q dt eps_Q)/(1 + nu_Q dt), a convex
+// combination at the nodes, and the shape factor of the distributions,
+// S = 1/(1 + nu_Q dt eps_Q/eps), eps being the energy before the step. S times the new energy
+// over the old one is 1/(1 + nu_Q dt), so every pressure component, the product of the energy
+// and a normalized moment, takes the backward-Euler step of the source. With implicit BGK
+// collisions the shape factor is that of the two operators together.
 void
-pkpm_species_source_bgk_implicit_advance(
+pkpm_species_source_bgk_implicit_moms(
   gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_source_bgk *src, double dt,
-  struct gkyl_array *f, struct gkyl_array *fluid
+  struct gkyl_array *fluid
 )
 {
   struct timespec tm = gkyl_wall_clock();
   gkyl_pkpm_temp_source_implicit_advance(
     src->up_temp, &app->local, dt, src->rate, src->vtsq, fluid, src->shape, src->temp_ratio
   );
+  if (src->has_implicit_coll) {
+    source_bgk_shape_with_collisions(app, s, src, dt);
+  }
+  app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(tm);
+}
+
+// Backward Euler, the distributions: a convex combination of the state and the unit Maxwellian
+// at the nodes, with the shape factor of pkpm_species_source_bgk_implicit_moms.
+void
+pkpm_species_source_bgk_implicit_advance(
+  gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_source_bgk *src, struct gkyl_array *f
+)
+{
+  struct timespec tm = gkyl_wall_clock();
   gkyl_pkpm_bgk_collisions_implicit_advance(
     src->up_bgk, &app->local, &s->kinetic->local_vel, &s->kinetic->local, src->shape,
     app->pos_map->jacob_pos_gauss, src->f_lte, f

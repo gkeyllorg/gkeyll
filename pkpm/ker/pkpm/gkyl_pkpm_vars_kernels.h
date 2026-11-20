@@ -20,7 +20,6 @@ GKYL_CU_DH int pkpm_vars_grad_ln_n_1x_ser_p1(const double *rho, const double *gr
 GKYL_CU_DH int pkpm_vars_prim_1x_ser_p1(const double *fluid, double* GKYL_RESTRICT u, double* GKYL_RESTRICT xi); 
 GKYL_CU_DH int pkpm_dtB_over_magB_1x_ser_p1(const double *em, const double *dt_em, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void pkpm_vars_int_1x_ser_p1(const double *fluid, const double *vlasov_pkpm_moms, const double *u, double* GKYL_RESTRICT int_pkpm_vars); 
-GKYL_CU_DH void pkpm_vars_source_1x_ser_p1(const double *qmem, const double *fluid, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void pkpm_vars_diag_1x_ser_p1(const double *vlasov_pkpm_moms, const double *bvar, const double *grad_b,
   const double *u, const double *grad_u, const double *theta, const double *alpha_0, const double *xi,
   const double *c_h, double* GKYL_RESTRICT pkpm_prim_io, double* GKYL_RESTRICT pkpm_vars_io); 
@@ -46,7 +45,6 @@ GKYL_CU_DH int pkpm_vars_grad_ln_n_2x_ser_p1(const double *rho, const double *gr
 GKYL_CU_DH int pkpm_vars_prim_2x_ser_p1(const double *fluid, double* GKYL_RESTRICT u, double* GKYL_RESTRICT xi); 
 GKYL_CU_DH int pkpm_dtB_over_magB_2x_ser_p1(const double *em, const double *dt_em, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void pkpm_vars_int_2x_ser_p1(const double *fluid, const double *vlasov_pkpm_moms, const double *u, double* GKYL_RESTRICT int_pkpm_vars); 
-GKYL_CU_DH void pkpm_vars_source_2x_ser_p1(const double *qmem, const double *fluid, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void pkpm_vars_diag_2x_ser_p1(const double *vlasov_pkpm_moms, const double *bvar, const double *grad_b,
   const double *u, const double *grad_u, const double *theta, const double *alpha_0, const double *xi,
   const double *c_h, double* GKYL_RESTRICT pkpm_prim_io, double* GKYL_RESTRICT pkpm_vars_io); 
@@ -78,7 +76,6 @@ GKYL_CU_DH int pkpm_vars_grad_ln_n_3x_ser_p1(const double *rho, const double *gr
 GKYL_CU_DH int pkpm_vars_prim_3x_ser_p1(const double *fluid, double* GKYL_RESTRICT u, double* GKYL_RESTRICT xi); 
 GKYL_CU_DH int pkpm_dtB_over_magB_3x_ser_p1(const double *em, const double *dt_em, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void pkpm_vars_int_3x_ser_p1(const double *fluid, const double *vlasov_pkpm_moms, const double *u, double* GKYL_RESTRICT int_pkpm_vars); 
-GKYL_CU_DH void pkpm_vars_source_3x_ser_p1(const double *qmem, const double *fluid, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void pkpm_vars_diag_3x_ser_p1(const double *vlasov_pkpm_moms, const double *bvar, const double *grad_b,
   const double *u, const double *grad_u, const double *theta, const double *alpha_0, const double *xi,
   const double *c_h, double* GKYL_RESTRICT pkpm_prim_io, double* GKYL_RESTRICT pkpm_vars_io); 

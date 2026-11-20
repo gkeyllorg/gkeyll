@@ -119,7 +119,6 @@ pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app)
     f->use_ghost_current = true;
     f->ghost_current = mkarr(app->use_gpu, 1, app->local_ext.volume);
     gkyl_array_clear(f->ghost_current, 0.0);
-    f->app_current_tot = mkarr(app->use_gpu, 3 * app->confBasis.num_basis, app->local_ext.volume);
     if (app->use_gpu) {
       f->red_ghost_current = gkyl_cu_malloc(sizeof(double[1]));
     }
@@ -366,6 +365,30 @@ pkpm_field_calc_bvar(gkyl_pkpm_app *app, struct pkpm_field *field, const struct 
   gkyl_dg_calc_pkpm_bvar_grad(field->calc_bvar, &app->local, field->bvar, field->grad_b);
 
   app->stat.field_em_vars_tm += gkyl_time_diff_now_sec(tm);
+}
+
+double
+pkpm_field_ghost_current_mean(
+  gkyl_pkpm_app *app, struct pkpm_field *field, double fac, const struct gkyl_array *arr
+)
+{
+  double avals_ghost_current[1], avals_ghost_current_global[1];
+  // First set the scalar ghost current array to fac / nx times the leading coefficient, where nx
+  // is the number of x cells.
+  gkyl_array_set_range(field->ghost_current, fac / app->grid.cells[0], arr, &app->local);
+  // Sum over the whole domain for the global average.
+  if (app->use_gpu) {
+    gkyl_array_reduce_range(field->red_ghost_current, field->ghost_current, GKYL_SUM, &app->local);
+    gkyl_cu_memcpy(
+      avals_ghost_current, field->red_ghost_current, sizeof(double[1]), GKYL_CU_MEMCPY_D2H
+    );
+  } else {
+    gkyl_array_reduce_range(avals_ghost_current, field->ghost_current, GKYL_SUM, &app->local);
+  }
+  gkyl_comm_allreduce_host(
+    app->comm, GKYL_DOUBLE, GKYL_SUM, 1, avals_ghost_current, avals_ghost_current_global
+  );
+  return avals_ghost_current_global[0];
 }
 
 void
@@ -617,7 +640,6 @@ pkpm_field_release(const gkyl_pkpm_app *app, struct pkpm_field *f)
   gkyl_array_release(f->app_current);
   if (f->use_ghost_current) {
     gkyl_array_release(f->ghost_current);
-    gkyl_array_release(f->app_current_tot);
     if (app->use_gpu) {
       gkyl_cu_free(f->red_ghost_current);
     }
