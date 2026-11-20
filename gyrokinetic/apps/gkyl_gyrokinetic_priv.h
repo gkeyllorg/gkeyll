@@ -1239,6 +1239,7 @@ enum gk_species_balance_comp {
 enum gk_app_balance_comp {
   GK_APP_BALANCE_COMP_FIELD_DOT = GK_SPECIES_BALANCE_COMP_COUNT, // dE_field/dt.
   GK_APP_BALANCE_COMP_BG_DOT, // d/dt int rho_bg phi.
+  GK_APP_BALANCE_COMP_APAR_DOT, // d/dt of -int |grad_perp A_par|^2/(2 mu0) (0 if electrostatic).
   GK_APP_BALANCE_COMP_COUNT // Number of components (for internal use).
 };
 
@@ -5391,21 +5392,26 @@ void gk_field_calc_energy_dt(
 );
 
 /**
- * Field terms of the energy balance: the field energy and the background-charge
- * energy int rho_bg phi, and their rates of change over the last time step.
- * Uses the field energy diagnostics at time tm, which must be computed first.
+ * Field terms of the energy balance: the field energy, the A_parallel energy
+ * -int |grad_perp A_par|^2/(2 mu0) (zero if electrostatic) and the
+ * background-charge energy int rho_bg phi, and their rates of change over the
+ * last time step. Uses the field energy diagnostics at time tm, which must be
+ * computed first.
  *
  * @param app gyrokinetic app object.
  * @param field Pointer to field.
  * @param tm Time of the field energy diagnostics.
  * @param energy Field energy.
  * @param energy_dot Rate of change of the field energy.
+ * @param apar_energy A_parallel energy.
+ * @param apar_energy_dot Rate of change of the A_parallel energy.
  * @param bg_energy Background-charge energy.
  * @param bg_energy_dot Rate of change of the background-charge energy.
  */
 void gk_field_calc_energy_balance(
   gkyl_gyrokinetic_app *app, const struct gk_field *field, double tm, double *energy,
-  double *energy_dot, double *bg_energy, double *bg_energy_dot
+  double *energy_dot, double *apar_energy, double *apar_energy_dot, double *bg_energy,
+  double *bg_energy_dot
 );
 
 /**

@@ -96,10 +96,12 @@ struct gkyl_gyrokinetic_projection {
 // Balance diagnostics: time rate of change of a conserved quantity vs its
 // sources and boundary fluxes. The particle balance is that of the number of
 // particles, sum_s int f. The energy balance is that of the energy
-// sum_s int H f - E_field + int rho_bg phi, with E_field the field energy and
-// rho_bg the background charge density of the adiabatic species (both absent
-// with a static field). The energy balance of a single species omits the field
-// terms, so its error is the energy the species exchanges with the field.
+// sum_s int H f - E_field + E_apar + int rho_bg phi, with E_field the field
+// energy, E_apar = int |grad_perp A_par|^2/(2 mu0) the A_parallel energy (if
+// electromagnetic) and rho_bg the background charge density of the adiabatic
+// species (all absent with a static field). The energy balance of a single
+// species omits the field terms, so its error is the energy the species
+// exchanges with the field.
 enum gkyl_gyrokinetic_balance_diag {
   GKYL_GK_BALANCE_PARTICLE = 0, // Particle balance.
   GKYL_GK_BALANCE_ENERGY, // Energy balance.

@@ -689,7 +689,8 @@ gk_field_calc_energy_dt(
 void
 gk_field_calc_energy_balance(
   gkyl_gyrokinetic_app *app, const struct gk_field *field, double tm, double *energy,
-  double *energy_dot, double *bg_energy, double *bg_energy_dot
+  double *energy_dot, double *apar_energy, double *apar_energy_dot, double *bg_energy,
+  double *bg_energy_dot
 )
 {
   // Field energy and its rate of change from the field energy diagnostics,
@@ -700,6 +701,17 @@ gk_field_calc_energy_balance(
     has_energy && gkyl_dynvec_getlast_tm(field->integ_energy) == tm &&
     gkyl_dynvec_getlast_tm(field->integ_energy_dot) == tm
   );
+  // A_parallel energy and its rate of change, also from the field energy diagnostics.
+  *apar_energy = 0.0;
+  *apar_energy_dot = 0.0;
+  if (field->is_em) {
+    bool has_apar_energy = gkyl_dynvec_getlast(field->integ_apar_energy, apar_energy) &&
+                           gkyl_dynvec_getlast(field->integ_apar_energy_dot, apar_energy_dot);
+    assert(
+      has_apar_energy && gkyl_dynvec_getlast_tm(field->integ_apar_energy) == tm &&
+      gkyl_dynvec_getlast_tm(field->integ_apar_energy_dot) == tm
+    );
+  }
   // Background-charge energy now, and its rate of change from the energies/dt
   // stored by gk_field_calc_energy_dt at the beginning and end of the last time step.
   field->energy_bg_func(app, field, 1.0, field->bg_energy_red);
