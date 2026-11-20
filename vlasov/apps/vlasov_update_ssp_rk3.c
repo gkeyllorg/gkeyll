@@ -144,6 +144,7 @@ update_ssp_rk3(gkyl_vlasov_app *app, double dt0, bool retake)
             // then becomes the solution.
             vlasov_stage_implicit(app, 3, dt);
             for (int i = 0; i < num_species; ++i) {
+              vlasov_species_complete_step(app, &app->species[i]);
               vlasov_species_copy_range(app, &app->species[i], VM_RK_F, VM_RK_F1);
             }
             vlasov_field_copy_range(app, app->field->em, app->field->em1); // no-op for null field

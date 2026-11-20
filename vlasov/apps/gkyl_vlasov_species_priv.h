@@ -75,6 +75,30 @@
 #include <gkyl_vlasov_velocity_map.h>
 #include <gkyl_vlasov_position_map.h>
 #include <gkyl_wave_geom.h>
+#include <gkyl_bc_pkpm_species_reflect.h>
+#include <gkyl_comm_io.h>
+#include <gkyl_dg_calc_pkpm_bvar.h>
+#include <gkyl_dg_calc_pkpm_vars.h>
+#include <gkyl_dg_pkpm_fluid.h>
+#include <gkyl_pkpm_layout.h>
+#include <gkyl_dg_pkpm_remap_flux_surf.h>
+#include <gkyl_dg_pkpm_kinetic_conf.h>
+#include <gkyl_dg_pkpm_kinetic_vel.h>
+#include <gkyl_dg_pkpm_harm_exp.h>
+#include <gkyl_dg_pkpm_harm_vol.h>
+#include <gkyl_dg_pkpm_vel_flux_surf.h>
+#include <gkyl_dg_pkpm_mom_diffusion.h>
+#include <gkyl_dg_updater_moment_pkpm.h>
+#include <gkyl_mom_pkpm.h>
+#include <gkyl_pkpm_bgk_collisions.h>
+#include <gkyl_pkpm_coll_nu.h>
+#include <gkyl_dg_conf_nodal.h>
+#include <gkyl_dg_updater_lbo_pkpm_nodal.h>
+#include <gkyl_pkpm_coll_cross.h>
+#include <gkyl_pkpm_stage_weights.h>
+#include <gkyl_pkpm_lbo_moms.h>
+#include <gkyl_pkpm_lte.h>
+#include <gkyl_pkpm_temp_source.h>
 #include <gkyl_wv_canonical_pb_fluid.h>
 #include <gkyl_wv_eqn.h>
 #include <gkyl_wv_maxwell.h>
@@ -533,6 +557,340 @@ struct vm_source {
   bool is_first_integ_write_call; // flag for integrated moments dynvec written first time
 };
 
+// ---- PKPM species: sub-objects and the PKPM-only state of the two aspects ----
+struct vlasov_species;
+struct vm_species;
+struct vm_fluid_species;
+
+// data for moments
+struct vm_pkpm_species_moment {
+  struct gkyl_dg_updater_moment *mcalc; // moment update
+
+  struct gkyl_array *marr; // array to moment data
+  struct gkyl_array *marr_host; // host copy (same as marr if not on GPUs)
+};
+
+// Context of the host-side projection of the source distributions: the p=1 configuration
+// fields are evaluated at the computational coordinates of the phase-space quadrature points.
+struct vm_pkpm_source_eval_ctx {
+  int cdim;
+  double mass;
+  const struct gkyl_rect_grid *conf_grid;
+  const struct gkyl_basis *conf_basis;
+  const struct gkyl_range *local_ext;
+  const struct gkyl_vlasov_projection *info; // LTE profile functions of the source
+  const struct gkyl_array *prof; // [n_s, T_s, u_s] of the source (physical)
+  const struct gkyl_array *rho, *u, *xi, *bvar; // nodal state of the stage (host)
+};
+
+struct vm_pkpm_source {
+  enum gkyl_source_id source_id;
+  bool calc_bflux; // rate from the wall losses of source_species
+  double source_length;
+  struct vlasov_species *source_species;
+  double scale; // rate factor of the stage (1 for a projected source)
+  struct gkyl_array *prof_host; // [n_s, T_s, u_s] (host)
+  struct gkyl_array *fluid_src,
+    *fluid_src_host; // J [rho, M, E] of the profile; physical copy for IO
+  struct gkyl_array *f_src, *f_src_host; // J [S_F, S_G] of the stage
+  struct gkyl_array *n_src; // m n_s (physical)
+  struct gkyl_array *n_ratio; // m n_s / rho
+  struct gkyl_array *rho_host, *u_host, *xi_host, *bvar_host; // host mirrors (GPU only)
+  gkyl_dg_bin_op_mem *div_mem;
+  gkyl_proj_on_basis *proj_f;
+  struct vm_pkpm_source_eval_ctx eval_ctx;
+};
+
+struct vm_pkpm_bgk_collisions;
+
+// Compute the node values [n, u (3), vtsq] of a species from a fluid state (with the Jacobian).
+typedef void (*vm_pkpm_coll_cross_prim_t)(
+  gkyl_vlasov_app *app, struct vlasov_species *s, const struct gkyl_array *fluid
+);
+
+// Compute the rate of the kinetic operator of a species with its partners at the nodes.
+typedef void (*vm_pkpm_coll_cross_moms_t)(gkyl_vlasov_app *app, struct vlasov_species *s);
+
+// Collision frequencies and cross-species collisions of a species (LBO or BGK) at the
+// configuration-space nodes (CPU runs): the self-collision frequency when it is computed from
+// the local moments, and for each partner the rate it adds to the kinetic operator of the
+// species and the coefficient of the momentum and energy exchange (struct vm_pkpm_coll_exchange).
+struct vm_pkpm_coll_cross {
+  bool is_active; // the species computes its self frequency or has partners
+  int num_cross_collisions; // number of species we cross-collide with
+  struct vlasov_species *collide_with[GKYL_MAX_SPECIES]; // pointers to cross-species we collide with
+  int other_idx[GKYL_MAX_SPECIES]; // position of this species in each partner's collide_with
+  struct gkyl_array *prim_fluid; // [n, u (3), vtsq] of the species at the nodes
+  struct gkyl_array *self_nu_ref; // constant of the computed self frequency
+  struct gkyl_array *nu_ref[GKYL_MAX_SPECIES]; // reference cross frequencies at the nodes
+  struct gkyl_array *nu_self; // frequency of this species on the current partner
+  struct gkyl_array *nu_other; // frequency of the current partner on this species
+  struct gkyl_array *coef[GKYL_MAX_SPECIES]; // exchange coefficient with each partner at the nodes
+  struct gkyl_array *temp_ratio; // temperature before the exchange over that after it
+  struct gkyl_array *nu_kin_self; // rate of the kinetic operator from self collisions
+  struct gkyl_array *nu_kin; // rate of the kinetic operator (self plus partners)
+  gkyl_pkpm_coll_nu *up_self_nu; // computed self frequency
+  gkyl_pkpm_coll_nu *up_cross_nu; // cross frequencies: given, or computed
+  gkyl_pkpm_coll_cross *up; // kinetic rate and exchange coefficient with a partner
+  vm_pkpm_coll_cross_prim_t calc_prim; // node values and self frequency of the stage
+  vm_pkpm_coll_cross_prim_t calc_step_prim; // node values and self frequency of the implicit stage
+  vm_pkpm_coll_cross_moms_t calc_moms; // rate of the kinetic operator of the stage
+};
+
+// Momentum and energy exchange of the species that have partners: one backward-Euler step over
+// all of them in each SSP-RK3 stage.
+struct vm_pkpm_coll_exchange {
+  int num_species; // number of species with partners
+  struct vlasov_species *species[GKYL_MAX_SPECIES]; // those species
+  struct gkyl_pkpm_coll_cross_species inp[GKYL_MAX_SPECIES]; // their data in the exchange
+  gkyl_pkpm_coll_cross *up; // the backward-Euler step
+  // the step on the given fluid states, or nothing without such species
+  void (*exchange)(gkyl_vlasov_app *app, double dt, struct gkyl_array *fluid[]);
+};
+
+// Accumulate the kinetic BGK term of a species onto rhs.
+typedef void (*vm_pkpm_bgk_kinetic_rhs_t)(
+  gkyl_vlasov_app *app, struct vm_species *kin, struct vm_pkpm_bgk_collisions *bgk,
+  const struct gkyl_array *fin, struct gkyl_array *rhs
+);
+
+// Compute the shape factor of the implicit BGK step of a species.
+typedef void (*vm_pkpm_bgk_shape_t)(
+  gkyl_vlasov_app *app, struct vlasov_species *s, struct vm_pkpm_bgk_collisions *bgk, double dt
+);
+
+struct vm_pkpm_bgk_collisions {
+  // The operator at the configuration-space nodes.
+  bool use_nodal; // false for GPU runs
+  bool is_implicit; // backward Euler in each SSP-RK3 stage (nodal only)
+  struct gkyl_array *rate_self; // self-collision frequency at the nodes (given or computed)
+  struct gkyl_array *rate; // relaxation rate at the nodes (rate_self itself without partners)
+  struct gkyl_array *shape; // implicit shape factor S at the nodes
+  vm_pkpm_bgk_shape_t calc_shape; // shape factor of the implicit step (self, or with a partner)
+  struct gkyl_array *f_lte; // corrected unit Maxwellian in w, 3 modes per velocity cell
+  gkyl_pkpm_bgk_collisions *up_bgk; // updater
+  vm_pkpm_bgk_kinetic_rhs_t kinetic_rhs; // the nodal or modal kinetic term
+
+  // The modal form of the operator (GPU runs).
+  struct gkyl_array *nu; // collision frequency
+  struct gkyl_array *f_target; // J [F_t, G_t]
+};
+
+struct vm_pkpm_source_bgk;
+
+// Compute the energy relaxation of the temperature source of a species for its fluid aspect, and
+// the rate of the distributions.
+typedef void (*vm_pkpm_source_bgk_calc_fluid_t)(
+  gkyl_vlasov_app *app, struct vlasov_species *s, struct vm_pkpm_source_bgk *src,
+  const struct gkyl_array *fluidin
+);
+
+// Accumulate the temperature source of a species onto the kinetic right-hand side.
+typedef void (*vm_pkpm_source_bgk_kinetic_rhs_t)(
+  gkyl_vlasov_app *app, struct vm_species *kin, struct vm_pkpm_source_bgk *src,
+  const struct gkyl_array *fin, struct gkyl_array *rhs_f
+);
+
+// BGK-form temperature source, with its rate and energy relaxation at the configuration-space
+// nodes.
+struct vm_pkpm_source_bgk {
+  enum gkyl_source_bgk_id source_bgk_id; // type of source
+  bool is_implicit; // backward Euler in each SSP-RK3 stage
+  bool has_implicit_coll; // the implicit step includes the implicit BGK collisions of the species
+  struct gkyl_array *rate; // source rate nu_Q at the nodes
+  struct gkyl_array *vtsq; // source temperature over the mass, T_Q/m, at the nodes
+  struct gkyl_array *shape; // rate (explicit) or shape factor (implicit) of the distributions
+  struct gkyl_array *temp_ratio; // temperature before the implicit step over that after it
+  struct gkyl_array *f_lte; // corrected unit Maxwellian in w, 3 modes per velocity cell
+  gkyl_pkpm_temp_source *up_temp; // thermal-energy relaxation of the fluid state
+  gkyl_pkpm_bgk_collisions *up_bgk; // relaxation of the distributions
+  vm_pkpm_source_bgk_calc_fluid_t calc_fluid; // the explicit fluid term of the stage, or nothing
+  vm_pkpm_source_bgk_kinetic_rhs_t kinetic_rhs; // the explicit kinetic term, or nothing
+};
+
+struct vm_pkpm_lbo_collisions;
+
+// Compute the primitive moments of the self LBO of a species.
+typedef void (*vm_pkpm_lbo_moms_t)(
+  gkyl_vlasov_app *app, const struct vlasov_species *species, struct vm_pkpm_lbo_collisions *lbo,
+  const struct gkyl_array *fin
+);
+
+// Accumulate the self LBO of a species onto rhs.
+typedef void (*vm_pkpm_lbo_kinetic_rhs_t)(
+  gkyl_vlasov_app *app, const struct vm_species *kin, struct vm_pkpm_lbo_collisions *lbo,
+  const struct gkyl_array *fin, struct gkyl_array *rhs
+);
+
+struct vm_pkpm_lbo_collisions {
+  // The operator at the configuration-space nodes.
+  struct gkyl_array *nu; // collision frequency of the operator at the nodes
+  gkyl_pkpm_lbo_moms *up_moms; // primitive moments at the nodes
+  gkyl_dg_updater_lbo_pkpm_nodal *up_coll; // the operator at the nodes
+  vm_pkpm_lbo_moms_t calc_moms; // the moments (constant or Spitzer frequency)
+  vm_pkpm_lbo_kinetic_rhs_t kinetic_rhs; // the operator
+
+  struct gkyl_array *prim_moms; // [u, vtsq] at the nodes
+  struct gkyl_array *nu_self; // self-collision frequency at the nodes (given or computed)
+};
+
+// Records of the fluid positivity limiter (gkyl_dg_calc_pkpm_vars_positivity): the per-cell
+// count [cells scaled for the density, for the internal energy, inadmissible averages], and
+// the statistics per integrated-moment interval, which append the number of limiter
+// applications.
+enum vm_pkpm_positivity_record { PKPM_POS_NUM_COUNT = 3, PKPM_POS_NUM_STAT = 4 };
+
+// PKPM-only state of the kinetic aspect of a PKPM species (struct vm_species): the distributions [F, G, M0_perp, N_perp] on the grid of
+// the normalized velocity and everything the kinetic right-hand side reads
+struct vm_pkpm_kinetic {
+  struct gkyl_range
+    local_ext_conf; // local range extended in configuration space only (moments, distribution BCs, sync)
+  struct gkyl_array *blk_in,
+    *blk_out; // one-block (F or G) scratch for configuration x phase products
+  struct gkyl_array *f_no_J_host; // host copy of f_no_J for I/O
+  // Operators that act in the velocity alone at each configuration-space node (collisions, the
+  // temperature source) share one conversion of the distributions per stage and one conversion
+  // of their summed increments back.
+  bool has_nodal_ops; // true if the species has an operator at the nodes: the LBO (CPU runs)
+  struct gkyl_array *f_nodal; // distributions in the configuration-nodal, velocity-modal form
+  struct gkyl_array *rhs_nodal; // increment of the nodal operator, in the same form
+
+  struct vm_pkpm_species_moment moms_diag; // for computing pkpm moments diagnostics
+  // raw moments [M0, M2, M0_G, M1, M3, M1_G, mu (3), m1 (3), m2 (3), n0 (3)] of the normalized
+  // distributions (mass 1): mu, m1, m2 = int (1, w, w^2) M0_perp dw and n0 = int N_perp dw
+  struct vm_pkpm_species_moment nmoms;
+  struct gkyl_array *
+    cmoms; // the constraints [M0(F), M1(F), (M2(F) + 2 M0(G))/3, int M0_perp dw (x, y, z)], [1, 0, 1, 0, 0, 0] when the closures hold
+  struct gkyl_array *cmoms_host; // host copy for output
+  struct gkyl_array *
+    grad_u; // gradient of u for the sources: in-cell plus the blended face lift, cdim x 3 expansions
+  struct gkyl_array *theta; // T_perp/T = M0(G)
+  // Copies of the flow velocity and of [xi, xi^2, p] of the fluid aspect, set with them
+  // (vm_pkpm_species_calc_pkpm_vars).
+  struct gkyl_array *u, *xi;
+  struct gkyl_dg_calc_pkpm_vars *calc_pkpm_vars; // Updater for the closures and the constraints
+  struct gkyl_array *grad_xi; // gradient of [xi, ...] (grad_u layout; blocks (d, 0) hold d_d xi)
+  struct gkyl_array *grad_ln_n; // grad(ln n), cdim expansions
+  struct gkyl_array *c_0; // normalization closure (zeroth w moment of F)
+  struct gkyl_array *alpha_0; // pressure force a_P/xi closing the first w moment
+  struct gkyl_array *c_h; // heating rate closing the scalar second moment M2(F) + 2 M0(G)
+  struct gkyl_array *a_perp; // perpendicular force closing int M0_perp dw [x, y, z]
+  // [alpha_0, c] of the last stage of the last completed step: the closures of the first stage
+  // of a step take the speeds of the velocity-domain edges from them. Written with the species.
+  struct gkyl_array *closure_step;
+  bool closure_from_step; // the stage is the first of a step (set with the moments of the stage)
+  struct gkyl_array *closure_step_host; // host copy for output
+  struct gkyl_array *rhs_moms; // moments of the configuration-pass right-hand side (separate scratch)
+  struct gkyl_array
+    *conf_flux_surf; // stored modal configuration-space kinetic fluxes, [dir][side][block][mode]
+  struct gkyl_array *flux_blend; // weight of the label-paired flux of each lower face, [dir]
+  struct gkyl_array *vel_flux_surf; // stored modal v_par kinetic fluxes
+  struct gkyl_dg_pkpm_harm_vol
+    *harm_vol; // modal volume integrals of the first-harmonic terms (configuration pass)
+  struct gkyl_array *harm_coef; // stored operator of the stage (gkyl_pkpm_harm_ops.h)
+  struct gkyl_array *harm_wnode; // raw w-flux values of the stage at the w-face nodes
+  struct gkyl_dg_pkpm_harm_exp *harm_exp; // gyrophase-mixing integrating factor of the first harmonic
+  struct gkyl_array *harm_exp_coef; // its field (q/m) B frozen at the start of the step
+  struct gkyl_array *harm_exp_nu; // gyrophase-mixing rate at the phase nodes, frozen per step
+  struct gkyl_array *harm_exp_act; // configuration cells with a damped node (momentum restoration)
+  struct gkyl_array *harm_exp_col; // w integrals of F and M0_perp of the restoration
+  struct gkyl_dg_pkpm_remap_flux_surf
+    *calc_face_flux; // configuration-space face flux updater (kinetic and fluid)
+  struct gkyl_dg_pkpm_vel_flux_surf *calc_vel_flux; // v_par flux updater
+  struct gkyl_dg_eqn *eqn_kinetic_conf; // equation object of the configuration pass
+  struct gkyl_dg_eqn *eqn_kinetic_vel; // equation object of the velocity pass
+  gkyl_hyper_dg *slvr_kinetic_conf; // hyper_dg over the configuration directions
+  gkyl_hyper_dg *slvr_kinetic_vel; // hyper_dg over v_par
+  long
+    num_null_closure; // accumulated count of closure nodes nulled (M0 <= 0 or a non-positive determinant)
+  double closure_cond_min; // smallest det/det0 of the closure solves over the run
+  bool closure_null_warned; // the velocity-extent warning was printed
+  // Diagnostic output: the variables
+  // [u (3), T_perp/m, a_P, div b, bb:grad u, T_perp/m div b, xi, c]
+  struct gkyl_array *vars_io;
+  struct gkyl_array *vars_io_host;
+  int num_face_nodes; // Transverse Gauss-Legendre nodes of a configuration face, per direction
+  // reflecting walls of the distributions (0 at other walls): the mirror image in the ghost
+  // cell's field-aligned coordinates, from b in the skin and ghost cells
+  struct gkyl_bc_pkpm_species_reflect *bc_lo_reflect[3];
+  struct gkyl_bc_pkpm_species_reflect *bc_up_reflect[3];
+  // absorbing walls (0 at other walls): theta mirrored (even image) into the ghost cells, whose
+  // empty G has no T_perp/T of its own, so that its face averages are the interior wall traces
+  struct gkyl_bc_basic *bc_lo_theta[3], *bc_up_theta[3];
+  bool bc_is_absorb; // whether any boundary is absorbing (wall fluxes from the kinetic upwind flux)
+
+  enum gkyl_collision_id collision_id; // type of collisions
+  struct vm_pkpm_lbo_collisions lbo; // collisions object
+  struct vm_pkpm_bgk_collisions bgk; // BGK collisions object
+  struct vm_pkpm_coll_cross cross; // cross-species collisions (LBO or BGK)
+  // Stage combination of a species whose implicit kinetic relaxation carries a temperature change
+  // (implicit BGK with partners, implicit temperature source): the stages combine the
+  // distributions with weights that are linear in the physical second moments.
+  bool has_stage_weights;
+  struct gkyl_array *stage_lam; // temperature factor of the implicit steps of this step, at the nodes
+  gkyl_pkpm_stage_weights *up_stage_weights; // the weighted combination
+
+  struct vm_pkpm_source src; // source object
+  struct vm_pkpm_source_bgk src_bgk; // temperature source object
+  double bflux
+    [2 *
+     GKYL_MAX_CDIM]; // particle loss rate through the absorbing walls [lower, upper] per direction (stage)
+  gkyl_dynvec bflux_diag; // the loss rates on the cadence of the integrated moments
+  bool is_first_bflux_write_call;
+};
+
+// fluid aspect of a PKPM species: the fluid state [rho, rho ux, rho uy, rho uz, E] and
+// everything the fluid right-hand side reads
+struct vm_pkpm_fluid {
+  struct gkyl_array *
+    moms; // kinetic coupling moments [p_par, p_perp, q_par, q_perp, s (3), r (3)] = [p M2, p M0_G, p xi M3, p xi M1_G, p m1, p xi (m2/2 + n0)]
+
+  // Configuration-space variables of the update (p=1).
+  struct gkyl_array *u; // flow velocity [ux, uy, uz], nodal quotient M/rho (the weak division at p=1)
+  struct gkyl_array *xi; // thermal speed and scalar pressure [xi, xi^2, p] of the fluid state (nodal)
+  struct gkyl_array *xi3; // copy of xi for the weak-gradient kernels (only the first block is used)
+  struct gkyl_array *scratch; // one-expansion scratch for weak products
+  struct gkyl_array *
+    fluid_no_J; // PHYSICAL fluid state [rho, M, E] of the stage (position-map Jacobian divided out)
+  struct gkyl_array *fluid_no_J_host; // host copy of fluid_no_J for I/O
+  struct gkyl_array *moms_no_J; // physical coupling moments (diagnostics)
+  struct gkyl_array *rho; // physical mass density (leading block of fluid_no_J)
+  struct gkyl_array *rho3; // [rho, 0, 0] for the weak-gradient kernels
+  struct gkyl_array
+    *mom3; // momentum block of the fluid array (scratch for the 3-component consumers)
+  struct gkyl_array *grad_rho; // gradient of [rho, 0, 0] (scratch)
+  struct gkyl_array *fluid_flux_surf; // stored modal fluid fluxes [F_rho, F_x, F_y, F_z, F_E]
+
+  struct gkyl_dg_calc_pkpm_vars *calc_pkpm_vars; // Updater for the configuration-space variables
+  struct gkyl_dg_eqn *eqn_fluid; // fluid equation object
+  gkyl_hyper_dg *slvr_fluid; // hyper_dg for the fluid equations
+  struct gkyl_array
+    *pos_count; // per-cell record of the positivity limiter [rho, e, avg] (cumulative)
+  struct gkyl_array *pos_io,
+    *pos_io_host; // the record as cell averages of a p=1 field for IO
+  long pos_count_since
+    [PKPM_POS_NUM_STAT]; // limiter counts [rho, e, avg, applications] since the last integrated-moment call
+  // both records as saved by vm_pkpm_species_positivity_record_save
+  struct gkyl_array *pos_count_saved;
+  long pos_count_since_saved[PKPM_POS_NUM_STAT];
+  gkyl_dynvec pos_stat; // the counts per integrated-moment interval, summed over ranks
+  bool is_first_pos_stat_write_call; // flag for the positivity statistics dynvec written first time
+
+  // Diagnostic output: the pressure tensor and heat flux [P_ij (6), q_i (3)] of the fluid equations
+  struct gkyl_array *prim_io;
+  struct gkyl_array *prim_io_host;
+  struct gkyl_array *fluid_flux_surf_host; // host mirror of the stored fluid fluxes (GPU only)
+  struct gkyl_dg_pkpm_mom_diffusion *mom_diff; // momentum diffusion on the position map
+
+  // What the fluid right-hand side needs from the sources of the kinetic aspect, set by the
+  // source objects and the staging phases: the fluid image J [rho, M, E] of the source profile
+  // with the rate of the stage, and the energy relaxation of the explicit temperature source.
+  const struct gkyl_array *src_fluid; // fluid image of the source profile (0 without a source)
+  double src_scale; // rate factor of the stage (0 without a source)
+  bool has_src_bgk_rhs; // flag to indicate there is an explicit temperature source
+  struct gkyl_array *src_bgk_rhs; // its energy relaxation of the stage
+};
+
 // ---- kinetic and fluid aspect objects ----
 // species data
 struct vm_species {
@@ -678,6 +1036,8 @@ struct vm_species {
 
   enum gkyl_source_id source_id; // type of source
   struct vm_source src; // applied source
+
+  struct vm_pkpm_kinetic pkpm; // PKPM-only state (PKPM species)
 
   double *omega_cfl;
 
@@ -877,6 +1237,8 @@ struct vm_fluid_species {
   enum gkyl_source_id source_id; // type of source
   struct vm_fluid_source src; // applied source
 
+  struct vm_pkpm_fluid pkpm; // PKPM-only state (PKPM species)
+
   double *omegaCfl_ptr;
 
   // Pointers to functions selected at runtime.
@@ -917,10 +1279,11 @@ struct vm_fluid_species {
 enum vm_rk_buf { VM_RK_F, VM_RK_F1, VM_RK_FNEW };
 
 // ---- species container ----
-// A species owns a kinetic aspect (kinetic) or a fluid aspect (fluid); the absent
-// one is NULL. Per-aspect operations apply to the aspect present; the staging
-// phases and the explicit field coupling are dispatched through the function
-// pointers below, set by the constructors.
+// A species owns a kinetic aspect (kinetic), a fluid aspect (fluid) or, a PKPM
+// species, both; an absent one is NULL. Per-aspect operations apply to the
+// aspects present; the staging phases, the explicit field coupling, the
+// diagnostics, output and restart of the species as a whole and the release are
+// dispatched through the function pointers below, set by the constructors.
 struct vlasov_species {
   enum gkyl_species_type type; // Which aspects this species owns.
 
@@ -940,7 +1303,7 @@ struct vlasov_species {
   // variables (fluid); it runs after every species' self moments. BGK cross
   // moments are formed inside the BGK RHS.
   void (*calc_self_moms_func)(
-    gkyl_vlasov_app *app, struct vlasov_species *sp, struct gkyl_array *fin,
+    gkyl_vlasov_app *app, struct vlasov_species *sp, int stage, struct gkyl_array *fin,
     const struct gkyl_array *fluidin
   );
   void (*calc_coupled_vars_func)(
@@ -963,6 +1326,21 @@ struct vlasov_species {
     gkyl_vlasov_app *app, struct vlasov_species *sp, const struct gkyl_array *fin,
     const struct gkyl_array *fluidin, struct gkyl_array *target
   );
+  // Completion of a time step, once its last stage has been accepted (empty for
+  // kinetic and fluid species).
+  void (*complete_step_func)(gkyl_vlasov_app *app, struct vlasov_species *sp);
+  // Diagnostics, output and restart of the species as a whole (those of the aspect
+  // of a kinetic or of a fluid species; a PKPM species forms its diagnostics from
+  // both aspects and names the files of both).
+  void (*calc_integrated_mom_func)(gkyl_vlasov_app *app, struct vlasov_species *sp, double tm);
+  void (*write_func)(gkyl_vlasov_app *app, struct vlasov_species *sp, double tm, int frame);
+  void (*write_mom_func)(gkyl_vlasov_app *app, struct vlasov_species *sp, double tm, int frame);
+  void (*write_integrated_mom_func)(gkyl_vlasov_app *app, struct vlasov_species *sp);
+  struct gkyl_app_restart_status (*read_from_frame_func)(
+    gkyl_vlasov_app *app, struct vlasov_species *sp, int frame
+  );
+  // Release the aspects of the species and the container's allocations.
+  void (*release_func)(const gkyl_vlasov_app *app, struct vlasov_species *sp);
 };
 
 /** vlasov_species API: type-agnostic operations on the species container (vlasov_species.c). */
@@ -970,8 +1348,9 @@ struct vlasov_species {
 /**
  * Construct a species from its input: validate the declared type against the
  * input blocks (a kinetic species needs a velocity grid and no fluid equation;
- * a fluid species needs an equation and no velocity grid) and dispatch to the
- * typed constructor. The field must already be constructed.
+ * a fluid species needs an equation and no velocity grid; a PKPM species needs
+ * a velocity grid and no fluid equation) and dispatch to the typed constructor.
+ * The field must already be constructed.
  *
  * @param app Vlasov app object
  * @param inp Species input
@@ -1008,17 +1387,31 @@ void vlasov_fluid_species_init(
 );
 
 /**
+ * Construct a PKPM species: allocate both aspects, store their input blocks and
+ * the identity, and set the container's methods. The aspects are then
+ * initialized together by vm_pkpm_species_init (vlasov_species_init_pkpm).
+ *
+ * @param app Vlasov app object
+ * @param inp Species input
+ * @param sp Species container to construct
+ */
+void vlasov_pkpm_species_init(
+  struct gkyl_vlasov_app *app, const struct gkyl_vlasov_species *inp, struct vlasov_species *sp
+);
+
+/**
  * Compute the moments of the species' own stage state needed by its RHS: LBO
  * moments and boundary corrections, explicit BGK moments, target moments of the
  * explicit temperature source (no-op for fluid species; staging phase 1).
  *
  * @param app Vlasov app object
  * @param sp Species container
+ * @param stage SSP-RK3 stage (1, 2 or 3)
  * @param fin Stage distribution function (NULL if no kinetic aspect)
  * @param fluidin Stage fluid moments (NULL if no fluid aspect)
  */
 void vlasov_species_calc_self_moms(
-  gkyl_vlasov_app *app, struct vlasov_species *sp, struct gkyl_array *fin,
+  gkyl_vlasov_app *app, struct vlasov_species *sp, int stage, struct gkyl_array *fin,
   const struct gkyl_array *fluidin
 );
 
@@ -1141,6 +1534,16 @@ void vlasov_species_finish_stage(
   gkyl_vlasov_app *app, struct vlasov_species *sp, int stage, double dt, struct gkyl_array *fout,
   struct gkyl_array *fluidout
 );
+
+/**
+ * Complete a time step of a species, once its last stage has been accepted and
+ * before the stage state is copied into the solution (empty for kinetic and
+ * fluid species).
+ *
+ * @param app Vlasov app object
+ * @param sp Species container
+ */
+void vlasov_species_complete_step(gkyl_vlasov_app *app, struct vlasov_species *sp);
 
 /**
  * Combine RK buffers, out = c1*b1 + c2*b2, for each present aspect. The
@@ -1359,7 +1762,7 @@ struct gkyl_app_restart_status vlasov_species_read_from_frame(
 );
 
 /**
- * Initialize the kinetic aspect of every species that has one. Species are
+ * Initialize the kinetic aspect of every kinetic species. Species are
  * looked up by name during initialization, so every container must already
  * be constructed.
  *
@@ -1379,7 +1782,7 @@ void vlasov_species_init_kinetic_aspects(struct gkyl_vm *vm, gkyl_vlasov_app *ap
 void vlasov_species_link_kinetic_aspects(gkyl_vlasov_app *app);
 
 /**
- * Initialize the fluid aspect of every species that has one, then its source.
+ * Initialize the fluid aspect of every fluid species, then its source.
  *
  * @param vm App inputs
  * @param app Vlasov app object
@@ -1387,7 +1790,28 @@ void vlasov_species_link_kinetic_aspects(gkyl_vlasov_app *app);
 void vlasov_species_init_fluid_aspects(struct gkyl_vm *vm, gkyl_vlasov_app *app);
 
 /**
- * Release each present aspect and the container's allocations.
+ * Write the record of the closure solves of a PKPM species to the statistics
+ * (the nodes where the closures were nulled and the smallest conditioning proxy,
+ * reduced over ranks).
+ *
+ * @param app Vlasov app object
+ * @param sp Species container (a PKPM species)
+ * @param fp File of the statistics (NULL on ranks other than 0)
+ */
+void vlasov_pkpm_species_stat_write(gkyl_vlasov_app *app, struct vlasov_species *sp, FILE *fp);
+
+/**
+ * Initialize both aspects of every PKPM species, then what refers to other
+ * species: the sources (the boundary-flux rate) and the cross-species collision
+ * terms.
+ *
+ * @param vm App inputs
+ * @param app Vlasov app object
+ */
+void vlasov_species_init_pkpm(struct gkyl_vm *vm, gkyl_vlasov_app *app);
+
+/**
+ * Release the aspects of the species and the container's allocations.
  *
  * @param app Vlasov app object
  * @param sp Species container
@@ -2739,3 +3163,505 @@ struct gkyl_app_restart_status vm_fluid_species_read_from_frame(
  * @param f Fluid_Species object to release
  */
 void vm_fluid_species_release(const gkyl_vlasov_app *app, struct vm_fluid_species *f);
+
+// ---- PKPM species route (vm_pkpm_species*.c) ----
+
+/** vm_pkpm_species_moment API */
+
+/**
+ * Compute the diagnostic moments [rho, M1, p_par, p_perp, q_par, q_perp, r_parpar, r_parperp]
+ * into s->kinetic->pkpm.moms_diag: the moments of the normalized distributions times n xi^k,
+ * k = [0, 1, 2, 2, 3, 3, 4, 4]. Uses s->fluid->pkpm.prim_io as scratch; s->fluid->pkpm.xi must be
+ * current.
+ *
+ * @param app Vlasov app object
+ * @param s Species object
+ * @param phase_rng Phase-space range
+ * @param conf_rng Configuration-space range
+ * @param fin Input distribution functions
+ * @param fluid Input fluid state (the density gives n)
+ */
+void vm_pkpm_species_moment_diag_calc(
+  struct gkyl_vlasov_app *app, struct vlasov_species *s, const struct gkyl_range phase_rng,
+  const struct gkyl_range conf_rng, const struct gkyl_array *fin, const struct gkyl_array *fluid
+);
+
+/**
+ * Initialize species moment object with a given mass factor.
+ *
+ * @param app Vlasov app object
+ * @param s Species object
+ * @param sm Species moment object
+ * @param is_diag True for the diagnostic moment set, false for the moments of the update
+ * @param mass Mass factor of the moments (1.0 for the moments of the normalized distributions)
+ */
+void vm_pkpm_species_moment_init_mass(
+  struct gkyl_vlasov_app *app, struct vlasov_species *s, struct vm_pkpm_species_moment *sm,
+  bool is_diag, double mass
+);
+
+/**
+ * Initialize species moment object with the species mass.
+ *
+ * @param app Vlasov app object
+ * @param s Species object
+ * @param sm Species moment object
+ * @param is_diag True for the diagnostic moment set, false for the moments of the update
+ */
+void vm_pkpm_species_moment_init(
+  struct gkyl_vlasov_app *app, struct vlasov_species *s, struct vm_pkpm_species_moment *sm,
+  bool is_diag
+);
+
+/**
+ * Calculate moment, given distribution function @a fin.
+ *
+ * @param phase_rng Phase-space range
+ * @param conf_rng Config-space range
+ * @param fin Input distribution function array
+ */
+void vm_pkpm_species_moment_calc(
+  const struct vm_pkpm_species_moment *sm, const struct gkyl_range phase_rng,
+  const struct gkyl_range conf_rng, const struct gkyl_array *fin
+);
+
+/**
+ * Calculate moments of an arbitrary phase-space array into a separate output array.
+ *
+ * @param sm Species moment object
+ * @param phase_rng Phase-space range
+ * @param conf_rng Configuration-space range
+ * @param fin Input phase-space array
+ * @param mout Output moment array
+ */
+void vm_pkpm_species_moment_calc_into(
+  const struct vm_pkpm_species_moment *sm, const struct gkyl_range phase_rng,
+  const struct gkyl_range conf_rng, const struct gkyl_array *fin, struct gkyl_array *mout
+);
+
+/**
+ * Release species moment object.
+ *
+ * @param app Vlasov app object
+ * @param sm Species moment object to release
+ */
+void vm_pkpm_species_moment_release(
+  const struct gkyl_vlasov_app *app, const struct vm_pkpm_species_moment *sm
+);
+
+/** vm_pkpm_species_lbo API */
+
+/**
+ * Initialize species LBO collisions object.
+ *
+ * @param app Vlasov app object
+ * @param s Species object 
+ * @param lbo Species LBO object
+ */
+void vm_pkpm_species_lbo_init(
+  struct gkyl_vlasov_app *app, struct vlasov_species *s, struct vm_pkpm_lbo_collisions *lbo
+);
+
+/**
+ * Compute necessary moments and boundary
+ * corrections for LBO collisions
+ *
+ * @param app Vlasov app object
+ * @param species Pointer to species
+ * @param lbo Pointer to LBO
+ * @param fin Input distribution function
+ */
+void vm_pkpm_species_lbo_moms(
+  gkyl_vlasov_app *app, const struct vlasov_species *species, struct vm_pkpm_lbo_collisions *lbo,
+  const struct gkyl_array *fin
+);
+
+/**
+ * Compute RHS from LBO collisions
+ *
+ * @param app Vlasov app object
+ * @param kin Kinetic aspect of the species
+ * @param lbo Pointer to LBO
+ * @param fin Input distribution function
+ * @param rhs On output, the RHS from LBO
+ */
+void vm_pkpm_species_lbo_rhs(
+  gkyl_vlasov_app *app, const struct vm_species *kin, struct vm_pkpm_lbo_collisions *lbo,
+  const struct gkyl_array *fin, struct gkyl_array *rhs
+);
+
+/**
+ * Release species LBO object.
+ *
+ * @param app Vlasov app object
+ * @param sm Species LBO object to release
+ */
+void vm_pkpm_species_lbo_release(
+  const struct gkyl_vlasov_app *app, const struct vm_pkpm_lbo_collisions *lbo
+);
+
+/** vm_pkpm_species API */
+
+/**
+ * Initialize species.
+ *
+ * @param pkpm Input PKPM data
+ * @param app Vlasov app object
+ * @param s On output, initialized species object
+ */
+void vm_pkpm_species_init(
+  struct gkyl_vm *pkpm, struct gkyl_vlasov_app *app, struct vlasov_species *s
+);
+
+/**
+ * Convert the distributions of the stage to the configuration-nodal, velocity-modal form and
+ * clear the increments of the nodal operators (species with such operators only).
+ *
+ * @param app Vlasov app object
+ * @param species Pointer to species
+ * @param fin Input distribution functions
+ */
+void vm_pkpm_species_nodal_dist(
+  gkyl_vlasov_app *app, const struct vlasov_species *species, const struct gkyl_array *fin
+);
+
+/**
+ * Accumulate the increments of the nodal operators onto modal distributions (species with
+ * such operators only).
+ *
+ * @param app Vlasov app object
+ * @param kin Kinetic aspect of the species
+ * @param out Modal distributions to increment
+ */
+void vm_pkpm_species_nodal_accumulate(
+  gkyl_vlasov_app *app, const struct vm_species *kin, struct gkyl_array *out
+);
+
+/**
+ * Compute the configuration-space variables of a stage over the extended range: the raw
+ * moments of the normalized distributions, the flow u and the thermal speed xi (nodal
+ * quotients of the fluid state), the kinetic coupling moments
+ * [p_par, p_perp, q_par, q_perp, s (3), r (3)], the constraints and theta = T_perp/T.
+ *
+ * @param app Vlasov app object
+ * @param species Species object
+ * @param fin Input distribution functions
+ * @param fluidin Input fluid state [rho, M (3), E]
+ */
+void vm_pkpm_species_calc_pkpm_vars(
+  gkyl_vlasov_app *app, struct vlasov_species *species, const struct gkyl_array *fin,
+  const struct gkyl_array *fluidin
+);
+
+/**
+ * Configuration-space face fluxes of the stage, the kinetic and the fluid flux and both rates in
+ * one pass (the species' rates must be cleared by the caller), then the frame gradients of the
+ * volume terms, which need the blend of the faces.
+ */
+void vm_pkpm_species_face_flux(
+  gkyl_vlasov_app *app, struct vlasov_species *species, const struct gkyl_array *fin
+);
+
+/** Particle loss rates through the absorbing walls from the stored fluxes (into the bflux of the kinetic aspect). */
+void vm_pkpm_species_calc_bflux(gkyl_vlasov_app *app, struct vlasov_species *s);
+
+// Source object: see the source member of gkyl_vlasov_kinetic_species in gkyl_vlasov.h.
+void vm_pkpm_species_source_init(
+  gkyl_vlasov_app *app, struct vlasov_species *s, struct vm_pkpm_source *src
+);
+void vm_pkpm_species_source_calc_rate(
+  gkyl_vlasov_app *app, struct vlasov_species *s, struct vm_pkpm_source *src
+);
+void vm_pkpm_species_source_calc_dist(
+  gkyl_vlasov_app *app, struct vlasov_species *s, struct vm_pkpm_source *src
+);
+void vm_pkpm_species_source_kinetic_rhs(
+  gkyl_vlasov_app *app, struct vm_species *kin, struct vm_pkpm_source *src,
+  const struct gkyl_array *fin, struct gkyl_array *rhs
+);
+void vm_pkpm_species_source_write(
+  gkyl_vlasov_app *app, struct vlasov_species *s, struct vm_pkpm_source *src, double tm, int frame
+);
+void vm_pkpm_species_source_release(const gkyl_vlasov_app *app, const struct vm_pkpm_source *src);
+
+// Project a configuration-space profile at the physical coordinates of the position map and
+// scale it. Returns a new host array on the extended range: the values at the 2^cdim interior
+// Gauss-Legendre nodes if is_nodal is set, the p=1 expansion otherwise.
+struct gkyl_array *vm_pkpm_species_coll_profile_new(
+  gkyl_vlasov_app *app, void (*eval)(double t, const double *xn, double *fout, void *ctx),
+  void *ctx, double scale, bool is_nodal
+);
+// The self-collision frequency of the input at the nodes, scaled by nu_frac: a new host array on
+// the extended range. Without an input function it is zero and the species' collision-frequency
+// object (vm_pkpm_species_coll_cross.c) fills it every stage.
+struct gkyl_array *vm_pkpm_species_coll_self_nu_new(
+  gkyl_vlasov_app *app, const struct vlasov_species *s, double nu_frac
+);
+// The target of the BGK-form operators: a new host array with the unit Maxwellian in w on the
+// velocity grid of the species (3 modes per cell), its discrete moments corrected to [1, 0, 1].
+struct gkyl_array *vm_pkpm_species_bgk_target_new(gkyl_vlasov_app *app, struct vlasov_species *s);
+
+// BGK collisions: nu (f_target - f) with the normalized unit Maxwellian target. Self collisions
+// conserve the density, momentum and energy, so they never touch the fluid.
+void vm_pkpm_species_bgk_init(
+  gkyl_vlasov_app *app, struct vlasov_species *s, struct vm_pkpm_bgk_collisions *bgk
+);
+
+// Computed collision frequencies and cross-species collisions (vm_pkpm_species_coll_cross.c), for
+// LBO and BGK alike.
+// Initialize them for a species; call for every species, after the collision objects of all
+// species exist. A species with a given self frequency and no partners gets operations that do
+// nothing.
+void vm_pkpm_species_coll_cross_init(gkyl_vlasov_app *app, struct vlasov_species *s);
+// Initialize the exchange of the species that have partners; call after
+// vm_pkpm_species_coll_cross_init of every species.
+void vm_pkpm_coll_cross_init(gkyl_vlasov_app *app);
+// Node values [n, u (3), vtsq] of the species from the fluid state of the stage, and its
+// self-collision frequency when it is computed.
+void vm_pkpm_species_coll_cross_prim(
+  gkyl_vlasov_app *app, struct vlasov_species *s, const struct gkyl_array *fluidin
+);
+// The rate of the kinetic operator of the stage with every partner at the nodes. Call after
+// vm_pkpm_species_coll_cross_prim (and the LBO moments) of every species.
+void vm_pkpm_species_coll_cross_moms(gkyl_vlasov_app *app, struct vlasov_species *s);
+// One backward-Euler step over dt of the momentum and energy exchange of every species with its
+// partners, on the given fluid states (one per species of the app; with the vertex limiter and
+// the fluid boundary conditions). It also forms the node values and frequencies the implicit BGK
+// steps read, so it comes before them.
+void vm_pkpm_coll_cross_advance(gkyl_vlasov_app *app, double dt, struct gkyl_array *fluid[]);
+// Shape factor of the implicit BGK step of a species with partners, after vm_pkpm_coll_cross_advance.
+void vm_pkpm_species_coll_cross_shape(
+  gkyl_vlasov_app *app, struct vlasov_species *s, double dt, struct gkyl_array *shape
+);
+void vm_pkpm_coll_cross_release(const gkyl_vlasov_app *app);
+void vm_pkpm_species_coll_cross_release(
+  const gkyl_vlasov_app *app, const struct vm_pkpm_coll_cross *cross
+);
+
+// Temperature source (vm_pkpm_species_source_bgk.c). The explicit form enters the right-hand
+// sides before the closures: its energy relaxation is computed with the species' staging and
+// added by the fluid right-hand side, the relaxation of the distributions by the kinetic one. The
+// implicit form is one backward-Euler step over dt on a distribution and a fluid state of the
+// species (interior only), together with its implicit BGK collisions if it has them: _moms steps
+// the energy of the fluid and forms the shape factor (after vm_pkpm_coll_cross_advance), _advance
+// steps the distribution.
+void vm_pkpm_species_source_bgk_init(
+  gkyl_vlasov_app *app, struct vlasov_species *s, struct vm_pkpm_source_bgk *src
+);
+void vm_pkpm_species_source_bgk_calc_fluid(
+  gkyl_vlasov_app *app, struct vlasov_species *s, struct vm_pkpm_source_bgk *src,
+  const struct gkyl_array *fluidin
+);
+void vm_pkpm_species_source_bgk_kinetic_rhs(
+  gkyl_vlasov_app *app, struct vm_species *kin, struct vm_pkpm_source_bgk *src,
+  const struct gkyl_array *fin, struct gkyl_array *rhs_f
+);
+void vm_pkpm_species_source_bgk_implicit_moms(
+  gkyl_vlasov_app *app, struct vlasov_species *s, struct vm_pkpm_source_bgk *src, double dt,
+  struct gkyl_array *fluid
+);
+void vm_pkpm_species_source_bgk_implicit_advance(
+  gkyl_vlasov_app *app, struct vlasov_species *s, struct vm_pkpm_source_bgk *src,
+  struct gkyl_array *f
+);
+void vm_pkpm_species_source_bgk_release(
+  const gkyl_vlasov_app *app, const struct vm_pkpm_source_bgk *src
+);
+// Project M0_perp and N_perp of the distributions f onto the plane perpendicular to the current b
+// at the Gauss-Legendre nodes of b, in place, over the extended ranges.
+void vm_pkpm_species_project_transverse(
+  gkyl_vlasov_app *app, struct vlasov_species *species, struct gkyl_array *f
+);
+// Gyrophase-mixing integrating factor of the first-harmonic blocks, after the
+// forward Euler accumulate of stage s (fout = fin + h rhs; the gyration is explicit in rhs). At
+// s = 1 it freezes the mixing of the step (the field and the rate at the phase nodes). At damped
+// nodes it writes the first-harmonic blocks of fout as the value whose SSP-RK3 combination with the
+// state at the start of the step is the integrating-factor stage, and restores int M0_perp dw = 0
+// where the mixing acted.
+void vm_pkpm_species_harm_exp_advance(
+  gkyl_vlasov_app *app, struct vlasov_species *species, int stage, double h, struct gkyl_array *fout
+);
+
+// out += a conf * phase for every block of a phase array (the bin-op kernels act on one
+// block of num_basis components); phase may hold fewer blocks than out (e.g. [F, G] only).
+void vm_pkpm_species_accumulate_conf_phase(
+  gkyl_vlasov_app *app, struct vm_species *kin, struct gkyl_array *out, double a,
+  const struct gkyl_array *conf, const struct gkyl_array *phase
+);
+
+void vm_pkpm_species_bgk_kinetic_rhs(
+  gkyl_vlasov_app *app, struct vm_species *kin, struct vm_pkpm_bgk_collisions *bgk,
+  const struct gkyl_array *fin, struct gkyl_array *rhs
+);
+// One backward-Euler step of the BGK operator over dt on a distribution of the species (interior
+// only): _moms forms the shape factor of the step (after vm_pkpm_coll_cross_advance), _advance
+// steps the distribution.
+void vm_pkpm_species_bgk_implicit_moms(
+  gkyl_vlasov_app *app, struct vlasov_species *s, struct vm_pkpm_bgk_collisions *bgk, double dt
+);
+void vm_pkpm_species_bgk_implicit_advance(
+  gkyl_vlasov_app *app, struct vlasov_species *s, struct vm_pkpm_bgk_collisions *bgk,
+  struct gkyl_array *f
+);
+// Implicit collisions and sources of a Runge-Kutta stage (stage = 1, 2, 3), after its
+// forward-Euler step and combination: one backward-Euler step over the time weight of the stage
+// on the stage states f1 and fluid1 of the species (vlasov_update_implicit.c).
+void vm_pkpm_coll_stage_advance(gkyl_vlasov_app *app, int stage, double dt);
+void vm_pkpm_species_bgk_release(
+  const gkyl_vlasov_app *app, const struct vm_pkpm_bgk_collisions *bgk
+);
+
+// Save and restore the records of the positivity limiter of a fluid aspect (the per-cell counts
+// and the counts since the last integrated-moment call), around an application of the limiter
+// that is not part of the evolution (the synchronization of the staggered split for output).
+void vm_pkpm_species_positivity_record_save(struct vm_fluid_species *fl);
+void vm_pkpm_species_positivity_record_restore(struct vm_fluid_species *fl);
+
+/**
+ * Apply the vertex positivity limiter to a fluid state over the local range and record the
+ * cells it acted on and the counts of the current integrated-moment interval.
+ *
+ * @param app Vlasov app object
+ * @param fl Fluid aspect of the species
+ * @param fluid Fluid state [rho, M, E] to limit in place
+ */
+void vm_pkpm_species_apply_positivity(
+  gkyl_vlasov_app *app, struct vm_fluid_species *fl, struct gkyl_array *fluid
+);
+
+/**
+ * Compute the diagnostic variables that need the configuration pass (the pressure
+ * force a_P), for output. Uses the species scratch arrays.
+ *
+ * @param app Vlasov app object
+ * @param species Species object
+ * @param fin Input distribution function
+ * @param fluidin Input fluid species array
+ */
+void vm_pkpm_species_calc_diag_vars(
+  gkyl_vlasov_app *app, struct vlasov_species *species, const struct gkyl_array *fin,
+  const struct gkyl_array *fluidin
+);
+
+/**
+ * Compute everything of the stage that reads this species and the field alone (staging phase
+ * 1): the transverse projection of the first harmonic, the moments, the primitive variables,
+ * the coupling moments and T_perp/T, the distributions at the nodes, the LBO moments, the node
+ * values of the fluid state, the face fluxes with their gradients and wall losses, and the
+ * energy relaxation of the explicit temperature source.
+ *
+ * @param app Vlasov app object
+ * @param sp Species object
+ * @param stage SSP-RK3 stage (1, 2 or 3): the closures take the speeds of the velocity-domain
+ *              edges from the closures of the stage before, those of stage 1 from the last stage
+ *              of the last completed step
+ * @param fin Distribution functions of the stage (the first harmonic is projected in place)
+ * @param fluidin Fluid state of the stage
+ */
+void vm_pkpm_species_calc_self_moms(
+  gkyl_vlasov_app *app, struct vlasov_species *sp, int stage, struct gkyl_array *fin,
+  const struct gkyl_array *fluidin
+);
+
+/**
+ * Compute what reads other species (staging phase 2): the rate of the kinetic operator with
+ * the collision partners, the rate of the boundary-flux source and the source distributions.
+ * Must run after phase 1 for all species.
+ *
+ * @param app Vlasov app object
+ * @param sp Species object
+ * @param fin Distribution functions of the stage
+ * @param fluidin Fluid state of the stage
+ */
+void vm_pkpm_species_calc_coupled_vars(
+  gkyl_vlasov_app *app, struct vlasov_species *sp, const struct gkyl_array *fin,
+  const struct gkyl_array *fluidin
+);
+
+/**
+ * Compute the right-hand side of the kinetic equations of a species: the configuration pass,
+ * the first-harmonic terms, sources, collisions, the closures and the velocity pass.
+ *
+ * @param app Vlasov app object
+ * @param kin Kinetic aspect of the species
+ * @param fin Input distribution functions
+ * @param em EM field (unused: the species reads the physical fields of the stage on the field)
+ * @param rhs On output, the right-hand side of the kinetic equations
+ * @return Maximum stable time-step
+ */
+double vm_pkpm_kinetic_species_rhs(
+  gkyl_vlasov_app *app, struct vm_species *kin, const struct gkyl_array *fin,
+  const struct gkyl_array *em, struct gkyl_array *rhs
+);
+
+/**
+ * Compute the right-hand side of the fluid equations of a species: the fluid solve on the
+ * stored face fluxes, the source and the energy relaxation of the temperature source, momentum
+ * diffusion and, with explicit sources, the electromagnetic force.
+ *
+ * @param app Vlasov app object
+ * @param fl Fluid aspect of the species
+ * @param fluidin Input fluid state
+ * @param em EM field
+ * @param rhs On output, the right-hand side of the fluid equations
+ * @return Maximum stable time-step
+ */
+double vm_pkpm_fluid_species_rhs(
+  gkyl_vlasov_app *app, struct vm_fluid_species *fl, const struct gkyl_array *fluidin,
+  const struct gkyl_array *em, struct gkyl_array *rhs
+);
+
+/**
+ * Complete a time step of a species: keep the closures of its last stage for the first stage of
+ * the next step.
+ *
+ * @param app Vlasov app object
+ * @param sp Species object
+ */
+void vm_pkpm_species_complete_step(gkyl_vlasov_app *app, struct vlasov_species *sp);
+
+/**
+ * Complete the stage of a species after the forward-Euler accumulate: the gyrophase-mixing
+ * integrating factor of the first harmonic and the positivity limiter of the fluid state.
+ *
+ * @param app Vlasov app object
+ * @param sp Species object
+ * @param stage Stage of the SSP-RK3 step (1, 2 or 3)
+ * @param dt Time-step
+ * @param fout Distribution functions of the completed stage
+ * @param fluidout Fluid state of the completed stage
+ */
+void vm_pkpm_species_finish_stage(
+  gkyl_vlasov_app *app, struct vlasov_species *sp, int stage, double dt, struct gkyl_array *fout,
+  struct gkyl_array *fluidout
+);
+
+/**
+ * Apply BCs to species distribution functions 
+ *
+ * @param app Vlasov app object
+ * @param kin Kinetic aspect of the species
+ * @param f Distribution function to apply BCs to
+ */
+void vm_pkpm_species_apply_bc(
+  gkyl_vlasov_app *app, const struct vm_species *kin, struct gkyl_array *f
+);
+
+/**
+ * Apply BCs to the fluid state of a species
+ *
+ * @param app Vlasov app object
+ * @param fl Fluid aspect of the species
+ * @param fluid Fluid state [rho, M, E] to apply BCs to
+ */
+void vm_pkpm_fluid_species_apply_bc(
+  gkyl_vlasov_app *app, const struct vm_fluid_species *fl, struct gkyl_array *fluid
+);
+
+/**
+ * Delete resources used in species.
+ *
+ * @param app Vlasov app object
+ * @param species Species object to delete
+ */
+void vm_pkpm_species_release(const gkyl_vlasov_app *app, struct vlasov_species *s);

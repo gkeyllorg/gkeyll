@@ -18,7 +18,11 @@ vlasov_src_omega_p_explicit(gkyl_vlasov_app *app, const struct gkyl_array *fluid
     struct vm_fluid_species *fs = app->species[i].fluid;
     if (fs && fs->qmem) {
       double qbym = fs->charge / fs->mass;
-      gkyl_dg_calc_average_range(&app->basis, 0, app->src_rho_avg, 0, fluidin[i], app->local);
+      // the physical density of the stage (the state of a PKPM species carries the position-map
+      // Jacobian)
+      const struct gkyl_array *fluid =
+        app->species[i].type == GKYL_SPECIES_PKPM ? fs->pkpm.fluid_no_J : fluidin[i];
+      gkyl_dg_calc_average_range(&app->basis, 0, app->src_rho_avg, 0, fluid, app->local);
       gkyl_array_accumulate_range(
         app->src_omega_p_sq, qbym * qbym / eps0, app->src_rho_avg, &app->local
       );
@@ -76,9 +80,10 @@ vlasov_forward_euler(
   dtmin = fmin(dtmin, dt1_field); // null field returns DBL_MAX (no constraint)
 
   // Compute the moments of each species' own stage state needed by its RHS (LBO
-  // moments and boundary corrections, explicit BGK, explicit temperature source).
+  // moments and boundary corrections, explicit BGK, explicit temperature source;
+  // everything of a PKPM species that reads the species and the field alone).
   for (int i = 0; i < num_species; ++i) {
-    vlasov_species_calc_self_moms(app, &app->species[i], fin[i], fluidin[i]);
+    vlasov_species_calc_self_moms(app, &app->species[i], stage, fin[i], fluidin[i]);
   }
 
   // Compute the coupled variables (LBO cross-collision moments, fluid primitive
@@ -129,7 +134,8 @@ vlasov_forward_euler(
     vlasov_species_step_f(&app->species[i], dta, fin[i], fluidin[i], fout[i], fluidout[i]);
   }
   // Finish-stage method of each species, between step_f and the boundary
-  // conditions (empty for kinetic and fluid species).
+  // conditions (empty for kinetic and fluid species; the integrating factor of
+  // the first harmonic and the positivity limiter of a PKPM species).
   for (int i = 0; i < num_species; ++i) {
     vlasov_species_finish_stage(app, &app->species[i], stage, dta, fout[i], fluidout[i]);
   }

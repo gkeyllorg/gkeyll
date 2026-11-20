@@ -6,6 +6,7 @@
 #include <gkyl_lua_utils.h>
 #include <gkyl_lw_priv.h>
 #include <gkyl_null_comm.h>
+#include <gkyl_pkpm_layout.h>
 #include <gkyl_vlasov.h>
 #include <gkyl_vlasov_lw.h>
 #include <gkyl_vlasov_priv.h>
@@ -23,6 +24,7 @@
 #include <string.h>
 
 #include <stc/coption.h>
+#include <kann.h>
 
 #ifdef GKYL_HAVE_MPI
 #include <mpi.h>
@@ -177,6 +179,7 @@ enum vlasov_magic_ids {
   VLASOV_SPECIES_DEFAULT = 100, // Kinetic species.
   VLASOV_FIELD_DEFAULT, // Field.
   VLASOV_FLUID_SPECIES_DEFAULT, // Fluid species.
+  VLASOV_PKPM_SPECIES_DEFAULT, // PKPM species.
   VLASOV_EQN_DEFAULT, // Equation object.
   VLASOV_EMISSION_DEFAULT, // Emission model or emitting-wall context object.
   VLASOV_GEOM_DEFAULT // Vlasov Geometry.
@@ -1741,6 +1744,428 @@ vlasov_fluid_species_lw_new(lua_State *L)
 // Species constructor.
 static struct luaL_Reg vm_fluid_species_ctor[] = {{"new", vlasov_fluid_species_lw_new}, {0, 0}};
 
+/* ******************** */
+/* PKPM species methods */
+/* ******************** */
+
+// Metatable name for PKPM species input struct.
+#define VLASOV_PKPM_SPECIES_METATABLE_NM "GkeyllZero.App.Vlasov.PKPMSpecies"
+
+// Lua userdata object for constructing the input of a PKPM species: both of its blocks, the
+// kinetic one (the grid of the normalized velocity, the distributions, collisions, sources) and
+// the fluid one.
+struct vlasov_pkpm_species_lw {
+  int magic; // This must be first element in the struct.
+
+  struct gkyl_vlasov_species pkpm_species; // Input struct to construct species.
+  int vdim; // Velocity space dimensions.
+  bool evolve; // Is this species evolved?
+
+  bool has_dist_init_func; // Is there a distribution initialization function?
+  struct lua_func_ctx
+    dist_init_func_ref; // Lua registry reference to distribution initialization function.
+
+  bool has_fluid_init_func; // Is there a fluid initialization function?
+  struct lua_func_ctx fluid_init_func_ref; // Lua registry reference to fluid initialization function.
+
+  bool has_applied_acceleration_func; // Is there an applied acceleration initialization function?
+  struct lua_func_ctx
+    applied_acceleration_func_ref; // Lua registry reference to applied acceleration initialization function.
+  bool evolve_applied_acceleration; // Is the applied acceleration evolved?
+
+  enum gkyl_collision_id collision_id; // Collision type.
+
+  bool has_self_nu_func; // Is there a self-collision frequency function?
+  struct lua_func_ctx
+    self_nu_func_ref; // Lua registry reference to self-collision frequency function.
+
+  int num_cross_collisions; // Number of species that we cross-collide with.
+  char collide_with[GKYL_MAX_SPECIES][128]; // Names of species that we cross-collide with.
+  double nu_frac; // Rescales collision frequencies (default = 1).
+  double den_ref; // Reference density.
+  double temp_ref; // Reference temperature.
+  double hbar, eps0; // Planck's constant/2 pi, vacuum permittivity.
+  bool has_cross_nu_func[GKYL_MAX_SPECIES]; // Are there cross-collision frequency functions?
+  struct lua_func_ctx cross_nu_func_ref
+    [GKYL_MAX_SPECIES]; // Lua registry references to cross-collision frequency functions.
+  bool is_implicit; // BGK: backward Euler instead of the explicit update?
+
+  bool has_source_bgk; // Is there a temperature source?
+  bool source_bgk_is_implicit; // Temperature source: backward Euler instead of the explicit update?
+  struct lua_func_ctx source_bgk_rate_func_ref; // Lua registry reference to the source rate.
+  struct lua_func_ctx source_bgk_temp_func_ref; // Lua registry reference to the source temperature.
+
+  enum gkyl_source_id source_id; // Source type.
+  double source_length; // Boundary-flux source: the length the density profile integrates to.
+  char source_species[128]; // Boundary-flux source: species whose wall losses set the rate.
+  bool write_source; // Write the fluid image of the source at frame 0?
+  int num_sources; // Number of source projections.
+  enum gkyl_projection_id source_proj_id; // Projection type of the source.
+  bool has_source_density_func; // Is there a source density function?
+  struct lua_func_ctx source_density_func_ref; // Lua registry reference to the source density.
+  bool has_source_temp_func; // Is there a source temperature function?
+  struct lua_func_ctx source_temp_func_ref; // Lua registry reference to the source temperature.
+  bool has_source_drift_func; // Is there a source drift-velocity function?
+  struct lua_func_ctx source_drift_func_ref; // Lua registry reference to the source drift velocity.
+};
+
+static int
+vlasov_pkpm_species_lw_new(lua_State *L)
+{
+  int vdim = 0;
+  struct gkyl_vlasov_species pkpm_species = {.type = GKYL_SPECIES_PKPM};
+
+  pkpm_species.charge = glua_tbl_get_number(L, "charge", 0.0);
+  pkpm_species.mass = glua_tbl_get_number(L, "mass", 1.0);
+
+  bool evolve = glua_tbl_get_bool(L, "evolve", true);
+
+  bool has_dist_init_func = false;
+  int dist_init_func_ref = LUA_NOREF;
+
+  enum gkyl_collision_id collision_id = GKYL_NO_COLLISIONS;
+
+  bool has_self_nu_func = false;
+  int self_nu_func_ref = LUA_NOREF;
+
+  int num_cross_collisions = 0;
+  char collide_with[GKYL_MAX_SPECIES][128];
+  bool has_cross_nu_func[GKYL_MAX_SPECIES];
+  int cross_nu_func_ref[GKYL_MAX_SPECIES];
+  double nu_frac = 1.0, den_ref = 0.0, temp_ref = 0.0, hbar = 0.0, eps0 = 0.0;
+
+  bool is_implicit = false;
+
+  // Temperature source nu_Q (f_M(n, u, T_Q) - f): the rate nu_Q and the temperature T_Q.
+  bool has_source_bgk = false, source_bgk_is_implicit = false;
+  int source_bgk_rate_func_ref = LUA_NOREF, source_bgk_temp_func_ref = LUA_NOREF;
+
+  // Source: one LTE profile (density, isotropic temperature, drift velocity), a single
+  // projection.
+  enum gkyl_source_id source_id = GKYL_NO_SOURCE;
+  double source_length = 1.0;
+  char source_species[128] = "";
+  bool write_source = false;
+  int num_sources = 0;
+  enum gkyl_projection_id source_proj_id = GKYL_PROJ_FUNC;
+  int source_density_func_ref = LUA_NOREF, source_temp_func_ref = LUA_NOREF,
+      source_drift_func_ref = LUA_NOREF;
+  bool has_source_density_func = false, has_source_temp_func = false, has_source_drift_func = false;
+
+  // Kinetic block: the grid of the normalized velocity, the initial condition of the
+  // distributions, collisions, sources and the kinetic BCs.
+  with_lua_tbl_tbl(L, "kinetic")
+  {
+    pkpm_species.kinetic.gyro_mix = glua_tbl_get_number(L, "gyroMix", 0.0);
+    pkpm_species.kinetic.num_face_nodes = glua_tbl_get_integer(L, "numFaceNodes", 0);
+
+    with_lua_tbl_tbl(L, "cells")
+    {
+      vdim = glua_objlen(L);
+
+      for (int d = 0; d < vdim; d++) {
+        pkpm_species.kinetic.cells[d] = glua_tbl_iget_integer(L, d + 1, 0);
+      }
+    }
+
+    with_lua_tbl_tbl(L, "lower")
+    {
+      for (int d = 0; d < vdim; d++) {
+        pkpm_species.kinetic.lower[d] = glua_tbl_iget_number(L, d + 1, 0);
+      }
+    }
+
+    with_lua_tbl_tbl(L, "upper")
+    {
+      for (int d = 0; d < vdim; d++) {
+        pkpm_species.kinetic.upper[d] = glua_tbl_iget_number(L, d + 1, 0);
+      }
+    }
+
+    with_lua_tbl_tbl(L, "bcx")
+    {
+      with_lua_tbl_tbl(L, "lower")
+      {
+        pkpm_species.kinetic.bcx.lower.type = glua_tbl_get_integer(L, "type", 0);
+      }
+
+      with_lua_tbl_tbl(L, "upper")
+      {
+        pkpm_species.kinetic.bcx.upper.type = glua_tbl_get_integer(L, "type", 0);
+      }
+    }
+
+    with_lua_tbl_tbl(L, "bcy")
+    {
+      with_lua_tbl_tbl(L, "lower")
+      {
+        pkpm_species.kinetic.bcy.lower.type = glua_tbl_get_integer(L, "type", 0);
+      }
+
+      with_lua_tbl_tbl(L, "upper")
+      {
+        pkpm_species.kinetic.bcy.upper.type = glua_tbl_get_integer(L, "type", 0);
+      }
+    }
+
+    with_lua_tbl_tbl(L, "bcz")
+    {
+      with_lua_tbl_tbl(L, "lower")
+      {
+        pkpm_species.kinetic.bcz.lower.type = glua_tbl_get_integer(L, "type", 0);
+      }
+
+      with_lua_tbl_tbl(L, "upper")
+      {
+        pkpm_species.kinetic.bcz.upper.type = glua_tbl_get_integer(L, "type", 0);
+      }
+    }
+
+    // Initial condition: one function projection of the eight blocks
+    // [F, G, M0_perp (x, y, z), N_perp (x, y, z)].
+    pkpm_species.kinetic.num_init = glua_tbl_get_integer(L, "numInit", 0);
+
+    with_lua_tbl_tbl(L, "projections")
+    {
+      if (glua_tbl_iget_tbl(L, 1)) {
+        pkpm_species.kinetic.projection[0].proj_id = glua_tbl_get_integer(L, "projectionID", 0);
+
+        if (glua_tbl_get_func(L, "init")) {
+          dist_init_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+          has_dist_init_func = true;
+        }
+
+        lua_pop(L, 1);
+      }
+    }
+
+    with_lua_tbl_tbl(L, "collisions")
+    {
+      collision_id = glua_tbl_get_integer(L, "collisionID", 0);
+      is_implicit = glua_tbl_get_bool(L, "useImplicitCollisionScheme", false);
+      nu_frac = glua_tbl_get_number(L, "nuFrac", 1.0);
+      // Parameters used to compute Coulomb logarithm.
+      den_ref = glua_tbl_get_number(L, "n0", 1.0);
+      temp_ref = glua_tbl_get_number(L, "T0", 1.0);
+      hbar = glua_tbl_get_number(L, "hbar", 1.0);
+      eps0 = glua_tbl_get_number(L, "epsilon0", 1.0);
+
+      if (glua_tbl_get_func(L, "selfNu")) {
+        self_nu_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+        has_self_nu_func = true;
+      }
+
+      num_cross_collisions = glua_tbl_get_integer(L, "numCrossCollisions", 0);
+      with_lua_tbl_tbl(L, "collideWith")
+      {
+        for (int i = 0; i < num_cross_collisions; i++) {
+          const char *collide_with_char = glua_tbl_iget_string(L, i + 1, "");
+          strcpy(collide_with[i], collide_with_char);
+          has_cross_nu_func[i] = false;
+          cross_nu_func_ref[i] = LUA_NOREF;
+        }
+      }
+      // Cross-collision frequencies, one table per entry of collideWith.
+      with_lua_tbl_tbl(L, "collideWithCrossNu")
+      {
+        for (int i = 0; i < num_cross_collisions; i++) {
+          if (glua_tbl_iget_tbl(L, i + 1)) {
+            if (glua_tbl_get_func(L, "crossNu")) {
+              cross_nu_func_ref[i] = luaL_ref(L, LUA_REGISTRYINDEX);
+              has_cross_nu_func[i] = true;
+            }
+          }
+          lua_pop(L, 1);
+        }
+      }
+    }
+
+    with_lua_tbl_tbl(L, "sourceBGK")
+    {
+      has_source_bgk = true;
+      source_bgk_is_implicit = glua_tbl_get_bool(L, "useImplicitScheme", false);
+      if (glua_tbl_get_func(L, "rateProfile")) {
+        source_bgk_rate_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+      }
+      if (glua_tbl_get_func(L, "tempShape")) {
+        source_bgk_temp_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+      }
+    }
+
+    with_lua_tbl_tbl(L, "source")
+    {
+      source_id = glua_tbl_get_integer(L, "sourceID", 0);
+      source_length = glua_tbl_get_number(L, "sourceLength", 1.0);
+      strcpy(source_species, glua_tbl_get_string(L, "sourceSpecies", ""));
+      write_source = glua_tbl_get_bool(L, "writeSource", false);
+
+      num_sources = glua_tbl_get_integer(L, "numSources", 0);
+      with_lua_tbl_tbl(L, "projections")
+      {
+        if (glua_tbl_iget_tbl(L, 1)) {
+          source_proj_id = glua_tbl_get_integer(L, "projectionID", 0);
+
+          if (glua_tbl_get_func(L, "densityInit")) {
+            source_density_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+            has_source_density_func = true;
+          }
+          if (glua_tbl_get_func(L, "temperatureInit")) {
+            source_temp_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+            has_source_temp_func = true;
+          }
+          if (glua_tbl_get_func(L, "driftVelocityInit")) {
+            source_drift_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+            has_source_drift_func = true;
+          }
+          lua_pop(L, 1);
+        }
+      }
+    }
+  }
+
+  bool has_fluid_init_func = false;
+  int fluid_init_func_ref = LUA_NOREF;
+
+  bool has_applied_acceleration_func = false;
+  int applied_acceleration_func_ref = LUA_NOREF;
+  bool evolve_applied_acceleration = false;
+
+  // Fluid block: the initial condition of the fluid state, the positivity floor, momentum
+  // diffusion, the applied acceleration and the fluid BCs.
+  with_lua_tbl_tbl(L, "fluid")
+  {
+    pkpm_species.fluid.positivity_eps = glua_tbl_get_number(L, "positivityEps", 0.0);
+
+    if (glua_tbl_get_func(L, "init")) {
+      fluid_init_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+      has_fluid_init_func = true;
+    }
+
+    if (glua_tbl_get_func(L, "appliedAccel")) {
+      applied_acceleration_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+      has_applied_acceleration_func = true;
+
+      evolve_applied_acceleration = glua_tbl_get_bool(L, "evolveAppliedAccel", false);
+    }
+
+    with_lua_tbl_tbl(L, "diffusion")
+    {
+      pkpm_species.fluid.diffusion.D = glua_tbl_get_number(L, "diffusionCoefficient", 0.0);
+      pkpm_species.fluid.diffusion.order = glua_tbl_get_integer(L, "diffusionOrder", 2);
+    }
+
+    with_lua_tbl_tbl(L, "bcx")
+    {
+      int nbc = glua_objlen(L);
+
+      for (int i = 0; i < (nbc > 2 ? 2 : nbc); i++) {
+        pkpm_species.fluid.bcx[i] = glua_tbl_iget_integer(L, i + 1, 0);
+      }
+    }
+
+    with_lua_tbl_tbl(L, "bcy")
+    {
+      int nbc = glua_objlen(L);
+
+      for (int i = 0; i < (nbc > 2 ? 2 : nbc); i++) {
+        pkpm_species.fluid.bcy[i] = glua_tbl_iget_integer(L, i + 1, 0);
+      }
+    }
+
+    with_lua_tbl_tbl(L, "bcz")
+    {
+      int nbc = glua_objlen(L);
+
+      for (int i = 0; i < (nbc > 2 ? 2 : nbc); i++) {
+        pkpm_species.fluid.bcz[i] = glua_tbl_iget_integer(L, i + 1, 0);
+      }
+    }
+  }
+
+  struct vlasov_pkpm_species_lw *pkpm_s_lw = lua_newuserdata(L, sizeof(*pkpm_s_lw));
+  pkpm_s_lw->magic = VLASOV_PKPM_SPECIES_DEFAULT;
+  pkpm_s_lw->vdim = vdim;
+  pkpm_s_lw->evolve = evolve;
+  pkpm_s_lw->pkpm_species = pkpm_species;
+
+  pkpm_s_lw->has_dist_init_func = has_dist_init_func;
+  pkpm_s_lw->dist_init_func_ref = (struct lua_func_ctx){
+    .func_ref = dist_init_func_ref,
+    .ndim = 0, // Set by the app.
+    .nret = PKPM_DIST_NUM_BLOCKS,
+    .L = L,
+  };
+
+  pkpm_s_lw->has_fluid_init_func = has_fluid_init_func;
+  pkpm_s_lw->fluid_init_func_ref = (struct lua_func_ctx){
+    .func_ref = fluid_init_func_ref,
+    .ndim = 0, // Set by the app.
+    .nret = 5,
+    .L = L,
+  };
+
+  pkpm_s_lw->has_applied_acceleration_func = has_applied_acceleration_func;
+  pkpm_s_lw->applied_acceleration_func_ref = (struct lua_func_ctx){
+    .func_ref = applied_acceleration_func_ref,
+    .ndim = 0, // Set by the app.
+    .nret = 3,
+    .L = L,
+  };
+  pkpm_s_lw->evolve_applied_acceleration = evolve_applied_acceleration;
+
+  pkpm_s_lw->collision_id = collision_id;
+
+  pkpm_s_lw->has_self_nu_func = has_self_nu_func;
+  pkpm_s_lw->self_nu_func_ref =
+    (struct lua_func_ctx){.func_ref = self_nu_func_ref, .ndim = 0, .nret = 1, .L = L};
+
+  pkpm_s_lw->nu_frac = nu_frac;
+  pkpm_s_lw->den_ref = den_ref;
+  pkpm_s_lw->temp_ref = temp_ref;
+  pkpm_s_lw->hbar = hbar;
+  pkpm_s_lw->eps0 = eps0;
+  pkpm_s_lw->num_cross_collisions = num_cross_collisions;
+  for (int i = 0; i < num_cross_collisions; i++) {
+    strcpy(pkpm_s_lw->collide_with[i], collide_with[i]);
+    pkpm_s_lw->has_cross_nu_func[i] = has_cross_nu_func[i];
+    pkpm_s_lw->cross_nu_func_ref[i] =
+      (struct lua_func_ctx){.func_ref = cross_nu_func_ref[i], .ndim = 0, .nret = 1, .L = L};
+  }
+  pkpm_s_lw->is_implicit = is_implicit;
+
+  pkpm_s_lw->has_source_bgk = has_source_bgk;
+  pkpm_s_lw->source_bgk_is_implicit = source_bgk_is_implicit;
+  pkpm_s_lw->source_bgk_rate_func_ref =
+    (struct lua_func_ctx){.func_ref = source_bgk_rate_func_ref, .ndim = 0, .nret = 1, .L = L};
+  pkpm_s_lw->source_bgk_temp_func_ref =
+    (struct lua_func_ctx){.func_ref = source_bgk_temp_func_ref, .ndim = 0, .nret = 1, .L = L};
+
+  pkpm_s_lw->source_id = source_id;
+  pkpm_s_lw->source_length = source_length;
+  strcpy(pkpm_s_lw->source_species, source_species);
+  pkpm_s_lw->write_source = write_source;
+  pkpm_s_lw->num_sources = num_sources;
+  pkpm_s_lw->source_proj_id = source_proj_id;
+  pkpm_s_lw->has_source_density_func = has_source_density_func;
+  pkpm_s_lw->source_density_func_ref =
+    (struct lua_func_ctx){.func_ref = source_density_func_ref, .ndim = 0, .nret = 1, .L = L};
+  pkpm_s_lw->has_source_temp_func = has_source_temp_func;
+  pkpm_s_lw->source_temp_func_ref =
+    (struct lua_func_ctx){.func_ref = source_temp_func_ref, .ndim = 0, .nret = 1, .L = L};
+  pkpm_s_lw->has_source_drift_func = has_source_drift_func;
+  pkpm_s_lw->source_drift_func_ref =
+    (struct lua_func_ctx){.func_ref = source_drift_func_ref, .ndim = 0, .nret = 3, .L = L};
+
+  // Set metatable.
+  luaL_getmetatable(L, VLASOV_PKPM_SPECIES_METATABLE_NM);
+  lua_setmetatable(L, -2);
+
+  return 1;
+}
+
+// Species constructor.
+static struct luaL_Reg vm_pkpm_species_ctor[] = {{"new", vlasov_pkpm_species_lw_new}, {0, 0}};
+
 /* ************* */
 /* Field methods */
 /* ************* */
@@ -2006,6 +2431,8 @@ struct vlasov_app_lw {
   int integrated_L2_f_calcs; // Number of times to calculate integrated L2 norm of distribution function.
   double dt_failure_tol; // Minimum allowable fraction of initial time-step.
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
+
+  struct gkyl_vlasov_nn nn; // Neural-network options (PKPM species).
 };
 
 // Copy a callback context into the app's pool, set the coordinate dimension
@@ -2069,6 +2496,44 @@ species_compare_func(const void *a, const void *b)
   const struct vlasov_species_lw *const *spa = a;
   const struct vlasov_species_lw *const *spb = b;
   return strcmp((*spa)->name, (*spb)->name);
+}
+// Gets all PKPM species objects from the App table, which must be on top of
+// the stack, into the pointer array and returns their number. Each object is
+// assigned its name from its table key; nothing else in the userdata is
+// modified.
+static int
+get_pkpm_species_inp(lua_State *L, struct vlasov_pkpm_species_lw *species[GKYL_MAX_SPECIES])
+{
+  enum { TKEY = -2, TVAL = -1 };
+
+  int curr = 0;
+  lua_pushnil(L); // Initial key is nil.
+  while (lua_next(L, TKEY) != 0) {
+    // Key at TKEY and value at TVAL.
+    if (lua_type(L, TVAL) == LUA_TUSERDATA) {
+      struct vlasov_pkpm_species_lw *pkpm_s = lua_touserdata(L, TVAL);
+
+      if (pkpm_s->magic == VLASOV_PKPM_SPECIES_DEFAULT) {
+        if (lua_type(L, TKEY) == LUA_TSTRING) {
+          const char *key = lua_tolstring(L, TKEY, 0);
+          strcpy(pkpm_s->pkpm_species.name, key);
+        }
+        species[curr++] = pkpm_s;
+      }
+    }
+    lua_pop(L, 1);
+  }
+
+  return curr;
+}
+
+// Comparison method to sort PKPM species array by species name.
+static int
+pkpm_species_compare_func(const void *a, const void *b)
+{
+  const struct vlasov_pkpm_species_lw *const *spa = a;
+  const struct vlasov_pkpm_species_lw *const *spb = b;
+  return strcmp((*spa)->pkpm_species.name, (*spb)->pkpm_species.name);
 }
 
 // Gets all fluid species objects from the App table, which must be on top of
@@ -2781,7 +3246,8 @@ vm_app_new(lua_State *L)
 {
   struct vlasov_app_lw *app_lw = gkyl_malloc(sizeof(*app_lw));
   app_lw->max_ctx = GKYL_MAX_SPECIES *
-                      (sizeof(struct vlasov_species_lw) + sizeof(struct vlasov_fluid_species_lw)) /
+                      (sizeof(struct vlasov_species_lw) + sizeof(struct vlasov_fluid_species_lw) +
+                       sizeof(struct vlasov_pkpm_species_lw)) /
                       sizeof(struct lua_func_ctx) +
                     sizeof(struct vlasov_field_lw) / sizeof(struct lua_func_ctx);
   app_lw->ctx_pool = gkyl_malloc(sizeof(struct lua_func_ctx[app_lw->max_ctx]));
@@ -2809,7 +3275,55 @@ vm_app_new(lua_State *L)
   app_lw->dt_failure_tol = glua_tbl_get_number(L, "dtFailureTol", 1.0e-4);
   app_lw->num_failures_max = glua_tbl_get_integer(L, "numFailuresMax", 20);
 
+  // Neural-network options (PKPM species): one table. Without it no network is trained or tested.
+  struct gkyl_vlasov_nn nn = {
+    .train_ab_initio = true,
+    .nn_width = 256,
+    .nn_depth = 5,
+    .num_trains = INT_MAX,
+    .num_nn_writes = 1,
+    .num_tests = 1,
+  };
+  with_lua_tbl_tbl(L, "neuralNet")
+  {
+    nn.train_nn = glua_tbl_get_bool(L, "trainNN", false);
+    nn.train_ab_initio = glua_tbl_get_bool(L, "trainAbInitio", true);
+    nn.nn_width = glua_tbl_get_integer(L, "NNWidth", 256);
+    nn.nn_depth = glua_tbl_get_integer(L, "NNDepth", 5);
+    strcpy(nn.train_nn_file, glua_tbl_get_string(L, "trainNNFile", ""));
+    nn.num_trains = glua_tbl_get_integer(L, "numTrains", INT_MAX);
+    nn.num_nn_writes = glua_tbl_get_integer(L, "numNNWrites", 1);
+
+    with_lua_tbl_tbl(L, "inputMoms")
+    {
+      nn.num_input_moms = glua_objlen(L);
+      assert(nn.num_input_moms <= GKYL_VLASOV_NN_MAX_MOMS);
+
+      for (int i = 0; i < nn.num_input_moms; i++) {
+        // Indices are off by 1 between Lua and C.
+        nn.input_moms[i] = glua_tbl_iget_integer(L, i + 1, 0) - 1;
+      }
+    }
+
+    with_lua_tbl_tbl(L, "outputMoms")
+    {
+      nn.num_output_moms = glua_objlen(L);
+      assert(nn.num_output_moms <= GKYL_VLASOV_NN_MAX_MOMS);
+
+      for (int i = 0; i < nn.num_output_moms; i++) {
+        // Indices are off by 1 between Lua and C.
+        nn.output_moms[i] = glua_tbl_iget_integer(L, i + 1, 0) - 1;
+      }
+    }
+
+    nn.test_nn = glua_tbl_get_bool(L, "testNN", false);
+    strcpy(nn.test_nn_file, glua_tbl_get_string(L, "testNNFile", ""));
+    nn.num_tests = glua_tbl_get_integer(L, "numTests", 1);
+  }
+  app_lw->nn = nn;
+
   struct gkyl_vm vm = {}; // Input table for app.
+  vm.nn = nn;
 
   strcpy(vm.name, sim_name);
 
@@ -3210,6 +3724,106 @@ vm_app_new(lua_State *L)
       vm.species[num_kinetic_species + s].fluid.diffusion.Dij_ctx = dij_ctx;
     }
   }
+
+  struct vlasov_pkpm_species_lw *pkpm_species[GKYL_MAX_SPECIES];
+
+  // Set all PKPM species input: they follow the kinetic and the fluid species in vm.species[].
+  int num_pkpm_species = get_pkpm_species_inp(L, pkpm_species);
+  if (vm.num_species + num_pkpm_species > GKYL_MAX_SPECIES) {
+    return luaL_error(
+      L, "Too many species: %d kinetic and fluid + %d PKPM exceeds GKYL_MAX_SPECIES (%d)!",
+      vm.num_species, num_pkpm_species, GKYL_MAX_SPECIES
+    );
+  }
+
+  // Need to sort the pkpm_species[] array by name of the species before
+  // proceeding as there is no way to ensure that all cores loop over
+  // Lua tables in the same order.
+  qsort(
+    pkpm_species, num_pkpm_species, sizeof(struct vlasov_pkpm_species_lw *),
+    pkpm_species_compare_func
+  );
+
+  for (int s = 0; s < num_pkpm_species; s++) {
+    const struct vlasov_pkpm_species_lw *ps = pkpm_species[s];
+    struct gkyl_vlasov_species *sp = &vm.species[vm.num_species + s];
+    *sp = ps->pkpm_species;
+    int pdim = cdim + ps->vdim;
+
+    if (ps->has_dist_init_func) {
+      sp->kinetic.projection[0].func = gkyl_lw_eval_cb;
+      sp->kinetic.projection[0].ctx_func = vm_app_ctx(app_lw, &ps->dist_init_func_ref, pdim);
+    }
+    if (ps->has_fluid_init_func) {
+      sp->fluid.init = gkyl_lw_eval_cb;
+      sp->fluid.ctx = vm_app_ctx(app_lw, &ps->fluid_init_func_ref, cdim);
+    }
+
+    if (ps->has_applied_acceleration_func) {
+      sp->fluid.app_accel = gkyl_lw_eval_cb;
+      sp->fluid.app_accel_ctx = vm_app_ctx(app_lw, &ps->applied_acceleration_func_ref, cdim);
+      sp->fluid.app_accel_evolve = ps->evolve_applied_acceleration;
+    }
+
+    sp->kinetic.collisions.collision_id = ps->collision_id;
+    if (ps->has_self_nu_func) {
+      sp->kinetic.collisions.self_nu = gkyl_lw_eval_cb;
+      sp->kinetic.collisions.self_nu_ctx = vm_app_ctx(app_lw, &ps->self_nu_func_ref, cdim);
+    }
+
+    sp->kinetic.collisions.num_cross_collisions = ps->num_cross_collisions;
+    for (int i = 0; i < ps->num_cross_collisions; i++) {
+      strcpy(sp->kinetic.collisions.collide_with[i], ps->collide_with[i]);
+      if (ps->has_cross_nu_func[i]) {
+        sp->kinetic.collisions.cross_nu[i] = gkyl_lw_eval_cb;
+        sp->kinetic.collisions.cross_nu_ctx[i] =
+          vm_app_ctx(app_lw, &ps->cross_nu_func_ref[i], cdim);
+      }
+    }
+    sp->kinetic.collisions.is_implicit = ps->is_implicit;
+    sp->kinetic.collisions.nu_frac = ps->nu_frac;
+    sp->kinetic.collisions.den_ref = ps->den_ref;
+    sp->kinetic.collisions.temp_ref = ps->temp_ref;
+    sp->kinetic.collisions.hbar = ps->hbar;
+    sp->kinetic.collisions.eps0 = ps->eps0;
+
+    if (ps->has_source_bgk) {
+      sp->kinetic.source_bgk = (struct gkyl_vlasov_source_bgk){
+        .source_bgk_id = GKYL_SOURCE_BGK_HEATING,
+        .rate_profile = gkyl_lw_eval_cb,
+        .rate_profile_ctx = vm_app_ctx(app_lw, &ps->source_bgk_rate_func_ref, cdim),
+        .temp_shape = gkyl_lw_eval_cb,
+        .temp_shape_ctx = vm_app_ctx(app_lw, &ps->source_bgk_temp_func_ref, cdim),
+        .is_implicit = ps->source_bgk_is_implicit,
+      };
+    }
+
+    if (ps->source_id != GKYL_NO_SOURCE) {
+      sp->kinetic.source.source_id = ps->source_id;
+      sp->kinetic.source.source_length = ps->source_length;
+      strcpy(sp->kinetic.source.source_species, ps->source_species);
+      sp->kinetic.source.write_source = ps->write_source;
+      sp->kinetic.source.num_sources = ps->num_sources;
+      sp->kinetic.source.projection[0].proj_id = ps->source_proj_id;
+
+      if (ps->has_source_density_func) {
+        sp->kinetic.source.projection[0].density = gkyl_lw_eval_cb;
+        sp->kinetic.source.projection[0].ctx_density =
+          vm_app_ctx(app_lw, &ps->source_density_func_ref, cdim);
+      }
+      if (ps->has_source_temp_func) {
+        sp->kinetic.source.projection[0].temp = gkyl_lw_eval_cb;
+        sp->kinetic.source.projection[0].ctx_temp =
+          vm_app_ctx(app_lw, &ps->source_temp_func_ref, cdim);
+      }
+      if (ps->has_source_drift_func) {
+        sp->kinetic.source.projection[0].V_drift = gkyl_lw_eval_cb;
+        sp->kinetic.source.projection[0].ctx_V_drift =
+          vm_app_ctx(app_lw, &ps->source_drift_func_ref, cdim);
+      }
+    }
+  }
+  vm.num_species += num_pkpm_species;
 
   // Set field input.
   vm.skip_field = glua_tbl_get_bool(L, "skipField", false);
@@ -3745,6 +4359,236 @@ show_help(const struct gkyl_vlasov_app *app)
 
   gkyl_vlasov_app_cout(app, stdout, "\n");
 }
+// Neural networks of the moments of the PKPM species in the run loop: a network per species is
+// trained on the diagnostic moments (and written), or loaded and tested against them, on the
+// cadences of the neuralNet options.
+struct vm_nn_run {
+  struct gkyl_vlasov_nn
+    *nn; // Options (training or testing is disabled when a network file is missing).
+  struct gkyl_tm_trigger train_trig, write_trig,
+    test_trig; // Triggers of training, output and testing.
+  kad_node_t **layers; // Layers of the networks trained ab initio.
+  struct gkyl_kann_net **ann, **ann_test; // Networks trained, and networks tested (by species).
+  struct gkyl_kn_vec *input_data, *output_data; // Training data across the domain.
+  // Test data across the domain: inputs, outputs and the outputs the networks predict.
+  struct gkyl_kn_vec *input_data_real, *output_data_real, *output_data_predicted;
+};
+
+static void
+train_mom(
+  struct gkyl_tm_trigger *nn, gkyl_vlasov_app *app, double t_curr, bool force_train,
+  struct gkyl_kann_net **ann, int num_input_moms, int *input_moms, int num_output_moms,
+  int *output_moms, struct gkyl_kn_vec *input_data, struct gkyl_kn_vec *output_data
+)
+{
+  if (gkyl_tm_trigger_check_and_bump(nn, t_curr) || force_train) {
+    int frame = nn->curr - 1;
+    if (force_train) {
+      frame = nn->curr;
+    }
+
+    gkyl_vlasov_app_train(
+      app, t_curr, frame, ann, num_input_moms, input_moms, num_output_moms, output_moms, input_data,
+      output_data
+    );
+  }
+}
+
+static void
+write_nn(
+  struct gkyl_tm_trigger *nnw, gkyl_vlasov_app *app, double t_curr, bool force_write,
+  struct gkyl_kann_net **ann
+)
+{
+  if (gkyl_tm_trigger_check_and_bump(nnw, t_curr) || force_write) {
+    int frame = nnw->curr - 1;
+    if (force_write) {
+      frame = nnw->curr;
+    }
+
+    gkyl_vlasov_app_write_nn(app, t_curr, frame, ann);
+  }
+}
+
+static void
+test_mom(
+  struct gkyl_tm_trigger *nnt, gkyl_vlasov_app *app, double t_curr, bool force_test,
+  struct gkyl_kann_net **ann, int num_input_moms, int *input_moms, int num_output_moms,
+  int *output_moms, struct gkyl_kn_vec *input_data_real, struct gkyl_kn_vec *output_data_real,
+  struct gkyl_kn_vec *output_data_predicted
+)
+{
+  if (gkyl_tm_trigger_check_and_bump(nnt, t_curr) || force_test) {
+    int frame = nnt->curr - 1;
+    if (force_test) {
+      frame = nnt->curr;
+    }
+
+    gkyl_vlasov_app_test(
+      app, t_curr, frame, ann, num_input_moms, input_moms, num_output_moms, output_moms,
+      input_data_real, output_data_real, output_data_predicted
+    );
+  }
+}
+
+// Train (and write) and test the networks when their triggers fire, or regardless with force.
+static void
+vm_nn_run_advance(struct vm_nn_run *nr, gkyl_vlasov_app *app, double t_curr, bool force)
+{
+  if (!nr) {
+    return;
+  }
+  struct gkyl_vlasov_nn *nn = nr->nn;
+  if (nn->train_nn) {
+    train_mom(
+      &nr->train_trig, app, t_curr, force, nr->ann, nn->num_input_moms, nn->input_moms,
+      nn->num_output_moms, nn->output_moms, nr->input_data, nr->output_data
+    );
+    write_nn(&nr->write_trig, app, t_curr, force, nr->ann);
+  }
+  if (nn->test_nn) {
+    test_mom(
+      &nr->test_trig, app, t_curr, force, nr->ann_test, nn->num_input_moms, nn->input_moms,
+      nn->num_output_moms, nn->output_moms, nr->input_data_real, nr->output_data_real,
+      nr->output_data_predicted
+    );
+  }
+}
+
+// Set up the training and the testing of the networks at the start of a run, with their first
+// calls. Returns NULL when the options ask for neither.
+static struct vm_nn_run *
+vm_nn_run_new(
+  struct gkyl_vlasov_nn *nn, gkyl_vlasov_app *app, double t_curr, double t_end, int frame_curr
+)
+{
+  if (!nn->train_nn && !nn->test_nn) {
+    return 0;
+  }
+  struct vm_nn_run *nr = gkyl_malloc(sizeof(*nr));
+  nr->nn = nn;
+
+  // Create trigger for neural network training.
+  nr->train_trig =
+    (struct gkyl_tm_trigger){.dt = t_end / nn->num_trains, .tcurr = t_curr, .curr = frame_curr};
+  nr->layers = gkyl_malloc(sizeof(kad_node_t *) * app->num_species);
+  nr->ann = gkyl_malloc(sizeof(struct gkyl_kann_net *) * app->num_species);
+  for (int i = 0; i < app->num_species; i++) {
+    nr->ann[i] = 0;
+  }
+  // Number of DG coefficients per moment carried into/out of the network.
+  int nn_num_coeff = (app->poly_order == 1) ? ((app->cdim == 1) ? 2 : 4) : 3;
+  int nn_input_dim = nn->num_input_moms * nn_num_coeff;
+  int nn_output_dim = nn->num_output_moms * nn_num_coeff;
+  if (nn->train_nn) {
+    if (nn->train_ab_initio) {
+      for (int i = 0; i < app->num_species; i++) {
+        kad_node_t **t = nr->layers;
+        t[i] = kann_layer_input(nn_input_dim);
+        for (int j = 0; j < nn->nn_depth; j++) {
+          t[i] = kann_layer_dense(t[i], nn->nn_width);
+          t[i] = kad_tanh(t[i]);
+        }
+        t[i] = kann_layer_cost(t[i], nn_output_dim, KANN_C_MSE);
+        nr->ann[i] = gkyl_kann_net_new(t[i], app->use_gpu);
+      }
+    } else {
+      for (int i = 0; i < app->num_species; i++) {
+        const char *fmt = "%s-%s.dat";
+        int sz = gkyl_calc_strlen(fmt, nn->train_nn_file, app->species[i].name);
+        char fileNm[sz + 1];
+        snprintf(fileNm, sizeof fileNm, fmt, nn->train_nn_file, app->species[i].name);
+        FILE *file = fopen(fileNm, "r");
+        if (file != NULL) {
+          nr->ann[i] = gkyl_kann_net_load(fileNm, app->use_gpu);
+          fclose(file);
+        } else {
+          nr->ann[i] = 0;
+          nn->train_nn = false;
+          fprintf(
+            stderr, "Neural network for species %s not found! Disabling NN training.\n",
+            app->species[i].name
+          );
+        }
+      }
+    }
+  }
+
+  int cell_count = 0;
+  if (app->cdim == 1) {
+    cell_count = app->grid.cells[0];
+  } else if (app->cdim == 2) {
+    cell_count = app->grid.cells[0] * app->grid.cells[1];
+  }
+  nr->input_data = gkyl_kn_vec_new(cell_count, nn_input_dim);
+  nr->output_data = gkyl_kn_vec_new(cell_count, nn_output_dim);
+
+  // Create trigger for neural network writing.
+  nr->write_trig =
+    (struct gkyl_tm_trigger){.dt = t_end / nn->num_nn_writes, .tcurr = t_curr, .curr = frame_curr};
+
+  // Create trigger for neural network testing.
+  nr->test_trig =
+    (struct gkyl_tm_trigger){.dt = t_end / nn->num_tests, .tcurr = t_curr, .curr = frame_curr};
+  nr->ann_test = gkyl_malloc(sizeof(struct gkyl_kann_net *) * app->num_species);
+  for (int i = 0; i < app->num_species; i++) {
+    nr->ann_test[i] = 0;
+  }
+  if (nn->test_nn) {
+    for (int i = 0; i < app->num_species; i++) {
+      const char *fmt = "%s-%s.dat";
+      int sz = gkyl_calc_strlen(fmt, nn->test_nn_file, app->species[i].name);
+      char fileNm[sz + 1];
+      snprintf(fileNm, sizeof fileNm, fmt, nn->test_nn_file, app->species[i].name);
+      FILE *file = fopen(fileNm, "r");
+      if (file != NULL) {
+        nr->ann_test[i] = gkyl_kann_net_load(fileNm, app->use_gpu);
+        fclose(file);
+      } else {
+        nr->ann_test[i] = 0;
+        nn->test_nn = false;
+        fprintf(
+          stderr, "Neural network for species %s not found! Disabling NN testing.\n",
+          app->species[i].name
+        );
+      }
+    }
+  }
+  nr->input_data_real = gkyl_kn_vec_new(cell_count, nn_input_dim);
+  nr->output_data_real = gkyl_kn_vec_new(cell_count, nn_output_dim);
+  nr->output_data_predicted = gkyl_kn_vec_new(cell_count, nn_output_dim);
+
+  vm_nn_run_advance(nr, app, t_curr, false);
+
+  return nr;
+}
+
+// The last training and testing of a run, and the release of the networks and their data.
+static void
+vm_nn_run_finish(struct vm_nn_run *nr, gkyl_vlasov_app *app, double t_curr)
+{
+  if (!nr) {
+    return;
+  }
+  vm_nn_run_advance(nr, app, t_curr, false);
+  for (int i = 0; i < app->num_species; i++) {
+    if (nr->ann[i]) {
+      gkyl_kann_net_release(nr->ann[i]);
+    }
+    if (nr->ann_test[i]) {
+      gkyl_kann_net_release(nr->ann_test[i]);
+    }
+  }
+  gkyl_free(nr->layers);
+  gkyl_free(nr->ann);
+  gkyl_free(nr->ann_test);
+  gkyl_kn_vec_release(nr->input_data);
+  gkyl_kn_vec_release(nr->output_data);
+  gkyl_kn_vec_release(nr->input_data_real);
+  gkyl_kn_vec_release(nr->output_data_real);
+  gkyl_kn_vec_release(nr->output_data_predicted);
+  gkyl_free(nr);
+}
 
 // Run simulation. (num_steps) -> bool. num_steps is optional.
 static int
@@ -3840,6 +4684,9 @@ vm_app_run(lua_State *L)
     .log_trig_1p = {.dt = t_end / 100.0, .tcurr = t_curr},
   };
 
+  // Training and testing of the neural networks of PKPM species (NULL without the options).
+  struct vm_nn_run *nn_run = vm_nn_run_new(&app_lw->nn, app, t_curr, t_end, frame_curr);
+
   struct timespec tm_ic0 = gkyl_wall_clock();
   // Compute and write the initial diagnostics.
   calc_field_energy(&fe_trig, app, t_curr, false);
@@ -3916,6 +4763,7 @@ vm_app_run(lua_State *L)
     calc_integrated_mom(&im_trig, app, t_curr, false);
     calc_integrated_L2_f(&l2f_trig, app, t_curr, false);
     write_data(&io_trig, app, t_curr, false);
+    vm_nn_run_advance(nn_run, app, t_curr, false);
 
     if (dt_init < 0.0) {
       dt_init = status.dt_actual;
@@ -3935,6 +4783,7 @@ vm_app_run(lua_State *L)
         calc_integrated_mom(&im_trig, app, t_curr, true);
         calc_integrated_L2_f(&l2f_trig, app, t_curr, true);
         write_data(&io_trig, app, t_curr, true);
+        vm_nn_run_advance(nn_run, app, t_curr, true);
 
         break;
       }
@@ -3953,6 +4802,7 @@ vm_app_run(lua_State *L)
   calc_integrated_mom(&im_trig, app, t_curr, false);
   calc_integrated_L2_f(&l2f_trig, app, t_curr, false);
   write_data(&io_trig, app, t_curr, false);
+  vm_nn_run_finish(nn_run, app, t_curr);
   gkyl_vlasov_app_stat_write(app);
 
   struct gkyl_vlasov_stat stat = gkyl_vlasov_app_stat(app);
@@ -4062,6 +4912,12 @@ app_openlibs(lua_State *L)
     lua_pushcfunction(L, vm_fluid_species_lw_gc);
     lua_settable(L, -3);
     luaL_register(L, "G0.Vlasov.FluidSpecies", vm_fluid_species_ctor);
+  } while (0);
+
+  // Register PKPM Species input struct.
+  do {
+    luaL_newmetatable(L, VLASOV_PKPM_SPECIES_METATABLE_NM);
+    luaL_register(L, "G0.Vlasov.PKPMSpecies", vm_pkpm_species_ctor);
   } while (0);
 
   // Register Field input struct.

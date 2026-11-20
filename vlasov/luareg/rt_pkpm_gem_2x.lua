@@ -14,7 +14,7 @@
 -- 15/Omega_ci, rises from 15/Omega_ci on (onset), peaks at 0.129 B0 vA between 18 and 19/Omega_ci
 -- and is 0.073 between 21 and 22/Omega_ci. The onset time depends on the mesh at this resolution.
 
-local PKPM = G0.PKPM
+local Vlasov = G0.Vlasov
 
 -- Mathematical constants (dimensionless).
 pi = math.pi
@@ -100,7 +100,7 @@ local function total_jz(x, y)
     - (psi0 / mu0) * (kx * kx + ky * ky) * math.cos(kx * x) * math.cos(ky * y)
 end
 
-pkpmApp = PKPM.App.new {
+vlasovApp = Vlasov.App.new {
 
   tEnd = t_end,
   nFrame = num_frames,
@@ -146,7 +146,7 @@ pkpmApp = PKPM.App.new {
   periodicDirs = { 1 }, -- Periodic directions (x-direction only).
 
   -- Electrons.
-  elc = PKPM.Species.new {
+  elc = Vlasov.PKPMSpecies.new {
     charge = charge_elc, mass = mass_elc,
 
     kinetic = {
@@ -221,7 +221,7 @@ pkpmApp = PKPM.App.new {
   },
 
   -- Ions.
-  ion = PKPM.Species.new {
+  ion = Vlasov.PKPMSpecies.new {
     charge = charge_ion, mass = mass_ion,
 
     kinetic = {
@@ -296,7 +296,7 @@ pkpmApp = PKPM.App.new {
   },
 
   -- Field.
-  field = PKPM.Field.new {
+  field = Vlasov.Field.new {
     epsilon0 = epsilon0, mu0 = mu0,
 
     -- Initial conditions function.
@@ -321,4 +321,4 @@ pkpmApp = PKPM.App.new {
   }
 }
 
-pkpmApp:run()
+vlasovApp:run()

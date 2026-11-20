@@ -1,21 +1,21 @@
 #include <assert.h>
-#include <gkyl_pkpm_priv.h>
+#include <gkyl_vlasov_priv.h>
 
 struct gkyl_array *
-pkpm_species_coll_profile_new(
-  gkyl_pkpm_app *app, void (*eval)(double t, const double *xn, double *fout, void *ctx), void *ctx,
-  double scale, bool is_nodal
+vm_pkpm_species_coll_profile_new(
+  gkyl_vlasov_app *app, void (*eval)(double t, const double *xn, double *fout, void *ctx),
+  void *ctx, double scale, bool is_nodal
 )
 {
-  struct gkyl_array *modal = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
+  struct gkyl_array *modal = mkarr(false, app->basis.num_basis, app->local_ext.volume);
   gkyl_proj_on_basis *proj = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
     .grid = &app->grid,
-    .basis = &app->confBasis,
+    .basis = &app->basis,
     .num_quad = app->poly_order + 1,
     .num_ret_vals = 1,
     .eval = eval,
     .ctx = ctx,
-    .c2p_func = pkpm_pos_c2p,
+    .c2p_func = vm_pos_c2p,
     .c2p_func_ctx = app->pos_map,
   });
   gkyl_proj_on_basis_advance(proj, 0.0, &app->local_ext, modal);
@@ -25,7 +25,7 @@ pkpm_species_coll_profile_new(
     return modal;
   }
 
-  struct gkyl_array *nodal = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
+  struct gkyl_array *nodal = mkarr(false, app->basis.num_basis, app->local_ext.volume);
   gkyl_dg_conf_nodal_conf_to_nodal(app->conf_nodal, &app->local_ext, modal, nodal);
   gkyl_array_release(modal);
   return nodal;
@@ -33,19 +33,21 @@ pkpm_species_coll_profile_new(
 
 // Node values of zero stand in for a self-collision frequency that is computed every stage.
 struct gkyl_array *
-pkpm_species_coll_self_nu_new(gkyl_pkpm_app *app, const struct pkpm_species *s, double nu_frac)
+vm_pkpm_species_coll_self_nu_new(
+  gkyl_vlasov_app *app, const struct vlasov_species *s, double nu_frac
+)
 {
   const struct gkyl_vlasov_collisions *coll = &s->kinetic->info.collisions;
   if (coll->self_nu) {
-    return pkpm_species_coll_profile_new(app, coll->self_nu, coll->self_nu_ctx, nu_frac, true);
+    return vm_pkpm_species_coll_profile_new(app, coll->self_nu, coll->self_nu_ctx, nu_frac, true);
   }
-  struct gkyl_array *nu = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
+  struct gkyl_array *nu = mkarr(false, app->basis.num_basis, app->local_ext.volume);
   gkyl_array_clear(nu, 0.0);
   return nu;
 }
 
 struct gkyl_array *
-pkpm_species_bgk_target_new(gkyl_pkpm_app *app, struct pkpm_species *s)
+vm_pkpm_species_bgk_target_new(gkyl_vlasov_app *app, struct vlasov_species *s)
 {
   struct gkyl_array *f_lte = mkarr(false, 3, s->kinetic->local_ext_vel.volume);
   gkyl_pkpm_lte *lte = gkyl_pkpm_lte_inew(&(struct gkyl_pkpm_lte_inp){
@@ -59,7 +61,7 @@ pkpm_species_bgk_target_new(gkyl_pkpm_app *app, struct pkpm_species *s)
   struct gkyl_pkpm_lte_status status = gkyl_pkpm_lte_correct(lte, moms, f_lte);
   gkyl_pkpm_lte_release(lte);
   if (!status.converged) {
-    gkyl_pkpm_app_cout(
+    gkyl_vlasov_app_cout(
       app, stderr, "WARNING: species %s: the BGK target moments reached a relative error of %g\n",
       s->name, status.error
     );
@@ -81,8 +83,8 @@ eval_bgk_target(double t, const double *xn, double *restrict fout, void *ctx)
 // nu (f_target - f) accumulated onto the right-hand side, with the collision frequency at the
 // nodes: all blocks relax to the corrected unit Maxwellian.
 static void
-pkpm_species_bgk_kinetic_rhs_explicit(
-  gkyl_pkpm_app *app, struct pkpm_kinetic_species *kin, struct pkpm_bgk_collisions *bgk,
+vm_pkpm_species_bgk_kinetic_rhs_explicit(
+  gkyl_vlasov_app *app, struct vm_species *kin, struct vm_pkpm_bgk_collisions *bgk,
   const struct gkyl_array *fin, struct gkyl_array *rhs
 )
 {
@@ -94,8 +96,8 @@ pkpm_species_bgk_kinetic_rhs_explicit(
 
 // The implicit operator adds nothing to the right-hand side of the explicit update.
 static void
-pkpm_species_bgk_kinetic_rhs_none(
-  gkyl_pkpm_app *app, struct pkpm_kinetic_species *kin, struct pkpm_bgk_collisions *bgk,
+vm_pkpm_species_bgk_kinetic_rhs_none(
+  gkyl_vlasov_app *app, struct vm_species *kin, struct vm_pkpm_bgk_collisions *bgk,
   const struct gkyl_array *fin, struct gkyl_array *rhs
 )
 {
@@ -104,22 +106,22 @@ pkpm_species_bgk_kinetic_rhs_none(
 // nu (f_target - f) in the modal form, for GPU runs. The target is gyrotropic ([F, G] only), so
 // the first harmonic [M0_perp, N_perp] relaxes to zero. This form adds nothing to the CFL rate.
 static void
-pkpm_species_bgk_kinetic_rhs_modal(
-  gkyl_pkpm_app *app, struct pkpm_kinetic_species *kin, struct pkpm_bgk_collisions *bgk,
+vm_pkpm_species_bgk_kinetic_rhs_modal(
+  gkyl_vlasov_app *app, struct vm_species *kin, struct vm_pkpm_bgk_collisions *bgk,
   const struct gkyl_array *fin, struct gkyl_array *rhs
 )
 {
-  pkpm_species_accumulate_conf_phase(app, kin, rhs, 1.0, bgk->nu, bgk->f_target);
-  pkpm_species_accumulate_conf_phase(app, kin, rhs, -1.0, bgk->nu, fin);
+  vm_pkpm_species_accumulate_conf_phase(app, kin, rhs, 1.0, bgk->nu, bgk->f_target);
+  vm_pkpm_species_accumulate_conf_phase(app, kin, rhs, -1.0, bgk->nu, fin);
 }
 
 // Backward Euler for self-collisions, S_q = 1/(1 + nu_q dt): n, u and the energy are unchanged.
 static void
-pkpm_species_bgk_shape_self(
-  gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_bgk_collisions *bgk, double dt
+vm_pkpm_species_bgk_shape_self(
+  gkyl_vlasov_app *app, struct vlasov_species *s, struct vm_pkpm_bgk_collisions *bgk, double dt
 )
 {
-  int num_nodes = app->confBasis.num_basis;
+  int num_nodes = app->basis.num_basis;
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &app->local);
   while (gkyl_range_iter_next(&iter)) {
@@ -136,57 +138,57 @@ pkpm_species_bgk_shape_self(
 // the temperatures before and after the exchange of the stage, so that every pressure component
 // takes the backward-Euler step at the total frequency.
 static void
-pkpm_species_bgk_shape_cross(
-  gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_bgk_collisions *bgk, double dt
+vm_pkpm_species_bgk_shape_cross(
+  gkyl_vlasov_app *app, struct vlasov_species *s, struct vm_pkpm_bgk_collisions *bgk, double dt
 )
 {
-  pkpm_species_coll_cross_shape(app, s, dt, bgk->shape);
+  vm_pkpm_species_coll_cross_shape(app, s, dt, bgk->shape);
 }
 
 // The collision frequency at the nodes and the single velocity-space target of the operator:
 // the unit Maxwellian in w, with its discrete moments corrected to [1, 0, 1].
 static void
-pkpm_species_bgk_init_nodal(
-  gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_bgk_collisions *bgk, double nu_frac
+vm_pkpm_species_bgk_init_nodal(
+  gkyl_vlasov_app *app, struct vlasov_species *s, struct vm_pkpm_bgk_collisions *bgk, double nu_frac
 )
 {
-  bgk->rate_self = pkpm_species_coll_self_nu_new(app, s, nu_frac);
+  bgk->rate_self = vm_pkpm_species_coll_self_nu_new(app, s, nu_frac);
   // Without partners the self frequency is the rate of the operator. With partners the rate is
   // rebuilt from it every stage.
   if (s->kinetic->info.collisions.num_cross_collisions) {
-    bgk->rate = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
+    bgk->rate = mkarr(false, app->basis.num_basis, app->local_ext.volume);
     gkyl_array_copy(bgk->rate, bgk->rate_self);
   } else {
     bgk->rate = gkyl_array_acquire(bgk->rate_self);
   }
-  bgk->f_lte = pkpm_species_bgk_target_new(app, s);
+  bgk->f_lte = vm_pkpm_species_bgk_target_new(app, s);
   bgk->up_bgk = gkyl_pkpm_bgk_collisions_inew(&(struct gkyl_pkpm_bgk_collisions_inp){
-    .conf_basis = &app->confBasis,
-    .phase_basis = &app->basis,
+    .conf_basis = &app->basis,
+    .phase_basis = &s->kinetic->basis,
     .use_gpu = false,
   });
   bgk->is_implicit = s->kinetic->info.collisions.is_implicit;
   if (bgk->is_implicit) {
-    bgk->shape = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
-    bgk->kinetic_rhs = pkpm_species_bgk_kinetic_rhs_none;
+    bgk->shape = mkarr(false, app->basis.num_basis, app->local_ext.volume);
+    bgk->kinetic_rhs = vm_pkpm_species_bgk_kinetic_rhs_none;
     bgk->calc_shape = s->kinetic->info.collisions.num_cross_collisions ?
-                        pkpm_species_bgk_shape_cross :
-                        pkpm_species_bgk_shape_self;
+                        vm_pkpm_species_bgk_shape_cross :
+                        vm_pkpm_species_bgk_shape_self;
   } else {
-    bgk->kinetic_rhs = pkpm_species_bgk_kinetic_rhs_explicit;
+    bgk->kinetic_rhs = vm_pkpm_species_bgk_kinetic_rhs_explicit;
   }
 }
 
 // The modal collision frequency and the projected target J [F_t, G_t], which does not change
 // in time.
 static void
-pkpm_species_bgk_init_modal(
-  gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_bgk_collisions *bgk, double nu_frac
+vm_pkpm_species_bgk_init_modal(
+  gkyl_vlasov_app *app, struct vlasov_species *s, struct vm_pkpm_bgk_collisions *bgk, double nu_frac
 )
 {
   // The computed frequency is not available in this form.
   assert(s->kinetic->info.collisions.self_nu);
-  struct gkyl_array *nu_host = pkpm_species_coll_profile_new(
+  struct gkyl_array *nu_host = vm_pkpm_species_coll_profile_new(
     app, s->kinetic->info.collisions.self_nu, s->kinetic->info.collisions.self_nu_ctx, nu_frac,
     false
   );
@@ -196,10 +198,10 @@ pkpm_species_bgk_init_modal(
 
   int num_blocks = 2, cdim = app->cdim;
   struct gkyl_array *f_target_host =
-    mkarr(false, num_blocks * app->basis.num_basis, s->kinetic->local_ext.volume);
+    mkarr(false, num_blocks * s->kinetic->basis.num_basis, s->kinetic->local_ext.volume);
   gkyl_proj_on_basis *proj = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
     .grid = &s->kinetic->grid,
-    .basis = &app->basis,
+    .basis = &s->kinetic->basis,
     .num_quad = 4,
     .num_ret_vals = num_blocks,
     .eval = eval_bgk_target,
@@ -212,13 +214,15 @@ pkpm_species_bgk_init_modal(
   gkyl_array_copy(bgk->f_target, f_target_host);
   gkyl_array_release(f_target_host);
   gkyl_vlasov_position_map_rescale_jacobpos(
-    app->pos_map, &app->basis, &s->kinetic->local, bgk->f_target, bgk->f_target
+    app->pos_map, &s->kinetic->basis, &s->kinetic->local, bgk->f_target, bgk->f_target
   );
-  bgk->kinetic_rhs = pkpm_species_bgk_kinetic_rhs_modal;
+  bgk->kinetic_rhs = vm_pkpm_species_bgk_kinetic_rhs_modal;
 }
 
 void
-pkpm_species_bgk_init(gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_bgk_collisions *bgk)
+vm_pkpm_species_bgk_init(
+  gkyl_vlasov_app *app, struct vlasov_species *s, struct vm_pkpm_bgk_collisions *bgk
+)
 {
   double nu_frac = s->kinetic->info.collisions.nu_frac > 0.0 ? s->kinetic->info.collisions.nu_frac :
                                                                1.0;
@@ -228,15 +232,15 @@ pkpm_species_bgk_init(gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_bg
   bgk->use_nodal = !app->use_gpu;
   bgk->is_implicit = false;
   if (bgk->use_nodal) {
-    pkpm_species_bgk_init_nodal(app, s, bgk, nu_frac);
+    vm_pkpm_species_bgk_init_nodal(app, s, bgk, nu_frac);
   } else {
-    pkpm_species_bgk_init_modal(app, s, bgk, nu_frac);
+    vm_pkpm_species_bgk_init_modal(app, s, bgk, nu_frac);
   }
 }
 
 void
-pkpm_species_bgk_kinetic_rhs(
-  gkyl_pkpm_app *app, struct pkpm_kinetic_species *kin, struct pkpm_bgk_collisions *bgk,
+vm_pkpm_species_bgk_kinetic_rhs(
+  gkyl_vlasov_app *app, struct vm_species *kin, struct vm_pkpm_bgk_collisions *bgk,
   const struct gkyl_array *fin, struct gkyl_array *rhs
 )
 {
@@ -246,8 +250,8 @@ pkpm_species_bgk_kinetic_rhs(
 }
 
 void
-pkpm_species_bgk_implicit_moms(
-  gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_bgk_collisions *bgk, double dt
+vm_pkpm_species_bgk_implicit_moms(
+  gkyl_vlasov_app *app, struct vlasov_species *s, struct vm_pkpm_bgk_collisions *bgk, double dt
 )
 {
   struct timespec tm = gkyl_wall_clock();
@@ -259,8 +263,9 @@ pkpm_species_bgk_implicit_moms(
 // so it keeps the constraints of the state and takes F, G to the target and the first harmonic
 // to zero as nu dt grows.
 void
-pkpm_species_bgk_implicit_advance(
-  gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_bgk_collisions *bgk, struct gkyl_array *f
+vm_pkpm_species_bgk_implicit_advance(
+  gkyl_vlasov_app *app, struct vlasov_species *s, struct vm_pkpm_bgk_collisions *bgk,
+  struct gkyl_array *f
 )
 {
   struct timespec tm = gkyl_wall_clock();
@@ -272,7 +277,7 @@ pkpm_species_bgk_implicit_advance(
 }
 
 void
-pkpm_species_bgk_release(const gkyl_pkpm_app *app, const struct pkpm_bgk_collisions *bgk)
+vm_pkpm_species_bgk_release(const gkyl_vlasov_app *app, const struct vm_pkpm_bgk_collisions *bgk)
 {
   if (bgk->use_nodal) {
     if (bgk->is_implicit) {

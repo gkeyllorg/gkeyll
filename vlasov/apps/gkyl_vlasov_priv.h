@@ -49,6 +49,9 @@ struct vlasov_output_meta {
   // Staggered operator split (0: none): the step of the last update and the step it suggested, so a
   // restart continues as the uninterrupted run. Written when nonzero (field frames only).
   double dt_prev, dt_suggested;
+  // Phase-space split of a hybrid basis (written when num_vdim > 0): the distribution file of a
+  // PKPM species holds PKPM_DIST_NUM_BLOCKS blocks, whose component count alone does not determine it.
+  int num_cdim, num_vdim;
 };
 
 // geometry data
@@ -101,7 +104,12 @@ struct vm_fluid_em_coupling {
   // Currents of the solve besides the species': the applied current and the effective current
   // -eps0 c^2 curl B of Ampere's law, whose E advances only in the source step.
   struct gkyl_array *curl_rhs; // Maxwell right-hand side of the field at the start of the source step
-  struct gkyl_array *curl_current; // applied current - eps0 * (E rows of curl_rhs)
+  struct gkyl_array
+    *curl_rhs_no_J; // the physical one, of a field with the position-map Jacobian (NULL otherwise)
+  struct gkyl_array
+    *curl_current; // physical applied current - eps0 * (E rows of the physical curl_rhs)
+  struct gkyl_array
+    *em_solve; // field the solve advances: em_no_J of a J-weighted field, em otherwise
 
   // Staggered states (fluids, field): those at the start of an update while it runs (for a
   // transport step that takes less than planned), and those kept while the app holds the
@@ -209,6 +217,12 @@ struct gkyl_vlasov_app {
   struct gkyl_array *src_omega_p_sq; // per cell: sum over the fluids of (q/m)^2 rho / eps0
   struct gkyl_array *src_rho_avg; // per cell: average density of a fluid (scratch)
 
+  // PKPM species.
+  bool has_pkpm; // some species is a PKPM species
+  struct gkyl_dg_conf_nodal
+    *conf_nodal; // conversions to and from the configuration-nodal, velocity-modal form (CPU runs)
+  struct vm_pkpm_coll_exchange coll_exchange; // cross-species momentum and energy exchange
+
   // pointer to function that takes a single-step of simulation
   struct gkyl_update_status (*update_func)(gkyl_vlasov_app *app, double dt0);
 
@@ -219,8 +233,9 @@ struct gkyl_vlasov_app {
 // with the suggested time-step dt. Also supports just Maxwell's equations
 // and fluid equations (Euler's) with potential Vlasov-fluid coupling.
 // 'stage' is the SSP-RK3 stage (1, 2 or 3) the step belongs to. The stage
-// distributions fin[] are not const (the signature of calc_self_moms_func); no
-// species modifies them.
+// distributions fin[] are not const (the signature of calc_self_moms_func): a
+// PKPM species projects its first-harmonic blocks onto the plane perpendicular
+// to the stage's b in place; no other species modifies them.
 void vlasov_forward_euler(
   gkyl_vlasov_app *app, int stage, double tcurr, double dt, struct gkyl_array *fin[],
   const struct gkyl_array *fluidin[], const struct gkyl_array *emin, struct gkyl_array *fout[],
@@ -232,16 +247,18 @@ void vlasov_src_omega_p_none(gkyl_vlasov_app *app, const struct gkyl_array *flui
 
 // Explicit fluid-EM coupling: the plasma frequency squared of the coupled fluids in each cell,
 // the sum of (q/m)^2 rho / eps0 with the cell averages of the stage densities, into
-// app->src_omega_p_sq. With the cyclotron frequency of a fluid it bounds the frequencies of its
-// source (see gkyl_dg_calc_fluid_vars_em_source), which enters the time-step of the fluid. Zero
-// for a static field, which does not respond to the currents. Kinetic species are not included.
+// app->src_omega_p_sq (fluid and PKPM species). With the cyclotron frequency of a fluid it bounds
+// the frequencies of its source (see gkyl_dg_calc_fluid_vars_em_source), which enters the
+// time-step of the fluid. Zero for a static field, which does not respond to the currents.
+// Kinetic species are not included.
 void vlasov_src_omega_p_explicit(gkyl_vlasov_app *app, const struct gkyl_array *fluidin[]);
 
 // The implicit operators of SSP-RK3 stage 'stage' (1, 2 or 3), applied to the
 // stage state after the explicit part of the stage, its BCs and the stage
 // combination: implicit BGK collisions and implicit temperature sources, one
 // backward-Euler step of both over the share of dt the stage adds to its state
-// (dt, dt/4, 2 dt/3). A no-op without implicit operators.
+// (dt, dt/4, 2 dt/3); for PKPM species also the exchange between them
+// (vm_pkpm_coll_stage_advance). A no-op without implicit operators and PKPM species.
 void vlasov_stage_implicit(gkyl_vlasov_app *app, int stage, double dt);
 
 // Take a single time-step of the staggered operator split: one implicit fluid-EM source step over
@@ -349,6 +366,15 @@ void vm_apply_bc(
 int vlasov_find_species_idx(const gkyl_vlasov_app *app, const char *nm);
 
 /**
+ * Find the species (kinetic, fluid or PKPM) with the given name.
+ *
+ * @param app Top-level app to look into
+ * @param nm Name of species
+ * @return Pointer to the species container with the given name. NULL if not found.
+ */
+struct vlasov_species *vlasov_find_species(const gkyl_vlasov_app *app, const char *nm);
+
+/**
  * Find the kinetic species with the given name.
  *
  * @param app Top-level app to look into
@@ -391,17 +417,20 @@ void vm_pos_c2p(const double *xcomp, double *xphys, void *ctx);
 struct vm_fluid_em_coupling *vm_fluid_em_coupling_new(struct gkyl_vlasov_app *app);
 
 /**
- * Whether a fluid species takes part in the fluid-EM coupling: only
- * momentum-carrying fluids (Euler and isothermal Euler) do.
+ * Whether the fluid aspect of a species takes part in the fluid-EM coupling: only
+ * those that carry a momentum do (a PKPM species; a fluid species with the Euler
+ * or isothermal Euler equations). May be called before the aspects are initialized.
  *
- * @param f Fluid species
- * @return True if the fluid species couples to the EM field
+ * @param sp Species container
+ * @return True if the fluid aspect of the species couples to the EM field
  */
-bool vm_fluid_em_coupling_supported(const struct vm_fluid_species *f);
+bool vm_fluid_em_coupling_supported(const struct vlasov_species *sp);
 
 /**
  * Implicit source step of the fluid-EM coupling (implicit midpoint at the nodes): advances the
- * fluid momenta and energies and the electric field in place. E advances only here, with
+ * fluid momenta and energies and the electric field in place, on the physical state (the
+ * position-map Jacobian of a PKPM fluid and of a field with PKPM species is divided out before
+ * and restored after). E advances only here, with
  * c^2 curl B of the field and the current of the kinetic species at the start of the step as
  * known currents (Stormer-Verlet in the curl terms and a leapfrog in the kinetic currents; the
  * transport step drifts B and moves the kinetic species with this E).

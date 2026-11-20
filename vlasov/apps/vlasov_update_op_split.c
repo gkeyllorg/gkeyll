@@ -105,11 +105,23 @@ vlasov_op_split_sync(gkyl_vlasov_app *app)
     gkyl_array_copy(fl_em->fluid_stag[i], fl_em->species[i]->fluid->fluid);
   }
   gkyl_array_copy(fl_em->em_stag, app->field->em);
+  // the limiter of the synchronization is not part of the evolution: PKPM species keep it out of
+  // their records (the statistics of the dynvec and the per-cell counts of the frames)
+  for (int i = 0; i < fl_em->num_fluid; ++i) {
+    if (fl_em->species[i]->type == GKYL_SPECIES_PKPM) {
+      vm_pkpm_species_positivity_record_save(fl_em->species[i]->fluid);
+    }
+  }
   // tcurr is the end of the last transport step; the sources stand at its midpoint (applied fields
   // at the midpoint of the half step)
   double dt_half = 0.5 * app->op_split_dt_prev;
   vm_fluid_em_coupling_update(app, fl_em, app->tcurr - 0.5 * dt_half, dt_half);
   vm_fluid_em_coupling_limit(app, fl_em);
+  for (int i = 0; i < fl_em->num_fluid; ++i) {
+    if (fl_em->species[i]->type == GKYL_SPECIES_PKPM) {
+      vm_pkpm_species_positivity_record_restore(fl_em->species[i]->fluid);
+    }
+  }
   app->op_split_synced = true;
 }
 
@@ -125,6 +137,16 @@ vlasov_op_split_unsync(gkyl_vlasov_app *app)
   }
   gkyl_array_copy(app->field->em, fl_em->em_stag);
   app->op_split_synced = false;
+}
+
+// File of the staggered fluid state of a species for a frame (the fluid files of a PKPM species
+// are named <species>_fluid, its distributions take the name of the species).
+static cstr
+op_split_fluid_file(const gkyl_vlasov_app *app, const struct vlasov_species *sp, int frame)
+{
+  const char *fmt = sp->type == GKYL_SPECIES_PKPM ? "%s-%s_fluid_restart_%d.gkyl" :
+                                                    "%s-%s_restart_%d.gkyl";
+  return cstr_from_fmt(fmt, app->name, sp->name, frame);
 }
 
 // Write an array of the staggered state as the stepper holds it, with the steps of the split.
@@ -177,7 +199,7 @@ vlasov_op_split_write_species(
     if (fl_em->species[i] == sp) {
       struct vm_fluid_species *fs = sp->fluid;
       const struct gkyl_array *fluid = app->op_split_synced ? fl_em->fluid_stag[i] : fs->fluid;
-      cstr fileNm = cstr_from_fmt("%s-%s_restart_%d.gkyl", app->name, fs->name, frame);
+      cstr fileNm = op_split_fluid_file(app, sp, frame);
       op_split_write_array(app, fluid, fs->fluid_host, tm, frame, fileNm.str);
       cstr_drop(&fileNm);
     }
@@ -221,7 +243,7 @@ vlasov_op_split_restart(gkyl_vlasov_app *app, int frame)
 
   for (int i = 0; i < fl_em->num_fluid; ++i) {
     struct vm_fluid_species *fs = fl_em->species[i]->fluid;
-    cstr fileNm_fluid = cstr_from_fmt("%s-%s_restart_%d.gkyl", app->name, fs->name, frame);
+    cstr fileNm_fluid = op_split_fluid_file(app, fl_em->species[i], frame);
     struct gkyl_app_restart_status rstat_fluid =
       op_split_read_array(app, fs->fluid, fs->fluid_host, fileNm_fluid.str);
     cstr_drop(&fileNm_fluid);

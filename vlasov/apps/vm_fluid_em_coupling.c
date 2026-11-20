@@ -8,10 +8,15 @@
 #include <gkyl_vlasov_priv.h>
 
 bool
-vm_fluid_em_coupling_supported(const struct vm_fluid_species *f)
+vm_fluid_em_coupling_supported(const struct vlasov_species *sp)
 {
-  // The momentum-carrying fluids: Euler and isothermal Euler.
-  return f->eqn_type == GKYL_EQN_EULER || f->eqn_type == GKYL_EQN_ISO_EULER;
+  // The fluid aspects that carry a momentum: that of a PKPM species, and the Euler and
+  // isothermal Euler equations of a fluid species.
+  if (sp->type == GKYL_SPECIES_PKPM) {
+    return true;
+  }
+  return sp->type == GKYL_SPECIES_FLUID && (sp->fluid->info.equation->type == GKYL_EQN_EULER ||
+                                            sp->fluid->info.equation->type == GKYL_EQN_ISO_EULER);
 }
 
 static double
@@ -50,8 +55,9 @@ fluid_em_coupling_dt_kinetic(struct gkyl_vlasov_app *app, struct vm_fluid_em_cou
 }
 
 // The solve of a source step. It advances the momentum of the fluids and the electric field, and
-// the energy of an Euler fluid by the change of the bulk kinetic energy (the work of the field):
-// the density is unchanged, and so is the internal energy at the nodes of the solve.
+// the energy of a fluid that has one by the change of the bulk kinetic energy (the work of the
+// field): the density is unchanged, and so is the internal energy at the nodes of the solve. It
+// acts on the physical fluids and field (without the position-map Jacobian).
 static void
 fluid_em_coupling_advance(
   struct gkyl_vlasov_app *app, struct vm_fluid_em_coupling *fl_em, double dt,
@@ -59,8 +65,24 @@ fluid_em_coupling_advance(
 )
 {
   gkyl_dg_calc_fluid_em_coupling_advance(
-    fl_em->slvr, dt, app_accels, app->field->ext_em, fl_em->curl_current, fluids, app->field->em
+    fl_em->slvr, dt, app_accels, app->field->ext_em, fl_em->curl_current, fluids, fl_em->em_solve
   );
+}
+
+// Domain mean of E_x of the field of the solve. On a J-weighted field the mean is taken of the
+// field with the position-map Jacobian, whose cell averages sum to the integral over the
+// physical domain; the evolved field is used as scratch for it (the update rescales into it at
+// the end).
+static double
+fluid_em_coupling_ex_mean(struct gkyl_vlasov_app *app)
+{
+  struct vm_field *field = app->field;
+  if (field->weight_by_pos_jacob) {
+    gkyl_vlasov_position_map_rescale_jacobpos_conf(
+      app->pos_map, &app->local, field->em_no_J, field->em
+    );
+  }
+  return vm_field_ghost_current_mean(app, field, 1.0, field->em);
 }
 
 // The solve with the ghost current (1x periodic): a uniform current along x whose strength keeps
@@ -81,7 +103,7 @@ fluid_em_coupling_advance_ghost(
   for (int i = 0; i < num_fluid; ++i) {
     gkyl_array_copy(fl_em->fluid_ghost[i], fluids[i]);
   }
-  gkyl_array_copy(fl_em->em_ghost, field->em);
+  gkyl_array_copy(fl_em->em_ghost, fl_em->em_solve);
   double ex_mean_start = vm_field_ghost_current_mean(app, field, 1.0, field->em);
 
   double ghost_current[3] = {0.0, 1.0, 0.0}; // the trial strengths; the last is the solution
@@ -96,10 +118,10 @@ fluid_em_coupling_advance_ghost(
     for (int i = 0; i < num_fluid; ++i) {
       gkyl_array_copy(fluids[i], fl_em->fluid_ghost[i]);
     }
-    gkyl_array_copy(field->em, fl_em->em_ghost);
+    gkyl_array_copy(fl_em->em_solve, fl_em->em_ghost);
     fluid_em_coupling_advance(app, fl_em, dt, app_accels, fluids);
     if (trial < 2) {
-      ex_mean_trial[trial] = vm_field_ghost_current_mean(app, field, 1.0, field->em);
+      ex_mean_trial[trial] = fluid_em_coupling_ex_mean(app);
     }
   }
 }
@@ -110,21 +132,22 @@ vm_fluid_em_coupling_new(struct gkyl_vlasov_app *app)
 {
   struct vm_fluid_em_coupling *fl_em = gkyl_malloc(sizeof(struct vm_fluid_em_coupling));
 
-  // Gather the coupled (momentum-carrying) fluid species and the kinetic species in declaration
-  // order.
+  // Gather the species whose fluid aspect carries a momentum (fluid and PKPM species) and the
+  // kinetic species in declaration order.
   int num_species = app->num_species;
   bool has_energy[GKYL_MAX_SPECIES]; // the fluid state carries an energy (not isothermal Euler)
   fl_em->num_fluid = 0;
   fl_em->num_kinetic = 0;
   for (int i = 0; i < num_species; ++i) {
     struct vlasov_species *sp = &app->species[i];
-    if (sp->fluid && vm_fluid_em_coupling_supported(sp->fluid)) {
+    if (vm_fluid_em_coupling_supported(sp)) {
       fl_em->species[fl_em->num_fluid] = sp;
       fl_em->qbym[fl_em->num_fluid] = sp->charge / sp->mass;
-      has_energy[fl_em->num_fluid] = sp->fluid->eqn_type == GKYL_EQN_EULER;
+      has_energy[fl_em->num_fluid] = sp->type == GKYL_SPECIES_PKPM ||
+                                     sp->fluid->eqn_type == GKYL_EQN_EULER;
       fl_em->num_fluid += 1;
     }
-    if (sp->kinetic) {
+    if (sp->type == GKYL_SPECIES_VLASOV) {
       fl_em->kinetic[fl_em->num_kinetic] = sp;
       fl_em->num_kinetic += 1;
     }
@@ -152,6 +175,14 @@ vm_fluid_em_coupling_new(struct gkyl_vlasov_app *app)
   fl_em->curl_rhs = mkarr(app->use_gpu, 8 * num_basis, num_cells);
   fl_em->curl_current = mkarr(app->use_gpu, 3 * num_basis, num_cells);
   gkyl_array_clear(fl_em->curl_current, 0.0);
+  // The solve works with the physical field: em_no_J of a field that carries the position-map
+  // Jacobian (divided out before the solve and restored after it), the evolved field otherwise.
+  fl_em->em_solve = app->field->em;
+  fl_em->curl_rhs_no_J = 0;
+  if (app->field->weight_by_pos_jacob) {
+    fl_em->em_solve = app->field->em_no_J;
+    fl_em->curl_rhs_no_J = mkarr(app->use_gpu, 8 * num_basis, num_cells);
+  }
   for (int i = 0; i < fl_em->num_fluid; ++i) {
     const struct gkyl_array *fluid = fl_em->species[i]->fluid->fluid;
     fl_em->fluid_stag[i] = mkarr(app->use_gpu, fluid->ncomp, fluid->size);
@@ -197,9 +228,18 @@ vm_fluid_em_coupling_update(
   struct gkyl_array *fluids[GKYL_MAX_SPECIES];
   const struct gkyl_array *app_accels[GKYL_MAX_SPECIES];
 
+  // The solve acts on the physical state: the fluid of a PKPM species and a field with PKPM
+  // species carry the position-map Jacobian, which is divided out before and restored after
+  // (identity map: copies).
   for (int i = 0; i < num_fluid; ++i) {
     struct vm_fluid_species *fs = fl_em->species[i]->fluid;
     fluids[i] = fs->fluid;
+    if (fl_em->species[i]->type == GKYL_SPECIES_PKPM) {
+      gkyl_vlasov_position_map_divide_jacobpos_conf(
+        app->pos_map, &app->local, fs->fluid->ncomp, fs->fluid, fs->pkpm.fluid_no_J
+      );
+      fluids[i] = fs->pkpm.fluid_no_J;
+    }
     app_accels[i] = fs->app_accel;
     // Compute applied accelerations if present and time-dependent.
     // Note: applied accelerations use proj_on_basis
@@ -223,6 +263,11 @@ vm_fluid_em_coupling_update(
   // of the curl and the current of the kinetic species. A static field takes none of them
   // (curl_current stays zero), so its E does not change.
   struct vm_field *field = app->field;
+  if (field->weight_by_pos_jacob) {
+    gkyl_vlasov_position_map_divide_jacobpos_conf(
+      app->pos_map, &app->local, field->em->ncomp, field->em, field->em_no_J
+    );
+  }
   if (!field->info.is_static) {
     // Stormer-Verlet in the curl terms: E advances only here, with c^2 curl B of the field at
     // the start of the step (B is not changed by the sources) entering as the effective current
@@ -236,16 +281,35 @@ vm_fluid_em_coupling_update(
       struct vlasov_species *sp = fl_em->kinetic[i];
       vlasov_species_accumulate_field_coupling(app, sp, sp->kinetic->f, 0, fl_em->curl_rhs);
     }
-    gkyl_array_set(fl_em->curl_current, 1.0, field->app_current);
-    gkyl_array_accumulate_offset(fl_em->curl_current, -field->info.epsilon0, fl_em->curl_rhs, 0);
+    // the physical currents of the solve
+    const struct gkyl_array *curl_rhs = fl_em->curl_rhs, *app_current = field->app_current;
+    if (field->weight_by_pos_jacob) {
+      gkyl_vlasov_position_map_divide_jacobpos_conf(
+        app->pos_map, &app->local, fl_em->curl_rhs->ncomp, fl_em->curl_rhs, fl_em->curl_rhs_no_J
+      );
+      curl_rhs = fl_em->curl_rhs_no_J;
+      app_current = field->app_current_no_J;
+    }
+    gkyl_array_set(fl_em->curl_current, 1.0, app_current);
+    gkyl_array_accumulate_offset(fl_em->curl_current, -field->info.epsilon0, curl_rhs, 0);
   }
 
   fl_em->advance_func(app, fl_em, dt, app_accels, fluids);
 
-  // Apply BCs to the updated fluids and field.
+  // Restore the Jacobian and apply BCs to the updated fluids and field.
   for (int i = 0; i < num_fluid; ++i) {
     struct vm_fluid_species *fs = fl_em->species[i]->fluid;
-    vm_fluid_species_apply_bc(app, fs, fluids[i]);
+    if (fl_em->species[i]->type == GKYL_SPECIES_PKPM) {
+      gkyl_vlasov_position_map_rescale_jacobpos_conf(
+        app->pos_map, &app->local, fs->pkpm.fluid_no_J, fs->fluid
+      );
+    }
+    vm_fluid_species_apply_bc(app, fs, fs->fluid);
+  }
+  if (field->weight_by_pos_jacob) {
+    gkyl_vlasov_position_map_rescale_jacobpos_conf(
+      app->pos_map, &app->local, field->em_no_J, field->em
+    );
   }
   vlasov_field_apply_bc(app, app->field->em);
 }
@@ -275,6 +339,9 @@ vm_fluid_em_coupling_release(struct gkyl_vlasov_app *app, struct vm_fluid_em_cou
 {
   gkyl_dg_calc_fluid_em_coupling_release(fl_em->slvr);
   gkyl_array_release(fl_em->curl_rhs);
+  if (fl_em->curl_rhs_no_J) {
+    gkyl_array_release(fl_em->curl_rhs_no_J);
+  }
   gkyl_array_release(fl_em->curl_current);
   for (int i = 0; i < fl_em->num_fluid; ++i) {
     gkyl_array_release(fl_em->fluid_stag[i]);

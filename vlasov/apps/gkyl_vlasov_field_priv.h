@@ -4,6 +4,7 @@
 // Vlasov-Maxwell and Vlasov-Poisson (with its dispatch function pointers), the
 // type-agnostic vlasov_field_* API, and the vm_field_* / vp_field_* APIs.
 
+#include <gkyl_dg_calc_pkpm_bvar.h>
 #include <gkyl_array.h>
 #include <gkyl_array_integrate.h>
 #include <gkyl_bc_basic.h>
@@ -171,8 +172,8 @@ struct vm_field {
   };
 
   struct vm_geom *geom; // Geometry data for GR-DG-Maxwell (owned by app as app->vm_geom)
-  bool weight_by_pos_jacob; // True for the standard E_B Maxwell field on a non-identity position map:
-    // em stores J*E, J*B; em_no_J holds the physical E, B for force/I/O.
+  bool weight_by_pos_jacob; // True for the standard E_B Maxwell field on a non-identity position map
+    // and with PKPM species: em stores J*E, J*B; em_no_J holds the physical E, B for force/I/O.
   struct gkyl_array *em_no_J; // EM field without its Jacobian weight (GR: det_h; mapped E_B: J)
   struct gkyl_array *em_no_J_host; // host copy for I/O
   int num_surf_conf_nodes; // number of surface nodes at configuration-space surfaces
@@ -201,6 +202,25 @@ struct vm_field {
   gkyl_dynvec
     integ_energy; // integrated energy components (Vlasov-Maxwell; Vlasov-Poisson keeps one per potential)
   bool is_first_energy_write_call; // flag for energy dynvec(s) written first time
+
+  struct gkyl_array *app_current_no_J; // physical applied current of a J-weighted field (the
+    // implicit fluid-EM coupling); app_current carries J. NULL otherwise.
+
+  // PKPM species (has_bvar): b = B/|B|, its gradient and d_t B/|B| of the stage, formed from the
+  // physical fields of the stage (em_no_J) plus the external ones.
+  bool has_bvar; // true if a species needs the magnetic unit vector (PKPM species)
+  struct gkyl_array *tot_em; // total electromagnetic field
+
+  struct gkyl_array *bvar; // magnetic field unit vector b = B/|B| [bx, by, bz] (p=1)
+  struct gkyl_array *grad_b; // weak (surface-averaged) gradient of b, cdim x 3 expansions
+  // physical time derivative [E, B, phi, psi] of the stage fields, the Maxwell right-hand side
+  // divided by the position-map Jacobian (computed first in each stage; zero for a static field;
+  // its E part lacks the explicit current, which is added after the species update)
+  struct gkyl_array *dt_em_no_J;
+  // d_t B/|B| of the stage at the Gauss-Legendre nodes of b, interpolated to p=1: the force
+  // kernels of the first harmonic form d_t b = (I - b b) . (d_t B/|B|) from it
+  struct gkyl_array *dtB_over_magB;
+  struct gkyl_dg_calc_pkpm_bvar *calc_bvar; // Updater computing b by nodal normalization
 };
 
 /** vlasov_field API: type-agnostic operations on the field object (vlasov_field.c). */
@@ -499,6 +519,58 @@ double vm_field_rhs(
  * @param field Pointer to field
  */
 void vm_field_set_source_split(gkyl_vlasov_app *app, struct vm_field *field);
+
+/**
+ * Ghost-current correction to dE/dt = -J in 1x: remove the global average of the current of a
+ * species from the field right-hand side (the cell average of fac * current / nx summed over the
+ * domain is added back). A no-op without the ghost current.
+ *
+ * @param app Vlasov app object
+ * @param field Field object
+ * @param fac Factor of the current (current holds J_x / fac in its leading component)
+ * @param current Current of the species over fac (J-weighted on a position map)
+ * @param target Field right-hand side to accumulate onto
+ */
+void vm_field_accumulate_ghost_current(
+  gkyl_vlasov_app *app, struct vm_field *field, double fac, const struct gkyl_array *current,
+  struct gkyl_array *target
+);
+
+/**
+ * Compute the magnetic field unit vector b (of the total field, with the external field) and
+ * its gradient, with the physical fields of the stage (em_no_J). Fields with PKPM species only.
+ *
+ * @param app Vlasov app object
+ * @param field Field object (output bvar is stored in field object)
+ * @param em Input electromagnetic fields (with boundary conditions applied)
+ */
+void vm_field_calc_bvar(gkyl_vlasov_app *app, struct vm_field *field, const struct gkyl_array *em);
+
+/**
+ * Compute b, its gradient and d_t B/|B| of the current field, for the output. Between updates
+ * the field object holds those of the input of the last stage.
+ *
+ * @param app Vlasov app object
+ * @param field Field object
+ */
+void vm_field_calc_diag_vars(gkyl_vlasov_app *app, struct vm_field *field);
+
+/**
+ * Field update of a stage with PKPM species: b and its gradient of the stage fields, the
+ * right-hand side of Maxwell's equations and d_t B/|B|.
+ *
+ * @param app Vlasov app object
+ * @param stage SSP-RK3 stage (1, 2 or 3)
+ * @param tcurr Time of the stage
+ * @param fin Stage distributions (unused)
+ * @param emin Input electromagnetic fields
+ * @param emout On output, the right-hand side of Maxwell's equations
+ * @return Maximum stable time-step
+ */
+double vm_field_update_bvar(
+  gkyl_vlasov_app *app, int stage, double tcurr, const struct gkyl_array *fin[],
+  const struct gkyl_array *emin, struct gkyl_array *emout
+);
 
 /**
  * Ghost current (1x periodic): fac times the average over the domain of the first coefficient

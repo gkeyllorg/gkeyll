@@ -81,11 +81,23 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
     f->bc_buffer_lo_fixed_no_J[d] = f->bc_buffer_up_fixed_no_J[d] = 0;
   }
 
+  // A PKPM species takes the magnetic unit vector b = B/|B|, its gradient and d_t B/|B| of the
+  // stage from the field, and reads the physical fields of the stage in em_no_J.
+  f->has_bvar = false;
+  for (int i = 0; i < vm->num_species; ++i) {
+    f->has_bvar = f->has_bvar || vm->species[i].type == GKYL_SPECIES_PKPM;
+  }
+  if (f->has_bvar && f->field_id != GKYL_FIELD_E_B) {
+    gkyl_exit("vm_field: a PKPM species needs the standard Maxwell field (E_B).");
+  }
+
   // Standard E_B Maxwell on a non-identity position map evolves the J-weighted
   // fields J*E, J*B (so the mapped curl kernels and the J-weighted current are
   // consistent) and keeps the physical E, B in em_no_J for the Lorentz force and
-  // I/O. The GR path uses the same em_no_J array (un-weighted by det_h instead).
-  f->weight_by_pos_jacob = (f->field_id == GKYL_FIELD_E_B) && (!app->pos_map->is_identity);
+  // I/O; with PKPM species it does so on every map (J = 1 on the identity). The GR
+  // path uses the same em_no_J array (un-weighted by det_h instead).
+  f->weight_by_pos_jacob = (f->field_id == GKYL_FIELD_E_B) &&
+                           (!app->pos_map->is_identity || f->has_bvar);
   if (f->field_id == GKYL_FIELD_GR_D_B) {
     // Geometry of GR-Maxwell, owned by the app.
     f->geom = app->vm_geom;
@@ -178,6 +190,13 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   // Initialize applied currents (always used by implicit fluid sources, so always initialize)
   f->app_current = mkarr(app->use_gpu, 3 * app->basis.num_basis, app->local_ext.volume);
   gkyl_array_clear(f->app_current, 0.0);
+  // app_current drives the J-weighted field equation and carries J; the implicit fluid-EM
+  // coupling works with the physical current.
+  f->app_current_no_J = 0;
+  if (f->weight_by_pos_jacob) {
+    f->app_current_no_J = mkarr(app->use_gpu, 3 * app->basis.num_basis, app->local_ext.volume);
+    gkyl_array_clear(f->app_current_no_J, 0.0);
+  }
   f->has_app_current = false;
   f->app_current_evolve = false;
   // setup external currents
@@ -301,6 +320,14 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   // If not specified, set to 0.0 and updater sets default behavior (1/sqrt(3); see gkyl_dg_calc_em_vars.h)
   double limiter_fac = f->info.limiter_fac == 0 ? 0.0 : f->info.limiter_fac;
   f->limit_em = f->info.limit_em == 0 ? false : true;
+  if (f->limit_em && f->has_bvar) {
+    // The slope limiter does not keep the discrete divergence of B that the Maxwell solver
+    // preserves, and b = B/|B| of a PKPM species follows the limited field.
+    gkyl_exit(
+      "vm_field: the limiter of the electromagnetic fields (limit_em) is not supported with PKPM "
+      "species."
+    );
+  }
 
   struct gkyl_wv_eqn *maxwell = gkyl_wv_maxwell_new(c, ef, mf, app->use_gpu);
   // Create updaters for limiting EM fields
@@ -343,6 +370,27 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
     if (app->use_gpu) {
       f->red_ghost_current = gkyl_cu_malloc(sizeof(double[1]));
     }
+  }
+
+  // The magnetic unit vector b = B/|B| (p=1) by nodal normalization, its weak gradient, and the
+  // physical time derivative of the fields of the stage with d_t B/|B| (zero for a static field).
+  if (f->has_bvar) {
+    int num_basis = app->basis.num_basis;
+    long num_cells = app->local_ext.volume;
+    f->tot_em = mkarr(app->use_gpu, 8 * num_basis, num_cells);
+    f->bvar = mkarr(app->use_gpu, 3 * num_basis, num_cells);
+    f->grad_b = mkarr(app->use_gpu, app->cdim * 3 * num_basis, num_cells);
+    gkyl_array_clear(f->grad_b, 0.0);
+    f->dt_em_no_J = mkarr(app->use_gpu, 8 * num_basis, num_cells);
+    gkyl_array_clear(f->dt_em_no_J, 0.0);
+    f->dtB_over_magB = mkarr(app->use_gpu, 3 * num_basis, num_cells);
+    gkyl_array_clear(f->dtB_over_magB, 0.0);
+    f->calc_bvar = gkyl_dg_calc_pkpm_bvar_inew(&(struct gkyl_dg_calc_pkpm_bvar_inp){
+      .conf_grid = &app->grid,
+      .conf_basis = &app->basis,
+      .pos_map = app->pos_map,
+      .use_gpu = app->use_gpu,
+    });
   }
 
   f->use_geom_sources = false;
@@ -438,7 +486,7 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   gkyl_dg_eqn_release(eqn);
 
   // Set the type-specific dispatch methods (Vlasov-Maxwell).
-  f->update_func = vm_field_update;
+  f->update_func = f->has_bvar ? vm_field_update_bvar : vm_field_update;
   f->combine_func = vm_field_combine;
   f->copy_range_func = vm_field_copy_range;
   f->apply_ic_func = vm_field_apply_ic;
@@ -522,6 +570,14 @@ vm_field_apply_ic(
   // are time-independent and not computed in the time-stepping loop
   vm_field_calc_ext_em(app, field, t0);
   vm_field_calc_app_current(app, field, t0);
+
+  if (field->has_bvar) {
+    // b of the initial field (which includes the external field, so after it), over the extended
+    // range: the boundary conditions of the species read it in the ghost cells. The boundary
+    // conditions may not fill the corner cells, which hold the projection of the initial field.
+    vm_field_apply_bc(app, field, field->em);
+    vm_field_calc_bvar(app, field, field->em);
+  }
 }
 
 void
@@ -550,6 +606,9 @@ vm_field_calc_app_current(gkyl_vlasov_app *app, struct vm_field *field, double t
       field->app_current_proj, tm, &app->local_ext, field->app_current_host
     );
     gkyl_array_copy(field->app_current, field->app_current_host);
+    if (field->app_current_no_J) {
+      gkyl_array_copy(field->app_current_no_J, field->app_current);
+    }
     // On a mapped mesh the field evolves J*E, so the current it is driven by is J*J_app (like the
     // species current, a moment of J_x*J_v*f); app_current_host keeps the physical current.
     if (field->weight_by_pos_jacob) {
@@ -656,6 +715,87 @@ vm_field_update_split(
   return dt_out;
 }
 
+void
+vm_field_calc_bvar(gkyl_vlasov_app *app, struct vm_field *field, const struct gkyl_array *em)
+{
+  struct timespec tm = gkyl_wall_clock();
+
+  // Physical fields of the stage (the evolved em carries the position-map Jacobian).
+  gkyl_vlasov_position_map_divide_jacobpos_conf(
+    app->pos_map, &app->local_ext, em->ncomp, em, field->em_no_J
+  );
+  gkyl_array_clear(field->tot_em, 0.0);
+  gkyl_array_set(field->tot_em, 1.0, field->em_no_J);
+  if (field->has_ext_em) {
+    gkyl_array_accumulate_range(field->tot_em, 1.0, field->ext_em, &app->local_ext);
+  }
+  // Assumes magnetic field boundary conditions applied so the unit vector is
+  // defined everywhere in the extended domain.
+  gkyl_dg_calc_pkpm_bvar_advance(field->calc_bvar, &app->local_ext, field->tot_em, field->bvar);
+  // Weak gradient of b for the mirror terms (div b), from b in the ghost cells.
+  gkyl_dg_calc_pkpm_bvar_grad(field->calc_bvar, &app->local, field->bvar, field->grad_b);
+
+  app->stat.field_em_vars_tm += gkyl_time_diff_now_sec(tm);
+}
+
+// Physical time derivative of the fields from a right-hand side of the evolved ones (which carry
+// the position-map Jacobian), and d_t B/|B| at the nodes of b (tot_em holds the physical fields
+// the right-hand side was computed from). A static field keeps both zero.
+static void
+vm_field_calc_dtB(gkyl_vlasov_app *app, struct vm_field *field, const struct gkyl_array *rhs)
+{
+  if (field->info.is_static) {
+    return;
+  }
+  gkyl_vlasov_position_map_divide_jacobpos_conf(
+    app->pos_map, &app->local, rhs->ncomp, rhs, field->dt_em_no_J
+  );
+  gkyl_dg_calc_pkpm_bvar_dtB_over_magB(
+    field->calc_bvar, &app->local, field->tot_em, field->dt_em_no_J, field->dtB_over_magB
+  );
+}
+
+void
+vm_field_calc_diag_vars(gkyl_vlasov_app *app, struct vm_field *field)
+{
+  vm_field_calc_bvar(app, field, field->em);
+  if (!field->info.is_static) {
+    // emnew is free scratch between time steps.
+    gkyl_array_clear(field->cflrate, 0.0);
+    gkyl_array_clear(field->emnew, 0.0);
+    gkyl_hyper_dg_advance(field->slvr, &app->local, field->em, field->cflrate, field->emnew);
+    vm_field_calc_dtB(app, field, field->emnew);
+  }
+}
+
+// Field update of a stage with PKPM species: b of the stage fields first (the species read it),
+// then the right-hand side of Maxwell's equations, which does not depend on the species and whose
+// magnetic part is the d_t B of the first-harmonic force terms.
+double
+vm_field_update_bvar(
+  gkyl_vlasov_app *app, int stage, double tcurr, const struct gkyl_array *fin[],
+  const struct gkyl_array *emin, struct gkyl_array *emout
+)
+{
+  vm_field_calc_bvar(app, app->field, emin);
+  double dt_out = vm_field_rhs(app, app->field, emin, emout);
+  vm_field_calc_dtB(app, app->field, emout);
+  return dt_out;
+}
+
+// The same in the transport step of the staggered operator split (zero E rows).
+static double
+vm_field_update_split_bvar(
+  gkyl_vlasov_app *app, int stage, double tcurr, const struct gkyl_array *fin[],
+  const struct gkyl_array *emin, struct gkyl_array *emout
+)
+{
+  vm_field_calc_bvar(app, app->field, emin);
+  double dt_out = vm_field_update_split(app, stage, tcurr, fin, emin, emout);
+  vm_field_calc_dtB(app, app->field, emout);
+  return dt_out;
+}
+
 // Completion of a stage of the transport step of the staggered operator split: the currents of
 // all species (and the applied current) enter the source step, so the stage only finalizes
 // emout = emin + dt*RHS.
@@ -693,6 +833,27 @@ vm_field_ghost_current_mean(
 }
 
 void
+vm_field_accumulate_ghost_current(
+  gkyl_vlasov_app *app, struct vm_field *field, double fac, const struct gkyl_array *current,
+  struct gkyl_array *target
+)
+{
+  if (field->use_ghost_current) {
+    double mean = vm_field_ghost_current_mean(app, field, fac, current);
+    // Set the scalar ghost current array to the global average current and accumulate to the
+    // electric field, weighted by the position-map Jacobian like the field it drives (a uniform
+    // current is then no source of E on a position map).
+    gkyl_array_clear(field->ghost_current, mean);
+    if (field->weight_by_pos_jacob) {
+      gkyl_vlasov_position_map_rescale_jacobpos_conf(
+        app->pos_map, &app->local, field->ghost_current, field->ghost_current
+      );
+    }
+    gkyl_array_accumulate_range(target, 1.0, field->ghost_current, &app->local);
+  }
+}
+
+void
 vm_field_set_source_split(gkyl_vlasov_app *app, struct vm_field *field)
 {
   // The split advances E in the source step only: terms of the E rows other than the curl
@@ -708,7 +869,7 @@ vm_field_set_source_split(gkyl_vlasov_app *app, struct vm_field *field)
       "fluid-EM coupling."
     );
   }
-  field->update_func = vm_field_update_split;
+  field->update_func = field->has_bvar ? vm_field_update_split_bvar : vm_field_update_split;
   field->complete_update_func = vm_field_complete_update_split;
 }
 
@@ -1084,6 +1245,12 @@ vm_field_from_file(gkyl_vlasov_app *app, struct vm_field *field, const char *fna
   vm_field_calc_ext_em(app, field, rstat.stime);
   vm_field_calc_app_current(app, field, rstat.stime);
 
+  if (field->has_bvar && rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
+    // b of the restart field (which includes the external field, so after it), over the
+    // extended range (the reflecting walls of the species read it in the ghost cells)
+    vm_field_calc_bvar(app, field, field->em);
+  }
+
   return rstat;
 }
 
@@ -1127,6 +1294,17 @@ vm_field_release(const gkyl_vlasov_app *app, struct vm_field *f)
   if (f->has_app_current) {
     gkyl_array_release(f->app_current_host);
     gkyl_proj_on_basis_release(f->app_current_proj);
+  }
+  if (f->app_current_no_J) {
+    gkyl_array_release(f->app_current_no_J);
+  }
+  if (f->has_bvar) {
+    gkyl_array_release(f->tot_em);
+    gkyl_array_release(f->bvar);
+    gkyl_array_release(f->grad_b);
+    gkyl_array_release(f->dt_em_no_J);
+    gkyl_array_release(f->dtB_over_magB);
+    gkyl_dg_calc_pkpm_bvar_release(f->calc_bvar);
   }
 
   gkyl_hyper_dg_release(f->slvr);

@@ -12,7 +12,7 @@
 -- differences of the cell averages are 3.2% (density) and 3.8% (pressure); the density stays
 -- between 0.1379 and 1.5726, and the solution is symmetric about the diagonal to round-off.
 
-local PKPM = G0.PKPM
+local Vlasov = G0.Vlasov
 
 -- Mathematical constants (dimensionless).
 pi = math.pi
@@ -67,7 +67,7 @@ integrated_L2_f_calcs = GKYL_MAX_INT -- Number of times to calculate integrated 
 dt_failure_tol = 1.0e-4 -- Minimum allowable fraction of initial time-step.
 num_failures_max = 20 -- Maximum allowable number of consecutive small time-steps.
 
-pkpmApp = PKPM.App.new {
+vlasovApp = Vlasov.App.new {
 
   tEnd = t_end,
   nFrame = num_frames,
@@ -92,7 +92,7 @@ pkpmApp = PKPM.App.new {
   periodicDirs = { }, -- Periodic directions (none).
 
   -- Neutrals.
-  neut = PKPM.Species.new {
+  neut = Vlasov.PKPMSpecies.new {
     charge = charge, mass = mass,
 
     kinetic = {
@@ -171,7 +171,7 @@ pkpmApp = PKPM.App.new {
   },
 
   -- Field.
-  field = PKPM.Field.new {
+  field = Vlasov.Field.new {
     epsilon0 = epsilon0, mu0 = mu0,
 
     -- Initial conditions function.
@@ -185,4 +185,4 @@ pkpmApp = PKPM.App.new {
   }
 }
 
-pkpmApp:run()
+vlasovApp:run()

@@ -1,5 +1,5 @@
 #include <assert.h>
-#include <gkyl_pkpm_priv.h>
+#include <gkyl_vlasov_priv.h>
 
 // The temperature source S = nu_Q (f_M(n, u, T_Q) - f) in the normalized variables, at the
 // configuration-space nodes: the thermal energy of the fluid relaxes to (3/2) n T_Q at the rate
@@ -11,14 +11,14 @@
 // Explicit update, fluid half: the energy relaxation of the stage into the array the fluid
 // right-hand side adds, with its CFL rate, and the rate of the distributions.
 static void
-pkpm_species_source_bgk_calc_fluid_explicit(
-  gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_source_bgk *src,
+vm_pkpm_species_source_bgk_calc_fluid_explicit(
+  gkyl_vlasov_app *app, struct vlasov_species *s, struct vm_pkpm_source_bgk *src,
   const struct gkyl_array *fluidin
 )
 {
-  gkyl_array_clear(s->fluid->src_bgk_rhs, 0.0);
+  gkyl_array_clear(s->fluid->pkpm.src_bgk_rhs, 0.0);
   gkyl_pkpm_temp_source_advance(
-    src->up_temp, &app->local, src->rate, src->vtsq, fluidin, s->fluid->src_bgk_rhs,
+    src->up_temp, &app->local, src->rate, src->vtsq, fluidin, s->fluid->pkpm.src_bgk_rhs,
     s->fluid->cflrate, src->shape
   );
 }
@@ -26,8 +26,8 @@ pkpm_species_source_bgk_calc_fluid_explicit(
 // Explicit update, kinetic half: the relaxation of the distributions onto the right-hand side of
 // the kinetic equations, with its CFL rate.
 static void
-pkpm_species_source_bgk_kinetic_rhs_explicit(
-  gkyl_pkpm_app *app, struct pkpm_kinetic_species *kin, struct pkpm_source_bgk *src,
+vm_pkpm_species_source_bgk_kinetic_rhs_explicit(
+  gkyl_vlasov_app *app, struct vm_species *kin, struct vm_pkpm_source_bgk *src,
   const struct gkyl_array *fin, struct gkyl_array *rhs_f
 )
 {
@@ -39,30 +39,32 @@ pkpm_species_source_bgk_kinetic_rhs_explicit(
 
 // No source, or the implicit one: nothing enters the right-hand sides of the explicit update.
 static void
-pkpm_species_source_bgk_calc_fluid_none(
-  gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_source_bgk *src,
+vm_pkpm_species_source_bgk_calc_fluid_none(
+  gkyl_vlasov_app *app, struct vlasov_species *s, struct vm_pkpm_source_bgk *src,
   const struct gkyl_array *fluidin
 )
 {
 }
 
 static void
-pkpm_species_source_bgk_kinetic_rhs_none(
-  gkyl_pkpm_app *app, struct pkpm_kinetic_species *kin, struct pkpm_source_bgk *src,
+vm_pkpm_species_source_bgk_kinetic_rhs_none(
+  gkyl_vlasov_app *app, struct vm_species *kin, struct vm_pkpm_source_bgk *src,
   const struct gkyl_array *fin, struct gkyl_array *rhs_f
 )
 {
 }
 
 void
-pkpm_species_source_bgk_init(gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_source_bgk *src)
+vm_pkpm_species_source_bgk_init(
+  gkyl_vlasov_app *app, struct vlasov_species *s, struct vm_pkpm_source_bgk *src
+)
 {
   const struct gkyl_vlasov_source_bgk *info = &s->kinetic->info.source_bgk;
   src->source_bgk_id = info->source_bgk_id;
   src->is_implicit = false;
   src->has_implicit_coll = false;
-  src->calc_fluid = pkpm_species_source_bgk_calc_fluid_none;
-  src->kinetic_rhs = pkpm_species_source_bgk_kinetic_rhs_none;
+  src->calc_fluid = vm_pkpm_species_source_bgk_calc_fluid_none;
+  src->kinetic_rhs = vm_pkpm_species_source_bgk_kinetic_rhs_none;
   if (src->source_bgk_id == GKYL_NO_SOURCE_BGK) {
     return;
   }
@@ -72,39 +74,41 @@ pkpm_species_source_bgk_init(gkyl_pkpm_app *app, struct pkpm_species *s, struct 
   assert(!app->use_gpu);
 
   src->rate =
-    pkpm_species_coll_profile_new(app, info->rate_profile, info->rate_profile_ctx, 1.0, true);
-  src->vtsq =
-    pkpm_species_coll_profile_new(app, info->temp_shape, info->temp_shape_ctx, 1.0 / s->mass, true);
-  src->shape = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
-  src->temp_ratio = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
-  src->f_lte = pkpm_species_bgk_target_new(app, s);
+    vm_pkpm_species_coll_profile_new(app, info->rate_profile, info->rate_profile_ctx, 1.0, true);
+  src->vtsq = vm_pkpm_species_coll_profile_new(
+    app, info->temp_shape, info->temp_shape_ctx, 1.0 / s->mass, true
+  );
+  src->shape = mkarr(false, app->basis.num_basis, app->local_ext.volume);
+  src->temp_ratio = mkarr(false, app->basis.num_basis, app->local_ext.volume);
+  src->f_lte = vm_pkpm_species_bgk_target_new(app, s);
   src->up_temp = gkyl_pkpm_temp_source_inew(&(struct gkyl_pkpm_temp_source_inp){
-    .conf_basis = &app->confBasis,
+    .conf_basis = &app->basis,
     .use_gpu = false,
   });
   src->up_bgk = gkyl_pkpm_bgk_collisions_inew(&(struct gkyl_pkpm_bgk_collisions_inp){
-    .conf_basis = &app->confBasis,
-    .phase_basis = &app->basis,
+    .conf_basis = &app->basis,
+    .phase_basis = &s->kinetic->basis,
     .use_gpu = false,
   });
 
   src->is_implicit = info->is_implicit;
   // The implicit step of the source includes the implicit BGK collisions of the species (its
   // collision object is initialized before the source).
-  src->has_implicit_coll = src->is_implicit && s->kinetic->collision_id == GKYL_BGK_COLLISIONS &&
-                           s->kinetic->bgk.is_implicit;
+  src->has_implicit_coll = src->is_implicit &&
+                           s->kinetic->pkpm.collision_id == GKYL_BGK_COLLISIONS &&
+                           s->kinetic->pkpm.bgk.is_implicit;
   if (!src->is_implicit) {
-    src->calc_fluid = pkpm_species_source_bgk_calc_fluid_explicit;
-    src->kinetic_rhs = pkpm_species_source_bgk_kinetic_rhs_explicit;
+    src->calc_fluid = vm_pkpm_species_source_bgk_calc_fluid_explicit;
+    src->kinetic_rhs = vm_pkpm_species_source_bgk_kinetic_rhs_explicit;
     // the energy relaxation of the stage, for the fluid right-hand side
-    s->fluid->src_bgk_rhs = mkarr(false, 5 * app->confBasis.num_basis, app->local_ext.volume);
-    s->fluid->has_src_bgk_rhs = true;
+    s->fluid->pkpm.src_bgk_rhs = mkarr(false, 5 * app->basis.num_basis, app->local_ext.volume);
+    s->fluid->pkpm.has_src_bgk_rhs = true;
   }
 }
 
 void
-pkpm_species_source_bgk_calc_fluid(
-  gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_source_bgk *src,
+vm_pkpm_species_source_bgk_calc_fluid(
+  gkyl_vlasov_app *app, struct vlasov_species *s, struct vm_pkpm_source_bgk *src,
   const struct gkyl_array *fluidin
 )
 {
@@ -114,8 +118,8 @@ pkpm_species_source_bgk_calc_fluid(
 }
 
 void
-pkpm_species_source_bgk_kinetic_rhs(
-  gkyl_pkpm_app *app, struct pkpm_kinetic_species *kin, struct pkpm_source_bgk *src,
+vm_pkpm_species_source_bgk_kinetic_rhs(
+  gkyl_vlasov_app *app, struct vm_species *kin, struct vm_pkpm_source_bgk *src,
   const struct gkyl_array *fin, struct gkyl_array *rhs_f
 )
 {
@@ -133,16 +137,16 @@ pkpm_species_source_bgk_kinetic_rhs(
 // frequency.
 static void
 source_bgk_shape_with_collisions(
-  gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_source_bgk *src, double dt
+  gkyl_vlasov_app *app, struct vlasov_species *s, struct vm_pkpm_source_bgk *src, double dt
 )
 {
-  struct pkpm_kinetic_species *kin = s->kinetic;
-  bool has_cross = kin->cross.num_cross_collisions > 0;
-  const struct gkyl_array *nu_coll = has_cross ? kin->cross.nu_kin : kin->bgk.rate_self;
+  struct vm_species *kin = s->kinetic;
+  bool has_cross = kin->pkpm.cross.num_cross_collisions > 0;
+  const struct gkyl_array *nu_coll = has_cross ? kin->pkpm.cross.nu_kin : kin->pkpm.bgk.rate_self;
   // the temperature factor of the exchange (none without partners)
-  const struct gkyl_array *temp_ratio_coll = has_cross ? kin->cross.temp_ratio : 0;
+  const struct gkyl_array *temp_ratio_coll = has_cross ? kin->pkpm.cross.temp_ratio : 0;
 
-  int num_nodes = app->confBasis.num_basis;
+  int num_nodes = app->basis.num_basis;
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &app->local);
   while (gkyl_range_iter_next(&iter)) {
@@ -166,8 +170,8 @@ source_bgk_shape_with_collisions(
 // and a normalized moment, takes the backward-Euler step of the source. With implicit BGK
 // collisions the shape factor is that of the two operators together.
 void
-pkpm_species_source_bgk_implicit_moms(
-  gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_source_bgk *src, double dt,
+vm_pkpm_species_source_bgk_implicit_moms(
+  gkyl_vlasov_app *app, struct vlasov_species *s, struct vm_pkpm_source_bgk *src, double dt,
   struct gkyl_array *fluid
 )
 {
@@ -182,10 +186,11 @@ pkpm_species_source_bgk_implicit_moms(
 }
 
 // Backward Euler, the distributions: a convex combination of the state and the unit Maxwellian
-// at the nodes, with the shape factor of pkpm_species_source_bgk_implicit_moms.
+// at the nodes, with the shape factor of vm_pkpm_species_source_bgk_implicit_moms.
 void
-pkpm_species_source_bgk_implicit_advance(
-  gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_source_bgk *src, struct gkyl_array *f
+vm_pkpm_species_source_bgk_implicit_advance(
+  gkyl_vlasov_app *app, struct vlasov_species *s, struct vm_pkpm_source_bgk *src,
+  struct gkyl_array *f
 )
 {
   struct timespec tm = gkyl_wall_clock();
@@ -197,7 +202,7 @@ pkpm_species_source_bgk_implicit_advance(
 }
 
 void
-pkpm_species_source_bgk_release(const gkyl_pkpm_app *app, const struct pkpm_source_bgk *src)
+vm_pkpm_species_source_bgk_release(const gkyl_vlasov_app *app, const struct vm_pkpm_source_bgk *src)
 {
   if (src->source_bgk_id == GKYL_NO_SOURCE_BGK) {
     return;

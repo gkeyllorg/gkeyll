@@ -1108,7 +1108,8 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   // With the implicit fluid-EM coupling the source solve applies both.
   f->rhs_force_func = vm_fluid_species_rhs_force_none;
   if (app->has_field) {
-    if (app->use_explicit_sources && vm_fluid_em_coupling_supported(f)) {
+    if (app->use_explicit_sources &&
+        (f->eqn_type == GKYL_EQN_EULER || f->eqn_type == GKYL_EQN_ISO_EULER)) {
       f->qmem = mkarr(app->use_gpu, 6 * app->basis.num_basis, app->local_ext.volume);
       f->mom = mkarr(app->use_gpu, 3 * app->basis.num_basis, app->local_ext.volume);
       f->rhs_force_func = vm_fluid_species_rhs_force_em;

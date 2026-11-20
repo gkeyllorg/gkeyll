@@ -11,7 +11,7 @@
 -- Figures of merit (12 x 24 x 8 cells) at t = 3.5, with nu dt = 0.017 on average: the integral of
 -- rho u_y^2 is 2.77e-06 at the end of the run (7.46e-07 at t = 0); mass is conserved to 3e-13.
 
-local PKPM = G0.PKPM
+local Vlasov = G0.Vlasov
 
 -- Mathematical constants (dimensionless).
 pi = math.pi
@@ -50,7 +50,7 @@ integrated_L2_f_calcs = GKYL_MAX_INT -- Number of times to calculate integrated 
 dt_failure_tol = 1.0e-4 -- Minimum allowable fraction of initial time-step.
 num_failures_max = 20 -- Maximum allowable number of consecutive small time-steps.
 
-pkpmApp = PKPM.App.new {
+vlasovApp = Vlasov.App.new {
 
   tEnd = t_end,
   nFrame = num_frames,
@@ -77,7 +77,7 @@ pkpmApp = PKPM.App.new {
   periodicDirs = { 1 }, -- Periodic directions (x-direction only).
 
   -- Neutrals.
-  neut = PKPM.Species.new {
+  neut = Vlasov.PKPMSpecies.new {
     charge = charge, mass = mass,
 
     kinetic = {
@@ -163,7 +163,7 @@ pkpmApp = PKPM.App.new {
   },
 
   -- Field.
-  field = PKPM.Field.new {
+  field = Vlasov.Field.new {
     epsilon0 = epsilon0, mu0 = mu0,
 
     -- Initial conditions function.
@@ -177,4 +177,4 @@ pkpmApp = PKPM.App.new {
   }
 }
 
-pkpmApp:run()
+vlasovApp:run()

@@ -47,6 +47,14 @@ vlasov_array_meta_new(struct vlasov_output_meta meta)
     mpack_write_double(&writer, meta.dt_suggested);
   }
 
+  // the phase-space split of a hybrid basis
+  if (meta.num_vdim > 0) {
+    mpack_write_cstr(&writer, "num_cdim");
+    mpack_write_i64(&writer, meta.num_cdim);
+    mpack_write_cstr(&writer, "num_vdim");
+    mpack_write_i64(&writer, meta.num_vdim);
+  }
+
   mpack_complete_map(&writer);
 
   int status = mpack_writer_destroy(&writer);
@@ -139,6 +147,15 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
 
   strcpy(app->name, vm->name);
   app->tcurr = 0.0; // reset on init
+
+  // PKPM species need polynomial order 1 with the serendipity basis in configuration space.
+  app->has_pkpm = false;
+  for (int i = 0; i < ntot; ++i) {
+    app->has_pkpm = app->has_pkpm || vm->species[i].type == GKYL_SPECIES_PKPM;
+  }
+  if (app->has_pkpm && (poly_order != 1 || vm->basis_type != GKYL_BASIS_MODAL_SERENDIPITY)) {
+    gkyl_exit("gkyl_vlasov_app_new: PKPM species need polyOrder = 1 with the serendipity basis.");
+  }
 
   if (app->use_gpu) {
     // allocate device basis if we are using GPUs
@@ -284,6 +301,20 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   // p=0 cell average are written, with metadata built from the map's I/O basis.
   gkyl_vlasov_position_map_write(app->pos_map, app->comm, app->name, "position-map");
 
+  // Conversions to the configuration-nodal, velocity-modal form of the node-based operators of
+  // PKPM species (CPU runs).
+  app->conf_nodal = 0;
+  if (app->has_pkpm && !app->use_gpu) {
+    // the phase-space basis of the PKPM species (the same for all of them, one velocity dimension)
+    struct gkyl_basis phase_basis;
+    gkyl_cart_modal_hybrid(&phase_basis, cdim, 1);
+    app->conf_nodal = gkyl_dg_conf_nodal_inew(&(struct gkyl_dg_conf_nodal_inp){
+      .conf_basis = &app->basis,
+      .phase_basis = &phase_basis,
+      .use_gpu = false,
+    });
+  }
+
   // allocate space to store vlasov-maxwell geometry objects
   app->vm_geom = gkyl_malloc(sizeof(struct vm_geom));
   vm_geom_init(vm, app, app->vm_geom);
@@ -304,12 +335,18 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
 
   // Species initialization runs in three phases: kinetic aspects, then the
   // links between them (emission, cross collisions, sources), then the fluid
-  // aspects and their sources.
+  // aspects and their sources. PKPM species build both aspects in one route,
+  // then their links and the exchange between them.
   vlasov_species_init_kinetic_aspects(vm, app);
   vlasov_species_link_kinetic_aspects(app);
   vlasov_species_init_fluid_aspects(vm, app);
+  if (app->has_pkpm) {
+    vlasov_species_init_pkpm(vm, app);
+    vm_pkpm_coll_cross_init(app);
+  }
 
-  // Fluid-EM coupling: supported for momentum-carrying fluid species (Euler, isothermal Euler)
+  // Fluid-EM coupling: supported for the fluid aspects that carry a momentum (PKPM species;
+  // fluid species with the Euler or isothermal Euler equations)
   // under the standard Maxwell field. Scalar advection and canonical-PB fluids
   // carry no current and are never coupled; a momentum-carrying fluid under any
   // other field type has no coupling formulation and is rejected. The coupling
@@ -318,7 +355,7 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   // fluid current on the Ampere RHS of every SSP-RK3 stage.
   int num_coupled_fluids = 0;
   for (int i = 0; i < ntot; ++i) {
-    if (app->species[i].fluid && vm_fluid_em_coupling_supported(app->species[i].fluid)) {
+    if (vm_fluid_em_coupling_supported(&app->species[i])) {
       num_coupled_fluids += 1;
     }
   }
@@ -353,7 +390,8 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   app->has_implicit_species_ops = false;
   for (int i = 0; i < ntot; ++i) {
     struct vm_species *vms = app->species[i].kinetic;
-    if (vms && (vms->info.collisions.is_implicit || vms->src_bgk.is_implicit)) {
+    if (app->species[i].type == GKYL_SPECIES_VLASOV &&
+        (vms->info.collisions.is_implicit || vms->src_bgk.is_implicit)) {
       app->has_implicit_species_ops = true;
     }
   }
@@ -387,6 +425,13 @@ vlasov_find_species_idx(const gkyl_vlasov_app *app, const char *nm)
     }
   }
   return -1;
+}
+
+struct vlasov_species *
+vlasov_find_species(const gkyl_vlasov_app *app, const char *nm)
+{
+  int i = vlasov_find_species_idx(app, nm);
+  return i >= 0 ? &app->species[i] : 0;
 }
 
 struct vm_species *
@@ -532,6 +577,7 @@ gkyl_vlasov_app_write_species(gkyl_vlasov_app *app, int sidx, double tm, int fra
 void
 gkyl_vlasov_app_write_mom(gkyl_vlasov_app *app, double tm, int frame)
 {
+  vlasov_op_split_sync(app); // the staggered split's source-updated state at tcurr
   for (int i = 0; i < app->num_species; ++i) {
     vlasov_species_write_mom(app, &app->species[i], tm, frame);
   }
@@ -664,6 +710,8 @@ comm_reduce_app_stat(
     SPECIES_RHS_TM,
     FLUID_SPECIES_RHS_TM,
     FLUID_SPECIES_VARS_TM,
+    SPECIES_PKPM_VARS_TM,
+    FIELD_EM_VARS_TM,
     SPECIES_COLL_MOM_TM,
     SPECIES_COL_TM,
     SPECIES_RAD_TM,
@@ -694,6 +742,8 @@ comm_reduce_app_stat(
     [SPECIES_RHS_TM] = local->species_rhs_tm,
     [FLUID_SPECIES_RHS_TM] = local->fluid_species_rhs_tm,
     [FLUID_SPECIES_VARS_TM] = local->fluid_species_vars_tm,
+    [SPECIES_PKPM_VARS_TM] = local->species_pkpm_vars_tm,
+    [FIELD_EM_VARS_TM] = local->field_em_vars_tm,
     [SPECIES_COLL_MOM_TM] = local->species_coll_mom_tm,
     [SPECIES_COL_TM] = local->species_coll_tm,
     [SPECIES_RAD_TM] = local->species_rad_tm,
@@ -725,6 +775,8 @@ comm_reduce_app_stat(
   global->species_rhs_tm = d_red_global[SPECIES_RHS_TM];
   global->fluid_species_rhs_tm = d_red_global[FLUID_SPECIES_RHS_TM];
   global->fluid_species_vars_tm = d_red_global[FLUID_SPECIES_VARS_TM];
+  global->species_pkpm_vars_tm = d_red_global[SPECIES_PKPM_VARS_TM];
+  global->field_em_vars_tm = d_red_global[FIELD_EM_VARS_TM];
   global->species_coll_mom_tm = d_red_global[SPECIES_COLL_MOM_TM];
   global->species_coll_tm = d_red_global[SPECIES_COL_TM];
   global->species_rad_tm = d_red_global[SPECIES_RAD_TM];
@@ -876,6 +928,18 @@ gkyl_vlasov_app_stat_write(gkyl_vlasov_app *app)
   gkyl_vlasov_app_cout(app, fp, " n_field_io : %ld,\n", stat.n_field_io);
   gkyl_vlasov_app_cout(app, fp, " n_field_diag_io : %ld,\n", stat.n_field_diag_io);
 
+  if (app->has_pkpm) {
+    // PKPM species: the configuration-space variables of the stages and b of the field, and the
+    // record of the closure solves of each species.
+    gkyl_vlasov_app_cout(app, fp, " species_pkpm_vars_tm : %lg,\n", stat.species_pkpm_vars_tm);
+    gkyl_vlasov_app_cout(app, fp, " field_em_vars_tm : %lg,\n", stat.field_em_vars_tm);
+    for (int i = 0; i < app->num_species; ++i) {
+      if (app->species[i].type == GKYL_SPECIES_PKPM) {
+        vlasov_pkpm_species_stat_write(app, &app->species[i], fp);
+      }
+    }
+  }
+
   gkyl_vlasov_app_cout(app, fp, "}\n");
 
   if (rank == 0) {
@@ -976,7 +1040,16 @@ gkyl_vlasov_app_read_from_frame(gkyl_vlasov_app *app, int frame)
   // it is read after the species and the field that evolve, and the frame and
   // the clock are theirs. When nothing else has a file, the run restarts at the
   // time of frame 0.
+  // With PKPM species the Maxwell field (which has a file and a time of its own) is read first:
+  // their boundary conditions read b of the restart field.
   struct gkyl_app_restart_status rstat = {.io_status = GKYL_ARRAY_RIO_SUCCESS};
+  struct gkyl_app_restart_status fstat = {.io_status = GKYL_ARRAY_RIO_SUCCESS};
+  if (app->has_pkpm) {
+    fstat = gkyl_vlasov_app_from_frame_field(app, frame);
+    if (fstat.io_status != GKYL_ARRAY_RIO_SUCCESS) {
+      return fstat;
+    }
+  }
   int num_evolving = 0;
   for (int i = 0; i < app->num_species; i++) {
     struct vlasov_species *sp = &app->species[i];
@@ -990,7 +1063,9 @@ gkyl_vlasov_app_read_from_frame(gkyl_vlasov_app *app, int frame)
     num_evolving += 1;
   }
 
-  struct gkyl_app_restart_status fstat = gkyl_vlasov_app_from_frame_field(app, frame);
+  if (!app->has_pkpm) {
+    fstat = gkyl_vlasov_app_from_frame_field(app, frame);
+  }
   if (fstat.io_status != GKYL_ARRAY_RIO_SUCCESS || app->num_species == 0) {
     return fstat;
   }
@@ -1061,6 +1136,12 @@ gkyl_vlasov_app_release(gkyl_vlasov_app *app)
   vlasov_field_release(app);
   if (app->has_fluid_em_coupling) {
     vm_fluid_em_coupling_release(app, app->fl_em);
+  }
+  if (app->has_pkpm) {
+    vm_pkpm_coll_cross_release(app);
+  }
+  if (app->conf_nodal) {
+    gkyl_dg_conf_nodal_release(app->conf_nodal);
   }
   if (app->src_omega_p_sq) {
     gkyl_array_release(app->src_omega_p_sq);

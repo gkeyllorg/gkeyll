@@ -14,7 +14,7 @@
 #include <time.h>
 
 #include <gkyl_alloc.h>
-#include <gkyl_pkpm.h>
+#include <gkyl_vlasov.h>
 #include <gkyl_util.h>
 
 #include <gkyl_null_comm.h>
@@ -228,7 +228,7 @@ snap_trigger_to_t_end(struct gkyl_tm_trigger *trig, double t_end)
 }
 
 void
-write_data(struct gkyl_tm_trigger *iot, gkyl_pkpm_app *app, double t_curr, bool force_write)
+write_data(struct gkyl_tm_trigger *iot, gkyl_vlasov_app *app, double t_curr, bool force_write)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_write) {
     int frame = iot->curr - 1;
@@ -236,34 +236,39 @@ write_data(struct gkyl_tm_trigger *iot, gkyl_pkpm_app *app, double t_curr, bool 
       frame = iot->curr;
     }
 
-    gkyl_pkpm_app_write(app, t_curr, frame);
-    gkyl_pkpm_app_write_field_energy(app);
-    gkyl_pkpm_app_write_integrated_mom(app);
-    gkyl_pkpm_app_write_integrated_L2_f(app);
+    gkyl_vlasov_app_write(app, t_curr, frame);
+    gkyl_vlasov_app_write_field_energy(app);
+    gkyl_vlasov_app_write_integrated_mom(app);
+    gkyl_vlasov_app_write_integrated_L2_f(app);
+    gkyl_vlasov_app_write_mom(app, t_curr, frame);
   }
 }
 
 void
-calc_field_energy(struct gkyl_tm_trigger *fet, gkyl_pkpm_app *app, double t_curr, bool force_calc)
+calc_field_energy(struct gkyl_tm_trigger *fet, gkyl_vlasov_app *app, double t_curr, bool force_calc)
 {
   if (gkyl_tm_trigger_check_and_bump(fet, t_curr) || force_calc) {
-    gkyl_pkpm_app_calc_field_energy(app, t_curr);
+    gkyl_vlasov_app_calc_field_energy(app, t_curr);
   }
 }
 
 void
-calc_integrated_mom(struct gkyl_tm_trigger *imt, gkyl_pkpm_app *app, double t_curr, bool force_calc)
+calc_integrated_mom(
+  struct gkyl_tm_trigger *imt, gkyl_vlasov_app *app, double t_curr, bool force_calc
+)
 {
   if (gkyl_tm_trigger_check_and_bump(imt, t_curr) || force_calc) {
-    gkyl_pkpm_app_calc_integrated_mom(app, t_curr);
+    gkyl_vlasov_app_calc_integrated_mom(app, t_curr);
   }
 }
 
 void
-calc_integrated_L2_f(struct gkyl_tm_trigger *l2t, gkyl_pkpm_app *app, double t_curr, bool force_calc)
+calc_integrated_L2_f(
+  struct gkyl_tm_trigger *l2t, gkyl_vlasov_app *app, double t_curr, bool force_calc
+)
 {
   if (gkyl_tm_trigger_check_and_bump(l2t, t_curr) || force_calc) {
-    gkyl_pkpm_app_calc_integrated_L2_f(app, t_curr);
+    gkyl_vlasov_app_calc_integrated_L2_f(app, t_curr);
   }
 }
 
@@ -350,7 +355,7 @@ main(int argc, char **argv)
   }
 
   // Neutrals.
-  struct gkyl_pkpm_kinetic_species neut_kinetic = {
+  struct gkyl_vlasov_kinetic_species neut_kinetic = {
     .lower = {-ctx.vx_max},
     .upper = {ctx.vx_max},
     .cells = {NVX},
@@ -361,10 +366,10 @@ main(int argc, char **argv)
     .collisions = {.collision_id = GKYL_LBO_COLLISIONS, .self_nu = evalNu, .self_nu_ctx = &ctx},
   };
 
-  struct gkyl_pkpm_fluid_species neut_fluid = {.init = evalNeutFluidInit, .ctx = &ctx};
+  struct gkyl_vlasov_fluid_species neut_fluid = {.init = evalNeutFluidInit, .ctx = &ctx};
 
   // Field.
-  struct gkyl_pkpm_field field = {
+  struct gkyl_vlasov_field field = {
     .epsilon0 = ctx.epsilon0,
     .mu0 = ctx.mu0,
     .elcErrorSpeedFactor = 0.0,
@@ -377,7 +382,7 @@ main(int argc, char **argv)
   };
 
   // PKPM app.
-  struct gkyl_pkpm app_inp = {
+  struct gkyl_vm app_inp = {
 
     .cdim = 1,
     .vdim = 1,
@@ -409,7 +414,7 @@ main(int argc, char **argv)
   // Create app object.
   // Set app output name from the executable name (argv[0]).
   snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
-  gkyl_pkpm_app *app = gkyl_pkpm_app_new(&app_inp);
+  gkyl_vlasov_app *app = gkyl_vlasov_app_new(&app_inp);
 
   // Initial and final simulation times.
   double t_curr = 0.0, t_end = ctx.t_end;
@@ -418,10 +423,10 @@ main(int argc, char **argv)
   int frame_curr = 0;
   if (app_args.is_restart) {
     struct gkyl_app_restart_status status =
-      gkyl_pkpm_app_read_from_frame(app, app_args.restart_frame);
+      gkyl_vlasov_app_read_from_frame(app, app_args.restart_frame);
 
     if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
-      gkyl_pkpm_app_cout(
+      gkyl_vlasov_app_cout(
         app, stderr, "*** Failed to read restart file! (%s)\n",
         gkyl_array_rio_status_msg(status.io_status)
       );
@@ -431,10 +436,10 @@ main(int argc, char **argv)
     frame_curr = status.frame;
     t_curr = status.stime;
 
-    gkyl_pkpm_app_cout(app, stdout, "Restarting from frame %d", frame_curr);
-    gkyl_pkpm_app_cout(app, stdout, " at time = %g\n", t_curr);
+    gkyl_vlasov_app_cout(app, stdout, "Restarting from frame %d", frame_curr);
+    gkyl_vlasov_app_cout(app, stdout, " at time = %g\n", t_curr);
   } else {
-    gkyl_pkpm_app_apply_ic(app, t_curr);
+    gkyl_vlasov_app_apply_ic(app, t_curr);
   }
 
   // Create trigger for field energy.
@@ -491,12 +496,12 @@ main(int argc, char **argv)
 
   long step = 1;
   while ((t_curr < t_end) && (step <= app_args.num_steps)) {
-    gkyl_pkpm_app_cout(app, stdout, "Taking time-step %ld at t = %g ...", step, t_curr);
-    struct gkyl_update_status status = gkyl_pkpm_update(app, dt);
-    gkyl_pkpm_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
+    gkyl_vlasov_app_cout(app, stdout, "Taking time-step %ld at t = %g ...", step, t_curr);
+    struct gkyl_update_status status = gkyl_vlasov_update(app, dt);
+    gkyl_vlasov_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
 
     if (!status.success) {
-      gkyl_pkpm_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
+      gkyl_vlasov_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
       break;
     }
 
@@ -542,12 +547,12 @@ main(int argc, char **argv)
     } else if (!was_dt_clipped && status.dt_actual < dt_failure_tol * dt_init) {
       num_failures += 1;
 
-      gkyl_pkpm_app_cout(app, stdout, "WARNING: Time-step dt = %g", status.dt_actual);
-      gkyl_pkpm_app_cout(app, stdout, " is below %g*dt_init ...", dt_failure_tol);
-      gkyl_pkpm_app_cout(app, stdout, " num_failures = %d\n", num_failures);
+      gkyl_vlasov_app_cout(app, stdout, "WARNING: Time-step dt = %g", status.dt_actual);
+      gkyl_vlasov_app_cout(app, stdout, " is below %g*dt_init ...", dt_failure_tol);
+      gkyl_vlasov_app_cout(app, stdout, " num_failures = %d\n", num_failures);
       if (num_failures >= num_failures_max) {
-        gkyl_pkpm_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
-        gkyl_pkpm_app_cout(
+        gkyl_vlasov_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
+        gkyl_vlasov_app_cout(
           app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max
         );
 
@@ -569,48 +574,50 @@ main(int argc, char **argv)
   calc_integrated_mom(&im_trig, app, t_curr, false);
   calc_integrated_L2_f(&l2f_trig, app, t_curr, false);
   write_data(&io_trig, app, t_curr, false);
-  gkyl_pkpm_app_stat_write(app);
+  gkyl_vlasov_app_stat_write(app);
 
-  struct gkyl_pkpm_stat stat = gkyl_pkpm_app_stat(app);
+  struct gkyl_vlasov_stat stat = gkyl_vlasov_app_stat(app);
 
-  gkyl_pkpm_app_cout(app, stdout, "\n");
-  gkyl_pkpm_app_cout(app, stdout, "Number of update calls %ld\n", stat.nup);
-  gkyl_pkpm_app_cout(app, stdout, "Number of forward-Euler calls %ld\n", stat.nfeuler);
-  gkyl_pkpm_app_cout(app, stdout, "Number of RK stage-2 failures %ld\n", stat.nstage_2_fail);
+  gkyl_vlasov_app_cout(app, stdout, "\n");
+  gkyl_vlasov_app_cout(app, stdout, "Number of update calls %ld\n", stat.nup);
+  gkyl_vlasov_app_cout(app, stdout, "Number of forward-Euler calls %ld\n", stat.nfeuler);
+  gkyl_vlasov_app_cout(app, stdout, "Number of RK stage-2 failures %ld\n", stat.nstage_2_fail);
   if (stat.nstage_2_fail > 0) {
-    gkyl_pkpm_app_cout(
+    gkyl_vlasov_app_cout(
       app, stdout, "  Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]
     );
-    gkyl_pkpm_app_cout(
+    gkyl_vlasov_app_cout(
       app, stdout, "  Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]
     );
   }
-  gkyl_pkpm_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
-  gkyl_pkpm_app_cout(app, stdout, "Species RHS calc took %g secs\n", stat.species_rhs_tm);
-  gkyl_pkpm_app_cout(
+  gkyl_vlasov_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
+  gkyl_vlasov_app_cout(app, stdout, "Species RHS calc took %g secs\n", stat.species_rhs_tm);
+  gkyl_vlasov_app_cout(
     app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm
   );
-  gkyl_pkpm_app_cout(
+  gkyl_vlasov_app_cout(
     app, stdout, "Fluid species RHS calc took %g secs\n", stat.fluid_species_rhs_tm
   );
-  gkyl_pkpm_app_cout(app, stdout, "Field RHS calc took %g secs\n", stat.field_rhs_tm);
-  gkyl_pkpm_app_cout(app, stdout, "Species PKPM vars took %g secs\n", stat.species_pkpm_vars_tm);
-  gkyl_pkpm_app_cout(
+  gkyl_vlasov_app_cout(app, stdout, "Field RHS calc took %g secs\n", stat.field_rhs_tm);
+  gkyl_vlasov_app_cout(app, stdout, "Species PKPM vars took %g secs\n", stat.species_pkpm_vars_tm);
+  gkyl_vlasov_app_cout(
     app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm
   );
-  gkyl_pkpm_app_cout(app, stdout, "EM variables (bvar) calc took %g secs\n", stat.field_em_vars_tm);
-  gkyl_pkpm_app_cout(
+  gkyl_vlasov_app_cout(
+    app, stdout, "EM variables (bvar) calc took %g secs\n", stat.field_em_vars_tm
+  );
+  gkyl_vlasov_app_cout(
     app, stdout, "Current evaluation and accumulate took %g secs\n", stat.current_tm
   );
-  gkyl_pkpm_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
+  gkyl_vlasov_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
-  gkyl_pkpm_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);
-  gkyl_pkpm_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
+  gkyl_vlasov_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);
+  gkyl_vlasov_app_cout(app, stdout, "IO time took %g secs \n", stat.species_io_tm);
 
 freeresources:
   // Free resources after simulation completion.
   gkyl_comm_release(comm);
-  gkyl_pkpm_app_release(app);
+  gkyl_vlasov_app_release(app);
 
 mpifinalize:
 #ifdef GKYL_HAVE_MPI

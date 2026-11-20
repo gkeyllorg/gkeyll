@@ -11,7 +11,7 @@
 -- and recur at omega = 1.414; the field energy at t = 20 is 0.0009 of its initial value, as with
 -- the implicit coupling (Vlasov, serendipity p2 on the same grid: 0.1549, 1.413, 0.00091).
 
-local PKPM = G0.PKPM
+local Vlasov = G0.Vlasov
 
 -- Mathematical constants (dimensionless).
 pi = math.pi
@@ -45,7 +45,7 @@ integrated_L2_f_calcs = GKYL_MAX_INT -- Number of times to calculate integrated 
 dt_failure_tol = 1.0e-4 -- Minimum allowable fraction of initial time-step.
 num_failures_max = 20 -- Maximum allowable number of consecutive small time-steps.
 
-pkpmApp = PKPM.App.new {
+vlasovApp = Vlasov.App.new {
 
   tEnd = t_end,
   nFrame = num_frames,
@@ -72,7 +72,7 @@ pkpmApp = PKPM.App.new {
   periodicDirs = { 1 }, -- Periodic directions (x-direction only).
 
   -- Electrons.
-  elc = PKPM.Species.new {
+  elc = Vlasov.PKPMSpecies.new {
     charge = charge_elc, mass = mass_elc,
 
     kinetic = {
@@ -115,7 +115,7 @@ pkpmApp = PKPM.App.new {
   },
 
   -- Field.
-  field = PKPM.Field.new {
+  field = Vlasov.Field.new {
     epsilon0 = epsilon0, mu0 = mu0,
 
     -- Initial conditions function.
@@ -137,4 +137,4 @@ pkpmApp = PKPM.App.new {
   }
 }
 
-pkpmApp:run()
+vlasovApp:run()

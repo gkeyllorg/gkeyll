@@ -12,6 +12,8 @@
 #include <gkyl_vlasov_triad_geom.h>
 
 #include <stdbool.h>
+#include <gkyl_kann_net.h>
+#include <gkyl_knutils.h>
 
 // Parameters for projection
 struct gkyl_vlasov_projection {
@@ -207,7 +209,7 @@ struct gkyl_vlasov_geom {
 enum gkyl_species_type {
   GKYL_SPECIES_VLASOV, // kinetic distribution only
   GKYL_SPECIES_FLUID, // fluid moments only
-  GKYL_SPECIES_PKPM // both (reserved; not supported by the Vlasov app)
+  GKYL_SPECIES_PKPM // both: a parallel-kinetic-perpendicular-moment species
 };
 
 // Parameters for the kinetic block of a Vlasov species: the velocity-space
@@ -309,6 +311,17 @@ struct gkyl_vlasov_kinetic_species {
   // Temperature source to include.
   struct gkyl_vlasov_source_bgk source_bgk;
 
+  // PKPM species only.
+  // Gyrophase-mixing closure of the first harmonic: rate, in units of the species' local |Omega|, at
+  // which agyrotropy beyond what one harmonic can represent relaxes back to that bound (0: the
+  // default 10; a negative value switches the closure off). The overshoot above the bound is about
+  // (drive rate/|Omega|)/gyro_mix; a drive the default cannot hold calls for more Fourier harmonics.
+  double gyro_mix;
+
+  // Gauss-Legendre nodes per transverse direction of a configuration face (0 => default 5, at
+  // least 3).
+  int num_face_nodes;
+
   // Boundary conditions.
   struct gkyl_vlasov_bcs bcx, bcy, bcz;
 };
@@ -360,8 +373,79 @@ struct gkyl_vlasov_fluid_species {
   enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
 };
 
+// A PKPM species (GKYL_SPECIES_PKPM) owns both blocks: the kinetic block holds the grid of the
+// NORMALIZED velocity w = v_par/xi and the normalized distributions, the fluid block the state
+// [rho, rho ux, rho uy, rho uz, E], E = rho |u|^2/2 + 3 p/2, whose flux is the moment of the
+// kinetic flux (no equation object). It needs the Maxwell field (GKYL_FIELD_E_B), which defines
+// b, and polynomial order 1. For example
+//   struct gkyl_vlasov_kinetic_species elc_kinetic = { .lower = ..., .cells = ..., ... };
+//   struct gkyl_vlasov_fluid_species elc_fluid = { .init = ..., ... };
+//   .species = {
+//     { .name = "elc", .charge = -1.0, .mass = 1.0, .type = GKYL_SPECIES_PKPM,
+//       .kinetic = elc_kinetic, .fluid = elc_fluid },
+//   },
+// Kinetic block of a PKPM species:
+//   Initial condition using the projection routine: one GKYL_PROJ_FUNC projection of a function
+//   returning the eight blocks [F, G, M0_perp (x, y, z), N_perp (x, y, z)] of the normalized
+//   distributions. F is a probability density in w (M0 = 1, M1 = 0) and G its
+//   perpendicular-energy partner (M0(G) = T_perp/T) with M2(F) + 2 M0(G) = 3; e.g. a
+//   bi-Maxwellian is F = exp(-w^2/(2 r))/sqrt(2 pi r), G = (T_perp/T) F with r = T_par/T,
+//   T = (T_par + 2 T_perp)/3. The first-harmonic blocks [M0_perp, N_perp] must be perpendicular
+//   to b, and int M0_perp dw must vanish; a gyrotropic start returns zeros for them.
+//   Collisions to include (GKYL_LBO_COLLISIONS or GKYL_BGK_COLLISIONS). Without self_nu the
+//   self-collision frequency is the Spitzer one computed from the local moments, and so are
+//   the cross-collision frequencies without cross_nu,
+//   nu_sr = nu_frac alpha_E (m_s + m_r) / (2 m_s) n_r / (vtsq_s + vtsq_r)^(3/2),
+//   with the constant part alpha_E of Morse's energy-exchange coefficient at the reference
+//   parameters (nu_ss = nu_frac alpha_E n_s / (2 vtsq_s)^(3/2) for the self frequency).
+//   is_implicit (BGK): one backward-Euler step in each SSP-RK3 stage, over the time weight of
+//   the stage, instead of the explicit update (with its CFL limit); not available on the GPU.
+//   write_coll_diagnostics and fixed_temp_relax are not available (source_bgk is the
+//   temperature source).
+//   Source to include: GKYL_PROJ_SOURCE or GKYL_BFLUX_SOURCE with one GKYL_PROJ_VLASOV_LTE
+//   projection, the profile [density, isotropic temperature, drift] injected into the
+//   normalized kinetic equations (through the configuration pass, so the closures keep the
+//   constraints exact) and into the fluid state [rho, M, E]. With GKYL_PROJ_SOURCE the profile
+//   is added as given; with GKYL_BFLUX_SOURCE it is scaled every stage by the particle loss
+//   rate of `source_species` through its absorbing walls divided by `source_length` (so a
+//   density profile integrating to source_length replaces the losses exactly). The drift
+//   enters the parallel Maxwellian through its component along b; a perpendicular drift
+//   relative to the local flow is not carried by G. write_source writes the fluid image of the
+//   profile at frame 0.
+//   Temperature source to include, S = nu_Q(x) (f_M(n, u, T_Q(x)) - f) (see struct
+//   gkyl_vlasov_source_bgk). In the normalized variables the fluid thermal energy relaxes to
+//   (3/2) n T_Q at the rate nu_Q and the distributions relax to the unit Maxwellian at the rate
+//   nu_Q T_Q/T, which relaxes every pressure component at the rate nu_Q of the source. Terms of
+//   order (T_Q/T - 1) times the departure of the distributions from a Maxwellian are dropped:
+//   moments of degree three decay at nu_Q T_Q/T instead of nu_Q (3 T_Q/T - 1)/2. The explicit
+//   time step is limited by nu_Q and by nu_Q T_Q/T.
+// Fluid block of a PKPM species:
+//   Vertex positivity limiter of the fluid state [rho, M, E] (Zhang-Shu scaling of the
+//   slopes toward the cell averages, always applied, after every forward-Euler stage, the
+//   implicit coupling and the initial condition): the vertex density and the vertex internal
+//   energy are kept above positivity_eps times the cell values, so the thermal speed is real
+//   at the Gauss-Legendre nodes. The cells it acts on are recorded in
+//   <name>-<species>_pkpm_positivity_<frame>.gkyl (cumulative counts per cell: [density,
+//   internal energy, inadmissible average]) and the counts per integrated-moment interval
+//   in the dynvec <name>-<species>-positivity-stat.gkyl ([cells scaled for the density, for
+//   the internal energy, cells with an inadmissible average, limiter applications], summed
+//   over ranks).
+//   diffusion: of the momentum (also on a position map), order 2 (grad^2, the default) or 4.
+// Boundary conditions: each block carries its own and each is applied to its own state.
+// The kinetic BC fills the ghost cells of the distributions: GKYL_SPECIES_COPY, GKYL_SPECIES_ABSORB
+// (empty ghost distributions; the wall losses are recorded and T_perp/T of the ghost cell is the
+// mirror image of the skin cell), GKYL_SPECIES_REFLECT (the field-aligned mirror image) or
+// GKYL_SPECIES_FIXED_FUNC (the initial condition). The fluid BC fills the
+// ghost cells of [rho, M, E], which set the frame (rho, u, xi) of the ghost cell: GKYL_SPECIES_COPY,
+// GKYL_SPECIES_ABSORB (the mirror image of the skin cell, even in the wall direction, so the
+// primitive variables and their gradients are one-sided at the wall), GKYL_SPECIES_REFLECT (the
+// mirror image with the momentum reflected) or GKYL_SPECIES_FIXED_FUNC. The same type in both
+// blocks is the natural pair: an absorbing wall records its losses, and a reflecting wall
+// passes no mass and no energy.
+
 // Parameters for one Vlasov species. The type selects which block is read
-// (GKYL_SPECIES_VLASOV: 'kinetic', GKYL_SPECIES_FLUID: 'fluid'); the identity
+// (GKYL_SPECIES_VLASOV: 'kinetic', GKYL_SPECIES_FLUID: 'fluid', GKYL_SPECIES_PKPM:
+// both, see above); the identity
 // (name, charge, mass) is declared here and not in the blocks. Names must be
 // unique. For example, a kinetic species and a fluid species are declared as
 //   struct gkyl_vlasov_kinetic_species elc = { .lower = ..., .cells = ..., ... };
@@ -448,6 +532,30 @@ struct gkyl_vlasov_field {
   bool external_potentials_evolve; // Set to true if external potentials are time dependent.
 };
 
+// Largest number of moments a neural network takes as inputs or as outputs.
+#define GKYL_VLASOV_NN_MAX_MOMS 16
+
+// Neural-network options of a run, read by the driver of the run (the Lua wrapper): training
+// one network per species on the diagnostic moments of the simulation (gkyl_vlasov_app_train,
+// gkyl_vlasov_app_write_nn) and testing a trained one against them (gkyl_vlasov_app_test). All
+// zeros, the default, means no network is used.
+struct gkyl_vlasov_nn {
+  bool train_nn; // Train neural network on simulation data?
+  bool train_ab_initio; // Train a new network (otherwise the one read from train_nn_file)?
+  int nn_width; // Number of neurons to use per layer.
+  int nn_depth; // Number of layers to use.
+  char train_nn_file[256]; // File path of neural network to train.
+  int num_trains; // Number of times to train neural network.
+  int num_nn_writes; // Number of times to write out neural network.
+  int num_input_moms; // Number of "input" moments to train on.
+  int input_moms[GKYL_VLASOV_NN_MAX_MOMS]; // "Input" moments to train on.
+  int num_output_moms; // Number of "output" moments to train on.
+  int output_moms[GKYL_VLASOV_NN_MAX_MOMS]; // "Output" moments to train on.
+  bool test_nn; // Test neural network on simulation data?
+  char test_nn_file[256]; // File path of neural network to test.
+  int num_tests; // Number of times to test neural network.
+};
+
 // Top-level app parameters
 struct gkyl_vm {
   char name[128]; // name of app: used as output prefix
@@ -502,6 +610,8 @@ struct gkyl_vm {
   // thermal speed.
   bool use_explicit_sources; // Explicit fluid-Maxwell coupling in the SSP-RK3 stages.
 
+  struct gkyl_vlasov_nn nn; // Neural-network options of PKPM species (all zeros: no network).
+
   struct gkyl_app_parallelism_inp parallelism; // Parallelism-related inputs.
 };
 
@@ -548,6 +658,11 @@ struct gkyl_vlasov_stat {
 
   double field_rhs_tm; // time to compute field RHS
   double current_tm; // time to compute currents and accumulation
+  // time to compute the configuration-space variables of a stage of a PKPM species: the
+  // moments of the normalized distributions, the flow and thermal speed, the kinetic coupling
+  // moments, the constraints and the gradients for the sources
+  double species_pkpm_vars_tm;
+  double field_em_vars_tm; // time to compute b = B/|B| and its gradient (PKPM species)
 
   double species_omega_cfl_tm; // time spent in all-reduce for omega-cfl for species
   double species_io_tm; // Time to write the species distribution.
@@ -772,6 +887,116 @@ void gkyl_vlasov_app_write_field_energy(gkyl_vlasov_app *app);
  * @param app App object.
  */
 void gkyl_vlasov_app_stat_write(gkyl_vlasov_app *app);
+
+/**
+ * Train neural network on PKPM moments data for each PKPM species.
+ * 
+ * @param app App object.
+ * @param tm Time-stamp.
+ * @param frame Frame number.
+ * @param ann Neural network architecture.
+ * @param num_input_moms Number of "input" moments to train on.
+ * @param input_moms Array of "input" moments to train on.
+ * @param num_output_moms Number of "output" moments to train on.
+ * @param output_moms Array of "output" moments to train on.
+ * @param input_data Array of input data to train on (across the computational domain).
+ * @param output_data Array of output data to train on (across the computational domain).
+ */
+void gkyl_vlasov_app_train(
+  gkyl_vlasov_app *app, double tm, int frame, struct gkyl_kann_net **ann, int num_input_moms,
+  int *input_moms, int num_output_moms, int *output_moms, struct gkyl_kn_vec *input_data,
+  struct gkyl_kn_vec *output_data
+);
+
+/**
+ * Train neural network on PKPM moments data for a particular PKPM species.
+ * 
+ * @param app App object.
+ * @param sidx Index of the PKPM species to train on.
+ * @param tm Time-stamp.
+ * @param frame Frame number.
+ * @param ann Neural network architecture.
+ * @param num_input_moms Number of "input" moments to train on.
+ * @param input_moms Array of "input" moments to train on.
+ * @param num_output_moms Number of "output" moments to train on.
+ * @param output_moms Array of "output" moments to train on.
+ * @param input_data Array of input data to train on (across the computational domain).
+ * @param output_data Array of output data to train on (across the computational domain).
+ */
+void gkyl_vlasov_app_train_mom(
+  gkyl_vlasov_app *app, int sidx, double tm, int frame, struct gkyl_kann_net **ann,
+  int num_input_moms, int *input_moms, int num_output_moms, int *output_moms,
+  struct gkyl_kn_vec *input_data, struct gkyl_kn_vec *output_data
+);
+
+/**
+ * Write out PKPM moments neural network for each PKPM species.
+ * 
+ * @param app App object.
+ * @param tm Time-stamp.
+ * @param frame Frame number.
+ * @param ann Neural network architecture.
+ */
+void gkyl_vlasov_app_write_nn(
+  gkyl_vlasov_app *app, double tm, int frame, struct gkyl_kann_net **ann
+);
+
+/**
+ * Write out PKPM moments neural network for a particular PKPM species.
+ * 
+ * @param app App object.
+ * @param sidx Index of the PKPM species to write out.
+ * @param tm Time-stamp.
+ * @param frame Frame number.
+ * @param ann Neural network architecture.
+ */
+void gkyl_vlasov_app_write_nn_mom(
+  gkyl_vlasov_app *app, int sidx, double tm, int frame, struct gkyl_kann_net **ann
+);
+
+/**
+ * Test neural network on PKPM moments data for each PKPM species, and write moments to a file.
+ * 
+ * @param app App object.
+ * @param tm Time-stamp.
+ * @param frame Frame number.
+ * @param ann Neural network architecture.
+ * @param num_input_moms Number of "input" moments to test on.
+ * @param input_moms Array of "input" moments to test on.
+ * @param num_output_moms Number of "output" moments to test on.
+ * @param output_moms Array of "output" moments to test on.
+ * @param input_data_real Array of real input data to validate against (across the computational domain).
+ * @param output_data_real Array of real output data to validate against (across the computational domain).
+ * @param output_data_predicted Array of predicted output data to validate (across the computational domain).
+ */
+void gkyl_vlasov_app_test(
+  gkyl_vlasov_app *app, double tm, int frame, struct gkyl_kann_net **ann, int num_input_moms,
+  int *input_moms, int num_output_moms, int *output_moms, struct gkyl_kn_vec *input_data_real,
+  struct gkyl_kn_vec *output_data_real, struct gkyl_kn_vec *output_data_predicted
+);
+
+/**
+ * Test neural network on PKPM moments data for a particular PKPM species, and write moments to a file.
+ * 
+ * @param app App object.
+ * @param sidx Index of the PKPM species to test on.
+ * @param tm Time-stamp.
+ * @param frame Frame number.
+ * @param ann Neural network architecture.
+ * @param num_input_moms Number of "input" moments to test on.
+ * @param input_moms Array of "input" moments to test on.
+ * @param num_output_moms Number of "output" moments to test on.
+ * @param output_moms Array of "output" moments to test on.
+ * @param input_data_real Array of real input data to validate against (across the computational domain).
+ * @param output_data_real Array of real output data to validate against (across the computational domain).
+ * @param output_data_predicted Array of predicted output data to validate (across the computational domain).
+ */
+void gkyl_vlasov_app_test_mom(
+  gkyl_vlasov_app *app, int sidx, double tm, int frame, struct gkyl_kann_net **ann,
+  int num_input_moms, int *input_moms, int num_output_moms, int *output_moms,
+  struct gkyl_kn_vec *input_data_real, struct gkyl_kn_vec *output_data_real,
+  struct gkyl_kn_vec *output_data_predicted
+);
 
 /**
  * Write output to console: this is mainly for diagnostic messages the

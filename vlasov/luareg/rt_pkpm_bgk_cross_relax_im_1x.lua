@@ -16,7 +16,7 @@
 -- the pressure anisotropy of each species by R((nu_ss + nu_sr) dt) to 5e-5 (the stages combine the
 -- distributions with weights that follow the temperature change of the exchange). The temperatures
 -- end at 0.78782 (electrons) and 0.71260 (ions).
-local PKPM = G0.PKPM
+local Vlasov = G0.Vlasov
 
 -- Mathematical constants (dimensionless).
 pi = math.pi
@@ -63,7 +63,7 @@ integrated_L2_f_calcs = GKYL_MAX_INT -- Number of times to calculate integrated 
 dt_failure_tol = 1.0e-4 -- Minimum allowable fraction of initial time-step.
 num_failures_max = 20 -- Maximum allowable number of consecutive small time-steps.
 
-pkpmApp = PKPM.App.new {
+vlasovApp = Vlasov.App.new {
 
   tEnd = t_end,
   nFrame = num_frames,
@@ -88,7 +88,7 @@ pkpmApp = PKPM.App.new {
   periodicDirs = { 1 }, -- Periodic directions (x-direction only).
 
   -- Electrons.
-  elc = PKPM.Species.new {
+  elc = Vlasov.PKPMSpecies.new {
     charge = charge, mass = mass_elc,
 
     kinetic = {
@@ -148,7 +148,7 @@ pkpmApp = PKPM.App.new {
   },
 
   -- Ions.
-  ion = PKPM.Species.new {
+  ion = Vlasov.PKPMSpecies.new {
     charge = charge, mass = mass_ion,
 
     kinetic = {
@@ -208,7 +208,7 @@ pkpmApp = PKPM.App.new {
   },
 
   -- Field.
-  field = PKPM.Field.new {
+  field = Vlasov.Field.new {
     epsilon0 = epsilon0, mu0 = mu0,
 
     -- Initial conditions function.
@@ -222,4 +222,4 @@ pkpmApp = PKPM.App.new {
   }
 }
 
-pkpmApp:run()
+vlasovApp:run()
