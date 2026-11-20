@@ -113,7 +113,7 @@ create_ctx(void)
   double floor_src = 0.01; // Minimum source intensity.
 
   // Number of cells (remove denominator for same resolution as JCP).
-  int Nr = 36 / 9, Ntheta = 36 / 9, Nz = 8 / 2;
+  int Nr = 36 / 9, Ntheta = 36 / 9, Nz = 8 / 4;
   int Nvpar = 8 / 2, Nmu = 4 / 2;
 
   double t_end = 6.0e-3 / 100.0; // Final simulation time.
