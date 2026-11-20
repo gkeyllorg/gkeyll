@@ -92,6 +92,36 @@ struct dg_gyrokinetic {
   struct gkyl_dg_gyrokinetic_auxfields auxfields; // Auxiliary fields.
 };
 
+GKYL_CU_DH static inline const double *
+dg_gyrokinetic_phi_fetch(const struct dg_gyrokinetic *gyrokinetic, const int *idx, long cidx)
+{
+  // Potential in the phase space cell idx, which is in the configuration space
+  // cell cidx. The potential may depend on the mu cell (last phase space
+  // coordinate), in which case it stores the coefficients of each mu cell one
+  // after the other.
+  const struct gkyl_array *phi = gyrokinetic->auxfields.phi;
+  int num_mu = gyrokinetic->auxfields.num_mu;
+  int mu_dir = gyrokinetic->pdim - 1;
+  int mu_cell = (idx[mu_dir] - gyrokinetic->phase_range.lower[mu_dir]) % num_mu;
+  return (const double *)gkyl_array_cfetch(phi, cidx) + mu_cell * (phi->ncomp / num_mu);
+}
+
+GKYL_CU_DH static inline const double *
+dg_gyrokinetic_em_fetch(
+  const struct dg_gyrokinetic *gyrokinetic, const struct gkyl_array *fld, const int *idx, long cidx
+)
+{
+  // A_parallel or its time derivative in the phase space cell idx, which is in the
+  // configuration space cell cidx. When they are gyroaveraged in each mu cell they hold one set
+  // of coefficients per mu cell, like the potential (and have as many components).
+  const struct gkyl_array *phi = gyrokinetic->auxfields.phi;
+  int num_mu = gyrokinetic->auxfields.num_mu;
+  int mu_dir = gyrokinetic->pdim - 1;
+  int mu_cell = (idx[mu_dir] - gyrokinetic->phase_range.lower[mu_dir]) % num_mu;
+  return (const double *)gkyl_array_cfetch(fld, cidx) +
+         (fld->ncomp == phi->ncomp ? mu_cell * (fld->ncomp / num_mu) : 0);
+}
+
 //
 // Serendipity volume kernels general geometry
 // Need to be separated like this for GPU build
@@ -115,9 +145,10 @@ kernel_dg_gyrokinetic_vol(
   long pidx = gkyl_range_idx(&gyrokinetic->phase_range, idx);
   double cfl = 0.0;
 
-  const double *phi = (const double *)gkyl_array_cfetch(gyrokinetic->auxfields.phi, cidx);
-  const double *apar = (const double *)gkyl_array_cfetch(gyrokinetic->auxfields.apar, cidx);
-  const double *apardot = (const double *)gkyl_array_cfetch(gyrokinetic->auxfields.apardot, cidx);
+  const double *phi = dg_gyrokinetic_phi_fetch(gyrokinetic, idx, cidx);
+  const double *apar = dg_gyrokinetic_em_fetch(gyrokinetic, gyrokinetic->auxfields.apar, idx, cidx);
+  const double *apardot =
+    dg_gyrokinetic_em_fetch(gyrokinetic, gyrokinetic->auxfields.apardot, idx, cidx);
   const double *vm = (const double *)gkyl_array_cfetch(gyrokinetic->vel_map->vmap, vidx);
   const double *vm_sq = (const double *)gkyl_array_cfetch(gyrokinetic->vel_map->vmap_sq, vidx);
   const double *bmag = (const double *)gkyl_array_cfetch(gyrokinetic->gk_geom->geo_corn.bmag, cidx);

@@ -31,8 +31,8 @@ gk_species_collisionless_flux_enabled(
   // where they are not defined.
   gkyl_gk_collisionless_flux_surf(
     gkcls->surf_flux_op, &app->local, &species->local, &app->local_ext, &species->local_ext,
-    species->gyro_phi, species->gyro_apar, species->gyro_apardot, fin, gkcls->flux_surf,
-    species->cflrate
+    species->hamil_phi, species->hamil_num_mu, species->gyro_apar, species->gyro_apardot, fin,
+    gkcls->flux_surf, species->cflrate
   );
 }
 
@@ -45,8 +45,8 @@ gk_species_collisionless_flux_em_enabled(
   // Compute the surface expansion of the phase space flux for ES + Apar contributions.
   gkyl_gk_collisionless_flux_surf(
     gkcls->surf_flux_em_complete_op, &app->local, &species->local, &app->local_ext,
-    &species->local_ext, species->gyro_phi, species->gyro_apar, species->gyro_apardot, fin,
-    gkcls->flux_surf, species->cflrate
+    &species->local_ext, species->hamil_phi, species->hamil_num_mu, species->gyro_apar,
+    species->gyro_apardot, fin, gkcls->flux_surf, species->cflrate
   );
 }
 
@@ -340,7 +340,8 @@ gk_species_collisionless_init(
 
       struct gkyl_dg_gyrokinetic_auxfields aux_inp = {
         .flux_surf = gkcls->flux_surf,
-        .phi = gks->gyro_phi,
+        .phi = gks->hamil_phi,
+        .num_mu = gks->hamil_num_mu,
         .apar = gks->gyro_apar,
         .apardot = gks->gyro_apardot,
       };

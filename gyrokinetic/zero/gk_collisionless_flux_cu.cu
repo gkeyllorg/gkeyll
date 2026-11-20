@@ -19,9 +19,9 @@ __global__ void
 gkyl_gk_collisionless_flux_surf_conf_cu_kernel(
   struct gkyl_gk_collisionless_flux *up, struct gkyl_range conf_range,
   struct gkyl_range phase_range, struct gkyl_range conf_ext_range,
-  struct gkyl_range phase_ext_range, const struct gkyl_array *phi, const struct gkyl_array *apar,
-  const struct gkyl_array *apardot, const struct gkyl_array *fin, struct gkyl_array *flux_surf,
-  struct gkyl_array *cflrate
+  struct gkyl_range phase_ext_range, const struct gkyl_array *phi, int num_mu,
+  const struct gkyl_array *apar, const struct gkyl_array *apardot, const struct gkyl_array *fin,
+  struct gkyl_array *flux_surf, struct gkyl_array *cflrate
 )
 {
   int pdim = up->pdim;
@@ -49,10 +49,20 @@ gkyl_gk_collisionless_flux_surf_conf_cu_kernel(
     long loc_vel = gkyl_range_idx(&up->vel_map->local_vel, idx_vel);
     long loc_phase = gkyl_range_idx(&phase_range, idx);
 
+    // The potential may depend on the mu cell, in which case it stores the coefficients of each
+    // mu cell one after the other.
+    int mu_cell = (idx[pdim - 1] - phase_range.lower[pdim - 1]) % num_mu;
+
     const double *bmag_d = (const double *)gkyl_array_cfetch(up->gk_geom->geo_corn.bmag, loc_conf);
-    const double *phi_d = (const double *)gkyl_array_cfetch(phi, loc_conf);
-    const double *apar_d = (const double *)gkyl_array_cfetch(apar, loc_conf);
-    const double *apardot_d = (const double *)gkyl_array_cfetch(apardot, loc_conf);
+    const double *phi_d =
+      (const double *)gkyl_array_cfetch(phi, loc_conf) + mu_cell * (phi->ncomp / num_mu);
+    // A_parallel and its time derivative hold one set of coefficients per mu cell, like the
+    // potential, when they are gyroaveraged in each mu cell (same number of components).
+    const double *apar_d = (const double *)gkyl_array_cfetch(apar, loc_conf) +
+                           (apar->ncomp == phi->ncomp ? mu_cell * (apar->ncomp / num_mu) : 0);
+    const double *apardot_d =
+      (const double *)gkyl_array_cfetch(apardot, loc_conf) +
+      (apardot->ncomp == phi->ncomp ? mu_cell * (apardot->ncomp / num_mu) : 0);
     const double *vmap_d = (const double *)gkyl_array_cfetch(up->vel_map->vmap, loc_vel);
     const double *vmapSq_d = (const double *)gkyl_array_cfetch(up->vel_map->vmap_sq, loc_vel);
 
@@ -133,8 +143,8 @@ gkyl_gk_collisionless_flux_surf_surfvpar_cu_kernel(
   struct gkyl_gk_collisionless_flux *up, struct gkyl_range conf_range,
   struct gkyl_range phase_range, struct gkyl_range conf_ext_range,
   struct gkyl_range phase_ext_range, struct gkyl_range vpar_range, const struct gkyl_array *phi,
-  const struct gkyl_array *apar, const struct gkyl_array *apardot, const struct gkyl_array *fin,
-  struct gkyl_array *flux_surf, struct gkyl_array *cflrate
+  int num_mu, const struct gkyl_array *apar, const struct gkyl_array *apardot,
+  const struct gkyl_array *fin, struct gkyl_array *flux_surf, struct gkyl_array *cflrate
 )
 {
   int pdim = up->pdim;
@@ -163,10 +173,20 @@ gkyl_gk_collisionless_flux_surf_surfvpar_cu_kernel(
     long loc_vel = gkyl_range_idx(&up->vel_map->local_vel, idx_vel);
     long loc_phase = gkyl_range_idx(&phase_range, idx);
 
+    // The potential may depend on the mu cell, in which case it stores the coefficients of each
+    // mu cell one after the other.
+    int mu_cell = (idx[pdim - 1] - phase_range.lower[pdim - 1]) % num_mu;
+
     const double *bmag_d = (const double *)gkyl_array_cfetch(up->gk_geom->geo_corn.bmag, loc_conf);
-    const double *phi_d = (const double *)gkyl_array_cfetch(phi, loc_conf);
-    const double *apar_d = (const double *)gkyl_array_cfetch(apar, loc_conf);
-    const double *apardot_d = (const double *)gkyl_array_cfetch(apardot, loc_conf);
+    const double *phi_d =
+      (const double *)gkyl_array_cfetch(phi, loc_conf) + mu_cell * (phi->ncomp / num_mu);
+    // A_parallel and its time derivative hold one set of coefficients per mu cell, like the
+    // potential, when they are gyroaveraged in each mu cell (same number of components).
+    const double *apar_d = (const double *)gkyl_array_cfetch(apar, loc_conf) +
+                           (apar->ncomp == phi->ncomp ? mu_cell * (apar->ncomp / num_mu) : 0);
+    const double *apardot_d =
+      (const double *)gkyl_array_cfetch(apardot, loc_conf) +
+      (apardot->ncomp == phi->ncomp ? mu_cell * (apardot->ncomp / num_mu) : 0);
     const double *vmap_d = (const double *)gkyl_array_cfetch(up->vel_map->vmap, loc_vel);
     const double *vmapSq_d = (const double *)gkyl_array_cfetch(up->vel_map->vmap_sq, loc_vel);
 
@@ -201,13 +221,13 @@ void
 gkyl_gk_collisionless_flux_surf_cu(
   struct gkyl_gk_collisionless_flux *up, const struct gkyl_range *conf_range,
   const struct gkyl_range *phase_range, const struct gkyl_range *conf_ext_range,
-  const struct gkyl_range *phase_ext_range, const struct gkyl_array *phi,
+  const struct gkyl_range *phase_ext_range, const struct gkyl_array *phi, int num_mu,
   const struct gkyl_array *apar, const struct gkyl_array *apardot, const struct gkyl_array *fin,
   struct gkyl_array *flux_surf, struct gkyl_array *cflrate
 )
 {
   gkyl_gk_collisionless_flux_surf_conf_cu_kernel<<<phase_range->volume, GKYL_DEFAULT_NUM_THREADS>>>(
-    up->on_dev, *conf_range, *phase_range, *conf_ext_range, *phase_ext_range, phi->on_dev,
+    up->on_dev, *conf_range, *phase_range, *conf_ext_range, *phase_ext_range, phi->on_dev, num_mu,
     apar->on_dev, apardot->on_dev, fin->on_dev, flux_surf->on_dev, cflrate->on_dev
   );
 
@@ -222,7 +242,8 @@ gkyl_gk_collisionless_flux_surf_cu(
   gkyl_sub_range_init(&vpar_range, phase_ext_range, sublower, subupper);
   gkyl_gk_collisionless_flux_surf_surfvpar_cu_kernel<<<vpar_range.volume, GKYL_DEFAULT_NUM_THREADS>>>(
     up->on_dev, *conf_range, *phase_range, *conf_ext_range, *phase_ext_range, vpar_range,
-    phi->on_dev, apar->on_dev, apardot->on_dev, fin->on_dev, flux_surf->on_dev, cflrate->on_dev
+    phi->on_dev, num_mu, apar->on_dev, apardot->on_dev, fin->on_dev, flux_surf->on_dev,
+    cflrate->on_dev
   );
 }
 

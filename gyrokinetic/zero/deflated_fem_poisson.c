@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <math.h>
 
 #include <gkyl_deflated_fem_poisson.h>
 #include <gkyl_deflated_fem_poisson_priv.h>
@@ -88,6 +89,10 @@ gkyl_deflated_fem_poisson_new(
     up->deflated_basis_on_dev = &up->deflated_basis;
   }
   up->nodal_fld = mkarr(up->use_gpu, up->cdim, up->nrange.volume);
+  // Buffers of gkyl_deflated_fem_poisson_advance_dg (one coefficient per cell of the extended
+  // range, on which epsilon is defined).
+  up->diff_even = mkarr(up->use_gpu, 1, epsilon->size);
+  up->diff_odd = mkarr(up->use_gpu, 1, epsilon->size);
 
   int deflated_nodes[up->deflated_grid.ndim];
   if (poly_order == 1) {
@@ -133,11 +138,7 @@ gkyl_deflated_fem_poisson_new(
     up->d_fem_data[ctr].deflated_phibc =
       up->isdirichletvar ? mkarr(up->use_gpu, defl_num_basis, up->deflated_local_ext.volume) : 0;
     up->d_fem_data[ctr].deflated_kSq =
-      up->ishelmholtz ? mkarr(
-                          up->use_gpu, (2 * up->deflated_grid.ndim - 1) * defl_num_basis,
-                          up->deflated_local_ext.volume
-                        ) :
-                        0;
+      up->ishelmholtz ? mkarr(up->use_gpu, defl_num_basis, up->deflated_local_ext.volume) : 0;
 
     if (zidx == up->local.upper[up->cdim - 1] + 1) {
       gkyl_deflate_zsurf_advance(
@@ -147,7 +148,7 @@ gkyl_deflated_fem_poisson_new(
       if (up->ishelmholtz) {
         gkyl_deflate_zsurf_advance(
           up->deflator_up, zidx - 1, &up->local, &up->deflated_local, kSq,
-          up->d_fem_data[ctr].deflated_kSq, 2 * up->deflated_grid.ndim - 1
+          up->d_fem_data[ctr].deflated_kSq, 1
         );
       }
     } else {
@@ -158,7 +159,7 @@ gkyl_deflated_fem_poisson_new(
       if (up->ishelmholtz) {
         gkyl_deflate_zsurf_advance(
           up->deflator_lo, zidx, &up->local, &up->deflated_local, kSq,
-          up->d_fem_data[ctr].deflated_kSq, 2 * up->deflated_grid.ndim - 1
+          up->d_fem_data[ctr].deflated_kSq, 1
         );
       }
     }
@@ -188,78 +189,109 @@ gkyl_deflated_fem_poisson_new(
   return up;
 }
 
+static void
+deflated_fem_poisson_solve_plane(
+  struct gkyl_deflated_fem_poisson *up, struct gkyl_deflate_zsurf *deflator, int zidx, int plane,
+  struct gkyl_array *rhs, struct gkyl_array *phibc
+)
+{
+  // Solve on the z plane with index plane, with the RHS (and the BC field) evaluated at the
+  // lower or upper (depending on the deflator) z surface of the cells with z index zidx, and
+  // store the solution in that plane of the nodal field.
+  struct deflated_fem_data *plane_data = &up->d_fem_data[plane];
+  // Deflate rhs indexing global sub-range to fetch correct place in z
+  gkyl_deflate_zsurf_advance(
+    deflator, zidx, &up->global_sub_range, &up->deflated_local, rhs, plane_data->deflated_rhs, 1
+  );
+  if (up->isdirichletvar) {
+    // Deflate the BC field.
+    gkyl_deflate_zsurf_advance(
+      deflator, zidx, &up->global_sub_range, &up->deflated_local, phibc, plane_data->deflated_phibc,
+      1
+    );
+  }
+  // Do the poisson solve
+  gkyl_fem_poisson_set_rhs(
+    plane_data->fem_poisson, plane_data->deflated_rhs, plane_data->deflated_phibc
+  );
+  gkyl_fem_poisson_solve(plane_data->fem_poisson, plane_data->deflated_phi);
+  // Modal to Nodal in 1d -> Store the result in the 2d nodal field
+  gkyl_nodal_ops_m2n_deflated(
+    up->n2m_deflated, up->deflated_basis_on_dev, &up->deflated_grid, &up->nrange,
+    &up->deflated_nrange, &up->deflated_local, 1, up->nodal_fld, plane_data->deflated_phi, plane
+  );
+}
+
 void
 gkyl_deflated_fem_poisson_advance(
   struct gkyl_deflated_fem_poisson *up, struct gkyl_array *rhs, struct gkyl_array *phibc,
   struct gkyl_array *phi
 )
 {
-  int ctr = 0;
-  int local_range_ctr = up->local.lower[up->cdim - 1];
-  for (int zidx = up->global_sub_range.lower[up->cdim - 1];
-       zidx <= up->global_sub_range.upper[up->cdim - 1]; zidx++) {
-    // Deflate rhs indexing global sub-range to fetch correct place in z
-    gkyl_deflate_zsurf_advance(
-      up->deflator_lo, zidx, &up->global_sub_range, &up->deflated_local, rhs,
-      up->d_fem_data[ctr].deflated_rhs, 1
-    );
-    if (up->isdirichletvar) {
-      // Deflate the BC field.
-      gkyl_deflate_zsurf_advance(
-        up->deflator_lo, zidx, &up->global_sub_range, &up->deflated_local, phibc,
-        up->d_fem_data[ctr].deflated_phibc, 1
-      );
-    }
-    // Do the poisson solve
-    gkyl_fem_poisson_set_rhs(
-      up->d_fem_data[ctr].fem_poisson, up->d_fem_data[ctr].deflated_rhs,
-      up->d_fem_data[ctr].deflated_phibc
-    );
-    gkyl_fem_poisson_solve(up->d_fem_data[ctr].fem_poisson, up->d_fem_data[ctr].deflated_phi);
-    // Modal to Nodal in 1d -> Store the result in the 2d nodal field
-    gkyl_nodal_ops_m2n_deflated(
-      up->n2m_deflated, up->deflated_basis_on_dev, &up->deflated_grid, &up->nrange,
-      &up->deflated_nrange, &up->deflated_local, 1, up->nodal_fld, up->d_fem_data[ctr].deflated_phi,
-      ctr
-    );
-    ctr += 1;
-    local_range_ctr += 1;
-    if (zidx == up->global_sub_range.upper[up->cdim - 1]) {
-      // Deflate rhs indexing global sub-range to fetch correct place in z
-      gkyl_deflate_zsurf_advance(
-        up->deflator_up, zidx, &up->global_sub_range, &up->deflated_local, rhs,
-        up->d_fem_data[ctr].deflated_rhs, 1
-      );
-      if (up->isdirichletvar) {
-        // Deflate the BC field.
-        gkyl_deflate_zsurf_advance(
-          up->deflator_up, zidx, &up->global_sub_range, &up->deflated_local, phibc,
-          up->d_fem_data[ctr].deflated_phibc, 1
-        );
-      }
-      // Do the poisson solve
-      gkyl_fem_poisson_set_rhs(
-        up->d_fem_data[ctr].fem_poisson, up->d_fem_data[ctr].deflated_rhs,
-        up->d_fem_data[ctr].deflated_phibc
-      );
-      gkyl_fem_poisson_solve(up->d_fem_data[ctr].fem_poisson, up->d_fem_data[ctr].deflated_phi);
-      // Modal to Nodal in 1d -> Store the result in the 2d nodal rhs.
-      gkyl_nodal_ops_m2n_deflated(
-        up->n2m_deflated, up->deflated_basis_on_dev, &up->deflated_grid, &up->nrange,
-        &up->deflated_nrange, &up->deflated_local, 1, up->nodal_fld,
-        up->d_fem_data[ctr].deflated_phi, ctr
-      );
-    }
+  int zidx_lo = up->global_sub_range.lower[up->cdim - 1];
+  int zidx_up = up->global_sub_range.upper[up->cdim - 1];
+  for (int zidx = zidx_lo; zidx <= zidx_up; zidx++) {
+    deflated_fem_poisson_solve_plane(up, up->deflator_lo, zidx, zidx - zidx_lo, rhs, phibc);
   }
+  deflated_fem_poisson_solve_plane(up, up->deflator_up, zidx_up, zidx_up - zidx_lo + 1, rhs, phibc);
   gkyl_nodal_ops_n2m(
     up->n2m, up->basis_on_dev, &up->grid, &up->nrange, &up->local, 1, up->nodal_fld, phi, false
   );
 }
 
 void
+gkyl_deflated_fem_poisson_advance_dg(
+  struct gkyl_deflated_fem_poisson *up, struct gkyl_array *rhs, struct gkyl_array *phibc,
+  struct gkyl_array *phi, struct gkyl_array *buffer
+)
+{
+  // In each cell the RHS is r = r_lo*h_lo(z) + r_up*h_up(z), with h_lo/h_up the linear functions
+  // of z that are 1 at the lower/upper z surface of the cell and 0 at the other, and the solution
+  // is S_lo(r_lo)*h_lo(z) + S_up(r_up)*h_up(z), S_lo/S_up being the solves on those surfaces.
+  assert(up->basis.poly_order == 1);
+
+  // Field continuous along z whose value at the lower z surface of each cell is S_lo(r_lo).
+  gkyl_deflated_fem_poisson_advance(up, rhs, phibc, phi);
+
+  // Field continuous along z whose value at the upper z surface of each cell is S_up(r_up)
+  // (the lowest plane keeps the solution above, which is not used).
+  int zidx_lo = up->global_sub_range.lower[up->cdim - 1];
+  int zidx_up = up->global_sub_range.upper[up->cdim - 1];
+  for (int zidx = zidx_lo; zidx <= zidx_up; zidx++) {
+    deflated_fem_poisson_solve_plane(up, up->deflator_up, zidx, zidx - zidx_lo + 1, rhs, phibc);
+  }
+  gkyl_nodal_ops_n2m(
+    up->n2m, up->basis_on_dev, &up->grid, &up->nrange, &up->local, 1, up->nodal_fld, buffer, false
+  );
+
+  // Keep the lower surface value of the first field and take the upper surface value of the
+  // second one. A pair of coefficients (even, odd) of the basis functions that are constant and
+  // linear in z has the surface values even -/+ sqrt(3)*odd (up to a factor), so with
+  // diff = second - first: even += diff_even/2 + sqrt(3)*diff_odd/2, and
+  // odd += diff_even/(2*sqrt(3)) + diff_odd/2.
+  gkyl_array_accumulate_range(buffer, -1.0, phi, &up->local);
+  int num_basis = up->basis.num_basis;
+  // Coefficients of the basis functions linear in z, and of their counterparts constant in z.
+  static const int odd_2x[] = {2, 3}, even_2x[] = {0, 1};
+  static const int odd_3x[] = {3, 5, 6, 7}, even_3x[] = {0, 1, 2, 4};
+  const int *odd = up->cdim == 2 ? odd_2x : odd_3x;
+  const int *even = up->cdim == 2 ? even_2x : even_3x;
+  for (int i = 0; i < num_basis / 2; i++) {
+    gkyl_array_set_offset_ncoeff_range(up->diff_even, 1.0, buffer, 1, even[i], 0, &up->local);
+    gkyl_array_set_offset_ncoeff_range(up->diff_odd, 1.0, buffer, 1, odd[i], 0, &up->local);
+    gkyl_array_accumulate_offset_range(phi, 0.5, up->diff_even, even[i], &up->local);
+    gkyl_array_accumulate_offset_range(phi, 0.5 * sqrt(3.0), up->diff_odd, even[i], &up->local);
+    gkyl_array_accumulate_offset_range(phi, 0.5 / sqrt(3.0), up->diff_even, odd[i], &up->local);
+    gkyl_array_accumulate_offset_range(phi, 0.5, up->diff_odd, odd[i], &up->local);
+  }
+}
+
+void
 gkyl_deflated_fem_poisson_release(struct gkyl_deflated_fem_poisson *up)
 {
   gkyl_array_release(up->nodal_fld);
+  gkyl_array_release(up->diff_even);
+  gkyl_array_release(up->diff_odd);
   gkyl_nodal_ops_release(up->n2m);
   gkyl_nodal_ops_release(up->n2m_deflated);
   gkyl_deflate_zsurf_release(up->deflator_lo);

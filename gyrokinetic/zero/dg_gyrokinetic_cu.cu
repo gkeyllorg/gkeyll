@@ -16,12 +16,13 @@ extern "C" {
 __global__ static void
 gkyl_gyrokinetic_set_auxfields_cu_kernel(
   const struct gkyl_dg_eqn *eqn, const struct gkyl_array *flux_surf, const struct gkyl_array *phi,
-  const struct gkyl_array *apar, const struct gkyl_array *apardot
+  int num_mu, const struct gkyl_array *apar, const struct gkyl_array *apardot
 )
 {
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
   gyrokinetic->auxfields.flux_surf = flux_surf;
   gyrokinetic->auxfields.phi = phi;
+  gyrokinetic->auxfields.num_mu = num_mu > 1 ? num_mu : 1;
   gyrokinetic->auxfields.apar = apar;
   gyrokinetic->auxfields.apardot = apardot;
 }
@@ -33,7 +34,8 @@ gkyl_gyrokinetic_set_auxfields_cu(
 )
 {
   gkyl_gyrokinetic_set_auxfields_cu_kernel<<<1, 1>>>(
-    eqn, auxin.flux_surf->on_dev, auxin.phi->on_dev, auxin.apar->on_dev, auxin.apardot->on_dev
+    eqn, auxin.flux_surf->on_dev, auxin.phi->on_dev, auxin.num_mu, auxin.apar->on_dev,
+    auxin.apardot->on_dev
   );
 }
 
@@ -47,6 +49,7 @@ dg_gyrokinetic_set_cu_dev_ptrs(
 {
   gyrokinetic->auxfields.flux_surf = 0;
   gyrokinetic->auxfields.phi = 0;
+  gyrokinetic->auxfields.num_mu = 1;
   gyrokinetic->auxfields.apar = 0;
   gyrokinetic->auxfields.apardot = 0;
 

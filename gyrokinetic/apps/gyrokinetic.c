@@ -12,6 +12,7 @@
 #include <gkyl_translate_dim.h>
 
 #include <gkyl_gyrokinetic_priv.h>
+#include <gkyl_gk_field_priv.h> // ACDH: this does not seem to follow the organisation of the repository.
 #include <gkyl_app_priv.h>
 
 #include <mpack.h>
@@ -1104,6 +1105,11 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
   // Initialize each species.
   for (int i = 0; i < ns; ++i) {
     gk_species_init(gk, app, &app->species[i]);
+  }
+
+  // Create the field FLR operators (need the species reference gyroradii).
+  if (app->field->use_flr) {
+    gk_field_flr_new(app, app->field);
   }
 
   for (int i = 0; i < neuts; ++i) {
@@ -2929,7 +2935,7 @@ gyrokinetic_rhs(
   for (int i = 0; i < app->num_species; ++i) {
     struct gk_species *gks = &app->species[i];
     gk_species_fdot_multiplier_advance_times_rate(
-      app, gks, &gks->fdot_mult, app->field->phi_smooth, fin[i], fout[i]
+      app, gks, &gks->fdot_mult, gks->gyro_phi, fin[i], fout[i]
     );
   }
 
@@ -4451,6 +4457,7 @@ gkyl_gyrokinetic_app_from_file_field(gkyl_gyrokinetic_app *app, const char *fnam
     if (app->use_gpu) {
       gkyl_array_copy(app->field->phi_smooth, app->field->phi_host);
     }
+    gk_field_gyroaverage_phi(app, app->field);
   }
 
   return rstat;
@@ -4643,6 +4650,17 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
   // Capture the adiabatic response from the initial state before loading evolved states.
   if (app->field->has_adiabatic_species) {
     gk_field_adiabatic_init(app, app->field);
+  }
+
+  // Likewise for the FLR models that remove the gyroaveraged minus gyrocenter density of the
+  // initial condition: the first gyroaverage of the density stores it.
+  for (int i = 0; i < app->num_species; i++) {
+    struct gk_species *gks = &app->species[i];
+    if (gks->flr.dens_offset_from_ic) {
+      gk_species_apply_ic(app, gks, 0.0);
+      gk_species_moment_calc(app, &gks->m0, gks->local, app->local, gks->f);
+      gks->gyroaverage_density(app, gks, gks->f, gks->m0.marr, gks->m0_gyroavg);
+    }
   }
 
   for (int i = 0; i < app->num_species; ++i) {

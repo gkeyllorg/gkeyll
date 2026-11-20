@@ -19,14 +19,51 @@
 #include <assert.h>
 #include <time.h>
 
-void gk_species_gyroaverage_disabled(
-  gkyl_gyrokinetic_app *app, struct gk_species *species, struct gkyl_array *field_in,
-  struct gkyl_array *field_gyroavg
-);
+/**
+ * Create the objects of the FLR model of a species (chosen in the field input), i.e. its
+ * gyroaveraged potential and density and the potential and magnetic field amplitude of its
+ * Hamiltonian, and set the pointers to the functions that compute them. Call after the density
+ * moment of the species is created.
+ *
+ * @param app Gyrokinetic app.
+ * @param gks Species.
+ */
+void gk_species_flr_new(gkyl_gyrokinetic_app *app, struct gk_species *gks);
 
-void gk_species_gyroaverage_enabled(
-  gkyl_gyrokinetic_app *app, struct gk_species *species, struct gkyl_array *field_in,
-  struct gkyl_array *field_gyroavg
+/**
+ * Release the objects of the FLR model of a species.
+ *
+ * @param app Gyrokinetic app.
+ * @param gks Species.
+ */
+void gk_species_flr_release(const gkyl_gyrokinetic_app *app, const struct gk_species *gks);
+
+/**
+ * Create the gyroaveraged particle flow (m1_gyroavg), A_parallel and its time derivative
+ * (gyro_apar, gyro_apardot) of a kinetic species, and set the pointers to the functions that
+ * compute them. They are gyroaveraged in each mu cell by the gyromatrix model with
+ * electromagnetic fields; otherwise A_parallel and its time derivative are those of the field.
+ * Call after gk_species_flr_new and the M1 moment of the species, and before the collisionless
+ * terms are initialized.
+ *
+ * @param app Gyrokinetic app.
+ * @param gks Species.
+ */
+void gk_species_flr_em_new(gkyl_gyrokinetic_app *app, struct gk_species *gks);
+
+/**
+ * Add the polarization charge density (times J) of a species with the gyromatrix FLR model to
+ * out: P phi = pol_dens*phi - sum_j G_j^dagger W_j G_j phi, with G_j the gyroaverage in the
+ * mu cell j and W_j the weight of a reference Maxwellian in that cell.
+ *
+ * @param app Gyrokinetic app.
+ * @param gks Species (with the gyromatrix FLR model).
+ * @param phi Potential.
+ * @param out Array to add the polarization charge density to.
+ */
+void gk_species_flr_gyromatrix_accumulate_polarization(
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, const struct gkyl_array *phi,
+  struct gkyl_array *out
 );
 
 void gk_species_rhs_static(

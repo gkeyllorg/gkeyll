@@ -652,10 +652,219 @@ test_deflated_fem_poisson_3x_dd_dd_ho()
   }
 }
 
+// Functions for the tests of gkyl_deflated_fem_poisson_advance_dg.
+struct dg_test_ctx {
+  int cdim; // Number of dimensions.
+  double z_lower, dz; // Lower boundary and cell length of the last dimension.
+};
+
+void
+rho_func_dg_perp(double t, const double *xn, double *fout, void *ctx)
+{
+  // Source independent of the last coordinate.
+  struct dg_test_ctx *tctx = ctx;
+  fout[0] = tctx->cdim == 2 ? cos(2 * xn[0]) : cos(2 * xn[0]) * sin(xn[1]);
+}
+
+void
+rho_func_dg_par(double t, const double *xn, double *fout, void *ctx)
+{
+  // Function of the last coordinate that is linear in each cell and jumps between cells.
+  struct dg_test_ctx *tctx = ctx;
+  double z = xn[tctx->cdim - 1];
+  int cell = floor((z - tctx->z_lower) / tctx->dz);
+  double z_cell = (z - tctx->z_lower) / tctx->dz - cell - 0.5;
+  fout[0] = 1.0 + 0.4 * sin(1.7 * cell) + (0.8 * cos(2.3 * cell) - 0.3) * z_cell;
+}
+
+void
+test_deflated_fem_poisson_dg(int cdim, bool use_gpu)
+{
+  // The operator does not depend on z here, so for a source rho_perp(x,y)*h(z), with h linear
+  // in each cell and discontinuous between cells, the solution cell by cell along z is
+  // phi_perp(x,y)*h(z), phi_perp being the solution for rho_perp. Also, for a source
+  // continuous along z, advance_dg must return the solution of advance.
+  double lower[] = {-3 * M_PI / 4, -M_PI, -M_PI}, upper[] = {3 * M_PI / 4, M_PI, M_PI};
+  int cells[] = {12, 8, 6};
+  if (cdim == 2) {
+    cells[1] = 6;
+  }
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, cdim, lower, upper, cells);
+  struct gkyl_range local, local_ext;
+  int nghost[GKYL_MAX_CDIM] = {1, 1, 1};
+  gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
+
+  int poly_order = 1;
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, cdim, poly_order);
+  struct gkyl_basis *basis_on_dev = &basis;
+#ifdef GKYL_HAVE_CUDA
+  if (use_gpu) {
+    basis_on_dev = gkyl_cu_malloc(sizeof(struct gkyl_basis));
+    gkyl_cart_modal_serendip_cu_dev(basis_on_dev, cdim, poly_order);
+  }
+#endif
+  int num_basis = basis.num_basis;
+  long size = local_ext.volume;
+
+  struct dg_test_ctx ctx = {.cdim = cdim, .z_lower = lower[cdim - 1], .dz = grid.dx[cdim - 1]};
+  struct gkyl_array *rho_perp_ho = gkyl_array_new(GKYL_DOUBLE, num_basis, size);
+  struct gkyl_array *par_ho = gkyl_array_new(GKYL_DOUBLE, num_basis, size);
+  gkyl_proj_on_basis *proj_perp =
+    gkyl_proj_on_basis_new(&grid, &basis, 2, 1, rho_func_dg_perp, &ctx);
+  gkyl_proj_on_basis *proj_par = gkyl_proj_on_basis_new(&grid, &basis, 2, 1, rho_func_dg_par, &ctx);
+  gkyl_proj_on_basis_advance(proj_perp, 0.0, &local, rho_perp_ho);
+  gkyl_proj_on_basis_advance(proj_par, 0.0, &local, par_ho);
+  gkyl_proj_on_basis_release(proj_perp);
+  gkyl_proj_on_basis_release(proj_par);
+
+  int num_eps = 2 * (cdim - 1) - 1;
+  struct gkyl_array *epsilon_ho = gkyl_array_new(GKYL_DOUBLE, num_eps * num_basis, size);
+  struct gkyl_array *kSq_ho = gkyl_array_new(GKYL_DOUBLE, num_basis, size);
+  gkyl_array_clear(epsilon_ho, 0.0);
+  gkyl_array_clear(kSq_ho, 0.0);
+  gkyl_array_shiftc(epsilon_ho, 0.3 * sqrt(pow(2, cdim)), 0);
+  if (cdim == 3) {
+    gkyl_array_shiftc(epsilon_ho, 0.1 * sqrt(pow(2, cdim)), num_basis);
+    gkyl_array_shiftc(epsilon_ho, 0.5 * sqrt(pow(2, cdim)), 2 * num_basis);
+  }
+  gkyl_array_shiftc(kSq_ho, -sqrt(pow(2, cdim)), 0);
+
+  struct gkyl_array *rho_perp = use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, num_basis, size) :
+                                          gkyl_array_acquire(rho_perp_ho);
+  struct gkyl_array *par = use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, num_basis, size) :
+                                     gkyl_array_acquire(par_ho);
+  struct gkyl_array *epsilon = use_gpu ?
+                                 gkyl_array_cu_dev_new(GKYL_DOUBLE, num_eps * num_basis, size) :
+                                 gkyl_array_acquire(epsilon_ho);
+  struct gkyl_array *kSq = use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, num_basis, size) :
+                                     gkyl_array_acquire(kSq_ho);
+  gkyl_array_copy(rho_perp, rho_perp_ho);
+  gkyl_array_copy(par, par_ho);
+  gkyl_array_copy(epsilon, epsilon_ho);
+  gkyl_array_copy(kSq, kSq_ho);
+
+  struct gkyl_array *arrs[5], *arrs_ho[5];
+  for (int i = 0; i < 5; i++) {
+    arrs_ho[i] = gkyl_array_new(GKYL_DOUBLE, num_basis, size);
+    arrs[i] = use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, num_basis, size) :
+                        gkyl_array_acquire(arrs_ho[i]);
+    gkyl_array_clear(arrs[i], 0.0);
+  }
+  struct gkyl_array *rho = arrs[0], *phi_perp = arrs[1], *phi_dg = arrs[2], *phi_ref = arrs[3];
+  struct gkyl_array *buffer = arrs[4];
+
+  struct gkyl_poisson_bc poisson_bc = {0};
+  for (int d = 0; d < cdim - 1; d++) {
+    poisson_bc.lo_type[d] = d == 0 ? GKYL_POISSON_DIRICHLET : GKYL_POISSON_PERIODIC;
+    poisson_bc.up_type[d] = d == 0 ? GKYL_POISSON_DIRICHLET : GKYL_POISSON_PERIODIC;
+  }
+  struct gkyl_deflated_fem_poisson *solver = gkyl_deflated_fem_poisson_new(
+    grid, basis_on_dev, basis, local, local, epsilon, kSq, poisson_bc, NULL, use_gpu
+  );
+
+  // Source continuous along z: advance_dg equals advance.
+  gkyl_deflated_fem_poisson_advance(solver, rho_perp, NULL, phi_perp);
+  gkyl_deflated_fem_poisson_advance_dg(solver, rho_perp, NULL, phi_dg, buffer);
+  gkyl_array_copy(arrs_ho[1], phi_perp);
+  gkyl_array_copy(arrs_ho[2], phi_dg);
+  double phi_max = 0.0, err_cont = 0.0;
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &local);
+  while (gkyl_range_iter_next(&iter)) {
+    long linidx = gkyl_range_idx(&local, iter.idx);
+    const double *phi_perp_d = gkyl_array_cfetch(arrs_ho[1], linidx);
+    const double *phi_dg_d = gkyl_array_cfetch(arrs_ho[2], linidx);
+    for (int k = 0; k < num_basis; k++) {
+      phi_max = fmax(phi_max, fabs(phi_perp_d[k]));
+      err_cont = fmax(err_cont, fabs(phi_dg_d[k] - phi_perp_d[k]));
+    }
+  }
+  TEST_CHECK(phi_max > 0.1);
+  TEST_CHECK(err_cont < 1e-12 * phi_max);
+  TEST_MSG("continuous source: max difference %g (max phi %g)", err_cont, phi_max);
+
+  // Source discontinuous along z.
+  gkyl_dg_mul_op_range(&basis, 0, rho, 0, rho_perp, 0, par, &local);
+  gkyl_dg_mul_op_range(&basis, 0, phi_ref, 0, phi_perp, 0, par, &local);
+  gkyl_deflated_fem_poisson_advance_dg(solver, rho, NULL, phi_dg, buffer);
+  gkyl_array_copy(arrs_ho[2], phi_dg);
+  gkyl_array_copy(arrs_ho[3], phi_ref);
+  double ref_max = 0.0, err_dg = 0.0, jump_max = 0.0;
+  gkyl_range_iter_init(&iter, &local);
+  while (gkyl_range_iter_next(&iter)) {
+    long linidx = gkyl_range_idx(&local, iter.idx);
+    const double *phi_dg_d = gkyl_array_cfetch(arrs_ho[2], linidx);
+    const double *phi_ref_d = gkyl_array_cfetch(arrs_ho[3], linidx);
+    const double *phi_perp_d = gkyl_array_cfetch(arrs_ho[1], linidx);
+    for (int k = 0; k < num_basis; k++) {
+      ref_max = fmax(ref_max, fabs(phi_ref_d[k]));
+      err_dg = fmax(err_dg, fabs(phi_dg_d[k] - phi_ref_d[k]));
+      jump_max = fmax(jump_max, fabs(phi_ref_d[k] - phi_perp_d[k]));
+    }
+  }
+  // The reference differs from the solution for the continuous source.
+  TEST_CHECK(jump_max > 0.1 * phi_max);
+  TEST_CHECK(err_dg < 1e-12 * ref_max);
+  TEST_MSG("discontinuous source: max error %g (max phi %g)", err_dg, ref_max);
+
+  gkyl_deflated_fem_poisson_release(solver);
+  for (int i = 0; i < 5; i++) {
+    gkyl_array_release(arrs[i]);
+    gkyl_array_release(arrs_ho[i]);
+  }
+  gkyl_array_release(rho_perp);
+  gkyl_array_release(par);
+  gkyl_array_release(epsilon);
+  gkyl_array_release(kSq);
+  gkyl_array_release(rho_perp_ho);
+  gkyl_array_release(par_ho);
+  gkyl_array_release(epsilon_ho);
+  gkyl_array_release(kSq_ho);
+#ifdef GKYL_HAVE_CUDA
+  if (use_gpu) {
+    gkyl_cu_free(basis_on_dev);
+  }
+#endif
+}
+
+void
+test_deflated_fem_poisson_2x_dg_ho()
+{
+  test_deflated_fem_poisson_dg(2, false);
+}
+
+void
+test_deflated_fem_poisson_3x_dg_ho()
+{
+  test_deflated_fem_poisson_dg(3, false);
+}
+
+#ifdef GKYL_HAVE_CUDA
+void
+test_deflated_fem_poisson_2x_dg_dev()
+{
+  test_deflated_fem_poisson_dg(2, true);
+}
+
+void
+test_deflated_fem_poisson_3x_dg_dev()
+{
+  test_deflated_fem_poisson_dg(3, true);
+}
+#endif
+
 TEST_LIST = {
   {"test_deflated_fem_poisson_zind_dd_ho", test_deflated_fem_poisson_zind_dd_ho},
   {"test_deflated_fem_poisson_simplez_dd_ho", test_deflated_fem_poisson_simplez_dd_ho},
   {"test_deflated_fem_poisson_zdep_nd_ho", test_deflated_fem_poisson_zdep_nd_ho},
   {"test_deflated_fem_poisson_3x_dd_dd_ho", test_deflated_fem_poisson_3x_dd_dd_ho},
+  {"test_deflated_fem_poisson_2x_dg_ho", test_deflated_fem_poisson_2x_dg_ho},
+  {"test_deflated_fem_poisson_3x_dg_ho", test_deflated_fem_poisson_3x_dg_ho},
+#ifdef GKYL_HAVE_CUDA
+  {"test_deflated_fem_poisson_2x_dg_dev", test_deflated_fem_poisson_2x_dg_dev},
+  {"test_deflated_fem_poisson_3x_dg_dev", test_deflated_fem_poisson_3x_dg_dev},
+#endif
   {NULL, NULL}
 };

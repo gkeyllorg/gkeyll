@@ -185,8 +185,8 @@ gk_field_fem_new_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
     gkf->currentDens_global = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
     gkf->dApartdtSlvr_lhs_factor = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     gkf->div_mem = app->use_gpu ?
-                   gkyl_dg_bin_op_mem_cu_dev_new(app->local.volume, app->basis.num_basis) :
-                   gkyl_dg_bin_op_mem_new(app->local.volume, app->basis.num_basis);
+                     gkyl_dg_bin_op_mem_cu_dev_new(app->local.volume, app->basis.num_basis) :
+                     gkyl_dg_bin_op_mem_new(app->local.volume, app->basis.num_basis);
 
     // Need to set weight to kperpsq*polarizationWeight for use in potential smoothing.
     gkyl_array_copy(gkf->lapWeightAmpere, app->gk_geom->geo_int.jacobgeo);
@@ -254,15 +254,10 @@ gk_field_fem_new_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
   gkf->calc_em_energy =
     gkyl_array_integrate_new(&app->grid, &app->basis, 1, GKYL_ARRAY_INTEGRATE_OP_SQ, app->use_gpu);
 
-  // Create operator needed for FLR effects.
-  gkf->use_flr = false;
+  // FLR effects are not implemented for this field type.
+  gkf->use_flr = gkf->info.flr.type != GKYL_GK_FLR_NONE;
   gkf->invert_flr = gk_field_invert_flr_none;
-  for (int i = 0; i < app->num_species; ++i) {
-    struct gk_species *gks = &app->species[i];
-    if (gks->info.flr.type) {
-      gkf->use_flr = gkf->use_flr || gks->info.flr.type;
-    }
-  }
+  assert(!gkf->use_flr);
 
   gkf->release_func = gk_field_fem_release_1x;
 }

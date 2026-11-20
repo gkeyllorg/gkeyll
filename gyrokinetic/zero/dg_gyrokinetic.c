@@ -42,6 +42,7 @@ gkyl_gyrokinetic_set_auxfields(
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
   gyrokinetic->auxfields.flux_surf = auxin.flux_surf;
   gyrokinetic->auxfields.phi = auxin.phi;
+  gyrokinetic->auxfields.num_mu = auxin.num_mu > 1 ? auxin.num_mu : 1;
   gyrokinetic->auxfields.apar = auxin.apar;
   gyrokinetic->auxfields.apardot = auxin.apardot;
 }
@@ -173,6 +174,7 @@ gkyl_dg_gyrokinetic_new(
   gyrokinetic->vel_map = gkyl_velocity_map_acquire(vel_map);
   gyrokinetic->auxfields.flux_surf = 0;
   gyrokinetic->auxfields.phi = 0;
+  gyrokinetic->auxfields.num_mu = 1;
   gyrokinetic->auxfields.apar = 0;
   gyrokinetic->auxfields.apardot = 0;
 

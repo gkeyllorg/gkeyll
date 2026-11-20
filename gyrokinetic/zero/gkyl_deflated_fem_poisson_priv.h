@@ -47,6 +47,9 @@ struct gkyl_deflated_fem_poisson {
   struct deflated_fem_data *d_fem_data; // Array of deflated_dem_data
   // to be used for individual surface solves
   struct gkyl_array *nodal_fld; // Nodal field which holds solution
+  // Coefficients of a pair of basis functions (constant and linear in z), used by
+  // gkyl_deflated_fem_poisson_advance_dg.
+  struct gkyl_array *diff_even, *diff_odd;
   int num_solves_z; // Number of surfaces to solve on
   int cdim; // Dimension of configureation space
   struct gkyl_nodal_ops *n2m; // Nodal to modal operator to be

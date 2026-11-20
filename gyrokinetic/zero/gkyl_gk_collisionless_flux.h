@@ -55,6 +55,9 @@ struct gkyl_gk_collisionless_flux *gkyl_gk_collisionless_flux_new(
  * @param conf_ext_range Extended configuration space range (so we obtain geo quantities at all the needed surfaces).
  * @param phase_ext_range Extended Phase space range (so we obtain alpha_surf at all the needed surfaces).
  * @param phi Electrostatic potential.
+ * @param num_mu Number of mu cells phi depends on (1 if it does not depend on mu). If greater
+ *               than 1, phi has num_mu*num_basis components, the coefficients in the j-th mu
+ *               cell starting at j*num_basis.
  * @param apar Parallel component of vector potential.
  * @param apardot Time derivative of parallel component of vector potential.
  * @param fin Distribution function.
@@ -64,7 +67,7 @@ struct gkyl_gk_collisionless_flux *gkyl_gk_collisionless_flux_new(
 void gkyl_gk_collisionless_flux_surf(
   struct gkyl_gk_collisionless_flux *up, const struct gkyl_range *conf_range,
   const struct gkyl_range *phase_range, const struct gkyl_range *conf_ext_range,
-  const struct gkyl_range *phase_ext_range, const struct gkyl_array *phi,
+  const struct gkyl_range *phase_ext_range, const struct gkyl_array *phi, int num_mu,
   const struct gkyl_array *apar, const struct gkyl_array *apardot, const struct gkyl_array *fin,
   struct gkyl_array *flux_surf, struct gkyl_array *cflrate
 );

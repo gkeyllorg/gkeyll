@@ -60,6 +60,23 @@ void gkyl_deflated_fem_poisson_advance(
 );
 
 /**
+ * Solve the poisson equation for a RHS that is discontinuous along the last (z) direction: in
+ * each cell the solution interpolates along z the solves on the lower and upper z surfaces of
+ * the cell, each done with the RHS (and the BC field) evaluated from inside the cell. Equal
+ * to gkyl_deflated_fem_poisson_advance for a RHS continuous along z. Only for p=1.
+ *
+ * @param up Deflated FEM poisson updater to run.
+ * @param rhs DG field to set as RHS source.
+ * @param phibc Spatially varying BC as a DG (volume) field, defined in the whole domain.
+ * @param phi DG field solution to poison problem, discontinuous along z.
+ * @param buffer Buffer with the size and components of phi (cannot be rhs, phibc or phi).
+ */
+void gkyl_deflated_fem_poisson_advance_dg(
+  struct gkyl_deflated_fem_poisson *up, struct gkyl_array *rhs, struct gkyl_array *phibc,
+  struct gkyl_array *phi, struct gkyl_array *buffer
+);
+
+/**
  * Delete updater.
  *
  * @param up Updater to delete.

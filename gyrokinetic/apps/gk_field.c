@@ -125,15 +125,24 @@ gk_field_polarization_potential_release(struct gk_field *gkf)
 // Functions related to the field energy allocations, diagnostics, and release
 
 static void
+gk_field_es_energy(
+  gkyl_gyrokinetic_app *app, const struct gk_field *field, double factor, double *out
+)
+{
+  // Integrate the ES energy without FLR effects, (1/2) int eps |grad_perp(phi)|^2, into out[0].
+  gkyl_array_integrate_advance(
+    field->calc_em_energy, field->phi_smooth, factor, field->es_energy_fac, &app->local,
+    &app->local, out
+  );
+}
+
+static void
 gk_field_calc_energy_dt_active(
   gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, double *energy_reduced
 )
 {
   struct timespec wst = gkyl_wall_clock();
-  gkyl_array_integrate_advance(
-    field->calc_em_energy, field->phi_smooth, 1.0 / dt, field->es_energy_fac, &app->local,
-    &app->local, energy_reduced
-  );
+  field->es_energy_func(app, field, 1.0 / dt, energy_reduced);
   field->energy_adiab_func(app, field, 1.0 / dt, energy_reduced);
   app->stat.phidot_tm += gkyl_time_diff_now_sec(wst);
 }
@@ -164,10 +173,7 @@ gk_field_calc_energy_enabled(
   struct gkyl_gyrokinetic_app *app, const struct gk_field *field, double tm
 )
 {
-  gkyl_array_integrate_advance(
-    field->calc_em_energy, field->phi_smooth, 1.0, field->es_energy_fac, &app->local, &app->local,
-    field->em_energy_red
-  );
+  field->es_energy_func(app, field, 1.0, field->em_energy_red);
   field->energy_adiab_func(app, field, 1.0, field->em_energy_red);
 
   gkyl_comm_allreduce(
@@ -520,6 +526,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   struct gk_field *gkf = gkyl_malloc(sizeof(struct gk_field));
 
   gkf->info = gk->field;
+  gkf->poisson_bcs = (struct gkyl_poisson_bc){};
 
   gkf->gkfield_id = gkf->info.gkfield_id ? gkf->info.gkfield_id : GKYL_GK_FIELD_ES;
 
@@ -572,6 +579,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   gkf->has_adiabatic_species = gkf->gk_adiab.num_species > 0;
   gkf->accumulate_rhoc_bg_func = gk_field_accumulate_rho_c_bg_none;
   gkf->energy_adiab_func = gk_field_adiabatic_energy_none;
+  gkf->es_energy_func = gk_field_es_energy;
 
   // Initialize the field solver
   if (gkf->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) {
@@ -629,6 +637,18 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
   struct timespec wst = gkyl_wall_clock();
   field->rhs_phi_func(app, field); // set inside the initialization function
   app->stat.field_phi_solve_tm += gkyl_time_diff_now_sec(wst);
+
+  gk_field_gyroaverage_phi(app, field);
+}
+
+void
+gk_field_gyroaverage_phi(gkyl_gyrokinetic_app *app, struct gk_field *field)
+{
+  // Gyroaverage the potential (used in the Hamiltonian) for each species.
+  for (int i = 0; i < app->num_species; ++i) {
+    struct gk_species *gks = &app->species[i];
+    gks->gyroaverage(app, gks, field->phi_smooth, gks->gyro_phi);
+  }
 }
 
 void
@@ -641,6 +661,12 @@ gk_field_em_rhs(
   struct timespec wst = gkyl_wall_clock();
   field->em_rhs_func(app, field, f_in, rhs_in);
   app->stat.field_tm += gkyl_time_diff_now_sec(wst);
+
+  // Gyroaverage Apardot for each species if its FLR model does.
+  for (int i = 0; i < app->num_species; ++i) {
+    struct gk_species *gks = &app->species[i];
+    gks->gyroaverage_apardot(app, gks);
+  }
 }
 
 void
@@ -704,15 +730,12 @@ gk_field_calc_apar_energy_dt(
   field->calc_apar_energy_dt_func(app, field, dt, energy_reduced);
 }
 
-
 void
 gk_field_accumulate_rho_c_poisson(
   gkyl_gyrokinetic_app *app, struct gk_field *field, struct gk_species *gks,
   struct gkyl_array **bflux
 )
 {
-  // Gyroaverage the density if needed.
-  gks->gyroaverage(app, gks, gks->m0.marr, gks->m0_gyroavg);
   gkyl_array_accumulate_range(field->rho_c, gks->info.charge, gks->m0_gyroavg, &app->local);
 }
 
@@ -728,6 +751,7 @@ gk_field_accumulate_rho_c(
     int i = field->rhoc_species_idx[k];
     struct gk_species *gks = &app->species[i];
     gk_species_moment_calc(app, &gks->m0, gks->local, app->local, fin[i]);
+    gks->gyroaverage_density(app, gks, fin[i], gks->m0.marr, gks->m0_gyroavg);
     field->accumulate_rhoc_func(app, field, gks, bflux[i]);
   }
   field->accumulate_rhoc_bg_func(app, field);
@@ -744,7 +768,7 @@ gk_field_accumulate_current_dens(
   for (int i = 0; i < app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
     gk_species_moment_calc(app, &s->m1, s->local, app->local, fin[i]);
-    s->gyroaverage(app, s, s->m1.marr, s->m1_gyroavg);
+    s->gyroaverage_moment(app, s, fin[i], s->m1.marr, s->m1_gyroavg);
     gkyl_array_accumulate_range(field->currentDens, s->info.charge, s->m1_gyroavg, &app->local);
   }
   app->stat.field_apar_rhs_tm += gkyl_time_diff_now_sec(wst);
@@ -760,7 +784,7 @@ gk_field_accumulate_current_dens_dot(
   for (int i = 0; i < app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
     gk_species_moment_calc(app, &s->m1, s->local, app->local, rhs_in[i]);
-    s->gyroaverage(app, s, s->m1.marr, s->m1_gyroavg);
+    s->gyroaverage_moment(app, s, rhs_in[i], s->m1.marr, s->m1_gyroavg);
     gkyl_array_accumulate_range(field->currentDensdot, s->info.charge, s->m1_gyroavg, &app->local);
   }
   app->stat.field_apar_rhs_tm += gkyl_time_diff_now_sec(wst);
@@ -777,7 +801,7 @@ gk_field_accumulate_ohms_kSq(
     struct gk_species *s = &app->species[i];
     gk_species_moment_calc(app, &s->m0, s->local, app->local, fin[i]);
     // Gyroaverage the density if needed.
-    s->gyroaverage(app, s, s->m0.marr, s->m0_gyroavg);
+    s->gyroaverage_density(app, s, fin[i], s->m0.marr, s->m0_gyroavg);
     // Use m0 to update also update the kSq matrix for the Ohm's law solver.
     double fac = -s->info.charge * s->info.charge / s->info.mass;
     gkyl_array_accumulate_range(field->dApartdtSlvr_kSq, fac, s->m0_gyroavg, &app->local);
@@ -816,6 +840,7 @@ gk_field_file_import_init(struct gkyl_gyrokinetic_app *app, struct gkyl_gyrokine
     rstat.io_status =
       gkyl_comm_array_read(app->comm, &app->grid, &app->local, app->field->phi_host, inp.file_name);
     gkyl_array_copy(app->field->phi_smooth, app->field->phi_host);
+    gk_field_gyroaverage_phi(app, app->field);
   } else {
     assert(false);
   }
@@ -832,6 +857,7 @@ gk_field_project_init(struct gkyl_gyrokinetic_app *app)
   gkyl_eval_on_nodes_advance(phi_proj, 0.0, &app->local, app->field->phi_host);
   gkyl_eval_on_nodes_release(phi_proj);
   gkyl_array_copy(app->field->phi_smooth, app->field->phi_host);
+  gk_field_gyroaverage_phi(app, app->field);
 }
 
 // Release resources for field.

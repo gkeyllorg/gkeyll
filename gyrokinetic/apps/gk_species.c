@@ -79,29 +79,6 @@ gk_species_file_import_init(
 }
 
 void
-gk_species_gyroaverage_disabled(
-  gkyl_gyrokinetic_app *app, struct gk_species *species, struct gkyl_array *field_in,
-  struct gkyl_array *field_gyroavg
-)
-{
-  struct timespec wst = gkyl_wall_clock();
-  // Don't perform gyroaveraging.
-  app->stat.species_gyroavg_tm += gkyl_time_diff_now_sec(wst);
-}
-
-void
-gk_species_gyroaverage_enabled(
-  gkyl_gyrokinetic_app *app, struct gk_species *species, struct gkyl_array *field_in,
-  struct gkyl_array *field_gyroavg
-)
-{
-  struct timespec wst = gkyl_wall_clock();
-  // Gyroaverage input field.
-  gkyl_deflated_fem_poisson_advance(species->flr_op, field_in, field_in, field_gyroavg);
-  app->stat.species_gyroavg_tm += gkyl_time_diff_now_sec(wst);
-}
-
-void
 gk_species_rhs_static(
   gkyl_gyrokinetic_app *app, struct gk_species *species, const struct gkyl_array *fin,
   struct gkyl_array *rhs, struct gkyl_array **bflux_moms

@@ -598,11 +598,11 @@ gk_field_rhs_poisson_perp_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field
   gkyl_fem_poisson_perp_set_rhs(field->fem_poisson_perp, field->rho_c);
   gkyl_fem_poisson_perp_solve(field->fem_poisson_perp, field->phi_smooth);
 
-  // Smooth the potential along z.
-  field->fem_projection_par_phi_func(app, field, field->phi_smooth, field->phi_smooth);
-
   // Finish the Poisson solve with FLR effects.
   field->invert_flr(app, field, field->phi_smooth);
+
+  // Smooth the potential along z.
+  field->fem_projection_par_phi_func(app, field, field->phi_smooth, field->phi_smooth);
 }
 
 static void
@@ -616,7 +616,7 @@ gk_field_ohm_solve(struct gkyl_gyrokinetic_app *app, struct gk_field *field, str
   gkyl_fem_poisson_perp_set_rhs(field->fem_apardot_solver, field->currentDensdot);
   gkyl_fem_poisson_perp_solve(field->fem_apardot_solver, out);
 
-  field->invert_flr(app, field, field->apardot);
+  field->invert_flr_apar(app, field, field->apardot);
 
   field->remove_em_zonal_func(app, field, field->apardot);
 
@@ -633,7 +633,7 @@ gk_field_ampere_solve_enabled(
   gkyl_fem_poisson_perp_set_rhs(field->fem_apar_solver, field->currentDens);
   gkyl_fem_poisson_perp_solve(field->fem_apar_solver, out);
 
-  field->invert_flr(app, field, out);
+  field->invert_flr_apar(app, field, out);
 
   // Smooth Apar along z with the same parallel BCs used during time stepping.
   field->fem_projection_par_apar_func(app, field, out, out);
@@ -837,9 +837,9 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
   double polarization_weight = 0.0;
   double polarization_bmag = gkf->info.polarization_bmag ? gkf->info.polarization_bmag :
                                                            app->bmag_ref;
-  // Linearized polarization density
-  for (int i = 0; i < app->num_species; ++i) {
-    struct gk_species *gks = &app->species[i];
+  // Linearized polarization density (adiabatic species have none).
+  for (int i = 0; i < gkf->num_rhoc_species; ++i) {
+    struct gk_species *gks = &app->species[gkf->rhoc_species_idx[i]];
     polarization_weight +=
       gks->info.polarization_density * gks->info.mass / pow(polarization_bmag, 2);
   }
@@ -874,42 +874,40 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
   }
 
   // Translate input file BCs into Poisson BCs.
-  struct gkyl_poisson_bc poisson_bcs = {};
   for (int d = 0; d < app->cdim - 1; d++) {
     if (bc_is_np[d]) {
       struct gkyl_gyrokinetic_bc *bc_lo =
         gk_fetch_bc_with_dir_edge(gkf->info.poisson_bcs, 2 * app->cdim, d, GKYL_LOWER_EDGE);
       if (bc_lo != 0) {
-        poisson_bcs.lo_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(bc_lo->type);
+        gkf->poisson_bcs.lo_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(bc_lo->type);
         for (int i = 0; i < 3; i++) {
-          poisson_bcs.lo_value[d].v[i] = bc_lo->value[i];
+          gkf->poisson_bcs.lo_value[d].v[i] = bc_lo->value[i];
         }
       }
 
       struct gkyl_gyrokinetic_bc *bc_up =
         gk_fetch_bc_with_dir_edge(gkf->info.poisson_bcs, 2 * app->cdim, d, GKYL_UPPER_EDGE);
       if (bc_up != 0) {
-        poisson_bcs.up_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(bc_up->type);
+        gkf->poisson_bcs.up_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(bc_up->type);
         for (int i = 0; i < 3; i++) {
-          poisson_bcs.up_value[d].v[i] = bc_up->value[i];
+          gkf->poisson_bcs.up_value[d].v[i] = bc_up->value[i];
         }
       }
     } else {
-      poisson_bcs.lo_type[d] =
+      gkf->poisson_bcs.lo_type[d] =
         gkyl_gyrokinetic_translate_poisson_bc_type(GKYL_BC_GK_FIELD_PERIODIC);
-      poisson_bcs.up_type[d] =
+      gkf->poisson_bcs.up_type[d] =
         gkyl_gyrokinetic_translate_poisson_bc_type(GKYL_BC_GK_FIELD_PERIODIC);
     }
   }
 
   // Initialize the Poisson solver. With an adiabatic species the solver needs K, so it is
   // created by gk_field_adiabatic_init.
-  gkf->poisson_bcs = poisson_bcs;
   gkf->fem_poisson_perp = 0;
   if (!gkf->has_adiabatic_species) {
     gkf->fem_poisson_perp = gkyl_fem_poisson_perp_new(
-      &app->local, &app->grid, app->basis, &poisson_bcs, gkf->info.bias_line_list, gkf->epsilon,
-      NULL, app->use_gpu
+      &app->local, &app->grid, app->basis, &gkf->poisson_bcs, gkf->info.bias_line_list,
+      gkf->epsilon, NULL, app->use_gpu
     );
   }
 
@@ -1058,18 +1056,12 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
     &app->grid, &app->basis, 1, GKYL_ARRAY_INTEGRATE_OP_EPS_GRADPERP_SQ, app->use_gpu
   );
 
-  // Create operator needed for FLR effects.
-  gkf->use_flr = false;
+  // FLR effects (operators created in gk_field_flr_new once the species,
+  // which provide the reference gyroradii, are initialized).
+  gkf->use_flr = gkf->info.flr.type != GKYL_GK_FLR_NONE &&
+                 gkf->info.flr.type != GKYL_GK_FLR_PADE_MU;
   gkf->invert_flr = gk_field_invert_flr_none;
-  for (int i = 0; i < app->num_species; ++i) {
-    struct gk_species *gks = &app->species[i];
-    if (gks->info.flr.type) {
-      gkf->use_flr = gkf->use_flr || gks->info.flr.type;
-    }
-  }
-  if (gkf->use_flr) {
-    gk_field_flr_new(app, gkf);
-  }
+  gkf->invert_flr_apar = gk_field_invert_flr_none;
 
   gkf->bc_par_phi = 0;
   // Deterime if we need IWL or TWISTSHIFT BCs on phi fro the species BCs.
@@ -1091,10 +1083,10 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *gkf)
 
   if (app->gk_geom->has_LCFS) {
     // Updaters to enforce twist-and-shift and sheath BCs.
-    gk_field_2x3x_add_IWL_updaters(app, gkf, &poisson_bcs);
+    gk_field_2x3x_add_IWL_updaters(app, gkf, &gkf->poisson_bcs);
   } else if (gkf->bc_par_phi == GKYL_BC_GK_FIELD_TWISTSHIFT) {
     // Updaters to enforce twist-and-shift BCs.
-    gk_field_2x3x_add_TS_updaters(app, gkf, &poisson_bcs);
+    gk_field_2x3x_add_TS_updaters(app, gkf, &gkf->poisson_bcs);
   }
 
   // Initialize perpendicular smoother.

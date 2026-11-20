@@ -12,7 +12,8 @@ struct gkyl_fem_poisson_perp_adiabatic {
   struct gkyl_range local_x; // 1D range in x of the flux-surface averages.
   struct gkyl_flux_surf_avg *fsa; // Flux-surface average and extension (not owned).
   struct gkyl_array *kJ; // Adiabatic response coefficient K.
-  struct gkyl_fem_poisson_perp *helmholtz; // Solver for H = L + K.
+  double lap_fac, lap_frac; // alpha of the Laplacian term in the response and alpha/(1+alpha).
+  struct gkyl_fem_poisson_perp *helmholtz; // Solver for H = -(1+alpha) div(eps grad) + K.
   // In-place parallel projection of a right-hand side before the perpendicular solve, and
   // its context.
   void (*fem_parproj_op)(struct gkyl_array *rhs, void *ctx);
@@ -20,6 +21,7 @@ struct gkyl_fem_poisson_perp_adiabatic {
 
   struct gkyl_array *phi_buff, *rhs_buff; // Buffers for the zonal response solve.
   struct gkyl_array *phi_rhs0; // Solution with rhs = 0 (Dirichlet values and biased lines).
+  struct gkyl_array *psi_rhs0; // Flux-surface average of phi_rhs0.
   struct gkyl_array *psi; // Auxiliary 1D (x) potential: <phi1>, then the zonal solution psi.
 
   // Zonal system (I - G) psi = <phi1> of size m = Nx*num_basis_x, solved by applying the

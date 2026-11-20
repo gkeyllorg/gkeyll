@@ -24,6 +24,7 @@ struct gkyl_fem_poisson_perp_adiabatic_inp {
   struct gkyl_poisson_bias_line_list *bias_line_list; // Biased lines (NULL if none).
   struct gkyl_array *epsilon; // Polarization weight (permittivity) tensor.
   const struct gkyl_array *kJ; // Adiabatic response coefficient K.
+  double lap_fac; // Factor alpha of the Laplacian term in the response (0 for none).
   // Optional in-place parallel projection (e.g. a smoothing along the field line) of every
   // right-hand side before the perpendicular solve (NULL for none), and its context.
   void (*fem_parproj_op)(struct gkyl_array *rhs, void *ctx);
@@ -33,10 +34,15 @@ struct gkyl_fem_poisson_perp_adiabatic_inp {
 
 /**
  * Create a new updater solving the perpendicular Poisson problem with an adiabatic response
- *   - nabla_perp . (epsilon nabla_perp phi) + K (phi - <phi>) = rho,
- * where <phi> is the flux-surface average. With H = L + K, R the average and E the extension
- * of a function of x to a field constant along y and z, the Woodbury identity gives
- *   phi = phi1 + H^{-1} K E psi,  H phi1 = rho,  (I - G) psi = R phi1,  G = R H^{-1} K E.
+ *   - nabla_perp . (epsilon nabla_perp phi) + M (phi - <phi>) = rho,
+ *   M = K - alpha nabla_perp . (epsilon nabla_perp),
+ * where <phi> is the flux-surface average and alpha = lap_fac (the Laplacian term in the
+ * response arises with Pade FLR effects). With H = -(1+alpha) nabla_perp . (epsilon nabla_perp)
+ * + K, R the average and E the extension of a function of x to a field constant along y and z,
+ * the Woodbury identity gives
+ *   phi = phi1 + H^{-1} K E psi + alpha E psi,  H phi1 = rho,  (I - G) psi = R phi1,
+ * with G = R H^{-1} K E. Nonzero Dirichlet values add -beta R phi_0 to R phi1 and -beta phi_0 to
+ * phi, with beta = alpha/(1+alpha) and phi_0 the solution with rho = 0.
  * The m x m matrix I - G (m = number of zonal degrees of freedom) is assembled with m Helmholtz
  * solves and inverted once here, so each solve costs two Helmholtz solves, one average and an
  * m x m matrix-vector product. Free using gkyl_fem_poisson_perp_adiabatic_release.

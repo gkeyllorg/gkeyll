@@ -777,8 +777,11 @@ struct gkyl_fem_parproj {
 
   struct gkyl_superlu_prob *prob;
 #ifdef GKYL_HAVE_CUDA
-  struct gkyl_culinsolver_prob *prob_cu;
-  struct gkyl_array *brhs_cu;
+  struct gkyl_culinsolver_prob *prob_cu; // Sparse solver, used if there is a LHS weight.
+  double *lhs_inv_cu; // Inverses of the distinct LHS matrices, used if there is no LHS weight.
+  int *lhs_inv_idx_cu; // LHS inverse used by each perpendicular cell.
+  double *rhs_cu, *sol_cu; // Right-side and solution vectors.
+  void (*linsolve_cu)(struct gkyl_fem_parproj *up); // Solves the linear problem(s).
 #endif
 
   long *globalidx;
@@ -799,6 +802,21 @@ struct gkyl_fem_parproj {
 void fem_parproj_choose_kernels_cu(
   const struct gkyl_basis *basis, bool has_weight_lhs, bool has_weight_rhs,
   enum gkyl_fem_parproj_bc_type bctype, struct gkyl_fem_parproj_kernels *kers
+);
+
+/**
+ * Set the left-side matrices of the linear problem(s), and choose how to solve them,
+ * on the NVIDIA GPU.
+ *
+ * @param up FEM project updater.
+ * @param tri Left-side matrix of each linear problem.
+ * @param num_prob Number of linear problems.
+ * @param nrhs Number of right-side vectors of each linear problem.
+ * @param has_weight_lhs Whether there is a weight on the left side.
+ */
+void fem_parproj_set_lhs_cu(
+  struct gkyl_fem_parproj *up, struct gkyl_mat_triples **tri, long num_prob, int nrhs,
+  bool has_weight_lhs
 );
 
 /**

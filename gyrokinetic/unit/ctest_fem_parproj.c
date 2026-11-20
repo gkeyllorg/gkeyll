@@ -384,15 +384,15 @@ check_dirichlet_bc_bias(
           }
         }
 
-        double ref_val;
+        double ref_val = fn_dg[i];
         if (is_node_biased) {
           // Check biasing value is enforced.
           struct gkyl_poisson_bias_line *bl = &bls->bl[biased_node_idx];
           ref_val = bl->val;
           TEST_CHECK(gkyl_compare(ref_val, fn_fem[i], 1e-12));
-        } else {
+        } else if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_GHOST ||
+                   bctype == GKYL_FEM_PARPROJ_DIRICHLET_SKIN) {
           // Check Dirichlet value is enforced.
-          ref_val = fn_dg[i];
           TEST_CHECK(gkyl_compare(ref_val, fn_fem[i], 1e-12));
         }
         if (ndim == 1) {
@@ -1168,7 +1168,7 @@ test_2x_bias(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
   // Check continuity at cell boundaries.
   check_continuity_par(localRange, basis, phi_ho);
 
-  if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_GHOST || bctype == GKYL_FEM_PARPROJ_DIRICHLET_SKIN) {
+  if (bctype != GKYL_FEM_PARPROJ_PERIODIC) {
     check_dirichlet_bc_bias(grid, localRange, localRange_ext, basis, bctype, &bll, rho_ho, phi_ho);
   }
 
@@ -2033,7 +2033,7 @@ test_3x_bias(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool us
   // Check continuity at cell boundaries.
   check_continuity_par(localRange, basis, phi_ho);
 
-  if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_GHOST || bctype == GKYL_FEM_PARPROJ_DIRICHLET_SKIN) {
+  if (bctype != GKYL_FEM_PARPROJ_PERIODIC) {
     check_dirichlet_bc_bias(grid, localRange, localRange_ext, basis, bctype, &bll, rho_ho, phi_ho);
   }
 
@@ -2112,6 +2112,11 @@ test_fem_parproj_2x_p1_bcdirichlet_bias_ho()
   test_2x_bias(1, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, false);
   test_2x_bias(1, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, false);
 }
+void
+test_fem_parproj_2x_p1_bcnone_bias_ho()
+{
+  test_2x_bias(1, GKYL_FEM_PARPROJ_NONE, false);
+}
 
 void
 test_fem_parproj_2x_p2_bcnone_ho()
@@ -2151,6 +2156,11 @@ test_fem_parproj_3x_p1_bcdirichlet_bias_ho()
 {
   test_3x_bias(1, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, false);
   test_3x_bias(1, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, false);
+}
+void
+test_fem_parproj_3x_p1_bcnone_bias_ho()
+{
+  test_3x_bias(1, GKYL_FEM_PARPROJ_NONE, false);
 }
 
 void
@@ -2238,6 +2248,11 @@ test_fem_parproj_2x_p1_bcdirichlet_bias_dev()
   test_2x_bias(1, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, true);
   test_2x_bias(1, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, true);
 }
+void
+test_fem_parproj_2x_p1_bcnone_bias_dev()
+{
+  test_2x_bias(1, GKYL_FEM_PARPROJ_NONE, true);
+}
 
 void
 test_fem_parproj_2x_p2_bcnone_dev()
@@ -2278,6 +2293,11 @@ test_fem_parproj_3x_p1_bcdirichlet_bias_dev()
   test_3x_bias(1, GKYL_FEM_PARPROJ_DIRICHLET_GHOST, true);
   test_3x_bias(1, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, true);
 }
+void
+test_fem_parproj_3x_p1_bcnone_bias_dev()
+{
+  test_3x_bias(1, GKYL_FEM_PARPROJ_NONE, true);
+}
 
 void
 test_fem_parproj_3x_p2_bcnone_dev()
@@ -2313,10 +2333,12 @@ TEST_LIST = {
   {"test_fem_parproj_2x_p1_weighted_ho", test_fem_parproj_2x_p1_weighted_ho},
   {"test_fem_parproj_2x_p1_selfadjoint_ho", test_fem_parproj_2x_p1_selfadjoint_ho},
   {"test_fem_parproj_2x_p1_bcdirichlet_bias_ho", test_fem_parproj_2x_p1_bcdirichlet_bias_ho},
+  {"test_fem_parproj_2x_p1_bcnone_bias_ho", test_fem_parproj_2x_p1_bcnone_bias_ho},
   {"test_fem_parproj_3x_p1_bcnone_ho", test_fem_parproj_3x_p1_bcnone_ho},
   {"test_fem_parproj_3x_p1_bcdirichlet_ho", test_fem_parproj_3x_p1_bcdirichlet_ho},
   {"test_fem_parproj_3x_p1_bcperiodic_ho", test_fem_parproj_3x_p1_bcperiodic_ho},
   {"test_fem_parproj_3x_p1_bcdirichlet_bias_ho", test_fem_parproj_3x_p1_bcdirichlet_bias_ho},
+  {"test_fem_parproj_3x_p1_bcnone_bias_ho", test_fem_parproj_3x_p1_bcnone_bias_ho},
   {"test_fem_parproj_3x_p2_bcnone_ho", test_fem_parproj_3x_p2_bcnone_ho},
   // { "test_fem_parproj_3x_p2_bcdirichlet_ho", test_fem_parproj_3x_p2_bcdirichlet_ho },
   {"test_fem_parproj_3x_p2_bcperiodic_ho", test_fem_parproj_3x_p2_bcperiodic_ho},
@@ -2336,10 +2358,12 @@ TEST_LIST = {
   {"test_fem_parproj_2x_p1_weighted_dev", test_fem_parproj_2x_p1_weighted_dev},
   {"test_fem_parproj_2x_p1_selfadjoint_dev", test_fem_parproj_2x_p1_selfadjoint_dev},
   {"test_fem_parproj_2x_p1_bcdirichlet_bias_dev", test_fem_parproj_2x_p1_bcdirichlet_bias_dev},
+  {"test_fem_parproj_2x_p1_bcnone_bias_dev", test_fem_parproj_2x_p1_bcnone_bias_dev},
   {"test_fem_parproj_3x_p1_bcnone_dev", test_fem_parproj_3x_p1_bcnone_dev},
   {"test_fem_parproj_3x_p1_bcdirichlet_dev", test_fem_parproj_3x_p1_bcdirichlet_dev},
   {"test_fem_parproj_3x_p1_bcperiodic_dev", test_fem_parproj_3x_p1_bcperiodic_dev},
   {"test_fem_parproj_3x_p1_bcdirichlet_bias_dev", test_fem_parproj_3x_p1_bcdirichlet_bias_dev},
+  {"test_fem_parproj_3x_p1_bcnone_bias_dev", test_fem_parproj_3x_p1_bcnone_bias_dev},
   {"test_fem_parproj_3x_p2_bcnone_dev", test_fem_parproj_3x_p2_bcnone_dev},
   // { "test_fem_parproj_3x_p2_bcdirichlet_dev", test_fem_parproj_3x_p2_bcdirichlet_dev },
   {"test_fem_parproj_3x_p2_bcperiodic_dev", test_fem_parproj_3x_p2_bcperiodic_dev},

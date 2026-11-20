@@ -13,6 +13,10 @@
 struct gkyl_dg_gyrokinetic_auxfields {
   const struct gkyl_array *flux_surf; // Pointer to surface expansion of phase space flux.
   const struct gkyl_array *phi; // Pointer to electrostatic potential.
+  // Number of mu cells phi depends on (0 or 1 if it does not depend on mu). If greater than 1,
+  // phi has num_mu*num_basis components, the coefficients in the j-th mu cell starting at
+  // j*num_basis (num_basis being the number of configuration space basis functions).
+  int num_mu;
   const struct gkyl_array *apar; // Pointer to A_\parallel.
   const struct gkyl_array *apardot; // Pointer to d(A_parallel)/dt.
 };
