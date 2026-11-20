@@ -46,7 +46,8 @@
 #include <gkyl_dg_updater_gyrokinetic.h>
 #include <gkyl_dg_updater_gyrokinetic_passive.h>
 #include <gkyl_dg_updater_lbo_gyrokinetic.h>
-#include <gkyl_dg_updater_moment_gyrokinetic.h>
+#include <gkyl_mom_gyrokinetic.h>
+#include <gkyl_mom_weighted_gyrokinetic.h>
 #include <gkyl_dg_updater_rad_gyrokinetic.h>
 #include <gkyl_dg_vlasov.h>
 #include <gkyl_dg_vlasov_calc_hamil.h>
@@ -87,6 +88,7 @@
 #include <gkyl_mom_calc.h>
 #include <gkyl_mom_calc_bcorr.h>
 #include <gkyl_mom_gyrokinetic.h>
+#include <gkyl_mom_weighted_gyrokinetic.h>
 #include <gkyl_null_pool.h>
 #include <gkyl_position_map.h>
 #include <gkyl_prim_cross_m0deltas.h>
@@ -164,7 +166,8 @@ struct gk_species_moment {
           struct gkyl_vlasov_lte_moments *vlasov_lte_moms; // Updater for computing LTE moments
         };
         struct {
-          struct gkyl_dg_updater_moment *mcalc;
+          struct gkyl_mom_gyrokinetic *mcalc;
+          struct gkyl_mom_weighted_gyrokinetic *mcalc_weighted;
         };
         struct {
           struct gkyl_mom_type *mom_type; // Vlasov (triad) moment type for neutrals.
@@ -185,6 +188,11 @@ struct gk_species_moment {
     const struct gkyl_gyrokinetic_app *app, const struct gk_species_moment *sm,
     const struct gkyl_range phase_rng, const struct gkyl_range conf_rng,
     const struct gkyl_array *fin
+  );
+  void (*weighted_calc_func)(
+    const struct gkyl_gyrokinetic_app *app, const struct gk_species_moment *sm,
+    const struct gkyl_range phase_rng, const struct gkyl_range conf_rng,
+    const struct gkyl_array *fin, const struct gkyl_range *wgt_rng, const struct gkyl_array *wgt
   );
   void (*release_func)(const struct gkyl_gyrokinetic_app *app, const struct gk_species_moment *sm);
   void (*diag_jacobgeo_div_func)(
@@ -702,7 +710,7 @@ struct gk_recycle_wall {
   struct gkyl_array *bc_buffer; // Fixed buffers for recycle BCs.
   struct gkyl_array *phase_flux_gk[GKYL_MAX_SPECIES]; // Array to put phase-flux into.
   struct gkyl_array *m0_flux_gk[GKYL_MAX_SPECIES]; // M0 moment of ion flux.
-  struct gkyl_dg_updater_moment *m0op_gk[GKYL_MAX_SPECIES]; // M0 moment solver for ion flux.
+  struct gkyl_mom_gyrokinetic *m0op_gk[GKYL_MAX_SPECIES]; // M0 moment solver for ion flux.
 
   struct gkyl_array *unit_phase_flux_neut; // Unit-density neutral flux.
   struct gkyl_array *unit_m0_flux_neut; // MO moment of unit-density flux.
@@ -2091,19 +2099,20 @@ void gkyl_gyrokinetic_app_apply_ic_cross_neut_species(
  * @param app gyrokinetic app object.
  * @param gks Species object.
  * @param sm Species moment object.
- * @param nm Name string indicating moment type
+ * @param mom_type Moment selector.
+ * @param weight_type NONE, CONF or VEL; fluid moments support NONE or CONF.
  * @param is_integrated Whether to compute the volume integrated moment.
  */
 void gk_species_moment_init(
   struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_species_moment *sm,
-  enum gkyl_distribution_moments mom_type, bool is_integrated
+  enum gkyl_distribution_moments mom_type, enum gkyl_mom_weight_type weight_type, bool is_integrated
 );
 
 /**
- * Calculate a moment from a kinetic distribution or conservative fluid state.
- * 
+ * Calculate an unweighted moment from a kinetic distribution or conservative fluid state.
+ *
  * @param app Gyrokinetic application providing the current field.
- * @param sm Species moment object.
+ * @param sm Species moment object initialized with weight type NONE.
  * @param species_rng Phase-space range for kinetic species, configuration-space range for fluids.
  * @param conf_rng Configuration-space range.
  * @param fin Input distribution function or conservative fluid moment array.
@@ -2112,6 +2121,24 @@ void gk_species_moment_calc(
   const struct gkyl_gyrokinetic_app *app, const struct gk_species_moment *sm,
   const struct gkyl_range species_rng, const struct gkyl_range conf_rng,
   const struct gkyl_array *fin
+);
+
+/**
+ * Calculate a weighted moment from a kinetic distribution or conservative fluid state.
+ *
+ * @param app Gyrokinetic application providing the current field.
+ * @param sm Species moment object initialized with CONF or VEL weights (CONF only for fluids).
+ * @param species_rng Phase-space range for kinetic species, configuration-space range for fluids.
+ * @param conf_rng Configuration-space range.
+ * @param fin Input distribution function or conservative fluid moment array.
+ * @param weight_range Weight storage range; must not be NULL.
+ * @param weight Current weight array; must not be NULL.
+ */
+void gk_species_moment_calc_weighted(
+  const struct gkyl_gyrokinetic_app *app, const struct gk_species_moment *sm,
+  const struct gkyl_range species_rng, const struct gkyl_range conf_rng,
+  const struct gkyl_array *fin, const struct gkyl_range *weight_range,
+  const struct gkyl_array *weight
 );
 
 /**

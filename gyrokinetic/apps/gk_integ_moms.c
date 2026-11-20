@@ -38,7 +38,7 @@ gk_integ_moms_init(
 
   im->ops = gkyl_malloc(sizeof(struct gk_species_moment[num]));
   for (int m = 0; m < num; m++) {
-    gk_species_moment_init(app, gks, &im->ops[m], types[m], true);
+    gk_species_moment_init(app, gks, &im->ops[m], types[m], GKYL_F_MOMENT_WEIGHT_NONE, true);
   }
   gk_integ_moms_alloc(app, im);
 }
