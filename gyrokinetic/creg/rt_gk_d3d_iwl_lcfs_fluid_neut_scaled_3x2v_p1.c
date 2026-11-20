@@ -423,11 +423,13 @@ create_ctx(struct gk_app_ctx *out)
     .Tn_cold_width = 0.1, // About a 3 eV atom's CX mean free path [rad].
     .adapt_energy_srcCORE = true,
     .adapt_particle_srcCORE = true,
-    // Centered on the inner radial surface; the ion source is at +Lz/4 and the
-    // electron source at -Lz/4 (Miller angle).
+    // Centered on the inner radial surface; the ion source is at Miller angle
+    // -Lz/4 (below the midplane, in the ion grad-B drift direction) and the
+    // electron source at +Lz/4, as in the analytic (mapc2p) input. The Miller
+    // angle has the sign of Z - Z_axis, independent of the theta_tok direction.
     .center_srcCORE = {x_inner + gkyl_gen_miller_eqdsk_r_at_psi(out->equilibrium, psi_core) -
                          rminor_LCFS,
-                       0.0, 0.25 * Lz},
+                       0.0, -0.25 * Lz},
     .sigma_srcCORE = {0.03 * Lx, 0.0, Lz / 6.0},
     .energy_srcCORE = energy_srcCORE,
     .particle_srcCORE = 0.0,

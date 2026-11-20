@@ -318,7 +318,10 @@ main(int argc, char **argv)
   ctx.adapt_particle_srcCORE = true;
   ctx.energy_srcCORE = 0.75e6 / (2.0 * M_PI);
   ctx.particle_srcCORE = 0.0;
-  ctx.center_srcCORE[1] = 0.25 * ctx.Lz; // Ion source; the electron source is at -Lz/4.
+  // Ion source at Miller angle -Lz/4 (below the midplane, in the ion grad-B
+  // drift direction); the electron source is at +Lz/4. The Miller angle has
+  // the sign of Z - Z_axis, independent of the theta_tok direction.
+  ctx.center_srcCORE[1] = -0.25 * ctx.Lz;
   ctx.sigma_srcCORE[0] = 0.03 * ctx.Lx;
   ctx.sigma_srcCORE[1] = ctx.Lz / 6.0;
   ctx.floor_srcCORE = 1.0e-10;
