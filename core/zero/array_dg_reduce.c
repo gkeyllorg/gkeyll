@@ -14,6 +14,9 @@ gkyl_array_dg_reducec(
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(arr)) {
     switch (op) {
+      default:
+        assert(false);
+        return;
       case GKYL_MAX:
         gkyl_array_dg_reducec_max_cu(out, arr, comp, basis);
         break;
@@ -33,6 +36,9 @@ gkyl_array_dg_reducec(
   int num_nodes = basis->num_quad;
 
   switch (op) {
+    default:
+      assert(false);
+      return;
     case GKYL_MIN:
       out[0] = DBL_MAX;
       for (size_t i = 0; i < arr->size; ++i) {
@@ -82,6 +88,9 @@ gkyl_array_dg_reducec_range(
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(arr)) {
     switch (op) {
+      default:
+        assert(false);
+        return;
       case GKYL_MAX:
         gkyl_array_dg_reducec_range_max_cu(out, arr, comp, basis, range);
         break;
@@ -104,6 +113,9 @@ gkyl_array_dg_reducec_range(
   gkyl_range_iter_init(&iter, range);
 
   switch (op) {
+    default:
+      assert(false);
+      return;
     case GKYL_MIN:
       out[0] = DBL_MAX;
       while (gkyl_range_iter_next(&iter)) {
