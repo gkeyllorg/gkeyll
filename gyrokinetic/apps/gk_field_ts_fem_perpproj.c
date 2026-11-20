@@ -30,7 +30,8 @@ gk_field_ts_fem_perpproj_requested(const gkyl_gyrokinetic_app *app, const struct
 
 static void
 gk_field_ts_fem_perpproj_disabled(
-  const gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *potential
+  const gkyl_gyrokinetic_app *app, struct gk_field_ts_fem_perpproj *proj,
+  struct gkyl_array *potential
 )
 {
 }
@@ -43,9 +44,6 @@ gk_field_ts_fem_perpproj_check_input(const gkyl_gyrokinetic_app *app, const stru
   }
   if (app->cdim != 3 || app->poly_order != 1 || app->basis.b_type != GKYL_BASIS_MODAL_SERENDIPITY) {
     gkyl_exit("ts_field_dg=false requires a 3D p1 serendipity configuration basis.");
-  }
-  if (field->gkfield_id != GKYL_GK_FIELD_ES) {
-    gkyl_exit("ts_field_dg=false requires an electrostatic field.");
   }
 }
 
@@ -61,15 +59,19 @@ gk_field_ts_fem_perpproj_validate(const gkyl_gyrokinetic_app *app, const struct 
   if (app->gk_geom->has_LCFS && (!app->global_core.volume || !app->global_sol.volume)) {
     gkyl_exit("ts_field_dg=false requires nonempty core and SOL ranges in an IWL simulation.");
   }
-  const struct gkyl_poisson_bc *bcs = &field->poisson_bcs;
-  if (bcs->lo_type[1] != GKYL_POISSON_PERIODIC || bcs->up_type[1] != GKYL_POISSON_PERIODIC) {
-    gkyl_exit("ts_field_dg=false requires periodic y boundary conditions.");
-  }
-  if ((bcs->lo_type[0] == GKYL_POISSON_PERIODIC) != (bcs->up_type[0] == GKYL_POISSON_PERIODIC)) {
-    gkyl_exit("ts_field_dg=false requires paired periodic x boundary conditions.");
-  }
-  if (app->gk_geom->has_LCFS && bcs->lo_type[0] == GKYL_POISSON_PERIODIC) {
-    gkyl_exit("ts_field_dg=false cannot use periodic x with an LCFS.");
+  // The potential BCs, and the A_parallel BCs if electromagnetic.
+  const struct gkyl_poisson_bc *perp_bcs[] = {&field->poisson_bcs, &field->ampere_bcs};
+  for (int i = 0; i < (field->is_em ? 2 : 1); i++) {
+    const struct gkyl_poisson_bc *bcs = perp_bcs[i];
+    if (bcs->lo_type[1] != GKYL_POISSON_PERIODIC || bcs->up_type[1] != GKYL_POISSON_PERIODIC) {
+      gkyl_exit("ts_field_dg=false requires periodic y boundary conditions.");
+    }
+    if ((bcs->lo_type[0] == GKYL_POISSON_PERIODIC) != (bcs->up_type[0] == GKYL_POISSON_PERIODIC)) {
+      gkyl_exit("ts_field_dg=false requires paired periodic x boundary conditions.");
+    }
+    if (app->gk_geom->has_LCFS && bcs->lo_type[0] == GKYL_POISSON_PERIODIC) {
+      gkyl_exit("ts_field_dg=false cannot use periodic x with an LCFS.");
+    }
   }
   for (int d = 0; d < 2; d++) {
     if (app->local.lower[d] != app->global.lower[d] ||
@@ -137,7 +139,7 @@ gk_field_ts_fem_perpproj_init_sol(
 // ordinary Dirichlet BCs; only strictly internal lines need bias-plane kernels.
 static struct gkyl_fem_proj_bias_plane_list
 gk_field_ts_fem_perpproj_init_bias(
-  const gkyl_gyrokinetic_app *app, const struct gk_field *field,
+  const gkyl_gyrokinetic_app *app, const struct gkyl_poisson_bias_line_list *list,
   struct gk_field_ts_fem_perpproj *proj, struct gkyl_fem_proj_bc *bcs
 )
 {
@@ -151,7 +153,6 @@ gk_field_ts_fem_perpproj_init_bias(
     }
   }
   struct gkyl_fem_proj_bias_plane_list selected = {0};
-  const struct gkyl_poisson_bias_line_list *list = field->info.bias_line_list;
   if (list && list->num_bias_line) {
     struct gkyl_fem_proj_bias_plane *planes = gkyl_malloc(list->num_bias_line * sizeof(*planes));
     selected.bp = planes;
@@ -203,10 +204,10 @@ gk_field_ts_fem_perpproj_init_bias(
 
 static void
 gk_field_ts_fem_perpproj_enabled(
-  const gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *potential
+  const gkyl_gyrokinetic_app *app, struct gk_field_ts_fem_perpproj *proj,
+  struct gkyl_array *potential
 )
 {
-  struct gk_field_ts_fem_perpproj *proj = field->ts_fem_perpproj;
   // The physical lower boundary is the UPPER face of the lower ghost cell.
   gkyl_deflate_zsurf_advance(
     proj->deflate, app->global.lower[2] - 1, &app->global_ext, &proj->local, potential,
@@ -226,18 +227,14 @@ gk_field_ts_fem_perpproj_enabled(
   );
 }
 
-void
-gk_field_ts_fem_perpproj_new(const gkyl_gyrokinetic_app *app, struct gk_field *field)
+// Create the projection of a twist-shifted field (the potential or A_parallel)
+// given its perpendicular BCs and bias lines (NULL if it has none).
+static struct gk_field_ts_fem_perpproj *
+gk_field_ts_fem_perpproj_create(
+  const gkyl_gyrokinetic_app *app, const struct gkyl_poisson_bc *perp_bcs,
+  const struct gkyl_poisson_bias_line_list *bias_lines
+)
 {
-  field->ts_fem_perpproj = NULL;
-  field->ts_fem_perpproj_func = gk_field_ts_fem_perpproj_disabled;
-  if (!gk_field_ts_fem_perpproj_requested(app, field)) {
-    return;
-  }
-
-  // Abort if it's for a simulation not yet supported.
-  gk_field_ts_fem_perpproj_validate(app, field);
-
   struct gk_field_ts_fem_perpproj *proj = gkyl_malloc(sizeof(*proj));
   *proj = (struct gk_field_ts_fem_perpproj){0};
   proj->prepare_boundary = gk_field_ts_fem_perpproj_boundary_disabled;
@@ -260,9 +257,9 @@ gk_field_ts_fem_perpproj_new(const gkyl_gyrokinetic_app *app, struct gk_field *f
   proj->buff_fem = mkarr(app->use_gpu, proj->basis.num_basis, proj->local_ext.volume);
 
   // Consistent mass projection; NULL weights give the unweighted dx dy inner product.
-  bool periodic_x = field->poisson_bcs.lo_type[0] == GKYL_POISSON_PERIODIC;
-  bool dirichlet_lo = field->poisson_bcs.lo_type[0] == GKYL_POISSON_DIRICHLET;
-  bool dirichlet_up = field->poisson_bcs.up_type[0] == GKYL_POISSON_DIRICHLET;
+  bool periodic_x = perp_bcs->lo_type[0] == GKYL_POISSON_PERIODIC;
+  bool dirichlet_lo = perp_bcs->lo_type[0] == GKYL_POISSON_DIRICHLET;
+  bool dirichlet_up = perp_bcs->up_type[0] == GKYL_POISSON_DIRICHLET;
   struct gkyl_fem_proj_inp inp = {
     .grid = &proj->grid,
     .solve_range = &proj->local,
@@ -279,13 +276,13 @@ gk_field_ts_fem_perpproj_new(const gkyl_gyrokinetic_app *app, struct gk_field *f
            dirichlet_up ? GKYL_FEM_PROJ_DIRICHLET :
                           GKYL_FEM_PROJ_DIRICHLET_VARYING,
            GKYL_FEM_PROJ_PERIODIC},
-        .lo_value = {field->poisson_bcs.lo_value[0].v[0]},
-        .up_value = {field->poisson_bcs.up_value[0].v[0]},
+        .lo_value = {perp_bcs->lo_value[0].v[0]},
+        .up_value = {perp_bcs->up_value[0].v[0]},
       },
     .use_gpu = app->use_gpu,
   };
   struct gkyl_fem_proj_bias_plane_list biases =
-    gk_field_ts_fem_perpproj_init_bias(app, field, proj, &inp.bcs);
+    gk_field_ts_fem_perpproj_init_bias(app, bias_lines, proj, &inp.bcs);
   inp.bias_plane_list = &biases;
   proj->projector = gkyl_fem_proj_inew(&inp);
   gkyl_free((void *)biases.bp);
@@ -295,8 +292,31 @@ gk_field_ts_fem_perpproj_new(const gkyl_gyrokinetic_app *app, struct gk_field *f
   proj->inflate =
     gkyl_translate_dim_new(2, proj->basis, 3, app->basis, 2, GKYL_UPPER_EDGE, app->use_gpu);
 
+  return proj;
+}
+
+void
+gk_field_ts_fem_perpproj_new(const gkyl_gyrokinetic_app *app, struct gk_field *field)
+{
+  field->ts_fem_perpproj = NULL;
+  field->ts_fem_perpproj_apar = NULL;
+  field->ts_fem_perpproj_func = gk_field_ts_fem_perpproj_disabled;
+  if (!gk_field_ts_fem_perpproj_requested(app, field)) {
+    return;
+  }
+
+  // Abort if it's for a simulation not yet supported.
+  gk_field_ts_fem_perpproj_validate(app, field);
+
+  field->ts_fem_perpproj =
+    gk_field_ts_fem_perpproj_create(app, &field->poisson_bcs, field->info.bias_line_list);
+  if (field->is_em) {
+    // A_parallel is smoothed along z using the same twist-shifted ghost as the
+    // potential, so it needs the same projection (with its own BCs, no bias lines).
+    field->ts_fem_perpproj_apar = gk_field_ts_fem_perpproj_create(app, &field->ampere_bcs, NULL);
+  }
+
   // Set function pointers.
-  field->ts_fem_perpproj = proj;
   field->ts_fem_perpproj_func = gk_field_ts_fem_perpproj_enabled;
 }
 
@@ -305,29 +325,40 @@ gk_field_ts_fem_perpproj_advance(
   const gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *potential
 )
 {
-  field->ts_fem_perpproj_func(app, field, potential);
+  field->ts_fem_perpproj_func(app, field->ts_fem_perpproj, potential);
+}
+
+void
+gk_field_ts_fem_perpproj_apar_advance(
+  const gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *apar
+)
+{
+  field->ts_fem_perpproj_func(app, field->ts_fem_perpproj_apar, apar);
 }
 
 void
 gk_field_ts_fem_perpproj_release(struct gk_field *field)
 {
-  struct gk_field_ts_fem_perpproj *proj = field->ts_fem_perpproj;
-  if (!proj) {
-    return;
-  }
-  gkyl_fem_proj_release(proj->projector);
-  gkyl_deflate_zsurf_release(proj->deflate);
-  gkyl_translate_dim_release(proj->inflate);
-  gkyl_array_release(proj->buff_dg);
-  gkyl_array_release(proj->buff_fem);
-  if (proj->boundary_values) {
-    gkyl_bc_basic_gyrokinetic_release(proj->copy_lcfs);
-    gkyl_deflate_zsurf_release(proj->deflate_sol);
-    gkyl_array_release(proj->boundary_values);
-    gkyl_array_release(proj->boundary_buffer);
-    if (proj->boundary_basis != &proj->basis) {
-      gkyl_cart_modal_basis_release_cu(proj->boundary_basis);
+  struct gk_field_ts_fem_perpproj *projs[] = {field->ts_fem_perpproj, field->ts_fem_perpproj_apar};
+  for (int i = 0; i < 2; i++) {
+    struct gk_field_ts_fem_perpproj *proj = projs[i];
+    if (!proj) {
+      continue;
     }
+    gkyl_fem_proj_release(proj->projector);
+    gkyl_deflate_zsurf_release(proj->deflate);
+    gkyl_translate_dim_release(proj->inflate);
+    gkyl_array_release(proj->buff_dg);
+    gkyl_array_release(proj->buff_fem);
+    if (proj->boundary_values) {
+      gkyl_bc_basic_gyrokinetic_release(proj->copy_lcfs);
+      gkyl_deflate_zsurf_release(proj->deflate_sol);
+      gkyl_array_release(proj->boundary_values);
+      gkyl_array_release(proj->boundary_buffer);
+      if (proj->boundary_basis != &proj->basis) {
+        gkyl_cart_modal_basis_release_cu(proj->boundary_basis);
+      }
+    }
+    gkyl_free(proj);
   }
-  gkyl_free(proj);
 }

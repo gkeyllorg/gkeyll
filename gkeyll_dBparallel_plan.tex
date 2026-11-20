@@ -1,0 +1,541 @@
+\documentclass[11pt, letterpaper]{article}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{xcolor}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\geometry{margin=1in}
+
+\newcommand{\dBpar}{\delta B_\parallel}
+\newcommand{\Bstar}{\mathbf{B}^*}
+\newcommand{\Bparstar}{B^*_\parallel}
+\newcommand{\bhat}{\hat{\mathbf{b}}}
+\newcommand{\vpar}{v_\parallel}
+\newcommand{\Apar}{A_\parallel}
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\new}[1]{\textcolor{blue}{#1}}
+
+\title{Parallel Magnetic Field Fluctuations ($\dBpar$)\\ in the Gkeyll Gyrokinetic App: Model and Implementation}
+\author{Branch \code{get\_em\_back\_dBpar}}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{Scope}
+This document describes the model and the implementation of the compressional (parallel)
+magnetic-field fluctuation $\dBpar$ in the full-$f$, electromagnetic gyrokinetic (GK) app of
+Gkeyll (branch \code{get\_em\_back\_dBpar}, commit \code{88e115d95} and the tests that follow it).
+The design goals are:
+\begin{enumerate}[nosep]
+  \item \textbf{Consistency with the literature.} The continuum model must reduce, when linearized,
+  to the standard $\delta f$ equations with $\dBpar$ used by GENE/GS2 and in
+  Kennedy \emph{et al.}~\cite{Kennedy2024} (their Eqs.~(1)--(4) and Appendix~A), in the
+  long-wavelength limit that Gkeyll already uses for $\Apar$.
+  \item \textbf{Consistency with Gkeyll.} The model must fit the existing parallel-symplectic
+  ($\vpar$, $\Apar$) formulation of Mandell \emph{et al.}~\cite{Mandell2020}, the discontinuous
+  Galerkin (DG) discretization with a continuous Hamiltonian, and the two-pass right-hand-side
+  (RHS) structure used to solve Ohm's law.
+  \item \textbf{Minimal code surface.} $\dBpar$ enters the dynamics only through the Hamiltonian,
+  and every collisionless kernel reads the modal $B$ only inside the Hamiltonian, so no kernel
+  regeneration is needed.
+\end{enumerate}
+\new{Blue} marks the terms added by $\dBpar$ to the electromagnetic model already in Gkeyll.
+
+\section{Physical Motivation}
+Kennedy \emph{et al.}~\cite{Kennedy2024} show (their Appendix~A) that in the ballooning
+ordering $k_\parallel v_{th} \ll \omega_d \ll \omega$, $\beta\ll 1$, the perpendicular pressure
+perturbation obeys
+\begin{equation}
+  \delta P_\perp = \frac{B\,\delta\phi}{\mu_0\,\omega}\left(\omega_{\nabla B}-\omega_\kappa\right),
+  \label{eq:kennedyA}
+\end{equation}
+and equilibrium force balance gives
+$\omega_{\nabla B} = \omega_\kappa - (\mathbf{k}\cdot\bhat\times\nabla p)\,\mu_0/B^2$.
+Hence $\dBpar$ is what cancels the pressure-gradient part of the $\nabla B$ drift; neglecting
+$\dBpar$ in a finite-$\beta'$ equilibrium mis-represents kinetic ballooning modes (KBM) and the
+electromagnetic instabilities that matter at high $\beta$ (STEP, spherical tokamaks, and the
+high-$\beta$ edge). Codes without $\dBpar$ approximate it with the ``MHD-1'' trick
+($\nabla B$ drift $\to$ curvature drift). Without $\dBpar$, EM results in
+finite-$\beta'$ geometries carry an uncontrolled error. Note the corollary for verification:
+in a \emph{vacuum-like} geometry ($\nabla\times\mathbf{B}_0=0$, so $\omega_{\nabla B}=\omega_\kappa$)
+the leading-order $\dBpar$ response vanishes; see Sec.~\ref{sec:verif}.
+
+\section{Continuum Model}
+\label{sec:model}
+Notation: species $s$ with charge $q_s$, mass $m_s$; gyrocenter coordinates
+$(\mathbf{R},\vpar,\mu)$; background field $\mathbf{B}_0 = B_0\bhat$; fluctuations
+$\phi$, $\Apar$, $\dBpar$; velocity-space volume element $d^3v = (2\pi B_0/m_s)\,d\vpar\,d\mu$.
+Gkeyll evolves the Jacobian-weighted distribution $\mathcal{J}f_s$.
+
+\subsection{Representation}
+We use the representation already used by Gkeyll: $\Apar$ is treated
+\emph{symplectically} (it enters $\Bstar$ and $\dot\vpar$ through $\partial_t\Apar$), while
+$\phi$ and $\dBpar$ enter the \emph{Hamiltonian}~\cite{BrizardHahm2007}. In the drift-kinetic
+(long-wavelength) limit that Gkeyll uses for $\Apar$ (no gyroaverage of $\Apar$; Pad\'e FLR
+optional for $\phi$ only), the gyroaverage $\langle\dBpar\rangle \to \dBpar$ and the gyrocenter
+Hamiltonian is simply $\mu$ times the perturbed field magnitude,
+$|\mathbf{B}_0+\delta\mathbf{B}| = B_0 + \dBpar + O(\delta B^2)$:
+\begin{equation}
+  H_s = \frac{1}{2} m_s \vpar^2 + \mu\left(B_0 + \new{\dBpar}\right) + q_s \phi .
+  \label{eq:hamil}
+\end{equation}
+With gyroaveraging, $\mu\dBpar \to \mu\langle\dBpar\rangle$ where
+$\langle\cdot\rangle$ is the $2J_1(b)/b$ operator, $b=k_\perp v_\perp/\Omega_s$;
+this is exactly the $\frac{m_s v_\perp^2}{q_s B}\frac{J_1(b_s)}{b_s}\dBpar$ term inside the
+brackets of Eq.~(1) of Ref.~\cite{Kennedy2024}. FLR for $\dBpar$ is not implemented (Sec.~\ref{sec:phases}).
+
+\subsection{Equations of motion}
+$\Bstar$ and $\Bparstar$ are \emph{unchanged}: in the parallel-symplectic representation only
+$\Apar\bhat$ enters the symplectic part,
+\begin{equation}
+  \Bstar = \mathbf{B}_0 + \frac{m_s\vpar}{q_s}\nabla\times\bhat + \nabla\times(\Apar\bhat),
+  \qquad \Bparstar = \bhat\cdot\Bstar .
+\end{equation}
+The trajectories are those of the existing EM app with $\nabla H$ picking up the new term:
+\begin{align}
+  \dot{\mathbf{R}} &= \frac{\Bstar}{m_s\Bparstar}\frac{\partial H_s}{\partial\vpar}
+     + \frac{\bhat}{q_s\Bparstar}\times\nabla H_s
+   = \vpar\frac{\Bstar}{\Bparstar}
+     + \frac{\bhat}{q_s\Bparstar}\times\Big(q_s\nabla\phi + \mu\nabla B_0 + \new{\mu\nabla\dBpar}\Big),
+  \label{eq:Rdot}\\
+  \dot\vpar &= -\frac{\Bstar}{m_s\Bparstar}\cdot\nabla H_s - \frac{q_s}{m_s}\frac{\partial\Apar}{\partial t}
+   = -\frac{\Bstar}{m_s\Bparstar}\cdot\Big(q_s\nabla\phi + \mu\nabla B_0 + \new{\mu\nabla\dBpar}\Big)
+     - \frac{q_s}{m_s}\frac{\partial\Apar}{\partial t}.
+  \label{eq:vpardot}
+\end{align}
+The new terms are the $\dBpar$ correction to the $\nabla B$ drift and to the mirror force.
+No $\partial_t\dBpar$ appears anywhere: $\dBpar$ is a Hamiltonian field like $\phi$, not a
+symplectic one like $\Apar$. This is the central structural fact of the
+implementation: $\dBpar$ is computed from $f$ at the start of each RK stage, exactly like $\phi$,
+and needs no Ohm's-law-style second pass.
+
+\subsection{Field equations}
+Quasineutrality and Amp\`ere/Ohm are the existing ones~\cite{Mandell2020}:
+\begin{align}
+  -\nabla_\perp\cdot\Big(\sum_s \frac{m_s n_{s0}}{B_0^2}\nabla_\perp\phi\Big) &= \sum_s q_s\!\int\! d^3v\, f_s,\\
+  -\frac{1}{\mu_0}\nabla_\perp^2\Apar &= \sum_s q_s\!\int\! d^3v\, \vpar f_s,
+  \qquad
+  \Big(-\frac{1}{\mu_0}\nabla_\perp^2 + \sum_s\frac{q_s^2 n_s}{m_s}\Big)\frac{\partial\Apar}{\partial t}
+   = \sum_s q_s\!\int\! d^3v\,\vpar\Big(\frac{\partial f_s}{\partial t}\Big)^{\!*}.
+\end{align}
+The new equation is perpendicular Amp\`ere's law in the long-wavelength limit, i.e.\ local
+perpendicular pressure balance:
+\begin{equation}
+  \new{\dBpar = -\frac{\mu_0}{B_0}\,\delta P_\perp,\qquad
+  \delta P_\perp = P_\perp - \langle P_\perp\rangle_{\rm fs},\qquad
+  P_\perp = \sum_s \int d^3v\, \mu B_0\, f_s = \sum_s \frac{m_s}{2} M_{2\perp,s},}
+  \label{eq:dBpar}
+\end{equation}
+with $M_{2\perp,s} = \int d^3v\, v_\perp^2 f_s$ the moment Gkeyll already computes
+(\code{GKYL\_F\_MOMENT\_M2PERP}) and $\langle\cdot\rangle_{\rm fs}$ the flux-surface average
+(see the paragraph on the reference pressure below). Equivalently
+$\dBpar/\mu_0 = -\sum_s\int d^3v\,\mu\,\delta f_s$.
+
+\paragraph{Correspondence with Ref.~\cite{Kennedy2024}.}
+Their perpendicular Amp\`ere's law,
+$\dBpar/B = -(\mu_0/B^2)\sum_s\int d^3v\, g_s m_s v_\perp^2 J_1(b_s)/b_s$, is
+$\dBpar = -(\mu_0/B)\sum_s\int d^3v\,\tfrac{1}{2}m_s v_\perp^2\,[2J_1/b]\,g_s$ and reduces to
+Eq.~\eqref{eq:dBpar} for $b\to0$ (their Eq.~(4)). Their $g_s$ is the non-adiabatic part; the
+Boltzmann part $-(q_s\phi/T_s)F_{0s}$ contributes $-q_s n_{0s}\phi$ to $\delta P_\perp$, which sums
+to zero by quasineutrality, so using the full $\delta f_s$ in Eq.~\eqref{eq:dBpar} is equivalent.
+
+\paragraph{Pull-back correction: the $(1+\beta_\perp)$ factor.}
+\label{par:pullback}
+Eq.~\eqref{eq:dBpar} must be evaluated with the \emph{physical} perpendicular pressure, and in
+the Hamiltonian representation the gyrocenter distribution $F$ that Gkeyll evolves is not the
+particle distribution. With $\dBpar$ in $H$, the gyrocenter magnetic moment is the true adiabatic
+invariant $\bar\mu = m v_\perp^2/2(B_0+\dBpar)$, while the phase-space Jacobian stays $B_0$
+(the symplectic part is unperturbed). Hence $m v_\perp^2/2 = \bar\mu(B_0+\dBpar)$ and
+$d^3v = (2\pi (B_0+\dBpar)/m)\,d\vpar d\bar\mu$, so the physical pressure and the moment Gkeyll
+computes (\code{M2PERP} with the geometry's $B_0$ and the Jacobian $\mathcal{J}_cB_0$) are related
+by the kinematic identity
+\begin{equation}
+  P_\perp^{\rm phys} = \Big(1+\frac{\dBpar}{B_0}\Big)^2 P_\perp^{\rm gc},\qquad
+  P_\perp^{\rm gc} \equiv \sum_s\frac{m_s}{2}M_{2\perp,s}[F_s]
+  \quad\Longrightarrow\quad
+  \delta P_\perp^{\rm phys} = \delta P_\perp^{\rm gc} + 2\langle P_\perp\rangle_{\rm fs}\frac{\dBpar}{B_0}
+  \label{eq:pullback}
+\end{equation}
+(equivalently $\delta f^{\rm particle} = \delta F + (\mu\dBpar/T_\perp)F_0$ for a Maxwellian, and
+$n^{\rm particle} = (B/B_0)\,N^{\rm gc}$, which is why quasineutrality needs no correction).
+Pressure balance therefore reads, to first order in $\dBpar/B_0$,
+\begin{equation}
+  \new{\big(1+\beta_\perp\big)\,\dBpar = -\frac{\mu_0}{B_0}\Big(P_\perp^{\rm gc}-\langle P_\perp^{\rm gc}\rangle_{\rm fs}\Big),
+  \qquad \beta_\perp = \frac{2\mu_0\langle P_\perp\rangle_{\rm fs}}{B_0^2} = \sum_s\beta_{\perp s}.}
+  \label{eq:dBpar_corr}
+\end{equation}
+This is the full-$f$ counterpart of the $\sum_s\hat\chi_{s,\perp}$-type factor of $\delta f$
+codes: in the $h$ formulation the term $(\mu\dBpar/T)F_0$ is inside $h$, so the pressure balance
+written with $h$ carries no explicit factor; in the Hamiltonian gyrocenter formulation the same
+term sits in the pull-back, not in $F$. Two independent checks fix the factor: (i) in the static
+limit $\omega\to0$ an isotropic plasma has $\delta F = -(q\phi+\mu\dBpar)F_0/T$, so
+$\delta P_\perp^{\rm gc} = -\sum_s n_s q_s\phi - 2\sum_s n_sT_s\,\dBpar/B_0$; with quasineutrality
+Eq.~\eqref{eq:dBpar_corr} gives $\dBpar(1+\beta_\perp-\beta_\perp)=0$, the correct static
+response, whereas without the factor one gets $\dBpar(1-\beta_\perp)=0$, i.e.\ a spurious
+singularity at $\beta_\perp=1$; (ii) for a bi-Maxwellian the same limit gives the mirror
+threshold $\sum_s\beta_{\perp s}(T_{\perp s}/T_{\parallel s}-1)=1$ with the factor and
+$\sum_s\beta_{\perp s}T_{\perp s}/T_{\parallel s}=1$ without it. \textbf{The code on the branch
+implements Eq.~\eqref{eq:dBpar} without the $(1+\beta_\perp)$ factor}; the correction is a
+weak division of the present result by $1+2\mu_0\langle P_\perp^{\rm gc}\rangle_{\rm fs}/B_0^2$
+(a conf-space field, like the \code{kSq} of Ohm's law), and the energy diagnostic becomes
+$-\int(1+\beta_\perp)\dBpar^2/2\mu_0$ (Sec.~\ref{sec:energy}). The slab tests of
+Sec.~\ref{sec:physverif} quantify the error of the uncorrected form.
+
+\paragraph{Reference pressure.}
+Perpendicular Amp\`ere's law fixes $\dBpar$ only up to the equilibrium: the geometry supplied to
+Gkeyll (\code{mapc2p}, EFIT, Miller) already contains whatever diamagnetic depression the
+equilibrium pressure produces, so only the \emph{fluctuating} pressure may source $\dBpar$.
+This is the $\dBpar$ analogue of \code{polarization\_density} in quasineutrality and of
+\code{remove\_em\_zonal} for $\Apar$. The reference is the flux-surface average: at every stage
+the flux-surface average of $\dBpar$ (the $y$-$z$ average in a flux tube, the $z$ average in 1x)
+is removed, so only the non-zonal pressure sources $\dBpar$, as in linear $\delta f$ codes. This
+leaves the energy theorem below intact because the average is a projection that commutes with
+time differentiation, and it needs no state to be stored for restarts.
+
+\subsection{Energy conservation}
+\label{sec:energy}
+Let $K = \sum_s\int d^3\!R\,d^3v\,(\tfrac12 m_s\vpar^2 + \mu B_0) f_s$, which is what Gkeyll's
+Hamiltonian moment (\code{GKYL\_F\_MOMENT\_HAMILTONIAN}) computes. Using
+$\partial_t\sum_s\!\int H_s f_s = \sum_s\!\int f_s\partial_t H_s - \int J_\parallel\partial_t\Apar$
+(Liouville plus the symplectic $\Apar$ term), the three field equations, static
+$\epsilon_\perp$ and $B_0$, and the fact that the flux-surface average commutes with $\partial_t$,
+one finds
+\begin{equation}
+  \frac{d}{dt}\left[
+    K + \frac12\!\int\!\epsilon_\perp|\nabla_\perp\phi|^2
+      + \int\!\frac{|\nabla_\perp\Apar|^2}{2\mu_0}
+      \;\new{-\int\!\frac{\dBpar^2}{2\mu_0}}
+  \right] = 0 .
+  \label{eq:energy}
+\end{equation}
+With the pull-back factor of Eq.~\eqref{eq:dBpar_corr} the last term becomes
+$-\int(1+\beta_\perp)\dBpar^2/2\mu_0$, since then $\sum_s\!\int\mu\,\delta F_s = -(1+\beta_\perp)\dBpar/\mu_0$.
+The sign of the $\dBpar$ term is \emph{negative} when the kinetic energy is defined with $B_0$;
+it follows from $\int(\sum_s\!\int\mu f_s)\,\dBpar = -\int\dBpar^2/\mu_0$ (the zonal part of the
+pressure drops out since $\dBpar$ has no zonal component), i.e.\ from the diamagnetic (negative)
+response in Eq.~\eqref{eq:dBpar}. Written with the physical particle energy
+$K' = K + \sum_s\int\mu\dBpar f_s$ the invariant is $K' + \int\dBpar^2/2\mu_0$, the usual form.
+The diagnostics use the first convention (Sec.~\ref{sec:impl}).
+
+Discretely, Eq.~\eqref{eq:energy} holds under the same conditions as for $\phi$ in
+Refs.~\cite{Hakim2020,Mandell2020}: (i) the Hamiltonian must be single-valued on cell surfaces,
+so $\dBpar$ must be $C^0$-continuous (projected onto the continuous FEM basis, as $\phi$ is);
+(ii) the moment $\int\mu f_s$ used in Eq.~\eqref{eq:dBpar} must be the DG weak moment of the same
+$\mathcal{J}f_s$ that the advection operator sees; (iii) Eq.~\eqref{eq:dBpar} must be imposed as a
+weak equality on that continuous space.
+
+\section{Fit to the Existing Code}
+\label{sec:fit}
+Facts about the Gkeyll EM app that shape the implementation:
+\begin{itemize}
+  \item \textbf{$B$ enters the kernels only through $H$.} In every collisionless kernel
+  (\code{dg\_gyrokinetic\_vol\_*}, \code{dg\_gyrokinetic\_add\_apar\_vol\_*},
+  \code{gk\_collisionless\_flux\_surf\{x,y,z,vpar\}\_*}) the modal \code{bmag} argument is used
+  only to build \code{hamil[]}; the $1/B$ prefactors and $\Bparstar$ come from the nodal geometry
+  structs (\code{gkdgv[].bmag}, \code{B3}, \code{dualcurlbhat}). Therefore passing
+  $B_0+\dBpar$ in place of \code{bmag} implements Eqs.~\eqref{eq:Rdot}--\eqref{eq:vpardot}
+  exactly, with \emph{no Maxima regeneration}.
+  \item \textbf{Two-pass RHS} (\code{gyrokinetic.c}, \code{gyrokinetic\_rhs}): pass~1 computes
+  configuration-space surface fluxes plus the ES and $\Apar$ volume terms (RHS$^*$), Ohm's law is
+  solved from the $M_1$ moment of RHS$^*$, pass~2 adds the $\vpar$ surface flux and the
+  $\partial_t\Apar$ volume term. $\dBpar$ is known before pass~1 (it depends on $f$ only), enters
+  $H$ in both passes, and its mirror-force contribution to $\sum_s q_s\int\vpar(\partial_t f_s)^*$
+  is picked up automatically by the existing volume term. Ohm's law needs no modification.
+  \item \textbf{Moment.} \code{gyrokinetic\_M2\_perp\_*} returns $\int d^3v\,v_\perp^2 f$ with the
+  velocity Jacobian $2\pi B_0/m$ and the configuration-space Jacobian $\mathcal{J}_c$ carried with
+  $f$, i.e.\ $\mathcal{J}_c M_{2\perp}$. Since $\int d^3v\,\mu f = (m/2B_0)M_{2\perp}$, the DG
+  $\dBpar$ is obtained by a weak division (\code{gkyl\_dg\_div\_op\_range}) of
+  $-\mu_0\sum_s (m_s/2)\mathcal{J}_cM_{2\perp,s}$ by \code{geo\_int.jacobtot} $=\mathcal{J}_cB_0$,
+  which removes the Jacobian and the $B_0$ in one operation.
+  \item \textbf{Continuity.} $\phi$ is made continuous by the perpendicular FEM solve plus
+  \code{fem\_parproj} along $z$ (\code{gk\_field\_2x3x.c}); in 1x by
+  \code{gk\_field\_fem\_projection\_par}. $\dBpar$ needs the same. The moment and the weak
+  division by $\mathcal{J}_cB_0$ produce a discontinuous DG field, but $\dBpar$ enters the
+  Hamiltonian, and the DG scheme requires $H$ to be single valued on cell surfaces: that is what
+  gives a unique surface velocity $\alpha$ at each interface and what the discrete energy theorem
+  relies on. Along $z$ an unweighted \code{fem\_parproj} does the projection. In the
+  perpendicular plane Gkeyll has no stand-alone projection onto the continuous FEM basis, so the
+  existing Helmholtz solver is used as one:
+  \begin{equation}
+    -\nabla_\perp\!\cdot(\epsilon\nabla_\perp\dBpar) - k^2\,\dBpar = \dBpar^{\rm DG}
+    \quad\text{with}\quad \epsilon = 0,\ k^2 = -1
+    \qquad\Longleftrightarrow\qquad
+    \int\psi\,\dBpar\,dV = \int\psi\,\dBpar^{\rm DG}\,dV\ \ \forall\psi ,
+    \label{eq:proj}
+  \end{equation}
+  i.e.\ with the Laplacian weight set to zero the weak form reduces to the mass-matrix ($L^2$)
+  projection of the DG source onto the continuous space; $k^2=-1$ only fixes the sign convention of
+  the solver. This is not a physics equation: it changes nothing but the inter-cell continuity, and
+  the unit test checks that the projected $\dBpar$ still equals $-\mu_0\delta P_\perp/B_0$ cell by
+  cell and is continuous at shared nodes. Non-periodic perpendicular boundaries use the DG value at
+  the boundary (varying Dirichlet BC). Note that Eq.~\eqref{eq:proj} is the same operator as the
+  Pad\'e FLR inversion (\code{gk\_field\_flr.c}, $\epsilon=\rho^2/2$, $k^2=-1$), so a future
+  gyroaverage of $\dBpar$ amounts to setting $\epsilon\neq0$ in this call. A dedicated
+  perpendicular $L^2$-projection updater would avoid assembling a zero stiffness matrix and the
+  overlap between the $z$ projection and the deflated solver's nodal reconstruction in $z$; it is the
+  natural follow-up if the $\epsilon=0$ trick is not wanted. Because Eq.~\eqref{eq:dBpar} has no
+  derivatives, no Poisson solve is needed in the drift-kinetic limit: the solve is a moment, an
+  axpy, a flux-surface average and a projection.
+  \item \textbf{FLR.} There is no Bessel/$J_0$ machinery; FLR is a Pad\'e Helmholtz inversion
+  (\code{gk\_field\_flr.c}, \code{gk\_species.c}) for $\phi$ and the moments, and
+  $\Apar$ is not gyroaveraged at all. A $2J_1(b)/b$ operator for $\dBpar$ has no counterpart and
+  would make $\dBpar$ more accurate than $\Apar$; $\dBpar$ is therefore treated at the same
+  (drift-kinetic) level as $\Apar$. When \code{flr.type} is set, the $M_{2\perp}$ moment is
+  gyroaveraged with the same Pad\'e operator as $M_0$ and $M_1$, for consistency.
+\end{itemize}
+
+\section{Implementation}
+\label{sec:impl}
+The code lives in \code{gyrokinetic/apps/gk\_field.c} (common part),
+\code{gk\_field\_1x.c} and \code{gk\_field\_2x3x.c} (dimension-specific objects), following the
+layout used for $\phi$ and $\Apar$.
+\begin{enumerate}
+  \item \textbf{Activation.} The EM effects are selected per species through
+  \code{collisionless.type} (\code{core/zero/gkyl\_eqn\_type.h}):
+  \code{GKYL\_GK\_COLLISIONLESS\_EM\_BPERP} ($\Apar$ only, the previous EM behavior),
+  \code{\_EM\_BPAR} ($\dBpar$ only, no Amp\`ere/Ohm solve) and \code{\_EM} (both). The field IDs
+  \code{GKYL\_GK\_FIELD\_EM\_BPERP}, \code{\_EM\_BPAR}, \code{\_EM} mirror them; \code{gk\_field\_new}
+  sets \code{gkfield\_id} to the union of what the input field ID and the species request, and all
+  EM branches test \code{gkfield\_id} directly. The field solves $\Apar$ if any species has
+  $B_\perp$ and computes $\dBpar$ if any species has $B_\parallel$; all species contribute to
+  $\delta P_\perp$ (as to charge and current), but only species with $B_\parallel$ see $\dBpar$ in
+  their Hamiltonian. \code{mu0>0} is required; EM with a Boltzmann or adiabatic field ID asserts.
+  The Lua names \code{GKCollisionlessEMBperp}/\code{EMBpar} and
+  \code{ElectromagneticBperp}/\code{Bpar} are registered. Existing EM inputs and unit tests were
+  moved to \code{\_EM\_BPERP} so their behavior is unchanged.
+
+  \item \textbf{Field state} (\code{gkyl\_gyrokinetic\_priv.h}, \code{struct gk\_field}):
+  \code{dbpar\_src} ($-\mu_0\sum_s (m_s/2)\mathcal{J}_cM_{2\perp,s}$), \code{dbpar\_dg}
+  (discontinuous), \code{dbpar} (continuous), \code{dbpar\_host}, \code{bmag\_tot}
+  $=B_0+\dBpar$, \code{dbpar\_div\_mem}, \code{dbpar\_parproj}, the energy objects
+  (\code{calc\_dbpar\_energy}, \code{dbpar\_energy\_fac}, \code{integ\_dbpar\_energy}), and the
+  function pointers \code{dbpar\_remove\_zonal\_func}, \code{dbpar\_proj\_perp\_func},
+  \code{calc\_dbpar\_energy\_func}. In 1x: \code{dbpar\_avg\_op}, the reduction buffers and
+  \code{dbpar\_jacob\_int} for the $z$ average. In 2x/3x: \code{dbpar\_perp\_eps} ($=0$),
+  \code{dbpar\_perp\_kSq} ($=-1$) and \code{dbpar\_perp\_proj} for Eq.~\eqref{eq:proj}, and the
+  flux-surface-average objects shared with \code{remove\_em\_zonal}
+  (\code{gk\_field\_fs\_avg\_new/release}, \code{gk\_field\_remove\_zonal\_component}). When
+  $\dBpar$ is off, \code{bmag\_tot} is an acquired alias of \code{geo\_corn.bmag} and nothing else
+  is allocated, so the ES and $\Apar$-only paths are unchanged.
+
+  \item \textbf{Species state} (\code{gk\_species.c}): \code{m2perp} and \code{m2perp\_gyroavg}
+  are created only when the field has $B_\parallel$; \code{bmag\_tot} is an acquired alias of the
+  field's \code{bmag\_tot} for species with $B_\parallel$ and of \code{geo\_corn.bmag} otherwise.
+
+  \item \textbf{Field solve} (\code{gk\_field\_calc\_dbpar}): accumulate \code{dbpar\_src}
+  (gyroaveraging $M_{2\perp}$ if \code{flr.type} is set), weak-divide by \code{jacobtot} into
+  \code{dbpar\_dg}, remove the flux-surface average, project along $z$ and (2x/3x) in the
+  perpendicular plane into \code{dbpar}, and set \code{bmag\_tot} $=$ \code{geo\_corn.bmag}
+  $+$ \code{dbpar}. It is called inside \code{gyrokinetic\_calc\_field\_enabled} right after the
+  $\phi$ solve, i.e.\ before pass~1 at every RK stage, at initialization, and on restart. The 1x
+  $z$ average is computed with \code{gkyl\_array\_integrate} of $\mathcal{J}_c\dBpar$ divided by
+  $\int\mathcal{J}_c$. No reference state is stored, so restarts need nothing extra.
+
+  \item \textbf{Advection.} \code{struct gkyl\_dg\_gyrokinetic\_auxfields} gained a \code{bmag}
+  member and \code{gkyl\_gk\_collisionless\_flux\_surf} a \code{bmag} argument (host and CUDA);
+  the volume kernel dispatcher and the two fetch sites of the flux updater read \code{bmag} from
+  them instead of from the geometry. The pointer always points to a valid array (the species'
+  \code{bmag\_tot}; the equation object defaults to the geometry's $B_0$), so the kernels carry no
+  fallback logic. Kernels, Maxima sources, the passive-species updaters, and the LBO/BGK/Maxwellian
+  projection kernels (which keep $B_0$; their $O(\dBpar/B_0)$ corrections are out of scope) are
+  untouched.
+
+  \item \textbf{Energy diagnostic.} \code{integ\_dbpar\_energy} $= -\int\mathcal{J}_c\dBpar^2/2\mu_0$
+  (Eq.~\eqref{eq:energy}), computed with \code{gkyl\_array\_integrate}
+  (\code{GKYL\_ARRAY\_INTEGRATE\_OP\_SQ\_WEIGHTED}, weight $-\mathcal{J}_c/2\mu_0$) from
+  \code{gk\_field\_calc\_energy\_enabled}, and written as \code{<name>-dbpar\_energy.gkyl} next to
+  \code{-apar\_energy.gkyl}. With the $\Apar$ energy stored with its $-1$ (``to be consistent with
+  ES energy''), the conserved quantity is $K - W_\phi^{\rm stored} - W_{\Apar}^{\rm stored} +
+  W_{\dBpar}^{\rm stored}$ where $K$ is the integrated Hamiltonian moment.
+
+  \item \textbf{I/O and timers.} \code{<name>-dbpar\_N.gkyl} frames are written with the
+  \code{apar} frames (host copy for GPU runs); a \code{field\_dbpar\_tm} timer is reported with
+  the field-solve timers.
+\end{enumerate}
+
+\section{Verification}
+\label{sec:verif}
+\subsection{Done}
+\begin{enumerate}
+  \item \textbf{Unit test} \code{gyrokinetic/unit/ctest\_gk\_dbpar.c} (1x2v slab, $\beta=0.02$,
+  $\delta n/n = 0.1\cos k_zz$ on both species):
+  \emph{pressure\_balance} checks $\dBpar = -\mu_0\delta(\sum_s n_sT_s)/B_0$ cell by cell to 2\%
+  (the tolerance of the velocity-space discretization), \code{bmag\_tot} $=B_0+\dBpar$, and
+  continuity of $\dBpar$ at shared nodes; \emph{zero\_average} checks that the $z$ average of
+  $\dBpar$ vanishes; \emph{time\_stepping} takes 20 RK3 steps and checks that $\dBpar$ stays
+  finite and small, that the stored $\dBpar$ energy is negative, and that the invariant of
+  Eq.~\eqref{eq:energy} changes by less than 1\% of the largest change of its components;
+  \emph{species\_types} checks the $B_\parallel$-only type (no $\Apar$ solve, pressure balance
+  holds, the app steps) and the $B_\perp$-only type (no $\dBpar$, \code{bmag\_tot} aliases
+  $B_0$).
+  \item \textbf{Regression inputs} \code{rt\_gk\_em\_dbpar\_slab\_\{1x2v,2x2v\}\_p1.c}: the
+  \code{rt\_gk\_em\_alfven} slabs with a quasineutral density perturbation on both species, which
+  drives the slow branch coupled to $\dBpar$ through the mirror force. Checked with postgkyl: the
+  $\dBpar$ frames agree with $-\mu_0\delta P_\perp/B_0$ rebuilt from the \code{M2perp}
+  diagnostics to 0.1\% (1x2v) and 0.02\% (2x2v); in 2x2v the perpendicular continuity jump and
+  the spurious $x$ variation are at round-off; the invariant drifts by $6\times10^{-10}$ (1x2v)
+  and $3\times10^{-12}$ (2x2v) while the components change by $10^{-5}$ and $2\times10^{-7}$.
+  \item \textbf{Sign of the energy term.} In a $\beta_e\simeq0.2$ variant of the 1x2v slab the
+  $\dBpar$ energy reaches $1.5\times10^2$~J while the invariant drifts by $7\times10^{-6}$~J;
+  using the opposite sign or dropping the term breaks conservation at the $10^2$~J level,
+  confirming Sec.~\ref{sec:energy}.
+  \item \textbf{Runs with $\dBpar$ off} (\code{rt\_gk\_em\_alfven\_1x2v\_p1}, electrostatic
+  adiabatic 1x2v and LAPD 3x2v, the existing gyrokinetic unit tests) behave as before.
+\end{enumerate}
+\subsection{Remaining}
+\begin{enumerate}
+  \item \textbf{Slab dispersion.} In a homogeneous slab in the drift-kinetic limit the shear
+  Alfv\'en branch decouples from $\dBpar$, so \code{rt\_gk\_em\_alfven\_1x2v\_p1} must give the
+  same $\omega$ with $\dBpar$ on. The $\delta n$ perturbation of the \code{dbpar\_slab} inputs
+  excites the kinetic slow/mirror branch, whose frequency and Landau damping follow from the
+  linearized Sec.~\ref{sec:model} system (the $k_\perp\rho\to0$ limit of the dispersion relation
+  in Howes \emph{et al.}~\cite{Howes2006}). This is the cleanest quantitative test of the
+  mirror-force term and has not been done yet.
+  \item \textbf{KBM.} \code{rt\_gk\_kbm\_3x2v\_p1} uses $B=B_0R_0/R$ (vacuum-like
+  \code{mapc2p}), for which $\omega_{\nabla B}=\omega_\kappa$; by Eq.~\eqref{eq:kennedyA} the
+  leading-order $\dBpar$ effect on its growth rate should be small. Use it as a ``no large change''
+  check only. The physics test needs a $\beta'$-consistent geometry (EFIT/numerical equilibrium, or
+  Miller with $\beta'$): compare growth rates with $\dBpar$ on against GENE/GS2 with $\dBpar$ via
+  \code{pyrokinetics}, as in Ref.~\cite{Kennedy2024}, and against the same codes' MHD-1 proxy with
+  $\dBpar$ off. This is the acceptance test for the feature.
+  \item \textbf{GPU.} The CUDA sources were edited but not compiled or run; GPU/CPU equivalence
+  with $\dBpar$ on is untested.
+  \item \textbf{Restart} with $\dBpar$ on (nothing $\dBpar$-specific is stored, so this should be
+  trivial, but it is untested).
+\end{enumerate}
+
+\section{Physics Verification Plan}
+\label{sec:physverif}
+The tests above check the implementation against itself (pressure balance, continuity, energy).
+The following compare the frequency, damping and thresholds of waves that exist only because of
+$\dBpar$ with closed-form and literature results, in order of cost. Tests 1--3 use the 1x2v/2x2v
+slab already in \code{rt\_gk\_em\_dbpar\_slab\_*}; test 4 needs toroidal geometry.
+
+\subsection{Reference: drift-kinetic slab dispersion relation}
+\label{sec:disp}
+Uniform slab, $\mathbf{B}_0=B_0\hat z$, Maxwellian species with $n_s,T_s$, perturbation
+$\propto e^{i(k_\parallel z + k_\perp x - \omega t)}$, no FLR (this is exactly Gkeyll's model with
+\code{kperpSq}, and the $k_\perp\rho_s\to0$ limit of Howes \emph{et al.}~\cite{Howes2006}). With
+$\xi_s = \omega/(\sqrt2 k_\parallel v_{ts})$, $v_{ts}^2=T_s/m_s$, $Z$ the plasma dispersion
+function and $W_s = 1+\xi_sZ(\xi_s)$, the linearized particle responses are
+\begin{align}
+  \delta n_s &= -\frac{n_s}{T_s}\Big[W_s\big(q_s\phi - \tfrac{\omega}{k_\parallel}q_s\Apar\big)
+                 + (W_s-1)\tfrac{T_s}{B_0}\dBpar\Big],\\
+  J_\parallel &= -\sum_s\frac{n_sq_s}{T_s}\frac{\omega}{k_\parallel}W_s
+                 \Big[q_s\phi - \tfrac{\omega}{k_\parallel}q_s\Apar + \tfrac{T_s}{B_0}\dBpar\Big],\\
+  \delta P_\perp^{\rm phys} &= -\sum_s n_s\Big[W_s\big(q_s\phi - \tfrac{\omega}{k_\parallel}q_s\Apar\big)
+                 + 2(W_s-1)\tfrac{T_s}{B_0}\dBpar\Big],
+\end{align}
+and the dispersion relation is $\det\mathsf{M}(\omega)=0$ for the $3\times3$ system
+\begin{equation}
+  \sum_s\frac{m_sn_s}{B_0^2}k_\perp^2\phi = \sum_s q_s\delta n_s,\qquad
+  \frac{k_\perp^2}{\mu_0}\Apar = J_\parallel,\qquad
+  \dBpar = -\frac{\mu_0}{B_0}\delta P_\perp^{\rm phys}.
+  \label{eq:disp}
+\end{equation}
+Its roots (found with \code{scipy.special.wofz}) are the reference for tests 1--2; Gkeyll must
+reproduce them with Eq.~\eqref{eq:dBpar_corr}. The uncorrected code corresponds to replacing
+$\delta P^{\rm phys}_\perp$ by $\delta P^{\rm gc}_\perp = \delta P^{\rm phys}_\perp - 2\sum_s n_sT_s\dBpar/B_0$
+in the last equation, which is the second reference curve to plot.
+
+\subsection{Tests}
+\begin{enumerate}
+  \item \textbf{Slow (ion-acoustic) wave frequency versus $\beta_e$.} For cold ions and
+  isothermal electrons ($T_i\ll T_e$, $\xi_e\ll1\ll\xi_i$) Eq.~\eqref{eq:disp} has the closed form
+  \begin{equation}
+    \omega^2 = \frac{k_\parallel^2c_s^2}{1 + k_\perp^2\rho_s^2 + \beta_e/2},\qquad
+    c_s^2=\frac{T_e}{m_i},\ \rho_s=\frac{c_s}{\Omega_i},\ \beta_e = \frac{2\mu_0n_0T_e}{B_0^2},
+    \label{eq:slow}
+  \end{equation}
+  the kinetic-MHD slow mode ($\gamma=1$, $k_\perp\gg k_\parallel$). The $\beta_e/2$ is entirely
+  due to $\dBpar$ (electron perpendicular pressure balanced by magnetic compression); without the
+  pull-back factor the code gives $(\beta_e/2)/(1-\beta_e)$ instead, i.e.\ a $1\%$ frequency
+  error at $\beta_e=0.2$, $10\%$ at $0.5$, and a singularity at $\beta_e\to1$. Procedure: the
+  \code{dbpar\_slab\_1x2v} input with $\tau=T_i/T_e=0.1$ (weak ion Landau damping), $k_\perp\rho_s=0.3$,
+  $\delta n/n=10^{-3}\cos k_\parallel z$ on both species, $\beta_e\in\{0.01,0.05,0.1,0.2,0.5,0.8\}$
+  (vary $n_0$ at fixed $B_0,T_e$); extract $\omega$ and $\gamma$ from the $k_\parallel$ Fourier
+  component of \code{dbpar} or of $M_0$ (fit $A e^{\gamma t}\cos(\omega t+\varphi)$ over a few
+  periods, or the zero crossings); plot $\omega/k_\parallel c_s$ and $\gamma$ against $\beta_e$
+  with Eq.~\eqref{eq:slow}, the finite-$\tau$ root of Eq.~\eqref{eq:disp}, and the uncorrected
+  curve. Repeat one $\beta_e$ with $\tau\in\{0.1,0.3,1\}$ to check the Landau damping, and with
+  $k_\perp\rho_s\in\{0.1,0.3,1\}$ for the polarization term. Cost: seconds per run in 1x2v.
+  \item \textbf{Shear Alfv\'en/KAW branch.} Same runs, initialized with the \code{alfven}
+  perturbation: the KAW root of Eq.~\eqref{eq:disp} depends on $\dBpar$ only through the ion
+  compression term $(W_i-1)T_i\dBpar/B_0$ in $\delta n_i$, so its frequency must move by
+  $O(\beta)$ relative to the $\dBpar$-off run and agree with the root. This also checks that the
+  Alfv\'en and slow branches are correctly coupled (they decouple only as $\beta\to0$).
+  \item \textbf{Mirror instability (bi-Maxwellian).} With \code{GKYL\_PROJ\_BIMAXWELLIAN} and
+  $T_{\perp s}\neq T_{\parallel s}$, the long-wavelength ($k_\perp\gg k_\parallel$, $k_\perp\rho\to0$)
+  mirror mode is a pure $\dBpar$ effect: it does not exist at all with $\dBpar$ off. Threshold
+  $\Lambda\equiv\sum_s\beta_{\perp s}(T_{\perp s}/T_{\parallel s}-1) = 1$ (Hasegawa 1969;
+  Southwood \& Kivelson 1993), growth rate near threshold
+  $\gamma \simeq \sqrt{2/\pi}\,|k_\parallel| v_{t\parallel i}\,(\Lambda-1)\,\big/\,\big[\ldots\big]$
+  from the drift-kinetic limit of Eq.~\eqref{eq:disp} with bi-Maxwellian $W$ functions (the
+  $\omega\to0$ non-resonant response gives the threshold, the resonant $\xi\to0$ part the growth
+  rate; see Hellinger 2007 for the closed form with electrons). Procedure: 2x2v slab with
+  $k_\perp\gg k_\parallel$ (or 1x2v with \code{kperpSq}), ions with $T_{\perp i}/T_{\parallel i}\in[1,3]$,
+  isotropic electrons, scan $\Lambda$ across 1; measure $\gamma$ from the $\dBpar$ energy; check
+  the threshold and the slope $d\gamma/d\Lambda$. This is the most sensitive test of the
+  $(1+\beta_\perp)$ factor: without it the threshold moves to $\sum_s\beta_{\perp s}T_{\perp s}/T_{\parallel s}=1$,
+  i.e.\ an isotropic plasma would go unstable at $\beta_\perp=1$. Note that the bi-Maxwellian
+  projection and the LBO/BGK operators use $B_0$; run collisionless.
+  \item \textbf{KBM in toroidal geometry (acceptance test, Ref.~\cite{Kennedy2024}).}
+  Linear growth rate $\gamma(k_y\rho_i)$ of the kinetic ballooning mode in a $\beta'$-consistent
+  local equilibrium (Miller with $\beta'$, or an EFIT/numerical equilibrium in Gkeyll's
+  \code{efit} geometry) at $\beta\gtrsim0.05$, compared with GENE or GS2 run through
+  \code{pyrokinetics} in three ways: $\dBpar$ on (both codes), $\dBpar$ off, and the MHD-1 proxy
+  in the $\delta f$ code. Since Gkeyll's $\Apar$ and $\dBpar$ are drift-kinetic, restrict the
+  comparison to $k_y\rho_i\lesssim0.1$--$0.2$ where Bessel factors are within a few percent of
+  unity, or turn FLR off in the $\delta f$ code. Kennedy \emph{et al.}\ show the $\dBpar$/MHD-1
+  difference already at small $k_y\rho_i$ and its growth with $\beta'$, which is the parameter
+  dependence to reproduce (their Fig.~2--3). The existing \code{rt\_gk\_kbm\_3x2v\_p1} is not
+  suitable for this (vacuum-like $B=B_0R_0/R$, Sec.~2); it serves only as a ``no large change''
+  check.
+\end{enumerate}
+Order of work: correct Eq.~\eqref{eq:dBpar_corr} in the code and in the energy diagnostic, then
+test~1 (which fails quantitatively without the correction above $\beta_e\sim0.2$), then 3, 2, 4.
+
+\section{Deferred Items}
+\label{sec:phases}
+\begin{description}[nosep]
+  \item[FLR for $\dBpar$.] A Pad\'e approximant of the $\mu$-weighted $\langle 2J_1(b)/b\rangle$,
+  reusing the \code{deflated\_fem\_poisson} Helmholtz solve of Eq.~\eqref{eq:proj} with a nonzero
+  weight (to be derived; note $2J_1(\lambda)/\lambda \simeq 1-\lambda^2/8$ versus
+  $J_0(\lambda)\simeq1-\lambda^2/4$). Only meaningful once $\Apar$ is also gyroaveraged.
+  \item[Lua.] \code{mu0} and \code{ampere\_bcs} are still not exposed in the Lua field table.
+  \item[Multiblock.] \code{gk\_multib\_field.c} has no EM support.
+  \item[Pull-back factor.] Eq.~\eqref{eq:dBpar_corr} is not yet implemented (Sec.~\ref{par:pullback}).
+  \item[Out of scope.] $\dBpar$ in $\Bparstar$ or in $\nabla\times\bhat$ (second order);
+  compressional Alfv\'en waves (excluded by construction, as in Ref.~\cite{Kennedy2024});
+  $\dBpar$ corrections to collision operators and Maxwellian projections; nonlinear
+  $|\mathbf{B}_0+\delta\mathbf{B}|$ beyond first order.
+\end{description}
+
+\begin{thebibliography}{9}
+\bibitem{Kennedy2024} D.~Kennedy, C.~M.~Roach, M.~Giacomin, P.~G.~Ivanov, T.~Adkins, F.~Sheffield,
+  T.~G\"orler, A.~Bokshi, D.~Dickinson, H.~G.~Dudding, B.~S.~Patel,
+  ``On the importance of parallel magnetic-field fluctuations for electromagnetic instabilities in STEP,''
+  \href{https://arxiv.org/abs/2402.10583}{arXiv:2402.10583} (2024).
+\bibitem{BrizardHahm2007} A.~J.~Brizard and T.~S.~Hahm, ``Foundations of nonlinear gyrokinetic theory,''
+  Rev. Mod. Phys. \textbf{79}, 421 (2007).
+\bibitem{Joiner2010} N.~Joiner, A.~Hirose, and W.~Dorland, ``Parallel magnetic field perturbations in
+  gyrokinetic simulations,'' Phys. Plasmas \textbf{17}, 072104 (2010).
+\bibitem{Mandell2020} N.~R.~Mandell, A.~Hakim, G.~W.~Hammett, and M.~Francisquez,
+  ``Electromagnetic full-$f$ gyrokinetics in the tokamak edge with discontinuous Galerkin methods,''
+  J. Plasma Phys. \textbf{86}, 905860109 (2020).
+\bibitem{Hakim2020} A.~Hakim, N.~R.~Mandell, T.~N.~Bernard, M.~Francisquez, G.~W.~Hammett, and E.~L.~Shi,
+  ``Continuum electromagnetic gyrokinetic simulations of turbulence in the tokamak scrape-off layer
+  and laboratory devices,'' Phys. Plasmas \textbf{27}, 042304 (2020).
+\bibitem{Howes2006} G.~G.~Howes, S.~C.~Cowley, W.~Dorland, G.~W.~Hammett, E.~Quataert, and A.~A.~Schekochihin,
+  ``Astrophysical gyrokinetics: basic equations and linear theory,'' Astrophys. J. \textbf{651}, 590 (2006).
+\bibitem{SK1993} D.~J.~Southwood and M.~G.~Kivelson, ``Mirror instability: 1. Physical mechanism of
+  linear instability,'' J. Geophys. Res. \textbf{98}, 9181 (1993); A.~Hasegawa, Phys. Fluids \textbf{12}, 2642 (1969);
+  P.~Hellinger, ``Comment on the linear mirror instability near the threshold,'' Phys. Plasmas \textbf{14}, 082105 (2007).
+\bibitem{Gorler2009} T.~G\"orler, \emph{Multiscale effects in plasma microturbulence}, PhD thesis,
+  Universit\"at Ulm (2009) (GENE $\dBpar$ implementation).
+\end{thebibliography}
+
+\end{document}

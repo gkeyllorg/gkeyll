@@ -20,13 +20,22 @@ gk_species_fluid_file_import_init(
 }
 
 // No explicit fluid evolution equations are implemented yet: df/dt = 0.
-static double
+static void
 gk_species_fluid_rhs_dynamic(
   gkyl_gyrokinetic_app *app, struct gk_species *gks, const struct gkyl_array *fin,
   struct gkyl_array *rhs, struct gkyl_array **bflux_moms
 )
 {
   gkyl_array_clear(rhs, 0.0);
+}
+
+// No fluid operators yet: no time-step restriction.
+static double
+gk_species_fluid_get_cfl_dynamic(
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, const struct gkyl_array *fin,
+  struct gkyl_array *rhs, struct gkyl_array **bflux_moms
+)
+{
   return DBL_MAX;
 }
 
@@ -60,6 +69,9 @@ gk_species_fluid_init_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *gks)
   gk_species_init_integrated_mom(app, gks);
 
   gks->rhs_func = gk_species_fluid_rhs_dynamic;
+  gks->rhs_em_complete_func = gk_species_rhs_static;
+  gks->bflux_update = gk_species_rhs_static;
+  gks->get_cfl = gk_species_fluid_get_cfl_dynamic;
   gks->rhs_implicit_func = gk_species_fluid_rhs_implicit_dynamic;
   gks->bc_func = gk_species_apply_bc_static; // No spatial fluid operators yet.
   gks->release_func = gk_species_fluid_release_dynamic;

@@ -169,6 +169,7 @@ singleb_app_new_geom(
   app_inp.basis_type = mbinp->basis_type;
   app_inp.cfl_frac = mbinp->cfl_frac;
   app_inp.cfl_frac_omegaH = mbinp->cfl_frac_omegaH;
+  app_inp.omegaH_es_only = mbinp->omegaH_es_only;
   app_inp.diagnostics = mbinp->diagnostics;
 
   struct gkyl_comm *comm = mbapp->block_comms[bid];
@@ -225,6 +226,7 @@ singleb_app_new_solver(
   app_inp.basis_type = mbinp->basis_type;
   app_inp.cfl_frac = mbinp->cfl_frac;
   app_inp.cfl_frac_omegaH = mbinp->cfl_frac_omegaH;
+  app_inp.omegaH_es_only = mbinp->omegaH_es_only;
   app_inp.diagnostics = mbinp->diagnostics;
   app_inp.eirene = mbinp->eirene;
 

@@ -617,10 +617,10 @@ create_ctx(void)
   double inv_asp_ratio = a_mid / R0;
 
   // Grid parameters
-  int Nx = 4;
-  int Nz = 4;
-  int Nvpar = 4;
-  int Nmu = 2;
+  int Nx = 48 / 8;
+  int Nz = 16 / 4;
+  int Nvpar = 8 / 2;
+  int Nmu = 4 / 2;
   int poly_order = 1;
 
   // IC, Krook, buffer, and integration lookup tables (LUTs) parameters.
@@ -901,7 +901,6 @@ main(int argc, char **argv)
 
   // field
   struct gkyl_gyrokinetic_field field = {
-    .gkfield_id = GKYL_GK_FIELD_ES,
     .poisson_bcs =
       {
         {.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}},

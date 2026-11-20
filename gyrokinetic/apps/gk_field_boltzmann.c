@@ -111,6 +111,8 @@ gk_field_fem_release_boltzmann(const gkyl_gyrokinetic_app *app, struct gk_field 
   gkyl_array_release(gkf->rho_c_global_dg);
   gkyl_array_release(gkf->phi_fem);
   gkyl_array_release(gkf->phi_smooth);
+  gkyl_array_release(gkf->apar);
+  gkyl_array_release(gkf->apardot);
 
   if (app->use_gpu) {
     gkyl_array_release(gkf->phi_host);
@@ -122,6 +124,15 @@ gk_field_fem_release_boltzmann(const gkyl_gyrokinetic_app *app, struct gk_field 
   }
   gkyl_fem_parproj_release(gkf->fem_parproj);
   gkyl_array_integrate_release(gkf->calc_em_energy);
+}
+
+static void
+gk_field_em_rhs_none(
+  gkyl_gyrokinetic_app *app, struct gk_field *field, const struct gkyl_array *f_in[],
+  struct gkyl_array *rhs_in[]
+)
+{
+  // Do nothing.
 }
 
 void
@@ -137,6 +148,12 @@ gk_field_fem_new_boltzmann(struct gkyl_gyrokinetic_app *app, struct gk_field *gk
   // Allocate arrays for electrostatic potential.
   gkf->phi_fem = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
   gkf->phi_smooth = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+
+  // Dummy EM variables (they need to be passed to the collisionless kernels).
+  assert(!gkf->is_em);
+  gkf->apar = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  gkf->apardot = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  gkf->em_rhs_func = gk_field_em_rhs_none;
 
   // Allocate phi_host for I/O.
   gkf->phi_host = gkf->phi_smooth;
