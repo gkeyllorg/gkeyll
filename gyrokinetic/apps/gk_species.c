@@ -461,12 +461,13 @@ gk_species_write_mom_static(gkyl_gyrokinetic_app *app, struct gk_species *gks, d
 
 void
 gk_species_calc_integ_mom_dt_enabled(
-  gkyl_gyrokinetic_app *app, struct gk_species *gks, double dt, struct gkyl_array **fdot_integ_mom
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, const struct gkyl_array *fin, double dt,
+  struct gkyl_array **fdot_integ_mom
 )
 {
   struct timespec wst = gkyl_wall_clock();
   // Integrated moments of f/dt, at the beginning or at the end of a time step.
-  gk_integ_moms_calc(app, gks, &gks->fdot_integ_moms, gks->f);
+  gk_integ_moms_calc(app, gks, &gks->fdot_integ_moms, fin);
   for (int m = 0; m < gks->fdot_integ_moms.num; m++) {
     gkyl_array_set(fdot_integ_mom[m], 1.0 / dt, gks->fdot_integ_moms.ops[m].marr);
   }
@@ -475,17 +476,19 @@ gk_species_calc_integ_mom_dt_enabled(
 
 void
 gk_species_calc_integ_mom_dt_disabled(
-  gkyl_gyrokinetic_app *app, struct gk_species *gks, double dt, struct gkyl_array **fdot_integ_mom
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, const struct gkyl_array *fin, double dt,
+  struct gkyl_array **fdot_integ_mom
 )
 {
 }
 
 void
 gk_species_calc_integ_mom_dt(
-  gkyl_gyrokinetic_app *app, struct gk_species *gks, double dt, struct gkyl_array **fdot_integ_mom
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, const struct gkyl_array *fin, double dt,
+  struct gkyl_array **fdot_integ_mom
 )
 {
-  gks->calc_integ_mom_dt_func(app, gks, dt, fdot_integ_mom);
+  gks->calc_integ_mom_dt_func(app, gks, fin, dt, fdot_integ_mom);
 }
 
 void

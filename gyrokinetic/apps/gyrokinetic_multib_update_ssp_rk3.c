@@ -103,13 +103,17 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app *app, doubl
 
   struct gkyl_update_status st = {.success = true};
 
-  // time-stepper state
-  enum { RK_STAGE_1, RK_STAGE_2, RK_STAGE_3, RK_COMPLETE } state = RK_STAGE_1;
+  enum {
+    SSPRK_3_3_STAGE_0 = 0,
+    SSPRK_3_3_STAGE_1,
+    SSPRK_3_3_STAGE_2,
+    SSPRK_3_3_STAGE_COMPLETE
+  } state = SSPRK_3_3_STAGE_0; // Time-stepper state.
 
   double tcurr = app->tcurr, dt = dt0;
-  while (state != RK_COMPLETE) {
+  while (state != SSPRK_3_3_STAGE_COMPLETE) {
     switch (state) {
-      case RK_STAGE_1:
+      case SSPRK_3_3_STAGE_0:
         for (int b = 0; b < nblocks_local; ++b) {
           struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[b];
           int li_charged = b * ns_charged;
@@ -159,24 +163,16 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app *app, doubl
 
         for (int b = 0; b < nblocks_local; ++b) {
           struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[b];
-          for (int i = 0; i < ns_charged; ++i) {
-            struct gk_species *gks = &sbapp->species[i];
-            // Compute moment of f_old to later compute moment of df/dt.
-            // Do it before the fields are updated, but after dt is calculated.
-            gk_species_calc_integ_mom_dt(sbapp, gks, dt, gks->fdot_mom_old);
-          }
-
-          // Store the field energies divided by dt for the energy rate and balance diagnostics.
-          gk_field_calc_energy_dt(sbapp, sbapp->field, dt, true);
+          gyrokinetic_save_old_step_diagnostics(sbapp, dt, &sbapp->fdot_args);
         }
 
         // Compute the fields and apply BCs.
         gyrokinetic_multib_calc_field_and_apply_bc(app, tcurr + dt, fout, smom_out, fout_neut);
 
-        state = RK_STAGE_2;
+        state = SSPRK_3_3_STAGE_1;
         break;
 
-      case RK_STAGE_2:
+      case SSPRK_3_3_STAGE_1:
         for (int b = 0; b < nblocks_local; ++b) {
           struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[b];
           int li_charged = b * ns_charged;
@@ -221,7 +217,7 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app *app, doubl
           app->stat.nstage_2_fail += 1;
 
           dt = st.dt_actual;
-          state = RK_STAGE_1; // Restart from stage 1.
+          state = SSPRK_3_3_STAGE_0; // Restart from stage 0.
 
         } else {
           struct timespec wst = gkyl_wall_clock();
@@ -264,11 +260,11 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app *app, doubl
           }
           gyrokinetic_multib_calc_field_and_apply_bc(app, tcurr + dt / 2, fout, smom_out, fout_neut);
 
-          state = RK_STAGE_3;
+          state = SSPRK_3_3_STAGE_2;
         }
         break;
 
-      case RK_STAGE_3:
+      case SSPRK_3_3_STAGE_2:
         for (int b = 0; b < nblocks_local; ++b) {
           struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[b];
           int li_charged = b * ns_charged;
@@ -313,7 +309,7 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app *app, doubl
           app->stat.nstage_3_fail += 1;
 
           dt = st.dt_actual;
-          state = RK_STAGE_1; // Restart from stage 1.
+          state = SSPRK_3_3_STAGE_0; // Restart from stage 0.
 
           app->stat.nstage_2_fail += 1;
         } else {
@@ -379,18 +375,20 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app *app, doubl
               struct gk_species *gks = &sbapp->species[i];
               // Compute moment of f_new to compute moment of df/dt.
               // Need to do it after the fields are updated.
-              gk_species_calc_integ_mom_dt(sbapp, gks, dt, gks->fdot_mom_new);
+              gk_species_calc_integ_mom_dt(
+                sbapp, gks, fout[b * ns_charged + i], dt, gks->fdot_mom_new
+              );
             }
 
             // Store the field energies divided by dt for the energy rate and balance diagnostics.
             gk_field_calc_energy_dt(sbapp, sbapp->field, dt, false);
           }
 
-          state = RK_COMPLETE;
+          state = SSPRK_3_3_STAGE_COMPLETE;
         }
         break;
 
-      case RK_COMPLETE: // can't happen: suppresses warning
+      case SSPRK_3_3_STAGE_COMPLETE: // can't happen: suppresses warning
         break;
     }
   }

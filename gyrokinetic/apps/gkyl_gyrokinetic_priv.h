@@ -1453,7 +1453,8 @@ struct gk_species {
   void (*calc_L2norm_func)(gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm);
   void (*write_L2norm_func)(gkyl_gyrokinetic_app *app, struct gk_species *gks);
   void (*calc_integ_mom_dt_func)(
-    gkyl_gyrokinetic_app *app, struct gk_species *gks, double dt, struct gkyl_array **fdot_integ_mom
+    gkyl_gyrokinetic_app *app, struct gk_species *gks, const struct gkyl_array *fin, double dt,
+    struct gkyl_array **fdot_integ_mom
   );
 
   // Quantities used for FLR model:
@@ -4085,11 +4086,13 @@ void gk_species_write_L2norm(gkyl_gyrokinetic_app *app, struct gk_species *gks);
  *
  * @param app gyrokinetic app object.
  * @param gks Species object.
+ * @param fin Distribution or fluid state.
  * @param dt Time step.
  * @param fdot_integ_mom Integrated moments divided by dt (not yet reduced over comm).
  */
 void gk_species_calc_integ_mom_dt(
-  gkyl_gyrokinetic_app *app, struct gk_species *gks, double dt, struct gkyl_array **fdot_integ_mom
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, const struct gkyl_array *fin, double dt,
+  struct gkyl_array **fdot_integ_mom
 );
 
 /**
@@ -5225,6 +5228,49 @@ void gk_eirene_write_integrated_diagnostics(struct gkyl_gyrokinetic_app *app);
 void gk_eirene_release(gkyl_gyrokinetic_app *app, struct gk_eirene *eirene);
 
 /** Time stepping API */
+
+/**
+ * Perform operations before the first RK stage of the step.
+ * Call before timestep selection, and do not repeat this operation on retries.
+ * This neither changes the input moments nor prepares the field or BCs.
+ *
+ * @param app Gyrokinetic app.
+ * @param tcurr Initial step time.
+ * @param args Input pointers bound to the accepted state and stepped moments.
+ */
+void gyrokinetic_pre_process_step(
+  gkyl_gyrokinetic_app *app, double tcurr, const struct gkyl_gyrokinetic_fdot_args *args
+);
+
+/**
+ * Save old distribution-moment and field-energy quantities divided by dt.
+ * Call after timestep selection while the initial field is still prepared.
+ * Retries overwrite these diagnostic buffers using the new dt; no time-series
+ * records are appended. This is also used for each local block in multiblock.
+ *
+ * @param app Gyrokinetic app.
+ * @param dt Actual trial timestep.
+ * @param args Input state pointers matching the prepared initial field.
+ */
+void gyrokinetic_save_old_step_diagnostics(
+  gkyl_gyrokinetic_app *app, double dt, const struct gkyl_gyrokinetic_fdot_args *args
+);
+
+/**
+ * Operations at the end of a step.
+ * Compute new distribution-moment quantities, scale species, and save new field
+ * energies, in that order. Positivity corrections and field/BC calculation must
+ * already be complete. This neither calculates fields/BCs nor appends time-series
+ * records. Multiblock keeps its own finalization without single-block scaling.
+ *
+ * @param app Gyrokinetic app.
+ * @param t_end Accepted-state time at which field and BC data were prepared.
+ * @param dt Accepted timestep.
+ * @param args Output pointers bound to the accepted species arrays and moment rates.
+ */
+void gyrokinetic_post_process_step(
+  gkyl_gyrokinetic_app *app, double t_end, double dt, struct gkyl_gyrokinetic_fdot_args *args
+);
 
 /**
  * Compute the app-owned gyrokinetic field via elliptic/field equations.

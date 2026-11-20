@@ -1,5 +1,53 @@
 #include <gkyl_gyrokinetic_priv.h>
 
+void
+gyrokinetic_pre_process_step(
+  gkyl_gyrokinetic_app *app, double tcurr, const struct gkyl_gyrokinetic_fdot_args *args
+)
+{
+  // Adapt sources.
+  for (int i = 0; i < app->num_species; ++i) {
+    struct gk_species *gks = &app->species[i];
+    gk_species_source_adapt(app, gks, &gks->src, gks->lte.f_lte, args->smom_in, tcurr);
+  }
+}
+
+// Capture old-state diagnostics while the app still holds the initial field.
+void
+gyrokinetic_save_old_step_diagnostics(
+  gkyl_gyrokinetic_app *app, double dt, const struct gkyl_gyrokinetic_fdot_args *args
+)
+{
+  for (int i = 0; i < app->num_species; ++i) {
+    struct gk_species *gks = &app->species[i];
+    gk_species_calc_integ_mom_dt(app, gks, args->fin[i], dt, gks->fdot_mom_old);
+  }
+  gk_field_calc_energy_dt(app, app->field, dt, true);
+}
+
+// Complete single-block bookkeeping after accepted-state field/BC preparation.
+void
+gyrokinetic_post_process_step(
+  gkyl_gyrokinetic_app *app, double t_end, double dt, struct gkyl_gyrokinetic_fdot_args *args
+)
+{
+  for (int i = 0; i < app->num_species; ++i) {
+    struct gk_species *gks = &app->species[i];
+    gk_species_calc_integ_mom_dt(app, gks, args->fout[i], dt, gks->fdot_mom_new);
+  }
+
+  // Preserve the existing order: new moments, species scaling, then field energy.
+  for (int i = 0; i < app->num_species; ++i) {
+    struct gk_species *gks = &app->species[i];
+    gk_species_scaling_apply(app, gks, &gks->sca, args->fout[i], args->smom_out);
+  }
+  for (int i = 0; i < app->num_neut_species; ++i) {
+    struct gk_neut_species *gkns = &app->neut_species[i];
+    gk_neut_species_scaling_apply(app, gkns, &gkns->sca, args->fout_neut[i], args->smom_out);
+  }
+  gk_field_calc_energy_dt(app, app->field, dt, false);
+}
+
 static void
 gyrokinetic_forward_euler(
   gkyl_gyrokinetic_app *app, double tcurr, double dt, struct gkyl_gyrokinetic_fdot_args *fdot_args,
@@ -61,13 +109,29 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app *app, double dt0)
 
   struct gkyl_update_status st = {.success = true};
 
-  // time-stepper state
-  enum { RK_STAGE_1, RK_STAGE_2, RK_STAGE_3, RK_COMPLETE } state = RK_STAGE_1;
+  enum {
+    SSPRK_3_3_STAGE_0 = 0,
+    SSPRK_3_3_STAGE_1,
+    SSPRK_3_3_STAGE_2,
+    SSPRK_3_3_STAGE_COMPLETE
+  } state = SSPRK_3_3_STAGE_0; // Time-stepper state.
 
   double tcurr = app->tcurr, dt = dt0;
-  while (state != RK_COMPLETE) {
+
+  // Perform operations before RK stages begin.
+  for (int i = 0; i < app->num_species; ++i) {
+    fin[i] = app->species[i].f;
+    smom_in[i] = app->species[i].step_moms.f;
+  }
+  for (int i = 0; i < app->num_neut_species; ++i) {
+    fin_neut[i] = app->neut_species[i].f;
+    smom_in_neut[i] = app->neut_species[i].step_moms.f;
+  }
+  gyrokinetic_pre_process_step(app, tcurr, fdot_args);
+
+  while (state != SSPRK_3_3_STAGE_COMPLETE) {
     switch (state) {
-      case RK_STAGE_1:
+      case SSPRK_3_3_STAGE_0:
         for (int i = 0; i < app->num_species; ++i) {
           struct gk_species *gks = &app->species[i];
           fin[i] = gks->f;
@@ -83,12 +147,6 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app *app, double dt0)
           // Stepped moments.
           smom_in_neut[i] = gkns->step_moms.f;
           smom_out_neut[i] = gkns->step_moms.f1;
-        }
-
-        for (int i = 0; i < app->num_species; ++i) {
-          struct gk_species *gks = &app->species[i];
-          // Adapt sources.
-          gk_species_source_adapt(app, gks, &gks->src, gks->lte.f_lte, smom_in, tcurr);
         }
 
         gyrokinetic_forward_euler(app, tcurr, dt, fdot_args, &st);
@@ -107,23 +165,15 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app *app, double dt0)
         }
         app->stat.time_stepper_arithmetic_tm += gkyl_time_diff_now_sec(wst);
 
-        for (int i = 0; i < app->num_species; ++i) {
-          struct gk_species *gks = &app->species[i];
-          // Compute moment of f_old to later compute moment of df/dt.
-          // Do it before the fields are updated, but after dt is calculated.
-          gk_species_calc_integ_mom_dt(app, gks, dt, gks->fdot_mom_old);
-        }
-
-        // Store the field energies divided by dt for the energy rate and balance diagnostics.
-        gk_field_calc_energy_dt(app, app->field, dt, true);
+        gyrokinetic_save_old_step_diagnostics(app, dt, fdot_args);
 
         // Compute the fields and apply BCs.
         gyrokinetic_calc_field_and_apply_bc(app, tcurr + dt, fout, smom_out, fout_neut);
 
-        state = RK_STAGE_2;
+        state = SSPRK_3_3_STAGE_1;
         break;
 
-      case RK_STAGE_2:
+      case SSPRK_3_3_STAGE_1:
         for (int i = 0; i < app->num_species; ++i) {
           struct gk_species *gks = &app->species[i];
           fin[i] = gks->f1;
@@ -159,7 +209,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app *app, double dt0)
           app->stat.nstage_2_fail += 1;
 
           dt = st.dt_actual;
-          state = RK_STAGE_1; // Restart from stage 1.
+          state = SSPRK_3_3_STAGE_0; // Restart from stage 0.
 
         } else {
           struct timespec wst = gkyl_wall_clock();
@@ -192,11 +242,11 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app *app, double dt0)
           }
           gyrokinetic_calc_field_and_apply_bc(app, tcurr + dt / 2, fout, smom_out, fout_neut);
 
-          state = RK_STAGE_3;
+          state = SSPRK_3_3_STAGE_2;
         }
         break;
 
-      case RK_STAGE_3:
+      case SSPRK_3_3_STAGE_2:
         for (int i = 0; i < app->num_species; ++i) {
           struct gk_species *gks = &app->species[i];
           fin[i] = gks->f1;
@@ -232,7 +282,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app *app, double dt0)
           app->stat.nstage_3_fail += 1;
 
           dt = st.dt_actual;
-          state = RK_STAGE_1; // Restart from stage 1.
+          state = SSPRK_3_3_STAGE_0; // Restart from stage 0.
 
           app->stat.nstage_2_fail += 1;
         } else {
@@ -282,34 +332,17 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app *app, double dt0)
           // Compute the fields and apply BCs
           gyrokinetic_calc_field_and_apply_bc(app, tcurr + dt, fout, smom_out, fout_neut);
 
-          for (int i = 0; i < app->num_species; ++i) {
-            struct gk_species *gks = &app->species[i];
-            // Compute moment of f_new to compute moment of df/dt.
-            // Need to do it after the fields are updated.
-            gk_species_calc_integ_mom_dt(app, gks, dt, gks->fdot_mom_new);
-          }
-
-          // Scale species according to some criteria.
-          for (int i = 0; i < app->num_species; ++i) {
-            struct gk_species *gks = &app->species[i];
-            gk_species_scaling_apply(app, gks, &gks->sca, gks->f, smom_out);
-          }
-          for (int i = 0; i < app->num_neut_species; ++i) {
-            struct gk_neut_species *gkns = &app->neut_species[i];
-            gk_neut_species_scaling_apply(app, gkns, &gkns->sca, gkns->f, smom_out);
-          }
-
-          // Store the field energies divided by dt for the energy rate and balance diagnostics.
-          gk_field_calc_energy_dt(app, app->field, dt, false);
-
-          state = RK_COMPLETE;
+          state = SSPRK_3_3_STAGE_COMPLETE;
         }
         break;
 
-      case RK_COMPLETE: // can't happen: suppresses warning
+      case SSPRK_3_3_STAGE_COMPLETE: // can't happen: suppresses warning
         break;
     }
   }
+
+  // Perform operations after RK stages end.
+  gyrokinetic_post_process_step(app, tcurr + dt, dt, fdot_args);
 
   return st;
 }

@@ -95,15 +95,18 @@ void gk_species_write_mom_static(
 );
 
 void gk_species_calc_integ_mom_dt_enabled(
-  gkyl_gyrokinetic_app *app, struct gk_species *gks, double dt, struct gkyl_array **fdot_integ_mom
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, const struct gkyl_array *fin, double dt,
+  struct gkyl_array **fdot_integ_mom
 );
 
 void gk_species_calc_integ_mom_dt_disabled(
-  gkyl_gyrokinetic_app *app, struct gk_species *gks, double dt, struct gkyl_array **fdot_integ_mom
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, const struct gkyl_array *fin, double dt,
+  struct gkyl_array **fdot_integ_mom
 );
 
 void gk_species_calc_integ_mom_dt(
-  gkyl_gyrokinetic_app *app, struct gk_species *gks, double dt, struct gkyl_array **fdot_integ_mom
+  gkyl_gyrokinetic_app *app, struct gk_species *gks, const struct gkyl_array *fin, double dt,
+  struct gkyl_array **fdot_integ_mom
 );
 
 void gk_species_calc_integrated_mom_dynamic(
