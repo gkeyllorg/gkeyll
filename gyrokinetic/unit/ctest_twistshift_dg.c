@@ -15,7 +15,7 @@
 #include <gkyl_position_map.h>
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_geometry_mapc2p.h>
-#include <gkyl_dg_updater_moment_gyrokinetic.h>
+#include <gkyl_mom_gyrokinetic.h>
 #include <gkyl_math.h>
 #include <gkyl_const.h>
 
@@ -673,11 +673,10 @@ twistshift_dg_3x2v_fig6_wcells(
   gkyl_array_clear(gk_geom->geo_corn.bmag, 0.0);
   gkyl_array_shiftc(gk_geom->geo_corn.bmag, B0 * pow(sqrt(2.0), cdim), 0);
 
-  struct gkyl_dg_updater_moment *mcalc = gkyl_dg_updater_moment_gyrokinetic_new(
-    &grid, &basis_conf, &basis, &local_conf, mass, 0, gvm, gk_geom, NULL, GKYL_F_MOMENT_M0M1M2,
-    true, use_gpu
+  struct gkyl_mom_gyrokinetic *mcalc = gkyl_mom_gyrokinetic_new(
+    mass, 0, &basis_conf, &basis, &grid, gvm, gk_geom, GKYL_F_MOMENT_M0M1M2, true, use_gpu
   );
-  int num_mom = gkyl_dg_updater_moment_gyrokinetic_num_mom(mcalc);
+  int num_mom = gkyl_mom_gyrokinetic_num_mom(mcalc);
 
   struct gkyl_array *marr = mkarr(use_gpu, num_mom, local_ext_conf.volume);
   double *red_integ_mom_skin, *red_integ_mom_ghost;
@@ -686,10 +685,10 @@ twistshift_dg_3x2v_fig6_wcells(
   double *red_integ_mom_skin_ho = gkyl_malloc(sizeof(double[num_mom]));
   double *red_integ_mom_ghost_ho = gkyl_malloc(sizeof(double[num_mom]));
 
-  gkyl_dg_updater_moment_gyrokinetic_advance(mcalc, &skin_rng, &skin_rng_conf, distf, marr);
+  gkyl_mom_gyrokinetic_advance(mcalc, &skin_rng, &skin_rng_conf, NULL, distf, marr);
   gkyl_array_reduce_range(red_integ_mom_skin, marr, GKYL_SUM, &skin_rng_conf);
 
-  gkyl_dg_updater_moment_gyrokinetic_advance(mcalc, &ghost_rng, &ghost_rng_conf, distf, marr);
+  gkyl_mom_gyrokinetic_advance(mcalc, &ghost_rng, &ghost_rng_conf, NULL, distf, marr);
   gkyl_array_reduce_range(red_integ_mom_ghost, marr, GKYL_SUM, &ghost_rng_conf);
 
   if (use_gpu) {
@@ -761,7 +760,7 @@ twistshift_dg_3x2v_fig6_wcells(
     );
   }
 
-  gkyl_dg_updater_moment_gyrokinetic_advance(mcalc, &ghost_rng, &ghost_rng_conf, distf, marr);
+  gkyl_mom_gyrokinetic_advance(mcalc, &ghost_rng, &ghost_rng_conf, NULL, distf, marr);
   gkyl_array_reduce_range(red_integ_mom_ghost, marr, GKYL_SUM, &ghost_rng_conf);
 
   if (use_gpu) {
@@ -808,7 +807,7 @@ twistshift_dg_3x2v_fig6_wcells(
   gkyl_free(red_integ_mom_ghost_ho);
   gkyl_free_hodev(use_gpu, red_integ_mom_skin);
   gkyl_free_hodev(use_gpu, red_integ_mom_ghost);
-  gkyl_dg_updater_moment_gyrokinetic_release(mcalc);
+  gkyl_mom_gyrokinetic_release(mcalc);
   gkyl_array_release(marr);
   gkyl_gk_geometry_release(gk_geom);
   gkyl_position_map_release(pmap);
@@ -1862,11 +1861,10 @@ twistshift_dg_3x2v_fig11_wcells(
   gkyl_array_clear(gk_geom->geo_corn.bmag, 0.0);
   gkyl_array_shiftc(gk_geom->geo_corn.bmag, B0 * pow(sqrt(2.0), cdim), 0);
 
-  struct gkyl_dg_updater_moment *mcalc = gkyl_dg_updater_moment_gyrokinetic_new(
-    &grid, &basis_conf, &basis, &local_conf, mass, 0, gvm, gk_geom, NULL, GKYL_F_MOMENT_M0M1M2,
-    true, use_gpu
+  struct gkyl_mom_gyrokinetic *mcalc = gkyl_mom_gyrokinetic_new(
+    mass, 0, &basis_conf, &basis, &grid, gvm, gk_geom, GKYL_F_MOMENT_M0M1M2, true, use_gpu
   );
-  int num_mom = gkyl_dg_updater_moment_gyrokinetic_num_mom(mcalc);
+  int num_mom = gkyl_mom_gyrokinetic_num_mom(mcalc);
 
   struct gkyl_array *marr = mkarr(use_gpu, num_mom, local_ext_conf.volume);
   double *red_integ_mom_skin, *red_integ_mom_ghost;
@@ -1875,10 +1873,10 @@ twistshift_dg_3x2v_fig11_wcells(
   double *red_integ_mom_skin_ho = gkyl_malloc(sizeof(double[num_mom]));
   double *red_integ_mom_ghost_ho = gkyl_malloc(sizeof(double[num_mom]));
 
-  gkyl_dg_updater_moment_gyrokinetic_advance(mcalc, &skin_rng, &skin_rng_conf, distf, marr);
+  gkyl_mom_gyrokinetic_advance(mcalc, &skin_rng, &skin_rng_conf, NULL, distf, marr);
   gkyl_array_reduce_range(red_integ_mom_skin, marr, GKYL_SUM, &skin_rng_conf);
 
-  gkyl_dg_updater_moment_gyrokinetic_advance(mcalc, &ghost_rng, &ghost_rng_conf, distf, marr);
+  gkyl_mom_gyrokinetic_advance(mcalc, &ghost_rng, &ghost_rng_conf, NULL, distf, marr);
   gkyl_array_reduce_range(red_integ_mom_ghost, marr, GKYL_SUM, &ghost_rng_conf);
 
   if (use_gpu) {
@@ -2032,7 +2030,7 @@ twistshift_dg_3x2v_fig11_wcells(
   gkyl_free(red_integ_mom_ghost_ho);
   gkyl_free_hodev(use_gpu, red_integ_mom_skin);
   gkyl_free_hodev(use_gpu, red_integ_mom_ghost);
-  gkyl_dg_updater_moment_gyrokinetic_release(mcalc);
+  gkyl_mom_gyrokinetic_release(mcalc);
   gkyl_array_release(marr);
   gkyl_gk_geometry_release(gk_geom);
   gkyl_position_map_release(pmap);
