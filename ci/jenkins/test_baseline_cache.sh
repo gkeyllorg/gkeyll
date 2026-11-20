@@ -36,7 +36,7 @@ if "$cache_tool" valid "$root" "$platform" "$sha"; then
 fi
 git clone -q "$fixture" "$stage/gkeyll"
 mkdir -p "$stage/gkylsoft/gkeyll/bin"
-for layer in moments vlasov gyrokinetic pkpm; do
+for layer in moments vlasov gyrokinetic; do
   mkdir -p "$stage/gkylsoft/gkeyll-results/$layer/creg-accepted"
   mkdir -p "$stage/gkylsoft/gkeyll-results/parallel-c-4/$layer/creg-accepted"
 done

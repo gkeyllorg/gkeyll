@@ -1,5 +1,5 @@
 // Collision of two strong shocks with the DG Euler solver (1x), the fluid counterpart of
-// pkpm/creg/rt_pkpm_neut_bgk_two_shock_1x.c. The states of test 4 of E. F. Toro, Riemann Solvers
+// rt_pkpm_neut_bgk_two_shock_1x.c. The states of test 4 of E. F. Toro, Riemann Solvers
 // and Numerical Methods for Fluid Dynamics, with gamma = 5/3: (rho, u, p) = (5.99924, 19.5975,
 // 460.894) left of x = 0.4 and (5.99242, -6.19633, 46.0895) right of it, to t = 0.035. Two shocks
 // move apart with a contact between them; the reference is the exact Riemann solution.

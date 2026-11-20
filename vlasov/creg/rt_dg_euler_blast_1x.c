@@ -1,5 +1,5 @@
 // Interacting blast waves with the DG Euler solver (1x), the fluid counterpart of
-// pkpm/creg/rt_pkpm_neut_bgk_blast_1x.c: the problem of P. Woodward and P. Colella (1984), "The
+// rt_pkpm_neut_bgk_blast_1x.c: the problem of P. Woodward and P. Colella (1984), "The
 // numerical simulation of two-dimensional fluid flow with strong shocks", Journal of Computational
 // Physics 54 (1): 115-173. Density 1 at rest with gamma = 5/3 between reflecting walls at x = 0 and
 // 1; pressure 1000 left of x = 0.1, 0.01 between 0.1 and 0.9, and 100 right of 0.9, to t = 0.038.

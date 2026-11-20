@@ -2,7 +2,7 @@
 --
 -- Query the per-layer regression databases created by runregression.
 -- Updated for the hierarchical layer architecture: each layer (moments,
--- vlasov, gyrokinetic, pkpm) now has its own SQLite database stored at
+-- vlasov, gyrokinetic) now has its own SQLite database stored at
 --   gkeyll-results/<layer>/regressiondb
 -- The --layer option selects which layer's database to query.
 --
@@ -82,7 +82,7 @@ local function configure(args)
    else
       if not args.layer then
          print("ERROR: --layer <name> is required (or use --db <path> for a specific file).")
-         print("Valid layers: moments, vlasov, gyrokinetic, pkpm")
+         print("Valid layers: moments, vlasov, gyrokinetic")
          os.exit(1)
       end
 
@@ -325,7 +325,7 @@ local parser = argparse()
    :description [[
 Query the per-layer regression databases created by the runregression tool.
 
-Each layer (moments, vlasov, gyrokinetic, pkpm) has its own SQLite database.
+Each layer (moments, vlasov, gyrokinetic) has its own SQLite database.
 Use --layer to select which layer's database to query, or --db to open an
 arbitrary database file directly.
 
@@ -337,7 +337,7 @@ Examples:
 
 -- Global options (apply to all sub-commands).
 parser:option("--layer",
-   "Layer whose database to query (moments/vlasov/gyrokinetic/pkpm)")
+   "Layer whose database to query (moments/vlasov/gyrokinetic)")
 parser:option("--db",
    "Open this specific database file instead of using --layer")
 

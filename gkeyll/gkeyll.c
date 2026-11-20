@@ -37,11 +37,8 @@
 #endif
 
 #ifdef GKYL_HAVE_VLASOV
-#include <gkyl_vlasov_lw.h>
-#endif
-
-#ifdef GKYL_HAVE_PKPM
 #include <gkyl_pkpm_lw.h>
+#include <gkyl_vlasov_lw.h>
 #endif
 
 #ifdef GKYL_HAVE_GYROKINETIC
@@ -171,15 +168,13 @@ show_banner(FILE *fp)
     num_apps += 1;
 #endif
 #ifdef GKYL_HAVE_VLASOV
+    // The PKPM App is part of the Vlasov layer.
     fprintf(fp, "Vlasov App enabled\n");
-    num_apps += 1;
+    fprintf(fp, "PKPM App enabled\n");
+    num_apps += 2;
 #endif
 #ifdef GKYL_HAVE_GYROKINETIC
     fprintf(fp, "Gyrokinetic App enabled\n");
-    num_apps += 1;
-#endif
-#ifdef GKYL_HAVE_PKPM
-    fprintf(fp, "PKPM App enabled\n");
     num_apps += 1;
 #endif
     if (0 == num_apps) {
@@ -400,12 +395,10 @@ main(int argc, char **argv)
 #endif
 #ifdef GKYL_HAVE_VLASOV
   gkyl_vlasov_lw_openlibs(L);
+  gkyl_pkpm_lw_openlibs(L);
 #endif
 #ifdef GKYL_HAVE_GYROKINETIC
   gkyl_gyrokinetic_lw_openlibs(L);
-#endif
-#ifdef GKYL_HAVE_PKPM
-  gkyl_pkpm_lw_openlibs(L);
 #endif
   lua_gc(L, LUA_GCRESTART, -1);
 

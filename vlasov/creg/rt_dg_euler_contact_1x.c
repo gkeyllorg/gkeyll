@@ -1,5 +1,5 @@
 // Stationary contact discontinuity with the DG Euler solver (1x), the fluid counterpart of
-// pkpm/creg/rt_pkpm_neut_bgk_contact_1x.c. The states of test 6 of E. F. Toro, Riemann Solvers and
+// rt_pkpm_neut_bgk_contact_1x.c. The states of test 6 of E. F. Toro, Riemann Solvers and
 // Numerical Methods for Fluid Dynamics, with gamma = 5/3: density 1.4 left of x = 0.5 and 1 right
 // of it, at rest at uniform pressure 1, to t = 2. Nothing moves in the exact solution.
 //

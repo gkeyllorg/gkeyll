@@ -1,7 +1,7 @@
 // Relaxation of the temperature and of the pressure anisotropy under the BGK-form temperature
 // source nu_Q (f_M(n, u, T_Q) - f) with the Vlasov solver (1x2v), implicit update: the
 // backward-Euler twin of rt_vlasov_temp_source_relax_1x2v.c at 100 times its source rate, and the
-// counterpart of pkpm/creg/rt_pkpm_temp_source_relax_im_1x.c.
+// counterpart of rt_pkpm_temp_source_relax_im_1x.c.
 // Two homogeneous neutral species start as bi-Maxwellians drifting along x with T_xx = 1.4 and T_yy
 // = 0.6 (T = 1). The source of the first has T_Q = 10 (heating) and that of the second T_Q = 0.1
 // (cooling). Source rate 100, with z = nu_Q dt between 2.45 and 2.55 (the explicit update takes z =

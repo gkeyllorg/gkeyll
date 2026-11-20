@@ -22,8 +22,8 @@ An input whose header states no figure of merit is listed with --verbose and
 is not an error.
 
 Usage:
-  ci/check_headers.py                 all inputs of pkpm and vlasov
-  ci/check_headers.py pkpm            all inputs of one solver
+  ci/check_headers.py                 all inputs of vlasov (with the PKPM ones)
+  ci/check_headers.py vlasov          all inputs of one solver
   ci/check_headers.py FILE...         the given inputs
   ci/check_headers.py --verbose ...   also list the inputs without a figure
 
@@ -38,7 +38,7 @@ import re
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SOLVERS = ("pkpm", "vlasov")
+SOLVERS = ("vlasov",)
 
 # Names of the cell counts of an input, in the order a header lists them.
 CELL_NAME = re.compile(r"^N(x|y|z|r|theta|phi|z1|z2|v\w*|p\w*)$")
@@ -163,7 +163,7 @@ def collect(args):
 
 def main():
   parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-  parser.add_argument("inputs", nargs="*", help="solvers (pkpm, vlasov) or input files")
+  parser.add_argument("inputs", nargs="*", help="solvers (vlasov) or input files")
   parser.add_argument("--verbose", action="store_true", help="list the inputs without a figure of merit")
   opts = parser.parse_args()
 

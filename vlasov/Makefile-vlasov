@@ -185,7 +185,7 @@ ifdef USING_NVCC
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(NVCC_MOM_FLAGS) $(INCS) -c $< -o $@
 
-../$(BUILD_DIR)/vlasov/zero/mom_calc_cu.cu.o ../$(BUILD_DIR)/vlasov/zero/mom_calc_bcorr_cu.cu.o ../$(BUILD_DIR)/vlasov/zero/mom_vlasov_cu.cu.o ../$(BUILD_DIR)/vlasov/zero/mom_bcorr_lbo_vlasov_cu.cu.o : ../$(BUILD_DIR)/vlasov/zero/%.cu.o : zero/%.cu
+../$(BUILD_DIR)/vlasov/zero/mom_calc_cu.cu.o ../$(BUILD_DIR)/vlasov/zero/mom_calc_bcorr_cu.cu.o ../$(BUILD_DIR)/vlasov/zero/mom_vlasov_cu.cu.o ../$(BUILD_DIR)/vlasov/zero/mom_bcorr_lbo_vlasov_cu.cu.o ../$(BUILD_DIR)/vlasov/zero/mom_pkpm_cu.cu.o : ../$(BUILD_DIR)/vlasov/zero/%.cu.o : zero/%.cu
 	$(MKDIR_P) $(dir $@)
 	$(CC) -c $(CFLAGS) $(NVCC_FLAGS) $(NVCC_MOM_FLAGS) $(INCS) $< -o $@
 
@@ -200,6 +200,16 @@ ifdef USING_NVCC
 ../$(BUILD_DIR)/vlasov/$(KERNELS_DIR)/vlasov/%.c.o : $(KERNELS_DIR)/vlasov/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
+
+../$(BUILD_DIR)/vlasov/$(KERNELS_DIR)/pkpm/%.c.o : $(KERNELS_DIR)/pkpm/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
+
+# Moment family of the PKPM kernels (mom_pkpm_*): register-capped like the moment
+# family above. Shorter stem than the pkpm/%.c.o rule, so make prefers it.
+../$(BUILD_DIR)/vlasov/$(KERNELS_DIR)/pkpm/mom_%.c.o : $(KERNELS_DIR)/pkpm/mom_%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(NVCC_MOM_FLAGS) $(INCS) -c $< -o $@
 endif
 
 # build lib

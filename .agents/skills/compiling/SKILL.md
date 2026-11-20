@@ -47,7 +47,7 @@ make -j"$NPROC" install
 ## Compiling a C unit or regression test
 
 Unit tests are located in the `unit/` directory of each solver
-(core/moments/vlasov/gyrokinetic/pkpm), while C regression tests are located in `creg/` folders and
+(core/moments/vlasov/gyrokinetic), while C regression tests are located in `creg/` folders and
 have names beginning with `rt_`.
 
 Compile a specific test by giving make its executable target:

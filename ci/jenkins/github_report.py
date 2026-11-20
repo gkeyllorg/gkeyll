@@ -167,7 +167,7 @@ def extract_errors(log_path, max_lines=40, tail_lines=15):
     return "\n".join(out)
 
 
-LAYER_ORDER = ["core", "moments", "vlasov", "gyrokinetic", "pkpm"]
+LAYER_ORDER = ["core", "moments", "vlasov", "gyrokinetic"]
 
 
 def unit_results(results_file):

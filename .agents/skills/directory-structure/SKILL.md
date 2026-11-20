@@ -16,20 +16,19 @@ Gkeyll has four PDE solvers:
 * Gyrokinetic solver.
 * PKPM solver.
 
-Correspondingly, these solvers are organized into four separate folders, and they
-share some common functionality in a fifth folder. Gkeyll is mostly organized in:
+These solvers are organized into three separate folders, and they share some common
+functionality in a fourth folder. Gkeyll is mostly organized in:
 * core/: functionality common to all solvers.
 * moments/: files for the moments solver.
-* vlasov/: files for the Vlasov solver.
+* vlasov/: files for the Vlasov solver and for the PKPM solver (files with `pkpm` in
+  their name; kernels in vlasov/ker/pkpm).
 * gyrokinetic/: files for the gyrokinetic solver.
-* pkpm/: files for the PKPM solver.
 
-Note that the four solvers are not independent. They have the following
+Note that the solvers are not independent. They have the following
 dependencies:
 * moments depends on core.
 * vlasov depends on moments.
 * gyrokinetic depends on vlasov.
-* pkpm depends on gyrokinetic.
 
 Keep lower layers independent of higher layers.
 

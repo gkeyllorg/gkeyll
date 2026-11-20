@@ -1,5 +1,5 @@
 // Noh problem with the DG Euler solver (1x), the counterpart of moments/creg/rt_euler_noh_1d.c and
-// pkpm/creg/rt_pkpm_neut_bgk_noh_1x.c: Section 4 of W. F. Noh (1987), "Errors for calculations of
+// rt_pkpm_neut_bgk_noh_1x.c: Section 4 of W. F. Noh (1987), "Errors for calculations of
 // strong shocks using an artificial viscosity and an artificial heat flux", Journal of
 // Computational Physics 72 (1): 78-120, as in problem 3 of entry JE2 of Ammar's Simulation Journal
 // (https://ammar-hakim.org/sj/je/je2/je2-euler-shock.html#problem-3). Density 1 and pressure 1e-6

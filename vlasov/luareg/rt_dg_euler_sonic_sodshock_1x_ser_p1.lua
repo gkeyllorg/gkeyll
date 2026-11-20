@@ -1,5 +1,5 @@
 -- Sod shock tube with a sonic point in the rarefaction with the DG Euler solver (1x), the fluid
--- counterpart of pkpm/creg/rt_pkpm_neut_bgk_sonic_sodshock_1x.c. The states of test 1 of E. F.
+-- counterpart of rt_pkpm_neut_bgk_sonic_sodshock_1x.c. The states of test 1 of E. F.
 -- Toro, Riemann Solvers and Numerical Methods for Fluid Dynamics, with gamma = 5/3: (rho, u, p) =
 -- (1, 0.75, 1) left of x = 0.3 and (0.125, 0, 0.1) right of it, to t = 0.2. The solution is a left
 -- rarefaction with its sonic point at x = 0.3, a contact and a right shock; the reference is the

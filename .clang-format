@@ -16,7 +16,7 @@
 # exist in gkeyll, so keeping it would only add clutter with no effect.
 #
 # Applies to C/C++/CUDA source under core/, moments/, vlasov/, gyrokinetic/,
-# pkpm/, gkeyll/ -- EXCLUDING anything under */ker/* (auto-generated DG kernel
+# gkeyll/ -- EXCLUDING anything under */ker/* (auto-generated DG kernel
 # code) or core/minus/* (vendored third-party libraries), which must never be
 # hand-formatted (see .agents/skills/code_style/SKILL.md). These exclusions
 # are enforced by the tooling (pre-commit, CI, ci/format-all.sh), not by this

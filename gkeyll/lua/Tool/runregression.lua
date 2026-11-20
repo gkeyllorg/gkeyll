@@ -1,7 +1,7 @@
 -- Gkyl ------------------------------------------------------------------------
 --
 -- Runs regression tests and compares with accepted results.
--- Each layer (moments -> vlasov -> gyrokinetics -> pkpm) 
+-- Each layer (moments -> vlasov -> gyrokinetics)
 -- has its own luareg/ (Lua regression tests) and creg/
 -- (C regression test sources).
 --
@@ -43,13 +43,12 @@ local verboseLog = function (msg) end -- default: no verbose output
 local verboseLogger = function (msg) log(msg) end
 
 -- ---- Layer definitions ------------------------------------------------------
--- The four physics layers that have regression tests. 'src' is the name of
+-- The three physics layers that have regression tests (the PKPM tests are in vlasov). 'src' is the name of
 -- the subdirectory under the gkeyll source root and build root.
 local LAYERS = {
    { name = "moments",     src = "moments"     },
    { name = "vlasov",      src = "vlasov"      },
    { name = "gyrokinetic", src = "gyrokinetic" },
-   { name = "pkpm",        src = "pkpm"        },
 }
 
 -- Fast lookup: set of valid layer names.
@@ -59,7 +58,7 @@ for _, L in ipairs(LAYERS) do VALID_LAYER_NAMES[L.name] = true end
 -- ---- GPU build detection ----------------------------------------------------
 -- Layers with production GPU (CUDA) code paths.  The moments layer has no GPU
 -- support and is intentionally excluded.
-local GPU_LAYERS = { vlasov = true, gyrokinetic = true, pkpm = true }
+local GPU_LAYERS = { vlasov = true, gyrokinetic = true }
 
 -- Global flag: is the current build GPU-enabled (CC=nvcc)?
 -- Set once by detectGpuBuild() during loadConfigure().
@@ -1926,7 +1925,7 @@ local function finalizeRegressionRun()
 end
 
 -- 'run' command: execute regression tests and optionally create or check results.
--- On a GPU build (CC=nvcc), GPU-capable layers (vlasov, gyrokinetic, pkpm) run
+-- On a GPU build (CC=nvcc), GPU-capable layers (vlasov, gyrokinetic) run
 -- each test twice: once in CPU mode, once in GPU mode.  Both are compared against
 -- the same accepted baselines, and then CPU vs GPU output is compared to detect
 -- GPU-specific divergence.  The 'create' action always forces CPU mode so that
@@ -2516,7 +2515,7 @@ local parser = argparse()
    :help_vertical_space(1)
    :description [[
 Run Gkeyll regression tests across the hierarchical layer architecture
-(moments -> vlasov -> gyrokinetic -> pkpm).
+(moments -> vlasov -> gyrokinetic).
 
 Each layer has Lua regression tests (luareg/) and C regression tests (creg/).
 Results are stored in per-layer SQLite databases under gkeyll-results/.
@@ -2544,7 +2543,7 @@ local c_conf = parser:command("configure", "Configure regression tests")
 
 c_conf:option("-s --source-dir",
    "REQUIRED. Absolute path to gkeyll source root\n"
-   .. "(parent of moments/, vlasov/, gyrokinetic/, pkpm/).\n"
+   .. "(parent of moments/, vlasov/, gyrokinetic/).\n"
    .. "Example: --source-dir /path/to/gkeyll")
    :target("config_source_dir")
 c_conf:option("-p --prefix",

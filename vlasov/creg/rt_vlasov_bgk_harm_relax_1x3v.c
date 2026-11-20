@@ -1,5 +1,5 @@
 // Relaxation of first-harmonic perturbations under BGK self-collisions (Vlasov, 1x3v), the
-// reference for pkpm/creg/rt_pkpm_bgk_harm_relax_1x.c.
+// reference for rt_pkpm_bgk_harm_relax_1x.c.
 // Two homogeneous species start from a unit-temperature Maxwellian with a small first gyroangle
 // harmonic about the x direction: f = f_M (1 + a v_x v_y), an off-diagonal pressure, and
 // f = f_M (1 + a v_y (v_perp^2/2 - 2)), a perpendicular heat flux with no perpendicular drift.

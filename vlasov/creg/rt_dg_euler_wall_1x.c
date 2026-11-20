@@ -1,5 +1,5 @@
 // Gas flowing between reflecting walls with the DG Euler solver (1x), the fluid counterpart of
-// pkpm/creg/rt_pkpm_neut_bgk_wall_1x.c. Density 1 and pressure 1/4 with gamma = 5/3 moving at
+// rt_pkpm_neut_bgk_wall_1x.c. Density 1 and pressure 1/4 with gamma = 5/3 moving at
 // velocity 1 (Mach 1.55) between reflecting walls at x = 0 and 1, to t = 0.3. A shock leaves the
 // wall the gas runs into and a rarefaction the wall it leaves; the reference is the exact solution
 // by the method of images, one Riemann problem per wall between the gas and its mirror image.

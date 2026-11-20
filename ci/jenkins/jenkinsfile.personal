@@ -216,7 +216,7 @@ def runCandidateRegressions(String candidateDir, String baselineDir, String regr
     def baseline = "${baselineDir}/gkylsoft/gkeyll-results"
     sh "\"${gkeyll}\" runregression configure --source-dir \"${candidateDir}/gkeyll\" --prefix \"${candidateDir}/gkylsoft\""
     sh """set -euo pipefail
-        for layer in moments vlasov gyrokinetic pkpm; do
+        for layer in moments vlasov gyrokinetic; do
             if [ -d \"${baseline}/\$layer/creg-accepted\" ]; then
                 rm -rf \"${results}/\$layer/creg-accepted\"
                 ln -s \"${baseline}/\$layer/creg-accepted\" \"${results}/\$layer/creg-accepted\"
@@ -254,7 +254,7 @@ def runParallelRegressions(String candidateDir, String baselineDir, String mpiEx
         elapsed=\$(( \$(date +%s) - started ))
         printf '%s\\n' "\$elapsed" > "${env.WORKSPACE}/candidate-parallel-c-compile-seconds.txt"
 
-        for layer in moments vlasov gyrokinetic pkpm; do
+        for layer in moments vlasov gyrokinetic; do
             if [ -d "${baselineResults}/\$layer/creg-accepted" ]; then
                 rm -rf "${results}/\$layer/creg-accepted"
                 ln -s "${baselineResults}/\$layer/creg-accepted" "${results}/\$layer/creg-accepted"

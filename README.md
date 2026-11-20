@@ -28,12 +28,10 @@ built hierarchically, with the following layers:
   neutron stars)
 * `vlasov`: modal discontinous Galerkin solvers for Vlasov-Maxwell and Vlasov-Poisson
   systems, as well as general Hamiltonian systems via their canonical Poisson bracket
-  structure
+  structure, and for the Parallel-Kinetic-Perpendicular-Moment (PKPM) system
 * `gyrokinetic`: modal discontinuous Galerkin solvers for the full-$f$, long-wavelength
   gyrokinetic equation coupled to the gyrokinetic Poisson equation, plus infrastructure 
   for specifying tokamak and mirror geometries
-* `pkpm`: modal discontinuous Galerkin solvers for the
-  Parallel-Kinetic-Perpendicular-Moment system
 
 Although `Gkeyll` as a whole comprises all of these layers, each layer can be built
 individually, with dependencies only upon the layer below it (e.g. `moments` depends

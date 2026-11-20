@@ -7,13 +7,13 @@ echo "# OS type is $OSTYPE on $MACHINE user $USER"
 
 # Defaults
 PREFIX=${HOME}/gkylsoft
-APP=pkpm
+APP=gyrokinetic
 ALLTARGETS=gkeyll
 INSTALLTARGET=gkeyll
 
-FIN_APP_LIB_DIR="-L../\${BUILD_DIR}/pkpm"
-FIN_APP_LIB_NAME=${FIN_APP_LIB_DIR}/libg0pkpm.so
-FIN_APP_LIB="-lg0pkpm"
+FIN_APP_LIB_DIR="-L../\${BUILD_DIR}/gyrokinetic"
+FIN_APP_LIB_NAME=${FIN_APP_LIB_DIR}/libg0gyrokinetic.so
+FIN_APP_LIB="-lg0gyrokinetic"
 
 HAVE_APP_FLAGS=""
 
@@ -89,7 +89,8 @@ CUDA_ARCH                  CUDA architecture flag to specify compute capability.
                            LBO, BGK). No phase-space Hamiltonian or triads.
                            Adds ~30 MB of kernels.
 --app                      [all] What app to build? One of
-			   core, moments, vlasov, gyrokinetic, pkpm, all
+			   core, moments, vlasov, gyrokinetic, all
+			   (vlasov includes the PKPM solver)
 
 Library Includes and Locations
 
@@ -378,11 +379,6 @@ then
     FIN_APP_LIB_NAME=${FIN_APP_LIB_DIR}/libg0gyrokinetic.so
     FIN_APP_LIB="-lg0gyrokinetic"
     HAVE_APP_FLAGS="-DGKYL_HAVE_GYROKINETIC -DGKYL_HAVE_VLASOV -DGKYL_HAVE_MOMENTS"
-elif [ "$APP" = "pkpm" ]
-then
-    ALLTARGETS="pkpm pkpm-unit pkpm-regression"
-    INSTALLTARGET="pkpm-install"
-    HAVE_APP_FLAGS="-DGKYL_HAVE_PKPM -DGKYL_HAVE_GYROKINETIC -DGKYL_HAVE_VLASOV -DGKYL_HAVE_MOMENTS"
 else
     APP=all
     ALLTARGETS=gkeyll

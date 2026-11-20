@@ -46,7 +46,3 @@ jobs:
         run: make -j 3 gyrokinetic-unit
       - name: Build gyrokinetic-regression
         run: make -j 3 gyrokinetic-regression
-
-      # PKPM module
-      - name: Build pkpm-regression
-        run: make -j 3 pkpm-regression

@@ -29,7 +29,7 @@ candidate_gkeyll="$CI_CANDIDATE_PREFIX/gkeyll/bin/gkeyll"
 test -s "$CI_TRUSTED_CHECKER"
 
 cd "$CI_CANDIDATE_DIR"
-for layer in moments vlasov gyrokinetic pkpm; do
+for layer in moments vlasov gyrokinetic; do
   src="$CI_BASELINE_PREFIX/gkeyll-results/parallel-c-4/$layer/creg-accepted"
   dst="$CI_CANDIDATE_PREFIX/gkeyll-results/parallel-c-4/$layer/creg-accepted"
   rm -rf "$dst"

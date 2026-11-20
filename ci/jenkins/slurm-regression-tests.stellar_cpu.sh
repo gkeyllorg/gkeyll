@@ -44,7 +44,7 @@ test -s "$CI_TRUSTED_CHECKER"
 cd "$CI_CANDIDATE_DIR"
 # Use only C accepted output from the fixed baseline. Do not carry Lua
 # baselines into this CPU C-regression job.
-for layer in moments vlasov gyrokinetic pkpm; do
+for layer in moments vlasov gyrokinetic; do
   baseline_accepted="$CI_BASELINE_PREFIX/gkeyll-results/$layer/creg-accepted"
   candidate_accepted="$CI_CANDIDATE_PREFIX/gkeyll-results/$layer/creg-accepted"
   rm -rf "$candidate_accepted"

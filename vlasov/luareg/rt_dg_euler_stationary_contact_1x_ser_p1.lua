@@ -1,5 +1,5 @@
 -- Strong shock with a stationary contact with the DG Euler solver (1x), the fluid counterpart of
--- pkpm/creg/rt_pkpm_neut_bgk_stationary_contact_1x.c. Density 1 moving at -18.281207 with gamma =
+-- rt_pkpm_neut_bgk_stationary_contact_1x.c. Density 1 moving at -18.281207 with gamma =
 -- 5/3, with pressure 1000 left of x = 0.8 and 0.01 right of it, to t = 0.012 (the left half of the
 -- Woodward-Colella blast wave in the frame in which its contact is at rest). A rarefaction moves to
 -- the left, a Mach 189 shock to the right and the contact stays at x = 0.8; the reference is the

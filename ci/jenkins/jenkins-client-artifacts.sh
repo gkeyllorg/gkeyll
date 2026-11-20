@@ -119,7 +119,7 @@ ci_print_regression_failures() {
         return
     }
     while IFS= read -r artifact_path; do
-        [[ "$artifact_path" =~ ^gkylsoft/gkeyll-results/(.*/)?(moments|vlasov|gyrokinetic|pkpm)/regressiondb$ ]] || continue
+        [[ "$artifact_path" =~ ^gkylsoft/gkeyll-results/(.*/)?(moments|vlasov|gyrokinetic)/regressiondb$ ]] || continue
         layer="${BASH_REMATCH[2]}"
         temporary="$(mktemp "${TMPDIR:-/tmp}/gkeyll-ci-regressiondb.XXXXXX")"
         if ! ci_download_artifact "$build_number" "$artifact_path" "$temporary"; then

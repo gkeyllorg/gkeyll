@@ -19,10 +19,10 @@ CFLAGS ?= -O3 -g $(FP_FLAGS) -fPIC -MMD -MP -DGIT_COMMIT_ID=\"$(GIT_TIP)\" -DGKY
 LDFLAGS = 
 PREFIX ?= ${HOME}/gkylsoft
 
-FIN_APP_LIB_DIR = -L../${BUILD_DIR}/pkpm
-FIN_APP_LIB = -lg0pkpm
+FIN_APP_LIB_DIR = -L../${BUILD_DIR}/gyrokinetic
+FIN_APP_LIB = -lg0gyrokinetic
 
-HAVE_APP_FLAGS = -DGKYL_HAVE_PKPM -DGKYL_HAVE_GYROKINETIC -DGKYL_HAVE_VLASOV -DGKYL_HAVE_MOMENTS
+HAVE_APP_FLAGS = -DGKYL_HAVE_GYROKINETIC -DGKYL_HAVE_VLASOV -DGKYL_HAVE_MOMENTS
 
 # Include config.mak and alltargets.mak files (if they exists) to overide defaults above
 -include config.mak
@@ -74,9 +74,6 @@ ifeq (${BUILD_APP}, vlasov)
 endif
 ifeq (${BUILD_APP}, gyrokinetic)
 	HAVE_APP_FLAGS = -DGKYL_HAVE_GYROKINETIC -DGKYL_HAVE_VLASOV -DGKYL_HAVE_MOMENTS
-endif
-ifeq (${BUILD_APP}, pkpm)
-	HAVE_APP_FLAGS = -DGKYL_HAVE_PKPM -DGKYL_HAVE_GYROKINETIC -DGKYL_HAVE_VLASOV -DGKYL_HAVE_MOMENTS
 endif
 
 INSTALL_PREFIX ?= ${PREFIX}
@@ -133,7 +130,7 @@ endif
 # kernel can reach (for an indirect call: every address-taken function with the same
 # PTX prototype, see momf_t in core/zero/gkyl_mom_type.h) to fit the cap, so a cap
 # covers a whole family: MOM_MAX_REGS applies to the moment and LBO boundary-correction
-# kernels, wrappers and advance kernels of the vlasov, gyrokinetic and pkpm solvers;
+# kernels, wrappers and advance kernels of the vlasov (with PKPM) and gyrokinetic solvers;
 # FLUX_MAX_REGS to the vlasov flux kernels (ker/flux_vlasov/) and the
 # dg_vlasov_{vel,conf}_flux_surf advance kernels; BINOP_MAX_REGS to the bin_op
 # conf*phase multiply-accumulate kernels parallelized over components (the largest,
@@ -301,9 +298,6 @@ ${BUILD_DIR}/vlasov/creg/%: vlasov/creg/%.c ${BUILD_DIR}/vlasov/libg0vlasov.so
 ${BUILD_DIR}/gyrokinetic/creg/%: gyrokinetic/creg/%.c ${BUILD_DIR}/gyrokinetic/libg0gyrokinetic.so
 	cd gyrokinetic && $(MAKE) -f Makefile-gyrokinetic ../$@
 
-${BUILD_DIR}/pkpm/creg/%: pkpm/creg/%.c ${BUILD_DIR}/pkpm/libg0pkpm.so
-	cd pkpm && $(MAKE) -f Makefile-pkpm ../$@
-
 # Unit tests
 ${BUILD_DIR}/core/unit/%: core/unit/%.c ${BUILD_DIR}/core/libg0core.so
 	cd core && $(MAKE) -f Makefile-core ../$@
@@ -317,11 +311,8 @@ ${BUILD_DIR}/vlasov/unit/%: vlasov/unit/%.c ${BUILD_DIR}/vlasov/libg0vlasov.so
 ${BUILD_DIR}/gyrokinetic/unit/%: gyrokinetic/unit/%.c ${BUILD_DIR}/gyrokinetic/libg0gyrokinetic.so
 	cd gyrokinetic && $(MAKE) -f Makefile-gyrokinetic ../$@
 
-${BUILD_DIR}/pkpm/unit/%: pkpm/unit/%.c ${BUILD_DIR}/pkpm/libg0pkpm.so
-	cd pkpm && $(MAKE) -f Makefile-pkpm ../$@
-
 # Declare sub-directories as phony targets
-.PHONY: core moments vlasov gyrokinetic pkpm
+.PHONY: core moments vlasov gyrokinetic
 
 # sed argument to replace path in Makefile for C input files outside gkeyll/.
 GKEYLL_SHARE_INSTALL_PREFIX=${INSTALL_PREFIX}/${PROJ_NAME}/share
@@ -335,9 +326,6 @@ ifeq (${BUILD_APP}, vlasov)
 endif
 ifeq (${BUILD_APP}, gyrokinetic)
 	MAKEFILE_FOR_EXT_C_INP_PHONY = gyrokinetic gyrokinetic-unit gyrokinetic-regression
-endif
-ifeq (${BUILD_APP}, pkpm)
-	MAKEFILE_FOR_EXT_C_INP_PHONY = pkpm pkpm-unit pkpm-regression
 endif
 SED_REPS_STR2=s,MAKEFILE_FOR_EXT_C_INP_PHONY_TAG,${MAKEFILE_FOR_EXT_C_INP_PHONY},g
 
@@ -455,32 +443,6 @@ gyrokinetic-unit-run: ## Run Gyrokinetic unit tests
 gyrokinetic-valcheck: gyrokinetic ## Run valgrind on unit tests in Gyrokinetics
 	cd gyrokinetic && $(MAKE) -f Makefile-gyrokinetic valcheck
 
-## PKPM infrastructure targets
-pkpm: gyrokinetic  ## Build PKPM infrastructure code
-	cd pkpm && $(MAKE) -f Makefile-pkpm
-
-pkpm-unit: pkpm gyrokinetic-unit ## Build PKPM unit tests
-	cd pkpm && $(MAKE) -f Makefile-pkpm unit
-
-pkpm-regression: pkpm gyrokinetic-regression ## Build PKM regression tests
-	cd pkpm && $(MAKE) -f Makefile-pkpm regression
-
-pkpm-install: gyrokinetic-install ## Install PKPM infrastructure code
-	cd pkpm && $(MAKE) -f Makefile-pkpm install
-	cp -f pkpm/creg/rt_arg_parse.h ${INSTALL_PREFIX}/${PROJ_NAME}/include/rt_arg_parse.h
-
-pkpm-clean: ## Clean PKPM infrastructure code
-	cd pkpm && $(MAKE) -f Makefile-pkpm clean
-
-pkpm-check: pkpm ## (Re)build and run unit tests in PKPM
-	cd pkpm && $(MAKE) -f Makefile-pkpm check
-
-pkpm-unit-run: ## Run PKPM unit tests
-	cd pkpm && $(MAKE) -f Makefile-pkpm unit-run
-
-pkpm-valcheck: pkpm ## Run valgrind on unit tests in PKPM
-	cd pkpm && $(MAKE) -f Makefile-pkpm valcheck
-
 ## Top-level Gkeyll target
 gkeyll: ${BUILD_APP} ## Build Gkeyll executable
 	cd gkeyll && ${MAKE} -f Makefile-gkeyll gkeyll
@@ -491,10 +453,10 @@ gkeyll-install: ${BUILD_APP}-install ## Install Gkeyll executable
 ## Targets to build things all parts of the code
 
 # build all unit tests
-unit: pkpm-unit gyrokinetic-unit vlasov-unit moments-unit core-unit ## Build all unit tests
+unit: gyrokinetic-unit vlasov-unit moments-unit core-unit ## Build all unit tests
 
 # build all regression tests 
-regression: pkpm-regression gyrokinetic-regression vlasov-regression moments-regression core-regression ## Build all regression tests
+regression: gyrokinetic-regression vlasov-regression moments-regression core-regression ## Build all regression tests
 
 # Clean everything
 clean:
@@ -511,7 +473,7 @@ check: ## Build (if needed) and run all unit tests
 unit-run: ## Run all unit tests without (re)building them
 	@if [ -n "$$GKYL_UNIT_RESULTS" ]; then export GKYL_TEST_LOG="$$GKYL_UNIT_RESULTS"; keep=1; \
 	else export GKYL_TEST_LOG=$$(mktemp); keep=0; fi; : > "$$GKYL_TEST_LOG"; \
-	for app in core moments vlasov gyrokinetic pkpm; do \
+	for app in core moments vlasov gyrokinetic; do \
 	  $(MAKE) -C $$app -f Makefile-$$app unit-run; \
 	done; \
 	npass=$$(grep -c '^PASS ' "$$GKYL_TEST_LOG"); \

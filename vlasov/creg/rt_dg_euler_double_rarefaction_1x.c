@@ -1,5 +1,5 @@
 // Double rarefaction (the 123 problem) with the DG Euler solver (1x), the fluid counterpart of
-// pkpm/creg/rt_pkpm_neut_bgk_double_rarefaction_1x.c. The states of test 2 of E. F. Toro, Riemann
+// rt_pkpm_neut_bgk_double_rarefaction_1x.c. The states of test 2 of E. F. Toro, Riemann
 // Solvers and Numerical Methods for Fluid Dynamics, with gamma = 5/3: density 1 and pressure 0.4
 // moving apart at velocity -2 left of x = 0.5 and +2 right of it, to t = 0.15. Two rarefactions
 // leave gas at rest at low density and pressure at the centre; the reference is the exact Riemann

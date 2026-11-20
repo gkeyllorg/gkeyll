@@ -1,5 +1,5 @@
 // Sheath formation with the Vlasov-Maxwell system of equations and the BGK-form temperature source
-// nu_Q (f_M(n, u, T_Q) - f), the counterpart of pkpm/creg/rt_pkpm_sheath_1x.c, run to t =
+// nu_Q (f_M(n, u, T_Q) - f), the counterpart of rt_pkpm_sheath_1x.c, run to t =
 // 1000/omega_pe.
 // Half domain: symmetry boundary at x = 0, absorbing conducting wall at x = Lx. A boundary-flux
 // source replaces the particles lost to the wall, and the temperature source at the source

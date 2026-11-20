@@ -28,7 +28,7 @@
 
 local sql = require "sqlite3"
 
-local LAYERS = { "moments", "vlasov", "gyrokinetic", "pkpm" }
+local LAYERS = { "moments", "vlasov", "gyrokinetic" }
 
 local statusToString = {
    [-6] = "crash", [-5] = "no_output", [-4] = "compile_fail", [-3] = "timeout", [-2] = "create", [-1] = "skip",

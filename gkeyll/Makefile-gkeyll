@@ -9,7 +9,7 @@ OBJS := $(SRCS:%=../$(BUILD_DIR)/gkeyll/%.o)
 DEPS := $(OBJS:.o=.d)
 
 EXT_INCS := -I${MPI_INC_DIR} -I${LUA_INC_DIR} -I${LAPACK_INC_DIR} -I${SUPERLU_INC_DIR}
-APP_LW_INCS := -I../core/apps -I../moments/apps -I../vlasov/apps -I../pkpm/apps -I../gyrokinetic/apps
+APP_LW_INCS := -I../core/apps -I../moments/apps -I../vlasov/apps -I../gyrokinetic/apps
 
 CORE_INCS := -I../core/minus -I../core/zero
 

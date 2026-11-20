@@ -34,7 +34,7 @@ cache_tree_valid() {
   [[ "$(awk -F= '$1 == "baseline_commit" {print $2}' "$manifest")" == "$sha" ]] || return 1
   head="$(git -C "$entry/gkeyll" rev-parse HEAD 2>/dev/null || true)"
   [[ "$head" == "$sha" ]] || return 1
-  for layer in moments vlasov gyrokinetic pkpm; do
+  for layer in moments vlasov gyrokinetic; do
     [[ -d "$entry/gkylsoft/gkeyll-results/$layer/creg-accepted" ]] || return 1
     [[ -d "$entry/gkylsoft/gkeyll-results/parallel-c-4/$layer/creg-accepted" ]] || return 1
   done
