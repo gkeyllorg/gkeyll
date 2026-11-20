@@ -171,7 +171,7 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app *app, doubl
         }
 
         // Compute the fields and apply BCs.
-        gyrokinetic_multib_calc_field_and_apply_bc(app, tcurr, fout, smom_out, fout_neut);
+        gyrokinetic_multib_calc_field_and_apply_bc(app, tcurr + dt, fout, smom_out, fout_neut);
 
         state = RK_STAGE_2;
         break;
@@ -202,7 +202,7 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app *app, doubl
         gyrokinetic_multib_forward_euler(app, tcurr + dt, dt, fdot_args, &st);
 
         if (st.dt_actual < dt) {
-          // Recalculate the field.
+          // Restore the initial field; the saved state already has valid ghost cells.
           for (int b = 0; b < nblocks_local; ++b) {
             struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[b];
             int li_charged = b * ns_charged;
@@ -262,7 +262,7 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app *app, doubl
               fout_neut[li_neut + i] = sbapp->neut_species[i].f1;
             }
           }
-          gyrokinetic_multib_calc_field_and_apply_bc(app, tcurr, fout, smom_out, fout_neut);
+          gyrokinetic_multib_calc_field_and_apply_bc(app, tcurr + dt / 2, fout, smom_out, fout_neut);
 
           state = RK_STAGE_3;
         }
@@ -294,7 +294,7 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app *app, doubl
         gyrokinetic_multib_forward_euler(app, tcurr + dt / 2, dt, fdot_args, &st);
 
         if (st.dt_actual < dt) {
-          // Recalculate the field.
+          // Restore the initial field; the saved state already has valid ghost cells.
           for (int b = 0; b < nblocks_local; ++b) {
             struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[b];
             int li_charged = b * ns_charged;
@@ -371,7 +371,7 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app *app, doubl
           //          gyrokinetic_multib_post_positivity_quasineut(app, fout);
 
           // Compute the fields and apply BCs
-          gyrokinetic_multib_calc_field_and_apply_bc(app, tcurr, fout, smom_out, fout_neut);
+          gyrokinetic_multib_calc_field_and_apply_bc(app, tcurr + dt, fout, smom_out, fout_neut);
 
           for (int b = 0; b < nblocks_local; ++b) {
             struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[b];

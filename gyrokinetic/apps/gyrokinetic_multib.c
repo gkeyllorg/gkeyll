@@ -1129,14 +1129,14 @@ and the maximum number of cuts in a block is %d\n\n",
 void
 gyrokinetic_multib_calc_field(
   struct gkyl_gyrokinetic_multib_app *app, double tcurr, const struct gkyl_array *fin[],
-  struct gkyl_array **bflux[]
+  struct gkyl_array **smom[]
 )
 {
   struct timespec wtm = gkyl_wall_clock();
   // Compute fields.
   if (app->update_field) {
     // Solve the field equation.
-    gk_multib_field_rhs(app, app->field, fin, bflux);
+    gk_multib_field_rhs(app, app->field, fin, smom);
   }
   app->stat.field_tm += gkyl_time_diff_now_sec(wtm);
 }
@@ -1199,7 +1199,7 @@ gyrokinetic_multib_apply_bc(
 void
 gyrokinetic_multib_calc_field_and_apply_bc(
   struct gkyl_gyrokinetic_multib_app *app, double tcurr, struct gkyl_array *distf[],
-  struct gkyl_array **bflux[], struct gkyl_array *distf_neut[]
+  struct gkyl_array **smom[], struct gkyl_array *distf_neut[]
 )
 {
   // Compute fields and apply BCs.
@@ -1207,7 +1207,7 @@ gyrokinetic_multib_calc_field_and_apply_bc(
   // Compute the field.
   // MF 2024/09/27/: Need the cast here for consistency. Fixing
   // this may require removing 'const' from a lot of places.
-  gyrokinetic_multib_calc_field(app, tcurr, (const struct gkyl_array **)distf, bflux);
+  gyrokinetic_multib_calc_field(app, tcurr, (const struct gkyl_array **)distf, smom);
 
   // Apply boundary conditions.
   struct timespec wst = gkyl_wall_clock();

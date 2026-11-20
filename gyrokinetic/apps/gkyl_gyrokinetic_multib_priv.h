@@ -135,30 +135,31 @@ struct gk_multib_field {
 /** Time stepping API */
 
 /**
- * Compute the gyrokinetic fields.
+ * Compute app-owned fields via elliptic/field equations.
  *
  * @param app Multiblock gyrokinetic app.
  * @param tcurr Current simulation time.
  * @param fin Array of distribution functions (one for each species) .
- * @param bflux Moments of the boundary fluxes (for all blocks, all species, and all boundaries).
+ * @param smom Charged stepped-moment lists, indexed by local block and species.
  */
 void gyrokinetic_multib_calc_field(
   struct gkyl_gyrokinetic_multib_app *app, double tcurr, const struct gkyl_array *fin[],
-  struct gkyl_array **bflux[]
+  struct gkyl_array **smom[]
 );
 
 /**
- * Compute the gyrokinetic fields and apply boundary conditions.
+ * Compute app-owned fields via elliptic/field equations and applied BCs to
+ * the supplied multiblock state (only ghost cells are changed).
  *
- * @param app Gyrokinetic app.
- * @param tcurr Current simulation time.
- * @param distf Array of distribution functions (for each charged species).
- * @param bflux Moments of the boundary fluxes (for all blocks, all species, and all boundaries).
- * @param distf_neut Array of distribution functions (for each neutral species).
+ * @param app Multiblock gyrokinetic app.
+ * @param tcurr Time at which boundary data will be used.
+ * @param distf Charged states indexed by local block and species, with writable ghosts.
+ * @param smom Charged stepped-moment lists in the field model's expected normalization.
+ * @param distf_neut Neutral states indexed by local block and species; NULL if there are none.
  */
 void gyrokinetic_multib_calc_field_and_apply_bc(
   struct gkyl_gyrokinetic_multib_app *app, double tcurr, struct gkyl_array *distf[],
-  struct gkyl_array **bflux[], struct gkyl_array *distf_neut[]
+  struct gkyl_array **smom[], struct gkyl_array *distf_neut[]
 );
 
 /**

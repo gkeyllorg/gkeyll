@@ -1452,15 +1452,15 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
 void
 gyrokinetic_calc_field(
   gkyl_gyrokinetic_app *app, double tcurr, const struct gkyl_array *fin[],
-  struct gkyl_array **bflux[]
+  struct gkyl_array **smom[]
 )
 {
-  app->calc_field_func(app, tcurr, fin, bflux);
+  app->calc_field_func(app, tcurr, fin, smom);
 }
 
 void
 gyrokinetic_calc_field_and_apply_bc(
-  gkyl_gyrokinetic_app *app, double tcurr, struct gkyl_array *distf[], struct gkyl_array **bflux[],
+  gkyl_gyrokinetic_app *app, double tcurr, struct gkyl_array *distf[], struct gkyl_array **smom[],
   struct gkyl_array *distf_neut[]
 )
 {
@@ -1469,7 +1469,7 @@ gyrokinetic_calc_field_and_apply_bc(
   // Compute the field.
   // MF 2024/09/27/: Need the cast here for consistency. Fixing
   // this may require removing 'const' from a lot of places.
-  gyrokinetic_calc_field(app, tcurr, (const struct gkyl_array **)distf, bflux);
+  gyrokinetic_calc_field(app, tcurr, (const struct gkyl_array **)distf, smom);
 
   // Apply boundary conditions.
   struct timespec wst = gkyl_wall_clock();

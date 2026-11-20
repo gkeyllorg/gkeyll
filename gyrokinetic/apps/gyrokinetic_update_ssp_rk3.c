@@ -118,7 +118,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app *app, double dt0)
         gk_field_calc_energy_dt(app, app->field, dt, true);
 
         // Compute the fields and apply BCs.
-        gyrokinetic_calc_field_and_apply_bc(app, tcurr, fout, smom_out, fout_neut);
+        gyrokinetic_calc_field_and_apply_bc(app, tcurr + dt, fout, smom_out, fout_neut);
 
         state = RK_STAGE_2;
         break;
@@ -144,7 +144,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app *app, double dt0)
         gyrokinetic_forward_euler(app, tcurr + dt, dt, fdot_args, &st);
 
         if (st.dt_actual < dt) {
-          // Recalculate the field.
+          // Restore the initial field; the saved state already has valid ghost cells.
           for (int i = 0; i < app->num_species; ++i) {
             struct gk_species *gks = &app->species[i];
             fin[i] = gks->f;
@@ -190,7 +190,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app *app, double dt0)
           for (int i = 0; i < app->num_neut_species; ++i) {
             fout_neut[i] = app->neut_species[i].f1;
           }
-          gyrokinetic_calc_field_and_apply_bc(app, tcurr, fout, smom_out, fout_neut);
+          gyrokinetic_calc_field_and_apply_bc(app, tcurr + dt / 2, fout, smom_out, fout_neut);
 
           state = RK_STAGE_3;
         }
@@ -217,7 +217,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app *app, double dt0)
         gyrokinetic_forward_euler(app, tcurr + dt / 2, dt, fdot_args, &st);
 
         if (st.dt_actual < dt) {
-          // Recalculate the field.
+          // Restore the initial field; the saved state already has valid ghost cells.
           for (int i = 0; i < app->num_species; ++i) {
             struct gk_species *gks = &app->species[i];
             fin[i] = gks->f;
@@ -280,7 +280,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app *app, double dt0)
           gyrokinetic_post_positivity_quasineut(app, fout);
 
           // Compute the fields and apply BCs
-          gyrokinetic_calc_field_and_apply_bc(app, tcurr, fout, smom_out, fout_neut);
+          gyrokinetic_calc_field_and_apply_bc(app, tcurr + dt, fout, smom_out, fout_neut);
 
           for (int i = 0; i < app->num_species; ++i) {
             struct gk_species *gks = &app->species[i];

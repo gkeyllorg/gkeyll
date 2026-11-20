@@ -5227,35 +5227,40 @@ void gk_eirene_release(gkyl_gyrokinetic_app *app, struct gk_eirene *eirene);
 /** Time stepping API */
 
 /**
- * Compute the gyrokinetic fields.
+ * Compute the app-owned gyrokinetic field via elliptic/field equations.
  *
  * @param app Gyrokinetic app.
  * @param tcurr Current simulation time.
  * @param fin Array of distribution functions (one for each species) .
- * @param bflux Boundary fluxes of charged species.
+ * @param smom Charged stepped-moment lists; field models use their boundary-flux entries.
  */
 void gyrokinetic_calc_field(
   gkyl_gyrokinetic_app *app, double tcurr, const struct gkyl_array *fin[],
-  struct gkyl_array **bflux[]
+  struct gkyl_array **smom[]
 );
 
 /**
- * Compute the gyrokinetic fields and apply boundary conditions.
+ * Compute the app-owned gyrokinetic field via elliptic/field equations,
+ * and apply boundary conditions to the supplied state (only ghost
+ * cells of are modified). Input stepped moments are
+ * read without rescaling or accumulation.
  *
  * @param app Gyrokinetic app.
- * @param tcurr Current simulation time.
- * @param distf Array of distribution functions (for each charged species).
- * @param bflux Boundary fluxes of charged species.
- * @param distf_neut Array of distribution functions (for each neutral species).
+ * @param tcurr Time at which boundary data will be used.
+ * @param distf Charged states, with writable ghost storage.
+ * @param smom Charged stepped-moment lists, in the field model's expected normalization.
+ * @param distf_neut Neutral states, with writable ghost storage; NULL if there are none.
  */
 void gyrokinetic_calc_field_and_apply_bc(
-  gkyl_gyrokinetic_app *app, double tcurr, struct gkyl_array *distf[], struct gkyl_array **bflux[],
+  gkyl_gyrokinetic_app *app, double tcurr, struct gkyl_array *distf[], struct gkyl_array **smom[],
   struct gkyl_array *distf_neut[]
 );
 
 /**
  * Compute the combined gyrokinetic RHS and its rank-local CFL timestep.
- * This does not choose the native timestep or reduce the estimate across ranks.
+ * The caller must prepare the app-owned field and input boundary data for the
+ * supplied state at tcurr, using gyrokinetic_calc_field_and_apply_bc (or its
+ * multiblock counterpart).
  *
  * @param app Gyrokinetic app.
  * @param tcurr Current simulation time.
@@ -5268,6 +5273,7 @@ double gyrokinetic_dfdt(
 
 /**
  * Compute the combined RHS and choose the native CFL-limited timestep.
+ * Requires the same field and boundary preparation as gyrokinetic_dfdt.
  *
  * @param app Gyrokinetic app.
  * @param tcurr Current simulation time.

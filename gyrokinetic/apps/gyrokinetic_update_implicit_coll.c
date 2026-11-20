@@ -41,8 +41,8 @@ gyrokinetic_update_implicit_coll(gkyl_gyrokinetic_app *app, double dt0)
   // Compute df/dt from implicit terms.
   gyrokinetic_rhs_implicit(app, tcurr, dt, fdot_args, &st);
 
-  // Apply boundary conditions and copy solution.
-  gyrokinetic_calc_field_and_apply_bc(app, tcurr, fout, smom_out, fout_neut);
+  // Prepare boundary data at the end of the split step, then copy the solution.
+  gyrokinetic_calc_field_and_apply_bc(app, tcurr + dt, fout, smom_out, fout_neut);
 
   for (int i = 0; i < ns; ++i) {
     struct gk_species *gks = &app->species[i];
