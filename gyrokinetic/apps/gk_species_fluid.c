@@ -85,7 +85,7 @@ gk_species_fluid_init_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *gks)
   gks->write_integrated_mom_func = gk_species_write_integrated_mom_dynamic;
   gks->calc_L2norm_func = gk_species_calc_L2norm_static;
   gks->write_L2norm_func = gk_species_write_L2norm_static;
-  gks->calc_int_mom_dt_func = gk_species_calc_int_mom_dt_disabled;
+  gks->calc_integ_mom_dt_func = gk_species_calc_integ_mom_dt_disabled;
 }
 
 static void
@@ -108,6 +108,7 @@ gk_species_fluid_release(const gkyl_gyrokinetic_app *app, const struct gk_specie
   gk_species_scaling_release(app, &gks->sca);
   gk_species_lbo_release(app, &gks->lbo);
   gk_species_bgk_release(app, &gks->bgk);
+  gk_stepped_moms_release_view(&gks->step_moms);
 
   gkyl_array_release(gks->m0_gyroavg);
   gkyl_array_release(gks->gyro_phi);
@@ -237,8 +238,13 @@ gk_species_fluid_init(struct gkyl_gk *inp, gkyl_gyrokinetic_app *app, struct gk_
   // Disable time-rate multipliers.
   gk_species_fdot_multiplier_init(app, gks, &gks->fdot_mult);
 
+  // No arrays stepped along with f.
+  gks->step_moms = (struct gk_stepped_moms){};
+
   // Disable the BGK source.
   gk_species_source_bgk_init(app, gks, &gks->bgk_src);
+  gks->bgk_src.step_moms_idx =
+    gk_stepped_moms_append_refs(&gks->step_moms, &gks->bgk_src.step_moms);
 
   // Disable positivity correction.
   gk_species_positivity_init(app, gks, &gks->positivity);

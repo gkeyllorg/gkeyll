@@ -166,6 +166,16 @@ gkyl_register_gyrokinetic_field_types(lua_State *L)
   register_types(L, gk_field_type, "GKField");
 }
 
+// Balance diagnostics.
+static const struct gkyl_str_int_pair gk_balance_type[] =
+  {{"GKParticle", GKYL_GK_BALANCE_PARTICLE}, {"GKEnergy", GKYL_GK_BALANCE_ENERGY}, {0, 0}};
+
+void
+gkyl_register_gyrokinetic_balance_types(lua_State *L)
+{
+  register_types(L, gk_balance_type, "Balance");
+}
+
 void
 gkyl_register_gyrokinetic_radiation_types(lua_State *L)
 {
@@ -398,6 +408,17 @@ gyrokinetic_species_lw_new(lua_State *L)
     }
 
     gk_species.num_diag_moments = num_diag_moments;
+  }
+
+  with_lua_tbl_tbl(L, "balanceDiags")
+  {
+    int num_balance_diags = glua_objlen(L);
+
+    for (int i = 0; i < num_balance_diags; i++) {
+      gk_species.balance_diags[i] = glua_tbl_iget_integer(L, i + 1, 0);
+    }
+
+    gk_species.num_balance_diags = num_balance_diags;
   }
 
   with_lua_tbl_tbl(L, "bcs")
@@ -1683,6 +1704,20 @@ gk_app_new(lua_State *L)
   }
 
   gk.cfl_frac = glua_tbl_get_number(L, "cflFrac", 0.95);
+
+  with_lua_tbl_tbl(L, "diagnostics")
+  {
+    with_lua_tbl_tbl(L, "balanceDiags")
+    {
+      int num_balance_diags = glua_objlen(L);
+
+      for (int i = 0; i < num_balance_diags; i++) {
+        gk.diagnostics.balance_diags[i] = glua_tbl_iget_integer(L, i + 1, 0);
+      }
+
+      gk.diagnostics.num_balance_diags = num_balance_diags;
+    }
+  }
   gk.poly_order = glua_tbl_get_integer(L, "polyOrder", 1);
 
   gk.basis_type = get_basis_type(glua_tbl_get_string(L, "basis", "serendipity"));
@@ -2231,7 +2266,8 @@ gk_app_apply_ic_species(lua_State *L)
   return 1;
 }
 
-// Compute integrated moments. (tm) -> bool.
+// Compute integrated moments. (tm, dt) -> bool, with dt the last time step
+// (optional, <= 0 if none has been taken).
 static int
 gk_app_calc_integrated_mom(lua_State *L)
 {
@@ -2241,7 +2277,8 @@ gk_app_calc_integrated_mom(lua_State *L)
   struct gyrokinetic_app_lw *app_lw = *l_app_lw;
 
   double tm = luaL_checknumber(L, 2);
-  gkyl_gyrokinetic_app_calc_integrated_mom(app_lw->app, tm);
+  double dt = luaL_optnumber(L, 3, -1.0);
+  gkyl_gyrokinetic_app_calc_integrated_mom(app_lw->app, tm, dt);
 
   lua_pushboolean(L, status);
   return 1;
@@ -2408,11 +2445,11 @@ calc_field_energy(
 // Calculate and append integrated moments to dynvector.
 static void
 calc_integrated_mom(
-  struct gkyl_tm_trigger *imt, gkyl_gyrokinetic_app *app, double t_curr, bool force_calc
+  struct gkyl_tm_trigger *imt, gkyl_gyrokinetic_app *app, double t_curr, bool force_calc, double dt
 )
 {
   if (gkyl_tm_trigger_check_and_bump(imt, t_curr) || force_calc) {
-    gkyl_gyrokinetic_app_calc_integrated_mom(app, t_curr);
+    gkyl_gyrokinetic_app_calc_integrated_mom(app, t_curr, dt);
   }
 }
 
@@ -2557,7 +2594,7 @@ gk_app_run(lua_State *L)
   struct timespec tm_ic0 = gkyl_wall_clock();
   // Initialize simulation.
   calc_field_energy(&fe_trig, app, t_curr, false);
-  calc_integrated_mom(&im_trig, app, t_curr, false);
+  calc_integrated_mom(&im_trig, app, t_curr, false, -1.0);
   write_data(&io_trig, app, t_curr, false);
 
   gkyl_gyrokinetic_app_cout(
@@ -2566,6 +2603,7 @@ gk_app_run(lua_State *L)
 
   // Compute initial guess of maximum stable time-step.
   double dt = t_end - t_curr;
+  double dt_last = -1.0; // Last time step taken.
 
   // Initialize small time-step check.
   double dt_init = -1.0, dt_failure_tol = app_lw->dt_failure_tol;
@@ -2590,9 +2628,10 @@ gk_app_run(lua_State *L)
 
     t_curr += status.dt_actual;
     dt = status.dt_suggested;
+    dt_last = status.dt_actual;
 
     calc_field_energy(&fe_trig, app, t_curr, false);
-    calc_integrated_mom(&im_trig, app, t_curr, false);
+    calc_integrated_mom(&im_trig, app, t_curr, false, dt_last);
     write_data(&io_trig, app, t_curr, false);
 
     if (dt_init < 0.0) {
@@ -2612,7 +2651,7 @@ gk_app_run(lua_State *L)
         );
 
         calc_field_energy(&fe_trig, app, t_curr, true);
-        calc_integrated_mom(&im_trig, app, t_curr, true);
+        calc_integrated_mom(&im_trig, app, t_curr, true, dt_last);
         write_data(&io_trig, app, t_curr, true);
 
         break;
@@ -2629,7 +2668,7 @@ gk_app_run(lua_State *L)
   }
 
   calc_field_energy(&fe_trig, app, t_curr, false);
-  calc_integrated_mom(&im_trig, app, t_curr, false);
+  calc_integrated_mom(&im_trig, app, t_curr, false, dt_last);
   write_data(&io_trig, app, t_curr, false);
   gkyl_gyrokinetic_app_stat_write(app);
 
@@ -2796,6 +2835,7 @@ gkyl_gyrokinetic_lw_openlibs(lua_State *L)
   gkyl_register_gyrokinetic_collisionless_types(L);
   register_types(L, gk_species_scaling_type, "GKSpeciesScaling");
   gkyl_register_gyrokinetic_field_types(L);
+  gkyl_register_gyrokinetic_balance_types(L);
   gkyl_register_gyrokinetic_radiation_types(L);
   gkyl_register_gyrokinetic_radiation_Te_types(L);
   gkyl_register_gyrokinetic_reaction_types(L);

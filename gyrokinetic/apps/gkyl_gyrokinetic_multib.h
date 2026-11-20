@@ -29,11 +29,14 @@ struct gkyl_gyrokinetic_multib_species {
   struct gkyl_mapc2p_inp mapc2p; // Velocity mapping.
 
   int num_diag_moments; // Number of diagnostic moments.
-  enum gkyl_distribution_moments diag_moments[12]; // List of diagnostic moments.
+  enum gkyl_distribution_moments diag_moments[GKYL_F_MOMENT_COUNT]; // List of diagnostic moments.
   int num_integrated_diag_moments; // Number of integrated diagnostic moments.
   enum gkyl_distribution_moments
-    integrated_diag_moments[12]; // List of integrated diagnostic moments.
+    integrated_diag_moments[GKYL_F_MOMENT_COUNT]; // List of integrated diagnostic moments.
   bool time_rate_diagnostics; // Whether to ouput df/dt diagnostics.
+  int num_balance_diags; // Number of balance diagnostics (see gkyl_gyrokinetic.h).
+  enum gkyl_gyrokinetic_balance_diag
+    balance_diags[GKYL_GK_BALANCE_COUNT]; // List of balance diagnostics.
 
   struct gkyl_phase_diagnostics_inp boundary_flux_diagnostics;
 
@@ -88,7 +91,7 @@ struct gkyl_gyrokinetic_multib_neut_species {
   bool is_static; // Set to true if neutral species does not change in time.
 
   int num_diag_moments; // Number of diagnostic moments.
-  enum gkyl_distribution_moments diag_moments[12]; // List of diagnostic moments.
+  enum gkyl_distribution_moments diag_moments[GKYL_F_MOMENT_COUNT]; // List of diagnostic moments.
 
   // Reactions with plasma species to include.
   struct gkyl_gyrokinetic_react react_neut;
@@ -152,6 +155,8 @@ struct gkyl_gyrokinetic_multib {
   double cfl_frac; // CFL fraction to use (default 1.0)
   double cfl_frac_omegaH; // CFL fraction to use for omegaH (default 1.7)
   bool omegaH_es_only; // Use the electrostatic omega_H dt bound also when solving EM fields.
+
+  struct gkyl_phase_diagnostics_inp diagnostics; // App level diagnostics.
 
   int num_periodic_dir; // Number of periodic directions.
   int periodic_dirs[3]; // List of periodic directions.
@@ -476,6 +481,48 @@ void gkyl_gyrokinetic_multib_app_write_species_boundary_flux_integrated_mom(
 );
 
 /**
+ * Compute the moment balance of a charged species from its
+ * integrated moment diagnostics (f, df/dt, source and boundary fluxes), which
+ * must have been computed first.
+ *
+ * @param app App object.
+ * @param sidx Index of species whose balance to compute.
+ * @param tm Time at which integrated diagnostics are to be computed
+ * @param dt Last time step taken (<= 0 if none, e.g. at the initial time).
+ */
+void gkyl_gyrokinetic_multib_app_calc_species_balance(
+  gkyl_gyrokinetic_multib_app *app, int sidx, double tm, double dt
+);
+
+/**
+ * Write the balance diagnostic of a charged species to file. Appended to the
+ * same file after the first write.
+ *
+ * @param app App object.
+ * @param sidx Index of species whose balance to write.
+ */
+void gkyl_gyrokinetic_multib_app_write_species_balance(gkyl_gyrokinetic_multib_app *app, int sidx);
+
+/**
+ * Compute the balance diagnostics summed over species. Must be called after
+ * the species balances are computed.
+ *
+ * @param app App object.
+ * @param tm Time at which integrated diagnostics are to be computed
+ * @param dt Last time step taken (<= 0 if none, e.g. at the initial time).
+ */
+void gkyl_gyrokinetic_multib_app_calc_balance(
+  gkyl_gyrokinetic_multib_app *app, double tm, double dt
+);
+
+/**
+ * Write the balance diagnostics summed over species to file.
+ *
+ * @param app App object.
+ */
+void gkyl_gyrokinetic_multib_app_write_balance(gkyl_gyrokinetic_multib_app *app);
+
+/**
  * Write species source to file.
  * 
  * @param app App object.
@@ -781,12 +828,16 @@ void gkyl_gyrokinetic_multib_app_write_neut_species_conf(
 void gkyl_gyrokinetic_multib_app_write_mom(gkyl_gyrokinetic_multib_app *app, double tm, int frame);
 
 /**
- * Calculate integrated diagnostic moments for all species (including sources).
+ * Calculate integrated diagnostic moments for all species (including sources),
+ * and the balance diagnostics.
  *
  * @param app App object.
  * @param tm Time at which integrated diagnostics are to be computed
+ * @param dt Last time step taken (<= 0 if none, e.g. at the initial time).
  */
-void gkyl_gyrokinetic_multib_app_calc_integrated_mom(gkyl_gyrokinetic_multib_app *app, double tm);
+void gkyl_gyrokinetic_multib_app_calc_integrated_mom(
+  gkyl_gyrokinetic_multib_app *app, double tm, double dt
+);
 
 /**
  * Write integrated diagnostic moments for all species (including sources)

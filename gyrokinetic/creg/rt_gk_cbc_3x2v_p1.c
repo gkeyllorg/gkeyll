@@ -554,11 +554,11 @@ create_ctx(void)
   double inv_asp_ratio = r0 / R_axis;
 
   // Grid parameters
-  int Nx = 4; // dx = 2 rho_s.
-  int Ny = 2; // dy = 7.5 rho_s: ky*rho_s up to 0.42; Ny = 32 resolves the linear peak (~0.45).
-  int Nz = 4;
-  int Nvpar = 2;
-  int Nmu = 2;
+  int Nx = 48 / 8;
+  int Ny = 24 / 4;
+  int Nz = 16 / 4;
+  int Nvpar = 8 / 2;
+  int Nmu = 4 / 2;
   int poly_order = 1;
   int psi_lut_nfact = 100 * (poly_order + 1); // Resolution factor for the psi lookup table.
 
@@ -728,13 +728,13 @@ main(int argc, char **argv)
           .dir = 0,
           .edge = GKYL_LOWER_EDGE,
           .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
-          .projection = elc_bc,
+          .projection = ion_bc,
         },
         {
           .dir = 0,
           .edge = GKYL_UPPER_EDGE,
           .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
-          .projection = elc_bc,
+          .projection = ion_bc,
         },
         {.dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_TWISTSHIFT},
         {.dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_TWISTSHIFT},
@@ -747,6 +747,8 @@ main(int argc, char **argv)
     .boundary_flux_diagnostics =
       {.num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}},
     .time_rate_diagnostics = true,
+    .num_balance_diags = 2,
+    .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY},
   };
 
   if (ctx.magnetic_shear) {
@@ -796,13 +798,13 @@ main(int argc, char **argv)
           .dir = 0,
           .edge = GKYL_LOWER_EDGE,
           .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
-          .projection = ion_bc,
+          .projection = elc_bc,
         },
         {
           .dir = 0,
           .edge = GKYL_UPPER_EDGE,
           .type = GKYL_BC_GK_SPECIES_FIXED_FUNC,
-          .projection = ion_bc,
+          .projection = elc_bc,
         },
         {.dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_TWISTSHIFT},
         {.dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_TWISTSHIFT},
@@ -815,6 +817,8 @@ main(int argc, char **argv)
     .boundary_flux_diagnostics =
       {.num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN}},
     .time_rate_diagnostics = true,
+    .num_balance_diags = 2,
+    .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY},
   };
 
   if (ctx.magnetic_shear) {
@@ -880,6 +884,9 @@ main(int argc, char **argv)
 
     .num_periodic_dir = ctx.magnetic_shear ? 1 : 2,
     .periodic_dirs = {1, 2},
+
+    .diagnostics =
+      {.num_balance_diags = 2, .balance_diags = {GKYL_GK_BALANCE_PARTICLE, GKYL_GK_BALANCE_ENERGY}},
 
     .num_species = 2,
     .species = {elc, ion},

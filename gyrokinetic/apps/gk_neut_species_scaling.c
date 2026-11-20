@@ -217,15 +217,9 @@ gk_neut_species_scaling_init(
       &app->grid, &app->basis, 1, GKYL_ARRAY_INTEGRATE_OP_NONE, app->use_gpu
     );
     int num_mom = 1;
-    if (app->use_gpu) {
-      sca->react_vol_integ_local = gkyl_cu_malloc(sizeof(double[num_mom]));
-      sca->react_vol_integ_global = gkyl_cu_malloc(sizeof(double[num_mom]));
-      sca->bflux_m0_vol_integ_local = gkyl_cu_malloc(sizeof(double));
-    } else {
-      sca->react_vol_integ_local = gkyl_malloc(sizeof(double[num_mom]));
-      sca->react_vol_integ_global = gkyl_malloc(sizeof(double[num_mom]));
-      sca->bflux_m0_vol_integ_local = gkyl_malloc(sizeof(double));
-    }
+    sca->react_vol_integ_local = gkyl_calloc_hodev(app->use_gpu, num_mom, sizeof(double));
+    sca->react_vol_integ_global = gkyl_calloc_hodev(app->use_gpu, num_mom, sizeof(double));
+    sca->bflux_m0_vol_integ_local = gkyl_calloc_hodev(app->use_gpu, 1, sizeof(double));
 
     sca->cross_moms_func_neut = gk_neut_species_scaling_cross_moms_enabled;
     sca->rhs_func_neut = gk_neut_species_scaling_rhs_enabled;
@@ -358,15 +352,9 @@ gk_neut_species_scaling_release(const struct gkyl_gyrokinetic_app *app, const st
     gkyl_array_release(sca->Jm0_init);
     gkyl_array_integrate_release(sca->integrate_op);
 
-    if (app->use_gpu) {
-      gkyl_cu_free(sca->react_vol_integ_local);
-      gkyl_cu_free(sca->react_vol_integ_global);
-      gkyl_cu_free(sca->bflux_m0_vol_integ_local);
-    } else {
-      gkyl_free(sca->react_vol_integ_local);
-      gkyl_free(sca->react_vol_integ_global);
-      gkyl_free(sca->bflux_m0_vol_integ_local);
-    }
+    gkyl_free_hodev(app->use_gpu, sca->react_vol_integ_local);
+    gkyl_free_hodev(app->use_gpu, sca->react_vol_integ_global);
+    gkyl_free_hodev(app->use_gpu, sca->bflux_m0_vol_integ_local);
     gkyl_array_release(sca->reactivity);
     gkyl_array_release(sca->dndt_react);
 

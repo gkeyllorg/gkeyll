@@ -74,5 +74,8 @@ gkyl_dg_cx_coll(
 void
 gkyl_dg_cx_release(gkyl_dg_cx *cx)
 {
-  free(cx);
+  if (GKYL_IS_CU_ALLOC(cx->flags)) {
+    gkyl_cu_free(cx->on_dev);
+  }
+  gkyl_free(cx);
 }
