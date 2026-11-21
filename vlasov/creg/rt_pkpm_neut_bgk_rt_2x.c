@@ -8,8 +8,8 @@
 // Gravity is an applied acceleration (explicit sources).
 // Moderate collisions advanced explicitly, nu = 20.0: the mean free path of the hottest gas is 0.7
 // cells. rt_pkpm_neut_lbo_rt_2x has the same collision frequency and grid.
-// Figures of merit (12 x 24 x 8 cells) at t = 3.5, with nu dt = 0.038 on average: the integral of
-// rho u_y^2 is 9.93e-06 at the end of the run (7.46e-07 at t = 0); mass is conserved to 1e-13.
+// Figures of merit (12 x 24 x 8 cells) at t = 3.5, with nu dt = 0.051 on average: the integral of
+// rho u_y^2 is 9.93e-06 at the end of the run (7.46e-07 at t = 0); mass is conserved to 8e-14.
 
 #include <math.h>
 #include <stdio.h>

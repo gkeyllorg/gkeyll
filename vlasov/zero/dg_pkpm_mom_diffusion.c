@@ -10,7 +10,10 @@ gkyl_dg_pkpm_mom_diffusion_setup(
   struct gkyl_dg_pkpm_mom_diffusion *up, const struct gkyl_dg_pkpm_mom_diffusion_inp *inp
 )
 {
-  assert(inp->conf_basis->poly_order == 1 && inp->conf_basis->b_type == GKYL_BASIS_MODAL_SERENDIPITY);
+  assert(
+    inp->conf_basis->poly_order == 1 && (inp->conf_basis->b_type == GKYL_BASIS_MODAL_SERENDIPITY ||
+                                         inp->conf_basis->b_type == GKYL_BASIS_MODAL_TENSOR)
+  );
   assert(inp->order == 2 || inp->order == 4);
   assert(inp->pos_map);
   up->conf_grid = *inp->conf_grid;

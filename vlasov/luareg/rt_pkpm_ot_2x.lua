@@ -6,7 +6,7 @@
 -- doubly periodic box of side L = 20.48 d_i. Both species have fourth-order momentum hyperdiffusion
 -- (D = 1e-4). Run to t = 25/Omega_ci, through the formation of the first current sheets.
 -- Figures of merit (16 x 16 x 8 cells), from the cell averages of the current J = sum_s (q_s/m_s)
--- (rho u)_s in units of n0 e c, with lengths in d_e: int |J|^2 dA is 0.945 initially, 1.883 at t =
+-- (rho u)_s in units of n0 e c, with lengths in d_e: int |J|^2 dA is 0.945 initially, 1.882 at t =
 -- 20/Omega_ci and 2.058 at 25/Omega_ci, still rising. The largest |J_z| rises from 0.0170 to a
 -- first maximum of 0.0372 at 21/Omega_ci, in the sheets at x = L/2, y = 0, and is 0.0348 at
 -- 25/Omega_ci.

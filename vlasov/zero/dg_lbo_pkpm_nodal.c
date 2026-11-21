@@ -23,7 +23,10 @@ gkyl_dg_lbo_pkpm_nodal_inew(const struct gkyl_dg_lbo_pkpm_nodal_inp *inp)
   const struct gkyl_basis *cbasis = inp->conf_basis, *pbasis = inp->phase_basis;
   const struct gkyl_rect_grid *pgrid = inp->phase_grid;
   assert(!inp->use_gpu);
-  assert(cbasis->b_type == GKYL_BASIS_MODAL_SERENDIPITY && cbasis->poly_order == 1);
+  assert(
+    (cbasis->b_type == GKYL_BASIS_MODAL_SERENDIPITY || cbasis->b_type == GKYL_BASIS_MODAL_TENSOR) &&
+    cbasis->poly_order == 1
+  );
   assert(pbasis->b_type == GKYL_BASIS_MODAL_HYBRID);
 
   struct dg_lbo_pkpm_nodal *lbo = gkyl_malloc(sizeof(struct dg_lbo_pkpm_nodal));

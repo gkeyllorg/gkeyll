@@ -24,6 +24,7 @@ set_cu_ptrs(
 
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
+    case GKYL_BASIS_MODAL_TENSOR: // the same basis at polynomial order 1
       mom_pkpm_kernels = ser_mom_pkpm_kernels;
       mom_pkpm_diag_kernels = ser_mom_pkpm_diag_kernels;
 

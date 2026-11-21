@@ -13,7 +13,8 @@ gkyl_dg_pkpm_harm_exp_setup(
 )
 {
   assert(
-    inp->conf_basis->poly_order == 1 && inp->conf_basis->b_type == GKYL_BASIS_MODAL_SERENDIPITY
+    inp->conf_basis->poly_order == 1 && (inp->conf_basis->b_type == GKYL_BASIS_MODAL_SERENDIPITY ||
+                                         inp->conf_basis->b_type == GKYL_BASIS_MODAL_TENSOR)
   );
   up->cdim = inp->conf_basis->ndim;
   up->num_conf_nodes = inp->conf_basis->num_basis;

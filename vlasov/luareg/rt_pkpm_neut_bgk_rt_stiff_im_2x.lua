@@ -8,7 +8,7 @@
 -- Gravity is an applied acceleration in the implicit source step of the staggered operator split.
 -- Stiff collisions, nu = 7.5e6 (nu dt of order 1e4): the BGK relaxation takes one backward-Euler
 -- step in each SSP-RK3 stage, so the transport alone sets the time step.
--- Figures of merit (12 x 24 x 8 cells) at t = 3.5, with nu dt = 8400 on average: the integral of
+-- Figures of merit (12 x 24 x 8 cells) at t = 3.5, with nu dt = 8700 on average: the integral of
 -- rho u_y^2 is 7.83e-05 at the end of the run (7.46e-07 at t = 0); mass is conserved to 2e-13.
 
 local Vlasov = G0.Vlasov

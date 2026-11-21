@@ -75,6 +75,42 @@ void gkyl_pkpm_coll_cross_prim(
 );
 
 /**
+ * The moments of a species with a fluid aspect in the form the collision operator of a kinetic
+ * species with three velocity dimensions reads: the expansions of
+ * [M0, M1 (3), M2] = J [n, n u, n (|u|^2 + 3 vtsq) / 2] and of [u (3), vtsq], from its node values.
+ *
+ * @param up Updater.
+ * @param conf_range Configuration-space range.
+ * @param jacob Position-map Jacobian (first component, constant in a cell).
+ * @param prim Node values [n, ux, uy, uz, vtsq] of the species.
+ * @param moms Output expansions of [M0, M1 (3), M2] (5 blocks).
+ * @param prim_moms Output expansions of [u (3), vtsq] (4 blocks).
+ */
+void gkyl_pkpm_coll_cross_kinetic_moms(
+  const struct gkyl_pkpm_coll_cross *up, const struct gkyl_range *conf_range,
+  const struct gkyl_array *jacob, const struct gkyl_array *prim, struct gkyl_array *moms,
+  struct gkyl_array *prim_moms
+);
+
+/**
+ * The node values [n, ux, uy, uz, vtsq] of a kinetic species with three velocity dimensions, from
+ * the expansions of its moments (the first block is M0 = J n) and of its primitive moments
+ * [u (3), vtsq].
+ *
+ * @param up Updater.
+ * @param conf_range Configuration-space range.
+ * @param jacob Position-map Jacobian (first component, constant in a cell).
+ * @param moms Expansions of the moments; only M0, the first block, is read.
+ * @param prim_moms Expansions of [u (3), vtsq] (4 blocks).
+ * @param prim Output node values [n, ux, uy, uz, vtsq].
+ */
+void gkyl_pkpm_coll_cross_kinetic_prim(
+  const struct gkyl_pkpm_coll_cross *up, const struct gkyl_range *conf_range,
+  const struct gkyl_array *jacob, const struct gkyl_array *moms, const struct gkyl_array *prim_moms,
+  struct gkyl_array *prim
+);
+
+/**
  * Compute the exchange coefficient K = 2 A_s A_r / (A_s + A_r) of a pair at the nodes. It is
  * the same for both members of the pair (zero where both frequencies vanish).
  *

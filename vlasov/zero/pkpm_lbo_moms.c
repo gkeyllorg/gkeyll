@@ -22,7 +22,9 @@ gkyl_pkpm_lbo_moms_inew(const struct gkyl_pkpm_lbo_moms_inp *inp)
 {
   assert(!inp->use_gpu);
   assert(
-    inp->conf_basis->b_type == GKYL_BASIS_MODAL_SERENDIPITY && inp->conf_basis->poly_order == 1
+    (inp->conf_basis->b_type == GKYL_BASIS_MODAL_SERENDIPITY ||
+     inp->conf_basis->b_type == GKYL_BASIS_MODAL_TENSOR) &&
+    inp->conf_basis->poly_order == 1
   );
   assert(inp->phase_basis->b_type == GKYL_BASIS_MODAL_HYBRID);
   assert(inp->phase_basis->ndim == inp->conf_basis->ndim + 1);

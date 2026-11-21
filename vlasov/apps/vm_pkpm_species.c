@@ -107,6 +107,7 @@ static void vm_pkpm_species_write_mom(
   gkyl_vlasov_app *app, struct vlasov_species *s, double tm, int frame
 );
 static void vm_pkpm_species_write_integrated_mom(gkyl_vlasov_app *app, struct vlasov_species *s);
+static double vm_pkpm_species_wall_loss_rate(gkyl_vlasov_app *app, const struct vlasov_species *s);
 static struct gkyl_app_restart_status vm_pkpm_species_read_from_frame(
   gkyl_vlasov_app *app, struct vlasov_species *s, int frame
 );
@@ -228,6 +229,7 @@ vlasov_pkpm_species_init(
   sp->fluid->charge = inp->charge;
   sp->fluid->mass = inp->mass;
 
+  sp->coll_cross = &sp->kinetic->pkpm.cross;
   sp->calc_self_moms_func = vm_pkpm_species_calc_self_moms;
   sp->calc_coupled_vars_func = vm_pkpm_species_calc_coupled_vars;
   sp->finish_stage_func = vm_pkpm_species_finish_stage;
@@ -243,6 +245,7 @@ vlasov_pkpm_species_init(
   sp->accumulate_field_coupling_func = app->use_explicit_sources ?
                                          vm_pkpm_species_accumulate_current :
                                          vm_pkpm_species_no_field_coupling;
+  sp->wall_loss_rate_func = vm_pkpm_species_wall_loss_rate;
   sp->release_func = vm_pkpm_species_release;
 }
 
@@ -1442,6 +1445,13 @@ vm_pkpm_fluid_species_rhs(
   if (fl->pkpm.src_scale != 0.0) {
     gkyl_array_accumulate_range(rhs, fl->pkpm.src_scale, fl->pkpm.src_fluid, &app->local);
   }
+  // Kinetic collision partners: the momentum and energy take the opposite of what the cross
+  // operator of each partner receives from this species.
+  for (int k = 0; k < fl->pkpm.num_kin_exch; ++k) {
+    gkyl_array_accumulate_offset_range(
+      rhs, -1.0, fl->pkpm.kin_exch[k], PKPM_FLUID_MOM * app->basis.num_basis, &app->local
+    );
+  }
   app->stat.fluid_species_rhs_tm += gkyl_time_diff_now_sec(tm);
 
   if (fl->has_diffusion) {
@@ -1995,6 +2005,18 @@ vm_pkpm_species_write_dynvec(
     cstr_drop(&fileNm);
   }
   gkyl_dynvec_clear(dv);
+}
+
+// Particle loss rate of a PKPM species through its absorbing walls, from the fluxes of the stage
+// (vm_pkpm_species_calc_bflux, with the self moments).
+static double
+vm_pkpm_species_wall_loss_rate(gkyl_vlasov_app *app, const struct vlasov_species *s)
+{
+  double tot = 0.0;
+  for (int i = 0; i < 2 * app->cdim; ++i) {
+    tot += s->kinetic->pkpm.bflux[i];
+  }
+  return tot;
 }
 
 // Write the integrated diagnostics of a PKPM species: the integrated moments, and on the same

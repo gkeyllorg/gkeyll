@@ -10,7 +10,9 @@ gkyl_pkpm_coll_cross_inew(const struct gkyl_pkpm_coll_cross_inp *inp)
 {
   assert(!inp->use_gpu);
   assert(
-    inp->conf_basis->b_type == GKYL_BASIS_MODAL_SERENDIPITY && inp->conf_basis->poly_order == 1
+    (inp->conf_basis->b_type == GKYL_BASIS_MODAL_SERENDIPITY ||
+     inp->conf_basis->b_type == GKYL_BASIS_MODAL_TENSOR) &&
+    inp->conf_basis->poly_order == 1
   );
 
   struct gkyl_pkpm_coll_cross *up = gkyl_malloc(sizeof(*up));
@@ -50,6 +52,72 @@ gkyl_pkpm_coll_cross_prim(
       // thermal energy (3/2) rho vtsq = E - |M|^2 / (2 rho)
       prim_d[PKPM_PRIM_VTSQ * num_nodes + q] =
         (2.0 * fluid_n[PKPM_FLUID_ENERGY][q] - mom_sq / rho) / (3.0 * rho);
+    }
+  }
+}
+
+void
+gkyl_pkpm_coll_cross_kinetic_moms(
+  const struct gkyl_pkpm_coll_cross *up, const struct gkyl_range *conf_range,
+  const struct gkyl_array *jacob, const struct gkyl_array *prim, struct gkyl_array *moms,
+  struct gkyl_array *prim_moms
+)
+{
+  int num_nodes = up->num_nodes;
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, conf_range);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(conf_range, iter.idx);
+    const double *jacob_d = gkyl_array_cfetch(jacob, loc);
+    const double *prim_d = gkyl_array_cfetch(prim, loc);
+    double *moms_d = gkyl_array_fetch(moms, loc);
+    double *prim_moms_d = gkyl_array_fetch(prim_moms, loc);
+
+    // node values of [M0, M1 (3), M2]
+    double moms_n[5][PKPM_MAX_CONF_BASIS];
+    for (int q = 0; q < num_nodes; ++q) {
+      double den = jacob_d[0] * prim_d[q], u_sq = 0.0;
+      moms_n[0][q] = den;
+      for (int k = 0; k < 3; ++k) {
+        double u = prim_d[(PKPM_PRIM_U + k) * num_nodes + q];
+        moms_n[1 + k][q] = den * u;
+        u_sq += u * u;
+      }
+      moms_n[4][q] = 0.5 * den * (u_sq + 3.0 * prim_d[PKPM_PRIM_VTSQ * num_nodes + q]);
+    }
+    for (int c = 0; c < 5; ++c) {
+      up->conf_to_modal(moms_n[c], &moms_d[c * num_nodes]);
+    }
+    // [u (3), vtsq] follow the density in the node values
+    for (int c = 0; c < 4; ++c) {
+      up->conf_to_modal(&prim_d[(PKPM_PRIM_U + c) * num_nodes], &prim_moms_d[c * num_nodes]);
+    }
+  }
+}
+
+void
+gkyl_pkpm_coll_cross_kinetic_prim(
+  const struct gkyl_pkpm_coll_cross *up, const struct gkyl_range *conf_range,
+  const struct gkyl_array *jacob, const struct gkyl_array *moms, const struct gkyl_array *prim_moms,
+  struct gkyl_array *prim
+)
+{
+  int num_nodes = up->num_nodes;
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, conf_range);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(conf_range, iter.idx);
+    const double *jacob_d = gkyl_array_cfetch(jacob, loc);
+    const double *moms_d = gkyl_array_cfetch(moms, loc);
+    const double *prim_moms_d = gkyl_array_cfetch(prim_moms, loc);
+    double *prim_d = gkyl_array_fetch(prim, loc);
+
+    up->conf_to_nodal(moms_d, prim_d);
+    for (int q = 0; q < num_nodes; ++q) {
+      prim_d[q] /= jacob_d[0];
+    }
+    for (int c = 0; c < 4; ++c) {
+      up->conf_to_nodal(&prim_moms_d[c * num_nodes], &prim_d[(PKPM_PRIM_U + c) * num_nodes]);
     }
   }
 }

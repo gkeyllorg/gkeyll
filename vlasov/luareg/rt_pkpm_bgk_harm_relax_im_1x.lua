@@ -36,7 +36,7 @@ B0 = 1.0 -- Magnetic field along x (sets the field direction b).
 -- Simulation parameters.
 Nx = 2 -- Cell count (configuration space: x-direction).
 Nvx = 32 -- Cell count (velocity space: normalized parallel velocity w).
-Lx = 5.0 -- Domain size (configuration space: x-direction).
+Lx = 2.5 -- Domain size (configuration space: x-direction).
 vx_max = 8.0 -- Domain boundary (velocity space: w = v_par/xi).
 poly_order = 1 -- Polynomial order.
 basis_type = "serendipity" -- Basis function set.

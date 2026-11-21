@@ -71,9 +71,10 @@ struct gkyl_dg_pkpm_remap_flux_surf *gkyl_dg_pkpm_remap_flux_surf_inew(
  *   cell of the face: side 0 is the flux the lower cell receives through its upper face, side 1
  *   the flux the upper cell receives through its lower face.
  * @param fluid_flux_surf Output fluid fluxes, [dir][component][surface mode].
- * @param cflrate_f Kinetic rate, incremented in the cell above each face (the cell whose lower
- *   face it is); the upper boundary face increments the interior cell below it.
- * @param cflrate_fluid Fluid rate, incremented in the same cells as cflrate_f.
+ * @param cflrate_f Kinetic rate, incremented in every cell by the rate of its lower face in each
+ *   direction; in the last cell of a direction by the larger of the rates of its lower face and
+ *   of the upper boundary face.
+ * @param cflrate_fluid Fluid rate, incremented in the same way as cflrate_f.
  * @param blend Output weight of the label-paired flux of the lower face per direction, [dir].
  */
 void gkyl_dg_pkpm_remap_flux_surf_advance(

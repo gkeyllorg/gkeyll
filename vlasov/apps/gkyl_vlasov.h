@@ -56,7 +56,11 @@ struct gkyl_vlasov_collisions {
   void *self_nu_ctx; // Context for self_nu.
 
   int num_cross_collisions; // Number of species to collide with.
-  char collide_with[GKYL_MAX_SPECIES][128]; // Names of species to collide with.
+  // Names of species to collide with. Kinetic species collide with kinetic species; PKPM species
+  // and Euler fluids with gas_gamma = 5/3 collide with each other; a kinetic species with LBO
+  // collisions collides with PKPM species (cross_nu given on both sides, explicit collisions of
+  // the PKPM species).
+  char collide_with[GKYL_MAX_SPECIES][128];
   // Functions for computing cross-collision frequencies (one for each num_cross_collisions).
   // Either all partners specify a function or none do (Spitzer cross frequencies).
   evalf_t cross_nu[GKYL_MAX_SPECIES];
@@ -112,6 +116,8 @@ struct gkyl_vlasov_source {
   int num_sources;
 
   double source_length; // required for boundary flux source
+  // Boundary-flux source: the species whose wall losses set the rate (a kinetic or a PKPM species;
+  // a PKPM species must name a PKPM one).
   char source_species[128];
 
   // Sources using projection routine.
@@ -360,6 +366,14 @@ struct gkyl_vlasov_fluid_species {
   // diffusion coupling to include
   struct gkyl_vlasov_fluid_diffusion diffusion;
 
+  // Collisions with other species: the momentum and energy exchange of the fluid states of an
+  // Euler fluid with gas_gamma = 5/3, with PKPM species and with other such fluids, one
+  // backward-Euler step in each SSP-RK3 stage (see the collisions of a PKPM species below; not
+  // on the GPU). A fluid has no collision operator of its own: read are num_cross_collisions,
+  // collide_with, cross_nu and cross_nu_ctx (without them the Spitzer frequencies), nu_frac and
+  // the reference parameters. Every partner must list this species.
+  struct gkyl_vlasov_collisions collisions;
+
   void *can_pb_n0_ctx; // context for background density function in canonical PB fluid systems
   // pointer to background density function in canonical PB fluid systems
   void (*can_pb_n0)(double t, const double *xn, double *aout, void *ctx);
@@ -377,7 +391,11 @@ struct gkyl_vlasov_fluid_species {
 // NORMALIZED velocity w = v_par/xi and the normalized distributions, the fluid block the state
 // [rho, rho ux, rho uy, rho uz, E], E = rho |u|^2/2 + 3 p/2, whose flux is the moment of the
 // kinetic flux (no equation object). It needs the Maxwell field (GKYL_FIELD_E_B), which defines
-// b, and polynomial order 1. For example
+// b, and polynomial order 1 (either basis type: with kinetic species in the same run the tensor
+// type gives those the hybrid phase-space basis, which PKPM species always use). A PKPM species
+// has three velocity degrees of freedom, and so must the species it runs together with: kinetic
+// species with three velocity dimensions (vdim = 3 describes them; the grid of w comes from the
+// kinetic block of the PKPM species) and Euler fluids with gas_gamma = 5/3. For example
 //   struct gkyl_vlasov_kinetic_species elc_kinetic = { .lower = ..., .cells = ..., ... };
 //   struct gkyl_vlasov_fluid_species elc_fluid = { .init = ..., ... };
 //   .species = {
@@ -408,7 +426,9 @@ struct gkyl_vlasov_fluid_species {
 //   constraints exact) and into the fluid state [rho, M, E]. With GKYL_PROJ_SOURCE the profile
 //   is added as given; with GKYL_BFLUX_SOURCE it is scaled every stage by the particle loss
 //   rate of `source_species` through its absorbing walls divided by `source_length` (so a
-//   density profile integrating to source_length replaces the losses exactly). The drift
+//   density profile integrating to source_length replaces the losses exactly). `source_species`
+//   must be a PKPM species: the rate is formed before the right-hand sides of the stage, when
+//   only the losses of PKPM species are known (a kinetic species may name a PKPM one). The drift
 //   enters the parallel Maxwellian through its component along b; a perpendicular drift
 //   relative to the local flow is not carried by G. write_source writes the fluid image of the
 //   profile at frame 0.

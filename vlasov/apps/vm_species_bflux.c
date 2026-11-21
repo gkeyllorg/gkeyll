@@ -76,6 +76,9 @@ vm_species_bflux_init(
 
     cells[i] = vms->grid.cells[i]; // reset number of cells in dimension for next loop
   }
+  int num_mom = gkyl_mom_type_num_mom(bflux->mom_type);
+  bflux->red_mom = app->use_gpu ? gkyl_cu_malloc(num_mom * sizeof(double)) :
+                                  gkyl_malloc(num_mom * sizeof(double));
 }
 
 // computes rhs of the boundary flux
@@ -120,9 +123,33 @@ vm_species_bflux_rhs(
   }
 }
 
+double
+vm_species_bflux_loss_rate(gkyl_vlasov_app *app, const struct vm_boundary_fluxes *bflux)
+{
+  double rate = 0.0;
+  for (int i = 0; i < 2 * app->cdim; ++i) {
+    double red_mom[1] = {0.0};
+    gkyl_array_reduce(bflux->red_mom, bflux->mom_arr[i], GKYL_SUM);
+    if (app->use_gpu) {
+      gkyl_cu_memcpy(red_mom, bflux->red_mom, sizeof(double), GKYL_CU_MEMCPY_D2H);
+    } else {
+      red_mom[0] = bflux->red_mom[0];
+    }
+    double red_mom_global[1] = {0.0};
+    gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, red_mom, red_mom_global);
+    rate += red_mom_global[0];
+  }
+  return rate;
+}
+
 void
 vm_species_bflux_release(const struct gkyl_vlasov_app *app, const struct vm_boundary_fluxes *bflux)
 {
+  if (app->use_gpu) {
+    gkyl_cu_free(bflux->red_mom);
+  } else {
+    gkyl_free(bflux->red_mom);
+  }
   gkyl_ghost_surf_calc_release(bflux->flux_slvr);
   gkyl_mom_type_release(bflux->mom_type);
   for (int i = 0; i < 2 * app->cdim; ++i) {

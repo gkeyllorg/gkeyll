@@ -32,13 +32,14 @@ vm_species_source_init(struct gkyl_vlasov_app *app, struct vm_species *vms, stru
     src->calc_bflux = true;
     assert(vms->info.source.source_length);
     src->source_length = vms->info.source.source_length;
-    // source_species must name an existing kinetic species.
-    src->source_species = vm_find_species(app, vms->info.source.source_species);
+    // source_species names a kinetic or a PKPM species (checked by the app). A kinetic one
+    // computes its boundary fluxes for this source if nothing else of its own asks for them.
+    src->source_species = vlasov_find_species(app, vms->info.source.source_species);
     assert(src->source_species);
-    if (app->use_gpu) {
-      src->scale_ptr = gkyl_cu_malloc((vdim + 2) * sizeof(double));
-    } else {
-      src->scale_ptr = gkyl_malloc((vdim + 2) * sizeof(double));
+    struct vm_species *source_kin = src->source_species->kinetic;
+    if (src->source_species->type == GKYL_SPECIES_VLASOV && !source_kin->calc_bflux) {
+      source_kin->calc_bflux = true;
+      vm_species_bflux_init(app, source_kin, &source_kin->bflux);
     }
   } else if (vms->source_id == GKYL_PROJ_ADAPT_DENSITY_SOURCE) {
     src->rescale_m0 = true;
@@ -266,32 +267,10 @@ vm_species_source_rhs(
   gkyl_vlasov_app *app, const struct vm_species *vms, struct vm_source *src, struct gkyl_array *rhs
 )
 {
-  // use boundary fluxes to scale source profile
+  // use the wall losses of the source species to scale the source profile
   if (src->calc_bflux) {
-    src->scale_factor = 0.0;
-    double z[app->basis.num_basis];
-    double red_mom[1] = {0.0};
-
-    for (int d = 0; d < app->cdim; ++d) {
-      gkyl_array_reduce(src->scale_ptr, src->source_species->bflux.mom_arr[2 * d], GKYL_SUM);
-      if (app->use_gpu) {
-        gkyl_cu_memcpy(red_mom, src->scale_ptr, sizeof(double), GKYL_CU_MEMCPY_D2H);
-      } else {
-        red_mom[0] = src->scale_ptr[0];
-      }
-      double red_mom_global[1] = {0.0};
-      gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, red_mom, red_mom_global);
-      src->scale_factor += red_mom_global[0];
-      gkyl_array_reduce(src->scale_ptr, src->source_species->bflux.mom_arr[2 * d + 1], GKYL_SUM);
-      if (app->use_gpu) {
-        gkyl_cu_memcpy(red_mom, src->scale_ptr, sizeof(double), GKYL_CU_MEMCPY_D2H);
-      } else {
-        red_mom[0] = src->scale_ptr[0];
-      }
-      gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, red_mom, red_mom_global);
-      src->scale_factor += red_mom_global[0];
-    }
-    src->scale_factor = src->scale_factor / src->source_length;
+    src->scale_factor =
+      vlasov_species_wall_loss_rate(app, src->source_species) / src->source_length;
   }
   gkyl_array_accumulate(rhs, src->scale_factor, src->source);
 }
@@ -470,14 +449,6 @@ vm_species_source_release(const struct gkyl_vlasov_app *app, const struct vm_sou
 {
   gkyl_array_release(src->source);
   gkyl_array_release(src->source_host);
-
-  if (src->calc_bflux) {
-    if (app->use_gpu) {
-      gkyl_cu_free(src->scale_ptr);
-    } else {
-      gkyl_free(src->scale_ptr);
-    }
-  }
 
   if (src->rescale_m0) {
     for (int i = 0; i < src->num_cross_source; i++) {

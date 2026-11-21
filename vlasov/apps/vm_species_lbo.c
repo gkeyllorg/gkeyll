@@ -57,6 +57,9 @@ vmlbo_moms_enabled(
     gkyl_dg_mul_op(&app->basis, d, lbo->nu_prim_moms, d, lbo->prim_moms, 0, lbo->self_nu);
   }
 
+  // Node values of the density, flow and thermal speed for PKPM partners.
+  lbo->prim_nodal_func(app, lbo);
+
   app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);
 }
 
@@ -127,6 +130,86 @@ vmlbo_alpha_E_calc(gkyl_vlasov_app *app, struct vm_lbo_collisions *lbo, int coll
   gkyl_array_scale_range(lbo->alpha_E, lbo->alpha_E_fac[coll_idx], &app->local);
 }
 
+// A kinetic partner: the cross operator reads its moments and primitive moments directly, and
+// its own cross operator carries the opposite exchange.
+static void
+vmlbo_other_moms_kinetic(gkyl_vlasov_app *app, struct vm_lbo_collisions *lbo, int coll_idx)
+{
+}
+
+static void
+vmlbo_exch_kinetic(
+  gkyl_vlasov_app *app, const struct vm_species *vms, struct vm_lbo_collisions *lbo, int coll_idx,
+  const struct gkyl_array *nu_cross_prim_moms
+)
+{
+}
+
+static void
+vmlbo_prim_nodal_none(gkyl_vlasov_app *app, struct vm_lbo_collisions *lbo)
+{
+}
+
+// A PKPM partner: its moments and primitive moments from the node values of its fluid state of
+// the stage (formed with its self moments).
+static void
+vmlbo_other_moms_pkpm(gkyl_vlasov_app *app, struct vm_lbo_collisions *lbo, int coll_idx)
+{
+  gkyl_pkpm_coll_cross_kinetic_moms(
+    lbo->pkpm_conv, &app->local, app->pos_map->jacob_pos_gauss,
+    lbo->pkpm_partner[coll_idx]->coll_cross->prim_fluid, lbo->other_moms[coll_idx],
+    lbo->other_prim_moms[coll_idx]
+  );
+}
+
+// The momentum and energy the cross operator with a PKPM partner gives this species. With the
+// coefficients [nu u_sr, nu vtsq_sr] and nu the operator changes the moments at
+//   d M1/dt = nu u_sr M0 - nu vtsq_sr cM - nu M1,
+//   d M2/dt = nu u_sr . M1 + nu vtsq_sr (3 M0 - cE) - 2 nu M2      (M2 = int |v|^2 f / 2),
+// weak products with the boundary corrections cM, cE: the equations that define the self
+// primitive moments set both to zero. Called with nu_moms = nu [M0, M1, M2] of the partner.
+static void
+vmlbo_exch_pkpm(
+  gkyl_vlasov_app *app, const struct vm_species *vms, struct vm_lbo_collisions *lbo, int coll_idx,
+  const struct gkyl_array *nu_cross_prim_moms
+)
+{
+  int num_basis = app->basis.num_basis;
+  struct gkyl_array *exch = lbo->exch[coll_idx], *term = lbo->exch_term;
+  const struct gkyl_array *moms = lbo->moms.marr, *bcorr = lbo->boundary_corrections;
+
+  gkyl_array_clear(exch, 0.0);
+  for (int d = 0; d < 3; ++d) {
+    // momentum: nu u_sr,d M0 - nu vtsq_sr cM_d - nu M1_d
+    gkyl_dg_mul_op(&app->basis, 0, term, d, nu_cross_prim_moms, 0, moms);
+    gkyl_array_accumulate_offset(exch, vms->mass, term, d * num_basis);
+    gkyl_dg_mul_op(&app->basis, 0, term, 3, nu_cross_prim_moms, d, bcorr);
+    gkyl_array_accumulate_offset(exch, -vms->mass, term, d * num_basis);
+    gkyl_array_set_offset(term, 1.0, lbo->nu_moms, (1 + d) * num_basis);
+    gkyl_array_accumulate_offset(exch, -vms->mass, term, d * num_basis);
+    // energy: nu u_sr,d M1_d
+    gkyl_dg_mul_op(&app->basis, 0, term, d, nu_cross_prim_moms, 1 + d, moms);
+    gkyl_array_accumulate_offset(exch, vms->mass, term, 3 * num_basis);
+  }
+  // energy: nu vtsq_sr (3 M0 - cE) - 2 nu M2
+  gkyl_dg_mul_op(&app->basis, 0, term, 3, nu_cross_prim_moms, 0, moms);
+  gkyl_array_accumulate_offset(exch, 3.0 * vms->mass, term, 3 * num_basis);
+  gkyl_dg_mul_op(&app->basis, 0, term, 3, nu_cross_prim_moms, 3, bcorr);
+  gkyl_array_accumulate_offset(exch, -vms->mass, term, 3 * num_basis);
+  gkyl_array_set_offset(term, 1.0, lbo->nu_moms, 4 * num_basis);
+  gkyl_array_accumulate_offset(exch, -2.0 * vms->mass, term, 3 * num_basis);
+}
+
+// Node values [n, u (3), vtsq] of this species from its moments, for PKPM partners.
+static void
+vmlbo_prim_nodal_calc(gkyl_vlasov_app *app, struct vm_lbo_collisions *lbo)
+{
+  gkyl_pkpm_coll_cross_kinetic_prim(
+    lbo->pkpm_conv, &app->local, app->pos_map->jacob_pos_gauss, lbo->moms.marr, lbo->prim_moms,
+    lbo->prim_nodal
+  );
+}
+
 static void
 vmlbo_cross_moms_disabled(
   gkyl_vlasov_app *app, const struct vm_species *vms, struct vm_lbo_collisions *lbo
@@ -144,6 +227,9 @@ vmlbo_cross_moms_enabled(
   struct timespec wst = gkyl_wall_clock();
 
   for (int i = 0; i < lbo->num_cross_collisions; ++i) {
+    // The moments of the partner (formed here for a PKPM species).
+    lbo->other_moms_func[i](app, lbo, i);
+
     // Compute the cross-species collision frequency.
     lbo->cross_nu_func(app, vms, lbo, i);
 
@@ -166,14 +252,18 @@ vmlbo_cross_moms_enabled(
     struct gkyl_array *cross_prim_moms = lbo->nu_boundary_corrections;
     gkyl_prim_lbo_cross_calc_advance(
       lbo->cross_calc, &app->local, lbo->alpha_E, vms->mass, lbo->nu_moms, lbo->prim_moms,
-      lbo->other_m[i], lbo->collide_with[i]->lbo.moms.marr, lbo->other_prim_moms[i],
-      lbo->nu_boundary_corrections, lbo->cross_nu[i], cross_prim_moms
+      lbo->other_m[i], lbo->other_moms[i], lbo->other_prim_moms[i], lbo->nu_boundary_corrections,
+      lbo->cross_nu[i], cross_prim_moms
     );
 
     // Scale u_{sr} and vtSq_{sr} by nu_{sr}.
     for (int d = 0; d < app->vdim + 1; d++) {
       gkyl_dg_mul_op(&app->basis, d, cross_prim_moms, d, cross_prim_moms, 0, lbo->cross_nu[i]);
     }
+
+    // The momentum and energy this part of the operator gives the species, for the fluid state
+    // of a PKPM partner.
+    lbo->exch_func[i](app, vms, lbo, i, cross_prim_moms);
 
     gkyl_array_accumulate(lbo->nu_prim_moms, 1.0, cross_prim_moms);
   }
@@ -411,6 +501,8 @@ vm_species_lbo_cross_init(
   // Empty methods.
   lbo->cross_nu_func = vmlbo_cross_nu_calc_constNu;
   lbo->cross_moms_func = vmlbo_cross_moms_disabled;
+  lbo->prim_nodal_func = vmlbo_prim_nodal_none;
+  lbo->num_pkpm_partners = 0;
 
   if (lbo->collision_id == GKYL_LBO_COLLISIONS) {
     if (vms->lbo.num_cross_collisions) {
@@ -425,7 +517,7 @@ vm_species_lbo_cross_init(
         // fluid species, returns NULL and would segfault below without a message).
         assert(lbo->collide_with[i]);
         my_idx_in_other[i] = -1;
-        for (int j = 0; j < lbo->collide_with[i]->lbo.num_cross_collisions; ++j) {
+        for (int j = 0; j < lbo->collide_with[i]->info.collisions.num_cross_collisions; ++j) {
           if (0 == strcmp(vms->name, lbo->collide_with[i]->info.collisions.collide_with[j])) {
             my_idx_in_other[i] = j;
             break;
@@ -443,7 +535,25 @@ vm_species_lbo_cross_init(
         // Cross-species collision frequency, nu_sr.
         lbo->cross_nu[i] = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
         lbo->other_m[i] = lbo->collide_with[i]->mass;
-        lbo->other_prim_moms[i] = lbo->collide_with[i]->lbo.prim_moms;
+
+        const struct vlasov_species *other =
+          vlasov_find_species(app, vms->info.collisions.collide_with[i]);
+        if (other->type == GKYL_SPECIES_PKPM) {
+          lbo->pkpm_partner[i] = other;
+          lbo->num_pkpm_partners += 1;
+          lbo->other_moms[i] = mkarr(false, 5 * app->basis.num_basis, app->local_ext.volume);
+          lbo->other_prim_moms[i] = mkarr(false, 4 * app->basis.num_basis, app->local_ext.volume);
+          lbo->exch[i] = mkarr(false, 4 * app->basis.num_basis, app->local_ext.volume);
+          lbo->other_moms_func[i] = vmlbo_other_moms_pkpm;
+          lbo->exch_func[i] = vmlbo_exch_pkpm;
+        } else {
+          lbo->pkpm_partner[i] = 0;
+          lbo->other_moms[i] = lbo->collide_with[i]->lbo.moms.marr;
+          lbo->other_prim_moms[i] = lbo->collide_with[i]->lbo.prim_moms;
+          lbo->exch[i] = 0;
+          lbo->other_moms_func[i] = vmlbo_other_moms_kinetic;
+          lbo->exch_func[i] = vmlbo_exch_kinetic;
+        }
 
         double mass_self = vms->mass, mass_other = lbo->collide_with[i]->mass;
         lbo->alpha_E_fac[i] =
@@ -527,6 +637,19 @@ vm_species_lbo_cross_init(
         &vms->grid, &app->basis, &vms->basis, &app->local, app->use_gpu
       );
 
+      // PKPM partners: the node values of this species for them, and the conversions.
+      if (lbo->num_pkpm_partners > 0) {
+        assert(app->vdim == 3 && !app->use_gpu);
+        lbo->pkpm_conv = gkyl_pkpm_coll_cross_inew(&(struct gkyl_pkpm_coll_cross_inp){
+          .conf_basis = &app->basis,
+          .heat_fac = 1.0,
+          .use_gpu = false,
+        });
+        lbo->exch_term = mkarr(false, app->basis.num_basis, app->local_ext.volume);
+        lbo->prim_nodal = mkarr(false, 5 * app->basis.num_basis, app->local_ext.volume);
+        lbo->prim_nodal_func = vmlbo_prim_nodal_calc;
+      }
+
       // Methods chosen at runtime.
       lbo->cross_moms_func = vmlbo_cross_moms_enabled;
     }
@@ -575,6 +698,16 @@ vm_species_lbo_release(const struct gkyl_vlasov_app *app, const struct vm_lbo_co
 
       for (int i = 0; i < lbo->num_cross_collisions; ++i) {
         gkyl_array_release(lbo->cross_nu[i]);
+        if (lbo->pkpm_partner[i]) {
+          gkyl_array_release(lbo->other_moms[i]);
+          gkyl_array_release(lbo->other_prim_moms[i]);
+          gkyl_array_release(lbo->exch[i]);
+        }
+      }
+      if (lbo->num_pkpm_partners > 0) {
+        gkyl_pkpm_coll_cross_release(lbo->pkpm_conv);
+        gkyl_array_release(lbo->exch_term);
+        gkyl_array_release(lbo->prim_nodal);
       }
 
       gkyl_array_release(lbo->alpha_E);

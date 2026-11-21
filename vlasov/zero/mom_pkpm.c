@@ -46,6 +46,7 @@ gkyl_mom_pkpm_inew(const struct gkyl_mom_pkpm_inp *inp)
 
   switch (inp->conf_basis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
+    case GKYL_BASIS_MODAL_TENSOR: // the same basis at polynomial order 1
       mom_pkpm_kernels = ser_mom_pkpm_kernels;
       mom_pkpm_diag_kernels = ser_mom_pkpm_diag_kernels;
 

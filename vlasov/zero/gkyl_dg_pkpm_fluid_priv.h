@@ -70,6 +70,7 @@ choose_pkpm_fluid_kerns(
   assert(poly_order == 1);
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
+    case GKYL_BASIS_MODAL_TENSOR: // the same basis at polynomial order 1
       pkpm->vol_kern = ser_pkpm_fluid_vol_kernels[cdim - 1];
       for (int d = 0; d < cdim; ++d) {
         pkpm->fluid_surf[d] = ser_pkpm_fluid_surf_kernels[cdim - 1].kernels[d];

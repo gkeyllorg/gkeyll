@@ -45,20 +45,15 @@ void gkyl_dg_pkpm_kinetic_vel_free(const struct gkyl_ref_count *ref);
 
 // Kernel tables (p=1 serendipity only; indexed by cdim-1)
 GKYL_CU_D static const pkpm_kinetic_vel_vol_t ser_pkpm_kinetic_vel_vol_kernels[] = {
-  pkpm_kinetic_vel_vol_1x1v_ser_p1,
-  pkpm_kinetic_vel_vol_2x1v_ser_p1,
-  pkpm_kinetic_vel_vol_3x1v_ser_p1,
+  pkpm_kinetic_vel_vol_1x1v_ser_p1, pkpm_kinetic_vel_vol_2x1v_ser_p1,
+  pkpm_kinetic_vel_vol_3x1v_ser_p1
 };
 
 GKYL_CU_D static const pkpm_accel_surf_t ser_pkpm_accel_surf_kernels[] = {
-  pkpm_accel_surfvpar_1x1v_ser_p1,
-  pkpm_accel_surfvpar_2x1v_ser_p1,
-  pkpm_accel_surfvpar_3x1v_ser_p1,
+  pkpm_accel_surfvpar_1x1v_ser_p1, pkpm_accel_surfvpar_2x1v_ser_p1, pkpm_accel_surfvpar_3x1v_ser_p1
 };
 
-
-GKYL_CU_D
-static void
+GKYL_CU_D static void
 choose_pkpm_kinetic_vel_kerns(
   struct dg_pkpm_kinetic_vel *pkpm, enum gkyl_basis_type b_type, int cdim, int poly_order
 )
@@ -66,6 +61,7 @@ choose_pkpm_kinetic_vel_kerns(
   assert(poly_order == 1);
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
+    case GKYL_BASIS_MODAL_TENSOR: // the same basis at polynomial order 1
       pkpm->vol_kern = ser_pkpm_kinetic_vel_vol_kernels[cdim - 1];
       pkpm->accel_surf = ser_pkpm_accel_surf_kernels[cdim - 1];
       break;
@@ -76,8 +72,7 @@ choose_pkpm_kinetic_vel_kerns(
 }
 
 // Volume term: the closure terms.
-GKYL_CU_D
-static double
+GKYL_CU_D static double
 vol(
   const struct gkyl_dg_eqn *eqn, const double *xc, const double *dx, const int *idx,
   const double *qIn, double *GKYL_RESTRICT qRhsOut
@@ -95,8 +90,7 @@ vol(
 
 // Surface term in v_par: each cell owns its lower face; the upper face is the lower
 // face of the cell above.
-GKYL_CU_D
-static double
+GKYL_CU_D static double
 surf(
   const struct gkyl_dg_eqn *eqn, int dir, const double *xcL, const double *xcC, const double *xcR,
   const double *dxL, const double *dxC, const double *dxR, const int *idxL, const int *idxC,
@@ -120,8 +114,7 @@ surf(
 // the regular surface kernel with its slot and the slot of the cell above (the edge
 // cell). The upper edge is a regular face against the velocity ghost cell, whose slot the
 // closure fills too; it never comes through here.
-GKYL_CU_D
-static double
+GKYL_CU_D static double
 boundary_surf(
   const struct gkyl_dg_eqn *eqn, int dir, const double *xcEdge, const double *xcSkin,
   const double *dxEdge, const double *dxSkin, const int *idxEdge, const int *idxSkin,
@@ -132,7 +125,9 @@ boundary_surf(
   if (dir == pkpm->cdim && edge == -1) {
     long pidxSkin = gkyl_range_idx(&pkpm->phase_range, idxSkin);
     const double *flux_l = (const double *)gkyl_array_cfetch(pkpm->vel_flux_surf, pidxSkin);
-    const double *flux_r = (const double *)gkyl_array_cfetch(pkpm->vel_flux_surf, gkyl_range_idx(&pkpm->phase_range, idxEdge));
+    const double *flux_r = (const double *)gkyl_array_cfetch(
+      pkpm->vel_flux_surf, gkyl_range_idx(&pkpm->phase_range, idxEdge)
+    );
     return pkpm->accel_surf(xcSkin, dxSkin, flux_l, flux_r, qRhsOut);
   }
   return 0.0;

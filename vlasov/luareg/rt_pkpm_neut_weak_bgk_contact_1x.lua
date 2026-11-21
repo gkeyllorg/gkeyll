@@ -4,8 +4,8 @@
 -- magnetic field along x sets the field direction.
 -- Weak collisions: the collision frequency nu = 1.0 makes the domain one mean free path long (the
 -- thermal speed sqrt(p/rho) of the hottest gas is 1). The collisions are advanced explicitly.
--- Figures of merit (100 x 16 cells) at t = 2, with nu dt = 0.00022 on average: the L1 differences
--- of the cell averages from the Euler solution (adiabatic index 5/3) are 14% (density) and 0.84%
+-- Figures of merit (100 x 16 cells) at t = 2, with nu dt = 0.0004 on average: the L1 differences of
+-- the cell averages from the Euler solution (adiabatic index 5/3) are 14% (density) and 0.84%
 -- (pressure), the velocity stays below 0.07, and the density between 1.133 and 1.26.
 
 local Vlasov = G0.Vlasov

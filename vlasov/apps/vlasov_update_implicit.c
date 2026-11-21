@@ -38,11 +38,12 @@ stage_implicit_species(gkyl_vlasov_app *app, double dt)
   }
 }
 
-// ---- PKPM species ----
+// ---- species with a fluid aspect ----
 
 // Implicit collisions and sources inside the SSP-RK3 stages: the cross-species momentum and
-// energy exchange of every collision operator, the implicit BGK relaxation of the distributions
-// and the implicit temperature source. After the forward-Euler step and the combination of
+// energy exchange of the species with a fluid aspect (PKPM species and Euler fluids), and for
+// PKPM species the implicit BGK relaxation of the distributions and the implicit temperature
+// source. After the forward-Euler step and the combination of
 // stage i, whose state is in f1 and fluid1 of each species, they take one backward-Euler step
 // over the time weight of the stage: dt, dt/4 and 2 dt/3. The step has three phases over all
 // species: the moments of the stage state (the exchange, which needs every species, and the
@@ -84,16 +85,17 @@ coll_stage_has_implicit_bgk(const struct vlasov_species *s)
   return s->kinetic->pkpm.collision_id == GKYL_BGK_COLLISIONS && s->kinetic->pkpm.bgk.is_implicit;
 }
 
-void
-vm_pkpm_coll_stage_advance(gkyl_vlasov_app *app, int stage, double dt)
+static void
+vm_coll_stage_advance(gkyl_vlasov_app *app, int stage, double dt)
 {
   double dt_stage = vm_pkpm_coll_stage_weight[stage - 1] * dt;
+  // the stage fluid state of each species of the app (NULL without a fluid aspect)
   struct gkyl_array *fluid[GKYL_MAX_SPECIES];
   for (int i = 0; i < app->num_species; ++i) {
-    fluid[i] = app->species[i].fluid->fluid1;
+    fluid[i] = app->species[i].fluid ? app->species[i].fluid->fluid1 : 0;
   }
-  for (int i = 0; i < app->num_species; ++i) {
-    struct vlasov_species *s = &app->species[i];
+  for (int i = 0; i < app->num_pkpm_species; ++i) {
+    struct vlasov_species *s = app->pkpm_species[i];
     if (s->kinetic->pkpm.has_stage_weights) {
       vm_pkpm_coll_stage_combine(app, s, stage);
     }
@@ -102,13 +104,12 @@ vm_pkpm_coll_stage_advance(gkyl_vlasov_app *app, int stage, double dt)
   // first: it also forms the node values and frequencies the implicit steps read. Then the
   // energy step of the implicit temperature source and the shape factor of the implicit step of
   // each species.
-  vm_pkpm_coll_cross_advance(app, dt_stage, fluid);
-  for (int i = 0; i < app->num_species; ++i) {
-    struct vlasov_species *s = &app->species[i];
+  vm_coll_exchange_advance(app, dt_stage, fluid);
+  for (int i = 0; i < app->num_pkpm_species; ++i) {
+    struct vlasov_species *s = app->pkpm_species[i];
+    struct gkyl_array *fluid_s = fluid[s - app->species];
     if (s->kinetic->pkpm.src_bgk.is_implicit) {
-      vm_pkpm_species_source_bgk_implicit_moms(
-        app, s, &s->kinetic->pkpm.src_bgk, dt_stage, fluid[i]
-      );
+      vm_pkpm_species_source_bgk_implicit_moms(app, s, &s->kinetic->pkpm.src_bgk, dt_stage, fluid_s);
     } else if (coll_stage_has_implicit_bgk(s)) {
       vm_pkpm_species_bgk_implicit_moms(app, s, &s->kinetic->pkpm.bgk, dt_stage);
     }
@@ -116,8 +117,8 @@ vm_pkpm_coll_stage_advance(gkyl_vlasov_app *app, int stage, double dt)
 
   // The implicit update of the distributions: the source with the implicit collisions of the
   // species, or the collisions alone.
-  for (int i = 0; i < app->num_species; ++i) {
-    struct vlasov_species *s = &app->species[i];
+  for (int i = 0; i < app->num_pkpm_species; ++i) {
+    struct vlasov_species *s = app->pkpm_species[i];
     if (s->kinetic->pkpm.src_bgk.is_implicit) {
       vm_pkpm_species_source_bgk_implicit_advance(app, s, &s->kinetic->pkpm.src_bgk, s->kinetic->f1);
     } else if (coll_stage_has_implicit_bgk(s)) {
@@ -127,8 +128,9 @@ vm_pkpm_coll_stage_advance(gkyl_vlasov_app *app, int stage, double dt)
 
   // The temperature factors of the stage for the weighted combination, the vertex limiter where
   // the temperature source changed the energy at the nodes, and the boundary conditions.
-  for (int i = 0; i < app->num_species; ++i) {
-    struct vlasov_species *s = &app->species[i];
+  for (int i = 0; i < app->num_pkpm_species; ++i) {
+    struct vlasov_species *s = app->pkpm_species[i];
+    struct gkyl_array *fluid_s = fluid[s - app->species];
     bool has_implicit_bgk = coll_stage_has_implicit_bgk(s);
     if (has_implicit_bgk && s->kinetic->pkpm.has_stage_weights &&
         s->kinetic->pkpm.cross.num_cross_collisions > 0) {
@@ -142,8 +144,8 @@ vm_pkpm_coll_stage_advance(gkyl_vlasov_app *app, int stage, double dt)
         s->kinetic->pkpm.up_stage_weights, &app->local, s->kinetic->pkpm.src_bgk.temp_ratio,
         s->kinetic->pkpm.stage_lam
       );
-      vm_pkpm_species_apply_positivity(app, s->fluid, fluid[i]);
-      vm_pkpm_fluid_species_apply_bc(app, s->fluid, fluid[i]);
+      vm_pkpm_species_apply_positivity(app, s->fluid, fluid_s);
+      vm_pkpm_fluid_species_apply_bc(app, s->fluid, fluid_s);
     }
     if (has_implicit_bgk || s->kinetic->pkpm.src_bgk.is_implicit) {
       vm_pkpm_species_apply_bc(app, s->kinetic, s->kinetic->f1);
@@ -165,9 +167,10 @@ vlasov_stage_implicit(gkyl_vlasov_app *app, int stage, double dt)
   if (app->has_implicit_species_ops) {
     stage_implicit_species(app, stage_dt_frac[stage - 1] * dt);
   }
-  // PKPM species: the exchange between them, implicit BGK collisions and implicit temperature
-  // sources, with the weighted stage combination where the implicit step changes a temperature.
-  if (app->has_pkpm) {
-    vm_pkpm_coll_stage_advance(app, stage, dt);
+  // Species with a fluid aspect: the exchange between them; for PKPM species also implicit BGK
+  // collisions and implicit temperature sources, with the weighted stage combination where the
+  // implicit step changes a temperature.
+  if (app->has_coll_stage) {
+    vm_coll_stage_advance(app, stage, dt);
   }
 }

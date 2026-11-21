@@ -7,8 +7,8 @@
 -- flow, sets the field direction b.
 -- Moderate collisions advanced explicitly, nu = 30.0: the mean free path of the hottest gas is
 -- 0.53 cells. rt_pkpm_neut_bgk_kh_2x has the same collision frequency and grid.
--- Figures of merit (16 x 16 x 8 cells) at t = 3, with nu dt = 0.016 on average: the integral of
--- rho u_y^2 is 5.68e-05 at the end of the run (7.5e-05 at t = 0); mass is conserved to 3e-13.
+-- Figures of merit (16 x 16 x 8 cells) at t = 3, with nu dt = 0.02 on average: the integral of rho
+-- u_y^2 is 5.68e-05 at the end of the run (7.5e-05 at t = 0); mass is conserved to 3e-13.
 
 local Vlasov = G0.Vlasov
 

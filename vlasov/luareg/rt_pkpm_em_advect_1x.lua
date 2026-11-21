@@ -32,7 +32,7 @@ omega = 0.5 -- Oscillating field frequency normalized to cyclotron frequency.
 -- Simulation parameters.
 Nx = 2 -- Cell count (configuration space: x-direction).
 Nvx = 8 -- Cell count (velocity space: normalized parallel velocity w).
-Lx = 4.0 * pi -- Domain size (configuration space: x-direction).
+Lx = 2.0 * pi -- Domain size (configuration space: x-direction).
 vx_max = 8.0 -- Domain boundary (velocity space: w = v_par/xi).
 poly_order = 1 -- Polynomial order.
 basis_type = "serendipity" -- Basis function set.

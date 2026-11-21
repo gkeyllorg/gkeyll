@@ -9,7 +9,7 @@
 -- Figures of merit (100 x 16 cells): the L1 errors of the cell averages are 2.0% (density), 1.1%
 -- (velocity) and 2.3% (pressure); the two centre cells have density 0.0069 and pressure 1.4e-3, the
 -- excess internal energy every conservative scheme leaves at the centre of this problem. The run
--- needs no time-step reduction beyond the first steps (813 steps); the positivity limiter of the
+-- needs no time-step reduction beyond the first steps (746 steps); the positivity limiter of the
 -- fluid state acts on the internal energy in one cell per step. Mass and energy change by the
 -- boundary fluxes of the initial states to 1e-5.
 

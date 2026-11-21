@@ -9,7 +9,9 @@ gkyl_pkpm_stage_weights_inew(const struct gkyl_pkpm_stage_weights_inp *inp)
 {
   assert(!inp->use_gpu);
   assert(
-    inp->conf_basis->b_type == GKYL_BASIS_MODAL_SERENDIPITY && inp->conf_basis->poly_order == 1
+    (inp->conf_basis->b_type == GKYL_BASIS_MODAL_SERENDIPITY ||
+     inp->conf_basis->b_type == GKYL_BASIS_MODAL_TENSOR) &&
+    inp->conf_basis->poly_order == 1
   );
   assert(inp->phase_basis->b_type == GKYL_BASIS_MODAL_HYBRID);
   assert(inp->phase_basis->num_basis == PKPM_NUM_VEL_MODES * inp->conf_basis->num_basis);

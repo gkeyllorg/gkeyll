@@ -4,7 +4,7 @@
 -- a periodic box of length 2 once (t = 2), along the magnetic field.
 -- Stiff collisions, nu = 5.0e6 (nu dt of order 1e4): the BGK relaxation takes one backward-Euler
 -- step in each SSP-RK3 stage, so the transport alone sets the time step.
--- Figures of merit (16 x 16 cells) at t = 2, with nu dt = 13000 on average: the pulse is back at
+-- Figures of merit (16 x 16 cells) at t = 2, with nu dt = 19000 on average: the pulse is back at
 -- its starting position (phase error 0.001 rad) with 0.995 of its amplitude.
 
 local Vlasov = G0.Vlasov

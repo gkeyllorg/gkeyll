@@ -5,7 +5,7 @@
 -- A static magnetic field along x sets the field direction.
 -- Moderate collisions advanced explicitly, nu = 70.0: the mean free path of the hottest gas is 0.9
 -- cells. rt_pkpm_neut_lbo_double_rarefaction_1x has the same collision frequency and grid.
--- Figures of merit (100 x 16 cells) at t = 0.15, with nu dt = 0.013 on average: the L1 differences
+-- Figures of merit (100 x 16 cells) at t = 0.15, with nu dt = 0.018 on average: the L1 differences
 -- of the cell averages from the Euler solution (adiabatic index 5/3) are 5% (density), 4.7%
 -- (velocity) and 9.5% (pressure), and the density between 0.007352 and 0.9973.
 

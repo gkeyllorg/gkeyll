@@ -297,6 +297,31 @@ struct vm_lbo_collisions {
     *cross_nu_prim_moms; // Weak multiplication of collision frequency and primitive moments.
   struct gkyl_array *alpha_E; // Morse's alpha_E factor.
   gkyl_prim_lbo_cross_calc *cross_calc; // LBO cross-primitive moment calculator
+  struct gkyl_array *other_moms[GKYL_MAX_SPECIES]; // Moments (M0, M1, M2) of species colliding with.
+
+  // PKPM partners (three velocity dimensions, CPU). A kinetic partner gives the cross operator
+  // its own moments and primitive moments; for a PKPM partner this species forms both from the
+  // node values of the partner's fluid state. The PKPM species has no collision operator that
+  // moves momentum or energy, so its fluid state takes the opposite of what the cross operator
+  // gives this species: exch, read by the right-hand side of the partner's fluid state.
+  int num_pkpm_partners; // number of PKPM species among the partners
+  const struct vlasov_species *pkpm_partner[GKYL_MAX_SPECIES]; // a PKPM partner (NULL: kinetic)
+  struct gkyl_array *exch[GKYL_MAX_SPECIES]; // [d(m M1)/dt (3), d(m M2)/dt] with a PKPM partner
+  struct gkyl_array *exch_term; // one term of the above
+  struct gkyl_array *prim_nodal; // node values [n, u (3), vtsq] of this species, for the partners
+  gkyl_pkpm_coll_cross *pkpm_conv; // conversions between node values and moments
+  // Moments of partner coll_idx for the cross operator (nothing to do for a kinetic partner).
+  void (*other_moms_func[GKYL_MAX_SPECIES])(
+    gkyl_vlasov_app *app, struct vm_lbo_collisions *lbo, int coll_idx
+  );
+  // Momentum and energy the cross operator with partner coll_idx gives this species, from the
+  // cross primitive moments times the frequency (nothing to do for a kinetic partner).
+  void (*exch_func[GKYL_MAX_SPECIES])(
+    gkyl_vlasov_app *app, const struct vm_species *vms, struct vm_lbo_collisions *lbo, int coll_idx,
+    const struct gkyl_array *nu_cross_prim_moms
+  );
+  // Node values of this species for its PKPM partners (nothing to do without one).
+  void (*prim_nodal_func)(gkyl_vlasov_app *app, struct vm_lbo_collisions *lbo);
 
   struct vm_species_moment moms; // Moments needed in LBO (M0, M1, M2).
 
@@ -454,6 +479,7 @@ struct vm_boundary_fluxes {
   struct gkyl_mom_type *mom_type;
   struct gkyl_mom_calc *integ_moms[2 * GKYL_MAX_CDIM];
   gkyl_ghost_surf_calc *flux_slvr; // boundary flux solver
+  double *red_mom; // reduction of the integrated moments of a boundary (on the device in GPU runs)
 };
 
 struct vm_emitting_wall {
@@ -519,8 +545,7 @@ struct vm_source {
   bool calc_bflux; // boolean for if we are using boundary fluxes to rescale sources
   double scale_factor; // factor to scale source function
   double source_length; // length used to scale the source function
-  double *scale_ptr;
-  struct vm_species *source_species; // species to use for the source
+  struct vlasov_species *source_species; // species whose wall losses set the rate (of any type)
 
   bool rescale_m0; // boolean for if we are rescaling M0
   int num_cross_source; // how many other species are we obtaining sources from?
@@ -604,18 +629,20 @@ struct vm_pkpm_source {
 struct vm_pkpm_bgk_collisions;
 
 // Compute the node values [n, u (3), vtsq] of a species from a fluid state (with the Jacobian).
-typedef void (*vm_pkpm_coll_cross_prim_t)(
+typedef void (*vm_coll_cross_prim_t)(
   gkyl_vlasov_app *app, struct vlasov_species *s, const struct gkyl_array *fluid
 );
 
 // Compute the rate of the kinetic operator of a species with its partners at the nodes.
-typedef void (*vm_pkpm_coll_cross_moms_t)(gkyl_vlasov_app *app, struct vlasov_species *s);
+typedef void (*vm_coll_cross_moms_t)(gkyl_vlasov_app *app, struct vlasov_species *s);
 
-// Collision frequencies and cross-species collisions of a species (LBO or BGK) at the
-// configuration-space nodes (CPU runs): the self-collision frequency when it is computed from
-// the local moments, and for each partner the rate it adds to the kinetic operator of the
-// species and the coefficient of the momentum and energy exchange (struct vm_pkpm_coll_exchange).
-struct vm_pkpm_coll_cross {
+// Collision frequencies and cross-species collisions of a species with a fluid aspect at the
+// configuration-space nodes (CPU runs): the node values of its fluid state, and for each partner
+// the frequencies and the coefficient of the momentum and energy exchange (struct
+// vm_coll_exchange). A PKPM species (LBO or BGK) also has its self-collision frequency when it is
+// computed from the local moments and the rate each partner adds to its kinetic operator; an
+// Euler fluid has no operator.
+struct vm_coll_cross {
   bool is_active; // the species computes its self frequency or has partners
   int num_cross_collisions; // number of species we cross-collide with
   struct vlasov_species *collide_with[GKYL_MAX_SPECIES]; // pointers to cross-species we collide with
@@ -627,19 +654,31 @@ struct vm_pkpm_coll_cross {
   struct gkyl_array *nu_other; // frequency of the current partner on this species
   struct gkyl_array *coef[GKYL_MAX_SPECIES]; // exchange coefficient with each partner at the nodes
   struct gkyl_array *temp_ratio; // temperature before the exchange over that after it
+  // Kinetic partners of a PKPM species (three velocity dimensions). Their cross operator carries
+  // the momentum and energy of the pair, so they are not in the exchange: the species adds the
+  // rate they give its kinetic operator, and its fluid state takes the opposite of what their
+  // operator receives (kin_exch of the fluid aspect).
+  int num_kin_partners; // number of kinetic species we cross-collide with
+  struct vlasov_species *kin_partner[GKYL_MAX_SPECIES]; // those species
+  struct gkyl_array *kin_nu_self[GKYL_MAX_SPECIES]; // frequency of this species on each, at the nodes
+  struct gkyl_array
+    *kin_nu_other[GKYL_MAX_SPECIES]; // frequency of each on this species, at the nodes
+  const struct gkyl_array *kin_prim[GKYL_MAX_SPECIES]; // node values [n, u (3), vtsq] of each
   struct gkyl_array *nu_kin_self; // rate of the kinetic operator from self collisions
   struct gkyl_array *nu_kin; // rate of the kinetic operator (self plus partners)
   gkyl_pkpm_coll_nu *up_self_nu; // computed self frequency
   gkyl_pkpm_coll_nu *up_cross_nu; // cross frequencies: given, or computed
   gkyl_pkpm_coll_cross *up; // kinetic rate and exchange coefficient with a partner
-  vm_pkpm_coll_cross_prim_t calc_prim; // node values and self frequency of the stage
-  vm_pkpm_coll_cross_prim_t calc_step_prim; // node values and self frequency of the implicit stage
-  vm_pkpm_coll_cross_moms_t calc_moms; // rate of the kinetic operator of the stage
+  vm_coll_cross_prim_t calc_prim; // node values and self frequency of the stage
+  vm_coll_cross_prim_t calc_step_prim; // node values and self frequency of the implicit stage
+  vm_coll_cross_moms_t calc_moms; // rate of the kinetic operator of the stage
 };
 
-// Momentum and energy exchange of the species that have partners: one backward-Euler step over
-// all of them in each SSP-RK3 stage.
-struct vm_pkpm_coll_exchange {
+// Momentum and energy exchange of the species with a fluid aspect that have partners (PKPM
+// species and Euler fluids): one backward-Euler step over all of them in each SSP-RK3 stage.
+struct vm_coll_exchange {
+  int num_active; // number of species with collision data (partners or a computed self frequency)
+  struct vlasov_species *active[GKYL_MAX_SPECIES]; // those species
   int num_species; // number of species with partners
   struct vlasov_species *species[GKYL_MAX_SPECIES]; // those species
   struct gkyl_pkpm_coll_cross_species inp[GKYL_MAX_SPECIES]; // their data in the exchange
@@ -822,7 +861,7 @@ struct vm_pkpm_kinetic {
   enum gkyl_collision_id collision_id; // type of collisions
   struct vm_pkpm_lbo_collisions lbo; // collisions object
   struct vm_pkpm_bgk_collisions bgk; // BGK collisions object
-  struct vm_pkpm_coll_cross cross; // cross-species collisions (LBO or BGK)
+  struct vm_coll_cross cross; // cross-species collisions (LBO or BGK)
   // Stage combination of a species whose implicit kinetic relaxation carries a temperature change
   // (implicit BGK with partners, implicit temperature source): the stages combine the
   // distributions with weights that are linear in the physical second moments.
@@ -889,6 +928,10 @@ struct vm_pkpm_fluid {
   double src_scale; // rate factor of the stage (0 without a source)
   bool has_src_bgk_rhs; // flag to indicate there is an explicit temperature source
   struct gkyl_array *src_bgk_rhs; // its energy relaxation of the stage
+  // Kinetic collision partners: the momentum and energy their cross operators receive from this
+  // species per unit time, [d(m M1)/dt (3), d(m M2)/dt]; the right-hand side takes the opposite.
+  int num_kin_exch;
+  const struct gkyl_array *kin_exch[GKYL_MAX_SPECIES];
 };
 
 // ---- kinetic and fluid aspect objects ----
@@ -1214,6 +1257,8 @@ struct vm_fluid_species {
   struct gkyl_array *app_accel_host; // host copy for use in IO and projecting
   gkyl_proj_on_basis *app_accel_proj; // projector for acceleration
 
+  struct vm_coll_cross coll_cross; // collisions of a fluid species with other species (exchange)
+
   // Vertex positivity limiter of the fluid state (Euler and isothermal Euler at polynomial order
   // 1; a no-op otherwise).
   double positivity_eps; // relative floor of the vertex density (and internal energy for Euler)
@@ -1339,6 +1384,13 @@ struct vlasov_species {
   struct gkyl_app_restart_status (*read_from_frame_func)(
     gkyl_vlasov_app *app, struct vlasov_species *sp, int frame
   );
+  // Collision data of a species with a fluid aspect (that of the kinetic aspect of a PKPM species,
+  // of the fluid aspect of a fluid species; NULL for a kinetic species), for its partners.
+  struct vm_coll_cross *coll_cross;
+  // Number of particles per unit time the species loses through its walls, from the boundary
+  // fluxes of the stage (kinetic species: known once its right-hand side is; PKPM species: once
+  // its self moments are; zero for a fluid species).
+  double (*wall_loss_rate_func)(gkyl_vlasov_app *app, const struct vlasov_species *sp);
   // Release the aspects of the species and the container's allocations.
   void (*release_func)(const gkyl_vlasov_app *app, struct vlasov_species *sp);
 };
@@ -1809,6 +1861,16 @@ void vlasov_pkpm_species_stat_write(gkyl_vlasov_app *app, struct vlasov_species 
  * @param app Vlasov app object
  */
 void vlasov_species_init_pkpm(struct gkyl_vm *vm, gkyl_vlasov_app *app);
+
+/**
+ * Number of particles per unit time the species loses through its walls, from the
+ * boundary fluxes of the stage. For the boundary-flux source of a species of any type.
+ *
+ * @param app Vlasov app object
+ * @param sp Species container
+ * @return Loss rate summed over the walls and the ranks
+ */
+double vlasov_species_wall_loss_rate(gkyl_vlasov_app *app, const struct vlasov_species *sp);
 
 /**
  * Release the aspects of the species and the container's allocations.
@@ -2432,6 +2494,16 @@ void vm_species_bflux_rhs(
   gkyl_vlasov_app *app, const struct vm_species *species, struct vm_boundary_fluxes *bflux,
   const struct gkyl_array *fin, struct gkyl_array *rhs
 );
+
+/**
+ * Number of particles per unit time through the boundaries, from the integrated
+ * moments of the boundary fluxes vm_species_bflux_rhs last computed.
+ *
+ * @param app Vlasov app object
+ * @param bflux Species boundary flux object
+ * @return Loss rate summed over the boundaries and the ranks
+ */
+double vm_species_bflux_loss_rate(gkyl_vlasov_app *app, const struct vm_boundary_fluxes *bflux);
 
 /**
  * Release species boundary flux object.
@@ -3407,35 +3479,63 @@ void vm_pkpm_species_bgk_init(
   gkyl_vlasov_app *app, struct vlasov_species *s, struct vm_pkpm_bgk_collisions *bgk
 );
 
-// Computed collision frequencies and cross-species collisions (vm_pkpm_species_coll_cross.c), for
-// LBO and BGK alike.
-// Initialize them for a species; call for every species, after the collision objects of all
+// Cross-species collisions of the species with a fluid aspect (vm_coll_exchange.c).
+// Operations of a species that needs none.
+void vm_coll_cross_prim_none(
+  gkyl_vlasov_app *app, struct vlasov_species *s, const struct gkyl_array *fluid
+);
+void vm_coll_cross_moms_none(gkyl_vlasov_app *app, struct vlasov_species *s);
+// Node values [n, u (3), vtsq] of a fluid state of the species.
+void vm_coll_cross_prim_nodal(
+  gkyl_vlasov_app *app, struct vlasov_species *s, const struct gkyl_array *fluid
+);
+// The two frequencies of the pair (species, partner i) at the nodes, into nu_self and nu_other of
+// the species. The partner forms the same two from the same node values.
+void vm_coll_cross_pair_nu(gkyl_vlasov_app *app, struct vlasov_species *s, int i);
+// Reference density, temperature, Planck constant and permittivity of the Coulomb logarithm of
+// a computed frequency (1 where the input does not set them).
+void vm_coll_cross_ref_params(const struct gkyl_vlasov_collisions *coll, double ref[4]);
+// The partners of a species among the first num_partners of its input: those with a fluid
+// aspect, with their reference frequencies and exchange coefficients, and the kinetic ones (of
+// a PKPM species); and the node values of its fluid state. Call once the containers of all
+// species exist and the kinetic species are linked.
+void vm_coll_cross_partners_init(gkyl_vlasov_app *app, struct vlasov_species *s, int num_partners);
+void vm_coll_cross_partners_release(const struct vm_coll_cross *cross);
+// Collision data of a fluid species; call for every fluid species. One without partners gets
+// operations that do nothing.
+void vm_fluid_species_coll_cross_init(gkyl_vlasov_app *app, struct vlasov_species *s);
+void vm_fluid_species_coll_cross_release(
+  const gkyl_vlasov_app *app, const struct vm_coll_cross *cross
+);
+// Initialize the exchange of the species that have partners; call after the collision data of
+// every species (vm_pkpm_species_coll_cross_init, vm_fluid_species_coll_cross_init).
+void vm_coll_exchange_init(gkyl_vlasov_app *app);
+// The momentum and energy exchange between the species with partners over dt, on the given
+// fluid states (indexed by the species of the app), which it updates in place. It first forms
+// the node values of those states (and the self frequencies of implicit operators).
+void vm_coll_exchange_advance(gkyl_vlasov_app *app, double dt, struct gkyl_array *fluid[]);
+void vm_coll_exchange_release(const gkyl_vlasov_app *app);
+
+// Computed self-collision frequency and the kinetic part of the cross-species collisions of a
+// PKPM species (vm_pkpm_species_coll_cross.c), for LBO and BGK alike.
+// Initialize them for a species; call for every PKPM species, after the collision objects of all
 // species exist. A species with a given self frequency and no partners gets operations that do
 // nothing.
 void vm_pkpm_species_coll_cross_init(gkyl_vlasov_app *app, struct vlasov_species *s);
-// Initialize the exchange of the species that have partners; call after
-// vm_pkpm_species_coll_cross_init of every species.
-void vm_pkpm_coll_cross_init(gkyl_vlasov_app *app);
 // Node values [n, u (3), vtsq] of the species from the fluid state of the stage, and its
 // self-collision frequency when it is computed.
 void vm_pkpm_species_coll_cross_prim(
   gkyl_vlasov_app *app, struct vlasov_species *s, const struct gkyl_array *fluidin
 );
-// The rate of the kinetic operator of the stage with every partner at the nodes. Call after
-// vm_pkpm_species_coll_cross_prim (and the LBO moments) of every species.
+// The rate of the kinetic operator of the stage with every partner at the nodes. Call after the
+// node values (and the LBO moments) of every species.
 void vm_pkpm_species_coll_cross_moms(gkyl_vlasov_app *app, struct vlasov_species *s);
-// One backward-Euler step over dt of the momentum and energy exchange of every species with its
-// partners, on the given fluid states (one per species of the app; with the vertex limiter and
-// the fluid boundary conditions). It also forms the node values and frequencies the implicit BGK
-// steps read, so it comes before them.
-void vm_pkpm_coll_cross_advance(gkyl_vlasov_app *app, double dt, struct gkyl_array *fluid[]);
-// Shape factor of the implicit BGK step of a species with partners, after vm_pkpm_coll_cross_advance.
+// Shape factor of the implicit BGK step of a species with partners, after vm_coll_exchange_advance.
 void vm_pkpm_species_coll_cross_shape(
   gkyl_vlasov_app *app, struct vlasov_species *s, double dt, struct gkyl_array *shape
 );
-void vm_pkpm_coll_cross_release(const gkyl_vlasov_app *app);
 void vm_pkpm_species_coll_cross_release(
-  const gkyl_vlasov_app *app, const struct vm_pkpm_coll_cross *cross
+  const gkyl_vlasov_app *app, const struct vm_coll_cross *cross
 );
 
 // Temperature source (vm_pkpm_species_source_bgk.c). The explicit form enters the right-hand
@@ -3443,7 +3543,7 @@ void vm_pkpm_species_coll_cross_release(
 // added by the fluid right-hand side, the relaxation of the distributions by the kinetic one. The
 // implicit form is one backward-Euler step over dt on a distribution and a fluid state of the
 // species (interior only), together with its implicit BGK collisions if it has them: _moms steps
-// the energy of the fluid and forms the shape factor (after vm_pkpm_coll_cross_advance), _advance
+// the energy of the fluid and forms the shape factor (after vm_coll_exchange_advance), _advance
 // steps the distribution.
 void vm_pkpm_species_source_bgk_init(
   gkyl_vlasov_app *app, struct vlasov_species *s, struct vm_pkpm_source_bgk *src
@@ -3494,7 +3594,7 @@ void vm_pkpm_species_bgk_kinetic_rhs(
   const struct gkyl_array *fin, struct gkyl_array *rhs
 );
 // One backward-Euler step of the BGK operator over dt on a distribution of the species (interior
-// only): _moms forms the shape factor of the step (after vm_pkpm_coll_cross_advance), _advance
+// only): _moms forms the shape factor of the step (after vm_coll_exchange_advance), _advance
 // steps the distribution.
 void vm_pkpm_species_bgk_implicit_moms(
   gkyl_vlasov_app *app, struct vlasov_species *s, struct vm_pkpm_bgk_collisions *bgk, double dt
@@ -3503,10 +3603,6 @@ void vm_pkpm_species_bgk_implicit_advance(
   gkyl_vlasov_app *app, struct vlasov_species *s, struct vm_pkpm_bgk_collisions *bgk,
   struct gkyl_array *f
 );
-// Implicit collisions and sources of a Runge-Kutta stage (stage = 1, 2, 3), after its
-// forward-Euler step and combination: one backward-Euler step over the time weight of the stage
-// on the stage states f1 and fluid1 of the species (vlasov_update_implicit.c).
-void vm_pkpm_coll_stage_advance(gkyl_vlasov_app *app, int stage, double dt);
 void vm_pkpm_species_bgk_release(
   const gkyl_vlasov_app *app, const struct vm_pkpm_bgk_collisions *bgk
 );

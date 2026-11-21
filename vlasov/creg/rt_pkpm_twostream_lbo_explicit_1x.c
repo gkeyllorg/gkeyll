@@ -13,8 +13,8 @@
 // The fluid-field coupling is advanced explicitly within the SSP-RK3 step.
 // Kinetic linear theory without collisions: a purely growing mode with gamma = 0.2770 omega_pe
 // (cold-beam limit 0.308).
-// Figures of merit (64 x 32 cells): the field energy grows at gamma = 0.2757 over t = 20-40
-// (collisionless 0.2778) and saturates at t = 45.4 with peak energy 100 (collisionless 105). It is
+// Figures of merit (64 x 32 cells): the field energy grows at gamma = 0.2760 over t = 20-40
+// (collisionless 0.2781) and saturates at t = 45.4 with peak energy 100 (collisionless 105). It is
 // 68.0 at t = 48 and 52.4 at t = 50. A Vlasov 1x3v run with the same operator (serendipity p2, 64 x
 // 32 x 4 x 4 cells) gives 0.2758, a peak of 101.5 at t = 45.4, then 72.0 and 56.4. Electron number
 // is conserved to 3e-13.

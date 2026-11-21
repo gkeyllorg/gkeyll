@@ -1408,6 +1408,7 @@ vm_fluid_species_release(const gkyl_vlasov_app *app, struct vm_fluid_species *f)
   // along with other equation specific data.
   gkyl_wv_eqn_release(f->equation);
   f->release_func(app, f);
+  vm_fluid_species_coll_cross_release(app, &f->coll_cross);
 
   // Release solver and fluid arrays for update.
   gkyl_dg_updater_fluid_release(f->advect_slvr);

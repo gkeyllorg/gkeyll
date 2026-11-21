@@ -7,8 +7,8 @@
 // flow, sets the field direction b.
 // Stiff collisions, nu = 1.0e7 (nu dt of order 1e4): the BGK relaxation takes one backward-Euler
 // step in each SSP-RK3 stage, so the transport alone sets the time step.
-// Figures of merit (16 x 16 x 8 cells) at t = 3, with nu dt = 9900 on average: the integral of rho
-// u_y^2 is 0.0196 at the end of the run (7.5e-05 at t = 0); mass is conserved to 2e-13.
+// Figures of merit (16 x 16 x 8 cells) at t = 3, with nu dt = 15000 on average: the integral of rho
+// u_y^2 is 0.0196 at the end of the run (7.5e-05 at t = 0); mass is conserved to 1e-13.
 
 #include <math.h>
 #include <stdio.h>

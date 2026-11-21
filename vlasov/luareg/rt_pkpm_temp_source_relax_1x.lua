@@ -40,7 +40,7 @@ Tperp_over_T = 0.5 * (3.0 - Tpar_over_T) -- Initial perpendicular temperature / 
 -- Simulation parameters.
 Nx = 2 -- Cell count (configuration space: x-direction).
 Nvx = 48 -- Cell count (velocity space: normalized parallel velocity w).
-Lx = 5.0 -- Domain size (configuration space: x-direction).
+Lx = 2.5 -- Domain size (configuration space: x-direction).
 vx_max = 8.0 -- Domain boundary (velocity space: w = v_par/xi).
 poly_order = 1 -- Polynomial order.
 basis_type = "serendipity" -- Basis function set.

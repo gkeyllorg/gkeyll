@@ -14,8 +14,8 @@
 -- changes seven-fold in the first step of the heated species.
 -- Figures of merit (2 x 48 cells, to t = 0.5): density and momentum are conserved to round-off and
 -- the constraints stay at [1, 0, 1]. Each step multiplies T - T_Q by R(z) to 1e-9 and the pressure
--- anisotropy p_par - p_perp by R(z) to 1e-6, and the temperature stays between T_0 and T_Q: 6.9882
--- and 0.40118 after the first step.
+-- anisotropy p_par - p_perp by R(z) to 1e-6, and the temperature stays between T_0 and T_Q: 6.9697
+-- and 0.40303 after the first step.
 
 local Vlasov = G0.Vlasov
 
@@ -44,7 +44,7 @@ Tperp_over_T = 0.5 * (3.0 - Tpar_over_T) -- Initial perpendicular temperature / 
 -- Simulation parameters.
 Nx = 2 -- Cell count (configuration space: x-direction).
 Nvx = 48 -- Cell count (velocity space: normalized parallel velocity w).
-Lx = 5.0 -- Domain size (configuration space: x-direction).
+Lx = 2.5 -- Domain size (configuration space: x-direction).
 vx_max = 8.0 -- Domain boundary (velocity space: w = v_par/xi).
 poly_order = 1 -- Polynomial order.
 basis_type = "serendipity" -- Basis function set.

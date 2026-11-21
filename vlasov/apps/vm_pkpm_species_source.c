@@ -233,11 +233,7 @@ vm_pkpm_species_source_calc_rate(
   if (!src->calc_bflux) {
     return;
   }
-  double tot = 0.0;
-  for (int i = 0; i < 2 * app->cdim; ++i) {
-    tot += src->source_species->kinetic->pkpm.bflux[i];
-  }
-  src->scale = tot / src->source_length;
+  src->scale = vlasov_species_wall_loss_rate(app, src->source_species) / src->source_length;
   s->fluid->pkpm.src_scale = src->scale; // the fluid aspect scales the fluid image of the profile
 }
 

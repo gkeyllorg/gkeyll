@@ -8,7 +8,7 @@
 -- The fluid-field coupling is advanced explicitly within the SSP-RK3 step.
 -- Kinetic linear theory: a purely growing mode with gamma = 0.2770 omega_pe (cold-beam limit
 -- 0.308).
--- Figures of merit (64 x 32 cells): the field energy grows at gamma = 0.2778 over t = 20-40
+-- Figures of merit (64 x 32 cells): the field energy grows at gamma = 0.2781 over t = 20-40
 -- (Vlasov, serendipity p2 on the same grid: 0.2778) and saturates at t = 45.2 with peak energy 105
 -- (Vlasov 106). After saturation it follows the decay of the Vlasov run: 68.9 at t = 48 and 52.8 at
 -- t = 50 against 73.5 and 57.2. Electron number is conserved to 3e-13.

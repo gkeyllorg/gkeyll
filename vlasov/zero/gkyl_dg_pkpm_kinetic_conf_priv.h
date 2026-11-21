@@ -65,6 +65,7 @@ choose_pkpm_kinetic_conf_vol_kern(enum gkyl_basis_type b_type, int cdim, int pol
   assert(poly_order == 1);
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
+    case GKYL_BASIS_MODAL_TENSOR: // the same basis at polynomial order 1
       return ser_pkpm_kinetic_conf_vol_kernels[cdim - 1];
       break;
     default:
@@ -87,6 +88,7 @@ choose_pkpm_stream_surf_kern(enum gkyl_basis_type b_type, int cdim, int poly_ord
   assert(poly_order == 1);
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
+    case GKYL_BASIS_MODAL_TENSOR: // the same basis at polynomial order 1
       return ser_pkpm_stream_surf_kernels[cdim - 1].kernels[dir];
       break;
     default:

@@ -9,8 +9,8 @@
 // Weak collisions: the collision frequency nu = 0.583 makes the domain one mean free path long
 // (the hottest gas is at the bottom wall, pressure 0.085 and density 1; the box is 1/2 high). The
 // collisions are advanced explicitly.
-// Figures of merit (12 x 24 x 8 cells) at t = 3.5, with nu dt = 0.0012 on average: the integral of
-// rho u_y^2 is 5.4e-06 at the end of the run (7.46e-07 at t = 0); mass is conserved to 1e-13.
+// Figures of merit (12 x 24 x 8 cells) at t = 3.5, with nu dt = 0.0017 on average: the integral of
+// rho u_y^2 is 5.4e-06 at the end of the run (7.46e-07 at t = 0); mass is conserved to 7e-14.
 
 #include <math.h>
 #include <stdio.h>

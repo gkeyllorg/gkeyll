@@ -7,8 +7,8 @@
 // flow, sets the field direction b.
 // Weak collisions: the collision frequency nu = 1.0 makes the domain one mean free path long (the
 // thermal speed sqrt(p/rho) of the hottest gas is 1). The collisions are advanced explicitly.
-// Figures of merit (16 x 16 x 8 cells) at t = 3, with nu dt = 0.0013 on average: the integral of
-// rho u_y^2 is 0.00152 at the end of the run (7.5e-05 at t = 0); mass is conserved to 1e-13.
+// Figures of merit (16 x 16 x 8 cells) at t = 3, with nu dt = 0.0022 on average: the integral of
+// rho u_y^2 is 0.00152 at the end of the run (7.5e-05 at t = 0); mass is conserved to 8e-14.
 
 #include <math.h>
 #include <stdio.h>

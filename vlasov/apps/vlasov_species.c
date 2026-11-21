@@ -13,13 +13,28 @@
 
 // --- Methods assigned by the constructors -----------------------------------
 
-// No-op moments phase for species types with no work in that phase.
+// Self moments of a fluid species: the node values of its state for its collision partners.
 static void
-species_no_calc_moms(
+fluid_calc_self_moms(
   gkyl_vlasov_app *app, struct vlasov_species *sp, int stage, struct gkyl_array *fin,
   const struct gkyl_array *fluidin
 )
 {
+  sp->coll_cross->calc_prim(app, sp, fluidin);
+}
+
+// Wall losses of a kinetic species: the integrated boundary fluxes of its right-hand side.
+static double
+kinetic_wall_loss_rate(gkyl_vlasov_app *app, const struct vlasov_species *sp)
+{
+  return vm_species_bflux_loss_rate(app, &sp->kinetic->bflux);
+}
+
+// A fluid species has no wall-loss diagnostic.
+static double
+fluid_wall_loss_rate(gkyl_vlasov_app *app, const struct vlasov_species *sp)
+{
+  return 0.0;
 }
 
 // Nothing to keep at the end of a time step (kinetic and fluid species).
@@ -282,6 +297,7 @@ vlasov_kinetic_species_init(
   sp->kinetic->charge = inp->charge;
   sp->kinetic->mass = inp->mass;
 
+  sp->coll_cross = 0;
   sp->calc_self_moms_func = kinetic_calc_self_moms;
   sp->calc_coupled_vars_func = kinetic_calc_coupled_vars;
   sp->finish_stage_func = species_no_finish_stage;
@@ -291,6 +307,7 @@ vlasov_kinetic_species_init(
   sp->write_mom_func = species_write_mom_aspects;
   sp->write_integrated_mom_func = species_write_integrated_mom_aspects;
   sp->read_from_frame_func = species_read_from_frame_aspects;
+  sp->wall_loss_rate_func = kinetic_wall_loss_rate;
   sp->release_func = species_release_aspects;
   // Explicit field coupling by field type: Maxwell fields take the current
   // density (through the GR kernel for a triad species coupled to GR-Maxwell),
@@ -332,7 +349,8 @@ vlasov_fluid_species_init(
   sp->fluid->charge = inp->charge;
   sp->fluid->mass = inp->mass;
 
-  sp->calc_self_moms_func = species_no_calc_moms;
+  sp->coll_cross = &sp->fluid->coll_cross;
+  sp->calc_self_moms_func = fluid_calc_self_moms;
   sp->calc_coupled_vars_func = fluid_calc_coupled_vars;
   sp->finish_stage_func = species_no_finish_stage;
   sp->complete_step_func = species_no_complete_step;
@@ -341,6 +359,7 @@ vlasov_fluid_species_init(
   sp->write_mom_func = species_write_mom_aspects;
   sp->write_integrated_mom_func = species_write_integrated_mom_aspects;
   sp->read_from_frame_func = species_read_from_frame_aspects;
+  sp->wall_loss_rate_func = fluid_wall_loss_rate;
   sp->release_func = species_release_aspects;
   // Field coupling of the stage: the current of a momentum-carrying (Euler or
   // isothermal Euler) fluid when the Maxwell field is coupled explicitly; nothing otherwise.
@@ -801,31 +820,45 @@ vlasov_species_init_fluid_aspects(struct gkyl_vm *vm, gkyl_vlasov_app *app)
       vm_fluid_species_source_init(app, vmf, &vmf->src);
     }
   }
+
+  // Collisions refer to other species: after the containers of all species exist.
+  for (int i = 0; i < app->num_species; ++i) {
+    if (app->species[i].type == GKYL_SPECIES_FLUID) {
+      vm_fluid_species_coll_cross_init(app, &app->species[i]);
+    }
+  }
 }
 
 void
 vlasov_species_init_pkpm(struct gkyl_vm *vm, gkyl_vlasov_app *app)
 {
+  app->num_pkpm_species = 0;
   for (int i = 0; i < app->num_species; ++i) {
     if (app->species[i].type == GKYL_SPECIES_PKPM) {
-      vm_pkpm_species_init(vm, app, &app->species[i]);
+      app->pkpm_species[app->num_pkpm_species++] = &app->species[i];
     }
+  }
+
+  for (int i = 0; i < app->num_pkpm_species; ++i) {
+    vm_pkpm_species_init(vm, app, app->pkpm_species[i]);
   }
 
   // Sources refer to other species (the boundary-flux rate): after every species exists.
-  for (int i = 0; i < app->num_species; ++i) {
-    struct vlasov_species *sp = &app->species[i];
-    if (sp->type == GKYL_SPECIES_PKPM) {
-      vm_pkpm_species_source_init(app, sp, &sp->kinetic->pkpm.src);
-    }
+  for (int i = 0; i < app->num_pkpm_species; ++i) {
+    struct vlasov_species *sp = app->pkpm_species[i];
+    vm_pkpm_species_source_init(app, sp, &sp->kinetic->pkpm.src);
   }
 
   // Cross-species terms need the collision objects of the partners.
-  for (int i = 0; i < app->num_species; ++i) {
-    if (app->species[i].type == GKYL_SPECIES_PKPM) {
-      vm_pkpm_species_coll_cross_init(app, &app->species[i]);
-    }
+  for (int i = 0; i < app->num_pkpm_species; ++i) {
+    vm_pkpm_species_coll_cross_init(app, app->pkpm_species[i]);
   }
+}
+
+double
+vlasov_species_wall_loss_rate(gkyl_vlasov_app *app, const struct vlasov_species *sp)
+{
+  return sp->wall_loss_rate_func(app, sp);
 }
 
 // Release the aspects of the species and the container's allocations.

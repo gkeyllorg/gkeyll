@@ -1568,6 +1568,11 @@ struct vlasov_fluid_species_lw {
 
   bool has_diffusion_func; // Is there a diffusion tensor function?
   struct lua_func_ctx diffusion_func_ref; // Lua registry reference to diffusion tensor function.
+
+  // Collisions with other species (names and scalars are in the input struct).
+  bool has_cross_nu_func[GKYL_MAX_SPECIES]; // Are there cross-collision frequency functions?
+  struct lua_func_ctx cross_nu_func_ref
+    [GKYL_MAX_SPECIES]; // Lua registry references to cross-collision frequency functions.
 };
 
 // Release the fluid species' reference on its equation object.
@@ -1651,6 +1656,42 @@ vlasov_fluid_species_lw_new(lua_State *L)
     }
   }
 
+  // Collisions with PKPM species and other Euler fluids (the exchange of the fluid states).
+  bool has_cross_nu_func[GKYL_MAX_SPECIES] = {false};
+  int cross_nu_func_ref[GKYL_MAX_SPECIES];
+  with_lua_tbl_tbl(L, "collisions")
+  {
+    struct gkyl_vlasov_collisions *coll = &vm_fluid_species.collisions;
+    coll->nu_frac = glua_tbl_get_number(L, "nuFrac", 1.0);
+    // Parameters used to compute Coulomb logarithm.
+    coll->den_ref = glua_tbl_get_number(L, "n0", 1.0);
+    coll->temp_ref = glua_tbl_get_number(L, "T0", 1.0);
+    coll->hbar = glua_tbl_get_number(L, "hbar", 1.0);
+    coll->eps0 = glua_tbl_get_number(L, "epsilon0", 1.0);
+
+    coll->num_cross_collisions = glua_tbl_get_integer(L, "numCrossCollisions", 0);
+    with_lua_tbl_tbl(L, "collideWith")
+    {
+      for (int i = 0; i < coll->num_cross_collisions; i++) {
+        strcpy(coll->collide_with[i], glua_tbl_iget_string(L, i + 1, ""));
+        cross_nu_func_ref[i] = LUA_NOREF;
+      }
+    }
+    // Cross-collision frequencies, one table per entry of collideWith.
+    with_lua_tbl_tbl(L, "collideWithCrossNu")
+    {
+      for (int i = 0; i < coll->num_cross_collisions; i++) {
+        if (glua_tbl_iget_tbl(L, i + 1)) {
+          if (glua_tbl_get_func(L, "crossNu")) {
+            cross_nu_func_ref[i] = luaL_ref(L, LUA_REGISTRYINDEX);
+            has_cross_nu_func[i] = true;
+          }
+        }
+        lua_pop(L, 1);
+      }
+    }
+  }
+
   with_lua_tbl_tbl(L, "bcx")
   {
     vm_lw_check_bc_array(L, "FluidSpecies", "bcx");
@@ -1691,6 +1732,12 @@ vlasov_fluid_species_lw_new(lua_State *L)
     .nret = vm_fluid_species.equation->num_equations,
     .L = L,
   };
+
+  for (int i = 0; i < vm_fluid_species.collisions.num_cross_collisions; i++) {
+    vmfs_lw->has_cross_nu_func[i] = has_cross_nu_func[i];
+    vmfs_lw->cross_nu_func_ref[i] =
+      (struct lua_func_ctx){.func_ref = cross_nu_func_ref[i], .ndim = 0, .nret = 1, .L = L};
+  }
 
   vmfs_lw->has_app_advect_func = has_app_advect_func;
   vmfs_lw->app_advect_func_ref = (struct lua_func_ctx){
@@ -3722,6 +3769,14 @@ vm_app_new(lua_State *L)
         vm_app_ctx(app_lw, &fluid_species[s]->diffusion_func_ref, cdim);
       dij_ctx->nret = cdim == 2 ? 3 : 6; // symmetric diffusion tensor components
       vm.species[num_kinetic_species + s].fluid.diffusion.Dij_ctx = dij_ctx;
+    }
+
+    struct gkyl_vlasov_collisions *coll = &vm.species[num_kinetic_species + s].fluid.collisions;
+    for (int i = 0; i < coll->num_cross_collisions; i++) {
+      if (fluid_species[s]->has_cross_nu_func[i]) {
+        coll->cross_nu[i] = gkyl_lw_eval_cb;
+        coll->cross_nu_ctx[i] = vm_app_ctx(app_lw, &fluid_species[s]->cross_nu_func_ref[i], cdim);
+      }
     }
   }
 

@@ -88,7 +88,7 @@ create_ctx(void)
   // Simulation parameters.
   int Nx = 2; // Cell count (configuration space: x-direction).
   int Nvx = 32; // Cell count (velocity space: normalized parallel velocity w).
-  double Lx = 5.0; // Domain size (configuration space: x-direction).
+  double Lx = 2.5; // Domain size (configuration space: x-direction).
   double vx_max = 8.0; // Domain boundary (velocity space: w = v_par/xi).
   int poly_order = 1; // Polynomial order.
   double cfl_frac = 1.0; // CFL coefficient.

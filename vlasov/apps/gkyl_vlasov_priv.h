@@ -219,9 +219,13 @@ struct gkyl_vlasov_app {
 
   // PKPM species.
   bool has_pkpm; // some species is a PKPM species
+  int num_pkpm_species; // number of PKPM species
+  struct vlasov_species *pkpm_species[GKYL_MAX_SPECIES]; // the PKPM species, in the order of the app
   struct gkyl_dg_conf_nodal
     *conf_nodal; // conversions to and from the configuration-nodal, velocity-modal form (CPU runs)
-  struct vm_pkpm_coll_exchange coll_exchange; // cross-species momentum and energy exchange
+  // Cross-species momentum and energy exchange of the species with a fluid aspect.
+  struct vm_coll_exchange coll_exchange;
+  bool has_coll_stage; // PKPM species or an exchange: vm_coll_stage_advance runs in every stage
 
   // pointer to function that takes a single-step of simulation
   struct gkyl_update_status (*update_func)(gkyl_vlasov_app *app, double dt0);
@@ -257,8 +261,8 @@ void vlasov_src_omega_p_explicit(gkyl_vlasov_app *app, const struct gkyl_array *
 // stage state after the explicit part of the stage, its BCs and the stage
 // combination: implicit BGK collisions and implicit temperature sources, one
 // backward-Euler step of both over the share of dt the stage adds to its state
-// (dt, dt/4, 2 dt/3); for PKPM species also the exchange between them
-// (vm_pkpm_coll_stage_advance). A no-op without implicit operators and PKPM species.
+// (dt, dt/4, 2 dt/3); for the species with a fluid aspect also the momentum and energy exchange
+// between them. A no-op without implicit operators, PKPM species and such an exchange.
 void vlasov_stage_implicit(gkyl_vlasov_app *app, int stage, double dt);
 
 // Take a single time-step of the staggered operator split: one implicit fluid-EM source step over

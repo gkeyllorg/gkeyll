@@ -10,12 +10,12 @@
 // weight of the stage, with their frequencies summed. The collisions leave the temperature to the
 // source, which multiplies T - T_Q by R(z) = [1/3 + (2/3) (3/4 + (1/4)/(1 + z))/(1 + z/4)]/(1 + 2
 // z/3) every step, z = nu_Q dt, and the pressure anisotropy decays by R((nu_c + nu_Q) dt).
-// Figures of merit (2 x 48 cells, 31 steps, nu_Q dt between 1.5 and 1.7, nu_c dt between 1500 and
+// Figures of merit (2 x 48 cells, 32 steps, nu_Q dt between 1.5 and 1.7, nu_c dt between 1500 and
 // 1700): density and momentum are conserved to round-off (1e-14) and the constraints stay at [1, 0,
-// 1]. Each step multiplies T - T_Q by R(nu_Q dt) to 1e-9, and the temperatures are 6.9882 and
-// 0.40118 after the first step. The first step multiplies the pressure anisotropy p_par - p_perp by
-// 2.871e-4, which is R((nu_c + nu_Q) dt) to 1e-11 (the two operators as successive backward-Euler
-// steps in each stage would give 1.327e-4, and the collisions alone 2.874e-4); after three steps
+// 1]. Each step multiplies T - T_Q by R(nu_Q dt) to 1e-9, and the temperatures are 6.9697 and
+// 0.40303 after the first step. The first step multiplies the pressure anisotropy p_par - p_perp by
+// 2.895e-4, which is R((nu_c + nu_Q) dt) to 1e-11 (the two operators as successive backward-Euler
+// steps in each stage would give 1.344e-4, and the collisions alone 2.898e-4); after three steps
 // the anisotropy is at round-off.
 
 #include <math.h>
@@ -110,7 +110,7 @@ create_ctx(void)
   // Simulation parameters.
   int Nx = 2; // Cell count (configuration space: x-direction).
   int Nvx = 48; // Cell count (velocity space: normalized parallel velocity w).
-  double Lx = 5.0; // Domain size (configuration space: x-direction).
+  double Lx = 2.5; // Domain size (configuration space: x-direction).
   double vx_max = 8.0; // Domain boundary (velocity space: w = v_par/xi).
   int poly_order = 1; // Polynomial order.
   double cfl_frac = 1.0; // CFL coefficient.

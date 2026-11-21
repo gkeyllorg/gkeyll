@@ -5,7 +5,7 @@
 -- A static magnetic field along x sets the field direction.
 -- Stiff collisions, nu = 5.0e7 (nu dt of order 1e4): the BGK relaxation takes one backward-Euler
 -- step in each SSP-RK3 stage, so the transport alone sets the time step.
--- Figures of merit (100 x 16 cells) at t = 0.15, with nu dt = 9100 on average: the L1 differences
+-- Figures of merit (100 x 16 cells) at t = 0.15, with nu dt = 9500 on average: the L1 differences
 -- of the cell averages from the Euler solution (adiabatic index 5/3) are 1.9% (density), 1.6%
 -- (velocity) and 2.3% (pressure), and the density between 0.006764 and 1.011.
 

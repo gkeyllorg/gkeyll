@@ -16,7 +16,10 @@ gkyl_dg_pkpm_vel_flux_surf_setup(
 {
   int cdim = inp->conf_basis->ndim, pdim = inp->phase_basis->ndim;
   assert(pdim == cdim + 1);
-  assert(inp->conf_basis->poly_order == 1 && inp->conf_basis->b_type == GKYL_BASIS_MODAL_SERENDIPITY);
+  assert(
+    inp->conf_basis->poly_order == 1 && (inp->conf_basis->b_type == GKYL_BASIS_MODAL_SERENDIPITY ||
+                                         inp->conf_basis->b_type == GKYL_BASIS_MODAL_TENSOR)
+  );
   up->phase_grid = *inp->phase_grid;
   up->cdim = cdim;
   up->pdim = pdim;
@@ -47,9 +50,9 @@ gkyl_dg_pkpm_vel_flux_surf_inew(const struct gkyl_dg_pkpm_vel_flux_surf_inp *inp
 void
 gkyl_dg_pkpm_vel_flux_surf_advance(
   struct gkyl_dg_pkpm_vel_flux_surf *up, const struct gkyl_range *conf_range,
-  const struct gkyl_range *phase_range, const struct gkyl_array *wnode, const struct gkyl_array *theta,
-  const struct gkyl_array *bvar, const struct gkyl_array *alpha_0, const struct gkyl_array *c_h,
-  const struct gkyl_array *fin, struct gkyl_array *vel_flux_surf
+  const struct gkyl_range *phase_range, const struct gkyl_array *wnode,
+  const struct gkyl_array *theta, const struct gkyl_array *bvar, const struct gkyl_array *alpha_0,
+  const struct gkyl_array *c_h, const struct gkyl_array *fin, struct gkyl_array *vel_flux_surf
 )
 {
 #ifdef GKYL_HAVE_CUDA
@@ -68,8 +71,10 @@ gkyl_dg_pkpm_vel_flux_surf_advance(
   while (gkyl_range_iter_next(&citer)) {
     long cidx = gkyl_range_idx(conf_range, citer.idx);
     // the node values of the configuration cell, once for all its velocity faces
-    up->vel_nodes(gkyl_array_cfetch(wnode, cidx), gkyl_array_cfetch(theta, cidx),
-      gkyl_array_cfetch(bvar, cidx), gkyl_array_cfetch(alpha_0, cidx), gkyl_array_cfetch(c_h, cidx), nv);
+    up->vel_nodes(
+      gkyl_array_cfetch(wnode, cidx), gkyl_array_cfetch(theta, cidx), gkyl_array_cfetch(bvar, cidx),
+      gkyl_array_cfetch(alpha_0, cidx), gkyl_array_cfetch(c_h, cidx), nv
+    );
     gkyl_copy_int_arr(cdim, citer.idx, idx);
     gkyl_copy_int_arr(cdim, citer.idx, idx_l);
     // the lower face of every cell but the lowest (the velocity domain edge, set by the closure)
@@ -78,8 +83,10 @@ gkyl_dg_pkpm_vel_flux_surf_advance(
       idx_l[cdim] = v - 1;
       long pidx = gkyl_range_idx(phase_range, idx), pidx_l = gkyl_range_idx(phase_range, idx_l);
       gkyl_rect_grid_cell_center(&up->phase_grid, idx, xc);
-      up->vel_flux(xc, up->phase_grid.dx, nv, gkyl_array_cfetch(fin, pidx_l),
-        gkyl_array_cfetch(fin, pidx), gkyl_array_fetch(vel_flux_surf, pidx));
+      up->vel_flux(
+        xc, up->phase_grid.dx, nv, gkyl_array_cfetch(fin, pidx_l), gkyl_array_cfetch(fin, pidx),
+        gkyl_array_fetch(vel_flux_surf, pidx)
+      );
     }
   }
 }
@@ -111,9 +118,9 @@ gkyl_dg_pkpm_vel_flux_surf_cu_dev_inew(const struct gkyl_dg_pkpm_vel_flux_surf_i
 void
 gkyl_dg_pkpm_vel_flux_surf_advance_cu(
   struct gkyl_dg_pkpm_vel_flux_surf *up, const struct gkyl_range *conf_range,
-  const struct gkyl_range *phase_range, const struct gkyl_array *wnode, const struct gkyl_array *theta,
-  const struct gkyl_array *bvar, const struct gkyl_array *alpha_0, const struct gkyl_array *c_h,
-  const struct gkyl_array *fin, struct gkyl_array *vel_flux_surf
+  const struct gkyl_range *phase_range, const struct gkyl_array *wnode,
+  const struct gkyl_array *theta, const struct gkyl_array *bvar, const struct gkyl_array *alpha_0,
+  const struct gkyl_array *c_h, const struct gkyl_array *fin, struct gkyl_array *vel_flux_surf
 )
 {
   assert(false);

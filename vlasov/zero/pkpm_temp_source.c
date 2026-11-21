@@ -43,7 +43,9 @@ gkyl_pkpm_temp_source_inew(const struct gkyl_pkpm_temp_source_inp *inp)
 {
   assert(!inp->use_gpu);
   assert(
-    inp->conf_basis->b_type == GKYL_BASIS_MODAL_SERENDIPITY && inp->conf_basis->poly_order == 1
+    (inp->conf_basis->b_type == GKYL_BASIS_MODAL_SERENDIPITY ||
+     inp->conf_basis->b_type == GKYL_BASIS_MODAL_TENSOR) &&
+    inp->conf_basis->poly_order == 1
   );
 
   struct gkyl_pkpm_temp_source *up = gkyl_malloc(sizeof(*up));

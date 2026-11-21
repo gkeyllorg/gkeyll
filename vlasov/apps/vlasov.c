@@ -11,6 +11,7 @@
 
 #include <gkyl_vlasov_priv.h>
 #include <gkyl_app_priv.h>
+#include <gkyl_wv_euler.h>
 
 #include <mpack.h>
 
@@ -114,6 +115,99 @@ vlasov_meta_from_mpack(struct gkyl_msgpack_data *mt)
   return meta;
 }
 
+// An Euler fluid with gas_gamma = 5/3: the fluid with three velocity degrees of freedom.
+static bool
+vlasov_fluid_is_euler_3dof(const struct gkyl_vlasov_fluid_species *fluid)
+{
+  return fluid->equation->type == GKYL_EQN_EULER &&
+         fabs(gkyl_wv_euler_gas_gamma(fluid->equation) - 5.0 / 3.0) <= 1.0e-12;
+}
+
+// The species a species names must exist and be usable by its operators.
+// Collision partners: kinetic species collide with kinetic species through their operators;
+// PKPM species and fluid species collide with each other through the exchange of their fluid
+// states, which has three degrees of freedom, so a fluid in it is an Euler fluid with gas_gamma
+// = 5/3. A kinetic and a PKPM species collide through the LBO operator of the kinetic species,
+// which carries the exchange of the pair in the stages. The partners of an adaptive source are read through the data of the kinetic route.
+// The source species of a boundary-flux source needs wall losses (a kinetic or PKPM species); a
+// PKPM species forms its source rate before the right-hand sides, when only the losses of PKPM
+// species are known, so its source species must be a PKPM species.
+static void
+vlasov_check_species_partners(const gkyl_vlasov_app *app, const struct gkyl_vm *vm)
+{
+  for (int i = 0; i < vm->num_species; ++i) {
+    const struct gkyl_vlasov_species *inp = &vm->species[i];
+    bool is_fluid = inp->type == GKYL_SPECIES_FLUID;
+    const struct gkyl_vlasov_collisions *coll = is_fluid ? &inp->fluid.collisions :
+                                                           &inp->kinetic.collisions;
+    for (int j = 0; j < coll->num_cross_collisions; ++j) {
+      const struct vlasov_species *other = vlasov_find_species(app, coll->collide_with[j]);
+      bool both_kinetic = other && inp->type == GKYL_SPECIES_VLASOV &&
+                          other->type == GKYL_SPECIES_VLASOV;
+      bool both_exchange = other && inp->type != GKYL_SPECIES_VLASOV &&
+                           other->type != GKYL_SPECIES_VLASOV;
+      bool kinetic_pkpm = other && inp->type != GKYL_SPECIES_FLUID &&
+                          other->type != GKYL_SPECIES_FLUID && !both_kinetic && !both_exchange;
+      if (!both_kinetic && !both_exchange && !kinetic_pkpm) {
+        gkyl_exit(
+          "gkyl_vlasov_app_new: a kinetic species collides with kinetic and PKPM species, a fluid species with PKPM and fluid species."
+        );
+      }
+      if (kinetic_pkpm) {
+        const struct gkyl_vlasov_collisions *kin_coll =
+          inp->type == GKYL_SPECIES_VLASOV ? coll :
+                                             &vm->species[other - app->species].kinetic.collisions;
+        const struct gkyl_vlasov_collisions *pkpm_coll =
+          inp->type == GKYL_SPECIES_PKPM ? coll :
+                                           &vm->species[other - app->species].kinetic.collisions;
+        if (kin_coll->collision_id != GKYL_LBO_COLLISIONS || app->use_gpu ||
+            (pkpm_coll->collision_id == GKYL_BGK_COLLISIONS && pkpm_coll->is_implicit)) {
+          gkyl_exit(
+            "gkyl_vlasov_app_new: collisions between a kinetic and a PKPM species need LBO collisions of the kinetic species and explicit collisions of the PKPM species, on the CPU."
+          );
+        }
+        if (!coll->cross_nu[j]) {
+          gkyl_exit(
+            "gkyl_vlasov_app_new: collisions between a kinetic and a PKPM species need the cross-collision frequencies (cross_nu) of both."
+          );
+        }
+      }
+    }
+    if (is_fluid && coll->num_cross_collisions > 0 && !vlasov_fluid_is_euler_3dof(&inp->fluid)) {
+      gkyl_exit(
+        "gkyl_vlasov_app_new: a fluid species with collisions must be an Euler fluid with gas_gamma = 5/3."
+      );
+    }
+    if (is_fluid) {
+      continue;
+    }
+    const struct gkyl_vlasov_source *src = &inp->kinetic.source;
+    if (src->source_id == GKYL_BFLUX_SOURCE) {
+      const struct vlasov_species *other = vlasov_find_species(app, src->source_species);
+      if (!other || other->type == GKYL_SPECIES_FLUID) {
+        gkyl_exit(
+          "gkyl_vlasov_app_new: the source species of a boundary-flux source must be a kinetic or a PKPM species."
+        );
+      }
+      if (inp->type == GKYL_SPECIES_PKPM && other->type != GKYL_SPECIES_PKPM) {
+        gkyl_exit(
+          "gkyl_vlasov_app_new: the source species of the boundary-flux source of a PKPM species must be a PKPM species."
+        );
+      }
+    }
+    if (src->source_id == GKYL_PROJ_ADAPT_DENSITY_SOURCE) {
+      for (int j = 0; j < src->num_cross_source; ++j) {
+        const struct vlasov_species *other = vlasov_find_species(app, src->source_with[j]);
+        if (!other || other->type != inp->type) {
+          gkyl_exit(
+            "gkyl_vlasov_app_new: the partners of an adaptive source must be of the type of the species."
+          );
+        }
+      }
+    }
+  }
+}
+
 gkyl_vlasov_app *
 gkyl_vlasov_app_new(struct gkyl_vm *vm)
 {
@@ -148,13 +242,41 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   strcpy(app->name, vm->name);
   app->tcurr = 0.0; // reset on init
 
-  // PKPM species need polynomial order 1 with the serendipity basis in configuration space.
+  // PKPM species need polynomial order 1 in configuration space. The serendipity and tensor
+  // bases are the same there; the type selects the phase-space basis of the kinetic species of
+  // the run (tensor: the hybrid basis, which PKPM species always use).
   app->has_pkpm = false;
+  app->num_pkpm_species = 0; // gathered in vlasov_species_init_pkpm
   for (int i = 0; i < ntot; ++i) {
     app->has_pkpm = app->has_pkpm || vm->species[i].type == GKYL_SPECIES_PKPM;
   }
-  if (app->has_pkpm && (poly_order != 1 || vm->basis_type != GKYL_BASIS_MODAL_SERENDIPITY)) {
-    gkyl_exit("gkyl_vlasov_app_new: PKPM species need polyOrder = 1 with the serendipity basis.");
+  if (app->has_pkpm && poly_order != 1) {
+    gkyl_exit("gkyl_vlasov_app_new: PKPM species need polyOrder = 1.");
+  }
+  // A PKPM species has three velocity degrees of freedom, and so must the species it shares a run
+  // with: kinetic species with three velocity dimensions, Euler fluids with gas_gamma = 5/3.
+  for (int i = 0; app->has_pkpm && i < ntot; ++i) {
+    if (vm->species[i].type == GKYL_SPECIES_VLASOV && vm->vdim != 3) {
+      gkyl_exit(
+        "gkyl_vlasov_app_new: a kinetic species in a run with PKPM species needs three velocity dimensions."
+      );
+    }
+    if (vm->species[i].type == GKYL_SPECIES_FLUID &&
+        !vlasov_fluid_is_euler_3dof(&vm->species[i].fluid)) {
+      gkyl_exit(
+        "gkyl_vlasov_app_new: a fluid species in a run with PKPM species must be an Euler fluid with gas_gamma = 5/3."
+      );
+    }
+  }
+  // So does the exchange between colliding species with a fluid aspect, which is at the nodes.
+  bool has_fluid_collisions = false;
+  for (int i = 0; i < ntot; ++i) {
+    has_fluid_collisions = has_fluid_collisions ||
+                           (vm->species[i].type == GKYL_SPECIES_FLUID &&
+                            vm->species[i].fluid.collisions.num_cross_collisions > 0);
+  }
+  if (has_fluid_collisions && (poly_order != 1 || app->use_gpu)) {
+    gkyl_exit("gkyl_vlasov_app_new: collisions of fluid species need polyOrder = 1 on the CPU.");
   }
 
   if (app->use_gpu) {
@@ -302,9 +424,9 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   gkyl_vlasov_position_map_write(app->pos_map, app->comm, app->name, "position-map");
 
   // Conversions to the configuration-nodal, velocity-modal form of the node-based operators of
-  // PKPM species (CPU runs).
+  // PKPM species and of the collisions of fluid species (CPU runs).
   app->conf_nodal = 0;
-  if (app->has_pkpm && !app->use_gpu) {
+  if ((app->has_pkpm || has_fluid_collisions) && !app->use_gpu) {
     // the phase-space basis of the PKPM species (the same for all of them, one velocity dimension)
     struct gkyl_basis phase_basis;
     gkyl_cart_modal_hybrid(&phase_basis, cdim, 1);
@@ -332,6 +454,7 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   for (int i = 0; i < ntot; ++i) {
     vlasov_species_init(app, &vm->species[i], &app->species[i]);
   }
+  vlasov_check_species_partners(app, vm);
 
   // Species initialization runs in three phases: kinetic aspects, then the
   // links between them (emission, cross collisions, sources), then the fluid
@@ -342,8 +465,10 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   vlasov_species_init_fluid_aspects(vm, app);
   if (app->has_pkpm) {
     vlasov_species_init_pkpm(vm, app);
-    vm_pkpm_coll_cross_init(app);
   }
+  // The momentum and energy exchange between the species with a fluid aspect that collide.
+  vm_coll_exchange_init(app);
+  app->has_coll_stage = app->has_pkpm || app->coll_exchange.num_species > 0;
 
   // Fluid-EM coupling: supported for the fluid aspects that carry a momentum (PKPM species;
   // fluid species with the Euler or isothermal Euler equations)
@@ -1137,9 +1262,7 @@ gkyl_vlasov_app_release(gkyl_vlasov_app *app)
   if (app->has_fluid_em_coupling) {
     vm_fluid_em_coupling_release(app, app->fl_em);
   }
-  if (app->has_pkpm) {
-    vm_pkpm_coll_cross_release(app);
-  }
+  vm_coll_exchange_release(app);
   if (app->conf_nodal) {
     gkyl_dg_conf_nodal_release(app->conf_nodal);
   }

@@ -6,7 +6,7 @@
 -- Weak collisions: the collision frequency nu = 0.5774 makes the domain one mean free path long
 -- (the gas is cold at t = 0, so the thermal speed is that of the shocked gas, sqrt(u^2/3) =
 -- 0.577). The collisions are advanced explicitly.
--- Figures of merit (64 x 16 cells) at t = 1, with nu dt = 0.000049 on average: the L1 differences
+-- Figures of merit (64 x 16 cells) at t = 1, with nu dt = 0.000051 on average: the L1 differences
 -- of the cell averages from the Euler solution (adiabatic index 5/3) are 45% (density), 96%
 -- (velocity) and 64% (pressure), and the density between 2.034 and 2.662.
 
