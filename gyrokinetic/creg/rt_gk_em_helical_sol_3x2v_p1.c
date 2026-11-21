@@ -237,8 +237,11 @@ phix(const double *xc, void *ctx)
   // double theta = asin(Lp/Lt);
   // return (y/sin(theta) + z*cos(theta))/Rc; // Original Shi mapping.
 
+  // The y term uses the pitch and radius at x=Rc so that the geometry does not
+  // depend on y (y is periodic), and y is a length across B at x=Rc.
   double theta = thetax(xc, ctx);
-  return (y / sin(theta) + z * cos(theta)) / x;
+  double theta_c = thetax((double[]){Rc, y, z}, ctx);
+  return y / (Rc * sin(theta_c)) + z * cos(theta) / x;
   // return y/Rc + (Bt * z*sin(theta))/(Bv * x); // Helical sheared mapping.
 }
 
