@@ -73,7 +73,7 @@ gk_species_kinetic_bc_ts_flux_enabled(
   // Then twist-shift the fluxes and copy them from ghost to skin.
   for (int i = 0; i < species->bc_ts_num_edge; i++) {
     int e = species->bc_ts_edge[i];
-    gkyl_bc_twistshift_advance(e == 0 ? species->bc_ts_lo : species->bc_ts_up, rhs, rhs);
+    gkyl_bc_twistshift_advance(species->bc_ts[e], rhs, rhs);
     gkyl_array_copy_range_to_range(rhs, rhs, species->bc_ts_skin[e], species->bc_ts_ghost[e]);
   }
 }
@@ -320,8 +320,6 @@ gk_species_kinetic_release_dynamic(const gkyl_gyrokinetic_app *app, const struct
       gkyl_bc_sheath_gyrokinetic_release(gks->bc_sheath_lo);
       gk_species_phi_wall_release(app, &gks->phi_wall_lo);
       release_surr_aux_var = true;
-    } else if (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_TWISTSHIFT) {
-      gkyl_bc_twistshift_release(gks->bc_ts_lo);
     } else if ((gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_COPY) ||
                (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_ABSORB) ||
                (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_REFLECT) ||
@@ -336,8 +334,6 @@ gk_species_kinetic_release_dynamic(const gkyl_gyrokinetic_app *app, const struct
       gkyl_bc_sheath_gyrokinetic_release(gks->bc_sheath_up);
       gk_species_phi_wall_release(app, &gks->phi_wall_up);
       release_surr_aux_var = true;
-    } else if (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_TWISTSHIFT) {
-      gkyl_bc_twistshift_release(gks->bc_ts_up);
     } else if ((gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_COPY) ||
                (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_ABSORB) ||
                (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_REFLECT) ||
@@ -351,14 +347,11 @@ gk_species_kinetic_release_dynamic(const gkyl_gyrokinetic_app *app, const struct
     gkyl_array_release(gks->temp_sheath);
   }
 
-  if (app->gk_geom->has_LCFS && app->cdim == 3) {
-    // Free twishift memory.
-    gkyl_bc_twistshift_release(gks->bc_ts_lo);
-    gkyl_bc_twistshift_release(gks->bc_ts_up);
-  }
   if (gks->has_bc_ts) {
-    gkyl_boundary_flux_release(gks->bc_ts_flux_slvr[0]);
-    gkyl_boundary_flux_release(gks->bc_ts_flux_slvr[1]);
+    for (int e = 0; e < 2; e++) {
+      gkyl_bc_twistshift_release(gks->bc_ts[e]);
+      gkyl_boundary_flux_release(gks->bc_ts_flux_slvr[e]);
+    }
   }
 
   gkyl_free_hodev(app->use_gpu, gks->omega_cfl);
@@ -476,21 +469,6 @@ gk_species_kinetic_init_dynamic(
                               mkarr(app->use_gpu, gks->basis.num_basis, buff_sz) :
                               mkarr(app->use_gpu, 1, 1);
 
-  if (gks->lower_bc[par_dir].type == GKYL_BC_GK_SPECIES_TWISTSHIFT &&
-      gks->upper_bc[par_dir].type == GKYL_BC_GK_SPECIES_TWISTSHIFT) {
-    // Local range extended in the BC dir, on the coarse grid.
-    int lower_bcdir_ext[pdim], upper_bcdir_ext[pdim];
-    for (int i = 0; i < pdim; i++) {
-      lower_bcdir_ext[i] = gks->local.lower[i];
-      upper_bcdir_ext[i] = gks->local.upper[i];
-    }
-    lower_bcdir_ext[par_dir] = gks->local_ext.lower[par_dir];
-    upper_bcdir_ext[par_dir] = gks->local_ext.upper[par_dir];
-    gkyl_sub_range_init(
-      &gks->bc_ts_local_par_ext, &gks->local_ext, lower_bcdir_ext, upper_bcdir_ext
-    );
-  }
-
   for (int d = 0; d < cdim; ++d) {
     // Lower BC.
     if (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING ||
@@ -506,33 +484,6 @@ gk_species_kinetic_init_dynamic(
         &gks->grid, &gks->local, gks->basis.poly_order, app->use_gpu
       );
       gk_species_phi_wall_init(app, &gks->lower_bc[d], &gks->phi_wall_lo);
-    } else if (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_TWISTSHIFT) {
-      assert(cdim == 3);
-      struct gkyl_bc_twistshift_inp tsinp = {
-        .bc_dir = d,
-        .shift_dir = 1, // y shift.
-        .shear_dir = 0, // shift varies with x.
-        .edge = GKYL_LOWER_EDGE,
-        .cdim = cdim,
-        .bcdir_ext_update_r = &gks->bc_ts_local_par_ext,
-        .num_ghost = num_ghost,
-        .basis = &gks->basis,
-        .grid = &gks->grid,
-        .use_gpu = app->use_gpu,
-        .upsample_factor = app->core_parallel_bcs.ts_upsample_factor,
-        .filter_half_width = app->core_parallel_bcs.ts_filter_half_width,
-        .filter_cutoff_wavelength = app->core_parallel_bcs.ts_filter_cutoff_wavelength,
-      };
-      // User shift functions are projected on the (possibly upsampled) twist-shift grid.
-      if (app->core_parallel_bcs.lower_shift_func) {
-        tsinp.shift_func = app->core_parallel_bcs.lower_shift_func;
-        tsinp.shift_func_ctx = app->core_parallel_bcs.lower_shift_ctx;
-      } else {
-        tsinp.shift_dg = app->delta_ts_x_lo;
-      }
-
-      gks->bc_ts_lo = gkyl_bc_twistshift_inew(&tsinp);
-
     } else if ((gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_COPY) ||
                (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_ABSORB) ||
                (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_REFLECT) ||
@@ -582,32 +533,6 @@ gk_species_kinetic_init_dynamic(
         &gks->grid, &gks->local, gks->basis.poly_order, app->use_gpu
       );
       gk_species_phi_wall_init(app, &gks->upper_bc[d], &gks->phi_wall_up);
-    } else if (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_TWISTSHIFT) {
-      assert(cdim == 3);
-      struct gkyl_bc_twistshift_inp tsinp = {
-        .bc_dir = d,
-        .shift_dir = 1, // y shift.
-        .shear_dir = 0, // shift varies with x.
-        .edge = GKYL_UPPER_EDGE,
-        .cdim = cdim,
-        .bcdir_ext_update_r = &gks->bc_ts_local_par_ext,
-        .num_ghost = num_ghost,
-        .basis = &gks->basis,
-        .grid = &gks->grid,
-        .use_gpu = app->use_gpu,
-        .upsample_factor = app->core_parallel_bcs.ts_upsample_factor,
-        .filter_half_width = app->core_parallel_bcs.ts_filter_half_width,
-        .filter_cutoff_wavelength = app->core_parallel_bcs.ts_filter_cutoff_wavelength,
-      };
-      // User shift functions are projected on the (possibly upsampled) twist-shift grid.
-      if (app->core_parallel_bcs.upper_shift_func) {
-        tsinp.shift_func = app->core_parallel_bcs.upper_shift_func;
-        tsinp.shift_func_ctx = app->core_parallel_bcs.upper_shift_ctx;
-      } else {
-        tsinp.shift_dg = app->delta_ts_x_up;
-      }
-
-      gks->bc_ts_up = gkyl_bc_twistshift_inew(&tsinp);
     } else if ((gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_COPY) ||
                (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_ABSORB) ||
                (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_REFLECT) ||
@@ -644,60 +569,10 @@ gk_species_kinetic_init_dynamic(
     }
   }
 
-  if (gk_app_inp->geometry.has_LCFS && app->cdim == 3) {
-    // Allocate a twistshift operator in the core.
-    struct gkyl_bc_twistshift_inp tsinp_lo = {
-      .bc_dir = par_dir,
-      .shift_dir = 1, // y shift.
-      .shear_dir = 0, // shift varies with x.
-      .edge = GKYL_LOWER_EDGE,
-      .cdim = cdim,
-      .bcdir_ext_update_r = &gks->local_par_ext_core,
-      .num_ghost = num_ghost,
-      .basis = &gks->basis,
-      .grid = &gks->grid,
-      .use_gpu = app->use_gpu,
-      .upsample_factor = app->core_parallel_bcs.ts_upsample_factor,
-      .filter_half_width = app->core_parallel_bcs.ts_filter_half_width,
-      .filter_cutoff_wavelength = app->core_parallel_bcs.ts_filter_cutoff_wavelength,
-    };
-    // User shift functions are projected on the (possibly upsampled) twist-shift grid.
-    if (app->core_parallel_bcs.lower_shift_func) {
-      tsinp_lo.shift_func = app->core_parallel_bcs.lower_shift_func;
-      tsinp_lo.shift_func_ctx = app->core_parallel_bcs.lower_shift_ctx;
-    } else {
-      tsinp_lo.shift_dg = app->delta_ts_x_lo;
-    }
-    gks->bc_ts_lo = gkyl_bc_twistshift_inew(&tsinp_lo);
-
-    struct gkyl_bc_twistshift_inp tsinp_up = {
-      .bc_dir = par_dir,
-      .shift_dir = 1, // y shift.
-      .shear_dir = 0, // shift varies with x.
-      .edge = GKYL_UPPER_EDGE,
-      .cdim = cdim,
-      .bcdir_ext_update_r = &gks->local_par_ext_core,
-      .num_ghost = num_ghost,
-      .basis = &gks->basis,
-      .grid = &gks->grid,
-      .use_gpu = app->use_gpu,
-      .upsample_factor = app->core_parallel_bcs.ts_upsample_factor,
-      .filter_half_width = app->core_parallel_bcs.ts_filter_half_width,
-      .filter_cutoff_wavelength = app->core_parallel_bcs.ts_filter_cutoff_wavelength,
-    };
-    // User shift functions are projected on the (possibly upsampled) twist-shift grid.
-    if (app->core_parallel_bcs.upper_shift_func) {
-      tsinp_up.shift_func = app->core_parallel_bcs.upper_shift_func;
-      tsinp_up.shift_func_ctx = app->core_parallel_bcs.upper_shift_ctx;
-    } else {
-      tsinp_up.shift_dg = app->delta_ts_x_up;
-    }
-    gks->bc_ts_up = gkyl_bc_twistshift_inew(&tsinp_up);
-  }
-
   gks->bc_ts_flux_func = gk_species_kinetic_bc_ts_flux_disabled;
   gks->has_bc_ts = gks->collisionless.collisionless_id && (is_ts_lcfs || is_ts_lower);
   if (gks->has_bc_ts) {
+    assert(cdim == 3);
     // Twist-shift boundaries this MPI rank is on.
     gks->bc_ts_num_edge = 0;
     if (gkyl_range_is_on_lower_edge(par_dir, &gks->local, &gks->global)) {
@@ -721,10 +596,37 @@ gk_species_kinetic_init_dynamic(
       gks->collisionless.collisionless_id == GKYL_GK_COLLISIONLESS_PASSIVE ?
         gkyl_dg_updater_gyrokinetic_passive_acquire_eqn(gks->collisionless.passive_slvr) :
         gkyl_dg_updater_gyrokinetic_acquire_eqn(gks->collisionless.slvr);
+    // A user shift function overrides the shift from the geometry.
+    evalf_t shift_func[] = {
+      app->core_parallel_bcs.lower_shift_func, app->core_parallel_bcs.upper_shift_func
+    };
+    void *shift_ctx[] = {
+      app->core_parallel_bcs.lower_shift_ctx, app->core_parallel_bcs.upper_shift_ctx
+    };
+    struct gkyl_array *shift_dg[] = {app->delta_ts_x_lo, app->delta_ts_x_up};
     for (int e = 0; e < 2; e++) {
+      enum gkyl_edge_loc edge = e == 0 ? GKYL_LOWER_EDGE : GKYL_UPPER_EDGE;
+      struct gkyl_bc_twistshift_inp tsinp = {
+        .bc_dir = par_dir,
+        .shift_dir = 1, // y shift.
+        .shear_dir = 0, // shift varies with x.
+        .edge = edge,
+        .cdim = cdim,
+        .bcdir_ext_update_r = is_ts_lcfs ? &gks->local_par_ext_core : &gks->local_par_ext,
+        .num_ghost = num_ghost,
+        .basis = &gks->basis,
+        .grid = &gks->grid,
+        .shift_func = shift_func[e],
+        .shift_func_ctx = shift_ctx[e],
+        .shift_dg = shift_func[e] ? NULL : shift_dg[e],
+        .use_gpu = app->use_gpu,
+        .upsample_factor = app->core_parallel_bcs.ts_upsample_factor,
+        .filter_half_width = app->core_parallel_bcs.ts_filter_half_width,
+        .filter_cutoff_wavelength = app->core_parallel_bcs.ts_filter_cutoff_wavelength,
+      };
+      gks->bc_ts[e] = gkyl_bc_twistshift_inew(&tsinp);
       gks->bc_ts_flux_slvr[e] = gkyl_boundary_flux_new(
-        par_dir, e == 0 ? GKYL_LOWER_EDGE : GKYL_UPPER_EDGE, &gks->grid, gks->bc_ts_skin[e],
-        gks->bc_ts_ghost[e], 1, &eqn, app->use_gpu
+        par_dir, edge, &gks->grid, gks->bc_ts_skin[e], gks->bc_ts_ghost[e], 1, &eqn, app->use_gpu
       );
     }
     gkyl_dg_eqn_release(eqn);
