@@ -14,6 +14,7 @@ struct gkyl_mbcc_sr {
 
 // top-level internal App
 struct gkyl_gyrokinetic_multib_app {
+  struct gkyl_gyrokinetic_multib_fdot_args fdot_args; // Solver-owned state pointer arrays.
   char name[128]; // name of app
   struct gkyl_comm *comm; // global communicator to use
   bool use_gpu; // Whether to use the GPU.
